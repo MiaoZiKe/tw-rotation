@@ -174,3 +174,38 @@ def test_token_days_left_goes_negative_when_expired():
 def test_token_days_left_survives_garbage(bad):
     """token 打錯字不該讓整個管線炸掉，回 None 就好。"""
     assert finmind.token_days_left(bad) is None
+
+
+# ------------------------------------------------------------------ 股票名稱
+
+def test_stock_name_prefers_company_info():
+    """回補後 price_daily 最新一列的 name 是 NaN，不能直接取 iloc[-1]。"""
+    import numpy as np
+    import pandas as pd
+
+    from pipeline.build_payload import _stock_name
+
+    g = pd.DataFrame({"name": ["慧洋-KY", np.nan]})   # 最後一列來自 FinMind，沒有名字
+    assert _stock_name(g, {"2637": "慧洋-KY"}, "2637") == "慧洋-KY"
+
+
+def test_stock_name_falls_back_to_price_history():
+    """company_info 沒收錄（例如上櫃）時，退回價格資料裡最後一個非空值。"""
+    import numpy as np
+    import pandas as pd
+
+    from pipeline.build_payload import _stock_name
+
+    g = pd.DataFrame({"name": ["某上櫃股", np.nan]})
+    assert _stock_name(g, {}, "6666") == "某上櫃股"
+
+
+def test_stock_name_never_returns_nan():
+    """兩邊都沒有就回代號。前端拿到 null 會顯示空白，看起來像壞掉。"""
+    import numpy as np
+    import pandas as pd
+
+    from pipeline.build_payload import _stock_name
+
+    assert _stock_name(pd.DataFrame({"name": [np.nan]}), {}, "1234") == "1234"
+    assert _stock_name(pd.DataFrame(), {}, "1234") == "1234"

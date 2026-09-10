@@ -12,7 +12,9 @@
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
+<!-- 注意：cdnjs 上沒有 echarts 5.5.1（會 404，圖表全部變空白）。
+     5.6.0 是 5.x 線上最後一版，換版本前先確認該路徑真的回 200。 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.6.0/echarts.min.js"></script>
 <style>
 :root{
   --ground:#f1f2f5; --surface:#fff; --surface-2:#e9ebef;
@@ -354,16 +356,30 @@ const load = n => fetch(`data/${n}.json?v=${Date.now()}`)
     return;
   }
 
-  renderHeat(heat);
-  renderTreemap(groups);
-  renderRotation(rot);
-  renderInst(groups);
-  renderRS(rs);
-  renderSeasonality(seas);
-  renderConcentration(conc);
-  renderTrust(trust);
-  renderCandidates(cands);
-  renderNews(news);
+  // 圖表庫是外部 CDN，載不到就會是一片空白的圖框 —— 那看起來像「今天沒資料」，
+  // 但其實是資源沒下載成功。直接講出來，不要讓人對著空框猜。
+  if (typeof echarts === 'undefined') {
+    const b = document.getElementById('banner');
+    b.className = 'banner on';
+    b.innerHTML = '<b>圖表函式庫沒有載入成功</b>，所以下面的圖都是空的（數字部分不受影響）。' +
+      '通常是網路擋掉了 <code>cdnjs.cloudflare.com</code>，重新整理一次多半就好。';
+  }
+
+  // 一張圖畫失敗不該讓後面的區塊全部消失 —— 原本就是這樣壞掉的：
+  // echarts 沒載到 → 第一張圖 throw → 候選股、新聞整段都不會渲染。
+  const safe = (name, fn, arg) => {
+    try { fn(arg); } catch (e) { console.error(name + ' 渲染失敗', e); }
+  };
+  safe('市場體溫', renderHeat, heat);
+  safe('族群熱力圖', renderTreemap, groups);
+  safe('輪動雷達', renderRotation, rot);
+  safe('法人買賣超', renderInst, groups);
+  safe('相對強弱', renderRS, rs);
+  safe('季節性', renderSeasonality, seas);
+  safe('集中度', renderConcentration, conc);
+  safe('投信連買', renderTrust, trust);
+  safe('候選股', renderCandidates, cands);
+  safe('新聞', renderNews, news);
 })();
 
 // ------------------------------------------------------------------ 各區塊

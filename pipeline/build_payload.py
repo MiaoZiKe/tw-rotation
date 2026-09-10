@@ -177,6 +177,21 @@ def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def _stock_name(g: pd.DataFrame, name_by_code: dict, code: str) -> str:
+    """股票名稱：company_info 優先，其次價格資料裡最後一個非空值，最後退回代號。
+
+    絕不回 NaN —— 前端拿到 null 會直接顯示空白，看起來像資料壞了。
+    """
+    name = name_by_code.get(code)
+    if name:
+        return name
+    if "name" in g.columns:
+        s = g["name"].dropna()
+        if not s.empty:
+            return str(s.iloc[-1])
+    return code
+
+
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                company: pd.DataFrame, inst: pd.DataFrame,
                latest: str, limit: int = 120) -> list[dict]:
@@ -209,6 +224,15 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     inst_today = (inst[inst["date"] == latest]
                   if not inst.empty else pd.DataFrame())
 
+    # price_daily 的 name 只有證交所/櫃買那批有值，FinMind 回補進來的列是空的。
+    # 回補資料的日期又常常比較新，所以直接取 g["name"].iloc[-1] 會拿到 NaN ——
+    # 回補完成後反而變成大部分候選股都沒有名字。改用 company_info 當主要來源。
+    name_by_code: dict[str, str] = {}
+    if not company.empty and "name" in company.columns:
+        name_by_code = (company.dropna(subset=["name"])
+                               .drop_duplicates("code")
+                               .set_index("code")["name"].to_dict())
+
     rows = []
     for code, g in hist.groupby("code"):
         if len(g) < 60:      # 資料太短算不出有意義的技術指標
@@ -240,7 +264,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
         rows.append({
             "code": code,
-            "name": g["name"].iloc[-1] if "name" in g.columns else code,
+            "name": _stock_name(g, name_by_code, code),
             "group": gname,
             "group_id": gid,
             "close": _clean(last.get("close")),

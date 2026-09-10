@@ -170,6 +170,27 @@ def main() -> int:
     else:
         log.info("跳過 FinMind 步驟")
 
+    # -------------------------------------------------- 執行紀錄（先落地一次）
+    # build_payload() 會讀 last_run.json，把錯誤、回空來源、token 天數帶進
+    # meta.json 給前端。所以這份紀錄一定要在 build() **之前**寫好，
+    # 否則儀表板顯示的永遠是上一輪的狀態，慢一整天。
+    def _write_state() -> None:
+        finished = datetime.now(timezone.utc)
+        RESULT.update({
+            "started_at": started.isoformat(),
+            "finished_at": finished.isoformat(),
+            "duration_seconds": round((finished - started).total_seconds(), 1),
+            "trade_date": trade_date,
+            "finmind_budget_left": http.finmind_budget_left(),
+            "finmind_token_days_left": finmind.token_days_left(),
+            "tables": store.table_summary().to_dict("records"),
+            "groups_health": loader.health(),
+        })
+        (config.STATE / "last_run.json").write_text(
+            json.dumps(RESULT, ensure_ascii=False, indent=2))
+
+    _write_state()
+
     # -------------------------------------------------- 產出前端資料
     try:
         from .build_payload import build
@@ -180,20 +201,8 @@ def main() -> int:
         RESULT["errors"].append(f"build_payload: {exc}")
         RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
 
-    # -------------------------------------------------- 執行紀錄
-    finished = datetime.now(timezone.utc)
-    RESULT.update({
-        "started_at": started.isoformat(),
-        "finished_at": finished.isoformat(),
-        "duration_seconds": round((finished - started).total_seconds(), 1),
-        "trade_date": trade_date,
-        "finmind_budget_left": http.finmind_budget_left(),
-        "finmind_token_days_left": finmind.token_days_left(),
-        "tables": store.table_summary().to_dict("records"),
-        "groups_health": loader.health(),
-    })
-    (config.STATE / "last_run.json").write_text(
-        json.dumps(RESULT, ensure_ascii=False, indent=2))
+    # 再寫一次，補上 build_payload 的結果與最終耗時
+    _write_state()
 
     ok = sum(1 for s in RESULT["steps"].values() if s.get("ok"))
     log.info("=== 完成：%d 個步驟成功，%d 個錯誤，%d 個來源回空，耗時 %.0fs ===",
