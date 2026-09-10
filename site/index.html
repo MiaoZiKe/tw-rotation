@@ -392,6 +392,17 @@ function renderMeta(m) {
   if (h && h.is_stale) warn.push(`族群對照表上次檢視是 ${h.reviewed}（${h.days_since_review} 天前），該複查成分股了。`);
   if (m.last_run_errors && m.last_run_errors.length)
     warn.push(`上一輪有 ${m.last_run_errors.length} 個抓取錯誤：${m.last_run_errors.slice(0, 2).join('；')}`);
+  // 沒噴例外但回空的來源。這種壞法不會讓管線失敗，畫面也照常顯示，
+  // 只是少了一整塊資料 —— 不主動講就永遠不會被發現。
+  if (m.last_run_empty_sources && m.last_run_empty_sources.length)
+    warn.push(`上一輪有 ${m.last_run_empty_sources.length} 個來源沒抓到任何資料：` +
+      `<code>${m.last_run_empty_sources.join('</code>、<code>')}</code>`);
+  const td = m.finmind_token_days_left;
+  if (td !== null && td !== undefined) {
+    if (td < 0) warn.push('<b>FinMind token 已經過期</b> —— 三大法人籌碼已停止更新。' +
+      '到 finmindtrade.com 會員頁重新複製 token，再更新 repo 的 <code>FINMIND_TOKEN</code> secret。');
+    else if (td <= 2) warn.push(`FinMind token 再 ${td} 天就過期，過期後法人籌碼會停止更新 —— 該去換一個了。`);
+  }
 
   if (warn.length) {
     const b = document.getElementById('banner');

@@ -18,7 +18,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline import run_daily  # noqa: E402
-from pipeline.sources import tdcc, twse  # noqa: E402
+from pipeline.sources import finmind, tdcc, twse  # noqa: E402
 
 
 # ------------------------------------------------------------------ 證交所股利
@@ -140,3 +140,37 @@ def test_non_empty_source_is_not_flagged(monkeypatch):
 
     assert run_daily.RESULT["empty_sources"] == []
     assert run_daily.RESULT["steps"]["假來源.有料"]["ok"] is True
+
+
+# ------------------------------------------------------------------ token 到期
+
+def _fake_jwt(exp_ts: int) -> str:
+    """組一個只有 payload 有意義的假 JWT（簽章部分是垃圾，反正不驗）。"""
+    import base64
+    import json as _json
+
+    payload = base64.urlsafe_b64encode(
+        _json.dumps({"exp": exp_ts}).encode()).decode().rstrip("=")
+    return f"header.{payload}.signature"
+
+
+def test_token_days_left_counts_down():
+    """FinMind 免費 token 七天到期，要能算出還剩幾天。"""
+    import datetime as _dt
+
+    future = _dt.datetime.now(_dt.timezone.utc) + _dt.timedelta(days=5, hours=1)
+    assert finmind.token_days_left(_fake_jwt(int(future.timestamp()))) == 5
+
+
+def test_token_days_left_goes_negative_when_expired():
+    """過期要回負數，不能回 0 或 None —— 前端靠正負號決定講「快過期」還是「已過期」。"""
+    import datetime as _dt
+
+    past = _dt.datetime.now(_dt.timezone.utc) - _dt.timedelta(days=3, hours=1)
+    assert finmind.token_days_left(_fake_jwt(int(past.timestamp()))) < 0
+
+
+@pytest.mark.parametrize("bad", ["", "不是jwt", "a.b", "a.!!!!.c", "a.eyJ4IjoxfQ.c"])
+def test_token_days_left_survives_garbage(bad):
+    """token 打錯字不該讓整個管線炸掉，回 None 就好。"""
+    assert finmind.token_days_left(bad) is None

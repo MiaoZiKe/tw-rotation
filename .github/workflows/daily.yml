@@ -80,6 +80,13 @@ jobs:
           print(f"- 交易日：`{r.get('trade_date')}`")
           print(f"- 耗時：{r.get('duration_seconds')}s")
           print(f"- FinMind 剩餘額度：{r.get('finmind_budget_left')}")
+          td = r.get("finmind_token_days_left")
+          if td is None:
+              print("- FinMind token：未設定或無法解析")
+          elif td < 0:
+              print(f"- **FinMind token 已過期 {-td} 天** —— 法人籌碼已停止更新，請更新 secret")
+          else:
+              print(f"- FinMind token 剩餘天數：{td}")
           errs = r.get("errors") or []
           print(f"- 錯誤數：{len(errs)}")
           for e in errs:

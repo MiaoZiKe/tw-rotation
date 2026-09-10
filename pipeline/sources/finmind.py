@@ -10,10 +10,15 @@
 """
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import logging
+from datetime import datetime, timezone
 
 import pandas as pd
 
+from .. import config
 from ..util import http
 from ..util.roc import clean_code
 
@@ -28,6 +33,28 @@ INVESTOR_MAP = {
     "Dealer_Hedging": "dealer_hedge",
     "Dealer": "dealer_self",
 }
+
+
+def token_days_left(token: str | None = None) -> int | None:
+    """FinMind token 還有幾天到期；沒有 token 或解不開就回 None。
+
+    免費層發的是**有效期只有七天**的 JWT，過期之後所有 FinMind 呼叫都會失敗，
+    但每日管線其他來源照樣成功 —— 於是儀表板看起來是好的，只是法人籌碼
+    悄悄停止更新。這個函式讓「token 快過期」變成看得見的事。
+
+    只解 payload 看 exp，不驗簽章（驗簽章要密鑰，而我們也不需要驗）。
+    """
+    tok = config.FINMIND_TOKEN if token is None else token
+    if not tok:
+        return None
+    try:
+        payload_b64 = tok.split(".")[1]
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        exp = json.loads(base64.urlsafe_b64decode(payload_b64))["exp"]
+    except (IndexError, KeyError, ValueError, binascii.Error):
+        return None
+    delta = datetime.fromtimestamp(exp, timezone.utc) - datetime.now(timezone.utc)
+    return delta.days
 
 
 def stock_info() -> pd.DataFrame:

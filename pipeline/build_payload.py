@@ -135,6 +135,10 @@ def build() -> None:
         "groups_health": loader.health(),
         "table_summary": store.table_summary().to_dict("records"),
         "last_run_errors": last_run.get("errors", []),
+        # 回空的來源不算「錯誤」，但一樣代表整張表沒進資料，前端要一起示警
+        "last_run_empty_sources": last_run.get("empty_sources", []),
+        # FinMind 免費 token 七天就過期，過期後籌碼會安靜停更
+        "finmind_token_days_left": last_run.get("finmind_token_days_left"),
     })
 
 

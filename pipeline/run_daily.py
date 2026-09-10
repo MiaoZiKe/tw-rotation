@@ -188,6 +188,7 @@ def main() -> int:
         "duration_seconds": round((finished - started).total_seconds(), 1),
         "trade_date": trade_date,
         "finmind_budget_left": http.finmind_budget_left(),
+        "finmind_token_days_left": finmind.token_days_left(),
         "tables": store.table_summary().to_dict("records"),
         "groups_health": loader.health(),
     })
