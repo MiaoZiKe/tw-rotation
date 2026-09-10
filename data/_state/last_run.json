@@ -3,7 +3,7 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1382,
-      "seconds": 1.3
+      "seconds": 1.6
     },
     "price_daily": {
       "stored": 0
@@ -19,7 +19,7 @@
     "twse.margin": {
       "ok": true,
       "rows": 1297,
-      "seconds": 0.2
+      "seconds": 0.3
     },
     "margin_daily": {
       "stored": 0
@@ -27,7 +27,7 @@
     "twse.index": {
       "ok": true,
       "rows": 273,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "index_daily": {
       "stored": 0
@@ -35,7 +35,7 @@
     "twse.market": {
       "ok": true,
       "rows": 7,
-      "seconds": 0.2
+      "seconds": 0.1
     },
     "market_daily": {
       "stored": 0
@@ -43,7 +43,7 @@
     "twse.company_info": {
       "ok": true,
       "rows": 1094,
-      "seconds": 0.6
+      "seconds": 0.4
     },
     "company_info": {
       "stored": 0
@@ -67,7 +67,7 @@
     "twse.dividend": {
       "ok": true,
       "rows": 1226,
-      "seconds": 0.4
+      "seconds": 0.3
     },
     "dividend": {
       "stored": 0
@@ -75,12 +75,12 @@
     "tpex.price_daily": {
       "ok": true,
       "rows": 11179,
-      "seconds": 9.3
+      "seconds": 8.1
     },
     "tdcc.shareholding": {
       "ok": true,
       "rows": 68867,
-      "seconds": 8.9
+      "seconds": 4.6
     },
     "shareholding_weekly": {
       "stored": 0
@@ -88,7 +88,7 @@
     "news.collect": {
       "ok": true,
       "rows": 50,
-      "seconds": 0.8
+      "seconds": 0.7
     },
     "news": {
       "stored": 0
@@ -96,7 +96,7 @@
     "macro.intl": {
       "ok": true,
       "rows": 1764,
-      "seconds": 1.1
+      "seconds": 1.3
     },
     "intl_daily": {
       "stored": 0
@@ -114,9 +114,9 @@
   "empty_sources": [
     "macro.fred"
   ],
-  "started_at": "2026-09-10T18:28:12.492325+00:00",
-  "finished_at": "2026-09-10T18:30:51.254843+00:00",
-  "duration_seconds": 158.8,
+  "started_at": "2026-09-10T18:35:33.501194+00:00",
+  "finished_at": "2026-09-10T18:38:05.168942+00:00",
+  "duration_seconds": 151.7,
   "trade_date": "2026-09-09",
   "finmind_budget_left": 510,
   "finmind_token_days_left": 6,
