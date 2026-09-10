@@ -268,6 +268,22 @@ const load = n => fetch(`data/${n}.json?v=${Date.now()}`)
       'news', 'trust_streak'].map(load));
 
   renderMeta(meta);
+
+  // 直接用 file:// 開啟時，瀏覽器會擋掉 fetch，頁面會變成一片空白。
+  // 與其讓人以為程式壞了，不如直接說清楚該怎麼開。
+  if (!meta && location.protocol === 'file:') {
+    document.getElementById('dataDate').textContent = '無法載入';
+    const b = document.getElementById('banner');
+    b.className = 'banner on';
+    b.innerHTML = '<b>這個頁面不能用滑鼠雙擊開啟。</b>瀏覽器會擋掉 <code>file://</code> ' +
+      '底下的資料讀取，所以圖表全部會是空的。<br>' +
+      '請在 <code>tw-rotation</code> 資料夾底下執行 ' +
+      '<code>python -m http.server -d site 8000</code>，' +
+      '然後開 <code>http://localhost:8000</code>；或是推上 GitHub 之後用 Pages 網址看。';
+    document.querySelectorAll('section').forEach(s => s.remove());
+    return;
+  }
+
   if (!meta || meta.status !== 'ok') {
     document.querySelectorAll('section').forEach(s => s.innerHTML =
       '<div class="empty">資料湖還是空的。先跑一次每日管線，或執行歷史回補。</div>');
