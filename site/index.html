@@ -1,0 +1,611 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>台股資金輪動儀表板</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
+<style>
+:root{
+  --ground:#f1f2f5; --surface:#fff; --surface-2:#e9ebef;
+  --ink:#15171d; --ink-2:#5c6371; --ink-3:#878e9c;
+  --line:#dcdfe5; --accent:#8a5a11;
+  --rise:#c4353c; --fall:#0e8f5b; --warn:#a86a00;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --ground:#0e1014; --surface:#171a20; --surface-2:#1e222a;
+    --ink:#e7e9ed; --ink-2:#9aa2b0; --ink-3:#727a88;
+    --line:#272c36; --accent:#d9a441;
+    --rise:#e2585e; --fall:#2eb37c; --warn:#d09a2e;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--ink);
+  font-family:"Noto Sans TC","Helvetica Neue",Arial,sans-serif;font-size:15px;line-height:1.6}
+.wrap{max-width:1440px;margin:0 auto;padding:0 20px 72px}
+.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
+
+header{padding:28px 0 18px;border-bottom:2px solid var(--ink);
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+h1{margin:0;font-size:24px;font-weight:700;letter-spacing:-.01em}
+.stamp{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--ink-3);
+  letter-spacing:.08em;text-align:right}
+.stamp b{color:var(--ink);font-weight:600}
+.stale{color:var(--rise);font-weight:600}
+
+.banner{margin-top:14px;padding:11px 16px;border-left:3px solid var(--warn);
+  background:var(--surface-2);font-size:13.5px;color:var(--ink-2);display:none}
+.banner.on{display:block}
+
+/* 市場體溫 */
+.heat{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);margin-top:22px}
+.heat > div{background:var(--surface);padding:14px 16px}
+.heat dt{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink-3);margin-bottom:6px}
+.heat dd{margin:0;font-size:21px;font-weight:700;font-family:"IBM Plex Mono",monospace;
+  font-variant-numeric:tabular-nums}
+.heat .sub{font-size:11.5px;color:var(--ink-3);font-weight:400;margin-top:2px;
+  font-family:"Noto Sans TC",sans-serif}
+.up{color:var(--rise)} .down{color:var(--fall)}
+@media(max-width:1080px){.heat{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:560px){.heat{grid-template-columns:repeat(2,1fr)}}
+
+section{margin-top:34px}
+.sec-head{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--line);
+  padding-bottom:8px;margin-bottom:16px;flex-wrap:wrap}
+h2{margin:0;font-size:17px;font-weight:700}
+.hint{font-size:12.5px;color:var(--ink-3)}
+
+.grid{display:grid;gap:16px}
+.g-2-1{grid-template-columns:2fr 1fr}
+.g-1-1{grid-template-columns:1fr 1fr}
+@media(max-width:940px){.g-2-1,.g-1-1{grid-template-columns:1fr}}
+
+.panel{background:var(--surface);border:1px solid var(--line);padding:14px 16px 8px}
+.panel h3{margin:0 0 2px;font-size:14px;font-weight:700}
+.panel p.note{margin:0 0 8px;font-size:12px;color:var(--ink-3)}
+.chart{width:100%;height:360px}
+.chart.tall{height:440px}
+.chart.short{height:220px}
+
+/* 候選股表 */
+/* 表格自己捲，不要把整頁拉成好幾千像素高 */
+.tablewrap{overflow:auto;max-height:640px;border:1px solid var(--line);background:var(--surface)}
+table{border-collapse:collapse;width:100%;min-width:1000px;font-size:13.5px}
+th{position:sticky;top:0;background:var(--surface);text-align:left;padding:10px 12px;
+  font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);
+  white-space:nowrap;cursor:pointer;user-select:none}
+th:hover{color:var(--accent)}
+th.num,td.num{text-align:right}
+td{padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:hover{background:var(--surface-2)}
+.code{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.pill{display:inline-block;font-size:11px;padding:1px 7px;border-radius:2px;
+  font-family:"IBM Plex Mono",monospace}
+.pill.bull{background:var(--rise);color:#fff}
+.pill.bear{background:var(--fall);color:#fff}
+.pill.flat{background:var(--surface-2);color:var(--ink-3)}
+.score{font-family:"IBM Plex Mono",monospace;font-weight:600}
+.bar{display:inline-block;height:6px;background:var(--accent);vertical-align:middle;
+  margin-right:6px;border-radius:1px}
+
+.newslist{display:flex;flex-direction:column;gap:0;max-height:440px;overflow-y:auto}
+.newsitem{padding:11px 4px;border-bottom:1px solid var(--line)}
+.newsitem a{color:var(--ink);text-decoration:none;font-size:13.5px;line-height:1.5}
+.newsitem a:hover{color:var(--accent)}
+.newsmeta{margin-top:4px;font-size:11px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
+.kw{display:inline-block;background:var(--surface-2);padding:0 5px;margin-right:4px;border-radius:2px}
+
+.empty{padding:48px 20px;text-align:center;color:var(--ink-3);font-size:14px}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);
+  font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>台股資金輪動儀表板</h1>
+  <div class="stamp">
+    資料日期 <b id="dataDate">載入中…</b><br>
+    <span id="genAt"></span>
+  </div>
+</header>
+
+<div class="banner" id="banner"></div>
+
+<dl class="heat" id="heat"></dl>
+
+<section>
+  <div class="sec-head">
+    <h2>資金流向</h2>
+    <span class="hint">面積＝成交值　顏色＝漲跌幅（紅漲綠跌）　點族群可篩選下方候選股</span>
+  </div>
+  <div class="grid g-2-1">
+    <div class="panel">
+      <h3>族群資金熱力圖</h3>
+      <p class="note">多族群個股的量能已依所屬族群數平均拆分，不重複計算</p>
+      <div id="treemap" class="chart tall"></div>
+    </div>
+    <div class="panel">
+      <h3>輪動雷達</h3>
+      <p class="note">成交值佔比 5 日均 減 20 日均：正值＝資金正在流入</p>
+      <div id="rotation" class="chart tall"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="grid g-1-1">
+    <div class="panel">
+      <h3>三大法人族群買賣超</h3>
+      <p class="note">單位：張</p>
+      <div id="inst" class="chart"></div>
+    </div>
+    <div class="panel">
+      <h3>族群相對強弱 RS</h3>
+      <p class="note">族群 20 日報酬 減 加權指數 20 日報酬</p>
+      <div id="rs" class="chart"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>季節性</h2>
+    <span class="hint">樣本數不足 3 年的月份一律留白 —— 少數幾年的巧合不是規律</span>
+  </div>
+  <div class="panel">
+    <h3>族群 × 月份 歷史平均報酬</h3>
+    <p class="note">滑鼠移上去看勝率與樣本數</p>
+    <div id="seasonality" class="chart tall"></div>
+  </div>
+</section>
+
+<section>
+  <div class="grid g-2-1">
+    <div class="panel">
+      <h3>資金集中度</h3>
+      <p class="note">前 5 大族群吃掉的成交值佔比。上升＝縮圈，下降＝擴散</p>
+      <div id="concentration" class="chart short"></div>
+    </div>
+    <div class="panel">
+      <h3>投信連續買超</h3>
+      <p class="note">連買天數排行</p>
+      <div id="trust" class="chart short"></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head">
+    <h2>當日候選股</h2>
+    <span class="hint" id="candHint">點表頭可排序</span>
+  </div>
+  <div class="tablewrap">
+    <table id="cand">
+      <thead><tr>
+        <th data-k="code">代號</th>
+        <th data-k="name">名稱</th>
+        <th data-k="group">族群</th>
+        <th data-k="close" class="num">收盤</th>
+        <th data-k="tech_score" class="num">技術分</th>
+        <th data-k="ma_align" class="num">均線</th>
+        <th data-k="rsi" class="num">RSI</th>
+        <th data-k="k" class="num">K</th>
+        <th data-k="d" class="num">D</th>
+        <th data-k="osc" class="num">MACD 柱</th>
+        <th data-k="trend" class="num">SMC 結構</th>
+        <th data-k="pe" class="num">本益比</th>
+        <th data-k="pe_percentile" class="num">同業分位</th>
+        <th data-k="trust_net" class="num">投信</th>
+        <th data-k="bias20" class="num">乖離%</th>
+      </tr></thead>
+      <tbody id="candBody"></tbody>
+    </table>
+  </div>
+</section>
+
+<section>
+  <div class="sec-head"><h2>今日新聞</h2>
+    <span class="hint">鉅亨網的題材標籤直接對應到族群</span></div>
+  <div class="panel"><div class="newslist" id="news"></div></div>
+</section>
+
+<footer>
+  <span>資料來源：證交所開放資料・FinMind・集保結算所・鉅亨網・FRED</span>
+  <span id="tables"></span>
+</footer>
+
+</div>
+
+<script>
+const CSS = k => getComputedStyle(document.documentElement).getPropertyValue(k).trim();
+const C = {
+  rise: CSS('--rise'), fall: CSS('--fall'), accent: CSS('--accent'),
+  ink: CSS('--ink'), ink2: CSS('--ink-2'), ink3: CSS('--ink-3'),
+  line: CSS('--line'), surface: CSS('--surface')
+};
+const charts = [];
+const fmtNum = (v, d = 2) => (v === null || v === undefined || Number.isNaN(v))
+  ? '—' : Number(v).toLocaleString('zh-TW', {minimumFractionDigits: d, maximumFractionDigits: d});
+const fmtInt = v => (v === null || v === undefined) ? '—' : Math.round(v).toLocaleString('zh-TW');
+const toYi = v => (v === null || v === undefined) ? '—' : (v / 1e8).toFixed(1) + ' 億';
+const toLots = v => (v === null || v === undefined) ? '—' : Math.round(v / 1000).toLocaleString('zh-TW');
+
+const base = {
+  textStyle: {fontFamily: '"Noto Sans TC", sans-serif', color: C.ink2},
+  grid: {left: 8, right: 16, top: 24, bottom: 8, containLabel: true},
+  tooltip: {
+    backgroundColor: C.surface, borderColor: C.line,
+    textStyle: {color: C.ink, fontSize: 12}
+  }
+};
+
+function mk(id, opt) {
+  const el = document.getElementById(id);
+  if (!el) return null;
+  const c = echarts.init(el, null, {renderer: 'canvas'});
+  c.setOption(Object.assign({}, base, opt));
+  charts.push(c);
+  return c;
+}
+addEventListener('resize', () => charts.forEach(c => c.resize()));
+
+const load = n => fetch(`data/${n}.json?v=${Date.now()}`)
+  .then(r => r.ok ? r.json() : null).catch(() => null);
+
+// ------------------------------------------------------------------ 主流程
+(async function () {
+  const [meta, heat, groups, rot, rs, conc, seas, cands, news, trust] =
+    await Promise.all(['meta', 'market_heat', 'groups_today', 'rotation',
+      'relative_strength', 'concentration', 'seasonality', 'candidates',
+      'news', 'trust_streak'].map(load));
+
+  renderMeta(meta);
+  if (!meta || meta.status !== 'ok') {
+    document.querySelectorAll('section').forEach(s => s.innerHTML =
+      '<div class="empty">資料湖還是空的。先跑一次每日管線，或執行歷史回補。</div>');
+    return;
+  }
+
+  renderHeat(heat);
+  renderTreemap(groups);
+  renderRotation(rot);
+  renderInst(groups);
+  renderRS(rs);
+  renderSeasonality(seas);
+  renderConcentration(conc);
+  renderTrust(trust);
+  renderCandidates(cands);
+  renderNews(news);
+})();
+
+// ------------------------------------------------------------------ 各區塊
+function renderMeta(m) {
+  if (!m) return;
+  document.getElementById('dataDate').textContent = m.data_date || '—';
+  if (m.generated_at) {
+    const d = new Date(m.generated_at);
+    document.getElementById('genAt').textContent =
+      '產生於 ' + d.toLocaleString('zh-TW', {timeZone: 'Asia/Taipei', hour12: false});
+  }
+  if (m.table_summary) {
+    const p = m.table_summary.find(t => t.table === 'price_daily');
+    document.getElementById('tables').textContent =
+      `歷史 ${m.history_days ?? 0} 個交易日・行情 ${fmtInt(p ? p.rows : 0)} 列`;
+  }
+
+  const warn = [];
+  if (m.demo) warn.push('<b>這是示範資料，不是真實行情。</b>' +
+    '所有數字都是合成的，只是為了讓版面先跑起來 —— 跑過一次每日管線後就會被真實資料覆蓋。');
+  if (m.data_date) {
+    const age = Math.floor((Date.now() - new Date(m.data_date).getTime()) / 864e5);
+    if (age > 4) warn.push(`資料已經 ${age} 天沒更新，排程可能已經失效 —— 到 Actions 檢查每日管線。`);
+  }
+  const h = m.groups_health;
+  if (h && h.is_stale) warn.push(`族群對照表上次檢視是 ${h.reviewed}（${h.days_since_review} 天前），該複查成分股了。`);
+  if (m.last_run_errors && m.last_run_errors.length)
+    warn.push(`上一輪有 ${m.last_run_errors.length} 個抓取錯誤：${m.last_run_errors.slice(0, 2).join('；')}`);
+
+  if (warn.length) {
+    const b = document.getElementById('banner');
+    b.className = 'banner on';
+    b.innerHTML = warn.join('<br>');
+  }
+}
+
+function renderHeat(h) {
+  if (!h) return;
+  const cls = v => v > 0 ? 'up' : (v < 0 ? 'down' : '');
+  const sign = v => (v > 0 ? '+' : '') + fmtNum(v);
+  const volNote = (h.turnover && h.turnover_ma20)
+    ? `20 日均量的 ${(h.turnover / h.turnover_ma20 * 100).toFixed(0)}%` : '';
+  const items = [
+    ['加權指數', fmtNum(h.taiex, 0), sign(h.change), cls(h.change)],
+    ['成交值', toYi(h.turnover), volNote, ''],
+    ['上漲家數', fmtInt(h.advancers), `下跌 ${fmtInt(h.decliners)}`, 'up'],
+    ['下跌家數', fmtInt(h.decliners), `平盤 ${fmtInt(h.unchanged)}`, 'down'],
+    ['前 5 族群佔比', h.top5_share != null ? h.top5_share.toFixed(1) + '%' : '—',
+      '越高＝資金越集中', ''],
+    ['資料日期', h.date || '—', '盤後 T-1', ''],
+  ];
+  document.getElementById('heat').innerHTML = items.map(([k, v, s, c]) =>
+    `<div><dt>${k}</dt><dd class="${c}">${v}</dd><div class="sub">${s}</div></div>`).join('');
+}
+
+function renderTreemap(g) {
+  if (!g || !g.length) return;
+  mk('treemap', {
+    tooltip: Object.assign({}, base.tooltip, {
+      formatter: p => {
+        const d = p.data;
+        return `<b>${d.name}</b><br>成交值 ${toYi(d.value)}<br>` +
+          `漲跌 ${d.chg > 0 ? '+' : ''}${fmtNum(d.chg)}%<br>` +
+          `佔比 ${fmtNum(d.share)}%　成分 ${d.n} 檔<br>` +
+          `漲 ${d.adv} / 跌 ${d.dec}`;
+      }
+    }),
+    series: [{
+      type: 'treemap', roam: false, nodeClick: false,
+      breadcrumb: {show: false},
+      label: {
+        show: true, formatter: p => `${p.data.name}\n${p.data.chg > 0 ? '+' : ''}${fmtNum(p.data.chg, 1)}%`,
+        fontSize: 12, color: '#fff', textShadowColor: 'rgba(0,0,0,.5)', textShadowBlur: 3
+      },
+      itemStyle: {borderColor: C.surface, borderWidth: 2, gapWidth: 2},
+      data: g.map(r => ({
+        name: r.group_name, value: Math.max(r.turnover || 0, 1),
+        chg: r.chg_pct, share: r.turnover_share, n: r.constituents,
+        adv: r.advancers, dec: r.decliners, gid: r.group_id,
+        itemStyle: {color: heatColor(r.chg_pct)}
+      }))
+    }]
+  }).on('click', p => filterByGroup(p.data && p.data.gid, p.data && p.data.name));
+}
+
+// 紅漲綠跌，強度隨漲跌幅遞增（台股慣例，與美股相反）
+function heatColor(chg) {
+  if (chg === null || chg === undefined || Number.isNaN(chg)) return '#8a8f99';
+  const t = Math.min(Math.abs(chg) / 3, 1);
+  const mix = (a, b) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
+  const grey = [138, 143, 153];
+  const rgb = chg >= 0 ? mix(grey, [196, 53, 60]) : mix(grey, [14, 143, 91]);
+  return `rgb(${rgb.join(',')})`;
+}
+
+function renderRotation(r) {
+  if (!r || !r.length) return;
+  const top = r.slice(0, 8).concat(r.slice(-6)).filter((v, i, a) => a.indexOf(v) === i);
+  top.sort((a, b) => a.rotation - b.rotation);
+  mk('rotation', {
+    grid: {left: 8, right: 40, top: 12, bottom: 8, containLabel: true},
+    tooltip: Object.assign({}, base.tooltip, {
+      formatter: p => `<b>${p.name}</b><br>輪動 ${p.value > 0 ? '+' : ''}${fmtNum(p.value)} pp<br>` +
+        `目前佔比 ${fmtNum(top[p.dataIndex].turnover_share)}%`
+    }),
+    xAxis: {type: 'value', axisLabel: {color: C.ink3, fontSize: 11},
+      splitLine: {lineStyle: {color: C.line}}, name: 'pp', nameTextStyle: {color: C.ink3}},
+    yAxis: {type: 'category', data: top.map(d => d.group_name),
+      axisLabel: {color: C.ink2, fontSize: 11}, axisLine: {lineStyle: {color: C.line}}},
+    series: [{
+      type: 'bar', data: top.map(d => ({
+        value: d.rotation, itemStyle: {color: d.rotation >= 0 ? C.rise : C.fall}
+      })),
+      label: {show: true, position: 'right', color: C.ink3, fontSize: 10,
+        formatter: p => fmtNum(p.value, 2)}
+    }]
+  });
+}
+
+function renderInst(g) {
+  if (!g || !g.length) return;
+  const top = [...g].sort((a, b) =>
+    Math.abs((b.foreign_net || 0) + (b.trust_net || 0)) -
+    Math.abs((a.foreign_net || 0) + (a.trust_net || 0))).slice(0, 12).reverse();
+  const mkSeries = (name, key, color) => ({
+    name, type: 'bar', stack: 'i', itemStyle: {color},
+    data: top.map(d => d[key] ? Math.round(d[key] / 1000) : 0)
+  });
+  mk('inst', {
+    legend: {top: 0, textStyle: {color: C.ink2, fontSize: 11}, itemHeight: 8, itemWidth: 12},
+    grid: {left: 8, right: 16, top: 32, bottom: 8, containLabel: true},
+    tooltip: Object.assign({}, base.tooltip, {trigger: 'axis',
+      axisPointer: {type: 'shadow'},
+      valueFormatter: v => fmtInt(v) + ' 張'}),
+    xAxis: {type: 'value', axisLabel: {color: C.ink3, fontSize: 11},
+      splitLine: {lineStyle: {color: C.line}}},
+    yAxis: {type: 'category', data: top.map(d => d.group_name),
+      axisLabel: {color: C.ink2, fontSize: 11}, axisLine: {lineStyle: {color: C.line}}},
+    series: [
+      mkSeries('外資', 'foreign_net', '#c4353c'),
+      mkSeries('投信', 'trust_net', '#d9a441'),
+      mkSeries('自營', 'dealer_net', '#5b7fa8'),
+    ]
+  });
+}
+
+function renderRS(rs) {
+  if (!rs || !rs.length) return;
+  const d = rs.slice(0, 14).reverse();
+  mk('rs', {
+    tooltip: Object.assign({}, base.tooltip, {
+      formatter: p => `<b>${p.name}</b><br>族群報酬 ${fmtNum(d[p.dataIndex].ret)}%<br>` +
+        `大盤 ${fmtNum(d[p.dataIndex].market_ret)}%<br>超額 ${fmtNum(p.value)}%`
+    }),
+    xAxis: {type: 'value', axisLabel: {color: C.ink3, fontSize: 11},
+      splitLine: {lineStyle: {color: C.line}}, name: '%'},
+    yAxis: {type: 'category', data: d.map(x => x.group_name),
+      axisLabel: {color: C.ink2, fontSize: 11}, axisLine: {lineStyle: {color: C.line}}},
+    series: [{type: 'bar', data: d.map(x => ({value: x.rs,
+      itemStyle: {color: x.rs >= 0 ? C.rise : C.fall}}))}]
+  });
+}
+
+function renderSeasonality(s) {
+  if (!s || !s.length) return;
+  const groups = [...new Set(s.map(r => r.group_name))];
+  const months = Array.from({length: 12}, (_, i) => i + 1);
+  const data = [];
+  let max = 1;
+  s.forEach(r => {
+    if (r.avg_return === null || r.avg_return === undefined) return;
+    max = Math.max(max, Math.abs(r.avg_return));
+    data.push([r.month - 1, groups.indexOf(r.group_name), r.avg_return,
+      r.win_rate, r.samples]);
+  });
+  mk('seasonality', {
+    grid: {left: 8, right: 8, top: 8, bottom: 56, containLabel: true},
+    tooltip: Object.assign({}, base.tooltip, {
+      formatter: p => `<b>${groups[p.value[1]]}　${p.value[0] + 1} 月</b><br>` +
+        `平均報酬 ${fmtNum(p.value[2])}%<br>勝率 ${fmtNum(p.value[3], 0)}%<br>` +
+        `樣本 ${p.value[4]} 年`
+    }),
+    xAxis: {type: 'category', data: months.map(m => m + '月'), splitArea: {show: true},
+      axisLabel: {color: C.ink2, fontSize: 11}},
+    yAxis: {type: 'category', data: groups, splitArea: {show: true},
+      axisLabel: {color: C.ink2, fontSize: 10}},
+    visualMap: {
+      min: -max, max: max, calculable: true, orient: 'horizontal',
+      left: 'center', bottom: 0, itemHeight: 90,
+      textStyle: {color: C.ink3, fontSize: 10},
+      inRange: {color: ['#0e8f5b', '#8a8f99', '#c4353c']}
+    },
+    series: [{
+      type: 'heatmap', data,
+      label: {show: true, fontSize: 9, color: '#fff',
+        formatter: p => fmtNum(p.value[2], 1)},
+      itemStyle: {borderColor: C.surface, borderWidth: 1}
+    }]
+  });
+}
+
+function renderConcentration(c) {
+  if (!c || !c.length) return;
+  mk('concentration', {
+    tooltip: Object.assign({}, base.tooltip, {trigger: 'axis',
+      valueFormatter: v => fmtNum(v) + '%'}),
+    xAxis: {type: 'category', data: c.map(d => d.date),
+      axisLabel: {color: C.ink3, fontSize: 10}, axisLine: {lineStyle: {color: C.line}}},
+    yAxis: {type: 'value', scale: true, axisLabel: {color: C.ink3, fontSize: 10,
+      formatter: '{value}%'}, splitLine: {lineStyle: {color: C.line}}},
+    series: [
+      {name: '前5族群佔比', type: 'line', showSymbol: false, smooth: true,
+        lineStyle: {color: C.accent, width: 2},
+        areaStyle: {color: C.accent, opacity: .12},
+        data: c.map(d => d.top_share)},
+      {name: '20日均', type: 'line', showSymbol: false,
+        lineStyle: {color: C.ink3, width: 1, type: 'dashed'},
+        data: c.map(d => d.top_share_ma20)}
+    ]
+  });
+}
+
+function renderTrust(t) {
+  if (!t || !t.length) {
+    document.getElementById('trust').innerHTML =
+      '<div class="empty">還沒有法人資料 —— 需要先設定 FinMind token 並跑過一次管線</div>';
+    return;
+  }
+  const d = t.slice(0, 10).reverse();
+  mk('trust', {
+    tooltip: Object.assign({}, base.tooltip, {
+      formatter: p => `<b>${p.name}</b><br>連買 ${p.value} 天<br>` +
+        `累計 ${toLots(d[p.dataIndex].accumulated)} 張`
+    }),
+    xAxis: {type: 'value', axisLabel: {color: C.ink3, fontSize: 10},
+      splitLine: {lineStyle: {color: C.line}}, name: '天'},
+    yAxis: {type: 'category', data: d.map(x => x.code),
+      axisLabel: {color: C.ink2, fontSize: 11, fontFamily: '"IBM Plex Mono", monospace'},
+      axisLine: {lineStyle: {color: C.line}}},
+    series: [{type: 'bar', data: d.map(x => x.streak_days),
+      itemStyle: {color: C.accent}}]
+  });
+}
+
+// ------------------------------------------------------------------ 候選股表
+let ALL = [], filter = null, sortKey = 'tech_score', sortDir = -1;
+
+function renderCandidates(rows) {
+  ALL = rows || [];
+  document.querySelectorAll('#cand th').forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey === k) sortDir *= -1; else {sortKey = k; sortDir = -1;}
+    draw();
+  });
+  draw();
+}
+
+function filterByGroup(gid, name) {
+  filter = (filter === gid) ? null : gid;
+  document.getElementById('candHint').textContent = filter
+    ? `已篩選：${name}（再點一次熱力圖取消）` : '點表頭可排序，點熱力圖可依族群篩選';
+  draw();
+}
+
+function draw() {
+  const rows = (filter ? ALL.filter(r => r.group_id === filter) : ALL)
+    .slice().sort((a, b) => {
+      const x = a[sortKey], y = b[sortKey];
+      if (x === null || x === undefined) return 1;
+      if (y === null || y === undefined) return -1;
+      return (typeof x === 'string') ? sortDir * x.localeCompare(y) : sortDir * (x - y);
+    });
+
+  const align = v => v === 1 ? '<span class="pill bull">多頭</span>'
+    : v === -1 ? '<span class="pill bear">空頭</span>'
+    : '<span class="pill flat">糾結</span>';
+  const smc = r => {
+    if (r.choch) return `<span class="pill ${r.trend === 1 ? 'bull' : 'bear'}">CHoCH</span>`;
+    if (r.bos) return `<span class="pill ${r.trend === 1 ? 'bull' : 'bear'}">BOS</span>`;
+    return r.trend === 1 ? '<span class="pill bull">多</span>'
+      : r.trend === -1 ? '<span class="pill bear">空</span>'
+      : '<span class="pill flat">—</span>';
+  };
+  const pct = v => v === null || v === undefined ? '—'
+    : `<span class="${v > 70 ? 'up' : (v < 30 ? 'down' : '')}">${v.toFixed(0)}%</span>`;
+
+  document.getElementById('candBody').innerHTML = rows.slice(0, 200).map(r => `
+    <tr>
+      <td class="code">${r.code}</td>
+      <td>${r.name || '—'}</td>
+      <td>${r.group || '—'}</td>
+      <td class="num mono">${fmtNum(r.close)}</td>
+      <td class="num score"><span class="bar" style="width:${Math.max(2, r.tech_score * .4)}px"></span>${r.tech_score.toFixed(0)}</td>
+      <td class="num">${align(r.ma_align)}</td>
+      <td class="num mono">${fmtNum(r.rsi, 1)}</td>
+      <td class="num mono">${fmtNum(r.k, 1)}</td>
+      <td class="num mono">${fmtNum(r.d, 1)}</td>
+      <td class="num mono ${r.osc > 0 ? 'up' : 'down'}">${fmtNum(r.osc, 2)}</td>
+      <td class="num">${smc(r)}</td>
+      <td class="num mono">${fmtNum(r.pe, 1)}</td>
+      <td class="num mono">${pct(r.pe_percentile)}</td>
+      <td class="num mono">${toLots(r.trust_net)}</td>
+      <td class="num mono ${Math.abs(r.bias20 || 0) > 15 ? 'up' : ''}">${fmtNum(r.bias20, 1)}</td>
+    </tr>`).join('') ||
+    '<tr><td colspan="15" class="empty">沒有符合條件的標的</td></tr>';
+}
+
+function renderNews(n) {
+  if (!n || !n.length) {
+    document.getElementById('news').innerHTML = '<div class="empty">今天還沒有抓到新聞</div>';
+    return;
+  }
+  document.getElementById('news').innerHTML = n.slice(0, 40).map(x => {
+    const kws = (x.keywords || '').split(',').filter(Boolean).slice(0, 5)
+      .map(k => `<span class="kw">${k}</span>`).join('');
+    const codes = (x.codes || '').split(',').filter(Boolean).slice(0, 6).join(' ');
+    return `<div class="newsitem">
+      <a href="${x.url}" target="_blank" rel="noopener">${x.title || ''}</a>
+      <div class="newsmeta">${x.date || ''}　${codes}　${kws}</div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>

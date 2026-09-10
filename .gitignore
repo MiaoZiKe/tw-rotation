@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.DS_Store
+.idea/
+.vscode/
+
+# 執行狀態：額度計數與回補進度是本機的，不要進版控
+data/_state/finmind_quota.json
+
+# 預覽截圖
+docs/preview.png

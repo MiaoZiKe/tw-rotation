@@ -1,0 +1,68 @@
+name: 歷史回補
+
+# 一次性（或分批）把十年歷史補進資料湖。
+#
+# FinMind 免費層 600 req/hr 且不支援一次查全市場，所以 500 檔要跑約一小時。
+# 這支工作流設計成「可以重跑」：已經補過的股票會自動跳過，
+# 中途被 timeout 砍掉也只要再按一次就好。
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "本輪最多補幾檔（留空＝用剩餘額度補到滿）"
+        type: string
+        default: "400"
+      start_date:
+        description: "回補起始日"
+        type: string
+        default: "2016-01-01"
+      datasets:
+        description: "要補的資料集"
+        type: choice
+        options: [price, price+inst, inst, per, revenue]
+        default: price+inst
+
+permissions:
+  contents: write
+
+concurrency:
+  group: backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350   # 上限 6 小時，留緩衝
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - run: pip install -r requirements.txt
+
+      - name: 回補
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+          BACKFILL_START: ${{ inputs.start_date }}
+        run: |
+          python -m pipeline.run_backfill \
+            --limit "${{ inputs.limit }}" \
+            --datasets "${{ inputs.datasets }}"
+
+      - name: 回寫資料湖
+        if: always()
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data
+          if git diff --staged --quiet; then
+            echo "沒有新資料"
+          else
+            git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M')"
+            git pull --rebase --autostash origin ${{ github.ref_name }} || true
+            git push
+          fi

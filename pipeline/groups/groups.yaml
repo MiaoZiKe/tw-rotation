@@ -1,0 +1,215 @@
+# 族群 / 題材對照表
+#
+# 這是全案唯一需要人工維護的檔案，也是最有價值的一份 —— 抓得到的資料大家都有，
+# 族群怎麼切才是自己的判斷。
+#
+# 維護規則：
+#   1. 這份是「題材族群」，與證交所法定產業別（自動來自 API）並存，兩者都會用
+#   2. 每個族群標 tier（upstream / midstream / downstream）以呈現供應鏈位置
+#   3. reviewed 欄位是上次人工檢視日期；超過一季沒檢視，dashboard 會顯示提醒
+#   4. 成分股寧缺勿濫：放進來的每一檔都要是該題材的實際受惠者，
+#      不是「新聞提過一次」就算
+#
+# 下游偵測：pipeline/groups/build_groups.py 會從官方產業價值鏈平台與
+# MoneyDJ 概念股抓出候選清單，與這份比對後產出「建議新增/移除」報告，
+# 但不會自動改這個檔案 —— 決定權在人。
+
+meta:
+  version: 1
+  reviewed: "2026-09-10"
+  note: "初版種子，需 Andy 依實際追蹤標的校訂"
+
+groups:
+
+  # ---------------------------------------------------------------- 半導體鏈
+  ic_design:
+    name: IC 設計
+    tier: upstream
+    chain: semiconductor
+    codes: ["2454", "3034", "2379", "3443", "6415", "8299", "3661", "5269", "3529", "6669"]
+
+  silicon_ip:
+    name: 矽智財 IP
+    tier: upstream
+    chain: semiconductor
+    codes: ["3529", "6643", "4966", "6526", "6104"]
+
+  foundry:
+    name: 晶圓代工
+    tier: midstream
+    chain: semiconductor
+    codes: ["2330", "2303", "5347", "6770", "3374"]
+
+  memory:
+    name: 記憶體
+    tier: midstream
+    chain: semiconductor
+    codes: ["2408", "3006", "2344", "8261", "4967", "5289", "3260"]
+
+  osat:
+    name: 封測
+    tier: downstream
+    chain: semiconductor
+    codes: ["2311", "3711", "6239", "2449", "8150", "3264"]
+
+  advanced_packaging:
+    name: 先進封裝 CoWoS
+    tier: downstream
+    chain: semiconductor
+    note: "台積電 CoWoS 產能相關設備與材料"
+    codes: ["3374", "3680", "6187", "6266", "3583", "2461"]
+
+  semi_equipment:
+    name: 半導體設備
+    tier: upstream
+    chain: semiconductor
+    codes: ["3131", "3680", "6187", "5471", "6182", "3413"]
+
+  semi_material:
+    name: 半導體材料
+    tier: upstream
+    chain: semiconductor
+    codes: ["4763", "6165", "8104", "4707", "1785"]
+
+  # ---------------------------------------------------------------- AI 伺服器鏈
+  ai_server_odm:
+    name: AI 伺服器組裝
+    tier: downstream
+    chain: ai_server
+    codes: ["2317", "2382", "2356", "6669", "3231", "2376", "5388"]
+
+  server_thermal:
+    name: 伺服器散熱
+    tier: midstream
+    chain: ai_server
+    note: "液冷是 AI 機櫃最關鍵的瓶頸之一"
+    codes: ["3017", "3324", "6230", "2421", "8996"]
+
+  server_power:
+    name: 伺服器電源
+    tier: midstream
+    chain: ai_server
+    codes: ["2308", "6409", "3033", "2489"]
+
+  pcb_abf:
+    name: PCB / ABF 載板
+    tier: midstream
+    chain: ai_server
+    codes: ["3037", "8046", "2368", "6269", "3189", "5469"]
+
+  connector:
+    name: 連接器 / 高速傳輸
+    tier: midstream
+    chain: ai_server
+    codes: ["2308", "3023", "6285", "3665", "2492"]
+
+  optical_comm:
+    name: 光通訊 / 矽光子
+    tier: midstream
+    chain: ai_server
+    codes: ["3450", "4979", "4977", "6143", "3363"]
+
+  # ---------------------------------------------------------------- 其他電子
+  networking:
+    name: 網通
+    tier: downstream
+    chain: electronics
+    codes: ["2345", "3704", "6285", "5388", "4906"]
+
+  panel:
+    name: 面板
+    tier: midstream
+    chain: electronics
+    codes: ["2409", "3481", "6116", "3105"]
+
+  passive:
+    name: 被動元件
+    tier: upstream
+    chain: electronics
+    codes: ["2327", "2492", "2375", "6266"]
+
+  handset_chain:
+    name: 手機供應鏈
+    tier: downstream
+    chain: electronics
+    codes: ["2317", "3008", "2474", "4938", "3231"]
+
+  # ---------------------------------------------------------------- 非電子
+  shipping:
+    name: 航運
+    tier: standalone
+    chain: traditional
+    codes: ["2603", "2609", "2615", "2606", "2637"]
+
+  finance:
+    name: 金融
+    tier: standalone
+    chain: traditional
+    codes: ["2881", "2882", "2891", "2886", "2884", "2892", "2880", "2887"]
+
+  steel:
+    name: 鋼鐵
+    tier: standalone
+    chain: traditional
+    codes: ["2002", "2027", "2014", "2029"]
+
+  petrochemical:
+    name: 塑化
+    tier: standalone
+    chain: traditional
+    codes: ["1301", "1303", "1326", "1101", "6505"]
+
+  heavy_electric:
+    name: 重電
+    tier: standalone
+    chain: infrastructure
+    note: "AI 資料中心用電需求的間接受惠"
+    codes: ["1503", "1504", "1513", "1519", "1514"]
+
+  green_energy:
+    name: 綠能
+    tier: standalone
+    chain: infrastructure
+    codes: ["6806", "3576", "6438", "1513"]
+
+  biotech:
+    name: 生技醫療
+    tier: standalone
+    chain: traditional
+    codes: ["6446", "4737", "1795", "6547", "4746"]
+
+  tourism:
+    name: 觀光餐旅
+    tier: standalone
+    chain: traditional
+    codes: ["2707", "2739", "2731", "5706"]
+
+# 供應鏈上下游關係：用來畫關聯圖，也用來判斷「上游先漲，下游會不會跟」
+chains:
+  semiconductor:
+    name: 半導體
+    order: [silicon_ip, ic_design, semi_equipment, semi_material, foundry, memory, osat, advanced_packaging]
+  ai_server:
+    name: AI 伺服器
+    order: [optical_comm, pcb_abf, connector, server_power, server_thermal, ai_server_odm]
+  electronics:
+    name: 一般電子
+    order: [passive, panel, networking, handset_chain]
+  traditional:
+    name: 傳產
+    order: [steel, petrochemical, shipping, finance, biotech, tourism]
+  infrastructure:
+    name: 基礎建設
+    order: [heavy_electric, green_energy]
+
+# 國際對標：族群與哪個國際指標連動最緊，M4 國際連動盤用
+benchmarks:
+  foundry: "^SOX"
+  ic_design: "^SOX"
+  memory: "^SOX"
+  advanced_packaging: "^SOX"
+  ai_server_odm: "^IXIC"
+  server_thermal: "^IXIC"
+  optical_comm: "^IXIC"
+  finance: "^TWII"
+  shipping: "^TWII"
