@@ -28,7 +28,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("run_daily")
 
-RESULT: dict = {"steps": {}, "errors": []}
+RESULT: dict = {"steps": {}, "errors": [], "empty_sources": []}
 
 
 def step(name: str, fn, *args, **kwargs):
@@ -46,7 +46,10 @@ def step(name: str, fn, *args, **kwargs):
     RESULT["steps"][name] = {"ok": rows > 0, "rows": rows,
                              "seconds": round(time.time() - t0, 1)}
     if rows == 0:
+        # 沒炸例外但回空，通常是欄位改名或解析壞掉 —— 比噴例外更危險，
+        # 因為它會安靜地讓一整張表消失。一定要浮上摘要，不能只留在 log 裡。
         log.warning("%s 沒有取得資料", name)
+        RESULT["empty_sources"].append(name)
     return df if df is not None else pd.DataFrame()
 
 
@@ -192,8 +195,9 @@ def main() -> int:
         json.dumps(RESULT, ensure_ascii=False, indent=2))
 
     ok = sum(1 for s in RESULT["steps"].values() if s.get("ok"))
-    log.info("=== 完成：%d 個步驟成功，%d 個錯誤，耗時 %.0fs ===",
-             ok, len(RESULT["errors"]), RESULT["duration_seconds"])
+    log.info("=== 完成：%d 個步驟成功，%d 個錯誤，%d 個來源回空，耗時 %.0fs ===",
+             ok, len(RESULT["errors"]), len(RESULT["empty_sources"]),
+             RESULT["duration_seconds"])
 
     # 交易日拿不到行情才算真正失敗；其他來源缺漏不阻斷排程
     return 0 if trade_date else 1

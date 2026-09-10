@@ -56,6 +56,17 @@ def _pick(row: dict, *names: str) -> str | None:
     return None
 
 
+def _sum_fields(row: dict, *names: str) -> float | None:
+    """把數個欄位相加。全部都取不到值時回 None，而不是 0 ——
+    「沒有這筆資料」與「配發 0 元」是兩件事，不能混為一談。"""
+    total = None
+    for n in names:
+        v = to_float(_pick(row, n))
+        if v is not None:
+            total = v if total is None else total + v
+    return total
+
+
 # ------------------------------------------------------------------ 個股日行情
 
 def price_daily() -> pd.DataFrame:
@@ -289,7 +300,13 @@ def financial_q() -> pd.DataFrame:
 
 
 def dividend() -> pd.DataFrame:
-    """股利分派。欄位名稱在這支端點較不穩定，用寬鬆比對。"""
+    """股利分派。欄位名稱在這支端點較不穩定，用寬鬆比對。
+
+    現金股利與股票股利都拆成三個來源欄位（盈餘、法定盈餘公積、資本公積），
+    要相加才是股東實際拿到的數字，端點沒有提供合計欄位。
+    另外這支端點**不含除權息交易日** —— 它是董事會/股東會的分派決議表，
+    不是除權息行事曆，所以 ex_date 一律留空，不要用股東會日期硬湊。
+    """
     raw = _fetch("dividend")
     if not raw:
         return pd.DataFrame()
@@ -297,14 +314,24 @@ def dividend() -> pd.DataFrame:
     rows = []
     for r in raw:
         code = clean_code(_pick(r, "公司代號", "Code"))
-        year = to_int(_pick(r, "股利所屬年度", "年度"))
+        year = to_int(_pick(r, "股利年度", "股利所屬年度", "年度"))
         if not code or year is None:
             continue
         rows.append({
             "code": code,
             "year": year + 1911 if year < 1911 else year,
-            "cash_dividend": to_float(_pick(r, "現金股利", "股東配發-現金股利(元/股)")),
-            "stock_dividend": to_float(_pick(r, "股票股利", "股東配發-股票股利(元/股)")),
-            "ex_date": roc_to_iso(_pick(r, "除息交易日", "除權交易日")),
+            "cash_dividend": _sum_fields(
+                r,
+                "股東配發-盈餘分配之現金股利(元/股)",
+                "股東配發-法定盈餘公積發放之現金(元/股)",
+                "股東配發-資本公積發放之現金(元/股)",
+            ),
+            "stock_dividend": _sum_fields(
+                r,
+                "股東配發-盈餘轉增資配股(元/股)",
+                "股東配發-法定盈餘公積轉增資配股(元/股)",
+                "股東配發-資本公積轉增資配股(元/股)",
+            ),
+            "ex_date": None,
         })
     return pd.DataFrame(rows)

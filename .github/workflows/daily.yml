@@ -84,6 +84,11 @@ jobs:
           print(f"- 錯誤數：{len(errs)}")
           for e in errs:
               print(f"  - `{e}`")
+          # 回空的來源不會進 errors，但一樣代表資料沒抓到，必須顯示出來
+          empties = r.get("empty_sources") or []
+          print(f"- 沒有取得資料的來源：{len(empties)}")
+          for s in empties:
+              print(f"  - `{s}`")
           print("")
           print("| 資料表 | 列數 | 最新 |")
           print("|---|---:|---|")
