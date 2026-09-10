@@ -2,8 +2,15 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>台股資金輪動儀表板</title>
+<meta name="theme-color" content="#f1f2f5" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="台股輪動">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.5.1/echarts.min.js"></script>
 <style>
@@ -100,6 +107,49 @@ tbody tr:hover{background:var(--surface-2)}
 .newsmeta{margin-top:4px;font-size:11px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace}
 .kw{display:inline-block;background:var(--surface-2);padding:0 5px;margin-right:4px;border-radius:2px}
 
+/* ---------------- 手機版候選股卡片 ---------------- */
+.cards{display:none;flex-direction:column;gap:10px}
+.card{background:var(--surface);border:1px solid var(--line);padding:12px 14px}
+.card-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+.card-id{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:15px}
+.card-id small{font-family:"Noto Sans TC",sans-serif;font-weight:400;color:var(--ink-2);
+  margin-left:7px;font-size:13px}
+.card-score{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:19px;
+  color:var(--accent);white-space:nowrap}
+.card-score span{font-size:10px;color:var(--ink-3);font-weight:400;letter-spacing:.1em;
+  display:block;text-align:right;line-height:1.2}
+.card-group{font-size:12px;color:var(--ink-3);margin-top:2px}
+.card-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.chip{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 7px;
+  background:var(--surface-2);color:var(--ink-2);border-radius:2px;white-space:nowrap}
+.chip b{color:var(--ink);font-weight:600}
+.chip.warn{color:var(--warn)}
+.sortbar{display:none;gap:8px;align-items:center;margin-bottom:12px}
+.sortbar select{flex:1;padding:8px 10px;font-size:14px;background:var(--surface);
+  color:var(--ink);border:1px solid var(--line);border-radius:2px;
+  font-family:"Noto Sans TC",sans-serif}
+.sortbar label{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.more{margin-top:4px;padding:12px;width:100%;background:var(--surface-2);
+  color:var(--ink-2);border:1px solid var(--line);border-radius:2px;
+  font-family:"Noto Sans TC",sans-serif;font-size:13.5px;cursor:pointer}
+.more:hover{color:var(--accent)}
+.more:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+@media(max-width:760px){
+  .tablewrap{display:none}
+  .cards{display:flex}
+  .sortbar{display:flex}
+  .chart{height:260px}
+  .chart.tall{height:300px}
+  .chart.short{height:190px}
+  /* 季節性有 30 個族群，在窄螢幕要給它自己的高度與捲動 */
+  #seasonality{height:620px}
+  .wrap{padding:0 14px 56px}
+  h1{font-size:20px}
+  header{padding:18px 0 14px}
+  .newslist{max-height:none}
+}
+
 .empty{padding:48px 20px;text-align:center;color:var(--ink-3);font-size:14px}
 footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);
   font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
@@ -187,6 +237,20 @@ footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);
     <h2>當日候選股</h2>
     <span class="hint" id="candHint">點表頭可排序</span>
   </div>
+  <div class="sortbar">
+    <label for="sortSel">排序</label>
+    <select id="sortSel">
+      <option value="tech_score">技術分</option>
+      <option value="pe_percentile">同業本益比分位（低到高）</option>
+      <option value="trust_net">投信買超</option>
+      <option value="rsi">RSI</option>
+      <option value="k">K 值</option>
+      <option value="osc">MACD 柱</option>
+      <option value="bias20">乖離率</option>
+      <option value="turnover">成交值</option>
+    </select>
+  </div>
+  <div class="cards" id="candCards"></div>
   <div class="tablewrap">
     <table id="cand">
       <thead><tr>
@@ -547,18 +611,30 @@ function renderTrust(t) {
 // ------------------------------------------------------------------ 候選股表
 let ALL = [], filter = null, sortKey = 'tech_score', sortDir = -1;
 
+// 這幾個欄位「小的才好」：本益比分位低＝相對同業便宜，乖離率小＝沒追高
+const ASCENDING = new Set(['pe_percentile', 'pe', 'code']);
+
 function renderCandidates(rows) {
   ALL = rows || [];
   document.querySelectorAll('#cand th').forEach(th => th.onclick = () => {
     const k = th.dataset.k;
-    if (sortKey === k) sortDir *= -1; else {sortKey = k; sortDir = -1;}
+    if (sortKey === k) sortDir *= -1;
+    else {sortKey = k; sortDir = ASCENDING.has(k) ? 1 : -1;}
     draw();
   });
+  const sel = document.getElementById('sortSel');
+  sel.onchange = () => {
+    sortKey = sel.value;
+    sortDir = ASCENDING.has(sortKey) ? 1 : -1;
+    cardLimit = CARD_PAGE;   // 換排序就從頭看起
+    draw();
+  };
   draw();
 }
 
 function filterByGroup(gid, name) {
   filter = (filter === gid) ? null : gid;
+  cardLimit = CARD_PAGE;
   document.getElementById('candHint').textContent = filter
     ? `已篩選：${name}（再點一次熱力圖取消）` : '點表頭可排序，點熱力圖可依族群篩選';
   draw();
@@ -586,6 +662,8 @@ function draw() {
   const pct = v => v === null || v === undefined ? '—'
     : `<span class="${v > 70 ? 'up' : (v < 30 ? 'down' : '')}">${v.toFixed(0)}%</span>`;
 
+  renderCards(rows, smc, align);
+
   document.getElementById('candBody').innerHTML = rows.slice(0, 200).map(r => `
     <tr>
       <td class="code">${r.code}</td>
@@ -605,6 +683,55 @@ function draw() {
       <td class="num mono ${Math.abs(r.bias20 || 0) > 15 ? 'up' : ''}">${fmtNum(r.bias20, 1)}</td>
     </tr>`).join('') ||
     '<tr><td colspan="15" class="empty">沒有符合條件的標的</td></tr>';
+}
+
+// 手機用的卡片版：一檔一張，把 15 個欄位收斂成「一眼看得完」的幾個關鍵值
+const CARD_PAGE = 20;
+let cardLimit = CARD_PAGE;
+
+function renderCards(all, smc, align) {
+  const el = document.getElementById('candCards');
+  if (!all.length) {
+    el.innerHTML = '<div class="empty">沒有符合條件的標的</div>';
+    return;
+  }
+  const rows = all.slice(0, cardLimit);
+  const more = all.length - rows.length;
+  el.innerHTML = rows.map(r => {
+    const chips = [];
+    chips.push(`<span class="chip">收盤 <b>${fmtNum(r.close)}</b></span>`);
+    chips.push(`<span class="chip">RSI <b>${fmtNum(r.rsi, 0)}</b></span>`);
+    chips.push(`<span class="chip">KD <b>${fmtNum(r.k, 0)}/${fmtNum(r.d, 0)}</b></span>`);
+    chips.push(`<span class="chip">MACD 柱 <b class="${r.osc > 0 ? 'up' : 'down'}">${fmtNum(r.osc, 2)}</b></span>`);
+    if (r.pe_percentile !== null && r.pe_percentile !== undefined)
+      chips.push(`<span class="chip">同業分位 <b>${r.pe_percentile.toFixed(0)}%</b></span>`);
+    if (r.trust_net) chips.push(`<span class="chip">投信 <b>${toLots(r.trust_net)} 張</b></span>`);
+    if (Math.abs(r.bias20 || 0) > 15)
+      chips.push(`<span class="chip warn">乖離 ${fmtNum(r.bias20, 0)}%</span>`);
+    if (r.fvg_bull) chips.push('<span class="chip">FVG</span>');
+    if (r.sweep_low) chips.push('<span class="chip">掃蕩下緣</span>');
+
+    return `<div class="card">
+      <div class="card-top">
+        <div>
+          <div class="card-id">${r.code}<small>${r.name || ''}</small></div>
+          <div class="card-group">${r.group || '—'}</div>
+        </div>
+        <div class="card-score">${r.tech_score.toFixed(0)}<span>技術分</span></div>
+      </div>
+      <div class="card-chips">
+        ${align(r.ma_align)} ${smc(r)} ${chips.join(' ')}
+      </div>
+    </div>`;
+  }).join('');
+
+  if (more > 0) {
+    const btn = document.createElement('button');
+    btn.className = 'more';
+    btn.textContent = `再顯示 ${Math.min(more, CARD_PAGE)} 檔（還有 ${more} 檔）`;
+    btn.onclick = () => {cardLimit += CARD_PAGE; draw();};
+    el.appendChild(btn);
+  }
 }
 
 function renderNews(n) {

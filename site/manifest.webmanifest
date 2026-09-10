@@ -1,0 +1,15 @@
+{
+  "name": "台股資金輪動儀表板",
+  "short_name": "台股輪動",
+  "description": "每日盤後的台股資金流向、族群輪動與候選股",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e1014",
+  "theme_color": "#0e1014",
+  "icons": [
+    {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
