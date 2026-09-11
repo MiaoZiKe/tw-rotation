@@ -7,7 +7,8 @@
 
 param(
   [switch]$ChangeToken,   # 強制重新輸入 FinMind token
-  [switch]$NoBackfill     # 只推程式碼與跑每日管線，不觸發歷史回補
+  [switch]$NoBackfill,    # （保留相容）不觸發歷史回補
+  [switch]$Backfill       # 強制觸發歷史回補（預設只在第一次安裝時觸發）
 )
 
 # 注意：這裡刻意用 Continue 而不是 Stop。
@@ -127,6 +128,7 @@ Run git @("config","--local","user.email","$me@users.noreply.github.com") | Out-
 
 gh repo view $slug 2>&1 | Out-Null
 $repoExists = ($LASTEXITCODE -eq 0)
+$firstInstall = -not $repoExists
 
 if (-not $repoExists) {
   Run git @("add","-A") | Out-Null
@@ -205,24 +207,32 @@ if (-not $pagesOk) {
 if ($pagesOk) { Ok "GitHub Pages 已開啟" }
 else { Warn "自動開啟失敗 —— 請手動到 Settings → Pages → Source 選 GitHub Actions" }
 
-# ---------------------------------------------------------------- 7. 首次抓取
-Say "[7/8] 觸發第一次資料抓取"
-Start-Sleep -Seconds 3
-gh workflow run "daily.yml" --repo $slug 2>&1 | Out-Null
-if ($LASTEXITCODE -eq 0) { Ok "每日管線已啟動（約 3-5 分鐘）" }
-else { Warn "自動觸發失敗 —— 到 Actions 頁面手動按 Run workflow" }
+# ---------------------------------------------------------------- 7. 抓取
+Say "[7/8] 資料抓取"
+Write-Host "  網站部署已獨立成「部署網站」工作流，程式碼一推上去 1-2 分鐘就上線，" -ForegroundColor DarkGray
+Write-Host "  不用等資料抓完。這一步只負責資料。" -ForegroundColor DarkGray
+Start-Sleep -Seconds 2
+$active = (gh run list --repo $slug --workflow daily.yml --status in_progress --limit 1 --json databaseId 2>$null | Out-String)
+$queued = (gh run list --repo $slug --workflow daily.yml --status queued --limit 1 --json databaseId 2>$null | Out-String)
+if (($active -match "databaseId") -or ($queued -match "databaseId")) {
+  Ok "每日管線已經有一輪在跑或排隊中，不重複觸發"
+} else {
+  gh workflow run "daily.yml" --repo $slug 2>&1 | Out-Null
+  if ($LASTEXITCODE -eq 0) { Ok "每日管線已啟動（約 3-5 分鐘）" }
+  else { Warn "自動觸發失敗 —— 到 Actions 頁面手動按 Run workflow" }
+}
 
 # ---------------------------------------------------------------- 8. 歷史回補
-if ($useFinmind -and -not $NoBackfill) {
+if ($useFinmind -and ($firstInstall -or $Backfill) -and -not $NoBackfill) {
   Say "[8/8] 觸發歷史回補"
-  Write-Host "  補十年歷史，約一小時。季節性與相對強弱需要它。"
-  Write-Host "  它在雲端跑，你可以直接關掉這個視窗。"
+  Write-Host "  補十年歷史，約一小時。它在雲端跑，你可以直接關掉這個視窗。"
   Start-Sleep -Seconds 5
   gh workflow run "backfill.yml" --repo $slug -f limit=400 -f start_date=2016-01-01 -f datasets=price+inst 2>&1 | Out-Null
   if ($LASTEXITCODE -eq 0) { Ok "歷史回補已啟動" }
   else { Warn "自動觸發失敗 —— 到 Actions → 歷史回補 手動按 Run workflow" }
 } else {
-  Say "[8/8] 略過歷史回補（需要 FinMind token）"
+  Say "[8/8] 略過歷史回補"
+  Write-Host "  （只在第一次安裝時自動跑；要再補請用 backfill-financials.bat 或加 -Backfill）" -ForegroundColor DarkGray
 }
 
 # ---------------------------------------------------------------- 完成
