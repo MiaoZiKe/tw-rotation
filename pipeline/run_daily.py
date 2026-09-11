@@ -20,6 +20,7 @@ from .compute import flow
 from .groups import loader
 from .sources import finmind, macro, news, tdcc, tpex, twse
 from .util import http, store
+from .util.roc import is_tradable_security
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,7 +29,7 @@ logging.basicConfig(
 )
 log = logging.getLogger("run_daily")
 
-RESULT: dict = {"steps": {}, "errors": [], "empty_sources": []}
+RESULT: dict = {"steps": {}, "errors": []}
 
 
 def step(name: str, fn, *args, **kwargs):
@@ -46,10 +47,7 @@ def step(name: str, fn, *args, **kwargs):
     RESULT["steps"][name] = {"ok": rows > 0, "rows": rows,
                              "seconds": round(time.time() - t0, 1)}
     if rows == 0:
-        # 沒炸例外但回空，通常是欄位改名或解析壞掉 —— 比噴例外更危險，
-        # 因為它會安靜地讓一整張表消失。一定要浮上摘要，不能只留在 log 裡。
         log.warning("%s 沒有取得資料", name)
-        RESULT["empty_sources"].append(name)
     return df if df is not None else pd.DataFrame()
 
 
@@ -120,6 +118,29 @@ def fetch_institutional(codes: list[str], trade_date: str) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
+def refresh_financials(codes: list[str]) -> pd.DataFrame:
+    """用剩餘額度補最新的季財報與資產負債表。每檔 2 次請求。"""
+    if not codes:
+        return pd.DataFrame()
+    budget = http.finmind_budget_left()
+    todo = codes[: max(0, min(len(codes), budget // 2))]
+    if not todo:
+        log.info("額度不足，本輪不補財報")
+        return pd.DataFrame()
+    start = _shift_days(datetime.now(timezone.utc).date().isoformat(), 400)
+    fs, bs = [], []
+    for code in todo:
+        f = finmind.financial_statements(code, start, wait=False)
+        if not f.empty:
+            fs.append(f)
+        b = finmind.balance_sheet(code, start, wait=False)
+        if not b.empty:
+            bs.append(b)
+    if bs:
+        save("balance_q", pd.concat(bs, ignore_index=True))
+    return pd.concat(fs, ignore_index=True) if fs else pd.DataFrame()
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -129,6 +150,15 @@ def main() -> int:
 
     started = datetime.now(timezone.utc)
     log.info("=== 每日管線開始 ===")
+
+    # 一次性清理：早期版本沒有濾掉權證，上萬檔非股票標的被寫進了 price_daily，
+    # 會讓「上漲/下跌家數」變成五千多家。清過就留記號，之後不再重跑。
+    marker = config.STATE / "purged_warrants.flag"
+    if not marker.exists():
+        n = store.purge("price_daily", is_tradable_security)
+        marker.write_text(f"removed={n}\nat={started.isoformat()}\n")
+        RESULT["steps"]["purge_non_equity"] = {"ok": True, "removed": n}
+        log.info("一次性清理完成，移除 %d 列非股票標的", n)
 
     # -------------------------------------------------- 證交所（不耗額度）
     price = step("twse.price_daily", twse.price_daily)
@@ -144,7 +174,18 @@ def main() -> int:
         save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
     save("index_daily", step("twse.index", twse.index_daily))
     save("market_daily", step("twse.market", twse.market_daily))
-    save("company_info", step("twse.company_info", twse.company_info))
+    company = step("twse.company_info", twse.company_info)
+    save("company_info", company)
+    # FinMind 總覽補上櫃 / 興櫃 / 簡稱（證交所那支只有上市）。
+    # 用 append + 去重，FinMind 的列會補上證交所沒有的代號；已有的保留證交所版本的產業別
+    info = step("finmind.stock_info", finmind.stock_info)
+    if not info.empty:
+        have = set(company["code"]) if not company.empty else set()
+        extra = info[~info["code"].isin(have)].copy()
+        if not extra.empty:
+            extra["industry"] = extra["industry_finmind"]
+            save("company_info", extra[["code", "name", "market", "industry"]])
+        RESULT["steps"]["finmind.stock_info"]["added"] = int(len(extra))
     save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
     save("financial_q", step("twse.financial", twse.financial_q))
     save("dividend", step("twse.dividend", twse.dividend))
@@ -158,7 +199,9 @@ def main() -> int:
     save("shareholding_weekly", sh)
 
     # -------------------------------------------------- 新聞與國際
-    save("news", step("news.collect", news.collect))
+    news_df = step("news.collect", news.collect)
+    save("news", news_df)
+    save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
     save("intl_daily", step("macro.intl", macro.intl_daily))
     save("macro", step("macro.fred", macro.macro_all))
 
@@ -167,29 +210,11 @@ def main() -> int:
         codes = universe(args.universe)
         save("inst_daily", step("finmind.institutional",
                                 fetch_institutional, codes, trade_date))
+        # 財報一季才變一次，每天用剩餘額度補一小批就夠（財報季會自然滾完）
+        save("financial_q", step("finmind.financial_refresh",
+                                 refresh_financials, codes[:60]))
     else:
         log.info("跳過 FinMind 步驟")
-
-    # -------------------------------------------------- 執行紀錄（先落地一次）
-    # build_payload() 會讀 last_run.json，把錯誤、回空來源、token 天數帶進
-    # meta.json 給前端。所以這份紀錄一定要在 build() **之前**寫好，
-    # 否則儀表板顯示的永遠是上一輪的狀態，慢一整天。
-    def _write_state() -> None:
-        finished = datetime.now(timezone.utc)
-        RESULT.update({
-            "started_at": started.isoformat(),
-            "finished_at": finished.isoformat(),
-            "duration_seconds": round((finished - started).total_seconds(), 1),
-            "trade_date": trade_date,
-            "finmind_budget_left": http.finmind_budget_left(),
-            "finmind_token_days_left": finmind.token_days_left(),
-            "tables": store.table_summary().to_dict("records"),
-            "groups_health": loader.health(),
-        })
-        (config.STATE / "last_run.json").write_text(
-            json.dumps(RESULT, ensure_ascii=False, indent=2))
-
-    _write_state()
 
     # -------------------------------------------------- 產出前端資料
     try:
@@ -201,13 +226,23 @@ def main() -> int:
         RESULT["errors"].append(f"build_payload: {exc}")
         RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
 
-    # 再寫一次，補上 build_payload 的結果與最終耗時
-    _write_state()
+    # -------------------------------------------------- 執行紀錄
+    finished = datetime.now(timezone.utc)
+    RESULT.update({
+        "started_at": started.isoformat(),
+        "finished_at": finished.isoformat(),
+        "duration_seconds": round((finished - started).total_seconds(), 1),
+        "trade_date": trade_date,
+        "finmind_budget_left": http.finmind_budget_left(),
+        "tables": store.table_summary().to_dict("records"),
+        "groups_health": loader.health(),
+    })
+    (config.STATE / "last_run.json").write_text(
+        json.dumps(RESULT, ensure_ascii=False, indent=2))
 
     ok = sum(1 for s in RESULT["steps"].values() if s.get("ok"))
-    log.info("=== 完成：%d 個步驟成功，%d 個錯誤，%d 個來源回空，耗時 %.0fs ===",
-             ok, len(RESULT["errors"]), len(RESULT["empty_sources"]),
-             RESULT["duration_seconds"])
+    log.info("=== 完成：%d 個步驟成功，%d 個錯誤，耗時 %.0fs ===",
+             ok, len(RESULT["errors"]), RESULT["duration_seconds"])
 
     # 交易日拿不到行情才算真正失敗；其他來源缺漏不阻斷排程
     return 0 if trade_date else 1

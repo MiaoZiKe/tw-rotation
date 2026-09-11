@@ -294,3 +294,81 @@ def test_build_payload_survives_empty_lake(lake):
     build_payload.build()
     meta = json.loads((site / "meta.json").read_text(encoding="utf-8"))
     assert meta["status"] == "empty"
+
+
+# ------------------------------------------------------------------ M2 端到端
+
+def _seed_fundamentals(store):
+    """幫合成的 10 檔補四季財報、資產負債表、24 個月營收、帶分類的新聞。"""
+    fq, bq, rv = [], [], []
+    for i, code in enumerate(CODES):
+        eps_base = 2.0 + i
+        for j, (y, q) in enumerate([(2025, 3), (2025, 4), (2026, 1), (2026, 2)]):
+            fq.append({"year": y, "quarter": q, "code": code,
+                       "period_end": f"{y}-{q*3:02d}-30", "announce_date": "2026-08-14",
+                       "revenue": 1e9 * (1 + j * .05), "gross_profit": 4e8,
+                       "operating_income": 3e8, "net_income": 2.5e8, "eps": eps_base + j * .1})
+            bq.append({"year": y, "quarter": q, "code": code,
+                       "period_end": f"{y}-{q*3:02d}-30", "announce_date": "2026-08-14",
+                       "ordinary_share": 1e10, "shares": 1e9, "equity_parent": 5e10,
+                       "total_assets": 1e11, "bps": 50.0})
+        y, m = 2024, 9
+        for k in range(24):
+            rv.append({"ym": f"{y}-{m:02d}", "code": code, "revenue": 3e8 * (1 + k * .02),
+                       "announce_date": "2026-09-10"})
+            m += 1
+            if m > 12:
+                m = 1; y += 1
+    store.append("financial_q", pd.DataFrame(fq))
+    store.append("balance_q", pd.DataFrame(bq))
+    store.append("revenue_monthly", pd.DataFrame(rv))
+    store.append("news", pd.DataFrame([
+        {"news_id": "n1", "source": "cnyes", "category": "科技", "date": "2026-07-24",
+         "published_at": "2026-07-24T10:00:00+00:00",
+         "title": "高盛調升台積電目標價至 1,500 元", "summary": "", "url": "u",
+         "codes": "2330", "keywords": "晶圓代工"},
+        {"news_id": "n2", "source": "cnyes", "category": "總經", "date": "2026-07-24",
+         "published_at": "2026-07-24T09:00:00+00:00",
+         "title": "Fed 會議紀要", "summary": "", "url": "u", "codes": "", "keywords": ""},
+    ]))
+    from pipeline.sources import news as news_mod
+    store.append("broker_views", news_mod.extract_broker_views(store.read("news")))
+
+
+def test_fundamental_payload_end_to_end(populated):
+    from pipeline import build_payload
+    store, site, price = populated
+    _seed_fundamentals(store)
+    build_payload.build()
+
+    fund = json.loads((site / "fundamental.json").read_text(encoding="utf-8"))
+    assert len(fund) == len(CODES)
+    by = {f["code"]: f for f in fund}
+    t = by["2330"]
+    assert t["ttm_complete"] is True
+    assert abs(t["ttm_eps"] - (2.0 + 2.1 + 2.2 + 2.3)) < 1e-6      # 四季相加
+    assert t["pe"] is not None and t["pe"] > 0
+    assert t["pb"] is not None
+    assert t["metric"] == "pe"
+    assert t["rev_streak"] >= 12                                    # 每月成長
+    assert t["momentum_score"] is not None
+    assert t["name"] == "股2330"                                     # 簡稱來自 company_info
+
+    # 金融族群走 PB+ROE 口徑，即使有 EPS
+    f = by["2881"]
+    assert f["metric"] == "pb_roe"
+    assert f["metric_value"] == f["pb"]
+
+    gv = json.loads((site / "group_valuation.json").read_text(encoding="utf-8"))
+    assert any(g["group_id"] == "finance" and g["metric"] == "pb_roe" for g in gv)
+
+    bv = json.loads((site / "broker_views.json").read_text(encoding="utf-8"))
+    assert bv and bv[0]["code"] == "2330" and bv[0]["target_price"] == 1500
+    assert bv[0]["name"] == "股2330"
+
+    news = json.loads((site / "news.json").read_text(encoding="utf-8"))
+    assert {n["category"] for n in news} >= {"科技", "總經"}
+
+    cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
+    assert all(c["name"] and c["name"] != c["code"] for c in cands), "候選股必須有簡稱"
+    assert any(c.get("momentum_score") is not None for c in cands)

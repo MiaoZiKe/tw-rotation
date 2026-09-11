@@ -20,14 +20,15 @@ on:
       datasets:
         description: "要補的資料集"
         type: choice
-        options: [price, price+inst, inst, per, revenue]
+        options: [price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance]
         default: price+inst
 
 permissions:
   contents: write
 
+# 與每日管線共用，避免兩邊同時 push 造成衝突
 concurrency:
-  group: backfill
+  group: tw-rotation-data-write
   cancel-in-progress: false
 
 jobs:
@@ -58,11 +59,31 @@ jobs:
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
-          git add data
+          git add data site/data
           if git diff --staged --quiet; then
-            echo "沒有新資料"
-          else
-            git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M')"
-            git pull --rebase --autostash origin ${{ github.ref_name }} || true
-            git push
+            echo "沒有資料變動，跳過 commit"
+            exit 0
           fi
+          git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M')"
+
+          # Parquet 是二進位檔，rebase 遇到同檔修改會衝突而不是自動合併。
+          # 所以退而求其次：重試時先把遠端抓下來，讓我們這邊的版本勝出
+          # （資料層本來就是 append + 去重，下一輪會把缺的補回來）。
+          for i in 1 2 3 4 5; do
+            if git push origin "${{ github.ref_name }}"; then
+              echo "推送成功"
+              exit 0
+            fi
+            echo "推送被拒（第 $i 次），重新對齊遠端後再試…"
+            git fetch origin "${{ github.ref_name }}"
+            git checkout --ours -- data site/data 2>/dev/null || true
+            git rebase -X ours "origin/${{ github.ref_name }}" || {
+              git rebase --abort || true
+              git reset --soft "origin/${{ github.ref_name }}"
+              git add data site/data
+              git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M') (合併重試)"
+            }
+            sleep $((i * 5))
+          done
+          echo "::error::推送連續失敗 5 次"
+          exit 1

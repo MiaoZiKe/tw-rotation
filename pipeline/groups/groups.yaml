@@ -9,6 +9,11 @@
 #   3. reviewed 欄位是上次人工檢視日期；超過一季沒檢視，dashboard 會顯示提醒
 #   4. 成分股寧缺勿濫：放進來的每一檔都要是該題材的實際受惠者，
 #      不是「新聞提過一次」就算
+#   5. valuation_metric 決定這個族群用哪種估值口徑比同業（金融專家的規則）：
+#        pe      本益比（預設）—— 一般製造業、IC 設計、代工
+#        pb_roe  股價淨值比 + ROE —— 金融、壽險、營建資產股（PE 受評價損益與一次性扭曲）
+#        ps      股價營收比 —— 未獲利的生技、新創（PE 沒有意義）
+#      沒寫就是 pe。絕不跨族群比 PE 絕對值。
 #
 # 下游偵測：pipeline/groups/build_groups.py 會從官方產業價值鏈平台與
 # MoneyDJ 概念股抓出候選清單，與這份比對後產出「建議新增/移除」報告，
@@ -16,8 +21,8 @@
 
 meta:
   version: 1
-  reviewed: "2026-09-10"
-  note: "初版種子，需 Andy 依實際追蹤標的校訂"
+  reviewed: "2026-09-11"
+  note: "初版種子，需 Andy 依實際追蹤標的校訂；已加 valuation_metric"
 
 groups:
 
@@ -145,6 +150,7 @@ groups:
     name: 金融
     tier: standalone
     chain: traditional
+    valuation_metric: pb_roe
     codes: ["2881", "2882", "2891", "2886", "2884", "2892", "2880", "2887"]
 
   steel:
@@ -176,6 +182,7 @@ groups:
     name: 生技醫療
     tier: standalone
     chain: traditional
+    valuation_metric: ps
     codes: ["6446", "4737", "1795", "6547", "4746"]
 
   tourism:

@@ -17,7 +17,7 @@ import pandas as pd
 
 from .. import config
 from ..util import http
-from ..util.roc import clean_code, roc_to_iso, to_float, to_int
+from ..util.roc import clean_code, is_tradable_security, roc_to_iso, to_float, to_int
 
 log = logging.getLogger(__name__)
 
@@ -46,7 +46,8 @@ def price_daily() -> pd.DataFrame:
     for r in raw:
         code = clean_code(r.get("SecuritiesCompanyCode") or r.get("Code"))
         d = roc_to_iso(r.get("Date"))
-        if not code or not d:
+        # 這支端點會把上萬檔權證一起回傳，一定要濾
+        if not code or not d or not is_tradable_security(code):
             continue
         rows.append({
             "date": d,
@@ -63,5 +64,5 @@ def price_daily() -> pd.DataFrame:
             "transactions": to_int(r.get("TransactionNumber")),
         })
     df = pd.DataFrame(rows)
-    log.info("TPEx 日行情：%d 檔", len(df))
+    log.info("TPEx 日行情：%d 檔（已濾除權證等非股票標的）", len(df))
     return df

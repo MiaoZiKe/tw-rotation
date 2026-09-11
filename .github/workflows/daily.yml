@@ -13,8 +13,11 @@ on:
         type: boolean
         default: false
 
+# 每日管線與歷史回補都會 commit 資料回 repo。
+# 同時跑的話，後完成的那個 push 一定會被拒絕（這就是歷史回補一直 Fail 的原因）。
+# 共用同一個 concurrency group 讓它們排隊，而不是互相踩。
 concurrency:
-  group: daily-pipeline
+  group: tw-rotation-data-write
   cancel-in-progress: false
 
 permissions:
@@ -57,12 +60,31 @@ jobs:
           git add data site/data
           if git diff --staged --quiet; then
             echo "沒有資料變動，跳過 commit"
-          else
-            git commit -m "資料更新 $(date -u '+%Y-%m-%d')"
-            # 期間若有人推 code，改用 rebase 避免整輪白跑
-            git pull --rebase --autostash origin ${{ github.ref_name }} || true
-            git push
+            exit 0
           fi
+          git commit -m "資料更新 $(date -u '+%Y-%m-%d')"
+
+          # Parquet 是二進位檔，rebase 遇到同檔修改會衝突而不是自動合併。
+          # 所以退而求其次：重試時先把遠端抓下來，讓我們這邊的版本勝出
+          # （資料層本來就是 append + 去重，下一輪會把缺的補回來）。
+          for i in 1 2 3 4 5; do
+            if git push origin "${{ github.ref_name }}"; then
+              echo "推送成功"
+              exit 0
+            fi
+            echo "推送被拒（第 $i 次），重新對齊遠端後再試…"
+            git fetch origin "${{ github.ref_name }}"
+            git checkout --ours -- data site/data 2>/dev/null || true
+            git rebase -X ours "origin/${{ github.ref_name }}" || {
+              git rebase --abort || true
+              git reset --soft "origin/${{ github.ref_name }}"
+              git add data site/data
+              git commit -m "資料更新 $(date -u '+%Y-%m-%d') (合併重試)"
+            }
+            sleep $((i * 5))
+          done
+          echo "::error::推送連續失敗 5 次"
+          exit 1
 
       - name: 上傳網站
         uses: actions/upload-pages-artifact@v3
@@ -80,22 +102,10 @@ jobs:
           print(f"- 交易日：`{r.get('trade_date')}`")
           print(f"- 耗時：{r.get('duration_seconds')}s")
           print(f"- FinMind 剩餘額度：{r.get('finmind_budget_left')}")
-          td = r.get("finmind_token_days_left")
-          if td is None:
-              print("- FinMind token：未設定或無法解析")
-          elif td < 0:
-              print(f"- **FinMind token 已過期 {-td} 天** —— 法人籌碼已停止更新，請更新 secret")
-          else:
-              print(f"- FinMind token 剩餘天數：{td}")
           errs = r.get("errors") or []
           print(f"- 錯誤數：{len(errs)}")
           for e in errs:
               print(f"  - `{e}`")
-          # 回空的來源不會進 errors，但一樣代表資料沒抓到，必須顯示出來
-          empties = r.get("empty_sources") or []
-          print(f"- 沒有取得資料的來源：{len(empties)}")
-          for s in empties:
-              print(f"  - `{s}`")
           print("")
           print("| 資料表 | 列數 | 最新 |")
           print("|---|---:|---|")

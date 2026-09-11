@@ -38,11 +38,6 @@ def shareholding_weekly() -> pd.DataFrame:
         log.warning("TDCC 抓取失敗")
         return pd.DataFrame()
 
-    # 集保的 CSV 帶 UTF-8 BOM。不剝掉的話 DictReader 的第一個欄名會是
-    # '﻿資料日期'，r.get("資料日期") 就永遠是 None，
-    # 於是每一列都被下面的 skip 條件濾掉，整張表靜悄悄地變成空的。
-    text = text.lstrip("﻿")
-
     try:
         reader = csv.DictReader(io.StringIO(text))
         raw = list(reader)

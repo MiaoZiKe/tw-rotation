@@ -13,9 +13,10 @@ import numpy as np
 import pandas as pd
 
 from . import config, indicators
-from .compute import flow
+from .compute import flow, fundamental
 from .groups import loader
 from .util import store
+from .util.roc import is_tradable_security
 
 log = logging.getLogger(__name__)
 
@@ -56,6 +57,19 @@ def build() -> None:
     margin = store.read("margin_daily")
     market = store.read("market_daily")
     valuation = store.read("valuation_daily")
+    financial = store.read("financial_q")
+    balance = store.read("balance_q")
+    revenue = store.read("revenue_monthly")
+
+    # 簡稱對照：company_info 是唯一可靠來源（回補的歷史列沒有名稱）
+    names = {}
+    if not company.empty and "name" in company.columns:
+        names = (company.dropna(subset=["name"]).drop_duplicates("code", keep="last")
+                        .set_index("code")["name"].to_dict())
+    markets = {}
+    if not company.empty and "market" in company.columns:
+        markets = (company.dropna(subset=["market"]).drop_duplicates("code", keep="last")
+                          .set_index("code")["market"].to_dict())
 
     latest = str(price["date"].max())
     history_days = int(price["date"].nunique())
@@ -82,10 +96,26 @@ def build() -> None:
         tv = pd.to_numeric(mk["turnover"], errors="coerce")
         if len(tv.dropna()) >= 20:
             heat["turnover_ma20"] = _clean(tv.tail(20).mean())
+        series = mk[["date", "taiex"]].dropna()
+        # FMTQIK 只回當月至今，所以剛上線時走勢圖只有幾個點。
+        # 用 yfinance 的 ^TWII 把更早的歷史補上，之後再逐日累積自己的。
+        if len(series) < 60:
+            intl = store.read("intl_daily")
+            if not intl.empty:
+                twii = intl[intl["symbol"] == "^TWII"][["date", "close"]]
+                twii = twii.rename(columns={"close": "taiex"}).dropna()
+                if not twii.empty:
+                    have = set(series["date"].astype(str))
+                    extra = twii[~twii["date"].astype(str).isin(have)]
+                    series = (pd.concat([extra, series], ignore_index=True)
+                                .sort_values("date"))
+                    heat["taiex_series_source"] = "FMTQIK + ^TWII"
         heat["taiex_series"] = _clean(
-            mk.tail(120)[["date", "taiex"]].to_dict("records"))
+            series.tail(120)[["date", "taiex"]].to_dict("records"))
 
     day = price[price["date"] == latest].copy()
+    # 家數只算普通股與 ETF —— 把權證算進去會變成五千多家，那不是台股的實際家數
+    day = day[day["code"].map(is_tradable_security)]
     day["prev"] = day["close"] - day["change"].fillna(0)
     day["chg_pct"] = np.where(day["prev"] > 0, day["change"] / day["prev"] * 100, np.nan)
     heat["advancers"] = int((day["chg_pct"] > 0).sum())
@@ -98,13 +128,87 @@ def build() -> None:
     # ---------------------------------------------------------- M4 季節性
     _write("seasonality", seasonality(price, company).to_dict("records"))
 
+    # ---------------------------------------------------------- M2 基本面
+    day_px = price[price["date"] == latest][["code", "close"]]
+    ttm_df = fundamental.ttm(financial)
+    bal = fundamental.latest_balance(balance)
+    val = fundamental.valuation(day_px, ttm_df, bal)
+    gval = fundamental.group_valuation(val, company)
+    rev = fundamental.revenue_momentum(revenue)
+
+    fund_rows = []
+    if not val.empty:
+        gv_first = (gval.sort_values("thin_sample").drop_duplicates("code", keep="first")
+                        .set_index("code") if not gval.empty else pd.DataFrame())
+        rev_idx = rev.set_index("code") if not rev.empty else pd.DataFrame()
+        for _, r in val.iterrows():
+            c = r["code"]
+            g = gv_first.loc[c] if (len(gv_first) and c in gv_first.index) else None
+            rv = rev_idx.loc[c] if (len(rev_idx) and c in rev_idx.index) else None
+            fund_rows.append({
+                "code": c, "name": names.get(c), "market": markets.get(c),
+                "close": _clean(r["close"]),
+                "ttm_eps": _clean(r.get("ttm_eps")), "ttm_complete": bool(r.get("ttm_complete")),
+                "latest_period": r.get("latest_period"),
+                "pe": _clean(r.get("pe")), "pb": _clean(r.get("pb")), "ps": _clean(r.get("ps")),
+                "roe": _clean(r.get("roe")), "gross_margin": _clean(r.get("gross_margin")),
+                "market_cap": _clean(r.get("market_cap")), "is_loss": bool(r.get("is_loss")),
+                "group_id": (g["group_id"] if g is not None else None),
+                "group_name": (g["group_name"] if g is not None else None),
+                "metric": (g["metric"] if g is not None else None),
+                "metric_value": _clean(g["metric_value"]) if g is not None else None,
+                "group_median": _clean(g["group_median"]) if g is not None else None,
+                "group_n": int(g["group_n"]) if g is not None else None,
+                "percentile": _clean(g["percentile"]) if g is not None else None,
+                "vs_median": _clean(g["vs_median"]) if g is not None else None,
+                "thin_sample": bool(g["thin_sample"]) if g is not None else None,
+                "fallback": (g.get("fallback") if g is not None else None),
+                "rev_ym": (rv["ym"] if rv is not None else None),
+                "rev_yoy": _clean(rv["yoy_adj"]) if rv is not None else None,
+                "rev_yoy_note": (rv["yoy_note"] if rv is not None else None),
+                "rev_mom": _clean(rv["mom"]) if rv is not None else None,
+                "rev_mom_vs_typical": _clean(rv["mom_vs_typical"]) if rv is not None else None,
+                "rev_yoy_3m": _clean(rv["yoy_3m"]) if rv is not None else None,
+                "rev_ytd_yoy": _clean(rv["ytd_yoy"]) if rv is not None else None,
+                "rev_streak": int(rv["growth_streak"]) if rv is not None else None,
+                "rev_record_high": bool(rv["is_record_high"]) if rv is not None else None,
+                "rev_flag_spike": bool(rv["flag_spike"]) if rv is not None else None,
+                "momentum_score": _clean(fundamental.momentum_score(rv)) if rv is not None else None,
+            })
+    _write("fundamental", fund_rows)
+
+    # 族群估值摘要（每族群一列：口徑、中位數、樣本數、虧損比例）
+    if not gval.empty:
+        gsum = (gval.groupby(["group_id", "group_name", "metric"], dropna=False)
+                    .agg(group_median=("group_median", "first"), group_n=("group_n", "first"),
+                         loss_ratio=("group_loss_ratio", "first"))
+                    .reset_index())
+        _write("group_valuation", gsum.to_dict("records"))
+    else:
+        _write("group_valuation", [])
+
+    # 券商目標價引述（近 60 天）
+    bv = store.read("broker_views")
+    if not bv.empty:
+        cutoff = (pd.Timestamp(latest) - pd.Timedelta(days=60)).date().isoformat()
+        bv = bv[bv["date"].astype(str) >= cutoff].sort_values("date", ascending=False)
+        bv["name"] = bv["code"].map(names)
+        _write("broker_views", bv.to_dict("records"))
+    else:
+        _write("broker_views", [])
+
     # ---------------------------------------------------------- 個股技術面
-    _write("candidates", candidates(price, valuation, company, inst, latest))
+    _write("candidates", candidates(price, valuation, company, inst, latest,
+                                    names=names, markets=markets, fund=fund_rows))
 
     # ---------------------------------------------------------- 新聞
     news_df = store.read("news")
     if not news_df.empty:
-        recent = news_df.sort_values("published_at", ascending=False).head(80)
+        if "category" not in news_df.columns:
+            news_df["category"] = "台股"
+        news_df = news_df.sort_values("published_at", ascending=False)
+        recent = pd.concat([g.head(40) for _, g in news_df.groupby("category")],
+                           ignore_index=True)
         _write("news", recent.to_dict("records"))
     else:
         _write("news", [])
@@ -135,10 +239,6 @@ def build() -> None:
         "groups_health": loader.health(),
         "table_summary": store.table_summary().to_dict("records"),
         "last_run_errors": last_run.get("errors", []),
-        # 回空的來源不算「錯誤」，但一樣代表整張表沒進資料，前端要一起示警
-        "last_run_empty_sources": last_run.get("empty_sources", []),
-        # FinMind 免費 token 七天就過期，過期後籌碼會安靜停更
-        "finmind_token_days_left": last_run.get("finmind_token_days_left"),
     })
 
 
@@ -177,24 +277,10 @@ def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-def _stock_name(g: pd.DataFrame, name_by_code: dict, code: str) -> str:
-    """股票名稱：company_info 優先，其次價格資料裡最後一個非空值，最後退回代號。
-
-    絕不回 NaN —— 前端拿到 null 會直接顯示空白，看起來像資料壞了。
-    """
-    name = name_by_code.get(code)
-    if name:
-        return name
-    if "name" in g.columns:
-        s = g["name"].dropna()
-        if not s.empty:
-            return str(s.iloc[-1])
-    return code
-
-
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                company: pd.DataFrame, inst: pd.DataFrame,
-               latest: str, limit: int = 120) -> list[dict]:
+               latest: str, limit: int = 120, *, names: dict | None = None,
+               markets: dict | None = None, fund: list[dict] | None = None) -> list[dict]:
     """當日候選股：技術分 + 同業本益比分位 + 籌碼，合成綜合分。"""
     if price.empty:
         return []
@@ -223,15 +309,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
     inst_today = (inst[inst["date"] == latest]
                   if not inst.empty else pd.DataFrame())
-
-    # price_daily 的 name 只有證交所/櫃買那批有值，FinMind 回補進來的列是空的。
-    # 回補資料的日期又常常比較新，所以直接取 g["name"].iloc[-1] 會拿到 NaN ——
-    # 回補完成後反而變成大部分候選股都沒有名字。改用 company_info 當主要來源。
-    name_by_code: dict[str, str] = {}
-    if not company.empty and "name" in company.columns:
-        name_by_code = (company.dropna(subset=["name"])
-                               .drop_duplicates("code")
-                               .set_index("code")["name"].to_dict())
+    names = names or {}
+    markets = markets or {}
+    fund_idx = {f["code"]: f for f in (fund or [])}
 
     rows = []
     for code, g in hist.groupby("code"):
@@ -262,9 +342,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             if not i.empty:
                 trust_net = _clean(i["trust"].iloc[0])
 
+        fx = fund_idx.get(code, {})
         rows.append({
             "code": code,
-            "name": _stock_name(g, name_by_code, code),
+            # 簡稱一律從 company_info 拿；回補的歷史列沒有名稱欄位
+            "name": names.get(code) or (g["name"].dropna().iloc[-1] if "name" in g.columns and g["name"].notna().any() else code),
+            "market": markets.get(code),
             "group": gname,
             "group_id": gid,
             "close": _clean(last.get("close")),
@@ -280,8 +363,15 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "fvg_bull": bool(last.get("fvg_bull")),
             "sweep_low": bool(last.get("sweep_low")),
             "bias20": _clean(last.get("bias20")),
-            "pe": pe,
-            "pe_percentile": _clean(pct) if pct is not None else None,
+            # 估值改用自算的（TTM），證交所快照只當備援
+            "pe": fx.get("pe") if fx.get("pe") is not None else pe,
+            "pe_percentile": fx.get("percentile") if fx.get("percentile") is not None else (_clean(pct) if pct is not None else None),
+            "metric": fx.get("metric"),
+            "metric_value": fx.get("metric_value"),
+            "group_n": fx.get("group_n"),
+            "rev_yoy": fx.get("rev_yoy"),
+            "rev_streak": fx.get("rev_streak"),
+            "momentum_score": fx.get("momentum_score"),
             "trust_net": trust_net,
             "turnover": _clean(g["turnover"].iloc[-1]),
         })

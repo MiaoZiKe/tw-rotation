@@ -105,6 +105,27 @@ def is_common_stock(code: str | None) -> bool:
     return len(code) == 4 and code.isdigit() and not code.startswith("0")
 
 
+def is_tradable_security(code: str | None) -> bool:
+    """只保留普通股與 ETF，濾掉權證、可轉債、存託憑證等。
+
+    為什麼需要這層：櫃買那支端點一次會回一萬多列，其中絕大多數是權證
+    （台股權證數量遠多於股票）。不濾掉的話，「上漲/下跌家數」會變成
+    五千多家這種明顯不合理的數字，資料湖也會被灌進大量用不到的列。
+
+    台股代號規則：
+      普通股  4 碼純數字            2330、1101
+      ETF     00 開頭、4-6 碼        0050、00878、00631L、00981A
+      權證    6 碼，03xxxx-09xxxx    030123、088456
+      特別股  4 碼數字 + 字母        2881A
+      TDR/KY  多為 4 碼數字，保留
+    """
+    if not code:
+        return False
+    if is_etf(code):
+        return True
+    return len(code) == 4 and code.isdigit()
+
+
 def is_etf(code: str | None) -> bool:
     """台股 ETF 代號一律以 00 開頭，長度 4–6：0050、00878、00631L（正2）、00981A（主動式）。"""
     if not code:

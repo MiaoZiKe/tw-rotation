@@ -84,7 +84,10 @@ def already_covered(table: str, code: str, start: str) -> bool:
     sub = df[df["code"] == code]
     if sub.empty:
         return False
-    col = "date" if "date" in sub.columns else "ym"
+    # 各表的時間欄位不同：日表 date、月表 ym、季表 period_end
+    col = next((c for c in ("date", "ym", "period_end") if c in sub.columns), None)
+    if col is None:
+        return True          # 沒有時間維度的表，有資料就算補過
     earliest = str(sub[col].min())
     return earliest <= start[:len(earliest)]
 
@@ -96,13 +99,15 @@ def run(datasets: str, limit: int | None, start: str) -> dict:
 
     prog = _progress()
     summary = {"price": 0, "inst": 0, "per": 0, "revenue": 0,
-               "skipped": 0, "exhausted": False}
+               "financial": 0, "balance": 0, "skipped": 0, "exhausted": False}
 
     jobs = [
         ("price", "price_daily", lambda c: finmind.price_history(c, start, wait=False)),
         ("inst", "inst_daily", lambda c: finmind.institutional(c, start, wait=False)),
         ("per", "valuation_daily", lambda c: finmind.per_history(c, start, wait=False)),
         ("revenue", "revenue_monthly", lambda c: finmind.month_revenue(c, start, wait=False)),
+        ("financial", "financial_q", lambda c: finmind.financial_statements(c, start, wait=False)),
+        ("balance", "balance_q", lambda c: finmind.balance_sheet(c, start, wait=False)),
     ]
 
     for i, code in enumerate(codes, 1):
@@ -154,7 +159,7 @@ def main() -> int:
     ap.add_argument("--limit", default="400",
                     help="本輪最多處理幾檔；留空或 0 表示不限")
     ap.add_argument("--datasets", default="price+inst",
-                    help="price / inst / per / revenue，可用 + 串接")
+                    help="price / inst / per / revenue / financial / balance，可用 + 串接")
     ap.add_argument("--start", default=config.BACKFILL_START)
     args = ap.parse_args()
 
@@ -165,7 +170,7 @@ def main() -> int:
     limit = int(limit_raw) if limit_raw.isdigit() and int(limit_raw) > 0 else None
 
     summary = run(args.datasets, limit, args.start)
-    total = sum(summary[k] for k in ("price", "inst", "per", "revenue"))
+    total = sum(summary[k] for k in ("price", "inst", "per", "revenue", "financial", "balance"))
     log.info("本輪共寫入 %d 列", total)
     return 0
 

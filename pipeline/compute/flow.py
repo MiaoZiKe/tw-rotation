@@ -156,12 +156,7 @@ def relative_strength(group_hist: pd.DataFrame, market: pd.DataFrame,
     g["ret"] = (g.groupby("group_id")["group_index"]
                  .transform(lambda s: s / s.shift(window) - 1) * 100)
 
-    market_ret = np.nan
-    if market is not None and not market.empty and "taiex" in market.columns:
-        mk = market.sort_values("date")
-        taiex = pd.to_numeric(mk["taiex"], errors="coerce").dropna()
-        if len(taiex) > window:
-            market_ret = (taiex.iloc[-1] / taiex.iloc[-1 - window] - 1) * 100
+    market_ret = _market_return(market, window)
 
     latest = g["date"].max()
     out = g[g["date"] == latest][
@@ -169,6 +164,44 @@ def relative_strength(group_hist: pd.DataFrame, market: pd.DataFrame,
     out["market_ret"] = market_ret
     out["rs"] = out["ret"] - market_ret
     return out.sort_values("rs", ascending=False)
+
+
+def _market_return(market: pd.DataFrame | None, window: int) -> float:
+    """大盤 N 日報酬。
+
+    證交所的 FMTQIK 只回傳「當月至今」，所以每個月初只有幾個交易日可用，
+    根本算不出 20 日報酬 —— 這會讓整張相對強弱圖變成空白。
+    拿不到就改用 yfinance 的 ^TWII（intl_daily 裡有一年份）。
+    """
+    from ..util import store
+
+    def _ret(series: pd.Series) -> float:
+        s = pd.to_numeric(series, errors="coerce").dropna()
+        if len(s) <= window:
+            return np.nan
+        return float((s.iloc[-1] / s.iloc[-1 - window] - 1) * 100)
+
+    if market is not None and not market.empty and "taiex" in market.columns:
+        r = _ret(market.sort_values("date")["taiex"])
+        if not np.isnan(r):
+            return r
+
+    try:
+        intl = store.read("intl_daily")
+    except Exception:  # noqa: BLE001
+        return np.nan
+    if intl.empty or "symbol" not in intl.columns:
+        log.warning("拿不到大盤報酬，相對強弱會是空的")
+        return np.nan
+
+    twii = intl[intl["symbol"] == "^TWII"].sort_values("date")
+    if twii.empty:
+        log.warning("intl_daily 裡沒有 ^TWII，相對強弱會是空的")
+        return np.nan
+    r = _ret(twii["close"])
+    if np.isnan(r):
+        log.warning("^TWII 資料不足 %d 天，相對強弱會是空的", window)
+    return r
 
 
 def trust_streak(inst_hist: pd.DataFrame, min_days: int = 3) -> pd.DataFrame:

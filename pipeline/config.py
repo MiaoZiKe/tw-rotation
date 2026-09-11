@@ -26,11 +26,13 @@ TABLES: dict[str, list[str]] = {
     "market_daily":       ["date"],           # 大盤成交統計
     "inst_daily":         ["date", "code"],   # 三大法人買賣超（個股別）
     "revenue_monthly":    ["ym", "code"],     # 月營收
-    "financial_q":        ["year", "quarter", "code"],  # EPS / 損益
+    "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
+    "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
     "dividend":           ["code", "year"],   # 股利
     "shareholding_weekly": ["date", "code", "level"],   # 集保股權分散
     "company_info":       ["code"],           # 公司基本資料 + 產業別
-    "news":               ["news_id"],        # 新聞
+    "news":               ["news_id"],        # 新聞（含分類）
+    "broker_views":       ["news_id", "code"], # 新聞裡引述的券商目標價
     "intl_daily":         ["date", "symbol"], # 國際指數 / 匯率 / 債息
     "macro":              ["date", "series"], # FRED 總經
 }
@@ -63,8 +65,17 @@ FINMIND_TOKEN = os.environ.get("FINMIND_TOKEN", "")
 # 免費層：未帶 token 300 req/hr、帶 token 600 req/hr。留 15% 安全邊際。
 FINMIND_HOURLY_LIMIT = 510 if FINMIND_TOKEN else 255
 
-CNYES_NEWS = "https://api.cnyes.com/media/api/v1/newslist/category/tw_stock"
+# 鉅亨網分類（爬蟲專家實測）：tech 科技、wd_macro 國際政經、tw_stock 台股
+CNYES_NEWS_BASE = "https://api.cnyes.com/media/api/v1/newslist/category/"
+CNYES_CATEGORIES = {"tw_stock": "台股", "tech": "科技", "wd_macro": "總經"}
+CNYES_NEWS = CNYES_NEWS_BASE + "tw_stock"
+TECHNEWS_RSS = "https://cdn.technews.tw/feed/"
 UDN_MONEY_RSS = "https://money.udn.com/rssfeed/news/1001/5590?ch=money"
+
+# 財報法定公告期限 —— 沒有實際公告日時用這個當「可用日」，寧可延後不可提前，
+# 否則 walk-forward 檢驗會偷看未來（金融專家指出的致命問題）
+FINANCIAL_DEADLINES = {1: ("05", "15"), 2: ("08", "14"), 3: ("11", "14"), 4: ("03", "31")}
+REVENUE_DEADLINE_DAY = 10   # 月營收次月 10 日
 
 FRED_API = "https://api.stlouisfed.org/fred/series/observations"
 FRED_KEY = os.environ.get("FRED_API_KEY", "")

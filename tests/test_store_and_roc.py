@@ -156,3 +156,44 @@ def test_monthly_table_partitions_by_ym(store):
     parts = sorted(p.parent.name for p in
                    (store.config.DATA / "revenue_monthly").glob("year=*/part.parquet"))
     assert parts == ["year=2025", "year=2026"]
+
+
+# ------------------------------------------------------------------ 標的過濾
+
+@pytest.mark.parametrize("code,expected", [
+    ("2330", True),    # 普通股
+    ("1101", True),
+    ("2603", True),
+    ("0050", True),    # ETF
+    ("00878", True),
+    ("00631L", True),  # 正2
+    ("00981A", True),  # 主動式
+    ("030123", False), # 權證
+    ("088456", False),
+    ("07123X", False),
+    ("2881A", False),  # 特別股
+    ("12345", False),
+    ("", False),
+    (None, False),
+])
+def test_tradable_security_filter(code, expected):
+    """權證數量遠多於股票，濾錯會讓「上漲家數」變成五千多家。"""
+    assert roc.is_tradable_security(code) is expected
+
+
+def test_purge_removes_only_non_tradable(store):
+    df = pd.DataFrame({
+        "date": ["2026-09-10"] * 4,
+        "code": ["2330", "0050", "030123", "088456"],
+        "close": [1000.0, 200.0, 1.2, 0.8],
+    })
+    store.append("price_daily", df)
+    assert len(store.read("price_daily")) == 4
+
+    removed = store.purge("price_daily", roc.is_tradable_security)
+    assert removed == 2
+    left = store.read("price_daily")
+    assert sorted(left["code"]) == ["0050", "2330"]
+
+    # 再清一次不該有任何變動
+    assert store.purge("price_daily", roc.is_tradable_security) == 0

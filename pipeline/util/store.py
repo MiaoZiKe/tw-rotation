@@ -136,3 +136,31 @@ def table_summary() -> pd.DataFrame:
             "latest": latest_date(t) or "—",
         })
     return pd.DataFrame(rows)
+
+
+def purge(table: str, keep: "callable", column: str = "code") -> int:
+    """就地清掉不該存在的列，回傳刪除筆數。
+
+    這是唯一允許改寫既有分割檔的操作，只在明確的資料清理情境下使用
+    （例如早期版本誤把上萬檔權證寫進 price_daily）。
+    """
+    d = config.DATA / table
+    if not d.exists():
+        return 0
+    removed = 0
+    for f in sorted(d.glob("year=*/part.parquet")):
+        try:
+            df = pd.read_parquet(f)
+        except Exception as exc:
+            log.error("讀取 %s 失敗，跳過清理：%s", f, exc)
+            continue
+        if column not in df.columns or df.empty:
+            continue
+        mask = df[column].map(keep).fillna(False).astype(bool)
+        if mask.all():
+            continue
+        removed += int((~mask).sum())
+        df[mask].reset_index(drop=True).to_parquet(f, index=False, compression="zstd")
+    if removed:
+        log.info("%s：清掉 %d 列不符合條件的資料", table, removed)
+    return removed

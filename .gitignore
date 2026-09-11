@@ -12,3 +12,4 @@ data/_state/finmind_quota.json
 
 # 預覽截圖
 docs/preview.png
+docs/*.png

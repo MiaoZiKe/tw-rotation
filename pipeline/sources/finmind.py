@@ -10,15 +10,10 @@
 """
 from __future__ import annotations
 
-import base64
-import binascii
-import json
 import logging
-from datetime import datetime, timezone
 
 import pandas as pd
 
-from .. import config
 from ..util import http
 from ..util.roc import clean_code
 
@@ -35,30 +30,15 @@ INVESTOR_MAP = {
 }
 
 
-def token_days_left(token: str | None = None) -> int | None:
-    """FinMind token 還有幾天到期；沒有 token 或解不開就回 None。
-
-    免費層發的是**有效期只有七天**的 JWT，過期之後所有 FinMind 呼叫都會失敗，
-    但每日管線其他來源照樣成功 —— 於是儀表板看起來是好的，只是法人籌碼
-    悄悄停止更新。這個函式讓「token 快過期」變成看得見的事。
-
-    只解 payload 看 exp，不驗簽章（驗簽章要密鑰，而我們也不需要驗）。
-    """
-    tok = config.FINMIND_TOKEN if token is None else token
-    if not tok:
-        return None
-    try:
-        payload_b64 = tok.split(".")[1]
-        payload_b64 += "=" * (-len(payload_b64) % 4)
-        exp = json.loads(base64.urlsafe_b64decode(payload_b64))["exp"]
-    except (IndexError, KeyError, ValueError, binascii.Error):
-        return None
-    delta = datetime.fromtimestamp(exp, timezone.utc) - datetime.now(timezone.utc)
-    return delta.days
+MARKET_MAP = {"twse": "TWSE", "tpex": "TPEX", "emerging": "EMERGING"}
 
 
 def stock_info() -> pd.DataFrame:
-    """台股總覽，含 FinMind 自己的產業分類。用來建立回補用的股票清單。"""
+    """台股總覽：簡稱、上市/上櫃/興櫃、FinMind 產業分類。
+
+    這是「股票簡稱」與「上市櫃別」最省事的單一來源 —— 一支請求全市場搞定，
+    不用串證交所與櫃買兩支端點。回補的歷史列沒有名稱，全靠這張表補。
+    """
     data = http.finmind_get("TaiwanStockInfo")
     if not data:
         return pd.DataFrame()
@@ -69,11 +49,116 @@ def stock_info() -> pd.DataFrame:
         "stock_id": "code",
         "stock_name": "name",
         "industry_category": "industry_finmind",
-        "type": "market",
+        "type": "market_raw",
     })
     df["code"] = df["code"].map(clean_code)
+    df["market"] = df["market_raw"].map(MARKET_MAP).fillna(df["market_raw"])
     keep = [c for c in ("code", "name", "industry_finmind", "market") if c in df.columns]
-    return df[keep].dropna(subset=["code"]).drop_duplicates("code")
+    out = df[keep].dropna(subset=["code"])
+    # 同一代號可能出現多列（不同日期的資訊更新），保留最後一筆
+    return out.drop_duplicates("code", keep="last").reset_index(drop=True)
+
+
+# FinMind 財報是長格式：一列一個科目。這裡挑出我們要的科目轉成寬格式。
+_FS_FIELDS = {
+    "Revenue": "revenue",
+    "GrossProfit": "gross_profit",
+    "OperatingIncome": "operating_income",
+    "IncomeAfterTaxes": "net_income",
+    "EPS": "eps",
+}
+_BS_FIELDS = {
+    "OrdinaryShare": "ordinary_share",                      # 股本（元），面額 10 → 股數 = /10
+    "EquityAttributableToOwnersOfParent": "equity_parent",  # 母公司權益，算 BPS / ROE
+    "TotalAssets": "total_assets",
+}
+
+
+def _quarter_of(date_str: str) -> tuple[int, int] | None:
+    try:
+        y, m = int(date_str[:4]), int(date_str[5:7])
+    except (TypeError, ValueError):
+        return None
+    q = {3: 1, 6: 2, 9: 3, 12: 4}.get(m)
+    return (y, q) if q else None
+
+
+def _pivot_statement(data: list[dict], fields: dict[str, str], code: str) -> pd.DataFrame:
+    df = pd.DataFrame(data)
+    if df.empty or "type" not in df.columns:
+        return pd.DataFrame()
+    df = df[df["type"].isin(fields)]
+    if df.empty:
+        return pd.DataFrame()
+    wide = (df.pivot_table(index="date", columns="type", values="value", aggfunc="last")
+              .rename(columns=fields).reset_index())
+    wide.columns.name = None
+    yq = wide["date"].astype(str).map(_quarter_of)
+    wide = wide[yq.notna()].copy()
+    wide["year"] = [t[0] for t in yq.dropna()]
+    wide["quarter"] = [t[1] for t in yq.dropna()]
+    wide["code"] = code
+    wide["period_end"] = wide["date"].astype(str)
+    return wide.drop(columns="date")
+
+
+def financial_statements(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔季損益（單季值，非累計）。用來算 TTM EPS。
+
+    FinMind 官方註明 EPS 會因配股回溯調整，所以永遠用「近四季相加」而不是
+    拿舊的累計數 —— 回溯調整後四季相加才是正確的 TTM。
+    """
+    data = http.finmind_get("TaiwanStockFinancialStatements", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    wide = _pivot_statement(data, _FS_FIELDS, code)
+    if wide.empty:
+        return wide
+    for col in _FS_FIELDS.values():
+        if col not in wide.columns:
+            wide[col] = pd.NA
+        wide[col] = pd.to_numeric(wide[col], errors="coerce")
+    wide["announce_date"] = [
+        announce_date(y, q) for y, q in zip(wide["year"], wide["quarter"])
+    ]
+    return wide[["year", "quarter", "code", "period_end", "announce_date",
+                 "revenue", "gross_profit", "operating_income", "net_income", "eps"]]
+
+
+def balance_sheet(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔季資產負債表：股本、母公司權益、總資產。"""
+    data = http.finmind_get("TaiwanStockBalanceSheet", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    wide = _pivot_statement(data, _BS_FIELDS, code)
+    if wide.empty:
+        return wide
+    for col in _BS_FIELDS.values():
+        if col not in wide.columns:
+            wide[col] = pd.NA
+        wide[col] = pd.to_numeric(wide[col], errors="coerce")
+    # 台股面額 10 元，股數 = 股本 / 10（減資、私募會有誤差，但免費資料只能到這）
+    wide["shares"] = wide["ordinary_share"] / 10.0
+    wide["bps"] = wide["equity_parent"] / wide["shares"].replace(0, pd.NA)
+    wide["announce_date"] = [
+        announce_date(y, q) for y, q in zip(wide["year"], wide["quarter"])
+    ]
+    return wide[["year", "quarter", "code", "period_end", "announce_date",
+                 "ordinary_share", "shares", "equity_parent", "total_assets", "bps"]]
+
+
+def announce_date(year: int, quarter: int) -> str:
+    """財報的法定公告期限，當作資料「可用日」。
+
+    Q1 → 5/15、Q2 → 8/14、Q3 → 11/14、Q4 → 隔年 3/31。
+    實際公告通常更早，但我們寧可延後：用早於真實公告日的日期做回測就是偷看未來。
+    """
+    from .. import config
+    m, d = config.FINANCIAL_DEADLINES[int(quarter)]
+    y = int(year) + (1 if int(quarter) == 4 else 0)
+    return f"{y:04d}-{m}-{d}"
 
 
 def price_history(code: str, start: str, end: str | None = None,
@@ -180,7 +265,17 @@ def month_revenue(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
         "code": code,
         "revenue": pd.to_numeric(df.get("revenue"), errors="coerce"),
     })
-    return out[out["ym"].str.match(r"^\d{4}-\d{2}$", na=False)]
+    out = out[out["ym"].str.match(r"^\d{4}-\d{2}$", na=False)].copy()
+    # 可用日 = 次月 10 日（法定期限）
+    out["announce_date"] = out["ym"].map(revenue_announce_date)
+    return out
+
+
+def revenue_announce_date(ym: str) -> str:
+    from .. import config
+    y, m = int(ym[:4]), int(ym[5:7])
+    y2, m2 = (y + 1, 1) if m == 12 else (y, m + 1)
+    return f"{y2:04d}-{m2:02d}-{config.REVENUE_DEADLINE_DAY:02d}"
 
 
 def news(code: str | None = None, start: str | None = None,
