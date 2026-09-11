@@ -21,7 +21,7 @@ import pandas as pd
 from . import config
 from .groups import loader
 from .sources import finmind
-from .util import http, store
+from .util import http, roc, store
 
 logging.basicConfig(
     level=logging.INFO,
@@ -76,9 +76,17 @@ def target_codes(limit: int | None) -> list[str]:
     return picks[:limit] if limit else picks
 
 
+_cov_cache: dict[str, pd.DataFrame] = {}
+
+
 def already_covered(table: str, code: str, start: str) -> bool:
-    """該檔在這張表裡是否已經補到指定起始日之前。"""
-    df = store.read(table)
+    """該檔在這張表裡是否已經補到指定起始日之前。
+
+    整張表只讀一次（price_daily 有六十幾萬列，逐檔重讀會讓一輪回補多花好幾分鐘）；
+    這一輪新補進去的股票會被 progress 檔記住，不靠這個快取判斷。"""
+    if table not in _cov_cache:
+        _cov_cache[table] = store.read(table)
+    df = _cov_cache[table]
     if df.empty or "code" not in df.columns:
         return False
     sub = df[df["code"] == code]
@@ -98,8 +106,15 @@ def run(datasets: str, limit: int | None, start: str) -> dict:
     log.info("回補目標：%d 檔，資料集 %s，起始 %s", len(codes), sorted(wanted), start)
 
     prog = _progress()
+    prog.setdefault("done", {})
+    prog.setdefault("complete", {})
+    datasets_key = "+".join(sorted(wanted))
     summary = {"price": 0, "inst": 0, "per": 0, "revenue": 0,
-               "financial": 0, "balance": 0, "skipped": 0, "exhausted": False}
+               "financial": 0, "balance": 0, "skipped": 0, "failed": 0,
+               "no_data": 0, "exhausted": False}
+
+    # ETF / 指數型商品沒有財報、月營收、本益比可抓，逐檔去問只是在燒額度
+    FINANCIAL_KEYS = {"per", "revenue", "financial", "balance"}
 
     jobs = [
         ("price", "price_daily", lambda c: finmind.price_history(c, start, wait=False)),
@@ -123,6 +138,10 @@ def run(datasets: str, limit: int | None, start: str) -> dict:
             if prog["done"].get(done_key) or already_covered(table, code, start):
                 summary["skipped"] += 1
                 continue
+            if key in FINANCIAL_KEYS and roc.is_etf(code):
+                prog["done"][done_key] = True
+                summary["skipped"] += 1
+                continue
             if http.finmind_budget_left() <= 1:
                 summary["exhausted"] = True
                 break
@@ -131,9 +150,19 @@ def run(datasets: str, limit: int | None, start: str) -> dict:
                 df = fetch(code)
             except Exception as exc:  # noqa: BLE001
                 log.warning("%s %s 抓取失敗：%s", key, code, exc)
+                summary["failed"] += 1
                 continue
 
+            if http.finmind_budget_left() <= 1:
+                # 這一筆是撞到伺服器端限流才空的，不能當作「沒資料」
+                summary["exhausted"] = True
+                break
+
             if df is None or df.empty:
+                # 額度還在卻拿不到東西 → 這檔真的沒有這種資料（新掛牌、KY 股缺財報…），
+                # 記成做過，下一輪不要再問；要重抓就刪 progress 檔裡的鍵
+                summary["no_data"] += 1
+                prog["done"][done_key] = True
                 continue
             n = store.append(table, df)
             summary[key] += n
@@ -149,6 +178,15 @@ def run(datasets: str, limit: int | None, start: str) -> dict:
         if summary["exhausted"]:
             break
 
+    # 整輪走完、沒被限流、也沒有抓取失敗 → 這組資料集對目前的目標清單已補齊。
+    # 排程觸發的工作流會看這個旗標決定要不要直接跳過（省 Actions 分鐘與額度）。
+    # 手動觸發永遠會重跑一輪，所以 groups.yaml 新增成分股後按一次即可。
+    finished_all = not summary["exhausted"] and summary["failed"] == 0
+    prog["complete"][datasets_key] = {
+        "done": finished_all,
+        "at": datetime.now(timezone.utc).isoformat(),
+        "codes": len(codes),
+    }
     _save_progress(prog)
     log.info("回補結束：%s", summary)
     return summary

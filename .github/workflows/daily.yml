@@ -30,7 +30,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
+      # checkout 分支最新 commit 而非觸發當下的 SHA：排在 concurrency 佇列裡等待時，
+      # 回補可能已經推了新資料，用舊 SHA 算出來的 JSON 會少掉那批資料
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
 
       - uses: actions/setup-python@v5
         with:

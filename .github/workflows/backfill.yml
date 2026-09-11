@@ -1,18 +1,22 @@
 name: 歷史回補
 
-# 一次性（或分批）把十年歷史補進資料湖。
+# 把十年歷史補進資料湖。設計成「可以重跑」：
+# - 已經補過的股票會自動跳過
+# - FinMind 免費層 600 req/hr，額度用完（伺服器回 402）就停下、寫進度檔
+# - 每小時排程自動接續，直到 progress 檔標記 complete 為止（之後排程會直接跳過）
+# - 手動觸發永遠跑一輪（groups.yaml 新增成分股後按一次即可）
 #
-# FinMind 免費層 600 req/hr 且不支援一次查全市場，所以 500 檔要跑約一小時。
-# 這支工作流設計成「可以重跑」：已經補過的股票會自動跳過，
-# 中途被 timeout 砍掉也只要再按一次就好。
+# 排程刻意避開 UTC 09:20 / 10:20：每日管線 10:30 也要用 FinMind 額度。
 
 on:
+  schedule:
+    - cron: "20 0-8,11-23 * * *"
   workflow_dispatch:
     inputs:
       limit:
         description: "本輪最多補幾檔（留空＝用剩餘額度補到滿）"
         type: string
-        default: "400"
+        default: "500"
       start_date:
         description: "回補起始日"
         type: string
@@ -21,7 +25,7 @@ on:
         description: "要補的資料集"
         type: choice
         options: [price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance]
-        default: price+inst
+        default: revenue+financial+balance
 
 permissions:
   contents: write
@@ -31,31 +35,60 @@ concurrency:
   group: tw-rotation-data-write
   cancel-in-progress: false
 
+env:
+  DATASETS: ${{ inputs.datasets || 'revenue+financial+balance' }}
+  LIMIT: ${{ inputs.limit || '500' }}
+  START_DATE: ${{ inputs.start_date || '2016-01-01' }}
+
 jobs:
   backfill:
     runs-on: ubuntu-latest
     timeout-minutes: 350   # 上限 6 小時，留緩衝
     steps:
+      # 一定要 checkout 分支「現在的」最新 commit，而不是觸發當下的 SHA。
+      # 排程/手動觸發的 run 可能在 concurrency 佇列裡等前一個 run 推完資料，
+      # 用預設（github.sha）會拿到舊版資料湖，接著 rebase 時把別人剛推的東西蓋掉。
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: 排程觸發時，補齊了就直接結束
+        id: guard
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json, os, pathlib
+          key = "+".join(sorted(os.environ["DATASETS"].replace("+", ",").split(",")))
+          skip = False
+          p = pathlib.Path("data/_state/backfill_progress.json")
+          if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and p.exists():
+              flag = json.loads(p.read_text()).get("complete", {}).get(key, {})
+              skip = bool(flag.get("done")) if isinstance(flag, dict) else bool(flag)
+          print(f"skip={'true' if skip else 'false'}")
+          print(f"key={key}")
+          PY
+          echo "資料集 $DATASETS → 是否跳過：$(grep skip= $GITHUB_OUTPUT | tail -1)"
 
       - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
         with:
           python-version: "3.12"
           cache: pip
 
-      - run: pip install -r requirements.txt
+      - if: steps.guard.outputs.skip != 'true'
+        run: pip install -r requirements.txt
 
       - name: 回補
+        if: steps.guard.outputs.skip != 'true'
         env:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
-          BACKFILL_START: ${{ inputs.start_date }}
+          BACKFILL_START: ${{ env.START_DATE }}
         run: |
           python -m pipeline.run_backfill \
-            --limit "${{ inputs.limit }}" \
-            --datasets "${{ inputs.datasets }}"
+            --limit "$LIMIT" \
+            --datasets "$DATASETS"
 
       - name: 回寫資料湖
-        if: always()
+        if: always() && steps.guard.outputs.skip != 'true'
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
@@ -64,7 +97,7 @@ jobs:
             echo "沒有資料變動，跳過 commit"
             exit 0
           fi
-          git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M')"
+          git commit -m "歷史回補 $DATASETS $(date -u '+%Y-%m-%d %H:%M')"
 
           # Parquet 是二進位檔，rebase 遇到同檔修改會衝突而不是自動合併。
           # 所以退而求其次：重試時先把遠端抓下來，讓我們這邊的版本勝出
@@ -81,9 +114,28 @@ jobs:
               git rebase --abort || true
               git reset --soft "origin/${{ github.ref_name }}"
               git add data site/data
-              git commit -m "歷史回補 ${{ inputs.datasets }} $(date -u '+%Y-%m-%d %H:%M') (合併重試)"
+              git commit -m "歷史回補 $DATASETS $(date -u '+%Y-%m-%d %H:%M') (合併重試)"
             }
             sleep $((i * 5))
           done
           echo "::error::推送連續失敗 5 次"
           exit 1
+
+      - name: 執行摘要
+        if: always()
+        run: |
+          {
+            echo "### 歷史回補"
+            echo "- 資料集：\`$DATASETS\`（key \`${{ steps.guard.outputs.key }}\`）"
+            echo "- 觸發：${{ github.event_name }}；跳過：${{ steps.guard.outputs.skip }}"
+            if [ -f data/_state/backfill_progress.json ]; then
+              python3 - <<'PY'
+          import json, pathlib, collections
+          p = json.loads(pathlib.Path("data/_state/backfill_progress.json").read_text())
+          c = collections.Counter(k.split(":")[0] for k in p.get("done", {}))
+          print("- 已完成檔數：" + "、".join(f"{k} {v}" for k, v in sorted(c.items())))
+          for k, v in p.get("complete", {}).items():
+              print(f"- `{k}`：{'補齊' if (v.get('done') if isinstance(v, dict) else v) else '未補齊'}")
+          PY
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"

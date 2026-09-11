@@ -91,6 +91,11 @@ FinMind ────────┤
 - **一檔股票可以屬於多個族群**，量能依所屬族群數平均拆分（`flow._attach_groups` 的 `weight`）。
   不要改成每個族群各算一次完整金額，那會讓市場總量灌水。
 - 註解與 commit 訊息用繁體中文。
+- **部署分兩條線**：`daily.yml` 跑完管線後自己部署；`pages.yml` 只在 `site/**` 有 push 時部署。
+  兩者共用 `pages` concurrency group 且 `cancel-in-progress: false`，不要改成 true ——
+  之前就是被取消才出現「repo 已更新但網站還是舊版」。
+- **程式碼更新走 GitHub API 推送**（Andy 不需要在本機按任何 .bat）。
+  token 只放在 Claude 的暫存區與 Andy 的 GitHub 設定，**永遠不進 repo**。
 
 ## 目前進度
 

@@ -55,6 +55,17 @@ def get(url: str, *, params: dict | None = None, headers: dict | None = None,
                     last_err = "回應不是合法 JSON"
                     log.warning("%s 回應不是 JSON（前 200 字）：%s", url, r.text[:200])
                     return None
+            if r.status_code == 402:
+                # FinMind 額度用盡會回 402 + JSON 說明；把 body 交給上層判斷，
+                # 不然呼叫端分不出「沒資料」和「被限流」
+                try:
+                    body = r.json()
+                except ValueError:
+                    body = {"msg": r.text[:200]}
+                if isinstance(body, dict):
+                    body.setdefault("status", 402)
+                    return body
+                return {"status": 402, "msg": str(body)[:200]}
             if r.status_code in (403, 401):
                 # 反爬或權限問題，重試沒有意義
                 log.warning("%s 回 %s，判定為阻擋，不重試", url, r.status_code)
@@ -106,6 +117,23 @@ def finmind_budget_left() -> int:
     return max(0, config.FINMIND_HOURLY_LIMIT - q["used"])
 
 
+def finmind_mark_exhausted() -> None:
+    """伺服器端說額度用完了（402）。本機計數器只知道這個程序用了幾次，
+    不知道前一個 Actions 執行已經把同一小時的額度吃掉，所以這裡直接把
+    計數器填滿，讓 finmind_budget_left() 回 0、回補迴圈停下來。"""
+    q = _load_quota()
+    now = time.time()
+    if now - q["window_start"] >= 3600:
+        q["window_start"] = now
+    q["used"] = config.FINMIND_HOURLY_LIMIT
+    _save_quota(q)
+
+
+def _is_rate_limited(payload: dict) -> bool:
+    msg = str(payload.get("msg", "")).lower()
+    return payload.get("status") == 402 or "exceed" in msg or "limit" in msg
+
+
 def finmind_get(dataset: str, *, data_id: str | None = None,
                 start_date: str | None = None, end_date: str | None = None,
                 wait_when_exhausted: bool = False) -> list[dict] | None:
@@ -146,6 +174,11 @@ def finmind_get(dataset: str, *, data_id: str | None = None,
     if not isinstance(payload, dict):
         return None
     if payload.get("status") != 200:
+        if _is_rate_limited(payload):
+            log.warning("FinMind 伺服器端額度用盡（%s/%s）：%s",
+                        dataset, data_id, payload.get("msg"))
+            finmind_mark_exhausted()
+            return None
         log.warning("FinMind %s/%s 回應狀態 %s：%s",
                     dataset, data_id, payload.get("status"), payload.get("msg"))
         return None
