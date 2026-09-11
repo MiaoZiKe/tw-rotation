@@ -260,8 +260,34 @@ def test_build_payload_end_to_end(populated):
     cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
     assert cands, "候選股清單不該是空的"
     assert all(0 <= c["tech_score"] <= 100 for c in cands)
-    scores = [c["tech_score"] for c in cands]
-    assert scores == sorted(scores, reverse=True), "候選股必須依技術分排序"
+    # 排序：A → B → 無等級，同等級內依技術分由高到低
+    rank = {"A": 0, "B": 1, None: 2}
+    keys = [(rank[c["grade"]], -c["tech_score"]) for c in cands]
+    assert keys == sorted(keys), "候選股必須先依等級再依技術分排序"
+    assert all(c["verdict"] for c in cands)
+    assert all(c["stop"] is not None and c["tp1"] is not None for c in cands)
+
+    # 個股頁：每檔候選都要有，且結構完整
+    stock_dir = site / "stock"
+    assert stock_dir.exists()
+    for c in cands:
+        pg = json.loads((stock_dir / f"{c['code']}.json").read_text(encoding="utf-8"))
+        assert pg["meta"]["code"] == c["code"] and pg["meta"]["name"]
+        assert len(pg["ohlcv"]) >= 60 and len(pg["ohlcv"][0]) == 6
+        assert "ma20" in pg["series"] and len(pg["series"]["ma20"]) == len(pg["ohlcv"])
+        assert pg["verdict"]["verdict"] and isinstance(pg["verdict"]["demand"], list)
+        assert isinstance(pg["inst"], list)
+
+    # 族群下鑽：每個族群都有成分股明細，成交值由大到小
+    gd = json.loads((site / "groups_detail.json").read_text(encoding="utf-8"))
+    assert "foundry" in gd and gd["foundry"]["members"]
+    tv = [m["turnover"] or 0 for m in gd["foundry"]["members"]]
+    assert tv == sorted(tv, reverse=True)
+    assert all(m["name"] and m["name"] != m["code"] for m in gd["foundry"]["members"])
+
+    # 市場寬度
+    b = heat["breadth"]
+    assert b["n"] > 0 and 0 <= b["pct_above_ma20"] <= 100
 
 
 def test_payload_has_no_nan_literals(populated):
@@ -269,10 +295,11 @@ def test_payload_has_no_nan_literals(populated):
     from pipeline import build_payload
     _, site, _ = populated
     build_payload.build()
-    for f in site.glob("*.json"):
+    for f in list(site.glob("*.json")) + list((site / "stock").glob("*.json")):
         raw = f.read_text(encoding="utf-8")
         assert "NaN" not in raw, f"{f.name} 含有 NaN"
         assert "Infinity" not in raw, f"{f.name} 含有 Infinity"
+        json.loads(raw, parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))  # 嚴格模式
 
 
 def test_seasonality_suppresses_thin_samples(populated):

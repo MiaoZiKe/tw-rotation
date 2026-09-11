@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, indicators
-from .compute import flow, fundamental
+from .compute import flow, fundamental, technical
 from .groups import loader
 from .util import store
 from .util.roc import is_tradable_security
@@ -123,7 +123,6 @@ def build() -> None:
     heat["unchanged"] = int((day["chg_pct"] == 0).sum())
     if not today.empty:
         heat["top5_share"] = _clean(today.nlargest(5, "turnover")["turnover_share"].sum())
-    _write("market_heat", heat)
 
     # ---------------------------------------------------------- M4 季節性
     _write("seasonality", seasonality(price, company).to_dict("records"))
@@ -145,7 +144,7 @@ def build() -> None:
             c = r["code"]
             g = gv_first.loc[c] if (len(gv_first) and c in gv_first.index) else None
             rv = rev_idx.loc[c] if (len(rev_idx) and c in rev_idx.index) else None
-            fund_rows.append({
+            fund_rows.append(_clean({
                 "code": c, "name": names.get(c), "market": markets.get(c),
                 "close": _clean(r["close"]),
                 "ttm_eps": _clean(r.get("ttm_eps")), "ttm_complete": bool(r.get("ttm_complete")),
@@ -174,7 +173,7 @@ def build() -> None:
                 "rev_record_high": bool(rv["is_record_high"]) if rv is not None else None,
                 "rev_flag_spike": bool(rv["flag_spike"]) if rv is not None else None,
                 "momentum_score": _clean(fundamental.momentum_score(rv)) if rv is not None else None,
-            })
+            }))
     _write("fundamental", fund_rows)
 
     # 族群估值摘要（每族群一列：口徑、中位數、樣本數、虧損比例）
@@ -189,6 +188,8 @@ def build() -> None:
 
     # 券商目標價引述（近 60 天）
     bv = store.read("broker_views")
+    if bv.empty:
+        bv = pd.DataFrame()
     if not bv.empty:
         cutoff = (pd.Timestamp(latest) - pd.Timedelta(days=60)).date().isoformat()
         bv = bv[bv["date"].astype(str) >= cutoff].sort_values("date", ascending=False)
@@ -197,9 +198,17 @@ def build() -> None:
     else:
         _write("broker_views", [])
 
-    # ---------------------------------------------------------- 個股技術面
-    _write("candidates", candidates(price, valuation, company, inst, latest,
-                                    names=names, markets=markets, fund=fund_rows))
+    # ---------------------------------------------------------- 個股技術面 + 個股頁
+    news_all = store.read("news")
+    sh_all = store.read("shareholding_weekly")
+    cand_rows, breadth = candidates(price, valuation, company, inst, latest,
+                                    names=names, markets=markets, fund=fund_rows,
+                                    news_df=news_all, broker=bv if not bv.empty else None,
+                                    shareholding=sh_all)
+    _write("candidates", cand_rows)
+    _write("groups_detail", group_detail(price, company, inst, latest, cand_rows, names))
+    heat.update({"breadth": breadth})
+    _write("market_heat", heat)
 
     # ---------------------------------------------------------- 新聞
     news_df = store.read("news")
@@ -221,6 +230,13 @@ def build() -> None:
         _write("intl", recent.to_dict("records"))
     else:
         _write("intl", [])
+
+    # ---------------------------------------------------------- 產業關聯圖
+    try:
+        _write("supply_chain", loader.supply_chain())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("產業關聯圖產出失敗：%s", exc)
+        _write("supply_chain", {})
 
     # ---------------------------------------------------------- meta
     last_run = {}
@@ -279,107 +295,205 @@ def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
 
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                company: pd.DataFrame, inst: pd.DataFrame,
-               latest: str, limit: int = 120, *, names: dict | None = None,
-               markets: dict | None = None, fund: list[dict] | None = None) -> list[dict]:
-    """當日候選股：技術分 + 同業本益比分位 + 籌碼，合成綜合分。"""
+               latest: str, limit: int = 150, *, names: dict | None = None,
+               markets: dict | None = None, fund: list[dict] | None = None,
+               news_df: pd.DataFrame | None = None, broker: pd.DataFrame | None = None,
+               shareholding: pd.DataFrame | None = None) -> tuple[list[dict], dict]:
+    """當日候選股 + 每檔的個股頁 JSON。
+
+    回傳 (候選清單, 市場寬度統計)。個股頁直接寫到 site/data/stock/<code>.json。
+    """
     if price.empty:
-        return []
+        return [], {}
 
-    m = loader.membership()
-    day = price[price["date"] == latest]
-    # 只算有題材族群、且當日成交值前段的標的，避免無謂的運算
-    codes = (day.merge(m[["code"]].drop_duplicates(), on="code", how="inner")
-                .nlargest(limit, "turnover")["code"].tolist())
-    if not codes:
-        codes = day.nlargest(limit, "turnover")["code"].tolist()
-
-    hist = price[price["code"].isin(codes)].sort_values(["code", "date"])
-    val_today = (valuation[valuation["date"] == latest]
-                 if not valuation.empty else pd.DataFrame())
-
-    # 同業本益比分位需要族群內的 PE 分布
-    pe_by_group = {}
-    if not val_today.empty:
-        joined = val_today.merge(m[["code", "group_id"]], on="code", how="inner")
-        for gid, g in joined.groupby("group_id"):
-            pes = pd.to_numeric(g["pe"], errors="coerce")
-            pes = pes[(pes > 0) & (pes < 200)]
-            if len(pes) >= 3:
-                pe_by_group[gid] = pes
-
-    inst_today = (inst[inst["date"] == latest]
-                  if not inst.empty else pd.DataFrame())
     names = names or {}
     markets = markets or {}
     fund_idx = {f["code"]: f for f in (fund or [])}
+    m = loader.membership()
+    group_of = (m.groupby("code")
+                 .agg(group_id=("group_id", "first"), group_name=("group_name", "first"),
+                      groups=("group_name", lambda x: list(dict.fromkeys(x))))
+                 .to_dict("index"))
+
+    day = price[price["date"] == latest]
+    # 族群成分股全部算，再用成交值補到 limit
+    member_codes = set(m["code"])
+    by_turnover = day.sort_values("turnover", ascending=False)["code"].tolist()
+    codes = [c for c in by_turnover if c in member_codes]
+    for c in by_turnover:
+        if len(codes) >= limit:
+            break
+        if c not in codes:
+            codes.append(c)
+
+    hist = price[price["code"].isin(codes)].sort_values(["code", "date"])
+    val_today = valuation[valuation["date"] == latest] if not valuation.empty else pd.DataFrame()
+    inst_hist = inst[inst["code"].isin(codes)] if not inst.empty else pd.DataFrame()
+    inst_today = inst_hist[inst_hist["date"] == latest] if not inst_hist.empty else pd.DataFrame()
+    news_by_code: dict[str, list] = {}
+    if news_df is not None and not news_df.empty:
+        for _, n in news_df.sort_values("published_at", ascending=False).iterrows():
+            for c in str(n.get("codes") or "").split(","):
+                if c and c in codes and len(news_by_code.setdefault(c, [])) < 8:
+                    news_by_code[c].append({"date": n.get("date"), "title": n.get("title"),
+                                            "url": n.get("url"), "source": n.get("source"),
+                                            "category": n.get("category")})
+    broker_by_code: dict[str, list] = {}
+    if broker is not None and not broker.empty:
+        for _, b in broker.sort_values("date", ascending=False).iterrows():
+            broker_by_code.setdefault(b["code"], []).append({
+                "date": b.get("date"), "broker": b.get("broker"), "target_price": _clean(b.get("target_price")),
+                "action": b.get("action"), "rating": b.get("rating"), "url": b.get("url")})
+    sh_by_code: dict[str, list] = {}
+    if shareholding is not None and not shareholding.empty:
+        big = shareholding[shareholding["level"].isin([13, 14, 15])]
+        g = big.groupby(["code", "date"])["pct"].sum().reset_index()
+        for c, gg in g.groupby("code"):
+            sh_by_code[c] = gg.sort_values("date").tail(26)[["date", "pct"]].to_dict("records")
+
+    stock_dir = config.SITE_DATA / "stock"
+    stock_dir.mkdir(parents=True, exist_ok=True)
 
     rows = []
+    breadth = {"n": 0, "above_ma20": 0, "above_ma60": 0, "new_high_60": 0, "grade_a": 0, "grade_b": 0}
     for code, g in hist.groupby("code"):
-        if len(g) < 60:      # 資料太短算不出有意義的技術指標
+        if len(g) < 60:
             continue
+        cols = ["date", "open", "high", "low", "close"] + (["volume"] if "volume" in g else [])
         try:
-            ind = indicators.compute_all(g[["date", "open", "high", "low", "close"]])
+            ind = indicators.compute_all(g[cols])
         except Exception:  # noqa: BLE001
             continue
         last = ind.iloc[-1]
         tech = indicators.technical_score(last)
+        avg_turnover = float(pd.to_numeric(g["turnover"].tail(20), errors="coerce").mean())
+        verdict = technical.evaluate(ind, avg_turnover=avg_turnover)
 
-        groups = m[m["code"] == code]
-        gid = groups["group_id"].iloc[0] if not groups.empty else None
-        gname = groups["group_name"].iloc[0] if not groups.empty else "—"
+        breadth["n"] += 1
+        if pd.notna(last.get("ma20")) and last["close"] > last["ma20"]:
+            breadth["above_ma20"] += 1
+        if pd.notna(last.get("ma60")) and last["close"] > last["ma60"]:
+            breadth["above_ma60"] += 1
+        if last["close"] >= ind["high"].tail(60).max():
+            breadth["new_high_60"] += 1
+        if verdict["grade"] == "A":
+            breadth["grade_a"] += 1
+        elif verdict["grade"] == "B":
+            breadth["grade_b"] += 1
 
+        gi = group_of.get(code, {})
+        gname = gi.get("group_name") or "—"
+        fx = fund_idx.get(code, {})
         pe = pct = None
         if not val_today.empty:
             v = val_today[val_today["code"] == code]
             if not v.empty:
                 pe = _clean(v["pe"].iloc[0])
-                if pe and gid in pe_by_group and pe > 0:
-                    pct = float((pe_by_group[gid] < pe).mean() * 100)
-
-        trust_net = None
+        trust_net = foreign_net = None
         if not inst_today.empty:
             i = inst_today[inst_today["code"] == code]
             if not i.empty:
-                trust_net = _clean(i["trust"].iloc[0])
+                trust_net = _clean(i["trust"].iloc[0]); foreign_net = _clean(i["foreign_total"].iloc[0])
+        name = names.get(code) or (g["name"].dropna().iloc[-1] if "name" in g and g["name"].notna().any() else code)
+        prev = ind["close"].iloc[-2] if len(ind) > 1 else last["close"]
+        chg_pct = float((last["close"] / prev - 1) * 100) if prev else None
 
-        fx = fund_idx.get(code, {})
-        rows.append({
-            "code": code,
-            # 簡稱一律從 company_info 拿；回補的歷史列沒有名稱欄位
-            "name": names.get(code) or (g["name"].dropna().iloc[-1] if "name" in g.columns and g["name"].notna().any() else code),
-            "market": markets.get(code),
-            "group": gname,
-            "group_id": gid,
-            "close": _clean(last.get("close")),
-            "tech_score": round(tech, 1),
+        row = {
+            "code": code, "name": name, "market": markets.get(code),
+            "group": gname, "group_id": gi.get("group_id"), "groups": gi.get("groups", []),
+            "close": _clean(last["close"]), "chg_pct": _clean(chg_pct),
+            "tech_score": round(tech, 1), "verdict": verdict["verdict"], "grade": verdict["grade"],
             "ma_align": int(last.get("ma_align") or 0),
-            "rsi": _clean(last.get("rsi14")),
-            "k": _clean(last.get("k")),
-            "d": _clean(last.get("d")),
-            "osc": _clean(last.get("osc")),
-            "trend": int(last.get("trend") or 0),
-            "bos": bool(last.get("bos")),
-            "choch": bool(last.get("choch")),
-            "fvg_bull": bool(last.get("fvg_bull")),
-            "sweep_low": bool(last.get("sweep_low")),
-            "bias20": _clean(last.get("bias20")),
-            # 估值改用自算的（TTM），證交所快照只當備援
+            "rsi": _clean(last.get("rsi14")), "k": _clean(last.get("k")), "d": _clean(last.get("d")),
+            "osc": _clean(last.get("osc")), "trend": int(last.get("trend") or 0),
+            "bos": bool(last.get("bos")), "choch": bool(last.get("choch")),
+            "fvg_bull": bool(last.get("fvg_bull")), "sweep_low": bool(last.get("sweep_low")),
+            "bias20": _clean(last.get("bias20")), "vol_ratio": _clean(last.get("vol_ratio")),
             "pe": fx.get("pe") if fx.get("pe") is not None else pe,
-            "pe_percentile": fx.get("percentile") if fx.get("percentile") is not None else (_clean(pct) if pct is not None else None),
-            "metric": fx.get("metric"),
-            "metric_value": fx.get("metric_value"),
-            "group_n": fx.get("group_n"),
-            "rev_yoy": fx.get("rev_yoy"),
-            "rev_streak": fx.get("rev_streak"),
+            "pe_percentile": fx.get("percentile"), "metric": fx.get("metric"),
+            "metric_value": fx.get("metric_value"), "group_n": fx.get("group_n"),
+            "rev_yoy": fx.get("rev_yoy"), "rev_streak": fx.get("rev_streak"),
             "momentum_score": fx.get("momentum_score"),
-            "trust_net": trust_net,
-            "turnover": _clean(g["turnover"].iloc[-1]),
-        })
+            "trust_net": trust_net, "foreign_net": foreign_net,
+            "turnover": _clean(g["turnover"].iloc[-1]), "avg_turnover": _clean(avg_turnover),
+            "stop": verdict["stop"], "tp1": verdict["tp1"], "rr": verdict["rr"],
+        }
+        rows.append(row)
 
-    rows.sort(key=lambda r: r["tech_score"], reverse=True)
-    return rows
+        # ---------------- 個股頁
+        tail = ind.tail(250)
+        page = {
+            "meta": {k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
+            "as_of": latest,
+            "ohlcv": _clean([[r_["date"], r_["open"], r_["high"], r_["low"], r_["close"],
+                              (r_["volume"] if "volume" in tail else None)]
+                             for _, r_ in tail.iterrows()]),
+            "series": {k: _clean(tail[k].tolist()) for k in
+                       ("ma5", "ma20", "ma60", "ma120", "k", "d", "dif", "macd", "osc",
+                        "rsi14", "vol_ma20", "atr14") if k in tail},
+            "marks": {
+                "bos": _clean(tail[tail["bos"].fillna(False)]["date"].tolist()),
+                "choch": _clean([[r_["date"], int(r_["trend"])] for _, r_ in
+                                 tail[tail["choch"].fillna(False)].iterrows()]),
+                "sweep_low": _clean(tail[tail["sweep_low"].fillna(False)]["date"].tolist()),
+                "sweep_high": _clean(tail[tail["sweep_high"].fillna(False)]["date"].tolist()),
+                "limit_up": _clean(tail[tail["limit_up"].fillna(False)]["date"].tolist()),
+            },
+            "verdict": _clean(verdict),
+            "summary": row,
+            "fundamental": fx or None,
+            "inst": _clean(inst_hist[inst_hist["code"] == code].sort_values("date").tail(60)
+                           [["date", "foreign_total", "trust", "dealer"]].to_dict("records"))
+                    if not inst_hist.empty else [],
+            "shareholding": _clean(sh_by_code.get(code, [])),
+            "news": news_by_code.get(code, []),
+            "broker_views": broker_by_code.get(code, [])[:6],
+        }
+        # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
+        (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
+                                                encoding="utf-8")
+
+    rows.sort(key=lambda r: (r["grade"] or "Z", -r["tech_score"]))
+    if breadth["n"]:
+        breadth["pct_above_ma20"] = round(breadth["above_ma20"] / breadth["n"] * 100, 1)
+        breadth["pct_above_ma60"] = round(breadth["above_ma60"] / breadth["n"] * 100, 1)
+    log.info("個股頁：%d 檔，A 級 %d、B 級 %d", len(rows), breadth["grade_a"], breadth["grade_b"])
+    return rows, breadth
 
 
-if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    build()
+def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
+                 latest: str, cand_rows: list[dict], names: dict) -> dict:
+    """每個族群的成分股明細，給熱力圖下鑽與法人下鑽用。"""
+    m = loader.membership()
+    day = price[price["date"] == latest].set_index("code")
+    inst_today = inst[inst["date"] == latest].set_index("code") if not inst.empty else pd.DataFrame()
+    cand_idx = {r["code"]: r for r in cand_rows}
+    out = {}
+    for gid, g in m.groupby("group_id"):
+        members = []
+        for c in g["code"]:
+            if c not in day.index:
+                continue
+            r = day.loc[c]
+            if isinstance(r, pd.DataFrame):
+                r = r.iloc[0]
+            prev = r["close"] - (r["change"] if pd.notna(r["change"]) else 0)
+            cr = cand_idx.get(c, {})
+            it = inst_today.loc[c] if (len(inst_today) and c in inst_today.index) else None
+            if isinstance(it, pd.DataFrame):
+                it = it.iloc[0]
+            members.append({
+                "code": c, "name": names.get(c) or r.get("name") or c,
+                "close": _clean(r["close"]),
+                "chg_pct": _clean((r["change"] / prev * 100) if prev else None),
+                "turnover": _clean(r["turnover"]),
+                "foreign": _clean(it["foreign_total"]) if it is not None else None,
+                "trust": _clean(it["trust"]) if it is not None else None,
+                "dealer": _clean(it["dealer"]) if it is not None else None,
+                "tech_score": cr.get("tech_score"), "grade": cr.get("grade"),
+                "verdict": cr.get("verdict"), "pe_percentile": cr.get("pe_percentile"),
+                "rev_yoy": cr.get("rev_yoy"), "has_page": c in cand_idx,
+            })
+        members.sort(key=lambda x: -(x["turnover"] or 0))
+        out[gid] = {"group_name": g["group_name"].iloc[0], "members": members}
+    return out

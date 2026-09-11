@@ -102,13 +102,18 @@ TTM EPS、自算 PE、分族群估值分位含 pb_roe/ps 口徑、月營收動�
 v2 稿圖已經 Andy 確認（2026-09-11），三個拍板：註冊富果做即時、預估漲幅改營運動能分數、
 每處都要有股票簡稱、券商目標價以「新聞引述」形式呈現。
 
-**還沒做**（依稿圖建置順序）：
+**v2 已完成（2026-09-11）**：
+- 前端 v2：`site/index.html` + `site/app.js`（hash 路由五分頁、事件側欄、熱力圖/象限/法人下鑽、
+  季節性排名點圖、市場寬度、產業鏈分層圖 + 手機折疊清單）
+- 個股頁：`site/data/stock/<code>.json`（K 線 + 指標序列 + BOS/CHoCH/掃蕩標記 + 需求/供給區 +
+  判定 + 基本面 + 籌碼 + 新聞 + 券商引述）
+- 規則引擎：`compute/technical.py` —— 多源交集區間（score≥3、≥2 來源、寬 ≤2×ATR、依距離排序）、
+  A/B/觀望/不要碰、突破停損放在被突破的前高下方、測量目標、週線衝突降級、三段式文字
+- 指標庫補 ATR、量比、Volume Profile、漲跌停旗標；FVG 門檻 max(0.6, 0.3×ATR%)
+- `groups/supply_chain.yaml` + `loader.supply_chain()`（市占帶 as_of/source/confidence，180 天標 stale）
 
-1. **前端 v2**：五個分頁 + 事件側欄、熱力圖下鑽面板、輪動象限圖、法人下鑽、
-   季節性排名點圖、行情寬度儀。稿圖在 Claude artifact「台股資金輪動儀表板 v2 稿圖」。
-2. **個股 K 線頁**：依技術分析專家規格 —— 指標庫先補 ATR(14, 用 wilder_rma)、量比、
-   Volume Profile、漲跌停旗標；S/R 多源交集 score ≥ 3 才顯示；A/B/觀望/不要碰規則；
-   FVG 的 min_gap_pct 改 max(0.6, 0.3×ATR%)；週線用 resample 重算同一套指標。
+**還沒做**：
+
 3. **即時層**：Fugle WebSocket 前端直連（等 Andy 給 key），Cloudflare Workers 藏 key。
 4. **M4 事件面計算層** —— 用鉅亨新聞的 `market`/`keyword` 欄位把新聞歸戶到個股與族群，
    偵測當日新聞量異常的族群；國際連動係數（族群 vs `benchmarks` 指定的指數）。

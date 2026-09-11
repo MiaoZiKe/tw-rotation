@@ -141,6 +141,76 @@ def kd(high: pd.Series, low: pd.Series, close: pd.Series,
     return pd.DataFrame({"rsv": rsv, "k": k_vals, "d": d_vals}, index=close.index)
 
 
+# --------------------------------------------------------------- ATR 與量能
+
+def atr(high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14) -> pd.Series:
+    """Wilder ATR。停損距離、區間寬度、波動過濾都靠它，複用同一套 RMA 種子規則。"""
+    prev_close = close.shift(1)
+    tr = pd.concat([
+        high - low,
+        (high - prev_close).abs(),
+        (low - prev_close).abs(),
+    ], axis=1).max(axis=1)
+    tr.iloc[0] = high.iloc[0] - low.iloc[0]
+    return wilder_rma(tr, period)
+
+
+def volume_stats(volume: pd.Series) -> pd.DataFrame:
+    """均量與量比。量比 ≥ 1.5 視為爆量（技術分析專家的門檻）。"""
+    v = pd.to_numeric(volume, errors="coerce")
+    ma5 = v.rolling(5, min_periods=5).mean()
+    ma20 = v.rolling(20, min_periods=20).mean()
+    return pd.DataFrame({
+        "vol_ma5": ma5,
+        "vol_ma20": ma20,
+        "vol_ratio": v / ma20.replace(0, np.nan),
+    }, index=volume.index)
+
+
+def limit_flags(close: pd.Series, threshold: float = 9.8) -> pd.DataFrame:
+    """漲跌停旗標。台股漲跌幅 10%，取 9.8% 以上視為觸及。
+
+    鎖死漲停的 K 棒不能拿來算 FVG／OB（它不是市場自由成交的結果），
+    也是「不要碰」的硬性排除條件之一。
+    """
+    chg = close.pct_change() * 100
+    return pd.DataFrame({
+        "limit_up": chg >= threshold,
+        "limit_down": chg <= -threshold,
+    }, index=close.index).fillna(False)
+
+
+def volume_profile(high: pd.Series, low: pd.Series, volume: pd.Series,
+                   lookback: int = 120, bins: int = 40, top_n: int = 3) -> list[dict]:
+    """成交量密集區（VPVR 的簡化版）。
+
+    把近 lookback 根 K 的價格範圍分成 bins 桶，每根 K 的成交量平均攤到它覆蓋的桶，
+    取量最大的 top_n 桶當「有大量籌碼換手」的價位帶 —— 支撐壓力的第三個來源。
+    """
+    h = high.tail(lookback).to_numpy(dtype=float)
+    l = low.tail(lookback).to_numpy(dtype=float)
+    v = pd.to_numeric(volume.tail(lookback), errors="coerce").fillna(0).to_numpy(dtype=float)
+    if len(h) < 20 or np.isnan(h).all():
+        return []
+    lo, hi = np.nanmin(l), np.nanmax(h)
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        return []
+    edges = np.linspace(lo, hi, bins + 1)
+    vol = np.zeros(bins)
+    for hh, ll, vv in zip(h, l, v):
+        if np.isnan(hh) or np.isnan(ll) or vv <= 0:
+            continue
+        i0 = int(np.searchsorted(edges, ll, side="right") - 1)
+        i1 = int(np.searchsorted(edges, hh, side="right") - 1)
+        i0, i1 = max(0, min(i0, bins - 1)), max(0, min(i1, bins - 1))
+        span = i1 - i0 + 1
+        vol[i0:i1 + 1] += vv / span
+    order = np.argsort(vol)[::-1][:top_n]
+    total = vol.sum() or 1.0
+    return [{"low": float(edges[i]), "high": float(edges[i + 1]),
+             "volume_share": float(vol[i] / total)} for i in sorted(order)]
+
+
 # --------------------------------------------------------------- SMC
 
 def swing_points(high: pd.Series, low: pd.Series, lookback: int = 2) -> pd.DataFrame:
@@ -222,13 +292,17 @@ def market_structure(high: pd.Series, low: pd.Series, close: pd.Series,
 
 
 def fair_value_gaps(high: pd.Series, low: pd.Series,
-                    min_gap_pct: float = 0.0) -> pd.DataFrame:
+                    min_gap_pct: float = 0.0,
+                    exclude: pd.Series | None = None) -> pd.DataFrame:
     """公允價值缺口（FVG）：三根 K 之間留下的未成交區間。
 
     多方 FVG：第 1 根的高點 < 第 3 根的低點（中間那根急拉留下缺口）
     空方 FVG：第 1 根的低點 > 第 3 根的高點
 
     缺口標記在第 3 根上，因為那時才確認成立。
+
+    台股每天開盤都可能跳空，min_gap_pct 為 0 會產生大量無效缺口；
+    compute_all 會用 max(0.6, 0.3×ATR%) 當門檻。exclude 標記的 K（漲跌停）不參與。
     """
     h, l = high.to_numpy(), low.to_numpy()
     n = len(h)
@@ -236,8 +310,11 @@ def fair_value_gaps(high: pd.Series, low: pd.Series,
     bear = np.zeros(n, dtype=bool)
     top = np.full(n, np.nan)
     bottom = np.full(n, np.nan)
+    ex = exclude.to_numpy() if exclude is not None else np.zeros(n, dtype=bool)
 
     for i in range(2, n):
+        if ex[i] or ex[i - 1] or ex[i - 2]:
+            continue
         h1, l1 = h[i - 2], l[i - 2]
         h3, l3 = h[i], l[i]
         ref = max(l1, 1e-9)
@@ -318,6 +395,12 @@ def compute_all(df: pd.DataFrame) -> pd.DataFrame:
         else df.reset_index(drop=True)
 
     o, h, l, c = df["open"], df["high"], df["low"], df["close"]
+    atr14 = atr(h, l, c, 14)
+    lim = limit_flags(c)
+    # FVG 門檻：max(0.6%, 0.3×ATR%)，避免每天的開盤跳空都變成缺口
+    atr_pct = (atr14 / c * 100).fillna(0)
+    gap_pct = float(max(0.6, 0.3 * float(atr_pct.iloc[-1]))) if len(atr_pct) else 0.6
+
     out = df.copy()
     out = pd.concat([
         out,
@@ -325,13 +408,21 @@ def compute_all(df: pd.DataFrame) -> pd.DataFrame:
         macd(c),
         kd(h, l, c),
         market_structure(h, l, c),
-        fair_value_gaps(h, l),
+        fair_value_gaps(h, l, min_gap_pct=gap_pct,
+                        exclude=(lim["limit_up"] | lim["limit_down"])),
         order_blocks(o, h, l, c),
         liquidity_sweep(h, l, c),
+        lim,
     ], axis=1)
+    out["atr14"] = atr14
+    out["atr_pct"] = atr_pct
     out["rsi14"] = rsi(c, 14)
     out["ma_align"] = ma_alignment(c)
     out["bias20"] = bias(c, 20)
+    if "volume" in df.columns:
+        out = pd.concat([out, volume_stats(df["volume"])], axis=1)
+    else:
+        out["vol_ma5"] = out["vol_ma20"] = out["vol_ratio"] = np.nan
     return out
 
 

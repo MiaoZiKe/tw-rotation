@@ -1,0 +1,177 @@
+# 產業關聯圖資料（產業分析師的 schema）
+#
+# 節點三種：segment（產業環節）、company（公司，帶台股代號）、product（產品/技術）
+# 邊：supplies（供貨給）、competes（競爭）、substitutes（替代）、produced_by（由誰生產）
+#
+# 市占率規則：每一筆都要帶 as_of + source + confidence，UI 會顯示「這數字多舊、可不可信」。
+#   confidence: verified（官方/研究機構明確數字）、reported（媒體引述法人）、estimated（推論）
+# 超過 180 天沒更新的數字，頁面會自動變灰並提示。
+#
+# 這份是種子，數字由 Andy 依產業經驗校訂。半年重審一次邊關係，市占季度覆核。
+
+meta:
+  schema_version: "1.0"
+  as_of: "2026-09-11"
+  reviewed: "2026-09-11"
+  note: "AI 伺服器 / 半導體鏈種子資料，市占數字依 2026-09 產業分析師查證"
+
+# ---------------------------------------------------------------- 環節（分層順序 = 上游 → 下游）
+segments:
+  - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
+  - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
+  - {id: foundry,      name: "晶圓代工",            layer: 2, chain: semiconductor}
+  - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor}
+  - {id: osat_test,    name: "封測 / 測試",         layer: 3, chain: semiconductor}
+  - {id: hbm,          name: "HBM 記憶體",          layer: 2, chain: semiconductor, note: "台廠無直接供應商，關聯在測試與載板"}
+  - {id: abf_pcb,      name: "ABF 載板 / 高階 PCB", layer: 3, chain: ai_server}
+  - {id: ccl,          name: "CCL 銅箔基板",        layer: 2, chain: ai_server}
+  - {id: thermal,      name: "散熱（液冷）",        layer: 4, chain: ai_server}
+  - {id: power,        name: "電源",                layer: 4, chain: ai_server}
+  - {id: optical,      name: "光通訊 / 矽光子",     layer: 4, chain: ai_server}
+  - {id: switch,       name: "交換器",              layer: 4, chain: ai_server}
+  - {id: assembly,     name: "系統組裝 / 機櫃",     layer: 5, chain: ai_server}
+  - {id: hyperscaler,  name: "雲端業者（終端需求）", layer: 6, chain: ai_server}
+
+# ---------------------------------------------------------------- 產品 / 技術
+products:
+  - id: cowos
+    name: CoWoS 先進封裝
+    segment: adv_pkg
+    supply_demand: {status: shortage, note: "供給約滿足需求 6–7 成", as_of: "2026", confidence: reported}
+    demand_allocation:
+      - {customer: nvidia, pct: 63}
+      - {customer: broadcom, pct: 13}
+      - {customer: amd, pct: 8}
+      - {customer: marvell, pct: 8}
+    allocation_source: {name: "法人研究轉述（鉅亨/富果）", as_of: "2026", confidence: reported}
+  - id: liquid_cooling
+    name: 液冷散熱
+    segment: thermal
+    penetration:
+      - {metric: "AI 伺服器液冷滲透率", value_pct: 76, as_of: "2026F", source: "鉅亨網引述法人", confidence: reported}
+    note: "700W 以上 TDP 氣冷失效；水冷櫃單價約氣冷 4 倍"
+  - id: hvdc_800v
+    name: 800V HVDC 電源架構
+    segment: power
+    note: "Vera Rubin 世代硬規，2027 才真正放量"
+    as_of: "2026-09"
+    confidence: reported
+
+# ---------------------------------------------------------------- 公司
+companies:
+  # ---- 半導體主幹
+  - {id: gud,     ticker: "3443", name: 創意,       segment: ip_eda,   tech: [ASIC 設計服務], customers: [hyperscaler]}
+  - {id: alchip,  ticker: "3661", name: 世芯-KY,    segment: ip_eda,   tech: [ASIC 設計服務, 先進製程 NRE]}
+  - {id: faraday, ticker: "3035", name: 智原,       segment: ip_eda,   tech: [IP, ASIC]}
+  - {id: mtk,     ticker: "2454", name: 聯發科,     segment: ic_design, tech: [ASIC, 手機 SoC, 網通晶片]}
+  - {id: rtk,     ticker: "2379", name: 瑞昱,       segment: ic_design, tech: [網通晶片]}
+  - id: tsmc
+    ticker: "2330"
+    name: 台積電
+    segment: foundry
+    tech: [N3/N2 先進製程, CoWoS-L, SoIC]
+    share:
+      - {metric: "純晶圓代工營收市占", value_pct: 72.5, as_of: "2026-Q2", source: TrendForce, source_url: "https://technews.tw/2026/08/31/global-pure-foundry-market-share-quarterly", confidence: verified}
+    growth: {capacity_plan: "CoWoS 產能 2026→2027 擴張約 40%", capacity_source: "法人研究轉述", drivers: [AI_ASIC, CoWoS_shortage]}
+    risks: [地緣政治, 匯率, 客戶集中]
+  - {id: umc,     ticker: "2303", name: 聯電,       segment: foundry,  tech: [成熟製程]}
+  - {id: ase,     ticker: "3711", name: 日月光投控, segment: osat_test, tech: [封裝, 測試, CoWoS 外溢]}
+  - {id: pti,     ticker: "6239", name: 力成,       segment: osat_test, tech: [記憶體封測, HBM 相關]}
+  - {id: kyec,    ticker: "2449", name: 京元電,     segment: osat_test, tech: [HPC/AI 測試]}
+  - {id: sigurd,  ticker: "6257", name: 矽格,       segment: osat_test, tech: [測試]}
+  - {id: wineai,  ticker: "6515", name: 穎崴,       segment: osat_test, tech: [測試介面]}
+  # ---- 先進封裝設備
+  - {id: gpt,     ticker: "3131", name: 弘塑,       segment: adv_pkg,  tech: [濕製程設備]}
+  - {id: scientech, ticker: "3583", name: 辛耘,     segment: adv_pkg,  tech: [濕製程, 再生晶圓]}
+  - {id: allring, ticker: "6187", name: 萬潤,       segment: adv_pkg,  tech: [點膠, 固晶設備]}
+  # ---- 載板 / PCB / CCL
+  - {id: unimicron, ticker: "3037", name: 欣興,     segment: abf_pcb,  tech: [ABF 載板], note: "2026 供給由鬆轉緊"}
+  - {id: nanya_pcb, ticker: "8046", name: 南電,     segment: abf_pcb,  tech: [ABF 載板]}
+  - {id: kinsus,  ticker: "3189", name: 景碩,       segment: abf_pcb,  tech: [ABF 載板]}
+  - {id: gce,     ticker: "2368", name: 金像電,     segment: abf_pcb,  tech: [高階 PCB]}
+  - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL], note: "高階 CCL 龍頭"}
+  - {id: tuc,     ticker: "6274", name: 台燿,       segment: ccl,      tech: [CCL]}
+  # ---- 散熱
+  - id: avc
+    ticker: "3017"
+    name: 奇鋐
+    segment: thermal
+    tech: [水冷板, sidecar, CDU]
+    share:
+      - {metric: "GB200/GB300 水冷板市占", value_pct_range: [40, 50], as_of: "2026-H1", source: "媒體引述法人", confidence: reported}
+    customers: [foxconn, quanta]
+  - {id: auras,   ticker: "3324", name: 雙鴻,       segment: thermal,  tech: [水冷板, 氣冷模組]}
+  - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,  tech: [均熱片, 導線架]}
+  # ---- 電源
+  - id: delta
+    ticker: "2308"
+    name: 台達電
+    segment: power
+    tech: [800V HVDC, MW 級 CDU, PSU]
+    share:
+      - {metric: "AI 伺服器電源市占", value_pct: 60, as_of: "2026", source: "媒體引述法人", confidence: reported}
+  - {id: liteon,  ticker: "2301", name: 光寶科,     segment: power,    tech: [PSU], note: "與台達合計約 7 成"}
+  # ---- 光通訊
+  - {id: luxnet,  ticker: "4979", name: 華星光,     segment: optical,  tech: [光收發模組]}
+  - {id: lpc,     ticker: "3081", name: 聯亞,       segment: optical,  tech: [磊晶]}
+  - {id: browave, ticker: "3163", name: 波若威,     segment: optical,  tech: [光被動元件]}
+  # ---- 交換器
+  - {id: accton,  ticker: "2345", name: 智邦,       segment: switch,   tech: [800G/1.6T 白牌交換器]}
+  # ---- 組裝
+  - {id: foxconn, ticker: "2317", name: 鴻海,       segment: assembly, tech: [GB300 機櫃, 整櫃系統], note: "AI 伺服器出貨居前"}
+  - {id: quanta,  ticker: "2382", name: 廣達,       segment: assembly, tech: [AI 伺服器]}
+  - {id: wistron, ticker: "3231", name: 緯創,       segment: assembly, tech: [AI 伺服器主機板]}
+  - {id: wiwynn,  ticker: "6669", name: 緯穎,       segment: assembly, tech: [雲端伺服器]}
+  # ---- 外商（非台股，只當節點）
+  - {id: nvidia,    ticker: "NASDAQ:NVDA", name: NVIDIA,   segment: ic_design, foreign: true}
+  - {id: amd,       ticker: "NASDAQ:AMD",  name: AMD,      segment: ic_design, foreign: true}
+  - {id: broadcom,  ticker: "NASDAQ:AVGO", name: Broadcom, segment: ic_design, foreign: true}
+  - {id: marvell,   ticker: "NASDAQ:MRVL", name: Marvell,  segment: ic_design, foreign: true}
+  - id: skhynix
+    ticker: "KRX:000660"
+    name: SK hynix
+    segment: hbm
+    foreign: true
+    share:
+      - {metric: "HBM 市占", value_pct: 62, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}
+  - {id: micron,    ticker: "NASDAQ:MU",   name: Micron,   segment: hbm, foreign: true,
+     share: [{metric: "HBM 市占", value_pct: 21, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}]}
+  - {id: hyperscaler, name: "CSP（Microsoft / Google / Amazon / Meta）", segment: hyperscaler, foreign: true}
+
+# ---------------------------------------------------------------- 邊
+edges:
+  - {from: gud,      to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3}
+  - {from: alchip,   to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3}
+  - {from: tsmc,     to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, note: "獨家代工"}
+  - {from: tsmc,     to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4}
+  - {from: tsmc,     to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4}
+  - {from: tsmc,     to: mtk,      rel: supplies, item: "晶圓", strength: 4}
+  - {from: cowos,    to: tsmc,     rel: produced_by}
+  - {from: tsmc,     to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2}
+  - {from: gpt,      to: tsmc,     rel: supplies, item: "濕製程設備", strength: 3}
+  - {from: allring,  to: tsmc,     rel: supplies, item: "點膠/固晶設備", strength: 2}
+  - {from: skhynix,  to: nvidia,   rel: supplies, item: "HBM", strength: 5}
+  - {from: micron,   to: nvidia,   rel: supplies, item: "HBM", strength: 3}
+  - {from: kyec,     to: nvidia,   rel: supplies, item: "AI 晶片測試", strength: 4}
+  - {from: emc,      to: gce,      rel: supplies, item: "高階 CCL", strength: 4}
+  - {from: emc,      to: unimicron, rel: supplies, item: "CCL", strength: 3}
+  - {from: unimicron, to: nvidia,  rel: supplies, item: "ABF 載板", strength: 3}
+  - {from: gce,      to: foxconn,  rel: supplies, item: "伺服器 PCB", strength: 3}
+  - {from: nvidia,   to: foxconn,  rel: supplies, item: "GB300 模組", strength: 5}
+  - {from: nvidia,   to: quanta,   rel: supplies, item: "GPU 模組", strength: 4}
+  - {from: nvidia,   to: wistron,  rel: supplies, item: "GPU 模組", strength: 3}
+  - {from: avc,      to: foxconn,  rel: supplies, item: "水冷板", strength: 4}
+  - {from: avc,      to: quanta,   rel: supplies, item: "水冷板", strength: 4}
+  - {from: auras,    to: foxconn,  rel: supplies, item: "水冷板", strength: 3}
+  - {from: avc,      to: auras,    rel: competes, note: "水冷板同業"}
+  - {from: delta,    to: foxconn,  rel: supplies, item: "電源 / CDU", strength: 4}
+  - {from: delta,    to: quanta,   rel: supplies, item: "電源", strength: 3}
+  - {from: liteon,   to: foxconn,  rel: supplies, item: "PSU", strength: 3}
+  - {from: delta,    to: liteon,   rel: competes}
+  - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4}
+  - {from: luxnet,   to: accton,   rel: supplies, item: "光收發模組", strength: 2}
+  - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5}
+  - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5}
+  - {from: wiwynn,   to: hyperscaler, rel: supplies, item: "雲端伺服器", strength: 4}
+  - {from: liquid_cooling, to: avc, rel: produced_by}
+  - {from: hvdc_800v, to: delta, rel: produced_by}

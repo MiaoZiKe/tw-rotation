@@ -247,17 +247,19 @@ Write-Host @"
 "@ -ForegroundColor White
 
 # 桌面捷徑：之後要看儀表板直接點它，不用再跑這支腳本
+# （用 .NET 直接寫檔，PowerShell 5.1 的 Set-Content 接 here-string 會出「資料流不可讀取」）
 try {
   $desktop = [Environment]::GetFolderPath("Desktop")
   $lnk = Join-Path $desktop "台股儀表板.url"
-  @"
-[InternetShortcut]
-URL=$pagesUrl
-IconIndex=0
-"@ | Set-Content -LiteralPath $lnk -Encoding ASCII
-  Ok "桌面已建立捷徑「台股儀表板」"
+  $body = "[InternetShortcut]`r`nURL=$pagesUrl`r`nIconIndex=0`r`n"
+  [System.IO.File]::WriteAllText($lnk, $body, [System.Text.Encoding]::ASCII)
+  if ((Test-Path -LiteralPath $lnk) -and ((Get-Item -LiteralPath $lnk).Length -gt 0)) {
+    Ok "桌面已建立捷徑「台股儀表板」"
+  } else {
+    Warn "桌面捷徑沒有寫成功（不影響使用，直接用上面的網址）"
+  }
 } catch {
-  Warn "桌面捷徑建立失敗（不影響使用）"
+  Warn "桌面捷徑建立失敗：$($_.Exception.Message)（不影響使用）"
 }
 
 $open = Read-Host "  現在開啟 Actions 頁面看跑的狀況嗎？(Y/n)"
