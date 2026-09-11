@@ -3,15 +3,15 @@
     "twse.price_daily": {
       "ok": true,
       "rows": 1324,
-      "seconds": 2.2
+      "seconds": 1.1
     },
     "price_daily": {
-      "stored": 0
+      "stored": 1005
     },
     "twse.valuation": {
       "ok": true,
       "rows": 1080,
-      "seconds": 0.6
+      "seconds": 0.2
     },
     "valuation_daily": {
       "stored": 0
@@ -19,7 +19,7 @@
     "twse.margin": {
       "ok": true,
       "rows": 1297,
-      "seconds": 1.5
+      "seconds": 0.2
     },
     "margin_daily": {
       "stored": 0
@@ -43,7 +43,7 @@
     "twse.company_info": {
       "ok": true,
       "rows": 1094,
-      "seconds": 5.4
+      "seconds": 0.6
     },
     "company_info": {
       "stored": 0
@@ -57,7 +57,7 @@
     "twse.revenue": {
       "ok": true,
       "rows": 1085,
-      "seconds": 3.8
+      "seconds": 0.4
     },
     "revenue_monthly": {
       "stored": 0
@@ -65,70 +65,90 @@
     "twse.financial": {
       "ok": true,
       "rows": 1083,
-      "seconds": 1.7
+      "seconds": 0.2
     },
     "financial_q": {
-      "stored": 0
+      "stored": 3
     },
     "twse.dividend": {
       "ok": false,
       "rows": 0,
-      "seconds": 20.2
+      "seconds": 0.5
     },
     "tpex.price_daily": {
       "ok": true,
       "rows": 1005,
-      "seconds": 20.0
+      "seconds": 7.5
     },
     "tdcc.shareholding": {
       "ok": false,
       "rows": 0,
-      "seconds": 3.0
+      "seconds": 8.5
     },
     "news.collect": {
       "ok": true,
       "rows": 149,
-      "seconds": 2.9
+      "seconds": 3.2
     },
     "news": {
-      "stored": 21
+      "stored": 66
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 2,
+      "rows": 6,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 5
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1762,
-      "seconds": 1.2
+      "rows": 1765,
+      "seconds": 1.5
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 3
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
       "seconds": 0.0
     },
+    "institutional_codes": {
+      "requested": 3,
+      "returned": 3
+    },
+    "finmind.institutional": {
+      "ok": true,
+      "rows": 27,
+      "seconds": 2.8
+    },
+    "inst_daily": {
+      "stored": 27
+    },
+    "balance_q": {
+      "stored": 4
+    },
+    "finmind.financial_refresh": {
+      "ok": true,
+      "rows": 232,
+      "seconds": 26.5
+    },
     "build_payload": {
       "ok": true
     }
   },
   "errors": [],
-  "started_at": "2026-09-11T07:32:26.372872+00:00",
-  "finished_at": "2026-09-11T07:38:35.086482+00:00",
-  "duration_seconds": 368.7,
+  "started_at": "2026-09-11T14:35:01.044067+00:00",
+  "finished_at": "2026-09-11T14:43:10.189006+00:00",
+  "duration_seconds": 489.1,
   "trade_date": "2026-09-10",
-  "finmind_budget_left": 509,
+  "finmind_budget_left": 386,
   "tables": [
     {
       "table": "price_daily",
-      "rows": 924988,
-      "latest": "2026-09-10"
+      "rows": 925993,
+      "latest": "2026-09-11"
     },
     {
       "table": "valuation_daily",
@@ -152,22 +172,22 @@
     },
     {
       "table": "inst_daily",
-      "rows": 871480,
+      "rows": 871507,
       "latest": "2026-09-10"
     },
     {
       "table": "revenue_monthly",
-      "rows": 6551,
+      "rows": 26925,
       "latest": "2026-08"
     },
     {
       "table": "financial_q",
-      "rows": 2998,
+      "rows": 9446,
       "latest": "—"
     },
     {
       "table": "balance_q",
-      "rows": 1945,
+      "rows": 8550,
       "latest": "—"
     },
     {
@@ -187,21 +207,31 @@
     },
     {
       "table": "news",
-      "rows": 263,
+      "rows": 329,
       "latest": "2026-09-11"
     },
     {
       "table": "broker_views",
-      "rows": 2,
+      "rows": 7,
       "latest": "2026-09-11"
     },
     {
       "table": "intl_daily",
-      "rows": 1769,
+      "rows": 1772,
       "latest": "2026-09-11"
     },
     {
       "table": "macro",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
+      "table": "dividend_events",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
+      "table": "dividend_results",
       "rows": 0,
       "latest": "—"
     }
