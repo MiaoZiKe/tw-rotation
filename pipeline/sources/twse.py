@@ -290,23 +290,106 @@ def financial_q() -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def dividend() -> pd.DataFrame:
-    """股利分派。欄位名稱在這支端點較不穩定，用寬鬆比對。"""
+# t187ap45_L 的欄位（2026-09-11 實測，之前的「現金股利／股利所屬年度」舊欄名已經不存在，
+# 所以每日 twse.dividend 曾連續拿到 0 列）。現金與股票股利各拆成三個來源，要自己加總。
+_DIV_CASH_FIELDS = ("股東配發-盈餘分配之現金股利(元/股)",
+                    "股東配發-法定盈餘公積發放之現金(元/股)",
+                    "股東配發-資本公積發放之現金(元/股)",
+                    "現金股利", "股東配發-現金股利(元/股)")        # 舊欄名，保留相容
+_DIV_STOCK_FIELDS = ("股東配發-盈餘轉增資配股(元/股)",
+                     "股東配發-法定盈餘公積轉增資配股(元/股)",
+                     "股東配發-資本公積轉增資配股(元/股)",
+                     "股票股利", "股東配發-股票股利(元/股)")
+
+_dividend_cache: list[dict] | None = None
+
+
+def _sum_fields(row: dict, names: tuple[str, ...]) -> float:
+    total = 0.0
+    for n in names:
+        v = to_float(_pick(row, n))
+        if v:
+            total += v
+    return round(total, 6)
+
+
+def _dividend_records() -> list[dict]:
+    """把 t187ap45_L 每一列整理成統一格式；同一個程序內只打一次端點。
+
+    period 的寫法刻意對齊 FinMind `TaiwanStockDividend.year`（"114年"、"115年第1季"），
+    這樣同一筆公告從證交所（每天）與 FinMind（回補）進來會落在 dividend_events 同一個 key。
+    """
+    global _dividend_cache
+    if _dividend_cache is not None:
+        return _dividend_cache
     raw = _fetch("dividend")
     if not raw:
-        return pd.DataFrame()
+        _dividend_cache = []
+        return _dividend_cache
 
-    rows = []
+    out: list[dict] = []
     for r in raw:
         code = clean_code(_pick(r, "公司代號", "Code"))
-        year = to_int(_pick(r, "股利所屬年度", "年度"))
-        if not code or year is None:
+        roc_year = to_int(_pick(r, "股利年度", "股利所屬年度", "年度"))
+        if not code or roc_year is None:
             continue
-        rows.append({
+        if len(code) != 4 or not code.isdigit():      # 特別股（1101B）、存託憑證不進表
+            continue
+        year = roc_year + 1911 if roc_year < 1911 else roc_year
+        q = str(_pick(r, "股利所屬年(季)度", "股利所屬季度") or "").strip()
+        period = f"{roc_year}年" if q in ("", "年度") else f"{roc_year}年{q}"
+        out.append({
             "code": code,
-            "year": year + 1911 if year < 1911 else year,
-            "cash_dividend": to_float(_pick(r, "現金股利", "股東配發-現金股利(元/股)")),
-            "stock_dividend": to_float(_pick(r, "股票股利", "股東配發-股票股利(元/股)")),
+            "year": year,
+            "period": period,
+            "cash": _sum_fields(r, _DIV_CASH_FIELDS),
+            "stock": _sum_fields(r, _DIV_STOCK_FIELDS),
+            "announce_date": roc_to_iso(_pick(r, "董事會（擬議）股利分派日", "董事會(擬議)股利分派日",
+                                              "股東會日期")),
             "ex_date": roc_to_iso(_pick(r, "除息交易日", "除權交易日")),
         })
-    return pd.DataFrame(rows)
+    if not out:
+        log.warning("TWSE dividend 有 %d 列但一列都解析不出來，第一列欄位：%s",
+                    len(raw), list(raw[0].keys())[:12])
+    _dividend_cache = out
+    return out
+
+
+def dividend() -> pd.DataFrame:
+    """股利分派（每檔每年度一列；季配息的公司把各季加總）。"""
+    recs = _dividend_records()
+    if not recs:
+        return pd.DataFrame()
+    df = pd.DataFrame(recs)
+    agg = (df.groupby(["code", "year"], as_index=False)
+             .agg(cash_dividend=("cash", "sum"), stock_dividend=("stock", "sum"),
+                  periods=("period", "nunique"), ex_date=("ex_date", "first")))
+    agg["cash_dividend"] = agg["cash_dividend"].round(6)
+    agg["stock_dividend"] = agg["stock_dividend"].round(6)
+    return agg
+
+
+def dividend_events() -> pd.DataFrame:
+    """把證交所的股利公告展開成 dividend_events 的格式（kind = cash / stock，金額 0 不輸出）。
+
+    證交所這支沒有除息日與發放日，所以 ex_date / payment_date 留 None；
+    之後 FinMind 回補同一個 key 會把日期補上（run_daily 只寫入資料湖裡還沒有的 key）。
+    """
+    rows = []
+    for r in _dividend_records():
+        common = {"code": r["code"], "period": r["period"], "announce_date": r["announce_date"],
+                  "fiscal_year": r["year"]}
+        if r["cash"]:
+            rows.append({**common, "kind": "cash", "amount": r["cash"],
+                         "ex_date": r["ex_date"], "payment_date": None})
+        if r["stock"]:
+            rows.append({**common, "kind": "stock", "amount": r["stock"],
+                         "ex_date": None, "payment_date": None})
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["fiscal_year"] = df["fiscal_year"].astype("Int64")
+    for c in ("announce_date", "ex_date", "payment_date"):
+        df[c] = pd.Series([x[c] for x in rows], dtype=object)
+    return df[["code", "period", "kind", "amount", "announce_date",
+               "ex_date", "payment_date", "fiscal_year"]]

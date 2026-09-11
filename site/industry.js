@@ -16,7 +16,7 @@
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; await renderStock(rest[0], im, sc, gd); return; }
     if (rest[0] === 'group' && rest[1]) { state.group = rest[1]; state.chain = chainOfGroup(im, rest[1]); state.level = 1; renderChain(im, sc, gd); return; }
-    if (rest[0]) { state.chain = rest[0]; state.group = null; state.level = 1; renderChain(im, sc, gd); return; }
+    if (rest[0]) { state.chain = rest[0]; state.group = null; state.level = 1; renderChain(im, sc, gd, { seg: rest[1] || null }); return; }
     state.level = 0; state.chain = null; state.group = null; renderMap(im);
   }
   function chainOfGroup(im, gid) {
@@ -38,7 +38,7 @@
       <div class="card"><h3>法定產業別 <small>沒被歸入題材族群的公司依證交所產業別歸戶</small></h3><div class="tiles" id="indTiles"></div></div></div>`;
     const data = im.chains.map(c => ({ name: c.name, cid: c.id, children: c.groups.map(g => ({ name: g.name, value: g.turnover || 1, gid: g.id, chg: g.chg_pct, share: g.turnover_share, pe: g.valuation && g.valuation.median, n: g.n, itemStyle: { color: A.chgColor(g.chg_pct, 3) } })) }));
     const c = A.chart('indTree', { tooltip: { ...A.tip, formatter: p => p.data.gid ? `<b>${p.name}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.data.share, 1)}%）· ${p.data.n} 檔<br>漲跌 <span style="color:${A.upDown(p.data.chg)}">${A.fmt.pct(p.data.chg)}</span> · 本益比中位 ${p.data.pe != null ? A.fmt.n(p.data.pe, 1) : '—'}` : `<b>${p.name}</b>（點進入產業鏈）` },
-      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', leafDepth: 2,
+      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', leafDepth: 2, visibleMin: 900,
         label: { formatter: p => `${p.name}\n${A.fmt.pct(p.data.chg)}`, fontSize: 13, color: '#fff', textShadowColor: '#000', textShadowBlur: 4 },
         upperLabel: { show: true, height: 26, color: '#e8eeff', fontSize: 13, fontWeight: 700, backgroundColor: 'rgba(0,0,0,.3)' },
         itemStyle: { borderColor: '#0b1224', borderWidth: 2, gapWidth: 2 }, levels: [{ itemStyle: { borderWidth: 4, gapWidth: 4 }, upperLabel: { show: true } }, { itemStyle: { gapWidth: 1 } }], data }] });
@@ -55,88 +55,164 @@
     if (cid === 'industry') return { id: 'industry', name: '產業別', groups: im.industries };
     return im.chains.find(c => c.id === cid) || null;
   }
+  const HAS_DIAGRAM = (cid) => ['semiconductor', 'ai_server'].includes(cid);
+  // 哪些環節屬於這條鏈（半導體鏈把載板／封測也畫進來；AI 伺服器鏈把代工／封裝／HBM 畫進來）
+  function chainSegments(sc, cid) {
+    if (!sc) return [];
+    return sc.segments.filter(s => s.chain === cid || (cid === 'ai_server' && ['foundry', 'adv_pkg', 'hbm'].includes(s.id)) || (cid === 'semiconductor' && ['abf_pcb', 'osat_test'].includes(s.id)));
+  }
+  const segName = (sc, id) => ((sc && sc.segments.find(s => s.id === id)) || {}).name || id;
+  const segColor = (id) => (A.L.scolor[id] || '#8ea0c4');
+  const twOf = (sc, seg) => (sc ? sc.companies.filter(c => c.segment === seg && c.tw_code) : []);
+  const foreignOf = (sc, seg) => (sc ? sc.companies.filter(c => c.segment === seg && !c.tw_code) : []);
+
   function renderChain(im, sc, gd, opts) {
     opts = opts || {};
     const ch = chainData(im, state.chain);
     if (!ch) { show(true, false, false); renderMap(im); return; }
-    if (!opts.compact) { show(false, true, false); crumbs([{ label: '產業地圖', href: '#industry' }, { label: ch.name }]); }
-    const el = opts.container || $('#indChain');
-    const hasDiagram = ['semiconductor', 'ai_server'].includes(ch.id);
+    show(false, true, false); crumbs([{ label: '產業地圖', href: '#industry' }, { label: ch.name }]);
+    const el = $('#indChain');
+    const hasDiagram = HAS_DIAGRAM(ch.id);
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
+    const segs = chainSegments(sc, ch.id);
+    const otherChains = (im.chains || []).filter(c => c.id !== ch.id);
     el.innerHTML = `
-      <div class="card"><div class="row spread"><div><h2>${ch.name}${state.group && ch.id === 'industry' ? ' · ' + (groups[0] || {}).name : ''}</h2><div class="sub">${hasDiagram ? '點剖析圖的零件或關聯圖的公司，下方成分股會同步；點公司進入個股頁' : '點族群卡片篩選成分股；點股票進入個股頁'}</div></div>
-        <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span></div></div>
-        ${hasDiagram ? `<div class="grid g2" style="margin-top:12px"><div><h4 style="margin-bottom:6px">產品剖析圖 <small class="muted">原創示意圖，非實物；點零件看供應商</small></h4><div id="prodDiagram">${window.Diagrams[ch.id]()}</div></div><div><h4 style="margin-bottom:6px">供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高</small></h4><div class="chainmap" id="chainMap"></div></div></div>` : ''}
-        <div class="row" id="groupCards" style="margin-top:14px"></div>
+      <div class="card">
+        <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
+          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
+          <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
+        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div></div>` : ''}
+        ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線框＝外商；點公司進入個股頁</small></h4><div class="chainmap" id="chainMap"></div></div>` : ''}
+        <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
+        ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
       <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div>
         <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div></div>`;
-    // 族群卡片
-    $('#groupCards', el).innerHTML = groups.map((g, i) => `<div class="tile ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="min-width:170px;flex:1;${state.group === g.id ? 'border-color:var(--cyan)' : ''}"><div class="t">${g.name}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="v ${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</div></div>`).join('');
-    $$('#groupCards .tile', el).forEach(t => t.onclick = () => { state.group = state.group === t.dataset.gid ? null : t.dataset.gid; $$('#groupCards .tile', el).forEach(x => x.style.borderColor = x.dataset.gid === state.group ? 'var(--cyan)' : ''); renderMembers(); });
-    let segFilter = null, mkt = 'ALL';
-    const members = () => { let rows = []; groups.forEach(g => (g.members || []).forEach(m => rows.push({ ...m, group_name: g.name, gid: g.id }))); if (state.group) rows = rows.filter(r => r.gid === state.group); if (segFilter && sc) { const codes = new Set(sc.companies.filter(c => c.segment === segFilter && c.tw_code).map(c => c.tw_code)); rows = rows.filter(r => codes.has(r.code)); } if (mkt !== 'ALL') rows = rows.filter(r => (r.market || (gd && gd[r.gid] && '')) ? r.market === mkt : true); const seen = new Set(); return rows.filter(r => seen.has(r.code) ? false : (seen.add(r.code), true)); };
-    const COLS = [['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'], ['name', '簡稱', r => `<b>${A.fmt.esc(r.name)}</b>`, 'l'], ['group_name', '族群', r => A.fmt.esc(r.group_name), 'l'], ['close', '收盤', r => `<span class="num">${A.fmt.n(r.close)}</span>`], ['chg_pct', '漲跌', r => `<span class="num ${A.fmt.cls(r.chg_pct)}">${A.fmt.pct(r.chg_pct, 2)}</span>`], ['turnover', '成交值', r => `<span class="num">${A.fmt.yi(r.turnover)}</span>`], ['pe', '本益比', r => `<span class="num">${r.pe ? A.fmt.n(r.pe, 1) : '—'}</span>`], ['pe_percentile', '同業分位', r => `<span class="num">${r.pe_percentile != null ? A.fmt.n(r.pe_percentile, 0) + '%' : '—'}</span>`], ['momentum', '營運動能', r => `<span class="num">${r.momentum != null ? A.fmt.n(r.momentum, 0) : '—'}</span>`], ['foreign', '外資', r => `<span class="num ${A.fmt.cls(r.foreign)}">${r.foreign != null ? A.fmt.lot(r.foreign / 1000) : '—'}</span>`], ['trust', '投信', r => `<span class="num ${A.fmt.cls(r.trust)}">${r.trust != null ? A.fmt.lot(r.trust / 1000) : '—'}</span>`], ['grade', '技術判定', r => r.verdict ? `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' : ''}${r.verdict}</span>` : '<span class="muted">—</span>', 'l']];
+    // 族群卡片（顏色跟環節一致）
+    const cardHtml = (g) => `<div class="tile colored ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="min-width:180px;flex:1 1 200px;max-width:360px;--c:${A.L.gcolor[g.id] || '#8ea0c4'}"><div class="t">${A.fmt.esc(g.name)}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="row spread" style="margin-top:4px"><div class="v ${A.fmt.cls(g.chg_pct)}" style="margin:0">${A.fmt.pct(g.chg_pct)}</div>${A.L.group(g.id, '族群頁 →', { dot: false, cls: 'sm' })}</div></div>`;
+    $('#groupCards', el).innerHTML = groups.map(cardHtml).join('');
+    let segFilter = opts.seg || null, mkt = 'ALL';
+    const members = () => {
+      let rows = []; groups.forEach(g => (g.members || []).forEach(m => rows.push({ ...m, group_name: g.name, gid: g.id })));
+      if (state.group) rows = rows.filter(r => r.gid === state.group);
+      if (segFilter && sc) { const codes = new Set(twOf(sc, segFilter).map(c => c.tw_code)); rows = rows.filter(r => codes.has(r.code)); }
+      if (mkt !== 'ALL') rows = rows.filter(r => marketOf(r) === mkt);
+      const seen = new Set(); return rows.filter(r => seen.has(r.code) ? false : (seen.add(r.code), true));
+    };
+    const COLS = [['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'], ['name', '簡稱', r => A.L.stock(r.code, r.name), 'l'], ['group_name', '族群', r => A.L.group(r.gid, r.group_name), 'l'], ['close', '收盤', r => `<span class="num">${A.fmt.n(r.close)}</span>`], ['chg_pct', '漲跌', r => `<span class="num ${A.fmt.cls(r.chg_pct)}">${A.fmt.pct(r.chg_pct, 2)}</span>`], ['turnover', '成交值', r => `<span class="num">${A.fmt.yi(r.turnover)}</span>`], ['pe', '本益比', r => `<span class="num">${r.pe ? A.fmt.n(r.pe, 1) : '—'}</span>`], ['pe_percentile', '同業分位', r => `<span class="num">${r.pe_percentile != null ? A.fmt.n(r.pe_percentile, 0) + '%' : '—'}</span>`], ['momentum', '營運動能', r => `<span class="num">${r.momentum != null ? A.fmt.n(r.momentum, 0) : '—'}</span>`], ['foreign', '外資', r => `<span class="num ${A.fmt.cls(r.foreign)}">${r.foreign != null ? A.fmt.lot(r.foreign / 1000) : '—'}</span>`], ['trust', '投信', r => `<span class="num ${A.fmt.cls(r.trust)}">${r.trust != null ? A.fmt.lot(r.trust / 1000) : '—'}</span>`], ['grade', '技術判定', r => r.verdict ? `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' : ''}${r.verdict}</span>` : '<span class="muted">—</span>', 'l']];
     let sort = { key: 'turnover', dir: -1 };
     const renderMembers = () => {
       let rows = members(); rows.sort((a, b) => { const x = a[sort.key], y = b[sort.key]; if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * sort.dir; });
-      $('#memberTitle', el).innerHTML = `成分股 <small>${rows.length} 檔${segFilter ? ' · 環節：' + segName(sc, segFilter) : ''}${state.group ? ' · ' + (groups.find(g => g.id === state.group) || {}).name : ''}</small>`;
+      const segTw = segFilter ? twOf(sc, segFilter) : [];
+      $('#memberTitle', el).innerHTML = `成分股 <small>${rows.length} 檔${segFilter ? ' · 環節：<span style="color:' + segColor(segFilter) + '">' + A.fmt.esc(segName(sc, segFilter)) + '</span>' : ''}${state.group ? ' · ' + A.fmt.esc((groups.find(g => g.id === state.group) || {}).name || '') : ''}</small>`;
       $('#memberTable thead', el).innerHTML = '<tr>' + COLS.map(c => `<th class="${c[3] || ''}" data-k="${c[0]}">${c[1]}${sort.key === c[0] ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
-      $('#memberTable tbody', el).innerHTML = rows.slice(0, 200).map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('') || '<tr><td colspan="12" class="l muted">沒有符合的股票</td></tr>';
+      $('#memberTable tbody', el).innerHTML = rows.slice(0, 200).map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('')
+        || `<tr><td colspan="12" class="l muted">${segFilter ? (segTw.length ? '這個環節的台股不在本鏈成分股裡：' + segTw.map(c => A.L.stock(c.tw_code, c.name)).join('　') : '這個環節目前沒有台股直接對應（' + foreignOf(sc, segFilter).map(c => c.name).join('、') + '），可看上方環節說明裡的相關族群') : '沒有符合的股票'}</td></tr>`;
       $$('#memberTable th', el).forEach(th => th.onclick = () => { sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 }; renderMembers(); });
-      $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => A.goStock(tr.dataset.code));
+      $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => { if (tr.dataset.code) A.goStock(tr.dataset.code); });
     };
+    const syncHighlight = () => {
+      const segsOn = segFilter ? [segFilter] : (state.group ? (A.L.gsegs[state.group] || []) : []);
+      const color = segFilter ? segColor(segFilter) : (state.group ? A.L.gcolor[state.group] : null);
+      highlightSegments(el, segsOn, color);
+      if (segFilter) scrollChainTo(el, segFilter);
+      $$('#groupCards .tile', el).forEach(t => t.classList.toggle('sel', !!state.group && t.dataset.gid === state.group || (!!segFilter && (A.L.sgroups[segFilter] || []).includes(t.dataset.gid))));
+      $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
+      renderSegBox($('#segBox', el), sc, segFilter, ch);
+      renderMembers();
+    };
+    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; syncHighlight(); });
+    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
-    renderMembers();
     if (hasDiagram && sc) {
-      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segFilter = segFilter === seg ? null : seg; highlightSegment(el, segFilter); renderMembers(); } });
-      wireDiagram(el, (seg) => { segFilter = segFilter === seg ? null : seg; highlightSegment(el, segFilter); renderMembers(); });
+      paintDiagram($('#prodDiagram', el));
+      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segFilter = segFilter === seg ? null : seg; state.group = null; syncHighlight(); } });
+      wireDiagram(el, (seg) => { segFilter = segFilter === seg ? null : seg; state.group = null; syncHighlight(); });
+      const animBtn = $('#dgAnim', el); if (animBtn) animBtn.onclick = () => { const on = $('#prodDiagram', el).classList.toggle('noanim'); animBtn.textContent = on ? '動畫：關' : '動畫：開'; try { localStorage.setItem('tw.dganim', on ? '0' : '1'); } catch (e) { /* 忽略 */ } };
+      try { if (localStorage.getItem('tw.dganim') === '0') { $('#prodDiagram', el).classList.add('noanim'); animBtn.textContent = '動畫：關'; } } catch (e) { /* 忽略 */ }
     }
+    syncHighlight();
   }
-  const segName = (sc, id) => ((sc && sc.segments.find(s => s.id === id)) || {}).name || id;
-  function highlightSegment(root, seg) {
-    $$('[data-seg]', root).forEach(n => n.classList.toggle('sel', !!seg && n.dataset.seg === seg));
-    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', !!seg && n.dataset.segment !== seg));
+  // 環節說明盒：這個環節的台股（可點）、外商、相關族群（可點）
+  // 市場別一律以全市場索引（stocks.json）為準：groups_detail 的 market 欄位常常是空的
+  const marketOf = (r) => String(A.L.cmarket[r.code] || r.market || '').toUpperCase() || null;
+
+  function renderSegBox(box, sc, seg, ch) {
+    if (!box) return;
+    if (!seg || !sc) { box.innerHTML = ''; return; }
+    const tw = twOf(sc, seg), fo = foreignOf(sc, seg), gids = A.L.sgroups[seg] || [];
+    const s = sc.segments.find(x => x.id === seg) || {};
+    box.innerHTML = `<div class="segbox" style="--c:${segColor(seg)}"><b class="t">${A.fmt.esc(s.name || seg)}</b> <span class="muted">${s.desc ? A.fmt.esc(s.desc) : ''}</span>
+      <div class="row"><span class="muted">台股</span>${tw.length ? tw.map(c => A.L.stock(c.tw_code, c.name)).join('') : '<span class="muted">沒有直接對應的台股</span>'}</div>
+      ${fo.length ? `<div class="row"><span class="muted">外商</span>${fo.map(c => `<span class="pill" title="${A.fmt.esc((c.tech || []).join('、'))}">${A.fmt.esc(c.name)}</span>`).join('')}</div>` : ''}
+      ${gids.length ? `<div class="row"><span class="muted">相關族群</span>${gids.map(g => A.L.group(g)).join('')}</div>` : ''}</div>`;
   }
-  function wireDiagram(root, onSeg) { $$('#prodDiagram [data-seg]', root).forEach(n => { n.style.cursor = 'pointer'; n.onclick = () => onSeg(n.dataset.seg); }); }
+  // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
+  function paintDiagram(root) {
+    if (!root) return;
+    $$('[data-seg]', root).forEach(n => { n.style.setProperty('--c', segColor(n.dataset.seg)); n.style.cursor = 'pointer'; });
+    $$('[data-chain]', root).forEach(n => { n.style.cursor = 'pointer'; n.onclick = () => { location.hash = '#industry/' + n.dataset.chain; }; });
+  }
+  // 點下方環節後，右側供應鏈關聯圖自動捲到那一欄（不然要自己拉很久才找得到）
+  function scrollChainTo(root, seg) {
+    const map = $('#chainMap', root); if (!map || !seg) return;
+    const t = $(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root);
+    if (!t || !t.getBBox) return;
+    const svg = map.querySelector('svg'); if (!svg) return;
+    const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+    const scale = vb.length === 4 && vb[2] ? (svg.clientWidth || map.clientWidth) / vb[2] : 1;
+    const b = t.getBBox();
+    map.scrollTo({ left: Math.max(0, b.x * scale - 40), top: Math.max(0, b.y * scale - 40), behavior: 'smooth' });
+    // 關聯圖本身也要進到視野裡，不然捲對了位置使用者還是看不到
+    if (map.scrollIntoView) map.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function highlightSegments(root, segs, color) {
+    const on = new Set(segs || []);
+    $$('#prodDiagram [data-seg]', root).forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
+    $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
+    $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
+  }
+  function wireDiagram(root, onSeg) { $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg); }; }); }
 
   // ---------------------------------------------------------------- 分層關聯圖（SVG）
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
-    const segs = sc.segments.filter(s => s.chain === chainId || (chainId === 'ai_server' && ['foundry', 'adv_pkg', 'hbm'].includes(s.id)) || (chainId === 'semiconductor' && ['abf_pcb', 'assembly'].includes(s.id)));
+    const segs = chainSegments(sc, chainId);
     const layers = [...new Set(segs.map(s => s.layer))].sort((a, b) => a - b);
     const cos = sc.companies.filter(c => segs.some(s => s.id === c.segment));
     const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : []).forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
-    const colW = 178, cardH = 34, gapY = 8, padX = 14, padY = 34;
+    const colW = 178, cardH = 36, gapY = 8, padX = 14, padY = 36, colGap = 30;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
-    // 欄 = 層；同一層多個環節上下堆
-    const cols = layers.map(L => segs.filter(s => s.layer === L));
+    const cols = layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
-    cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + 26), y, list }; y += 22 + list.length * (cardH + gapY) + 18; }); maxH = Math.max(maxH, y); });
-    const W = padX * 2 + cols.length * (colW + 26), H = Math.max(maxH, 320);
-    const segColor = {}; segs.forEach((s, i) => { segColor[s.id] = SEG_COLORS[i % SEG_COLORS.length]; });
+    cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + 18; }); maxH = Math.max(maxH, y); });
+    const W = padX * 2 + cols.length * (colW + colGap) - colGap, H = Math.max(maxH, 300);
     const coPos = {};
     let nodes = '';
-    segs.forEach(s => { const p = pos[s.id]; if (!p) return; nodes += `<g class="segtitle" data-seg="${s.id}" style="cursor:pointer"><rect x="${p.x}" y="${p.y - 18}" width="${colW}" height="18" rx="4" fill="${segColor[s.id]}22"/><text class="seg-title" x="${p.x + 6}" y="${p.y - 5}" fill="${segColor[s.id]}">${A.fmt.esc(s.name)}</text></g>`;
-      p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null; const bar = chg != null ? `<rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${A.upDown(chg)}"/>` : '';
-        nodes += `<g class="co ${c.foreign ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/>${bar}<text x="${p.x + 12}" y="${y + 14}">${A.fmt.esc(c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ''}</text><text class="sub" x="${p.x + 12}" y="${y + 27}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : (c.tech || []).slice(0, 2).join(' · ')}</text></g>`; }); });
+    segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
+      nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(s.name)}</text></g>`;
+      if (!p.list.length) nodes += `<text class="sub" x="${p.x + 6}" y="${p.y + 16}" fill="#6f7ea3">（台股無直接對應）</text>`;
+      p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
+        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text></g>`; }); });
     let edges = '';
-    sc.edges.forEach(e => { const a = coPos[e.from], b = coPos[e.to]; if (!a || !b) return; const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; const mx = (x1 + x2) / 2; edges += `<path class="edge" data-from="${e.from}" data-to="${e.to}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke-width="${0.8 + (e.strength || 1) * 0.5}"/>`; });
-    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">${edges}${nodes}</svg>`;
-    host.style.maxHeight = '520px';
+    sc.edges.forEach(e => { const a = coPos[e.from], b = coPos[e.to]; if (!a || !b) return; const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; const mx = (x1 + x2) / 2; edges += `<path class="edge" data-from="${e.from}" data-to="${e.to}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke-width="${0.8 + (e.strength || 1) * 0.5}"><title>${A.fmt.esc(e.item || e.rel || '')}</title></path>`; });
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;max-width:${Math.round(W * 1.25)}px;display:block">${edges}${nodes}</svg>`;
     $$('.co', host).forEach(n => { n.onmouseenter = () => { $$('.edge', host).forEach(e => { const on = e.dataset.from === n.dataset.id || e.dataset.to === n.dataset.id; e.classList.toggle('hi', on); e.classList.toggle('dim', !on); }); }; n.onmouseleave = () => $$('.edge', host).forEach(e => e.classList.remove('hi', 'dim')); n.onclick = () => { const co = cos.find(c => c.id === n.dataset.id); showCompany(co, sc); if (handlers.onSelect && co.tw_code) handlers.onSelect(co); }; });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     if (state.code) { const sel = $(`.co[data-code="${state.code}"]`, host); if (sel && sel.scrollIntoView) setTimeout(() => sel.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }), 50); }
   }
   function showCompany(co, sc) {
-    if (!co) return; let box = $('#coBox'); if (!box) { box = document.createElement('div'); box.id = 'coBox'; box.className = 'card'; box.style.cssText = 'position:fixed;right:24px;bottom:24px;width:340px;z-index:60'; document.body.appendChild(box); }
+    if (!co) return; let box = $('#coBox'); if (!box) { box = document.createElement('div'); box.id = 'coBox'; box.className = 'card'; box.style.cssText = 'position:fixed;right:24px;bottom:24px;width:360px;max-width:calc(100vw - 32px);z-index:60'; document.body.appendChild(box); }
     const shares = (co.share || []).map(s => `<li>${A.fmt.esc(s.metric || s.product || '市占')}：<b class="mono">${s.value_pct != null ? s.value_pct + '%' : (s.value || '—')}</b> <small class="muted">${s.as_of || ''} · ${s.source || ''}${s.stale ? ' · 已過期' : ''}</small></li>`).join('');
+    const peers = sc.companies.filter(c => c.segment === co.segment && c.id !== co.id);
     box.innerHTML = `<div class="row spread"><h3>${A.fmt.esc(co.name)} ${co.tw_code ? `<span class="mono cyan">${co.tw_code}</span>` : '<span class="pill">外商</span>'}</h3><button class="close" onclick="document.getElementById('coBox').remove()">×</button></div>
-      <div class="sub">${A.fmt.esc(segName(sc, co.segment))}${(co.groups || []).length ? ' · ' + co.groups.join('、') : ''}</div>
+      <div class="sub"><span style="color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>${(co.groups || []).length ? ' · ' + co.groups.map(gn => A.L.groupByName(gn)).join(' ') : ''}</div>
       ${(co.tech || []).length ? `<div class="row" style="gap:6px;margin:6px 0">${co.tech.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('')}</div>` : ''}
       ${shares ? `<ul style="margin:6px 0;padding-left:18px;font-size:13.5px">${shares}</ul>` : '<div class="note">尚無市占資料（supply_chain.yaml 待補）</div>'}
       ${co.growth ? `<div class="note">成長：${A.fmt.esc(co.growth)}</div>` : ''}${(co.risks || []).length ? `<div class="note">風險：${co.risks.map(A.fmt.esc).join('；')}</div>` : ''}
+      ${peers.length ? `<div class="row" style="gap:4px 8px;margin-top:8px;font-size:12.5px"><span class="muted">同環節</span>${peers.map(p => p.tw_code ? A.L.stock(p.tw_code, p.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(p.name)}</span>`).join('')}</div>` : ''}
       ${co.tw_code ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
   }
 
@@ -144,7 +220,11 @@
   async function renderStock(code, im, sc, gd) {
     show(false, true, true);
     const pg = await A.load('stock/' + code, { fallback: null });
-    if (!pg) { $('#stockPage').innerHTML = `<div class="card"><div class="empty">${code} 沒有個股頁（不在今日 150 檔候選／成分股範圍）</div></div>`; $('#indChain').innerHTML = ''; crumbs([{ label: '產業地圖', href: '#industry' }, { label: code }]); return; }
+    if (!pg) {
+      const known = (A.L.all || []).find(x => x.code === code);
+      $('#stockPage').innerHTML = `<div class="card"><div class="empty">${known ? `${A.fmt.esc(known.name || '')} ${code} 的個股頁還沒產生，下一次盤後更新就會出現。` : `找不到代號 ${A.fmt.esc(code)}（上市櫃普通股才有個股頁，權證／期貨不列入）。`}<br><br>${A.L.back()}</div></div>`;
+      $('#indChain').innerHTML = ''; crumbs([{ label: '產業地圖', href: '#industry' }, { label: code }]); return;
+    }
     const m = pg.meta, s = pg.summary || {};
     // 上方產業鏈（同步高亮）
     state.chain = chainOfGroup(im, m.group_id) || 'industry'; state.group = null;
@@ -154,11 +234,18 @@
     // 個股主體
     const el = $('#stockPage');
     const v = pg.verdict || {}; const gradeCls = v.grade || 'W';
+    const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
+    const themeLinks = A.L.themesOf(m.code);
+    const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後由 Yahoo 補入'],
+                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線與多週期判讀都正常'],
+                   thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
+    const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     el.innerHTML = `
       <div class="card" style="margin-top:16px">
         <div class="row spread">
-          <div><h2>${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''} · ${(m.groups || []).join('、')}</small></h2>
-            <div class="row" style="margin-top:4px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span></div></div>
+          <div><h2>${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
+            <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
+            <div class="row" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
           <div class="verdict" style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
         </div>
         <div class="toolbar" style="margin-top:14px">
@@ -169,6 +256,7 @@
           <button class="btn small" id="fitBtn" title="雙擊價格軸也可以">重設縮放</button>
         </div>
         <div id="chartHost"></div>
+        ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
         <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。</div>
       </div>
       <div class="card" style="margin-top:16px" id="mtfCard"></div>
@@ -180,19 +268,35 @@
     renderTab(pg, state.tab);
   }
 
+  // 個股頁上方：產業鏈 › 族群 › 同族群公司（可直接切換）＋ 可收合的剖析圖與關聯圖
   function renderChainStrip(im, sc, m) {
     const el = $('#indChain'); const cid = state.chain;
     const ch = chainData(im, cid);
-    const hasDiagram = ['semiconductor', 'ai_server'].includes(cid);
+    const hasDiagram = HAS_DIAGRAM(cid);
     if (!ch) { el.innerHTML = ''; return; }
-    const g = ch.groups.find(x => x.id === m.group_id);
-    el.innerHTML = `<div class="card tight"><div class="row spread"><div><b>${ch.name}</b> <span class="muted">› ${g ? g.name : m.group}</span> <small class="muted">（點上方任何公司會切換個股）</small></div><div class="row"><a onclick="location.hash='#industry/${cid}'" style="cursor:pointer">看整條產業鏈 →</a></div></div>
-      ${hasDiagram ? `<div class="grid g2" style="margin-top:10px"><div id="prodDiagram">${window.Diagrams[cid]()}</div><div class="chainmap" id="chainMap" style="max-height:300px"></div></div>` : `<div class="row" style="margin-top:8px">${ch.groups.map(x => `<span class="pill ${x.id === m.group_id ? 'cyan' : ''}" style="cursor:pointer" onclick="location.hash='#industry/group/${x.id}'">${x.name} <span class="${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></span>`).join('')}</div>`}</div>`;
+    const g = ch.groups.find(x => x.id === m.group_id) || (im.industries || []).find(x => x.id === m.group_id);
+    const sibs = g ? (g.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : [];
+    const co = sc ? sc.companies.find(c => c.tw_code === m.code) : null;
+    const segs = chainSegments(sc, cid);
+    let open = false; try { open = localStorage.getItem('tw.chainOpen') === '1'; } catch (e) { /* 忽略 */ }
+    el.innerHTML = `<div class="card tight">
+      <div class="row spread"><div class="row" style="gap:8px"><b>${A.L.chain(cid, ch.name)}</b><span class="muted">›</span>${g ? A.L.group(g.id, g.name) : A.fmt.esc(m.group || '')}${co ? `<span class="muted">›</span><span class="pill" style="border-color:${segColor(co.segment)};color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>` : ''}</div>
+        <div class="row" style="gap:8px">${hasDiagram ? `<button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
+      ${sibs.length ? `<div class="sibs" id="sibs"><span class="muted" style="flex:none;font-size:12px;align-self:center">同族群</span>${sibs.map(x => `<a class="lk ${x.code === m.code ? 'cur' : ''}" href="#stock/${x.code}">${A.fmt.esc(x.name)}<span class="code">${x.code}</span><span class="chg ${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></a>`).join('')}</div>` : ''}
+      ${!hasDiagram ? `<div class="row" style="margin-top:8px;gap:6px">${ch.groups.map(x => `<span class="pill ${x.id === m.group_id ? 'cyan' : ''}" style="cursor:pointer" onclick="location.hash='#industry/group/${x.id}'"><i class="gdot" style="--c:${A.L.gcolor[x.id] || '#8ea0c4'}"></i>${A.fmt.esc(x.name)} <span class="${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></span>`).join('')}</div>` : ''}
+      ${hasDiagram ? `<div id="chainBody" style="${open ? '' : 'display:none'};margin-top:10px">
+        <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
+        <div id="prodDiagram" class="dgwrap" style="margin-top:10px;max-width:1080px">${window.Diagrams[cid]()}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
+    </div>`;
+    const cur = $('#sibs a.cur', el); if (cur && cur.scrollIntoView) setTimeout(() => cur.scrollIntoView({ block: 'nearest', inline: 'center' }), 30);
     if (hasDiagram && sc) {
-      drawChainMap($('#chainMap', el), sc, cid, im, { onSelect: (co) => { if (co.tw_code) A.goStock(co.tw_code); } });
-      const co = sc.companies.find(c => c.tw_code === m.code);
-      highlightSegment(el, co ? co.segment : null);
-      wireDiagram(el, (seg) => { location.hash = '#industry/' + cid; });
+      const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
+      paintDiagram($('#prodDiagram', el));
+      drawChainMap($('#chainMap', el), sc, cid, im, { onSelect: (c2) => { if (c2.tw_code) A.goStock(c2.tw_code); }, onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
+      highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
+      wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
+      $$('.segchip', el).forEach(c => c.onclick = () => { location.hash = `#industry/${cid}/${c.dataset.seg}`; });
+      try { if (localStorage.getItem('tw.dganim') === '0') $('#prodDiagram', el).classList.add('noanim'); } catch (e) { /* 忽略 */ }
     }
   }
 
@@ -240,7 +344,12 @@
     const apply = () => {
       if (!kchart) return;
       const bars = barsFor(pg, state.tf);
-      if (!bars || bars.length < 5) { $('#lwc').innerHTML = `<div class="empty" style="height:100%">這個週期尚無資料（分 K 每日盤後由 Yahoo 補入；新加入候選的股票要等下一次更新）</div>`; kchart = null; return; }
+      if (!bars || bars.length < 5) {
+        const why = pg.meta.tier === 'thin' ? (pg.note || '歷史價量還在回補')
+          : /m$/.test(state.tf) ? '這檔沒有分 K（只有族群成分股與成交值前段會抓 Yahoo 分 K）；日線／週線／月線可以正常看'
+          : '這個週期尚無資料';
+        $('#lwc').innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`; kchart = null; return;
+      }
       if (!$('#legendOv')) { $('#lwc').innerHTML = '<div class="legend-ov" id="legendOv"></div>'; kchart = new KChart($('#lwc'), { tf: state.tf }); }
       kchart.setBars(bars, state.tf);
       kchart.applyIndicators(cfg);
@@ -249,7 +358,24 @@
       const v = pg.verdict || {};
       kchart.setPriceLines(cfg.lines && state.tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
-      const show = (i) => { const d = kchart.data[i == null ? kchart.data.length - 1 : i]; if (!d) return; const vals = kchart.values || {}; let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)} 高 ${A.fmt.n(d.high)} 低 ${A.fmt.n(d.low)} 收 <b style="color:${d.close >= d.open ? '#ff4d6d' : '#2ee59d'}">${A.fmt.n(d.close)}</b>　量 ${A.fmt.lot(d.volume / 1000)}`; const parts = []; (cfg.ma || []).forEach((n, k) => { const m = vals['MA' + n]; if (m && m[i ?? m.length - 1] != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m[i ?? m.length - 1])}</span>`); }); if (vals.KD) parts.push(`K ${A.fmt.n(vals.KD.k[i ?? vals.KD.k.length - 1], 1)} D ${A.fmt.n(vals.KD.d[i ?? vals.KD.d.length - 1], 1)}`); if (vals.MACD) parts.push(`DIF ${A.fmt.n(vals.MACD.dif[i ?? vals.MACD.dif.length - 1])} OSC ${A.fmt.n(vals.MACD.osc[i ?? vals.MACD.osc.length - 1])}`); if (vals.RSI) parts.push(`RSI ${A.fmt.n(vals.RSI[i ?? vals.RSI.length - 1], 1)}`); legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : ''); };
+      const TFN = { '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
+      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${TFN[state.tf] || state.tf}`);
+      const at = (arr, i) => (arr ? arr[i == null ? arr.length - 1 : i] : null);
+      const show = (i) => {
+        const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
+        const chg = prev ? (d.close - prev.close) / prev.close * 100 : null; const amp = d.low ? (d.high - d.low) / d.low * 100 : null;
+        const col = d.close >= d.open ? '#ff4d6d' : '#2ee59d';
+        let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
+        const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
+        if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:#b39dff">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
+        legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
+        const pl = {};
+        if (cfg.vol) pl.vol = `成交量 <b>${A.fmt.lot(d.volume / 1000)}</b>${cfg.volma && at(vals.VOLMA, i) != null ? `　<span style="color:#ffd166">MA${cfg.volma} ${A.fmt.lot(at(vals.VOLMA, i) / 1000)}</span>` : ''}`;
+        if (vals.KD) pl.kd = `KD(${cfg.kd.n},${cfg.kd.m1},${cfg.kd.m2})　<span style="color:${KUtil.colors.k}">K ${A.fmt.n(at(vals.KD.k, i), 1)}</span>　<span style="color:${KUtil.colors.d}">D ${A.fmt.n(at(vals.KD.d, i), 1)}</span>`;
+        if (vals.MACD) pl.macd = `MACD(${cfg.macd.f},${cfg.macd.s},${cfg.macd.g})　<span style="color:${KUtil.colors.dif}">DIF ${A.fmt.n(at(vals.MACD.dif, i))}</span>　<span style="color:${KUtil.colors.dea}">MACD ${A.fmt.n(at(vals.MACD.dea, i))}</span>　OSC <span style="color:${A.upDown(at(vals.MACD.osc, i))}">${A.fmt.n(at(vals.MACD.osc, i))}</span>`;
+        if (vals.RSI) pl.rsi = `RSI(${cfg.rsi.n})　<span style="color:${KUtil.colors.rsi}">${A.fmt.n(at(vals.RSI, i), 1)}</span>`;
+        kchart.setPaneLabels(pl);
+      };
       show(null); kchart.onCrosshair(show);
     };
     $$('#tfSeg button').forEach(b => b.onclick = () => { $$('#tfSeg button').forEach(x => x.classList.toggle('on', x === b)); state.tf = b.dataset.tf; if (state.mtfMode) build(); else apply(); });
@@ -350,8 +476,9 @@
   }
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};
-    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', b.industry], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).join('、')]];
-    el.innerHTML = `<div class="card"><h3>基本資料</h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (String(r[1]).startsWith('<a') ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>`;
+    const indLink = b.industry ? (A.L.gname['ind_' + b.industry] ? A.L.group('ind_' + b.industry, b.industry) : A.fmt.esc(b.industry)) : null;
+    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join(' ') || null, true], ['題材', A.L.themesOf(pg.meta.code) || null, true]];
+    el.innerHTML = `<div class="card"><h3>基本資料 <small>產業別、族群、題材都可以點</small></h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>`;
   }
   function tabNews(pg, el) {
     const news = pg.news || [], bv = pg.broker_views || [];

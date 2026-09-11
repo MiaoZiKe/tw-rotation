@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 
 from ..groups import loader
+from ..util.roc import norm_industry
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +28,10 @@ def _attach_groups(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
     df = price.merge(m, on="code", how="left")
 
     if not company.empty and "industry" in company.columns:
-        df = df.merge(company[["code", "industry"]], on="code", how="left")
+        ind = company[["code", "industry"]].copy()
+        # 上市與上櫃的產業別寫法不同，統一過才不會產出兩個同義族群（見 util/roc.norm_industry）
+        ind["industry"] = ind["industry"].map(norm_industry)
+        df = df.merge(ind, on="code", how="left")
         fallback = df["group_id"].isna() & df["industry"].notna()
         df.loc[fallback, "group_id"] = "ind_" + df.loc[fallback, "industry"].astype(str)
         df.loc[fallback, "group_name"] = df.loc[fallback, "industry"]

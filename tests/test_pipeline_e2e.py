@@ -274,10 +274,22 @@ def test_build_payload_end_to_end(populated):
     for c in cands:
         pg = json.loads((stock_dir / f"{c['code']}.json").read_text(encoding="utf-8"))
         assert pg["meta"]["code"] == c["code"] and pg["meta"]["name"]
-        assert len(pg["ohlcv"]) >= 60 and len(pg["ohlcv"][0]) == 6
-        assert "ma20" in pg["series"] and len(pg["series"]["ma20"]) == len(pg["ohlcv"])
+        # 日線是 [date, o, h, l, c, v]；指標與週／月線由前端 chart.js 的 KInd 現算，
+        # 不再重複寫進 JSON（決策見 DECISIONS #52）
+        assert len(pg["daily"]) >= 60 and len(pg["daily"][0]) == 6
+        assert pg["meta"]["tier"] in ("full", "daily")
         assert pg["verdict"]["verdict"] and isinstance(pg["verdict"]["demand"], list)
         assert isinstance(pg["inst"], list)
+
+    # 全市場索引：每一檔可交易證券都要在 stocks.json 裡，而且都有對應的個股頁檔案，
+    # 否則前端搜尋到的代號會連到空頁（Andy 2026-09-12 回報的 #stock/2308 問題）
+    index = json.loads((site / "stocks.json").read_text(encoding="utf-8"))
+    assert index, "stocks.json 不能是空的"
+    assert all(r["code"] and r["name"] and r["tier"] in ("full", "daily", "thin") for r in index)
+    assert all(r["group_id"] for r in index), "每一檔都要掛得到族群（沒題材的用法定產業別）"
+    assert {c["code"] for c in cands} <= {r["code"] for r in index}
+    for r in index:
+        assert (stock_dir / f"{r['code']}.json").exists(), f"{r['code']} 在索引裡卻沒有個股頁"
 
     # 族群下鑽：每個族群都有成分股明細，成交值由大到小
     gd = json.loads((site / "groups_detail.json").read_text(encoding="utf-8"))
@@ -305,7 +317,7 @@ def test_build_payload_end_to_end(populated):
     im = json.loads((site / "industry_map.json").read_text(encoding="utf-8"))
     assert im["chains"] and any(g["members"] for c in im["chains"] for g in c["groups"])
     pg = json.loads((stock_dir / f"{cands[0]['code']}.json").read_text(encoding="utf-8"))
-    assert pg["version"] == 3 and len(pg["daily"]) >= len(pg["ohlcv"])
+    assert pg["version"] == 3 and len(pg["daily"]) >= 60
     assert "1d" in pg["mtf"]["tf"] and pg["mtf"]["summary"]["headline"]
     for key in ("revenue", "profit", "dividends", "margin", "holders", "inst_v3", "basics", "pe_history", "intraday"):
         assert key in pg, f"個股頁缺 {key}"

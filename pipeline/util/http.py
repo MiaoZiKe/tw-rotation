@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import random
+import re
 import time
 from pathlib import Path
 from typing import Any
@@ -48,7 +49,15 @@ def get(url: str, *, params: dict | None = None, headers: dict | None = None,
             r = session().get(url, params=params, headers=headers, timeout=timeout)
             if r.status_code == 200:
                 if not expect_json:
-                    return r.text
+                    # requests 對沒宣告 charset 的 text/* 會用 ISO-8859-1 解碼，中文表頭全變亂碼；
+                    # 政府開放資料 CSV 又常帶 BOM。一律自己解碼並去掉 BOM。
+                    m = re.search(r"charset=([\w-]+)", r.headers.get("Content-Type", ""), re.I)
+                    enc = m.group(1) if m else "utf-8"
+                    try:
+                        text = r.content.decode(enc, errors="replace")
+                    except LookupError:
+                        text = r.text
+                    return text.lstrip("﻿")
                 try:
                     return r.json()
                 except ValueError:

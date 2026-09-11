@@ -38,6 +38,12 @@ def shareholding_weekly() -> pd.DataFrame:
         log.warning("TDCC 抓取失敗")
         return pd.DataFrame()
 
+    text = text.lstrip("﻿")
+    if text.lstrip()[:1] == "<":
+        # 反爬／維護頁會用 200 回 HTML；記下前 200 字，下次看 log 就知道發生什麼事
+        log.warning("TDCC 回的是 HTML 不是 CSV（前 200 字）：%s", text[:200].replace("\n", " "))
+        return pd.DataFrame()
+
     try:
         reader = csv.DictReader(io.StringIO(text))
         raw = list(reader)
@@ -46,13 +52,22 @@ def shareholding_weekly() -> pd.DataFrame:
         return pd.DataFrame()
 
     if not raw:
+        log.warning("TDCC CSV 沒有資料列（前 200 字）：%s", text[:200].replace("\n", " "))
+        return pd.DataFrame()
+
+    # 表頭偶有 BOM／空白／全形百分比之類的差異，用「包含關鍵字」找欄位
+    header = [str(k).strip().lstrip("﻿") for k in raw[0].keys() if k is not None]
+    col = _resolve_columns(header)
+    if col is None:
+        log.warning("TDCC 表頭對不上，實際表頭：%s", header)
         return pd.DataFrame()
 
     rows = []
     for r in raw:
-        code = clean_code(r.get("證券代號"))
-        d = roc_to_iso(r.get("資料日期"))
-        lvl = to_int(r.get("持股分級"))
+        r = {str(k).strip().lstrip("﻿"): v for k, v in r.items() if k is not None}
+        code = clean_code(r.get(col["code"]))
+        d = roc_to_iso(r.get(col["date"]))
+        lvl = to_int(r.get(col["level"]))
         if not code or not d or lvl is None:
             continue
         rows.append({
@@ -60,15 +75,39 @@ def shareholding_weekly() -> pd.DataFrame:
             "code": code,
             "level": lvl,
             "level_label": LEVEL_LABELS.get(lvl, str(lvl)),
-            "holders": to_int(r.get("人數")),
-            "shares": to_float(r.get("股數")),
-            "pct": to_float(r.get("占集保庫存數比例%")),
+            "holders": to_int(r.get(col["holders"])),
+            "shares": to_float(r.get(col["shares"])),
+            "pct": to_float(r.get(col["pct"])),
         })
 
     df = pd.DataFrame(rows)
-    if not df.empty:
+    if df.empty:
+        log.warning("TDCC 有 %d 列但一列都解析不出來，表頭 %s，第一列 %s", len(raw), header, raw[0])
+    else:
         log.info("TDCC 股權分散：%d 列，資料日期 %s", len(df), df["date"].iloc[0])
     return df
+
+
+_COLUMN_HINTS = {
+    "date": ("資料日期", "日期"),
+    "code": ("證券代號", "代號"),
+    "level": ("持股分級", "分級"),
+    "holders": ("人數",),
+    "shares": ("股數",),
+    "pct": ("比例", "占集保庫存數"),
+}
+
+
+def _resolve_columns(header: list[str]) -> dict[str, str] | None:
+    """把實際表頭對應到我們要的六個欄位；缺任何一個就回 None。"""
+    out: dict[str, str] = {}
+    for key, hints in _COLUMN_HINTS.items():
+        match = next((h for h in header if any(h == x for x in hints)), None) \
+            or next((h for h in header if any(x in h for x in hints)), None)
+        if match is None:
+            return None
+        out[key] = match
+    return out
 
 
 def big_holder_ratio(df: pd.DataFrame) -> pd.DataFrame:

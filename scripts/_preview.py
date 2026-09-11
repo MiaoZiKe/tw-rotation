@@ -29,7 +29,17 @@ OVERLAP_JS = r"""
     const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
     return r.width > 6 && r.height > 6 && cs.visibility !== 'hidden' && cs.display !== 'none' && r.bottom > 0 && r.top < document.documentElement.scrollHeight;
   });
-  const rects = els.map(e => ({ e, r: e.getBoundingClientRect() }));
+  // 在可捲動容器裡、已經捲出可視範圍的元素不算重疊（它其實被容器裁掉了）
+  const clipped = (e) => {
+    for (let p = e.parentElement; p; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      if (!/auto|scroll|hidden/.test(cs.overflowY + cs.overflowX)) continue;
+      const pr = p.getBoundingClientRect(), er = e.getBoundingClientRect();
+      if (er.bottom < pr.top - 1 || er.top > pr.bottom + 1 || er.right < pr.left - 1 || er.left > pr.right + 1) return true;
+    }
+    return false;
+  };
+  const rects = els.filter(e => !clipped(e)).map(e => ({ e, r: e.getBoundingClientRect() }));
   const bad = [];
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const a = rects[i], b = rects[j];
@@ -87,6 +97,36 @@ def main() -> int:
         visit("industry/group/ind_ETF", "industry_etf")
         state["industry_etf"]["members"] = pg.evaluate("document.querySelectorAll('#memberTable tbody tr').length")
         visit("themes", "themes")
+        # 每個題材都要有產品圖，而且圖上每個零件都要點得到個股（Andy 2026-09-12 的要求）
+        tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams) : [])")
+        tstat = {}
+        for tid in tids:
+            pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(900)
+            tstat[tid] = pg.evaluate("""() => {
+              const r = document.querySelector('#themeDiagram svg'); if (!r) return { svg: false };
+              const ns = Array.from(r.querySelectorAll('[data-part]'));
+              const ids = [...new Set(ns.map(n => n.dataset.part).filter(Boolean))];
+              const noCode = ids.filter(id => !ns.some(n => n.dataset.part === id && n.dataset.codes));
+              const rows = ns.filter(n => n.classList.contains('lrow')).length;
+              return { svg: true, parts: ids.length, rows, noCode, vb: r.getAttribute('viewBox') };
+            }""")
+            if tstat[tid].get("noCode"):
+                problems.append(f"題材 {tid} 有零件點不到個股：{tstat[tid]['noCode']}")
+            if not tstat[tid].get("svg"):
+                problems.append(f"題材 {tid} 沒有產品圖")
+            ov2 = pg.evaluate(OVERLAP_JS)
+            if ov2:
+                problems.append(f"題材 {tid} 文字重疊：{ov2[:3]}")
+        # 點第一個零件，確認會列出個股
+        if tids:
+            pg.goto(f"{base}#themes/{tids[0]}", wait_until="networkidle"); pg.wait_for_timeout(900)
+            pg.evaluate("document.querySelector('#themeDiagram [data-part][data-codes]').dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+            pg.wait_for_timeout(300)
+            tstat["_click"] = pg.evaluate("({ links: document.querySelectorAll('#themeParts a.lk').length, sel: document.querySelectorAll('#themeDiagram .p3.sel').length })")
+            if not tstat["_click"]["links"]:
+                problems.append("點題材產品圖的零件沒有列出個股")
+            pg.screenshot(path=str(out / "v3_theme_diagram.png"), full_page=True)
+        state["theme_diagrams"] = tstat
         visit("season", "season")
 
         code = args.code or pg.evaluate("(document.querySelector('#candBody tr')||{}).dataset ? document.querySelector('#candBody tr').dataset.code : '2330'") or "2330"

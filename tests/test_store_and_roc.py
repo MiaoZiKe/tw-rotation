@@ -181,6 +181,27 @@ def test_tradable_security_filter(code, expected):
     assert roc.is_tradable_security(code) is expected
 
 
+@pytest.mark.parametrize("raw, expected", [
+    ("其他電子類", "其他電子業"),   # 上櫃寫法要併回上市寫法
+    ("其他電子業", "其他電子業"),
+    ("上櫃ETF", "ETF"),
+    ("上櫃指數股票型基金(ETF)", "ETF"),
+    ("指數投資證券(ETN)", "ETN"),
+    ("居家生活類", "居家生活"),
+    ("金融業", "金融保險"),
+    ("  半導體業 ", "半導體業"),     # 前後空白
+    ("91", "其他"),                  # 殘留代號不是產業別
+    ("大盤", "其他"),
+    ("所有證券", "其他"),
+    ("", "其他"),
+    (None, "其他"),
+    (float("nan"), "其他"),
+])
+def test_norm_industry(raw, expected):
+    """上市／上櫃兩套產業別沒統一的話，同一個產業會產出兩個族群頁與兩塊熱力圖板塊。"""
+    assert roc.norm_industry(raw) == expected
+
+
 def test_purge_removes_only_non_tradable(store):
     df = pd.DataFrame({
         "date": ["2026-09-10"] * 4,

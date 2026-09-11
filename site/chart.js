@@ -72,7 +72,8 @@
     updateAllViews() {}
     paneViews() { const self = this; return [{ zOrder: () => 'bottom', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
       if (!self._series) return;
-      const x0 = Math.max(0, mediaSize.width * 0.55);
+      const x0 = Math.max(0, mediaSize.width * 0.6);
+      const used = [];   // 已放標籤的 y 範圍，避免疊字
       for (const z of self.zones) {
         const y1 = self._series.priceToCoordinate(z.high), y2 = self._series.priceToCoordinate(z.low);
         if (y1 === null || y2 === null) continue;
@@ -80,9 +81,14 @@
         ctx.fillStyle = z.kind === 'demand' ? C.demand : C.supply; ctx.fillRect(x0, top, mediaSize.width - x0, h);
         ctx.strokeStyle = z.kind === 'demand' ? C.demandLine : C.supplyLine; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
         ctx.strokeRect(x0 + 0.5, top + 0.5, mediaSize.width - x0 - 1, h - 1); ctx.setLineDash([]);
-        ctx.fillStyle = z.kind === 'demand' ? '#2ee59d' : '#ff4d6d'; ctx.font = '11px JetBrains Mono, monospace'; ctx.textAlign = 'left';
         const label = `${z.kind === 'demand' ? '需求' : '供給'}${z.tf ? ' ' + z.tf : ''} ${z.low}–${z.high}`;
-        ctx.fillText(label, x0 + 6, Math.max(12, top - 3));
+        ctx.font = '600 11px JetBrains Mono, monospace'; ctx.textAlign = 'right';
+        let ly = h >= 16 ? top + h / 2 + 4 : top - 4;
+        while (used.some(u => Math.abs(u - ly) < 13)) ly -= 13;   // 往上錯開
+        if (ly < 12) ly = 12; used.push(ly);
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = 'rgba(10,16,32,.85)'; ctx.fillRect(mediaSize.width - tw - 12, ly - 10, tw + 8, 13);
+        ctx.fillStyle = z.kind === 'demand' ? '#2ee59d' : '#ff4d6d'; ctx.fillText(label, mediaSize.width - 8, ly);
       } }); } }) }]; }
   }
 
@@ -107,8 +113,22 @@
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
       this.overlays = []; this.panes = {}; this.priceLines = []; this.markers = null;
-      this.bars = []; this.tf = this.opts.tf;
-      if (!this.opts.mini) this._wheelOnPriceAxis();
+      this.bars = []; this.tf = this.opts.tf; this.paneIndex = {};
+      if (!this.opts.mini) {
+        this.labels = document.createElement('div'); this.labels.className = 'pane-labels'; el.appendChild(this.labels);
+        this.wm = document.createElement('div'); this.wm.className = 'k-wm'; el.appendChild(this.wm);
+        this._wheelOnPriceAxis();
+        this._ro = new ResizeObserver(() => this._layoutLabels()); this._ro.observe(el);
+      }
+    }
+    setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
+    // 各指標面板左上角的標題（成交量 / KD(9,3,3) / MACD(12,26,9) / RSI(14)）＋當下數值
+    setPaneLabels(map) { this._paneText = map || {}; this._layoutLabels(); }
+    _layoutLabels() {
+      if (!this.labels) return;
+      const ps = this.chart.panes(); let top = 0; const tops = ps.map(p => { const t = top; top += p.getHeight() + 1; return t; });
+      const html = Object.entries(this.paneIndex).map(([k, i]) => tops[i] == null ? '' : `<div style="top:${tops[i] + 6}px">${(this._paneText || {})[k] || ''}</div>`).join('');
+      this.labels.innerHTML = html;
     }
     // 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放
     _wheelOnPriceAxis() {
@@ -151,12 +171,14 @@
       this.values = {};
       (cfg.ma || []).forEach((n, i) => { const m = ind.sma(c, n); this.values['MA' + n] = m; this.overlays.push(this._line(m, C.ma[i % C.ma.length], 0, 1)); });
       if (cfg.boll) { const b = ind.boll(c, cfg.boll.n, cfg.boll.k); this.values.BOLL = b; this.overlays.push(this._line(b.up, C.boll, 0, 1, { lineStyle: 2 })); this.overlays.push(this._line(b.mid, C.boll, 0, 1)); this.overlays.push(this._line(b.low, C.boll, 0, 1, { lineStyle: 2 })); }
-      let pane = 1;
-      if (cfg.vol) { this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? 'rgba(255,77,109,.55)' : 'rgba(46,229,157,.55)'), pane)]; if (cfg.volma) { this.panes.vol.push(this._line(ind.sma(v, cfg.volma), '#ffd166', pane, 1)); } this._paneH(pane, 90); pane++; }
-      if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k; this.panes.kd = [this._line(k.k, C.k, pane, 1), this._line(k.d, C.d, pane, 1)]; this._paneH(pane, 110); pane++; }
-      if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m; this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)'), pane), this._line(m.dif, C.dif, pane, 1), this._line(m.dea, C.dea, pane, 1)]; this._paneH(pane, 110); pane++; }
-      if (cfg.rsi) { const r = ind.rsi(c, cfg.rsi.n); this.values.RSI = r; this.panes.rsi = [this._line(r, C.rsi, pane, 1)]; this._paneH(pane, 90); pane++; }
+      let pane = 1; this.paneIndex = {};
+      const ref = (series, price, color) => series.createPriceLine({ price, color, lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: '' });
+      if (cfg.vol) { this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? 'rgba(255,77,109,.55)' : 'rgba(46,229,157,.55)'), pane)]; if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, '#ffd166', pane, 1)); } this.paneIndex.vol = pane; this._paneH(pane, 90); pane++; }
+      if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k; this.panes.kd = [this._line(k.k, C.k, pane, 1), this._line(k.d, C.d, pane, 1)]; ref(this.panes.kd[0], 80, 'rgba(255,77,109,.35)'); ref(this.panes.kd[0], 20, 'rgba(46,229,157,.35)'); this.paneIndex.kd = pane; this._paneH(pane, 110); pane++; }
+      if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m; this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)'), pane), this._line(m.dif, C.dif, pane, 1), this._line(m.dea, C.dea, pane, 1)]; ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, 110); pane++; }
+      if (cfg.rsi) { const r = ind.rsi(c, cfg.rsi.n); this.values.RSI = r; this.panes.rsi = [this._line(r, C.rsi, pane, 1)]; ref(this.panes.rsi[0], 70, 'rgba(255,77,109,.35)'); ref(this.panes.rsi[0], 30, 'rgba(46,229,157,.35)'); this.paneIndex.rsi = pane; this._paneH(pane, 90); pane++; }
       this._paneH(0, Math.max(280, this.el.clientHeight - (pane - 1) * 105 - 20));
+      setTimeout(() => this._layoutLabels(), 30);
     }
     _paneH(i, h) { const ps = this.chart.panes(); if (ps[i]) ps[i].setHeight(h); }
     setMarkers(marks) { // {bos:[t], choch:[[t,trend]], sweep_low:[t], sweep_high:[t]}
@@ -168,7 +190,9 @@
       (marks.sweep_low || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'belowBar', color: '#3ee0ff', shape: 'circle', text: '掃蕩' }); });
       (marks.sweep_high || []).forEach(t => { const tt = conv(t); if (has.has(String(tt))) m.push({ time: tt, position: 'aboveBar', color: '#3ee0ff', shape: 'circle', text: '掃蕩' }); });
       m.sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0));
-      if (!this.markers) this.markers = LWC.createSeriesMarkers(this.candle, m); else this.markers.setMarkers(m);
+      // 只留每種訊號最近 5 個，太多會把圖蓋滿
+      const keep = []; const cnt = {}; for (let i = m.length - 1; i >= 0; i--) { const k = m[i].text; cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] <= 5) keep.unshift(m[i]); }
+      if (!this.markers) this.markers = LWC.createSeriesMarkers(this.candle, keep); else this.markers.setMarkers(keep);
     }
     setPriceLines(lines) { // [{price, title, color}]
       for (const p of this.priceLines) this.candle.removePriceLine(p); this.priceLines = [];
@@ -176,7 +200,7 @@
     }
     onCrosshair(fn) { this.chart.subscribeCrosshairMove((p) => { if (!p.time) { fn(null); return; } const i = this.data.findIndex(d => String(d.time) === String(p.time)); fn(i >= 0 ? i : null); }); }
     fitLast(n) { this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - n), to: this.data.length + 3 }); }
-    destroy() { this.chart.remove(); }
+    destroy() { if (this._ro) this._ro.disconnect(); this.chart.remove(); }
   }
 
   global.KChart = KChart; global.KInd = ind; global.KUtil = { resampleDaily, toTime, fmtTime, colors: C };

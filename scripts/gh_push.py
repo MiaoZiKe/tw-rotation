@@ -62,21 +62,36 @@ FINAL = f"""window.__twJobs['__commit'] = 'waiting';
 }} catch (e) {{ window.__twJobs['__commit'] = 'error: ' + e; }} }})();
 ({{queued: Object.keys(window.__twJobs)}})"""
 
-# 分段：每段放盡量多的檔案
-parts: list[list[dict]] = [[]]
+# 分段：每段放盡量多的檔案；單一檔案超過上限就切成多段先存進 window.__twBuf，最後一段才 upload
+# （Claude 的 Read 工具一次讀不了太長的一行，所以每段都得比上限小）
+CHUNK = max(4000, MAX_PART - 600)
+parts: list[list] = [[]]      # 每段是 [("file", entry) | ("chunk", path, piece, last)] 的清單
 size = 0
 for e in entries:
     n = len(e["gz"]) + len(e["path"]) + 30
+    if n > MAX_PART:
+        pieces = [e["gz"][i:i + CHUNK] for i in range(0, len(e["gz"]), CHUNK)]
+        for k, piece in enumerate(pieces):
+            parts.append([("chunk", e["path"], piece, k == len(pieces) - 1)]); size = MAX_PART
+        continue
     if parts[-1] and size + n > MAX_PART:
         parts.append([]); size = 0
-    parts[-1].append(e); size += n
+    parts[-1].append(("file", e)); size += n
+parts = [p for p in parts if p]
 
 for old in SCR.glob("push_*.js"):
     old.unlink()
 for i, part in enumerate(parts, 1):
-    body = HEAD + "upload([\n" + ",\n".join(json.dumps(e) for e in part) + "\n]);\n"   # 一檔一行，方便分段閱讀
+    if part[0][0] == "chunk":
+        _, path, piece, last = part[0]
+        body = HEAD + f"window.__twBuf = (window.__twBuf || '') + {json.dumps(piece)};\n"
+        body += (f"upload([{{path: {json.dumps(path)}, gz: window.__twBuf}}]); window.__twBuf = '';\n" if last else "")
+        label = f"{path}（第 {i} 段{'，最後一段' if last else ''}）"
+    else:
+        body = HEAD + "upload([\n" + ",\n".join(json.dumps(e) for _, e in part) + "\n]);\n"   # 一檔一行，方便分段閱讀
+        label = str([e["path"] for _, e in part])
     body += FINAL if i == len(parts) else "({queued: Object.entries(window.__twJobs).filter(([k,v]) => v === 'running').map(([k]) => k)})"
     (SCR / f"push_{i}.js").write_text(body)
-    print(f"push_{i}.js  {len(body):>6} bytes  {[e['path'] for e in part]}")
+    print(f"push_{i}.js  {len(body):>6} bytes  {label}")
 
 (SCR / "status.js").write_text("({jobs: window.__twJobs, staged: (window.__twTree||[]).length, result: window.__twResult || null})")

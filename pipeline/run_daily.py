@@ -64,6 +64,24 @@ def save(table: str, df: pd.DataFrame) -> int:
         return 0
 
 
+def only_new_keys(table: str, df: pd.DataFrame) -> pd.DataFrame:
+    """只留下資料湖裡還沒有這組 key 的列（store.append 是後到覆蓋，這裡反過來讓先到的贏）。"""
+    if df is None or df.empty:
+        return pd.DataFrame()
+    keys = config.TABLES[table]
+    try:
+        old = store.read(table)
+    except Exception:  # noqa: BLE001
+        old = pd.DataFrame()
+    if old.empty or any(k not in old.columns for k in keys):
+        return df
+    have = set(map(tuple, old[keys].astype(str).itertuples(index=False, name=None)))
+    mask = [tuple(map(str, t)) not in have for t in df[keys].itertuples(index=False, name=None)]
+    kept = df[mask].reset_index(drop=True)
+    log.info("%s：%d 列公告中 %d 列是新的", table, len(df), len(kept))
+    return kept
+
+
 def universe(limit: int) -> list[str]:
     """依近期成交值排序取前 N 檔，作為 FinMind 逐檔抓取的優先順序。"""
     price = store.read("price_daily")
@@ -189,6 +207,10 @@ def main() -> int:
     save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
     save("financial_q", step("twse.financial", twse.financial_q))
     save("dividend", step("twse.dividend", twse.dividend))
+    # 證交所的公告沒有除息日；只補資料湖裡還沒有的 (code, period, kind)，
+    # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
+    save("dividend_events", only_new_keys("dividend_events",
+                                          step("twse.dividend_events", twse.dividend_events)))
 
     # -------------------------------------------------- 上櫃（可失敗）
     otc = step("tpex.price_daily", tpex.price_daily)

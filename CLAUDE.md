@@ -27,7 +27,7 @@
 - **每次工作結束前更新 `HANDOFF.md`**（進度勾選、已知 bug、下一步、最後更新時間），**commit + push 到 main**。
   沒有 push 的工作等於沒做。
 - **絕不 force push、絕不覆寫 `data/*.parquet`。** 雲端是資料的權威來源（`store.append()` 只增不改）。
-- **push 前跑 `pytest tests/ -q`**（150 個測試）與 `python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）。
+- **push 前跑 `pytest tests/ -q`**（156 個測試）與 `python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）。
 - 註解、commit 訊息、文件一律繁體中文。
 - 金鑰只放 GitHub Secrets（`FINMIND_TOKEN`、`FRED_API_KEY`）與 Claude 的暫存區；**永遠不寫進 repo 任何檔案**。
   push 前 `git grep -iE "github_pat_|ghp_|finmind.*token" -- . ':!*.md'` 掃一次（排除文件本身的說明字串）。
@@ -65,7 +65,7 @@ site/
   data/                                                  工作流產出，gitignore
 data/                  Parquet 資料湖（雲端 Actions 每天 commit；本機只讀）
 scripts/_preview.py    本機預覽驗證（Playwright + 真圖表庫）
-tests/                 pytest，150 個
+tests/                 pytest，156 個
 docs/                  v3_sources_spec.md（資料源規格）、截圖
 ```
 

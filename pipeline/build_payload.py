@@ -17,9 +17,14 @@ from . import config, indicators
 from .compute import flow, fundamental, mtf, rrg, season, stockpage, technical, themes
 from .groups import loader
 from .util import store
-from .util.roc import is_tradable_security
+from .util.roc import is_tradable_security, norm_industry
 
 log = logging.getLogger(__name__)
+
+# 個股頁分層（決策見 DECISIONS #52）：每一檔上市櫃股票都要有頁面，差別只在資料多寡。
+MIN_PAGE_BARS = 60        # 有這麼多日線才算得出指標、SMC 與評分
+FULL_PAGE_BARS = 1500     # 有分 K 的那一批給 6 年日線（週／月線在前端合成）
+SLIM_PAGE_BARS = 1000     # 其餘有歷史的股票給 4 年
 
 
 def _clean(obj):
@@ -247,7 +252,7 @@ def build() -> None:
                                     news_df=news_all, broker=bv if not bv.empty else None,
                                     shareholding=sh_all, deep=deep)
     _write("candidates", cand_rows)
-    gdetail = group_detail(price, company, inst, latest, cand_rows, names)
+    gdetail = group_detail(price, company, inst, latest, cand_rows, names, markets)
     _write("groups_detail", gdetail)
     heat.update({"breadth": breadth})
     _write("market_heat", heat)
@@ -382,18 +387,38 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                  .agg(group_id=("group_id", "first"), group_name=("group_name", "first"),
                       groups=("group_name", lambda x: list(dict.fromkeys(x))))
                  .to_dict("index"))
+    # 沒有題材族群的股票用法定產業別歸戶（ind_*，與 flow._attach_groups 同一套命名），
+    # 這樣全市場每一檔都連得到一個族群頁
+    if company is not None and not company.empty and "industry" in company.columns:
+        for c_, ind_ in zip(company["code"], company["industry"]):
+            if c_ in group_of:
+                continue
+            ind_ = norm_industry(ind_)
+            group_of[c_] = {"group_id": "ind_" + ind_, "group_name": ind_, "groups": [ind_]}
 
     day = price[price["date"] == latest]
-    # 族群成分股全部算，再用成交值補到 limit（指數列如 TAIEX 與權證不算個股）
+    # 分 K 逐檔跟 Yahoo 要，成本高：族群成分股全部給，再用成交值補到 limit。
+    # 其餘股票只有日線以上（指數列如 TAIEX 與權證不算個股）。
     member_codes = set(m["code"])
     by_turnover = [c for c in day.sort_values("turnover", ascending=False)["code"].tolist()
                    if is_tradable_security(c)]
-    codes = [c for c in by_turnover if c in member_codes]
+    intraday_codes = [c for c in by_turnover if c in member_codes]
     for c in by_turnover:
-        if len(codes) >= limit:
+        if len(intraday_codes) >= limit:
             break
-        if c not in codes:
-            codes.append(c)
+        if c not in intraday_codes:
+            intraday_codes.append(c)
+    intraday_set = set(intraday_codes)
+    # 個股頁做「全部」股票：有足夠日線的算完整指標與評分，其餘在最後補簡版頁。
+    # 名單取自整個資料湖而不是只有今天 —— 今天停牌或沒成交（例如 6806）也要有頁面，
+    # 不然搜尋得到卻點不進去，就是 Andy 回報的「不在範圍內就不顯示」。
+    bar_count = price.groupby("code").size()
+    codes = [c for c in by_turnover if int(bar_count.get(c, 0)) >= MIN_PAGE_BARS]
+    seen = set(codes)
+    for c in sorted(bar_count.index):
+        if c in seen or not is_tradable_security(c) or int(bar_count[c]) < MIN_PAGE_BARS:
+            continue
+        codes.append(c); seen.add(c)
 
     hist = price[price["code"].isin(codes)].sort_values(["code", "date"])
     val_today = valuation[valuation["date"] == latest] if not valuation.empty else pd.DataFrame()
@@ -403,7 +428,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     if news_df is not None and not news_df.empty:
         for _, n in news_df.sort_values("published_at", ascending=False).iterrows():
             for c in str(n.get("codes") or "").split(","):
-                if c and c in codes and len(news_by_code.setdefault(c, [])) < 8:
+                if c and len(news_by_code.setdefault(c, [])) < 8:
                     news_by_code[c].append({"date": n.get("date"), "title": n.get("title"),
                                             "url": n.get("url"), "source": n.get("source"),
                                             "category": n.get("category")})
@@ -428,8 +453,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     if not os.environ.get("SKIP_INTRADAY"):
         try:
             from .sources import yahoo
-            m60 = yahoo.intraday(codes, markets, "60m", "730d")
-            m15 = yahoo.intraday(codes, markets, "15m", "60d")
+            m60 = yahoo.intraday(intraday_codes, markets, "60m", "730d")
+            m15 = yahoo.intraday(intraday_codes, markets, "15m", "60d")
             log.info("分 K：60 分 %d 列、15 分 %d 列", len(m60), len(m15))
         except Exception as exc:  # noqa: BLE001
             log.warning("分 K 抓取失敗：%s", exc)
@@ -504,7 +529,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
         # ---------------- 個股頁
         tail = ind.tail(250)
-        long = ind.tail(1500)      # 6 年日 K，前端自己合成週 K / 月 K
+        full = code in intraday_set
+        long = ind.tail(FULL_PAGE_BARS if full else SLIM_PAGE_BARS)   # 前端自己合成週 K / 月 K
         bars60 = m60_by.get(code, pd.DataFrame())
         bars15 = m15_by.get(code, pd.DataFrame())
         try:
@@ -522,12 +548,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                             (r_["volume"] if "volume" in df_ else None)] for _, r_ in df_.iterrows()])
 
         page = {
-            "meta": {k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
+            "meta": dict({k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
+                         tier="full" if full else "daily"),
             "as_of": latest,
             "version": 3,
-            "ohlcv": _clean([[r_["date"], r_["open"], r_["high"], r_["low"], r_["close"],
-                              (r_["volume"] if "volume" in tail else None)]
-                             for _, r_ in tail.iterrows()]),
             "daily": _bars(long, "date"),
             "intraday": {"60m": _bars(bars60.tail(1800), "ts"), "240m": _bars(bars240.tail(800), "ts"),
                          "15m": _bars(bars15.tail(1100), "ts")},
@@ -541,9 +565,6 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)),
             "inst_v3": _clean(stockpage.inst_series(inst_hist if not inst_hist.empty else None, code)),
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
-            "series": {k: _clean(tail[k].tolist()) for k in
-                       ("ma5", "ma20", "ma60", "ma120", "k", "d", "dif", "macd", "osc",
-                        "rsi14", "vol_ma20", "atr14") if k in tail},
             "marks": {
                 "bos": _clean(tail[tail["bos"].fillna(False)]["date"].tolist()),
                 "choch": _clean([[r_["date"], int(r_["trend"])] for _, r_ in
@@ -566,6 +587,107 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
                                                 encoding="utf-8")
 
+    # ---------------- 其餘股票：簡版個股頁（歷史還沒回補完，但一樣要點得進去）
+    written = {r["code"] for r in rows}
+    dates = sorted(price["date"].astype(str).unique())
+    prev_date = dates[-2] if len(dates) > 1 else latest
+    prev_close = (price[price["date"].astype(str) == prev_date]
+                  .drop_duplicates("code").set_index("code")["close"])
+    day_one = day.drop_duplicates("code").set_index("code")
+    val_one = val_today.drop_duplicates("code").set_index("code") if not val_today.empty else pd.DataFrame()
+    inst_one = inst_today.drop_duplicates("code").set_index("code") if not inst_today.empty else pd.DataFrame()
+
+    def _cell(idx: pd.DataFrame, code: str, col: str):
+        if idx is None or idx.empty or code not in idx.index or col not in idx.columns:
+            return None
+        return _clean(idx.at[code, col])
+
+    def _chg(code: str, close):
+        p0 = prev_close.get(code)
+        if close is None or p0 is None or pd.isna(p0) or not p0:
+            return None
+        return _clean(float(close) / float(p0) * 100 - 100)
+
+    has = {}
+    for k in ("revenue", "financial", "margin", "shareholding", "dividend_events", "dividend_results"):
+        d_ = deep.get(k)
+        has[k] = set(d_["code"]) if isinstance(d_, pd.DataFrame) and not d_.empty and "code" in d_ else set()
+
+    # 簡版頁同樣走整個資料湖：今天沒成交也要有頁
+    thin_codes = [c for c in by_turnover if c not in written]
+    seen_thin = set(thin_codes) | written
+    for c in sorted(bar_count.index):
+        if c not in seen_thin and is_tradable_security(c):
+            thin_codes.append(c); seen_thin.add(c)
+    thin_px = (price[price["code"].isin(thin_codes)].sort_values(["code", "date"])
+               if thin_codes else pd.DataFrame())
+    thin_by = {c: g for c, g in thin_px.groupby("code")} if not thin_px.empty else {}
+    for code in thin_codes:
+        g = thin_by.get(code)
+        close = _cell(day_one, code, "close")
+        gi = group_of.get(code, {})
+        meta = {"code": code, "name": names.get(code) or code, "market": markets.get(code),
+                "group": gi.get("group_name") or "—", "group_id": gi.get("group_id"),
+                "groups": gi.get("groups", []), "tier": "thin"}
+        bars = []
+        if g is not None and not g.empty:
+            cols_ = [c_ for c_ in ("date", "open", "high", "low", "close", "volume") if c_ in g]
+            bars = _clean([[r_[c_] for c_ in cols_] + ([None] if "volume" not in cols_ else [])
+                           for _, r_ in g.iterrows()])
+        if close is None and bars:      # 今天停牌／沒成交：退回最後一根日線的收盤
+            close = bars[-1][4]
+        page = {
+            "meta": meta, "as_of": latest, "version": 3,
+            "daily": bars, "intraday": {}, "mtf": {"tf": {}, "summary": {}},
+            "marks": {}, "verdict": {"verdict": "資料回補中", "grade": None, "reasons": []},
+            "summary": {**{k: meta[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
+                        "close": close, "chg_pct": _chg(code, close),
+                        "turnover": _cell(day_one, code, "turnover"),
+                        "pe": _cell(val_one, code, "pe"),
+                        "trust_net": _cell(inst_one, code, "trust"),
+                        "foreign_net": _cell(inst_one, code, "foreign_total"),
+                        "tech_score": None, "verdict": "資料回補中", "grade": None},
+            "basics": _clean(stockpage.basics(deep.get("company"), code)),
+            "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
+            "profit": _clean(stockpage.profit_series(deep.get("financial"), code)) if code in has["financial"] else {},
+            "pe_history": [],
+            "dividends": _clean(stockpage.dividends(deep.get("dividend_events"), deep.get("dividend_results"),
+                                                    price, code, float(close) if close else None))
+                         if code in has["dividend_events"] or code in has["dividend_results"] else {},
+            "margin": _clean(stockpage.margin_series(deep.get("margin"), code)) if code in has["margin"] else [],
+            "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)) if code in has["shareholding"] else [],
+            "inst_v3": {}, "inst": [], "shareholding": _clean(sh_by_code.get(code, [])),
+            "fundamental": fund_idx.get(code),
+            "news": news_by_code.get(code, []), "broker_views": broker_by_code.get(code, [])[:6],
+            "note": f"歷史價量還在回補（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料補齊後才會出現。",
+        }
+        (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False), encoding="utf-8")
+
+    # ---------------- 全市場索引：搜尋與各頁連結都靠這份（每一檔都有頁）
+    row_idx = {r["code"]: r for r in rows}
+    index_codes = list(by_turnover)
+    seen_idx = set(index_codes)
+    for c in sorted(bar_count.index):   # 今天沒成交的也要在索引裡，搜尋才找得到
+        if c not in seen_idx and is_tradable_security(c):
+            index_codes.append(c); seen_idx.add(c)
+    index = []
+    for code in index_codes:
+        r = row_idx.get(code)
+        gi = group_of.get(code, {})
+        close = r["close"] if r else _cell(day_one, code, "close")
+        index.append({
+            "code": code, "name": names.get(code) or (r["name"] if r else code),
+            "market": markets.get(code), "group": gi.get("group_name"), "group_id": gi.get("group_id"),
+            "close": close, "chg_pct": r["chg_pct"] if r else _chg(code, close),
+            "turnover": r["turnover"] if r else _cell(day_one, code, "turnover"),
+            "pe": r["pe"] if r else _cell(val_one, code, "pe"),
+            "grade": r["grade"] if r else None,
+            "tier": ("full" if code in intraday_set else "daily") if r else "thin",
+        })
+    _write("stocks", index)
+    log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
+             len(rows), len(intraday_set & written), len(thin_codes))
+
     rows.sort(key=lambda r: (r["grade"] or "Z", -r["tech_score"]))
     if breadth["n"]:
         breadth["pct_above_ma20"] = round(breadth["above_ma20"] / breadth["n"] * 100, 1)
@@ -575,7 +697,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
 
 def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
-                 latest: str, cand_rows: list[dict], names: dict) -> dict:
+                 latest: str, cand_rows: list[dict], names: dict,
+                 markets: dict | None = None) -> dict:
     """每個族群的成分股明細，給熱力圖下鑽與法人下鑽用。
 
     v3 修正：熱力圖上的「ETF」「其他電子」這類板塊是法定產業別的 fallback 族群（ind_*），
@@ -606,6 +729,8 @@ def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
                 it = it.iloc[0]
             members.append({
                 "code": c, "name": names.get(c) or r.get("name") or c,
+                # 市場別要寫進來，前端「上市／上櫃」切換才過濾得掉（Andy 2026-09-12 回報）
+                "market": (markets or {}).get(c) or (r.get("market") if isinstance(r.get("market"), str) else None),
                 "close": _clean(r["close"]),
                 "chg_pct": _clean((r["change"] / prev * 100) if prev else None),
                 "turnover": _clean(r["turnover"]),

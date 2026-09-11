@@ -36,7 +36,7 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
   對 Andy 的回報要短：改了什麼、線上哪裡看、還有什麼沒做。
 - **負責檔案**：`CLAUDE.md`、`HANDOFF.md`、`DECISIONS.md`、`.github/workflows/*`、push 腳本。
 - **產出格式**：commit（繁中訊息）+ HANDOFF.md 更新 + 給 Andy 的三行回報。
-- **檢查標準**：push 前 150 個測試全過、`_preview.py` 無重疊警告、`git grep` 無金鑰、
+- **檢查標準**：push 前 156 個測試全過、`_preview.py` 無重疊警告、`git grep` 無金鑰、
   Actions「部署網站」成功、線上網址重新整理後看得到改動。
 
 ---

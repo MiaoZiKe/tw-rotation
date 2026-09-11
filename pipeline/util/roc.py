@@ -131,3 +131,34 @@ def is_etf(code: str | None) -> bool:
     if not code:
         return False
     return code.startswith("00") and 4 <= len(code) <= 6
+
+
+# 上市與上櫃各自維護一套產業別名稱，同一個產業會有兩種寫法（上櫃習慣加「類」）。
+# 不統一的話「其他電子業」與「其他電子類」會變成兩個族群頁，熱力圖也會多出重複板塊。
+_INDUSTRY_ALIAS = {
+    "上櫃ETF": "ETF",
+    "上櫃指數股票型基金(ETF)": "ETF",
+    "指數投資證券(ETN)": "ETN",
+    "其他電子類": "其他電子業",
+    "數位雲端類": "數位雲端",
+    "居家生活類": "居家生活",
+    "綠能環保類": "綠能環保",
+    "運動休閒類": "運動休閒",
+    "農業科技": "農業科技業",
+    "金融業": "金融保險",
+    "觀光事業": "觀光餐旅",
+}
+# 這些不是產業別（大盤、指數、殘留代號），一律歸到「其他」
+_INDUSTRY_JUNK = {"", "nan", "none", "null", "index", "大盤", "所有證券"}
+
+
+def norm_industry(name: object) -> str:
+    """把上市／上櫃兩套法定產業別名稱統一成同一個 key。
+
+    回傳值會被當成 fallback 族群的 id（`ind_<回傳值>`），所以 `compute/flow.py`
+    與 `build_payload.py` 兩邊都必須呼叫這支，否則熱力圖的族群 id 會跟個股頁對不上。
+    """
+    s = "" if name is None else str(name).strip()
+    if s.lower() in _INDUSTRY_JUNK or s.isdigit():
+        return "其他"
+    return _INDUSTRY_ALIAS.get(s, s)

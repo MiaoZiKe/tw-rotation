@@ -61,7 +61,7 @@ Windows 初次安裝也可以直接雙擊 `setup.bat`（→ `setup.ps1`，可重
 ## 4. 在本機跑起來
 
 ```bash
-# 測試（145 個，約 40 秒）
+# 測試（156 個，約 50 秒）
 pytest tests/ -q
 
 # 只算前端 JSON（從 repo 內的 data/ 資料湖，約 8 分鐘；本機連不到 Yahoo 就加 SKIP_INTRADAY=1）
