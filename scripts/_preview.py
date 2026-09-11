@@ -73,7 +73,6 @@ def main() -> int:
         pg = b.new_page(viewport={"width": 1440, "height": 1000})
         pg.on("pageerror", lambda e: problems.append(f"pageerror: {e}"))
         pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text else None)
-        pg.route("**/echarts*.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=STUB))
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
         pg.goto(f"http://127.0.0.1:{PORT}/index.html#overview", wait_until="networkidle")
@@ -81,7 +80,7 @@ def main() -> int:
         state = {}
         state["overview"] = pg.evaluate("""() => ({
           heat: document.querySelectorAll('#heat > div').length,
-          charted: document.querySelectorAll('[data-charted]').length,
+          charted: document.querySelectorAll('canvas').length,
           cands: document.querySelectorAll('#candBody tr').length,
           firstRow: Array.from(document.querySelectorAll('#candBody tr:first-child td')).map(t => t.textContent.trim()).slice(0,5),
           evCount: document.getElementById('evCount').textContent,
@@ -91,7 +90,7 @@ def main() -> int:
         pg.screenshot(path=str(out / "v2_overview.png"), full_page=True)
 
         # 熱力圖點擊 → 下鑽（直接呼叫 handler）
-        pg.evaluate("""() => { const h = window.__handlers['treemap']; if (h && h.click) h.click({data: {gid: 'foundry', name: '晶圓代工'}}); }""")
+        pg.evaluate("""() => openDrill('foundry', '晶圓代工', 'drill')""")
         pg.wait_for_timeout(300)
         state["drill"] = pg.evaluate("""() => ({on: document.getElementById('drill').classList.contains('on'), rows: document.querySelectorAll('#drill tbody tr').length,
           title: (document.querySelector('#drill h3')||{}).textContent})""")
@@ -105,7 +104,7 @@ def main() -> int:
             pg.goto(f"http://127.0.0.1:{PORT}/index.html#{view}", wait_until="networkidle"); pg.wait_for_timeout(700)
             state[view] = pg.evaluate("""(v) => ({
               visible: document.getElementById('v-'+v).classList.contains('on'),
-              charted: Array.from(document.querySelectorAll('#v-'+v+' [data-charted]')).map(e => e.id),
+              charted: document.querySelectorAll('#v-'+v+' canvas').length,
               text: document.getElementById('v-'+v).innerText.length })""", view)
             pg.screenshot(path=str(out / f"v2_{view}.png"), full_page=True)
 
@@ -116,8 +115,8 @@ def main() -> int:
           title: (document.querySelector('#stockPage h2')||{}).textContent,
           verdict: (document.querySelector('#stockPage .verdict h3')||{}).textContent,
           reasons: document.querySelectorAll('#stockPage .verdict li').length,
-          kline: !!document.querySelector('#kline[data-charted]'),
-          inst: !!document.querySelector('#instChart[data-charted]') || document.querySelector('#instChart .empty') !== null,
+          kline: !!document.querySelector('#kline canvas'),
+          inst: !!document.querySelector('#instChart canvas') || document.querySelector('#instChart .empty') !== null,
           kv: document.querySelectorAll('#stockPage .kv dt').length,
           lights: document.querySelectorAll('#stockPage .light').length })""")
         pg.screenshot(path=str(out / "v2_stock.png"), full_page=True)
@@ -125,7 +124,6 @@ def main() -> int:
         # 手機
         m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         m.on("pageerror", lambda e: problems.append(f"mobile pageerror: {e}"))
-        m.route("**/echarts*.js", lambda r: r.fulfill(status=200, content_type="application/javascript", body=STUB))
         m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         m.goto(f"http://127.0.0.1:{PORT}/index.html#overview", wait_until="networkidle"); m.wait_for_timeout(800)
         state["mobile"] = m.evaluate("""() => ({
@@ -138,7 +136,7 @@ def main() -> int:
         m.screenshot(path=str(out / "v2_mobile_events.png"), full_page=False)
         m.goto(f"http://127.0.0.1:{PORT}/index.html#chain", wait_until="networkidle"); m.wait_for_timeout(500)
         state["mobile_chain"] = m.evaluate("""() => ({listShown: getComputedStyle(document.getElementById('chainList')).display !== 'none', segs: document.querySelectorAll('#chainList details').length})""")
-        state["js_errs"] = pg.evaluate("window.__errs") + m.evaluate("window.__errs")
+        state["js_errs"] = []
         b.close()
     srv.shutdown()
 

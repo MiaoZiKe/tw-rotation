@@ -72,6 +72,11 @@ document.querySelectorAll('.tab').forEach(t => t.onclick = () => go(t.dataset.v)
 
 // ------------------------------------------------------------------ 主流程
 (async function main() {
+  if (typeof echarts === 'undefined') {
+    const b = $('banner'); b.className = 'banner on';
+    b.innerHTML = '<b>圖表函式庫沒有載入（vendor/echarts.min.js）。</b>數字仍會顯示，但所有圖表會是空的。請確認 repo 裡有 site/vendor/echarts.min.js，或重新整理。';
+    window.echarts = {init: () => ({setOption(){}, resize(){}, on(){}, off(){}, dispose(){}})};
+  }
   const names = ['meta', 'market_heat', 'groups_today', 'rotation', 'relative_strength', 'concentration',
     'seasonality', 'candidates', 'news', 'trust_streak', 'groups_detail', 'group_valuation',
     'fundamental', 'broker_views', 'supply_chain'];
@@ -154,7 +159,7 @@ function renderTreemap(g) {
   if (!g || !g.length) return;
   const c = mk('treemap', {
     tooltip: {formatter: p => { const d = p.data; return `<b>${d.name}</b><br>成交值 ${toYi(d.value)}　佔比 ${fmt(d.share)}%<br>漲跌 ${sign(d.chg)}%　成分 ${d.n} 檔（漲 ${d.adv} / 跌 ${d.dec}）<br><span style="color:${C().accent}">點擊看成分股</span>`; }},
-    series: [{type: 'treemap', roam: false, nodeClick: false, breadcrumb: {show: false},
+    series: [{type: 'treemap', roam: false, nodeClick: false, breadcrumb: {show: false}, left: 0, top: 0, right: 0, bottom: 0,
       label: {show: true, formatter: p => `${p.data.name}\n${sign(p.data.chg, 1)}%`, fontSize: 12, color: '#fff', textShadowColor: 'rgba(0,0,0,.5)', textShadowBlur: 3},
       itemStyle: {borderColor: C().surface, borderWidth: 2, gapWidth: 2},
       data: g.map(r => ({name: r.group_name, value: Math.max(r.turnover || 0, 1), chg: r.chg_pct, share: r.turnover_share,
@@ -217,7 +222,7 @@ function renderQuadrant(rot, rs, g) {
     yAxis: {type: 'value', name: '相對強弱 ↑', nameTextStyle: {color: k.ink3, fontSize: 10}, axisLabel: {color: k.ink3, fontSize: 10, formatter: '{value}%'}, splitLine: {lineStyle: {color: k.line}}},
     series: [{type: 'scatter', data, symbolSize: d => 10 + Math.sqrt(d[2] / maxT) * 34,
       itemStyle: {color: p => heatColor(p.data.chg), opacity: .85, borderColor: k.surface, borderWidth: 1},
-      label: {show: true, position: 'right', fontSize: 10, color: k.ink2, formatter: p => p.data.name},
+      label: {show: true, position: 'right', fontSize: 10, color: k.ink2, formatter: p => p.data.name}, labelLayout: {hideOverlap: true},
       markLine: {silent: true, symbol: 'none', lineStyle: {color: k.ink3, type: 'dashed', width: 1}, data: [{xAxis: 0}, {yAxis: 0}], label: {show: false}},
       markArea: {silent: true, itemStyle: {color: k.accent, opacity: .06}, data: [[{xAxis: 0, yAxis: 0}, {xAxis: 'max', yAxis: 'max'}]]}}]
   });
@@ -424,6 +429,8 @@ function drawKline(s) {
         markArea: {silent: true, data: areas, label: {show: true, position: 'insideLeft', fontSize: 10, color: k.ink2}},
         markLine: {silent: true, symbol: 'none', data: lines},
         markPoint: {data: pts, label: {show: false}, tooltip: {formatter: p => p.data.value}}},
+      // 看不見的點：讓 y 軸範圍涵蓋停損與目標（markLine 本身不會撐開座標軸）
+      {type: 'scatter', data: [[dates.length - 1, isNum(v.tp1) ? v.tp1 : null], [dates.length - 1, isNum(v.stop) ? v.stop : null]], symbolSize: 0, silent: true, tooltip: {show: false}},
       {type: 'line', name: 'MA20', data: se.ma20, showSymbol: false, lineStyle: {width: 1.2, color: '#d9a441'}, smooth: false},
       {type: 'line', name: 'MA60', data: se.ma60, showSymbol: false, lineStyle: {width: 1.2, color: '#5b7fa8'}},
       {type: 'line', name: 'MA120', data: se.ma120, showSymbol: false, lineStyle: {width: 1, color: k.ink3, type: 'dashed', opacity: .6}},
