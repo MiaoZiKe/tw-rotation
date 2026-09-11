@@ -45,6 +45,28 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
+def last_complete_date(price: pd.DataFrame, *, primary: str = "TWSE",
+                       ratio: float = 0.6, lookback: int = 10) -> str:
+    """回傳「主市場（上市）資料到齊」的最後一個交易日（字串）。
+
+    - 有 market 欄位且含上市列：只看上市列，取近 lookback 個交易日中最多檔數的 ratio 倍為門檻，
+      最後一個達門檻的日期就是它。櫃買抓失敗不會拖住更新（櫃買是可失敗來源）。
+    - 沒有 market 欄位（測試資料）：用全部列數做同樣的判斷。
+    - 只有一天資料：直接回傳那一天。
+    """
+    if price.empty:
+        return ""
+    px = price
+    if "market" in px.columns and (px["market"] == primary).any():
+        px = px[px["market"] == primary]
+    counts = px.groupby(px["date"].astype(str))["code"].nunique().sort_index()
+    if len(counts) < 2:
+        return str(counts.index.max())
+    ref = counts.tail(lookback).max()
+    ok = counts[counts >= ratio * ref]
+    return str(ok.index.max()) if not ok.empty else str(counts.index.max())
+
+
 def build() -> None:
     price = store.read("price_daily")
     if price.empty:
@@ -72,7 +94,13 @@ def build() -> None:
         markets = (company.dropna(subset=["market"]).drop_duplicates("code", keep="last")
                           .set_index("code")["market"].to_dict())
 
-    latest = str(price["date"].max())
+    # 最新交易日不能直接用 max(date)：證交所 OpenAPI 與櫃買更新時間不同，跑管線時常只有
+    # 其中一邊有最新一天。之前就因為只有櫃買到了 09-11，整個上市股票被算漏
+    # （個股頁 404、族群統計只剩上櫃）。改用「上市資料到齊的最後一天」，並把各日表裁到同一天。
+    latest = last_complete_date(price)
+    price = price[price["date"].astype(str) <= latest]
+    inst, margin, market, valuation = (t[t["date"].astype(str) <= latest] if not t.empty and "date" in t else t
+                                       for t in (inst, margin, market, valuation))
     history_days = int(price["date"].nunique())
 
     # ---------------------------------------------------------- M1 資金面

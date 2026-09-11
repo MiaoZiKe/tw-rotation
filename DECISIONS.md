@@ -1,0 +1,78 @@
+# DECISIONS.md — 已拍板的決策（不要重新討論）
+
+每條格式：**決策** — 理由 — 影響的檔案。要推翻任何一條，先由 CEO 問 Andy，得到答覆後改這裡。
+
+---
+
+## A. 架構
+
+1. **資料只用免費且合規的來源**：證交所 OpenAPI（`openapi.twse.com.tw`）、FinMind、集保 OpenAPI、櫃買（可失敗）、
+   鉅亨／TechNews RSS、FRED。**絕不碰 `www.twse.com.tw/rwd/...`**（使用條款禁爬）、不爬券商分點、不繞反爬。
+   — 這是 Andy 對「合規換來 T-1 延遲」的明確取捨。— `pipeline/sources/*`
+2. **Parquet append-only 資料湖放在 repo 的 `data/`，由 Actions 每天 commit；雲端是權威來源。**
+   本機永遠 `git pull` 後只讀；不 force push、不覆寫。— `util/store.py`、`daily.yml`、`backfill.yml`
+3. **每日增量走 OpenAPI，歷史走 FinMind**（免費層 600 req/hr，402 即停，每小時排程接續）。— `run_backfill.py`、`util/http.py`
+4. **不引入 TA-Lib**，指標自己算；Python 端只用於判定與評分，前端 K 線指標在瀏覽器算（參數要即時可調）。
+   兩邊口徑一致：KD 9,3,3 初始 50、RSI Wilder（SMA 種子）、MACD 12/26/9。— `indicators.py`、`site/chart.js`
+5. **前端是純靜態網站**，圖表庫全部 vendored 進 `site/vendor/`（Andy 公司網路擋 CDN），零外部請求。
+6. **`site/data/` 不進版控（v3）**：每天重寫幾十 MB 會把 repo 撐爆；`pages.yml` 與 `daily.yml` 在工作流內從資料湖產出 JSON 再部署。
+7. **部署兩條線**：`daily.yml` 跑完管線後自己部署；`pages.yml` 在 `site/**`／`pipeline/**` 有 push 時部署。
+   共用 `pages` concurrency group 且 **`cancel-in-progress: false`**（改 true 會出現「repo 新、網站舊」）。
+   資料寫入類工作流共用 `tw-rotation-data-write` group 排隊，避免互相 push 衝突。
+8. **工作流一律 `checkout ref: ${{ github.ref_name }}`**（分支最新），不用觸發當下的 SHA — 排隊中別人可能已推新資料。
+9. **程式碼由 Claude 透過 GitHub Git Data API 推上 main**（blob → tree → commit → ref，`force:false`），
+   Andy 不在本機執行任何 git；token 只存 Claude 暫存區與 Andy 的 GitHub 設定，永不進 repo。
+10. **這是決策輔助，不是交易系統**：不接下單、不自動執行；repo 是 public，不放持股、成本、損益。
+11. 註解、commit 訊息、文件用繁體中文。
+
+## B. 金融口徑（金融專家定，改動要同步 docstring）
+
+12. PE 一律自算＝收盤／近四季 EPS 合計；四季不連續不給 TTM，**不用單季 ×4**；虧損股 NaN 不排序；PE 在 [3,200] 外視為離群；族群用中位數。
+13. 估值分位只在同族群內算；樣本 < 5 退回法定產業別、< 3 留白、永遠顯示 n。`groups.yaml` 的 `valuation_metric`：金融 pb_roe、生技 ps、其餘 pe，**絕不跨族群比 PE**。
+14. 財報「可用日」用法定期限（Q1 5/15、Q2 8/14、Q3 11/14、Q4 隔年 3/31、月營收次月 10 日），寧遲勿早，否則 walk-forward 偷看未來。
+15. 獲利資料**依法只有季報**（毛利／營益／淨利／EPS／累計 EPS 皆按季），頁面要註明「每季」而非每月。
+16. 券商目標價是**新聞引述**，不是我們的預估；頁面標券商名、日期、來源。（v2 拍板）
+17. 「預估漲幅」改為**營運動能分數**。（v2 拍板）
+18. 季節性：**2000 年起**，觀察期 all／10y／5y／3y 可切，統計**相對大盤（TAIEX）的超額報酬**與勝率；樣本 < 3 留白；權重壓到 0.05。
+19. 一檔股票可屬多個族群，**族群量能按 1/n 拆分**（避免市場總量灌水）；**題材熱度不拆分**（同一筆成交額可同時貢獻多個題材）。
+20. 集保層級：15＝千張以上（大戶）、12–14 中實戶、1–3 散戶、17 總計；大戶散戶用「持股比例變化」呈現。
+21. **主力（券商分點家數差）用「集保千張大戶增減＋法人動向」替代**並在頁面明講；不去爬分點。（v3 拍板）
+22. 除權息：事件（現金／股票、除息日、發放日）與結果（填息天數）分開存；殖利率用現金股利 TTM。
+
+## C. 技術分析（SMC）
+
+23. 台股**紅漲綠跌**；前端配色已照做，不要「修正」。
+24. 支撐壓力：多源交集區間（score ≥ 3、≥ 2 來源、寬 ≤ 2×ATR、依距離排序）；A／B／觀望／不要碰四級；
+    突破停損放在被突破前高之下；有測量目標；週線衝突降級；三段式文字。
+25. FVG 門檻 max(0.6, 0.3×ATR%)；週線／月線結構回看 3 根、日線 2 根。
+26. 多週期同看：有分 K 用 15 分／1 時／4 時／日；沒分 K 明講改「週線 vs 日線」統整。（v3）
+27. 4 小時線用 240 分鐘、以 09:00 為錨重採樣；週／月線在瀏覽器端由日線重採樣。
+
+## D. 前端／UI（v2、v3 拍板）
+
+28. **K 線引擎換成 TradingView Lightweight Charts**（不再用 ECharts candlestick）；其餘圖表仍用 ECharts。（v3）
+29. 時間週期 15m／1H／4H／1D／1W／1M；指標 MA／KD／MACD／RSI／BOLL 可勾選、參數可調（存 localStorage）；價格軸滾輪縮放。（v3）
+30. **分 K 先用 Yahoo Finance（60m/730 天、15m/60 天，不進資料湖）；之後接 Fugle 做即時**（前端 WebSocket 直連，Cloudflare Workers 藏 key）。（v3 拍板，Fugle 等 Andy 給 key）
+31. **個股頁與產業鏈頁合併**：產業地圖 → 單一產業鏈 → 個股；點股票時上方產業鏈同步高亮。（v3）
+32. **資金流向不用直條圖**：RRG、桑基、河流／市占面積。（v3）
+33. 題材資金熱力圖獨立分頁。（v3）
+34. 整體風格**深色科技／AI／專業**，字體加大；每處都要有股票簡稱（v2）；零文字重疊、零水平捲軸、手機 390px 可用。
+35. 市占率產品要有剖析圖：網路找不到可用的就**自己畫原創動畫 SVG**，零件對應供應鏈環節。（v3）
+36. **「不用稿圖，直接做完給我看」**：不做 mockup 往返，直接實作 → 本機 `_preview.py` 驗證 → push → Andy 重新整理網頁看。（v3）
+37. Andy **只重新整理網頁**，不點任何按鈕做更新（v3）；因此所有更新都要自動化在 Actions 內。
+
+## E. 開發約定
+
+38. 每個抓取步驟都必須可以失敗（`run_daily.step()` 吃例外寫 `last_run.json`）；一個來源掛掉不能拖垮整天。
+39. 新增資料表先在 `config.TABLES` 註冊 key 欄位，否則 `store.append()` 拒收。
+40. 改指標必跑 `pytest`：`test_no_lookahead_in_moving_averages`、`test_append_is_idempotent` 是底線。
+41. push 前跑 `scripts/_preview.py`（真圖表庫、全頁面、重疊偵測、手機寬）。
+42. 非交易日 API 會靜默回上一交易日，**一律用回應裡的日期**；`MI_MARGN` 沒日期欄位由同批行情補。
+43. `groups.yaml` / `themes.yaml` / `supply_chain.yaml` 是唯一人工維護檔；程式只產「建議報告」不自動改。
+44. 回補計畫 `PLAN_DEFAULT`：財報＋資產負債（2016 起）→ 股利＋除權息結果（2016）→ 資券＋集保（2021）→
+    族群成分股價量（2000 起）→ 每月股利更新（tag 帶年月，跨月自動再跑）。done key 格式 `key@start:code`／`key@tag:code`。
+45. 排程時段避開 UTC 09:20／10:20（每日管線 10:30 也要用 FinMind 額度）。GitHub 免費層的 cron 會延遲，
+    當天實測每日管線延到 UTC 14:33 才跑，屬正常，不要為此改成外部排程。
+46. **「最新交易日」＝上市資料到齊的最後一天**（`build_payload.last_complete_date`），不是 `max(date)`。
+    證交所 OpenAPI 與櫃買更新時間不同；只有櫃買到了新的一天時，整個上市股會被算漏（2026-09-11 實際發生：
+    個股頁 404、族群統計只剩上櫃）。各日表一律裁到同一天再算。櫃買抓失敗不得拖住更新（只看上市檔數）。

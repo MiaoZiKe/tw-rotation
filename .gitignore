@@ -16,3 +16,11 @@ site/data/
 # 預覽截圖
 docs/preview.png
 docs/*.png
+
+# 金鑰與推送暫存：永遠不進版控（repo 是 public）
+.env
+.env.*
+*.token
+.ghtoken
+secrets/
+.gh_push/
