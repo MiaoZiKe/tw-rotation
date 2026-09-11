@@ -61,7 +61,7 @@ jobs:
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
-          git add data site/data
+          git add data
           if git diff --staged --quiet; then
             echo "沒有資料變動，跳過 commit"
             exit 0
@@ -78,11 +78,11 @@ jobs:
             fi
             echo "推送被拒（第 $i 次），重新對齊遠端後再試…"
             git fetch origin "${{ github.ref_name }}"
-            git checkout --ours -- data site/data 2>/dev/null || true
+            git checkout --ours -- data 2>/dev/null || true
             git rebase -X ours "origin/${{ github.ref_name }}" || {
               git rebase --abort || true
               git reset --soft "origin/${{ github.ref_name }}"
-              git add data site/data
+              git add data
               git commit -m "資料更新 $(date -u '+%Y-%m-%d') (合併重試)"
             }
             sleep $((i * 5))

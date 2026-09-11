@@ -154,7 +154,7 @@ if (-not $repoExists) {
   for ($try = 1; $try -le 4; $try++) {
     Run git @("fetch","origin","main") -Quiet | Out-Null
     Run git @("reset","--mixed","origin/main") -Quiet | Out-Null
-    Run git @("checkout","origin/main","--","data","site/data") -Quiet | Out-Null
+    Run git @("checkout","origin/main","--","data") -Quiet | Out-Null
     Run git @("add","-A") | Out-Null
     $staged = (git diff --staged --name-only 2>$null | Measure-Object -Line).Lines
     if ($staged -eq 0) {

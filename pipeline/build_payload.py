@@ -7,13 +7,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
 
 from . import config, indicators
-from .compute import flow, fundamental, technical
+from .compute import flow, fundamental, mtf, rrg, season, stockpage, technical, themes
 from .groups import loader
 from .util import store
 from .util.roc import is_tradable_security
@@ -126,6 +127,12 @@ def build() -> None:
 
     # ---------------------------------------------------------- M4 季節性
     _write("seasonality", seasonality(price, company).to_dict("records"))
+    intl_all = store.read("intl_daily")
+    try:
+        _write("seasonality_v3", season.build(price, intl_all))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("季節性 v3 產出失敗：%s", exc)
+        _write("seasonality_v3", {"periods": {}, "groups": [], "note": str(exc)})
 
     # ---------------------------------------------------------- M2 基本面
     day_px = price[price["date"] == latest][["code", "close"]]
@@ -201,14 +208,44 @@ def build() -> None:
     # ---------------------------------------------------------- 個股技術面 + 個股頁
     news_all = store.read("news")
     sh_all = store.read("shareholding_weekly")
+    deep = {
+        "revenue": revenue, "financial": financial, "margin": margin, "shareholding": sh_all,
+        "dividend_events": store.read("dividend_events"),
+        "dividend_results": store.read("dividend_results"),
+        "company": company,
+    }
     cand_rows, breadth = candidates(price, valuation, company, inst, latest,
                                     names=names, markets=markets, fund=fund_rows,
                                     news_df=news_all, broker=bv if not bv.empty else None,
-                                    shareholding=sh_all)
+                                    shareholding=sh_all, deep=deep)
     _write("candidates", cand_rows)
-    _write("groups_detail", group_detail(price, company, inst, latest, cand_rows, names))
+    gdetail = group_detail(price, company, inst, latest, cand_rows, names)
+    _write("groups_detail", gdetail)
     heat.update({"breadth": breadth})
     _write("market_heat", heat)
+
+    # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
+    try:
+        _write("flow_v3", {
+            "date": latest,
+            "rrg": rrg.rrg(group_hist, price),
+            "sankey": rrg.sankey(today, gdetail),
+            "share": rrg.share_series(group_hist),
+        })
+    except Exception as exc:  # noqa: BLE001
+        log.warning("資金流向 v3 產出失敗：%s", exc)
+        _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
+                           "share": {"dates": [], "series": []}})
+    try:
+        _write("themes", themes.build(price, inst, news_all, names, latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("題材熱力產出失敗：%s", exc)
+        _write("themes", {"date": latest, "themes": [], "series": {}})
+    try:
+        _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("產業地圖產出失敗：%s", exc)
+        _write("industry_map", {"date": latest, "chains": [], "industries": [], "segments_pe": {}})
 
     # ---------------------------------------------------------- 新聞
     news_df = store.read("news")
@@ -298,13 +335,16 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                latest: str, limit: int = 150, *, names: dict | None = None,
                markets: dict | None = None, fund: list[dict] | None = None,
                news_df: pd.DataFrame | None = None, broker: pd.DataFrame | None = None,
-               shareholding: pd.DataFrame | None = None) -> tuple[list[dict], dict]:
+               shareholding: pd.DataFrame | None = None,
+               deep: dict | None = None) -> tuple[list[dict], dict]:
     """當日候選股 + 每檔的個股頁 JSON。
 
     回傳 (候選清單, 市場寬度統計)。個股頁直接寫到 site/data/stock/<code>.json。
+    v3：個股頁多了分 K（Yahoo）、多週期 SMC、營收/獲利/除權息/資券/大戶散戶/基本資料。
     """
     if price.empty:
         return [], {}
+    deep = deep or {}
 
     names = names or {}
     markets = markets or {}
@@ -316,9 +356,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                  .to_dict("index"))
 
     day = price[price["date"] == latest]
-    # 族群成分股全部算，再用成交值補到 limit
+    # 族群成分股全部算，再用成交值補到 limit（指數列如 TAIEX 與權證不算個股）
     member_codes = set(m["code"])
-    by_turnover = day.sort_values("turnover", ascending=False)["code"].tolist()
+    by_turnover = [c for c in day.sort_values("turnover", ascending=False)["code"].tolist()
+                   if is_tradable_security(c)]
     codes = [c for c in by_turnover if c in member_codes]
     for c in by_turnover:
         if len(codes) >= limit:
@@ -353,6 +394,19 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
     stock_dir = config.SITE_DATA / "stock"
     stock_dir.mkdir(parents=True, exist_ok=True)
+
+    # 分 K（Yahoo）：只在正式管線抓，測試與本機預覽用 SKIP_INTRADAY=1 跳過
+    m60 = m15 = pd.DataFrame()
+    if not os.environ.get("SKIP_INTRADAY"):
+        try:
+            from .sources import yahoo
+            m60 = yahoo.intraday(codes, markets, "60m", "730d")
+            m15 = yahoo.intraday(codes, markets, "15m", "60d")
+            log.info("分 K：60 分 %d 列、15 分 %d 列", len(m60), len(m15))
+        except Exception as exc:  # noqa: BLE001
+            log.warning("分 K 抓取失敗：%s", exc)
+    m60_by = {c: g for c, g in m60.groupby("code")} if not m60.empty else {}
+    m15_by = {c: g for c, g in m15.groupby("code")} if not m15.empty else {}
 
     rows = []
     breadth = {"n": 0, "above_ma20": 0, "above_ma60": 0, "new_high_60": 0, "grade_a": 0, "grade_b": 0}
@@ -422,12 +476,43 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
         # ---------------- 個股頁
         tail = ind.tail(250)
+        long = ind.tail(1500)      # 6 年日 K，前端自己合成週 K / 月 K
+        bars60 = m60_by.get(code, pd.DataFrame())
+        bars15 = m15_by.get(code, pd.DataFrame())
+        try:
+            mtf_res = mtf.build(g[cols], bars60 if not bars60.empty else None,
+                                bars15 if not bars15.empty else None)
+        except Exception as exc:  # noqa: BLE001
+            log.debug("%s 多週期分析失敗：%s", code, exc)
+            mtf_res = {"tf": {}, "summary": {}}
+        bars240 = mtf.resample_intraday(bars60, "240min") if not bars60.empty else pd.DataFrame()
+
+        def _bars(df_, tcol):
+            if df_ is None or df_.empty:
+                return []
+            return _clean([[str(r_[tcol]), r_["open"], r_["high"], r_["low"], r_["close"],
+                            (r_["volume"] if "volume" in df_ else None)] for _, r_ in df_.iterrows()])
+
         page = {
             "meta": {k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
             "as_of": latest,
+            "version": 3,
             "ohlcv": _clean([[r_["date"], r_["open"], r_["high"], r_["low"], r_["close"],
                               (r_["volume"] if "volume" in tail else None)]
                              for _, r_ in tail.iterrows()]),
+            "daily": _bars(long, "date"),
+            "intraday": {"60m": _bars(bars60.tail(1800), "ts"), "240m": _bars(bars240.tail(800), "ts"),
+                         "15m": _bars(bars15.tail(1100), "ts")},
+            "mtf": _clean(mtf_res),
+            "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)),
+            "profit": _clean(stockpage.profit_series(deep.get("financial"), code)),
+            "pe_history": _clean(stockpage.pe_history(price, deep.get("financial"), code)),
+            "dividends": _clean(stockpage.dividends(deep.get("dividend_events"), deep.get("dividend_results"),
+                                                    price, code, float(last["close"]))),
+            "margin": _clean(stockpage.margin_series(deep.get("margin"), code)),
+            "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)),
+            "inst_v3": _clean(stockpage.inst_series(inst_hist if not inst_hist.empty else None, code)),
+            "basics": _clean(stockpage.basics(deep.get("company"), code)),
             "series": {k: _clean(tail[k].tolist()) for k in
                        ("ma5", "ma20", "ma60", "ma120", "k", "d", "dif", "macd", "osc",
                         "rsi14", "vol_ma20", "atr14") if k in tail},
@@ -463,9 +548,18 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
 def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
                  latest: str, cand_rows: list[dict], names: dict) -> dict:
-    """每個族群的成分股明細，給熱力圖下鑽與法人下鑽用。"""
-    m = loader.membership()
-    day = price[price["date"] == latest].set_index("code")
+    """每個族群的成分股明細，給熱力圖下鑽與法人下鑽用。
+
+    v3 修正：熱力圖上的「ETF」「其他電子」這類板塊是法定產業別的 fallback 族群（ind_*），
+    以前這裡只展開 groups.yaml 的族群，點下去就是空的。現在用 flow._attach_groups 同一套
+    邏輯把 fallback 族群一起展開。
+    """
+    day_px = price[price["date"] == latest]
+    m = flow._attach_groups(day_px, company)
+    if m.empty:
+        m = loader.membership()
+    m = m[["code", "group_id", "group_name"]].drop_duplicates()
+    day = day_px.set_index("code")
     inst_today = inst[inst["date"] == latest].set_index("code") if not inst.empty else pd.DataFrame()
     cand_idx = {r["code"]: r for r in cand_rows}
     out = {}
@@ -497,3 +591,79 @@ def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
         members.sort(key=lambda x: -(x["turnover"] or 0))
         out[gid] = {"group_name": g["group_name"].iloc[0], "members": members}
     return out
+
+
+def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
+                 gval: pd.DataFrame, latest: str) -> dict:
+    """產業地圖（v3 合併頁的總覽）：產業鏈 → 族群 → 成分股，附本益比中位數與資金流向。"""
+    chains = loader.chains()
+    fund_idx = {f["code"]: f for f in (fund_rows or [])}
+    gv = {}
+    if gval is not None and not gval.empty:
+        for _, r in gval.drop_duplicates("group_id").iterrows():
+            gv[r["group_id"]] = {"metric": r.get("metric"), "median": _clean(r.get("group_median")),
+                                 "n": int(r["group_n"]) if pd.notna(r.get("group_n")) else None}
+    t = today.set_index("group_id") if today is not None and not today.empty else pd.DataFrame()
+
+    def _group(gid: str, name: str, chain: str | None) -> dict:
+        d = gdetail.get(gid, {})
+        members = []
+        for mmb in d.get("members", []):
+            fx = fund_idx.get(mmb["code"], {})
+            members.append({**mmb, "pe": fx.get("pe"), "pe_percentile": fx.get("percentile"),
+                            "market_cap": fx.get("market_cap"), "momentum": fx.get("momentum_score")})
+        tv = t.loc[gid] if len(t) and gid in t.index else None
+        if isinstance(tv, pd.DataFrame):
+            tv = tv.iloc[0]
+        return {
+            "id": gid, "name": name, "chain": chain, "n": len(members),
+            "turnover": _clean(tv["turnover"]) if tv is not None else None,
+            "turnover_share": _clean(tv["turnover_share"]) if tv is not None else None,
+            "chg_pct": _clean(tv["chg_pct"]) if tv is not None and "chg_pct" in tv else None,
+            "foreign": _clean(tv["foreign_total"]) if tv is not None and "foreign_total" in tv else None,
+            "trust": _clean(tv["trust"]) if tv is not None and "trust" in tv else None,
+            "valuation": gv.get(gid),
+            "members": members,
+        }
+
+    cfg_groups = loader.load().get("groups") or {}
+    out_chains = []
+    for cid, c in chains.items():
+        groups = [_group(gid, cfg_groups.get(gid, {}).get("name", gid), cid) for gid in c.get("order", [])
+                  if gid in cfg_groups]
+        out_chains.append({"id": cid, "name": c.get("name", cid), "groups": groups,
+                           "turnover": sum((g["turnover"] or 0) for g in groups)})
+    # 沒排進 chains.order 的族群
+    placed = {gid for c in chains.values() for gid in c.get("order", [])}
+    orphan = [_group(gid, g.get("name", gid), g.get("chain")) for gid, g in cfg_groups.items() if gid not in placed]
+    if orphan:
+        out_chains.append({"id": "_other", "name": "其他族群", "groups": orphan,
+                           "turnover": sum((g["turnover"] or 0) for g in orphan)})
+    industries = [_group(gid, d.get("group_name", gid), "industry") for gid, d in gdetail.items()
+                  if gid.startswith("ind_")]
+    industries.sort(key=lambda g: -(g["turnover"] or 0))
+
+    # 供應鏈環節本益比（supply_chain.yaml 的公司 → fundamental）
+    seg_pe = {}
+    try:
+        sc = loader.supply_chain()
+        by_seg: dict[str, list] = {}
+        for comp in sc.get("companies", []):
+            code = comp.get("tw_code")
+            if code:
+                by_seg.setdefault(comp.get("segment"), []).append(code)
+        for seg, codes in by_seg.items():
+            pes = [fund_idx[c]["pe"] for c in codes if c in fund_idx and fund_idx[c].get("pe")]
+            pes = [p for p in pes if 3 <= p <= 200]
+            seg_pe[seg] = {"n": len(pes), "median": (round(float(np.median(pes)), 1) if pes else None),
+                           "codes": codes}
+    except Exception as exc:  # noqa: BLE001
+        log.debug("環節本益比失敗：%s", exc)
+
+    return {"date": latest, "chains": out_chains, "industries": industries, "segments_pe": seg_pe}
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s | %(message)s",
+                        datefmt="%H:%M:%S")
+    build()

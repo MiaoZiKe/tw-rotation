@@ -96,6 +96,9 @@ FinMind ────────┤
   之前就是被取消才出現「repo 已更新但網站還是舊版」。
 - **程式碼更新走 GitHub API 推送**（Andy 不需要在本機按任何 .bat）。
   token 只放在 Claude 的暫存區與 Andy 的 GitHub 設定，**永遠不進 repo**。
+- **前端指標算在瀏覽器**（`site/chart.js` 的 `KInd`），因為參數要能即時調；Python 端的指標只用於判定與評分。
+  兩邊口徑要一致：KD 9,3,3 初始 50、RSI Wilder（SMA 種子）、MACD 12/26/9。改一邊記得改另一邊。
+- **主力（券商分點家數差）沒有免費合規來源**，頁面用集保千張大戶增減＋法人動向替代並明講；不要去爬分點。
 
 ## 目前進度
 
@@ -116,6 +119,21 @@ v2 稿圖已經 Andy 確認（2026-09-11），三個拍板：註冊富果做即�
   A/B/觀望/不要碰、突破停損放在被突破的前高下方、測量目標、週線衝突降級、三段式文字
 - 指標庫補 ATR、量比、Volume Profile、漲跌停旗標；FVG 門檻 max(0.6, 0.3×ATR%)
 - `groups/supply_chain.yaml` + `loader.supply_chain()`（市占帶 as_of/source/confidence，180 天標 stale）
+
+**v3 已完成（2026-09-11 下午）**：
+- 前端全面改版：深色科技風、`site/app.js`（總覽/資金流向/題材/季節性/事件）、`site/industry.js`
+  （產業地圖 → 單一產業鏈 → 個股頁，三層合一）、`site/chart.js`（TradingView Lightweight Charts 5：
+  15 分/1 時/4 時/日/週/月、指標可勾選可調參數、SMC 區間 primitive、價格軸滾輪縮放、四週期同看）、
+  `site/diagrams.js`（AI 伺服器托盤與 CoWoS 剖面的原創動畫 SVG，零件 data-seg 對應 supply_chain 環節）
+- 資料層：FinMind 股利/除權息結果/融資券/股權分散歷史（`sources/finmind.py`）、Yahoo 分 K（`sources/yahoo.py`，
+  不進資料湖）、回補計畫 `--plan default`（財報 → 股利 → 資券/集保 → 族群成分股 2000 年起價量 → 每月股利更新），
+  排程每小時自動接續、402 限流即停
+- 計算層：`compute/stockpage.py`（營收/獲利/本益比歷史/除權息含填息天數/資券/大戶散戶/法人/基本資料）、
+  `compute/mtf.py`（多週期 SMC 與統整腳本）、`compute/season.py`（2000 年起、多觀察期、相對大盤超額報酬）、
+  `compute/themes.py` + `groups/themes.yaml`（題材熱度，量能不拆分）、`compute/rrg.py`（RRG/桑基/河流）、
+  `build_payload.industry_map`（產業地圖、環節本益比）；`group_detail` 修好 ETF/其他電子等 ind_* 族群下鑽
+- **site/data/ 不再進版控**：`pages.yml` 與 `daily.yml` 都在工作流裡從資料湖產出 JSON 再部署
+- 預覽驗證：`python scripts/_preview.py`（真 ECharts + LWC，走過所有頁面、偵測文字重疊、手機寬度）
 
 **還沒做**：
 

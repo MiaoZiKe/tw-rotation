@@ -1,14 +1,16 @@
 name: 部署網站
 
-# 只負責把 site/ 推上 GitHub Pages。不抓資料、不寫 repo，
-# 所以不加入資料寫入的 concurrency 群組 —— 程式碼一推上來就部署，
-# 不用排在一小時的歷史回補後面（那正是之前更新看不到的原因）。
+# 程式碼（site/ 或 pipeline/）一推上來就重新產出前端 JSON 並部署。
+# v3 起 site/data/ 不進版控（每天重寫幾十 MB 的 JSON 會把 repo 撐爆），
+# 所以這裡要先從資料湖把 JSON 算出來再上傳。
+# 不寫 repo，所以不加入資料寫入的 concurrency 群組 —— 不用排在歷史回補後面。
 
 on:
   push:
     branches: [main]
     paths:
       - "site/**"
+      - "pipeline/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -24,11 +26,21 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 從資料湖產出前端 JSON（含 Yahoo 分 K）
+        run: python -m pipeline.build_payload
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

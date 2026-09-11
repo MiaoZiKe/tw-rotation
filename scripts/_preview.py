@@ -1,10 +1,11 @@
-"""本機預覽驗證 v2：起 http server、stub ECharts、走過每個分頁與個股頁，抓 JS 錯誤並截圖。
+"""本機預覽驗證 v3：起 http server，用真的 ECharts + Lightweight Charts 走過每個分頁與個股頁，
+抓 JS 錯誤、偵測文字框重疊、截圖到 docs/。
 
-用 stub 的原因：開發環境的 egress 擋掉 cdnjs。stub 仍會執行我們自己寫的
-每一個 formatter / label / click handler —— 真正容易寫錯的就是那些。
+用法：python scripts/_preview.py [--code 2330]
 """
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 import threading
@@ -15,133 +16,121 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
-PORT = 8765
+PORT = 8766
 
-STUB = r"""
-window.__calls = []; window.__errs = []; window.__handlers = {};
-function runFormatters(o, id){
-  try {
-    const ser = o.series || [];
-    ser.forEach(function(s){
-      const data = s.data || [];
-      data.slice(0, 6).forEach(function(d, i){
-        const v = (d && d.value !== undefined) ? d.value : d;
-        const p = {name: (d && d.name) || 'x', value: v, data: d, dataIndex: i, seriesName: s.name, seriesType: s.type, dataType: 'node'};
-        if (o.tooltip && typeof o.tooltip.formatter === 'function') {
-          // K 線 tooltip 是 axis trigger，會收到陣列
-          o.tooltip.formatter(o.tooltip.trigger === 'axis' ? [p] : p);
-        }
-        if (s.label && typeof s.label.formatter === 'function') s.label.formatter(p);
-        if (typeof s.symbolSize === 'function') s.symbolSize(Array.isArray(v) ? v : [v]);
-        if (s.itemStyle && typeof s.itemStyle.color === 'function') s.itemStyle.color(p);
-      });
-      if (s.links) s.links.slice(0,3).forEach(function(l){ if (o.tooltip && typeof o.tooltip.formatter==='function') o.tooltip.formatter({dataType:'edge', data:l}); });
-      if (s.markPoint && s.markPoint.tooltip && typeof s.markPoint.tooltip.formatter==='function' && s.markPoint.data && s.markPoint.data[0]) s.markPoint.tooltip.formatter({data: s.markPoint.data[0]});
-    });
-    (o.yAxis ? [].concat(o.yAxis) : []).forEach(function(a){ if (a.axisLabel && typeof a.axisLabel.formatter==='function') a.axisLabel.formatter(3); });
-  } catch (e) { window.__errs.push(id + ' formatter: ' + e.message); }
-}
-window.echarts = {
-  init: function(el){
-    const h = {};
-    return {
-      setOption: function(o){ runFormatters(o, el.id); window.__calls.push({id: el.id, series: (o.series||[]).length}); el.setAttribute('data-charted','1'); },
-      resize: function(){}, on: function(ev, fn){ h[ev]=fn; window.__handlers[el.id]=h; }, off: function(){},
-      dispose: function(){}
-    };
+OVERLAP_JS = r"""
+() => {
+  // 找出可見的文字葉節點，兩兩比對外框；忽略祖先/後代與 canvas
+  const els = Array.from(document.querySelectorAll('main *')).filter(e => {
+    if (!(e instanceof HTMLElement)) return false;
+    if (['SCRIPT','STYLE','CANVAS','SVG','INPUT','BUTTON'].includes(e.tagName)) return false;
+    const hasText = Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
+    if (!hasText) return false;
+    const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
+    return r.width > 6 && r.height > 6 && cs.visibility !== 'hidden' && cs.display !== 'none' && r.bottom > 0 && r.top < document.documentElement.scrollHeight;
+  });
+  const rects = els.map(e => ({ e, r: e.getBoundingClientRect() }));
+  const bad = [];
+  for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
+    const a = rects[i], b = rects[j];
+    if (a.e.contains(b.e) || b.e.contains(a.e)) continue;
+    const x = Math.max(0, Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left));
+    const y = Math.max(0, Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top));
+    const inter = x * y; const small = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
+    if (inter > 0.3 * small && inter > 40) bad.push([a.e.textContent.trim().slice(0, 30), b.e.textContent.trim().slice(0, 30)]);
   }
-};
+  return bad.slice(0, 12);
+}
 """
 
 
 def serve():
     handler = partial(SimpleHTTPRequestHandler, directory=str(SITE))
     handler.log_message = lambda *a, **k: None
+    SimpleHTTPRequestHandler.log_message = lambda *a, **k: None
     srv = ThreadingHTTPServer(("127.0.0.1", PORT), handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(); ap.add_argument("--code", default=None); args = ap.parse_args()
     from playwright.sync_api import sync_playwright
     srv = serve(); time.sleep(0.4)
     out = ROOT / "docs"; out.mkdir(exist_ok=True)
-    problems: list[str] = []
+    problems: list[str] = []; state = {}
 
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
-        pg = b.new_page(viewport={"width": 1440, "height": 1000})
+        pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: problems.append(f"pageerror: {e}"))
-        pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text else None)
+        pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        base = f"http://127.0.0.1:{PORT}/index.html"
 
-        pg.goto(f"http://127.0.0.1:{PORT}/index.html#overview", wait_until="networkidle")
-        pg.wait_for_timeout(900)
-        state = {}
-        state["overview"] = pg.evaluate("""() => ({
-          heat: document.querySelectorAll('#heat > div').length,
-          charted: document.querySelectorAll('canvas').length,
-          cands: document.querySelectorAll('#candBody tr').length,
-          firstRow: Array.from(document.querySelectorAll('#candBody tr:first-child td')).map(t => t.textContent.trim()).slice(0,5),
-          evCount: document.getElementById('evCount').textContent,
-          evItems: document.querySelectorAll('.ev').length,
-          banner: document.getElementById('banner').textContent.slice(0,60),
-        })""")
-        pg.screenshot(path=str(out / "v2_overview.png"), full_page=True)
+        def visit(hash_, name, wait=1500):
+            pg.goto(f"{base}#{hash_}", wait_until="networkidle"); pg.wait_for_timeout(wait)
+            info = pg.evaluate("""() => ({ canvases: document.querySelectorAll('main canvas').length, empties: Array.from(document.querySelectorAll('main .view.on .empty')).map(e => e.textContent.trim().slice(0, 40)), text: document.querySelector('main .view.on').innerText.length })""")
+            info["overlaps"] = pg.evaluate(OVERLAP_JS)
+            state[name] = info
+            pg.screenshot(path=str(out / f"v3_{name}.png"), full_page=True)
+            return info
 
-        # 熱力圖點擊 → 下鑽（直接呼叫 handler）
-        pg.evaluate("""() => openDrill('foundry', '晶圓代工', 'drill')""")
-        pg.wait_for_timeout(300)
-        state["drill"] = pg.evaluate("""() => ({on: document.getElementById('drill').classList.contains('on'), rows: document.querySelectorAll('#drill tbody tr').length,
-          title: (document.querySelector('#drill h3')||{}).textContent})""")
-        # 切上櫃篩選
-        pg.evaluate("""() => { const b = document.querySelector('#drill .seg[data-f=market] button[data-v=TPEX]'); if (b) b.click(); }""")
-        pg.wait_for_timeout(200)
-        state["drill_tpex_rows"] = pg.evaluate("document.querySelectorAll('#drill tbody tr').length")
-        pg.screenshot(path=str(out / "v2_drill.png"), full_page=False)
+        visit("overview", "overview")
+        state["overview"]["cands"] = pg.evaluate("document.querySelectorAll('#candBody tr').length")
+        state["overview"]["hero"] = pg.evaluate("document.getElementById('hero').innerText.slice(0,80)")
+        visit("flow", "flow")
+        visit("industry", "industry_map")
+        visit("industry/ai_server", "industry_chain")
+        state["industry_chain"]["members"] = pg.evaluate("document.querySelectorAll('#memberTable tbody tr').length")
+        state["industry_chain"]["diagram"] = pg.evaluate("!!document.querySelector('#prodDiagram svg') && document.querySelectorAll('#chainMap .co').length")
+        visit("industry/group/ind_ETF", "industry_etf")
+        state["industry_etf"]["members"] = pg.evaluate("document.querySelectorAll('#memberTable tbody tr').length")
+        visit("themes", "themes")
+        visit("season", "season")
 
-        for view in ("flow", "chain", "season"):
-            pg.goto(f"http://127.0.0.1:{PORT}/index.html#{view}", wait_until="networkidle"); pg.wait_for_timeout(700)
-            state[view] = pg.evaluate("""(v) => ({
-              visible: document.getElementById('v-'+v).classList.contains('on'),
-              charted: document.querySelectorAll('#v-'+v+' canvas').length,
-              text: document.getElementById('v-'+v).innerText.length })""", view)
-            pg.screenshot(path=str(out / f"v2_{view}.png"), full_page=True)
-
-        # 個股頁
-        code = pg.evaluate("(document.querySelector('#candBody tr')||{}).dataset ? document.querySelector('#candBody tr').dataset.code : null") or "2330"
-        pg.goto(f"http://127.0.0.1:{PORT}/index.html#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(900)
-        state["stock"] = pg.evaluate("""() => ({
-          title: (document.querySelector('#stockPage h2')||{}).textContent,
-          verdict: (document.querySelector('#stockPage .verdict h3')||{}).textContent,
-          reasons: document.querySelectorAll('#stockPage .verdict li').length,
-          kline: !!document.querySelector('#kline canvas'),
-          inst: !!document.querySelector('#instChart canvas') || document.querySelector('#instChart .empty') !== null,
-          kv: document.querySelectorAll('#stockPage .kv dt').length,
-          lights: document.querySelectorAll('#stockPage .light').length })""")
-        pg.screenshot(path=str(out / "v2_stock.png"), full_page=True)
+        code = args.code or pg.evaluate("(document.querySelector('#candBody tr')||{}).dataset ? document.querySelector('#candBody tr').dataset.code : '2330'") or "2330"
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        st = pg.evaluate("""() => ({ title: (document.querySelector('#stockPage h2')||{}).innerText, lwc: !!document.querySelector('#lwc canvas'), lwcCanvases: document.querySelectorAll('#lwc canvas').length,
+            chips: document.querySelectorAll('#indChips .chip').length, legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('mtfCard')||{}).innerText.slice(0,120), chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
+        st["overlaps"] = pg.evaluate(OVERLAP_JS); state["stock"] = st
+        pg.screenshot(path=str(out / "v3_stock.png"), full_page=True)
+        # 切分頁與週期
+        for tab in ("revenue", "profit", "dividend", "chips", "basics", "news"):
+            pg.evaluate(f"document.querySelector('#stockTabs button[data-t=\"{tab}\"]').click()"); pg.wait_for_timeout(500)
+            state["tab_" + tab] = pg.evaluate("({ canvases: document.querySelectorAll('#stockTab canvas').length, text: document.getElementById('stockTab').innerText.length, empties: Array.from(document.querySelectorAll('#stockTab .empty')).map(e => e.textContent.trim().slice(0,30)) })")
+            pg.screenshot(path=str(out / f"v3_tab_{tab}.png"), full_page=False)
+        for tf in ("1w", "1M", "60m"):
+            pg.evaluate(f"document.querySelector('#tfSeg button[data-tf=\"{tf}\"]').click()"); pg.wait_for_timeout(500)
+            state["tf_" + tf] = pg.evaluate("({ canvases: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#chartHost .empty'), legend: (document.getElementById('legendOv')||{}).innerText })")
+        pg.evaluate("document.querySelector('#tfSeg button[data-tf=\"1d\"]').click()"); pg.wait_for_timeout(300)
+        pg.evaluate("document.getElementById('mtfBtn').click()"); pg.wait_for_timeout(1200)
+        state["mtf_grid"] = pg.evaluate("({ cells: document.querySelectorAll('.mtf-cell').length, canvases: document.querySelectorAll('#mtfGrid canvas').length })")
+        pg.screenshot(path=str(out / "v3_mtf.png"), full_page=False)
+        # 指標參數
+        pg.evaluate("document.getElementById('mtfBtn').click()"); pg.wait_for_timeout(600)
+        pg.evaluate("document.querySelector('#indChips .chip[data-k=rsi]').click()"); pg.wait_for_timeout(400)
+        state["rsi_on"] = pg.evaluate("({ chipOn: document.querySelector('#indChips .chip[data-k=rsi]').classList.contains('on'), legend: (document.getElementById('legendOv')||{}).innerText.includes('RSI') })")
 
         # 手機
         m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
         m.on("pageerror", lambda e: problems.append(f"mobile pageerror: {e}"))
         m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-        m.goto(f"http://127.0.0.1:{PORT}/index.html#overview", wait_until="networkidle"); m.wait_for_timeout(800)
-        state["mobile"] = m.evaluate("""() => ({
-          sideways: document.documentElement.scrollWidth > 391,
-          cards: document.querySelectorAll('#candCards .card').length,
-          tableHidden: getComputedStyle(document.querySelector('#v-overview .tw')).display === 'none',
-          asideOff: getComputedStyle(document.getElementById('side')).transform !== 'none' })""")
-        m.screenshot(path=str(out / "v2_mobile.png"), full_page=False)
-        m.evaluate("document.getElementById('evToggle').click()"); m.wait_for_timeout(300)
-        m.screenshot(path=str(out / "v2_mobile_events.png"), full_page=False)
-        m.goto(f"http://127.0.0.1:{PORT}/index.html#chain", wait_until="networkidle"); m.wait_for_timeout(500)
-        state["mobile_chain"] = m.evaluate("""() => ({listShown: getComputedStyle(document.getElementById('chainList')).display !== 'none', segs: document.querySelectorAll('#chainList details').length})""")
-        state["js_errs"] = []
+        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1200)
+        state["mobile"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, cards: document.querySelectorAll('#candCards .scard').length })")
+        m.screenshot(path=str(out / "v3_mobile.png"), full_page=False)
+        m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(1800)
+        state["mobile_stock"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, lwc: !!document.querySelector('#lwc canvas') })")
+        m.screenshot(path=str(out / "v3_mobile_stock.png"), full_page=False)
         b.close()
     srv.shutdown()
 
     print(json.dumps(state, ensure_ascii=False, indent=1))
-    problems += state.get("js_errs", [])
+    ov = {k: v["overlaps"] for k, v in state.items() if isinstance(v, dict) and v.get("overlaps")}
+    if ov:
+        print("\n=== 文字重疊 ===")
+        for k, v in ov.items():
+            print(" ", k, v)
     if problems:
         print("\n=== 問題 ===")
         for x in problems:

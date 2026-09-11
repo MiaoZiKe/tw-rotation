@@ -4,341 +4,333 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>台股資金輪動儀表板</title>
-<meta name="theme-color" content="#f1f2f5" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0e1014" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#070b16">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="台股輪動">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
-<!-- ECharts 直接放在 repo 裡：公司網路常擋 CDN，圖表會整片空白 -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<!-- 圖表函式庫直接放在 repo 裡：公司網路常擋 CDN，圖表會整片空白 -->
 <script src="vendor/echarts.min.js"></script>
+<script src="vendor/lightweight-charts.js"></script>
 <style>
 :root{
-  --ground:#f1f2f5; --surface:#fff; --surface-2:#e9ebef; --surface-3:#dfe2e8;
-  --ink:#15171d; --ink-2:#5c6371; --ink-3:#878e9c;
-  --line:#dcdfe5; --line-2:#c9cdd5; --accent:#8a5a11; --accent-soft:#f0e4cc;
-  --rise:#c4353c; --fall:#0e8f5b; --warn:#a86a00; --info:#2f5f9e;
-  --shadow:0 1px 2px rgba(20,24,34,.06),0 8px 24px -16px rgba(20,24,34,.3);
-  --side-w:340px;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --ground:#0e1014; --surface:#171a20; --surface-2:#1e222a; --surface-3:#262b34;
-    --ink:#e7e9ed; --ink-2:#9aa2b0; --ink-3:#727a88;
-    --line:#272c36; --line-2:#353b47; --accent:#d9a441; --accent-soft:#2b2415;
-    --rise:#e2585e; --fall:#2eb37c; --warn:#d09a2e; --info:#6f9be0;
-    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px -16px rgba(0,0,0,.8);
-  }
+  --bg:#070b16; --bg-2:#0b1224; --panel:#0f172b; --panel-2:#141e36; --panel-3:#1a2542;
+  --line:#1e2a48; --line-2:#2a3860;
+  --ink:#e8eeff; --ink-2:#a9b6d6; --ink-3:#6f7ea3;
+  --cyan:#3ee0ff; --violet:#8b7bff; --amber:#ffb454; --lime:#c3ff5b;
+  --rise:#ff4d6d; --fall:#2ee59d; --flat:#8ea0c4;
+  --glow:0 0 0 1px rgba(62,224,255,.25), 0 0 24px -6px rgba(62,224,255,.45);
+  --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(0,0,0,.9);
+  --r:12px; --side-w:360px;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
 }
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{margin:0;background:var(--ground);color:var(--ink);
-  font-family:"Noto Sans TC","Helvetica Neue",Arial,sans-serif;font-size:14.5px;line-height:1.6}
-a{color:var(--accent)}
-button{font-family:inherit}
-.mono{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums}
-.up{color:var(--rise)} .down{color:var(--fall)} .muted{color:var(--ink-3)}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:
+  radial-gradient(1200px 600px at 10% -10%, rgba(139,123,255,.16), transparent 60%),
+  radial-gradient(900px 500px at 100% 0%, rgba(62,224,255,.12), transparent 55%),
+  var(--bg);
+  color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  font-size:15.5px;line-height:1.6;min-height:100vh}
+a{color:var(--cyan);text-decoration:none}
+button{font-family:inherit;color:inherit}
+input,select{font-family:inherit}
+.mono,.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.up{color:var(--rise)} .down{color:var(--fall)} .flat{color:var(--flat)} .muted{color:var(--ink-3)}
+.cyan{color:var(--cyan)} .violet{color:var(--violet)} .amber{color:var(--amber)}
+h1,h2,h3,h4{margin:0;font-weight:700;letter-spacing:.01em}
+h2{font-size:20px} h3{font-size:16.5px} h4{font-size:14.5px;color:var(--ink-2)}
+small{font-size:12.5px}
+::-webkit-scrollbar{width:10px;height:10px} ::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px}
+::-webkit-scrollbar-track{background:transparent}
 
 /* ---------------- 頂部列 ---------------- */
-.topbar{position:sticky;top:0;z-index:30;background:var(--surface);border-bottom:1px solid var(--line);
-  display:flex;align-items:center;gap:14px;padding:0 16px;height:52px}
-.brand{font-weight:700;font-size:15px;white-space:nowrap;cursor:pointer}
-.brand small{display:block;font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.1em;
-  color:var(--ink-3);line-height:1;margin-top:2px;font-weight:400}
-.tabs{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none}
+.topbar{position:sticky;top:0;z-index:40;backdrop-filter:blur(14px);background:rgba(7,11,22,.78);
+  border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 18px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;cursor:pointer;white-space:nowrap}
+.brand .logo{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--cyan),var(--violet));
+  box-shadow:var(--glow);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:#061018;font-size:13px}
+.brand b{font-size:16px;letter-spacing:.02em}
+.brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
+.tabs{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:0 4px}
 .tabs::-webkit-scrollbar{display:none}
-.tab{padding:8px 14px;border:0;background:transparent;color:var(--ink-2);font-size:14px;
-  border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;border-radius:0}
-.tab:hover{color:var(--ink)}
-.tab.on{color:var(--ink);border-bottom-color:var(--accent);font-weight:600}
-.topbar .search{position:relative}
-.topbar input{width:190px;padding:7px 10px;border:1px solid var(--line);background:var(--ground);
-  color:var(--ink);border-radius:3px;font-size:13.5px;font-family:inherit}
-.topbar input:focus{outline:2px solid var(--accent);outline-offset:1px}
-.sugg{position:absolute;top:36px;left:0;right:0;background:var(--surface);border:1px solid var(--line);
-  box-shadow:var(--shadow);z-index:40;max-height:300px;overflow:auto;display:none}
-.sugg div{padding:8px 10px;cursor:pointer;font-size:13.5px;display:flex;gap:8px}
-.sugg div:hover{background:var(--surface-2)}
-.sugg .code{font-family:"IBM Plex Mono",monospace;font-weight:600}
-.evbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);padding:6px 10px;
-  border-radius:3px;cursor:pointer;font-size:13px;white-space:nowrap;position:relative}
-.evbtn .n{background:var(--accent);color:#fff;font-size:10px;padding:0 5px;border-radius:8px;margin-left:5px;
-  font-family:"IBM Plex Mono",monospace}
+.tab{padding:8px 14px;border:0;background:transparent;color:var(--ink-2);font-size:15px;border-radius:9px;
+  cursor:pointer;white-space:nowrap;transition:.15s}
+.tab:hover{color:var(--ink);background:var(--panel-2)}
+.tab.on{color:#061018;background:var(--cyan);font-weight:700;box-shadow:var(--glow)}
+.search{position:relative}
+.search input{width:220px;padding:8px 12px 8px 34px;border:1px solid var(--line-2);background:var(--panel);
+  color:var(--ink);border-radius:9px;font-size:14px}
+.search input:focus{outline:0;border-color:var(--cyan);box-shadow:var(--glow)}
+.search::before{content:"⌕";position:absolute;left:12px;top:6px;color:var(--ink-3);font-size:16px}
+.sugg{position:absolute;top:42px;left:0;right:0;background:var(--panel);border:1px solid var(--line-2);
+  box-shadow:var(--shadow);z-index:50;max-height:320px;overflow:auto;display:none;border-radius:9px}
+.sugg div{padding:9px 12px;cursor:pointer;font-size:14px;display:flex;gap:10px}
+.sugg div:hover{background:var(--panel-2)}
+.sugg .code{font-family:var(--mono);font-weight:600;color:var(--cyan)}
+.evbtn{border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);padding:7px 12px;
+  border-radius:9px;cursor:pointer;font-size:14px;white-space:nowrap}
+.evbtn .n{background:var(--violet);color:#fff;font-size:11px;padding:1px 7px;border-radius:9px;margin-left:6px;font-family:var(--mono)}
 
 /* ---------------- 版面 ---------------- */
-.layout{display:grid;grid-template-columns:1fr var(--side-w);min-height:calc(100vh - 52px)}
+.layout{display:grid;grid-template-columns:1fr var(--side-w);min-height:calc(100vh - 58px)}
 .layout.noside{grid-template-columns:1fr}
-main{padding:18px 20px 60px;min-width:0}
-aside{border-left:1px solid var(--line);background:var(--surface);min-width:0;
-  position:sticky;top:52px;height:calc(100vh - 52px);overflow:auto}
-.view{display:none} .view.on{display:block}
-
-.banner{padding:10px 14px;border-left:3px solid var(--warn);background:var(--surface-2);
-  font-size:13px;color:var(--ink-2);margin-bottom:14px;display:none}
+main{padding:20px 22px 80px;min-width:0}
+aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;position:sticky;top:58px;
+  height:calc(100vh - 58px);overflow:auto}
+.view{display:none} .view.on{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+.banner{padding:12px 16px;border-left:3px solid var(--amber);background:rgba(255,180,84,.08);font-size:14px;
+  color:var(--ink-2);margin-bottom:16px;display:none;border-radius:0 var(--r) var(--r) 0}
 .banner.on{display:block}
-.banner b{color:var(--ink)}
 
-.sec{display:flex;align-items:baseline;gap:12px;margin:22px 0 12px;flex-wrap:wrap}
-.sec:first-child{margin-top:0}
-.sec h2{margin:0;font-size:16px;font-weight:700}
-.sec .hint{font-size:12.5px;color:var(--ink-3)}
-.sec .spacer{flex:1}
-.grid{display:grid;gap:14px}
-.g-2-1{grid-template-columns:2fr 1fr} .g-1-1{grid-template-columns:1fr 1fr} .g-3-2{grid-template-columns:3fr 2fr}
-.panel{background:var(--surface);border:1px solid var(--line);padding:12px 14px 8px;min-width:0}
-.panel h3{margin:0 0 2px;font-size:13.5px;font-weight:700}
-.panel .note{margin:0 0 6px;font-size:12px;color:var(--ink-3)}
-.chart{width:100%;height:340px}
-.chart.tall{height:460px} .chart.short{height:200px} .chart.xs{height:120px}
-
-/* ---------------- 市場體溫 ---------------- */
-.heat{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:14px}
-.heat>div{background:var(--surface);padding:11px 13px;cursor:default}
-.heat>div.link{cursor:pointer}
-.heat>div.link:hover{background:var(--surface-2)}
-.heat dt{font-family:"IBM Plex Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:4px}
-.heat dd{margin:0;font-size:19px;font-weight:700;font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;line-height:1.2}
-.heat .sub{font-size:11.5px;color:var(--ink-3);margin-top:3px}
-.gauge{height:6px;background:var(--surface-3);border-radius:3px;margin-top:6px;overflow:hidden}
-.gauge i{display:block;height:100%;background:var(--rise)}
-.stamp{font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--ink-3);letter-spacing:.06em}
-
-/* ---------------- 下鑽面板 ---------------- */
-.drill{background:var(--surface);border:1px solid var(--accent);padding:12px 14px;margin-top:12px;display:none}
-.drill.on{display:block}
-.drill-h{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px}
-.drill-h h3{margin:0;font-size:15px}
-.seg{display:inline-flex;border:1px solid var(--line);border-radius:3px;overflow:hidden}
-.seg button{border:0;background:transparent;color:var(--ink-2);padding:4px 10px;font-size:12.5px;cursor:pointer}
-.seg button.on{background:var(--accent);color:#fff}
-.x{margin-left:auto;border:0;background:transparent;color:var(--ink-3);font-size:18px;cursor:pointer;line-height:1}
+/* ---------------- 卡片 / 格線 ---------------- */
+.card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);
+  padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+.card.tight{padding:12px 14px}
+.card h3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.card h3 small{color:var(--ink-3);font-weight:400}
+.card .sub{color:var(--ink-3);font-size:13px;margin:2px 0 10px}
+.grid{display:grid;gap:16px} .grid>*{min-width:0}
+.g2{grid-template-columns:1fr 1fr} .g3{grid-template-columns:repeat(3,1fr)} .g4{grid-template-columns:repeat(4,1fr)}
+.g21{grid-template-columns:2fr 1fr} .g12{grid-template-columns:1fr 2fr}
+.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.spread{justify-content:space-between}
+.chart{width:100%;min-height:260px}
+.chart.tall{min-height:420px} .chart.short{min-height:200px}
+.empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;
+  background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
+.pill.cyan{background:rgba(62,224,255,.12);border-color:rgba(62,224,255,.4);color:var(--cyan)}
+.pill.violet{background:rgba(139,123,255,.14);border-color:rgba(139,123,255,.45);color:#c3baff}
+.pill.up{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.4);color:var(--rise)}
+.pill.down{background:rgba(46,229,157,.12);border-color:rgba(46,229,157,.4);color:var(--fall)}
+.pill.amber{background:rgba(255,180,84,.12);border-color:rgba(255,180,84,.45);color:var(--amber)}
+.seg{display:inline-flex;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;padding:3px;gap:2px}
+.seg button{border:0;background:transparent;color:var(--ink-2);padding:5px 11px;border-radius:7px;cursor:pointer;font-size:13.5px}
+.seg button.on{background:var(--cyan);color:#061018;font-weight:700}
+.seg button:hover:not(.on){background:var(--panel-2);color:var(--ink)}
+.btn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:7px 13px;border-radius:9px;
+  cursor:pointer;font-size:14px}
+.btn:hover{border-color:var(--cyan)}
+.btn.primary{background:var(--cyan);color:#061018;border-color:transparent;font-weight:700}
+.btn.small{padding:4px 9px;font-size:12.5px}
+.kpi{display:flex;flex-direction:column;gap:2px}
+.kpi .l{font-size:12.5px;color:var(--ink-3);letter-spacing:.06em}
+.kpi .v{font-family:var(--mono);font-size:26px;font-weight:700;line-height:1.1}
+.kpi .d{font-size:13px;color:var(--ink-2)}
+.hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-3)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.crumbs{display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink-3);margin-bottom:12px;flex-wrap:wrap}
+.crumbs a{cursor:pointer;color:var(--ink-2)} .crumbs a:hover{color:var(--cyan)}
+.crumbs .cur{color:var(--ink);font-weight:700}
+.note{font-size:12.5px;color:var(--ink-3);line-height:1.5}
 
 /* ---------------- 表格 ---------------- */
-.tw{overflow:auto;max-height:560px;border:1px solid var(--line);background:var(--surface)}
-table{border-collapse:collapse;width:100%;font-size:13px}
-th{position:sticky;top:0;background:var(--surface);text-align:left;padding:8px 10px;font-family:"IBM Plex Mono",monospace;
-  font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line-2);white-space:nowrap;cursor:pointer;user-select:none;z-index:1}
-th:hover{color:var(--accent)} th.num,td.num{text-align:right}
-td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
-tbody tr{cursor:pointer} tbody tr:hover{background:var(--surface-2)}
-.code{font-family:"IBM Plex Mono",monospace;font-weight:600}
-.pill{display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:2px;font-family:"IBM Plex Mono",monospace;white-space:nowrap}
-.pill.bull{background:var(--rise);color:#fff} .pill.bear{background:var(--fall);color:#fff}
-.pill.flat{background:var(--surface-2);color:var(--ink-3)} .pill.a{background:var(--accent);color:#fff}
-.pill.b{background:var(--info);color:#fff} .pill.w{background:var(--surface-2);color:var(--ink-2)} .pill.no{background:var(--surface-3);color:var(--ink-3)}
-.bar{display:inline-block;height:5px;background:var(--accent);vertical-align:middle;margin-right:5px;border-radius:1px}
-.mkt{font-size:10px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;margin-left:4px}
+.tw{overflow:auto;border-radius:10px;border:1px solid var(--line)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);font-weight:600;font-size:12.5px;letter-spacing:.04em;z-index:1;cursor:pointer}
+th.l,td.l{text-align:left} td.num{font-family:var(--mono)}
+tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,255,.06)}
+.grade{display:inline-block;padding:2px 9px;border-radius:6px;font-weight:700;font-size:12.5px;font-family:var(--mono)}
+.grade.A{background:rgba(255,77,109,.18);color:var(--rise)} .grade.B{background:rgba(255,180,84,.16);color:var(--amber)}
+.grade.W{background:var(--panel-3);color:var(--ink-3)}
 
-/* ---------------- 側欄事件 ---------------- */
-.side-h{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:2}
-.side-h h3{margin:0;font-size:13.5px;flex:1}
-.cats{display:flex;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-.cats button{border:1px solid var(--line);background:transparent;color:var(--ink-2);padding:3px 9px;border-radius:12px;font-size:12px;cursor:pointer}
-.cats button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
-.evlist{padding:4px 12px 20px}
-.ev{padding:9px 0;border-bottom:1px solid var(--line)}
-.ev a{color:var(--ink);text-decoration:none;font-size:13px;line-height:1.45;display:block}
-.ev a:hover{color:var(--accent)}
-.ev .m{font-size:10.5px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;margin-top:3px;display:flex;gap:6px;flex-wrap:wrap}
-.ev .c{color:var(--accent);cursor:pointer}
-.ev .tag{background:var(--surface-2);padding:0 5px;border-radius:2px}
-.ev.target{border-left:3px solid var(--accent);padding-left:8px}
-.ev .tp{font-family:"IBM Plex Mono",monospace;font-weight:600;color:var(--accent)}
+/* ---------------- 個股：圖表面板 ---------------- */
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.toolbar .sp{flex:1}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px;border:1px solid var(--line-2);
+  background:var(--panel-3);font-size:13px;cursor:pointer;color:var(--ink-2);user-select:none}
+.chip.on{border-color:var(--cyan);color:var(--ink);background:rgba(62,224,255,.1)}
+.chip input{width:44px;background:transparent;border:0;border-bottom:1px solid var(--line-2);color:var(--cyan);
+  font-family:var(--mono);font-size:12.5px;padding:0 2px;text-align:center}
+.chip input:focus{outline:0;border-color:var(--cyan)}
+.chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+#lwc{position:relative;height:640px;border-radius:10px;overflow:hidden;background:#0a1020;border:1px solid var(--line)}
+#lwc .legend-ov{position:absolute;left:12px;top:8px;z-index:5;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
+  pointer-events:none;line-height:1.5;text-shadow:0 1px 2px #000}
+#lwc .legend-ov b{color:var(--ink)}
+.mtf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mtf-cell{background:#0a1020;border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative}
+.mtf-cell .cap{position:absolute;left:10px;top:8px;z-index:5;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);text-shadow:0 1px 2px #000}
+.mtf-cell .cv{height:300px}
+.verdict{border-left:3px solid var(--cyan);padding:12px 16px;background:rgba(62,224,255,.05);border-radius:0 10px 10px 0}
+.verdict h3{margin-bottom:6px}
+.verdict ul{margin:6px 0 0;padding-left:18px;color:var(--ink-2)} .verdict li{margin:3px 0}
+.lights{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.light{padding:4px 10px;border-radius:7px;font-size:12.5px;background:var(--panel-3);color:var(--ink-2)}
+.light.pos{background:rgba(255,77,109,.16);color:var(--rise)} .light.neg{background:rgba(46,229,157,.16);color:var(--fall)}
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin:18px 0 14px;overflow-x:auto;scrollbar-width:none}
+.subtabs button{border:0;background:transparent;color:var(--ink-2);padding:9px 14px;font-size:14.5px;cursor:pointer;
+  border-bottom:2px solid transparent;white-space:nowrap}
+.subtabs button.on{color:var(--cyan);border-bottom-color:var(--cyan);font-weight:700}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;font-family:var(--mono)}
+.kvs{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kvs .k{background:var(--panel-3);border-radius:9px;padding:8px 11px}
+.kvs .k .l{font-size:12px;color:var(--ink-3)} .kvs .k .v{font-family:var(--mono);font-size:17px;font-weight:600}
 
-/* ---------------- 個股頁 ---------------- */
-.stock-h{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.stock-h h2{margin:0;font-size:22px}
-.stock-h .px{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:700}
-.stock-h .chips{display:flex;gap:6px;flex-wrap:wrap}
-.chip{font-family:"IBM Plex Mono",monospace;font-size:11px;padding:2px 7px;background:var(--surface-2);color:var(--ink-2);border-radius:2px;white-space:nowrap}
-.chip b{color:var(--ink)}
-.verdict{border-left:4px solid var(--accent);background:var(--surface);padding:12px 16px;margin-bottom:14px}
-.verdict.a{border-color:var(--rise)} .verdict.b{border-color:var(--info)} .verdict.no{border-color:var(--ink-3)}
-.verdict h3{margin:0 0 6px;font-size:17px}
-.verdict ol{margin:6px 0 8px 18px;padding:0;color:var(--ink-2);font-size:13.5px}
-.verdict .risk{font-size:13px;color:var(--ink-2);border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
-.verdict .risk b{color:var(--ink)}
-.lights{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
-.light{font-size:11px;padding:2px 8px;border-radius:2px;font-family:"IBM Plex Mono",monospace}
-.light.g{background:var(--rise);color:#fff} .light.r{background:var(--fall);color:#fff} .light.n{background:var(--surface-2);color:var(--ink-3)}
-.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 14px;font-size:13px}
-.kv dt{color:var(--ink-3)} .kv dd{margin:0;font-family:"IBM Plex Mono",monospace}
-.kv dd b{font-weight:600}
-.back{border:1px solid var(--line);background:var(--surface);color:var(--ink-2);padding:5px 10px;border-radius:3px;cursor:pointer;font-size:12.5px}
-.ftag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:2px;background:var(--accent-soft);color:var(--accent);font-family:"IBM Plex Mono",monospace}
-.disclaimer{font-size:11.5px;color:var(--ink-3);margin-top:10px;padding-top:8px;border-top:1px solid var(--line)}
+/* ---------------- 產業鏈圖 ---------------- */
+.chainmap{position:relative;overflow:auto;min-width:0;border-radius:10px;background:#0a1020;border:1px solid var(--line)}
+.chainmap svg{display:block}
+.chainmap .seg-title{fill:var(--ink-3);font-size:12px;letter-spacing:.06em}
+.chainmap .co rect{rx:8;fill:var(--panel-3);stroke:var(--line-2);cursor:pointer;transition:.15s}
+.chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--cyan);filter:drop-shadow(0 0 8px rgba(62,224,255,.6))}
+.chainmap .co text{font-size:12.5px;fill:var(--ink);pointer-events:none}
+.chainmap .co .sub{font-size:11px;fill:var(--ink-3);font-family:var(--mono)}
+.chainmap .co.foreign rect{fill:var(--panel);stroke-dasharray:3 3}
+.chainmap .edge{fill:none;stroke:var(--line-2);stroke-opacity:.35;stroke-width:1.2}
+.chainmap .edge.hi{stroke:var(--cyan);stroke-opacity:.9;stroke-width:2}
+.chainmap .edge.dim{stroke-opacity:.08}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
+.tile:hover{border-color:var(--cyan);transform:translateY(-1px)}
+.tile .t{font-weight:700;font-size:15px} .tile .m{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+.tile .v{font-family:var(--mono);font-size:20px;font-weight:700;margin-top:6px}
 
-/* ---------------- 產業鏈 ---------------- */
-.chain-list{display:none;flex-direction:column;gap:8px}
-.seg-card{background:var(--surface);border:1px solid var(--line)}
-.seg-card summary{padding:10px 14px;cursor:pointer;font-weight:600;font-size:14px;list-style:none;display:flex;gap:10px;align-items:center}
-.seg-card summary::before{content:"▸";color:var(--ink-3);font-size:12px}
-.seg-card[open] summary::before{content:"▾"}
-.seg-card .n{color:var(--ink-3);font-weight:400;font-size:12px;font-family:"IBM Plex Mono",monospace}
-.co{padding:8px 14px 8px 32px;border-top:1px solid var(--line);font-size:13px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
-.co .nm{font-weight:600;cursor:pointer;color:var(--ink)} .co .nm:hover{color:var(--accent)}
-.co .sh{font-family:"IBM Plex Mono",monospace;color:var(--accent)} .co .sh.stale{color:var(--ink-3);text-decoration:line-through}
-.co .tech{color:var(--ink-3);font-size:12px}
-.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--ink-3);font-family:"IBM Plex Mono",monospace;margin-top:6px}
-.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px;border-radius:2px}
-
-/* ---------------- 季節性 ---------------- */
-.month-cards{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:14px}
-.mc{background:var(--surface);border:1px solid var(--line);padding:10px 12px}
-.mc .rank{font-family:"IBM Plex Mono",monospace;font-size:10px;color:var(--ink-3);letter-spacing:.1em}
-.mc .g{font-weight:700;font-size:14px;margin:2px 0}
-.mc .v{font-family:"IBM Plex Mono",monospace;font-size:18px;font-weight:700}
-.mc .w{font-size:11.5px;color:var(--ink-3)}
-.mc .w b{color:var(--ink-2)}
+/* ---------------- 事件側欄 ---------------- */
+.side-h{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px}
+.side-h h3{font-size:15px}
+.side-filters{display:flex;gap:6px;padding:0 16px 10px;flex-wrap:wrap}
+.side-filters button{border:1px solid var(--line-2);background:transparent;color:var(--ink-2);padding:3px 10px;border-radius:999px;font-size:12.5px;cursor:pointer}
+.side-filters button.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.ev{padding:11px 16px;border-top:1px solid var(--line)}
+.ev a{color:var(--ink);font-size:14px;line-height:1.45;display:block}
+.ev a:hover{color:var(--cyan)}
+.ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;gap:8px;align-items:center}
+.ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:11px}
+.close{border:0;background:transparent;color:var(--ink-3);font-size:20px;cursor:pointer}
 
 /* ---------------- 手機 ---------------- */
-.cards{display:none;flex-direction:column;gap:8px}
-.card{background:var(--surface);border:1px solid var(--line);padding:10px 12px;cursor:pointer}
-.card-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-.card-id{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14.5px}
-.card-id small{font-family:"Noto Sans TC",sans-serif;font-weight:400;color:var(--ink-2);margin-left:6px;font-size:12.5px}
-.card-score{font-family:"IBM Plex Mono",monospace;font-weight:700;font-size:17px;color:var(--accent);white-space:nowrap}
-.card-score span{font-size:9.5px;color:var(--ink-3);font-weight:400;letter-spacing:.1em;display:block;text-align:right;line-height:1.2}
-.card-g{font-size:11.5px;color:var(--ink-3)}
-.card-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.more{margin-top:4px;padding:11px;width:100%;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--line);border-radius:2px;font-size:13px;cursor:pointer}
-.empty{padding:40px 16px;text-align:center;color:var(--ink-3);font-size:13.5px}
-.mobile-only{display:none}
-
-@media(max-width:1180px){:root{--side-w:300px}}
-@media(max-width:980px){
+.cards{display:none}
+@media (max-width:1100px){
+  .g3,.g4{grid-template-columns:1fr 1fr} .g21,.g12{grid-template-columns:1fr}
+}
+@media (max-width:820px){
+  body{font-size:15px}
   .layout{grid-template-columns:1fr}
-  aside{position:fixed;top:52px;right:0;bottom:0;width:min(88vw,360px);transform:translateX(100%);transition:transform .2s;z-index:35;box-shadow:var(--shadow)}
+  aside{position:fixed;right:0;top:58px;width:min(92vw,var(--side-w));transform:translateX(100%);transition:.25s;z-index:45;box-shadow:-20px 0 40px rgba(0,0,0,.6)}
   aside.open{transform:none}
-  .g-2-1,.g-1-1,.g-3-2{grid-template-columns:1fr}
-  .heat{grid-template-columns:repeat(3,1fr)}
-  .month-cards{grid-template-columns:repeat(2,1fr)}
-  .topbar input{width:130px}
+  main{padding:14px 14px 90px}
+  body{overflow-x:hidden}
+  .topbar{gap:8px;padding:0 10px;overflow:hidden}
+  .search input{width:104px;padding-left:28px}
+  .tab{padding:7px 10px;font-size:14px}
+  .evbtn{padding:6px 8px;font-size:13px}
+  .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
+  .search input{width:130px}
   .brand small{display:none}
+  #lwc{height:520px}
+  .tw.hide-m{display:none} .cards{display:grid;gap:10px}
+  .scard{background:var(--panel-3);border-radius:10px;padding:12px 14px;border:1px solid var(--line-2)}
+  .scard .h{display:flex;justify-content:space-between;align-items:baseline}
+  .scard .h b{font-size:16px} .scard .r{display:flex;gap:10px;font-size:13px;color:var(--ink-2);margin-top:6px;flex-wrap:wrap}
 }
-@media(max-width:700px){
-  main{padding:12px 12px 56px}
-  .heat{grid-template-columns:repeat(2,1fr)}
-  .heat dd{font-size:17px}
-  .chart{height:260px} .chart.tall{height:320px} .chart.short{height:180px}
-  .tw{display:none} .cards{display:flex} .mobile-only{display:flex}
-  .tab{padding:8px 10px;font-size:13px}
-  .topbar{gap:8px;padding:0 10px}
-  .topbar input{width:110px}
-  #chainGraph{display:none} .chain-list{display:flex}
-  .stock-h h2{font-size:18px} .stock-h .px{font-size:18px}
-}
+@media (max-width:480px){ .hero{grid-template-columns:1fr 1fr} .kpi .v{font-size:22px} }
 </style>
 </head>
 <body>
-
-<div class="topbar">
-  <div class="brand" onclick="go('overview')">台股資金輪動<small id="stampTop">載入中</small></div>
+<header class="topbar">
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof">—</small></div></div>
   <nav class="tabs" id="tabs">
-    <button class="tab on" data-v="overview">總覽</button>
-    <button class="tab" data-v="flow">資金流向</button>
-    <button class="tab" data-v="stock">個股</button>
-    <button class="tab" data-v="chain">產業鏈</button>
-    <button class="tab" data-v="season">季節性</button>
+    <button class="tab" data-view="overview">總覽</button>
+    <button class="tab" data-view="flow">資金流向</button>
+    <button class="tab" data-view="industry">產業與個股</button>
+    <button class="tab" data-view="themes">題材</button>
+    <button class="tab" data-view="season">季節性</button>
   </nav>
-  <div class="search">
-    <input id="q" placeholder="代號 / 簡稱" autocomplete="off" aria-label="搜尋個股">
-    <div class="sugg" id="sugg"></div>
-  </div>
+  <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
-</div>
+</header>
 
 <div class="layout" id="layout">
 <main>
   <div class="banner" id="banner"></div>
 
   <!-- ================= 總覽 ================= -->
-  <section class="view on" id="v-overview">
-    <dl class="heat" id="heat"></dl>
-    <div class="grid g-2-1">
-      <div class="panel">
-        <h3>族群資金熱力圖</h3>
-        <p class="note">面積＝成交值　顏色＝漲跌幅（紅漲綠跌）　點族群看成分股</p>
-        <div id="treemap" class="chart tall"></div>
-      </div>
-      <div class="panel">
-        <h3>輪動象限</h3>
-        <p class="note">橫軸＝資金流入（5 日 vs 20 日佔比差）　縱軸＝20 日相對大盤　右上＝錢在進、也在漲</p>
-        <div id="quadrant" class="chart tall"></div>
-      </div>
+  <section class="view" id="v-overview">
+    <div class="hero" id="hero"></div>
+    <div class="grid g21" style="margin-top:16px">
+      <div class="card"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）；點方塊看成分股</small></h3><div id="heat" class="chart tall"></div></div>
+      <div class="card"><h3>相對輪動 RRG <small>族群相對大盤的位置與方向</small></h3><div id="rrgMini" class="chart tall"></div></div>
     </div>
-    <div class="drill" id="drill"></div>
-    <div class="sec"><h2>今日候選</h2><span class="hint">先看等級，再看理由。點進去看 K 線與完整判斷</span><span class="spacer"></span>
-      <span class="mobile-only" style="gap:6px;align-items:center"><label class="muted" for="sortSel" style="font-size:12px">排序</label>
-      <select id="sortSel" style="padding:5px 8px;font-size:13px;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:2px">
-        <option value="grade">等級</option><option value="tech_score">技術分</option><option value="pe_percentile">同業分位（低到高）</option>
-        <option value="trust_net">投信</option><option value="momentum_score">營收動能</option><option value="turnover">成交值</option></select></span>
+    <div class="grid g12" style="margin-top:16px">
+      <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip"></div></div>
+      <div class="card"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
+        <div class="tw hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
+        <div class="cards" id="candCards"></div></div>
     </div>
-    <div class="tw"><table id="cand"><thead><tr>
-      <th data-k="grade">等級</th><th data-k="code">代號</th><th data-k="name">簡稱</th><th data-k="group">族群</th>
-      <th data-k="close" class="num">收盤</th><th data-k="chg_pct" class="num">漲跌</th><th data-k="tech_score" class="num">技術分</th>
-      <th data-k="verdict">判定</th><th data-k="pe_percentile" class="num">同業分位</th><th data-k="rev_yoy" class="num">營收YoY</th>
-      <th data-k="trust_net" class="num">投信</th><th data-k="rr" class="num">風報比</th></tr></thead><tbody id="candBody"></tbody></table></div>
-    <div class="cards" id="candCards"></div>
+    <div class="grid g3" style="margin-top:16px">
+      <div class="card"><h3>市場寬度</h3><div id="breadth" class="chart short"></div></div>
+      <div class="card"><h3>投信連續買超 <small>≥3 天</small></h3><div id="trust" class="chart short"></div></div>
+      <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3><div id="gval" class="chart short"></div></div>
+    </div>
   </section>
 
   <!-- ================= 資金流向 ================= -->
   <section class="view" id="v-flow">
-    <div class="grid g-1-1">
-      <div class="panel"><h3>三大法人族群買賣超</h3><p class="note">單位：張　點族群看裡面誰被買最多</p><div id="inst" class="chart"></div></div>
-      <div class="panel"><h3>族群相對強弱 RS</h3><p class="note">族群 20 日報酬 減 加權指數 20 日報酬</p><div id="rs" class="chart"></div></div>
+    <div class="card"><div class="row spread"><h3>相對輪動圖 RRG <small>x＝相對強度、y＝動能；尾巴＝近 10 日軌跡，族群通常順時針繞圈</small></h3>
+      <div class="seg" id="rrgTrail"><button data-v="5">5 日</button><button data-v="10" class="on">10 日</button><button data-v="20">20 日</button></div></div>
+      <div id="rrg" class="chart" style="min-height:560px"></div></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>資金去向 <small>今日成交值：大盤 → 產業鏈 → 族群 → 代表股</small></h3><div id="sankey" class="chart tall"></div></div>
+      <div class="card"><h3>族群佔比河流 <small>近 60 日成交值佔比</small></h3><div id="river" class="chart tall"></div></div>
     </div>
-    <div class="drill" id="drillInst"></div>
-    <div class="grid g-1-1" style="margin-top:14px">
-      <div class="panel"><h3>資金集中度</h3>
-        <p class="note" id="concNote">前 5 大族群吃掉的成交值佔比</p><div id="concentration" class="chart short"></div></div>
-      <div class="panel"><h3>投信連續買超</h3><p class="note">連買天數排行，點進去看 K 線</p><div id="trust" class="chart short"></div></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3>族群 × 法人 <small>今日三大法人淨買超（張）；點列看成分股</small></h3><div id="instGroups" class="chart tall"></div></div>
+      <div class="card"><h3>資金集中度 <small>前五大族群吃掉多少成交值：上升＝縮圈到主流、下降＝擴散輪動</small></h3><div id="conc" class="chart tall"></div></div>
     </div>
-    <div class="sec"><h2>族群估值一覽</h2><span class="hint">每個族群用自己的口徑：金融看 PB、生技看 PS、其餘看 PE。永遠顯示樣本數</span></div>
-    <div class="tw" style="max-height:380px"><table id="gval"><thead><tr><th>族群</th><th>口徑</th><th class="num">中位數</th><th class="num">樣本</th><th class="num">虧損比例</th></tr></thead><tbody id="gvalBody"></tbody></table></div>
   </section>
 
-  <!-- ================= 個股 ================= -->
-  <section class="view" id="v-stock">
-    <div id="stockList">
-      <div class="sec"><h2>個股</h2><span class="hint">從上方搜尋，或從清單點進去</span></div>
-      <div class="tw"><table id="stockTbl"><thead><tr><th>代號</th><th>簡稱</th><th>族群</th><th class="num">收盤</th><th class="num">漲跌</th><th>判定</th><th class="num">技術分</th><th class="num">營收動能</th></tr></thead><tbody id="stockBody"></tbody></table></div>
-      <div class="cards" id="stockCards"></div>
-    </div>
-    <div id="stockPage" style="display:none"></div>
+  <!-- ================= 產業與個股 ================= -->
+  <section class="view" id="v-industry">
+    <div class="crumbs" id="indCrumbs"></div>
+    <div id="indMap"></div>
+    <div id="indChain"></div>
+    <div id="stockPage"></div>
   </section>
 
-  <!-- ================= 產業鏈 ================= -->
-  <section class="view" id="v-chain">
-    <div class="sec"><h2>AI 伺服器 / 半導體供應鏈</h2><span class="hint">上游 → 下游　線越粗＝依存度越高　點公司看 K 線</span><span class="spacer"></span><span class="stamp" id="chainStamp"></span></div>
-    <div class="panel"><div id="chainGraph" class="chart" style="height:560px"></div>
-      <div class="legend" id="chainLegend"></div>
-      <div class="chain-list" id="chainList"></div>
-    </div>
-    <div class="drill" id="drillCo"></div>
-    <div class="sec"><h2>關鍵瓶頸與滲透率</h2><span class="hint">數字都帶來源與時點；超過半年沒更新會標灰</span></div>
-    <div class="grid g-1-1" id="chainProducts"></div>
-    <p class="disclaimer">本頁為產業結構資訊，市占與滲透率為公開資料整理（來源標示於各數字旁），非投資建議。</p>
+  <!-- ================= 題材 ================= -->
+  <section class="view" id="v-themes">
+    <div class="card"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3><span class="note" id="themeNote"></span></div>
+      <div id="themeMap" class="chart" style="min-height:460px"></div></div>
+    <div id="themeDetail" style="margin-top:16px"></div>
   </section>
 
   <!-- ================= 季節性 ================= -->
   <section class="view" id="v-season">
-    <div class="sec"><h2 id="seasonTitle">本月歷史上最強的族群</h2><span class="hint">十年只有 10 個樣本；勝率與樣本數比平均報酬更重要</span></div>
-    <div class="month-cards" id="monthCards"></div>
-    <div class="panel"><h3>族群 × 月份 排名點圖</h3><p class="note">每個月各族群依歷史平均報酬排名，點越大＝勝率越高。看一條線往上走＝這個族群進入旺季</p>
-      <div id="seasonDots" class="chart" style="height:520px"></div></div>
+    <div class="card">
+      <div class="row spread">
+        <h3>族群 × 月份 <small id="seasonRange"></small></h3>
+        <div class="row">
+          <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
+          <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
+        </div>
+      </div>
+      <div id="seasonHeat" class="chart" style="min-height:640px"></div>
+      <div class="note" id="seasonNote" style="margin-top:8px"></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
+      <div class="card"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
+    </div>
   </section>
 </main>
 
 <aside id="side">
-  <div class="side-h"><h3>今日事件</h3><span class="stamp" id="evStamp"></span><button class="x" id="evClose" aria-label="關閉">×</button></div>
-  <div class="cats" id="evCats"></div>
-  <div class="evlist" id="evList"></div>
+  <div class="side-h"><h3>今日事件</h3><div class="row"><span class="muted" id="evDate"></span><button class="close" id="evClose">×</button></div></div>
+  <div class="side-filters" id="evFilters"><button data-c="all" class="on">全部</button><button data-c="台股">台股</button><button data-c="科技">科技</button><button data-c="總經">總經</button><button data-c="券商">券商</button></div>
+  <div id="evList"></div>
 </aside>
 </div>
 
+<script src="chart.js"></script>
+<script src="diagrams.js"></script>
+<script src="industry.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

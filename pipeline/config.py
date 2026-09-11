@@ -35,6 +35,9 @@ TABLES: dict[str, list[str]] = {
     "broker_views":       ["news_id", "code"], # 新聞裡引述的券商目標價
     "intl_daily":         ["date", "symbol"], # 國際指數 / 匯率 / 債息
     "macro":              ["date", "series"], # FRED 總經
+    # v3：FinMind 股利公告（一期展開成 cash / stock 兩列）與除權息結果（參考價、當日開盤）
+    "dividend_events":    ["code", "period", "kind"],
+    "dividend_results":   ["code", "date"],
 }
 
 # ---------------------------------------------------------------- 端點

@@ -6,6 +6,10 @@ name: 歷史回補
 # - 每小時排程自動接續，直到 progress 檔標記 complete 為止（之後排程會直接跳過）
 # - 手動觸發永遠跑一輪（groups.yaml 新增成分股後按一次即可）
 #
+# 排程觸發跑的是 `--plan default`（run_backfill.PLAN_DEFAULT，依序多步驟：
+# 財報 → 股利 → 融資券/股權分散 → 族群成分股 2000 年起的價量 → 每月重抓成分股股利公告）。
+# 計畫的 done 旗標帶年月：跨月後月更新那一步的 tag 變了，排程會自動再跑一輪。
+#
 # 排程刻意避開 UTC 09:20 / 10:20：每日管線 10:30 也要用 FinMind 額度。
 
 on:
@@ -18,14 +22,14 @@ on:
         type: string
         default: "500"
       start_date:
-        description: "回補起始日"
+        description: "回補起始日（選 plan 時忽略，計畫各步驟自帶起始日）"
         type: string
         default: "2016-01-01"
       datasets:
-        description: "要補的資料集"
+        description: "要補的資料集（plan＝跑 default 計畫）"
         type: choice
-        options: [price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance]
-        default: revenue+financial+balance
+        options: [plan, price, price+inst, inst, per, revenue, financial+balance, revenue+financial+balance, dividend+divresult, margin+holding]
+        default: plan
 
 permissions:
   contents: write
@@ -36,7 +40,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  DATASETS: ${{ inputs.datasets || 'revenue+financial+balance' }}
+  DATASETS: ${{ inputs.datasets || 'plan' }}
   LIMIT: ${{ inputs.limit || '500' }}
   START_DATE: ${{ inputs.start_date || '2016-01-01' }}
 
@@ -57,12 +61,22 @@ jobs:
         run: |
           python3 - <<'PY' >> "$GITHUB_OUTPUT"
           import json, os, pathlib
-          key = "+".join(sorted(os.environ["DATASETS"].replace("+", ",").split(",")))
+          from datetime import datetime, timedelta, timezone
+          ds = os.environ["DATASETS"]
+          if ds == "plan":
+              key = "plan:default"
+          else:
+              key = "+".join(sorted(ds.replace("+", ",").split(",")))
           skip = False
           p = pathlib.Path("data/_state/backfill_progress.json")
           if os.environ.get("GITHUB_EVENT_NAME") == "schedule" and p.exists():
               flag = json.loads(p.read_text()).get("complete", {}).get(key, {})
-              skip = bool(flag.get("done")) if isinstance(flag, dict) else bool(flag)
+              done = bool(flag.get("done")) if isinstance(flag, dict) else bool(flag)
+              if key == "plan:default":
+                  # 計畫的 done 只在同一個月內有效（月更新步驟的 tag 每月不同）
+                  month = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m")
+                  done = done and isinstance(flag, dict) and flag.get("month") == month
+              skip = done
           print(f"skip={'true' if skip else 'false'}")
           print(f"key={key}")
           PY
@@ -83,16 +97,18 @@ jobs:
           FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
           BACKFILL_START: ${{ env.START_DATE }}
         run: |
-          python -m pipeline.run_backfill \
-            --limit "$LIMIT" \
-            --datasets "$DATASETS"
+          if [ "$DATASETS" = "plan" ]; then
+            python -m pipeline.run_backfill --limit "$LIMIT" --plan default
+          else
+            python -m pipeline.run_backfill --limit "$LIMIT" --datasets "$DATASETS"
+          fi
 
       - name: 回寫資料湖
         if: always() && steps.guard.outputs.skip != 'true'
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
-          git add data site/data
+          git add data
           if git diff --staged --quiet; then
             echo "沒有資料變動，跳過 commit"
             exit 0
@@ -109,11 +125,11 @@ jobs:
             fi
             echo "推送被拒（第 $i 次），重新對齊遠端後再試…"
             git fetch origin "${{ github.ref_name }}"
-            git checkout --ours -- data site/data 2>/dev/null || true
+            git checkout --ours -- data 2>/dev/null || true
             git rebase -X ours "origin/${{ github.ref_name }}" || {
               git rebase --abort || true
               git reset --soft "origin/${{ github.ref_name }}"
-              git add data site/data
+              git add data
               git commit -m "歷史回補 $DATASETS $(date -u '+%Y-%m-%d %H:%M') (合併重試)"
             }
             sleep $((i * 5))
@@ -134,7 +150,18 @@ jobs:
           p = json.loads(pathlib.Path("data/_state/backfill_progress.json").read_text())
           c = collections.Counter(k.split(":")[0] for k in p.get("done", {}))
           print("- 已完成檔數：" + "、".join(f"{k} {v}" for k, v in sorted(c.items())))
+          plan = p.get("complete", {}).get("plan:default")
+          if isinstance(plan, dict):
+              steps = plan.get("steps") or {}
+              print(f"- `plan:default`：{'補齊' if plan.get('done') else '未補齊'}"
+                    f"（月份 {plan.get('month', '—')}，停在 {plan.get('stopped_at') or '—'}）")
+              for k, v in steps.items():
+                  print(f"  - `{k}`：{'補齊' if v else '未補齊'}")
+          else:
+              print("- `plan:default`：尚未跑過")
           for k, v in p.get("complete", {}).items():
+              if k.startswith("plan:"):
+                  continue
               print(f"- `{k}`：{'補齊' if (v.get('done') if isinstance(v, dict) else v) else '未補齊'}")
           PY
             fi

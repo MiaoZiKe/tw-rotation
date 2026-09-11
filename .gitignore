@@ -7,8 +7,11 @@ venv/
 .idea/
 .vscode/
 
-# 執行狀態：額度計數與回補進度是本機的，不要進版控
+# 執行狀態：額度計數是本機的，不要進版控
 data/_state/finmind_quota.json
+
+# 前端 JSON 由工作流從資料湖產出（每天重寫幾十 MB，進版控會把 repo 撐爆）
+site/data/
 
 # 預覽截圖
 docs/preview.png

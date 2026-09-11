@@ -384,8 +384,11 @@ def liquidity_sweep(high: pd.Series, low: pd.Series, close: pd.Series,
 
 # --------------------------------------------------------------- 整合
 
-def compute_all(df: pd.DataFrame) -> pd.DataFrame:
-    """輸入含 open/high/low/close 的個股日 K（依日期排序），輸出全部指標。"""
+def compute_all(df: pd.DataFrame, structure_lookback: int = 2) -> pd.DataFrame:
+    """輸入含 open/high/low/close 的個股日 K（依日期排序），輸出全部指標。
+
+    structure_lookback：擺動點左右各看幾根；日線 2（5 根分形），週線/月線用 3 比較不會被單週雜訊翻來翻去，
+    與 technical.weekly_structure 的口徑一致。"""
     required = {"open", "high", "low", "close"}
     missing = required - set(df.columns)
     if missing:
@@ -407,7 +410,7 @@ def compute_all(df: pd.DataFrame) -> pd.DataFrame:
         moving_averages(c),
         macd(c),
         kd(h, l, c),
-        market_structure(h, l, c),
+        market_structure(h, l, c, lookback=structure_lookback),
         fair_value_gaps(h, l, min_gap_pct=gap_pct,
                         exclude=(lim["limit_up"] | lim["limit_down"])),
         order_blocks(o, h, l, c),

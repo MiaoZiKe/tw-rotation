@@ -35,6 +35,7 @@ def lake(tmp_path, monkeypatch):
     monkeypatch.setattr(config, "DATA", data)
     monkeypatch.setattr(config, "SITE_DATA", site)
     monkeypatch.setattr(config, "STATE", data / "_state")
+    monkeypatch.setenv("SKIP_INTRADAY", "1")     # 測試環境不打 Yahoo
 
     from pipeline.util import store
     importlib.reload(store)
@@ -288,6 +289,26 @@ def test_build_payload_end_to_end(populated):
     # 市場寬度
     b = heat["breadth"]
     assert b["n"] > 0 and 0 <= b["pct_above_ma20"] <= 100
+
+    # ---- v3 產物
+    for name in ("seasonality_v3", "flow_v3", "themes", "industry_map"):
+        assert (site / f"{name}.json").exists(), f"缺少 {name}.json"
+    s3 = json.loads((site / "seasonality_v3.json").read_text(encoding="utf-8"))
+    assert "all" in s3["periods"] and s3["periods"]["all"]["cells"]
+    cell = s3["periods"]["all"]["cells"][0]
+    assert {"group_id", "month", "samples", "avg_return", "win_rate", "avg_excess"} <= set(cell)
+    f3 = json.loads((site / "flow_v3.json").read_text(encoding="utf-8"))
+    assert f3["rrg"]["points"] and all(p["quadrant"] in ("leading", "weakening", "lagging", "improving")
+                                       for p in f3["rrg"]["points"])
+    assert f3["sankey"]["nodes"] and f3["sankey"]["links"]
+    assert f3["share"]["dates"] and f3["share"]["series"]
+    im = json.loads((site / "industry_map.json").read_text(encoding="utf-8"))
+    assert im["chains"] and any(g["members"] for c in im["chains"] for g in c["groups"])
+    pg = json.loads((stock_dir / f"{cands[0]['code']}.json").read_text(encoding="utf-8"))
+    assert pg["version"] == 3 and len(pg["daily"]) >= len(pg["ohlcv"])
+    assert "1d" in pg["mtf"]["tf"] and pg["mtf"]["summary"]["headline"]
+    for key in ("revenue", "profit", "dividends", "margin", "holders", "inst_v3", "basics", "pe_history", "intraday"):
+        assert key in pg, f"個股頁缺 {key}"
 
 
 def test_payload_has_no_nan_literals(populated):

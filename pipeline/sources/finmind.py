@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import logging
+import re
 
 import pandas as pd
 
@@ -292,3 +293,208 @@ def news(code: str | None = None, start: str | None = None,
         return df
     df["code"] = code
     return df
+
+
+# ------------------------------------------------------------------ v3：股利 / 融資券 / 股權分散歷史
+
+def _blank_to_none(value) -> str | None:
+    """FinMind 的日期欄位沒有值時是空字串，不是 null；統一轉成 None 才不會被當成日期。"""
+    if value is None:
+        return None
+    s = str(value).strip()
+    return s or None
+
+
+def _num(value) -> float:
+    """數值欄位轉 float，缺值或非數字一律當 0（股利金額相加時不能是 NaN）。"""
+    v = pd.to_numeric(value, errors="coerce")
+    return 0.0 if pd.isna(v) else float(v)
+
+
+def fiscal_year_of(period: str | None) -> int | None:
+    """從 FinMind 的 year 字串解析所屬年度：'115年第1季' / '114年' → 民國年 + 1911。
+
+    偶爾會直接給西元四位數（'2024'），也一併接受；其他格式回 None。
+    """
+    if period is None:
+        return None
+    s = str(period).strip()
+    m = re.match(r"^(\d{2,3})年", s)
+    if m:
+        return int(m.group(1)) + 1911
+    if re.fullmatch(r"\d{4}", s):
+        return int(s)
+    return None
+
+
+def dividend_events(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔股利公告（TaiwanStockDividend）。
+
+    一筆原始資料同時帶現金與股票股利，這裡展開成 kind = cash / stock 各一列，
+    金額為 0 的那一種不輸出，所以一筆最多展開成 2 列。單位：元/股。
+    """
+    data = http.finmind_get("TaiwanStockDividend", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+
+    rows = []
+    for r in data:
+        if not isinstance(r, dict):
+            continue
+        period = _blank_to_none(r.get("year"))
+        if period is None:
+            continue
+        common = {
+            "code": code,
+            "period": period,
+            "announce_date": _blank_to_none(r.get("AnnouncementDate")),
+            "fiscal_year": fiscal_year_of(period),
+        }
+        cash = _num(r.get("CashEarningsDistribution")) + _num(r.get("CashStatutorySurplus"))
+        if cash:
+            rows.append({
+                **common,
+                "kind": "cash",
+                "amount": cash,
+                "ex_date": _blank_to_none(r.get("CashExDividendTradingDate")),
+                "payment_date": _blank_to_none(r.get("CashDividendPaymentDate")),
+            })
+        stock = _num(r.get("StockEarningsDistribution")) + _num(r.get("StockStatutorySurplus"))
+        if stock:
+            rows.append({
+                **common,
+                "kind": "stock",
+                "amount": stock,
+                "ex_date": _blank_to_none(r.get("StockExDividendTradingDate")),
+                "payment_date": None,      # 股票股利沒有發放日，配發即入帳
+            })
+
+    if not rows:
+        return pd.DataFrame()
+    df = pd.DataFrame(rows)
+    df["fiscal_year"] = df["fiscal_year"].astype("Int64")
+    # 日期欄位保留 object dtype，讓「沒有日期」維持 None 而不是被字串型別轉成 NaN
+    for c in ("announce_date", "ex_date", "payment_date"):
+        df[c] = pd.Series([r[c] for r in rows], dtype=object)
+    return df[["code", "period", "kind", "amount", "announce_date",
+               "ex_date", "payment_date", "fiscal_year"]]
+
+
+def dividend_results(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔除權息結果（TaiwanStockDividendResult）：除權息日、參考價、當日開盤。
+
+    填息天數不在這裡算 —— build_payload 有整段行情，用行情算才不會漏掉尚未填息的。
+    """
+    data = http.finmind_get("TaiwanStockDividendResult", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or "date" not in df.columns:
+        return pd.DataFrame()
+    out = pd.DataFrame({
+        "date": df["date"].astype(str),
+        "code": code,
+        "kind": df.get("stock_or_cache_dividend", pd.Series([None] * len(df))).map(_blank_to_none),
+        "dividend": pd.to_numeric(df.get("stock_and_cache_dividend"), errors="coerce"),
+        "before_price": pd.to_numeric(df.get("before_price"), errors="coerce"),
+        "reference_price": pd.to_numeric(df.get("reference_price"), errors="coerce"),
+        "open_price": pd.to_numeric(df.get("open_price"), errors="coerce"),
+    })
+    return out[out["date"].str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)].reset_index(drop=True)
+
+
+def margin_history(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔融資融券歷史（TaiwanStockMarginPurchaseShortSale），單位張。
+
+    欄位對齊證交所 MI_MARGN 的轉換（twse.margin_daily），可直接 append 進 margin_daily。
+    """
+    data = http.finmind_get("TaiwanStockMarginPurchaseShortSale", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or "date" not in df.columns:
+        return pd.DataFrame()
+
+    def col(name: str) -> pd.Series:
+        return pd.to_numeric(df.get(name), errors="coerce")
+
+    m_today, m_yday = col("MarginPurchaseTodayBalance"), col("MarginPurchaseYesterdayBalance")
+    s_today, s_yday = col("ShortSaleTodayBalance"), col("ShortSaleYesterdayBalance")
+    out = pd.DataFrame({
+        "date": df["date"].astype(str),
+        "code": code,
+        "margin_balance": m_today,
+        "margin_change": m_today - m_yday,
+        "short_balance": s_today,
+        "short_change": s_today - s_yday,
+        "margin_buy": col("MarginPurchaseBuy"),
+        "margin_sell": col("MarginPurchaseSell"),
+        "short_sell": col("ShortSaleSell"),
+        "short_cover": col("ShortSaleBuy"),
+        "offset": col("OffsetLoanAndShort"),
+    })
+    return out.dropna(subset=["margin_balance"]).reset_index(drop=True)
+
+
+def _level_lookup() -> dict[str, int]:
+    """集保級距標籤（去空白、小寫）→ 級距代號。FinMind 的寫法與集保略有出入，
+    另外收幾個已知別名。"""
+    from .tdcc import LEVEL_LABELS
+    table = {label.replace(" ", "").lower(): lvl for lvl, label in LEVEL_LABELS.items()}
+    table.update({
+        "morethan1,000,001": 15,
+        "morethan1000001": 15,
+        "1,000,001以上": 15,
+        "1000001以上": 15,
+        "total": 17,
+        "合計": 17,
+        "差異數調整": 16,
+    })
+    return table
+
+
+def holding_level(label) -> int | None:
+    """寬鬆對照：去掉空白、不分大小寫，對不上回 None。"""
+    if label is None:
+        return None
+    key = re.sub(r"\s+", "", str(label)).lower()
+    if not key:
+        return None
+    return _level_lookup().get(key)
+
+
+def holding_history(code: str, start: str, *, wait: bool = True) -> pd.DataFrame:
+    """單檔集保股權分散歷史（TaiwanStockHoldingSharesPer），欄位對齊 tdcc。
+
+    免費層不一定開放這個資料集；非 200 由 http.finmind_get 回 None → 這裡回空。
+    """
+    data = http.finmind_get("TaiwanStockHoldingSharesPer", data_id=code,
+                            start_date=start, wait_when_exhausted=wait)
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or "date" not in df.columns or "HoldingSharesLevel" not in df.columns:
+        return pd.DataFrame()
+
+    from .tdcc import LEVEL_LABELS
+    level = df["HoldingSharesLevel"].map(holding_level)
+    unknown = sorted(set(df.loc[level.isna(), "HoldingSharesLevel"].astype(str)))
+    if unknown:
+        log.warning("%s 股權分散有對不上的級距，已略過：%s", code, unknown)
+    keep = level.notna()
+    if not keep.any():
+        return pd.DataFrame()
+    lvl = level[keep].astype(int)
+    out = pd.DataFrame({
+        "date": df.loc[keep, "date"].astype(str),
+        "code": code,
+        "level": lvl.values,
+        "level_label": [LEVEL_LABELS.get(v, str(v)) for v in lvl],
+        "holders": pd.to_numeric(df.loc[keep].get("people"), errors="coerce").astype("Int64"),
+        "shares": pd.to_numeric(df.loc[keep].get("unit"), errors="coerce"),
+        "pct": pd.to_numeric(df.loc[keep].get("percent"), errors="coerce"),
+    })
+    return out.reset_index(drop=True)
