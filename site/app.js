@@ -102,7 +102,7 @@
       box.appendChild(pane);
     }
     const inner = pane.firstElementChild; if (!inner) return null;
-    let k = 1, baseH = 0;
+    let k = 1, baseH = 0, calm = 0;
     box.classList.add('zwrap');
     const badge = document.createElement('div');
     badge.className = 'zbadge'; badge.textContent = '滾輪放大';
@@ -121,21 +121,57 @@
         inner.style.height = Math.round(baseH * k) + 'px';
         box.classList.add('zoomed');
       }
-      badge.textContent = k <= 1.001 ? '滾輪放大' : k.toFixed(1) + '×　雙擊還原';
+      badge.textContent = k <= 1.001 ? '滾輪放大　·　放大後可拖曳' : k.toFixed(1) + '×　拖曳移動　·　雙擊還原';
       if (o.onZoom) o.onZoom(k);
       return true;
     };
     pane.addEventListener('wheel', (e) => {
       const zin = e.deltaY < 0;
-      if (!zin && k <= 1.001) return;      // 已經原始大小，交還給頁面捲動
+      /* 已經是原始大小又繼續往下滾 → 交還給頁面捲動。
+         但「剛剛才還原成 1 倍」的那一瞬間不能馬上交還：使用者手還在滾，
+         一放手整頁就被帶著往下衝（Andy：「還原成正常大小 他會導致整體頁面往下」）。
+         所以還原後留 450ms 的緩衝，這段時間內的 wheel 一律吃掉，停手後才恢復正常捲動。 */
+      if (!zin && k <= 1.001) {
+        if (Date.now() < calm) { e.preventDefault(); e.stopPropagation(); calm = Date.now() + 450; }
+        return;
+      }
       e.preventDefault(); e.stopPropagation();
       const r = pane.getBoundingClientRect();
       const ox = e.clientX - r.left, oy = e.clientY - r.top;
       const px = (pane.scrollLeft + ox) / k, py = (pane.scrollTop + oy) / k;
       if (!setK(k * (zin ? 1.18 : 1 / 1.18))) return;
+      if (k <= 1.001) { calm = Date.now() + 450; pane.scrollTo({ left: 0, top: 0 }); return; }
       pane.scrollLeft = px * k - ox; pane.scrollTop = py * k - oy;
     }, { passive: false });
-    box.addEventListener('dblclick', () => { setK(1); pane.scrollTo({ left: 0, top: 0 }); });
+
+    /* 放大後用游標直接抓著圖移動（Andy：「需要新增游標抓取可以移動功能」）。
+       只在放大時生效，1 倍時不攔，才不會影響點方塊看成分股那些互動。 */
+    let drag = null;
+    pane.addEventListener('pointerdown', (e) => {
+      if (k <= 1.001 || e.button !== 0) return;
+      drag = { x: e.clientX, y: e.clientY, l: pane.scrollLeft, t: pane.scrollTop, moved: false, id: e.pointerId };
+      box.classList.add('grabbing');
+    });
+    pane.addEventListener('pointermove', (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+      if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;   // 小抖動還算點擊
+      if (!drag.moved) { drag.moved = true; try { pane.setPointerCapture(drag.id); } catch (err) { /* 忽略 */ } }
+      e.preventDefault();
+      pane.scrollLeft = drag.l - dx; pane.scrollTop = drag.t - dy;
+    });
+    const endDrag = (e) => {
+      if (!drag) return;
+      // 真的拖過就把接下來那一次 click 吃掉，不然放開手會順便點到圖上的方塊
+      if (drag.moved) { pane.addEventListener('click', (c) => { c.stopPropagation(); c.preventDefault(); }, { capture: true, once: true }); }
+      try { pane.releasePointerCapture(drag.id); } catch (err) { /* 忽略 */ }
+      drag = null; box.classList.remove('grabbing');
+    };
+    pane.addEventListener('pointerup', endDrag);
+    pane.addEventListener('pointercancel', endDrag);
+    pane.addEventListener('pointerleave', endDrag);
+
+    box.addEventListener('dblclick', () => { setK(1); pane.scrollTo({ left: 0, top: 0 }); calm = Date.now() + 450; });
     box._zoom = { reset: () => setK(1), get scale() { return k; } };
     return box._zoom;
   }

@@ -152,6 +152,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
 .zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
+.zwrap.zoomed.grabbing>.zpane{cursor:grabbing}
+/* 放大後靠拖曳移動，游標拖過去時不要選到圖上的文字 */
+.zwrap.zoomed>.zpane{user-select:none;-webkit-user-select:none;touch-action:none}
+/* 卡片被同一列的鄰居撐高時，讓圖自己長高把空間吃掉，不要留一塊空的（Andy：「不滿當前版面」）*/
+.card.fillchart{display:flex;flex-direction:column}
+.card.fillchart>.zwrap{flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+.card.fillchart>.zwrap>.zpane{flex:1 1 auto;min-height:0}
+.card.fillchart>.zwrap>.zpane>.chart,.card.fillchart>.zwrap>.chart{height:100%}
 .zwrap>.zbadge{position:absolute;right:8px;top:8px;z-index:5;pointer-events:none;
   background:rgba(10,16,32,.82);border:1px solid var(--line-2);color:var(--ink-3);
   font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;opacity:.65;transition:.15s}
@@ -514,7 +522,7 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
   <section class="view" id="v-overview">
     <div class="hero" id="hero"></div>
     <div class="grid g21" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
+      <div class="card fillchart"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
         <div class="row" style="gap:8px"><button class="btn small" id="heatZoom">放大 ⤢</button>
         <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-heat" hidden></div>

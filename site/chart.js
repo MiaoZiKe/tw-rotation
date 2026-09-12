@@ -406,6 +406,12 @@
     }
     onCrosshair(fn) { this.chart.subscribeCrosshairMove((p) => { if (!p.time) { fn(null); return; } const i = this.data.findIndex(d => String(d.time) === String(p.time)); fn(i >= 0 ? i : null); }); }
     fitLast(n) { this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - n), to: this.data.length + 3 }); }
+    // K 棒寬度（每根佔幾 px）。Andy 要能自己調，而且預設要寬一點
+    setBarSpacing(px) {
+      const v = Math.max(2, Math.min(40, +px || 11));
+      this.chart.timeScale().applyOptions({ barSpacing: v });
+      this._bar = v;
+    }
     // 重設整個介面：價格軸自動、時間軸回到最近 n 根（TradingView 右下角那顆的行為）
     resetView(n) { this.candle.priceScale().setAutoScale(true); this.chart.timeScale().resetTimeScale(); this.fitLast(n || 160); }
     enableDrawing(key) { if (this.draw) this.draw.destroy(); this.draw = new Drawings(this, key); return this.draw; }

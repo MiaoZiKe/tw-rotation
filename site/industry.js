@@ -137,7 +137,7 @@
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
-      A.wheelZoom($('#prodDiagram', el));
+      // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
       const animBtn = $('#dgAnim', el); if (animBtn) animBtn.onclick = () => { const on = $('#prodDiagram', el).classList.toggle('noanim'); animBtn.textContent = on ? '動畫：關' : '動畫：開'; try { localStorage.setItem('tw.dganim', on ? '0' : '1'); } catch (e) { /* 忽略 */ } };
@@ -231,21 +231,122 @@
       ${co.tw_code ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
   }
 
+  /* ============================================================ 簡版個股頁
+     Andy：「不可以出現沒有資訊狀況」。
+     完整個股頁（stock/<代號>.json）偶爾會缺 —— 新上市、歷史價量還不到 60 根日線，
+     或像預覽版那樣只帶了一部分個股頁。以前這種情況給的是一句「還沒產生」＋一個返回鍵，
+     那就是一個死路。現在改成：用手上「已經載入的」資料重新組一頁真的有東西的頁面 ——
+     stocks.json 有今日價量、groups_detail 有法人與技術分、fundamental 有估值與營收、
+     news 有相關新聞、族群有同業名單。看得到的資訊只會少，不會沒有。 */
+  async function renderStockLite(code, im, sc, gd) {
+    const [stocks, fund, news, th] = await Promise.all([
+      A.load('stocks', { fallback: [] }), A.load('fundamental', { fallback: [] }),
+      A.load('news', { fallback: [] }), A.load('themes', { fallback: null }),
+    ]);
+    const known = (stocks || []).find(x => x.code === code) || (A.L.all || []).find(x => x.code === code);
+    if (!known) {
+      $('#indChain').innerHTML = '';
+      crumbs([{ label: '產業地圖', href: '#industry' }, { label: code }]);
+      $('#stockPage').innerHTML = `<div class="card"><div class="empty">
+        找不到代號 ${A.fmt.esc(code)}。個股頁只做上市櫃普通股，權證／期貨／指數不列入。<br><br>${A.L.back()}</div></div>`;
+      return;
+    }
+    // 同族群成員表裡有法人、技術分、判定 —— 這些是完整頁才會算的，但族群頁已經算好了
+    let mem = null, sibs = [];
+    Object.entries(gd || {}).forEach(([gid, g]) => {
+      (g.members || []).forEach(mm => {
+        if (mm.code === code) { mem = { ...mm, group_id: gid, group_name: g.group_name }; }
+      });
+    });
+    const gid = (mem && mem.group_id) || known.group_id;
+    if (gid && gd && gd[gid]) {
+      sibs = (gd[gid].members || []).filter(x => x.code !== code)
+        .sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 24);
+    }
+    const fu = (fund || []).find(x => x.code === code) || {};
+    const ns = (news || []).filter(n => String(n.codes || '').split(',').includes(code)).slice(0, 8);
+
+    state.chain = chainOfGroup(im, gid) || 'industry'; state.group = null;
+    const chainName = CHAIN_NAME[state.chain] || state.chain;
+    crumbs([{ label: '產業地圖', href: '#industry' },
+            { label: chainName, href: '#industry/' + state.chain },
+            { label: `${known.name || ''} ${code}` }]);
+    renderChainStrip(im, sc, { code, name: known.name, group_id: gid, groups: known.group ? [known.group] : [] });
+
+    const n = A.fmt.n, pct = A.fmt.pct;
+    // 有值才放進去 —— 寧可少一格，也不要放一格「—」在那裡佔位
+    const kv = (pairs) => {
+      const out = pairs.filter(p => p[1] !== null && p[1] !== undefined && p[1] !== '');
+      return out.length ? `<div class="kvs">${out.map(p => `<div class="k"><div class="l">${p[0]}</div><div class="v${p[2] || ''}">${p[1]}</div></div>`).join('')}</div>` : '';
+    };
+    // 法人是「股」，全站一律換算成張再顯示
+    const lot = (v) => (v === null || v === undefined ? null : `<span class="${A.fmt.cls(v)}">${A.fmt.lot(v / 1000)}</span>`);
+    const close = known.close != null ? known.close : (mem && mem.close);
+    const chg = known.chg_pct != null ? known.chg_pct : (mem && mem.chg_pct);
+    const today = kv([
+      ['收盤', close != null ? `<span class="num">${n(close)}</span>` : null],
+      ['漲跌', chg != null ? `<span class="${A.fmt.cls(chg)}">${pct(chg, 2)}</span>` : null],
+      ['成交值', known.turnover != null ? A.fmt.yi(known.turnover) : null],
+      ['外資', mem ? lot(mem.foreign) : null],
+      ['投信', mem ? lot(mem.trust) : null],
+      ['自營', mem ? lot(mem.dealer) : null],
+      ['技術分', mem && mem.tech_score != null ? n(mem.tech_score, 0) : null],
+      ['目前判定', mem && mem.verdict ? A.fmt.esc(mem.verdict) : null],
+    ]);
+    const val = kv([
+      ['本益比', fu.pe != null ? n(fu.pe, 1) : null],
+      ['同族群中位', fu.group_median != null ? n(fu.group_median, 1) : null],
+      ['股價淨值比', fu.pb != null ? n(fu.pb, 2) : null],
+      ['ROE', fu.roe != null ? n(fu.roe, 1) + '%' : null],
+      ['毛利率', fu.gross_margin != null ? n(fu.gross_margin, 1) + '%' : null],
+      ['市值', fu.market_cap != null ? A.fmt.yi(fu.market_cap) : null],
+      ['TTM EPS', fu.ttm_eps != null ? n(fu.ttm_eps, 2) : null],
+      ['營收 YoY', fu.rev_yoy != null ? `<span class="${A.fmt.cls(fu.rev_yoy)}">${pct(fu.rev_yoy, 1)}</span>` : null],
+      ['營收 MoM', fu.rev_mom != null ? `<span class="${A.fmt.cls(fu.rev_mom)}">${pct(fu.rev_mom, 1)}</span>` : null],
+      ['營運動能', fu.momentum_score != null ? n(fu.momentum_score, 0) : null],
+    ]);
+    const themeLinks = A.L.themesOf(code);
+    const why = known.tier === 'thin'
+      ? '這一檔的歷史價量還在回補（完整頁需要至少 60 根日線才算得出指標、SMC 與評分）。'
+      : '這一版的資料包沒有帶到這一檔的完整個股頁。';
+    const card = (title, sub, body) => body
+      ? `<div class="card" style="margin-top:16px"><h3>${title}${sub ? ` <small>${sub}</small>` : ''}</h3>${body}</div>` : '';
+
+    $('#stockPage').innerHTML = `
+      <div class="card" style="margin-top:16px">
+        <div class="row spread">
+          <div><h2>${A.fmt.esc(known.name || '')} <span class="mono cyan">${code}</span>
+            <small class="muted" style="font-size:13px">${known.market === 'TPEX' ? '上櫃' : known.market === 'TWSE' ? '上市' : (known.market || '')}</small></h2>
+            <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px">
+              <span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}
+              <span class="muted">族群</span>${gid ? A.L.group(gid, (mem && mem.group_name) || known.group) : '—'}
+              ${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
+            <div class="row" style="margin-top:6px">
+              <span class="num" style="font-size:30px;font-weight:700">${close != null ? n(close) : '—'}</span>
+              ${chg != null ? `<span class="num ${A.fmt.cls(chg)}" style="font-size:18px">${pct(chg, 2)}</span>` : ''}
+              <span class="pill amber">簡版個股頁</span></div></div>
+        </div>
+        <div class="banner on" style="margin:12px 0 0">
+          <b>這一頁是簡版。</b>${why}
+          下面是這一檔<b>現在就查得到的完整資訊</b>：今日價量與法人、估值與營收、相關新聞、同族群比較。
+          完整版（K 線、多週期 SMC、五年營收獲利、除權息、籌碼）會在<b>下一次盤後更新</b>出現。
+        </div>
+      </div>
+      ${card('今日盤後', '價量與三大法人', today)}
+      ${card('估值與營收', '同族群才比本益比', val)}
+      ${card('相關新聞', `${ns.length} 則`, ns.length ? `<div class="cards">${ns.map(x => `<div class="scard">
+          <a href="${A.fmt.esc(x.url || '#')}" target="_blank" rel="noopener">${A.fmt.esc(x.title || '')}</a>
+          <div class="r"><span class="muted">${A.fmt.esc(x.date || '')}</span><span class="muted">${A.fmt.esc(x.source || '')}</span></div></div>`).join('')}</div>` : '')}
+      ${card('同族群其他個股', '點進去看完整頁', sibs.length ? `<div class="sibs">${sibs.map(x =>
+          `${A.L.stock(x.code, x.name)}<span class="chg ${A.fmt.cls(x.chg_pct)}">${pct(x.chg_pct, 1)}</span>`).join('')}</div>` : '')}
+      <div class="card" style="margin-top:16px"><div class="note">資料更新到 <b>${A.fmt.esc((A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新）。${A.L.back()}</div></div>`;
+  }
+
   // ================================================================ Level 2：個股頁
   async function renderStock(code, im, sc, gd) {
     show(false, true, true);
     const pg = await A.load('stock/' + code, { fallback: null });
-    if (!pg) {
-      const known = (A.L.all || []).find(x => x.code === code);
-      // 頁面真的沒產生時，至少把手上有的資訊給出來，並指出去哪裡看得到它
-      const gl = known && known.group_id ? A.L.group(known.group_id) : '';
-      $('#stockPage').innerHTML = `<div class="card"><div class="empty">${known
-        ? `<b>${A.fmt.esc(known.name || '')} ${code}</b>${known.market ? `（${A.fmt.esc(known.market)}）` : ''} 的個股頁這一輪還沒產生。<br>
-           個股頁需要至少 60 根日線才算得出指標與評分；這檔的歷史價量還在回補，<b>下一次盤後更新（每個交易日）就會出現</b>。
-           ${gl ? `<br><br>先看它所屬的族群：${gl}` : ''}`
-        : `找不到代號 ${A.fmt.esc(code)}（上市櫃普通股才有個股頁，權證／期貨／指數不列入）。`}<br><br>${A.L.back()}</div></div>`;
-      $('#indChain').innerHTML = ''; crumbs([{ label: '產業地圖', href: '#industry' }, { label: code }]); return;
-    }
+    if (!pg) { await renderStockLite(code, im, sc, gd); return; }
     const m = pg.meta, s = pg.summary || {};
     // 上方產業鏈（同步高亮）
     state.chain = chainOfGroup(im, m.group_id) || 'industry'; state.group = null;
@@ -322,7 +423,7 @@
     if (hasDiagram && sc) {
       const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       paintDiagram($('#prodDiagram', el));
-      A.wheelZoom($('#prodDiagram', el));
+      // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       drawChainMap($('#chainMap', el), sc, cid, im, { onSelect: (c2) => { if (c2.tw_code) A.goStock(c2.tw_code); }, onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
       highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
       wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
@@ -336,7 +437,9 @@
     boll: null, vol: true, volma: 20, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 },
     rsi: null, smc: true, marks: true, lines: true, tfs: null,
     // 每個指標的顏色／線寬／透明度；zone 是 SMC 供需區的填色濃度與框線
-    st: {}, zone: null };
+    st: {}, zone: null,
+    // K 棒寬度（Lightweight Charts 的 barSpacing）；預設比函式庫的 7 寬，Andy 要「default 先長一點」
+    bar: 11 };
   // 設定面板要列出來的指標樣式（key、標題、幾個顏色、顏色的名字）
   const STYLE_ROWS = [
     ['boll', 'BOLL 通道', ['c'], ['線']],
@@ -440,6 +543,7 @@
       }
       kchart.setBars(bars, state.tf);
       kchart.applyIndicators(cfg);
+      if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
       kchart.setZones(cfg.smc ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
       kchart.setMarkers(cfg.marks ? marksFor(pg, state.tf) : {});
       const v = pg.verdict || {};
@@ -505,6 +609,7 @@
       const zn = Object.assign({}, KUtil.ZONE_DEF, cfg.zone || {});
       pop.innerHTML = `<div class="ttl">圖表設定</div>
         <div class="frow"><label>整體線寬</label><input id="lw" type="range" min="1" max="4" step="1" value="${cfg.lineWidth || 1}"><span class="val" id="lwv">${cfg.lineWidth || 1}px</span></div>
+        <div class="frow"><label>K 棒寬度</label><input id="bw" type="range" min="3" max="28" step="1" value="${cfg.bar || 11}"><span class="val" id="bwv">${cfg.bar || 11}px</span></div>
         <div class="ttl2">均線（最多 6 條）</div>
         <div id="maRows">${mas.map((n, i) => `<div class="frow marow" data-i="${i}">
           <input type="number" min="2" max="480" value="${n}" data-f="n" style="width:62px">
@@ -540,6 +645,7 @@
           cfg.maWidth.push(+$('[data-f=w]', r).value || 1);
         });
         cfg.lineWidth = +$('#lw').value || 1;
+        cfg.bar = +$('#bw').value || 11;
         cfg.st = {};
         $$('#stRows .strow').forEach(r => {
           const o = {};
@@ -559,6 +665,7 @@
         $$('#maRows [data-f=w]').forEach(i => { i.value = $('#lw').value; });   // 整體線寬帶動每條均線
         sync();
       };
+      $('#bw').oninput = () => { $('#bwv').textContent = $('#bw').value + 'px'; sync(); };
       const wireRows = () => $$('#maRows .marow').forEach(r => {
         $$('input', r).forEach(i => { i.oninput = sync; i.onchange = sync; });
         $('[data-f=del]', r).onclick = () => { r.remove(); sync(); };
@@ -690,19 +797,57 @@
       <div class="card" style="margin-top:16px"><h3>股利公告</h3><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody>${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${A.fmt.n(e.amount, 3)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
     if (years.length) A.chart('divBar', { tooltip: { ...A.tip }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(3)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: '#e8eeff', fontFamily: 'JetBrains Mono', fontSize: 11 }, barWidth: '55%' }] }); else A.empty('divBar');
   }
+  /* 籌碼頁：資料不夠就不要畫一張空圖。
+     Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。
+     規則：≥3 個點才畫線圖；只有 1~2 個點就改成把「現在的數字」直接列出來；
+     一個點都沒有的那張卡片整張不出現。 */
+  const CHIP_MIN = 3;
   function tabChips(pg, el) {
     const iv = (pg.inst_v3 || {}).daily || [], mg = pg.margin || [], ho = pg.holders || [];
-    el.innerHTML = `<div class="grid g2"><div class="card"><h3>三大法人 <small>每日買賣超（張）與累計</small></h3><div id="instChart" class="chart"></div></div><div class="card"><h3>融資融券 <small>餘額（張）</small></h3><div id="marginChart" class="chart"></div></div></div>
-      <div class="grid g2" style="margin-top:16px"><div class="card"><h3>大戶 / 散戶持股 <small>集保每週：千張大戶、400–1000 張、10 張以下</small></h3><div id="holderChart" class="chart"></div></div><div class="card"><h3>股東人數 <small>人數下降＋大戶比例上升＝籌碼集中</small></h3><div id="holderCount" class="chart"></div></div></div>
-      <div class="note" style="margin-top:10px">主力（券商分點家數差）需付費資料，尚未提供；以千張大戶週變化與法人連續買賣作替代。</div>`;
-    if (iv.length) A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.lot(p.value / 1000)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: iv.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
-      series: [{ name: '外資', type: 'bar', stack: 'i', data: iv.map(r => r[1]), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: iv.map(r => r[2]), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: iv.map(r => r[3]), itemStyle: { color: '#8b7bff' } }, { name: '累計', type: 'line', yAxisIndex: 1, data: iv.map(r => r[4]), showSymbol: false, lineStyle: { color: '#ff8fab', width: 2 } }] }); else A.empty('instChart');
-    if (mg.length) A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: mg.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
-      series: [{ name: '融資餘額', type: 'line', data: mg.map(r => r[1]), showSymbol: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '融券餘額', type: 'line', yAxisIndex: 1, data: mg.map(r => r[2]), showSymbol: false, lineStyle: { color: '#2ee59d', width: 1.5 } }] }); else A.empty('marginChart', '融資券歷史回補中');
-    if (ho.length) { A.chart('holderChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
-      series: [{ name: '千張大戶', type: 'line', data: ho.map(r => r[1]), showSymbol: false, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '400–1000 張', type: 'line', data: ho.map(r => r[2]), showSymbol: false, lineStyle: { color: '#ffb454' } }, { name: '散戶 ≤10 張', type: 'line', data: ho.map(r => r[3]), showSymbol: false, lineStyle: { color: '#2ee59d' } }] });
-      A.chart('holderCount', { tooltip: { ...A.tip, trigger: 'axis' }, grid: { left: 70, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: v => A.fmt.yi(v) } }, series: [{ name: '股東人數', type: 'line', data: ho.map(r => r[4]), showSymbol: false, areaStyle: { color: 'rgba(62,224,255,.12)' }, lineStyle: { color: '#3ee0ff', width: 2 } }] }); }
-    else { A.empty('holderChart', '集保資料每週累積中'); A.empty('holderCount', '集保資料每週累積中'); }
+    const cards = [];
+    const card = (id, title, sub) => { cards.push(`<div class="card"><h3>${title} <small>${sub}</small></h3><div id="${id}" class="chart"></div></div>`); };
+    const numCard = (title, sub, kvs, why) => cards.push(`<div class="card"><h3>${title} <small>${sub}</small></h3>
+      <div class="kvs" style="margin-top:10px">${kvs}</div><div class="note" style="margin-top:8px">${why}</div></div>`);
+    const k = (l, v, cls) => `<div class="k"><div class="l">${l}</div><div class="v ${cls || ''}">${v}</div></div>`;
+
+    if (iv.length >= CHIP_MIN) card('instChart', '三大法人', '每日買賣超（張）與累計');
+    else if (iv.length) { const r = iv[iv.length - 1];
+      numCard('三大法人', `最新一筆 ${r[0]}`,
+        k('外資', A.fmt.lot(r[1] / 1000), A.fmt.cls(r[1])) + k('投信', A.fmt.lot(r[2] / 1000), A.fmt.cls(r[2]))
+        + k('自營', A.fmt.lot(r[3] / 1000), A.fmt.cls(r[3])),
+        `法人歷史只回補到 ${iv.length} 天，畫成走勢圖看不出東西，先直接列數字；回補滿 ${CHIP_MIN} 天以上就會變成走勢圖。`); }
+
+    if (mg.length >= CHIP_MIN) card('marginChart', '融資融券', '餘額（張）');
+    else if (mg.length) { const r = mg[mg.length - 1];
+      numCard('融資融券', `最新一筆 ${r[0]}`,
+        k('融資餘額', A.fmt.lot(r[1])) + k('融券餘額', A.fmt.lot(r[2])),
+        `融資券歷史只回補到 ${mg.length} 天，兩個點連起來是一條假的斜線，先直接列數字。`); }
+
+    if (ho.length >= CHIP_MIN) {
+      card('holderChart', '大戶 / 散戶持股', '集保每週：千張大戶、400–1000 張、10 張以下');
+      card('holderCount', '股東人數', '人數下降＋大戶比例上升＝籌碼集中');
+    } else if (ho.length) { const r = ho[ho.length - 1];
+      numCard('集保股權分散', `最新一週 ${r[0]}`,
+        k('千張大戶', A.fmt.n(r[1], 1) + '%') + k('400–1000 張', A.fmt.n(r[2], 1) + '%')
+        + k('散戶 ≤10 張', A.fmt.n(r[3], 1) + '%') + k('股東人數', A.fmt.yi(r[4])),
+        `集保是每週一筆，目前只累積到 ${ho.length} 週；滿 ${CHIP_MIN} 週就會變成走勢圖，看得出籌碼是在集中還是分散。`); }
+
+    if (!cards.length) {
+      el.innerHTML = `<div class="card"><div class="empty">這一檔的籌碼資料（法人、融資券、集保）還在回補，下一次盤後更新就會出現。</div></div>`;
+      return;
+    }
+    el.innerHTML = cards.map((c, i) => (i % 2 === 0 ? `<div class="grid g2"${i ? ' style="margin-top:16px"' : ''}>` : '') + c + (i % 2 === 1 || i === cards.length - 1 ? '</div>' : '')).join('')
+      + `<div class="note" style="margin-top:10px">主力（券商分點家數差）需付費資料，尚未提供；以千張大戶週變化與法人連續買賣作替代。</div>`;
+
+    if (iv.length >= CHIP_MIN) A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.lot(p.value / 1000)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: iv.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
+      series: [{ name: '外資', type: 'bar', stack: 'i', data: iv.map(r => r[1]), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: iv.map(r => r[2]), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: iv.map(r => r[3]), itemStyle: { color: '#8b7bff' } }, { name: '累計', type: 'line', yAxisIndex: 1, data: iv.map(r => r[4]), showSymbol: false, lineStyle: { color: '#ff8fab', width: 2 } }] });
+    if (mg.length >= CHIP_MIN) A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: mg.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
+      series: [{ name: '融資餘額', type: 'line', data: mg.map(r => r[1]), showSymbol: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '融券餘額', type: 'line', yAxisIndex: 1, data: mg.map(r => r[2]), showSymbol: false, lineStyle: { color: '#2ee59d', width: 1.5 } }] });
+    if (ho.length >= CHIP_MIN) {
+      A.chart('holderChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
+        series: [{ name: '千張大戶', type: 'line', data: ho.map(r => r[1]), showSymbol: false, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '400–1000 張', type: 'line', data: ho.map(r => r[2]), showSymbol: false, lineStyle: { color: '#ffb454' } }, { name: '散戶 ≤10 張', type: 'line', data: ho.map(r => r[3]), showSymbol: false, lineStyle: { color: '#2ee59d' } }] });
+      A.chart('holderCount', { tooltip: { ...A.tip, trigger: 'axis' }, grid: { left: 70, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: v => A.fmt.yi(v) } }, series: [{ name: '股東人數', type: 'line', data: ho.map(r => r[4]), showSymbol: false, areaStyle: { color: 'rgba(62,224,255,.12)' }, lineStyle: { color: '#3ee0ff', width: 2 } }] });
+    }
   }
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};

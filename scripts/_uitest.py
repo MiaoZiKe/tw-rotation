@@ -137,11 +137,48 @@ def check_zoom(pg, wrap: str, inner: str, label: str):
     ok(f"「{label}」放大不會把卡片撐高", z1["cardH"] == z0["cardH"], f"{z0['cardH']} → {z1['cardH']}")
     ok(f"「{label}」放大不會讓整頁出現橫向捲軸", z1["pageW"] <= z0["pageW"], f"{z0['pageW']} → {z1['pageW']}")
     ok(f"「{label}」放大後徽章寫出倍率", "×" in (z1["badge"] or ""), z1["badge"])
+    # 一路滾回 1 倍：還原的那一下不可以把整頁帶著往下衝
+    # （Andy：「還原成正常大小 他會導致整體頁面往下」）
+    y0 = pg.evaluate("() => Math.round(window.scrollY)")
     for _ in range(12):
         pg.mouse.wheel(0, 160); pg.wait_for_timeout(90)
     pg.wait_for_timeout(450)
     z2 = pg.evaluate(Z, [wrap, inner])
+    y1 = pg.evaluate("() => Math.round(window.scrollY)")
     ok(f"「{label}」往下滾最多回到原始大小", not z2["zoomed"] and not z2["w"], z2)
+    ok(f"「{label}」還原成原始大小時整頁不會被帶著往下", abs(y1 - y0) <= 2, f"scrollY {y0} → {y1}")
+
+
+def check_drag(pg, wrap: str, label: str):
+    """放大後真的用滑鼠抓著拖，圖要跟著移動，放開手不可以誤觸圖上的點擊。"""
+    scroll_to(pg, wrap)
+    r = pg.evaluate("(id)=>{const b=document.getElementById(id).getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height};}", wrap)
+    cx, cy = r["x"] + r["w"] / 2, r["y"] + r["h"] / 2
+    pg.mouse.move(cx, cy)
+    for _ in range(5):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(140)
+    pg.wait_for_timeout(400)
+    S = """(id) => { const b=document.getElementById(id); const pane=b.querySelector('.zpane');
+        return { sl: Math.round(pane.scrollLeft), st: Math.round(pane.scrollTop),
+                 zoomed: b.classList.contains('zoomed'), grab: b.classList.contains('grabbing'),
+                 badge: (b.querySelector('.zbadge')||{}).textContent, y: Math.round(window.scrollY),
+                 hash: location.hash }; }"""
+    a = pg.evaluate(S, wrap)
+    if not ok(f"「{label}」滾輪有放大（拖曳測試的前提）", a["zoomed"], a):
+        return
+    ok(f"「{label}」放大後徽章有提示可以拖曳", "拖曳" in (a["badge"] or ""), a["badge"])
+    pg.mouse.move(cx, cy); pg.mouse.down()
+    pg.mouse.move(cx - 60, cy - 40, steps=6)
+    mid = pg.evaluate(S, wrap)
+    pg.mouse.move(cx - 220, cy - 150, steps=10)
+    pg.mouse.up(); pg.wait_for_timeout(400)
+    bx = pg.evaluate(S, wrap)
+    ok(f"「{label}」抓著拖，圖真的跟著移動", (bx["sl"], bx["st"]) != (a["sl"], a["st"]), f"{a['sl']},{a['st']} → {bx['sl']},{bx['st']}")
+    ok(f"「{label}」拖曳時游標變成抓取狀態", mid["grab"], mid)
+    ok(f"「{label}」拖曳不會把整頁捲走", bx["y"] == a["y"], f"{a['y']} → {bx['y']}")
+    ok(f"「{label}」放開手不會誤觸跳頁", bx["hash"] == a["hash"], f"{a['hash']} → {bx['hash']}")
+    pg.dblclick("#" + wrap); pg.wait_for_timeout(500)
+    ok(f"「{label}」雙擊還原得回去", not pg.evaluate("(id)=>document.getElementById(id).classList.contains('zoomed')", wrap))
 
 
 # ------------------------------------------------------------------ 各頁
@@ -340,6 +377,32 @@ def t_overview(pg, base):
     for w, i, lb in (("breadthWrap", "breadth", "市場寬度"), ("trustWrap", "trust", "投信連續買超"),
                      ("gvalWrap", "gval", "族群估值"), ("rotClockMiniWrap", "rotClockMini", "總覽輪動時鐘")):
         check_zoom(pg, w, i, lb)
+
+    # --- 放大後要能用游標抓著移動（Andy：「需要新增游標抓取可以移動功能」）
+    check_drag(pg, "heatWrap", "資金熱力圖")
+    check_drag(pg, "rotClockMiniWrap", "總覽輪動時鐘")
+
+    # --- 熱力圖要把卡片填滿，不可以留一塊空的（Andy：「不滿當前版面」）
+    # 重新載入一次：前面的測試會把「成分股」面板留在展開狀態，那塊也算在卡片高度裡
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    last = None                                   # 高度是 flex 撐出來的，等它不再變動再量
+    for _ in range(15):
+        h = pg.evaluate("() => Math.round(document.getElementById('heat').getBoundingClientRect().height)")
+        if h == last:
+            break
+        last = h; pg.wait_for_timeout(300)
+    fill = pg.evaluate("""() => { const w = document.getElementById('heatWrap');
+        const card = w.closest('.card'); const heat = document.getElementById('heat');
+        const cr = card.getBoundingClientRect(), hr = heat.getBoundingClientRect();
+        // 卡片裡最後一個真的有內容的元素，底部離卡片底部多遠 —— 那段就是「空的」
+        let bottom = cr.top;
+        [...card.children].forEach(el => { const r = el.getBoundingClientRect();
+            if (r.height > 0 && el.offsetParent !== null) bottom = Math.max(bottom, r.bottom); });
+        return { cardH: Math.round(cr.height), heatH: Math.round(hr.height),
+                 belowChart: Math.round(cr.bottom - hr.bottom),
+                 empty: Math.round(cr.bottom - bottom) }; }""")
+    ok("資金熱力圖有把卡片填滿（底下不會留一塊空的）", fill["empty"] <= 40, fill)
+    ok("資金熱力圖本身夠大（不是被擠成一小條）", fill["heatH"] >= 400, fill)
 
     # --- 下方三張圖：要有資料，不是空狀態
     for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超"), ("gval", "族群估值")):
@@ -545,6 +608,9 @@ def t_industry(pg, base):
 
     pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("產業鏈頁有產品剖析圖", count(pg, "#prodDiagram svg") > 0)
+    # Andy：「產業與個股 剖析圖不用新增縮放功能」—— 不可以被包成可縮放的框
+    ok("產業與個股的剖析圖沒有縮放框",
+       pg.evaluate("() => { const d = document.getElementById('prodDiagram'); return !d || (!d.classList.contains('zwrap') && !d.querySelector(':scope > .zpane') && !d.querySelector(':scope > .zbadge')); }"))
     ok("產業鏈頁有關聯圖公司節點", count(pg, "#chainMap .co") > 0)
     n_all = count(pg, "#memberTable tbody tr")
     ok("產業鏈頁有成分股", n_all > 0)
@@ -661,6 +727,58 @@ def t_stock(pg, base, code):
     fresh = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#stockPage .note')].map(e => e.innerText);
         return ns.find(t => t.includes('資料更新到')) || ''; }""")
     ok("個股頁有寫資料更新到哪一天", "資料更新到" in fresh and any(c.isdigit() for c in fresh), fresh[:80])
+
+    # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
+    click(pg, "#cfgBtn", 700)
+    bw = pg.evaluate("() => { const e = document.getElementById('bw'); return e ? { v: +e.value, min: +e.min, max: +e.max } : null; }")
+    if ok("圖表設定裡有 K 棒寬度", bool(bw), bw):
+        ok("K 棒寬度預設比函式庫預設（7px）寬", bw["v"] >= 9, bw)
+        h0 = canvas_hash(pg, "#lwc")
+        pg.evaluate("""() => { const e = document.getElementById('bw'); e.value = String(+e.max);
+            e.dispatchEvent(new Event('input', { bubbles: true })); }""")
+        pg.wait_for_timeout(900)
+        changed("拉寬 K 棒，K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
+        saved = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg')||'{}').bar; } catch(e) { return null; } }")
+        ok("K 棒寬度有存進 localStorage", saved and saved >= 20, saved)
+        pg.evaluate("""() => { const e = document.getElementById('bw'); e.value = '11';
+            e.dispatchEvent(new Event('input', { bubbles: true })); }""")
+        pg.wait_for_timeout(600)
+    click(pg, "#cfgBtn", 400)
+
+    # --- 籌碼頁不可以出現空圖（Andy：「抓不到數據就替換其他方式或直接刪除」）
+    click(pg, '#stockTabs button[data-t="chips"]', 1400)
+    chips = pg.evaluate("""() => { const t = document.getElementById('stockTab');
+        const blanks = [...t.querySelectorAll('.chart')].filter(c => !c.querySelector('canvas') && !c.querySelector('.empty'));
+        return { cards: t.querySelectorAll('.card').length, charts: t.querySelectorAll('.chart').length,
+                 blanks: blanks.length, tiles: t.querySelectorAll('.kvs .k').length,
+                 len: t.innerText.trim().length }; }""")
+    ok("籌碼頁沒有畫不出東西的空圖", chips["blanks"] == 0, chips)
+    ok("籌碼頁有內容（圖或數字至少一樣）", chips["charts"] + chips["tiles"] > 0 and chips["len"] > 60, chips)
+
+    # --- 完整個股頁缺檔時的簡版頁（Andy：「不可以出現沒有資訊狀況」）
+    # 故意讓某一檔的個股頁 404，頁面還是必須有實際內容，不能只剩一句「還沒產生」
+    # 要挑一檔「這個分頁還沒載過」的，不然 App.D 裡有快取就不會真的走到 404 那條路
+    miss = pg.evaluate("""async () => { const r = await fetch('data/stocks.json'); const s = await r.json();
+        const cached = (window.App && window.App.D) || {};
+        const x = s.find(v => v.name && v.code !== '2330' && !cached['stock/' + v.code]);
+        return x ? x.code : null; }""")
+    if ok("找得到一檔可以拿來測缺頁的股票", bool(miss), miss):
+        pg.route(f"**/data/stock/{miss}.json*", lambda route: route.fulfill(status=404, body="not found"))
+        pg.goto(f"{base}#stock/{miss}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        lite = pg.evaluate("""() => { const el = document.getElementById('stockPage');
+            return { len: el.innerText.trim().length, cards: el.querySelectorAll('.card').length,
+                     tiles: el.querySelectorAll('.kvs .k').length, sibs: el.querySelectorAll('.sibs a').length,
+                     head: (el.querySelector('h2')||{}).innerText || '',
+                     chain: (document.getElementById('indChain')||{}).innerText.trim().length,
+                     nodata: /還沒產生|尚無資料|沒有資訊/.test(el.innerText) }; }""")
+        ok("缺完整頁時仍然有標題（名稱＋代號）", miss in (lite["head"] or ""), lite)
+        ok("缺完整頁時不是一片空白（內容夠長）", lite["len"] > 200, lite)
+        ok("缺完整頁時有列出實際數字（價量／法人／估值）", lite["tiles"] >= 4, lite)
+        ok("缺完整頁時有列出同族群可以點的個股", lite["sibs"] > 0, lite)
+        ok("缺完整頁時上方產業鏈照樣出來", lite["chain"] > 50, lite)
+        ok("缺完整頁時不會只丟一句「還沒產生」", not lite["nodata"], lite)
+        pg.unroute(f"**/data/stock/{miss}.json*")
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
 
     # --- 六個分頁：每個都要真的換內容
     seen = {}
@@ -1030,8 +1148,10 @@ def main() -> int:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", headless=not args.headed)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: fails.append(f"pageerror: {e}"))
+        # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題
         pg.on("console", lambda m: fails.append(f"console.error: {m.text}")
-              if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text else None)
+              if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text
+              and "404" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
         for name, fn in (("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
