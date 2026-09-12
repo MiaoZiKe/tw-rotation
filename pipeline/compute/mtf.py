@@ -93,7 +93,8 @@ def analyze_tf(bars: pd.DataFrame, tf: str) -> dict | None:
 
     def _z(z):
         return {"low": round(z.low, 2), "high": round(z.high, 2), "score": round(z.score, 1),
-                "sources": z.sources, "kind": z.kind,
+                "sources": z.sources, "kind": z.kind, "since": z.since,
+                "width_pct": round(z.width_pct, 2),
                 "dist_pct": round((z.mid / close - 1) * 100, 2)}
 
     tail = x.tail(60)

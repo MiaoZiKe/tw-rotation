@@ -89,6 +89,36 @@ def main() -> int:
         visit("overview", "overview")
         state["overview"]["cands"] = pg.evaluate("document.querySelectorAll('#candBody tr').length")
         state["overview"]["hero"] = pg.evaluate("document.getElementById('hero').innerText.slice(0,80)")
+        # 候選名單四個面向：切得動、排序跟著換、點一列會展開「為何選它」（Andy #35）
+        facets = pg.evaluate("Array.from(document.querySelectorAll('#candFacets button')).map(b => b.dataset.f)")
+        if sorted(facets) != ["all", "chip", "fund", "tech"]:
+            problems.append(f"候選名單少了面向按鈕：{facets}")
+        fstat = {}
+        for f in facets:
+            pg.evaluate(f"document.querySelector('#candFacets button[data-f=\"{f}\"]').click()")
+            pg.wait_for_timeout(350)
+            fstat[f] = pg.evaluate("""() => {
+              const head = Array.from(document.querySelectorAll('#candTable th')).map(t => t.textContent.replace(/[▲▼]/g,'').trim());
+              const rows = document.querySelectorAll('#candBody tr[data-code]');
+              const first = rows[0] ? rows[0].dataset.code : null;
+              document.querySelector('#candBody tr[data-code]').dispatchEvent(new MouseEvent('click', {bubbles:true}));
+              const why = document.querySelectorAll('#candBody tr.whyrow .why span').length;
+              return { head, rows: rows.length, first, why, hint: (document.getElementById('candHint')||{}).textContent.length };
+            }""")
+            if not fstat[f]["why"]:
+                problems.append(f"候選名單 {f} 面向點開沒有「為何選它」")
+            if not fstat[f]["hint"]:
+                problems.append(f"候選名單 {f} 面向沒有說明文字")
+            ovf = pg.evaluate(OVERLAP_JS)
+            if ovf:
+                problems.append(f"候選名單 {f} 面向文字重疊：{ovf[:3]}")
+        # 四個面向排出來的第一名不該完全一樣，不然等於沒分
+        if len({v["first"] for v in fstat.values()}) < 2:
+            problems.append(f"四個面向排序結果一模一樣：{ {k: v['first'] for k, v in fstat.items()} }")
+        state["cand_facets"] = fstat
+        pg.evaluate("document.querySelector('#candFacets button[data-f=\"all\"]').click()")
+        pg.wait_for_timeout(300)
+        pg.screenshot(path=str(out / "v3_cand_facets.png"), full_page=False)
         visit("flow", "flow")
         visit("industry", "industry_map")
         visit("industry/ai_server", "industry_chain")
@@ -143,7 +173,11 @@ def main() -> int:
         for tf in ("1w", "1M", "60m"):
             pg.evaluate(f"document.querySelector('#tfSeg button[data-tf=\"{tf}\"]').click()"); pg.wait_for_timeout(500)
             state["tf_" + tf] = pg.evaluate("({ canvases: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#chartHost .empty'), legend: (document.getElementById('legendOv')||{}).innerText })")
-        pg.evaluate("document.querySelector('#tfSeg button[data-tf=\"1d\"]').click()"); pg.wait_for_timeout(300)
+        pg.evaluate("document.querySelector('#tfSeg button[data-tf=\"1d\"]').click()"); pg.wait_for_timeout(600)
+        # 切到沒資料的週期再切回來，圖必須回得來（以前會整張空白到重新整理）
+        state["tf_back_to_1d"] = pg.evaluate("({ canvases: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#lwc .empty'), dbg: window.Industry._dbg() })")
+        if not state["tf_back_to_1d"]["canvases"] or state["tf_back_to_1d"]["empty"]:
+            problems.append(f"切到沒資料的週期再切回日線，K 線沒回來：{state['tf_back_to_1d']}")
         pg.evaluate("document.getElementById('mtfBtn').click()"); pg.wait_for_timeout(1200)
         state["mtf_grid"] = pg.evaluate("({ cells: document.querySelectorAll('.mtf-cell').length, canvases: document.querySelectorAll('#mtfGrid canvas').length })")
         pg.screenshot(path=str(out / "v3_mtf.png"), full_page=False)
@@ -151,6 +185,69 @@ def main() -> int:
         pg.evaluate("document.getElementById('mtfBtn').click()"); pg.wait_for_timeout(600)
         pg.evaluate("document.querySelector('#indChips .chip[data-k=rsi]').click()"); pg.wait_for_timeout(400)
         state["rsi_on"] = pg.evaluate("({ chipOn: document.querySelector('#indChips .chip[data-k=rsi]').classList.contains('on'), legend: (document.getElementById('legendOv')||{}).innerText.includes('RSI') })")
+
+        # ---- K 線的基本設定與繪圖工具（Andy #43）：真的操作一遍，不是只看有沒有 render
+        pg.evaluate("document.getElementById('cfgBtn').click()"); pg.wait_for_timeout(350)
+        state["kcfg_open"] = pg.evaluate("""() => ({ rows: document.querySelectorAll('#maRows .marow').length,
+            lw: !!document.getElementById('lw'), color: !!document.querySelector('#maRows input[type=color]') })""")
+        if state["kcfg_open"]["rows"] < 2 or not state["kcfg_open"]["lw"] or not state["kcfg_open"]["color"]:
+            problems.append(f"K 線設定面板不完整：{state['kcfg_open']}")
+        # 調線寬 → 均線真的變粗；改顏色 → 真的換色；新增一條均線 → 真的多一條
+        pg.evaluate("const s=document.getElementById('lw'); s.value=3; s.dispatchEvent(new Event('input',{bubbles:true}))")
+        pg.wait_for_timeout(400)
+        pg.evaluate("document.getElementById('maAdd').click()"); pg.wait_for_timeout(500)
+        state["kcfg_after"] = pg.evaluate("""() => { const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}');
+            return { lineWidth: c.lineWidth, ma: c.ma, maWidth: c.maWidth, maColor: (c.maColor||[]).length,
+                     legend: (document.getElementById('legendOv')||{}).innerText.split('\\n').pop() }; }""")
+        if state["kcfg_after"].get("lineWidth") != 3:
+            problems.append(f"線寬調了沒生效：{state['kcfg_after']}")
+        if len(state["kcfg_after"].get("ma") or []) < 5:
+            problems.append(f"新增均線沒生效：{state['kcfg_after']}")
+        pg.evaluate("document.getElementById('cfgClose').click()"); pg.wait_for_timeout(200)
+
+        # 自訂時間週期：加一個 3 日
+        pg.evaluate("document.getElementById('tfAdd').click()"); pg.wait_for_timeout(300)
+        pg.evaluate("document.getElementById('tfOk').click()"); pg.wait_for_timeout(900)
+        state["tf_custom"] = pg.evaluate("""() => ({ buttons: [...document.querySelectorAll('#tfSeg button')].map(b=>b.dataset.tf),
+            on: (document.querySelector('#tfSeg button.on')||{}).dataset && document.querySelector('#tfSeg button.on').dataset.tf,
+            canvases: document.querySelectorAll('#lwc canvas').length })""")
+        if '3D' not in (state["tf_custom"]["buttons"] or []) or not state["tf_custom"]["canvases"]:
+            problems.append(f"自訂時間週期失敗：{state['tf_custom']}")
+        pg.evaluate("document.querySelector('#tfSeg button[data-tf=\"1d\"]').click()"); pg.wait_for_timeout(700)
+
+        # 繪圖工具：畫一條趨勢線、一條水平線，確認存進 localStorage 且能清空
+        state["draw_tools"] = pg.evaluate("document.querySelectorAll('#drawBar .dtool[data-t]').length")
+        if state["draw_tools"] < 6:
+            problems.append(f"繪圖工具列少了工具：{state['draw_tools']}")
+        # 圖高 640，要先捲到畫面正中間，不然拖曳終點會落在視窗外、pointerup 收不到
+        pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
+        pg.evaluate("document.querySelector('#drawBar .dtool[data-t=trend]').click()"); pg.wait_for_timeout(200)
+        box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect(); return {x:r.x, y:r.y, w:r.width, h:r.height, vh:innerHeight}; }")
+        if box["y"] < 0 or box["y"] + box["h"] * 0.6 > box["vh"]:
+            problems.append(f"K 線圖沒完整進到畫面，繪圖測試不準：{box}")
+        pg.mouse.move(box["x"] + box["w"] * 0.35, box["y"] + box["h"] * 0.35)
+        pg.mouse.down(); pg.mouse.move(box["x"] + box["w"] * 0.62, box["y"] + box["h"] * 0.55, steps=6); pg.mouse.up()
+        pg.wait_for_timeout(300)
+        pg.evaluate("document.querySelector('#drawBar .dtool[data-t=hline]').click()"); pg.wait_for_timeout(150)
+        pg.mouse.click(box["x"] + box["w"] * 0.5, box["y"] + box["h"] * 0.45)
+        pg.wait_for_timeout(300)
+        state["drawings"] = pg.evaluate("""() => { const ks = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+            const all = ks.flatMap(k => JSON.parse(localStorage.getItem(k)||'[]').map(s=>s.kind));
+            return { keys: ks, shapes: all, tf: (document.querySelector('#tfSeg button.on')||{}).dataset.tf }; }""")
+        if len(state["drawings"]["shapes"]) < 2:
+            problems.append(f"繪圖沒存下來：{state['drawings']}")
+        pg.screenshot(path=str(out / "v3_kchart_draw.png"), full_page=False)
+        pg.evaluate("document.querySelector('#drawBar .dtool[data-a=clear]').click()"); pg.wait_for_timeout(250)
+        left = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+            return k.reduce((n,x)=>n+JSON.parse(localStorage.getItem(x)||'[]').length, 0); }""")
+        if left != 0:
+            problems.append(f"清空繪圖沒生效，還剩 {left} 筆")
+        pg.evaluate("document.querySelector('#drawBar .dtool[data-t=cursor]').click()")
+        # 重設縮放的小圖示
+        state["fit_icon"] = pg.evaluate("!!document.querySelector('#fitBtn svg')")
+        if not state["fit_icon"]:
+            problems.append("重設縮放沒有換成小方框圖示")
+        pg.evaluate("document.getElementById('fitBtn').click()"); pg.wait_for_timeout(300)
 
         # 手機
         m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)

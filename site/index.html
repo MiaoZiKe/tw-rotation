@@ -89,7 +89,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 
 /* ---------------- 卡片 / 格線 ---------------- */
 .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);
-  padding:16px 18px;box-shadow:var(--shadow);min-width:0}
+  padding:16px 18px;box-shadow:var(--shadow);min-width:0;position:relative}
 .card.tight{padding:12px 14px}
 .card h3{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
 .card h3 small{color:var(--ink-3);font-weight:400}
@@ -101,6 +101,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .spread{justify-content:space-between}
 .chart{width:100%;min-height:260px}
 .chart.tall{min-height:420px} .chart.short{min-height:200px}
+.chart.isempty{min-height:0}
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
@@ -112,7 +113,180 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .seg{display:inline-flex;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;padding:3px;gap:2px}
 .seg button{border:0;background:transparent;color:var(--ink-2);padding:5px 11px;border-radius:7px;cursor:pointer;font-size:13.5px}
 .seg button.on{background:var(--cyan);color:#061018;font-weight:700}
+/* 這個週期這檔沒有資料：灰掉但還是點得下去，點了會說明為什麼沒有 */
+.seg button.off{color:var(--ink-3);opacity:.5;text-decoration:line-through;text-decoration-thickness:1px}
+.seg button.off.on{background:var(--line-2);color:var(--ink-2);text-decoration:none;opacity:1}
+/* K 線設定面板：指標樣式列 */
+.cfgpop .strow{align-items:center;gap:7px}
+.cfgpop .strow>label{min-width:74px;font-size:12.5px;color:var(--ink-2)}
+.cfgpop .cwrap{display:inline-flex;align-items:center;gap:3px}
+.cfgpop .cwrap em{font-style:normal;font-size:10.5px;color:var(--ink-3);font-family:var(--mono)}
+.cfgpop #zoneRow{flex-wrap:wrap;gap:7px;align-items:center}
+.cfgpop #zoneRow label{font-size:12.5px;color:var(--ink-2)}
+.cfgpop .chk{display:inline-flex;align-items:center;gap:4px}
+.cfgpop input[type=range]{accent-color:var(--cyan)}
+.cfgpop input[type=color]{width:26px;height:22px;padding:0;border:1px solid var(--line-2);border-radius:5px;background:transparent}
+/* 放大罩：熱力圖／剖析圖看不清楚時全螢幕看 */
+.zoomov{position:fixed;inset:0;z-index:80;background:rgba(5,8,18,.96);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;padding:14px 16px 18px}
+.zoomov[hidden]{display:none}
+.zoomov .zh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.zoomov .zh b{font-size:17px}
+.zoomov .zh .chainchips{margin:0;flex:1}
+.zoomov .zb{flex:1;min-height:0;display:flex}
+.zoomov .zb>div{flex:1;min-height:0;width:100%}
+/* 熱力圖點方塊後在原地列出成分股，不用跳頁 */
+.hpanel{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
+.hpanel[hidden]{display:none}
+.hpanel .hh{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.hpanel .hh b{font-size:15.5px}
+.hpanel .hh .m{font-family:var(--mono);font-size:12.5px;color:var(--ink-3)}
+.hpanel .hh .sp{flex:1}
+.hpanel .ms{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:6px;margin-top:10px}
+.hpanel .ms a{display:flex;align-items:baseline;gap:6px;padding:6px 9px;border-radius:8px;background:var(--panel-2);
+  border:1px solid transparent;transition:.15s;color:var(--ink)}
+.hpanel .ms a:hover{border-color:var(--cyan)}
+.hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
+/* 放大只在框內發生：捲動層 .zpane 在放大時高度鎖死，卡片與整頁版面完全不受影響 */
+.zwrap{position:relative;min-width:0;overflow:hidden}
+.zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
+.zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
+.zwrap>.zbadge{position:absolute;right:8px;top:8px;z-index:5;pointer-events:none;
+  background:rgba(10,16,32,.82);border:1px solid var(--line-2);color:var(--ink-3);
+  font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;opacity:.65;transition:.15s}
+.zwrap:hover>.zbadge{opacity:1;color:var(--cyan);border-color:rgba(62,224,255,.4)}
+.chainchips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 6px}
+.chainchips button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
+  padding:5px 13px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+.chainchips button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.chainchips button:hover{border-color:var(--cyan);color:var(--ink)}
+.chainchips button.on{background:var(--cyan);border-color:var(--cyan);color:#061018;font-weight:700}
+.chainchips button.on em{color:rgba(6,16,24,.7)}
+/* 輪動階段看板 */
+.cyclebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
+.cyclebar .st{padding:5px 13px;border-radius:999px;font-weight:700;font-size:13.5px}
+.cyclebar .ar{color:var(--ink-3);font-size:13px}
+.rotmove{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:10px 12px;
+  border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2);font-size:13px}
+.rotmove>b{color:var(--ink-2);font-size:13px;margin-right:2px}
+.rotmove .mv{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;
+  background:var(--panel-2);border:1px solid var(--line-2);cursor:pointer;transition:.15s}
+.rotmove .mv:hover{border-color:var(--cyan)}
+.rotmove .mv i{width:8px;height:8px;border-radius:2px;display:inline-block}
+.rotmove .mv em{font-style:normal;color:var(--ink-3);margin:0 1px}
+.rotmove .mv b{color:var(--ink);font-weight:600}
+.stageboard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
+.stageboard.compact{grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
+.stage{border:1px solid var(--line-2);border-top:3px solid var(--c);border-radius:11px;padding:12px 13px;background:var(--panel-3)}
+.stage .sh{display:flex;align-items:baseline;gap:8px}
+.stage .sh b{font-size:15.5px}
+.stage .sh .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);background:var(--panel-2);
+  border-radius:999px;padding:1px 8px}
+.stage .sd{color:var(--ink-3);font-size:12.5px;margin:5px 0 9px;line-height:1.55}
+.stage .sd em{font-style:normal;color:var(--ink-2)}
+.stage ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+.stage li{display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--panel-2);
+  cursor:pointer;transition:.15s;flex-wrap:wrap}
+.stage li:hover{background:var(--panel);outline:1px solid var(--c)}
+.stage li.none{color:var(--ink-3);font-size:12.5px;cursor:default;background:transparent;padding:4px 0}
+.stage li.none:hover{outline:0}
+.stage li .g{font-weight:600;font-size:13.5px}
+.stage li .m{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto}
+.stage li .ar{font-family:var(--mono);font-size:13px}
+.stage li .ar.up{color:var(--rise)} .stage li .ar.dn{color:var(--fall)} .stage li .ar.fl{color:var(--ink-3)}
+/* 總覽上方數字的明細面板 */
+.kpi.clickable{cursor:pointer;transition:.15s}
+.kpi.clickable:hover{border-color:var(--cyan)}
+.kpi.on{border-color:var(--cyan);box-shadow:var(--glow)}
+.kpi .l .more{float:right;font-size:11.5px;color:var(--cyan);opacity:.8}
+.kpinote{color:var(--ink-3);font-size:13px;margin:10px 0;line-height:1.7}
+#mktSeg2 button,#mktTabs button{padding:6px 13px}
+#mktTabs button em{font-style:normal;font-family:var(--mono);font-size:11px;opacity:.75;margin-left:3px}
+.magrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.magrid .ma{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;cursor:pointer;transition:.15s}
+.magrid .ma:hover{border-color:var(--cyan)}
+.magrid .ma .n{display:flex;justify-content:space-between;align-items:baseline;font-size:13.5px;font-weight:600}
+.magrid .ma .n em{font-style:normal;font-size:11.5px;color:var(--ink-3);font-family:var(--mono)}
+.magrid .ma .bar{height:7px;border-radius:4px;background:var(--panel);margin:8px 0 6px;overflow:hidden}
+.magrid .ma .bar i{display:block;height:100%;border-radius:4px}
+.magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
+.magrid .ma .v span{color:var(--ink-3)}
+.top5grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.top5grid .t5{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:11px 13px}
+.top5grid .t5 .h{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
+.top5grid .t5 .h em{font-style:normal;font-family:var(--mono);color:var(--cyan);font-size:13px}
+.top5grid .t5 .m{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin:4px 0 8px}
+.top5grid .t5 .ls{display:flex;flex-wrap:wrap;gap:4px 8px;font-size:12.5px}
+/* 資金流向頁：期間切換、「怎麼看」說明、估值篩選 */
+.periodbar{background:linear-gradient(180deg,rgba(62,224,255,.07),transparent)}
+.periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
+#periodSeg button{padding:6px 13px;font-size:14px}
+.howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
+  padding:4px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+.howbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.howbtn.on{background:var(--cyan);color:#061018;border-color:var(--cyan);font-weight:700}
+.howtxt{margin:10px 0 2px;padding:11px 14px;border-radius:10px;background:var(--panel-3);
+  border:1px solid var(--line-2);border-left:3px solid var(--cyan);color:var(--ink-2);font-size:13.5px;line-height:1.75}
+.howtxt b{color:var(--ink-1)} .howtxt em{color:var(--cyan);font-style:normal}
+.howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
+.qlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-3)}
+.qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
+.vfilters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px;
+  padding:12px;border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
+.vfilters label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px;white-space:nowrap}
+.vfilters input[type=number]{width:72px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);
+  border-radius:7px;padding:5px 8px;font-family:var(--mono);font-size:13px}
+.vfilters select{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);border-radius:7px;
+  padding:5px 8px;font-size:13px;max-width:190px}
+.vfilters .chk input{accent-color:var(--cyan);width:15px;height:15px}
+.vfilters .vcount{margin-left:auto;color:var(--cyan);font-family:var(--mono);font-size:13px}
 .seg button:hover:not(.on){background:var(--panel-2);color:var(--ink)}
+/* K 線工具：重設縮放的小方框圖示、繪圖工具列、設定浮層 */
+.iconbtn{width:30px;height:30px;display:inline-grid;place-items:center;border:1px solid var(--line-2);
+  background:var(--panel-3);color:var(--ink-2);border-radius:8px;cursor:pointer;padding:0}
+.iconbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+.iconbtn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round}
+.chartwrap{display:flex;gap:8px;align-items:stretch}
+.drawbar{display:flex;flex-direction:column;gap:4px;padding:5px;border:1px solid var(--line-2);
+  border-radius:10px;background:var(--panel-3);align-self:flex-start}
+.dtool{width:28px;height:28px;display:grid;place-items:center;border:1px solid transparent;background:transparent;
+  color:var(--ink-2);border-radius:7px;cursor:pointer;padding:0}
+.dtool svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.dtool:hover{background:var(--panel-2);color:var(--ink)}
+.dtool.on{background:rgba(62,224,255,.14);border-color:var(--cyan);color:var(--cyan)}
+.dcol{width:20px;height:20px;border-radius:5px;border:2px solid transparent;cursor:pointer;margin:0 auto;padding:0}
+.dcol.on{border-color:#e8eeff}
+.dsep{height:1px;background:var(--line-2);margin:3px 2px}
+.chartwrap #chartHost{flex:1;min-width:0}
+.cfgpop{position:absolute;right:18px;z-index:30;margin-top:4px;width:376px;max-width:calc(100vw - 40px);max-height:78vh;overflow-y:auto;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;
+  box-shadow:0 18px 46px rgba(0,0,0,.5)}
+.cfgpop .ttl{font-weight:700;margin-bottom:6px}
+.cfgpop .ttl2{font-weight:600;font-size:13px;color:var(--ink-2);margin:10px 0 4px}
+.cfgpop .frow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.cfgpop .frow label{font-size:13px;color:var(--ink-2);min-width:64px}
+.cfgpop .val{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+.cfgpop input[type=color]{width:30px;height:24px;padding:0;border:1px solid var(--line-2);border-radius:6px;background:none;cursor:pointer}
+.cfgpop input[type=number],.cfgpop select{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
+  border-radius:7px;padding:4px 7px;font-size:13px}
+.cfgpop .note{font-size:12px;color:var(--ink-3);line-height:1.5}
+@media (max-width:760px){.chartwrap{flex-direction:column}.drawbar{flex-direction:row;flex-wrap:wrap;align-self:stretch}.dsep{height:auto;width:1px;margin:2px 3px}}
+.facets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.facets button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:9px;
+  padding:6px 12px;cursor:pointer;font-size:13.5px;display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.25}
+.facets button b{font-weight:700}
+.facets button em{font-style:normal;font-size:11px;color:var(--ink-3);letter-spacing:.02em}
+.facets button:hover{border-color:var(--cyan)}
+.facets button.on{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--ink)}
+.facets button.on em{color:var(--cyan)}
+.hint{margin:0 0 10px;color:var(--ink-3);font-size:12.5px;line-height:1.5}
+tr.whyrow>td{padding:2px 10px 10px;border-top:0}
+.why{display:flex;flex-wrap:wrap;gap:6px}
+.why span{font-size:12px;padding:3px 8px;border-radius:7px;border:1px solid var(--line-2);color:var(--ink-2);
+  background:var(--panel-3);max-width:100%}
+.why span.pro{border-color:rgba(46,229,157,.35);color:#9df0cd}
+.why span.con{border-color:rgba(255,180,84,.35);color:#ffd39a}
 .btn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:7px 13px;border-radius:9px;
   cursor:pointer;font-size:14px}
 .btn:hover{border-color:var(--cyan)}
@@ -153,7 +327,8 @@ a.lk.sm{font-size:12px;font-weight:500}
 .tile .lks a.lk{color:var(--ink-2);font-weight:500}
 .tile.colored{border-left:4px solid var(--c,var(--line-2))}
 .tile.colored.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 1px var(--c) inset}
-.sibs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;padding:6px 0 4px;margin-top:8px}
+/* 同族群一次全部攤開，不要橫向拉 bar（拉 bar 看不到後面有哪些同業，等於沒列） */
+.sibs{display:flex;flex-wrap:wrap;gap:6px;padding:6px 0 4px;margin-top:8px;max-height:200px;overflow-y:auto}
 .sibs a.lk{flex:none;padding:5px 10px;border-radius:9px;background:var(--panel-3);border:1px solid var(--line);font-size:13px}
 .sibs a.lk.cur{border-color:var(--cyan);background:rgba(62,224,255,.12);color:var(--cyan)}
 .sibs a.lk .chg{font-family:var(--mono);font-size:12px;margin-left:4px}
@@ -292,6 +467,17 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
   main{padding-bottom:120px}
   .sibs a.lk{font-size:12.5px}
   .segchip{font-size:12px;padding:4px 9px}
+  /* 手機上沒有一個字可以小於 12px（代號用 .82em 算出來只有 10.25px，手上看不清楚） */
+  .tile .lks{font-size:13px} a.lk .code{font-size:12px} .brand small{font-size:11px}
+  .stageboard{grid-template-columns:1fr 1fr} .stageboard.compact{grid-template-columns:1fr}
+  .cyclebar{font-size:12px} .cyclebar .st{padding:4px 10px;font-size:12.5px}
+  .vfilters{gap:8px 10px;padding:10px} .vfilters .vcount{margin-left:0;width:100%}
+  .magrid{grid-template-columns:1fr} .top5grid{grid-template-columns:1fr}
+  #mktSeg2,#mktTabs{flex-wrap:wrap}
+  /* 剖析圖不要壓成手機寬（viewBox 1200 壓到 360 的話標籤只剩 3px，等於看不到）；改成可以左右滑 */
+  .dgwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .dgwrap svg{width:auto;min-width:940px}
+  .dgwrap.compact svg{max-height:none}
   .evbtn{padding:6px 8px;font-size:13px}
   .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
   .search input{width:130px}
@@ -313,6 +499,7 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
     <button class="tab" data-view="flow">資金流向</button>
     <button class="tab" data-view="industry">產業與個股</button>
     <button class="tab" data-view="themes">題材</button>
+    <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
   </nav>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
@@ -327,34 +514,117 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
   <section class="view" id="v-overview">
     <div class="hero" id="hero"></div>
     <div class="grid g21" style="margin-top:16px">
-      <div class="card"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）；點方塊看成分股</small></h3><div id="heat" class="chart tall"></div></div>
-      <div class="card"><h3>相對輪動 RRG <small>族群相對大盤的位置與方向</small></h3><div id="rrgMini" class="chart tall"></div></div>
+      <div class="card"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
+        <div class="row" style="gap:8px"><button class="btn small" id="heatZoom">放大 ⤢</button>
+        <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
+        <div class="howtxt" id="how-heat" hidden></div>
+        <div class="chainchips" id="heatChips"></div>
+        <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
+        <div class="hpanel" id="heatPanel" hidden></div></div>
+      <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
+        <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-rotm" hidden></div>
+        <div class="zwrap" id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
+        <div class="stageboard compact" id="rotMini"></div></div>
     </div>
     <div class="grid g12" style="margin-top:16px">
       <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip"></div></div>
       <div class="card"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
+        <div class="facets" id="candFacets"></div>
+        <p class="hint" id="candHint"></p>
         <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
         <div class="cards" id="candCards"></div></div>
     </div>
     <div class="grid g3" style="margin-top:16px">
-      <div class="card"><h3>市場寬度</h3><div id="breadth" class="chart short"></div></div>
-      <div class="card"><h3>投信連續買超 <small>≥3 天</small></h3><div id="trust" class="chart short"></div></div>
-      <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3><div id="gval" class="chart short"></div></div>
+      <div class="card"><h3>市場寬度</h3>
+        <div class="zwrap" id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
+      <div class="card"><h3>投信連續買超 <small>≥3 天</small></h3>
+        <div class="zwrap" id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div></div>
+      <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3>
+        <div class="zwrap" id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
+  </section>
+
+  <!-- ================= 市場明細 ================= -->
+  <section class="view" id="v-market">
+    <div class="card periodbar"><div class="row spread">
+      <div><h3 style="margin:0">市場明細</h3><div class="pnote" id="mktNote">總覽上方那幾個數字，這裡是完整名單</div></div>
+      <div class="seg" id="mktSeg2"></div></div></div>
+    <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="mktTitle">—</h3>
+      <button class="howbtn" data-how="mkt">怎麼看 ?</button></div>
+      <div class="howtxt" id="how-mkt" hidden></div>
+      <div id="mktBody"></div></div>
   </section>
 
   <!-- ================= 資金流向 ================= -->
   <section class="view" id="v-flow">
-    <div class="card"><div class="row spread"><h3>相對輪動圖 RRG <small>x＝相對強度、y＝動能；尾巴＝近 10 日軌跡，族群通常順時針繞圈</small></h3>
-      <div class="seg" id="rrgTrail"><button data-v="5">5 日</button><button data-v="10" class="on">10 日</button><button data-v="20">20 日</button></div></div>
-      <div id="rrg" class="chart" style="min-height:560px"></div></div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="card"><h3>資金去向 <small>今日成交值：大盤 → 產業鏈 → 族群 → 代表股</small></h3><div id="sankey" class="chart tall"></div></div>
-      <div class="card"><h3>族群佔比河流 <small>近 60 日成交值佔比</small></h3><div id="river" class="chart tall"></div></div>
+    <!-- 期間切換：整頁的「什麼時候」由這一列決定 -->
+    <div class="card periodbar">
+      <div class="row spread">
+        <div><h3 style="margin:0">看哪一段時間的資金流向</h3><div class="pnote" id="periodNote"></div></div>
+        <div class="seg" id="periodSeg"></div>
+      </div>
     </div>
     <div class="grid g2" style="margin-top:16px">
-      <div class="card"><h3>族群 × 法人 <small>今日三大法人淨買超（張）；點列看成分股</small></h3><div id="instGroups" class="chart tall"></div></div>
-      <div class="card"><h3>資金集中度 <small>前五大族群吃掉多少成交值：上升＝縮圈到主流、下降＝擴散輪動</small></h3><div id="conc" class="chart tall"></div></div>
+      <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
+        <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-rank" hidden></div>
+        <div class="zwrap" id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div></div>
+      <div class="card"><div class="row spread"><h3>名次變化 <small id="bumpSub">近 8 週資金佔比排名</small></h3>
+        <button class="howbtn" data-how="bump">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-bump" hidden></div>
+        <div class="zwrap" id="bumpWrap"><div id="bump" class="chart tall"></div></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
+      <div class="row" style="gap:8px">
+        <div class="seg" id="rotBack"><button data-v="5" class="on">和 5 天前比</button><button data-v="10">10 天</button><button data-v="20">20 天</button></div>
+        <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
+      <div class="howtxt" id="how-rot" hidden></div>
+      <div class="cyclebar" id="rotCycle"></div>
+      <div class="zwrap" id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+      <div class="rotmove" id="rotMove"></div>
+      <div class="stageboard" id="rotBoard"></div></div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><div class="row spread"><h3>資金去向 <small>今日成交值：大盤 → 產業鏈 → 族群 → 代表股</small></h3>
+        <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-sankey" hidden></div>
+        <div class="zwrap" id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
+      <div class="card"><div class="row spread"><h3>族群佔比河流 <small>近 60 日成交值佔比</small></h3>
+        <button class="howbtn" data-how="river">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-river" hidden></div>
+        <div class="zwrap" id="riverWrap"><div id="river" class="chart tall"></div></div></div>
+    </div>
+    <div class="grid g2" style="margin-top:16px">
+      <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
+        <button class="howbtn" data-how="inst">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-inst" hidden></div>
+        <div class="zwrap" id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
+      <div class="card"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
+        <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div>
+        <button class="howbtn" data-how="conc">怎麼看 ?</button></div></div>
+        <div class="howtxt" id="how-conc" hidden></div><div id="conc" class="chart tall"></div></div>
+    </div>
+    <!-- 估值篩選：Andy 要「本益比需要多可篩選功能 全部在一起」 -->
+    <div class="card" style="margin-top:16px">
+      <div class="row spread"><h3>估值篩選 <small id="valSub">本益比／股價淨值比／ROE 一起篩</small></h3>
+        <button class="howbtn" data-how="val">怎麼看 ?</button></div>
+      <div class="howtxt" id="how-val" hidden></div>
+      <div class="vfilters" id="valFilters">
+        <label>族群<select id="vGroup"><option value="">全部</option></select></label>
+        <label>市場<select id="vMarket"><option value="">全部</option><option value="TWSE">上市</option><option value="TPEX">上櫃</option></select></label>
+        <label>本益比<input id="vPeLo" type="number" placeholder="最低" step="1"><span>～</span><input id="vPeHi" type="number" placeholder="最高" step="1"></label>
+        <label>股價淨值比 ≤<input id="vPb" type="number" placeholder="不限" step="0.1"></label>
+        <label>ROE ≥<input id="vRoe" type="number" placeholder="不限" step="1"><span>%</span></label>
+        <label>市值 ≥<input id="vCap" type="number" placeholder="不限" step="10"><span>億</span></label>
+        <label class="chk"><input id="vBelow" type="checkbox">只看低於族群中位</label>
+        <label class="chk"><input id="vProfit" type="checkbox" checked>排除虧損</label>
+        <button class="btn small" id="vReset">清除條件</button>
+        <span class="vcount" id="vCount"></span>
+      </div>
+      <div class="grid g2" style="margin-top:12px">
+        <div id="valScatter" class="chart tall"></div>
+        <div class="tw cap-lg"><table id="valTable"><thead></thead><tbody id="valBody"></tbody></table></div>
+      </div>
     </div>
   </section>
 
@@ -368,8 +638,10 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
 
   <!-- ================= 題材 ================= -->
   <section class="view" id="v-themes">
-    <div class="card"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3><span class="note" id="themeNote"></span></div>
-      <div id="themeMap" class="chart" style="min-height:460px"></div></div>
+    <div class="card"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
+      <div class="row" style="gap:8px"><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
+      <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
+      <div class="hpanel" id="themePanel" hidden></div></div>
     <div id="themeDetail" style="margin-top:16px"></div>
   </section>
 
@@ -405,5 +677,9 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
 <script src="themes3d.js"></script>
 <script src="industry.js"></script>
 <script src="app.js"></script>
+<div class="zoomov" id="zoomOv" hidden>
+  <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div><button class="btn small" id="zoomClose">關閉 ✕</button></div>
+  <div class="zb"><div id="zoomBody" class="chart"></div></div>
+</div>
 </body>
 </html>

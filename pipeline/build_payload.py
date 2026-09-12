@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, indicators
-from .compute import flow, fundamental, mtf, rrg, season, stockpage, technical, themes
+from .compute import flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 from .util import store
 from .util.roc import is_tradable_security, norm_industry
@@ -23,8 +23,13 @@ log = logging.getLogger(__name__)
 
 # 個股頁分層（決策見 DECISIONS #52）：每一檔上市櫃股票都要有頁面，差別只在資料多寡。
 MIN_PAGE_BARS = 60        # 有這麼多日線才算得出指標、SMC 與評分
+CAND_PER_FACET = 300      # candidates.json 每個面向各留這麼多檔（取聯集）
 FULL_PAGE_BARS = 1500     # 有分 K 的那一批給 6 年日線（週／月線在前端合成）
 SLIM_PAGE_BARS = 1000     # 其餘有歷史的股票給 4 年
+# 分 K（Yahoo）給幾檔。族群成分股一定有，其餘照成交值往下補到這個數。
+# 從 150 拉到 400：Andy 回報「1 日以下的週期打開是空的」，大多是他看的股票不在前 150 名。
+# yfinance 每批 40 檔、批間停 1 秒，兩個 interval 共約 20 批，多出來的時間在盤後管線可以接受。
+INTRADAY_LIMIT = 400
 
 
 def _clean(obj):
@@ -251,7 +256,7 @@ def build() -> None:
                                     names=names, markets=markets, fund=fund_rows,
                                     news_df=news_all, broker=bv if not bv.empty else None,
                                     shareholding=sh_all, deep=deep)
-    _write("candidates", cand_rows)
+    _write("candidates", shortlist(cand_rows))
     gdetail = group_detail(price, company, inst, latest, cand_rows, names, markets)
     _write("groups_detail", gdetail)
     heat.update({"breadth": breadth})
@@ -264,11 +269,14 @@ def build() -> None:
             "rrg": rrg.rrg(group_hist, price),
             "sankey": rrg.sankey(today, gdetail),
             "share": rrg.share_series(group_hist),
+            **flow.period_flows(group_hist),
         })
     except Exception as exc:  # noqa: BLE001
         log.warning("資金流向 v3 產出失敗：%s", exc)
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
-                           "share": {"dates": [], "series": []}})
+                           "share": {"dates": [], "series": []},
+                           "periods": [], "bump": {"weeks": [], "series": []},
+                           "bumps": {"week": {"weeks": [], "series": []}, "month": {"weeks": [], "series": []}}})
     try:
         _write("themes", themes.build(price, inst, news_all, names, latest))
     except Exception as exc:  # noqa: BLE001
@@ -365,7 +373,7 @@ def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
 
 def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                company: pd.DataFrame, inst: pd.DataFrame,
-               latest: str, limit: int = 150, *, names: dict | None = None,
+               latest: str, limit: int = INTRADAY_LIMIT, *, names: dict | None = None,
                markets: dict | None = None, fund: list[dict] | None = None,
                news_df: pd.DataFrame | None = None, broker: pd.DataFrame | None = None,
                shareholding: pd.DataFrame | None = None,
@@ -463,6 +471,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
     rows = []
     breadth = {"n": 0, "above_ma20": 0, "above_ma60": 0, "new_high_60": 0, "grade_a": 0, "grade_b": 0}
+    _ma_by_group: dict[str, dict] = {}
+    _new_high: list[str] = []
     for code, g in hist.groupby("code"):
         if len(g) < 60:
             continue
@@ -477,12 +487,21 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         verdict = technical.evaluate(ind, avg_turnover=avg_turnover)
 
         breadth["n"] += 1
+        # 每個統計都順手記下「是哪幾檔」，總覽上方的數字才點得開（Andy：漲跌停要能對應哪些股票）
+        _gi = group_of.get(code, {})
+        _gid = _gi.get("group_id") or "—"
+        _bucket = _ma_by_group.setdefault(_gid, {"group_id": _gid, "group_name": _gi.get("group_name") or "—",
+                                                 "n": 0, "above20": 0, "above60": 0})
+        _bucket["n"] += 1
         if pd.notna(last.get("ma20")) and last["close"] > last["ma20"]:
             breadth["above_ma20"] += 1
+            _bucket["above20"] += 1
         if pd.notna(last.get("ma60")) and last["close"] > last["ma60"]:
             breadth["above_ma60"] += 1
+            _bucket["above60"] += 1
         if last["close"] >= ind["high"].tail(60).max():
             breadth["new_high_60"] += 1
+            _new_high.append(code)
         if verdict["grade"] == "A":
             breadth["grade_a"] += 1
         elif verdict["grade"] == "B":
@@ -525,6 +544,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "turnover": _clean(g["turnover"].iloc[-1]), "avg_turnover": _clean(avg_turnover),
             "stop": verdict["stop"], "tp1": verdict["tp1"], "rr": verdict["rr"],
         }
+        # 四個面向的分數與「為何選它」—— 綜合／籌碼／技術／基本面各自可排序、可篩選
+        inst_code = (inst_hist[inst_hist["code"] == code].sort_values("date").tail(60)
+                     if not inst_hist.empty else None)
+        row.update(_clean(scoring.evaluate(
+            last=last, ind=ind, verdict=verdict, base_tech=tech,
+            inst=inst_code, holders=sh_by_code.get(code),
+            broker=broker_by_code.get(code), fx=fx, avg_turnover=avg_turnover)))
         rows.append(row)
 
         # ---------------- 個股頁
@@ -688,12 +714,88 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
              len(rows), len(intraday_set & written), len(thin_codes))
 
-    rows.sort(key=lambda r: (r["grade"] or "Z", -r["tech_score"]))
+    rows.sort(key=lambda r: (r["grade"] or "Z", -(r.get("score_all") or r["tech_score"])))
     if breadth["n"]:
         breadth["pct_above_ma20"] = round(breadth["above_ma20"] / breadth["n"] * 100, 1)
         breadth["pct_above_ma60"] = round(breadth["above_ma60"] / breadth["n"] * 100, 1)
+    # 站上均線的比例要能拆到族群，不然「56% 站上 MA20」這個數字看完不知道要幹嘛
+    bg = [b for b in _ma_by_group.values() if b["n"] >= 3]
+    for b in bg:
+        b["pct20"] = round(b["above20"] / b["n"] * 100, 1)
+        b["pct60"] = round(b["above60"] / b["n"] * 100, 1)
+    breadth["by_group"] = sorted(bg, key=lambda b: (-b["pct20"], -b["n"]))
+    breadth["movers"] = movers(day, group_of, names, _new_high)
     log.info("個股頁：%d 檔，A 級 %d、B 級 %d", len(rows), breadth["grade_a"], breadth["grade_b"])
     return rows, breadth
+
+
+# 漲停幅度：台股是 ±10%，但成交價要照檔位跳，實際常落在 9.7~10.0 之間，
+# 用 9.5 當門檻比硬比 10% 準（硬比會漏掉一堆真的漲停）。
+LIMIT_PCT = 9.5
+MOVER_TOP = 60
+
+
+def movers(day: pd.DataFrame, group_of: dict, names: dict, new_high: list[str]) -> dict:
+    """今天漲的、跌的、漲停的、跌停的、創新高的分別是哪幾檔。
+
+    總覽上方那排數字（漲/跌家數、站上均線…）要點得開才有用 ——
+    只看到「567 / 1545」沒辦法做任何事，看到是哪些股票才能往下查。
+    """
+    if day is None or day.empty:
+        return {}
+    d = day.copy()
+    d["close"] = pd.to_numeric(d["close"], errors="coerce")
+    d["change"] = pd.to_numeric(d.get("change"), errors="coerce")
+    d["turnover"] = pd.to_numeric(d["turnover"], errors="coerce").fillna(0)
+    prev = d["close"] - d["change"].fillna(0)
+    d["chg_pct"] = np.where(prev > 0, d["change"] / prev * 100, np.nan)
+    d = d[d["code"].map(is_tradable_security) & d["chg_pct"].notna()]
+
+    def _rows(sub: pd.DataFrame, n: int = MOVER_TOP) -> list[dict]:
+        out = []
+        for _, r in sub.head(n).iterrows():
+            gi = group_of.get(r["code"], {})
+            out.append({"code": r["code"], "name": names.get(r["code"], r["code"]),
+                        "close": round(float(r["close"]), 2), "chg_pct": round(float(r["chg_pct"]), 2),
+                        "turnover": float(r["turnover"]),
+                        "group_id": gi.get("group_id"), "group_name": gi.get("group_name")})
+        return out
+
+    up = d[d["chg_pct"] > 0].sort_values("chg_pct", ascending=False)
+    down = d[d["chg_pct"] < 0].sort_values("chg_pct")
+    flat = d[d["chg_pct"] == 0]
+    lu = up[up["chg_pct"] >= LIMIT_PCT]
+    ld = down[down["chg_pct"] <= -LIMIT_PCT]
+    nh = d[d["code"].isin(new_high)].sort_values("turnover", ascending=False)
+    return {
+        "counts": {"up": int(len(up)), "down": int(len(down)), "flat": int(len(flat)),
+                   "limit_up": int(len(lu)), "limit_down": int(len(ld)), "new_high": int(len(new_high))},
+        "limit_up": _rows(lu), "limit_down": _rows(ld),
+        "up": _rows(up), "down": _rows(down),
+        "turnover": _rows(d.sort_values("turnover", ascending=False)),
+        "new_high": _rows(nh),
+    }
+
+
+def shortlist(rows: list[dict], per_facet: int = CAND_PER_FACET) -> list[dict]:
+    """candidates.json 只放前端排得上號的那些，而不是全市場。
+
+    回補跑完後有評分的股票會到兩千檔以上，整包丟給瀏覽器就是好幾 MB。
+    但也不能只照綜合分砍 —— 籌碼特別強、綜合普通的那種正是 Andy 要能篩出來的。
+    所以四個面向各取前 N 名再取聯集，A/B 級一律保留。
+    """
+    keep: dict[str, dict] = {}
+    for r in rows:
+        if r.get("grade") in ("A", "B"):
+            keep[r["code"]] = r
+    for key in ("score_all", "score_chip", "score_tech", "score_fund"):
+        ranked = sorted((r for r in rows if r.get(key) is not None),
+                        key=lambda r: -r[key])[:per_facet]
+        for r in ranked:
+            keep[r["code"]] = r
+    out = list(keep.values())
+    out.sort(key=lambda r: (r["grade"] or "Z", -(r.get("score_all") or 0)))
+    return out
 
 
 def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,

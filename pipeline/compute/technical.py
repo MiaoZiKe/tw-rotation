@@ -24,6 +24,8 @@ log = logging.getLogger(__name__)
 
 MIN_TURNOVER = 3e7          # 日均成交值 < 3000 萬：出不掉，不要碰
 ZONE_MIN_SCORE = 3.0
+MAX_ZONE_PCT = 4.0          # 單一支撐壓力區間最寬 = 價格的 4%（再寬就不是「區間」是「一段走勢」）
+MIN_ZONE_PCT = 1.2          # 低價股的下限，不然 4% 太窄合不出東西
 MAX_RISK_PCT = 8.0
 MIN_RISK_PCT = 2.0
 
@@ -35,19 +37,30 @@ class Zone:
     score: float
     sources: list[str] = field(default_factory=list)
     kind: str = ""          # demand / supply
+    since: str | None = None    # 這個區間從哪一根開始成立（前端從那裡往右畫）
 
     @property
     def mid(self) -> float:
         return (self.low + self.high) / 2
 
+    @property
+    def width_pct(self) -> float:
+        return (self.high - self.low) / self.mid * 100 if self.mid else 0.0
+
 
 # ------------------------------------------------------------------ 支撐壓力
 
 def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[dict]:
-    """收集各來源的候選區間，每個帶 {low, high, kind, weight, age}。"""
+    """收集各來源的候選區間，每個帶 {low, high, kind, weight, age, at}。
+
+    `at` 是這個來源形成的那一根的日期，前端用它決定區間從哪裡開始畫 ——
+    支撐壓力是「從那根之後才存在」，不是憑空浮在圖右邊（Andy 2026-09-12 回報）。
+    """
     tail = df.tail(lookback)
     n = len(df)
     close = float(df["close"].iloc[-1])
+    dates = df["date"].astype(str).tolist() if "date" in df else []
+    at_of = (lambda i: dates[i] if 0 <= i < len(dates) else None)
     out = []
 
     # Order Block：只留尚未被收盤價穿透的
@@ -63,8 +76,9 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
             mitigated = (after < lo).any() if side == "demand" else (after > hi).any()
             if mitigated:
                 continue
+            pos = df.index.get_loc(idx)
             out.append({"low": lo, "high": hi, "kind": "OB", "weight": 2.0,
-                        "age": n - 1 - df.index.get_loc(idx)})
+                        "age": n - 1 - pos, "at": at_of(pos)})
 
     # 前波擺動點 ±0.3 ATR
     for col, side in (("swing_low", "demand"), ("swing_high", "supply")):
@@ -72,22 +86,23 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
             continue
         for idx, r in tail[tail[col].fillna(False)].iterrows():
             px = r["low"] if side == "demand" else r["high"]
+            pos = df.index.get_loc(idx)
             out.append({"low": px - 0.3 * atr_val, "high": px + 0.3 * atr_val,
                         "kind": "前波" + ("低點" if side == "demand" else "高點"),
-                        "weight": 1.5, "age": n - 1 - df.index.get_loc(idx)})
+                        "weight": 1.5, "age": n - 1 - pos, "at": at_of(pos)})
 
     # 成交量密集區
     if "volume" in df.columns:
         for vp in ind.volume_profile(df["high"], df["low"], df["volume"], lookback=lookback):
             out.append({"low": vp["low"], "high": vp["high"], "kind": "量能密集",
-                        "weight": 1.5, "age": 0})
+                        "weight": 1.5, "age": 0, "at": at_of(max(0, n - lookback))})
 
     # 均線動態帶
     for col in ("ma60", "ma120"):
         v = df[col].iloc[-1] if col in df else np.nan
         if pd.notna(v):
             out.append({"low": v - 0.25 * atr_val, "high": v + 0.25 * atr_val,
-                        "kind": col.upper(), "weight": 1.0, "age": 0})
+                        "kind": col.upper(), "weight": 1.0, "age": 0, "at": None})
 
     # 未回補 FVG
     for col_flag, side in (("fvg_bull", "demand"), ("fvg_bear", "supply")):
@@ -102,8 +117,9 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
                 else (after["high"] >= hi).iloc[1:].any()
             if filled:
                 continue
+            pos = df.index.get_loc(idx)
             out.append({"low": lo, "high": hi, "kind": "FVG", "weight": 0.8,
-                        "age": n - 1 - df.index.get_loc(idx)})
+                        "age": n - 1 - pos, "at": at_of(pos)})
 
     # 整數關卡：現價上下 15% 內的 10/50/100 倍數
     step = 100 if close >= 500 else (50 if close >= 100 else 10)
@@ -112,7 +128,7 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
     while k <= hi_bound:
         if k > 0:
             out.append({"low": k * 0.997, "high": k * 1.003, "kind": "整數關卡",
-                        "weight": 0.5, "age": 0})
+                        "weight": 0.5, "age": 0, "at": None})
         k += step
     return out
 
@@ -126,8 +142,11 @@ def sr_zones(df: pd.DataFrame, atr_val: float, lookback: int = 120,
     cands = sorted(_candidates(df, atr_val, lookback), key=lambda c: c["low"])
     merged: list[dict] = []
     tol = 0.5 * atr_val
-    # 單一區間最寬 2×ATR：鄰接候選會一路鏈下去，不設上限會合併成一整段走勢
-    max_width = 2.0 * atr_val
+    # 單一區間的最大寬度。原本只用 2×ATR，但 ATR 是絕對值 ——
+    # 1,675 元、ATR 90 的台達電會合出 1627–1807 這種 11% 寬的「區間」，
+    # 畫在圖上就是一大片紅，看不出支撐壓力在哪（Andy 2026-09-12 回報「SMC 圖太奇怪」）。
+    # 改成同時受 ATR 與「佔價格的百分比」約束，並給低價股一個下限。
+    max_width = max(close * MIN_ZONE_PCT / 100, min(2.0 * atr_val, close * MAX_ZONE_PCT / 100))
     for c in cands:
         if merged and c["low"] <= merged[-1]["high"] + tol and \
                 (max(merged[-1]["high"], c["high"]) - min(merged[-1]["low"], c["low"])) <= max_width:
@@ -135,23 +154,42 @@ def sr_zones(df: pd.DataFrame, atr_val: float, lookback: int = 120,
             m["low"], m["high"] = min(m["low"], c["low"]), max(m["high"], c["high"])
             m["score"] += c["weight"] * (decay ** c["age"])
             m["sources"].append(c["kind"])
+            if c.get("at") and (m["at"] is None or c["at"] < m["at"]):
+                m["at"] = c["at"]
         else:
             merged.append({"low": c["low"], "high": c["high"],
                            "score": c["weight"] * (decay ** c["age"]),
-                           "sources": [c["kind"]]})
-    zones = [Zone(m["low"], m["high"], m["score"], sorted(set(m["sources"])))
+                           "sources": [c["kind"]], "at": c.get("at")})
+    zones = [Zone(m["low"], m["high"], m["score"], sorted(set(m["sources"])), since=m["at"])
              for m in merged if m["score"] >= ZONE_MIN_SCORE and len(set(m["sources"])) >= 2]
     # 依「離現價的距離」排序，不是依分數：停損與目標都要用最近的那個區間。
     # 分數只負責決定要不要顯示（≥3 的門檻）。
     # 用區間中點分類：價格「在區間裡面」是最重要的情境（回檔承接就是這樣），
     # 若用上下緣判斷，跨越現價的區間會兩邊都被丟掉
-    demand = sorted([z for z in zones if z.mid <= close], key=lambda z: -z.high)[:2]
-    supply = sorted([z for z in zones if z.mid > close], key=lambda z: z.low)[:2]
+    demand = _dedup(sorted([z for z in zones if z.mid <= close], key=lambda z: -z.high))
+    supply = _dedup(sorted([z for z in zones if z.mid > close], key=lambda z: z.low))
     for z in demand:
         z.kind = "demand"
     for z in supply:
         z.kind = "supply"
     return demand, supply
+
+
+def _dedup(zones: list[Zone], limit: int = 2) -> list[Zone]:
+    """同一側的區間不可以互相重疊 —— 疊在一起畫出來就是一大片色塊。
+
+    合併迴圈只跟「上一個」比，被 max_width 擋下來後開新區間時，
+    新區間仍可能跟上一個重疊（1627–1807 與 1762–1935 就是這樣來的）。
+    這裡照排序把重疊的後者丟掉，只留離現價較近的那個。
+    """
+    out: list[Zone] = []
+    for z in zones:
+        if any(z.low < k.high and z.high > k.low for k in out):
+            continue
+        out.append(z)
+        if len(out) >= limit:
+            break
+    return out
 
 
 # ------------------------------------------------------------------ 週線
@@ -356,9 +394,11 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
         "rr": round(float(rr), 2) if np.isfinite(rr) else None,
         "risk_pct": round(float(risk_pct), 2) if np.isfinite(risk_pct) else None,
         "demand": [{"low": round(z.low, 2), "high": round(z.high, 2), "score": round(z.score, 2),
-                    "sources": z.sources} for z in demand],
+                    "sources": z.sources, "since": z.since,
+                    "width_pct": round(z.width_pct, 2)} for z in demand],
         "supply": [{"low": round(z.low, 2), "high": round(z.high, 2), "score": round(z.score, 2),
-                    "sources": z.sources} for z in supply],
+                    "sources": z.sources, "since": z.since,
+                    "width_pct": round(z.width_pct, 2)} for z in supply],
         "weekly": weekly, "exclusions": exclusions,
         "signals": {
             "trend": int(last.get("trend") or 0), "ma_align": int(last.get("ma_align") or 0),

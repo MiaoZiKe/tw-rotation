@@ -43,8 +43,11 @@ def market_index(price: pd.DataFrame, days: int = 160) -> pd.Series:
     return (1 + w).cumprod()
 
 
-def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 10,
+def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 20,
         min_share: float = 0.3) -> dict:
+    """trail 是「存下來的軌跡長度」，不是前端一定要畫滿的長度。
+    前端有 5／10／20 日三顆鈕，只存 10 天的話按 20 日等於沒反應（使用者會以為壞了），
+    所以這裡一律存到前端最長的那個選項。"""
     if group_hist is None or group_hist.empty:
         return {"points": [], "date": None}
     g = group_hist.sort_values("date").copy()

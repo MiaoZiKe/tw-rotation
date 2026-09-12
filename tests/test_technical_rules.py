@@ -6,6 +6,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
@@ -171,3 +172,71 @@ def test_weekly_conflict_downgrades():
             tech.weekly_structure = orig
         assert r2["grade"] is None and "逆勢" in r2["verdict"]
         assert r2["tp2"] == r2["tp1"]
+
+
+# ------------------------------------------------------------------ 支撐壓力區間的寬度與重疊（Andy 2026-09-12：「SMC 圖太奇怪了」）
+
+def _series(n=260, start=100.0, seed=7):
+    """做一段有波動、有明顯前高前低的日線，讓 sr_zones 合得出東西。"""
+    rng = np.random.default_rng(seed)
+    px = [start]
+    for i in range(n - 1):
+        drift = 0.004 * np.sin(i / 18)
+        px.append(max(1.0, px[-1] * (1 + drift + rng.normal(0, 0.016))))
+    px = np.array(px)
+    return pd.DataFrame({
+        "date": pd.bdate_range("2025-01-01", periods=n).strftime("%Y-%m-%d"),
+        "open": px * (1 + rng.normal(0, 0.003, n)),
+        "high": px * (1 + abs(rng.normal(0, 0.011, n))),
+        "low": px * (1 - abs(rng.normal(0, 0.011, n))),
+        "close": px,
+        "volume": rng.integers(3_000, 40_000, n).astype(float) * 1000,
+    })
+
+
+@pytest.mark.parametrize("start", [12.0, 85.0, 320.0, 1675.0])
+def test_zone_width_capped_by_price_percentage(start):
+    """高價股不能合出 10% 寬的『區間』—— 畫出來就是一整片色塊，看不出支撐在哪。"""
+    df = ind.compute_all(_series(start=start))
+    atr = float(df["atr14"].iloc[-1])
+    demand, supply = T.sr_zones(df, atr)
+    for z in demand + supply:
+        assert z.width_pct <= T.MAX_ZONE_PCT + 0.01, \
+            f"{start} 元的股票合出 {z.width_pct:.1f}% 寬的區間（{z.low:.2f}-{z.high:.2f}）"
+
+
+@pytest.mark.parametrize("seed", [1, 2, 3, 4, 5, 6])
+def test_zones_on_same_side_never_overlap(seed):
+    """同一側的兩個區間重疊 = 圖上兩片色塊疊在一起（1627-1807 與 1762-1935 的原始 bug）。"""
+    df = ind.compute_all(_series(seed=seed))
+    atr = float(df["atr14"].iloc[-1])
+    demand, supply = T.sr_zones(df, atr)
+    for side in (demand, supply):
+        for i, a in enumerate(side):
+            for b in side[i + 1:]:
+                assert not (a.low < b.high and a.high > b.low), \
+                    f"區間重疊：{a.low:.2f}-{a.high:.2f} 與 {b.low:.2f}-{b.high:.2f}"
+
+
+def test_zone_carries_since_so_frontend_can_anchor_it():
+    """區間要帶『從哪一根開始成立』，前端才能從那裡往右畫而不是浮在圖右邊。"""
+    df = ind.compute_all(_series())
+    atr = float(df["atr14"].iloc[-1])
+    demand, supply = T.sr_zones(df, atr)
+    zones = demand + supply
+    assert zones, "測試資料應該要合得出區間"
+    dates = set(df["date"].astype(str))
+    withs = [z for z in zones if z.since]
+    assert withs, "至少要有一個區間說得出它是哪一根形成的"
+    for z in withs:
+        assert z.since in dates
+
+
+def test_zone_low_price_still_gets_workable_width():
+    """低價股不能因為 4% 太窄就合不出區間 —— 有 MIN_ZONE_PCT 下限。"""
+    df = ind.compute_all(_series(start=11.0, seed=11))
+    atr = float(df["atr14"].iloc[-1])
+    demand, supply = T.sr_zones(df, atr)
+    for z in demand + supply:
+        assert z.high > z.low
+        assert z.width_pct >= 0

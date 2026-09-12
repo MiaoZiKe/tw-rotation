@@ -33,7 +33,7 @@
     show(true, false, false); crumbs([{ label: '產業地圖' }]);
     if (!im || !im.chains) { $('#indMap').innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     const el = $('#indMap');
-    el.innerHTML = `<div class="card"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）；點產業鏈進入單一鏈，點族群直接看成分股</small></h3><div id="indTree" class="chart" style="min-height:520px"></div></div>
+    el.innerHTML = `<div class="card"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）；點產業鏈進入單一鏈，點族群直接看成分股</small></h3><div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:520px"></div></div></div>
       <div class="grid g2" style="margin-top:16px"><div class="card"><h3>產業鏈總覽 <small>本益比為族群中位數（同族群才比）</small></h3><div class="tiles" id="chainTiles"></div></div>
       <div class="card"><h3>法定產業別 <small>沒被歸入題材族群的公司依證交所產業別歸戶</small></h3><div class="tiles" id="indTiles"></div></div></div>`;
     const data = im.chains.map(c => ({ name: c.name, cid: c.id, children: c.groups.map(g => ({ name: g.name, value: g.turnover || 1, gid: g.id, chg: g.chg_pct, share: g.turnover_share, pe: g.valuation && g.valuation.median, n: g.n, itemStyle: { color: A.chgColor(g.chg_pct, 3) } })) }));
@@ -42,6 +42,7 @@
         label: { formatter: p => `${p.name}\n${A.fmt.pct(p.data.chg)}`, fontSize: 13, color: '#fff', textShadowColor: '#000', textShadowBlur: 4 },
         upperLabel: { show: true, height: 26, color: '#e8eeff', fontSize: 13, fontWeight: 700, backgroundColor: 'rgba(0,0,0,.3)' },
         itemStyle: { borderColor: '#0b1224', borderWidth: 2, gapWidth: 2 }, levels: [{ itemStyle: { borderWidth: 4, gapWidth: 4 }, upperLabel: { show: true } }, { itemStyle: { gapWidth: 1 } }], data }] });
+    A.wheelZoom($('#indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom($('#indTree')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } });
     $('#chainTiles').innerHTML = im.chains.map(ch => { const pes = ch.groups.map(g => g.valuation && g.valuation.median).filter(Boolean); const chg = wavg(ch.groups); return `<div class="tile" onclick="location.hash='#industry/${ch.id}'"><div class="t">${ch.name}</div><div class="m">${ch.groups.length} 個族群 · ${ch.groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</div><div class="v"><span class="${A.fmt.cls(chg)}">${A.fmt.pct(chg)}</span> <small style="font-size:12px;color:var(--ink-3)">PE 中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</small></div></div>`; }).join('');
     $('#indTiles').innerHTML = im.industries.slice(0, 18).map(g => `<div class="tile" onclick="location.hash='#industry/group/${g.id}'"><div class="t">${g.name}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%</div><div class="v ${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</div></div>`).join('');
@@ -113,23 +114,32 @@
       $$('#memberTable th', el).forEach(th => th.onclick = () => { sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 }; renderMembers(); });
       $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => { if (tr.dataset.code) A.goStock(tr.dataset.code); });
     };
-    const syncHighlight = () => {
-      const segsOn = segFilter ? [segFilter] : (state.group ? (A.L.gsegs[state.group] || []) : []);
-      const color = segFilter ? segColor(segFilter) : (state.group ? A.L.gcolor[state.group] : null);
+    /* 點剖析圖上的零件只做「亮起來 + 在原地說明這個環節」，
+       不捲動、也不動下面的成分股表 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
+       要真的篩成分股，用下面的環節晶片、族群卡片，或說明框裡那顆按鈕。 */
+    let segHi = null;
+    const syncHighlight = (opt) => {
+      const o = opt || {};
+      const shown = segFilter || segHi;
+      const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
+      const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
       highlightSegments(el, segsOn, color);
-      if (segFilter) scrollChainTo(el, segFilter);
+      if (segFilter && !o.quiet) scrollChainTo(el, segFilter);
       $$('#groupCards .tile', el).forEach(t => t.classList.toggle('sel', !!state.group && t.dataset.gid === state.group || (!!segFilter && (A.L.sgroups[segFilter] || []).includes(t.dataset.gid))));
       $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
-      renderSegBox($('#segBox', el), sc, segFilter, ch);
-      renderMembers();
+      renderSegBox($('#segBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
+        segFilter = shown; segHi = null; state.group = null; syncHighlight();
+      } });
+      if (!o.quiet) renderMembers();
     };
-    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; syncHighlight(); });
-    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; state.group = null; syncHighlight(); });
+    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; syncHighlight(); });
+    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
-      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segFilter = segFilter === seg ? null : seg; state.group = null; syncHighlight(); } });
-      wireDiagram(el, (seg) => { segFilter = segFilter === seg ? null : seg; state.group = null; syncHighlight(); });
+      A.wheelZoom($('#prodDiagram', el));
+      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
+      wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
       const animBtn = $('#dgAnim', el); if (animBtn) animBtn.onclick = () => { const on = $('#prodDiagram', el).classList.toggle('noanim'); animBtn.textContent = on ? '動畫：關' : '動畫：開'; try { localStorage.setItem('tw.dganim', on ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       try { if (localStorage.getItem('tw.dganim') === '0') { $('#prodDiagram', el).classList.add('noanim'); animBtn.textContent = '動畫：關'; } } catch (e) { /* 忽略 */ }
     }
@@ -139,15 +149,20 @@
   // 市場別一律以全市場索引（stocks.json）為準：groups_detail 的 market 欄位常常是空的
   const marketOf = (r) => String(A.L.cmarket[r.code] || r.market || '').toUpperCase() || null;
 
-  function renderSegBox(box, sc, seg, ch) {
+  function renderSegBox(box, sc, seg, ch, opt) {
     if (!box) return;
     if (!seg || !sc) { box.innerHTML = ''; return; }
+    const o = opt || {};
     const tw = twOf(sc, seg), fo = foreignOf(sc, seg), gids = A.L.sgroups[seg] || [];
     const s = sc.segments.find(x => x.id === seg) || {};
-    box.innerHTML = `<div class="segbox" style="--c:${segColor(seg)}"><b class="t">${A.fmt.esc(s.name || seg)}</b> <span class="muted">${s.desc ? A.fmt.esc(s.desc) : ''}</span>
+    box.innerHTML = `<div class="segbox" style="--c:${segColor(seg)}"><div class="row spread">
+        <div><b class="t">${A.fmt.esc(s.name || seg)}</b> <span class="muted">${s.desc ? A.fmt.esc(s.desc) : ''}</span></div>
+        <button class="btn small" id="segOnly">${o.filtered ? '已套用到下方成分股' : '只看這個環節的成分股 →'}</button></div>
       <div class="row"><span class="muted">台股</span>${tw.length ? tw.map(c => A.L.stock(c.tw_code, c.name)).join('') : '<span class="muted">沒有直接對應的台股</span>'}</div>
       ${fo.length ? `<div class="row"><span class="muted">外商</span>${fo.map(c => `<span class="pill" title="${A.fmt.esc((c.tech || []).join('、'))}">${A.fmt.esc(c.name)}</span>`).join('')}</div>` : ''}
       ${gids.length ? `<div class="row"><span class="muted">相關族群</span>${gids.map(g => A.L.group(g)).join('')}</div>` : ''}</div>`;
+    const btn = $('#segOnly', box);
+    if (btn) { btn.disabled = !!o.filtered; if (o.onFilter && !o.filtered) btn.onclick = o.onFilter; }
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -222,7 +237,13 @@
     const pg = await A.load('stock/' + code, { fallback: null });
     if (!pg) {
       const known = (A.L.all || []).find(x => x.code === code);
-      $('#stockPage').innerHTML = `<div class="card"><div class="empty">${known ? `${A.fmt.esc(known.name || '')} ${code} 的個股頁還沒產生，下一次盤後更新就會出現。` : `找不到代號 ${A.fmt.esc(code)}（上市櫃普通股才有個股頁，權證／期貨不列入）。`}<br><br>${A.L.back()}</div></div>`;
+      // 頁面真的沒產生時，至少把手上有的資訊給出來，並指出去哪裡看得到它
+      const gl = known && known.group_id ? A.L.group(known.group_id) : '';
+      $('#stockPage').innerHTML = `<div class="card"><div class="empty">${known
+        ? `<b>${A.fmt.esc(known.name || '')} ${code}</b>${known.market ? `（${A.fmt.esc(known.market)}）` : ''} 的個股頁這一輪還沒產生。<br>
+           個股頁需要至少 60 根日線才算得出指標與評分；這檔的歷史價量還在回補，<b>下一次盤後更新（每個交易日）就會出現</b>。
+           ${gl ? `<br><br>先看它所屬的族群：${gl}` : ''}`
+        : `找不到代號 ${A.fmt.esc(code)}（上市櫃普通股才有個股頁，權證／期貨／指數不列入）。`}<br><br>${A.L.back()}</div></div>`;
       $('#indChain').innerHTML = ''; crumbs([{ label: '產業地圖', href: '#industry' }, { label: code }]); return;
     }
     const m = pg.meta, s = pg.summary || {};
@@ -249,15 +270,24 @@
           <div class="verdict" style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
         </div>
         <div class="toolbar" style="margin-top:14px">
-          <div class="seg" id="tfSeg">${['15m', '60m', '240m', '1d', '1w', '1M'].map(tf => `<button data-tf="${tf}" class="${tf === state.tf ? 'on' : ''}">${({ '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' })[tf]}</button>`).join('')}</div>
+          <div class="seg" id="tfSeg">${tfButtons()}</div>
+          <button class="btn small" id="tfAdd" title="自訂時間週期">＋</button>
           <div id="indChips" class="row" style="gap:6px"></div>
           <div class="sp"></div>
+          <button class="btn small" id="cfgBtn" title="圖表設定：線寬、均線、顏色">⚙ 設定</button>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
-          <button class="btn small" id="fitBtn" title="雙擊價格軸也可以">重設縮放</button>
+          <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
+            <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
-        <div id="chartHost"></div>
+        <div class="chartwrap">
+          <div class="drawbar" id="drawBar"></div>
+          <div id="chartHost"></div>
+        </div>
+        <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。</div>
+        <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。
+          <b>週期鈕上被劃掉的＝這檔沒有那個週期的資料</b>，滑鼠移上去會說原因。</div>
+        <div class="note" style="margin-top:4px">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞）。</div>
       </div>
       <div class="card" style="margin-top:16px" id="mtfCard"></div>
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '新聞 / 券商']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
@@ -292,6 +322,7 @@
     if (hasDiagram && sc) {
       const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       paintDiagram($('#prodDiagram', el));
+      A.wheelZoom($('#prodDiagram', el));
       drawChainMap($('#chainMap', el), sc, cid, im, { onSelect: (c2) => { if (c2.tw_code) A.goStock(c2.tw_code); }, onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
       highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
       wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
@@ -301,13 +332,61 @@
   }
 
   // ---------------------------------------------------------------- K 線面板
-  const DEFAULT_CFG = { ma: [5, 20, 60, 120], boll: null, vol: true, volma: 20, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 }, rsi: null, smc: true, marks: true, lines: true };
+  const DEFAULT_CFG = { ma: [5, 20, 60, 120], maColor: [], maWidth: [], lineWidth: 1,
+    boll: null, vol: true, volma: 20, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 },
+    rsi: null, smc: true, marks: true, lines: true, tfs: null,
+    // 每個指標的顏色／線寬／透明度；zone 是 SMC 供需區的填色濃度與框線
+    st: {}, zone: null };
+  // 設定面板要列出來的指標樣式（key、標題、幾個顏色、顏色的名字）
+  const STYLE_ROWS = [
+    ['boll', 'BOLL 通道', ['c'], ['線']],
+    ['vol', '成交量', ['c', 'c2'], ['漲', '跌']],
+    ['kd', 'KD', ['c', 'c2'], ['K', 'D']],
+    ['macd', 'MACD', ['c', 'c2'], ['DIF', 'MACD']],
+    ['rsi', 'RSI', ['c'], ['線']],
+  ];
+  const STYLE_DEF = {
+    boll: { c: '#b39dff' }, vol: { c: '#ff4d6d', c2: '#2ee59d', o: 55 },
+    kd: { c: '#3ee0ff', c2: '#ffd166' }, macd: { c: '#3ee0ff', c2: '#ffd166' }, rsi: { c: '#c3ff5b' },
+  };
+  // 內建週期＋使用者自訂的（nD = N 日合成、nW = N 週合成；分 K 只能用抓得到的那幾檔）
+  const TF_BUILTIN = ['15m', '60m', '240m', '1d', '1w', '1M'];
+  const TF_NAME = { '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
+  const tfLabel = (tf) => TF_NAME[tf] || (/^\d+D$/.test(tf) ? tf.replace('D', ' 日') : /^\d+W$/.test(tf) ? tf.replace('W', ' 週') : tf);
+  function tfList() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
+  function tfButtons() { return tfList().map(tf => `<button data-tf="${tf}" class="${tf === state.tf ? 'on' : ''}">${tfLabel(tf)}</button>`).join(''); }
+  /* 哪些週期這檔真的有資料：沒有的直接在按鈕上劃掉並寫清楚原因。
+     Andy 回報「K 線圖 1 日以下都不見」—— 其實按鈕在，是那檔沒有分 K，
+     但按下去才看到一行字，等於要用猜的。現在光看按鈕就知道哪些看得到。 */
+  function markTf(pg) {
+    $$('#tfSeg button').forEach(b => {
+      const tf = b.dataset.tf;
+      const has = (barsFor(pg, tf) || []).length >= 5;
+      b.classList.toggle('off', !has);
+      b.title = has ? '' : (/m$/.test(tf)
+        ? `${pg.meta.name} 沒有分 K：分 K 每天只跟 Yahoo 抓族群成分股與成交值前 400 名，這檔不在名單內。日線／週線／月線正常。`
+        : '這個週期的資料還在回補');
+    });
+  }
   function loadCfg() { try { const s = localStorage.getItem('tw.kcfg'); if (s) return Object.assign({}, DEFAULT_CFG, JSON.parse(s)); } catch (e) { /* 忽略 */ } return Object.assign({}, DEFAULT_CFG); }
   function saveCfg(c) { try { localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch (e) { /* 忽略 */ } }
+  // N 根合成一根（自訂 N 日 / N 週用）
+  function groupBars(bars, n) {
+    const out = [];
+    for (let i = 0; i < bars.length; i += n) {
+      const g = bars.slice(i, i + n); if (!g.length) continue;
+      out.push([g[g.length - 1][0], g[0][1], Math.max(...g.map(b => b[2])), Math.min(...g.map(b => b[3])),
+        g[g.length - 1][4], g.reduce((s, b) => s + (b[5] || 0), 0)]);
+    }
+    return out;
+  }
   function barsFor(pg, tf) {
-    if (tf === '1d') return pg.daily && pg.daily.length ? pg.daily : pg.ohlcv;
-    if (tf === '1w') return KUtil.resampleDaily(pg.daily || pg.ohlcv, 'W');
-    if (tf === '1M') return KUtil.resampleDaily(pg.daily || pg.ohlcv, 'M');
+    const daily = pg.daily && pg.daily.length ? pg.daily : pg.ohlcv;
+    if (tf === '1d') return daily;
+    if (tf === '1w') return KUtil.resampleDaily(daily, 'W');
+    if (tf === '1M') return KUtil.resampleDaily(daily, 'M');
+    let m = /^(\d+)D$/.exec(tf); if (m) return groupBars(daily || [], +m[1]);
+    m = /^(\d+)W$/.exec(tf); if (m) return groupBars(KUtil.resampleDaily(daily || [], 'W'), +m[1]);
     return (pg.intraday && pg.intraday[tf]) || [];
   }
   function zonesFor(pg, tf) { const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf]; if (t) return [...t.demand, ...t.supply].map(z => ({ ...z, tf: t.label })); if (tf === '1d' && pg.verdict) return [...(pg.verdict.demand || []).map(z => ({ ...z, kind: 'demand' })), ...(pg.verdict.supply || []).map(z => ({ ...z, kind: 'supply' }))]; return []; }
@@ -338,22 +417,30 @@
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
       if (state.mtfMode) { host.innerHTML = `<div class="mtf-grid" id="mtfGrid"></div>`; buildMtfGrid(pg); return; }
       host.innerHTML = `<div id="lwc"><div class="legend-ov" id="legendOv"></div></div>`;
-      kchart = new KChart($('#lwc'), { tf: state.tf });
+      kchart = new KChart($('#lwc'), { tf: state.tf, onText: () => window.prompt('文字內容', '') });
       apply();
+      enableDraw(pg);
     };
     const apply = () => {
-      if (!kchart) return;
+      const box = $('#lwc'); if (!box) return;
       const bars = barsFor(pg, state.tf);
       if (!bars || bars.length < 5) {
         const why = pg.meta.tier === 'thin' ? (pg.note || '歷史價量還在回補')
           : /m$/.test(state.tf) ? '這檔沒有分 K（只有族群成分股與成交值前段會抓 Yahoo 分 K）；日線／週線／月線可以正常看'
           : '這個週期尚無資料';
-        $('#lwc').innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`; kchart = null; return;
+        if (kchart) { kchart.destroy(); kchart = null; }
+        box.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`; return;
       }
-      if (!$('#legendOv')) { $('#lwc').innerHTML = '<div class="legend-ov" id="legendOv"></div>'; kchart = new KChart($('#lwc'), { tf: state.tf }); }
+      // 上一個週期沒資料時圖被拆掉了，換回有資料的週期要重建（不重建的話會整張空白到重新整理為止）
+      if (!kchart || !$('#legendOv')) {
+        if (kchart) { kchart.destroy(); kchart = null; }
+        box.innerHTML = '<div class="legend-ov" id="legendOv"></div>';
+        kchart = new KChart(box, { tf: state.tf, onText: () => window.prompt('文字內容', '') });
+        enableDraw(pg);
+      }
       kchart.setBars(bars, state.tf);
       kchart.applyIndicators(cfg);
-      kchart.setZones(cfg.smc ? zonesFor(pg, state.tf) : []);
+      kchart.setZones(cfg.smc ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
       kchart.setMarkers(cfg.marks ? marksFor(pg, state.tf) : {});
       const v = pg.verdict || {};
       kchart.setPriceLines(cfg.lines && state.tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
@@ -377,11 +464,154 @@
         kchart.setPaneLabels(pl);
       };
       show(null); kchart.onCrosshair(show);
+      // 手繪線是「每檔每週期一組」，換週期要換一組，不然會畫到上一個週期的檔案裡
+      if (kchart.draw && kchart.draw.key !== `tw.draw.${pg.meta.code}.${state.tf}`) enableDraw(pg);
     };
-    $$('#tfSeg button').forEach(b => b.onclick = () => { $$('#tfSeg button').forEach(x => x.classList.toggle('on', x === b)); state.tf = b.dataset.tf; if (state.mtfMode) build(); else apply(); });
+    // ---- 時間週期（含自訂）
+    const wireTf = () => $$('#tfSeg button').forEach(b => {
+      b.onclick = () => { $$('#tfSeg button').forEach(x => x.classList.toggle('on', x === b)); state.tf = b.dataset.tf; if (state.mtfMode) build(); else apply(); };
+      b.oncontextmenu = (e) => { // 自訂的週期按右鍵可以移除
+        if (TF_BUILTIN.includes(b.dataset.tf)) return;
+        e.preventDefault();
+        cfg.tfs = (cfg.tfs || []).filter(t => t !== b.dataset.tf); saveCfg(cfg);
+        if (state.tf === b.dataset.tf) state.tf = '1d';
+        $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
+      };
+    });
+    wireTf(); markTf(pg);
+    $('#tfAdd').onclick = () => {
+      const pop = $('#cfgPop');
+      pop.hidden = false;
+      pop.innerHTML = `<div class="ttl">自訂時間週期</div>
+        <div class="note">用日線合成，例如 3 日＝三根日線併一根；週線同理。輸入後按加入，按鈕上按右鍵可移除。</div>
+        <div class="row" style="margin-top:8px"><input id="tfN" type="number" min="2" max="60" value="3" style="width:64px">
+        <select id="tfU"><option value="D">日</option><option value="W">週</option></select>
+        <button class="btn small primary" id="tfOk">加入</button><button class="btn small" id="tfNo">關閉</button></div>`;
+      $('#tfOk').onclick = () => {
+        const n = Math.max(2, Math.min(60, +$('#tfN').value || 3)), u = $('#tfU').value;
+        const id = n + u;
+        cfg.tfs = [...new Set([...(cfg.tfs || []), id])].slice(0, 6); saveCfg(cfg);
+        state.tf = id; pop.hidden = true; $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
+      };
+      $('#tfNo').onclick = () => { pop.hidden = true; };
+    };
+
+    // ---- 圖表設定：線寬、均線條數／週期／顏色／粗細
+    $('#cfgBtn').onclick = () => {
+      const pop = $('#cfgPop');
+      if (!pop.hidden && pop.dataset.kind === 'style') { pop.hidden = true; return; }
+      pop.hidden = false; pop.dataset.kind = 'style';
+      const mas = cfg.ma || [];
+      const zn = Object.assign({}, KUtil.ZONE_DEF, cfg.zone || {});
+      pop.innerHTML = `<div class="ttl">圖表設定</div>
+        <div class="frow"><label>整體線寬</label><input id="lw" type="range" min="1" max="4" step="1" value="${cfg.lineWidth || 1}"><span class="val" id="lwv">${cfg.lineWidth || 1}px</span></div>
+        <div class="ttl2">均線（最多 6 條）</div>
+        <div id="maRows">${mas.map((n, i) => `<div class="frow marow" data-i="${i}">
+          <input type="number" min="2" max="480" value="${n}" data-f="n" style="width:62px">
+          <input type="color" value="${(cfg.maColor || [])[i] || KUtil.colors.ma[i % 6]}" data-f="c">
+          <input type="range" min="1" max="4" step="1" value="${(cfg.maWidth || [])[i] || cfg.lineWidth || 1}" data-f="w" style="width:78px">
+          <button class="btn small" data-f="del" title="移除這條">✕</button></div>`).join('')}</div>
+        <div class="row" style="margin-top:6px"><button class="btn small" id="maAdd" ${mas.length >= 6 ? 'disabled' : ''}>＋ 新增均線</button></div>
+        <div class="ttl2">指標樣式（顏色 · 線寬 · 透明度）</div>
+        <div id="stRows">${STYLE_ROWS.map(([k, label, keys, names]) => {
+          const v = Object.assign({ w: cfg.lineWidth || 1, o: 100 }, STYLE_DEF[k], (cfg.st || {})[k] || {});
+          return `<div class="frow strow" data-k="${k}"><label>${label}</label>
+            ${keys.map((ck, i) => `<span class="cwrap" title="${names[i]}"><input type="color" data-f="${ck}" value="${v[ck]}"><em>${names[i]}</em></span>`).join('')}
+            <input type="range" min="1" max="4" step="1" data-f="w" value="${v.w}" title="線寬" style="width:64px">
+            <input type="range" min="15" max="100" step="5" data-f="o" value="${v.o}" title="透明度" style="width:78px">
+            <span class="val" data-f="ov">${v.o}%</span></div>`;
+        }).join('')}</div>
+        <div class="ttl2">SMC 供需區</div>
+        <div class="frow" id="zoneRow">
+          <span class="cwrap" title="需求區"><input type="color" data-f="demand" value="${zn.demand}"><em>需求</em></span>
+          <span class="cwrap" title="供給區"><input type="color" data-f="supply" value="${zn.supply}"><em>供給</em></span>
+          <label style="margin-left:4px">填色</label><input type="range" min="0" max="45" step="1" data-f="fill" value="${zn.fill}" style="width:74px">
+          <label>框線</label><input type="range" min="20" max="100" step="5" data-f="line" value="${zn.line}" style="width:66px">
+          <input type="range" min="1" max="3" step="1" data-f="width" value="${zn.width}" title="框線粗細" style="width:54px">
+          <label class="chk"><input type="checkbox" data-f="label" ${zn.label ? 'checked' : ''}>標籤</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn small" id="cfgReset">回復預設</button><div class="sp"></div><button class="btn small primary" id="cfgClose">完成</button></div>`;
+      const sync = () => {
+        cfg.ma = []; cfg.maColor = []; cfg.maWidth = [];
+        $$('#maRows .marow').forEach(r => {
+          cfg.ma.push(+$('[data-f=n]', r).value || 20);
+          cfg.maColor.push($('[data-f=c]', r).value);
+          cfg.maWidth.push(+$('[data-f=w]', r).value || 1);
+        });
+        cfg.lineWidth = +$('#lw').value || 1;
+        cfg.st = {};
+        $$('#stRows .strow').forEach(r => {
+          const o = {};
+          $$('input', r).forEach(i => { o[i.dataset.f] = i.type === 'color' ? i.value : +i.value; });
+          const ov = $('[data-f=ov]', r); if (ov) ov.textContent = o.o + '%';
+          cfg.st[r.dataset.k] = o;
+        });
+        const zr = $('#zoneRow');
+        if (zr) { const z = {}; $$('input', zr).forEach(i => {
+          z[i.dataset.f] = i.type === 'color' ? i.value : i.type === 'checkbox' ? i.checked : +i.value; });
+          cfg.zone = z; }
+        const add = $('#maAdd'); if (add) add.disabled = cfg.ma.length >= 6;   // 刪到剩 5 條要能再加回來
+        saveCfg(cfg); drawChips(); apply();
+      };
+      $('#lw').oninput = () => {
+        $('#lwv').textContent = $('#lw').value + 'px';
+        $$('#maRows [data-f=w]').forEach(i => { i.value = $('#lw').value; });   // 整體線寬帶動每條均線
+        sync();
+      };
+      const wireRows = () => $$('#maRows .marow').forEach(r => {
+        $$('input', r).forEach(i => { i.oninput = sync; i.onchange = sync; });
+        $('[data-f=del]', r).onclick = () => { r.remove(); sync(); };
+      });
+      wireRows();
+      $$('#stRows .strow input, #zoneRow input').forEach(i => { i.oninput = sync; i.onchange = sync; });
+      $('#maAdd').onclick = () => {
+        const i = $$('#maRows .marow').length; if (i >= 6) return;
+        const d = document.createElement('div'); d.className = 'frow marow';
+        d.innerHTML = `<input type="number" min="2" max="480" value="10" data-f="n" style="width:62px">
+          <input type="color" value="${KUtil.colors.ma[i % 6]}" data-f="c">
+          <input type="range" min="1" max="4" step="1" value="1" data-f="w" style="width:78px">
+          <button class="btn small" data-f="del" title="移除這條">✕</button>`;
+        $('#maRows').appendChild(d); wireRows(); sync();
+      };
+      $('#cfgReset').onclick = () => { Object.assign(cfg, JSON.parse(JSON.stringify(DEFAULT_CFG))); saveCfg(cfg); pop.hidden = true; drawChips(); apply(); };
+      $('#cfgClose').onclick = () => { pop.hidden = true; };
+    };
+
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
-    $('#fitBtn').onclick = () => { if (kchart) { kchart.candle.priceScale().setAutoScale(true); kchart.fitLast(160); } };
-    drawChips(); build();
+    $('#fitBtn').onclick = () => { if (kchart) kchart.resetView(160); };
+    drawChips(); drawBar(); build();
+  }
+
+  // 每檔每週期各存一份手繪線，換股或換週期就換一組
+  function enableDraw(pg) {
+    if (!kchart) return;
+    const d = kchart.enableDrawing(`tw.draw.${pg.meta.code}.${state.tf}`);
+    d.setTool(drawTool); d.setColor(drawColor); d.setWidth(drawW);
+  }
+
+  // ---------------------------------------------------------------- 繪圖工具列（TradingView 式）
+  let drawTool = 'cursor', drawColor = KUtil.DRAW_COLORS[0], drawW = 1.5;
+  function drawBar() {
+    const bar = $('#drawBar'); if (!bar) return;
+    bar.innerHTML = KUtil.DRAW_TOOLS.map(t =>
+      `<button class="dtool ${t.k === drawTool ? 'on' : ''}" data-t="${t.k}" title="${t.label}">
+         <svg viewBox="0 0 18 18"><path d="${t.icon}"/></svg></button>`).join('')
+      + `<div class="dsep"></div>`
+      + KUtil.DRAW_COLORS.map(c => `<button class="dcol ${c === drawColor ? 'on' : ''}" data-c="${c}" style="background:${c}" title="顏色"></button>`).join('')
+      + `<div class="dsep"></div>
+         <button class="dtool" data-a="undo" title="復原上一筆"><svg viewBox="0 0 18 18"><path d="M7,4 L3,8 L7,12 M3,8 H11 a4,4 0 0 1 0,8 H8"/></svg></button>
+         <button class="dtool" data-a="clear" title="清空這檔這個週期的所有線"><svg viewBox="0 0 18 18"><path d="M3,3 L15,15 M15,3 L3,15"/></svg></button>`;
+    $$('.dtool[data-t]', bar).forEach(b => b.onclick = () => {
+      drawTool = b.dataset.t; drawBar(); if (kchart && kchart.draw) kchart.draw.setTool(drawTool);
+    });
+    $$('.dcol', bar).forEach(b => b.onclick = () => {
+      drawColor = b.dataset.c; drawBar(); if (kchart && kchart.draw) kchart.draw.setColor(drawColor);
+    });
+    $$('.dtool[data-a]', bar).forEach(b => b.onclick = () => {
+      if (!kchart || !kchart.draw) return;
+      if (b.dataset.a === 'undo') kchart.draw.undo(); else kchart.draw.clear();
+    });
   }
   function buildMtfGrid(pg) {
     const have = (tf) => barsFor(pg, tf).length >= 20;
@@ -486,5 +716,6 @@
       <div class="card"><h3>券商觀點（新聞引述） <small>不是本站預估</small></h3>${bv.length ? `<div class="tw"><table><thead><tr><th class="l">日期</th><th class="l">券商</th><th>目標價</th><th class="l">動作</th></tr></thead><tbody>${bv.map(b => `<tr onclick="window.open('${A.fmt.esc(b.url || '#')}','_blank')"><td class="l mono">${b.date}</td><td class="l">${A.fmt.esc(b.broker || '—')}</td><td class="num">${A.fmt.n(b.target_price)}</td><td class="l">${A.fmt.esc(b.action || b.rating || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">近 60 天沒有引述到目標價的新聞</div>'}</div></div>`;
   }
 
-  window.Industry = { route };
+  // _dbg 只給 scripts/_preview.py 驗證用（檢查圖表與繪圖狀態），正式頁面不會呼叫
+  window.Industry = { route, _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool, drawKey: kchart && kchart.draw ? kchart.draw.key : null, shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1, hasChart: !!kchart }) };
 })();

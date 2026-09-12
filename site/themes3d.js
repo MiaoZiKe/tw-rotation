@@ -84,6 +84,64 @@
   }
   const S = (id, band, label, sub, codes, seg, art, k) => ({ id, band, label, sub, codes, seg, art, k });
 
+  /* ---------------------------------------------------------------- 爆炸圖（拆解圖）
+     參考 Andy 給的華南投顧「機架式伺服器機構爆炸圖」：把一台機器由上而下拉開，
+     每一層用引線拉到右邊標註「這一層是什麼、誰在做」。
+     組裝型的題材（伺服器、電源、散熱、AI PC、機器人、車、衛星、無人機）用這個版面，
+     材料型的（PCB/CCL、HBM、CoWoS、玻璃基板）維持 chainScene 的分層剖面。
+     station 的資料結構與 chainScene 完全一樣，所以點擊、顏色、成員連動都共用同一套。 */
+  const EX = { X: 306, TOP: 150, ROW: 124, LX: 628, LW: 530, K: 1.5 };
+
+  function explodeScene(o) {
+    const ly = o.layers, n = ly.length;
+    const rowY = (i) => EX.TOP + i * EX.ROW;
+    let maxRows = 1;
+    // 零件之間的虛線對位軸＋箭頭：爆炸圖的關鍵視覺提示「這些是同一台拆開的」
+    const guides = ly.slice(0, -1).map((s, i) => {
+      const a = rowY(i) + 26, b = rowY(i + 1) - 44;
+      return `<path class="etch" d="M${EX.X},${a} V${b}" stroke-dasharray="4 7"/>`
+        + `<path class="etch" d="M${EX.X - 5},${b - 9} L${EX.X},${b} L${EX.X + 5},${b - 9}" fill="none"/>`;
+    }).join('');
+    const rows = ly.map((s, i) => {
+      const y = rowY(i);
+      const ch = chips(s.codes, EX.LX, y + 14, EX.LW - 10);
+      maxRows = Math.max(maxRows, ch.rows);
+      const sub = (s.sub || []).map((t, j) =>
+        `<text class="sub" x="${EX.LX}" y="${y - 7 + j * 13}">${esc(t)}</text>`).join('');
+      // 引線：從零件右緣往右拉一段、折一次、接到標註區
+      const d = `M${EX.X + 152},${y - 12} H${EX.LX - 66} L${EX.LX - 34},${y - 26} H${EX.LX - 8}`;
+      return `<g class="p3 stn ex" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
+        <rect class="slot" x="${EX.LX - 14}" y="${y - 46}" width="${EX.LW + 14}" height="${52 + (s.sub || []).length * 13 + ch.rows * 23}" rx="9"/>
+        <g class="art" data-cx="${EX.X}" data-cy="${y - 22}" data-mh="${EX.ROW - 26}" data-mw="196"
+           transform="translate(${EX.X},${y}) scale(${(s.k || 1) * EX.K})">${s.art()}</g>
+        <path class="leader" d="${d}"/><circle class="lit" cx="${EX.X + 152}" cy="${y - 12}" r="3.2"/>
+        <text class="lbl" x="${EX.LX}" y="${y - 26}">${esc(s.label)}</text>
+        <text class="tag" x="${EX.LX + 10 + esc(s.label).length * 13}" y="${y - 26}">${BAND_TAG[s.band] || ''}</text>
+        ${sub}${ch.svg}</g>`;
+    }).join('');
+    const sy = rowY(n - 1) + 34 + maxRows * 23 + 22;
+    const H = sy + 82;
+    const steps = (o.steps || []).length;
+    const sw = steps ? Math.floor((CW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
+    const strip = (o.steps || []).map((s, i) => {
+      const x = PADX + i * (sw + 10);
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="34" rx="8"/>
+        <circle class="num" cx="${x + 18}" cy="${sy + 17}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 21}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 36}" y="${sy + 15}" style="font-size:12px">${esc(s.t)}</text>
+        <text class="sub" x="${x + 36}" y="${sy + 28}">${esc(s.s || '')}</text></g>`
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 17} L${x + sw + 10},${sy + 17}" stroke="#3ee0ff" stroke-width="2"/>` : '');
+    }).join('');
+    const axis = `<text class="cap" x="${PADX}" y="${EX.TOP - 58}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
+    return `<svg class="dg dg3" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${STYLE}
+      <text class="ttl" x="${PADX}" y="26">${esc(o.title)}</text>
+      <text class="cap" x="${PADX}" y="46">${esc(o.cap)}</text>
+      ${axis}${rows}
+      <text class="cap" x="${PADX}" y="${sy - 9}">${esc(o.flowTitle || '組裝流程（點一格＝點上面那一層）')}</text>${strip}
+      <text class="cap" x="${PADX}" y="${H - 12}">原創等角爆炸示意圖，非實物比例；每一層的顏色＝族群色，點層或點代號都會進個股頁</text>
+    </svg>`;
+  }
+  const BAND_TAG = ['上游', '中游', '下游'];
+
   /* ================================================================ 3D 物件庫
      每個物件都畫在模型原點附近（約 ±50），放進站點時再平移縮放，
      十八張圖共用同一批零件，立體角度、光影與厚度才會一致。 */
@@ -261,10 +319,10 @@
     { p: 'client', t: '封測', s: '3711' }, { p: 'client', t: '客戶量產', s: 'CSP / 網通' }],
   });
 
-  T.ai_server = () => chainScene({
+  T.ai_server = () => explodeScene({
     title: 'AI 伺服器：從一顆晶片到一座機櫃',
     cap: '晶片與封裝是成本主體，往下是板材與載板，再往下是電源與散熱，最後由 ODM 組成托盤與整機櫃交給雲端業者。',
-    stations: [
+    layers: [
       S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊'], ['2330', '3661', '3711'], 'foundry', vChip),
       S('board', 0, '板材、載板與連接', ['高層數低損耗 PCB', 'CCL、載板與連接器'], ['2383', '3037', '2368', '3665'], 'abf_pcb', vBoard, .95),
       S('power', 1, '電源與散熱', ['800V HVDC、BBU', '水冷板、CDU、風扇'], ['2308', '6409', '3017', '3324'], 'thermal', vCold, .95),
@@ -275,10 +333,10 @@
     { p: 'tray', t: '托盤組裝', s: '2382 / 6669' }, { p: 'rack', t: '整櫃交付', s: '資料中心' }],
   });
 
-  T.power_bbu = () => chainScene({
+  T.power_bbu = () => explodeScene({
     title: '伺服器電源與 BBU：機櫃的心臟',
     cap: '單櫃功耗從十幾 kW 跳到上百 kW，電源模組數量、電壓規格（800V HVDC）與備援電池全部跟著改版。',
-    stations: [
+    layers: [
       S('pmic', 0, '電源管理 IC', ['數位電源控制與轉換', '效率每個百分點都算'], ['6415', '3529', '6533'], 'ic_design', vChip),
       S('psu', 1, 'PSU 電源模組', ['伺服器電源供應器', 'AI 機櫃用量倍增'], ['2308', '6409', '6412'], 'power', vModule),
       S('bbu', 1, 'BBU 備援電池', ['掉電時撐住不當機', '模組化可熱抽換'], ['3211', '2489'], 'power', vBattery, .92),
@@ -289,10 +347,10 @@
     { p: 'busbar', t: '匯流與機構', s: '2059 / 3023' }, { p: 'rack', t: '機櫃整合', s: '2382 / 6669' }],
   });
 
-  T.thermal = () => chainScene({
+  T.thermal = () => explodeScene({
     title: '散熱與液冷：熱從晶片怎麼被帶出機房',
     cap: '單顆 GPU 破千瓦，風冷已經不夠。價值一路從均熱片、風扇往水冷板、快接頭與機櫃 CDU 移動。',
-    stations: [
+    layers: [
       S('vc', 0, '均熱片與熱管', ['VC 均熱板、熱管', '風冷世代的主力'], ['3653', '6230', '3013'], 'thermal', vStack, .9),
       S('fan', 0, '風扇與散熱模組', ['前端進氣與機櫃風牆', '風冷仍是多數機種'], ['2421', '6230'], 'thermal', vFan),
       S('plate', 1, '水冷板 Cold Plate', ['直接貼晶片帶走熱', 'AI 機櫃逐步標配'], ['3017', '3324'], 'thermal', vCold, .95),
@@ -345,10 +403,10 @@
     { p: 'ems', t: '整機組裝', s: '2317 / 4938' }, { p: 'ems', t: '品牌出貨', s: '終端銷售' }],
   });
 
-  T.edge_ai_pc = () => chainScene({
+  T.edge_ai_pc = () => explodeScene({
     title: '邊緣 AI 與 AI PC：算力搬到裝置端',
     cap: '端側推論靠 SoC 裡的 NPU，吃記憶體容量也吃散熱。台廠的位置在 ODM 板卡組裝、散熱電源與品牌整機。',
-    stations: [
+    layers: [
       S('soc', 0, 'SoC 與 NPU', ['端側推論算力', '定義了什麼叫 AI PC'], ['2454', '6533'], 'ic_design', vChip),
       S('mem', 0, '記憶體與儲存', ['端側模型吃容量', 'DRAM / SSD 同步升級'], ['4967', '3260', '8299'], 'hbm', vModule, .92),
       S('board', 1, '板卡與 ODM 組裝', ['主機板設計與代工', '出貨量最大的一段'], ['2324', '2382', '3231', '2356'], 'assembly', vBoard, .95),
@@ -359,10 +417,10 @@
     { p: 'power', t: '散熱電源', s: '2301' }, { p: 'brand', t: '品牌出貨', s: '2357 / 2353' }],
   });
 
-  T.robotics = () => chainScene({
+  T.robotics = () => explodeScene({
     title: '機器人：一個關節的價值分佈',
     cap: '一個關節 ＝ 減速機 ＋ 伺服馬達 ＋ 編碼器 ＋ 驅動器。人形機器人的關節數是工業手臂的好幾倍，量起來零組件先受惠。',
-    stations: [
+    layers: [
       S('reducer', 0, '減速機與傳動', ['諧波／行星減速機', '精度決定重複定位'], ['2049', '4583', '1590'], null, vCoil),
       S('motor', 0, '伺服馬達', ['扭力密度與散熱', '大廠自製比例高'], ['1503', '1504'], 'power', vMotor),
       S('ctrl', 1, '控制器與驅動', ['運動控制與驅動器', '加上 AI 推論晶片'], ['2464', '6215'], 'ic_design', vBoard, .95),
@@ -373,10 +431,10 @@
     { p: 'vision', t: '感測整合', s: '3059 / 2359' }, { p: 'maker', t: '整機組裝', s: '2317' }],
   });
 
-  T.drone = () => chainScene({
+  T.drone = () => explodeScene({
     title: '無人機：一架四旋翼的供應鏈',
     cap: '馬達與螺旋槳決定推力，飛控與導航決定能不能自己飛，光電酬載決定它拿來做什麼。台廠以零組件與整機認證為主。',
-    stations: [
+    layers: [
       S('motor', 0, '無刷馬達與螺旋槳', ['推力與續航的核心', '四顆同步調速'], ['8033', '2231'], 'power', vMotor),
       S('conn', 0, '連接器與線束', ['軍規連接器與線材', '可靠度的隱形門檻'], ['3023', '3675'], null, vCoil),
       S('fc', 1, '飛控與導航', ['飛控板、IMU、定位', '抗干擾是軍規重點'], ['6237', '2367'], 'ic_design', vBoard, .95),
@@ -387,10 +445,10 @@
     { p: 'payload', t: '酬載整合', s: '3059' }, { p: 'maker', t: '整機交付', s: '2634 / 3402' }],
   });
 
-  T.satellite = () => chainScene({
+  T.satellite = () => explodeScene({
     title: '低軌衛星：天上與地面各拿到什麼',
     cap: '衛星本體幾乎都是國外業者。台廠的錢主要在地面段：射頻元件、相位陣列天線、用戶終端與網通設備。',
-    stations: [
+    layers: [
       S('epi', 0, '化合物半導體', ['砷化鎵磊晶與晶片', '高頻元件的底材'], ['2455', '8086'], 'optical', vLattice),
       S('rf', 0, '射頻元件與模組', ['功率放大、濾波、混頻', '規格門檻高'], ['3491', '2314'], 'optical', vChip, .92),
       S('ant', 1, '天線與相位陣列', ['波束成形與饋源', '地面站與終端都要'], ['3491', '2314'], 'switch', vPanel, .95),
@@ -401,10 +459,10 @@
     { p: 'cpe', t: '終端設備', s: '6285 / 4906' }, { p: 'op', t: '營運商', s: '海外客戶' }],
   });
 
-  T.ev_auto = () => chainScene({
+  T.ev_auto = () => explodeScene({
     title: '車用與電動車：台廠切在哪幾塊',
     cap: '滑板底盤裡是電池包，前後軸各一顆馬達，中間是電控與車載充電器。台廠強項在電源、線束連接器與金屬結構件。',
-    stations: [
+    layers: [
       S('metal', 0, '金屬與結構件', ['沖壓件、車燈、扣件', '毛利穩、看車廠拉貨'], ['1536', '2228', '1319', '6605'], 'assembly', vStack, .9),
       S('sensor', 0, '車用電子與感測', ['胎壓、感測器、MCU', '車規認證是門檻'], ['2231', '6533'], 'ic_design', vChip, .92),
       S('power', 1, '電源電控與 OBC', ['逆變器、車載充電器', '台廠最有位置的一段'], ['2308', '6409'], 'power', vModule),
@@ -443,5 +501,26 @@
     { p: 'motor', t: '設備整合', s: '1504' }, { p: 'epc', t: '統包交付', s: '2404 / 台電' }],
   });
 
+  /* 爆炸圖的零件高矮差很多（機櫃比晶片高一倍以上），字串階段算不出實際尺寸，
+     所以 SVG 進 DOM 之後再量一次 bbox，把每個零件等比縮到自己那一列的框裡並置中。
+     app.js 插完圖就呼叫這支；沒有爆炸圖的題材直接跳過。 */
+  function fit(root) {
+    if (!root) return;
+    root.querySelectorAll('.p3.stn.ex > g.art').forEach(art => {
+      const cx = +art.dataset.cx, cy = +art.dataset.cy;
+      const mh = +art.dataset.mh, mw = +art.dataset.mw;
+      if (!mh) return;
+      art.removeAttribute('transform');
+      let bb;
+      try { bb = art.getBBox(); } catch (e) { return; }
+      if (!bb || !bb.height || !bb.width) return;
+      const k = Math.max(.45, Math.min(1.85, Math.min(mh / bb.height, mw / bb.width)));
+      const tx = cx - (bb.x + bb.width / 2) * k;
+      const ty = cy - (bb.y + bb.height / 2) * k;
+      art.setAttribute('transform', `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(3)})`);
+    });
+  }
+
   window.ThemeDiagrams = T;
+  window.ThemeDiagrams.fit = fit;
 })();

@@ -27,7 +27,14 @@
 - **每次工作結束前更新 `HANDOFF.md`**（進度勾選、已知 bug、下一步、最後更新時間），**commit + push 到 main**。
   沒有 push 的工作等於沒做。
 - **絕不 force push、絕不覆寫 `data/*.parquet`。** 雲端是資料的權威來源（`store.append()` 只增不改）。
-- **push 前跑 `pytest tests/ -q`**（156 個測試）與 `python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）。
+- **push 前跑三件事**：`pytest tests/ -q`、`python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）、
+  `python scripts/_uitest.py`（**真人操作驗收**）。
+- **★ Andy 的硬性要求：每批做完一定要「當自己是使用者，實際操作每個功能」。**
+  每個按鈕真的按、每個輸入真的填、每個切換真的切、每條線真的用滑鼠拖出來，
+  而且每一項都要驗**「畫面真的因此改變了」**（筆數變了／排序變了／localStorage 真的寫進去了），
+  不是驗「元素存在」或「有 render」。這條規則是因為只看 render 的驗收放過了一堆錯
+  （例如：切到沒資料的週期再切回日線，整張 K 線圖空白到重新整理為止）。`scripts/_uitest.py` 就是這件事的載體，
+  **新功能一定要同時在裡面加一段真的操作它的驗收**。
 - 註解、commit 訊息、文件一律繁體中文。
 - 金鑰只放 GitHub Secrets（`FINMIND_TOKEN`、`FRED_API_KEY`）與 Claude 的暫存區；**永遠不寫進 repo 任何檔案**。
   push 前 `git grep -iE "github_pat_|ghp_|finmind.*token" -- . ':!*.md'` 掃一次（排除文件本身的說明字串）。
@@ -65,7 +72,7 @@ site/
   data/                                                  工作流產出，gitignore
 data/                  Parquet 資料湖（雲端 Actions 每天 commit；本機只讀）
 scripts/_preview.py    本機預覽驗證（Playwright + 真圖表庫）
-tests/                 pytest，156 個
+tests/                 pytest，218 個
 docs/                  v3_sources_spec.md（資料源規格）、截圖
 ```
 

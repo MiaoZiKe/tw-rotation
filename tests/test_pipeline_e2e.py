@@ -261,12 +261,25 @@ def test_build_payload_end_to_end(populated):
     cands = json.loads((site / "candidates.json").read_text(encoding="utf-8"))
     assert cands, "候選股清單不該是空的"
     assert all(0 <= c["tech_score"] <= 100 for c in cands)
-    # 排序：A → B → 無等級，同等級內依技術分由高到低
+    # 排序：A → B → 無等級，同等級內依綜合分由高到低（Andy #35 之後改用綜合分）
     rank = {"A": 0, "B": 1, None: 2}
-    keys = [(rank[c["grade"]], -c["tech_score"]) for c in cands]
-    assert keys == sorted(keys), "候選股必須先依等級再依技術分排序"
+    keys = [(rank[c["grade"]], -(c.get("score_all") or c["tech_score"])) for c in cands]
+    assert keys == sorted(keys), "候選股必須先依等級再依綜合分排序"
     assert all(c["verdict"] for c in cands)
     assert all(c["stop"] is not None and c["tp1"] is not None for c in cands)
+
+    # 四個面向的分數與「為何選它」（Andy #35）
+    for c in cands:
+        assert c["score_tech"] is not None and 0 <= c["score_tech"] <= 100
+        assert c["score_all"] is not None and 0 <= c["score_all"] <= 100
+        for k in ("score_chip", "score_fund"):
+            assert c[k] is None or 0 <= c[k] <= 100, f"{c['code']} 的 {k} 超出 0–100"
+        why = c["why"]
+        assert set(why) == {"all", "chip", "tech", "fund"}
+        assert why["all"]["pros"], f"{c['code']} 說不出被選上的理由"
+        for facet in why.values():
+            assert isinstance(facet["pros"], list) and isinstance(facet["cons"], list)
+            assert all(isinstance(t, str) and t for t in facet["pros"] + facet["cons"])
 
     # 個股頁：每檔候選都要有，且結構完整
     stock_dir = site / "stock"
@@ -312,6 +325,14 @@ def test_build_payload_end_to_end(populated):
     f3 = json.loads((site / "flow_v3.json").read_text(encoding="utf-8"))
     assert f3["rrg"]["points"] and all(p["quadrant"] in ("leading", "weakening", "lagging", "improving")
                                        for p in f3["rrg"]["points"])
+    # 前端有 5／10／20 日三顆軌跡鈕；只存 10 天的話按 20 日等於沒反應
+    assert f3["rrg"]["trail_days"] >= 20, f"RRG 軌跡只存了 {f3['rrg']['trail_days']} 天，前端 20 日鈕會沒反應"
+    # 資金流向頁的期間切換與名次趨勢
+    assert f3["periods"] and {"w0", "q"} <= {p["key"] for p in f3["periods"]}
+    p0 = f3["periods"][0]
+    assert {"label", "from", "to", "days", "groups"} <= set(p0)
+    assert p0["groups"] and {"group_id", "share", "rank", "ret"} <= set(p0["groups"][0])
+    assert f3["bump"]["weeks"] and f3["bump"]["series"]
     assert f3["sankey"]["nodes"] and f3["sankey"]["links"]
     assert f3["share"]["dates"] and f3["share"]["series"]
     im = json.loads((site / "industry_map.json").read_text(encoding="utf-8"))

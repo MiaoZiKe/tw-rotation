@@ -135,15 +135,20 @@ def concentration(group_hist: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
 
     上升＝行情縮圈到少數族群（通常是主流股獨強）
     下降＝資金擴散（通常是輪動或補漲階段）
+
+    前 5 大與前 10 大同時算：前 5 看「主流有多獨」，前 10 看「主流圈子有多大」，
+    兩條分開才看得出「換主流」和「資金整體擴散」的差別。
     """
     if group_hist.empty:
         return pd.DataFrame()
     rows = []
     for d, g in group_hist.groupby("date"):
-        top = g.nlargest(top_n, "turnover")["turnover_share"].sum()
-        rows.append({"date": d, "top_share": top})
+        s = g.sort_values("turnover", ascending=False)["turnover_share"]
+        rows.append({"date": d, "top_share": float(s.head(top_n).sum()),
+                     "top10_share": float(s.head(10).sum())})
     out = pd.DataFrame(rows).sort_values("date")
     out["top_share_ma20"] = out["top_share"].rolling(20, min_periods=5).mean()
+    out["top10_share_ma20"] = out["top10_share"].rolling(20, min_periods=5).mean()
     return out
 
 
@@ -237,3 +242,167 @@ def trust_streak(inst_hist: pd.DataFrame, min_days: int = 3) -> pd.DataFrame:
                          "date": g["date"].iloc[-1]})
     out = pd.DataFrame(rows)
     return out.sort_values("streak_days", ascending=False) if not out.empty else out
+
+
+# ---------------------------------------------------------------- 期間資金流向
+# Andy 的原話：「需要有趨勢 好比說上週 上上週 上個月等等 可以查到不同時期 資金走向為何」。
+# 所以這裡不是只給「今天」，而是把資金流向切成人講得出口的幾個期間，
+# 每個期間都回答同一組問題：這段時間錢在誰身上、比上一段多還少、名次跑到哪裡去了。
+
+PERIOD_KEYS = ("w0", "w1", "w2", "m0", "m1", "q")
+PERIOD_LABEL = {"w0": "本週", "w1": "上週", "w2": "上上週",
+                "m0": "本月", "m1": "上月", "q": "近三月"}
+BUMP_WEEKS = 8          # 名次趨勢圖往回看幾週
+BUMP_MONTHS = 8         # 名次趨勢圖往回看幾個月（切到月／季期間時用）
+BUMP_TOP = 10           # 名次趨勢圖畫幾個族群（照最新一週的名次取）；再多線就糊成一團
+BUMP_UNIT_LABEL = {"week": "近 8 週", "month": "近 8 個月"}
+
+
+def _week_blocks(dates: list[str], n: int) -> list[list[str]]:
+    """把交易日切成一週一塊（最新的在前），週一為一週之始。"""
+    if not dates:
+        return []
+    ts = pd.to_datetime(pd.Series(dates))
+    key = (ts - pd.to_timedelta(ts.dt.weekday, unit="D")).dt.strftime("%Y-%m-%d")
+    blocks: dict[str, list[str]] = {}
+    for d, k in zip(dates, key):
+        blocks.setdefault(k, []).append(d)
+    return [blocks[k] for k in sorted(blocks, reverse=True)[:n]]
+
+
+def _month_blocks(dates: list[str], n: int) -> list[list[str]]:
+    blocks: dict[str, list[str]] = {}
+    for d in dates:
+        blocks.setdefault(d[:7], []).append(d)
+    return [blocks[k] for k in sorted(blocks, reverse=True)[:n]]
+
+
+def _agg_block(g: pd.DataFrame, days: list[str]) -> pd.DataFrame:
+    """一個期間內，每個族群的成交值、佔比、期間報酬、法人合計。"""
+    sub = g[g["date"].isin(days)]
+    if sub.empty:
+        return pd.DataFrame()
+    rows = []
+    for gid, one in sub.groupby("group_id"):
+        one = one.sort_values("date")
+        tv = float(one["turnover"].sum())
+        # 期間報酬＝每日族群漲跌幅複利，跟看 K 線同一個口徑
+        ret = float((1 + one["chg_pct"].fillna(0) / 100).prod() - 1) * 100
+        rows.append({
+            "group_id": gid,
+            "group_name": one["group_name"].iloc[-1],
+            "chain": one["chain"].iloc[-1] if "chain" in one else None,
+            "turnover": tv,
+            "ret": round(ret, 2),
+            "foreign": _sum_or_none(one, "foreign_net"),
+            "trust": _sum_or_none(one, "trust_net"),
+            "dealer": _sum_or_none(one, "dealer_net"),
+            "days": int(one["date"].nunique()),
+        })
+    out = pd.DataFrame(rows)
+    total = out["turnover"].sum()
+    out["share"] = out["turnover"] / total * 100 if total > 0 else np.nan
+    out = out.sort_values("share", ascending=False).reset_index(drop=True)
+    out["rank"] = np.arange(1, len(out) + 1)
+    return out
+
+
+def _sum_or_none(df: pd.DataFrame, col: str):
+    if col not in df or df[col].isna().all():
+        return None
+    return float(df[col].sum())
+
+
+def period_flows(group_hist: pd.DataFrame) -> dict:
+    """各期間的資金流向，外加近幾週的名次序列（給名次趨勢圖）。"""
+    if group_hist is None or group_hist.empty:
+        empty = {"weeks": [], "series": [], "unit": "week", "label": BUMP_UNIT_LABEL["week"]}
+        return {"periods": [], "bump": empty,
+                "bumps": {"week": empty, "month": dict(empty, unit="month", label=BUMP_UNIT_LABEL["month"])}}
+
+    g = group_hist.copy()
+    g["date"] = g["date"].astype(str)
+    dates = sorted(g["date"].unique())
+    weeks = _week_blocks(dates, max(BUMP_WEEKS, 4))
+    months = _month_blocks(dates, 3)
+
+    # 期間 → （這一段的交易日, 用來比較的上一段交易日）
+    spec: dict[str, tuple[list[str], list[str]]] = {}
+    for i, key in enumerate(("w0", "w1", "w2")):
+        if len(weeks) > i:
+            spec[key] = (weeks[i], weeks[i + 1] if len(weeks) > i + 1 else [])
+    for i, key in enumerate(("m0", "m1")):
+        if len(months) > i:
+            spec[key] = (months[i], months[i + 1] if len(months) > i + 1 else [])
+    q_now = dates[-63:]
+    spec["q"] = (q_now, dates[-126:-63])
+
+    periods = []
+    for key in PERIOD_KEYS:
+        if key not in spec:
+            continue
+        days, prev_days = spec[key]
+        cur = _agg_block(g, days)
+        if cur.empty:
+            continue
+        prev = _agg_block(g, prev_days) if prev_days else pd.DataFrame()
+        pmap = prev.set_index("group_id") if not prev.empty else None
+        rows = []
+        for _, r in cur.iterrows():
+            p = pmap.loc[r["group_id"]] if pmap is not None and r["group_id"] in pmap.index else None
+            share_prev = float(p["share"]) if p is not None and pd.notna(p["share"]) else None
+            rank_prev = int(p["rank"]) if p is not None else None
+            rows.append({
+                "group_id": r["group_id"], "group_name": r["group_name"], "chain": r["chain"],
+                "turnover": round(float(r["turnover"]), 0),
+                "share": round(float(r["share"]), 3) if pd.notna(r["share"]) else None,
+                "share_prev": round(share_prev, 3) if share_prev is not None else None,
+                "share_chg": round(float(r["share"]) - share_prev, 3) if share_prev is not None and pd.notna(r["share"]) else None,
+                "ret": r["ret"], "rank": int(r["rank"]), "rank_prev": rank_prev,
+                "rank_chg": (rank_prev - int(r["rank"])) if rank_prev is not None else None,
+                "foreign": r["foreign"], "trust": r["trust"], "dealer": r["dealer"],
+            })
+        periods.append({
+            "key": key, "label": PERIOD_LABEL[key],
+            "from": days[0], "to": days[-1], "days": len(days),
+            "prev_from": prev_days[0] if prev_days else None,
+            "prev_to": prev_days[-1] if prev_days else None,
+            "groups": rows,
+        })
+
+    # 名次趨勢：週與月各做一份。Andy 切到「上月／近三月」時名次圖也要跟著換刻度，
+    # 不然整張圖固定是近 8 週，看起來就是「排名不會變」。
+    week_bump = _bump(g, list(reversed(weeks[:BUMP_WEEKS])), "week")
+    month_bump = _bump(g, list(reversed(_month_blocks(dates, BUMP_MONTHS))), "month")
+
+    return {"periods": periods,
+            "bump": week_bump,                       # 舊欄位保留：前端舊版還在讀
+            "bumps": {"week": week_bump, "month": month_bump}}
+
+
+def _bump(g: pd.DataFrame, blocks_days: list[list[str]], unit: str) -> dict:
+    """一段一段（週或月）算佔比名次，畫名次趨勢圖用。blocks_days 由舊到新。"""
+    blocks = [_agg_block(g, days) for days in blocks_days]
+    keep = [(d, b) for d, b in zip(blocks_days, blocks) if not b.empty]
+    if not keep:
+        return {"weeks": [], "series": [], "unit": unit, "label": BUMP_UNIT_LABEL[unit]}
+    blocks_days = [d for d, _ in keep]
+    blocks = [b for _, b in keep]
+    if unit == "month":
+        labels = [days[0][:7].replace("-", "/") for days in blocks_days]
+    else:
+        labels = [days[0][5:].replace("-", "/") for days in blocks_days]
+    latest = blocks[-1]
+    top_ids = list(latest.nsmallest(BUMP_TOP, "rank")["group_id"])
+    series = []
+    for gid in top_ids:
+        ranks, shares = [], []
+        for blk in blocks:
+            if gid in set(blk["group_id"]):
+                row = blk[blk["group_id"] == gid].iloc[0]
+                ranks.append(int(row["rank"])); shares.append(round(float(row["share"]), 2))
+            else:
+                ranks.append(None); shares.append(None)
+        name = latest[latest["group_id"] == gid]["group_name"].iloc[0]
+        series.append({"group_id": gid, "group_name": name, "ranks": ranks, "shares": shares})
+    return {"weeks": labels, "series": series, "unit": unit, "label": BUMP_UNIT_LABEL[unit]}
