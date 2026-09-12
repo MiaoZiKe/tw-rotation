@@ -413,7 +413,7 @@ def compute_all(df: pd.DataFrame, structure_lookback: int = 2) -> pd.DataFrame:
         market_structure(h, l, c, lookback=structure_lookback),
         fair_value_gaps(h, l, min_gap_pct=gap_pct,
                         exclude=(lim["limit_up"] | lim["limit_down"])),
-        order_blocks(o, h, l, c),
+        order_blocks(o, h, l, c, lookback=structure_lookback),   # 要和上面的結構用同一組 lookback
         liquidity_sweep(h, l, c),
         lim,
     ], axis=1)

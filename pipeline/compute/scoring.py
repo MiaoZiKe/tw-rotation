@@ -67,7 +67,7 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
     align = last.get("ma_align")
     if align == 1:
         s += 5
-        pros.append("均線多頭排列（MA5 > MA20 > MA60）")
+        pros.append("均線多頭排列（MA5 > MA20 > MA60 > MA120）")
     elif align == -1:
         s -= 8
         cons.append("均線空頭排列，反彈容易被壓回")

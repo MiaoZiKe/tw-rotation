@@ -22,7 +22,7 @@
     rsi(c, n) { // Wilder：前 n 筆變動簡單平均起頭
       const o = new Array(c.length).fill(null); let g = 0, l = 0;
       for (let i = 1; i < c.length; i++) { const d = c[i] - c[i - 1]; const up = Math.max(d, 0), dn = Math.max(-d, 0);
-        if (i <= n) { g += up; l += dn; if (i === n) { g /= n; l /= n; o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
+        if (i <= n) { g += up; l += dn; if (i === n) { g /= n; l /= n; o[i] = (l === 0 && g === 0) ? null : l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
         else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
       return o; },
     kd(h, l, c, n, m1, m2) { const K = [], D = [], J = []; let k = 50, d = 50;

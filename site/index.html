@@ -466,7 +466,9 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
   aside.open{transform:none}
   main{padding:14px 14px 90px}
   body{overflow-x:hidden}
-  .topbar{gap:8px;padding:0 10px;overflow:hidden}
+  /* backdrop-filter 會讓 .topbar 變成 position:fixed 子元素的定位基準，
+     底部的分頁列就會貼在 topbar 的下緣而不是視窗底部。手機上關掉它。 */
+  .topbar{gap:8px;padding:0 10px;overflow:hidden;backdrop-filter:none;background:rgba(7,11,22,.96)}
   .search input{width:104px;padding-left:28px}
   /* 手機：分頁列放到底部（頂部塞不下） */
   .tabs{position:fixed;left:0;right:0;bottom:0;z-index:44;background:rgba(7,11,22,.94);border-top:1px solid var(--line);

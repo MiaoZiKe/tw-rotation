@@ -48,8 +48,11 @@ def resample_daily(daily: pd.DataFrame, rule: str) -> pd.DataFrame:
     if "volume" in d:
         agg["volume"] = "sum"
     out = d.set_index("date").resample(rule).agg(agg).dropna(subset=["close"]).reset_index()
-    if rule.startswith("W"):
-        # 週 K 的日期用該週最後一個交易日，前端才對得上
+    # 週 K／月 K 的日期一律用「該期間最後一個交易日」，前端 KUtil.resampleDaily 也是這樣標，
+    # 兩邊必須一致。以前月線用 MS 規則停在月初（2026-09-01），前端卻標月底（2026-08-31），
+    # 結果 chart.js 的 setMarkers 把月線的 BOS/CHoCH 全部過濾掉、供需區的 since 也對不上，
+    # 而且是靜默失敗 —— 使用者只覺得「月線好像沒結構」。
+    if rule.startswith("W") or rule.startswith("M"):
         last_day = d.set_index("date")["close"].resample(rule).apply(lambda s: s.index.max() if len(s) else pd.NaT)
         out["date"] = last_day.dropna().values[: len(out)]
     out["date"] = pd.to_datetime(out["date"]).dt.strftime("%Y-%m-%d")

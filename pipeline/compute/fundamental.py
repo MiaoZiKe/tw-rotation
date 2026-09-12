@@ -27,6 +27,74 @@ MIN_ANY_N = 3            # 再低就留白
 
 # ------------------------------------------------------------------ 財報
 
+
+# ------------------------------------------------------------------ 累計 → 單季
+# 證交所 t187ap14_L 給的是「年度累計數」（Q2 = 上半年合計），FinMind 給的是「單季數」，
+# 兩者混在同一張 financial_q 表裡。以前 ttm() 直接把最近四列相加，
+# 於是走證交所那條路的股票 TTM EPS 被灌水、自算本益比系統性偏低約 20%
+# （用證交所自己公布的官方 PE 對帳，比值中位數 0.80，FinMind 那批是 1.00）。
+# 這裡在算 TTM 之前先把累計數還原成單季：同一 code 同一年度，Qn 減掉 Q(n-1) 的累計。
+CUM_COLS = ("eps", "revenue", "operating_income", "non_operating", "net_income", "gross_profit")
+
+
+def _is_cumulative(df: pd.DataFrame) -> pd.Series:
+    """哪些列是累計數。證交所那條路沒有 announce_date、但有 industry，用這個判。
+
+    之後 sources/twse.py 若補上 is_cumulative 欄位，這裡會優先採用它。
+    """
+    if "is_cumulative" in df.columns:
+        flag = df["is_cumulative"].fillna(False).astype(bool)
+        if flag.any():
+            return flag
+    has_ann = df["announce_date"].notna() if "announce_date" in df.columns else pd.Series(False, index=df.index)
+    return ~has_ann
+
+
+def _decumulate(df: pd.DataFrame) -> pd.DataFrame:
+    """把累計列還原成單季列。
+
+    同一年度從 Q1 往後走，邊走邊記「到上一季為止的單季合計」：
+      累計列 → 單季 = 累計值 − 到上一季的合計
+      單季列 → 原值不動
+    兩種來源會混在同一年（例如 Q1 來自 FinMind 的單季、Q2 來自證交所的累計），
+    所以不能只在「前後都是累計」時才相減 —— 那正是第一版漏掉 2412 的原因。
+    季別一旦不連續（缺 Q2 直接跳 Q3）就停止還原，寧可不減也不要減出一個兩季合計。
+    """
+    if df.empty:
+        return df
+    cum = _is_cumulative(df)
+    if not cum.any():
+        return df
+    out = df.copy()
+    cols = [c for c in CUM_COLS if c in out.columns]
+    for c in cols:
+        out[c] = pd.to_numeric(out[c], errors="coerce")
+    orig = out[cols].copy()
+    for _, g in out.groupby(["code", "year"], sort=False):
+        g = g.sort_values("quarter")
+        run = {c: 0.0 for c in cols}      # 到上一季為止的單季合計
+        ok = True                          # 季別到目前為止是不是連續的
+        expect = 1
+        for idx in g.index:
+            q = int(out.at[idx, "quarter"])
+            if q != expect:
+                ok = False
+            expect = q + 1
+            is_cum = bool(cum.get(idx, False))
+            for c in cols:
+                v = orig.at[idx, c]
+                if pd.isna(v):
+                    continue
+                single = float(v)
+                if is_cum and q > 1:
+                    if not ok:
+                        continue           # 季別不連續，不敢減
+                    single = float(v) - run[c]
+                    out.at[idx, c] = single
+                run[c] += single
+    return out
+
+
 def ttm(financial_q: pd.DataFrame) -> pd.DataFrame:
     """每檔股票的近四季合計（EPS、淨利、營收）與最新一季毛利率。
 
@@ -40,6 +108,7 @@ def ttm(financial_q: pd.DataFrame) -> pd.DataFrame:
     df = df.dropna(subset=["year", "quarter", "code"])
     df["qidx"] = df["year"].astype(int) * 4 + df["quarter"].astype(int)
     df = df.sort_values(["code", "qidx"]).drop_duplicates(["code", "qidx"], keep="last")
+    df = _decumulate(df)
 
     rows = []
     for code, g in df.groupby("code"):

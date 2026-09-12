@@ -72,7 +72,7 @@ site/
   data/                                                  工作流產出，gitignore
 data/                  Parquet 資料湖（雲端 Actions 每天 commit；本機只讀）
 scripts/_preview.py    本機預覽驗證（Playwright + 真圖表庫）
-tests/                 pytest，218 個
+tests/                 pytest，224 個
 docs/                  v3_sources_spec.md（資料源規格）、截圖
 ```
 

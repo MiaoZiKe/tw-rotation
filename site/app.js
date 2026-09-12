@@ -466,7 +466,10 @@
         : `<b>${p.name}</b><br><small>點一下只看這條產業鏈</small>` },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
         width: '100%', height: '100%', top: 0, left: 0, visibleMin: inChain ? (big ? 5 : 20) : (big ? 40 : 120),
-        label: { show: true, formatter: p => `${p.name}\n${fmt.pct(p.data.chg)}`,
+        /* 顏色＝資金流向（5日vs20日佔比），文字以前只寫漲跌 —— 於是出現「紅底寫 -0.7%」，
+           使用者只會當成 bug。現在方塊上兩個數字都寫，而且標明哪個是哪個。 */
+        label: { show: true, formatter: p => `${p.name}\n${fmt.pct(p.data.chg)}\n${p.data.rot != null ? '資金 ' + (p.data.rot > 0 ? '+' : '') + p.data.rot.toFixed(1) + 'pp' : '資金 —'}`,
+          lineHeight: big ? 19 : 16,
           fontSize: big ? 15 : (inChain ? 14 : 13), color: '#fff', textShadowColor: '#000', textShadowBlur: 4, overflow: 'truncate' },
         upperLabel: { show: !inChain, height: big ? 26 : 22, color: '#a9b6d6', fontSize: big ? 13 : 12, backgroundColor: 'rgba(0,0,0,.25)' },
         itemStyle: { borderColor: '#0b1224', borderWidth: 2, gapWidth: 2 },
@@ -1405,7 +1408,9 @@
       const c = chart('seasonHeat', { tooltip: { ...tip, formatter: p => { const cl = p.data[3]; return `<b>${cl.group_name}</b> ${cl.month} 月<br>平均超額 ${cl.avg_excess != null ? fmt.pct(cl.avg_excess) : '—'}（勝率 ${cl.excess_win_rate ?? '—'}%）<br>平均報酬 ${cl.avg_return != null ? fmt.pct(cl.avg_return) : '—'}（勝率 ${cl.win_rate ?? '—'}%）<br>樣本 ${cl.samples} 年`; } },
         grid: { left: 130, right: 70, top: 10, bottom: 30 }, xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月'), ...axisStyle, splitArea: { show: false }, axisLabel: { color: CH.ink2 } },
         yAxis: { type: 'category', data: groups.map(g => g.group_name), ...axisStyle, axisLabel: { color: CH.ink2, fontSize: 12 } },
-        visualMap: { min: lim[0], max: lim[1], calculable: false, orient: 'vertical', right: 0, top: 'center', textStyle: { color: CH.ink3 }, inRange: { color: isWin ? ['#0f172b', '#8b7bff', '#ff4d6d'] : ['#2ee59d', '#0f172b', '#ff4d6d'] } },
+        visualMap: { min: lim[0], max: lim[1], calculable: false, orient: 'vertical', right: 0, top: 'center', textStyle: { color: CH.ink3 }, // 中點以前用 #0f172b —— 那就是面板底色，±5% 以內的格子全部隱形，等於整張圖沒有顏色。
+        // 換成看得見的中性藍灰，兩端也拉亮。
+        inRange: { color: isWin ? ['#16203a', '#8b7bff', '#ff6b84'] : ['#19c489', '#16203a', '#ff6b84'] } },
         series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, color: '#e8eeff', fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: '#0b1224', borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').textContent = s3.note + `　大盤月報酬樣本 ${s3.benchmark_months} 個月。`;
@@ -1440,8 +1445,20 @@
     const draw = () => { $('#evList').innerHTML = items.filter(i => cat === 'all' || i.cat === cat).slice(0, 80).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(String(i.date || '').slice(0, 10))}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('') || '<div class="empty">沒有這類事件</div>'; };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
     draw();
-    $('#evToggle').onclick = () => $('#side').classList.toggle('open');
-    $('#evClose').onclick = () => $('#side').classList.remove('open');
+    /* 事件側欄要真的關得掉。手機用 .open 滑出來，桌機要靠 .layout.noside 把那一欄收掉 ——
+       以前只 toggle .open，桌機按了完全沒反應，而且側欄佔掉 360px 讓候選表的六個欄位躲進捲軸。 */
+    const SIDE_KEY = 'tw.side';
+    const setSide = (open) => {
+      $('#side').classList.toggle('open', open);
+      $('#layout').classList.toggle('noside', !open);
+      try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
+    };
+    let sideOpen = true;
+    try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
+    setSide(sideOpen);
+    $('#evToggle').onclick = () => setSide($('#layout').classList.contains('noside'));
+    $('#evClose').onclick = () => setSide(false);
   }
 
   // ---------------------------------------------------------------- 搜尋
