@@ -387,11 +387,11 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
    以前寫死 640px，螢幕再大也只有那麼高。扣掉頂部列＋標題＋工具列＋說明約 300px，
    剩下的全部給圖；上下限避免小筆電被壓扁、超寬螢幕拉成一條。 */
-#lwc{position:relative;height:clamp(560px,calc(100vh - 300px),1180px);border-radius:10px;overflow:hidden;background:#0a1020;border:1px solid var(--line)}
+#lwc{position:relative;height:clamp(600px,calc(100vh - 250px),1280px);border-radius:10px;overflow:hidden;background:#0a1020;border:1px solid var(--line)}
 /* 寬版模式：收起右側事件欄，把整個視窗寬度讓給圖（工具列上的「⤢ 寬版」）*/
 body.kwide .layout{grid-template-columns:1fr}
 body.kwide aside{display:none}
-body.kwide #lwc{height:clamp(600px,calc(100vh - 210px),1400px)}
+body.kwide #lwc{height:clamp(640px,calc(100vh - 185px),1500px)}
 body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 #lwc .legend-ov{position:absolute;left:12px;top:8px;z-index:5;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);
   pointer-events:none;line-height:1.5;text-shadow:0 1px 2px #000}
@@ -513,7 +513,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
   .search input{width:130px}
   .brand small{display:none}
-  #lwc{height:clamp(420px,calc(100vh - 260px),760px)}
+  #lwc{height:clamp(460px,calc(100vh - 230px),820px)}
   .tw.hide-m{display:none} .cards{display:grid;gap:10px}
   .scard{background:var(--panel-3);border-radius:10px;padding:12px 14px;border:1px solid var(--line-2)}
   .scard .h{display:flex;justify-content:space-between;align-items:baseline}

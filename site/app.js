@@ -231,8 +231,9 @@
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
-    let wide = false;
-    try { wide = localStorage.getItem('tw.kwide') === '1'; } catch (e) { /* 忽略 */ }
+    // 預設就是寬版（Andy：「K 線圖 default 就大一點」）；只有自己按過關掉才會是窄的
+    let wide = true;
+    try { const v = localStorage.getItem('tw.kwide'); if (v !== null) wide = v === '1'; } catch (e) { /* 忽略 */ }
     document.body.classList.toggle('kwide', head === 'stock' && wide);
     window.scrollTo({ top: 0 });
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
@@ -1365,7 +1366,7 @@
       <div class="card"><h3>成員 <small>依族群分組、組內依成交值；滑過任一列會亮出它在產品圖上的位置</small></h3><div class="tw cap-md"><table id="themeMembers"><thead><tr><th class="l">代號</th><th class="l">簡稱</th><th>漲跌</th><th>成交值</th><th>法人</th></tr></thead><tbody>${groups.map(g => `<tr class="ghead"><td class="l" colspan="5">${g.gid === '_' ? '<span class="muted">未分類</span>' : L.group(g.gid)} <span class="muted">${g.rows.length} 檔 · ${fmt.yi(g.turnover)}</span></td></tr>`
       + g.rows.sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).map(m => `<tr data-code="${m.code}" onclick="goStock('${m.code}')"><td class="l mono">${m.code}</td><td class="l">${L.stock(m.code, m.name)}</td><td class="num ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct, 2)}</td><td class="num">${fmt.yi(m.turnover)}</td><td class="num ${fmt.cls(m.inst_net)}">${m.inst_net != null ? fmt.lot(m.inst_net / 1000) : '—'}</td></tr>`).join('')).join('')}</tbody></table></div>
       <div class="linkrow" style="margin-top:8px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div></div></div>
-      ${dg ? `<div class="card" style="margin-top:16px"><div class="row spread"><h3>產品剖析圖 <small>上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></h3><span class="pill" id="dgZoom" style="cursor:pointer">放大</span></div>
+      ${dg ? `<div class="card" style="margin-top:16px"><div class="row spread"><h3>產品剖析圖 <small>上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></h3></div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div></div>` : ''}`;
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列

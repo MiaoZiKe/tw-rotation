@@ -761,6 +761,7 @@
       const on = document.body.classList.contains('kwide');
       wideBtn.classList.toggle('on', on);
       wideBtn.textContent = on ? '⤢ 寬版 ✓' : '⤢ 寬版';
+      wideBtn.title = on ? '關掉寬版，把右側事件欄叫回來' : '收起右側事件欄，把整個視窗的寬度讓給 K 線圖';
     };
     wideBtn.onclick = () => {
       const on = document.body.classList.toggle('kwide');

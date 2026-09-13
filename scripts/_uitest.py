@@ -848,27 +848,32 @@ def t_stock(pg, base, code):
                  w: Math.round(e.getBoundingClientRect().width) }; }""")
     ok("K 線圖高度佔視窗一半以上", kh["h"] > kh["vh"] * 0.5, kh)
 
-    # --- 寬版：按下去要真的變寬、事件欄收起來，再按一次要還原，而且會記住
-    before = pg.evaluate("""() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
-        aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none' })""")
-    click(pg, "#wideBtn", 900)
-    after = pg.evaluate("""() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
+    # --- 寬版是預設（Andy：「K 線圖 default 就大一點」）：第一次進來就該是寬的
+    S = """() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
+        wide: document.body.classList.contains('kwide'),
         aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none',
         saved: (() => { try { return localStorage.getItem('tw.kwide'); } catch (e) { return null; } })(),
-        canvas: document.querySelectorAll('#lwc canvas').length })""")
-    ok("按寬版，K 線圖真的變寬", after["w"] > before["w"] + 100, f"{before['w']} → {after['w']}")
-    ok("按寬版，右側事件欄收起來", before["aside"] and not after["aside"], {"before": before["aside"], "after": after["aside"]})
-    ok("寬版狀態有存起來", after["saved"] == "1", after["saved"])
-    ok("寬版之後 K 線圖還在（沒有變空白）", after["canvas"] > 0, after["canvas"])
-    # 離開個股頁，事件欄要還回來（不然使用者會覺得它莫名其妙不見了）
+        canvas: document.querySelectorAll('#lwc canvas').length })"""
+    d0 = pg.evaluate(S)
+    ok("沒設定過時，個股頁預設就是寬版", d0["wide"] and not d0["aside"], d0)
+    ok("預設寬版下 K 線圖有畫出來", d0["canvas"] > 0, d0)
+    # 按一次 → 退出寬版：圖變窄、事件欄回來、選擇要存起來
+    click(pg, "#wideBtn", 900)
+    d1 = pg.evaluate(S)
+    ok("按一次會退出寬版，K 線圖變窄", d1["w"] < d0["w"] - 100, f"{d0['w']} → {d1['w']}")
+    ok("退出寬版時右側事件欄回來", d1["aside"], d1)
+    ok("退出寬版的選擇有存起來", d1["saved"] == "0", d1["saved"])
+    ok("退出寬版後 K 線圖還在（沒有變空白）", d1["canvas"] > 0, d1)
+    # 換頁再回來要記得「我關掉了」
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
-    ok("離開個股頁，事件欄會還回來",
-       pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
-    # 回個股頁要記得寬版
+    ok("離開個股頁，事件欄一定在", pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    ok("回個股頁還記得寬版", pg.evaluate("() => document.body.classList.contains('kwide')"))
-    click(pg, "#wideBtn", 800)      # 關掉，不影響後面的驗收
-    ok("再按一次寬版會還原", not pg.evaluate("() => document.body.classList.contains('kwide')"))
+    ok("回個股頁記得「關掉寬版」的選擇", not pg.evaluate("() => document.body.classList.contains('kwide')"))
+    # 再按一次 → 回到寬版
+    click(pg, "#wideBtn", 900)
+    d2 = pg.evaluate(S)
+    ok("再按一次回到寬版，圖又變寬", d2["wide"] and d2["w"] > d1["w"] + 100, f"{d1['w']} → {d2['w']}")
+    ok("回到寬版時事件欄收起來", not d2["aside"], d2)
 
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
     click(pg, "#cfgBtn", 700)
@@ -1278,6 +1283,35 @@ def t_mobile(b, base, code):
     m.close()
 
 
+def t_zoom_sweep(pg, base, code):
+    """全站掃一遍縮放入口。Andy 講過很多次：**只有三張熱力圖可以縮放**
+       （總覽資金熱力 heatWrap、產業地圖板塊 indTreeWrap、題材資金熱力 themeMapWrap）。
+       這一段是最後一道防線：任何一頁冒出多餘的縮放框、徽章或「放大」鈕都算失敗。"""
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom")
+    SCAN = """() => {
+      const out = { badge: [], zwrap: [], btn: [] };
+      document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
+      document.querySelectorAll('.zwrap').forEach(e => out.zwrap.push(e.id || e.className));
+      document.querySelectorAll('button,span.pill,.btn').forEach(e => {
+        const t = (e.textContent || '').trim();
+        if (/放大|縮放|zoom/i.test(t) && e.offsetParent !== null) out.btn.push((e.id || '(無 id)') + ':' + t.slice(0, 12));
+      });
+      return out; }"""
+    pages = [("#overview", "總覽"), ("#flow", "資金流向"), ("#industry", "產業地圖"),
+             ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材"),
+             ("#market", "市場明細"), ("#season", "季節性"), (f"#stock/{code}", "個股")]
+    # 題材細節頁（產品剖析圖那一頁）全部都掃
+    pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    for tid in (pg.evaluate("() => Object.keys(window.ThemeDiagrams || {}).filter(k => k !== 'fit')") or [])[:6]:
+        pages.append((f"#themes/{tid}", f"題材 {tid}"))
+    for path, name in pages:
+        pg.goto(base + path, wait_until="networkidle"); pg.wait_for_timeout(1500)
+        r = pg.evaluate(SCAN)
+        extra = {k: [x for x in v if not any(a in str(x) for a in ALLOW)] for k, v in r.items()}
+        n = sum(len(v) for v in extra.values())
+        ok(f"「{name}」沒有多餘的縮放入口", n == 0, extra)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -1313,6 +1347,12 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【個股】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  個股：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_zoom_sweep(pg, base, args.code)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【縮放掃描】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  縮放掃描：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_mobile(b, base, args.code)
