@@ -842,6 +842,34 @@ def t_stock(pg, base, code):
         return ns.find(t => t.includes('資料更新到')) || ''; }""")
     ok("個股頁有寫資料更新到哪一天", "資料更新到" in fresh and any(c.isdigit() for c in fresh), fresh[:80])
 
+    # --- K 線圖要夠大（Andy：「K 線圖太小，版面需要擴大」）：高度跟著視窗走，不是寫死 640
+    kh = pg.evaluate("""() => { const e = document.getElementById('lwc');
+        return { h: Math.round(e.getBoundingClientRect().height), vh: window.innerHeight,
+                 w: Math.round(e.getBoundingClientRect().width) }; }""")
+    ok("K 線圖高度佔視窗一半以上", kh["h"] > kh["vh"] * 0.5, kh)
+
+    # --- 寬版：按下去要真的變寬、事件欄收起來，再按一次要還原，而且會記住
+    before = pg.evaluate("""() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
+        aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none' })""")
+    click(pg, "#wideBtn", 900)
+    after = pg.evaluate("""() => ({ w: Math.round(document.getElementById('lwc').getBoundingClientRect().width),
+        aside: !!document.querySelector('aside') && getComputedStyle(document.querySelector('aside')).display !== 'none',
+        saved: (() => { try { return localStorage.getItem('tw.kwide'); } catch (e) { return null; } })(),
+        canvas: document.querySelectorAll('#lwc canvas').length })""")
+    ok("按寬版，K 線圖真的變寬", after["w"] > before["w"] + 100, f"{before['w']} → {after['w']}")
+    ok("按寬版，右側事件欄收起來", before["aside"] and not after["aside"], {"before": before["aside"], "after": after["aside"]})
+    ok("寬版狀態有存起來", after["saved"] == "1", after["saved"])
+    ok("寬版之後 K 線圖還在（沒有變空白）", after["canvas"] > 0, after["canvas"])
+    # 離開個股頁，事件欄要還回來（不然使用者會覺得它莫名其妙不見了）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    ok("離開個股頁，事件欄會還回來",
+       pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display !== 'none'"))
+    # 回個股頁要記得寬版
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("回個股頁還記得寬版", pg.evaluate("() => document.body.classList.contains('kwide')"))
+    click(pg, "#wideBtn", 800)      # 關掉，不影響後面的驗收
+    ok("再按一次寬版會還原", not pg.evaluate("() => document.body.classList.contains('kwide')"))
+
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
     click(pg, "#cfgBtn", 700)
     bw = pg.evaluate("() => { const e = document.getElementById('bw'); return e ? { v: +e.value, min: +e.min, max: +e.max } : null; }")
@@ -1143,7 +1171,10 @@ def t_stock(pg, base, code):
             after = pg.evaluate(ZBOX)
             ok("平移 K 線後 SMC 區間還在畫面上", bool(after), after)
             if after:
-                changed("SMC 區間的左邊界跟著平移", before[0]["x0"], after[0]["x0"])
+                # 比「整個區塊的左右邊界」：圖變高之後畫面裡的價格範圍變大，
+                # 常常有一個區間的左緣本來就在畫面外（x0 一直是 0），只看左緣會假性失敗
+                changed("SMC 區間跟著平移（左右邊界有變）",
+                        f'{before[0]["x0"]},{before[0]["x1"]}', f'{after[0]["x0"]},{after[0]["x1"]}')
                 changed("SMC 區間的右邊界也跟著平移（不是黏在畫面右緣）", before[0]["x1"], after[0]["x1"])
                 ok("SMC 區間右邊界沒有貼齊畫面右緣", after[0]["x1"] < r["w"] - 20,
                    f"右邊界 {after[0]['x1']}、畫面寬 {round(r['w'])}")

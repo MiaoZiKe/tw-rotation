@@ -442,6 +442,7 @@
           <div class="sp"></div>
           <button class="btn small" id="cfgBtn" title="圖表設定：線寬、均線、顏色">⚙ 設定</button>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
+          <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
           <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
             <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
@@ -752,6 +753,22 @@
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
     $('#fitBtn').onclick = () => { if (kchart) kchart.resetView(160); };
+    /* 寬版（Andy：「K 線圖太小，版面需要擴大」）：把右側事件欄收起來，整個視窗寬度都給圖。
+       Lightweight Charts 是 autoSize，容器一變寬它自己重畫；ECharts 的小圖要自己踢一下 resize。
+       狀態存 localStorage，下次進個股頁維持同一個版面。 */
+    const wideBtn = $('#wideBtn');
+    const paintWide = () => {
+      const on = document.body.classList.contains('kwide');
+      wideBtn.classList.toggle('on', on);
+      wideBtn.textContent = on ? '⤢ 寬版 ✓' : '⤢ 寬版';
+    };
+    wideBtn.onclick = () => {
+      const on = document.body.classList.toggle('kwide');
+      try { localStorage.setItem('tw.kwide', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      paintWide();
+      setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
+    };
+    paintWide();
     drawChips(); drawBar(); build();
   }
 

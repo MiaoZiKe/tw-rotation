@@ -229,6 +229,11 @@
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
+    /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
+       不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
+    let wide = false;
+    try { wide = localStorage.getItem('tw.kwide') === '1'; } catch (e) { /* 忽略 */ }
+    document.body.classList.toggle('kwide', head === 'stock' && wide);
     window.scrollTo({ top: 0 });
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
     if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
