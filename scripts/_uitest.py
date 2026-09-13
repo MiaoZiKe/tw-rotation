@@ -181,6 +181,38 @@ def check_drag(pg, wrap: str, label: str):
     ok(f"「{label}」雙擊還原得回去", not pg.evaluate("(id)=>document.getElementById(id).classList.contains('zoomed')", wrap))
 
 
+def check_nozoom(pg, wrap: str, label: str):
+    """這張圖不可以有滾輪縮放（Andy 09-13：「將這邊的縮放功能取消」，只留熱力圖類）。
+       驗三件事：沒有縮放框與徽章、滾輪不會放大、滾輪會正常往下捲頁面。"""
+    st = pg.evaluate("""(id) => { const b = document.getElementById(id);
+        if (!b) return { missing: true };
+        return { zwrap: b.classList.contains('zwrap'), pane: !!b.querySelector(':scope > .zpane'),
+                 badge: !!b.querySelector(':scope > .zbadge') }; }""", wrap)
+    if st.get("missing"):
+        return
+    ok(f"「{label}」沒有縮放框", not st["zwrap"] and not st["pane"] and not st["badge"], st)
+    scroll_to(pg, wrap)
+    r = pg.evaluate("(id)=>{const b=document.getElementById(id).getBoundingClientRect();return {x:b.x,y:b.y,w:b.width,h:b.height};}", wrap)
+    pg.mouse.move(r["x"] + r["w"] / 2, r["y"] + r["h"] / 2)
+    for _ in range(3):                      # 往上滾（以前是放大的方向）
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(120)
+    pg.wait_for_timeout(350)
+    zoomed = pg.evaluate("(id) => document.getElementById(id).classList.contains('zoomed')", wrap)
+    # 剖析圖沒有 .chart 子層（是 SVG），量不到就退回量外框本身
+    w0, h0 = pg.evaluate("""(id) => { const b = document.getElementById(id);
+        const c = b.querySelector('.chart') || b;
+        return [c.clientWidth, c.clientHeight]; }""", wrap)
+    ok(f"「{label}」滾輪不會放大", not zoomed and w0 > 0, {"zoomed": zoomed, "w": w0})
+    # 滑鼠停在圖上往下滾，頁面必須照常往下捲（圖不可以把 wheel 吃掉）
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    for _ in range(3):
+        pg.mouse.wheel(0, 200); pg.wait_for_timeout(120)
+    pg.wait_for_timeout(350)
+    y1 = pg.evaluate("() => Math.round(scrollY)")
+    at_end = pg.evaluate("() => Math.round(scrollY + innerHeight) >= document.body.scrollHeight - 4")
+    ok(f"「{label}」滾輪會正常捲頁面（沒有被圖吃掉）", y1 > y0 or at_end, f"{y0} → {y1}")
+
+
 def check_3d(pg):
     """3D 剖析圖：Andy 拍板「先試試看 three.js」，四條硬性驗收全部用真滑鼠操作。
        相機位置用 Rack3D.current.cam() 比對——canvas 沒開 preserveDrawingBuffer，
@@ -452,14 +484,13 @@ def t_overview(pg, base):
         return { canvas: !!el.querySelector('canvas'), pts: sc ? sc.data.length : 0 }; }""")
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
 
-    # --- 下方三張小圖都要能滾輪放大（Andy：「這邊資訊太小看不到 需要新增縮放」）
-    for w, i, lb in (("breadthWrap", "breadth", "市場寬度"), ("trustWrap", "trust", "投信連續買超"),
-                     ("gvalWrap", "gval", "族群估值"), ("rotClockMiniWrap", "rotClockMini", "總覽輪動時鐘")):
-        check_zoom(pg, w, i, lb)
+    # --- 除了熱力圖，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
+    for w, lb in (("breadthWrap", "市場寬度"), ("trustWrap", "投信連續買超"),
+                  ("gvalWrap", "族群估值"), ("rotClockMiniWrap", "總覽輪動時鐘")):
+        check_nozoom(pg, w, lb)
 
-    # --- 放大後要能用游標抓著移動（Andy：「需要新增游標抓取可以移動功能」）
+    # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
     check_drag(pg, "heatWrap", "資金熱力圖")
-    check_drag(pg, "rotClockMiniWrap", "總覽輪動時鐘")
 
     # --- 熱力圖要把卡片填滿，不可以留一塊空的（Andy：「不滿當前版面」）
     # 重新載入一次：前面的測試會把「成分股」面板留在展開狀態，那塊也算在卡片高度裡
@@ -670,11 +701,11 @@ def t_flow(pg, base):
        [a for a in below if a[0] >= a[1]][:4])
     click(pg, "#vBelow", 600)
 
-    # --- 這頁每張圖都要能滾輪放大（Andy：「資訊太小看不到 需要新增縮放」）
-    for w, i, lb in (("rankFlowWrap", "rankFlow", "資金流向排行"), ("bumpWrap", "bump", "名次變化"),
-                     ("rotClockWrap", "rotClock", "輪動時鐘"), ("sankeyWrap", "sankey", "資金去向"),
-                     ("riverWrap", "river", "族群佔比河流"), ("instGroupsWrap", "instGroups", "族群 × 法人")):
-        check_zoom(pg, w, i, lb)
+    # --- 這頁每張圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
+    for w, lb in (("rankFlowWrap", "資金流向排行"), ("bumpWrap", "名次變化"),
+                  ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
+                  ("riverWrap", "族群佔比河流"), ("instGroupsWrap", "族群 × 法人")):
+        check_nozoom(pg, w, lb)
 
 
 def t_industry(pg, base):
@@ -778,7 +809,7 @@ def t_themes(pg, base):
     ok("題材熱力圖沒有開啟拖曳平移（roam）", pg.evaluate(
         "() => { const c = echarts.getInstanceByDom(document.getElementById('themeMap'));"
         " return c ? c.getOption().series[0].roam === false : false; }"))
-    # Andy：「題材資金熱力這邊也是會影響大小」—— 放大只能在框內發生
+    # Andy：「題材資金熱力這邊也是會影響大小」—— 放大只能在框內發生（熱力圖保留縮放）
     check_zoom(pg, "themeMapWrap", "themeMap", "題材資金熱力")
 
     # 總覽的「熱門題材」方塊 → 點了要切到該題材
@@ -794,6 +825,8 @@ def t_themes(pg, base):
     for tid in tids[:3]:
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1100)
         ok(f"題材 {tid} 有剖析圖", count(pg, "#themeDiagram svg") > 0)
+        # Andy 09-13：剖析圖不要縮放（跟產業／個股剖析圖一致），要看大圖用右上角「放大」
+        check_nozoom(pg, "themeDiagram", f"題材 {tid} 剖析圖")
         ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeDetail .gsec, #themeDetail h4, #themeParts") > 0)
         if count(pg, "#themeDiagram [data-part][data-codes]"):
             click(pg, "#themeDiagram [data-part][data-codes]", 600)

@@ -547,7 +547,7 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
       <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
         <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rotm" hidden></div>
-        <div class="zwrap" id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
+        <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
         <div class="stageboard compact" id="rotMini"></div></div>
     </div>
     <div class="grid g12" style="margin-top:16px">
@@ -560,11 +560,11 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
     </div>
     <div class="grid g3" style="margin-top:16px">
       <div class="card"><h3>市場寬度</h3>
-        <div class="zwrap" id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
+        <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card"><h3>投信連續買超 <small>≥3 天</small></h3>
-        <div class="zwrap" id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div></div>
       <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3>
-        <div class="zwrap" id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
+        <div id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
   </section>
 
@@ -592,11 +592,11 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
       <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
         <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rank" hidden></div>
-        <div class="zwrap" id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div></div>
+        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>名次變化 <small id="bumpSub">近 8 週資金佔比排名</small></h3>
         <button class="howbtn" data-how="bump">怎麼看 ?</button></div>
         <div class="howtxt" id="how-bump" hidden></div>
-        <div class="zwrap" id="bumpWrap"><div id="bump" class="chart tall"></div></div></div>
+        <div id="bumpWrap"><div id="bump" class="chart tall"></div></div></div>
     </div>
     <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
       <div class="row" style="gap:8px">
@@ -604,24 +604,24 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
         <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-rot" hidden></div>
       <div class="cyclebar" id="rotCycle"></div>
-      <div class="zwrap" id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+      <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
       <div class="rotmove" id="rotMove"></div>
       <div class="stageboard" id="rotBoard"></div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>資金去向 <small>今日成交值：大盤 → 產業鏈 → 族群 → 代表股</small></h3>
         <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
         <div class="howtxt" id="how-sankey" hidden></div>
-        <div class="zwrap" id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
+        <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>族群佔比河流 <small>近 60 日成交值佔比</small></h3>
         <button class="howbtn" data-how="river">怎麼看 ?</button></div>
         <div class="howtxt" id="how-river" hidden></div>
-        <div class="zwrap" id="riverWrap"><div id="river" class="chart tall"></div></div></div>
+        <div id="riverWrap"><div id="river" class="chart tall"></div></div></div>
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <button class="howbtn" data-how="inst">怎麼看 ?</button></div>
         <div class="howtxt" id="how-inst" hidden></div>
-        <div class="zwrap" id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
+        <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
         <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div>
         <button class="howbtn" data-how="conc">怎麼看 ?</button></div></div>

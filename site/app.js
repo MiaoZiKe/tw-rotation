@@ -176,14 +176,6 @@
     return box._zoom;
   }
 
-  /* 把一張 ECharts 圖變成「可以滾輪放大」：放大時連 canvas 一起放大重畫，
-     所以放多大字都是清楚的（不是把畫好的圖拉大）。
-     Andy：「這邊資訊太小看不到 需要新增縮放」—— 小卡片裡的圖全部都要能放大來看。 */
-  function zoomChart(wrapId, chartId) {
-    const box = $('#' + wrapId); if (!box) return;
-    wheelZoom(box, { onZoom: () => { const i = echarts.getInstanceByDom($('#' + chartId)); if (i) i.resize(); } });
-  }
-
   const goStock = (code) => { location.hash = '#stock/' + code; };
   window.goStock = goStock;
 
@@ -390,11 +382,9 @@
     renderBreadth(heat);
     renderTrust(trust, cands);
     renderGval(gval, rot, gt);
-    // 下面三張圖擠在一排，字很小；每張都可以滾輪放大來看清楚
-    zoomChart('breadthWrap', 'breadth');
-    zoomChart('trustWrap', 'trust');
-    zoomChart('gvalWrap', 'gval');
-    zoomChart('rotClockMiniWrap', 'rotClockMini');
+    /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
+       （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
+       徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
   }
 
   // 圖表下方的可點連結列：圖上點得到的東西，這裡也一定點得到（手機沒有 hover）
@@ -1068,10 +1058,7 @@
       $$('#concSeg button').forEach(x => x.classList.toggle('on', x === b)); flowState.concTop = +b.dataset.v; drawConc();
     });
     renderVal(fund);
-    // 這頁的圖都塞了很多族群，字擠在一起；每張都能滾輪放大
-    [['rankFlowWrap', 'rankFlow'], ['bumpWrap', 'bump'], ['rotClockWrap', 'rotClock'],
-     ['sankeyWrap', 'sankey'], ['riverWrap', 'river'], ['instGroupsWrap', 'instGroups']]
-      .forEach(([w, c]) => zoomChart(w, c));
+    // 資金流向頁的六張圖不加滾輪縮放（Andy 09-13）；圖本身已經用足卡片寬度
   }
 
   // ---- 資金流向排行：這段期間誰的成交值佔比長大、誰縮小
@@ -1378,7 +1365,8 @@
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
       if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el));
-      wheelZoom($('#themeDiagram', el));
+      // 剖析圖不加滾輪縮放（跟產業／個股剖析圖一致，DECISIONS #84；Andy 09-13 再確認）
+      // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
     }
     // 點進某個題材之後要回得去（不然只能按瀏覽器上一頁）
