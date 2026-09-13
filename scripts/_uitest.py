@@ -217,10 +217,16 @@ def check_3d(pg):
     pg.mouse.up(); pg.wait_for_timeout(900)
     c1 = pg.evaluate("() => window.Rack3D.current.cam()")
     ok("拖曳真的轉得動視角", max(abs(a - b) for a, b in zip(c0, c1)) > 3, f"{c0} → {c1}")
-    # 重設視角要真的回到預設
+    # 重設視角要真的回到預設：比方向與距離，不比絕對座標
+    # （重設會照「現在的畫面比例」重新取景，中途版面若變過，座標本來就不會一模一樣）
     click(pg, "#dgReset", 900)
-    ok("重設視角真的回到預設", pg.evaluate("() => window.Rack3D.current.cam()") == c0,
-       pg.evaluate("() => window.Rack3D.current.cam()"))
+    c2 = pg.evaluate("() => window.Rack3D.current.cam()")
+    def _unit(v):
+        m = sum(x * x for x in v) ** 0.5
+        return [x / m for x in v], m
+    u0, m0 = _unit(c0); u2, m2 = _unit(c2)
+    same_dir = sum(a * b for a, b in zip(u0, u2)) > 0.999
+    ok("重設視角真的回到預設", same_dir and abs(m2 - m0) / m0 < 0.05, f"{c0} → {c2}")
     # 驗收 2：點零件要亮起來，而且帶出這個環節的台股
     seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
     pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)

@@ -42,6 +42,8 @@
   /* ---------------------------------------------------------------- 場景資料
      單位：1 = 1 公分左右的感覺，機櫃高 42U 畫成 84。
      每個零件：{ seg, name, note, box:[w,h,d], at:[x,y,z], n:重複幾個, gap, axis }
+     ★ n > 1 時 at 是**整排的中心**（程式會把整排對稱擺在 at 兩側），不是第一個的位置——
+       寫成第一個的位置，整排就會整個偏出機櫃外面（第一版就是這樣，GPU 模組跑到機櫃左邊去了）。
      seg 對得上 supply_chain.yaml 的環節 id —— 點下去就能帶出該環節的台股。*/
   const SCENES = {
     ai_server: {
@@ -56,54 +58,54 @@
         { seg: 'switch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
           box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y' },
         { seg: 'adv_pkg', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
-          box: [9, 2.6, 9], at: [-15, 34, 2], n: 4, gap: 10, axis: 'x' },
+          box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x' },
         { seg: 'foundry', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
-          box: [7, 2, 7], at: [-8, 34, -10], n: 2, gap: 16, axis: 'x' },
+          box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x' },
         { seg: 'hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
-          box: [3, 3.2, 3], at: [-19, 34.4, 2], n: 4, gap: 10, axis: 'x' },
+          box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x' },
         { seg: 'abf_pcb', name: '主機板 高階 PCB / 載板', note: '托盤底板；載板（欣興/南電/景碩）與伺服器主機板（金像電）供應商不同',
           box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y' },
         { seg: 'ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
           box: [46, 0.5, 32], at: [0, 30.2, 0] },
         { seg: 'thermal', name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
-          box: [7, 70, 7], at: [30, 40, 0] },
+          box: [4.5, 64, 4.5], at: [31, 38, 0] },
         { seg: 'thermal', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
           box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y' },
         { seg: 'power', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
-          box: [22, 5, 30], at: [0, 10, 0], n: 3, gap: 6, axis: 'y' },
+          box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y' },
         { seg: 'power', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
           box: [18, 4, 26], at: [0, 4, 0] },
         { seg: 'optical', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
-          box: [2.4, 1.4, 8], at: [-16, 76, 14], n: 8, gap: 4.4, axis: 'x' },
+          box: [2.4, 1.4, 8], at: [0, 72, 15], n: 8, gap: 4.4, axis: 'x' },
         { seg: 'switch', name: 'ToR 交換器', note: '跨機櫃那張網（scale-out）：InfiniBand 或 Ethernet',
           box: [46, 4, 30], at: [0, 76, 0] },
         { seg: 'hyperscaler', name: '雲端業者 / Neocloud', note: '終端需求：CSP、主權 AI、Neocloud',
-          box: [30, 6, 20], at: [0, 94, 0], ghost: true },
+          box: [26, 4, 18], at: [0, 90, 0], ghost: true },
       ],
     },
     semiconductor: {
       title: 'CoWoS-L 先進封裝剖面',
       sub: '由下往上：載板 → RDL 有機重佈線 ＋ LSI 矽橋 → 晶粒與 HBM → 上蓋；灰色是台廠切不進去的部分',
-      camera: [50, 34, 52], target: [0, 8, 0], fit: 1.35,
+      camera: [50, 34, 52], target: [0, 8, 0], fit: 1,
       parts: [
         { seg: 'abf_pcb', name: 'ABF 載板', note: 'core + 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板',
           box: [44, 3, 34], at: [0, 1.5, 0] },
         { seg: 'abf_pcb', name: 'BGA 錫球', note: '載板連到主機板',
-          box: [2, 1.6, 2], at: [-18, -0.4, -12], n: 6, gap: 7.2, axis: 'x' },
+          box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x' },
         { seg: 'adv_pkg', name: 'RDL 重佈線層（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
           box: [36, 1.6, 26], at: [0, 3.8, 0] },
         { seg: 'adv_pkg', name: 'LSI 局部矽橋', note: '只埋在晶粒交界處，負責 die-to-die 的高密度連線',
-          box: [6, 1, 10], at: [-6, 5.2, 0], n: 2, gap: 12, axis: 'x' },
+          box: [6, 1, 10], at: [0, 5.2, 0], n: 2, gap: 12, axis: 'x' },
         { seg: 'foundry', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅無凸塊），再進 CoWoS-L',
           box: [14, 2.4, 14], at: [0, 6.6, 0] },
         { seg: 'foundry', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，台積電差異化的核心',
           box: [12, 1.8, 12], at: [0, 8.8, 0] },
         { seg: 'hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）',
-          box: [7, 5.4, 11], at: [-13, 8, 0], n: 2, gap: 26, axis: 'x' },
+          box: [7, 5.4, 11], at: [0, 8, 0], n: 2, gap: 26, axis: 'x' },
         { seg: 'adv_pkg', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；日商為主',
           box: [34, 0.8, 24], at: [0, 5.6, 0], ghost: true },
         { seg: 'adv_pkg', name: 'Stiffener 補強環', note: '大尺寸封裝防翹曲',
-          box: [42, 2, 3], at: [0, 6, -15], n: 2, gap: 30, axis: 'z' },
+          box: [42, 2, 3], at: [0, 6, 0], n: 2, gap: 30, axis: 'z' },
         { seg: 'osat_test', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
           box: [10, 1.2, 10], at: [24, 3, 16], ghost: true },
         { seg: 'adv_pkg', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板',
@@ -122,7 +124,8 @@
     const { THREE, OrbitControls, CSS2DRenderer, CSS2DObject } = await load();
 
     const W = () => Math.max(320, el.clientWidth);
-    const H = () => Math.max(320, Math.round(Math.min(640, el.clientWidth * 0.56)));
+    // 機櫃是直立的，畫面比例太扁會把上下切掉；0.62 是讓 42U 機櫃連同標籤都塞得下的比例
+    const H = () => Math.max(360, Math.round(Math.min(700, el.clientWidth * 0.62)));
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, W() / H(), 1, 2000);
@@ -156,7 +159,7 @@
 
     const mkMat = (hex, ghost) => new THREE.MeshStandardMaterial({
       color: new THREE.Color(hex), roughness: ghost ? 0.9 : 0.42, metalness: ghost ? 0.05 : 0.55,
-      transparent: !!ghost, opacity: ghost ? 0.28 : 1,
+      transparent: !!ghost, opacity: ghost ? 0.16 : 1,
       emissive: new THREE.Color(hex), emissiveIntensity: ghost ? 0.02 : 0.08,
     });
 
@@ -174,6 +177,13 @@
           g.dispose();
         } else {
           mesh = new THREE.Mesh(new THREE.BoxGeometry(p.box[0], p.box[1], p.box[2]), mkMat(hex, p.ghost));
+          if (p.ghost) {
+            /* 透明件（上蓋、底填膠、補強環）只有半透明色塊時會糊成一片藍板，
+               把底下的晶粒都洗掉。補一圈邊線，讀起來才像「外殼」而不是「一塊玻璃」。*/
+            const eg = new THREE.EdgesGeometry(mesh.geometry);
+            mesh.add(new THREE.LineSegments(eg, new THREE.LineBasicMaterial({
+              color: new THREE.Color(hex), transparent: true, opacity: 0.55 })));
+          }
         }
         const off = (i - (n - 1) / 2) * gap;
         mesh.position.set(p.at[0] + (axis === 'x' ? off : 0),
@@ -217,9 +227,29 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.target.set(spec.target[0], spec.target[1], spec.target[2]);
-    controls.minDistance = 40; controls.maxDistance = 320;
     controls.maxPolarAngle = Math.PI * 0.495;      // 不要轉到地板底下
-    controls.update();
+
+    /* 相機距離用「把整個場景包起來的球」算出來，不要寫死：
+       寫死的話換一個場景、或畫面比例一變，機櫃頭尾就被切掉（第一版就是這樣）。 */
+    const fitCamera = () => {
+      const box = new THREE.Box3().setFromObject(root);
+      const sph = box.getBoundingSphere(new THREE.Sphere());
+      const size = box.getSize(new THREE.Vector3());
+      const vfov = camera.fov * Math.PI / 180;
+      const hfov = 2 * Math.atan(Math.tan(vfov / 2) * camera.aspect);
+      /* 用「外接盒」而不是「外接球」算距離：球對又扁又寬的封裝剖面會多退 30%，
+         畫面中間只剩一小塊。半個深度是留給轉動時最靠近相機的那一角。 */
+      const halfW = Math.max(size.x, size.z) / 2, halfH = size.y / 2, halfD = Math.max(size.x, size.z) / 2;
+      const dist = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) + halfD) * 1.06 * (spec.fit || 1);
+      const dir = new THREE.Vector3(spec.camera[0], spec.camera[1], spec.camera[2])
+        .sub(new THREE.Vector3(spec.target[0], spec.target[1], spec.target[2])).normalize();
+      controls.target.copy(sph.center);
+      camera.position.copy(sph.center).addScaledVector(dir, dist);
+      controls.minDistance = dist * 0.28; controls.maxDistance = dist * 2.6;
+      camera.updateProjectionMatrix();
+      controls.update();
+    };
+    fitCamera();
 
     // ---- 點零件：接回原本那條路（亮起來 ＋ 帶出台股清單）
     const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
@@ -258,7 +288,7 @@
             m.material.emissiveIntensity = sel ? 0.65 : (p.ghost ? 0.02 : 0.08);
           }
           if (m.material.opacity !== undefined && m.material.transparent) {
-            m.material.opacity = has && !sel ? 0.12 : (p.ghost ? 0.28 : 1);
+            m.material.opacity = has && !sel ? 0.12 : (p.ghost ? 0.16 : 1);
           } else if (m.material.transparent !== undefined) {
             m.material.transparent = has && !sel;
             m.material.opacity = has && !sel ? 0.18 : 1;
@@ -273,8 +303,35 @@
       });
     }
 
+    /* ---- 標籤避讓：轉到某些角度時零件會擠在一起，標籤就疊成一團看不懂。
+       每次相機停下來重排一次：選起來的優先，其次是離相機近的（看得最清楚的那個），
+       跟已保留的標籤矩形相撞就藏起來。~15 個元素、每秒最多幾次，成本可以忽略。*/
+    const labelBoxes = [];
+    function layoutLabels() {
+      labelBoxes.length = 0;
+      const v = new THREE.Vector3();
+      const arr = [];
+      byIdx.forEach(p => {
+        if (!p || !p.label || !p.label.element) return;
+        const e = p.label.element;
+        e.classList.remove('hid');
+        p.meshes[0].getWorldPosition(v);
+        arr.push({ e, d: v.distanceTo(camera.position), sel: e.classList.contains('sel') ? 1 : 0 });
+      });
+      arr.sort((a, b) => (b.sel - a.sel) || (a.d - b.d));
+      arr.forEach(it => {
+        const r = it.e.getBoundingClientRect();
+        if (!r.width) return;
+        // 選起來的標籤永遠不藏：使用者剛點的那個不見了最莫名其妙
+        const clash = !it.sel && labelBoxes.some(k => !(r.right < k.left - 2 || r.left > k.right + 2
+          || r.bottom < k.top - 2 || r.top > k.bottom + 2));
+        if (clash) it.e.classList.add('hid');
+        else labelBoxes.push({ left: r.left, right: r.right, top: r.top, bottom: r.bottom });
+      });
+    }
+
     // ---- 只在看得到的時候畫
-    let raf = null, alive = true, visible = true;
+    let raf = null, alive = true, visible = true, relayout = 0;
     const tick = () => {
       if (!alive) return;
       raf = requestAnimationFrame(tick);
@@ -282,6 +339,8 @@
       controls.update();
       renderer.render(scene, camera);
       labels.render(scene, camera);
+      // 每 8 幀重排一次標籤：轉的時候跟得上，停著的時候幾乎不花錢
+      if (++relayout % 8 === 0) layoutLabels();
     };
     const io = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }, { threshold: 0.02 }) : null;
@@ -327,13 +386,18 @@
       segs: () => byIdx.filter(Boolean).map(p => p.seg),
       dispose: () => { dispose(); if (global.Rack3D.current === view) global.Rack3D.current = null; },
       // 重設時先關阻尼：不然上一次拖曳殘留的慣性會讓相機停在預設視角旁邊一點點
+      /* 重設視角要跟第一次進來看到的「一模一樣」。麻煩的是 OrbitControls 內部還留著
+         上一次拖曳的慣性（sphericalDelta），而且關掉阻尼時 update() 會把殘留量**整份**套上去，
+         相機就會停在預設視角旁邊一兩度。先用 dampingFactor = 1 跑一次 update 把殘留吃光並歸零，
+         再關阻尼重新取景，結果才是精準的。*/
       reset: () => {
-        const damp = controls.enableDamping; controls.enableDamping = false;
-        controls.reset();
-        controls.target.set(spec.target[0], spec.target[1], spec.target[2]);
-        camera.position.set(spec.camera[0], spec.camera[1], spec.camera[2]);
+        const damp = controls.enableDamping, df = controls.dampingFactor;
+        controls.enableDamping = true; controls.dampingFactor = 1;
         controls.update();
-        controls.enableDamping = damp;
+        controls.enableDamping = false;
+        fitCamera();
+        controls.enableDamping = damp; controls.dampingFactor = df;
+        layoutLabels();
       },
       title: spec.title, sub: spec.sub,
     };

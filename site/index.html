@@ -442,6 +442,9 @@ tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,25
 .lbl3d b{font-weight:600;color:var(--ink)}
 .lbl3d.sel{border-color:var(--cyan);color:var(--cyan);background:rgba(62,224,255,.14)}
 .lbl3d.dim{opacity:.22}
+/* 轉到某些角度零件會擠在一起，標籤疊成一團；避讓演算法會把被擋住的那些標成 hid */
+.lbl3d.hid{opacity:0;pointer-events:none}
+.lbl3d:hover{border-color:var(--cyan);color:var(--ink);z-index:3}
 .dgwrap svg{display:block;width:100%;height:auto}
 .dgwrap.compact svg{max-height:380px}
 .dgwrap.noanim *{animation:none!important}
