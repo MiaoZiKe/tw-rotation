@@ -181,6 +181,79 @@ def check_drag(pg, wrap: str, label: str):
     ok(f"「{label}」雙擊還原得回去", not pg.evaluate("(id)=>document.getElementById(id).classList.contains('zoomed')", wrap))
 
 
+def check_3d(pg):
+    """3D 剖析圖：Andy 拍板「先試試看 three.js」，四條硬性驗收全部用真滑鼠操作。
+       相機位置用 Rack3D.current.cam() 比對——canvas 沒開 preserveDrawingBuffer，
+       readPixels 一律回 0，比像素等於什麼都沒驗到。"""
+    st = pg.evaluate("""() => ({ webgl: !!(window.Rack3D && window.Rack3D.supported()),
+        scene: !!(window.Rack3D && window.Rack3D.hasScene('ai_server')),
+        btn: !!document.getElementById('dg3d'),
+        hidden: (document.getElementById('dg3d')||{}).hidden })""")
+    if not st["scene"]:
+        return
+    if not st["webgl"]:
+        # 沒 WebGL 就必須安靜退回平面圖，而且要講原因
+        ok("沒有 WebGL 時 3D 鈕要收起來", st["hidden"], st)
+        ok("沒有 WebGL 時平面剖析圖還在", count(pg, "#prodDiagram [data-seg]") > 0)
+        ok("沒有 WebGL 時有說明為什麼", "WebGL" in text(pg, "#dg3dNote"), text(pg, "#dg3dNote"))
+        return
+    ok("有 3D 場景的產業鏈會出現 3D 鈕", st["btn"] and not st["hidden"], st)
+    click(pg, "#dg3d", 4200)
+    on = pg.evaluate("""() => ({ canvas: document.querySelectorAll('#prod3d canvas').length,
+        labels: document.querySelectorAll('.lbl3d').length,
+        svgHidden: (document.getElementById('prodDiagram')||{}).hidden })""")
+    ok("按 3D 真的掛起場景", on["canvas"] == 1 and on["labels"] > 5, on)
+    ok("開 3D 時平面圖收起來（不可以兩張疊著）", on["svgHidden"], on)
+    # 驗收 3：標籤是 DOM，不是畫進畫布（選得起來、驗得到文字重疊）
+    ok("3D 零件標籤是 DOM 元素", pg.evaluate(
+        "() => { const e = document.querySelector('.lbl3d'); return !!e && e.tagName === 'DIV' && !e.closest('canvas'); }"))
+    scroll_to(pg, "prod3d")
+    box = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
+    cx, cy = box["x"] + box["w"] / 2, box["y"] + box["h"] / 2
+    # 驗收 1：真的抓著拖，相機要換位置（起點故意壓在標籤上——按在標籤上也必須轉得動）
+    c0 = pg.evaluate("() => window.Rack3D.current.cam()")
+    pg.mouse.move(cx, cy); pg.mouse.down()
+    pg.mouse.move(cx + 260, cy + 40, steps=16)
+    pg.mouse.up(); pg.wait_for_timeout(900)
+    c1 = pg.evaluate("() => window.Rack3D.current.cam()")
+    ok("拖曳真的轉得動視角", max(abs(a - b) for a, b in zip(c0, c1)) > 3, f"{c0} → {c1}")
+    # 重設視角要真的回到預設
+    click(pg, "#dgReset", 900)
+    ok("重設視角真的回到預設", pg.evaluate("() => window.Rack3D.current.cam()") == c0,
+       pg.evaluate("() => window.Rack3D.current.cam()"))
+    # 驗收 2：點零件要亮起來，而且帶出這個環節的台股
+    seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
+    pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
+    b4 = pg.evaluate("() => ({ box: (document.getElementById('segBox')||{}).innerText || '' })")
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+    af = pg.evaluate("""() => ({ box: (document.getElementById('segBox')||{}).innerText || '',
+        sel: document.querySelectorAll('.lbl3d.sel').length,
+        dim: document.querySelectorAll('.lbl3d.dim').length,
+        links: document.querySelectorAll('#segBox a.lk').length })""")
+    ok("點 3D 零件會亮起來、其餘變暗", af["sel"] > 0 and af["dim"] > 0, af)
+    # 不能比長度：這頁前面的驗收可能已經選過別的環節，說明框本來就有字
+    ok("點 3D 零件會帶出這個環節的台股",
+       af["links"] > 0 and len(af["box"]) > 0 and af["box"] != b4["box"], {"before": b4["box"][:30], **af})
+    # 點標籤也要能選（小零件用滑鼠很難打到，點名字是主要路徑）
+    lp = pg.evaluate("""() => { const cur = (document.querySelector('.lbl3d.sel')||{dataset:{}}).dataset.seg;
+        for (const e of document.querySelectorAll('.lbl3d')) { const r = e.getBoundingClientRect();
+          if (e.dataset.seg !== cur && r.top > 220 && r.bottom < innerHeight - 20 && r.width > 8)
+            return { x: r.x + r.width/2, y: r.y + r.height/2, seg: e.dataset.seg }; } return null; }""")
+    if lp:
+        pg.mouse.click(lp["x"], lp["y"]); pg.wait_for_timeout(800)
+        ok("點 3D 標籤也選得到那個零件", pg.evaluate(
+            "(s) => { const e = document.querySelector('.lbl3d.sel'); return !!e && e.dataset.seg === s; }", lp["seg"]),
+           lp["seg"])
+    # 切回平面再切回來：不可以留下第二張 canvas（WebGL context 有上限）
+    click(pg, "#dg3d", 900)
+    off = pg.evaluate("""() => ({ svg: !(document.getElementById('prodDiagram')||{}).hidden,
+        canvas: document.querySelectorAll('#prod3d canvas').length })""")
+    ok("切回平面圖，3D 收乾淨", off["svg"] and off["canvas"] == 0, off)
+    click(pg, "#dg3d", 3500)
+    ok("再切回 3D 只有一張 canvas（沒有疊上去）", count(pg, "#prod3d canvas") == 1, count(pg, "#prod3d canvas"))
+    click(pg, "#dg3d", 800)   # 留在平面圖，不影響後面的驗收
+
+
 # ------------------------------------------------------------------ 各頁
 def t_overview(pg, base):
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
@@ -669,6 +742,8 @@ def t_industry(pg, base):
     if count(pg, "#prodDiagram [data-part]"):
         click(pg, "#prodDiagram [data-part]", 600)
         ok("點剖析圖零件會亮起來", count(pg, "#prodDiagram .sel") > 0)
+
+    check_3d(pg)
 
     # --- 點成分股 → 個股頁
     click(pg, "#memberTable tbody tr a, #memberTable tbody tr", 1800)

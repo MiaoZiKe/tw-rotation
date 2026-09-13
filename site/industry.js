@@ -13,6 +13,7 @@
   // ================================================================ 路由
   async function route(head, rest) {
     A = window.App;
+    dispose3D();   // 換頁一定要收掉 WebGL context（瀏覽器最多只給十幾個，不收會整個掛掉）
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; await renderStock(rest[0], im, sc, gd); return; }
     if (rest[0] === 'group' && rest[1]) { state.group = rest[1]; state.chain = chainOfGroup(im, rest[1]); state.level = 1; renderChain(im, sc, gd); return; }
@@ -83,7 +84,7 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線框＝外商；點公司進入個股頁</small></h4><div class="chainmap" id="chainMap"></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
@@ -142,6 +143,12 @@
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
       const animBtn = $('#dgAnim', el); if (animBtn) animBtn.onclick = () => { const on = $('#prodDiagram', el).classList.toggle('noanim'); animBtn.textContent = on ? '動畫：關' : '動畫：開'; try { localStorage.setItem('tw.dganim', on ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       try { if (localStorage.getItem('tw.dganim') === '0') { $('#prodDiagram', el).classList.add('noanim'); animBtn.textContent = '動畫：關'; } } catch (e) { /* 忽略 */ }
+      // wire3D 是模組層級的函式，看不到這裡的 segHi／segFilter／syncHighlight，
+      // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
+      wire3D(el, ch.id, {
+        onSeg: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
+        sync: () => syncHighlight({ quiet: true }),
+      });
     }
     syncHighlight();
   }
@@ -185,10 +192,68 @@
   }
   function highlightSegments(root, segs, color) {
     const on = new Set(segs || []);
+    if (view3d) view3d.highlight(on, color);       // 3D 場景與 SVG 用同一套高亮規則
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
   }
+  /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
+     Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
+       可以轉、點零件會亮並帶出台股、標籤是 DOM、WebGL 不能用就退回 SVG。
+     three.js 是動態載入的，只有真的按下 3D 才付那 670KB。*/
+  let view3d = null;                 // 目前掛著的 3D 場景（沒有就是 null）
+
+  function dispose3D() { if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; } }
+
+  function wire3D(el, chainId, hooks) {
+    const hk = hooks || {};
+    const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
+    const sync = hk.sync || (() => { /* 沒接就不做事 */ });
+    const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
+    const svg = $('#prodDiagram', el), host = $('#prod3d', el);
+    if (!btn || !host) return;
+    const R = window.Rack3D;
+    if (!R || !R.hasScene(chainId)) return;         // 這條鏈還沒有 3D 場景 → 維持平面圖
+    if (!R.supported()) {                            // WebGL 不能用 → 連鈕都不出現，安靜退回 SVG
+      note.hidden = false;
+      note.textContent = '這台裝置不支援 WebGL，改用平面剖析圖（內容一樣）。';
+      return;
+    }
+    btn.hidden = false;
+    const setMode = async (on) => {
+      try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      btn.classList.toggle('cyan', on);
+      btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
+      rst.hidden = !on;
+      svg.hidden = on; host.hidden = !on;
+      if (!on) { dispose3D(); note.hidden = true; sync(); return; }
+      note.hidden = false;
+      note.textContent = '載入 3D 中…';
+      dispose3D();
+      host.innerHTML = '';
+      let v = null;
+      try {
+        v = await R.mount(host, chainId, {
+          color: segColor,
+          onSeg: (seg) => onSeg(seg),
+        });
+      } catch (err) {
+        // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
+        note.textContent = '3D 起不來（' + (err && err.message ? err.message : err) + '），已退回平面剖析圖。';
+        svg.hidden = false; host.hidden = true; rst.hidden = true; return;
+      }
+      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; return; }
+      view3d = v;
+      note.textContent = `${v.sub}　·　拖曳轉視角、滾輪拉近拉遠、點零件看供應商`;
+      sync();
+    };
+    btn.onclick = () => setMode(host.hidden);
+    rst.onclick = () => { if (view3d) view3d.reset(); };
+    let want = false;
+    try { want = localStorage.getItem('tw.dg3d') === '1'; } catch (e) { /* 忽略 */ }
+    setMode(want);
+  }
+
   function wireDiagram(root, onSeg) { $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg); }; }); }
 
   // ---------------------------------------------------------------- 分層關聯圖（SVG）

@@ -351,3 +351,33 @@
     用邊框／發光／大小，不要再借用紅綠。
 91. **`visualMap` 的中點色不可以等於面板底色**：季節性熱力圖中點用 `#0f172b`（就是 `--panel`），
     ±5% 以內的格子全部隱形，324 格看起來像一張數字表。中點改 `#16203a`。
+92. **3D 剖析圖走 Three.js**（Andy 拍板「先試試看 three.js」，POC 四條硬性驗收全過，2026-09-13）：
+    three.js 0.160.1 內建在 `site/vendor/`（公司網路擋 CDN，不可用 CDN），**動態載入**——
+    沒按下「3D 立體」就不會付那 670KB。場景資料寫在 `site/three3d.js` 的 `SCENES`，
+    每個零件 `{seg, name, note, box, at, n, gap, axis}`，`seg` 對得上 `supply_chain.yaml` 的環節 id，
+    所以點 3D 零件和點 SVG 零件走的是同一條路（`highlightSegments` 同時餵 SVG 與 3D）。
+93. **從傳統 `<script>` 動態 import 一定要寫 `./`**：`import('vendor/three.module.min.js')` 會被當成
+    bare specifier（像 `import 'react'`）而解析失敗，必須 `import('./vendor/three.module.min.js')`。
+    這個錯誤只在瀏覽器出現、`node` 端看不到，所以 POC 才會卡在「載入 3D 中…」不動。
+    同時 `wire3D()` 一定要 try/catch 並把錯誤寫進畫面 —— 不可以讓使用者停在「載入中」以為當掉了。
+94. **模組層級的函式不可以用 render 函式的區域變數**：`wire3D()` 寫在模組層級卻直接用了
+    `segHi`／`segFilter`／`syncHighlight`（都是 `renderChain()` 的區域變數），
+    畫面看起來正常、但每次點零件都丟 `ReferenceError`，而且只在 console 看得到。
+    改成把要用到的動作當參數傳進去（`wire3D(el, chainId, {onSeg, sync})`）。
+    **驗收腳本一定要收 `pageerror`** —— 這個 bug 就是靠 `_uitest` 收到的 PAGEERROR 才抓到的。
+95. **CSS2D 標籤要能點，也不能擋住轉視角**：標籤 `pointer-events:auto` 之後，
+    按在標籤上時畫布收不到 `pointerdown`，OrbitControls 沒啟動 → 整台機櫃轉不動（驗收 1 就是這樣掛的）。
+    解法是標籤的 `pointerdown` **原樣轉發給畫布**（OrbitControls 收到後會 `setPointerCapture`，
+    之後的移動與放開自然走畫布那條路），再用「位移 < 5px 才算點選」區分「點名字」與「拖著轉」。
+96. **WebGL 的驗收不可以比畫布像素**：canvas 沒開 `preserveDrawingBuffer`，
+    `readPixels` 在繪製後一律回 0，兩次雜湊永遠相同 → 「轉不動」和「轉得動」看起來一樣。
+    所以 `Rack3D.mount()` 回傳 `cam()`（相機座標）與 `screen(seg)`（零件現在投影在螢幕哪裡），
+    驗收改成比相機座標、點擊改成問場景要座標，不再猜像素。
+97. **`OrbitControls.reset()` 之後要先關阻尼再 update**：不然上一次拖曳殘留的慣性會讓相機
+    停在預設視角旁邊一點點（`[85.36, 62.13, 96.53]`），「重設視角」看起來像沒完全重設。
+98. **換頁一定要 `dispose3D()`**：瀏覽器的 WebGL context 有數量上限（一般十幾個），
+    離開產業鏈頁不收掉，逛幾頁之後整個網站的圖都會掛。`route()` 進來第一件事就是收。
+99. **沒有真的 fixture 就不准寫 parser**（重申並制度化）：Claude 的容器連不到官方端點，
+    所以新增 `.github/workflows/probe.yml` ＋ `scripts/probe_sources.py`：手動觸發 → 在 Actions 上
+    真的打一輪候選端點 → 把狀態碼、欄位名、前三筆樣本 commit 成 `docs/fixtures/<probe>_probe.json`。
+    連不上也是結果（記成 `error`），探測器本身不可以丟例外。重大訊息這條走這個流程。

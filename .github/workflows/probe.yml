@@ -1,0 +1,69 @@
+name: 端點探測（寫 fixture）
+
+# 手動觸發。用途只有一個：在 Actions 上真的打一輪候選端點，
+# 把回應（狀態碼、欄位名、前幾筆樣本）commit 成 docs/fixtures/<probe>_probe.json。
+#
+# 為什麼要獨立一條工作流：Claude 的容器連不出去，官方端點只有這裡打得到。
+# 規矩是「沒有真的 fixture 就不准寫 parser」——所有資料源的欄位都是實測過才寫進 sources/ 的，
+# 猜欄位名的下場是上線才發現整欄空白。
+#
+# 跑法：Actions → 端點探測（寫 fixture）→ Run workflow → 選 probe → 看 log，
+# 結果會自己 commit 回 main，Claude 讀 fixture 後才寫 parser。
+
+on:
+  workflow_dispatch:
+    inputs:
+      probe:
+        description: "要探測哪一組"
+        type: choice
+        options: [material_news]
+        default: material_news
+
+permissions:
+  contents: write
+
+# 與每日管線／回補共用寫入佇列，避免兩邊同時 push 互相踩
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      # 探測本身不可以讓工作流失敗：連不上也是結果，要留在 fixture 裡
+      - name: 打一輪候選端點
+        run: python scripts/probe_sources.py "${{ inputs.probe }}"
+        continue-on-error: true
+
+      - name: 把 fixture commit 回 repo
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add docs/fixtures
+          if git diff --staged --quiet; then
+            echo "fixture 沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "端點探測：${{ inputs.probe }} $(date -u '+%Y-%m-%d %H:%M')"
+          git pull --rebase origin "${{ github.ref_name }}"
+          git push origin HEAD:"${{ github.ref_name }}"
+
+      - name: 把 fixture 也放進 artifact（方便直接下載看）
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.probe }}-probe
+          path: docs/fixtures/*_probe.json
+          if-no-files-found: warn

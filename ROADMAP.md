@@ -211,10 +211,32 @@ M4 事件面   有沒有理由不做 → 一票否決
 3. **POC 過不了任何一條就回方案 A**（把現有等角圖做厚：單一光源、倒角亮邊、真陰影、AO 縫隙、爆炸拉桿、滑鼠視差）—— 這條路 400–600 行、18 張圖一起受惠、驗收機制不動。
 4. 不論走哪條，**`supply_chain.yaml` 的環節定義與錯誤代號要先修**，否則圖畫了也對不到股票。
 
+### POC 結果（2026-09-13）：**四條全過，Three.js 這條路留下**
+
+| 驗收 | 結果 | 怎麼驗的 |
+| --- | --- | --- |
+| (a) 可以繞著機櫃轉 | ✅ | 真的用滑鼠從畫面中央拖 260px，比對 `Rack3D.current.cam()`：`[86,62,96] → [-102,110,-34]` |
+| (b) 點零件亮起並帶出台股 | ✅ | 問場景「這個零件現在投影在螢幕哪裡」再真的點下去 → 該零件 `.sel`、其餘 14 個 `.dim`、說明框出現 3 個個股連結 |
+| (c) 標籤是 DOM | ✅ | `CSS2DRenderer`，`.lbl3d` 是 `<div>` 且不在 `<canvas>` 裡，`_preview.py` 的文字重疊檢查照跑 |
+| (d) 沒有 WebGL 退回 SVG | ✅ | 攔掉 `getContext('webgl')` → 3D 鈕隱藏、平面圖 24 個零件都在、說明寫明原因 |
+
+POC 期間踩到、已修掉的三個坑（都寫進 `DECISIONS.md`）：
+- 動態 `import()` 從傳統 `<script>` 載入，路徑一定要 `./vendor/…`，寫 `vendor/…` 會被當成 bare specifier 而解析失敗。
+- `wire3D()` 放在模組層級卻用了 render 函式的區域變數（`segHi`／`syncHighlight`），每次回呼都 `ReferenceError`；改成把動作當參數傳進去。
+- CSS2D 標籤蓋在畫布上，按在標籤上畫布收不到 `pointerdown`，整台機櫃就轉不動 —— 把 `pointerdown` 原樣轉給畫布，OrbitControls 才接得到。
+
+下一步（第 3 批）：把 `semiconductor` 場景的零件補到跟 AI 伺服器一樣細，再評估 18 張題材等角圖要不要一起 3D 化
+（**題材圖不急**：那 18 張本來就是真等角，優先序低於知識連結與名詞解釋）。
+
 ## 3. 重大訊息（公開資訊觀測站）→ **要接**
 
 做法（這個環境連不到端點，所以分兩步）：
 1. 先加一個 `.github/workflows/probe.yml`（手動觸發），在 Actions 上打端點、把回應存成 `docs/fixtures/mops_sample.json` 並 commit。
+   **（2026-09-13 已完成）** `.github/workflows/probe.yml` ＋ `scripts/probe_sources.py` 已寫好，
+   探測器本身有 7 個離線測試。候選端點包含證交所／櫃買的 OpenAPI 目錄（swagger.json，直接找帶「重大訊息」的 path）、
+   `t187ap04_L` 系列的推測路徑、以及 FinMind 的 dataset 清單。
+   **Andy 要做的只有一件事**：Actions → 「端點探測（寫 fixture）」→ Run workflow。
+   跑完 fixture 會自己 commit 回 main，Claude 讀完才寫 parser。
 2. 照 fixture 寫 `pipeline/sources/mops.py` 與 parser，註冊 `TABLES["material_news"] = ["code", "date", "seq"]`，接進個股頁的「新聞 / 券商」分頁與事件側欄。
 3. 驗收：fixture 有測試、個股頁真的看得到公司自己發的重大訊息。
 
