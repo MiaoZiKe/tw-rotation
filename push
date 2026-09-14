@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# 一鍵推上線（Mac / Linux）。用法：在 repo 根目錄執行 ./push "commit 訊息"
+set -u
+cd "$(dirname "$0")"
+LOG="push-log.txt"
+{
+  echo "===== START $(date '+%Y-%m-%d %H:%M:%S') ====="
+  echo "folder: $PWD"
+  git rev-parse --is-inside-work-tree >/dev/null 2>&1 || { echo "[FAIL] not a git repo"; exit 1; }
+  echo; echo "[1/5] status"; git status --short --branch
+  echo; echo "[2/5] stage + commit"
+  git add -A ':!push-log.txt'
+  git add -f push.bat _push_core.bat push PUSH-README.md 2>/dev/null || true
+  if git diff --cached --quiet; then
+    echo "[INFO] nothing to commit"
+  else
+    MSG="${1:-更新（由 push 腳本提交）}"
+    git commit -m "$MSG" || { echo "[FAIL] commit"; exit 2; }
+  fi
+  echo; echo "[3/5] pull --rebase"
+  git pull --rebase origin main || { echo "[FAIL] pull/rebase"; git status --short; exit 3; }
+  echo; echo "[4/5] commits to push"; git log --oneline origin/main..HEAD
+  echo; echo "[5/5] push"
+  git push origin main || { echo "[FAIL] push rejected"; exit 4; }
+  echo; echo "SUCCESS - GitHub Actions will redeploy"
+  echo "確認：等 Actions 跑完後打開 https://miaozike.github.io/tw-rotation/ 並 Ctrl+F5 強制重新整理"
+  git log --oneline -2
+} 2>&1 | tee "$LOG"
