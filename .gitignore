@@ -24,3 +24,15 @@ docs/*.png
 .ghtoken
 secrets/
 .gh_push/
+
+# 本機推送腳本的產物：commit 訊息檔（UTF-8，讓 .bat 保持純 ASCII 也能寫繁體中文訊息）
+# 與各種 log。這些只存在於某一台電腦上，不該進 repo。
+COMMITMSG.txt
+commit-msg.txt
+push-log.txt
+push2-log.txt
+*-log.txt
+
+# Claude 沒辦法透過遠端檔案橋直接寫 .github/workflows（被平台保護），
+# 所以改把更新後的工作流放在這裡，由 push.bat 複製過去。
+_pending/

@@ -1542,16 +1542,58 @@
     document.addEventListener('click', e => { if (!e.target.closest('.search')) sg.style.display = 'none'; });
   }
 
+  /* 資料新鮮度（Andy：「我今天盤後才看到，等到隔天才買」「不知道到底更新了沒」）：
+     把「更新到哪一天、落後多少、哪些來源沒回資料、上次跑是什麼時候」直接攤在頁面頂端。
+     以前只有「3 天沒更新」才會跳提示，而且來源失敗完全看不出來（errors 一直是空陣列）。*/
+  function renderFreshness(meta) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const tpe = (iso) => { if (!iso) return null; const d = new Date(iso);
+      const t = new Date(d.getTime() + 8 * 3600e3);    // 轉台北時間
+      return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`; };
+    const D_ = meta.data_date || '';
+    $('#asof').textContent = D_ ? `${D_} 盤後` : '—';
+
+    const bits = [];
+    let level = '';                                     // '' 正常 / 'warn' / 'bad'
+    // 1) 資料湖已經有更新的一天，但前端沒採用 → 那天的上市資料沒到齊
+    if (meta.price_ahead_of_payload && meta.price_latest) {
+      bits.push(`資料湖已經有 <b>${fmt.esc(String(meta.price_latest))}</b> 的價格，但那天的上市資料沒到齊，所以畫面仍顯示 <b>${fmt.esc(D_)}</b>`);
+      level = 'warn';
+    }
+    // 2) 多久沒更新
+    const gen = meta.generated_at ? new Date(meta.generated_at) : null;
+    if (gen) {
+      const hrs = (Date.now() - gen.getTime()) / 3600e3;
+      if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有重新產出，排程可能掛了`); level = 'bad'; }
+      else if (hrs > 30) { bits.push(`上次產出是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
+    }
+    // 3) 哪些來源沒回資料
+    const empt = meta.last_run_empty || [], errs = meta.last_run_errors || [];
+    if (errs.length) { bits.push(`來源出錯：<b>${errs.slice(0, 4).map(e => fmt.esc(String(e).split(':')[0])).join('、')}</b>`); level = 'bad'; }
+    if (empt.length) { bits.push(`沒回資料的來源：<b>${empt.slice(0, 6).map(fmt.esc).join('、')}</b>`); level = level || 'warn'; }
+    if (meta.demo) { bits.push('這是示範資料，不是真實行情'); level = 'bad'; }
+
+    const tail = [];
+    // 盤後第一輪（台北 15:30）只抓價量，法人／融資券要傍晚才出。
+    // 講清楚是「還沒到」而不是「掛了」，否則每天下午都會被誤會。
+    if (meta.last_run_phase === 'price') tail.push('這輪只更新價量（法人與融資券傍晚那輪才補）');
+    if (meta.last_run_at) tail.push(`上次抓資料 ${tpe(meta.last_run_at)}`);
+    if (gen) tail.push(`上次產出 ${tpe(meta.generated_at)}`);
+    const b = $('#banner');
+    if (!bits.length) {                                  // 一切正常也要講一句，讓人知道系統是活的
+      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>，所有來源正常。${tail.length ? '<span class="muted">（' + tail.join('、') + '，台北時間）</span>' : ''}`;
+      b.className = 'banner on ok';
+    } else {
+      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>　·　${bits.join('　·　')}${tail.length ? '<br><span class="muted">' + tail.join('、') + '（台北時間）</span>' : ''}`;
+      b.className = 'banner on ' + (level === 'bad' ? 'bad' : 'warn');
+    }
+  }
+
   // ---------------------------------------------------------------- 啟動
   async function boot() {
     if (typeof echarts === 'undefined' || typeof LightweightCharts === 'undefined') { $('#banner').textContent = '圖表函式庫載入失敗（vendor/ 目錄缺檔），請重新整理。'; $('#banner').classList.add('on'); }
     const meta = await load('meta');
-    if (meta) {
-      $('#asof').textContent = `${meta.data_date || ''} 盤後 · T-1`;
-      const gen = meta.generated_at ? new Date(meta.generated_at) : null;
-      if (gen && (Date.now() - gen.getTime()) > 3 * 86400e3) { $('#banner').textContent = `資料已 ${Math.floor((Date.now() - gen.getTime()) / 86400e3)} 天沒更新，排程可能出了問題。`; $('#banner').classList.add('on'); }
-      if (meta.demo) { $('#banner').textContent = '這是示範資料，不是真實行情。'; $('#banner').classList.add('on'); }
-    }
+    if (meta) { renderFreshness(meta); }
     window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);

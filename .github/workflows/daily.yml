@@ -2,16 +2,27 @@ name: 每日盤後管線
 
 on:
   schedule:
-    # 台北 18:30（UTC 10:30），週一到週五。
-    # 台股 13:30 收盤，但三大法人與融資券要到傍晚才全部落地，18:30 是安全水位。
-    # 注意：GitHub 免費層的排程可能延遲數十分鐘，這是正常的。
-    - cron: "30 10 * * 1-5"
+    # 台北 15:30 / 18:30 / 21:30（UTC 07:30 / 10:30 / 13:30），週一到週五。
+    #
+    # 為什麼要跑三次（2026-09-14 改）：
+    #   1. 台股 13:30 收盤，證交所盤後檔約 15:00 前後就出得來 → 15:30 先把價量抓到，
+    #      這樣我下午就看得到當天，不必等到晚上。
+    #   2. 三大法人與融資券傍晚才落地 → 18:30 補。
+    #   3. GitHub 免費層的排程會延遲數十分鐘（實測 09-11 那次延遲到 22:35，
+    #      結果抓到的是前一天的資料，網站就卡在 T-1）。多跑幾次就是對延遲的保險。
+    #   4. 重跑是安全的：store.append() 以 key 去重，同一天的資料不會變成兩列。
+    - cron: "30 7,10,13 * * 1-5"
   workflow_dispatch:
     inputs:
       skip_finmind:
         description: "跳過 FinMind（不動用每小時額度）"
         type: boolean
         default: false
+      phase:
+        description: "這輪跑什麼（auto＝依 UTC 時間判斷）"
+        type: choice
+        options: [auto, price, full]
+        default: auto
 
 # 每日管線與歷史回補都會 commit 資料回 repo。
 # 同時跑的話，後完成的那個 push 一定會被拒絕（這就是歷史回補一直 Fail 的原因）。
@@ -54,7 +65,16 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
           UNIVERSE_SIZE: "500"
         run: |
-          python -m pipeline.run_daily \
+          # 台北 15:30（UTC 07:30）那輪只抓價量 —— 三大法人、融資券、財報那個時間還沒出，
+          # 硬抓只會把「還沒出」記成「沒回資料」。真的被 GitHub 排程延遲到 09:00 之後，
+          # 就當作完整那輪跑，反正重跑是安全的（append 去重）。
+          PHASE="${{ inputs.phase }}"
+          if [ -z "$PHASE" ] || [ "$PHASE" = "auto" ]; then
+            H=$(date -u +%H)
+            if [ "$H" = "07" ] || [ "$H" = "08" ]; then PHASE=price; else PHASE=full; fi
+          fi
+          echo "本輪 phase=$PHASE（現在是 UTC $(date -u '+%H:%M')）"
+          python -m pipeline.run_daily --phase "$PHASE" \
             ${{ inputs.skip_finmind && '--skip-finmind' || '' }}
 
       - name: 回寫資料湖
@@ -103,12 +123,17 @@ jobs:
             python - <<'PY' >> $GITHUB_STEP_SUMMARY
           import json, pathlib
           r = json.loads(pathlib.Path("data/_state/last_run.json").read_text())
+          print(f"- 這輪跑的是：`{r.get('phase')}`（price＝只抓價量）")
           print(f"- 交易日：`{r.get('trade_date')}`")
           print(f"- 耗時：{r.get('duration_seconds')}s")
           print(f"- FinMind 剩餘額度：{r.get('finmind_budget_left')}")
           errs = r.get("errors") or []
           print(f"- 錯誤數：{len(errs)}")
           for e in errs:
+              print(f"  - `{e}`")
+          empt = r.get("empty") or []
+          print(f"- 沒回資料的步驟：{len(empt)}")
+          for e in empt:
               print(f"  - `{e}`")
           print("")
           print("| 資料表 | 列數 | 最新 |")

@@ -209,8 +209,16 @@ def check_nozoom(pg, wrap: str, label: str):
         pg.mouse.wheel(0, 200); pg.wait_for_timeout(120)
     pg.wait_for_timeout(350)
     y1 = pg.evaluate("() => Math.round(scrollY)")
-    at_end = pg.evaluate("() => Math.round(scrollY + innerHeight) >= document.body.scrollHeight - 4")
-    ok(f"「{label}」滾輪會正常捲頁面（沒有被圖吃掉）", y1 > y0 or at_end, f"{y0} → {y1}")
+    # 沒往下捲有兩種可能：圖把 wheel 吃掉了（要抓出來），或頁面本來就到底了（不算錯）。
+    # 不能拿 body.scrollHeight 判斷 —— 這個版面量出來的值跟實際可捲距離對不起來
+    # （量到 1888，實際捲到底只有 500）。直接問瀏覽器「再怎麼捲最多到哪」才準。
+    at_end = False
+    if y1 <= y0:
+        at_end = pg.evaluate(
+            "(y0) => { const y = scrollY; scrollTo(0, 1e9); const m = Math.round(scrollY);"
+            " scrollTo(0, y); return m <= y0 + 4; }", y0)
+    ok(f"「{label}」滾輪會正常捲頁面（沒有被圖吃掉）", y1 > y0 or at_end,
+       f"{y0} → {y1}（頁面到底了：{at_end}）")
 
 
 def check_3d(pg):
@@ -1312,6 +1320,62 @@ def t_zoom_sweep(pg, base, code):
         ok(f"「{name}」沒有多餘的縮放入口", n == 0, extra)
 
 
+def t_freshness(b, base):
+    """資料狀態橫幅：Andy 的核心痛點是「不知道畫面上這份資料是哪天的、有沒有缺」。
+
+    真的把 meta.json 換成四種狀態、真的開頁面、真的讀那條橫幅的文字與顏色，
+    而且四種狀態要長得不一樣 —— 只驗「元素存在」等於沒驗。
+    """
+    import datetime as _dt
+    now = _dt.datetime.now(_dt.timezone.utc)
+    ago = lambda h: (now - _dt.timedelta(hours=h)).isoformat()
+    BASE = {"status": "ok", "history_days": 6595, "groups_health": {}, "table_summary": [],
+            "last_run_trade_date": None, "last_run_phase": "full",
+            "last_run_errors": [], "last_run_empty": []}
+    cases = [
+        ("一切正常", {**BASE, "data_date": "2026-09-12", "price_latest": "2026-09-12",
+                  "price_ahead_of_payload": False, "generated_at": ago(2), "last_run_at": ago(3)},
+         "ok", ["所有來源正常"]),
+        ("盤後第一輪只抓價量", {**BASE, "data_date": "2026-09-12", "price_latest": "2026-09-12",
+                       "price_ahead_of_payload": False, "last_run_phase": "price",
+                       "generated_at": ago(1), "last_run_at": ago(1)},
+         "ok", ["只更新價量"]),
+        ("上市沒到齊卡在前一天", {**BASE, "data_date": "2026-09-10", "price_latest": "2026-09-11",
+                       "price_ahead_of_payload": True, "generated_at": ago(20), "last_run_at": ago(21),
+                       "last_run_empty": ["twse.dividend", "macro.fred"]},
+         "warn", ["沒到齊", "沒回資料的來源", "macro.fred"]),
+        ("排程掛了", {**BASE, "data_date": "2026-09-01", "price_latest": "2026-09-01",
+                  "price_ahead_of_payload": False, "generated_at": ago(24 * 13), "last_run_at": ago(24 * 13),
+                  "last_run_errors": ["twse.price_daily: HTTPError 500"]},
+         "bad", ["排程可能掛了", "來源出錯"]),
+    ]
+    seen = []
+    for name, meta, level, must in cases:
+        ctx = b.new_context(viewport={"width": 1500, "height": 1000})   # 每個狀態一個乾淨環境，避開 HTTP 快取
+        pg = ctx.new_page()
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        pg.route("**/data/meta.json*", (lambda m: lambda r: r.fulfill(
+            status=200, content_type="application/json; charset=utf-8",
+            headers={"cache-control": "no-store"}, body=json.dumps(m, ensure_ascii=False)))(meta))
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.wait_for_function("() => { const e = document.getElementById('asof');"
+                             " return e && e.textContent.trim() !== ''; }", timeout=30000)
+        pg.wait_for_timeout(300)
+        got = pg.evaluate("""() => { const b = document.getElementById('banner');
+            return { cls: b.className, on: getComputedStyle(b).display !== 'none',
+                     txt: b.innerText.replace(/\\s+/g, ' ').trim(),
+                     asof: (document.getElementById('asof') || {}).textContent || '' }; }""")
+        ok(f"「{name}」橫幅有顯示", got["on"], got["cls"])
+        ok(f"「{name}」燈號是 {level}", level in got["cls"], got["cls"])
+        ok(f"「{name}」頂端日期跟著 meta 走", str(meta["data_date"]) in got["asof"], got["asof"])
+        miss = [w for w in must if w not in got["txt"]]
+        ok(f"「{name}」把原因講出來了", not miss, {"少了": miss, "實際": got["txt"][:160]})
+        seen.append(got["txt"])
+        ctx.close()
+    ok("四種狀態的文字彼此不同（不是同一段罐頭）", len(set(seen)) == 4,
+       [s[:40] for s in seen])
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -1353,6 +1417,12 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【縮放掃描】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  縮放掃描：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_freshness(b, base)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【資料狀態】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  資料狀態：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_mobile(b, base, args.code)

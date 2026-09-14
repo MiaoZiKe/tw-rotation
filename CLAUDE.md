@@ -23,12 +23,20 @@
 
 ## 工作規則
 
+- **★ 開工第一件事：先確認「推得上去」，再開始改東西。**
+  `git push --dry-run origin deploy:main`。如果回 `access denied by the git proxy: ... not in this
+  session's authorized repository set`，代表這個 session 沒有 repo 的寫入權限 ——
+  **立刻告訴 Andy、先不要埋頭做**。原因：Andy 只看網頁，沒 push 等於他什麼都看不到；
+  2026-09-13 就是這樣累積了 8 個 commit、他連續四次回報「縮放還在」，其實每一次都早就改好了。
+  授權是**跟著 session 走的**，所以每開一個新 session 都要重驗一次。
 - **開始前先 `git pull`**（雲端資料湖與工作流每天都在 commit；本機永遠可能落後）。
 - **每次工作結束前更新 `HANDOFF.md`**（進度勾選、已知 bug、下一步、最後更新時間），**commit + push 到 main**。
   沒有 push 的工作等於沒做。
 - **絕不 force push、絕不覆寫 `data/*.parquet`。** 雲端是資料的權威來源（`store.append()` 只增不改）。
 - **push 前跑三件事**：`pytest tests/ -q`、`python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）、
-  `python scripts/_uitest.py`（**真人操作驗收**）。
+  `python scripts/_uitest.py`（**真人操作驗收**，含全站縮放掃描）。
+- **push 之後還沒完**：等 Actions 跑完，**真的打開 <https://miaozike.github.io/tw-rotation/> 確認線上版本換掉了**
+  （比對頁面上的內容或 commit 時間），再跟 Andy說「好了」。只說「推上去了」不算交付。
 - **★ Andy 的硬性要求：每批做完一定要「當自己是使用者，實際操作每個功能」。**
   每個按鈕真的按、每個輸入真的填、每個切換真的切、每條線真的用滑鼠拖出來，
   而且每一項都要驗**「畫面真的因此改變了」**（筆數變了／排序變了／localStorage 真的寫進去了），

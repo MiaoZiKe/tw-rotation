@@ -29,7 +29,10 @@ logging.basicConfig(
 )
 log = logging.getLogger("run_daily")
 
-RESULT: dict = {"steps": {}, "errors": []}
+# empty：抓得到端點但回 0 筆的步驟。以前這種只寫 log，errors 一直是空的，
+# 網站上完全看不出來哪個來源掛了（twse.dividend / tdcc.shareholding / macro.fred
+# 就這樣靜默失敗很久）。現在分開記，前端可以把它攤在頁面頂端。
+RESULT: dict = {"steps": {}, "errors": [], "empty": []}
 
 
 def step(name: str, fn, *args, **kwargs):
@@ -48,6 +51,7 @@ def step(name: str, fn, *args, **kwargs):
                              "seconds": round(time.time() - t0, 1)}
     if rows == 0:
         log.warning("%s 沒有取得資料", name)
+        RESULT["empty"].append(name)          # ← 不再只寫 log
     return df if df is not None else pd.DataFrame()
 
 
@@ -164,10 +168,15 @@ def main() -> int:
     ap.add_argument("--skip-finmind", action="store_true",
                     help="不動用 FinMind 額度（回補當天用）")
     ap.add_argument("--universe", type=int, default=config.UNIVERSE_SIZE)
+    ap.add_argument("--phase", choices=["price", "full"], default="full",
+                    help="price＝只抓當天價量（台北 15:30 那輪，其他來源那時還沒出）；"
+                         "full＝完整管線（傍晚之後那兩輪）")
     args = ap.parse_args()
+    light = args.phase == "price"
+    RESULT["phase"] = args.phase
 
     started = datetime.now(timezone.utc)
-    log.info("=== 每日管線開始 ===")
+    log.info("=== 每日管線開始（phase=%s）===", args.phase)
 
     # 一次性清理：早期版本沒有濾掉權證，上萬檔非股票標的被寫進了 price_daily，
     # 會讓「上漲/下跌家數」變成五千多家。清過就留記號，之後不再重跑。
@@ -188,47 +197,52 @@ def main() -> int:
 
     save("price_daily", price)
     save("valuation_daily", step("twse.valuation", twse.valuation_daily))
-    if trade_date:
-        save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
     save("index_daily", step("twse.index", twse.index_daily))
     save("market_daily", step("twse.market", twse.market_daily))
-    company = step("twse.company_info", twse.company_info)
-    save("company_info", company)
-    # FinMind 總覽補上櫃 / 興櫃 / 簡稱（證交所那支只有上市）。
-    # 用 append + 去重，FinMind 的列會補上證交所沒有的代號；已有的保留證交所版本的產業別
-    info = step("finmind.stock_info", finmind.stock_info)
-    if not info.empty:
-        have = set(company["code"]) if not company.empty else set()
-        extra = info[~info["code"].isin(have)].copy()
-        if not extra.empty:
-            extra["industry"] = extra["industry_finmind"]
-            save("company_info", extra[["code", "name", "market", "industry"]])
-        RESULT["steps"]["finmind.stock_info"]["added"] = int(len(extra))
-    save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
-    save("financial_q", step("twse.financial", twse.financial_q))
-    save("dividend", step("twse.dividend", twse.dividend))
-    # 證交所的公告沒有除息日；只補資料湖裡還沒有的 (code, period, kind)，
-    # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
-    save("dividend_events", only_new_keys("dividend_events",
-                                          step("twse.dividend_events", twse.dividend_events)))
 
     # -------------------------------------------------- 上櫃（可失敗）
     otc = step("tpex.price_daily", tpex.price_daily)
     save("price_daily", otc)
 
-    # -------------------------------------------------- 集保（每週）
-    sh = step("tdcc.shareholding", tdcc.shareholding_weekly)
-    save("shareholding_weekly", sh)
+    # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
+    # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
+    if light:
+        log.info("phase=price：只抓價量，法人／融資券／財報／新聞等傍晚那輪再補")
+    else:
+        if trade_date:
+            save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
+        company = step("twse.company_info", twse.company_info)
+        save("company_info", company)
+        # FinMind 總覽補上櫃 / 興櫃 / 簡稱（證交所那支只有上市）。
+        # 用 append + 去重，FinMind 的列會補上證交所沒有的代號；已有的保留證交所版本的產業別
+        info = step("finmind.stock_info", finmind.stock_info)
+        if not info.empty:
+            have = set(company["code"]) if not company.empty else set()
+            extra = info[~info["code"].isin(have)].copy()
+            if not extra.empty:
+                extra["industry"] = extra["industry_finmind"]
+                save("company_info", extra[["code", "name", "market", "industry"]])
+            RESULT["steps"]["finmind.stock_info"]["added"] = int(len(extra))
+        save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
+        save("financial_q", step("twse.financial", twse.financial_q))
+        save("dividend", step("twse.dividend", twse.dividend))
+        # 證交所的公告沒有除息日；只補資料湖裡還沒有的 (code, period, kind)，
+        # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
+        save("dividend_events", only_new_keys("dividend_events",
+                                              step("twse.dividend_events", twse.dividend_events)))
 
-    # -------------------------------------------------- 新聞與國際
-    news_df = step("news.collect", news.collect)
-    save("news", news_df)
-    save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
-    save("intl_daily", step("macro.intl", macro.intl_daily))
-    save("macro", step("macro.fred", macro.macro_all))
+        # ---------------------------------------------- 集保（每週）
+        save("shareholding_weekly", step("tdcc.shareholding", tdcc.shareholding_weekly))
+
+        # ---------------------------------------------- 新聞與國際
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("intl_daily", step("macro.intl", macro.intl_daily))
+        save("macro", step("macro.fred", macro.macro_all))
 
     # -------------------------------------------------- FinMind（耗額度，放最後）
-    if not args.skip_finmind and trade_date:
+    if not light and not args.skip_finmind and trade_date:
         codes = universe(args.universe)
         save("inst_daily", step("finmind.institutional",
                                 fetch_institutional, codes, trade_date))
@@ -237,6 +251,32 @@ def main() -> int:
                                  refresh_financials, codes[:60]))
     else:
         log.info("跳過 FinMind 步驟")
+
+    # -------------------------------------------------- 執行紀錄（先寫一份）
+    def _write_state(final: bool) -> None:
+        """把這一輪的結果寫進 last_run.json。
+
+        要分兩次寫，是因為 build_payload 會讀這個檔來產 meta.json（網站頂端的資料狀態）。
+        以前只在最後寫一次，build 讀到的永遠是「上一輪」的錯誤清單，狀態整整慢一輪。
+        """
+        now = datetime.now(timezone.utc)
+        RESULT.update({
+            "started_at": started.isoformat(),
+            "finished_at": now.isoformat(),
+            "duration_seconds": round((now - started).total_seconds(), 1),
+            "trade_date": trade_date,
+            "complete": final,
+        })
+        if final:                       # 這幾項要掃整個資料湖，只在最後算一次
+            RESULT.update({
+                "finmind_budget_left": http.finmind_budget_left(),
+                "tables": store.table_summary().to_dict("records"),
+                "groups_health": loader.health(),
+            })
+        (config.STATE / "last_run.json").write_text(
+            json.dumps(RESULT, ensure_ascii=False, indent=2))
+
+    _write_state(final=False)
 
     # -------------------------------------------------- 產出前端資料
     try:
@@ -248,19 +288,7 @@ def main() -> int:
         RESULT["errors"].append(f"build_payload: {exc}")
         RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
 
-    # -------------------------------------------------- 執行紀錄
-    finished = datetime.now(timezone.utc)
-    RESULT.update({
-        "started_at": started.isoformat(),
-        "finished_at": finished.isoformat(),
-        "duration_seconds": round((finished - started).total_seconds(), 1),
-        "trade_date": trade_date,
-        "finmind_budget_left": http.finmind_budget_left(),
-        "tables": store.table_summary().to_dict("records"),
-        "groups_health": loader.health(),
-    })
-    (config.STATE / "last_run.json").write_text(
-        json.dumps(RESULT, ensure_ascii=False, indent=2))
+    _write_state(final=True)
 
     ok = sum(1 for s in RESULT["steps"].values() if s.get("ok"))
     log.info("=== 完成：%d 個步驟成功，%d 個錯誤，耗時 %.0fs ===",

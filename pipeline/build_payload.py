@@ -317,7 +317,20 @@ def build() -> None:
         _write("supply_chain", {})
 
     # ---------------------------------------------------------- meta
-    last_run = {}
+    _write("meta", meta_payload(latest, history_days))
+
+
+def meta_payload(latest: str, history_days: int) -> dict:
+    """網站頂端那條「資料狀態」要用的所有欄位。
+
+    抽成獨立函式是為了讓它可以被測試直接呼叫 —— 這條資訊是 Andy 判斷
+    「今天能不能照著這個畫面下單」的依據，不能只靠跑完整條管線才驗得到。
+
+    price_ahead_of_payload：資料湖裡最新的價格日期比前端採用的 data_date 還新，
+    代表那天的上市資料沒到齊（2026-09-11 就是這樣：上櫃 982 檔、上市 0 檔），
+    畫面只好停在前一天 —— 這件事以前完全看不出來。
+    """
+    last_run: dict = {}
     lr = config.STATE / "last_run.json"
     if lr.exists():
         try:
@@ -325,15 +338,25 @@ def build() -> None:
         except ValueError:
             pass
 
-    _write("meta", {
+    tbl = store.table_summary().to_dict("records")
+    px_latest = next((t.get("latest") for t in tbl if t.get("table") == "price_daily"), None)
+    return {
         "status": "ok",
         "data_date": latest,
+        "price_latest": px_latest,
+        "price_ahead_of_payload": bool(px_latest and latest and str(px_latest) > str(latest)),
         "history_days": history_days,
         "generated_at": datetime.now(timezone.utc).isoformat(),
+        "last_run_at": last_run.get("finished_at") or last_run.get("started_at"),
+        "last_run_trade_date": last_run.get("trade_date"),
+        # price＝盤後第一輪，只抓價量（法人、融資券、財報那時還沒出），
+        # 前端要講清楚，不然會被誤會成「那些來源掛了」
+        "last_run_phase": last_run.get("phase", "full"),
         "groups_health": loader.health(),
-        "table_summary": store.table_summary().to_dict("records"),
+        "table_summary": tbl,
         "last_run_errors": last_run.get("errors", []),
-    })
+        "last_run_empty": last_run.get("empty", []),
+    }
 
 
 def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
