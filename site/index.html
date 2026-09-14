@@ -280,6 +280,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   border-radius:7px;padding:4px 7px;font-size:13px}
 .cfgpop .note{font-size:12px;color:var(--ink-3);line-height:1.5}
 @media (max-width:760px){.chartwrap{flex-direction:column}.drawbar{flex-direction:row;flex-wrap:wrap;align-self:stretch}.dsep{height:auto;width:1px;margin:2px 3px}}
+/* 今日候選的族群篩選：Excel 欄位篩選那種勾選下拉 */
+.cgwrap{position:relative}
+.cgwrap .btn.on{border-color:var(--cyan);color:var(--cyan);background:rgba(62,224,255,.1)}
+.cgpop{position:absolute;right:0;top:calc(100% + 6px);z-index:60;width:280px;max-width:calc(100vw - 32px);
+  background:var(--panel);border:1px solid var(--line-2);border-radius:11px;padding:10px;box-shadow:0 18px 46px rgba(0,0,0,.55)}
+.cgpop[hidden]{display:none}
+.cgpop #cgSearch{width:100%;background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);
+  border-radius:8px;padding:6px 10px;font-size:13.5px}
+.cgpop #cgSearch:focus{outline:0;border-color:var(--cyan)}
+.cgpop .cgact{display:flex;align-items:center;gap:6px;margin:8px 0 6px}
+.cgpop .cgact .muted{margin-left:auto;font-family:var(--mono);font-size:12px}
+.cglist{max-height:300px;overflow:auto;scrollbar-width:thin;display:flex;flex-direction:column;gap:1px}
+.cglist label{display:flex;align-items:center;gap:8px;padding:5px 7px;border-radius:7px;cursor:pointer;font-size:13.5px}
+.cglist label:hover{background:var(--panel-3)}
+.cglist label[hidden]{display:none}
+.cglist input{accent-color:var(--cyan);width:15px;height:15px;flex:none}
+.cglist label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cglist label em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .facets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
 .facets button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:9px;
   padding:6px 12px;cursor:pointer;font-size:13.5px;display:inline-flex;flex-direction:column;align-items:flex-start;gap:1px;line-height:1.25}
@@ -560,7 +578,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     </div>
     <div class="grid g12" style="margin-top:16px">
       <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip"></div></div>
-      <div class="card"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
+      <div class="card"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
+        <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div></div></div>
         <div class="facets" id="candFacets"></div>
         <p class="hint" id="candHint"></p>
         <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>

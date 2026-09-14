@@ -748,6 +748,19 @@
   let candFacet = 'all';
   let candSort = { key: null, dir: 1 };
   let candOpen = null;
+  /* 族群篩選（Andy：「可勾選特定族群，下拉清單那樣，可以參考 EXCEL」）：
+     null ＝ 全部；是 Set 就只看勾起來的那幾個（全部取消勾選＝什麼都不顯示，跟 Excel 一樣）。
+     選擇存 localStorage，重新整理、換面向都還在。 */
+  let candGroups = (() => {
+    try { const v = JSON.parse(localStorage.getItem('tw.candGroups') || 'null'); return Array.isArray(v) ? new Set(v) : null; }
+    catch (e) { return null; }
+  })();
+  const saveCandGroups = () => {
+    try {
+      if (candGroups) localStorage.setItem('tw.candGroups', JSON.stringify([...candGroups]));
+      else localStorage.removeItem('tw.candGroups');
+    } catch (e) { /* 忽略 */ }
+  };
 
   function whyHtml(r, facet) {
     const w = (r.why || {})[facet] || {};
@@ -757,8 +770,60 @@
       : '<div class="why"><span>這一檔在這個面向沒有明顯的理由，只是相對排名靠前</span></div>';
   }
 
-  function renderCandidates(cands) {
+  /* Excel 欄位篩選那種下拉：搜尋框 ＋ 全選／全部清除 ＋ 勾選清單（每個族群後面是筆數）。
+     點面板以外的地方就收起來；勾一個就立刻重畫表格。 */
+  function renderCandFilter(cands) {
+    const host = $('#candGroupFilter'); if (!host) return;
+    const counts = new Map();
+    cands.forEach(r => { const g = r.group || '（未分類）'; counts.set(g, (counts.get(g) || 0) + 1); });
+    const all = [...counts.keys()].sort((a, b) => counts.get(b) - counts.get(a) || a.localeCompare(b, 'zh-Hant'));
+    const labelOf = (g) => !g ? '全部族群'
+      : g.size === 0 ? '沒有勾選任何族群'
+      : g.size === 1 ? [...g][0]
+      : `已選 ${g.size} 個族群`;
+    const sel = candGroups;
+    host.innerHTML = `<button class="btn small ${sel ? 'on' : ''}" id="cgBtn"
+        title="只看勾起來的族群（像 Excel 的欄位篩選）">族群：${fmt.esc(labelOf(sel))} ▾</button>
+      <div class="cgpop" id="cgPop" hidden>
+        <input id="cgSearch" placeholder="搜尋族群…" autocomplete="off">
+        <div class="cgact"><button class="btn small" id="cgAll">全選</button>
+          <button class="btn small" id="cgNone">全部清除</button>
+          <span class="muted" id="cgCount"></span></div>
+        <div class="cglist" id="cgList">${all.map(g => `
+          <label data-g="${fmt.esc(g)}"><input type="checkbox" value="${fmt.esc(g)}"
+            ${!sel || sel.has(g) ? 'checked' : ''}><span>${fmt.esc(g)}</span><em>${counts.get(g)}</em></label>`).join('')}</div>
+      </div>`;
+    const pop = $('#cgPop', host), btn = $('#cgBtn', host);
+    const boxes = () => $$('#cgList input[type=checkbox]', host);
+    const paintCount = () => { const n = boxes().filter(b => b.checked).length;
+      $('#cgCount', host).textContent = `${n} / ${all.length}`; };
+    const apply = () => {
+      const on = boxes().filter(b => b.checked).map(b => b.value);
+      candGroups = on.length === all.length ? null : new Set(on);
+      saveCandGroups(); paintCount();
+      btn.textContent = `族群：${labelOf(candGroups)} ▾`;
+      btn.classList.toggle('on', !!candGroups);
+      renderCandidates(cands, { keepOpen: true });
+    };
+    btn.onclick = (e) => { e.stopPropagation(); pop.hidden = !pop.hidden; if (!pop.hidden) $('#cgSearch', host).focus(); };
+    pop.onclick = (e) => e.stopPropagation();
+    $('#cgSearch', host).oninput = (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      $$('#cgList label', host).forEach(l => { l.hidden = !!q && !l.dataset.g.toLowerCase().includes(q); });
+    };
+    $('#cgAll', host).onclick = () => { boxes().forEach(b => { if (!b.closest('label').hidden) b.checked = true; }); apply(); };
+    $('#cgNone', host).onclick = () => { boxes().forEach(b => { if (!b.closest('label').hidden) b.checked = false; }); apply(); };
+    boxes().forEach(b => b.onchange = apply);
+    paintCount();
+    if (!renderCandFilter._wired) {          // 點面板外面收起來，只掛一次
+      document.addEventListener('click', () => { const q = document.getElementById('cgPop'); if (q) q.hidden = true; });
+      renderCandFilter._wired = true;
+    }
+  }
+
+  function renderCandidates(cands, opt) {
     if (!cands) return;
+    if (!(opt && opt.keepOpen)) renderCandFilter(cands);
     const F = FACETS[candFacet], cols = F.cols;
     $('#candFacets').innerHTML = Object.keys(FACETS).map(k =>
       `<button data-f="${k}" class="${k === candFacet ? 'on' : ''}"><b>${FACETS[k].label}</b><em>${FACETS[k].sub}</em></button>`).join('');
@@ -769,7 +834,9 @@
 
     const sk = candSort.key || F.key;
     const dir = candSort.key ? candSort.dir : -1;
-    const rows = cands.slice().sort((a, b) => {
+    // candGroups === null ＝ 全部；是 Set 就只看勾起來的
+    const pool = candGroups ? cands.filter(r => candGroups.has(r.group || '（未分類）')) : cands;
+    const rows = pool.slice().sort((a, b) => {
       const x = a[sk], y = b[sk];
       if (x == null && y == null) return 0;
       if (x == null) return 1;
@@ -783,7 +850,11 @@
       const tr = `<tr data-code="${r.code}">` + cols.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>';
       return r.code === candOpen
         ? tr + `<tr class="whyrow"><td colspan="${cols.length}">${whyHtml(r, candFacet)}</td></tr>` : tr;
-    }).join('');
+    }).join('') || `<tr><td colspan="${cols.length}" class="l muted">勾選的族群今天沒有候選股，換幾個族群或按「全選」</td></tr>`;
+    const cn = $('#candNum');
+    if (cn) cn.textContent = candGroups
+      ? `${rows.length} 檔（已篩 ${candGroups.size} 個族群，全部 ${cands.length} 檔）`
+      : `${rows.length} 檔`;
     $$('#candTable th').forEach(th => th.onclick = () => {
       const k = th.dataset.k;
       candSort = { key: k, dir: candSort.key === k ? -candSort.dir : -1 };
