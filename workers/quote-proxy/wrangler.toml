@@ -1,0 +1,7 @@
+name = "tw-quote"
+main = "worker.js"
+compatibility_date = "2026-09-14"
+
+# 免費方案就夠：每天 10 萬次請求。
+# 盤中每分鐘一次 × 5.5 小時 ≈ 330 次/天/人。
+workers_dev = true

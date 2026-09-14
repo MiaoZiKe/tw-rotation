@@ -49,7 +49,8 @@
 
 ## 絕對不要做的事（細節與理由在 DECISIONS.md）
 
-1. 不碰 `www.twse.com.tw/rwd/...` 官網端點（使用條款禁爬），只用 `openapi.twse.com.tw` 與 FinMind。
+1. 不碰 `www.twse.com.tw/rwd/...` 官網端點（使用條款禁爬）。可用的來源：`openapi.twse.com.tw`（日收，T-1）、
+   `mis.twse.com.tw/stock/api/getStockInfo.jsp`（即時報價，**2026-09-14 加入白名單**，見 DECISIONS #108）、FinMind。
 2. 不覆寫 `data/` 的 Parquet；一律 `store.append()`。
 3. 不用執行當下日期當交易日；用回應裡的 `Date`。
 4. 不引入 TA-Lib；指標自己算（`pipeline/indicators.py`、前端 `site/chart.js` 的 `KInd`）。
@@ -76,11 +77,13 @@ pipeline/
   util/                roc(民國/千元/空值) http(重試+FinMind額度) store(Parquet append-only)
 site/
   index.html app.js industry.js chart.js diagrams.js   前端（深色科技風；hash 路由）
+  live.js            盤中即時層（每分鐘／盤後每 30 分／手動更新鈕；只更新 [data-live] 標記過的格子）
   vendor/echarts*.js  vendor/lightweight-charts.js       內建於 repo（Andy 公司網路擋 CDN）
   data/                                                  工作流產出，gitignore
 data/                  Parquet 資料湖（雲端 Actions 每天 commit；本機只讀）
 scripts/_preview.py    本機預覽驗證（Playwright + 真圖表庫）
 tests/                 pytest，224 個
+workers/quote-proxy/   Cloudflare Worker：即時報價的 CORS 代理（部署說明在 workers/README.md）
 docs/                  v3_sources_spec.md（資料源規格）、截圖
 ```
 

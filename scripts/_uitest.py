@@ -1376,6 +1376,108 @@ def t_freshness(b, base):
        [s[:40] for s in seen])
 
 
+def t_live(pg, base):
+    """盤中即時層（live.js）。
+
+    驗收的重點不是「按鈕在不在」，而是**按下去之後畫面上的數字真的變了**。
+    做法：攔截 /quote 這個請求，回一份自己編的報價（收 999、昨收 900 ＝ +11%），
+    然後比對候選表第一列的收盤與漲跌欄在按更新前後是不是不一樣。
+    """
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    # 用可變的容器裝「這一輪要回什麼價」，好分辨「存設定那次抓的」與「按更新那次抓的」
+    fake = {"z": "999.0000", "t": "11:22:33"}
+
+    def fake_quote(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        ex = (q.get("ex_ch") or [""])[0]
+        arr = []
+        for tok in [t for t in ex.split("|") if t]:
+            try:
+                code = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            arr.append({"c": code, "n": "測試" + code, "ex": tok[:3],
+                        "z": fake["z"], "y": "900.0000", "o": "905.0000",
+                        "h": "1000.0000", "l": "890.0000", "v": "12345",
+                        "t": fake["t"], "d": "20260914"})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(1500)
+
+    # --- 1. 按鈕與狀態真的在畫面上
+    ok("有『更新』按鈕", count(pg, "#liveBtn") == 1)
+    ok("有即時來源設定鈕", count(pg, "#liveGear") == 1)
+    ok("沒設定來源時狀態講得出原因", "未設定" in text(pg, "#liveState"),
+       text(pg, "#liveState"))
+
+    # --- 2. 候選表的價格欄真的被標記起來了（沒有標記，即時層就無從更新）
+    # 原始值要在設定來源**之前**讀，否則第一輪即時抓完才讀就比不出差異
+    SEL_PX = "#candBody tr[data-code] [data-live='close']"
+    SEL_CHG = "#candBody tr[data-code] [data-live='chg']"
+    before_px, before_chg = text(pg, SEL_PX), text(pg, SEL_CHG)
+    marked = count(pg, "#candBody [data-live='close'][data-lc]")
+    ok("候選表的收盤欄有標記可即時更新", marked > 0, f"只有 {marked} 格")
+    ok("加權指數有標記可即時更新", count(pg, "#hero [data-live='idx'][data-lc='t00']") == 1)
+
+    # --- 3. 設定面板：點開、填網址、存起來
+    pg.route("**/quote?*", fake_quote)
+    click(pg, "#liveGear", 250)
+    ok("設定面板真的打開了",
+       pg.evaluate("() => !document.querySelector('#livePop').hidden"))
+    pg.fill("#liveProxy", "https://fake-worker.test")
+    click(pg, "#liveTest", 600)
+    out = text(pg, "#liveTestOut")
+    ok("測試按鈕真的打出去並拿到回應", "通了" in out, out[:80])
+    click(pg, "#liveSave", 1200)
+    ok("存完面板會收起來",
+       pg.evaluate("() => document.querySelector('#livePop').hidden"))
+    saved = pg.evaluate("() => { try { return localStorage.getItem('tw.live.proxy'); } catch(e){ return null; } }")
+    ok("Worker 網址真的存進 localStorage", saved == "https://fake-worker.test", repr(saved))
+
+    # --- 4. ★ 核心：即時價真的蓋掉了靜態資料的收盤價
+    after_px, after_chg = text(pg, SEL_PX), text(pg, SEL_CHG)
+    changed("設定好來源之後收盤價真的換成即時價", before_px, after_px)
+    changed("漲跌也跟著換", before_chg, after_chg)
+    ok("換上去的就是回應裡的價格", "999" in after_px, after_px)
+    ok("漲跌是用昨收重算的（999/900 = +11.00%）", "11.00" in after_chg, after_chg)
+    ok("漲跌顏色跟著轉紅（台股紅漲）",
+       "up" in pg.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"),
+       pg.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"))
+
+    # --- 4b. ★ 核心：手動按「更新」真的會再抓一次（換個價格看它跟不跟）
+    fake["z"] = "888.0000"
+    fake["t"] = "12:34:56"
+    click(pg, "#liveBtn", 1500)
+    again_px = text(pg, SEL_PX)
+    changed("按『更新』真的重新抓了一次", after_px, again_px)
+    ok("按更新後顯示的是新抓到的價格", "888" in again_px, again_px)
+
+    # --- 5. 加權指數也要動，而且是整數位（不要跑出 45,862.52 那種小數）
+    idx_txt = text(pg, "#hero [data-live='idx']")
+    ok("加權指數也換成即時值", "888" in idx_txt, idx_txt)
+    ok("指數不顯示小數", "." not in idx_txt, idx_txt)
+
+    # --- 6. 狀態列要講得出「是幾點的報價」
+    st = text(pg, "#liveState")
+    ok("狀態列顯示報價時間", "12:34" in st, st)
+
+    # --- 7. 自動更新關掉之後，計時器要真的停掉
+    click(pg, "#liveGear", 250)
+    pg.uncheck("#liveAuto")
+    click(pg, "#liveSave", 800)
+    ok("關掉自動更新後狀態列講出來", "自動已關" in text(pg, "#liveState"), text(pg, "#liveState"))
+    ok("關掉後自動更新的計時器真的停了",
+       pg.evaluate("() => window.Live && window.Live.timerOn === false"))
+
+    # --- 8. 收拾：把設定清掉，不要影響後面的測試
+    pg.unroute("**/quote?*")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.live.on'); } catch(e){} }")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -1397,7 +1499,8 @@ def main() -> int:
               and "404" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
-        for name, fn in (("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
+        for name, fn in (("盤中即時", t_live),
+                         ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("題材", t_themes), ("季節性", t_season)):
             n0 = len(fails)
             try:

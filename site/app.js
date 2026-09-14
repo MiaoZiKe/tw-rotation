@@ -371,7 +371,9 @@
     const kp = (l, v, d, cls, drill) => `<div class="card tight kpi${drill ? ' clickable' : ''}"${drill ? ` data-drill="${drill}"` : ''}>`
       + `<div class="l">${l}${drill ? '<span class="more">看明細 ›</span>' : ''}</div><div class="v ${cls || ''}">${v}</div><div class="d">${d || ''}</div></div>`;
     $('#hero').innerHTML = [
-      kp('加權指數', fmt.n(heat && heat.taiex, 0), heat ? `<span class="${fmt.cls(heat.change)}">${fmt.pct(heat.change / (heat.taiex - heat.change) * 100)} (${fmt.n(heat.change, 0)})</span>` : '', heat && fmt.cls(heat.change)),
+      // 加權指數是 mis 的 tse_t00.tw；盤中每分鐘跳一次（live.js）
+      kp('加權指數', `<span data-live="idx" data-lc="t00">${fmt.n(heat && heat.taiex, 0)}</span>`,
+         heat ? `<span class="${fmt.cls(heat.change)}" data-live="chg" data-lc="t00">${fmt.pct(heat.change / (heat.taiex - heat.change) * 100)}</span>` : '', heat && fmt.cls(heat.change)),
       kp('成交值', heat ? fmt.yi(heat.turnover) : '—', heat && heat.turnover_ma20 ? `20 日均 ${fmt.yi(heat.turnover_ma20)}` : ''),
       kp('漲 / 跌家數', heat ? `<span class="up">${heat.advancers}</span> <span class="muted">/</span> <span class="down">${heat.decliners}</span>` : '—',
          mv.counts ? `漲停 ${mv.counts.limit_up}　跌停 ${mv.counts.limit_down}　平盤 ${heat.unchanged}` : (heat ? `平盤 ${heat.unchanged}` : ''), '', mv.counts ? 'updown' : ''),
@@ -709,8 +711,10 @@
     code: ['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'],
     name: ['name', '簡稱', r => L.stock(r.code, r.name), 'l'],
     group: ['group', '族群', r => L.group(r.group_id, r.group), 'l'],
-    close: ['close', '收盤', r => num(r.close)],
-    chg: ['chg_pct', '漲跌', r => `<span class="num ${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span>`],
+    // data-live / data-lc 是給 live.js 認的：盤中每分鐘把這兩格換成即時價。
+    // 只標記，不改算法 —— 收盤後這兩格仍然是資料湖裡的收盤價。
+    close: ['close', '收盤', r => `<span class="num" data-live="close" data-lc="${r.code}">${r.close != null ? fmt.n(r.close) : '—'}</span>`],
+    chg: ['chg_pct', '漲跌', r => `<span class="num ${fmt.cls(r.chg_pct)}" data-live="chg" data-lc="${r.code}">${fmt.pct(r.chg_pct, 2)}</span>`],
     sAll: ['score_all', '綜合', r => num(r.score_all, 0)],
     sChip: ['score_chip', '籌碼', r => num(r.score_chip, 0)],
     sTech: ['score_tech', '技術', r => num(r.score_tech, 0)],
@@ -879,7 +883,7 @@
       const w = ((r.why || {})[candFacet] || {}).pros || [];
       return `<div class="scard" onclick="goStock('${r.code}')">
         <div class="h"><b>${fmt.esc(r.name)} <span class="mono muted">${r.code}</span></b><span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' + r.verdict : r.verdict}</span></div>
-        <div class="r"><span>${L.group(r.group_id, r.group)}</span><span class="num">${fmt.n(r.close)}</span><span class="num ${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span><span>${F.label} ${r[F.key] != null ? fmt.n(r[F.key], 0) : '—'}</span></div>
+        <div class="r"><span>${L.group(r.group_id, r.group)}</span><span class="num" data-live="close" data-lc="${r.code}">${fmt.n(r.close)}</span><span class="num ${fmt.cls(r.chg_pct)}" data-live="chg" data-lc="${r.code}">${fmt.pct(r.chg_pct, 2)}</span><span>${F.label} ${r[F.key] != null ? fmt.n(r[F.key], 0) : '—'}</span></div>
         ${w.length ? `<div class="why"><span class="pro">✓ ${fmt.esc(w[0])}</span></div>` : ''}
       </div>`;
     }).join('');
@@ -1599,6 +1603,8 @@
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);
     await route();
+    // 盤中即時層。放在 route() 之後：畫面上先有代號，Live 才知道要抓哪些。
+    if (window.Live) window.Live.start();
   }
   boot();
 })();

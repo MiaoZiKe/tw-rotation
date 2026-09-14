@@ -7,7 +7,8 @@ description: 資料抓取層：pipeline/sources/ 的 TWSE OpenAPI、FinMind、�
 `run_daily.py`、`run_backfill.py`、`.github/workflows/*`。
 
 紅線：
-- **只用 `openapi.twse.com.tw` 與 FinMind**。`www.twse.com.tw/rwd/...` 是官網端點，使用條款禁爬，絕對不碰。
+- **只用白名單來源**：`openapi.twse.com.tw`（日收，T-1）、`mis.twse.com.tw/stock/api/getStockInfo.jsp`（即時報價，2026-09-14 加入，見 DECISIONS #108）、FinMind。
+  `www.twse.com.tw/rwd/...` 是官網端點，使用條款禁爬，絕對不碰 —— 那跟 `mis.twse` 是不同主機，不要搞混。
 - **券商分點不抓**（沒有免費合規來源），改用集保大戶增減＋法人動向替代，而且頁面要註明。
 - **資料湖只增不改**：`store.append()`，永遠不覆寫 `data/*.parquet`。
 - **不要用執行當下的日期當交易日**，用 API 回應裡的 `Date`。
