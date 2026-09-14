@@ -15,7 +15,7 @@
 
 ## 開始工作前，依序讀這三個檔
 
-1. **`AGENTS.md`** — 六個專家 Agent 與 CEO 的分工、產出格式、審核清單（怎麼做事）
+1. **`AGENTS.md`** — 九個專家 Agent 與 CEO 的分工、產出格式、審核清單（怎麼做事）
 2. **`HANDOFF.md`** — 目前進度、已知 bug、**「下一步」**（從哪裡接手）
 3. **`DECISIONS.md`** — 已拍板的決策（不要重新討論、不要「順手改回去」）
 
@@ -62,7 +62,8 @@
 
 ```
 .github/workflows/
-  daily.yml      每日盤後管線（UTC 10:30 週一~五）：抓資料 → commit data/ → 產 JSON → 部署 Pages
+  daily.yml      每日盤後管線（UTC 07:30/10:30/13:30＝台北 15:30/18:30/21:30，週一~五）：
+                 15:30 那輪 --phase price 只抓價量；openapi 還沒給今天就用 mis 補（暫定值）
   backfill.yml   歷史回補（每小時，避開 09:20/10:20 UTC）：跑 --plan default，補齊即跳過
   pages.yml      site/** 或 pipeline/** 有 push 就重算 JSON 並部署
 pipeline/
@@ -71,7 +72,8 @@ pipeline/
   run_backfill.py      歷史回補；PLAN_DEFAULT 多步驟、402 即停、進度在 data/_state/backfill_progress.json
   build_payload.py     從資料湖算出前端 JSON（site/data/，不進版控）；SKIP_INTRADAY=1 可跳過 Yahoo 分 K
   indicators.py        MA/MACD/RSI/KD/ATR/SMC + technical_score()
-  sources/             twse(OpenAPI) finmind tdcc tpex yahoo news macro —— 全部回 DataFrame，失敗回空
+  sources/             twse(OpenAPI) mis(即時報價/當天補齊) finmind tdcc tpex yahoo news macro
+                       —— 全部回 DataFrame，失敗回空
   compute/             flow(M1) fundamental(M2) technical(M3規則) mtf(多週期SMC) stockpage season themes rrg
   groups/              ★ groups.yaml themes.yaml supply_chain.yaml（唯一人工維護）+ loader.py
   util/                roc(民國/千元/空值) http(重試+FinMind額度) store(Parquet append-only)
@@ -82,7 +84,8 @@ site/
   data/                                                  工作流產出，gitignore
 data/                  Parquet 資料湖（雲端 Actions 每天 commit；本機只讀）
 scripts/_preview.py    本機預覽驗證（Playwright + 真圖表庫）
-tests/                 pytest，224 個
+scripts/stamp_assets.py 部署前給自家 JS/CSS 加版本戳（不加就要按 Ctrl+F5 才看得到新版）
+tests/                 pytest，260 個
 workers/quote-proxy/   Cloudflare Worker：即時報價的 CORS 代理（部署說明在 workers/README.md）
 docs/                  v3_sources_spec.md（資料源規格）、截圖
 ```

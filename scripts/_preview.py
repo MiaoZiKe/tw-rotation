@@ -74,7 +74,10 @@ def main() -> int:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: problems.append(f"pageerror: {e}"))
-        pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text else None)
+        pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text
+              # 本機／CI 連不到 Cloudflare Worker，即時報價抓不到是預期的，不是 bug
+              and "ERR_TUNNEL_CONNECTION_FAILED" not in m.text and "workers.dev" not in m.text
+              and "ERR_NAME_NOT_RESOLVED" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         base = f"http://127.0.0.1:{PORT}/index.html"
 

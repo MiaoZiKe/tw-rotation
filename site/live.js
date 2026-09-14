@@ -37,6 +37,10 @@
   const MS_INTRADAY = 60 * 1000;       // 盤中：每分鐘
   const MS_AFTER = 30 * 60 * 1000;     // 盤後：每 30 分鐘
   const STALE_MS = 3 * 60 * 1000;      // 超過這麼久沒成功就把狀態標成「停了」
+  // 連續失敗這麼多次就把自動輪詢關掉，等使用者自己按「更新」再試。
+  // 理由有兩個：(1) 公司網路可能整個擋掉 Worker，一直重試只會洗版 console；
+  // (2) 打不通的端點每分鐘敲一次沒有意義。按「更新」會把計數歸零重新開始。
+  const MAX_FAILS = 3;
 
   // Andy 的 Cloudflare Worker（2026-09-14 部署完成並實測過）。
   // 填成預設值，換一台電腦／換一個瀏覽器都不用再設定一次；
@@ -51,6 +55,7 @@
     lastOk: 0,
     lastErr: '',
     tries: 0,
+    fresher: false,      // 伺服器上已經有更新的資料，但盤中不自動重載
   };
 
   const ls = {
@@ -207,6 +212,7 @@
         .toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false });
       txt = (intr ? '即時 ' : '收盤 ') + t + (autoOn() ? (intr ? '　每分鐘' : '　每 30 分') : '　自動已關');
       cls = intr ? 'live' : 'ok';
+      if (state.fresher) { txt = '有新資料，按「更新」載入'; cls = 'bad'; }
     }
     el.textContent = txt;
     el.className = 'livestate ' + cls;
@@ -218,6 +224,7 @@
   // ---------------------------------------------------------------- 一輪
   async function tick(manual) {
     if (state.busy) return;
+    if (manual) { state.tries = 0; if (!state.timer && autoOn()) reschedule(); }
     // 分頁在背景就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
     const codes = codesOnScreen();
@@ -230,26 +237,42 @@
       } else if (!proxy()) {
         state.lastErr = '還沒設定代理網址';
       }
-      // 靜態 JSON 有沒有換新版（Actions 重新部署過）。有才重載，沒有就不要打斷使用者。
-      if (manual) await reloadIfRedeployed();
+      // 總覽最上面那三張大盤走勢圖跟報價同一個節奏（盤中每分鐘、盤後每 30 分、手動更新也算）
+      if (window.Market3) { try { await window.Market3.refresh(); } catch (e) { /* 三張圖壞掉不該影響報價 */ } }
+      // 靜態 JSON 有沒有換新版（Actions 重新部署過）。
+      // ★ 每一輪都要檢查，不是只有手動那次 —— Andy 要的「盤後每 30 分鐘更新」指的是
+      //   **資料**要變新，不是只有報價數字在跳。以前只在 manual 時檢查，
+      //   等於開著的頁面永遠不會自己拿到 18:30 那輪跑完的新資料。
+      await reloadIfRedeployed(manual);
     } catch (e) {
       state.tries++;
       state.lastErr = String(e.message || e).slice(0, 60);
+      if (state.tries >= MAX_FAILS && state.timer) {
+        clearInterval(state.timer);
+        state.timer = null;
+        state.lastErr = `連續 ${state.tries} 次抓不到，已暫停自動更新（按「更新」重試）`;
+      }
     } finally {
       state.busy = false; stamp();
     }
   }
 
-  /** 比對 meta.json 的 generated_at；換了才整頁重載。
-   *  直接 reload 會把展開的列、勾選的族群、K 線縮放全部弄掉，不值得每分鐘做一次。 */
-  async function reloadIfRedeployed() {
+  /** 比對 meta.json 的 `generated_at`，判斷 Actions 是不是重新部署過。
+   *
+   *  盤中不自動重載 —— reload 會把展開的列、勾選的族群、K 線縮放全部弄掉，
+   *  而盤中價格本來就靠即時報價在更新，沒必要打斷正在看盤的人。
+   *  改成在狀態列掛一句「有新資料」，按「更新」才真的載入。
+   *  盤後（以及手動按更新）就直接重載，那時打斷不了什麼。 */
+  async function reloadIfRedeployed(manual) {
     try {
       const A = window.App;
       const cur = A && A.D && A.D.meta && A.D.meta.generated_at;
       const r = await fetch('data/meta.json?t=' + Date.now(), { cache: 'no-store' });
       if (!r.ok) return;
       const m = await r.json();
-      if (cur && m.generated_at && m.generated_at !== cur) location.reload();
+      if (!cur || !m.generated_at || m.generated_at === cur) { state.fresher = false; return; }
+      if (manual || !isIntraday()) location.reload();
+      else state.fresher = true;          // 盤中：先講一聲，不打斷
     } catch (e) { /* 抓不到就算了，不影響即時報價 */ }
   }
 
@@ -299,6 +322,7 @@
   const Live = {
     tick,
     paint,
+    proxy,                                     // market3.js 共用同一組設定（⚙ 面板改這裡也跟著改）
     get quotes() { return state.quotes; },
     get timerOn() { return !!state.timer; },   // 驗收用：自動更新到底有沒有在跑
     isIntraday,

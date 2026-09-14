@@ -320,6 +320,29 @@ def build() -> None:
     _write("meta", meta_payload(latest, history_days))
 
 
+def _provisional_share(date: str | None) -> dict:
+    """這一天有多少比例的價量列是 mis 補的暫定值。
+
+    回 `{"is_provisional": bool, "rows": n, "share": 0~1}`。
+    沒有 `px_source` 欄位（舊資料）就一律當成官方值。
+    """
+    empty = {"is_provisional": False, "rows": 0, "share": 0.0}
+    if not date:
+        return empty
+    try:
+        px = store.read("price_daily")
+    except Exception:  # noqa: BLE001
+        return empty
+    if px.empty or "px_source" not in px.columns:
+        return empty
+    day = px[px["date"].astype(str) == str(date)]
+    if day.empty:
+        return empty
+    n = int((day["px_source"] == "mis").sum())
+    share = n / len(day)
+    return {"is_provisional": share > 0.5, "rows": n, "share": round(share, 3)}
+
+
 def meta_payload(latest: str, history_days: int) -> dict:
     """網站頂端那條「資料狀態」要用的所有欄位。
 
@@ -340,10 +363,17 @@ def meta_payload(latest: str, history_days: int) -> dict:
 
     tbl = store.table_summary().to_dict("records")
     px_latest = next((t.get("latest") for t in tbl if t.get("table") == "price_daily"), None)
+
+    # 畫面上這一天的價量是不是 mis 補的暫定值（openapi 還沒給官方資料）。
+    # 開高低收是準的，但成交量是盤中口徑、不含盤後定價交易，逐檔少 0.5%～15%
+    # （sources/mis.py 有實測數字），所以跟成交值有關的東西要標示出來。
+    provisional = _provisional_share(latest)
+
     return {
         "status": "ok",
         "data_date": latest,
         "price_latest": px_latest,
+        "provisional": provisional,
         "price_ahead_of_payload": bool(px_latest and latest and str(px_latest) > str(latest)),
         "history_days": history_days,
         "generated_at": datetime.now(timezone.utc).isoformat(),

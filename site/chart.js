@@ -271,13 +271,26 @@
   }
 
   // ---------------------------------------------------------------- 圖表
+  /* 主題：色票 C 的預設值是深色，切到明亮主題時由 refreshTheme() 就地改寫。
+     Lightweight Charts 的顏色是建圖當下寫進去的，所以換主題一定要把圖重建（app.js 會重跑 route()）。 */
+  function refreshTheme() {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n, d) => (s.getPropertyValue(n) || '').trim() || d;
+    C.up = v('--rise', '#ff4d6d'); C.down = v('--fall', '#2ee59d');
+    C.bg = v('--chartbg', '#0a1020'); C.text = v('--ink-2', '#a9b6d6');
+    C.grid = v('--grid', 'rgba(255,255,255,.05)');
+    C.line = v('--line-2', '#2a3860'); C.panel3 = v('--panel-3', '#1a2542');
+    return C;
+  }
+
   function baseOptions(h) {
+    refreshTheme();
     return {
-      autoSize: true, layout: { background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: 'rgba(255,255,255,.08)', separatorHoverColor: 'rgba(62,224,255,.25)', enableResize: true } },
+      autoSize: true, layout: { background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: C.grid, separatorHoverColor: 'rgba(62,224,255,.25)', enableResize: true } },
       grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
-      crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: '#1a2542' }, horzLine: { labelBackgroundColor: '#1a2542' } },
-      rightPriceScale: { borderColor: 'rgba(255,255,255,.1)', scaleMargins: { top: 0.08, bottom: 0.08 } },
-      timeScale: { borderColor: 'rgba(255,255,255,.1)', timeVisible: true, secondsVisible: false, rightOffset: 4, barSpacing: 7 },
+      crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
+      rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },
+      timeScale: { borderColor: C.line, timeVisible: true, secondsVisible: false, rightOffset: 4, barSpacing: 7 },
       handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       localization: { locale: 'zh-TW', timeFormatter: (t) => fmtTime(t, h && h.tf) },
@@ -348,6 +361,12 @@
     // cfg = {ma:[5,20,60], boll:{n:20,k:2}, vol:true, kd:{n:9,m1:3,m2:3}, macd:{f:12,s:26,g:9}, rsi:{n:14}}
     applyIndicators(cfg) {
       this.clearOverlays(); this.cfg = cfg;
+      /* 面板高度有兩套：一般（個股頁那種整頁大圖）與 compact（總覽那三張小卡）。
+         以前主圖高度寫死「至少 280px」，放進 230px 的小卡就會整個爆出去 ——
+         成交量被擠成一條線、指標面板空白、面板標題跑到卡片外面。 */
+      const PH = this.opts.compact
+        ? { vol: 52, ind: 58, gap: 60, min: 110 }
+        : { vol: 90, ind: 110, gap: 105, min: 280 };
       const c = this.data.map(d => d.close), h = this.data.map(d => d.high), l = this.data.map(d => d.low), v = this.data.map(d => d.volume);
       this.values = {};
       // 均線：條數、週期、顏色、粗細都吃 cfg（Andy 2026-09-12「線寬 均線數量 數字 顏色 粗細都要能調」）
@@ -367,23 +386,23 @@
         const y = st('vol', { c: '#ff4d6d', c2: '#2ee59d', o: 55 });
         this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? col(y.c, y.o) : col(y.c2, y.o)), pane)];
         if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, '#ffd166', pane, y.w)); }
-        this.paneIndex.vol = pane; this._paneH(pane, 90); pane++; }
+        this.paneIndex.vol = pane; this._paneH(pane, PH.vol); pane++; }
       if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k;
         const y = st('kd', { c: C.k, c2: C.d });
         this.panes.kd = [this._line(k.k, col(y.c, y.o), pane, y.w), this._line(k.d, col(y.c2, y.o), pane, y.w)];
         ref(this.panes.kd[0], 80, 'rgba(255,77,109,.35)'); ref(this.panes.kd[0], 20, 'rgba(46,229,157,.35)');
-        this.paneIndex.kd = pane; this._paneH(pane, 110); pane++; }
+        this.paneIndex.kd = pane; this._paneH(pane, PH.ind); pane++; }
       if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m;
         const y = st('macd', { c: C.dif, c2: C.dea });
         this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)), pane),
           this._line(m.dif, col(y.c, y.o), pane, y.w), this._line(m.dea, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, 110); pane++; }
+        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, PH.ind); pane++; }
       if (cfg.rsi) { const r = ind.rsi(c, cfg.rsi.n); this.values.RSI = r;
         const y = st('rsi', { c: C.rsi });
         this.panes.rsi = [this._line(r, col(y.c, y.o), pane, y.w)];
         ref(this.panes.rsi[0], 70, 'rgba(255,77,109,.35)'); ref(this.panes.rsi[0], 30, 'rgba(46,229,157,.35)');
-        this.paneIndex.rsi = pane; this._paneH(pane, 90); pane++; }
-      this._paneH(0, Math.max(280, this.el.clientHeight - (pane - 1) * 105 - 20));
+        this.paneIndex.rsi = pane; this._paneH(pane, PH.ind); pane++; }
+      this._paneH(0, Math.max(PH.min, this.el.clientHeight - (pane - 1) * PH.gap - 20));
       setTimeout(() => this._layoutLabels(), 30);
     }
     _paneH(i, h) { const ps = this.chart.panes(); if (ps[i]) ps[i].setHeight(h); }
@@ -419,5 +438,5 @@
   }
 
   global.KChart = KChart; global.KInd = ind;
-  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa };
+  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa };
 })(window);

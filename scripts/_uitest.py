@@ -1411,8 +1411,13 @@ def t_live(pg, base):
     # --- 1. 按鈕與狀態真的在畫面上
     ok("有『更新』按鈕", count(pg, "#liveBtn") == 1)
     ok("有即時來源設定鈕", count(pg, "#liveGear") == 1)
-    ok("沒設定來源時狀態講得出原因", "未設定" in text(pg, "#liveState"),
-       text(pg, "#liveState"))
+    # live.js 的 DEFAULT_PROXY 已經填了正式的 Worker 網址（換電腦不用再設定），
+    # 所以這裡不該再是「未設定」。本機連不到那個網址，狀態要**照實講抓不到**，
+    # 不可以停在「—」假裝一切正常。
+    st0 = text(pg, "#liveState")
+    ok("狀態列有講話（不是停在破折號）", st0 not in ("—", "<缺>", ""), st0)
+    ok("預設就有即時來源，不用每台電腦自己設", "未設定" not in st0, st0)
+    ok("抓不到的時候照實講", ("即時" in st0 or "抓不到" in st0 or "暫停" in st0), st0)
 
     # --- 2. 候選表的價格欄真的被標記起來了（沒有標記，即時層就無從更新）
     # 原始值要在設定來源**之前**讀，否則第一輪即時抓完才讀就比不出差異
@@ -1478,6 +1483,268 @@ def t_live(pg, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.live.on'); } catch(e){} }")
 
 
+def _fake_chart(idx_id: str):
+    """編一份跟 mis 一模一樣形狀的當日分時，給三張大盤圖用。
+
+    真的東西長這樣（2026-09-14 17:30 從 mis.twse.com.tw 實測）：
+      ohlcArray = [{t: epoch毫秒, ts:"090100", c: 指數, s: 該分鐘張數}, ...]
+      infoArray[0] = {n 名稱, d 日期, t 時間, o/h/l/z 開高低收, y 昨收, v 成交金額(百萬)}
+    """
+    import calendar
+    base_min = 9 * 60 if idx_id != "FUT" else 8 * 60 + 45
+    n = 270 if idx_id != "FUT" else 300
+    prev = {"TSE": 46184.85, "OTC": 395.52, "FUT": 46187.0}[idx_id]
+    last = {"TSE": 45862.52, "OTC": 394.67, "FUT": 45780.0}[idx_id]
+    # 2026-09-14 09:00 台北 = 01:00 UTC
+    day0 = calendar.timegm((2026, 9, 14, 0, 0, 0, 0, 0, 0)) - 8 * 3600
+    arr = []
+    for i in range(n):
+        m = base_min + i + 1
+        c = prev + (last - prev) * (i + 1) / n
+        arr.append({"t": str((day0 + m * 60) * 1000),
+                    "ts": "%02d%02d00" % (m // 60, m % 60),
+                    "c": "%.2f" % c, "s": str(1000 + i)})
+    info = {"n": {"TSE": "發行量加權股價指數", "OTC": "櫃買指數", "FUT": "臺指期096"}[idx_id],
+            "d": "20260914", "t": "13:33:00", "y": "%.2f" % prev, "z": "%.2f" % last,
+            "o": "%.2f" % (prev * 0.999), "h": "%.2f" % (prev * 1.002), "l": "%.2f" % (last * 0.99),
+            "v": "630917"}
+    return {"rtcode": "0000", "rtmessage": "OK", "ohlcArray": arr, "infoArray": [info],
+            "staticObj": {"tv": "8705759", "tz": "630917830610"}}
+
+
+def t_market3(pg, base):
+    """總覽最上面那三張大盤圖（market3.js）。
+
+    Andy 2026-09-14：「需出現 加權與櫃買 台指期 即時 走勢圖並且可以切換K線型態，
+    且指標 格式 可以參考原本個股做好的執行。」
+
+    驗的是**操作之後畫面真的不一樣**：切到 K 線要真的變成 K 線（不是同一張圖），
+    換週期要真的換一組 K 棒，放大要真的只剩一張。
+    """
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    def fake(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        i = (q.get("id") or ["TSE"])[0].upper()
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_fake_chart(i)))
+
+    pg.route("**/chart?*", fake)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.m3.mode'); localStorage.removeItem('tw.m3.tf');"
+                " localStorage.removeItem('tw.m3.big'); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch(e){} }")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(2200)
+
+    # --- 1. 三張卡真的在總覽最上面
+    ok("總覽有三張大盤圖", count(pg, "#m3Grid .m3-card") == 3, count(pg, "#m3Grid .m3-card"))
+    names = pg.evaluate("() => [...document.querySelectorAll('#m3Grid .m3-card h3')].map(e=>e.innerText.trim())")
+    ok("三張分別是加權／櫃買／台指期",
+       all(any(k in " ".join(names) for k in ks) for ks in (["加權"], ["櫃買"], ["台指期"])), names)
+    ok("三張圖排在 hero 上面",
+       pg.evaluate("() => { const m=document.getElementById('m3'), h=document.getElementById('hero');"
+                   " return !!(m&&h) && (m.compareDocumentPosition(h) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0; }"))
+
+    # --- 2. 卡片上的數字真的是抓回來的那一份
+    px = text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-px")
+    ok("加權那張顯示抓回來的指數", "45,862" in px, px)
+    sub = text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-sub")
+    ok("卡片有開高低與昨收", "昨收" in sub and "高" in sub, sub)
+    chg = text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-chg")
+    ok("漲跌是拿昨收算的（45862.52 vs 46184.85 ＝ -0.70%）", "-0.70" in chg, chg)
+    ok("跌要是綠的（台股綠跌）",
+       "down" in pg.evaluate("() => document.querySelector(\"#m3Grid .m3-card[data-id='TSE'] .m3-chg\").className"))
+    otc = text(pg, "#m3Grid .m3-card[data-id='OTC'] .m3-px")
+    ok("櫃買那張有自己的數字（不是三張都一樣）", "394.67" in otc and otc != px, otc)
+    fut = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+    ok("台指期那張是整數位", "45,780" in fut, fut)
+
+    # --- 3. 走勢圖真的畫出來了
+    ok("預設是走勢圖", pg.evaluate("() => window.Market3.state.mode") == "line")
+    line_hash = canvas_hash(pg, "#m3c-TSE")
+    ok("走勢圖真的畫了東西", line_hash not in ("no-canvas", "0"), line_hash)
+    ok("走勢圖是 ECharts 畫的",
+       pg.evaluate("() => !!document.querySelector('#m3c-TSE canvas') && document.getElementById('m3c-TSE').dataset.kind === 'line'"))
+    ok("走勢圖模式不顯示分鐘週期鈕（那是 K 線才有的）",
+       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf')).display === 'none'"))
+
+    # --- 4. ★ 切到 K 線：圖真的換掉
+    click(pg, "#m3Mode button[data-m='k']", 1200)
+    ok("模式真的切到 K 線", pg.evaluate("() => window.Market3.state.mode") == "k")
+    ok("K 線是 Lightweight Charts 畫的",
+       pg.evaluate("() => document.getElementById('m3c-TSE').dataset.kind === 'k' && !!window.Market3.state.kcharts.TSE"))
+    k_hash = canvas_hash(pg, "#m3c-TSE")
+    changed("切到 K 線之後畫面真的不一樣了", line_hash, k_hash)
+    ok("三張都切過去了",
+       pg.evaluate("() => Object.keys(window.Market3.state.kcharts).length") == 3,
+       pg.evaluate("() => Object.keys(window.Market3.state.kcharts)"))
+    ok("週期鈕這時候才出現",
+       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf')).display !== 'none'"))
+    ok("K 線有吃到個股那套指標（成交量面板）",
+       pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return !!(k && k.paneIndex && k.paneIndex.vol); }"))
+    ok("昨收有畫成參考線",
+       pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return !!(k && k.priceLines && k.priceLines.length); }"))
+
+    # --- 5. ★ 換週期：K 棒數量真的變了
+    bars5 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
+    click(pg, "#m3Tf button[data-tf='15']", 1200)
+    bars15 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
+    changed("換成 15 分之後 K 棒數量真的變了", bars5, bars15)
+    ok("15 分的根數大約是 5 分的三分之一", bars15 * 2 < bars5, f"{bars5} → {bars15}")
+    click(pg, "#m3Tf button[data-tf='1']", 1200)
+    bars1 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
+    ok("1 分是最多根的", bars1 > bars5 > bars15, f"1分{bars1} / 5分{bars5} / 15分{bars15}")
+    ok("1 分 K 有實體（開＝前一分收，不是四價合一的一字線）",
+       pg.evaluate("() => { const d = window.Market3.state.kcharts.TSE.data;"
+                   " return d.slice(1, 40).some(b => b.open !== b.close); }"))
+
+    # --- 6. ★ 展開：真的只剩一張
+    #     刻意不叫「放大」：Andy 的規矩是「只有三張熱力圖可以縮放」，這顆是版面切換不是縮放。
+    click(pg, "#m3Grid .m3-card[data-id='OTC'] .m3-big", 900)
+    ok("展開之後版面換成單欄", pg.evaluate("() => document.getElementById('m3Grid').classList.contains('big')"))
+    vis = pg.evaluate("() => [...document.querySelectorAll('#m3Grid .m3-card')].filter(c => c.offsetParent !== null).length")
+    ok("展開之後畫面上只剩那一張", vis == 1, f"還看得到 {vis} 張")
+    ok("展開的是櫃買那張",
+       pg.evaluate("() => document.querySelector(\"#m3Grid .m3-card[data-id='OTC']\").offsetParent !== null"))
+    ok("按鈕文字變成『收合』", "收合" in text(pg, "#m3Grid .m3-card[data-id='OTC'] .m3-big"))
+    click(pg, "#m3Grid .m3-card[data-id='OTC'] .m3-big", 900)
+    vis2 = pg.evaluate("() => [...document.querySelectorAll('#m3Grid .m3-card')].filter(c => c.offsetParent !== null).length")
+    ok("收合之後三張都回來了", vis2 == 3, vis2)
+
+    # --- 7. 選擇記得住（換頁回來還是 K 線）
+    saved = pg.evaluate("() => [localStorage.getItem('tw.m3.mode'), localStorage.getItem('tw.m3.tf')]")
+    ok("模式與週期真的存進 localStorage", saved[0] == "k" and saved[1] == "1", saved)
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(2000)
+    ok("重新進來還是停在 K 線", pg.evaluate("() => window.Market3.state.mode") == "k")
+
+    # --- 8. Worker 還沒更新（只有 /quote）的時候要講清楚要去哪裡改
+    pg.unroute("**/chart?*")
+    pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json",
+                                               body='{"error":"not found"}'))
+    pg.evaluate("() => { try{ localStorage.setItem('tw.m3.mode','line'); }catch(e){} }")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(2200)
+    msg = text(pg, "#m3c-TSE .empty")
+    ok("Worker 是舊版時，畫面直接告訴你要去 Cloudflare 重貼",
+       "Cloudflare" in msg and "worker.js" in msg, msg[:120])
+
+    # --- 收拾
+    pg.unroute("**/chart?*")
+    pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
+
+
+def t_theme(pg, base):
+    """明亮／深色切換（Andy 2026-09-14：「版面內容需要新增切換明亮色調」）。
+
+    只驗「按鈕在」是不夠的 —— 要驗**底色真的變了、圖表也真的跟著重畫了**。
+    """
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch(e){} }")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(1500)
+
+    ok("頂部列有主題切換鈕", count(pg, "#themeBtn") == 1)
+    ok("預設是深色", pg.evaluate("() => window.App.theme()") == "dark")
+    bg0 = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
+    # 卡片底色是 linear-gradient（backgroundColor 會是透明），所以量單色的頂部列按鈕
+    card0 = pg.evaluate("() => getComputedStyle(document.querySelector('#themeBtn')).backgroundColor")
+    ink0 = pg.evaluate("() => getComputedStyle(document.body).color")
+    # ECharts 的畫布本身是透明的，換主題後像素差異很小；改成驗「實例真的被重建」
+    heat0 = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; }")
+
+    click(pg, "#themeBtn", 1800)
+    ok("切過去之後 data-theme 真的是 light",
+       pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light")
+    bg1 = pg.evaluate("() => getComputedStyle(document.body).backgroundColor")
+    card1 = pg.evaluate("() => getComputedStyle(document.querySelector('#themeBtn')).backgroundColor")
+    ink1 = pg.evaluate("() => getComputedStyle(document.body).color")
+    changed("整頁底色真的變了", bg0, bg1)
+    changed("面板底色真的變了", card0, card1)
+    changed("文字顏色真的變了", ink0, ink1)
+    # 明亮主題的底色要真的亮（避免只是換了一個深色）
+    lum = pg.evaluate("""() => { const c = getComputedStyle(document.querySelector('#themeBtn')).backgroundColor;
+        const m = c.match(/\\d+/g) || [0,0,0]; return (+m[0] + +m[1] + +m[2]) / 3; }""")
+    ok("明亮主題的面板真的是亮的", lum > 200, f"平均亮度 {lum}")
+    ok("卡片跟著變亮（卡片是漸層，量 --panel 這個變數）",
+       pg.evaluate("""() => { const v = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+           return v.toLowerCase() === '#ffffff' || v.toLowerCase() === '#fff'; }"""),
+       pg.evaluate("() => getComputedStyle(document.documentElement).getPropertyValue('--panel')"))
+    ok("圖表色票也跟著換（不是只有 CSS）",
+       pg.evaluate("() => window.App.CH.line") != "#1e2a48",
+       pg.evaluate("() => window.App.CH.line"))
+    ok("K 線那一層的色票也跟著換",
+       pg.evaluate("() => window.KUtil.colors.bg") == "#ffffff",
+       pg.evaluate("() => window.KUtil.colors.bg"))
+    heat1 = pg.evaluate("() => { const i = echarts.getInstanceByDom(document.getElementById('heat')); return i ? i.id : ''; }")
+    changed("熱力圖真的整個重建過（舊實例被丟掉、用新色重畫）", heat0, heat1)
+    ok("切完主題圖表還在（沒有變成空白）",
+       canvas_hash(pg, "#heat") not in ("no-canvas", "0"), canvas_hash(pg, "#heat"))
+    ok("三張大盤圖也跟著重掛", count(pg, "#m3Grid .m3-card") == 3, count(pg, "#m3Grid .m3-card"))
+
+    # --- 記得住
+    ok("選擇存進 localStorage",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.theme'); } catch(e) { return null; } }") == "light")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(1200)
+    ok("重新進來還是明亮主題", pg.evaluate("() => window.App.theme()") == "light")
+    ok("重新整理不會先閃一下深色（HTML 一開始就帶 data-theme）",
+       pg.evaluate("() => document.documentElement.getAttribute('data-theme')") == "light")
+
+    # --- 個股頁的 K 線也要跟著換
+    pg.goto(base + "#stock/2330", wait_until="networkidle")
+    pg.wait_for_timeout(2500)
+    k0 = canvas_hash(pg, "#lwc")
+    ok("明亮主題下 K 線圖底色是亮的",
+       pg.evaluate("""() => { const c = getComputedStyle(document.getElementById('lwc')).backgroundColor;
+           const m = c.match(/\\d+/g) || [0,0,0]; return (+m[0]+ +m[1]+ +m[2])/3 > 200; }"""))
+    click(pg, "#themeBtn", 2500)
+    ok("切回深色", pg.evaluate("() => window.App.theme()") == "dark")
+    k1 = canvas_hash(pg, "#lwc")
+    changed("個股 K 線真的跟著重畫", k0, k1)
+    ok("切回來 K 線還在", k1 not in ("no-canvas", "0"), k1)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch(e){} }")
+
+
+def t_events(pg, base):
+    """今日事件側欄的日期要對得上清單內容。
+
+    Andy 2026-09-14 截圖：標題旁邊寫 2026-09-11，清單裡卻列著 2026-09-14 的券商目標價。
+    原因是那個日期吃的是 meta.data_date（價量資料日），不是事件本身的日期。
+    """
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(1200)
+    if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+        click(pg, "#evToggle", 500)
+    shown = text(pg, "#evDate")
+    ok("側欄有顯示日期", shown not in ("—", "<缺>", ""), shown)
+    newest = pg.evaluate("() => { const ds = [...document.querySelectorAll('#evList .ev .m .mono')]"
+                         ".map(e=>e.innerText.trim()).filter(Boolean).sort(); return ds[ds.length-1] || ''; }")
+    ok("清單裡每一則都看得到日期", bool(newest), newest)
+    # 新聞的 published_at 是 RFC 2822，切前十個字會切出 'Fri, 11 Se'
+    bad = pg.evaluate("() => [...document.querySelectorAll('#evList .ev .m .mono')]"
+                      ".map(e=>e.innerText.trim()).filter(t => !/^\\d{4}-\\d{2}-\\d{2}$/.test(t)).slice(0,3)")
+    ok("每一則的日期都是 YYYY-MM-DD（不是被切壞的英文日期）", not bad, bad)
+    ok("標題旁邊的日期也是完整日期", __import__("re").search(r"\d{4}-\d{2}-\d{2}", shown) is not None, shown)
+    ok("標題旁邊的日期＝清單裡最新的那一天", newest and newest in shown, f"標題「{shown}」／清單最新 {newest}")
+    meta_date = pg.evaluate("() => (window.App.D.meta || {}).data_date || ''")
+    if meta_date and newest and meta_date != newest:
+        ok("不是拿價量資料日充數", meta_date not in shown, f"標題「{shown}」還是 meta.data_date {meta_date}")
+    # 切到「券商」之後日期要跟著那一類重算
+    click(pg, "#evFilters button[data-c='券商']", 600)
+    after = text(pg, "#evDate")
+    n_broker = count(pg, "#evList .ev")
+    if n_broker:
+        b_newest = pg.evaluate("() => { const ds = [...document.querySelectorAll('#evList .ev .m .mono')]"
+                               ".map(e=>e.innerText.trim()).filter(Boolean).sort(); return ds[ds.length-1] || ''; }")
+        ok("切到券商之後日期跟著那一類重算", b_newest and b_newest in after, f"{after} vs {b_newest}")
+    click(pg, "#evFilters button[data-c='all']", 400)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -1496,10 +1763,13 @@ def main() -> int:
         # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題
         pg.on("console", lambda m: fails.append(f"console.error: {m.text}")
               if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text
+              # 本機／CI 連不到 Cloudflare Worker，即時報價抓不到是預期的，不是 bug
+              and "ERR_TUNNEL_CONNECTION_FAILED" not in m.text and "workers.dev" not in m.text
+              and "ERR_NAME_NOT_RESOLVED" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text
               and "404" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
-        for name, fn in (("盤中即時", t_live),
+        for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("題材", t_themes), ("季節性", t_season)):
             n0 = len(fails)

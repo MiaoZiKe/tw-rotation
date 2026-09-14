@@ -24,6 +24,15 @@
 
 const UPSTREAM = 'https://mis.twse.com.tw/stock/api/getStockInfo.jsp';
 
+// 大盤／櫃買／台指期的「當日分時」檔。就是證交所基本市況報導那三張走勢圖的資料來源，
+// 每一筆是 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交量}，09:01 起每分鐘一筆。
+// 同樣鎖死成白名單 —— 只放行這幾個檔名，不接受任意路徑。
+const CHART_FILES = {
+  TSE: 'https://mis.twse.com.tw/stock/data/mis_ohlc_TSE.txt',   // 加權
+  OTC: 'https://mis.twse.com.tw/stock/data/mis_ohlc_OTC.txt',   // 櫃買
+  FUT: 'https://mis.twse.com.tw/stock/data/futures_chart.txt',  // 台指期
+};
+
 // 允許呼叫這支 Worker 的網站。要多一個網域就加在這裡。
 const ALLOW_ORIGINS = [
   'https://miaozike.github.io',
@@ -71,12 +80,22 @@ export default {
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw' }, 200, origin);
     }
-    if (url.pathname !== '/quote') {
+    if (url.pathname !== '/quote' && url.pathname !== '/chart') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
       // 不給 CORS 標頭，瀏覽器那邊自然讀不到；這裡也直接講清楚原因方便除錯
       return json({ error: 'origin not allowed', origin }, 403, '');
+    }
+
+    // ---- /chart：當日分時（加權 / 櫃買 / 台指期）
+    if (url.pathname === '/chart') {
+      const id = (url.searchParams.get('id') || '').toUpperCase();
+      const target = CHART_FILES[id];
+      if (!target) {
+        return json({ error: 'bad id', allowed: Object.keys(CHART_FILES) }, 400, origin);
+      }
+      return relay(target, origin, 'chart');
     }
 
     const raw = (url.searchParams.get('ex_ch') || '').trim();
@@ -89,8 +108,13 @@ export default {
     if (bad) return json({ error: 'bad ex_ch token', token: bad }, 400, origin);
 
     const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(tokens.join('|'))}`;
+    return relay(target, origin, 'quote');
+  },
+};
 
-    // 邊緣快取：同樣的代號組合 10 秒內只真的打上游一次
+/** 打上游、加邊緣快取、補上 CORS 標頭。/quote 與 /chart 共用。 */
+async function relay(target, origin, kind) {
+    // 邊緣快取：同樣的請求 10 秒內只真的打上游一次
     const cache = caches.default;
     const cacheKey = new Request(target, { method: 'GET' });
     let hit = await cache.match(cacheKey);
@@ -134,8 +158,8 @@ export default {
     return new Response(text, {
       status: 200,
       headers: Object.assign(
-        { 'content-type': 'application/json; charset=utf-8', 'x-proxy-cache': 'MISS' },
+        { 'content-type': 'application/json; charset=utf-8',
+          'x-proxy-cache': 'MISS', 'x-proxy-kind': kind },
         cors(origin)),
     });
-  },
-};
+}

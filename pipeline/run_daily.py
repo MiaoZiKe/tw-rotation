@@ -18,7 +18,7 @@ import pandas as pd
 from . import config
 from .compute import flow
 from .groups import loader
-from .sources import finmind, macro, news, tdcc, tpex, twse
+from .sources import finmind, macro, mis, news, tdcc, tpex, twse
 from .util import http, store
 from .util.roc import is_tradable_security
 
@@ -163,16 +163,60 @@ def refresh_financials(codes: list[str]) -> pd.DataFrame:
     return pd.concat(fs, ignore_index=True) if fs else pd.DataFrame()
 
 
+def universe_pairs() -> list[tuple[str, str | None]]:
+    """全市場的 (代號, 市場別)。以 `company_info` 為準（它是上市＋上櫃合起來的那份）。"""
+    info = store.read("company_info")
+    if info.empty or "code" not in info.columns:
+        return []
+    info = info.dropna(subset=["code"]).drop_duplicates("code", keep="last")
+    mk = info["market"] if "market" in info.columns else pd.Series([None] * len(info))
+    pairs = [(str(c), (str(m) if pd.notna(m) else None))
+             for c, m in zip(info["code"], mk) if is_tradable_security(str(c))]
+    return pairs
+
+
+def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
+    """openapi 還沒給今天的話，用 mis 把今天補起來。
+
+    先只問一檔拿 mis 手上的交易日，確定真的比較新才去抓全市場 ——
+    一天 24 個請求不算多，但沒必要為了拿一份重複的資料去打人家的端點。
+    """
+    mis_date = mis.latest_date()
+    if not mis_date:
+        log.warning("mis 拿不到交易日，本輪不補")
+        return pd.DataFrame()
+
+    have = store.latest_date("price_daily")
+    newest_known = max([d for d in (openapi_date, have) if d], default=None)
+    RESULT["steps"]["mis.date_check"] = {
+        "mis_date": mis_date, "openapi_date": openapi_date,
+        "lake_latest": have, "will_fill": bool(not newest_known or mis_date > newest_known),
+    }
+    if newest_known and mis_date <= newest_known:
+        log.info("mis 的 %s 沒有比已知的 %s 新，不用補", mis_date, newest_known)
+        return pd.DataFrame()
+
+    pairs = universe_pairs()
+    if not pairs:
+        log.warning("company_info 還沒有內容，不知道要補哪些代號")
+        return pd.DataFrame()
+    log.info("openapi 還停在 %s，mis 已經有 %s —— 補 %d 檔",
+             openapi_date or "（沒有）", mis_date, len(pairs))
+    return mis.price_snapshot(pairs)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
                     help="不動用 FinMind 額度（回補當天用）")
     ap.add_argument("--universe", type=int, default=config.UNIVERSE_SIZE)
-    ap.add_argument("--phase", choices=["price", "full"], default="full",
+    ap.add_argument("--phase", choices=["price", "full", "news"], default="full",
                     help="price＝只抓當天價量（台北 15:30 那輪，其他來源那時還沒出）；"
-                         "full＝完整管線（傍晚之後那兩輪）")
+                         "full＝完整管線（傍晚之後那兩輪）；"
+                         "news＝只抓新聞與國際盤（週末用，價量那時本來就不會變）")
     args = ap.parse_args()
     light = args.phase == "price"
+    news_only = args.phase == "news"
     RESULT["phase"] = args.phase
 
     started = datetime.now(timezone.utc)
@@ -188,26 +232,51 @@ def main() -> int:
         log.info("一次性清理完成，移除 %d 列非股票標的", n)
 
     # -------------------------------------------------- 證交所（不耗額度）
-    price = step("twse.price_daily", twse.price_daily)
+    # phase=news（週末那兩輪）整段跳過：週末價量不會變，打了也只是拿到週五的。
+    # Andy 2026-09-14：「週六日有新增也必須更新上去」—— 指的是新聞與國際盤，不是價量。
+    price = pd.DataFrame() if news_only else step("twse.price_daily", twse.price_daily)
     trade_date = str(price["date"].iloc[0]) if not price.empty else None
     if trade_date:
         log.info("本輪交易日：%s", trade_date)
     else:
         log.error("拿不到交易日期，融資券與法人資料本輪跳過")
 
-    save("price_daily", price)
-    save("valuation_daily", step("twse.valuation", twse.valuation_daily))
-    save("index_daily", step("twse.index", twse.index_daily))
-    save("market_daily", step("twse.market", twse.market_daily))
+    if not news_only:
+        save("price_daily", price)
+        save("valuation_daily", step("twse.valuation", twse.valuation_daily))
+        save("index_daily", step("twse.index", twse.index_daily))
+        save("market_daily", step("twse.market", twse.market_daily))
 
-    # -------------------------------------------------- 上櫃（可失敗）
-    otc = step("tpex.price_daily", tpex.price_daily)
-    save("price_daily", otc)
+        # ---------------------------------------------- 上櫃（可失敗）
+        otc = step("tpex.price_daily", tpex.price_daily)
+        save("price_daily", otc)
+
+    # -------------------------------------------------- 當天補齊（mis，不耗額度）
+    # openapi 的日收落後一個交易日（2026-09-14 實測：收盤後一小時它還是 09-11），
+    # 所以 openapi 沒給今天的時候，用 mis 把今天補上去。開高低收是準的，
+    # 量與值是盤中口徑的暫定值（見 sources/mis.py），隔天會被 openapi 覆蓋。
+    filled = pd.DataFrame() if news_only else step("mis.price_snapshot",
+                                                   fill_today_from_mis, trade_date)
+    save("price_daily", filled)
+    if not filled.empty:
+        d = str(filled["date"].iloc[0])
+        RESULT["provisional_date"] = d
+        log.info("已用 mis 補上 %s 的 %d 檔（暫定值）", d, len(filled))
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
     if light:
         log.info("phase=price：只抓價量，法人／融資券／財報／新聞等傍晚那輪再補")
+    elif news_only:
+        # 週末：價量不會變，但新聞、國際盤（美股週五夜盤、歐股）、總經會變。
+        # 只抓這三樣，不動 FinMind 額度、不去打那些週末本來就不更新的端點
+        # （打了只會拿到週五的資料，還會被 empty 記成「沒回資料」）。
+        log.info("phase=news：週末只更新新聞與國際盤")
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("intl_daily", step("macro.intl", macro.intl_daily))
+        save("macro", step("macro.fred", macro.macro_all))
     else:
         if trade_date:
             save("margin_daily", step("twse.margin", twse.margin_daily, trade_date))
@@ -242,7 +311,7 @@ def main() -> int:
         save("macro", step("macro.fred", macro.macro_all))
 
     # -------------------------------------------------- FinMind（耗額度，放最後）
-    if not light and not args.skip_finmind and trade_date:
+    if not light and not news_only and not args.skip_finmind and trade_date:
         codes = universe(args.universe)
         save("inst_daily", step("finmind.institutional",
                                 fetch_institutional, codes, trade_date))

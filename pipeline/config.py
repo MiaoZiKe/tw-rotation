@@ -55,6 +55,11 @@ TWSE_ENDPOINTS = {
     "dividend":        "/opendata/t187ap45_L",
 }
 
+# 證交所「基本市況報導」即時報價。2026-09-14 加入白名單（DECISIONS #108）——
+# 它是證交所官網前台自己在打的那支，跟使用條款禁爬的 www.twse.com.tw/rwd/... 是不同主機。
+# 用途：openapi 的日收落後一個交易日時，用它把「今天」補起來（見 sources/mis.py 的口徑說明）。
+MIS_QUOTE = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp"
+
 TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {
     "price_daily":  "/tpex_mainboard_daily_close_quotes",

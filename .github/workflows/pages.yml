@@ -41,6 +41,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: 從資料湖產出前端 JSON（含 Yahoo 分 K）
         run: python -m pipeline.build_payload
+      - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
+        run: python scripts/stamp_assets.py
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

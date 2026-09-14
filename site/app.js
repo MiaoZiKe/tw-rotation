@@ -7,7 +7,10 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const D = {};                       // 已載入的 JSON
   const charts = {};                  // ECharts 實例
-  const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48' };
+  /* 圖表色票。深色是預設值；切到明亮主題時 refreshPalette() 會就地改寫這個物件
+     （所有圖表都是在 render 當下才讀它，改完重畫就會換色）。 */
+  const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b',
+    ink: '#e8eeff', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48', grid: 'rgba(255,255,255,.05)', panel: '#0a1020' };
   const PALETTE = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
 
   // ---------------------------------------------------------------- 工具
@@ -56,8 +59,50 @@
     }
     charts[el.id || Math.random()] = c; return c;
   }
-  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: 'JetBrains Mono' }, splitLine: { lineStyle: { color: 'rgba(255,255,255,.05)' } } };
+  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: 'JetBrains Mono' }, splitLine: { lineStyle: { color: CH.grid } } };
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 12.5 }, confine: true };
+
+  /* ---------------- 明亮／深色主題（Andy 2026-09-14）----------------
+     版面本身全部吃 CSS 變數，換主題是一行 setAttribute 的事。
+     麻煩的是圖表：ECharts 與 Lightweight Charts 的顏色是 JS 在畫的當下寫死進去的，
+     不會跟著 CSS 變。所以切換時要做三件事：
+       1. 把 CSS 變數的值讀回 CH / axisStyle / tip（下次畫圖就是新色）
+       2. 把現有的 ECharts 實例全部 dispose（留著的話只會 resize，不會換色）
+       3. 清掉 rendered 旗標再跑一次 route()，讓目前這一頁整個重畫
+     不用 location.reload() 是因為那會把展開的列、勾選、K 線縮放全部弄掉。 */
+  const THEME_KEY = 'tw.theme';
+  const theme = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+  function refreshPalette() {
+    const s = getComputedStyle(document.documentElement);
+    const v = (n, d) => (s.getPropertyValue(n) || '').trim() || d;
+    CH.up = v('--rise', '#ff4d6d'); CH.down = v('--fall', '#2ee59d');
+    CH.cyan = v('--cyan', '#3ee0ff'); CH.violet = v('--violet', '#8b7bff');
+    CH.amber = v('--amber', '#ffb454'); CH.lime = v('--lime', '#c3ff5b');
+    CH.ink = v('--ink', '#e8eeff'); CH.ink2 = v('--ink-2', '#a9b6d6'); CH.ink3 = v('--ink-3', '#6f7ea3');
+    CH.line = v('--line', '#1e2a48'); CH.grid = v('--grid', 'rgba(255,255,255,.05)');
+    CH.panel = v('--chartbg', '#0a1020');
+    axisStyle.axisLine.lineStyle.color = CH.line;
+    axisStyle.axisLabel.color = CH.ink3;
+    axisStyle.splitLine.lineStyle.color = CH.grid;
+    tip.backgroundColor = v('--panel-2', '#141e36');
+    tip.borderColor = v('--line-2', '#2a3860');
+    tip.textStyle.color = CH.ink;
+    if (window.KUtil && window.KUtil.refreshTheme) window.KUtil.refreshTheme();
+  }
+  function applyTheme(name, redraw) {
+    document.documentElement.setAttribute('data-theme', name === 'light' ? 'light' : 'dark');
+    try { localStorage.setItem(THEME_KEY, theme()); } catch (e) { /* 私密視窗，忽略 */ }
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme() === 'light' ? '#f2f5fb' : '#070b16');
+    const btn = document.getElementById('themeBtn');
+    if (btn) { btn.textContent = theme() === 'light' ? '🌙' : '☀'; btn.title = theme() === 'light' ? '切換成深色' : '切換成明亮'; }
+    refreshPalette();
+    if (!redraw) return;
+    Object.keys(charts).forEach(k => { try { charts[k].dispose(); } catch (e) { /* 忽略 */ } delete charts[k]; });
+    Object.keys(rendered).forEach(k => delete rendered[k]);
+    window.dispatchEvent(new CustomEvent('tw:theme', { detail: { theme: theme() } }));
+    route();
+  }
   // 沒東西可畫就把高度收掉，只留一行字 —— 不要留一個 420px 的黑方塊讓人以為壞了
   const empty = (id, msg) => {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return;
@@ -363,6 +408,8 @@
   // ---------------------------------------------------------------- 總覽
   async function renderOverview() {
     wireHowto($('#v-overview'));
+    // 最上面三張大盤圖（加權 / 櫃買 / 台指期）。它自己去抓 mis 的當日分時，不等下面的 JSON。
+    if (window.Market3) window.Market3.mount();
     const [heat, gt, rot, cands, f3, th, trust, gval] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail')]);
     // hero
     const b = (heat && heat.breadth) || {};
@@ -1508,10 +1555,34 @@
     const [news, bv] = await Promise.all([load('news'), load('broker_views')]);
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
     (bv || []).forEach(b => items.push({ date: b.date, title: `${b.broker || '券商'} 目標價 ${b.target_price}${b.name ? '（' + b.name + ' ' + b.code + '）' : ''}${b.action ? ' · ' + b.action : ''}`, url: b.url, source: '新聞引述', cat: '券商', code: b.code }));
-    items.sort((a, b) => String(b.published_at || b.date).localeCompare(String(a.published_at || a.date)));
-    $('#evCount').textContent = items.length; $('#evDate').textContent = D.meta ? D.meta.data_date : '';
+    /* 每一則的日期用同一個口徑取：先 published_at 再 date。
+       以前標題旁邊寫的是 meta.data_date（價量資料的日期），清單裡卻有比它新的券商目標價 ——
+       Andy 2026-09-14 截圖回報「今日事件那需要對應正確日期」就是這個：
+       標題寫 09-11、裡面卻列著 09-14 的項目。現在改成顯示「清單裡真正最新的那一天」，
+       而且會跟著分類切換重算（切到「券商」跟切到「總經」最新日期本來就不同）。 */
+    const dt = (i) => {
+      const raw = String(i.published_at || i.date || '').trim();
+      if (!raw) return '';
+      if (/^\d{4}-\d{2}-\d{2}/.test(raw)) return raw.slice(0, 10);
+      // 新聞的 published_at 是 RFC 2822（'Fri, 11 Sep 2026 22:00:36 +0800'），
+      // 直接切前十個字會變成 'Fri, 11 Se'，排序也會變成照星期幾的英文字母排。
+      const ms = Date.parse(raw);
+      return isNaN(ms) ? String(i.date || '').slice(0, 10)
+        : new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+    };
+    items.sort((a, b) => dt(b).localeCompare(dt(a)));
+    $('#evCount').textContent = items.length;
+    const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });   // 'YYYY-MM-DD'
     let cat = 'all';
-    const draw = () => { $('#evList').innerHTML = items.filter(i => cat === 'all' || i.cat === cat).slice(0, 80).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(String(i.date || '').slice(0, 10))}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('') || '<div class="empty">沒有這類事件</div>'; };
+    const draw = () => {
+      const list = items.filter(i => cat === 'all' || i.cat === cat);
+      const newest = list.map(dt).filter(Boolean).sort().pop() || '';
+      const ev = $('#evDate');
+      ev.textContent = !newest ? '—' : newest === today ? '今天 ' + newest : '最新 ' + newest;
+      ev.className = newest && newest < today ? 'muted stale' : 'muted';
+      ev.title = newest && newest < today ? `最新一則是 ${newest}，今天（${today}）還沒有新事件` : '';
+      $('#evList').innerHTML = list.slice(0, 80).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(dt(i))}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('') || '<div class="empty">沒有這類事件</div>';
+    };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
     draw();
     /* 事件側欄要真的關得掉。手機用 .open 滑出來，桌機要靠 .layout.noside 把那一欄收掉 ——
@@ -1571,6 +1642,16 @@
       if (hrs > 72) { bits.push(`已經 <b>${Math.floor(hrs / 24)} 天</b>沒有重新產出，排程可能掛了`); level = 'bad'; }
       else if (hrs > 30) { bits.push(`上次產出是 ${Math.floor(hrs)} 小時前`); level = level || 'warn'; }
     }
+    // 2b) 今天的價量是 mis 補的暫定值嗎
+    //     開高低收是準的（三個來源對過一字不差），但成交量是盤中口徑、不含盤後定價交易，
+    //     逐檔少 0.5%～15%。跟成交值有關的東西（資金流向、成交值排名）今天要打折看。
+    const prov = meta.provisional || {};
+    if (prov.is_provisional) {
+      bits.push(`<b>${fmt.esc(D_)}</b> 的價量是收盤即時報價補的<b>暫定值</b>：`
+        + `開高低收準確，但<b>成交量與成交值偏低</b>（不含盤後定價交易，逐檔少 0.5%～15%），`
+        + `資金流向與成交值排名今天請打折看。證交所正式資料進來後會自動覆蓋`);
+      level = level || 'warn';
+    }
     // 3) 哪些來源沒回資料
     const empt = meta.last_run_empty || [], errs = meta.last_run_errors || [];
     if (errs.length) { bits.push(`來源出錯：<b>${errs.slice(0, 4).map(e => fmt.esc(String(e).split(':')[0])).join('、')}</b>`); level = 'bad'; }
@@ -1596,9 +1677,13 @@
   // ---------------------------------------------------------------- 啟動
   async function boot() {
     if (typeof echarts === 'undefined' || typeof LightweightCharts === 'undefined') { $('#banner').textContent = '圖表函式庫載入失敗（vendor/ 目錄缺檔），請重新整理。'; $('#banner').classList.add('on'); }
+    // 主題：<head> 的那段小 script 已經把 data-theme 設好（避免閃一下），這裡只補色票與按鈕
+    applyTheme(theme(), false);
+    const tb = document.getElementById('themeBtn');
+    if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom };
+    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, theme, applyTheme };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);

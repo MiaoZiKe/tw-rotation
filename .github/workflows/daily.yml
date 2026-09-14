@@ -12,6 +12,10 @@ on:
     #      結果抓到的是前一天的資料，網站就卡在 T-1）。多跑幾次就是對延遲的保險。
     #   4. 重跑是安全的：store.append() 以 key 去重，同一天的資料不會變成兩列。
     - cron: "30 7,10,13 * * 1-5"
+    # 週末（UTC 02:00 / 12:00 ＝ 台北 10:00 / 20:00，週六日）：
+    # Andy 2026-09-14「週六日有新增也必須更新上去」。價量週末不會變，
+    # 但新聞、國際盤（美股週五夜盤、歐股）、總經會變 → 跑 --phase news。
+    - cron: "0 2,12 * * 6,0"
   workflow_dispatch:
     inputs:
       skip_finmind:
@@ -21,7 +25,7 @@ on:
       phase:
         description: "這輪跑什麼（auto＝依 UTC 時間判斷）"
         type: choice
-        options: [auto, price, full]
+        options: [auto, price, full, news]
         default: auto
 
 # 每日管線與歷史回補都會 commit 資料回 repo。
@@ -70,8 +74,15 @@ jobs:
           # 就當作完整那輪跑，反正重跑是安全的（append 去重）。
           PHASE="${{ inputs.phase }}"
           if [ -z "$PHASE" ] || [ "$PHASE" = "auto" ]; then
+            D=$(date -u +%u)   # 1=週一 … 6=週六 7=週日
             H=$(date -u +%H)
-            if [ "$H" = "07" ] || [ "$H" = "08" ]; then PHASE=price; else PHASE=full; fi
+            if [ "$D" -ge 6 ]; then
+              PHASE=news       # 週末只更新新聞與國際盤
+            elif [ "$H" = "07" ] || [ "$H" = "08" ]; then
+              PHASE=price
+            else
+              PHASE=full
+            fi
           fi
           echo "本輪 phase=$PHASE（現在是 UTC $(date -u '+%H:%M')）"
           python -m pipeline.run_daily --phase "$PHASE" \
@@ -110,6 +121,8 @@ jobs:
           echo "::error::推送連續失敗 5 次"
           exit 1
 
+      - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
+        run: python scripts/stamp_assets.py
       - name: 上傳網站
         uses: actions/upload-pages-artifact@v3
         with:
