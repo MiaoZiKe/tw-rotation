@@ -525,7 +525,7 @@
       if (this.peBands && this.peBands.length) {
         this.values.PE = this.peBands;
         this.peBands.forEach(b => this.overlays.push(
-          this._line(b.vals, hexa(b.color, 70), 0, 1, {
+          this._line(b.vals, hexa(b.color, b.alpha == null ? 70 : b.alpha), 0, b.width || 1, {
             lineStyle: 2,
             /* 倍數線離現價可以很遠（9.5 倍 ≈ 189、25 倍 ≈ 497），讓它們參與自動縮放的話
                價格軸會被拉成 160–520，K 棒又被壓扁 —— 那正是 Andy 今天抱怨的事。

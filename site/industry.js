@@ -694,7 +694,7 @@
       kchart.setBars(bars, state.tf, keep);
       /* 本益比倍數線：算好之後掛在 chart 上（不要塞進 cfg —— cfg 會被寫進 localStorage，
          幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
-      kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars) : null;
+      kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars, peStyle(cfg)) : null;
       kchart.applyIndicators(cfg);
       if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
       kchart.setZones(cfg.smc && !live ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
@@ -760,7 +760,7 @@
     wireTf(); markTf(pg);
     $('#tfAdd').onclick = () => {
       const pop = $('#cfgPop');
-      pop.hidden = false;
+      pop.hidden = false; pop.dataset.kind = 'tf';
       pop.innerHTML = `<div class="ttl">自訂時間週期</div>
         <div class="note">用日線合成，例如 3 日＝三根日線併一根；週線同理。輸入後按加入，按鈕上按右鍵可移除。</div>
         <div class="row" style="margin-top:8px"><input id="tfN" type="number" min="2" max="60" value="3" style="width:64px">
@@ -773,6 +773,7 @@
         state.tf = id; pop.hidden = true; $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
       };
       $('#tfNo').onclick = () => { pop.hidden = true; };
+      placePop(pop, $('#tfAdd'));
     };
 
     // ---- 圖表設定：線寬、均線條數／週期／顏色／粗細
@@ -782,6 +783,7 @@
       pop.hidden = false; pop.dataset.kind = 'style';
       const mas = cfg.ma || [];
       const zn = Object.assign({}, KUtil.ZONE_DEF, cfg.zone || {});
+      const pes = peStyle(cfg);
       pop.innerHTML = `<div class="ttl">圖表設定</div>
         <div class="frow"><label>整體線寬</label><input id="lw" type="range" min="1" max="4" step="1" value="${cfg.lineWidth || 1}"><span class="val" id="lwv">${cfg.lineWidth || 1}px</span></div>
         <div class="frow"><label>K 棒寬度</label><input id="bw" type="range" min="3" max="28" step="1" value="${cfg.bar || 11}"><span class="val" id="bwv">${cfg.bar || 11}px</span></div>
@@ -801,6 +803,13 @@
             <input type="range" min="15" max="100" step="5" data-f="o" value="${v.o}" title="透明度" style="width:78px">
             <span class="val" data-f="ov">${v.o}%</span></div>`;
         }).join('')}</div>
+        <div class="ttl2">本益比河流（六個區間的顏色 · 線寬 · 色帶透明度）</div>
+        <div class="frow strow" id="peRow" style="flex-wrap:wrap">
+          ${PE_ZONES.map((z, i) => `<span class="cwrap" title="${z.name}"><input type="color" data-z="${i}" value="${pes.z[i]}"><em>${z.name}</em></span>`).join('')}
+          <label style="min-width:0">線寬</label><input type="range" min="1" max="4" step="1" data-f="w" value="${pes.w}" style="width:60px">
+          <label style="min-width:0">透明</label><input type="range" min="5" max="100" step="5" data-f="o" value="${pes.o}" style="width:70px">
+          <span class="val" id="peOv">${pes.o}%</span>
+        </div>
         <div class="ttl2">SMC 供需區</div>
         <div class="frow" id="zoneRow">
           <span class="cwrap" title="需求區"><input type="color" data-f="demand" value="${zn.demand}"><em>需求</em></span>
@@ -812,6 +821,7 @@
         </div>
         <div class="row" style="margin-top:8px">
           <button class="btn small" id="cfgReset">回復預設</button><div class="sp"></div><button class="btn small primary" id="cfgClose">完成</button></div>`;
+      placePop(pop, $('#cfgBtn'));
       const sync = () => {
         cfg.ma = []; cfg.maColor = []; cfg.maWidth = [];
         $$('#maRows .marow').forEach(r => {
@@ -828,6 +838,14 @@
           const ov = $('[data-f=ov]', r); if (ov) ov.textContent = o.o + '%';
           cfg.st[r.dataset.k] = o;
         });
+        // 本益比河流：六個顏色 ＋ 線寬 ＋ 透明度（cfg.st 上面被整個重建了，所以在這裡補回去）
+        const pr = $('#peRow');
+        if (pr) {
+          const z = PE_ZONES.map((_, i) => $(`[data-z="${i}"]`, pr).value);
+          const w = +$('[data-f=w]', pr).value || 1, o = +$('[data-f=o]', pr).value || 30;
+          const ov = $('#peOv'); if (ov) ov.textContent = o + '%';
+          cfg.st.pe = { z, w, o };
+        }
         const zr = $('#zoneRow');
         if (zr) { const z = {}; $$('input', zr).forEach(i => {
           z[i.dataset.f] = i.type === 'color' ? i.value : i.type === 'checkbox' ? i.checked : +i.value; });
@@ -841,6 +859,7 @@
         sync();
       };
       $('#bw').oninput = () => { $('#bwv').textContent = $('#bw').value + 'px'; sync(); };
+      $$('#peRow input').forEach(i => { i.oninput = sync; i.onchange = sync; });
       const wireRows = () => $$('#maRows .marow').forEach(r => {
         $$('input', r).forEach(i => { i.oninput = sync; i.onchange = sync; });
         $('[data-f=del]', r).onclick = () => { r.remove(); sync(); };
@@ -1094,6 +1113,41 @@
     { name: '觀望', c: '#ffd166' }, { name: '高估', c: '#ff8fab' }, { name: '警示', c: '#ff4d6d' },
   ];
 
+  /* 河流圖的樣式也要能自己調（Andy 2026-09-15：「需要新增本益比河流圖的顏色 線條粗細 透明度 等設定」）。
+     存在 cfg.st.pe：z＝六個區間的顏色（由下到上）、w＝線寬、o＝色帶透明度。
+     沒設定過就回預設，所以舊的 localStorage 不用搬。 */
+  function peStyle(cfg) {
+    const raw = Object.assign({ w: 1, o: 30 }, ((cfg || {}).st || {}).pe || {});
+    const z = (Array.isArray(raw.z) && raw.z.length === 6) ? raw.z : PE_ZONES.map(x => x.c);
+    return { w: Math.max(1, Math.min(4, +raw.w || 1)), o: Math.max(5, Math.min(100, +raw.o || 30)),
+             z, zones: PE_ZONES.map((x, i) => ({ name: x.name, c: z[i] })) };
+  }
+
+  /* 設定面板要開在按鈕旁邊。用 fixed ＋ 按鈕的實際座標算，再夾進視窗裡；
+     放不下就翻到按鈕上方。以前靠 CSS 的 right:18px，錨點跟按鈕沒關係，所以會飄走。*/
+  function placePop(pop, btn) {
+    if (!pop || !btn) return;
+    pop.hidden = false;                                  // 要先顯示才量得到寬高
+    pop.style.maxHeight = '';
+    const r = btn.getBoundingClientRect();
+    const w = pop.offsetWidth || 376, h = pop.offsetHeight || 360, pad = 10;
+    /* 水平：先試「從按鈕左緣往右展開」（按鈕在畫面左半邊時這樣最自然）；
+       右邊放不下才改成「右緣跟按鈕右緣切齊」。兩個都不行才夾進視窗。*/
+    let left = r.left;
+    if (left + w > innerWidth - pad) left = r.right - w;
+    left = Math.min(Math.max(pad, left), Math.max(pad, innerWidth - w - pad));
+    /* 面板比視窗還高是常態（均線＋五個指標＋SMC＋本益比）。
+       選上下空間比較大的那一邊，並且把 max-height 夾到那一邊的可用高度 ——
+       讓它「貼著按鈕、裡面自己捲」，而不是為了塞下整個面板而跑到畫面另一頭。*/
+    const below = innerHeight - r.bottom - pad - 6, above = r.top - pad - 6;
+    const useBelow = below >= Math.min(h, 320) || below >= above;
+    const room = Math.max(160, useBelow ? below : above);
+    const top = useBelow ? r.bottom + 6 : Math.max(pad, r.top - Math.min(h, room) - 6);
+    pop.style.left = left + 'px';
+    pop.style.top = top + 'px';
+    pop.style.maxHeight = room + 'px';
+  }
+
   function peRiver(pg) {
     const hist = (pg.pe_history || []).filter(r => r && r.ttm_eps > 0 && r.from);
     const daily = (pg.daily && pg.daily.length ? pg.daily : pg.ohlcv) || [];
@@ -1119,30 +1173,42 @@
     for (let i = 1; i < mult.length; i++) {
       if (mult[i] <= mult[i - 1]) mult[i] = +(mult[i - 1] + Math.max(0.5, mult[0] * 0.08)).toFixed(1);
     }
-    const bands = mult.map(m => eps.map(e => +(m * e).toFixed(2)));
+    /* 河流要平滑、貼著走勢（Andy 2026-09-15：「本益比河流圖需要平滑點 更貼近走勢」）。
+       財報一季才公布一次，直接照階梯畫就是一格一格的台階，跟他給的參考圖差很多。
+       把 EPS 那條階梯用**只看過去**的指數平滑抹平 —— 不可以往前內插，
+       那等於在財報還沒公布前就先用它的數字，是這個專案一直禁止的前視偏誤。
+       半衰期約 30 個交易日（一個半月），新財報會在一個多月內被吃進帶子裡。
+       顯示用的「目前本益比」仍然用**真實**的近四季 EPS，不用平滑值。*/
+    const K = 2 / (30 + 1);
+    let acc = null;
+    const epsSmooth = eps.map(v => { acc = acc === null ? v : v * K + acc * (1 - K); return +acc.toFixed(4); });
+    const bands = mult.map(m => epsSmooth.map(e => +(m * e).toFixed(2)));
     const lastClose = close[close.length - 1], lastEps = eps[eps.length - 1];
     const curPe = +(lastClose / lastEps).toFixed(1);
     let zi = 0; while (zi < mult.length && curPe >= mult[zi]) zi++;   // 0＝低估 … 5＝警示
-    return { dates, close, eps, mult, bands, curPe, lastEps, zone: PE_ZONES[zi], zoneIdx: zi };
+    return { dates, close, eps, epsSmooth, mult, bands, curPe, lastEps, zone: PE_ZONES[zi], zoneIdx: zi };
   }
 
   /** 把河流的倍數線對齊到 K 線圖的每一根（日期不同、根數也不同，所以要各自對表）。 */
-  function peBandsForBars(r, bars) {
+  function peBandsForBars(r, bars, st) {
     if (!r || !bars || !bars.length) return null;
     const idx = new Map(); r.dates.forEach((d, i) => idx.set(d, i));
-    const COL = ['#2ee59d', '#c3ff5b', '#ffd166', '#ff8fab', '#ff4d6d'];
+    const style = st || peStyle(null);
+    // 五條線用「上面那個區間」的顏色：9.5 倍那條是價值／25 倍那條是警示
     return r.mult.map((m, k) => ({
-      mult: m, color: COL[k],
+      mult: m, color: style.z[k + 1], width: style.w, alpha: Math.max(35, style.o + 35),
       vals: bars.map(b => {
         // 週線／月線的一根對應到那個區間的最後一個交易日；分 K 的日期在前 10 碼
         const i = idx.get(String(b[0]).slice(0, 10));
-        return i == null ? null : +(m * r.eps[i]).toFixed(2);
+        // 用平滑後的 EPS，K 線上那幾條線才跟下面那張河流圖長得一樣
+        return i == null ? null : +(m * r.epsSmooth[i]).toFixed(2);
       }),
     }));
   }
 
   /** 畫下方那張大圖。mode：'band' 色帶分區（fugle 那種）／'mult' 倍數線（Goodinfo 那種）。 */
-  function drawPeRiver(id, r, mode) {
+  function drawPeRiver(id, r, mode, st) {
+    const S = st || peStyle(null), ZN = S.zones;
     if (!r) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
     const maxClose = Math.max(...r.close), minClose = Math.min(...r.close);
     const lab = (i) => `${r.mult[i]} 倍`;
@@ -1155,9 +1221,9 @@
       yMin = Math.floor(Math.min(minClose, Math.min(...r.bands[0])) * 0.95);
       yMax = Math.ceil(Math.max(maxClose, Math.max(...r.bands[4])) * 1.04);
       series = r.bands.map((b, i) => ({
-        name: lab(i), type: 'line', data: b, symbol: 'none', silent: true, z: 2,
-        lineStyle: { color: PE_ZONES[i + 1].c, width: 1.2, type: 'dashed' },
-        endLabel: { show: true, color: PE_ZONES[i + 1].c, fontSize: 11, formatter: () => lab(i) },
+        name: lab(i), type: 'line', data: b, symbol: 'none', silent: true, z: 2, smooth: 0.3,
+        lineStyle: { color: ZN[i + 1].c, width: S.w + 0.2, type: 'dashed' },
+        endLabel: { show: true, color: ZN[i + 1].c, fontSize: 11, formatter: () => lab(i) },
         labelLayout: { moveOverlap: 'shiftY' },
       }));
     } else {
@@ -1169,16 +1235,16 @@
       const layers = [r.bands[0], diff(r.bands[1], r.bands[0]), diff(r.bands[2], r.bands[1]),
         diff(r.bands[3], r.bands[2]), diff(r.bands[4], r.bands[3]), diff(top, r.bands[4])];
       series = layers.map((d, i) => ({
-        name: PE_ZONES[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true,
-        lineStyle: { width: 0 }, areaStyle: { color: PE_ZONES[i].c, opacity: 0.3 }, z: 1,
+        name: ZN[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true, smooth: 0.3,
+        lineStyle: { width: 0 }, areaStyle: { color: ZN[i].c, opacity: S.o / 100 }, z: 1,
         // 區間名稱標在自己那條帶的上緣、往下掛，讀起來就是「這一塊叫什麼」
-        endLabel: { show: true, color: PE_ZONES[i].c, fontSize: 11, verticalAlign: 'top',
-          offset: [4, 3], formatter: () => PE_ZONES[i].name },
+        endLabel: { show: true, color: ZN[i].c, fontSize: 11, verticalAlign: 'top',
+          offset: [4, 3], formatter: () => ZN[i].name },
         labelLayout: { moveOverlap: 'shiftY' },
       }));
     }
     series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
-      lineStyle: { color: '#ffffff', width: 1.8 } });
+      lineStyle: { color: '#ffffff', width: S.w + 0.8 } });
 
     A.chart(id, {
       grid: { left: 56, right: 62, top: 24, bottom: 34 },
@@ -1187,7 +1253,7 @@
         let z = 0; while (z < r.mult.length && pe >= r.mult[z]) z++;
         return `<b>${r.dates[i]}</b><br>收盤 ${A.fmt.n(c)}　近四季 EPS ${A.fmt.n(e)}<br>`
           + `本益比 <b>${pe != null ? A.fmt.n(pe, 1) : '—'}</b> 倍　`
-          + `<span style="color:${PE_ZONES[z].c}">${PE_ZONES[z].name}</span><br>`
+          + `<span style="color:${ZN[z].c}">${ZN[z].name}</span><br>`
           + r.mult.map((m, k) => `${m} 倍 ＝ ${A.fmt.n(m * e)}`).join('　');
       } },
       xAxis: { ...A.axisStyle, type: 'category', data: r.dates, boundaryGap: false,
@@ -1223,11 +1289,12 @@
     const note = $('#peNote', el);
     const paint = () => {
       $$('#peMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === mode));
-      drawPeRiver('peChart', river, mode);
+      const st = peStyle(state.cfg || loadCfg());
+      drawPeRiver('peChart', river, mode, st);
       if (note) {
         note.innerHTML = river
           ? `目前本益比 <b>${A.fmt.n(river.curPe, 1)}</b> 倍（近四季 EPS ${A.fmt.n(river.lastEps)} 元）`
-            + `　·　落在 <b style="color:${river.zone.c}">${river.zone.name}</b> 區`
+            + `　·　落在 <b style="color:${st.zones[river.zoneIdx].c}">${river.zone.name}</b> 區`
             + `　·　這一檔的歷史倍數帶：${river.mult.join(' / ')}`
             + `　·　${mode === 'band' ? '色帶分區：顏色越紅代表市場給的評價越高' : '倍數線：線尾標的是本益比倍數'}`
           : '這一檔還沒有四季連續財報（或近四季 EPS 是負的），河流圖算不出來。';

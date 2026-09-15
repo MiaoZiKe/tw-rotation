@@ -341,7 +341,10 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .dcol.on{border-color:#e8eeff}
 .dsep{height:1px;background:var(--line-2);margin:3px 2px}
 .chartwrap #chartHost{flex:1;min-width:0}
-.cfgpop{position:absolute;right:18px;z-index:30;margin-top:4px;width:376px;max-width:calc(100vw - 40px);max-height:78vh;overflow-y:auto;
+/* 設定面板固定用 JS 擺在按鈕旁邊（placePop）。position:fixed 是刻意的：
+   以前是 absolute + right:18px，錨點是最近的 positioned 祖先、跟按鈕無關，
+   結果常常飄到整張 K 線圖下面或畫面另一邊（Andy 2026-09-15 截圖）。*/
+.cfgpop{position:fixed;z-index:60;width:376px;max-width:calc(100vw - 24px);max-height:78vh;overflow-y:auto;
   background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:12px 14px;
   box-shadow:0 18px 46px var(--drop)}
 .cfgpop .ttl{font-weight:700;margin-bottom:6px}

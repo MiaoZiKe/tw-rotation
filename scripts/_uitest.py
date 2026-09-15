@@ -415,12 +415,20 @@ def t_overview(pg, base):
         pg.evaluate("document.getElementById('heat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
         box = pg.evaluate("() => { const r = document.getElementById('heat').getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
         h_before = pg.evaluate("location.hash")
-        pg.mouse.click(box["x"] + box["w"] * 0.2, box["y"] + box["h"] * 0.35)
-        pg.wait_for_timeout(900)
-        st = pg.evaluate("""() => ({ open: !document.getElementById('heatPanel').hidden,
+        READ = """() => ({ open: !document.getElementById('heatPanel').hidden,
             title: (document.querySelector('#heatPanel .hh b')||{}).textContent,
             stocks: document.querySelectorAll('#heatPanel .ms a').length,
-            link: !!document.querySelector('#heatPanel a[href^="#industry/group/"]') })""")
+            link: !!document.querySelector('#heatPanel a[href^="#industry/group/"]') })"""
+        # 方塊的位置是 treemap 依面積算出來的，會隨資料變動；固定打一個相對座標
+        # 偶爾會落在方塊之間的縫或標題列上，面板就沒開，整段連帶假失敗。
+        # 多試幾個點，只要有一個真的開了就算數（這是測試的穩定度問題，不是功能問題）。
+        st = {"open": False}
+        for fx, fy in ((0.2, 0.35), (0.45, 0.5), (0.72, 0.4), (0.3, 0.68)):
+            pg.mouse.click(box["x"] + box["w"] * fx, box["y"] + box["h"] * fy)
+            pg.wait_for_timeout(900)
+            st = pg.evaluate(READ)
+            if st["open"]:
+                break
         ok("點熱力圖方塊會在原地列出成分股", st["open"] and (st["stocks"] > 0 or "整理中" in text(pg, "#heatPanel")), st)
         ok("點方塊不會把人帶離總覽", pg.evaluate("location.hash") == h_before, pg.evaluate("location.hash"))
         ok("成分股面板有寫出是哪個族群", len(st["title"] or "") > 0, st)
@@ -1200,6 +1208,35 @@ def t_stock(pg, base, code):
     # --- 設定面板：線寬滑桿、顏色、加均線、減均線
     click(pg, "#cfgBtn", 450)
     ok("設定面板打得開", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !!p && !p.hidden; }"))
+    # --- 面板要開在「⚙ 設定」旁邊（Andy 2026-09-15：「設定出現的位置應該要在 設定按鈕旁邊」）
+    #     以前是 CSS 的 absolute + right:18px，錨點跟按鈕無關，常常飄到整張圖下面。
+    geo = pg.evaluate("""() => { const p = document.getElementById('cfgPop'), b = document.getElementById('cfgBtn');
+        const pr = p.getBoundingClientRect(), br = b.getBoundingClientRect();
+        return { px: pr.x, py: pr.y, pw: pr.width, ph: pr.height, bl: br.x,
+                 br: br.right, bbot: br.bottom, pos: getComputedStyle(p).position, vh: innerHeight, vw: innerWidth }; }""")
+    # 左緣對齊或右緣對齊都算數（按鈕在畫面哪一半，面板就往那邊展開）
+    ok("設定面板跟設定鈕水平對齊（左緣或右緣切齊）",
+       abs(geo["px"] - geo["bl"]) < 14 or abs(geo["px"] + geo["pw"] - geo["br"]) < 14, geo)
+    ok("設定面板貼著按鈕（上下不超過 24px）",
+       abs(geo["py"] - geo["bbot"]) <= 24 or abs(geo["py"] + geo["ph"] - (geo["bbot"] - geo["ph"])) <= 24, geo)
+    ok("設定面板完整在視窗內（高度有被夾住）",
+       geo["py"] >= 0 and geo["px"] >= 0 and geo["py"] + geo["ph"] <= geo["vh"] + 2
+       and geo["px"] + geo["pw"] <= geo["vw"] + 2, geo)
+    # --- 本益比河流的樣式（Andy：「需要新增本益比河流圖的顏色 線條粗細 透明度 等設定」）
+    ok("設定裡有本益比河流那一排", count(pg, "#peRow") == 1)
+    ok("本益比河流六個區間各一個顏色", count(pg, "#peRow input[type=color]") == 6,
+       count(pg, "#peRow input[type=color]"))
+    if count(pg, "#peRow"):
+        pg.eval_on_selector('#peRow input[data-z="0"]', "e => { e.value = '#ff00ff'; e.dispatchEvent(new Event('input', {bubbles:true})); }")
+        pg.eval_on_selector('#peRow input[data-f="w"]', "e => { e.value = 4; e.dispatchEvent(new Event('input', {bubbles:true})); }")
+        pg.eval_on_selector('#peRow input[data-f="o"]', "e => { e.value = 80; e.dispatchEvent(new Event('input', {bubbles:true})); }")
+        pg.wait_for_timeout(900)
+        saved = pg.evaluate("() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').st||{}).pe; }"
+                            " catch (e) { return null; } }")
+        ok("改本益比河流樣式，真的存進 localStorage",
+           isinstance(saved, dict) and saved.get("w") == 4 and saved.get("o") == 80
+           and (saved.get("z") or [None])[0] == "#ff00ff", saved)
+        ok("透明度的數字標籤跟著變", "80%" in (text(pg, "#peOv") or ""), text(pg, "#peOv"))
     rows0 = count(pg, "#maRows .marow")
     ok("設定面板有均線列", rows0 >= 2, rows0)
     lw = pg.query_selector("#lw")
