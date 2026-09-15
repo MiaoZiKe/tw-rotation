@@ -42,9 +42,25 @@ const ALLOW_ORIGINS = [
   'http://localhost:8767',
 ];
 
+// Yahoo Finance 的當日分 K。用途是「補早盤」：
+// mis 只給即時的當下一筆，不給今天稍早的序列（個股沒有分時檔，只有大盤有）。
+// 2026-09-15 10:22 實測：Yahoo 有量、但**延遲 20 分鐘**（它給到 10:02），
+// 所以前端的做法是 Yahoo 補早盤 + mis 補最近這 20 分鐘的尾巴。
+const YAHOO = 'https://query1.finance.yahoo.com/v8/finance/chart/';
+// 只放行台股代號與加權指數。
+// 註：櫃買的 ^TWOII 在 Yahoo 已經壞掉（2026-09-15 實測最後一筆停在 2026-07-17、
+// regularMarketPrice 給 269.45 而實際是 395），所以刻意不放行 —— 寧可畫面上說沒有，也不要畫錯的線。
+const Y_SYMBOL = /^(\^TWII|[0-9]{4,6}[A-Z]?\.(TW|TWO))$/;
+const Y_INTERVAL = new Set(['1m', '2m', '5m', '15m', '30m', '60m', '1d', '1wk', '1mo']);
+const Y_RANGE = new Set(['1d', '5d', '1mo', '3mo', '6mo', '1y', '2y', '5y', '10y', 'max']);
+
 const EX_CH = /^(tse|otc)_[A-Za-z0-9]{2,8}\.tw$/;
 const MAX_TOKENS = 140;
-const CACHE_SECONDS = 10;
+// 報價 3 秒、分時檔 10 秒。
+// 3 秒是因為個股頁會每 5 秒問一次（mis 自己就是每 5 秒更新一次，回應裡的 userDelay=5000）；
+// 快取如果比輪詢還長，第二個分頁就會一直拿到同一筆，5 秒 K 會長不出來。
+const CACHE_QUOTE = 3;
+const CACHE_CHART = 10;
 
 function cors(origin) {
   const h = {
@@ -80,7 +96,7 @@ export default {
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw' }, 200, origin);
     }
-    if (url.pathname !== '/quote' && url.pathname !== '/chart') {
+    if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
@@ -95,7 +111,19 @@ export default {
       if (!target) {
         return json({ error: 'bad id', allowed: Object.keys(CHART_FILES) }, 400, origin);
       }
-      return relay(target, origin, 'chart');
+      return relay(target, origin, 'chart', CACHE_CHART);
+    }
+
+    // ---- /y：Yahoo 的當日分 K（補早盤用；個股沒有官方分時檔）
+    if (url.pathname === '/y') {
+      const sym = (url.searchParams.get('symbol') || '').toUpperCase();
+      const iv = url.searchParams.get('interval') || '1m';
+      const range = url.searchParams.get('range') || '1d';
+      if (!Y_SYMBOL.test(sym)) return json({ error: 'bad symbol', got: sym }, 400, origin);
+      if (!Y_INTERVAL.has(iv)) return json({ error: 'bad interval', allowed: [...Y_INTERVAL] }, 400, origin);
+      if (!Y_RANGE.has(range)) return json({ error: 'bad range', allowed: [...Y_RANGE] }, 400, origin);
+      return relay(`${YAHOO}${encodeURIComponent(sym)}?interval=${iv}&range=${range}`,
+                   origin, 'yahoo', CACHE_CHART);
     }
 
     const raw = (url.searchParams.get('ex_ch') || '').trim();
@@ -108,13 +136,14 @@ export default {
     if (bad) return json({ error: 'bad ex_ch token', token: bad }, 400, origin);
 
     const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(tokens.join('|'))}`;
-    return relay(target, origin, 'quote');
+    return relay(target, origin, 'quote', CACHE_QUOTE);
   },
 };
 
-/** 打上游、加邊緣快取、補上 CORS 標頭。/quote 與 /chart 共用。 */
-async function relay(target, origin, kind) {
-    // 邊緣快取：同樣的請求 10 秒內只真的打上游一次
+/** 打上游、加邊緣快取、補上 CORS 標頭。/quote、/chart、/y 共用。 */
+async function relay(target, origin, kind, ttl) {
+    const seconds = ttl || CACHE_CHART;
+    // 邊緣快取：同樣的請求在 ttl 秒內只真的打上游一次
     const cache = caches.default;
     const cacheKey = new Request(target, { method: 'GET' });
     let hit = await cache.match(cacheKey);
@@ -130,14 +159,16 @@ async function relay(target, origin, kind) {
 
     let upstream;
     try {
+      const head = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'zh-TW,zh;q=0.9',
+      };
+      // Referer 只對證交所有意義；送給 Yahoo 反而怪
+      if (kind !== 'yahoo') head['Referer'] = 'https://mis.twse.com.tw/stock/index.jsp';
       upstream = await fetch(target, {
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
-          'Referer': 'https://mis.twse.com.tw/stock/index.jsp',
-          'Accept': 'application/json, text/plain, */*',
-          'Accept-Language': 'zh-TW,zh;q=0.9',
-        },
-        cf: { cacheTtl: CACHE_SECONDS, cacheEverything: true },
+        headers: head,
+        cf: { cacheTtl: seconds, cacheEverything: true },
       });
     } catch (e) {
       return json({ error: 'upstream unreachable', detail: String(e).slice(0, 200) }, 502, origin);
@@ -150,7 +181,7 @@ async function relay(target, origin, kind) {
     const cached = new Response(text, {
       headers: {
         'content-type': 'application/json; charset=utf-8',
-        'Cache-Control': `public, max-age=${CACHE_SECONDS}`,
+        'Cache-Control': `public, max-age=${seconds}`,
       },
     });
     await cache.put(cacheKey, cached.clone());

@@ -59,6 +59,10 @@ TWSE_ENDPOINTS = {
 # 它是證交所官網前台自己在打的那支，跟使用條款禁爬的 www.twse.com.tw/rwd/... 是不同主機。
 # 用途：openapi 的日收落後一個交易日時，用它把「今天」補起來（見 sources/mis.py 的口徑說明）。
 MIS_QUOTE = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp"
+# 大盤當日分時（就是「基本市況報導」那張加權走勢圖的來源）。
+# 它的 infoArray[0] 直接附當天的開高低收、昨收與成交金額，
+# 用來在 openapi 還沒給今天的時候補 market_daily（加權指數那格數字）。
+MIS_CHART_TSE = "https://mis.twse.com.tw/stock/data/mis_ohlc_TSE.txt"
 
 TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {

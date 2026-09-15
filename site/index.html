@@ -400,12 +400,21 @@ tr.whyrow>td{padding:2px 10px 10px;border-top:0}
 #m3{margin-bottom:16px}
 .m3-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .m3-bar .note{flex:1;min-width:200px}
+.m3-tfsel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3)}
+.m3-tfsel select{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;
+  padding:5px 9px;font-size:13.5px;font-family:inherit;cursor:pointer}
+.m3-tfsel select:hover{border-color:var(--cyan)}
 .m3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .m3-grid.big{grid-template-columns:1fr}
 .m3-card{padding:12px 14px 10px}
 .m3-h{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
 .m3-h h3{font-size:15px}
 /* min-height 是為了讓三張圖的起點對齊：加權的數字比較長會折成兩行，沒有它三張圖會高高低低 */
+/* 即時分 K 的來源說明（個股頁）。資料是兩個來源接起來的，口徑一定要寫在畫面上 */
+.livenote{margin:6px 0 0;padding:6px 10px;border-radius:8px;border:1px solid var(--line-2);
+  background:color-mix(in srgb,var(--amber) 8%,var(--panel));color:var(--ink-2)}
+.seg button.livetf::after{content:"●";margin-left:5px;font-size:8px;color:var(--rise);vertical-align:2px}
+.seg button.livetf.on::after{color:var(--ontop)}
 .m3-nums{display:flex;flex-direction:column;gap:1px;margin:6px 0 8px;min-height:108px}
 .m3-px{font-family:var(--mono);font-size:27px;font-weight:700;line-height:1.1}
 .m3-chg{font-family:var(--mono);font-size:14px;font-weight:600}
@@ -507,6 +516,25 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   pointer-events:none;line-height:1.5;text-shadow:var(--ovl-sh)}
 #lwc .legend-ov b{color:var(--ink)}
 #lwc .legend-ov{background:var(--ovl);padding:4px 8px;border-radius:6px;backdrop-filter:blur(2px)}
+/* 跟著游標走的開高低收資訊框（Andy 2026-09-15 圖一） */
+#lwc .ohlcbox{position:absolute;z-index:7;pointer-events:none;min-width:148px;
+  background:var(--ovl);border:1px solid var(--line-2);border-radius:9px;padding:7px 9px;
+  box-shadow:0 10px 26px var(--drop);font-family:var(--mono);font-size:11.5px;line-height:1.5}
+#lwc .ohlcbox .oh{font-weight:700;color:var(--ink);margin-bottom:4px;letter-spacing:.02em}
+/* 全站表格有自己的 padding，這裡要蓋掉，不然八列會拉成一根長條蓋住半張圖 */
+#lwc .ohlcbox table{border-collapse:collapse;width:100%;line-height:1.45}
+#lwc .ohlcbox th,#lwc .ohlcbox td{padding:1px 0;border:0;font-size:11.5px;height:auto}
+#lwc .ohlcbox th{text-align:left;font-weight:400;color:var(--ink-3);padding-right:12px;white-space:nowrap}
+#lwc .ohlcbox td{text-align:right;color:var(--ink);white-space:nowrap;font-variant-numeric:tabular-nums}
+/* 這三條的優先度要壓過上面那條，不然紅漲綠跌會被吃掉變成一片白 */
+#lwc .ohlcbox td.up{color:var(--rise)} #lwc .ohlcbox td.down{color:var(--fall)} #lwc .ohlcbox td.flat{color:var(--flat)}
+/* 畫線粗細：用線本身的厚度表示 */
+.dw{width:30px;height:24px;border:1px solid transparent;background:transparent;border-radius:6px;
+  cursor:pointer;display:grid;place-items:center;padding:0}
+.dw span{display:block;width:18px;background:var(--ink-2);border-radius:3px}
+.dw:hover{background:var(--panel-3)} .dw.on{border-color:var(--cyan);background:var(--panel-3)}
+.dw.on span{background:var(--cyan)}
+.dtool.dfill.on{color:var(--cyan)}
 #lwc .pane-labels div{position:absolute;left:12px;z-index:5;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);pointer-events:none;
   text-shadow:var(--ovl-sh);background:var(--ovl);padding:2px 7px;border-radius:5px}
 #lwc .pane-labels b{color:var(--ink)}
@@ -514,6 +542,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   color:color-mix(in srgb,var(--ink-3) 12%,transparent);pointer-events:none;z-index:1;letter-spacing:.06em}
 .mtf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .mtf-cell{background:var(--chartbg);border:1px solid var(--line);border-radius:10px;overflow:hidden;position:relative}
+.mtf-cell .cap select.mtfsel{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);
+  border-radius:7px;padding:2px 6px;font-size:12.5px;font-family:inherit;cursor:pointer;margin-right:6px}
+.mtf-cell .cap select.mtfsel:hover{border-color:var(--cyan)}
 .mtf-cell .cap{position:absolute;left:10px;top:8px;z-index:5;font-size:12.5px;color:var(--ink-2);font-family:var(--mono);text-shadow:var(--ovl-sh)}
 .mtf-cell .cv{height:clamp(280px,calc((100vh - 360px) / 2),560px)}
 .verdict{border-left:3px solid var(--cyan);padding:12px 16px;background:rgba(62,224,255,.05);border-radius:0 10px 10px 0}
@@ -847,6 +878,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
+<script src="livek.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
 <script src="live.js"></script>

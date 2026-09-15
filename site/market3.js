@@ -36,17 +36,42 @@
   const KEY_BIG = 'tw.m3.big';       // 放大哪一張（空字串＝三張並排）
 
   const IDX = [
-    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true },
-    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true },
-    { id: 'FUT', name: '台指期', sub: '近月', turnover: false },
+    // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
+    //（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395），
+    // 台指期則沒有免費來源 —— 這兩個只有「當天即時」，選到歷史週期時畫面會說清楚為什麼。
+    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII' },
+    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null,
+      noHist: 'Yahoo 的櫃買指數（^TWOII）已經停止更新，最後一筆停在 2026-07-17，而且現價是錯的；沒有其他免費的櫃買歷史 OHLC 可用。櫃買目前只有「當天即時」那幾個週期。' },
+    { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null,
+      noHist: '台指期沒有免費的歷史 K 線來源（Yahoo 沒有台指期代號）。目前只有「當天即時」那幾個週期。' },
   ];
   // 交易時段（台北）。留白到收盤，才看得出「現在走到哪」。
   const SESSION = {
     TSE: [9 * 60, 13 * 60 + 30], OTC: [9 * 60, 13 * 60 + 30], FUT: [8 * 60 + 45, 13 * 60 + 45],
   };
-  const TFS = [1, 5, 15, 30];
+  /* 週期清單。Andy 2026-09-15：「時間週期需要新增1H 4H 日 周 月 季K 太多的話可以改清單式選項」
+     —— 按鈕排一排會超出卡片寬度，所以改成下拉選單，分「當天即時」與「歷史」兩組。
+     即時那組是 mis 的當日分時檔自己合成的；歷史那組是 Yahoo 的 ^TWII。
+     4 小時與季 K 是拿 1 小時 / 月線再合成的（Yahoo 沒有這兩個原生週期）。 */
+  const TFS = [1, 5, 15, 30];                        // 當天即時的分鐘週期（相容舊的 tw.m3.tf）
+  const HIST = [
+    { id: 'H1', label: '1 小時', iv: '60m', range: '3mo', group: 1 },
+    { id: 'H4', label: '4 小時', iv: '60m', range: '1y', group: 4 },
+    { id: 'D', label: '日 K', iv: '1d', range: '5y' },
+    { id: 'W', label: '週 K', iv: '1d', range: 'max', roll: 'W' },
+    { id: 'M', label: '月 K', iv: '1mo', range: 'max' },
+    { id: 'Q', label: '季 K', iv: '1mo', range: 'max', group: 3 },
+  ];
+  const histDef = (id) => HIST.filter(h => h.id === id)[0] || null;
+  /** 存進 localStorage 的值可能是舊版的數字，也可能是新的歷史週期代號。 */
+  function normTf(v) {
+    const sv = String(v == null ? '5' : v);
+    if (histDef(sv)) return sv;
+    return TFS.indexOf(+sv) >= 0 ? String(+sv) : '5';
+  }
 
-  const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0 };
+  const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
+    hist: {}, histErr: {}, histBusy: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
 
   const ls = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
@@ -114,6 +139,69 @@
     draw();
   }
 
+  /** Yahoo 的歷史 K。只有加權（^TWII）有；櫃買與台指期沒有免費來源（見 IDX 的註解）。 */
+  async function fetchHist(x, def) {
+    const key = x.id + '|' + def.id;
+    if (state.hist[key] || state.histBusy[key]) return;
+    if (!x.yahoo) { state.histErr[key] = 'NOSRC'; return; }
+    const base = proxy();
+    if (!base) { state.histErr[key] = '還沒設定即時來源'; return; }
+    state.histBusy[key] = true;
+    try {
+      const r = await fetch(`${base}/y?symbol=${encodeURIComponent(x.yahoo)}&interval=${def.iv}&range=${def.range}`,
+                            { cache: 'no-store' });
+      if (r.status === 404 || r.status === 400) throw new Error('NOCHART');
+      if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
+      const j = await r.json();
+      const res = ((j.chart || {}).result || [])[0];
+      if (!res || !res.timestamp) throw new Error('Yahoo 沒有資料');
+      const q = ((res.indicators || {}).quote || [])[0] || {};
+      let bars = [];
+      res.timestamp.forEach((t, i) => {
+        const c = num(q.close && q.close[i]); if (c === null) return;
+        bars.push([t + 8 * 3600, num(q.open && q.open[i]) ?? c, num(q.high && q.high[i]) ?? c,
+                   num(q.low && q.low[i]) ?? c, c, num(q.volume && q.volume[i]) || 0]);
+      });
+      if (def.roll === 'W') bars = rollWeek(bars);
+      if (def.group > 1) bars = groupBars(bars, def.group);
+      state.hist[key] = bars;
+      state.histErr[key] = '';
+    } catch (e) {
+      state.histErr[key] = String(e.message || e);
+    } finally {
+      state.histBusy[key] = false;
+      draw();
+    }
+  }
+
+  /** N 根併一根（4 小時＝四根 1 小時；季＝三根月線）。 */
+  function groupBars(bars, n) {
+    const out = [];
+    for (let i = 0; i < bars.length; i += n) {
+      const g = bars.slice(i, i + n); if (!g.length) continue;
+      out.push([g[0][0], g[0][1], Math.max.apply(null, g.map(b => b[2])),
+                Math.min.apply(null, g.map(b => b[3])), g[g.length - 1][4],
+                g.reduce((a, b) => a + (b[5] || 0), 0)]);
+    }
+    return out;
+  }
+  /** 日線 → 週線（以該週第一個交易日標示，與個股頁的 resampleDaily 同口徑）。 */
+  function rollWeek(bars) {
+    const out = []; let cur = null, key = null;
+    for (const b of bars) {
+      const d = new Date(b[0] * 1000);
+      const day = (d.getUTCDay() + 6) % 7;
+      const k = Math.floor((b[0] - day * 86400) / 86400);
+      if (k !== key) { if (cur) out.push(cur); key = k; cur = b.slice(); }
+      else {
+        cur[2] = Math.max(cur[2], b[2]); cur[3] = Math.min(cur[3], b[3]);
+        cur[4] = b[4]; cur[5] += (b[5] || 0);
+      }
+    }
+    if (cur) out.push(cur);
+    return out;
+  }
+
   // ---------------------------------------------------------------- 合成分 K
   /** 分鐘收盤序列 → N 分鐘 K 棒 [[時間, 開, 高, 低, 收, 量]]。
    *  開＝前一根的收（連續盤）；高低是分鐘收盤的極值，不是真正盤中極值。 */
@@ -162,13 +250,17 @@
     // 重掛（例如切主題）之前先收掉舊的 Lightweight Charts，不然 ResizeObserver 會留著
     Object.keys(state.kcharts).forEach(killK);
     state.mode = ls.get(KEY_MODE, 'line') === 'k' ? 'k' : 'line';
-    state.tf = TFS.indexOf(+ls.get(KEY_TF, 5)) >= 0 ? +ls.get(KEY_TF, 5) : 5;
+    state.tf = normTf(ls.get(KEY_TF, '5'));
     state.big = ls.get(KEY_BIG, '');
     if (!IDX.some(x => x.id === state.big)) state.big = '';
     host.innerHTML = `
       <div class="m3-bar">
         <div class="seg" id="m3Mode"><button data-m="line">走勢圖</button><button data-m="k">K 線</button></div>
-        <div class="seg" id="m3Tf">${TFS.map(n => `<button data-tf="${n}">${n} 分</button>`).join('')}</div>
+        <label class="m3-tfsel">週期
+          <select id="m3Tf">
+            <optgroup label="當天即時（證交所分時）">${TFS.map(n => `<option value="${n}">${n} 分</option>`).join('')}</optgroup>
+            <optgroup label="歷史（Yahoo ^TWII）">${HIST.map(h => `<option value="${h.id}">${h.label}</option>`).join('')}</optgroup>
+          </select></label>
         <span class="note" id="m3Note"></span>
       </div>
       <div class="m3-grid" id="m3Grid">${IDX.map(x => `
@@ -181,7 +273,7 @@
           <div class="m3-chart" id="m3c-${x.id}"></div>
         </div>`).join('')}</div>`;
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
-    $$('#m3Tf button').forEach(b => b.onclick = () => { state.tf = +b.dataset.tf; ls.set(KEY_TF, state.tf); draw(); });
+    $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
       state.big = state.big === b.dataset.id ? '' : b.dataset.id;
       ls.set(KEY_BIG, state.big); draw();
@@ -194,13 +286,15 @@
     const grid = document.getElementById('m3Grid');
     if (!grid) return;
     $$('#m3Mode button').forEach(b => b.classList.toggle('on', b.dataset.m === state.mode));
-    $$('#m3Tf button').forEach(b => b.classList.toggle('on', +b.dataset.tf === state.tf));
-    document.getElementById('m3Tf').style.display = state.mode === 'k' ? '' : 'none';
+    const sel = document.getElementById('m3Tf');
+    if (sel) { sel.value = String(state.tf); sel.parentElement.style.display = state.mode === 'k' ? '' : 'none'; }
     const note = document.getElementById('m3Note');
     if (note) {
-      note.textContent = state.mode === 'k'
-        ? '分 K 由每分鐘指數收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。指標與個股共用同一組設定。'
-        : '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。';
+      note.textContent = state.mode !== 'k'
+        ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
+        : histDef(state.tf)
+        ? '歷史 K 來自 Yahoo 的加權指數（^TWII）；4 小時與季 K 是拿 1 小時／月線再合成的。櫃買與台指期沒有免費的歷史來源，選到歷史週期時卡片上會說明。'
+        : '分 K 由每分鐘指數收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。指標與個股共用同一組設定。';
     }
     grid.classList.toggle('big', !!state.big);
     IDX.forEach(x => {
@@ -226,6 +320,8 @@
     if (!el) return;
     const d = state.data[x.id];
     const err = state.err[x.id];
+    // 歷史週期不需要今天的分時檔（Worker 沒更新也照樣看得到日線）
+    if (state.mode === 'k' && histDef(state.tf)) { el.classList.remove('isempty'); drawK(x, d || {}, el); return; }
     if (!d || !d.points.length) {
       killK(x.id);
       if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
@@ -342,22 +438,46 @@
   function drawK(x, d, el) {
     if (typeof window.KChart === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return; }
     if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
-    const bars = toBars(d.points, state.tf);
-    if (bars.length < 2) { killK(x.id); el.innerHTML = '<div class="empty">今天的分鐘資料還不夠畫一根 K</div>'; el.dataset.kind = ''; return; }
+    const def = histDef(state.tf);
+    let bars, tfName;
+    if (def) {
+      const key = x.id + '|' + def.id;
+      bars = state.hist[key];
+      if (!bars) {
+        const err = state.histErr[key];
+        killK(x.id); el.dataset.kind = '';
+        if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
+        el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
+          err === 'NOSRC' ? (x.noHist || '這個指數沒有歷史 K 線來源')
+          : err === 'NOCHART' ? 'Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會有歷史 K 線。'
+          : '抓不到歷史 K：' + err) : err}</div>`;
+        return;
+      }
+      tfName = def.iv === '1mo' || def.iv === '1d' ? '1d' : def.id === 'H4' ? '240m' : '60m';
+    } else {
+      bars = toBars(d.points, +state.tf);
+      tfName = state.tf + 'm';
+    }
+    if (!bars || bars.length < 2) {
+      killK(x.id);
+      el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天的分鐘資料還不夠畫一根 K'}</div>`;
+      el.dataset.kind = ''; return;
+    }
     killK(x.id);
     el.innerHTML = ''; el.dataset.kind = 'k';
     const expanded = state.big === x.id;
     // mini：不要面板標題與浮水印（那兩個的 CSS 只掛在個股頁的 #lwc 底下，放這裡會掉到卡片外面）
-    const k = new window.KChart(el, { tf: state.tf + 'm', mini: true, compact: !expanded });
+    const k = new window.KChart(el, { tf: tfName, mini: true, compact: !expanded });
     state.kcharts[x.id] = k;
-    k.setBars(bars, state.tf + 'm');
+    k.setBars(bars, tfName);
     const cfg = loadCfg(expanded);
     k.applyIndicators(cfg);
     const f = F();
     const dp = x.id === 'FUT' ? 0 : 2;
     k.setBarSpacing(expanded ? (cfg.bar || 9) : 5);
-    k.fitLast(bars.length + 2);              // 小卡直接把整個交易日塞滿，不要只看得到尾盤
-    if (d.prev != null) k.setPriceLines([{ price: d.prev, title: '昨收 ' + (f ? f.n(d.prev, dp) : d.prev), color: '#8ea0c4' }]);
+    // 當天的圖把整個交易日塞滿；歷史的圖看最近一段就好，不然幾百根擠成一片
+    k.fitLast(def ? (expanded ? 160 : 90) : bars.length + 2);
+    if (!def && d.prev != null) k.setPriceLines([{ price: d.prev, title: '昨收 ' + (f ? f.n(d.prev, dp) : d.prev), color: '#8ea0c4' }]);
   }
 
   // ---------------------------------------------------------------- 對外

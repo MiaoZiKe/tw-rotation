@@ -157,3 +157,55 @@ def test_上櫃用otc前綴(monkeypatch):
                                                        {"rtcode": "0000", "msgArray": []})[1])
     mis.quotes([("6488", "TPEX"), ("2330", "TWSE"), ("9999", None)])
     assert seen[0] == "otc_6488.tw|tse_2330.tw|tse_9999.tw"   # 市場別不明就當上市
+
+
+# ------------------------------------------------------------------ 大盤那一格
+def _chart_fixture():
+    import json
+    from pathlib import Path
+    p = Path(__file__).resolve().parents[1] / "docs" / "fixtures" / "mis_ohlc_tse_20260914.json"
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def test_大盤快照用實際回應解得出來(monkeypatch):
+    """2026-09-14 17:30 從 mis 實測的回應。數字要跟畫面上看到的一致。"""
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: _chart_fixture())
+    df = mis.market_snapshot()
+    assert len(df) == 1
+    r = df.iloc[0]
+    assert r["date"] == "2026-09-14"
+    assert r["taiex"] == 45862.52
+    assert r["change"] == round(45862.52 - 46184.85, 2)      # 昨收 46184.85 → -322.33
+    # market_daily 的 turnover 是「元」、volume 是「股」，要跟 FMTQIK 同口徑
+    assert r["turnover"] == 630917 * 1_000_000
+    assert r["volume"] == 8705759 * 1000
+    assert r["px_source"] == "mis"
+
+
+def test_大盤快照的成交金額對得上staticObj(monkeypatch):
+    """infoArray.v（百萬元）換算後要跟 staticObj.tz（元）落在同一個量級。"""
+    fx = _chart_fixture()
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: fx)
+    got = mis.market_snapshot().iloc[0]["turnover"]
+    tz = float(fx["staticObj"]["tz"])
+    assert abs(got - tz) / tz < 0.001
+
+
+def test_大盤快照抓不到就回空(monkeypatch):
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: None)
+    assert mis.market_snapshot().empty
+
+
+def test_大盤快照沒有成交指數就回空(monkeypatch):
+    """開盤前 z 會是 '-'，這時候不要寫一列 None 進資料湖。"""
+    fx = _chart_fixture()
+    fx["infoArray"][0]["z"] = "-"
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: fx)
+    assert mis.market_snapshot().empty
+
+
+def test_大盤快照日期壞掉就回空(monkeypatch):
+    fx = _chart_fixture()
+    fx["infoArray"][0]["d"] = ""
+    monkeypatch.setattr(mis.http, "get", lambda *a, **k: fx)
+    assert mis.market_snapshot().empty

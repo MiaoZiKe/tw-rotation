@@ -955,18 +955,23 @@ def t_stock(pg, base, code):
     # --- 時間週期：按鈕上要先標清楚哪些這檔沒有（Andy：「1 日以下都不見」）
     tfstate = pg.evaluate("""() => [...document.querySelectorAll('#tfSeg button')].map(b => ({
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
-    ok("有 15 分／1 時／4 時／日／週／月六個週期鈕",
-       [t["tf"] for t in tfstate][:6] == ["15m", "60m", "240m", "1d", "1w", "1M"], tfstate)
+    ok("週期鈕依序是 5秒／1分／5分（即時）＋ 15分／1時／4時／日／週／月",
+       [t["tf"] for t in tfstate][:9] == ["5s", "1m", "5m", "15m", "60m", "240m", "1d", "1w", "1M"], tfstate)
     ok("日線一定是有資料的（沒有被劃掉）", not next(t for t in tfstate if t["tf"] == "1d")["off"], tfstate)
     for t in tfstate:
         if t["off"]:
             ok(f"被劃掉的週期 {t['tf']} 有寫清楚為什麼沒有", len(t["title"] or "") > 10, t)
     # 標示要和實際資料一致：劃掉的一定畫不出圖，沒劃掉的一定畫得出來
     tfs = [t["tf"] for t in tfstate]
+    LIVE_TFS = ("5s", "1m", "5m")
     for t in tfstate:
         click(pg, f'#tfSeg button[data-tf="{t["tf"]}"]', 700)
         st = pg.evaluate("({ canvas: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#lwc .empty') })")
         ok(f"週期 {t['tf']} 不是壞掉（有圖或有明確空狀態文案）", st["canvas"] > 0 or st["empty"], st)
+        # 即時週期在這一段沒有設定代理，本來就抓不到資料；它們由 t_livek 專門驗
+        if t["tf"] in LIVE_TFS:
+            ok(f"即時週期 {t['tf']} 沒有來源時有講清楚", st["empty"], st)
+            continue
         if t["off"]:
             ok(f"劃掉的週期 {t['tf']} 點下去有說明為什麼沒有", st["empty"], st)
         else:
@@ -1157,6 +1162,115 @@ def t_stock(pg, base, code):
         .reduce((n,x)=>n+JSON.parse(localStorage.getItem(x)||'[]').length, 0)""")
     ok("清空後 localStorage 也乾淨了", left == 0, left)
     click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+
+    # --- ★ Andy 2026-09-15 那四項：游標資訊框 / MACD 背離 / Shift 鎖水平 / 五段粗細＋方框填滿
+    pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
+    r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+
+    # 1) 游標移過去要在旁邊顯示開高低收
+    ok("圖上有跟著游標的資訊框", count(pg, "#ohlcBox") == 1)
+    ok("沒移游標時它是收起來的", pg.evaluate("() => document.getElementById('ohlcBox').hidden"))
+    pg.mouse.move(r["x"] + r["w"] * 0.35, r["y"] + r["h"] * 0.4); pg.wait_for_timeout(500)
+    ok("游標移進去之後資訊框出現", not pg.evaluate("() => document.getElementById('ohlcBox').hidden"))
+    txt = text(pg, "#ohlcBox")
+    for want in ("開盤", "最高", "最低", "收盤", "漲跌額", "漲跌幅", "成交量"):
+        ok(f"資訊框有「{want}」", want in txt, txt[:120])
+    ok("資訊框最上面是日期／時間",
+       __import__("re").search(r"\d{4}-\d{2}-\d{2}", text(pg, "#ohlcBox .oh")) is not None,
+       text(pg, "#ohlcBox .oh"))
+    pos1 = pg.evaluate("() => { const e=document.getElementById('ohlcBox'); return [e.offsetLeft, e.offsetTop]; }")
+    t1 = text(pg, "#ohlcBox .oh")
+    pg.mouse.move(r["x"] + r["w"] * 0.6, r["y"] + r["h"] * 0.55); pg.wait_for_timeout(500)
+    pos2 = pg.evaluate("() => { const e=document.getElementById('ohlcBox'); return [e.offsetLeft, e.offsetTop]; }")
+    changed("資訊框真的跟著游標移動", pos1, pos2)
+    changed("換一根 K 棒，框裡的日期也跟著換", t1, text(pg, "#ohlcBox .oh"))
+    # 靠右邊時要翻到游標左側，不能被切掉
+    pg.mouse.move(r["x"] + r["w"] * 0.95, r["y"] + r["h"] * 0.5); pg.wait_for_timeout(500)
+    fit = pg.evaluate("""() => { const e=document.getElementById('ohlcBox'), h=e.parentElement;
+        return e.offsetLeft >= 0 && e.offsetLeft + e.offsetWidth <= h.clientWidth + 1; }""")
+    ok("游標靠右邊時資訊框不會被切掉（自動翻到左側）", fit)
+
+    # 2) MACD 背離
+    chips = pg.evaluate("() => [...document.querySelectorAll('#indChips .chip')].map(c => c.dataset.k)")
+    ok("指標列有「MACD 背離」", "macdDiv" in chips, chips)
+    on0 = pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')")
+    dv = pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }")
+    ok("背離預設是開的", on0)
+    ok("背離有算出來（或誠實回 0，不是壞掉）", dv >= 0, dv)
+    h0 = canvas_hash(pg, "#lwc")
+    click(pg, "#indChips .chip[data-k=macdDiv]", 1200)
+    ok("點一下真的關掉",
+       not pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')"))
+    ok("關掉之後背離就不算了", pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }") == 0)
+    changed("關掉背離之後圖真的重畫", h0, canvas_hash(pg, "#lwc"))
+    click(pg, "#indChips .chip[data-k=macdDiv]", 1200)
+    ok("再點一下開回來",
+       pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')"))
+
+    # 3) ★ 按住 Shift 拉線 = 水平
+    pg.evaluate("try{Object.keys(localStorage).filter(k=>k.startsWith('tw.draw.')).forEach(k=>localStorage.removeItem(k))}catch(e){}")
+    click(pg, "#drawBar .dtool[data-t=trend]", 300)
+    # 中間切過指標，圖的位置會變，重新量一次再拉
+    pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    x0, y0 = r["x"] + r["w"] * 0.30, r["y"] + r["h"] * 0.35
+    pg.mouse.move(x0, y0); pg.mouse.down()
+    pg.keyboard.down("Shift")
+    pg.mouse.move(r["x"] + r["w"] * 0.60, r["y"] + r["h"] * 0.60, steps=8)
+    pg.mouse.up()
+    pg.keyboard.up("Shift")
+    pg.wait_for_timeout(600)
+    shp = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+        const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
+        const s = all[all.length-1]; return s ? {kind:s.kind, ap:s.a.p, bp:s.b.p, at:s.a.t, bt:s.b.t} : null; }""")
+    ok("按住 Shift 畫出來的是線", shp and shp["kind"] == "trend", shp)
+    ok("★ 按住 Shift 拉線真的被鎖成水平（兩端價格一樣）",
+       shp and abs(shp["ap"] - shp["bp"]) < 1e-9, shp)
+    ok("而且時間兩端不同（真的有拉出長度）", shp and shp["at"] != shp["bt"], shp)
+    # 不按 Shift 就不該是水平
+    pg.mouse.move(x0, y0 + 10); pg.mouse.down()
+    pg.mouse.move(r["x"] + r["w"] * 0.58, r["y"] + r["h"] * 0.62, steps=8); pg.mouse.up()
+    pg.wait_for_timeout(600)
+    shp2 = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+        const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
+        const s = all[all.length-1]; return s ? {ap:s.a.p, bp:s.b.p} : null; }""")
+    ok("沒按 Shift 就是一般斜線", shp2 and abs(shp2["ap"] - shp2["bp"]) > 1e-6, shp2)
+
+    # 4) ★ 五段粗細 + 方框填滿／透明
+    ws = pg.evaluate("() => [...document.querySelectorAll('#drawBar .dw')].map(b => +b.dataset.w)")
+    ok("畫線粗細有 5 段", len(ws) == 5, ws)
+    click(pg, f'#drawBar .dw[data-w="{ws[-1]}"]', 400)
+    ok("選最粗那一段之後按鈕亮起來",
+       pg.evaluate(f"() => document.querySelector('#drawBar .dw[data-w=\"{ws[-1]}\"]').classList.contains('on')"))
+    pg.mouse.move(x0, y0 + 24); pg.mouse.down()
+    pg.mouse.move(r["x"] + r["w"] * 0.55, r["y"] + r["h"] * 0.40, steps=6); pg.mouse.up()
+    pg.wait_for_timeout(600)
+    w_used = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+        const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
+        return all.length ? all[all.length-1].w : null; }""")
+    ok("★ 新畫的線真的用選的那個粗細", w_used == ws[-1], f"選 {ws[-1]} 畫出來 {w_used}")
+    style = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.draw.style')||'{}'); } catch(e){ return null; } }")
+    ok("粗細選擇存進 localStorage", style and style.get("w") == ws[-1], style)
+
+    fill0 = pg.evaluate("() => document.querySelector('#drawBar .dfill').classList.contains('on')")
+    click(pg, "#drawBar .dfill", 400)
+    fill1 = pg.evaluate("() => document.querySelector('#drawBar .dfill').classList.contains('on')")
+    changed("方框填滿／透明按得動", fill0, fill1)
+    click(pg, "#drawBar .dtool[data-t=rect]", 300)
+    hb = canvas_hash(pg, "#lwc")
+    pg.mouse.move(r["x"] + r["w"] * 0.32, r["y"] + r["h"] * 0.62); pg.mouse.down()
+    pg.mouse.move(r["x"] + r["w"] * 0.50, r["y"] + r["h"] * 0.78, steps=6); pg.mouse.up()
+    pg.wait_for_timeout(700)
+    rect = pg.evaluate("""() => { const k = Object.keys(localStorage).filter(x=>x.startsWith('tw.draw.'));
+        const all = k.flatMap(x => JSON.parse(localStorage.getItem(x)||'[]'));
+        const s = all.filter(x=>x.kind==='rect').pop(); return s ? {fill:!!s.fill, w:s.w} : null; }""")
+    ok("★ 方框真的記住了「填滿／透明」的選擇", rect and rect["fill"] == fill1, f"按鈕 {fill1} / 存成 {rect}")
+    changed("畫完方框圖真的變了", hb, canvas_hash(pg, "#lwc"))
+
+    # 收拾
+    click(pg, "#drawBar .dtool[data-a=clear]", 600)
+    click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+    pg.evaluate("try{localStorage.removeItem('tw.draw.style')}catch(e){}")
 
     # --- SMC 供需區要跟著 K 線一起跑（Andy：移動 K 線圖，區間卻沒跟著動）
     if pg.evaluate("() => document.querySelector('#indChips .chip[data-k=smc]') && document.querySelector('#indChips .chip[data-k=smc]').classList.contains('on')"):
@@ -1512,6 +1626,26 @@ def _fake_chart(idx_id: str):
             "staticObj": {"tv": "8705759", "tz": "630917830610"}}
 
 
+def _fake_yahoo(symbol: str, interval: str, n: int = 400, base_px: float = 45000.0):
+    """編一份 Yahoo chart API 形狀的回應。欄位名稱與真實回應一致（2026-09-15 實測）。"""
+    import calendar
+    step = {"1m": 60, "5m": 300, "60m": 3600, "1d": 86400, "1wk": 604800, "1mo": 2592000}[interval]
+    day0 = calendar.timegm((2026, 9, 15, 1, 0, 0, 0, 0, 0))      # 台北 09:00
+    ts, o, h, l, c, v = [], [], [], [], [], []
+    for i in range(n):
+        t = day0 - (n - 1 - i) * step
+        px = base_px + (i % 17) * 3 - 24
+        ts.append(t); o.append(px - 2); h.append(px + 5); l.append(px - 6); c.append(px)
+        v.append(1000 * (i % 9 + 1))
+    return {"chart": {"result": [{
+        "meta": {"symbol": symbol, "exchangeTimezoneName": "Asia/Taipei",
+                 "chartPreviousClose": base_px - 30, "regularMarketPrice": c[-1],
+                 "regularMarketTime": ts[-1], "dataGranularity": interval},
+        "timestamp": ts,
+        "indicators": {"quote": [{"open": o, "high": h, "low": l, "close": c, "volume": v}]},
+    }], "error": None}}
+
+
 def t_market3(pg, base):
     """總覽最上面那三張大盤圖（market3.js）。
 
@@ -1530,7 +1664,20 @@ def t_market3(pg, base):
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps(_fake_chart(i)))
 
+    def fake_y(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        sym = (q.get("symbol") or [""])[0]
+        iv = (q.get("interval") or ["1d"])[0]
+        # 只有加權（^TWII）有；其他的比照 Worker 回 400，前端要說明原因
+        if sym != "^TWII":
+            route.fulfill(status=400, content_type="application/json",
+                          body='{"error":"bad symbol"}')
+            return
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_fake_yahoo(sym, iv, 400 if iv != "1mo" else 120)))
+
     pg.route("**/chart?*", fake)
+    pg.route("**/y?*", fake_y)
     pg.evaluate("() => { try { localStorage.removeItem('tw.m3.mode'); localStorage.removeItem('tw.m3.tf');"
                 " localStorage.removeItem('tw.m3.big'); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch(e){} }")
     pg.goto("about:blank")
@@ -1566,8 +1713,8 @@ def t_market3(pg, base):
     ok("走勢圖真的畫了東西", line_hash not in ("no-canvas", "0"), line_hash)
     ok("走勢圖是 ECharts 畫的",
        pg.evaluate("() => !!document.querySelector('#m3c-TSE canvas') && document.getElementById('m3c-TSE').dataset.kind === 'line'"))
-    ok("走勢圖模式不顯示分鐘週期鈕（那是 K 線才有的）",
-       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf')).display === 'none'"))
+    ok("走勢圖模式不顯示週期選單（那是 K 線才有的）",
+       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf').parentElement).display === 'none'"))
 
     # --- 4. ★ 切到 K 線：圖真的換掉
     click(pg, "#m3Mode button[data-m='k']", 1200)
@@ -1579,8 +1726,14 @@ def t_market3(pg, base):
     ok("三張都切過去了",
        pg.evaluate("() => Object.keys(window.Market3.state.kcharts).length") == 3,
        pg.evaluate("() => Object.keys(window.Market3.state.kcharts)"))
-    ok("週期鈕這時候才出現",
-       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf')).display !== 'none'"))
+    ok("週期選單這時候才出現",
+       pg.evaluate("() => getComputedStyle(document.getElementById('m3Tf').parentElement).display !== 'none'"))
+    # Andy 2026-09-15：「時間週期需要新增1H 4H 日 周 月 季K 太多的話可以改清單式選項」
+    opts = pg.evaluate("() => [...document.querySelectorAll('#m3Tf option')].map(o => o.value)")
+    for want in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
+        ok(f"週期選單有 {want}", want in opts, opts)
+    groups = pg.evaluate("() => [...document.querySelectorAll('#m3Tf optgroup')].map(g => g.label)")
+    ok("選單分成「當天即時」與「歷史」兩組", len(groups) == 2, groups)
     ok("K 線有吃到個股那套指標（成交量面板）",
        pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return !!(k && k.paneIndex && k.paneIndex.vol); }"))
     ok("昨收有畫成參考線",
@@ -1588,11 +1741,11 @@ def t_market3(pg, base):
 
     # --- 5. ★ 換週期：K 棒數量真的變了
     bars5 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
-    click(pg, "#m3Tf button[data-tf='15']", 1200)
+    pg.select_option("#m3Tf", "15"); pg.wait_for_timeout(1200)
     bars15 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
     changed("換成 15 分之後 K 棒數量真的變了", bars5, bars15)
     ok("15 分的根數大約是 5 分的三分之一", bars15 * 2 < bars5, f"{bars5} → {bars15}")
-    click(pg, "#m3Tf button[data-tf='1']", 1200)
+    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1200)
     bars1 = pg.evaluate("() => window.Market3.state.kcharts.TSE.data.length")
     ok("1 分是最多根的", bars1 > bars5 > bars15, f"1分{bars1} / 5分{bars5} / 15分{bars15}")
     ok("1 分 K 有實體（開＝前一分收，不是四價合一的一字線）",
@@ -1613,17 +1766,34 @@ def t_market3(pg, base):
     ok("收合之後三張都回來了", vis2 == 3, vis2)
 
     # --- 7. 選擇記得住（換頁回來還是 K 線）
+    # --- 6b. ★ 歷史週期：真的去抓 Yahoo 並畫出來（加權有、櫃買與台指期要說明為什麼沒有）
+    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1800)
+    ok("切到日 K 之後狀態真的是 D", pg.evaluate("() => window.Market3.state.tf") == "D")
+    dbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
+    ok("加權的日 K 真的畫出來了（根數遠多於當天分 K）", dbars > 100, dbars)
+    changed("日 K 跟 1 分 K 不是同一組資料", bars1, dbars)
+    for idx, why in (("OTC", "櫃買"), ("FUT", "台指期")):
+        msg = text(pg, f"#m3c-{idx} .empty")
+        ok(f"{why}沒有歷史來源時畫面說清楚原因", "沒有" in msg or "停止更新" in msg, msg[:90])
+    pg.select_option("#m3Tf", "Q"); pg.wait_for_timeout(1800)
+    qbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
+    ok("季 K 也畫得出來，而且根數比日 K 少很多", 0 < qbars <= dbars / 3, f"日 {dbars} / 季 {qbars}")
+    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1500)
+
     saved = pg.evaluate("() => [localStorage.getItem('tw.m3.mode'), localStorage.getItem('tw.m3.tf')]")
     ok("模式與週期真的存進 localStorage", saved[0] == "k" and saved[1] == "1", saved)
     pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
     pg.wait_for_timeout(2000)
     ok("重新進來還是停在 K 線", pg.evaluate("() => window.Market3.state.mode") == "k")
+    ok("週期也記得住", pg.evaluate("() => window.Market3.state.tf") == "1",
+       pg.evaluate("() => window.Market3.state.tf"))
 
     # --- 8. Worker 還沒更新（只有 /quote）的時候要講清楚要去哪裡改
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json",
                                                body='{"error":"not found"}'))
+    pg.evaluate("() => { try{ localStorage.setItem('tw.m3.tf','1'); }catch(e){} }")
     pg.evaluate("() => { try{ localStorage.setItem('tw.m3.mode','line'); }catch(e){} }")
     pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
@@ -1634,7 +1804,133 @@ def t_market3(pg, base):
 
     # --- 收拾
     pg.unroute("**/chart?*")
+    pg.unroute("**/y?*")
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
+
+
+def t_livek(pg, base, code):
+    """個股的即時分 K（livek.js）與四週期可切換。
+
+    Andy 2026-09-15：「當我點擊一般股票時也能做到這樣的效果」
+    「同事看4個週期那頁需要新增可以切換週期，不然我看不到我要的」
+
+    驗的是操作之後**圖真的換了**：切到 5 秒／1 分要有 K 棒、餵一筆新報價要多一根、
+    四週期那四格的下拉真的換得動而且記得住。
+    """
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    px = {"v": 2395.0, "cum": 5280}
+
+    def fake_quote(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        ex = (q.get("ex_ch") or [""])[0]
+        tok = [t for t in ex.split("|") if t][0]
+        c = tok.split("_", 1)[1].split(".")[0]
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"rtcode": "0000", "msgArray": [{
+                          "c": c, "n": "測試" + c, "ex": tok[:3], "d": "20260915",
+                          # z 故意給 '-'：兩次撮合之間真的長這樣，價格要從 trade.z 拿
+                          "z": "-", "tv": "-", "y": "2380.0000", "o": "2405.0000",
+                          "h": "2405.0000", "l": "2380.0000", "v": str(px["cum"]),
+                          "b": "2390.0000_2389.0000", "t": "10:26:05",
+                          "tlong": str(int(1789439165000)),
+                          "trade": {"ft": 20, "t": "10:25:35", "v": 1, "z": f'{px["v"]:.4f}'},
+                      }]}))
+
+    def fake_y(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_fake_yahoo((q.get("symbol") or ["2330.TW"])[0], "1m", 60, 2390.0)))
+
+    pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
+                " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k));"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch(e){} }")
+    pg.route("**/quote?*", fake_quote)
+    pg.route("**/y?*", fake_y)
+    pg.goto("about:blank")
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+    pg.wait_for_timeout(3000)
+
+    # --- 1. 週期鈕上真的多了 5秒 / 1分 / 5分
+    tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
+    for want in ("5s", "1m", "5m"):
+        ok(f"週期列有 {want}", want in tfs, tfs)
+    ok("即時週期有標記（紅點）", pg.evaluate("() => document.querySelectorAll('#tfSeg button.livetf').length") == 3)
+
+    # --- 2. ★ 切到 1 分：圖真的變了，而且是即時那組資料
+    before = canvas_hash(pg, "#lwc")
+    click(pg, "#tfSeg button[data-tf='1m']", 2000)
+    ok("切到 1 分之後狀態真的換了", pg.evaluate("() => window.Industry._dbg().tf") == "1m")
+    after = canvas_hash(pg, "#lwc")
+    changed("切到 1 分之後畫面真的不一樣", before, after)
+    n1m = pg.evaluate("() => (window.LiveK.bars('1m')||[]).length")
+    ok("1 分 K 有資料（Yahoo 補的早盤）", n1m > 10, n1m)
+    note = text(pg, "#liveNote")
+    ok("畫面上寫清楚資料哪裡來、量是估計值", "估計值" in note or "Yahoo" in note, note[:100])
+
+    # --- 3. ★ 價格要從 trade.z 拿，不是最佳買價（2026-09-15 修的 bug）
+    last = pg.evaluate("() => { const b = window.LiveK.bars('5s'); return b.length ? b[b.length-1][4] : null; }")
+    ok("成交價取的是 trade.z（2395），不是最佳買價（2390）", last == 2395.0, last)
+
+    # --- 4. ★ 餵一筆新報價：K 棒真的長出來
+    n0 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
+    pg.evaluate("""() => window.LiveK._feed({ c:'X', n:'測試', z:'-', y:'2380.0000', o:'2405.0000',
+        h:'2405.0000', l:'2380.0000', v:'5400', t:'10:40:00', tlong: String(1789440000000),
+        trade:{ t:'10:40:00', z:'2450.0000' } })""")
+    pg.wait_for_timeout(900)
+    n1 = pg.evaluate("() => (window.LiveK.bars('5s')||[]).length")
+    changed("餵一筆新報價之後 5 秒 K 真的多一根", n0, n1)
+    top = pg.evaluate("() => { const b = window.LiveK.bars('5s'); return b[b.length-1][4]; }")
+    ok("新那根的收盤就是剛餵進去的價", top == 2450.0, top)
+
+    # --- 5. ★ 切到 5 秒：真的畫得出來
+    click(pg, "#tfSeg button[data-tf='5s']", 1800)
+    ok("切到 5 秒", pg.evaluate("() => window.Industry._dbg().tf") == "5s")
+    ok("5 秒 K 有畫出東西", canvas_hash(pg, "#lwc") not in ("no-canvas", "0"))
+
+    # --- 6. 切回日線要正常（以前切到沒資料的週期再切回來會整張空白）
+    click(pg, "#tfSeg button[data-tf='1d']", 1800)
+    ok("切回日線圖還在", canvas_hash(pg, "#lwc") not in ("no-canvas", "0"))
+    ok("日線不顯示即時說明", pg.evaluate("() => document.getElementById('liveNote').hidden"))
+
+    # --- 7. ★ 四週期同看：那四格的週期真的換得動
+    click(pg, "#mtfBtn", 2500)
+    sels = pg.evaluate("() => document.querySelectorAll('#mtfGrid select.mtfsel').length")
+    ok("四週期同看每一格都有週期選單", sels == 4, sels)
+    first_before = pg.evaluate("() => document.querySelector('#mtfGrid select.mtfsel').value")
+    target = "1w" if first_before != "1w" else "1M"
+    pg.select_option("#mtfGrid select.mtfsel", target)
+    pg.wait_for_timeout(2000)
+    first_after = pg.evaluate("() => document.querySelector('#mtfGrid select.mtfsel').value")
+    changed("第一格的週期真的換了", first_before, first_after)
+    ok("換完之後那一格是選的那個週期", first_after == target, first_after)
+    ok("換完圖還在（沒有變空白）", canvas_hash(pg, "#mini-0") not in ("no-canvas", "0"))
+    saved = pg.evaluate("() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').mtfTfs)||null; } catch(e){ return null; } }")
+    ok("選的週期存進 localStorage", saved and saved[0] == target, saved)
+    # 換一檔股票回來，選擇還在
+    pg.goto("about:blank")
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+    pg.wait_for_timeout(2500)
+    if not pg.evaluate("() => window.Industry._dbg().mtf"):
+        click(pg, "#mtfBtn", 2500)
+    ok("重新進來四格的週期記得住",
+       pg.evaluate("() => { const s = document.querySelector('#mtfGrid select.mtfsel'); return s ? s.value : null; }") == target)
+    click(pg, "#mtfBtn", 1500)
+
+    # --- 8. 離開個股頁要停掉每 5 秒的輪詢
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(1200)
+    ok("離開個股頁之後即時輪詢真的停了", pg.evaluate("() => window.LiveK.ticking === false"))
+
+    # --- 收拾
+    pg.unroute("**/quote?*")
+    pg.unroute("**/y?*")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy');"
+                " const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); delete c.mtfTfs;"
+                " localStorage.setItem('tw.kcfg', JSON.stringify(c));"
+                " Object.keys(localStorage).filter(k=>k.startsWith('tw.livek.')).forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
 def t_theme(pg, base):
@@ -1784,6 +2080,12 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【個股】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  個股：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_livek(pg, base, args.code)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【個股即時分K】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  個股即時分K：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_zoom_sweep(pg, base, args.code)

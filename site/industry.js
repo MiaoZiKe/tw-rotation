@@ -9,11 +9,25 @@
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
+  // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
+  let liveOff = null;
+
+  function setLiveNote(txt) {
+    const el = document.getElementById('liveNote');
+    if (!el) return;
+    el.hidden = !txt;
+    el.textContent = txt || '';
+  }
+  function stopLive() {
+    if (liveOff) { liveOff(); liveOff = null; }
+    if (window.LiveK) window.LiveK.detach();
+  }
 
   // ================================================================ 路由
   async function route(head, rest) {
     A = window.App;
     dispose3D();   // 換頁一定要收掉 WebGL context（瀏覽器最多只給十幾個，不收會整個掛掉）
+    if (head !== 'stock') stopLive();   // 離開個股頁就不要再每 5 秒抓報價了
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; await renderStock(rest[0], im, sc, gd); return; }
     if (rest[0] === 'group' && rest[1]) { state.group = rest[1]; state.chain = chainOfGroup(im, rest[1]); state.level = 1; renderChain(im, sc, gd); return; }
@@ -446,6 +460,7 @@
           <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
             <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
+        <div class="note livenote" id="liveNote" hidden></div>
         <div class="chartwrap">
           <div class="drawbar" id="drawBar"></div>
           <div id="chartHost"></div>
@@ -519,8 +534,12 @@
     kd: { c: '#3ee0ff', c2: '#ffd166' }, macd: { c: '#3ee0ff', c2: '#ffd166' }, rsi: { c: '#c3ff5b' },
   };
   // 內建週期＋使用者自訂的（nD = N 日合成、nW = N 週合成；分 K 只能用抓得到的那幾檔）
-  const TF_BUILTIN = ['15m', '60m', '240m', '1d', '1w', '1M'];
-  const TF_NAME = { '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
+  /* 5秒 / 1分 / 5分 是「當天即時」的，資料不在 payload 裡，而是 livek.js 現場合成的
+     （證交所沒有個股的分時檔，所以是 Yahoo 補早盤 ＋ 即時報價每 5 秒補尾巴）。 */
+  const TF_BUILTIN = ['5s', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
+  const TF_NAME = { '5s': '5秒', '1m': '1分', '5m': '5分', '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
+  const LIVE_TF = ['5s', '1m', '5m'];
+  const isLiveTf = (tf) => LIVE_TF.indexOf(tf) >= 0;
   const tfLabel = (tf) => TF_NAME[tf] || (/^\d+D$/.test(tf) ? tf.replace('D', ' 日') : /^\d+W$/.test(tf) ? tf.replace('W', ' 週') : tf);
   function tfList() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
   function tfButtons() { return tfList().map(tf => `<button data-tf="${tf}" class="${tf === state.tf ? 'on' : ''}">${tfLabel(tf)}</button>`).join(''); }
@@ -530,6 +549,13 @@
   function markTf(pg) {
     $$('#tfSeg button').forEach(b => {
       const tf = b.dataset.tf;
+      if (isLiveTf(tf)) {
+        // 即時週期永遠可以按：盤中會邊看邊長，盤後顯示今天收集到的
+        b.classList.remove('off');
+        b.classList.add('livetf');
+        b.title = '當天即時（Yahoo 補早盤 ＋ 證交所報價每 5 秒補尾巴）';
+        return;
+      }
       const has = (barsFor(pg, tf) || []).length >= 5;
       b.classList.toggle('off', !has);
       b.title = has ? '' : (/m$/.test(tf)
@@ -550,6 +576,8 @@
     return out;
   }
   function barsFor(pg, tf) {
+    // 即時週期不吃 payload，直接跟 livek.js 拿（它自己在收）
+    if (isLiveTf(tf)) return (window.LiveK ? window.LiveK.bars(tf) : []) || [];
     const daily = pg.daily && pg.daily.length ? pg.daily : pg.ohlcv;
     if (tf === '1d') return daily;
     if (tf === '1w') return KUtil.resampleDaily(daily, 'W');
@@ -563,6 +591,16 @@
 
   function setupChart(pg) {
     state.cfg = state.cfg || loadCfg();
+    /* 即時分 K：切到這一檔就開始收，每收到一筆就重畫（畫面位置由 setBars(..., keepView) 保住）。
+       Andy 2026-09-15：「當我點擊一般股票時也能做到這樣的效果」 */
+    stopLive();
+    if (window.LiveK) {
+      window.LiveK.attach(pg.meta.code, pg.meta.market);
+      liveOff = window.LiveK.onUpdate(() => {
+        if (!document.getElementById('lwc')) return;      // 四週期同看或已離開，不用畫
+        if (isLiveTf(state.tf)) apply();
+      });
+    }
     const host = $('#chartHost');
     const chips = $('#indChips');
     const cfg = state.cfg;
@@ -575,6 +613,8 @@
       { k: 'rsi', label: 'RSI', on: () => !!cfg.rsi, params: () => cfg.rsi ? [{ key: 'n', val: cfg.rsi.n, w: 30 }] : [], toggle: () => { cfg.rsi = cfg.rsi ? null : { n: 14 }; }, set: (v) => { cfg.rsi.n = +v; }, color: '#c3ff5b' },
       { k: 'smc', label: 'SMC 區間', on: () => !!cfg.smc, params: () => [], toggle: () => { cfg.smc = !cfg.smc; }, color: '#2ee59d' },
       { k: 'marks', label: 'BOS/CHoCH', on: () => !!cfg.marks, params: () => [], toggle: () => { cfg.marks = !cfg.marks; }, color: '#ff8fab' },
+      // 背離要有 MACD 才算得出來（DIF 是比較基準）
+      { k: 'macdDiv', label: 'MACD 背離', on: () => cfg.macdDiv !== false && !!cfg.macd, params: () => [], toggle: () => { const nowOn = cfg.macdDiv !== false && !!cfg.macd; if (nowOn) { cfg.macdDiv = false; } else { cfg.macdDiv = true; if (!cfg.macd) cfg.macd = { f: 12, s: 26, g: 9 }; } }, color: '#ffd166' },
       { k: 'lines', label: '停損/目標', on: () => !!cfg.lines, params: () => [], toggle: () => { cfg.lines = !cfg.lines; }, color: '#ffb454' },
     ];
     const drawChips = () => {
@@ -585,7 +625,7 @@
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
       if (state.mtfMode) { host.innerHTML = `<div class="mtf-grid" id="mtfGrid"></div>`; buildMtfGrid(pg); return; }
-      host.innerHTML = `<div id="lwc"><div class="legend-ov" id="legendOv"></div></div>`;
+      host.innerHTML = `<div id="lwc"><div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div></div>`;
       kchart = new KChart($('#lwc'), { tf: state.tf, onText: () => window.prompt('文字內容', '') });
       apply();
       enableDraw(pg);
@@ -593,33 +633,43 @@
     const apply = () => {
       const box = $('#lwc'); if (!box) return;
       const bars = barsFor(pg, state.tf);
-      if (!bars || bars.length < 5) {
-        const why = pg.meta.tier === 'thin' ? (pg.note || '歷史價量還在回補')
+      const live = isLiveTf(state.tf);
+      if (!bars || bars.length < (live ? 2 : 5)) {
+        const why = live
+          ? (window.LiveK ? window.LiveK.sourceNote(state.tf) : '即時層還沒載入')
+          : pg.meta.tier === 'thin' ? (pg.note || '歷史價量還在回補')
           : /m$/.test(state.tf) ? '這檔沒有分 K（只有族群成分股與成交值前段會抓 Yahoo 分 K）；日線／週線／月線可以正常看'
           : '這個週期尚無資料';
         if (kchart) { kchart.destroy(); kchart = null; }
-        box.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`; return;
+        box.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(why)}</div>`;
+        setLiveNote(live ? why : '');
+        return;
       }
+      setLiveNote(live && window.LiveK ? window.LiveK.sourceNote(state.tf) : '');
       // 上一個週期沒資料時圖被拆掉了，換回有資料的週期要重建（不重建的話會整張空白到重新整理為止）
       if (!kchart || !$('#legendOv')) {
         if (kchart) { kchart.destroy(); kchart = null; }
-        box.innerHTML = '<div class="legend-ov" id="legendOv"></div>';
+        box.innerHTML = '<div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div>';
         kchart = new KChart(box, { tf: state.tf, onText: () => window.prompt('文字內容', '') });
         enableDraw(pg);
       }
-      kchart.setBars(bars, state.tf);
+      // 即時更新（同一檔、同一個週期、圖還在）就保留目前的縮放與位置
+      const keep = live && kchart._liveKey === pg.meta.code + '|' + state.tf;
+      kchart._liveKey = live ? pg.meta.code + '|' + state.tf : null;
+      kchart.setBars(bars, state.tf, keep);
       kchart.applyIndicators(cfg);
       if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
-      kchart.setZones(cfg.smc ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
-      kchart.setMarkers(cfg.marks ? marksFor(pg, state.tf) : {});
+      kchart.setZones(cfg.smc && !live ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
+      kchart.setMarkers(cfg.marks && !live ? marksFor(pg, state.tf) : {});
       const v = pg.verdict || {};
       kchart.setPriceLines(cfg.lines && state.tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
-      const TFN = { '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
+      const TFN = { '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）', '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
       kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${TFN[state.tf] || state.tf}`);
       const at = (arr, i) => (arr ? arr[i == null ? arr.length - 1 : i] : null);
-      const show = (i) => {
+      const show = (i, pt) => {
         const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
+        showOhlcBox(d, prev, pt, state.tf);
         const chg = prev ? (d.close - prev.close) / prev.close * 100 : null; const amp = d.low ? (d.high - d.low) / d.low * 100 : null;
         const col = d.close >= d.open ? '#ff4d6d' : '#2ee59d';
         let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
@@ -633,7 +683,7 @@
         if (vals.RSI) pl.rsi = `RSI(${cfg.rsi.n})　<span style="color:${KUtil.colors.rsi}">${A.fmt.n(at(vals.RSI, i), 1)}</span>`;
         kchart.setPaneLabels(pl);
       };
-      show(null); kchart.onCrosshair(show);
+      show(null, null); kchart.onCrosshair(show);
       // 手繪線是「每檔每週期一組」，換週期要換一組，不然會畫到上一個週期的檔案裡
       if (kchart.draw && kchart.draw.key !== `tw.draw.${pg.meta.code}.${state.tf}`) enableDraw(pg);
     };
@@ -777,39 +827,149 @@
   function enableDraw(pg) {
     if (!kchart) return;
     const d = kchart.enableDrawing(`tw.draw.${pg.meta.code}.${state.tf}`);
-    d.setTool(drawTool); d.setColor(drawColor); d.setWidth(drawW);
+    d.setTool(drawTool); d.setColor(drawColor); d.setWidth(drawW); d.setFill(drawFill);
+  }
+
+  /* 跟著游標走的資訊框（Andy 2026-09-15：「當游標移動過去時 需要在旁邊顯示開高收低 日期 時間等基本資訊」，
+     附了一張看盤軟體的截圖當範例）。
+     原本只有左上角那一條 legend，游標移到右半邊要一直回頭看，而且會蓋到 K 棒。
+     這個框跟著十字線跑，靠近右邊界就自動翻到游標左側，不會被切掉。 */
+  function showOhlcBox(d, prev, pt, tf) {
+    const el = $('#ohlcBox'); if (!el) return;
+    if (!pt) { el.hidden = true; return; }
+    const chg = prev ? d.close - prev.close : null;
+    const pct = prev && prev.close ? chg / prev.close * 100 : null;
+    const cls = chg == null ? '' : chg > 0 ? 'up' : chg < 0 ? 'down' : '';
+    const row = (k, v, c) => `<tr><th>${k}</th><td class="${c || ''}">${v}</td></tr>`;
+    const amt = d.volume && d.close ? d.volume * d.close : null;   // 概算：量(股) × 收盤
+    el.innerHTML = `<div class="oh">${A.fmt.esc(KUtil.fmtTime(d.time, tf))}</div>
+      <table>
+        ${row('開盤', A.fmt.n(d.open), d.open >= (prev ? prev.close : d.open) ? 'up' : 'down')}
+        ${row('最高', A.fmt.n(d.high), 'up')}
+        ${row('最低', A.fmt.n(d.low), 'down')}
+        ${row('收盤', A.fmt.n(d.close), cls)}
+        ${row('漲跌額', chg == null ? '—' : (chg > 0 ? '+' : '') + A.fmt.n(chg), cls)}
+        ${row('漲跌幅', pct == null ? '—' : A.fmt.pct(pct, 2), cls)}
+        ${row('成交量', A.fmt.lot(d.volume / 1000))}
+        ${row('成交額', amt ? A.fmt.yi(amt) : '—')}
+      </table>`;
+    el.hidden = false;
+    // 游標在左半邊就放右邊，反之亦然；上下也夾在圖內
+    const host = el.parentElement;
+    const W = host.clientWidth, H = host.clientHeight;
+    const bw = el.offsetWidth || 150, bh = el.offsetHeight || 190;
+    let x = pt.x + 16;
+    if (x + bw > W - 8) x = pt.x - bw - 16;
+    if (x < 6) x = 6;
+    let y = pt.y - bh / 2;
+    y = Math.max(6, Math.min(y, H - bh - 6));
+    el.style.left = Math.round(x) + 'px';
+    el.style.top = Math.round(y) + 'px';
   }
 
   // ---------------------------------------------------------------- 繪圖工具列（TradingView 式）
-  let drawTool = 'cursor', drawColor = KUtil.DRAW_COLORS[0], drawW = 1.5;
+  // Andy 2026-09-15：「劃線需要有5種不同粗細可選，框格可選擇填滿或透明」
+  const DRAW_WIDTHS = [1, 1.5, 2.5, 4, 6];
+  const DW_KEY = 'tw.draw.style';
+  let drawTool = 'cursor', drawColor = KUtil.DRAW_COLORS[0], drawW = 1.5, drawFill = false;
+  try {
+    const st = JSON.parse(localStorage.getItem(DW_KEY) || '{}');
+    if (DRAW_WIDTHS.indexOf(+st.w) >= 0) drawW = +st.w;
+    if (KUtil.DRAW_COLORS.indexOf(st.c) >= 0) drawColor = st.c;
+    drawFill = !!st.fill;
+  } catch (e) { /* 忽略 */ }
+  const saveDrawStyle = () => {
+    try { localStorage.setItem(DW_KEY, JSON.stringify({ w: drawW, c: drawColor, fill: drawFill })); }
+    catch (e) { /* 忽略 */ }
+  };
+
   function drawBar() {
     const bar = $('#drawBar'); if (!bar) return;
     bar.innerHTML = KUtil.DRAW_TOOLS.map(t =>
-      `<button class="dtool ${t.k === drawTool ? 'on' : ''}" data-t="${t.k}" title="${t.label}">
+      `<button class="dtool ${t.k === drawTool ? 'on' : ''}" data-t="${t.k}" title="${t.label}${t.pts === 2 ? '（拉的時候按住 Shift ＝ 鎖水平／垂直）' : ''}">
          <svg viewBox="0 0 18 18"><path d="${t.icon}"/></svg></button>`).join('')
       + `<div class="dsep"></div>`
       + KUtil.DRAW_COLORS.map(c => `<button class="dcol ${c === drawColor ? 'on' : ''}" data-c="${c}" style="background:${c}" title="顏色"></button>`).join('')
+      + `<div class="dsep"></div>`
+      // 五段粗細：用線條本身的厚度表示，一眼看得出差別
+      + DRAW_WIDTHS.map(w => `<button class="dw ${w === drawW ? 'on' : ''}" data-w="${w}" title="線寬 ${w}px">
+           <span style="height:${w}px"></span></button>`).join('')
       + `<div class="dsep"></div>
+         <button class="dtool dfill ${drawFill ? 'on' : ''}" data-a="fill" title="方框：${drawFill ? '填滿（點一下改成透明）' : '透明（點一下改成填滿）'}">
+           <svg viewBox="0 0 18 18"><rect x="3" y="4" width="12" height="10" ${drawFill ? 'fill="currentColor"' : ''}/></svg></button>
          <button class="dtool" data-a="undo" title="復原上一筆"><svg viewBox="0 0 18 18"><path d="M7,4 L3,8 L7,12 M3,8 H11 a4,4 0 0 1 0,8 H8"/></svg></button>
          <button class="dtool" data-a="clear" title="清空這檔這個週期的所有線"><svg viewBox="0 0 18 18"><path d="M3,3 L15,15 M15,3 L3,15"/></svg></button>`;
     $$('.dtool[data-t]', bar).forEach(b => b.onclick = () => {
       drawTool = b.dataset.t; drawBar(); if (kchart && kchart.draw) kchart.draw.setTool(drawTool);
     });
     $$('.dcol', bar).forEach(b => b.onclick = () => {
-      drawColor = b.dataset.c; drawBar(); if (kchart && kchart.draw) kchart.draw.setColor(drawColor);
+      drawColor = b.dataset.c; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setColor(drawColor);
+    });
+    $$('.dw', bar).forEach(b => b.onclick = () => {
+      drawW = +b.dataset.w; saveDrawStyle(); drawBar(); if (kchart && kchart.draw) kchart.draw.setWidth(drawW);
     });
     $$('.dtool[data-a]', bar).forEach(b => b.onclick = () => {
+      if (b.dataset.a === 'fill') {
+        drawFill = !drawFill; saveDrawStyle(); drawBar();
+        if (kchart && kchart.draw) kchart.draw.setFill(drawFill);
+        return;
+      }
       if (!kchart || !kchart.draw) return;
       if (b.dataset.a === 'undo') kchart.draw.undo(); else kchart.draw.clear();
     });
   }
-  function buildMtfGrid(pg) {
+  /* 四週期同看。
+     Andy 2026-09-15：「同事看4個週期那頁需要新增可以切換週期，不然我看不到我要的」——
+     以前四格是程式挑的（有 15 分就 15m/60m/240m/1d，沒有就取最後四個），使用者換不掉。
+     現在每一格上面都有一個下拉選單，選什麼記在 `tw.kcfg` 的 mtfTfs 裡，換股票也還在。 */
+  const MTF_LABEL = (tf) => ({ '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）',
+    '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' })[tf] || tfLabel(tf);
+
+  function mtfPick(pg) {
+    const cfg = state.cfg || loadCfg();
+    const saved = Array.isArray(cfg.mtfTfs) ? cfg.mtfTfs.filter(t => tfList().indexOf(t) >= 0) : null;
+    if (saved && saved.length === 4) return saved;
     const have = (tf) => barsFor(pg, tf).length >= 20;
     const pref = ['15m', '60m', '240m', '1d', '1w', '1M'].filter(have);
     const pick = pref.length >= 4 ? (have('15m') ? ['15m', '60m', '240m', '1d'] : pref.slice(-4)) : pref;
+    while (pick.length < 4 && pick.length) pick.push(pick[pick.length - 1]);
+    return pick;
+  }
+
+  function buildMtfGrid(pg) {
+    const cfg = state.cfg || loadCfg();
+    const pick = mtfPick(pg);
     const grid = $('#mtfGrid');
-    grid.innerHTML = pick.map(tf => { const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf]; return `<div class="mtf-cell"><div class="cap"><b>${({ '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' })[tf]}</b> ${t ? `<span style="color:${t.trend > 0 ? '#ff4d6d' : t.trend < 0 ? '#2ee59d' : '#a9b6d6'}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}</div><div class="cv" id="mini-${tf}"></div></div>`; }).join('');
-    pick.forEach(tf => { const el = $('#mini-' + tf); const c = new KChart(el, { mini: true, tf }); c.setBars(barsFor(pg, tf), tf); c.applyIndicators({ ma: [20, 60], vol: false }); c.setZones(zonesFor(pg, tf)); c.setMarkers(marksFor(pg, tf)); miniCharts.push(c); });
+    const opts = (cur) => tfList().map(tf =>
+      `<option value="${tf}"${tf === cur ? ' selected' : ''}>${MTF_LABEL(tf)}</option>`).join('');
+    grid.innerHTML = pick.map((tf, i) => {
+      const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
+      return `<div class="mtf-cell"><div class="cap">
+        <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
+        ${t ? `<span style="color:${t.trend > 0 ? '#ff4d6d' : t.trend < 0 ? '#2ee59d' : '#a9b6d6'}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
+        </div><div class="cv" id="mini-${i}"></div></div>`;
+    }).join('');
+    pick.forEach((tf, i) => {
+      const el = $('#mini-' + i);
+      const bars = barsFor(pg, tf);
+      if (!bars || bars.length < 2) {
+        el.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(isLiveTf(tf) ? '即時資料還在收集' : '這個週期尚無資料')}</div>`;
+        return;
+      }
+      const c = new KChart(el, { mini: true, tf });
+      c.setBars(bars, tf);
+      c.applyIndicators({ ma: [20, 60], vol: false });
+      if (!isLiveTf(tf)) { c.setZones(zonesFor(pg, tf)); c.setMarkers(marksFor(pg, tf)); }
+      miniCharts.push(c);
+    });
+    $$('.mtfsel', grid).forEach(sel => sel.onchange = () => {
+      const next = mtfPick(pg).slice();
+      next[+sel.dataset.i] = sel.value;
+      cfg.mtfTfs = next; saveCfg(cfg); state.cfg = cfg;
+      miniCharts.forEach(c => { try { c.destroy(); } catch (e) { /* 忽略 */ } });
+      miniCharts = [];
+      buildMtfGrid(pg);
+    });
   }
   function renderMtf(pg) {
     const el = $('#mtfCard'); const sm = pg.mtf && pg.mtf.summary; if (!sm || !sm.headline) { el.innerHTML = '<h3>多週期判讀</h3><div class="empty">資料不足</div>'; return; }
@@ -945,5 +1105,10 @@
   }
 
   // _dbg 只給 scripts/_preview.py 驗證用（檢查圖表與繪圖狀態），正式頁面不會呼叫
-  window.Industry = { route, _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool, drawKey: kchart && kchart.draw ? kchart.draw.key : null, shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1, hasChart: !!kchart }) };
+  window.Industry = { route, _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
+    drawKey: kchart && kchart.draw ? kchart.draw.key : null,
+    shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1,
+    hasChart: !!kchart, w: drawW, fill: drawFill,
+    // 驗收用：目前算出幾組背離
+    div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null }) };
 })();

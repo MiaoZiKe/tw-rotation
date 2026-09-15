@@ -262,6 +262,9 @@ def main() -> int:
         d = str(filled["date"].iloc[0])
         RESULT["provisional_date"] = d
         log.info("已用 mis 補上 %s 的 %d 檔（暫定值）", d, len(filled))
+        # 個股補了今天，大盤那格也要跟著補 —— 不然橫幅寫「資料更新到今天」、
+        # 加權指數卻還是昨天收的數字（2026-09-14 實測：橫幅 09-14、指數 46,184.85＝09-11 收）。
+        save("market_daily", step("mis.market_snapshot", mis.market_snapshot))
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。

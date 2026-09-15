@@ -118,10 +118,24 @@
   };
 
   /** mis 的一列轉成我們要的形狀。
-   *  z＝成交價，但沒成交時是 '-'；此時退回 b（最佳買價第一檔）再退回 y（昨收）。 */
+   *
+   *  ★ 成交價的退位順序（2026-09-15 實測修正）
+   *  mis 每 5 秒給一次快照，**兩次撮合之間 `z` 是 '-'**，真正的最新成交價
+   *  在 `trade` 這個子物件裡。2026-09-15 10:26 抓到的 2330：
+   *      { z: "-", tv: "-", v: "5280",
+   *        trade: { ft: 20, t: "10:25:35", v: 1, z: "2395.0000" } }
+   *  舊版遇到 z='-' 會退去用**最佳買價**，等於盤中有一大段時間顯示的根本不是成交價
+   *  （買價永遠比成交價低一檔，看起來就像一直在跌）。
+   *  正確順序：z → trade.z → 最佳買價 → 開盤 → 昨收。 */
   function normalise(m) {
     const prev = num(m.y);
+    const tr = m.trade || {};
     let price = num(m.z);
+    let at = m.t || '';
+    if (price === null) {
+      const tz = num(tr.z);
+      if (tz !== null) { price = tz; at = tr.t || at; }
+    }
     if (price === null && m.b) price = num(String(m.b).split('_')[0]);
     if (price === null) price = num(m.o);
     if (price === null) price = prev;
@@ -133,7 +147,7 @@
       chgPct: (price !== null && prev) ? (price - prev) / prev * 100 : null,
       open: num(m.o), high: num(m.h), low: num(m.l),
       volume: num(m.v),          // 累計成交張數
-      time: m.t || '',           // 這筆報價的時間（HH:MM:SS）
+      time: at,                  // 這筆成交的時間（HH:MM:SS）
       date: m.d || '',
       at: Date.now(),
     };

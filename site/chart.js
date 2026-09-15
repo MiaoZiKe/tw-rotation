@@ -25,6 +25,49 @@
         if (i <= n) { g += up; l += dn; if (i === n) { g /= n; l /= n; o[i] = (l === 0 && g === 0) ? null : l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
         else { g = (g * (n - 1) + up) / n; l = (l * (n - 1) + dn) / n; o[i] = l === 0 ? 100 : 100 - 100 / (1 + g / l); } }
       return o; },
+    /* MACD 背離（Andy 2026-09-15：「若MACD 出現底背離或是頂背離需要額外標出，因為這是很好的訊號」）
+       頂背離：價格創更高的高點、MACD 的高點卻更低 → 動能跟不上，漲勢可能到頂
+       底背離：價格創更低的低點、MACD 的低點卻更高 → 賣壓遞減，跌勢可能到底
+       用 DIF（快線）當比較基準，這是台股習慣的口徑。
+       `left/right` 是找轉折點的視窗：兩側各 n 根都比它低（高）才算一個高（低）點，
+       這樣不會把雜訊當轉折。只回最近幾組，圖上不要標滿。 */
+    divergence(close, high, low, dif, opt) {
+      const o = Object.assign({ left: 5, right: 5, maxGap: 90, minGap: 8, keep: 4 }, opt || {});
+      const n = close.length;
+      const piv = (arr, hi) => {
+        const out = [];
+        for (let i = o.left; i < n - o.right; i++) {
+          if (arr[i] == null) continue;
+          let ok = true;
+          for (let j = i - o.left; j <= i + o.right; j++) {
+            if (j === i || arr[j] == null) continue;
+            if (hi ? arr[j] > arr[i] : arr[j] < arr[i]) { ok = false; break; }
+          }
+          if (ok) out.push(i);
+        }
+        return out;
+      };
+      const res = { top: [], bottom: [] };
+      const scan = (arr, hi, bucket) => {
+        const ps = piv(arr, hi);
+        for (let k = 1; k < ps.length; k++) {
+          const i = ps[k - 1], j = ps[k];
+          const gap = j - i;
+          if (gap < o.minGap || gap > o.maxGap) continue;
+          if (dif[i] == null || dif[j] == null) continue;
+          const priceUp = arr[j] > arr[i], difUp = dif[j] > dif[i];
+          // 頂背離：價更高、DIF 更低；底背離：價更低、DIF 更高
+          if (hi ? (priceUp && !difUp) : (!priceUp && difUp)) {
+            bucket.push({ i, j, p1: arr[i], p2: arr[j], d1: dif[i], d2: dif[j] });
+          }
+        }
+      };
+      scan(high || close, true, res.top);
+      scan(low || close, false, res.bottom);
+      res.top = res.top.slice(-o.keep);
+      res.bottom = res.bottom.slice(-o.keep);
+      return res;
+    },
     kd(h, l, c, n, m1, m2) { const K = [], D = [], J = []; let k = 50, d = 50;
       for (let i = 0; i < c.length; i++) { if (i < n - 1) { K.push(null); D.push(null); J.push(null); continue; }
         let hh = -Infinity, ll = Infinity; for (let j = i - n + 1; j <= i; j++) { hh = Math.max(hh, h[j]); ll = Math.min(ll, l[j]); }
@@ -182,7 +225,8 @@
             ctx.fillStyle = s.color; ctx.fillText(t, ax + 1, ay);
           } else if (ax !== null && ay !== null && bx !== null && by !== null) {
             if (s.kind === 'rect') {
-              ctx.globalAlpha = .12; ctx.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay));
+              // fill=true 實心（濃一點看得出範圍）、false 只有框線（不遮住 K 棒）
+              if (s.fill) { ctx.globalAlpha = .28; ctx.fillRect(Math.min(ax, bx), Math.min(ay, by), Math.abs(bx - ax), Math.abs(by - ay)); }
               ctx.globalAlpha = 1; ctx.strokeRect(Math.min(ax, bx) + .5, Math.min(ay, by) + .5, Math.abs(bx - ax), Math.abs(by - ay));
             } else {
               let ex = bx, ey = by;
@@ -197,10 +241,52 @@
     }
   }
 
+  /* 背離連線。把兩個轉折點用虛線連起來並標字，主圖與 MACD 面板各掛一個。
+     值是用 index 存的（不是時間），因為 MACD 面板的 series 與主圖共用同一組 index。 */
+  class DivPrimitive {
+    constructor() { this.items = []; this.times = []; }
+    attached(p) { this._series = p.series; this._chart = p.chart; this._req = p.requestUpdate; }
+    detached() { this._series = null; }
+    set(items, times) { this.items = items || []; this.times = times || []; if (this._req) this._req(); }
+    updateAllViews() {}
+    paneViews() {
+      const self = this;
+      return [{ zOrder: () => 'top', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx }) => {
+        if (!self._series || !self._chart || !self.items.length) return;
+        const ts = self._chart.timeScale();
+        ctx.save();
+        ctx.font = '700 10.5px "Noto Sans TC", sans-serif';
+        for (const it of self.items) {
+          const t1 = self.times[it.i], t2 = self.times[it.j];
+          if (t1 == null || t2 == null) continue;
+          const x1 = ts.timeToCoordinate(t1), x2 = ts.timeToCoordinate(t2);
+          const y1 = self._series.priceToCoordinate(it.v1), y2 = self._series.priceToCoordinate(it.v2);
+          if (x1 === null || x2 === null || y1 === null || y2 === null) continue;
+          const col = it.kind === 'top' ? '#ff4d6d' : '#2ee59d';
+          ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.6;
+          ctx.setLineDash([5, 3]);
+          ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+          ctx.setLineDash([]);
+          [[x1, y1], [x2, y2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); });
+          if (!it.label) continue;
+          const up = it.kind === 'top';
+          const tx = (x1 + x2) / 2, tyRaw = (y1 + y2) / 2 + (up ? -10 : 16);
+          const w = ctx.measureText(it.label).width;
+          ctx.fillStyle = hexa('#0a1020', 82);
+          ctx.fillRect(tx - w / 2 - 4, tyRaw - 11, w + 8, 14);
+          ctx.fillStyle = col; ctx.textAlign = 'center';
+          ctx.fillText(it.label, tx, tyRaw);
+        }
+        ctx.restore();
+      }); } }) }];
+    }
+  }
+
   class Drawings {
     constructor(kc, key) {
       this.kc = kc; this.key = key; this.shapes = []; this.draft = null; this.tool = 'cursor';
       this.color = DRAW_COLORS[0]; this.w = 1.5; this.hot = null;
+      this.fill = false;               // 方框要不要填滿（Andy 2026-09-15）
       this.prim = new DrawPrimitive(this);
       kc.candle.attachPrimitive(this.prim);
       this.load();
@@ -209,6 +295,7 @@
     setTool(t) { this.tool = t; this.kc.el.style.cursor = t === 'cursor' ? '' : (t === 'erase' ? 'not-allowed' : 'crosshair'); this._lock(t !== 'cursor'); }
     setColor(c) { this.color = c; if (this.hot) { this.hot.color = c; this.save(); this.prim.update(); } }
     setWidth(w) { this.w = w; if (this.hot) { this.hot.w = w; this.save(); this.prim.update(); } }
+    setFill(on) { this.fill = !!on; if (this.hot) { this.hot.fill = this.fill; this.save(); this.prim.update(); } }
     _lock(on) { this.kc.chart.applyOptions({ handleScroll: { pressedMouseMove: !on, horzTouchDrag: !on }, handleScale: { axisPressedMouseMove: { time: !on, price: !on } } }); }
     _at(e) {
       const r = this.kc.el.getBoundingClientRect();
@@ -232,8 +319,20 @@
           if (this.kc.opts.onDrawEnd) this.kc.opts.onDrawEnd();
           return;
         }
-        this.draft = { kind: this.tool, a: { t: a.t, p: a.p }, b: { t: a.t, p: a.p }, color: this.color, w: this.w };
-        const move = (ev) => { const b = this._at(ev); if (b && this.draft) { this.draft.b = { t: b.t, p: b.p }; this.prim.update(); } };
+        this.draft = { kind: this.tool, a: { t: a.t, p: a.p }, b: { t: a.t, p: a.p }, color: this.color, w: this.w, fill: this.fill };
+        const start = a;
+        /* Andy 2026-09-15：「當拉線時，按著Shift 會主動變成水平線」。
+           一併支援垂直：看滑鼠往哪個方向拉得比較多，橫向就鎖成水平（價格不變），
+           縱向就鎖成垂直（時間不變）。TradingView 也是這個手感。 */
+        const move = (ev) => {
+          const b = this._at(ev); if (!b || !this.draft) return;
+          let t = b.t, p = b.p;
+          if (ev.shiftKey) {
+            if (Math.abs(b.x - start.x) >= Math.abs(b.y - start.y)) p = start.p;   // 水平
+            else t = start.t;                                                       // 垂直
+          }
+          this.draft.b = { t, p }; this.draft.shift = !!ev.shiftKey; this.prim.update();
+        };
         const up = () => {
           el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up);
           if (this.draft) { this.shapes.push(this.draft); this.draft = null; this.save(); this.prim.update(); }
@@ -303,6 +402,8 @@
       this.chart = LWC.createChart(el, baseOptions(this.opts));
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
+      this.divPrice = new DivPrimitive(); this.candle.attachPrimitive(this.divPrice);
+      this.divPane = null;               // MACD 面板那一條，等 applyIndicators 建好 series 才掛
       this.overlays = []; this.panes = {}; this.priceLines = []; this.markers = null;
       this.bars = []; this.tf = this.opts.tf; this.paneIndex = {};
       if (!this.opts.mini) {
@@ -335,11 +436,26 @@
       }, { passive: false });
       this.el.addEventListener('dblclick', () => this.candle.priceScale().setAutoScale(true));
     }
-    setBars(bars, tf) {
+    /** keepView：即時 K 每幾秒就重畫一次，不能每次都把畫面拉回最右邊 ——
+     *  使用者往左捲去看早盤，下一次更新就被彈回去，等於不能看。
+     *  所以即時更新時保留目前的可視範圍，只有「換股票／換週期」才重新定位。 */
+    setBars(bars, tf, keepView) {
+      const ts = this.chart.timeScale();
+      const keep = keepView ? ts.getVisibleLogicalRange() : null;
+      const grew = keep && this.data ? bars.length - this.data.length : 0;
       this.tf = tf || this.tf; this.bars = bars;
       this.data = bars.map(b => ({ time: toTime(b[0]), open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] || 0 }));
       this.candle.setData(this.data);
-      this.chart.applyOptions({ localization: { timeFormatter: (t) => fmtTime(t, this.tf) }, timeScale: { timeVisible: /m$/.test(this.tf) } });
+      this.chart.applyOptions({ localization: { timeFormatter: (t) => fmtTime(t, this.tf) }, timeScale: { timeVisible: /[ms]$/.test(this.tf) } });
+      if (keep) {
+        // 貼著右緣看的人要跟著新棒子走；捲到左邊看歷史的人要留在原地
+        const atRight = keep.to >= (this.data.length - grew) - 1.5;
+        ts.setVisibleLogicalRange(atRight
+          ? { from: keep.from + grew, to: keep.to + grew }
+          : { from: keep.from, to: keep.to });
+        if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+        return;
+      }
       this.chart.timeScale().scrollToRealTime();
       this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - (this.opts.mini ? 90 : 160)), to: this.data.length + 3 });
       // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
@@ -347,7 +463,12 @@
     }
     setZones(z, style) { this.zones.setZones(z, style); }
     setZoneStyle(style) { this.zones.setStyle(style); }
-    clearOverlays() { for (const s of this.overlays) this.chart.removeSeries(s); this.overlays = []; for (const k in this.panes) { for (const s of this.panes[k]) this.chart.removeSeries(s); } this.panes = {}; }
+    clearOverlays() {
+      // MACD 面板被移掉時，掛在它上面的背離線也跟著沒了（不清會留著指向已刪除的 series）
+      this.divPane = null;
+      for (const s of this.overlays) this.chart.removeSeries(s); this.overlays = [];
+      for (const k in this.panes) { for (const s of this.panes[k]) this.chart.removeSeries(s); } this.panes = {};
+    }
     _line(vals, color, pane, width, opts) {
       const s = this.chart.addSeries(LWC.LineSeries, Object.assign({ color, lineWidth: width || 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, opts || {}), pane || 0);
       s.setData(this.data.map((d, i) => vals[i] === null || vals[i] === undefined || Number.isNaN(vals[i]) ? null : { time: d.time, value: vals[i] }).filter(Boolean));
@@ -392,11 +513,33 @@
         this.panes.kd = [this._line(k.k, col(y.c, y.o), pane, y.w), this._line(k.d, col(y.c2, y.o), pane, y.w)];
         ref(this.panes.kd[0], 80, 'rgba(255,77,109,.35)'); ref(this.panes.kd[0], 20, 'rgba(46,229,157,.35)');
         this.paneIndex.kd = pane; this._paneH(pane, PH.ind); pane++; }
+      this.divergences = { top: [], bottom: [] };
       if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m;
         const y = st('macd', { c: C.dif, c2: C.dea });
         this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)), pane),
           this._line(m.dif, col(y.c, y.o), pane, y.w), this._line(m.dea, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, PH.ind); pane++; }
+        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, PH.ind); pane++;
+        /* 背離（Andy 2026-09-15：「是很好的訊號」）。預設開，cfg.macdDiv === false 才關。
+           主圖畫價格的那兩個轉折點，MACD 面板畫 DIF 的那兩點 —— 兩條線一起看才看得出「背」在哪。 */
+        if (cfg.macdDiv !== false) {
+          const dv = ind.divergence(c, h, l, m.dif, cfg.divOpt);
+          this.divergences = dv;
+          const times = this.data.map(d => d.time);
+          const priceItems = [], difItems = [];
+          dv.top.forEach(x => {
+            priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'top', label: '頂背離' });
+            difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'top' });
+          });
+          dv.bottom.forEach(x => {
+            priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'bottom', label: '底背離' });
+            difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'bottom' });
+          });
+          this.divPrice.set(priceItems, times);
+          this.divPane = new DivPrimitive();
+          this.panes.macd[1].attachPrimitive(this.divPane);
+          this.divPane.set(difItems, times);
+        } else if (this.divPrice) { this.divPrice.set([], []); } }
+      else if (this.divPrice) { this.divPrice.set([], []); }
       if (cfg.rsi) { const r = ind.rsi(c, cfg.rsi.n); this.values.RSI = r;
         const y = st('rsi', { c: C.rsi });
         this.panes.rsi = [this._line(r, col(y.c, y.o), pane, y.w)];
@@ -423,7 +566,8 @@
       for (const p of this.priceLines) this.candle.removePriceLine(p); this.priceLines = [];
       for (const ln of lines) { if (ln.price == null) continue; this.priceLines.push(this.candle.createPriceLine({ price: ln.price, color: ln.color, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: ln.title })); }
     }
-    onCrosshair(fn) { this.chart.subscribeCrosshairMove((p) => { if (!p.time) { fn(null); return; } const i = this.data.findIndex(d => String(d.time) === String(p.time)); fn(i >= 0 ? i : null); }); }
+    // 第二個參數是游標在圖內的座標，給「跟著游標走的資訊框」用（Andy 2026-09-15 圖一）
+    onCrosshair(fn) { this.chart.subscribeCrosshairMove((p) => { if (!p.time) { fn(null, null); return; } const i = this.data.findIndex(d => String(d.time) === String(p.time)); fn(i >= 0 ? i : null, p.point || null); }); }
     fitLast(n) { this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - n), to: this.data.length + 3 }); }
     // K 棒寬度（每根佔幾 px）。Andy 要能自己調，而且預設要寬一點
     setBarSpacing(px) {

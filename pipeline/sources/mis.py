@@ -156,6 +156,57 @@ def price_snapshot(pairs: list[tuple[str, str | None]]) -> pd.DataFrame:
     return df
 
 
+def market_snapshot() -> pd.DataFrame:
+    """`market_daily` 的當天暫定值（加權指數、漲跌點數、成交金額、成交量）。
+
+    為什麼要另外抓一支
+    ------------------
+    `price_daily` 用 mis 補上今天之後，網站頂端的「資料更新到」就會寫今天，
+    但**加權指數那格還是昨天的數字** —— 因為它來自 `market_daily`（證交所 FMTQIK），
+    而 FMTQIK 跟日收檔一樣落後一個交易日。兩個數字擺在同一個畫面上就是明顯的矛盾
+    （2026-09-14 實測：橫幅寫 09-14、加權指數卻是 09-11 收的 46,184.85）。
+
+    這支拿的是「基本市況報導」那張加權走勢圖自己在用的檔，`infoArray[0]` 直接給：
+        z 成交指數、y 昨收、o/h/l 開高低、d 日期、v 成交金額（百萬元）、m 成交量（張）
+    2026-09-14 17:30 實測：z=45862.52、y=46184.85、v=630917、m=8705759，
+    與 `staticObj.tz`（630,917,830,610 元）、`staticObj.tv` 對得上。
+
+    口徑注意：成交金額與成交量跟 `price_snapshot()` 一樣是**盤中累計**，
+    不含盤後定價交易，所以偏低；隔天 FMTQIK 給出官方值時由 `store.append()` 覆蓋。
+    """
+    # 帶 Referer：getStockInfo.jsp 不帶也通，但這支是網頁自己在讀的靜態檔，
+    # 帶著跟瀏覽器一樣的來源比較不會被當成爬蟲擋掉（Worker 那邊也是這樣送的）。
+    data = http.get(config.MIS_CHART_TSE,
+                    headers={"Referer": "https://mis.twse.com.tw/stock/index.jsp"})
+    if not isinstance(data, dict):
+        log.warning("mis 大盤分時沒有回應")
+        return pd.DataFrame()
+    info = (data.get("infoArray") or [{}])[0]
+    d = str(info.get("d") or "").strip()
+    if not (len(d) == 8 and d.isdigit()):
+        log.warning("mis 大盤分時沒有可用的日期：%r", d)
+        return pd.DataFrame()
+    close, prev = to_float(info.get("z")), to_float(info.get("y"))
+    if close is None:
+        log.warning("mis 大盤分時沒有成交指數")
+        return pd.DataFrame()
+    turnover = to_float(info.get("v"))          # 百萬元
+    volume = to_int(info.get("m"))              # 張
+    row = {
+        "date": f"{d[:4]}-{d[4:6]}-{d[6:]}",
+        "taiex": close,
+        "change": None if prev is None else round(close - prev, 2),
+        # market_daily 的 turnover 是「元」（FMTQIK 給的 TradeValue），這裡要換算回去
+        "turnover": None if turnover is None else turnover * 1_000_000,
+        # 同樣對齊 FMTQIK：volume 是「股」
+        "volume": None if volume is None else volume * 1000,
+        "transactions": None,
+        "px_source": "mis",
+    }
+    log.info("mis 大盤：%s 加權 %.2f（昨收 %s）", row["date"], close, prev)
+    return pd.DataFrame([row])
+
+
 def latest_date(sample: tuple[str, str | None] = ("2330", "TWSE")) -> str | None:
     """只問一檔，拿 mis 現在手上是哪一個交易日。用來決定要不要補。"""
     raw = quotes([sample])
