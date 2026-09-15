@@ -200,6 +200,10 @@
       el.classList.add('liveflash');
       n++;
     });
+    /* 改過畫面上的數字就吼一聲：正照著收盤／漲跌排序的表格要重排，
+       不然表頭標著 ▲、那一欄卻不是排好的（Andy 2026-09-15）。
+       非同步發，避免在 paint 的迴圈裡同步重畫整張表。 */
+    if (n) setTimeout(() => window.dispatchEvent(new CustomEvent('tw:quotes', { detail: { n } })), 0);
     return n;
   }
 

@@ -1206,7 +1206,13 @@ def t_stock(pg, base, code):
         ok("改 RSI 參數，圖例數字跟著變", "RSI(6)" in legend.replace(" ", ""), legend[-80:])
 
     # --- 設定面板：線寬滑桿、顏色、加均線、減均線
-    click(pg, "#cfgBtn", 450)
+    # 故意讓外層帶著 transform（`.view.on` 的進場動畫就是 translateY(4px)→none）：
+    # 有 transform 的祖先會接管 position:fixed 的基準，面板會整個偏掉 ——
+    # 2026-09-15 線上實測偏了 195px。placePop 用「先擺 (0,0) 再量差值」校正，這裡就是那條防線。
+    pg.evaluate("() => { const v = document.getElementById('v-industry');"
+                " if (v) v.style.transform = 'translateY(4px)'; }")
+    pg.wait_for_timeout(200)
+    click(pg, "#cfgBtn", 600)
     ok("設定面板打得開", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !!p && !p.hidden; }"))
     # --- 面板要開在「⚙ 設定」旁邊（Andy 2026-09-15：「設定出現的位置應該要在 設定按鈕旁邊」）
     #     以前是 CSS 的 absolute + right:18px，錨點跟按鈕無關，常常飄到整張圖下面。
@@ -1306,6 +1312,8 @@ def t_stock(pg, base, code):
     # 「完成」關得掉
     click(pg, "#cfgClose", 400)
     ok("設定面板按「完成」關得起來", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !p || p.hidden; }"))
+    # 把剛才為了測試加上去的 transform 拿掉，後面的驗收才不會被影響
+    pg.evaluate("() => { const v = document.getElementById('v-industry'); if (v) v.style.transform = ''; }")
     # 回復預設：設定要真的還原，面板順手關掉
     click(pg, "#cfgBtn", 450)
     if count(pg, "#cfgReset"):
@@ -2413,6 +2421,107 @@ def t_events(pg, base):
     click(pg, "#evFilters button[data-c='all']", 400)
 
 
+
+# ---------------------------------------------------------------- 排序正確性
+"""Andy 2026-09-15：「為何我點選排序後 漲幅對不上，幫我確認每個排序後，是否與原來數據相符」。
+
+讀的是**畫面上渲染出來的文字**，不是內部陣列 —— 使用者看到的就是那些字。
+每一欄、升冪降冪各點一次，驗那一欄真的是單調的（空值一律排最後）。
+"""
+_SORT_NUM = """(txt) => {
+  const s = String(txt).replace(/[,\\s]/g, '');
+  if (!s || s === '\u2014' || s === '-') return null;
+  const m = s.match(/^([+-]?\\d*\\.?\\d+)(\u842c\u5f35|\u5104|\u842c|\u5f35|%)?/);
+  if (!m) return null;
+  let v = parseFloat(m[1]);
+  if (m[2] === '\u5104') v *= 1e8;
+  else if (m[2] === '\u842c' || m[2] === '\u842c\u5f35') v *= 1e4;
+  return v;
+}"""
+_SORT_READ = """([sel, toNum]) => {
+  const f = eval('(' + toNum + ')');
+  const tb = document.querySelector(sel);
+  if (!tb) return null;
+  const heads = [...tb.querySelectorAll('thead th')].map(th => ({ k: th.dataset.k || null, t: th.textContent.trim() }));
+  const rows = [...tb.querySelectorAll('tbody tr')].map(tr => [...tr.querySelectorAll('td')].map(td => td.textContent.trim()));
+  return { heads, nums: rows.map(r => r.map(c => f(c))) };
+}"""
+
+
+def check_sort(pg, sel, name, skip=()):
+    """把這張表每一欄、升冪降冪各點一次，驗畫面上的數字真的排好了。"""
+    st = pg.evaluate(_SORT_READ, [sel, _SORT_NUM])
+    if not st or not st["nums"]:
+        return
+    for ci, h in enumerate(st["heads"]):
+        if not h["k"] or h["k"] in skip:
+            continue
+        for _ in range(2):                       # 第一次降冪、第二次升冪
+            pg.click(f'{sel} thead th[data-k="{h["k"]}"]')
+            pg.wait_for_timeout(360)
+            s2 = pg.evaluate(_SORT_READ, [sel, _SORT_NUM])
+            vals = [r[ci] if ci < len(r) else None for r in s2["nums"]]
+            if sum(1 for v in vals if v is not None) < 2:
+                continue                          # 這一欄不是數字（簡稱、族群…），順序無從驗起
+            cut = next((i for i, v in enumerate(vals) if v is None), len(vals))
+            head, tail = vals[:cut], vals[cut:]
+            up = all(head[i] <= head[i + 1] for i in range(len(head) - 1))
+            dn = all(head[i] >= head[i + 1] for i in range(len(head) - 1))
+            ok(f"「{name}」依「{h['t'].replace(chr(9650),'').replace(chr(9660),'').strip()}」排序後，畫面上的數字真的是排好的",
+               (up or dn) and not any(v is not None for v in tail), vals[:8])
+
+
+def check_code_sort(pg, sel, name):
+    """代號那一欄是字串排序（0050 / 00631L 這種 ETF 代號當數字排會變成 50 / 631）。"""
+    for want_up in (False, True):
+        pg.click(f'{sel} thead th[data-k="code"]')
+        pg.wait_for_timeout(360)
+        # 代號不一定是第一欄（今日候選第一欄是「判定」），要照表頭找欄位序
+        codes = pg.evaluate("""(sel) => {
+            const hs = [...document.querySelectorAll(sel + ' thead th')];
+            const i = hs.findIndex(h => h.dataset.k === 'code');
+            if (i < 0) return [];
+            return [...document.querySelectorAll(sel + ' tbody tr')]
+              .map(tr => (tr.querySelectorAll('td')[i] || {}).textContent)
+              .filter(Boolean).map(t => t.trim()); }""", sel)
+        if len(codes) < 3:
+            return
+        up = all(codes[i] <= codes[i + 1] for i in range(len(codes) - 1))
+        dn = all(codes[i] >= codes[i + 1] for i in range(len(codes) - 1))
+        ok(f"「{name}」依代號排序是字串排序（ETF 的 0050 不會被當成 50）", up or dn, codes[:8])
+
+
+def t_sort(pg, base):
+    # --- 每一張可排序的表，每一欄都驗
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    # 代號要當「字串」排，不是數字：ETF 是 0050 / 00631L，當數字排會變成 50 / 631
+    check_sort(pg, "#candTable", "今日候選", skip=("code",))
+    check_code_sort(pg, "#candTable", "今日候選")
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    check_sort(pg, "#memberTable", "產業鏈成分股", skip=("code",))
+    check_code_sort(pg, "#memberTable", "產業鏈成分股")
+
+    """--- 即時層更新之後，排序要跟著重排。
+    即時層（live.js 的 paint）每分鐘把畫面上的收盤／漲跌就地改掉，
+    以前順序不會跟著換 —— 表頭標著 ▲、那一欄卻不是排好的（Andy 的兩張截圖）。"""
+    click(pg, '#memberTable thead th[data-k="chg_pct"]', 500)
+    n = pg.evaluate("""() => {
+        if (!window.Live || !window.Live.quotes) return -1;
+        const codes = [...document.querySelectorAll('#memberTable tbody tr')].map(tr => tr.dataset.code).filter(Boolean);
+        if (!codes.length) return -1;
+        codes.forEach((c, i) => { window.Live.quotes[c] = { price: 100 + i * 7, chgPct: ((i * 37) % 19) - 9, volume: 1000 }; });
+        return window.Live.paint(); }""")
+    ok("灌進即時報價後，即時層真的改了畫面上的數字（前置條件）", n > 0, n)
+    pg.wait_for_timeout(900)
+    vals = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr')].slice(0, 10)
+        .map(tr => { const t = tr.querySelectorAll('td')[4];
+          const v = t ? parseFloat(t.textContent.replace(/[%+,\\s]/g, '')) : null;
+          return Number.isNaN(v) ? null : v; }).filter(v => v !== null)""")
+    mono = all(vals[i] >= vals[i + 1] for i in range(len(vals) - 1)) \
+        or all(vals[i] <= vals[i + 1] for i in range(len(vals) - 1))
+    ok("即時層更新之後，表格照著新的漲跌重排了（不是表頭標 ▲ 但數字亂跳）", mono and len(vals) > 3, vals)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -2464,6 +2573,12 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【縮放掃描】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  縮放掃描：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_sort(pg, base)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【排序】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  排序：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_freshness(b, base)

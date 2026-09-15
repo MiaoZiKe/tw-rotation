@@ -129,7 +129,8 @@
       if (s && s.key) sort = { key: s.key, dir: s.dir === 1 ? 1 : -1 };
     } catch (e) { /* 忽略 */ }
     const renderMembers = () => {
-      let rows = members(); rows.sort((a, b) => { const x = a[sort.key], y = b[sort.key]; if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * sort.dir; });
+      // 先把即時值疊回去，排的才是使用者眼睛看到的那個數字（見 app.js 的 liveMerge）
+      let rows = A.liveMerge(members()); rows.sort((a, b) => { const x = a[sort.key], y = b[sort.key]; if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * sort.dir; });
       const segTw = segFilter ? twOf(sc, segFilter) : [];
       $('#memberTitle', el).innerHTML = `成分股 <small>${rows.length} 檔${segFilter ? ' · 環節：<span style="color:' + segColor(segFilter) + '">' + A.fmt.esc(segName(sc, segFilter)) + '</span>' : ''}${state.group ? ' · ' + A.fmt.esc((groups.find(g => g.id === state.group) || {}).name || '') : ''}</small>`;
       $('#memberTable thead', el).innerHTML = '<tr>' + COLS.map(c => `<th class="${c[3] || ''}" data-k="${c[0]}">${c[1]}${sort.key === c[0] ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
@@ -141,6 +142,8 @@
         renderMembers();
       });
       $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => { if (tr.dataset.code) A.goStock(tr.dataset.code); });
+      // 即時層更新之後重排一次 —— 只有正照著即時欄（收盤／漲跌）排序時才有意義
+      A.onLive($('#memberTable', el), () => { if (A.LIVE_KEYS.includes(sort.key)) renderMembers(); });
     };
     /* 點剖析圖上的零件只做「亮起來 + 在原地說明這個環節」，
        不捲動、也不動下面的成分股表 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
@@ -1143,8 +1146,16 @@
     const useBelow = below >= Math.min(h, 320) || below >= above;
     const room = Math.max(160, useBelow ? below : above);
     const top = useBelow ? r.bottom + 6 : Math.max(pad, r.top - Math.min(h, room) - 6);
-    pop.style.left = left + 'px';
-    pop.style.top = top + 'px';
+    /* ★ 不要直接把視窗座標寫進 left/top。
+       `position:fixed` 只要祖先有 transform / filter / backdrop-filter 就會改以那個祖先為基準
+       —— 本站 `.view.on` 的進場動畫正是 `transform: translateY(4px) → none`，
+       在那 0.25 秒內（或動畫被重新觸發時）面板就會整個偏掉（線上實測偏了 195px）。
+       所以先把它擺到 (0,0)，量出「(0,0) 實際落在視窗的哪裡」，再用差值校正。
+       這樣不管祖先是什麼都準。*/
+    pop.style.left = '0px'; pop.style.top = '0px';
+    const zero = pop.getBoundingClientRect();
+    pop.style.left = (left - zero.left) + 'px';
+    pop.style.top = (top - zero.top) + 'px';
     pop.style.maxHeight = room + 'px';
   }
 

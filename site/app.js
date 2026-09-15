@@ -265,6 +265,49 @@
     const h = a.getAttribute('href'); if (h && h.startsWith('#')) { e.preventDefault(); if (location.hash === h) route(); else location.hash = h; }
   }, true);
 
+
+  /* ---------------------------------------------------------------- 排序 × 即時
+     即時層（live.js 的 paint）每分鐘會把畫面上的收盤／漲跌**就地**改掉。
+     表格如果正照著這兩欄排序，順序不會跟著換 —— 表頭還標著 ▲／▼，
+     但那一欄已經不是排好的了。Andy 2026-09-15 的兩張截圖就是這個：
+     同一張成分股表，標著「漲跌 ▲」，值卻是 -1.21 / -3.45 / -5.89 / -3.07 / -6.44。
+
+     兩件事一起做才會對：
+       1. liveMerge：排序**之前**先把即時值疊回列資料，排的就是使用者看到的數字
+       2. onLive：即時層更新完之後再重排一次（只有正照著即時欄排序時才需要） */
+  const LIVE_KEYS = ['close', 'chg_pct'];
+  function liveMerge(rows) {
+    const q = (window.Live && window.Live.quotes) || null;
+    if (!q || !rows) return rows;
+    rows.forEach(r => {
+      const v = r && r.code ? q[r.code] : null;
+      if (!v) return;
+      if (v.price != null) r.close = v.price;
+      if (v.chgPct != null) r.chg_pct = v.chgPct;
+    });
+    return rows;
+  }
+  /** 綁在某個元素上：即時層更新就呼叫 fn。
+   *  兩個地雷都要避開：
+   *   1. **同一個元素只能掛一次** —— 重排會再呼叫一次 onLive，每次都掛新的話
+   *      監聽器會 1→2→4→8 指數成長，一次即時更新就重畫幾十遍，整頁卡住
+   *      （2026-09-15 第一版就是這樣，把「更新」鈕卡成 disabled）。
+   *   2. 但每次都要用**最新的 closure**（它抓著當下的排序狀態），所以放 WeakMap 覆蓋。
+   *  元素離開畫面（換頁）時自己解除監聽。 */
+  const _liveFns = new WeakMap();
+  function onLive(el, fn) {
+    if (!el) return;
+    _liveFns.set(el, fn);
+    if (el.dataset.liveBound) return;
+    el.dataset.liveBound = '1';
+    const h = () => {
+      if (!el.isConnected) { window.removeEventListener('tw:quotes', h); return; }
+      const f = _liveFns.get(el);
+      if (f) { try { f(); } catch (e) { /* 一張表壞掉不要拖垮整頁 */ } }
+    };
+    window.addEventListener('tw:quotes', h);
+  }
+
   // ---------------------------------------------------------------- 路由
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'themes', 'season'];
   const rendered = {};
@@ -888,7 +931,8 @@
     const dir = candSort.key ? candSort.dir : -1;
     // candGroups === null ＝ 全部；是 Set 就只看勾起來的
     const pool = candGroups ? cands.filter(r => candGroups.has(r.group || '（未分類）')) : cands;
-    const rows = pool.slice().sort((a, b) => {
+    // 先把即時值疊回去，排的才是使用者眼睛看到的那個數字
+    const rows = liveMerge(pool.slice()).sort((a, b) => {
       const x = a[sk], y = b[sk];
       if (x == null && y == null) return 0;
       if (x == null) return 1;
@@ -912,6 +956,8 @@
       candSort = { key: k, dir: candSort.key === k ? -candSort.dir : -1 };
       renderCandidates(cands);
     });
+    // 即時層更新之後重排一次（只有正照著收盤／漲跌排序時才需要）
+    onLive($('#candTable'), () => { if (LIVE_KEYS.includes(candSort.key || F.key)) renderCandidates(cands); });
     // 單擊展開「為何選它」，再點一次收起；要看個股頁用簡稱那個連結
     $$('#candBody tr[data-code]').forEach(tr => tr.onclick = (e) => {
       if (e.target.closest('a')) return;
@@ -1749,7 +1795,7 @@
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, theme, applyTheme };
+    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, theme, applyTheme, liveMerge, onLive, LIVE_KEYS };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);
