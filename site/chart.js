@@ -425,9 +425,15 @@
       const html = Object.entries(this.paneIndex).map(([k, i]) => tops[i] == null ? '' : `<div style="top:${tops[i] + 6}px">${(this._paneText || {})[k] || ''}</div>`).join('');
       this.labels.innerHTML = html;
     }
-    // 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放
+    /* 滾輪在價格軸上：縮放上下寬度（TradingView 手感）；圖區內滾輪維持時間縮放。
+
+       這兩個 listener 掛在容器 `#lwc` 上，而容器是**跨圖表活著的**（換股票、換週期時
+       KChart 會重建，但 #lwc 本身留著）。所以一定要在 destroy() 時拿掉 ——
+       不拿掉的話，舊圖表已經 remove 了，listener 還在，下次滑到價格軸上一滾就噴
+       「Cannot read properties of undefined」，而且每重建一次就多疊一層。 */
     _wheelOnPriceAxis() {
-      this.el.addEventListener('wheel', (e) => {
+      this._onWheel = (e) => {
+        if (this._dead) return;
         const rect = this.el.getBoundingClientRect(); const x = e.clientX - rect.left;
         const w = this.chart.priceScale('right').width();
         if (x < rect.width - w) return;
@@ -436,8 +442,10 @@
         ps.setAutoScale(false);
         const f = e.deltaY > 0 ? 1.12 : 1 / 1.12; const mid = (r.from + r.to) / 2, half = (r.to - r.from) / 2 * f;
         ps.setVisibleRange({ from: mid - half, to: mid + half });
-      }, { passive: false });
-      this.el.addEventListener('dblclick', () => this.candle.priceScale().setAutoScale(true));
+      };
+      this._onDbl = () => { if (!this._dead) this.candle.priceScale().setAutoScale(true); };
+      this.el.addEventListener('wheel', this._onWheel, { passive: false });
+      this.el.addEventListener('dblclick', this._onDbl);
     }
     /** keepView：即時 K 每幾秒就重畫一次，不能每次都把畫面拉回最右邊 ——
      *  使用者往左捲去看早盤，下一次更新就被彈回去，等於不能看。
@@ -460,7 +468,18 @@
         return;
       }
       this.chart.timeScale().scrollToRealTime();
-      this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - (this.opts.mini ? 90 : 160)), to: this.data.length + 3 });
+      /* 畫面上要放幾根，用「想要的每根寬度」除出來，不要寫死 160 根。
+         寫死的話視窗一窄（或手機），160 根攤在 700px 上就只剩 4px 一根。*/
+      const want = this._bar || (this.opts.mini ? 6 : 11);
+      const room = Math.max(240, (this.el.clientWidth || 900) - 70);
+      const n = Math.max(30, Math.min(this.data.length, Math.round(room / want)));
+      this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - n), to: this.data.length + 3 });
+      /* ★ 換股票或換週期時把價格軸交還給自動縮放。
+         上面那段 wheel（在價格軸上滾滾輪縮放）會把 autoScale 關掉，而且是**永久**關掉 ——
+         接著切到 15 分，價格軸還留著日線那個 240–480 的範圍，而當天只走 330–345，
+         K 棒就被壓成一條線。Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」。
+         只在 !keepView 時做：即時更新每幾秒跑一次，那時要尊重使用者自己拉的範圍。*/
+      this.candle.priceScale().setAutoScale(true);
       // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
       if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
     }
@@ -499,6 +518,22 @@
       // 均線：條數、週期、顏色、粗細都吃 cfg（Andy 2026-09-12「線寬 均線數量 數字 顏色 粗細都要能調」）
       const mc = cfg.maColor || [], mw = cfg.maWidth || [];
       (cfg.ma || []).forEach((n, i) => { const m = ind.sma(c, n); this.values['MA' + n] = m; this.overlays.push(this._line(m, mc[i] || C.ma[i % C.ma.length], 0, mw[i] || cfg.lineWidth || 1)); });
+      /* 本益比河流的倍數線（Andy 2026-09-15：「上方也多一個選項新增河流圖」）。
+         資料由 industry.js 算好掛在 this.peBands 上 —— 這裡只負責畫，因為近四季 EPS
+         是財報那一層的事，圖表這層不該知道財報怎麼算。*/
+      this.values.PE = null;
+      if (this.peBands && this.peBands.length) {
+        this.values.PE = this.peBands;
+        this.peBands.forEach(b => this.overlays.push(
+          this._line(b.vals, hexa(b.color, 70), 0, 1, {
+            lineStyle: 2,
+            /* 倍數線離現價可以很遠（9.5 倍 ≈ 189、25 倍 ≈ 497），讓它們參與自動縮放的話
+               價格軸會被拉成 160–520，K 棒又被壓扁 —— 那正是 Andy 今天抱怨的事。
+               所以這幾條線「畫得出來但不影響取景」：落在畫面外就切掉，
+               想看得更遠可以在價格軸上滾滾輪。*/
+            autoscaleInfoProvider: () => null,
+          })));
+      }
       // 每個指標的顏色／線寬／透明度都可以個別設定（Andy 2026-09-12）
       const st = (k, d) => Object.assign({ w: cfg.lineWidth || 1, o: 100 }, d, (cfg.st || {})[k] || {});
       const col = (hex, o) => hexa(hex, o == null ? 100 : o);
@@ -624,6 +659,14 @@
     // 第二個參數是游標在圖內的座標，給「跟著游標走的資訊框」用（Andy 2026-09-15 圖一）
     onCrosshair(fn) { this.chart.subscribeCrosshairMove((p) => { if (!p.time) { fn(null, null); return; } const i = this.data.findIndex(d => String(d.time) === String(p.time)); fn(i >= 0 ? i : null, p.point || null); }); }
     fitLast(n) { this.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, this.data.length - n), to: this.data.length + 3 }); }
+    /* 驗收用：主圖價格軸現在顯示的上下界。
+       切週期後沒有重新自動縮放的話，這裡會留著上一個週期的範圍 —— K 棒被壓扁就是這樣來的。*/
+    priceRange() {
+      try {
+        const r = this.candle.priceScale().getVisibleRange();
+        return r ? { from: +r.from.toFixed(2), to: +r.to.toFixed(2) } : null;
+      } catch (e) { return null; }
+    }
     // K 棒寬度（每根佔幾 px）。Andy 要能自己調，而且預設要寬一點
     setBarSpacing(px) {
       const v = Math.max(2, Math.min(40, +px || 11));
@@ -633,7 +676,15 @@
     // 重設整個介面：價格軸自動、時間軸回到最近 n 根（TradingView 右下角那顆的行為）
     resetView(n) { this.candle.priceScale().setAutoScale(true); this.chart.timeScale().resetTimeScale(); this.fitLast(n || 160); }
     enableDrawing(key) { if (this.draw) this.draw.destroy(); this.draw = new Drawings(this, key); return this.draw; }
-    destroy() { if (this.draw) this.draw.destroy(); if (this._ro) this._ro.disconnect(); this.chart.remove(); }
+    destroy() {
+      this._dead = true;
+      // 這兩個掛在容器上，容器不會跟著圖表一起消失 —— 一定要自己拿掉
+      if (this._onWheel) this.el.removeEventListener('wheel', this._onWheel);
+      if (this._onDbl) this.el.removeEventListener('dblclick', this._onDbl);
+      if (this.draw) this.draw.destroy();
+      if (this._ro) this._ro.disconnect();
+      this.chart.remove();
+    }
   }
 
   global.KChart = KChart; global.KInd = ind;

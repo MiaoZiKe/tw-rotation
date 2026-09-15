@@ -1072,6 +1072,28 @@ def t_stock(pg, base, code):
         changed("營收「單月／累計」切換真的重畫", h0, h1)
         click(pg, '#revMode button[data-v="m"]', 500)
 
+    # --- 獲利分頁的本益比河流圖（Andy 2026-09-15：「需要新增像財報狗那樣的河流圖…兩種模式可切換」）
+    #     兩種模式都要真的重畫，而且選擇要真的存進 localStorage。
+    click(pg, '#stockTabs button[data-t="profit"]', 1600)
+    ok("獲利分頁有本益比河流圖", count(pg, "#peChart canvas") > 0)
+    ok("河流圖有兩個模式可切", count(pg, "#peMode button") == 2, count(pg, "#peMode button"))
+    note0 = text(pg, "#peNote")
+    ok("河流圖下方有講出目前落在哪一區", "區" in note0, note0[:100])
+    if count(pg, "#peMode button") == 2:
+        h0 = canvas_hash(pg, "#peChart")
+        click(pg, '#peMode button[data-v="mult"]', 1400)
+        h1 = canvas_hash(pg, "#peChart")
+        changed("切到「倍數線」，河流圖真的重畫", h0, h1)
+        st = pg.evaluate("""() => ({ ls: localStorage.getItem('tw.periver'),
+            on: [...document.querySelectorAll('#peMode button.on')].map(b => b.dataset.v),
+            note: (document.getElementById('peNote') || {}).textContent || '' })""")
+        ok("「倍數線」真的寫進 localStorage", st["ls"] == "mult", st)
+        ok("只有被選到的那顆是 on", st["on"] == ["mult"], st["on"])
+        ok("說明文字跟著換成倍數線的讀法", "倍數線" in st["note"], st["note"][-60:])
+        click(pg, '#peMode button[data-v="band"]', 1400)
+        changed("切回「色帶分區」，圖又變回去", h1, canvas_hash(pg, "#peChart"))
+    click(pg, '#stockTabs button[data-t="overview"]', 1600)
+
     # --- 時間週期：按鈕上要先標清楚哪些這檔沒有（Andy：「1 日以下都不見」）
     tfstate = pg.evaluate("""() => [...document.querySelectorAll('#tfSeg button')].map(b => ({
         tf: b.dataset.tf, off: b.classList.contains('off'), title: b.title }))""")
@@ -1100,8 +1122,36 @@ def t_stock(pg, base, code):
     st = pg.evaluate("({ canvas: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#lwc .empty'), dbg: window.Industry._dbg() })")
     ok("走過所有週期後切回日線，K 線圖回得來", st["canvas"] > 0 and not st["empty"], st)
 
+    # --- 價格軸要跟著週期重算（Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」）
+    #     真正的病灶不是棒子變窄，是在價格軸上滾過滾輪（那會永久關掉自動縮放）之後，
+    #     切到別的週期時價格軸還留著上一個週期的上下界 —— 日線的 240–480 套在
+    #     只走 330–345 的分 K 上，K 棒就被壓成一條線。
+    #     所以這一段真的去滾價格軸，再切週期，驗軸有沒有重新貼合資料。
+    box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect();"
+                      " return {x:r.x, y:r.y, w:r.width, h:r.height}; }")
+    before = pg.evaluate("() => window.Industry._dbg().priceRange")
+    pg.mouse.move(box["x"] + box["w"] - 18, box["y"] + box["h"] * 0.25)
+    for _ in range(8):
+        pg.mouse.wheel(0, 120); pg.wait_for_timeout(90)
+    pg.wait_for_timeout(400)
+    zoomed = pg.evaluate("() => window.Industry._dbg().priceRange")
+    span = lambda r: (r["to"] - r["from"]) if r else None
+    ok("在價格軸上滾滾輪，價格軸真的被拉開了（前置條件）",
+       bool(before and zoomed and span(zoomed) > span(before) * 1.3), {"前": before, "後": zoomed})
+    # 換一個有資料的週期，再換回來；兩次都要重新貼合，不可以留著剛剛拉開的範圍
+    other = next((t["tf"] for t in tfstate
+                  if not t["off"] and t["tf"] not in LIVE_TFS and t["tf"] != "1d"), "1w")
+    click(pg, f'#tfSeg button[data-tf="{other}"]', 1100)
+    a = pg.evaluate("() => window.Industry._dbg().priceRange")
+    ok(f"切到 {other} 之後價格軸有重新貼合（K 棒沒有被壓扁）",
+       bool(a and zoomed and span(a) < span(zoomed) * 0.9), {"拉開時": zoomed, f"切到{other}": a})
+    click(pg, '#tfSeg button[data-tf="1d"]', 1100)
+    bck = pg.evaluate("() => window.Industry._dbg().priceRange")
+    ok("切回日線也重新貼合", bool(bck and zoomed and span(bck) < span(zoomed) * 0.9),
+       {"拉開時": zoomed, "切回日線": bck})
+
     # --- 指標 chips：開關要真的改變圖（副圖數量或圖面）
-    for k in ("kd", "macd", "rsi", "vol", "boll", "smc"):
+    for k in ("kd", "macd", "rsi", "vol", "boll", "smc", "peRiver"):
         chip = pg.query_selector(f'#indChips .chip[data-k={k}]')
         if not chip:
             continue
@@ -1116,6 +1166,23 @@ def t_stock(pg, base, code):
         changed(f"指標 {k} 勾選狀態真的變了", b0, b1)
         changed(f"指標 {k} 開關後圖真的重畫", h0, h1)
         click(pg, f'#indChips .chip[data-k={k}]', 600)   # 切回原狀
+
+    # --- 本益比河流疊在 K 線上（Andy 2026-09-15：「上方也多一個選項新增河流圖」）
+    #     除了圖要重畫，還要驗兩件事：圖例真的寫出「幾倍＝股價多少」，
+    #     以及倍數線**不可以**把價格軸拉開（25 倍 ≈ 497，讓它參與取景 K 棒又會被壓扁）。
+    if pg.query_selector('#indChips .chip[data-k=peRiver]'):
+        r0 = pg.evaluate("() => window.Industry._dbg().priceRange")
+        click(pg, '#indChips .chip[data-k=peRiver]', 1400)
+        r1 = pg.evaluate("() => window.Industry._dbg().priceRange")
+        leg = text(pg, "#legendOv")
+        cfg_on = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg')||'{}').peRiver === true; }"
+                             " catch (e) { return false; } }")
+        ok("打開本益比河流，圖例寫出「幾倍＝股價多少」", "倍" in leg and "本益比" in leg, leg[-120:])
+        ok("打開本益比河流，設定真的存進 localStorage", cfg_on, cfg_on)
+        ok("倍數線沒有把價格軸拉開（K 棒沒被壓扁）",
+           bool(r0 and r1 and (r1["to"] - r1["from"]) < (r0["to"] - r0["from"]) * 1.15), {"前": r0, "後": r1})
+        click(pg, '#indChips .chip[data-k=peRiver]', 900)
+        ok("關掉後圖例就不再有本益比那一段", "本益比" not in text(pg, "#legendOv"), text(pg, "#legendOv")[-90:])
 
     # --- 指標參數：改 RSI 的天數，圖要真的變
     inp = pg.query_selector("#indChips .chip[data-k=rsi] input")

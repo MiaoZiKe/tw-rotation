@@ -647,6 +647,10 @@
       // 背離要有 MACD 才算得出來（DIF 是比較基準）
       { k: 'macdDiv', label: 'MACD 背離', on: () => cfg.macdDiv !== false && !!cfg.macd, params: () => [], toggle: () => { const nowOn = cfg.macdDiv !== false && !!cfg.macd; if (nowOn) { cfg.macdDiv = false; } else { cfg.macdDiv = true; if (!cfg.macd) cfg.macd = { f: 12, s: 26, g: 9 }; } }, color: '#ffd166' },
       { k: 'lines', label: '停損/目標', on: () => !!cfg.lines, params: () => [], toggle: () => { cfg.lines = !cfg.lines; }, color: '#ffb454' },
+      /* 本益比河流（Andy 2026-09-15：「上方也多一個選項新增河流圖」）：
+         把下方那張河流圖的五條倍數線直接疊在 K 棒上，同一套倍數，兩邊對得起來。
+         需要近四季 EPS，所以只有日／週／月線畫得出來（分 K 的日期對不到財報那條階梯）。*/
+      { k: 'peRiver', label: '本益比河流', on: () => !!cfg.peRiver, params: () => [], toggle: () => { cfg.peRiver = !cfg.peRiver; }, color: '#b39dff' },
     ];
     const drawChips = () => {
       chips.innerHTML = chipDefs.map(c => `<span class="chip ${c.on() ? 'on' : ''}" data-k="${c.k}"><i style="background:${c.color}"></i>${c.label}${c.params().map(p => `<input data-k="${c.k}" data-p="${p.key}" value="${p.val}" style="width:${p.w}px" onclick="event.stopPropagation()">`).join('')}</span>`).join('');
@@ -688,6 +692,9 @@
       const keep = kchart._liveKey === pg.meta.code + '|' + state.tf;
       kchart._liveKey = pg.meta.code + '|' + state.tf;
       kchart.setBars(bars, state.tf, keep);
+      /* 本益比倍數線：算好之後掛在 chart 上（不要塞進 cfg —— cfg 會被寫進 localStorage，
+         幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
+      kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars) : null;
       kchart.applyIndicators(cfg);
       if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
       kchart.setZones(cfg.smc && !live ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
@@ -706,6 +713,11 @@
         let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
         if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:#b39dff">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
+        // 本益比倍數線：直接把「幾倍＝股價多少」寫在圖例上，不然圖上五條虛線看不出誰是誰
+        if (vals.PE) {
+          const bits = vals.PE.map(b => { const v = at(b.vals, i); return v == null ? null : `<span style="color:${b.color}">${b.mult}倍 ${A.fmt.n(v)}</span>`; }).filter(Boolean);
+          if (bits.length) parts.push('本益比 ' + bits.join('　'));
+        }
         legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
         const pl = {};
         if (cfg.vol) pl.vol = `成交量 <b>${A.fmt.lot(d.volume / 1000)}</b>${cfg.volma && at(vals.VOLMA, i) != null ? `　<span style="color:#ffd166">MA${cfg.volma} ${A.fmt.lot(at(vals.VOLMA, i) / 1000)}</span>` : ''}`;
@@ -1067,19 +1079,166 @@
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
+  /* ------------------------------------------------------------ 本益比河流圖
+     Andy 2026-09-15：「本益比這邊需要新增像是財報狗那樣的河流圖…兩種模式可切換」。
+
+     做法跟 Goodinfo／財報狗一樣：把「近四季 EPS」當成一條**階梯函數**（每次財報公布才跳一次），
+     再乘上幾個本益比倍數，就得到幾條「這個倍數對應的股價」。股價線穿梭在這幾條之間，
+     它現在在哪一條帶，就是市場現在給的評價。
+
+     倍數刻意**不寫死** 13/15/17/19/21/23：那是 Goodinfo 對台積電的預設值。
+     金融股合理本益比十倍出頭、AI 股三十倍，寫死對大多數股票沒有意義。
+     改用這一檔自己的歷史本益比分位數（10/30/50/70/90%），等於「跟自己比貴不貴」。*/
+  const PE_ZONES = [            // 由下到上；顏色跟著「貴＝紅、便宜＝綠」（Andy 給的參考圖就是這個方向）
+    { name: '低估', c: '#1c7a5a' }, { name: '價值', c: '#2ee59d' }, { name: '合理', c: '#c3ff5b' },
+    { name: '觀望', c: '#ffd166' }, { name: '高估', c: '#ff8fab' }, { name: '警示', c: '#ff4d6d' },
+  ];
+
+  function peRiver(pg) {
+    const hist = (pg.pe_history || []).filter(r => r && r.ttm_eps > 0 && r.from);
+    const daily = (pg.daily && pg.daily.length ? pg.daily : pg.ohlcv) || [];
+    if (hist.length < 4 || daily.length < 60) return null;
+    const steps = hist.slice().sort((a, b) => (String(a.from) < String(b.from) ? -1 : 1));
+    const dates = [], close = [], eps = [], pes = [];
+    let si = 0;
+    for (const b of daily) {
+      const d = String(b[0]).slice(0, 10);
+      if (d < String(steps[0].from)) continue;          // 第一份能算 TTM 的財報之前，沒有本益比可言
+      while (si + 1 < steps.length && String(steps[si + 1].from) <= d) si++;
+      const e = steps[si].ttm_eps, c = b[4];
+      if (!(e > 0) || !(c > 0)) continue;
+      dates.push(d); close.push(c); eps.push(e); pes.push(c / e);
+    }
+    if (dates.length < 60) return null;
+    const sorted = pes.slice().sort((a, b) => a - b);
+    const q = (p) => { const i = (sorted.length - 1) * p, lo = Math.floor(i), hi = Math.ceil(i);
+      return sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo); };
+    const mult = [q(0.1), q(0.3), q(0.5), q(0.7), q(0.9)].map(v => Math.round(v * 10) / 10);
+    /* EPS 幾乎沒變、股價也沒動的股票，五個分位數會全部擠在一起，河流就變成一條線。
+       撞在一起就強制拉開，至少看得出層次。*/
+    for (let i = 1; i < mult.length; i++) {
+      if (mult[i] <= mult[i - 1]) mult[i] = +(mult[i - 1] + Math.max(0.5, mult[0] * 0.08)).toFixed(1);
+    }
+    const bands = mult.map(m => eps.map(e => +(m * e).toFixed(2)));
+    const lastClose = close[close.length - 1], lastEps = eps[eps.length - 1];
+    const curPe = +(lastClose / lastEps).toFixed(1);
+    let zi = 0; while (zi < mult.length && curPe >= mult[zi]) zi++;   // 0＝低估 … 5＝警示
+    return { dates, close, eps, mult, bands, curPe, lastEps, zone: PE_ZONES[zi], zoneIdx: zi };
+  }
+
+  /** 把河流的倍數線對齊到 K 線圖的每一根（日期不同、根數也不同，所以要各自對表）。 */
+  function peBandsForBars(r, bars) {
+    if (!r || !bars || !bars.length) return null;
+    const idx = new Map(); r.dates.forEach((d, i) => idx.set(d, i));
+    const COL = ['#2ee59d', '#c3ff5b', '#ffd166', '#ff8fab', '#ff4d6d'];
+    return r.mult.map((m, k) => ({
+      mult: m, color: COL[k],
+      vals: bars.map(b => {
+        // 週線／月線的一根對應到那個區間的最後一個交易日；分 K 的日期在前 10 碼
+        const i = idx.get(String(b[0]).slice(0, 10));
+        return i == null ? null : +(m * r.eps[i]).toFixed(2);
+      }),
+    }));
+  }
+
+  /** 畫下方那張大圖。mode：'band' 色帶分區（fugle 那種）／'mult' 倍數線（Goodinfo 那種）。 */
+  function drawPeRiver(id, r, mode) {
+    if (!r) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
+    const maxClose = Math.max(...r.close), minClose = Math.min(...r.close);
+    const lab = (i) => `${r.mult[i]} 倍`;
+    let series, yMin, yMax;
+
+    if (mode === 'mult') {
+      /* 倍數線：只有線，線尾直接標倍數（Goodinfo 那張圖的讀法）。
+         上下界只看收盤與五條線本身 —— 不要留色帶模式那塊「警示區」的空間，
+         不然五條線會全部擠在畫面下半部。*/
+      yMin = Math.floor(Math.min(minClose, Math.min(...r.bands[0])) * 0.95);
+      yMax = Math.ceil(Math.max(maxClose, Math.max(...r.bands[4])) * 1.04);
+      series = r.bands.map((b, i) => ({
+        name: lab(i), type: 'line', data: b, symbol: 'none', silent: true, z: 2,
+        lineStyle: { color: PE_ZONES[i + 1].c, width: 1.2, type: 'dashed' },
+        endLabel: { show: true, color: PE_ZONES[i + 1].c, fontSize: 11, formatter: () => lab(i) },
+        labelLayout: { moveOverlap: 'shiftY' },
+      }));
+    } else {
+      // 色帶：堆疊面積，一層一個評價區間（fugle 那張圖的讀法）
+      const top = r.bands[4].map(v => Math.max(v * 1.18, maxClose * 1.03));
+      yMin = Math.floor(Math.min(minClose, Math.min(...r.bands[0])) * 0.93);
+      yMax = Math.ceil(Math.max(maxClose, Math.max(...r.bands[4]) * 1.05) * 1.02);
+      const diff = (a, b) => a.map((v, i) => +(v - b[i]).toFixed(2));
+      const layers = [r.bands[0], diff(r.bands[1], r.bands[0]), diff(r.bands[2], r.bands[1]),
+        diff(r.bands[3], r.bands[2]), diff(r.bands[4], r.bands[3]), diff(top, r.bands[4])];
+      series = layers.map((d, i) => ({
+        name: PE_ZONES[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true,
+        lineStyle: { width: 0 }, areaStyle: { color: PE_ZONES[i].c, opacity: 0.3 }, z: 1,
+        // 區間名稱標在自己那條帶的上緣、往下掛，讀起來就是「這一塊叫什麼」
+        endLabel: { show: true, color: PE_ZONES[i].c, fontSize: 11, verticalAlign: 'top',
+          offset: [4, 3], formatter: () => PE_ZONES[i].name },
+        labelLayout: { moveOverlap: 'shiftY' },
+      }));
+    }
+    series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
+      lineStyle: { color: '#ffffff', width: 1.8 } });
+
+    A.chart(id, {
+      grid: { left: 56, right: 62, top: 24, bottom: 34 },
+      tooltip: { ...A.tip, trigger: 'axis', formatter: (ps) => {
+        const i = ps[0].dataIndex, c = r.close[i], e = r.eps[i], pe = e > 0 ? c / e : null;
+        let z = 0; while (z < r.mult.length && pe >= r.mult[z]) z++;
+        return `<b>${r.dates[i]}</b><br>收盤 ${A.fmt.n(c)}　近四季 EPS ${A.fmt.n(e)}<br>`
+          + `本益比 <b>${pe != null ? A.fmt.n(pe, 1) : '—'}</b> 倍　`
+          + `<span style="color:${PE_ZONES[z].c}">${PE_ZONES[z].name}</span><br>`
+          + r.mult.map((m, k) => `${m} 倍 ＝ ${A.fmt.n(m * e)}`).join('　');
+      } },
+      xAxis: { ...A.axisStyle, type: 'category', data: r.dates, boundaryGap: false,
+        axisLabel: { color: A.CH.ink3, formatter: (v) => String(v).slice(0, 7) } },
+      yAxis: { ...A.axisStyle, min: yMin, max: yMax, axisLabel: { color: A.CH.ink3 } },
+      series,
+      // 一定要 notMerge：兩種模式的 series 數量與型態都不一樣，
+      // 用合併的話切到「倍數線」時，上一次的色帶還留在圖上（實測就是這樣糊成一片）
+    }, { notMerge: true });
+  }
+
   function tabProfit(pg, el) {
     const q = (pg.profit || {}).quarters || []; const pe = pg.pe_history || [];
     if (!q.length) { el.innerHTML = '<div class="card"><div class="empty">尚無季報歷史（回補進行中）</div></div>'; return; }
     const last = q[q.length - 1];
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${A.fmt.n(last[2], 1)}%</div></div><div class="k"><div class="l">營益率</div><div class="v">${A.fmt.n(last[3], 1)}%</div></div><div class="k"><div class="l">淨利率</div><div class="v">${A.fmt.n(last[4], 1)}%</div></div></div>
-      <div class="grid g2"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比河流 <small>每季財報可用日後的收盤 / 近四季 EPS；虧損不算</small></h3><div id="peChart" class="chart"></div></div></div>
+      <div class="card"><div class="row spread"><h3>本益比河流圖 <small>近四季 EPS × 各倍數 ＝ 那個倍數對應的股價；白線是實際收盤，它落在哪一條帶就是市場現在給的評價。倍數用這一檔自己的歷史分位數，不是寫死的 15/20/25 倍</small></h3>
+        <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="mult">倍數線</button></div></div>
+        <div id="peChart" class="chart" style="height:340px"></div><div class="note" id="peNote"></div></div>
+      <div class="grid g2" style="margin-top:16px"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）<small>每季財報可用日後的收盤 / 近四季 EPS；虧損不算</small></h3><div id="peQ" class="chart"></div></div></div>
       <div class="card" style="margin-top:16px"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
     A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: q.map(r => r[0]), axisLabel: { color: A.CH.ink3 } }, yAxis: [{ ...A.axisStyle, name: 'EPS' }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
       series: [{ name: 'EPS', type: 'bar', data: q.map(r => ({ value: r[5], itemStyle: { color: r[5] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[2]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: q.map(r => r[3]), smooth: .3, showSymbol: false, lineStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[4]), smooth: .3, showSymbol: false, lineStyle: { color: '#8b7bff' } }] });
-    if (pe.length) A.chart('peChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; return `<b>${r.period}</b><br>本益比 ${r.pe ?? '—'}（區間 ${r.pe_low ?? '—'}–${r.pe_high ?? '—'}）<br>近四季 EPS ${r.ttm_eps}`; } }, grid: { left: 50, right: 20, top: 20, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true },
+    if (pe.length) A.chart('peQ', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; return `<b>${r.period}</b><br>本益比 ${r.pe ?? '—'}（區間 ${r.pe_low ?? '—'}–${r.pe_high ?? '—'}）<br>近四季 EPS ${r.ttm_eps}`; } }, grid: { left: 50, right: 20, top: 20, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true },
       series: [{ name: '區間', type: 'line', data: pe.map(r => r.pe_low), lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false }, { name: '高低', type: 'line', data: pe.map(r => r.pe_high != null && r.pe_low != null ? r.pe_high - r.pe_low : null), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false }, { name: '本益比', type: 'line', data: pe.map(r => r.pe), lineStyle: { color: '#8b7bff', width: 2 }, symbolSize: 5 }] });
-    else A.empty('peChart', '需要四季連續財報');
+    else A.empty('peQ', '需要四季連續財報');
+
+    // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
+    const river = peRiver(pg);
+    let mode = 'band';
+    try { const s = localStorage.getItem('tw.periver'); if (s === 'mult' || s === 'band') mode = s; } catch (e) { /* 忽略 */ }
+    const note = $('#peNote', el);
+    const paint = () => {
+      $$('#peMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === mode));
+      drawPeRiver('peChart', river, mode);
+      if (note) {
+        note.innerHTML = river
+          ? `目前本益比 <b>${A.fmt.n(river.curPe, 1)}</b> 倍（近四季 EPS ${A.fmt.n(river.lastEps)} 元）`
+            + `　·　落在 <b style="color:${river.zone.c}">${river.zone.name}</b> 區`
+            + `　·　這一檔的歷史倍數帶：${river.mult.join(' / ')}`
+            + `　·　${mode === 'band' ? '色帶分區：顏色越紅代表市場給的評價越高' : '倍數線：線尾標的是本益比倍數'}`
+          : '這一檔還沒有四季連續財報（或近四季 EPS 是負的），河流圖算不出來。';
+      }
+    };
+    $$('#peMode button', el).forEach(b => b.onclick = () => {
+      mode = b.dataset.v;
+      try { localStorage.setItem('tw.periver', mode); } catch (e) { /* 忽略 */ }
+      paint();
+    });
+    paint();
   }
   function tabDividend(pg, el) {
     const dv = pg.dividends || {}; const ev = dv.events || [], rs = dv.results || [];
@@ -1166,5 +1325,17 @@
     lastClose: kchart && kchart.bars && kchart.bars.length ? kchart.bars[kchart.bars.length - 1][4] : null,
     paneH: kchart && kchart.paneHeights ? kchart.paneHeights() : null,
     // 驗收用：目前算出幾組背離
-    div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null }) };
+    div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null,
+    /* 驗收用：K 棒實際多寬、畫面上看得到幾根。
+       Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」—— 這兩個數字就是那件事的證據，
+       只驗「有畫出來」看不出棒子被壓成一條線。 */
+    barPx: kchart && kchart.chart ? +kchart.chart.timeScale().options().barSpacing.toFixed(2) : null,
+    barsTotal: kchart && kchart.data ? kchart.data.length : 0,
+    // 價格軸的上下界：K 棒被壓扁是「軸沒跟著週期重算」，不是棒子變窄
+    priceRange: kchart && kchart.priceRange ? kchart.priceRange() : null,
+    visibleBars: (() => {
+      if (!kchart || !kchart.chart) return null;
+      const r = kchart.chart.timeScale().getVisibleLogicalRange();
+      return r ? +(r.to - r.from).toFixed(1) : null;
+    })() }) };
 })();
