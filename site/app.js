@@ -410,7 +410,7 @@
     wireHowto($('#v-overview'));
     // 最上面三張大盤圖（加權 / 櫃買 / 台指期）。它自己去抓 mis 的當日分時，不等下面的 JSON。
     if (window.Market3) window.Market3.mount();
-    const [heat, gt, rot, cands, f3, th, trust, gval] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail')]);
+    const [heat, gt, rot, cands, f3, th, trust, gval] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail'), load('inst_streak', { fallback: {} })]);
     // hero
     const b = (heat && heat.breadth) || {};
     const mv = b.movers || {};
@@ -436,6 +436,7 @@
     renderCandidates(cands);
     renderBreadth(heat);
     renderTrust(trust, cands);
+    wireStreak(trust, cands);
     renderGval(gval, rot, gt);
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
@@ -981,29 +982,66 @@
   /* 投信連續買超：長條圖只講得出「買幾天」，講不出「買多少」。
      改成氣泡圖：橫軸＝連續天數、縱軸＝這段期間累計買超張數、泡泡大小＝累計張數。
      右上角那幾顆才是真的在收貨（買得久而且買得多），只買一天大單的不會跑到右邊。 */
+  /* 法人連續買超。Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
+     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」。
+     三種法人的資料在 `inst_streak`（投信/外資/合計各一份，門檻放寬到 2 天由前端篩）；
+     舊的 `trust_streak` 留著當退路，換版當下不會開天窗。 */
+  const streakState = { who: 'trust', days: 3 };
+  const STREAK_NAME = { trust: '投信', foreign: '外資', total: '三大法人合計' };
+
   function renderTrust(trust, cands) {
-    if (!trust || !trust.length) return empty('trust');
+    const all = D.inst_streak || {};
+    const src = (all[streakState.who] && all[streakState.who].length)
+      ? all[streakState.who]
+      : (streakState.who === 'trust' ? (trust || []) : []);
+    const rows0 = (src || []).filter(r => (r.streak_days || 0) >= streakState.days);
+    const sub = $('#streakSub');
+    if (sub) sub.textContent = `${STREAK_NAME[streakState.who]} ≥${streakState.days} 天 · ${rows0.length} 檔`;
+    if (!rows0.length) {
+      empty('trust', `${STREAK_NAME[streakState.who]}目前沒有連續買超 ${streakState.days} 天以上的股票`);
+      linkRow('trust', '');
+      return;
+    }
     const names = {}; (cands || []).forEach(c => { names[c.code] = c.name; });
     const nm = (code) => names[code] || L.cname[code] || code;
-    const rows = trust.slice(0, 26).map(r => ({ ...r, lots: (r.accumulated || 0) / 1000 }));
+    const rows = rows0.slice(0, 40).map(r => ({ ...r, lots: (r.accumulated || 0) / 1000 }));
     const maxLots = Math.max(...rows.map(r => Math.abs(r.lots)), 1);
+    const maxDay = Math.max(...rows.map(r => r.streak_days || 0), streakState.days + 1);
     const c = chart('trust', {
-      tooltip: { ...tip, formatter: q => `<b>${q.data.nm} ${q.data.code}</b><br>連續買超 <b>${q.value[0]}</b> 天<br>期間累計 <b>${fmt.lot(q.value[1])}</b><br>${q.data.g ? fmt.esc(q.data.g) + '<br>' : ''}<small>點一下進個股頁</small>` },
+      tooltip: { ...tip, formatter: q => `<b>${q.data.nm} ${q.data.code}</b><br>${STREAK_NAME[streakState.who]}連續買超 <b>${q.value[0]}</b> 天<br>期間累計 <b>${fmt.lot(q.value[1])}</b><br>${q.data.g ? fmt.esc(q.data.g) + '<br>' : ''}<small>點一下進個股頁</small>` },
       grid: { left: 62, right: 22, top: 26, bottom: 40 },
+      /* 縮放與平移不用 ECharts 的 dataZoom，用全站那一套 wheelZoom（見下面的 renderTrust 呼叫）。
+         dataZoom 的 inside 會把 wheel 事件吃掉，滑鼠停在圖上就捲不動頁面 ——
+         那正是 Andy 09-13 抱怨過、要我把其他圖的縮放拿掉的原因。
+         wheelZoom 在 1 倍時把 wheel 交還給頁面，放大後才攔，而且有「拖曳移動 · 雙擊還原」的徽章。 */
       xAxis: { ...axisStyle, name: '連續買超天數 →', nameLocation: 'middle', nameGap: 24,
-        nameTextStyle: { color: CH.ink3, fontSize: 11 }, min: 2, splitLine: { show: false } },
+        nameTextStyle: { color: CH.ink3, fontSize: 11 },
+        min: Math.max(0, streakState.days - 1), max: maxDay + 1, splitLine: { show: false } },
       yAxis: { ...axisStyle, name: '累計張數 ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 },
         scale: true, axisLabel: { formatter: v => fmt.lot(v) } },
       series: [{ type: 'scatter',
         data: rows.map(r => { const gid = L.cgroup[r.code];
           return { value: [r.streak_days, +r.lots.toFixed(0)], code: r.code, nm: nm(r.code), g: L.gname[gid],
             symbolSize: Math.max(10, Math.min(40, Math.sqrt(Math.abs(r.lots) / maxLots) * 40)),
-            itemStyle: { color: L.gcolor[gid] || '#ffb454', opacity: .85, borderColor: '#0a1020', borderWidth: 1 } }; }),
+            itemStyle: { color: L.gcolor[gid] || '#ffb454', opacity: .85, borderColor: CH.panel, borderWidth: 1 } }; }),
         label: { show: true, formatter: q => q.data.nm, position: 'top', color: CH.ink2, fontSize: 11 },
         labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' } }],
-    });
+    }, { notMerge: true });
     if (c) c.off('click').on('click', q => { if (q.data && q.data.code) goStock(q.data.code); });
+    // Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動」——
+    // 跟資金熱力圖同一套：滾輪放大、放大後拖曳、雙擊還原，1 倍時滾輪照常捲頁面
+    wheelZoom($('#trustWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#trust')); if (i) i.resize(); } });
     linkRow('trust', rows.slice(0, 12).map(r => L.stock(r.code, nm(r.code))).join(''));
+  }
+
+  function wireStreak(trust, cands) {
+    $$('#streakWho button').forEach(b => b.onclick = () => {
+      $$('#streakWho button').forEach(x => x.classList.toggle('on', x === b));
+      streakState.who = b.dataset.w; renderTrust(trust, cands);
+    });
+    const sel = $('#streakDays');
+    if (sel) { sel.value = String(streakState.days);
+      sel.onchange = () => { streakState.days = +sel.value; renderTrust(trust, cands); }; }
   }
 
   /* 族群估值：單看本益比高低沒有用（IC 設計本來就比航運貴）。
@@ -1282,7 +1320,16 @@
   function renderInstPeriod(p) {
     const gs = (p.groups || []).filter(g => g.foreign != null || g.trust != null || g.dealer != null)
       .map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }));
-    if (!gs.length) return empty('instGroups', '這個期間沒有法人資料');
+    /* 法人比價量晚落地（價量 15:30、法人 18:30），所以每個交易日下午「本週」這一段
+       會出現「價量有、法人還沒有」。以前只寫「這個期間沒有法人資料」，看起來像壞掉 ——
+       講清楚是還沒出，並告訴他上一段看得到。 */
+    if (!gs.length) {
+      const late = (D.meta || {}).inst_date && (D.meta || {}).data_date
+        && D.meta.inst_date < D.meta.data_date;
+      return empty('instGroups', late || (p.days || 0) <= 1
+        ? `${p.label || '這個期間'}的法人資料還沒出（價量 15:30 就有、三大法人要等 18:30 那輪），先看「上週」那一段`
+        : '這個期間沒有法人資料');
+    }
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
     const c = chart('instGroups', {
@@ -1485,8 +1532,8 @@
       <button class="btn small" id="themeBack">← 回題材總覽</button></div>
       <div class="kvs" style="margin:10px 0"><div class="k"><div class="l">熱度</div><div class="v" style="color:${t.heat >= 70 ? CH.up : CH.amber}">${t.heat}</div></div><div class="k"><div class="l">成交值佔比</div><div class="v">${fmt.n(t.share, 1)}%</div></div><div class="k"><div class="l">5 日 vs 60 日</div><div class="v ${fmt.cls(t.flow_z)}">${t.flow_z != null ? (t.flow_z > 0 ? '+' : '') + t.flow_z.toFixed(1) + 'σ' : '—'}</div></div><div class="k"><div class="l">法人 5 日</div><div class="v ${fmt.cls(t.inst5)}">${t.inst5 != null ? fmt.lot(t.inst5 / 1000) : '—'}</div></div><div class="k"><div class="l">新聞 7 天</div><div class="v">${t.news7}</div></div></div>
       <div id="themeSeries" class="chart short"></div></div>
-      <div class="card"><h3>成員 <small>依族群分組、組內依成交值；滑過任一列會亮出它在產品圖上的位置</small></h3><div class="tw cap-md"><table id="themeMembers"><thead><tr><th class="l">代號</th><th class="l">簡稱</th><th>漲跌</th><th>成交值</th><th>法人</th></tr></thead><tbody>${groups.map(g => `<tr class="ghead"><td class="l" colspan="5">${g.gid === '_' ? '<span class="muted">未分類</span>' : L.group(g.gid)} <span class="muted">${g.rows.length} 檔 · ${fmt.yi(g.turnover)}</span></td></tr>`
-      + g.rows.sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).map(m => `<tr data-code="${m.code}" onclick="goStock('${m.code}')"><td class="l mono">${m.code}</td><td class="l">${L.stock(m.code, m.name)}</td><td class="num ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct, 2)}</td><td class="num">${fmt.yi(m.turnover)}</td><td class="num ${fmt.cls(m.inst_net)}">${m.inst_net != null ? fmt.lot(m.inst_net / 1000) : '—'}</td></tr>`).join('')).join('')}</tbody></table></div>
+      <div class="card"><h3>成員 <small>依族群分組、組內依漲幅；滑過任一列會亮出它在產品圖上的位置</small></h3><div class="tw cap-md"><table id="themeMembers"><thead><tr><th class="l">代號</th><th class="l">簡稱</th><th>漲跌</th><th>成交值</th><th>法人</th></tr></thead><tbody>${groups.map(g => `<tr class="ghead"><td class="l" colspan="5">${g.gid === '_' ? '<span class="muted">未分類</span>' : L.group(g.gid)} <span class="muted">${g.rows.length} 檔 · ${fmt.yi(g.turnover)}</span></td></tr>`
+      + g.rows.sort((a, b) => (b.chg_pct == null ? -Infinity : b.chg_pct) - (a.chg_pct == null ? -Infinity : a.chg_pct)).map(m => `<tr data-code="${m.code}" onclick="goStock('${m.code}')"><td class="l mono">${m.code}</td><td class="l">${L.stock(m.code, m.name)}</td><td class="num ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct, 2)}</td><td class="num">${fmt.yi(m.turnover)}</td><td class="num ${fmt.cls(m.inst_net)}">${m.inst_net != null ? fmt.lot(m.inst_net / 1000) : '—'}</td></tr>`).join('')).join('')}</tbody></table></div>
       <div class="linkrow" style="margin-top:8px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div></div></div>
       ${dg ? `<div class="card" style="margin-top:16px"><div class="row spread"><h3>產品剖析圖 <small>上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></h3></div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div></div>` : ''}`;
@@ -1570,20 +1617,39 @@
       return isNaN(ms) ? String(i.date || '').slice(0, 10)
         : new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
     };
-    items.sort((a, b) => dt(b).localeCompare(dt(a)));
+    items.forEach(i => { i._d = dt(i); });
+    items.sort((a, b) => b._d.localeCompare(a._d));
     $('#evCount').textContent = items.length;
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });   // 'YYYY-MM-DD'
-    let cat = 'all';
+    /* 日期改成下拉選單（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」，
+       而且「保留前 1 個禮拜資訊」）。選項只列最近七天，每個後面帶那一天的筆數 ——
+       不然選到一個空日期只會看到「沒有這類事件」，不知道是選錯還是真的沒事。
+       日期選單跟著分類走：切到「券商」時，沒有券商目標價的那幾天就不該出現在選單裡。 */
+    const WEEK = 7;
+    const weekStart = (() => { const d = new Date(today + 'T00:00:00'); d.setDate(d.getDate() - (WEEK - 1)); return d.toLocaleDateString('sv-SE'); })();
+    const MD = (d) => d.slice(5).replace('-', '/');
+    let cat = 'all', pick = 'all';
+    const sel = $('#evDate');
     const draw = () => {
-      const list = items.filter(i => cat === 'all' || i.cat === cat);
-      const newest = list.map(dt).filter(Boolean).sort().pop() || '';
-      const ev = $('#evDate');
-      ev.textContent = !newest ? '—' : newest === today ? '今天 ' + newest : '最新 ' + newest;
-      ev.className = newest && newest < today ? 'muted stale' : 'muted';
-      ev.title = newest && newest < today ? `最新一則是 ${newest}，今天（${today}）還沒有新事件` : '';
-      $('#evList').innerHTML = list.slice(0, 80).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(dt(i))}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('') || '<div class="empty">沒有這類事件</div>';
+      const byCat = items.filter(i => cat === 'all' || i.cat === cat);
+      // 最近一週的日期（新到舊）；更早的仍留在「全部」裡，只是不單獨列一個選項
+      const cnt = new Map();
+      byCat.forEach(i => { if (i._d && i._d >= weekStart) cnt.set(i._d, (cnt.get(i._d) || 0) + 1); });
+      const days = [...cnt.keys()].sort().reverse();
+      if (pick !== 'all' && !cnt.has(pick)) pick = 'all';     // 換分類後那天沒東西了就退回全部
+      const newest = days[0] || (byCat[0] || {})._d || '';
+      sel.innerHTML = `<option value="all">全部（${byCat.length}）</option>`
+        + days.map(d => `<option value="${d}"${d === pick ? ' selected' : ''}>${d === today ? '今天 ' + MD(d) : MD(d)}（${cnt.get(d)}）</option>`).join('');
+      sel.value = pick;
+      const stale = !!newest && newest < today;
+      sel.className = 'minisel' + (stale ? ' stale' : '');
+      sel.title = stale ? `最新一則是 ${newest}，今天（${today}）還沒有新事件` : '選一天看那天發生什麼（保留最近一週）';
+      const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
+      $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || c, { cls: 'sm' })).join('')}</div></div>`).join('')
+        || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
     };
     $$('#evFilters button').forEach(b => b.onclick = () => { $$('#evFilters button').forEach(x => x.classList.toggle('on', x === b)); cat = b.dataset.c; draw(); });
+    sel.onchange = () => { pick = sel.value; draw(); };
     draw();
     /* 事件側欄要真的關得掉。手機用 .open 滑出來，桌機要靠 .layout.noside 把那一欄收掉 ——
        以前只 toggle .open，桌機按了完全沒反應，而且側欄佔掉 360px 讓候選表的六個欄位躲進捲軸。 */

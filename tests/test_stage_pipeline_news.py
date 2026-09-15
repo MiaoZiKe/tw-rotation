@@ -86,11 +86,16 @@ def test_news模式不動FinMind額度(monkeypatch, tmp_path):
     assert "finmind.financial_refresh" not in called
 
 
-def test_price模式仍然只抓價量(monkeypatch, tmp_path):
+def test_price模式抓價量與新聞但不碰傍晚才落地的來源(monkeypatch, tmp_path):
+    """15:30 那輪也要抓新聞（2026-09-15 起）：新聞整天都在更新，而且不吃 FinMind 額度。
+
+    法人、融資券、財報那些傍晚才出的仍然不抓 —— 硬抓只會把「還沒出」記成「沒回資料」。
+    """
     called = _run(monkeypatch, "price", tmp_path)
     assert "twse.price_daily" in called
-    assert "news.collect" not in called
+    assert "news.collect" in called
     assert "finmind.institutional" not in called
+    assert "tdcc.shareholding_weekly" not in called
 
 
 def test_full模式該抓的都抓(monkeypatch, tmp_path):

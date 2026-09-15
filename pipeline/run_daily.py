@@ -269,7 +269,13 @@ def main() -> int:
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
     if light:
-        log.info("phase=price：只抓價量，法人／融資券／財報／新聞等傍晚那輪再補")
+        # 新聞例外：它整天都在更新，而且是免費 RSS／JSON，不吃任何額度。
+        # 15:30 那輪不抓的話，事件側欄要等到 18:30 才會出現當天的新聞
+        # （Andy 2026-09-15：「事件需要同步更新今天發生的」）。
+        log.info("phase=price：抓價量與新聞，法人／融資券／財報等傍晚那輪再補")
+        news_df = step("news.collect", news.collect)
+        save("news", news_df)
+        save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
     elif news_only:
         # 週末：價量不會變，但新聞、國際盤（美股週五夜盤、歐股）、總經會變。
         # 只抓這三樣，不動 FinMind 額度、不去打那些週末本來就不更新的端點
@@ -314,6 +320,13 @@ def main() -> int:
         save("macro", step("macro.fred", macro.macro_all))
 
     # -------------------------------------------------- FinMind（耗額度，放最後）
+    # 大盤／櫃買／台指期的日 K（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）。
+    # Yahoo 的櫃買代號壞掉、台指期沒有代號，改走 FinMind；三支加起來只吃 3 次額度。
+    if not news_only and not args.skip_finmind:
+        since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
+        save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
+        save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
+
     if not light and not news_only and not args.skip_finmind and trade_date:
         codes = universe(args.universe)
         save("inst_daily", step("finmind.institutional",

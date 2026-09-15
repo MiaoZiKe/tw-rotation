@@ -213,32 +213,48 @@ def _market_return(market: pd.DataFrame | None, window: int) -> float:
     return r
 
 
-def trust_streak(inst_hist: pd.DataFrame, min_days: int = 3) -> pd.DataFrame:
-    """投信連續買超天數排行。
+#: 法人別 → inst_daily 的欄位。`total` 是三大法人合計。
+INST_COLS = {"trust": "trust", "foreign": "foreign_total", "total": None}
 
-    台股中期最有效的籌碼訊號之一：投信持續買代表法人真的在建倉，
-    而不是當沖或避險部位。
+
+def trust_streak(inst_hist: pd.DataFrame, min_days: int = 2,
+                 who: str = "trust") -> pd.DataFrame:
+    """法人連續買超天數排行。
+
+    台股中期最有效的籌碼訊號之一：法人持續買代表真的在建倉，而不是當沖或避險部位。
+
+    `who`：`trust` 投信、`foreign` 外資、`total` 三大法人合計
+    （Andy 2026-09-15：「還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）。
+    `min_days` 放寬到 2 —— 門檻由前端自己篩，這裡給得多一點前端才有得選。
     """
-    if inst_hist.empty or "trust" not in inst_hist.columns:
+    if inst_hist.empty:
         return pd.DataFrame()
 
     df = inst_hist.sort_values(["code", "date"]).copy()
-    df["buying"] = df["trust"] > 0
-    # 每檔股票各自從最新一天往回數連續買超
+    if who == "total":
+        cols = [c for c in ("foreign_total", "trust", "dealer") if c in df.columns]
+        if not cols:
+            return pd.DataFrame()
+        df["_net"] = df[cols].fillna(0).sum(axis=1)
+    else:
+        col = INST_COLS.get(who, "trust")
+        if col not in df.columns:
+            return pd.DataFrame()
+        df["_net"] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+
     rows = []
     for code, g in df.groupby("code"):
         g = g.sort_values("date")
         streak = 0
         total = 0.0
-        for buying, net in zip(reversed(g["buying"].tolist()),
-                               reversed(g["trust"].tolist())):
-            if not buying:
+        for net in reversed(g["_net"].tolist()):
+            if not (net > 0):
                 break
             streak += 1
             total += float(net or 0)
         if streak >= min_days:
             rows.append({"code": code, "streak_days": streak,
-                         "accumulated": total,
+                         "accumulated": total, "who": who,
                          "date": g["date"].iloc[-1]})
     out = pd.DataFrame(rows)
     return out.sort_values("streak_days", ascending=False) if not out.empty else out

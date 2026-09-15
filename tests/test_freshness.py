@@ -19,12 +19,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 EVENING_ONLY = [
     "twse.margin", "twse.company_info", "finmind.stock_info", "twse.revenue",
     "twse.financial", "twse.dividend", "twse.dividend_events",
-    "tdcc.shareholding", "news.collect", "macro.intl", "macro.fred",
+    "tdcc.shareholding", "macro.intl", "macro.fred",
     "finmind.institutional",
 ]
-# 不管哪一輪都要抓的（這就是「當天資料當天到」的最低限度）
+# 不管哪一輪都要抓的（這就是「當天資料當天到」的最低限度）。
+# news.collect 在 2026-09-15 從 EVENING_ONLY 移過來：新聞整天都在更新、又不吃額度，
+# 只在傍晚抓的話事件側欄要等到 18:30 才出現當天的新聞（Andy 回報「事件需要同步更新今天發生的」）。
 ALWAYS = ["twse.price_daily", "twse.valuation", "twse.index",
-          "twse.market", "tpex.price_daily"]
+          "twse.market", "tpex.price_daily", "news.collect"]
 
 
 def _price(date: str = "2026-09-11") -> pd.DataFrame:

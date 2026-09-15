@@ -118,7 +118,16 @@
       const seen = new Set(); return rows.filter(r => seen.has(r.code) ? false : (seen.add(r.code), true));
     };
     const COLS = [['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'], ['name', '簡稱', r => A.L.stock(r.code, r.name), 'l'], ['group_name', '族群', r => A.L.group(r.gid, r.group_name), 'l'], ['close', '收盤', r => `<span class="num" data-live="close" data-lc="${r.code}">${A.fmt.n(r.close)}</span>`], ['chg_pct', '漲跌', r => `<span class="num ${A.fmt.cls(r.chg_pct)}" data-live="chg" data-lc="${r.code}">${A.fmt.pct(r.chg_pct, 2)}</span>`], ['turnover', '成交值', r => `<span class="num">${A.fmt.yi(r.turnover)}</span>`], ['pe', '本益比', r => `<span class="num">${r.pe ? A.fmt.n(r.pe, 1) : '—'}</span>`], ['pe_percentile', '同業分位', r => `<span class="num">${r.pe_percentile != null ? A.fmt.n(r.pe_percentile, 0) + '%' : '—'}</span>`], ['momentum', '營運動能', r => `<span class="num">${r.momentum != null ? A.fmt.n(r.momentum, 0) : '—'}</span>`], ['foreign', '外資', r => `<span class="num ${A.fmt.cls(r.foreign)}">${r.foreign != null ? A.fmt.lot(r.foreign / 1000) : '—'}</span>`], ['trust', '投信', r => `<span class="num ${A.fmt.cls(r.trust)}">${r.trust != null ? A.fmt.lot(r.trust / 1000) : '—'}</span>`], ['grade', '技術判定', r => r.verdict ? `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' : ''}${r.verdict}</span>` : '<span class="muted">—</span>', 'l']];
-    let sort = { key: 'turnover', dir: -1 };
+    /* 成分股預設照漲幅排（Andy 2026-09-15：「族群 Default 排序適用漲幅」）。
+       以前預設是成交值，結果打開族群頁看到的永遠是那幾檔權值股，
+       今天真的在動的中小型股要自己按一次表頭才看得到。
+       按過表頭就記住，下次打開沿用他自己選的那一欄。 */
+    const SORT_KEY = 'tw.memberSort';
+    let sort = { key: 'chg_pct', dir: -1 };
+    try {
+      const s = JSON.parse(localStorage.getItem(SORT_KEY) || 'null');
+      if (s && s.key) sort = { key: s.key, dir: s.dir === 1 ? 1 : -1 };
+    } catch (e) { /* 忽略 */ }
     const renderMembers = () => {
       let rows = members(); rows.sort((a, b) => { const x = a[sort.key], y = b[sort.key]; if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * sort.dir; });
       const segTw = segFilter ? twOf(sc, segFilter) : [];
@@ -126,7 +135,11 @@
       $('#memberTable thead', el).innerHTML = '<tr>' + COLS.map(c => `<th class="${c[3] || ''}" data-k="${c[0]}">${c[1]}${sort.key === c[0] ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
       $('#memberTable tbody', el).innerHTML = rows.slice(0, 200).map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('')
         || `<tr><td colspan="12" class="l muted">${segFilter ? (segTw.length ? '這個環節的台股不在本鏈成分股裡：' + segTw.map(c => A.L.stock(c.tw_code, c.name)).join('　') : '這個環節目前沒有台股直接對應（' + foreignOf(sc, segFilter).map(c => c.name).join('、') + '），可看上方環節說明裡的相關族群') : '沒有符合的股票'}</td></tr>`;
-      $$('#memberTable th', el).forEach(th => th.onclick = () => { sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 }; renderMembers(); });
+      $$('#memberTable th', el).forEach(th => th.onclick = () => {
+        sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 };
+        try { localStorage.setItem(SORT_KEY, JSON.stringify(sort)); } catch (e) { /* 忽略 */ }
+        renderMembers();
+      });
       $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => { if (tr.dataset.code) A.goStock(tr.dataset.code); });
     };
     /* 點剖析圖上的零件只做「亮起來 + 在原地說明這個環節」，
@@ -710,7 +723,9 @@
         box.addEventListener('pointerup', () => setTimeout(() => {
           if (!kchart || !kchart.paneHeights) return;
           const h = kchart.paneHeights();
+          // 面板在還沒畫出來時 getHeight() 會回 0，那種讀數不能存（存了下次就把版面壓扁）
           if (!h || !h.main) return;
+          if (Object.keys(h).some(k => k !== 'main' && !h[k])) return;
           const before = JSON.stringify(cfg.paneH || {});
           if (JSON.stringify(h) === before) return;
           cfg.paneH = h; saveCfg(cfg);

@@ -1,6 +1,27 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-> ## 2026-09-14 傍晚：當天資料當天到位（第三批，接手看這段）
+> ## 2026-09-15：Andy 的六點回報（最新一批，接手看這段）
+>
+> Andy 09-15 一次講了六件事，全部做完（DECISIONS #136〜#141）：
+>
+> | # | 他說的 | 做了什麼 | 檔案 |
+> |---|---|---|---|
+> | 1 | 「底下每次更新都會動到我調整好的上下範圍會一直出現跳動」 | `applyIndicators()` 的高度還原改成**只在第一次建圖時**做（`_paneInit`）；存檔時拒絕副圖高度為 0 的讀值（背景分頁會量到 0） | `site/chart.js`、`site/industry.js` |
+> | 2 | 「成交量 MACD 這些指標上下間隔寬點」 | 非 compact 的預設高度：量 120／指標 150／間隔 145／主圖下限 260 | `site/chart.js` 的 `PH` |
+> | 3 | 「櫃買 台指期怎麼可能沒有日線數據」 | **他是對的**。Yahoo `^TWOII` 壞了、台指期沒代號，但 FinMind 三個都有完整歷史。新增資料表 `index_ohlc`（`TSE`/`OTC`/`FUT`），前端日／週／月／季全部改讀資料湖 | `pipeline/sources/finmind.py`、`config.py`、`run_daily.py`、`build_payload.py`、`site/market3.js` |
+> | 4 | 「投信買超圖可以縮放、游標抓取移動、切換買超週期、加外資與綜合」 | `flow.trust_streak(who=...)` 泛化成三種法人、門檻放寬到 2 天；payload 出 `inst_streak`；前端加三顆鈕＋天數下拉；縮放用 `App.wheelZoom()`（**不是** ECharts dataZoom，那會吃掉 wheel 害頁面捲不動） | `pipeline/compute/flow.py`、`build_payload.py`、`site/app.js`、`site/index.html` |
+> | 5 | 「事件要同步更新今天的、保留前一週、日期改清單選項」 | 新聞日期改台北時區；`--phase price` 也抓新聞、加開盤中兩輪（台北 09:00／12:00）；payload 從「每類 40 則」改成**保留 7 天**並砍掉用不到的欄位；`#evDate` 從純文字改成 `<select>` | `pipeline/sources/news.py`、`build_payload.py`、`run_daily.py`、`.github/workflows/daily.yml`、`site/app.js`、`site/index.html` |
+> | 6 | 「族群 Default 排序適用漲幅」 | 成分股預設 `chg_pct` 由高到低；按過表頭存 `tw.memberSort`；題材「成員」表組內也改漲幅 | `site/industry.js`、`site/app.js` |
+>
+> **新增的真人操作驗收**（`scripts/_uitest.py`）：`t_streak()` 切法人／切天數／滾輪放大／拖曳；
+> `t_market3()` 的歷史週期改驗「三張都有日線」而不是「櫃買說明為什麼沒有」（餵假的 `index_ohlc.json`，
+> 不受本機有沒有跑過管線影響）；`t_events()` 改驗下拉選單真的篩得動；
+> `t_industry()` 驗預設排序是漲幅、按表頭會記住；`t_stock()` 多驗「切指標／放著不動高度都不會自己跳回去」。
+>
+> **要注意**：`check_nozoom` 的名單把 `trustWrap` 拿掉了（那張現在**故意**可以縮放），
+> 改成跟資金熱力圖一樣走 `check_drag`。
+>
+> ## 2026-09-14 傍晚：當天資料當天到位（第三批）
 >
 > **這批做了什麼**（DECISIONS #115〜#118）
 > 1. **管線也從 `mis` 取當天價量**（`pipeline/sources/mis.py`）。openapi 落後一個交易日，

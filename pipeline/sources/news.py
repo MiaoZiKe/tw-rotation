@@ -12,9 +12,14 @@ from __future__ import annotations
 import hashlib
 import logging
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
+
+# 新聞的「今天」一律以台北時間為準。
+# 以前 cnyes 那邊直接拿 UTC 日期當 date，台北時間凌晨 0~8 點發的新聞會被記成前一天，
+# 事件側欄的「今天」就永遠少一批（Andy 2026-09-15：「事件需要同步更新今天發生的」）。
+TAIPEI = timezone(timedelta(hours=8))
 
 from .. import config
 from ..util import http
@@ -57,7 +62,7 @@ def cnyes(category: str = "tw_stock", limit: int = 60) -> pd.DataFrame:
     for it in items:
         ts = it.get("publishAt")
         try:
-            dt = datetime.fromtimestamp(int(ts), tz=timezone.utc)
+            dt = datetime.fromtimestamp(int(ts), tz=TAIPEI)
             published, day = dt.isoformat(), dt.date().isoformat()
         except (TypeError, ValueError):
             published, day = None, None
@@ -97,7 +102,9 @@ def _rss(url: str, source: str, category: str) -> pd.DataFrame:
         nid = f"{source}-" + hashlib.md5(link.encode()).hexdigest()[:16]
         day = None
         if getattr(e, "published_parsed", None):
-            day = datetime(*e.published_parsed[:3]).date().isoformat()
+            # feedparser 的 published_parsed 已經換算成 UTC，要再轉台北才是台股的「那一天」
+            day = (datetime(*e.published_parsed[:6], tzinfo=timezone.utc)
+                   .astimezone(TAIPEI).date().isoformat())
         tags = [t.get("term") for t in getattr(e, "tags", []) if t.get("term")]
         rows.append({
             "news_id": nid, "source": source, "category": category,

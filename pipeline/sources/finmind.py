@@ -498,3 +498,94 @@ def holding_history(code: str, start: str, *, wait: bool = True) -> pd.DataFrame
         "pct": pd.to_numeric(df.loc[keep].get("percent"), errors="coerce"),
     })
     return out.reset_index(drop=True)
+
+
+# ------------------------------------------------------------------ 大盤 / 櫃買 / 台指期日 K
+
+#: 這三個就是總覽最上面那三張卡。symbol 是我們自己的代號，data_id 是 FinMind 的。
+INDEX_IDS = {"TSE": "TAIEX", "OTC": "TPEx"}
+
+
+def index_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd.DataFrame:
+    """加權指數與櫃買指數的日 K。
+
+    為什麼需要這支（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）
+    ----------------------------------------------------------------------
+    總覽那三張圖的歷史週期原本走 Yahoo，但：
+      - 加權 `^TWII` 可以用
+      - 櫃買 `^TWOII` **已經壞掉**（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395）
+      - 台指期 Yahoo 根本沒有代號
+    FinMind 三個都有，而且欄位口徑跟個股日線一致（open/max/min/close/Trading_Volume/Trading_money）。
+    2026-09-15 實測 `TaiwanStockPrice` + `data_id=TPEx`：2026-08 起 31 筆、開高低收齊全。
+
+    一個 symbol 一次請求，兩個就是兩次 —— 對 600 次/小時的額度可以忽略。
+    """
+    rows = []
+    for symbol, data_id in INDEX_IDS.items():
+        data = http.finmind_get("TaiwanStockPrice", data_id=data_id,
+                                start_date=start, end_date=end,
+                                wait_when_exhausted=wait)
+        if not data:
+            log.warning("FinMind 沒有回 %s（%s）的指數日 K", symbol, data_id)
+            continue
+        df = pd.DataFrame(data)
+        if df.empty:
+            continue
+        rows.append(pd.DataFrame({
+            "date": df["date"].astype(str),
+            "symbol": symbol,
+            "open": pd.to_numeric(df.get("open"), errors="coerce"),
+            "high": pd.to_numeric(df.get("max"), errors="coerce"),
+            "low": pd.to_numeric(df.get("min"), errors="coerce"),
+            "close": pd.to_numeric(df.get("close"), errors="coerce"),
+            "change": pd.to_numeric(df.get("spread"), errors="coerce"),
+            "volume": pd.to_numeric(df.get("Trading_Volume"), errors="coerce"),
+            "turnover": pd.to_numeric(df.get("Trading_money"), errors="coerce"),
+        }))
+        log.info("FinMind 指數 %s：%d 筆", symbol, len(df))
+    if not rows:
+        return pd.DataFrame()
+    out = pd.concat(rows, ignore_index=True)
+    return out.dropna(subset=["close"])
+
+
+def futures_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd.DataFrame:
+    """台指期（TX）近月的日 K，symbol 固定是 'FUT'。
+
+    FinMind 的 `TaiwanFuturesDaily` 一天會回很多列，要挑對才不會畫出一條莫名其妙的線
+    （2026-09-15 實測 2026-09-14 那天有 32 列）：
+      - `trading_session`：`position`（一般交易）與 `after_market`（盤後）→ **只取 position**，
+        跟總覽那張即時圖的口徑一致（它畫的是一般交易時段）
+      - `contract_date`：除了單一月份（`202609`），還有價差組合（`202609/202610`）
+        → 帶 `/` 的全部丟掉，那是價差不是指數
+      - 剩下的月份裡取**成交量最大**的那一個 ＝ 近月
+        （2026-09-14：202609 量 94,885、202610 量 50,428）
+    """
+    data = http.finmind_get("TaiwanFuturesDaily", data_id="TX",
+                            start_date=start, end_date=end,
+                            wait_when_exhausted=wait)
+    if not data:
+        log.warning("FinMind 沒有回台指期日 K")
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty:
+        return df
+    df = df[df.get("trading_session").astype(str) == "position"]
+    df = df[~df.get("contract_date").astype(str).str.contains("/", na=False)]
+    for c in ("open", "max", "min", "close", "volume"):
+        df[c] = pd.to_numeric(df.get(c), errors="coerce")
+    df = df[(df["close"] > 0) & (df["volume"] > 0)]
+    if df.empty:
+        return pd.DataFrame()
+    # 每天留成交量最大的那個月份（＝近月）
+    df = df.sort_values(["date", "volume"]).groupby("date", as_index=False).last()
+    out = pd.DataFrame({
+        "date": df["date"].astype(str),
+        "symbol": "FUT",
+        "open": df["open"], "high": df["max"], "low": df["min"], "close": df["close"],
+        "change": pd.to_numeric(df.get("spread"), errors="coerce"),
+        "volume": df["volume"],
+        "turnover": pd.NA,
+    })
+    log.info("FinMind 台指期近月：%d 天", len(out))
+    return out.dropna(subset=["close"])

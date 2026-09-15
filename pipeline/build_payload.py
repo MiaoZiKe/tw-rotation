@@ -30,6 +30,17 @@ SLIM_PAGE_BARS = 1000     # 其餘有歷史的股票給 4 年
 # 從 150 拉到 400：Andy 回報「1 日以下的週期打開是空的」，大多是他看的股票不在前 150 名。
 # yfinance 每批 40 檔、批間停 1 秒，兩個 interval 共約 20 批，多出來的時間在盤後管線可以接受。
 INTRADAY_LIMIT = 400
+# 事件側欄保留幾天（日期下拉選單就是拿這一段的日期去產生的）
+NEWS_KEEP_DAYS = 7
+
+
+def _f(v):
+    """數字欄位轉 float；NaN／None 一律變 None（JSON 不吃 NaN）。"""
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return None if f != f else round(f, 4)
 
 
 def _clean(obj):
@@ -123,7 +134,14 @@ def build() -> None:
     _write("concentration", flow.concentration(group_hist).tail(120).to_dict("records"))
     _write("relative_strength",
            flow.relative_strength(group_hist, market).to_dict("records"))
-    _write("trust_streak", flow.trust_streak(inst).head(30).to_dict("records"))
+    # 三種法人各出一份（Andy 2026-09-15：「還要加上外資買超，以及綜合」）。
+    # min_days=2 是給前端篩的空間 —— 他要能自己選「連續幾天以上」。
+    streaks = {}
+    for who in ("trust", "foreign", "total"):
+        df_s = flow.trust_streak(inst, min_days=2, who=who)
+        streaks[who] = [] if df_s.empty else _clean(df_s.head(60).to_dict("records"))
+    _write("trust_streak", streaks.get("trust", []))      # 舊鍵留著，換版時不會開天窗
+    _write("inst_streak", streaks)
 
     # ---------------------------------------------------------- 市場體溫
     heat = {"date": latest}
@@ -262,6 +280,22 @@ def build() -> None:
     heat.update({"breadth": breadth})
     _write("market_heat", heat)
 
+    # ---------------------------------------------------------- 大盤三張圖的歷史日 K
+    # Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」。
+    # Yahoo 的 ^TWOII 壞掉、台指期沒有代號，所以改由 FinMind 存進資料湖再從這裡吐給前端。
+    # 前端的週／月／季是拿日線再合成的，所以這裡只給日線。
+    idx = store.read("index_ohlc")
+    out_idx: dict = {}
+    if not idx.empty:
+        idx = idx.dropna(subset=["date", "symbol", "close"]).sort_values("date")
+        for sym, g in idx.groupby("symbol"):
+            g = g.drop_duplicates("date", keep="last").tail(1300)
+            out_idx[str(sym)] = _clean([
+                [str(r.date), _f(r.open), _f(r.high), _f(r.low), _f(r.close), _f(r.volume)]
+                for r in g.itertuples(index=False)
+            ])
+    _write("index_ohlc", out_idx)
+
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
     try:
         _write("flow_v3", {
@@ -289,14 +323,36 @@ def build() -> None:
         _write("industry_map", {"date": latest, "chains": [], "industries": [], "segments_pe": {}})
 
     # ---------------------------------------------------------- 新聞
+    # 事件側欄要能「選日期看那天發生什麼」，所以留整整一週而不是每類各 40 則
+    # （Andy 2026-09-15：「事件需要同步更新今天發生的，但保留前一個禮拜資訊」）。
+    # published_at 兩種格式混在一起（鉅亨是 ISO、RSS 是 RFC 2822），
+    # 直接拿字串排序會變成照星期幾的英文字母排 —— 一律先 parse 成時間再排。
     news_df = store.read("news")
     if not news_df.empty:
         if "category" not in news_df.columns:
             news_df["category"] = "台股"
-        news_df = news_df.sort_values("published_at", ascending=False)
-        recent = pd.concat([g.head(40) for _, g in news_df.groupby("category")],
-                           ignore_index=True)
-        _write("news", recent.to_dict("records"))
+        ts = pd.to_datetime(news_df.get("published_at"), errors="coerce", utc=True, format="mixed")
+        fallback = pd.to_datetime(news_df.get("date"), errors="coerce", utc=True)
+        news_df = news_df.assign(_ts=ts.fillna(fallback))
+        news_df = news_df.sort_values("_ts", ascending=False, na_position="last")
+        newest = news_df["_ts"].max()
+        keep = pd.Series(True, index=news_df.index)
+        if pd.notna(newest):
+            # 以「最新一則」往回推七天，而不是用執行當下的時間：
+            # 抓不到新聞的那幾輪才不會把側欄清空
+            keep = news_df["_ts"] >= (newest - pd.Timedelta(days=NEWS_KEEP_DAYS))
+        week = news_df[keep]
+        # 週內筆數過少（例如剛回補完、或某一類本來就冷門）時，每類至少補到 40 則
+        floor = pd.concat([g.head(40) for _, g in news_df.groupby("category")], ignore_index=False)
+        recent = (pd.concat([week, floor])
+                  .drop_duplicates("news_id")
+                  .sort_values("_ts", ascending=False, na_position="last")
+                  .drop(columns=["_ts"]))
+        # 一週的量是原本每類 40 則的四倍多，而 news.json 每頁都會載入 ——
+        # 把前端用不到的欄位（summary 每則最多 600 字、keywords）砍掉，體積才不會跟著翻倍
+        cols = [c for c in ("news_id", "category", "date", "published_at",
+                            "title", "url", "codes", "source") if c in recent.columns]
+        _write("news", recent[cols].to_dict("records"))
     else:
         _write("news", [])
 
@@ -363,6 +419,9 @@ def meta_payload(latest: str, history_days: int) -> dict:
 
     tbl = store.table_summary().to_dict("records")
     px_latest = next((t.get("latest") for t in tbl if t.get("table") == "price_daily"), None)
+    # 三大法人比價量晚一輪落地（價量 15:30、法人 18:30）。
+    # 前端要分得出「法人還沒出」與「法人掛了」，不然每個交易日下午的法人圖看起來都像壞掉。
+    inst_latest = next((t.get("latest") for t in tbl if t.get("table") == "inst_daily"), None)
 
     # 畫面上這一天的價量是不是 mis 補的暫定值（openapi 還沒給官方資料）。
     # 開高低收是準的，但成交量是盤中口徑、不含盤後定價交易，逐檔少 0.5%～15%
@@ -373,6 +432,7 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "status": "ok",
         "data_date": latest,
         "price_latest": px_latest,
+        "inst_date": inst_latest,
         "provisional": provisional,
         "price_ahead_of_payload": bool(px_latest and latest and str(px_latest) > str(latest)),
         "history_days": history_days,

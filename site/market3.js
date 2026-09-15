@@ -40,10 +40,8 @@
     //（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395），
     // 台指期則沒有免費來源 —— 這兩個只有「當天即時」，選到歷史週期時畫面會說清楚為什麼。
     { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII' },
-    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null,
-      noHist: 'Yahoo 的櫃買指數（^TWOII）已經停止更新，最後一筆停在 2026-07-17，而且現價是錯的；沒有其他免費的櫃買歷史 OHLC 可用。櫃買目前只有「當天即時」那幾個週期。' },
-    { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null,
-      noHist: '台指期沒有免費的歷史 K 線來源（Yahoo 沒有台指期代號）。目前只有「當天即時」那幾個週期。' },
+    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null },
+    { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null },
   ];
   // 交易時段（台北）。留白到收盤，才看得出「現在走到哪」。
   const SESSION = {
@@ -54,13 +52,17 @@
      即時那組是 mis 的當日分時檔自己合成的；歷史那組是 Yahoo 的 ^TWII。
      4 小時與季 K 是拿 1 小時 / 月線再合成的（Yahoo 沒有這兩個原生週期）。 */
   const TFS = [1, 5, 15, 30];                        // 當天即時的分鐘週期（相容舊的 tw.m3.tf）
+  /* 日／週／月／季都從 `site/data/index_ohlc.json` 來 —— 那是管線用 FinMind 存進資料湖的
+     （TaiwanStockPrice 的 TAIEX / TPEx 與 TaiwanFuturesDaily 的 TX 近月）。
+     Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」—— 對，Yahoo 那條壞了不代表沒有別條。
+     只有「1 小時 / 4 小時」還是走 Yahoo，因為那是日線合成不出來的週期，而且只有加權有。 */
   const HIST = [
-    { id: 'H1', label: '1 小時', iv: '60m', range: '3mo', group: 1 },
-    { id: 'H4', label: '4 小時', iv: '60m', range: '1y', group: 4 },
-    { id: 'D', label: '日 K', iv: '1d', range: '5y' },
-    { id: 'W', label: '週 K', iv: '1d', range: 'max', roll: 'W' },
-    { id: 'M', label: '月 K', iv: '1mo', range: 'max' },
-    { id: 'Q', label: '季 K', iv: '1mo', range: 'max', group: 3 },
+    { id: 'H1', label: '1 小時', iv: '60m', range: '3mo', group: 1, yahooOnly: true },
+    { id: 'H4', label: '4 小時', iv: '60m', range: '1y', group: 4, yahooOnly: true },
+    { id: 'D', label: '日 K', lake: true },
+    { id: 'W', label: '週 K', lake: true, roll: 'W' },
+    { id: 'M', label: '月 K', lake: true, roll: 'M' },
+    { id: 'Q', label: '季 K', lake: true, roll: 'M', group: 3 },
   ];
   const histDef = (id) => HIST.filter(h => h.id === id)[0] || null;
   /** 存進 localStorage 的值可能是舊版的數字，也可能是新的歷史週期代號。 */
@@ -168,10 +170,30 @@
     draw();
   }
 
-  /** Yahoo 的歷史 K。只有加權（^TWII）有；櫃買與台指期沒有免費來源（見 IDX 的註解）。 */
+  /** 歷史 K。日／週／月／季走資料湖（index_ohlc.json）；1 小時／4 小時走 Yahoo（只有加權有）。 */
   async function fetchHist(x, def) {
     const key = x.id + '|' + def.id;
     if (state.hist[key] || state.histBusy[key]) return;
+    if (def.lake) {
+      state.histBusy[key] = true;
+      try {
+        const A = window.App;
+        const all = await A.load('index_ohlc', { fallback: {} });
+        let bars = (all && all[x.id]) || [];
+        if (!bars.length) throw new Error('NOLAKE');
+        bars = bars.map(b => b.slice());
+        if (def.roll) bars = rollLake(bars, def.roll);
+        if (def.group > 1) bars = groupBars(bars, def.group);
+        state.hist[key] = bars;
+        state.histErr[key] = '';
+      } catch (e) {
+        state.histErr[key] = String(e.message || e);
+      } finally {
+        state.histBusy[key] = false;
+        draw();
+      }
+      return;
+    }
     if (!x.yahoo) { state.histErr[key] = 'NOSRC'; return; }
     const base = proxy();
     if (!base) { state.histErr[key] = '還沒設定即時來源'; return; }
@@ -214,6 +236,12 @@
     }
     return out;
   }
+  /** 資料湖的日線（日期是 'YYYY-MM-DD' 字串）→ 週／月。直接用個股頁那一套，口徑才會一致。 */
+  function rollLake(bars, mode) {
+    return (window.KUtil && window.KUtil.resampleDaily)
+      ? window.KUtil.resampleDaily(bars, mode) : bars;
+  }
+
   /** 日線 → 週線（以該週第一個交易日標示，與個股頁的 resampleDaily 同口徑）。 */
   function rollWeek(bars) {
     const out = []; let cur = null, key = null;
@@ -323,7 +351,7 @@
       note.textContent = state.mode !== 'k'
         ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
         : histDef(state.tf)
-        ? '歷史 K 來自 Yahoo 的加權指數（^TWII）；4 小時與季 K 是拿 1 小時／月線再合成的。櫃買與台指期沒有免費的歷史來源，選到歷史週期時卡片上會說明。'
+        ? '日／週／月／季來自資料湖（FinMind：加權 TAIEX、櫃買 TPEx、台指期 TX 近月），週月季是拿日線合成的；1 小時／4 小時走 Yahoo，只有加權有。'
         : '分 K 由每分鐘指數收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。指標與個股共用同一組設定。';
     }
     grid.classList.toggle('big', !!state.big);
@@ -478,12 +506,13 @@
         killK(x.id); el.dataset.kind = '';
         if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
         el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
-          err === 'NOSRC' ? (x.noHist || '這個指數沒有歷史 K 線來源')
-          : err === 'NOCHART' ? 'Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會有歷史 K 線。'
+          err === 'NOLAKE' ? `${x.name}的歷史日 K 還沒進資料湖 —— 下一輪每日管線跑完（台北 15:30 / 18:30 / 21:30）就會有。`
+          : err === 'NOSRC' ? `${x.name}沒有 1 小時／4 小時這種週期的免費來源（那是日線合成不出來的）。日／週／月／季可以看。`
+          : err === 'NOCHART' ? 'Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會有 1 小時／4 小時。'
           : '抓不到歷史 K：' + err) : err}</div>`;
         return;
       }
-      tfName = def.iv === '1mo' || def.iv === '1d' ? '1d' : def.id === 'H4' ? '240m' : '60m';
+      tfName = def.lake ? '1d' : def.id === 'H4' ? '240m' : '60m';
     } else {
       bars = toBars(d.points, +state.tf);
       tfName = state.tf + 'm';

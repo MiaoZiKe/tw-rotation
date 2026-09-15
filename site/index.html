@@ -108,8 +108,10 @@ small{font-size:12.5px}
   border-radius:9px;cursor:pointer;font-size:14px;white-space:nowrap}
 .evbtn.theme{padding:7px 10px;font-size:15px;line-height:1}
 .evbtn.theme:hover{color:var(--ink);border-color:var(--cyan)}
-/* 事件側欄的日期：清單裡最新一則不是今天就用琥珀色提醒，不是預設的灰 */
-#evDate.stale{color:var(--amber)}
+/* 事件側欄的日期改成下拉選單（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」）。
+   清單裡最新一則不是今天就用琥珀色提醒，不是預設的灰。 */
+#evDate{max-width:150px}
+#evDate.stale{color:var(--amber);border-color:var(--amber)}
 
 /* ---------------- 盤中即時（live.js） ---------------- */
 .livebox{position:relative;display:flex;align-items:center;gap:6px}
@@ -400,6 +402,10 @@ tr.whyrow>td{padding:2px 10px 10px;border-top:0}
 #m3{margin-bottom:16px}
 .m3-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .m3-bar .note{flex:1;min-width:200px}
+.seg.tiny button{padding:3px 8px;font-size:12.5px}
+.minisel{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;
+  padding:4px 7px;font-size:12.5px;font-family:inherit;cursor:pointer}
+.minisel:hover{border-color:var(--cyan)}
 .m3-tfsel{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-3)}
 .m3-tfsel select{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:9px;
   padding:5px 9px;font-size:13.5px;font-family:inherit;cursor:pointer}
@@ -739,8 +745,15 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     <div class="grid g3" style="margin-top:16px">
       <div class="card"><h3>市場寬度</h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
-      <div class="card"><h3>投信連續買超 <small>≥3 天</small></h3>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div></div>
+      <div class="card"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
+        <div class="row" style="gap:6px">
+          <div class="seg tiny" id="streakWho"><button data-w="trust" class="on">投信</button><button data-w="foreign">外資</button><button data-w="total">合計</button></div>
+          <select class="minisel" id="streakDays" title="連續買超天數門檻">
+            <option value="2">≥2 天</option><option value="3" selected>≥3 天</option>
+            <option value="5">≥5 天</option><option value="8">≥8 天</option><option value="12">≥12 天</option></select>
+        </div></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div>
+        <div class="note" style="margin-top:6px">滾輪放大、放大後拖曳移動、雙擊還原；點泡泡進個股頁。</div></div>
       <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3>
         <div id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
@@ -867,7 +880,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 </main>
 
 <aside id="side">
-  <div class="side-h"><h3>今日事件</h3><div class="row"><span class="muted" id="evDate"></span><button class="close" id="evClose">×</button></div></div>
+  <div class="side-h"><h3>今日事件</h3><div class="row"><select class="minisel" id="evDate" title="選一天看那天發生什麼（保留最近一週）"></select><button class="close" id="evClose">×</button></div></div>
   <div class="side-filters" id="evFilters"><button data-c="all" class="on">全部</button><button data-c="台股">台股</button><button data-c="科技">科技</button><button data-c="總經">總經</button><button data-c="券商">券商</button></div>
   <div id="evList"></div>
 </aside>

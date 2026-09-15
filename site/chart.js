@@ -489,8 +489,11 @@
          以前主圖高度寫死「至少 280px」，放進 230px 的小卡就會整個爆出去 ——
          成交量被擠成一條線、指標面板空白、面板標題跑到卡片外面。 */
       const PH = this.opts.compact
-        ? { vol: 52, ind: 58, gap: 60, min: 110 }
-        : { vol: 90, ind: 110, gap: 105, min: 280 };
+        ? { vol: 52, ind: 58, min: 110 }
+        // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
+        // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
+        // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
+        : { vol: 100, ind: 120, min: 260 };
       const c = this.data.map(d => d.close), h = this.data.map(d => d.high), l = this.data.map(d => d.low), v = this.data.map(d => d.volume);
       this.values = {};
       // 均線：條數、週期、顏色、粗細都吃 cfg（Andy 2026-09-12「線寬 均線數量 數字 顏色 粗細都要能調」）
@@ -504,24 +507,24 @@
         this.overlays.push(this._line(b.up, cc, 0, y.w, { lineStyle: 2 }));
         this.overlays.push(this._line(b.mid, cc, 0, y.w));
         this.overlays.push(this._line(b.low, cc, 0, y.w, { lineStyle: 2 })); }
-      let pane = 1; this.paneIndex = {};
+      let pane = 1; this.paneIndex = {}; const want = [0];
       const ref = (series, price, color) => series.createPriceLine({ price, color, lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: '' });
       if (cfg.vol) {
         const y = st('vol', { c: '#ff4d6d', c2: '#2ee59d', o: 55 });
         this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? col(y.c, y.o) : col(y.c2, y.o)), pane)];
         if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, '#ffd166', pane, y.w)); }
-        this.paneIndex.vol = pane; this._paneH(pane, PH.vol); pane++; }
+        this.paneIndex.vol = pane; want[pane] = PH.vol; pane++; }
       if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k;
         const y = st('kd', { c: C.k, c2: C.d });
         this.panes.kd = [this._line(k.k, col(y.c, y.o), pane, y.w), this._line(k.d, col(y.c2, y.o), pane, y.w)];
         ref(this.panes.kd[0], 80, 'rgba(255,77,109,.35)'); ref(this.panes.kd[0], 20, 'rgba(46,229,157,.35)');
-        this.paneIndex.kd = pane; this._paneH(pane, PH.ind); pane++; }
+        this.paneIndex.kd = pane; want[pane] = PH.ind; pane++; }
       this.divergences = { top: [], bottom: [] };
       if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m;
         const y = st('macd', { c: C.dif, c2: C.dea });
         this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)), pane),
           this._line(m.dif, col(y.c, y.o), pane, y.w), this._line(m.dea, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; this._paneH(pane, PH.ind); pane++;
+        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; want[pane] = PH.ind; pane++;
         /* 背離（Andy 2026-09-15：「是很好的訊號」）。預設開，cfg.macdDiv === false 才關。
            主圖畫價格的那兩個轉折點，MACD 面板畫 DIF 的那兩點 —— 兩條線一起看才看得出「背」在哪。 */
         if (cfg.macdDiv !== false) {
@@ -547,22 +550,50 @@
         const y = st('rsi', { c: C.rsi });
         this.panes.rsi = [this._line(r, col(y.c, y.o), pane, y.w)];
         ref(this.panes.rsi[0], 70, 'rgba(255,77,109,.35)'); ref(this.panes.rsi[0], 30, 'rgba(46,229,157,.35)');
-        this.paneIndex.rsi = pane; this._paneH(pane, PH.ind); pane++; }
-      this._paneH(0, Math.max(PH.min, this.el.clientHeight - (pane - 1) * PH.gap - 20));
-      // 使用者自己拖過的高度優先（cfg.paneH 由 savePaneHeights() 寫進設定）
-      const saved = cfg.paneH;
+        this.paneIndex.rsi = pane; want[pane] = PH.ind; pane++; }
+      /* 使用者自己拖過的高度優先。
+         ★ 只在「這張圖第一次套指標」時做一次。
+         Andy 2026-09-15：「底下每次更新都會動到我調整好的上下範圍會一直出現跳動，很麻煩」——
+         盤中每 5 秒就會重跑一次 applyIndicators，每次都重套一遍等於把他拖好的位置一直重設。
+         重建圖表（換股票／換週期）時 _paneInit 會是 undefined，那時才套。 */
+      const saved = this._paneInit ? null : cfg.paneH;
+      this._paneInit = true;
       if (saved && !this.opts.compact) {
-        const ps = this.chart.panes();
+        // 副圖用存檔的高度，主圖自動吃剩下的 —— 那本來就是他拖出來的結果
         Object.keys(this.paneIndex).forEach(k => {
           const h = saved[k];
-          const i = this.paneIndex[k];
-          if (h > 30 && ps[i]) ps[i].setHeight(h);
+          if (h > 30) want[this.paneIndex[k]] = h;
         });
-        if (saved.main > 60 && ps[0]) ps[0].setHeight(saved.main);
       }
+      this._applyPaneHeights(want, PH);
       setTimeout(() => this._layoutLabels(), 30);
     }
-    _paneH(i, h) { const ps = this.chart.panes(); if (ps[i]) ps[i].setHeight(h); }
+    /* 面板高度一次全部套上去。
+       ★ 不可以逐一呼叫 `pane.setHeight()`。Lightweight Charts 的 `setHeight` 內部是
+       「把目標面板設成這個高度，剩下的差額平均分給其他面板」，而且它讀的是**上一次排版後**的高度 ——
+       同一輪裡連續呼叫四次，後面三次看到的都還是最初的那組數字，等於把前面的設定一次次抹掉，
+       最後一次（主圖）又把所有副圖推回原狀。2026-09-15 量到的後果：
+       `PH.vol = 120 / PH.ind = 150` 寫了等於沒寫，實際是主圖 610、量與 KD、MACD 各 57 —— 就是 Andy 說的「太窄」。
+       改用 stretch factor：它是相對值，圖表高度 × 自己的權重 ÷ 權重總和，一次設完就是最終比例，
+       不受排版時機影響。權重直接用「想要的像素」，加起來剛好等於圖表高度時就是所見即所得。 */
+    _applyPaneHeights(want, PH) {
+      const ps = this.chart.panes();
+      if (!ps || ps.length < 2) return;
+      /* 基準高度用容器的 clientHeight，不是 `sum(pane.getHeight())`。
+         後者在 applyIndicators 執行的當下常常還是上一次排版的值（實測 813px 的容器量到 1464），
+         算出來的主圖權重就會偏大 —— 症狀是副圖比例對、但全部被壓扁（實測 64/80/80 而不是 120/150/150）。 */
+      const total = (this.el.clientHeight > 120 ? this.el.clientHeight : 0)
+        || ps.reduce((s, p) => s + (p.getHeight() || 0), 0) || 600;
+      const subs = [];
+      for (let i = 1; i < ps.length; i++) subs.push(Math.max(30, want[i] || PH.ind));
+      let used = subs.reduce((s, h) => s + h, 0);
+      // 副圖總高度不能把主圖擠沒了；擠到了就等比縮小副圖
+      const room = Math.max(60, total - PH.min);
+      if (used > room) { const k = room / used; for (let i = 0; i < subs.length; i++) subs[i] = Math.max(30, subs[i] * k); used = room; }
+      const main = Math.max(PH.min, total - used);
+      ps[0].setStretchFactor(main);
+      for (let i = 1; i < ps.length; i++) ps[i].setStretchFactor(subs[i - 1]);
+    }
     /** 目前每個面板的高度，形狀是 {main, vol, kd, macd, rsi}。拖完存起來下次沿用。 */
     paneHeights() {
       const ps = this.chart.panes();

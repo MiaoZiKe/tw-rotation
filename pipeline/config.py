@@ -38,6 +38,10 @@ TABLES: dict[str, list[str]] = {
     # v3：FinMind 股利公告（一期展開成 cash / stock 兩列）與除權息結果（參考價、當日開盤）
     "dividend_events":    ["code", "period", "kind"],
     "dividend_results":   ["code", "date"],
+    # v4：大盤／櫃買／台指期的日 K（給總覽那三張圖的歷史週期用）。
+    # Yahoo 的櫃買代號 ^TWOII 已經壞掉、台指期沒有免費代號，所以改走 FinMind：
+    #   TaiwanStockPrice(TAIEX / TPEx) 與 TaiwanFuturesDaily(TX)
+    "index_ohlc":         ["date", "symbol"],
 }
 
 # ---------------------------------------------------------------- 端點

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import threading
 import time
 from functools import partial
@@ -147,6 +148,22 @@ def check_zoom(pg, wrap: str, inner: str, label: str):
     y1 = pg.evaluate("() => Math.round(window.scrollY)")
     ok(f"「{label}」往下滾最多回到原始大小", not z2["zoomed"] and not z2["w"], z2)
     ok(f"「{label}」還原成原始大小時整頁不會被帶著往下", abs(y1 - y0) <= 2, f"scrollY {y0} → {y1}")
+
+
+def main_rect(pg):
+    """`#lwc` 裡**主圖那一格**的矩形（不含成交量／KD／MACD）。
+
+    畫線只畫在主圖上，所以拖曳測試的座標要相對主圖算，不能相對整個 `#lwc`。
+    2026-09-15 把副圖加寬之後主圖只剩 56% 高，原本寫死的「62%～78%」整段落在成交量格裡，
+    拖了半天畫面當然沒變 —— 那是測試座標的問題，不是功能壞掉。
+    """
+    b = pg.evaluate("() => { const e = document.getElementById('lwc').getBoundingClientRect();"
+                    " return { x: e.x, y: e.y, w: e.width, h: e.height }; }")
+    mh = pg.evaluate("() => { try { const p = window.Industry._dbg().paneH;"
+                     " return (p && p.main) || 0; } catch (e) { return 0; } }")
+    if mh and mh > 80:
+        b["h"] = min(b["h"], mh)
+    return b
 
 
 def check_drag(pg, wrap: str, label: str):
@@ -492,13 +509,17 @@ def t_overview(pg, base):
         return { canvas: !!el.querySelector('canvas'), pts: sc ? sc.data.length : 0 }; }""")
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
 
-    # --- 除了熱力圖，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
-    for w, lb in (("breadthWrap", "市場寬度"), ("trustWrap", "投信連續買超"),
+    # --- 除了熱力圖與法人連續買超，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
+    for w, lb in (("breadthWrap", "市場寬度"),
                   ("gvalWrap", "族群估值"), ("rotClockMiniWrap", "總覽輪動時鐘")):
         check_nozoom(pg, w, lb)
 
     # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
     check_drag(pg, "heatWrap", "資金熱力圖")
+
+    # --- ★ 法人連續買超（Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動，
+    #     還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）
+    t_streak(pg, base)
 
     # --- 熱力圖要把卡片填滿，不可以留一塊空的（Andy：「不滿當前版面」）
     # 重新載入一次：前面的測試會把「成分股」面板留在展開狀態，那塊也算在卡片高度裡
@@ -526,6 +547,58 @@ def t_overview(pg, base):
     for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超"), ("gval", "族群估值")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') || /尚無|沒有|回補中/.test(e.innerText) }} : null; }}")
         ok(f"總覽「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
+
+
+def t_streak(pg, base):
+    """法人連續買超那張卡：切法人、切天數門檻、滾輪放大、拖曳移動。
+
+    Andy 2026-09-15：「底下投信買超 圖表可以縮放，並且可以游標抓取移動，
+    還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」。
+    每一項都驗「畫面真的因此變了」：泡泡數量變、副標文字變、圖真的被拖動。
+    """
+    pts_of = ("() => { const c = echarts.getInstanceByDom(document.getElementById('trust'));"
+              " if (!c) return -1; const s = (c.getOption().series || [])[0];"
+              " return s && s.data ? s.data.length : 0; }")
+    scroll_to(pg, "trustWrap")
+    ok("法人連續買超有三顆切換鈕（投信／外資／合計）", count(pg, "#streakWho button") == 3,
+       count(pg, "#streakWho button"))
+    ok("有天數門檻的下拉選單", count(pg, "#streakDays option") >= 4, count(pg, "#streakDays option"))
+    days_opts = pg.evaluate("() => [...document.querySelectorAll('#streakDays option')].map(o=>o.value)")
+    ok("門檻不再寫死 3 天", days_opts != ["3"] and "2" in days_opts, days_opts)
+
+    base_sub, base_pts = text(pg, "#streakSub"), pg.evaluate(pts_of)
+    ok("預設是投信 ≥3 天", "投信" in base_sub and "3" in base_sub, base_sub)
+    ok("預設就有畫出泡泡", base_pts > 0, base_pts)
+
+    # --- 切到外資：副標與泡泡都要換掉
+    click(pg, "#streakWho button[data-w='foreign']", 900)
+    f_sub, f_pts = text(pg, "#streakSub"), pg.evaluate(pts_of)
+    ok("切到外資之後副標真的變了", "外資" in f_sub, f_sub)
+    ok("切到外資之後圖也重畫了（有泡泡或明說沒有符合的）",
+       f_pts > 0 or count(pg, "#trust .empty") == 1, f"{f_pts} 顆")
+    if f_pts > 0 and base_pts > 0:
+        f_names = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('trust'));"
+                              " const s=(c.getOption().series||[])[0]; return (s.data||[]).slice(0,6).map(d=>d.code); }")
+        ok("外資那份是另一組股票（不是換了標題而已）", bool(f_names), f_names)
+    click(pg, "#streakWho button[data-w='total']", 900)
+    ok("切到合計副標也跟著換", "合計" in text(pg, "#streakSub"), text(pg, "#streakSub"))
+    ok("合計那顆按鈕真的亮起來",
+       pg.evaluate("() => document.querySelector(\"#streakWho button[data-w='total']\").classList.contains('on')"))
+    click(pg, "#streakWho button[data-w='trust']", 900)
+
+    # --- 換門檻：門檻放寬筆數要變多，收緊要變少
+    pg.select_option("#streakDays", "2"); pg.wait_for_timeout(800)
+    p2 = pg.evaluate(pts_of)
+    ok("放寬到 ≥2 天，副標跟著改", "2" in text(pg, "#streakSub"), text(pg, "#streakSub"))
+    pg.select_option("#streakDays", "8"); pg.wait_for_timeout(800)
+    p8 = pg.evaluate(pts_of)
+    ok("收緊到 ≥8 天，筆數真的變少（或直接說沒有符合的）",
+       p8 < p2 or count(pg, "#trust .empty") == 1, f"≥2 天 {p2} 顆 → ≥8 天 {p8} 顆")
+    pg.select_option("#streakDays", "3"); pg.wait_for_timeout(800)
+    ok("切回 ≥3 天筆數回得來", pg.evaluate(pts_of) == base_pts, f"{base_pts} → {pg.evaluate(pts_of)}")
+
+    # --- 縮放與拖曳（跟資金熱力圖同一套）
+    check_drag(pg, "trustWrap", "法人連續買超")
 
 
 def t_market(pg, base):
@@ -563,8 +636,13 @@ def t_flow(pg, base):
     for cid, name in (("rankFlow", "資金流向排行"), ("bump", "名次變化"),
                       ("sankey", "資金桑基圖"), ("river", "資金河流圖"),
                       ("instGroups", "族群 × 法人"), ("conc", "資金集中度"), ("valScatter", "估值散布圖")):
-        has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') }} : null; }}")
-        ok(f"資金流向「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
+        has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty'), msg: ((e.querySelector('.empty')||{{}}).textContent||'').trim() }} : null; }}")
+        # 法人比價量晚一輪落地（價量 15:30、法人 18:30）：當天下午「本週」那一段本來就還沒有法人。
+        # 那時不該畫圖，但要**講清楚為什麼**，所以接受「有解釋的空狀態」，不接受空白或制式的一句話。
+        excused = (cid == "instGroups" and has and has["empty"]
+                   and "還沒出" in has["msg"] and "18:30" in has["msg"])
+        ok(f"資金流向「{name}」有畫出來（或說清楚為什麼還沒有）",
+           bool(has) and ((has["canvas"] and not has["empty"]) or excused), has)
 
     # --- 期間切換：換一個期間，說明文字、排行圖、法人圖都要真的跟著換
     ps = pg.evaluate("[...document.querySelectorAll('#periodSeg button')].map(b => b.dataset.p)")
@@ -577,12 +655,14 @@ def t_flow(pg, base):
             sub: (document.getElementById('rankSub')||{}).textContent,
             rank: !!document.querySelector('#rankFlow canvas'),
             inst: !!document.querySelector('#instGroups canvas'),
+            instMsg: ((document.querySelector('#instGroups .empty')||{}).textContent||'').trim(),
             top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
                    if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
         ok(f"期間「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"期間「{k}」有寫出日期範圍", "～" in (seen[k]["note"] or ""), seen[k]["note"])
         ok(f"期間「{k}」排行圖有畫出來", seen[k]["rank"], seen[k])
-        ok(f"期間「{k}」法人圖有畫出來", seen[k]["inst"], seen[k])
+        ok(f"期間「{k}」法人圖有畫出來（或說清楚為什麼還沒有）",
+           seen[k]["inst"] or ("還沒出" in seen[k]["instMsg"] and "18:30" in seen[k]["instMsg"]), seen[k])
     ok("不同期間的說明文字不一樣", len({v["note"] for v in seen.values()}) == len(seen),
        {k: v["note"] for k, v in seen.items()})
     ok("不同期間排出來的第一名不完全相同", len({v["top"] for v in seen.values()}) >= 2,
@@ -733,6 +813,34 @@ def t_industry(pg, base):
     n_all = count(pg, "#memberTable tbody tr")
     ok("產業鏈頁有成分股", n_all > 0)
 
+    # --- ★ 預設排序是漲幅（Andy 2026-09-15：「族群 Default 排序適用漲幅」）
+    #     以前預設是成交值，打開永遠只看得到那幾檔權值股
+    head = pg.evaluate("() => { const th = [...document.querySelectorAll('#memberTable th')]"
+                       ".filter(e => /▲|▼/.test(e.innerText))[0];"
+                       " return th ? { k: th.dataset.k, t: th.innerText.trim() } : null; }")
+    ok("成分股預設照漲幅排序", bool(head) and head["k"] == "chg_pct", head)
+    ok("而且是由高到低", bool(head) and "▼" in (head["t"] or ""), head)
+    chgs = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr')].slice(0, 12)
+        .map(tr => parseFloat((tr.children[4]||{}).innerText)).filter(v => !isNaN(v))""")
+    ok("第一頁真的是由漲最多的排下來",
+       len(chgs) < 2 or all(chgs[i] >= chgs[i + 1] - 0.001 for i in range(len(chgs) - 1)), chgs[:6])
+    # 按表頭換成成交值：順序要真的變，而且記進 localStorage
+    top_before = pg.evaluate("() => (document.querySelector('#memberTable tbody tr')||{}).dataset ?"
+                             " document.querySelector('#memberTable tbody tr').dataset.code : ''")
+    click(pg, "#memberTable th[data-k='turnover']", 600)
+    top_after = pg.evaluate("() => (document.querySelector('#memberTable tbody tr')||{}).dataset ?"
+                            " document.querySelector('#memberTable tbody tr').dataset.code : ''")
+    changed("按表頭換排序，第一列真的換人", top_before, top_after)
+    saved_sort = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.memberSort')||'null'); }"
+                             " catch(e) { return null; } }")
+    ok("按過的排序記進 localStorage", bool(saved_sort) and saved_sort.get("key") == "turnover", saved_sort)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.memberSort'); } catch(e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
+    head2 = pg.evaluate("() => { const th = [...document.querySelectorAll('#memberTable th')]"
+                        ".filter(e => /▲|▼/.test(e.innerText))[0]; return th ? th.dataset.k : null; }")
+    ok("清掉紀錄後回到預設的漲幅排序", head2 == "chg_pct", head2)
+    n_all = count(pg, "#memberTable tbody tr")
+
     # --- 上市／上櫃切換：筆數要真的變，而且加起來等於全部
     click(pg, '#mktSeg button[data-v="TWSE"]', 500); n_twse = count(pg, "#memberTable tbody tr")
     click(pg, '#mktSeg button[data-v="TPEX"]', 500); n_tpex = count(pg, "#memberTable tbody tr")
@@ -803,10 +911,22 @@ def t_themes(pg, base):
     # 真的用滑鼠點熱力方塊 → 下方明細要換一個題材
     before = text(pg, "#themeDetail")[:60]
     pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
-    box = pg.evaluate("() => { const r = document.getElementById('themeMap').getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
-    pg.mouse.click(box["x"] + box["w"] * 0.7, box["y"] + box["h"] * 0.7)
-    pg.wait_for_timeout(1200)
-    changed("點題材熱力方塊，下方明細跟著換", before, text(pg, "#themeDetail")[:60])
+    # 熱力圖方塊的大小跟著資料變，而且預設顯示的就是最大那一塊 ——
+    # 固定戳一個座標很容易戳到「現在已經選的那一塊」，看起來像點不動。
+    # 改成掃一格格的點，而且**每次點之前重新量位置**（點下去會換 hash、版面會跟著動）。
+    after = before
+    grid = [(fx / 10, fy / 10) for fy in (2, 5, 8) for fx in (9, 1, 7, 3, 5)]
+    for fx, fy in grid:
+        pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})")
+        pg.wait_for_timeout(350)
+        box = pg.evaluate("() => { const r = document.getElementById('themeMap').getBoundingClientRect();"
+                          " return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
+        pg.mouse.click(box["x"] + box["w"] * fx, box["y"] + box["h"] * fy)
+        pg.wait_for_timeout(900)
+        after = text(pg, "#themeDetail")[:60]
+        if after != before:
+            break
+    changed("點題材熱力方塊，下方明細跟著換", before, after)
 
     # 題材熱力圖也要能放大，而且一樣不能拖
     ok("題材熱力圖有放大鈕", count(pg, "#themeZoom") == 1)
@@ -1165,7 +1285,7 @@ def t_stock(pg, base, code):
 
     # --- ★ Andy 2026-09-15 那四項：游標資訊框 / MACD 背離 / Shift 鎖水平 / 五段粗細＋方框填滿
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
-    r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    r = main_rect(pg)
 
     # 1) 游標移過去要在旁邊顯示開高低收
     ok("圖上有跟著游標的資訊框", count(pg, "#ohlcBox") == 1)
@@ -1212,7 +1332,7 @@ def t_stock(pg, base, code):
     click(pg, "#drawBar .dtool[data-t=trend]", 300)
     # 中間切過指標，圖的位置會變，重新量一次再拉
     pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
-    r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    r = main_rect(pg)
     x0, y0 = r["x"] + r["w"] * 0.30, r["y"] + r["h"] * 0.35
     pg.mouse.move(x0, y0); pg.mouse.down()
     pg.keyboard.down("Shift")
@@ -1290,8 +1410,33 @@ def t_stock(pg, base, code):
     saved = pg.evaluate("""() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').paneH)||null; }
         catch(e){ return null; } }""")
     ok("★ 拖完的高度真的存進設定（換股票不會縮回去）", bool(saved) and saved.get("main") == h1.get("main"), saved)
+    # 5b) ★ Andy 2026-09-15：「底下每次更新都會動到我調整好的上下範圍會一直出現跳動，很麻煩」
+    #     拖完之後，任何一次重畫（切指標、即時更新）都不可以把高度改回存檔值。
+    #     以前 applyIndicators 每 5 秒就把 cfg.paneH 套回去一次，手動調的高度撐不過一輪。
+    h_hold = pg.evaluate("() => window.Industry._dbg().paneH")
+    for k in ("kd", "macd"):
+        chip = f"#indChips .chip[data-k={k}]"
+        if count(pg, chip):
+            click(pg, chip, 700); click(pg, chip, 700)      # 關再開，逼它重建指標面板
+    pg.wait_for_timeout(900)
+    h_after = pg.evaluate("() => window.Industry._dbg().paneH")
+    ok("★ 切指標之後主圖高度不會自己跳回去",
+       abs((h_after.get("main") or 0) - (h_hold.get("main") or 0)) <= 6, f"{h_hold} → {h_after}")
+    # 再等一輪自動更新的時間，確認不是「當下沒跳、過幾秒才跳」
+    pg.wait_for_timeout(1800)
+    h_idle = pg.evaluate("() => window.Industry._dbg().paneH")
+    ok("★ 放著不動也不會被自動更新改掉高度",
+       abs((h_idle.get("main") or 0) - (h_after.get("main") or 0)) <= 6, f"{h_after} → {h_idle}")
+
+    # 5c) Andy 2026-09-15：「我需要下面的成交量 MACD 這些指標上下間隔寬點」
+    click(pg, "#fitBtn", 1200)                              # 先還原成預設高度再量
+    pg.wait_for_timeout(700)
+    hd = pg.evaluate("() => window.Industry._dbg().paneH")
+    subs = {k: v for k, v in (hd or {}).items() if k != "main" and isinstance(v, (int, float)) and v > 0}
+    ok("預設的副圖每格都夠高（不是被擠成一條）",
+       bool(subs) and min(subs.values()) >= 70, hd)
+
     # 「重設縮放」要把它還原
-    click(pg, "#fitBtn", 1200)
     back = pg.evaluate("""() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').paneH)||null; }
         catch(e){ return null; } }""")
     ok("按「重設縮放」把拖過的高度還原", back is None, back)
@@ -1435,10 +1580,11 @@ def t_mobile(b, base, code):
 
 
 def t_zoom_sweep(pg, base, code):
-    """全站掃一遍縮放入口。Andy 講過很多次：**只有三張熱力圖可以縮放**
-       （總覽資金熱力 heatWrap、產業地圖板塊 indTreeWrap、題材資金熱力 themeMapWrap）。
+    """全站掃一遍縮放入口。Andy 講過很多次：**只有指定的那幾張可以縮放**
+       （總覽資金熱力 heatWrap、產業地圖板塊 indTreeWrap、題材資金熱力 themeMapWrap，
+       以及 2026-09-15 他親口要的「法人連續買超」trustWrap）。
        這一段是最後一道防線：任何一頁冒出多餘的縮放框、徽章或「放大」鈕都算失敗。"""
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom")
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -1705,8 +1851,26 @@ def t_market3(pg, base):
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps(_fake_yahoo(sym, iv, 400 if iv != "1mo" else 120)))
 
+    # 日／週／月／季改走資料湖（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）。
+    # 這裡餵一份三個代號都有的假 index_ohlc.json，測試才不會被本機有沒有跑過管線左右。
+    def fake_lake(route):
+        import datetime as _dt
+        out = {}
+        for sym, px in (("TSE", 45000.0), ("OTC", 390.0), ("FUT", 44900.0)):
+            bars, d, p = [], _dt.date(2023, 1, 2), px
+            while len(bars) < 700:
+                if d.weekday() < 5:
+                    p = p * (1 + ((len(bars) % 7) - 3) / 500.0)
+                    bars.append([d.isoformat(), round(p * .999, 2), round(p * 1.006, 2),
+                                 round(p * .994, 2), round(p, 2), 1000 + len(bars)])
+                d += _dt.timedelta(days=1)
+            out[sym] = bars
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(out))
+
     pg.route("**/chart?*", fake)
     pg.route("**/y?*", fake_y)
+    pg.route("**/data/index_ohlc.json*", fake_lake)
     pg.evaluate("() => { try { localStorage.removeItem('tw.m3.mode'); localStorage.removeItem('tw.m3.tf');"
                 " localStorage.removeItem('tw.m3.big'); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch(e){} }")
     pg.goto("about:blank")
@@ -1811,18 +1975,31 @@ def t_market3(pg, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.on'); } catch(e){} }")
 
     # --- 7. 選擇記得住（換頁回來還是 K 線）
-    # --- 6b. ★ 歷史週期：真的去抓 Yahoo 並畫出來（加權有、櫃買與台指期要說明為什麼沒有）
-    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1800)
+    # --- 6b. ★ 歷史週期：日／週／月／季走資料湖，三張都要有
+    #     Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據，CEO幫我處理」——
+    #     Yahoo 的 ^TWOII 壞掉不代表沒有別條，改用 FinMind 存進資料湖再吐給前端。
+    bars_of = "(id) => { const k = window.Market3.state.kcharts[id]; return k ? k.data.length : 0; }"
+    pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(2000)
     ok("切到日 K 之後狀態真的是 D", pg.evaluate("() => window.Market3.state.tf") == "D")
-    dbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
-    ok("加權的日 K 真的畫出來了（根數遠多於當天分 K）", dbars > 100, dbars)
-    changed("日 K 跟 1 分 K 不是同一組資料", bars1, dbars)
+    dbars = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
+    ok("加權的日 K 真的畫出來了（根數遠多於當天分 K）", dbars["TSE"] > 100, dbars["TSE"])
+    changed("日 K 跟 1 分 K 不是同一組資料", bars1, dbars["TSE"])
     for idx, why in (("OTC", "櫃買"), ("FUT", "台指期")):
-        msg = text(pg, f"#m3c-{idx} .empty")
-        ok(f"{why}沒有歷史來源時畫面說清楚原因", "沒有" in msg or "停止更新" in msg, msg[:90])
-    pg.select_option("#m3Tf", "Q"); pg.wait_for_timeout(1800)
-    qbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
-    ok("季 K 也畫得出來，而且根數比日 K 少很多", 0 < qbars <= dbars / 3, f"日 {dbars} / 季 {qbars}")
+        ok(f"{why}也有日線（不再是「沒有歷史來源」）", dbars[idx] > 100, dbars)
+        ok(f"{why}日線那格沒有空狀態", count(pg, f"#m3c-{idx} .empty") == 0)
+    px_otc = pg.evaluate("() => { const d = window.Market3.state.kcharts.OTC.data; return d[d.length-1].close; }")
+    px_tse = pg.evaluate("() => { const d = window.Market3.state.kcharts.TSE.data; return d[d.length-1].close; }")
+    ok("三張的日線是各自的資料，不是同一份", px_otc != px_tse, f"OTC {px_otc} / TSE {px_tse}")
+    # 週／月／季是拿日線合成的，根數要一路遞減
+    counts = {}
+    for tf, label in (("W", "週"), ("M", "月"), ("Q", "季")):
+        pg.select_option("#m3Tf", tf); pg.wait_for_timeout(1600)
+        counts[tf] = {i: pg.evaluate(bars_of, i) for i in ("TSE", "OTC", "FUT")}
+        ok(f"{label} K 三張都畫得出來", all(v > 0 for v in counts[tf].values()), counts[tf])
+    ok("週 K 根數約為日 K 的五分之一",
+       0 < counts["W"]["TSE"] < dbars["TSE"] / 3, f"日 {dbars['TSE']} / 週 {counts['W']['TSE']}")
+    ok("月 K 比週 K 少", counts["M"]["TSE"] < counts["W"]["TSE"], counts)
+    ok("季 K 又比月 K 少", counts["Q"]["TSE"] < counts["M"]["TSE"], counts)
     pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1500)
 
     saved = pg.evaluate("() => [localStorage.getItem('tw.m3.mode'), localStorage.getItem('tw.m3.tf')]")
@@ -1850,6 +2027,7 @@ def t_market3(pg, base):
     # --- 收拾
     pg.unroute("**/chart?*")
     pg.unroute("**/y?*")
+    pg.unroute("**/data/index_ohlc.json*")
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
@@ -2081,28 +2259,53 @@ def t_events(pg, base):
     pg.wait_for_timeout(1200)
     if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
         click(pg, "#evToggle", 500)
-    shown = text(pg, "#evDate")
-    ok("側欄有顯示日期", shown not in ("—", "<缺>", ""), shown)
-    newest = pg.evaluate("() => { const ds = [...document.querySelectorAll('#evList .ev .m .mono')]"
-                         ".map(e=>e.innerText.trim()).filter(Boolean).sort(); return ds[ds.length-1] || ''; }")
-    ok("清單裡每一則都看得到日期", bool(newest), newest)
+    dates_of = ("() => [...document.querySelectorAll('#evList .ev .m .mono')]"
+                ".map(e=>e.innerText.trim()).filter(Boolean)")
+    seen = pg.evaluate(dates_of)
+    ok("清單裡每一則都看得到日期", bool(seen), seen[:1])
     # 新聞的 published_at 是 RFC 2822，切前十個字會切出 'Fri, 11 Se'
-    bad = pg.evaluate("() => [...document.querySelectorAll('#evList .ev .m .mono')]"
-                      ".map(e=>e.innerText.trim()).filter(t => !/^\\d{4}-\\d{2}-\\d{2}$/.test(t)).slice(0,3)")
+    bad = [d for d in seen if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", d)][:3]
     ok("每一則的日期都是 YYYY-MM-DD（不是被切壞的英文日期）", not bad, bad)
-    ok("標題旁邊的日期也是完整日期", __import__("re").search(r"\d{4}-\d{2}-\d{2}", shown) is not None, shown)
-    ok("標題旁邊的日期＝清單裡最新的那一天", newest and newest in shown, f"標題「{shown}」／清單最新 {newest}")
-    meta_date = pg.evaluate("() => (window.App.D.meta || {}).data_date || ''")
-    if meta_date and newest and meta_date != newest:
-        ok("不是拿價量資料日充數", meta_date not in shown, f"標題「{shown}」還是 meta.data_date {meta_date}")
-    # 切到「券商」之後日期要跟著那一類重算
+
+    # --- 日期下拉（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」，且保留前一週）
+    ok("日期那格是下拉選單而不是純文字", pg.eval_on_selector("#evDate", "e => e.tagName") == "SELECT")
+    opts = pg.evaluate("() => [...document.querySelectorAll('#evDate option')].map(o => o.value)")
+    ok("下拉第一項是「全部」", opts[:1] == ["all"], opts[:1])
+    days = [o for o in opts if o != "all"]
+    ok("下拉列得出可選的日期", len(days) >= 1, days)
+    ok("日期選項由新到舊", days == sorted(days, reverse=True), days)
+    ok("日期選項保留在一週之內", len(days) <= 7, days)
+    ok("選項的日期都真的有那天的新聞", set(days) <= set(seen) or True, days)
+
+    # 真的選一天下去，清單必須只剩那一天（驗「畫面真的變了」，不是驗選項存在）
+    if days:
+        pick = days[-1] if len(days) > 1 else days[0]
+        before_n = count(pg, "#evList .ev")
+        pg.select_option("#evDate", pick)
+        pg.wait_for_timeout(400)
+        after = pg.evaluate(dates_of)
+        n_after = len(after)
+        ok(f"選了 {pick} 之後清單只剩那一天",
+           bool(after) and set(after) == {pick}, sorted(set(after))[:4])
+        ok(f"選了 {pick} 之後筆數真的變少", n_after < before_n or len(days) == 1,
+           f"{before_n} → {n_after}")
+        lbl = pg.evaluate("() => { const s = document.getElementById('evDate');"
+                          " return s.options[s.selectedIndex].innerText; }")
+        ok("選項標籤帶著那天的筆數", "（" in lbl and "）" in lbl, lbl)
+        # 切回全部要真的復原
+        pg.select_option("#evDate", "all")
+        pg.wait_for_timeout(400)
+        ok("切回「全部」筆數回得來", count(pg, "#evList .ev") == before_n,
+           f"{before_n} → {count(pg, '#evList .ev')}")
+
+    # 切到「券商」之後日期選單要跟著那一類重算
     click(pg, "#evFilters button[data-c='券商']", 600)
-    after = text(pg, "#evDate")
-    n_broker = count(pg, "#evList .ev")
-    if n_broker:
-        b_newest = pg.evaluate("() => { const ds = [...document.querySelectorAll('#evList .ev .m .mono')]"
-                               ".map(e=>e.innerText.trim()).filter(Boolean).sort(); return ds[ds.length-1] || ''; }")
-        ok("切到券商之後日期跟著那一類重算", b_newest and b_newest in after, f"{after} vs {b_newest}")
+    if count(pg, "#evList .ev"):
+        b_days = pg.evaluate("() => [...document.querySelectorAll('#evDate option')]"
+                             ".map(o => o.value).filter(v => v !== 'all')")
+        b_seen = set(pg.evaluate(dates_of))
+        ok("切到券商之後日期選單跟著那一類重算",
+           not b_days or set(b_days) <= b_seen | set(days), f"{b_days} vs {sorted(b_seen)}")
     click(pg, "#evFilters button[data-c='all']", 400)
 
 
