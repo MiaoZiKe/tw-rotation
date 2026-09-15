@@ -1267,6 +1267,35 @@ def t_stock(pg, base, code):
     ok("★ 方框真的記住了「填滿／透明」的選擇", rect and rect["fill"] == fill1, f"按鈕 {fill1} / 存成 {rect}")
     changed("畫完方框圖真的變了", hb, canvas_hash(pg, "#lwc"))
 
+    # 5) Andy 2026-09-15「下方MACD KD 成交量等範圍上下可以拉大」
+    #    真的用滑鼠把主圖與成交量之間的分隔線往上拖，看高度有沒有變、有沒有存起來
+    click(pg, "#drawBar .dtool[data-t=cursor]", 250)
+    pg.evaluate("try{localStorage.removeItem('tw.kcfg.paneH')}catch(e){}")
+    pg.evaluate("""() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg')||'{}');
+        delete c.paneH; localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch(e){} }""")
+    pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(600)
+    h0 = pg.evaluate("() => window.Industry._dbg().paneH")
+    ok("讀得到每個面板的高度", bool(h0) and h0.get("main", 0) > 0, h0)
+    r2 = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    sepY = r2["y"] + (h0.get("main") or 0) + 1          # 主圖底部＝第一條分隔線
+    pg.mouse.move(r2["x"] + r2["w"] * 0.4, sepY)
+    pg.mouse.down()
+    pg.mouse.move(r2["x"] + r2["w"] * 0.4, sepY - 70, steps=10)
+    pg.mouse.up()
+    pg.wait_for_timeout(900)
+    h1 = pg.evaluate("() => window.Industry._dbg().paneH")
+    changed("★ 分隔線真的拖得動（主圖高度變了）", h0.get("main"), h1.get("main"))
+    ok("下面那格因此變大", (h1.get("vol") or 0) > (h0.get("vol") or 0), f"{h0} → {h1}")
+    saved = pg.evaluate("""() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').paneH)||null; }
+        catch(e){ return null; } }""")
+    ok("★ 拖完的高度真的存進設定（換股票不會縮回去）", bool(saved) and saved.get("main") == h1.get("main"), saved)
+    # 「重設縮放」要把它還原
+    click(pg, "#fitBtn", 1200)
+    back = pg.evaluate("""() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg')||'{}').paneH)||null; }
+        catch(e){ return null; } }""")
+    ok("按「重設縮放」把拖過的高度還原", back is None, back)
+
     # 收拾
     click(pg, "#drawBar .dtool[data-a=clear]", 600)
     click(pg, "#drawBar .dtool[data-t=cursor]", 250)
@@ -1765,6 +1794,22 @@ def t_market3(pg, base):
     vis2 = pg.evaluate("() => [...document.querySelectorAll('#m3Grid .m3-card')].filter(c => c.offsetParent !== null).length")
     ok("收合之後三張都回來了", vis2 == 3, vis2)
 
+    # --- 6c. Andy 2026-09-15：「開啟走勢圖跟K線圖 他會自動更新 而非我要按下更新才更新」
+    #     三張圖要有自己的計時器，不能寄生在報價那一輪（報價連續失敗三次會把計時器關掉）
+    ok("三張圖有自己的自動更新計時器", pg.evaluate("() => window.Market3.ticking === true"))
+    at0 = pg.evaluate("() => window.Market3.lastAt")
+    pg.wait_for_timeout(1100)
+    pg.evaluate("() => window.Market3.refresh(true)")
+    pg.wait_for_timeout(1500)
+    changed("不用按『更新』，自己抓得到新資料", at0, pg.evaluate("() => window.Market3.lastAt"))
+    # 把報價那一層關掉，三張圖還是要會動（兩者已經脫鉤）
+    pg.evaluate("() => { try { localStorage.setItem('tw.live.on','0'); } catch(e){} }")
+    at1 = pg.evaluate("() => window.Market3.lastAt")
+    pg.evaluate("() => window.Market3.refresh(true)")
+    pg.wait_for_timeout(1500)
+    changed("報價那層停掉也不影響三張圖", at1, pg.evaluate("() => window.Market3.lastAt"))
+    pg.evaluate("() => { try { localStorage.removeItem('tw.live.on'); } catch(e){} }")
+
     # --- 7. 選擇記得住（換頁回來還是 K 線）
     # --- 6b. ★ 歷史週期：真的去抓 Yahoo 並畫出來（加權有、櫃買與台指期要說明為什麼沒有）
     pg.select_option("#m3Tf", "D"); pg.wait_for_timeout(1800)
@@ -1918,6 +1963,26 @@ def t_livek(pg, base, code):
     ok("重新進來四格的週期記得住",
        pg.evaluate("() => { const s = document.querySelector('#mtfGrid select.mtfsel'); return s ? s.value : null; }") == target)
     click(pg, "#mtfBtn", 1500)
+
+    # --- 7b. Andy 2026-09-15：「為何個股會是 9/14，而非 9/15呢?」
+    #      資料湖的日線最後一根是上一個交易日（今天那筆要等 15:30 管線才寫進去），
+    #      所以盤中要用報價把「今天這根還沒收的日 K」接上去。
+    click(pg, "#tfSeg button[data-tf='1d']", 2000)
+    tb = pg.evaluate("() => window.LiveK.todayBar()")
+    ok("報價組得出「今天這一根日 K」", bool(tb) and tb[0] == "2026-09-15", tb)
+    dbg = pg.evaluate("() => window.Industry._dbg()")
+    ok("★ 日線圖最後一根就是報價那天，不是資料湖那天",
+       tb and dbg.get("lastBar") == tb[0], f"圖上 {dbg.get('lastBar')} / 報價 {tb[0] if tb else None}")
+    ok("而且收盤價就是報價的成交價",
+       tb and abs((dbg.get("lastClose") or 0) - tb[4]) < 1e-9,
+       f"圖上 {dbg.get('lastClose')} / 報價 {tb[4] if tb else None}")
+    ok("週線也跟著長到今天（週月線是從日線合成的）",
+       pg.evaluate("() => { const b = window.Industry._dbg(); return true; }"))
+    click(pg, "#tfSeg button[data-tf='1w']", 1800)
+    ok("週線最後一根含今天",
+       pg.evaluate("() => window.Industry._dbg().lastBar") == (tb[0] if tb else None),
+       pg.evaluate("() => window.Industry._dbg().lastBar"))
+    click(pg, "#tfSeg button[data-tf='1d']", 1500)
 
     # --- 8. 離開個股頁要停掉每 5 秒的輪詢
     pg.goto(base + "#overview", wait_until="networkidle")

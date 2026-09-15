@@ -49,6 +49,7 @@
     histTried: false, histErr: '',
     timer: null, busy: false, fails: 0,
     lastAt: 0, lastErr: '', prevClose: null, name: '',
+    today: null,      // 今天這一根日 K（直接來自報價的 o/h/l/z/v，見 todayBar()）
     subs: [],
   };
 
@@ -166,6 +167,24 @@
     state.name = m.n || state.name;
     if (state.prevClose == null) state.prevClose = num(m.y);
     const cv = num(m.v) || 0;                        // 累計成交張數
+    /* 今天這一根日 K。
+       Andy 2026-09-15：「為何個股會是 9/14，而非 9/15呢? 我的目的就是要即時訊息」——
+       個股頁的日線來自資料湖，而資料湖今天這一筆要等 15:30 那輪管線才會寫進去，
+       所以盤中打開個股頁，最後一根永遠是昨天。
+       但報價本身就帶著今天的開高低收與累計量（o/h/l/z、v），拿來當「今天這根還沒收的日 K」剛剛好。 */
+    const d8 = String(m.d || '').trim();
+    if (d8.length === 8) {
+      const o = num(m.o), hi = num(m.h), lo = num(m.l);
+      state.today = {
+        date: `${d8.slice(0, 4)}-${d8.slice(4, 6)}-${d8.slice(6)}`,
+        o: o == null ? p : o,
+        h: hi == null ? p : Math.max(hi, p),
+        l: lo == null ? p : Math.min(lo, p),
+        c: p,
+        v: cv * 1000,                                // 張 → 股，跟日線其他地方同口徑
+        prev: num(m.y),
+      };
+    }
     const last = state.ticks[state.ticks.length - 1];
     // 同一個 5 秒格只留最後一筆（報價沒動的時候不要疊出一堆一樣的點）
     if (last && Math.floor(last.s / 5) === Math.floor(ts / 5)) {
@@ -180,7 +199,7 @@
   function save() {
     if (!state.code) return;
     ls.set(KEY(today(), state.code), JSON.stringify({
-      t: state.ticks, y: state.prevClose, n: state.name,
+      t: state.ticks, y: state.prevClose, n: state.name, d: state.today,
     }));
   }
   function load() {
@@ -189,6 +208,7 @@
       if (!raw) return;
       const o = JSON.parse(raw);
       if (Array.isArray(o.t)) state.ticks = o.t;
+      if (o.d) state.today = o.d;
       if (state.prevClose == null) state.prevClose = o.y ?? null;
       state.name = state.name || o.n || '';
     } catch (e) { /* 壞掉就當沒有 */ }
@@ -300,6 +320,12 @@
     },
     detach() { stopTimer(); state.code = null; },
     bars, sourceNote, isIntraday,
+    /** 今天那一根「還沒收的日 K」。沒有報價就回 null（例如假日、或代理打不通）。 */
+    todayBar() {
+      const t = state.today;
+      if (!t || t.c == null) return null;
+      return [t.date, t.o, t.h, t.l, t.c, t.v];
+    },
     tfs: Object.keys(TFS),
     refresh: async () => { await poll(); if (!state.hist.length) await loadHistory(); emit(); },
     onUpdate(fn) { state.subs.push(fn); return () => { state.subs = state.subs.filter(f => f !== fn); }; },

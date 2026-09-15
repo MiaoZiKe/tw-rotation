@@ -467,7 +467,8 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。
+        <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。
+          <b>成交量／KD／MACD／RSI 之間的分隔線可以上下拖，把哪一格拉大都行，拉完會記住；按右上角「重設縮放」還原。</b>分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。
           <b>週期鈕上被劃掉的＝這檔沒有那個週期的資料</b>，滑鼠移上去會說原因。</div>
         <div class="note" style="margin-top:4px">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞）。</div>
       </div>
@@ -575,10 +576,26 @@
     }
     return out;
   }
+  /* 資料湖的日線最後一根是「上一個交易日」—— 今天那一筆要等 15:30 那輪管線才寫進去。
+     Andy 2026-09-15：「為何個股會是 9/14，而非 9/15呢?…我的目的就是要即時訊息」。
+     報價本身就帶著今天的開高低收與累計量，所以盤中就把它接成「今天這根還沒收的日 K」。
+     週線／月線是從日線合成的，所以接在日線上，週月線也會跟著長出今天。
+     管線晚上把正式資料寫進來之後，日期一樣就直接覆蓋掉，不會變成兩根。 */
+  function withToday(daily) {
+    const t = window.LiveK && window.LiveK.todayBar ? window.LiveK.todayBar() : null;
+    if (!t || !daily || !daily.length) return daily;
+    const out = daily.slice();
+    const lastDate = String(out[out.length - 1][0]);
+    if (t[0] < lastDate) return daily;                 // 報價比資料湖還舊（假日），不動
+    if (t[0] === lastDate) out[out.length - 1] = t;    // 同一天 → 用比較新的報價蓋掉
+    else out.push(t);
+    return out;
+  }
+
   function barsFor(pg, tf) {
     // 即時週期不吃 payload，直接跟 livek.js 拿（它自己在收）
     if (isLiveTf(tf)) return (window.LiveK ? window.LiveK.bars(tf) : []) || [];
-    const daily = pg.daily && pg.daily.length ? pg.daily : pg.ohlcv;
+    const daily = withToday(pg.daily && pg.daily.length ? pg.daily : pg.ohlcv);
     if (tf === '1d') return daily;
     if (tf === '1w') return KUtil.resampleDaily(daily, 'W');
     if (tf === '1M') return KUtil.resampleDaily(daily, 'M');
@@ -598,7 +615,8 @@
       window.LiveK.attach(pg.meta.code, pg.meta.market);
       liveOff = window.LiveK.onUpdate(() => {
         if (!document.getElementById('lwc')) return;      // 四週期同看或已離開，不用畫
-        if (isLiveTf(state.tf)) apply();
+        // 即時週期固然要重畫；日／週／月因為最後一根是「今天還沒收的」，也要跟著跳
+        if (isLiveTf(state.tf) || ['1d', '1w', '1M'].indexOf(state.tf) >= 0) apply();
       });
     }
     const host = $('#chartHost');
@@ -654,8 +672,8 @@
         enableDraw(pg);
       }
       // 即時更新（同一檔、同一個週期、圖還在）就保留目前的縮放與位置
-      const keep = live && kchart._liveKey === pg.meta.code + '|' + state.tf;
-      kchart._liveKey = live ? pg.meta.code + '|' + state.tf : null;
+      const keep = kchart._liveKey === pg.meta.code + '|' + state.tf;
+      kchart._liveKey = pg.meta.code + '|' + state.tf;
       kchart.setBars(bars, state.tf, keep);
       kchart.applyIndicators(cfg);
       if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
@@ -684,6 +702,20 @@
         kchart.setPaneLabels(pl);
       };
       show(null, null); kchart.onCrosshair(show);
+      /* 面板高度：拖完（滑鼠放開）就記下來，下次打開、換股票、換週期都沿用。
+         Andy 2026-09-15：「下方MACD KD 成交量等範圍上下可以拉大」—— 拉得動只是第一步，
+         拉完換一檔又縮回去等於白拉。 */
+      if (!box._paneSave) {
+        box._paneSave = true;
+        box.addEventListener('pointerup', () => setTimeout(() => {
+          if (!kchart || !kchart.paneHeights) return;
+          const h = kchart.paneHeights();
+          if (!h || !h.main) return;
+          const before = JSON.stringify(cfg.paneH || {});
+          if (JSON.stringify(h) === before) return;
+          cfg.paneH = h; saveCfg(cfg);
+        }, 120));
+      }
       // 手繪線是「每檔每週期一組」，換週期要換一組，不然會畫到上一個週期的檔案裡
       if (kchart.draw && kchart.draw.key !== `tw.draw.${pg.meta.code}.${state.tf}`) enableDraw(pg);
     };
@@ -802,7 +834,12 @@
     };
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
-    $('#fitBtn').onclick = () => { if (kchart) kchart.resetView(160); };
+    $('#fitBtn').onclick = () => {
+      // 連同拖過的面板高度一起還原 —— 拉壞了要有一鍵回去的地方
+      const c = state.cfg || loadCfg();
+      if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(c); }
+      if (kchart) kchart.resetView(160);
+    };
     /* 寬版（Andy：「K 線圖太小，版面需要擴大」）：把右側事件欄收起來，整個視窗寬度都給圖。
        Lightweight Charts 是 autoSize，容器一變寬它自己重畫；ECharts 的小圖要自己踢一下 resize。
        狀態存 localStorage，下次進個股頁維持同一個版面。 */
@@ -1109,6 +1146,10 @@
     drawKey: kchart && kchart.draw ? kchart.draw.key : null,
     shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1,
     hasChart: !!kchart, w: drawW, fill: drawFill,
+    // 驗收用：圖上最後一根的日期與收盤、各面板目前高度
+    lastBar: kchart && kchart.bars && kchart.bars.length ? String(kchart.bars[kchart.bars.length - 1][0]) : null,
+    lastClose: kchart && kchart.bars && kchart.bars.length ? kchart.bars[kchart.bars.length - 1][4] : null,
+    paneH: kchart && kchart.paneHeights ? kchart.paneHeights() : null,
     // 驗收用：目前算出幾組背離
     div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null }) };
 })();

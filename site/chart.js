@@ -385,7 +385,10 @@
   function baseOptions(h) {
     refreshTheme();
     return {
-      autoSize: true, layout: { background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: C.grid, separatorHoverColor: 'rgba(62,224,255,.25)', enableResize: true } },
+      /* panes.enableResize：面板之間可以用滑鼠拖大拖小（Andy 2026-09-15
+         「下方MACD KD 成交量等範圍上下可以拉大」）。分隔線本來用 grid 的顏色，幾乎看不見，
+         使用者不會知道那裡可以拉 —— 改成明顯一點，hover 再亮起來。 */
+      autoSize: true, layout: { background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
       grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
       rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },
@@ -546,9 +549,30 @@
         ref(this.panes.rsi[0], 70, 'rgba(255,77,109,.35)'); ref(this.panes.rsi[0], 30, 'rgba(46,229,157,.35)');
         this.paneIndex.rsi = pane; this._paneH(pane, PH.ind); pane++; }
       this._paneH(0, Math.max(PH.min, this.el.clientHeight - (pane - 1) * PH.gap - 20));
+      // 使用者自己拖過的高度優先（cfg.paneH 由 savePaneHeights() 寫進設定）
+      const saved = cfg.paneH;
+      if (saved && !this.opts.compact) {
+        const ps = this.chart.panes();
+        Object.keys(this.paneIndex).forEach(k => {
+          const h = saved[k];
+          const i = this.paneIndex[k];
+          if (h > 30 && ps[i]) ps[i].setHeight(h);
+        });
+        if (saved.main > 60 && ps[0]) ps[0].setHeight(saved.main);
+      }
       setTimeout(() => this._layoutLabels(), 30);
     }
     _paneH(i, h) { const ps = this.chart.panes(); if (ps[i]) ps[i].setHeight(h); }
+    /** 目前每個面板的高度，形狀是 {main, vol, kd, macd, rsi}。拖完存起來下次沿用。 */
+    paneHeights() {
+      const ps = this.chart.panes();
+      const out = { main: ps[0] ? Math.round(ps[0].getHeight()) : 0 };
+      Object.keys(this.paneIndex).forEach(k => {
+        const p = ps[this.paneIndex[k]];
+        if (p) out[k] = Math.round(p.getHeight());
+      });
+      return out;
+    }
     setMarkers(marks) { // {bos:[t], choch:[[t,trend]], sweep_low:[t], sweep_high:[t]}
       const has = new Set(this.data.map(d => String(d.time)));
       const m = [];

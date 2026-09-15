@@ -70,8 +70,34 @@
     return TFS.indexOf(+sv) >= 0 ? String(+sv) : '5';
   }
 
+  /* 自動更新的節奏。
+     Andy 2026-09-15：「當我只要開啟走勢圖跟K線圖 他會自動更新 而非我要按下更新才更新」——
+     之前這三張圖是寄生在 live.js 的報價輪詢裡（每分鐘一次），而且掛在 fetchQuotes 後面：
+     報價連續失敗三次時整個計時器會被關掉，連帶這三張圖也不動了，只能按「更新」。
+     現在改成自己有一組計時器，跟報價完全脫鉤 —— 報價壞掉不影響圖，圖壞掉也不影響報價。
+     盤中 10 秒一次：mis 的 infoArray（卡片上那排數字）本來就是每 5 秒更新，
+     分時檔每分鐘多一筆，10 秒足以讓數字一直在跳、新的一分鐘一出現就補上去。 */
+  const MS_LIVE = 10 * 1000;
+  const MS_AFTER = 5 * 60 * 1000;
+
   const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
-    hist: {}, histErr: {}, histBusy: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
+    hist: {}, histErr: {}, histBusy: {}, timer: null, fails: 0 };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
+
+  function taipeiNow() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+  }
+  /** 盤中？台指期 08:45 開盤，所以比現貨早；收盤後多留 10 分鐘讓尾盤落地。 */
+  function isIntraday() {
+    const d = taipeiNow();
+    const w = d.getDay();
+    if (w === 0 || w === 6) return false;
+    const m = d.getHours() * 60 + d.getMinutes();
+    return m >= 8 * 60 + 40 && m <= 13 * 60 + 55;
+  }
+  function schedule() {
+    if (state.timer) clearInterval(state.timer);
+    state.timer = setInterval(() => refresh(), isIntraday() ? MS_LIVE : MS_AFTER);
+  }
 
   const ls = {
     get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : v; } catch (e) { return d; } },
@@ -126,9 +152,11 @@
     };
   }
 
-  async function refresh() {
+  async function refresh(manual) {
     if (state.busy) return;
     if (!document.getElementById('m3')) return;          // 不在總覽就不用抓
+    // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
+    if (!manual && document.hidden) return;
     state.busy = true;
     const jobs = IDX.map(async x => {
       try { state.data[x.id] = await fetchOne(x.id); state.err[x.id] = ''; }
@@ -136,6 +164,7 @@
     });
     await Promise.all(jobs);
     state.busy = false; state.at = Date.now();
+    state.fails = IDX.every(x => state.err[x.id]) ? state.fails + 1 : 0;
     draw();
   }
 
@@ -279,7 +308,8 @@
       ls.set(KEY_BIG, state.big); draw();
     });
     draw();
-    refresh();
+    refresh(true);
+    schedule();
   }
 
   function draw() {
@@ -463,11 +493,22 @@
       el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天的分鐘資料還不夠畫一根 K'}</div>`;
       el.dataset.kind = ''; return;
     }
+    const expanded = state.big === x.id;
+    const key = x.id + '|' + String(state.tf) + '|' + (expanded ? 'big' : 'small');
+    const live0 = state.kcharts[x.id];
+    /* 同一張卡、同一個週期、同樣大小 → 就地換資料。
+       盤中 10 秒重畫一次，如果每次都 destroy 再 new，使用者的縮放與位置會一直被彈回最右邊，
+       等於不能往左看早盤（Andy 2026-09-15 要的是「自動更新」，不是「自動跳回去」）。 */
+    if (live0 && live0._m3key === key && el.dataset.kind === 'k') {
+      live0.setBars(bars, tfName, true);
+      live0.applyIndicators(loadCfg(expanded));
+      return;
+    }
     killK(x.id);
     el.innerHTML = ''; el.dataset.kind = 'k';
-    const expanded = state.big === x.id;
     // mini：不要面板標題與浮水印（那兩個的 CSS 只掛在個股頁的 #lwc 底下，放這裡會掉到卡片外面）
     const k = new window.KChart(el, { tf: tfName, mini: true, compact: !expanded });
+    k._m3key = key;
     state.kcharts[x.id] = k;
     k.setBars(bars, tfName);
     const cfg = loadCfg(expanded);
@@ -481,10 +522,17 @@
   }
 
   // ---------------------------------------------------------------- 對外
+  // 分頁切回來就補抓一次，不用等下一個 10 秒
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  // 跨越開盤／收盤時要換節奏（10 秒 ↔ 5 分鐘），每分鐘檢查一次就夠
+  setInterval(() => { if (document.getElementById('m3')) schedule(); }, 60 * 1000);
+
   window.Market3 = {
-    mount, refresh, draw,
+    mount, refresh, draw, schedule,
     get state() { return state; },
     toBars,                                  // 驗收用
     get lastAt() { return state.at; },
+    get ticking() { return !!state.timer; },  // 驗收用：自己的計時器有沒有在跑
+    isIntraday,
   };
 })();
