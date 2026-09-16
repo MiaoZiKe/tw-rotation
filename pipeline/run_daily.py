@@ -11,7 +11,7 @@ import argparse
 import json
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -175,33 +175,97 @@ def universe_pairs() -> list[tuple[str, str | None]]:
     return pairs
 
 
-def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
-    """openapi 還沒給今天的話，用 mis 把今天補起來。
+def twse_rows_on(date: str) -> int:
+    """資料湖裡那一天有幾檔**上市**。
 
-    先只問一檔拿 mis 手上的交易日，確定真的比較新才去抓全市場 ——
-    一天 24 個請求不算多，但沒必要為了拿一份重複的資料去打人家的端點。
+    判斷「今天的上市補過了沒」要看這個，不是看「資料湖最新日期」—— 理由見下面。
+    只讀那一年的分割檔：整張 price_daily 是好幾年的歷史，為了數一天的檔數把它全讀進來太浪費。
+    """
+    try:
+        px = store.read("price_daily", years=[int(str(date)[:4])])
+    except (TypeError, ValueError):
+        px = store.read("price_daily")
+    if px.empty or "date" not in px.columns:
+        return 0
+    same_day = px["date"].astype(str) == str(date)
+    if "market" not in px.columns:
+        return int(same_day.sum())
+    return int((same_day & (px["market"].astype(str).str.upper() == "TWSE")).sum())
+
+
+# 上市約 1,300 檔。低於這個數就當作「那天的上市還沒到齊」，要用 mis 補。
+# 800 是對著 build_payload.last_complete_date 的門檻挑的（0.6 × 約 1,324 ≈ 794），
+# 兩邊講的「到齊」要是同一個標準，不然會出現「補了還是不算到齊」的夾縫。
+MIS_FILL_MIN_TWSE = 800
+
+# 台股 13:30 收盤。留五分鐘給最後的撮合與 mis 更新。
+TPE_CLOSE_HHMM = (13, 35)
+
+
+def _tpe_now() -> datetime:
+    """台北當下時間（測試會換掉這個函式）。"""
+    return datetime.now(timezone(timedelta(hours=8)))
+
+
+def session_closed(mis_date: str) -> bool:
+    """`mis_date` 那一場已經收盤了沒。
+
+    只有「mis 說的日期就是台北的今天」才需要問這件事；比今天早的日期，那一場當然收了。
+    ★ 這裡用的是執行當下的**時鐘**，不是拿它當交易日 —— 交易日一律取自 API 回應。
+      會加這道是因為：盤中把 mis 的即時價寫成當天的日 K，那一天就被中午的價格佔住了
+      （後面幾輪看到「上市已經有 1,300 檔」就不會再補），整天的收盤價都是錯的。
+      正常排程（台北 15:30）本來就在收盤後，這道只擋「盤中手動觸發 --phase price」。
+    """
+    now = _tpe_now()
+    if str(mis_date) != now.strftime("%Y-%m-%d"):
+        return True
+    return (now.hour, now.minute) >= TPE_CLOSE_HHMM
+
+
+def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
+    """openapi 還沒給今天的上市價量時，用 mis 的即時報價把那一天補起來。
+
+    ★ 判斷依據是「那一天**上市**有幾檔」，不是「資料湖最新日期」。
+      用最新日期會踩到這個坑：上櫃（TPEX）有自己的來源、常常先寫進去，
+      資料湖的最新日期就變成今天了 —— 程式以為「今天已經有了、不用補」，
+      可是缺的其實是上市那一半，於是上市永遠補不進來、網站每天慢一天。
+      2026-09-15 實測就是這樣：上櫃 1,006 檔、上市 0 檔，
+      mis.date_check 判成 will_fill=false，前端的完整度關卡不讓日期前進，
+      整天停在 09-14（Andy：「我沒看到最新的」）。
+
+    先只問一檔拿 mis 手上的交易日，確定真的需要補才去抓全市場 ——
+    沒必要為了拿一份重複的資料去打人家的端點。
     """
     mis_date = mis.latest_date()
     if not mis_date:
         log.warning("mis 拿不到交易日，本輪不補")
         return pd.DataFrame()
 
-    have = store.latest_date("price_daily")
-    newest_known = max([d for d in (openapi_date, have) if d], default=None)
+    have_twse = twse_rows_on(mis_date)
+    # 報價比 openapi 給的還舊（假日、或 mis 那邊還沒換日），補了也只是重複
+    stale = bool(openapi_date and str(mis_date) < str(openapi_date))
+    closed = session_closed(mis_date)
+    will_fill = closed and (not stale) and have_twse < MIS_FILL_MIN_TWSE
     RESULT["steps"]["mis.date_check"] = {
         "mis_date": mis_date, "openapi_date": openapi_date,
-        "lake_latest": have, "will_fill": bool(not newest_known or mis_date > newest_known),
+        "lake_latest": store.latest_date("price_daily"),
+        "twse_rows_on_mis_date": have_twse,
+        "min_needed": MIS_FILL_MIN_TWSE,
+        "session_closed": closed,
+        "will_fill": will_fill,
     }
-    if newest_known and mis_date <= newest_known:
-        log.info("mis 的 %s 沒有比已知的 %s 新，不用補", mis_date, newest_known)
+    if not will_fill:
+        why = ("那一場還沒收盤" if not closed else
+               "報價比 openapi 還舊" if stale else f"上市已有 {have_twse} 檔")
+        log.info("mis 的 %s 不用補：%s", mis_date, why)
         return pd.DataFrame()
 
     pairs = universe_pairs()
     if not pairs:
         log.warning("company_info 還沒有內容，不知道要補哪些代號")
         return pd.DataFrame()
-    log.info("openapi 還停在 %s，mis 已經有 %s —— 補 %d 檔",
-             openapi_date or "（沒有）", mis_date, len(pairs))
+    log.info("openapi 停在 %s、%s 的上市只有 %d 檔 —— 用 mis 補 %d 檔",
+             openapi_date or "（沒有）", mis_date, have_twse, len(pairs))
     return mis.price_snapshot(pairs)
 
 
