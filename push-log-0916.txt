@@ -1,0 +1,13 @@
+===== START 2026/09/16 �g�T 11:21:22.55 =====
+folder: C:\Users\andy2_ke\Downloads\tw-dashboard\tw-rotation
+
+[1/7] before
+1b28dfc 網站每天慢一天：mis 補價的判斷改成「那一天的上市有幾檔」
+## main
+
+[2/7] fetch origin/main
+From https://github.com/MiaoZiKe/tw-rotation
+ * branch            main       -> FETCH_HEAD
+
+[3/7] stash local edits as a safety net
+Saved working directory and index state On main: 0916 sync backup
