@@ -683,7 +683,12 @@
   }
 
   // 點方塊後在原地列出成分股（不跳頁），每一檔都點得進個股頁
-  function heatPanel(panelId, gid, gname, extra) {
+  /* opts.scroll === false 時不要自己捲動頁面。
+     2026-09-18 圖四踩到：排行的成分股面板就貼在圖表正下方（同一張卡片裡），
+     再 scrollIntoView 一次會把頁面往下推 895px —— **使用者剛點的那張圖直接被捲出畫面**。
+     驗收量到的是「第二次點沒收起來」，追下去才發現長條的視窗座標變成 y = -491，
+     也就是圖已經不在畫面上了，點當然點不到。面板本來就在旁邊的情況一律不要捲。*/
+  function heatPanel(panelId, gid, gname, extra, opts) {
     const box = $('#' + panelId); if (!box) return;
     const det = (D.groups_detail || {})[gid] || {};
     const ms = (det.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 40);
@@ -696,7 +701,7 @@
           <span class="c">${m.code}</span><span class="g ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</span></a>`).join('')}</div>`
         : '<div class="empty">這個族群的成分股整理中</div>'}`;
     const x = box.querySelector('[data-x]'); if (x) x.onclick = () => { box.hidden = true; };
-    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if (!opts || opts.scroll !== false) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
@@ -1753,7 +1758,8 @@
       else {
         rankSel = gid;
         heatPanel('rankPanel', gid, g.group_name,
-          `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`);
+          `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`,
+          { scroll: false });   // 面板就在圖正下方，再捲一次會把圖推出畫面
       }
       highlightClock(rankSel);
     });

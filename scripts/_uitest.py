@@ -2160,7 +2160,12 @@ def t_batch2(pg, base):
             return { lo: Math.min(...ops), hi: Math.max(...ops), n: ops.length }; }""")
         ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
            bool(dim) and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
-        # 再點一次要取消 —— 座標要重算（上面那段的理由）
+        # 再點一次要取消 —— 座標要重算，而且要等 scrollIntoView 的**平滑捲動停下來**才算。
+        # heatPanel 用的是 behavior:'smooth'，捲動是動畫；捲到一半就量座標，
+        # 等滑鼠真的按下去時頁面又移位了，點就落在圖外面（2026-09-18 踩到兩次）。
+        pg.wait_for_function("""() => { const y = window.scrollY;
+            if (window.__lastY === y) return true; window.__lastY = y; return false; }""",
+                             timeout=5000)
         spot2 = rank_spot() or spot
         pg.mouse.click(spot2["x"], spot2["y"])
         pg.wait_for_timeout(900)
