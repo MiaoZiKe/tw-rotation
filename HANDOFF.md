@@ -1,6 +1,32 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-> ## 2026-09-18（下午）：部署從 14 分 26 秒 → 約 3 分鐘；改前端約 50 秒（最新）
+> ## 2026-09-18（傍晚）：本機 `.bat` 全盤點 —— 日常維護一支都不用按（最新）
+>
+> Andy 問：「repo 裡現有的 .bat 做了哪些事，是不是都已經有對應的 workflow？沒覆蓋到的補上。」
+>
+> 逐支盤點五支腳本的結果：**沒有任何一支缺 workflow**，對照表寫進 `SETUP.md` 第 8 節。
+>
+> | 腳本 | 雲端對應 | 還要不要按 |
+> |---|---|---|
+> | `setup.bat`／`setup.ps1` | 第 7、8 步＝`daily.yml`／`backfill.yml`；前六步是本機授權動作 | 只有換新電腦時 |
+> | `update.bat` | `daily.yml` 每天 7 輪 | 不用了 |
+> | `push.bat`／`_push_core.bat`／`push` | 程式碼由 Claude 直接推 | 不用了 |
+> | `backfill-financials.bat` | `backfill.yml` 的 Run workflow 面板有同樣三個輸入 | 不用了（已附點擊路徑）|
+>
+> **只能人工做的四件事**（workflow 物理上取代不了，已在 SETUP.md 第 8 節寫成點擊層級）：
+> 裝工具／`gh auth login`、設 repo Secrets（`FRED_API_KEY` 仍未設）、repo 的 Pages 與權限一次性設定、
+> Cloudflare Worker 重貼。最後一項**可以**做成 workflow（`wrangler deploy`），
+> 但要 Andy 先放一組 `CLOUDFLARE_API_TOKEN` Secret —— 等他點頭再做。
+>
+> 另外實測確認：`_push_core.bat` 裡那段 `_pending\workflows` 複製機制，是為了「Claude 寫不了
+> `.github/workflows`」而做的繞道；這種雲端 session 已經可以直接改工作流檔（dry-run 通過），
+> `_pending/` 目前也不存在。先不動那段程式碼，等哪次真的要改工作流時一併驗證再清掉。
+>
+> **這一批只動文件**（`SETUP.md`、`HANDOFF.md`），沒碰 `site/**` 也沒碰 `pipeline/**`，
+> 所以 `pages.yml` 不會觸發、網站版號不會變 —— 線上看不到差別是正常的，不是沒推成功。
+
+
+> ## 2026-09-18（下午）：部署從 14 分 26 秒 → 約 3 分鐘；改前端約 50 秒
 >
 > Andy：「為何跑這麼久」「其他能減少時間及優化部分幫我做下去，CEO 靠你安排人員動作」。
 >

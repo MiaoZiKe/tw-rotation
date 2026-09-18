@@ -131,3 +131,36 @@ Settings → Actions → General → Workflow permissions＝**Read and write**�
 - **本機 `build_payload` 卡在 Yahoo**：加 `SKIP_INTRADAY=1`。
 - **櫃買抓不到**：Actions 共用 IP 被反爬，設計成可失敗，資料備援走 FinMind。
 - **排程沒跑**：見 HANDOFF.md 已知 bug #1。
+
+## 8. 本機 `.bat` / `.ps1` 對照表 —— 哪些已經不用再按
+
+2026-09-18 逐支盤點。結論：**日常維護一支都不用按**；只剩「換一台新電腦」與「只能由人做的授權動作」留在本機。
+
+| 腳本（repo 根目錄） | 它實際做什麼 | 雲端對應 | 你還要不要按 |
+|---|---|---|---|
+| `setup.bat` → `setup.ps1` | 裝 Git/Python/gh、`gh auth login`、把 FinMind token 寫進 repo Secrets、clone repo、開 Pages、跑第一次抓取與回補、建桌面捷徑 | 抓取＝`daily.yml`、回補＝`backfill.yml`（第 7、8 步已被覆蓋） | **只有換新電腦時按一次**。前六步是本機動作，workflow 跑在 GitHub 的機器上，裝不到你的電腦、也不能代你登入 |
+| `update.bat` | `setup.ps1 -NoBackfill`：更新本機環境並抓一次資料 | `daily.yml` 每天自動跑 7 輪（平日台北 09:00／12:00／15:30／18:30／21:30、隔日 05:00；週末 10:00／20:00）。重跑安全，`store.append()` 以 key 去重 | **不用了** |
+| `push.bat`、`_push_core.bat`、`push` | `git add -A` → commit → `pull --rebase origin main` → `push origin main` | 不需要 workflow：程式碼由 Claude 直接推 | **不用了**。保留是為了「你自己在本機改了檔案想推」這種情況 |
+| `backfill-financials.bat` | `gh workflow run backfill.yml -f datasets=revenue+financial+balance -f limit=400 -f start_date=2016-01-01` | `backfill.yml` 的 Run workflow 面板有一模一樣的三個輸入，而且不必在本機裝 `gh` | **不用了**，改用下面的點擊路徑。何況排程本來就在跑 `--plan default`（已含財報） |
+
+### 真的要手動補財報時，點這裡（不必開 .bat）
+
+1. 打開 <https://github.com/MiaoZiKe/tw-rotation/actions>
+2. 左邊那欄點 **「歷史回補」**
+3. 右上角灰色的 **「Run workflow ▾」**
+4. 展開的面板裡：`datasets` 選 **`revenue+financial+balance`**、`limit` 填 **400**、`start_date` 填 **2016-01-01**
+5. 按綠色的 **「Run workflow」**
+
+### 只能在本機／瀏覽器做的事（workflow 物理上取代不了）
+
+這幾件都是「授權」或「裝軟體」，GitHub 的機器做不到：
+
+1. **裝 Git／Python／gh**、**`gh auth login`** —— 只有換電腦時需要。
+2. **設 repo Secrets**：repo → **Settings** → 左側 **Secrets and variables** → **Actions** → 右上角 **New repository secret**。
+   `FINMIND_TOKEN` 已設；`FRED_API_KEY` **還沒設**，等總經那塊要用時會再提醒。
+3. **repo 一次性設定**：Settings → **Pages** → Source＝**GitHub Actions**；
+   Settings → **Actions** → **General** → Workflow permissions＝**Read and write**。（都已設好。）
+4. **Cloudflare Worker 重貼**：Cloudflare → Workers → `tw-quote` → 編輯程式碼 → 貼上
+   `workers/quote-proxy/worker.js` 全文 → Deploy。
+   這一步**可以做成 workflow**（`wrangler deploy`），但需要你先在上面第 2 點放一組 `CLOUDFLARE_API_TOKEN`。
+   要的話跟我說，我把 workflow 寫好。
