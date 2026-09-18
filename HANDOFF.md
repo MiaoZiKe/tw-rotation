@@ -351,7 +351,12 @@ Yahoo 分 K 在 Actions 上正常（6179：15 分 1059 根、60 分 1800 根、2
 > 9. **個股日線最後一根改成「今天」**：用報價把今天這根還沒收的日 K 接上去，週月線跟著長（DECISIONS #134）。
 > 10. **指標面板分隔線可以上下拖、拖完記住**，「重設縮放」還原（DECISIONS #135）。
 >
-> **★ Andy 要做的兩件事**：跑一次 `push.bat`；到 Cloudflare 重貼 `workers/quote-proxy/worker.js`
+> **★（2026-09-18 更新）這兩件都不用做了**：程式碼由 Claude 直接推 main（不用 `push.bat`）；
+> Worker 改成 `deploy-worker.yml` 自動部署（DECISIONS #184），**Andy 只要設兩個 Cloudflare Secret**：
+> <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> → New repository secret →
+> `CLOUDFLARE_API_TOKEN` 與 `CLOUDFLARE_ACCOUNT_ID`。設好之前工作流會綠燈跳過並在摘要印待辦（不是紅燈）。
+>
+> ~~原本：跑一次 `push.bat`；到 Cloudflare 重貼 `workers/quote-proxy/worker.js`~~
 > （這次 Worker 多了 `/y` 這條 Yahoo 路由，而且報價快取從 10 秒降到 3 秒，5 秒輪詢才有意義）。
 >
 > 驗收：`pytest` 270 過、`_preview.py` 無重疊、`_uitest.py` 全綠

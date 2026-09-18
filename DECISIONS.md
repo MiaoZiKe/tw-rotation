@@ -1230,3 +1230,18 @@
      `route()` 換頁、`applyTheme()` 換主題（它會 dispose 全部圖表）、
      分頁切到背景（`visibilitychange`）、使用者自己動手拉 Bar，四個時機一律先停。
      驗收也只寫一支 `check_play()`，驗的是「值真的自己在動、按暫停真的停住」，不是「按鈕存在」。
+184. **Worker 改用 `wrangler` 自動部署**（Andy 2026-09-18 同意）：
+     `workers/**` 有 push 到 main 就跑 `.github/workflows/deploy-worker.yml`
+     （`cloudflare/wrangler-action@v3`，`workingDirectory: workers/quote-proxy`）。
+     在此之前都是手動 —— Cloudflare → Workers & Pages → `tw-quote` → Edit code →
+     全部刪掉 → 貼上 `workers/quote-proxy/worker.js` → Deploy。
+     2026-09-14 與 09-15 兩批都栽在這一步：程式碼推上去了、Worker 還是舊版，
+     網站上三張大盤圖直接不出現，而且要 Andy 自己記得去貼。
+     **★ 沒設金鑰時是「綠燈跳過並在摘要印待辦」，不是紅燈**（Andy 指定，
+     同 data-steward 的三態原則：「沒設定」「還沒到」「真的壞了」要分得開 ——
+     天天紅燈就再也沒人看紅燈）。
+     驗證那步刻意打 `/quote?ex_ch=tse_2330.tw` 而不是 `/health`：要 HTTP 200 **且內容含 `"c"`**
+     （成交價欄位），這才等於「網站真的拿得到報價」，而不只是「Worker 有回應」。
+     金鑰只能 Andy 自己在 repo 設定頁放 —— 實測這個雲端 session 打
+     `GET /repos/.../actions/secrets` 與 `.../secrets/public-key` 都是 **403**，
+     也沒有 `gh`，所以「幫他設」在這裡物理上做不到。
