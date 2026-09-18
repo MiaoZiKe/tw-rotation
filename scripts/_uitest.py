@@ -2354,13 +2354,16 @@ def t_batch3(pg, base):
     ok("選過的均線有記住",
        pg.evaluate("() => { try { return (localStorage.getItem('tw.conc.ma')||'').indexOf('240') >= 0; } catch(e){ return false; } }"))
     # 點圖上某一天 → 側欄出現那天的族群
+    # 圖在頁面很下面，座標是相對視窗的 —— 不先捲進畫面的話會點到別的地方
+    pg.eval_on_selector("#conc", "e => e.scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(600)
     hit = pg.evaluate("""() => { const el = document.getElementById('conc');
         const c = echarts.getInstanceByDom(el); if (!c) return null;
         const o = c.getOption(); const n = (o.series[0].data||[]).length; if (!n) return null;
         const i = n - 5 > 0 ? n - 5 : n - 1;
         const p = c.convertToPixel({ seriesIndex: 0 }, [i, o.series[0].data[i]]);
         if (!p) return null; const r = el.getBoundingClientRect();
-        return { x: r.left + p[0], y: r.top + p[1] }; }""")
+        return { x: r.left + p[0], y: r.top + p[1] - 30 }; }""")
     if hit:
         pg.mouse.click(hit["x"], hit["y"])
         pg.wait_for_timeout(1200)

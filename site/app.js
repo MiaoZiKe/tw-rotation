@@ -2121,10 +2121,24 @@
           [{ offset: 0, color: hexA(CH.cyan, theme() === 'light' ? .22 : .35) }, { offset: 1, color: hexA(CH.cyan, 0) }]) } },
       ...maSeries],
     }, { notMerge: true });
-    // ---- 點某一天 → 右側列出那天的前 N 大族群
-    if (c) c.off('click').on('click', p => {
-      const row = conc[p.dataIndex]; if (row) concDay(row);
-    });
+    /* ---- 點某一天 → 右側列出那天的前 N 大族群
+       ★ 不能用 c.on('click')：這是一條 showSymbol:false 的折線，圖上沒有可點的點，
+         series 的 click 只有「剛好點在線上」才會觸發 —— 使用者其實點不到
+         （2026-09-19 驗收抓到：點下去側欄沒開）。
+         改成掛在 zrender 上：整張圖任何位置都能點，再用 convertFromPixel
+         換回是哪一天。這也是 ECharts 官方建議「點空白處」的做法。*/
+    if (c) {
+      const zr = c.getZr();
+      zr.off('click');
+      zr.on('click', (ev) => {
+        const pt = [ev.offsetX, ev.offsetY];
+        if (!c.containPixel({ gridIndex: 0 }, pt)) return;
+        const idx = c.convertFromPixel({ seriesIndex: 0 }, pt);
+        const i = Math.round(Array.isArray(idx) ? idx[0] : idx);
+        const row = conc[Math.max(0, Math.min(conc.length - 1, i))];
+        if (row) concDay(row);
+      });
+    }
   }
 
   /* 點到某一天之後的側欄：那天的前 N 大族群 → 點族群原地展開那天的前 5 檔成分股。
