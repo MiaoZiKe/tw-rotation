@@ -1038,6 +1038,8 @@
      labelLayout 是每個標籤各呼叫一次的，拿不到「全部標籤」，
      所以先自己算好放這裡，labelLayout 只負責查表。*/
   let rotLbl = {};
+  // N3：上一次畫的是哪一組族群 —— 一樣就用 merge（點會自己走過去），不一樣才 notMerge
+  let rotLastShape = '';
 
   /* 左右兩欄＋引線的排版（和 3D 剖析圖 E1 同一套）。
      先把每個點用 convertToPixel 轉成像素座標，依 x 分左右欄；
@@ -1176,7 +1178,9 @@
             + `<br>成交值佔比 ${fmt.n(r.share, 1)}%<br><small>點一下看成分股</small>`;
         },
       },
-      polar: { center: ['50%', compact ? '52%' : '52%'], radius: compact ? '60%' : '72%' },
+      // N5（Andy 2026-09-19「輪動時鐘圓圈範圍擴大點」）：72% → 84%。
+      // 標籤已經改成左右兩欄＋引線（不佔盤面），所以盤可以放大。
+      polar: { center: ['50%', compact ? '52%' : '50%'], radius: compact ? '66%' : '84%' },
       angleAxis: {
         type: 'value', min: 0, max: 360, startAngle: 0, clockwise: false, interval: 45,
         axisLine: { show: false }, axisTick: { show: false },
@@ -1239,15 +1243,39 @@
           },
         },
       ],
-      graphic: compact ? [] : [{
-        type: 'text', right: 12, bottom: 8, silent: true,
-        style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
-            + '↻ 資金照順時針轉：落後 → 改善 → 領先 → 轉弱\n圈圈越大＝成交值佔比越高　·　離圓心越遠＝和大盤差越多',
-          fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
-      }],
+      /* N6（Andy 2026-09-19「箭頭補充內到位 順時針簡短說明意思」）：
+         以前只有右下角一行字寫「↻ 順時針」，盤面上看不出方向。
+         現在在四段的**交界處**各畫一個弧形箭頭，照 落後→改善→領先→轉弱 的順序，
+         旁邊一句白話講它代表什麼。*/
+      graphic: compact ? [] : [
+        ...CLOCK_SECTOR.map((sec, i) => {
+          // 每一段的「出口」角度＝下一段的入口；照 stageOf 的擺法，順時針是角度遞減
+          const next = CLOCK_SECTOR[(i + 1) % 4];
+          const a = (sec.from + sec.to) / 2;
+          const rad = (a + 45) * Math.PI / 180;
+          return { type: 'text', silent: true,
+            left: `${50 + 41 * Math.cos(rad)}%`, top: `${50 - 41 * Math.sin(rad)}%`,
+            style: { text: '↻', fill: hexA(STAGE[next.k].color, .75), fontSize: 20,
+              textAlign: 'center', textVerticalAlign: 'middle' } };
+        }),
+        { type: 'text', right: 12, bottom: 8, silent: true,
+          style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
+              + '↻ 箭頭＝資金的行進方向（順時針）：落後 → 改善 → 領先 → 轉弱 → 再回落後\n'
+              + '圈圈越大＝成交值佔比越高　·　離圓心越遠＝和大盤差越多',
+            fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
+        }],
     };
-    // 尾巴是一族群一條線，族群數一變 series 數就變；不用 notMerge 會留下上一次的殘線
-    const c = chart(id, o, { notMerge: true });
+    /* N3（Andy 2026-09-19「族群在時鐘上要像螞蟻一樣可以緩步移動，而非定格方式，
+       這樣播放才有趨勢性」）：回放時**不要** notMerge。
+       notMerge 會把整個 series 換掉 —— ECharts 認不出「還是同一顆點」，
+       所以每一幀都是重畫、看起來像跳格。用 merge 的話它會把舊位置補間到新位置，
+       點就自己沿著路徑走過去了。
+       只有「族群數真的變了」（換篩選、換天數）才需要 notMerge，否則會留下殘線。*/
+    const sameShape = rotLastShape === id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
+    rotLastShape = id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
+    o.animationDurationUpdate = 620;
+    o.animationEasingUpdate = 'linear';        // 等速才像「緩步走」，不要 easeOut 那種急停
+    const c = chart(id, o, { notMerge: !sameShape });
     /* 標籤排版要等圖畫完（要有像素座標才知道誰在左誰在右），
        所以先畫一次、算好位置、再 setOption 一次讓 labelLayout 查表。
        第二次不用 notMerge，只是重跑一次標籤排版，不重建尾巴。*/
@@ -1259,7 +1287,8 @@
       rotLbl = {};
     }
     if (c) c.off('click').on('click', q => { const r = q.data && q.data.row; if (r) location.hash = '#industry/group/' + r.gid; });
-    if (!compact) linkRow(id, top.map(r => L.group(r.gid, r.name)).join(''));
+    // N2：兩張圖共用同一份名單（輪動資料的全部族群，依成交值佔比排序）
+    if (!compact) groupChips(id, rows.map(r => ({ gid: r.gid, name: r.name })), rankSel);
   }
 
   function renderRotation(rrg, back, ids) {
@@ -1874,6 +1903,9 @@
     //   在這裡先叫一次的話會先用「跟著期間」畫一張，再被拉 Bar 記住的值重畫，畫面會閃一下。
 
     // ---- 輪動階段：和幾天前比，用來判斷誰剛換階段
+    // N2：兩張圖共用的完整族群名單（依成交值佔比排序），在畫圖之前就算好
+    rotAllGroups = rotRows(f3 && f3.rrg, flowState.back)
+      .map(r => ({ gid: r.gid, name: r.name }));
     const rotPick = new Set();                 // 篩選：只看這幾個族群（空＝全部）
     const drawRot = (frame) => {
       renderRotation(f3 && f3.rrg, flowState.back,
@@ -1895,7 +1927,8 @@
     if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, flowState.back);
     /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar 5-20 天，可以用拖曳的方式看的更直觀」）。
        payload 的 trail 本來就有 20 個交易日，所以 5～20 任何一個值都畫得出來，不用改後端。*/
-    rangeBar('rotBack', { min: 5, max: 20, value: flowState.back, key: 'tw.rot.back',
+    // N4（Andy 2026-09-19）：時間週期拉到 30 天；後端 rrg 的 trail 同步改成 30
+    rangeBar('rotBack', { min: 5, max: 30, value: flowState.back, key: 'tw.rot.back',
       label: '和幾天前比', fmt: (v) => v + ' 天前',
       onChange: (v) => { flowState.back = v; drawRot(); } });
 
@@ -2007,7 +2040,9 @@
       }
       highlightClock(rankSel);
     });
-    linkRow('rankFlow', rows.slice().reverse().map(g => L.group(g.group_id, g.group_name)).join(''));
+    lastRankRows = rows;
+    // N2：跟輪動時鐘用同一份名單、同一個選取狀態
+    groupChips('rankFlow', (rotAllGroups || rows.map(g => ({ gid: g.group_id, name: g.group_name }))), rankSel);
   }
 
   /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
@@ -2034,7 +2069,7 @@
       };
       draw();
       // 「和幾天前比」：跟卡片上那支同一個 localStorage key，兩邊一致
-      rangeBar('rotZoomBack', { min: 5, max: 20, value: back, key: 'tw.rot.back',
+      rangeBar('rotZoomBack', { min: 5, max: 30, value: back, key: 'tw.rot.back',
         label: '和幾天前比', fmt: (v) => v + ' 天前',
         onChange: (v) => { back = v; if (frame > v) frame = v; draw(); } });
       /* 播放：Andy「點擊後可以播放我拉Bar 選定的時間」。
@@ -2046,6 +2081,55 @@
       if (close) { /* close 由 openZoom 提供，這裡不另外包裝 */ }
     });
   }
+
+  /* N2（Andy 2026-09-19 圖一：「兩邊族群對不上，有些為何篩選不到」）。
+     根因：排行卡下面那排晶片列的是**排行圖上畫出來的 15 檔**（依佔比變化挑的），
+     時鐘卡下面那排列的是**成交值前 16 大**，兩邊挑法不同、名單當然對不上；
+     而且那些晶片是 `<a href="#industry/group/…">`，點下去是**跳頁**不是篩選 ——
+     所以他說「有些篩選不到」。
+
+     改法：兩張圖共用同一份名單（輪動資料裡的全部族群，依成交值佔比排序），
+     而且晶片改成**篩選鈕**：點一下同時「排行展開那個族群的成分股」＋
+     「時鐘只亮那個族群」，再點一次取消。要進族群頁的話晶片右邊有個 `→`。*/
+  function groupChips(afterId, list, sel) {
+    const el = document.getElementById(afterId); if (!el) return;
+    const at = el.closest('.zwrap') || el;
+    let row = at.nextElementSibling;
+    if (!row || !row.classList.contains('linkrow')) {
+      row = document.createElement('div'); row.className = 'linkrow';
+      at.parentNode.insertBefore(row, at.nextSibling);
+    }
+    row.classList.add('gchips');
+    row.innerHTML = list.map(g =>
+      `<span class="gchip${sel === g.gid ? ' on' : ''}" data-g="${g.gid}" style="--c:${L.gcolor[g.gid] || CH.cyan}">
+         <button class="pick" title="只看這個族群">${fmt.esc(g.name)}</button>
+         <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></span>`).join('');
+    $$('.gchip .pick', row).forEach(b => b.onclick = () => {
+      const gid = b.parentNode.dataset.g;
+      pickGroup(rankSel === gid ? null : gid);
+    });
+  }
+
+  /* 選一個族群（null＝取消）：排行原地展開成分股、時鐘只亮它、兩排晶片同步。*/
+  function pickGroup(gid) {
+    rankSel = gid;
+    const box = $('#rankPanel');
+    if (!gid) { if (box) box.hidden = true; }
+    else {
+      const g = (lastRankRows || []).find(x => x.group_id === gid);
+      heatPanel('rankPanel', gid, g && g.group_name,
+        g ? `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`
+          : '', { scroll: false });
+    }
+    highlightClock(gid);
+    // 兩排晶片一起換狀態（這就是「兩邊對不上」的解法：同一份名單、同一個選取）
+    $$('.gchips .gchip').forEach(c => c.classList.toggle('on', c.dataset.g === gid));
+  }
+  let lastRankRows = null;         // 給 pickGroup 查佔比／變化用
+  /* 兩張圖共用的族群名單。輪動資料（rrg.points）是最完整的一份 ——
+     排行只畫得下 15 檔、時鐘只畫得下 16 顆點，但**晶片列要列全部**，
+     否則就會出現 Andy 講的「有些篩選不到」。*/
+  let rotAllGroups = null;
 
   /* 排行選了哪個族群（null＝沒選）。輪動時鐘用它決定誰亮誰暗。*/
   let rankSel = null;
@@ -2674,10 +2758,41 @@
       chart('seasonDrill', { tooltip: { ...tip, formatter: p => `${p.name} 年：${p.value != null ? fmt.pct(p.value) : '—'}` }, grid: { left: 50, right: 16, top: 16, bottom: 30 }, xAxis: { ...axisStyle, type: 'category', data: years, axisLabel: { color: CH.ink3 } }, yAxis: { ...axisStyle, axisLabel: { formatter: '{value}%' } },
         series: [{ type: 'bar', data: vals.map(v => ({ value: v, itemStyle: { color: v > 0 ? CH.up : CH.down, borderRadius: 3 } })), barWidth: '55%' }] });
     };
+    /* N10（Andy 2026-09-19：「圖四 下方族群可以變成輪動階段 四段循環與換段的族群
+       這樣形式呈現」）：原本是一張表，改成跟輪動階段同一種四段卡片。
+       季節性沒有「循環」，所以四段改成**強弱四級**：
+       強勢／偏強／偏弱／弱勢，依「超額報酬勝率 × 0.6 ＋ 平均超額」分。
+       樣本少於 3 年的不列（跟熱力圖同一條門檻）。*/
+    const SEASON_TIER = [
+      { k: 'strong', name: '強勢', color: '#ff4d6d', sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
+      { k: 'good', name: '偏強', color: '#ffb454', sub: '勝率或幅度其中一項不錯', act: 'second thought' },
+      { k: 'soft', name: '偏弱', color: '#8b7bff', sub: '這個月表現平平', act: '沒有季節性優勢' },
+      { k: 'weak', name: '弱勢', color: '#2ee59d', sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
+    ];
     const topThisMonth = (P) => {
       const m = new Date().getMonth() + 1;
-      const rows = P.cells.filter(c => c.month === m && (c.avg_excess != null || c.avg_return != null)).map(c => ({ ...c, score: (c.excess_win_rate ?? c.win_rate ?? 0) * 0.6 + Math.max(-20, Math.min(20, c.avg_excess ?? c.avg_return ?? 0)) })).sort((a, b) => b.score - a.score).slice(0, 8);
-      $('#seasonTop').innerHTML = rows.length ? `<div class="tw"><table><thead><tr><th class="l">族群</th><th>超額報酬</th><th>勝率</th><th>絕對報酬</th><th>樣本</th></tr></thead><tbody>${rows.map(r => `<tr onclick="location.hash='#industry/group/${r.group_id}'"><td class="l">${L.group(r.group_id, r.group_name)}</td><td class="num ${fmt.cls(r.avg_excess)}">${r.avg_excess != null ? fmt.pct(r.avg_excess) : '—'}</td><td class="num">${r.excess_win_rate ?? r.win_rate ?? '—'}%</td><td class="num ${fmt.cls(r.avg_return)}">${r.avg_return != null ? fmt.pct(r.avg_return) : '—'}</td><td class="num">${r.samples}</td></tr>`).join('')}</tbody></table></div><div class="note" style="margin-top:8px">${m} 月，依「超額報酬勝率 × 0.6 ＋ 平均超額」排序；樣本少於 3 年不列。</div>` : '<div class="empty">本月尚無足夠樣本</div>';
+      const all = P.cells
+        .filter(c => c.month === m && c.samples >= 3 && (c.avg_excess != null || c.avg_return != null))
+        .map(c => ({ ...c, score: (c.excess_win_rate ?? c.win_rate ?? 0) * 0.6
+          + Math.max(-20, Math.min(20, c.avg_excess ?? c.avg_return ?? 0)) }))
+        .sort((a, b) => b.score - a.score);
+      const box = $('#seasonTop');
+      if (!box) return;
+      if (!all.length) { box.innerHTML = '<div class="empty">本月尚無足夠樣本</div>'; return; }
+      // 四等分（不足 4 個就往前塞）
+      const q = Math.max(1, Math.ceil(all.length / 4));
+      const buckets = [all.slice(0, q), all.slice(q, q * 2), all.slice(q * 2, q * 3), all.slice(q * 3)];
+      box.innerHTML = `<div class="stageboard" id="seasonBoard">${SEASON_TIER.map((t, i2) => {
+        const list = buckets[i2] || [];
+        return `<div class="stage" style="--c:${t.color}">
+          <div class="sh"><b style="color:${t.color}">${t.name}</b><span class="n">${list.length}</span></div>
+          <div class="sd">${t.sub}<br><em>${t.act}</em></div>
+          <ul>${list.map(r => `<li data-gid="${r.group_id}"><span class="g">${fmt.esc(r.group_name)}</span>
+            <span class="m">超額 ${r.avg_excess != null ? fmt.pct(r.avg_excess) : '—'}　勝率 ${r.excess_win_rate ?? r.win_rate ?? '—'}%　${r.samples} 年</span></li>`).join('')
+            || '<li class="none">這一段沒有族群</li>'}</ul></div>`;
+      }).join('')}</div>
+        <div class="note" style="margin-top:8px">${m} 月，依「超額報酬勝率 × 0.6 ＋ 平均超額」分四段；樣本少於 3 年不列。點族群看成分股。</div>`;
+      $$('#seasonBoard li[data-gid]').forEach(li => li.onclick = () => toggleRotMembers(li));
     };
     $$('#seasonPeriod button').forEach(b => b.onclick = () => { $$('#seasonPeriod button').forEach(x => x.classList.toggle('on', x === b)); period = b.dataset.v; draw(); });
     $$('#seasonMetric button').forEach(b => b.onclick = () => { $$('#seasonMetric button').forEach(x => x.classList.toggle('on', x === b)); metric = b.dataset.v; draw(); });

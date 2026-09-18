@@ -43,11 +43,13 @@ def market_index(price: pd.DataFrame, days: int = 160) -> pd.Series:
     return (1 + w).cumprod()
 
 
-def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 20,
+def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 30,
         min_share: float = 0.3) -> dict:
     """trail 是「存下來的軌跡長度」，不是前端一定要畫滿的長度。
-    前端有 5／10／20 日三顆鈕，只存 10 天的話按 20 日等於沒反應（使用者會以為壞了），
-    所以這裡一律存到前端最長的那個選項。"""
+    前端的拉Bar 能拉到幾天，這裡就要存到幾天 —— 存得比前端短的話，
+    拉到最大值等於沒反應，使用者會以為壞了。
+
+    2026-09-19（Andy N4「時間週期拉到 30 天」）：20 → 30。"""
     if group_hist is None or group_hist.empty:
         return {"points": [], "date": None}
     g = group_hist.sort_values("date").copy()

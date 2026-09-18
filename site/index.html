@@ -245,6 +245,20 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rbar input[type=range]{width:132px;accent-color:var(--cyan)}
 .rbar .val{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:52px;text-align:right}
 @media (max-width:900px){ .rbar input[type=range]{width:96px} }
+/* N2：資金流向排行與輪動時鐘共用的族群晶片列。
+   點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
+   以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
+.linkrow.gchips{display:flex;flex-wrap:wrap;gap:5px 6px}
+.gchip{display:inline-flex;align-items:center;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
+  border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}
+.gchip .pick{appearance:none;border:0;background:transparent;color:var(--ink-2);
+  padding:3px 4px 3px 9px;cursor:pointer;font-size:12px;font-family:inherit}
+.gchip .go{color:var(--ink-3);text-decoration:none;padding:3px 8px 3px 4px;
+  border-left:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
+.gchip:hover{border-color:var(--c)}
+.gchip .pick:hover,.gchip .go:hover{color:var(--ink)}
+.gchip.on{background:color-mix(in srgb,var(--c) 26%,transparent);border-color:var(--c)}
+.gchip.on .pick{color:var(--ink);font-weight:600}
 /* 台指期夜盤區塊（Andy 2026-09-18 圖一）。期交所只給報價沒有分時檔，所以是數字卡。*/
 .m3-night{margin:6px 0 2px;padding:8px 10px;border-radius:12px;
   background:color-mix(in srgb,var(--violet) 9%,transparent);

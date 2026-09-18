@@ -2083,10 +2083,14 @@ def t_batch1(pg, base):
         code = pg.evaluate("() => document.querySelector('#chainMap .co[data-code]').dataset.code")
         pg.eval_on_selector("#chainMap .co[data-code]", "n => n.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
         pg.wait_for_timeout(1400)
-        ok("點產業鏈上的台股公司會進個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}",
+        # N7（Andy 2026-09-19）：「點擊供應鏈關聯圖 個股時不要馬上跳到股票介面，
+        # 可以跳出觀看股票這選項」—— 2026-09-18 為了修圖12 改成直接跳，現在改回「先開面板」。
+        ok("點產業鏈上的公司不會馬上跳走（N7）",
+           pg.evaluate("() => location.hash") != f"#stock/{code}",
            pg.evaluate("() => location.hash"))
-        ok("進個股頁之後沒有殘留的浮動公司卡（圖12）",
-           pg.evaluate("() => document.getElementById('coBox') === null"))
+        ok("點公司會開原地面板，面板裡才有「看個股頁」（N7）",
+           pg.evaluate("""() => { const b = document.getElementById('coBox');
+               return !!b && b.textContent.indexOf('看個股頁') >= 0; }"""))
     # 外商：原地小面板，而且它是 #chainMap 的兄弟節點（不是掛在 body 上）
     pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1500)
     if pg.evaluate("() => !!document.querySelector('#chainMap .co.foreign')"):
@@ -2493,6 +2497,83 @@ def t_batch4(pg, base):
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
            if (!c) return false; const d = (c.getOption().series[0].data||[]);
            return d.filter(x => x[2] != null).length > d.length * 0.9; }"""))
+
+
+def t_batch7(pg, base):
+    """批次7（Andy 2026-09-19 半夜追加的七項）的真人操作驗收。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+
+    # ---- N2 兩邊族群名單要一樣，而且點了是「篩選」不是跳頁
+    lists = pg.evaluate("""() => { const rows = [...document.querySelectorAll('.linkrow.gchips')]
+        .map(r => [...r.querySelectorAll('.gchip')].map(c => c.dataset.g));
+        return rows; }""")
+    ok("排行與時鐘各有一排族群晶片（N2）", len(lists) >= 2, [len(x) for x in (lists or [])])
+    if len(lists) >= 2:
+        ok("兩邊族群名單完全一樣（N2「兩邊族群對不上」）", lists[0] == lists[1],
+           {"排行": len(lists[0]), "時鐘": len(lists[1]),
+            "只在一邊": sorted(set(lists[0]) ^ set(lists[1]))[:6]})
+    hash0 = pg.evaluate("() => location.hash")
+    if lists and lists[0]:
+        pg.eval_on_selector(".gchips .gchip .pick", "b => b.click()")
+        pg.wait_for_timeout(1000)
+        st = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
+            const dim = (() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+              if (!c) return null; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
+              if (!sc) return null;
+              const ops = (sc.data||[]).map(d => (d.itemStyle&&d.itemStyle.opacity!=null)?d.itemStyle.opacity:1);
+              return { lo: Math.min(...ops), hi: Math.max(...ops) }; })();
+            return { hash: location.hash, panel: !!b && !b.hidden,
+                     on: document.querySelectorAll('.gchips .gchip.on').length, dim }; }""")
+        ok("點族群晶片不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
+        ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘只亮它（N2）",
+           st["panel"] and st["dim"] and st["dim"]["lo"] < 0.3, st)
+        ok("兩排晶片同時被選起來（N2）", st["on"] >= 2, st["on"])
+
+    # ---- N4 時間週期拉到 30 天
+    bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+        return i && { min: +i.min, max: +i.max }; }""")
+    ok("輪動時鐘的天數可以拉到 30 天（N4）", bool(bar) and bar["max"] == 30, bar)
+    set_range(pg, "#rotBack input[type=range]", 30, 1400)
+    ok("拉到 30 天真的畫得出來（後端 trail 要同步存到 30）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           if (!c) return false; const ln = (c.getOption().series||[]).filter(s => s.type === 'line');
+           return ln.length > 0 && (ln[0].data||[]).length > 3; }"""))
+
+    # ---- N5 圓圈範圍變大
+    r = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        if (!c) return null; const p = (c.getOption().polar||[])[0]; return p ? p.radius : null; }""")
+    ok("輪動時鐘的圓圈放大了（N5，72% → 84%）", str(r) == "84%", r)
+
+    # ---- N6 盤面上有順時針箭頭 ＋ 白話說明
+    g = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        if (!c) return null; const s = JSON.stringify(c.getOption().graphic||[]);
+        return { arrows: (s.match(/↻/g)||[]).length, hasWord: s.indexOf('行進方向') >= 0 }; }""")
+    ok("盤面上有順時針箭頭（N6）", bool(g) and g["arrows"] >= 4, g)
+    ok("箭頭旁邊有一句白話說明（N6）", bool(g) and g["hasWord"], g)
+
+    # ---- N3 回放是「走過去」不是「跳格」：同一組族群時要用 merge（有補間動畫）
+    ok("回放有補間動畫設定（N3「像螞蟻一樣緩步移動」）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           if (!c) return false; const o = c.getOption();
+           return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
+
+    # ---- N10 季節性下方改成四段卡片
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    st2 = pg.evaluate("""() => ({ cards: document.querySelectorAll('#seasonBoard .stage').length,
+        names: [...document.querySelectorAll('#seasonBoard .stage .sh b')].map(e => e.textContent),
+        table: !!document.querySelector('#seasonTop table') })""")
+    ok("季節性下方改成四段卡片（N10）", st2["cards"] == 4, st2)
+    ok("四段是強勢／偏強／偏弱／弱勢（N10）",
+       st2["names"] == ["強勢", "偏強", "偏弱", "弱勢"], st2["names"])
+    ok("不再是表格（N10）", not st2["table"], st2)
+    if pg.evaluate("() => !!document.querySelector('#seasonBoard li[data-gid]')"):
+        h0 = pg.evaluate("() => location.hash")
+        pg.eval_on_selector("#seasonBoard li[data-gid]", "li => li.click()")
+        pg.wait_for_timeout(700)
+        ok("點族群會原地展開成分股、不跳頁（N10 沿用批次1 的作法）",
+           pg.evaluate("() => !!document.querySelector('#seasonBoard li.mem')")
+           and pg.evaluate("() => location.hash") == h0)
 
 
 def t_season(pg, base):
@@ -3733,7 +3814,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7)):
             n0 = len(fails)
             try:
                 fn(pg, base)

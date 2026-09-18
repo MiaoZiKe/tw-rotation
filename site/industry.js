@@ -437,8 +437,13 @@
          現在分兩條路：有台股代號的直接進個股頁（卡片本來就是為了進去看的），
          外商／無代號的才在產業鏈圖下方原地展開小面板。*/
       closeCoBox();
-      if (co.tw_code && handlers.onSelect) handlers.onSelect(co);
-      else showCompany(co, sc, host); }; });
+      /* N7（Andy 2026-09-19：「點擊供應鏈關聯圖 個股時不要馬上跳到股票介面，
+         可以跳出觀看股票這選項」）。
+         2026-09-18 為了修圖12（浮動卡跟到個股頁）改成「有代號就直接跳」，
+         但那樣一點就走，想看它在鏈上的位置、同環節有誰都來不及。
+         現在一律先開原地小面板（同環節、市占、技術、成長），
+         面板裡有一顆「看個股頁 →」要跳再跳。*/
+      showCompany(co, sc, host); }; });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     if (state.code) { const sel = $(`.co[data-code="${state.code}"]`, host); if (sel && sel.scrollIntoView) setTimeout(() => sel.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }), 50); }
   }
