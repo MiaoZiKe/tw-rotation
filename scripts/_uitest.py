@@ -115,6 +115,18 @@ def canvas_hash(pg, sel: str) -> str:
              return String(h); }""", sel)
 
 
+def set_range(pg, sel: str, value, wait: int = 700):
+    """把 range 拉到某個值，並且**真的發 input 事件**（拖曳當下就是發這個）。
+
+    用 fill() 不會觸發 oninput，畫面不會重畫 —— 那就變成只驗「值寫進去了」，
+    不是驗「畫面真的因此改變」，違反 Andy 的驗收規矩。
+    """
+    pg.evaluate("([s, v]) => { const i = document.querySelector(s); if (!i) return;"
+                " i.value = String(v); i.dispatchEvent(new Event('input', { bubbles: true }));"
+                " i.dispatchEvent(new Event('change', { bubbles: true })); }", [sel, value])
+    pg.wait_for_timeout(wait)
+
+
 def scroll_to(pg, el_id: str, tries: int = 20):
     """捲到某個元素並等它真的停下來。
 
@@ -338,7 +350,112 @@ def check_3d(pg):
     ok("切回平面圖，3D 收乾淨", off["svg"] and off["canvas"] == 0, off)
     click(pg, "#dg3d", 3500)
     ok("再切回 3D 只有一張 canvas（沒有疊上去）", count(pg, "#prod3d canvas") == 1, count(pg, "#prod3d canvas"))
+    check_3d_e1(pg)
+    check_3d_e2(pg)
+    check_3d_e34(pg)
     click(pg, "#dg3d", 800)   # 留在平面圖，不影響後面的驗收
+
+
+def check_3d_e1(pg):
+    """E1：3D 文字太小 → 引線 ＋ 外部文字框（Andy 2026-09-18）。
+       只驗「有標籤」不算數 —— 本來就有標籤，問題是它貼在零件上、字小、疊成一團。
+       所以這裡驗的是：字真的變大、真的排在畫面兩側的欄位裡、真的沒有互相壓到、
+       引線真的接在零件上（轉一下視角，引線的起點要跟著零件跑）。"""
+    st = pg.evaluate("""() => { const host = document.getElementById('prod3d');
+        const hb = host.getBoundingClientRect();
+        const vis = [...document.querySelectorAll('.lbl3d')].filter(e => !e.classList.contains('hid'));
+        const r = vis.map(e => e.getBoundingClientRect());
+        let ov = 0;
+        for (let i = 0; i < r.length; i++) for (let j = i + 1; j < r.length; j++) {
+          const A = r[i], B = r[j];
+          if (!(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom)) ov++; }
+        const mid = r.filter(x => x.left - hb.left > hb.width * 0.3 && x.right - hb.left < hb.width * 0.7);
+        return { n: vis.length, overlap: ov, middle: mid.length,
+          fs: vis.length ? parseFloat(getComputedStyle(vis[0]).fontSize) : 0,
+          notes: vis.filter(e => (e.querySelector('i')||{}).textContent).length,
+          leads: document.querySelectorAll('.lead3d path.ld').length,
+          shown: [...document.querySelectorAll('.lead3d path.ld')].filter(x => x.style.display !== 'none').length,
+          d0: (document.querySelector('.lead3d path.ld')||{}).getAttribute
+              ? document.querySelector('.lead3d path.ld').getAttribute('d') : null }; }""")
+    ok("E1 3D 標籤的字真的變大了（≥ 12px）", st["fs"] >= 12, st)
+    ok("E1 3D 標籤是文字框（名稱之外還有一行說明）", st["notes"] >= st["n"] - 1, st)
+    ok("E1 3D 標籤排到兩側、不壓在模型中央", st["middle"] == 0, st)
+    ok("E1 看得到的標籤彼此不重疊", st["overlap"] == 0, st)
+    ok("E1 每個標籤都有一條引線", st["leads"] >= st["n"] and st["shown"] >= st["n"], st)
+    # 轉一下視角：引線的起點必須跟著零件跑，否則那條線只是畫上去好看的
+    box = pg.evaluate("() => { const r = document.querySelector('#prod3d canvas').getBoundingClientRect();"
+                      " return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
+    pg.mouse.move(box["x"] + box["w"] / 2, box["y"] + box["h"] / 2); pg.mouse.down()
+    pg.mouse.move(box["x"] + box["w"] / 2 + 200, box["y"] + box["h"] / 2 + 30, steps=14)
+    pg.mouse.up(); pg.wait_for_timeout(900)
+    d1 = pg.evaluate("() => (document.querySelector('.lead3d path.ld')||{getAttribute:()=>null}).getAttribute('d')")
+    changed("E1 轉視角時引線跟著零件走", st["d0"], d1)
+
+
+def check_3d_e2(pg):
+    """E2：3D 圖螢光感太重（Andy 2026-09-18）。
+       用機器掃畫面，不用眼睛：截畫布的圖，數「很亮的青／綠、紅色偏低」那種自體發光像素。
+       同時要求平均亮度不能垮掉 —— 不然把整張調黑也會通過，那不是去螢光是關燈。"""
+    # 比的是 idleEmissive（沒被選起來的零件）：選起來的那一個本來就該提亮一點當提示
+    ok("E2 材質底層不再自體發光", pg.evaluate("() => Rack3D.current.stats().idleEmissive") <= 0.001,
+       pg.evaluate("() => Rack3D.current.stats()"))
+    try:
+        from PIL import Image
+    except Exception:
+        notes.append("E2 沒有 Pillow，跳過螢光像素掃描")
+        return
+    import io
+    png = pg.locator("#prod3d canvas").screenshot()
+    im = Image.open(io.BytesIO(png)).convert("RGB")
+    raw = im.tobytes(); n = max(1, len(raw) // 3)
+    hot = lum = 0
+    for i in range(0, len(raw), 3):
+        r, g, b = raw[i], raw[i + 1], raw[i + 2]
+        m = g if g > b else b
+        if m > 185 and r < m * 0.62:
+            hot += 1
+        lum += 0.299 * r + 0.587 * g + 0.114 * b
+    lum /= n
+    ok("E2 畫面幾乎沒有螢光像素（< 1%）", hot / n < 0.01, f"{hot / n * 100:.2f}%")
+    ok("E2 而且不是靠把畫面調黑做到的", lum > 20, f"平均亮度 {lum:.1f}")
+
+
+def check_3d_e34(pg):
+    """E3 零件更細膩（風扇有扇片、電池有電壓感）＋ E4 動態／靜止切換。
+       E3 驗「一個零件不只是一顆方塊」：mesh 數要遠多於零件數，而且真的有會轉的扇葉。
+       E4 驗「按了關就真的不動」：相機座標與扇葉角度兩個都要停住，按回來兩個都要再動。"""
+    st = pg.evaluate("() => Rack3D.current.stats()")
+    ok("E3 零件不再是一顆方塊（平均一個零件好幾顆 mesh）", st["meshes"] >= st["parts"] * 5,
+       f"{st['parts']} 個零件／{st['meshes']} 顆 mesh")
+    ok("E3 機櫃裡真的有會轉的扇葉", st["spinners"] >= 1, st)
+    ok("E3 只有指示燈准發光", st["leds"] >= 1 and st["idleEmissive"] <= 0.001, st)
+
+    # --- E4：關掉動畫
+    if pg.evaluate("() => !Rack3D.current.isAnim()"):
+        click(pg, "#dgAnim", 500)         # 先確定現在是「開」，才驗得到關掉的差別
+    pg.wait_for_timeout(1200)
+    a0 = pg.evaluate("() => ({ cam: Rack3D.current.cam(), spin: Rack3D.current.stats().spinAt })")
+    pg.wait_for_timeout(1800)
+    a1 = pg.evaluate("() => ({ cam: Rack3D.current.cam(), spin: Rack3D.current.stats().spinAt })")
+    ok("E4 動態時場景真的自己在動", max(abs(x - y) for x, y in zip(a0["cam"], a1["cam"])) > 0.5,
+       f"{a0['cam']} → {a1['cam']}")
+    ok("E4 動態時扇葉真的在轉", abs(a1["spin"] - a0["spin"]) > 0.05, f"{a0['spin']} → {a1['spin']}")
+    click(pg, "#dgAnim", 700)
+    ok("E4 鈕的字跟著換成「動畫：關」", "關" in text(pg, "#dgAnim"), text(pg, "#dgAnim"))
+    b0 = pg.evaluate("() => ({ cam: Rack3D.current.cam(), spin: Rack3D.current.stats().spinAt })")
+    pg.wait_for_timeout(1800)
+    b1 = pg.evaluate("() => ({ cam: Rack3D.current.cam(), spin: Rack3D.current.stats().spinAt })")
+    ok("E4 靜止時相機立刻停住（不准慢慢飄）",
+       max(abs(x - y) for x, y in zip(b0["cam"], b1["cam"])) < 0.05, f"{b0['cam']} → {b1['cam']}")
+    ok("E4 靜止時扇葉也停住", abs(b1["spin"] - b0["spin"]) < 0.001, f"{b0['spin']} → {b1['spin']}")
+    ok("E4 靜止時平面剖析圖的動畫也停掉", pg.evaluate(
+        "() => document.getElementById('prodDiagram').classList.contains('noanim')"))
+    ok("E4 靜止的選擇記進 localStorage",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.dganim'); } catch(e) { return null; } }") == "0")
+    click(pg, "#dgAnim", 900)
+    c0 = pg.evaluate("() => Rack3D.current.stats().spinAt")
+    pg.wait_for_timeout(1500)
+    ok("E4 再按一次就動回來", abs(pg.evaluate("() => Rack3D.current.stats().spinAt") - c0) > 0.05)
 
 
 # ------------------------------------------------------------------ 各頁
@@ -737,18 +854,25 @@ def t_flow(pg, base):
     ok("四張卡的名字是改善／領先／轉弱／落後",
        pg.evaluate("[...document.querySelectorAll('#rotBoard .stage .sh b')].map(e=>e.textContent)") == ["改善", "領先", "轉弱", "落後"],
        pg.evaluate("[...document.querySelectorAll('#rotBoard .stage .sh b')].map(e=>e.textContent)"))
-    backs = pg.evaluate("[...document.querySelectorAll('#rotBack button')].map(b => b.dataset.v)")
-    ok("輪動階段可以換比較天數", len(backs) >= 2, backs)
+    # F2（Andy 2026-09-18：「5 10 20 天改成拉 Bar 5-20 天，可以用拖曳的方式看的更直觀」）
+    bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
+    ok("輪動階段的天數是拉 Bar 不是按鈕", bool(bar), bar)
+    ok("拉 Bar 的範圍是 5–20 天", bool(bar) and bar["min"] == 5 and bar["max"] == 20, bar)
     seenb = {}
-    for v in backs:
-        click(pg, f'#rotBack button[data-v="{v}"]', 700)
-        seenb[v] = pg.evaluate("""() => ({ on: (document.querySelector('#rotBack button.on')||{dataset:{}}).dataset.v,
+    for v in (5, 12, 20):
+        set_range(pg, "#rotBack input[type=range]", v, 800)
+        seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input').value,
+            lab: (document.querySelector('#rotBack .val')||{}).textContent,
             move: (document.getElementById('rotMove')||{}).innerText,
             items: document.querySelectorAll('#rotBoard li[data-gid]').length })""")
-        ok(f"「和 {v} 天前比」按下去真的被選取", seenb[v]["on"] == v, seenb[v])
-        ok(f"「和 {v} 天前比」有寫出換階段的族群或明講沒有", v in (seenb[v]["move"] or ""), seenb[v]["move"][:40])
-    ok("換比較天數，換階段的名單真的不一樣", len({v["move"] for v in seenb.values()}) >= 2,
+        ok(f"拉到 {v} 天，值真的變了", seenb[v]["v"] == v, seenb[v])
+        ok(f"拉到 {v} 天，旁邊的字跟著寫 {v}", str(v) in (seenb[v]["lab"] or ""), seenb[v]["lab"])
+        ok(f"拉到 {v} 天有寫出換階段的族群或明講沒有", str(v) in (seenb[v]["move"] or ""), seenb[v]["move"][:40])
+    ok("換天數，換階段的名單真的不一樣", len({v["move"] for v in seenb.values()}) >= 2,
        {k: v["move"][:30] for k, v in seenb.items()})
+    ok("拉 Bar 的值有記住（換頁回來還是同一個天數）",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back'); } catch(e){ return null; } }") is not None)
 
     # --- 資金輪動時鐘：Andy 要「輪動族群要搭配圖表，看圖就懂」
     clk = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -762,11 +886,17 @@ def t_flow(pg, base):
     ok("輪動時鐘上有族群的點", bool(clk) and clk["pts"] >= 4, clk)
     ok("每個族群都有一條走過的尾巴", bool(clk) and clk["trails"] == clk["pts"], clk)
     ok("時鐘上的點分佈在四個階段裡", bool(clk) and set(clk["stages"]) <= {"leading", "improving", "weakening", "lagging"}, clk and clk["stages"][:6])
-    click(pg, '#rotBack button[data-v="5"]', 900)
+    set_range(pg, "#rotBack input[type=range]", 5, 900)
     h0 = canvas_hash(pg, "#rotClock")
-    click(pg, '#rotBack button[data-v="20"]', 1100)
-    changed("換成和 20 天前比，輪動時鐘的尾巴真的重畫", h0, canvas_hash(pg, "#rotClock"))
-    click(pg, '#rotBack button[data-v="5"]', 900)
+    set_range(pg, "#rotBack input[type=range]", 20, 1100)
+    changed("拉到 20 天，輪動時鐘的尾巴真的重畫", h0, canvas_hash(pg, "#rotClock"))
+    # 尾巴要**沿著圓弧**走（Andy 2026-09-18：「不是一個斷點直線跑過去」）。
+    # 判準：一條尾巴的點數要遠多於 2（兩點＝直線），而且不是只有起訖兩端。
+    seg = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        if (!c) return 0; const ls = c.getOption().series.filter(s => s.type === 'line');
+        return Math.max(0, ...ls.map(s => (s.data || []).length)); }""")
+    ok("輪動時鐘的尾巴是弧線（補過中間點）不是兩點直線", seg >= 8, f"最長的一條尾巴有 {seg} 個點")
+    set_range(pg, "#rotBack input[type=range]", 5, 900)
     # 用真的滑鼠點時鐘上的點（算出那顆點的螢幕座標再點下去），要進得去族群頁
     scroll_to(pg, "rotClockWrap")
     pt = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -822,6 +952,71 @@ def t_flow(pg, base):
     click(pg, "#vBelow", 600)
 
     # --- 這頁每張圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
+    # ---- G1/G2/G3 資金去向（Andy 2026-09-18：垂直、電流流動感、占比 %）
+    sk = pg.evaluate("""() => { const el = document.getElementById('sankey'); if (!el) return null;
+        const c = echarts.getInstanceByDom(el); if (!c) return null;
+        const s = c.getOption().series[0];
+        return { orient: s.orient, label: typeof s.label.formatter, links: (s.links||[]).length }; }""")
+    ok("資金去向是垂直由上往下", bool(sk) and sk["orient"] == "vertical", sk)
+    ok("節點標籤自己算占比 %", bool(sk) and sk["label"] == "function", sk)
+    ok("滑過連線看得到 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+        if (!c) return false; const f = c.getOption().tooltip[0].formatter;
+        const s = f({ dataType: 'edge', data: { source: 'a', target: 'b', value: 1 } });
+        return typeof s === 'string' && s.indexOf('%') >= 0; }"""))
+    # 電流流動感：不動手、只等，畫面自己要變
+    g0 = canvas_hash(pg, "#sankey")
+    pg.wait_for_timeout(900)
+    changed("資金去向會動（電流流動感）", g0, canvas_hash(pg, "#sankey"))
+
+    # ---- H1 族群佔比河流：占比 % ＋ 天數拉 Bar（Max 60）
+    rb = pg.evaluate("""() => { const i = document.querySelector('#riverDays input[type=range]');
+        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
+    ok("族群佔比河流有天數拉 Bar", bool(rb), rb)
+    ok("河流的拉 Bar 最多 60 天", bool(rb) and rb["max"] <= 60 and rb["min"] <= 10, rb)
+    r0 = canvas_hash(pg, "#river")
+    set_range(pg, "#riverDays input[type=range]", 10, 900)
+    changed("拉天數，河流圖真的重畫", r0, canvas_hash(pg, "#river"))
+    ok("河流的數字有 % 單位", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('river'));
+        if (!c) return false; const f = c.getOption().tooltip[0].formatter;
+        const s = f([{ marker: '', value: ['2026-09-18', 12.3, '半導體'] }]);
+        return typeof s === 'string' && s.indexOf('%') >= 0; }"""))
+    set_range(pg, "#riverDays input[type=range]", 60, 900)
+
+    # ---- I1 族群 × 法人：0–30 天拉 Bar ＋ 占比 %
+    ib = pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]');
+        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
+    ok("族群×法人有天數拉 Bar", bool(ib), ib)
+    ok("範圍是 0–30 天", bool(ib) and ib["min"] == 0 and ib["max"] == 30, ib)
+    ok("0 的意思要寫出來（不然 0 天沒有意義）",
+       "期間" in (pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent") or ""),
+       pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent"))
+    i0 = canvas_hash(pg, "#instGroups")
+    sub0 = text(pg, "#instSub")
+    set_range(pg, "#instDays input[type=range]", 10, 1200)
+    changed("拉到 10 天，族群×法人真的重畫", i0, canvas_hash(pg, "#instGroups"))
+    changed("副標跟著寫「最近 10 個交易日」", sub0, text(pg, "#instSub"))
+    ok("y 軸的族群名後面帶占比 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
+        if (!c) return false; const d = c.getOption().yAxis[0].data || [];
+        return d.length > 0 && String(d[0]).indexOf('%') >= 0; }"""),
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
+           return c ? (c.getOption().yAxis[0].data || [])[0] : null; }"""))
+    set_range(pg, "#instDays input[type=range]", 0, 1200)
+    ok("拉回 0 會跟著上方期間走", text(pg, "#instSub") != "", text(pg, "#instSub"))
+
+    # ---- F1 輪動階段不要方方角角（Andy 2026-09-18：「我覺得很醜…不要那麼方方角角」）
+    sb = pg.evaluate("""() => { const s = document.querySelector('#rotBoard .stage'); if (!s) return null;
+        const li = document.querySelector('#rotBoard .stage li');
+        return { r: parseFloat(getComputedStyle(s).borderRadius) || 0,
+                 rail: parseFloat(getComputedStyle(document.getElementById('rotBoard'), '::before').height) || 0,
+                 arrow: getComputedStyle(s, '::after').content,
+                 liR: li ? parseFloat(getComputedStyle(li).borderRadius) || 0 : 0,
+                 n: document.querySelectorAll('#rotBoard .stage').length }; }""")
+    ok("輪動階段還是四段", bool(sb) and sb["n"] == 4, sb)
+    ok("四段的角是圓的（不是方方角角）", bool(sb) and sb["r"] >= 16, sb)
+    ok("成員是圓角膠囊", bool(sb) and sb["liR"] >= 100, sb)
+    ok("底下有一條軌道把四段串起來（看得出是一個循環）", bool(sb) and sb["rail"] >= 4, sb)
+    ok("段與段之間有箭頭", bool(sb) and "→" in (sb["arrow"] or ""), sb)
+
     for w, lb in (("rankFlowWrap", "資金流向排行"), ("bumpWrap", "名次變化"),
                   ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
                   ("riverWrap", "族群佔比河流"), ("instGroupsWrap", "族群 × 法人")):
@@ -933,6 +1128,74 @@ def t_industry(pg, base):
     # --- 點成分股 → 個股頁
     click(pg, "#memberTable tbody tr a, #memberTable tbody tr", 1800)
     ok("點成分股會進個股頁", pg.evaluate("location.hash").startswith("#stock/"), pg.evaluate("location.hash"))
+
+
+def t_chainnav(pg, base):
+    """E5 產業鏈頁上方的類別切換列 ＋ E6 跨產業鏈環節的兩張架構圖（Andy 2026-09-18 第 3 批）。
+
+    E5 以前只有卡片最底下那排連結，換一條鏈要先捲到底或退回產業地圖。
+    E6 以前不管從哪條鏈點進 ABF 載板，看到的都只有當下這條鏈的內容，另一半整個看不到。
+    兩個都驗「真的按下去、畫面真的因此換掉」，不是驗元素存在。"""
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
+
+    # ---------------- E5
+    sw = pg.evaluate("""() => { const s = document.getElementById('chainSwitch'); if (!s) return null;
+        const b = [...s.querySelectorAll('button')];
+        const card = s.closest('.card'), h2 = card && card.querySelector('h2');
+        return { n: b.length, on: (s.querySelector('button.on')||{dataset:{}}).dataset.c,
+                 // 「上方」＝真的排在標題前面，不是塞在卡片最下面
+                 aboveTitle: !!(h2 && s.compareDocumentPosition(h2) & Node.DOCUMENT_POSITION_FOLLOWING),
+                 top: Math.round(s.getBoundingClientRect().top),
+                 ids: b.map(x => x.dataset.c) }; }""")
+    if not ok("E5 產業鏈頁最上方有類別切換列", bool(sw) and sw["n"] >= 3, sw):
+        return
+    ok("E5 切換列真的在標題上方", sw["aboveTitle"], sw)
+    ok("E5 現在這條鏈是標起來的", sw["on"] == "ai_server", sw)
+    ok("E5 其他產業鏈與法定產業別都列得出來", "semiconductor" in sw["ids"] and "industry" in sw["ids"], sw["ids"])
+    h0 = text(pg, "#indChain h2")
+    click(pg, "#chainSwitch button[data-c='semiconductor']", 1800)
+    after = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
+        on: (document.querySelector('#chainSwitch button.on')||{dataset:{}}).dataset.c,
+        rows: document.querySelectorAll('#memberTable tbody tr').length,
+        canvas: document.querySelectorAll('#prod3d canvas').length })""")
+    changed("E5 按切換列，頁面標題真的換一條鏈", h0, after["h2"])
+    ok("E5 而且是直接切過去（沒有退回產業地圖）", after["hash"] == "#industry/semiconductor", after)
+    ok("E5 切過去之後換它被標起來", after["on"] == "semiconductor", after)
+    ok("E5 新的那條鏈有成分股", after["rows"] > 0, after)
+    # 換鏈要把上一個 3D 場景收乾淨，不然 WebGL context 會一路累積到瀏覽器上限
+    ok("E5 換鏈不會留下上一個 3D 畫布", after["canvas"] == 0, after)
+
+    # ---------------- E6：ABF 載板同時屬於半導體與 AI 伺服器
+    if not ok("E6 半導體鏈看得到 ABF 載板環節", count(pg, "#segChips .segchip[data-seg='abf_pcb']") == 1):
+        return
+    click(pg, "#segChips .segchip[data-seg='abf_pcb']", 1200)
+    x = pg.evaluate("""() => { const w = document.getElementById('xChains'); if (!w) return null;
+        const svgs = [...w.querySelectorAll('.xmini svg')];
+        return { panels: w.querySelectorAll('.xchain').length, minis: svgs.length,
+                 chains: [...w.querySelectorAll('.xchain')].map(e => e.dataset.c),
+                 // 兩張圖裡這個環節都要亮起來、其餘壓暗，才叫「兩張架構圖」而不是兩張裝飾
+                 selPerMini: svgs.map(s => s.querySelectorAll('[data-seg="abf_pcb"].sel').length),
+                 dimPerMini: svgs.map(s => s.querySelectorAll('[data-seg].dim').length),
+                 // 兩邊內容：各自的上下游與族群
+                 rows: w.querySelectorAll('.xchain .xrow').length,
+                 txt: w.innerText, go: w.querySelectorAll('.xgo').length,
+                 cur: w.querySelectorAll('.xchain.cur').length }; }""")
+    if not ok("E6 跨產業鏈的環節會多出一塊「兩條鏈」的說明", bool(x), x):
+        return
+    ok("E6 兩條鏈各一張架構圖", x["panels"] == 2 and x["minis"] == 2, x)
+    ok("E6 兩張圖都是半導體與 AI 伺服器", sorted(x["chains"]) == ["ai_server", "semiconductor"], x["chains"])
+    ok("E6 兩張圖裡這個環節都真的亮起來", all(v > 0 for v in x["selPerMini"]), x["selPerMini"])
+    ok("E6 兩張圖裡其餘環節都壓暗", all(v > 0 for v in x["dimPerMini"]), x["dimPerMini"])
+    ok("E6 兩邊各自的上下游與族群都寫出來了", x["rows"] >= 6 and "上游" in x["txt"] and "下游" in x["txt"], x["rows"])
+    ok("E6 現在這條鏈有標出來", x["cur"] == 1, x)
+    # 真的按「切到這條鏈看」：要換頁、而且那個環節已經套用在新的鏈上
+    ok("E6 有切到另一條鏈的入口", x["go"] == 1, x)
+    click(pg, "#xChains .xgo", 2000)
+    to = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
+        seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent,
+        chips: document.querySelectorAll('#segChips .segchip.sel').length })""")
+    ok("E6 按了真的切到另一條鏈", to["hash"] == "#industry/ai_server/abf_pcb", to)
+    ok("E6 切過去之後同一個環節已經選好了", (to["seg"] or "").startswith("ABF") and to["chips"] > 0, to)
 
 
 def t_themes(pg, base):
@@ -1687,6 +1950,34 @@ def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
     ok("季節性頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
+
+    # J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）
+    vs = pg.evaluate("() => [...document.querySelectorAll('#seasonView button')].map(b => b.dataset.v)")
+    ok("族群×月份有熱力圖／曲線圖兩種呈現", vs == ["heat", "line"], vs)
+    ok("預設是熱力圖", pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
+                                  " document.getElementById('seasonLine').hidden]") == [False, True])
+    click(pg, '#seasonView button[data-v="line"]', 1300)
+    ok("切到曲線圖：熱力圖收起來、曲線圖出來",
+       pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
+                   " document.getElementById('seasonLine').hidden]") == [True, False])
+    ok("曲線圖真的畫出來了", canvas_hash(pg, "#seasonLine") not in ("no-canvas", "0"),
+       canvas_hash(pg, "#seasonLine"))
+    ser = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonLine'));
+        if (!c) return null; const o = c.getOption();
+        return { n: o.series.length, type: o.series[0].type, pts: (o.series[0].data || []).length,
+                 open: Object.values(o.legend[0].selected || {}).filter(Boolean).length }; }""")
+    ok("是線圖、12 個月一條線", bool(ser) and ser["type"] == "line" and ser["pts"] == 12, ser)
+    ok("預設只打開少數幾條（26 條疊在一起是一團毛線）",
+       bool(ser) and 0 < ser["open"] <= 10, ser)
+    # 換指標，曲線圖要跟著變（不是只有熱力圖會變）
+    l0 = canvas_hash(pg, "#seasonLine")
+    click(pg, '#seasonMetric button[data-v="win_rate"]', 1300)
+    changed("換指標，曲線圖跟著重畫", l0, canvas_hash(pg, "#seasonLine"))
+    ok("選過的呈現方式有記住",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.season.view'); } catch(e){ return null; } }") == "line")
+    click(pg, '#seasonView button[data-v="heat"]', 1100)
+    ok("切回熱力圖也還在", pg.evaluate("() => document.getElementById('seasonLine').hidden") is True)
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 900)
     for grp, name in (("#seasonPeriod", "期間"), ("#seasonMetric", "指標")):
         vs = pg.evaluate(f"[...document.querySelectorAll('{grp} button')].filter(b => b.style.display !== 'none').map(b => b.dataset.v)")
         if len(vs) >= 2:
@@ -2033,8 +2324,11 @@ def t_buildver(b, base):
         # 把 index.html 抓下來，就地把版號那個 meta 換掉，模擬部署時 stamp_assets.py 做的事
         def patch(route):
             r = route.fetch()
-            html = r.text().replace('<meta name="tw:build" content="dev|">',
-                                    f'<meta name="tw:build" content="{label}">')
+            html = (r.text()
+                    .replace('<meta name="tw:build" content="dev|">',
+                             f'<meta name="tw:build" content="{label}">')
+                    .replace('<meta name="tw:commit" content="">',
+                             '<meta name="tw:commit" content="1b28dfc">'))
             route.fulfill(status=200, content_type="text/html; charset=utf-8",
                           headers={"cache-control": "no-store"}, body=html)
         pg.route("**/index.html", patch)
@@ -2050,21 +2344,24 @@ def t_buildver(b, base):
         ctx.close()
         return got
 
-    a = run("1b28dfc|09-16 11:16")
+    # 版號格式：西元日期＋今天第幾版（Andy 2026-09-18）
+    a = run("2026-09-18 第 3 版|11:16")
     ok("版號徽章看得到", a["visible"], a)
-    ok("徽章寫的是部署時填進去的版號", "1b28dfc" in a["txt"] and "09-16 11:16" in a["txt"], a["txt"])
-    ok("徽章連得到那個 commit", "/commit/1b28dfc" in (a["href"] or ""), a["href"])
-    ok("橫幅那一行也寫了版號（手機上頂部徽章是藏起來的）", "1b28dfc" in a["banner"],
+    ok("徽章寫的是西元日期＋第幾版", "2026-09-18" in a["txt"] and "第 3 版" in a["txt"], a["txt"])
+    ok("徽章也寫建置時間", "11:16" in a["txt"], a["txt"])
+    ok("徽章連得到那個 commit（短碼移到 tooltip 與連結）",
+       "/commit/1b28dfc" in (a["href"] or ""), a["href"])
+    ok("橫幅那一行也寫了版號（手機上頂部徽章是藏起來的）", "2026-09-18" in a["banner"],
        a["banner"][:200])
 
-    c = run("9f0aa11|09-17 08:02")
+    c = run("2026-09-19 第 1 版|08:02")
     changed("換一個版號，畫面上的字真的跟著換", a["txt"], c["txt"])
-    ok("第二組版號也對得上", "9f0aa11" in c["txt"] and "09-17 08:02" in c["txt"], c["txt"])
+    ok("第二組版號也對得上", "2026-09-19" in c["txt"] and "第 1 版" in c["txt"], c["txt"])
+    ok("日期不同就看得出誰比較新（不像 sha 沒有順序）", a["txt"] < c["txt"], [a["txt"], c["txt"]])
 
     # 沒跑過部署流程的版本要看得出來，不能假裝自己是正式版
-    d = run("local|09-16 11:16")
+    d = run("2026-09-18（local）|11:16")
     ok("本機版標成 local", "local" in d["txt"], d["txt"])
-    ok("本機版不會亂連到 commit", "/commit/local" not in (d["href"] or ""), d["href"])
 
 
 def t_live(pg, base):
@@ -2870,7 +3167,7 @@ def main() -> int:
 
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
-                         ("題材", t_themes), ("季節性", t_season)):
+                         ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season)):
             n0 = len(fails)
             try:
                 fn(pg, base)

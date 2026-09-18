@@ -9,6 +9,8 @@
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
      本機開發時維持 dev。前端讀這裡，畫在右上角與頂端橫幅，讓「換版了沒」用看的就知道。 -->
 <meta name="tw:build" content="dev|">
+<!-- commit 短碼另外放：版號改成「日期＋第幾版」之後，短碼移到徽章的連結與 tooltip -->
+<meta name="tw:commit" content="">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="台股輪動">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -237,6 +239,12 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .opabox input[type=range]{width:82px}
 .opabox .val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:34px;text-align:right}
 .opabox input:disabled{opacity:.35}
+/* 拉 Bar：RRG 天數、族群佔比河流、族群×法人共用同一個樣子（Andy 2026-09-18 要求改成拖曳） */
+.rbar{display:inline-flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.rbar .t{color:var(--ink-3)}
+.rbar input[type=range]{width:132px;accent-color:var(--cyan)}
+.rbar .val{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:52px;text-align:right}
+@media (max-width:900px){ .rbar input[type=range]{width:96px} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
 .zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
@@ -272,9 +280,28 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rotmove .mv i{width:8px;height:8px;border-radius:2px;display:inline-block}
 .rotmove .mv em{font-style:normal;color:var(--ink-3);margin:0 1px}
 .rotmove .mv b{color:var(--ink);font-weight:600}
-.stageboard{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:12px}
-.stageboard.compact{grid-template-columns:1fr 1fr;gap:10px;margin-top:4px}
-.stage{border:1px solid var(--line-2);border-top:3px solid var(--c);border-radius:11px;padding:12px 13px;background:var(--panel-3)}
+/* 輪動階段（F1，Andy 2026-09-18：「我覺得很醜，幫我想其他方式呈現，不夠直觀，不要那麼方方角角」）。
+   原本是四個直角方塊並排 —— 看起來像四張沒有關係的表格，看不出「這是一個循環」。
+   改成「四段軌道」：底下一條圓角的漸層軌，四段依序坐在上面、彼此用箭頭接起來，
+   每一段是圓角玻璃面板（顏色取自該階段），成員是圓角膠囊。
+   形狀本身就在說「錢是照這個順序繞圈」，不用讀文字才懂。 */
+.stageboard{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:20px;padding-top:16px}
+.stageboard::before{content:"";position:absolute;left:2%;right:2%;top:4px;height:6px;border-radius:999px;
+  background:linear-gradient(90deg,var(--fall),var(--cyan),var(--rise),var(--amber),var(--fall));opacity:.5}
+.stageboard.compact{grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;padding-top:12px}
+.stageboard.compact::before{display:none}
+.stage{position:relative;border:1px solid color-mix(in srgb,var(--c) 34%,transparent);border-radius:20px;
+  padding:14px 15px 13px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 11%,var(--panel-3)),var(--panel-3));
+  box-shadow:0 10px 26px -22px var(--c)}
+/* 軌道上的節點：每一段頭上一顆圓點，坐在漸層軌上 */
+.stage::before{content:"";position:absolute;left:24px;top:-19px;width:13px;height:13px;border-radius:999px;
+  background:var(--c);box-shadow:0 0 0 4px var(--bg),0 0 12px var(--c)}
+/* 段與段之間的箭頭：說明「往下一段走」 */
+.stage::after{content:"→";position:absolute;right:-15px;top:50%;transform:translateY(-50%);
+  color:var(--ink-3);font-size:15px;font-weight:700}
+.stage:last-child::after{content:"↩";color:var(--ink-3)}
+.stageboard.compact .stage::before,.stageboard.compact .stage::after{display:none}
+@media (max-width:900px){ .stage::after{display:none} .stageboard::before{display:none} }
 .stage .sh{display:flex;align-items:baseline;gap:8px}
 .stage .sh b{font-size:15.5px}
 .stage .sh .n{font-family:var(--mono);font-size:12px;color:var(--ink-3);background:var(--panel-2);
@@ -282,9 +309,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stage .sd{color:var(--ink-3);font-size:12.5px;margin:5px 0 9px;line-height:1.55}
 .stage .sd em{font-style:normal;color:var(--ink-2)}
 .stage ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
-.stage li{display:flex;align-items:center;gap:6px;padding:6px 9px;border-radius:8px;background:var(--panel-2);
-  cursor:pointer;transition:.15s;flex-wrap:wrap}
-.stage li:hover{background:var(--panel);outline:1px solid var(--c)}
+.stage li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--panel-2);
+  cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
+.stage li:hover{background:var(--panel);border-color:var(--c);transform:translateX(2px)}
 .stage li.none{color:var(--ink-3);font-size:12.5px;cursor:default;background:transparent;padding:4px 0}
 .stage li.none:hover{outline:0}
 .stage li .g{font-weight:600;font-size:13.5px}
@@ -470,6 +497,16 @@ a.lk.sm{font-size:12px;font-weight:500}
 .linkrow>.muted{font-size:12px;letter-spacing:.06em}
 .linkrow a.lk{padding:2px 8px;border-radius:999px;background:var(--panel-3);border:1px solid var(--line);border-bottom-width:1px;font-size:12.5px}
 .linkrow a.lk:hover{border-color:var(--c,var(--cyan))}
+/* E5：產業鏈頁最上方的類別切換列 —— 換一條鏈不用退回產業地圖。橫向可捲，手機也放得下 */
+.chainsw{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;margin-bottom:10px;
+  border-bottom:1px solid var(--line);scrollbar-width:thin}
+.chainsw button{flex:0 0 auto;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);
+  padding:5px 12px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;transition:.15s}
+.chainsw button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:6px}
+.chainsw button:hover{border-color:var(--cyan);color:var(--ink)}
+.chainsw button.on{background:rgba(62,224,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
+.chainsw button.on em{color:var(--cyan)}
+.chainsw button[data-dg]::before{content:'◧';margin-right:5px;font-size:11px;opacity:.75}
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px}
 .qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
@@ -495,6 +532,21 @@ a.lk.sm{font-size:12px;font-weight:500}
 a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
 #themeMembers tr.sel{background:color-mix(in srgb,var(--cyan) 14%,transparent);box-shadow:inset 3px 0 0 var(--cyan)}
 .segbox .row{gap:6px 14px;margin-top:6px}
+/* E6：跨產業鏈的環節（ABF 載板等）—— 兩條鏈各一張架構圖縮圖，加上各自的上下游與族群 */
+.xchains{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.xchains .xhd{grid-column:1/-1;font-size:13px;color:var(--ink-2)}
+.xchain{border:1px solid var(--line-2);border-radius:10px;padding:9px 11px;background:var(--panel-3)}
+.xchain.cur{border-color:var(--c,var(--cyan))}
+.xchain .xmini{margin:7px 0;max-height:300px;overflow:hidden;padding:0}
+.xchain .xmini svg{display:block;width:100%;height:auto}
+.xchain .xrow{display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center;margin-top:5px;font-size:12.5px}
+.xchain .xrow>.muted{font-size:11.5px;letter-spacing:.06em;min-width:28px}
+.xchain .xrow .pill{font-size:11.5px;padding:2px 8px}
+/* 縮圖只是定位用的，點它沒有意義；真的要過去請按「切到這條鏈看」 */
+.xchain .xmini *{pointer-events:none}
+/* 亮起／壓暗沿用剖析圖自己那套（diagrams.js 的 STYLE），這裡只把壓暗再壓一點，對比才拉得開 */
+.xchain .xmini [data-seg].dim{opacity:.16}
 .gdot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c,var(--ink-3));margin-right:6px;vertical-align:-1px}
 
 /* ---------------- 表格 ---------------- */
@@ -608,15 +660,24 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dg3d{position:relative;border-radius:10px;background:radial-gradient(120% 90% at 50% 0%,var(--dg-1),var(--dg-2));
   border:1px solid var(--line);overflow:hidden;min-height:360px}
 .dg3d[hidden]{display:none}
-.lbl3d{font-size:11.5px;color:var(--ink-2);background:rgba(10,16,32,.72);border:1px solid var(--line-2);
-  border-radius:6px;padding:2px 7px;white-space:nowrap;pointer-events:none;transition:.15s;
-  text-shadow:0 1px 2px #000}
-.lbl3d b{font-weight:600;color:var(--ink)}
-.lbl3d.sel{border-color:var(--cyan);color:var(--cyan);background:rgba(62,224,255,.14)}
-.lbl3d.dim{opacity:.22}
-/* 轉到某些角度零件會擠在一起，標籤疊成一團；避讓演算法會把被擋住的那些標成 hid */
+/* E1（Andy 2026-09-18「3D 圖文字太小 → 改成引線＋外部文字框」）：
+   標籤不再貼在零件頭上，改成排在畫布左右兩欄的文字框 —— 字放大到 12.5px、
+   多一行說明、左邊一條環節色的粗邊把它跟零件綁在一起，再用引線接回去。 */
+.lbl3d{position:absolute;font-size:12.5px;line-height:1.35;color:var(--ink-2);
+  background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line-2);
+  border-left:3px solid var(--c,var(--line-2));border-radius:7px;padding:4px 8px;
+  white-space:normal;transition:opacity .15s,border-color .15s;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:2}
+.lbl3d b{display:block;font-weight:700;color:var(--ink)}
+.lbl3d i{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+  font-style:normal;font-size:11px;color:var(--ink-3);margin-top:2px}
+.lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}
+.lbl3d.sel b{color:var(--cyan)}
+.lbl3d.dim{opacity:.26}
+/* 轉到背面、或兩欄都排滿了，離相機最遠的那幾個先讓位 */
 .lbl3d.hid{opacity:0;pointer-events:none}
 .lbl3d:hover{border-color:var(--cyan);color:var(--ink);z-index:3}
+.lead3d .ld{fill:none;stroke:var(--line-2);stroke-width:1.1;opacity:.72}
+.lead3d .ld-dot{fill:none;stroke-width:1.4;opacity:.9}
 .dgwrap svg{display:block;width:100%;height:auto}
 .dgwrap.compact svg{max-height:380px}
 .dgwrap.noanim *{animation:none!important}
@@ -814,7 +875,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     </div>
     <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
       <div class="row" style="gap:8px">
-        <div class="seg" id="rotBack"><button data-v="5" class="on">和 5 天前比</button><button data-v="10">10 天</button><button data-v="20">20 天</button></div>
+        <div id="rotBack" title="和幾天前比：拖曳看不同的回顧長度"></div>
         <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-rot" hidden></div>
       <div class="cyclebar" id="rotCycle"></div>
@@ -826,14 +887,18 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
         <div class="howtxt" id="how-sankey" hidden></div>
         <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
-      <div class="card"><div class="row spread"><h3>族群佔比河流 <small>近 60 日成交值佔比</small></h3>
-        <button class="howbtn" data-how="river">怎麼看 ?</button></div>
+      <div class="card"><div class="row spread"><h3>族群佔比河流 <small>成交值佔比 %</small></h3>
+        <div class="row" style="gap:10px;align-items:center">
+          <div id="riverDays" title="看最近幾天：拖曳調整（最多 60 天）"></div>
+          <button class="howbtn" data-how="river">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-river" hidden></div>
         <div id="riverWrap"><div id="river" class="chart tall"></div></div></div>
     </div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
-        <button class="howbtn" data-how="inst">怎麼看 ?</button></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
+          <button class="howbtn" data-how="inst">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
@@ -890,9 +955,13 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <div class="row">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
+          <!-- J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）：
+               熱力圖看得出「哪一格特別紅」，但看不出「一整年怎麼走」；曲線圖補的就是後者。 -->
+          <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">曲線圖</button></div>
         </div>
       </div>
       <div id="seasonHeat" class="chart" style="min-height:640px"></div>
+      <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
     </div>
     <div class="grid g2" style="margin-top:16px">

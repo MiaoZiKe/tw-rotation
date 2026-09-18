@@ -74,39 +74,61 @@ def test_戳記本身不含問號或引號():
 from datetime import datetime, timezone  # noqa: E402
 
 
-def test_版號是commit前7碼加台北建置時間():
-    label = sa.build_label(datetime(2026, 9, 16, 3, 15, tzinfo=timezone.utc), sha="1b28dfcd5a02")
-    assert label == "1b28dfc|09-16 11:15", label      # UTC 03:15 → 台北 11:15
+def test_版號是西元日期加今天第幾版():
+    """Andy 2026-09-18：「版號用西元＋日期，以及第幾次改動命名」。
+
+    以前寫 commit 前 7 碼 —— 對得上 GitHub，但人看不出「這是今天第幾版」，
+    也看不出兩個版本誰新誰舊（sha 是亂碼、沒有順序）。
+    """
+    label = sa.build_label(datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc), sha="1b28dfcd5a02", seq=3)
+    assert label == "2026-09-18 第 3 版|11:15", label     # UTC 03:15 → 台北 11:15
 
 
-def test_沒有commit就寫local():
+def test_日期用台北不是UTC():
+    """台北 2026-09-19 07:00 換算 UTC 還是 09-18 23:00，日期寫錯就會差一天。"""
+    label = sa.build_label(datetime(2026, 9, 18, 23, 0, tzinfo=timezone.utc), sha="abc1234", seq=1)
+    assert label.startswith("2026-09-19 "), label
+
+
+def test_數不出第幾版就只寫日期():
+    """淺 clone 或沒有 git 的環境數不出來；那也要有版號，不能整個掛掉。"""
+    label = sa.build_label(datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc), sha="abc1234", seq=0)
+    assert label == "2026-09-18|11:15", label
+
+
+def test_沒有commit就標local():
     """看到 local 就知道這不是部署出來的版本，而是誰在本機開的。"""
-    assert sa.build_label(datetime(2026, 9, 16, 3, 15, tzinfo=timezone.utc), sha="").startswith("local|")
+    assert "local" in sa.build_label(datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc), sha="", seq=2)
 
 
 def test_meta標籤真的被換掉():
-    html = '<meta name="tw:build" content="dev|">'
-    out, _ = sa.stamp_html(html, "x", datetime(2026, 9, 16, 3, 15, tzinfo=timezone.utc), sha="abcdef1234")
-    assert out == '<meta name="tw:build" content="abcdef1|09-16 11:15">'
+    html = '<meta name="tw:build" content="dev|"><meta name="tw:commit" content="">'
+    out, _ = sa.stamp_html(html, "x", datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc),
+                           sha="abcdef1234", seq=2)
+    assert '<meta name="tw:build" content="2026-09-18 第 2 版|11:15">' in out
+    # commit 短碼沒有丟掉，只是換個地方放（徽章的連結與 tooltip 還要用）
+    assert '<meta name="tw:commit" content="abcdef1">' in out
 
 
-def test_同一個commit再部署一次版號也會變():
+def test_同一天再部署一次版號也會變():
     """不然重跑一次部署，Andy 會以為又沒更新。"""
-    a = sa.build_label(datetime(2026, 9, 16, 3, 15, tzinfo=timezone.utc), sha="1b28dfcd")
-    b = sa.build_label(datetime(2026, 9, 16, 9, 40, tzinfo=timezone.utc), sha="1b28dfcd")
+    a = sa.build_label(datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc), sha="1b28dfcd", seq=2)
+    b = sa.build_label(datetime(2026, 9, 18, 9, 40, tzinfo=timezone.utc), sha="1b28dfcd", seq=3)
     assert a != b
 
 
 def test_重複戳不會疊起來():
     html = '<meta name="tw:build" content="dev|">'
-    once, _ = sa.stamp_html(html, "x", sha="aaaaaaa1")
-    twice, _ = sa.stamp_html(once, "x", sha="bbbbbbb2")
-    assert twice.count("content=") == 1 and "bbbbbbb" in twice and "aaaaaaa" not in twice
+    once, _ = sa.stamp_html(html, "x", sha="aaaaaaa1", seq=1)
+    twice, _ = sa.stamp_html(once, "x", sha="bbbbbbb2", seq=2)
+    assert twice.count('name="tw:build"') == 1 and "第 2 版" in twice and "第 1 版" not in twice
 
 
-def test_實際的index_html有版號的meta標籤():
-    """漏掉這個標籤，頁面上就不會顯示版號 —— 而那正是 Andy 要的東西。"""
+def test_實際的index_html有版號與commit兩個meta標籤():
+    """漏掉就不會顯示版號，或是徽章連不到 GitHub —— 兩個都是 Andy 要的東西。"""
     html = (ROOT / "site" / "index.html").read_text(encoding="utf-8")
-    assert 'name="tw:build"' in html
-    out, _ = sa.stamp_html(html, "zzz", sha="feedface")
-    assert 'content="feedfac|' in out
+    assert 'name="tw:build"' in html and 'name="tw:commit"' in html
+    out, _ = sa.stamp_html(html, "zzz", datetime(2026, 9, 18, 3, 15, tzinfo=timezone.utc),
+                           sha="feedface", seq=5)
+    assert 'content="2026-09-18 第 5 版|11:15"' in out
+    assert 'content="feedfac"' in out

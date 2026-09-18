@@ -304,12 +304,15 @@ def build() -> None:
             "rrg": rrg.rrg(group_hist, price),
             "sankey": rrg.sankey(today, gdetail),
             "share": rrg.share_series(group_hist),
+            # 族群 × 法人的逐日序列（最近 30 天），給前端的 0–30 天拉 Bar 用
+            "inst_daily": flow.inst_daily_series(group_hist, 30),
             **flow.period_flows(group_hist),
         })
     except Exception as exc:  # noqa: BLE001
         log.warning("資金流向 v3 產出失敗：%s", exc)
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
                            "share": {"dates": [], "series": []},
+                           "inst_daily": {"dates": [], "groups": []},
                            "periods": [], "bump": {"weeks": [], "series": []},
                            "bumps": {"week": {"weeks": [], "series": []}, "month": {"weeks": [], "series": []}}})
     try:
@@ -714,6 +717,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)),
             "inst_v3": _clean(stockpage.inst_series(inst_hist if not inst_hist.empty else None, code)),
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
+            # C5：1–12 月平均漲幅（最多 15 年）。給逐年的原始數字，前端自己切 1/3/5/自填年數。
+            "month_season": _clean(stockpage.monthly_seasonality(price, code, 15)),
             "marks": {
                 "bos": _clean(tail[tail["bos"].fillna(False)]["date"].tolist()),
                 "choch": _clean([[r_["date"], int(r_["trend"])] for _, r_ in
@@ -797,6 +802,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                         "foreign_net": _cell(inst_one, code, "foreign_total"),
                         "tech_score": None, "verdict": "資料回補中", "grade": None},
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
+            "month_season": _clean(stockpage.monthly_seasonality(price, code, 15)),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
             "profit": _clean(stockpage.profit_series(deep.get("financial"), code)) if code in has["financial"] else {},
             "pe_history": [],

@@ -396,6 +396,39 @@ def period_flows(group_hist: pd.DataFrame) -> dict:
             "bumps": {"week": week_bump, "month": month_bump}}
 
 
+def inst_daily_series(group_hist: pd.DataFrame, days: int = 30) -> dict:
+    """族群 × 法人的**逐日**序列（最近 `days` 個交易日）。
+
+    為什麼要這個（Andy 2026-09-18：「族群 × 法人需要新增時間週期也是拉 Bar 式，0-30 天」）：
+    原本只有 `period_flows()` 給的**期間**彙總（本週／上週／本月／近三月），
+    那是固定的幾個區間，拉不出「最近 N 天」。逐日給出來之後，
+    前端要幾天就自己加幾天 —— 拖拉的當下就重算，不用再回頭問後端。
+
+    只給最近 30 天：拉 Bar 的上限就是 30，多給的是白給
+    （26 個族群 × 30 天 × 3 種法人 ≈ 2,340 個數字，很小）。
+    """
+    if group_hist is None or group_hist.empty or "date" not in group_hist.columns:
+        return {"dates": [], "groups": []}
+    cols = [c for c in ("foreign_net", "trust_net", "dealer_net") if c in group_hist.columns]
+    if not cols:
+        return {"dates": [], "groups": []}
+    dates = sorted({str(d) for d in group_hist["date"]})[-int(days):]
+    if not dates:
+        return {"dates": [], "groups": []}
+    g = group_hist[group_hist["date"].astype(str).isin(dates)]
+    out = []
+    for gid, sub in g.groupby("group_id"):
+        sub = sub.set_index(sub["date"].astype(str))
+        row = {"group_id": str(gid),
+               "group_name": str(sub["group_name"].iloc[-1]) if "group_name" in sub else str(gid)}
+        for c, key in (("foreign_net", "foreign"), ("trust_net", "trust"), ("dealer_net", "dealer")):
+            if c in sub.columns:
+                s = sub[c].reindex(dates)
+                row[key] = [None if pd.isna(v) else float(v) for v in s]
+        out.append(row)
+    return {"dates": dates, "groups": out}
+
+
 def _bump(g: pd.DataFrame, blocks_days: list[list[str]], unit: str) -> dict:
     """一段一段（週或月）算佔比名次，畫名次趨勢圖用。blocks_days 由舊到新。"""
     blocks = [_agg_block(g, days) for days in blocks_days]

@@ -316,6 +316,30 @@
    *      （2026-09-15 第一版就是這樣，把「更新」鈕卡成 disabled）。
    *   2. 但每次都要用**最新的 closure**（它抓著當下的排序狀態），所以放 WeakMap 覆蓋。
    *  元素離開畫面（換頁）時自己解除監聽。 */
+  /* 拉 Bar（Andy 2026-09-18：RRG 的 5/10/20 天、族群佔比河流、族群×法人都要改成拖曳）。
+     全站共用同一支，這樣四張圖的互動語彙一致 —— 而不是每張圖各長一個樣子。
+     · 拖的當下就重畫（input），手感才連續；離手才寫 localStorage，免得拖一次寫幾十筆
+     · 選過就記住，換頁回來還是同一個天數 */
+  function rangeBar(box, o) {
+    box = typeof box === 'string' ? document.getElementById(box) : box;
+    if (!box) return null;
+    const min = o.min, max = o.max, step = o.step || 1;
+    let v = o.value != null ? o.value : max;
+    if (o.key) { try { const s = +localStorage.getItem(o.key); if (s >= min && s <= max) v = s; } catch (e) { /* 私密視窗 */ } }
+    v = Math.max(min, Math.min(max, v));
+    const label = (x) => (o.fmt ? o.fmt(x) : x + ' 天');
+    box.classList.add('rbar');
+    box.innerHTML = `${o.label ? `<span class="t">${fmt.esc(o.label)}</span>` : ''}`
+      + `<input type="range" min="${min}" max="${max}" step="${step}" value="${v}">`
+      + `<span class="val"></span>`;
+    const inp = box.querySelector('input'), out = box.querySelector('.val');
+    const paint = () => { out.textContent = label(+inp.value); };
+    paint();
+    inp.oninput = () => { paint(); if (o.onChange) o.onChange(+inp.value); };
+    inp.onchange = () => { if (o.key) { try { localStorage.setItem(o.key, inp.value); } catch (e) { /* 忽略 */ } } };
+    return { get value() { return +inp.value; }, set(x) { inp.value = x; paint(); } };
+  }
+
   const _liveFns = new WeakMap();
   function onLive(el, fn) {
     if (!el) return;
@@ -1294,6 +1318,7 @@
         flowState.period = b.dataset.p; drawPeriod();
       });
     }
+    let instDays = null;
     const drawPeriod = () => {
       const p = periods.find(x => x.key === flowState.period);
       if (!p) { empty('rankFlow', '這個期間還沒有資料'); empty('instGroups', '這個期間還沒有資料'); return; }
@@ -1302,8 +1327,28 @@
       $('#rankSub').textContent = `${p.label}：誰把錢吸走了`;
       $('#instSub').textContent = `${p.label}三大法人淨買超（張）`;
       renderRankFlow(p);
-      renderInstPeriod(p);
+      // I1：拉 Bar 拉到 0 就跟著上方期間走，否則用「最近 N 天」的逐日合計
+      if (instDays && instDays.value > 0) drawInstDays(instDays.value); else renderInstPeriod(p);
       drawBump(p);
+    };
+    /* I1（Andy 2026-09-18：「族群 × 法人需要新增時間週期也是拉 Bar 式，0-30 天，
+       且需要新增占比 % 單位」）。0 保留成「跟著上方期間走」，不然 0 天沒有意義。*/
+    const drawInstDays = (n) => {
+      const src = f3 && f3.inst_daily;
+      if (!src || !src.dates || !src.dates.length) {
+        return empty('instGroups', '逐日法人資料還沒產出（下一輪盤後管線就會有）');
+      }
+      const k = Math.min(n, src.dates.length);
+      const from = src.dates.length - k;
+      const sum = (arr) => { let s = null; for (let i = from; i < src.dates.length; i++) {
+        const v = (arr || [])[i]; if (v != null) s = (s || 0) + v; } return s; };
+      const gs = src.groups.map(g => ({
+        group_id: g.group_id, group_name: g.group_name,
+        foreign: sum(g.foreign), trust: sum(g.trust), dealer: sum(g.dealer),
+      })).map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }))
+        .filter(g => g.foreign != null || g.trust != null || g.dealer != null);
+      $('#instSub').textContent = `最近 ${k} 個交易日的三大法人淨買超（張）`;
+      renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     // 名次變化跟著期間換刻度：看週的期間就用週名次，看月／季就用月名次。
     // （之前固定是近 8 週，不管切到哪一段都長一樣，Andy 看到的就是「排名不會變」。）
@@ -1321,12 +1366,26 @@
     const drawRot = () => renderRotation(f3 && f3.rrg, flowState.back,
       { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock' });
     drawRot();
-    $$('#rotBack button').forEach(b => b.onclick = () => {
-      $$('#rotBack button').forEach(x => x.classList.toggle('on', x === b)); flowState.back = +b.dataset.v; drawRot();
-    });
+    /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar 5-20 天，可以用拖曳的方式看的更直觀」）。
+       payload 的 trail 本來就有 20 個交易日，所以 5～20 任何一個值都畫得出來，不用改後端。*/
+    rangeBar('rotBack', { min: 5, max: 20, value: flowState.back, key: 'tw.rot.back',
+      label: '和幾天前比', fmt: (v) => v + ' 天前',
+      onChange: (v) => { flowState.back = v; drawRot(); } });
+
+    // I1 的拉 Bar 要在 drawPeriod 之前建好（drawPeriod 會讀它的值）
+    instDays = rangeBar('instDays', { min: 0, max: 30, value: 0, key: 'tw.inst.days',
+      label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
+      onChange: () => drawPeriod() });
 
     renderSankey(f3 && f3.sankey);
-    renderRiver(f3 && f3.share);
+    /* H1（Andy 2026-09-18：「族群佔比河流，也需要添加占比 %，且可以切換時間週期，採用拉 Bar 方式 Max 60 天」）。
+       payload 給滿 60 天，天數就是「只畫最後 N 天」—— 不用重抓也不用重算。*/
+    const shareAll = f3 && f3.share;
+    const maxDays = shareAll && shareAll.dates ? shareAll.dates.length : 60;
+    const drawRiver = (n) => renderRiver(sliceShare(shareAll, n));
+    drawRiver(Math.min(maxDays, +((() => { try { return localStorage.getItem('tw.river.days'); } catch (e) { return null; } })() || maxDays)));
+    rangeBar('riverDays', { min: 5, max: maxDays, value: maxDays, key: 'tw.river.days',
+      label: '最近', onChange: drawRiver });
     const drawConc = () => renderConc(conc, flowState.concTop);
     drawConc();
     $$('#concSeg button').forEach(b => b.onclick = () => {
@@ -1401,20 +1460,87 @@
     linkRow('bump', bump.series.map(s => L.group(s.group_id, s.group_name)).join(''));
   }
 
+  /* 資金去向（Andy 2026-09-18 三件）：
+     G1 改成**垂直、由上往下**；G2 要有**電流流動感（會動）**；G3 要有**占比 %**。
+
+     G2 的做法：ECharts 的 sankey 沒有內建流動效果。硬換成 graph + lines effect 會失去
+     sankey 自己算好的版面，不划算。所以用「相位脈動」—— 每一條連線的透明度依它的**深度**
+     錯開相位，逐格推進，看起來就是一波亮度由上往下掃過去，像電流在走。
+     只改 lineStyle.opacity（不重算版面），所以很便宜；而且：
+       · 使用者系統設定「減少動態效果」就不動（prefers-reduced-motion）
+       · 分頁切走就停（visibilitychange），不在背景燒 CPU
+       · 換頁時 destroy 掉，不會留下一個永遠在跑的計時器 */
+  let sankeyTimer = null;
+  function stopSankeyFlow() { if (sankeyTimer) { clearInterval(sankeyTimer); sankeyTimer = null; } }
+
   function renderSankey(sk) {
+    stopSankeyFlow();
     if (!sk || !sk.links || !sk.links.length) return empty('sankey');
     const leafVal = {}; sk.links.forEach(l => { const t = sk.nodes.find(n => n.name === l.target); if (t && t.code) leafVal[l.target] = (leafVal[l.target] || 0) + l.value; });
     const keepLeaf = new Set(Object.entries(leafVal).sort((a, b) => b[1] - a[1]).slice(0, 18).map(x => x[0]));
     const nodes = sk.nodes.filter(n => !n.code || keepLeaf.has(n.name));
     const links = sk.links.filter(l => nodes.some(n => n.name === l.source) && nodes.some(n => n.name === l.target));
-    const c = chart('sankey', { tooltip: { ...tip, formatter: p => p.dataType === 'edge' ? `${p.data.source} → ${p.data.target}<br>${fmt.yi(p.data.value)}` : `<b>${p.name}</b><br><small>${p.data.code ? '點進個股頁' : p.data.gid ? '點看成分股' : ''}</small>` },
-      series: [{ type: 'sankey', left: 10, right: 120, top: 10, bottom: 10, nodeWidth: 14, nodeGap: 10, nodeAlign: 'left', layoutIterations: 48, emphasis: { focus: 'adjacency' },
-        data: nodes.map((n, i) => ({ name: n.name, code: n.code, gid: n.group_id, itemStyle: { color: n.depth === 0 ? '#3ee0ff' : n.depth === 1 ? '#8b7bff' : n.depth === 2 ? (L.gcolor[n.group_id] || '#ffb454') : (L.gcolor[L.cgroup[n.code]] || '#c3ff5b'), borderColor: 'transparent' } })),
+    // G3 占比 %：分母用「最上層流出去的總量」＝今天的總成交值
+    const depthOf = {}; nodes.forEach(n => { depthOf[n.name] = n.depth; });
+    const total = links.filter(l => (depthOf[l.source] || 0) === 0).reduce((s, l) => s + l.value, 0)
+      || links.reduce((s, l) => s + l.value, 0) || 1;
+    const pct = (v) => (v / total * 100);
+    const nodeVal = {};
+    links.forEach(l => { nodeVal[l.target] = (nodeVal[l.target] || 0) + l.value; });
+    links.forEach(l => { if (nodeVal[l.source] == null) nodeVal[l.source] = total; });
+
+    const c = chart('sankey', { tooltip: { ...tip, formatter: p => p.dataType === 'edge'
+        ? `${p.data.source} → ${p.data.target}<br>${fmt.yi(p.data.value)}　<b>${fmt.n(pct(p.data.value), 1)}%</b>`
+        : `<b>${p.name}</b>　<b>${fmt.n(pct(nodeVal[p.name] || 0), 1)}%</b><br>${fmt.yi(nodeVal[p.name] || 0)}`
+          + `<br><small>${p.data.code ? '點進個股頁' : p.data.gid ? '點看成分股' : ''}</small>` },
+      series: [{ type: 'sankey',
+        // G1：由上往下
+        orient: 'vertical', left: 8, right: 8, top: 26, bottom: 70,
+        nodeWidth: 13, nodeGap: 8, nodeAlign: 'left', layoutIterations: 48, emphasis: { focus: 'adjacency' },
+        data: nodes.map((n) => ({ name: n.name, code: n.code, gid: n.group_id,
+          itemStyle: { color: n.depth === 0 ? CH.cyan : n.depth === 1 ? CH.violet : n.depth === 2 ? (L.gcolor[n.group_id] || CH.amber) : (L.gcolor[L.cgroup[n.code]] || CH.lime), borderColor: 'transparent' } })),
         links: links.map(l => ({ ...l, lineStyle: { color: 'gradient', opacity: .35 } })),
-        label: { color: '#e8eeff', fontSize: 12, textShadowColor: '#000', textShadowBlur: 3 }, lineStyle: { curveness: .5 } }] });
+        // G3：節點標籤直接寫 %，不用滑過去才看得到
+        label: { color: CH.ink, fontSize: 11.5, textShadowColor: '#000', textShadowBlur: 3,
+          rotate: 90, position: 'right', distance: 6,
+          formatter: (p) => `${p.name} ${fmt.n(pct(nodeVal[p.name] || 0), 1)}%` },
+        lineStyle: { curveness: .5 } }] });
     if (c) c.off('click').on('click', p => { if (p.dataType === 'node') { if (p.data.code) goStock(p.data.code); else if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; } });
     linkRow('sankey', sk.nodes.filter(n => n.group_id).map(n => L.group(n.group_id, n.name)).join('') + sk.nodes.filter(n => n.code).map(n => L.stock(n.code, n.name)).join(''));
+
+    // G2：電流流動感
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!c || reduce) return;
+    const maxD = Math.max(1, ...nodes.map(n => n.depth || 0));
+    let phase = 0;
+    /* ★ 只在「資金流向這一頁正在看」的時候才畫。
+       原本是離開頁面就 clearInterval，但回來的時候 renderSankey() 不一定會再跑一次
+       （頁面是用 .view.on 切換的，圖表還在，不會重畫）—— 結果就是離開再回來電流就死了。
+       改成計時器一直在，但不在這一頁就直接 return，回來自己會動。*/
+    const active = () => { const v = document.getElementById('v-flow');
+      return v && v.classList.contains('on') && !document.hidden && document.getElementById('sankey'); };
+    const tick = () => {
+      if (!active()) return;
+      phase = (phase + 0.06) % 1;
+      c.setOption({ series: [{ links: links.map(l => {
+        const d = (depthOf[l.source] || 0) / maxD;
+        // 亮度沿著深度前進：相位差讓「亮的那一段」由上往下走
+        const u = ((d - phase) % 1 + 1) % 1;
+        const glow = Math.pow(Math.max(0, 1 - Math.abs(u - 0.5) * 2.4), 2);
+        return { ...l, lineStyle: { color: 'gradient', opacity: 0.22 + 0.5 * glow } };
+      }) }] }, false, true);
+    };
+    sankeyTimer = setInterval(tick, 90);
   }
+
+  function sliceShare(sh, n) {
+    if (!sh || !sh.dates || !sh.series) return sh;
+    const k = Math.max(2, Math.min(sh.dates.length, n | 0));
+    const from = sh.dates.length - k;
+    return { ...sh, dates: sh.dates.slice(from),
+             series: sh.series.map(s => ({ ...s, values: (s.values || []).slice(from) })) };
+  }
+
   function renderRiver(sh) {
     if (!sh || !sh.series || !sh.series.length) return empty('river');
     const data = []; sh.series.forEach(s => s.values.forEach((v, i) => data.push([sh.dates[i], v || 0, s.name])));
@@ -1441,12 +1567,20 @@
     }
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
+    const denom = top.reduce((s, g) => s + Math.abs(g.total || 0), 0);
     const c = chart('instGroups', {
+      /* 占比 %（Andy 2026-09-18）：分母用「畫面上這些族群淨買超絕對值的總和」——
+         法人有買有賣，直接加總會正負相抵、分母趨近 0，百分比就會爆掉。*/
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
-        formatter: ps => `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>') + '<br><small>點一下看成分股</small>' },
+        formatter: ps => `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>')
+          + `<br>占比 <b>${fmt.n(Math.abs(ps.reduce((s, q) => s + (q.value || 0), 0)) / (denom || 1) * 100, 1)}%</b>`
+          + '<br><small>點一下看成分股</small>' },
       legend: { textStyle: { color: CH.ink2 }, top: 0 }, grid: { left: 108, right: 24, top: 30, bottom: 22 },
       xAxis: { ...axisStyle, axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3 } },
-      yAxis: { ...axisStyle, type: 'category', inverse: true, data: top.map(g => g.group_name), axisLabel: { color: CH.ink2 } },
+      yAxis: { ...axisStyle, type: 'category', inverse: true,
+        // 族群名後面直接掛占比 %，不用滑過去才看得到
+        data: top.map(g => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%`),
+        axisLabel: { color: CH.ink2 } },
       series: [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']].map(([n, k, col]) => ({
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id })), itemStyle: { color: col } })),
@@ -1668,6 +1802,58 @@
   async function renderSeason() {
     const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '季節性需要歷史回補完成'); return; }
     let period = s3.periods['all'] ? 'all' : Object.keys(s3.periods)[0], metric = 'avg_excess';
+    let view = 'heat';
+    try { const v = localStorage.getItem('tw.season.view'); if (v === 'line' || v === 'heat') view = v; } catch (e) { /* 忽略 */ }
+
+    /* J1 曲線圖：x 軸是 1–12 月，一條線一個族群。
+       只畫「波動最大的前 8 個族群」—— 26 條線疊在一起是一團毛線，看不出任何東西；
+       其餘的收進圖例，想看自己點開。0 那條基準線畫粗一點，正負一眼分得出來。*/
+    const drawLine = () => {
+      const P = s3.periods[period]; if (!P) return empty('seasonLine');
+      const byG = {};
+      P.cells.forEach(c => { (byG[c.group_id] = byG[c.group_id] || { name: c.group_name, m: {} }).m[c.month] = c[metric]; });
+      const isWin = metric === 'win_rate';
+      const rank = Object.entries(byG).map(([gid, g]) => {
+        const vs = Object.values(g.m).filter(v => v != null);
+        const base = isWin ? 50 : 0;
+        return { gid, name: g.name, m: g.m,
+                 amp: vs.length ? Math.max(...vs.map(v => Math.abs(v - base))) : 0 };
+      }).sort((a, b) => b.amp - a.amp);
+      const months = Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月');
+      const c = chart('seasonLine', {
+        tooltip: { ...tip, trigger: 'axis',
+          formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.filter(q => q.value != null)
+            .sort((a, b) => b.value - a.value).slice(0, 12)
+            .map(q => `${q.marker}${q.seriesName} ${isWin ? fmt.n(q.value, 0) + '%' : fmt.pct(q.value)}`).join('<br>') },
+        legend: { type: 'scroll', top: 0, textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 },
+          selected: rank.reduce((o, r, i) => { o[r.name] = i < 8; return o; }, {}) },
+        grid: { left: 58, right: 96, top: 38, bottom: 30 },
+        xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: months, axisLabel: { color: CH.ink2 } },
+        yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, formatter: (v) => (isWin ? v + '%' : (v > 0 ? '+' : '') + v + '%') } },
+        series: rank.map((r, i) => ({
+          name: r.name, type: 'line', smooth: 0.35, symbol: 'circle', symbolSize: 6, connectNulls: true,
+          data: Array.from({ length: 12 }, (_, k) => { const v = r.m[k + 1]; return v == null ? null : +v.toFixed(2); }),
+          lineStyle: { width: i < 3 ? 2.6 : 1.7, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
+          itemStyle: { color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
+          endLabel: { show: i < 8, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length], fontSize: 11,
+            formatter: (q) => q.seriesName },
+          labelLayout: { moveOverlap: 'shiftY' },
+          markLine: i === 0 ? { silent: true, symbol: 'none', label: { show: false },
+            lineStyle: { color: hexA(CH.ink3, .6), type: 'dashed', width: 1.4 },
+            data: [{ yAxis: isWin ? 50 : 0 }] } : undefined,
+          gid: r.gid,
+        })),
+      }, { notMerge: true });
+      if (c) c.off('click').on('click', q => { const r = rank[q.seriesIndex];
+        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
+    };
+
+    const paintView = () => {
+      $('#seasonHeat').hidden = view !== 'heat';
+      $('#seasonLine').hidden = view !== 'line';
+      $$('#seasonView button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+    };
+
     const draw = () => {
       const P = s3.periods[period]; if (!P) return empty('seasonHeat');
       $('#seasonRange').textContent = `${P.from} ～ ${P.to}，${P.years} 年`;
@@ -1687,6 +1873,8 @@
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').textContent = s3.note + `　大盤月報酬樣本 ${s3.benchmark_months} 個月。`;
       topThisMonth(P);
+      drawLine();          // 兩張圖吃同一份資料、同一個期間與指標，切過去不用等
+      paintView();
     };
     const drill = (cell) => {
       const det = (s3.detail || {})[cell.group_id] || {}; const years = Object.keys(det).sort();
@@ -1702,6 +1890,13 @@
     };
     $$('#seasonPeriod button').forEach(b => b.onclick = () => { $$('#seasonPeriod button').forEach(x => x.classList.toggle('on', x === b)); period = b.dataset.v; draw(); });
     $$('#seasonMetric button').forEach(b => b.onclick = () => { $$('#seasonMetric button').forEach(x => x.classList.toggle('on', x === b)); metric = b.dataset.v; draw(); });
+    $$('#seasonView button').forEach(b => b.onclick = () => {
+      view = b.dataset.v; paintView();
+      try { localStorage.setItem('tw.season.view', view); } catch (e) { /* 忽略 */ }
+      // 藏起來的容器量不到寬高，切過來要讓 ECharts 重新量一次
+      const inst = window.echarts && echarts.getInstanceByDom($('#' + (view === 'line' ? 'seasonLine' : 'seasonHeat')));
+      if (inst) setTimeout(() => inst.resize(), 30);
+    });
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });
     draw();
   }
@@ -1802,21 +1997,25 @@
   function buildInfo() {
     const m = document.querySelector('meta[name="tw:build"]');
     const raw = (m && m.getAttribute('content') || '').trim();
-    const [sha, at] = raw.split('|');
-    return { sha: (sha || 'dev').trim(), at: (at || '').trim(), raw };
+    const [ver, at] = raw.split('|');
+    const c = document.querySelector('meta[name="tw:commit"]');
+    return { ver: (ver || 'dev').trim(), at: (at || '').trim(),
+             sha: ((c && c.getAttribute('content')) || '').trim(), raw };
   }
 
+  /* 版號改成「西元日期＋今天第幾版」（Andy 2026-09-18：「版號用西元＋日期，
+     以及第幾次改動命名」）。之前寫 commit 前 7 碼 —— 對得上 GitHub，
+     但人看不出這是今天第幾版，也看不出兩個版本誰新誰舊（sha 是亂碼、沒有順序）。
+     commit 短碼沒有丟掉，移到 tooltip 與連結上，要對照 GitHub 時還在。*/
   function renderBuild() {
     const b = buildInfo();
     const el = $('#buildver');
     if (!el) return b;
-    el.textContent = b.at ? `v ${b.sha} · ${b.at}` : `v ${b.sha}`;
-    // dev（本機還沒戳過）與 local（戳過但不是在 Actions 上）都不是 commit，
-    // 連過去只會得到 404。只有看起來真的是 commit 短碼才給連結。
+    el.textContent = b.at ? `v ${b.ver} · ${b.at}` : `v ${b.ver}`;
     const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
-    el.title = isCommit
-      ? `這個網頁的版本：commit ${b.sha}${b.at ? '，建置於 ' + b.at + '（台北）' : ''}。點開對照 GitHub。`
-      : '本機版本，還沒經過部署流程';
+    el.title = (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
+                 : `這個網頁的版本：${b.ver}${b.at ? '，建置於 ' + b.at + '（台北）' : ''}`)
+      + (isCommit ? `\ncommit ${b.sha} —— 點開對照 GitHub` : '');
     el.href = isCommit
       ? `https://github.com/MiaoZiKe/tw-rotation/commit/${b.sha}`
       : 'https://github.com/MiaoZiKe/tw-rotation/commits/main';
@@ -1869,7 +2068,7 @@
     if (gen) tail.push(`上次產出 ${tpe(meta.generated_at)}`);
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
-    tail.push(`網頁版本 ${fmt.esc(bd.sha)}${bd.at ? '（' + fmt.esc(bd.at) + '建置）' : ''}`);
+    tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
     const b = $('#banner');
     if (!bits.length) {                                  // 一切正常也要講一句，讓人知道系統是活的
       b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>，所有來源正常。${tail.length ? '<span class="muted">（' + tail.join('、') + '，台北時間）</span>' : ''}`;
@@ -1891,7 +2090,7 @@
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, theme, applyTheme, liveMerge, onLive, LIVE_KEYS };
+    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);

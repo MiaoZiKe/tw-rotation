@@ -274,6 +274,56 @@ def inst_series(inst: pd.DataFrame, code: str, days: int = 120) -> dict:
 
 # ------------------------------------------------------------------ 基本資料
 
+def monthly_seasonality(price: pd.DataFrame, code: str, years: int = 15) -> dict:
+    """個股的 1–12 月平均漲幅（C5，Andy 2026-09-18 拍板要做）。
+
+    原話：「統計過往 15 年 1-12 月的平均漲幅，並且可以切時間週期 1、3、5 年（可自行填寫）」。
+    沒有 15 年的就**從它有資料的那一年開始算**，並且把實際年數講出來 ——
+    上市三年的公司硬湊 15 年只會變成假數字。
+
+    回傳每一年每一個月的報酬（`by_year`），前端就能自己切 1／3／5／自填年數，
+    不用為了換一個年數回頭問後端。月報酬＝該月最後一個交易日收盤 / 前一月最後一個交易日收盤 − 1。
+
+    ★ 只用**已經收完的月份**：當月還沒走完，把它算進「平均漲幅」會讓最近一個月
+      永遠是半個月的數字，平均被拉歪。
+    """
+    empty = {"years": 0, "from": None, "to": None, "by_year": {}, "months": []}
+    if price is None or price.empty or "code" not in price.columns:
+        return empty
+    g = price[price["code"].astype(str) == str(code)]
+    if g.empty or "date" not in g.columns or "close" not in g.columns:
+        return empty
+    g = g.dropna(subset=["close"]).copy()
+    g["date"] = g["date"].astype(str)
+    g = g.sort_values("date")
+    g["ym"] = g["date"].str.slice(0, 7)
+    # 每個月的最後一個交易日收盤
+    last = g.groupby("ym")["close"].last().astype(float)
+    if len(last) < 2:
+        return empty
+    # 當月還沒收完就丟掉（見上面的理由）
+    newest_day = g["date"].iloc[-1]
+    if newest_day[:7] == last.index[-1]:
+        import datetime as _d
+        y, m = int(newest_day[:4]), int(newest_day[5:7])
+        nxt = _d.date(y + (m == 12), 1 if m == 12 else m + 1, 1)
+        if (nxt - _d.date(y, m, int(newest_day[8:10]))).days > 1:
+            last = last.iloc[:-1]
+    if len(last) < 2:
+        return empty
+    ret = (last / last.shift(1) - 1) * 100
+    ret = ret.iloc[1:]
+    by_year: dict[str, dict[str, float]] = {}
+    for ym, v in ret.items():
+        if pd.isna(v):
+            continue
+        by_year.setdefault(ym[:4], {})[str(int(ym[5:7]))] = round(float(v), 2)
+    ys = sorted(by_year)[-int(years):]
+    by_year = {y: by_year[y] for y in ys}
+    return {"years": len(ys), "from": ys[0] if ys else None, "to": ys[-1] if ys else None,
+            "by_year": by_year, "months": list(range(1, 13))}
+
+
 def basics(company: pd.DataFrame, code: str) -> dict:
     if company is None or company.empty:
         return {}

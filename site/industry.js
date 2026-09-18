@@ -88,13 +88,23 @@
     if (!ch) { show(true, false, false); renderMap(im); return; }
     show(false, true, false); crumbs([{ label: '產業地圖', href: '#industry' }, { label: ch.name }]);
     const el = $('#indChain');
+    /* 重畫這一頁之前先把上一個 3D 場景收掉。
+       innerHTML 一換，舊的 canvas 就離開 DOM，但它的 requestAnimationFrame 迴圈還活著 ——
+       用上方切換列連續換幾條鏈，就會累積好幾個在背景空轉的 WebGL context（瀏覽器上限約 16 個）。*/
+    dispose3D();
     const hasDiagram = HAS_DIAGRAM(ch.id);
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
     const segs = chainSegments(sc, ch.id);
     const otherChains = (im.chains || []).filter(c => c.id !== ch.id);
+    /* E5：頁面最上方的類別切換列（Andy 2026-09-18：「產業鏈頁上方要有類別切換列，不用退回去」）。
+       以前只有卡片最下面那排「其他產業鏈」連結 —— 看完剖析圖要換一條鏈，得先捲到最底或退回產業地圖。
+       這一列固定在標題上方，按了直接換鏈（換 hash，router 會重畫），現在這條標成 on。*/
+    const swTabs = (im.chains || []).map(c => ({ id: c.id, name: c.name, n: c.groups.reduce((s, g) => s + (g.n || 0), 0) }))
+      .concat([{ id: 'industry', name: '法定產業別', n: (im.industries || []).reduce((s, g) => s + (g.n || 0), 0) }]);
     el.innerHTML = `
       <div class="card">
+        <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
@@ -166,13 +176,28 @@
     $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; syncHighlight(); });
     $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
+    // E5：上方切換列 —— 按了直接換一條鏈，不用退回產業地圖（按自己就捲回頁首，不重畫）
+    $$('#chainSwitch button', el).forEach(b => b.onclick = () => {
+      if (b.dataset.c === ch.id) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      location.hash = '#industry/' + b.dataset.c;
+    });
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
-      const animBtn = $('#dgAnim', el); if (animBtn) animBtn.onclick = () => { const on = $('#prodDiagram', el).classList.toggle('noanim'); animBtn.textContent = on ? '動畫：關' : '動畫：開'; try { localStorage.setItem('tw.dganim', on ? '0' : '1'); } catch (e) { /* 忽略 */ } };
-      try { if (localStorage.getItem('tw.dganim') === '0') { $('#prodDiagram', el).classList.add('noanim'); animBtn.textContent = '動畫：關'; } } catch (e) { /* 忽略 */ }
+      /* E4：動畫鈕現在同時管平面圖與 3D（Andy 2026-09-18：「3D 可切動態／靜止」）。
+         以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。
+         3D 的「動態」＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；「靜止」＝完全不自己動。*/
+      const animBtn = $('#dgAnim', el);
+      const setAnimAll = (on) => {
+        $('#prodDiagram', el).classList.toggle('noanim', !on);
+        if (animBtn) { animBtn.textContent = on ? '動畫：開' : '動畫：關'; animBtn.classList.toggle('cyan', on); }
+        if (view3d && view3d.setAnim) view3d.setAnim(on);
+        try { localStorage.setItem('tw.dganim', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      };
+      if (animBtn) animBtn.onclick = () => setAnimAll($('#prodDiagram', el).classList.contains('noanim'));
+      setAnimAll(animPref());
       // wire3D 是模組層級的函式，看不到這裡的 segHi／segFilter／syncHighlight，
       // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
       wire3D(el, ch.id, {
@@ -197,9 +222,64 @@
         <button class="btn small" id="segOnly">${o.filtered ? '已套用到下方成分股' : '只看這個環節的成分股 →'}</button></div>
       <div class="row"><span class="muted">台股</span>${tw.length ? tw.map(c => A.L.stock(c.tw_code, c.name)).join('') : '<span class="muted">沒有直接對應的台股</span>'}</div>
       ${fo.length ? `<div class="row"><span class="muted">外商</span>${fo.map(c => `<span class="pill" title="${A.fmt.esc((c.tech || []).join('、'))}">${A.fmt.esc(c.name)}</span>`).join('')}</div>` : ''}
-      ${gids.length ? `<div class="row"><span class="muted">相關族群</span>${gids.map(g => A.L.group(g)).join('')}</div>` : ''}</div>`;
+      ${gids.length ? `<div class="row"><span class="muted">相關族群</span>${gids.map(g => A.L.group(g)).join('')}</div>` : ''}
+      ${crossHtml(sc, seg, ch)}</div>`;
     const btn = $('#segOnly', box);
     if (btn) { btn.disabled = !!o.filtered; if (o.onFilter && !o.filtered) btn.onclick = o.onFilter; }
+    paintCross(box, seg);
+  }
+
+  /* ---------------------------------------------------------------- E6：跨產業鏈的環節
+     Andy 2026-09-18：「ABF 這種跨類別環節要同時出現兩張架構圖與兩邊內容」。
+     ABF 載板／封測／晶圓代工／先進封裝／HBM 這五個環節同時掛在半導體與 AI 伺服器兩條鏈上
+     （chainSegments() 的那兩條 include 規則），但以前不管從哪條鏈點進去，
+     看到的都只有「當下這條鏈」的畫面 —— 另一半的上下游關係整個看不到。
+     現在跨鏈的環節會多出一塊：**兩條鏈各一張剖析圖縮圖**（這個環節在各自的圖上亮起來）＋
+     各自的上下游鄰居、各自的相關族群，以及直接跳過去的入口。*/
+  const DG_CHAINS = ['semiconductor', 'ai_server'];       // 目前有剖析圖的兩條鏈
+  function chainsOfSeg(sc, seg) {
+    if (!sc || !seg) return [];
+    return DG_CHAINS.filter(cid => chainSegments(sc, cid).some(x => x.id === seg));
+  }
+  /* 同一張剖析圖被畫兩次時，裡面的漸層 id 會撞在一起（後畫的把先畫的蓋掉，顏色整個跑掉）。
+     縮圖一律把 id 加上後綴，連 url(#) 與 href="#" 一起改，兩張才互不干擾。*/
+  const uniqIds = (svg, tag) => String(svg)
+    .replace(/id="([^"]+)"/g, (m, a) => `id="${a}${tag}"`)
+    .replace(/url\(#([^)]+)\)/g, (m, a) => `url(#${a}${tag})`)
+    .replace(/((?:xlink:)?href)="#([^"]+)"/g, (m, k, a) => `${k}="#${a}${tag}"`);
+
+  function crossHtml(sc, seg, ch) {
+    const cids = chainsOfSeg(sc, seg);
+    if (cids.length < 2) return '';
+    const cur = ch && ch.id;
+    const panels = cids.map(cid => {
+      const segs = chainSegments(sc, cid);
+      const me = segs.find(x => x.id === seg) || {};
+      const up = segs.filter(x => x.layer === me.layer - 1).map(x => x.name);
+      const dn = segs.filter(x => x.layer === me.layer + 1).map(x => x.name);
+      const gs = (A.L.sgroups[seg] || []).filter(g => A.L.gchain[g] === cid);
+      const nm = A.L.chains[cid] || CHAIN_NAME[cid] || cid;
+      const dg = window.Diagrams && window.Diagrams[cid] ? uniqIds(window.Diagrams[cid](), '__x' + cid) : '';
+      return `<div class="xchain${cid === cur ? ' cur' : ''}" data-c="${cid}">
+        <div class="row spread"><b>${A.fmt.esc(nm)}${cid === cur ? ' <span class="muted">（現在這條）</span>' : ''}</b>
+          ${cid === cur ? '' : `<button class="btn small xgo" data-c="${cid}">切到這條鏈看 →</button>`}</div>
+        <div class="dgwrap noanim xmini">${dg}</div>
+        <div class="xrow"><span class="muted">上游</span>${up.length ? up.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('') : '<span class="muted">這條鏈的最上游</span>'}</div>
+        <div class="xrow"><span class="muted">下游</span>${dn.length ? dn.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('') : '<span class="muted">這條鏈的最下游</span>'}</div>
+        <div class="xrow"><span class="muted">族群</span>${gs.length ? gs.map(g => A.L.group(g)).join('') : '<span class="muted">這條鏈沒有掛族群</span>'}</div></div>`;
+    }).join('');
+    return `<div class="xchains" id="xChains"><div class="xhd">這個環節跨 ${cids.length} 條產業鏈：
+      ${cids.map(c => A.fmt.esc(A.L.chains[c] || CHAIN_NAME[c] || c)).join('、')}　<span class="muted">兩張架構圖裡它的位置與上下游都不一樣</span></div>${panels}</div>`;
+  }
+  // 縮圖插進 DOM 之後才上色：跟大圖同一套環節色，這個環節亮起來、其餘壓暗
+  function paintCross(box, seg) {
+    const wrap = $('#xChains', box); if (!wrap) return;
+    $$('.xmini [data-seg]', wrap).forEach(n => {
+      n.style.setProperty('--c', segColor(n.dataset.seg));
+      n.classList.toggle('sel', n.dataset.seg === seg);
+      n.classList.toggle('dim', n.dataset.seg !== seg);
+    });
+    $$('.xgo', wrap).forEach(b => b.onclick = () => { location.hash = '#industry/' + b.dataset.c + '/' + seg; });
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -232,6 +312,8 @@
        可以轉、點零件會亮並帶出台股、標籤是 DOM、WebGL 不能用就退回 SVG。
      three.js 是動態載入的，只有真的按下 3D 才付那 670KB。*/
   let view3d = null;                 // 目前掛著的 3D 場景（沒有就是 null）
+  // 動畫偏好（平面圖與 3D 共用同一個開關）；沒設定過就是開
+  const animPref = () => { try { return localStorage.getItem('tw.dganim') !== '0'; } catch (e) { return true; } };
 
   function dispose3D() { if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; } }
 
@@ -266,6 +348,7 @@
         v = await R.mount(host, chainId, {
           color: segColor,
           onSeg: (seg) => onSeg(seg),
+          anim: animPref(),          // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
         });
       } catch (err) {
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
@@ -1506,7 +1589,93 @@
     const b = pg.basics || {}; const f = pg.fundamental || {};
     const indLink = b.industry ? (A.L.gname['ind_' + b.industry] ? A.L.group('ind_' + b.industry, b.industry) : A.fmt.esc(b.industry)) : null;
     const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join(' ') || null, true], ['題材', A.L.themesOf(pg.meta.code) || null, true]];
-    el.innerHTML = `<div class="card"><h3>基本資料 <small>產業別、族群、題材都可以點</small></h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>`;
+    el.innerHTML = `<div class="card"><h3>基本資料 <small>產業別、族群、題材都可以點</small></h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>
+      <div class="card" style="margin-top:16px"><div class="row spread">
+        <h3>1–12 月平均漲幅 <small id="msSub"></small></h3>
+        <div class="row" style="gap:10px;align-items:center">
+          <div class="seg" id="msYears"><button data-v="1">1 年</button><button data-v="3">3 年</button><button data-v="5" class="on">5 年</button><button data-v="0">全部</button></div>
+          <label class="opabox">自填 <input id="msCustom" type="number" min="1" max="15" step="1" style="width:56px" placeholder="年"></label>
+        </div></div>
+        <div id="msChart" class="chart" style="min-height:320px"></div>
+        <div class="note" id="msNote"></div></div>`;
+    drawMonthSeason(pg);
+  }
+
+  /* C5：個股的 1–12 月平均漲幅（Andy 2026-09-18 拍板要做）。
+     payload 給的是**逐年逐月**的原始報酬，所以切 1／3／5／自填年數都在前端算，
+     不用為了換一個年數回頭問後端。
+     每一根柱子旁邊同時寫「上漲的年數／總年數」—— 只看平均會被一次暴漲暴跌帶偏，
+     十年裡漲八年的 +3% 跟漲兩年的 +3%，意思完全不同。*/
+  function drawMonthSeason(pg) {
+    const ms = pg.month_season || {};
+    const el = $('#msChart');
+    if (!el) return;
+    const byYear = ms.by_year || {};
+    const allYears = Object.keys(byYear).sort();
+    if (!allYears.length) {
+      el.innerHTML = '<div class="empty" style="height:100%">這一檔的歷史價量還不夠算月季節性</div>';
+      $('#msSub').textContent = '';
+      return;
+    }
+    /* 預設 5 年。★ 一定要先確認 localStorage 真的有值 ——
+       沒設定過時 getItem() 回 null，而 `+null` 是 0，0 在這裡的意思是「全部年份」，
+       結果是「第一次打開就變成 15 年」，跟預設值完全不同。*/
+    let n = 5;
+    try {
+      const raw = localStorage.getItem('tw.ms.years');
+      if (raw !== null && raw !== '') { const s = +raw; if (s >= 0 && s <= 15) n = s; }
+    } catch (e) { /* 私密視窗，忽略 */ }
+    const paint = () => {
+      const years = n > 0 ? allYears.slice(-n) : allYears;
+      const stat = ms.months.map(m => {
+        const vs = years.map(y => byYear[y][String(m)]).filter(v => v != null);
+        const up = vs.filter(v => v > 0).length;
+        return { m, avg: vs.length ? vs.reduce((s, v) => s + v, 0) / vs.length : null,
+                 up, n: vs.length };
+      });
+      $('#msSub').textContent = years.length
+        ? `${years[0]} ～ ${years[years.length - 1]}，共 ${years.length} 年`
+        : '';
+      A.chart('msChart', {
+        tooltip: { ...A.tip, trigger: 'axis',
+          formatter: (ps) => { const s = stat[ps[0].dataIndex];
+            return `<b>${s.m} 月</b><br>平均漲幅 ${s.avg == null ? '—' : A.fmt.pct(s.avg)}`
+              + `<br>上漲 ${s.up} / ${s.n} 年（勝率 ${s.n ? Math.round(s.up / s.n * 100) : 0}%）`; } },
+        grid: { left: 52, right: 20, top: 28, bottom: 28 },
+        xAxis: { ...A.axisStyle, type: 'category', data: ms.months.map(m => m + ' 月'),
+                 axisLabel: { color: A.CH.ink2 } },
+        yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, formatter: (v) => (v > 0 ? '+' : '') + v + '%' } },
+        series: [{ type: 'bar', barWidth: '58%',
+          data: stat.map(s => ({ value: s.avg == null ? null : +s.avg.toFixed(2),
+            itemStyle: { color: s.avg > 0 ? A.CH.up : s.avg < 0 ? A.CH.down : A.CH.ink3, borderRadius: 4 } })),
+          label: { show: true, position: 'top', color: A.CH.ink3, fontSize: 10.5,
+            formatter: (q) => { const s = stat[q.dataIndex]; return s.n ? `${s.up}/${s.n}` : ''; } } }],
+      }, { notMerge: true });
+      const best = stat.filter(s => s.avg != null).sort((a, b) => b.avg - a.avg)[0];
+      const worst = stat.filter(s => s.avg != null).sort((a, b) => a.avg - b.avg)[0];
+      $('#msNote').innerHTML = best && worst
+        ? `這段期間最強的是 <b>${best.m} 月</b>（平均 ${A.fmt.pct(best.avg)}、${best.up}/${best.n} 年上漲），`
+          + `最弱的是 <b>${worst.m} 月</b>（平均 ${A.fmt.pct(worst.avg)}、${worst.up}/${worst.n} 年上漲）。`
+          + `<br><span class="muted">柱子上的 ${'x/y'} 是「上漲年數／取樣年數」—— 只看平均會被一次暴漲暴跌帶偏。`
+          + `樣本少於 3 年的月份參考就好。</span>`
+        : '';
+    };
+    const mark = () => $$('#msYears button').forEach(b => b.classList.toggle('on', +b.dataset.v === n));
+    $$('#msYears button').forEach(b => b.onclick = () => {
+      n = +b.dataset.v; mark(); $('#msCustom').value = '';
+      try { localStorage.setItem('tw.ms.years', n); } catch (e) { /* 忽略 */ }
+      paint();
+    });
+    const cu = $('#msCustom');
+    if (cu) cu.oninput = () => {
+      const v = Math.max(1, Math.min(15, +cu.value || 0));
+      if (!cu.value) return;
+      n = v; $$('#msYears button').forEach(b => b.classList.remove('on'));
+      try { localStorage.setItem('tw.ms.years', n); } catch (e) { /* 忽略 */ }
+      paint();
+    };
+    mark();
+    paint();
   }
   function tabNews(pg, el) {
     const news = pg.news || [], bv = pg.broker_views || [];
