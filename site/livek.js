@@ -40,7 +40,11 @@
   const KEY = (d, c) => `tw.livek.${d}.${c}`;
   const MAX_TICKS = 3600;           // 5 秒 × 3600 ＝ 5 小時，蓋得住整個交易日
   const MAX_FAILS = 3;
-  const TFS = { '5s': 5, '1m': 60, '5m': 300 };
+  /* 由同一份 1 分 K（Yahoo）＋ 即時 tick 推出來的週期。
+     Andy 2026-09-18：「1 5 15 分 K 都限制當天即可」—— 所以 15 分也放進來，
+     不再由後端預先產出 60 天的 15 分 K（那是部署最慢的一塊，見 DECISIONS #156）。
+     一次請求換三個週期，比分開打三次便宜。*/
+  const TFS = { '5s': 5, '1m': 60, '5m': 300, '15m': 900 };
 
   const state = {
     code: null, market: null, symbol: null,

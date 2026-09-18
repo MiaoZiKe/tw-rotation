@@ -26,7 +26,20 @@ def _table_dir(table: str) -> Path:
 
 
 def _partition_key(df: pd.DataFrame, table: str) -> pd.Series:
-    """決定每一列落在哪個年度分割檔。"""
+    """決定每一列落在哪個分割檔。
+
+    預設按年（`year=2026`）。列在 `config.PARTITION_MONTHLY` 的表改成按月（`year=202601`）——
+    因為 `append()` 每次會重寫整個分割檔，而 `data/` 每天都會 commit 進 repo：
+    60 分 K 一年約 100 萬列，照年分割的話每天都要重寫 26 MB（見 DECISIONS #156）。
+    目錄名沿用 `year=` 前綴，這樣 `read()` 與既有的 glob 都不用改。
+    """
+    monthly = table in getattr(config, "PARTITION_MONTHLY", set())
+    tcol = "ts" if "ts" in df.columns else ("date" if "date" in df.columns else None)
+    if monthly and tcol:
+        d = pd.to_datetime(df[tcol], errors="coerce", utc=True).dt.tz_convert("Asia/Taipei")
+        return (d.dt.year * 100 + d.dt.month).astype("Int64")
+    if "ts" in df.columns and "date" not in df.columns:
+        return pd.to_datetime(df["ts"], errors="coerce", utc=True).dt.tz_convert("Asia/Taipei").dt.year.astype("Int64")
     if "date" in df.columns:
         return pd.to_datetime(df["date"], errors="coerce").dt.year.astype("Int64")
     if "ym" in df.columns:

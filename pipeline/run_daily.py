@@ -269,6 +269,57 @@ def fill_today_from_mis(openapi_date: str | None) -> pd.DataFrame:
     return mis.price_snapshot(pairs)
 
 
+# 分 K 逐檔跟 Yahoo 要，成本高，所以只做「成交值前段」這一批。
+# 跟 build_payload.INTRADAY_LIMIT 是同一個口徑，改一邊要改另一邊。
+INTRADAY_LIMIT = 400
+
+
+def intraday_universe(limit: int = INTRADAY_LIMIT) -> tuple[list[str], dict[str, str]]:
+    """要抓 60 分 K 的代號，以及它們的市場別（Yahoo 要靠它決定 .TW / .TWO）。
+
+    挑法：拿資料湖最新那一天，照成交值由大到小取前 `limit` 檔。
+    """
+    px = store.read("price_daily", years=[datetime.now(timezone.utc).year])
+    if px.empty or "date" not in px.columns:
+        return [], {}
+    latest = str(px["date"].astype(str).max())
+    day = px[px["date"].astype(str) == latest]
+    if "turnover" in day.columns:
+        day = day.sort_values("turnover", ascending=False)
+    codes, markets = [], {}
+    for _, r in day.iterrows():
+        c = str(r["code"])
+        if not is_tradable_security(c) or c in markets:
+            continue
+        markets[c] = str(r.get("market") or "")
+        codes.append(c)
+        if len(codes) >= limit:
+            break
+    return codes, markets
+
+
+def collect_intraday_60m() -> pd.DataFrame:
+    """把 60 分 K 的**增量**抓回來（只抓資料湖最後一根之後的那一段）。
+
+    ★ 這一步存在的理由（DECISIONS #155）：分 K 以前完全不進資料湖，
+      `build_payload` 每次部署都從零重抓 400 檔 ×（60 分 730 天 ＋ 15 分 60 天），
+      實測部署 14 分鐘裡有 13 分 43 秒卡在那裡 —— 昨天抓過的今天再抓一次。
+      現在改成「盤後抓當天新增的那幾根、寫進資料湖」，部署只要讀。
+    """
+    from .sources import yahoo
+
+    codes, markets = intraday_universe()
+    if not codes:
+        log.warning("還沒有價量資料，不知道要抓哪些代號的分 K")
+        return pd.DataFrame()
+
+    have = store.read("intraday_60m")
+    since = str(have["ts"].astype(str).max()) if not have.empty and "ts" in have.columns else None
+    RESULT["steps"]["intraday.since"] = {"since": since, "codes": len(codes),
+                                         "lake_rows": 0 if have.empty else len(have)}
+    return yahoo.intraday_since(codes, markets, since, "60m")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -329,6 +380,11 @@ def main() -> int:
         # 個股補了今天，大盤那格也要跟著補 —— 不然橫幅寫「資料更新到今天」、
         # 加權指數卻還是昨天收的數字（2026-09-14 實測：橫幅 09-14、指數 46,184.85＝09-11 收）。
         save("market_daily", step("mis.market_snapshot", mis.market_snapshot))
+
+    # -------------------------------------------------- 60 分 K（增量，進資料湖）
+    # 只在有抓價量的輪次做；news 那幾輪（盤中、週末）不必碰。
+    if not news_only:
+        save("intraday_60m", step("yahoo.intraday_60m", collect_intraday_60m))
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。

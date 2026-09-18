@@ -25,7 +25,8 @@ log = logging.getLogger(__name__)
 MIN_PAGE_BARS = 60        # 有這麼多日線才算得出指標、SMC 與評分
 CAND_PER_FACET = 300      # candidates.json 每個面向各留這麼多檔（取聯集）
 FULL_PAGE_BARS = 1500     # 有分 K 的那一批給 6 年日線（週／月線在前端合成）
-SLIM_PAGE_BARS = 1000     # 其餘有歷史的股票給 4 年
+SLIM_PAGE_BARS = 1250     # 其餘有歷史的股票也要 5 年（Andy 2026-09-18：「日 K 這種需要有至少 5 年」）
+                          # 以前是 1000（約 4 年），只有前 400 檔達標，其餘不符規格
 # 分 K（Yahoo）給幾檔。族群成分股一定有，其餘照成交值往下補到這個數。
 # 從 150 拉到 400：Andy 回報「1 日以下的週期打開是空的」，大多是他看的股票不在前 150 名。
 # yfinance 每批 40 檔、批間停 1 秒，兩個 interval 共約 20 批，多出來的時間在盤後管線可以接受。
@@ -569,14 +570,22 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     stock_dir = config.SITE_DATA / "stock"
     stock_dir.mkdir(parents=True, exist_ok=True)
 
-    # 分 K（Yahoo）：只在正式管線抓，測試與本機預覽用 SKIP_INTRADAY=1 跳過
+    # ★ 分 K 一律**只讀資料湖、不打 Yahoo**（DECISIONS #155 / #156）。
+    #
+    #   以前這裡是 yahoo.intraday(..., "730d") + yahoo.intraday(..., "60d")，
+    #   每一次部署都從零重抓 400 檔 —— 昨天抓過的今天再抓一次，改一行 CSS 也照抓。
+    #   實測部署 14 分鐘裡有 13 分 43 秒卡在這兩行（Actions run #16／#17 的逐步秒數）。
+    #   現在 60 分 K 由 run_daily 盤後增量寫進資料湖，這裡只要讀。
+    #   15 分 K 不再預先產出：Andy 2026-09-18「1 5 15 分 K 都限制當天即可」，
+    #   改由前端開個股時即時抓（livek.js 的 1 分 K 已經是這條路）。
     m60 = m15 = pd.DataFrame()
     if not os.environ.get("SKIP_INTRADAY"):
         try:
-            from .sources import yahoo
-            m60 = yahoo.intraday(intraday_codes, markets, "60m", "730d")
-            m15 = yahoo.intraday(intraday_codes, markets, "15m", "60d")
-            log.info("分 K：60 分 %d 列、15 分 %d 列", len(m60), len(m15))
+            m60 = store.read("intraday_60m")
+            if not m60.empty:
+                m60 = m60[m60["code"].astype(str).isin(set(intraday_codes))]
+            log.info("分 K：從資料湖讀到 60 分 %d 列 / %d 檔",
+                     len(m60), 0 if m60.empty else m60["code"].nunique())
         except Exception as exc:  # noqa: BLE001
             log.warning("分 K 抓取失敗：%s", exc)
     m60_by = {c: g for c, g in m60.groupby("code")} if not m60.empty else {}
@@ -678,7 +687,6 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         except Exception as exc:  # noqa: BLE001
             log.debug("%s 多週期分析失敗：%s", code, exc)
             mtf_res = {"tf": {}, "summary": {}}
-        bars240 = mtf.resample_intraday(bars60, "240min") if not bars60.empty else pd.DataFrame()
 
         def _bars(df_, tcol):
             if df_ is None or df_.empty:
@@ -692,8 +700,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "as_of": latest,
             "version": 3,
             "daily": _bars(long, "date"),
-            "intraday": {"60m": _bars(bars60.tail(1800), "ts"), "240m": _bars(bars240.tail(800), "ts"),
-                         "15m": _bars(bars15.tail(1100), "ts")},
+            # 60 分給滿 730 天（每天約 5 根 → 約 2,500 根）。
+            # 240 分改由前端從 60 分合成、15 分開個股時即時抓，都不再預先產出
+            # —— 這兩塊本來佔了每個個股頁 1,900 根 K 棒（DECISIONS #156）。
+            "intraday": {"60m": _bars(bars60.tail(2600), "ts")},
             "mtf": _clean(mtf_res),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)),
             "profit": _clean(stockpage.profit_series(deep.get("financial"), code)),

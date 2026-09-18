@@ -42,7 +42,18 @@ TABLES: dict[str, list[str]] = {
     # Yahoo 的櫃買代號 ^TWOII 已經壞掉、台指期沒有免費代號，所以改走 FinMind：
     #   TaiwanStockPrice(TAIEX / TPEx) 與 TaiwanFuturesDaily(TX)
     "index_ohlc":         ["date", "symbol"],
+    # v5：60 分 K（Andy 2026-09-18 拍板保留 730 天）。
+    # 以前分 K 完全不存，每次部署都從零重抓 400 檔，害部署 14 分鐘裡有 13 分 43 秒在這一步
+    # —— 見 DECISIONS #155（通則：會重複用到的就要存）與 #156（分 K 的分層策略）。
+    # 1/5/15 分只要當天，不進湖；240 分、週、月都由這一層推出來。
+    "intraday_60m":       ["ts", "code"],
 }
+
+# 按「月」分割的表（其餘一律按年）。
+# 為什麼要這個：`store.append()` 每次會**重寫整個分割檔**，而 data/ 每天都會 commit 進 repo。
+# 60 分 K 一年約 100 萬列，照年分割的話每天的資料 commit 都要重寫 26 MB，
+# 一年下來 git 歷史會多好幾 GB。按月分割之後每天只重寫當月那一個檔（約 1 MB）。
+PARTITION_MONTHLY: set[str] = {"intraday_60m"}
 
 # ---------------------------------------------------------------- 端點
 TWSE_OPENAPI = "https://openapi.twse.com.tw/v1"

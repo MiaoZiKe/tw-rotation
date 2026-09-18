@@ -1173,7 +1173,9 @@ def t_stock(pg, base, code):
             ok(f"被劃掉的週期 {t['tf']} 有寫清楚為什麼沒有", len(t["title"] or "") > 10, t)
     # 標示要和實際資料一致：劃掉的一定畫不出圖，沒劃掉的一定畫得出來
     tfs = [t["tf"] for t in tfstate]
-    LIVE_TFS = ("5s", "1m", "5m")
+    # 15 分 2026-09-18 起也改成即時（Andy：「1 5 15 分 K 都限制當天即可」，DECISIONS #156）——
+    # 後端不再預先產出，所以它跟 1 分／5 分一樣，在開發容器裡（擋掉 Yahoo 與 Worker）本來就抓不到。
+    LIVE_TFS = ("5s", "1m", "5m", "15m")
     for t in tfstate:
         click(pg, f'#tfSeg button[data-tf="{t["tf"]}"]', 700)
         st = pg.evaluate("({ canvas: document.querySelectorAll('#lwc canvas').length, empty: !!document.querySelector('#lwc .empty') })")
@@ -2448,7 +2450,8 @@ def t_livek(pg, base, code):
     tfs = pg.evaluate("() => [...document.querySelectorAll('#tfSeg button')].map(b => b.dataset.tf)")
     for want in ("5s", "1m", "5m"):
         ok(f"週期列有 {want}", want in tfs, tfs)
-    ok("即時週期有標記（紅點）", pg.evaluate("() => document.querySelectorAll('#tfSeg button.livetf').length") == 3)
+    n_live = pg.evaluate("() => document.querySelectorAll('#tfSeg button.livetf').length")
+    ok("即時週期有標記（紅點）", n_live == 4, f"應該有 4 個（5秒/1分/5分/15分），實際 {n_live}")
 
     # --- 2. ★ 切到 1 分：圖真的變了，而且是即時那組資料
     before = canvas_hash(pg, "#lwc")

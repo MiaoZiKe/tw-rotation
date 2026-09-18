@@ -555,8 +555,18 @@
      （證交所沒有個股的分時檔，所以是 Yahoo 補早盤 ＋ 即時報價每 5 秒補尾巴）。 */
   const TF_BUILTIN = ['5s', '1m', '5m', '15m', '60m', '240m', '1d', '1w', '1M'];
   const TF_NAME = { '5s': '5秒', '1m': '1分', '5m': '5分', '15m': '15分', '60m': '1時', '240m': '4時', '1d': '日', '1w': '週', '1M': '月' };
-  const LIVE_TF = ['5s', '1m', '5m'];
+  // 15 分也改成即時（Andy 2026-09-18：「1 5 15 分 K 都限制當天即可」）。
+  // 後端不再預先產出 15 分 K —— 那是部署最慢的一塊（DECISIONS #156）。
+  const LIVE_TF = ['5s', '1m', '5m', '15m'];
   const isLiveTf = (tf) => LIVE_TF.indexOf(tf) >= 0;
+  /* 即時週期沒東西可畫時，要講清楚是「還在收」還是「根本沒設來源」。
+     2026-09-18 起 15 分也走即時（後端不再預先產出，見 DECISIONS #156）——
+     這代表沒設 Worker 的人會多一個週期看不到，所以更不能只寫「還在收集」讓人乾等。*/
+  function liveEmptyMsg() {
+    const has = !!(window.Live && window.Live.proxy && window.Live.proxy());
+    return has ? '即時資料還在收集（開盤後每 5 秒補一根）'
+               : '這個週期要即時資料：右上角 ⚙ 設定即時報價來源之後才看得到';
+  }
   const tfLabel = (tf) => TF_NAME[tf] || (/^\d+D$/.test(tf) ? tf.replace('D', ' 日') : /^\d+W$/.test(tf) ? tf.replace('W', ' 週') : tf);
   function tfList() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
   function tfButtons() { return tfList().map(tf => `<button data-tf="${tf}" class="${tf === state.tf ? 'on' : ''}">${tfLabel(tf)}</button>`).join(''); }
@@ -617,6 +627,9 @@
     if (tf === '1M') return KUtil.resampleDaily(daily, 'M');
     let m = /^(\d+)D$/.exec(tf); if (m) return groupBars(daily || [], +m[1]);
     m = /^(\d+)W$/.exec(tf); if (m) return groupBars(KUtil.resampleDaily(daily || [], 'W'), +m[1]);
+    // 240 分由 60 分現場合成（4 根併 1 根），後端不再預先產出 800 根
+    // —— 同一份資料存兩次是浪費（DECISIONS #156）。
+    if (tf === '240m') return groupBars((pg.intraday && pg.intraday['60m']) || [], 4);
     return (pg.intraday && pg.intraday[tf]) || [];
   }
   function zonesFor(pg, tf) { const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf]; if (t) return [...t.demand, ...t.supply].map(z => ({ ...z, tf: t.label })); if (tf === '1d' && pg.verdict) return [...(pg.verdict.demand || []).map(z => ({ ...z, kind: 'demand' })), ...(pg.verdict.supply || []).map(z => ({ ...z, kind: 'supply' }))]; return []; }
@@ -1041,7 +1054,7 @@
       const el = $('#mini-' + i);
       const bars = barsFor(pg, tf);
       if (!bars || bars.length < 2) {
-        el.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(isLiveTf(tf) ? '即時資料還在收集' : '這個週期尚無資料')}</div>`;
+        el.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg() : '這個週期尚無資料')}</div>`;
         return;
       }
       const c = new KChart(el, { mini: true, tf });
