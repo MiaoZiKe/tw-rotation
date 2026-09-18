@@ -1139,7 +1139,13 @@
   // ---- 候選名單：綜合／籌碼／技術／基本面四種切法 ----------------------------
   const num = (v, d = 1) => `<span class="num">${v != null ? fmt.n(v, d) : '—'}</span>`;
   const C = {
-    grade: ['grade', '判定', r => `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' + r.verdict : r.verdict}</span>`, 'l'],
+    /* ★ 第 5 欄＝排序用的值（沒寫就用 r[key]）。
+       2026-09-18 抓到：這一欄顯示的是「有 grade 就 A＋判定文字，沒有就只有判定文字」，
+       但排序用 r.grade —— 380 檔裡 377 檔沒有 grade，全部同分，
+       所以使用者點「判定」表頭，畫面幾乎不動（等於排序壞掉）。
+       改成排「畫面上真正看到的那串字」，點了才會有反應。*/
+    grade: ['grade', '判定', r => `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' + r.verdict : r.verdict}</span>`, 'l',
+      r => (r.grade ? r.grade + ' ' : 'Z ') + (r.verdict || '')],
     code: ['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'],
     name: ['name', '簡稱', r => L.stock(r.code, r.name), 'l'],
     group: ['group', '族群', r => L.group(r.group_id, r.group), 'l'],
@@ -1273,8 +1279,11 @@
     // candGroups === null ＝ 全部；是 Set 就只看勾起來的
     const pool = candGroups ? cands.filter(r => candGroups.has(r.group || '（未分類）')) : cands;
     // 先把即時值疊回去，排的才是使用者眼睛看到的那個數字
+    // 這一欄有沒有自訂的「排序用的值」（cols 的第 5 欄）
+    const sortCol = cols.find(c => c[0] === sk);
+    const val = (r) => (sortCol && sortCol[4] ? sortCol[4](r) : r[sk]);
     const rows = liveMerge(pool.slice()).sort((a, b) => {
-      const x = a[sk], y = b[sk];
+      const x = val(a), y = val(b);
       if (x == null && y == null) return 0;
       if (x == null) return 1;
       if (y == null) return -1;
