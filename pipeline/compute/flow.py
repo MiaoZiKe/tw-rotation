@@ -79,29 +79,52 @@ def group_daily(price: pd.DataFrame, company: pd.DataFrame,
         if col not in df.columns:
             df[col] = np.nan
 
-    def _agg(g: pd.DataFrame) -> pd.Series:
-        w = g["weight"]
-        tv = float((g["turnover"] * w).sum())
-        # 漲跌幅用成交值加權，否則會被冷門小型股主導
-        ww = (g["turnover"] * w).where(g["chg_pct"].notna(), 0)
-        wsum = ww.sum()
-        chg = float((g["chg_pct"].fillna(0) * ww).sum() / wsum) if wsum > 0 else np.nan
-        return pd.Series({
-            "turnover": tv,
-            "chg_pct": chg,
-            "advancers": int((g["chg_pct"] > 0).sum()),
-            "decliners": int((g["chg_pct"] < 0).sum()),
-            "constituents": int(g["code"].nunique()),
-            "foreign_net": (g["foreign_total"] * w).sum(min_count=1),
-            "trust_net": (g["trust"] * w).sum(min_count=1),
-            "dealer_net": (g["dealer"] * w).sum(min_count=1),
-            "margin_change": (g["margin_change"] * w).sum(min_count=1),
-        })
-
-    out = (df.groupby(["date", "group_id", "group_name", "tier", "chain"],
-                      dropna=False)
-             .apply(_agg, include_groups=False)
-             .reset_index())
+    # ★★ 這一段是整條部署管線最貴的地方，改動前務必先讀這段註解。
+    #   2026-09-18 在 build() 加上分段計時之後量到：整個 build() 559.7 秒，
+    #   **這一個函式就佔 393.1 秒（70%）** —— 比全市場 2,334 檔個股頁那一圈（146.5 秒）還貴兩倍半。
+    #
+    #   原本的寫法是 `groupby([...]).apply(_agg)`，`_agg` 是一個 Python 函式。
+    #   groupby 的組數 ＝ 交易日數 × 族群數 ＝ **236,641 組**，
+    #   所以那一行等於在 Python 裡跑二十三萬次迴圈，每一次還要建一個九個元素的 Series 物件。
+    #
+    #   改成向量化：先把每一項要加總的東西算成一個欄位，再讓 groupby 一次把整批加完。
+    #   兩個一定要顧到、不然數字會變的地方：
+    #   1. **min_count=1**：外資／投信／自營／融資這四項，一整組全是 NaN 時要維持 NaN
+    #   （代表「那天法人資料還沒到」），不可以變成 0（那代表「法人剛好買賣相抵」）。
+    #   `groupby.sum()` 預設會把全 NaN 變 0，所以這四項要另外用 `.sum(min_count=1)` 算。
+    #   2. **欄位型別**：舊版把 int 與 float 混在同一個 `pd.Series({...})` 裡，
+    #   pandas 會把整個 Series 轉成 float64 —— 所以 advancers／decliners／constituents
+    #   在舊版**是浮點數**，JSON 寫出來是 `5.0` 不是 `5`。這裡刻意 astype(float) 對齊，
+    #   不然前端拿到的字面值會變（`tests/` 與逐檔比對都釘住這件事）。
+    keys = ["date", "group_id", "group_name", "tier", "chain"]
+    w = df["weight"]
+    tv = df["turnover"] * w
+    # 漲跌幅用成交值加權，否則會被冷門小型股主導；沒有漲跌幅的那幾檔權重算 0
+    ww = tv.where(df["chg_pct"].notna(), 0)
+    tmp = pd.DataFrame({
+        "_tv": tv, "_ww": ww, "_chgw": df["chg_pct"].fillna(0) * ww,
+        "_adv": (df["chg_pct"] > 0).astype("int64"),
+        "_dec": (df["chg_pct"] < 0).astype("int64"),
+        "code": df["code"],
+        "foreign_net": df["foreign_total"] * w, "trust_net": df["trust"] * w,
+        "dealer_net": df["dealer"] * w, "margin_change": df["margin_change"] * w,
+    })
+    for k in keys:
+        tmp[k] = df[k]
+    gb = tmp.groupby(keys, dropna=False, sort=True)
+    out = gb.agg(turnover=("_tv", "sum"), _wsum=("_ww", "sum"), _chgw=("_chgw", "sum"),
+                 advancers=("_adv", "sum"), decliners=("_dec", "sum"),
+                 constituents=("code", "nunique"))
+    # 法人與融資：全 NaN 要留成 NaN（見上面第 1 點），所以不能併進上面那個 agg
+    nets = gb[["foreign_net", "trust_net", "dealer_net", "margin_change"]].sum(min_count=1)
+    out = out.join(nets)
+    out["chg_pct"] = np.where(out["_wsum"] > 0, out["_chgw"] / out["_wsum"], np.nan)
+    for c in ("advancers", "decliners", "constituents"):
+        out[c] = out[c].astype(float)      # 對齊舊版（見上面第 2 點）
+    out = (out.drop(columns=["_wsum", "_chgw"])
+              .reindex(columns=["turnover", "chg_pct", "advancers", "decliners", "constituents",
+                                "foreign_net", "trust_net", "dealer_net", "margin_change"])
+              .reset_index())
 
     total = out.groupby("date")["turnover"].transform("sum")
     out["turnover_share"] = np.where(total > 0, out["turnover"] / total * 100, np.nan)

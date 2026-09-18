@@ -35,6 +35,13 @@
 - **絕不 force push、絕不覆寫 `data/*.parquet`。** 雲端是資料的權威來源（`store.append()` 只增不改）。
 - **push 前跑三件事**：`pytest tests/ -q`、`python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）、
   `python scripts/_uitest.py`（**真人操作驗收**，含全站縮放掃描）。
+  - **★ 只有純前端改動可以跳過 pytest**（Andy 2026-09-18 拍板，省 7.5 分鐘）。
+    pytest 測的全是 Python 端（`pipeline/`、`compute/`、`indicators.py`），改 `site/*.js`
+    在物理上不可能讓它變紅。**判斷一律用機器，不准靠記憶**：
+    `git diff --name-only <上次 push 的 commit>..HEAD` —— 清單裡只要出現
+    `pipeline/`、`tests/`、`scripts/`（`_uitest.py` 除外）、`requirements.txt`、`.github/`
+    其中任何一項，**就一定要跑 pytest**；只有全部落在 `site/**` 才准跳過。
+    `_preview.py` 與 `_uitest.py` **永遠都要跑**，那兩支測的就是前端。
 - **push 之後還沒完**：等 Actions 跑完，**真的打開 <https://miaozike.github.io/tw-rotation/> 確認線上版本換掉了**
   （比對右上角的**版號徽章**，那是 2026-09-16 為了這件事加的，見 DECISIONS #148），再跟 Andy 說「好了」。
   只說「推上去了」不算交付。
@@ -58,6 +65,18 @@
   不會 → 才准當場抓當場丟。** 唯一例外是盤中即時報價（每分鐘就過期）。
   `build_payload` 對已經在湖裡的東西只准**讀**，不准再抓一次；抓取一律增量。
   這條是因為分 K 沒進湖，害每次部署都重抓 400 檔、白白多花 13 分 43 秒。
+- **★ 別讓 Andy 等在「重跑一輪」上**（2026-09-18 他問「為何跑這麼久」）。
+  三道關卡一輪 18 分鐘（pytest 7.5 ＋ _preview 2 ＋ _uitest 10），部署再 8～15 分鐘。
+  那天總共跑了**三輪**，其中兩輪是我自己造成的：第一輪是驗收條件寫錯（把「選起來的零件本來就該提亮」
+  判成「還在發光」），第二輪是推上線之後才發現窄畫面的 bug。三條具體的規矩：
+  1. **關卡是驗完成品，不是驗半成品。** 東西真的做完、自己先在瀏覽器裡把每個新功能點過一遍，
+     才跑三道關卡。不要「改一段跑一輪」。
+  2. **開發過程就要驗窄畫面（800px）**，不要只在 1440px 看。2026-09-18 的 E6 縮圖 bug
+     就是只驗寬螢幕放過去的 —— 他把瀏覽器縮成半邊就看得到，我卻是推上線之後才發現（DECISIONS #171）。
+     `_uitest.py` 現在對新的版面元件一律要加窄畫面那一段。
+  3. **追根因最多 10 分鐘。** 超過就改走「不依賴機制」的做法（例如「量完再用 transform 縮」
+     而不是繼續研究 CSS 為什麼算錯），把觀察到的事實寫進 DECISIONS 就好。
+     那天為了查一個「SVG 不吃 CSS 寬度」的怪象花了 25 分鐘，換路只花 5 分鐘。
 - 註解、commit 訊息、文件一律繁體中文。
 - 金鑰只放 GitHub Secrets（`FINMIND_TOKEN`、`FRED_API_KEY`）與 Claude 的暫存區；**永遠不寫進 repo 任何檔案**。
   push 前 `git grep -iE "github_pat_|ghp_|finmind.*token" -- . ':!*.md'` 掃一次（排除文件本身的說明字串）。

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from datetime import datetime, timezone
 
 import numpy as np
@@ -20,6 +21,31 @@ from .util import store
 from .util.roc import is_tradable_security, norm_industry
 
 log = logging.getLogger(__name__)
+
+
+class _Lap:
+    """每個階段花幾秒，直接印進 Actions 的 log。
+
+    為什麼要這個：2026-09-18 為了找部署為什麼要 14 分鐘，先是**猜**上傳那步慢（錯的，它只花 5 秒），
+    然後拿大型股取樣去推估全市場（也是錯的，全市場七成是小型股，便宜得多）。
+    兩次都白花時間。有了這幾行，下次打開 Actions 的 log 就直接看得到答案，不用再猜。
+    """
+
+    def __init__(self):
+        self.t0 = self.last = time.time()
+        self.rows: list[tuple[str, float]] = []
+
+    def __call__(self, name: str) -> None:
+        now = time.time()
+        self.rows.append((name, now - self.last))
+        log.info("⏱ %-22s %6.1fs（累計 %6.1fs）", name, now - self.last, now - self.t0)
+        self.last = now
+
+    def report(self) -> None:
+        total = time.time() - self.t0
+        log.info("⏱ ===== build() 合計 %.1fs =====", total)
+        for name, sec in sorted(self.rows, key=lambda r: -r[1])[:8]:
+            log.info("⏱   %-22s %6.1fs（%4.1f%%）", name, sec, sec / max(total, 1e-9) * 100)
 
 # 個股頁分層（決策見 DECISIONS #52）：每一檔上市櫃股票都要有頁面，差別只在資料多寡。
 MIN_PAGE_BARS = 60        # 有這麼多日線才算得出指標、SMC 與評分
@@ -90,6 +116,7 @@ def last_complete_date(price: pd.DataFrame, *, primary: str = "TWSE",
 
 
 def build() -> None:
+    lap = _Lap()
     price = store.read("price_daily")
     if price.empty:
         log.warning("資料湖還沒有行情資料，只產出空的 meta")
@@ -125,6 +152,8 @@ def build() -> None:
                                        for t in (inst, margin, market, valuation))
     history_days = int(price["date"].nunique())
 
+    lap("讀資料湖")
+
     # ---------------------------------------------------------- M1 資金面
     group_hist = flow.group_daily(price, company, inst, margin)
     today = (group_hist[group_hist["date"] == latest]
@@ -143,6 +172,8 @@ def build() -> None:
         streaks[who] = [] if df_s.empty else _clean(df_s.head(60).to_dict("records"))
     _write("trust_streak", streaks.get("trust", []))      # 舊鍵留著，換版時不會開天窗
     _write("inst_streak", streaks)
+
+    lap("M1 資金面")
 
     # ---------------------------------------------------------- 市場體溫
     heat = {"date": latest}
@@ -182,6 +213,8 @@ def build() -> None:
     if not today.empty:
         heat["top5_share"] = _clean(today.nlargest(5, "turnover")["turnover_share"].sum())
 
+    lap("市場體溫")
+
     # ---------------------------------------------------------- M4 季節性
     _write("seasonality", seasonality(price, company).to_dict("records"))
     intl_all = store.read("intl_daily")
@@ -190,6 +223,8 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("季節性 v3 產出失敗：%s", exc)
         _write("seasonality_v3", {"periods": {}, "groups": [], "note": str(exc)})
+
+    lap("M4 季節性")
 
     # ---------------------------------------------------------- M2 基本面
     day_px = price[price["date"] == latest][["code", "close"]]
@@ -262,6 +297,8 @@ def build() -> None:
     else:
         _write("broker_views", [])
 
+    lap("M2 基本面")
+
     # ---------------------------------------------------------- 個股技術面 + 個股頁
     news_all = store.read("news")
     sh_all = store.read("shareholding_weekly")
@@ -281,6 +318,8 @@ def build() -> None:
     heat.update({"breadth": breadth})
     _write("market_heat", heat)
 
+    lap("個股頁（全市場）")
+
     # ---------------------------------------------------------- 大盤三張圖的歷史日 K
     # Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」。
     # Yahoo 的 ^TWOII 壞掉、台指期沒有代號，所以改由 FinMind 存進資料湖再從這裡吐給前端。
@@ -296,6 +335,8 @@ def build() -> None:
                 for r in g.itertuples(index=False)
             ])
     _write("index_ohlc", out_idx)
+
+    lap("大盤歷史日K")
 
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
     try:
@@ -325,6 +366,8 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("產業地圖產出失敗：%s", exc)
         _write("industry_map", {"date": latest, "chains": [], "industries": [], "segments_pe": {}})
+
+    lap("資金流向/題材/產業地圖")
 
     # ---------------------------------------------------------- 新聞
     # 事件側欄要能「選日期看那天發生什麼」，所以留整整一週而不是每類各 40 則
@@ -376,8 +419,12 @@ def build() -> None:
         log.warning("產業關聯圖產出失敗：%s", exc)
         _write("supply_chain", {})
 
+    lap("新聞/國際/產業關聯")
+
     # ---------------------------------------------------------- meta
     _write("meta", meta_payload(latest, history_days))
+    lap("meta")
+    lap.report()
 
 
 def _provisional_share(date: str | None) -> dict:
@@ -594,6 +641,29 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     m60_by = {c: g for c, g in m60.groupby("code")} if not m60.empty else {}
     m15_by = {c: g for c, g in m15.groupby("code")} if not m15.empty else {}
 
+    # ★ 迴圈裡不准再對整張資料湖做 `df[df["code"] == code]`。
+    #   2026-09-18 實測：個股頁那一圈跑 2,334 檔，光是這種全表掃描就吃掉一百多秒
+    #   （`monthly_seasonality` 一檔 20.8ms＝全市場 48.6 秒，因為 price 有 127 萬列）。
+    #   先 groupby 建一次索引（總共約 0.5 秒），迴圈裡就是 dict 查表。
+    #   安全性：stockpage 那幾支內部都是 `df[df["code"] == code]`，
+    #   餵已經篩過的切片進去等於那一行變成 no-op，結果完全一樣（tests/test_perf_golden.py 釘住）。
+    def _by_code(df):
+        if df is None or not isinstance(df, pd.DataFrame) or df.empty or "code" not in df.columns:
+            return {}
+        return {c: g for c, g in df.groupby("code")}
+
+    EMPTY = pd.DataFrame()
+    rev_by = _by_code(deep.get("revenue"))
+    fin_by = _by_code(deep.get("financial"))
+    mgn_by = _by_code(deep.get("margin"))
+    shw_by = _by_code(deep.get("shareholding"))
+    dve_by = _by_code(deep.get("dividend_events"))
+    dvr_by = _by_code(deep.get("dividend_results"))
+    com_by = _by_code(deep.get("company"))
+    insth_by = _by_code(inst_hist)
+    instd_by = _by_code(inst_today)
+    valt_by = _by_code(val_today)
+
     rows = []
     breadth = {"n": 0, "above_ma20": 0, "above_ma60": 0, "new_high_60": 0, "grade_a": 0, "grade_b": 0}
     _ma_by_group: dict[str, dict] = {}
@@ -636,15 +706,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         gname = gi.get("group_name") or "—"
         fx = fund_idx.get(code, {})
         pe = pct = None
-        if not val_today.empty:
-            v = val_today[val_today["code"] == code]
-            if not v.empty:
-                pe = _clean(v["pe"].iloc[0])
+        v = valt_by.get(code)
+        if v is not None and not v.empty:
+            pe = _clean(v["pe"].iloc[0])
         trust_net = foreign_net = None
-        if not inst_today.empty:
-            i = inst_today[inst_today["code"] == code]
-            if not i.empty:
-                trust_net = _clean(i["trust"].iloc[0]); foreign_net = _clean(i["foreign_total"].iloc[0])
+        i = instd_by.get(code)
+        if i is not None and not i.empty:
+            trust_net = _clean(i["trust"].iloc[0]); foreign_net = _clean(i["foreign_total"].iloc[0])
         name = names.get(code) or (g["name"].dropna().iloc[-1] if "name" in g and g["name"].notna().any() else code)
         prev = ind["close"].iloc[-2] if len(ind) > 1 else last["close"]
         chg_pct = float((last["close"] / prev - 1) * 100) if prev else None
@@ -670,8 +738,8 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "stop": verdict["stop"], "tp1": verdict["tp1"], "rr": verdict["rr"],
         }
         # 四個面向的分數與「為何選它」—— 綜合／籌碼／技術／基本面各自可排序、可篩選
-        inst_code = (inst_hist[inst_hist["code"] == code].sort_values("date").tail(60)
-                     if not inst_hist.empty else None)
+        _ih = insth_by.get(code)
+        inst_code = _ih.sort_values("date").tail(60) if _ih is not None and not _ih.empty else None
         row.update(_clean(scoring.evaluate(
             last=last, ind=ind, verdict=verdict, base_tech=tech,
             inst=inst_code, holders=sh_by_code.get(code),
@@ -685,17 +753,30 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         bars60 = m60_by.get(code, pd.DataFrame())
         bars15 = m15_by.get(code, pd.DataFrame())
         try:
+            # daily_ind：日線指標主迴圈上面剛算完，不要讓 mtf 再算一次
+            # （mtf 內部每個週期各呼叫一次 compute_all，日線那次完全重複）
             mtf_res = mtf.build(g[cols], bars60 if not bars60.empty else None,
-                                bars15 if not bars15.empty else None)
+                                bars15 if not bars15.empty else None, daily_ind=ind)
         except Exception as exc:  # noqa: BLE001
             log.debug("%s 多週期分析失敗：%s", code, exc)
             mtf_res = {"tf": {}, "summary": {}}
 
         def _bars(df_, tcol):
+            """K 棒轉成 [時間, 開, 高, 低, 收, 量] 的陣列。
+
+            ★ 不要用 `iterrows()`。2026-09-18 實測：1,500 根日 K 用 iterrows 要 56.8ms，
+            改成 `to_numpy().tolist()` 只要 1.6ms —— **35 倍**。
+            全市場 2,334 檔換算下來是 133 秒變 4 秒，是這次部署提速最便宜的一塊。
+            （iterrows 每一列都要建一個 Series 物件，1,500 根就是 1,500 個。）"""
             if df_ is None or df_.empty:
                 return []
-            return _clean([[str(r_[tcol]), r_["open"], r_["high"], r_["low"], r_["close"],
-                            (r_["volume"] if "volume" in df_ else None)] for _, r_ in df_.iterrows()])
+            cols_ = [tcol, "open", "high", "low", "close"] + (["volume"] if "volume" in df_ else [])
+            rows_ = df_[cols_].to_numpy(dtype=object).tolist()
+            for r_ in rows_:
+                r_[0] = str(r_[0])
+                if len(r_) == 5:
+                    r_.append(None)          # 沒有成交量的也要補一格，前端照索引取值
+            return _clean(rows_)
 
         page = {
             "meta": dict({k: row[k] for k in ("code", "name", "market", "group", "group_id", "groups")},
@@ -708,17 +789,19 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             # —— 這兩塊本來佔了每個個股頁 1,900 根 K 棒（DECISIONS #156）。
             "intraday": {"60m": _bars(bars60.tail(2600), "ts")},
             "mtf": _clean(mtf_res),
-            "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)),
-            "profit": _clean(stockpage.profit_series(deep.get("financial"), code)),
-            "pe_history": _clean(stockpage.pe_history(price, deep.get("financial"), code)),
-            "dividends": _clean(stockpage.dividends(deep.get("dividend_events"), deep.get("dividend_results"),
-                                                    price, code, float(last["close"]))),
-            "margin": _clean(stockpage.margin_series(deep.get("margin"), code)),
-            "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)),
-            "inst_v3": _clean(stockpage.inst_series(inst_hist if not inst_hist.empty else None, code)),
-            "basics": _clean(stockpage.basics(deep.get("company"), code)),
+            # ★ 一律餵「這一檔的切片」，不要餵整張資料湖（見上面 _by_code 的註解）。
+            #   g 就是這一檔的完整日線歷史，pe_history / dividends / month_season 要的就是它。
+            "revenue": _clean(stockpage.revenue_series(rev_by.get(code, EMPTY), code)),
+            "profit": _clean(stockpage.profit_series(fin_by.get(code, EMPTY), code)),
+            "pe_history": _clean(stockpage.pe_history(g, fin_by.get(code, EMPTY), code)),
+            "dividends": _clean(stockpage.dividends(dve_by.get(code, EMPTY), dvr_by.get(code, EMPTY),
+                                                    g, code, float(last["close"]))),
+            "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code)),
+            "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
+            "inst_v3": _clean(stockpage.inst_series(insth_by.get(code), code)),
+            "basics": _clean(stockpage.basics(com_by.get(code, EMPTY), code)),
             # C5：1–12 月平均漲幅（最多 15 年）。給逐年的原始數字，前端自己切 1/3/5/自填年數。
-            "month_season": _clean(stockpage.monthly_seasonality(price, code, 15)),
+            "month_season": _clean(stockpage.monthly_seasonality(g, code, 15)),
             "marks": {
                 "bos": _clean(tail[tail["bos"].fillna(False)]["date"].tolist()),
                 "choch": _clean([[r_["date"], int(r_["trend"])] for _, r_ in
@@ -730,9 +813,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "verdict": _clean(verdict),
             "summary": row,
             "fundamental": fx or None,
-            "inst": _clean(inst_hist[inst_hist["code"] == code].sort_values("date").tail(60)
-                           [["date", "foreign_total", "trust", "dealer"]].to_dict("records"))
-                    if not inst_hist.empty else [],
+            # inst_code 上面已經切好了（同一份、同樣的排序與 tail(60)），不要再掃一次全表
+            "inst": _clean(inst_code[["date", "foreign_total", "trust", "dealer"]].to_dict("records"))
+                    if inst_code is not None and not inst_code.empty else [],
             "shareholding": _clean(sh_by_code.get(code, [])),
             "news": news_by_code.get(code, []),
             "broker_views": broker_by_code.get(code, [])[:6],

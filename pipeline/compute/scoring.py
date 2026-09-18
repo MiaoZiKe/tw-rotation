@@ -8,6 +8,22 @@ Andy 的要求：候選名單要能用「綜合／籌碼／技術／基本面」
 - 資料不足就回 None，不要用 50 分硬湊 —— 前端顯示「—」比顯示假分數好。
 - 理由必須寫出實際數字（「投信連買 5 天、合計 3,200 張」），不要寫「籌碼不錯」。
 - 分數只是排序工具，不是買賣建議；技術面的買賣結論仍由 technical.evaluate 負責。
+
+--------------------------------------------------------------------------
+2026-09-18 效能重構（分數與理由一個字都不准變）
+--------------------------------------------------------------------------
+成本幾乎全在 `chip_score`：一個 60 列的小表，卻做了一次整表排序、三次
+`pd.to_numeric(...).fillna(0)` 建 Series、五次 `.tail(k).sum()`（每次都再切一份
+Series），外加 `_streak` 把整條 tolist() 之後逐筆跑迴圈。
+改法是「先落地成 numpy 陣列，之後全部在陣列上算」：
+
+- `arr[-5:].sum()` 與 `Series.tail(5).sum()` 底層是同一個 numpy pairwise 加總，
+  位元級相同，不是「差不多」。
+- 連買天數改成找「最後一個不成立的位置」，一次比較取代逐筆迴圈。
+
+排序**沒有**動：試過「已經排好就跳過」，但要跳過就得先確認日期遞增且唯一
+（`sort_values` 預設 quicksort 不穩定，同日的列可能被換位置，`_streak` 會跟著變），
+而那個檢查本身就跟 sort_values 一樣貴 —— 省不到時間，只是多一條要推敲的路徑。
 """
 from __future__ import annotations
 
@@ -127,7 +143,11 @@ def tech_score(last: pd.Series, ind: pd.DataFrame, verdict: dict,
 # ------------------------------------------------------------------ 籌碼面
 
 def _streak(series: pd.Series) -> int:
-    """從最後一筆往回數，連續為正的天數。"""
+    """從最後一筆往回數，連續為正的天數。
+
+    保留逐筆版本：`_num` 連字串 "5" 都會當成 5.0，對任意 dtype 的 Series
+    都成立。chip_score 自己餵的是純 float64 陣列，走下面的 `_streak_arr`。
+    """
     n = 0
     for v in reversed(series.tolist()):
         f = _num(v)
@@ -138,26 +158,58 @@ def _streak(series: pd.Series) -> int:
     return n
 
 
+def _streak_arr(arr: np.ndarray) -> int:
+    """`_streak` 的 float64 陣列版：找最後一個「不是有限正數」的位置就知道答案。
+
+    與逐筆版等價 —— `_num` 對 NaN 與 ±inf 都回 None（非有限），
+    所以「可以計入」的條件就是 isfinite 且 > 0，這裡一次比較算完整條。
+    """
+    bad = np.flatnonzero(~(np.isfinite(arr) & (arr > 0)))
+    return len(arr) if bad.size == 0 else len(arr) - 1 - int(bad[-1])
+
+
+def _col_arr(df: pd.DataFrame, name: str) -> np.ndarray:
+    """取一欄法人買賣超成 float64 陣列，缺值補 0（等同原本的
+    `pd.to_numeric(..., errors="coerce").fillna(0)`）。
+
+    本來就是數值欄（資料湖讀出來都是）時直接走 numpy：`to_numeric` 對數值欄
+    等於什麼都沒做，但 `fillna(0)` 還是會再生一個 Series。
+    `np.isnan → 0.0` 與 `fillna(0)` 一樣只動 NaN，±inf 照樣留著
+    （連買天數那邊要靠 isfinite 把 inf 擋掉，不能在這裡先吃掉）。
+    非數值欄（例如整欄字串）仍走原本的 to_numeric，字串照樣會被解析。
+    """
+    s = df.get(name)
+    if s is not None and getattr(s, "dtype", None) is not None \
+            and getattr(s.dtype, "kind", "") in "fiu":
+        a = s.to_numpy(dtype="float64")
+        return np.where(np.isnan(a), 0.0, a)
+    return pd.to_numeric(s, errors="coerce").fillna(0).to_numpy(dtype="float64")
+
+
 def chip_score(inst: pd.DataFrame | None, holders: list[dict] | None,
                broker: list[dict] | None, avg_turnover: float | None,
                close: float | None) -> tuple[float | None, list[str], list[str]]:
     """籌碼面 0–100。inst 是該檔近 60 日的法人買賣超（股數）。"""
     if inst is None or inst.empty or len(inst) < 5:
         return None, [], []
+    # 排序照舊無條件做：量過「已排好就跳過」，60 列的守門檢查要 0.079ms、
+    # sort_values 本身 0.097ms，省下來的不夠付多一條路徑的風險
     df = inst.sort_values("date")
     pros: list[str] = []
     cons: list[str] = []
     s = 50.0
 
-    trust = pd.to_numeric(df.get("trust"), errors="coerce").fillna(0)
-    foreign = pd.to_numeric(df.get("foreign_total"), errors="coerce").fillna(0)
-    dealer = pd.to_numeric(df.get("dealer"), errors="coerce").fillna(0)
+    # 一次落地成 numpy，後面的 tail/sum/連買天數全部在陣列上算
+    trust = _col_arr(df, "trust")
+    foreign = _col_arr(df, "foreign_total")
+    dealer = _col_arr(df, "dealer")
 
-    t5, f5 = float(trust.tail(5).sum()), float(foreign.tail(5).sum())
-    t20, f20 = float(trust.tail(20).sum()), float(foreign.tail(20).sum())
-    d5 = float(dealer.tail(5).sum())
+    # arr[-5:].sum() 與 Series.tail(5).sum() 是同一個 numpy pairwise 加總，結果位元級相同
+    t5, f5 = float(trust[-5:].sum()), float(foreign[-5:].sum())
+    t20, f20 = float(trust[-20:].sum()), float(foreign[-20:].sum())
+    d5 = float(dealer[-5:].sum())
 
-    ts, fs = _streak(trust), _streak(foreign)
+    ts, fs = _streak_arr(trust), _streak_arr(foreign)
     if ts >= 3:
         s += min(ts, 8) * 2.2
         pros.append(f"投信連買 {ts} 天，5 日合計 {_lot(t5)}")

@@ -1197,6 +1197,32 @@ def t_chainnav(pg, base):
     ok("E6 按了真的切到另一條鏈", to["hash"] == "#industry/ai_server/abf_pcb", to)
     ok("E6 切過去之後同一個環節已經選好了", (to["seg"] or "").startswith("ABF") and to["chips"] > 0, to)
 
+    # --- 窄畫面（2026-09-18 我自己開線上抓到的，只在寬螢幕驗就會放過）
+    #     視窗縮到半邊（約 1100px 以下，兩欄各剩 320px）時，縮圖的 SVG 量到 940px 完全沒縮小，
+    #     被 overflow 切掉一半 —— 而且剛好切在亮起來的那個環節上，那張縮圖等於白畫。
+    fit_js = (
+        "() => [...document.querySelectorAll('#xChains .xmini')].map(w => {"
+        " const s = w.querySelector('svg'); if (!s) return null;"
+        " const r = s.getBoundingClientRect(), b = w.getBoundingClientRect();"
+        " return { over: Math.round(r.right - b.right), fill: +(r.width / b.width).toFixed(2),"
+        "          sel: s.querySelectorAll('[data-seg].sel').length }; }).filter(Boolean)")
+    for vw in (800, 1040):
+        pg.set_viewport_size({"width": vw, "height": 950})
+        # 先繞去產業地圖再回來：goto 到「一模一樣的 hash」不會重新載入（DECISIONS #154），
+        # 上一輪選好的環節會留著，這一下點下去反而是把它**取消**選取，圖就不見了
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(700)
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1600)
+        pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        if not pg.evaluate("() => { const c = document.querySelector(\"#segChips .segchip[data-seg='abf_pcb']\");"
+                           " return !!c && c.classList.contains('sel'); }"):
+            click(pg, "#segChips .segchip[data-seg='abf_pcb']", 2400)
+        fit = pg.evaluate(fit_js)
+        ok(f"E6 視窗 {vw}px 時兩張縮圖都整張縮進框裡（沒有被切掉）",
+           len(fit) == 2 and all(f["over"] <= 2 for f in fit), fit)
+        ok(f"E6 視窗 {vw}px 時縮圖沒有縮到看不見", all(f["fill"] > 0.5 for f in fit), fit)
+        ok(f"E6 視窗 {vw}px 時兩張圖裡這個環節還是亮著", all(f["sel"] > 0 for f in fit), fit)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
 
 def t_themes(pg, base):
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)

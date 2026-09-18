@@ -538,8 +538,12 @@ a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
 .xchains .xhd{grid-column:1/-1;font-size:13px;color:var(--ink-2)}
 .xchain{border:1px solid var(--line-2);border-radius:10px;padding:9px 11px;background:var(--panel-3)}
 .xchain.cur{border-color:var(--c,var(--cyan))}
-.xchain .xmini{margin:7px 0;max-height:300px;overflow:hidden;padding:0}
-.xchain .xmini svg{display:block;width:100%;height:auto}
+.xchain{min-width:0}          /* grid item 預設 min-width:auto，會撐開不讓裡面的圖縮小 */
+/* 外框只負責裁切，實際縮放由 JS 量完再用 transform 套在 .xinner 上
+   （理由見 industry.js fitMini 的註解：窄畫面時 CSS 算不對這張 SVG 的寬度）。 */
+.xchain .xmini{position:relative;width:100%;margin:7px 0;padding:0;overflow:hidden}
+.xchain .xmini .xinner{position:absolute;top:0;left:0;transform-origin:0 0}
+.xchain .xmini svg{display:block}
 .xchain .xrow{display:flex;flex-wrap:wrap;gap:5px 10px;align-items:center;margin-top:5px;font-size:12.5px}
 .xchain .xrow>.muted{font-size:11.5px;letter-spacing:.06em;min-width:28px}
 .xchain .xrow .pill{font-size:11.5px;padding:2px 8px}

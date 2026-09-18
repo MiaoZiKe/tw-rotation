@@ -247,6 +247,35 @@
     .replace(/id="([^"]+)"/g, (m, a) => `id="${a}${tag}"`)
     .replace(/url\(#([^)]+)\)/g, (m, a) => `url(#${a}${tag})`)
     .replace(/((?:xlink:)?href)="#([^"]+)"/g, (m, k, a) => `${k}="#${a}${tag}"`);
+  /* 縮圖不可以靠「SVG 自己算 100% 該多寬」。
+     窄畫面（約 1100px 以下，兩欄各只剩 320px）量到的是 **940px** —— 圖根本沒縮小，
+     被 overflow 切掉一半，而且剛好切在亮起來的那個環節上，等於這張縮圖白畫了。
+     （改成 width/height 實際像素 ＋ max-width:100% 一樣是 940，所以不是百分比本身的問題。）
+     可靠的做法是把尺寸交給外框：外框用 aspect-ratio 撐出「跟 viewBox 同比例」的空間，
+     SVG 絕對定位撐滿它 —— 絕對定位的 100% 是對著定位祖先的 padding box 算的，任何寬度都準。*/
+  /* 縮圖**量完再縮**，不要相信 CSS 能把 SVG 的寬度算對。
+     窄畫面（約 1100px 以下，兩欄各只剩 320px）實測到一個排版怪象：同一個父層裡
+     放一個 `width:100%` 的 div 量到 320px，這張 SVG 卻量到 **940px** ——
+     連 `width:200px !important` 與整段重新插入 DOM 都改不動它。
+     結果就是圖沒縮小、被 overflow 切掉一半，而且剛好切在亮起來的那個環節上。
+     所以改成「先量它實際多寬，再用 transform 等比縮到框裡」：
+     transform 是畫的時候套的，不吃排版那套規則，量到多少就一定縮得對。*/
+  function fitMini(wrap) {
+    const inner = wrap.querySelector('.xinner'), svg = wrap.querySelector('svg');
+    if (!inner || !svg) return;
+    // 用 getBoundingClientRect 而不是 clientWidth：這一塊的 clientWidth 會回 grid 的最小值（300），
+    // 不是它實際佔的寬度（334），照它算會永遠少縮一截、右邊空一塊
+    const box = Math.round(wrap.getBoundingClientRect().width);
+    if (!box || wrap._fw === box) return;      // 寬度沒變就不重算（fitMini 會改高度，不擋會自己觸發自己）
+    inner.style.transform = 'none';
+    const r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    const k = Math.min(1, box / r.width);
+    inner.style.transformOrigin = '0 0';
+    inner.style.transform = 'scale(' + k.toFixed(4) + ')';
+    wrap.style.height = Math.round(r.height * k) + 'px';
+    wrap._fw = box;
+  }
 
   function crossHtml(sc, seg, ch) {
     const cids = chainsOfSeg(sc, seg);
@@ -263,7 +292,7 @@
       return `<div class="xchain${cid === cur ? ' cur' : ''}" data-c="${cid}">
         <div class="row spread"><b>${A.fmt.esc(nm)}${cid === cur ? ' <span class="muted">（現在這條）</span>' : ''}</b>
           ${cid === cur ? '' : `<button class="btn small xgo" data-c="${cid}">切到這條鏈看 →</button>`}</div>
-        <div class="dgwrap noanim xmini">${dg}</div>
+        <div class="dgwrap noanim xmini"><div class="xinner">${dg}</div></div>
         <div class="xrow"><span class="muted">上游</span>${up.length ? up.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('') : '<span class="muted">這條鏈的最上游</span>'}</div>
         <div class="xrow"><span class="muted">下游</span>${dn.length ? dn.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('') : '<span class="muted">這條鏈的最下游</span>'}</div>
         <div class="xrow"><span class="muted">族群</span>${gs.length ? gs.map(g => A.L.group(g)).join('') : '<span class="muted">這條鏈沒有掛族群</span>'}</div></div>`;
@@ -280,6 +309,14 @@
       n.classList.toggle('dim', n.dataset.seg !== seg);
     });
     $$('.xgo', wrap).forEach(b => b.onclick = () => { location.hash = '#industry/' + b.dataset.c + '/' + seg; });
+    // 量完再縮；視窗寬度變了要重算（欄寬跟著變，縮放比例也得跟著變）
+    const minis = $$('.xmini', wrap);
+    const fitAll = () => minis.forEach(fitMini);
+    fitAll();
+    // 剛插進去那一刻欄寬還沒定案（grid 的 minmax 先給最小值），補量兩次才會填滿整欄
+    setTimeout(fitAll, 60); setTimeout(fitAll, 400);
+    if (window.ResizeObserver) { const ro = new ResizeObserver(fitAll); minis.forEach(m => ro.observe(m)); }
+    else window.addEventListener('resize', fitAll);
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -814,7 +851,10 @@
         const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
         showOhlcBox(d, prev, pt, state.tf);
         const chg = prev ? (d.close - prev.close) / prev.close * 100 : null; const amp = d.low ? (d.high - d.low) / d.low * 100 : null;
-        const col = d.close >= d.open ? '#ff4d6d' : '#2ee59d';
+        // 顏色一定要跟著主題走，不可以寫死深色主題那兩個螢光色 ——
+        // #2ee59d 印在淺色主題的圖例底（近白）對比只有 1.64，等於看不見。
+        // 這是 D1（DECISIONS #152）漏掉的一行，2026-09-18 被淺色主題掃描抓到。
+        const col = A.upDown(d.close >= d.open ? 1 : -1);
         let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
         if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:${KUtil.colors.boll}">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
@@ -1136,7 +1176,7 @@
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
       return `<div class="mtf-cell"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
-        ${t ? `<span style="color:${t.trend > 0 ? '#ff4d6d' : t.trend < 0 ? '#2ee59d' : '#a9b6d6'}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
+        ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
         </div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
     pick.forEach((tf, i) => {

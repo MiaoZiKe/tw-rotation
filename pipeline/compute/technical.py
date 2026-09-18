@@ -9,6 +9,23 @@
   絕不縮停損去湊風報比。
 - 文字說明三段式：結論 → 理由（最多 3 條）→ 風險與失效條件。禁止輸出裸指標值。
 - SMC 在台股的限制：全部區間都要與傳統量價交集後才呈現（score 門檻就是為此）。
+
+--------------------------------------------------------------------------
+2026-09-18 效能重構（判定結果一個字都不准變）
+--------------------------------------------------------------------------
+量出來這支一檔要 30ms，全市場 70 秒，其中八成集中在兩個地方：
+
+1. `_candidates` 的「這個區間有沒有被吃掉」判斷。原本每一個 OB／FVG 候選都要
+   `df.loc[idx:]` 切一份尾段再整段掃一次，候選一多就是 O(n × 候選數)；
+   同一支還把整欄 700 列的日期 `astype(str)`，但真正用得到的只有最後 120 列。
+   改法：先算好「從第 i 根之後的收盤最低／最高」前綴表，每個候選查表即可（O(1)）。
+2. `weekly_structure` 的 `df.copy()`。它只需要 OHLCV 五欄，卻複製了整張
+   四十幾欄的指標表。改成只取要用的欄位再 resample。
+
+另外 `evaluate` 裡 `df.tail(60)` 被重算五次、`swing_high` 的遮罩被算三次，
+一併收斂成算一次。**所有會影響判定的運算式都原封不動** —— 包含那些看起來
+可以換成 numpy 的比較：`signals` 裡的 kd_cross_low / osc_turn 目前是 np.bool_，
+換成 Python bool 會讓序列化結果從 "False" 變成 false，那就是答案變了。
 """
 from __future__ import annotations
 
@@ -50,45 +67,104 @@ class Zone:
 
 # ------------------------------------------------------------------ 支撐壓力
 
+def _suffix_min_after(a: np.ndarray) -> np.ndarray:
+    """s[i] = min(a[i+1:])，也就是「第 i 根**之後**的最小值」；沒有後續就給 +inf。
+
+    用來取代 `(df.loc[idx:]["close"].iloc[1:] < lo).any()` 這種逐候選的整段掃描。
+    NaN 先換成 +inf 再累積，等同原本 pandas 比較時「NaN 一律 False」的語意
+    （NaN 不會讓條件成立，也不該讓最小值變成 NaN 而污染整條）。
+    """
+    n = len(a)
+    s = np.full(n, np.inf)
+    if n > 1:
+        filled = np.where(np.isnan(a), np.inf, a)
+        s[:n - 1] = np.minimum.accumulate(filled[:0:-1])[::-1]
+    return s
+
+
+def _suffix_max_after(a: np.ndarray) -> np.ndarray:
+    """s[i] = max(a[i+1:])；沒有後續就給 -inf。理由同 _suffix_min_after。"""
+    n = len(a)
+    s = np.full(n, -np.inf)
+    if n > 1:
+        filled = np.where(np.isnan(a), -np.inf, a)
+        s[:n - 1] = np.maximum.accumulate(filled[:0:-1])[::-1]
+    return s
+
+
+def _flags_after(df: pd.DataFrame, col: str, base: int) -> list[int]:
+    """回傳 base 之後（含）旗標為真的「位置」清單，取代 tail[...].iterrows()。
+
+    原本要先切一張子表、再逐列建一個 object Series（iterrows 對混欄位型別的表
+    每一列都要重新裝箱），實測比 to_numpy 慢一個量級。
+    這裡回傳的是位置（0-based），與 `df.index.get_loc(idx)` 等價 ——
+    `compute_all` 出來的表一定是 reset_index 過的 RangeIndex，
+    而用位置反而比用標籤更不怕重複索引。
+    """
+    mask = df[col].iloc[base:].fillna(False).to_numpy(dtype=bool)
+    return (np.flatnonzero(mask) + base).tolist()
+
+
 def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[dict]:
     """收集各來源的候選區間，每個帶 {low, high, kind, weight, age, at}。
 
     `at` 是這個來源形成的那一根的日期，前端用它決定區間從哪裡開始畫 ——
     支撐壓力是「從那根之後才存在」，不是憑空浮在圖右邊（Andy 2026-09-12 回報）。
+
+    候選的「附加順序」有意義：sr_zones 會 `sorted(key=low)`，而 Python 的排序是
+    穩定的，low 相同時誰先誰後會影響合併結果。所以下面每一段的順序、以及每一段
+    內部由舊到新的順序，都與重構前一致。
     """
-    tail = df.tail(lookback)
     n = len(df)
+    base = max(0, n - lookback)          # tail(lookback) 的起始位置
+    cols = df.columns
     close = float(df["close"].iloc[-1])
-    dates = df["date"].astype(str).tolist() if "date" in df else []
-    at_of = (lambda i: dates[i] if 0 <= i < len(dates) else None)
+    # 只有 tail 那一段的日期會被查到（候選全部來自 tail，量能密集區用的也是 base），
+    # 原本整欄 700 列 astype(str) 是這支裡最貴的單一動作之一。
+    dates = df["date"].iloc[base:].astype(str).tolist() if "date" in df else []
+
+    def at_of(i: int) -> str | None:
+        k = i - base
+        return dates[k] if 0 <= k < len(dates) else None
+
+    close_a = df["close"].to_numpy(dtype="float64")
+    low_a = df["low"].to_numpy(dtype="float64")
+    high_a = df["high"].to_numpy(dtype="float64")
     out = []
 
     # Order Block：只留尚未被收盤價穿透的
-    for col_flag, col_lo, col_hi, side in (("ob_bull", "ob_bottom", "ob_top", "demand"),
-                                            ("ob_bear", "ob_bottom", "ob_top", "supply")):
-        if col_flag not in tail:
-            continue
-        for idx, r in tail[tail[col_flag].fillna(False)].iterrows():
-            lo, hi = r[col_lo], r[col_hi]
-            if pd.isna(lo) or pd.isna(hi):
+    if "ob_bull" in cols or "ob_bear" in cols:
+        # 一次算好「之後的收盤最低／最高」，每個候選就只是查表比大小
+        min_close_after = _suffix_min_after(close_a)
+        max_close_after = _suffix_max_after(close_a)
+        ob_bottom_a = df["ob_bottom"].to_numpy(dtype="float64")
+        ob_top_a = df["ob_top"].to_numpy(dtype="float64")
+        for col_flag, side in (("ob_bull", "demand"), ("ob_bear", "supply")):
+            if col_flag not in cols:
                 continue
-            after = df.loc[idx:]["close"].iloc[1:]
-            mitigated = (after < lo).any() if side == "demand" else (after > hi).any()
-            if mitigated:
-                continue
-            pos = df.index.get_loc(idx)
-            out.append({"low": lo, "high": hi, "kind": "OB", "weight": 2.0,
-                        "age": n - 1 - pos, "at": at_of(pos)})
+            for pos in _flags_after(df, col_flag, base):
+                lo, hi = ob_bottom_a[pos], ob_top_a[pos]
+                if np.isnan(lo) or np.isnan(hi):
+                    continue
+                mitigated = (min_close_after[pos] < lo) if side == "demand" \
+                    else (max_close_after[pos] > hi)
+                if mitigated:
+                    continue
+                # iterrows 取出來的是 Python float（混欄位型別的表會轉 object），
+                # 這裡補上 float() 讓型別與重構前一致
+                out.append({"low": float(lo), "high": float(hi), "kind": "OB", "weight": 2.0,
+                            "age": n - 1 - pos, "at": at_of(pos)})
 
     # 前波擺動點 ±0.3 ATR
     for col, side in (("swing_low", "demand"), ("swing_high", "supply")):
-        if col not in tail:
+        if col not in cols:
             continue
-        for idx, r in tail[tail[col].fillna(False)].iterrows():
-            px = r["low"] if side == "demand" else r["high"]
-            pos = df.index.get_loc(idx)
+        px_a = low_a if side == "demand" else high_a
+        kind = "前波" + ("低點" if side == "demand" else "高點")
+        for pos in _flags_after(df, col, base):
+            px = float(px_a[pos])
             out.append({"low": px - 0.3 * atr_val, "high": px + 0.3 * atr_val,
-                        "kind": "前波" + ("低點" if side == "demand" else "高點"),
+                        "kind": kind,
                         "weight": 1.5, "age": n - 1 - pos, "at": at_of(pos)})
 
     # 成交量密集區
@@ -97,7 +173,8 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
             out.append({"low": vp["low"], "high": vp["high"], "kind": "量能密集",
                         "weight": 1.5, "age": 0, "at": at_of(max(0, n - lookback))})
 
-    # 均線動態帶
+    # 均線動態帶（v 刻意保留 .iloc[-1] 的 np.float64，不要轉 float —— 型別跟著
+    # 進 Zone.low，重構前就是這個型別）
     for col in ("ma60", "ma120"):
         v = df[col].iloc[-1] if col in df else np.nan
         if pd.notna(v):
@@ -105,21 +182,25 @@ def _candidates(df: pd.DataFrame, atr_val: float, lookback: int = 120) -> list[d
                         "kind": col.upper(), "weight": 1.0, "age": 0, "at": None})
 
     # 未回補 FVG
-    for col_flag, side in (("fvg_bull", "demand"), ("fvg_bear", "supply")):
-        if col_flag not in tail:
-            continue
-        for idx, r in tail[tail[col_flag].fillna(False)].iterrows():
-            lo, hi = r["fvg_bottom"], r["fvg_top"]
-            if pd.isna(lo) or pd.isna(hi):
+    if "fvg_bull" in cols or "fvg_bear" in cols:
+        min_low_after = _suffix_min_after(low_a)
+        max_high_after = _suffix_max_after(high_a)
+        fvg_bottom_a = df["fvg_bottom"].to_numpy(dtype="float64")
+        fvg_top_a = df["fvg_top"].to_numpy(dtype="float64")
+        for col_flag, side in (("fvg_bull", "demand"), ("fvg_bear", "supply")):
+            if col_flag not in cols:
                 continue
-            after = df.loc[idx:]
-            filled = (after["low"] <= lo).iloc[1:].any() if side == "demand" \
-                else (after["high"] >= hi).iloc[1:].any()
-            if filled:
-                continue
-            pos = df.index.get_loc(idx)
-            out.append({"low": lo, "high": hi, "kind": "FVG", "weight": 0.8,
-                        "age": n - 1 - pos, "at": at_of(pos)})
+            for pos in _flags_after(df, col_flag, base):
+                lo, hi = fvg_bottom_a[pos], fvg_top_a[pos]
+                if np.isnan(lo) or np.isnan(hi):
+                    continue
+                # 原本是 (after["low"] <= lo).iloc[1:].any()：缺口被摸到就算回補
+                filled = (min_low_after[pos] <= lo) if side == "demand" \
+                    else (max_high_after[pos] >= hi)
+                if filled:
+                    continue
+                out.append({"low": float(lo), "high": float(hi), "kind": "FVG", "weight": 0.8,
+                            "age": n - 1 - pos, "at": at_of(pos)})
 
     # 整數關卡：現價上下 15% 內的 10/50/100 倍數
     step = 100 if close >= 500 else (50 if close >= 100 else 10)
@@ -195,15 +276,29 @@ def _dedup(zones: list[Zone], limit: int = 2) -> list[Zone]:
 # ------------------------------------------------------------------ 週線
 
 def weekly_structure(df: pd.DataFrame) -> dict:
-    """週線 resample 後用同一套結構判定，只取 trend / ma_align。"""
+    """週線 resample 後用同一套結構判定，只取 trend / ma_align。
+
+    效能：原本第一行是 `df.copy()` —— 為了五個欄位，把整張四十幾欄、
+    七百列的指標表整份複製一遍。resample 的 agg 本來就只讀那幾欄，
+    所以先挑欄位再 resample 的結果完全相同，只是不用付那份複製的錢。
+
+    `resample("W-FRI")` 本身（約 2.9ms）刻意留著沒換掉：自己算週五分箱標籤再
+    groupby 只快 25%，卻等於把 pandas 的分箱語意（closed/label、空箱、時間部分）
+    重寫一遍 —— 拿週線多空判定去換這點時間不划算。
+    """
     if df.empty or len(df) < 60:
         return {"trend": 0, "ma_align": 0, "weeks": 0}
-    d = df.copy()
-    d["date"] = pd.to_datetime(d["date"])
-    w = (d.set_index("date").resample("W-FRI")
-          .agg({"open": "first", "high": "max", "low": "min", "close": "last",
-                **({"volume": "sum"} if "volume" in d else {})})
-          .dropna(subset=["close"]).reset_index())
+    agg = {"open": "first", "high": "max", "low": "min", "close": "last"}
+    if "volume" in df.columns:
+        agg["volume"] = "sum"
+    # 直接用 numpy 陣列重建這五欄（比從原表切欄快一倍）：agg 出來的值一樣，
+    # 而且後面 market_structure / ma_alignment 本來就會轉成 float64
+    idx = pd.DatetimeIndex(pd.to_datetime(df["date"]))
+    d = pd.DataFrame({k: df[k].to_numpy(dtype="float64") for k in agg}, index=idx)
+    w = d.resample("W-FRI").agg(agg)
+    # 等同 dropna(subset=["close"])（丟掉沒有交易的空週），但布林遮罩快四倍。
+    # 後面只拿 w 的三個欄位與列數，index 長相無關，所以不再 reset_index()
+    w = w[w["close"].notna()]
     if len(w) < 30:
         return {"trend": 0, "ma_align": 0, "weeks": int(len(w))}
     ms = ind.market_structure(w["high"], w["low"], w["close"], lookback=3)
@@ -252,11 +347,15 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
     stop_candidates = []
     if demand:
         stop_candidates.append(demand[0].low)
+    # df.tail(60) 原本在這支裡被重算五次、swing_high 的遮罩被算三次，
+    # 全部收斂成算一次（切片與遮罩都是純讀取，結果完全相同）
     sl = df.tail(60)
-    sw = sl[sl["swing_low"].fillna(False)]["low"]
+    sl_swing_low = sl["swing_low"].fillna(False)
+    sl_swing_high = sl["swing_high"].fillna(False)
+    sw = sl["low"][sl_swing_low]
     if len(sw):
         stop_candidates.append(float(sw.iloc[-1]))
-    ob = sl[sl["ob_bull"].fillna(False)]["ob_bottom"].dropna()
+    ob = sl["ob_bottom"][sl["ob_bull"].fillna(False)].dropna()
     if len(ob):
         stop_candidates.append(float(ob.iloc[-1]))
     stop_raw = min(stop_candidates) if stop_candidates else close - 2 * atr_val
@@ -264,7 +363,7 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
 
     # 突破型態另算一個停損：放在被突破的前高下方（允許小幅回測），
     # 而不是箱型底 —— 突破失敗的定義是「跌回箱型裡」，不是「跌到箱型底」
-    sw_hi = df.tail(60)[df.tail(60)["swing_high"].fillna(False)]["high"]
+    sw_hi = sl["high"][sl_swing_high]
     prev_high_pre = float(sw_hi.max()) if len(sw_hi) else np.nan
     stop_breakout = (prev_high_pre - 0.75 * atr_val) if (np.isfinite(prev_high_pre) and close > prev_high_pre) else None
     risk_pct = (close - stop) / close * 100 if close else np.nan
@@ -308,8 +407,10 @@ def evaluate(df: pd.DataFrame, avg_turnover: float | None = None) -> dict:
     bos_up = bool(((t5["bos"].fillna(False) | t5["choch"].fillna(False)) & (t5["trend"] == 1)).any())
     vol_ratio = last.get("vol_ratio")
     vol_ok = pd.notna(vol_ratio) and vol_ratio >= 1.5
-    prev_high = float(df.tail(60)[df.tail(60)["swing_high"].fillna(False)]["high"].max()) \
-        if df.tail(60)["swing_high"].fillna(False).any() else np.nan
+    # 這裡原本寫成「有擺動高點就取 tail(60) 的擺動高點最大值」，
+    # 跟上面 prev_high_pre 是字面上同一個算式（len(sw_hi) > 0 ⟺ 遮罩 .any()），
+    # 所以直接沿用，不必再切一次表
+    prev_high = prev_high_pre
     breakout = pd.notna(prev_high) and close > prev_high
     bias_ok_b = pd.notna(b20) and b20 <= 8
 
