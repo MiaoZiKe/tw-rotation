@@ -840,7 +840,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
         <div class="hpanel" id="heatPanel" hidden></div></div>
       <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
-        <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
+        <div class="row" style="gap:8px">
+          <button class="btn small" id="rotMiniZoomBtn" title="放大這張圖">⤢ 放大</button>
+          <button class="howbtn" data-how="rotm">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
         <div class="stageboard compact" id="rotMini"></div></div>
@@ -891,23 +893,27 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <div class="seg" id="periodSeg"></div>
       </div>
     </div>
+    <!-- 2026-09-18（Andy 圖四）「換位」：名次變化整張拿掉，輪動時鐘搬上來跟排行並排。
+         理由是他點排行的長條時要在旁邊同時看到那個族群在時鐘上的位置 ——
+         兩張圖離太遠就對不起來。上排的期間鈕保留。 -->
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
         <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rank" hidden></div>
-        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div></div>
-      <div class="card"><div class="row spread"><h3>名次變化 <small id="bumpSub">近 8 週資金佔比排名</small></h3>
-        <button class="howbtn" data-how="bump">怎麼看 ?</button></div>
-        <div class="howtxt" id="how-bump" hidden></div>
-        <div id="bumpWrap"><div id="bump" class="chart tall"></div></div></div>
-    </div>
-    <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
-      <div class="row" style="gap:8px">
-        <div id="rotBack" title="和幾天前比：拖曳看不同的回顧長度"></div>
-        <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
+        <div id="rankDays" title="最近幾天：0＝跟著上方期間走"></div>
+        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
+        <div class="hpanel" id="rankPanel" hidden></div></div>
+      <div class="card"><div class="row spread"><h3>輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
+        <div class="row" style="gap:8px">
+          <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
+          <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-rot" hidden></div>
-      <div class="cyclebar" id="rotCycle"></div>
+      <div id="rotBack" title="和幾天前比：拖曳看不同的回顧長度"></div>
       <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+      <div class="note" id="rotCenterNote"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>四段循環與換段的族群</small></h3></div>
+      <div class="cyclebar" id="rotCycle"></div>
       <div class="rotmove" id="rotMove"></div>
       <div class="stageboard" id="rotBoard"></div></div>
     <div class="grid g2" style="margin-top:16px">
@@ -1016,7 +1022,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 <script src="market3.js"></script>
 <script src="live.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
-  <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div><button class="btn small" id="zoomClose">關閉 ✕</button></div>
+  <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
+    <div id="zoomTools" class="row" style="gap:10px;flex-wrap:wrap"></div>
+    <button class="btn small" id="zoomClose">關閉 ✕</button></div>
   <div class="zb"><div id="zoomBody" class="chart"></div></div>
 </div>
 </body>

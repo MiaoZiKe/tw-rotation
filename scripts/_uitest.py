@@ -782,7 +782,8 @@ def t_market(pg, base):
 
 def t_flow(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    for cid, name in (("rankFlow", "資金流向排行"), ("bump", "名次變化"),
+    # 2026-09-18（Andy 圖四）：名次變化整張拿掉，那一格改放輪動時鐘
+    for cid, name in (("rankFlow", "資金流向排行"), ("rotClock", "輪動時鐘"),
                       ("sankey", "資金桑基圖"), ("river", "資金河流圖"),
                       ("instGroups", "族群 × 法人"), ("conc", "資金集中度"), ("valScatter", "估值散布圖")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty'), msg: ((e.querySelector('.empty')||{{}}).textContent||'').trim() }} : null; }}")
@@ -817,22 +818,14 @@ def t_flow(pg, base):
     ok("不同期間排出來的第一名不完全相同", len({v["top"] for v in seen.values()}) >= 2,
        {k: v["top"] for k, v in seen.items()})
 
-    # --- 名次變化要跟著期間換刻度（Andy：「資金流向排名不會變」）
-    BUMPX = """() => { const c = echarts.getInstanceByDom(document.getElementById('bump'));
-        return { x: c ? (c.getOption().xAxis[0].data || []) : null,
-                 n: c ? c.getOption().series.length : 0,
-                 sub: (document.getElementById('bumpSub')||{}).textContent }; }"""
+    # --- 名次變化（bump）已於 2026-09-18 整張移除（Andy 圖四：「右邊的名次變化刪掉」）
+    ok("名次變化那張圖真的不在了（圖四）",
+       pg.evaluate("() => document.getElementById('bump') === null"))
+    ok("名次資訊沒有消失：排行的 y 軸標籤仍帶名次箭頭，tooltip 仍寫名次",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+           if (!c) return false; const y = c.getOption().yAxis[0].data || [];
+           return y.some(v => /[↑↓]/.test(String(v))); }"""))
     click(pg, '#periodSeg button[data-p="w0"]', 1000)
-    bw = pg.evaluate(BUMPX)
-    click(pg, '#periodSeg button[data-p="m1"]', 1200)
-    bm = pg.evaluate(BUMPX)
-    ok("名次變化在週期間是用「週」的刻度", "週" in (bw["sub"] or ""), bw["sub"])
-    ok("名次變化在月期間改成「月」的刻度", "月" in (bm["sub"] or ""), bm["sub"])
-    changed("切到上月，名次變化的 X 軸真的換了", bw["x"], bm["x"])
-    ok("月名次的刻度是年月（例如 2026/08）", all(len(str(v)) == 7 for v in (bm["x"] or ["x"])), bm["x"])
-    ok("月名次沒有留下上一張圖的殘線", bm["n"] <= 10, bm["n"])
-    click(pg, '#periodSeg button[data-p="w0"]', 1000)
-    ok("切回本週又變回週刻度", "週" in (pg.evaluate(BUMPX)["sub"] or ""))
 
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
     hows = pg.evaluate("[...document.querySelectorAll('#v-flow .howbtn')].map(b => b.dataset.how)")
@@ -1017,7 +1010,7 @@ def t_flow(pg, base):
     ok("底下有一條軌道把四段串起來（看得出是一個循環）", bool(sb) and sb["rail"] >= 4, sb)
     ok("段與段之間有箭頭", bool(sb) and "→" in (sb["arrow"] or ""), sb)
 
-    for w, lb in (("rankFlowWrap", "資金流向排行"), ("bumpWrap", "名次變化"),
+    for w, lb in (("rankFlowWrap", "資金流向排行"),
                   ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
                   ("riverWrap", "族群佔比河流"), ("instGroupsWrap", "族群 × 法人")):
         check_nozoom(pg, w, lb)
@@ -2092,6 +2085,149 @@ def t_batch1(pg, base):
         }
         return set.size; }""")
     ok("熱力圖真的有多種顏色（圖19：以前整張同色）", colors >= 8, f"{colors} 種色階")
+
+
+def t_batch2(pg, base):
+    """批次2（Andy 2026-09-18 圖二／圖四）的真人操作驗收。
+
+    每一條驗的都是「畫面真的因此改變」：值真的動、圖真的重畫、標籤真的排開。
+    """
+    # ---------------------------------------------------------- 圖四：資金流向排行
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2200)
+
+    ok("資金流向排行上方有拉Bar（圖四）",
+       pg.evaluate("() => !!document.querySelector('#rankDays input[type=range]')"))
+    check_play(pg, "#rankDays")
+
+    # 拉到 N 天，副標與期間說明要真的換成「最近 N 個交易日」，圖也要重畫
+    h0 = canvas_hash(pg, "#rankFlow")
+    note0 = text(pg, "#periodNote")
+    set_range(pg, "#rankDays input[type=range]", 20, 1400)
+    st = pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
+        note: (document.getElementById('periodNote')||{}).textContent,
+        top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+               if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
+    ok("拉到 20 天，副標改成「最近 20 個交易日」（圖四）", "20" in (st["sub"] or ""), st["sub"])
+    ok("拉到 20 天，期間說明也跟著換成那一段日期", "～" in (st["note"] or ""), st["note"])
+    changed("拉到 20 天，期間說明真的換了", note0, st["note"])
+    changed("拉到 20 天，排行圖真的重畫了（不是只有字變）", h0, canvas_hash(pg, "#rankFlow"))
+
+    # 點長條：原地展開成分股、不跳頁，時鐘跟著只亮那一族群
+    hash0 = pg.evaluate("() => location.hash")
+    clicked = pg.evaluate("""() => { const el = document.getElementById('rankFlow');
+        const c = echarts.getInstanceByDom(el); if (!c) return null;
+        const o = c.getOption(); const d = (o.series[0].data || []);
+        if (!d.length) return null;
+        c.dispatchAction({ type: 'click', seriesIndex: 0, dataIndex: d.length - 1 });
+        return d[d.length - 1].gid || null; }""")
+    if clicked:
+        pg.wait_for_timeout(800)
+        st2 = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
+            return { open: !!b && !b.hidden, chips: document.querySelectorAll('#rankPanel a.lk-stock').length,
+                     hash: location.hash }; }""")
+        ok("點排行的長條會原地展開成分股（圖四）", st2["open"] and st2["chips"] > 0, st2)
+        ok("點排行的長條不會跳頁（圖四）", st2["hash"] == hash0, st2["hash"])
+        dim = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            if (!c) return null; const o = c.getOption();
+            const sc = (o.series || []).filter(s => s.type === 'scatter')[0];
+            if (!sc) return null;
+            const ops = (sc.data || []).map(d => (d.itemStyle && d.itemStyle.opacity != null) ? d.itemStyle.opacity : 1);
+            return { lo: Math.min(...ops), hi: Math.max(...ops), n: ops.length }; }""")
+        ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
+           bool(dim) and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
+        # 再點一次要取消
+        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+            const d = c.getOption().series[0].data || [];
+            c.dispatchAction({ type: 'click', seriesIndex: 0, dataIndex: d.length - 1 }); }""")
+        pg.wait_for_timeout(700)
+        ok("再點一次同一根長條會收起來（圖四）",
+           pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
+
+    # ---------------------------------------------------------- 圖二：輪動時鐘
+    ok("輪動時鐘搬到排行旁邊那一格了（圖四換位）",
+       pg.evaluate("""() => { const a = document.getElementById('rankFlow'), b = document.getElementById('rotClock');
+           if (!a || !b) return false;
+           const ca = a.closest('.card'), cb = b.closest('.card');
+           return !!ca && !!cb && ca.parentNode === cb.parentNode; }"""))
+    ok("圖下方有寫清楚圓心到圓外是什麼意思（圖二）",
+       "圓心" in text(pg, "#rotCenterNote") and "偏離" in text(pg, "#rotCenterNote"),
+       text(pg, "#rotCenterNote"))
+
+    # 標籤真的排開（不是被藏起來）：兩兩不相交、全在畫布內
+    for w in (1500, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        lay = pg.evaluate("""() => { const rs = (window.App && window.App._rotLabels) || [];
+            const el = document.getElementById('rotClock');
+            const W = el ? el.clientWidth : 0, H = el ? el.clientHeight : 0;
+            let hit = null, out = null;
+            for (let i = 0; i < rs.length; i++) {
+              const a = rs[i];
+              if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out = out || a.name;
+              for (let j = i + 1; j < rs.length; j++) {
+                const b = rs[j];
+                if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) { hit = hit || [a.name, b.name]; }
+              }
+            }
+            return { n: rs.length, hit, out, W, H }; }""")
+        ok(f"[{w}px] 輪動時鐘的族群名稱有排出來（不是被 hideOverlap 吃掉）", lay["n"] > 0, lay)
+        ok(f"[{w}px] 任兩個族群名稱不重疊（圖二「都擠在一起了」）", lay["hit"] is None, lay["hit"])
+        ok(f"[{w}px] 每個族群名稱都在畫布內", lay["out"] is None, lay["out"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2000)
+
+    # 放大：拉Bar／篩選／播放都在放大視窗裡
+    click(pg, "#rotZoomBtn", 1400)
+    ok("按「放大」會打開放大視窗（圖二）",
+       pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }"))
+    ok("放大視窗裡畫的是輪動時鐘", pg.evaluate("() => !!document.querySelector('#zoomBody canvas')"))
+    ok("放大視窗裡有「和幾天前比」拉Bar",
+       pg.evaluate("() => !!document.querySelector('#rotZoomBack input[type=range]')"))
+    ok("放大視窗裡有回放拉Bar＋播放鈕（圖二）",
+       pg.evaluate("() => document.querySelectorAll('#rotZoomPlay .pb').length") == 3,
+       pg.evaluate("() => document.querySelectorAll('#rotZoomPlay .pb').length"))
+    # 篩選：點一個族群晶片，圖上的點數要真的變少
+    n0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
+        if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
+        return sc ? (sc.data||[]).length : 0; }""")
+    chips = pg.evaluate("() => [...document.querySelectorAll('#zoomChips button')].map(b => b.dataset.g)")
+    if len(chips) > 1:
+        pg.eval_on_selector(f'#zoomChips button[data-g="{chips[1]}"]', "b => b.click()")
+        pg.wait_for_timeout(900)
+        n1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
+            if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
+            return sc ? (sc.data||[]).length : 0; }""")
+        ok("篩選某個族群後，圖上只剩那一個（圖二）", n1 == 1 and n0 > 1, f"{n0} → {n1}")
+        pg.eval_on_selector('#zoomChips button[data-g=""]', "b => b.click()")
+        pg.wait_for_timeout(900)
+        n2 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
+            if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
+            return sc ? (sc.data||[]).length : 0; }""")
+        ok("按「全部」會回到全部族群（圖二）", n2 == n0, f"{n1} → {n2}")
+    # 回放：拉到最舊，圖上要寫出那一天，而且點的位置真的不一樣
+    before = canvas_hash(pg, "#zoomBody")
+    set_range(pg, "#rotZoomPlay input[type=range]", 0, 1400)
+    after = canvas_hash(pg, "#zoomBody")
+    changed("回放拉到最舊，時鐘上的點真的移動了（圖二）", before, after)
+    ok("回放時圖上有寫出是哪一天（圖二）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
+           if (!c) return false; const g = c.getOption().graphic || [];
+           const s = JSON.stringify(g); return s.indexOf('回放') >= 0; }"""))
+    pg.eval_on_selector("#zoomClose", "b => b.click()")
+    pg.wait_for_timeout(600)
+    ok("關閉放大視窗", pg.evaluate("() => document.getElementById('zoomOv').hidden") is True)
+
+    # 總覽的小輪動圖也有放大鈕
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok("總覽小輪動圖有「放大」鈕（已拍板：小圖只留放大）",
+       pg.evaluate("() => !!document.getElementById('rotMiniZoomBtn')"))
+    click(pg, "#rotMiniZoomBtn", 1400)
+    ok("總覽按放大也打得開同一個放大視窗",
+       pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }")
+       and pg.evaluate("() => !!document.querySelector('#zoomBody canvas')"))
+    pg.eval_on_selector("#zoomClose", "b => b.click()")
+    pg.wait_for_timeout(500)
 
 
 def t_season(pg, base):
@@ -3322,7 +3458,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1)):
+                         ("批次1", t_batch1), ("批次2", t_batch2)):
             n0 = len(fails)
             try:
                 fn(pg, base)

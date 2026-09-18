@@ -347,6 +347,9 @@ def build() -> None:
             "share": rrg.share_series(group_hist),
             # 族群 × 法人的逐日序列（最近 30 天），給前端的 0–30 天拉 Bar 用
             "inst_daily": flow.inst_daily_series(group_hist, 30),
+            # 族群成交值佔比的逐日序列（60 天），給圖四資金流向排行的 1–30 天拉 Bar 用。
+            # 給 60 天是因為拉到 30 天時比較基準要再往前 30 天（「最近 30 天 vs 前 30 天」）。
+            "share_daily": flow.share_daily(group_hist, 60),
             **flow.period_flows(group_hist),
         })
     except Exception as exc:  # noqa: BLE001
@@ -354,6 +357,7 @@ def build() -> None:
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
                            "share": {"dates": [], "series": []},
                            "inst_daily": {"dates": [], "groups": []},
+                           "share_daily": {"dates": [], "groups": []},
                            "periods": [], "bump": {"weeks": [], "series": []},
                            "bumps": {"week": {"weeks": [], "series": []}, "month": {"weeks": [], "series": []}}})
     try:

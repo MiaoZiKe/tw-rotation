@@ -633,6 +633,8 @@
     wireKpiDrill();
     renderHeat(gt, rot);
     renderRotation(f3 && f3.rrg, 5, { board: 'rotMini', clock: 'rotClockMini', compact: true });
+    // 總覽這張是縮圖，只給一顆「放大」；拉Bar／篩選／播放都在放大視窗裡（已拍板）
+    { const mz = $('#rotMiniZoomBtn'); if (mz) mz.onclick = () => openRotZoom(f3 && f3.rrg, 5); }
     renderThemeStrip(th);
     renderCandidates(cands);
     renderBreadth(heat);
@@ -827,11 +829,79 @@
     { from: 270, to: 360, k: 'weakening' }, // 右下：還強但動能在掉
   ];
   const CLOCK_MAXR = 1.25;
+  const LBL_FS = 11.5;                 // 標籤字級；排版與驗收都用同一個值
+  /* 這一輪排好的標籤位置，key＝scatter 的 dataIndex。
+     labelLayout 是每個標籤各呼叫一次的，拿不到「全部標籤」，
+     所以先自己算好放這裡，labelLayout 只負責查表。*/
+  let rotLbl = {};
 
-  function renderRotClock(rows, back, id, compact) {
+  /* 左右兩欄＋引線的排版（和 3D 剖析圖 E1 同一套）。
+     先把每個點用 convertToPixel 轉成像素座標，依 x 分左右欄；
+     欄內由上而下擺，擠不下就往下推，推到底再由下往上收，最後夾在畫布內。
+     回傳 {dataIndex: {side, x, y, px, py, rect}}；rect 是給驗收量重疊用的。*/
+  function layoutRotLabels(c, el, pts) {
+    const out = {};
+    if (!c || !el) return out;
+    const W = el.clientWidth || 0, H = el.clientHeight || 0;
+    if (!W || !H) return out;
+    const si = (c.getOption().series || []).findIndex(x => x.type === 'scatter');
+    if (si < 0) return out;
+    const LH = LBL_FS + 5.5;                 // 一行的高度（含行距）
+    const PAD = 6;
+    const wide = (name) => Math.min(W * 0.34, 10 + String(name).length * (LBL_FS * 1.02));
+    const px = [];
+    pts.forEach((r, i) => {
+      let q;
+      try { q = c.convertToPixel({ seriesIndex: si }, [Math.min(r.p[0], CLOCK_MAXR), r.p[1]]); }
+      catch (e) { q = null; }
+      if (!q || !isFinite(q[0]) || !isFinite(q[1])) return;
+      px.push({ i, x: q[0], y: q[1], name: r.name });
+    });
+    const cx = W / 2;
+    const cols = { left: px.filter(p => p.x < cx), right: px.filter(p => p.x >= cx) };
+    Object.keys(cols).forEach(side => {
+      const arr = cols[side].sort((a, b) => a.y - b.y);
+      let prev = -Infinity;
+      arr.forEach(p => { p.ly = Math.max(p.y, prev + LH); prev = p.ly; });     // 由上而下擺
+      let next = H - PAD - LH / 2;
+      for (let k = arr.length - 1; k >= 0; k--) { arr[k].ly = Math.min(arr[k].ly, next); next = arr[k].ly - LH; }
+      arr.forEach(p => { p.ly = Math.max(PAD + LH / 2, Math.min(H - PAD - LH / 2, p.ly)); });  // 夾在畫布內
+      const lx = side === 'left' ? PAD : W - PAD;
+      arr.forEach(p => {
+        const w = wide(p.name);
+        out[p.i] = { side, x: lx, y: p.ly, px: p.x, py: p.y,
+          rect: { x: side === 'left' ? lx - w : lx, y: p.ly - LH / 2, w, h: LH, name: p.name } };
+      });
+    });
+    return out;
+  }
+
+  /* opts（2026-09-18 Andy 圖二）：
+       pick  Set|null  只看這幾個族群（篩選）；null＝全部
+       frame int       回放到「第 frame 天前」的位置；0＝現在
+       onLabels fn     排完標籤後把矩形交出去（驗收與 highlightClock 用） */
+  function renderRotClock(rows, back, id, compact, opts) {
+    opts = opts || {};
     const el = $('#' + id); if (!el) return;
     const cap = compact ? 10 : 16;
-    const top0 = rows.slice(0, cap);                     // rotRows 已照成交值佔比排序
+    let top0 = rows.slice(0, cap);                       // rotRows 已照成交值佔比排序
+    if (opts.pick && opts.pick.size) {
+      const picked = rows.filter(r => opts.pick.has(r.gid));
+      if (picked.length) top0 = picked;
+    }
+    /* 回放：把每個族群的位置換成 trail 裡「frame 天前」那一筆。
+       trail 是 [日期, rs_ratio, rs_mom] 由舊到新，所以第 k 天前＝倒數第 k+1 筆。*/
+    let frameDate = null;
+    if (opts.frame > 0) {
+      top0 = top0.map(r => {
+        const t = r.trail || [];
+        const w = t[t.length - 1 - opts.frame];
+        if (!w) return r;
+        frameDate = w[0];
+        // 階段要跟著當天的座標重算，否則回放時點還在動、顏色卻停在「今天的階段」
+        return { ...r, rs: w[1], mo: w[2], stage: stageOf(w[1], w[2]), was: null, moved: false };
+      });
+    }
     if (!top0.length) return empty(id, '輪動時鐘需要至少 20 個交易日');
     /* 兩個軸的尺度差很多：相對強弱常常差好幾點，動能只差零點幾。
        直接拿原始值算角度，所有族群會擠在水平線上（＝兩段的交界），根本看不出在哪一段。
@@ -910,14 +980,21 @@
           color: (v) => { const s = CLOCK_SECTOR.find(z => Math.abs((z.from + z.to) / 2 - v) < 1); return s ? STAGE[s.k].color : 'transparent'; },
         },
       },
-      // 外圈留一點餘裕，被夾住的「N 天前」小圈圈才不會壓在盤緣上
+      /* 外圈留一點餘裕，被夾住的「N 天前」小圈圈才不會壓在盤緣上。
+         2026-09-18（Andy 圖二「需要補充圓心到圓外 差異為何」）：
+         以前是等距好幾圈細線，看不出哪一圈代表什麼。改成只留兩圈**虛線**，
+         並在圖下方用一行字講清楚它們是什麼（#rotCenterNote）：
+           0.5 圈＝偏離大盤的一半　/　1.0 圈＝偏離最大的那個族群。*/
       radiusAxis: { type: 'value', min: 0, max: maxR * 1.08, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: { show: false }, splitLine: { lineStyle: { color: CH.grid } } },
+        axisLabel: { show: false },
+        splitLine: { show: true, lineStyle: { color: hexA(CH.ink3, .45), type: 'dashed', width: 1 } },
+        splitNumber: 2, interval: maxR / 2 },
       series: [
         // 尾巴：這幾天走過的路
         ...top.map(r => ({
           // 只在「N 天前」那一端點一個小圈圈（line series 的 symbol 不吃陣列，要用 symbolSize 挑）
           type: 'line', coordinateSystem: 'polar', silent: true, symbol: 'circle',
+          gid: r.gid,                                   // 給 highlightClock 認人用（圖四點長條時只亮這一族群）
           symbolSize: (v, q) => (q.dataIndex === 0 ? 6 : 0), data: trail(r), z: 2,
           itemStyle: { color: hexA(STAGE[r.stage].color, .55) },
           lineStyle: { color: hexA(STAGE[r.stage].color, .42), width: 1.6 },
@@ -926,25 +1003,49 @@
         {
           type: 'scatter', coordinateSystem: 'polar', z: 5,
           data: top.map(r => ({ value: [Math.min(r.p[0], maxR), r.p[1]], row: r,
-            itemStyle: { color: STAGE[r.stage].color, borderColor: '#0b0f1a', borderWidth: 1.5,
+            itemStyle: { color: STAGE[r.stage].color, borderColor: CH.panel, borderWidth: 1.5,
               shadowBlur: r.moved ? 14 : 0, shadowColor: STAGE[r.stage].color },
             // 左半邊的點把名字放左邊、右半邊放右邊，字才不會全部擠在同一側疊住
             label: { position: r.p[1] > 95 && r.p[1] < 265 ? 'left' : 'right' } })),
           symbolSize: (v, q) => { const r = q.data.row; return Math.max(9, Math.min(26, 8 + Math.sqrt(r.share) * 5)); },
-          label: { show: !compact, distance: 7, color: CH.ink2, fontSize: 11.5,
-            textBorderColor: '#0b0f1a', textBorderWidth: 3,
+          label: { show: !compact, distance: 7, color: CH.ink2, fontSize: LBL_FS,
+            // 描邊用面板底色，深淺主題都要跟著換（以前寫死 '#0b0f1a'，淺色主題下是黑邊白底）
+            textBorderColor: CH.panel, textBorderWidth: 3,
             formatter: (q) => q.data.row.name },
-          labelLayout: { hideOverlap: true },
+          labelLine: { show: !compact, lineStyle: { color: hexA(CH.ink3, .55), width: 1 } },
+          /* ★ 不要用 labelLayout: { hideOverlap: true }。
+             那是「疊到就把後面那個**藏起來**」—— Andy 2026-09-18 圖二講的
+             「自體態粗都擠在一起了」正是這個：名字沒排開，是被吃掉。
+             改成左右兩欄＋引線（和 3D 剖析圖 E1 同一套）：
+             先把每個點轉成像素座標，依 x 決定排左欄還是右欄，欄內依 y 由上而下擺，
+             擺不下就由下往上收，最後夾在畫布內。每個標籤再拉一條細線回到自己的點。*/
+          labelLayout: (q) => {
+            const m = rotLbl[q.dataIndex];
+            if (!m) return {};
+            return { x: m.x, y: m.y, align: m.side === 'left' ? 'right' : 'left', verticalAlign: 'middle',
+              labelLinePoints: [[m.px, m.py], [m.side === 'left' ? m.x + 8 : m.x - 8, m.y], [m.x, m.y]] };
+          },
         },
       ],
       graphic: compact ? [] : [{
         type: 'text', right: 12, bottom: 8, silent: true,
-        style: { text: '↻ 資金照順時針轉：落後 → 改善 → 領先 → 轉弱\n圈圈越大＝成交值佔比越高　·　離圓心越遠＝和大盤差越多',
-          fill: 'rgba(232,238,255,.34)', fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
+        style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
+            + '↻ 資金照順時針轉：落後 → 改善 → 領先 → 轉弱\n圈圈越大＝成交值佔比越高　·　離圓心越遠＝和大盤差越多',
+          fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
       }],
     };
     // 尾巴是一族群一條線，族群數一變 series 數就變；不用 notMerge 會留下上一次的殘線
     const c = chart(id, o, { notMerge: true });
+    /* 標籤排版要等圖畫完（要有像素座標才知道誰在左誰在右），
+       所以先畫一次、算好位置、再 setOption 一次讓 labelLayout 查表。
+       第二次不用 notMerge，只是重跑一次標籤排版，不重建尾巴。*/
+    if (c && !compact) {
+      rotLbl = layoutRotLabels(c, el, top);
+      window.App._rotLabels = Object.keys(rotLbl).map(k => rotLbl[k].rect);  // 驗收用：量兩兩不重疊、全在畫布內
+      try { c.setOption({ series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
+    } else if (compact) {
+      rotLbl = {};
+    }
     if (c) c.off('click').on('click', q => { const r = q.data && q.data.row; if (r) location.hash = '#industry/group/' + r.gid; });
     if (!compact) linkRow(id, top.map(r => L.group(r.gid, r.name)).join(''));
   }
@@ -957,7 +1058,7 @@
       if (ids.clock) empty(ids.clock, '輪動時鐘需要至少 20 個交易日');
       return;
     }
-    if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact);
+    if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact, { pick: ids.pick, frame: ids.frame });
 
     if (ids.cycle) {
       const cy = $('#' + ids.cycle);
@@ -1382,7 +1483,9 @@
         一顆點是一個族群，<em>點落在哪一塊＝現在在哪一段</em>；點越大＝成交值佔比越高。</li>
       <li>資金照<em>順時針</em>一塊一塊跑：落後（左下）→ 改善（左上）→ 領先（右上）→ 轉弱（右下）→ 回落後。
         點後面那條尾巴是牠這幾天走過的路，尾巴往前拉＝正在往下一段前進，往回縮＝走回頭路。</li>
-      <li><em>離圓心越遠＝和大盤差距越大</em>；擠在圓心附近就是跟大盤差不多，沒特色。</li>
+      <li><em>離圓心越遠＝和大盤差距越大</em>；擠在圓心附近就是跟大盤差不多，沒特色。
+        盤面上兩圈虛線由內而外是「偏離程度的一半」與「偏離最大的那個族群」。</li>
+      <li>右上角「⤢ 放大」可以放大；放大後才有<em>族群篩選</em>與<em>回放</em>（按 ▶ 會把你拉的那段時間一天一天播出來）。</li>
       <li>族群跟著大盤轉，順序幾乎都是 <em>改善 → 領先 → 轉弱 → 落後 → 再回改善</em>。</li>
       <li><em>改善</em>：還比大盤弱，但動能已經轉強 —— 資金剛進場，這是最早可以布局的一段。</li>
       <li><em>領先</em>：現在的主流。回檔找買點，別追高，因為下一站是轉弱。</li>
@@ -1395,6 +1498,9 @@
       <ul><li>順序是 <em>改善 → 領先 → 轉弱 → 落後</em>，然後再回改善。</li>
       <li><em>改善</em>＝資金剛進場，最早可以布局；<em>領先</em>＝現在的主流，回檔找買點；
         <em>轉弱</em>＝動能在掉，設好停利；<em>落後</em>＝別急著抄底。</li>
+      <li><em>圓心</em>＝這段時間跟大盤走得一樣；<em>越往外</em>＝相對強弱與動能偏離大盤越多。
+        兩圈虛線由內而外是「偏離程度的一半」與「偏離最大的那個族群」。</li>
+      <li>右上角「⤢ 放大」可以放大，放大後才有天數拉 Bar、族群篩選與回放。</li>
       <li>完整的版本（含「誰剛換階段」）在「資金流向」分頁。</li></ul>`,
     mkt: `<b>這一頁是總覽上方那排數字的完整名單。</b>
       <ul><li><em>漲跌家數</em>：漲停通常是題材發動的第一天；跌停要看是個股利空還是整個族群一起倒；
@@ -1459,7 +1565,7 @@
         flowState.period = b.dataset.p; drawPeriod();
       });
     }
-    let instDays = null;
+    let instDays = null, rankDays = null;
     const drawPeriod = () => {
       const p = periods.find(x => x.key === flowState.period);
       if (!p) { empty('rankFlow', '這個期間還沒有資料'); empty('instGroups', '這個期間還沒有資料'); return; }
@@ -1467,10 +1573,52 @@
         + (p.prev_from ? `　·　和 ${p.prev_from} ～ ${p.prev_to} 相比` : '　·　沒有可比的上一段');
       $('#rankSub').textContent = `${p.label}：誰把錢吸走了`;
       $('#instSub').textContent = `${p.label}三大法人淨買超（張）`;
-      renderRankFlow(p);
+      // 圖四：拉 Bar 拉到 0 就跟著上方期間走，否則用「最近 N 天」的逐日佔比重算
+      if (rankDays && rankDays.value > 0) drawRankDays(rankDays.value); else renderRankFlow(p);
       // I1：拉 Bar 拉到 0 就跟著上方期間走，否則用「最近 N 天」的逐日合計
       if (instDays && instDays.value > 0) drawInstDays(instDays.value); else renderInstPeriod(p);
-      drawBump(p);
+    };
+    /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
+       並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
+       0 保留成「跟著上方期間走」，跟 I1 同一套語彙。
+       比較基準是「再往前同樣長度的一段」，所以後端 share_daily 給 60 天（拉滿 30 天時剛好夠）。*/
+    const drawRankDays = (n) => {
+      const src = f3 && f3.share_daily;
+      if (!src || !src.dates || !src.dates.length) {
+        return empty('rankFlow', '逐日佔比資料還沒產出（下一輪盤後管線就會有）');
+      }
+      const D2 = src.dates, N = D2.length;   // 不要叫 L —— 外層的 L 是連結工具（L.group/L.stock）
+      const k = Math.min(n, N);
+      const curFrom = N - k, prevFrom = Math.max(0, N - 2 * k), prevTo = curFrom;
+      const avg = (arr, a, b) => { let s = 0, c = 0;
+        for (let i = a; i < b; i++) { const v = (arr || [])[i]; if (v != null) { s += v; c++; } }
+        return c ? s / c : null; };
+      const sum = (arr, a, b) => { let s = null;
+        for (let i = a; i < b; i++) { const v = (arr || [])[i]; if (v != null) s = (s || 0) + v; } return s; };
+      // 期間報酬要用日漲跌**連乘**，不是相加 —— 相加在 20 天以上會明顯高估
+      const compound = (arr, a, b) => { let f = 1, c = 0;
+        for (let i = a; i < b; i++) { const v = (arr || [])[i]; if (v != null) { f *= 1 + v / 100; c++; } }
+        return c ? (f - 1) * 100 : null; };
+      let gs = src.groups.map(g => ({
+        group_id: g.group_id, group_name: g.group_name, chain: g.chain,
+        share: avg(g.share, curFrom, N),
+        share_prev: prevTo > prevFrom ? avg(g.share, prevFrom, prevTo) : null,
+        turnover: sum(g.turnover, curFrom, N),
+        ret: compound(g.chg, curFrom, N),
+      })).filter(g => g.share != null);
+      gs.forEach(g => { g.share_chg = g.share_prev == null ? null : g.share - g.share_prev; });
+      // 名次：這一段與上一段各自按佔比排一次，才算得出 rank_chg
+      const rankOf = (key) => { const ord = gs.filter(g => g[key] != null).slice()
+        .sort((a, b) => b[key] - a[key]); const m = {}; ord.forEach((g, i) => { m[g.group_id] = i + 1; }); return m; };
+      const rc = rankOf('share'), rp = rankOf('share_prev');
+      gs.forEach(g => { g.rank = rc[g.group_id] || null; g.rank_prev = rp[g.group_id] || null;
+        g.rank_chg = (g.rank && g.rank_prev) ? g.rank_prev - g.rank : 0; });
+      const from = D2[curFrom], to = D2[N - 1];
+      $('#rankSub').textContent = `最近 ${k} 個交易日：誰把錢吸走了`;
+      $('#periodNote').textContent = `${from} ～ ${to}（${k} 個交易日）`
+        + (prevTo > prevFrom ? `　·　和前 ${prevTo - prevFrom} 個交易日相比` : '　·　沒有可比的上一段');
+      renderRankFlow({ label: `最近 ${k} 天`, from, to, days: k,
+        prev_from: prevTo > prevFrom ? D2[prevFrom] : null, groups: gs });
     };
     /* I1（Andy 2026-09-18：「族群 × 法人需要新增時間週期也是拉 Bar 式，0-30 天，
        且需要新增占比 % 單位」）。0 保留成「跟著上方期間走」，不然 0 天沒有意義。*/
@@ -1491,22 +1639,33 @@
       $('#instSub').textContent = `最近 ${k} 個交易日的三大法人淨買超（張）`;
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
-    // 名次變化跟著期間換刻度：看週的期間就用週名次，看月／季就用月名次。
-    // （之前固定是近 8 週，不管切到哪一段都長一樣，Andy 看到的就是「排名不會變」。）
-    const drawBump = (p) => {
-      const bs = (f3 && f3.bumps) || {};
-      const unit = /^m|^q/.test(p.key) ? 'month' : 'week';
-      const b = bs[unit] || (f3 && f3.bump);
-      const sub = $('#bumpSub');
-      if (sub) sub.textContent = `${(b && b.label) || (unit === 'month' ? '近 8 個月' : '近 8 週')}資金佔比排名`;
-      renderBump(b, unit);
-    };
-    drawPeriod();
+    /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
+       「右邊的名次變化刪掉，改成當資金流向排行點選長條圖時，會顯示對應股票，
+         並且顯示在資金輪動上方」。那一格現在給輪動時鐘。
+       名次資訊沒有消失：排行的 y 軸標籤仍然帶 `3↑` `2↓`，tooltip 也仍然寫名次。*/
+    // ★ drawPeriod() 統一放在兩支拉 Bar 都建好之後才呼叫（它會讀 instDays / rankDays 的值）；
+    //   在這裡先叫一次的話會先用「跟著期間」畫一張，再被拉 Bar 記住的值重畫，畫面會閃一下。
 
     // ---- 輪動階段：和幾天前比，用來判斷誰剛換階段
-    const drawRot = () => renderRotation(f3 && f3.rrg, flowState.back,
-      { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock' });
+    const rotPick = new Set();                 // 篩選：只看這幾個族群（空＝全部）
+    const drawRot = (frame) => {
+      renderRotation(f3 && f3.rrg, flowState.back,
+        { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock',
+          pick: rotPick, frame: frame || 0 });
+      // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
+      if (rankSel) highlightClock(rankSel);
+    };
     drawRot();
+    /* 圖二「需要補充圓心到圓外 差異為何」：圖下方固定寫一行，不要讓使用者去猜。*/
+    const note = $('#rotCenterNote');
+    if (note) {
+      note.textContent = '圓心＝這段時間跟大盤走得一樣；越往外＝相對強弱與動能偏離大盤越多。'
+        + '兩圈虛線由內而外分別是「偏離程度的一半」與「偏離最大的那個族群」。';
+    }
+    /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
+       重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
+    const zb = $('#rotZoomBtn');
+    if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, flowState.back);
     /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar 5-20 天，可以用拖曳的方式看的更直觀」）。
        payload 的 trail 本來就有 20 個交易日，所以 5～20 任何一個值都畫得出來，不用改後端。*/
     rangeBar('rotBack', { min: 5, max: 20, value: flowState.back, key: 'tw.rot.back',
@@ -1517,6 +1676,11 @@
     instDays = rangeBar('instDays', { min: 0, max: 30, value: 0, key: 'tw.inst.days',
       label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
       onChange: () => drawPeriod() });
+    // 圖四：和輪動時鐘同一套（＋ − ▶），0＝跟著上方期間走
+    rankDays = playBar('rankDays', { min: 0, max: 30, value: 0, key: 'tw.rank.days',
+      label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
+      onChange: () => drawPeriod() });
+    drawPeriod();
 
     renderSankey(f3 && f3.sankey);
     /* H1（Andy 2026-09-18：「族群佔比河流，也需要添加占比 %，且可以切換時間週期，採用拉 Bar 方式 Max 60 天」）。
@@ -1569,37 +1733,94 @@
         markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
       }],
     });
-    if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
+    /* 2026-09-18（Andy 圖四）：「當資金流向排行點選長條圖時，會顯示對應股票，
+       並且顯示在資金輪動上方，也可變成另類篩選」。
+       所以點長條**不跳頁**：① 在排行卡下方原地展開成分股（重用 heatPanel）
+       ② 同時把旁邊的輪動時鐘只亮這個族群、其餘壓暗 —— 兩張圖現在並排，一眼對得起來。
+       再點同一根就取消（回到全亮）。*/
+    if (c) c.off('click').on('click', q => {
+      const gid = q.data && q.data.gid; if (!gid) return;
+      const g = rows.find(x => x.group_id === gid) || {};
+      if (rankSel === gid) { rankSel = null; const bx = $('#rankPanel'); if (bx) bx.hidden = true; }
+      else {
+        rankSel = gid;
+        heatPanel('rankPanel', gid, g.group_name,
+          `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`);
+      }
+      highlightClock(rankSel);
+    });
     linkRow('rankFlow', rows.slice().reverse().map(g => L.group(g.group_id, g.group_name)).join(''));
   }
 
-  // ---- 名次變化：佔比排名的 bump 圖；unit 是 week（近 8 週）或 month（近 8 個月）
-  function renderBump(bump, unit) {
-    const u = (bump && bump.unit) || unit || 'week';
-    const un = u === 'month' ? '那個月' : '那週';
-    if (!bump || !bump.series || !bump.series.length) return empty('bump', `名次變化需要至少兩${u === 'month' ? '個月' : '週'}的資料`);
-    const maxRank = Math.max(...bump.series.flatMap(s => s.ranks.filter(r => r != null)));
-    const c = chart('bump', {
-      tooltip: { ...tip, trigger: 'item', formatter: (q) => {
-        const s = bump.series[q.seriesIndex]; const i = q.dataIndex;
-        return `<b>${s.group_name}</b><br>${bump.weeks[i]} ${un}<br>排名第 ${s.ranks[i]}　佔比 ${s.shares[i] != null ? fmt.n(s.shares[i], 2) + '%' : '—'}<br><small>點一下看成分股</small>`; } },
-      grid: { left: 34, right: 116, top: 24, bottom: 30 },
-      xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: bump.weeks, axisLabel: { color: CH.ink3, fontSize: 11.5 } },
-      yAxis: { ...axisStyle, inverse: true, min: 1, max: maxRank, interval: Math.max(1, Math.round(maxRank / 6)),
-        name: '名次', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 }, splitLine: { show: true, lineStyle: { color: CH.grid } } },
-      series: bump.series.map((s, i) => ({
-        name: s.group_name, type: 'line', data: s.ranks, connectNulls: true, smooth: .25,
-        symbolSize: 7, lineStyle: { width: 2.2, color: L.gcolor[s.group_id] || PALETTE[i % PALETTE.length] },
-        itemStyle: { color: L.gcolor[s.group_id] || PALETTE[i % PALETTE.length] },
-        endLabel: { show: true, color: CH.ink2, fontSize: 11.5, distance: 6, formatter: s.group_name },
-        emphasis: { focus: 'series', lineStyle: { width: 3.6 }, endLabel: { color: '#e8eeff', fontWeight: 700 } },
-        blur: { lineStyle: { opacity: .12 }, itemStyle: { opacity: .12 }, endLabel: { opacity: .3 } },
-        gid: s.group_id,
-      })),
-    }, { notMerge: true });   // 週↔月切換時族群數會變，不清乾淨會留上一次的線
-    if (c) c.off('click').on('click', q => { const s = bump.series[q.seriesIndex]; if (s) location.hash = '#industry/group/' + s.group_id; });
-    linkRow('bump', bump.series.map(s => L.group(s.group_id, s.group_name)).join(''));
+  /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
+     已拍板：拉Bar／篩選／播放通通放在這裡，卡片上只留一顆「放大」——
+     卡片本來就只有半個版面，再塞三排控制項就沒有圖了。*/
+  function openRotZoom(rrg, back0) {
+    const rows0 = rotRows(rrg, back0);
+    if (!rows0.length) return;
+    openZoom('輪動時鐘', (body, chipBox, close) => {
+      const tools = $('#zoomTools'); if (tools) tools.innerHTML = '<div id="rotZoomBack"></div><div id="rotZoomPlay"></div>';
+      const pick = new Set();
+      let back = back0, frame = 0;
+      const draw = () => {
+        renderRotClock(rows0, back, 'zoomBody', false, { pick, frame });
+        // 篩選晶片：點一下只看那個族群，再點取消；沒選＝全部
+        chipBox.innerHTML = `<button data-g="" class="${pick.size ? '' : 'on'}">全部</button>`
+          + rows0.slice(0, 16).map(r =>
+            `<button data-g="${r.gid}" class="${pick.has(r.gid) ? 'on' : ''}">${fmt.esc(r.name)}</button>`).join('');
+        $$('button', chipBox).forEach(b => b.onclick = () => {
+          const g = b.dataset.g;
+          if (!g) pick.clear(); else if (pick.has(g)) pick.delete(g); else pick.add(g);
+          draw();
+        });
+      };
+      draw();
+      // 「和幾天前比」：跟卡片上那支同一個 localStorage key，兩邊一致
+      rangeBar('rotZoomBack', { min: 5, max: 20, value: back, key: 'tw.rot.back',
+        label: '和幾天前比', fmt: (v) => v + ' 天前',
+        onChange: (v) => { back = v; if (frame > v) frame = v; draw(); } });
+      /* 播放：Andy「點擊後可以播放我拉Bar 選定的時間」。
+         幀＝「第 N 天前」，所以要從舊播到新 —— 拉Bar 由大到小跑完才是「時間往前走」。
+         playBar 本身只會由小往大遞增，所以這裡把值反過來解讀：值 v → frame = back - v。*/
+      playBar('rotZoomPlay', { min: 0, max: back, value: back, frame: 700,
+        label: '回放', fmt: (v) => (v >= back ? '現在' : (back - v) + ' 天前'),
+        onChange: (v) => { frame = Math.max(0, back - v); draw(); } });
+      if (close) { /* close 由 openZoom 提供，這裡不另外包裝 */ }
+    });
   }
+
+  /* 排行選了哪個族群（null＝沒選）。輪動時鐘用它決定誰亮誰暗。*/
+  let rankSel = null;
+  /* 只亮某一個族群：其餘的點與尾巴壓到 0.18 透明度。
+     用 setOption 就地改（notMerge 預設 false），不重建圖表 ——
+     重建的話尾巴會整個重畫一次，看起來像閃了一下。*/
+  function highlightClock(gid) {
+    const el = document.getElementById('rotClock');
+    const c = el && window.echarts && echarts.getInstanceByDom(el);
+    if (!c) return;
+    const o = c.getOption(); if (!o || !o.series) return;
+    const series = o.series.map(sr => {
+      const own = sr.gid;                         // renderRotClock 幫每條尾巴都標了 gid
+      if (sr.type === 'line') {
+        const on = !gid || own === gid;
+        return { lineStyle: { opacity: on ? 1 : 0.12 }, itemStyle: { opacity: on ? 1 : 0.12 } };
+      }
+      if (sr.type === 'scatter') {
+        return { data: (sr.data || []).map(d => {
+          const on = !gid || (d.row && d.row.gid === gid);
+          return { ...d, itemStyle: { ...(d.itemStyle || {}), opacity: on ? 1 : 0.18 },
+                   label: { ...(d.label || {}), opacity: on ? 1 : 0.18 } };
+        }) };
+      }
+      return {};
+    });
+    c.setOption({ series }, { notMerge: false, lazyUpdate: true });
+  }
+
+  /* 名次變化（bump）已於 2026-09-18 整張移除（Andy 圖四：「右邊的名次變化刪掉」），
+     那一格改放輪動時鐘。名次資訊沒有消失 —— 排行的 y 軸標籤仍然帶 `3↑` `2↓`，
+     tooltip 也仍然寫「名次 7 → 4」。後端的 bump / bumps 欄位先留著不動
+     （拿掉要改 pipeline 與測試，這批不順手做），只是前端不再讀它。*/
 
   /* 資金去向（Andy 2026-09-18 三件）：
      G1 改成**垂直、由上往下**；G2 要有**電流流動感（會動）**；G3 要有**占比 %**。

@@ -452,6 +452,50 @@ def inst_daily_series(group_hist: pd.DataFrame, days: int = 30) -> dict:
     return {"dates": dates, "groups": out}
 
 
+def share_daily(group_hist: pd.DataFrame, days: int = 60) -> dict:
+    """族群成交值**佔比**的逐日序列（最近 `days` 個交易日）。
+
+    為什麼要這個（Andy 2026-09-18 圖四：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
+    也是可以選時間週期拉Bar 1-30 天」）：
+    原本排行只吃 `period_flows()` 給的**固定期間**（本週／上週／本月／近三月），
+    拉不出「最近 N 天」。逐日給出來之後，前端要幾天就自己算幾天 ——
+    拖拉的當下就重算，不用回頭問後端（同 `inst_daily_series()` 的做法，DECISIONS #163）。
+
+    給 60 天而不是 30：拉 Bar 上限是 30 天，但**比較基準**要往前再取 30 天
+    （「最近 30 天 vs 前 30 天」），所以至少要 60 天才夠算滿。
+
+    每個族群三條：
+      share    當天成交值佔全市場的百分比（這是排行的主角）
+      turnover 當天成交值（給 tooltip 用絕對金額）
+      chg      當天漲跌百分比（給前端算區間複利報酬）
+    """
+    if group_hist is None or group_hist.empty or "date" not in group_hist.columns:
+        return {"dates": [], "groups": []}
+    dates = sorted({str(d) for d in group_hist["date"]})[-int(days):]
+    if not dates:
+        return {"dates": [], "groups": []}
+    g = group_hist[group_hist["date"].astype(str).isin(dates)]
+    out = []
+    for gid, sub in g.groupby("group_id"):
+        sub = sub.set_index(sub["date"].astype(str))
+        last = sub.iloc[-1]
+        row = {"group_id": str(gid),
+               "group_name": str(last["group_name"]) if "group_name" in sub.columns else str(gid),
+               "chain": (None if "chain" not in sub.columns or pd.isna(last["chain"]) else str(last["chain"]))}
+        for col, key in (("turnover_share", "share"), ("turnover", "turnover"), ("chg_pct", "chg")):
+            if col in sub.columns:
+                # reindex 到同一組日期：某族群那天沒有資料就是 None，不可以自己補 0
+                # （補 0 會讓前端把「沒資料」畫成「佔比掉到 0」）
+                s = sub[col].reindex(dates)
+                row[key] = [None if pd.isna(v) else float(v) for v in s]
+            else:
+                row[key] = [None] * len(dates)
+        out.append(row)
+    # 以最後一天的佔比由大到小，前端不必再排一次
+    out.sort(key=lambda r: -((r.get("share") or [None])[-1] or 0))
+    return {"dates": dates, "groups": out}
+
+
 def _bump(g: pd.DataFrame, blocks_days: list[list[str]], unit: str) -> dict:
     """一段一段（週或月）算佔比名次，畫名次趨勢圖用。blocks_days 由舊到新。"""
     blocks = [_agg_block(g, days) for days in blocks_days]
