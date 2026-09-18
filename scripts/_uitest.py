@@ -492,14 +492,25 @@ def t_overview(pg, base):
        {k: v["first"] for k, v in seen.items()})
 
     # --- 點一列：理由要真的展開，再點一次要真的收起來
+    #
+    # ★ 一定要點「沒有連結的那一格」（DECISIONS #190）。
+    #   這一列的正中央是股票名稱，而那是一個 <a class="lk">；
+    #   app.js 的處理是 `if (e.target.closest('a')) return;` —— 刻意讓點在連結上不展開，
+    #   因為連結本來就該連到個股頁。點列的正中央＝點在連結上＝**跳去個股頁**，
+    #   接下來整個 t_overview 都不在總覽頁上了，後面每一條都找不到元素。
+    #   2026-09-18 查出來：一個點錯位置的動作，製造了 39 條紅字。
+    ROW_CELL = "#candBody tr[data-code] td:not(:has(a))"
     click(pg, "#candFacets button[data-f=all]", 350)
     before = count(pg, "#candBody tr.whyrow")
-    click(pg, "#candBody tr[data-code]", 350)
+    click(pg, ROW_CELL, 350)
+    ok("點候選名單一列之後還留在總覽頁（沒有誤點成股票連結）",
+       pg.evaluate("() => location.hash") in ("", "#overview"),
+       pg.evaluate("() => location.hash"))
     mid = count(pg, "#candBody tr.whyrow")
     changed("點候選名單一列會展開「為何選它」", before, mid)
     why_txt = text(pg, "#candBody tr.whyrow .why")
     ok("「為何選它」有帶實際數字", any(ch.isdigit() for ch in why_txt), why_txt[:60])
-    click(pg, "#candBody tr[data-code]", 350)
+    click(pg, ROW_CELL, 350)
     after = count(pg, "#candBody tr.whyrow")
     changed("再點一次會收起來", mid, after)
 
