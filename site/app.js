@@ -723,7 +723,6 @@
 
     if (kind === 'updown') {
       title.innerHTML = `漲跌家數 <small>今天 ${heat.advancers || 0} 漲 / ${heat.decliners || 0} 跌，漲停 ${(mv.counts || {}).limit_up ?? '—'} 檔、跌停 ${(mv.counts || {}).limit_down ?? '—'} 檔</small>`;
-      drawChgDist();                                   // 圖15：常態分佈長條圖（在分頁列上方）
       const sets = [
         ['漲停', mv.limit_up, '漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7~10.0）'],
         ['跌停', mv.limit_down, '跌幅 ≤ -9.5%'],
@@ -747,6 +746,7 @@
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
         + `<div id="mktInner" style="margin-top:10px"></div>`;
       wireDistFilter();
+      drawChgDist();          // ★ 一定要在 body.innerHTML 之後 —— #chgDistBox 是那時才存在的
       $$('#mktTabs button').forEach(btn => btn.onclick = () => {
         mktTab = +btn.dataset.i;
         $$('#mktTabs button').forEach(x => x.classList.toggle('on', x === btn)); draw();

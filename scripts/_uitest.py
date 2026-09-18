@@ -673,7 +673,12 @@ def t_overview(pg, base):
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
             blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5').length,
             note: (document.querySelector('#mktBody .kpinote')||{}).textContent.length })""")
-        ok(f"KPI「{k}」點下去會到市場明細分頁", st["tab"] == "market" and st["hash"].endswith(k), st)
+        # 2026-09-18（Andy 圖16）：「資金集中」那一頁拿掉了，
+        # 總覽的「前五族群佔比」改導到資金流向頁的集中度圖（功能更完整）。
+        if k.startswith("#"):
+            ok(f"KPI「{k}」點下去會到那一頁", st["hash"] == k, st)
+        else:
+            ok(f"KPI「{k}」點下去會到市場明細分頁", st["tab"] == "market" and st["hash"].endswith(k), st)
         ok(f"KPI「{k}」的明細真的有內容", st["rows"] > 0 or st["blocks"] > 0, st)
         ok(f"KPI「{k}」有寫怎麼看", st["note"] > 10, st)
         ok(f"KPI「{k}」有標題", len(st["title"] or "") > 2, st)
@@ -791,7 +796,9 @@ def t_streak(pg, base):
 def t_market(pg, base):
     pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(2000)
     tabs = pg.evaluate("[...document.querySelectorAll('#mktSeg2 button')].map(b => b.dataset.k)")
-    ok("市場明細有四個分頁", len(tabs) >= 4, tabs)
+    # 2026-09-18（Andy 圖16「市場明細內資金集中這頁拿掉」）：四個 → 三個
+    ok("市場明細有三個分頁（資金集中已移除）", tabs == ["updown", "ma", "cand"], tabs)
+    ok("資金集中那一頁真的拿掉了", "top5" not in tabs, tabs)
     seen = {}
     for k in tabs:
         click(pg, f'#mktSeg2 button[data-k="{k}"]', 900)
@@ -2399,6 +2406,95 @@ def t_batch3(pg, base):
                return dz.length === 0; }"""))
 
 
+def t_batch4(pg, base):
+    """批次4（Andy 圖15／圖16／圖三 N8／圖十八 N9）的真人操作驗收。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ---- 圖15 漲跌分佈
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    dist = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('chgDist'));
+        if (!c) return null; const o = c.getOption();
+        return { bars: (o.series[0].data||[]).length, line: o.series.length > 1,
+                 labels: (o.xAxis[0].data||[]) }; }""")
+    ok("市場明細有漲跌分佈長條圖（圖15）", bool(dist) and dist["bars"] == 12, dist)
+    ok("每 2% 一個區間、兩端各留一個溢出格（圖15）",
+       bool(dist) and dist["labels"][0].startswith("≤") and dist["labels"][-1].startswith("≥"),
+       dist and [dist["labels"][0], dist["labels"][-1]])
+    ok("疊了一條常態曲線（圖15）", bool(dist) and dist["line"], dist)
+    ok("下面寫出樣本數與平均、標準差", "標準差" in text(pg, "#distSub"), text(pg, "#distSub"))
+    # 篩市場：家數要真的變
+    n0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('chgDist'));
+        return c ? (c.getOption().series[0].data||[]).reduce((s,d)=>s+(d.value||0),0) : 0; }""")
+    mkts = pg.evaluate("() => [...document.querySelectorAll('#distMkt button')].map(b => b.dataset.m)")
+    if len(mkts) > 1:
+        pg.eval_on_selector(f'#distMkt button[data-m="{mkts[1]}"]', "b => b.click()")
+        pg.wait_for_timeout(900)
+        n1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('chgDist'));
+            return c ? (c.getOption().series[0].data||[]).reduce((s,d)=>s+(d.value||0),0) : 0; }""")
+        ok("篩上市／上櫃之後家數真的變少（圖15）", 0 < n1 < n0, f"{n0} → {n1}")
+        pg.eval_on_selector('#distMkt button[data-m=""]', "b => b.click()")
+        pg.wait_for_timeout(700)
+    # 含 ETF 勾起來，家數要變多
+    n2 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('chgDist'));
+        return c ? (c.getOption().series[0].data||[]).reduce((s,d)=>s+(d.value||0),0) : 0; }""")
+    pg.eval_on_selector("#distEtf", "e => { e.checked = true; e.dispatchEvent(new Event('change',{bubbles:true})); }")
+    pg.wait_for_timeout(900)
+    n3 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('chgDist'));
+        return c ? (c.getOption().series[0].data||[]).reduce((s,d)=>s+(d.value||0),0) : 0; }""")
+    ok("勾「含 ETF」之後家數真的變多（預設是排除的）", n3 > n2, f"{n2} → {n3}")
+
+    # ---- 圖16 站上均線走勢
+    pg.goto(f"{base}#market/ma", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    mt = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
+        if (!c) return null; const o = c.getOption();
+        return { n: o.series.length, pts: (o.series[0].data||[]).length,
+                 mas: [...document.querySelectorAll('#maSeg button')].map(b => b.dataset.n) }; }""")
+    ok("站上均線有走勢圖（圖16）", bool(mt) and mt["n"] > 1 and mt["pts"] > 100, mt)
+    ok("七條均線都可選（5/10/20/30/60/120/240）",
+       bool(mt) and mt["mas"] == ["5", "10", "20", "30", "60", "120", "240"], mt and mt["mas"])
+    h0 = canvas_hash(pg, "#maTrend")
+    pg.eval_on_selector('#maSeg button[data-n="240"]', "b => b.click()")
+    pg.wait_for_timeout(1200)
+    changed("切到 240 日均線，走勢圖真的重畫（圖16）", h0, canvas_hash(pg, "#maTrend"))
+    ok("240 日均線真的算得出來（不是整條空的）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
+           if (!c) return false; const s = (c.getOption().series||[])[0];
+           return !!s && (s.data||[]).some(v => v != null); }"""))
+    # 族群複選：拿掉一個，線要變少
+    g0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
+        return c ? c.getOption().series.length : 0; }""")
+    on = pg.evaluate("() => { const b = document.querySelector('#maGroups button.on:not([data-g=\"全市場\"])'); return b ? b.dataset.g : null; }")
+    if on:
+        pg.eval_on_selector(f'#maGroups button[data-g="{on}"]', "b => b.click()")
+        pg.wait_for_timeout(1000)
+        g1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('maTrend'));
+            return c ? c.getOption().series.length : 0; }""")
+        ok("取消一個族群，線真的變少（圖16）", g1 == g0 - 1, f"{g0} → {g1}")
+
+    # ---- 季節性 N8／N9
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    ok("季節性有寫出基準是什麼（N8）", "基準" in text(pg, "#seasonNote"), text(pg, "#seasonNote")[:80])
+    click(pg, '#seasonPeriod button[data-v="3y"]', 1400)
+    rng = text(pg, "#seasonRange")
+    ok("近三年是滾動 36 個完整月，不是日曆年（N9）", "2023" in rng or "36" in rng, rng)
+    full = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
+        if (!c) return null; const d = (c.getOption().series[0].data||[]);
+        const months = new Set(d.filter(x => x[2] != null).map(x => x[0]));
+        return { months: [...months].sort((a,b)=>a-b), n: d.length }; }""")
+    ok("近三年 12 個月都有值，9-12 月不再留白（N9）",
+       bool(full) and len(full["months"]) == 12, full and full["months"])
+    # 切「超額報酬」要真的換一張圖（N8：以前會無聲退回絕對報酬）
+    # 預設就是超額報酬，所以先切到絕對報酬再切回來，才測得出「兩者不一樣」
+    click(pg, '#seasonMetric button[data-v="avg_return"]', 1400)
+    h1 = canvas_hash(pg, "#seasonHeat")
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 1400)
+    changed("超額報酬與絕對報酬畫出來不一樣（N8）", h1, canvas_hash(pg, "#seasonHeat"))
+    ok("超額報酬真的算得出來（不是整片空白）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
+           if (!c) return false; const d = (c.getOption().series[0].data||[]);
+           return d.filter(x => x[2] != null).length > d.length * 0.9; }"""))
+
+
 def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
@@ -3637,7 +3733,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4)):
             n0 = len(fails)
             try:
                 fn(pg, base)
