@@ -34,6 +34,7 @@
   const KEY_MODE = 'tw.m3.mode';     // line | k
   const KEY_TF = 'tw.m3.tf';         // 1 | 5 | 15 | 30（分鐘）
   const KEY_BIG = 'tw.m3.big';       // 放大哪一張（空字串＝三張並排）
+  const KEY_FUTS = 'tw.m3.fut';      // 台指期看日盤還是夜盤
 
   const IDX = [
     // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
@@ -83,7 +84,9 @@
   const MS_AFTER = 5 * 60 * 1000;
 
   const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
-    hist: {}, histErr: {}, histBusy: {}, timer: null, fails: 0 };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
+    hist: {}, histErr: {}, histBusy: {}, timer: null, fails: 0,
+    // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
+    noSrc: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
 
   function taipeiNow() {
     return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
@@ -115,6 +118,44 @@
     // 跟 live.js 用同一組設定（⚙ 面板改了這裡也跟著改）
     if (window.Live && window.Live.proxy) return window.Live.proxy();
     return '';
+  }
+
+  /* 台指期夜盤（Andy 2026-09-18 圖一「台指期需要顯示夜盤」；2026-09-19 N11）。
+     證交所的 futures_chart.txt 只有日盤，所以夜盤另外走期交所（Worker 的 /fut）。
+     2026-09-18 在 Actions 上實測過四個端點，欄位存在 docs/fixtures/taifex_night_probe.json：
+       getQuoteList MarketType=0/1 都回 200；夜盤的合約代號是 `-M` 結尾（日盤是 `-F`），
+       第一筆 `TXF-P/-S` 是臺指**現貨**參考列，要跳過。
+     近月＝跳過現貨列之後成交量最大的那一支。*/
+  const FUT_NIGHT = [15 * 60, 29 * 60];        // 台北 15:00 ~ 翌日 05:00（跨日用 24+5 表示）
+  function futSession() {
+    const now = taipeiNow();
+    const m = now.getHours() * 60 + now.getMinutes();
+    const mm = m < 6 * 60 ? m + 24 * 60 : m;   // 凌晨算成「昨天的 24+」
+    return (mm >= FUT_NIGHT[0] && mm <= FUT_NIGHT[1]) ? 'night' : 'day';
+  }
+  async function fetchFut(session) {
+    const base = proxy();
+    if (!base) throw new Error('還沒設定即時來源');
+    const r = await fetch(`${base}/fut?session=${session}&t=${Date.now()}`, { cache: 'no-store' });
+    if (r.status === 404 || r.status === 400) throw new Error('NOFUT');
+    if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
+    const j = await r.json();
+    const list = ((j.RtData || {}).QuoteList || [])
+      .filter(q => q.SymbolID && q.SymbolID.indexOf('-') > 0
+        && !/-[SP]$/.test(q.SymbolID));      // 跳過 TXF-S / TXF-P（臺指現貨參考列）
+    if (!list.length) throw new Error('NOFUTDATA');
+    const num = (v) => { const n2 = parseFloat(v); return isFinite(n2) ? n2 : null; };
+    list.sort((a, b) => (num(b.CTotalVolume) || 0) - (num(a.CTotalVolume) || 0));
+    const q = list[0];
+    const last = num(q.CLastPrice), ref = num(q.CRefPrice);
+    return {
+      session, symbol: q.SymbolID, name: q.DispCName,
+      last, ref, open: num(q.COpenPrice), high: num(q.CHighPrice), low: num(q.CLowPrice),
+      vol: num(q.CTotalVolume), oi: num(q.OpenInterest), settle: num(q.SettlementPrice),
+      diff: last != null && ref != null ? last - ref : null,
+      pct: last != null && ref ? (last - ref) / ref * 100 : null,
+      time: q.CTime || '', date: q.CDate || '',
+    };
   }
 
   async function fetchOne(id) {
@@ -324,13 +365,24 @@
         <div class="card m3-card" data-id="${x.id}">
           <div class="m3-h">
             <h3>${x.name} <small>${x.sub}</small></h3>
+            ${x.id === 'FUT' ? `<div class="seg tiny" id="futSeg">
+              <button data-s="day">日盤</button><button data-s="night">夜盤</button></div>` : ''}
             <button class="btn small m3-big" data-id="${x.id}">展開 ⤢</button>
           </div>
+          ${x.id === 'FUT' ? '<div class="m3-night" id="futNight" hidden></div>' : ''}
           ${cardHead(x)}
           <div class="m3-chart" id="m3c-${x.id}"></div>
         </div>`).join('')}</div>`;
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
     $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
+    /* 台指期的日盤／夜盤（Andy 2026-09-18 圖一）。
+       預設依台北時間自己選：15:00~翌日 05:00 算夜盤。使用者可以自己切，切了就記住。*/
+    state.futSession = ls.get(KEY_FUTS, '') || futSession();
+    $$('#futSeg button').forEach(b => b.onclick = () => {
+      state.futSession = b.dataset.s; ls.set(KEY_FUTS, state.futSession);
+      drawFutNight(); draw();
+    });
+    drawFutNight();
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
       state.big = state.big === b.dataset.id ? '' : b.dataset.id;
       ls.set(KEY_BIG, state.big); draw();
@@ -338,6 +390,44 @@
     draw();
     refresh(true);
     schedule();
+  }
+
+  /* 夜盤區塊：期交所只給「報價」沒有分時檔，所以這裡是數字卡不是走勢圖。
+     這也直接回答 Andy 的 N11「不該出現沒有數據」—— 夜盤時段打開網頁，
+     台指期卡片上至少有現價、漲跌、參考價、高低、量、未平倉，而不是一片空白。*/
+  async function drawFutNight() {
+    const box = document.getElementById('futNight');
+    const seg = document.getElementById('futSeg');
+    if (!box) return;
+    if (seg) $$('button', seg).forEach(b => b.classList.toggle('on', b.dataset.s === state.futSession));
+    if (state.futSession !== 'night') { box.hidden = true; box.innerHTML = ''; return; }
+    box.hidden = false;
+    box.innerHTML = '<div class="empty">夜盤報價載入中…</div>';
+    try {
+      const q = await fetchFut('night');
+      state.futNight = q;
+      const A2 = window.App;
+      const n2 = (v, d = 0) => (v == null ? '—' : (A2 ? A2.fmt.n(v, d) : v));
+      const cls = q.diff > 0 ? 'up' : q.diff < 0 ? 'down' : 'flat';
+      const hhmm = q.time && q.time.length >= 4 ? `${q.time.slice(0, 2)}:${q.time.slice(2, 4)}` : '';
+      box.innerHTML = `<div class="m3-q">
+          <b class="${cls}">${n2(q.last)}</b>
+          <span class="${cls}">${q.diff == null ? '—' : (q.diff > 0 ? '+' : '') + n2(q.diff)}
+            ${q.pct == null ? '' : `(${q.pct > 0 ? '+' : ''}${n2(q.pct, 2)}%)`}</span>
+        </div>
+        <div class="m3-kv">
+          <span>開 ${n2(q.open)}</span><span>高 ${n2(q.high)}</span><span>低 ${n2(q.low)}</span>
+          <span>參考價 ${n2(q.ref)}</span><span>量 ${n2(q.vol)} 口</span>
+          <span>未平倉 ${n2(q.oi)}</span>
+        </div>
+        <div class="note">${q.name || ''} ${q.symbol || ''}　·　${q.date || ''} ${hhmm}　·　夜盤來源：期交所行情看板</div>`;
+    } catch (e) {
+      const msg = String(e && e.message || e);
+      box.innerHTML = `<div class="empty">${msg === 'NOFUT'
+        ? 'Worker 還是舊版（沒有 /fut）。推一次 workers/quote-proxy/worker.js 就會自動部署。'
+        : msg === 'NOFUTDATA' ? '現在不是夜盤時段，期交所沒有回任何合約報價。'
+        : '夜盤報價抓不到：' + msg}</div>`;
+    }
   }
 
   function draw() {
@@ -496,7 +586,15 @@
   function drawK(x, d, el) {
     if (typeof window.KChart === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return; }
     if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
-    const def = histDef(state.tf);
+    /* 2026-09-19（Andy N11「這邊不該出現沒有數據」）：
+       櫃買與台指期沒有 1 小時／4 小時的免費來源，以前就直接在卡片上寫一句
+       「沒有免費來源」然後留一塊空白 —— 使用者看到的是「這張圖壞了」。
+       改成**自動退回日線並在卡片上說明**：畫面上永遠有東西可看，
+       同時老實講「這個週期沒來源，改用日線」。
+       fallbackTf 只影響這一張卡片，上方的週期選單不動（其他卡片仍照選的走）。*/
+    let def = histDef(state.tf);
+    const fbKey = x.id + '|' + state.tf;
+    if (def && state.noSrc && state.noSrc[fbKey]) def = histDef('D') || def;
     let bars, tfName;
     if (def) {
       const key = x.id + '|' + def.id;
@@ -505,14 +603,27 @@
         const err = state.histErr[key];
         killK(x.id); el.dataset.kind = '';
         if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
+        /* 沒有這個週期的來源 → 記下來、退回日線、立刻重畫一次。
+           只記一次就好，否則會無限重畫。*/
+        if (err === 'NOSRC' && !(state.noSrc && state.noSrc[fbKey])) {
+          state.noSrc = state.noSrc || {};
+          state.noSrc[fbKey] = true;
+          setTimeout(draw, 0);
+          el.innerHTML = '<div class="empty">這個週期沒有免費來源，改用日線…</div>';
+          return;
+        }
         el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
           err === 'NOLAKE' ? `${x.name}的歷史日 K 還沒進資料湖 —— 下一輪每日管線跑完（台北 15:30 / 18:30 / 21:30）就會有。`
-          : err === 'NOSRC' ? `${x.name}沒有 1 小時／4 小時這種週期的免費來源（那是日線合成不出來的）。日／週／月／季可以看。`
+          : err === 'NOSRC' ? `${x.name}沒有這個週期的免費來源，正在改用日線…`
           : err === 'NOCHART' ? 'Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會有 1 小時／4 小時。'
           : '抓不到歷史 K：' + err) : err}</div>`;
         return;
       }
       tfName = def.lake ? '1d' : def.id === 'H4' ? '240m' : '60m';
+      // 這張卡片是退回來的 → 在圖上方標一行，別讓人以為選單壞了
+      if (state.noSrc && state.noSrc[fbKey]) {
+        el.dataset.fallback = `${x.name}沒有這個週期的免費來源，已改用「日」`;
+      } else { delete el.dataset.fallback; }
     } else {
       bars = toBars(d.points, +state.tf);
       tfName = state.tf + 'm';

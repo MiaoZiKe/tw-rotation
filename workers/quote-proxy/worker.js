@@ -24,6 +24,19 @@
 
 const UPSTREAM = 'https://mis.twse.com.tw/stock/api/getStockInfo.jsp';
 
+/* 台指期（含**夜盤**）報價：期交所的行情看板 API。
+   Andy 2026-09-18 圖一「台指期需要顯示夜盤」。
+   - 證交所那支 futures_chart.txt 只有日盤，夜盤查不到，所以另外走期交所。
+   - 期交所的使用條款沒有爬蟲條款、robots 也沒限制，比證交所寬（見 DECISIONS）。
+   - 上游只吃 POST，而且要帶 Referer，不帶會被擋（跟 mis.twse 同一個脾氣）。
+   - 瀏覽器這邊用 GET /fut?session=day|night，payload 由 Worker 寫死 ——
+     不讓前端傳任意 body，避免變成通用代理。 */
+const TAIFEX_QUOTE = 'https://mis.taifex.com.tw/futures/api/getQuoteList';
+const TAIFEX_BODY = (night) => JSON.stringify({
+  MarketType: night ? '1' : '0', SymbolType: 'F', KindID: '1', CID: 'TXF',
+  ExpireMonth: '', RowSize: '全部', PageNo: '', SortColumn: '', AscDesc: 'A',
+});
+
 // 大盤／櫃買／台指期的「當日分時」檔。就是證交所基本市況報導那三張走勢圖的資料來源，
 // 每一筆是 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交量}，09:01 起每分鐘一筆。
 // 同樣鎖死成白名單 —— 只放行這幾個檔名，不接受任意路徑。
@@ -96,12 +109,37 @@ export default {
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw' }, 200, origin);
     }
-    if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y') {
+    if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y' && url.pathname !== '/fut') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
       // 不給 CORS 標頭，瀏覽器那邊自然讀不到；這裡也直接講清楚原因方便除錯
       return json({ error: 'origin not allowed', origin }, 403, '');
+    }
+
+    // ---- /fut：台指期報價（session=day|night）。夜盤是 MarketType=1。
+    if (url.pathname === '/fut') {
+      const night = (url.searchParams.get('session') || 'day') === 'night';
+      const upstream = new Request(TAIFEX_QUOTE, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Referer': 'https://mis.taifex.com.tw/futures/',
+          'Origin': 'https://mis.taifex.com.tw',
+          'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
+        },
+        body: TAIFEX_BODY(night),
+      });
+      try {
+        const r = await fetch(upstream, { cf: { cacheTtl: CACHE_QUOTE, cacheEverything: true } });
+        const txt = await r.text();
+        return new Response(txt, { status: r.status,
+          headers: { 'Content-Type': 'application/json; charset=utf-8',
+                     'Cache-Control': `public, max-age=${CACHE_QUOTE}`, ...cors(origin) } });
+      } catch (e) {
+        return json({ error: 'upstream failed', detail: String(e) }, 502, origin);
+      }
     }
 
     // ---- /chart：當日分時（加權 / 櫃買 / 台指期）

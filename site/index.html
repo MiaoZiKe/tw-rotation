@@ -245,6 +245,21 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rbar input[type=range]{width:132px;accent-color:var(--cyan)}
 .rbar .val{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:52px;text-align:right}
 @media (max-width:900px){ .rbar input[type=range]{width:96px} }
+/* 台指期夜盤區塊（Andy 2026-09-18 圖一）。期交所只給報價沒有分時檔，所以是數字卡。*/
+.m3-night{margin:6px 0 2px;padding:8px 10px;border-radius:12px;
+  background:color-mix(in srgb,var(--violet) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--violet) 26%,transparent)}
+.m3-night .m3-q{display:flex;align-items:baseline;gap:10px}
+.m3-night .m3-q b{font-size:22px;font-family:var(--mono)}
+.m3-night .m3-q span{font-family:var(--mono);font-size:13px}
+.m3-night .m3-kv{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;
+  font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+.m3-night .note{margin-top:4px;font-size:11.5px;color:var(--ink-3)}
+@media (max-width:900px){ .m3-night .m3-q b{font-size:19px} }
+/* 大盤三張圖：這個週期沒來源而自動退回日線時，在圖上方標一行（N11）。
+   用 ::before 而不是插一個節點 —— 圖表容器的高度是量出來的，插節點會把圖擠歪。*/
+[id^='m3c-'][data-fallback]::before{content:attr(data-fallback);display:block;font-size:11.5px;
+  color:var(--amber);margin-bottom:4px;line-height:1.4}
 /* 播放拉Bar 的三顆鈕（＋ − ▶）。Andy 2026-09-18 圖二/四/六/七/八共用。
    窄畫面（800px）整列會擠爆，所以 .rbar 允許換行、鈕不縮小（手指按得到為準）。*/
 .rbar{flex-wrap:wrap;row-gap:4px}
