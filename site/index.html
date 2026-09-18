@@ -245,6 +245,17 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rbar input[type=range]{width:132px;accent-color:var(--cyan)}
 .rbar .val{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:52px;text-align:right}
 @media (max-width:900px){ .rbar input[type=range]{width:96px} }
+/* 播放拉Bar 的三顆鈕（＋ − ▶）。Andy 2026-09-18 圖二/四/六/七/八共用。
+   窄畫面（800px）整列會擠爆，所以 .rbar 允許換行、鈕不縮小（手指按得到為準）。*/
+.rbar{flex-wrap:wrap;row-gap:4px}
+.rbar .pb{appearance:none;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);
+  width:26px;height:26px;line-height:1;border-radius:7px;cursor:pointer;font-size:13px;padding:0;
+  display:inline-flex;align-items:center;justify-content:center;transition:.15s}
+.rbar .pb:hover:not(:disabled){border-color:var(--cyan);color:var(--ink)}
+.rbar .pb:disabled{opacity:.35;cursor:default}
+.rbar .pb.play{width:30px;font-size:12px}
+.rbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
+@media (prefers-reduced-motion:reduce){ .rbar .pb{transition:none} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
 .zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
@@ -308,7 +319,20 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   border-radius:999px;padding:1px 8px}
 .stage .sd{color:var(--ink-3);font-size:12.5px;margin:5px 0 9px;line-height:1.55}
 .stage .sd em{font-style:normal;color:var(--ink-2)}
-.stage ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px}
+/* 2026-09-18（Andy 圖五）：四格改成固定高度＋自己的捲軸。
+   以前是「只列前 12 個、其餘寫一句還有 N 個」，看不到的就是看不到；
+   現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
+.stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:5px;
+  max-height:380px;overflow-y:auto;scrollbar-width:thin}
+.stageboard.compact .stage ul{max-height:190px}
+.stage ul::-webkit-scrollbar{width:6px}
+.stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
+/* 點開的族群：底下原地插一列成分股膠囊 */
+.stage li.open{border-color:var(--c);background:var(--panel)}
+.stage li.mem{display:flex;flex-wrap:wrap;gap:4px 6px;padding:7px 10px;border-radius:12px;cursor:default;
+  background:color-mix(in srgb,var(--c) 9%,transparent);border:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
+.stage li.mem:hover{transform:none;background:color-mix(in srgb,var(--c) 9%,transparent)}
+.stage li.mem .go{margin-left:auto}
 .stage li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--panel-2);
   cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
 .stage li:hover{background:var(--panel);border-color:var(--c);transform:translateX(2px)}

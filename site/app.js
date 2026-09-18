@@ -38,10 +38,38 @@
     const v = parseInt(n || '888888', 16);
     return `rgba(${(v >> 16) & 255},${(v >> 8) & 255},${v & 255},${a})`;
   };
-  const chgColor = (v, cap = 3) => { // 紅漲綠跌的連續色
-    if (v === null || v === undefined) return '#334155';
+  /* 紅漲綠跌的連續色。
+     2026-09-18（Andy 圖13）：以前紅綠是寫死的深色主題霓虹值，而且透明度一路拉到 0.95，
+     在淺色主題的白底上變成「很濃的紅塊配白字」，字幾乎讀不到。
+     改成①顏色讀 CH.up/CH.down（切主題時 refreshPalette 會就地換掉）
+     ②淺色主題的透明度上限壓到 0.62 —— 白底上是淡色塊，配深色字才讀得到（見 treeSkin）。*/
+  const chgColor = (v, cap = 3) => {
+    const lt = theme() === 'light';
+    if (v === null || v === undefined) return lt ? hexA(CH.ink3, .18) : '#334155';
     const t = Math.max(-1, Math.min(1, v / cap));
-    return t >= 0 ? `rgba(255,77,109,${0.25 + 0.7 * t})` : `rgba(46,229,157,${0.25 + 0.7 * -t})`;
+    const lo = lt ? .15 : .25, hi = lt ? .62 : .95;
+    return hexA(t >= 0 ? CH.up : CH.down, lo + (hi - lo) * Math.abs(t));
+  };
+  /* 熱力（0-100）→ 顏色。題材熱力圖用，同樣不准寫死色碼。*/
+  const heatColor = (h) => {
+    const lt = theme() === 'light';
+    if (h >= 75) return hexA(CH.up, lt ? .62 : .85);
+    if (h >= 60) return hexA(CH.up, lt ? .42 : .72);
+    if (h >= 45) return hexA(CH.violet, lt ? .38 : .70);
+    if (h >= 30) return hexA(CH.cyan, lt ? .34 : .55);
+    return hexA(CH.ink3, lt ? .24 : .50);
+  };
+  /* 三張 treemap（產業板塊 #indTree、總覽熱力圖、題材熱力圖）共用的「殼」。
+     ★ ECharts 的 treemap 是用 itemStyle.borderColor 當整片底色的（方塊間的縫就是它），
+       以前三處都寫死 '#0b1224'，所以淺色主題切過去整張圖還是黑底 —— Andy 圖13 講的就是這個。
+     標籤色也一起收在這裡：淺色主題底下方塊是淡色，白字會消失，要改用深色字。*/
+  const treeSkin = () => {
+    const lt = theme() === 'light';
+    return {
+      border: CH.panel,
+      label: { color: lt ? CH.ink : '#fff', textShadowColor: lt ? 'rgba(255,255,255,.75)' : '#000', textShadowBlur: lt ? 3 : 4 },
+      upper: { color: lt ? CH.ink2 : '#a9b6d6', backgroundColor: lt ? 'rgba(15,24,48,.06)' : 'rgba(0,0,0,.25)' },
+    };
   };
   async function load(name, opt) {
     if (D[name] && !opt) return D[name];
@@ -109,6 +137,7 @@
     if (btn) { btn.textContent = theme() === 'light' ? '🌙' : '☀'; btn.title = theme() === 'light' ? '切換成深色' : '切換成明亮'; }
     refreshPalette();
     if (!redraw) return;
+    stopAllPlay(); _players.clear();    // 換主題會 dispose 全部圖表，播放中的計時器要先停
     Object.keys(charts).forEach(k => { try { charts[k].dispose(); } catch (e) { /* 忽略 */ } delete charts[k]; });
     Object.keys(rendered).forEach(k => delete rendered[k]);
     window.dispatchEvent(new CustomEvent('tw:theme', { detail: { theme: theme() } }));
@@ -340,6 +369,85 @@
     return { get value() { return +inp.value; }, set(x) { inp.value = x; paint(); } };
   }
 
+  /* ---------------------------------------------------------------- 播放拉Bar
+     Andy 2026-09-18（圖二/四/六/七/八）：「拉Bar 再多新增 + & - 符號可以調整」
+     「具備播放功能，點擊後可以播放我拉Bar 選定的時間」。
+     五張圖共用這一支，驗收也只寫一支 check_play()，不要各寫一套。
+
+     做法：包住既有的 rangeBar（不動它），加三顆鈕；改值一律走
+     input.value = x → dispatch input + change，這樣原本掛在 rangeBar 上的
+     onChange 與 localStorage 寫入完全照舊，播放跟手動拉在行為上分不出來。
+
+     ★ 會自己停的時機（不停的話會對已經 dispose 的 ECharts 實例 setOption 而拋錯）：
+       分頁切到背景、換頁（route）、換主題（applyTheme 會 dispose 所有圖表）、
+       使用者自己動手拉 Bar。*/
+  const _players = new Set();
+  function stopAllPlay() { _players.forEach(p => { try { p.stop(); } catch (e) { /* 忽略 */ } }); }
+  function playBar(box, o) {
+    box = typeof box === 'string' ? document.getElementById(box) : box;
+    if (!box) return null;
+    const rb = rangeBar(box, o);
+    if (!rb) return null;
+    const inp = box.querySelector('input');
+    const mk = (cls, txt, title) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'pb ' + cls; b.textContent = txt; b.title = title;
+      b.setAttribute('aria-label', title);
+      return b;
+    };
+    const bMinus = mk('step', '−', '往前一格');
+    const bPlus = mk('step', '＋', '往後一格');
+    const bPlay = mk('play', '▶', '播放');
+    inp.parentNode.insertBefore(bMinus, inp);
+    inp.parentNode.insertBefore(bPlus, inp.nextSibling);
+    box.appendChild(bPlay);
+
+    const lim = () => ({ min: +inp.min, max: +inp.max, st: +inp.step || 1 });
+    // 改值走真的事件，才會觸發 rangeBar 既有的 onChange 與 localStorage
+    const setV = (x) => {
+      const { min, max } = lim();
+      x = Math.max(min, Math.min(max, x));
+      if (x === +inp.value) return false;
+      inp.value = x;
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+      inp.dispatchEvent(new Event('change', { bubbles: true }));
+      return true;
+    };
+    let timer = null;
+    const paintBtn = () => {
+      const { min, max } = lim();
+      bMinus.disabled = +inp.value <= min;
+      bPlus.disabled = +inp.value >= max;
+      bPlay.textContent = timer ? '⏸' : '▶';
+      bPlay.title = timer ? '暫停' : '播放';
+      bPlay.setAttribute('aria-label', bPlay.title);
+      box.classList.toggle('playing', !!timer);
+    };
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paintBtn(); };
+    const tick = () => {
+      const { min, max, st } = lim();
+      let nx = +inp.value + st;
+      if (nx > max) { if (o.loop === false) { stop(); return; } nx = min; }
+      setV(nx); paintBtn();
+    };
+    const start = () => {
+      if (timer) return;
+      const { min, max } = lim();
+      if (+inp.value >= max) setV(min);         // 已經在尾端就從頭播
+      timer = setInterval(tick, o.frame || 600);
+      paintBtn();
+    };
+    bPlay.onclick = () => (timer ? stop() : start());
+    bMinus.onclick = () => { stop(); setV(+inp.value - lim().st); paintBtn(); };
+    bPlus.onclick = () => { stop(); setV(+inp.value + lim().st); paintBtn(); };
+    inp.addEventListener('pointerdown', stop);  // 自己動手拉就停播放
+    inp.addEventListener('input', paintBtn);
+    paintBtn();
+    const api = { get value() { return +inp.value; }, set(x) { setV(x); paintBtn(); }, stop, start, playing: () => !!timer, el: box };
+    _players.add(api);
+    return api;
+  }
+
   const _liveFns = new WeakMap();
   function onLive(el, fn) {
     if (!el) return;
@@ -358,6 +466,10 @@
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'themes', 'season'];
   const rendered = {};
   async function route() {
+    stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
+    _players.clear();
+    // 產業鏈的外商小面板不屬於任何 view，換頁一定要自己清（Andy 2026-09-18 圖12）
+    { const cb = document.getElementById('coBox'); if (cb) cb.remove(); }
     const h = location.hash.replace('#', '') || 'overview';
     const [head, ...rest] = h.split('/');
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
@@ -595,6 +707,7 @@
     const inChain = chain && chains[chain] ? chains[chain] : null;
     const data = inChain ? inChain.map(mk)
       : Object.keys(chains).map(cid => ({ name: CHAIN_NAME[cid] || cid, cid, children: chains[cid].map(mk) }));
+    const SK = treeSkin();
     return { chains, inChain, option: {
       tooltip: { ...tip, formatter: p => p.data.gid
         ? `<b>${p.name}</b><br>成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）<br>漲跌 <span style="color:${upDown(p.data.chg)}">${fmt.pct(p.data.chg)}</span><br>資金流向 <span style="color:${upDown(p.data.rot)}">${p.data.rot != null ? (p.data.rot > 0 ? '流入 +' : '流出 ') + p.data.rot.toFixed(2) + ' pp' : '—'}</span><br><small>點一下看成分股</small>`
@@ -605,11 +718,11 @@
            使用者只會當成 bug。現在方塊上兩個數字都寫，而且標明哪個是哪個。 */
         label: { show: true, formatter: p => `${p.name}\n${fmt.pct(p.data.chg)}\n${p.data.rot != null ? '資金 ' + (p.data.rot > 0 ? '+' : '') + p.data.rot.toFixed(1) + 'pp' : '資金 —'}`,
           lineHeight: big ? 19 : 16,
-          fontSize: big ? 15 : (inChain ? 14 : 13), color: '#fff', textShadowColor: '#000', textShadowBlur: 4, overflow: 'truncate' },
-        upperLabel: { show: !inChain, height: big ? 26 : 22, color: '#a9b6d6', fontSize: big ? 13 : 12, backgroundColor: 'rgba(0,0,0,.25)' },
-        itemStyle: { borderColor: '#0b1224', borderWidth: 2, gapWidth: 2 },
+          fontSize: big ? 15 : (inChain ? 14 : 13), ...SK.label, overflow: 'truncate' },
+        upperLabel: { show: !inChain, height: big ? 26 : 22, fontSize: big ? 13 : 12, ...SK.upper },
+        itemStyle: { borderColor: SK.border, borderWidth: 2, gapWidth: 2 },
         levels: inChain ? [{ itemStyle: { gapWidth: 2 } }]
-          : [{ itemStyle: { borderColor: '#0b1224', borderWidth: 3, gapWidth: 3 } }, { itemStyle: { gapWidth: 1 } }],
+          : [{ itemStyle: { borderColor: SK.border, borderWidth: 3, gapWidth: 3 } }, { itemStyle: { gapWidth: 1 } }],
         data }] } };
   }
 
@@ -864,17 +977,44 @@
       if (mv) $$('.mv', mv).forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
     }
 
-    const cap = ids.compact ? 4 : 12;
+    /* 2026-09-18（Andy 圖五）：「當點擊族群會拉長清單，看到對應股票，
+       若清單太長記得不要延伸原本格式，以拉Bar 方式呈現」。
+       ① 以前四格各自只列 12 個（小圖 4 個）再寫一句「還有 N 個」，其餘看不到 ——
+          改成全部列出來，格子本身給固定高度＋自己的捲軸（CSS .stage ul），
+          四格因此永遠一樣高，也不會把版面撐長。
+       ② 點族群不再跳頁，改成在那一列底下原地插一列成分股膠囊，再點一次收合；
+          真的要進族群頁的話，展開的那一列右邊有「進族群頁 →」。*/
     board.innerHTML = STAGE_ORDER.map(k => {
       const list = rows.filter(r => r.stage === k);
       const s = STAGE[k];
       return `<div class="stage" style="--c:${s.color}">
         <div class="sh"><b style="color:${s.color}">${s.name}</b><span class="n">${list.length}</span></div>
         <div class="sd">${s.sub}<br><em>${s.act}</em></div>
-        <ul>${list.slice(0, cap).map(rotItem).join('') || '<li class="none">這個階段目前沒有族群</li>'}
-        ${list.length > cap ? `<li class="none">還有 ${list.length - cap} 個</li>` : ''}</ul></div>`;
+        <ul>${list.map(rotItem).join('') || '<li class="none">這個階段目前沒有族群</li>'}</ul></div>`;
     }).join('');
-    $$('li[data-gid]', board).forEach(li => li.onclick = () => { location.hash = '#industry/group/' + li.dataset.gid; });
+    $$('li[data-gid]', board).forEach(li => li.onclick = () => toggleRotMembers(li));
+  }
+
+  /* 點族群 → 在它下面原地展開成分股（依成交值排序取前 12 檔）。再點一次收合。
+     資料來自 groups_detail（總覽與資金流向兩頁進來之前都會先 load 它）。*/
+  function toggleRotMembers(li) {
+    const gid = li.dataset.gid;
+    const nx = li.nextElementSibling;
+    if (nx && nx.classList.contains('mem')) { nx.remove(); li.classList.remove('open'); return; }
+    // 同一格裡一次只開一個，不然四格高度會亂跳
+    const ul = li.parentNode;
+    $$('li.mem', ul).forEach(e => e.remove());
+    $$('li.open', ul).forEach(e => e.classList.remove('open'));
+    const det = (D.groups_detail || {})[gid] || {};
+    const ms = (det.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 12);
+    const el = document.createElement('li');
+    el.className = 'mem';
+    el.innerHTML = ms.length
+      ? ms.map(m => L.stock(m.code, m.name, { cls: 'sm' })).join('')
+        + `<a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`
+      : `<span class="muted">成分股資料還在產出</span><a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`;
+    li.classList.add('open');
+    li.parentNode.insertBefore(el, li.nextSibling);
   }
 
   function renderThemeStrip(th) {
@@ -1303,7 +1443,8 @@
 
   let flowState = { period: 'w0', back: 5, concTop: 5 };
   async function renderFlow() {
-    const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental')]);
+    // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
+    const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental'), load('groups_detail')]);
     const periods = (f3 && f3.periods) || [];
     wireHowto($('#v-flow'));
 
@@ -1687,9 +1828,9 @@
   async function renderThemes() {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     $('#themeNote').textContent = th.note || '';
-    const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, itemStyle: { color: t.heat >= 75 ? 'rgba(255,77,109,.85)' : t.heat >= 60 ? 'rgba(255,143,171,.75)' : t.heat >= 45 ? 'rgba(139,123,255,.7)' : t.heat >= 30 ? 'rgba(62,224,255,.55)' : 'rgba(110,126,163,.5)' } }));
-    const themeOpt = (big) => ({ tooltip: { ...tip, formatter: p => `<b>${p.name}</b><br>熱度 ${p.data.heat} · 成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）<br>平均漲跌 <span style="color:${upDown(p.data.chg)}">${fmt.pct(p.data.chg)}</span> · 近 7 天新聞 ${p.data.news7}<br><small>點一下看這個題材</small>` },
-      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60, label: { overflow: 'truncate', formatter: p => `${p.name}\n熱度 ${p.data.heat} · ${fmt.pct(p.data.chg)}`, fontSize: big ? 15 : 13, color: '#fff', textShadowColor: '#000', textShadowBlur: 4 }, itemStyle: { borderColor: '#0b1224', borderWidth: 3, gapWidth: 3 }, data }] });
+    const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, itemStyle: { color: heatColor(t.heat) } }));
+    const themeOpt = (big) => { const SK = treeSkin(); return ({ tooltip: { ...tip, formatter: p => `<b>${p.name}</b><br>熱度 ${p.data.heat} · 成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）<br>平均漲跌 <span style="color:${upDown(p.data.chg)}">${fmt.pct(p.data.chg)}</span> · 近 7 天新聞 ${p.data.news7}<br><small>點一下看這個題材</small>` },
+      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60, label: { overflow: 'truncate', formatter: p => `${p.name}\n熱度 ${p.data.heat} · ${fmt.pct(p.data.chg)}`, fontSize: big ? 15 : 13, ...SK.label }, itemStyle: { borderColor: SK.border, borderWidth: 3, gapWidth: 3 }, data }] }); };
     const c = chart('themeMap', themeOpt(false));
     wheelZoom($('#themeMapWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#themeMap')); if (i) i.resize(); } });
     // 點方塊：換下方明細（hash 一樣時 route 不會觸發，所以直接重畫）並捲到明細
@@ -1862,14 +2003,32 @@
       const groups = s3.groups; const gi = {}; groups.forEach((g, i) => { gi[g.group_id] = i; });
       const data = P.cells.map(c => [c.month - 1, gi[c.group_id], c[metric], c]);
       const isWin = metric === 'win_rate'; const vals = data.map(d => d[2]).filter(v => v != null);
-      const lim = isWin ? [0, 100] : [-(Math.max(...vals.map(Math.abs)) || 5), Math.max(...vals.map(Math.abs)) || 5];
+      /* 色階上下界：以前用 max|v|，只要有一格離群（例如某族群某月 +48%），
+         其餘 300 格就全部擠在色階中央＝看起來全同色。改用 |v| 的 90 分位，
+         超界的格子走 outOfRange 用最濃的顏色，不會被截斷資訊（Andy 2026-09-18 圖19）。*/
+      const q90 = (xs) => { if (!xs.length) return 5; const a = xs.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * 0.9))] || 5; };
+      const cap = q90(vals.map(Math.abs));
+      const lim = isWin ? [0, 100] : [-cap, cap];
+      const lt = theme() === 'light';
+      // 淺色主題要整組換掉：深藍中點（#16203a）在白底上是一塊深色，反而變成最顯眼的東西
+      const ramp = isWin
+        ? (lt ? ['#f3f5fa', '#7c6ce0', '#dc2440'] : ['#16203a', '#8b7bff', '#ff6b84'])
+        : (lt ? ['#1a9e6f', '#f3f5fa', '#e04a66'] : ['#19c489', '#16203a', '#ff6b84']);
+      // 格子上的數字：淺色主題的兩端是飽和紅綠，單靠深色字對比不夠，補一圈白色描邊
+      const cellLabel = lt
+        ? { color: CH.ink, textBorderColor: 'rgba(255,255,255,.85)', textBorderWidth: 2.5 }
+        : { color: '#e8eeff' };
       const c = chart('seasonHeat', { tooltip: { ...tip, formatter: p => { const cl = p.data[3]; return `<b>${cl.group_name}</b> ${cl.month} 月<br>平均超額 ${cl.avg_excess != null ? fmt.pct(cl.avg_excess) : '—'}（勝率 ${cl.excess_win_rate ?? '—'}%）<br>平均報酬 ${cl.avg_return != null ? fmt.pct(cl.avg_return) : '—'}（勝率 ${cl.win_rate ?? '—'}%）<br>樣本 ${cl.samples} 年`; } },
         grid: { left: 130, right: 70, top: 10, bottom: 30 }, xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月'), ...axisStyle, splitArea: { show: false }, axisLabel: { color: CH.ink2 } },
         yAxis: { type: 'category', data: groups.map(g => g.group_name), ...axisStyle, axisLabel: { color: CH.ink2, fontSize: 12 } },
-        visualMap: { min: lim[0], max: lim[1], calculable: false, orient: 'vertical', right: 0, top: 'center', textStyle: { color: CH.ink3 }, // 中點以前用 #0f172b —— 那就是面板底色，±5% 以內的格子全部隱形，等於整張圖沒有顏色。
-        // 換成看得見的中性藍灰，兩端也拉亮。
-        inRange: { color: isWin ? ['#16203a', '#8b7bff', '#ff6b84'] : ['#19c489', '#16203a', '#ff6b84'] } },
-        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, color: '#e8eeff', fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: '#0b1224', borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
+        /* ★ dimension: 2 不能省。
+           資料列是 [月, 族群, 數值, 原始格子物件] 四維，visualMap 沒指定維度時
+           ECharts 取「最後一維」＝那個物件 → 轉數字是 NaN → 每一格都落在範圍外 → 全部同色。
+           Andy 2026-09-18 圖19「熱力圖根本沒有依據數字變換顏色」就是這一行造成的。*/
+        visualMap: { min: lim[0], max: lim[1], dimension: 2, calculable: false, orient: 'vertical', right: 0, top: 'center',
+          textStyle: { color: CH.ink3 }, inRange: { color: ramp },
+          outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
+        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').textContent = s3.note + `　大盤月報酬樣本 ${s3.benchmark_months} 個月。`;
       topThisMonth(P);
@@ -2086,11 +2245,13 @@
     renderBuild();
     // 主題：<head> 的那段小 script 已經把 data-theme 設好（避免閃一下），這裡只補色票與按鈕
     applyTheme(theme(), false);
+    // 分頁切到背景就停播放：省 CPU，也避免回來時一次補跑幾十幀
+    document.addEventListener('visibilitychange', () => { if (document.hidden) stopAllPlay(); });
     const tb = document.getElementById('themeBtn');
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS };
+    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);

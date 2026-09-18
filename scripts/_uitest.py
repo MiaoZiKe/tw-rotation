@@ -1972,6 +1972,128 @@ def t_stock(pg, base, code):
         changed("點產業鏈上的另一檔，個股頁跟著換", h0, pg.evaluate("location.hash"))
 
 
+def check_play(pg, sel, chart_id=None):
+    """播放拉Bar（App.playBar）的共用驗收 —— 批次2-4 五張圖共用這一支。
+
+    驗的是「畫面真的因此變了」，不是「按鈕存在」：
+    ① ＋／− 真的改到 input.value；② ▶ 按下去之後值會自己往前跑；
+    ③ 再按一次真的停住（停住後值不再變）；④ 切走／分頁隱藏會自動停。
+    """
+    box = f"{sel}"
+    n = pg.evaluate(f"() => document.querySelectorAll('{box} .pb').length")
+    ok(f"{sel} 有 ＋ − ▶ 三顆鈕", n == 3, n)
+    v0 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
+    # −（第一顆 step 鈕）
+    pg.eval_on_selector(f"{box} .pb.step", "b => b.click()")
+    pg.wait_for_timeout(250)
+    v1 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
+    ok(f"{sel} 按 − 之後值真的變了", v1 != v0, f"{v0} → {v1}")
+    # ▶ 播放：值要自己動
+    pg.eval_on_selector(f"{box} .pb.play", "b => b.click()")
+    pg.wait_for_timeout(1500)
+    v2 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
+    ok(f"{sel} 播放中值會自己前進", v2 != v1, f"{v1} → {v2}")
+    ok(f"{sel} 播放中有 playing 樣式",
+       pg.evaluate(f"() => document.querySelector('{box}').classList.contains('playing')"))
+    # ⏸ 停住：停完之後值不可以再變
+    pg.eval_on_selector(f"{box} .pb.play", "b => b.click()")
+    pg.wait_for_timeout(200)
+    v3 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
+    pg.wait_for_timeout(1400)
+    v4 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
+    ok(f"{sel} 按暫停之後真的停住", v3 == v4, f"{v3} → {v4}")
+
+
+def t_batch1(pg, base):
+    """批次1（Andy 2026-09-18 圖12／圖五／圖19）的真人操作驗收。
+
+    每一條驗的都是「畫面真的因此改變」，不是「元素存在」。
+    """
+    # ---- 圖12：點產業鏈上的公司，不可以留下一張浮動卡跟著跑到個股頁
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    has = pg.evaluate("() => !!document.querySelector('#chainMap .co[data-code]')")
+    if has:
+        code = pg.evaluate("() => document.querySelector('#chainMap .co[data-code]').dataset.code")
+        pg.eval_on_selector("#chainMap .co[data-code]", "n => n.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+        pg.wait_for_timeout(1400)
+        ok("點產業鏈上的台股公司會進個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}",
+           pg.evaluate("() => location.hash"))
+        ok("進個股頁之後沒有殘留的浮動公司卡（圖12）",
+           pg.evaluate("() => document.getElementById('coBox') === null"))
+    # 外商：原地小面板，而且它是 #chainMap 的兄弟節點（不是掛在 body 上）
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    if pg.evaluate("() => !!document.querySelector('#chainMap .co.foreign')"):
+        pg.eval_on_selector("#chainMap .co.foreign", "n => n.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+        pg.wait_for_timeout(700)
+        info = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+            const cs = getComputedStyle(b); const host = document.getElementById('chainMap');
+            return { fixed: cs.position === 'fixed', inBody: b.parentNode === document.body,
+                     sibling: !!host && b.previousElementSibling === host, txt: b.textContent.length }; }""")
+        ok("外商公司會開原地小面板", bool(info) and info["txt"] > 10, info)
+        ok("外商面板不是浮動的、也不掛在 body 上（圖12）",
+           bool(info) and not info["fixed"] and not info["inBody"], info)
+        ok("成長欄位不會印出 [object Object]（圖12 順手抓到）",
+           pg.evaluate("() => { const b=document.getElementById('coBox'); return !b || b.textContent.indexOf('[object Object]') < 0; }"))
+        # 換頁之後一定要被清掉
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
+        ok("換頁之後外商面板被清掉（圖12 根因）",
+           pg.evaluate("() => document.getElementById('coBox') === null"))
+
+    # ---- 圖五：四格輪動板 —— 清單不截斷、四格等高、點族群原地展開成分股
+    for w in (1500, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        st = pg.evaluate("""() => { const b = document.getElementById('rotBoard');
+            if (!b) return null;
+            const cards = [...b.querySelectorAll('.stage')];
+            return { n: cards.length, hs: cards.map(c => Math.round(c.getBoundingClientRect().height)),
+                     cut: b.textContent.indexOf('還有') >= 0,
+                     scroll: cards.map(c => { const u = c.querySelector('ul'); return u ? u.scrollHeight > u.clientHeight + 1 : false; }) }; }""")
+        if not st:
+            continue
+        ok(f"[{w}px] 輪動板四格都在", st["n"] == 4, st)
+        ok(f"[{w}px] 族群清單不再截斷成「還有 N 個」（圖五）", not st["cut"])
+        hs = st["hs"]
+        ok(f"[{w}px] 四格等高（差 ≤2px）", max(hs) - min(hs) <= 2, hs)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    h0 = pg.evaluate("() => { const c = document.querySelector('.stage'); return c ? Math.round(c.getBoundingClientRect().height) : 0; }")
+    hash0 = pg.evaluate("() => location.hash")
+    if pg.evaluate("() => !!document.querySelector('.stage li[data-gid]')"):
+        pg.eval_on_selector(".stage li[data-gid]", "li => li.click()")
+        pg.wait_for_timeout(500)
+        st2 = pg.evaluate("""() => { const c = document.querySelector('.stage');
+            return { mem: !!document.querySelector('.stage li.mem'),
+                     chips: document.querySelectorAll('.stage li.mem a.lk-stock').length,
+                     h: c ? Math.round(c.getBoundingClientRect().height) : 0,
+                     hash: location.hash }; }""")
+        ok("點族群會原地展開成分股（圖五）", st2["mem"] and st2["chips"] > 0, st2)
+        ok("點族群不會跳頁（圖五）", st2["hash"] == hash0, st2["hash"])
+        ok("展開之後格子高度沒有被撐長（圖五，差 ≤2px）", abs(st2["h"] - h0) <= 2, f"{h0} → {st2['h']}")
+        pg.eval_on_selector(".stage li[data-gid]", "li => li.click()")
+        pg.wait_for_timeout(400)
+        ok("再點一次會收合（圖五）",
+           pg.evaluate("() => !document.querySelector('.stage li.mem')"))
+
+    # ---- 圖19：季節性熱力圖的顏色要真的跟著數字變
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    vm = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
+        if (!c) return null; const o = c.getOption();
+        const v = (o.visualMap || [])[0] || {};
+        return { dim: v.dimension, min: v.min, max: v.max }; }""")
+    ok("熱力圖的 visualMap 指到數值那一維（圖19 根因）", bool(vm) and vm["dim"] == 2, vm)
+    colors = pg.evaluate("""() => { const el = document.getElementById('seasonHeat');
+        const cv = el && el.querySelector('canvas'); if (!cv) return 0;
+        const ctx = cv.getContext('2d'); const w = cv.width, h = cv.height;
+        const d = ctx.getImageData(0, 0, w, h).data; const set = new Set();
+        for (let y = 0; y < h; y += 7) for (let x = Math.floor(w * .3); x < w * .9; x += 7) {
+          const i = (y * w + x) * 4;
+          set.add((d[i] >> 4) + ',' + (d[i + 1] >> 4) + ',' + (d[i + 2] >> 4));
+        }
+        return set.size; }""")
+    ok("熱力圖真的有多種顏色（圖19：以前整張同色）", colors >= 8, f"{colors} 種色階")
+
+
 def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
@@ -2133,8 +2255,14 @@ def t_lightink(b, base, code):
        淺色掉到深色的一半以下，代表有東西在淺色底下消失了。
     2. **文字**：掃整頁的文字元素，算它跟自己背景的對比度，低於 1.9 就是幾乎看不見。
     """
+    # 2026-09-18：補上 #season 與 #industry。
+    # 季節性頁的字色、格線、色階中點以前全是寫死的深色值（Andy 圖17「切換到明亮版本，
+    # 字體不可為淺色」），而這份掃描根本沒走到那一頁，所以一路沒被抓到。
+    # 產業板塊圖同理（圖13：treemap 用 itemStyle.borderColor 當整片底色，寫死 #0b1224）。
     pages = [("#overview", ["#heat"]),
              ("#flow", ["#rotClock", "#sankey", "#river", "#instGroups", "#conc", "#valScatter"]),
+             ("#industry", ["#indTree"]),
+             ("#season", ["#seasonHeat"]),
              (f"#stock/{code}", ["#peChart", "#profitChart", "#peQ"])]
     ctx = b.new_context(viewport={"width": 1500, "height": 1000})
     pg = ctx.new_page()
@@ -3193,7 +3321,8 @@ def main() -> int:
 
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
-                         ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season)):
+                         ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
+                         ("批次1", t_batch1)):
             n0 = len(fails)
             try:
                 fn(pg, base)

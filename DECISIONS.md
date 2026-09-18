@@ -1185,3 +1185,48 @@
      規矩：要寫就跳脫成 `^>`，或改用文字；打包完自檢
      `grep -nE 'echo[^|]*[<>|&]' push-*.bat`。
      清除方式一律是「再一次正常的 commit 刪掉它」—— **絕不 force push**。
+179. **ECharts 的 treemap 是用 `itemStyle.borderColor` 當整片底色的**（Andy 2026-09-18 圖13
+     「產業板塊圖切到明亮主題，圖還是深底」）：方塊之間的那條縫就是 borderColor，
+     方塊本身只蓋住自己的面積，所以 borderColor 寫死 `#0b1224` 等於整張圖鎖死深色底。
+     全站三張 treemap（產業板塊 `#indTree`、總覽熱力圖、題材熱力圖）都犯同一個錯。
+     改法：抽一支 `App.treeSkin()` 回傳 `{border, label, upper}`，三處共用，
+     `border` 讀 `CH.panel`（切主題時 `refreshPalette()` 會就地換掉）。
+     **順帶改掉 `chgColor()`**：它把紅綠透明度一路拉到 0.95，白底上是「很濃的紅塊配白字」，
+     字幾乎讀不到；淺色主題的透明度上限壓到 0.62，標籤改深色字＋白色描邊。
+     規矩：**新的圖表元件一律不准寫死色碼**，一定要經 `CH` / `hexA` / `treeSkin` / `heatColor`，
+     否則 `t_lightink` 又會漏掉（它只掃它知道的那幾頁）。
+180. **`visualMap` 沒寫 `dimension` 就會取最後一維**（Andy 2026-09-18 圖19
+     「熱力圖根本沒有依據數字變換顏色」）：季節性熱力圖的資料列是
+     `[月, 族群, 數值, 原始格子物件]` 四維 —— 第四維是為了 tooltip 塞進去的物件。
+     ECharts 的 visualMap 預設取最後一維，於是拿那個物件去轉數字＝`NaN`，
+     每一格都落在範圍外＝全部同色。加 `dimension: 2` 就好。
+     順帶把色階上下界從 `max|v|` 改成 **`|v|` 的 90 分位**：只要有一格離群（某族群某月 +48%），
+     其餘三百格就全部擠在色階中央，看起來還是同色；超界的走 `outOfRange` 用最濃的顏色。
+     淺色主題另外換一組色階（中點 `#f3f5fa`，深藍中點在白底上反而是最顯眼的東西）。
+181. **不要用 `position:fixed` 掛在 `<body>` 上的浮動卡**（Andy 2026-09-18 圖12
+     「#stock/6116 右下角會浮一張台積電 2330 的卡」）：產業鏈圖點公司時
+     `showCompany()` 建一張 fixed 卡掛在 body，**同時**又呼叫 `handlers.onSelect` 跳去個股頁。
+     那張卡不屬於任何 view，換頁不會被清掉，於是一路跟著使用者跑。
+     改法：① 有台股代號的**直接進個股頁**（卡片本來就是為了進去看的，不需要中間那張卡）；
+     ② 外商／無代號的才在產業鏈圖**正下方原地**展開小面板（`#chainMap` 的兄弟節點）；
+     ③ `route()` 開頭一律 `document.getElementById('coBox')?.remove()` 當保險。
+     規矩：**任何不屬於某個 view 的浮動元素，都要在 `route()` 裡有人負責清掉。**
+     順手修掉同一張卡上的「成長：[object Object]」—— `supply_chain.yaml` 的 `growth`
+     是一個 dict（`capacity_plan` / `capacity_source` / `drivers`），以前整個丟給 `fmt.esc`。
+182. **四格輪動板改成「固定高度＋自己的捲軸」，不要截斷清單**（Andy 2026-09-18 圖五
+     「當點擊族群會拉長清單，看到對應股票，若清單太長記得不要延伸原本格式，以拉Bar 方式呈現」）：
+     以前每格只列前 12 個（總覽小圖 4 個）再寫一句「還有 N 個」—— 看不到的就是看不到。
+     現在全部列出來，`.stage ul` 給 `max-height:380px; overflow-y:auto`，
+     所以四格永遠等高、版面也不會被撐長。
+     **點族群不再跳頁**，改成在那一列底下原地插一列成分股膠囊（依成交值前 12 檔），
+     再點一次收合；真的要進族群頁的話展開列右邊有「進族群頁 →」。
+     資料走 `groups_detail`，所以 `renderFlow()` 也要一起 `load('groups_detail')`。
+183. **播放拉Bar 只寫一支共用元件 `App.playBar()`**（Andy 2026-09-18 圖二/四/六/七/八都要
+     「拉Bar 再多新增 + & - 符號」「具備播放功能」）：五張圖各寫一套的話，
+     五個計時器會有五種停不下來的方式。做法是**包住既有的 `rangeBar()`**（不動它），
+     加 ＋ − ▶ 三顆鈕，改值一律走 `input.value = x` → `dispatchEvent(input)` + `dispatchEvent(change)`，
+     這樣原本掛在 `rangeBar` 上的 `onChange` 與 `localStorage` 寫入完全照舊。
+     **★ 一定要會自己停**，否則計時器會對已經 `dispose()` 的 ECharts 實例 `setOption` 而拋錯：
+     `route()` 換頁、`applyTheme()` 換主題（它會 dispose 全部圖表）、
+     分頁切到背景（`visibilitychange`）、使用者自己動手拉 Bar，四個時機一律先停。
+     驗收也只寫一支 `check_play()`，驗的是「值真的自己在動、按暫停真的停住」，不是「按鈕存在」。
