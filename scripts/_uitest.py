@@ -517,6 +517,11 @@ def t_overview(pg, base):
     # --- 排序：每個可排序的表頭都點兩次，順序要真的反過來，箭頭要跟著跑
     heads = pg.evaluate("[...document.querySelectorAll('#candTable th[data-k]')].map(t => t.dataset.k)")
     ok("候選名單表頭可以排序", len(heads) >= 4, heads)
+    # ★ 「點兩次第一名要變」對**低變異欄位**不成立（DECISIONS #191）。
+    #   例：grade 欄 380 檔裡有 377 檔是空值、只有 3 檔是 A。
+    #   程式把空值一律排到最後（不分升冪降冪，這是對的），而那 3 個 A 彼此相等，
+    #   所以正排反排的第一名本來就是同一檔 —— 那不是 bug。
+    #   改成先問「這一欄可比較的值有沒有兩種以上」，同分的欄位只驗箭頭會動。
     for k in heads:
         first_a = pg.evaluate("() => (document.querySelector('#candBody tr[data-code]')||{dataset:{}}).dataset.code")
         click(pg, f'#candTable th[data-k="{k}"]', 400)
@@ -525,8 +530,19 @@ def t_overview(pg, base):
         click(pg, f'#candTable th[data-k="{k}"]', 400)
         st2 = pg.evaluate("() => (document.querySelector('#candBody tr[data-code]')||{dataset:{}}).dataset.code")
         ok(f"表頭「{k}」點下去箭頭跑到這一欄", st1["arrow"] == [k], st1["arrow"])
-        ok(f"表頭「{k}」點兩次順序會反過來", st1["first"] != st2 or first_a == st2,
-           f"{first_a} → {st1['first']} → {st2}")
+        # 這一欄在畫面上到底有幾種不同的值（空字串／破折號都當成沒有值）
+        variety = pg.evaluate("""(kk) => { const ths=[...document.querySelectorAll('#candTable th')];
+            const i = ths.findIndex(t => t.dataset.k === kk); if (i < 0) return 0;
+            const vs = [...document.querySelectorAll('#candBody tr[data-code]')]
+              .map(r => (r.children[i] ? r.children[i].textContent.trim() : ''))
+              .filter(v => v && v !== '—' && v !== '-');
+            return new Set(vs).size; }""", k)
+        if variety >= 2:
+            ok(f"表頭「{k}」點兩次順序會反過來", st1["first"] != st2 or first_a == st2,
+               f"{first_a} → {st1['first']} → {st2}（畫面上有 {variety} 種值）")
+        else:
+            ok(f"表頭「{k}」值幾乎都相同（{variety} 種），只驗箭頭會動 —— 順序本來就不該變",
+               st1["arrow"] == [k], f"{first_a} → {st1['first']} → {st2}")
 
     # --- 事件面板篩選：筆數要真的變
     cats = pg.evaluate("[...document.querySelectorAll('#evFilters button')].map(b => b.dataset.c)")
