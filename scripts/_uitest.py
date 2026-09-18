@@ -2122,23 +2122,33 @@ def t_batch2(pg, base):
     hash0 = pg.evaluate("() => location.hash")
     # ★ ECharts 沒有 'click' 這個 action —— dispatchAction({type:'click'}) 不會觸發 c.on('click')。
     #   要驗「使用者真的點得到」就得用真的滑鼠，所以先把長條換算成畫面座標再點下去。
-    spot = pg.evaluate("""() => { const el = document.getElementById('rankFlow');
-        const c = echarts.getInstanceByDom(el); if (!c) return null;
-        const o = c.getOption(); const d = (o.series[0].data || []);
-        if (!d.length) return null;
-        const i = d.length - 1;
-        const v = typeof d[i] === 'object' ? d[i].value : d[i];
-        const p = c.convertToPixel({ seriesIndex: 0 }, [v, i]);
-        if (!p) return null;
-        const r = el.getBoundingClientRect();
-        return { x: r.left + p[0] - (v >= 0 ? 4 : -4), y: r.top + p[1],
-                 gid: (typeof d[i] === 'object' ? d[i].gid : null) }; }""")
+    #
+    # ★★ 座標一定要「每次點之前重算」：getBoundingClientRect 是相對**視窗**的，
+    #    而第一次點開成分股面板時 heatPanel 會 scrollIntoView 把頁面捲動一段，
+    #    舊座標就指不到那根長條了（2026-09-18 踩到：第二次點沒收起來，
+    #    其實是第二次點根本沒點到圖上）。
+    def rank_spot():
+        return pg.evaluate("""() => { const el = document.getElementById('rankFlow');
+            const c = echarts.getInstanceByDom(el); if (!c) return null;
+            const o = c.getOption(); const d = (o.series[0].data || []);
+            if (!d.length) return null;
+            const i = d.length - 1;
+            const v = typeof d[i] === 'object' ? d[i].value : d[i];
+            const p = c.convertToPixel({ seriesIndex: 0 }, [v, i]);
+            if (!p) return null;
+            const r = el.getBoundingClientRect();
+            return { x: r.left + p[0] - (v >= 0 ? 4 : -4), y: r.top + p[1],
+                     gid: (typeof d[i] === 'object' ? d[i].gid : null) }; }""")
+
+    spot = rank_spot()
     clicked = spot and spot.get("gid")
     if spot:
         pg.mouse.click(spot["x"], spot["y"])
         pg.wait_for_timeout(900)
+        # heatPanel 產生的是 .ms > a[href^="#stock/"]，不是 a.lk-stock（那是 L.stock() 的樣式）
         st2 = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
-            return { open: !!b && !b.hidden, chips: document.querySelectorAll('#rankPanel a.lk-stock').length,
+            return { open: !!b && !b.hidden,
+                     chips: document.querySelectorAll('#rankPanel .ms a[href^="#stock/"]').length,
                      hash: location.hash }; }""")
         ok("點排行的長條會原地展開成分股（圖四）", st2["open"] and st2["chips"] > 0, st2)
         ok("點排行的長條不會跳頁（圖四）", st2["hash"] == hash0, st2["hash"])
@@ -2150,8 +2160,9 @@ def t_batch2(pg, base):
             return { lo: Math.min(...ops), hi: Math.max(...ops), n: ops.length }; }""")
         ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
            bool(dim) and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
-        # 再點一次要取消
-        pg.mouse.click(spot["x"], spot["y"])
+        # 再點一次要取消 —— 座標要重算（上面那段的理由）
+        spot2 = rank_spot() or spot
+        pg.mouse.click(spot2["x"], spot2["y"])
         pg.wait_for_timeout(900)
         ok("再點一次同一根長條會收起來（圖四）",
            pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
