@@ -896,7 +896,8 @@ def t_flow(pg, base):
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
         return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
     ok("輪動階段的天數是拉 Bar 不是按鈕", bool(bar), bar)
-    ok("拉 Bar 的範圍是 5–20 天", bool(bar) and bar["min"] == 5 and bar["max"] == 20, bar)
+    # 2026-09-19（Andy N4「時間週期拉到 30 天」）：上限 20 → 30，後端 trail 同步
+    ok("拉 Bar 的範圍是 5–30 天", bool(bar) and bar["min"] == 5 and bar["max"] == 30, bar)
     seenb = {}
     for v in (5, 12, 20):
         set_range(pg, "#rotBack input[type=range]", v, 800)
@@ -2024,14 +2025,23 @@ def t_stock(pg, base, code):
     click(pg, "#mtfBtn", 1400)
     ok("切回單一週期，K 線圖回得來", count(pg, "#lwc canvas") > 0)
 
-    # --- 產業鏈同步：點上方產業鏈的另一檔，個股頁要跟著換
+    # --- 產業鏈同步（N7 改過行為）：
+    #     2026-09-19 起點公司**不會**直接換個股頁，而是先開原地面板；
+    #     要換股票得按面板裡那顆「看個股頁 →」。驗的是這條路徑走得通。
     if count(pg, "#chainMap .co"):
         h0 = pg.evaluate("location.hash")
-        pg.evaluate("""() => { const cs = [...document.querySelectorAll('#chainMap .co')];
+        pg.evaluate("""() => { const cs = [...document.querySelectorAll('#chainMap .co[data-code]')];
             const other = cs.find(c => !c.classList.contains('sel'));
             if (other) other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }""")
-        pg.wait_for_timeout(1800)
-        changed("點產業鏈上的另一檔，個股頁跟著換", h0, pg.evaluate("location.hash"))
+        pg.wait_for_timeout(1200)
+        ok("點產業鏈上的另一檔不會馬上換頁（N7）",
+           pg.evaluate("location.hash") == h0, pg.evaluate("location.hash"))
+        opened = pg.evaluate("() => { const b = document.getElementById('coBox'); return !!b && b.textContent.indexOf('看個股頁') >= 0; }")
+        ok("會開出帶「看個股頁」的面板（N7）", opened)
+        if opened:
+            pg.eval_on_selector("#coBox .btn.primary", "b => b.click()")
+            pg.wait_for_timeout(1800)
+            changed("按了面板裡的「看個股頁 →」才換股票（N7）", h0, pg.evaluate("location.hash"))
 
 
 def check_play(pg, sel, chart_id=None):
