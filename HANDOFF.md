@@ -14,15 +14,28 @@
 > | `backfill-financials.bat` | `backfill.yml` 的 Run workflow 面板有同樣三個輸入 | 不用了（已附點擊路徑）|
 >
 > **只能人工做的四件事**（workflow 物理上取代不了，已在 SETUP.md 第 8 節寫成點擊層級）：
-> 裝工具／`gh auth login`、設 repo Secrets（`FRED_API_KEY` 仍未設）、repo 的 Pages 與權限一次性設定、
-> Cloudflare Worker 重貼。最後一項**可以**做成 workflow（`wrangler deploy`），
-> 但要 Andy 先放一組 `CLOUDFLARE_API_TOKEN` Secret —— 等他點頭再做。
+> 裝工具／`gh auth login`、設 repo Secrets、repo 的 Pages 與權限一次性設定、Cloudflare Worker 重貼。
+>
+> **★ 同一天稍晚：第四項已經自動化。** 新增 `.github/workflows/deploy-worker.yml` ——
+> `workers/quote-proxy/**` 一推上 main 就 `wrangler deploy`，然後**驗證線上真的換成新版**
+> （`/health` 要 200；`/chart` 不帶 id 要 400，回 404 就是舊版 —— 那正是 09-14 三張大盤圖
+> 不出現的症狀）。Secret 沒設時工作流用一句中文停下來，不丟英文錯誤。
+>
+> **★ Secrets 只能 Andy 自己設，我設不了，這點要講清楚**：這個雲端 session 沒有 `gh`
+> （`which gh` 回非零），而 session 的 token 打 `GET /repos/MiaoZiKe/tw-rotation/actions/secrets`
+> 與 `.../secrets/public-key` **兩個都是 403**。所以「用 gh secret set 幫他設」在這裡物理上做不到，
+> `gh secret list` 也驗不了。**更重要的是：不要請 Andy 把金鑰值貼進對話**——
+> 貼了就永遠留在對話紀錄裡，而且換不到任何好處。點擊層級的設定步驟寫在 `SETUP.md` 第 8 節。
+>
+> 待辦：`FRED_API_KEY`、`CLOUDFLARE_API_TOKEN`、`CLOUDFLARE_ACCOUNT_ID` 三個 Secret 仍未設，
+> 都由 Andy 在 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions> 自己放。
 >
 > 另外實測確認：`_push_core.bat` 裡那段 `_pending\workflows` 複製機制，是為了「Claude 寫不了
 > `.github/workflows`」而做的繞道；這種雲端 session 已經可以直接改工作流檔（dry-run 通過），
 > `_pending/` 目前也不存在。先不動那段程式碼，等哪次真的要改工作流時一併驗證再清掉。
 >
-> **這一批只動文件**（`SETUP.md`、`HANDOFF.md`），沒碰 `site/**` 也沒碰 `pipeline/**`，
+> **這一批動的是文件與一條新工作流**（`SETUP.md`、`HANDOFF.md`、`workers/README.md`、
+> `.github/workflows/deploy-worker.yml`），沒碰 `site/**` 也沒碰 `pipeline/**`，
 > 所以 `pages.yml` 不會觸發、網站版號不會變 —— 線上看不到差別是正常的，不是沒推成功。
 
 

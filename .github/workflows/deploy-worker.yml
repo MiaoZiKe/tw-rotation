@@ -1,0 +1,99 @@
+name: 部署 Cloudflare Worker
+
+# 把 workers/quote-proxy/worker.js 自動部署到 Cloudflare，取代「到 dash 手動重貼再按 Deploy」。
+#
+# 為什麼要有這條：即時報價那一層是 Cloudflare Worker（瀏覽器抓不到 mis.twse.com.tw，
+# 被 CORS 擋，所以中間要有一手代理）。以前 worker.js 一改，Andy 就得自己開
+# dash.cloudflare.com → Workers → tw-quote → Edit code → 全選刪掉 → 貼上 → Deploy。
+# 2026-09-14 與 09-15 兩批都栽在這裡：程式碼推上去了、Worker 還是舊版，
+# 網站上三張大盤圖直接不出現（market3.js 會印「Worker 還是舊版（只有 /quote）」）。
+#
+# ★ 要先有兩個 Secret 才會動（Settings → Secrets and variables → Actions）：
+#     CLOUDFLARE_API_TOKEN   用 Cloudflare 的「Edit Cloudflare Workers」範本建
+#     CLOUDFLARE_ACCOUNT_ID  dash.cloudflare.com 網址列 /accounts/<這一串>/ 那段
+#   沒設的話這條工作流會用一句看得懂的中文停下來，不會丟一堆 wrangler 的英文錯誤。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "workers/quote-proxy/**"
+      - ".github/workflows/deploy-worker.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# 同時只跑一個，避免兩次推送互相覆蓋
+concurrency:
+  group: cf-worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 檢查 Secret 有沒有設
+        env:
+          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          missing=""
+          [ -z "$TOKEN" ]   && missing="$missing CLOUDFLARE_API_TOKEN"
+          [ -z "$ACCOUNT" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::還沒設這些 Secret：$missing"
+            echo "設定位置：repo → Settings → 左側 Secrets and variables → Actions"
+            echo "         → 右上角 New repository secret → Name 填上面那個名字 → Secret 貼值 → Add secret"
+            exit 1
+          fi
+          echo "兩個 Secret 都在。"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # wrangler 直接讀 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID 這兩個環境變數，
+      # 所以不需要 wrangler login，也不需要把 account_id 寫進 wrangler.toml（那會進 public repo）。
+      - name: wrangler deploy
+        id: deploy
+        working-directory: workers/quote-proxy
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          npx --yes wrangler@4 deploy 2>&1 | tee deploy.log
+          # 部署完 wrangler 會印出 workers.dev 網址，抓出來給下一步驗證用。
+          url=$(grep -oE 'https://[a-z0-9.-]+\.workers\.dev' deploy.log | head -1)
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "部署後網址：${url:-（沒抓到，改用預設值驗證）}"
+
+      # 驗證「真的換成新版」而不只是「指令沒報錯」。
+      # /health  → 200，代表 Worker 活著
+      # /chart   → 不帶 id 時新版回 400（bad id），舊版根本沒有這條路由、回 404。
+      #            所以 404 就等於沒換到新版 —— 這正是 09-14 那次網站三張圖不出現的症狀。
+      - name: 驗證線上 Worker 真的是新版
+        env:
+          FALLBACK: https://tw-quote.kcq01010909.workers.dev
+          DEPLOYED: ${{ steps.deploy.outputs.url }}
+        run: |
+          base="${DEPLOYED:-$FALLBACK}"
+          echo "驗證對象：$base"
+          health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$base/health")
+          chart=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$base/chart")
+          echo "  /health = $health（期望 200）"
+          echo "  /chart  = $chart（期望 400；404 代表還是舊版）"
+          fail=0
+          [ "$health" = "200" ] || { echo "::error::/health 回 $health，Worker 沒活著"; fail=1; }
+          if [ "$chart" = "404" ]; then
+            echo "::error::/chart 回 404 —— 線上還是舊版的 Worker，網站上三張大盤圖不會出現"
+            fail=1
+          elif [ "$chart" != "400" ]; then
+            echo "::warning::/chart 回 $chart，不是預期的 400，請看 worker.js 是不是又改了路由"
+          fi
+          [ "$fail" = "0" ] || exit 1
+          echo "新版 Worker 已上線：$base"
