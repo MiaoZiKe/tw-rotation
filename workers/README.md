@@ -20,7 +20,15 @@ Cloudflare Workers 免費方案：每天 10 萬次請求。盤中每分鐘一次
 
 ---
 
-## 部署（在網頁上完成，不用裝任何東西）
+## 部署
+
+> **2026-09-18 起已自動化，正常情況下這一節你不用看。**
+> `.github/workflows/deploy-worker.yml`：`workers/quote-proxy/**` 一推上 main 就自動
+> `wrangler deploy`，並驗證線上真的換成新版。只要先設好 `CLOUDFLARE_API_TOKEN`
+> 與 `CLOUDFLARE_ACCOUNT_ID` 兩個 repo Secret（步驟見 `SETUP.md` 第 8 節）。
+> 下面這段留著，是給「第一次還沒有 Cloudflare 帳號」與「自動部署壞掉要手動救」用的。
+
+### 手動部署（第一次建帳號，或自動部署壞掉時）
 
 1. 開 <https://dash.cloudflare.com/sign-up>，用 email 註冊，驗證信箱。
    （問你要不要加網域就選跳過／Skip，我們只用 workers.dev 子網域。）

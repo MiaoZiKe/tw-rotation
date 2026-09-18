@@ -40,6 +40,8 @@ Windows 初次安裝也可以直接雙擊 `setup.bat`（→ `setup.ps1`，可重
 |---|---|---|---|
 | `FINMIND_TOKEN` | FinMind API（歷史價量、法人、財報、股利、資券、股權分散）。註冊會員 600 req/hr，未註冊 300 | <https://finmindtrade.com> 註冊並驗證 email → 會員頁複製 token | 必要 |
 | `FRED_API_KEY` | 美國總經指標（FRED） | <https://fred.stlouisfed.org/docs/api/api_key.html> 免費申請 | 選用 |
+| `CLOUDFLARE_API_TOKEN` | 自動部署即時報價 Worker（`deploy-worker.yml`） | Cloudflare → 右上頭像 → **My Profile** → **API Tokens** → **Create Token** → 用 **Edit Cloudflare Workers** 範本 | 選用 |
+| `CLOUDFLARE_ACCOUNT_ID` | 同上 | `dash.cloudflare.com` 網址列 `/accounts/<這一串>/` 那段 | 選用 |
 
 ### 本機執行時的環境變數（程式讀 `os.environ`，見 `pipeline/config.py`）
 | 名稱 | 用途 | 預設 |
@@ -160,7 +162,22 @@ Settings → Actions → General → Workflow permissions＝**Read and write**�
    `FINMIND_TOKEN` 已設；`FRED_API_KEY` **還沒設**，等總經那塊要用時會再提醒。
 3. **repo 一次性設定**：Settings → **Pages** → Source＝**GitHub Actions**；
    Settings → **Actions** → **General** → Workflow permissions＝**Read and write**。（都已設好。）
-4. **Cloudflare Worker 重貼**：Cloudflare → Workers → `tw-quote` → 編輯程式碼 → 貼上
-   `workers/quote-proxy/worker.js` 全文 → Deploy。
-   這一步**可以做成 workflow**（`wrangler deploy`），但需要你先在上面第 2 點放一組 `CLOUDFLARE_API_TOKEN`。
-   要的話跟我說，我把 workflow 寫好。
+4. ~~**Cloudflare Worker 重貼**~~ —— **2026-09-18 已自動化**，見下一小節。
+
+### Cloudflare Worker 已經不用手動重貼了
+
+`.github/workflows/deploy-worker.yml`：`workers/quote-proxy/**` 一推上 main 就自動
+`wrangler deploy`，然後**驗證線上真的換成新版**（`/health` 要回 200；`/chart` 不帶 id 要回 400，
+回 404 就代表還是舊版 —— 那正是 2026-09-14 那次網站三張大盤圖不出現的症狀）。
+
+**要先設兩個 Secret 它才會動**（沒設的話工作流會用一句中文停下來，不會丟英文錯誤）：
+
+1. 打開 <https://github.com/MiaoZiKe/tw-rotation/settings/secrets/actions>
+2. 右上角綠色 **New repository secret**
+3. Name 填 `CLOUDFLARE_API_TOKEN`，Secret 貼 Cloudflare 用 **Edit Cloudflare Workers** 範本建的 Token → **Add secret**
+   （Token 建法：Cloudflare 右上頭像 → **My Profile** → **API Tokens** → **Create Token** → 找到
+   **Edit Cloudflare Workers** 那一列按 **Use template** → 最下面 **Continue to summary** → **Create Token** → 複製）
+4. 再按一次 **New repository secret**，Name 填 `CLOUDFLARE_ACCOUNT_ID`，Secret 貼
+   `dash.cloudflare.com` 網址列 `/accounts/` 後面那一串 → **Add secret**
+
+設好之後要立刻部署一次：Actions → 左側 **部署 Cloudflare Worker** → 右上 **Run workflow ▾** → 綠色 **Run workflow**。
