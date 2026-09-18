@@ -74,18 +74,29 @@ def serve():
 
 # ------------------------------------------------------------------ 小工具
 def click(pg, sel: str, wait: int = 300):
-    """用真的滑鼠點（會捲進畫面），點不到就記一筆。"""
+    """用真的滑鼠點（會捲進畫面），點不到就記一筆。
+
+    2026-09-18 重寫，兩個問題一起解（DECISIONS #190）：
+
+    1. **`query_selector` 拿到的是「當下那一刻」的 ElementHandle。**
+       這個專案的表格是整段 `innerHTML` 重寫的，只要在拿到 handle 之後
+       又重畫一次（面向切換、live.js 的定時更新都會），handle 就指向一個
+       已經脫離 DOM 的節點 —— 它永遠不會變成「可見」，於是卡到逾時。
+       改用 `locator`：Playwright 會在每次重試時**重新解析選擇器**，
+       重畫幾次都抓得到當下真正在畫面上的那個元素。
+
+    2. **原本 `scroll_into_view_if_needed()` 沒有給 timeout，吃預設的 30 秒。**
+       一次失敗就是 30 秒，`t_overview` 光這樣就卡掉快 20 分鐘，
+       整輪驗收因此要跑 25 分鐘以上。改成 6 秒 —— 點不到就是點不到，
+       等 30 秒不會變成點得到，只是讓每一輪驗收都更難跑完。
+    """
     try:
-        el = pg.query_selector(sel)
-        if not el:
-            fails.append(f"找不到可點的元素：{sel}")
-            return False
-        el.scroll_into_view_if_needed()
-        el.click(timeout=4000)
+        loc = pg.locator(sel).first
+        loc.click(timeout=6000)          # locator.click 自己會捲進畫面並重試
         pg.wait_for_timeout(wait)
         return True
     except Exception as e:  # noqa: BLE001
-        fails.append(f"點不下去 {sel}：{type(e).__name__} {e}")
+        fails.append(f"點不下去 {sel}：{type(e).__name__} {str(e).splitlines()[0]}")
         return False
 
 
