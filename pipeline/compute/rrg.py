@@ -126,8 +126,81 @@ def sankey(today: pd.DataFrame, members: dict, top_groups: int = 12, top_members
     return {"nodes": nodes, "links": links}
 
 
-def share_series(group_hist: pd.DataFrame, days: int = 60, top: int = 12) -> dict:
-    """族群成交值佔比逐日序列（河流圖用）；前 top 個族群 + 其他。"""
+def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
+                 membership: "pd.DataFrame | None",
+                 days: int = 60, top_groups: int = 12, top_members: int = 3) -> dict:
+    """資金去向的**逐日**版本（Andy 2026-09-18 圖六：「一樣都具備相資金輪動的拉Bar
+    可以觀察並搭配播放功能」）。
+
+    原本的 `sankey()` 只有今天一天，所以那張圖拉不動也播不了。
+    這裡給最近 `days` 天，前端就能像輪動時鐘一樣往回拉、一天一天播。
+
+    ★ 這份要**寫成獨立的 JSON 檔**，不要塞進 flow_v3 ——
+      flow_v3 已經是這個網站最大的一份，再加 60 天 × 12 族群 × 3 檔會讓
+      每一頁（包含只想看總覽的人）都得先下載它。
+
+    回傳 {dates: [...], groups: [{gid, name, chain, tv: [...]}], leaves: {date: [{gid, code, name, tv}]}}
+    """
+    if group_hist is None or group_hist.empty:
+        return {"dates": [], "groups": [], "leaves": {}}
+    g = group_hist.copy()
+    g["date"] = g["date"].astype(str)
+    dates = sorted(g["date"].unique())[-int(days):]
+    if not dates:
+        return {"dates": [], "groups": [], "leaves": {}}
+    g = g[g["date"].isin(dates)]
+    latest = dates[-1]
+    order = (g[g["date"] == latest].sort_values("turnover", ascending=False)["group_id"]
+             .head(top_groups).tolist())
+    meta = g.drop_duplicates("group_id").set_index("group_id")
+    groups = []
+    for gid in order:
+        sub = g[g["group_id"] == gid].set_index("date")["turnover"].reindex(dates)
+        groups.append({
+            "gid": str(gid),
+            "name": str(meta.loc[gid]["group_name"]) if gid in meta.index else str(gid),
+            "chain": (None if gid not in meta.index or pd.isna(meta.loc[gid].get("chain"))
+                      else str(meta.loc[gid]["chain"])),
+            "tv": [_v(x, 0) for x in sub.tolist()],
+        })
+    # 每一天、每個族群的前幾檔（給前端展開用）
+    leaves: dict[str, list] = {}
+    if price is not None and not price.empty and "turnover" in price.columns:
+        # membership 是 loader.membership() 的長格式 DataFrame（一列一個 code×group_id）
+        code2g: dict[str, list[str]] = {}
+        keep = {str(x) for x in order}
+        if membership is not None and len(membership):
+            for r in membership.itertuples():
+                if str(r.group_id) in keep:
+                    code2g.setdefault(str(r.code), []).append(str(r.group_id))
+        if code2g:
+            px = price.copy()
+            px["date"] = px["date"].astype(str)
+            px = px[px["date"].isin(dates)]
+            name_of = (px.drop_duplicates("code").set_index("code")["name"].to_dict()
+                       if "name" in px.columns else {})
+            for d, day in px.groupby("date"):
+                buckets: dict[str, list] = {}
+                for r in day.itertuples():
+                    for gid in code2g.get(str(r.code), ()):
+                        buckets.setdefault(gid, []).append((str(r.code), float(r.turnover or 0)))
+                rows = []
+                for gid, lst in buckets.items():
+                    lst.sort(key=lambda t: -t[1])
+                    for c, tv in lst[:top_members]:
+                        rows.append({"gid": gid, "code": c, "name": str(name_of.get(c, c)), "tv": tv})
+                leaves[str(d)] = rows
+    return {"dates": dates, "groups": groups, "leaves": leaves}
+
+
+def share_series(group_hist: pd.DataFrame, days: int = 250, top: int = 12) -> dict:
+    """族群成交值佔比逐日序列（河流圖用）；前 top 個族群 + 其他。
+
+    2026-09-18（Andy 圖七「也需要播放功能、拉Bar + &  -」）：60 → 250 天。
+    原本只給 60 天，前端的拉 Bar 只能「從尾端往前切幾天」；
+    要做「把截止日往前挪、一天一天回放」就得有更長的歷史，不然回放兩下就沒資料了。
+    250 個交易日約一年，回放一整年綽綽有餘。
+    """
     if group_hist is None or group_hist.empty:
         return {"dates": [], "series": []}
     g = group_hist.copy()

@@ -917,13 +917,15 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       <div class="rotmove" id="rotMove"></div>
       <div class="stageboard" id="rotBoard"></div></div>
     <div class="grid g2" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>資金去向 <small>今日成交值：大盤 → 產業鏈 → 族群 → 代表股</small></h3>
+      <div class="card"><div class="row spread"><h3>資金去向 <small id="sankeySub">大盤 → 族群 → 代表股：線越粗顏色越深＝錢越多</small></h3>
         <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
         <div class="howtxt" id="how-sankey" hidden></div>
+        <div id="sankeyDays" title="看哪一天：拖曳往回看，按 ▶ 一天一天播"></div>
         <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>族群佔比河流 <small>成交值佔比 %</small></h3>
         <div class="row" style="gap:10px;align-items:center">
-          <div id="riverDays" title="看最近幾天：拖曳調整（最多 60 天）"></div>
+          <div id="riverDays" title="看最近幾天：拖曳調整"></div>
+          <div id="riverEnd" title="截止日：往回拉看以前的樣子，按 ▶ 一天一天播"></div>
           <button class="howbtn" data-how="river">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-river" hidden></div>
         <div id="riverWrap"><div id="river" class="chart tall"></div></div></div>
@@ -932,13 +934,17 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">
           <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
+          <div id="instEnd" title="截止日：往回拉看以前的樣子，按 ▶ 一天一天播"></div>
           <button class="howbtn" data-how="inst">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
       <div class="card"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
         <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div>
         <button class="howbtn" data-how="conc">怎麼看 ?</button></div></div>
-        <div class="howtxt" id="how-conc" hidden></div><div id="conc" class="chart tall"></div></div>
+        <div class="howtxt" id="how-conc" hidden></div>
+        <div class="row" id="concMa" style="gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-bottom:6px"></div>
+        <div id="conc" class="chart tall"></div>
+        <div class="hpanel" id="concSide" hidden></div></div>
     </div>
     <!-- 估值篩選：Andy 要「本益比需要多可篩選功能 全部在一起」 -->
     <div class="card" style="margin-top:16px">

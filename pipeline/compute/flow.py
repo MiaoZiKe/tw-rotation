@@ -166,12 +166,75 @@ def concentration(group_hist: pd.DataFrame, top_n: int = 5) -> pd.DataFrame:
         return pd.DataFrame()
     rows = []
     for d, g in group_hist.groupby("date"):
-        s = g.sort_values("turnover", ascending=False)["turnover_share"]
+        srt = g.sort_values("turnover", ascending=False)
+        s = srt["turnover_share"]
+        # 2026-09-18（Andy）：「前幾大當我游標點選那天時，會旁邊出現對應族群」。
+        # 每一天都帶著當天的前 10 大是誰 —— 前端點到哪一天就直接讀，不必再回頭問後端。
+        top = [{"g": str(r.group_id), "n": str(getattr(r, "group_name", r.group_id)),
+                "share": float(r.turnover_share)}
+               for r in srt.head(10).itertuples() if pd.notna(r.turnover_share)]
         rows.append({"date": d, "top_share": float(s.head(top_n).sum()),
-                     "top10_share": float(s.head(10).sum())})
+                     "top10_share": float(s.head(10).sum()), "top": top})
     out = pd.DataFrame(rows).sort_values("date")
     out["top_share_ma20"] = out["top_share"].rolling(20, min_periods=5).mean()
     out["top10_share_ma20"] = out["top10_share"].rolling(20, min_periods=5).mean()
+    return out
+
+
+def concentration_members(group_hist: pd.DataFrame, price: pd.DataFrame,
+                          membership: "pd.DataFrame | None", days: int = 400, top_groups: int = 10,
+                          top_members: int = 5) -> dict:
+    """集中度圖點到某一天時，那天前 N 大族群各自的前幾檔成交值。
+
+    Andy 2026-09-18：「前幾大當我游標點選那天時，會旁邊出現對應族群，
+    且對應族群在點會出現對應股票，此時的股票點選才會連結到個股畫面」。
+
+    所以要的是「某一天 → 族群 → 成分股」三層。前兩層在 `concentration()` 的 top 欄位裡，
+    這裡補第三層。**只給最近 `days` 天**，再往前的日期點下去會顯示「那天太久了沒留成分股」，
+    因為每天 × 10 族群 × 5 檔全部留著會讓 JSON 變得很肥。
+
+    回傳 {date: {group_id: [{code, name, turnover}, ...]}}。
+    """
+    if group_hist is None or group_hist.empty or price is None or price.empty:
+        return {}
+    dates = sorted({str(d) for d in group_hist["date"]})[-int(days):]
+    if not dates:
+        return {}
+    gh = group_hist[group_hist["date"].astype(str).isin(dates)]
+    px = price.copy()
+    px["date"] = px["date"].astype(str)
+    px = px[px["date"].isin(dates)]
+    if px.empty or "turnover" not in px.columns:
+        return {}
+    # code → 它屬於哪些族群。membership 是 loader.membership() 的長格式 DataFrame
+    # （一列一個 code×group_id），不是 dict —— 一檔股票可以屬於多個族群。
+    code2g: dict[str, list[str]] = {}
+    if membership is not None and len(membership):
+        for r in membership.itertuples():
+            code2g.setdefault(str(r.code), []).append(str(r.group_id))
+    if not code2g:
+        return {}
+    name_of = {}
+    if "name" in px.columns:
+        name_of = px.drop_duplicates("code").set_index("code")["name"].to_dict()
+    out: dict[str, dict] = {}
+    for d, day in px.groupby("date"):
+        gday = gh[gh["date"].astype(str) == d].sort_values("turnover", ascending=False)
+        keep = [str(x) for x in gday.head(top_groups)["group_id"].tolist()]
+        if not keep:
+            continue
+        keepset = set(keep)
+        buckets: dict[str, list] = {g: [] for g in keep}
+        for r in day.itertuples():
+            for g in code2g.get(str(r.code), ()):
+                if g in keepset:
+                    buckets[g].append((str(r.code), float(r.turnover or 0)))
+        one = {}
+        for g, lst in buckets.items():
+            lst.sort(key=lambda t: -t[1])
+            one[g] = [{"code": c, "name": str(name_of.get(c, c)), "turnover": tv}
+                      for c, tv in lst[:top_members]]
+        out[str(d)] = one
     return out
 
 

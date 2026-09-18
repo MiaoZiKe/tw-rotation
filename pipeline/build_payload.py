@@ -161,7 +161,16 @@ def build() -> None:
 
     _write("groups_today", today.to_dict("records"))
     _write("rotation", flow.rotation_radar(group_hist).head(25).to_dict("records"))
-    _write("concentration", flow.concentration(group_hist).tail(120).to_dict("records"))
+    # 120 → 400 天（Andy 2026-09-18：均線要能到 240 日，只留 120 天算不出來）。
+    # 每一列現在還帶著當天的前 10 大族群（點某一天時旁邊直接列得出來）。
+    _write("concentration", flow.concentration(group_hist).tail(400).to_dict("records"))
+    # 集中度圖點到某一天 → 那天前 10 大族群各自的前 5 檔（第三層，獨立檔案不進 flow_v3）
+    try:
+        _write("concentration_members",
+               flow.concentration_members(group_hist, price, loader.membership(), 400))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("集中度成分股產出失敗：%s", exc)
+        _write("concentration_members", {})
     _write("relative_strength",
            flow.relative_strength(group_hist, market).to_dict("records"))
     # 三種法人各出一份（Andy 2026-09-15：「還要加上外資買超，以及綜合」）。
@@ -345,15 +354,21 @@ def build() -> None:
             "rrg": rrg.rrg(group_hist, price),
             "sankey": rrg.sankey(today, gdetail),
             "share": rrg.share_series(group_hist),
-            # 族群 × 法人的逐日序列（最近 30 天），給前端的 0–30 天拉 Bar 用
-            "inst_daily": flow.inst_daily_series(group_hist, 30),
+            # 族群 × 法人的逐日序列：30 → 120 天（Andy 2026-09-18 圖八要「截止日」回放，
+            # 只有 30 天的話回放兩下就沒資料了）
+            "inst_daily": flow.inst_daily_series(group_hist, 120),
             # 族群成交值佔比的逐日序列（60 天），給圖四資金流向排行的 1–30 天拉 Bar 用。
             # 給 60 天是因為拉到 30 天時比較基準要再往前 30 天（「最近 30 天 vs 前 30 天」）。
             "share_daily": flow.share_daily(group_hist, 60),
             **flow.period_flows(group_hist),
         })
+        # 資金去向的逐日版（圖六的拉Bar＋播放）。
+        # ★ 刻意拆成獨立檔：flow_v3 已經是全站最大的一份，再加 60 天 × 12 族群 × 3 檔，
+        #   連只想看總覽的人都得先下載它。這一份只有資金流向頁會去載。
+        _write("sankey_daily", rrg.sankey_daily(group_hist, price, loader.membership(), 60))
     except Exception as exc:  # noqa: BLE001
         log.warning("資金流向 v3 產出失敗：%s", exc)
+        _write("sankey_daily", {"dates": [], "groups": [], "leaves": {}})
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
                            "share": {"dates": [], "series": []},
                            "inst_daily": {"dates": [], "groups": []},

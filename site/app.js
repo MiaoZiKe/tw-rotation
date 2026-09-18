@@ -1644,21 +1644,27 @@
     };
     /* I1（Andy 2026-09-18：「族群 × 法人需要新增時間週期也是拉 Bar 式，0-30 天，
        且需要新增占比 % 單位」）。0 保留成「跟著上方期間走」，不然 0 天沒有意義。*/
+    /* 圖八（Andy 2026-09-18「族群 × 法人一樣需要新增拉Bar +&- 播放功能」）：
+       「最近 N 天」的長度不變，改成讓**截止日**往回挪 —— 這樣播放時看到的是
+       「同樣長度的窗，一天一天往前滑」，而不是窗越拉越長。
+       後端 inst_daily 已從 30 天拉到 120 天，回放才有東西可放。*/
+    let instEnd = null;                 // 截止日索引（1-based）；null＝最新
     const drawInstDays = (n) => {
       const src = f3 && f3.inst_daily;
       if (!src || !src.dates || !src.dates.length) {
         return empty('instGroups', '逐日法人資料還沒產出（下一輪盤後管線就會有）');
       }
-      const k = Math.min(n, src.dates.length);
-      const from = src.dates.length - k;
-      const sum = (arr) => { let s = null; for (let i = from; i < src.dates.length; i++) {
+      const end = instEnd == null ? src.dates.length : Math.max(1, Math.min(src.dates.length, instEnd));
+      const k = Math.min(n, end);
+      const from = end - k;
+      const sum = (arr) => { let s = null; for (let i = from; i < end; i++) {
         const v = (arr || [])[i]; if (v != null) s = (s || 0) + v; } return s; };
       const gs = src.groups.map(g => ({
         group_id: g.group_id, group_name: g.group_name,
         foreign: sum(g.foreign), trust: sum(g.trust), dealer: sum(g.dealer),
       })).map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }))
         .filter(g => g.foreign != null || g.trust != null || g.dealer != null);
-      $('#instSub').textContent = `最近 ${k} 個交易日的三大法人淨買超（張）`;
+      $('#instSub').textContent = `${src.dates[from] || ''} ～ ${src.dates[end - 1] || ''}（${k} 個交易日）三大法人淨買超（張）`;
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
@@ -1698,21 +1704,51 @@
     instDays = rangeBar('instDays', { min: 0, max: 30, value: 0, key: 'tw.inst.days',
       label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
       onChange: () => drawPeriod() });
+    // 圖八的截止日：往回拉看以前的樣子，按 ▶ 一天一天播
+    {
+      const idl = (f3 && f3.inst_daily && f3.inst_daily.dates) || [];
+      if (idl.length > 5) {
+        playBar('instEnd', { min: 5, max: idl.length, value: idl.length, key: 'tw.inst.end',
+          label: '截止', fmt: (v) => (v >= idl.length ? '最新' : (idl[v - 1] || v)),
+          onChange: (v) => { instEnd = v; if (instDays && instDays.value > 0) drawInstDays(instDays.value); } });
+      }
+    }
     // 圖四：和輪動時鐘同一套（＋ − ▶），0＝跟著上方期間走
     rankDays = playBar('rankDays', { min: 0, max: 30, value: 0, key: 'tw.rank.days',
       label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
       onChange: () => drawPeriod() });
     drawPeriod();
 
-    renderSankey(f3 && f3.sankey);
+    /* 圖六：改吃獨立檔 sankey_daily（60 天），配一支「看哪一天」的播放拉Bar。
+       這份檔案只有這一頁會載，所以在這裡才 load。*/
+    let sankeyBar = null;
+    load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
+      const n = (sd && sd.dates && sd.dates.length) || 0;
+      renderSankey(sd, n ? n - 1 : 0);
+      if (n > 1) {
+        sankeyBar = playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
+          label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
+          onChange: (v) => renderSankey(sd, v) });
+      }
+    });
     /* H1（Andy 2026-09-18：「族群佔比河流，也需要添加占比 %，且可以切換時間週期，採用拉 Bar 方式 Max 60 天」）。
        payload 給滿 60 天，天數就是「只畫最後 N 天」—— 不用重抓也不用重算。*/
     const shareAll = f3 && f3.share;
     const maxDays = shareAll && shareAll.dates ? shareAll.dates.length : 60;
-    const drawRiver = (n) => renderRiver(sliceShare(shareAll, n));
-    drawRiver(Math.min(maxDays, +((() => { try { return localStorage.getItem('tw.river.days'); } catch (e) { return null; } })() || maxDays)));
-    rangeBar('riverDays', { min: 5, max: maxDays, value: maxDays, key: 'tw.river.days',
-      label: '最近', onChange: drawRiver });
+    /* 圖七（Andy 2026-09-18）：除了「最近 N 天」，再加一支「截止日」——
+       把窗往回挪就能看以前長什麼樣，按 ▶ 一天一天播。
+       後端的 share_series 已經從 60 天拉到 250 天，不然回放兩下就沒資料了。*/
+    let riverN = Math.min(maxDays, +((() => { try { return localStorage.getItem('tw.river.days'); } catch (e) { return null; } })() || 60));
+    let riverEnd = maxDays;                       // 截止日的索引（1-based，maxDays＝最新）
+    const drawRiver = () => renderRiver(sliceShare(shareAll, riverN, riverEnd));
+    drawRiver();
+    rangeBar('riverDays', { min: 5, max: Math.min(120, maxDays), value: riverN, key: 'tw.river.days',
+      label: '最近', onChange: (v) => { riverN = v; drawRiver(); } });
+    if (maxDays > 5) {
+      playBar('riverEnd', { min: 5, max: maxDays, value: maxDays, key: 'tw.river.end',
+        label: '截止', fmt: (v) => (v >= maxDays ? '最新' : (shareAll.dates[v - 1] || v)),
+        onChange: (v) => { riverEnd = v; drawRiver(); } });
+    }
     const drawConc = () => renderConc(conc, flowState.concTop);
     drawConc();
     $$('#concSeg button').forEach(b => b.onclick = () => {
@@ -1858,72 +1894,104 @@
   let sankeyTimer = null;
   function stopSankeyFlow() { if (sankeyTimer) { clearInterval(sankeyTimer); sankeyTimer = null; } }
 
-  function renderSankey(sk) {
+  /* 資金去向（Andy 2026-09-18 圖六）：
+       「改成水平並且全部都以點跟線呈現，金資越多的 顏色越深也越粗，
+         並且一樣都具備相資金輪動的拉Bar 可以觀察並搭配播放功能，
+         白色頁面時 顏色不要太深 親和一點」
+
+     所以整張圖從桑基改成**水平的樹**：大盤 → 族群 → 代表股，全部是點跟線。
+     - 點的大小、線的粗細、顏色深淺，三者都綁在「這條分支的成交值」上
+     - 資料改吃 sankey_daily（獨立檔，60 天），所以可以往回拉、可以播
+     - 原本那個「電流沿著深度跑」的脈動整段拿掉：它每 90ms 就 setOption 一次，
+       而現在有播放功能了，動的東西已經夠多
+
+     ★ 淺色主題的透明度上限壓到 0.62（深色是 0.95）。
+       白底上濃到 0.95 的線會變成一團黑，那正是他說的「顏色不要太深」。*/
+  function renderSankey(sd, idx) {
     stopSankeyFlow();
-    if (!sk || !sk.links || !sk.links.length) return empty('sankey');
-    const leafVal = {}; sk.links.forEach(l => { const t = sk.nodes.find(n => n.name === l.target); if (t && t.code) leafVal[l.target] = (leafVal[l.target] || 0) + l.value; });
-    const keepLeaf = new Set(Object.entries(leafVal).sort((a, b) => b[1] - a[1]).slice(0, 18).map(x => x[0]));
-    const nodes = sk.nodes.filter(n => !n.code || keepLeaf.has(n.name));
-    const links = sk.links.filter(l => nodes.some(n => n.name === l.source) && nodes.some(n => n.name === l.target));
-    // G3 占比 %：分母用「最上層流出去的總量」＝今天的總成交值
-    const depthOf = {}; nodes.forEach(n => { depthOf[n.name] = n.depth; });
-    const total = links.filter(l => (depthOf[l.source] || 0) === 0).reduce((s, l) => s + l.value, 0)
-      || links.reduce((s, l) => s + l.value, 0) || 1;
-    const pct = (v) => (v / total * 100);
-    const nodeVal = {};
-    links.forEach(l => { nodeVal[l.target] = (nodeVal[l.target] || 0) + l.value; });
-    links.forEach(l => { if (nodeVal[l.source] == null) nodeVal[l.source] = total; });
+    const el = $('#sankey'); if (!el) return;
+    if (!sd || !sd.dates || !sd.dates.length) return empty('sankey', '資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+    const D2 = sd.dates;
+    const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
+    const day = D2[k];
+    const gs = (sd.groups || []).map(g => ({ ...g, v: (g.tv || [])[k] }))
+      .filter(g => g.v != null && g.v > 0)
+      .sort((a2, b2) => b2.v - a2.v);
+    if (!gs.length) return empty('sankey', `${day} 這天沒有資料`);
+    const leaves = (sd.leaves || {})[day] || [];
+    const total = gs.reduce((s2, g) => s2 + g.v, 0) || 1;
+    const maxV = gs[0].v || 1;
+    const lt = theme() === 'light';
+    const HI = lt ? .62 : .95, LO = lt ? .22 : .30;          // 顏色深淺的上下限
+    const alpha = (v) => LO + (HI - LO) * Math.min(1, v / maxV);
+    const size = (v) => 8 + 22 * Math.sqrt(Math.min(1, v / maxV));
+    const width = (v) => 1 + 7 * Math.min(1, v / maxV);
+    const pct = (v) => fmt.n(v / total * 100, 1);
 
-    const c = chart('sankey', { tooltip: { ...tip, formatter: p => p.dataType === 'edge'
-        ? `${p.data.source} → ${p.data.target}<br>${fmt.yi(p.data.value)}　<b>${fmt.n(pct(p.data.value), 1)}%</b>`
-        : `<b>${p.name}</b>　<b>${fmt.n(pct(nodeVal[p.name] || 0), 1)}%</b><br>${fmt.yi(nodeVal[p.name] || 0)}`
-          + `<br><small>${p.data.code ? '點進個股頁' : p.data.gid ? '點看成分股' : ''}</small>` },
-      series: [{ type: 'sankey',
-        // G1：由上往下
-        orient: 'vertical', left: 8, right: 8, top: 26, bottom: 70,
-        nodeWidth: 13, nodeGap: 8, nodeAlign: 'left', layoutIterations: 48, emphasis: { focus: 'adjacency' },
-        data: nodes.map((n) => ({ name: n.name, code: n.code, gid: n.group_id,
-          itemStyle: { color: n.depth === 0 ? CH.cyan : n.depth === 1 ? CH.violet : n.depth === 2 ? (L.gcolor[n.group_id] || CH.amber) : (L.gcolor[L.cgroup[n.code]] || CH.lime), borderColor: 'transparent' } })),
-        links: links.map(l => ({ ...l, lineStyle: { color: 'gradient', opacity: .35 } })),
-        // G3：節點標籤直接寫 %，不用滑過去才看得到
-        label: { color: CH.ink, fontSize: 11.5, textShadowColor: '#000', textShadowBlur: 3,
-          rotate: 90, position: 'right', distance: 6,
-          formatter: (p) => `${p.name} ${fmt.n(pct(nodeVal[p.name] || 0), 1)}%` },
-        lineStyle: { curveness: .5 } }] });
-    if (c) c.off('click').on('click', p => { if (p.dataType === 'node') { if (p.data.code) goStock(p.data.code); else if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; } });
-    linkRow('sankey', sk.nodes.filter(n => n.group_id).map(n => L.group(n.group_id, n.name)).join('') + sk.nodes.filter(n => n.code).map(n => L.stock(n.code, n.name)).join(''));
+    const byG = {};
+    leaves.forEach(x => { (byG[x.gid] = byG[x.gid] || []).push(x); });
+    const children = gs.map(g => {
+      const col = L.gcolor[g.gid] || CH.cyan;
+      const kids = (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv).map(x => ({
+        name: `${x.name} ${x.code}`, value: x.tv, code: x.code,
+        symbolSize: Math.max(6, size(x.tv) * .62),
+        itemStyle: { color: hexA(col, alpha(x.tv) * .85), borderColor: 'transparent' },
+        lineStyle: { color: hexA(col, alpha(x.tv) * .7), width: Math.max(1, width(x.tv) * .7) },
+        label: { formatter: `${x.name}` },
+      }));
+      return { name: g.name, value: g.v, gid: g.gid, children: kids,
+        symbolSize: size(g.v),
+        itemStyle: { color: hexA(col, alpha(g.v)), borderColor: 'transparent' },
+        lineStyle: { color: hexA(col, alpha(g.v) * .8), width: width(g.v) },
+        label: { formatter: `${g.name} ${pct(g.v)}%` } };
+    });
+    const root = { name: '台股成交值', value: total, symbolSize: 26,
+      itemStyle: { color: hexA(CH.cyan, lt ? .55 : .9), borderColor: 'transparent' },
+      children };
 
-    // G2：電流流動感
-    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (!c || reduce) return;
-    const maxD = Math.max(1, ...nodes.map(n => n.depth || 0));
-    let phase = 0;
-    /* ★ 只在「資金流向這一頁正在看」的時候才畫。
-       原本是離開頁面就 clearInterval，但回來的時候 renderSankey() 不一定會再跑一次
-       （頁面是用 .view.on 切換的，圖表還在，不會重畫）—— 結果就是離開再回來電流就死了。
-       改成計時器一直在，但不在這一頁就直接 return，回來自己會動。*/
-    const active = () => { const v = document.getElementById('v-flow');
-      return v && v.classList.contains('on') && !document.hidden && document.getElementById('sankey'); };
-    const tick = () => {
-      if (!active()) return;
-      phase = (phase + 0.06) % 1;
-      c.setOption({ series: [{ links: links.map(l => {
-        const d = (depthOf[l.source] || 0) / maxD;
-        // 亮度沿著深度前進：相位差讓「亮的那一段」由上往下走
-        const u = ((d - phase) % 1 + 1) % 1;
-        const glow = Math.pow(Math.max(0, 1 - Math.abs(u - 0.5) * 2.4), 2);
-        return { ...l, lineStyle: { color: 'gradient', opacity: 0.22 + 0.5 * glow } };
-      }) }] }, false, true);
-    };
-    sankeyTimer = setInterval(tick, 90);
+    const sub = $('#sankeySub');
+    if (sub) sub.textContent = `${day}：大盤 → 族群 → 代表股，線越粗顏色越深＝錢越多`;
+
+    const c = chart('sankey', {
+      tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
+        formatter: (p) => {
+          const v = p.data && p.data.value;
+          if (v == null) return p.name;
+          return `<b>${p.name}</b><br>成交值 ${fmt.yi(v)}　<b>${pct(v)}%</b>`
+            + (p.data.code ? '<br><small>點一下進個股頁</small>'
+              : p.data.gid ? '<br><small>點一下看成分股</small>' : '');
+        } },
+      series: [{
+        type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
+        left: 10, right: 130, top: 14, bottom: 14,
+        initialTreeDepth: 2, expandAndCollapse: false, roam: false,
+        symbol: 'circle',
+        label: { position: 'right', distance: 7, color: CH.ink2, fontSize: 11.5,
+          textBorderColor: CH.panel, textBorderWidth: 3, align: 'left' },
+        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3 } },
+        emphasis: { focus: 'relative' },
+        animationDurationUpdate: 420,
+        data: [root],
+      }],
+    }, { notMerge: true });
+    if (c) c.off('click').on('click', p => {
+      if (!p.data) return;
+      if (p.data.code) goStock(p.data.code);
+      else if (p.data.gid) location.hash = '#industry/group/' + p.data.gid;
+    });
+    linkRow('sankey', gs.map(g => L.group(g.gid, g.name)).join(''));
   }
 
-  function sliceShare(sh, n) {
+  /* 切出「截止在第 endIdx 天、往前 n 天」的那一段。
+     endIdx 是 1-based（等於 dates.length 就是最新那天），不給就切到最尾端。
+     2026-09-18 圖七要「截止日可以往回拉、可以播」，所以窗不再只能貼著尾端。*/
+  function sliceShare(sh, n, endIdx) {
     if (!sh || !sh.dates || !sh.series) return sh;
-    const k = Math.max(2, Math.min(sh.dates.length, n | 0));
-    const from = sh.dates.length - k;
-    return { ...sh, dates: sh.dates.slice(from),
-             series: sh.series.map(s => ({ ...s, values: (s.values || []).slice(from) })) };
+    const end = endIdx == null ? sh.dates.length : Math.max(2, Math.min(sh.dates.length, endIdx | 0));
+    const k = Math.max(2, Math.min(end, n | 0));
+    const from = end - k;
+    return { ...sh, dates: sh.dates.slice(from, end),
+             series: sh.series.map(s => ({ ...s, values: (s.values || []).slice(from, end) })) };
   }
 
   function renderRiver(sh) {
@@ -1974,28 +2042,125 @@
     linkRow('instGroups', top.map(g => L.group(g.group_id, g.group_name)).join(''));
   }
 
+  /* 資金集中度（Andy 2026-09-18）：
+       「前幾大當我游標點選那天時，會旁邊出現對應族群，
+         且對應族群在點會出現對應股票，此時的股票點選才會聯街道個股畫面，
+         均線可以設定最多6條 分別 5、10、20、60、120、240並且可以篩選」
+
+     三件事：
+     ① 均線six條可勾選 —— 前端自己用收盤序列算，不必回頭改後端（也不必動 indicators.py，
+        那是 K 線用的，口徑不同不要混）。勾選記在 localStorage。
+     ② 點某一天 → 右側列出那天的前 N 大族群（資料在 concentration 每列的 top 欄位）。
+     ③ 再點族群 → 原地展開那天那個族群的前 5 檔（concentration_members，獨立檔）。
+        **只有股票才連到個股頁**，族群晶片只是展開，不跳頁。
+     後端的 concentration 已從 120 天拉到 400 天，不然 240 日均線根本算不出來。*/
+  const CONC_MAS = [5, 10, 20, 60, 120, 240];
+  let concMaOn = null;                       // Set；null＝還沒讀過 localStorage
+  function concMaSet() {
+    if (concMaOn) return concMaOn;
+    let v = null;
+    try { v = JSON.parse(localStorage.getItem('tw.conc.ma') || 'null'); } catch (e) { /* 私密視窗 */ }
+    concMaOn = new Set(Array.isArray(v) && v.length ? v : [20, 60]);
+    return concMaOn;
+  }
+  // 簡單移動平均；前面不足 n 筆的那幾格給 null（不要用半截資料充數）
+  function sma(arr, n) {
+    const out = []; let sum = 0, cnt = 0;
+    for (let i = 0; i < arr.length; i++) {
+      const v = arr[i];
+      if (v != null) { sum += v; cnt++; }
+      if (i >= n) { const old = arr[i - n]; if (old != null) { sum -= old; cnt--; } }
+      out.push(i >= n - 1 && cnt === n ? sum / n : null);
+    }
+    return out;
+  }
+
   function renderConc(conc, topN) {
     if (!conc || !conc.length) return empty('conc');
     const key = topN === 10 ? 'top10_share' : 'top_share';
-    const maKey = topN === 10 ? 'top10_share_ma20' : 'top_share_ma20';
     const has10 = conc.some(r => r.top10_share != null);
     if (topN === 10 && !has10) { $('#concState').textContent = '前 10 大的歷史還在回補'; return empty('conc', '前 10 大集中度還在回補，先看前 5 大'); }
+    const vals = conc.map(r => (r[key] == null ? null : +r[key]));
     const last = conc[conc.length - 1] || {};
-    const cur = last[key], ma = last[maKey];
-    if (cur != null && ma != null) {
-      const diff = cur - ma;
+    const cur = last[key], ma20 = sma(vals, 20)[vals.length - 1];
+    if (cur != null && ma20 != null) {
+      const diff = cur - ma20;
       $('#concState').textContent = `前 ${topN} 大目前 ${fmt.n(cur, 1)}%，`
         + (diff > 0.8 ? '高於 20 日均 → 行情縮圈在主流，冷門股不容易動'
           : diff < -0.8 ? '低於 20 日均 → 資金在擴散輪動，主流容易休息'
             : '貼著 20 日均 → 沒有明顯的縮圈或擴散');
     }
-    chart('conc', {
-      tooltip: { ...tip, trigger: 'axis' }, grid: { left: 50, right: 20, top: 30, bottom: 30 }, legend: { textStyle: { color: CH.ink2 }, top: 0 },
+    // ---- 均線勾選列（每次重畫都重建，才跟得上主題換色）
+    const on = concMaSet();
+    const box = $('#concMa');
+    if (box) {
+      box.innerHTML = '<span class="muted">均線</span>' + CONC_MAS.map((n, i) =>
+        `<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer">
+           <input type="checkbox" data-ma="${n}" ${on.has(n) ? 'checked' : ''}>
+           <span style="color:${PALETTE[i % PALETTE.length]}">${n} 日</span></label>`).join('');
+      $$('input[data-ma]', box).forEach(inp => inp.onchange = () => {
+        const n = +inp.dataset.ma;
+        if (inp.checked) on.add(n); else on.delete(n);
+        try { localStorage.setItem('tw.conc.ma', JSON.stringify([...on])); } catch (e) { /* 忽略 */ }
+        renderConc(conc, topN);
+      });
+    }
+    const maSeries = CONC_MAS.filter(n => on.has(n)).map((n) => ({
+      name: `${n} 日均`, type: 'line', data: sma(vals, n), smooth: .3, showSymbol: false,
+      lineStyle: { color: PALETTE[CONC_MAS.indexOf(n) % PALETTE.length], width: 1.4,
+        type: n >= 120 ? 'dashed' : 'solid' },
+    }));
+    const c = chart('conc', {
+      tooltip: { ...tip, trigger: 'axis' }, grid: { left: 50, right: 20, top: 30, bottom: 30 },
+      legend: { type: 'scroll', textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, top: 0 },
       xAxis: { ...axisStyle, type: 'category', data: conc.map(r => r.date), axisLabel: { color: CH.ink3, formatter: v => v.slice(5) } },
       yAxis: { ...axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
-      series: [{ name: `前 ${topN} 族群佔比`, type: 'line', data: conc.map(r => r[key]), smooth: .3, showSymbol: false, lineStyle: { color: '#3ee0ff', width: 2 }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: 'rgba(62,224,255,.35)' }, { offset: 1, color: 'rgba(62,224,255,0)' }]) } },
-        { name: '20 日均', type: 'line', data: conc.map(r => r[maKey]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffb454', width: 1.5, type: 'dashed' } }],
+      series: [{ name: `前 ${topN} 族群佔比`, type: 'line', data: vals, smooth: .3, showSymbol: false,
+        lineStyle: { color: CH.cyan, width: 2 },
+        areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1,
+          [{ offset: 0, color: hexA(CH.cyan, theme() === 'light' ? .22 : .35) }, { offset: 1, color: hexA(CH.cyan, 0) }]) } },
+      ...maSeries],
+    }, { notMerge: true });
+    // ---- 點某一天 → 右側列出那天的前 N 大族群
+    if (c) c.off('click').on('click', p => {
+      const row = conc[p.dataIndex]; if (row) concDay(row);
     });
+  }
+
+  /* 點到某一天之後的側欄：那天的前 N 大族群 → 點族群原地展開那天的前 5 檔成分股。
+     ★ 只有股票會連到個股頁；族群晶片只展開、不跳頁（Andy 講得很清楚）。*/
+  async function concDay(row) {
+    const box = $('#concSide'); if (!box) return;
+    const top = row.top || [];
+    box.hidden = false;
+    if (!top.length) {
+      box.innerHTML = `<div class="hh"><b>${row.date}</b><span class="m">這一天沒有留族群明細</span>
+        <span class="sp"></span><button class="btn small" data-x="1">收起 ✕</button></div>`;
+    } else {
+      box.innerHTML = `<div class="hh"><b>${row.date}</b>
+          <span class="m">前 ${top.length} 大族群（點族群看那天的成分股）</span>
+          <span class="sp"></span><button class="btn small" data-x="1">收起 ✕</button></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px" id="concGs">
+          ${top.map(t => `<button class="pill" data-g="${t.g}">${fmt.esc(t.n)} <b>${fmt.n(t.share, 1)}%</b></button>`).join('')}
+        </div><div id="concMs" style="margin-top:8px"></div>`;
+      const mem = await load('concentration_members', { fallback: {} });
+      const day = (mem || {})[row.date] || {};
+      $$('#concGs button').forEach(b => b.onclick = () => {
+        const gid = b.dataset.g;
+        const openNow = b.classList.contains('on');
+        $$('#concGs button').forEach(x => x.classList.remove('on'));
+        const ms = $('#concMs');
+        if (openNow) { ms.innerHTML = ''; return; }
+        b.classList.add('on');
+        const list = day[gid] || [];
+        ms.innerHTML = list.length
+          ? `<div class="row" style="gap:6px;flex-wrap:wrap">`
+            + list.map(m => L.stock(m.code, m.name, { cls: 'sm' })).join('')
+            + `<a class="pill cyan" href="#industry/group/${gid}">進族群頁 →</a></div>`
+          : `<div class="muted">${row.date} 這天沒有留這個族群的成分股（只保留最近 400 個交易日）</div>`;
+      });
+    }
+    const x = box.querySelector('[data-x]'); if (x) x.onclick = () => { box.hidden = true; };
   }
 
   // ---- 估值篩選：本益比、股價淨值比、ROE、市值、族群，全部條件放在一起

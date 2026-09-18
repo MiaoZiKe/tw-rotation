@@ -1439,6 +1439,40 @@
   }
 
   /** 畫下方那張大圖。mode：'band' 色帶分區（fugle 那種）／'mult' 倍數線（Goodinfo 那種）。 */
+  /* 本益比河流的可視區間（0-100 的百分比），由下方的「看哪一段」拉Bar 控制。
+     2026-09-18（Andy 圖七）：「本益比河流圖也是，需要播放功能 拉Bar + & -」。
+     ★ dataZoom 刻意關掉滾輪與拖曳（zoomOnMouseWheel / moveOnMouseWheel / moveOnMouseMove 全 false）：
+       全站的滾輪政策是「只有指定那幾張圖可以縮放」（DECISIONS #104、#139），
+       這裡要的是「用拉Bar 看區間」，不是再開一個滾輪縮放入口。*/
+  let peWin = { start: 0, end: 100 };
+  /* 河流圖的「看哪一段」拉Bar（Andy 2026-09-18 圖七要播放與 ＋ −）。
+     兩支：一支調**視窗長度**（看多長一段），一支調**截止位置**（看到哪一天為止，可播放）。
+     只建一次；重畫時只更新視窗值，不要重建（重建會把播放中的計時器孤兒化）。*/
+  let peWired = false;
+  function wirePeWin(el, r, redraw) {
+    if (peWired || !r || !r.dates || r.dates.length < 30) return;
+    const box = $('#peEnd', el); if (!box) return;
+    const lenBox = $('#peLen', el);
+    const N = r.dates.length;
+    let len = 60, end = 100;                          // len＝幾個交易日，end＝截止百分比
+    const apply = () => {
+      const span = Math.max(2, Math.min(100, len / N * 100));
+      peWin = { start: Math.max(0, end - span), end };
+      redraw();
+    };
+    if (lenBox) {
+      A.rangeBar(lenBox, { min: 20, max: N, value: Math.min(N, 120), key: 'tw.pe.len',
+        label: '看多長', fmt: (v) => v + ' 天',
+        onChange: (v) => { len = v; apply(); } });
+      len = Math.min(N, 120);
+    }
+    A.playBar(box, { min: 10, max: 100, value: 100, key: 'tw.pe.end',
+      label: '截止', fmt: (v) => (v >= 100 ? '最新' : (r.dates[Math.round((v / 100) * (N - 1))] || '')),
+      onChange: (v) => { end = v; apply(); } });
+    peWired = true;
+    apply();
+  }
+
   function drawPeRiver(id, r, mode, st) {
     const S = st || peStyle(null), ZN = S.zones;
     if (!r) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
@@ -1511,6 +1545,8 @@
       xAxis: { ...A.axisStyle, type: 'category', data: r.dates, boundaryGap: false,
         axisLabel: { color: A.CH.ink3, formatter: (v) => String(v).slice(0, 7) } },
       yAxis: { ...A.axisStyle, min: yMin, max: yMax, axisLabel: { color: A.CH.ink3 } },
+      dataZoom: [{ type: 'inside', start: peWin.start, end: peWin.end,
+        zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: false }],
       series,
       // 一定要 notMerge：兩種模式的 series 數量與型態都不一樣，
       // 用合併的話切到「倍數線」時，上一次的色帶還留在圖上（實測就是這樣糊成一片）
@@ -1528,6 +1564,10 @@
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
             <input id="peOpa" type="range" min="10" max="100" step="5"><span class="val" id="peOpaV"></span></label>
         </div></div>
+        <div class="row" style="gap:12px;flex-wrap:wrap;margin-bottom:6px">
+          <div id="peLen" title="這張圖一次看多長一段"></div>
+          <div id="peEnd" title="截止到哪一天：往回拉看以前的評價，按 ▶ 一天一天播"></div>
+        </div>
         <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote"></div></div>
       <div class="grid g2" style="margin-top:16px"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）<small>每季財報可用日後的收盤 / 近四季 EPS；虧損不算</small></h3><div id="peQ" class="chart"></div></div></div>
       <div class="card" style="margin-top:16px"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
@@ -1560,6 +1600,7 @@
       if (opa) { opa.value = cur; opa.disabled = mode === 'mult'; }   // 倍數線沒有色帶可調
       if (opaV) opaV.textContent = mode === 'mult' ? '—' : cur + '%';
       drawPeRiver('peChart', river, mode, st);
+      wirePeWin(el, river, () => drawPeRiver('peChart', river, mode, peStyle(state.cfg || loadCfg())));
       if (note) {
         note.innerHTML = river
           ? `目前本益比 <b>${A.fmt.n(river.curPe, 1)}</b> 倍（近四季 EPS ${A.fmt.n(river.lastEps)} 元）`
