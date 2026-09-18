@@ -1976,11 +1976,16 @@ def check_play(pg, sel, chart_id=None):
     n = pg.evaluate(f"() => document.querySelectorAll('{box} .pb').length")
     ok(f"{sel} 有 ＋ − ▶ 三顆鈕", n == 3, n)
     v0 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
-    # −（第一顆 step 鈕）
-    pg.eval_on_selector(f"{box} .pb.step", "b => b.click()")
+    # 值停在最小值時 − 是停用的（那是對的），所以在最小值就改試 ＋
+    at_min = pg.evaluate(f"() => {{ const i = document.querySelector('{box} input'); return +i.value <= +i.min; }}")
+    # DOM 是 [− , input, ＋, .val, ▶]，兩顆 step 鈕中間隔著 input，不是相鄰兄弟，
+    # 所以用文字找，不要用 CSS 的相鄰選擇器
+    nm = "＋" if at_min else "−"
+    pg.evaluate(f"""(t) => {{ const b = [...document.querySelectorAll('{box} .pb.step')]
+        .find(x => x.textContent.trim() === t); if (b) b.click(); }}""", nm)
     pg.wait_for_timeout(250)
     v1 = pg.evaluate(f"() => +document.querySelector('{box} input').value")
-    ok(f"{sel} 按 − 之後值真的變了", v1 != v0, f"{v0} → {v1}")
+    ok(f"{sel} 按 {nm} 之後值真的變了", v1 != v0, f"{v0} → {v1}")
     # ▶ 播放：值要自己動
     pg.eval_on_selector(f"{box} .pb.play", "b => b.click()")
     pg.wait_for_timeout(1500)
@@ -2115,14 +2120,23 @@ def t_batch2(pg, base):
 
     # 點長條：原地展開成分股、不跳頁，時鐘跟著只亮那一族群
     hash0 = pg.evaluate("() => location.hash")
-    clicked = pg.evaluate("""() => { const el = document.getElementById('rankFlow');
+    # ★ ECharts 沒有 'click' 這個 action —— dispatchAction({type:'click'}) 不會觸發 c.on('click')。
+    #   要驗「使用者真的點得到」就得用真的滑鼠，所以先把長條換算成畫面座標再點下去。
+    spot = pg.evaluate("""() => { const el = document.getElementById('rankFlow');
         const c = echarts.getInstanceByDom(el); if (!c) return null;
         const o = c.getOption(); const d = (o.series[0].data || []);
         if (!d.length) return null;
-        c.dispatchAction({ type: 'click', seriesIndex: 0, dataIndex: d.length - 1 });
-        return d[d.length - 1].gid || null; }""")
-    if clicked:
-        pg.wait_for_timeout(800)
+        const i = d.length - 1;
+        const v = typeof d[i] === 'object' ? d[i].value : d[i];
+        const p = c.convertToPixel({ seriesIndex: 0 }, [v, i]);
+        if (!p) return null;
+        const r = el.getBoundingClientRect();
+        return { x: r.left + p[0] - (v >= 0 ? 4 : -4), y: r.top + p[1],
+                 gid: (typeof d[i] === 'object' ? d[i].gid : null) }; }""")
+    clicked = spot and spot.get("gid")
+    if spot:
+        pg.mouse.click(spot["x"], spot["y"])
+        pg.wait_for_timeout(900)
         st2 = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
             return { open: !!b && !b.hidden, chips: document.querySelectorAll('#rankPanel a.lk-stock').length,
                      hash: location.hash }; }""")
@@ -2137,10 +2151,8 @@ def t_batch2(pg, base):
         ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
            bool(dim) and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
         # 再點一次要取消
-        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
-            const d = c.getOption().series[0].data || [];
-            c.dispatchAction({ type: 'click', seriesIndex: 0, dataIndex: d.length - 1 }); }""")
-        pg.wait_for_timeout(700)
+        pg.mouse.click(spot["x"], spot["y"])
+        pg.wait_for_timeout(900)
         ok("再點一次同一根長條會收起來（圖四）",
            pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
 
@@ -2482,8 +2494,14 @@ def t_zoom_sweep(pg, base, code):
        （總覽資金熱力 heatWrap、產業地圖板塊 indTreeWrap、題材資金熱力 themeMapWrap，
        以及 2026-09-15 他親口要的「法人連續買超」trustWrap、
        2026-09-16 他親口要的「本益比河流圖」peWrap）。
-       這一段是最後一道防線：任何一頁冒出多餘的縮放框、徽章或「放大」鈕都算失敗。"""
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
+       這一段是最後一道防線：任何一頁冒出多餘的縮放框、徽章或「放大」鈕都算失敗。
+
+       2026-09-18 增補（Andy 圖二「右上角 可以放大這圖 包含資金流向那頁一併修改」）：
+       輪動時鐘的兩顆放大鈕（總覽 rotMiniZoomBtn、資金流向 rotZoomBtn）加進白名單。
+       這是他親口要的第六、七個縮放入口，見 DECISIONS #185。
+       白名單只能因為他開口而變長 —— 不准為了讓測試變綠而加。"""
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap",
+             "rotMiniZoomBtn", "rotZoomBtn")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));

@@ -866,11 +866,15 @@
       let next = H - PAD - LH / 2;
       for (let k = arr.length - 1; k >= 0; k--) { arr[k].ly = Math.min(arr[k].ly, next); next = arr[k].ly - LH; }
       arr.forEach(p => { p.ly = Math.max(PAD + LH / 2, Math.min(H - PAD - LH / 2, p.ly)); });  // 夾在畫布內
+      /* ★ 對齊方向不能反。
+         左欄的錨點在左緣，文字要**往右**長（align:left）；右欄錨點在右緣，往左長（align:right）。
+         寫反的話左欄會從 x=6 往左長成負座標、右欄會超出畫布右緣 ——
+         2026-09-18 第一次跑 _uitest 就是被「每個族群名稱都在畫布內」這條抓到的。*/
       const lx = side === 'left' ? PAD : W - PAD;
       arr.forEach(p => {
         const w = wide(p.name);
         out[p.i] = { side, x: lx, y: p.ly, px: p.x, py: p.y,
-          rect: { x: side === 'left' ? lx - w : lx, y: p.ly - LH / 2, w, h: LH, name: p.name } };
+          rect: { x: side === 'left' ? lx : lx - w, y: p.ly - LH / 2, w, h: LH, name: p.name } };
       });
     });
     return out;
@@ -1022,8 +1026,12 @@
           labelLayout: (q) => {
             const m = rotLbl[q.dataIndex];
             if (!m) return {};
-            return { x: m.x, y: m.y, align: m.side === 'left' ? 'right' : 'left', verticalAlign: 'middle',
-              labelLinePoints: [[m.px, m.py], [m.side === 'left' ? m.x + 8 : m.x - 8, m.y], [m.x, m.y]] };
+            // 左欄往右長、右欄往左長（見 layoutRotLabels 的註解）
+            const align = m.side === 'left' ? 'left' : 'right';
+            // 引線從點拉到文字的「內側」那一端，不要穿過文字
+            const tip = m.side === 'left' ? m.x + m.rect.w + 4 : m.x - m.rect.w - 4;
+            return { x: m.x, y: m.y, align, verticalAlign: 'middle',
+              labelLinePoints: [[m.px, m.py], [tip, m.y], [m.side === 'left' ? m.x + m.rect.w : m.x - m.rect.w, m.y]] };
           },
         },
       ],
