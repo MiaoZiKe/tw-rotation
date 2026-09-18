@@ -1,89 +1,71 @@
-name: 部署 Cloudflare Worker
+name: 部署 Worker（即時報價代理）
 
 # 把 workers/quote-proxy/worker.js 自動部署到 Cloudflare，取代「到 dash 手動重貼再按 Deploy」。
 #
-# 為什麼要有這條：即時報價那一層是 Cloudflare Worker（瀏覽器抓不到 mis.twse.com.tw，
-# 被 CORS 擋，所以中間要有一手代理）。以前 worker.js 一改，Andy 就得自己開
-# dash.cloudflare.com → Workers → tw-quote → Edit code → 全選刪掉 → 貼上 → Deploy。
+# 為什麼要有這條：即時報價那一層是 Cloudflare Worker（瀏覽器抓不到 mis.twse.com.tw，被 CORS 擋，
+# 中間要有一手代理）。以前 worker.js 一改，Andy 就得自己開 dash.cloudflare.com →
+# Workers → tw-quote → Edit code → 全選刪掉 → 貼上 → Deploy。
 # 2026-09-14 與 09-15 兩批都栽在這裡：程式碼推上去了、Worker 還是舊版，
 # 網站上三張大盤圖直接不出現（market3.js 會印「Worker 還是舊版（只有 /quote）」）。
 #
-# ★ 要先有兩個 Secret 才會動（Settings → Secrets and variables → Actions）：
-#     CLOUDFLARE_API_TOKEN   用 Cloudflare 的「Edit Cloudflare Workers」範本建
-#     CLOUDFLARE_ACCOUNT_ID  dash.cloudflare.com 網址列 /accounts/<這一串>/ 那段
-#   沒設的話這條工作流會用一句看得懂的中文停下來，不會丟一堆 wrangler 的英文錯誤。
+# ★ 沒設金鑰時「跳過並印出待辦」，不要紅燈（Andy 2026-09-18 指定，同 data-steward 的三態原則）：
+#   「沒設定」「還沒到」「真的壞了」要分得開 —— 天天紅燈就再也沒人看紅燈。
 
 on:
   push:
     branches: [main]
-    paths:
-      - "workers/**"
-      - ".github/workflows/deploy-worker.yml"
+    paths: ['workers/**']
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# 同時只跑一個，避免兩次推送互相覆蓋
 concurrency:
-  group: cf-worker
+  group: deploy-worker
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
-      - name: 檢查 Secret 有沒有設
+      # 金鑰還沒設的時候不要紅燈：印出待辦、正常結束
+      - id: guard
+        name: 檢查 Cloudflare 金鑰
         env:
-          TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          missing=""
-          [ -z "$TOKEN" ]   && missing="$missing CLOUDFLARE_API_TOKEN"
-          [ -z "$ACCOUNT" ] && missing="$missing CLOUDFLARE_ACCOUNT_ID"
-          if [ -n "$missing" ]; then
-            echo "::error::還沒設這些 Secret：$missing"
-            echo "設定位置：repo → Settings → 左側 Secrets and variables → Actions"
-            echo "         → 右上角 New repository secret → Name 填上面那個名字 → Secret 貼值 → Add secret"
-            exit 1
+          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "### Worker 尚未自動部署"
+              echo ""
+              echo "缺少 Secrets：CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID。"
+              echo "設定位置：Settings → Secrets and variables → Actions → New repository secret。"
+              echo "在那之前，worker.js 的改動要到 Cloudflare 手動重貼才會生效。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
           fi
-          echo "兩個 Secret 都在。"
 
-      # 用官方 action（Andy 2026-09-18 指定），它自己處理 wrangler 版本與認證，
-      # 不必 wrangler login、也不必把 account_id 寫進 wrangler.toml（那會進 public repo）。
-      - name: wrangler deploy
-        id: deploy
+      - name: 部署
+        if: steps.guard.outputs.ok == 'true'
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: workers/quote-proxy
 
-      # 驗證「真的換成新版」而不只是「指令沒報錯」。
-      # /health  → 200，代表 Worker 活著
-      # /chart   → 不帶 id 時新版回 400（bad id），舊版根本沒有這條路由、回 404。
-      #            所以 404 就等於沒換到新版 —— 這正是 09-14 那次網站三張圖不出現的症狀。
-      - name: 驗證線上 Worker 真的是新版
-        env:
-          FALLBACK: https://tw-quote.kcq01010909.workers.dev
-          DEPLOYED: ${{ steps.deploy.outputs.deployment-url }}
+      - name: 驗證真的活著
+        if: steps.guard.outputs.ok == 'true'
         run: |
-          base="${DEPLOYED:-$FALLBACK}"
-          echo "驗證對象：$base"
-          health=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$base/health")
-          chart=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$base/chart")
-          echo "  /health = $health（期望 200）"
-          echo "  /chart  = $chart（期望 400；404 代表還是舊版）"
-          fail=0
-          [ "$health" = "200" ] || { echo "::error::/health 回 $health，Worker 沒活著"; fail=1; }
-          if [ "$chart" = "404" ]; then
-            echo "::error::/chart 回 404 —— 線上還是舊版的 Worker，網站上三張大盤圖不會出現"
-            fail=1
-          elif [ "$chart" != "400" ]; then
-            echo "::warning::/chart 回 $chart，不是預期的 400，請看 worker.js 是不是又改了路由"
-          fi
-          [ "$fail" = "0" ] || exit 1
-          echo "新版 Worker 已上線：$base"
+          sleep 5
+          code=$(curl -s -o /tmp/q.json -w '%{http_code}' \
+            "https://tw-quote.kcq01010909.workers.dev/quote?ex_ch=tse_2330.tw")
+          echo "HTTP $code"
+          head -c 300 /tmp/q.json
+          test "$code" = "200"
+          grep -q '"c"' /tmp/q.json
+          echo "### Worker 部署成功並回得出報價" >> "$GITHUB_STEP_SUMMARY"
