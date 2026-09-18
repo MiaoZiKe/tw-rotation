@@ -32,6 +32,10 @@ commit-msg.txt
 push-log.txt
 push2-log.txt
 *-log.txt
+# 一次性推送腳本的 log（push-log-0916.txt 這種名字不符合上面的 *-log.txt，
+# 2026-09-16 就這樣被 commit 進 public repo 一次，裡面有本機使用者路徑）
+push-log*.txt
+push*-log*.txt
 
 # Claude 沒辦法透過遠端檔案橋直接寫 .github/workflows（被平台保護），
 # 所以改把更新後的工作流放在這裡，由 push.bat 複製過去。

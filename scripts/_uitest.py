@@ -40,10 +40,34 @@ def changed(name: str, before, after, detail: str = "") -> bool:
     return ok(name, before != after, f"操作前後一樣：{before!r} → {after!r}　{detail}")
 
 
+class _QuietServer(ThreadingHTTPServer):
+    """瀏覽器中途取消請求（換頁、圖片還沒載完就離開）會讓 sendall 噴 BrokenPipe。
+    那不是故障，但預設會印一大段 traceback 蓋掉驗收結果。這裡直接吞掉。"""
+
+    def handle_error(self, request, client_address):
+        import sys as _s
+        if isinstance(_s.exc_info()[1], (BrokenPipeError, ConnectionResetError)):
+            return
+        super().handle_error(request, client_address)
+
+
+class _NoCache(SimpleHTTPRequestHandler):
+    """驗收用的靜態伺服器：一律回 no-store。
+
+    為什麼（2026-09-18 花了半小時才抓到）：瀏覽器把 `data/news.json?v=…` 快取起來之後，
+    **`page.route()` 攔不到從快取拿的請求**。所以「前面幾個測試先載過同一頁」的情況下，
+    後面那個想用假資料的測試會拿到快取裡的真資料，症狀是「單獨跑會過、整批跑就掛」。
+    這種假故障最浪費時間，直接從源頭關掉快取。"""
+
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        super().end_headers()
+
+
 def serve():
-    handler = partial(SimpleHTTPRequestHandler, directory=str(SITE))
-    SimpleHTTPRequestHandler.log_message = lambda *a, **k: None
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), handler)
+    handler = partial(_NoCache, directory=str(SITE))
+    _NoCache.log_message = lambda *a, **k: None
+    srv = _QuietServer(("127.0.0.1", PORT), handler)
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
 
@@ -1084,10 +1108,12 @@ def t_stock(pg, base, code):
     #     兩種模式都要真的重畫，而且選擇要真的存進 localStorage。
     click(pg, '#stockTabs button[data-t="profit"]', 1600)
     ok("獲利分頁有本益比河流圖", count(pg, "#peChart canvas") > 0)
-    ok("河流圖有兩個模式可切", count(pg, "#peMode button") == 2, count(pg, "#peMode button"))
+    ok("河流圖有三個模式可切", count(pg, "#peMode button") == 3,
+       pg.evaluate("() => [...document.querySelectorAll('#peMode button')].map(b => b.textContent)"))
     note0 = text(pg, "#peNote")
     ok("河流圖下方有講出目前落在哪一區", "區" in note0, note0[:100])
-    if count(pg, "#peMode button") == 2:
+    if count(pg, "#peMode button") == 3:
+        click(pg, '#peMode button[data-v="band"]', 1400)
         h0 = canvas_hash(pg, "#peChart")
         click(pg, '#peMode button[data-v="mult"]', 1400)
         h1 = canvas_hash(pg, "#peChart")
@@ -1098,8 +1124,42 @@ def t_stock(pg, base, code):
         ok("「倍數線」真的寫進 localStorage", st["ls"] == "mult", st)
         ok("只有被選到的那顆是 on", st["on"] == ["mult"], st["on"])
         ok("說明文字跟著換成倍數線的讀法", "倍數線" in st["note"], st["note"][-60:])
+
+        # B1 填滿模式（Andy 2026-09-16 給的圖四：財報狗 PE 區間評價法）
+        click(pg, '#peMode button[data-v="fill"]', 1400)
+        h2 = canvas_hash(pg, "#peChart")
+        changed("切到「填滿」，河流圖真的重畫", h1, h2)
+        ok("「填滿」跟「色帶分區」畫出來不一樣（真的填滿了）", h2 != h0, f"{h0} / {h2}")
+        st2 = pg.evaluate("""() => ({ ls: localStorage.getItem('tw.periver'),
+            on: [...document.querySelectorAll('#peMode button.on')].map(b => b.dataset.v),
+            note: (document.getElementById('peNote') || {}).textContent || '' })""")
+        ok("「填滿」真的寫進 localStorage", st2["ls"] == "fill", st2)
+        ok("說明文字跟著換成填滿的讀法", "填滿" in st2["note"], st2["note"][-60:])
+
+        # B2 透明度：拉了之後圖要變，而且值要留下來（換股票／重新整理都還在）
+        o0 = canvas_hash(pg, "#peChart")
+        pg.evaluate("""() => { const s = document.getElementById('peOpa');
+            s.value = s.value === '100' ? '20' : '100';
+            s.dispatchEvent(new Event('input', { bubbles: true })); }""")
+        pg.wait_for_timeout(900)
+        changed("拉透明度滑桿，河流圖真的變了", o0, canvas_hash(pg, "#peChart"))
+        saved = pg.evaluate("""() => { try { return (JSON.parse(localStorage.getItem('tw.kcfg') || '{}').st || {}).pe || null; }
+            catch (e) { return null; } }""")
+        # 色帶模式寫 o（跟設定面板共用，DECISIONS #145）；填滿模式寫自己的 of
+        mode_now = pg.evaluate("() => { const b = document.querySelector('#peMode button.on');"
+                               " return b ? b.dataset.v : ''; }")
+        key = "of" if mode_now == "fill" else "o"
+        ok(f"透明度真的存起來了（{mode_now} 模式存的是 {key}）",
+           bool(saved) and saved.get(key) in (20, 100), {"mode": mode_now, "saved": saved})
+        ok("切到倍數線時透明度滑桿會停用（那個模式沒有色帶）",
+           pg.evaluate("""() => { document.querySelector('#peMode button[data-v=mult]').click();
+             return new Promise(r => setTimeout(() => r(document.getElementById('peOpa').disabled), 700)); }"""))
+
+        # B2 縮放與拖曳
+        click(pg, '#peMode button[data-v="fill"]', 1200)
+        check_zoom(pg, "peWrap", "peChart", "本益比河流圖")
+        check_drag(pg, "peWrap", "本益比河流圖")
         click(pg, '#peMode button[data-v="band"]', 1400)
-        changed("切回「色帶分區」，圖又變回去", h1, canvas_hash(pg, "#peChart"))
     click(pg, '#stockTabs button[data-t="overview"]', 1600)
 
     # --- 時間週期：按鈕上要先標清楚哪些這檔沒有（Andy：「1 日以下都不見」）
@@ -1656,6 +1716,117 @@ def t_season(pg, base):
         fails.append("季節性熱力圖沒有任何一格有資料，點不出逐年明細")
 
 
+# 量「畫布上跟背景不一樣的像素占多少」。白線畫在白底上 → 這個數字會掉下去。
+INK = """(sel) => {
+  const c = document.querySelector(sel).querySelector('canvas');
+  if (!c || !c.width || !c.height) return null;
+  let g; try { g = c.getContext('2d'); } catch (e) { return null; }
+  if (!g) return null;
+  let d; try { d = g.getImageData(0, 0, c.width, c.height).data; } catch (e) { return null; }
+  // 背景取左上角那一點（圖表四周一定是空白）
+  const bg = [d[0], d[1], d[2]];
+  let ink = 0, n = 0;
+  for (let i = 0; i < d.length; i += 4 * 5) {
+    n++;
+    if (d[i + 3] > 8 && Math.abs(d[i] - bg[0]) + Math.abs(d[i + 1] - bg[1]) + Math.abs(d[i + 2] - bg[2]) > 30) ink++;
+  }
+  return n ? ink / n : null;
+}"""
+
+# 找出「文字顏色跟自己的背景幾乎一樣」的元素 —— 黑底時代留下來的白字，切到淺色就變隱形。
+CONTRAST = """() => {
+  const lum = (c) => { const m = (c.match(/[\\d.]+/g) || []).map(Number);
+    const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+    return .2126 * f(m[0] || 0) + .7152 * f(m[1] || 0) + .0722 * f(m[2] || 0); };
+  // 往上找第一個「不透明的純色背景」。中途碰到漸層就放棄這個元素 ——
+  // 漸層量不出單一背景色，硬算會把「白字印在青紫漸層 logo 上」誤報成看不見。
+  const bgOf = (el) => { let e = el;
+    while (e && e !== document.documentElement) {
+      const s = getComputedStyle(e);
+      if (s.backgroundImage && s.backgroundImage !== 'none') return null;
+      const c = s.backgroundColor;
+      const m = (c.match(/[\\d.]+/g) || []).map(Number);
+      if (m.length >= 4 ? m[3] > 0.4 : m.length === 3) return c;
+      e = e.parentElement;
+    }
+    return getComputedStyle(document.body).backgroundColor; };
+  const bad = [];
+  for (const el of document.querySelectorAll('body *')) {
+    if (!el.childNodes.length) continue;
+    const txt = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join('');
+    if (txt.length < 2) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 6 || r.height < 6) continue;
+    const s = getComputedStyle(el);
+    if (s.visibility === 'hidden' || s.display === 'none' || +s.opacity < 0.25) continue;
+    const bgc = bgOf(el); if (!bgc) continue;          // 背景是漸層，算不出對比度
+    const a = lum(s.color), b = lum(bgc);
+    const ratio = (Math.max(a, b) + .05) / (Math.min(a, b) + .05);
+    if (ratio < 1.9) bad.push({ tag: el.tagName.toLowerCase(), cls: el.className.toString().slice(0, 40),
+                                txt: txt.slice(0, 26), color: s.color, bg: bgc, ratio: +ratio.toFixed(2) });
+    if (bad.length > 14) break;
+  }
+  return bad;
+}"""
+
+
+def t_lightink(b, base, code):
+    """淺色主題下「東西還在不在」（Andy 2026-09-16：
+    「由於一開始製作是黑色底，很多數據都是白色線條及文字，檢查所有切換回白色 UI 後需要更改的顏色」）。
+
+    既有的 `t_theme` 只驗「主題真的切過去了」——那不夠。
+    白色的線畫在白色的底上，主題確實切了，**但那條線不見了**。
+    所以這裡驗的是兩件會壞的事：
+
+    1. **圖表**：同一張圖在深色與淺色各量一次「跟背景不同的像素占比」。
+       淺色掉到深色的一半以下，代表有東西在淺色底下消失了。
+    2. **文字**：掃整頁的文字元素，算它跟自己背景的對比度，低於 1.9 就是幾乎看不見。
+    """
+    pages = [("#overview", ["#heat"]),
+             ("#flow", ["#rotClock", "#sankey", "#river", "#instGroups", "#conc", "#valScatter"]),
+             (f"#stock/{code}", ["#peChart", "#profitChart", "#peQ"])]
+    ctx = b.new_context(viewport={"width": 1500, "height": 1000})
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+    def sweep(mode):
+        """把主題設成 mode，走過每一頁，回傳 {選擇器: ink 占比} 與文字對比問題。"""
+        pg.goto("about:blank")
+        pg.add_init_script(f"try{{localStorage.setItem('tw.theme','{mode}');}}catch(e){{}}")
+        got, low = {}, []
+        for hash_, sels in pages:
+            pg.goto(base + hash_, wait_until="networkidle")
+            pg.wait_for_timeout(2600)
+            for s in sels:
+                if pg.evaluate(f"() => !!document.querySelector({s!r})"):
+                    pg.evaluate(f"() => document.querySelector({s!r}).scrollIntoView({{block:'center'}})")
+                    pg.wait_for_timeout(500)
+                    v = pg.evaluate(INK, s)
+                    if v is not None:
+                        got[hash_ + " " + s] = v
+            low += [dict(page=hash_, **d) for d in pg.evaluate(CONTRAST)]
+        return got, low
+
+    dark, _ = sweep("dark")
+    light, low = sweep("light")
+
+    ok("淺色主題下量得到圖表（至少 4 張）", len(light) >= 4, sorted(light))
+    for k, dv in sorted(dark.items()):
+        lv = light.get(k)
+        if lv is None:
+            fails.append(f"淺色主題下這張圖量不到：{k}")
+            continue
+        # 深色那張本來就幾乎空白（沒資料）就不比，不然會誤報
+        if dv < 0.02:
+            continue
+        ok(f"淺色主題下「{k}」內容沒有消失",
+           lv >= dv * 0.5, f"深色 ink={dv:.3f} → 淺色 ink={lv:.3f}（掉超過一半＝有東西是白的）")
+
+    ok("淺色主題下沒有看不見的文字（對比度 < 1.9）", not low,
+       low[:6])
+    ctx.close()
+
+
 def t_mobile(b, base, code):
     m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.on("pageerror", lambda e: fails.append(f"手機 pageerror: {e}"))
@@ -1694,9 +1865,10 @@ def t_mobile(b, base, code):
 def t_zoom_sweep(pg, base, code):
     """全站掃一遍縮放入口。Andy 講過很多次：**只有指定的那幾張可以縮放**
        （總覽資金熱力 heatWrap、產業地圖板塊 indTreeWrap、題材資金熱力 themeMapWrap，
-       以及 2026-09-15 他親口要的「法人連續買超」trustWrap）。
+       以及 2026-09-15 他親口要的「法人連續買超」trustWrap、
+       2026-09-16 他親口要的「本益比河流圖」peWrap）。
        這一段是最後一道防線：任何一頁冒出多餘的縮放框、徽章或「放大」鈕都算失敗。"""
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap")
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -1775,6 +1947,90 @@ def t_freshness(b, base):
         ctx.close()
     ok("四種狀態的文字彼此不同（不是同一段罐頭）", len(set(seen)) == 4,
        [s[:40] for s in seen])
+
+
+def t_cfgpop(pg, base, code):
+    """設定面板：關掉之後**按一次**就要叫得回來（Andy 2026-09-16：「設定面板會消失，我需要會再呼叫」）。
+
+    以前 ⚙ 只看 `pop.hidden` 決定開或關，但面板可以在 hidden 還是 false 的情況下消失
+    （換分頁再回來、重畫、被定位到畫面外）。那時候按 ⚙ 走的是「關閉」那一條，
+    等於關掉一個本來就看不見的東西 —— 使用者看到的就是「按了沒反應」。
+    所以這裡驗的是**按一次之後畫面上真的看得到**，不是「元素存在」。
+    """
+    seen = lambda: pg.evaluate(
+        """() => { const p = document.getElementById('cfgPop'); if (!p || p.hidden) return false;
+             const r = p.getBoundingClientRect();
+             return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight
+                    && r.right > 0 && r.left < innerWidth; }""")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+
+    click(pg, '#cfgBtn', 350); ok("按設定面板會開", seen())
+    pg.mouse.click(760, 120); pg.wait_for_timeout(350)
+    ok("點面板外面會收起來", not seen())
+    click(pg, '#cfgBtn', 400)
+    ok("收起來之後按一次就叫得回來（不是按兩次）", seen())
+
+    # 在面板裡面點（例如調滑桿）不能把自己關掉
+    click(pg, '#cfgPop .ttl', 300)
+    ok("在面板裡面點不會把面板關掉", seen())
+
+    # 換到別的分頁再回來 —— 這條就是原本壞掉的那條路徑
+    click(pg, '.tab[data-view="flow"]', 1400)
+    pg.go_back(); pg.wait_for_timeout(2400)
+    ok("換頁時面板收掉了", not seen())
+    click(pg, '#cfgBtn', 450)
+    ok("換頁回來按一次就開得起來", seen())
+
+    click(pg, '#cfgBtn', 350)
+    ok("再按一次會關掉（切換本身沒壞）", not seen())
+
+
+def t_buildver(b, base):
+    """網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣」）。
+
+    這條的重點不是「有沒有那個元素」，而是**換一個版號，畫面上的字真的跟著換**
+    —— 不然這顆徽章只會變成另一個騙人的裝飾品。
+    所以用兩組不同的版號各開一次頁面，比對兩次讀到的字不一樣。
+    """
+    def run(label):
+        ctx = b.new_context(viewport={"width": 1500, "height": 1000})
+        pg = ctx.new_page()
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        # 把 index.html 抓下來，就地把版號那個 meta 換掉，模擬部署時 stamp_assets.py 做的事
+        def patch(route):
+            r = route.fetch()
+            html = r.text().replace('<meta name="tw:build" content="dev|">',
+                                    f'<meta name="tw:build" content="{label}">')
+            route.fulfill(status=200, content_type="text/html; charset=utf-8",
+                          headers={"cache-control": "no-store"}, body=html)
+        pg.route("**/index.html", patch)
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.wait_for_function("() => { const e = document.getElementById('buildver');"
+                             " return e && e.textContent.trim() && e.textContent.trim() !== '—'; }", timeout=30000)
+        pg.wait_for_timeout(400)
+        got = pg.evaluate("""() => { const e = document.getElementById('buildver');
+            const r = e.getBoundingClientRect(); const b = document.getElementById('banner');
+            return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: e.title,
+                     visible: r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none',
+                     banner: (b ? b.innerText : '').replace(/\\s+/g, ' ') }; }""")
+        ctx.close()
+        return got
+
+    a = run("1b28dfc|09-16 11:16")
+    ok("版號徽章看得到", a["visible"], a)
+    ok("徽章寫的是部署時填進去的版號", "1b28dfc" in a["txt"] and "09-16 11:16" in a["txt"], a["txt"])
+    ok("徽章連得到那個 commit", "/commit/1b28dfc" in (a["href"] or ""), a["href"])
+    ok("橫幅那一行也寫了版號（手機上頂部徽章是藏起來的）", "1b28dfc" in a["banner"],
+       a["banner"][:200])
+
+    c = run("9f0aa11|09-17 08:02")
+    changed("換一個版號，畫面上的字真的跟著換", a["txt"], c["txt"])
+    ok("第二組版號也對得上", "9f0aa11" in c["txt"] and "09-17 08:02" in c["txt"], c["txt"])
+
+    # 沒跑過部署流程的版本要看得出來，不能假裝自己是正式版
+    d = run("local|09-16 11:16")
+    ok("本機版標成 local", "local" in d["txt"], d["txt"])
+    ok("本機版不會亂連到 commit", "/commit/local" not in (d["href"] or ""), d["href"])
 
 
 def t_live(pg, base):
@@ -2366,7 +2622,37 @@ def t_events(pg, base):
 
     Andy 2026-09-14 截圖：標題旁邊寫 2026-09-11，清單裡卻列著 2026-09-14 的券商目標價。
     原因是那個日期吃的是 meta.data_date（價量資料日），不是事件本身的日期。
+
+    ★ 日期一律換成「今天往前幾天」再測（2026-09-18 踩到）：
+      日期下拉只列最近七天，而本機 site/data/news.json 是某一天跑管線留下的快照。
+      放個幾天之後那份快照就全部掉出七天窗口，下拉只剩「全部」，
+      驗收於是報「下拉列不出日期」—— 那是快照過期，不是程式壞了。
+      所以這裡把真實那份新聞的日期整批平移到今天附近（**只動日期，其他欄位原樣**），
+      這條驗收才是在驗程式，不是在驗快照有多新。
     """
+    news = json.loads((SITE / "data" / "news.json").read_text(encoding="utf-8")) \
+        if (SITE / "data" / "news.json").exists() else []
+    if news:
+        import datetime as _d
+        today = _d.date.today()
+        olds = sorted({str(n.get("date") or "")[:10] for n in news if n.get("date")}, reverse=True)
+        remap = {o: (today - _d.timedelta(days=i)).isoformat() for i, o in enumerate(olds[:7])}
+        for n in news:
+            k = str(n.get("date") or "")[:10]
+            if k in remap:
+                n["date"] = remap[k]
+                # 前端的 dt() 是先看 published_at 才看 date（它是 RFC 2822），
+                # 只改 date 等於沒改 —— 2026-09-18 就是這樣以為修好了其實沒有。
+                if n.get("published_at"):
+                    n["published_at"] = remap[k] + "T10:00:00+08:00"
+        pg.route("**/data/news.json*", lambda r: r.fulfill(
+            status=200, content_type="application/json; charset=utf-8",
+            headers={"cache-control": "no-store"}, body=json.dumps(news, ensure_ascii=False)))
+
+    # ★ 先跳 about:blank 再進站。只差 hash 的 goto 是 same-document navigation，
+    # **整頁不會重新載入**，前面的測試留下的 App 狀態與已經抓好的 JSON 都還在，
+    # 上面那個假新聞的 route 於是一次都不會被呼叫（2026-09-18 實測：單獨跑會過、接在別的測試後面就掛）。
+    pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
     pg.wait_for_timeout(1200)
     if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
@@ -2419,6 +2705,7 @@ def t_events(pg, base):
         ok("切到券商之後日期選單跟著那一類重算",
            not b_days or set(b_days) <= b_seen | set(days), f"{b_days} vs {sorted(b_seen)}")
     click(pg, "#evFilters button[data-c='all']", 400)
+    pg.unroute("**/data/news.json*")      # 只有這一段要假日期，別影響後面的驗收
 
 
 
@@ -2585,6 +2872,24 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【資料狀態】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  資料狀態：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_buildver(b, base)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【網頁版號】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  網頁版號：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_cfgpop(pg, base, args.code)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【設定面板】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  設定面板：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_lightink(b, base, args.code)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【淺色主題】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  淺色主題：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_mobile(b, base, args.code)

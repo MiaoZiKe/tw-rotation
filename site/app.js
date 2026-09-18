@@ -11,7 +11,14 @@
      （所有圖表都是在 render 當下才讀它，改完重畫就會換色）。 */
   const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b',
     ink: '#e8eeff', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48', grid: 'rgba(255,255,255,.05)', panel: '#0a1020' };
-  const PALETTE = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
+  /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
+     族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
+     「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
+     ★ 切換時是**就地改寫這個陣列**（length=0 再 push），不是換一個新陣列 ——
+       外面已經拿走 PALETTE 參照的地方才會跟著變。*/
+  const PALETTE_DARK = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
+  const PALETTE_LIGHT = ['#0b7fa6', '#5f4ddb', '#b06a00', '#4a8a15', '#c2185b', '#0369a1', '#8a6d00', '#0f766e', '#c2410c', '#6d28d9', '#047857', '#b91c1c', '#1d4ed8', '#a16207'];
+  const PALETTE = PALETTE_DARK.slice();
 
   // ---------------------------------------------------------------- 工具
   const fmt = {
@@ -81,6 +88,10 @@
     CH.ink = v('--ink', '#e8eeff'); CH.ink2 = v('--ink-2', '#a9b6d6'); CH.ink3 = v('--ink-3', '#6f7ea3');
     CH.line = v('--line', '#1e2a48'); CH.grid = v('--grid', 'rgba(255,255,255,.05)');
     CH.panel = v('--chartbg', '#0a1020');
+    // 分類色盤就地換一組（不能換新陣列，L.scolor 之類的地方拿的是同一個參照）
+    const src = theme() === 'light' ? PALETTE_LIGHT : PALETTE_DARK;
+    PALETTE.length = 0; src.forEach(c => PALETTE.push(c));
+    if (L.ready) L.recolor();                 // 族群／環節色要跟著新色盤重算
     axisStyle.axisLine.lineStyle.color = CH.line;
     axisStyle.axisLabel.color = CH.ink3;
     axisStyle.splitLine.lineStyle.color = CH.grid;
@@ -227,24 +238,35 @@
   // ---------------------------------------------------------------- 全站互通：任何股票／族群／產業鏈／題材名稱都可點
   // 資料載入後建索引；各頁用 L.stock()/L.group()/L.theme() 產生連結，永遠連到同一個地方。
   const L = {
-    gname: {}, gid: {}, gchain: {}, gcolor: {}, cname: {}, cgroup: {}, cmarket: {}, ctheme: {}, chains: {}, scolor: {}, gsegs: {}, sgroups: {}, all: [], ready: false,
+    gname: {}, gid: {}, gchain: {}, gcolor: {}, gidx: {}, cname: {}, cgroup: {}, cmarket: {}, ctheme: {}, chains: {}, scolor: {}, sidx: {}, gsegs: {}, sgroups: {}, all: [], ready: false,
+    // 環節色：讀的當下才從 PALETTE 取，這樣切主題就會跟著換
+    segColor(id) { const i = this.sidx[id]; return i == null ? '#8ea0c4' : PALETTE[i % PALETTE.length]; },
+    /* 族群色被十幾個地方直接讀 L.gcolor[gid]，一個個改成函式風險太大，
+       所以改成「換主題時整包重算一次」。順序照舊：先照族群索引配色，
+       有對應供應鏈環節的再用環節色蓋過去（剖析圖、環節標籤、族群卡片要同色）。*/
+    recolor() {
+      Object.keys(this.gidx).forEach(gid => { this.gcolor[gid] = PALETTE[this.gidx[gid] % PALETTE.length]; });
+      Object.keys(this.sidx).forEach(sid => { this.scolor[sid] = this.segColor(sid); });
+      Object.keys(this.gsegs).forEach(gid => { this.gcolor[gid] = this.segColor(this.gsegs[gid][0]) || this.gcolor[gid]; });
+    },
     init(im, gt, cands, th, sc, all) {
       const gs = [];
       if (im) { (im.chains || []).forEach(c => { L.chains[c.id] = c.name; (c.groups || []).forEach(g => gs.push({ ...g, chain: c.id })); }); (im.industries || []).forEach(g => gs.push({ ...g, chain: 'industry' })); }
       (gt || []).forEach(g => gs.push({ id: g.group_id, name: g.group_name, chain: g.chain, members: [] }));
-      gs.forEach((g, i) => { if (!L.gname[g.id]) { L.gname[g.id] = g.name; L.gid[g.name] = g.id; L.gchain[g.id] = g.chain; L.gcolor[g.id] = PALETTE[i % PALETTE.length]; } (g.members || []).forEach(m => { if (!L.cname[m.code]) { L.cname[m.code] = m.name; L.cgroup[m.code] = g.id; } if (m.market) L.cmarket[m.code] = m.market; }); });
+      gs.forEach((g, i) => { if (!L.gname[g.id]) { L.gname[g.id] = g.name; L.gid[g.name] = g.id; L.gchain[g.id] = g.chain; L.gidx[g.id] = i; L.gcolor[g.id] = PALETTE[i % PALETTE.length]; } (g.members || []).forEach(m => { if (!L.cname[m.code]) { L.cname[m.code] = m.name; L.cgroup[m.code] = g.id; } if (m.market) L.cmarket[m.code] = m.market; }); });
       (cands || []).forEach(c => { L.cname[c.code] = c.name; if (c.group_id) L.cgroup[c.code] = c.group_id; if (c.market) L.cmarket[c.code] = c.market; });
       // 全市場索引：每一檔上市櫃股票都有個股頁，搜尋與連結都以這份為準
       L.all = all || [];
       L.all.forEach(c => { if (c.name) L.cname[c.code] = c.name; if (c.group_id) L.cgroup[c.code] = c.group_id; if (c.market) L.cmarket[c.code] = c.market; });
       ((th && th.themes) || []).forEach(t => (t.members || []).forEach(m => { (L.ctheme[m.code] = L.ctheme[m.code] || []).push({ id: t.id, name: t.name }); if (!L.cname[m.code]) L.cname[m.code] = m.name; }));
       // 供應鏈環節的顏色是全站唯一：剖析圖零件、環節色標、關聯圖、族群卡片、族群連結的圓點都用它
-      ((sc && sc.segments) || []).forEach((sg, i) => { L.scolor[sg.id] = PALETTE[i % PALETTE.length]; });
+      // 記索引而不是記色碼：色碼在載入當下就固定了，切主題不會跟著換（見 segColor）
+      ((sc && sc.segments) || []).forEach((sg, i) => { L.sidx[sg.id] = i; L.scolor[sg.id] = PALETTE[i % PALETTE.length]; });
       ((sc && sc.companies) || []).forEach(c => (c.groups || []).forEach(gn => { const gid = L.gid[gn]; if (!gid || !c.segment) return; const a = (L.gsegs[gid] = L.gsegs[gid] || []); if (!a.includes(c.segment)) a.push(c.segment); const b = (L.sgroups[c.segment] = L.sgroups[c.segment] || []); if (!b.includes(gid)) b.push(gid); }));
       // 沒有台股直接對應的環節（HBM、雲端業者）也要點得到東西：接到最相近的族群
       const FALLBACK = { hbm: ['memory'], hyperscaler: ['ai_server_odm'], switch: ['networking', 'ai_server_odm'], ic_design: ['ic_design'], foundry: ['foundry'], adv_pkg: ['advanced_packaging'], osat_test: ['osat'], abf_pcb: ['pcb_abf'], ccl: ['pcb_abf'], thermal: ['server_thermal'], power: ['server_power'], optical: ['optical_comm'], assembly: ['ai_server_odm'], ip_eda: ['silicon_ip'] };
       Object.entries(FALLBACK).forEach(([seg, gids]) => { if (!L.scolor[seg]) return; gids.filter(g => L.gname[g]).forEach(g => { const b = (L.sgroups[seg] = L.sgroups[seg] || []); if (!b.includes(g)) b.push(g); const a = (L.gsegs[g] = L.gsegs[g] || []); if (!a.includes(seg)) a.push(seg); }); });
-      Object.keys(L.gsegs).forEach(gid => { L.gcolor[gid] = L.scolor[L.gsegs[gid][0]] || L.gcolor[gid]; });
+      L.recolor();
       L.ready = true;
     },
     stock(code, name, o) { o = o || {}; const n = name || L.cname[code] || ''; return `<a class="lk lk-stock ${o.cls || ''}" href="#stock/${code}" title="看 ${fmt.esc(n)} 個股頁">${o.codeFirst ? `<span class="code">${code}</span>${fmt.esc(n)}` : `${fmt.esc(n)}<span class="code">${code}</span>`}</a>`; },
@@ -612,12 +634,25 @@
     });
   }
 
-  const STAGE = {
-    improving: { name: '改善', color: '#3ee0ff', sub: '還是比大盤弱，但動能轉強了', act: '資金剛開始進場，最早可以布局的一段' },
-    leading: { name: '領先', color: '#ff4d6d', sub: '比大盤強，而且還在變強', act: '現在的主流，回檔找買點、不要追高' },
-    weakening: { name: '轉弱', color: '#ffb454', sub: '還是比大盤強，但動能在掉', act: '主流開始鬆動，手上有的先設好停利' },
-    lagging: { name: '落後', color: '#2ee59d', sub: '比大盤弱，而且還在變弱', act: '資金還在跑，別急著抄底' },
-  };
+  /* 輪動階段的四個顏色。
+     ★ `color` 是 **getter**，不是寫死的色碼（Andy 2026-09-16：
+       「一開始製作是黑色底，很多數據都是白色線條及文字，檢查所有切換回白色 UI 後需要更改的顏色」）。
+     以前這裡寫死深色主題的螢光色（#3ee0ff / #ffb454 / #2ee59d），切到淺色主題之後
+     這些字直接印在近白色的面板上 —— 實測對比度只有 1.41～1.57，等於看不見。
+     改成讀 `CH`（切主題時 refreshPalette() 會就地改寫它），讀的當下才取值，
+     所有既有的 `STAGE[k].color` 不用改就跟著主題走。*/
+  const STAGE = (() => {
+    const raw = {
+      improving: { name: '改善', ck: 'cyan', sub: '還是比大盤弱，但動能轉強了', act: '資金剛開始進場，最早可以布局的一段' },
+      leading: { name: '領先', ck: 'up', sub: '比大盤強，而且還在變強', act: '現在的主流，回檔找買點、不要追高' },
+      weakening: { name: '轉弱', ck: 'amber', sub: '還是比大盤強，但動能在掉', act: '主流開始鬆動，手上有的先設好停利' },
+      lagging: { name: '落後', ck: 'down', sub: '比大盤弱，而且還在變弱', act: '資金還在跑，別急著抄底' },
+    };
+    Object.keys(raw).forEach(k => Object.defineProperty(raw[k], 'color', {
+      get() { return CH[raw[k].ck]; }, enumerable: true,
+    }));
+    return raw;
+  })();
   const STAGE_ORDER = ['improving', 'leading', 'weakening', 'lagging'];
   const stageOf = (x, y) => (x >= 100 ? (y >= 100 ? 'leading' : 'weakening') : (y >= 100 ? 'improving' : 'lagging'));
 
@@ -702,7 +737,7 @@
       angleAxis: {
         type: 'value', min: 0, max: 360, startAngle: 0, clockwise: false, interval: 45,
         axisLine: { show: false }, axisTick: { show: false },
-        splitLine: { lineStyle: { color: 'rgba(255,255,255,.08)' } },
+        splitLine: { lineStyle: { color: CH.grid } },
         splitArea: { show: true, areaStyle: { color: areaColors } },
         axisLabel: {
           margin: compact ? 6 : 10, fontSize: compact ? 12 : 14, fontWeight: 700,
@@ -712,7 +747,7 @@
       },
       // 外圈留一點餘裕，被夾住的「N 天前」小圈圈才不會壓在盤緣上
       radiusAxis: { type: 'value', min: 0, max: maxR * 1.08, axisLine: { show: false }, axisTick: { show: false },
-        axisLabel: { show: false }, splitLine: { lineStyle: { color: 'rgba(255,255,255,.06)' } } },
+        axisLabel: { show: false }, splitLine: { lineStyle: { color: CH.grid } } },
       series: [
         // 尾巴：這幾天走過的路
         ...top.map(r => ({
@@ -999,7 +1034,7 @@
         { type: 'gauge', startAngle: 200, endAngle: -20, min: 0, max: 100, radius: '92%', center: ['30%', '72%'],
           progress: { show: true, width: 13, roundCap: true,
             itemStyle: { color: p20 >= 60 ? '#ff4d6d' : p20 >= 40 ? '#ffb454' : '#2ee59d' } },
-          axisLine: { lineStyle: { width: 13, color: [[1, 'rgba(255,255,255,.08)']] } },
+          axisLine: { lineStyle: { width: 13, color: [[1, CH.grid]] } },
           axisTick: { show: false }, splitLine: { show: false },
           axisLabel: { distance: -20, color: CH.ink3, fontSize: 10, formatter: v => (v % 50 === 0 ? v : '') },
           pointer: { show: false },
@@ -1122,11 +1157,11 @@
         data: rows.map(r => ({ value: [+r.group_median.toFixed(1), +r.rot.toFixed(2)], gid: r.group_id,
           nm: r.group_name, n: r.group_n, share: r.share,
           symbolSize: Math.max(11, Math.min(34, Math.sqrt(r.share / maxShare) * 34)),
-          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .85, borderColor: '#0a1020', borderWidth: 1 } })),
+          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .85, borderColor: CH.panel, borderWidth: 1 } })),
         label: { show: true, formatter: q => q.data.nm, position: 'right', color: CH.ink2, fontSize: 11 },
         labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' } },
       { type: 'line', data: [], markLine: { silent: true, symbol: 'none',
-        lineStyle: { color: 'rgba(255,255,255,.22)', type: 'dashed' },
+        lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed' },
         data: [{ xAxis: +mid.toFixed(1) }, { yAxis: 0 }], label: { show: false } } }],
     });
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
@@ -1303,7 +1338,7 @@
           itemStyle: { color: chgColor(g.share_chg, 1.5), borderRadius: g.share_chg >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4] } })),
         label: { show: true, position: 'right', color: CH.ink2, fontSize: 11.5, fontFamily: 'JetBrains Mono',
           formatter: (q) => { const g = rows[q.dataIndex]; return `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}　${fmt.pct(g.ret, 1)}`; } },
-        markLine: { silent: true, symbol: 'none', lineStyle: { color: 'rgba(255,255,255,.3)' }, data: [{ xAxis: 0 }], label: { show: false } },
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
       }],
     });
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
@@ -1323,7 +1358,7 @@
       grid: { left: 34, right: 116, top: 24, bottom: 30 },
       xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: bump.weeks, axisLabel: { color: CH.ink3, fontSize: 11.5 } },
       yAxis: { ...axisStyle, inverse: true, min: 1, max: maxRank, interval: Math.max(1, Math.round(maxRank / 6)),
-        name: '名次', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 }, splitLine: { show: true, lineStyle: { color: 'rgba(255,255,255,.05)' } } },
+        name: '名次', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 }, splitLine: { show: true, lineStyle: { color: CH.grid } } },
       series: bump.series.map((s, i) => ({
         name: s.group_name, type: 'line', data: s.ranks, connectNulls: true, smooth: .25,
         symbolSize: 7, lineStyle: { width: 2.2, color: L.gcolor[s.group_id] || PALETTE[i % PALETTE.length] },
@@ -1457,7 +1492,7 @@
         yAxis: { ...axisStyle, name: 'ROE ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 }, scale: true, axisLabel: { formatter: '{value}%' } },
         series: [{ type: 'scatter', data: pts.map(r => ({ value: [r.pe, r.roe], code: r.code, name: r.name, g: r.group_name, pb: r.pb, cap: r.market_cap,
           symbolSize: Math.max(8, Math.min(34, Math.sqrt((r.market_cap || 0) / maxCap) * 34)),
-          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .78, borderColor: '#0a1020', borderWidth: 1 } })),
+          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .78, borderColor: CH.panel, borderWidth: 1 } })),
           label: { show: pts.length <= 40, formatter: q => q.data.name, position: 'right', color: CH.ink2, fontSize: 11 }, labelLayout: { hideOverlap: true } }],
       });
       if (c) c.off('click').on('click', q => { if (q.data && q.data.code) goStock(q.data.code); });
@@ -1523,7 +1558,7 @@
     // 顏色規則：能對到供應鏈環節就用環節色（跟產業鏈頁一致）；同一張圖裡顏色不重複，
     // 否則五個零件都掛在「電源」環節時整張圖會變成同一色，反而分不出來。
     const pick = (seg) => {
-      const sc = seg && L.scolor[seg];
+      const sc = seg && L.segColor(seg);
       if (sc && !used.has(sc)) { used.add(sc); return sc; }
       while (used.has(PALETTE[i % PALETTE.length]) && i < PALETTE.length * 2) i++;
       const c = PALETTE[i++ % PALETTE.length]; used.add(c); return c;
@@ -1732,6 +1767,34 @@
   /* 資料新鮮度（Andy：「我今天盤後才看到，等到隔天才買」「不知道到底更新了沒」）：
      把「更新到哪一天、落後多少、哪些來源沒回資料、上次跑是什麼時候」直接攤在頁面頂端。
      以前只有「3 天沒更新」才會跳提示，而且來源失敗完全看不出來（errors 一直是空陣列）。*/
+  /* 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣」）。
+     來源是 <meta name="tw:build">，部署前由 scripts/stamp_assets.py 填成
+     「commit 前 7 碼|建置時間」。這一支刻意跟資料日期分開講 ——
+     「網頁換版了沒」跟「資料更新到哪一天」是兩件事，以前混在一起所以永遠講不清。*/
+  function buildInfo() {
+    const m = document.querySelector('meta[name="tw:build"]');
+    const raw = (m && m.getAttribute('content') || '').trim();
+    const [sha, at] = raw.split('|');
+    return { sha: (sha || 'dev').trim(), at: (at || '').trim(), raw };
+  }
+
+  function renderBuild() {
+    const b = buildInfo();
+    const el = $('#buildver');
+    if (!el) return b;
+    el.textContent = b.at ? `v ${b.sha} · ${b.at}` : `v ${b.sha}`;
+    // dev（本機還沒戳過）與 local（戳過但不是在 Actions 上）都不是 commit，
+    // 連過去只會得到 404。只有看起來真的是 commit 短碼才給連結。
+    const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
+    el.title = isCommit
+      ? `這個網頁的版本：commit ${b.sha}${b.at ? '，建置於 ' + b.at + '（台北）' : ''}。點開對照 GitHub。`
+      : '本機版本，還沒經過部署流程';
+    el.href = isCommit
+      ? `https://github.com/MiaoZiKe/tw-rotation/commit/${b.sha}`
+      : 'https://github.com/MiaoZiKe/tw-rotation/commits/main';
+    return b;
+  }
+
   function renderFreshness(meta) {
     const pad = (n) => String(n).padStart(2, '0');
     const tpe = (iso) => { if (!iso) return null; const d = new Date(iso);
@@ -1776,6 +1839,9 @@
     if (meta.last_run_phase === 'price') tail.push('這輪只更新價量（法人與融資券傍晚那輪才補）');
     if (meta.last_run_at) tail.push(`上次抓資料 ${tpe(meta.last_run_at)}`);
     if (gen) tail.push(`上次產出 ${tpe(meta.generated_at)}`);
+    // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
+    const bd = renderBuild();
+    tail.push(`網頁版本 ${fmt.esc(bd.sha)}${bd.at ? '（' + fmt.esc(bd.at) + '建置）' : ''}`);
     const b = $('#banner');
     if (!bits.length) {                                  // 一切正常也要講一句，讓人知道系統是活的
       b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>，所有來源正常。${tail.length ? '<span class="muted">（' + tail.join('、') + '，台北時間）</span>' : ''}`;
@@ -1789,6 +1855,8 @@
   // ---------------------------------------------------------------- 啟動
   async function boot() {
     if (typeof echarts === 'undefined' || typeof LightweightCharts === 'undefined') { $('#banner').textContent = '圖表函式庫載入失敗（vendor/ 目錄缺檔），請重新整理。'; $('#banner').classList.add('on'); }
+    // 版號先畫：meta.json 抓失敗時橫幅不會跑，但「網頁是哪一版」這件事還是要看得到
+    renderBuild();
     // 主題：<head> 的那段小 script 已經把 data-theme 設好（避免閃一下），這裡只補色票與按鈕
     applyTheme(theme(), false);
     const tb = document.getElementById('themeBtn');

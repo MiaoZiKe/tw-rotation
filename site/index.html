@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>台股資金輪動儀表板</title>
 <meta name="theme-color" content="#070b16">
+<!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
+     部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
+     本機開發時維持 dev。前端讀這裡，畫在右上角與頂端橫幅，讓「換版了沒」用看的就知道。 -->
+<meta name="tw:build" content="dev|">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="台股輪動">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -160,6 +164,11 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .banner.warn{border-left-color:var(--amber);background:rgba(255,180,84,.08)}
 .banner.bad{border-left-color:var(--rise);background:rgba(255,77,109,.09)}
 .banner b{color:var(--ink)}
+/* 網頁版號（Andy 2026-09-16）。用等寬字，跟 GitHub 上的 commit 前 7 碼可以一眼對起來。 */
+.verbadge{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-3);
+  text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:7px;
+  border:1px solid var(--line-2);background:var(--panel);transition:.15s}
+.verbadge:hover{color:var(--cyan);border-color:var(--cyan)}
 
 /* ---------------- 卡片 / 格線 ---------------- */
 .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);
@@ -223,6 +232,11 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
 /* 放大只在框內發生：捲動層 .zpane 在放大時高度鎖死，卡片與整頁版面完全不受影響 */
+/* 圖表旁邊的透明度滑桿（本益比河流圖）。Andy 2026-09-16 要「可以調整透明度」。 */
+.opabox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.opabox input[type=range]{width:82px}
+.opabox .val{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);min-width:34px;text-align:right}
+.opabox input:disabled{opacity:.35}
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
 .zwrap.zoomed>.zpane{outline:1px solid rgba(62,224,255,.25);border-radius:10px;cursor:grab}
@@ -663,6 +677,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .g2,.g3,.g4{grid-template-columns:1fr} .mtf-grid{grid-template-columns:1fr}
   .search input{width:130px}
   .brand small{display:none}
+  /* 頂部塞不下版號；橫幅那一行照樣會寫，手機不會因此看不到 */
+  .verbadge{display:none}
   #lwc{height:clamp(460px,calc(100vh - 230px),820px)}
   .tw.hide-m{display:none} .cards{display:grid;gap:10px}
   .scard{background:var(--panel-3);border-radius:10px;padding:12px 14px;border:1px solid var(--line-2)}
@@ -711,6 +727,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
   <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
+       但橫幅那一行也會寫，所以手機還是看得到。 -->
+  <a class="verbadge" id="buildver" href="https://github.com/MiaoZiKe/tw-rotation/commits/main"
+     target="_blank" rel="noopener" title="這個網頁的版本">—</a>
 </header>
 
 <div class="layout" id="layout">

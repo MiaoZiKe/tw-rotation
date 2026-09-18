@@ -6,6 +6,8 @@
   const LWC = global.LightweightCharts;
   const C = {
     up: '#ff4d6d', down: '#2ee59d', grid: 'rgba(255,255,255,.05)', text: '#a9b6d6', bg: '#0a1020',
+    /* 第六條均線在深色主題是白的。淺色主題底色就是 #ffffff，白線畫上去等於沒畫
+       （Andy 2026-09-16「切換回白色 UI 後需要更改的顏色」），所以 refreshTheme() 會換掉它。*/
     ma: ['#ffd166', '#3ee0ff', '#8b7bff', '#ff8fab', '#c3ff5b', '#ffffff'],
     boll: 'rgba(139,123,255,.75)', k: '#ffd166', d: '#3ee0ff', j: '#ff8fab',
     dif: '#3ee0ff', dea: '#ffd166', rsi: '#c3ff5b', vol: 'rgba(120,140,190,.55)',
@@ -188,7 +190,8 @@
     { k: 'text', label: '文字', icon: 'M3,4 H15 M9,4 V15', pts: 1 },
     { k: 'erase', label: '刪除', icon: 'M4,5 H15 M6,5 V15 H13 V5 M8,8 V13 M11,8 V13', pts: 0 },
   ];
-  const DRAW_COLORS = ['#3ee0ff', '#ffd166', '#ff4d6d', '#2ee59d', '#8b7bff', '#e8eeff'];
+  // 最後一個原本是 #e8eeff（近白），淺色主題畫在白底上等於沒畫；改成中性灰兩邊都看得見
+  const DRAW_COLORS = ['#3ee0ff', '#ffd166', '#ff4d6d', '#2ee59d', '#8b7bff', '#8ea0c4'];
 
   class DrawPrimitive {
     constructor(mgr) { this.m = mgr; }
@@ -379,6 +382,28 @@
     C.bg = v('--chartbg', '#0a1020'); C.text = v('--ink-2', '#a9b6d6');
     C.grid = v('--grid', 'rgba(255,255,255,.05)');
     C.line = v('--line-2', '#2a3860'); C.panel3 = v('--panel-3', '#1a2542');
+    /* ★ 指標色在淺色主題整組換掉（Andy 2026-09-16
+         「一開始製作是黑色底，很多數據都是白色線條及文字…檢查所有切換回白色 UI 後需要更改的顏色」）。
+       深色主題那組是螢光色（#ffd166 黃、#3ee0ff 青、#c3ff5b 螢光綠），
+       它們同時用在**線**和**圖例文字**上。切到淺色之後：
+         - 線畫在 #ffffff 的圖表底上 → 幾乎看不見
+         - 圖例文字印在近白色的工具列上 → 實測對比度只有 1.44～1.58（近乎隱形）
+       所以淺色主題換成同色系但壓深的版本，色相不變（使用者認得出哪條是哪條），亮度夠。
+       第六條均線在深色是白的，淺色一定要換，不然等於沒畫。*/
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    if (light) {
+      C.ma = ['#a16207', '#0e7490', '#5b21b6', '#be185d', '#3f6212', '#2b3a5c'];
+      C.k = '#a16207'; C.d = '#0e7490'; C.j = '#be185d';
+      C.dif = '#0e7490'; C.dea = '#a16207'; C.rsi = '#3f6212';
+      C.boll = 'rgba(91,33,182,.7)';
+      C.vol = 'rgba(71,85,105,.45)';
+    } else {
+      C.ma = ['#ffd166', '#3ee0ff', '#8b7bff', '#ff8fab', '#c3ff5b', '#ffffff'];
+      C.k = '#ffd166'; C.d = '#3ee0ff'; C.j = '#ff8fab';
+      C.dif = '#3ee0ff'; C.dea = '#ffd166'; C.rsi = '#c3ff5b';
+      C.boll = 'rgba(139,123,255,.75)';
+      C.vol = 'rgba(120,140,190,.55)';
+    }
     return C;
   }
 
@@ -547,7 +572,8 @@
       if (cfg.vol) {
         const y = st('vol', { c: '#ff4d6d', c2: '#2ee59d', o: 55 });
         this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? col(y.c, y.o) : col(y.c2, y.o)), pane)];
-        if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, '#ffd166', pane, y.w)); }
+        // 量能均線：跟其他指標一樣吃色票（寫死 #ffd166 的話，淺色主題的圖例文字對比只有 1.44）
+        if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, C.ma[0], pane, y.w)); }
         this.paneIndex.vol = pane; want[pane] = PH.vol; pane++; }
       if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k;
         const y = st('kd', { c: C.k, c2: C.d });
@@ -559,7 +585,7 @@
         const y = st('macd', { c: C.dif, c2: C.dea });
         this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)), pane),
           this._line(m.dif, col(y.c, y.o), pane, y.w), this._line(m.dea, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.macd[1], 0, 'rgba(255,255,255,.18)'); this.paneIndex.macd = pane; want[pane] = PH.ind; pane++;
+        ref(this.panes.macd[1], 0, C.line);          // 零軸跟著主題走，白色在淺色主題看不見 this.paneIndex.macd = pane; want[pane] = PH.ind; pane++;
         /* 背離（Andy 2026-09-15：「是很好的訊號」）。預設開，cfg.macdDiv === false 才關。
            主圖畫價格的那兩個轉折點，MACD 面板畫 DIF 的那兩點 —— 兩條線一起看才看得出「背」在哪。 */
         if (cfg.macdDiv !== false) {

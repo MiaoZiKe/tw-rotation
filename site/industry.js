@@ -78,7 +78,7 @@
     return sc.segments.filter(s => s.chain === cid || (cid === 'ai_server' && ['foundry', 'adv_pkg', 'hbm'].includes(s.id)) || (cid === 'semiconductor' && ['abf_pcb', 'osat_test'].includes(s.id)));
   }
   const segName = (sc, id) => ((sc && sc.segments.find(s => s.id === id)) || {}).name || id;
-  const segColor = (id) => (A.L.scolor[id] || '#8ea0c4');
+  const segColor = (id) => A.L.segColor(id);      // 讀的當下才取色，切主題才跟得上
   const twOf = (sc, seg) => (sc ? sc.companies.filter(c => c.segment === seg && c.tw_code) : []);
   const foreignOf = (sc, seg) => (sc ? sc.companies.filter(c => c.segment === seg && !c.tw_code) : []);
 
@@ -715,7 +715,7 @@
         const col = d.close >= d.open ? '#ff4d6d' : '#2ee59d';
         let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
-        if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:#b39dff">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
+        if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:${KUtil.colors.boll}">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
         // 本益比倍數線：直接把「幾倍＝股價多少」寫在圖例上，不然圖上五條虛線看不出誰是誰
         if (vals.PE) {
           const bits = vals.PE.map(b => { const v = at(b.vals, i); return v == null ? null : `<span style="color:${b.color}">${b.mult}倍 ${A.fmt.n(v)}</span>`; }).filter(Boolean);
@@ -723,7 +723,7 @@
         }
         legend.innerHTML = s + (parts.length ? '<br>' + parts.join('　') : '');
         const pl = {};
-        if (cfg.vol) pl.vol = `成交量 <b>${A.fmt.lot(d.volume / 1000)}</b>${cfg.volma && at(vals.VOLMA, i) != null ? `　<span style="color:#ffd166">MA${cfg.volma} ${A.fmt.lot(at(vals.VOLMA, i) / 1000)}</span>` : ''}`;
+        if (cfg.vol) pl.vol = `成交量 <b>${A.fmt.lot(d.volume / 1000)}</b>${cfg.volma && at(vals.VOLMA, i) != null ? `　<span style="color:${KUtil.colors.ma[0]}">MA${cfg.volma} ${A.fmt.lot(at(vals.VOLMA, i) / 1000)}</span>` : ''}`;
         if (vals.KD) pl.kd = `KD(${cfg.kd.n},${cfg.kd.m1},${cfg.kd.m2})　<span style="color:${KUtil.colors.k}">K ${A.fmt.n(at(vals.KD.k, i), 1)}</span>　<span style="color:${KUtil.colors.d}">D ${A.fmt.n(at(vals.KD.d, i), 1)}</span>`;
         if (vals.MACD) pl.macd = `MACD(${cfg.macd.f},${cfg.macd.s},${cfg.macd.g})　<span style="color:${KUtil.colors.dif}">DIF ${A.fmt.n(at(vals.MACD.dif, i))}</span>　<span style="color:${KUtil.colors.dea}">MACD ${A.fmt.n(at(vals.MACD.dea, i))}</span>　OSC <span style="color:${A.upDown(at(vals.MACD.osc, i))}">${A.fmt.n(at(vals.MACD.osc, i))}</span>`;
         if (vals.RSI) pl.rsi = `RSI(${cfg.rsi.n})　<span style="color:${KUtil.colors.rsi}">${A.fmt.n(at(vals.RSI, i), 1)}</span>`;
@@ -763,6 +763,7 @@
     wireTf(); markTf(pg);
     $('#tfAdd').onclick = () => {
       const pop = $('#cfgPop');
+      if (popVisible(pop, 'tf')) { closePop(pop); return; }
       pop.hidden = false; pop.dataset.kind = 'tf';
       pop.innerHTML = `<div class="ttl">自訂時間週期</div>
         <div class="note">用日線合成，例如 3 日＝三根日線併一根；週線同理。輸入後按加入，按鈕上按右鍵可移除。</div>
@@ -775,14 +776,15 @@
         cfg.tfs = [...new Set([...(cfg.tfs || []), id])].slice(0, 6); saveCfg(cfg);
         state.tf = id; pop.hidden = true; $('#tfSeg').innerHTML = tfButtons(); wireTf(); markTf(pg); build();
       };
-      $('#tfNo').onclick = () => { pop.hidden = true; };
+      $('#tfNo').onclick = () => { closePop(pop); };
       placePop(pop, $('#tfAdd'));
     };
 
     // ---- 圖表設定：線寬、均線條數／週期／顏色／粗細
     $('#cfgBtn').onclick = () => {
       const pop = $('#cfgPop');
-      if (!pop.hidden && pop.dataset.kind === 'style') { pop.hidden = true; return; }
+      // ★ 用「畫面上真的看得到嗎」決定開或關，不是只看 hidden —— 理由見 popVisible() 上面那段
+      if (popVisible(pop, 'style')) { closePop(pop); return; }
       pop.hidden = false; pop.dataset.kind = 'style';
       const mas = cfg.ma || [];
       const zn = Object.assign({}, KUtil.ZONE_DEF, cfg.zone || {});
@@ -878,8 +880,8 @@
           <button class="btn small" data-f="del" title="移除這條">✕</button>`;
         $('#maRows').appendChild(d); wireRows(); sync();
       };
-      $('#cfgReset').onclick = () => { Object.assign(cfg, JSON.parse(JSON.stringify(DEFAULT_CFG))); saveCfg(cfg); pop.hidden = true; drawChips(); apply(); };
-      $('#cfgClose').onclick = () => { pop.hidden = true; };
+      $('#cfgReset').onclick = () => { Object.assign(cfg, JSON.parse(JSON.stringify(DEFAULT_CFG))); saveCfg(cfg); closePop(pop); drawChips(); apply(); };
+      $('#cfgClose').onclick = () => { closePop(pop); };
     };
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
@@ -1120,16 +1122,61 @@
      存在 cfg.st.pe：z＝六個區間的顏色（由下到上）、w＝線寬、o＝色帶透明度。
      沒設定過就回預設，所以舊的 localStorage 不用搬。 */
   function peStyle(cfg) {
-    const raw = Object.assign({ w: 1, o: 30 }, ((cfg || {}).st || {}).pe || {});
+    // of＝填滿模式自己的透明度（預設 90，一眼就是「填滿」的樣子）；o 是色帶模式的
+    const raw = Object.assign({ w: 1, o: 30, of: 90 }, ((cfg || {}).st || {}).pe || {});
     const z = (Array.isArray(raw.z) && raw.z.length === 6) ? raw.z : PE_ZONES.map(x => x.c);
     return { w: Math.max(1, Math.min(4, +raw.w || 1)), o: Math.max(5, Math.min(100, +raw.o || 30)),
+             of: Math.max(20, Math.min(100, +raw.of || 90)),
              z, zones: PE_ZONES.map((x, i) => ({ name: x.name, c: z[i] })) };
   }
 
   /* 設定面板要開在按鈕旁邊。用 fixed ＋ 按鈕的實際座標算，再夾進視窗裡；
      放不下就翻到按鈕上方。以前靠 CSS 的 right:18px，錨點跟按鈕沒關係，所以會飄走。*/
+  /* 設定面板「叫不回來」的修正（Andy 2026-09-16：
+     「當我按下其他地方時，沒有點到設定內的範圍，設定面板會消失，我需要會再呼叫」）。
+
+     原本 ⚙ 的開關只看 `pop.hidden`。問題是**面板可以在 hidden 還是 false 的情況下消失** ——
+     換分頁再回來、圖表重畫、或面板被定位到畫面外都會這樣。
+     這時候按 ⚙ 走的是「關閉」那一條，等於關掉一個本來就看不見的東西，
+     從使用者的角度就是「按了沒反應」。實測重現：開著面板切到資金流向再回來，
+     下一次按 ⚙ 完全沒動靜，要按第二次才開。
+
+     修法兩件一起做：
+     1. 開關改用「**現在畫面上真的看得到嗎**」判斷，不是只看 hidden
+     2. 補上正規的「點面板外面就收起來」，收的時候把 kind 一起清掉，狀態不會殘留 */
+  function popVisible(pop, kind) {
+    if (!pop || pop.hidden) return false;
+    if (kind && pop.dataset.kind !== kind) return false;
+    const r = pop.getBoundingClientRect();
+    return r.width > 0 && r.height > 0 &&
+           r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+  }
+
+  function closePop(pop) {
+    pop = pop || document.getElementById('cfgPop');
+    if (!pop) return;
+    pop.hidden = true;
+    pop.dataset.kind = '';
+  }
+
+  function wirePopDismiss() {
+    if (wirePopDismiss._done) return;              // 只掛一次，否則每次重畫都多一個監聽
+    wirePopDismiss._done = true;
+    // 用 mousedown 而不是 click：在面板裡拖曳滑桿時，放開滑鼠的位置可能已經在面板外，
+    // 那一下 click 的 target 會是面板外面，用 click 判斷會在拖到一半時把面板關掉。
+    document.addEventListener('mousedown', (e) => {
+      const pop = document.getElementById('cfgPop');
+      if (!pop || pop.hidden) return;
+      if (e.target.closest && (e.target.closest('.cfgpop') || e.target.closest('#cfgBtn, #tfAdd'))) return;
+      closePop(pop);
+    }, true);
+    // 換頁一律收掉：不收的話 hidden 會留在 false，回來按 ⚙ 就變成「關掉看不見的面板」
+    window.addEventListener('hashchange', () => closePop());
+  }
+
   function placePop(pop, btn) {
     if (!pop || !btn) return;
+    wirePopDismiss();
     pop.hidden = false;                                  // 要先顯示才量得到寬高
     pop.style.maxHeight = '';
     const r = btn.getBoundingClientRect();
@@ -1238,7 +1285,16 @@
         labelLayout: { moveOverlap: 'shiftY' },
       }));
     } else {
-      // 色帶：堆疊面積，一層一個評價區間（fugle 那張圖的讀法）
+      /* 色帶：堆疊面積，一層一個評價區間。
+         兩種：
+         - `band` 半透明，看得到底下的格線（fugle 那張圖的讀法）
+         - `fill` 整片填滿、不透明（財報狗 PE 區間評價法，Andy 2026-09-16 給的圖四）
+           填滿之後帶與帶之間要有一條細的分隔線，不然六塊顏色黏成一片分不出界線。*/
+      const solid = mode === 'fill';
+      /* 填滿模式用**自己那一個**透明度（S.of），不是跟色帶共用再夾一個下限。
+         之前寫成 Math.max(0.8, S.o/100)：滑桿從 5% 拉到 80% 畫面完全沒反應，
+         等於 Andy 要的「可以調整透明度」在填滿模式下是壞的。*/
+      const op = solid ? S.of / 100 : S.o / 100;
       const top = r.bands[4].map(v => Math.max(v * 1.18, maxClose * 1.03));
       yMin = Math.floor(Math.min(minClose, Math.min(...r.bands[0])) * 0.93);
       yMax = Math.ceil(Math.max(maxClose, Math.max(...r.bands[4]) * 1.05) * 1.02);
@@ -1247,15 +1303,26 @@
         diff(r.bands[3], r.bands[2]), diff(r.bands[4], r.bands[3]), diff(top, r.bands[4])];
       series = layers.map((d, i) => ({
         name: ZN[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true, smooth: 0.3,
-        lineStyle: { width: 0 }, areaStyle: { color: ZN[i].c, opacity: S.o / 100 }, z: 1,
+        lineStyle: solid ? { color: 'rgba(0,0,0,.26)', width: 1 } : { width: 0 },
+        areaStyle: { color: ZN[i].c, opacity: op }, z: 1,
         // 區間名稱標在自己那條帶的上緣、往下掛，讀起來就是「這一塊叫什麼」
-        endLabel: { show: true, color: ZN[i].c, fontSize: 11, verticalAlign: 'top',
+        endLabel: { show: true, color: solid ? A.CH.ink2 : ZN[i].c, fontSize: 11, verticalAlign: 'top',
           offset: [4, 3], formatter: () => ZN[i].name },
         labelLayout: { moveOverlap: 'shiftY' },
       }));
     }
+    /* 收盤線。以前寫死白色 —— 淺色主題的圖表底色就是白的，那條線直接消失
+       （Andy 2026-09-16「切換回白色 UI 後需要更改的顏色」）。
+       改成：深色主題白線、淺色主題深墨線；填滿模式再描一圈相反色的外框，
+       不然線壓在實色帶上還是會被吃掉。*/
+    const light = document.documentElement.getAttribute('data-theme') === 'light';
+    const closeC = light ? '#10182e' : '#ffffff';
+    if (mode === 'fill') {
+      series.push({ name: '收盤外框', type: 'line', data: r.close, symbol: 'none', z: 5, silent: true,
+        lineStyle: { color: light ? 'rgba(255,255,255,.75)' : 'rgba(0,0,0,.55)', width: S.w + 3.4 } });
+    }
     series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
-      lineStyle: { color: '#ffffff', width: S.w + 0.8 } });
+      lineStyle: { color: closeC, width: S.w + 0.8 } });
 
     A.chart(id, {
       grid: { left: 56, right: 62, top: 24, bottom: 34 },
@@ -1282,8 +1349,12 @@
     const last = q[q.length - 1];
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${A.fmt.n(last[2], 1)}%</div></div><div class="k"><div class="l">營益率</div><div class="v">${A.fmt.n(last[3], 1)}%</div></div><div class="k"><div class="l">淨利率</div><div class="v">${A.fmt.n(last[4], 1)}%</div></div></div>
       <div class="card"><div class="row spread"><h3>本益比河流圖 <small>近四季 EPS × 各倍數 ＝ 那個倍數對應的股價；白線是實際收盤，它落在哪一條帶就是市場現在給的評價。倍數用這一檔自己的歷史分位數，不是寫死的 15/20/25 倍</small></h3>
-        <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="mult">倍數線</button></div></div>
-        <div id="peChart" class="chart" style="height:340px"></div><div class="note" id="peNote"></div></div>
+        <div class="row" style="gap:10px;align-items:center">
+          <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
+          <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
+            <input id="peOpa" type="range" min="10" max="100" step="5"><span class="val" id="peOpaV"></span></label>
+        </div></div>
+        <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote"></div></div>
       <div class="grid g2" style="margin-top:16px"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）<small>每季財報可用日後的收盤 / 近四季 EPS；虧損不算</small></h3><div id="peQ" class="chart"></div></div></div>
       <div class="card" style="margin-top:16px"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
     A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
@@ -1295,19 +1366,32 @@
 
     // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
     const river = peRiver(pg);
+    const MODES = ['band', 'fill', 'mult'];
     let mode = 'band';
-    try { const s = localStorage.getItem('tw.periver'); if (s === 'mult' || s === 'band') mode = s; } catch (e) { /* 忽略 */ }
+    try { const s = localStorage.getItem('tw.periver'); if (MODES.includes(s)) mode = s; } catch (e) { /* 忽略 */ }
     const note = $('#peNote', el);
+    const HOWTO = {
+      band: '色帶分區：顏色越紅代表市場給的評價越高',
+      fill: '填滿：整片實色，一眼看出收盤線落在哪一塊評價區間',
+      mult: '倍數線：線尾標的是本益比倍數',
+    };
     const paint = () => {
       $$('#peMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === mode));
       const st = peStyle(state.cfg || loadCfg());
+      // 透明度滑桿跟上面 K 線的本益比帶共用同一組設定（DECISIONS #145），所以每次重畫都同步一次
+      // 滑桿吃的是「這個模式自己的那一個值」：色帶用 o、填滿用 of。
+      // 共用一個值的話，填滿模式非得夾一個高下限才看得出是填滿，滑桿就等於壞的。
+      const opa = $('#peOpa', el), opaV = $('#peOpaV', el);
+      const cur = mode === 'fill' ? st.of : st.o;
+      if (opa) { opa.value = cur; opa.disabled = mode === 'mult'; }   // 倍數線沒有色帶可調
+      if (opaV) opaV.textContent = mode === 'mult' ? '—' : cur + '%';
       drawPeRiver('peChart', river, mode, st);
       if (note) {
         note.innerHTML = river
           ? `目前本益比 <b>${A.fmt.n(river.curPe, 1)}</b> 倍（近四季 EPS ${A.fmt.n(river.lastEps)} 元）`
             + `　·　落在 <b style="color:${st.zones[river.zoneIdx].c}">${river.zone.name}</b> 區`
             + `　·　這一檔的歷史倍數帶：${river.mult.join(' / ')}`
-            + `　·　${mode === 'band' ? '色帶分區：顏色越紅代表市場給的評價越高' : '倍數線：線尾標的是本益比倍數'}`
+            + `　·　${HOWTO[mode]}`
           : '這一檔還沒有四季連續財報（或近四季 EPS 是負的），河流圖算不出來。';
       }
     };
@@ -1316,6 +1400,24 @@
       try { localStorage.setItem('tw.periver', mode); } catch (e) { /* 忽略 */ }
       paint();
     });
+    /* 透明度（Andy 2026-09-16：「底下的本益比河流圖需要新增可以調整透明度」）。
+       寫回 cfg.st.pe.o —— 跟設定面板裡那根滑桿、跟上面 K 線的本益比帶是同一個值，
+       不然同一張圖在兩個地方會長得不一樣。*/
+    const opa = $('#peOpa', el);
+    if (opa) opa.oninput = () => {
+      const c = state.cfg || loadCfg();
+      c.st = c.st || {};
+      // 色帶模式寫 o（跟上面 K 線的本益比帶共用，DECISIONS #145）；填滿模式寫自己的 of
+      c.st.pe = Object.assign({}, c.st.pe, mode === 'fill' ? { of: +opa.value } : { o: +opa.value });
+      state.cfg = c; saveCfg(c);
+      paint();
+    };
+    /* 縮放與拖曳（Andy 2026-09-16：「具備縮放功能，游標可以抓取移動」）。
+       用全站那一套 wheelZoom，不用 ECharts 的 dataZoom —— dataZoom 會把 wheel 吃掉，
+       頁面就捲不動了（DECISIONS #139 已經踩過一次）。*/
+    A.wheelZoom($('#peWrap', el), { onZoom: () => {
+      const i = window.echarts && echarts.getInstanceByDom($('#peChart', el)); if (i) i.resize();
+    } });
     paint();
   }
   function tabDividend(pg, el) {
