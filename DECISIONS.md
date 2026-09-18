@@ -1163,3 +1163,25 @@
      第一版的比對腳本有個要命的 bug：`/usr/bin/time` 不存在導致兩邊都沒產出，
      它卻印「✅ 逐檔完全一致」—— **空集合比對永遠會通過**。
      現在檔案數少於 2,000 就直接判定「這次比對不算數」。
+177. **版號的「第幾版」在 Actions 上永遠是 1**（Andy 2026-09-18 在線上發現）：
+     `builds_today()` 用 `git rev-list --count --since=<台北今天> HEAD` 去數，
+     但 `actions/checkout` 預設是**淺 clone（fetch-depth: 1）** —— 整個 repo 只有一個 commit，
+     所以那個指令**永遠回 1，而不是 0**，連「數不出來就只寫日期」那條保險都失效了。
+     結果是 Andy 一天推兩次，兩次版號都寫「第 1 版」，這個數字等於是壞的。
+     **不改成 `fetch-depth: 0`** 的理由：這個 repo 的 `data/` 每天 commit parquet，
+     把歷史整個抓下來要好幾百 MB，為了一個數字不值得。
+     改法：工作流先用一個 `gh api` 呼叫問「今天跑了幾次 pages.yml」，
+     用 `TW_BUILD_SEQ` 環境變數傳給 `stamp_assets.py`；
+     同時 `builds_today()` 先問 `git rev-parse --is-shallow-repository`，是淺 clone 就回 0。
+     **寧可不寫數字，也不要寫一個錯的數字** —— 這個徽章存在的唯一理由就是讓 Andy
+     判斷「線上是不是新版」，它寫錯比不寫還糟。
+     驗收：`tests/test_stamp_assets.py` 加了三條（淺 clone 回 0、環境變數優先、環境變數是垃圾就當沒有）。
+178. **.bat 的 `echo` 不准出現沒跳脫的 `>` `<` `|` `&`**：
+     2026-09-18 我在 `push-20260918-09.bat` 的提示訊息寫了 `deploy 14m26s -> ~3min`，
+     cmd 把 `->` 裡的 `>` 當成**輸出轉向**，產生一個叫 `~3min` 的檔案，
+     接著 `git add -A` 把它一起 commit 進 **public repo**。
+     這跟 2026-09-18 早上「push-log 檔名沒被 gitignore 蓋到」是同一類錯：
+     **.bat 產生的任何東西都會被 `git add -A` 掃進去**。
+     規矩：要寫就跳脫成 `^>`，或改用文字；打包完自檢
+     `grep -nE 'echo[^|]*[<>|&]' push-*.bat`。
+     清除方式一律是「再一次正常的 commit 刪掉它」—— **絕不 force push**。

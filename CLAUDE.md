@@ -41,7 +41,10 @@
     `git diff --name-only <上次 push 的 commit>..HEAD` —— 清單裡只要出現
     `pipeline/`、`tests/`、`scripts/`（`_uitest.py` 除外）、`requirements.txt`、`.github/`
     其中任何一項，**就一定要跑 pytest**；只有全部落在 `site/**` 才准跳過。
-    `_preview.py` 與 `_uitest.py` **永遠都要跑**，那兩支測的就是前端。
+    反過來也一樣：`_preview.py` 與 `_uitest.py` 測的是前端，所以清單裡**完全沒有 `site/**`
+    也沒有 `pipeline/build_payload.py`**（產出 JSON 的那支）時，那兩支可以跳過。
+    只要沾到其中任何一個，就一定要跑。**跳過的時候要跟 Andy 講一聲跳了什麼、為什麼**，
+    不可以默默省掉 —— 他沒辦法從對話裡看出我到底驗了什麼。
 - **push 之後還沒完**：等 Actions 跑完，**真的打開 <https://miaozike.github.io/tw-rotation/> 確認線上版本換掉了**
   （比對右上角的**版號徽章**，那是 2026-09-16 為了這件事加的，見 DECISIONS #148），再跟 Andy 說「好了」。
   只說「推上去了」不算交付。
@@ -54,6 +57,13 @@
   Andy 打開網站看不到版號才發現。回查方法：讀他 repo 根目錄的 `push-log-*.txt`，
   或用瀏覽器看 `https://api.github.com/repos/MiaoZiKe/tw-rotation/commits`。
   **推送腳本一律用 `git pull --rebase --autostash`**，不要假設工作目錄是乾淨的。
+- **★ .bat 的 `echo` 裡不准出現沒跳脫的 `>` `<` `|` `&`。**
+  2026-09-18 踩到：我在提示訊息寫了 `deploy 14m26s -> ~3min`，
+  cmd 把 `->` 的 `>` 當成**輸出轉向**，於是產生一個叫 `~3min` 的檔案，
+  再被 `git add -A` 一起 commit 進 **public repo**。
+  要寫就跳脫成 `^>`，或乾脆改用「to」「變成」這種字。
+  打包完一律自檢一次：`grep -nE 'echo[^|]*[<>|&]' push-*.bat`，
+  有中就確認每一個都跳脫過了。
 - **★ Andy 的硬性要求：每批做完一定要「當自己是使用者，實際操作每個功能」。**
   每個按鈕真的按、每個輸入真的填、每個切換真的切、每條線真的用滑鼠拖出來，
   而且每一項都要驗**「畫面真的因此改變了」**（筆數變了／排序變了／localStorage 真的寫進去了），

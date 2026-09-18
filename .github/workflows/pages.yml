@@ -72,8 +72,25 @@ jobs:
           echo "資料湖與 pipeline 都沒變，直接用上一次算好的 JSON"
           echo "個股頁 $(ls site/data/stock 2>/dev/null | wc -l) 檔／總共 $(du -sh site/data | cut -f1)"
 
+      # 版號的「第幾版」不能在 runner 上用 git 數：checkout 是淺 clone，
+      # `git rev-list --count --since=今天` 永遠回 1，所以一天推兩次都會寫「第 1 版」
+      # （2026-09-18 Andy 在線上發現的）。改成直接問 GitHub「今天跑了幾次部署」，
+      # 一個 API 呼叫，不用把整個 repo 歷史抓下來。失敗就給空值，版號退回只寫日期。
+      - name: 問 GitHub 今天是第幾次部署
+        id: seq
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          SINCE=$(TZ=Asia/Taipei date +%Y-%m-%d)T00:00:00+08:00
+          N=$(gh api "repos/${{ github.repository }}/actions/workflows/pages.yml/runs?created=%3E%3D${SINCE}&per_page=100" --jq '.total_count' 2>/dev/null || echo "")
+          echo "今天（台北 ${SINCE}）第 ${N:-?} 次部署"
+          echo "n=${N}" >> "$GITHUB_OUTPUT"
+
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
         run: python scripts/stamp_assets.py
+        env:
+          TW_BUILD_SEQ: ${{ steps.seq.outputs.n }}
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

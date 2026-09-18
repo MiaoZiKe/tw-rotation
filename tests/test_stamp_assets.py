@@ -132,3 +132,54 @@ def test_實際的index_html有版號與commit兩個meta標籤():
                            sha="feedface", seq=5)
     assert 'content="2026-09-18 第 5 版|11:15"' in out
     assert 'content="feedfac"' in out
+
+
+def test_淺clone不准硬數出第1版(monkeypatch):
+    """★ 2026-09-18 線上真的踩到：Andy 一天推兩次，兩次版號都寫「第 1 版」。
+
+    原因是 GitHub Actions 的 `actions/checkout` 預設是淺 clone（只有一個 commit），
+    `git rev-list --count --since=今天 HEAD` 於是永遠回 **1** —— 不是 0，
+    所以連「數不出來就只寫日期」那條保險都沒有生效，畫面上直接寫了一個假的數字。
+    寧可不寫，也不要寫錯的。
+    """
+    from datetime import datetime, timezone
+    import subprocess
+
+    calls = []
+
+    class _R:
+        def __init__(self, out): self.stdout = out; self.returncode = 0
+
+    def fake_run(cmd, **kw):
+        calls.append(cmd)
+        if "--is-shallow-repository" in cmd:
+            return _R("true\n")
+        return _R("1\n")          # 淺 clone 數出來就是 1
+
+    monkeypatch.delenv("TW_BUILD_SEQ", raising=False)
+    monkeypatch.setattr(subprocess, "run", fake_run)
+    assert sa.builds_today(datetime.now(timezone.utc)) == 0
+    assert any("--is-shallow-repository" in c for c in calls), "要先問是不是淺 clone"
+
+
+def test_工作流傳進來的次數優先(monkeypatch):
+    """淺 clone 數不出來，所以工作流改成跟 GitHub API 要，再用環境變數傳進來。"""
+    from datetime import datetime, timezone
+    monkeypatch.setenv("TW_BUILD_SEQ", "4")
+    assert sa.builds_today(datetime.now(timezone.utc)) == 4
+    assert "第 4 版" in sa.build_label(sha="abc1234")
+
+
+def test_環境變數是垃圾就當作沒有(monkeypatch):
+    """API 失敗時工作流會傳空字串進來，那時要退回只寫日期，不可以炸掉。"""
+    from datetime import datetime, timezone
+    import subprocess
+
+    class _R:
+        def __init__(self, out): self.stdout = out; self.returncode = 0
+
+    monkeypatch.setattr(subprocess, "run", lambda cmd, **kw: _R("true\n"))
+    for junk in ("", "  ", "n/a", "null"):
+        monkeypatch.setenv("TW_BUILD_SEQ", junk)
+        assert sa.builds_today(datetime.now(timezone.utc)) == 0, junk
+        assert "第" not in sa.build_label(sha="abc1234")

@@ -55,16 +55,32 @@ def stamp_value() -> str:
 
 
 def builds_today(now: datetime, root: Path = ROOT) -> int:
-    """今天（台北）是第幾次改動：數 HEAD 上「今天」的 commit 數。
+    """今天（台北）是第幾次改動。
 
-    用 git 而不是自己存一個計數器，是因為部署跑在乾淨的 checkout 上，
-    沒有地方存狀態；而 commit 紀錄本來就在，數它最準也最不會走鐘。
-    數不出來（沒有 git、淺 clone）就回 0，呼叫端會退回只寫日期。
+    ★ 2026-09-18 踩到的坑：原本只用 `git rev-list --count --since=今天 HEAD` 去數，
+      但 GitHub Actions 的 `actions/checkout` 預設是**淺 clone（fetch-depth: 1）**，
+      整個 repo 只有一個 commit —— 所以那個指令永遠回 1，
+      版號就永遠是「第 1 版」。Andy 一天推兩次，兩次都寫第 1 版，等於這個數字是壞的
+      （他只能靠後面的時間 19:04／15:26 分辨，那不是他要的東西）。
+      而且它**不會退回 0**，所以連「數不出來就只寫日期」那條保險也失效了。
+
+    現在的順序：
+      1. 環境變數 `TW_BUILD_SEQ` —— 工作流會先跟 GitHub API 要「今天第幾次部署」再傳進來
+         （一個 API 呼叫，不需要把整個 repo 歷史抓下來；見 .github/workflows/pages.yml）。
+      2. 本機（不是淺 clone）才用 git 去數。
+      3. 都不行就回 0，呼叫端退回只寫日期 —— 寧可不寫，也不要寫一個錯的數字。
     """
     import subprocess
+    env = os.environ.get("TW_BUILD_SEQ", "").strip()
+    if env.isdigit():
+        return int(env)
     tpe = now.astimezone(TPE)
     since = tpe.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
     try:
+        shallow = subprocess.run(["git", "-C", str(root), "rev-parse", "--is-shallow-repository"],
+                                 capture_output=True, text=True, timeout=20)
+        if (shallow.stdout or "").strip() == "true":
+            return 0        # 淺 clone 數出來的一定是 1，那是假的
         out = subprocess.run(["git", "-C", str(root), "rev-list", "--count",
                               f"--since={since}", "HEAD"],
                              capture_output=True, text=True, timeout=20)
