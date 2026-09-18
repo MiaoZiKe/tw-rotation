@@ -37,13 +37,22 @@ jobs:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          if [ -z "$CF_TOKEN" ] || [ -z "$CF_ACCOUNT" ]; then
+          # ★ 要講出「缺的是哪一個」。2026-09-18 踩到：Andy 說「都好了」但這步還是跳過，
+          #   而摘要只寫「缺少 CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID」這句死字串，
+          #   看不出到底是哪一個沒設、還是兩個都沒設，等於要他自己一個一個猜。
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$miss" ]; then
             echo "ok=false" >> "$GITHUB_OUTPUT"
+            echo "缺少：$miss"
             {
               echo "### Worker 尚未自動部署"
               echo ""
-              echo "缺少 Secrets：CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID。"
+              echo "**缺少這些 Secret：**$miss"
+              echo ""
               echo "設定位置：Settings → Secrets and variables → Actions → New repository secret。"
+              echo "注意名稱大小寫要一模一樣，而且要放在 **Repository secrets**（不是 Environment secrets、也不是 Variables）。"
               echo "在那之前，worker.js 的改動要到 Cloudflare 手動重貼才會生效。"
             } >> "$GITHUB_STEP_SUMMARY"
           else
