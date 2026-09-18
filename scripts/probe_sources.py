@@ -49,6 +49,29 @@ PROBES: dict[str, list[dict]] = {
         {"id": "finmind_datalist", "url": "https://api.finmindtrade.com/api/v4/datalist",
          "note": "FinMind 有哪些 dataset（找 Announcement / News / Material）"},
     ],
+    # ---- 台指期夜盤（Andy 2026-09-18 圖一：「台指期需要顯示夜盤」）
+    #      規矩是「沒有真的 fixture 就不准寫 parser」——先打一次看欄位長什麼樣。
+    #      期交所的使用條款沒有爬蟲條款、robots 也沒限制，比證交所寬（見 DECISIONS）。
+    "taifex_night": [
+        {"id": "taifex_quotelist_day", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "json": {"MarketType": "0", "SymbolType": "F", "KindID": "1", "CID": "TXF",
+                  "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
+         "note": "日盤報價清單：確認欄位名（SymbolID/CLastPrice/CRefPrice/CTotalVolume/OpenInterest…）"},
+        {"id": "taifex_quotelist_night", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+         "json": {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF",
+                  "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
+         "note": "夜盤報價清單：MarketType=1；要確認夜盤時段外會回什麼"},
+        {"id": "taifex_chartdata_1m", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+         "json": {"SymbolID": ["TXFJ6-F"]},
+         "note": "夜盤 1 分鐘分時：沒查到公開文件，先打打看有沒有；SymbolID 要用日盤那支回來的實際值"},
+        {"id": "taifex_quotedetail", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getQuoteDetail",
+         "json": {"SymbolID": ["TXFJ6-F"]},
+         "note": "單一合約明細：同上，先確認存不存在"},
+    ],
 }
 
 
@@ -58,8 +81,13 @@ def one(p: dict) -> dict:
                  "method": p.get("method", "GET"), "probed_at": datetime.now(TW).isoformat(timespec="seconds")}
     t0 = time.time()
     try:
-        r = requests.request(rec["method"], p["url"], headers={"User-Agent": UA, "Accept": "application/json, */*"},
-                             data=p.get("data"), timeout=TIMEOUT)
+        hdr = {"User-Agent": UA, "Accept": "application/json, */*"}
+        # 期交所那幾支要帶 Referer，不帶會被擋（跟 mis.twse 同一個脾氣）
+        if "taifex" in p["url"]:
+            hdr["Referer"] = "https://mis.taifex.com.tw/futures/"
+            hdr["Origin"] = "https://mis.taifex.com.tw"
+        r = requests.request(rec["method"], p["url"], headers=hdr,
+                             data=p.get("data"), json=p.get("json"), timeout=TIMEOUT)
         rec["status"] = r.status_code
         rec["elapsed_ms"] = int((time.time() - t0) * 1000)
         rec["content_type"] = r.headers.get("Content-Type", "")
