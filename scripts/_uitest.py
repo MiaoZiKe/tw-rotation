@@ -1772,6 +1772,38 @@ CONTRAST = """() => {
 }"""
 
 
+def t_kzoom_keep(pg, base, code):
+    """K 線縮放之後不可以自己彈回原來的大小。
+
+    Andy 2026-09-18：「K 線圖每次縮放後 他會跳動變回來原來大小」。
+    盤中每幾秒就有一次即時更新，只要有一次沒保住可視範圍，使用者就等於不能縮放。
+    所以這裡**真的滾滾輪縮放，再真的觸發一次重畫**，比對前後的可視範圍。
+    """
+    pg.goto("about:blank")
+    pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+    pg.wait_for_timeout(3000)
+    rng = "() => { const c = window.Industry._dbg(); return c && c.visibleBars; }"
+
+    scroll_to(pg, "lwc")
+    box = pg.evaluate("() => { const r = document.getElementById('lwc').getBoundingClientRect();"
+                      " return {x:r.x+r.width*0.5, y:r.y+r.height*0.4}; }")
+    before = pg.evaluate(rng)
+    pg.mouse.move(box["x"], box["y"])
+    for _ in range(4):
+        pg.mouse.wheel(0, -120)          # 往上滾＝放大
+        pg.wait_for_timeout(120)
+    pg.wait_for_timeout(500)
+    zoomed = pg.evaluate(rng)
+    ok("滾輪真的縮放得動", bool(before and zoomed and zoomed != before), {"前": before, "後": zoomed})
+
+    # 模擬一次即時更新造成的重畫（盤中每幾秒一次）
+    pg.evaluate("() => { if (window.Industry && window.Industry._apply) window.Industry._apply(); }")
+    pg.wait_for_timeout(700)
+    after = pg.evaluate(rng)
+    ok("重畫之後縮放沒有被彈回去", after == zoomed,
+       {"縮放後": zoomed, "重畫後": after, "原始": before})
+
+
 def t_lightink(b, base, code):
     """淺色主題下「東西還在不在」（Andy 2026-09-16：
     「由於一開始製作是黑色底，很多數據都是白色線條及文字，檢查所有切換回白色 UI 後需要更改的顏色」）。
@@ -2887,6 +2919,12 @@ def main() -> int:
         except Exception as e:  # noqa: BLE001
             fails.append(f"【設定面板】操作中途爆掉：{type(e).__name__} {e}")
         print(f"  設定面板：{len(fails) - n0} 個問題", flush=True)
+        n0 = len(fails)
+        try:
+            t_kzoom_keep(pg, base, args.code)
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【K線縮放】操作中途爆掉：{type(e).__name__} {e}")
+        print(f"  K線縮放：{len(fails) - n0} 個問題", flush=True)
         n0 = len(fails)
         try:
             t_lightink(b, base, args.code)

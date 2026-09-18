@@ -683,6 +683,7 @@
     };
     const apply = () => {
       const box = $('#lwc'); if (!box) return;
+      state._apply = apply;      // 驗收用：模擬一次「即時更新造成的重畫」
       const bars = barsFor(pg, state.tf);
       const live = isLiveTf(state.tf);
       if (!bars || bars.length < (live ? 2 : 5)) {
@@ -712,7 +713,12 @@
          幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
       kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars, peStyle(cfg)) : null;
       kchart.applyIndicators(cfg);
-      if (kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
+      /* ★ 棒寬只在「換股票／換週期」時套用設定值。
+         以前每次 apply() 都套一次 —— 而盤中每幾秒就會 apply() 一次，
+         所以使用者滾滾輪放大之後，下一次更新就把棒寬硬拉回 cfg.bar，
+         畫面看起來就是「縮放完自己跳回原來大小」（Andy 2026-09-18）。
+         keep 為真＝這是即時更新造成的重畫，要尊重使用者自己拉的縮放。*/
+      if (!keep && kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
       kchart.setZones(cfg.smc && !live ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
       kchart.setMarkers(cfg.marks && !live ? marksFor(pg, state.tf) : {});
       const v = pg.verdict || {};
@@ -1509,7 +1515,10 @@
   }
 
   // _dbg 只給 scripts/_preview.py 驗證用（檢查圖表與繪圖狀態），正式頁面不會呼叫
-  window.Industry = { route, _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
+  window.Industry = { route,
+    // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」
+    _apply: () => { if (state._apply) state._apply(); },
+    _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
     drawKey: kchart && kchart.draw ? kchart.draw.key : null,
     shapes: kchart && kchart.draw ? kchart.draw.shapes.length : -1,
     hasChart: !!kchart, w: drawW, fill: drawFill,

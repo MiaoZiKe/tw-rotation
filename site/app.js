@@ -710,13 +710,41 @@
     const pts = top0.map(r => ({ ...r, p: pos(r.rs, r.mo) }));
     const top = pts;
     const maxR = CLOCK_MAXR;
-    /* 尾巴只畫「N 天前 → 現在」一條直線：畫整段實際軌跡會變成一團毛線，
-       反而看不出來在往哪走。小圈圈是 N 天前的位置，線另一頭的大點就是現在。 */
+    /* 在極座標上補點，讓線**貼著圓弧走**（Andy 2026-09-18：
+       「他的線需要沿著圓圈變化，而不是一個斷點直線跑過去」）。
+       ECharts 的 line series 就算掛在 polar 上，兩點之間仍然是在螢幕上連一條直線 ——
+       角度差一大，那條線就直接橫跨過圓心，看起來像「跳過去」而不是「轉過去」。
+       所以自己在角度與半徑上各補中間點；角度一律走較短的那一邊，
+       不然從 350° 到 10° 會沿著圓繞一大圈回去。*/
+    const arcPath = (pts) => {
+      const out = [];
+      for (let i = 0; i < pts.length - 1; i++) {
+        const [r0, a0] = pts[i], [r1, a1] = pts[i + 1];
+        let d = a1 - a0; if (d > 180) d -= 360; if (d < -180) d += 360;
+        const n = Math.max(2, Math.min(24, Math.round(Math.abs(d) / 6) + 2));
+        for (let k = 0; k < n; k++) {
+          const u = k / n;
+          out.push([r0 + (r1 - r0) * u, (a0 + d * u + 360) % 360]);
+        }
+      }
+      if (pts.length) out.push(pts[pts.length - 1]);
+      return out;
+    };
+    /* 尾巴：這 N 天真正走過的路。
+       以前只取「N 天前」與「現在」兩點連一條直線 —— 註解寫的理由是「畫整段會變一團毛線」。
+       折衷：從實際軌跡挑最多 6 個路標（太密才會變毛線），再用 arcPath 把它們接成弧線，
+       這樣既看得出真的怎麼繞，也不會糊成一團。小圈圈仍然標在最舊的那一端。*/
     const trail = (r) => {
       const t = r.trail || [];
-      const prev = t.length > back ? t[t.length - 1 - back] : t[0];
-      if (!prev) return [];
-      return [pos(prev[1], prev[2]), pos(r.rs, r.mo)];
+      if (!t.length) return [];
+      const seg = t.slice(Math.max(0, t.length - 1 - back));
+      const way = seg.length > 1 ? seg : [t[0]];
+      const step = Math.max(1, Math.ceil((way.length - 1) / 5));
+      const picked = way.filter((_, i) => i % step === 0);
+      if (picked[picked.length - 1] !== way[way.length - 1]) picked.push(way[way.length - 1]);
+      const pts = picked.map(w => pos(w[1], w[2]));
+      pts.push(pos(r.rs, r.mo));
+      return arcPath(pts);
     };
     const sectorColor = {};
     CLOCK_SECTOR.forEach(s => { sectorColor[s.k] = STAGE[s.k].color; });
