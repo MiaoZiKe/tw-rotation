@@ -1441,10 +1441,24 @@
   /** 畫下方那張大圖。mode：'band' 色帶分區（fugle 那種）／'mult' 倍數線（Goodinfo 那種）。 */
   /* 本益比河流的可視區間（0-100 的百分比），由下方的「看哪一段」拉Bar 控制。
      2026-09-18（Andy 圖七）：「本益比河流圖也是，需要播放功能 拉Bar + & -」。
-     ★ dataZoom 刻意關掉滾輪與拖曳（zoomOnMouseWheel / moveOnMouseWheel / moveOnMouseMove 全 false）：
-       全站的滾輪政策是「只有指定那幾張圖可以縮放」（DECISIONS #104、#139），
-       這裡要的是「用拉Bar 看區間」，不是再開一個滾輪縮放入口。*/
+
+     ★ 用「切資料」實作，**絕對不要用 ECharts 的 dataZoom**（DECISIONS #192）。
+       `dataZoom: {type:'inside'}` 會註冊 wheel 事件並吃掉它，
+       #peWrap 的滾輪放大就失效了 —— 而那是 Andy 2026-09-16 親口要的功能，
+       peWrap 本來就在 t_zoom_sweep 的白名單裡（#104）。
+       這件事這支檔案 1631 行早就寫過一次；2026-09-19 我沒看到又踩一次，
+       驗收立刻抓到「本益比河流圖往上滾沒有放大」。*/
   let peWin = { start: 0, end: 100 };
+  function sliceRiver(r, win) {
+    if (!r || !r.dates || !r.dates.length) return r;
+    const N = r.dates.length;
+    const end = Math.max(2, Math.min(N, Math.round(win.end / 100 * N)));
+    const from = Math.max(0, Math.min(end - 2, Math.round(win.start / 100 * N)));
+    if (from === 0 && end === N) return r;
+    const cut = (a) => (Array.isArray(a) ? a.slice(from, end) : a);
+    return { ...r, dates: cut(r.dates), close: cut(r.close), eps: cut(r.eps),
+             bands: (r.bands || []).map(cut) };
+  }
   /* 河流圖的「看哪一段」拉Bar（Andy 2026-09-18 圖七要播放與 ＋ −）。
      兩支：一支調**視窗長度**（看多長一段），一支調**截止位置**（看到哪一天為止，可播放）。
      只建一次；重畫時只更新視窗值，不要重建（重建會把播放中的計時器孤兒化）。*/
@@ -1473,9 +1487,10 @@
     apply();
   }
 
-  function drawPeRiver(id, r, mode, st) {
+  function drawPeRiver(id, r0, mode, st) {
     const S = st || peStyle(null), ZN = S.zones;
-    if (!r) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
+    if (!r0) { A.empty(id, '需要至少四季連續財報，才算得出近四季 EPS'); return; }
+    const r = sliceRiver(r0, peWin);
     const maxClose = Math.max(...r.close), minClose = Math.min(...r.close);
     const lab = (i) => `${r.mult[i]} 倍`;
     let series, yMin, yMax;
@@ -1545,8 +1560,6 @@
       xAxis: { ...A.axisStyle, type: 'category', data: r.dates, boundaryGap: false,
         axisLabel: { color: A.CH.ink3, formatter: (v) => String(v).slice(0, 7) } },
       yAxis: { ...A.axisStyle, min: yMin, max: yMax, axisLabel: { color: A.CH.ink3 } },
-      dataZoom: [{ type: 'inside', start: peWin.start, end: peWin.end,
-        zoomOnMouseWheel: false, moveOnMouseWheel: false, moveOnMouseMove: false }],
       series,
       // 一定要 notMerge：兩種模式的 series 數量與型態都不一樣，
       // 用合併的話切到「倍數線」時，上一次的色帶還留在圖上（實測就是這樣糊成一片）

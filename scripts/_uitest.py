@@ -983,27 +983,51 @@ def t_flow(pg, base):
     click(pg, "#vBelow", 600)
 
     # --- 這頁每張圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
-    # ---- G1/G2/G3 資金去向（Andy 2026-09-18：垂直、電流流動感、占比 %）
+    # ---- 資金去向：2026-09-19 整張改掉（Andy 圖六「改成水平並且全部都以點跟線呈現，
+    #      金資越多的 顏色越深也越粗」）。原本的「垂直桑基＋電流脈動」三條驗收隨之作廢 ——
+    #      那正是他要求換掉的東西，留著只會每天報一次假紅燈。
     sk = pg.evaluate("""() => { const el = document.getElementById('sankey'); if (!el) return null;
         const c = echarts.getInstanceByDom(el); if (!c) return null;
         const s = c.getOption().series[0];
-        return { orient: s.orient, label: typeof s.label.formatter, links: (s.links||[]).length }; }""")
-    ok("資金去向是垂直由上往下", bool(sk) and sk["orient"] == "vertical", sk)
-    ok("節點標籤自己算占比 %", bool(sk) and sk["label"] == "function", sk)
-    ok("滑過連線看得到 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+        const root = (s.data || [])[0] || {};
+        const kids = root.children || [];
+        return { type: s.type, orient: s.orient, symbol: s.symbol,
+                 n: kids.length,
+                 sizes: kids.map(k => k.symbolSize).filter(v => v != null),
+                 widths: kids.map(k => (k.lineStyle || {}).width).filter(v => v != null) }; }""")
+    ok("資金去向是水平的（圖六）", bool(sk) and sk["type"] == "tree" and sk["orient"] == "LR", sk)
+    ok("資金去向全部以點跟線呈現（圖六）", bool(sk) and sk["symbol"] == "circle" and sk["n"] > 0, sk)
+    # 「錢越多的點越大、線越粗」：最大的要明顯大於最小的，不是全部一樣
+    ok("錢越多的點越大（圖六）",
+       bool(sk) and len(sk["sizes"]) > 1 and max(sk["sizes"]) > min(sk["sizes"]) * 1.3,
+       sk and sk["sizes"])
+    ok("錢越多的線越粗（圖六）",
+       bool(sk) and len(sk["widths"]) > 1 and max(sk["widths"]) > min(sk["widths"]) * 1.3,
+       sk and sk["widths"])
+    ok("滑過節點看得到 %", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
         if (!c) return false; const f = c.getOption().tooltip[0].formatter;
-        const s = f({ dataType: 'edge', data: { source: 'a', target: 'b', value: 1 } });
+        const s = f({ name: 'a', data: { value: 1 } });
         return typeof s === 'string' && s.indexOf('%') >= 0; }"""))
-    # 電流流動感：不動手、只等，畫面自己要變
-    g0 = canvas_hash(pg, "#sankey")
-    pg.wait_for_timeout(900)
-    changed("資金去向會動（電流流動感）", g0, canvas_hash(pg, "#sankey"))
+    # 圖六的「看哪一天」播放拉Bar
+    if pg.evaluate("() => !!document.querySelector('#sankeyDays input[type=range]')"):
+        s0 = canvas_hash(pg, "#sankey")
+        set_range(pg, "#sankeyDays input[type=range]", 0, 1200)
+        changed("資金去向拉到最舊那天，圖真的重畫（圖六）", s0, canvas_hash(pg, "#sankey"))
+        check_play(pg, "#sankeyDays")
 
-    # ---- H1 族群佔比河流：占比 % ＋ 天數拉 Bar（Max 60）
+    # ---- H1 族群佔比河流：占比 % ＋ 天數拉 Bar
     rb = pg.evaluate("""() => { const i = document.querySelector('#riverDays input[type=range]');
         return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
     ok("族群佔比河流有天數拉 Bar", bool(rb), rb)
-    ok("河流的拉 Bar 最多 60 天", bool(rb) and rb["max"] <= 60 and rb["min"] <= 10, rb)
+    # 2026-09-19：後端 share_series 從 60 天拉到 250 天（圖七要能把截止日往回挪、一天一天播），
+    # 所以「最多 60 天」那條上限作廢；改成驗「拉得夠長、起點夠小」。
+    ok("河流的拉 Bar 範圍夠用（至少能拉到 60 天）",
+       bool(rb) and rb["max"] >= 60 and rb["min"] <= 10, rb)
+    if pg.evaluate("() => !!document.querySelector('#riverEnd input[type=range]')"):
+        e0 = canvas_hash(pg, "#river")
+        set_range(pg, "#riverEnd input[type=range]", 30, 1200)
+        changed("河流把截止日往回拉，圖真的重畫（圖七）", e0, canvas_hash(pg, "#river"))
+        check_play(pg, "#riverEnd")
     r0 = canvas_hash(pg, "#river")
     set_range(pg, "#riverDays input[type=range]", 10, 900)
     changed("拉天數，河流圖真的重畫", r0, canvas_hash(pg, "#river"))
@@ -2296,6 +2320,82 @@ def t_batch2(pg, base):
     pg.wait_for_timeout(500)
 
 
+def t_batch3(pg, base):
+    """批次3（Andy 2026-09-18 圖六／七／八／資金集中度）的真人操作驗收。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+
+    # ---- 圖八：族群 × 法人的「截止日」回放
+    if pg.evaluate("() => !!document.querySelector('#instEnd input[type=range]')"):
+        set_range(pg, "#instDays input[type=range]", 20, 900)
+        sub0 = text(pg, "#instSub")
+        i0 = canvas_hash(pg, "#instGroups")
+        set_range(pg, "#instEnd input[type=range]", 30, 1200)
+        changed("族群×法人把截止日往回拉，圖真的重畫（圖八）", i0, canvas_hash(pg, "#instGroups"))
+        changed("族群×法人的副標跟著寫出那一段日期（圖八）", sub0, text(pg, "#instSub"))
+        ok("副標寫的是一段區間不是只有天數", "～" in text(pg, "#instSub"), text(pg, "#instSub"))
+        check_play(pg, "#instEnd")
+
+    # ---- 資金集中度：六條均線可勾選、點某天鑽到族群再鑽到個股
+    mas = pg.evaluate("() => [...document.querySelectorAll('#concMa input[data-ma]')].map(i => +i.dataset.ma)")
+    ok("資金集中度有六條均線可選（5/10/20/60/120/240）", mas == [5, 10, 20, 60, 120, 240], mas)
+    n0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('conc'));
+        return c ? c.getOption().series.length : 0; }""")
+    pg.evaluate("""() => { const i = document.querySelector('#concMa input[data-ma="240"]');
+        if (i && !i.checked) { i.checked = true; i.dispatchEvent(new Event('change', {bubbles:true})); } }""")
+    pg.wait_for_timeout(900)
+    n1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('conc'));
+        return c ? c.getOption().series.length : 0; }""")
+    ok("勾 240 日均線，圖上真的多一條線", n1 > n0, f"{n0} → {n1}")
+    ok("240 日均線算得出來（後端要留夠 400 天）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('conc'));
+           if (!c) return false; const s = (c.getOption().series||[]).find(x => x.name === '240 日均');
+           return !!s && (s.data||[]).some(v => v != null); }"""))
+    ok("選過的均線有記住",
+       pg.evaluate("() => { try { return (localStorage.getItem('tw.conc.ma')||'').indexOf('240') >= 0; } catch(e){ return false; } }"))
+    # 點圖上某一天 → 側欄出現那天的族群
+    hit = pg.evaluate("""() => { const el = document.getElementById('conc');
+        const c = echarts.getInstanceByDom(el); if (!c) return null;
+        const o = c.getOption(); const n = (o.series[0].data||[]).length; if (!n) return null;
+        const i = n - 5 > 0 ? n - 5 : n - 1;
+        const p = c.convertToPixel({ seriesIndex: 0 }, [i, o.series[0].data[i]]);
+        if (!p) return null; const r = el.getBoundingClientRect();
+        return { x: r.left + p[0], y: r.top + p[1] }; }""")
+    if hit:
+        pg.mouse.click(hit["x"], hit["y"])
+        pg.wait_for_timeout(1200)
+        st = pg.evaluate("""() => { const b = document.getElementById('concSide');
+            return { open: !!b && !b.hidden, gs: document.querySelectorAll('#concGs button').length,
+                     hash: location.hash }; }""")
+        ok("點集中度圖的某一天，旁邊列出那天的族群", st["open"] and st["gs"] > 0, st)
+        ok("點某一天不會跳頁", st["hash"] == "#flow", st["hash"])
+        if st["gs"]:
+            pg.eval_on_selector("#concGs button", "b => b.click()")
+            pg.wait_for_timeout(1200)
+            st2 = pg.evaluate("""() => ({ ms: document.querySelectorAll('#concMs a[href^="#stock/"]').length,
+                empty: (document.getElementById('concMs')||{}).textContent.indexOf('沒有留') >= 0,
+                hash: location.hash })""")
+            ok("點族群會原地展開那天的成分股（或明講那天沒留）",
+               st2["ms"] > 0 or st2["empty"], st2)
+            ok("點族群不會跳頁（只有股票才連個股頁）", st2["hash"] == "#flow", st2["hash"])
+
+    # ---- 圖七B：個股頁本益比河流的區間拉Bar，而且滾輪放大不能因此失效
+    pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    tabs = pg.evaluate("() => [...document.querySelectorAll('#stockTabs button')].map(b => b.dataset.t)")
+    if "profit" in (tabs or []):
+        click(pg, '#stockTabs button[data-t="profit"]', 1600)
+        if pg.evaluate("() => !!document.querySelector('#peEnd input[type=range]')"):
+            p0 = canvas_hash(pg, "#peChart")
+            set_range(pg, "#peEnd input[type=range]", 50, 1200)
+            changed("本益比河流把截止拉回去，圖真的重畫（圖七B）", p0, canvas_hash(pg, "#peChart"))
+            check_play(pg, "#peEnd")
+        # ★ 滾輪放大是 Andy 2026-09-16 親口要的，不可以因為加了區間拉Bar 就壞掉
+        ok("本益比河流的滾輪放大還在（沒有被 dataZoom 吃掉）",
+           pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('peChart'));
+               if (!c) return false; const dz = c.getOption().dataZoom || [];
+               return dz.length === 0; }"""))
+
+
 def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
@@ -3379,7 +3479,11 @@ def t_events(pg, base):
         n_after = len(after)
         ok(f"選了 {pick} 之後清單只剩那一天",
            bool(after) and set(after) == {pick}, sorted(set(after))[:4])
-        ok(f"選了 {pick} 之後筆數真的變少", n_after < before_n or len(days) == 1,
+        # 清單本身有筆數上限，篩選前後可能都頂到上限而看起來「沒變少」——
+        # 但上一條已經證明「清單只剩那一天」＝篩選真的生效了，這條就不該再報紅。
+        # （同 DECISIONS #191：驗收條件要跟資料的實際分布相稱。）
+        ok(f"選了 {pick} 之後筆數真的變少（或本來就只有一天／頂到清單上限）",
+           n_after < before_n or len(days) == 1 or before_n >= 120,
            f"{before_n} → {n_after}")
         lbl = pg.evaluate("() => { const s = document.getElementById('evDate');"
                           " return s.options[s.selectedIndex].innerText; }")
@@ -3530,7 +3634,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3)):
             n0 = len(fails)
             try:
                 fn(pg, base)
