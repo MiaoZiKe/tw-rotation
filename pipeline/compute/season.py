@@ -46,22 +46,52 @@ def _monthly_returns(price: pd.DataFrame, codes: set[str] | None = None) -> pd.D
     return last[["code", "ym", "ret"]]
 
 
-def benchmark_monthly(price: pd.DataFrame, intl: pd.DataFrame | None) -> pd.Series:
-    """大盤月報酬：優先用資料湖裡的 TAIEX（FinMind 回補），其次 yfinance 的 ^TWII。"""
+def benchmark_monthly(price: pd.DataFrame, intl: pd.DataFrame | None,
+                      need: "pd.PeriodIndex | None" = None) -> tuple[pd.Series, str]:
+    """大盤月報酬，回傳 (序列, 來源說明)。
+
+    ★ 2026-09-19（Andy 圖三「超額 & 絕對報酬沒變化」）：這裡本來只找 TAIEX / ^TWII，
+      但資料湖裡**根本沒有那麼長的大盤歷史** —— `index_ohlc` 只有 2026-08 起的 32 天，
+      而且代號是 TSE/OTC/FUT，不是 TAIEX；`^TWII` 也只有 12 個月。
+      結果是超額報酬 312 格裡 **0 格算得出來**，前端發現全空就靜靜退回絕對報酬，
+      使用者切換兩個指標看起來「完全沒變化」。
+
+      所以加第三條路：**全市場等權月報酬**（拿 price 裡所有股票算）。
+      這比硬湊加權指數更對 —— 族群月報酬本來就是**等權**算的，
+      用等權市場當基準才是同口徑比較（拿等權族群去減市值加權指數，
+      差出來的有一大塊是「大型股 vs 中小型股」而不是族群本身的強弱）。
+
+    `need` 是「希望覆蓋到的月份」；指數來源覆蓋不到八成就改用全市場等權。
+    """
+    def _cover(m: pd.Series) -> float:
+        if need is None or not len(need) or m.empty:
+            return 1.0 if not m.empty else 0.0
+        return float(len(set(m.index) & set(need))) / max(1, len(need))
+
+    best, label = pd.Series(dtype=float), ""
     for code in BENCH_CODES:
         sub = price[price["code"] == code]
         if not sub.empty:
             m = _monthly_returns(sub)
             if not m.empty:
-                return m.set_index("ym")["ret"]
-    if intl is not None and not intl.empty and "symbol" in intl.columns:
+                best, label = m.set_index("ym")["ret"], f"大盤指數（{code}）"
+                break
+    if best.empty and intl is not None and not intl.empty and "symbol" in intl.columns:
         sub = intl[intl["symbol"] == "^TWII"][["date", "close"]].copy()
         if not sub.empty:
             sub["code"] = "^TWII"
             m = _monthly_returns(sub)
             if not m.empty:
-                return m.set_index("ym")["ret"]
-    return pd.Series(dtype=float)
+                best, label = m.set_index("ym")["ret"], "大盤指數（^TWII）"
+    if _cover(best) >= 0.8:
+        return best, label
+    # 指數歷史不夠長 → 用全市場等權月報酬，並且**明講**基準換了
+    allm = _monthly_returns(price)
+    if allm.empty:
+        return best, label or "（沒有可用的大盤基準）"
+    eq = allm.groupby("ym")["ret"].mean()
+    short = f"（指數只有 {len(best)} 個月，不夠比）" if len(best) else "（資料湖沒有大盤指數歷史）"
+    return eq, "全市場等權月報酬" + short
 
 
 def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
@@ -79,7 +109,8 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
     this_month = pd.Timestamp.today().to_period("M")
     rets = rets[rets["ym"] < this_month]
 
-    bench = benchmark_monthly(price, intl)
+    need = pd.PeriodIndex(sorted(rets["ym"].unique()), freq="M") if len(rets) else None
+    bench, bench_src = benchmark_monthly(price, intl, need)
     rets = rets.merge(m[["code", "group_id", "group_name"]], on="code", how="inner")
     # 族群等權月報酬
     grp = (rets.groupby(["group_id", "group_name", "ym"])["ret"]
@@ -116,8 +147,14 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
         return rows
 
     periods = {}
+    last_ym = grp["ym"].max()
     for key, years in PERIODS.items():
-        sub = grp if years is None else grp[grp["year"] > last_year - years]
+        # ★ 2026-09-19（Andy「近三年就會只有到當前月份」）：
+        #   以前用**日曆年**切（year > last_year - N），近三年＝2024/2025/2026，
+        #   而 2026 的 9-12 月還沒發生 → 那四個月只有 2 個樣本，
+        #   被下面 n>=3 的門檻擋掉 → 整排留白，看起來像資料壞了。
+        #   改成「最近 12xN 個**完整月**」的滾動視窗：每一格剛好 N 個樣本，12 個月全滿。
+        sub = grp if years is None else grp[grp["ym"] > last_ym - 12 * years]
         if sub.empty:
             continue
         periods[key] = {
@@ -148,6 +185,7 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
     return {
         "periods": periods, "groups": groups, "detail": detail, "benchmark": bench_rows,
         "benchmark_months": int(len(bench)),
+        "benchmark_source": bench_src,
         "data_from": str(grp["ym"].min()), "data_to": str(grp["ym"].max()),
-        "note": "族群報酬＝今日成分股等權平均（有生存者偏差）；超額報酬＝族群月報酬 − 加權指數同月報酬；樣本 < 3 留白。",
+        "note": f"族群報酬＝今日成分股等權平均（有生存者偏差）；超額報酬＝族群月報酬 − {bench_src}同月報酬；樣本 < 3 留白。",
     }

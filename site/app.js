@@ -495,11 +495,17 @@
   /* 總覽上方那排數字只是摘要，點下去到「市場明細」分頁看完整名單。
      Andy：「上面是簡說，點擊後會出現所有資訊」——
      所以不在總覽塞一個小面板，而是給它一個真的分頁，資訊可以鋪得開。 */
+  /* 2026-09-18（Andy 圖16）：「市場明細內資金集中這頁拿掉」——
+     資金集中度在「資金流向」頁已經有完整的一張（含均線與逐日鑽取），這裡重複了。*/
   const MKT = [
-    ['updown', '漲跌家數'], ['ma', '站上均線'], ['top5', '資金集中'], ['cand', '今日候選'],
+    ['updown', '漲跌家數'], ['ma', '站上均線'], ['cand', '今日候選'],
   ];
   function wireKpiDrill() {
-    $$('#hero .kpi.clickable').forEach(k => k.onclick = () => { location.hash = '#market/' + k.dataset.drill; });
+    // drill 以 # 開頭就是完整 hash（例如集中度改導到資金流向頁），否則是市場明細的子頁
+    $$('#hero .kpi.clickable').forEach(k => k.onclick = () => {
+      const d = k.dataset.drill || '';
+      location.hash = d.startsWith('#') ? d : '#market/' + d;
+    });
   }
 
   function stockTable(rows, cols) {
@@ -515,13 +521,193 @@
   let mktKind = 'updown', mktTab = 0;
   async function renderMarket() {
     wireHowto($('#v-market'));
-    await Promise.all([load('market_heat'), load('groups_today'), load('candidates'), load('groups_detail')]);
+    // stocks.json：圖15 的漲跌分佈長條圖要用（每一檔都有 market / group / chg_pct）
+    await Promise.all([load('market_heat'), load('groups_today'), load('candidates'),
+                       load('groups_detail'), load('stocks', { fallback: [] })]);
     $('#mktSeg2').innerHTML = MKT.map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('');
     $$('#mktSeg2 button').forEach(b => b.onclick = () => { location.hash = '#market/' + b.dataset.k; });
     drawMarket((location.hash.split('/')[1]) || 'updown');
   }
 
+  /* 圖15（Andy 2026-09-18）：「市場明細需要新增長條圖，去表現漲幅到跌幅 -10~+10%
+     常態分佈每2%為一個區間，並且可以篩選上市上櫃 族群」。
+
+     資料直接用 stocks.json（每一檔都有 market / group / chg_pct），不必改後端。
+     ETF 預設排除（已拍板）—— ETF 的漲跌分佈跟個股不同，混在一起會把中央那根撐高。
+     兩端各留一個「≤ -10%」「≥ +10%」的溢出格，不要把離群值丟掉。*/
+  const DIST = { market: '', groups: null, etf: false };
+  /* 圖15 的篩選：市場（全部／上市／上櫃）、含不含 ETF、族群複選。
+     族群用「晶片」而不是下拉 —— 這頁本來就用晶片，語彙一致。*/
+  function wireDistFilter() {
+    const box = $('#distFilter'); if (!box) return;
+    const all = D.stocks || [];
+    const markets = [...new Set(all.map(r => r.market).filter(Boolean))];
+    box.innerHTML = `<div class="seg tiny" id="distMkt">
+        <button data-m="" class="${DIST.market ? '' : 'on'}">全部</button>
+        ${markets.map(m => `<button data-m="${m}" class="${DIST.market === m ? 'on' : ''}">${m === 'TWSE' ? '上市' : m === 'TPEx' ? '上櫃' : m}</button>`).join('')}
+      </div>
+      <label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2)">
+        <input type="checkbox" id="distEtf" ${DIST.etf ? 'checked' : ''}>含 ETF</label>
+      <button class="btn small" id="distGroupBtn">族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}</button>`;
+    $$('#distMkt button', box).forEach(b => b.onclick = () => {
+      DIST.market = b.dataset.m; wireDistFilter(); drawChgDist();
+    });
+    const etf = $('#distEtf', box);
+    if (etf) etf.onchange = () => { DIST.etf = etf.checked; drawChgDist(); };
+    const gb = $('#distGroupBtn', box);
+    if (gb) gb.onclick = () => {
+      const names = [...new Set(all.map(r => r.group || '（未分類）'))].sort();
+      const wrap = $('#distGroups') || (() => {
+        const d = document.createElement('div');
+        d.id = 'distGroups'; d.className = 'chainchips';
+        d.style.cssText = 'margin-top:8px;max-height:130px;overflow:auto';
+        box.parentNode.parentNode.insertBefore(d, box.parentNode.nextSibling);
+        return d;
+      })();
+      if (wrap.dataset.open === '1') { wrap.dataset.open = '0'; wrap.innerHTML = ''; return; }
+      wrap.dataset.open = '1';
+      wrap.innerHTML = `<button data-g="">全部</button>`
+        + names.map(g => `<button data-g="${fmt.esc(g)}" class="${DIST.groups && DIST.groups.has(g) ? 'on' : ''}">${fmt.esc(g)}</button>`).join('');
+      $$('button', wrap).forEach(b => b.onclick = () => {
+        const g = b.dataset.g;
+        if (!g) DIST.groups = null;
+        else {
+          DIST.groups = DIST.groups || new Set();
+          if (DIST.groups.has(g)) DIST.groups.delete(g); else DIST.groups.add(g);
+          if (!DIST.groups.size) DIST.groups = null;
+        }
+        $$('button', wrap).forEach(x => x.classList.toggle('on', !!DIST.groups && DIST.groups.has(x.dataset.g)));
+        const btn = $('#distGroupBtn'); if (btn) btn.textContent = `族群篩選${DIST.groups ? `（${DIST.groups.size}）` : ''}`;
+        drawChgDist();
+      });
+    };
+  }
+
+  /* 圖16（Andy 2026-09-18）：「站上均線這邊需要可篩選曲線走勢圖可以看，
+     需要將所有圖疊加看變化 更直觀分析，並且均線可以分 5 10 20 30 60 120 240 含篩選功能」。
+     資料走獨立檔 ma_breadth.json（250 天 × 七條均線 × 27 個族群，約 287KB），
+     只有這一頁會載。均線單選（一次看一條，七條疊在一起會看不出族群差異），
+     族群複選（預設前 8 個 ＋ 全市場）。*/
+  const MAT = { ma: '20', groups: null };
+  async function drawMaTrend() {
+    const host = $('#maTrendBox'); if (!host) return;
+    const mb = await load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } });
+    if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史還在產出（下一輪盤後管線就會有）'); }
+    const names = Object.keys(mb.series).filter(n => n !== '全市場');
+    if (!MAT.groups) MAT.groups = new Set(['全市場', ...names.slice(0, 7)]);
+    // 均線單選
+    const pick = $('#maPick');
+    if (pick) {
+      pick.innerHTML = '<span class="muted">均線</span>'
+        + `<div class="seg tiny" id="maSeg">${(mb.mas || []).map(n =>
+          `<button data-n="${n}" class="${String(n) === MAT.ma ? 'on' : ''}">${n} 日</button>`).join('')}</div>`;
+      $$('#maSeg button', pick).forEach(b => b.onclick = () => { MAT.ma = b.dataset.n; drawMaTrend(); });
+    }
+    // 族群複選
+    const gbox = $('#maGroups');
+    if (gbox) {
+      gbox.innerHTML = ['全市場', ...names].map(n =>
+        `<button data-g="${fmt.esc(n)}" class="${MAT.groups.has(n) ? 'on' : ''}">${fmt.esc(n)}</button>`).join('');
+      $$('button', gbox).forEach(b => b.onclick = () => {
+        const g = b.dataset.g;
+        if (MAT.groups.has(g)) MAT.groups.delete(g); else MAT.groups.add(g);
+        if (!MAT.groups.size) MAT.groups.add('全市場');
+        drawMaTrend();
+      });
+    }
+    const shown = ['全市場', ...names].filter(n => MAT.groups.has(n));
+    const sub = $('#maTrendSub');
+    if (sub) sub.textContent = `MA${MAT.ma}：${shown.length} 條線　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
+    chart('maTrend', {
+      tooltip: { ...tip, trigger: 'axis',
+        formatter: (ps) => `<b>${ps[0].axisValue}</b><br>`
+          + ps.filter(q => q.value != null).sort((a, b) => b.value - a.value).slice(0, 12)
+              .map(q => `${q.marker}${q.seriesName} ${fmt.n(q.value, 1)}%`).join('<br>') },
+      legend: { type: 'scroll', top: 0, textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 } },
+      grid: { left: 52, right: 24, top: 34, bottom: 30 },
+      xAxis: { ...axisStyle, type: 'category', data: mb.dates, axisLabel: { color: CH.ink3, formatter: (v) => String(v).slice(5) } },
+      yAxis: { ...axisStyle, min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
+      series: shown.map((n, i) => ({
+        name: n, type: 'line', smooth: .25, showSymbol: false, connectNulls: true,
+        data: (mb.series[n] || {})[MAT.ma] || [],
+        lineStyle: { width: n === '全市場' ? 2.6 : 1.5,
+          color: n === '全市場' ? CH.ink : (L.gcolorByName ? L.gcolorByName(n) : PALETTE[i % PALETTE.length]) },
+        itemStyle: { color: n === '全市場' ? CH.ink : PALETTE[i % PALETTE.length] },
+        markLine: i === 0 ? { silent: true, symbol: 'none', label: { show: false },
+          lineStyle: { color: hexA(CH.ink3, .5), type: 'dashed' }, data: [{ yAxis: 50 }] } : undefined,
+      })),
+    }, { notMerge: true });
+  }
+
+  function drawChgDist() {
+    const host = $('#chgDistBox'); if (!host) return;
+    const all = D.stocks || [];
+    if (!all.length) { host.innerHTML = ''; return; }
+    const isEtf = (r) => /^00/.test(String(r.code || ''));
+    const pool = all.filter(r => r.chg_pct != null
+      && (!DIST.market || r.market === DIST.market)
+      && (DIST.etf || !isEtf(r))
+      && (!DIST.groups || DIST.groups.has(r.group || '（未分類）')));
+    // -10 ~ +10 每 2% 一格，共 10 格，外加兩端溢出
+    const edges = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10];
+    const labels = ['≤ -10'];
+    for (let i = 0; i < edges.length - 1; i++) labels.push(`${edges[i]} ~ ${edges[i + 1]}`);
+    labels.push('≥ +10');
+    const bins = new Array(labels.length).fill(0);
+    pool.forEach(r => {
+      const v = +r.chg_pct;
+      if (v <= -10) { bins[0]++; return; }
+      if (v >= 10) { bins[bins.length - 1]++; return; }
+      let k = 0; while (k < edges.length - 1 && v > edges[k + 1]) k++;
+      bins[k + 1]++;
+    });
+    const n = pool.length || 1;
+    // 常態曲線：用這批樣本自己的平均與標準差，疊上去看「今天偏左還偏右」
+    const mu = pool.reduce((s2, r) => s2 + (+r.chg_pct), 0) / n;
+    const sd = Math.sqrt(pool.reduce((s2, r) => s2 + Math.pow(+r.chg_pct - mu, 2), 0) / n) || 1;
+    const mids = labels.map((_, i) => (i === 0 ? -11 : i === labels.length - 1 ? 11 : (edges[i - 1] + edges[i]) / 2));
+    const norm = mids.map(x => n * 2 / (sd * Math.sqrt(2 * Math.PI)) * Math.exp(-Math.pow(x - mu, 2) / (2 * sd * sd)));
+    const c = chart('chgDist', {
+      tooltip: { ...tip, trigger: 'axis',
+        formatter: (ps) => { const i = ps[0].dataIndex;
+          return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）<br><small>點一下只看這一段</small>`; } },
+      grid: { left: 50, right: 20, top: 26, bottom: 34 },
+      xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 10.5, interval: 0, rotate: 30 } },
+      yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 } },
+      series: [
+        { type: 'bar', data: bins.map((v, i) => ({ value: v,
+            itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0] } })),
+          barWidth: '72%',
+          label: { show: true, position: 'top', color: CH.ink3, fontSize: 10.5,
+            formatter: (q) => (q.value ? `${q.value}` : '') } },
+        { type: 'line', data: norm, smooth: true, symbol: 'none', silent: true,
+          lineStyle: { color: hexA(CH.ink3, .8), width: 1.4, type: 'dashed' } },
+      ],
+    }, { notMerge: true });
+    const sub = $('#distSub');
+    if (sub) sub.textContent = `${n} 檔　平均 ${fmt.pct(mu)}　標準差 ${fmt.n(sd, 2)}%　`
+      + `（虛線＝用這批樣本自己的平均與標準差畫的常態曲線）`;
+    // 點某一段 → 下面只列那一段
+    if (c) c.off('click').on('click', (p) => {
+      const i = p.dataIndex;
+      const lo = i === 0 ? -Infinity : edges[i - 1];
+      const hi = i === labels.length - 1 ? Infinity : edges[i];
+      const rows = pool.filter(r => (i === 0 ? r.chg_pct <= -10
+        : i === labels.length - 1 ? r.chg_pct >= 10
+          : r.chg_pct > lo && r.chg_pct <= hi))
+        .sort((a, b) => b.turnover - a.turnover).slice(0, 80);
+      const box = $('#distPick'); if (!box) return;
+      box.hidden = false;
+      box.innerHTML = `<div class="hh"><b>${labels[i]}%</b><span class="m">${rows.length} 檔（依成交值）</span>
+          <span class="sp"></span><button class="btn small" data-x="1">收起 ✕</button></div>
+        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+          ${rows.map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一段沒有股票</span>'}</div>`;
+      const x = box.querySelector('[data-x]'); if (x) x.onclick = () => { box.hidden = true; };
+    });
+  }
+
   function drawMarket(kind) {
+    // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
     if (kind !== mktKind) mktTab = 0;
     mktKind = kind;
@@ -537,6 +723,7 @@
 
     if (kind === 'updown') {
       title.innerHTML = `漲跌家數 <small>今天 ${heat.advancers || 0} 漲 / ${heat.decliners || 0} 跌，漲停 ${(mv.counts || {}).limit_up ?? '—'} 檔、跌停 ${(mv.counts || {}).limit_down ?? '—'} 檔</small>`;
+      drawChgDist();                                   // 圖15：常態分佈長條圖（在分頁列上方）
       const sets = [
         ['漲停', mv.limit_up, '漲幅 ≥ 9.5%（成交價照檔位跳，實際常落在 9.7~10.0）'],
         ['跌停', mv.limit_down, '跌幅 ≤ -9.5%'],
@@ -551,9 +738,15 @@
         $('#mktInner').innerHTML = `<div class="kpinote">${t[2]}</div>` + stockTable(t[1], [PCT, CLOSE, TO]);
         bind();
       };
-      body.innerHTML = `<div class="seg" id="mktTabs">${sets.map((t, i) =>
+      body.innerHTML = `<div class="card" style="margin:0 0 14px;padding:12px 14px">
+          <div class="row spread"><h3 style="margin:0">漲跌分佈 <small id="distSub"></small></h3>
+            <div class="row" id="distFilter" style="gap:8px;flex-wrap:wrap"></div></div>
+          <div id="chgDistBox"><div id="chgDist" class="chart" style="min-height:260px"></div></div>
+          <div class="hpanel" id="distPick" hidden></div></div>`
+        + `<div class="seg" id="mktTabs">${sets.map((t, i) =>
         `<button data-i="${i}" class="${i === mktTab ? 'on' : ''}">${t[0]} <em>${t[1].length}</em></button>`).join('')}</div>`
         + `<div id="mktInner" style="margin-top:10px"></div>`;
+      wireDistFilter();
       $$('#mktTabs button').forEach(btn => btn.onclick = () => {
         mktTab = +btn.dataset.i;
         $$('#mktTabs button').forEach(x => x.classList.toggle('on', x === btn)); draw();
@@ -565,14 +758,19 @@
     if (kind === 'ma') {
       const gs = (b.by_group || []);
       title.innerHTML = `站上均線 <small>全市場 ${b.pct_above_ma20 ?? '—'}% 站上 MA20（樣本 ${b.n ?? '—'} 檔）</small>`;
-      body.innerHTML = `<div class="kpinote">大盤的一個百分比看完不知道要幹嘛，拆到族群才知道是哪幾個在撐、哪幾個在拖。
-        條越長＝這個族群越多成分股站在 20 日均線之上。點族群看成分股。</div>`
+      body.innerHTML = `<div class="card" style="margin:0 0 14px;padding:12px 14px">
+          <div class="row spread"><h3 style="margin:0">站上均線走勢 <small id="maTrendSub">七條均線疊起來看變化</small></h3></div>
+          <div class="row" id="maPick" style="gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin:8px 0"></div>
+          <div class="chainchips" id="maGroups" style="max-height:104px;overflow:auto"></div>
+          <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
+        + `<div class="kpinote">下面這一排是**今天的快照**：條越長＝這個族群越多成分股站在 20 日均線之上。點族群看成分股。</div>`
         + (gs.length ? `<div class="magrid">${gs.map(g => `<div class="ma" data-gid="${g.group_id}">
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
             <div class="bar"><i style="width:${g.pct20}%;background:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
             <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`).join('')}</div>`
           : '<div class="empty">均線統計還在產生</div>');
       $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
+      drawMaTrend();
       return;
     }
 
@@ -627,7 +825,8 @@
          mv.counts ? `漲停 ${mv.counts.limit_up}　跌停 ${mv.counts.limit_down}　平盤 ${heat.unchanged}` : (heat ? `平盤 ${heat.unchanged}` : ''), '', mv.counts ? 'updown' : ''),
       kp('站上 MA20', b.pct_above_ma20 != null ? b.pct_above_ma20 + '%' : '—', `MA60 ${b.pct_above_ma60 ?? '—'}%　樣本 ${b.n ?? '—'}`,
          '', (b.by_group || []).length ? 'ma' : ''),
-      kp('前五族群佔比', heat && heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—', '越高＝資金越集中', '', (gt || []).length ? 'top5' : ''),
+      // 「資金集中」那一頁 2026-09-18 拿掉了，改導到資金流向頁的集中度圖（那裡功能更完整）
+      kp('前五族群佔比', heat && heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—', '越高＝資金越集中', '', (gt || []).length ? '#flow' : ''),
       kp('今日候選', `<span class="up">${b.grade_a ?? 0}</span> A <span class="muted">/</span> <span class="amber">${b.grade_b ?? 0}</span> B`, '回檔承接 / 突破追進', '', 'cand'),
     ].join('');
     wireKpiDrill();
@@ -2421,8 +2620,16 @@
     const draw = () => {
       const P = s3.periods[period]; if (!P) return empty('seasonHeat');
       $('#seasonRange').textContent = `${P.from} ～ ${P.to}，${P.years} 年`;
+      /* ★ 2026-09-19（Andy 圖三「超額 & 絕對報酬沒變化」）：
+         以前超額算不出來時，這裡**靜靜**把指標換成絕對報酬 ——
+         使用者按了「超額報酬」卻看到一模一樣的圖，只會以為按鈕壞了。
+         現在退回時要**講出來**（畫面上寫一行），不要無聲退回。*/
       const hasExcess = P.cells.some(c => c.avg_excess != null);
-      if (metric === 'avg_excess' && !hasExcess) { metric = 'avg_return'; $$('#seasonMetric button').forEach(b => b.classList.toggle('on', b.dataset.v === metric)); }
+      let fellBack = false;
+      if (metric === 'avg_excess' && !hasExcess) {
+        metric = 'avg_return'; fellBack = true;
+        $$('#seasonMetric button').forEach(b => b.classList.toggle('on', b.dataset.v === metric));
+      }
       const groups = s3.groups; const gi = {}; groups.forEach((g, i) => { gi[g.group_id] = i; });
       const data = P.cells.map(c => [c.month - 1, gi[c.group_id], c[metric], c]);
       const isWin = metric === 'win_rate'; const vals = data.map(d => d[2]).filter(v => v != null);
@@ -2453,7 +2660,9 @@
           outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
         series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
-      $('#seasonNote').textContent = s3.note + `　大盤月報酬樣本 ${s3.benchmark_months} 個月。`;
+      $('#seasonNote').innerHTML = fmt.esc(s3.note)
+        + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
+        + (fellBack ? '　<b style="color:var(--amber)">這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。</b>' : '');
       topThisMonth(P);
       drawLine();          // 兩張圖吃同一份資料、同一個期間與指標，切過去不用等
       paintView();

@@ -164,6 +164,12 @@ def build() -> None:
     # 120 → 400 天（Andy 2026-09-18：均線要能到 240 日，只留 120 天算不出來）。
     # 每一列現在還帶著當天的前 10 大族群（點某一天時旁邊直接列得出來）。
     _write("concentration", flow.concentration(group_hist).tail(400).to_dict("records"))
+    # 站上均線的歷史（圖16）：七條均線 × 逐日比例，獨立檔，只有那一頁會載
+    try:
+        _write("ma_breadth", flow.ma_breadth_history(price, loader.membership(), 250))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("站上均線歷史產出失敗：%s", exc)
+        _write("ma_breadth", {"dates": [], "mas": [], "series": {}})
     # 集中度圖點到某一天 → 那天前 10 大族群各自的前 5 檔（第三層，獨立檔案不進 flow_v3）
     try:
         _write("concentration_members",

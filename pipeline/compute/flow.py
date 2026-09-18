@@ -559,6 +559,65 @@ def share_daily(group_hist: pd.DataFrame, days: int = 60) -> dict:
     return {"dates": dates, "groups": out}
 
 
+def ma_breadth_history(price: pd.DataFrame, membership: "pd.DataFrame | None",
+                       days: int = 250, mas: tuple = (5, 10, 20, 30, 60, 120, 240)) -> dict:
+    """站上均線的**歷史**：每天、每個族群、每條均線，有多少比例的股票站在均線上。
+
+    Andy 2026-09-18 圖16：「站上均線這邊需要可篩選曲線走勢圖可以看，
+    需要將所有圖疊加看變化 更直觀分析，並且均線可以分 5 10 20 30 60 120 240 含篩選功能」。
+
+    原本只有「今天」的快照（candidates 裡的 pct20 / pct60），看不出變化。
+    這裡給最近 `days` 天的逐日比例，前端就能把七條均線疊起來看。
+
+    ★ 要算 240 日均線，收盤必須往前多取 240 天，所以實際讀 `days + 240` 天。
+    ★ 這一份**寫成獨立 JSON**，只有「市場明細 → 站上均線」那一頁會載。
+
+    回傳 {dates: [...], mas: [...], series: {group_name: {ma: [pct...]}}, }
+    其中 group_name 含一個 "全市場"。
+    """
+    empty = {"dates": [], "mas": list(mas), "series": {}}
+    if price is None or price.empty or "close" not in price.columns:
+        return empty
+    need = int(days) + max(mas) + 10
+    px = price[["date", "code", "close"]].copy()
+    px["date"] = px["date"].astype(str)
+    all_dates = sorted(px["date"].unique())
+    if len(all_dates) < max(mas) + 5:
+        return empty
+    use = all_dates[-need:]
+    px = px[px["date"].isin(use)]
+    piv = px.pivot_table(index="date", columns="code", values="close", aggfunc="last").sort_index()
+    if piv.empty:
+        return empty
+    out_dates = list(piv.index)[-int(days):]
+    # code → 族群（一檔可屬多個族群，這裡每個族群各算各的）
+    g2c: dict[str, list[str]] = {}
+    if membership is not None and len(membership):
+        for r in membership.itertuples():
+            if str(r.code) in piv.columns:
+                g2c.setdefault(str(r.group_name), []).append(str(r.code))
+    series: dict[str, dict] = {}
+    for n in mas:
+        ma = piv.rolling(n, min_periods=n).mean()
+        above = (piv > ma)                      # 布林：站上均線
+        valid = ma.notna()
+        # 全市場
+        tot = valid.sum(axis=1)
+        hit = (above & valid).sum(axis=1)
+        pct = (hit / tot.replace(0, np.nan) * 100).reindex(out_dates)
+        series.setdefault("全市場", {})[str(n)] = [None if pd.isna(v) else round(float(v), 1) for v in pct]
+        for gname, codes in g2c.items():
+            cols = [c for c in codes if c in piv.columns]
+            if len(cols) < 3:                   # 少於 3 檔的族群，比例會跳得沒有意義
+                continue
+            v2 = valid[cols]
+            t2 = v2.sum(axis=1)
+            h2 = (above[cols] & v2).sum(axis=1)
+            p2 = (h2 / t2.replace(0, np.nan) * 100).reindex(out_dates)
+            series.setdefault(gname, {})[str(n)] = [None if pd.isna(v) else round(float(v), 1) for v in p2]
+    return {"dates": out_dates, "mas": list(mas), "series": series}
+
+
 def _bump(g: pd.DataFrame, blocks_days: list[list[str]], unit: str) -> dict:
     """一段一段（週或月）算佔比名次，畫名次趨勢圖用。blocks_days 由舊到新。"""
     blocks = [_agg_block(g, days) for days in blocks_days]
