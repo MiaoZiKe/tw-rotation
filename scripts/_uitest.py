@@ -2704,15 +2704,20 @@ def t_relpanel(pg, base):
     ok("再按一次還原（不還原使用者會以為圖壞了）",
        back["hi"] == 0 and back["dim"] == 0 and back["codim"] == 0, back)
 
-    # ---- 沒有關聯的公司要明講，不是留白。台燿 6274 是刻意留「?」的那一家
-    tuc = pg.evaluate("() => !!document.querySelector('#chainMap g.co[data-id=\"tuc\"]')")
-    if tuc:
-        pg.eval_on_selector('#chainMap g.co[data-id="tuc"]',
+    # ---- 沒有關聯的公司要明講，不是留白。
+    #      ★ 不要寫死某一家（2026-09-19 踩到：驗收寫死台燿，結果台燿查到 AWS Trainium
+    #        那條邊之後就不再孤立，驗收紅了但行為完全正確）。改成**問畫面現在誰是孤立的**。
+    iso_id = pg.evaluate("""() => { const g = document.querySelector('#chainMap g.co:has(g.iso)');
+        return g ? g.dataset.id : null; }""")
+    if iso_id:
+        pg.eval_on_selector(f'#chainMap g.co[data-id="{iso_id}"]',
                             "g => g.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
         pg.wait_for_timeout(800)
         txt = text(pg, "#coBox")
-        ok("沒有上下游的公司，面板要明講「查不到就留白」而不是空白",
+        ok(f"沒有上下游的公司（{iso_id}）面板要明講「查不到就留白」而不是空白",
            "還沒有建立上下游關聯" in txt, txt[:90])
+    else:
+        ok("這條鏈上每一家都接得上（沒有孤立節點）", True, "沒有「?」可驗，跳過留白那條")
 
     # ---- 800px：面板要掉到圖的下面，不能硬並排
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -2873,6 +2878,10 @@ SC_GEOM = """() => {
     if (a.x < c.x + c.width - 1 && a.x + a.width > c.x + 1
         && a.y < c.y + c.height - 1 && a.y + a.height > c.y + 1) overlap.push(tb[i].t + ' ↔ ' + tb[j].t);
   }
+  /* 環節標題不可以比欄寬長。欄寬 178、標題左邊留 19px 給圓點，所以可用寬度約 155。
+     超出去字會跑出色塊外面（2026-09-19 新增「企業級儲存 / NAND 控制 IC」時實測到）。*/
+  const longTitle = [...svg.querySelectorAll('g.segtitle text.seg-title')]
+    .filter(t => t.getBBox().width > 155).map(t => t.textContent);
   const kids = [...svg.children].map(n => n.getAttribute('class') || n.tagName);
   const linked = new Set();
   paths.forEach(p => { linked.add(p.dataset.from); linked.add(p.dataset.to); });
@@ -2881,7 +2890,7 @@ SC_GEOM = """() => {
     return marked !== !linked.has(g.dataset.id);
   }).map(g => g.dataset.id);
   return { n: paths.length, cards: cards.length, badEnd, cross,
-           isoOk: isoBad.length === 0, isoBad, overlap: overlap.slice(0, 6),
+           isoOk: isoBad.length === 0, isoBad, overlap: overlap.slice(0, 6), longTitle,
            iso: svg.querySelectorAll('g.iso').length,
            noArrow: paths.filter(p => !p.getAttribute('marker-end')).length,
            dash: svg.querySelectorAll('path.edge.dash').length,
@@ -2936,6 +2945,7 @@ def t_batch6_n3(pg, base):
                f"{g['iso']} 個孤立 / 共 {g['cards']} 張卡")
             ok(f"{cid} 「?」只標在真的沒有線的卡片上{tag}", g["isoOk"], g["isoBad"][:4])
             ok(f"{cid} 圖上沒有文字互相壓到{tag}", not g["overlap"], g["overlap"])
+            ok(f"{cid} 環節標題沒有長到跑出色塊{tag}", not g["longTitle"], g["longTitle"])
             # 窄畫面放不下是允許的（.chainmap 本來就 overflow:auto），
             # 但一定要「捲得到」，不可以被切掉看不見 —— 2026-09-18 的 E6 就是這樣漏掉的。
             ok(f"{cid} 圖沒有被切掉（寬的放得下、窄的捲得到）{tag}",

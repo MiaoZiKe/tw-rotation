@@ -260,3 +260,46 @@ def test_竑騰的代號是7751():
     if not hta:
         return                      # 還沒加進來就跳過
     assert hta[0]["tw_code"] == "7751", "竑騰是 7751；6428 是台灣淘米（遊戲／文創股）"
+
+
+def test_族群與題材沒有重複代號():
+    """themes.yaml 的「HBM / 記憶體」原本把 3006 寫了兩次，
+    會讓晶豪科在題材權重裡被算兩次。這種錯不會報錯，只會讓數字悄悄偏掉。"""
+    import collections
+    import yaml
+    from pipeline.groups import loader as _loader
+    root = _loader.CHAIN_PATH.parent
+    bad = []
+    for fn, key in (("groups.yaml", "groups"), ("themes.yaml", "themes")):
+        data = yaml.safe_load((root / fn).read_text(encoding="utf-8"))[key]
+        for gid, g in data.items():
+            codes = g.get("codes") or []
+            dup = [k for k, v in collections.Counter(codes).items() if v > 1]
+            if dup:
+                bad.append((fn, gid, dup))
+    assert not bad, f"同一個代號在同一個族群／題材裡出現兩次：{bad}"
+
+
+def test_記憶體族群裡不可以有功率半導體():
+    """2026-09-19 查證撞到：`memory` 族群與「HBM / 記憶體」題材都放了 8261（富鼎）——
+    那是功率半導體（MOSFET／IGBT）廠，跟記憶體無關。
+
+    它會污染記憶體族群的量能、漲跌幅與估值中位數，而 M1 資金面正是靠族群量能
+    在判斷「錢往哪個族群跑」。這種錯不會報錯，只會讓儀表板的主結論悄悄偏掉。
+    """
+    import yaml
+    from pipeline.groups import loader as _loader
+    root = _loader.CHAIN_PATH.parent
+    g = yaml.safe_load((root / "groups.yaml").read_text(encoding="utf-8"))["groups"]
+    t = yaml.safe_load((root / "themes.yaml").read_text(encoding="utf-8"))["themes"]
+    assert "8261" not in g["memory"]["codes"], "8261 富鼎是功率半導體廠，不是記憶體"
+    assert "8261" not in t["hbm_memory"]["codes"], "8261 富鼎是功率半導體廠，不是記憶體"
+    assert "6669" not in g["ic_design"]["codes"], "6669 緯穎是 AI 伺服器 ODM，不是 IC 設計"
+
+
+def test_鎧俠不在HBM環節():
+    """Kioxia 是純 NAND 廠，明確不做 HBM（HBF 是用 NAND 模仿 HBM 概念，不是 HBM）。
+    原本 segment 寫 hbm、note 卻自己寫 NAND —— 檔案自己跟自己打架。"""
+    sc = _sc()
+    k = [c for c in sc["companies"] if c["id"] == "kioxia"]
+    assert k and k[0]["segment"] == "storage", "鎧俠要在 storage，不是 hbm"

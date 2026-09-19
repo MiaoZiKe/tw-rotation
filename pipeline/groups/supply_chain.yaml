@@ -37,7 +37,7 @@ segments:
   # 這一層 2026-09-19 才補進來。整條鏈的瓶頸其實都在這裡（味之素 ABF 膜全球 >95% 市占、
   # 2026 漲價 30%），以前圖上完全不存在，點「ABF 載板」也列不出它的材料來源。
   - {id: ccl_material,       name: "銅箔 / 玻纖布",             layer: 1, chain: ai_server,     role: material}
-  - {id: substrate_material, name: "載板材料（ABF 膜 / BT 樹脂）", layer: 2, chain: semiconductor, role: material}
+  - {id: substrate_material, name: "載板材料 ABF / BT", layer: 2, chain: semiconductor, role: material}
   # ---- 半導體主幹
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
   - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
@@ -46,7 +46,15 @@ segments:
      note: "CoWoS/SoIC 由台積電自己做（見晶圓代工），日月光承接外溢（見封測）"}
   - {id: osat_test,    name: "封測 / 測試",         layer: 3, chain: semiconductor}
   - {id: hbm,          name: "HBM 記憶體",          layer: 2, chain: semiconductor,
-     note: "本圖只畫 HBM 本體（由 SK hynix / Micron 自家封裝，台廠無直接供應商）；傳統 DRAM / NAND 不在這張圖上"}
+     note: "只畫 HBM 本體（由 SK hynix / Micron 自家封裝，台廠無直接供應商）。NAND 與利基 DRAM 另外兩格"}
+  # ★ 2026-09-19 新增。NVIDIA 官方 Vera Rubin 技術文件把 NVMe SSD 定為 ICMS
+  #   （Inference Context Memory Storage）記憶體階層的一層 —— 儲存從後段裝置變成系統架構的一層。
+  #   這不是媒體推測，是官方規格，所以這一格值得開。
+  - {id: storage,      name: "企業級儲存 / NAND", layer: 2, chain: semiconductor,
+     note: "NVIDIA 在 Vera Rubin 推出 ICMS，把 NVMe SSD 納入推論的 context memory 階層（HBM→host mem→local SSD→ICMS→network storage）。台股主體是群聯 8299；慧榮是 NASDAQ:SIMO，不是台股，未列入"}
+  # 跟 HBM 分開的理由：南亞科明講看淡 HBM、改押地端 AI 記憶體，旺宏與華邦電根本不做 DRAM／HBM；
+  # 而且這一段營收由現貨報價驅動（2026H1 NOR 合約價漲 100–120%），跟 HBM 的長約模式拐點不同。
+  - {id: dram_nor,     name: "DRAM / NOR Flash", layer: 2, chain: semiconductor}
   # ★ 2026-09-19：id 沿用 abf_pcb（前端 diagrams.js／three3d.js／_uitest 都引用了它），
   #   但把名稱與 chain 改對：IC 載板屬於半導體封裝環節，不是 AI 伺服器鏈。
   #   金像電 2368 從這一格搬去 hdi_pcb —— 它根本不做 ABF 載板，
@@ -56,7 +64,7 @@ segments:
   # 設備廠的營收驅動是「客戶的資本支出」，產能廠是「CoWoS 單價」，景氣拐點不同；
   # 放同一格會讓族群卡片的量能解讀失真。
   - {id: pkg_equipment,  name: "封裝設備 / 濕製程",         layer: 3, chain: semiconductor, role: equipment}
-  - {id: test_interface, name: "測試介面（探針卡 / 測試座）", layer: 3, chain: semiconductor, role: equipment}
+  - {id: test_interface, name: "測試介面 探針卡", layer: 3, chain: semiconductor, role: equipment}
   # ---- AI 伺服器
   - {id: hdi_pcb,      name: "高階 PCB（MLB / UBB）", layer: 3, chain: ai_server}
   # CCL 標 material，但**不**因此弱化到跟設備同級 —— 它占高階 AI 伺服器 PCB 材料成本 50% 以上，
@@ -228,7 +236,22 @@ companies:
       - {metric: "HBM 市占", value_pct: 62, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}
   - {id: micron,    ticker: "NASDAQ:MU",   name: Micron,   segment: hbm, foreign: true,
      share: [{metric: "HBM 市占", value_pct: 21, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}]}
-  - {id: kioxia,    name: Kioxia,   segment: hbm, foreign: true, note: "力成第一或第二大客戶（NAND）"}
+  # ★ 2026-09-19 更正：原本 segment 寫 hbm，但 note 自己就寫 NAND ——
+  #   鎧俠是純 NAND 廠，明確不做 HBM（它的 HBF 是用 NAND 模仿 HBM 概念的產品，不是 HBM）。
+  #   放在 hbm 格等於在公開網站上宣稱鎧俠是 HBM 廠。
+  - {id: kioxia,    name: Kioxia,   segment: storage, foreign: true, note: "純 NAND Flash 廠，不做 HBM；力成第一或第二大客戶，也是群聯的 NAND 晶圓來源"}
+  - {id: sandisk,   ticker: "NASDAQ:SNDK", name: SanDisk, segment: storage, foreign: true}
+  - {id: solidigm, name: "Solidigm（SK hynix 子公司）", segment: storage, foreign: true}
+  - {id: phison,  ticker: "8299", name: 群聯,       segment: storage,
+     tech: [NAND 控制 IC, 企業級 SSD Pascari, PCIe SSD Boot Drive],
+     note: "2026Q2 AI 生態解決方案占營收 38%；PCIe SSD Boot Drive 出貨量 2026-07 年增 4,500%，動能來自一般伺服器／AI 伺服器／AI 網通。CES 2026 的 Vera Rubin NVL72 Switch Tray 上出現印有 Phison 字樣的 SSD。★ 主體是 NAND 模組與 eSSD，營收驅動是 NAND 報價不是設計案，所以不放 IC 設計"}
+  - {id: nanya_tech, ticker: "2408", name: 南亞科,   segment: dram_nor,
+     tech: [DDR4/DDR5, 128GB DDR5 RDIMM, UWIO 客製化記憶體堆疊],
+     note: "★ 不是南電 8046（同為台塑集團，別看錯）。2026-03 私募 787.18 億元，認購人 SanDisk／Kioxia／Solidigm／Cisco 四家皆為其客戶。明確表示看淡 HBM、改押地端 AI 記憶體"}
+  - {id: mxic,    ticker: "2337", name: 旺宏,       segment: dram_nor, tech: [NOR Flash, SLC/MLC NAND, 3D NOR],
+     note: "2026Q2 營收 191.25 億、季增 83%、年增 181%，毛利率 40.8%→64.4%"}
+  - {id: winbond, ticker: "2344", name: 華邦電,     segment: dram_nor, tech: [NOR Flash, 利基型 DRAM, CUBE 客製化 3D 記憶體],
+     note: "NOR Flash 市占第一。★ CUBE 鎖定的是邊緣 AI／機器人／車用，不是 AI 伺服器，不要把它連到雲端業者。2026-09 以 11.2 億美元併購英飛凌 NOR Flash／F-RAM 事業"}
   - {id: hyperscaler, name: "CSP（Microsoft / Google / Amazon / Meta）", segment: hyperscaler, foreign: true}
   # ---- 材料層外商（2026-09-19 新增）。整條鏈最脆弱的單點瓶頸在這裡。
   - {id: ajinomoto, name: "味之素 Ajinomoto", segment: substrate_material, foreign: true,
@@ -318,6 +341,30 @@ edges:
   - {from: pti,      to: kioxia,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported,
      note: "鎧俠與美光各佔力成營收約 2～3 成"}
   - {from: pti,      to: skhynix, rel: supplies, item: "記憶體封測", strength: 2, confidence: reported}
+  - {from: pti,      to: broadcom, rel: supplies, item: "FOPLP 面板級先進封裝（CPO）", strength: 2, confidence: reported,
+     note: "2026-07-16 董事會決議與博通合資新加坡廠、投資總額 4 億美元；2028 年才量產，現在是建廠與小量階段"}
+  - {from: pti,      to: amd,     rel: supplies, item: "FOPLP 面板級先進封裝", strength: 2, confidence: reported,
+     note: "法說會揭露分工：台灣竹科廠的 FOPLP 產能服務超微、新加坡廠支援博通；2027 年依規劃投產"}
+  # ---- 企業級儲存（NVIDIA ICMS 把 SSD 拉進記憶體階層）
+  - {from: tsmc,     to: phison, rel: supplies, item: "SSD 控制 IC 晶圓（6nm/7nm；Gen7 走 4nm）", strength: 3,
+     confidence: reported, note: "★ 方向與設計服務同理：群聯是 fabless，向台積電買產能"}
+  - {from: kioxia,   to: phison, rel: supplies, item: "NAND 晶圓（已簽長約 LTA）", strength: 4, confidence: reported}
+  - {from: phison,   to: nvidia, rel: supplies, item: "企業級 SSD / Boot Drive", strength: 3, confidence: reported,
+     note: "CES 2026 的 Vera Rubin NVL72 Switch Tray 上實體現身；合作量與應用因保密協議未揭露"}
+  - {from: phison,   to: hyperscaler, rel: supplies, item: "PCIe Gen5 企業級 SSD（Pascari X201/D201）",
+     strength: 2, confidence: reported, note: "SC25 發表，明列雲端業者為目標客戶"}
+  # ---- DRAM / NOR Flash
+  - {from: nanya_tech, to: sandisk,  rel: supplies, item: "DRAM（多年期策略供應協議）", strength: 4, confidence: verified,
+     note: "SanDisk 2026-03 私募認購南亞科約 4.5% 股權並簽署多年期策略供應協議；SanDisk 法說自陳投資約 10 億美元以確保長期 DRAM 供應"}
+  - {from: nanya_tech, to: kioxia,   rel: supplies, item: "DRAM（長期供應協議）", strength: 4, confidence: verified,
+     note: "鎧俠 2026-03 私募認購約 2.3%，並表示已與南亞科簽訂長期 DRAM 供應協議"}
+  - {from: nanya_tech, to: solidigm, rel: supplies, item: "DRAM", strength: 3, confidence: reported}
+  - {from: mxic,     to: nvidia, rel: supplies, item: "NOR Flash（GB300 GPU 插槽旁 512Mb 韌體／開機）",
+     strength: 2, confidence: reported,
+     note: "GB300 主機板改 GPU 插槽設計，每個插槽旁需加 512Mb NOR。報導用「獨家打入」但公司未正式證實，兩家獨立媒體都標「傳」"}
+  - {from: winbond,  to: nvidia, rel: supplies, item: "NOR Flash（Vera Rubin 平台，2026H2 起）",
+     strength: 2, confidence: reported,
+     note: "★ 只有 Digitimes 一個原始來源（獨家），其餘媒體皆為轉述，尚未取得第二個獨立佐證"}
   - {from: wineai,   to: nvidia, rel: supplies, item: "測試座 / 探針卡 / 熱控系統", strength: 4, confidence: reported,
      note: "Phase 1 設計認證已過，Phase 2 於 2025 年底啟動，簽有至少 5 年長約"}
   - {from: wineai,   to: amd,    rel: supplies, item: "測試座 / 探針卡", strength: 3, confidence: reported,
