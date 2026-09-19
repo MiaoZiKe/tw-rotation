@@ -26,7 +26,7 @@
 | `window.ThemeDiagrams` 十八個題材 key **全滿** | `site/themes3d.js:251–500`：`T.cowos` … `T.heavy_electric`，`site/themes3d.js:524`：`window.ThemeDiagrams = T;` |
 | `themes.yaml` 十八個題材裡**沒有任何石化／塑化題材** | `pipeline/groups/themes.yaml`：ai_server / cowos / silicon_photonics / hbm_memory / thermal / power_bbu / asic_ip / pcb_ccl / robotics / drone / satellite / apple_chain / ev_auto / semi_equipment / defense / heavy_electric / edge_ai_pc / glass_substrate |
 | `traditional` 這條鏈在 `supply_chain.yaml` **一個環節都沒有** | `pipeline/groups/supply_chain.yaml` 的 `segments:` 只有 `chain: ai_server` / `semiconductor` / `electronics` 三種值 |
-| 所以 `chainSegments(sc,'traditional')` 回空陣列 → **環節色標不畫、關聯圖不畫** | `site/industry.js:110`：`sc.segments.filter(s => s.chain === cid || extra.includes(s.id))`；`site/industry.js:161`：`const hasMap = !!(sc && segs.length);` |
+| 所以 `chainSegments(sc,'traditional')` 回空陣列 → **環節色標不畫、關聯圖不畫** | `site/industry.js:110`：`sc.segments.filter(s => s.chain === cid || extra.includes(s.id))`；`site/industry.js:166`：`const hasMap = !!(sc && segs.length);` |
 | `petrochemical` 只是 `groups.yaml` 的一個**族群**（`chain: traditional`），不是供應鏈環節 | `pipeline/groups/groups.yaml:288–297` |
 | `petrochemical` 族群成分：**1301 台塑、1303 南亞、1326 台化、6505 台塑化**（2026-09-19 傍晚已移除 1101 台泥，理由是水泥業） | `pipeline/groups/groups.yaml:292–297` |
 | `traditional` 鏈的 `order` 包含六個族群：steel / petrochemical / shipping / finance / biotech / tourism | `pipeline/groups/groups.yaml:342–344` |
@@ -563,7 +563,7 @@ A2 說停留時間 0.2–0.5 秒 —— 這正是 A3「一出爐就要急冷」�
 
 ## 7. 給 `tech-illustrator` 的實作邊界（不是規格，是省時間的提醒）
 
-- 走 `chainScene` 的幾何（`site/themes3d.js:37`），`CW = 1180`、6 個等寬槽位
+- 走 `chainScene` 的幾何（`site/themes3d.js:38`），`CW = 1180`、6 個等寬槽位
   → 單格約 179px。段 4（分離塔組）裡有六支塔，**它一格塞不下**：
   建議段 4 佔兩格（約 370px），其餘各佔一格 → 共 7 格寬、6 站。
 - 上方的三段 band（上游／中游／下游）在這張圖要**換成裂解價差帶**（§3-D），
