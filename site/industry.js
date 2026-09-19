@@ -111,6 +111,14 @@
   /* confidence 一定要看得見。這份資料有一半是「產業邏輯推論」而不是公司揭露，
      不標出來的話，使用者會把推論當成事實 —— 那正是這張圖最容易造成的傷害。*/
   const CONF_TEXT = { verified: '官方揭露', reported: '媒體報導', estimated: '產業推論' };
+  /* 佐證連結。只認 https:// 開頭的 —— YAML 是人維護的，
+     萬一有人寫了 javascript: 這種東西，這裡就是最後一道關。*/
+  const srcLink = (u) => {
+    const url = String(u || '').trim();
+    if (!/^https:\/\//.test(url)) return '';
+    let host = url; try { host = new URL(url).hostname.replace(/^www\./, ''); } catch (e) { /* 壞網址就印全文 */ }
+    return `<a class="src" href="${A.fmt.esc(url)}" target="_blank" rel="noopener noreferrer">佐證：${A.fmt.esc(host)} ↗</a>`;
+  };
   const relLabel = (e) => {
     const r = (REL_TEXT[e.rel] || {}).label || e.rel || '關聯';
     return `${e.item || r}${e.note ? '（' + e.note + '）' : ''}`;
@@ -696,9 +704,18 @@
       const sw = e.strength ? `<i class="dep" style="--n:${Math.min(5, e.strength)}" title="依存度 ${e.strength}/5"></i>` : '';
       const cf = e.confidence
         ? `<em class="cf cf-${e.confidence}">${CONF_TEXT[e.confidence] || e.confidence}</em>` : '';
-      return `<li><span class="rl">${A.fmt.esc(rt[dir])}</span>${nm}${sw}
-        <div class="it">${A.fmt.esc(e.item || '')}${cf}</div>
-        ${e.note ? `<div class="nt">${A.fmt.esc(e.note)}</div>` : ''}</li>`;
+      /* Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」。
+         事實（官方揭露／媒體報導）→ 有 note 就平鋪直敘，不強迫附連結，他自己查得到。
+         **推論** → 整塊換成橘色的「這是推論」，把「為什麼這樣推」與佐證連結攤開 ——
+         那是我的主張，不是誰講過的事實，不攤開就會被當成事實。*/
+      const guess = e.confidence === 'estimated';
+      const why = guess
+        ? `<div class="why"><b>這是推論，不是公司揭露</b>
+             <div>${A.fmt.esc(e.note || '')}</div>
+             ${srcLink(e.source_url)}</div>`
+        : (e.note ? `<div class="nt">${A.fmt.esc(e.note)}</div>` : '');
+      return `<li class="${guess ? 'guess' : ''}"><span class="rl">${A.fmt.esc(rt[dir])}</span>${nm}${sw}
+        <div class="it">${A.fmt.esc(e.item || '')}${cf}</div>${why}</li>`;
     };
     const up = sc.edges.filter(e => e.to === co.id && e.rel !== 'produced_by').map(e => line(e, 'up')).filter(Boolean);
     const down = sc.edges.filter(e => e.from === co.id && e.rel !== 'produced_by').map(e => line(e, 'down')).filter(Boolean);
@@ -715,8 +732,10 @@
       ${down.length ? `<div class="relcol"><h5>下游 · 它供給誰（${down.length}）</h5><ul>${down.join('')}</ul></div>` : ''}
       ${rivals.length ? `<div class="relcol"><h5>同業競爭</h5><div class="row" style="gap:6px">${rivals.map(r => r.tw_code ? A.L.stock(r.tw_code, r.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(r.name)}</span>`).join('')}</div>
         <div class="nt">競爭關係不畫在關聯圖上 —— 那不是上下游，畫成線會被讀成供貨。</div></div>` : ''}
-      <div class="nt">依存度＝資料裡的 strength（1–5），越滿代表這條關係在圖上的線越粗。
-        「產業推論」是沒有公司揭露、只能從產業邏輯推出來的，看的時候要打折。</div>
+      <div class="nt">依存度＝資料裡的 strength（1–5），越滿代表這條關係在圖上的線越粗。<br>
+        <b class="cf cf-verified">官方揭露</b> 與 <b class="cf cf-reported">媒體報導</b> 是**事實**，你自己也查得到，所以不另外附連結；<br>
+        <b class="cf cf-estimated">產業推論</b> 是**我從兩段事實推出來的**，不是誰講過的 ——
+        所以一定會寫「為什麼這樣推」和「缺的是什麼」，並附上支撐推論的那篇。看的時候要打折。</div>
     </div>`;
   }
 

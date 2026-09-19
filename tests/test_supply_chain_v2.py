@@ -115,3 +115,31 @@ def test_委外與指定料號的方向不可以被改成供貨():
         "聯亞→華星光 是委外代工（錢是聯亞付給華星光），不是供貨"
     spec = [x for x in sc["edges"] if x.get("rel") == "designated_by"]
     assert spec, "終端指定料號（AVL）要用 designated_by，不可以畫成 supplies"
+
+
+def test_推論一定要寫原因並附佐證連結():
+    """Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」。
+
+    事實錯了是來源錯，**推論錯了是我錯** —— 所以推論必須把推理過程攤開：
+    `note` 要寫「推論依據：…。缺的是：…」，而且要附支撐推論的那篇 `source_url`。
+    """
+    sc = _sc()
+    bad = []
+    for e in sc["edges"]:
+        if e.get("confidence") != "estimated":
+            continue
+        note = e.get("note") or ""
+        if "推論依據" not in note or "缺的是" not in note:
+            bad.append((e["from"], e["to"], "note 沒寫『推論依據 / 缺的是』"))
+        if not str(e.get("source_url", "")).startswith("https://"):
+            bad.append((e["from"], e["to"], "沒有附 source_url"))
+    assert not bad, f"推論沒有攤開推理過程：{bad}"
+
+
+def test_事實不強迫附連結但推論強迫():
+    """反過來也要成立 —— 不可以為了『看起來嚴謹』把事實也標成推論。"""
+    sc = _sc()
+    ok_conf = {"verified", "reported", "estimated"}
+    bad = [(e["from"], e["to"], e.get("confidence")) for e in sc["edges"]
+           if e.get("rel") != "produced_by" and e.get("confidence") not in ok_conf]
+    assert not bad, f"confidence 只准是 verified / reported / estimated：{bad}"

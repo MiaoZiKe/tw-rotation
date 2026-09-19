@@ -229,7 +229,15 @@ companies:
 # 2026-09-19 由三位 industry-analyst 查證後重寫。每條標了 confidence：
 #   verified  官方文件／重訊等級（公司官網、優良供應商名單、採購金額揭露）
 #   reported  兩個以上獨立媒體在摘要層級講同一件事
-#   estimated 產業邏輯推論，沒有直接來源 —— 這種一律 strength ≤ 2 並寫明
+#   estimated **產業邏輯推論**，沒有直接來源
+#
+# ★ Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」。
+#   所以：
+#     verified / reported → 是事實，`note` 可有可無，**不強制附 source_url**
+#     estimated           → 是**我的推論**，`note` 一定要寫成
+#                           「推論依據：① … ② …。缺的是：<沒有的那個直接證據>」，
+#                           而且**一定要附 source_url**（支撐推論的那篇）。
+#   理由很直接：事實他自己查得到；推論是我的主張，我得把推理過程攤開讓他判斷。
 # 查不到出處的一律**不畫**，讓節點維持孤立並在圖上標「?」。畫錯一條線比留一個「?」糟糕得多。
 edges:
   # ================================ 材料 → 載板 / CCL
@@ -294,9 +302,11 @@ edges:
   # ★ 刪掉了 emc → unimicron：欣興的 ABF 載板用的是味之素 ABF 膜＋三菱瓦斯 BT core，
   #   不是台光電的高速 CCL。那條邊會被讀成「台光電供 ABF 載板材料」，是錯的。
   - {from: gce,      to: foxconn, rel: supplies, item: "伺服器 PCB", strength: 3, confidence: estimated,
-     note: "產業邏輯推論：金像電是伺服器 PCB 主力、鴻海是整櫃龍頭，但公開年報未確認直接客戶關係"}
+     note: "推論依據：① 金像電 2025Q3 伺服器營收占比 80%、AI 高階專案逾 50%（是伺服器 PCB 主力）② 鴻海是 AI 整櫃出貨龍頭。缺的是：公開年報未確認鴻海為金像電的直接客戶，兩家都沒有具名揭露",
+     source_url: "https://uc913.com/stock-2368/"}
   - {from: gce,      to: accton,  rel: supplies, item: "800G/1.6T 交換器 PCB", strength: 3, confidence: estimated,
-     note: "金像電是交換器板主力、智邦是白牌交換器龍頭；沒有雙方具名的直接來源"}
+     note: "推論依據：① 金像電做 38–48 層交換器板，是這塊的主力 ② 智邦是白牌交換器龍頭，800G/1.6T 升級的主要受惠者（工商時報把博通交換器晶片出貨的受惠者寫成「智邦、台光電」）。缺的是：沒有任何一篇明講「金像電供貨智邦」",
+     source_url: "https://uanalyze.com.tw/articles/4135513187"}
   - {from: gce,      to: hyperscaler, rel: designated_by, item: "CSP 自研 ASIC 平台直接指定 PCB 料號（AVL）",
      confidence: reported,
      note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM"}
@@ -336,7 +346,8 @@ edges:
      note: "聯亞最大客戶是國際光模組大廠，不是台廠"}
   - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}
   - {from: lpc,      to: luxnet,    rel: outsources_to, item: "CW Laser 晶粒後段製程代工", strength: 2, confidence: estimated,
-     note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。聯亞法說自承「CW Laser 代工廠產能不足，有些訂單委外」，但沒有雙方具名的來源"}
+     note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。推論依據：① MoneyDJ 把台廠定位拆成「CW 磊晶供應商聯亞、CW 晶片代工廠華星光與光環」② 聯亞 2026Q2 法說自承「CW Laser 代工廠產能遠遠不足公司需求，有些訂單委由外面代工廠代工」。缺的是：沒有任何一篇把「華星光是聯亞的代工廠」這個雙方具名的組合講出來",
+     source_url: "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=67534107-733a-4e9a-9559-cd6a84018ea6"}
   - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}
   - {from: browave,  to: nvidia,  rel: supplies, item: "CPO 用 800G/1.6T 光纖套件（Fiber Harness / Shuffle Box）",
      strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大"}

@@ -737,6 +737,15 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .relbox .cf-verified{color:#6ee7a8;border-color:rgba(110,231,168,.45)}
 .relbox .cf-reported{color:var(--ink-3)}
 .relbox .cf-estimated{color:#d9a441;border-color:rgba(217,164,65,.45)}
+/* Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」。
+   推論整塊染成橘色並留一道左邊框 —— 事實與推論在畫面上要一眼分得開，
+   不然使用者會把我的推論當成誰講過的事實。 */
+.relbox li.guess{border-left-color:rgba(217,164,65,.6)}
+.relbox .why{margin-top:4px;padding:5px 7px;border-radius:6px;font-size:11px;line-height:1.55;
+  color:var(--ink-2);background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.28)}
+.relbox .why b{display:block;color:#d9a441;font-size:11px;margin-bottom:2px}
+.relbox .src{display:inline-block;margin-top:3px;font-size:10.5px;color:var(--cyan);text-decoration:none}
+.relbox .src:hover{text-decoration:underline}
 .chainmap .iso circle{fill:none;stroke:#d9a441;stroke-opacity:.75}
 .chainmap .iso text{font-size:9.5px;fill:#d9a441;text-anchor:middle;pointer-events:none}
 .chainmap .co.dim{opacity:.28}

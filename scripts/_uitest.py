@@ -2644,7 +2644,7 @@ def t_relpanel(pg, base):
         return { has: !!b.querySelector('.relbox'), up: heads.filter(h => h.indexOf('上游') >= 0).length,
                  down: heads.filter(h => h.indexOf('下游') >= 0).length,
                  rows: li.length, items: li.filter(x => (x.querySelector('.it')||{}).textContent.trim()).length,
-                 conf: b.querySelectorAll('.relbox .cf').length,
+                 conf: b.querySelectorAll('.relbox li .cf').length,
                  dep: b.querySelectorAll('.relbox .dep').length,
                  side: !!b.classList.contains('relside'),
                  beside: (() => { const m = document.getElementById('chainMap');
@@ -2657,6 +2657,27 @@ def t_relpanel(pg, base):
     ok("關係不只列名字，還寫了供的是什麼品項", st["rows"] > 3 and st["items"] == st["rows"], st)
     ok("每一條都標了是官方揭露／媒體報導／產業推論", st["conf"] == st["rows"], st)
     ok("依存度用長條畫出來（不是只寫一個數字）", st["dep"] > 0, st["dep"])
+
+    # ---- Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」
+    #      推論要跟事實一眼分得開，而且要攤開「為什麼這樣推」＋佐證連結。
+    pg.eval_on_selector('#chainMap g.co[data-id="gce"]',
+                        "g => g.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+    pg.wait_for_timeout(900)
+    gs = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+        const g = [...b.querySelectorAll('.relbox li.guess')];
+        return { n: g.length,
+                 why: g.filter(x => x.querySelector('.why')).length,
+                 reason: g.filter(x => /推論依據/.test(x.textContent) && /缺的是/.test(x.textContent)).length,
+                 src: g.filter(x => { const a = x.querySelector('a.src');
+                   return a && /^https:\\/\\//.test(a.getAttribute('href')); }).length,
+                 factNoLink: [...b.querySelectorAll('.relbox li:not(.guess)')]
+                   .filter(x => x.querySelector('a.src')).length }; }""")
+    if gs and gs["n"]:
+        ok("推論跟事實在畫面上一眼分得開（推論整塊染色）", gs["n"] > 0, gs)
+        ok("每一條推論都寫了「為什麼這樣推」與「缺的是什麼」", gs["reason"] == gs["n"], gs)
+        ok("每一條推論都附了佐證連結（事實不強迫附）", gs["src"] == gs["n"], gs)
+    else:
+        fails.append("金像電的下游應該有推論標記，卻一條都沒有")
     ok("寬螢幕時面板在圖的旁邊，不是擠在下面", st["side"] and st["beside"], st)
 
     # ---- 真的按 highlight：圖上的線要變
