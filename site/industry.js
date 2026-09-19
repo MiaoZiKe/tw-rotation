@@ -74,9 +74,21 @@
   }
   const HAS_DIAGRAM = (cid) => ['semiconductor', 'ai_server'].includes(cid);
   // 哪些環節屬於這條鏈（半導體鏈把載板／封測也畫進來；AI 伺服器鏈把代工／封裝／HBM 畫進來）
+  /* 一條鏈要畫哪些環節。
+     ★ 2026-09-19（Andy 圖十「連線根本都沒對齊 確實連線」）查出來的第一個根因：
+       AI 伺服器鏈**沒有把 ic_design 算進來**，可是 supply_chain.yaml 裡
+       NVIDIA / AMD / Broadcom / Marvell 都掛在 ic_design ——
+       它們不在圖上，於是所有「IC 設計 → 代工／封裝／載板」的邊在
+       `coPos[e.from]` 查不到節點而被整條丟掉（實測 17 條）。
+       結果就是 34 家裡有 11 家完全沒有線，看起來像「連線漏畫」。 */
+  const CHAIN_EXTRA = {
+    ai_server: ['ic_design', 'foundry', 'adv_pkg', 'hbm'],
+    semiconductor: ['abf_pcb', 'osat_test'],
+  };
   function chainSegments(sc, cid) {
     if (!sc) return [];
-    return sc.segments.filter(s => s.chain === cid || (cid === 'ai_server' && ['foundry', 'adv_pkg', 'hbm'].includes(s.id)) || (cid === 'semiconductor' && ['abf_pcb', 'osat_test'].includes(s.id)));
+    const extra = CHAIN_EXTRA[cid] || [];
+    return sc.segments.filter(s => s.chain === cid || extra.includes(s.id));
   }
   const segName = (sc, id) => ((sc && sc.segments.find(s => s.id === id)) || {}).name || id;
   const segColor = (id) => A.L.segColor(id);      // 讀的當下才取色，切主題才跟得上
@@ -109,7 +121,7 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線框＝外商；點公司進入個股頁</small></h4><div class="chainmap" id="chainMap"></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
@@ -204,6 +216,13 @@
       wire3D(el, ch.id, {
         onSeg: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
         sync: () => syncHighlight({ quiet: true }),
+        /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
+           3D 的文字框以前只有「零件名＋一行說明」，是死的。
+           現在把該環節的台股掛上去，點了直接進個股頁 ——
+           資料本來就在前端（twOf(sc, seg)），不用多抓任何東西。*/
+        members: (seg) => { const tw = twOf(sc, seg);
+          return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; },
+        onStock: (code) => A.goStock(code),
       });
     }
     syncHighlight();
@@ -355,12 +374,18 @@
 
   function dispose3D() { if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; } }
 
+  /* 圖九 2-2：記住使用者選的色票。讀不到（無痕、擋 localStorage）就回預設，不要讓整個 3D 掛掉。*/
+  function palPref() {
+    try { const v = localStorage.getItem('tw.dg3d.pal'); return ['tech', 'soft', 'calm'].includes(v) ? v : 'tech'; }
+    catch (e) { return 'tech'; }
+  }
+
   function wire3D(el, chainId, hooks) {
     const hk = hooks || {};
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
     const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
-    const drg = $('#dgDrag', el);
+    const drg = $('#dgDrag', el), plb = $('#dgPal', el);
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
     const R = window.Rack3D;
@@ -377,6 +402,7 @@
       btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
+      if (plb) plb.hidden = !on;
       svg.hidden = on; host.hidden = !on;
       if (!on) { dispose3D(); note.hidden = true; sync(); return; }
       note.hidden = false;
@@ -389,6 +415,9 @@
           color: segColor,
           onSeg: (seg) => onSeg(seg),
           anim: animPref(),          // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
+          members: hk.members || null,   // 圖九 2-3：文字框底下那排可點的台股晶片
+          onStock: hk.onStock || null,
+          pal: palPref(),                // 圖九 2-2：三種配色，記在 localStorage
         });
       } catch (err) {
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
@@ -417,6 +446,20 @@
           paint();
         };
       }
+      /* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）：三種配色。
+         一顆鈕輪流切 科技 → 柔和 → 沉穩。「柔和」是淺底、零件不發光，
+         Andy 要拿去給客戶看的時候印得出來。*/
+      if (plb && v.setPal) {
+        const paintPal = () => { plb.textContent = '配色：' + v.palName(v.pal()); plb.classList.toggle('cyan', v.pal() !== 'tech'); };
+        paintPal();
+        plb.onclick = () => {
+          if (!view3d || !view3d.setPal) return;
+          const list = view3d.pals(), next = list[(list.indexOf(view3d.pal()) + 1) % list.length];
+          view3d.setPal(next);
+          try { localStorage.setItem('tw.dg3d.pal', next); } catch (e) { /* 忽略 */ }
+          paintPal();
+        };
+      }
       note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
       sync();
     };
@@ -441,17 +484,88 @@
     const cols = layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
     cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + 18; }); maxH = Math.max(maxH, y); });
-    const W = padX * 2 + cols.length * (colW + colGap) - colGap, H = Math.max(maxH, 300);
+    /* 右邊多留 24px：同一欄的兩張卡要從右緣繞一條 24px 的通道再回來，
+       不留的話最後一欄那條線會被 viewBox 切掉。*/
+    const W = padX * 2 + cols.length * (colW + colGap) - colGap + 24;
     const coPos = {};
+    /* 孤立節點要標「?」，所以連線度數得在畫卡片之前就算好。
+       只算兩端都在這條鏈上的邊 —— 另一端不在圖上的邊本來就畫不出來，
+       算進去會讓一個明明沒有線的節點不被標記。競爭關係（competes）不是上下游，不算。*/
+    const inChain = new Set(cos.map(c => c.id)), deg = {};
+    sc.edges.forEach(e => { if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
+      deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1; });
     let nodes = '';
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
       nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(s.name)}</text></g>`;
       if (!p.list.length) nodes += `<text class="sub" x="${p.x + 6}" y="${p.y + 16}" fill="#6f7ea3">（台股無直接對應）</text>`;
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
-        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text></g>`; }); });
-    let edges = '';
-    sc.edges.forEach(e => { const a = coPos[e.from], b = coPos[e.to]; if (!a || !b) return; const x1 = a.x + a.w, y1 = a.y + a.h / 2, x2 = b.x, y2 = b.y + b.h / 2; const mx = (x1 + x2) / 2; edges += `<path class="edge" data-from="${e.from}" data-to="${e.to}" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" stroke-width="${0.8 + (e.strength || 1) * 0.5}"><title>${A.fmt.esc(e.item || e.rel || '')}</title></path>`; });
-    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;max-width:${Math.round(W * 1.25)}px;display:block">${edges}${nodes}</svg>`;
+        nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
+    /* 圖十（Andy 2026-09-19：「供應鏈關聯圖 連線對不起來」）。
+       以前每一條邊都寫死「來源右緣 → 目標左緣」，於是目標在左邊的邊整條倒著走、
+       從卡片底下穿過去，看起來就像連錯人；邊又排在 nodes 之前，被卡片蓋掉一半。
+       現在端點依相對位置決定，而且一律走「欄與欄之間那條 30px 的空白通道」——
+       通道裡沒有任何卡片，所以線不會穿過不相干的公司：
+         目標在右、只隔一欄 → 右緣出 → 貝茲曲線走通道 → 目標左緣
+         目標在右、隔好幾欄 → 右緣出 → 下到卡片下方的匯流道 → 橫過去 → 上到目標左緣
+         目標在左           → 左緣出 →「先下再橫」正交折線 → 上到目標右緣
+         同一欄             → 右緣出 → 繞 24px 通道 → 回到目標右緣
+       線型由 rel 決定：supplies／produced_by 實線帶箭頭、outsources_to 虛線、
+       competes 不是上下游所以不畫；設備／材料環節（segment 的 role）走灰色細線。
+       粗細（依存度）用 CSS 變數 --w 傳 —— index.html 的 .chainmap .edge{stroke-width:1.2}
+       會蓋掉 stroke-width 屬性，改成 inline style 又會反過來蓋掉 .hi 的加粗。*/
+    const gapMid = 14;                       // 通道中線（colGap=30）
+    const coSeg = {}; cos.forEach(c => (coSeg[c.id] = c.segment));
+    const segRole = {}; segs.forEach(s2 => (segRole[s2.id] = s2.role || ''));
+    const corner = (pts) => {                // 正交折線，轉角切 6px 圓角
+      let d = `M${pts[0][0]},${pts[0][1]}`;
+      for (let i = 1; i < pts.length - 1; i++) {
+        const [px, py] = pts[i - 1], [x, y] = pts[i], [nx, ny] = pts[i + 1];
+        const r = Math.min(6, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+        d += `L${x - Math.sign(x - px) * r},${y - Math.sign(y - py) * r}`;
+        d += `Q${x},${y} ${x + Math.sign(nx - x) * r},${y + Math.sign(ny - y) * r}`;
+      }
+      const e2 = pts[pts.length - 1];
+      return d + `L${e2[0]},${e2[1]}`;
+    };
+    /* 匯流道要壓多低，只由「這條橫線真的會經過誰」決定，不是整張圖的最底下。
+       半導體鏈最高的那一欄有 900px，一條「先進封裝 → 晶圓代工」的回頭線
+       其實整段都走在兩欄之間那條 30px 的空白通道裡，一張卡片都沒碰到 ——
+       以前拉到最底再繞回來，多走 1200px，中間一大片空白，看起來像線斷了。*/
+    const allCards = Object.values(coPos), laneUse = {};
+    let edges = '', laneMax = 0;
+    const nextLane = (xa, xb, ay, by) => {
+      const xl = Math.min(xa, xb), xr = Math.max(xa, xb);
+      let base = Math.max(ay, by) + 12;
+      allCards.forEach(c => { if (c.x < xr - 1 && c.x + c.w > xl + 1) base = Math.max(base, c.y + c.h + 10); });
+      const k = Math.round(base);
+      const y = base + 4 + (((laneUse[k] = (laneUse[k] || 0) + 1) - 1) % 6) * 7;
+      laneMax = Math.max(laneMax, y); return y;
+    };
+    sc.edges.forEach(e => {
+      if (e.rel === 'competes') return;
+      const a = coPos[e.from], b = coPos[e.to]; if (!a || !b) return;
+      const ay = a.y + a.h / 2, by = b.y + b.h / 2;
+      let d;
+      if (b.x > a.x) {
+        const x1 = a.x + a.w, x2 = b.x;
+        if (x2 - x1 <= colGap + 1) { const mx = (x1 + x2) / 2; d = `M${x1},${ay} C${mx},${ay} ${mx},${by} ${x2},${by}`; }
+        else { const ly = nextLane(x1 + gapMid, x2 - gapMid, ay, by); d = corner([[x1, ay], [x1 + gapMid, ay], [x1 + gapMid, ly], [x2 - gapMid, ly], [x2 - gapMid, by], [x2, by]]); }
+      } else if (b.x < a.x) {
+        const x1 = a.x, x2 = b.x + b.w, ly = nextLane(x1 - gapMid, x2 + gapMid, ay, by);
+        d = corner([[x1, ay], [x1 - gapMid, ay], [x1 - gapMid, ly], [x2 + gapMid, ly], [x2 + gapMid, by], [x2, by]]);
+      } else {
+        const x1 = a.x + a.w, xo = x1 + 24;
+        d = corner([[x1, ay], [xo, ay], [xo, by], [x1, by]]);
+      }
+      const eq = [coSeg[e.from], coSeg[e.to]].some(sg => ['equipment', 'material'].includes(segRole[sg]));
+      const w = eq ? 1 : 0.8 + (e.strength || 1) * 0.5;
+      edges += `<path class="edge${e.rel === 'outsources_to' ? ' dash' : ''}${eq ? ' eq' : ''}" data-from="${e.from}" data-to="${e.to}" data-rel="${A.fmt.esc(e.rel || '')}" style="--w:${w.toFixed(2)}" marker-end="url(#scArrow)" d="${d}"><title>${A.fmt.esc(e.item || e.rel || '')}${e.note ? '（' + A.fmt.esc(e.note) + '）' : ''}</title></path>`;
+    });
+    const H = Math.max(maxH, laneMax + 18, 300);
+    /* 箭頭：markerUnits 用 userSpaceOnUse，不然細線的箭頭會跟著縮到看不見；
+       fill 用 context-stroke，線變色（hover 成青色、設備灰）箭頭才跟著變。*/
+    const defs = '<defs><marker id="scArrow" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0.5,0.8 L7.5,4 L0.5,7.2 z" fill="context-stroke"/></marker></defs>';
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;max-width:${Math.round(W * 1.25)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     $$('.co', host).forEach(n => { n.onmouseenter = () => { $$('.edge', host).forEach(e => { const on = e.dataset.from === n.dataset.id || e.dataset.to === n.dataset.id; e.classList.toggle('hi', on); e.classList.toggle('dim', !on); }); }; n.onmouseleave = () => $$('.edge', host).forEach(e => e.classList.remove('hi', 'dim')); n.onclick = () => { const co = cos.find(c => c.id === n.dataset.id); if (!co) return;
       /* 2026-09-18（Andy 圖12）：以前無論點誰都先開一張 position:fixed 掛在 <body> 的卡，
          同時又跳去個股頁 —— 那張卡不屬於任何 view，換頁不會被清掉，

@@ -173,6 +173,131 @@
       return mesh;
     };
 
+    /* ================================================================ 圖九 2-1
+       走線 ／ PIN 腳 ／ 電流
+       規格書：docs/diagram_specs/dg3d_standard.md 第 2-1 節。
+       Andy 的判準是「一眼看得出這是電子零件」，所以三件事都有硬性的識別特徵：
+         走線  —— 蛇行等長線、差動對成雙、轉角一律 45°、線寬一致（不是隨機亂畫的線）
+         PIN 腳 —— BGA 成陣列且是球、金手指成排鍍金有倒角、電源端子看得出匯流排厚度
+         電流  —— 沿著走線跑的粒子，只在動態模式時跑；靜止時走線本身仍然看得見
+       走線的點一律用 [x, z] 的二維陣列表示（板子是平的），y 由呼叫端給。 */
+
+    /* 蛇行等長線：直線 → 45° 斜上 → 直線 → 45° 斜下，一個循環。
+       斜段的 dx 與 dz 相等才會是真的 45°，所以 amp 直接拿 span 來用。*/
+    function meander(x0, x1, z, amp, cycles) {
+      const pts = [[x0, z]];
+      const span = (x1 - x0) / (cycles * 4);
+      const a = Math.min(amp, Math.abs(span));           // 保證 45°
+      for (let i = 0; i < cycles; i++) {
+        const bx = x0 + i * span * 4;
+        pts.push([bx + span, z]);
+        pts.push([bx + span * 2, z + a]);
+        pts.push([bx + span * 3, z + a]);
+        pts.push([bx + span * 4, z]);
+      }
+      return pts;
+    }
+
+    /* 把一整層的走線**併成一個 mesh**：每一段一個貼在板面上的長方形（兩個三角形）。
+       ★ 一段一個方塊會死人：一塊板 160 段、六塊板就是 960 個 draw call，
+         實測整台機櫃從 483 個 mesh 暴增到 1846、frame rate 直接砍半（29.8 → 14.1 fps，
+         容器裡的軟體渲染）。AGENTS.md 對繪圖寫的是「不准掉幀」，所以一層併成一個。
+       線寬（wdt）整條一致 —— 寬度不一致一眼就看得出來不是真的走線；
+       每段沿著方向各延長半個線寬，轉角才不會有缺口。*/
+    function traceMesh(runs, wdt, y, m) {
+      const pos = [], idx = [];
+      let v = 0;
+      runs.forEach(pts => {
+        for (let i = 1; i < pts.length; i++) {
+          const [x0, z0] = pts[i - 1], [x1, z1] = pts[i];
+          const dx = x1 - x0, dz = z1 - z0, len = Math.hypot(dx, dz);
+          if (len < 1e-6) continue;
+          const ux = dx / len, uz = dz / len, hw = wdt * 0.5;
+          const ax = x0 - ux * hw, az = z0 - uz * hw, bx = x1 + ux * hw, bz = z1 + uz * hw;
+          const nx = -uz * hw, nz = ux * hw;
+          pos.push(ax + nx, y, az + nz, bx + nx, y, bz + nz, bx - nx, y, bz - nz, ax - nx, y, az - nz);
+          idx.push(v, v + 1, v + 2, v, v + 2, v + 3); v += 4;
+        }
+      });
+      const g = new T.BufferGeometry();
+      g.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      g.setIndex(idx);
+      g.computeVertexNormals();
+      const mesh = new T.Mesh(g, m);
+      m.side = T.DoubleSide;        // 平的銅箔從底下看也要在
+      return mesh;
+    }
+
+    /* 一塊板子的走線層：n 組**差動對**（成雙、間距固定、轉角 45°）。
+       回傳的 group 上掛 userData.flows＝這些走線的路徑，電流粒子沿著它跑。*/
+    function traceLayer(K, w, d, y, opt) {
+      const o = opt || {};
+      const g = new T.Group();
+      const wdt = o.wdt || Math.min(w, d) * 0.012;
+      const thk = o.thk || wdt * 0.6;
+      const cu = K.mat(0.5, { metal: 0.72, rough: 0.28 });     // 銅
+      const pairs = o.pairs || 4, cycles = o.cycles || 5;
+      const flows = [];
+      const x0 = -w * 0.44, x1 = w * 0.44;
+      const amp = d * 0.05;
+      const runs = [];
+      for (let i = 0; i < pairs; i++) {
+        const z = (-(pairs - 1) / 2 + i) * d * 0.17;
+        [-1, 1].forEach(sgn => {                                // 差動對：兩條並排、間距固定
+          const pts = meander(x0, x1, z + sgn * wdt * 1.9, amp, cycles);
+          runs.push(pts);
+          if (sgn > 0) flows.push({ pts, y, dir: o.dir || 1 });
+        });
+      }
+      g.add(traceMesh(runs, wdt, y, cu));      // 整層一個 mesh，不是一段一個方塊
+      /* 電流：沿著走線跑的粒子。粒子跟走線放在同一個 group，
+         所以背板那種整層轉 90° 的情況不用另外換算座標。
+         靜止模式時整個 Points 隱藏起來 —— 走線本身還在，看得見板子是有線路的。*/
+      if (flows.length) {
+        const paths = flows.map(f => f.pts.map(([px, pz]) => new T.Vector3(px, y + thk, pz)));
+        const per = 6;
+        const arr = new Float32Array(paths.length * per * 3);
+        const geo = new T.BufferGeometry();
+        geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+        const pm = K.reg(new T.PointsMaterial({
+          size: wdt * 3.2, color: K.col(0.78), transparent: true, opacity: 0.92,
+          depthWrite: false, sizeAttenuation: true }));
+        const pt = new T.Points(geo, pm);
+        pt.userData.flow = { paths, per, t: 0, dir: o.dir || 1, speed: o.speed || 0.2 };
+        g.add(pt);
+      }
+      return { group: g, flows };
+    }
+
+    /* 金手指：成排、鍍金、前緣倒角。少了倒角看起來就只是一排小方塊。*/
+    function fingers(K, w, h, d, n, y, z) {
+      const g = new T.Group();
+      const au = K.mat(0.62, { color: '#d8b25a', metal: 0.85, rough: 0.22 });
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w / n);
+        g.add(put(box(w / n * 0.55, h, d, au), x, y, z));
+        // 倒角：前緣壓一片更薄的，看起來就是「插得進去」的那種斜邊
+        g.add(put(box(w / n * 0.55, h * 0.45, d * 0.35, au), x, y - h * 0.3, z + d * 0.62));
+      }
+      return g;
+    }
+
+    /* BGA 球陣列：n×n 顆真的球。三顆三顆的看起來像腳墊，不像 BGA。*/
+    function ballGrid(K, pitch, r, n, y) {
+      // n×n 顆球用 InstancedMesh：25 顆球一個 draw call。
+      // 一顆一個 Mesh 的話，六塊板 ×25 顆就是 150 個 draw call，只為了畫錫球。
+      const m = K.mat(0.35, { metal: 0.6, rough: 0.35 });
+      const im = new T.InstancedMesh(new T.SphereGeometry(r, 8, 6), m, n * n);
+      const mx = new T.Matrix4();
+      let k = 0;
+      for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+        mx.makeTranslation((-(n - 1) / 2 + i) * pitch, y || 0, (-(n - 1) / 2 + j) * pitch);
+        im.setMatrixAt(k++, mx);
+      }
+      im.instanceMatrix.needsUpdate = true;
+      return im;
+    }
+
     /* 方塊（沒指定 kind 時的預設）。透明件補一圈邊線，
        不然半透明色塊會糊成一片、把底下的晶粒洗掉。*/
     function plain(p, K) {
@@ -209,8 +334,16 @@
       g.add(box(w, h, d, K.mat(-0.15)));
       const cm = K.mat(0.25, { metal: 0.55, rough: 0.35 });
       for (let r = -1; r <= 1; r++) for (let c = -2; c <= 2; c++) {
+        // 圖九 2-1：連接器不只是一個方塊，要看得出裡面成排的端子
         g.add(put(box(w * 0.1, h * 0.14, d * 0.9, cm), c * w * 0.18, r * h * 0.26, d * 0.35));
+        for (let k = -1; k <= 1; k++) g.add(put(box(w * 0.01, h * 0.07, d * 0.5, K.mat(0.55, { metal: 0.8, rough: 0.25 })),
+          c * w * 0.18 + k * w * 0.026, r * h * 0.26, d * 0.62));
       }
+      // 背板是直立的：走線鋪在 x–y 平面上，所以先把走線層轉 90° 再貼上去
+      const tl = traceLayer(K, w, h, 0, { pairs: 4, cycles: 6, dir: 1 });
+      tl.group.rotation.x = -Math.PI / 2; tl.group.position.z = d * 0.52;
+      g.add(tl.group);
+      g.userData.flows = tl.flows.map(f => ({ ...f, rotX: -Math.PI / 2, offZ: d * 0.52 }));
       return g;
     }
 
@@ -282,6 +415,9 @@
       for (let i = -1; i <= 1; i++) g.add(put(box(w * 0.34, h * 1.2, d * 0.045, slot), -w * 0.06, h * 0.9, i * d * 0.17));
       const cap = K.mat(-0.05, { rough: 0.6 });
       for (let i = 0; i < 6; i++) g.add(put(cyl(Math.min(w, d) * 0.014, h * 2.2, cap, 8), (-0.42 + i * 0.05) * w, h * 1.4, d * 0.4));
+      // 圖九 2-1：板面的蛇行等長差動對。訊號方向＝由 GPU（板中）往背板（-x）
+      const tl = traceLayer(K, w, d, h * 0.55, { pairs: 4, cycles: 5, dir: -1 });
+      g.add(tl.group); g.userData.flows = tl.flows;
       return g;
     }
 
@@ -366,6 +502,17 @@
       }
       g.add(put(box(w * 0.26, h * 0.16, d * 0.05, K.mat(0.3, { metal: 0.5 })), -w * 0.3, 0, d / 2 + d * 0.02));
       g.add(put(box(w * 0.05, h * 0.16, d * 0.03, K.mat(0, { led: true })), w * 0.38, 0, d / 2 + d * 0.02));
+      /* 圖九 2-1：PSU 後端的**直流匯流排端子**。這是電源件最好認的特徵 ——
+         一整片厚銅排加上鎖螺絲的孔，跟訊號端子完全不是同一個量級。*/
+      const busM = K.mat(0.5, { color: '#c98a3c', metal: 0.8, rough: 0.3 });
+      [-1, 1].forEach(sy => {
+        g.add(put(box(w * 0.3, h * 0.13, d * 0.05, busM), sy * w * 0.22, sy * h * 0.22, -d / 2 - d * 0.02));
+        for (let i = -1; i <= 1; i++) {
+          const sc = cyl(w * 0.012, d * 0.07, K.mat(-0.5, { rough: 0.85, metal: 0.1 }), 6);
+          sc.rotation.x = Math.PI / 2;
+          g.add(put(sc, sy * w * 0.22 + i * w * 0.09, sy * h * 0.22, -d / 2 - d * 0.03));
+        }
+      });
       return g;
     }
 
@@ -401,6 +548,8 @@
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
       [-1, 1].forEach(s => g.add(put(box(w * 0.3, h * 0.45, d * 0.1, port), s * w * 0.22, 0, d * 0.44)));
       g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
+      // 圖九 2-1：可插拔光模組後端的金手指 —— 成排、鍍金、前緣倒角
+      g.add(fingers(K, w * 0.86, h * 0.1, d * 0.12, 7, -h * 0.28, -d * 0.44));
       g.add(put(box(w * 0.18, h * 0.12, d * 0.03, K.mat(0, { led: true })), 0, h * 0.4, d * 0.45));
       return g;
     }
@@ -425,19 +574,20 @@
       const [w, h, d] = p.box;
       g.add(box(w, h * 0.5, d, K.mat(-0.3, { rough: 0.8, metal: 0.06 })));
       [-1, 1].forEach(s => g.add(put(box(w * 0.99, h * 0.22, d * 0.99, K.mat(-0.05, { rough: 0.6 })), 0, s * h * 0.36, 0)));
-      const tr = K.mat(0.45, { metal: 0.7, rough: 0.3 });
-      for (let i = -7; i <= 7; i++) g.add(put(box(w * 0.9, h * 0.06, d * 0.012, tr), 0, h * 0.48, i * d * 0.06));
+      // 圖九 2-1：以前是 15 條等距直線，看起來像百葉窗不像走線。
+      // 換成蛇行等長線（差動對成雙、轉角 45°），這才是載板表面真正的樣子。
+      const tl = traceLayer(K, w, d, h * 0.48, { pairs: 5, cycles: 6, wdt: Math.min(w, d) * 0.009, dir: 1 });
+      g.add(tl.group); g.userData.flows = tl.flows;
       return g;
     }
 
     // BGA 錫球：球就是球，方塊看起來像腳墊
     function balls(p, K) {
+      // 圖九 2-1：以前是 3×3 顆，看起來像腳墊。BGA 的識別特徵是「密密麻麻的球陣列」，
+      // 改成 5×5、球徑對得上間距（球會微微相鄰但不重疊）。
       const g = new T.Group();
       const [w, h] = p.box;
-      const m = K.mat(0.35, { metal: 0.6, rough: 0.35 });
-      for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) {
-        g.add(put(ball(Math.min(w, h) * 0.42, m), i * w * 0.9, 0, j * w * 0.9));
-      }
+      g.add(ballGrid(K, w * 0.62, Math.min(w, h) * 0.3, 5, 0));
       return g;
     }
 
@@ -488,14 +638,16 @@
     }
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
-      optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe };
+      optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe,
+      // 圖九 2-1 的共用件，量產圖11 時直接用
+      _traceLayer: traceLayer, _fingers: fingers, _ballGrid: ballGrid, _meander: meander, _traceMesh: traceMesh };
   }
 
   /* ---------------------------------------------------------------- 建場景 */
   async function mount(el, sceneId, opts) {
     const spec = SCENES[sceneId];
     if (!el || !spec || !supported()) return null;
-    const o = Object.assign({ color: () => '#8ea0c4', onSeg: null, anim: true }, opts || {});
+    const o = Object.assign({ color: () => '#8ea0c4', onSeg: null, anim: true, members: null, onStock: null }, opts || {});
     const { THREE, OrbitControls } = await load();
     const B = mkBuilders(THREE);
 
@@ -537,7 +689,7 @@
        原本有一盞青色 rim light（0x3ee0ff）＋ 每顆材質都帶 emissive，
        所以不管什麼零件都像在發光 —— Andy 說的螢光感就是這兩件事加起來。
        現在：天空光壓低、主光白、補光是中性冷白、底下一點回彈，rim 拿掉。*/
-    scene.add(new THREE.HemisphereLight(0x99a7c2, 0x0b1120, 0.62));
+    const hemi = new THREE.HemisphereLight(0x99a7c2, 0x0b1120, 0.62); scene.add(hemi);
     const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(60, 90, 70); scene.add(key);
     const fill = new THREE.DirectionalLight(0xc7d2e6, 0.34); fill.position.set(-70, 40, -60); scene.add(fill);
     const bounce = new THREE.DirectionalLight(0x8fa0bd, 0.16); bounce.position.set(0, -60, 20); scene.add(bounce);
@@ -547,6 +699,7 @@
     const byIdx = [];            // 每個零件的所有 mesh + 材質，highlight 時用
     const spinners = [];         // E4：會自己轉的東西（風扇葉輪）
     const leds = [];             // E4：會呼吸的指示燈材質
+    const flowPts = [], flowAll = [], flowSeen = new Set();   // 圖九 2-1：電流粒子
     let labelDown = null;        // 這次按下去是從某個標籤開始的（可能只是想轉視角）
 
     spec.parts.forEach((p, idx) => {
@@ -567,6 +720,12 @@
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.userData && x.userData.spin) spinners.push(x);
+          // 圖九 2-1：電流粒子。clone 出來的重複件共用同一份 geometry，
+          // 所以同一份只能推一次，不然一幀會被推 n 次、速度變 n 倍。
+          if (x.isPoints && x.userData && x.userData.flow && !flowSeen.has(x.geometry)) {
+            flowSeen.add(x.geometry); flowPts.push(x);
+          }
+          if (x.isPoints && x.userData && x.userData.flow) flowAll.push(x);
         });
         root.add(g); groups.push(g);
         if (!p.frame) picks.push(g);
@@ -584,10 +743,37 @@
       // 標籤：DOM 疊上去，不是畫進畫布，所以選得起來、也還驗得到文字重疊
       const d = document.createElement('div');
       d.className = 'lbl3d';
-      d.innerHTML = `<b></b><i></i>`;
+      d.innerHTML = `<b></b><i></i><u class="chips3d"></u>`;
       d.querySelector('b').textContent = p.name;
       d.querySelector('i').textContent = p.note || '';
       d.dataset.seg = p.seg;
+      /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
+         說明底下掛一排「這個環節的台股」，點了直接進個股頁。
+         以前標籤只是死的文字 —— 使用者看得到「ABF 載板」，卻要自己回去翻是誰做的。
+         該環節台股掛零（hyperscaler、HBM）就明講「台股無直接對應」，不要留白。*/
+      const chipBox = d.querySelector('u.chips3d');
+      const mem = o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 };
+      if (!mem.list.length) {
+        chipBox.innerHTML = '<s>台股無直接對應</s>';
+      } else {
+        mem.list.forEach(c => {
+          const a = document.createElement('a');
+          a.className = 'chip3d'; a.textContent = c.name; a.title = `${c.name} ${c.code} · 看個股頁`;
+          a.href = '#stock/' + c.code;
+          a.style.pointerEvents = 'auto';
+          // 晶片自己吃掉 pointerdown，不然會被下面那段轉給畫布、變成「點名字就開始轉機櫃」
+          a.addEventListener('pointerdown', (e) => e.stopPropagation());
+          a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation();
+            if (o.onStock) o.onStock(c.code); else location.hash = '#stock/' + c.code; });
+          chipBox.appendChild(a);
+        });
+        if (mem.total > mem.list.length) {
+          const more = document.createElement('s');
+          more.textContent = '+' + (mem.total - mem.list.length);
+          more.title = `這個環節共 ${mem.total} 檔台股`;
+          chipBox.appendChild(more);
+        }
+      }
       d.style.setProperty('--c', hex);     // 文字框左邊那條色帶＝環節色，一眼對得上零件
       // 標籤本身也要可以點：機櫃裡的小零件（UQD、光模組）用滑鼠很難精準打到，
       // 點名字是最直覺的路。父層 pointerEvents 是 none，這裡個別開回來。
@@ -703,8 +889,12 @@
     function setAnim(on) {
       anim = !!on;
       applyAuto();
+      // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
+      flowAll.forEach(x => { x.visible = anim; });
       if (!anim) {
-        leds.forEach(m => { m.emissiveIntensity = 0.55; });   // 靜止時燈定在中間亮度
+        // 靜止時燈定在中間亮度；亮度基準由色票決定（soft 是 0，完全不發光）
+        const lb = palNum('--dg-led', 0.55);
+        leds.forEach(m => { m.emissiveIntensity = lb; });
         /* 「靜止」要立刻停住。OrbitControls 的阻尼會把剛才自轉的殘量再吐好幾秒，
            畫面看起來就是「按了關還在慢慢飄」。用 dampingFactor = 1 跑一次 update
            把殘量一次吃光並歸零（reset() 用的是同一招）。*/
@@ -717,7 +907,54 @@
     // ---- 高亮：和 SVG 版同一個介面（highlightSegments 會呼叫它）
     /* E2：高亮不再是「整顆發光」。選起來的維持原色、其餘變很透明，
        選起來的只給一點點 emissive（0.22）當提示。指示燈另外算，它本來就該亮。*/
+    let lastHi = { on: null, color: null };
+    // ↑ lastHi 要宣告在色票區塊之前：applyPal() 會回頭呼叫 highlight(lastHi...)，
+    //   放在後面會踩到 TDZ，3D 直接退回平面圖（2026-09-19 實測到的）
+    /* ---- 圖九 2-2：三種配色（tech / soft / calm）
+       規格書 docs/diagram_specs/dg3d_standard.md。
+       **所有顏色都讀 CSS 變數 `--dg-*`，JS 不寫死任何 #xxxxxx** ——
+       這是 art-director 的紅線，也是淺色主題一堆白字白線的根因：
+       顏色寫死在 JS 裡，切主題的 refreshPalette() 換不掉。
+       色票只做三件事：背景（CSS 自己吃）、零件顏色的去飽和與混色、打光與發光強度。*/
+    const PALS = ['tech', 'soft', 'calm'];
+    const PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩' };
+    const origCol = new Map();          // 零件的「原色」，換色票一律從這裡重算，不要疊加
+    let pal = 'tech';
+    /* 這兩支刻意寫成 function 宣告（會被提升）—— setAnim() 在色票區塊「之前」就會被呼叫一次，
+       寫成 const 箭頭函式的話那一次會踩到 TDZ，整個 3D 直接掛掉。*/
+    function palNum(name, dflt) {
+      const v = getComputedStyle(el).getPropertyValue(name).trim();
+      const n = parseFloat(v); return Number.isFinite(n) ? n : dflt;
+    }
+    function palCol(name, dflt) {
+      const v = getComputedStyle(el).getPropertyValue(name).trim();
+      try { return new THREE.Color(v || dflt); } catch (e) { return new THREE.Color(dflt); }
+    }
+    function applyPal(name) {
+      if (name) { pal = PALS.includes(name) ? name : 'tech'; }
+      el.dataset.pal = pal;
+      const mix = palCol('--dg-mix', '#ffffff'), k = palNum('--dg-mix-k', 0), sat = palNum('--dg-sat', 1);
+      const hsl = {};
+      byIdx.forEach(p => {
+        if (!p) return;
+        p.mats.forEach(m => {
+          if (!origCol.has(m)) origCol.set(m, m.color.clone());
+          const c = origCol.get(m).clone();
+          c.getHSL(hsl); c.setHSL(hsl.h, hsl.s * sat, hsl.l);
+          if (k > 0) c.lerp(mix, k);
+          p.baseCol.set(m, c.clone());
+        });
+      });
+      hemi.intensity = palNum('--dg-hemi', 0.62);
+      key.intensity = palNum('--dg-key', 1.0);
+      fill.intensity = palNum('--dg-fill', 0.34);
+      highlight(lastHi.on, lastHi.color);     // 重新套用目前的選取狀態，顏色才會真的換掉
+      return pal;
+    }
+    applyPal(o.pal || 'tech');     // 圖九 2-2：一掛上去就照使用者選的色票，不要先畫成預設再閃一下
+
     function highlight(on, color) {
+      lastHi = { on, color };
       const has = on && on.size > 0;
       const tint = color ? new THREE.Color(color) : null;
       byIdx.forEach(p => {
@@ -728,8 +965,12 @@
           const b = p.baseOp.get(m), bc = p.baseCol.get(m);
           m.opacity = fade ? Math.min(b, 0.12) : b;
           m.transparent = fade || b < 1;
-          if (m.userData && m.userData.led) { m.emissiveIntensity = fade ? 0.04 : (sel ? 0.85 : 0.55); return; }
-          if (m.emissive) m.emissiveIntensity = sel ? 0.22 : 0;
+          if (m.userData && m.userData.led) {
+            // 圖九 2-2：指示燈的亮度基準由色票決定（soft 是 0＝完全不發光，印得出來）
+            const lb = palNum('--dg-led', 0.55);
+            m.emissiveIntensity = fade ? lb * 0.07 : (sel ? lb * 1.55 : lb); return;
+          }
+          if (m.emissive) m.emissiveIntensity = sel ? palNum('--dg-sel-em', 0.22) : 0;
           // 套族群色時只把原色往那個方向拉一半，保留零件本身的明暗結構
           if (sel && tint) m.color.copy(bc).lerp(tint, 0.55); else m.color.copy(bc);
         });
@@ -815,6 +1056,31 @@
       });
     }
 
+    /* 圖九 2-1：把電流粒子往前推一格。
+       路徑用「段索引」參數化（每段長度相近，肉眼看不出差別），
+       dir 決定方向 —— 電源由下往上、訊號由 GPU 往背板、光訊號往前面板。*/
+    function stepFlows(dt) {
+      flowPts.forEach(o2 => {
+        const f = o2.userData.flow;
+        f.t = (f.t + dt * f.speed) % 1;
+        const arr = o2.geometry.attributes.position.array;
+        let k = 0;
+        f.paths.forEach(path => {
+          for (let i = 0; i < f.per; i++) {
+            let u = (f.t + i / f.per) % 1;
+            if (f.dir < 0) u = 1 - u;
+            const at = (path.length - 1) * u;
+            const si = Math.min(path.length - 2, Math.floor(at)), ft = at - si;
+            const a = path[si], b = path[si + 1];
+            arr[k++] = a.x + (b.x - a.x) * ft;
+            arr[k++] = a.y + (b.y - a.y) * ft;
+            arr[k++] = a.z + (b.z - a.z) * ft;
+          }
+        });
+        o2.geometry.attributes.position.needsUpdate = true;
+      });
+    }
+
     // ---- 只在看得到的時候畫
     let raf = null, alive = true, visible = true, relayout = 0, t0 = performance.now();
     const tick = () => {
@@ -824,8 +1090,10 @@
       const dt = Math.min(0.05, (performance.now() - t0) / 1000); t0 = performance.now();
       if (anim) {
         spinners.forEach(s => { s.rotation[s.userData.spin.axis] += s.userData.spin.speed * dt; });
-        const k = 0.55 + 0.3 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
-        leds.forEach(m => { if (m.emissiveIntensity > 0.1) m.emissiveIntensity = k; });
+        const lb = palNum('--dg-led', 0.55);
+        const k = lb + lb * 0.55 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
+        leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
+        stepFlows(dt);
       }
       controls.update();
       renderer.render(scene, camera);
@@ -878,6 +1146,15 @@
     };
     /* stats() 也是給驗收腳本用的：E2「去螢光」與 E3「零件細膩」要驗得到，
        不然只能用眼睛看 —— 那正是這個專案一直踩的坑。 */
+    /* 圖九 2-2 要驗「換色票畫面真的變了」。
+       canvas_hash 那一招對 WebGL 沒用（getContext('2d') 在 WebGL canvas 上回 null），
+       所以改量真正被畫出去的東西：所有材質顏色的指紋。換色票這個數字一定要變。*/
+    const colorSig = () => {
+      let v = 0;
+      byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => {
+        if (!m.color) return; v += m.color.r * 7.1 + m.color.g * 3.3 + m.color.b * 1.7; }); });
+      return +v.toFixed(3);
+    };
     const stats = () => {
       let meshes = 0, maxEm = 0, idleEm = 0, maxMetal = 0, ledN = 0;
       byIdx.forEach(p => {
@@ -896,12 +1173,23 @@
       // spinAt：所有會轉的東西現在轉到哪（弧度和）。驗「動態／靜止」要比這個數字有沒有變，
       // 不能只看 anim 旗標 —— 旗標是自己寫的，扇葉有沒有真的在轉才是使用者看到的事
       const spinAt = spinners.reduce((s, x) => s + x.rotation[x.userData.spin.axis], 0);
+      /* 圖九 2-1 要驗的是「電流真的在跑」，不是「有沒有粒子物件」。
+         flowAt＝所有粒子的座標總和，兩次之間有沒有變，就是使用者看到的事
+         （跟 spinAt 同一個道理）。*/
+      let flowAt = 0;
+      flowPts.forEach(o2 => { const a = o2.geometry.attributes.position.array;
+        for (let i = 0; i < a.length; i++) flowAt += a[i]; });
       return { parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
-        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate };
+        spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
+        flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
+        flowAt: +flowAt.toFixed(2), pal, colorSig: colorSig(),
+        chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
     const view = {
       highlight, cam, screen, stats, setAnim,
+      // 圖九 2-2：色票
+      setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
       isAnim: () => anim,
       /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
          右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/

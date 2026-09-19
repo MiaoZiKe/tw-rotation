@@ -704,9 +704,14 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .co text{font-size:12.5px;fill:var(--ink);pointer-events:none}
 .chainmap .co .sub{font-size:11px;fill:var(--ink-3);font-family:var(--mono)}
 .chainmap .co.foreign rect{fill:var(--panel);stroke-dasharray:3 3}
-.chainmap .edge{fill:none;stroke:var(--line-2);stroke-opacity:.35;stroke-width:1.2}
-.chainmap .edge.hi{stroke:var(--cyan);stroke-opacity:.9;stroke-width:2}
+.chainmap .elayer{pointer-events:none}   /* 圖十：邊改畫在卡片之上，才不會被卡片蓋掉；但不能吃掉卡片的點擊 */
+.chainmap .edge{fill:none;stroke:var(--line-2);stroke-opacity:.55;stroke-width:var(--w,1.2)}  /* --w＝依存度 strength，見 industry.js drawChainMap */
+.chainmap .edge.hi{stroke:var(--cyan);stroke-opacity:.9;stroke-width:calc(var(--w,1.2) + 1.2)}
 .chainmap .edge.dim{stroke-opacity:.08}
+.chainmap .edge.dash{stroke-dasharray:5 4}            /* outsources_to：委外 */
+.chainmap .edge.eq{stroke:#8792ab;stroke-opacity:.28;stroke-width:1}  /* 設備／材料環節：灰色細線，不跟主鏈搶視覺 */
+.chainmap .iso circle{fill:none;stroke:#d9a441;stroke-opacity:.75}
+.chainmap .iso text{font-size:9.5px;fill:#d9a441;text-anchor:middle;pointer-events:none}
 .chainmap .co.dim{opacity:.28}
 .chainmap .co rect{stroke:var(--line-2)}
 .chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(62,224,255,.6)))}
@@ -714,6 +719,17 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .segtitle:hover rect{fill-opacity:.3}
 .dgwrap{border-radius:10px;background:var(--illus);border:1px solid var(--line);padding:6px;overflow:hidden}
 /* 3D 剖析圖：畫布 + 疊在上面的 DOM 標籤（用 DOM 才選得起來，文字重疊驗收也還跑得動） */
+/* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）：三種配色。
+   這一組 --dg-* 由 art-director 擁有，**JS 不准寫死任何 #xxxxxx** ——
+   three3d.js 的 applyPal() 是讀這些變數去算零件顏色與打光的。
+     tech 深色科技風（預設）｜soft 淺底、印得出來（拿去給客戶看）｜calm 低飽和、久看不累
+   mix/mix-k＝零件原色往哪個顏色拉多少；sat＝飽和度倍率；
+   led＝指示燈亮度基準（soft 是 0，完全不發光才印得出來）；hemi/key/fill＝打光強度。 */
+.dg3d{--dg-mix:#ffffff;--dg-mix-k:0;--dg-sat:1;--dg-led:.55;--dg-sel-em:.22;--dg-hemi:.62;--dg-key:1;--dg-fill:.34}
+.dg3d[data-pal="soft"]{--dg-1:#f3f6fb;--dg-2:#d7e0ee;--dg-mix:#ffffff;--dg-mix-k:.16;--dg-sat:.70;
+  --dg-led:0;--dg-sel-em:0;--dg-hemi:.95;--dg-key:1.25;--dg-fill:.5}
+.dg3d[data-pal="calm"]{--dg-1:#23262d;--dg-2:#131519;--dg-mix:#c9973f;--dg-mix-k:.20;--dg-sat:.34;
+  --dg-led:.16;--dg-sel-em:.1;--dg-hemi:.5;--dg-key:.88;--dg-fill:.3}
 .dg3d{position:relative;border-radius:10px;background:radial-gradient(120% 90% at 50% 0%,var(--dg-1),var(--dg-2));
   border:1px solid var(--line);overflow:hidden;min-height:360px}
 .dg3d[hidden]{display:none}
@@ -727,6 +743,14 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lbl3d b{display:block;font-weight:700;color:var(--ink)}
 .lbl3d i{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
   font-style:normal;font-size:11px;color:var(--ink-3);margin-top:2px}
+/* 圖九 2-3：文字框底下那排可點的台股晶片（規格書 docs/diagram_specs/dg3d_standard.md）。
+   晶片是 DOM 不是畫進畫布 —— 這樣文字重疊驗得到、也真的選得起來。 */
+.lbl3d u.chips3d{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;text-decoration:none}
+.lbl3d .chip3d{font-size:11px;line-height:1.5;padding:0 5px;border-radius:5px;text-decoration:none;
+  color:var(--ink-2);background:color-mix(in srgb,var(--c,var(--cyan)) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--c,var(--cyan)) 38%,transparent);cursor:pointer;white-space:nowrap}
+.lbl3d .chip3d:hover{color:var(--ink);background:color-mix(in srgb,var(--c,var(--cyan)) 32%,transparent)}
+.lbl3d u.chips3d s{font-size:10.5px;color:var(--ink-3);text-decoration:none;align-self:center}
 .lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}
 .lbl3d.sel b{color:var(--cyan)}
 .lbl3d.dim{opacity:.26}

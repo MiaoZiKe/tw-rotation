@@ -2618,6 +2618,198 @@ def t_batch6_n1(pg, base):
        text(pg, "#dg3dNote")[:90])
 
 
+def t_batch6_n9(pg, base):
+    """圖九（Andy 2026-09-19：3D 走線／電流／PIN 腳細緻度、三種配色、文字框掛個股）。
+
+    規格書：`docs/diagram_specs/dg3d_standard.md`。
+    這裡驗的是**使用者看得到的三件事真的發生了**，不是「有沒有那個物件」：
+      2-1 電流：`flowAt`（所有粒子座標和）在動態模式下要變、按「動畫：關」要停且粒子收起來
+      2-2 配色：按一次色票鈕，`pal()` 換人、而且畫面真的重畫
+      2-3 個股晶片：文字框底下真的有晶片，點下去真的跳到個股頁
+    """
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        return                                   # WebGL 不支援，整段跳過（與 N1 同一條規矩）
+    click(pg, "#dg3d", 3000)
+    pg.wait_for_timeout(3000)
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        fails.append("圖九：3D 掛不起來 —— " + text(pg, "#dg3dNote")[:160])
+        return
+    st = pg.evaluate("() => window.Rack3D.current.stats()")
+
+    # ---- 2-3 文字框 → 個股晶片
+    # 效能棘輪（AGENTS.md 對繪圖寫的是「不准掉幀」）。
+    # 2026-09-19 實測：走線一段畫一個方塊，整台機櫃從 483 個 mesh 暴增到 1846，
+    # frame rate 直接砍半（29.8 → 14.1 fps，容器裡的軟體渲染）。
+    # 改成「一層走線併成一個 mesh ＋ BGA 用 InstancedMesh」之後是 671 個、28.6 fps。
+    # 量產圖11 時這個數字只准往下，不准往上。
+    ok("3D 的 mesh 數沒有失控（圖九／量產圖11 的效能棘輪）", st["meshes"] <= 900, st["meshes"])
+    ok("3D 文字框底下掛了該環節的台股晶片（圖九 2-3）", st["chips"] > 10, st["chips"])
+    ok("台股掛零的環節明講「台股無直接對應」，不是留白（圖九 2-3）",
+       pg.evaluate("() => [...document.querySelectorAll('.lbl3d u.chips3d')]"
+                   ".every(u => u.textContent.trim().length > 0)"))
+    # 真的點一顆晶片 —— 要跳到個股頁
+    code = pg.evaluate("() => { const a = document.querySelector('.lbl3d .chip3d');"
+                       " return a ? a.getAttribute('href') : null; }")
+    ok("晶片帶得出個股連結（圖九 2-3）", bool(code) and code.startswith("#stock/"), code)
+    if code:
+        pg.eval_on_selector(".lbl3d .chip3d", "a => a.click()")
+        pg.wait_for_timeout(2200)
+        ok("點文字框上的個股晶片真的跳到個股頁（圖九 2-3）",
+           pg.evaluate("() => location.hash").startswith("#stock/"),
+           pg.evaluate("() => location.hash"))
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            click(pg, "#dg3d", 3000); pg.wait_for_timeout(3000)
+
+    # ---- 2-1 電流：粒子真的在跑
+    st = pg.evaluate("() => window.Rack3D.current.stats()")
+    ok("板子上有電流粒子系統（圖九 2-1）", st["flows"] > 0, st["flows"])
+    if st["flows"]:
+        a0 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
+        pg.wait_for_timeout(1000)
+        a1 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
+        ok("動態模式下電流真的在走線上跑（圖九 2-1）", a0 != a1, f"{a0} → {a1}")
+        # 按「動畫：關」→ 粒子要收起來、也要停
+        pg.eval_on_selector("#dgAnim", "b => b.click()")
+        pg.wait_for_timeout(900)
+        s2 = pg.evaluate("() => window.Rack3D.current.stats()")
+        b0 = s2["flowAt"]
+        pg.wait_for_timeout(900)
+        b1 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
+        ok("按「動畫：關」電流真的停下來（圖九 2-1）", b0 == b1, f"{b0} → {b1}")
+        ok("靜止時粒子收起來，走線本身還在（圖九 2-1）",
+           s2["flowVisible"] == 0 and s2["meshes"] > 500, s2["flowVisible"])
+        pg.eval_on_selector("#dgAnim", "b => b.click()")
+        pg.wait_for_timeout(700)
+
+    # ---- 2-2 三種配色
+    ok("有看得見的配色切換鈕（圖九 2-2）",
+       pg.evaluate("() => { const b = document.getElementById('dgPal'); return !!b && !b.hidden; }"))
+    seen, changed_n = [], 0
+    for _ in range(3):
+        p0 = pg.evaluate("() => window.Rack3D.current.pal()")
+        # WebGL 的畫布拿不到 2d context，canvas_hash 對它一律回同一個值 ——
+        # 改量真正被畫出去的東西：所有材質顏色的指紋（colorSig）
+        h0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+        pg.eval_on_selector("#dgPal", "b => b.click()")
+        pg.wait_for_timeout(1100)
+        p1 = pg.evaluate("() => window.Rack3D.current.pal()")
+        seen.append(p1)
+        if p0 != p1:
+            changed_n += 1
+        ok(f"按配色鈕真的換色票（{p0} → {p1}）（圖九 2-2）", p0 != p1, f"{p0} → {p1}")
+        h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+        ok(f"換成 {p1} 之後零件顏色真的變了（圖九 2-2）", h0 != h1, f"{h0} → {h1}")
+        ok(f"鈕上的字跟著換（{p1}）", "配色：" in text(pg, "#dgPal"), text(pg, "#dgPal"))
+    ok("三種色票都輪得到（tech / soft / calm）（圖九 2-2）",
+       sorted(set(seen)) == ["calm", "soft", "tech"], seen)
+    ok("「柔和」色票零件不發光（印得出來）（圖九 2-2）",
+       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('soft');
+           return v.stats().maxEmissive === 0; }"""))
+    pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+
+    # ---- 窄畫面：800px 也要看得到晶片，而且文字框不出框
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.wait_for_timeout(1400)
+    nar = pg.evaluate("""() => { const host = document.getElementById('prod3d');
+        const r = host.getBoundingClientRect();
+        const ls = [...host.querySelectorAll('.lbl3d')].filter(e => !e.classList.contains('hid'));
+        const out = ls.filter(e => { const b = e.getBoundingClientRect();
+          return b.left < r.left - 1 || b.right > r.right + 1; }).map(e => e.querySelector('b').textContent);
+        return { labels: ls.length, out, chips: host.querySelectorAll('.chip3d').length }; }""")
+    ok("800px 下 3D 文字框沒有出框（圖九）", not nar["out"], nar["out"][:4])
+    ok("800px 下個股晶片還在（圖九 2-3）", nar["chips"] > 0, nar)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+SC_GEOM = """() => {
+  const svg = document.querySelector('#chainMap svg'); if (!svg) return null;
+  const cards = [...svg.querySelectorAll('g.co')].map(g => { const r = g.querySelector('rect');
+    return { id: g.dataset.id, x: +r.getAttribute('x'), y: +r.getAttribute('y'),
+             w: +r.getAttribute('width'), h: +r.getAttribute('height') }; });
+  const byId = {}; cards.forEach(c => (byId[c.id] = c));
+  const paths = [...svg.querySelectorAll('path.edge')];
+  const badEnd = [], cross = [];
+  const onEdge = (pt, c) => Math.min(Math.abs(pt.x - c.x), Math.abs(pt.x - (c.x + c.w))) <= 2
+                            && pt.y >= c.y - 2 && pt.y <= c.y + c.h + 2;
+  paths.forEach(p => {
+    const a = byId[p.dataset.from], b = byId[p.dataset.to]; if (!a || !b) return;
+    const L = p.getTotalLength();
+    if (!onEdge(p.getPointAtLength(0), a) || !onEdge(p.getPointAtLength(L), b))
+      badEnd.push(p.dataset.from + '→' + p.dataset.to);
+    for (let i = 1; i < 60; i++) { const pt = p.getPointAtLength(L * i / 60);
+      const hit = cards.find(c => c.id !== a.id && c.id !== b.id
+        && pt.x > c.x + 1 && pt.x < c.x + c.w - 1 && pt.y > c.y + 1 && pt.y < c.y + c.h - 1);
+      if (hit) { cross.push(p.dataset.from + '→' + p.dataset.to + ' 穿過 ' + hit.id); break; } }
+  });
+  const kids = [...svg.children].map(n => n.getAttribute('class') || n.tagName);
+  return { n: paths.length, cards: cards.length, badEnd, cross,
+           iso: svg.querySelectorAll('g.iso').length,
+           noArrow: paths.filter(p => !p.getAttribute('marker-end')).length,
+           dash: svg.querySelectorAll('path.edge.dash').length,
+           competes: paths.filter(p => p.dataset.rel === 'competes').length,
+           widths: [...new Set(paths.map(p => getComputedStyle(p).strokeWidth))].length,
+           last: kids[kids.length - 1],
+           pe: getComputedStyle(svg.querySelector('g.elayer') || svg).pointerEvents,
+           overflow: Math.round(svg.getBoundingClientRect().right
+                                - document.querySelector('#chainMap').getBoundingClientRect().right),
+           scrollable: (() => { const el = document.querySelector('#chainMap');
+             return el.scrollWidth - el.clientWidth > 4 && /auto|scroll/.test(getComputedStyle(el).overflowX); })() };
+}"""
+
+# 孤立節點的現況基準（2026-09-19）。目標是 Andy 校訂 docs/supply_chain_suggest.md
+# 之後降到 2 以下；在那之前先當成棘輪 —— 只准變少，不准變多。
+SC_ISO_MAX = {"ai_server": 10, "semiconductor": 13}
+
+
+def t_batch6_n3(pg, base):
+    """圖十（Andy 2026-09-19：「供應鏈關聯圖 連線對不起來」）的真人操作驗收。
+
+    這裡驗的是幾何，不是「有沒有 render」——
+    以前每條邊都寫死「來源右緣→目標左緣」，目標在左邊的邊會整條倒著從卡片底下穿過去，
+    畫面上看起來就是「線連到不相干的公司」。所以要量三件事：
+      1. 每條邊的兩端真的落在兩張卡片的邊緣（±2px）
+      2. 沒有任何一條邊從非端點的卡片身上穿過去
+      3. 線畫在卡片之上（不會被卡片蓋掉），而且不吃滑鼠（不然卡片點不到）
+    1440 與 800 兩個寬度各驗一次 —— 800px 是 Andy 把瀏覽器縮成半邊的寬度。
+    """
+    for wpx in (1500, 800):
+        pg.set_viewport_size({"width": wpx, "height": 1000})
+        tag = f"（{wpx}px）"
+        for cid in ("ai_server", "semiconductor"):
+            pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(1800)
+            g = pg.evaluate(SC_GEOM)
+            if not g:
+                fails.append(f"{cid} 的供應鏈關聯圖整張沒畫出來{tag}")
+                continue
+            ok(f"{cid} 供應鏈圖有畫出連線{tag}", g["n"] > 10, g["n"])
+            ok(f"{cid} 每條邊兩端都落在卡片邊緣 ±2px（圖十）{tag}", not g["badEnd"], g["badEnd"][:5])
+            ok(f"{cid} 沒有邊穿過不相干的卡片（圖十）{tag}", not g["cross"], g["cross"][:5])
+            ok(f"{cid} 連線畫在卡片之上（不會被卡片蓋掉）{tag}", "elayer" in (g["last"] or ""), g["last"])
+            ok(f"{cid} 連線層不吃滑鼠（卡片還是點得到）{tag}", g["pe"] == "none", g["pe"])
+            ok(f"{cid} 每條邊都有箭頭（看得出誰供給誰）{tag}", g["noArrow"] == 0, g["noArrow"])
+            ok(f"{cid} 線的粗細真的依依存度不同（不是全部一樣粗）{tag}", g["widths"] > 1, g["widths"])
+            ok(f"{cid} competes（競爭關係）不畫成上下游{tag}", g["competes"] == 0, g["competes"])
+            ok(f"{cid} 沒有關聯的節點都標了「?」{tag}", g["iso"] > 0 and g["iso"] <= SC_ISO_MAX[cid],
+               f"{g['iso']} 個孤立 / 共 {g['cards']} 張卡（上限 {SC_ISO_MAX[cid]}）")
+            # 窄畫面放不下是允許的（.chainmap 本來就 overflow:auto），
+            # 但一定要「捲得到」，不可以被切掉看不見 —— 2026-09-18 的 E6 就是這樣漏掉的。
+            ok(f"{cid} 圖沒有被切掉（寬的放得下、窄的捲得到）{tag}",
+               g["overflow"] <= 1 or g["scrollable"], {"overflow": g["overflow"], "scrollable": g["scrollable"]})
+        # ---- 真的把滑鼠移到一張卡片上，相關的線要亮起來、其他的要變暗
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        pg.eval_on_selector("#chainMap g.co", "g => g.dispatchEvent(new MouseEvent('mouseenter'))")
+        pg.wait_for_timeout(400)
+        hl = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap path.edge.hi').length,
+                                     dim: document.querySelectorAll('#chainMap path.edge.dim').length })""")
+        ok(f"滑鼠移到卡片上，它的線亮起來、其他變暗（圖十）{tag}",
+           hl["hi"] > 0 and hl["dim"] > 0, hl)
+        pg.eval_on_selector("#chainMap g.co", "g => g.dispatchEvent(new MouseEvent('mouseleave'))")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
@@ -3856,7 +4048,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9)):
             n0 = len(fails)
             try:
                 fn(pg, base)
