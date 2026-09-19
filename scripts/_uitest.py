@@ -669,6 +669,7 @@ def t_overview(pg, base):
     for k in kinds:
         click(pg, f'#hero .kpi[data-drill="{k}"]', 1400)
         st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
+            scrollY: Math.round(window.scrollY),
             title: (document.getElementById('mktTitle')||{}).innerText,
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
             blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5').length,
@@ -676,7 +677,20 @@ def t_overview(pg, base):
         # 2026-09-18（Andy 圖16）：「資金集中」那一頁拿掉了，
         # 總覽的「前五族群佔比」改導到資金流向頁的集中度圖（功能更完整）。
         if k.startswith("#"):
-            ok(f"KPI「{k}」點下去會到那一頁", st["hash"] == k, st)
+            # data-drill 可以寫成 `#flow>conc`：> 後面是要捲過去的元素 id。
+            # 2026-09-19：「前五族群佔比」以前只換 hash，但集中度圖在頁面 2700px 處，
+            # 使用者點完只看得到資金流向頁的頂端，看起來像「點了沒反應」。
+            page, _, anchor = k.partition(">")
+            ok(f"KPI「{k}」點下去會到那一頁", st["hash"] == page, st)
+            if anchor:
+                pg.wait_for_timeout(1400)   # scrollIntoView 是 smooth，而且要等圖表畫完
+                st2 = pg.evaluate("""(a) => { const el = document.getElementById(a); if (!el) return null;
+                    const r = el.getBoundingClientRect();
+                    return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
+                             h: window.innerHeight }; }""", anchor)
+                ok(f"KPI「{k}」真的捲到 #{anchor} 那張圖（不是停在頁首）",
+                   bool(st2) and st2["scrollY"] > 200 and st2["top"] < st2["h"],
+                   {"點之前 scrollY": st["scrollY"], "量到": st2})
         else:
             ok(f"KPI「{k}」點下去會到市場明細分頁", st["tab"] == "market" and st["hash"].endswith(k), st)
         ok(f"KPI「{k}」的明細真的有內容", st["rows"] > 0 or st["blocks"] > 0, st)
