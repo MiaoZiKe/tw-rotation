@@ -4527,16 +4527,16 @@
     "financial:00865B": true,
     "balance:00865B": true
   },
-  "updated_at": "2026-09-19T18:04:23.382944+00:00",
+  "updated_at": "2026-09-19T20:44:34.631953+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": false,
-      "at": "2026-09-19T18:04:23.379877+00:00",
+      "at": "2026-09-19T20:44:34.628961+00:00",
       "codes": 2328
     },
     "plan:default": {
       "done": false,
-      "at": "2026-09-19T18:04:23.382934+00:00",
+      "at": "2026-09-19T20:44:34.631938+00:00",
       "month": "2026-09",
       "steps": {
         "balance+financial+revenue": false
