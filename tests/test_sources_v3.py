@@ -338,3 +338,59 @@ def test_intraday_all_failed_or_empty_returns_empty(fake_yf):
     state["frame"] = pd.DataFrame()
     assert yahoo.intraday(["2330"], {}, "60m", "730d").empty
     assert yahoo.intraday([], {}, "60m", "730d").empty
+
+
+# ------------------------------------------------------------------ 4xx 要把回應內容記下來
+# 真實事故（2026-09-19）：FinMind 對每一個資料集都回 400，而 http.get 只寫
+# 「回 400，不重試」—— 唯一能判斷原因（token 失效？帳號等級不足？參數改了？）的
+# 回應內容整個被丟掉，連續三輪空轉都查不出根因。
+
+class _Resp4xx:
+    def __init__(self, status, text, payload=None):
+        self.status_code = status
+        self.text = text
+        self._payload = payload
+        self.headers = {"Content-Type": "application/json"}
+
+    def json(self):
+        if self._payload is None:
+            raise ValueError("不是 JSON")
+        return self._payload
+
+
+def _fake_session(resp):
+    class _S:
+        def get(self, url, **kw):
+            return resp
+    return lambda: _S()
+
+
+def test_四百的回應內容會進log(monkeypatch, caplog):
+    body = '{"msg":"Your level is register. Please update your user level","status":400}'
+    monkeypatch.setattr(http, "session", _fake_session(_Resp4xx(400, body)))
+    with caplog.at_level("WARNING"):
+        assert http.get("https://example.invalid/api") is None
+    assert "Your level is register" in caplog.text, \
+        "沒有回應內容的 4xx 日誌等於沒有線索，下一個人修不了"
+
+
+def test_四百時finmind會記下失敗原因(monkeypatch, tmp_path):
+    monkeypatch.setattr(http, "_QUOTA_FILE", tmp_path / "quota.json")
+    monkeypatch.setattr(http, "_last_error", None)
+    payload = {"msg": "Your level is register. Please update your user level", "status": 400}
+    monkeypatch.setattr(http, "session",
+                        _fake_session(_Resp4xx(400, str(payload), payload)))
+
+    assert http.finmind_get("TaiwanStockMonthRevenue", data_id="2330") is None
+    err = http.finmind_last_error()
+    assert err["status"] == 400 and err["dataset"] == "TaiwanStockMonthRevenue"
+    assert "register" in err["msg"]
+
+
+def test_其他來源的4xx行為不變(monkeypatch, caplog):
+    """error_body 只給 finmind_get 用；其他來源還是一律拿到 None，
+    不然 twse/tdcc 那些「拿到東西就當成資料」的呼叫端會把錯誤訊息當資料解析。"""
+    monkeypatch.setattr(http, "session", _fake_session(_Resp4xx(400, "Bad Request")))
+    assert http.get("https://example.invalid/api") is None
+    assert http.get("https://example.invalid/api", error_body=True) == {
+        "status": 400, "msg": "Bad Request"}

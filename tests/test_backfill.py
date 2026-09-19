@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import json
 import sys
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pandas as pd
@@ -18,6 +18,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from pipeline import config, run_backfill  # noqa: E402
 from pipeline.util import http  # noqa: E402
+
+#: two_step_plan 會把健檢短路成「一律通過」；驗健檢本身的測試要用這支真的
+_real_finmind_reachable = run_backfill.finmind_reachable
 
 
 @pytest.fixture()
@@ -220,14 +223,19 @@ def two_step_plan(monkeypatch):
     ]
     monkeypatch.setattr(run_backfill, "PLANS", {"default": steps})
     monkeypatch.setattr(run_backfill, "target_codes", lambda limit: ["2330", "2454"])
+    # run_plan 第一件事是 FinMind 健檢（1 次請求）。這幾個計畫測試驗的是計畫本身，
+    # 健檢另外有專屬測試（test_token_掛掉時整輪不跑…），這裡直接當作通。
+    monkeypatch.setattr(run_backfill, "finmind_reachable", lambda prog: True)
     monkeypatch.setattr(run_backfill.loader, "membership",
                         lambda cfg=None: pd.DataFrame({"code": ["2330", "2330", "3034"], "group_id": ["a", "b", "a"]}))
     # run_plan 現在第一件事是補指數歷史（3 次請求）。這幾個計畫測試驗的是逐檔那幾步，
     # 不要讓它真的去打 FinMind —— 給一份最小的假資料，讓它一次就補完。
     monkeypatch.setattr(run_backfill.finmind, "index_ohlc",
                         lambda s, end=None, wait=True: pd.DataFrame(
-                            {"date": ["2000-01-04"], "symbol": ["TSE"], "open": [1.0], "high": [1.0],
-                             "low": [1.0], "close": [1.0], "change": [0.0], "volume": [1.0], "turnover": [1.0]}))
+                            {"date": ["2000-01-04", "2000-01-04"], "symbol": ["TSE", "OTC"],
+                             "open": [1.0, 1.0], "high": [1.0, 1.0], "low": [1.0, 1.0],
+                             "close": [1.0, 1.0], "change": [0.0, 0.0], "volume": [1.0, 1.0],
+                             "turnover": [1.0, 1.0]}))
     monkeypatch.setattr(run_backfill.finmind, "futures_ohlc",
                         lambda s, end=None, wait=True: pd.DataFrame(
                             {"date": ["2000-01-04"], "symbol": ["FUT"], "open": [1.0], "high": [1.0],
@@ -415,7 +423,7 @@ def test_指數歷史會補進資料湖(sandbox, monkeypatch):
 
     def fake_index(start, end=None, wait=True):
         calls.append(("index", start))
-        return pd.DataFrame({"date": ["2000-01-04", "2000-01-05"], "symbol": ["TSE", "TSE"],
+        return pd.DataFrame({"date": ["2000-01-04", "2000-01-05"], "symbol": ["TSE", "OTC"],
                              "open": [8756.0, 8849.0], "high": [8900.0, 8900.0],
                              "low": [8700.0, 8800.0], "close": [8849.0, 8756.0],
                              "change": [93.0, -93.0], "volume": [1.0, 1.0], "turnover": [1.0, 1.0]})
@@ -445,6 +453,214 @@ def test_指數回空時不標done(sandbox, monkeypatch):
     """回空要下一輪重試，不可以像 holding 那樣被永久標記成做過。"""
     monkeypatch.setattr(run_backfill.finmind, "index_ohlc",
                         lambda s, end=None, wait=True: pd.DataFrame())
+    monkeypatch.setattr(run_backfill.finmind, "futures_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame())
+    prog = {"done": {}, "complete": {}}
+    assert run_backfill.backfill_indices(prog) is False
+    assert "index_ohlc" not in prog["complete"]
+
+
+# --------------------------------------------- 封印：不開放的資料集不可以每輪都重問
+# 真實事故（2026-09-19，連續三輪空轉）：
+# revenue / financial / balance 整組回 400，「判定為不開放」只存在那一輪的記憶體裡，
+# 從來沒寫進進度檔 —— 於是每一輪都重問全部 506 檔、每一輪都把 FinMind 額度燒光，
+# 計畫永遠停在第 1 步，後面幾千檔個股的價量與法人永遠輪不到。
+# 而且 finished_all 寫成「只要有 unavailable 就永遠不算完成」，等於一個永遠不開放的
+# 資料集可以把整個計畫鎖死。這一組測試把兩件事都釘住。
+
+def test_不開放的資料集會被記進進度檔(sandbox, monkeypatch):
+    monkeypatch.setattr(http, "_last_error",
+                        {"dataset": "TaiwanStockHoldingSharesPer", "data_id": "2330",
+                         "status": 400, "msg": "Your level is register"})
+    monkeypatch.setattr(run_backfill, "target_codes",
+                        lambda limit: ["2330", "2454", "2317", "2382"])
+    monkeypatch.setattr(run_backfill.finmind, "holding_history",
+                        lambda c, s, wait=False: pd.DataFrame())
+
+    run_backfill.run("holding", None, "2021-01-01")
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+
+    rec = prog["unavailable"]["holding"]
+    assert rec["since"] and rec["last_probe"], "要帶時間戳，下一輪才知道隔多久可以再探"
+    assert rec["probes"] == 1
+    assert "400" in rec["last_reason"] and "register" in rec["last_reason"], \
+        "要把上游回應的原文留下來，不然下一個人還是不知道為什麼失敗"
+
+
+def test_封印期內完全不重問也不燒額度(sandbox, monkeypatch):
+    asked = []
+    monkeypatch.setattr(run_backfill, "target_codes",
+                        lambda limit: [str(9000 + i) for i in range(40)])
+
+    def fake(code, start, wait=False):
+        asked.append(code)
+        return pd.DataFrame()
+
+    monkeypatch.setattr(run_backfill.finmind, "holding_history", fake)
+    run_backfill.PROGRESS.write_text(json.dumps({
+        "done": {}, "complete": {},
+        "unavailable": {"holding": {"since": "2026-09-19T00:00:00+00:00",
+                                    "last_probe": run_backfill._now().isoformat(),
+                                    "probes": 1}},
+    }, ensure_ascii=False))
+
+    before = http.finmind_budget_left()
+    summary = run_backfill.run("holding", None, "2021-01-01")
+
+    assert asked == [], "封印期內一次請求都不該發"
+    assert http.finmind_budget_left() == before
+    assert summary["finished"] is True, \
+        "★ 確定不開放的資料集不可以讓這一步永遠算未完成 —— 那會把整個計畫鎖死在第 1 步"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["complete"]["holding@2021-01-01"]["done"] is True
+
+
+def test_確定不開放的資料集不會讓計畫永遠停在第一步(sandbox, monkeypatch, two_step_plan):
+    """事故重現：第 1 步的資料集永遠不開放時，第 2 步以後要照樣跑得到。"""
+    served = {"revenue": [], "price": [], "dividend": [], "divresult": []}
+
+    def rec(key, df_of):
+        def fetch(code, start, wait=False):
+            served[key].append(code)
+            return df_of(code)
+        return fetch
+
+    monkeypatch.setattr(run_backfill.finmind, "month_revenue",
+                        rec("revenue", lambda c: pd.DataFrame()))
+    monkeypatch.setattr(run_backfill.finmind, "price_history", rec("price", lambda c: pd.DataFrame(
+        {"date": ["2000-01-04"], "code": [c], "open": [1.0], "high": [1.0], "low": [1.0],
+         "close": [1.0], "change": [0.0], "volume": [1.0], "turnover": [1.0],
+         "transactions": [1.0], "market": ["FINMIND"]})))
+    monkeypatch.setattr(run_backfill.finmind, "dividend_events",
+                        rec("dividend", lambda c: pd.DataFrame()))
+    monkeypatch.setattr(run_backfill.finmind, "dividend_results",
+                        rec("divresult", lambda c: pd.DataFrame()))
+    run_backfill.PROGRESS.write_text(json.dumps({
+        "done": {}, "complete": {},
+        "unavailable": {"revenue": {"since": "2026-09-19T00:00:00+00:00",
+                                    "last_probe": run_backfill._now().isoformat(),
+                                    "probes": 3}},
+    }, ensure_ascii=False))
+
+    result = run_backfill.run_plan("default", None, today=date(2026, 9, 21))
+
+    assert served["revenue"] == [], "封印中的第 1 步不該再問"
+    assert served["price"], "★ 第 2 步一定要跑得到 —— 這正是空轉三輪時沒發生的事"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["complete"]["plan:default"]["stopped_at"] is None
+    assert prog["complete"]["plan:default"]["steps"]["revenue"] is True
+    assert prog["done"]["price@2000-01-01:2330"] is True
+    assert result["exhausted"] is False
+
+
+def test_超過24小時只拿少量樣本重探(sandbox, monkeypatch):
+    asked = []
+    monkeypatch.setattr(run_backfill, "target_codes",
+                        lambda limit: [str(9000 + i) for i in range(40)])
+
+    def fake(code, start, wait=False):
+        asked.append(code)
+        return pd.DataFrame()
+
+    monkeypatch.setattr(run_backfill.finmind, "holding_history", fake)
+    stale = (run_backfill._now() - timedelta(hours=25)).isoformat()
+    run_backfill.PROGRESS.write_text(json.dumps({
+        "done": {}, "complete": {},
+        "unavailable": {"holding": {"since": stale, "last_probe": stale, "probes": 1}},
+    }, ensure_ascii=False))
+
+    run_backfill.run("holding", None, "2021-01-01")
+
+    assert len(asked) == run_backfill.PROBE_CODES, "重探只拿少量樣本，不是整包重問"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["unavailable"]["holding"]["probes"] == 2, "探過要累加，並把時間戳往後推"
+    assert prog["unavailable"]["holding"]["last_probe"] > stale
+
+
+def test_探測成功就解除封印(sandbox, monkeypatch):
+    monkeypatch.setattr(run_backfill, "target_codes", lambda limit: ["2330", "2454", "2317"])
+    monkeypatch.setattr(run_backfill.finmind, "holding_history",
+                        lambda c, s, wait=False: pd.DataFrame(
+                            {"date": ["2026-09-04"], "code": [c], "level": ["400張以上"],
+                             "people": [1], "percent": [1.0]}))
+    stale = (run_backfill._now() - timedelta(hours=25)).isoformat()
+    run_backfill.PROGRESS.write_text(json.dumps({
+        "done": {}, "complete": {},
+        "unavailable": {"holding": {"since": stale, "last_probe": stale, "probes": 4}},
+    }, ensure_ascii=False))
+
+    run_backfill.run("holding", None, "2021-01-01")
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+
+    assert "holding" not in prog.get("unavailable", {}), "探到資料就要解封，不然永遠補不到"
+    assert prog["done"]["holding@2021-01-01:2317"] is True, "解封後這一輪剩下的檔要恢復全量"
+
+
+def test_第一次整組掛掉也不准把額度燒完(sandbox, monkeypatch):
+    """2026-09-19 少的就是這道閘：必定失敗的請求吃掉 506 次額度。"""
+    asked = []
+    monkeypatch.setattr(run_backfill, "target_codes",
+                        lambda limit: [str(9000 + i) for i in range(100)])
+
+    def fake(code, start, wait=False):
+        asked.append(code)
+        return pd.DataFrame()
+
+    monkeypatch.setattr(run_backfill.finmind, "holding_history", fake)
+    run_backfill.run("holding", None, "2021-01-01")
+
+    assert len(asked) == run_backfill.EMPTY_STREAK_LIMIT, "連續回空到上限就要收手"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert "holding" in prog["unavailable"]
+
+
+# --------------------------------------------- token 整個失效 vs 單一資料集不開放
+# 2026-09-19 那輪連 TaiwanStockPrice（最基本、前一天還在用的資料集）都回 400，
+# 但日誌只寫狀態碼，所以分不出是 token 掛了還是那三個資料集不開放。
+# 健檢就是用 1 次額度把這件事問清楚。
+
+def test_token掛掉時整輪不跑並寫進進度檔(sandbox, monkeypatch, two_step_plan):
+    served = []
+    # two_step_plan 把健檢短路成「一律通過」，這一條要驗的正是健檢本身，所以拿回真的那支
+    monkeypatch.setattr(run_backfill, "finmind_reachable", _real_finmind_reachable)
+    monkeypatch.setattr(http, "_last_error",
+                        {"dataset": "TaiwanStockPrice", "data_id": "2330",
+                         "status": 400, "msg": "Your level is register"})
+    monkeypatch.setattr(run_backfill.finmind, "price_history",
+                        lambda c, s, wait=False: pd.DataFrame())
+    monkeypatch.setattr(run_backfill.finmind, "month_revenue",
+                        lambda c, s, wait=False: served.append(c) or pd.DataFrame())
+
+    result = run_backfill.run_plan("default", None, today=date(2026, 9, 21))
+
+    assert result.get("finmind_down") is True and result["done"] is False
+    assert served == [], "健檢不過就不該再發任何逐檔請求"
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["finmind_health"]["ok"] is False
+    assert "400" in prog["finmind_health"]["detail"]
+    assert "plan:default" not in prog.get("complete", {}), \
+        "健檢不過不可以動計畫的完成旗標，不然下一輪會被 guard 跳過"
+
+
+def test_健檢通過時照常跑(sandbox, monkeypatch):
+    monkeypatch.setattr(run_backfill.finmind, "price_history",
+                        lambda c, s, wait=False: pd.DataFrame(
+                            {"date": ["2026-09-18"], "code": [c], "open": [1.0], "high": [1.0],
+                             "low": [1.0], "close": [1.0], "change": [0.0], "volume": [1.0],
+                             "turnover": [1.0], "transactions": [1.0], "market": ["FINMIND"]}))
+    prog = {"done": {}, "complete": {}}
+    assert run_backfill.finmind_reachable(prog) is True
+    assert prog["finmind_health"]["ok"] is True
+
+
+def test_指數只拿到部分代號不標done(sandbox, monkeypatch):
+    """index_ohlc 是一支函式抓兩個指數；只回到加權時它仍然非空，
+    照舊標 done 的話櫃買永遠只有 40 天（Andy 要的是 3 年以上）。"""
+    monkeypatch.setattr(run_backfill.finmind, "index_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame(
+                            {"date": ["2000-01-04"], "symbol": ["TSE"], "open": [1.0],
+                             "high": [1.0], "low": [1.0], "close": [1.0], "change": [0.0],
+                             "volume": [1.0], "turnover": [1.0]}))
     monkeypatch.setattr(run_backfill.finmind, "futures_ohlc",
                         lambda s, end=None, wait=True: pd.DataFrame())
     prog = {"done": {}, "complete": {}}

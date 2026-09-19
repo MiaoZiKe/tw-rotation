@@ -176,3 +176,82 @@ PLAN_DEFAULT = [
 8. **`backfill.yml`**：`datasets` 選單預設值從 `revenue+financial+balance` 改成 `plan`（排程沒有 inputs，用同一個預設值就會跑計畫）；
    摘要多印 `plan:default` 的月份、停在哪一步、各步驟狀態。
 9. 測試：`tests/test_sources_v3.py` 33 個、`tests/test_backfill.py` 新增 6 個；全套 145 個通過（原本 106）。
+
+---
+
+## 7. 額度保護：資料集封印與 FinMind 健檢（2026-09-20 補）
+
+### 7.1 為什麼加這一層
+
+2026-09-19 連續三輪「歷史回補」空轉（run `35468233078` 等）：
+`revenue` / `financial` / `balance` 每一檔都回 HTTP 400，
+`run()` 判定「整組回空 ＝ 資料集不開放」的結論**只存在那一輪的記憶體裡**，
+沒有寫進 `data/_state/backfill_progress.json`。於是：
+
+1. 每一輪都重問全部 **506 檔**，把 FinMind 額度（有 token 510/hr）一次燒光；
+2. 額度用盡 → `exhausted=True` → 計畫永遠停在第 1 步，
+   後面的股利、融資券／集保、族群成分股價量四個步驟**永遠輪不到**；
+3. `finished_all` 當時寫成「只要有 `unavailable` 就永遠不算完成」，
+   等於一個確定不開放的資料集可以把整個計畫**永久鎖死**。
+
+同一輪的**第一個** FinMind 請求是 `TaiwanStockPrice` + `data_id=TAIEX`（補指數歷史），
+它也回 400 —— 這就是 `index_ohlc` 一直只有 32 個交易日的原因。
+
+### 7.2 進度檔新增的兩個區塊
+
+```jsonc
+"unavailable": {                       // 判定為不開放的資料集（封印）
+  "revenue": {
+    "since": "2026-09-20T…",           // 第一次判定的時間
+    "last_probe": "2026-09-20T…",      // 最近一次探測
+    "probes": 3,
+    "last_reason": "HTTP 400：Your level is register…"   // 上游回應原文
+  }
+},
+"finmind_health": {                    // 每一輪開場的健檢結果
+  "ok": false,
+  "at": "2026-09-20T…",
+  "probe": "TaiwanStockPrice/2330 since 2026-09-10",
+  "detail": "HTTP 400：…"
+}
+```
+
+### 7.3 規則
+
+| 情境 | 行為 | 常數 |
+|---|---|---|
+| 某資料集整輪回空（≥3 檔）且一次都沒成功 | 寫進 `unavailable`，**不寫 done** | — |
+| 同一輪連續回空太多次 | 本輪停問這個資料集，額度留給其他步驟 | `EMPTY_STREAK_LIMIT=20` |
+| 封印期內 | **完全不發請求** | `UNAVAILABLE_RETRY_HOURS=24` |
+| 封印超過 24 小時 | 只拿少量樣本重探 | `PROBE_CODES=5` |
+| 探測拿到資料 | 解除封印，**本輪剩下的檔立刻恢復全量** | — |
+
+**計畫什麼時候算完成**（`run()` 的 `finished_all`）：沒被限流、沒有抓取例外、
+且沒有「**這一輪第一次**」被判定不開放的資料集。
+已經封印過的資料集**不算未完成** —— 它不會因為我們一直等就開放，
+拿整個計畫去陪葬是 2026-09-19 那三輪空轉的直接原因。
+
+### 7.4 健檢（`finmind_reachable`）
+
+`run_plan()` 與 `main()` 的 `--datasets` 路徑一開始先花 **1 次額度**問
+「台積電最近 10 天的日線」——免費層一定拿得到的東西。
+
+- 拿得到 → 是個別資料集的問題，交給封印機制。
+- 拿不到 → **整把 token／帳號的問題**，整輪立刻停、一次請求都不再發，
+  把上游回應原文寫進 `finmind_health.detail`，並在日誌寫明
+  「到 FinMind 重產 token、更新 GitHub Secrets 的 `FINMIND_TOKEN`」。
+  這一輪**不動** `complete["plan:default"]`，所以下一輪不會被工作流的 guard 跳過。
+
+### 7.5 `http` 層
+
+- `get()` 對不重試的 4xx（含 401/403）一律把**回應前 200 字**寫進 log。
+  只記狀態碼等於把唯一的診斷資訊丟掉。
+- 新參數 `error_body=True`（只有 `finmind_get` 用）：4xx 回
+  `{"status": …, "msg": …}`，其他來源行為不變（仍然拿到 `None`）。
+- `finmind_last_error()`：最近一次非 200 的 dataset / status / msg，
+  供 `run_backfill` 寫進進度檔。
+
+### 7.6 指數歷史
+
+`backfill_indices()` 現在要求 `index_ohlc` 同時回到 `TSE` **與** `OTC` 才標 done
+（那支函式一次抓兩個指數，只回到加權時它仍然「非空」，照舊標 done 會讓櫃買永遠只有 40 天）。

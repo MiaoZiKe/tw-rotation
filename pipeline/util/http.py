@@ -36,10 +36,29 @@ def session() -> requests.Session:
     return _session
 
 
+def _body_snippet(r) -> str:
+    """回應內容的前 200 字（給 log 用）。
+
+    為什麼一定要記這一段（2026-09-19 的教訓）：
+    原本 4xx 只寫「回 400，不重試」，等於把唯一的診斷資訊丟掉。
+    那天 FinMind 連續好幾輪對每一個資料集都回 400，日誌裡卻只有狀態碼，
+    完全分不出是 token 失效、帳號等級不足、還是參數改了 ——
+    而這三種的修法完全不同（換金鑰／改計畫／改 parser）。
+    這些 API 的 4xx body 幾乎都直接寫著原因，記下來下一個人才有辦法修。"""
+    try:
+        return r.text[:200].replace("\n", " ").replace("\r", " ")
+    except Exception:  # noqa: BLE001 —— 診斷用，絕不能因為取不到內容而讓抓取失敗
+        return "<無法讀取回應內容>"
+
+
 def get(url: str, *, params: dict | None = None, headers: dict | None = None,
         timeout: int | None = None, retries: int | None = None,
-        expect_json: bool = True) -> Any | None:
-    """帶指數退避的 GET。回傳 dict/list（JSON）或 str（文字）；失敗回 None。"""
+        expect_json: bool = True, error_body: bool = False) -> Any | None:
+    """帶指數退避的 GET。回傳 dict/list（JSON）或 str（文字）；失敗回 None。
+
+    error_body=True 時，不重試的 4xx 會把回應內容包成
+    {"status": <碼>, "msg": <前 200 字>} 回傳，讓呼叫端可以判斷失敗原因
+    （只有 finmind_get 用；其他來源仍然一律拿到 None，行為不變）。"""
     retries = config.HTTP_RETRIES if retries is None else retries
     timeout = config.HTTP_TIMEOUT if timeout is None else timeout
     last_err: str = ""
@@ -77,12 +96,26 @@ def get(url: str, *, params: dict | None = None, headers: dict | None = None,
                 return {"status": 402, "msg": str(body)[:200]}
             if r.status_code in (403, 401):
                 # 反爬或權限問題，重試沒有意義
-                log.warning("%s 回 %s，判定為阻擋，不重試", url, r.status_code)
+                log.warning("%s 回 %s，判定為阻擋，不重試（回應前 200 字）：%s",
+                            url, r.status_code, _body_snippet(r))
+                if error_body:
+                    return {"status": r.status_code, "msg": _body_snippet(r)}
                 return None
             if r.status_code == 429 or 500 <= r.status_code < 600:
                 last_err = f"HTTP {r.status_code}"
             else:
-                log.warning("%s 回 %s，不重試", url, r.status_code)
+                snippet = _body_snippet(r)
+                log.warning("%s 回 %s，不重試（回應前 200 字）：%s", url, r.status_code, snippet)
+                if error_body:
+                    try:
+                        body = r.json()
+                    except ValueError:
+                        body = None
+                    if isinstance(body, dict):
+                        body.setdefault("status", r.status_code)
+                        body.setdefault("msg", snippet)
+                        return body
+                    return {"status": r.status_code, "msg": snippet}
                 return None
         except requests.RequestException as exc:
             last_err = str(exc)
@@ -143,6 +176,17 @@ def _is_rate_limited(payload: dict) -> bool:
     return payload.get("status") == 402 or "exceed" in msg or "limit" in msg
 
 
+#: 最近一次 FinMind 非 200 的回應（診斷用）。
+#: 2026-09-19 那天三個資料集連續好幾輪全部回 400，日誌裡只有狀態碼，
+#: 沒有人能判斷是 token 失效還是資料集不開放 —— 把原文留下來，上層才寫得進進度檔。
+_last_error: dict | None = None
+
+
+def finmind_last_error() -> dict | None:
+    """最近一次 FinMind 非 200 的回應（含 dataset / data_id / status / msg）。"""
+    return dict(_last_error) if _last_error else None
+
+
 def finmind_get(dataset: str, *, data_id: str | None = None,
                 start_date: str | None = None, end_date: str | None = None,
                 wait_when_exhausted: bool = False) -> list[dict] | None:
@@ -179,10 +223,14 @@ def finmind_get(dataset: str, *, data_id: str | None = None,
     q["used"] += 1
     _save_quota(q)
 
-    payload = get(config.FINMIND_API, params=params)
+    # error_body=True：4xx 也要把回應內容帶回來，不然「為什麼失敗」就消失了
+    payload = get(config.FINMIND_API, params=params, error_body=True)
     if not isinstance(payload, dict):
         return None
     if payload.get("status") != 200:
+        global _last_error
+        _last_error = {"dataset": dataset, "data_id": data_id,
+                       "status": payload.get("status"), "msg": str(payload.get("msg"))[:200]}
         if _is_rate_limited(payload):
             log.warning("FinMind 伺服器端額度用盡（%s/%s）：%s",
                         dataset, data_id, payload.get("msg"))

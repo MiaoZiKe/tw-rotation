@@ -51,6 +51,25 @@ PLAN_DEFAULT = [
 PLANS = {"default": PLAN_DEFAULT}
 TAIPEI = timezone(timedelta(hours=8))
 
+# ---------------------------------------------------------------- 資料集封印
+# 2026-09-19 的事故：revenue / financial / balance 連續好幾輪整組回空，
+# 判定「資料集不開放」的邏輯只活在那一輪的記憶體裡、沒有寫進進度檔，
+# 於是**每一輪都重問全部 506 檔**、每一輪都把額度燒光，
+# 計畫永遠停在第 1 步，後面幾千檔個股的價量與法人永遠輪不到。
+#
+# 修法是「封印 ＋ 定期探測」：判定不開放就寫進進度檔並記時間戳，
+# 之後每天最多重問一次，而且重問只拿少量樣本去探，探到通了才恢復全量。
+# 刻意不做成「永遠不再問」—— 資料集有可能之後就開放了（或只是上游暫時壞掉），
+# 那樣會永遠補不到。
+UNAVAILABLE_RETRY_HOURS = 24   # 封印後至少隔這麼久才准再探一次
+PROBE_CODES = 5                # 解封探測一輪最多問幾檔（夠過「3 檔以上」的判定門檻）
+EMPTY_STREAK_LIMIT = 20        # 同一個資料集在一輪內連續回空幾檔就先收手
+
+# 健檢用的標的：台積電最近幾天的日線 —— FinMind 免費層一定有的東西。
+# 連它都拿不到就不是「某個資料集不開放」，是整把 token／帳號的問題。
+CANARY_CODE = "2330"
+CANARY_DAYS = 10
+
 
 def _progress() -> dict:
     if PROGRESS.exists():
@@ -59,6 +78,59 @@ def _progress() -> dict:
         except ValueError:
             pass
     return {"done": {}, "updated_at": None}
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def _parse_ts(value) -> datetime | None:
+    try:
+        ts = datetime.fromisoformat(str(value))
+    except (TypeError, ValueError):
+        return None
+    return ts if ts.tzinfo else ts.replace(tzinfo=timezone.utc)
+
+
+def dataset_mode(prog: dict, key: str, now: datetime | None = None) -> str:
+    """這一輪要怎麼對待這個資料集。
+
+    full   —— 正常全量跑（沒有被封印，或剛剛探測成功）
+    probe  —— 封印超過 UNAVAILABLE_RETRY_HOURS，這一輪只拿 PROBE_CODES 檔去探
+    sealed —— 還在封印期內，這一輪一次請求都不發（額度留給補得動的步驟）
+    """
+    rec = (prog.get("unavailable") or {}).get(key)
+    if not isinstance(rec, dict):
+        return "full"
+    ts = _parse_ts(rec.get("last_probe") or rec.get("since"))
+    if ts is None:
+        return "probe"
+    hours = ((now or _now()) - ts).total_seconds() / 3600
+    return "probe" if hours >= UNAVAILABLE_RETRY_HOURS else "sealed"
+
+
+def seal_dataset(prog: dict, key: str, reason: str = "") -> bool:
+    """把資料集記成「不開放」。回傳 True 代表這是第一次判定（先前沒有紀錄）。"""
+    book = prog.setdefault("unavailable", {})
+    rec = book.get(key)
+    first = not isinstance(rec, dict)
+    now = _now().isoformat()
+    if first:
+        rec = {"since": now, "probes": 0}
+    rec["last_probe"] = now
+    rec["probes"] = int(rec.get("probes") or 0) + 1
+    if reason:
+        rec["last_reason"] = reason[:200]
+    book[key] = rec
+    return first
+
+
+def unseal_dataset(prog: dict, key: str) -> None:
+    """探測拿到資料了 —— 解除封印，下一輪恢復全量。"""
+    book = prog.get("unavailable") or {}
+    if key in book:
+        book.pop(key, None)
+        log.info("%s 又拿得到資料了 —— 解除封印，恢復全量回補", key)
 
 
 def _save_progress(p: dict) -> None:
@@ -188,6 +260,20 @@ def run(datasets: str, limit: int | None, start: str, *,
     pending_no_data: dict[str, list[str]] = {}
     got_data: set[str] = set()
 
+    # 被封印的資料集這一輪怎麼處理（見 dataset_mode 的說明）
+    modes = {k: dataset_mode(prog, k) for k in wanted}
+    asked: dict[str, int] = {k: 0 for k in wanted}
+    empty_streak: dict[str, int] = {k: 0 for k in wanted}
+    halted: set[str] = set()          # 這一輪已經收手的資料集（連續回空太多）
+    for k, mode in sorted(modes.items()):
+        if mode == "sealed":
+            rec = (prog.get("unavailable") or {}).get(k, {})
+            log.info("%s 先前判定為不開放（%s 起，已探 %s 次），封印中，這一輪不花額度",
+                     k, str(rec.get("since"))[:19], rec.get("probes"))
+        elif mode == "probe":
+            log.info("%s 封印超過 %d 小時 —— 這一輪拿 %d 檔去探，探到就恢復全量",
+                     k, UNAVAILABLE_RETRY_HOURS, PROBE_CODES)
+
     for i, code in enumerate(codes, 1):
         if http.finmind_budget_left() <= 1:
             log.warning("FinMind 額度用盡，本輪停在第 %d/%d 檔（%s）", i, len(codes), code)
@@ -196,6 +282,10 @@ def run(datasets: str, limit: int | None, start: str, *,
 
         for key, table, fetch in jobs:
             if key not in wanted:
+                continue
+            if modes[key] == "sealed" or key in halted:
+                continue
+            if modes[key] == "probe" and asked[key] >= PROBE_CODES:
                 continue
             done_key = done_key_of(key, code, start, tag)
             if prog["done"].get(done_key) or already_covered(table, code, start, respect_time):
@@ -209,6 +299,7 @@ def run(datasets: str, limit: int | None, start: str, *,
                 summary["exhausted"] = True
                 break
 
+            asked[key] += 1
             try:
                 df = fetch(code)
             except Exception as exc:  # noqa: BLE001
@@ -231,10 +322,23 @@ def run(datasets: str, limit: int | None, start: str, *,
                 #   所以先記在暫存區，等整輪跑完再決定要不要真的寫進 progress（見下方）。
                 summary["no_data"] += 1
                 pending_no_data.setdefault(key, []).append(done_key)
+                empty_streak[key] += 1
+                # ★ 第一次遇到「整個資料集掛掉」也不該把額度燒完：連續 N 檔回空、
+                #   而且這一輪一次都沒成功過 → 先收手，剩下的額度留給補得動的步驟。
+                #   2026-09-19 少了這道閘，光是必定失敗的請求就吃掉 506 次額度。
+                if empty_streak[key] >= EMPTY_STREAK_LIMIT and key not in got_data:
+                    halted.add(key)
+                    log.warning("%s 連續 %d 檔回空且一次都沒成功 —— 本輪先停問這個資料集，"
+                                "把額度留給其他步驟", key, empty_streak[key])
                 continue
             n = store.append(table, df)
             summary[key] += n
             got_data.add(key)
+            empty_streak[key] = 0
+            if modes[key] != "full":
+                # 探測成功：解除封印，這一輪剩下的檔照全量跑
+                unseal_dataset(prog, key)
+                modes[key] = "full"
             prog["done"][done_key] = True
 
         if i % 25 == 0:
@@ -251,20 +355,40 @@ def run(datasets: str, limit: int | None, start: str, *,
     #   其餘回空的就是真的沒資料，照舊記 done；一次都沒拿到（而且問了 3 檔以上）的，
     #   判定是這個資料集本身不開放，**不寫 done**，下一輪重問。
     #   門檻訂 3 是為了不要因為一輪只跑到兩檔就誤判。
+    newly_unavailable: list[str] = []
     for key, keys in pending_no_data.items():
         if key in got_data or len(keys) < 3:
             for dk in keys:
                 prog["done"][dk] = True
         else:
+            err = http.finmind_last_error() or {}
+            reason = f"HTTP {err.get('status')}：{err.get('msg')}" if err else "整組回空"
+            first = seal_dataset(prog, key, reason)
             log.warning("%s 這一輪 %d 檔全部回空 —— 判定為該資料集不開放（而不是這些股票沒資料），"
-                        "不寫入 done，下一輪會重問", key, len(keys))
+                        "不寫入 done；已寫進進度檔封印，%d 小時後只拿 %d 檔重探。上游回應：%s",
+                        key, len(keys), UNAVAILABLE_RETRY_HOURS, PROBE_CODES, reason)
             summary["unavailable"] = sorted(set(summary.get("unavailable", [])) | {key})
+            if first:
+                newly_unavailable.append(key)
+    if newly_unavailable:
+        summary["newly_unavailable"] = sorted(newly_unavailable)
+    sealed_now = sorted(k for k in wanted if k in (prog.get("unavailable") or {}))
+    if sealed_now:
+        summary["sealed"] = sealed_now
 
-    # 整輪走完、沒被限流、也沒有抓取失敗 → 這組資料集對目前的目標清單已補齊。
-    # 排程觸發的工作流會看這個旗標決定要不要直接跳過（省 Actions 分鐘與額度）。
-    # 手動觸發永遠會重跑一輪，所以 groups.yaml 新增成分股後按一次即可。
+    # 這一組資料集什麼情況下才算「補齊」（排程的 guard 看這個旗標決定要不要整輪跳過）：
+    #   1) 沒有撞到 FinMind 限流（exhausted=False）——還沒問完，當然不算完成
+    #   2) 沒有抓取例外（failed=0）
+    #   3) 沒有**這一輪第一次**被判定為不開放的資料集 —— 那個狀態還不確定
+    #      （可能只是上游暫時壞掉），留一輪讓下一次重問，不要太早宣告完成
+    # ★ 已經封印過的資料集**不算**未完成。這一條是 2026-09-19 事故的正解：
+    #   原本寫成「只要有 unavailable 就永遠不算完成」，結果一個確定不開放的資料集
+    #   把整個計畫鎖死在第 1 步，後面幾千檔個股的價量與法人永遠輪不到。
+    #   不開放的資料集不會因為我們一直等就開放；它該被封印＋每天探一次，
+    #   而不是拿整個計畫去陪葬。
     finished_all = (not summary["exhausted"] and summary["failed"] == 0
-                    and not summary.get("unavailable"))
+                    and not newly_unavailable)
+    summary["finished"] = finished_all
     prog["complete"][datasets_key] = {
         "done": finished_all,
         "at": datetime.now(timezone.utc).isoformat(),
@@ -317,14 +441,25 @@ def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
         return False
 
     total = 0
-    for label, fn in (("指數", finmind.index_ohlc), ("台指期", finmind.futures_ohlc)):
+    # 每個來源要求哪些 symbol 都齊了才算數：index_ohlc 是一支函式抓兩個指數，
+    # 只回到加權、櫃買失敗時它仍然是「非空」的 —— 那樣標成 done 會讓櫃買永遠只有 40 天。
+    for label, fn, need in (("指數", finmind.index_ohlc, {"TSE", "OTC"}),
+                            ("台指期", finmind.futures_ohlc, {"FUT"})):
         try:
             df = fn(start, wait=False)
         except Exception as exc:  # noqa: BLE001
             log.warning("%s 歷史抓取失敗：%s", label, exc)
             return False
         if df is None or df.empty:
-            log.warning("%s 歷史回空 —— 不標 done，下一輪重試", label)
+            err = http.finmind_last_error() or {}
+            log.warning("%s 歷史回空 —— 不標 done，下一輪重試（上游最近一次錯誤：%s）",
+                        label, f"HTTP {err.get('status')} {err.get('msg')}" if err else "無")
+            return False
+        missing = need - set(df.get("symbol", pd.Series(dtype=str)).astype(str))
+        if missing:
+            log.warning("%s 歷史只拿到部分代號，缺 %s —— 先寫進湖裡但不標 done，下一輪重試",
+                        label, sorted(missing))
+            store.append("index_ohlc", df)
             return False
         total += store.append("index_ohlc", df)
 
@@ -335,6 +470,49 @@ def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
     _save_progress(prog)
     log.info("指數歷史補完：寫入 %d 列（%s 起）", total, start)
     return True
+
+
+def finmind_reachable(prog: dict) -> bool:
+    """花 1 次額度確認「整把 token 還通不通」。
+
+    為什麼要這一步（2026-09-19 的事故）
+    ----------------------------------
+    那天 revenue / financial / balance 連續好幾輪每一檔都回 400，
+    日誌裡只寫「回 400，不重試」，所以沒有人分得出是
+    ①「這三個資料集不開放」還是 ②「整把 token 失效／帳號等級被改」——
+    而這兩種的修法完全不同（前者封印那三個資料集，後者要換金鑰）。
+    於是每一輪都把 506 次額度燒在必定失敗的請求上，計畫永遠停在第 1 步。
+
+    做法：先問一個最基本、免費層一定拿得到的東西（台積電最近 10 天的日線）。
+    - 拿得到 → 是個別資料集的問題，照常跑，由封印機制處理。
+    - 拿不到 → 不是資料集的問題，整輪直接停，把上游回應的原文寫進進度檔，
+      讓下一個人（或 Andy）一眼看出要不要去 GitHub Secrets 換 token。
+    """
+    if http.finmind_budget_left() <= 1:
+        return True          # 額度本來就沒了，健檢沒有意義，交給原本的限流流程
+    since = (datetime.now(TAIPEI).date() - timedelta(days=CANARY_DAYS)).isoformat()
+    try:
+        df = finmind.price_history(CANARY_CODE, since, wait=False)
+    except Exception as exc:  # noqa: BLE001
+        df = None
+        log.warning("FinMind 健檢拋出例外：%s", exc)
+    ok = df is not None and not df.empty
+    err = http.finmind_last_error() or {}
+    prog["finmind_health"] = {
+        "ok": ok,
+        "at": _now().isoformat(),
+        "probe": f"TaiwanStockPrice/{CANARY_CODE} since {since}",
+        "detail": "" if ok else f"HTTP {err.get('status')}：{err.get('msg')}",
+    }
+    if not ok:
+        log.error("FinMind 健檢失敗 —— 連 %s 最近 %d 天的日線都拿不到。"
+                  "這不是某個資料集不開放，是整把 token／帳號的問題，本輪不再發任何請求。"
+                  "上游回應：%s", CANARY_CODE, CANARY_DAYS,
+                  prog["finmind_health"]["detail"] or "（沒有留下錯誤內容）")
+        log.error("要處理的話：到 FinMind 網站重新產一把 token，"
+                  "更新 GitHub Secrets 的 FINMIND_TOKEN，再手動觸發一次「歷史回補」。")
+    _save_progress(prog)
+    return ok
 
 
 def plan_steps(name: str, today: date | None = None) -> list[dict]:
@@ -368,9 +546,16 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
     prog["complete"]["plan:<name>"] 標成 done，並記下月更新的年月。"""
     steps = plan_steps(name, today)
     month = monthly_step(today)["tag"][1:]
+    prog0 = _progress()
+
+    # ★ 第一件事是健檢：整把 token 不通的話，後面每一個請求都是白燒額度。
+    #   2026-09-19 就是少了這一步，三輪各燒掉 506 次額度、一列都沒寫進來。
+    if not finmind_reachable(prog0):
+        return {"done": False, "steps": {}, "stopped_at": None, "exhausted": False,
+                "finmind_down": True, **{k: 0 for k in DATA_KEYS}}
+
     # 指數歷史只要 3 次請求，放最前面：它一補完，總覽的月 K／季 K 與季節性的
     # 大盤基準就都有東西了，不必等後面幾千檔個股跑完。
-    prog0 = _progress()
     idx_ok = backfill_indices(prog0)
     results: dict[str, bool] = {}
     stopped_at: str | None = None
@@ -386,8 +571,8 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
                       datasets_key=key, tag=tag, respect_time=not tag)
         for k in DATA_KEYS:
             totals[k] += summary.get(k, 0)
-        done = not summary["exhausted"] and summary["failed"] == 0
-        results[key] = done
+        # 用 run() 算好的同一個判準，不要在這裡再寫一次（兩邊不一致過一次就夠了）
+        results[key] = bool(summary.get("finished"))
         if summary["exhausted"]:
             stopped_at = key
             log.warning("計畫 %s 在第 %d 步（%s）額度用盡，其餘步驟下一輪接續", name, n, key)
@@ -433,6 +618,11 @@ def main() -> int:
     if args.plan:
         summary = run_plan(args.plan, limit)
     else:
+        # 手動指定資料集也要先健檢：token 掛掉的話，逐檔跑只是在燒額度
+        prog = _progress()
+        if not finmind_reachable(prog):
+            log.error("FinMind 不通，本輪不跑（原因見上一行與 backfill_progress.json 的 finmind_health）")
+            return 0
         summary = run(args.datasets or "price+inst", limit, args.start)
     total = sum(summary[k] for k in DATA_KEYS)
     log.info("本輪共寫入 %d 列", total)
