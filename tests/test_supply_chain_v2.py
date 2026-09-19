@@ -201,3 +201,31 @@ def test_as_of不要只寫年份():
     # 預估值可以只寫年份（2026F 講的就是一整年），實績不行
     bad = [x for x in bad if not str(x[1]).endswith("F")]
     assert not bad, f"as_of 只寫年份，過期判斷會差半年：{bad}"
+
+
+def test_散熱族群三個檔要對得起來():
+    """2026-09-19 查證撞到的真錯誤：`groups.yaml` 的 server_thermal 沒有健策 3653，
+    但 `themes.yaml` 的散熱題材與 `supply_chain.yaml` 的 thermal 環節都有它。
+
+    **M1 的族群量能吃的是 groups.yaml** —— 等於健策的資金流根本沒被算進伺服器散熱。
+    市場口徑固定是「散熱三雄＝奇鋐＋雙鴻＋健策」，而且 2026-05-06 一則封裝層級的
+    均熱片降價傳言讓三家同步重挫，資金流事實上是同向的。三個檔必須對得起來。
+    """
+    import yaml
+    from pipeline.groups import loader as _loader
+    root = _loader.CHAIN_PATH.parent
+    g = yaml.safe_load((root / "groups.yaml").read_text(encoding="utf-8"))
+    t = yaml.safe_load((root / "themes.yaml").read_text(encoding="utf-8"))
+    sc = _sc()
+
+    grp = set(g["groups"]["server_thermal"]["codes"])
+    thm = set(t["themes"]["thermal"]["codes"])
+    chain = {c["ticker"] for c in sc["companies"]
+             if c.get("segment") == "thermal" and c.get("tw_code")}
+
+    missing = chain - grp
+    assert not missing, (
+        f"supply_chain 的散熱環節有 {sorted(missing)}，但 groups.yaml 的 server_thermal 沒有 —— "
+        "M1 族群量能會漏算它們")
+    assert chain <= thm, (
+        f"supply_chain 的散熱環節有 {sorted(chain - thm)}，但 themes.yaml 的散熱題材沒有")

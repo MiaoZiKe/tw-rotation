@@ -63,8 +63,12 @@ segments:
   # 是這輪行情的「因」不是「果」。灰色、粗細仍依 strength。
   - {id: ccl,          name: "CCL 銅箔基板",        layer: 2, chain: ai_server, role: material,
      material_of: [hdi_pcb]}
+  # ★ 2026-09-19 更正：原本這句寫「健策是封裝層級、奇鋐／雙鴻是系統層級」，在 2026 年已經是**錯的**。
+  #   雙鴻的封裝層級均熱片 2025Q2 起就在出貨（不是送樣）、還在泰國蓋專廠；
+  #   健策 2026-03 的水冷板與分歧管首度列入 NVIDIA GTC Vera Rubin NVL72 系統端供應商名單
+  #   （同一張名單上就有奇鋐）。重疊是雙向的，所以這個環節**不拆**。
   - {id: thermal,      name: "散熱（均熱片 / 液冷）", layer: 4, chain: ai_server,
-     note: "健策是封裝層級的均熱片（封裝廠就貼上去），奇鋐／雙鴻是系統層級的水冷板／CDU（組裝廠才裝）"}
+     note: "分封裝層級（均熱片 lid/IHS、微流道均熱片 MCL，封裝廠貼合）與系統層級（水冷板／CDU／分歧管，組裝廠安裝）兩層。2026 年三家互相跨層，不再是各據一層"}
   - {id: power,        name: "電源",                layer: 4, chain: ai_server}
   - {id: optical_epi,  name: "光通訊磊晶 / 雷射晶粒", layer: 3, chain: ai_server}
   - {id: optical,      name: "光通訊模組 / 矽光子",  layer: 4, chain: ai_server}
@@ -93,6 +97,12 @@ products:
     penetration:
       - {metric: "AI 伺服器液冷滲透率", value_pct: 76, as_of: "2026F", source: "鉅亨網引述法人", confidence: reported}
     note: "700W 以上 TDP 氣冷失效；水冷櫃單價約氣冷 4 倍"
+  - id: mcl
+    name: 微流道均熱片 MCL
+    segment: thermal
+    note: "把微流道做進均熱片裡，單價約傳統均熱片 3–4 倍。2026H2 起逐步導入、2027 漸成主流；健策業界進度最快但 2026-09 仍在試產驗證，奇鋐 MLCP 最快 2026H2 小規模試產"
+    as_of: "2026-09"
+    confidence: reported
   - id: hvdc_800v
     name: 800V HVDC 電源架構
     segment: power
@@ -162,15 +172,17 @@ companies:
     ticker: "3017"
     name: 奇鋐
     segment: thermal
-    tech: [水冷板, sidecar, CDU]
+    tech: [水冷板, sidecar, CDU, 3D VC 均熱板]
     # 2026-09-19：原本寫「GB200/GB300 水冷板市占 40–50%，source: 媒體引述法人」，
     # 兩位查證的分析師都找不到任何一篇給出這個數字 —— 依 CLAUDE.md「沒有來源就不要寫數字」拿掉，
     # 只保留定性描述。查到出處再補回 share 並附 source_url。
-    note: "GB200/GB300 水冷板主要供應商之一（未取得可查證的市占數字）"
+    note: "GB200/GB300 水冷板主要供應商之一（未取得可查證的市占數字）。微流道水冷板 MLCP 最快 2026H2 小規模試產，封裝層級產能仍待落地"
     customers: [foxconn, quanta]
-  - {id: auras,   ticker: "3324", name: 雙鴻,       segment: thermal,  tech: [水冷板, 氣冷模組]}
-  - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,  tech: [均熱片 lid/IHS, 補強框 stiffener, 導線架],
-     note: "封裝層級的金屬件（封裝廠就貼上去），跟奇鋐／雙鴻的系統層級水冷不是同一張單"}
+  - {id: auras,   ticker: "3324", name: 雙鴻,       segment: thermal,  tech: [水冷板, 氣冷模組, 均熱片],
+     note: "主體是系統層級水冷（2026 水冷佔伺服器營收逾 55%、伺服器佔總營收 72%）。封裝層級均熱片已通過美系晶片大廠認證、2025Q2 起出貨，月產能由約 10 萬顆擴向 100 萬顆以上，泰國建專廠"}
+  - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,
+     tech: [均熱片 lid/IHS, 補強框 stiffener, 微流道均熱片 MCL, 水冷板 Cold Plate, 分歧管 Manifold, 導線架],
+     note: "主體是封裝層級均熱片與補強框（2025 散熱產品約佔營收 73%，另有 LED 導線架 9%）。2026-03 NVIDIA GTC 首度以水冷板與分歧管列入 Vera Rubin NVL72 系統端供應商名單；MCL 業界進度最快，但 2026-09 仍在試產驗證、尚未量產"}
   # ---- 電源
   - id: delta
     ticker: "2308"
@@ -377,6 +389,9 @@ edges:
   - {from: liquid_cooling, to: avc,   rel: produced_by}
   - {from: liquid_cooling, to: auras, rel: produced_by}
   - {from: liquid_cooling, to: delta, rel: produced_by}
+  - {from: mcl,            to: jentech, rel: produced_by}
+  - {from: mcl,            to: avc,     rel: produced_by}
+  - {from: mcl,            to: auras,   rel: produced_by}
   - {from: hvdc_800v,      to: delta, rel: produced_by}
 
 # ---------------------------------------------------------------- 競爭關係
