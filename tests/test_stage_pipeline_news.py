@@ -40,6 +40,7 @@ def _run(monkeypatch, phase, tmp_path):
         "tdcc": ["shareholding_weekly"],
         "news": ["collect", "extract_broker_views"],
         "macro": ["intl_daily", "macro_all"],
+        "mops": ["material_news"],
         "finmind": ["stock_info"],
         "mis": ["price_snapshot"],
     }.items():
@@ -55,6 +56,11 @@ def _run(monkeypatch, phase, tmp_path):
     monkeypatch.setattr(run_daily.twse, "price_daily", rec("twse.price_daily", px))
     monkeypatch.setattr(run_daily, "save", lambda *a, **k: 0)
     monkeypatch.setattr(run_daily, "fetch_institutional", rec("finmind.institutional"))
+    # ★ 2026-09-19：分 K 一定要 mock。full phase 會抓 400 檔 Yahoo 分 K，
+    #   沒 mock 的話在沒有網路的環境會發出上千個連線、一路重試到逾時
+    #   （實測一次 full 就有 1,234 個失敗連線）。這是原本就漏的，
+    #   只是以前只有一個測試跑 full，還撐得過去。
+    monkeypatch.setattr(run_daily, "collect_intraday_60m", rec("yahoo.intraday_60m"))
     monkeypatch.setattr(run_daily, "refresh_financials", rec("finmind.financial_refresh"))
     monkeypatch.setattr(run_daily.config, "STATE", tmp_path)
     monkeypatch.setattr(run_daily.store, "table_summary", lambda: pd.DataFrame())
@@ -62,26 +68,30 @@ def _run(monkeypatch, phase, tmp_path):
     import pipeline.build_payload as bp
     monkeypatch.setattr(bp, "build", lambda: None)
     monkeypatch.setattr("sys.argv", ["run_daily", "--phase", phase])
-    run_daily.main()
-    return called
+    # ★ 2026-09-19：一定要把 exit code 帶出來。
+    #   以前這裡只寫 run_daily.main() 不看回傳值，於是「news phase 永遠回 1」這個 bug
+    #   從測試裡整個穿過去 —— Actions 的每日管線連續兩輪 failure、deploy 被 skip、
+    #   網站在週末與盤前完全不更新，而三道關卡全是綠的。
+    rc = run_daily.main()
+    return called, rc
 
 
 def test_news模式不碰價量(monkeypatch, tmp_path):
-    called = _run(monkeypatch, "news", tmp_path)
+    called, _ = _run(monkeypatch, "news", tmp_path)
     for name in ("twse.price_daily", "tpex.price_daily", "mis.price_snapshot",
                  "twse.valuation_daily", "twse.margin_daily"):
         assert name not in called, f"phase=news 不該呼叫 {name}"
 
 
 def test_news模式有抓新聞與國際盤(monkeypatch, tmp_path):
-    called = _run(monkeypatch, "news", tmp_path)
+    called, _ = _run(monkeypatch, "news", tmp_path)
     assert "news.collect" in called
     assert "macro.intl_daily" in called
 
 
 def test_news模式不動FinMind額度(monkeypatch, tmp_path):
     """週末把額度花在補法人沒有意義，那些資料週末不會變。"""
-    called = _run(monkeypatch, "news", tmp_path)
+    called, _ = _run(monkeypatch, "news", tmp_path)
     assert "finmind.institutional" not in called
     assert "finmind.financial_refresh" not in called
 
@@ -91,7 +101,7 @@ def test_price模式抓價量與新聞但不碰傍晚才落地的來源(monkeypa
 
     法人、融資券、財報那些傍晚才出的仍然不抓 —— 硬抓只會把「還沒出」記成「沒回資料」。
     """
-    called = _run(monkeypatch, "price", tmp_path)
+    called, _ = _run(monkeypatch, "price", tmp_path)
     assert "twse.price_daily" in called
     assert "news.collect" in called
     assert "finmind.institutional" not in called
@@ -99,7 +109,38 @@ def test_price模式抓價量與新聞但不碰傍晚才落地的來源(monkeypa
 
 
 def test_full模式該抓的都抓(monkeypatch, tmp_path):
-    called = _run(monkeypatch, "full", tmp_path)
+    called, _ = _run(monkeypatch, "full", tmp_path)
     for name in ("twse.price_daily", "twse.margin_daily", "tdcc.shareholding_weekly",
                  "news.collect", "macro.intl_daily"):
         assert name in called, f"phase=full 應該要呼叫 {name}"
+
+
+# --------------------------------------------- 退出碼：news phase 不可以因為沒有交易日就失敗
+# 真實事故（2026-09-19 才發現，但已經發生兩輪）：
+#   run_daily 結尾寫 `return 0 if trade_date else 1`。這條是為 full／price 寫的，
+#   但 phase=news 本來就不抓價量（週末、盤前、台北清晨），trade_date 必然是 None
+#   → 每一輪 news 都回傳 1 → Actions 的 collect job 判失敗
+#   → daily.yml 的 deploy job 是 `needs: collect`，於是被 skip
+#   → **新聞與國際盤明明抓到了、前端資料也產好了，網站卻不會更新。**
+#
+# 日誌長這樣，自相矛盾得很明顯：
+#   「=== 完成：4 個步驟成功，0 個錯誤，耗時 257s ===」
+#   「##[error]Process completed with exit code 1.」
+#
+# 這個洞三道關卡都擋不住：pytest 以前只呼叫 main() 不看回傳值、
+# _preview 與 _uitest 測的是前端。只有回頭看 Actions 才看得到。
+
+def test_news模式沒有錯誤時退出碼是0(monkeypatch, tmp_path):
+    called, rc = _run(monkeypatch, "news", tmp_path)
+    assert "news.collect" in called, "前提：這一輪真的有抓到新聞"
+    assert rc == 0, (
+        "phase=news 不抓價量，trade_date 必然是 None —— "
+        "不可以拿它判斷成敗，否則每一輪 news 都會讓 Actions 變紅、deploy 被 skip"
+    )
+
+
+def test_price與full模式仍然靠交易日判斷成敗(monkeypatch, tmp_path):
+    """news 的例外不可以把 full／price 的保護一起拿掉 —— 那兩個沒抓到價量就是真的失敗。"""
+    for phase in ("price", "full"):
+        _, rc = _run(monkeypatch, phase, tmp_path)
+        assert rc == 0, f"phase={phase} 有抓到價量，應該成功"

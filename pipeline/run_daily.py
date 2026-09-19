@@ -504,7 +504,17 @@ def main() -> int:
     log.info("=== 完成：%d 個步驟成功，%d 個錯誤，耗時 %.0fs ===",
              ok, len(RESULT["errors"]), RESULT["duration_seconds"])
 
-    # 交易日拿不到行情才算真正失敗；其他來源缺漏不阻斷排程
+    # 交易日拿不到行情才算真正失敗；其他來源缺漏不阻斷排程。
+    # ★ 2026-09-19：但 phase=news 本來就不抓價量（週末、盤前、台北清晨那幾輪），
+    #   trade_date 必然是 None —— 拿它判斷成敗等於「每一輪 news 都失敗」。
+    #   實測後果：Actions 的每日管線 #31、#32 連續兩輪 failure，
+    #   日誌自己寫「4 個步驟成功，0 個錯誤」卻 exit code 1，
+    #   而 daily.yml 的 deploy job 是 `needs: collect`，collect 一紅它就被 skip ——
+    #   **新聞與國際盤明明抓到了、前端資料也產好了，網站卻不會更新**。
+    #   這個洞不會在任何一道關卡出現：pytest 測不到 exit code，
+    #   _preview／_uitest 測的是前端。只有回頭看 Actions 才看得到。
+    if news_only:
+        return 1 if RESULT["errors"] else 0
     return 0 if trade_date else 1
 
 
