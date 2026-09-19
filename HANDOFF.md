@@ -71,6 +71,24 @@
 >   補完邊之後 `_uitest` 的 `SC_ISO_MAX` 就往下調（那條是棘輪，只准變少）。
 > - **既有的 8 條紅字**（不是這次造成的）：個股即時分K 5、市場明細 1、產業 1、手機 1。
 >
+> ### ★ 這個 session 沒辦法自己打開線上網站（要記住）
+>
+> CLAUDE.md 規定「push 之後要真的打開 <https://miaozike.github.io/tw-rotation/> 確認版本換掉」。
+> 這一次**做不到** —— 雲端容器的網路代理把 `miaozike.github.io` 擋掉了
+> （`EGRESS_BLOCKED`，`tw-quote.kcq01010909.workers.dev` 也一樣被擋）。
+> 所以改用**可以驗到的東西**交叉確認，並且明講哪一項是推算的：
+>
+> | 驗了什麼 | 結果 |
+> |---|---|
+> | pages.yml 第 31 次執行 | `success`（2026-09-19 07:08:22Z ~ 07:09:03Z） |
+> | Pages 部署的 commit | `pages_build_version: 05c3493d…` ← 就是這次推的 commit |
+> | 部署環境網址 | `Evaluated environment url: https://miaozike.github.io/tw-rotation/` |
+> | 版號徽章 | **`2026-09-19 第 8 版 · 15:08`**（`05c3493`）—— 用工作流同一支
+>   `stamp_assets.build_label()` ＋ 同一個 API（今天 pages.yml 執行次數＝8）算出來的，**不是我看到的** |
+>
+> 下一個 session 如果也被擋，就照這個方法驗，並且**跟 Andy 說清楚「我沒有親眼看到」**。
+> 要真的看到，得請 Andy 自己開一次，或是把 `miaozike.github.io` 加進容器的允許清單。
+
 > ### 下一批建議順序
 > 1. `supply_chain.yaml` 校訂（Andy 勾一勾就好，回報最大 —— 孤立節點是「?」不是線）
 > 2. 圖11 第一張（建議 MLCC：層數↔價格↔車規良率，一張圖講得完）走完整流程，確認規格書流程真的順
