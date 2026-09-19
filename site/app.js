@@ -290,10 +290,16 @@
       ((th && th.themes) || []).forEach(t => (t.members || []).forEach(m => { (L.ctheme[m.code] = L.ctheme[m.code] || []).push({ id: t.id, name: t.name }); if (!L.cname[m.code]) L.cname[m.code] = m.name; }));
       // 供應鏈環節的顏色是全站唯一：剖析圖零件、環節色標、關聯圖、族群卡片、族群連結的圓點都用它
       // 記索引而不是記色碼：色碼在載入當下就固定了，切主題不會跟著換（見 segColor）
-      ((sc && sc.segments) || []).forEach((sg, i) => { L.sidx[sg.id] = i; L.scolor[sg.id] = PALETTE[i % PALETTE.length]; });
+      // ★ 索引一律吃 color_idx（YAML 的原始順序），不吃陣列位置。
+      //   陣列是依 layer 排過序的，在前面的 layer 插一個新環節，後面每一個既有環節的
+      //   位置都會 +1，全站環節顏色會一起被洗掉。color_idx 由 loader.py 在排序前記下。
+      ((sc && sc.segments) || []).forEach((sg, i) => { const ci = (sg.color_idx == null ? i : sg.color_idx); L.sidx[sg.id] = ci; L.scolor[sg.id] = PALETTE[ci % PALETTE.length]; });
       ((sc && sc.companies) || []).forEach(c => (c.groups || []).forEach(gn => { const gid = L.gid[gn]; if (!gid || !c.segment) return; const a = (L.gsegs[gid] = L.gsegs[gid] || []); if (!a.includes(c.segment)) a.push(c.segment); const b = (L.sgroups[c.segment] = L.sgroups[c.segment] || []); if (!b.includes(gid)) b.push(gid); }));
       // 沒有台股直接對應的環節（HBM、雲端業者）也要點得到東西：接到最相近的族群
-      const FALLBACK = { hbm: ['memory'], hyperscaler: ['ai_server_odm'], switch: ['networking', 'ai_server_odm'], ic_design: ['ic_design'], foundry: ['foundry'], adv_pkg: ['advanced_packaging'], osat_test: ['osat'], abf_pcb: ['pcb_abf'], ccl: ['pcb_abf'], thermal: ['server_thermal'], power: ['server_power'], optical: ['optical_comm'], assembly: ['ai_server_odm'], ip_eda: ['silicon_ip'] };
+      const FALLBACK = { hbm: ['memory'], hyperscaler: ['ai_server_odm'], switch: ['networking', 'ai_server_odm'], ic_design: ['ic_design'], foundry: ['foundry'], adv_pkg: ['advanced_packaging'], osat_test: ['osat'], abf_pcb: ['pcb_abf'], ccl: ['pcb_abf'], thermal: ['server_thermal'], power: ['server_power'], optical: ['optical_comm'], assembly: ['ai_server_odm'], ip_eda: ['silicon_ip'],
+        // 一般電子鏈這兩格只有外商（康寧／Apple／SpaceX），沒有台股節點，
+        // 不接 fallback 的話點下去列不出任何東西。
+        display_material: ['panel'], brand_operator: ['handset_chain'] };
       Object.entries(FALLBACK).forEach(([seg, gids]) => { if (!L.scolor[seg]) return; gids.filter(g => L.gname[g]).forEach(g => { const b = (L.sgroups[seg] = L.sgroups[seg] || []); if (!b.includes(g)) b.push(g); const a = (L.gsegs[g] = L.gsegs[g] || []); if (!a.includes(seg)) a.push(seg); }); });
       L.recolor();
       L.ready = true;

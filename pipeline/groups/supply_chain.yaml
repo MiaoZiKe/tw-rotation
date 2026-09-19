@@ -100,6 +100,31 @@ segments:
   - {id: assembly,     name: "系統組裝 / 機櫃",     layer: 5, chain: ai_server}
   - {id: hyperscaler,  name: "雲端業者（終端需求）", layer: 6, chain: ai_server}
 
+  # ================================================================ 一般電子鏈（2026-09-19 新增）
+  # 這條鏈原本一個環節都沒有 —— 產業地圖上點得進去，但裡面沒有關聯圖也沒有剖析圖。
+  # 分層照半導體鏈同一套讀法：材料 → 零組件 → 設備／系統 → 組裝 → 終端需求。
+  #
+  # ★ 為什麼加在檔案**最後面**而不是照 layer 插進上面：
+  #   環節顏色是 PALETTE[color_idx % 14]，color_idx 是 YAML 的原始順序（loader.py）。
+  #   加在尾端 → 既有 26 個環節的 color_idx 完全不動，全站顏色不會被洗掉。
+  #   排序由 loader 依 layer 做，所以畫面上這幾格還是會回到正確的上下游位置。
+  - {id: display_material, name: "面板材料 玻璃基板", layer: 0, chain: electronics, role: material,
+     material_of: [panel_mfg],
+     note: "TFT-LCD 玻璃基板與半導體級玻璃（玻璃核心基板 GCS）。★ 台股沒有 TFT 玻璃基板廠 —— 全球是康寧／AGC／NEG 三家，所以這一格只有外商。台玻 1802 做的是建築玻璃與玻纖、不是 TFT 基板，不要放進來"}
+  - {id: passive_comp,     name: "被動元件 MLCC / 電阻", layer: 1, chain: electronics,
+     note: "MLCC、晶片電阻、鋁質電解電容。★ 這一格三家全部查不到具名客戶，所以只有節點沒有邊，圖上會掛「?」—— 那是誠實，不是漏畫"}
+  - {id: panel_mfg,        name: "面板 TFT-LCD", layer: 2, chain: electronics,
+     note: "面板製造。2026 年這一格的資金故事已經不是面板報價，而是「把既有 LCD 產線轉成面板級封裝 FOPLP 與玻璃核心基板」"}
+  - {id: handset_optics,   name: "手機光學鏡頭", layer: 2, chain: electronics}
+  - {id: metal_casing,     name: "機構件 / 金屬機殼", layer: 2, chain: electronics,
+     note: "★ 刻意不叫「手機機殼」：這一格現在的主體是筆電機殼與 AI 伺服器機構件（見 catcher 的 note），叫手機機殼會是錯的"}
+  - {id: net_equip,        name: "網通設備 CPE / 天線", layer: 3, chain: electronics,
+     note: "寬頻 CPE、5G FWA、低軌衛星用戶終端。★ 交換器在 switch 那一格（智邦），不重複開"}
+  - {id: consumer_ems,     name: "消費電子組裝 EMS", layer: 4, chain: electronics,
+     note: "★ 跟 assembly（系統組裝／機櫃）分開：assembly 那一格講的是 AI 機櫃 L10/L11，把消費電子 EMS 塞進去等於在網站上宣稱它是 AI 機櫃廠 —— 跟「金像電被放進 ABF 載板」是同一條錯"}
+  - {id: brand_operator,   name: "終端品牌與營運商", layer: 5, chain: electronics,
+     note: "終端需求方，作用等同 AI 鏈的 hyperscaler。只放「台廠具名對手方就是它」的，不是要畫這些品牌的供應鏈全貌"}
+
 # ---------------------------------------------------------------- 產品 / 技術
 products:
   - id: cowos
@@ -386,6 +411,65 @@ companies:
   # ---- 光通訊的實際客戶（聯亞的錢是從這兩家來的，不是從台廠）
   - {id: innolight, ticker: "SZ:300308", name: "中際旭創 Innolight", segment: optical, foreign: true}
   - {id: coherent,  ticker: "NYSE:COHR",  name: Coherent, segment: optical, foreign: true}
+
+  # ================================================================ 一般電子鏈（2026-09-19 新增）
+  # ★ 鴻海 2317 與緯創 3231 **不在這裡再開一個節點** —— 它們已經掛在 assembly。
+  #   三個硬理由：① tests/test_supply_chain_v2.py 斷言 tw_code 不得重複，當場紅；
+  #   ② site/industry.js 的 `companies.find(c => c.tw_code === m.code)` 只取第一個，
+  #      個股頁麵包屑會由 YAML 檔案順序決定要顯示哪一格，而且不報錯；
+  #   ③ build_payload 的 segments_pe 分組算中位數，同一檔進兩格會對兩格都灌一次。
+  #   它們要在一般電子鏈上被看到，走 site/industry.js 的 CHAIN_EXTRA。
+  # ---- 被動元件
+  - {id: yageo,       ticker: "2327", name: 國巨,     segment: passive_comp,
+     tech: [MLCC, 晶片電阻, 電感],
+     note: "台廠被動元件龍頭。★ 2026 年所有報導講的都是「AI 伺服器外溢訂單」「高階 MLCC 量價齊揚」這種需求面題材，沒有任何一篇寫「國巨供貨給 X」，所以只放節點不連邊"}
+  - {id: walsin_tech, ticker: "2492", name: 華新科,   segment: passive_comp,
+     tech: [MLCC, 晶片電阻, 晶片排阻, 射頻元件],
+     note: "★ 英文名 Walsin Technology，不要跟華新麗華 Walsin Lihwa 1605（電線電纜）搞混。公司自估 AI 相關的 MLCC 與電阻約占 2025 年營收 12～15%、2026 年目標 15～20%。同樣查不到具名客戶"}
+  - {id: kaimei,      ticker: "2375", name: 凱美,     segment: passive_comp,
+     tech: [鋁質電解電容, 電阻 / 微電阻, 馬達風扇],
+     note: "★ 它跟同格兩家不是同一種東西 —— 主體是鋁質電解電容，不是 MLCC。2019 年智寶與凱美合併、智寶為存續公司並更名為凱美電機；國巨為第一大股東（持股比例只查到投資平台整理、非公司揭露，所以不寫數字）"}
+  # ---- 面板
+  - {id: auo,         ticker: "2409", name: 友達,     segment: panel_mfg,
+     tech: [TFT-LCD 面板, 車用顯示 Tier 1, Micro LED, 玻璃核心基板 GCS / TGV / RDL],
+     note: "2026 主軸是「面板廠跨先進封裝」：與康寧合作玻璃核心基板，規劃 2026H2 建置試產線；車用已從面板供應商升級為 Tier 1。★ 董事長在法說明講「不方便說和誰合作」—— 所以除了康寧之外查不到任何具名客戶，下游不連邊"}
+  - {id: innolux,     ticker: "3481", name: 群創,     segment: panel_mfg,
+     tech: [TFT-LCD 面板, 扇出型面板級封裝 FOPLP, 車用座艙 CarUX],
+     note: "★ 英文 Innolux，**不要跟本檔已有的 innolight（中際旭創）搞混**，兩個 id 只差兩個字母。2026 年 FOPLP 出貨顆數年增逾十倍、月產能滿載，Chip Last 製程目標 2027H2 量產"}
+  - {id: hannstar,    ticker: "6116", name: 彩晶,     segment: panel_mfg,
+     tech: [中小尺寸 TFT-LCD, 車載面板, 工控 / 無人機面板],
+     note: "目標 2027 年車載營收比重逾三成。公司講法是「與國際品牌客戶建立更緊密合作」—— 沒有具名，不連邊"}
+  # ---- 手機 / 消費電子
+  - {id: largan,      ticker: "3008", name: 大立光,   segment: handset_optics,
+     tech: [手機光學鏡頭, 潛望式 / 可變光圈鏡頭, CPO 用光纖陣列 FAU],
+     note: "全球智慧型手機鏡頭龍頭。★ 客戶一律不具名：媒體寫「傳代工 i18 可變光圈」「美系大客戶」，公司從不證實，所以**不畫**到 Apple 的邊。第二條線是 CPO：已收到量產型客戶正式規格文件、2026-07 送樣，最快 2026Q3 底試產、2027 年中放量"}
+  - {id: catcher,     ticker: "2474", name: 可成,     segment: metal_casing,
+     tech: [筆電金屬機殼, AI 伺服器機構件 / 功能件, CNC 精密加工, 陽極表面處理],
+     note: "★ **它已經不是手機機殼廠**：2020 年把泰州兩座 iPhone 機殼廠賣給藍思科技（價金約 410 億元）退出 iPhone 機殼，目前筆電約占營收 8 成。2026-05-29 NVIDIA MGX Ecosystem Ceremony 列名，AI 相關估占全年營收逾兩成、2026H2 才顯著貢獻"}
+  - {id: pegatron,    ticker: "4938", name: 和碩,     segment: consumer_ems,
+     tech: [iPhone / iPad 組裝, 筆電 / 桌機代工, 遊戲機 / 穿戴, 車用電子],
+     note: "2025 全年合併營收 1 兆 1,171 億元、EPS 5.39 元。★ 公司法說只講「通訊產品」不具名蘋果；具名的是 Apple 官方供應商名單與媒體長期報導"}
+  # ---- 網通
+  - {id: wnc,         ticker: "6285", name: 啟碁,     segment: net_equip,
+     tech: [Starlink 用戶終端, 相位陣列天線, 5G FWA, 車用通訊 / 雷達, 高階交換器],
+     note: "緯創為最大股東（2026-03-30 持股 96,089,042 股、約 19.87%）—— ★ 那是母子公司關係不是供貨，本檔 schema 沒有 subsidiary_of，只寫在 note 不畫成邊。低軌衛星 2026 年占營收逾一成"}
+  - {id: sercomm,     ticker: "5388", name: 中磊,     segment: net_equip,
+     tech: [DOCSIS CPE, FTTx 寬頻設備, 5G FWA, Small Cell, IP Camera],
+     note: "全球前三大 Wi-Fi IAD／FTTx／Small Cell 供應商、北美最大 IP Camera 供應商，以直接交貨給全球 Tier-1 電信商為主。★「Tier-1 電信商」是**類別**不是具名對手方，查不到是哪一家，所以不連邊"}
+  - {id: gemtek,      ticker: "4906", name: 正文,     segment: net_equip,
+     tech: [寬頻 CPE, 無線閘道器, Cable Modem, IP 機上盒],
+     note: "2022 年起從「替品牌廠代工」轉「直供電信營運商」，直供比重 2023 年約 20%、2025 年約 50%；生產基地由中國移往越南。客戶同樣只到「電信營運商」這個類別，不連邊"}
+  - {id: zyxel,       ticker: "3704", name: 合勤控,   segment: net_equip,
+     tech: [企業 / SOHO 網通設備, 交換器, 防火牆, Nebula 雲端管理與資安訂閱],
+     note: "★ 它跟同格三家的商業模式相反 —— 是**自有品牌 Zyxel**，賣通路與中小企業／教育／飯店，不是替電信商代工的 ODM。2025 合併營收 252.95 億元"}
+  # ---- 外商（只在「台廠的具名對手方就是它」時才加）
+  - {id: corning, ticker: "NYSE:GLW", name: "康寧 Corning", segment: display_material, foreign: true,
+     tech: [TFT-LCD 玻璃基板, 半導體級玻璃, 玻璃核心基板 GCS],
+     note: "全球最大顯示玻璃供應商，2006 年在台中設廠。★ 沒有任何一篇公開來源具名寫「康寧供 LCD 玻璃基板給友達／群創」—— 查得到具名的是 2026 年的玻璃核心基板／面板級封裝合作，所以邊的 item 只寫後者"}
+  - {id: apple,   ticker: "NASDAQ:AAPL", name: Apple, segment: brand_operator, foreign: true,
+     note: "台股手機鏈的終端需求方，作用同 AI 鏈的 hyperscaler"}
+  - {id: spacex,  name: "SpaceX（Starlink）", segment: brand_operator, foreign: true,
+     note: "未上市。啟碁低軌衛星用戶終端的終端客戶"}
 
 # ---------------------------------------------------------------- 邊
 # 2026-09-19 由三位 industry-analyst 查證後重寫。每條標了 confidence：
@@ -709,9 +793,51 @@ edges:
   - {from: mcl,            to: iac,     rel: produced_by}
   - {from: hvdc_800v,      to: delta, rel: produced_by}
 
+  # ================================ 一般電子鏈（2026-09-19 新增，只有 6 條）
+  # ★ 這一區「不畫的」比「畫的」重要，所以先記不畫的理由：
+  #   · 國巨／華新科／凱美 → 任何人：2026 年的報導一律是「AI 外溢訂單」「MLCC 漲價」
+  #     這種需求面題材，沒有一句「A 賣給 B」。
+  #   · 友達／群創／彩晶 → 客戶：友達董事長在法說會明講「不方便說和誰合作」，
+  #     彩晶只講「國際品牌客戶」。這是公司自己拒絕具名，不是查不到。
+  #   · 聯詠 3034 → 面板雙虎：找到的全是〈面板報價反彈 聯詠、瑞鼎、天鈺跟著熱〉
+  #     這種**並列標題**，正是上面第 1 條硬規矩禁止的。（附帶：友達投資的驅動 IC 廠
+  #     是瑞鼎，未上市，不是台股節點。）
+  #   · 瑞昱／聯發科 → 網通四家：查不到任何一篇寫它賣晶片給中磊／啟碁／合勤／正文。
+  #   · 中磊／正文／合勤 → 電信商：只到「Tier-1 電信商」這個**類別**。要不要比照
+  #     hyperscaler 開一個 telco 節點 —— 先不要，等查到 Comcast／Verizon 這種具名再說。
+  #   · 緯創 → 啟碁：持股 19.87% 的母子公司關係，不是供貨。用 supplies 會被讀成賣東西。
+  #   · 大立光 → Apple：兩邊都不具名，媒體用「傳代工」。唯一官方級佐證是 Apple 的
+  #     供應商名單，這一輪沒能開到原文，所以不畫。
+  - {from: corning, to: auo, rel: supplies,
+     item: "半導體級玻璃材料 / 玻璃核心基板 GCS（友達出 TGV / RDL 製程）", strength: 2, confidence: reported,
+     note: "2026 年 SEMICON Taiwan 與法說會公開的合作，友達規劃 2026H2 建置試產線。★ LCD 玻璃基板那一段沒有具名來源，所以沒寫進 item",
+     source_url: "https://money.udn.com/money/story/5612/9752360"}
+  - {from: corning, to: innolux, rel: supplies,
+     item: "面板級封裝 PLP 用玻璃材料", strength: 2, confidence: reported,
+     note: "康寧帶領群創、友達、正達衝面板級封裝；群創已把既有 LCD 產線轉為 FOPLP 生產基地。★ 與上一條同屬聯合報系，嚴格說只有一個獨立來源＋法說會轉述，所以 strength 只給 2",
+     source_url: "https://udn.com/news/story/7240/9752395"}
+  - {from: catcher, to: nvidia, rel: supplies,
+     item: "AI 伺服器機構件 / 功能件", strength: 2, confidence: reported,
+     note: "2026-05-29 NVIDIA AI Factory MGX Ecosystem Ceremony 公開列名（同場列名的還有臻鼎 4958）；2026H2 才顯著貢獻營收，所以 strength 只給 2",
+     source_url: "https://money.udn.com/money/story/5612/9529753"}
+  - {from: wnc, to: spacex, rel: supplies,
+     item: "Starlink 用戶終端 ODM / 相位陣列天線（越南廠生產）", strength: 3, confidence: reported,
+     note: "路透點名的 SpaceX 台灣供應鏈之一；低軌衛星 2026 年占啟碁營收逾一成",
+     source_url: "https://www.bnext.com.tw/article/91220/spacex-taiwan-leo-satellite-supply-chain"}
+  - {from: pegatron, to: apple, rel: supplies,
+     item: "iPhone / iPad 組裝代工", strength: 4, confidence: reported,
+     note: "★ 和碩自己不具名蘋果（法說只講「通訊產品」）。依據是 Apple 官方供應商名單長年收錄 Pegatron ＋ 媒體長期報導；查證那一輪 apple.com 的名單 PDF 被擋，只取得搜尋摘要層級佐證，這是六條裡最該人工覆核的兩條之一"}
+  - {from: foxconn, to: apple, rel: supplies,
+     item: "iPhone 組裝代工", strength: 5, confidence: reported,
+     note: "同 pegatron → apple 的依據，一樣待人工覆核。★ 這條邊要在一般電子鏈上看得到，site/industry.js 的 CHAIN_EXTRA.electronics 必須含 assembly（鴻海的節點在那一格）"}
+
 # ---------------------------------------------------------------- 競爭關係
 # 2026-09-19：從 edges 搬出來。圖十不畫競爭關係（那不是上下游，畫了會被誤讀成供貨），
 # 留在 edges 裡只會讓之後讀這份 YAML 的人以為圖上有。
 competitors:
   - {a: avc,   b: auras,  note: "水冷板同業"}
+  - {a: auo,    b: innolux,     note: "面板雙虎"}
+  - {a: yageo,  b: walsin_tech, note: "被動元件同業（MLCC／晶片電阻）"}
+  - {a: gemtek, b: zyxel,       note: "電信 / ISP CPE 設備同業"}
+  - {a: gemtek, b: sercomm,     note: "寬頻 CPE 同業"}
   - {a: delta, b: liteon, note: "伺服器電源同業"}

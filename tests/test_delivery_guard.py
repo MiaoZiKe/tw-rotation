@@ -255,3 +255,54 @@ def test_族群沒有未登記的產業別離群值():
         + "\n\n確認過是對的（跨產業別很常見）就登記到 ALLOWED_OUTLIERS 並寫明理由；"
         "確認是錯的就從 groups.yaml 拿掉。"
     )
+
+
+# ---------------------------------------------------------------- 環節顏色不准被新環節洗掉
+def test_環節顏色的索引吃的是yaml原始順序():
+    """新增一個環節，不可以害既有環節的顏色全部換一輪。
+
+    壞掉的時候使用者會看到什麼
+    --------------------------
+    前端的環節色是 `PALETTE[索引 % 14]`，而**全站只認這個顏色**：剖析圖的零件、
+    關聯圖的節點、環節色標、族群卡片、族群連結的小圓點都用它。
+    以前那個索引是「依 layer 排序後的陣列位置」，所以只要在 layer 0／1／2
+    插進一個新環節（例如一般電子鏈的「面板材料」），後面每一個既有環節的位置都會 +1
+    —— 於是半導體鏈與 AI 鏈**所有環節的顏色一起變**，而且不會有任何錯誤訊息。
+    Andy 會看到「我只加了一條電子鏈，為什麼台積電那格從藍色變成紫色」。
+
+    修法：`loader.supply_chain()` 在排序**之前**把 YAML 原始順序記成 `color_idx`，
+    前端改吃 `color_idx`。這條測試釘住兩件事：欄位還在，而且值真的是原始順序。
+    """
+    from pipeline.groups import loader
+
+    raw = _load("supply_chain.yaml")
+    raw_order = [s["id"] for s in raw["segments"]]
+    out = loader.supply_chain()["segments"]
+
+    missing = [s["id"] for s in out if s.get("color_idx") is None]
+    assert not missing, f"這些環節沒有 color_idx，前端會退回用陣列位置配色：{missing}"
+
+    wrong = [(s["id"], s["color_idx"], raw_order.index(s["id"]))
+             for s in out if s["color_idx"] != raw_order.index(s["id"])]
+    assert not wrong, f"color_idx 必須等於 YAML 的原始位置，這幾個對不上：{wrong}"
+
+    # 排序本身還要成立（環節要照 layer 由上游排到下游）
+    layers = [s.get("layer", 0) for s in out]
+    assert layers == sorted(layers), "環節仍必須依 layer 排序，只是配色不再吃排序後的位置"
+
+
+def test_前端真的改吃color_idx():
+    """光是 loader 送出 color_idx 沒有用，前端沒接就白做。
+
+    這條是「兩邊口徑一致」那類的檢查（同 CLAUDE.md 對 KInd 的要求）：
+    只驗 `site/app.js` 建 `L.sidx` 的那一行有提到 color_idx，
+    不驗顏色本身（顏色要靠 _uitest 的眼睛）。
+    """
+    import pathlib
+
+    src = (pathlib.Path(__file__).resolve().parent.parent / "site" / "app.js").read_text(encoding="utf-8")
+    line = [ln for ln in src.splitlines() if "L.sidx[" in ln and "forEach" in ln]
+    assert line, "找不到 site/app.js 裡建 L.sidx 的那一行（改過名字就把這條測試一起改）"
+    assert any("color_idx" in ln for ln in line), (
+        "site/app.js 建 L.sidx 時沒有讀 color_idx —— "
+        "loader 送出來了但前端沒接，新增環節還是會把全站顏色洗掉")

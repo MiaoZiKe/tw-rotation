@@ -1407,6 +1407,80 @@ def t_chainnav(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+def t_electronics(pg, base):
+    """一般電子鏈：2026-09-19 從「一個環節都沒有」補成 8 個環節 ＋ 16 家公司 ＋ 6 條邊。
+
+    為什麼要單獨一段（Andy 的硬性要求：新功能一定要有真的操作它的驗收）
+    ----------------------------------------------------------------
+    這條鏈以前在產業地圖上點得進去，但點進去只有成分股表格 —— 沒有關聯圖、
+    沒有環節色標、四個族群（被動元件／面板／網通／手機供應鏈）在圖上完全不存在。
+    所以這一段驗的不是「有沒有 render」，是四件會安靜壞掉的事：
+
+      1. 環節 chip 真的出現，而且**點下去筆數真的變**（不是只有 chip 亮起來）
+      2. 只有外商的兩格（面板材料＝康寧、終端品牌＝Apple／SpaceX）點下去
+         **列得出族群**（靠 app.js 的 FALLBACK；沒接的話點下去是一片空白）
+      3. 鴻海／智邦這些節點在別條鏈，要靠 CHAIN_EXTRA 拉進來才看得到
+         —— 同一檔台股不准有第二個節點，所以只能這樣做
+      4. ★ 新增環節**不可以把既有環節的顏色洗掉**。環節色是 PALETTE[color_idx % 14]，
+         以前那個索引是「依 layer 排序後的位置」，在 layer 0 插一格會讓後面全部 +1。
+         這一條直接讀 A.L.sidx 驗數值，因為顏色變了畫面上不會報錯、只會「怪怪的」。
+    """
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(1800)
+
+    n_chip = count(pg, "#segChips .segchip")
+    if not ok("一般電子鏈有環節色標（以前是 0 個）", n_chip >= 8, n_chip):
+        return
+    ok("一般電子鏈有關聯圖公司節點", count(pg, "#chainMap .co") > 0)
+
+    # --- 4. 既有環節的顏色沒有被洗掉（這條最重要，壞了畫面上不會報錯）
+    idx = pg.evaluate("""() => { const L = window.Link; if (!L) return null;
+        return { ccl_material: L.sidx['ccl_material'], ic_design: L.sidx['ic_design'],
+                 hyperscaler: L.sidx['hyperscaler'], display_material: L.sidx['display_material'] }; }""")
+    ok("既有環節的配色索引沒有被新環節推移",
+       bool(idx) and idx["ccl_material"] == 0 and idx["ic_design"] == 4 and idx["hyperscaler"] == 25, idx)
+    ok("新環節排在既有環節後面（所以顏色只往後長）",
+       bool(idx) and idx["display_material"] == 26, idx)
+
+    # --- 3. CHAIN_EXTRA：鴻海與智邦的節點在別條鏈，要看得到
+    who = pg.evaluate("""() => [...document.querySelectorAll('#chainMap .co')].map(e => e.dataset.code)""")
+    ok("鴻海 2317 在一般電子鏈上看得到（節點在 assembly，靠 CHAIN_EXTRA 拉進來）", "2317" in who, who[:12])
+    ok("智邦 2345 在一般電子鏈上看得到（節點在 switch）", "2345" in who, who[:12])
+    ok("面板雙虎的節點在（友達 2409 / 群創 3481）", "2409" in who and "3481" in who, who[:12])
+
+    # --- 1. 點環節 chip：筆數要真的變
+    n_all = count(pg, "#memberTable tbody tr")
+    ok("一般電子鏈有成分股", n_all > 0, n_all)
+    if pg.query_selector("#segChips .segchip[data-seg='passive_comp']"):
+        click(pg, "#segChips .segchip[data-seg='passive_comp']", 900)
+        n_sel = count(pg, "#memberTable tbody tr")
+        ok("點「被動元件」環節，成分股筆數真的被篩掉", 0 < n_sel < n_all, f"全部 {n_all} → 篩後 {n_sel}")
+        ok("而且那一格真的亮起來", count(pg, "#segChips .segchip.sel") == 1)
+        click(pg, "#segChips .segchip[data-seg='passive_comp']", 900)   # 再按一次取消
+        ok("再按一次取消篩選，筆數回到全部", count(pg, "#memberTable tbody tr") == n_all)
+
+    # --- 2. 只有外商的兩格：點下去要列得出族群（FALLBACK）
+    for seg, want in (("display_material", "面板"), ("brand_operator", "手機供應鏈")):
+        if not pg.query_selector(f"#segChips .segchip[data-seg='{seg}']"):
+            continue
+        click(pg, f"#segChips .segchip[data-seg='{seg}']", 900)
+        box = pg.evaluate("() => (document.getElementById('segBox')||{}).innerText || ''")
+        ok(f"點只有外商的「{seg}」，說明框不是空白", len(box.strip()) > 10, box[:80])
+        ok(f"而且接到了對應族群「{want}」（app.js 的 FALLBACK）", want in box, box[:120])
+        click(pg, f"#segChips .segchip[data-seg='{seg}']", 600)
+
+    # --- 窄畫面（Andy 2026-09-18：開發過程就要驗 800px，不要只在 1440px 看）
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.wait_for_timeout(900)
+    over = pg.evaluate("""() => { const w = document.getElementById('segChips'); if (!w) return null;
+        const r = w.getBoundingClientRect();
+        return [...w.querySelectorAll('.segchip')]
+            .map(e => e.getBoundingClientRect())
+            .filter(b => b.right > r.right + 2 || b.left < r.left - 2).length; }""")
+    ok("視窗 800px 時環節色標沒有跑出容器", over == 0, over)
+    ok("視窗 800px 時關聯圖還在", count(pg, "#chainMap .co") > 0)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 def t_themes(pg, base):
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
@@ -4325,6 +4399,10 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
     ap.add_argument("--headed", action="store_true")
+    # --only：只跑名稱含這個字的段落。Andy 2026-09-18「別讓我等在重跑一輪上」——
+    # 一輪 14 分鐘，改一段就重跑全部是純浪費。**交付前一定要跑完整一輪**，
+    # --only 只給開發過程中反覆修同一段的時候用。
+    ap.add_argument("--only", default="")
     args = ap.parse_args()
     from playwright.sync_api import sync_playwright
 
@@ -4347,74 +4425,37 @@ def main() -> int:
 
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
-                         ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
+                         ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics), ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
+            if args.only and args.only not in name:
+                continue
             n0 = len(fails)
             try:
                 fn(pg, base)
             except Exception as e:  # noqa: BLE001
                 fails.append(f"【{name}】操作中途爆掉：{type(e).__name__} {e}")
             print(f"  {name}：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_stock(pg, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【個股】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  個股：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_livek(pg, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【個股即時分K】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  個股即時分K：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_zoom_sweep(pg, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【縮放掃描】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  縮放掃描：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_sort(pg, base)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【排序】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  排序：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_freshness(b, base)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【資料狀態】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  資料狀態：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_buildver(b, base)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【網頁版號】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  網頁版號：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_cfgpop(pg, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【設定面板】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  設定面板：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_kzoom_keep(pg, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【K線縮放】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  K線縮放：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_lightink(b, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【淺色主題】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  淺色主題：{len(fails) - n0} 個問題", flush=True)
-        n0 = len(fails)
-        try:
-            t_mobile(b, base, args.code)
-        except Exception as e:  # noqa: BLE001
-            fails.append(f"【手機】操作中途爆掉：{type(e).__name__} {e}")
-        print(f"  手機：{len(fails) - n0} 個問題", flush=True)
+        # 這幾段的簽章各不相同（有的吃 pg、有的吃 browser、有的還要 code），
+        # 所以包成 lambda 跟上面同一套跑法 —— 這樣 --only 對整份驗收都有效，
+        # 不會出現「--only 只濾得到前半段」這種一半的東西。
+        for name, fn in (("個股", lambda: t_stock(pg, base, args.code)),
+                         ("個股即時分K", lambda: t_livek(pg, base, args.code)),
+                         ("縮放掃描", lambda: t_zoom_sweep(pg, base, args.code)),
+                         ("排序", lambda: t_sort(pg, base)),
+                         ("資料狀態", lambda: t_freshness(b, base)),
+                         ("網頁版號", lambda: t_buildver(b, base)),
+                         ("設定面板", lambda: t_cfgpop(pg, base, args.code)),
+                         ("K線縮放", lambda: t_kzoom_keep(pg, base, args.code)),
+                         ("淺色主題", lambda: t_lightink(b, base, args.code)),
+                         ("手機", lambda: t_mobile(b, base, args.code))):
+            if args.only and args.only not in name:
+                continue
+            n0 = len(fails)
+            try:
+                fn()
+            except Exception as e:  # noqa: BLE001
+                fails.append(f"【{name}】操作中途爆掉：{type(e).__name__} {e}")
+            print(f"  {name}：{len(fails) - n0} 個問題", flush=True)
         b.close()
     srv.shutdown()
 

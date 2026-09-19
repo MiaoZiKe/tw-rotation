@@ -94,6 +94,18 @@
     ai_server: ['ic_design', 'foundry', 'adv_pkg', 'hbm', 'abf_pcb',
                 'substrate_material', 'osat_test', 'test_interface'],
     semiconductor: [],
+    /* 2026-09-19：一般電子鏈本來一個環節都沒有，補了 8 格之後還缺三格別條鏈的。
+       為什麼要拉進來（而不是在 electronics 再開一次節點）：鴻海 2317、緯創 3231、
+       智邦 2345 的節點已經在 assembly／switch，同一檔台股不准有第二個節點 ——
+       tw_code 重複 pytest 當場紅，而且個股頁的麵包屑會由 YAML 順序決定要顯示哪一格。
+         assembly  → 鴻海與緯創（handset_chain 權重最大的兩檔）看得到，
+                     而且 foxconn → apple 這條邊才畫得出來
+         ic_design → 聯發科（手機 SoC）、聯詠（驅動 IC）、瑞昱（網通晶片）
+                     才是這條鏈真正的上游；catcher → nvidia 也要靠它
+         switch    → 智邦是 networking 族群最大那檔，不拉進來它在自己的鏈上是隱形的
+       ★ 已知副作用：會一併帶進緯穎 6669（純雲端，最突兀）與 NVIDIA／AMD／Broadcom／
+         Marvell。廣達與英業達本來就是筆電 EMS 巨頭，不算誤導；緯穎是接受的代價。 */
+    electronics: ['ic_design', 'switch', 'assembly'],
   };
   function chainSegments(sc, cid) {
     if (!sc) return [];
@@ -146,6 +158,12 @@
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
     const segs = chainSegments(sc, ch.id);
+    /* ★ 2026-09-19：關聯圖跟剖析圖拆開判定。
+       以前兩者共用 hasDiagram（只有 semiconductor / ai_server 有剖析圖），
+       所以一般電子鏈補了 8 個環節、16 家公司、6 條邊之後，環節色標出現了，
+       **關聯圖卻整張不見** —— 因為它被綁在「有沒有剖析圖」這個完全不相干的條件上。
+       兩者的資料來源本來就不同：剖析圖來自 window.Diagrams，關聯圖來自 YAML 的 edges。 */
+    const hasMap = !!(sc && segs.length);
     const otherChains = (im.chains || []).filter(c => c.id !== ch.id);
     /* E5：頁面最上方的類別切換列（Andy 2026-09-18：「產業鏈頁上方要有類別切換列，不用退回去」）。
        以前只有卡片最下面那排「其他產業鏈」連結 —— 看完剖析圖要換一條鏈，得先捲到最底或退回產業地圖。
@@ -156,11 +174,11 @@
       <div class="card">
         <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
+          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。' : (hasMap ? '環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
-        ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係</small></h4><div class="chainrow"><div class="chainmap" id="chainMap"></div></div></div>` : ''}
+        ${hasMap ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係</small></h4><div class="chainrow"><div class="chainmap" id="chainMap"></div></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
@@ -231,10 +249,13 @@
       if (b.dataset.c === ch.id) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
       location.hash = '#industry/' + b.dataset.c;
     });
+    // 關聯圖只要這條鏈有環節就畫，不管有沒有剖析圖（見上面 hasMap 的註解）
+    if (hasMap) {
+      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
+    }
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
       /* E4：動畫鈕現在同時管平面圖與 3D（Andy 2026-09-18：「3D 可切動態／靜止」）。
          以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。

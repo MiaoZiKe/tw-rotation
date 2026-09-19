@@ -80,6 +80,11 @@ CHAIN_PATH = Path(__file__).resolve().parent / "supply_chain.yaml"
 SHARE_STALE_DAYS = 180
 
 
+def _with_color_idx(segments: list) -> list:
+    """把 YAML 的原始順序記成 `color_idx`（排序前要先做，否則就沒有「原始順序」了）。"""
+    return [{**s, "color_idx": i} for i, s in enumerate(segments)]
+
+
 def supply_chain(path: Path | None = None) -> dict:
     """讀 supply_chain.yaml 並整理成前端可直接畫圖的結構。
 
@@ -153,7 +158,13 @@ def supply_chain(path: Path | None = None) -> dict:
 
     return {
         "meta": raw.get("meta", {}),
-        "segments": sorted(raw.get("segments", []), key=lambda s: s.get("layer", 0)),
+        # color_idx＝YAML 檔案裡的原始順序，**在依 layer 排序之前先記起來**。
+        # 前端的環節顏色是 PALETTE[索引 % 14]；以前那個索引是「排序後的位置」，
+        # 所以只要在 layer 0／1／2 插進一個新環節，後面每一個既有環節的索引都會 +1，
+        # 半導體鏈與 AI 鏈全部環節的顏色會一起被洗掉（DECISIONS #48 的隱藏地雷）。
+        # 改吃 color_idx 之後，只要新環節加在檔案尾端，既有環節的顏色就永遠不動。
+        "segments": sorted(_with_color_idx(raw.get("segments", [])),
+                           key=lambda s: s.get("layer", 0)),
         "products": products,
         "companies": companies,
         "edges": raw.get("edges", []),
