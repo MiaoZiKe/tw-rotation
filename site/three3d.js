@@ -620,7 +620,20 @@
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.target.set(spec.target[0], spec.target[1], spec.target[2]);
-    controls.maxPolarAngle = Math.PI * 0.495;      // 不要轉到地板底下
+    /* N1（Andy 2026-09-19：「3D圖需要可以游標抓取移動，並且可以 360 都觀測
+       我發現下面看不到」）。
+       以前夾在 0.495π —— 註解寫「不要轉到地板底下」，但那正是「下面看不到」的原因：
+       仰角被卡在水平面上方一點點，永遠繞不到底下去看機櫃底部、載板背面、BGA 錫球。
+       改成 0 ~ π（完整 360 度），代價是可以轉到「頭下腳上」——
+       接受這個代價，因為看不到底部是**功能缺失**，轉過頭只是一時不舒服，
+       而且有「重設視角」一鍵回正。*/
+    controls.minPolarAngle = 0.02;                 // 留一點點，正上方時 up 向量會翻
+    controls.maxPolarAngle = Math.PI - 0.02;       // 同理，正下方也留一點
+    /* 「游標抓取移動」＝平移。OrbitControls 預設右鍵才是平移，
+       但一般人只會左鍵拖 —— 所以工具列多一顆「轉動／平移」切換，
+       切到平移之後左鍵拖就是抓著場景移動。*/
+    controls.enablePan = true;
+    controls.screenSpacePanning = true;            // 沿著畫面平移，不是沿著地平面（直覺得多）
     controls.autoRotateSpeed = 0.55;               // E4：慢到可以邊看邊讀，不是在轉陀螺
 
     /* 相機距離用「把整個場景包起來的球」算出來，不要寫死：
@@ -890,6 +903,21 @@
     const view = {
       highlight, cam, screen, stats, setAnim,
       isAnim: () => anim,
+      /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
+         右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/
+      setDrag: (mode) => {
+        const B = mods.THREE.MOUSE;
+        controls.mouseButtons = {
+          LEFT: mode === 'pan' ? B.PAN : B.ROTATE,
+          MIDDLE: B.DOLLY,
+          RIGHT: B.PAN,
+        };
+        renderer.domElement.style.cursor = mode === 'pan' ? 'move' : 'grab';
+        return mode;
+      },
+      dragMode: () => (controls.mouseButtons && controls.mouseButtons.LEFT === mods.THREE.MOUSE.PAN ? 'pan' : 'rotate'),
+      // 給驗收看的：仰角上下限（N1 要能轉到底下）
+      polar: () => [+controls.minPolarAngle.toFixed(3), +controls.maxPolarAngle.toFixed(3)],
       segs: () => byIdx.filter(Boolean).map(p => p.seg),
       dispose: () => { dispose(); if (global.Rack3D.current === view) global.Rack3D.current = null; },
       /* 重設視角要跟第一次進來看到的「一模一樣」。麻煩的是 OrbitControls 內部還留著

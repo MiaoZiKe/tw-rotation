@@ -2586,6 +2586,38 @@ def t_batch7(pg, base):
            and pg.evaluate("() => location.hash") == h0)
 
 
+def t_batch6_n1(pg, base):
+    """批次6 的 N1（Andy 2026-09-19：「3D圖需要可以游標抓取移動，
+    並且可以 360 都觀測 我發現下面看不到」）。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    if not pg.evaluate("() => !!document.getElementById('dg3d')"):
+        return                                   # 這條鏈沒有 3D 場景
+    if pg.evaluate("() => document.getElementById('dg3d').hidden"):
+        return                                   # WebGL 不支援（容器有時候是這樣）
+    click(pg, "#dg3d", 3000)
+    pg.wait_for_timeout(2500)
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        return
+    pol = pg.evaluate("() => window.Rack3D.current.polar ? window.Rack3D.current.polar() : null")
+    ok("3D 可以轉到底下看（N1「我發現下面看不到」）",
+       bool(pol) and pol[1] > 3.0, pol)           # π ≈ 3.1416；舊版是 1.555
+    ok("3D 也可以轉到上面（N1 360 度）", bool(pol) and pol[0] < 0.1, pol)
+    ok("有「拖曳：轉動／平移」切換鈕（N1「游標抓取移動」）",
+       pg.evaluate("() => { const b = document.getElementById('dgDrag'); return !!b && !b.hidden; }"))
+    m0 = pg.evaluate("() => window.Rack3D.current.dragMode()")
+    click(pg, "#dgDrag", 800)
+    m1 = pg.evaluate("() => window.Rack3D.current.dragMode()")
+    ok("按切換鈕之後左鍵拖曳真的換成平移（N1）", m0 == "rotate" and m1 == "pan", f"{m0} → {m1}")
+    ok("切換之後鈕上的字也跟著換",
+       "平移" in text(pg, "#dgDrag"), text(pg, "#dgDrag"))
+    click(pg, "#dgDrag", 800)
+    ok("再按一次切回轉動", pg.evaluate("() => window.Rack3D.current.dragMode()") == "rotate")
+    ok("說明有講「可轉到底下」與「平移」（N1）",
+       "底下" in text(pg, "#dg3dNote") and "平移" in text(pg, "#dg3dNote"),
+       text(pg, "#dg3dNote")[:90])
+
+
 def t_season(pg, base):
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
@@ -3824,7 +3856,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1)):
             n0 = len(fails)
             try:
                 fn(pg, base)

@@ -109,7 +109,7 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線框＝外商；點公司進入個股頁</small></h4><div class="chainmap" id="chainMap"></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
@@ -360,6 +360,7 @@
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
     const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
+    const drg = $('#dgDrag', el);
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
     const R = window.Rack3D;
@@ -375,6 +376,7 @@
       btn.classList.toggle('cyan', on);
       btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
       rst.hidden = !on;
+      if (drg) drg.hidden = !on;
       svg.hidden = on; host.hidden = !on;
       if (!on) { dispose3D(); note.hidden = true; sync(); return; }
       note.hidden = false;
@@ -395,7 +397,27 @@
       }
       if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; return; }
       view3d = v;
-      note.textContent = `${v.sub}　·　拖曳轉視角、滾輪拉近拉遠、點零件看供應商`;
+      /* N1（Andy 2026-09-19）：「3D圖需要可以游標抓取移動，並且可以 360 都觀測，
+         我發現下面看不到」。仰角限制已在 three3d.js 解開（0 ~ π），
+         這裡再補一顆「拖曳：轉動／平移」——OrbitControls 預設右鍵才平移，
+         但一般人只會左鍵拖，所以給一顆看得見的切換。*/
+      if (drg) {
+        let mode = 'rotate';
+        try { mode = localStorage.getItem('tw.dg3d.drag') === 'pan' ? 'pan' : 'rotate'; } catch (e) { /* 忽略 */ }
+        const paint = () => {
+          drg.textContent = mode === 'pan' ? '拖曳：平移' : '拖曳：轉動';
+          drg.classList.toggle('cyan', mode === 'pan');
+        };
+        if (v.setDrag) v.setDrag(mode);
+        paint();
+        drg.onclick = () => {
+          mode = mode === 'pan' ? 'rotate' : 'pan';
+          try { localStorage.setItem('tw.dg3d.drag', mode); } catch (e) { /* 忽略 */ }
+          if (view3d && view3d.setDrag) view3d.setDrag(mode);
+          paint();
+        };
+      }
+      note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
       sync();
     };
     btn.onclick = () => setMode(host.hidden);
