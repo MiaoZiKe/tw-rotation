@@ -986,7 +986,12 @@ def t_flow(pg, base):
     below = pg.evaluate("""() => [...document.querySelectorAll('#valBody tr[data-code]')].map(tr => [
         parseFloat(tr.children[2].textContent), parseFloat(tr.children[3].textContent)])
         .filter(a => Number.isFinite(a[0]) && Number.isFinite(a[1]))""")
-    ok("「只看低於族群中位」真的只留本益比低於中位的", all(a[0] < a[1] for a in below),
+    # ★ 2026-09-19：原本只有下面那句 all(...)，而 all([]) 是 True ——
+    #   這個勾選框其實從掛上去的第一天就永遠篩出 0 筆（後端 vs_median 回比值、前端判 < 0），
+    #   驗收卻一路綠燈。空集合一定要先當成紅的。
+    ok("「只看低於族群中位」有篩出東西（空集合不算通過）", len(below) > 0,
+       f"勾選後剩 {len(below)} 列 —— 0 列代表這個條件根本篩不出東西，不是今天剛好沒有便宜股")
+    ok("「只看低於族群中位」真的只留本益比低於中位的", below and all(a[0] < a[1] for a in below),
        [a for a in below if a[0] >= a[1]][:4])
     click(pg, "#vBelow", 600)
 
@@ -1193,6 +1198,39 @@ def t_industry(pg, base):
     ok("點成分股會進個股頁", pg.evaluate("location.hash").startswith("#stock/"), pg.evaluate("location.hash"))
 
 
+def t_group_pages(pg, base):
+    """法定產業別族群頁（id 是中文）真的列得出成分股。
+
+    2026-09-19 抓到的事故：`site/app.js` 的 route() 拿 location.hash 直接 split，
+    沒有 decodeURIComponent。瀏覽器把中文存成百分比編碼，於是 `g.id === state.group`
+    永遠比不中 —— 35 個法定產業別裡有 34 個的族群頁是「0 檔 · 沒有符合的股票」，
+    只有純 ASCII 的 ind_ETF 躲過。候選名單、市場明細、個股頁的族群連結全部通到這裡。
+
+    以前完全沒有任何一條驗收打開過 #industry/group/<中文 id>，所以這個洞一直沒人發現。
+    這裡驗的是「列出來的筆數跟 groups_detail.json 對得起來」，不是「頁面有 render」。
+    """
+    want = pg.evaluate("""async () => {
+      const r = await fetch('data/groups_detail.json'); const d = await r.json();
+      const gs = Object.entries(d.groups || d).filter(([k]) => k.startsWith('ind_'));
+      return gs.map(([k, v]) => [k, (v.codes || v.members || v.stocks || []).length])
+               .filter(a => a[1] > 0);
+    }""")
+    ok("法定產業別族群 ≥ 20 個（含中文 id）", len(want) >= 20, len(want))
+    # 抽驗：ASCII 的 ind_ETF 以外，一定要挑到中文 id —— 那才是會壞的那一種
+    cjk = [g for g in want if any(ord(c) > 127 for c in g[0])]
+    ok("抽得到中文 id 的族群", len(cjk) >= 5, [g[0] for g in cjk[:5]])
+    empty = []
+    for gid, n in ([g for g in want if g[0] == "ind_ETF"][:1] + cjk[:6]):
+        pg.goto(f"{base}#industry/group/{gid}", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        rows = count(pg, "#memberTable tbody tr[data-code], #memberTable tbody tr")
+        title = text(pg, "#memberTitle") + " " + text(pg, "#v-industry h2")
+        if rows < 1:
+            empty.append({"gid": gid, "資料裡有": n, "畫面列出": rows, "標題": title[:40]})
+        ok(f"{gid} 的族群頁列得出成分股（資料裡有 {n} 檔）", rows >= 1,
+           f"畫面只列出 {rows} 列，標題「{title[:40]}」")
+    ok("沒有任何一個族群頁是空的", not empty, empty)
+
+
 def t_chainnav(pg, base):
     """E5 產業鏈頁上方的類別切換列 ＋ E6 跨產業鏈環節的兩張架構圖（Andy 2026-09-18 第 3 批）。
 
@@ -1339,12 +1377,17 @@ def t_themes(pg, base):
     # 題材頁：族群分組 + 剖析圖零件點得到個股
     tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
     ok("題材剖析圖數量 ≥ 18", len(tids) >= 18, len(tids))
-    for tid in tids[:3]:
+    # ★ 2026-09-19：原本只跑前 3 個，18 個題材裡有 15 個從來沒被打開過。
+    #   一輪多 15 次 goto 約 30 秒，換掉「題材頁壞了沒人知道」這個洞是划算的。
+    for tid in tids:
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1100)
         ok(f"題材 {tid} 有剖析圖", count(pg, "#themeDiagram svg") > 0)
         # Andy 09-13：剖析圖不要縮放（跟產業／個股剖析圖一致），要看大圖用右上角「放大」
         check_nozoom(pg, "themeDiagram", f"題材 {tid} 剖析圖")
-        ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeDetail .gsec, #themeDetail h4, #themeParts") > 0)
+        # ★ 2026-09-19：原本的選擇器含 #themeParts，那是剖析圖零件框、
+        #   不管有沒有分組它都存在，所以這條永遠綠。真正的分組標記是 #themeMembers tr.ghead。
+        ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeMembers tr.ghead") > 0,
+           f"ghead={count(pg, '#themeMembers tr.ghead')} 列")
         if count(pg, "#themeDiagram [data-part][data-codes]"):
             click(pg, "#themeDiagram [data-part][data-codes]", 600)
             ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0)
@@ -2909,7 +2952,12 @@ SC_GEOM = """() => {
 # 2026-09-19 下午：三位 industry-analyst 查證後補上 45 條有出處的邊，
 #   降到 ai_server 1 / semiconductor 0。剩下的那一個是台燿 6274 ——
 #   公開來源查不到具名客戶，**刻意**讓它維持「?」，不畫猜的線。
-SC_ISO_MAX = {"ai_server": 1, "semiconductor": 0}
+# ★ 2026-09-19 傍晚：ai_server 從 1 降到 0。那個 1 是台燿 6274 ——
+#   上午找不到它的**下游**具名客戶所以刻意讓它孤立，傍晚查到它的**上游**：
+#   「金居…作為 CCL 廠商台光電、聯茂、台燿的上游供應商」是一句明確的供貨陳述，
+#   不是並列標題。找不到下游不代表找不到上游。
+#   這一批另外加了 15 家公司，每一家都至少帶一條有出處的邊進來，所以棘輪可以收到 0。
+SC_ISO_MAX = {"ai_server": 0, "semiconductor": 0}
 
 
 def t_batch6_n3(pg, base):
@@ -4198,7 +4246,7 @@ def main() -> int:
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
-                         ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
+                         ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             n0 = len(fails)

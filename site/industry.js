@@ -152,7 +152,7 @@
       <div class="card">
         <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點公司名進入個股頁。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
+          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。' : '點族群卡片篩選成分股；點股票進入個股頁。'}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
@@ -230,7 +230,7 @@
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSelect: (co) => { if (co && co.tw_code) A.goStock(co.tw_code); }, onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
+      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
       /* E4：動畫鈕現在同時管平面圖與 3D（Andy 2026-09-18：「3D 可切動態／靜止」）。
          以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。
@@ -959,7 +959,7 @@
       const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      drawChainMap($('#chainMap', el), sc, cid, im, { onSelect: (c2) => { if (c2.tw_code) A.goStock(c2.tw_code); }, onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
+      drawChainMap($('#chainMap', el), sc, cid, im, { onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
       highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
       wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
       $$('.segchip', el).forEach(c => c.onclick = () => { location.hash = `#industry/${cid}/${c.dataset.seg}`; });

@@ -37,6 +37,10 @@ segments:
   # 這一層 2026-09-19 才補進來。整條鏈的瓶頸其實都在這裡（味之素 ABF 膜全球 >95% 市占、
   # 2026 漲價 30%），以前圖上完全不存在，點「ABF 載板」也列不出它的材料來源。
   - {id: ccl_material,       name: "銅箔 / 玻纖布",             layer: 1, chain: ai_server,     role: material}
+  # ★ 2026-09-19（第二輪）：半導體這一側原本完全沒有「製程材料」這一格 ——
+  #   兩個材料格（ccl_material、substrate_material）都在載板／PCB 那一側，
+  #   所以靶材、特化、耗材這種真正卡在晶圓廠前面的東西無處可放。
+  - {id: semi_material,      name: "半導體製程材料（靶材 / 特化）", layer: 1, chain: semiconductor, role: material}
   - {id: substrate_material, name: "載板材料 ABF / BT", layer: 2, chain: semiconductor, role: material}
   # ---- 半導體主幹
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
@@ -81,6 +85,10 @@ segments:
   - {id: optical_epi,  name: "光通訊磊晶 / 雷射晶粒", layer: 3, chain: ai_server}
   - {id: optical,      name: "光通訊模組 / 矽光子",  layer: 4, chain: ai_server}
   - {id: switch,       name: "交換器",              layer: 4, chain: ai_server}
+  # ★ 2026-09-19（第二輪）新增兩格。共同理由：這兩類公司塞進現有任何一格都會重演
+  #   「金像電被放進 ABF 載板」那條錯誤 —— 網站等於在宣稱它做的是另一種產品。
+  - {id: connector,    name: "連接器 / 線材 / Busbar", layer: 4, chain: ai_server}
+  - {id: fpc,          name: "軟板 FPC",               layer: 4, chain: ai_server}
   - {id: assembly,     name: "系統組裝 / 機櫃",     layer: 5, chain: ai_server}
   - {id: hyperscaler,  name: "雲端業者（終端需求）", layer: 6, chain: ai_server}
 
@@ -158,6 +166,10 @@ companies:
      note: "2025-08-26 上櫃。均熱片貼合（植片壓合）設備，切入封測廠 OS 段。★ 均熱片本體是健策做的，竑騰賣的是把它貼上去的設備，設備賣給封測廠、不是賣給健策"}
   - {id: allring, ticker: "6187", name: 萬潤,       segment: pkg_equipment,
      tech: [點膠, 貼合, 自動化, 散熱設備], note: "半導體封測設備佔營收 8～9 成"}
+  # ---- 半導體製程材料（2026-09-19 新增）
+  - {id: kolight, ticker: "1785", name: 光洋科, segment: semi_material,
+     tech: [薄膜濺鍍靶材, 蒸鍍材料, 貴金屬與稀有金屬回收精煉],
+     note: "全球規模最大的光儲存薄膜靶材廠之一，本業是貴／稀金屬回收、精煉與加工。★ 不要寫「台積電獨家供應商」—— 那是法人用語（原文是「可望成為」），不是公司揭露"}
   # ---- IC 載板
   - {id: unimicron, ticker: "3037", name: 欣興,     segment: abf_pcb,  tech: [ABF 載板, HDI],
      note: "2026 供給由鬆轉緊；2025Q4 IC 載板占營收 59%、HDI 與 PCB 合計 38%"}
@@ -168,6 +180,14 @@ companies:
   # ---- 高階 PCB（2026-09-19 從 abf_pcb 搬出來：金像電不做 ABF 載板，它是 MLB/UBB 高層數 PCB）
   - {id: gce,     ticker: "2368", name: 金像電,     segment: hdi_pcb,  tech: [50 層以上 MLB, 30 層以上 UBB, 800G 交換器板],
      note: "2025Q3 伺服器營收占比 80%，AI 高階專案逾 50%；AWS / Google / Meta / 微軟自研 ASIC 平台由 CSP 直接指定用料"}
+  # ★ 2026-09-19（第二輪）補上兩家。臻鼎是這張圖原本最大的一個洞 ——
+  #   全球 PCB 龍頭、AI 算力應用佔營收逾六成，groups/themes/supply_chain 三個檔都查不到它。
+  - {id: zdt,     ticker: "4958", name: 臻鼎-KY,   segment: hdi_pcb,
+     tech: [高階 HDI, 高層數伺服器板, IC 載板 ABF],
+     note: "鴻海集團旗下，全球 PCB 龍頭。2026-06-01 官方新聞稿宣布加入 NVIDIA MGX 生態系；MGX 第三代採純 PCB 化（PCB-based、無線纜）設計。★ 網路上流傳的「Blackwell 第二大 ABF 載板供應商、市占約 30%」只見於投顧文與內容農場，沒有可查證出處，不寫"}
+  - {id: tripod,  ticker: "3044", name: 健鼎,      segment: hdi_pcb,
+     tech: [伺服器 PCB, 網通板, 記憶體模組板, 車用板],
+     note: "2026 預估記憶體佔營收 26%、伺服器佔 33%。★ 不畫「健鼎 → NVIDIA」：GB200 板的直接客戶是 ODM 不是輝達，而且出處是投顧文"}
   # ---- CCL（材料）
   - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL],
      note: "高階 CCL 龍頭。做的是 PCB 用高速 CCL，不是 ABF 載板材料（載板的膜是味之素、core 是三菱瓦斯）"}
@@ -176,8 +196,25 @@ companies:
   - {id: iteq,    ticker: "6213", name: 聯茂,       segment: ccl,      tech: [高階 CCL],
      note: "CCL 三雄之一（台光電、台燿、聯茂）"}
   # ---- 材料上游（2026-09-19 新增。這一層才是這輪行情真正的瓶頸）
-  - {id: kingco,  ticker: "8358", name: 金居,       segment: ccl_material, tech: [HVLP 銅箔],
-     note: "高盛點名為「台版三井金屬」"}
+  - {id: kingco,  ticker: "8358", name: 金居,       segment: ccl_material, tech: [HVLP 銅箔, 先進 RTF 反轉銅箔],
+     note: "高盛點名為「台版三井金屬」。已終止部分標準 HTE 銅箔、轉向 HVLP3/HVLP4；全球同時取得先進 RTF 與 HVLP3/HVLP4 認證的只有金居與日本三井金屬兩家"}
+  - {id: nanya_plastics, ticker: "1303", name: 南亞, segment: ccl_material,
+     tech: [銅箔, 玻纖布, 電子級環氧樹脂, 銅箔基板 CCL],
+     note: "★ 不是南電 8046、也不是南亞科 2408 —— 三家同屬台塑集團，這個檔案已經為了南亞科／南電放過一次警語，這是第三家。自製銅箔＋玻纖布＋樹脂的垂直整合廠；它同時也是全球前幾大 CCL 廠，但節點放在材料層，因為它跟日東紡的關係在這一層"}
+  - {id: chien_jung, ticker: "5340", name: 建榮,    segment: ccl_material,
+     tech: [電子級玻璃纖維布, 高階 NE 布],
+     note: "日東紡 2018-08 公開收購取得 47.65% 股權、2019-06 取得過半董事席次，法律與會計上為日東紡子公司，已納入其一站式供應體系。★ schema 目前沒有表達「母子公司」的 rel，這層關係先寫在 note 與邊的 item 裡"}
+  - {id: fuchiao, ticker: "1815", name: 富喬,       segment: ccl_material,
+     tech: [玻纖紗, 玻纖布, Low-Dk / Low-CTE 高階玻纖布],
+     note: "從紗到布垂直整合（這是它跟純織布廠的差別）。泰國新廠 2027Q3 量產、產能已被客戶訂滿；M9 石英布已研製並啟動認證"}
+  # ---- 軟板（2026-09-19 新增）
+  - {id: flexium, ticker: "6269", name: 台郡, segment: fpc,
+     tech: [軟板 FPC, 機櫃漏液感測軟板, CPO/NPO 高速傳輸軟板],
+     note: "軟板三雄之一，Apple 約佔營收 70–80%，2026H1 仍在虧損。AI 這一塊量產的是機櫃漏液感測軟板（裝在快接頭 UQD、分歧管、水冷板上，Sensor Rope 偵測滲液即通知 BMC 斷電），2026 目標 100 萬片；CPO 高速傳輸軟板與 MetaLink 仍在開發"}
+  # ---- 連接器 / 線材（2026-09-19 新增）
+  - {id: bizlink, ticker: "3665", name: 貿聯-KY, segment: connector,
+     tech: [Busbar 電源匯流排, power whip 伺服器電源線組, 高速傳輸線],
+     note: "全球連接器與線束大廠。AI 伺服器這一塊做的是電源傳輸（Busbar／power whip），不是只有訊號線"}
   # ---- 散熱
   - id: avc
     ticker: "3017"
@@ -197,6 +234,12 @@ companies:
   - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,
      tech: [均熱片 lid/IHS, 補強框 stiffener, 微流道均熱片 MCL, 水冷板 Cold Plate, 分歧管 Manifold, 導線架],
      note: "主體是封裝層級均熱片與補強框（2025 散熱產品約佔營收 73%，另有 LED 導線架 9%）。2026-03 NVIDIA GTC 首度以水冷板與分歧管列入 Vera Rubin NVL72 系統端供應商名單；MCL 業界進度最快，但 2026-09 仍在試產驗證、尚未量產"}
+  - {id: sunon,   ticker: "2421", name: 建準,       segment: thermal,
+     tech: [伺服器風扇, 水冷板 Cold Plate],
+     note: "★ 它是風扇／氣冷，跟奇鋐雙鴻的水冷板、健策的封裝級均熱片是三種不同東西。全球第三大風扇廠，伺服器散熱 2024 年占營收 53%。GB200 NVL72 就算走液冷，機櫃內與 water-to-air 仍需 257 顆風扇。水冷板 2026Q1 才正式量產，現在不要當它是水冷供應商"}
+  - {id: kaori,   ticker: "8996", name: 高力,       segment: thermal,
+     tech: [硬銲型板式熱交換器, CDU / CDM / Sidecar / 背門熱交換器, 燃料電池 Hot Box],
+     note: "台灣唯一的硬銲型板式熱交換器廠。★ 圖上它唯一查得到具名客戶的產品是燃料電池熱反應盒（屬電力），液冷 CDU 是第二條線、尚無具名客戶 —— 所以會看到「散熱廠供貨給電力廠」，那是事實不是畫錯"}
   # ---- 電源
   - id: delta
     ticker: "2308"
@@ -215,6 +258,12 @@ companies:
   - {id: browave, ticker: "3163", name: 波若威,     segment: optical,
      tech: [光纖連接 MPO/Shuffle Box, WDM/AWG, PLC 分光器],
      note: "光被動元件與高密度光纖連接，不做含 LD/PD 與 DSP 的光收發模組"}
+  - {id: foci,    ticker: "3363", name: 上詮,       segment: optical,
+     tech: [光纖陣列 FAU, 保偏光纖陣列],
+     note: "做的是矽光子晶片與光纖之間的對準接合介面（封裝介面），跟波若威的光被動元件、華星光的模組都不同段。★ 時程不要寫成現在式：FAU 2026Q3 才開始微量貢獻營收、2026Q4 逐季放大、2027 才放量"}
+  - {id: pcl,     ticker: "4977", name: 眾達-KY,    segment: optical,
+     tech: [CPO 光引擎, ELSFP 外置雷射光源模組],
+     note: "資本額僅 8.02 億、2025 年營收 10.75 億，對 Broadcom 而言是小型供應商。★ Bailly CPO ELSFP 目前是量產準備中，2026～2027 才是第一波大量導入，現在畫粗線會誇大"}
   # ---- 交換器
   - {id: accton,  ticker: "2345", name: 智邦,       segment: switch,   tech: [800G/1.6T 白牌交換器]}
   # ---- 組裝
@@ -222,6 +271,12 @@ companies:
   - {id: quanta,  ticker: "2382", name: 廣達,       segment: assembly, tech: [AI 伺服器]}
   - {id: wistron, ticker: "3231", name: 緯創,       segment: assembly, tech: [AI 伺服器主機板]}
   - {id: wiwynn,  ticker: "6669", name: 緯穎,       segment: assembly, tech: [雲端伺服器]}
+  - {id: inventec, ticker: "2356", name: 英業達,    segment: assembly,
+     tech: [GB200 主機板 L6, L10/L11 整櫃],
+     note: "AI 伺服器以 GB200 主機板（L6）為主、正往 L10/L11 整櫃延伸；墨西哥廠做 L6，L10/L11 與 ZT 分工。★ 組裝層級（L6 / L10 / L11）是這一格公司真正的差別 —— 圖上節點一樣大，但英業達現在做的是 L6"}
+  - {id: gigabyte, ticker: "2376", name: 技嘉,      segment: assembly,
+     tech: [HGX / GB200 NVL4 平台伺服器, GIGAPOD 機櫃級方案],
+     note: "伺服器業務在子公司技鋼科技 Giga Computing。★ 客戶含 CSP 也含企業客戶（企業占比高於純 ODM 三雄），不是純 CSP 鏈；具名終端客戶含日本理研 R-CCS"}
   # ---- 外商（非台股，只當節點）
   - {id: nvidia,    ticker: "NASDAQ:NVDA", name: NVIDIA,   segment: ic_design, foreign: true}
   - {id: amd,       ticker: "NASDAQ:AMD",  name: AMD,      segment: ic_design, foreign: true}
@@ -252,6 +307,9 @@ companies:
      note: "2026Q2 營收 191.25 億、季增 83%、年增 181%，毛利率 40.8%→64.4%"}
   - {id: winbond, ticker: "2344", name: 華邦電,     segment: dram_nor, tech: [NOR Flash, 利基型 DRAM, CUBE 客製化 3D 記憶體],
      note: "NOR Flash 市占第一。★ CUBE 鎖定的是邊緣 AI／機器人／車用，不是 AI 伺服器，不要把它連到雲端業者。2026-09 以 11.2 億美元併購英飛凌 NOR Flash／F-RAM 事業"}
+  - {id: bloom_energy, ticker: "NYSE:BE", name: "Bloom Energy", segment: power, foreign: true,
+     tech: [SOFC 固態氧化物燃料電池],
+     note: "AI 資料中心自建電力。與 Oracle 擴大合作達 2.8GW；高力是它 Hot Box 熱反應盒的主要供應商，每台 SOFC 用 6 顆"}
   - {id: hyperscaler, name: "CSP（Microsoft / Google / Amazon / Meta）", segment: hyperscaler, foreign: true}
   # ---- 材料層外商（2026-09-19 新增）。整條鏈最脆弱的單點瓶頸在這裡。
   - {id: ajinomoto, name: "味之素 Ajinomoto", segment: substrate_material, foreign: true,
@@ -299,7 +357,29 @@ edges:
   - {from: mgc,       to: nanya_pcb,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
   - {from: mgc,       to: kinsus,     rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
   - {from: kingco,    to: emc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+  # ★ 2026-09-19（第二輪）：這兩條把金居的下游補齊，第二條順便解掉台燿的孤立狀態。
+  #   上午那輪刻意讓台燿孤立，是因為找不到它的**下游**具名客戶（「台燿供 UBB 用 CCL」＋
+  #   「UBB 主要 PCB 廠是金像電」是兩段推論接起來的，不該畫）。但它的**上游**查得到：
+  #   來源直接寫「金居…作為 CCL 廠商台光電、聯茂、台燿的上游供應商」，是一句明確的供貨陳述，
+  #   不是並列標題。找不到下游不代表找不到上游 —— 這是這次學到的第三條規矩。
+  - {from: kingco,    to: iteq,       rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+  - {from: kingco,    to: tuc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+  - {from: kingco,    to: nvidia,     rel: designated_by,
+     item: "高頻高速反轉銅箔 RTF（2025 初打入 AI 伺服器供應鏈）", confidence: reported,
+     note: "實體出貨走 CCL 廠與 PCB 廠，不直接出貨給輝達"}
   - {from: nittobo,   to: emc,        rel: supplies, item: "高階玻纖布 / T-glass", strength: 3, confidence: reported}
+  - {from: nittobo,   to: nanya_plastics, rel: supplies, item: "第二代低介電玻璃原紗 NER", strength: 4,
+     confidence: verified,
+     note: "南亞官方新聞稿公告的策略合作：日東紡供原紗、南亞協助織造特殊玻纖布；到 2027 年日東紡供應市場的特殊玻纖布中將有 20% 由南亞製造。★ 合作稿寫的是「產能互補」，但原紗的供應方向是單向的"}
+  - {from: nittobo,   to: chien_jung, rel: supplies, item: "高階玻璃原紗（日東紡持股 47.65%、過半董事席次）",
+     strength: 4, confidence: reported,
+     note: "建榮是日東紡的台灣高階玻纖布生產基地。★ 這條邊真正的語意是母子公司，不是單純買賣 —— schema 沒有 subsidiary_of 這個 rel，先用 supplies 承載並在 item 寫明持股"}
+  - {from: fuchiao,   to: hyperscaler, rel: designated_by,
+     item: "LDK2 低介電玻纖布通過 CSP 認證，指定用於下一代 ASIC 平台", confidence: reported,
+     note: "★ 報導用語是「部分 CSP」「市場傳出」，未指名是哪一家 CSP。另外兩條（富喬供玻纖布給台光電／聯茂）三個來源彼此高度相似、疑似互抄，沒有硬來源，不畫"}
+  - {from: kolight,   to: tsmc,       rel: supplies, item: "高階濺鍍靶材（釕靶，2/3/5nm 先進製程）",
+     strength: 3, confidence: reported,
+     note: "台積 2nm 最重要的國內靶材供應商。★ 不要寫「獨家供應」—— 原文是法人用語「可望成為獨家供應商」"}
 
   # ================================ 設計服務 / IC 設計 ← 晶圓代工
   # ★ 方向很容易寫反：設計服務是 turnkey，**向**晶圓廠買晶圓與封裝產能，所以晶圓廠才是供應方。
@@ -385,6 +465,15 @@ edges:
   - {from: gce,      to: accton,  rel: supplies, item: "800G/1.6T 交換器 PCB", strength: 3, confidence: estimated,
      note: "推論依據：① 金像電做 38–48 層交換器板，是這塊的主力 ② 智邦是白牌交換器龍頭，800G/1.6T 升級的主要受惠者（工商時報把博通交換器晶片出貨的受惠者寫成「智邦、台光電」）。缺的是：沒有任何一篇明講「金像電供貨智邦」",
      source_url: "https://uanalyze.com.tw/articles/4135513187"}
+  - {from: zdt,      to: nvidia, rel: supplies,
+     item: "高階 HDI / 高層數伺服器板 / IC 載板（NVIDIA MGX 生態系）", strength: 4, confidence: verified,
+     note: "2026-06-01 臻鼎官方新聞稿宣布加入 NVIDIA MGX 生態系，四家獨立媒體同日報導"}
+  - {from: tripod,   to: hyperscaler, rel: supplies, item: "伺服器 / 網通 PCB、記憶體模組板",
+     strength: 3, confidence: reported,
+     note: "為美系四大 CSP（Meta / Google / AWS / Microsoft）提供伺服器與網路板"}
+  - {from: flexium,  to: nvidia, rel: designated_by,
+     item: "AI 機櫃漏液感測軟板（輝達 COMPUTEX MGX 供應鏈展示區公開點名）", confidence: reported,
+     note: "★ 是 designated_by 不是 supplies：報導寫的是台郡打進「輝達供應鏈中的台系水冷散熱大廠」，實體出貨走那家水冷廠（未具名），輝達只是公開列名"}
   - {from: gce,      to: hyperscaler, rel: designated_by, item: "CSP 自研 ASIC 平台直接指定 PCB 料號（AVL）",
      confidence: reported,
      note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM"}
@@ -413,9 +502,23 @@ edges:
      note: "Rubin 世代改雙片式＋鍍金；3 月均熱片營收月增 85%"}
   - {from: jentech,  to: amd,    rel: supplies, item: "MI450/MI455 均熱片", strength: 3, confidence: reported,
      note: "報導稱為獨家供應商"}
-  - {from: avc,      to: foxconn, rel: supplies, item: "水冷板", strength: 4, confidence: reported}
-  - {from: avc,      to: quanta,  rel: supplies, item: "水冷板", strength: 4, confidence: reported}
-  - {from: auras,    to: foxconn, rel: supplies, item: "水冷板", strength: 3, confidence: reported}
+  # ★ 2026-09-19：DIGITIMES 報導 NVIDIA 下一代 Vera Rubin 將「統一採購」水冷板，
+  #   入列四家＝訊凱（未上市）、奇鋐、雙鴻、台達電。若統購成真，這三條的買方會由 ODM 變成 NVIDIA。
+  #   只有一個來源、而且用的是「傳」，所以**先不改邊**，只記在這裡並列進半年重審清單。
+  - {from: avc,      to: foxconn, rel: supplies, item: "水冷板", strength: 4, confidence: reported,
+     note: "2026 傳 Vera Rubin 世代改由 NVIDIA 統一採購，屆時買方會由 ODM 變成 NVIDIA（單一來源，待第二個佐證）"}
+  - {from: avc,      to: quanta,  rel: supplies, item: "水冷板", strength: 4, confidence: reported,
+     note: "同上，Vera Rubin 統購傳聞待證"}
+  - {from: auras,    to: foxconn, rel: supplies, item: "水冷板", strength: 3, confidence: reported,
+     note: "同上，Vera Rubin 統購傳聞待證"}
+  - {from: sunon,    to: nvidia,  rel: designated_by,
+     item: "GB200 / GB300 RVL 系列伺服器風扇（已列入輝達認證供應鏈）", confidence: reported,
+     note: "★ 是 designated_by 不是 supplies：來源講的是「列入認證供應鏈名單、通過 GB200/GB300 RVL 認證」，實體出貨走組裝廠，但沒有任何一篇具名是哪一家組裝廠。GB300 自 2026-09 起放量，GPU 伺服器占其 AI Server 比重由 20% 升至 30%"}
+  - {from: kaori,    to: bloom_energy, rel: supplies,
+     item: "SOFC 燃料電池 Hot Box 熱反應盒（每台 SOFC 用 6 顆）", strength: 4, confidence: reported,
+     note: "Bloom Energy 是高力最大單一客戶；管理層預期熱反應盒年產量由 3,500–4,000 顆升至 7,000 顆以上"}
+  - {from: bloom_energy, to: hyperscaler, rel: supplies,
+     item: "SOFC 燃料電池系統（供 Oracle AI 資料中心，擴大合作達 2.8GW）", strength: 3, confidence: reported}
   - {from: delta,    to: foxconn, rel: supplies, item: "電源 / CDU", strength: 4, confidence: reported}
   - {from: delta,    to: quanta,  rel: supplies, item: "電源", strength: 3, confidence: reported}
   - {from: delta,    to: wiwynn,  rel: supplies, item: "電源 / Power Shelf", strength: 3, confidence: reported,
@@ -425,6 +528,11 @@ edges:
   - {from: liteon,   to: foxconn, rel: supplies, item: "PSU", strength: 3, confidence: reported}
   - {from: liteon,   to: hyperscaler, rel: supplies, item: "AI 電源櫃 / 110kW Power Shelf", strength: 3, confidence: reported,
      note: "已打入所有北美主要 CSP 供應鏈"}
+
+  # ================================ 連接器 / 線材
+  - {from: bizlink,  to: nvidia, rel: supplies,
+     item: "GB200 Busbar 匯流排 + power whip 電源線組", strength: 3, confidence: reported,
+     note: "匯流排與連接器已通過 NVIDIA 認證並小量生產，是 GB200 商機首批受惠者"}
 
   # ================================ 光通訊
   - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 4, confidence: reported,
@@ -436,6 +544,14 @@ edges:
   - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}
   - {from: browave,  to: nvidia,  rel: supplies, item: "CPO 用 800G/1.6T 光纖套件（Fiber Harness / Shuffle Box）",
      strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大"}
+  - {from: foci,     to: tsmc,    rel: supplies,
+     item: "CPO / 矽光子 COUPE 封裝用光纖陣列 FAU（光纖與矽光子晶片對準接合）",
+     strength: 2, confidence: reported,
+     note: "與台積電共同研發 COUPE：台積電做矽光子晶片製造、上詮做對準接合。已交付 5 種以上 MCM CPO 封裝方案，另有 5 家以上客戶 design-in（未具名）。★ FAU 2026Q3 才開始微量貢獻營收、2027 才放量"}
+  - {from: pcl,      to: broadcom, rel: supplies,
+     item: "CPO 光引擎 / ELSFP 外置雷射光源模組（Tomahawk-5 Bailly 51.2T 平台）",
+     strength: 2, confidence: reported,
+     note: "Bailly 內含八個 6.4T 光引擎。★ 目前是量產準備中，2026～2027 才是第一波大量導入"}
 
   # ================================ 交換器 / IC 設計 → 組裝 → 雲端
   - {from: broadcom, to: accton, rel: supplies, item: "Tomahawk 交換器晶片", strength: 5, confidence: reported,
@@ -449,12 +565,20 @@ edges:
   - {from: nvidia,   to: foxconn, rel: supplies, item: "GB300 模組", strength: 5, confidence: reported}
   - {from: nvidia,   to: quanta,  rel: supplies, item: "GPU 模組", strength: 4, confidence: reported}
   - {from: nvidia,   to: wistron, rel: supplies, item: "GPU 模組", strength: 3, confidence: reported}
+  - {from: nvidia,   to: inventec, rel: supplies, item: "GB200 GPU 模組", strength: 3, confidence: reported}
+  - {from: nvidia,   to: gigabyte, rel: supplies, item: "HGX / GB200 NVL4 GPU 平台", strength: 3, confidence: verified,
+     note: "技嘉官網新聞稿：技鋼科技發表基於 NVIDIA GB200 NVL4 平台的伺服器（雙 Grace CPU ＋四 Blackwell GPU、直接液冷）"}
   - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5, confidence: reported}
   - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5, confidence: reported}
   - {from: wistron,  to: hyperscaler, rel: supplies, item: "AI 伺服器 / GB200-GB300 機架系統", strength: 4,
      confidence: reported, note: "2026-09-19 補上：緯創原本有上游沒下游，圖上是斷尾"}
   - {from: wiwynn,   to: hyperscaler, rel: supplies, item: "雲端伺服器（以 ASIC 專案為主，Meta 佔比逾五成）",
      strength: 4, confidence: reported}
+  - {from: inventec, to: hyperscaler, rel: supplies,
+     item: "AI 伺服器主機板 L6 / 整櫃 L10-L11（北美四大 CSP GB200 專案）", strength: 4, confidence: reported}
+  - {from: gigabyte, to: hyperscaler, rel: supplies, item: "AI 伺服器 / GIGAPOD 機櫃級方案",
+     strength: 3, confidence: reported,
+     note: "客戶含 CSP 與企業客戶（企業占比高於純 ODM 三雄），不是純 CSP 鏈"}
   - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4, confidence: reported}
 
   # ================================ 產品 → 生產者

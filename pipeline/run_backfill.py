@@ -184,6 +184,10 @@ def run(datasets: str, limit: int | None, start: str, *,
         ("holding", "shareholding_weekly", lambda c: finmind.holding_history(c, start, wait=False)),
     ]
 
+    # key -> 這一輪回空的 done_key 清單；key -> 這一輪至少拿到過一次資料
+    pending_no_data: dict[str, list[str]] = {}
+    got_data: set[str] = set()
+
     for i, code in enumerate(codes, 1):
         if http.finmind_budget_left() <= 1:
             log.warning("FinMind 額度用盡，本輪停在第 %d/%d 檔（%s）", i, len(codes), code)
@@ -218,13 +222,19 @@ def run(datasets: str, limit: int | None, start: str, *,
                 break
 
             if df is None or df.empty:
-                # 額度還在卻拿不到東西 → 這檔真的沒有這種資料（新掛牌、KY 股缺財報…），
-                # 記成做過，下一輪不要再問；要重抓就刪 progress 檔裡的鍵
+                # 額度還在卻拿不到東西 → **通常**是這檔真的沒有這種資料
+                #（新掛牌、KY 股缺財報…），記成做過，下一輪不要再問。
+                # ★ 但「整組資料集每一檔都回空」是完全不同的一件事：那代表這個資料集
+                #   在免費層根本沒開，不是這 N 檔沒有資料。2026-09-12 那輪就是這樣 ——
+                #   holding（集保股權分散）500 檔全回空、500 個 done 鍵全被寫死，
+                #   於是「大戶 4 週變化」在全站永遠顯示「—」，而且再也不會有人去重抓。
+                #   所以先記在暫存區，等整輪跑完再決定要不要真的寫進 progress（見下方）。
                 summary["no_data"] += 1
-                prog["done"][done_key] = True
+                pending_no_data.setdefault(key, []).append(done_key)
                 continue
             n = store.append(table, df)
             summary[key] += n
+            got_data.add(key)
             prog["done"][done_key] = True
 
         if i % 25 == 0:
@@ -237,10 +247,24 @@ def run(datasets: str, limit: int | None, start: str, *,
         if summary["exhausted"]:
             break
 
+    # ★ 結算「回空」的那些鍵：某個 key 這一輪只要成功拿到過一次資料，
+    #   其餘回空的就是真的沒資料，照舊記 done；一次都沒拿到（而且問了 3 檔以上）的，
+    #   判定是這個資料集本身不開放，**不寫 done**，下一輪重問。
+    #   門檻訂 3 是為了不要因為一輪只跑到兩檔就誤判。
+    for key, keys in pending_no_data.items():
+        if key in got_data or len(keys) < 3:
+            for dk in keys:
+                prog["done"][dk] = True
+        else:
+            log.warning("%s 這一輪 %d 檔全部回空 —— 判定為該資料集不開放（而不是這些股票沒資料），"
+                        "不寫入 done，下一輪會重問", key, len(keys))
+            summary["unavailable"] = sorted(set(summary.get("unavailable", [])) | {key})
+
     # 整輪走完、沒被限流、也沒有抓取失敗 → 這組資料集對目前的目標清單已補齊。
     # 排程觸發的工作流會看這個旗標決定要不要直接跳過（省 Actions 分鐘與額度）。
     # 手動觸發永遠會重跑一輪，所以 groups.yaml 新增成分股後按一次即可。
-    finished_all = not summary["exhausted"] and summary["failed"] == 0
+    finished_all = (not summary["exhausted"] and summary["failed"] == 0
+                    and not summary.get("unavailable"))
     prog["complete"][datasets_key] = {
         "done": finished_all,
         "at": datetime.now(timezone.utc).isoformat(),

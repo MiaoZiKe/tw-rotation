@@ -18,7 +18,12 @@
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
 <link rel="apple-touch-icon" href="icon.png">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=JetBrains+Mono:wght@400;600;700&display=swap">
+<!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
+     下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
+     在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
+     實測把 fonts.googleapis.com / fonts.gstatic.com 全部擋掉重載，畫面照樣正常
+     （字退到 PingFang TC / 微軟正黑 / system-ui，等寬字退到 SF Mono / Consolas）。
+     之後要用 Noto Sans TC 與 JetBrains Mono 的話，把字型檔下到 site/vendor/ 再用 @font-face。 -->
 <!-- 圖表函式庫直接放在 repo 裡：公司網路常擋 CDN，圖表會整片空白 -->
 <script src="vendor/echarts.min.js"></script>
 <script src="vendor/lightweight-charts.js"></script>
@@ -353,6 +358,10 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
 .stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:5px;
   max-height:380px;overflow-y:auto;scrollbar-width:thin}
+/* ★ 2026-09-19：季節性那塊四張卡每張只有 5–7 個族群，內捲沒有意義，而且捲軸沒有任何提示，
+   1100px 下有一半的族群名是看不到的（「記憶體」「封測」「伺服器電源」都被切一半）。
+   這一塊直接讓卡片長高。輪動階段那塊（compact）族群多，維持內捲。 */
+#seasonBoard .stage ul{max-height:none;overflow-y:visible}
 .stageboard.compact .stage ul{max-height:190px}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
@@ -362,7 +371,10 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   background:color-mix(in srgb,var(--c) 9%,transparent);border:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
 .stage li.mem:hover{transform:none;background:color-mix(in srgb,var(--c) 9%,transparent)}
 .stage li.mem .go{margin-left:auto}
-.stage li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--panel-2);
+/* ★ 2026-09-19：加 flex-wrap。原本這是一列不換行的 flex，窄畫面時右邊那段
+   「超額 x%　勝率 y%　N 年」會整段溢出膠囊、壓到下面那行說明文字 ——
+   _preview 報的 3 筆文字重疊就是這樣來的。會換行就不能再用 999px 全圓角。 */
+.stage li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:6px 12px;border-radius:14px;background:var(--panel-2);
   cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
 .stage li:hover{background:var(--panel);border-color:var(--c);transform:translateX(2px)}
 .stage li.none{color:var(--ink-3);font-size:12.5px;cursor:default;background:transparent;padding:4px 0}

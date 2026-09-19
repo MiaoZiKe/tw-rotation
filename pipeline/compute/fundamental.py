@@ -236,7 +236,14 @@ def group_valuation(val: pd.DataFrame, company: pd.DataFrame | None = None) -> p
                 "group_median": median,
                 "group_n": n,
                 "percentile": _pct_within(valid, v) if n >= MIN_ANY_N else np.nan,
-                "vs_median": (v / median) if (n >= MIN_ANY_N and pd.notna(v) and median) else np.nan,
+                # ★ 2026-09-19：原本這裡回的是**比值**（v / median），但前端兩處都當成
+                #   「相對中位的百分比差」在用 —— site/app.js 的「只看低於族群中位」判 < 0，
+                #   site/industry.js 個股頁印「高於／低於中位 N%」。本益比恆正，所以比值永遠 > 0：
+                #   那個勾選框從掛上去的第一天就永遠篩出 0 筆（畫面寫「沒有符合條件的股票」，
+                #   看起來像今天剛好沒便宜股），而個股頁對每一檔都印「高於中位」。
+                #   口徑統一成百分比差：-30 ＝ 比族群中位便宜 30%。
+                "vs_median": ((v / median - 1) * 100
+                              if (n >= MIN_ANY_N and pd.notna(v) and median) else np.nan),
                 "thin_sample": n < MIN_GROUP_N,
                 "group_loss_ratio": loss_ratio,
             })

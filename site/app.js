@@ -471,7 +471,15 @@
     // 產業鏈的外商小面板不屬於任何 view，換頁一定要自己清（Andy 2026-09-18 圖12）
     { const cb = document.getElementById('coBox'); if (cb) cb.remove(); }
     const h = location.hash.replace('#', '') || 'overview';
-    const [head, ...rest] = h.split('/');
+    /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
+       法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
+       不解碼的話 industry.js 的 `g.id === state.group` 永遠比不中 ——
+       35 個法定產業別裡有 34 個的族群頁是「0 檔 · 沒有符合的股票」，
+       只有純 ASCII 的 ind_ETF 躲過。候選名單、市場明細、個股頁的族群連結全部通到這裡。
+       decodeURIComponent 對沒編碼過的字串是 identity，所以其餘路由不受影響；
+       使用者手打出壞的 % 序列會丟例外，包起來退回原字串。 */
+    const _dec = (x) => { try { return decodeURIComponent(x); } catch (e) { return x; } };
+    const [head, ...rest] = h.split('/').map(_dec);
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
@@ -501,10 +509,28 @@
     ['updown', '漲跌家數'], ['ma', '站上均線'], ['cand', '今日候選'],
   ];
   function wireKpiDrill() {
-    // drill 以 # 開頭就是完整 hash（例如集中度改導到資金流向頁），否則是市場明細的子頁
+    /* drill 以 # 開頭就是完整 hash（例如集中度改導到資金流向頁），否則是市場明細的子頁。
+       ★ 2026-09-19：完整 hash 的情況要再捲到那張圖。「前五族群佔比」導到 #flow，
+       但集中度圖在頁面 2700px 處，使用者點完只會看到資金流向頁的頂端，
+       得自己往下捲很久才找得到 —— 看起來像「點了沒反應」。
+       #anchor 的形式寫成 `#flow>conc`：> 後面是要捲過去的元素 id。 */
     $$('#hero .kpi.clickable').forEach(k => k.onclick = () => {
       const d = k.dataset.drill || '';
-      location.hash = d.startsWith('#') ? d : '#market/' + d;
+      if (!d.startsWith('#')) { location.hash = '#market/' + d; return; }
+      const [hash, anchor] = d.split('>');
+      location.hash = hash;
+      if (!anchor) return;
+      // 換頁是非同步的（route() 要等資料與圖表），輪詢到元素出現再捲
+      let tries = 0;
+      const tick = () => {
+        const el = document.getElementById(anchor);
+        if (el && el.offsetParent !== null) {
+          (el.closest('.card') || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
+        }
+        if (++tries < 40) setTimeout(tick, 100);
+      };
+      setTimeout(tick, 100);
     });
   }
 
@@ -826,7 +852,7 @@
       kp('站上 MA20', b.pct_above_ma20 != null ? b.pct_above_ma20 + '%' : '—', `MA60 ${b.pct_above_ma60 ?? '—'}%　樣本 ${b.n ?? '—'}`,
          '', (b.by_group || []).length ? 'ma' : ''),
       // 「資金集中」那一頁 2026-09-18 拿掉了，改導到資金流向頁的集中度圖（那裡功能更完整）
-      kp('前五族群佔比', heat && heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—', '越高＝資金越集中', '', (gt || []).length ? '#flow' : ''),
+      kp('前五族群佔比', heat && heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—', '越高＝資金越集中', '', (gt || []).length ? '#flow>conc' : ''),
       kp('今日候選', `<span class="up">${b.grade_a ?? 0}</span> A <span class="muted">/</span> <span class="amber">${b.grade_b ?? 0}</span> B`, '回檔承接 / 突破追進', '', 'cand'),
     ].join('');
     wireKpiDrill();
@@ -2765,7 +2791,7 @@
        樣本少於 3 年的不列（跟熱力圖同一條門檻）。*/
     const SEASON_TIER = [
       { k: 'strong', name: '強勢', color: '#ff4d6d', sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
-      { k: 'good', name: '偏強', color: '#ffb454', sub: '勝率或幅度其中一項不錯', act: 'second thought' },
+      { k: 'good', name: '偏強', color: '#ffb454', sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
       { k: 'soft', name: '偏弱', color: '#8b7bff', sub: '這個月表現平平', act: '沒有季節性優勢' },
       { k: 'weak', name: '弱勢', color: '#2ee59d', sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
     ];

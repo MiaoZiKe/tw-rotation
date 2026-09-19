@@ -334,3 +334,60 @@ def test_monthly_step_and_unknown_plan():
     assert len(run_backfill.plan_steps("default")) == len(run_backfill.PLAN_DEFAULT) + 1
     with pytest.raises(KeyError):
         run_backfill.plan_steps("nope")
+
+
+# --------------------------------------------- 「整個資料集回空」不等於「這些股票沒資料」
+# 真實事故（2026-09-12，2026-09-19 才查出來）：
+# FinMind 免費層不開 TaiwanStockHoldingSharesPer，於是 holding 那一步 500 檔全部回空，
+# 每一檔都被「額度還在卻拿不到東西 → 記成做過」寫死了 done 鍵。
+# 結果是 shareholding_weekly 一列都沒進來、再也沒有任何一輪會重問，
+# 而網站上「大戶 4 週變化」需要 5 筆週資料，所以全市場每一檔都永遠顯示「—」。
+# 這一組測試守住的分界是：一次都沒拿到 → 判定資料集不開放，不寫 done；
+# 拿到過至少一次 → 其餘回空的就是真的沒資料，照舊寫 done。
+
+def test_整組資料集全部回空時不寫done(sandbox, monkeypatch):
+    codes = ["2330", "2454", "2317", "2382"]
+    monkeypatch.setattr(run_backfill, "target_codes", lambda limit: codes)
+    monkeypatch.setattr(run_backfill.finmind, "holding_history",
+                        lambda c, s, wait=False: pd.DataFrame())
+    summary = run_backfill.run("holding", None, "2021-01-01")
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+
+    assert summary["no_data"] == len(codes)
+    assert summary.get("unavailable") == ["holding"]
+    assert not [k for k in prog["done"] if k.startswith("holding")], \
+        "整個資料集都拿不到時不可以寫 done，否則下一輪會全部跳過、永遠補不回來"
+    # complete 也不可以標成補齊，不然排程的 guard 會直接跳過整輪
+    assert prog["complete"]["holding@2021-01-01"]["done"] is False
+
+
+def test_有拿到過資料時其餘回空的照舊記done(sandbox, monkeypatch):
+    codes = ["2330", "9999", "8888", "7777"]
+    monkeypatch.setattr(run_backfill, "target_codes", lambda limit: codes)
+
+    def fake_holding(code, start, wait=False):
+        if code == "2330":
+            return pd.DataFrame({"date": ["2026-09-04"], "code": [code],
+                                 "level": ["400張以上"], "people": [1], "percent": [1.0]})
+        return pd.DataFrame()
+
+    monkeypatch.setattr(run_backfill.finmind, "holding_history", fake_holding)
+    summary = run_backfill.run("holding", None, "2021-01-01")
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+
+    assert summary["no_data"] == 3
+    assert not summary.get("unavailable")
+    for c in codes:
+        assert prog["done"][f"holding@2021-01-01:{c}"] is True
+    assert prog["complete"]["holding@2021-01-01"]["done"] is True
+
+
+def test_只問到兩檔就全空不算資料集不開放(sandbox, monkeypatch):
+    """門檻是 3 檔 —— 一輪只跑到一兩檔就全空，可能只是剛好那兩檔沒資料。"""
+    monkeypatch.setattr(run_backfill, "target_codes", lambda limit: ["9999", "8888"])
+    monkeypatch.setattr(run_backfill.finmind, "holding_history",
+                        lambda c, s, wait=False: pd.DataFrame())
+    run_backfill.run("holding", None, "2021-01-01")
+    prog = json.loads(run_backfill.PROGRESS.read_text())
+    assert prog["done"]["holding@2021-01-01:9999"] is True
+    assert prog["done"]["holding@2021-01-01:8888"] is True
