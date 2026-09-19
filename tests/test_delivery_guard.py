@@ -306,3 +306,64 @@ def test_前端真的改吃color_idx():
     assert any("color_idx" in ln for ln in line), (
         "site/app.js 建 L.sidx 時沒有讀 color_idx —— "
         "loader 送出來了但前端沒接，新增環節還是會把全站顏色洗掉")
+
+
+# ---------------------------------------------------------------- 畫面上不准出現 "nan"
+def test_送到前端的名稱不會是nan():
+    """壞掉的時候使用者會看到什麼：資金去向桑基圖的代表股那一欄整排寫著「nan」。
+
+    根因（2026-09-20，Andy 直接截圖回報）
+    ------------------------------------
+    `price_daily` 的 `name` 欄是後來才加的，只有 2026-09-09 之後的列有值。
+    取名字的地方寫成 `px.drop_duplicates("code")` —— 預設留**第一筆**，
+    而 px 通常已經切到最近 60 天、起點在三個月前，所以每一檔拿到的都是 NaN，
+    再被 `str()` 變成字串 "nan" 寫進 JSON。
+
+    ★ 同一行在兩個地方各寫了一次（`rrg.sankey_daily` 與 `flow.concentration_members`），
+      Andy 只看到桑基圖那一個，另一個是掃 JSON 才抓到的 —— 所以這條測試**掃整個
+      site/data/**，不是只驗那兩支函式。有第三個地方再犯，這條會直接紅。
+    """
+    import pathlib
+
+    out = pathlib.Path(__file__).resolve().parent.parent / "site" / "data"
+    files = sorted(out.glob("*.json"))
+    if not files:
+        pytest.skip("還沒有 site/data，跳過（乾淨 checkout 的 CI）")
+
+    bad = []
+    for f in files:
+        txt = f.read_text(encoding="utf-8")
+        n = txt.count('"nan"') + txt.count('"NaN"') + txt.count('"None"')
+        if n:
+            bad.append(f"{f.name}：{n} 處")
+    assert not bad, (
+        "這些送到前端的 JSON 裡有字串 \"nan\"／\"None\"，畫面上會直接印出來：\n  "
+        + "\n  ".join(bad)
+        + "\n\n取名字一律走 pipeline/compute/names.py 的 latest_names() 與 name_or_code()，"
+        "不要再自己寫一次 drop_duplicates(\"code\")。"
+    )
+
+
+def test_取名字的地方沒有人再自己寫一次():
+    """把「不要再有第三個地方各寫一次」釘成機器檢查。
+
+    壞掉的時候：某個新功能又自己寫了 `px.drop_duplicates("code")...["name"]`，
+    於是那一塊畫面又開始印 nan，而且要等 Andy 截圖回報才會發現。
+    """
+    import pathlib
+    import re
+
+    root = pathlib.Path(__file__).resolve().parent.parent / "pipeline"
+    pat = re.compile(r'drop_duplicates\(\s*["\']code["\']\s*\)[^\n]*\[\s*["\']name["\']\s*\]')
+    hits = []
+    for f in root.rglob("*.py"):
+        if f.name == "names.py":
+            continue
+        for i, ln in enumerate(f.read_text(encoding="utf-8").splitlines(), 1):
+            if pat.search(ln):
+                hits.append(f"{f.relative_to(root.parent)}:{i}  {ln.strip()}")
+    assert not hits, (
+        "這幾行又在自己組「代號 → 名稱」了，會重演 2026-09-20 的 nan：\n  "
+        + "\n  ".join(hits)
+        + "\n\n改用 pipeline/compute/names.py 的 latest_names()。"
+    )

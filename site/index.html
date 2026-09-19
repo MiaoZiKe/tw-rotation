@@ -192,6 +192,13 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .chart{width:100%;min-height:260px}
 .chart.tall{min-height:420px} .chart.short{min-height:200px}
 .chart.isempty{min-height:0}
+/* 資金去向（只有資金流向頁用得到）：12 個族群 × 3 檔代表股＝固定 36 列葉子，
+   420px 擠不下，字會疊在一起。另外要 position:relative ——
+   小圓點傳輸動畫是一層絕對定位的 canvas，疊在 ECharts 自己的 canvas 上面。*/
+#sankey{position:relative;min-height:560px}
+#sankey.isempty{min-height:0}   /* 空狀態要把高度收掉，不然留一個 560px 的黑方塊 */
+#sankey canvas.dotfx{position:absolute;left:0;top:0;pointer-events:none}
+@media (max-width:900px){ #sankey{min-height:520px} }
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
@@ -238,6 +245,16 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms a:hover{border-color:var(--cyan)}
 .hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
+/* ★ 2026-09-20（Andy：「資金流向排行下方的族群點擊後所顯示的股票 太長了，
+   需要變成固定大小，所以需要有拉Bar 功能，並且確認所有相關版面一樣使用這方式」）。
+   成分股多的族群（ETF、半導體業）一展開就把整張圖推出畫面，得捲很久才捲得回來。
+   固定高度＋自己的捲軸，和輪動階段那四格（.stage ul）用的是同一套做法。
+   這條選擇器是全站共用的 .hpanel —— 資金流向的排行面板、資金集中度的側欄、
+   總覽熱力圖的族群面板都吃得到，Andy 要的「所有相關版面一樣」就是這個意思。*/
+.hpanel .ms{max-height:232px;overflow-y:auto;scrollbar-width:thin;padding-right:4px}
+.hpanel .ms::-webkit-scrollbar{width:6px}
+.hpanel .ms::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
+@media (max-width:900px){ .hpanel .ms{max-height:190px} }
 /* 放大只在框內發生：捲動層 .zpane 在放大時高度鎖死，卡片與整頁版面完全不受影響 */
 /* 圖表旁邊的透明度滑桿（本益比河流圖）。Andy 2026-09-16 要「可以調整透明度」。 */
 .opabox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
@@ -264,17 +281,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .gchip .pick:hover,.gchip .go:hover{color:var(--ink)}
 .gchip.on{background:color-mix(in srgb,var(--c) 26%,transparent);border-color:var(--c)}
 .gchip.on .pick{color:var(--ink);font-weight:600}
-/* 台指期夜盤區塊（Andy 2026-09-18 圖一）。期交所只給報價沒有分時檔，所以是數字卡。*/
-.m3-night{margin:6px 0 2px;padding:8px 10px;border-radius:12px;
+/* 台指期夜盤（Andy 2026-09-19：「夜盤要跟日盤共用同一個走勢圖」）。
+   2026-09-18 版本是在卡片上半部另外插一塊方框 —— 同一張卡兩套數字。
+   現在 .m3-night 是**畫在圖表容器裡面**的說明面板（點數不足 2 筆時才出現），
+   所以要撐滿容器高度而不是自己再撐出一塊；只有這三張卡用得到這個選擇器。*/
+.m3-night{height:100%;box-sizing:border-box;overflow:auto;padding:12px 14px;border-radius:12px;
+  display:flex;flex-direction:column;gap:6px;justify-content:center;
   background:color-mix(in srgb,var(--violet) 9%,transparent);
   border:1px solid color-mix(in srgb,var(--violet) 26%,transparent)}
 .m3-night .m3-q{display:flex;align-items:baseline;gap:10px}
-.m3-night .m3-q b{font-size:22px;font-family:var(--mono)}
-.m3-night .m3-q span{font-family:var(--mono);font-size:13px}
-.m3-night .m3-kv{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;
-  font-family:var(--mono);font-size:12px;color:var(--ink-2)}
-.m3-night .note{margin-top:4px;font-size:11.5px;color:var(--ink-3)}
-@media (max-width:900px){ .m3-night .m3-q b{font-size:19px} }
+.m3-night .m3-q b{font-size:15px}
+.m3-night .note{font-size:12px;color:var(--ink-2);line-height:1.6}
+.m3-night .note b{color:var(--ink)}
+/* 卡片數字列右邊那顆小標（「夜盤 TXFJ6-M」／「夜盤報價未取得…」）。
+   warn 用琥珀色，跟退回日線那行同一個語彙：畫面上有東西，但要講清楚它是什麼。*/
+.m3-tag{margin-left:8px;padding:1px 7px;border-radius:999px;font-size:11px;font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  background:color-mix(in srgb,var(--violet) 18%,transparent);color:var(--ink-2)}
+.m3-tag.warn{background:color-mix(in srgb,var(--amber) 18%,transparent);color:var(--amber)}
+@media (max-width:900px){ .m3-night .note{font-size:11.5px} }
 /* 大盤三張圖：這個週期沒來源而自動退回日線時，在圖上方標一行（N11）。
    用 ::before 而不是插一個節點 —— 圖表容器的高度是量出來的，插節點會把圖擠歪。*/
 [id^='m3c-'][data-fallback]::before{content:attr(data-fallback);display:block;font-size:11.5px;
@@ -1022,25 +1046,22 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       <div class="cyclebar" id="rotCycle"></div>
       <div class="rotmove" id="rotMove"></div>
       <div class="stageboard" id="rotBoard"></div></div>
-    <div class="grid g2" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>資金去向 <small id="sankeySub">大盤 → 族群 → 代表股：線越粗顏色越深＝錢越多</small></h3>
-        <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
-        <div class="howtxt" id="how-sankey" hidden></div>
-        <div id="sankeyDays" title="看哪一天：拖曳往回看，按 ▶ 一天一天播"></div>
-        <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
-      <div class="card"><div class="row spread"><h3>族群佔比河流 <small>成交值佔比 %</small></h3>
-        <div class="row" style="gap:10px;align-items:center">
-          <div id="riverDays" title="看最近幾天：拖曳調整"></div>
-          <div id="riverEnd" title="截止日：往回拉看以前的樣子，按 ▶ 一天一天播"></div>
-          <button class="howbtn" data-how="river">怎麼看 ?</button></div></div>
-        <div class="howtxt" id="how-river" hidden></div>
-        <div id="riverWrap"><div id="river" class="chart tall"></div></div></div>
-    </div>
+    <!-- ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
+         「族群佔比河流」整張卡片（圖 ＋『最近 N 天』時間週期拉Bar ＋ 截止日回放）已移除。
+         它回答的問題（這 60 天主流換過幾次）和下面的「資金集中度」重疊，
+         而集中度那張還多了六條均線與逐日鑽取。
+         空出來的半格給「資金去向」—— 它現在是固定 12 個族群 × 3 檔代表股的樹，
+         半個版面會把族群名擠掉，改成整列反而是這一批最需要寬度的一張。 -->
+    <div class="card" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">族群固定在原位，只有線的粗細與圓圈大小會變</small></h3>
+      <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
+      <div class="howtxt" id="how-sankey" hidden></div>
+      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變"></div>
+      <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">
           <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
-          <div id="instEnd" title="截止日：往回拉看以前的樣子，按 ▶ 一天一天播"></div>
+          <div id="instEnd" title="截止日：往回拉看以前的樣子"></div>
           <button class="howbtn" data-how="inst">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>

@@ -41,7 +41,24 @@
     return null;
   }
   function crumbs(items) { $('#indCrumbs').innerHTML = items.map((it, i) => it.href ? `<a onclick="location.hash='${it.href}'">${it.label}</a>${i < items.length - 1 ? '›' : ''}` : `<span class="cur">${it.label}</span>`).join(' '); }
-  function show(map, chain, stock) { $('#indMap').style.display = map ? '' : 'none'; $('#indChain').style.display = chain ? '' : 'none'; $('#stockPage').style.display = stock ? '' : 'none'; }
+  /* Andy 2026-09-20：「當點擊個股時 最新出現的是K線圖、多週期判對、總攬、營收…公告/新聞，
+     下方才是 產業地圖等資訊」。
+     index.html 的順序寫死是 #indMap → #indChain → #stockPage，所以個股頁第一眼看到的
+     是產業鏈那條 strip，K 線要捲一段才看得到。這裡用 DOM 搬移換順序（不動 index.html，
+     因為 #industry 與 #industry/<chain> 兩頁仍然要「產業鏈在上」）：
+       個股頁 → #indChain 搬到 #stockPage 後面；離開個股頁 → 搬回去。
+     搬的是 #indChain 而不是 #stockPage —— K 線（lightweight-charts）掛在 #stockPage 裡，
+     把它從 DOM 拔起來再插回去會讓圖表容器重新量一次尺寸，最糟的情況是高度變 0。
+     而且 show() 一律在寫 innerHTML **之前**呼叫，所以搬的當下兩邊都還是空的。 */
+  function show(map, chain, stock) {
+    const mp = $('#indMap'), cn = $('#indChain'), st = $('#stockPage');
+    mp.style.display = map ? '' : 'none'; cn.style.display = chain ? '' : 'none'; st.style.display = stock ? '' : 'none';
+    const par = st.parentNode; if (!par) return;
+    // 用文件位置判斷，不要假設兩者一定相鄰（將來中間插一塊就會安靜地失效）
+    const chainBeforeStock = !!(cn.compareDocumentPosition(st) & Node.DOCUMENT_POSITION_FOLLOWING);
+    if (stock) { if (chainBeforeStock) par.insertBefore(cn, st.nextSibling); cn.style.marginTop = '16px'; }
+    else { if (!chainBeforeStock) par.insertBefore(cn, st); cn.style.marginTop = ''; }
+  }
 
   // ================================================================ Level 0：產業地圖
   function renderMap(im) {
@@ -174,7 +191,7 @@
       <div class="card">
         <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。' : (hasMap ? '環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係，不會跳走。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
+          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
@@ -233,7 +250,9 @@
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
       highlightSegments(el, segsOn, color);
-      if (segFilter && !o.quiet) scrollChainTo(el, segFilter);
+      /* noscroll：從關聯圖上「點公司」進來的那一條路。使用者的眼睛就在關聯圖上，
+         再把圖捲到那一欄只會讓他剛剛點的那張卡片跑掉。點環節色標（在圖下面）才需要捲。*/
+      if (segFilter && !o.quiet && !o.noscroll) scrollChainTo(el, segFilter);
       $$('#groupCards .tile', el).forEach(t => t.classList.toggle('sel', !!state.group && t.dataset.gid === state.group || (!!segFilter && (A.L.sgroups[segFilter] || []).includes(t.dataset.gid))));
       $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
       renderSegBox($('#segBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
@@ -251,7 +270,23 @@
     });
     // 關聯圖只要這條鏈有環節就畫，不管有沒有剖析圖（見上面 hasMap 的註解）
     if (hasMap) {
-      drawChainMap($('#chainMap', el), sc, ch.id, im, { onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); } });
+      drawChainMap($('#chainMap', el), sc, ch.id, im, {
+        onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
+        /* 點公司＝連同它所屬的環節一起選起來（Andy 2026-09-20）。
+           ★ 選的是「環節」不是「族群」，三個理由：
+             ① 一家公司只有一個 segment，卻可能掛在好幾個族群（groups 是陣列）——
+                選族群就得替他挑一個，那是猜的。
+             ② 既有的 syncHighlight 已經會由環節反推族群：
+                `A.L.sgroups[segFilter]` 命中的族群卡片全部亮起來，
+                所以「日月光投控 → osat_test → 封測卡片亮」是自動成立的，兩者不會不一致。
+             ③ 這樣跟「直接點環節色標」完全同一個結果（segFilter），
+                不會出現兩種選取狀態並存、使用者分不出現在篩的是誰。
+           所以這裡刻意 `state.group = null`：族群卡片的「亮」是環節推出來的結果，
+           不是另一個獨立的篩選條件（真的設了 state.group，成分股會被「族群 ∩ 環節」再砍一刀）。
+           不做 toggle（再點一次不取消）—— 這個動作的主要目的是開右側面板，
+           面板還開著、選取卻被取消掉會前後矛盾。要取消就點下面的環節色標。*/
+        onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; state.group = null; syncHighlight({ noscroll: true }); },
+      });
     }
     if (hasDiagram && sc) {
       paintDiagram($('#prodDiagram', el));
@@ -662,9 +697,31 @@
          但那樣一點就走，想看它在鏈上的位置、同環節有誰都來不及。
          現在一律先開原地小面板（同環節、市占、技術、成長），
          面板裡有一顆「看個股頁 →」要跳再跳。*/
-      showCompany(co, sc, host); }; });
+      showCompany(co, sc, host);
+      /* Andy 2026-09-20：「當我點擊『日月光頭控』時 他所對應的族群會被選取」。
+         以前點公司只開右側面板，下面的環節色標、族群卡片、成分股表完全沒反應 ——
+         使用者看到「日月光投控在封測」，卻得自己再回頭去點一次「封測」才篩得到。
+         現在把它接到**既有那一套**上（onCompany → 跟點環節色標同一條路），
+         不另外寫一套高亮邏輯。選的是**環節**（co.segment）不是族群，理由見 renderChain 的註解。*/
+      if (handlers && handlers.onCompany) handlers.onCompany(co); }; });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
-    if (state.code) { const sel = $(`.co[data-code="${state.code}"]`, host); if (sel && sel.scrollIntoView) setTimeout(() => sel.scrollIntoView({ block: 'nearest', inline: 'center', behavior: 'smooth' }), 50); }
+    /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
+       原本用 scrollIntoView，它會一路往上找每一個可捲的祖先，連 document 也算。
+       在個股頁把產業鏈搬到最下面之後（Andy 2026-09-20），那一下等於把整頁拉到底，
+       使用者一進個股頁就看不到 K 線 —— 剛好把這次要修的東西反過來弄壞。*/
+    if (state.code) {
+      const sel = $(`.co[data-code="${state.code}"]`, host);
+      if (sel && sel.getBBox) setTimeout(() => {
+        try {
+          const svg = host.querySelector('svg'); if (!svg) return;
+          const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+          const scale = vb.length === 4 && vb[2] ? (svg.clientWidth || host.clientWidth) / vb[2] : 1;
+          const b = sel.getBBox();
+          host.scrollTo({ left: Math.max(0, b.x * scale - host.clientWidth / 2 + b.width * scale / 2),
+                          top: Math.max(0, b.y * scale - 60), behavior: 'smooth' });
+        } catch (e) { /* 收合狀態下 getBBox 量不到，忽略 */ }
+      }, 50);
+    }
   }
   /* 關掉外商小面板。換頁（route）與點下一家公司之前都會呼叫，
      這樣 #coBox 永遠不會活過它所屬的那一頁。*/
@@ -970,7 +1027,11 @@
     const co = sc ? sc.companies.find(c => c.tw_code === m.code) : null;
     const segs = chainSegments(sc, cid);
     let open = false; try { open = localStorage.getItem('tw.chainOpen') === '1'; } catch (e) { /* 忽略 */ }
+    /* 這一塊現在排在個股頁的最下面（Andy 2026-09-20 要 K 線先出現），
+       所以要自己講清楚「這是什麼、看它幹嘛」—— 原本它緊貼在麵包屑下面，
+       靠位置就看得懂；搬到底下之後沒有標題就只是一排看不懂的連結。*/
     el.innerHTML = `<div class="card tight">
+      <h4 style="margin:0 0 8px">產業鏈位置 <small class="muted">這一檔卡在上下游的哪一段、同族群還有誰在動；要換一檔比較就直接點下面那排</small></h4>
       <div class="row spread"><div class="row" style="gap:8px"><b>${A.L.chain(cid, ch.name)}</b><span class="muted">›</span>${g ? A.L.group(g.id, g.name) : A.fmt.esc(m.group || '')}${co ? `<span class="muted">›</span><span class="pill" style="border-color:${segColor(co.segment)};color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>` : ''}</div>
         <div class="row" style="gap:8px">${hasDiagram ? `<button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
       ${sibs.length ? `<div class="sibs" id="sibs"><span class="muted" style="flex:none;font-size:12px;align-self:center">同族群</span>${sibs.map(x => `<a class="lk ${x.code === m.code ? 'cur' : ''}" href="#stock/${x.code}">${A.fmt.esc(x.name)}<span class="code">${x.code}</span><span class="chg ${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></a>`).join('')}</div>` : ''}
@@ -979,7 +1040,15 @@
         <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
         <div id="prodDiagram" class="dgwrap" style="margin-top:10px;max-width:1080px">${window.Diagrams[cid]()}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
     </div>`;
-    const cur = $('#sibs a.cur', el); if (cur && cur.scrollIntoView) setTimeout(() => cur.scrollIntoView({ block: 'nearest', inline: 'center' }), 30);
+    /* 同族群那一列橫向捲到目前這檔 —— 一樣只捲那一列，不用 scrollIntoView。
+       產業鏈區塊搬到個股頁最下面之後，scrollIntoView 會把整頁拖到底（見 drawChainMap 的註解）。*/
+    const cur = $('#sibs a.cur', el), sibBox = $('#sibs', el);
+    if (cur && sibBox) setTimeout(() => {
+      // 用兩個 rect 相減，不用 offsetLeft —— offsetLeft 看的是 offsetParent，
+      // .sibs 沒有 position 時那會是外面的卡片，算出來整個偏掉。
+      const d = cur.getBoundingClientRect().left - sibBox.getBoundingClientRect().left;
+      sibBox.scrollLeft = Math.max(0, sibBox.scrollLeft + d - sibBox.clientWidth / 2 + cur.offsetWidth / 2);
+    }, 30);
     if (hasDiagram && sc) {
       const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       paintDiagram($('#prodDiagram', el));

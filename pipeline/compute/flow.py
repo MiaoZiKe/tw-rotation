@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+from .names import latest_names, name_or_code
 import logging
 
 import numpy as np
@@ -214,9 +215,10 @@ def concentration_members(group_hist: pd.DataFrame, price: pd.DataFrame,
             code2g.setdefault(str(r.code), []).append(str(r.group_id))
     if not code2g:
         return {}
-    name_of = {}
-    if "name" in px.columns:
-        name_of = px.drop_duplicates("code").set_index("code")["name"].to_dict()
+    # ★ 2026-09-20：這裡原本是 `px.drop_duplicates("code")`，取到的是**最早**那一列，
+    #   而 price_daily 的 name 欄只有 2026-09-09 之後才有值 —— 於是整批拿到 NaN，
+    #   畫面上顯示「nan 2330」。抽成 names.latest_names() 共用（同一個錯在兩個檔各寫過一次）。
+    name_of = latest_names(px)
     out: dict[str, dict] = {}
     for d, day in px.groupby("date"):
         gday = gh[gh["date"].astype(str) == d].sort_values("turnover", ascending=False)
@@ -232,7 +234,7 @@ def concentration_members(group_hist: pd.DataFrame, price: pd.DataFrame,
         one = {}
         for g, lst in buckets.items():
             lst.sort(key=lambda t: -t[1])
-            one[g] = [{"code": c, "name": str(name_of.get(c, c)), "turnover": tv}
+            one[g] = [{"code": c, "name": name_or_code(name_of, c), "turnover": tv}
                       for c, tv in lst[:top_members]]
         out[str(d)] = one
     return out

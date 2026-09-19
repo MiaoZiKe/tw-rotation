@@ -875,7 +875,8 @@ def t_flow(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2200)
     # 2026-09-18（Andy 圖四）：名次變化整張拿掉，那一格改放輪動時鐘
     for cid, name in (("rankFlow", "資金流向排行"), ("rotClock", "輪動時鐘"),
-                      ("sankey", "資金桑基圖"), ("river", "資金河流圖"),
+                      # 2026-09-20：族群佔比河流（#river）已依 Andy 指示整張移除
+                      ("sankey", "資金去向"),
                       ("instGroups", "族群 × 法人"), ("conc", "資金集中度"), ("valScatter", "估值散布圖")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty'), msg: ((e.querySelector('.empty')||{{}}).textContent||'').trim() }} : null; }}")
         # 法人比價量晚一輪落地（價量 15:30、法人 18:30）：當天下午「本週」那一段本來就還沒有法人。
@@ -920,7 +921,9 @@ def t_flow(pg, base):
 
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
     hows = pg.evaluate("[...document.querySelectorAll('#v-flow .howbtn')].map(b => b.dataset.how)")
-    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 7, hows)
+    # 2026-09-20：族群佔比河流整張移除（Andy 指示），所以門檻 7 → 6。
+    # 這條只准往下調一次、而且要說得出哪一張沒了 —— 不是為了讓測試變綠隨手改數字。
+    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 6, hows)
     for h in hows:
         click(pg, f'#v-flow .howbtn[data-how="{h}"]', 250)
         st = pg.evaluate(f"""() => {{ const b = document.getElementById('how-{h}');
@@ -1079,34 +1082,15 @@ def t_flow(pg, base):
         if (!c) return false; const f = c.getOption().tooltip[0].formatter;
         const s = f({ name: 'a', data: { value: 1 } });
         return typeof s === 'string' && s.indexOf('%') >= 0; }"""))
-    # 圖六的「看哪一天」播放拉Bar
+    # 圖六的「看哪一天」拉Bar（2026-09-20 起沒有播放鈕，見 t_new_flow）
     if pg.evaluate("() => !!document.querySelector('#sankeyDays input[type=range]')"):
         s0 = canvas_hash(pg, "#sankey")
         set_range(pg, "#sankeyDays input[type=range]", 0, 1200)
         changed("資金去向拉到最舊那天，圖真的重畫（圖六）", s0, canvas_hash(pg, "#sankey"))
-        check_play(pg, "#sankeyDays")
 
-    # ---- H1 族群佔比河流：占比 % ＋ 天數拉 Bar
-    rb = pg.evaluate("""() => { const i = document.querySelector('#riverDays input[type=range]');
-        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
-    ok("族群佔比河流有天數拉 Bar", bool(rb), rb)
-    # 2026-09-19：後端 share_series 從 60 天拉到 250 天（圖七要能把截止日往回挪、一天一天播），
-    # 所以「最多 60 天」那條上限作廢；改成驗「拉得夠長、起點夠小」。
-    ok("河流的拉 Bar 範圍夠用（至少能拉到 60 天）",
-       bool(rb) and rb["max"] >= 60 and rb["min"] <= 10, rb)
-    if pg.evaluate("() => !!document.querySelector('#riverEnd input[type=range]')"):
-        e0 = canvas_hash(pg, "#river")
-        set_range(pg, "#riverEnd input[type=range]", 30, 1200)
-        changed("河流把截止日往回拉，圖真的重畫（圖七）", e0, canvas_hash(pg, "#river"))
-        check_play(pg, "#riverEnd")
-    r0 = canvas_hash(pg, "#river")
-    set_range(pg, "#riverDays input[type=range]", 10, 900)
-    changed("拉天數，河流圖真的重畫", r0, canvas_hash(pg, "#river"))
-    ok("河流的數字有 % 單位", pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('river'));
-        if (!c) return false; const f = c.getOption().tooltip[0].formatter;
-        const s = f([{ marker: '', value: ['2026-09-18', 12.3, '半導體'] }]);
-        return typeof s === 'string' && s.indexOf('%') >= 0; }"""))
-    set_range(pg, "#riverDays input[type=range]", 60, 900)
+    # ---- H1 族群佔比河流：2026-09-20 Andy 指名移除（「圖四五 將時間週期以及族群佔比河流圖移除」）。
+    # 原本這裡有 6 條驗收（天數拉Bar 範圍、截止日回放、播放鈕、% 單位）全部指向已移除的元素，
+    # 留著一定紅。「真的不在 DOM 裡」這件事改在 t_new_flow 正面驗一次，不是刪掉不管。
 
     # ---- I1 族群 × 法人：0–30 天拉 Bar ＋ 占比 %
     ib = pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]');
@@ -1145,7 +1129,7 @@ def t_flow(pg, base):
 
     for w, lb in (("rankFlowWrap", "資金流向排行"),
                   ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
-                  ("riverWrap", "族群佔比河流"), ("instGroupsWrap", "族群 × 法人")):
+                  ("instGroupsWrap", "族群 × 法人")):
         check_nozoom(pg, w, lb)
 
 
@@ -1516,19 +1500,676 @@ def t_electronics(pg, base):
 # 每一支都要照 Andy 的硬性要求寫：**真的按下去、畫面真的因此改變了**
 # （筆數變了／排序變了／localStorage 真的寫進去了），不是驗「元素存在」。
 # ---------------------------------------------------------------------------
+def _want(only: str, name: str) -> bool:
+    """`--only` 支援逗號分隔的多段（例：`--only 新-資金流向,批次7`）。
+
+    2026-09-20 加的：有一條紅字只有在「A 段跑完之後接著跑 B 段」時才重現
+    （前一段留下的選取狀態污染了下一段）。只能一段一段跑的話，這種
+    跨段的交互作用永遠重現不出來，就只能整輪 15 分鐘慢慢試。
+    """
+    return any(part.strip() and part.strip() in name for part in only.split(","))
+
+
 def t_new_market3(pg, base):
-    """大盤三張圖（site/market3.js）：夜盤與日盤共用走勢圖、歷史至少三年。"""
-    return
+    """大盤三張圖（site/market3.js）：夜盤與日盤共用走勢圖、歷史至少三年。
+
+    Andy 2026-09-19 兩句話：
+      ①「夜盤勢會跟日盤共用同一個走試圖 而不是圖利分開，所以也具備即時走勢 K線等資訊」
+      ②「為何這些走勢都沒有過往歷史數據，幫我新增至少3年」
+
+    驗的是**按下去之後畫面真的不一樣**，不是元素存在：
+      - 按「夜盤」→ 卡片那排數字真的換成夜盤那一份、時間軸真的換成 15:00~05:00、
+        那塊獨立方框真的不見了
+      - 每多收到一筆夜盤報價，走勢圖上真的多一個點（點數是量出來的）
+      - 切「週 K」→ 三年日線真的合成出 100 根以上的週棒
+      - 歷史不到三年時，卡片上真的寫出「只有幾根、為什麼、什麼時候會變長」
+    """
+    import json as _json
+    from urllib.parse import urlparse, parse_qs
+
+    # ---- 假的當日分時（跟 t_market3 同一份，形狀與 mis 實測一致）
+    def fake_chart(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        i = (q.get("id") or ["TSE"])[0].upper()
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(_fake_chart(i)))
+
+    # ---- 假的期交所夜盤報價。每打一次就前進一分鐘、換一個價 ——
+    #      這樣才驗得到「自動更新一輪就真的多一個點」，而不是「有畫東西」。
+    NQ = {"i": 0}
+
+    def fake_fut(route):
+        q = parse_qs(urlparse(route.request.url).query)
+        night = (q.get("session") or ["day"])[0] == "night"
+        if not night:
+            route.fulfill(status=200, content_type="application/json",
+                          body='{"RtCode":"0","RtData":{"QuoteList":[]}}')
+            return
+        i = NQ["i"]; NQ["i"] += 1
+        mm = 1 + i                                   # 15:01, 15:02, ...
+        last = 47405 + i * 7
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps({"RtCode": "0", "RtMsg": "", "RtData": {"QuoteList": [
+                          # 第一筆是臺指現貨參考列（-P 結尾），前端要跳過
+                          {"SymbolID": "TXF-P", "DispCName": "臺指現貨", "CRefPrice": "47180.75",
+                           "CTotalVolume": "", "CLastPrice": "", "CDate": "20260919", "CTime": ""},
+                          {"SymbolID": "TXFJ6-M", "DispCName": "臺指期106",
+                           "CLastPrice": "%.2f" % last, "CRefPrice": "47418.00",
+                           "COpenPrice": "47390.00", "CHighPrice": "%.2f" % (last + 25),
+                           "CLowPrice": "47330.00", "CTotalVolume": str(1200 + i * 140),
+                           "OpenInterest": "101893", "SettlementPrice": "47428.00",
+                           "CDate": "20260919", "CTime": "15%02d30" % mm},
+                          {"SymbolID": "TXFK6-M", "DispCName": "臺指期116",
+                           "CLastPrice": "47560.00", "CRefPrice": "47581.00",
+                           "COpenPrice": "47500.00", "CHighPrice": "47600.00", "CLowPrice": "47480.00",
+                           "CTotalVolume": "37", "OpenInterest": "597", "SettlementPrice": "47560.00",
+                           "CDate": "20260919", "CTime": "15%02d30" % mm},
+                      ]}}))
+
+    # ---- 假的資料湖日線。LAKE["n"] 控制「有幾年」，用來分別驗「夠長」與「太短」兩種畫面。
+    LAKE = {"n": 780}                                 # 780 個交易日 ≒ 3.2 年
+
+    def fake_lake(route):
+        import datetime as _dt
+        out = {}
+        for sym, px in (("TSE", 45000.0), ("OTC", 390.0), ("FUT", 44900.0)):
+            bars, d, p = [], _dt.date(2023, 1, 2), px
+            while len(bars) < LAKE["n"]:
+                if d.weekday() < 5:
+                    p = p * (1 + ((len(bars) % 7) - 3) / 500.0)
+                    bars.append([d.isoformat(), round(p * .999, 2), round(p * 1.006, 2),
+                                 round(p * .994, 2), round(p, 2), 1000 + len(bars)])
+                d += _dt.timedelta(days=1)
+            out[sym] = bars
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=_json.dumps(out))
+
+    def fresh(**kv):
+        """把三張圖的設定清乾淨再重進總覽（每一段都從同一個起點開始）。
+
+        先 goto 一次再寫 localStorage：上一段可能把分頁留在 about:blank，
+        那個 origin 的 localStorage 跟本站不是同一份，寫下去等於沒寫 ——
+        結果就是測試在台北 15:00 之後跑會自己跳到夜盤。
+        """
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""(kv) => { try {
+            ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut','tw.m3.nightpts'].forEach(k=>localStorage.removeItem(k));
+            localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+            Object.keys(kv).forEach(k => localStorage.setItem(k, kv[k]));
+          } catch(e){} }""", kv)
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="networkidle")
+        pg.wait_for_timeout(2400)
+
+    pg.route("**/chart?*", fake_chart)
+    pg.route("**/fut?*", fake_fut)
+    pg.route("**/data/index_ohlc.json*", fake_lake)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # 預設先停在日盤，不然測試在台北時間 15:00 之後跑會自己跳到夜盤
+    fresh(**{"tw.m3.fut": "day"})
+
+    axis_of = """(id) => { const el = document.getElementById('m3c-' + id);
+        if (!el || typeof echarts === 'undefined') return null;
+        const i = echarts.getInstanceByDom(el); if (!i) return null;
+        const d = ((i.getOption().xAxis || [])[0] || {}).data || [];
+        return [d[0], d[d.length - 1], d.length]; }"""
+
+    # ================================================================ 需求一：夜盤與日盤共用同一張圖
+    ok("預設停在日盤", pg.evaluate("() => window.Market3.session") == "day",
+       pg.evaluate("() => window.Market3.session"))
+    ok("日盤那顆鈕是亮的",
+       pg.evaluate("() => document.querySelector(\"#futSeg button[data-s='day']\").classList.contains('on')"))
+    day_px = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+    ok("日盤顯示的是分時檔那一份（45,780）", "45,780" in day_px, day_px)
+    day_axis = pg.evaluate(axis_of, "FUT")
+    ok("日盤走勢圖的時間軸是 08:45~13:45", day_axis and day_axis[0] == "08:45" and day_axis[1] == "13:45", day_axis)
+    day_hash = canvas_hash(pg, "#m3c-FUT")
+    ok("日盤真的畫了走勢圖", day_hash not in ("no-canvas", "0"), day_hash)
+
+    # --- ★ 真的按「夜盤」
+    click(pg, "#futSeg button[data-s='night']", 1800)
+    ok("按下去之後狀態真的換成夜盤", pg.evaluate("() => window.Market3.session") == "night",
+       pg.evaluate("() => window.Market3.session"))
+    ok("夜盤那顆鈕才是亮的",
+       pg.evaluate("() => document.querySelector(\"#futSeg button[data-s='night']\").classList.contains('on')"
+                   " && !document.querySelector(\"#futSeg button[data-s='day']\").classList.contains('on')"))
+    # 2026-09-19 Andy 的重點：不要再多疊一塊獨立方框
+    ok("那塊獨立的夜盤方框不見了（#futNight）", count(pg, "#futNight") == 0, count(pg, "#futNight"))
+    ok("說明面板只會出現在圖表容器裡，不會掛在卡片上",
+       count(pg, "#m3Grid .m3-card > .m3-night") == 0, count(pg, "#m3Grid .m3-card > .m3-night"))
+    ok("卡片上只有一排數字（沒有兩套）",
+       count(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums") == 1,
+       count(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums"))
+
+    # --- ★ 數字真的換成夜盤那一份
+    night_px = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+    changed("卡片上的價格真的換了一份", day_px, night_px)
+    ok("換成夜盤近月（TXFJ6-M）的成交價", "47,4" in night_px, night_px)
+    sub = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-sub")
+    ok("夜盤沒有「昨收」，寫的是「參考價」", "參考價" in sub and "昨收" not in sub, sub)
+    nums = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums")
+    ok("夜盤要看得到未平倉", "未平倉" in nums, nums)
+    tag = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-tag")
+    ok("數字旁邊標出這是夜盤、哪一支合約", "夜盤" in tag and "TXFJ6-M" in tag, tag)
+    ok("只有台指期那張有日盤／夜盤鈕", count(pg, "#m3Grid .seg.tiny") == 1)
+    ok("加權那張完全沒被影響", "45,862" in text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-px"),
+       text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-px"))
+
+    # --- ★ 夜盤還畫不出線的時候，要在**同一個容器裡**講清楚為什麼
+    #     用「Worker 還是舊版」這個真實情境來驗（回 404），這樣狀態才是確定的。
+    pg.unroute("**/fut?*")
+    pg.route("**/fut?*", lambda r: r.fulfill(status=404, content_type="application/json",
+                                             body='{"error":"not found"}'))
+    fresh(**{"tw.m3.fut": "night"})
+    ok("還是沒有那塊獨立方框", count(pg, "#futNight") == 0)
+    # N11 的規矩：畫面上不能沒有東西，但要老實說它是什麼 —— 退回日盤並標在圖上
+    fb = pg.evaluate("() => document.getElementById('m3c-FUT').dataset.fallback || ''")
+    ok("夜盤報價拿不到時，圖上直接標明「先顯示日盤」", "日盤" in fb and "夜盤" in fb, fb)
+    ok("退回去的是真的日盤走勢（不是一塊空白）",
+       pg.evaluate(axis_of, "FUT") and pg.evaluate(axis_of, "FUT")[0] == "08:45", pg.evaluate(axis_of, "FUT"))
+    ok("抓不到夜盤時，數字退回日盤而且明講",
+       "45,780" in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+       and "夜盤報價未取得" in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-tag"),
+       text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums"))
+
+    # --- 把來源換回正常的，從乾淨狀態重新累積
+    pg.unroute("**/fut?*")
+    pg.route("**/fut?*", fake_fut)
+    fresh(**{"tw.m3.fut": "night"})
+    n1 = pg.evaluate("() => window.Market3.nightPoints.length")
+    ok("重進夜盤先收到第一個點", 1 <= n1 <= 2, n1)
+    # --- ★ 只有一兩個點、還畫不成線時，要在**同一個容器裡**講清楚為什麼
+    if n1 < 2:
+        ok("說明面板畫在圖表容器裡面", count(pg, "#m3c-FUT .m3-night") == 1, count(pg, "#m3c-FUT .m3-night"))
+        hint = text(pg, "#m3c-FUT .m3-night")
+        ok("有講出「沒有現成的分時序列」這件事", "分時序列" in hint, hint[:90])
+        ok("有講出點是一筆一筆收的、收滿 2 筆才畫", "2 筆" in hint, hint[:200])
+        ok("空狀態不是一塊塌掉的黑方塊（面板高度跟日盤一樣）",
+           pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height") > 200,
+           pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height"))
+        ok("這時候上面那排數字已經是夜盤的（不會前後矛盾）",
+           "夜盤" in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-tag"),
+           text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums"))
+
+    # --- ★ 自動更新一輪就真的多一個點（每個點都是真的報價，不是內插）
+    for _ in range(5):
+        pg.evaluate("() => window.Market3.refresh(true)")
+        pg.wait_for_timeout(700)
+    pts = pg.evaluate("() => window.Market3.nightPoints")
+    ok("多更新幾輪之後，夜盤真的累積出一串點", len(pts) >= 5, len(pts))
+    ok("每個點的時間是遞增的（真的在走，不是同一筆重複）",
+       all(pts[i][0] < pts[i + 1][0] for i in range(len(pts) - 1)), pts[:6])
+    ok("每個點的價格不一樣（真的抓到新報價）", len({p[1] for p in pts}) == len(pts), pts[:6])
+    ok("量是累計量的增量，不是把累計量畫上去", all(p[3] < p[2] for p in pts[1:]), pts[:4])
+
+    # --- ★ 夜盤走勢圖真的畫出來了，而且是夜盤的時間軸
+    ok("說明面板換成真的走勢圖了", count(pg, "#m3c-FUT .m3-night") == 0)
+    night_axis = pg.evaluate(axis_of, "FUT")
+    ok("夜盤走勢圖的時間軸是 15:00~05:00（跨午夜）",
+       night_axis and night_axis[0] == "15:00" and night_axis[1] == "05:00", night_axis)
+    changed("時間軸真的跟日盤不同", day_axis, night_axis)
+    night_hash = canvas_hash(pg, "#m3c-FUT")
+    changed("同一個容器，畫出來的東西真的不一樣了", day_hash, night_hash)
+    ok("夜盤跟日盤用的是同一個圖表容器",
+       pg.evaluate("() => !!document.querySelector('#m3c-FUT canvas')"))
+
+    # --- ★ 夜盤也要有 K 線（跟日盤同一顆鈕、同一個容器）
+    click(pg, "#m3Mode button[data-m='k']", 1500)
+    pg.select_option("#m3Tf", "1"); pg.wait_for_timeout(1500)
+    nk = pg.evaluate("() => { const k = window.Market3.state.kcharts.FUT; return k ? k.data.length : 0; }")
+    ok("夜盤在 K 線模式真的畫出 K 棒", nk >= 5, nk)
+    ok("夜盤 K 線也是 Lightweight Charts（跟日盤同一套）",
+       pg.evaluate("() => document.getElementById('m3c-FUT').dataset.kind === 'k'"))
+    PL = ("() => { const k = window.Market3.state.kcharts.FUT;"
+          " if (!k || !k.priceLines || !k.priceLines.length) return null;"
+          " return k.priceLines.map(l => (l.options ? l.options().title : l.title)); }")
+    ok("夜盤 K 線的參考線寫的是「參考價」不是「昨收」",
+       any("參考價" in str(t) for t in (pg.evaluate(PL) or [])), pg.evaluate(PL))
+
+    # --- ★ 切回日盤：整張卡真的換回去
+    click(pg, "#m3Mode button[data-m='line']", 1200)
+    click(pg, "#futSeg button[data-s='day']", 1800)
+    back_px = text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+    ok("切回日盤，數字真的換回日盤那一份", "45,780" in back_px, back_px)
+    ok("切回日盤就沒有夜盤標籤了", count(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-tag") == 0)
+    back_axis = pg.evaluate(axis_of, "FUT")
+    changed("切回日盤，時間軸也真的換回 08:45~13:45", night_axis, back_axis)
+    ok("切回去的軸就是原本那一組", back_axis == day_axis, back_axis)
+
+    # --- 夜盤的選擇要記得住（重新整理還在夜盤，而且點不會歸零）
+    click(pg, "#futSeg button[data-s='night']", 1500)
+    saved = pg.evaluate("() => localStorage.getItem('tw.m3.fut')")
+    ok("日盤／夜盤的選擇真的寫進 localStorage", saved == "night", saved)
+    before_n = pg.evaluate("() => window.Market3.nightPoints.length")
+    pg.goto("about:blank")
+    pg.goto(base + "#overview", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    ok("重新整理之後還在夜盤", pg.evaluate("() => window.Market3.session") == "night")
+    after_n = pg.evaluate("() => window.Market3.nightPoints.length")
+    ok("重新整理之後累積的點沒有歸零", after_n >= before_n, f"{before_n} → {after_n}")
+
+    # ================================================================ 需求二：歷史至少三年
+    fresh(**{"tw.m3.fut": "day", "tw.m3.mode": "k", "tw.m3.tf": "D"})
+    pg.wait_for_timeout(1800)
+    span = pg.evaluate("() => window.Market3.histSpan")
+    ok("日線真的吃到三年以上（≥ 729 根）", span and span["n"] >= 729, span)
+    dbars = {i: pg.evaluate("(id) => { const k = window.Market3.state.kcharts[id];"
+                            " return k ? k.data.length : 0; }", i) for i in ("TSE", "OTC", "FUT")}
+    for i, why in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"{why}的日 K 有三年份（≥ 729 根）", dbars[i] >= 729, dbars)
+    ok("歷史夠長時，上方說明會寫出涵蓋到哪一天", "目前日線涵蓋" in text(pg, "#m3Note"), text(pg, "#m3Note")[-60:])
+    ok("歷史夠長時不會再出現「回補中」那行警告",
+       pg.evaluate("() => !document.getElementById('m3c-TSE').dataset.fallback"),
+       pg.evaluate("() => document.getElementById('m3c-TSE').dataset.fallback"))
+
+    # --- ★ 週 K：三年份至少 100 多根（Andy 的截圖只有 7 根）
+    pg.select_option("#m3Tf", "W"); pg.wait_for_timeout(2000)
+    wbars = {i: pg.evaluate("(id) => { const k = window.Market3.state.kcharts[id];"
+                            " return k ? k.data.length : 0; }", i) for i in ("TSE", "OTC", "FUT")}
+    for i, why in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"{why}的週 K 有 100 根以上（三年週線）", wbars[i] >= 100, wbars)
+    ok("週 K 的根數大約是日 K 的五分之一", wbars["TSE"] < dbars["TSE"] / 3, f"{dbars['TSE']} → {wbars['TSE']}")
+    pg.select_option("#m3Tf", "M"); pg.wait_for_timeout(2000)
+    mbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
+    ok("月 K 有 30 根以上（三年月線）", mbars >= 30, mbars)
+    pg.select_option("#m3Tf", "Q"); pg.wait_for_timeout(2000)
+    qbars = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
+    ok("季 K 有 10 根以上（三年季線）", qbars >= 10, qbars)
+
+    # --- ★ 歷史不夠三年時，畫面要自己講出「只有幾根、為什麼、什麼時候會變長」
+    #     這是 Andy 這次的原始抱怨：他看到週 K 只有幾根，但畫面上完全沒說為什麼。
+    LAKE["n"] = 32                                    # 就是 2026-09-19 資料湖的實際狀況
+    fresh(**{"tw.m3.fut": "day", "tw.m3.mode": "k", "tw.m3.tf": "W"})
+    pg.wait_for_timeout(2000)
+    short_w = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k ? k.data.length : 0; }")
+    ok("歷史只有 32 天時，週 K 真的只有幾根（重現 Andy 的畫面）", 0 < short_w < 20, short_w)
+    warn = pg.evaluate("() => document.getElementById('m3c-TSE').dataset.fallback || ''")
+    ok("這時候卡片上真的寫出「只有幾根日 K」", "根日 K" in warn, warn)
+    ok("而且寫出什麼時候會變長（回補中）", "回補" in warn, warn)
+    ok("三張卡片都各自說明自己的歷史長度",
+       all(pg.evaluate("(id) => !!(document.getElementById('m3c-' + id).dataset.fallback || '')", i)
+           for i in ("TSE", "OTC", "FUT")))
+
+    # ================================================================ 窄畫面 800px
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    LAKE["n"] = 780
+    fresh(**{"tw.m3.fut": "day"})
+    ok("800px 沒有橫向捲軸",
+       pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    ok("800px 下三張卡都還在", count(pg, "#m3Grid .m3-card") == 3)
+    click(pg, "#futSeg button[data-s='night']", 1800)
+    ok("800px 下夜盤也切得動", pg.evaluate("() => window.Market3.session") == "night")
+    ok("800px 下夜盤沒有橫向捲軸",
+       pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    fs = pg.evaluate("() => { const e = document.querySelector('#m3c-FUT .m3-night .note')"
+                     " || document.querySelector('#m3Grid .m3-card[data-id=\"FUT\"] .m3-sub');"
+                     " return e ? parseFloat(getComputedStyle(e).fontSize) : 0; }")
+    ok("800px 下夜盤說明文字不小於 11px", fs >= 11, fs)
+    box = pg.evaluate("() => { const c = document.querySelector('#m3Grid .m3-card[data-id=\"FUT\"]');"
+                      " const e = document.getElementById('m3c-FUT');"
+                      " if (!c || !e) return null; const a = c.getBoundingClientRect(), b = e.getBoundingClientRect();"
+                      " return [Math.round(b.right - a.right), Math.round(b.width)]; }")
+    ok("800px 下圖表沒有戳出卡片外面", box and box[0] <= 2 and box[1] > 200, box)
+
+    # ---- 收拾（DECISIONS：t_market3 留下的狀態會害下一段掛掉，這裡一定要清乾淨）
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.unroute("**/chart?*")
+    pg.unroute("**/fut?*")
+    pg.unroute("**/data/index_ohlc.json*")
+    pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut','tw.m3.nightpts',"
+                "'tw.live.proxy'].forEach(k => localStorage.removeItem(k)); } catch(e){} }")
 
 
 def t_new_industry(pg, base):
-    """產業關聯圖與個股頁（site/industry.js）：點公司要選到族群、個股頁分頁順序。"""
-    return
+    """產業關聯圖與個股頁（site/industry.js）：點公司要選到族群、個股頁分頁順序。
+
+    Andy 2026-09-20 兩句話：
+      ①「當我點擊『日月光頭控』時 他所對應的族群會被選取，修正這功能」
+      ②「當點擊個股時 最新出現的是K線圖、多週期判對、總攬、營收…公告/新聞，
+         下方才是 產業地圖等資訊」
+
+    這裡每一條都驗「畫面真的因此改變」：
+      · 點 3711 之後 —— 成分股**筆數真的變少**、環節色標與族群卡片**真的多一個 .sel**、
+        而且 `location.hash` **沒有變**（N7 說好的不跳頁）。
+      · 個股頁 —— 量 `getBoundingClientRect().top`，K 線要**真的排在**產業鏈區塊上面，
+        而且 K 線容器高度 > 0（搬 DOM 最容易把圖表容器弄成 0 高）。
+      · 兩件事都在 1500px 與 800px 各驗一次。
+    """
+    # ============================================================ 需求一
+    for vw in (1500, 800):
+        pg.set_viewport_size({"width": vw, "height": 1000})
+        # 先繞去產業地圖再回來：goto 同一個 hash 不會重新載入（DECISIONS #154），
+        # 上一輪選好的環節會留著，下一輪就驗不到「從沒選到有選」。
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(700)
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        # 800px 時右邊的「今日事件」欄是展開的浮層，會蓋住關聯圖右半邊 ——
+        # 那是事件欄自己的行為，不是這次要驗的東西，先收掉（t_chainnav 也是這樣做）。
+        pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        sel = '#chainMap g.co[data-code="3711"]'
+        if not ok(f"{vw}px 關聯圖上找得到日月光投控 3711 的節點",
+                  pg.evaluate(f"() => !!document.querySelector({sel!r})")):
+            continue
+        SNAP = """() => ({ hash: location.hash,
+            rows: document.querySelectorAll('#memberTable tbody tr').length,
+            chips: document.querySelectorAll('#segChips .segchip.sel').length,
+            chipSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(c => c.dataset.seg),
+            tiles: document.querySelectorAll('#groupCards .tile.sel').length,
+            tileIds: [...document.querySelectorAll('#groupCards .tile.sel')].map(t => t.dataset.gid),
+            title: (document.getElementById('memberTitle')||{}).innerText,
+            codes: [...document.querySelectorAll('#memberTable tbody tr')].map(r => r.dataset.code) })"""
+        before = pg.evaluate(SNAP)
+        ok(f"{vw}px 點之前什麼都沒選（不然下面的「變了」不算數）",
+           before["chips"] == 0 and before["tiles"] == 0, before)
+        # 真的用滑鼠點那張卡片（不是 dispatchEvent）
+        if not click(pg, sel, 1000):
+            continue
+        after = pg.evaluate(SNAP)
+        # ---- 不准跳頁（N7 既有行為不能被這次改動弄壞）
+        ok(f"{vw}px 點公司不會跳去個股頁（hash 沒變）", after["hash"] == before["hash"],
+           f"{before['hash']} → {after['hash']}")
+        ok(f"{vw}px 點公司仍然會開原地面板，面板裡才有「看個股頁」",
+           pg.evaluate("""() => { const b = document.getElementById('coBox');
+               return !!b && b.textContent.indexOf('日月光投控') >= 0
+                          && b.textContent.indexOf('看個股頁') >= 0; }"""))
+        # ---- 環節色標真的被選起來，而且選的就是日月光的那一格
+        changed(f"{vw}px 點公司之後環節色標真的多一個選取", before["chips"], after["chips"])
+        ok(f"{vw}px 選到的是日月光所屬的環節 osat_test", after["chipSeg"] == ["osat_test"], after["chipSeg"])
+        # ---- 族群卡片真的亮起來（Andy 原話就是「他所對應的族群會被選取」）
+        changed(f"{vw}px 點公司之後族群卡片真的被選取", before["tiles"], after["tiles"])
+        ok(f"{vw}px 被選取的族群是「封測」osat", "osat" in after["tileIds"], after["tileIds"])
+        # ---- 成分股表真的被篩掉
+        ok(f"{vw}px 點公司之後成分股筆數真的變少", after["rows"] < before["rows"],
+           f"{before['rows']} → {after['rows']}")
+        ok(f"{vw}px 篩完剩下的每一檔都是封測環節的",
+           bool(after["codes"]) and set(after["codes"]) <= {"3711", "6239", "2449", "6257", "3264", "8150", "3374"},
+           after["codes"])
+        ok(f"{vw}px 成分股標題寫出現在篩的是哪個環節", "封測" in (after["title"] or ""), after["title"])
+        # ---- 再點一次環節色標要能取消（不然選下去就出不來）
+        click(pg, "#segChips .segchip.sel", 700)
+        back = pg.evaluate(SNAP)
+        ok(f"{vw}px 點環節色標可以把選取取消掉（回得去）",
+           back["chips"] == 0 and back["rows"] == before["rows"], f"{after} → {back}")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ============================================================ 需求二
+    # 產業鏈圖預設收合，但兩種狀態都要驗 —— 展開時 #chainMap 會去捲位置，
+    # 那正是最容易把整頁拉到底、害 K 線被推出畫面的地方。
+    for chain_open in ("0", "1"):
+        pg.evaluate("(v) => { try { localStorage.setItem('tw.chainOpen', v); } catch(e) {} }", chain_open)
+        for vw in (1500, 800):
+            pg.set_viewport_size({"width": vw, "height": 1000})
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(500)
+            pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
+            tag = f"{vw}px／產業鏈圖{'展開' if chain_open == '1' else '收合'}"
+            geo = pg.evaluate("""() => { const t = (s) => { const e = document.querySelector(s);
+                    if (!e) return null; const r = e.getBoundingClientRect();
+                    return { top: Math.round(r.top + scrollY), h: Math.round(r.height) }; };
+                return { chart: t('.chartwrap'), lwc: t('#lwc'), mtf: t('#mtfCard'),
+                         tabs: t('#stockTabs'), tab: t('#stockTab'), chain: t('#indChain'),
+                         canvas: document.querySelectorAll('#lwc canvas').length,
+                         y: Math.round(scrollY),
+                         order: [...document.querySelectorAll('#v-industry > div')].map(d => d.id) }; }""")
+            if not ok(f"{tag} 個股頁該有的區塊都在",
+                      all(geo[k] for k in ("chart", "lwc", "mtf", "tabs", "chain")), geo):
+                continue
+            ok(f"{tag} K 線圖排在產業鏈區塊上面（Andy 要先看到 K 線）",
+               geo["chart"]["top"] < geo["chain"]["top"], f"K線 {geo['chart']['top']} vs 產業鏈 {geo['chain']['top']}")
+            ok(f"{tag} 多週期判讀在 K 線之後、分頁之前",
+               geo["chart"]["top"] < geo["mtf"]["top"] < geo["tabs"]["top"], geo)
+            ok(f"{tag} 分頁（總覽／營收…公告新聞）也排在產業鏈區塊上面",
+               geo["tabs"]["top"] < geo["chain"]["top"] and geo["tab"]["top"] < geo["chain"]["top"], geo)
+            ok(f"{tag} DOM 順序真的變成 stockPage 在 indChain 前面",
+               geo["order"].index("stockPage") < geo["order"].index("indChain"), geo["order"])
+            # 搬 DOM 最容易踩的坑：圖表容器變成 0 高、或 canvas 根本沒建起來
+            ok(f"{tag} K 線容器沒有被搬成 0 高", geo["lwc"]["h"] > 200, geo["lwc"])
+            ok(f"{tag} K 線真的畫出來了（有 canvas）", geo["canvas"] > 0, geo["canvas"])
+            # 進頁面不可以被 scrollIntoView 拖到最底下（那樣第一眼還是看不到 K 線）
+            ok(f"{tag} 一進個股頁畫面停在最上面，沒有被拖到產業鏈那一段",
+               geo["y"] < 120, f"scrollY={geo['y']}")
+            ok(f"{tag} 沒有橫向捲軸",
+               pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+               pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    pg.evaluate("() => { try { localStorage.setItem('tw.chainOpen', '0'); } catch(e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ---- 離開個股頁要搬回去：產業鏈頁上「產業鏈在上、個股頁區塊在下」不能被弄壞
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1600)
+    ok("回到產業鏈頁時 indChain 有搬回 stockPage 前面",
+       pg.evaluate("""() => { const o = [...document.querySelectorAll('#v-industry > div')].map(d => d.id);
+           return o.indexOf('indChain') < o.indexOf('stockPage'); }"""),
+       pg.evaluate("() => [...document.querySelectorAll('#v-industry > div')].map(d => d.id)"))
+    ok("而且產業鏈頁本身還是正常的（有標題、有成分股）",
+       len(text(pg, "#indChain h2")) > 1 and count(pg, "#memberTable tbody tr") > 0,
+       text(pg, "#indChain h2"))
 
 
 def t_new_flow(pg, base):
-    """資金流向頁（site/app.js）：桑基圖、移除播放、族群清單拉 Bar、輪動時鐘。"""
-    return
+    """資金流向頁（site/app.js）：資金去向的 nan／族群固定／小圓點、移除播放與河流、
+    族群展開清單拉Bar、族群晶片篩選。
+
+    Andy 的硬性要求：每一條都要驗「畫面真的因此改變了」。
+    所以這裡不驗「元素存在」，而是：整張圖的文字裡找不到 nan、換一天之後族群名單一模一樣
+    但線寬真的變了、圓點座標兩個時間點不一樣、清單真的捲得動、晶片點下去被壓暗的數量真的變。
+    """
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # 前面的段落可能把「看哪一天」拉到過去而且寫進 localStorage，會讓這一段的基準值不穩定
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.sankey.day'); } catch (e) {} }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+
+    # ---------------------------------------------------------------- ① nan
+    SK = """() => { const el = document.getElementById('sankey');
+        const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+        const s = c.getOption().series[0]; const root = (s.data || [])[0] || {};
+        const kids = (root.children || []);
+        const names = kids.map(k => k.name);
+        const leaves = kids.flatMap(k => (k.children || []).filter(x => !x.placeholder).map(x => x.name));
+        return { names, leaves,
+                 widths: kids.map(k => (k.lineStyle || {}).width),
+                 sizes: kids.map(k => k.symbolSize),
+                 dim: kids.filter(k => k.dim).length,
+                 kidCount: kids.map(k => (k.children || []).length) }; }"""
+    sk0 = pg.evaluate(SK)
+    if not ok("資金去向畫得出來", bool(sk0) and len(sk0["names"]) > 3, sk0):
+        return
+    allname = " ".join(sk0["names"] + sk0["leaves"])
+    ok("資金去向的節點名稱裡找不到 nan（代表股那一欄以前整排是 nan）",
+       "nan" not in allname.lower(), [x for x in sk0["leaves"] if "nan" in x.lower()][:5])
+    ok("整張卡片的文字裡也找不到 nan",
+       "nan" not in text(pg, "#sankeyWrap").lower(), text(pg, "#sankeyWrap")[:120])
+    ok("代表股有真的中文簡稱（不是只剩代號）",
+       any(any("\u4e00" <= ch <= "\u9fff" for ch in n) for n in sk0["leaves"]), sk0["leaves"][:5])
+
+    # ---------------------------------------------------- ② 族群固定：換一天只變粗細大小
+    bar = "#sankeyDays input[type=range]"
+    if ok("資金去向有「看哪一天」拉Bar", pg.evaluate(f"() => !!document.querySelector('{bar}')")):
+        mx = pg.evaluate(f"() => +document.querySelector('{bar}').max")
+        set_range(pg, bar, max(0, mx - 12), 1500)
+        sk1 = pg.evaluate(SK)
+        ok("換一天之後，族群名單與順序完全一樣（Andy：所有族群固定）",
+           sk1 and sk1["names"] == sk0["names"],
+           {"前": sk0["names"], "後": sk1 and sk1["names"]})
+        ok("換一天之後，每個族群的代表股格數也一樣（格數會變的話族群的位置會跳）",
+           sk1 and sk1["kidCount"] == sk0["kidCount"],
+           {"前": sk0["kidCount"], "後": sk1 and sk1["kidCount"]})
+        # 只判「一定會動」的那一個量：線寬是連續值，換一天幾乎不可能完全相同
+        changed("換一天之後，線的粗細真的變了（只有粗細與大小會變）",
+                [round(w or 0, 3) for w in sk0["widths"]],
+                [round(w or 0, 3) for w in (sk1 or {}).get("widths", [])])
+        set_range(pg, bar, mx, 1500)
+
+    # ------------------------------------------------- ③ 小圓點傳輸動畫：座標真的在動
+    ok("有小圓點在線上跑（App.sankeyDots）",
+       pg.evaluate("() => (window.App.sankeyDots() || []).length > 0"),
+       pg.evaluate("() => (window.App.sankeyDots() || []).length"))
+    d0 = pg.evaluate("() => window.App.sankeyDots()")
+    pg.wait_for_timeout(500)
+    d1 = pg.evaluate("() => window.App.sankeyDots()")
+    # ★ 只判「圓點座標」這一個量。2026-09-19 的教訓：判定寫成 A and B、
+    #   其中一個分量本來就不會動，結果是假紅。
+    changed("小圓點真的在動（兩個時間點的座標不一樣）", d0[:6], d1[:6])
+    ok("錢越多的族群點越多（頻率越高）",
+       pg.evaluate("""() => { const ds = window.App.sankeyDots() || [];
+           const byR = {}; ds.forEach(d => { byR[d[0] + ',' + d[1]] = 1; });
+           return ds.length >= 4; }"""), len(d1))
+    # 分頁切到背景要停（dg3d_standard.md 的效能驗收）
+    pg.evaluate("""() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+        document.dispatchEvent(new Event('visibilitychange')); }""")
+    pg.wait_for_timeout(600)
+    ok("分頁切到背景，小圓點動畫真的停下來", not pg.evaluate("() => window.App.sankeyFxRunning()"))
+    pg.evaluate("""() => { Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
+        document.dispatchEvent(new Event('visibilitychange')); }""")
+    pg.wait_for_timeout(600)
+    ok("回到前景之後又繼續動", pg.evaluate("() => window.App.sankeyFxRunning()"))
+
+    # ---------------------------------------------------------------- ④ 移除
+    gone = pg.evaluate("""() => ({
+        pb: document.querySelectorAll('#v-flow .rbar .pb').length,
+        rank: document.querySelectorAll('#rankDays .pb').length,
+        inst: document.querySelectorAll('#instEnd .pb').length,
+        sankey: document.querySelectorAll('#sankeyDays .pb').length,
+        river: !!document.getElementById('river'),
+        riverDays: !!document.getElementById('riverDays'),
+        riverEnd: !!document.getElementById('riverEnd'),
+        riverWrap: !!document.getElementById('riverWrap'),
+        howRiver: !!document.getElementById('how-river'),
+        riverWord: document.getElementById('v-flow').innerText.indexOf('河流') >= 0 })""")
+    ok("資金流向排行的播放鈕真的不在 DOM 裡（不是藏起來）", gone["rank"] == 0, gone)
+    ok("族群×法人的播放鈕真的不在 DOM 裡", gone["inst"] == 0, gone)
+    ok("資金去向的播放鈕真的不在 DOM 裡", gone["sankey"] == 0, gone)
+    ok("整頁一顆播放／＋／− 鈕都沒有了", gone["pb"] == 0, gone)
+    ok("族群佔比河流圖真的不在 DOM 裡", not gone["river"] and not gone["riverWrap"], gone)
+    ok("河流的時間週期拉Bar 也真的不在 DOM 裡", not gone["riverDays"] and not gone["riverEnd"], gone)
+    ok("連「怎麼看」的河流說明也拿掉了", not gone["howRiver"], gone)
+    ok("頁面上不再出現「河流」兩個字", not gone["riverWord"], gone)
+    # 拉Bar 本身要留著，而且拉了畫面真的會變（不要把功能連根拔掉）
+    ok("排行的天數拉Bar 還在（拿掉的只有播放）",
+       pg.evaluate("() => !!document.querySelector('#rankDays input[type=range]')"))
+    sub0 = text(pg, "#rankSub")
+    set_range(pg, "#rankDays input[type=range]", 15, 1500)
+    changed("沒有播放鈕，手動拉天數照樣會重畫", sub0, text(pg, "#rankSub"))
+    set_range(pg, "#rankDays input[type=range]", 0, 1200)
+
+    # ------------------------------------------- ⑤ 族群展開的股票清單固定高度＋拉Bar
+    # 真的點族群晶片把面板叫出來（排行下方的 #rankPanel）。
+    # ★ 要挑一個成分股夠多的族群 —— 只有 5 檔的族群撐不出捲軸，
+    #   驗收就會變成「量不到就算過」，那等於沒驗。所以最多點 10 個，取第一個 ≥15 檔的。
+    PAN = """() => { const b = document.getElementById('rankPanel');
+        if (!b || b.hidden) return null; const ms = b.querySelector('.ms'); if (!ms) return null;
+        return { n: ms.querySelectorAll('a').length, ch: Math.round(ms.clientHeight),
+                 sh: Math.round(ms.scrollHeight),
+                 oy: getComputedStyle(ms).overflowY }; }"""
+    pan = None
+    nchip = count(pg, '.gchips[data-sync="n2"] .gchip')
+    for i in range(min(10, nchip)):
+        pg.eval_on_selector_all('.gchips[data-sync="n2"] .gchip .pick',
+                                "(bs, i) => bs[i] && bs[i].click()", i)
+        pg.wait_for_timeout(700)
+        cur = pg.evaluate(PAN)
+        if cur and (pan is None or cur["n"] > pan["n"]):
+            pan = cur
+        if pan and pan["n"] >= 15:
+            break
+    if ok("點族群晶片，排行下方真的展開成分股面板", bool(pan), pan):
+        ok("成分股清單有固定高度（不會把整頁撐長）", pan["ch"] <= 260, pan)
+        ok("成分股清單是可以捲的", pan["oy"] in ("auto", "scroll"), pan)
+        if pan["n"] >= 12:
+            ok("內容比框高，真的捲得動（scrollHeight > clientHeight）",
+               pan["sh"] > pan["ch"] + 8, pan)
+            y0 = pg.evaluate("() => { const m = document.querySelector('#rankPanel .ms'); m.scrollTop = 120; return m.scrollTop; }")
+            ok("真的捲下去了", y0 > 0, y0)
+        else:
+            notes.append(f"這個族群只有 {pan['n']} 檔，不足以撐出捲軸，只驗了固定高度")
+    # ★ 收拾：把上面為了找「成分股夠多的族群」而選起來的那一個取消掉。
+    #   這同時是「再點一次真的取消」的正面驗收，也是不把狀態留給後面段落的必要動作 ——
+    #   2026-09-20 實測：不取消的話，批次2「點排行長條會原地展開成分股」會拿到一個
+    #   **已經開著**的面板，一點反而收起來，看起來像功能壞了（其實是前一段沒收拾）。
+    if count(pg, '.gchips[data-sync="n2"] .gchip.on'):
+        pg.eval_on_selector('.gchips[data-sync="n2"] .gchip.on .pick', "b => b.click()")
+        pg.wait_for_timeout(800)
+    ok("再點一次選起來的族群，成分股面板真的收起來",
+       pg.evaluate("() => { const b = document.getElementById('rankPanel'); return !b || b.hidden; }"))
+    # 輪動階段那四格用的是同一套（.stage ul 固定高度＋內捲）
+    st = pg.evaluate("""() => { const u = document.querySelector('#rotBoard .stage ul'); if (!u) return null;
+        return { ch: Math.round(u.clientHeight), sh: Math.round(u.scrollHeight),
+                 oy: getComputedStyle(u).overflowY }; }""")
+    ok("輪動階段的族群清單也是固定高度＋可捲（所有相關版面同一套）",
+       bool(st) and st["ch"] <= 400 and st["oy"] in ("auto", "scroll"), st)
+
+    # ------------------------------------------------- ⑥ 族群小 Tip 點了要能篩選
+    # 資金去向：點晶片 → 其餘族群被壓暗（dim 的數量真的變）
+    chip = '.linkrow.gchips[data-for="sankey"] .gchip'
+    if ok("資金去向下方有族群晶片列", count(pg, chip) > 0, count(pg, chip)):
+        b0 = pg.evaluate(SK)
+        h0 = pg.evaluate("() => location.hash")
+        pg.eval_on_selector(chip + " .pick", "b => b.click()")
+        pg.wait_for_timeout(1500)
+        b1 = pg.evaluate(SK)
+        ok("點族群晶片不會跳頁（在原地篩選）", pg.evaluate("() => location.hash") == h0)
+        changed("點資金去向的族群晶片，被壓暗的族群數真的變了", b0["dim"], b1["dim"])
+        ok("被壓暗的是「其餘全部」，留下的只有一個", b1["dim"] == len(b1["names"]) - 1, b1["dim"])
+        ok("族群名單沒有因為篩選而改變（位置還是固定的）", b1["names"] == b0["names"])
+        ok("晶片自己也亮起來", count(pg, chip + ".on") == 1, count(pg, chip + ".on"))
+        pg.eval_on_selector(chip + ".on .pick", "b => b.click()")
+        pg.wait_for_timeout(1500)
+        b2 = pg.evaluate(SK)
+        ok("再點一次真的還原（沒有任何族群被壓暗）", b2["dim"] == 0, b2["dim"])
+    # 族群 × 法人：點晶片 → 被壓暗的長條數真的變
+    chip2 = '.linkrow.gchips[data-for="instGroups"] .gchip'
+    DIMBAR = """() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
+        if (!c) return null; const s = (c.getOption().series || [])[0]; if (!s) return null;
+        return (s.data || []).filter(d => d.itemStyle && d.itemStyle.opacity != null
+                                          && d.itemStyle.opacity < 0.5).length; }"""
+    if ok("族群×法人下方有族群晶片列", count(pg, chip2) > 0, count(pg, chip2)):
+        n0 = pg.evaluate(DIMBAR)
+        pg.eval_on_selector(chip2 + " .pick", "b => b.click()")
+        pg.wait_for_timeout(1200)
+        n1 = pg.evaluate(DIMBAR)
+        changed("點族群×法人的族群晶片，被壓暗的長條數真的變了", n0, n1)
+        pg.eval_on_selector(chip2 + ".on .pick", "b => b.click()")
+        pg.wait_for_timeout(1200)
+        ok("再點一次真的還原", pg.evaluate(DIMBAR) == 0, pg.evaluate(DIMBAR))
+
+    # 總覽的「族群估值」散布圖也套同一套（族群小 Tip ＝ 篩選，不是跳頁）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    gchip = '.linkrow.gchips[data-for="gval"] .gchip'
+    DIMPT = """() => { const c = echarts.getInstanceByDom(document.getElementById('gval'));
+        if (!c) return null; const d = ((c.getOption().series || [])[0] || {}).data || [];
+        return d.filter(x => x.itemStyle && x.itemStyle.opacity != null && x.itemStyle.opacity < 0.5).length; }"""
+    if ok("總覽族群估值下方有族群晶片列", count(pg, gchip) > 0, count(pg, gchip)):
+        g0 = pg.evaluate(DIMPT)
+        h0 = pg.evaluate("() => location.hash")
+        pg.eval_on_selector(gchip + " .pick", "b => b.click()")
+        pg.wait_for_timeout(1200)
+        changed("點總覽族群估值的晶片，被壓暗的圓點數真的變了", g0, pg.evaluate(DIMPT))
+        ok("而且不會跳頁", pg.evaluate("() => location.hash") == h0)
+        pg.eval_on_selector(gchip + ".on .pick", "b => b.click()")
+        pg.wait_for_timeout(1200)
+        ok("再點一次真的還原", pg.evaluate(DIMPT) == 0, pg.evaluate(DIMPT))
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+
+    # ---------------------------------------------------------------- 窄畫面 800px
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.wait_for_timeout(1800)
+    nw = pg.evaluate("""() => { const el = document.getElementById('sankey');
+        const c = el && echarts.getInstanceByDom(el);
+        const cv = el && el.querySelector('canvas.dotfx');
+        const r = el ? el.getBoundingClientRect() : null;
+        return { pageW: document.documentElement.scrollWidth, winW: window.innerWidth,
+                 chart: !!(c && el.querySelector('canvas')),
+                 fx: !!cv, fxW: cv ? Math.round(cv.getBoundingClientRect().width) : 0,
+                 elW: r ? Math.round(r.width) : 0,
+                 chipsIn: (() => { const row = document.querySelector('.linkrow.gchips[data-for="sankey"]');
+                   if (!row) return true; const rr = row.getBoundingClientRect();
+                   return rr.right <= window.innerWidth + 1; })() }; }""")
+    ok("800px 沒有橫向捲軸", nw["pageW"] <= nw["winW"] + 1, nw)
+    ok("800px 資金去向還畫得出來", nw["chart"], nw)
+    ok("800px 小圓點那一層跟著縮（不會蓋到隔壁）",
+       nw["fx"] and abs(nw["fxW"] - nw["elW"]) <= 2, nw)
+    ok("800px 族群晶片沒有跑出容器", nw["chipsIn"], nw)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 def t_themes(pg, base):
@@ -2437,7 +3078,8 @@ def t_batch2(pg, base):
 
     ok("資金流向排行上方有拉Bar（圖四）",
        pg.evaluate("() => !!document.querySelector('#rankDays input[type=range]')"))
-    check_play(pg, "#rankDays")
+    # 2026-09-20：播放鈕依 Andy 指示移除（「圖三資金流向移除播放功能」），
+    # 所以這裡不再 check_play；拉Bar 本身還在，下面照樣驗「拉了畫面真的變」。
 
     # 拉到 N 天，副標與期間說明要真的換成「最近 N 個交易日」，圖也要重畫
     h0 = canvas_hash(pg, "#rankFlow")
@@ -2606,7 +3248,8 @@ def t_batch3(pg, base):
         changed("族群×法人把截止日往回拉，圖真的重畫（圖八）", i0, canvas_hash(pg, "#instGroups"))
         changed("族群×法人的副標跟著寫出那一段日期（圖八）", sub0, text(pg, "#instSub"))
         ok("副標寫的是一段區間不是只有天數", "～" in text(pg, "#instSub"), text(pg, "#instSub"))
-        check_play(pg, "#instEnd")
+        # 2026-09-20：播放鈕依 Andy 指示移除（「圖二族群法人播放功能移除」），
+        # 截止日拉Bar 保留，上面那三條就是在驗它真的還能用。
 
     # ---- 資金集中度：六條均線可勾選、點某天鑽到族群再鑽到個股
     mas = pg.evaluate("() => [...document.querySelectorAll('#concMa input[data-ma]')].map(i => +i.dataset.ma)")
@@ -2766,9 +3409,12 @@ def t_batch7(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
 
     # ---- N2 兩邊族群名單要一樣，而且點了是「篩選」不是跳頁
-    lists = pg.evaluate("""() => { const rows = [...document.querySelectorAll('.linkrow.gchips')]
-        .map(r => [...r.querySelectorAll('.gchip')].map(c => c.dataset.g));
-        return rows; }""")
+    # ★ 2026-09-20：選擇器要限定在資金流向頁而且只取「排行 × 時鐘」那兩排（data-sync="n2"）。
+    #   全站的 view 都在同一份 DOM 裡，總覽的「族群估值」與這一頁的「資金去向 / 族群×法人」
+    #   現在也各有一排族群晶片（filterChips），不限定的話 rows[0] 會抓到總覽那一排，
+    #   這條就變成在比兩張不相干的圖（實測 4 vs 36）。
+    lists = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"]')]
+        .map(r => [...r.querySelectorAll('.gchip')].map(c => c.dataset.g))""")
     ok("排行與時鐘各有一排族群晶片（N2）", len(lists) >= 2, [len(x) for x in (lists or [])])
     if len(lists) >= 2:
         ok("兩邊族群名單完全一樣（N2「兩邊族群對不上」）", lists[0] == lists[1],
@@ -2776,7 +3422,14 @@ def t_batch7(pg, base):
             "只在一邊": sorted(set(lists[0]) ^ set(lists[1]))[:6]})
     hash0 = pg.evaluate("() => location.hash")
     if lists and lists[0]:
-        pg.eval_on_selector(".gchips .gchip .pick", "b => b.click()")
+        # ★ 2026-09-20：選擇器一定要限定在 [data-sync="n2"] 這兩排。
+        #   全站 view 共用同一份 DOM，總覽的「族群估值」現在也有一排族群晶片（filterChips），
+        #   所以 `.gchips .gchip` 的第一個可能是**總覽那一排** —— 按了它，這一頁的
+        #   排行面板當然不會開。實測：單獨跑 `--only 批次7` 是綠的，接在
+        #   `--only 新-資金流向,批次7` 後面就紅，因為前一段已經把總覽渲染出來了。
+        #   這是驗收選錯對象，不是功能壞掉。
+        N2 = '#v-flow .linkrow.gchips[data-sync="n2"]'
+        pg.eval_on_selector(f"{N2} .gchip .pick", "b => b.click()")
         pg.wait_for_timeout(1000)
         st = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
             const dim = (() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
@@ -2785,7 +3438,8 @@ def t_batch7(pg, base):
               const ops = (sc.data||[]).map(d => (d.itemStyle&&d.itemStyle.opacity!=null)?d.itemStyle.opacity:1);
               return { lo: Math.min(...ops), hi: Math.max(...ops) }; })();
             return { hash: location.hash, panel: !!b && !b.hidden,
-                     on: document.querySelectorAll('.gchips .gchip.on').length, dim }; }""")
+                     on: document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"] .gchip.on').length,
+                     dim }; }""")
         ok("點族群晶片不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
         ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘只亮它（N2）",
            st["panel"] and st["dim"] and st["dim"]["lo"] < 0.3, st)
@@ -3400,7 +4054,7 @@ def t_lightink(b, base, code):
     # 字體不可為淺色」），而這份掃描根本沒走到那一頁，所以一路沒被抓到。
     # 產業板塊圖同理（圖13：treemap 用 itemStyle.borderColor 當整片底色，寫死 #0b1224）。
     pages = [("#overview", ["#heat"]),
-             ("#flow", ["#rotClock", "#sankey", "#river", "#instGroups", "#conc", "#valScatter"]),
+             ("#flow", ["#rotClock", "#sankey", "#instGroups", "#conc", "#valScatter"]),
              ("#industry", ["#indTree"]),
              ("#season", ["#seasonHeat"]),
              (f"#stock/{code}", ["#peChart", "#profitChart", "#peQ"])]
@@ -4480,7 +5134,7 @@ def main() -> int:
                          ("新-資金流向", t_new_flow),
                          ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
-            if args.only and args.only not in name:
+            if args.only and not _want(args.only, name):
                 continue
             n0 = len(fails)
             try:
@@ -4501,7 +5155,7 @@ def main() -> int:
                          ("K線縮放", lambda: t_kzoom_keep(pg, base, args.code)),
                          ("淺色主題", lambda: t_lightink(b, base, args.code)),
                          ("手機", lambda: t_mobile(b, base, args.code))):
-            if args.only and args.only not in name:
+            if args.only and not _want(args.only, name):
                 continue
             n0 = len(fails)
             try:

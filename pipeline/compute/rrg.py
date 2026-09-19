@@ -10,6 +10,7 @@ JdK 原版公式未公開，這裡用常見的均值標準化近似，趨勢與�
 """
 from __future__ import annotations
 
+from .names import latest_names, name_or_code
 import logging
 
 import numpy as np
@@ -179,8 +180,13 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
             px = price.copy()
             px["date"] = px["date"].astype(str)
             px = px[px["date"].isin(dates)]
-            name_of = (px.drop_duplicates("code").set_index("code")["name"].to_dict()
-                       if "name" in px.columns else {})
+            # ★ 2026-09-20：代表股那一欄整排顯示 "nan" 的根因就在這一行。
+            #   `price_daily` 的 `name` 欄是後來才加的，只有 2026-09-09 之後的列有值，
+            #   更早的列是 NaN。原本寫 `px.drop_duplicates("code")` 取的是**最早**那一列
+            #   （px 已經切到最近 60 天，起點在三個月前），於是每一檔抓到的都是 NaN，
+            #   再被 `str()` 變成字串 "nan" 送進 JSON —— 前端拿到的就是「nan 2330」。
+            #   改成先丟掉沒有名字的列、再取**最後**一筆（改名的話以最新為準）。
+            name_of = latest_names(px)
             for d, day in px.groupby("date"):
                 buckets: dict[str, list] = {}
                 for r in day.itertuples():
@@ -190,7 +196,8 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
                 for gid, lst in buckets.items():
                     lst.sort(key=lambda t: -t[1])
                     for c, tv in lst[:top_members]:
-                        rows.append({"gid": gid, "code": c, "name": str(name_of.get(c, c)), "tv": tv})
+                        # 查不到名字就退回代號本身 —— 寧可顯示「2330」也不要顯示「nan」
+                        rows.append({"gid": gid, "code": c, "name": name_or_code(name_of, c), "tv": tv})
                 leaves[str(d)] = rows
     return {"dates": dates, "groups": groups, "leaves": leaves}
 
