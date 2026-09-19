@@ -2631,8 +2631,13 @@ def t_batch6_n9(pg, base):
     pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2000)
     if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
         return                                   # WebGL 不支援，整段跳過（與 N1 同一條規矩）
-    click(pg, "#dg3d", 3000)
-    pg.wait_for_timeout(3000)
+    # ★ #dg3d 是**開關**，而且開關狀態記在 localStorage。
+    #   前面 t_batch6_n1 開過 3D，這一頁載入時就已經是 3D 了 ——
+    #   無條件再按一次會把它**關掉**，然後驗收報「3D 掛不起來」，
+    #   但畫面上的說明文字卻是正常的那一句。只有還沒開的時候才按。
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 3000)
+        pg.wait_for_timeout(3000)
     if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
         fails.append("圖九：3D 掛不起來 —— " + text(pg, "#dg3dNote")[:160])
         return
