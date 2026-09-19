@@ -2539,7 +2539,21 @@
         <td class="l">${L.stock(r.code, r.name)}</td>
         <td class="l">${r.group_id ? L.group(r.group_id, r.group_name) : fmt.esc(r.group_name || '—')}</td>
         <td class="num">${fmt.n(r.pe, 1)}</td>
-        <td class="num" style="color:${r.vs_median != null ? upDown(-r.vs_median) : CH.ink3}">${r.group_median != null ? fmt.n(r.group_median, 1) : '—'}</td>
+        ${(() => {
+          /* ★ 2026-09-19：這一欄不能只印 group_median 的數字。
+             groups.yaml 的 valuation_metric 允許族群改用別的口徑（生技醫療用 ps 股價營收比，
+             金融用 pb_roe），這時 group_median 是**那個口徑**的中位數，不是本益比的中位數。
+             原本的寫法把「本益比 12.4」跟「族群中位 2.7（那是 PS 中位）」並排印，
+             使用者只會讀成「這檔貴了四倍」—— 實際上它的 PS 比同業低 37%。
+             所以非 PE 口徑時要把口徑名稱與本檔的數值一起標出來。 */
+          const mt = r.metric || 'pe';
+          const col = r.vs_median != null ? upDown(-r.vs_median) : CH.ink3;
+          if (r.group_median == null) return `<td class="num" style="color:${CH.ink3}">—</td>`;
+          if (mt === 'pe') return `<td class="num" data-metric="pe" style="color:${col}">${fmt.n(r.group_median, 1)}</td>`;
+          const MN = { ps: '股價營收比', pb_roe: '股價淨值比', pb: '股價淨值比' }[mt] || mt;
+          return `<td class="num" data-metric="${fmt.esc(mt)}" data-mv="${r.metric_value ?? ''}" style="color:${col}"
+            title="${fmt.esc(r.group_name || '')}這個族群用${fmt.esc(MN)}比較，不是本益比：本檔 ${fmt.n(r.metric_value, 2)}、族群中位 ${fmt.n(r.group_median, 2)}">${fmt.n(r.group_median, 1)}<small class="muted"> ${fmt.esc(mt.toUpperCase())}</small></td>`;
+        })()}
         <td class="num">${fmt.n(r.pb)}</td><td class="num">${r.roe != null ? fmt.n(r.roe, 1) + '%' : '—'}</td>
         <td class="num">${fmt.yi(r.market_cap)}</td></tr>`).join('')
         || '<tr><td colspan="7" class="l muted" style="padding:16px">沒有符合條件的股票，放寬一點試試</td></tr>';

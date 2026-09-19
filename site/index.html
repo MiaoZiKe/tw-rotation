@@ -362,6 +362,11 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    1100px 下有一半的族群名是看不到的（「記憶體」「封測」「伺服器電源」都被切一半）。
    這一塊直接讓卡片長高。輪動階段那塊（compact）族群多，維持內捲。 */
 #seasonBoard .stage ul{max-height:none;overflow-y:visible}
+/* ★ 2026-09-19：只有季節性這塊要換行。它的 li 右邊掛著「超額 x%　勝率 y%　N 年」，
+   窄畫面時那一整段會溢出膠囊、壓到下面那行說明文字（_preview 報的 3 筆文字重疊）。
+   輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
+   「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
+#seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
 .stageboard.compact .stage ul{max-height:190px}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
@@ -371,10 +376,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   background:color-mix(in srgb,var(--c) 9%,transparent);border:1px solid color-mix(in srgb,var(--c) 26%,transparent)}
 .stage li.mem:hover{transform:none;background:color-mix(in srgb,var(--c) 9%,transparent)}
 .stage li.mem .go{margin-left:auto}
-/* ★ 2026-09-19：加 flex-wrap。原本這是一列不換行的 flex，窄畫面時右邊那段
-   「超額 x%　勝率 y%　N 年」會整段溢出膠囊、壓到下面那行說明文字 ——
-   _preview 報的 3 筆文字重疊就是這樣來的。會換行就不能再用 999px 全圓角。 */
-.stage li{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;padding:6px 12px;border-radius:14px;background:var(--panel-2);
+.stage li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--panel-2);
   cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
 .stage li:hover{background:var(--panel);border-color:var(--c);transform:translateX(2px)}
 .stage li.none{color:var(--ink-3);font-size:12.5px;cursor:default;background:transparent;padding:4px 0}

@@ -100,6 +100,34 @@ def click(pg, sel: str, wait: int = 300):
         return False
 
 
+def click_moving(pg, sel: str, wait: int = 300):
+    """點一個「一直在動」的東西（會飄的剖析圖零件）。
+
+    2026-09-19：`t_themes` 從只驗 3 個題材改成驗全部 18 個之後，drone 這一張一直逾時。
+    量出來的原因不是功能壞了，是**零件本身在動**（連續 120ms 量兩次，y 從 1511.5 變成
+    1513.96、高度從 115.36 變成 112.9），而 Playwright 的 click 會先等元素「位置穩定」
+    才肯下手，會飄的東西永遠等不到。用 force 點下去，`#themeParts` 確實列出 4 檔個股 ——
+    功能是好的，是驗收工具的限制。真人點一個緩慢飄動的東西不會有困難。
+
+    force 會跳過 Playwright 的可點擊性檢查，所以**自己先把該檢查的補回來**：
+    元素要存在、要可見、要有實際面積。少了這三項就等於 force 幫忙蓋掉真的 bug。
+    """
+    box = pg.evaluate("""(sel) => { const e = document.querySelector(sel); if (!e) return null;
+        const r = e.getBoundingClientRect(); const st = getComputedStyle(e);
+        return { w: r.width, h: r.height, vis: st.visibility !== 'hidden' && st.display !== 'none'
+                 && parseFloat(st.opacity || '1') > 0.05 }; }""", sel)
+    if not box or not box["vis"] or box["w"] < 2 or box["h"] < 2:
+        fails.append(f"點不下去 {sel}：元素不存在／看不見／沒有面積 {box}")
+        return False
+    try:
+        pg.locator(sel).first.click(timeout=6000, force=True)
+        pg.wait_for_timeout(wait)
+        return True
+    except Exception as e:  # noqa: BLE001
+        fails.append(f"點不下去 {sel}（force）：{type(e).__name__} {str(e).splitlines()[0]}")
+        return False
+
+
 def text(pg, sel: str) -> str:
     return pg.evaluate(f"() => {{ const e = document.querySelector({sel!r}); return e ? e.innerText.trim() : '<缺>'; }}")
 
@@ -997,16 +1025,28 @@ def t_flow(pg, base):
     ok("清除條件後回到原本的檔數", text(pg, "#vCount") == cnt0, f"{cnt0} vs {text(pg, '#vCount')}")
     # 勾「只看低於族群中位」要真的只留低於中位的
     click(pg, "#vBelow", 800)
-    below = pg.evaluate("""() => [...document.querySelectorAll('#valBody tr[data-code]')].map(tr => [
-        parseFloat(tr.children[2].textContent), parseFloat(tr.children[3].textContent)])
+    # ★ 2026-09-19：不能一律拿「本益比」欄去比「族群中位」欄。
+    #   groups.yaml 的 valuation_metric 允許族群換口徑（生技醫療用 ps），
+    #   那時中位數是 PS 的中位，本檔要比的也是它自己的 PS（td 的 data-mv）。
+    #   一律用 PE 去比會比出 [12.4, 2.7] 這種假紅 —— 那兩檔其實是 PS 低於同業 37%／54%。
+    below = pg.evaluate("""() => [...document.querySelectorAll('#valBody tr[data-code]')].map(tr => {
+        const md = tr.children[3]; const mt = md.dataset.metric || 'pe';
+        const mine = mt === 'pe' ? parseFloat(tr.children[2].textContent) : parseFloat(md.dataset.mv);
+        return [mine, parseFloat(md.textContent), mt]; })
         .filter(a => Number.isFinite(a[0]) && Number.isFinite(a[1]))""")
     # ★ 2026-09-19：原本只有下面那句 all(...)，而 all([]) 是 True ——
     #   這個勾選框其實從掛上去的第一天就永遠篩出 0 筆（後端 vs_median 回比值、前端判 < 0），
     #   驗收卻一路綠燈。空集合一定要先當成紅的。
     ok("「只看低於族群中位」有篩出東西（空集合不算通過）", len(below) > 0,
        f"勾選後剩 {len(below)} 列 —— 0 列代表這個條件根本篩不出東西，不是今天剛好沒有便宜股")
-    ok("「只看低於族群中位」真的只留本益比低於中位的", below and all(a[0] < a[1] for a in below),
-       [a for a in below if a[0] >= a[1]][:4])
+    ok("「只看低於族群中位」真的只留低於同業中位的（依各族群自己的估值口徑）",
+       below and all(a[0] < a[1] for a in below), [a for a in below if a[0] >= a[1]][:4])
+    # 非 PE 口徑的那幾列要把口徑標出來，不然「本益比 12.4 / 族群中位 2.7」會被讀成貴了四倍
+    lab = pg.evaluate("""() => [...document.querySelectorAll('#valBody td[data-metric]')]
+        .filter(td => td.dataset.metric !== 'pe')
+        .map(td => ({ m: td.dataset.metric, txt: td.textContent.trim(), tip: (td.title||'').length }))""")
+    ok("非本益比口徑的族群中位有標出是哪一種口徑", not lab or all(
+       x["m"].upper() in x["txt"].upper() and x["tip"] > 10 for x in lab), lab[:3])
     click(pg, "#vBelow", 600)
 
     # --- 這頁每張圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
@@ -1105,6 +1145,29 @@ def t_flow(pg, base):
         check_nozoom(pg, w, lb)
 
 
+def settle_scroll(pg, quiet_ms=350, limit_ms=3000):
+    """等到 scrollY 連續 quiet_ms 沒有變動才回來。
+
+    2026-09-19：`點零件不會把畫面捲走` 這條驗收本來在 scrollIntoView 之後固定等 600ms
+    就量基準值。關聯圖從 44 家長到 58 家之後，版面要更久才穩（圖表 canvas 重新量尺寸、
+    瀏覽器的 scroll anchoring 分好幾次微調，實測捲動事件一路發到 485ms），
+    於是「基準值」是在頁面還在動的時候量的 —— 量到的 Δ 是**頁面自己在收斂**，
+    不是點擊把畫面捲走。實測改成等穩定之後，Δ 從 −133／−52 變成 0／0，
+    而且**不需要改任何前端程式**（我一度加了一段「記住位置再捲回去」的程式碼，
+    量完發現根本不需要，已經拿掉 —— 不要為了一個量錯的數字去加機制）。
+    """
+    import time as _t
+    t0 = _t.time(); last = None; since = _t.time()
+    while (_t.time() - t0) * 1000 < limit_ms:
+        y = pg.evaluate("Math.round(scrollY)")
+        if y != last:
+            last = y; since = _t.time()
+        elif (_t.time() - since) * 1000 >= quiet_ms:
+            return y
+        pg.wait_for_timeout(60)
+    return last
+
+
 def t_industry(pg, base):
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(1400)
     ok("產業地圖有產業鏈方塊", count(pg, "#chainTiles .tile") > 0)
@@ -1182,7 +1245,7 @@ def t_industry(pg, base):
     if count(pg, "#prodDiagram [data-seg]"):
         # 先把剖析圖捲進畫面再記位置，否則量到的是測試自己捲的，不是頁面被點擊帶走的
         pg.evaluate("document.querySelector('#prodDiagram [data-seg]').scrollIntoView({block:'center'})")
-        pg.wait_for_timeout(600)
+        settle_scroll(pg)
         before = pg.evaluate("""() => ({ rows: document.querySelectorAll('#memberTable tbody tr').length,
             y: Math.round(scrollY), seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent })""")
         click(pg, "#prodDiagram [data-seg]", 800)
@@ -1403,8 +1466,10 @@ def t_themes(pg, base):
         ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeMembers tr.ghead") > 0,
            f"ghead={count(pg, '#themeMembers tr.ghead')} 列")
         if count(pg, "#themeDiagram [data-part][data-codes]"):
-            click(pg, "#themeDiagram [data-part][data-codes]", 600)
-            ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0)
+            # 零件會緩慢飄動，一般 click 會卡在「等它停下來」逾時 —— 見 click_moving 的說明
+            click_moving(pg, "#themeDiagram [data-part][data-codes]", 700)
+            ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0,
+               f"#themeParts 連結數 = {count(pg, '#themeParts a.lk')}")
 
 
 def t_stock(pg, base, code):

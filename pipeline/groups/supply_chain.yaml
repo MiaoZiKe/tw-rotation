@@ -40,7 +40,7 @@ segments:
   # ★ 2026-09-19（第二輪）：半導體這一側原本完全沒有「製程材料」這一格 ——
   #   兩個材料格（ccl_material、substrate_material）都在載板／PCB 那一側，
   #   所以靶材、特化、耗材這種真正卡在晶圓廠前面的東西無處可放。
-  - {id: semi_material,      name: "半導體製程材料（靶材 / 特化）", layer: 1, chain: semiconductor, role: material}
+  - {id: semi_material,      name: "半導體製程材料", layer: 1, chain: semiconductor, role: material}
   - {id: substrate_material, name: "載板材料 ABF / BT", layer: 2, chain: semiconductor, role: material}
   # ---- 半導體主幹
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
@@ -87,7 +87,7 @@ segments:
   - {id: switch,       name: "交換器",              layer: 4, chain: ai_server}
   # ★ 2026-09-19（第二輪）新增兩格。共同理由：這兩類公司塞進現有任何一格都會重演
   #   「金像電被放進 ABF 載板」那條錯誤 —— 網站等於在宣稱它做的是另一種產品。
-  - {id: connector,    name: "連接器 / 線材 / Busbar", layer: 4, chain: ai_server}
+  - {id: connector,    name: "連接器 / 線材", layer: 4, chain: ai_server}
   - {id: fpc,          name: "軟板 FPC",               layer: 4, chain: ai_server}
   - {id: assembly,     name: "系統組裝 / 機櫃",     layer: 5, chain: ai_server}
   - {id: hyperscaler,  name: "雲端業者（終端需求）", layer: 6, chain: ai_server}
