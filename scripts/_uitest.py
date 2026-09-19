@@ -2912,7 +2912,16 @@ def t_batch6_n9(pg, base):
         a0 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
         pg.wait_for_timeout(1000)
         a1 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
-        ok("動態模式下電流真的在走線上跑（圖九 2-1）", a0[0] != a1[0] and a0[1] != a1[1], f"{a0} → {a1}")
+        # ★ 2026-09-19 深夜：判定從 `and` 改成「flowT 必須動」。
+        #   實測 [0.5801, -15.133] → [0.9001, -15.133]：相位動了、第一顆粒子的座標沒動，
+        #   `and` 就判成「電流沒在跑」—— 但電流明明在跑。
+        #   原因是粒子沿折線走，走到軸對齊的那一段時，某個座標分量本來就不會變。
+        #   這是 DECISIONS #206「選指標前先問這個數字在正常情況下會不會變」的**第三次**
+        #   （#199 canvas_hash 對 WebGL 恆定、#206 flowAt 總和近乎守恆，這次是分量不變）。
+        #   flowT 是驅動粒子位置的相位，只要動畫在跑它就單調前進 —— 那才是可靠的主證據；
+        #   flowAt 留在訊息裡當診斷資訊，不當判定條件。
+        ok("動態模式下電流真的在走線上跑（圖九 2-1）", a0[0] != a1[0],
+           f"flowT {a0[0]} → {a1[0]}（沒前進＝動畫停了）；第一顆粒子座標 {a0[1]} → {a1[1]}")
         # 按「動畫：關」→ 粒子要收起來、也要停
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(900)
