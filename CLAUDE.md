@@ -8,8 +8,14 @@
 
 - 線上網址：<https://miaozike.github.io/tw-rotation/>
 - Repo：<https://github.com/MiaoZiKe/tw-rotation>（**public**，所以任何金鑰、持股、成本價都不能進 repo）
-- 擁有者 Andy：前 ASUS EC 韌體工程師、前台積電微影製程工程師，現任科技業 Sales PM。
-  半導體供應鏈不用從頭解釋；`groups.yaml` / `themes.yaml` / `supply_chain.yaml` 的成分他會自己校訂。
+- 擁有者 Andy。`groups.yaml` / `themes.yaml` / `supply_chain.yaml` 的成分他會自己校訂。
+- **★ 判斷依據是證據，不是誰在問**（Andy 2026-09-19：「不要把我的身份加進來，
+  不因為我是誰而決定，需要依目前找到的資訊執行」）。
+  這條是因為我把「你是前台積電製程，這條你比我準」當成把問題推回去的理由 ——
+  那不是判斷，那是迴避。正確的做法是：**把證據攤開、依證據決定；證據不夠就去查，查完再決定。**
+  他的背景只用來**校準說明的深度**（半導體供應鏈不必從頭解釋），
+  **不可以拿來當「所以這樣畫應該沒問題」或「所以這題給他決定」的理由**。
+  同理，也不准用「讀者不懂」當放寬標準的藉口 —— 這是一個 public 的網站，任何人都看得到。
 - Andy 的工作方式：**他只重新整理網頁、不按任何本機指令**。程式碼由 Claude 透過 GitHub API 推上 main，
   資料由 Actions 自己 commit。本機 `.bat/.ps1` 只是初次安裝用。
 

@@ -143,3 +143,61 @@ def test_事實不強迫附連結但推論強迫():
     bad = [(e["from"], e["to"], e.get("confidence")) for e in sc["edges"]
            if e.get("rel") != "produced_by" and e.get("confidence") not in ok_conf]
     assert not bad, f"confidence 只准是 verified / reported / estimated：{bad}"
+
+
+def test_預估值也會過期(monkeypatch):
+    """`_stale()` 原本對 F 結尾的 as_of 直接 `return False` —— 永遠不算過期。
+
+    那等於「一筆 2026 年初的法人預估，到 2028 年還是綠的」，
+    CLAUDE.md「超過 180 天沒更新的數字會自動變灰」對所有預估值完全沒生效。
+    預估也會過期：2026F 講的是 2026 這一年，就以年底當基準算。
+    """
+    import datetime as _dt
+    from pipeline.groups import loader as _loader
+
+    class _Fake(_dt.date):
+        @classmethod
+        def today(cls):
+            return cls(2027, 9, 1)          # 2026 年底 + 244 天 > 180
+
+    monkeypatch.setattr(_loader, "date", _Fake)
+    sc = _loader.supply_chain()
+    pens = [p for pr in sc["products"] for p in (pr.get("penetration") or [])
+            if str(p.get("as_of", "")).endswith("F")]
+    assert pens, "這份資料裡本來就要有預估值，不然這條測試沒有意義"
+    assert all(p["stale"] for p in pens), \
+        "2027-09 回頭看 2026F 的預估，應該要標成過期（以前永遠是新的）"
+
+
+def test_預估值要標出來是預估():
+    """過期與否是一回事，「這是預估不是實績」是另一回事，畫面上要分得開。"""
+    sc = _sc()
+    pens = [p for pr in sc["products"] for p in (pr.get("penetration") or [])]
+    for p in pens:
+        assert "forecast" in p, "penetration 要帶 forecast 旗標"
+        assert p["forecast"] == str(p.get("as_of", "")).endswith("F")
+    for c in sc["companies"]:
+        for sh in c.get("share") or []:
+            assert "forecast" in sh, f"{c['id']} 的 share 要帶 forecast 旗標"
+
+
+def test_as_of不要只寫年份():
+    """只寫年份的話，過期判斷只能拿年中當基準，誤差半年。一律寫到月（或季）。"""
+    sc = _sc()
+    bad = []
+
+    def walk(o, path=""):
+        if isinstance(o, dict):
+            a = o.get("as_of")
+            if a is not None and len(str(a).rstrip("F")) == 4:
+                bad.append((path, a))
+            for k, v in o.items():
+                walk(v, f"{path}/{k}")
+        elif isinstance(o, list):
+            for i, v in enumerate(o):
+                walk(v, f"{path}[{i}]")
+
+    walk({k: v for k, v in sc.items() if k != "meta"})
+    # 預估值可以只寫年份（2026F 講的就是一整年），實績不行
+    bad = [x for x in bad if not str(x[1]).endswith("F")]
+    assert not bad, f"as_of 只寫年份，過期判斷會差半年：{bad}"

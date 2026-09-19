@@ -104,7 +104,11 @@ def supply_chain(path: Path | None = None) -> dict:
             elif "H" in s:
                 y, h = s.split("-H"); d = date(int(y), 6 if h == "1" else 12, 28)
             elif s.endswith("F"):
-                return False                  # 預估值不算過期
+                # ★ 2026-09-19 修：原本寫 `return False`（預估值**永遠**不算過期）。
+                #   那等於「一筆 2026 年初的法人預估，到 2028 年還是綠的」——
+                #   超過 180 天自動變灰那條規則對所有 F 結尾的數字完全沒生效。
+                #   預估也會過期：2026F 講的是 2026 這一年，就以年底當基準算。
+                d = date(int(s[:-1]), 12, 31)
             elif len(s) == 4:
                 d = date(int(s), 6, 30)
             elif len(s) == 7:
@@ -126,6 +130,8 @@ def supply_chain(path: Path | None = None) -> dict:
         for sh in c.get("share", []) or []:
             sh = dict(sh)
             sh["stale"] = _stale(sh.get("as_of"))
+            # 預估值要講出來是預估。以前 F 結尾只是「不算過期」，畫面上看不出差別。
+            sh["forecast"] = str(sh.get("as_of") or "").endswith("F")
             shares.append(sh)
         ticker = str(c.get("ticker") or "")
         companies.append({
@@ -142,6 +148,7 @@ def supply_chain(path: Path | None = None) -> dict:
         pr = dict(pr)
         for pen in pr.get("penetration", []) or []:
             pen["stale"] = _stale(pen.get("as_of"))
+            pen["forecast"] = str(pen.get("as_of") or "").endswith("F")
         products.append(pr)
 
     return {

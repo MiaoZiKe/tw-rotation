@@ -671,7 +671,10 @@
     if (row) { box.classList.add('relside'); row.appendChild(box); }
     else if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
     else document.body.appendChild(box);
-    const shares = (co.share || []).map(s => `<li>${A.fmt.esc(s.metric || s.product || '市占')}：<b class="mono">${s.value_pct != null ? s.value_pct + '%' : (s.value || '—')}</b> <small class="muted">${s.as_of || ''} · ${s.source || ''}${s.stale ? ' · 已過期' : ''}</small></li>`).join('');
+    /* 市占數字要三件事同時看得到：值、什麼時候的、以及**這是實績還是預估**。
+       2026-09-19 修：以前 F 結尾的預估值在後端被當成「永遠不會過期」，
+       畫面上又跟實績長得一模一樣 —— 一筆 2026 年初的法人預估，到 2028 年還是綠的。*/
+    const shares = (co.share || []).map(s => `<li>${A.fmt.esc(s.metric || s.product || '市占')}：<b class="mono">${s.value_pct != null ? s.value_pct + '%' : (s.value_pct_range ? s.value_pct_range.join('–') + '%' : (s.value || '—'))}</b>${s.forecast ? ' <em class="cf cf-estimated">預估</em>' : ''} <small class="muted">${A.fmt.esc(String(s.as_of || '').replace(/F$/, ''))} · ${A.fmt.esc(s.source || '')}${s.stale ? ' · 已過期' : ''}</small></li>`).join('');
     const peers = sc.companies.filter(c => c.segment === co.segment && c.id !== co.id);
     box.innerHTML = `<div class="row spread"><h3>${A.fmt.esc(co.name)} ${co.tw_code ? `<span class="mono cyan">${co.tw_code}</span>` : '<span class="pill">外商</span>'}</h3><button class="close" onclick="document.getElementById('coBox').remove()">×</button></div>
       <div class="sub"><span style="color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>${(co.groups || []).length ? ' · ' + co.groups.map(gn => A.L.groupByName(gn)).join(' ') : ''}</div>

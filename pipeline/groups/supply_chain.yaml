@@ -77,7 +77,8 @@ products:
   - id: cowos
     name: CoWoS 先進封裝
     segment: adv_pkg
-    supply_demand: {status: shortage, note: "供給約滿足需求 6–7 成", as_of: "2026", confidence: reported}
+    # as_of 只寫年份的話，過期判斷只能拿年中當基準，誤差半年。一律寫到月。
+    supply_demand: {status: shortage, note: "供給約滿足需求 6–7 成", as_of: "2026-09", confidence: reported}
     demand_allocation:
       - {customer: nvidia, pct: 63}
       - {customer: broadcom, pct: 13}
