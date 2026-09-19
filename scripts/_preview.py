@@ -5,6 +5,7 @@
 """
 from __future__ import annotations
 
+import os
 import argparse
 import json
 import sys
@@ -16,7 +17,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
-PORT = 8766
+# 埠可以用環境變數蓋掉（TW_UITEST_PORT / TW_PREVIEW_PORT）。
+# 2026-09-20 加的：同時派幾個 agent 各自驗自己那一段時，固定埠會互相搶，
+# 第二個起來的直接 OSError: Address already in use，看起來像程式壞了。
+PORT = int(os.environ.get('TW_PREVIEW_PORT', '8766'))
 
 OVERLAP_JS = r"""
 () => {

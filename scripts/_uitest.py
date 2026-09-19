@@ -12,6 +12,7 @@
 """
 from __future__ import annotations
 
+import os
 import argparse
 import json
 import re
@@ -23,7 +24,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SITE = ROOT / "site"
-PORT = 8767
+# 埠可以用環境變數蓋掉（TW_UITEST_PORT / TW_PREVIEW_PORT）。
+# 2026-09-20 加的：同時派幾個 agent 各自驗自己那一段時，固定埠會互相搶，
+# 第二個起來的直接 OSError: Address already in use，看起來像程式壞了。
+PORT = int(os.environ.get('TW_UITEST_PORT', '8767'))
 
 fails: list[str] = []
 notes: list[str] = []
@@ -1503,6 +1507,28 @@ def t_electronics(pg, base):
     ok("視窗 800px 時環節色標沒有跑出容器", over == 0, over)
     ok("視窗 800px 時關聯圖還在", count(pg, "#chainMap .co") > 0)
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ---------------------------------------------------------------------------
+# 2026-09-20 Andy 兩批新需求的驗收位置。★ 三支刻意先開成空殼再派人填，
+# 理由是三個 agent 會同時改這個檔 —— 如果讓他們各自去改 main() 裡那一行註冊表，
+# 三個人改同一行必然互相蓋掉。先把殼與註冊都放好，他們就只動自己那一支的函式體。
+# 每一支都要照 Andy 的硬性要求寫：**真的按下去、畫面真的因此改變了**
+# （筆數變了／排序變了／localStorage 真的寫進去了），不是驗「元素存在」。
+# ---------------------------------------------------------------------------
+def t_new_market3(pg, base):
+    """大盤三張圖（site/market3.js）：夜盤與日盤共用走勢圖、歷史至少三年。"""
+    return
+
+
+def t_new_industry(pg, base):
+    """產業關聯圖與個股頁（site/industry.js）：點公司要選到族群、個股頁分頁順序。"""
+    return
+
+
+def t_new_flow(pg, base):
+    """資金流向頁（site/app.js）：桑基圖、移除播放、族群清單拉 Bar、輪動時鐘。"""
+    return
 
 
 def t_themes(pg, base):
@@ -4449,7 +4475,10 @@ def main() -> int:
 
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
-                         ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics), ("題材", t_themes), ("季節性", t_season),
+                         ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics),
+                         ("新-大盤三張圖", t_new_market3), ("新-產業與個股", t_new_industry),
+                         ("新-資金流向", t_new_flow),
+                         ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             if args.only and args.only not in name:
                 continue
