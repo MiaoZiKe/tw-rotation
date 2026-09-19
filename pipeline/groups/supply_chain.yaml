@@ -1,7 +1,19 @@
 # 產業關聯圖資料（產業分析師的 schema）
 #
 # 節點三種：segment（產業環節）、company（公司，帶台股代號）、product（產品/技術）
-# 邊：supplies（供貨給）、competes（競爭）、substitutes（替代）、produced_by（由誰生產）
+#
+# 邊（rel）：
+#   supplies       from 供貨給 to（實線＋箭頭）
+#   outsources_to  from 把製程委外給 to（虛線）—— 錢是 from 付給 to，方向跟 supplies 相反
+#   designated_by  from 的料號由 to 指定（AVL，點虛線）—— 實體出貨不一定經過 to
+#                  ★ 2026-09-19 新增。AI 伺服器鏈跟一般製造業鏈的關鍵差別就在這裡：
+#                    CSP／NVIDIA 直接指定 CCL 與 PCB 的料號，但實體出貨走 ODM。
+#                    只有 supplies 一種語意的話，不是畫錯（CCL 廠→GPU 廠）就是漏掉最重要的商業關係。
+#   produced_by    product 由哪個 company 生產
+#   competes       ★ 已經不放在 edges 裡（圖十不畫競爭關係，畫了會被誤讀成供貨），改放 competitors 區塊
+#
+# segment 的 role：core（預設，主鏈製程環節，實色）／material（材料，灰色但粗細仍依 strength）
+#                  ／equipment（設備，灰細線）。前端 industry.js 的 drawChainMap 據此決定線的樣式。
 #
 # 市占率規則：每一筆都要帶 as_of + source + confidence，UI 會顯示「這數字多舊、可不可信」。
 #   confidence: verified（官方/研究機構明確數字）、reported（媒體引述法人）、estimated（推論）
@@ -11,23 +23,51 @@
 
 meta:
   schema_version: "1.0"
-  as_of: "2026-09-11"
-  reviewed: "2026-09-11"
-  note: "AI 伺服器 / 半導體鏈種子資料，市占數字依 2026-09 產業分析師查證"
+  as_of: "2026-09-19"
+  reviewed: "2026-09-19"
+  note: >-
+    AI 伺服器 / 半導體鏈。2026-09-19 由三位 industry-analyst 分頭查證後大改：
+    環節重新分類（設備／材料／測試介面獨立）、補上經查證的邊、刪掉查不到出處的市占數字。
+    查證用的是搜尋摘要層級的公開資料（容器擋掉原文抓取），沒有讀到法說會逐字稿或年報，
+    完整的來源與信心度記在 docs/supply_chain_suggest.md。
 
 # ---------------------------------------------------------------- 環節（分層順序 = 上游 → 下游）
 segments:
+  # ---- 材料（最上游，role: material）
+  # 這一層 2026-09-19 才補進來。整條鏈的瓶頸其實都在這裡（味之素 ABF 膜全球 >95% 市占、
+  # 2026 漲價 30%），以前圖上完全不存在，點「ABF 載板」也列不出它的材料來源。
+  - {id: ccl_material,       name: "銅箔 / 玻纖布",             layer: 1, chain: ai_server,     role: material}
+  - {id: substrate_material, name: "載板材料（ABF 膜 / BT 樹脂）", layer: 2, chain: semiconductor, role: material}
+  # ---- 半導體主幹
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
   - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
   - {id: foundry,      name: "晶圓代工",            layer: 2, chain: semiconductor}
-  - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor}
+  - {id: adv_pkg,      name: "先進封裝 CoWoS/SoIC", layer: 3, chain: semiconductor,
+     note: "CoWoS/SoIC 由台積電自己做（見晶圓代工），日月光承接外溢（見封測）"}
   - {id: osat_test,    name: "封測 / 測試",         layer: 3, chain: semiconductor}
-  - {id: hbm,          name: "HBM 記憶體",          layer: 2, chain: semiconductor, note: "台廠無直接供應商，關聯在測試與載板"}
-  - {id: abf_pcb,      name: "ABF 載板 / 高階 PCB", layer: 3, chain: ai_server}
-  - {id: ccl,          name: "CCL 銅箔基板",        layer: 2, chain: ai_server}
-  - {id: thermal,      name: "散熱（液冷）",        layer: 4, chain: ai_server}
+  - {id: hbm,          name: "HBM 記憶體",          layer: 2, chain: semiconductor,
+     note: "本圖只畫 HBM 本體（由 SK hynix / Micron 自家封裝，台廠無直接供應商）；傳統 DRAM / NAND 不在這張圖上"}
+  # ★ 2026-09-19：id 沿用 abf_pcb（前端 diagrams.js／three3d.js／_uitest 都引用了它），
+  #   但把名稱與 chain 改對：IC 載板屬於半導體封裝環節，不是 AI 伺服器鏈。
+  #   金像電 2368 從這一格搬去 hdi_pcb —— 它根本不做 ABF 載板，
+  #   四家塞同一格等於在網站上宣稱「金像電是 ABF 載板廠」。
+  - {id: abf_pcb,      name: "IC 載板（ABF / BT）",  layer: 3, chain: semiconductor}
+  # ---- 設備 / 測試介面（role: equipment，灰細線，不跟主鏈搶視覺）
+  # 設備廠的營收驅動是「客戶的資本支出」，產能廠是「CoWoS 單價」，景氣拐點不同；
+  # 放同一格會讓族群卡片的量能解讀失真。
+  - {id: pkg_equipment,  name: "封裝設備 / 濕製程",         layer: 3, chain: semiconductor, role: equipment}
+  - {id: test_interface, name: "測試介面（探針卡 / 測試座）", layer: 3, chain: semiconductor, role: equipment}
+  # ---- AI 伺服器
+  - {id: hdi_pcb,      name: "高階 PCB（MLB / UBB）", layer: 3, chain: ai_server}
+  # CCL 標 material，但**不**因此弱化到跟設備同級 —— 它占高階 AI 伺服器 PCB 材料成本 50% 以上，
+  # 是這輪行情的「因」不是「果」。灰色、粗細仍依 strength。
+  - {id: ccl,          name: "CCL 銅箔基板",        layer: 2, chain: ai_server, role: material,
+     material_of: [hdi_pcb]}
+  - {id: thermal,      name: "散熱（均熱片 / 液冷）", layer: 4, chain: ai_server,
+     note: "健策是封裝層級的均熱片（封裝廠就貼上去），奇鋐／雙鴻是系統層級的水冷板／CDU（組裝廠才裝）"}
   - {id: power,        name: "電源",                layer: 4, chain: ai_server}
-  - {id: optical,      name: "光通訊 / 矽光子",     layer: 4, chain: ai_server}
+  - {id: optical_epi,  name: "光通訊磊晶 / 雷射晶粒", layer: 3, chain: ai_server}
+  - {id: optical,      name: "光通訊模組 / 矽光子",  layer: 4, chain: ai_server}
   - {id: switch,       name: "交換器",              layer: 4, chain: ai_server}
   - {id: assembly,     name: "系統組裝 / 機櫃",     layer: 5, chain: ai_server}
   - {id: hyperscaler,  name: "雲端業者（終端需求）", layer: 6, chain: ai_server}
@@ -43,7 +83,9 @@ products:
       - {customer: broadcom, pct: 13}
       - {customer: amd, pct: 8}
       - {customer: marvell, pct: 8}
-    allocation_source: {name: "法人研究轉述（鉅亨/富果）", as_of: "2026", confidence: reported}
+    # 2026-09-19：來源只寫「鉅亨/富果」不是一個可點的出處、as_of 只寫年份前端算不出 180 天。
+    # 數字先留著（它是這張圖的重要脈絡），但信心度標到 estimated 並講明沒有可查證出處。
+    allocation_source: {name: "法人研究轉述，未取得可查證出處", as_of: "2026-09", confidence: estimated}
   - id: liquid_cooling
     name: 液冷散熱
     segment: thermal
@@ -64,7 +106,10 @@ companies:
   - {id: alchip,  ticker: "3661", name: 世芯-KY,    segment: ip_eda,   tech: [ASIC 設計服務, 先進製程 NRE]}
   - {id: faraday, ticker: "3035", name: 智原,       segment: ip_eda,   tech: [IP, ASIC]}
   - {id: mtk,     ticker: "2454", name: 聯發科,     segment: ic_design, tech: [ASIC, 手機 SoC, 網通晶片]}
-  - {id: rtk,     ticker: "2379", name: 瑞昱,       segment: ic_design, tech: [網通晶片]}
+  - {id: rtk,     ticker: "2379", name: 瑞昱,       segment: ic_design, tech: [網通晶片, WiFi, PCIe SSD 控制 IC],
+     note: "主體是消費／商用網通（WiFi、Ethernet PHY、TV SoC、switch IC）。2026-01 以 SSD 控制 IC 打進 NVIDIA 資料中心供應鏈，比重未揭露。它的 switch IC 是消費／SMB 等級，不是資料中心交換器晶片"}
+  - {id: novatek, ticker: "3034", name: 聯詠,       segment: ic_design, tech: [驅動 IC DDI, SoC],
+     note: "全球 DDI 前二大、市占約 23%"}
   - id: tsmc
     ticker: "2330"
     name: 台積電
@@ -76,45 +121,73 @@ companies:
     risks: [地緣政治, 匯率, 客戶集中]
   - {id: umc,     ticker: "2303", name: 聯電,       segment: foundry,  tech: [成熟製程]}
   - {id: ase,     ticker: "3711", name: 日月光投控, segment: osat_test, tech: [封裝, 測試, CoWoS 外溢]}
-  - {id: pti,     ticker: "6239", name: 力成,       segment: osat_test, tech: [記憶體封測, HBM 相關]}
+  - {id: pti,     ticker: "6239", name: 力成,       segment: osat_test,
+     tech: [記憶體封測（非 HBM 本體）], note: "客戶為 Micron / Kioxia / SK hynix / Kingston，單一大客戶佔 2～3 成；台股客戶查不到公開佐證"}
   - {id: kyec,    ticker: "2449", name: 京元電,     segment: osat_test, tech: [HPC/AI 測試]}
   - {id: sigurd,  ticker: "6257", name: 矽格,       segment: osat_test, tech: [測試]}
-  - {id: wineai,  ticker: "6515", name: 穎崴,       segment: osat_test, tech: [測試介面]}
-  # ---- 先進封裝設備
-  - {id: gpt,     ticker: "3131", name: 弘塑,       segment: adv_pkg,  tech: [濕製程設備]}
-  - {id: scientech, ticker: "3583", name: 辛耘,     segment: adv_pkg,  tech: [濕製程, 再生晶圓]}
-  - {id: allring, ticker: "6187", name: 萬潤,       segment: adv_pkg,  tech: [點膠, 固晶設備]}
-  # ---- 載板 / PCB / CCL
-  - {id: unimicron, ticker: "3037", name: 欣興,     segment: abf_pcb,  tech: [ABF 載板], note: "2026 供給由鬆轉緊"}
-  - {id: nanya_pcb, ticker: "8046", name: 南電,     segment: abf_pcb,  tech: [ABF 載板]}
-  - {id: kinsus,  ticker: "3189", name: 景碩,       segment: abf_pcb,  tech: [ABF 載板]}
-  - {id: gce,     ticker: "2368", name: 金像電,     segment: abf_pcb,  tech: [高階 PCB]}
-  - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL], note: "高階 CCL 龍頭"}
-  - {id: tuc,     ticker: "6274", name: 台燿,       segment: ccl,      tech: [CCL]}
+  - {id: wineai,  ticker: "6515", name: 穎崴,       segment: test_interface,
+     tech: [測試座, 探針卡, 熱控系統],
+     note: "2026 前 4 月營收地區別 北美 81% / 台灣 12% / 中國 7% —— 主要出貨對象是晶片設計商，不是台灣封測廠"}
+  # ---- 先進封裝設備（2026-09-19 從 adv_pkg 搬出來：這三家是設備商，不是封裝廠）
+  - {id: gpt,     ticker: "3131", name: 弘塑,       segment: pkg_equipment,
+     tech: [單片式清洗, 電鍍, 製程化學品], note: "客戶涵蓋台積電、聯發科、日月光、Micron、Amkor，約 70% 營收來自台灣"}
+  - {id: scientech, ticker: "3583", name: 辛耘,     segment: pkg_equipment,
+     tech: [設備代理, 濕製程設備, 晶圓貼合解貼合, 再生晶圓],
+     note: "設備代理約佔營收 7 成，自製設備與再生晶圓合計約 3 成 —— 嚴格說是通路＋自製＋再生的混合體"}
+  - {id: allring, ticker: "6187", name: 萬潤,       segment: pkg_equipment,
+     tech: [點膠, 貼合, 自動化, 散熱設備], note: "半導體封測設備佔營收 8～9 成"}
+  # ---- IC 載板
+  - {id: unimicron, ticker: "3037", name: 欣興,     segment: abf_pcb,  tech: [ABF 載板, HDI],
+     note: "2026 供給由鬆轉緊；2025Q4 IC 載板占營收 59%、HDI 與 PCB 合計 38%"}
+  - {id: nanya_pcb, ticker: "8046", name: 南電,     segment: abf_pcb,  tech: [ABF 載板],
+     note: "網通載板占 65～70%（主要對應 Broadcom），AMD CPU/GPU 載板約 15%；2014 年已退出 Intel 供應鏈。風險：Broadcom 投資 TOPPAN 新加坡自建產能，2027 起部署"}
+  - {id: kinsus,  ticker: "3189", name: 景碩,       segment: abf_pcb,  tech: [ABF 載板, BT 載板],
+     note: "2025H1 ABF 46% / BT 36% / 其他 18%。BT 客戶含高通、聯發科、美光；ABF 原以 Xilinx（AMD）為主，2026 轉向 NVIDIA 與 Google TPU / Meta"}
+  # ---- 高階 PCB（2026-09-19 從 abf_pcb 搬出來：金像電不做 ABF 載板，它是 MLB/UBB 高層數 PCB）
+  - {id: gce,     ticker: "2368", name: 金像電,     segment: hdi_pcb,  tech: [50 層以上 MLB, 30 層以上 UBB, 800G 交換器板],
+     note: "2025Q3 伺服器營收占比 80%，AI 高階專案逾 50%；AWS / Google / Meta / 微軟自研 ASIC 平台由 CSP 直接指定用料"}
+  # ---- CCL（材料）
+  - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL],
+     note: "高階 CCL 龍頭。做的是 PCB 用高速 CCL，不是 ABF 載板材料（載板的膜是味之素、core 是三菱瓦斯）"}
+  - {id: tuc,     ticker: "6274", name: 台燿,       segment: ccl,      tech: [M8 CCL],
+     note: "M8 等級 CCL 全球第二大。客戶為全球一線 PCB 廠與伺服器代工廠，公開來源未具名 —— 所以圖上維持沒有連線"}
+  - {id: iteq,    ticker: "6213", name: 聯茂,       segment: ccl,      tech: [高階 CCL],
+     note: "CCL 三雄之一（台光電、台燿、聯茂）"}
+  # ---- 材料上游（2026-09-19 新增。這一層才是這輪行情真正的瓶頸）
+  - {id: kingco,  ticker: "8358", name: 金居,       segment: ccl_material, tech: [HVLP 銅箔],
+     note: "高盛點名為「台版三井金屬」"}
   # ---- 散熱
   - id: avc
     ticker: "3017"
     name: 奇鋐
     segment: thermal
     tech: [水冷板, sidecar, CDU]
-    share:
-      - {metric: "GB200/GB300 水冷板市占", value_pct_range: [40, 50], as_of: "2026-H1", source: "媒體引述法人", confidence: reported}
+    # 2026-09-19：原本寫「GB200/GB300 水冷板市占 40–50%，source: 媒體引述法人」，
+    # 兩位查證的分析師都找不到任何一篇給出這個數字 —— 依 CLAUDE.md「沒有來源就不要寫數字」拿掉，
+    # 只保留定性描述。查到出處再補回 share 並附 source_url。
+    note: "GB200/GB300 水冷板主要供應商之一（未取得可查證的市占數字）"
     customers: [foxconn, quanta]
   - {id: auras,   ticker: "3324", name: 雙鴻,       segment: thermal,  tech: [水冷板, 氣冷模組]}
-  - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,  tech: [均熱片, 導線架]}
+  - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,  tech: [均熱片 lid/IHS, 補強框 stiffener, 導線架],
+     note: "封裝層級的金屬件（封裝廠就貼上去），跟奇鋐／雙鴻的系統層級水冷不是同一張單"}
   # ---- 電源
   - id: delta
     ticker: "2308"
     name: 台達電
     segment: power
     tech: [800V HVDC, MW 級 CDU, PSU]
-    share:
-      - {metric: "AI 伺服器電源市占", value_pct: 60, as_of: "2026", source: "媒體引述法人", confidence: reported}
-  - {id: liteon,  ticker: "2301", name: 光寶科,     segment: power,    tech: [PSU], note: "與台達合計約 7 成"}
+    # 2026-09-19：原本寫「AI 伺服器電源市占 60%」，查不到任何出處，依規則拿掉數字。
+    note: "AI 伺服器電源與 800V HVDC 的主要台廠（未取得可查證的市占數字）"
+  - {id: liteon,  ticker: "2301", name: 光寶科,     segment: power,    tech: [PSU, 110kW Power Shelf, 800VDC 電源架],
+     note: "已打入北美主要 CSP 供應鏈（原本寫「與台達合計約 7 成」，查不到出處，已拿掉）"}
   # ---- 光通訊
-  - {id: luxnet,  ticker: "4979", name: 華星光,     segment: optical,  tech: [光收發模組]}
-  - {id: lpc,     ticker: "3081", name: 聯亞,       segment: optical,  tech: [磊晶]}
-  - {id: browave, ticker: "3163", name: 波若威,     segment: optical,  tech: [光被動元件]}
+  - {id: lpc,     ticker: "3081", name: 聯亞,       segment: optical_epi,
+     tech: [InP/GaAs 磊晶, CW Laser 晶粒],
+     note: "最上游的磊晶片與雷射晶粒，不做模組。客戶是國際一流光模組大廠（中際旭創、Coherent），不是台廠"}
+  - {id: luxnet,  ticker: "4979", name: 華星光,     segment: optical,  tech: [光收發模組, CW Laser 後段代工]}
+  - {id: browave, ticker: "3163", name: 波若威,     segment: optical,
+     tech: [光纖連接 MPO/Shuffle Box, WDM/AWG, PLC 分光器],
+     note: "光被動元件與高密度光纖連接，不做含 LD/PD 與 DSP 的光收發模組"}
   # ---- 交換器
   - {id: accton,  ticker: "2345", name: 智邦,       segment: switch,   tech: [800G/1.6T 白牌交換器]}
   # ---- 組裝
@@ -136,42 +209,167 @@ companies:
       - {metric: "HBM 市占", value_pct: 62, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}
   - {id: micron,    ticker: "NASDAQ:MU",   name: Micron,   segment: hbm, foreign: true,
      share: [{metric: "HBM 市占", value_pct: 21, as_of: "2025-Q2", source: "Chosun Biz 引述", confidence: reported}]}
+  - {id: kioxia,    name: Kioxia,   segment: hbm, foreign: true, note: "力成第一或第二大客戶（NAND）"}
   - {id: hyperscaler, name: "CSP（Microsoft / Google / Amazon / Meta）", segment: hyperscaler, foreign: true}
+  # ---- 材料層外商（2026-09-19 新增）。整條鏈最脆弱的單點瓶頸在這裡。
+  - {id: ajinomoto, name: "味之素 Ajinomoto", segment: substrate_material, foreign: true,
+     tech: [ABF 增層膜],
+     share: [{metric: "ABF 增層膜全球市占", value_pct: 95, as_of: "2026-05", source: "今周刊",
+              source_url: "https://www.businesstoday.com.tw/article/category/183008/post/202605120023/", confidence: reported}],
+     note: "占載板 BOM 成本約 25%；2026 宣布漲價 30%"}
+  - {id: mgc,       name: "三菱瓦斯化學 MGC", segment: substrate_material, foreign: true,
+     tech: [BT 樹脂 core CCL], note: "BT 樹脂全球龍頭；與 Resonac 自 2026-04-01 起同步調漲 30%"}
+  - {id: nittobo,   name: "日東紡 Nittobo", segment: ccl_material, foreign: true,
+     tech: [高階玻纖布, T-glass], note: "供應吃緊"}
+  # ---- 光通訊的實際客戶（聯亞的錢是從這兩家來的，不是從台廠）
+  - {id: innolight, ticker: "SZ:300308", name: "中際旭創 Innolight", segment: optical, foreign: true}
+  - {id: coherent,  ticker: "NYSE:COHR",  name: Coherent, segment: optical, foreign: true}
 
 # ---------------------------------------------------------------- 邊
+# 2026-09-19 由三位 industry-analyst 查證後重寫。每條標了 confidence：
+#   verified  官方文件／重訊等級（公司官網、優良供應商名單、採購金額揭露）
+#   reported  兩個以上獨立媒體在摘要層級講同一件事
+#   estimated 產業邏輯推論，沒有直接來源 —— 這種一律 strength ≤ 2 並寫明
+# 查不到出處的一律**不畫**，讓節點維持孤立並在圖上標「?」。畫錯一條線比留一個「?」糟糕得多。
 edges:
-  - {from: gud,      to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3}
-  - {from: alchip,   to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3}
-  - {from: tsmc,     to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, note: "獨家代工"}
-  - {from: tsmc,     to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4}
-  - {from: tsmc,     to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4}
-  - {from: tsmc,     to: mtk,      rel: supplies, item: "晶圓", strength: 4}
-  - {from: cowos,    to: tsmc,     rel: produced_by}
-  - {from: tsmc,     to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2}
-  - {from: gpt,      to: tsmc,     rel: supplies, item: "濕製程設備", strength: 3}
-  - {from: allring,  to: tsmc,     rel: supplies, item: "點膠/固晶設備", strength: 2}
-  - {from: skhynix,  to: nvidia,   rel: supplies, item: "HBM", strength: 5}
-  - {from: micron,   to: nvidia,   rel: supplies, item: "HBM", strength: 3}
-  - {from: kyec,     to: nvidia,   rel: supplies, item: "AI 晶片測試", strength: 4}
-  - {from: emc,      to: gce,      rel: supplies, item: "高階 CCL", strength: 4}
-  - {from: emc,      to: unimicron, rel: supplies, item: "CCL", strength: 3}
-  - {from: unimicron, to: nvidia,  rel: supplies, item: "ABF 載板", strength: 3}
-  - {from: gce,      to: foxconn,  rel: supplies, item: "伺服器 PCB", strength: 3}
-  - {from: nvidia,   to: foxconn,  rel: supplies, item: "GB300 模組", strength: 5}
-  - {from: nvidia,   to: quanta,   rel: supplies, item: "GPU 模組", strength: 4}
-  - {from: nvidia,   to: wistron,  rel: supplies, item: "GPU 模組", strength: 3}
-  - {from: avc,      to: foxconn,  rel: supplies, item: "水冷板", strength: 4}
-  - {from: avc,      to: quanta,   rel: supplies, item: "水冷板", strength: 4}
-  - {from: auras,    to: foxconn,  rel: supplies, item: "水冷板", strength: 3}
-  - {from: avc,      to: auras,    rel: competes, note: "水冷板同業"}
-  - {from: delta,    to: foxconn,  rel: supplies, item: "電源 / CDU", strength: 4}
-  - {from: delta,    to: quanta,   rel: supplies, item: "電源", strength: 3}
-  - {from: liteon,   to: foxconn,  rel: supplies, item: "PSU", strength: 3}
-  - {from: delta,    to: liteon,   rel: competes}
-  - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4}
-  - {from: luxnet,   to: accton,   rel: supplies, item: "光收發模組", strength: 2}
-  - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5}
-  - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5}
-  - {from: wiwynn,   to: hyperscaler, rel: supplies, item: "雲端伺服器", strength: 4}
-  - {from: liquid_cooling, to: avc, rel: produced_by}
-  - {from: hvdc_800v, to: delta, rel: produced_by}
+  # ================================ 材料 → 載板 / CCL
+  - {from: ajinomoto, to: unimicron,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported,
+     note: "全球 >95% 市占，近乎獨占；占載板 BOM 成本約 25%"}
+  - {from: ajinomoto, to: nanya_pcb,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}
+  - {from: ajinomoto, to: kinsus,     rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}
+  - {from: mgc,       to: unimicron,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
+  - {from: mgc,       to: nanya_pcb,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
+  - {from: mgc,       to: kinsus,     rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
+  - {from: kingco,    to: emc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+  - {from: nittobo,   to: emc,        rel: supplies, item: "高階玻纖布 / T-glass", strength: 3, confidence: reported}
+
+  # ================================ 設計服務 / IC 設計 ← 晶圓代工
+  # ★ 方向很容易寫反：設計服務是 turnkey，**向**晶圓廠買晶圓與封裝產能，所以晶圓廠才是供應方。
+  - {from: tsmc,    to: gud,      rel: supplies, item: "晶圓 + 先進封裝產能", strength: 5, confidence: verified,
+     note: "台積電持股約 34.8%、為創意唯一的晶圓代工來源；創意是台積電 OIP 價值鏈聯盟成員"}
+  - {from: tsmc,    to: alchip,   rel: supplies, item: "先進製程晶圓 + CoWoS", strength: 4, confidence: verified,
+     note: "台積電 VCA 成員與 3DFabric 聯盟支援夥伴；N3/N2/N5/N7 佔世芯業務 8 成以上"}
+  - {from: umc,     to: faraday,  rel: supplies, item: "成熟製程 ～14nm 晶圓", strength: 4, confidence: reported,
+     note: "聯電是智原最大股東（13.77%→14.13%），智原原為聯電 IP／NRE 部門切分而來。智原另走三星／Intel／GlobalFoundries 多元代工，不是台積電陣營"}
+  - {from: umc,     to: novatek,  rel: supplies, item: "28/22nm 高壓製程晶圓", strength: 4, confidence: reported,
+     note: "聯電在 28nm 小尺寸面板 DDIC 的全球純代工市占 >90%；OLED DDIC 已用 22nm 高壓製程量產"}
+  - {from: tsmc,    to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, confidence: verified, note: "獨家代工"}
+  - {from: tsmc,    to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4, confidence: reported}
+  - {from: tsmc,    to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4, confidence: reported}
+  - {from: tsmc,    to: marvell,  rel: supplies, item: "ASIC 晶圓（3nm，roadmap 到 A14）+ CoWoS", strength: 4, confidence: reported,
+     note: "2026-09-19 補上。以前沒有這條，但 products.cowos 的需求分配已經寫了 marvell 8% —— 檔案自己跟自己矛盾"}
+  - {from: tsmc,    to: mtk,      rel: supplies, item: "晶圓", strength: 4, confidence: reported}
+  - {from: cowos,   to: tsmc,     rel: produced_by}
+  - {from: tsmc,    to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2, confidence: reported}
+
+  # ================================ 設備 → 晶圓代工 / 封測
+  - {from: scientech, to: tsmc,  rel: supplies, item: "濕製程 / 貼合解貼合設備", strength: 3, confidence: verified,
+     note: "台積電年度優良供應商名單（27 家、7 家台廠），辛耘首次上榜，得獎項目與先進封裝量產支援相關"}
+  - {from: gpt,      to: tsmc,   rel: supplies, item: "濕製程設備", strength: 3, confidence: reported}
+  - {from: gpt,      to: ase,    rel: supplies, item: "濕製程設備 + 製程化學品", strength: 2, confidence: reported}
+  - {from: allring,  to: tsmc,   rel: supplies, item: "點膠 / 固晶設備", strength: 2, confidence: reported}
+  - {from: allring,  to: ase,    rel: supplies, item: "點膠 / 封裝設備", strength: 3, confidence: verified,
+     note: "日月光向萬潤採購設備含稅約 10.86 億元，約當萬潤 2025 年全年營收 20.2%"}
+
+  # ================================ 封測 / 測試介面
+  - {from: kyec,     to: nvidia, rel: supplies, item: "AI 晶片測試", strength: 4, confidence: reported}
+  - {from: sigurd,   to: mtk,    rel: supplies, item: "測試代工", strength: 4, confidence: reported,
+     note: "矽格最大客戶為聯發科；營收結構測試 79%／封裝 19.7%"}
+  - {from: pti,      to: micron,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported}
+  - {from: pti,      to: kioxia,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported,
+     note: "鎧俠與美光各佔力成營收約 2～3 成"}
+  - {from: pti,      to: skhynix, rel: supplies, item: "記憶體封測", strength: 2, confidence: reported}
+  - {from: wineai,   to: nvidia, rel: supplies, item: "測試座 / 探針卡 / 熱控系統", strength: 4, confidence: reported,
+     note: "Phase 1 設計認證已過，Phase 2 於 2025 年底啟動，簽有至少 5 年長約"}
+  - {from: wineai,   to: amd,    rel: supplies, item: "測試座 / 探針卡", strength: 3, confidence: reported,
+     note: "對應 B100／MI400 世代；2025 前三大客戶合計佔合併營收 54.3%"}
+
+  # ================================ HBM
+  - {from: skhynix,  to: nvidia, rel: supplies, item: "HBM", strength: 5, confidence: reported}
+  - {from: micron,   to: nvidia, rel: supplies, item: "HBM", strength: 3, confidence: reported}
+
+  # ================================ CCL → PCB → 組裝
+  - {from: emc,      to: gce,    rel: supplies, item: "極低損耗高階 CCL", strength: 4, confidence: reported}
+  - {from: iteq,     to: gce,    rel: supplies, item: "高階 CCL", strength: 3, confidence: reported}
+  # ★ 刪掉了 emc → unimicron：欣興的 ABF 載板用的是味之素 ABF 膜＋三菱瓦斯 BT core，
+  #   不是台光電的高速 CCL。那條邊會被讀成「台光電供 ABF 載板材料」，是錯的。
+  - {from: gce,      to: foxconn, rel: supplies, item: "伺服器 PCB", strength: 3, confidence: estimated,
+     note: "產業邏輯推論：金像電是伺服器 PCB 主力、鴻海是整櫃龍頭，但公開年報未確認直接客戶關係"}
+  - {from: gce,      to: accton,  rel: supplies, item: "800G/1.6T 交換器 PCB", strength: 3, confidence: estimated,
+     note: "金像電是交換器板主力、智邦是白牌交換器龍頭；沒有雙方具名的直接來源"}
+  - {from: gce,      to: hyperscaler, rel: designated_by, item: "CSP 自研 ASIC 平台直接指定 PCB 料號（AVL）",
+     confidence: reported,
+     note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM"}
+  - {from: emc,      to: nvidia, rel: designated_by, item: "GB200/GB300 UBB 板材 AVL", confidence: reported,
+     note: "台光電為二供；M9 於 2026Q3 進入量產，供 DGX/NVL 系列 GPU 主板與中板"}
+
+  # ================================ IC 載板 → 晶片設計商
+  - {from: unimicron, to: nvidia,   rel: supplies, item: "ABF 載板", strength: 3, confidence: reported}
+  - {from: nanya_pcb, to: broadcom, rel: supplies, item: "網通 / ASIC ABF 載板", strength: 4, confidence: reported,
+     note: "網通載板占南電營收 65～70%，主要對應 Broadcom"}
+  - {from: nanya_pcb, to: amd,      rel: supplies, item: "CPU / GPU ABF 載板", strength: 2, confidence: reported}
+  - {from: kinsus,    to: nvidia,   rel: supplies, item: "CPU / GPU ABF 載板", strength: 3, confidence: reported,
+     note: "2026 新增大單；法人估 CPU 載板市占約 45%、GPU 載板約 20%（法人估算，非官方揭露）"}
+  - {from: kinsus,    to: amd,      rel: supplies, item: "FPGA ABF 載板（原 Xilinx）", strength: 3, confidence: reported}
+  - {from: kinsus,    to: mtk,      rel: supplies, item: "BT 載板", strength: 3, confidence: reported}
+
+  # ================================ 散熱 / 電源
+  - {from: jentech,  to: nvidia, rel: supplies, item: "GPU 均熱片 lid/IHS + 補強框", strength: 4, confidence: reported,
+     note: "Rubin 世代改雙片式＋鍍金；3 月均熱片營收月增 85%"}
+  - {from: jentech,  to: amd,    rel: supplies, item: "MI450/MI455 均熱片", strength: 3, confidence: reported,
+     note: "報導稱為獨家供應商"}
+  - {from: avc,      to: foxconn, rel: supplies, item: "水冷板", strength: 4, confidence: reported}
+  - {from: avc,      to: quanta,  rel: supplies, item: "水冷板", strength: 4, confidence: reported}
+  - {from: auras,    to: foxconn, rel: supplies, item: "水冷板", strength: 3, confidence: reported}
+  - {from: delta,    to: foxconn, rel: supplies, item: "電源 / CDU", strength: 4, confidence: reported}
+  - {from: delta,    to: quanta,  rel: supplies, item: "電源", strength: 3, confidence: reported}
+  - {from: delta,    to: wiwynn,  rel: supplies, item: "電源 / Power Shelf", strength: 3, confidence: reported,
+     note: "2026-09-19 補上：緯穎原本完全沒有上游，圖上是斷頭"}
+  - {from: delta,    to: nvidia,  rel: supplies, item: "800V HVDC 電源櫃 / DC-DC 模組", strength: 3, confidence: reported,
+     note: "Vera Rubin 平台，最快 2026H2 出貨"}
+  - {from: liteon,   to: foxconn, rel: supplies, item: "PSU", strength: 3, confidence: reported}
+  - {from: liteon,   to: hyperscaler, rel: supplies, item: "AI 電源櫃 / 110kW Power Shelf", strength: 3, confidence: reported,
+     note: "已打入所有北美主要 CSP 供應鏈"}
+
+  # ================================ 光通訊
+  - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 4, confidence: reported,
+     note: "聯亞最大客戶是國際光模組大廠，不是台廠"}
+  - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}
+  - {from: lpc,      to: luxnet,    rel: outsources_to, item: "CW Laser 晶粒後段製程代工", strength: 2, confidence: estimated,
+     note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。聯亞法說自承「CW Laser 代工廠產能不足，有些訂單委外」，但沒有雙方具名的來源"}
+  - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}
+  - {from: browave,  to: nvidia,  rel: supplies, item: "CPO 用 800G/1.6T 光纖套件（Fiber Harness / Shuffle Box）",
+     strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大"}
+
+  # ================================ 交換器 / IC 設計 → 組裝 → 雲端
+  - {from: broadcom, to: accton, rel: supplies, item: "Tomahawk 交換器晶片", strength: 5, confidence: reported,
+     note: "2026-09-19 補上：這是整張 AI 鏈最明顯的一個洞，兩個節點都在、中間卻沒有邊。智邦 OFC 2026 展出全球首台 Tomahawk 6 的 102.4T 交換器"}
+  - {from: rtk,      to: nvidia, rel: supplies, item: "PCIe SSD 控制 IC", strength: 1, confidence: reported,
+     note: "2026-01 打進，Rubin 平台／Quantum-X；比重未揭露。★ 不是交換器晶片 —— 智邦用的是 Broadcom Tomahawk"}
+  - {from: marvell,  to: hyperscaler, rel: supplies, item: "客製化 AI ASIC（Trainium / Maia / Google）", strength: 4,
+     confidence: reported, note: "2026-08 拿下 Google，湊齊三大 CSP"}
+  - {from: gud,      to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}
+  - {from: alchip,   to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}
+  - {from: nvidia,   to: foxconn, rel: supplies, item: "GB300 模組", strength: 5, confidence: reported}
+  - {from: nvidia,   to: quanta,  rel: supplies, item: "GPU 模組", strength: 4, confidence: reported}
+  - {from: nvidia,   to: wistron, rel: supplies, item: "GPU 模組", strength: 3, confidence: reported}
+  - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5, confidence: reported}
+  - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5, confidence: reported}
+  - {from: wistron,  to: hyperscaler, rel: supplies, item: "AI 伺服器 / GB200-GB300 機架系統", strength: 4,
+     confidence: reported, note: "2026-09-19 補上：緯創原本有上游沒下游，圖上是斷尾"}
+  - {from: wiwynn,   to: hyperscaler, rel: supplies, item: "雲端伺服器（以 ASIC 專案為主，Meta 佔比逾五成）",
+     strength: 4, confidence: reported}
+  - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4, confidence: reported}
+
+  # ================================ 產品 → 生產者
+  - {from: liquid_cooling, to: avc,   rel: produced_by}
+  - {from: liquid_cooling, to: auras, rel: produced_by}
+  - {from: liquid_cooling, to: delta, rel: produced_by}
+  - {from: hvdc_800v,      to: delta, rel: produced_by}
+
+# ---------------------------------------------------------------- 競爭關係
+# 2026-09-19：從 edges 搬出來。圖十不畫競爭關係（那不是上下游，畫了會被誤讀成供貨），
+# 留在 edges 裡只會讓之後讀這份 YAML 的人以為圖上有。
+competitors:
+  - {a: avc,   b: auras,  note: "水冷板同業"}
+  - {a: delta, b: liteon, note: "伺服器電源同業"}

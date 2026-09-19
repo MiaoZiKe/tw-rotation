@@ -73,7 +73,7 @@
           kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x' },
         { seg: 'hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
           kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x' },
-        { seg: 'abf_pcb', name: '主機板 高階 PCB / 載板', note: '托盤底板；載板（欣興/南電/景碩）與伺服器主機板（金像電）供應商不同',
+        { seg: 'hdi_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
           kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y' },
         { seg: 'ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
           kind: 'laminate', box: [46, 0.5, 32], at: [0, 30.2, 0] },

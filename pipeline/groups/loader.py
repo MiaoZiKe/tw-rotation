@@ -150,4 +150,7 @@ def supply_chain(path: Path | None = None) -> dict:
         "products": products,
         "companies": companies,
         "edges": raw.get("edges", []),
+        # 2026-09-19：競爭關係從 edges 搬出來（圖十不畫競爭，畫了會被讀成供貨），
+        # 但個股／公司面板要講得出「同環節誰在跟它搶」，所以照樣送到前端。
+        "competitors": raw.get("competitors", []),
     }

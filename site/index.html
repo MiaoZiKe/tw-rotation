@@ -696,6 +696,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .kvs .k .l{font-size:12px;color:var(--ink-3)} .kvs .k .v{font-family:var(--mono);font-size:17px;font-weight:600}
 
 /* ---------------- 產業鏈圖 ---------------- */
+/* 圖 ＋ 產業關係面板並排。窄畫面（<1100px）wrap 掉到下面 ——
+   800px 硬要並排會把關聯圖擠到看不清（2026-09-18 E6 就是這樣踩過一次）。 */
+.chainrow{display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.chainrow>.chainmap{flex:1 1 560px;min-width:0}
+.chainrow>#coBox.relside{flex:0 1 340px;min-width:280px;margin-top:0;max-height:640px;overflow:auto}
+@media(max-width:1100px){.chainrow>#coBox.relside{flex:1 1 100%;max-height:none}}
 .chainmap{position:relative;overflow:auto;min-width:0;border-radius:10px;background:var(--illus);border:1px solid var(--line)}
 .chainmap svg{display:block}
 .chainmap .seg-title{fill:var(--ink-3);font-size:12px;letter-spacing:.06em}
@@ -708,8 +714,29 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .edge{fill:none;stroke:var(--line-2);stroke-opacity:.55;stroke-width:var(--w,1.2)}  /* --w＝依存度 strength，見 industry.js drawChainMap */
 .chainmap .edge.hi{stroke:var(--cyan);stroke-opacity:.9;stroke-width:calc(var(--w,1.2) + 1.2)}
 .chainmap .edge.dim{stroke-opacity:.08}
-.chainmap .edge.dash{stroke-dasharray:5 4}            /* outsources_to：委外 */
+.chainmap .edge.dash{stroke-dasharray:5 4}            /* outsources_to：委外，錢的方向跟供貨相反 */
+.chainmap .edge.spec{stroke-dasharray:1.5 3.5;stroke-opacity:.5}  /* designated_by：終端指定料號 AVL，實體出貨不一定經過它 */
+.chainmap .edge.mat{stroke:#9aa6bd;stroke-opacity:.42}            /* 材料：灰色，但粗細仍依 strength */
 .chainmap .edge.eq{stroke:#8792ab;stroke-opacity:.28;stroke-width:1}  /* 設備／材料環節：灰色細線，不跟主鏈搶視覺 */
+/* 產業關係說明（Andy 2026-09-19：「點擊關聯圖時，在旁邊新增這類說明」）。
+   圖上只有一條線，看得到「有關係」但看不懂「是什麼關係」——
+   這一塊把那條線攤開講：誰供什麼給它、它又賣什麼給誰、以及那是官方揭露還是產業推論。 */
+.relbox{margin-top:10px;border-top:1px solid var(--line);padding-top:8px}
+.relbox .rh{font-size:13px;color:var(--ink)}
+.relbox h5{margin:8px 0 4px;font-size:12px;font-weight:600;color:var(--ink-3);letter-spacing:.04em}
+.relbox ul{list-style:none;margin:0;padding:0}
+.relbox li{padding:5px 0 5px 9px;border-left:2px solid var(--line-2);margin-bottom:3px;font-size:12.5px}
+.relbox li:hover{border-left-color:var(--cyan)}
+.relbox .rl{color:var(--ink-3);margin-right:5px}
+.relbox .it{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.relbox .nt{font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+/* 依存度：五格小方塊，滿幾格就是 strength 幾 —— 比寫「4」直覺 */
+.relbox .dep{display:inline-block;width:26px;height:7px;margin-left:6px;vertical-align:middle;border-radius:2px;
+  background:linear-gradient(to right,var(--cyan) 0,var(--cyan) calc(var(--n,1)*20%),var(--line-2) calc(var(--n,1)*20%))}
+.relbox .cf{font-style:normal;font-size:10.5px;margin-left:6px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2)}
+.relbox .cf-verified{color:#6ee7a8;border-color:rgba(110,231,168,.45)}
+.relbox .cf-reported{color:var(--ink-3)}
+.relbox .cf-estimated{color:#d9a441;border-color:rgba(217,164,65,.45)}
 .chainmap .iso circle{fill:none;stroke:#d9a441;stroke-opacity:.75}
 .chainmap .iso text{font-size:9.5px;fill:#d9a441;text-anchor:middle;pointer-events:none}
 .chainmap .co.dim{opacity:.28}

@@ -2618,6 +2618,87 @@ def t_batch6_n1(pg, base):
        text(pg, "#dg3dNote")[:90])
 
 
+def t_relpanel(pg, base):
+    """點關聯圖的公司，旁邊要出現「產業關係」說明（Andy 2026-09-19）。
+
+    原話：「幫我在最底下點擊關聯圖時，在旁邊新增這類說明，更加明白產業關係」。
+    圖上只有一條線，看得到「有關係」但看不懂「是什麼關係」。
+    這裡驗的是**面板真的講出了關係**，不是「面板有出現」：
+      - 上游／下游各自列得出來，而且品項（item）有寫
+      - 每一條標了這是官方揭露、媒體報導還是產業推論（這份資料有一半是推論）
+      - 「在圖上 highlight」按了，圖上的線真的亮起來、其他真的變暗，再按一次還原
+      - 寬螢幕面板在圖的**旁邊**；800px 掉到圖的下面（硬並排會把圖擠到看不清）
+    """
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # 挑一家「一定有上下游」的：台積電。點卡片而不是點標題列
+    sel = '#chainMap g.co[data-id="tsmc"]'
+    if not pg.evaluate(f"() => !!document.querySelector({sel!r})"):
+        fails.append("關聯圖上找不到台積電的卡片，後面整段驗不了")
+        return
+    pg.eval_on_selector(sel, "g => g.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+    pg.wait_for_timeout(900)
+    st = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+        const li = [...b.querySelectorAll('.relbox li')];
+        const heads = [...b.querySelectorAll('.relbox h5')].map(h => h.textContent);
+        return { has: !!b.querySelector('.relbox'), up: heads.filter(h => h.indexOf('上游') >= 0).length,
+                 down: heads.filter(h => h.indexOf('下游') >= 0).length,
+                 rows: li.length, items: li.filter(x => (x.querySelector('.it')||{}).textContent.trim()).length,
+                 conf: b.querySelectorAll('.relbox .cf').length,
+                 dep: b.querySelectorAll('.relbox .dep').length,
+                 side: !!b.classList.contains('relside'),
+                 beside: (() => { const m = document.getElementById('chainMap');
+                   return m && b.getBoundingClientRect().left > m.getBoundingClientRect().left + 100; })() }; }""")
+    if not st:
+        fails.append("點了關聯圖的公司卡片，沒有開出說明面板")
+        return
+    ok("點關聯圖的公司，旁邊出現「產業關係」說明", st["has"], st)
+    ok("上游與下游分開列出來", st["up"] == 1 and st["down"] == 1, st)
+    ok("關係不只列名字，還寫了供的是什麼品項", st["rows"] > 3 and st["items"] == st["rows"], st)
+    ok("每一條都標了是官方揭露／媒體報導／產業推論", st["conf"] == st["rows"], st)
+    ok("依存度用長條畫出來（不是只寫一個數字）", st["dep"] > 0, st["dep"])
+    ok("寬螢幕時面板在圖的旁邊，不是擠在下面", st["side"] and st["beside"], st)
+
+    # ---- 真的按 highlight：圖上的線要變
+    before = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap .edge.hi').length,
+                                     dim: document.querySelectorAll('#chainMap .edge.dim').length })""")
+    pg.eval_on_selector("#relHi", "b => b.click()")
+    pg.wait_for_timeout(500)
+    after = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap .edge.hi').length,
+                                    dim: document.querySelectorAll('#chainMap .edge.dim').length,
+                                    codim: document.querySelectorAll('#chainMap .co.dim').length })""")
+    ok("按「在圖上 highlight」，它的線真的亮起來、其他真的變暗",
+       after["hi"] > before["hi"] and after["dim"] > before["dim"] and after["codim"] > 0,
+       f"{before} → {after}")
+    pg.eval_on_selector("#relHi", "b => b.click()")
+    pg.wait_for_timeout(500)
+    back = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap .edge.hi').length,
+                                   dim: document.querySelectorAll('#chainMap .edge.dim').length,
+                                   codim: document.querySelectorAll('#chainMap .co.dim').length })""")
+    ok("再按一次還原（不還原使用者會以為圖壞了）",
+       back["hi"] == 0 and back["dim"] == 0 and back["codim"] == 0, back)
+
+    # ---- 沒有關聯的公司要明講，不是留白。台燿 6274 是刻意留「?」的那一家
+    tuc = pg.evaluate("() => !!document.querySelector('#chainMap g.co[data-id=\"tuc\"]')")
+    if tuc:
+        pg.eval_on_selector('#chainMap g.co[data-id="tuc"]',
+                            "g => g.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
+        pg.wait_for_timeout(800)
+        txt = text(pg, "#coBox")
+        ok("沒有上下游的公司，面板要明講「查不到就留白」而不是空白",
+           "還沒有建立上下游關聯" in txt, txt[:90])
+
+    # ---- 800px：面板要掉到圖的下面，不能硬並排
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.wait_for_timeout(900)
+    nar = pg.evaluate("""() => { const b = document.getElementById('coBox'), m = document.getElementById('chainMap');
+        if (!b || !m) return null; const rb = b.getBoundingClientRect(), rm = m.getBoundingClientRect();
+        return { below: rb.top >= rm.top + 40, width: Math.round(rb.width),
+                 host: Math.round(document.querySelector('.chainrow').getBoundingClientRect().width) }; }""")
+    ok("800px 時面板掉到圖的下面（不硬並排把圖擠爛）", bool(nar) and nar["below"], nar)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 def t_batch6_n9(pg, base):
     """圖九（Andy 2026-09-19：3D 走線／電流／PIN 腳細緻度、三種配色、文字框掛個股）。
 
@@ -2749,8 +2830,29 @@ SC_GEOM = """() => {
         && pt.x > c.x + 1 && pt.x < c.x + c.w - 1 && pt.y > c.y + 1 && pt.y < c.y + c.h - 1);
       if (hit) { cross.push(p.dataset.from + '→' + p.dataset.to + ' 穿過 ' + hit.id); break; } }
   });
+  /* 文字重疊：用 getBBox 兩兩比，SVG 座標系裡算，跟畫面縮放無關。
+     2026-09-19 踩到：環節沒有台股時改顯示 note，但一行切 18 個字**超出欄寬**，
+     整段跑到隔壁欄壓到別人的卡片；行距 13px 也小於 11px 中文的實際行高，自己壓自己。 */
+  // 只比 text vs text，而且跳過同一張卡片裡的兩行（那本來就疊在同一個 rect 上，不是重疊）
+  const tb = [...svg.querySelectorAll('text')]
+    .map(e => ({ t: (e.textContent || '').trim().slice(0, 12), g: e.closest('g'), b: e.getBBox() }))
+    .filter(x => x.t && x.b.width > 0 && x.b.height > 0);
+  const overlap = [];
+  for (let i = 0; i < tb.length; i++) for (let j = i + 1; j < tb.length; j++) {
+    if (tb[i].g && tb[i].g === tb[j].g) continue;
+    const a = tb[i].b, c = tb[j].b;
+    if (a.x < c.x + c.width - 1 && a.x + a.width > c.x + 1
+        && a.y < c.y + c.height - 1 && a.y + a.height > c.y + 1) overlap.push(tb[i].t + ' ↔ ' + tb[j].t);
+  }
   const kids = [...svg.children].map(n => n.getAttribute('class') || n.tagName);
+  const linked = new Set();
+  paths.forEach(p => { linked.add(p.dataset.from); linked.add(p.dataset.to); });
+  const isoBad = [...svg.querySelectorAll('g.co')].filter(g => {
+    const marked = !!g.querySelector('g.iso');
+    return marked !== !linked.has(g.dataset.id);
+  }).map(g => g.dataset.id);
   return { n: paths.length, cards: cards.length, badEnd, cross,
+           isoOk: isoBad.length === 0, isoBad, overlap: overlap.slice(0, 6),
            iso: svg.querySelectorAll('g.iso').length,
            noArrow: paths.filter(p => !p.getAttribute('marker-end')).length,
            dash: svg.querySelectorAll('path.edge.dash').length,
@@ -2764,9 +2866,12 @@ SC_GEOM = """() => {
              return el.scrollWidth - el.clientWidth > 4 && /auto|scroll/.test(getComputedStyle(el).overflowX); })() };
 }"""
 
-# 孤立節點的現況基準（2026-09-19）。目標是 Andy 校訂 docs/supply_chain_suggest.md
-# 之後降到 2 以下；在那之前先當成棘輪 —— 只准變少，不准變多。
-SC_ISO_MAX = {"ai_server": 10, "semiconductor": 13}
+# 孤立節點上限（棘輪：只准變少，不准變多）。
+# 2026-09-19 早上：ai_server 10 / semiconductor 13（全是我猜的、沒查證，所以不敢畫線）。
+# 2026-09-19 下午：三位 industry-analyst 查證後補上 45 條有出處的邊，
+#   降到 ai_server 1 / semiconductor 0。剩下的那一個是台燿 6274 ——
+#   公開來源查不到具名客戶，**刻意**讓它維持「?」，不畫猜的線。
+SC_ISO_MAX = {"ai_server": 1, "semiconductor": 0}
 
 
 def t_batch6_n3(pg, base):
@@ -2797,8 +2902,11 @@ def t_batch6_n3(pg, base):
             ok(f"{cid} 每條邊都有箭頭（看得出誰供給誰）{tag}", g["noArrow"] == 0, g["noArrow"])
             ok(f"{cid} 線的粗細真的依依存度不同（不是全部一樣粗）{tag}", g["widths"] > 1, g["widths"])
             ok(f"{cid} competes（競爭關係）不畫成上下游{tag}", g["competes"] == 0, g["competes"])
-            ok(f"{cid} 沒有關聯的節點都標了「?」{tag}", g["iso"] > 0 and g["iso"] <= SC_ISO_MAX[cid],
-               f"{g['iso']} 個孤立 / 共 {g['cards']} 張卡（上限 {SC_ISO_MAX[cid]}）")
+            ok(f"{cid} 孤立節點沒有變多（棘輪，上限 {SC_ISO_MAX[cid]}）{tag}",
+               g["iso"] <= SC_ISO_MAX[cid],
+               f"{g['iso']} 個孤立 / 共 {g['cards']} 張卡")
+            ok(f"{cid} 「?」只標在真的沒有線的卡片上{tag}", g["isoOk"], g["isoBad"][:4])
+            ok(f"{cid} 圖上沒有文字互相壓到{tag}", not g["overlap"], g["overlap"])
             # 窄畫面放不下是允許的（.chainmap 本來就 overflow:auto），
             # 但一定要「捲得到」，不可以被切掉看不見 —— 2026-09-18 的 E6 就是這樣漏掉的。
             ok(f"{cid} 圖沒有被切掉（寬的放得下、窄的捲得到）{tag}",
@@ -4053,7 +4161,7 @@ def main() -> int:
         for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry),
                          ("產業鏈導覽", t_chainnav), ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9)):
+                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             n0 = len(fails)
             try:
                 fn(pg, base)

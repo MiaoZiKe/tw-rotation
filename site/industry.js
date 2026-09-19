@@ -81,15 +81,40 @@
        它們不在圖上，於是所有「IC 設計 → 代工／封裝／載板」的邊在
        `coPos[e.from]` 查不到節點而被整條丟掉（實測 17 條）。
        結果就是 34 家裡有 11 家完全沒有線，看起來像「連線漏畫」。 */
+  /* 2026-09-19 查證後改：`abf_pcb`（IC 載板）的 chain 從 ai_server 改成 semiconductor
+     —— 載板本來就是半導體封裝環節，這一改，載板三雄在半導體鏈上孤立的問題就一起解決了。
+     反過來 AI 伺服器鏈要把載板、封測、測試介面、載板材料都拉進來：
+     `kyec → nvidia`（AI 晶片測試）這種邊以前在 AI 鏈的圖上會被整條丟掉。
+     成果：孤立節點 AI 鏈 10 → 1、半導體鏈 13 → 0。*/
   const CHAIN_EXTRA = {
-    ai_server: ['ic_design', 'foundry', 'adv_pkg', 'hbm'],
-    semiconductor: ['abf_pcb', 'osat_test'],
+    ai_server: ['ic_design', 'foundry', 'adv_pkg', 'hbm', 'abf_pcb',
+                'substrate_material', 'osat_test', 'test_interface'],
+    semiconductor: [],
   };
   function chainSegments(sc, cid) {
     if (!sc) return [];
     const extra = CHAIN_EXTRA[cid] || [];
     return sc.segments.filter(s => s.chain === cid || extra.includes(s.id));
   }
+  /* ---------------------------------------------------------------- 產業關係的措辭
+     Andy 2026-09-19：「點擊關聯圖時，在旁邊新增這類說明，更加明白產業關係」。
+     這幾支是**唯一**產生關係文字的地方 —— 圖上的 tooltip 與旁邊的說明面板走同一套，
+     不然同一條邊會出現兩種講法。*/
+  /* up＝這條邊的另一端在上游（它供給我）、down＝另一端在下游（我供給它）。
+     措辭一律站在「被點開的那家公司」的角度講，不然「供貨給 味之素」會被讀成方向相反。*/
+  const REL_TEXT = {
+    supplies: { up: '供應商', down: '客戶', label: '供貨' },
+    outsources_to: { up: '把製程委外給它的是', down: '委外代工給', label: '委外代工' },
+    designated_by: { up: '它的料號由這家指定', down: '料號由它指定', label: '指定料號 AVL' },
+    produced_by: { up: '由它生產', down: '生產', label: '生產' },
+  };
+  /* confidence 一定要看得見。這份資料有一半是「產業邏輯推論」而不是公司揭露，
+     不標出來的話，使用者會把推論當成事實 —— 那正是這張圖最容易造成的傷害。*/
+  const CONF_TEXT = { verified: '官方揭露', reported: '媒體報導', estimated: '產業推論' };
+  const relLabel = (e) => {
+    const r = (REL_TEXT[e.rel] || {}).label || e.rel || '關聯';
+    return `${e.item || r}${e.note ? '（' + e.note + '）' : ''}`;
+  };
   const segName = (sc, id) => ((sc && sc.segments.find(s => s.id === id)) || {}).name || id;
   const segColor = (id) => A.L.segColor(id);      // 讀的當下才取色，切主題才跟得上
   const twOf = (sc, seg) => (sc ? sc.companies.filter(c => c.segment === seg && c.tw_code) : []);
@@ -123,7 +148,7 @@
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
-        ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線框＝外商；點公司進入個股頁</small></h4><div class="chainmap" id="chainMap"></div></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係</small></h4><div class="chainrow"><div class="chainmap" id="chainMap"></div></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
@@ -483,7 +508,16 @@
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
     const cols = layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
-    cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + 18; }); maxH = Math.max(maxH, y); });
+    /* 沒有台股的環節要顯示 note（見下面的 nodes 迴圈）。那幾行字**要先算進版面高度**，
+       不然它會壓到下一個環節的標題列 —— 2026-09-19 實測到「先進封裝 CoWoS/SoIC」的說明
+       整段蓋在「封測 / 測試」上面。*/
+    /* 一行放幾個字：欄寬 178 − 左右留白 12 = 166px，說明字級 11px，
+       中文大約 1 字 1 字寬 → 13 字是安全值。切 18 字會**超出欄寬**，
+       整段跑到隔壁欄去壓到別人的卡片（2026-09-19 用 getBBox 量到的）。*/
+    const NOTE_CPL = 13, NOTE_LH = 16, NOTE_MAX = 4;
+    const noteWrap = (txt) => (String(txt || '').match(new RegExp(`.{1,${NOTE_CPL}}`, 'g')) || []);
+    const noteLines = (sg, list) => (list.length ? 0 : Math.min(NOTE_MAX, noteWrap(sg.note || '台股無直接對應').length));
+    cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18; }); maxH = Math.max(maxH, y); });
     /* 右邊多留 24px：同一欄的兩張卡要從右緣繞一條 24px 的通道再回來，
        不留的話最後一欄那條線會被 viewBox 切掉。*/
     const W = padX * 2 + cols.length * (colW + colGap) - colGap + 24;
@@ -497,7 +531,17 @@
     let nodes = '';
     segs.forEach(s => { const p = pos[s.id]; if (!p) return; const col = segColor(s.id);
       nodes += `<g class="segtitle" data-seg="${s.id}" style="--c:${col}"><rect x="${p.x}" y="${p.y - 20}" width="${colW}" height="20" rx="5" fill="${col}" fill-opacity=".14"/><circle cx="${p.x + 10}" cy="${p.y - 10}" r="3.5" fill="${col}"/><text class="seg-title" x="${p.x + 19}" y="${p.y - 6}" fill="${col}">${A.fmt.esc(s.name)}</text></g>`;
-      if (!p.list.length) nodes += `<text class="sub" x="${p.x + 6}" y="${p.y + 16}" fill="#6f7ea3">（台股無直接對應）</text>`;
+      /* 沒有台股的環節：有 note 就講 note，不要一律寫「台股無直接對應」。
+         2026-09-19 踩到：三家設備商搬去 pkg_equipment 之後，「先進封裝 CoWoS/SoIC」變成空的，
+         但 CoWoS 明明是台積電自己做的 —— 寫「台股無直接對應」是錯的。*/
+      if (!p.list.length) {
+        const msg = s.note || '（台股無直接對應）';
+        const words = noteWrap(msg);
+        const shown = words.slice(0, NOTE_MAX);
+        if (words.length > NOTE_MAX) shown[NOTE_MAX - 1] = shown[NOTE_MAX - 1].slice(0, -1) + '…';
+        nodes += `<g><title>${A.fmt.esc(msg)}</title>` + shown.map((w, i) =>
+          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="#6f7ea3">${A.fmt.esc(w)}</text>`).join('') + '</g>';
+      }
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
         nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
     /* 圖十（Andy 2026-09-19：「供應鏈關聯圖 連線對不起來」）。
@@ -557,9 +601,15 @@
         const x1 = a.x + a.w, xo = x1 + 24;
         d = corner([[x1, ay], [xo, ay], [xo, by], [x1, by]]);
       }
-      const eq = [coSeg[e.from], coSeg[e.to]].some(sg => ['equipment', 'material'].includes(segRole[sg]));
+      /* 兩種灰線分開：
+         equipment（設備）→ 灰色**細**線，粗細鎖 1，不跟主鏈搶視覺
+         material（材料）→ 灰色，但**粗細仍依 strength** —— CCL 占高階 AI 伺服器 PCB
+           材料成本 50% 以上，是這輪行情的「因」不是「果」，弱化成細線會誤導 */
+      const role = [coSeg[e.from], coSeg[e.to]].map(sg => segRole[sg] || '');
+      const eq = role.includes('equipment'), mat = !eq && role.includes('material');
       const w = eq ? 1 : 0.8 + (e.strength || 1) * 0.5;
-      edges += `<path class="edge${e.rel === 'outsources_to' ? ' dash' : ''}${eq ? ' eq' : ''}" data-from="${e.from}" data-to="${e.to}" data-rel="${A.fmt.esc(e.rel || '')}" style="--w:${w.toFixed(2)}" marker-end="url(#scArrow)" d="${d}"><title>${A.fmt.esc(e.item || e.rel || '')}${e.note ? '（' + A.fmt.esc(e.note) + '）' : ''}</title></path>`;
+      const cls = `edge${e.rel === 'outsources_to' ? ' dash' : ''}${e.rel === 'designated_by' ? ' spec' : ''}${eq ? ' eq' : ''}${mat ? ' mat' : ''}`;
+      edges += `<path class="${cls}" data-from="${e.from}" data-to="${e.to}" data-rel="${A.fmt.esc(e.rel || '')}" style="--w:${w.toFixed(2)}" marker-end="url(#scArrow)" d="${d}"><title>${A.fmt.esc(relLabel(e))}</title></path>`;
     });
     const H = Math.max(maxH, laneMax + 18, 300);
     /* 箭頭：markerUnits 用 userSpaceOnUse，不然細線的箭頭會跟著縮到看不見；
@@ -603,10 +653,15 @@
     if (!co) return;
     closeCoBox();
     const box = document.createElement('div');
-    box.id = 'coBox'; box.className = 'card';
+    box.id = 'coBox'; box.className = 'card'; box.dataset.co = co.id;
     box.style.cssText = 'margin-top:12px';
+    /* Andy 2026-09-19：「在**旁邊**新增這類說明」。
+       .chainrow 是 flex：寬螢幕時面板排在圖的右邊（340px），
+       窄畫面（<1100px）自動 wrap 掉到圖的下面 —— 800px 硬要並排會把圖擠到看不清。*/
     const anchor = host || $('#chainMap');
-    if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
+    const row = anchor && anchor.closest ? anchor.closest('.chainrow') : null;
+    if (row) { box.classList.add('relside'); row.appendChild(box); }
+    else if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
     else document.body.appendChild(box);
     const shares = (co.share || []).map(s => `<li>${A.fmt.esc(s.metric || s.product || '市占')}：<b class="mono">${s.value_pct != null ? s.value_pct + '%' : (s.value || '—')}</b> <small class="muted">${s.as_of || ''} · ${s.source || ''}${s.stale ? ' · 已過期' : ''}</small></li>`).join('');
     const peers = sc.companies.filter(c => c.segment === co.segment && c.id !== co.id);
@@ -614,9 +669,76 @@
       <div class="sub"><span style="color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>${(co.groups || []).length ? ' · ' + co.groups.map(gn => A.L.groupByName(gn)).join(' ') : ''}</div>
       ${(co.tech || []).length ? `<div class="row" style="gap:6px;margin:6px 0">${co.tech.map(t => `<span class="pill">${A.fmt.esc(t)}</span>`).join('')}</div>` : ''}
       ${shares ? `<ul style="margin:6px 0;padding-left:18px;font-size:13.5px">${shares}</ul>` : '<div class="note">尚無市占資料（supply_chain.yaml 待補）</div>'}
+      ${co.note ? `<div class="note">${A.fmt.esc(co.note)}</div>` : ''}
       ${growthText(co.growth) ? `<div class="note">成長：${A.fmt.esc(growthText(co.growth))}</div>` : ''}${(co.risks || []).length ? `<div class="note">風險：${co.risks.map(A.fmt.esc).join('；')}</div>` : ''}
+      ${relBlock(co, sc)}
       ${peers.length ? `<div class="row" style="gap:4px 8px;margin-top:8px;font-size:12.5px"><span class="muted">同環節</span>${peers.map(p => p.tw_code ? A.L.stock(p.tw_code, p.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(p.name)}</span>`).join('')}</div>` : ''}
       ${co.tw_code ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
+    wireRelBlock(box, sc, host);
+  }
+
+  /* ---------------------------------------------------------------- 產業關係說明
+     Andy 2026-09-19：「點擊關聯圖時，在旁邊新增這類說明，更加明白產業關係」。
+     圖上只有一條線與一個 tooltip，看得到「有關係」但看不懂「是什麼關係」。
+     這一塊把那條線攤開來講：**上游是誰供什麼給它、它又把什麼賣給誰**，
+     每一條都帶品項、依存度、以及「這是官方揭露還是產業推論」。
+     最後一項很重要 —— 這份資料有一半是推論，不標的話使用者會當成事實。*/
+  function relBlock(co, sc) {
+    if (!co || !sc || !Array.isArray(sc.edges)) return '';
+    const byId = {}; (sc.companies || []).forEach(c => (byId[c.id] = c));
+    const line = (e, dir) => {
+      const other = byId[dir === 'up' ? e.from : e.to];
+      if (!other) return '';
+      const rt = REL_TEXT[e.rel] || { up: '關聯', down: '關聯' };
+      const nm = other.tw_code
+        ? `<a class="lk" href="#stock/${other.tw_code}">${A.fmt.esc(other.name)} <span class="mono">${other.tw_code}</span></a>`
+        : `<span class="muted">${A.fmt.esc(other.name)}${other.foreign ? '（外商）' : ''}</span>`;
+      const sw = e.strength ? `<i class="dep" style="--n:${Math.min(5, e.strength)}" title="依存度 ${e.strength}/5"></i>` : '';
+      const cf = e.confidence
+        ? `<em class="cf cf-${e.confidence}">${CONF_TEXT[e.confidence] || e.confidence}</em>` : '';
+      return `<li><span class="rl">${A.fmt.esc(rt[dir])}</span>${nm}${sw}
+        <div class="it">${A.fmt.esc(e.item || '')}${cf}</div>
+        ${e.note ? `<div class="nt">${A.fmt.esc(e.note)}</div>` : ''}</li>`;
+    };
+    const up = sc.edges.filter(e => e.to === co.id && e.rel !== 'produced_by').map(e => line(e, 'up')).filter(Boolean);
+    const down = sc.edges.filter(e => e.from === co.id && e.rel !== 'produced_by').map(e => line(e, 'down')).filter(Boolean);
+    const rivals = (sc.competitors || []).filter(x => x.a === co.id || x.b === co.id)
+      .map(x => byId[x.a === co.id ? x.b : x.a]).filter(Boolean);
+    if (!up.length && !down.length && !rivals.length) {
+      return `<div class="relbox"><div class="note">這家目前還沒有建立上下游關聯（圖上會標一個橘色「?」）。
+        公開來源查不到具名的客戶或供應商時，我們寧可留白，也不畫一條猜的線。</div></div>`;
+    }
+    return `<div class="relbox">
+      <div class="row spread"><b class="rh">產業關係</b>
+        <button class="btn sm" id="relHi" data-on="0">在圖上highlight</button></div>
+      ${up.length ? `<div class="relcol"><h5>上游 · 誰供給它（${up.length}）</h5><ul>${up.join('')}</ul></div>` : ''}
+      ${down.length ? `<div class="relcol"><h5>下游 · 它供給誰（${down.length}）</h5><ul>${down.join('')}</ul></div>` : ''}
+      ${rivals.length ? `<div class="relcol"><h5>同業競爭</h5><div class="row" style="gap:6px">${rivals.map(r => r.tw_code ? A.L.stock(r.tw_code, r.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(r.name)}</span>`).join('')}</div>
+        <div class="nt">競爭關係不畫在關聯圖上 —— 那不是上下游，畫成線會被讀成供貨。</div></div>` : ''}
+      <div class="nt">依存度＝資料裡的 strength（1–5），越滿代表這條關係在圖上的線越粗。
+        「產業推論」是沒有公司揭露、只能從產業邏輯推出來的，看的時候要打折。</div>
+    </div>`;
+  }
+
+  /* 「在圖上 highlight」：把這家公司的線亮起來、其餘變暗。
+     按第二次還原 —— 不還原的話使用者會以為圖壞掉了。*/
+  function wireRelBlock(box, sc, host) {
+    const btn = box && box.querySelector('#relHi');
+    if (!btn) return;
+    const svgHost = host || $('#chainMap');
+    btn.onclick = () => {
+      const on = btn.dataset.on === '1';
+      btn.dataset.on = on ? '0' : '1';
+      btn.classList.toggle('cyan', !on);
+      btn.textContent = on ? '在圖上highlight' : '取消 highlight';
+      const id = box.dataset.co;
+      $$('.edge', svgHost).forEach(e => {
+        const hit = !on && (e.dataset.from === id || e.dataset.to === id);
+        e.classList.toggle('hi', hit);
+        e.classList.toggle('dim', !on && !hit);
+      });
+      $$('.co', svgHost).forEach(n => n.classList.toggle('dim', !on && n.dataset.id !== id));
+    };
   }
 
   /* ============================================================ 簡版個股頁
