@@ -938,6 +938,12 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "inst_v3": {}, "inst": [], "shareholding": _clean(sh_by_code.get(code, [])),
             "fundamental": fund_idx.get(code),
             "news": news_by_code.get(code, []), "broker_views": broker_by_code.get(code, [])[:6],
+            # ★ 2026-09-19：簡版頁**更需要**重大訊息。這些是冷門股，媒體不會報，
+            #   但減資、變更面額、解散、訴訟這些公司自己一定會公告 ——
+            #   probe fixture 的第一筆就是冷門股「沛爾生醫」的面額變更。
+            #   而且它不依賴價量歷史，所以簡版頁照樣有東西可看，
+            #   正好對上「不可以出現沒有資訊的頁面」那條要求。
+            "material_news": mops_by_code.get(code, []),
             "note": f"歷史價量還在回補（目前只有 {len(bars)} 個交易日），技術面與多週期判讀等資料補齊後才會出現。",
         }
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False), encoding="utf-8")
