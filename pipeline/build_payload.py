@@ -322,6 +322,9 @@ def build() -> None:
         "dividend_events": store.read("dividend_events"),
         "dividend_results": store.read("dividend_results"),
         "company": company,
+        # ★ 2026-09-19：重大訊息（公司自己公告的）。跟 news（媒體寫的）分開放，
+        #   因為 M4 事件面要否決一筆進場，靠的是公告不是報導。
+        "material_news": store.read("material_news"),
     }
     cand_rows, breadth = candidates(price, valuation, company, inst, latest,
                                     names=names, markets=markets, fund=fund_rows,
@@ -621,6 +624,18 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     val_today = valuation[valuation["date"] == latest] if not valuation.empty else pd.DataFrame()
     inst_hist = inst[inst["code"].isin(codes)] if not inst.empty else pd.DataFrame()
     inst_today = inst_hist[inst_hist["date"] == latest] if not inst_hist.empty else pd.DataFrame()
+    mops_by_code: dict[str, list] = {}
+    _mops = (deep or {}).get("material_news")
+    if _mops is not None and not _mops.empty:
+        _m = _mops.sort_values(["date", "time"], ascending=False)
+        for _, n in _m.iterrows():
+            c = str(n.get("code") or "")
+            if c and len(mops_by_code.setdefault(c, [])) < 6:
+                mops_by_code[c].append({
+                    "date": n.get("date"), "time": n.get("time"),
+                    "subject": n.get("subject"), "clause": n.get("clause"),
+                    "occurred": n.get("occurred"), "detail": n.get("detail"),
+                })
     news_by_code: dict[str, list] = {}
     if news_df is not None and not news_df.empty:
         for _, n in news_df.sort_values("published_at", ascending=False).iterrows():
@@ -843,6 +858,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                     if inst_code is not None and not inst_code.empty else [],
             "shareholding": _clean(sh_by_code.get(code, [])),
             "news": news_by_code.get(code, []),
+            "material_news": mops_by_code.get(code, []),
             "broker_views": broker_by_code.get(code, [])[:6],
         }
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗

@@ -222,6 +222,16 @@ def two_step_plan(monkeypatch):
     monkeypatch.setattr(run_backfill, "target_codes", lambda limit: ["2330", "2454"])
     monkeypatch.setattr(run_backfill.loader, "membership",
                         lambda cfg=None: pd.DataFrame({"code": ["2330", "2330", "3034"], "group_id": ["a", "b", "a"]}))
+    # run_plan 現在第一件事是補指數歷史（3 次請求）。這幾個計畫測試驗的是逐檔那幾步，
+    # 不要讓它真的去打 FinMind —— 給一份最小的假資料，讓它一次就補完。
+    monkeypatch.setattr(run_backfill.finmind, "index_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame(
+                            {"date": ["2000-01-04"], "symbol": ["TSE"], "open": [1.0], "high": [1.0],
+                             "low": [1.0], "close": [1.0], "change": [0.0], "volume": [1.0], "turnover": [1.0]}))
+    monkeypatch.setattr(run_backfill.finmind, "futures_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame(
+                            {"date": ["2000-01-04"], "symbol": ["FUT"], "open": [1.0], "high": [1.0],
+                             "low": [1.0], "close": [1.0], "change": [0.0], "volume": [1.0], "turnover": [1.0]}))
     return steps
 
 
@@ -391,3 +401,52 @@ def test_只問到兩檔就全空不算資料集不開放(sandbox, monkeypatch):
     prog = json.loads(run_backfill.PROGRESS.read_text())
     assert prog["done"]["holding@2021-01-01:9999"] is True
     assert prog["done"]["holding@2021-01-01:8888"] is True
+
+
+# --------------------------------------------- 指數歷史（大盤／櫃買／台指期）
+# Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」。當時改成讀資料湖是對的，
+# 但沒有人把歷史補進湖裡：run_daily 抓指數寫死 since = now - 40 天，
+# 回補計畫裡又沒有這張表 —— 實測只有 32 個交易日，月 K 2 根、季 K 1 根。
+# 這不是「還沒補完」，是設計上永遠不會變多，所以當時回報「已修好」是不對的。
+
+def test_指數歷史會補進資料湖(sandbox, monkeypatch):
+    from pipeline.util import store
+    calls = []
+
+    def fake_index(start, end=None, wait=True):
+        calls.append(("index", start))
+        return pd.DataFrame({"date": ["2000-01-04", "2000-01-05"], "symbol": ["TSE", "TSE"],
+                             "open": [8756.0, 8849.0], "high": [8900.0, 8900.0],
+                             "low": [8700.0, 8800.0], "close": [8849.0, 8756.0],
+                             "change": [93.0, -93.0], "volume": [1.0, 1.0], "turnover": [1.0, 1.0]})
+
+    def fake_fut(start, end=None, wait=True):
+        calls.append(("fut", start))
+        return pd.DataFrame({"date": ["2000-01-04"], "symbol": ["FUT"], "open": [8700.0],
+                             "high": [8800.0], "low": [8600.0], "close": [8750.0],
+                             "change": [50.0], "volume": [1.0], "turnover": [1.0]})
+
+    monkeypatch.setattr(run_backfill.finmind, "index_ohlc", fake_index)
+    monkeypatch.setattr(run_backfill.finmind, "futures_ohlc", fake_fut)
+
+    prog = {"done": {}, "complete": {}}
+    assert run_backfill.backfill_indices(prog) is True
+    assert calls == [("index", "2000-01-01"), ("fut", "2000-01-01")], "要從 2000 年補，不是 40 天"
+    assert len(store.read("index_ohlc")) == 3
+    assert prog["complete"]["index_ohlc"]["done"] is True
+
+    # 補過就不再花額度
+    calls.clear()
+    assert run_backfill.backfill_indices(prog) is True
+    assert calls == [], "已經補過就不應該再打 API"
+
+
+def test_指數回空時不標done(sandbox, monkeypatch):
+    """回空要下一輪重試，不可以像 holding 那樣被永久標記成做過。"""
+    monkeypatch.setattr(run_backfill.finmind, "index_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame())
+    monkeypatch.setattr(run_backfill.finmind, "futures_ohlc",
+                        lambda s, end=None, wait=True: pd.DataFrame())
+    prog = {"done": {}, "complete": {}}
+    assert run_backfill.backfill_indices(prog) is False
+    assert "index_ohlc" not in prog["complete"]

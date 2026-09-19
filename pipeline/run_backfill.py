@@ -286,6 +286,57 @@ def monthly_step(today: date | None = None) -> dict:
             "scope": "groups", "tag": f"m{today:%Y-%m}"}
 
 
+INDEX_START = "2000-01-01"
+
+
+def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
+    """把加權指數、櫃買指數、台指期的日 K 一次補到 2000 年。
+
+    為什麼要另外寫一支，而不是塞進 PLAN_DEFAULT（2026-09-19）
+    --------------------------------------------------------
+    計畫的每一步都是「逐檔跑 codes」，但指數不是個股 —— 三個 symbol 一共只要 3 次請求。
+
+    為什麼非補不可（Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」）
+    ------------------------------------------------------------------
+    `run_daily` 抓指數時寫死 `since = now - 40 天`，而回補計畫裡**沒有這張表** ——
+    所以資料湖永遠只有 40 天：實測 32 個交易日 → 週 K 7 根、**月 K 2 根、季 K 1 根**。
+    `market3.js` 卻給了日／週／月／季四顆按鈕，使用者按「季 K」看到一根棒子。
+    這不是「還沒補完」，是**設計上永遠不會變多**，所以當時回報「已修好」是不對的。
+
+    順帶解掉季節性的基準問題：`seasonality_v3.json` 的 note 寫著「指數只有 12 個月，不夠比」，
+    所謂「超額報酬」其實退回成全市場等權平均、不是大盤。指數有歷史之後才比得了。
+
+    補過就不再補（進度檔記 `complete["index_ohlc"]`），每日管線照樣用 40 天的增量。
+    """
+    flag = (prog.get("complete") or {}).get("index_ohlc")
+    if isinstance(flag, dict) and flag.get("done") and flag.get("start") == start:
+        log.info("指數歷史已補過（%s 起），跳過", start)
+        return True
+    if http.finmind_budget_left() <= 3:
+        log.warning("額度不足 3 次，指數歷史這一輪先不補")
+        return False
+
+    total = 0
+    for label, fn in (("指數", finmind.index_ohlc), ("台指期", finmind.futures_ohlc)):
+        try:
+            df = fn(start, wait=False)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("%s 歷史抓取失敗：%s", label, exc)
+            return False
+        if df is None or df.empty:
+            log.warning("%s 歷史回空 —— 不標 done，下一輪重試", label)
+            return False
+        total += store.append("index_ohlc", df)
+
+    prog.setdefault("complete", {})["index_ohlc"] = {
+        "done": True, "start": start,
+        "at": datetime.now(timezone.utc).isoformat(), "rows": total,
+    }
+    _save_progress(prog)
+    log.info("指數歷史補完：寫入 %d 列（%s 起）", total, start)
+    return True
+
+
 def plan_steps(name: str, today: date | None = None) -> list[dict]:
     if name not in PLANS:
         raise KeyError(f"沒有這個回補計畫：{name}（可用：{sorted(PLANS)}）")
@@ -317,6 +368,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
     prog["complete"]["plan:<name>"] 標成 done，並記下月更新的年月。"""
     steps = plan_steps(name, today)
     month = monthly_step(today)["tag"][1:]
+    # 指數歷史只要 3 次請求，放最前面：它一補完，總覽的月 K／季 K 與季節性的
+    # 大盤基準就都有東西了，不必等後面幾千檔個股跑完。
+    prog0 = _progress()
+    idx_ok = backfill_indices(prog0)
     results: dict[str, bool] = {}
     stopped_at: str | None = None
     totals = {k: 0 for k in DATA_KEYS}
@@ -351,7 +406,8 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
     _save_progress(prog)
     log.info("計畫 %s 結束：done=%s，各步 %s，寫入 %s", name, all_done, results,
              {k: v for k, v in totals.items() if v})
-    return {"done": all_done, "steps": results, "stopped_at": stopped_at,
+    return {"done": all_done and idx_ok, "steps": {**results, "index_ohlc": idx_ok},
+            "stopped_at": stopped_at,
             "exhausted": stopped_at is not None, **totals}
 
 

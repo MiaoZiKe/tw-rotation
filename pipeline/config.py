@@ -47,6 +47,9 @@ TABLES: dict[str, list[str]] = {
     # —— 見 DECISIONS #155（通則：會重複用到的就要存）與 #156（分 K 的分層策略）。
     # 1/5/15 分只要當天，不進湖；240 分、週、月都由這一層推出來。
     "intraday_60m":       ["ts", "code"],
+    # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
+    # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
+    "material_news":      ["news_id"],
 }
 
 # 按「月」分割的表（其餘一律按年）。
@@ -68,6 +71,9 @@ TWSE_ENDPOINTS = {
     "revenue_monthly": "/opendata/t187ap05_L",
     "financial_q":     "/opendata/t187ap14_L",
     "dividend":        "/opendata/t187ap45_L",
+    # 重大訊息（公司自己公告的，不是媒體寫的）。2026-09-14 的 probe fixture 兩支都回 200。
+    "material_news_twse": "/opendata/t187ap04_L",
+    "material_news_tpex": "/opendata/t187ap04_O",
 }
 
 # 證交所「基本市況報導」即時報價。2026-09-14 加入白名單（DECISIONS #108）——

@@ -18,7 +18,7 @@ import pandas as pd
 from . import config
 from .compute import flow
 from .groups import loader
-from .sources import finmind, macro, mis, news, tdcc, tpex, twse
+from .sources import finmind, macro, mis, mops, news, tdcc, tpex, twse
 from .util import http, store
 from .util.roc import is_tradable_security
 
@@ -396,6 +396,9 @@ def main() -> int:
         news_df = step("news.collect", news.collect)
         save("news", news_df)
         save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        # 重大訊息盤中就會公告（減資、解散、訴訟、重大處分…），15:30 那輪就要抓 ——
+        # 它是 M4 事件面否決進場的依據，等到 18:30 才看到就太慢了。走 openapi，不吃 FinMind 額度。
+        save("material_news", step("mops.material_news", mops.material_news))
     elif news_only:
         # 週末：價量不會變，但新聞、國際盤（美股週五夜盤、歐股）、總經會變。
         # 只抓這三樣，不動 FinMind 額度、不去打那些週末本來就不更新的端點
@@ -404,6 +407,7 @@ def main() -> int:
         news_df = step("news.collect", news.collect)
         save("news", news_df)
         save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("material_news", step("mops.material_news", mops.material_news))
         save("intl_daily", step("macro.intl", macro.intl_daily))
         save("macro", step("macro.fred", macro.macro_all))
     else:
@@ -436,6 +440,7 @@ def main() -> int:
         news_df = step("news.collect", news.collect)
         save("news", news_df)
         save("broker_views", step("news.broker_views", news.extract_broker_views, news_df))
+        save("material_news", step("mops.material_news", mops.material_news))
         save("intl_daily", step("macro.intl", macro.intl_daily))
         save("macro", step("macro.fred", macro.macro_all))
 

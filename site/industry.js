@@ -61,7 +61,11 @@
     A.wheelZoom($('#indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom($('#indTree')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } });
     $('#chainTiles').innerHTML = im.chains.map(ch => { const pes = ch.groups.map(g => g.valuation && g.valuation.median).filter(Boolean); const chg = wavg(ch.groups); return `<div class="tile" onclick="location.hash='#industry/${ch.id}'"><div class="t">${ch.name}</div><div class="m">${ch.groups.length} 個族群 · ${ch.groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</div><div class="v"><span class="${A.fmt.cls(chg)}">${A.fmt.pct(chg)}</span> <small style="font-size:12px;color:var(--ink-3)">PE 中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</small></div></div>`; }).join('');
-    $('#indTiles').innerHTML = im.industries.slice(0, 18).map(g => `<div class="tile" onclick="location.hash='#industry/group/${g.id}'"><div class="t">${g.name}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%</div><div class="v ${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</div></div>`).join('');
+    /* ★ 2026-09-19：拿掉 slice(0, 18)。資料裡有 35 個法定產業別，這裡只列前 18 個，
+       剩下 17 個（造紙、農業科技、玻璃陶瓷…）在產業地圖上**點不到**，
+       只能從 #industry/industry 那一頁進去。
+       今天剛修好中文 id 的族群頁（hash 沒解碼那條），這 17 個才真的有地方可去。 */
+    $('#indTiles').innerHTML = im.industries.map(g => `<div class="tile" onclick="location.hash='#industry/group/${g.id}'"><div class="t">${g.name}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%</div><div class="v ${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</div></div>`).join('');
   }
   const median = (a) => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
   const wavg = (gs) => { let w = 0, s = 0; gs.forEach(g => { if (g.chg_pct != null && g.turnover) { w += g.turnover; s += g.chg_pct * g.turnover; } }); return w ? s / w : null; };
@@ -2089,8 +2093,28 @@
     paint();
   }
   function tabNews(pg, el) {
-    const news = pg.news || [], bv = pg.broker_views || [];
-    el.innerHTML = `<div class="grid g2"><div class="card"><h3>相關新聞 <small>鉅亨 / TechNews / 經濟日報</small></h3>${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty">近期沒有提到這檔的新聞</div>'}</div>
+    const news = pg.news || [], bv = pg.broker_views || [], mn = pg.material_news || [];
+    /* ★ 2026-09-19：重大訊息擺在最上面，而且跟「新聞」分開一張卡。
+       兩者的可信度完全不同 —— 新聞是媒體寫的，重大訊息是**公司自己公告的**，
+       減資、解散、訴訟、重大處分、財報更正都在這裡。
+       M4 事件面要否決一筆進場，靠的是公告不是報導，混在一起會讓那個判斷失去意義。
+       來源一定要寫出來，而且要能點回公開資訊觀測站看全文（我們只存前 800 字）。 */
+    const mnHtml = mn.length
+      ? mn.map(m => `<details class="ev" style="padding-left:0;padding-right:0">
+          <summary style="cursor:pointer"><b>${A.fmt.esc(m.subject || '')}</b>
+            <div class="m"><span class="mono">${A.fmt.esc(m.date || '')}${m.time ? ' ' + A.fmt.esc(m.time) : ''}</span>
+              ${m.clause ? `<span class="cat">${A.fmt.esc(m.clause)}</span>` : ''}
+              ${m.occurred && m.occurred !== m.date ? `<span>事實發生日 ${A.fmt.esc(m.occurred)}</span>` : ''}</div>
+          </summary>
+          <div class="note" style="white-space:pre-wrap;margin-top:6px">${A.fmt.esc(m.detail || '')}</div>
+        </details>`).join('')
+      : '<div class="empty">近期沒有這檔的重大訊息公告</div>';
+    el.innerHTML = `<div class="card" style="margin-bottom:16px"><div class="row spread">
+        <h3>重大訊息 <small>公司自己公告的，不是媒體報導</small></h3>
+        <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
+      <div class="note" style="margin:6px 0 4px">只存摘要前 800 字；要看全文請到公開資訊觀測站查該公司該日期的公告。</div>
+      ${mnHtml}</div>
+      <div class="grid g2"><div class="card"><h3>相關新聞 <small>鉅亨 / TechNews / 經濟日報</small></h3>${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty">近期沒有提到這檔的新聞</div>'}</div>
       <div class="card"><h3>券商觀點（新聞引述） <small>不是本站預估</small></h3>${bv.length ? `<div class="tw"><table><thead><tr><th class="l">日期</th><th class="l">券商</th><th>目標價</th><th class="l">動作</th></tr></thead><tbody>${bv.map(b => `<tr onclick="window.open('${A.fmt.esc(b.url || '#')}','_blank')"><td class="l mono">${b.date}</td><td class="l">${A.fmt.esc(b.broker || '—')}</td><td class="num">${A.fmt.n(b.target_price)}</td><td class="l">${A.fmt.esc(b.action || b.rating || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">近 60 天沒有引述到目標價的新聞</div>'}</div></div>`;
   }
 
