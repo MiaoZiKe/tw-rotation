@@ -1,0 +1,194 @@
+"""交付護欄：擋住「宣稱完成、實際上是壞的」。
+
+為什麼要有這一整個檔（Andy 2026-09-19：「需要在完成項目多驗證機制」）
+====================================================================
+2026-09-19 這一天，光是回頭稽核就抓到四件「標 ✅ 但其實不能用」的事：
+
+  1. 第 17 項「族群頁下鑽」標 ✅ —— 實際上 35 個法定產業別裡有 **34 個是空頁**
+     （hash 沒 decodeURIComponent，中文 id 永遠比不中）。
+  2. 第 41 項「只看低於族群中位」標 ✅ —— 實際上**從上線第一天就永遠篩出 0 筆**
+     （後端回比值、前端判負數）。
+  3. 第 8／2／C5 項標 ✅ —— 實際上只有 400 檔左右有資料，其餘 1,900 多檔是空的
+     （回補被 LIMIT=500 封死）。
+  4. 每日管線連續兩輪 failure、網站在週末與盤前根本不更新 —— 沒有任何關卡發現
+     （`return 0 if trade_date else 1` 對 news phase 永遠成立）。
+
+四件事的共通點：**「功能寫好了」跟「使用者真的用得到」之間沒有任何機器檢查。**
+pytest 驗演算法、_preview 驗版面、_uitest 驗互動 —— 三道關卡在
+「資料到底有沒有」「宣稱完成的東西是不是真的成立」這件事上是全盲的。
+
+這個檔就是補那個盲區。原則：
+  · 只放**能用機器判定**的條件，不放「看起來對不對」那種
+  · 全部寫成**棘輪**（只准變好），這樣現況不會立刻變紅，但倒退一定會被擋
+  · 每一條都要說明「壞掉的時候使用者會看到什麼」，不然下一個人不知道為什麼要守
+"""
+from __future__ import annotations
+
+import glob
+import json
+
+import pytest
+import yaml
+
+from pipeline import config
+
+# --------------------------------------------------------------------------
+# 資料覆蓋率棘輪
+# --------------------------------------------------------------------------
+# 這幾個數字是 2026-09-19 的實測值，**刻意貼著現況**訂 —— 加進來的當下不會紅，
+# 但只要回補倒退、或哪天有人把 LIMIT 改回 500，它就會紅。
+#
+# ★ 為什麼門檻訂得比現況低一點（留 5% 緩衝）：
+#   資料湖每天都在動，日線分割會跨年、停牌股會進出，卡太死會變成每天都要來調數字的
+#   假紅燈 —— 那種棘輪最後一定會被當成雜訊關掉。
+#
+# ★ 這些數字現在很難看（2,336 檔裡只有 392 檔有 250 天以上的價量）。
+#   **不要把它當成「標準」**，它是「今天的地板」。回補跑順之後要往上調。
+COVERAGE_FLOOR = {
+    "price_daily_250d": 370,      # 實測 392：能算 MA120／季節性的檔數
+    "revenue_13m": 460,           # 實測 488：能算營收 YoY 的檔數
+    "financial_4q": 470,          # 實測 503：能算 TTM EPS／本益比的檔數
+}
+
+
+def _price_depth() -> dict[str, int]:
+    import pandas as pd
+
+    files = sorted(glob.glob(str(config.DATA / "price_daily" / "year=*" / "part.parquet")))
+    if not files:
+        pytest.skip("沒有 data/price_daily，跳過（這是資料護欄，不是邏輯測試）")
+    px = pd.concat([pd.read_parquet(f, columns=["date", "code"]) for f in files], ignore_index=True)
+    n = px.groupby("code").size()
+    return {"ge250": int((n >= 250).sum()), "total": int(len(n))}
+
+
+def test_價量深度沒有倒退():
+    """壞掉的時候使用者會看到什麼：個股頁的 MA120、季節性、多週期判讀整段消失，
+    頁面退成「歷史價量還在回補」。2026-09-19 有 1,933 個頁面長這樣。"""
+    d = _price_depth()
+    assert d["ge250"] >= COVERAGE_FLOOR["price_daily_250d"], (
+        f"能算 MA120 的檔數掉到 {d['ge250']}（地板 {COVERAGE_FLOOR['price_daily_250d']}，"
+        f"全市場 {d['total']} 檔）。回補是不是又被擋住了？"
+        f"先看 data/_state/backfill_progress.json 的 complete 旗標與 backfill.yml 的 LIMIT"
+    )
+
+
+def _table_codes(table: str, col: str, need: int) -> int:
+    import pandas as pd
+
+    files = sorted(glob.glob(str(config.DATA / table / "**" / "*.parquet"), recursive=True))
+    if not files:
+        pytest.skip(f"沒有 data/{table}，跳過")
+    df = pd.concat([pd.read_parquet(f, columns=["code", col]) for f in files], ignore_index=True)
+    n = df.drop_duplicates(["code", col]).groupby("code").size()
+    return int((n >= need).sum())
+
+
+def test_月營收深度沒有倒退():
+    """壞掉的時候：個股頁與候選名單的「營收 YoY」「連增月」整欄變成「—」。"""
+    got = _table_codes("revenue_monthly", "ym", 13)
+    assert got >= COVERAGE_FLOOR["revenue_13m"], (
+        f"能算營收 YoY（≥13 個月）的檔數掉到 {got}（地板 {COVERAGE_FLOOR['revenue_13m']}）"
+    )
+
+
+# --------------------------------------------------------------------------
+# 「宣稱完成」與「可驗證」的對應
+# --------------------------------------------------------------------------
+# 今天抓到的第 17、41 項都是「功能在、但資料或口徑讓它永遠沒有輸出」。
+# 這一段用**資料本身**去確認那些功能有東西可吃 —— 不依賴前端跑起來。
+
+def test_每個法定產業別族群都有成分股():
+    """第 17 項。壞掉的時候：點「半導體業」「金融保險」進去看到「0 檔 · 沒有符合的股票」。
+    2026-09-19 因為 hash 沒解碼，35 個裡有 34 個長這樣。
+    這裡驗的是**資料**這一側 —— 前端那一側由 _uitest 的 t_group_pages 驗，兩邊都要有。"""
+    p = config.SITE / "data" / "groups_detail.json"
+    if not p.exists():
+        pytest.skip("還沒產生 site/data/groups_detail.json（先跑 build_payload）")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    g = d.get("groups", d)
+    ind = {k: v for k, v in g.items() if k.startswith("ind_")}
+    assert len(ind) >= 20, f"法定產業別只有 {len(ind)} 個，資料本身就不對"
+    empty = [k for k, v in ind.items() if not (v.get("members") or v.get("codes") or [])]
+    assert not empty, f"這些法定產業別一檔成分股都沒有：{empty[:6]}"
+
+
+def test_低於族群中位篩得出東西():
+    """第 41 項。壞掉的時候：勾「只看低於族群中位」→ 0 筆，畫面寫「沒有符合條件的股票」，
+    看起來像今天剛好沒有便宜股，其實是那個勾選框從來沒作用過。
+
+    根因是 vs_median 的口徑：後端回**比值**、前端判**負數**，而本益比恆正。
+    這一條直接釘住「一定要有負的」—— 只要有人把口徑改回比值，它就會紅。"""
+    p = config.SITE / "data" / "fundamental.json"
+    if not p.exists():
+        pytest.skip("還沒產生 site/data/fundamental.json")
+    d = json.loads(p.read_text(encoding="utf-8"))
+    rows = d["rows"] if isinstance(d, dict) and "rows" in d else (
+        list(d.values()) if isinstance(d, dict) else d)
+    vs = [r.get("vs_median") for r in rows if isinstance(r, dict) and r.get("vs_median") is not None]
+    assert len(vs) >= 100, f"有 vs_median 的只有 {len(vs)} 筆，樣本太少"
+    neg = sum(1 for v in vs if v < 0)
+    assert neg > 0, (
+        "沒有任何一檔的 vs_median 是負的 —— 那表示口徑又變回『比值』了。"
+        "本益比恆正，比值永遠 > 0，所以「只看低於族群中位」會永遠篩出 0 筆。"
+        "vs_median 的定義是『相對族群中位的百分比差』：-30 ＝ 比中位便宜 30%"
+    )
+
+
+def test_每檔股票都有個股頁():
+    """第 31／61／63 項。壞掉的時候：搜尋得到、點進去卻是「個股頁還沒產生」。"""
+    idx = config.SITE / "data" / "stocks.json"
+    if not idx.exists():
+        pytest.skip("還沒產生 site/data/stocks.json")
+    d = json.loads(idx.read_text(encoding="utf-8"))
+    codes = [s["code"] for s in (d.get("stocks") or d)] if not isinstance(d, list) else [s["code"] for s in d]
+    pages = {p.split("/")[-1][:-5] for p in glob.glob(str(config.SITE / "data" / "stock" / "*.json"))}
+    missing = [c for c in codes if c not in pages]
+    assert not missing, f"索引裡有 {len(codes)} 檔，但這 {len(missing)} 檔沒有個股頁：{missing[:8]}"
+
+
+# --------------------------------------------------------------------------
+# 三個 YAML 之間的口徑一致性
+# --------------------------------------------------------------------------
+# 今天抓到好幾個「同一家公司在族群頁算得到、在產業鏈圖上不存在」的不一致
+#（3264 欣銓、8150 南茂、6196 帆宣、4958 臻鼎）。這種錯不會報錯，只會讓
+# M1 的族群量能與產業鏈圖各說各話。
+
+def _load(name):
+    return yaml.safe_load((config.GROUPS_DIR / name).read_text(encoding="utf-8"))
+
+
+def test_供應鏈圖的台股都在族群或題材裡():
+    """壞掉的時候：產業鏈圖上點一家公司，卻在任何族群頁都找不到它 ——
+    使用者會覺得這兩個頁面在講不同的市場。"""
+    sc = _load("supply_chain.yaml")
+    g = _load("groups.yaml")
+    th = _load("themes.yaml")
+    known = set()
+    for blk in (g.get("groups") or {}).values():
+        known |= {str(c) for c in (blk.get("codes") or [])}
+    for blk in (th.get("themes") or {}).values():
+        known |= {str(c) for c in (blk.get("codes") or [])}
+
+    orphan = []
+    for co in sc["companies"]:
+        t = str(co.get("ticker") or "")
+        if co.get("foreign") or not (len(t) == 4 and t.isdigit()):
+            continue          # 外商與非台股代號不管
+        if t not in known:
+            orphan.append(f"{t} {co.get('name')}")
+    assert not orphan, (
+        "這些公司在 supply_chain.yaml 有節點，但 groups.yaml 與 themes.yaml 都沒有收：\n  "
+        + "\n  ".join(orphan)
+        + "\n（M1 的族群量能吃的是 groups.yaml，沒收等於這家公司的資金流沒被算進任何族群）"
+    )
+
+
+def test_環節名稱不會長到跑出色塊():
+    """壞掉的時候：關聯圖的環節標題壓到色塊外面，蓋到旁邊的卡片。
+    _uitest 有量畫面上的實際寬度，這裡先用字數擋在前面 —— 早一步發現省一輪 14 分鐘。"""
+    sc = _load("supply_chain.yaml")
+    def w(s):   # CJK 約 13px、半形約 7px，欄寬 178 扣留白後約 155px
+        return sum(13 if ord(c) > 127 else 7 for c in s)
+    long = [(s["name"], w(s["name"])) for s in sc["segments"] if w(s["name"]) > 150]
+    assert not long, f"這些環節名稱太長（估算寬度 > 150px，欄寬只有 ~155px）：{long}"

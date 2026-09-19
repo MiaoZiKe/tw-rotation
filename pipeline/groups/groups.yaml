@@ -43,8 +43,12 @@ groups:
     #     照它自己的定義，力旺就不該同時留在 ic_design。
     #     力旺的權利金約佔營收 67～85%，隨晶圓代工廠量產按片數提撥，是純授權模式。
     #     雙掛會把它的量能 1/n 拆到 IC 設計去，而 M1 正是靠族群量能判斷錢往哪跑。
+    #   ★ 2026-09-19 傍晚補上 3035（智原）：它在 supply_chain.yaml 的 ip_eda 環節有節點，
+    #     但 groups 與 themes 兩個檔都沒收 —— 新的交付護欄（tests/test_delivery_guard.py）
+    #     第一次跑就抓到。它原為聯電 IP／NRE 部門切分而來，走的是設計服務，
+    #     跟創意 3443、世芯 3661 同類，所以放 ic_design 不放 silicon_ip。
     codes: ["2454", "3034", "2379", "3443", "6415", "3661", "5269",
-            "5471", "6104", "6526", "4966"]
+            "5471", "6104", "6526", "4966", "3035"]
 
   silicon_ip:
     name: 矽智財 IP
@@ -89,7 +93,9 @@ groups:
     #   tests/test_group_codes_alive.py 從今天起每次 pytest 都會掃。
     #   ★ 2026-09-19 傍晚補上 3374（精材）：它做的是晶圓級封裝與晶圓測試，屬封測，
     #     不是先進封裝 CoWoS（見 foundry 那一格的說明）。
-    codes: ["3711", "6239", "2449", "8150", "3264", "3374"]
+    #   ★ 2026-09-19 傍晚補上 6257（矽格）：同樣是交付護欄抓到的 —— 它在 supply_chain 的
+    #     osat_test 環節早就有節點（而且有「矽格 → 聯發科」這條邊），兩個族群檔卻都沒收。
+    codes: ["3711", "6239", "2449", "8150", "3264", "3374", "6257"]
 
   advanced_packaging:
     name: 先進封裝 CoWoS
@@ -113,7 +119,22 @@ groups:
     #   ★ 2026-09-19 傍晚補上 6196（帆宣）：在手訂單破千億、客戶含台積電與 ASML 的
     #     半導體廠務／設備整合商，但 groups / themes / supply_chain 三個檔原本都查不到它
     #     —— 跟「臻鼎 4958 三個檔都沒有」是同一類洞。
-    codes: ["3131", "3680", "6187", "3413", "6196"]
+    #   ★ 2026-09-19 傍晚補上 7751（竑騰，均熱片植片／壓合設備）：
+    #     它在 supply_chain 的 pkg_equipment 環節有節點，族群檔卻沒收。
+    #     （提醒：竑騰是 7751，6428 是台灣淘米 —— 今天早上差點寫錯。）
+    codes: ["3131", "3680", "6187", "3413", "6196", "7751"]
+
+  # ★ 2026-09-19 傍晚新開。測試介面（探針卡、測試座、測試載板）台股公認四雄
+  #   都在 supply_chain.yaml 的 test_interface 環節裡，但 groups.yaml 一個都沒有 ——
+  #   交付護欄抓到的。不併進 semi_equipment 的理由：這四家的景氣驅動是
+  #   「AI 晶片的測試次數與腳位數」，跟前段設備的「晶圓廠資本支出」拐點不同，
+  #   混在一起會讓族群量能的解讀失真（跟把設備商從 adv_pkg 拆出來是同一個理由）。
+  test_interface:
+    name: 測試介面
+    tier: upstream
+    chain: semiconductor
+    note: "探針卡、測試座、測試載板。只有穎崴查得到具名客戶（NVIDIA／AMD），其餘三家的報導一律不具名"
+    codes: ["6515", "6223", "6510", "6683"]
 
   semi_material:
     name: 半導體材料
@@ -281,7 +302,9 @@ groups:
 chains:
   semiconductor:
     name: 半導體
-    order: [silicon_ip, ic_design, semi_equipment, semi_material, foundry, memory, osat, advanced_packaging]
+    # ★ 2026-09-19 傍晚把 test_interface 加進來。order 沒列到的族群在產業鏈頁上排不出來，
+    #   等於新開的族群沒地方顯示 —— 這條順序表很容易在新增族群時漏掉。
+    order: [silicon_ip, ic_design, semi_equipment, semi_material, test_interface, foundry, memory, osat, advanced_packaging]
   ai_server:
     name: AI 伺服器
     order: [optical_comm, pcb_abf, connector, server_power, server_thermal, ai_server_odm]
