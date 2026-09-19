@@ -1256,9 +1256,14 @@ def t_chainnav(pg, base):
     click(pg, "#xChains .xgo", 2000)
     to = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
         seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent,
-        chips: document.querySelectorAll('#segChips .segchip.sel').length })""")
+        chips: document.querySelectorAll('#segChips .segchip.sel').length,
+        selSeg: (document.querySelector('#segChips .segchip.sel')||{dataset:{}}).dataset.seg })""")
     ok("E6 按了真的切到另一條鏈", to["hash"] == "#industry/ai_server/abf_pcb", to)
-    ok("E6 切過去之後同一個環節已經選好了", (to["seg"] or "").startswith("ABF") and to["chips"] > 0, to)
+    # ★ 不要綁顯示名稱：2026-09-19 這個環節從「ABF 載板 / 高階 PCB」改名成
+    #   「IC 載板（ABF / BT）」（金像電不做 ABF 載板，拆出去了），驗收就紅了 ——
+    #   但行為完全正確。綁 data-seg 這個 id 才是對的。
+    ok("E6 切過去之後同一個環節已經選好了",
+       to["selSeg"] == "abf_pcb" and to["chips"] > 0, to)
 
     # --- 窄畫面（2026-09-18 我自己開線上抓到的，只在寬螢幕驗就會放過）
     #     視窗縮到半邊（約 1100px 以下，兩欄各剩 320px）時，縮圖的 SVG 量到 940px 完全沒縮小，
@@ -2774,17 +2779,20 @@ def t_batch6_n9(pg, base):
     st = pg.evaluate("() => window.Rack3D.current.stats()")
     ok("板子上有電流粒子系統（圖九 2-1）", st["flows"] > 0, st["flows"])
     if st["flows"]:
-        a0 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
+        # 量相位（flowT，只要在跑就單調前進）＋ 第一顆粒子的座標。
+        # 不要量「所有粒子座標的總和」—— 粒子等距排成一排，整排前進時總和近乎守恆，
+        # 那個數字常常一模一樣，會誤判成「電流沒在跑」（2026-09-19 實測 131.68 → 131.68）。
+        a0 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
         pg.wait_for_timeout(1000)
-        a1 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
-        ok("動態模式下電流真的在走線上跑（圖九 2-1）", a0 != a1, f"{a0} → {a1}")
+        a1 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
+        ok("動態模式下電流真的在走線上跑（圖九 2-1）", a0[0] != a1[0] and a0[1] != a1[1], f"{a0} → {a1}")
         # 按「動畫：關」→ 粒子要收起來、也要停
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(900)
         s2 = pg.evaluate("() => window.Rack3D.current.stats()")
-        b0 = s2["flowAt"]
+        b0 = [s2["flowT"], s2["flowAt"]]
         pg.wait_for_timeout(900)
-        b1 = pg.evaluate("() => window.Rack3D.current.stats().flowAt")
+        b1 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
         ok("按「動畫：關」電流真的停下來（圖九 2-1）", b0 == b1, f"{b0} → {b1}")
         ok("靜止時粒子收起來，走線本身還在（圖九 2-1）",
            s2["flowVisible"] == 0 and s2["meshes"] > 500, s2["flowVisible"])

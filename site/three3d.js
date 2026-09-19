@@ -1174,16 +1174,25 @@
       // 不能只看 anim 旗標 —— 旗標是自己寫的，扇葉有沒有真的在轉才是使用者看到的事
       const spinAt = spinners.reduce((s, x) => s + x.rotation[x.userData.spin.axis], 0);
       /* 圖九 2-1 要驗的是「電流真的在跑」，不是「有沒有粒子物件」。
-         flowAt＝所有粒子的座標總和，兩次之間有沒有變，就是使用者看到的事
-         （跟 spinAt 同一個道理）。*/
-      let flowAt = 0;
-      flowPts.forEach(o2 => { const a = o2.geometry.attributes.position.array;
-        for (let i = 0; i < a.length; i++) flowAt += a[i]; });
+         ★ 2026-09-19 踩到：第一版的 flowAt 是「所有粒子座標的總和」——
+           那是一個**幾乎不會變的數字**。粒子是沿著同一條路徑等距排 6 顆，
+           整排往前推的時候，離開前面的量剛好被後面補回來，總和近乎守恆，
+           取到小數第二位常常一模一樣（實測 131.68 → 131.68），驗收就誤判成「電流沒在跑」。
+           這正是 DECISIONS #199 講的同一件事：**量的東西本身要真的會動**。
+         改成兩個都給：
+           flowT  ＝ 相位，只要在跑就單調前進，最直接
+           flowAt ＝ **第一顆**粒子的座標（不是全部加起來），是使用者真的看到的位置 */
+      let flowAt = 0, flowT = 0;
+      flowPts.forEach(o2 => {
+        const a = o2.geometry.attributes.position.array;
+        flowAt += a[0] + a[1] + a[2];
+        flowT += o2.userData.flow.t;
+      });
       return { parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
-        flowAt: +flowAt.toFixed(2), pal, colorSig: colorSig(),
+        flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(),
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
     const view = {
