@@ -252,18 +252,31 @@ groups:
     name: 手機供應鏈
     tier: downstream
     chain: electronics
-    # ★ 2026-09-19 查證後**待 Andy 拍板**的兩檔（先記下來、這一輪不動成分，
-    #   因為「該搬去哪一格」是族群分類的判斷，不是把放錯的搬回原位）：
-    #   · 2474 可成：2020 年已把泰州兩座 iPhone 機殼廠賣給藍思科技（價金約 410 億元）、
-    #     **退出 iPhone 機殼**；目前筆電機殼約占營收 8 成，第二條線是 NVIDIA 的
-    #     AI 伺服器機構件（估占全年營收逾兩成）。2026 年 1～8 月累計營收年減 33%，
-    #     已與手機新機週期脫鉤。放在「手機供應鏈」會讓 M1 的族群量能歸錯方向。
-    #     可能去處：另立「機構件」族群，或併入既有的 AI 伺服器相關族群。
-    #   · 3231 緯創：主體已是 AI 伺服器（supply_chain.yaml 的節點就掛在 assembly，
-    #     且它同時在 ai_server_odm 族群）。留在手機族群會讓「手機供應鏈」的量能
-    #     混進 AI 伺服器行情。
-    #   （2317 鴻海雙掛是合理的 —— iPhone 組裝與 AI 機櫃都是它的主體業務。）
-    codes: ["2317", "3008", "2474", "4938", "3231"]
+    # ★ 2026-09-20 Andy 拍板，移出兩檔（證據在下面，不要再放回來）：
+    #   · 2474 可成 → 移到新的 casing 族群。理由：2020 年已把泰州兩座 iPhone 機殼廠
+    #     賣給藍思科技（價金約 410 億元）、**退出 iPhone 機殼**；目前筆電機殼約占營收
+    #     8 成，第二條線是 NVIDIA 的 AI 伺服器機構件。2026 年 1～8 月累計營收年減 33%，
+    #     已與手機新機週期脫鉤 —— 留在這一格會讓 M1 的族群量能歸錯方向。
+    #   · 3231 緯創 → 只留在 ai_server_odm。理由：主體已是 AI 伺服器
+    #     （supply_chain.yaml 的節點就掛在 assembly）。留在手機族群會讓
+    #     「手機供應鏈」的量能混進 AI 伺服器行情。
+    #   2317 鴻海**維持雙掛**（ai_server_odm ＋ 這裡）：iPhone 組裝與 AI 機櫃
+    #   都是它的主體業務，只掛一邊都會是錯的。
+    codes: ["2317", "3008", "4938"]
+
+  casing:
+    name: 機構件 / 金屬機殼
+    tier: midstream
+    chain: electronics
+    # ★ 2026-09-20 新開。對應 supply_chain.yaml 的 metal_casing 環節。
+    #   開這一格是因為「筆電與伺服器機構件」的景氣拐點跟手機新機週期已經是兩件事
+    #   （看 CNC 稼動與資料中心機櫃出貨，不看新機規格）。
+    # ★ 目前只有一檔，所以族群中位數會留白 —— 那是對的（fundamental.py 的
+    #   MIN_ANY_N = 3，樣本不足就不印數字，不要為了有數字而硬湊成員）。
+    # ⬜ 待 Andy 校訂：2354 鴻準（證交所產業別同為「其他電子業」，且**目前不在任何
+    #   族群或題材裡**，等於在全站是隱形的）看起來是這一格最明顯的第二檔，
+    #   但我沒有這一輪的查證來源支撐它的營收結構，所以不自己加。
+    codes: ["2474"]
 
   # ---------------------------------------------------------------- 非電子
   shipping:
@@ -338,7 +351,7 @@ chains:
     order: [optical_comm, pcb_abf, connector, server_power, server_thermal, ai_server_odm]
   electronics:
     name: 一般電子
-    order: [passive, panel, networking, handset_chain]
+    order: [passive, panel, casing, networking, handset_chain]
   traditional:
     name: 傳產
     order: [steel, petrochemical, shipping, finance, biotech, tourism]

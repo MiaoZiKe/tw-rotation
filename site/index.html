@@ -856,7 +856,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .segchip{font-size:12px;padding:4px 9px}
   /* 手機上沒有一個字可以小於 12px（代號用 .82em 算出來只有 10.25px，手上看不清楚） */
   .tile .lks{font-size:13px} a.lk .code{font-size:12px} .brand small{font-size:11px}
-  .stageboard{grid-template-columns:1fr 1fr} .stageboard.compact{grid-template-columns:1fr}
+  /* 窄畫面排成 2×2。★ grid-auto-rows:1fr 不可拿掉：兩列的高度預設各自算，
+     上下兩張卡就會差幾 px（2026-09-20 新增「機構件」族群之後量到 487 / 467，
+     _uitest 的「[800px] 四格等高」就是在擋這件事）。四格輪動板四格必須等高。 */
+  .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr} .stageboard.compact{grid-template-columns:1fr}
   .cyclebar{font-size:12px} .cyclebar .st{padding:4px 10px;font-size:12.5px}
   .vfilters{gap:8px 10px;padding:10px} .vfilters .vcount{margin-left:0;width:100%}
   .magrid{grid-template-columns:1fr} .top5grid{grid-template-columns:1fr}

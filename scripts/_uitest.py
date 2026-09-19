@@ -1468,6 +1468,30 @@ def t_electronics(pg, base):
         ok(f"而且接到了對應族群「{want}」（app.js 的 FALLBACK）", want in box, box[:120])
         click(pg, f"#segChips .segchip[data-seg='{seg}']", 600)
 
+    # --- 2026-09-20 Andy 拍板的族群搬動：要驗「名單真的變了」，不是驗註解有寫
+    #     2474 可成退出 iPhone 機殼（2020 賣廠）、筆電占 8 成，放在手機供應鏈會讓
+    #     M1 的族群量能歸錯方向；3231 緯創主體是 AI 伺服器。
+    pg.goto(f"{base}#industry/group/handset_chain", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    codes = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr')]
+        .map(tr => tr.dataset.code)""")
+    ok("手機供應鏈已經沒有可成 2474", "2474" not in codes, codes)
+    ok("手機供應鏈已經沒有緯創 3231", "3231" not in codes, codes)
+    ok("鴻海 2317 還在（iPhone 組裝與 AI 機櫃都是它的主體，雙掛是對的）", "2317" in codes, codes)
+
+    pg.goto(f"{base}#industry/group/casing", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    c2 = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr')]
+        .map(tr => tr.dataset.code)""")
+    ok("新的「機構件 / 金屬機殼」族群頁列得出可成 2474", "2474" in c2, c2)
+
+    # --- 四個新題材（圖11 的掛載點）：頁面要打得開、成分股要對
+    for tid, want in (("mlcc_passive", "2327"), ("switch_800g", "2345"),
+                      ("panel_pkg", "2409"), ("petrochemical", "1301")):
+        pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        body = pg.evaluate("() => (document.querySelector('#v-themes')||{}).innerText || ''")
+        ok(f"新題材 {tid} 的頁面打得開而且不是空的", len(body.strip()) > 40, body[:80])
+        ok(f"新題材 {tid} 列得出成分股 {want}", want in body, body[:160])
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(1500)
+
     # --- 窄畫面（Andy 2026-09-18：開發過程就要驗 800px，不要只在 1440px 看）
     pg.set_viewport_size({"width": 800, "height": 1000})
     pg.wait_for_timeout(900)
