@@ -145,6 +145,9 @@ companies:
   - {id: scientech, ticker: "3583", name: 辛耘,     segment: pkg_equipment,
      tech: [設備代理, 濕製程設備, 晶圓貼合解貼合, 再生晶圓],
      note: "設備代理約佔營收 7 成，自製設備與再生晶圓合計約 3 成 —— 嚴格說是通路＋自製＋再生的混合體"}
+  - {id: hta,     ticker: "7751", name: 竑騰,       segment: pkg_equipment,
+     tech: [點膠機, 均熱片植片 / 壓合設備, AOI 外觀檢測],
+     note: "2025-08-26 上櫃。均熱片貼合（植片壓合）設備，切入封測廠 OS 段。★ 均熱片本體是健策做的，竑騰賣的是把它貼上去的設備，設備賣給封測廠、不是賣給健策"}
   - {id: allring, ticker: "6187", name: 萬潤,       segment: pkg_equipment,
      tech: [點膠, 貼合, 自動化, 散熱設備], note: "半導體封測設備佔營收 8～9 成"}
   # ---- IC 載板
@@ -161,7 +164,7 @@ companies:
   - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL],
      note: "高階 CCL 龍頭。做的是 PCB 用高速 CCL，不是 ABF 載板材料（載板的膜是味之素、core 是三菱瓦斯）"}
   - {id: tuc,     ticker: "6274", name: 台燿,       segment: ccl,      tech: [M8 CCL],
-     note: "M8 等級 CCL 全球第二大。客戶為全球一線 PCB 廠與伺服器代工廠，公開來源未具名 —— 所以圖上維持沒有連線"}
+     note: "M8 等級 CCL 全球第二大。直接出貨對象是 PCB 廠與 ODM，公開來源未具名；已知的終端關係是 AWS Trainium ASIC 平台的板材第二供應商（CSP 直接指定 AVL）。尚無來源證實進入 NVIDIA 供應鏈 —— 中英文法人稿在這件事上互相打架，所以不畫"}
   - {id: iteq,    ticker: "6213", name: 聯茂,       segment: ccl,      tech: [高階 CCL],
      note: "CCL 三雄之一（台光電、台燿、聯茂）"}
   # ---- 材料上游（2026-09-19 新增。這一層才是這輪行情真正的瓶頸）
@@ -180,6 +183,9 @@ companies:
     customers: [foxconn, quanta]
   - {id: auras,   ticker: "3324", name: 雙鴻,       segment: thermal,  tech: [水冷板, 氣冷模組, 均熱片],
      note: "主體是系統層級水冷（2026 水冷佔伺服器營收逾 55%、伺服器佔總營收 72%）。封裝層級均熱片已通過美系晶片大廠認證、2025Q2 起出貨，月產能由約 10 萬顆擴向 100 萬顆以上，泰國建專廠"}
+  - {id: iac,     ticker: "2486", name: 一詮,       segment: thermal,
+     tech: [均熱片 lid/IHS, 補強框 stiffener, Metal TIM, LED 導線架],
+     note: "原 LED 導線架廠轉型。散熱元件 2026-01 占營收 44.18%（2024 為 18.03%），已超越導線架成為第一大產品線。法說會揭露已量產平台含 Grace CPU／Google TPU／AWS Trainium／Broadcom AI ASIC。★「輝達有意扶植為小健策」是供應鏈傳聞，不是公司揭露"}
   - {id: jentech, ticker: "3653", name: 健策,       segment: thermal,
      tech: [均熱片 lid/IHS, 補強框 stiffener, 微流道均熱片 MCL, 水冷板 Cold Plate, 分歧管 Manifold, 導線架],
      note: "主體是封裝層級均熱片與補強框（2025 散熱產品約佔營收 73%，另有 LED 導線架 9%）。2026-03 NVIDIA GTC 首度以水冷板與分歧管列入 Vera Rubin NVL72 系統端供應商名單；MCL 業界進度最快，但 2026-09 仍在試產驗證、尚未量產"}
@@ -251,6 +257,14 @@ companies:
 #                           「推論依據：① … ② …。缺的是：<沒有的那個直接證據>」，
 #                           而且**一定要附 source_url**（支撐推論的那篇）。
 #   理由很直接：事實他自己查得到；推論是我的主張，我得把推理過程攤開讓他判斷。
+#
+# ★ 兩條 2026-09-19 用代價換來的硬規矩：
+#   1. **台灣財經媒體的並列標題不得當成供貨關係的依據。**
+#      〈智邦、台光電 嗨〉〈智邦、台燿 出貨動能樂觀〉這種標題講的是「兩家一起受惠」，
+#      不是「A 供貨給 B」。同一個陷阱在兩輪查證裡各踩到一次。
+#   2. **公司代號一律要獨立查證過才寫進來。**
+#      這一輪差點把竑騰寫成 6428 —— 那是台灣淘米（遊戲／文創股）。竑騰是 7751。
+#      代號錯了不只是一行字錯：個股頁會去抓完全另一家公司的股價與營收。
 # 查不到出處的一律**不畫**，讓節點維持孤立並在圖上標「?」。畫錯一條線比留一個「?」糟糕得多。
 edges:
   # ================================ 材料 → 載板 / CCL
@@ -289,6 +303,10 @@ edges:
   - {from: gpt,      to: tsmc,   rel: supplies, item: "濕製程設備", strength: 3, confidence: reported}
   - {from: gpt,      to: ase,    rel: supplies, item: "濕製程設備 + 製程化學品", strength: 2, confidence: reported}
   - {from: allring,  to: tsmc,   rel: supplies, item: "點膠 / 固晶設備", strength: 2, confidence: reported}
+  - {from: hta,      to: ase,    rel: supplies, item: "均熱片植片 / 壓合 / 點膠 / AOI 設備", strength: 2, confidence: reported,
+     note: "含子公司矽品；報導稱矽品為因應輝達 H 系列與 GB 系列先進封裝需求追加下單"}
+  - {from: hta,      to: tsmc,   rel: supplies, item: "先進封裝點膠 / 檢測設備", strength: 2, confidence: reported}
+  - {from: hta,      to: pti,    rel: supplies, item: "封裝設備", strength: 1, confidence: reported}
   - {from: allring,  to: ase,    rel: supplies, item: "點膠 / 封裝設備", strength: 3, confidence: verified,
      note: "日月光向萬潤採購設備含稅約 10.86 億元，約當萬潤 2025 年全年營收 20.2%"}
 
@@ -324,7 +342,10 @@ edges:
      confidence: reported,
      note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM"}
   - {from: emc,      to: nvidia, rel: designated_by, item: "GB200/GB300 UBB 板材 AVL", confidence: reported,
-     note: "台光電為二供；M9 於 2026Q3 進入量產，供 DGX/NVL 系列 GPU 主板與中板"}
+     note: "M9 於 2026Q3 進入量產，供 DGX/NVL 系列 GPU 主板與中板；外資點名台光電為 M9 合格供應商。★ 原本這裡寫「台光電為二供」，2026-09-19 查證判定很可能是從 AWS Trainium 那條線誤植過來的（在 AWS 那邊才是台光電一供、台燿二供），已拿掉"}
+  - {from: tuc,      to: hyperscaler, rel: designated_by,
+     item: "AWS Trainium ASIC 伺服器主板 M8 CCL（AVL 第二供應商）", confidence: reported,
+     note: "台光電為一供、台燿為二供；法人估 Trainium 3 的 CCL 分配約台光電 70%／台燿 30%（法人估算，非官方揭露）。實體出貨走 PCB 廠與 ODM，不經過 AWS"}
 
   # ================================ IC 載板 → 晶片設計商
   - {from: unimicron, to: nvidia,   rel: supplies, item: "ABF 載板", strength: 3, confidence: reported}
@@ -337,6 +358,10 @@ edges:
   - {from: kinsus,    to: mtk,      rel: supplies, item: "BT 載板", strength: 3, confidence: reported}
 
   # ================================ 散熱 / 電源
+  - {from: iac,      to: nvidia, rel: supplies, item: "Grace CPU 均熱片 lid", strength: 3, confidence: reported,
+     note: "2025Q4 起量產出貨（法說會揭露）；下世代 Feynman 平台散熱新品仍在送樣階段"}
+  - {from: iac,      to: hyperscaler, rel: supplies, item: "Google TPU / AWS Trainium 均熱片", strength: 2, confidence: reported}
+  - {from: iac,      to: broadcom, rel: supplies, item: "AI ASIC 均熱片", strength: 2, confidence: reported}
   - {from: jentech,  to: nvidia, rel: supplies, item: "GPU 均熱片 lid/IHS + 補強框", strength: 4, confidence: reported,
      note: "Rubin 世代改雙片式＋鍍金；3 月均熱片營收月增 85%"}
   - {from: jentech,  to: amd,    rel: supplies, item: "MI450/MI455 均熱片", strength: 3, confidence: reported,
@@ -392,6 +417,7 @@ edges:
   - {from: mcl,            to: jentech, rel: produced_by}
   - {from: mcl,            to: avc,     rel: produced_by}
   - {from: mcl,            to: auras,   rel: produced_by}
+  - {from: mcl,            to: iac,     rel: produced_by}
   - {from: hvdc_800v,      to: delta, rel: produced_by}
 
 # ---------------------------------------------------------------- 競爭關係

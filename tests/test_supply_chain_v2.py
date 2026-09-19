@@ -229,3 +229,34 @@ def test_散熱族群三個檔要對得起來():
         "M1 族群量能會漏算它們")
     assert chain <= thm, (
         f"supply_chain 的散熱環節有 {sorted(chain - thm)}，但 themes.yaml 的散熱題材沒有")
+
+
+def test_台股代號的格式與唯一性():
+    """2026-09-19 差點把竑騰寫成 6428（那是台灣淘米，遊戲／文創股）。
+
+    代號錯了不會報錯 —— 網站的個股頁會去抓完全另一家公司的股價與營收，
+    而且看起來完全正常。這裡至少守住格式與唯一性這兩件機器驗得到的事。
+    """
+    import collections
+    sc = _sc()
+    tw = [c["tw_code"] for c in sc["companies"] if c.get("tw_code")]
+    bad = [t for t in tw if not (t.isdigit() and len(t) == 4)]
+    assert not bad, f"台股代號要是 4 碼數字：{bad}"
+    dup = [k for k, v in collections.Counter(tw).items() if v > 1]
+    assert not dup, f"同一個代號出現在兩家公司上：{dup}"
+    # 外商不可以有 tw_code
+    foreign = [c["id"] for c in sc["companies"] if c.get("foreign") and c.get("tw_code")]
+    assert not foreign, f"標成外商卻有台股代號：{foreign}"
+
+
+def test_竑騰的代號是7751():
+    """這一條是釘死一個具體的錯。6428 是台灣淘米（遊戲／文創），不是竑騰。
+
+    來源：鉅亨 https://www.cnyes.com/twstock/7751 、工商時報 2025-08-26 上櫃報導、
+    Goodinfo 個股基本資料（7751 竑騰，2025/08/26 上櫃，半導體業）。
+    """
+    sc = _sc()
+    hta = [c for c in sc["companies"] if c.get("name") == "竑騰"]
+    if not hta:
+        return                      # 還沒加進來就跳過
+    assert hta[0]["tw_code"] == "7751", "竑騰是 7751；6428 是台灣淘米（遊戲／文創股）"
