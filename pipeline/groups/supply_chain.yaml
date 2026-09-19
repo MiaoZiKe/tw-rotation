@@ -67,6 +67,14 @@ segments:
   # ---- 設備 / 測試介面（role: equipment，灰細線，不跟主鏈搶視覺）
   # 設備廠的營收驅動是「客戶的資本支出」，產能廠是「CoWoS 單價」，景氣拐點不同；
   # 放同一格會讓族群卡片的量能解讀失真。
+  # ★ 2026-09-19：前段設備自成一格。原本只有 pkg_equipment（封裝設備，layer 3），
+  #   把應用材料或家登塞進去，網站等於在宣稱「應用材料是封裝設備商」「EUV 光罩盒是封裝設備」——
+  #   跟「金像電被放進 ABF 載板」是同一條錯。
+  #   layer 刻意選 1（不跟 pkg_equipment 的 3 一致）：industry.js 用 layer ± 1 算上下游清單，
+  #   放 layer 1 的話晶圓代工（layer 2）的上游清單才帶得出「前段設備」。
+  #   pkg_equipment 放 layer 3 其實就是因為這樣，封裝設備不會出現在封測環節的上游清單裡 ——
+  #   那是既有的小缺陷，不值得複製。
+  - {id: fab_equipment,  name: "前段設備 / 零組件",           layer: 1, chain: semiconductor, role: equipment}
   - {id: pkg_equipment,  name: "封裝設備 / 濕製程",         layer: 3, chain: semiconductor, role: equipment}
   - {id: test_interface, name: "測試介面 探針卡", layer: 3, chain: semiconductor, role: equipment}
   # ---- AI 伺服器
@@ -132,9 +140,21 @@ companies:
   - {id: gud,     ticker: "3443", name: 創意,       segment: ip_eda,   tech: [ASIC 設計服務], customers: [hyperscaler]}
   - {id: alchip,  ticker: "3661", name: 世芯-KY,    segment: ip_eda,   tech: [ASIC 設計服務, 先進製程 NRE]}
   - {id: faraday, ticker: "3035", name: 智原,       segment: ip_eda,   tech: [IP, ASIC]}
+  # ★ 這兩家跟創意／世芯的方向**相反**：設計服務是 turnkey、向晶圓廠買產能；
+  #   IP 廠是把 IP 授權出去收授權金與權利金，晶圓廠是它們的**客戶**。
+  #   同一格裡出現兩個方向的邊是對的，不是畫反。
+  - {id: m31,     ticker: "6643", name: M31,        segment: ip_eda,
+     tech: [高速傳輸介面 IP, PCIe, USB, UFS, MIPI, SerDes, 基礎 IP],
+     note: "上櫃。純 IP 授權商，營收＝授權金＋權利金。法說自陳「來自晶圓廠客戶的新案授權金額年增逾 200%」—— 那五個字就是方向的證據"}
+  - {id: ememory, ticker: "3529", name: 力旺,       segment: ip_eda,
+     tech: [eNVM 嵌入式非揮發性記憶體 IP, NeoFuse OTP, PUF 安全 IP],
+     note: "權利金約佔營收 67～85%，隨晶圓代工廠量產按片數或晶片售價提撥。IP 布局涵蓋全球 25 家晶圓廠、560 多個製程平台；TSMC OIP 最佳 IP 合作夥伴 16 度得獎"}
   - {id: mtk,     ticker: "2454", name: 聯發科,     segment: ic_design, tech: [ASIC, 手機 SoC, 網通晶片]}
   - {id: rtk,     ticker: "2379", name: 瑞昱,       segment: ic_design, tech: [網通晶片, WiFi, PCIe SSD 控制 IC],
      note: "主體是消費／商用網通（WiFi、Ethernet PHY、TV SoC、switch IC）。2026-01 以 SSD 控制 IC 打進 NVIDIA 資料中心供應鏈，比重未揭露。它的 switch IC 是消費／SMB 等級，不是資料中心交換器晶片"}
+  - {id: asmedia, ticker: "5269", name: 祥碩,       segment: ic_design,
+     tech: [AMD 平台晶片組 ASIC, PCIe Gen5/Gen6 Switch, USB4 控制晶片],
+     note: "華碩集團。營收雙引擎：AMD 晶片組 ASIC 約 60%（媒體數字，公司財報未正式揭露單一客戶占比）、自有品牌高速傳輸控制晶片"}
   - {id: novatek, ticker: "3034", name: 聯詠,       segment: ic_design, tech: [驅動 IC DDI, SoC],
      note: "全球 DDI 前二大、市占約 23%"}
   - id: tsmc
@@ -147,14 +167,47 @@ companies:
     growth: {capacity_plan: "CoWoS 產能 2026→2027 擴張約 40%", capacity_source: "法人研究轉述", drivers: [AI_ASIC, CoWoS_shortage]}
     risks: [地緣政治, 匯率, 客戶集中]
   - {id: umc,     ticker: "2303", name: 聯電,       segment: foundry,  tech: [成熟製程]}
+  - {id: psmc,    ticker: "6770", name: 力積電,     segment: foundry,
+     tech: [成熟製程晶圓代工, 12 吋矽電容 IPD, 矽中介層 Interposer, WoW 晶圓堆疊, 混合鍵合],
+     note: "★ 它跟英特爾的關係**不是邏輯製程代工**，是供矽電容／矽中介層給 Intel EMIB 封裝平台。寫成「為 Intel 代工」會讓人以為接到 CPU 訂單，那是錯的"}
   - {id: ase,     ticker: "3711", name: 日月光投控, segment: osat_test, tech: [封裝, 測試, CoWoS 外溢]}
   - {id: pti,     ticker: "6239", name: 力成,       segment: osat_test,
      tech: [記憶體封測（非 HBM 本體）], note: "客戶為 Micron / Kioxia / SK hynix / Kingston，單一大客戶佔 2～3 成；台股客戶查不到公開佐證"}
   - {id: kyec,    ticker: "2449", name: 京元電,     segment: osat_test, tech: [HPC/AI 測試]}
   - {id: sigurd,  ticker: "6257", name: 矽格,       segment: osat_test, tech: [測試]}
+  - {id: ardentec, ticker: "3264", name: 欣銓,      segment: osat_test,
+     tech: [晶圓針測 CP, 成品測試 FT, 晶圓型 Burn-in, AI ASIC 測試],
+     note: "★ 英文名 Ardentec，不要跟京元電 KYEC 2449 或矽格 Sigurd 6257 搞混。台灣三大晶圓測試廠之一。原以車用／通用 MCU 與國際 IDM 為主，2026 起承接台積電 CP 外溢訂單轉向 AI ASIC"}
+  - {id: chipmos, ticker: "8150", name: 南茂,       segment: osat_test,
+     tech: [記憶體封測, 驅動 IC 封測（含金凸塊）, 混合訊號 IC 封測],
+     note: "LCD 驅動 IC 封測產能全球第二，在 NASDAQ 另掛 IMOS。★ 主體是成熟記憶體與驅動 IC，不是先進封裝 —— 它的動能來自「記憶體大廠把產能轉去 HBM／伺服器 DRAM，其他 DRAM 供給吃緊」的外溢，跟京元電吃 AI 晶片測試的拐點不是同一件事"}
+  - {id: xintec,  ticker: "3374", name: 精材,       segment: osat_test,
+     tech: [晶圓級封裝 WLCSP, TSV, 12 吋晶圓背面處理, 晶圓針測 CP, 系統級測試 SLT],
+     note: "台積電間接持股約 41.3%。營收結構：晶圓測試約 44～50%、WLCSP 約 49%（主要用於 CIS 影像感測器）。★ 做的是 WLCSP／TSV，**不是 CoWoS／SoIC**，所以放 osat_test 不放 adv_pkg；也不是晶圓代工廠"}
   - {id: wineai,  ticker: "6515", name: 穎崴,       segment: test_interface,
      tech: [測試座, 探針卡, 熱控系統],
      note: "2026 前 4 月營收地區別 北美 81% / 台灣 12% / 中國 7% —— 主要出貨對象是晶片設計商，不是台灣封測廠"}
+  # ★ 這三家都查不到任何具名對手方，所以**只加節點、不連邊**，圖上會掛「?」。
+  #   台股測試介面公認四雄＝穎崴 6515（上面已有）＋旺矽 6223 ＋中華精測 6510 ＋雍智 6683。
+  - {id: mpi,     ticker: "6223", name: 旺矽,       segment: test_interface,
+     tech: [垂直式探針卡 VPC, 懸臂式探針卡 CPC, MEMS 探針卡, 探針台],
+     note: "台灣第一家上櫃探針卡公司，全球前五大。★ 所有報導講的都是「兩大 ASIC 新客戶」這種不具名寫法，查不到具名對手方，所以不連邊"}
+  - {id: chpt,    ticker: "6510", name: 中華精測,   segment: test_interface,
+     tech: [晶圓測試卡, IC 測試板 Load Board, 中介層載板, MEMS 探針],
+     note: "母公司中華投資、最終母公司中華電信。高階手機 AP 測試板全球市占逾 80%。★ 2026 年的報導一律只講「前三大客戶」「美系客戶逾 55%」，不具名；「已打入台積電 CoWoS 供應鏈」只有傳聞措辭，不畫"}
+  - {id: ksmt,    ticker: "6683", name: 雍智科技,   segment: test_interface,
+     tech: [IC 測試載板 Load Board, 老化測試板 Burn-in Board, 探針卡電路板],
+     note: "★ 代號是 6683。測試介面四雄中毛利率最高（約 50.65%）。查不到具名客戶，不連邊"}
+  # ---- 前段設備（2026-09-19 新增）
+  - {id: marketech, ticker: "6196", name: 帆宣,     segment: fab_equipment,
+     tech: [客製化設備 OEM 代工, 設備材料代理銷售, 廠務工程整合, 自動化供應系統],
+     note: "英文名 Marketech International（MIC）。★ **不是 Foxsemicon** —— 那是京鼎 3413，兩家是不同公司。它同時是應用材料的供應商（OEM 代工）與國外設備的代理商，兩種角色方向相反，只有前者查得到具名來源"}
+  - {id: foxsemicon, ticker: "3413", name: 京鼎,    segment: fab_equipment,
+     tech: [半導體設備模組, 設備備品, 系統整合],
+     note: "英文名 Foxsemicon Integrated Technology，鴻海集團。★ 這個 id 才是京鼎，不要拿去指帆宣"}
+  - {id: gudeng,  ticker: "3680", name: 家登,       segment: fab_equipment,
+     tech: [EUV 光罩傳送盒 EUV Pod, High-NA Pod, 晶圓載具 FOUP, 先進封裝載具],
+     note: "2025-06 通過 ASML High-NA Phase 2 官方認證。★「台積電占營收逾 50%」「EUV Pod 全球市占逾 8 成」目前只有投顧／社群等級來源，沒有公司揭露，所以只寫定性不寫數字"}
   # ---- 先進封裝設備（2026-09-19 從 adv_pkg 搬出來：這三家是設備商，不是封裝廠）
   - {id: gpt,     ticker: "3131", name: 弘塑,       segment: pkg_equipment,
      tech: [單片式清洗, 電鍍, 製程化學品], note: "客戶涵蓋台積電、聯發科、日月光、Micron、Amkor，約 70% 營收來自台灣"}
@@ -279,6 +332,12 @@ companies:
      note: "伺服器業務在子公司技鋼科技 Giga Computing。★ 客戶含 CSP 也含企業客戶（企業占比高於純 ODM 三雄），不是純 CSP 鏈；具名終端客戶含日本理研 R-CCS"}
   # ---- 外商（非台股，只當節點）
   - {id: nvidia,    ticker: "NASDAQ:NVDA", name: NVIDIA,   segment: ic_design, foreign: true}
+  - {id: intel,     ticker: "NASDAQ:INTC", name: Intel, segment: foundry, foreign: true,
+     tech: [x86 CPU, Intel Foundry, EMIB / EMIB-T 先進封裝, Foveros],
+     note: "IDM ＋ 晶圓代工（Intel Foundry）。★ 放 foundry 不放 ic_design 是刻意的 —— 它自己有廠，跟 NVIDIA／AMD／Broadcom 那幾個 fabless 不同；放進 ic_design 等於在網站上宣稱 Intel 是 fabless。它出現在這張圖上的原因是 EMIB 封裝平台向台廠採購矽電容／矽中介層／光罩盒"}
+  - {id: amat,      ticker: "NASDAQ:AMAT", name: "應用材料 Applied Materials", segment: fab_equipment, foreign: true,
+     tech: [薄膜沉積 CVD/PVD, 蝕刻, 離子佈植, CMP, 製程檢測],
+     note: "全球最大半導體前段設備商。連續 16 年獲台積電優良供應商獎"}
   - {id: amd,       ticker: "NASDAQ:AMD",  name: AMD,      segment: ic_design, foreign: true}
   - {id: broadcom,  ticker: "NASDAQ:AVGO", name: Broadcom, segment: ic_design, foreign: true}
   - {id: marvell,   ticker: "NASDAQ:MRVL", name: Marvell,  segment: ic_design, foreign: true}
@@ -303,6 +362,9 @@ companies:
   - {id: nanya_tech, ticker: "2408", name: 南亞科,   segment: dram_nor,
      tech: [DDR4/DDR5, 128GB DDR5 RDIMM, UWIO 客製化記憶體堆疊],
      note: "★ 不是南電 8046（同為台塑集團，別看錯）。2026-03 私募 787.18 億元，認購人 SanDisk／Kioxia／Solidigm／Cisco 四家皆為其客戶。明確表示看淡 HBM、改押地端 AI 記憶體"}
+  - {id: esmt,    ticker: "3006", name: 晶豪科,     segment: dram_nor,
+     tech: [利基型 DRAM DDR3/DDR4, SRAM, NOR / NAND Flash],
+     note: "★ 它跟同格的南亞科／旺宏／華邦電不同 —— 那三家是 IDM，晶豪科是 fabless，主要在力積電投片並簽有產能保證長約。放這一格是因為營收驅動同樣是記憶體現貨報價（與 groups.yaml 的 memory 族群口徑一致）"}
   - {id: mxic,    ticker: "2337", name: 旺宏,       segment: dram_nor, tech: [NOR Flash, SLC/MLC NAND, 3D NOR],
      note: "2026Q2 營收 191.25 億、季增 83%、年增 181%，毛利率 40.8%→64.4%"}
   - {id: winbond, ticker: "2344", name: 華邦電,     segment: dram_nor, tech: [NOR Flash, 利基型 DRAM, CUBE 客製化 3D 記憶體],
@@ -397,6 +459,47 @@ edges:
   - {from: tsmc,    to: marvell,  rel: supplies, item: "ASIC 晶圓（3nm，roadmap 到 A14）+ CoWoS", strength: 4, confidence: reported,
      note: "2026-09-19 補上。以前沒有這條，但 products.cowos 的需求分配已經寫了 marvell 8% —— 檔案自己跟自己矛盾"}
   - {from: tsmc,    to: mtk,      rel: supplies, item: "晶圓", strength: 4, confidence: reported}
+  # ================================ IP 授權（★ 方向跟設計服務相反）
+  # 設計服務（創意／世芯）是 turnkey，**向**晶圓廠買產能 → tsmc → gud。
+  # IP 廠是把 IP 授權給晶圓廠與 IC 設計公司、收授權金與權利金 → 晶圓廠是**客戶** → m31 → tsmc。
+  # 同一個 ip_eda 格裡同時出現兩個方向的邊是對的，不是畫反。
+  - {from: m31,     to: tsmc,     rel: supplies, item: "製程平台矽智財授權（高速介面 / 基礎 IP）",
+     strength: 2, confidence: verified,
+     note: "M31 法說自陳「來自晶圓廠**客戶**的新案授權金額年增逾 200%，16 奈米以下先進製程授權成長超過 250%」；並獲 TSMC OIP Partner of the Year（Specialty Process IP）"}
+  - {from: ememory, to: tsmc,     rel: supplies, item: "eNVM / OTP 矽智財授權（權利金按晶圓片數提撥）",
+     strength: 3, confidence: verified,
+     note: "力旺官網投資人 FAQ 自述商業模式為授權金＋權利金，權利金隨晶圓代工廠客戶量產提撥；TSMC OIP 最佳 IP 合作夥伴 16 度得獎"}
+
+  # ================================ 前段設備 → 晶圓代工
+  - {from: amat,    to: tsmc,     rel: supplies, item: "前段製程設備（沉積 / 蝕刻 / 佈植 / CMP）",
+     strength: 5, confidence: verified,
+     note: "買賣雙方各自的官網都講同一件事：台積電官方 2025 供應鏈管理論壇表揚名單；應材官網自陳連續 16 年獲台積電 Excellent Performance Award。這是整份檔案裡少數到得了 verified 的一條"}
+  - {from: gudeng,  to: tsmc,     rel: supplies, item: "EUV 光罩傳送盒 EUV Pod / 晶圓載具 FOUP",
+     strength: 4, confidence: reported,
+     note: "家登 EUV 光罩盒已囊括台積電、三星、英特爾三大廠訂單。★「台積電占家登營收逾 50%」只有投顧／社群等級來源，是法人估算不是公司揭露，所以不寫進 item"}
+  - {from: gudeng,  to: intel,    rel: supplies, item: "EUV 光罩傳送盒 EUV Pod",
+     strength: 2, confidence: reported}
+  - {from: marketech, to: amat,   rel: supplies,
+     item: "客製化設備 / 模組 OEM 代工（2022 年應用材料最佳供應商獎）",
+     strength: 2, confidence: reported,
+     note: "★ 得獎項目是 **OLED 面板設備製造**，不是半導體前段設備。帆宣同時也是國外設備的代理商（方向相反），但查不到「代理應用材料設備賣給台廠」的來源，所以不畫反向那條"}
+  - {from: foxsemicon, to: amat,  rel: supplies, item: "半導體設備模組 / 備品製造",
+     strength: 3, confidence: reported,
+     note: "2022 年獲應用材料最佳供應商獎，得獎項目為半導體設備模組與備品製造 —— 比帆宣的面板設備更接近半導體前段"}
+
+  # ================================ 先進封裝平台 → 台廠零組件
+  - {from: psmc,    to: intel,    rel: supplies,
+     item: "12 吋矽電容 IPD / 矽中介層（Intel EMIB 先進封裝平台，已通過認證）",
+     strength: 2, confidence: reported,
+     note: "★ 不要寫「代工 Intel」—— 不是邏輯製程。也不要寫「獨供矽電容」，那是工商時報標「傳」的說法。法說會揭露矽中介層與 IPD 已通過 EMIB 認證，目前數千片規模、2027H2 才目標單月近萬片，所以 strength 只給 2"}
+  - {from: psmc,    to: esmt,     rel: supplies,
+     item: "利基型 DRAM / Flash 成熟製程晶圓（簽有每月最低投片量的產能保證長約）",
+     strength: 4, confidence: reported,
+     note: "★ 方向與設計服務同理：晶豪科是 fabless，向力積電買產能。晶豪科為力積電最大的記憶體代工客戶"}
+  - {from: asmedia, to: amd,      rel: supplies,
+     item: "桌上型平台晶片組 ASIC（AM5 / 800 系列）", strength: 4, confidence: reported,
+     note: "★ 方向：AMD 把晶片組委外給祥碩開發與供應 —— 貨從祥碩流向 AMD、錢從 AMD 流向祥碩，所以 from 是祥碩。「約占祥碩營收 60%」是媒體數字，公司財報未正式揭露單一客戶占比，所以不寫進 item"}
+
   - {from: cowos,   to: tsmc,     rel: produced_by}
   - {from: tsmc,    to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2, confidence: reported}
 
@@ -423,6 +526,21 @@ edges:
   - {from: pti,      to: skhynix, rel: supplies, item: "記憶體封測", strength: 2, confidence: reported}
   - {from: pti,      to: broadcom, rel: supplies, item: "FOPLP 面板級先進封裝（CPO）", strength: 2, confidence: reported,
      note: "2026-07-16 董事會決議與博通合資新加坡廠、投資總額 4 億美元；2028 年才量產，現在是建廠與小量階段"}
+  # ★ 這兩條是 outsources_to 不是 supplies：精材與欣銓都是**服務廠**，不向台積電買晶圓。
+  #   寫成 supplies 會被讀成「台積電賣晶圓給它們」，那是錯的
+  #   —— 跟創意／世芯那三條（那才是真的買產能）語意剛好相反。
+  - {from: tsmc,     to: xintec, rel: outsources_to,
+     item: "晶圓針測 CP 外溢訂單 + 12 吋晶圓背面處理", strength: 4, confidence: reported,
+     note: "台積電把 CP 測試外溢出來、騰出產能給單價更高的先進封裝。★ 報導提到這批訂單裡有蘋果自研 5G 數據機與 NVIDIA 中階產品，那是講「跑的是誰的晶片」，**不是說蘋果／輝達是精材的客戶** —— 不要據此畫 xintec → nvidia"}
+  - {from: tsmc,     to: ardentec, rel: outsources_to,
+     item: "晶圓針測 CP 外溢訂單（AI ASIC）", strength: 3, confidence: reported,
+     note: "欣銓憑龍潭廠擴充空間承接台積電 CP 測試外溢訂單，主要鎖定 AI ASIC 產品"}
+  - {from: chipmos,  to: micron, rel: supplies, item: "記憶體封測（NAND / 利基型 DRAM）",
+     strength: 3, confidence: reported,
+     note: "南茂在 NASDAQ 掛 IMOS，2013～2015 年 Form 20-F 連三年列美光為第二大客戶（約占營收 15～16%）。★ 那是十年前的數字，FY2025 20-F 只揭露前五大客戶合計 61%、未具名個別占比，所以不寫百分比"}
+  - {from: chipmos,  to: novatek, rel: supplies, item: "驅動 IC 封測（TCP/COF、COG、金凸塊）",
+     strength: 3, confidence: reported,
+     note: "南茂官方新聞稿揭露與聯詠簽長期合約、保留 LCD 驅動 IC 封測產能；20-F 曾列聯詠為第一大客戶。★ 硬來源都在十年前，現況只有媒體轉述，所以 strength 給 3 不給 4"}
   - {from: pti,      to: amd,     rel: supplies, item: "FOPLP 面板級先進封裝", strength: 2, confidence: reported,
      note: "法說會揭露分工：台灣竹科廠的 FOPLP 產能服務超微、新加坡廠支援博通；2027 年依規劃投產"}
   # ---- 企業級儲存（NVIDIA ICMS 把 SSD 拉進記憶體階層）
