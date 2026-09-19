@@ -192,3 +192,66 @@ def test_環節名稱不會長到跑出色塊():
         return sum(13 if ord(c) > 127 else 7 for c in s)
     long = [(s["name"], w(s["name"])) for s in sc["segments"] if w(s["name"]) > 150]
     assert not long, f"這些環節名稱太長（估算寬度 > 150px，欄寬只有 ~155px）：{long}"
+
+
+# --------------------------------------------------------------------------
+# 族群成分的「產業別離群值」白名單
+# --------------------------------------------------------------------------
+# 2026-09-19：用證交所產業別掃過所有族群，找「這一格裡只有它是這個產業別」的成員。
+# 一掃就抓到三個真錯（都是 WebSearch 獨立確認過的）：
+#   · 3105 穩懋在 panel（面板）—— 它是全球最大砷化鎵晶圓代工廠，做手機射頻 PA
+#   · 6266 泰詠在 passive（被動元件）—— 它是 EMS 代工商，被動元件是它的**供應商**
+#   · 1101 台泥在 petrochemical（塑化）—— 它是水泥業，那一格其餘是台塑四寶
+#
+# 但同一次也產生 5 個**誤報** —— 跨產業別本身很常見（記憶體模組廠掛「電腦及週邊」、
+# IC 載板廠掛「半導體業」）。所以這條**不能寫成「不准有離群值」**，
+# 那種測試太吵，兩週內一定會被人關掉。
+#
+# 改成白名單：已經人工確認過的離群登記在下面並附理由，**只有沒登記過的才會紅**。
+# 這樣既擋得住「有人又放錯一家」，又不會每天對著已知的合理跨界鬼叫。
+ALLOWED_OUTLIERS = {
+    ("memory", "5289"):          "宜鼎是工業級記憶體模組廠，證交所歸『電腦及週邊』但主體是記憶體",
+    ("semi_equipment", "6196"):  "帆宣歸『其他電子』，但主體是半導體廠務與設備整合",
+    ("ai_server_odm", "2317"):   "鴻海歸『其他電子』，但它是 AI 整櫃出貨龍頭",
+    ("pcb_abf", "3189"):         "景碩是 IC 載板廠，證交所把載板歸『半導體業』而非電子零組件",
+    ("optical_comm", "3450"):    "聯鈞歸『半導體業』，做的是雷射二極體封測，屬光通訊鏈",
+    ("petrochemical", "6505"):   "台塑化歸『油電燃氣』，但它是台塑四寶之一的煉油石化廠",
+}
+
+
+def test_族群沒有未登記的產業別離群值():
+    """壞掉的時候使用者會看到什麼：點一個族群進去，裡面混著一家完全不同產業的公司
+    —— 而且 M1 的族群量能會把那家公司的資金算進來，讓「錢往哪個族群跑」這個主結論失真。
+
+    這正是 2026-09-19 抓到的一整批錯（直播平台在半導體材料、醋酸纖維絲束在半導體設備、
+    砷化鎵代工廠在面板、EMS 代工商在被動元件、水泥廠在塑化）。
+    """
+    import collections
+
+    import pandas as pd
+
+    files = glob.glob(str(config.DATA / "company_info" / "**" / "*.parquet"), recursive=True)
+    if not files:
+        pytest.skip("沒有 data/company_info，跳過")
+    df = pd.concat([pd.read_parquet(f) for f in files], ignore_index=True).drop_duplicates("code")
+    ind = dict(zip(df["code"].astype(str), df["industry"]))
+
+    g = _load("groups.yaml")["groups"]
+    found = []
+    for gid, blk in g.items():
+        codes = [str(c) for c in (blk.get("codes") or [])]
+        cnt = collections.Counter(ind.get(c, "?") for c in codes)
+        if len(cnt) < 2:
+            continue
+        main, n_main = cnt.most_common(1)[0]
+        if n_main < 3:          # 樣本太小，看不出「主流產業別」是什麼
+            continue
+        for c in codes:
+            if cnt[ind.get(c, "?")] == 1 and (gid, c) not in ALLOWED_OUTLIERS:
+                found.append(f"{gid} 裡的 {c}（{ind.get(c, '?')}），這一格主要是「{main}」")
+    assert not found, (
+        "這些成員的證交所產業別跟所屬族群的其他成員對不上，請逐一確認是不是放錯：\n  "
+        + "\n  ".join(found)
+        + "\n\n確認過是對的（跨產業別很常見）就登記到 ALLOWED_OUTLIERS 並寫明理由；"
+        "確認是錯的就從 groups.yaml 拿掉。"
+    )
