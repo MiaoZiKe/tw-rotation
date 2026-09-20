@@ -471,7 +471,6 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 /* 資金流向頁：期間切換、「怎麼看」說明、估值篩選 */
 .periodbar{background:linear-gradient(180deg,rgba(62,224,255,.07),transparent)}
 .periodbar .pnote{color:var(--ink-3);font-size:13px;margin-top:4px;font-family:var(--mono)}
-#periodSeg button{padding:6px 13px;font-size:14px}
 .howbtn{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:4px 11px;font-size:12.5px;cursor:pointer;white-space:nowrap}
 .howbtn:hover{border-color:var(--cyan);color:var(--cyan)}
@@ -1158,13 +1157,13 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 
   <!-- ================= 資金流向 ================= -->
   <section class="view" id="v-flow">
-    <!-- 期間切換：整頁的「什麼時候」由這一列決定 -->
-    <div class="card periodbar">
-      <div class="row spread">
-        <div><h3 style="margin:0">看哪一段時間的資金流向</h3><div class="pnote" id="periodNote"></div></div>
-        <div class="seg" id="periodSeg"></div>
-      </div>
-    </div>
+    <!-- ★ 2026-09-20（Andy：「資金那頁會出現上週上上週那段…幫我優化」，拍板「合併：只留拉 Bar」）
+         原本這裡有一張「看哪一段時間的資金流向」期間卡（本週／上週／上上週／本月／上月／近三月）。
+         拿掉的理由不是它不好看，是**這一頁有兩套選時間的方式**：上面這張卡，
+         加上排行與法人各自的天數拉 Bar（那時 0 代表「跟著上方期間走」）。
+         兩套互相抵觸，使用者看不出「現在到底在看哪一段」。
+         現在時間全部交給每張圖自己的拉 Bar，日期範圍寫在各自的副標裡。
+         ⚠ 代價（Andy 知情並接受）：「本月」「近三月」這種長期間看不到了，拉 Bar 上限是 30 天。 -->
     <!-- 2026-09-18（Andy 圖四）「換位」：名次變化整張拿掉，輪動時鐘搬上來跟排行並排。
          理由是他點排行的長條時要在旁邊同時看到那個族群在時鐘上的位置 ——
          兩張圖離太遠就對不起來。上排的期間鈕保留。 -->

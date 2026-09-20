@@ -2094,32 +2094,20 @@
   async function renderFlow() {
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
     const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental'), load('groups_detail')]);
-    const periods = (f3 && f3.periods) || [];
     wireHowto($('#v-flow'));
 
-    // ---- 期間切換列：整頁的「什麼時候」
-    const seg = $('#periodSeg');
-    if (!periods.length) { seg.innerHTML = '<span class="muted" style="padding:6px 10px">期間資料還在回補</span>'; }
-    else {
-      if (!periods.some(p => p.key === flowState.period)) flowState.period = periods[0].key;
-      seg.innerHTML = periods.map(p => `<button data-p="${p.key}" class="${p.key === flowState.period ? 'on' : ''}">${p.label}</button>`).join('');
-      $$('#periodSeg button').forEach(b => b.onclick = () => {
-        $$('#periodSeg button').forEach(x => x.classList.toggle('on', x === b));
-        flowState.period = b.dataset.p; drawPeriod();
-      });
-    }
+    /* ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）
+       原本這裡會依 f3.periods 畫一列期間鈕（本週／上週／…／近三月），
+       而排行與法人的拉 Bar 又各自有一個 0＝「跟著上方期間走」——
+       **同一頁兩套選時間的方式，互相抵觸**，使用者看不出現在到底在看哪一段。
+       現在時間全部由每張圖自己的拉 Bar 決定，兩支拉 Bar 的下限也從 0 改成 1
+       （0 已經沒有意義了）。日期範圍寫在各自的副標裡，資訊沒有消失。
+       f3.periods 後端照樣產出，之後若要做「快速跳到本月／近三月」再接回來就好。 */
     let instDays = null, rankDays = null;
+    const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
-      const p = periods.find(x => x.key === flowState.period);
-      if (!p) { empty('rankFlow', '這個期間還沒有資料'); empty('instGroups', '這個期間還沒有資料'); return; }
-      $('#periodNote').textContent = `${p.from} ～ ${p.to}（${p.days} 個交易日）`
-        + (p.prev_from ? `　·　和 ${p.prev_from} ～ ${p.prev_to} 相比` : '　·　沒有可比的上一段');
-      $('#rankSub').textContent = `${p.label}：誰把錢吸走了`;
-      $('#instSub').textContent = `${p.label}三大法人淨買超（張）`;
-      // 圖四：拉 Bar 拉到 0 就跟著上方期間走，否則用「最近 N 天」的逐日佔比重算
-      if (rankDays && rankDays.value > 0) drawRankDays(rankDays.value); else renderRankFlow(p);
-      // I1：拉 Bar 拉到 0 就跟著上方期間走，否則用「最近 N 天」的逐日合計
-      if (instDays && instDays.value > 0) drawInstDays(instDays.value); else renderInstPeriod(p);
+      drawRankDays(rankDays ? Math.max(1, +rankDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
+      drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
     };
     /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
@@ -2157,8 +2145,10 @@
       gs.forEach(g => { g.rank = rc[g.group_id] || null; g.rank_prev = rp[g.group_id] || null;
         g.rank_chg = (g.rank && g.rank_prev) ? g.rank_prev - g.rank : 0; });
       const from = D2[curFrom], to = D2[N - 1];
-      $('#rankSub').textContent = `最近 ${k} 個交易日：誰把錢吸走了`;
-      $('#periodNote').textContent = `${from} ～ ${to}（${k} 個交易日）`
+      /* ★ 2026-09-20：期間卡拿掉之後 #periodNote 不存在了，
+         所以日期範圍與比較基準改寫進排行自己的副標 —— 使用者仍然看得到
+         「現在這張圖是哪一段、跟誰比」，資訊沒有因為拿掉那張卡而消失。 */
+      $('#rankSub').textContent = `${from} ～ ${to}（${k} 個交易日）`
         + (prevTo > prevFrom ? `　·　和前 ${prevTo - prevFrom} 個交易日相比` : '　·　沒有可比的上一段');
       renderRankFlow({ label: `最近 ${k} 天`, from, to, days: k,
         prev_from: prevTo > prevFrom ? D2[prevFrom] : null, groups: gs });
@@ -2258,8 +2248,10 @@
     drawRot(rotFrame);
 
     // I1 的拉 Bar 要在 drawPeriod 之前建好（drawPeriod 會讀它的值）
-    instDays = rangeBar('instDays', { min: 0, max: 30, value: 0, key: 'tw.inst.days',
-      label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
+    // ★ 2026-09-20：min 0 → 1、預設 20。0 以前代表「跟著上方期間走」，
+    //   期間卡拿掉之後那個值沒有意義了，留著只會讓人拉到一個什麼都不會發生的位置。
+    instDays = rangeBar('instDays', { min: 1, max: 30, value: DEFAULT_DAYS, key: 'tw.inst.days',
+      label: '最近', fmt: (v) => v + ' 天',
       onChange: () => drawPeriod() });
     // 圖八的截止日：往回拉看以前的樣子，按 ▶ 一天一天播
     {
@@ -2270,14 +2262,15 @@
            不是「看以前那一天」這個能力。*/
         rangeBar('instEnd', { min: 5, max: idl.length, value: idl.length, key: 'tw.inst.end',
           label: '截止', fmt: (v) => (v >= idl.length ? '最新' : (idl[v - 1] || v)),
-          onChange: (v) => { instEnd = v; if (instDays && instDays.value > 0) drawInstDays(instDays.value); } });
+          onChange: (v) => { instEnd = v; drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS); } });
       }
     }
-    /* 圖四：0＝跟著上方期間走。
+    /* 圖四：天數拉 Bar 現在就是這一頁唯一的時間控制。
        ★ 2026-09-20（Andy：「圖三資金流向移除播放功能」）：playBar → rangeBar，
-         ＋ − ▶ 三顆鈕拿掉，天數還是可以拖。*/
-    rankDays = rangeBar('rankDays', { min: 0, max: 30, value: 0, key: 'tw.rank.days',
-      label: '最近', fmt: (v) => (v === 0 ? '跟著上方期間' : v + ' 天'),
+         ＋ − ▶ 三顆鈕拿掉，天數還是可以拖。
+       ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）：min 0 → 1、預設 20。*/
+    rankDays = rangeBar('rankDays', { min: 1, max: 30, value: DEFAULT_DAYS, key: 'tw.rank.days',
+      label: '最近', fmt: (v) => v + ' 天',
       onChange: () => drawPeriod() });
     drawPeriod();
 
@@ -3031,7 +3024,13 @@
         formatter: ps => `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>')
           + `<br>占比 <b>${fmt.n(Math.abs(ps.reduce((s, q) => s + (q.value || 0), 0)) / (denom || 1) * 100, 1)}%</b>`
           + '<br><small>點一下看成分股</small>' },
-      legend: { textStyle: { color: CH.ink2 }, top: 0 }, grid: { left: 108, right: 24, top: 30, bottom: 22 },
+      /* ★ 2026-09-20：right 24 → 42。最右邊那個刻度標籤是**置中對齊在刻度上**的，
+         所以它有一半會伸出格線外；「100.0 萬張」在 11px 下約 62px 寬，一半 31px，
+         加上留白取 42 —— 這個數字是算出來的，不是試出來的。
+         24 的時候在 1536px / 1920px 量到它跑出容器 5px（多寬度掃描抓到的）。
+         天數拉 Bar 的預設從「跟著期間」改成 20 天之後，資料範圍變了、刻度也跟著變寬，
+         才把這個一直都在的邊界問題逼出來。 */
+      legend: { textStyle: { color: CH.ink2 }, top: 0 }, grid: { left: 108, right: 42, top: 30, bottom: 22 },
       // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
       xAxis: { ...axisStyle, axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', inverse: true,

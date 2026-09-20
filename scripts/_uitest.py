@@ -952,29 +952,48 @@ def t_flow(pg, base):
         ok(f"資金流向「{name}」有畫出來（或說清楚為什麼還沒有）",
            bool(has) and ((has["canvas"] and not has["empty"]) or excused), has)
 
-    # --- 期間切換：換一個期間，說明文字、排行圖、法人圖都要真的跟著換
-    ps = pg.evaluate("[...document.querySelectorAll('#periodSeg button')].map(b => b.dataset.p)")
-    ok("資金流向有期間切換（本週／上週／上上週／本月／上月／近三月）", len(ps) >= 5, ps)
-    seen = {}
-    for k in ps:
-        click(pg, f'#periodSeg button[data-p="{k}"]', 900)
-        seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#periodSeg button.on')||{dataset:{}}).dataset.p,
-            note: (document.getElementById('periodNote')||{}).textContent,
-            sub: (document.getElementById('rankSub')||{}).textContent,
-            rank: !!document.querySelector('#rankFlow canvas'),
-            inst: !!document.querySelector('#instGroups canvas'),
-            instMsg: ((document.querySelector('#instGroups .empty')||{}).textContent||'').trim(),
-            top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
-                   if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
-        ok(f"期間「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
-        ok(f"期間「{k}」有寫出日期範圍", "～" in (seen[k]["note"] or ""), seen[k]["note"])
-        ok(f"期間「{k}」排行圖有畫出來", seen[k]["rank"], seen[k])
-        ok(f"期間「{k}」法人圖有畫出來（或說清楚為什麼還沒有）",
-           seen[k]["inst"] or ("還沒出" in seen[k]["instMsg"] and "18:30" in seen[k]["instMsg"]), seen[k])
-    ok("不同期間的說明文字不一樣", len({v["note"] for v in seen.values()}) == len(seen),
-       {k: v["note"] for k, v in seen.items()})
-    ok("不同期間排出來的第一名不完全相同", len({v["top"] for v in seen.values()}) >= 2,
-       {k: v["top"] for k, v in seen.items()})
+    # --- ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）
+    #     原本這裡驗的是那一列期間鈕（本週／上週／…／近三月）。那張卡整個拿掉了，
+    #     理由是這一頁本來有**兩套**選時間的方式（期間卡 ＋ 每張圖的天數拉 Bar，
+    #     那時 0 代表「跟著上方期間走」），兩套互相抵觸。
+    #     所以這一段改成驗三件事：卡片真的不在 DOM 裡、拉 Bar 的 0 也不見了、
+    #     以及拉 Bar 真的是唯一的時間控制（拉了圖跟副標都要跟著變）。
+    gone = pg.evaluate("""() => ({ seg: !!document.getElementById('periodSeg'),
+        note: !!document.getElementById('periodNote'),
+        card: document.querySelectorAll('#v-flow .periodbar').length })""")
+    ok("期間切換卡真的不在 DOM 裡（不是藏起來）",
+       not gone["seg"] and not gone["note"] and gone["card"] == 0, gone)
+
+    bars = pg.evaluate("""() => { const g = (id) => { const i = document.querySelector('#' + id + ' input[type=range]');
+        return i ? { min: +i.min, max: +i.max, v: +i.value } : null; };
+        return { rank: g('rankDays'), inst: g('instDays') }; }""")
+    ok("排行的天數拉 Bar 下限是 1（0＝跟著上方期間 已經沒有意義）",
+       bool(bars["rank"]) and bars["rank"]["min"] == 1 and bars["rank"]["max"] == 30, bars)
+    ok("族群×法人的天數拉 Bar 下限也是 1",
+       bool(bars["inst"]) and bars["inst"]["min"] == 1 and bars["inst"]["max"] == 30, bars)
+
+    snap = lambda: pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
+        instSub: (document.getElementById('instSub')||{}).textContent,
+        rank: !!document.querySelector('#rankFlow canvas'),
+        inst: !!document.querySelector('#instGroups canvas'),
+        instMsg: ((document.querySelector('#instGroups .empty')||{}).textContent||'').trim(),
+        top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+               if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
+    seenb = {}
+    for v in (5, 20, 30):
+        set_range(pg, "#rankDays input[type=range]", v, 900)
+        set_range(pg, "#instDays input[type=range]", v, 900)
+        seenb[v] = snap()
+        ok(f"拉到 {v} 天：排行圖有畫出來", seenb[v]["rank"], seenb[v])
+        ok(f"拉到 {v} 天：排行副標寫出日期範圍（期間卡的資訊沒有消失）",
+           "～" in (seenb[v]["sub"] or ""), seenb[v]["sub"])
+        ok(f"拉到 {v} 天：法人圖有畫出來（或說清楚為什麼還沒有）",
+           seenb[v]["inst"] or ("還沒出" in seenb[v]["instMsg"] and "18:30" in seenb[v]["instMsg"]),
+           seenb[v])
+    ok("拉不同天數，排行的日期範圍真的不一樣",
+       len({v["sub"] for v in seenb.values()}) == len(seenb), {k: v["sub"] for k, v in seenb.items()})
+    ok("拉不同天數，族群×法人的日期範圍也真的不一樣",
+       len({v["instSub"] for v in seenb.values()}) >= 2, {k: v["instSub"] for k, v in seenb.items()})
 
     # --- 名次變化（bump）已於 2026-09-18 整張移除（Andy 圖四：「右邊的名次變化刪掉」）
     ok("名次變化那張圖真的不在了（圖四）",
@@ -983,7 +1002,9 @@ def t_flow(pg, base):
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
            if (!c) return false; const y = c.getOption().yAxis[0].data || [];
            return y.some(v => /[↑↓]/.test(String(v))); }"""))
-    click(pg, '#periodSeg button[data-p="w0"]', 1000)
+    # ★ 2026-09-20：原本這裡會把期間切回「本週」，讓後面幾段從乾淨狀態開始。
+    #   期間卡拿掉之後改成把兩支拉 Bar 復位 —— 用意一樣，都是不要把狀態留給下一段。
+    set_range(pg, "#rankDays input[type=range]", 20, 600)
 
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
     hows = pg.evaluate("[...document.querySelectorAll('#v-flow .howbtn')].map(b => b.dataset.how)")
@@ -1161,13 +1182,16 @@ def t_flow(pg, base):
     # 原本這裡有 6 條驗收（天數拉Bar 範圍、截止日回放、播放鈕、% 單位）全部指向已移除的元素，
     # 留著一定紅。「真的不在 DOM 裡」這件事改在 t_new_flow 正面驗一次，不是刪掉不管。
 
-    # ---- I1 族群 × 法人：0–30 天拉 Bar ＋ 占比 %
+    # ---- I1 族群 × 法人：天數拉 Bar ＋ 占比 %
+    # ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）：下限 0 → 1。
+    #   0 以前代表「跟著上方期間走」，期間卡拿掉之後那個值沒有意義了，
+    #   留著只會讓人拉到一個什麼都不會發生的位置。
     ib = pg.evaluate("""() => { const i = document.querySelector('#instDays input[type=range]');
         return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
     ok("族群×法人有天數拉 Bar", bool(ib), ib)
-    ok("範圍是 0–30 天", bool(ib) and ib["min"] == 0 and ib["max"] == 30, ib)
-    ok("0 的意思要寫出來（不然 0 天沒有意義）",
-       "期間" in (pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent") or ""),
+    ok("範圍是 1–30 天", bool(ib) and ib["min"] == 1 and ib["max"] == 30, ib)
+    ok("拉 Bar 旁邊寫得出「N 天」",
+       "天" in (pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent") or ""),
        pg.evaluate("() => (document.querySelector('#instDays .val')||{}).textContent"))
     i0 = canvas_hash(pg, "#instGroups")
     sub0 = text(pg, "#instSub")
@@ -3751,16 +3775,20 @@ def t_batch2(pg, base):
     # 所以這裡不再 check_play；拉Bar 本身還在，下面照樣驗「拉了畫面真的變」。
 
     # 拉到 N 天，副標與期間說明要真的換成「最近 N 個交易日」，圖也要重畫
+    # ★ 2026-09-20：期間卡拿掉之後 #periodNote 不存在了，日期範圍改寫在排行自己的副標，
+    #   所以這幾條改成驗副標。要守的事情沒變：拉了天數，**日期範圍真的跟著換**。
+    # ★ 基準值一定要在「拉到 5 天」之後才取 —— 預設就是 20 天，
+    #   在拉到 5 之前取的話，等一下拉回 20 會拿到同一張圖，這條就變成假紅。
+    set_range(pg, "#rankDays input[type=range]", 5, 1200)
     h0 = canvas_hash(pg, "#rankFlow")
-    note0 = text(pg, "#periodNote")
+    sub0 = text(pg, "#rankSub")
     set_range(pg, "#rankDays input[type=range]", 20, 1400)
     st = pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
-        note: (document.getElementById('periodNote')||{}).textContent,
         top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
                if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
-    ok("拉到 20 天，副標改成「最近 20 個交易日」（圖四）", "20" in (st["sub"] or ""), st["sub"])
-    ok("拉到 20 天，期間說明也跟著換成那一段日期", "～" in (st["note"] or ""), st["note"])
-    changed("拉到 20 天，期間說明真的換了", note0, st["note"])
+    ok("拉到 20 天，排行副標寫出 20 個交易日的日期範圍（圖四）",
+       "20" in (st["sub"] or "") and "～" in (st["sub"] or ""), st["sub"])
+    changed("拉到 20 天，日期範圍真的換了", sub0, st["sub"])
     changed("拉到 20 天，排行圖真的重畫了（不是只有字變）", h0, canvas_hash(pg, "#rankFlow"))
 
     # 點長條：原地展開成分股、不跳頁，時鐘跟著只亮那一族群
