@@ -30,12 +30,6 @@ meta:
 
 # ---------------------------------------------------------------- 要 Andy 動手
 blocked_on_andy:
-  - id: "!2"
-    title: "到 Cloudflare 重貼 workers/quote-proxy/worker.js"
-    note: >-
-      新增了 /futchart 路由（夜盤分時要走 CORS 代理）。沒貼之前夜盤的分時圖在瀏覽器會被擋死。
-      畫面上會直接寫「Worker 還是舊版（沒有 /futchart），到 Cloudflare 重貼」，不是無聲失敗。
-    ask: "Cloudflare Dashboard → Workers → quote-proxy → 把 repo 裡的 workers/quote-proxy/worker.js 全文貼上去 → Deploy。"
   - id: "!1"
     title: "換 FinMind token"
     note: >-
