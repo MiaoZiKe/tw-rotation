@@ -85,6 +85,54 @@ RS_SMOOTH = 10      # rs 的 EMA 平滑天數（把一天的雜訊壓掉）
 RS_BASE = 40        # RS-Ratio 的基準均線天數（相對自己這條均線的偏離）
 MOM_ROC = 10        # RS-Momentum＝RS-Ratio 的幾日變動率
 
+# 個股 RRG：每個族群只取成交值前 N 檔。
+# 為什麼是 10：① 圖上族群點最多 16 顆，個股再進來 10 顆＝26 顆，已經是
+# 1440px 的盤面上標籤還排得開的上限（再多就只能靠隱藏標籤，那等於看不懂）；
+# ② 成交值排序第 11 檔以後，佔族群成交值通常已經不到 2%，對「錢往哪跑」沒有解釋力；
+# ③ 36 個族群 × 10 檔 × 31 天軌跡實測約 0.5MB，還在「下鑽時才抓」可以接受的範圍。
+MEMBER_TOP_N = 10
+
+
+def rrg_axes(g: pd.DataFrame, key: str) -> pd.DataFrame:
+    """把 RS-Ratio／RS-Momentum 算出來。**族群與個股共用這一支。**
+
+    需要的欄位：`key`（族群 id 或股票代號）、`gi`（自己的指數）、`bi`（大盤指數）。
+    回傳同一張表加上 rs / rs_s / rs_ratio / rs_mom。
+
+    ★ 為什麼一定要共用：兩邊若各寫一套（哪怕只差一個窗口長度），
+      個股點和族群點畫在**同一張盤**上就會是兩種尺度 ——
+      使用者會看到「個股全部貼在盤緣、族群全部縮在圓心」這種假象，
+      而那不是市場的事實，是我們自己算出來的。
+
+    三層的理由寫在模組 docstring（EMA 平滑 → 相對均線 → 一階導數），這裡不重複。
+    """
+    g = g.copy()
+    g["rs"] = 100 * g["gi"] / g["bi"]
+    gg = g.groupby(key)
+    # ① 先把 rs 平滑掉 —— 步長之所以會小，靠的是這一行，不是底下的窗口長度（見模組 docstring）
+    g["rs_s"] = gg["rs"].transform(lambda s: s.ewm(span=RS_SMOOTH, adjust=False).mean())
+    # ② RS-Ratio：平滑後的 rs 相對自己 RS_BASE 日均線的偏離。
+    #    min_periods 刻意用**滿窗**：窗口沒滿時均線只由少數幾天決定，算出來的偏離會非常誇張，
+    #    那幾個點會把前端的正規化尺度整個撐開（所有族群被擠到圓心）。
+    #    歷史不足 RS_BASE 天的族群／個股寧可不畫，也不要畫一個不能信的點
+    #    —— 這一行同時就是「上市未滿 40+10 天的個股不輸出」的實作：
+    #    窗口不滿 → rs_ratio 全 NaN → rs_mom 全 NaN → 後面 dropna 之後整檔消失，
+    #    不會變成一個假的 0 或 NaN 點混在盤上。
+    g["rs_ratio"] = 100 + 100 * (g["rs_s"] / g.groupby(key)["rs_s"]
+                                 .transform(lambda s: s.rolling(RS_BASE, min_periods=RS_BASE).mean()) - 1)
+    # ③ RS-Momentum：RS-Ratio 的 MOM_ROC 日變動率（一階導數），
+    #    這才會領先 RS-Ratio 約 90 度、讓族群／個股在盤面上順時針繞圈。
+    g["rs_mom"] = 100 + 100 * (g["rs_ratio"] / g.groupby(key)["rs_ratio"]
+                               .transform(lambda s: s.shift(MOM_ROC)) - 1)
+    return g
+
+
+def quadrant_of(x: float, y: float) -> str:
+    """四象限歸屬。族群與個股共用，免得兩邊的邊界條件（>= 還是 >）悄悄變得不一致。"""
+    return ("leading" if x >= 100 and y >= 100 else "weakening" if x >= 100 else
+            "improving" if y >= 100 else "lagging")
+
+
 
 def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
         min_share: float = 0.3) -> dict:
@@ -107,20 +155,7 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
     bench.index = bench.index.astype(str)
     g["bi"] = g["date"].map(bench)
     g = g.dropna(subset=["bi"])
-    g["rs"] = 100 * g["gi"] / g["bi"]
-    gg = g.groupby("group_id")
-    # ① 先把 rs 平滑掉 —— 步長之所以會小，靠的是這一行，不是底下的窗口長度（見模組 docstring）
-    g["rs_s"] = gg["rs"].transform(lambda s: s.ewm(span=RS_SMOOTH, adjust=False).mean())
-    # ② RS-Ratio：平滑後的 rs 相對自己 RS_BASE 日均線的偏離。
-    #    min_periods 刻意用**滿窗**：窗口沒滿時均線只由少數幾天決定，算出來的偏離會非常誇張，
-    #    那幾個點會把前端的正規化尺度整個撐開（所有族群被擠到圓心）。
-    #    歷史不足 RS_BASE 天的族群寧可不畫，也不要畫一個不能信的點。
-    g["rs_ratio"] = 100 + 100 * (g["rs_s"] / g.groupby("group_id")["rs_s"]
-                                 .transform(lambda s: s.rolling(RS_BASE, min_periods=RS_BASE).mean()) - 1)
-    # ③ RS-Momentum：RS-Ratio 的 MOM_ROC 日變動率（一階導數），
-    #    這才會領先 RS-Ratio 約 90 度、讓族群在盤面上順時針繞圈。
-    g["rs_mom"] = 100 + 100 * (g["rs_ratio"] / g.groupby("group_id")["rs_ratio"]
-                               .transform(lambda s: s.shift(MOM_ROC)) - 1)
+    g = rrg_axes(g, "group_id")
     latest = g["date"].max()
     today = g[g["date"] == latest]
     # 只畫今天成交值佔比 ≥ min_share% 的族群，太小的族群在圖上只是雜訊
@@ -132,8 +167,7 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
             continue
         last = sub.iloc[-1]
         x, y = float(last["rs_ratio"]), float(last["rs_mom"])
-        quadrant = ("leading" if x >= 100 and y >= 100 else "weakening" if x >= 100 else
-                    "improving" if y >= 100 else "lagging")
+        quadrant = quadrant_of(x, y)
         points.append({
             "group_id": gid, "group_name": last["group_name"], "chain": last.get("chain"),
             "x": _v(x), "y": _v(y), "quadrant": quadrant,
@@ -145,6 +179,102 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
             "note": f"x＝相對強度（族群指數/大盤，EMA{RS_SMOOTH} 平滑後相對近 {RS_BASE} 日均值，中心 100）；"
                     f"y＝相對強度的 {MOM_ROC} 日變動率（中心 100）。近似 JdK RS-Ratio / RS-Momentum。"}
 
+
+def member_rrg(price: pd.DataFrame, gdetail: dict, points: list, trail: int = 31,
+               top_n: int = MEMBER_TOP_N, bench: "pd.Series | None" = None) -> dict:
+    """**個股層級**的 RRG（Andy 2026-09-21：「點擊族群後可以顯示對應個股，
+    也可以點擊，並顯示在圖上」）。
+
+    回傳 `{族群id: [{code, name, x, y, quadrant, turnover, share, trail}, ...]}`。
+
+    ★ 三件刻意這樣做的事：
+
+    1. **算法和族群共用 `rrg_axes()`**，一個參數都不另開。個股點要和族群點畫在
+       同一張盤上，兩邊的 EMA／SMA／ROC 只要差一天，尺度就不一樣 ——
+       使用者會以為市場長那樣，其實是我們算出來的。
+    2. **只取每個族群成交值前 `top_n` 檔**（理由見 MEMBER_TOP_N 的註解）。
+       這是控量，不是取樣偏好：全市場 1800 檔 × 31 天軌跡會是好幾 MB。
+    3. **資料不足的個股直接不輸出**，不給 0 也不給 NaN。
+       實作靠 `rrg_axes` 的滿窗 min_periods（上市未滿 RS_BASE+MOM_ROC 天的
+       整檔會是 NaN），再加上「最後一筆必須就是最新交易日」這道 ——
+       中途下市／長期停牌的股票最後一筆會停在幾個月前，畫上去等於騙人。
+
+    `points` 用 `rrg()` 回傳的族群點，所以這裡算的族群集合和時鐘上看得到的完全一致；
+    時鐘點不到的族群本來就下鑽不到，多算只是把檔案撐大。
+    """
+    if price is None or price.empty or not points:
+        return {}
+    want: dict[str, list] = {}
+    for p in points:
+        gid = str(p.get("group_id"))
+        ms = ((gdetail or {}).get(gid) or {}).get("members") or []
+        ms = sorted(ms, key=lambda m: -(m.get("turnover") or 0))[:top_n]
+        if ms:
+            want[gid] = ms
+    if not want:
+        return {}
+    codes = {str(m["code"]) for ms in want.values() for m in ms}
+
+    # 和大盤指數取同一段窗口：EMA 要暖機，窗口太短的話個股的 rs_s 會比族群的「新」，
+    # 兩者的平滑程度不一致（就是上面第 1 點在講的事）。
+    cutoff = (pd.Timestamp(price["date"].max()) - pd.Timedelta(days=160 * 1.6)).date().isoformat()
+    px = price[(price["date"].astype(str) >= cutoff)].copy()
+    px["code"] = px["code"].astype(str)
+    px = px[px["code"].isin(codes)][["date", "code", "close", "change", "turnover"]]
+    if px.empty:
+        return {}
+    px["date"] = px["date"].astype(str)
+    px = px.sort_values(["code", "date"]).drop_duplicates(["code", "date"], keep="last")
+    prev = px["close"] - px["change"].fillna(0)
+    # 個股指數＝日報酬累乘，和族群指數（chg_pct 累乘）、大盤指數完全同一套。
+    # 起點是窗口第一天（＝1），但 RS-Ratio 是「相對自己的均線」的比值，起點會被約掉，
+    # 所以不需要從上市第一天開始累乘。
+    px["chg"] = np.where(prev > 0, px["change"] / prev, np.nan)
+    px["factor"] = 1 + px["chg"].fillna(0)
+    px["gi"] = px.groupby("code")["factor"].cumprod()
+    if bench is None:
+        bench = market_index(price)
+    bench = bench.copy()
+    bench.index = bench.index.astype(str)
+    px["bi"] = px["date"].map(bench)
+    px = px.dropna(subset=["bi"])
+    if px.empty:
+        return {}
+    px = rrg_axes(px, "code")
+    latest = str(px["date"].max())
+
+    by_code = {c: sub for c, sub in px.groupby("code")}
+    out: dict[str, list] = {}
+    for gid, ms in want.items():
+        gtv = sum((m.get("turnover") or 0) for m in ms) or 0
+        rows = []
+        for m in ms:
+            code = str(m["code"])
+            sub = by_code.get(code)
+            if sub is None:
+                continue
+            sub = sub.dropna(subset=["rs_ratio", "rs_mom"]).tail(trail)
+            # 樣本不足（上市未滿 40+10 天）或已經不再交易 → 不輸出（不可以假裝有值）
+            if sub.empty or str(sub["date"].iloc[-1]) != latest:
+                continue
+            last = sub.iloc[-1]
+            x, y = float(last["rs_ratio"]), float(last["rs_mom"])
+            tv = m.get("turnover") or 0
+            rows.append({
+                "code": code, "name": m.get("name") or code,
+                "x": _v(x), "y": _v(y), "quadrant": quadrant_of(x, y),
+                "turnover": _v(tv, 0),
+                # 佔比的分母是**所屬族群**（沿用資金去向 D4 的口徑），不是全市場 ——
+                # 個股對全市場的佔比常常是 0.1%，整排看起來都一樣，等於沒寫。
+                "share": _v(tv / gtv * 100) if gtv else None,
+                "has_page": bool(m.get("has_page")),
+                "trail": [[str(d), _v(a), _v(b)]
+                          for d, a, b in zip(sub["date"], sub["rs_ratio"], sub["rs_mom"])],
+            })
+        if rows:
+            rows.sort(key=lambda r: -(r["turnover"] or 0))
+            out[gid] = rows
+    return out
 
 def sankey(today: pd.DataFrame, members: dict, top_groups: int = 12, top_members: int = 3) -> dict:
     """大盤 → 產業鏈 → 族群 → 代表個股 的成交值流向（今日）。"""

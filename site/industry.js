@@ -206,9 +206,11 @@
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
       <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div>
-        <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div></div>`;
+        <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div>
+        <div class="morebar" id="memberMore" hidden></div></div>`;
     // 族群卡片（顏色跟環節一致）
-    const cardHtml = (g) => `<div class="tile colored ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="min-width:180px;flex:1 1 200px;max-width:360px;--c:${A.L.gcolor[g.id] || '#8ea0c4'}"><div class="t">${A.fmt.esc(g.name)}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="row spread" style="margin-top:4px"><div class="v ${A.fmt.cls(g.chg_pct)}" style="margin:0">${A.fmt.pct(g.chg_pct)}</div>${A.L.group(g.id, '族群頁 →', { dot: false, cls: 'sm' })}</div></div>`;
+    // 尺寸搬到 CSS（#groupCards .tile）—— 寫成行內樣式的話手機那條「窄畫面改排成列」蓋不掉它
+    const cardHtml = (g) => `<div class="tile colored ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="--c:${A.L.gcolor[g.id] || '#8ea0c4'}"><div class="t">${A.fmt.esc(g.name)}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="row spread" style="margin-top:4px"><div class="v ${A.fmt.cls(g.chg_pct)}" style="margin:0">${A.fmt.pct(g.chg_pct)}</div>${A.L.group(g.id, '族群頁 →', { dot: false, cls: 'sm' })}</div></div>`;
     $('#groupCards', el).innerHTML = groups.map(cardHtml).join('');
     let segFilter = opts.seg || null, mkt = 'ALL';
     const members = () => {
@@ -224,6 +226,21 @@
        今天真的在動的中小型股要自己按一次表頭才看得到。
        按過表頭就記住，下次打開沿用他自己選的那一欄。 */
     const SORT_KEY = 'tw.memberSort';
+    /* ---------------------------------------------------------- 成分股預設只列前 30 檔
+       2026-09-21：族群從 28 個換成 tide 的 110 個板塊之後，半導體鏈的成分股
+       從 47 檔變成 156 檔 —— 量出來的整頁高度 1366px 4939 → 9051，
+       **其中 6332px（七成）是這張表格自己**（148 列 × 約 43px）。
+       Andy 抱怨過兩次的「上下框度太長」又回來了，但這次的大戶不是關聯圖，是這張表。
+
+       為什麼是收「列數」而不是加捲軸：這一頁是「先看誰在動、再點進個股」，
+       表格預設照漲幅排，第 31 名之後對那個問題沒有貢獻；
+       而內捲框在手機上會把人卡住（頁面捲到一半變成在捲表格）。
+       所以改成「先列前 30 檔 ＋ 一顆在原地展開的鈕」，
+       真實筆數一直寫在標題上（「成分股 148 檔」），一檔都沒有消失。
+       展開狀態記進 localStorage —— 想一次看完的人只要按一次，之後都照他的意思。*/
+    const MEMBER_HEAD = 30, MEMBER_MAX = 200;
+    const loadMemberAll = () => { try { return localStorage.getItem('tw.memberAll') === '1'; } catch (e) { return false; } };
+    let memberAll = loadMemberAll();
     let sort = { key: 'chg_pct', dir: -1 };
     try {
       const s = JSON.parse(localStorage.getItem(SORT_KEY) || 'null');
@@ -235,8 +252,36 @@
       const segTw = segFilter ? twOf(sc, segFilter) : [];
       $('#memberTitle', el).innerHTML = `成分股 <small>${rows.length} 檔${segFilter ? ' · 環節：<span style="color:' + segColor(segFilter) + '">' + A.fmt.esc(segName(sc, segFilter)) + '</span>' : ''}${state.group ? ' · ' + A.fmt.esc((groups.find(g => g.id === state.group) || {}).name || '') : ''}</small>`;
       $('#memberTable thead', el).innerHTML = '<tr>' + COLS.map(c => `<th class="${c[3] || ''}" data-k="${c[0]}">${c[1]}${sort.key === c[0] ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
-      $('#memberTable tbody', el).innerHTML = rows.slice(0, 200).map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('')
+      /* 展開鈕在 <table> 外面（不是塞一列 <tr>）—— 表格裡多一列的話，
+         所有「數 tbody tr 有幾筆」的地方（含驗收）都會把它算進筆數。*/
+      const capped = rows.slice(0, memberAll ? MEMBER_MAX : MEMBER_HEAD);
+      $('#memberTable tbody', el).innerHTML = capped.map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('')
         || `<tr><td colspan="12" class="l muted">${segFilter ? (segTw.length ? '這個環節的台股不在本鏈成分股裡：' + segTw.map(c => A.L.stock(c.tw_code, c.name)).join('　') : '這個環節目前沒有台股直接對應（' + foreignOf(sc, segFilter).map(c => c.name).join('、') + '），可看上方環節說明裡的相關族群') : '沒有符合的股票'}</td></tr>`;
+      const more = $('#memberMore', el);
+      if (more) {
+        /* 表格本來就最多只畫 200 列，所以「還有幾檔收著」要用 200 去算 ——
+           ETF 族群有 358 檔，寫「還有 328 檔收著」但按下去只出現 200 檔，那是騙人的 */
+        const shownMax = Math.min(rows.length, MEMBER_MAX);
+        const hidden = shownMax - capped.length;
+        more.hidden = rows.length <= MEMBER_HEAD;
+        if (!more.hidden) {
+          const sortName = (COLS.find(c => c[0] === sort.key) || [])[1] || '漲跌';
+          /* 說明一定要寫到「所以我該怎麼用」，只講「還有幾檔」等於沒寫 */
+          more.innerHTML = `<button type="button" class="btn small" id="memberMoreBtn">${memberAll
+              ? `只看前 ${MEMBER_HEAD} 檔` : `顯示全部 ${shownMax} 檔`}</button>`
+            + `<span class="muted">${memberAll
+              ? `已經攤開 ${shownMax} 檔。只想看今天最極端的那幾檔就收回去。`
+              : `目前依「${A.fmt.esc(sortName)}」排序，先列前 ${MEMBER_HEAD} 檔，還有 ${hidden} 檔收著`
+                + `${rows.length > MEMBER_MAX ? `（這一組共 ${rows.length} 檔，表格最多列 ${MEMBER_MAX} 檔）` : ''}。`
+                + `要找特定個股：先點上面的環節色標或族群卡片縮小範圍，或按一下表頭換一個排序欄位。`}</span>`;
+          const mb = $('#memberMoreBtn', el);
+          if (mb) mb.onclick = () => {
+            memberAll = !memberAll;
+            try { localStorage.setItem('tw.memberAll', memberAll ? '1' : '0'); } catch (e) { /* 私密視窗 */ }
+            renderMembers();
+          };
+        } else { more.innerHTML = ''; }
+      }
       $$('#memberTable th', el).forEach(th => th.onclick = () => {
         sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 };
         try { localStorage.setItem(SORT_KEY, JSON.stringify(sort)); } catch (e) { /* 忽略 */ }

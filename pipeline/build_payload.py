@@ -381,9 +381,10 @@ def build() -> None:
 
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖
     try:
+        r3 = rrg.rrg(group_hist, price)
         _write("flow_v3", {
             "date": latest,
-            "rrg": rrg.rrg(group_hist, price),
+            "rrg": r3,
             "sankey": rrg.sankey(today, gdetail),
             "share": rrg.share_series(group_hist),
             # 族群 × 法人的逐日序列：30 → 120 天（Andy 2026-09-18 圖八要「截止日」回放，
@@ -401,9 +402,15 @@ def build() -> None:
         #   不補的話四層樹上「其他產業別」整條底下一檔代表股都沒有（理由見 rrg.sankey_daily）。
         _write("sankey_daily", rrg.sankey_daily(group_hist, price, loader.membership(), 60,
                                                 company=company))
+        # 個股層級的 RRG（Andy 2026-09-21「點擊族群後可以顯示對應個股，也可以點擊，並顯示在圖上」）。
+        # ★ 一樣刻意拆成獨立檔，而且**不進 flow_v3**：那一份是首屏就要載的，
+        #   把 36 族群 × 10 檔 × 31 天塞進去，連只想看總覽的人都得先下載它。
+        #   前端只有在使用者真的下鑽某個族群時才去 fetch 這一份（lazy load）。
+        _write("rrg_members", rrg.member_rrg(price, gdetail, (r3 or {}).get("points") or []))
     except Exception as exc:  # noqa: BLE001
         log.warning("資金流向 v3 產出失敗：%s", exc)
         _write("sankey_daily", {"dates": [], "groups": [], "leaves": {}})
+        _write("rrg_members", {})
         _write("flow_v3", {"date": latest, "rrg": {"points": []}, "sankey": {"nodes": [], "links": []},
                            "share": {"dates": [], "series": []},
                            "inst_daily": {"dates": [], "groups": []},
@@ -617,11 +624,15 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     # 沒有題材族群的股票用法定產業別歸戶（ind_*，與 flow._attach_groups 同一套命名），
     # 這樣全市場每一檔都連得到一個族群頁
     if company is not None and not company.empty and "industry" in company.columns:
+        _indmap = loader.ind_names()      # 迴圈外拿一次；ind_name() 每呼叫一次會重讀 YAML
         for c_, ind_ in zip(company["code"], company["industry"]):
             if c_ in group_of:
                 continue
             ind_ = norm_industry(ind_)
-            group_of[c_] = {"group_id": "ind_" + ind_, "group_name": ind_, "groups": [ind_]}
+            # group_id 維持 `ind_<產業別原名>`（前端的 L.groupByName 與熱力圖下鑽吃它），
+            # 只有顯示名改成 tide 的「〇〇・其他」
+            _nm = _indmap.get(ind_, ind_)
+            group_of[c_] = {"group_id": "ind_" + ind_, "group_name": _nm, "groups": [_nm]}
 
     day = price[price["date"] == latest]
     # 分 K 逐檔跟 Yahoo 要，成本高：族群成分股全部給，再用成交值補到 limit。

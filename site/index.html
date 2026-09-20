@@ -1022,6 +1022,34 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    字級往上加到 13.5／15px —— 手機正文不得小於 15px、任何字不得小於 11px */
 @media (max-width:560px){ .seglist{columns:1} .segcard .sco .nm{font-size:13.5px} .segcard .sh .nm{font-size:15px} }
 
+/* ============ 族群（板塊）卡片 ＋ 成分股「顯示全部」（2026-09-21）============
+   tide 的 110 個板塊上線之後，半導體鏈的族群卡從 9 張變成 24 張、成分股從 47 檔變成 156 檔。
+   量出來 390px 半導體整頁 6983 → 12357，其中族群卡 2868、成分股表 6332。
+   Andy 抱怨過兩次的「上下框度太長」又回來了，但這次的大戶不是關聯圖 ——
+   關聯圖那一塊（#chainList）現在是 1076px，還在 D0 訂的門檻 1250 以內。
+
+   桌機的尺寸跟以前完全一樣（原本寫在行內樣式，只是搬到這裡好讓手機蓋得掉）。*/
+#groupCards .tile{min-width:180px;flex:1 1 200px;max-width:360px}
+/* 成分股表下面那一排：一顆鈕 ＋ 一句「所以我該怎麼用」 */
+.morebar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
+.morebar[hidden]{display:none}
+.morebar .muted{font-size:12px;line-height:1.6;flex:1 1 220px;min-width:0}
+@media (max-width:560px){
+  /* 手機上 24 張 120px 的卡片＝2868px，而且一排只塞得下一張 —— 那是在浪費整個螢幕寬。
+     改成「一行一個板塊」：名稱在左、漲跌在右，第二行放檔數／佔比／本益比與「族群頁 →」。
+     ★ 一個板塊都沒有藏：24 個板塊還是 24 列，只是不再各自佔掉一個卡片的高度。*/
+  #groupCards{display:block}
+  #groupCards .tile{min-width:0;max-width:none;display:grid;grid-template-columns:1fr auto;
+    align-items:center;column-gap:10px;row-gap:1px;padding:7px 10px;margin:0 0 5px}
+  #groupCards .tile .t{grid-column:1;grid-row:1;font-size:15px;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  /* 漲跌與「族群頁 →」本來就包在同一個 .row 裡，整個搬到右欄第一行就好 */
+  #groupCards .tile .row{grid-column:2;grid-row:1;margin:0!important;gap:8px;flex-wrap:nowrap}
+  #groupCards .tile .row .v{font-size:16px;margin:0!important}
+  #groupCards .tile .m{grid-column:1/-1;grid-row:2;font-size:12px;margin:0;min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+
 /* ---- C4 ＋ A4（2026-09-20）：輪動時鐘／資金流向排行的篩選列與軌跡開關。
    樣式刻意和圖15 漲跌分佈的 #distFilter 同一套（Andy 附的「圖一」就是那個），
    所以兩張卡的互動語彙一致。
