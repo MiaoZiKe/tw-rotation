@@ -1,0 +1,207 @@
+# 任務板的資料來源（唯一一份）。
+#
+# 為什麼用 YAML 而不是直接寫 Markdown（2026-09-20）
+# ------------------------------------------------
+# Andy 選了「在網站上多一頁任務板」，所以同一份資料要出現在兩個地方：
+# 網站的 #tasks 頁，以及 obsidian/100-任務板.md。
+# 兩邊各維護一份，第三天就會對不起來 —— 所以這裡是唯一的來源，
+# 網站的 JSON 由 build_payload 產出，Markdown 由 scripts/gen_taskboard.py 產出。
+#
+# status 只准這五種（跟 obsidian/000-開始這裡.md 的規則一致）：
+#   todo    ⬜ 未開始
+#   doing   🔵 進行中
+#   review  🟡 改完待驗／待推   ★「改完但還沒 push」一律是這個，不准標 done
+#   done    ✅ 已上線
+#   blocked ⛔ 被擋住
+#
+# 欄位：
+#   id       編號（Andy 講話時用的那個，例如 A4、C3）
+#   title    需求，**用 Andy 的原話**，不要改寫成我自己的講法
+#   status   上面五種
+#   files    改到哪些檔
+#   spent    花了多久（人話，例如「agent 56 分 ＋ 整合 25 分」）
+#   note     做到哪／卡在什麼／代價是什麼
+#   shot     截圖檔名（放在 obsidian/attachments/）
+#   ask      要 Andy 回答或動手的事
+
+meta:
+  updated: "2026-09-20"
+  site: "https://miaozike.github.io/tw-rotation/"
+
+# ---------------------------------------------------------------- 要 Andy 動手
+blocked_on_andy:
+  - id: "!1"
+    title: "換 FinMind token"
+    note: >-
+      健檢查到的原文是 `HTTP 400：Token is illegal.`。
+      金鑰只在 GitHub Secrets，Claude 沒有權限，只有 Andy 能換。
+      擋住：法人籌碼、財報、股利、融資券、股權分散、歷史回補，以及 A2 的指數 3 年歷史。
+    ask: >-
+      到 finmindtrade.com 重產 token → GitHub Settings → Secrets → FINMIND_TOKEN
+      → Actions 手動觸發一次「歷史回補」。
+
+# ---------------------------------------------------------------- 待 Andy 回答
+questions:
+  - id: "?1"
+    title: "A5「移除時間週期」是指哪一個？"
+    note: >-
+      我移除的是「族群佔比河流」整張卡（裡面本來就含它自己的時間週期拉 Bar）。
+      最上面那張「看哪一段時間的資金流向」期間切換卡我沒有動。
+  - id: "?2"
+    title: "C4「也可以篩選想要的股票」是什麼意思？"
+    note: >-
+      資金流向排行與輪動時鐘的單位是族群不是個股。
+      我先做「篩選面板裡除了族群也能勾個股」。
+  - id: "?3"
+    title: "C3 在手機上變高了，要不要處理？"
+    note: >-
+      390px：半導體 1088 → 1846、AI 伺服器 780 → 2599。
+      舊 SVG 高度固定是因為它在手機上要左右拖才看得完；清單只有一欄，全攤開必然更長。
+      要壓下來就得把個股小卡收起來，那正好違背「標題底下顯示個股小卡」的要求。
+
+# ---------------------------------------------------------------- 任務
+tasks:
+  - id: C4
+    title: "資金流向排行、輪動時鐘，改用圖一這樣方式呈現，也可以篩選想要的股票"
+    status: doing
+    files: [site/app.js]
+    note: "跟 A4 併成同一輪做（同一張圖）。現成元件是 app.js 的 wireDistFilter()，不重寫。"
+  - id: A4
+    title: "輪動時鐘一整包（拉Bar ＋/−、移除旋轉箭頭、前1~前30天、補圓心到邊緣的說明、新增播放、越外圈顏色越深、平滑移動＋可開關軌跡、確認時間週期是否算錯）"
+    status: doing
+    files: [site/app.js, pipeline/compute/rrg.py]
+    shot: 2026-09-19-A4-輪動時鐘.png
+    note: >-
+      第 2 條「移除旋轉箭頭」已在 2026-09-20 做掉。
+      第 8 條是先查根因：rs_mom 只用 5 日滾動均值，窗口太短是嫌疑犯，要實際量步長分佈。
+
+  - id: C1
+    title: "熱門題材 & 今日候選 框格需要一樣大，超出部分改拉 Bar"
+    status: done
+    files: [site/app.js, site/index.html]
+    spent: "agent 66 分 ＋ 整合驗證 25 分"
+    shot: 2026-09-20-C1-熱門題材與今日候選框高不一.png
+    note: >-
+      外框本來就等高（CSS grid stretch）。真正的問題是高度隨寬度 722~1426 亂跳、
+      而且內容被裁掉又沒捲軸。現在五個寬度都是 720/720，各自在卡片內捲。
+      關鍵是 min-height:0 —— flex 子項預設 min-height:auto 會拒絕縮小，捲軸永遠不出現。
+  - id: C2
+    title: "我發現當我使用另一台電腦開啟，電腦螢幕大小不同會影響整體變化"
+    status: done
+    files: [site/app.js, site/index.html, scripts/_preview.py]
+    spent: "與 C1 同一支 agent"
+    shot: 2026-09-20-C2-換螢幕壓字.png
+    note: >-
+      ★ 查出關卡一直看不到壓字的原因：圖表是 canvas 畫的，圖裡的字在 DOM 上不存在，
+      所以文字重疊掃描永遠報 0。實際嚴重度比回報的高很多：1440px 下光總覽三張圖
+      就有 56 組互相重疊。五個寬度改後全部 0。資金流向頁順帶修掉 4 個同型的。
+  - id: C3
+    title: "供應鏈關聯圖上下框度太長，改成顯示族群以及族群標題底下顯示個股小卡"
+    status: done
+    files: [site/industry.js, site/index.html]
+    spent: "agent 56 分"
+    note: >-
+      半導體鏈整頁 5026 → 4254（1500px），關聯圖區塊 1345 → 518。
+      ⚠ 代價：清單模式看不到「線本身」與「線的粗細／虛線」那層編碼。
+      已接回來：每張卡寫出上下游是哪幾格、小卡標出有幾條關係、
+      「看關聯圖 →」一鍵切回原本那張 SVG（140 條線一條不少）、右側產業關係面板不變。
+      ⚠ 手機變高（見 ?3）。
+
+  - id: A1
+    title: "夜盤勢會跟日盤共用同一個走勢圖，而不是各自分開，所以也具備即時走勢 K 線等資訊"
+    status: done
+    files: [site/market3.js]
+    shot: 2026-09-19-A1-夜盤獨立方框.png
+    note: >-
+      那塊獨立夜盤方框移除，變成同一張圖的切換。夜盤走勢是這一頁自己一筆一筆收的
+      真實報價點（期交所行情看板只回當下一筆快照，沒有分時序列），不是內插。
+  - id: A2
+    title: "為何這些走勢都沒有過往歷史數據，幫我新增至少 3 年"
+    status: blocked
+    files: [site/market3.js]
+    shot: 2026-09-19-A2-K線歷史太短.webp
+    note: >-
+      前端做完並驗過（餵 780 根假日線：日 K 780／週 K 157／月 K 36／季 K 12）。
+      資料湖裡指數只有 32 個交易日 —— 卡在 !1 的 FinMind token。
+      token 一通，3 次請求就補完。
+  - id: A3
+    title: "資金流向移除播放功能"
+    status: done
+    files: [site/app.js]
+    shot: 2026-09-19-A3-資金流向播放.png
+    note: "實際移了三支：資金流向、族群法人、桑基。"
+  - id: A5
+    title: "將時間週期以及族群佔比河流圖移除"
+    status: done
+    files: [site/app.js, site/index.html]
+    shot: 2026-09-19-A5-族群佔比河流圖.png
+    note: "⚠ 解讀待確認，見 ?1。"
+  - id: B1
+    title: "資金去向：所有族群固定、修掉 nan、動畫改成小圓點傳輸特效"
+    status: done
+    files: [site/app.js, pipeline/compute/rrg.py, pipeline/compute/flow.py]
+    shot: 2026-09-19-B1-桑基圖出現nan.png
+    note: >-
+      nan 的根因：price_daily 的 name 欄只有 2026-09-09 之後有值，
+      而取名字寫成 drop_duplicates("code") 取到最早那一列 → 整批 NaN → str() 變 "nan"。
+      ★ 同一個寫法在 concentration_members 又寫了一次（11,430 處），Andy 沒看到，
+      是掃 JSON 才抓到的。已抽成 names.py 共用，並加兩條護欄。
+  - id: B2
+    title: "族群法人播放功能移除"
+    status: done
+    files: [site/app.js]
+    shot: 2026-09-19-B2-族群法人播放.png
+  - id: B3
+    title: "所有圖表的族群小 Tip 都需要具備點擊後就會在對應圖表上被篩選出去"
+    status: done
+    files: [site/app.js]
+    note: >-
+      套到資金去向、族群×法人、總覽族群估值。
+      資金熱力圖與資金集中度刻意沒套（treemap 篩到剩一格沒有資訊；
+      集中度的序列是「前5大/前10大」不是族群）。
+  - id: B4
+    title: "資金流向排行下方的族群點擊後所顯示的股票太長了，需要變成固定大小，所以需要有拉 Bar"
+    status: done
+    files: [site/app.js, site/index.html]
+    shot: 2026-09-19-B4-族群展開清單太長.png
+    note: "全站統一同一套內捲面板。"
+  - id: B5
+    title: "當我點擊日月光投控時，他所對應的族群會被選取"
+    status: done
+    files: [site/industry.js]
+    shot: 2026-09-19-B5-點日月光沒選到族群.png
+    note: >-
+      接到既有「點環節色標」那條路上，不是另外寫一套。
+      實測點 3711 → 成分股 47→7 筆、族群卡亮「封測」，而且不跳頁。
+      選的是「環節」不是「族群」：一家公司只有一個環節、卻可以掛多個族群。
+  - id: B6
+    title: "當點擊個股時，最先出現的是 K 線圖、多週期判讀、總覽、營收…公告/新聞，下方才是產業地圖等資訊"
+    status: done
+    files: [site/industry.js]
+    shot: 2026-09-19-B6-個股頁順序.png
+    note: >-
+      搬的是產業鏈區塊不是 K 線區塊 —— K 線是 lightweight-charts，
+      把它的容器拔起來再插回去會重新量尺寸、最糟高度變 0。
+
+# ---------------------------------------------------------------- 還沒排到
+backlog:
+  - id: T1
+    title: "網站上多一頁 #tasks 任務板"
+    note: "Andy 2026-09-20 選的方案。資料來源就是這個 YAML。"
+  - id: T2
+    title: "_uitest 平行化（14.6 分 → 估 4~5 分）"
+    note: "31 個段落現在是序列跑。這是省時間最大的一筆。"
+  - id: T3
+    title: "build_payload 加「只重算前端要用的」旗標（292 秒 → 估 60 秒）"
+    note: "純前端改動不需要重跑「個股頁（全市場）」那 235 秒。"
+  - id: T4
+    title: "圖11 五張剖析圖開畫"
+    note: "五份規格書都寫完、掛載點也定了（新開題材），還沒開始畫。"
+  - id: T5
+    title: "圖14 題材圖 25 個等角物件重畫"
+  - id: T6
+    title: "調色盤補到 ≥34 色"
+    note: "14 色配 34 個環節，AI 伺服器鏈那張圖已經有 8 組同色（既有問題）。"
+  - id: T7
+    title: "資料覆蓋率門檻往上調"
+    note: "要等回補跑順，而回補卡在 !1。"
