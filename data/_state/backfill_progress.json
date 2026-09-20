@@ -4527,7 +4527,7 @@
     "financial:00865B": true,
     "balance:00865B": true
   },
-  "updated_at": "2026-09-19T23:08:58.750069+00:00",
+  "updated_at": "2026-09-20T01:11:57.823215+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": false,
@@ -4546,7 +4546,7 @@
   },
   "finmind_health": {
     "ok": false,
-    "at": "2026-09-19T23:08:58.749964+00:00",
+    "at": "2026-09-20T01:11:57.823105+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-09-10",
     "detail": "HTTP 400：Token is illegal."
   }
