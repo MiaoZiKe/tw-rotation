@@ -25,20 +25,25 @@
 #   ask      要 Andy 回答或動手的事
 
 meta:
-  updated: "2026-09-21 傍晚"
+  updated: "2026-09-21 清晨"
   site: "https://miaozike.github.io/tw-rotation/"
 
 # ---------------------------------------------------------------- 要 Andy 動手
 blocked_on_andy:
   - id: "!1"
-    title: "換 FinMind token"
+    title: "換 FinMind token（✅ 2026-09-21 04:02 已解決）"
     note: >-
       健檢查到的原文是 `HTTP 400：Token is illegal.`。
       金鑰只在 GitHub Secrets，Claude 沒有權限，只有 Andy 能換。
       擋住：法人籌碼、財報、股利、融資券、股權分散、歷史回補，以及 A2 的指數 3 年歷史。
     ask: >-
-      到 finmindtrade.com 重產 token → GitHub Settings → Secrets → FINMIND_TOKEN
-      → Actions 手動觸發一次「歷史回補」。
+      ✅ 已完成。健檢 2026-09-20T20:02:49Z 轉 ok=true，「回補」那一步從 2 秒（健檢失敗即放棄）
+      變成 2 分 45 秒，計畫第一步 balance+financial+revenue 終於補齊
+      （財報 614→776、資產負債 613→776、月營收 614→776）。
+      ★ 排查過程留一條經驗：FinMind 的 400 回應會附 `token_tail`，
+      兩輪都是 `...a--uVZRA` 就證明 Secrets 的值根本沒變 —— 以後先比對這個，不要猜。
+      ⚠ 這把 token 在對話與截圖裡公開過，資料補順之後要再換一次，
+      順序是「先在 FinMind 按更新 token → 立刻複製 → 貼進 GitHub → 再驗」。
 
 # ---------------------------------------------------------------- 待 Andy 回答
 questions:
@@ -58,7 +63,7 @@ questions:
 tasks:
   - id: E1
     title: "軌跡線不能比圓圈還動的快"
-    status: doing
+    status: done
     files: [site/app.js, scripts/_uitest.py]
     shot: 2026-09-21-E1-輪動時鐘軌跡線.png
     note: >-
@@ -68,9 +73,18 @@ tasks:
       所以尾巴尖端**瞬移**到新那一天，而大圈是 420ms linear 慢慢補過去 —— 看起來就是線比圓圈快。
       修法：讓 `trail()` 永遠回傳**固定點數**（重取樣），每個索引都有新舊對應，
       整條線就會跟大圈用同一個 duration 一起滑。
+      ✅ 已上線（commit e12f054）。量出來：單族群整段播放最大脫節 8.25px → 0.43px；
+      16 族群同播最大 87px（且會累積）→ p75 1.4px、最大 13px；一條尾巴的點數
+      51/41/21/1（會變）→ 48/48/48/48（固定）。大圈半徑 3.7~6.5px，
+      舊版的脫節等於尖端跑到圓圈外一整個圈。
+      ⚠ 還有第二個根因是 Agent 自己量出來的（我原本沒列）：rotSeek 的 160ms debounce
+      以前會連時鐘一起重畫，第二次 setOption 把還在跑的補間從中途重啟，脫節會累積。
+      只改重取樣不改 debounce 的話最大還是 41px —— 兩件都要改。
+      ⚠ 剩餘限制：16 族群同播時跑最快的那一兩個尾巴仍會落後約 10~13px（每天結束前收回 0）。
+      再壓下去要停掉播放中每幀的標籤重排，代價是引線指到舊位置 —— 依「追根因最多 10 分鐘」停在這裡。
   - id: E2
     title: "放大之後的功能都沒反應"
-    status: doing
+    status: done
     files: [site/app.js, site/index.html, scripts/_uitest.py]
     shot: 2026-09-21-E2-放大視窗功能沒反應.png
     note: >-
@@ -83,9 +97,13 @@ tasks:
       （補充：拉Bar 與播放鈕用真滑鼠點是會動的，1440／1100px 都量過，
        所以問題不在事件綁定，在那排不該存在的晶片。）
       順手修同源隱患：`rotLbl`／`rotLastShape` 是模組層級共用變數，卡片與放大視窗會互相洗掉。
+      ✅ 已上線（commit e12f054）。量出來：`.zb` 子元素 2 → 1；`#zoomBody` 734×856 → 1468×856
+      （`.zb` 本來就是 1468 寬，圖只拿到一半）；放大視窗的控制項
+      {filt:0,seg:0,top10:0,sbtn:0,pb:0,trail:0,chips:0} → {filt:1,seg:6,top10:1,sbtn:1,pb:3,trail:1,chips:36}。
+      放大視窗現在和卡片吃同一份 ROT 狀態，關閉時同步回卡片。
   - id: E3
     title: "篩選族群功能覆蓋下方的族群選取功能"
-    status: doing
+    status: done
     files: [site/app.js, site/index.html, scripts/_uitest.py]
     shot: 2026-09-21-E3-篩選族群與族群選取.png
     note: >-
@@ -95,13 +113,21 @@ tasks:
       下面那份只會 highlight／展開成分股、不會篩圖。長得一樣、行為不同。
       修法：族群選取只留下面那一排（離圖最近，而且 F2 的「點族群展開個股」要長在它身上），
       並讓它真的改 `ROT.groups`；上面 `.rotfilter` 的族群清單移除，只留產業鏈／前10大／個股篩選／清除。
+      ✅ 已上線（commit e12f054）。驗收：點兩個晶片 → 時鐘 16→2、`_rotPts` 16→2、
+      排行族群數跟著變、兩排晶片同時亮、成分股面板真的開、localStorage 真的寫進去；
+      再點一次全部還原。全站 `.rot-gbtn` 0 個。
   - id: F3
     title: "圖二的版面配比需要 2:1（輪動時鐘:資金流向排行），資金流向排行改成在右邊"
-    status: doing
+    status: done
     files: [site/index.html, site/app.js, scripts/_uitest.py]
     note: >-
-      現在是 .grid.g2 平分、排行在左。要改成 2fr:1fr、時鐘在左排行在右，
-      窄畫面退回單欄（時鐘在上）。七個寬度都要掃溢出與標籤重疊。
+      ✅ 已上線（commit e12f054）。`.grid.g2` → `.grid.g21`（2fr:1fr），DOM 順序改成時鐘在前，
+      ≤1100px 退回單欄（時鐘在上）。七個寬度（1440/1280/1024/900/800/560/390）都量過：
+      欄寬比 2.00、零溢出、族群名不被截不重疊且字級 ≥11px、時鐘標籤全在畫布內。
+      ⚠ 排行圖的左留白第一版寫死 104px，被「連接器 / 高速傳輸 3↑」凸出 9px，
+      改成用 canvas measureText 量最長族群名算出來，並掛 ResizeObserver 在欄寬變動時重畫。
+      ⚠ 既有問題（不是這次造成的）：`.verbadge` 在 ≤980px 隱藏（原本 ≤820px），
+      否則 900px 頂欄會被撐出 27px 水平捲軸。橫幅那行照樣寫著同一個版號。
   - id: F1
     title: "依據 tide-tw.app 上面所有的族群分類，幫我將『資金去向』&『輪動時鐘』重新分類"
     status: blocked
