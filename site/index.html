@@ -1001,6 +1001,51 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 /* 手機：一欄，但小卡仍然兩張一列（grid 的 minmax 在 330px 的卡裡剛好排得下兩張），
    字級往上加到 13.5／15px —— 手機正文不得小於 15px、任何字不得小於 11px */
 @media (max-width:560px){ .seglist{columns:1} .segcard .sco .nm{font-size:13.5px} .segcard .sh .nm{font-size:15px} }
+
+/* ---- C4 ＋ A4（2026-09-20）：輪動時鐘／資金流向排行的篩選列與軌跡開關。
+   樣式刻意和圖15 漲跌分佈的 #distFilter 同一套（Andy 附的「圖一」就是那個），
+   所以兩張卡的互動語彙一致。
+   窄畫面（800px / 390px）一律允許換行 —— 這一排有 seg ＋ 勾選 ＋ 三顆鈕，
+   不換行在 800px 半格寬度下一定會溢出（2026-09-18 E6 就是只驗寬螢幕放過去的）。*/
+.rotfilter{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:6px 0 4px}
+.rotfilter .muted{font-size:11.5px}
+.rotchk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.rottools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 0;font-size:12px;color:var(--ink-3)}
+.rottools .muted{font-size:11.5px}
+/* 展開的複選格：一定要有高度上限＋自己的捲軸，族群 36 個、個股上千檔 */
+.chainchips.rotpick{margin:4px 0 6px;max-height:132px;overflow:auto}
+.chainchips.rotpick .rotstocklist{display:flex;flex-wrap:wrap;gap:5px 6px}
+.rotsearch{width:100%;box-sizing:border-box;margin-bottom:6px;padding:5px 8px;font-size:12.5px;
+  color:var(--ink);background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px}
+.rotsearch:focus{outline:none;border-color:var(--cyan)}
+@media (max-width:900px){ .rotfilter{gap:5px 6px} .chainchips.rotpick{max-height:110px} }
+
+/* ---------------------------------------------------------------- 任務板（#tasks）
+   刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
+   而 Andy 有時候是在手機上看「到底做完了沒」。 */
+.tkwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-top:10px}
+.tk{border:1px solid var(--line);border-left-width:3px;border-radius:12px;padding:10px 12px;background:var(--panel-3)}
+.tk-h{display:flex;align-items:center;gap:8px;justify-content:space-between}
+.tk-h b{font-family:var(--mono);font-size:13px;color:var(--ink-2)}
+.tk-st{font-size:11.5px;color:var(--ink-3)}
+.tk-t{margin-top:4px;font-size:13.5px;line-height:1.5}
+.tk-n{margin-top:6px;font-size:12px;color:var(--ink-3);line-height:1.6}
+.tk-ask{margin-top:6px;font-size:12.5px;color:var(--cyan);line-height:1.6}
+.tk-f{margin-top:7px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tk-f code{font-size:11px;color:var(--ink-3);background:var(--panel-2);border-radius:5px;padding:1px 6px}
+.tk-sp{font-size:11px;color:var(--ink-3)}
+/* 左邊那條色帶就是狀態，不用再找圖例 */
+.tk.st-blocked{border-left-color:var(--fall)}
+.tk.st-doing{border-left-color:var(--cyan)}
+.tk.st-review{border-left-color:var(--amber)}
+.tk.st-todo{border-left-color:var(--line-2)}
+.tk.st-done{border-left-color:var(--rise)}
+.pill.st-blocked{color:var(--fall)}
+.pill.st-doing{color:var(--cyan)}
+.pill.st-review{color:var(--amber)}
+.pill.st-done{color:var(--rise)}
+.card.hot{border-color:color-mix(in srgb,var(--fall) 40%,transparent)}
+@media(max-width:700px){.tkwrap{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
@@ -1013,6 +1058,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
+    <button class="tab" data-view="tasks">任務板</button>
   </nav>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
   <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分，另外要一顆手動更新）。
@@ -1127,6 +1173,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rank" hidden></div>
         <div id="rankDays" title="最近幾天：0＝跟著上方期間走"></div>
+        <!-- C4（Andy 2026-09-20）：族群列改成「漲跌分佈」那種篩選列。
+             這一排和時鐘卡下面那一排是**同一份選擇**（見 app.js 的 wireRotFilter）。 -->
+        <div class="rotfilter" data-rf="rank"></div>
         <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
         <div class="hpanel" id="rankPanel" hidden></div></div>
       <div class="card"><div class="row spread"><h3>輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
@@ -1134,7 +1183,11 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
           <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
           <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-rot" hidden></div>
-      <div id="rotBack" title="和幾天前比：拖曳看不同的回顧長度"></div>
+      <!-- A4 第 1/3/5/7 條：這支拉Bar 現在是「看哪一天」的時間軸刷動，
+           ＋ / − / ▶ 由 playBar 提供；#rotTools 放軌跡開關。 -->
+      <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>
+      <div class="rottools" id="rotTools"></div>
+      <div class="rotfilter" data-rf="rot"></div>
       <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
       <div class="note" id="rotCenterNote"></div></div>
     </div>
@@ -1210,6 +1263,13 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     <div id="themeDetail" style="margin-top:16px"></div>
   </section>
 
+  <!-- ================= 任務板 =================
+       Andy 2026-09-20：「很常發生我問你問題你做完，但我發現做不全，你就接續其他工作，
+       導致很多事情都遺失沒完成。」他選了「在網站上多一頁」而不是同步 Obsidian ——
+       理由很單純：他只重新整理網頁、不跑本機指令，放在網站上他一定看得到。
+       資料來源是 obsidian/tasks.yaml（唯一一份），由 build_payload 轉成 site/data/tasks.json。 -->
+  <section class="view" id="v-tasks"></section>
+
   <!-- ================= 季節性 ================= -->
   <section class="view" id="v-season">
     <div class="card">
@@ -1249,6 +1309,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 <script src="livek.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
+<script src="tasks.js"></script>
 <script src="live.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>

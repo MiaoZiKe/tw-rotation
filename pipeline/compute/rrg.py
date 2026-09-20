@@ -1,10 +1,43 @@
 """資金流向 v3 的三張圖的資料：相對輪動圖（RRG）、資金桑基圖、族群佔比河流圖。
 
 RRG（Relative Rotation Graph）是看「輪動」最直觀的圖：
-  x 軸 = 相對強度（族群指數 / 大盤指數，相對自己近 20 日均值的偏離，中心 100）
-  y 軸 = 相對強度的動能（x 軸值相對自己近 5 日均值的偏離，中心 100）
+  x 軸 = 相對強度（族群指數 / 大盤指數，先做 EMA 平滑，再看相對自己近 40 日均值的偏離，中心 100）
+  y 軸 = 相對強度的動能（x 軸值的 10 日變動率，中心 100）
   四象限：右上領先、右下轉弱、左下落後、左上改善；族群通常順時針繞圈。
 JdK 原版公式未公開，這裡用常見的均值標準化近似，趨勢與象限判讀一致。
+
+★ 2026-09-20（Andy A4 第 8 條：「明明是一天的差距，在圖上卻是各種歪曲，
+  一天的走勢就一個點」）—— 這一段是那次量測的結論，改參數前先讀完。
+
+  量的方法：把每個族群的 trail 相鄰兩天算成一個步長，再除以「時鐘盤面的半徑」
+  （前端把兩軸各自除以當天最大偏離量之後畫成極座標，所以半徑 1 ＝ 偏離最大的族群）。
+  量到的事實（36 個族群 × 30 天）：
+
+    舊算法 20/5   一日步長中位數 = 盤面半徑的 **0.255**，最大 **1.852**，
+                  30 天軌跡的直線度（淨位移 ÷ 路徑長）只有 **0.07**
+                  —— 一天就能從圓心衝到盤緣，軌跡是一團原地抖動的毛線。
+
+  根因**不是**「rs_mom 的 5 日窗口太短」。實測把 5 日拉到 10/20/30 日，
+  一日步長完全沒有變（中位數 1.60 → 1.60，p99 8.22 → 9.05）。
+  原因是 rs_ratio = 100 × rs ÷ SMA_n(rs)：SMA 一天幾乎不動，
+  所以 **Δrs_ratio ≈ rs 的當日報酬**，跟 n 完全無關。
+  而 rs 是「族群指數 ÷ 大盤指數」，族群 chg_pct 是成交值加權的，
+  一天相對大盤差 2%（中位數）、尾端差 8~13% 都是常態 —— 那 11 點的跳動是真的，
+  只是**沒有人先把它平滑掉就直接畫上去**。
+
+  第二個根因：舊的 rs_mom 是「rs_ratio 相對自己 5 日均值」，
+  這個量和 rs_ratio 本身的日變動相關係數高達 **+0.90**
+  —— 兩個軸幾乎是同一個數字，點只會沿 45 度對角線來回彈，根本不會繞圈。
+
+  所以改成標準 RRG 的兩層作法：
+    1. **先把 rs 做 EMA 平滑**（RS_SMOOTH 日）再算 RS-Ratio ——
+       直接把「一天的雜訊」壓下去，這才是步長變小的關鍵。
+    2. **RS-Momentum 改用 RS-Ratio 的變動率**（ROC，MOM_ROC 日）而不是「相對自己的均值」。
+       ROC 是 RS-Ratio 的一階導數，會領先它約 90 度，這才是 RRG 會順時針繞圈的來源。
+
+  改後（EMA10 / SMA40 / ROC10，同一份資料）：
+    一日步長中位數 **0.053**（降 4.8 倍）、最大 **0.280**（降 6.6 倍）、
+    直線度 **0.38**（提升 5.4 倍）、順時針步數比例 0.65 → 0.71。
 
 大盤指數用全市場成交值加權漲跌幅累乘還原，跟族群指數同一套算法，避免兩邊口徑不同。
 """
@@ -44,13 +77,26 @@ def market_index(price: pd.DataFrame, days: int = 160) -> pd.Series:
     return (1 + w).cumprod()
 
 
-def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 30,
+# RRG 三個平滑參數集中在這裡，改一個就會動到象限歸屬，不要散在函式裡。
+# 取值理由見模組 docstring 的量測表：EMA10/SMA40/ROC10 是「步長夠小、軌跡夠直、
+# 又不會鈍到看不出輪動」的折衷；再拉長（EMA15/SMA60）直線度只多 0.13，
+# 但 ROC 的落後會從 10 天變 15 天，對「什麼時候進場」這件事反而有害。
+RS_SMOOTH = 10      # rs 的 EMA 平滑天數（把一天的雜訊壓掉）
+RS_BASE = 40        # RS-Ratio 的基準均線天數（相對自己這條均線的偏離）
+MOM_ROC = 10        # RS-Momentum＝RS-Ratio 的幾日變動率
+
+
+def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
         min_share: float = 0.3) -> dict:
     """trail 是「存下來的軌跡長度」，不是前端一定要畫滿的長度。
     前端的拉Bar 能拉到幾天，這裡就要存到幾天 —— 存得比前端短的話，
     拉到最大值等於沒反應，使用者會以為壞了。
 
-    2026-09-19（Andy N4「時間週期拉到 30 天」）：20 → 30。"""
+    2026-09-19（Andy N4「時間週期拉到 30 天」）：20 → 30。
+    2026-09-20（Andy A4 第 3、7 條「時間範圍前一天～前三十天」「大圈要落在那一天」）：
+    30 → **31**。前端把拉Bar 改成時間軸刷動之後，「第 30 天前」要取的是
+    `trail[len-1-30]`；只存 30 筆的話那個索引是 -1，JavaScript 會回 undefined，
+    拉到最大值時大圈會默默停在「今天」—— 看起來就像拉Bar 壞了。多存一天就補起來。"""
     if group_hist is None or group_hist.empty:
         return {"points": [], "date": None}
     g = group_hist.sort_values("date").copy()
@@ -63,9 +109,18 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 30,
     g = g.dropna(subset=["bi"])
     g["rs"] = 100 * g["gi"] / g["bi"]
     gg = g.groupby("group_id")
-    g["rs_ratio"] = 100 + 100 * (g["rs"] / gg["rs"].transform(lambda s: s.rolling(20, min_periods=10).mean()) - 1)
+    # ① 先把 rs 平滑掉 —— 步長之所以會小，靠的是這一行，不是底下的窗口長度（見模組 docstring）
+    g["rs_s"] = gg["rs"].transform(lambda s: s.ewm(span=RS_SMOOTH, adjust=False).mean())
+    # ② RS-Ratio：平滑後的 rs 相對自己 RS_BASE 日均線的偏離。
+    #    min_periods 刻意用**滿窗**：窗口沒滿時均線只由少數幾天決定，算出來的偏離會非常誇張，
+    #    那幾個點會把前端的正規化尺度整個撐開（所有族群被擠到圓心）。
+    #    歷史不足 RS_BASE 天的族群寧可不畫，也不要畫一個不能信的點。
+    g["rs_ratio"] = 100 + 100 * (g["rs_s"] / g.groupby("group_id")["rs_s"]
+                                 .transform(lambda s: s.rolling(RS_BASE, min_periods=RS_BASE).mean()) - 1)
+    # ③ RS-Momentum：RS-Ratio 的 MOM_ROC 日變動率（一階導數），
+    #    這才會領先 RS-Ratio 約 90 度、讓族群在盤面上順時針繞圈。
     g["rs_mom"] = 100 + 100 * (g["rs_ratio"] / g.groupby("group_id")["rs_ratio"]
-                               .transform(lambda s: s.rolling(5, min_periods=3).mean()) - 1)
+                               .transform(lambda s: s.shift(MOM_ROC)) - 1)
     latest = g["date"].max()
     today = g[g["date"] == latest]
     # 只畫今天成交值佔比 ≥ min_share% 的族群，太小的族群在圖上只是雜訊
@@ -87,7 +142,8 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 30,
         })
     points.sort(key=lambda p: -(p["turnover"] or 0))
     return {"date": latest, "points": points, "trail_days": trail,
-            "note": "x＝相對強度（族群指數/大盤，相對近 20 日均值，中心 100）；y＝相對強度動能（相對近 5 日均值）。近似 JdK RS-Ratio / RS-Momentum。"}
+            "note": f"x＝相對強度（族群指數/大盤，EMA{RS_SMOOTH} 平滑後相對近 {RS_BASE} 日均值，中心 100）；"
+                    f"y＝相對強度的 {MOM_ROC} 日變動率（中心 100）。近似 JdK RS-Ratio / RS-Momentum。"}
 
 
 def sankey(today: pd.DataFrame, members: dict, top_groups: int = 12, top_members: int = 3) -> dict:

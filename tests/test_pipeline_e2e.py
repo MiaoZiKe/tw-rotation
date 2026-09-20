@@ -349,11 +349,16 @@ def test_payload_has_no_nan_literals(populated):
     from pipeline import build_payload
     _, site, _ = populated
     build_payload.build()
+    # ★ 2026-09-20：原本是對整份原始文字做 `"NaN" not in raw`，
+    #   但 tasks.json 的內容是**散文**（任務板的說明文字），裡面正好在講 2026-09-20
+    #   那個「代表股顯示 nan」的 bug —— 於是這條護欄把一段正確的說明判成了壞資料。
+    #   要擋的是「JSON 裡出現 NaN／Infinity 這種非法字面值」，不是「文字裡提到 NaN」。
+    #   嚴格模式的 json.loads 本來就會抓到真的字面值（parse_constant 會被呼叫），
+    #   所以拿掉字串掃描、只留嚴格解析，判準反而更準確而不是更鬆。
     for f in list(site.glob("*.json")) + list((site / "stock").glob("*.json")):
         raw = f.read_text(encoding="utf-8")
-        assert "NaN" not in raw, f"{f.name} 含有 NaN"
-        assert "Infinity" not in raw, f"{f.name} 含有 Infinity"
-        json.loads(raw, parse_constant=lambda c: (_ for _ in ()).throw(ValueError(c)))  # 嚴格模式
+        json.loads(raw, parse_constant=lambda c: (_ for _ in ()).throw(
+            ValueError(f"{f.name} 含有非法字面值 {c}")))
 
 
 def test_seasonality_suppresses_thin_samples(populated):

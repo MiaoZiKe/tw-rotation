@@ -93,6 +93,29 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
+def taskboard() -> dict:
+    """任務板：`obsidian/tasks.yaml` → `site/data/tasks.json`。
+
+    Andy 2026-09-20 選了「在網站上多一頁任務板」而不是同步 Obsidian ——
+    理由很單純：他只重新整理網頁、不跑本機指令，放在網站上他一定看得到。
+
+    ★ 唯一的資料來源是那份 YAML。Obsidian 的 Markdown 由 `scripts/gen_taskboard.py`
+      從同一份產出 —— 兩邊各維護一份的話，第三天就會對不起來。
+
+    檔案不在（例如乾淨 checkout）就回空的，讓前端顯示提示而不是整頁空白。
+    """
+    src = config.ROOT / "obsidian" / "tasks.yaml"
+    if not src.exists():
+        log.warning("找不到 %s，任務板會是空的", src)
+        return {}
+    try:
+        import yaml
+        return yaml.safe_load(src.read_text(encoding="utf-8")) or {}
+    except Exception as e:  # noqa: BLE001 —— 任務板不該讓整條管線死掉
+        log.warning("任務板讀不起來：%s", e)
+        return {}
+
+
 def last_complete_date(price: pd.DataFrame, *, primary: str = "TWSE",
                        ratio: float = 0.6, lookback: int = 10) -> str:
     """回傳「主市場（上市）資料到齊」的最後一個交易日（字串）。
@@ -450,6 +473,7 @@ def build() -> None:
     lap("新聞/國際/產業關聯")
 
     # ---------------------------------------------------------- meta
+    _write("tasks", taskboard())
     _write("meta", meta_payload(latest, history_days))
     lap("meta")
     lap.report()

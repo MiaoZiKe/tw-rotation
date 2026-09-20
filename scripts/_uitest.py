@@ -965,7 +965,10 @@ def t_flow(pg, base):
         return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
     ok("輪動階段的天數是拉 Bar 不是按鈕", bool(bar), bar)
     # 2026-09-19（Andy N4「時間週期拉到 30 天」）：上限 20 → 30，後端 trail 同步
-    ok("拉 Bar 的範圍是 5–30 天", bool(bar) and bar["min"] == 5 and bar["max"] == 30, bar)
+    # 2026-09-20（Andy A4 第 3 條「時間範圍改成前一天～前三十天」）：下限 5 → 1。
+    #   下限一定要是 1 —— 這根拉 Bar 現在的語意是「看哪一天」而不是「軌跡畫幾天」，
+    #   下限卡在 5 等於使用者永遠看不到最近四天。
+    ok("拉 Bar 的範圍是 1–30 天", bool(bar) and bar["min"] == 1 and bar["max"] == 30, bar)
     seenb = {}
     for v in (5, 12, 20):
         set_range(pg, "#rotBack input[type=range]", v, 800)
@@ -2205,11 +2208,19 @@ def t_new_flow(pg, base):
         riverEnd: !!document.getElementById('riverEnd'),
         riverWrap: !!document.getElementById('riverWrap'),
         howRiver: !!document.getElementById('how-river'),
-        riverWord: document.getElementById('v-flow').innerText.indexOf('河流') >= 0 })""")
+        riverWord: document.getElementById('v-flow').innerText.indexOf('河流') >= 0,
+        // 輪動時鐘那一支要分開數：它是「新增」的，不能跟被移除的三支混在一起算
+        pbOther: document.querySelectorAll('#v-flow .rbar:not(#rotBack) .pb').length,
+        pbClock: document.querySelectorAll('#rotBack .pb').length })""")
     ok("資金流向排行的播放鈕真的不在 DOM 裡（不是藏起來）", gone["rank"] == 0, gone)
     ok("族群×法人的播放鈕真的不在 DOM 裡", gone["inst"] == 0, gone)
     ok("資金去向的播放鈕真的不在 DOM 裡", gone["sankey"] == 0, gone)
-    ok("整頁一顆播放／＋／− 鈕都沒有了", gone["pb"] == 0, gone)
+    # ★ 2026-09-20：這條原本是「整頁一顆播放鈕都沒有」，現在不成立而且**不該**成立 ——
+    #   Andy 的 A4 第 5 條是「輪動時鐘**新增**播放功能」，跟 A3／B2 要移除的那三張是相反的要求。
+    #   所以改成「除了輪動時鐘那一支，其餘一顆都不准有」。
+    #   上面三條（排行／族群×法人／資金去向各自 .pb == 0）維持不變，移除那件事照樣被守著。
+    ok("除了輪動時鐘，整頁一顆播放／＋／− 鈕都沒有了", gone["pbOther"] == 0, gone)
+    ok("輪動時鐘的播放／＋／− 鈕有出現（A4 第 5 條是新增不是移除）", gone["pbClock"] > 0, gone)
     ok("族群佔比河流圖真的不在 DOM 裡", not gone["river"] and not gone["riverWrap"], gone)
     ok("河流的時間週期拉Bar 也真的不在 DOM 裡", not gone["riverDays"] and not gone["riverEnd"], gone)
     ok("連「怎麼看」的河流說明也拿掉了", not gone["howRiver"], gone)
@@ -2450,13 +2461,331 @@ def t_new_layout(pg, base):
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
 
 
-def t_new_clock(pg, base):
-    """輪動時鐘（C4 ＋ A4）：族群篩選、時間軸刷動、軌跡、播放。
+# ---------------------------------------------------------------- 輪動時鐘的共用小工具
+def _rot_scatter(pg, cid="rotClock"):
+    """時鐘上每顆大圈**畫上去的**極座標 [半徑, 角度]。"""
+    return pg.evaluate("""(cid) => { const el = document.getElementById(cid);
+        const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+        const sc = (c.getOption().series || []).filter(s => s.type === 'scatter')[0];
+        return sc ? (sc.data || []).map(d => ({ gid: d.row && d.row.gid, v: d.value })) : null; }""", cid)
 
-    ★ 這一支先開成空殼再派人填，理由同 2026-09-20 那三支：
-      main() 的註冊表是一行，多個 agent 各自去改必然互相蓋掉。
+
+def _rot_trail_pts(pg, cid="rotClock"):
+    """所有尾巴加起來畫了幾個點（軌跡開關量的是這個，不是 series 數量 ——
+    series 一直在，關掉只是把資料清空，highlightClock 認 gid 的那段才不用跟著改）。"""
+    return pg.evaluate("""(cid) => { const el = document.getElementById(cid);
+        const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return -1;
+        return (c.getOption().series || []).filter(s => s.type === 'line')
+                 .reduce((a, s) => a + ((s.data || []).length), 0); }""", cid)
+
+
+def t_new_clock(pg, base):
+    """輪動時鐘（C4 ＋ A4，Andy 2026-09-20）：族群／個股篩選、時間軸刷動、軌跡開關、播放。
+
+    每一條都驗「畫面真的因此改變」：
+    座標真的不一樣、點數真的變、軌跡點數真的歸零、播放時值真的自己在動。
     """
-    return
+    # 先把上一段測試留下的選擇清掉 —— 篩選與天數都會寫 localStorage，
+    # 不清的話這一段會從「別人剛剛勾的兩個族群」開始，數字全部對不上。
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.rot.filter');"
+                " localStorage.removeItem('tw.rot.back'); } catch (e) { /* 私密視窗 */ } }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+
+    RB = "#rotBack input[type=range]"
+
+    # ---------------------------------------------------------- A4-3 範圍是「前一天 ～ 前三十天」
+    bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+        return i && { min: +i.min, max: +i.max, v: +i.value,
+                      steps: document.querySelectorAll('#rotBack .pb.step').length,
+                      play: document.querySelectorAll('#rotBack .pb.play').length }; }""")
+    if not ok("輪動時鐘的拉Bar 還在（A4）", bool(bar), bar):
+        return
+    ok("拉Bar 範圍是前一天～前三十天（A4-3）", bar["min"] == 1 and bar["max"] == 30, bar)
+
+    # ---------------------------------------------------------- A4-1 ＋ / − 真的按下去
+    ok("拉Bar 旁邊有 ＋ 與 −（A4-1）", bar["steps"] == 2, bar)
+    ok("拉Bar 旁邊有播放鈕（A4-5）", bar["play"] == 1, bar)
+    set_range(pg, RB, 15, 1500)
+    v0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    h0 = canvas_hash(pg, "#rotClock")
+    pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[0].click()")   # −
+    pg.wait_for_timeout(1500)
+    v1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    changed("按 − 拉Bar 的值真的變了（A4-1）", v0, v1)
+    ok("按 − 是往「離現在更近」走（值變小）", v1 == v0 - 1, f"{v0} → {v1}")
+    changed("按 − 之後輪動時鐘真的重畫（A4-1）", h0, canvas_hash(pg, "#rotClock"))
+    h1 = canvas_hash(pg, "#rotClock")
+    pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[1].click()")   # ＋
+    pg.wait_for_timeout(1500)
+    v2 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    changed("按 ＋ 拉Bar 的值真的變了（A4-1）", v1, v2)
+    changed("按 ＋ 之後輪動時鐘真的重畫（A4-1）", h1, canvas_hash(pg, "#rotClock"))
+
+    # ---------------------------------------------------------- A4-7 時間軸刷動：大圈真的換座標
+    set_range(pg, RB, 3, 1600)
+    p3 = _rot_scatter(pg)
+    set_range(pg, RB, 28, 1800)
+    p28 = _rot_scatter(pg)
+    if ok("讀得到時鐘上大圈的座標", bool(p3) and bool(p28) and len(p3) == len(p28), [len(p3 or []), len(p28 or [])]):
+        same = [a["gid"] for a, b in zip(p3, p28)
+                if abs(a["v"][0] - b["v"][0]) < 1e-9 and abs(a["v"][1] - b["v"][1]) < 1e-9]
+        ok("拉到不同天數，大圈真的落在不同座標上（A4-7 時間軸刷動）",
+           len(same) == 0, f"這幾個族群兩天的座標一模一樣：{same[:4]}")
+        moved = sum(1 for a, b in zip(p3, p28)
+                    if abs(a["v"][0] - b["v"][0]) > 0.02 or abs(a["v"][1] - b["v"][1]) > 1.0)
+        ok("而且是整批一起移動，不是只有一兩個在動", moved >= len(p3) * 0.8, f"{moved}/{len(p3)}")
+    ok("圖上有寫出現在看的是哪一天（A4-7）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           if (!c) return false; return JSON.stringify(c.getOption().graphic || []).indexOf('回放') >= 0; }"""))
+
+    # ---------------------------------------------------------- A4-7 平滑移動（不是一步到位）
+    # ★ 只判「確定會動的那一個量」：ECharts 的 getOption() 回的是**目標值**，
+    #   動畫中途讀不到中間座標，所以改量 canvas 本身 —— 一步到位的話，
+    #   動畫期間的畫面會和安定之後**完全一樣**（指紋相同）。
+    #   2026-09-19 那三次假紅的教訓：不要把兩個量 and 在一起，其中一個本來就不會動。
+    set_range(pg, RB, 5, 1600)
+    pg.evaluate("() => { const i = document.querySelector('#rotBack input');"
+                " i.value = '26'; i.dispatchEvent(new Event('input', { bubbles: true })); }")
+    pg.wait_for_timeout(90)
+    mid1 = canvas_hash(pg, "#rotClock")
+    pg.wait_for_timeout(180)
+    mid2 = canvas_hash(pg, "#rotClock")
+    pg.wait_for_timeout(1600)
+    settled = canvas_hash(pg, "#rotClock")
+    changed("刷動期間畫面還在變（＝真的在走，不是瞬間跳過去）（A4-7）", mid1, mid2)
+    changed("刷動途中的畫面和停下來之後不一樣（A4-7）", mid2, settled)
+    ok("補間動畫設定還在（merge ＋ linear）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           if (!c) return false; const o = c.getOption();
+           return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
+
+    # ---------------------------------------------------------- A4-7 軌跡開關
+    n_on = _rot_trail_pts(pg)
+    ok("預設有畫軌跡（A4-7）", n_on > 20, n_on)
+    ok("軌跡開關真的存在（A4-7）", pg.evaluate("() => !!document.querySelector('#rotTools input[type=checkbox]')"))
+    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    n_off = _rot_trail_pts(pg)
+    ok("關掉之後軌跡的點數真的歸零（A4-7）", n_off == 0, f"{n_on} → {n_off}")
+    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    n_back = _rot_trail_pts(pg)
+    ok("再打開軌跡真的回來（A4-7）", n_back > 20, f"{n_off} → {n_back}")
+
+    # ---------------------------------------------------------- A4-5 播放
+    set_range(pg, RB, 24, 1200)
+    pv0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+    pg.wait_for_timeout(2600)
+    pv1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    changed("按播放之後拉Bar 真的自己在走（A4-5）", pv0, pv1)
+    ok("播放是往「現在」走（值變小＝時間往前）（A4-5）", pv1 < pv0, f"{pv0} → {pv1}")
+    ok("播放中按鈕變成暫停的樣子", pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent") == "⏸")
+    pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+    pg.wait_for_timeout(300)
+    pv2 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    pg.wait_for_timeout(2200)
+    pv3 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    ok("再按一次真的停下來（A4-5）", pv2 == pv3, f"停之後 {pv2} → {pv3}（應該不變）")
+
+    # ---------------------------------------------------------- A4-6 越外圈顏色越深
+    # 量的是**畫上去的顏色**：色碼是 mixHex(面板底色, 該階段原色, w)，
+    # 所以從 (顏色, 原色, 底色) 可以把 w 反推回來，再看 w 有沒有隨半徑變大。
+    depth = pg.evaluate("""() => {
+        const ps = (window.App && window.App._rotPts) || [], bg = window.App && window.App._rotBg;
+        if (!ps.length || !bg) return null;
+        const un = (h) => { const x = String(h).replace('#', '');
+          const v = parseInt(x.length === 3 ? x.split('').map(c => c + c).join('') : x, 16);
+          return [(v >> 16) & 255, (v >> 8) & 255, v & 255]; };
+        const a = un(bg);
+        return ps.map(p => { const c = un(p.color), b = un(p.base);
+          const ws = [0, 1, 2].filter(i => Math.abs(b[i] - a[i]) > 40)
+                              .map(i => (c[i] - a[i]) / (b[i] - a[i]));
+          return { r: p.r, w: ws.length ? ws.reduce((x, y) => x + y, 0) / ws.length : null, name: p.name }; })
+          .filter(x => x.w != null); }""")
+    if ok("讀得到每顆大圈畫上去的顏色與半徑（A4-6）", bool(depth) and len(depth) >= 5, depth and len(depth)):
+        depth.sort(key=lambda x: x["r"])
+        inner, outer = depth[0], depth[-1]
+        ok("最外圈的顏色真的比最靠圓心的深（A4-6）",
+           outer["w"] - inner["w"] > 0.2,
+           f"{inner['name']} r={inner['r']:.3f} 濃度={inner['w']:.3f} → "
+           f"{outer['name']} r={outer['r']:.3f} 濃度={outer['w']:.3f}")
+        # 整體趨勢：把半徑與濃度各自排名，兩個名次序列要幾乎一致（Spearman）。
+        # ★ 不用「嚴格單調」當判準：色碼只有 8 bit，反推回來的濃度有 ±1/255 的量化誤差，
+        #   半徑接近的兩顆點會互換名次 —— 那是取色精度，不是功能壞了。
+        n = len(depth)
+        rank_w = {id(x): i for i, x in enumerate(sorted(depth, key=lambda x: x["w"]))}
+        d2 = sum((i - rank_w[id(x)]) ** 2 for i, x in enumerate(depth))
+        rho = 1 - 6 * d2 / (n * (n * n - 1))
+        ok("濃度和半徑的名次幾乎完全一致（A4-6，Spearman ≥ 0.95）", rho >= 0.95, f"rho={rho:.3f}")
+
+    # ---------------------------------------------------------- A4-2 旋轉箭頭確定已經移除
+    ok("盤面上沒有 ↻ 旋轉箭頭（A4-2，2026-09-20 已移除，不要改回去）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           if (!c) return true; return JSON.stringify(c.getOption().graphic || []).indexOf('↻') < 0; }"""))
+
+    # ---------------------------------------------------------- A4-4 圓心到圓外的說明
+    note = text(pg, "#rotCenterNote")
+    ok("說明有講圓心是什麼（A4-4）", "圓心" in note, note[:40])
+    ok("說明有講最外圈那一圈是什麼（A4-4）", "最外圈" in note and "偏離" in note, note[:80])
+    ok("說明有寫「所以我該怎麼用」，不是只解釋座標（A4-4）", "怎麼用" in note, note[-60:])
+
+    # ---------------------------------------------------------- A4-8 相鄰兩天不可以亂跳
+    # 門檻怎麼來的（同一份資料、同一把尺量出來的，不是隨手訂的）：
+    #   尺＝前端畫圖用的那一把（兩軸各自除以「整段軌跡的最大偏離量」，所以半徑 1＝盤緣）。
+    #   舊算法（rs 不平滑、動能用 5 日均值）：中位數 0.1272、p99 0.599、最大 0.890
+    #     —— 一天可以走掉大半個盤面，就是 Andy 說的「一天的差距卻各種歪曲」。
+    #   新算法（EMA10 平滑 ＋ SMA40 基準 ＋ ROC10 動能）：中位數 0.0431、p99 0.198、最大 0.284。
+    #   門檻取在兩者中間、且離新值有一倍以上的餘裕：中位數 ≤ 0.08、最大 ≤ 0.45。
+    #   這樣「算法被改回去」會紅，「行情本身比較激烈」不會紅。
+    step = pg.evaluate("""() => {
+        const pts = ((window.App && window.App.D && window.App.D.flow_v3
+                      && window.App.D.flow_v3.rrg && window.App.D.flow_v3.rrg.points) || []);
+        if (!pts.length) return null;
+        let sx = 1e-6, sy = 1e-6;
+        pts.forEach(p => (p.trail || []).forEach(w => {
+          if (w[1] != null) sx = Math.max(sx, Math.abs(w[1] - 100));
+          if (w[2] != null) sy = Math.max(sy, Math.abs(w[2] - 100)); }));
+        const st = [];
+        pts.forEach(p => { const t = (p.trail || []).filter(w => w[1] != null && w[2] != null);
+          for (let i = 1; i < t.length; i++) {
+            const dx = (t[i][1] - t[i-1][1]) / sx, dy = (t[i][2] - t[i-1][2]) / sy;
+            st.push(Math.sqrt(dx * dx + dy * dy)); } });
+        st.sort((a, b) => a - b);
+        return { n: st.length, med: st[Math.floor(st.length / 2)],
+                 p99: st[Math.floor(st.length * 0.99)], max: st[st.length - 1],
+                 days: Math.max(...pts.map(p => (p.trail || []).length)) }; }""")
+    if ok("讀得到輪動軌跡的原始資料（A4-8）", bool(step) and step["n"] > 100, step):
+        ok("軌跡存得夠長，拉到「前三十天」取得到那一天（A4-3/7）",
+           step["days"] >= 31, f"trail 只有 {step['days']} 天")
+        ok("相鄰兩天只走一小步：中位數 ≤ 0.08 個盤面半徑（A4-8）",
+           step["med"] <= 0.08, f"中位數 {step['med']:.4f}（舊算法 0.1272）")
+        ok("相鄰兩天沒有異常大跳動：最大 ≤ 0.45 個盤面半徑（A4-8）",
+           step["max"] <= 0.45, f"最大 {step['max']:.4f}（舊算法 0.8898）")
+
+    # ---------------------------------------------------------- C4 族群篩選（兩張圖一起變）
+    ok("排行與時鐘各有一排篩選列（C4）",
+       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length") == 2,
+       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length"))
+    ok("篩選列上有「族群篩選」與「個股篩選」兩顆鈕（C4）",
+       pg.evaluate("""() => { const b = document.querySelector('.rotfilter[data-rf="rot"]');
+           return !!b && !!b.querySelector('.rot-gbtn') && !!b.querySelector('.rot-sbtn'); }"""))
+    n_clock0 = len(_rot_scatter(pg) or [])
+    n_rank0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+        return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
+    click(pg, '.rotfilter[data-rf="rot"] .rot-gbtn', 700)
+    ok("按「族群篩選」會展開可捲的複選格（C4）",
+       pg.evaluate("() => { const w = document.querySelector('.rotpick'); return !!w && !w.hidden"
+                   " && w.querySelectorAll('button').length > 3; }"))
+    gids = pg.evaluate("() => [...document.querySelectorAll('.rotpick button')].map(b => b.dataset.g).filter(Boolean)")
+    if ok("複選格裡有族群可以勾（C4）", len(gids) >= 3, len(gids)):
+        for g in gids[:2]:
+            pg.eval_on_selector(f'.rotpick button[data-g="{g}"]', "b => b.click()")
+            pg.wait_for_timeout(700)
+        n_clock1 = len(_rot_scatter(pg) or [])
+        n_rank1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
+            return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
+        ok("勾兩個族群，輪動時鐘上真的只剩這兩個（C4）", n_clock1 == 2 and n_clock0 > 2, f"{n_clock0} → {n_clock1}")
+        changed("勾兩個族群，資金流向排行上的族群數也真的變了（C4）", n_rank0, n_rank1)
+        ok("篩選列上寫出目前只看幾個族群（C4）",
+           "2" in (pg.evaluate("() => (document.querySelector('.rotfilter .rot-note')||{}).textContent") or ""),
+           pg.evaluate("() => (document.querySelector('.rotfilter .rot-note')||{}).textContent"))
+        ls = pg.evaluate("() => { try { return localStorage.getItem('tw.rot.filter'); } catch (e) { return null; } }")
+        ok("選擇真的寫進 localStorage（C4）", bool(ls) and gids[0] in ls, ls)
+        # 取消：按「全部」要還原
+        pg.eval_on_selector('.rotpick button[data-g=""]', "b => b.click()")
+        pg.wait_for_timeout(900)
+        n_clock2 = len(_rot_scatter(pg) or [])
+        ok("按「全部」取消勾選，兩張圖真的還原（C4）", n_clock2 == n_clock0, f"{n_clock1} → {n_clock2}")
+
+    # ---------------------------------------------------------- C4 個股篩選（勾個股＝看它所屬的族群）
+    click(pg, '.rotfilter[data-rf="rot"] .rot-sbtn', 700)
+    ok("按「個股篩選」會展開搜尋框（C4「也可以篩選想要的股票」）",
+       pg.evaluate("() => !!document.querySelector('.rotpick .rotsearch')"))
+    pg.fill(".rotpick .rotsearch", "2330")
+    pg.wait_for_timeout(700)
+    hit = pg.evaluate("""() => { const bs = [...document.querySelectorAll('.rotpick .rotstocklist button')]
+        .filter(b => b.dataset.s); return bs.length ? { code: bs[0].dataset.s, txt: bs[0].textContent.trim(),
+        gname: bs[0].title } : null; }""")
+    if ok("搜尋個股真的找得到（C4）", bool(hit), hit):
+        pg.eval_on_selector(f'.rotpick .rotstocklist button[data-s="{hit["code"]}"]', "b => b.click()")
+        pg.wait_for_timeout(900)
+        n_clock3 = len(_rot_scatter(pg) or [])
+        ok("勾一檔個股，時鐘上只留它所屬的族群（C4）", 0 < n_clock3 < n_clock0, f"{n_clock0} → {n_clock3}")
+        ls2 = pg.evaluate("() => { try { return localStorage.getItem('tw.rot.filter'); } catch (e) { return null; } }")
+        ok("個股選擇也寫進 localStorage（C4）", bool(ls2) and hit["code"] in ls2, ls2)
+        click(pg, '.rotfilter[data-rf="rot"] .rot-clear', 900)
+        n_clock4 = len(_rot_scatter(pg) or [])
+        ok("按「清除篩選」真的全部還原（C4）", n_clock4 == n_clock0, f"{n_clock3} → {n_clock4}")
+
+    # ---------------------------------------------------------- 窄畫面 800px
+    # Andy 2026-09-18 的 E6 就是只驗 1440px 放過去的：他把瀏覽器縮成半邊就看得到。
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    narrow = pg.evaluate("""() => {
+        const out = { sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+                      over: [], bar: null };
+        document.querySelectorAll('#v-flow .rotfilter').forEach(e => {
+          const r = e.getBoundingClientRect(), p = e.parentElement.getBoundingClientRect();
+          if (r.right > p.right + 1 || r.left < p.left - 1) out.over.push(Math.round(r.right - p.right)); });
+        const i = document.querySelector('#rotBack input[type=range]');
+        if (i) { const r = i.getBoundingClientRect();
+          out.bar = { w: Math.round(r.width), steps: document.querySelectorAll('#rotBack .pb').length }; }
+        return out; }""")
+    ok("800px 不會出現橫向捲軸（窄畫面）", not narrow["sideways"], narrow)
+    ok("800px 篩選列沒有凸出卡片（窄畫面）", not narrow["over"], narrow["over"])
+    ok("800px 拉Bar 與 ＋／−／▶ 都還在而且量得到寬度（窄畫面）",
+       bool(narrow["bar"]) and narrow["bar"]["w"] > 40 and narrow["bar"]["steps"] == 3, narrow["bar"])
+    # 800px 底下真的按一次 −，值要變（不是只是畫得出來）
+    set_range(pg, RB, 12, 1200)
+    w0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[0].click()")
+    pg.wait_for_timeout(1100)
+    changed("800px 底下按 − 一樣有反應（窄畫面）", w0,
+            pg.evaluate("() => +document.querySelector('#rotBack input').value"))
+
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1200)
+
+
+def t_tasks(pg, base):
+    """任務板頁（#tasks）—— Andy 2026-09-20 選的「在網站上多一頁」那個方案。
+
+    為什麼要驗這一頁
+    ----------------
+    Andy：「很常發生我問你問題你做完，但我發現做不全，你就接續其他工作，
+    導致很多事情都遺失沒完成。」這一頁就是那件事的解法 ——
+    所以它**打不開或是空的，等於這個解法沒有生效**，必須有機器在守。
+
+    驗的是「真的有內容」而不是「元素存在」：任務筆數、狀態統計、
+    以及「要 Andy 動手」「等 Andy 回答」這兩塊有沒有真的列出來。
+    """
+    pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    st = pg.evaluate("""() => { const el = document.getElementById('v-tasks');
+        if (!el) return null;
+        return { cards: el.querySelectorAll('.tk').length,
+                 pills: el.querySelectorAll('.linkrow .pill').length,
+                 txt: el.innerText, h: Math.round(el.getBoundingClientRect().height) }; }""")
+    if not ok("任務板頁打得開", bool(st), st):
+        return
+    ok("任務板列得出任務（不是空的）", st["cards"] >= 10, st["cards"])
+    ok("上方有狀態統計（一眼看出還有幾件沒好）", st["pills"] >= 2, st["pills"])
+    ok("「要你動手的」那一塊有列出來", "要你動手" in st["txt"], st["txt"][:120])
+    ok("「等你回答」那一塊有列出來", "等你回答" in st["txt"], st["txt"][:120])
+    # ★ 這一條守的是 obsidian/000-開始這裡.md 那條規則：沒 push 的不准標成已上線
+    ok("頁面上寫明「改完但還沒上線」不會標成已上線",
+       "還沒上線" in st["txt"] or "沒有部署出去" in st["txt"], st["txt"][:200])
+    ok("頁面真的有高度（不是塌掉的空殼）", st["h"] > 400, st["h"])
+
+    # 窄畫面：Andy 有時候在手機上看「到底做完了沒」
+    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(700)
+    nar = pg.evaluate("""() => ({ over: document.documentElement.scrollWidth > window.innerWidth + 1,
+        cards: document.querySelectorAll('#v-tasks .tk').length })""")
+    ok("任務板在 390px 沒有橫向捲軸", not nar["over"], nar)
+    ok("任務板在 390px 卡片還在", nar["cards"] >= 10, nar)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 def t_themes(pg, base):
@@ -5428,7 +5757,7 @@ def main() -> int:
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
                          ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics),
                          ("新-大盤三張圖", t_new_market3), ("新-產業與個股", t_new_industry),
-                         ("新-資金流向", t_new_flow), ("新-輪動時鐘", t_new_clock), ("新-版面等高與多寬度", t_new_layout),
+                         ("新-資金流向", t_new_flow), ("新-輪動時鐘", t_new_clock), ("任務板", t_tasks), ("新-版面等高與多寬度", t_new_layout),
                          ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             if args.only and not _want(args.only, name):
