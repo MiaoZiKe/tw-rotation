@@ -58,6 +58,93 @@ OVERLAP_JS = r"""
 """
 
 
+# ---------------------------------------------------------------------------
+# ★ 2026-09-20：圖表「裡面」的字的重疊掃描（多寬度）
+#
+# 為什麼要另外寫一支：上面那支 OVERLAP_JS 只看得到 HTML 元素，
+# 而所有 ECharts 圖表線上版都是 **canvas** 畫的 —— 圖裡的每一個字在 DOM 上都不存在。
+# 所以它永遠報「重疊 0 筆」，Andy 一換螢幕就看到壓字（2026-09-20 他的截圖：
+# 市場寬度的儀表壓字、族群估值左上角兩個標籤糊成一團、法人連續買超的「玉山金」跑出框）。
+# 這不是「測試沒寫好」，是**測試在物理上看不到那些字**。
+#
+# 做法：用 `index.html?svg=1` 載入（`site/app.js` 的 `chart()` 認這個參數，
+# 會改用 SVG renderer），SVG renderer 會產生真的 <text> 節點，位置就量得出來。
+# ★ 線上版一律維持 canvas（效能），只有這支驗收腳本會帶 ?svg=1。
+# ⚠ SVG 與 canvas 的字寬量法略有差異，版面不保證 100% 相同 ——
+#    量到的重疊要人工開截圖確認過才算數，不要照單全收。
+#
+# 為什麼只掃總覽與資金流向兩頁：五個寬度 × 每頁重新載入約 4 秒，全站八頁會多花 2 分半。
+# Andy 回報的三張圖都在總覽，資金流向是圖最多的一頁，這兩頁的邊際效益最高；
+# 其餘頁面維持原本的單一寬度（1500px）掃描。
+WIDTHS = [1280, 1366, 1440, 1536, 1920]
+
+CHART_TEXT_JS = r"""
+() => {
+  const out = { overlaps: [], outside: [], cards: [], nodes: 0 };
+  // ECharts 會在容器上留 _echarts_instance_，拿它當「這是一張圖」的判準
+  for (const host of document.querySelectorAll('main .view.on [_echarts_instance_]')) {
+    const hr = host.getBoundingClientRect();
+    if (hr.width < 20 || hr.height < 20) continue;
+    const id = host.id || '(no-id)';
+    const bs = [...host.querySelectorAll('svg text')]
+      .filter(t => (t.textContent || '').trim().length)
+      .map(t => ({ t: (t.textContent || '').trim().slice(0, 18), r: t.getBoundingClientRect() }))
+      .filter(b => b.r.width > 1 && b.r.height > 1);
+    out.nodes += bs.length;
+    for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+      const a = bs[i].r, b = bs[j].r;
+      const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (ox <= 1 || oy <= 1) continue;
+      const inter = ox * oy, small = Math.min(a.width * a.height, b.width * b.height);
+      // 蓋掉小的那一塊 1/4 以上才算重疊；純粹擦邊（描邊、字距）不算
+      if (inter > 0.25 * small) out.overlaps.push([id, bs[i].t, bs[j].t, Math.round(ox), Math.round(oy)]);
+    }
+    for (const b of bs) {   // 字跑出自己那張圖的容器
+      const r = b.r, pad = 1.5;
+      const over = Math.max(hr.left - r.left, r.right - hr.right, hr.top - r.top, r.bottom - hr.bottom);
+      if (over > pad) out.outside.push([id, b.t, Math.round(over)]);
+    }
+  }
+  // 總覽「熱門題材 / 今日候選」那一列：兩張卡要等高，而且內容超出要能捲
+  const pair = [...document.querySelectorAll('.grid.eqpair > .card')];
+  out.cards = pair.map(e => Math.round(e.getBoundingClientRect().height));
+  const pane = document.querySelector('.eqpair .pane');
+  out.pane = pane ? { client: pane.clientHeight, scroll: pane.scrollHeight } : null;
+  out.docW = document.documentElement.scrollWidth;
+  out.winW = window.innerWidth;
+  return out;
+}
+"""
+
+
+def scan_widths(pg, base, problems, state, pages=(("overview", "總覽"), ("flow", "資金流向"))):
+    """在多個常見螢幕寬度下，量圖表內文字的重疊／出框、橫向捲軸、成對卡片等高。"""
+    res = {}
+    for hash_, label in pages:
+        for w in WIDTHS:
+            pg.set_viewport_size({"width": w, "height": 1000})
+            # 重新載入而不是只 resize：resize 只會叫 ECharts 重算尺寸，
+            # 不會重跑我們自己的 render（例如依容器寬度決定的版面），量到的就不是真的。
+            pg.goto(f"{base}?svg=1#{hash_}", wait_until="networkidle")
+            pg.wait_for_timeout(2600)
+            r = pg.evaluate(CHART_TEXT_JS)
+            key = f"{label}@{w}"
+            res[key] = {"overlaps": len(r["overlaps"]), "outside": len(r["outside"]),
+                        "nodes": r["nodes"], "cards": r["cards"], "pane": r["pane"]}
+            if r["overlaps"]:
+                problems.append(f"[{w}px] {label} 圖內文字重疊 {len(r['overlaps'])} 組：{r['overlaps'][:4]}")
+            if r["outside"]:
+                problems.append(f"[{w}px] {label} 圖內文字跑出容器 {len(r['outside'])} 處：{r['outside'][:4]}")
+            if r["docW"] > r["winW"] + 1:
+                problems.append(f"[{w}px] {label} 出現橫向捲軸（內容 {r['docW']}px）")
+            # 只有這一列真的顯示在畫面上時才比高度（切到別頁時整個 section 是 display:none，量到 0）
+            if len(r["cards"]) == 2 and min(r["cards"]) > 0 and abs(r["cards"][0] - r["cards"][1]) > 2:
+                problems.append(f"[{w}px] {label} 熱門題材／今日候選兩張卡不等高：{r['cards']}")
+    state["width_scan"] = res
+    return res
+
+
 def serve():
     handler = partial(SimpleHTTPRequestHandler, directory=str(SITE))
     handler.log_message = lambda *a, **k: None
@@ -255,6 +342,13 @@ def main() -> int:
         if not state["fit_icon"]:
             problems.append("重設縮放沒有換成小方框圖示")
         pg.evaluate("document.getElementById('fitBtn').click()"); pg.wait_for_timeout(300)
+
+        # ★ 多寬度掃描（見檔案上方 CHART_TEXT_JS 的說明）。
+        #   放在最後跑，因為它會把視窗寬度改來改去、也會重新載入頁面，
+        #   前面那些「照順序操作」的驗收不能被它打斷。
+        pg.set_viewport_size({"width": 1500, "height": 1000})
+        scan_widths(pg, base, problems, state)
+        pg.set_viewport_size({"width": 1500, "height": 1000})
 
         # 手機
         m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)

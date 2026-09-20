@@ -191,11 +191,16 @@
       <div class="card">
         <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、關聯圖的公司、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點關聯圖的公司會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
+          <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
-        ${hasMap ? `<div style="margin-top:14px"><h4>供應鏈關聯圖 <small class="muted">上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係</small></h4><div class="chainrow"><div class="chainmap" id="chainMap"></div></div></div>` : ''}
+        ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
+          <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
+          <div class="chainrow"><div class="chainpane">
+            <div class="seglist" id="chainList"></div>
+            <div class="chainmap" id="chainMap" hidden></div>
+          </div></div></div>` : ''}
         <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
@@ -270,6 +275,37 @@
     });
     // 關聯圖只要這條鏈有環節就畫，不管有沒有剖析圖（見上面 hasMap 的註解）
     if (hasMap) {
+      /* 點環節卡＝跟點下面的環節色標完全同一件事（切換 segFilter、真的篩成分股）。
+         刻意跟「點剖析圖零件」（segHi，只亮不篩，DECISIONS #73）分開：
+         零件是圖上的一個小東西，使用者只是想知道「這個零件是誰做的」；
+         環節卡是一個明確的清單標題，點它就是「我要看這一格」。*/
+      const segPick = (seg) => { segFilter = segFilter === seg ? null : seg; segHi = null; state.group = null; syncHighlight(); };
+      /* 點個股小卡：跟點關聯圖上的公司走同一條路 —— 開右側產業關係面板（不跳頁）、
+         同時把它所屬的環節選起來。noscroll 是因為使用者的眼睛就停在剛剛點的那張小卡上。*/
+      const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; state.group = null; syncHighlight({ noscroll: true }); };
+      const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
+      /* 兩種畫面共用同一份資料，只是呈現方式不同：
+         清單＝「這條鏈有哪些格、每格有誰」（預設，因為高度只有關聯圖的三分之一）
+         關聯圖＝「誰連到誰、線多粗」（140 條邊本身，只有圖畫得出來）*/
+      let chainView = loadChainView();       // 每次進這一頁都重讀偏好，見 loadChainView 的註解
+      const HINT = {
+        list: `這條鏈分成 ${stat.nSeg} 格、${stat.nTw} 檔台股，已建立 ${stat.nEdge} 條上下游關係。<b>先看哪一格公司最多、有沒有你手上的股票</b>；點一張個股小卡，旁邊就展開「誰供給它、它供給誰」（不跳頁），裡面有品項、依存度與資料可信度。小卡上的數字＝這家已建立的上下游關係條數，<b style="color:#d9a441">?</b>＝還沒查到具名客戶或供應商。`,
+        map: '上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係',
+      };
+      const applyView = () => {
+        const list = $('#chainList', el), map = $('#chainMap', el), btn = $('#chainView', el), hint = $('#chainHint', el);
+        if (!list || !map) return;
+        const isMap = chainView === 'map';
+        list.hidden = isMap; map.hidden = !isMap;
+        if (btn) btn.textContent = isMap ? '看環節清單 →' : '看關聯圖 →';
+        if (hint) hint.innerHTML = isMap ? HINT.map : HINT.list;
+      };
+      /* 面板裡那顆「在圖上highlight」在清單模式按下去會什麼都沒發生（圖是隱藏的）——
+         一顆按了沒反應的按鈕比沒有更糟，所以讓它自己先把關聯圖切出來。*/
+      showChainMap = () => { if (chainView !== 'map') { chainView = 'map'; saveChainView(chainView); applyView(); } };
+      const btn = $('#chainView', el);
+      if (btn) btn.onclick = () => { chainView = chainView === 'map' ? 'list' : 'map'; saveChainView(chainView); applyView(); syncHighlight({ quiet: true, noscroll: true }); };
+      applyView();
       drawChainMap($('#chainMap', el), sc, ch.id, im, {
         onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
         /* 點公司＝連同它所屬的環節一起選起來（Andy 2026-09-20）。
@@ -440,6 +476,14 @@
   // 點下方環節後，右側供應鏈關聯圖自動捲到那一欄（不然要自己拉很久才找得到）
   function scrollChainTo(root, seg) {
     const map = $('#chainMap', root); if (!map || !seg) return;
+    /* 清單模式：關聯圖是隱藏的（getBBox 在 display:none 上量到 0，捲了也沒用），
+       改成把那張環節卡帶進視野。block:'nearest' —— 卡片本來就看得到時完全不動，
+       不會把整頁拉走（個股頁被 scrollIntoView 拉到底那個坑，2026-09-20 記過一次）。*/
+    if (map.hidden) {
+      const card = $(`.seglist .segcard[data-seg="${seg}"]`, root);
+      if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      return;
+    }
     const t = $(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root);
     if (!t || !t.getBBox) return;
     const svg = map.querySelector('svg'); if (!svg) return;
@@ -456,6 +500,11 @@
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
+    /* 環節卡清單跟關聯圖是同一份資料的兩種畫法，所以高亮規則也要同一套 ——
+       只做一半的話，切換檢視會看到「剛剛選的那一格不見了」。
+       卡片整張壓暗（而不是只壓暗裡面的小卡），因為卡片標題本身就是那一格。*/
+    $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
+      n.classList.toggle('sel', hit); n.classList.toggle('dim', on.size > 0 && !hit); });
   }
   /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
      Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
@@ -566,6 +615,128 @@
   function wireDiagram(root, onSeg) { $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg); }; }); }
 
   // ---------------------------------------------------------------- 分層關聯圖（SVG）
+  /* ================================================================ 供應鏈環節卡清單
+     Andy 2026-09-20：「供應鏈關聯圖 這邊我覺得上下框度太長，改成 顯示族群以及族群標題
+     底下顯示個股小卡 如圖那樣」（他附的圖＝總覽「熱門題材」那種卡片）。
+
+     為什麼一定要換掉版面，而不是把 SVG 縮小
+     --------------------------------------------------
+     那張關聯圖是「一個環節一欄、一家公司一張 36px 的卡」，所以**最高的那一欄有多高，
+     整張圖就有多高**，其他欄下面全是空白。實測半導體鏈在 1500px 量到 1345px 高
+     （整頁 4738px），而它最擠的那一欄只有 8 家。縮小只會讓字看不清，空白還是在。
+     改成一格一張卡、用 CSS multi-column 讓卡片自己找位置塞，空白被擠掉，
+     高度大約只剩三分之一 —— 這是版面的問題，不是字級的問題。
+
+     ★ 換掉的代價（不可以裝作沒有）
+     --------------------------------------------------
+     SVG 畫的是 supply_chain.yaml 裡的 **140 條邊**：線粗＝依存度、虛線＝委外、
+     點虛線＝終端指定料號、灰線＝設備／材料。清單上沒有線，所以這裡用三件事把關係接回來：
+       ① 每張環節卡寫出「上游 ← 哪幾格、下游 → 哪幾格」，而且那幾格可以點（直接選過去）
+       ② 每張個股小卡右下角一個數字＝**這家已經建立的上下游關係條數**；
+          0 就沿用關聯圖那個橘色「?」（公開來源查不到具名客戶／供應商，寧可留白）
+       ③ 點小卡照舊開右側「產業關係」面板 —— 那一塊把每條邊的品項、依存度、
+          confidence（官方揭露／媒體報導／產業推論）攤開講，資訊量本來就比一條線多
+     真的要看線本身（誰連到誰、多粗），右上角「看關聯圖」一鍵切回原本那張 SVG。
+
+     漲跌沒有印在小卡上（Andy 的參考圖就是名稱＋代號兩行），改放進 title 提示；
+     完整價量本來就在下面的成分股表，而且那張表可以排序。*/
+  /* 目前的檢視方式。預設清單（Andy 要的），使用者切過就記住。
+     ★ 每次重畫這一頁都**重讀一次** localStorage，不要在模組載入時讀一次就算了 ——
+     這個站是 hash 路由，換頁不會重新載入 JS，模組層級的變數會一路活到關掉分頁；
+     偏好被別的地方改掉（或驗收腳本改掉）時，畫面就跟設定對不起來。
+     讀不到 localStorage（無痕、公司擋）就回預設，不要讓整頁掛掉。*/
+  const loadChainView = () => { try { return localStorage.getItem('tw.chainView') === 'map' ? 'map' : 'list'; } catch (e) { return 'list'; } };
+  const saveChainView = (v) => { try { localStorage.setItem('tw.chainView', v); } catch (e) { /* 忽略 */ } };
+  // 由 renderChain 掛上：讓「在圖上highlight」在清單模式下能自己把關聯圖切出來
+  let showChainMap = null;
+
+  function drawSegList(host, sc, chainId, im, handlers) {
+    if (!host) return { nSeg: 0, nTw: 0, nEdge: 0 };
+    // 依 layer 排序＝由上游排到下游；同一層維持 YAML 的順序（那是人工校訂過的）
+    const segs = chainSegments(sc, chainId).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
+    const segIds = new Set(segs.map(s => s.id));
+    const cos = sc.companies.filter(c => segIds.has(c.segment));
+    const inChain = new Set(cos.map(c => c.id));
+    const coSeg = {}; cos.forEach(c => (coSeg[c.id] = c.segment));
+    const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : [])
+      .forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
+    /* 度數與環節層級的上下游，都只算「兩端都在這條鏈上」的邊 —— 跟關聯圖同一個口徑，
+       不然同一家公司在圖上沒有線、在清單上卻掛著一個數字，兩邊會對不起來。
+       競爭關係（competes）不是上下游，不算（DECISIONS #195 把它搬出 edges 就是這個理由）。*/
+    const deg = {}, upS = {}, dnS = {}; let nEdge = 0;
+    (sc.edges || []).forEach(e => {
+      if (e.rel === 'competes' || !inChain.has(e.from) || !inChain.has(e.to)) return;
+      nEdge++;
+      deg[e.from] = (deg[e.from] || 0) + 1; deg[e.to] = (deg[e.to] || 0) + 1;
+      const a = coSeg[e.from], b = coSeg[e.to];
+      if (a !== b) { (dnS[a] = dnS[a] || new Set()).add(b); (upS[b] = upS[b] || new Set()).add(a); }
+    });
+    const ROLE = { equipment: '設備', material: '材料' };
+    /* 上下游那兩行是版面高度的大戶：不縮寫的話「載板材料 ABF / BT」「高階 PCB（MLB / UBB）」
+       兩三個就換行，一張卡多 34px，20 格就是 680px —— 正好把省下來的空間全部吐回去。
+       所以顯示縮寫（切到第一個空格或全形括號）、每個方向只列 1 格、其餘收成「+N」，
+       完整名稱留在 title（滑過去就看得到）。
+       ★ 只列 1 格還有一個理由：欄寬只有 236px，列 2 格會**真的溢出卡片**，
+       雖然 overflow:hidden 看起來沒事，但溢出去的那個字框在版面上仍然壓在
+       隔壁欄的卡片上 —— `_preview.py` 的重疊掃描量的就是字框，會判成壓字。*/
+    const shortSeg = (nm) => { const t = String(nm).split(/[（(]/)[0].split(/\s*\/\s*/)[0].trim();
+      return t.length > 5 ? t.slice(0, 5) + '…' : (t || nm); };
+    const NBR_MAX = 1;
+    const nbr = (set) => { const ids = [...(set || [])];
+      const head = ids.slice(0, NBR_MAX).map(id =>
+        `<span class="sg" data-seg="${id}" style="--c:${segColor(id)}" title="切到「${A.fmt.esc(segName(sc, id))}」這一格">${A.fmt.esc(shortSeg(segName(sc, id)))}</span>`).join('');
+      const rest = ids.slice(NBR_MAX);
+      return head + (rest.length ? `<span class="more" title="${A.fmt.esc(rest.map(id => segName(sc, id)).join('、'))}">+${rest.length}</span>` : ''); };
+    const mini = (c) => {
+      const m = c.tw_code ? priceOf[c.tw_code] : null;
+      const n = deg[c.id] || 0;
+      const tip = `${c.name}${c.tw_code ? ' ' + c.tw_code : '（外商）'}`
+        + (m ? `｜${A.fmt.n(m.close)} ${A.fmt.pct(m.chg_pct)}` : '')
+        + `｜${n ? n + ' 條上下游關係' : '還沒建立上下游關聯'}｜點開看它的產業關係`;
+      /* 名稱不在這裡切字 —— 小卡改成用 grid 排成固定兩欄，切幾個字要看欄寬，
+         JS 算不準。交給 CSS 的 text-overflow:ellipsis，完整名稱留在 title。*/
+      const nm = c.name;
+      return `<button type="button" class="sco${c.tw_code ? '' : ' foreign'}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}"`
+        + `${m && m.chg_pct != null ? ` style="--u:${A.upDown(m.chg_pct)}"` : ''} title="${A.fmt.esc(tip)}">`
+        + `<span class="nm">${A.fmt.esc(nm)}</span>`
+        + (c.tw_code ? `<span class="code">${c.tw_code}</span>` : '<span class="code fo">外商</span>')
+        + `<i class="rel${n ? '' : ' iso'}">${n || '?'}</i></button>`;
+    };
+    /* 上下游擠成**一行**（nowrap + 省略號）而不是兩行。
+       量過才決定的：兩行版本在 1366px（主欄只有 924px、排得下 3 欄）讓 AI 伺服器鏈
+       比原本的關聯圖還高 153px —— 那等於沒解決 Andy 的問題。
+       一行省下約 17px × 環節數；被省略號切掉的部分在 title 裡完整列出。*/
+    const flowTip = (id) => {
+      const nm = (set) => [...(set || [])].map(x => segName(sc, x)).join('、') || '（沒有）';
+      return `上游：${nm(upS[id])}\n下游：${nm(dnS[id])}`;
+    };
+    let nTw = 0;
+    host.innerHTML = segs.map(s => {
+      const list = cos.filter(c => c.segment === s.id);
+      const tw = list.filter(c => c.tw_code), fo = list.filter(c => !c.tw_code);
+      nTw += tw.length;
+      return `<div class="segcard" data-seg="${s.id}" style="--c:${segColor(s.id)}">
+        <div class="sh"><i class="dot"></i><b class="nm">${A.fmt.esc(s.name)}</b>${ROLE[s.role] ? `<span class="rl">${ROLE[s.role]}</span>` : ''}<span class="cnt">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span></div>
+        ${upS[s.id] || dnS[s.id] ? `<div class="sf" title="${A.fmt.esc(flowTip(s.id))}">${upS[s.id] ? `<span class="lb">上游</span>${nbr(upS[s.id])}` : ''}${dnS[s.id] ? `<span class="lb">下游</span>${nbr(dnS[s.id])}` : ''}</div>` : ''}
+        ${tw.concat(fo).map(mini).join('') ? `<div class="sms">${tw.concat(fo).map(mini).join('')}</div>` : ''}
+        ${list.length ? '' : `<div class="nt">${A.fmt.esc(s.note || '（台股無直接對應）')}</div>`}</div>`;
+    }).join('');
+    // 點卡片本身＝選這一格；點卡片裡的小卡或上下游名稱各自有自己的動作，不要一起觸發
+    $$('.segcard', host).forEach(card => { card.onclick = (ev) => {
+      if (ev.target.closest('.sco') || ev.target.closest('.sg')) return;
+      if (handlers && handlers.onSegment) handlers.onSegment(card.dataset.seg); }; });
+    $$('.segcard .sf .sg', host).forEach(t => { t.onclick = (ev) => {
+      ev.stopPropagation(); if (handlers && handlers.onSegment) handlers.onSegment(t.dataset.seg); }; });
+    $$('.segcard .sco', host).forEach(n => { n.onclick = (ev) => {
+      ev.stopPropagation();
+      const co = cos.find(c => c.id === n.dataset.id); if (!co) return;
+      closeCoBox();
+      // 跟關聯圖上點公司同一條路：原地開面板（N7 不跳頁），再同步選取它的環節
+      showCompany(co, sc, host);
+      if (handlers && handlers.onCompany) handlers.onCompany(co); }; });
+    return { nSeg: segs.length, nTw, nEdge };
+  }
+
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
     const segs = chainSegments(sc, chainId);
@@ -829,8 +1000,12 @@
   function wireRelBlock(box, sc, host) {
     const btn = box && box.querySelector('#relHi');
     if (!btn) return;
-    const svgHost = host || $('#chainMap');
+    const svgHost = $('#chainMap') || host;
     btn.onclick = () => {
+      /* 2026-09-20：預設畫面換成環節卡清單之後，關聯圖是隱藏的 ——
+         這顆按鈕按下去會「什麼都沒發生」，那比沒有這顆按鈕更糟。
+         所以先自己把關聯圖切出來，再照原本的規則亮線。*/
+      if (svgHost && svgHost.hidden && typeof showChainMap === 'function') showChainMap();
       const on = btn.dataset.on === '1';
       btn.dataset.on = on ? '0' : '1';
       btn.classList.toggle('cyan', !on);

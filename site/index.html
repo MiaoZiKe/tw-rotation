@@ -255,6 +255,39 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms::-webkit-scrollbar{width:6px}
 .hpanel .ms::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 @media (max-width:900px){ .hpanel .ms{max-height:190px} }
+
+/* ★ 2026-09-20（Andy：「熱門題材 & 今日候選 框格需要一樣大，超出部分改拉Bar」
+   ＋「換另一台電腦、螢幕大小不同就會影響整體變化」）。
+   先把量到的事實寫下來，免得下一個人又重測一次：
+   grid 預設 align-items:stretch，所以這兩張卡的**外框本來就等高**（1280/1366/1440/1536/1920
+   量到的都是左右一模一樣）。真正的問題是另外兩件事 ——
+     ① 撐高度的是左邊的「熱門題材」：它在 1fr 那一欄只排得下一欄磚塊，
+        八塊疊起來就是 1336px，右邊的候選名單只是被 stretch 拉著陪高；
+     ② 同一頁換一台螢幕，整列高度從 722px 跳到 1426px（差快一倍），
+        所以他會覺得「版面整個跑掉」。
+   做法：整列釘一個**跟視窗寬度無關**的高度上限，內容超出就在卡片內部捲。
+   語彙沿用上面那套 .hpanel .ms（固定高度 + overflow-y:auto + 細捲軸），不另開第三種。
+   用 min(72vh, 720px) 而不是寫死 720：筆電開了工具列之後視窗只有 600 多高時，
+   寫死會讓兩張卡自己超出一個畫面，反而更難看。 */
+.eqpair{grid-auto-rows:min(72vh,720px)}
+.eqpair>.card{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.eqpair>.card>*{flex:none}
+/* 卡片裡唯一會長高的那一塊：吃掉剩下的高度、自己捲。
+   min-height:0 不可以拿掉 —— flex 子項的預設 min-height:auto 會讓它拒絕縮小，
+   捲軸就永遠不會出現（這正是 2026-09-20 之前「被裁掉而且沒有捲軸」的成因）。*/
+.eqpair .pane,.eqpair>.card>.tw{flex:1 1 auto;min-height:0;overflow-y:auto;scrollbar-width:thin}
+.eqpair .pane{padding-right:4px}
+.eqpair .pane::-webkit-scrollbar{width:6px}
+.eqpair .pane::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
+/* 候選名單的表格本來自己帶 cap-lg(560px)；在這一列改由卡片決定高度，不然會出現兩層上限 */
+.eqpair>.card>.tw.cap-lg{max-height:none}
+/* 窄畫面（兩張卡已經變成上下排）就不要再鎖死列高，否則手機上會出現一格 720px 的空卡 */
+@media (max-width:1100px){
+  .eqpair{grid-auto-rows:auto}
+  .eqpair>.card{overflow:visible}
+  .eqpair .pane{max-height:62vh}
+  .eqpair>.card>.tw.cap-lg{max-height:440px}
+}
 /* 放大只在框內發生：捲動層 .zpane 在放大時高度鎖死，卡片與整頁版面完全不受影響 */
 /* 圖表旁邊的透明度滑桿（本益比河流圖）。Andy 2026-09-16 要「可以調整透明度」。 */
 .opabox{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
@@ -329,6 +362,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   background:rgba(10,16,32,.82);border:1px solid var(--line-2);color:var(--ink-3);
   font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:999px;opacity:.65;transition:.15s}
 .zwrap:hover>.zbadge{opacity:1;color:var(--cyan);border-color:rgba(62,224,255,.4)}
+/* 法人連續買超：右上角正好是「買最久又買最多」那一顆泡泡（2026-09-20 Andy 截圖的玉山金），
+   「滾輪放大」徽章壓在上面會把它的名字整個蓋掉。這張圖右下角是空的，徽章挪過去。*/
+#trustWrap>.zbadge{top:auto;bottom:34px}   /* 34 而不是 8：8 會壓到橫軸的刻度數字 */
 .chainchips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 6px}
 .chainchips button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:5px 13px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
@@ -905,6 +941,66 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .scard .h b{font-size:16px} .scard .r{display:flex;gap:10px;font-size:13px;color:var(--ink-2);margin-top:6px;flex-wrap:wrap}
 }
 @media (max-width:480px){ .hero{grid-template-columns:1fr 1fr} .kpi .v{font-size:22px} }
+
+/* ================= 供應鏈環節卡清單（#chainList / .seglist）=================
+   Andy 2026-09-20：「供應鏈關聯圖 上下框度太長，改成顯示族群、族群標題底下顯示個股小卡」。
+   為什麼用 multi-column 而不是 grid：grid 的每一列會被那一列最高的卡片撐高，
+   而環節的公司數從 0 到 8 差很多 —— 用 grid 會把剛剛擠掉的空白原封不動補回來，
+   那正是這次要修的東西。multi-column 是把卡片依序塞進欄裡，塞滿才換欄。
+   代價是閱讀順序變成「由上往下、再往右」；所以每張卡片自己寫出上下游是哪幾格，
+   而且上面那排環節色標本來就是照上游→下游排的，順序看得到。*/
+.chainrow>.chainpane{flex:1 1 560px;min-width:0}
+.seglist[hidden],.chainmap[hidden]{display:none}
+.seglist{columns:236px;column-gap:10px}
+.segcard{break-inside:avoid;-webkit-column-break-inside:avoid;page-break-inside:avoid;
+  background:var(--panel-3);border:1px solid var(--line-2);border-left:3px solid var(--c,var(--line-2));
+  border-radius:10px;padding:7px 10px 8px;margin:0 0 9px;cursor:pointer;transition:.15s}
+.segcard:hover{border-color:var(--c)}
+.segcard.sel{background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 1px var(--c) inset}
+.segcard.dim{opacity:.42}
+.segcard .sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.segcard .sh .dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
+.segcard .sh .nm{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.35}
+.segcard .sh .rl{font-size:11px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
+.segcard .sh .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+/* 上游／下游那兩行＝把關聯圖上那 140 條邊收斂成「環節對環節」的說法，可以點 */
+/* 一行到底（nowrap＋省略號）：多一行就是多 17px，20 格就是 340px。
+   切掉的部分在 title 裡完整列出，滑過去看得到 */
+.segcard .sf{display:flex;gap:3px 5px;align-items:center;margin-top:4px;font-size:11.5px;
+  color:var(--ink-3);line-height:1.5;white-space:nowrap;overflow:hidden;min-width:0}
+.segcard .sf .lb{opacity:.8;white-space:nowrap;flex:none}
+/* 名稱可以被擠窄並自己出現省略號 —— 這樣字框**永遠留在卡片裡**。
+   用 flex:none 的話溢出去的字框會壓到隔壁欄的卡片（看起來被 overflow 切掉了，
+   但版面上還在），_preview.py 的重疊掃描量的就是字框，會判成壓字。*/
+.segcard .sf>*{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.segcard .sf .sg{color:var(--c);cursor:pointer;border-bottom:1px dotted color-mix(in srgb,var(--c) 55%,transparent)}
+.segcard .sf .sg:hover{color:var(--ink);border-bottom-color:var(--ink)}
+.segcard .sf .more{font-family:var(--mono);opacity:.75;cursor:help}
+/* 小卡排成固定兩欄的 grid，不用 flex-wrap：
+   flex 會依名稱長短決定一列塞得下幾張，「日月光投控」那種五字名一張就佔滿整列，
+   於是 8 家公司就是 8 列。grid 讓每張小卡剛好半欄寬、名稱過長由 CSS 省略號處理，
+   列數固定是 ceil(n/2) —— 這是清單能比關聯圖矮的主因。*/
+.segcard .sms{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:5px;margin-top:6px}
+/* 個股小卡：名稱白字、代號小一號的藍字（Andy 附圖就是這個樣子）。
+   左邊那條 3px 的色邊是漲跌（紅漲綠跌）—— 不佔寬度，又把關聯圖上原本看得到的漲跌接回來 */
+.segcard .sco{display:flex;align-items:center;gap:3px;min-width:0;text-align:left;
+  background:var(--panel);border:1px solid var(--line);border-left:3px solid var(--u,var(--line-2));
+  border-radius:7px;padding:3px 5px;cursor:pointer;font:inherit;line-height:1.3}
+.segcard .sco:hover{border-color:var(--cyan)}
+.segcard .sco .nm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
+.segcard .sco .code{font-family:var(--mono);font-size:11px;color:var(--cyan);opacity:.9;flex:none}
+.segcard .sco .code.fo{color:var(--ink-3)}
+.segcard .sco.foreign{border-style:dashed}
+/* 關係條數；0 沿用關聯圖那個橘色「?」（還沒查到具名客戶／供應商，寧可留白也不猜） */
+.segcard .sco .rel{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3);
+  background:var(--panel-3);border-radius:4px;padding:0 2px;flex:none}
+.segcard .sco .rel.iso{color:#d9a441;background:transparent;border:1px solid rgba(217,164,65,.45)}
+.segcard .sco.dim{opacity:.35}
+.segcard .nt{margin-top:6px;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+/* 手機：一欄，但小卡仍然兩張一列（grid 的 minmax 在 330px 的卡裡剛好排得下兩張），
+   字級往上加到 13.5／15px —— 手機正文不得小於 15px、任何字不得小於 11px */
+@media (max-width:560px){ .seglist{columns:1} .segcard .sco .nm{font-size:13.5px} .segcard .sh .nm{font-size:15px} }
 </style>
 </head>
 <body>
@@ -977,8 +1073,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
         <div class="stageboard compact" id="rotMini"></div></div>
     </div>
-    <div class="grid g12" style="margin-top:16px">
-      <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip"></div></div>
+    <div class="grid g12 eqpair" style="margin-top:16px">
+      <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
       <div class="card"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
         <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div></div></div>
         <div class="facets" id="candFacets"></div>
@@ -987,7 +1083,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
         <div class="cards" id="candCards"></div></div>
     </div>
     <div class="grid g3" style="margin-top:16px">
-      <div class="card"><h3>市場寬度</h3>
+      <div class="card"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
         <div class="row" style="gap:6px">
@@ -996,9 +1092,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
             <option value="2">≥2 天</option><option value="3" selected>≥3 天</option>
             <option value="5">≥5 天</option><option value="8">≥8 天</option><option value="12">≥12 天</option></select>
         </div></div>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:250px"></div></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div>
         <div class="note" style="margin-top:6px">滾輪放大、放大後拖曳移動、雙擊還原；點泡泡進個股頁。</div></div>
-      <div class="card"><h3>族群估值 <small>同族群才比本益比</small></h3>
+      <div class="card"><h3>族群估值 <small>橫軸＝族群本益比中位（左便宜、右貴），縱軸＝資金流入；找左上角那一格</small></h3>
         <div id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
   </section>

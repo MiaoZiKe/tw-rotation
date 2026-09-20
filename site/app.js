@@ -77,11 +77,34 @@
     catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
     return D[name];
   }
+  /* ★ 驗收用的 SVG renderer 開關（2026-09-20）。
+     線上版一律 canvas（效能）—— 但 canvas 畫出來的字在 DOM 上完全不存在，
+     所以 `_preview.py` 的文字重疊掃描對「圖裡的字」是物理性全盲的：
+     它永遠報 0 筆，Andy 一換螢幕就看到壓字。SVG renderer 會產生真的 <text> 節點，
+     量得出來。
+     為什麼用網址參數（`?svg=1`）當主要開關，而不是只認一個全域變數：
+       1. 它撐得過 `pg.goto()` 與重新整理，不用每開一頁就補一次 add_init_script；
+       2. 人可以自己貼網址重現同一個畫面（`index.html?svg=1#overview`），
+          回報裡的數字才驗得回來。
+     `window.__TW_SVG_RENDER__` 保留成第二條路，給沒辦法改網址的呼叫端用。
+     ⚠ SVG 與 canvas 的字寬量法略有差異，版面不保證 100% 相同 ——
+     量到的重疊要人工看截圖確認，不要照單全收。 */
+  function wantRenderer() {
+    try {
+      if (window.__TW_SVG_RENDER__) return 'svg';
+      if (/[?&]svg=1(&|$)/.test(location.search)) return 'svg';
+    } catch (e) { /* 取不到就當 canvas */ }
+    return 'canvas';
+  }
   function chart(id, option, opts) {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return null;
     if (typeof echarts === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return null; }
     el.classList.remove('isempty');
-    let c = echarts.getInstanceByDom(el); if (!c) c = echarts.init(el, null, { renderer: 'canvas' });
+    const want = wantRenderer();
+    let c = echarts.getInstanceByDom(el);
+    // renderer 是 init 當下決定的，中途要換只能整個 dispose 重建
+    if (c && el._renderer && el._renderer !== want) { c.dispose(); c = null; }
+    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; }
     c.setOption(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option), opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
@@ -1280,25 +1303,23 @@
           },
         },
       ],
-      /* N6（Andy 2026-09-19「箭頭補充內到位 順時針簡短說明意思」）：
-         以前只有右下角一行字寫「↻ 順時針」，盤面上看不出方向。
-         現在在四段的**交界處**各畫一個弧形箭頭，照 落後→改善→領先→轉弱 的順序，
-         旁邊一句白話講它代表什麼。*/
       graphic: compact ? [] : [
-        ...CLOCK_SECTOR.map((sec, i) => {
-          // 每一段的「出口」角度＝下一段的入口；照 stageOf 的擺法，順時針是角度遞減
-          const next = CLOCK_SECTOR[(i + 1) % 4];
-          const a = (sec.from + sec.to) / 2;
-          const rad = (a + 45) * Math.PI / 180;
-          return { type: 'text', silent: true,
-            left: `${50 + 41 * Math.cos(rad)}%`, top: `${50 - 41 * Math.sin(rad)}%`,
-            style: { text: '↻', fill: hexA(STAGE[next.k].color, .75), fontSize: 20,
-              textAlign: 'center', textVerticalAlign: 'middle' } };
-        }),
+        /* ★ 2026-09-20：圖裡的四個 ↻ 箭頭移除，方向改用圖下方那一行字講。
+           查出來的事實（多寬度掃描量的，不是感覺）：
+             · 放在「兩段的交界」（正上下左右，41%）→ 撞到跑到圓周上的族群名
+               （1280px：↻ × 晶圓代工 重疊 17×12px）；
+             · 挪到「每一段的外角」（47%）→ 撞到該段自己的名字
+               （落後／改善／領先／轉弱 本來就寫在那個角度的圓周外側）。
+           極座標圓上能放東西的位置就這兩種，兩種都已經有人了 ——
+           再調數字只是在換一個會撞的日子，所以不繼續研究，直接把方向講成文字。
+           （Andy 在 A4 輪動時鐘的需求第 2 條本來就寫「移除旋轉箭頭」。）*/
+        /* ★ 2026-09-20：原本這裡有三行說明，在 1280px 的畫面上整串凸出容器 26px、
+            而且壓到右下角那個 ↻ 箭頭（新的多寬度掃描量出來的）。
+            「↻ 箭頭＝行進方向」那一句搬到圖下方的 #rotCenterNote —— 它是 HTML，
+            會自己換行，任何寬度都不可能溢出。圖裡只留「回放日期」與一行最短的比例說明。*/
         { type: 'text', right: 12, bottom: 8, silent: true,
           style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
-              + '↻ 箭頭＝資金的行進方向（順時針）：落後 → 改善 → 領先 → 轉弱 → 再回落後\n'
-              + '圈圈越大＝成交值佔比越高　·　離圓心越遠＝和大盤差越多',
+              + '圈圈大＝佔比高　·　離圓心遠＝差大盤多',
             fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
         }],
     };
@@ -1602,38 +1623,71 @@
      改成一個儀表＋一個漲跌環：儀表是站上 20 日均線的比例（多數股票在均線之上＝多頭結構），
      環是今天的漲／平／跌家數。兩個加起來才回答得了「今天是真的漲還是指數漲而已」。 */
   function renderBreadth(heat) {
-    const b = heat && heat.breadth; if (!b) return empty('breadth');
+    const bel0 = $('#breadth');
+    // 沒資料時要把上一輪設進去的 inline 高度清掉，否則 .isempty 收不掉那個 236px 的黑方塊
+    const b = heat && heat.breadth;
+    if (!b) { if (bel0) { bel0.style.height = ''; bel0.style.minHeight = ''; } return empty('breadth'); }
     const p20 = b.pct_above_ma20 || 0, p60 = b.pct_above_ma60 || 0;
     const up = heat.advancers || 0, dn = heat.decliners || 0, fl = heat.unchanged || 0;
     const zone = p20 >= 70 ? '多數股票在均線之上，結構偏多' : p20 >= 45 ? '多空拉鋸，選股比押方向重要'
       : p20 >= 25 ? '偏弱，多數股票在均線之下' : '普遍破線，別急著搶反彈';
+    /* ★ 2026-09-20 重排（Andy：「換一台電腦、螢幕大小不同就會影響整體變化」）。
+       舊版是「儀表在左、甜甜圈在右」，而且兩個都用百分比定位
+       （center: ['30%','72%'] 與 ['78%','52%']、radius '92%'）。
+       實測這張卡永遠在 g3 的 1/3 欄裡，容器寬度只有 300～520px ——
+       一分為二之後每邊不到 260px，「儀表的半徑」加上「甜甜圈往外拉的引線標籤」
+       在物理上放不下，所以不是「窄的時候才壞」，是**每一個寬度都壞**：
+       1440px 量到儀表的弧線已經超出容器左緣與下緣、「100」那個刻度掉到框外 19px。
+       所以不是改成「窄的時候上下排」，是**一律上下排**，而且位置全部寫成 px：
+         上半＝站上 20 日均線的儀表（半徑 px 固定）
+         下半＝漲／平／跌的堆疊長條（取代甜甜圈）
+       甜甜圈換成堆疊長條的理由：漲平跌是「一個總量的三塊」，堆疊長條本來就比環圈好讀，
+       而且標籤寫在色塊裡面、不需要引線 —— 引線正是舊版壓到儀表的那個東西。
+       容器高度也寫死 px，這樣 1280 跟 1920 畫出來完全一樣。 */
+    const bel = bel0;
+    const BH = 236;                    // 儀表 + 長條的總高（px，不隨寬度變；量過：弧線 38～146、長條 182～208）
+    // minHeight 也要一起設：HTML 上那個 min-height:250px 會蓋過 height，
+    // 只設 height 的話下緣會多出 14px 的空白（量過）
+    if (bel) { bel.style.height = BH + 'px'; bel.style.minHeight = BH + 'px'; }
+    const tot = Math.max(up + fl + dn, 1);
+    // 色塊太窄就不寫字（寫了一定壓到隔壁）；數字在下面那排 pill 與 tooltip 裡都還看得到
+    const segLabel = (name, v, col) => ({
+      name, type: 'bar', stack: 'ad', barWidth: 26,
+      itemStyle: { color: col }, emphasis: { disabled: true },
+      label: { show: v / tot >= 0.14, position: 'inside', color: '#0b1022', fontSize: 11.5, fontWeight: 700,
+        formatter: () => `${name} ${v}` },
+      data: [v],
+    });
     chart('breadth', {
-      tooltip: { ...tip, trigger: 'item', formatter: q => q.seriesIndex === 1
-        ? `${q.name} <b>${q.value}</b> 檔（${fmt.n(q.percent, 1)}%）` : `站上 20 日均線 <b>${fmt.n(q.value, 1)}%</b>` },
+      tooltip: { ...tip, trigger: 'item', formatter: q => q.seriesType === 'bar'
+        ? `${q.seriesName} <b>${q.value}</b> 檔（${fmt.n(q.value / tot * 100, 1)}%）`
+        : `站上 20 日均線 <b>${fmt.n(q.value, 1)}%</b>` },
+      grid: { left: 12, right: 12, top: 182, height: 26 },
+      xAxis: { type: 'value', max: tot, show: false },
+      yAxis: { type: 'category', data: [''], show: false },
       series: [
-        { type: 'gauge', startAngle: 200, endAngle: -20, min: 0, max: 100, radius: '92%', center: ['30%', '72%'],
+        { type: 'gauge', startAngle: 200, endAngle: -20, min: 0, max: 100, radius: 80, center: ['50%', 118],
           progress: { show: true, width: 13, roundCap: true,
             itemStyle: { color: p20 >= 60 ? '#ff4d6d' : p20 >= 40 ? '#ffb454' : '#2ee59d' } },
           axisLine: { lineStyle: { width: 13, color: [[1, CH.grid]] } },
           axisTick: { show: false }, splitLine: { show: false },
-          axisLabel: { distance: -20, color: CH.ink3, fontSize: 10, formatter: v => (v % 50 === 0 ? v : '') },
+          // 刻度數字拿掉：0 與 50 都被弧線蓋住，只剩右邊孤零零一個「100」，是雜訊不是資訊
+          axisLabel: { show: false },
           pointer: { show: false },
           anchor: { show: false },
-          title: { show: true, offsetCenter: [0, '30%'], color: CH.ink3, fontSize: 11.5 },
-          detail: { valueAnimation: true, offsetCenter: [0, '-2%'], fontSize: 26, fontFamily: 'JetBrains Mono',
-            fontWeight: 700, color: '#e8eeff', formatter: v => v.toFixed(1) + '%' },
+          title: { show: true, offsetCenter: [0, 32], color: CH.ink3, fontSize: 11.5 },
+          detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: 'JetBrains Mono',
+            fontWeight: 700, color: theme() === 'light' ? CH.ink : '#e8eeff', formatter: v => v.toFixed(1) + '%' },
           data: [{ value: p20, name: '站上 20 日均線' }] },
-        { type: 'pie', radius: ['32%', '52%'], center: ['78%', '52%'], avoidLabelOverlap: true,
-          label: { color: CH.ink2, fontSize: 11, formatter: '{b}\n{c}' }, labelLine: { length: 6, length2: 6 },
-          data: [
-            { name: '上漲', value: up, itemStyle: { color: '#ff4d6d' } },
-            { name: '平盤', value: fl, itemStyle: { color: '#6f7ea3' } },
-            { name: '下跌', value: dn, itemStyle: { color: '#2ee59d' } },
-          ] },
+        segLabel('上漲', up, '#ff4d6d'),
+        segLabel('平盤', fl, '#6f7ea3'),
+        segLabel('下跌', dn, '#2ee59d'),
       ],
-    });
-    // 圖下面一行把「還有什麼可以看」補上，不用再畫兩根 0% 的長條
+    }, { notMerge: true });
+    // 圖下面一行把「還有什麼可以看」補上，不用再畫兩根 0% 的長條。
+    // 漲／平／跌三個數字一定要在這裡各出現一次 —— 長條裡的字會因為色塊太窄被關掉。
     linkRow('breadth', `<span class="pill ${p20 >= 50 ? 'up' : 'down'}">${zone}</span>`
+      + `<span class="pill up">漲 ${up}</span><span class="pill">平 ${fl}</span><span class="pill down">跌 ${dn}</span>`
       + `<span class="pill">MA60 ${fmt.n(p60, 1)}%</span>`
       + `<span class="pill">60 日新高 ${b.new_high_60 ?? 0} 檔</span>`
       + `<span class="pill">樣本 ${b.n ?? 0} 檔</span>`
@@ -1668,9 +1722,36 @@
     const rows = rows0.slice(0, 40).map(r => ({ ...r, lots: (r.accumulated || 0) / 1000 }));
     const maxLots = Math.max(...rows.map(r => Math.abs(r.lots)), 1);
     const maxDay = Math.max(...rows.map(r => r.streak_days || 0), streakState.days + 1);
+    /* ★ 2026-09-20（Andy 截圖：「玉山金」的標籤跑到圖框外面被卡片切掉）。
+       量到的比他看到的更糟：1440px 下這張圖裡有 56 組文字互相重疊 ——
+       40 顆泡泡全部標名字，塞在 184px 高的畫布裡，底下那一排小泡泡的名字疊成一團黑。
+       以前看不到是因為圖是 canvas 畫的、那些字在 DOM 上不存在
+       （所以 `_preview.py` 永遠報「重疊 0 筆」）。
+       兩道修正：
+         1. 只標「真的在收貨」的前 10 名（累計張數）。其餘的名字在 tooltip 裡，
+            滑過去就看得到 —— 不是把資訊拿掉，是不要在 184px 裡塞 40 個名字。
+         2. labelLayout 改成函式，把標籤夾回容器內（玉山金那一顆就是被夾回來的），
+            並且開 hideOverlap 讓剩下真的撞在一起的自己讓位。 */
+    const host = $('#trust');
+    const labelled = new Set(rows.slice().sort((a, b) => Math.abs(b.lots) - Math.abs(a.lots))
+      .slice(0, 10).map(r => r.code));
+    const clampLabel = (p) => {
+      const W = (host && host.clientWidth) || 300, H = (host && host.clientHeight) || 250, L = p.labelRect;
+      let dx = 0, dy = 0;
+      if (L.x + L.width > W - 3) dx = (W - 3) - (L.x + L.width);
+      if (L.x + dx < 3) dx = 3 - L.x;                  // 兩邊都超出時以靠左為準（左邊是軸，比較不容易被切）
+      if (L.y + L.height > H - 3) dy = (H - 3) - (L.y + L.height);
+      if (L.y + dy < 3) dy = 3 - L.y;
+      return { dx, dy, hideOverlap: true };
+    };
     const c = chart('trust', {
       tooltip: { ...tip, formatter: q => `<b>${q.data.nm} ${q.data.code}</b><br>${STREAK_NAME[streakState.who]}連續買超 <b>${q.value[0]}</b> 天<br>期間累計 <b>${fmt.lot(q.value[1])}</b><br>${q.data.g ? fmt.esc(q.data.g) + '<br>' : ''}<small>點一下進個股頁</small>` },
-      grid: { left: 62, right: 22, top: 26, bottom: 40 },
+      /* top 從 26 加到 46：最大的泡泡直徑可到 40px，它又一定落在 y 軸頂端，
+         標籤寫在泡泡上方時就會被推到容器外（玉山金那一顆量到 -5px）。
+         labelLayout 的 dx/dy 在這裡沒有把它夾回來（實測第一次 render 不生效，
+         第二次 setOption 才生效），與其研究那個機制，不如直接把空間留出來 ——
+         46 = 泡泡半徑 20 + 標籤高 12 + 上方留白 14，算得出來、不依賴任何機制。 */
+      grid: { left: 62, right: 22, top: 46, bottom: 40 },
       /* 縮放與平移不用 ECharts 的 dataZoom，用全站那一套 wheelZoom（見下面的 renderTrust 呼叫）。
          dataZoom 的 inside 會把 wheel 事件吃掉，滑鼠停在圖上就捲不動頁面 ——
          那正是 Andy 09-13 抱怨過、要我把其他圖的縮放拿掉的原因。
@@ -1685,8 +1766,13 @@
           return { value: [r.streak_days, +r.lots.toFixed(0)], code: r.code, nm: nm(r.code), g: L.gname[gid],
             symbolSize: Math.max(10, Math.min(40, Math.sqrt(Math.abs(r.lots) / maxLots) * 40)),
             itemStyle: { color: L.gcolor[gid] || '#ffb454', opacity: .85, borderColor: CH.panel, borderWidth: 1 } }; }),
-        label: { show: true, formatter: q => q.data.nm, position: 'top', color: CH.ink2, fontSize: 11 },
-        labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' } }],
+        /* 標籤加一塊半透明底板：泡泡很密的時候名字一定會落在別人的泡泡上，
+           有底板才讀得出來（沒底板就是 Andy 截圖裡那種深色字壓在深色圓上）。
+           底板也讓 hideOverlap 量到的框變大，該讓位的會自己讓。*/
+        label: { show: true, formatter: q => (labelled.has(q.data.code) ? q.data.nm : ''),
+          position: 'top', color: CH.ink, fontSize: 11,
+          backgroundColor: hexA(CH.panel, .78), padding: [1, 4], borderRadius: 4 },
+        labelLayout: clampLabel }],
     }, { notMerge: true });
     if (c) c.off('click').on('click', q => { if (q.data && q.data.code) goStock(q.data.code); });
     // Andy 2026-09-15：「圖表可以縮放，並且可以游標抓取移動」——
@@ -1720,26 +1806,54 @@
     const maxShare = Math.max(...rows.map(r => r.share), 1);
     const xs = [Math.min(...pes) * .9, Math.max(...pes) * 1.06];
     const ys = rows.map(r => r.rot); const yr = Math.max(...ys.map(Math.abs), .5) * 1.25;
+    const gvHost = $('#gval');
+    const gvClamp = (p) => {
+      const W = (gvHost && gvHost.clientWidth) || 300, H = (gvHost && gvHost.clientHeight) || 250, L = p.labelRect;
+      let dx = 0, dy = 0;
+      if (L.x + L.width > W - 3) dx = (W - 3) - (L.x + L.width);
+      if (L.x + dx < 3) dx = 3 - L.x;
+      if (L.y + L.height > H - 3) dy = (H - 3) - (L.y + L.height);
+      if (L.y + dy < 3) dy = 3 - L.y;
+      return { dx, dy, hideOverlap: true };
+    };
     const c = chart('gval', {
       tooltip: { ...tip, formatter: q => `<b>${q.data.nm}</b><br>本益比中位 <b>${fmt.n(q.value[0], 1)}</b>（n=${q.data.n}，全市場中位 ${fmt.n(mid, 1)}）<br>資金流向 <span style="color:${upDown(q.value[1])}">${q.value[1] > 0 ? '流入 +' : '流出 '}${fmt.n(q.value[1], 2)} pp</span><br>成交值佔比 ${fmt.n(q.data.share, 1)}%<br><small>點一下看成分股</small>` },
-      grid: { left: 56, right: 24, top: 30, bottom: 42 },
-      xAxis: { ...axisStyle, name: '← 便宜　　本益比中位　　貴 →', nameLocation: 'middle', nameGap: 26,
-        nameTextStyle: { color: CH.ink3, fontSize: 11 }, min: +xs[0].toFixed(0), max: +xs[1].toFixed(0), splitLine: { show: false } },
-      yAxis: { ...axisStyle, name: '資金流入 ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 },
+      /* ★ 2026-09-20（Andy 截圖：左上角「便宜 × 資金流入」跟「資金流入」糊成一團）。
+         量出來的根因有兩個，都是「用百分比定位 + 不知道旁邊有誰」：
+           1. y 軸名稱預設落在軸的最上端，正好就是左上角那個象限標籤的位置；
+           2. 四個象限標籤用 left:'13%' / bottom:40 定位，容器一窄就壓到 x 軸刻度
+              （1440px 量到「便宜 × 沒人要」和「-1.2」重疊 10×10px）。
+         改法：y 軸名稱轉成直的貼在最左邊（那一帶本來就空著）、
+         x 軸名稱拿掉（四個象限標籤已經把「左便宜右貴」講完了，留著只是再壓一次），
+         四個象限標籤改成**依 grid 用 px 算**、固定貼在繪圖區的四個角 ——
+         位置不再跟容器寬度成比例，1280 跟 1920 看到的是同一個版面。 */
+      grid: { left: 52, right: 18, top: 26, bottom: 30 },
+      xAxis: { ...axisStyle, min: +xs[0].toFixed(0), max: +xs[1].toFixed(0), splitLine: { show: false } },
+      yAxis: { ...axisStyle, name: '資金流入 ↑', nameLocation: 'middle', nameRotate: 90, nameGap: 38,
+        nameTextStyle: { color: CH.ink3, fontSize: 11 },
         min: -yr, max: yr, axisLabel: { formatter: v => v.toFixed(1) }, splitLine: { show: false } },
-      graphic: [
-        { type: 'text', left: '13%', top: 6, style: { text: '便宜 × 資金流入', fill: 'rgba(255,77,109,.75)', fontSize: 12, fontWeight: 700 } },
-        { type: 'text', right: '6%', top: 6, style: { text: '貴 × 資金流入', fill: 'rgba(255,180,84,.7)', fontSize: 12, fontWeight: 700, align: 'right' } },
-        { type: 'text', left: '13%', bottom: 40, style: { text: '便宜 × 沒人要', fill: 'rgba(110,126,163,.8)', fontSize: 12, fontWeight: 700 } },
-        { type: 'text', right: '6%', bottom: 40, style: { text: '貴 × 資金流出', fill: 'rgba(46,229,157,.7)', fontSize: 12, fontWeight: 700, align: 'right' } },
-      ],
+      graphic: (() => {
+        const gL = 52 + 6, gR = 18 + 6, gT = 26 + 2, gB = 30 + 2;
+        const f = { fontSize: 11.5, fontWeight: 700 };
+        return [
+          { type: 'text', left: gL, top: gT, style: { ...f, text: '便宜 × 資金流入', fill: 'rgba(255,77,109,.75)' } },
+          { type: 'text', right: gR, top: gT, style: { ...f, text: '貴 × 資金流入', fill: 'rgba(255,180,84,.7)', align: 'right' } },
+          { type: 'text', left: gL, bottom: gB, style: { ...f, text: '便宜 × 沒人要', fill: 'rgba(110,126,163,.8)' } },
+          { type: 'text', right: gR, bottom: gB, style: { ...f, text: '貴 × 資金流出', fill: 'rgba(46,229,157,.7)', align: 'right' } },
+        ];
+      })(),
       series: [{ type: 'scatter',
         data: rows.map(r => ({ value: [+r.group_median.toFixed(1), +r.rot.toFixed(2)], gid: r.group_id,
           nm: r.group_name, n: r.group_n, share: r.share,
           symbolSize: Math.max(11, Math.min(34, Math.sqrt(r.share / maxShare) * 34)),
-          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .85, borderColor: CH.panel, borderWidth: 1 } })),
+          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .85, borderColor: CH.panel, borderWidth: 1 },
+          /* 靠右邊的族群名字一律寫在點的左邊（1280px 量到「封測」整串凸出容器 2px）。
+             label 的位置可以逐筆指定，所以直接讓標籤一律朝畫面中央長，
+             不必依賴 labelLayout 把它夾回來。 */
+          label: { position: r.group_median > xs[0] + (xs[1] - xs[0]) * .6 ? 'left' : 'right' } })),
         label: { show: true, formatter: q => q.data.nm, position: 'right', color: CH.ink2, fontSize: 11 },
-        labelLayout: { hideOverlap: true, moveOverlap: 'shiftY' } },
+        // 靠右邊那幾個族群的名字會整串長到框外；跟法人連續買超同一套夾回容器內
+        labelLayout: gvClamp },
       { type: 'line', data: [], markLine: { silent: true, symbol: 'none',
         lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed' },
         data: [{ xAxis: +mid.toFixed(1) }, { yAxis: 0 }], label: { show: false } } }],
@@ -1973,7 +2087,8 @@
     const note = $('#rotCenterNote');
     if (note) {
       note.textContent = '圓心＝這段時間跟大盤走得一樣；越往外＝相對強弱與動能偏離大盤越多。'
-        + '兩圈虛線由內而外分別是「偏離程度的一半」與「偏離最大的那個族群」。';
+        + '兩圈虛線由內而外分別是「偏離程度的一半」與「偏離最大的那個族群」。'
+        + '資金照順時針一段一段跑：落後 → 改善 → 領先 → 轉弱 → 再回落後。';
     }
     /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
        重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
@@ -2058,8 +2173,9 @@
             + `<br>期間報酬 <span style="color:${upDown(g.ret)}">${fmt.pct(g.ret, 1)}</span>`
             + `<br>成交值 ${fmt.yi(g.turnover)}<br><small>點一下看成分股</small>`; },
       },
-      grid: { left: 132, right: 96, top: 12, bottom: 30 },
-      xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 24, nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 } },
+      // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
+      grid: { left: 132, right: 96, top: 12, bottom: 38 },
+      xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', data: rows.map(label), axisLabel: { color: CH.ink2, fontSize: 12.5 } },
       series: [{
         type: 'bar', barWidth: 15,
@@ -2561,11 +2677,13 @@
           + `<br>占比 <b>${fmt.n(Math.abs(ps.reduce((s, q) => s + (q.value || 0), 0)) / (denom || 1) * 100, 1)}%</b>`
           + '<br><small>點一下看成分股</small>' },
       legend: { textStyle: { color: CH.ink2 }, top: 0 }, grid: { left: 108, right: 24, top: 30, bottom: 22 },
-      xAxis: { ...axisStyle, axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3 } },
+      // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
+      xAxis: { ...axisStyle, axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', inverse: true,
         // 族群名後面直接掛占比 %，不用滑過去才看得到
         data: top.map(g => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%`),
-        axisLabel: { color: CH.ink2 } },
+        // width/overflow：「電子零組件業  2.1%」比 grid.left 的 108px 還長，會凸出容器左緣
+        axisLabel: { color: CH.ink2, width: 100, overflow: 'truncate' } },
       series: [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']].map(([n, k, col]) => ({
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id, dim: !!(pick && pick !== g.group_id),
@@ -2748,7 +2866,8 @@
       const caps = pts.map(r => r.market_cap || 0); const maxCap = Math.max(...caps, 1);
       const c = chart('valScatter', {
         tooltip: { ...tip, formatter: q => `<b>${q.data.name} ${q.data.code}</b><br>${fmt.esc(q.data.g || '')}<br>本益比 ${fmt.n(q.value[0], 1)}　ROE ${fmt.n(q.value[1], 1)}%<br>股價淨值比 ${fmt.n(q.data.pb)}　市值 ${fmt.yi(q.data.cap)}<br><small>點一下進個股頁</small>` },
-        grid: { left: 52, right: 20, top: 20, bottom: 40 },
+        // top 20→34：y 軸名稱「ROE ↑」預設畫在軸的上方 15px 處，20px 的上緣留不住它（量到 -7px）
+        grid: { left: 52, right: 20, top: 34, bottom: 40 },
         xAxis: { ...axisStyle, name: '本益比 →', nameLocation: 'middle', nameGap: 24, nameTextStyle: { color: CH.ink3, fontSize: 11 }, scale: true, max: Math.min(80, Math.max(...pts.map(r => r.pe))) },
         yAxis: { ...axisStyle, name: 'ROE ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 }, scale: true, axisLabel: { formatter: '{value}%' } },
         series: [{ type: 'scatter', data: pts.map(r => ({ value: [r.pe, r.roe], code: r.code, name: r.name, g: r.group_name, pb: r.pb, cap: r.market_cap,

@@ -736,8 +736,27 @@ def t_overview(pg, base):
         types = pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
             return c ? (c.getOption().series || []).map(s => s.type) : null; }}""")
         ok(f"總覽「{name}」有畫出來", bool(types), types)
-        ok(f"總覽「{name}」不是長條圖", types and 'bar' not in types, types)
+        if cid != "breadth":
+            ok(f"總覽「{name}」不是長條圖", types and 'bar' not in types, types)
         ok(f"總覽「{name}」用的是更生動的圖形", types and any(w in types for w in want), types)
+
+    # ★ 2026-09-20：市場寬度那張改版（理由寫在 site/app.js 的 renderBreadth 註解裡）。
+    #   「不准是長條圖」這條規則原本要擋的是**四根各自獨立的長條**
+    #   —— 2026-09-12 之前它就長那樣，其中兩根還常常是 0%，看不出市場健不健康。
+    #   新版下半是「一根堆疊長條」：漲／平／跌是同一個總量的三塊，
+    #   只有一個類別、三個 series 共用同一個 stack，讀起來就是一條比例尺。
+    #   它取代的是舊版那個甜甜圈 —— 甜甜圈的引線標籤在 300px 寬的卡片裡
+    #   一定會壓到旁邊的儀表（Andy 2026-09-20 的截圖就是這個）。
+    #   所以規則改成更精確的版本：**可以有長條，但只准有一根，而且一定要是堆疊的**。
+    bd = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('breadth'));
+        if (!c) return null; const o = c.getOption();
+        const bars = (o.series || []).filter(s => s.type === 'bar');
+        const cats = ((o.yAxis || [])[0] || {}).data || [];
+        return { bars: bars.length, stacked: bars.every(s => !!s.stack),
+                 cats: cats.length, gauge: (o.series || []).some(s => s.type === 'gauge') }; }""")
+    ok("市場寬度不是「好幾根各自獨立的長條」（只有一根堆疊長條）",
+       bool(bd) and bd["cats"] == 1 and bd["stacked"] and bd["bars"] >= 2, bd)
+    ok("市場寬度上半還是儀表（站上 20 日均線的比例）", bool(bd) and bd["gauge"], bd)
 
     # --- 總覽的輪動階段（精簡版）＋ 小時鐘
     ok("總覽有輪動階段四張卡", count(pg, "#rotMini .stage") == 4, count(pg, "#rotMini .stage"))
@@ -1847,6 +1866,14 @@ def t_new_industry(pg, base):
         # 800px 時右邊的「今日事件」欄是展開的浮層，會蓋住關聯圖右半邊 ——
         # 那是事件欄自己的行為，不是這次要驗的東西，先收掉（t_chainnav 也是這樣做）。
         pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        # 2026-09-20 起產業鏈頁**預設是環節卡清單**（Andy：關聯圖上下框度太長），
+        # 關聯圖要按右上角那顆鈕才出來。這一段驗的是「在關聯圖上點公司」這條既有路徑，
+        # 所以先把關聯圖切出來；清單那一條路徑在下面「需求三」另外驗一次。
+        if pg.query_selector("#chainView") and pg.evaluate(
+                "() => { const m = document.getElementById('chainMap'); return !!(m && m.hidden); }"):
+            click(pg, "#chainView", 900)
+        ok(f"{vw}px 按「看關聯圖」之後關聯圖真的出現了",
+           pg.evaluate("() => { const m = document.getElementById('chainMap'); return !!m && !m.hidden; }"))
         sel = '#chainMap g.co[data-code="3711"]'
         if not ok(f"{vw}px 關聯圖上找得到日月光投控 3711 的節點",
                   pg.evaluate(f"() => !!document.querySelector({sel!r})")):
@@ -1943,6 +1970,149 @@ def t_new_industry(pg, base):
     ok("而且產業鏈頁本身還是正常的（有標題、有成分股）",
        len(text(pg, "#indChain h2")) > 1 and count(pg, "#memberTable tbody tr") > 0,
        text(pg, "#indChain h2"))
+
+    # ======================================================== 需求三（2026-09-20 第三件）
+    # Andy：「供應鏈關聯圖 這邊我覺得上下框度太長，改成 顯示族群以及族群標題底下顯示
+    #        個股小卡 如圖那樣」（他附的圖＝總覽「熱門題材」那種卡片）。
+    #
+    # 這一段驗四件事，每一件都要「畫面真的因此改變」：
+    #   ① 高度真的變短
+    #   ② 點個股小卡 → 右側產業關係面板真的開、有內容，而且 hash 沒變（不准跳頁）
+    #   ③ 點環節卡 → 下方成分股筆數真的被篩掉，再點一次真的取消
+    #   ④ 800px 小卡不跑出容器、沒有橫向捲軸
+    # 三條鏈都驗 —— 一般電子鏈是 2026-09-20 剛建的，環節數與公司數跟另外兩條差很多。
+    GOLIST = "() => { try { localStorage.setItem('tw.chainView', 'list'); } catch (e) {} }"
+
+    # ---------------------------------------------------------------- ① 高度
+    # 改動前（同一份本機資料、右側事件欄展開）實測 #industry/semiconductor 的整頁高度：
+    #   1366px → 4939（關聯圖 1174）　1500px → 5026（1345）　1920px → 5147（1360）
+    # 門檻取「改動前 − 400」，因為這次要解的就是「一張圖佔掉近半個螢幕高」：
+    # 少 400px 以上才叫真的短了，少一點點只是排版抖動。
+    PAGE_MAX = {1366: 4550, 1500: 4650, 1920: 4750}
+    for vw in (1366, 1500, 1920):
+        pg.set_viewport_size({"width": vw, "height": 1000})
+        pg.evaluate(GOLIST)
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        GEO = """() => { const h = (s) => { const e = document.querySelector(s);
+                return e ? Math.round(e.getBoundingClientRect().height) : 0; };
+            return { page: Math.round(document.documentElement.scrollHeight),
+                     list: h('#chainList'), map: h('#chainMap'),
+                     cards: document.querySelectorAll('#chainList .segcard').length,
+                     minis: document.querySelectorAll('#chainList .sco').length }; }"""
+        g1 = pg.evaluate(GEO)
+        ok(f"{vw}px 產業鏈頁預設就是環節卡清單（不是關聯圖）",
+           g1["cards"] > 0 and g1["map"] == 0, g1)
+        ok(f"{vw}px 清單上真的排出了個股小卡（半導體鏈 52 家）", g1["minis"] >= 50, g1)
+        was = {1366: 4939, 1500: 5026, 1920: 5147}[vw]
+        ok(f"{vw}px 半導體鏈整頁高度真的變短（改動前 {was}）",
+           g1["page"] <= PAGE_MAX[vw], f"整頁 {g1['page']}，門檻 {PAGE_MAX[vw]}")
+        # ★ 自我校準：跟「同一頁切到關聯圖」自己比，資料換了也不會誤判（DECISIONS #206 的教訓）
+        click(pg, "#chainView", 1200)
+        g2 = pg.evaluate(GEO)
+        if ok(f"{vw}px 按「看關聯圖」真的切得出關聯圖", g2["map"] > 200 and g2["list"] == 0, g2):
+            ok(f"{vw}px 環節卡清單比關聯圖矮很多（不到六成）",
+               g1["list"] < g2["map"] * 0.6, f"清單 {g1['list']} vs 關聯圖 {g2['map']}")
+            ok(f"{vw}px 換成清單之後整頁至少短 400px",
+               g2["page"] - g1["page"] >= 400, f"關聯圖版 {g2['page']} → 清單版 {g1['page']}")
+        click(pg, "#chainView", 900)
+        ok(f"{vw}px 再按一次切得回環節卡清單",
+           pg.evaluate("() => { const l = document.getElementById('chainList'); return !!l && !l.hidden; }"))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ------------------------------------------------- ②③ 三條鏈各驗一次點擊行為
+    # 每條鏈挑一檔一定在清單上的台股，以及一個一定有台股的環節
+    # （鏈 id, 個股代號, 簡稱, 要點的環節, 這檔所屬環節, 這檔所屬族群）
+    CHAINS = [("semiconductor", "3711", "日月光投控", "foundry", "osat_test", "osat"),
+              ("ai_server", "3017", "奇鋐", "thermal", "thermal", "server_thermal"),
+              ("electronics", "2327", "國巨", "panel_mfg", "passive_comp", "passive")]
+    SNAP2 = """() => ({ hash: location.hash,
+        rows: document.querySelectorAll('#memberTable tbody tr').length,
+        cardSel: [...document.querySelectorAll('#chainList .segcard.sel')].map(c => c.dataset.seg),
+        chipSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(c => c.dataset.seg),
+        tiles: [...document.querySelectorAll('#groupCards .tile.sel')].map(t => t.dataset.gid),
+        box: (document.getElementById('coBox') || {}).innerText || '',
+        side: !!document.querySelector('.chainrow > #coBox.relside') })"""
+    for cid, code, cname, seg_click, seg_of_co, gid_of_co in CHAINS:
+        pg.evaluate(GOLIST)
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(1700)
+        n_seg = count(pg, "#chainList .segcard")
+        if not ok(f"{cid} 排得出環節卡", n_seg >= 8, n_seg):
+            continue
+        # --- 每張環節卡的標題底下真的有個股小卡（Andy 的原話）
+        ok(f"{cid} 環節卡是「標題＋底下一排個股小卡」的結構",
+           pg.evaluate("""() => [...document.querySelectorAll('#chainList .segcard')]
+               .filter(c => c.querySelector('.sh .nm') && c.querySelector('.sms .sco')).length"""), n_seg)
+        # --- 那 140 條邊沒有整個消失：卡片要寫出上下游是哪幾格、小卡要標關係條數
+        rel = pg.evaluate("""() => ({ flow: document.querySelectorAll('#chainList .segcard .sf').length,
+            sg: document.querySelectorAll('#chainList .segcard .sf .sg').length,
+            badge: document.querySelectorAll('#chainList .sco .rel').length,
+            iso: document.querySelectorAll('#chainList .sco .rel.iso').length })""")
+        ok(f"{cid} 環節卡有寫出「上游／下游」是哪幾格，而且那幾格可以點",
+           rel["flow"] >= 5 and rel["sg"] >= 5, rel)
+        ok(f"{cid} 每張個股小卡都標了「這家有幾條上下游關係」", rel["badge"] == count(pg, "#chainList .sco"), rel)
+        # --- ② 點個股小卡：面板真的開、有內容、不跳頁
+        before = pg.evaluate(SNAP2)
+        if ok(f"{cid} 清單上找得到 {cname} {code} 的小卡",
+              pg.evaluate(f"() => !!document.querySelector('#chainList .sco[data-code=\"{code}\"]')")):
+            click(pg, f'#chainList .sco[data-code="{code}"]', 1100)
+            after = pg.evaluate(SNAP2)
+            ok(f"{cid} 點個股小卡不會跳頁（hash 沒變）", after["hash"] == before["hash"],
+               f"{before['hash']} → {after['hash']}")
+            ok(f"{cid} 點個股小卡真的展開「產業關係」面板，而且排在圖的旁邊",
+               after["side"] and cname in after["box"] and "看個股頁" in after["box"], after["box"][:120])
+            ok(f"{cid} 面板裡真的有產業關係的內容（上游／下游／還沒建立關聯 至少一項）",
+               any(k in after["box"] for k in ("上游", "下游", "還沒建立上下游關聯")), after["box"][:200])
+            changed(f"{cid} 點小卡之後成分股筆數真的變了", before["rows"], after["rows"])
+            ok(f"{cid} 點小卡會把它所屬的環節一起選起來（{seg_of_co}）",
+               after["cardSel"] == [seg_of_co] and after["chipSeg"] == [seg_of_co], after)
+            ok(f"{cid} 它所屬的族群卡片也跟著亮（{gid_of_co}）", gid_of_co in after["tiles"], after["tiles"])
+            # 點到底：面板裡那顆「看個股頁 →」真的走得到個股頁
+            pg.eval_on_selector("#coBox .btn.primary", "b => b.click()"); pg.wait_for_timeout(1800)
+            ok(f"{cid} 面板裡的「看個股頁 →」真的進得了 {code} 的個股頁",
+               pg.evaluate("location.hash") == f"#stock/{code}", pg.evaluate("location.hash"))
+            pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(400)
+            pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(1700)
+        # --- ③ 點環節卡：成分股真的被篩掉，再點一次真的取消
+        b0 = pg.evaluate(SNAP2)
+        if ok(f"{cid} 清單上有 {seg_click} 這一格",
+              pg.evaluate(f"() => !!document.querySelector('#chainList .segcard[data-seg=\"{seg_click}\"]')")):
+            click(pg, f'#chainList .segcard[data-seg="{seg_click}"] .sh', 1000)
+            a1 = pg.evaluate(SNAP2)
+            ok(f"{cid} 點環節卡，成分股筆數真的被篩掉", 0 < a1["rows"] < b0["rows"],
+               f"{b0['rows']} → {a1['rows']}")
+            ok(f"{cid} 而且那張環節卡真的亮起來", a1["cardSel"] == [seg_click], a1["cardSel"])
+            click(pg, f'#chainList .segcard[data-seg="{seg_click}"] .sh', 1000)
+            a2 = pg.evaluate(SNAP2)
+            ok(f"{cid} 再點一次真的取消，筆數回到全部",
+               a2["rows"] == b0["rows"] and not a2["cardSel"], f"{a1['rows']} → {a2['rows']}")
+
+    # ---------------------------------------------------------------- ④ 窄畫面
+    for vw in (800, 390):
+        pg.set_viewport_size({"width": vw, "height": 1000})
+        for cid in ("semiconductor", "ai_server", "electronics"):
+            pg.evaluate(GOLIST)
+            pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(400)
+            pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+            pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+            pg.wait_for_timeout(300)
+            over = pg.evaluate("""() => { const l = document.getElementById('chainList'); if (!l) return null;
+                let n = 0; l.querySelectorAll('.segcard').forEach(c => { const b = c.getBoundingClientRect();
+                  c.querySelectorAll('.sco').forEach(e => { const r = e.getBoundingClientRect();
+                    if (r.right > b.right + 2 || r.left < b.left - 2 || r.bottom > b.bottom + 2) n++; }); });
+                return n; }""")
+            ok(f"{cid} 視窗 {vw}px 時個股小卡沒有跑出環節卡", over == 0, over)
+            ok(f"{cid} 視窗 {vw}px 時沒有橫向捲軸",
+               pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+               pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+            # 手機字級：SVG 已經不在畫面上，這裡量的是真正的 DOM 字級
+            small = pg.evaluate("""() => [...document.querySelectorAll('#chainList .sco .nm, #chainList .sco .code,'
+                + ' #chainList .sco .rel, #chainList .segcard .sf, #chainList .segcard .sh .nm')]
+                .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(v => v < 11).length""")
+            ok(f"{cid} 視窗 {vw}px 時環節卡上沒有小於 11px 的字", small == 0, small)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate(GOLIST)
 
 
 def t_new_flow(pg, base):
@@ -2170,6 +2340,114 @@ def t_new_flow(pg, base):
        nw["fx"] and abs(nw["fxW"] - nw["elW"]) <= 2, nw)
     ok("800px 族群晶片沒有跑出容器", nw["chipsIn"], nw)
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+def t_new_layout(pg, base):
+    """2026-09-20 Andy 兩件回報的驗收（site/index.html + site/app.js）：
+
+    ① 「熱門題材 & 今日候選 框格需要一樣大，超出部分改拉Bar」
+    ② 「換另一台電腦、螢幕大小不同就會影響整體變化」（附截圖：三張圖壓字）
+
+    驗的是**畫面真的因此改變了**，不是元素存在：
+      · 題材那一格真的捲得動（scrollTop 真的從 0 變成非 0），而且高度有上限；
+      · 兩張卡在 1280 / 1440 / 1920 各量一次，差 ≤ 2px；
+      · 三張圖（市場寬度／法人連續買超／族群估值）在五個常見螢幕寬度下，
+        圖**裡面**的字不重疊、不跑出容器。
+        ★ 這一段一定要帶 `?svg=1` —— 線上版是 canvas，圖裡的字在 DOM 上不存在，
+          不帶這個參數量到的永遠是 0，等於沒驗（見 scripts/_preview.py 上方的說明）。
+    """
+    # ------------------------------------------------ ① 熱門題材：固定高度 + 真的捲得動
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    P = "#themeStrip"
+    m0 = pg.evaluate("""() => { const e = document.querySelector('#themeStrip');
+        if (!e) return null;
+        const cs = getComputedStyle(e);
+        return { client: e.clientHeight, scroll: e.scrollHeight, top: e.scrollTop,
+                 overflow: cs.overflowY, tiles: e.querySelectorAll('.tile').length }; }""")
+    if not ok("熱門題材那一格找得到", bool(m0) and m0["tiles"] > 0, m0):
+        return
+    ok("熱門題材的高度有上限（不再被內容撐到 1400px）", m0["client"] <= 720, m0)
+    ok("熱門題材的內容超出了外框（所以才需要拉Bar）", m0["scroll"] > m0["client"] + 4, m0)
+    ok("熱門題材那一格可以捲（overflow-y 不是 visible）", m0["overflow"] in ("auto", "scroll"), m0)
+    # 真的捲它一段，驗 scrollTop 真的變了
+    pg.evaluate("() => { document.querySelector('#themeStrip').scrollTop = 240; }")
+    pg.wait_for_timeout(350)
+    m1 = pg.evaluate("() => ({ top: document.querySelector('#themeStrip').scrollTop })")
+    ok("真的捲得動（scrollTop 從 0 變成非 0）", m1["top"] > 100, [m0["top"], m1["top"]])
+    # 捲到底之後最後一個題材要看得到（他截圖裡就是「電源 / BBU」之後整段不見）
+    seen = pg.evaluate("""() => { const e = document.querySelector('#themeStrip');
+        e.scrollTop = e.scrollHeight; const tiles = [...e.querySelectorAll('.tile')];
+        const last = tiles[tiles.length - 1]; if (!last) return null;
+        const er = e.getBoundingClientRect(), lr = last.getBoundingClientRect();
+        return { name: (last.querySelector('.t') || {}).textContent,
+                 inside: lr.top >= er.top - 2 && lr.bottom <= er.bottom + 2 }; }""")
+    ok("捲到底看得到最後一個題材（以前是被裁掉而且沒有捲軸）", bool(seen) and seen["inside"], seen)
+
+    # 今日候選那一格也要是「固定高度 + 拉Bar」（Andy：所有相關版面一致）
+    m2 = pg.evaluate("""() => { const e = document.querySelector('.eqpair > .card > .tw');
+        if (!e) return null; e.scrollTop = 200;
+        return { client: e.clientHeight, scroll: e.scrollHeight, top: e.scrollTop,
+                 rows: document.querySelectorAll('#candBody tr').length }; }""")
+    ok("今日候選的表格也是固定高度 + 拉Bar，而且真的捲得動",
+       bool(m2) and m2["scroll"] > m2["client"] + 4 and m2["top"] > 100, m2)
+
+    # ------------------------------------------------ ② 兩張卡等高（三個寬度各量一次）
+    for w in (1280, 1440, 1920):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        hs = pg.evaluate("""() => [...document.querySelectorAll('.grid.eqpair > .card')]
+            .map(e => Math.round(e.getBoundingClientRect().height))""")
+        ok(f"[{w}px] 熱門題材／今日候選兩張卡等高（差 ≤ 2px）",
+           len(hs) == 2 and abs(hs[0] - hs[1]) <= 2, hs)
+        ok(f"[{w}px] 兩張卡的高度沒有被內容撐爆（≤ 720px）",
+           len(hs) == 2 and max(hs) <= 722, hs)
+
+    # ------------------------------------------------ ③ 三張圖在五個寬度都不壓字
+    SCAN = """
+    () => {
+      const want = ['breadth', 'trust', 'gval'];
+      const out = { overlaps: [], outside: [], nodes: {} };
+      for (const id of want) {
+        const host = document.getElementById(id);
+        if (!host || !host.getAttribute('_echarts_instance_')) { out.overlaps.push([id, '這張圖沒畫出來', '', 0, 0]); continue; }
+        const hr = host.getBoundingClientRect();
+        const bs = [...host.querySelectorAll('svg text')]
+          .filter(t => (t.textContent || '').trim().length)
+          .map(t => ({ t: (t.textContent || '').trim().slice(0, 18), r: t.getBoundingClientRect() }))
+          .filter(b => b.r.width > 1 && b.r.height > 1);
+        out.nodes[id] = bs.length;
+        for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+          const a = bs[i].r, b = bs[j].r;
+          const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ox <= 1 || oy <= 1) continue;
+          const inter = ox * oy, small = Math.min(a.width * a.height, b.width * b.height);
+          if (inter > 0.25 * small) out.overlaps.push([id, bs[i].t, bs[j].t, Math.round(ox), Math.round(oy)]);
+        }
+        for (const b of bs) {
+          const r = b.r;
+          const over = Math.max(hr.left - r.left, r.right - hr.right, hr.top - r.top, r.bottom - hr.bottom);
+          if (over > 1.5) out.outside.push([id, b.t, Math.round(over)]);
+        }
+      }
+      out.sideways = document.documentElement.scrollWidth > window.innerWidth + 1;
+      return out;
+    }"""
+    for w in (1280, 1366, 1440, 1536, 1920):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        # ?svg=1 讓 chart() 改用 SVG renderer，圖裡的字才會變成真的 <text> 節點
+        pg.goto(f"{base}?svg=1#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        r = pg.evaluate(SCAN)
+        ok(f"[{w}px] 三張圖的圖內文字都量得到（SVG renderer 有生效）",
+           sum(r["nodes"].values()) > 20, r["nodes"])
+        ok(f"[{w}px] 市場寬度／法人連續買超／族群估值 圖內文字不重疊",
+           not r["overlaps"], r["overlaps"][:4])
+        ok(f"[{w}px] 這三張圖的文字都沒有跑出自己的容器",
+           not r["outside"], r["outside"][:4])
+        ok(f"[{w}px] 總覽沒有橫向捲軸", not r["sideways"], r["sideways"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
 
 
 def t_themes(pg, base):
@@ -3460,12 +3738,22 @@ def t_batch7(pg, base):
         if (!c) return null; const p = (c.getOption().polar||[])[0]; return p ? p.radius : null; }""")
     ok("輪動時鐘的圓圈放大了（N5，72% → 84%）", str(r) == "84%", r)
 
-    # ---- N6 盤面上有順時針箭頭 ＋ 白話說明
+    # ---- N6 「順時針」這件事要講得出來
+    # ★ 2026-09-20：盤面上那四個 ↻ 箭頭移除了（理由寫在 site/app.js 的 graphic 區塊）。
+    #   兩個可放的位置（兩段交界 / 每段外角）分別會撞到「跑到圓周上的族群名」
+    #   與「該段自己的名字」，多寬度掃描兩種都量到重疊；
+    #   而 Andy 在 A4 輪動時鐘的需求第 2 條本來就寫「移除旋轉箭頭」。
+    #   N6 真正要保住的是「使用者知道它是順時針、而且知道順序」——
+    #   所以改驗圖下方那一行字真的寫出了方向與四段順序（那是 HTML，不可能溢出或壓字）。
     g = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-        if (!c) return null; const s = JSON.stringify(c.getOption().graphic||[]);
-        return { arrows: (s.match(/↻/g)||[]).length, hasWord: s.indexOf('行進方向') >= 0 }; }""")
-    ok("盤面上有順時針箭頭（N6）", bool(g) and g["arrows"] >= 4, g)
-    ok("箭頭旁邊有一句白話說明（N6）", bool(g) and g["hasWord"], g)
+        const s = c ? JSON.stringify(c.getOption().graphic||[]) : '';
+        const note = (document.getElementById('rotCenterNote')||{}).textContent || '';
+        return { arrows: (s.match(/↻/g)||[]).length, note: note,
+                 hasDir: note.indexOf('順時針') >= 0,
+                 hasOrder: ['落後', '改善', '領先', '轉弱'].every(k => note.indexOf(k) >= 0) }; }""")
+    ok("盤面上不再有會壓到族群名的 ↻ 箭頭（N6 改走文字）", bool(g) and g["arrows"] == 0, g)
+    ok("圖下方那行字有講「順時針」（N6）", bool(g) and g["hasDir"], g)
+    ok("圖下方那行字有把四段的順序寫出來（N6）", bool(g) and g["hasOrder"], g)
 
     # ---- N3 回放是「走過去」不是「跳格」：同一組族群時要用 merge（有補間動畫）
     ok("回放有補間動畫設定（N3「像螞蟻一樣緩步移動」）",
@@ -5131,7 +5419,7 @@ def main() -> int:
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
                          ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics),
                          ("新-大盤三張圖", t_new_market3), ("新-產業與個股", t_new_industry),
-                         ("新-資金流向", t_new_flow),
+                         ("新-資金流向", t_new_flow), ("新-版面等高與多寬度", t_new_layout),
                          ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             if args.only and not _want(args.only, name):
