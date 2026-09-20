@@ -19,9 +19,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 CODES = {
     "2330": "foundry", "2303": "foundry", "3711": "osat", "2311": "osat",
-    "2317": "ai_server_odm", "2382": "ai_server_odm", "3017": "server_thermal",
-    "2881": "finance", "2882": "finance", "2603": "shipping",
+    # 2026-09-21：族群換成 tide 的 110 板塊，這裡的 id 跟著改。
+    # 2881/2882 是壽險型金控，tide 的「銀行金融」只收銀行 ——
+    # 它們落到自動桶 ind_金融保險（口徑由 meta.ind_display 指定 pb_roe）。
+    "2317": "ai_server_odm", "2382": "ai_server_odm", "3017": "liquid_cooling",
+    "2881": "ind_金融保險", "2882": "ind_金融保險", "2603": "shipping_container",
 }
+
+# ★ 科技股 vs 傳產只寫這一份。
+# 2026-09-21 踩到：CODES 把 3017 從 server_thermal 改成 liquid_cooling，
+# 但下面 _synth() 的漂移判斷還寫著 server_thermal，於是 3017 被當成傳產給了負漂移，
+# 測試紅了卻和真正要守的事（強弱排序）無關。兩份名單必須是同一份。
+TECH_GROUPS = {"foundry", "osat", "ai_server_odm", "liquid_cooling", "air_cooling"}
+# 反過來的那一份給 test_relative_strength_beats_market 用
+LAGGARD_GROUPS = {"ind_金融保險", "shipping_container"}
 
 
 @pytest.fixture()
@@ -52,8 +63,7 @@ def _synth(days: int = 300, seed: int = 7):
     for i, (code, group) in enumerate(CODES.items()):
         # 科技股給正漂移、傳產給負漂移，且訊號要明顯大於雜訊，
         # 否則 20 日 RS 排序會被隨機波動主導，測試本身就變得不可靠
-        drift = 0.004 if group in ("foundry", "osat", "ai_server_odm",
-                                   "server_thermal") else -0.004
+        drift = 0.004 if group in TECH_GROUPS else -0.004
         steps = rng.normal(drift, 0.008, days)
         close = 100 * (1 + i * 0.3) * np.exp(np.cumsum(steps))
         prev = np.concatenate([[close[0]], close[:-1]])
@@ -109,7 +119,12 @@ def _synth(days: int = 300, seed: int = 7):
 
     company = pd.DataFrame([
         {"code": c, "name": f"股{c}", "market": "TWSE",
-         "industry": "半導體業" if g in ("foundry", "osat") else "其他",
+         # 2026-09-21：2881/2882 的產業別要給「金融保險」才驗得到金控的估值口徑。
+         # 它們落到自動桶 `ind_金融保險`，而自動桶的口徑是由
+         # groups.yaml 的 meta.ind_display 指定的（pb_roe）—— 給「其他」就繞過這條路徑，
+         # 測試會通過但實際上什麼都沒守到。
+         "industry": ("半導體業" if g in ("foundry", "osat")
+                      else "金融保險" if c in ("2881", "2882") else "其他"),
          "industry_code": "24"}
         for c, g in CODES.items()
     ])
@@ -219,7 +234,7 @@ def test_relative_strength_beats_market(populated):
     # 合成資料裡科技股是正漂移、傳產是負漂移，
     # 所以每個傳產族群都必須排在所有科技族群後面
     order = rs["group_id"].tolist()
-    laggards = {"finance", "shipping"}
+    laggards = LAGGARD_GROUPS
     tech_positions = [i for i, g in enumerate(order) if g not in laggards]
     lag_positions = [i for i, g in enumerate(order) if g in laggards]
     assert lag_positions, "測試資料應包含傳產族群"
@@ -446,7 +461,12 @@ def test_fundamental_payload_end_to_end(populated):
     assert f["metric_value"] == f["pb"]
 
     gv = json.loads((site / "group_valuation.json").read_text(encoding="utf-8"))
-    assert any(g["group_id"] == "finance" and g["metric"] == "pb_roe" for g in gv)
+    # ★ 守的不變式沒變：**金控股不准用本益比跟同業比**（保險的 EPS 會被評價損益扭曲）。
+    # 變的只是它現在落在哪一格 —— tide 的「銀行金融」只收銀行，壽險型金控落到
+    # 自動桶 ind_金融保險，所以這條同時在守「自動桶也吃得到 meta.ind_display 的口徑」。
+    assert any(g["group_id"] == "ind_金融保險" and g["metric"] == "pb_roe" for g in gv), (
+        "壽險型金控落到自動桶之後仍然要走 PB+ROE —— "
+        "口徑由 groups.yaml 的 meta.ind_display 指定，fundamental.group_valuation() 要讀它")
 
     bv = json.loads((site / "broker_views.json").read_text(encoding="utf-8"))
     assert bv and bv[0]["code"] == "2330" and bv[0]["target_price"] == 1500

@@ -36,6 +36,49 @@ def membership(cfg: dict | None = None) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def ind_display(cfg: dict | None = None) -> dict:
+    """自動桶（`ind_<法定產業別>`）的顯示設定：`{產業別: {name, valuation_metric?}}`。
+
+    2026-09-21 加的。族群改成 tide-tw.app 的 110 個板塊之後，有 33 個板塊
+    **就等於一整個法定產業別**（tide 自己也把它們叫作「〇〇・其他」）。
+    那些不在 `groups` 裡手寫成分股 —— 手寫的話會和 `_attach_groups()` 自動產生的
+    收容桶打架，同一檔股票被算兩次，M1 的資金佔比就錯了。
+    所以只在這裡登記「顯示成什麼名字」與「用什麼估值口徑」。
+    """
+    return ((cfg or load()).get("meta") or {}).get("ind_display") or {}
+
+
+def ind_names(cfg: dict | None = None) -> dict[str, str]:
+    """`{法定產業別: 顯示名}` —— **一次算好的對照表；逐列轉換一律用這支。**
+
+    ★★ 2026-09-21 踩到的效能地雷，不要再犯：
+       我一開始只寫了下面的 `ind_name()`，然後在 pandas 的 `.map()` 裡逐列呼叫它。
+       `ind_name` → `ind_display` → `load()` → **每一次都重新 `yaml.safe_load`
+       711 行的 groups.yaml**。130 萬列價格資料＝解析 130 萬次 YAML，
+       `build_payload` 從 292 秒爆成 25 分鐘還沒跑完。
+       這種錯不會報錯、只會慢到像卡死 —— 是 py-spy 的堆疊
+       （`yaml/scanner.py` ← `ind_name` ← `map_array`）才把它指出來的。
+       所以逐列轉換**一定**先拿這支的結果當字典。
+    """
+    out = {}
+    for k, v in ind_display(cfg).items():
+        nm = v.get("name") if isinstance(v, dict) else v
+        out[str(k)] = str(nm) if nm else str(k)
+    return out
+
+
+def ind_name(industry, cfg: dict | None = None) -> str:
+    """法定產業別 → 要顯示的板塊名。沒有登記就原樣回傳。
+
+    ★ 四個地方會產生自動桶（flow / fundamental / rrg / build_payload），
+      名字**只能有一個來源**，否則排行說「半導體業」、熱力圖說「半導體・其他」，
+      使用者會以為那是兩個不同的族群。
+    ⚠ 這支每呼叫一次就讀一次 YAML —— **只給「查一兩筆」用**。
+      要對一整個 Series 或一個迴圈轉名字，用 `ind_names()` 拿字典（見上面的地雷）。
+    """
+    return ind_names(cfg).get(str(industry), str(industry))
+
+
 def benchmarks(cfg: dict | None = None) -> dict[str, str]:
     return (cfg or load()).get("benchmarks") or {}
 

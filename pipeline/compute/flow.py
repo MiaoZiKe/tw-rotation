@@ -35,7 +35,11 @@ def _attach_groups(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
         df = df.merge(ind, on="code", how="left")
         fallback = df["group_id"].isna() & df["industry"].notna()
         df.loc[fallback, "group_id"] = "ind_" + df.loc[fallback, "industry"].astype(str)
-        df.loc[fallback, "group_name"] = df.loc[fallback, "industry"]
+        # 顯示名走 tide 的「〇〇・其他」，四個產生自動桶的地方共用 loader 的同一份對照表。
+        # ★ 一定要先把字典拿出來 —— 逐列呼叫 loader.ind_name() 會每列重讀一次 YAML。
+        _indmap = loader.ind_names()
+        _ind = df.loc[fallback, "industry"].astype(str)
+        df.loc[fallback, "group_name"] = _ind.map(_indmap).fillna(_ind)
         df.loc[fallback, "tier"] = "standalone"
         df.loc[fallback, "chain"] = "industry"
 

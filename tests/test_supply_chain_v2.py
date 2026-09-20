@@ -218,14 +218,17 @@ def test_散熱族群三個檔要對得起來():
     t = yaml.safe_load((root / "themes.yaml").read_text(encoding="utf-8"))
     sc = _sc()
 
-    grp = set(g["groups"]["server_thermal"]["codes"])
+    # 2026-09-21：tide 的 110 板塊把散熱拆成「液冷散熱」與「氣冷與核心組件」兩格。
+    # 這條測試守的不變式沒有變 —— **散熱環節的公司一個都不准從族群量能裡漏掉** ——
+    # 只是現在要看兩格的聯集。拆格不是漏算，漏在兩格之外才是。
+    grp = set(g["groups"]["liquid_cooling"]["codes"]) | set(g["groups"]["air_cooling"]["codes"])
     thm = set(t["themes"]["thermal"]["codes"])
     chain = {c["ticker"] for c in sc["companies"]
              if c.get("segment") == "thermal" and c.get("tw_code")}
 
     missing = chain - grp
     assert not missing, (
-        f"supply_chain 的散熱環節有 {sorted(missing)}，但 groups.yaml 的 server_thermal 沒有 —— "
+        f"supply_chain 的散熱環節有 {sorted(missing)}，但 groups.yaml 的 liquid_cooling / air_cooling 都沒有 —— "
         "M1 族群量能會漏算它們")
     assert chain <= thm, (
         f"supply_chain 的散熱環節有 {sorted(chain - thm)}，但 themes.yaml 的散熱題材沒有")
@@ -292,9 +295,14 @@ def test_記憶體族群裡不可以有功率半導體():
     root = _loader.CHAIN_PATH.parent
     g = yaml.safe_load((root / "groups.yaml").read_text(encoding="utf-8"))["groups"]
     t = yaml.safe_load((root / "themes.yaml").read_text(encoding="utf-8"))["themes"]
-    assert "8261" not in g["memory"]["codes"], "8261 富鼎是功率半導體廠，不是記憶體"
+    # 2026-09-21：tide 的 110 板塊把 memory 拆成 hbm / nor_niche_memory / memory_module 三格，
+    # ic_design 則改叫 hpc_network_ic。守的東西完全沒變：
+    # **功率半導體不准出現在任何一格記憶體裡、伺服器 ODM 不准出現在 IC 設計裡**。
+    mem = set().union(*(set(g[k]["codes"]) for k in
+                        ("hbm", "nor_niche_memory", "memory_module")))
+    assert "8261" not in mem, "8261 富鼎是功率半導體廠，不是記憶體"
     assert "8261" not in t["hbm_memory"]["codes"], "8261 富鼎是功率半導體廠，不是記憶體"
-    assert "6669" not in g["ic_design"]["codes"], "6669 緯穎是 AI 伺服器 ODM，不是 IC 設計"
+    assert "6669" not in g["hpc_network_ic"]["codes"], "6669 緯穎是 AI 伺服器 ODM，不是 IC 設計"
 
 
 def test_鎧俠不在HBM環節():

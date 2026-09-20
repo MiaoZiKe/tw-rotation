@@ -1,372 +1,717 @@
-# 族群 / 題材對照表
+# 族群 / 題材對照表 —— 板塊定義以 tide-tw.app 的 110 個板塊為準
 #
 # 這是全案唯一需要人工維護的檔案，也是最有價值的一份 —— 抓得到的資料大家都有，
 # 族群怎麼切才是自己的判斷。
 #
+# 為什麼改成 110 個板塊（2026-09-21）
+# ------------------------------------
+# 舊版是自訂的 28 個族群。Andy 指定把「資金去向」與「輪動時鐘」換成 tide-tw.app 的板塊，
+# 並親自截圖提供官方清單（逐字抄錄在 docs/tide_110_boards.md，那份是權威清單）。
+# **板塊名稱一律用 tide 的原文**，不自己改名 —— 名字不同就對不起來，改名等於白做。
+#
+# 這個檔案裡只有 77 個板塊，另外 33 個去哪了？
+# --------------------------------------------
+# tide 的 110 個板塊裡有 33 個「就等於一個法定產業別」：
+#   · 16 個是「〈法定產業別〉・其他」的收容桶（半導體・其他、光電・其他…），
+#   · 1 個是「其他產業」，
+#   · 16 個是整個產業別自己就是一個板塊（生技醫療、文化創意、水泥、造紙…，
+#     tide 沒有替它們再開「・其他」，代表那一格就是整個產業別）。
+# 這 33 個**刻意不在這裡手寫成分股**：build_payload 會替「沒有題材族群」的股票
+# 自動用法定產業別開一個 ind_<產業別> 族群（見 compute/flow._attach_groups），
+# 手寫會跟自動桶打架 —— 同一檔股票兩邊都出現，資金佔比被算兩次，
+# 而且每次有新股上市都要回來補一次。
+# 所以改成只登記「法定產業別 → tide 顯示名」的對照表（meta.ind_display），
+# 讓 ind_* 自動桶直接改用 tide 的名字。**pipeline 端要配合的事寫在 meta.ind_display 上面。**
+#
 # 維護規則：
-#   1. 這份是「題材族群」，與證交所法定產業別（自動來自 API）並存，兩者都會用
-#   2. 每個族群標 tier（upstream / midstream / downstream）以呈現供應鏈位置
-#   3. reviewed 欄位是上次人工檢視日期；超過一季沒檢視，dashboard 會顯示提醒
-#   4. 成分股寧缺勿濫：放進來的每一檔都要是該題材的實際受惠者，
-#      不是「新聞提過一次」就算
-#   5. valuation_metric 決定這個族群用哪種估值口徑比同業（金融專家的規則）：
+#   1. 每個板塊標 tier（upstream / midstream / downstream / standalone）以呈現供應鏈位置
+#   2. reviewed 欄位是上次人工檢視日期；超過一季沒檢視，dashboard 會顯示提醒
+#   3. 成分股寧缺勿濫：放進來的每一檔都要說得出「主要營收來源」，不是靠名字猜。
+#      每一檔的歸類理由、信心度與來源網址寫在 docs/groups_tide110_evidence.md。
+#   4. 一檔股票可以屬於多個板塊（散熱廠氣冷液冷都做、日月光既做封測也做先進封裝），
+#      量能會按 1/n 拆分（flow._attach_groups），所以掛兩個不會把市場總量灌水。
+#   5. valuation_metric 決定這個板塊用哪種估值口徑比同業（金融專家的規則）：
 #        pe      本益比（預設）—— 一般製造業、IC 設計、代工
 #        pb_roe  股價淨值比 + ROE —— 金融、壽險、營建資產股（PE 受評價損益與一次性扭曲）
 #        ps      股價營收比 —— 未獲利的生技、新創（PE 沒有意義）
 #      沒寫就是 pe。絕不跨族群比 PE 絕對值。
 #
-# 下游偵測：pipeline/groups/build_groups.py 會從官方產業價值鏈平台與
-# MoneyDJ 概念股抓出候選清單，與這份比對後產出「建議新增/移除」報告，
-# 但不會自動改這個檔案 —— 決定權在人。
+# 成分股怎麼驗的：每一檔都比對過 data/company_info（存在、非興櫃）與
+# data/price_daily/year=2026（2026-09-10～09-18 七個交易日連續有報價）。不通過的不留。
 
 meta:
-  version: 1
-  reviewed: "2026-09-11"
-  note: "初版種子，需 Andy 依實際追蹤標的校訂；已加 valuation_metric"
+  version: 3
+  reviewed: "2026-09-21"
+  source: "tide-tw.app 的 110 個板塊（Andy 2026-09-21 截圖，逐字抄錄於 docs/tide_110_boards.md）"
+  note: >-
+    板塊名稱以 tide 原文為準。象限（漲潮／輪動／觀望／退潮）是每天會變的資金狀態，
+    不是分類，所以刻意沒有寫進這個檔案。
+    77 個板塊在 groups 裡手寫成分，另外 33 個由 build_payload 的 ind_* 自動桶供應（見 ind_display）。
+
+  # ★ 給 pipeline 的請求（這個檔案自己做不到，需要 build_payload.py 配合）：
+  #   ind_* 自動桶目前用法定產業別原名當 group_name（「半導體業」「生技醫療業」）。
+  #   請改成：若 norm_industry(產業別) 在下面這張表裡，group_name 就用對應的 tide 顯示名。
+  #   group_id 維持 "ind_" + 產業別原名不要動（前端 L.groupByName 與熱力圖下鑽都吃它）。
+  #   沒對到的（目前只有 ETF）維持原名。
+  #   另外，帶 valuation_metric 的那一格要讓 compute/fundamental.group_valuation() 也吃到 ——
+  #   ind_* 目前一律用 pe，但壽險／證券／產險的 PE 會被評價損益扭曲，必須走 pb_roe。
+  #   改這一段的理由：這 33 個板塊的成分本來就該自動維護，手寫會和自動桶重複計算。
+  ind_display:
+    "半導體業": { name: "半導體・其他" }
+    "通信網路業": { name: "通信網路・其他" }
+    "其他電子業": { name: "其他電子・其他" }
+    "光電業": { name: "光電・其他" }
+    "金融保險": { name: "金融保險・其他", valuation_metric: pb_roe }
+    "化學工業": { name: "化學工業・其他" }
+    "電腦及週邊設備業": { name: "電腦週邊・其他" }
+    "塑膠工業": { name: "塑膠・其他" }
+    "汽車工業": { name: "汽車工業・其他" }
+    "資訊服務業": { name: "資訊服務・其他" }
+    "綠能環保": { name: "綠能環保・其他" }
+    "電器電纜": { name: "電器電纜・其他" }
+    "電機機械": { name: "電機機械・其他" }
+    "電子通路業": { name: "電子通路・其他" }
+    "數位雲端": { name: "數位雲端・其他" }
+    "電子零組件業": { name: "電子零組件・其他" }
+    "其他": { name: "其他產業" }
+    "生技醫療業": { name: "生技醫療" }
+    "文化創意業": { name: "文化創意" }
+    "貿易百貨": { name: "貿易百貨" }
+    "玻璃陶瓷": { name: "玻璃陶瓷" }
+    "水泥工業": { name: "水泥" }
+    "造紙工業": { name: "造紙" }
+    "橡膠工業": { name: "橡膠" }
+    "油電燃氣業": { name: "油電燃氣" }
+    "農業科技業": { name: "農業科技" }
+    "運動休閒": { name: "運動休閒" }
+    "居家生活": { name: "居家生活" }
+    "紡織纖維": { name: "紡織成衣" }
+    "鋼鐵工業": { name: "鋼鐵金屬" }
+    "食品工業": { name: "食品飲料" }
+    "觀光餐旅": { name: "觀光餐旅" }
+    "建材營造": { name: "營建地產" }
 
 groups:
 
-  # ---------------------------------------------------------------- 半導體鏈
-  ic_design:
-    name: IC 設計
+  # ---------------------------------------------------------------- 半導體
+  ip_asic:
+    name: 客製 ASIC 矽智財
     tier: upstream
     chain: semiconductor
-    # ★ 2026-09-19：拿掉 8299（群聯，移到 memory，見上）與 6669（緯穎）——
-    #   緯穎是 AI 伺服器 ODM，不是 IC 設計公司，它本來就在 ai_server_odm 裡。
-    # ★ 2026-09-19（第二輪）：收回四家被放錯格的 IC 設計公司 ——
-    #   5471 松翰原本在 semi_equipment（它是 MCU 設計公司，不是設備商），
-    #   6104 創惟／6526 達發／4966 譜瑞-KY 原本在 silicon_ip（它們賣的是晶片，不是 IP 授權）。
-    #   矽智財的定義是「授權 IP 收權利金」，力旺 3529 與 M31 6643 才是；
-    #   把賣晶片的公司放進去，會讓「矽智財」族群的量能與估值中位數整個失真。
-    #   ★ 2026-09-19 傍晚拿掉 3529（力旺）：這個檔案自己在 silicon_ip 那一格寫著
-    #     「矽智財的定義是『授權 IP 收權利金』，力旺 3529 與 M31 6643 才是」——
-    #     照它自己的定義，力旺就不該同時留在 ic_design。
-    #     力旺的權利金約佔營收 67～85%，隨晶圓代工廠量產按片數提撥，是純授權模式。
-    #     雙掛會把它的量能 1/n 拆到 IC 設計去，而 M1 正是靠族群量能判斷錢往哪跑。
-    #   ★ 2026-09-19 傍晚補上 3035（智原）：它在 supply_chain.yaml 的 ip_eda 環節有節點，
-    #     但 groups 與 themes 兩個檔都沒收 —— 新的交付護欄（tests/test_delivery_guard.py）
-    #     第一次跑就抓到。它原為聯電 IP／NRE 部門切分而來，走的是設計服務，
-    #     跟創意 3443、世芯 3661 同類，所以放 ic_design 不放 silicon_ip。
-    codes: ["2454", "3034", "2379", "3443", "6415", "3661", "5269",
-            "5471", "6104", "6526", "4966", "3035"]
-
-  silicon_ip:
-    name: 矽智財 IP
+    note: "把電路設計授權出去收權利金（IP），或替客戶做 NRE 與量產 turnkey（ASIC 設計服務）；自己不賣標準品晶片。"
+    codes: ["3529", "6643", "6533", "3443", "3661", "3035", "7749"]
+    # 3529 力旺、6643 M31、6533 晶心科、3443 創意、3661 世芯-KY、3035 智原、7749 意騰-KY
+  hpc_network_ic:
+    name: HPC 與網通 IC
     tier: upstream
     chain: semiconductor
-    codes: ["3529", "6643"]
-
+    note: "自有品牌的大型運算／通訊系統單晶片與伺服器管理晶片，營收看終端出貨量與規格升級。"
+    codes: ["2454", "2379", "5274", "3094", "6526"]
+    # 2454 聯發科、2379 瑞昱、5274 信驊、3094 聯傑、6526 達發
+  cpu_agentic_ai:
+    name: CPU 與 Agentic AI
+    tier: upstream
+    chain: semiconductor
+    note: "x86／Arm 主機平台的處理器授權與平台周邊控制晶片，營收隨 CPU 世代改版與 AI Agent 帶動的 CPU 需求走。"
+    codes: ["2388", "6756", "5269", "3014", "6104"]
+    # 2388 威盛、6756 威鋒電子、5269 祥碩、3014 聯陽、6104 創惟
+  cxl:
+    name: CXL 技術
+    tier: upstream
+    chain: semiconductor
+    note: "Compute Express Link 記憶體擴充與池化。台股角色集中在介面控制晶片（Retimer／Switch／Controller）與擴充卡，不是記憶體顆粒本身。"
+    codes: ["4966", "5269", "5351", "5289"]
+    # 4966 譜瑞-KY、5269 祥碩、5351 鈺創、5289 宜鼎
+  display_driver_ic:
+    name: 顯示驅動 IC
+    tier: upstream
+    chain: semiconductor
+    note: "面板驅動與觸控整合晶片（LDDI／TDDI／AMOLED DDI／T-Con），看面板出貨與規格升級。"
+    codes: ["3034", "4961", "3545", "8016", "3592", "3141"]
+    # 3034 聯詠、4961 天鈺、3545 敦泰、8016 矽創、3592 瑞鼎、3141 晶宏
+  analog_power_ic:
+    name: 類比與功率 IC
+    tier: upstream
+    chain: semiconductor
+    note: "類比／電源管理晶片與功率分立元件（MOSFET／IGBT／二極體），單價低但用量隨伺服器與電動車放大。"
+    codes: ["6415", "8081", "6138", "6719", "2436", "6693", "2481", "8261", "5425", "3675", "6525", "6435", "2342"]
+    # 6415 矽力*-KY、8081 致新、6138 茂達、6719 力智、2436 偉詮電、6693 廣閎科、2481 強茂、8261 富鼎、5425 台半、3675 德微、6525 捷敏-KY、6435 大中、2342 茂矽
+  optical_sensing:
+    name: 光感測與元件
+    tier: upstream
+    chain: semiconductor
+    note: "影像與光學感測晶片、以及感測器用的光學元件（彩色濾光片、晶圓級光學）。"
+    codes: ["3227", "6462", "6789", "3059"]
+    # 3227 原相、6462 神盾、6789 采鈺、3059 華晶科
   foundry:
     name: 晶圓代工
     tier: midstream
     chain: semiconductor
-    # ★ 2026-09-19：拿掉 3374（精材）—— 它做的是晶圓級封裝 WLCSP／TSV，
-    #   是封裝廠（台積電轉投資），不是晶圓代工廠。
-    #   ★ 2026-09-19 傍晚再修一次：我當時寫「它留在 advanced_packaging」也是錯的。
-    #     那一格的 note 寫著「CoWoS 產能相關**設備與材料**」，裡面是家登／萬潤／辛耘三家設備商，
-    #     而精材是**產能廠**，做的是 WLCSP／TSV（營收結構：晶圓測試約 44～50%、WLCSP 約 49%），
-    #     **不做 CoWoS 也不做 SoIC**。留在那一格會讓「先進封裝 CoWoS」族群的量能
-    #     混進一家成熟 WLCSP／測試廠。已移到 osat（封測）。
-    #   ★ 2026-09-19 傍晚補上 3105（穩懋）：全球最大砷化鎵晶圓代工廠，原本被錯放在 panel。
-    #     它跟台積電／聯電的差別是**化合物半導體（GaAs）而不是矽**，主要做射頻元件；
-    #     放同一格是因為商業模式相同（純代工、營收看產能利用率），不是因為製程相同。
-    codes: ["2330", "2303", "5347", "6770", "3105"]
-
-  memory:
-    name: 記憶體
+    note: "純代工模式：自己不賣終端晶片，營收看產能利用率。含矽基與化合物半導體（GaAs）代工廠。"
+    codes: ["2330", "2303", "5347", "6770", "3105", "8086", "4991"]
+    # 2330 台積電、2303 聯電、5347 世界、6770 力積電、3105 穩懋、8086 宏捷科、4991 環宇-KY
+  wide_bandgap:
+    name: 第三代半導體
     tier: midstream
     chain: semiconductor
-    # ★ 2026-09-19 拿掉 8261（富鼎）—— 那是功率半導體（MOSFET／IGBT）廠，跟記憶體無關。
-    #   它會污染記憶體族群的量能、漲跌幅與估值中位數，而 M1 正是靠族群量能判斷「錢往哪跑」。
-    #   （themes.yaml 的「HBM / 記憶體」題材也有同一個錯，一起拿掉。）
-    #   補上 2337（旺宏）—— themes.yaml 本來就有它，groups.yaml 沒有，同一家公司
-    #   在題材頁算得到、在族群頁算不到。
-    #   補上 8299（群聯）並從 ic_design 移出：它的營收主體是 NAND 模組與 eSSD、
-    #   驅動因子是 NAND 報價而不是設計案（2026H1 營收 1,088 億）。
-    codes: ["2408", "3006", "2344", "2337", "8299", "4967", "5289", "3260"]
-
+    note: "碳化矽（SiC）與氮化鎵（GaN）的磊晶與代工，終端是車用與高壓電源。"
+    codes: ["3707", "3016"]
+    # 3707 漢磊、3016 嘉晶
+  silicon_wafer:
+    name: 矽晶圓
+    tier: upstream
+    chain: semiconductor
+    note: "長晶、切片與拋光的矽晶圓廠，以及再生晶圓。"
+    codes: ["6488", "5483", "6182", "3532", "8028"]
+    # 6488 環球晶、5483 中美晶、6182 合晶、3532 台勝科、8028 昇陽半導體
+  fab_material:
+    name: 前段製程材料
+    tier: upstream
+    chain: semiconductor
+    note: "晶圓製程用的靶材、光阻與顯影材料、研磨材與載具耗材。"
+    codes: ["1785", "4749", "4772", "5234", "8091", "4768", "1560"]
+    # 1785 光洋科、4749 新應材、4772 台特化、5234 達興材料、8091 翔名、4768 晶呈科技、1560 中砂
+  fab_process_equip:
+    name: 前段製程設備
+    tier: upstream
+    chain: semiconductor
+    note: "自有品牌的晶圓製程機台：濕製程清洗／電鍍、原子層沉積（ALD）。"
+    codes: ["3131", "6937", "3583"]
+    # 3131 弘塑、6937 天虹、3583 辛耘
+  fab_equipment:
+    name: 晶圓廠設備
+    tier: upstream
+    chain: semiconductor
+    note: "替國際設備大廠代工整機與次系統模組，以及設備用精密零組件；營收看設備廠的資本支出循環。"
+    codes: ["3413", "6829", "8383", "5443"]
+    # 3413 京鼎、6829 千附精密、8383 千附、5443 均豪
+  pkg_equipment:
+    name: 封裝製程機台
+    tier: upstream
+    chain: semiconductor
+    note: "封裝與載板製程用的機台與載具：光罩盒、點膠、植球、壓合翹曲控制、烘烤與曝光。"
+    codes: ["3680", "6187", "6640", "7734", "7751", "2467", "6664", "6438", "3498", "3580"]
+    # 3680 家登、6187 萬潤、6640 均華、7734 印能科技、7751 竑騰、2467 志聖、6664 群翊、6438 迅得、3498 陽程、3580 友威科
+  pkg_metrology:
+    name: 封裝量測自動化
+    tier: upstream
+    chain: semiconductor
+    note: "後段量測與檢測：測試分選機、探針卡與測試座等測試介面，以及 AOI／電測設備。"
+    codes: ["7769", "6515", "6223", "6510", "6683", "6217", "2360", "3030", "3563", "3455", "6706"]
+    # 7769 鴻勁、6515 穎崴、6223 旺矽、6510 精測、6683 雍智科技、6217 中探針、2360 致茂、3030 德律、3563 牧德、3455 由田、6706 惠特
   osat:
-    name: 封測
+    name: 封測代工
     tier: downstream
     chain: semiconductor
-    # ★ 2026-09-19：拿掉 2311（日月光）—— 2018-04 已下市，與矽品合併為日月光投控 3711（本格已有）。
-    #   機器驗證：data/price_daily 裡 2018 年只剩 67 筆、2019 年起連續八年 0 筆。
-    #   它不會報錯的原因是 data/company_info 留了一筆欄位幾乎全空的殘影，
-    #   所以「查得到名字」不等於「這檔還在交易」。這類錯只有機器抓得到，
-    #   tests/test_group_codes_alive.py 從今天起每次 pytest 都會掃。
-    #   ★ 2026-09-19 傍晚補上 3374（精材）：它做的是晶圓級封裝與晶圓測試，屬封測，
-    #     不是先進封裝 CoWoS（見 foundry 那一格的說明）。
-    #   ★ 2026-09-19 傍晚補上 6257（矽格）：同樣是交付護欄抓到的 —— 它在 supply_chain 的
-    #     osat_test 環節早就有節點（而且有「矽格 → 聯發科」這條邊），兩個族群檔卻都沒收。
-    codes: ["3711", "6239", "2449", "8150", "3264", "3374", "6257"]
-
-  advanced_packaging:
-    name: 先進封裝 CoWoS
+    note: "委外封裝測試（OSAT）：以封裝為營收主體，含驅動 IC 的金凸塊與 COF 封測。"
+    codes: ["3711", "6239", "2441", "8131", "2329", "6147", "8150", "3265"]
+    # 3711 日月光投控、6239 力成、2441 超豐、8131 福懋科、2329 華泰、6147 頎邦、8150 南茂、3265 台星科
+  ic_test_service:
+    name: IC 測試服務
     tier: downstream
     chain: semiconductor
-    note: "台積電 CoWoS 產能相關設備與材料"
-    # ★ 2026-09-19：拿掉 6266（泰詠）與 2461（光群雷）。
-    #   6266 泰詠是 EMS／SMT 板級代工（TPEX 電子零組件業），跟先進封裝無關；
-    #   2461 光群雷做的是雷射全像「包裝」材料（日化品、菸酒防偽），
-    #   很可能是當初用關鍵字比對時「包裝」撞上「先進封裝」的「裝」字被收進來的。
-    #   ★ 2026-09-19 傍晚拿掉 3374（精材）——它是產能廠不是設備商，也不做 CoWoS／SoIC，已移到 osat。
-    #     這一格現在純粹是「CoWoS 產能相關的設備與材料」，跟 note 對得上。
-    codes: ["3680", "6187", "3583"]
-
-  semi_equipment:
-    name: 半導體設備
+    note: "純測試與驗證服務：晶圓測試、成品測試、預燒（Burn-in），以及材料分析與可靠度驗證實驗室。不做封裝。"
+    codes: ["2449", "3264", "6257", "3587", "3289", "6830"]
+    # 2449 京元電子、3264 欣銓、6257 矽格、3587 閎康、3289 宜特、6830 汎銓
+  ai_adv_packaging:
+    name: AI 先進封裝
+    tier: downstream
+    chain: semiconductor
+    note: "先進封裝製程的產能廠：CoWoS／SoIC 類 2.5D／3D 整合、晶圓級封裝（WLCSP／TSV）、系統級封裝（SiP）、晶圓級光學。"
+    codes: ["3711", "3374", "6271", "6451", "6789"]
+    # 3711 日月光投控、3374 精材、6271 同欣電、6451 訊芯-KY、6789 采鈺
+  hbm:
+    name: HBM 高頻寬記憶體
+    tier: midstream
+    chain: semiconductor
+    note: "高頻寬記憶體。台股沒有 HBM 顆粒廠，對應的是堆疊封測、探針卡與製程設備，以及投入客製化 DRAM 的自有產能廠。"
+    codes: ["2408", "6239", "2467", "6223"]
+    # 2408 南亞科、6239 力成、2467 志聖、6223 旺矽
+  nor_niche_memory:
+    name: NOR Flash 利基記憶體
+    tier: midstream
+    chain: semiconductor
+    note: "NOR Flash 與利基型 DRAM／SRAM：不打主流大宗市場，靠特殊規格與長料號生命週期。"
+    codes: ["2344", "2337", "3006", "5351"]
+    # 2344 華邦電、2337 旺宏、3006 晶豪科、5351 鈺創
+  memory_module:
+    name: 記憶體模組
+    tier: downstream
+    chain: semiconductor
+    note: "買顆粒做模組與控制晶片：DRAM 模組、SSD／儲存與工控儲存。"
+    codes: ["8299", "3260", "4967", "5289", "2451", "8271", "4973", "8088"]
+    # 8299 群聯、3260 威剛、4967 十銓、5289 宜鼎、2451 創見、8271 宇瞻、4973 廣穎、8088 品安
+  leadframe_chem:
+    name: 導線架與化學品
     tier: upstream
     chain: semiconductor
-    # ★ 2026-09-19：5471 松翰移到 ic_design（MCU 設計公司）、
-    #   6182 合晶移到 semi_material（矽晶圓廠，是材料不是設備）。
-    #   ★ 2026-09-19 傍晚補上 6196（帆宣）：在手訂單破千億、客戶含台積電與 ASML 的
-    #     半導體廠務／設備整合商，但 groups / themes / supply_chain 三個檔原本都查不到它
-    #     —— 跟「臻鼎 4958 三個檔都沒有」是同一類洞。
-    #   ★ 2026-09-19 傍晚補上 7751（竑騰，均熱片植片／壓合設備）：
-    #     它在 supply_chain 的 pkg_equipment 環節有節點，族群檔卻沒收。
-    #     （提醒：竑騰是 7751，6428 是台灣淘米 —— 今天早上差點寫錯。）
-    codes: ["3131", "3680", "6187", "3413", "6196", "7751"]
-
-  # ★ 2026-09-19 傍晚新開。測試介面（探針卡、測試座、測試載板）台股公認四雄
-  #   都在 supply_chain.yaml 的 test_interface 環節裡，但 groups.yaml 一個都沒有 ——
-  #   交付護欄抓到的。不併進 semi_equipment 的理由：這四家的景氣驅動是
-  #   「AI 晶片的測試次數與腳位數」，跟前段設備的「晶圓廠資本支出」拐點不同，
-  #   混在一起會讓族群量能的解讀失真（跟把設備商從 adv_pkg 拆出來是同一個理由）。
-  test_interface:
-    name: 測試介面
+    note: "封裝用導線架（含 LED 支架），以及 PCB／封裝用的電子級樹脂與化學品。"
+    codes: ["2351", "5285", "6548", "2486", "1717", "4755"]
+    # 2351 順德、5285 界霖、6548 長科*、2486 一詮、1717 長興、4755 三福化
+  ic_distribution:
+    name: IC 通路
+    tier: downstream
+    chain: semiconductor
+    note: "半導體與資通訊零組件代理；營收是「買斷再賣」，看庫存週期與匯率，不看自有產品。"
+    codes: [
+      "3036", "3702", "8112", "3033", "3048", "3010", "5434", "3209",
+      "3028", "6227", "8096", "8070", "3055", "2347",
+    ]
+    # 3036 文曄、3702 大聯大、8112 至上、3033 威健、3048 益登、3010 華立、5434 崇越、3209 全科、3028 增你強、6227 茂綸、8096 擎亞、8070 長華*、3055 蔚華科、2347 聯強
+  semi_facility:
+    name: 廠務工程
     tier: upstream
     chain: semiconductor
-    note: "探針卡、測試座、測試載板。只有穎崴查得到具名客戶（NVIDIA／AMD），其餘三家的報導一律不具名"
-    codes: ["6515", "6223", "6510", "6683"]
+    note: "晶圓廠與封裝廠的無塵室、氣體化學品輸送與機電統包工程；營收看在手訂單與新廠開工節奏。"
+    codes: ["2404", "6139", "6196", "5536", "6691", "6667", "3402", "6613"]
+    # 2404 漢唐、6139 亞翔、6196 帆宣、5536 聖暉*、6691 洋基工程、6667 信紘科、3402 漢科、6613 朋億*
 
-  semi_material:
-    name: 半導體材料
-    tier: upstream
-    chain: semiconductor
-    # ★ 2026-09-19：這一格原本五檔裡有四檔跟半導體材料無關，是這次查到最嚴重的一條 ——
-    #   M1 資金面的「半導體材料」族群量能有 4/5 是別的產業的錢，數字整個是錯的，
-    #   而且點進族群會列出一家直播公司。逐檔用 data/company_info 的證交所產業別獨立確認：
-    #     4763 材料*-KY  化學工業   濟南大自然新材料，醋酸纖維絲束（香菸濾嘴、眼鏡框）
-    #     6165 浪凡      數位雲端   浪凡網路科技，直播平台「浪 LIVE」
-    #     8104 錸寶      光電業     錸寶科技，PMOLED 面板
-    #     4707 磐亞      化學工業   非離子界面活性劑
-    #     1785 光洋科    其他電子   靶材與貴金屬回收精煉 —— 唯一對的一檔
-    #   補進 6182 合晶（TPEX 半導體業，矽晶圓），它原本被放在 semi_equipment。
-    #   這一格只剩兩檔是刻意的：寧可少，不要再放一家「聽起來有關」的進來。
-    codes: ["1785", "6182"]
-
-  # ---------------------------------------------------------------- AI 伺服器鏈
+  # ---------------------------------------------------------------- AI 伺服器
   ai_server_odm:
     name: AI 伺服器組裝
     tier: downstream
     chain: ai_server
-    # ★ 2026-09-19：拿掉 5388（中磊）—— 這是「公司自己否認」等級的錯。
-    #   中磊 2026 法說明講不把 AI 伺服器／Switch／CPO／OCS 列為主要發展方向，
-    #   選擇從 Edge 端切入 AI。它是寬頻／電信 CPE 網通廠，留在 networking 那一格。
-    codes: ["2317", "2382", "2356", "6669", "3231", "2376"]
-
-  server_thermal:
-    name: 伺服器散熱
+    note: "伺服器主機板、節點到整機櫃（L6～L11）的代工組裝與系統整合。"
+    codes: ["2317", "2382", "6669", "3231", "2356", "2376", "7711", "3706", "6933"]
+    # 2317 鴻海、2382 廣達、6669 緯穎、3231 緯創、2356 英業達、2376 技嘉、7711 永擎、3706 神達、6933 AMAX-KY
+  chassis_rail:
+    name: 機殼與滑軌
     tier: midstream
     chain: ai_server
-    note: "液冷是 AI 機櫃最關鍵的瓶頸之一；封裝層級的均熱片（健策）與系統層級的水冷同屬這一族群"
-    # ★ 2026-09-19 補上 3653（健策）。原本這一格沒有它，但 themes.yaml 的「散熱/液冷」
-    #   與 supply_chain.yaml 的 thermal 環節都有 —— 三個檔互相打架，
-    #   而 M1 的族群量能吃的是這一份，等於健策的資金流根本沒被算進伺服器散熱。
-    #   證據：市場口徑固定是「散熱三雄＝奇鋐＋雙鴻＋健策」（商周／工商／豐雲學堂／旺得富都這樣寫），
-    #   而且 2026-05-06 一則「Rubin 均熱片由雙片改單片、單價 150→50 美元」的傳言
-    #   讓三家同步重挫（健策險吞 3 根跌停、雙鴻連四跌、奇鋐跌停「拖累散熱族群」）——
-    #   那是封裝層級的 ASP 事件，卻打穿了系統層級的兩家，資金流事實上是同向的。
-    codes: ["3017", "3324", "6230", "2421", "8996", "3653", "2486"]
-
-  server_power:
-    name: 伺服器電源
+    note: "機櫃與伺服器鈑金機殼、滑軌與樞紐、以及液冷快接頭等金屬機構件。"
+    codes: ["8210", "3693", "3013", "2059", "6805", "6584", "3376"]
+    # 8210 勤誠、3693 營邦、3013 晟銘電、2059 川湖、6805 富世達、6584 南俊國際、3376 新日興
+  liquid_cooling:
+    name: 液冷散熱
     tier: midstream
     chain: ai_server
-    # ★ 2026-09-19：拿掉 3033（威健）與 2489（瑞軒），兩家都不生產電源。
-    #   3033 威健是電子通路業（AMD 亞太區最大代理商），代理 Infineon 的電源 IC 不等於做電源；
-    #   2489 瑞軒是光電業（顯示器／數位電視 ODM），查不到任何電源產品線。
-    #   放在這一格會讓使用者以為它們跟台達電、光寶科在搶同一張單。
-    codes: ["2308", "6409"]
-
-  pcb_abf:
-    name: PCB / ABF 載板
+    note: "水冷板（cold plate）、分歧管、冷卻分配單元（CDU）與快接頭；營收主體已是液冷的放這裡。"
+    codes: ["3017", "3324", "8996", "3653", "6805"]
+    # 3017 奇鋐、3324 雙鴻、8996 高力、3653 健策、6805 富世達
+  air_cooling:
+    name: 氣冷與核心組件
     tier: midstream
     chain: ai_server
-    # ★ 2026-09-19 補上 4958（臻鼎-KY）。它是全球 PCB 龍頭、AI 算力應用佔營收逾六成，
-    #   2026-06-01 以官方新聞稿宣布加入 NVIDIA MGX 生態系，卻在 groups.yaml 與 themes.yaml
-    #   兩個檔裡都完全查不到 —— 一張講 AI 伺服器 PCB 的圖上沒有臻鼎，是覆蓋率最大的洞。
-    #   （這一格同時裝了載板、高層數硬板、軟板三種東西，名稱會誤導，已列進下一批要拆的項目。）
-    codes: ["3037", "8046", "2368", "6269", "3189", "5469", "4958"]
-
-  connector:
-    name: 連接器 / 高速傳輸
+    note: "風扇、熱管、均溫板（VC）、散熱鰭片與均熱片（IHS）等氣冷時代就在做的核心零組件。"
+    codes: ["3017", "3324", "3653", "2486", "2421", "6230", "3338", "3483", "6275"]
+    # 3017 奇鋐、3324 雙鴻、3653 健策、2486 一詮、2421 建準、6230 尼得科超眾、3338 泰碩、3483 力致、6275 元山
+  server_psu:
+    name: 電源供應器
     tier: midstream
     chain: ai_server
-    # ★ 2026-09-19：五檔裡有三檔不是連接器廠，而且三檔都已經在它們該在的格子裡，
-    #   雙掛會把量能 1/n 拆到一個它們不屬於的族群：
-    #     2308 台達電 電源／散熱集團（已在 server_power）
-    #     6285 啟碁   網通 ODM（已在 networking）
-    #     2492 華新科 MLCC 被動元件（已在 passive）
-    #   真正的連接器／線材廠只有 3023 信邦與 3665 貿聯-KY。
-    codes: ["3023", "3665"]
-
-  optical_comm:
-    name: 光通訊 / 矽光子
+    note: "伺服器與資料中心的電源供應器、電源模組與電力系統。"
+    codes: ["2308", "2301", "6409", "6282", "6412"]
+    # 2308 台達電、2301 光寶科、6409 旭隼、6282 康舒、6412 群電
+  bbu:
+    name: BBU 電池備援
     tier: midstream
     chain: ai_server
-    # ★ 2026-09-19：拿掉 6143（振曜）。振曜本體是全球最大電子閱讀器組裝廠（電子紙），
-    #   光纖業務是它持股約四成的 6291 沛亨在做 —— 用「被投資公司在做什麼」定義母公司的族群，
-    #   等於把一家電子紙廠的量能算進光通訊。（6291 沛亨要不要收進來，等它的具名客戶查得到再說。）
-    codes: ["3450", "4979", "4977", "3363"]
+    note: "伺服器機櫃的電池備援模組（BBU／超級電容），斷電時撐住資料寫回。"
+    codes: ["6781", "3211", "4931", "3323", "6558", "6121"]
+    # 6781 AES-KY、3211 順達、4931 新盛力、3323 加百裕、6558 興能高、6121 新普
+  switch_wireless:
+    name: 高速交換器與無線網路
+    tier: downstream
+    chain: ai_server
+    note: "資料中心高速乙太網路交換器，以及電信與消費性的無線網通設備（CPE／AP／路由器）。"
+    codes: ["2345", "3380", "6285", "6245", "3704", "5388", "4906", "3596", "2332"]
+    # 2345 智邦、3380 明泰、6285 啟碁、6245 立端、3704 合勤控、5388 中磊、4906 正文、3596 智易、2332 友訊
+  optical_module:
+    name: 高速光模組
+    tier: midstream
+    chain: ai_server
+    note: "光收發模組的組裝與出貨（800G／1.6T）：買晶粒做模組，營收看模組出貨量。"
+    codes: ["4979", "3163", "4977", "6442", "6426", "3234", "7717", "6588"]
+    # 4979 華星光、3163 波若威、4977 眾達-KY、6442 光聖、6426 統新、3234 光環、7717 萊德光電-KY、6588 東典光電
+  silicon_photonics:
+    name: 矽光子與 CPO
+    tier: upstream
+    chain: ai_server
+    note: "共同封裝光學（CPO）與矽光子的上游：InP／GaAs 磊晶、雷射晶粒、光纖陣列（FAU）對準接合與被動光學元件。不含模組組裝。"
+    codes: ["3081", "2455", "3450", "3363", "4908", "3491"]
+    # 3081 聯亞、2455 全新、3450 聯鈞、3363 上詮、4908 前鼎、3491 昇達科
+  ic_substrate:
+    name: PCB 載板
+    tier: midstream
+    chain: ai_server
+    note: "IC 載板（ABF／BT）：晶片與主板之間的那一層板，材料是 ABF 膜與 BT 樹脂。"
+    codes: ["3037", "8046", "3189"]
+    # 3037 欣興、8046 南電、3189 景碩
+  pcb_rigid:
+    name: PCB 硬板製造
+    tier: midstream
+    chain: ai_server
+    note: "硬質印刷電路板：伺服器主板、通用基板（UBB）、HDI 與高多層板。"
+    codes: ["2368", "4958", "3044", "2313", "6191", "5469", "3715"]
+    # 2368 金像電、4958 臻鼎-KY、3044 健鼎、2313 華通、6191 精成科、5469 瀚宇博、3715 定穎投控
+  flex_pcb:
+    name: 軟板
+    tier: midstream
+    chain: ai_server
+    note: "軟性印刷電路板（FPC）與軟板材料，終端以手機、穿戴與車用為主。"
+    codes: ["6269", "6153", "8039", "3645", "3354"]
+    # 6269 台郡、6153 嘉聯益、8039 台虹、3645 達邁、3354 律勝
+  glass_fiber:
+    name: 玻纖布
+    tier: upstream
+    chain: ai_server
+    note: "玻纖紗與玻纖布 —— 銅箔基板（CCL）的補強材，低介電（Low-Dk）等級是高速板材的瓶頸。"
+    codes: ["1815", "5340"]
+    # 1815 富喬、5340 建榮
+  glass_substrate:
+    name: 玻璃基板
+    tier: midstream
+    chain: ai_server
+    note: "玻璃核心載板與玻璃穿孔（TGV）：下一代載板的候選材料，目前多在試產階段。"
+    codes: ["3149", "8064", "4770", "3673"]
+    # 3149 正達、8064 東捷、4770 上品、3673 TPK-KY
+  ai_interconnect:
+    name: AI 互連元件
+    tier: midstream
+    chain: ai_server
+    note: "機櫃內外的高速互連：GPU／CPU 插槽連接器、高速線束與背板連接器。"
+    codes: ["3665", "3533", "3526", "8103"]
+    # 3665 貿聯-KY、3533 嘉澤、3526 凡甲、8103 瀚荃
+  connector_ind:
+    name: 連接器 工業消費
+    tier: midstream
+    chain: ai_server
+    note: "工業、醫療、綠能與消費性的連接器與線束，不是資料中心高速料號。"
+    codes: ["3023", "3605", "6290", "6197"]
+    # 3023 信邦、3605 宏致、6290 良維、6197 佳必琪
+  connector_auto:
+    name: 車用連接器
+    tier: midstream
+    chain: ai_server
+    note: "車用連接器與線束端子，走的是車規認證與長週期料號。"
+    codes: ["3003", "6279", "6205"]
+    # 3003 健和興、6279 胡連、6205 詮欣
 
-  # ---------------------------------------------------------------- 其他電子
-  networking:
-    name: 網通
+  # ---------------------------------------------------------------- 一般電子
+  ai_pc:
+    name: AI PC 筆電與平板
     tier: downstream
     chain: electronics
-    codes: ["2345", "3704", "6285", "5388", "4906"]
-
-  panel:
-    name: 面板
+    note: "個人電腦、筆電與平板的品牌與代工；AI PC 是這一輪的換機理由。"
+    codes: ["2357", "2353", "2377", "2352", "3515", "2399", "2465"]
+    # 2357 華碩、2353 宏碁、2377 微星、2352 佳世達、3515 華擎、2399 映泰、2465 麗臺
+  ems:
+    name: EMS 電子代工
+    tier: downstream
+    chain: electronics
+    note: "電子專業製造服務：不做品牌，靠規模與製程良率賺管理財。"
+    codes: ["2324", "4938", "2312", "4916", "2328"]
+    # 2324 仁寶、4938 和碩、2312 金寶、4916 事欣科、2328 廣宇
+  edge_ai:
+    name: Edge AI AIoT
+    tier: downstream
+    chain: electronics
+    note: "工業電腦與邊緣運算平台：把推論放在現場而不是雲端，終端是工控、醫療、零售與車載。"
+    codes: ["2395", "6414", "6166", "8050", "6579", "3088", "8114", "3022", "6206", "3479", "3577", "3005"]
+    # 2395 研華、6414 樺漢、6166 凌華、8050 廣積、6579 研揚、3088 艾訊、8114 振樺電、3022 威強電、6206 飛捷、3479 安勤、3577 泓格、3005 神基
+  smartphone:
+    name: 智慧型手機
+    tier: downstream
+    chain: electronics
+    note: "手機整機組裝與手機專屬零組件（鏡頭、聲學、機構件、按鍵）。"
+    # ★ 2474 可成移除（2026-09-21，依 2026-09-20 已查證的事實）：
+    #   2020 年把泰州兩座 iPhone 機殼廠賣給藍思科技（約 410 億元）、退出 iPhone 機殼；
+    #   筆電機殼約占營收 8 成，第二條線是 NVIDIA 的 AI 伺服器機構件；
+    #   2026 年 1~8 月累計營收年減 33%，已與手機新機週期脫鉤。
+    #   留在這裡會讓 M1 的族群量能把它的資金算成「手機」。
+    #   它仍然在 precision_parts（精密機構件）裡，移除不會讓它從網站上消失。
+    codes: ["2317", "4938", "3008", "2439", "4915", "3311", "2354"]
+    # 2317 鴻海、4938 和碩、3008 大立光、2439 美律、4915 致伸、3311 閎暉、2474 可成、2354 鴻準
+  optical_lens:
+    name: 光學鏡頭
     tier: midstream
     chain: electronics
-    #   ★ 2026-09-19 傍晚拿掉 3105（穩懋）：它是**全球最大砷化鎵（GaAs）晶圓代工廠**
-    #     （市佔約 60～70%），做的是手機／基地台的射頻功率放大器 PA、低雜訊放大器 LNA、
-    #     RF Switch，跟面板毫無關係。證交所產業別是「半導體業」，其餘三家是「光電業」——
-    #     產業別本身就對不上。已移到 foundry。
-    codes: ["2409", "3481", "6116"]
-
-  passive:
-    name: 被動元件
+    note: "光學鏡頭與鏡片的設計與量產，終端是手機、車用與監控。"
+    codes: ["3008", "3019", "3362", "6209", "4976"]
+    # 3008 大立光、3019 亞光、3362 先進光、6209 今國光、4976 佳凌
+  ar_vr_optics:
+    name: AR VR XR 光學
+    tier: midstream
+    chain: electronics
+    note: "AR／VR／智慧眼鏡專用的光學件：Pancake 透鏡、波導與微投影模組。"
+    codes: ["3406", "3504"]
+    # 3406 玉晶光、3504 揚明光
+  panel:
+    name: 面板產業
+    tier: midstream
+    chain: electronics
+    note: "顯示面板與其模組、材料：TFT-LCD、電子紙、背光模組、偏光板與光學膜。"
+    codes: ["2409", "3481", "6116", "6176", "8215", "4960", "6278", "8069", "6143"]
+    # 2409 友達、3481 群創、6116 彩晶、6176 瑞儀、8215 明基材、4960 誠美材、6278 台表科、8069 元太、6143 振曜
+  microled:
+    name: MicroLED 顯示供應鏈
+    tier: midstream
+    chain: electronics
+    note: "Micro LED 的磊晶、晶粒、巨量轉移與封裝；2026 起同時切入資料中心短距光傳輸。"
+    codes: ["3714", "6854", "2393", "3437"]
+    # 3714 富采、6854 錼創科技-KY創、2393 億光、3437 榮創
+  mlcc:
+    name: 被動元件 MLCC
     tier: upstream
     chain: electronics
-    #   ★ 2026-09-19 傍晚拿掉 6266（泰詠）：它是 **EMS 服務商**（表面黏著加工 SMT），
-    #     營收結構聲學 61.5%、電力電子 12.9%、網通 11.3%。
-    #     被動元件是它的**供應商**（旺詮電阻、線藝電感、立先電容），不是它生產的東西 ——
-    #     把客戶放進供應商的族群，等於把資金流的方向反過來算。
-    #     （今天早上已經把它從 advanced_packaging 拿掉，這一格漏了。）
-    codes: ["2327", "2492", "2375"]
-
-  handset_chain:
-    name: 手機供應鏈
-    tier: downstream
+    note: "積層陶瓷電容（MLCC）與其陶瓷粉體；單價低、用量大，看的是稼動率與漲價循環。"
+    codes: ["2327", "2492", "3026", "6173"]
+    # 2327 國巨*、2492 華新科、3026 禾伸堂、6173 信昌電
+  resistor_protect:
+    name: 電阻與被動保護
+    tier: upstream
     chain: electronics
-    # ★ 2026-09-20 Andy 拍板，移出兩檔（證據在下面，不要再放回來）：
-    #   · 2474 可成 → 移到新的 casing 族群。理由：2020 年已把泰州兩座 iPhone 機殼廠
-    #     賣給藍思科技（價金約 410 億元）、**退出 iPhone 機殼**；目前筆電機殼約占營收
-    #     8 成，第二條線是 NVIDIA 的 AI 伺服器機構件。2026 年 1～8 月累計營收年減 33%，
-    #     已與手機新機週期脫鉤 —— 留在這一格會讓 M1 的族群量能歸錯方向。
-    #   · 3231 緯創 → 只留在 ai_server_odm。理由：主體已是 AI 伺服器
-    #     （supply_chain.yaml 的節點就掛在 assembly）。留在手機族群會讓
-    #     「手機供應鏈」的量能混進 AI 伺服器行情。
-    #   2317 鴻海**維持雙掛**（ai_server_odm ＋ 這裡）：iPhone 組裝與 AI 機櫃
-    #   都是它的主體業務，只掛一邊都會是錯的。
-    codes: ["2317", "3008", "4938"]
-
-  casing:
-    name: 機構件 / 金屬機殼
+    note: "晶片電阻與精密電阻，以及過流過壓保護元件（PPTC／NTC／壓敏電阻／ESD）。"
+    codes: ["3624", "2478", "2428", "6284", "6224", "6642"]
+    # 3624 光頡、2478 大毅、2428 興勤、6284 佳邦、6224 聚鼎、6642 富致
+  jp_passive:
+    name: 日本被動元件
+    tier: upstream
+    chain: electronics
+    note: "日系被動元件在台股的對應標的。台股沒有日商被動元件製造廠掛牌，唯一對得上的是日系被動元件的台灣代理商。"
+    codes: ["3090"]
+    # 3090 日電貿
+  capacitor:
+    name: 電容器
+    tier: upstream
+    chain: electronics
+    note: "鋁質電解電容與固態電容，終端是電源供應器、車用與工業電源。"
+    codes: ["2375", "2472", "4939", "6449", "5328", "6175"]
+    # 2375 凱美、2472 立隆電、4939 亞電、6449 鈺邦、5328 華容、6175 立敦
+  power_inductor:
+    name: 功率電感
+    tier: upstream
+    chain: electronics
+    note: "功率電感、磁珠與磁性元件，伺服器 VRM／PSU 與 DDR5 模組升級直接拉動用量。"
+    codes: ["3357", "3236", "6155"]
+    # 3357 臺慶科、3236 千如、6155 鈞寶
+  crystal:
+    name: 石英頻率控制
+    tier: upstream
+    chain: electronics
+    note: "石英晶體振盪器與頻率控制元件 —— 每一顆晶片都要有時脈源。"
+    codes: ["3042", "2484", "3221"]
+    # 3042 晶技、2484 希華、3221 台嘉碩
+  satellite:
+    name: 低軌衛星
     tier: midstream
     chain: electronics
-    # ★ 2026-09-20 新開。對應 supply_chain.yaml 的 metal_casing 環節。
-    #   開這一格是因為「筆電與伺服器機構件」的景氣拐點跟手機新機週期已經是兩件事
-    #   （看 CNC 稼動與資料中心機櫃出貨，不看新機規格）。
-    # ★ 目前只有一檔，所以族群中位數會留白 —— 那是對的（fundamental.py 的
-    #   MIN_ANY_N = 3，樣本不足就不印數字，不要為了有數字而硬湊成員）。
-    # ⬜ 待 Andy 校訂：2354 鴻準（證交所產業別同為「其他電子業」，且**目前不在任何
-    #   族群或題材裡**，等於在全站是隱形的）看起來是這一格最明顯的第二檔，
-    #   但我沒有這一輪的查證來源支撐它的營收結構，所以不自己加。
-    codes: ["2474"]
+    note: "低軌衛星（LEO）的地面終端、用戶端設備與天線／射頻元件。"
+    codes: ["2367", "6285", "5388"]
+    # 2367 燿華、6285 啟碁、5388 中磊
+  precision_parts:
+    name: 精密機構件
+    tier: midstream
+    chain: electronics
+    note: "金屬機殼與精密沖壓／CNC 機構件，終端是筆電、手機與消費電子。"
+    codes: ["2474", "2354", "5243"]
+    # 2474 可成、2354 鴻準、5243 乙盛-KY
+  factory_automation:
+    name: 工業自動化
+    tier: midstream
+    chain: electronics
+    note: "工廠自動化與智慧物流的系統整合、設備，以及其核心傳動元件（滾珠螺桿、線性滑軌、氣動、減速機、控制器）。"
+    codes: [
+      "2464", "2359", "6215", "3167", "8027", "6739", "2049", "1590",
+      "1597", "4540", "4583", "4585", "4576", "7750", "3162",
+    ]
+    # 2464 盟立、2359 所羅門、6215 和椿、3167 大量、8027 鈦昇、6739 竹陞科技、2049 上銀、1590 亞德客-KY、1597 直得、4540 全球傳動、4583 台灣精銳、4585 達明、4576 大銀微系統、7750 新代、3162 精確
+  machine_tool:
+    name: CNC 工具機
+    tier: midstream
+    chain: electronics
+    note: "綜合加工機與車床等工具機整機，景氣落後半導體約一到兩季。"
+    codes: ["4526", "1583", "1528", "6603"]
+    # 4526 東台、1583 程泰、1528 恩德、6603 富強鑫
 
-  # ---------------------------------------------------------------- 非電子
-  shipping:
-    name: 航運
+  # ---------------------------------------------------------------- 軟體與資訊服務
+  cyber_security:
+    name: 資安防護
     tier: standalone
-    chain: traditional
-    codes: ["2603", "2609", "2615", "2606", "2637"]
+    chain: software
+    note: "資安監控（SOC）、委外防護與資安產品；客戶以政府與金融為主。"
+    codes: ["6690", "7765"]
+    # 6690 安碁資訊、7765 中華資安
+  cloud_msp:
+    name: 雲端與 MSP
+    tier: standalone
+    chain: software
+    note: "公有雲代管與轉售（MSP）、雲端遷移與維運服務；營收跟著客戶的雲端用量走。"
+    codes: ["6689", "6811", "6214"]
+    # 6689 伊雲谷、6811 宏碁資訊、6214 精誠
+  saas:
+    name: 企業 SaaS
+    tier: standalone
+    chain: software
+    note: "自有企業軟體與訂閱制平台，收的是授權與月費而不是專案人天。"
+    codes: ["6752", "6870", "5203", "8932"]
+    # 6752 叡揚、6870 騰雲、5203 訊連、8932 智通*
+  ecommerce:
+    name: 電商零售
+    tier: standalone
+    chain: software
+    note: "線上零售平台與網路通路品牌。"
+    codes: ["8454", "5321"]
+    # 8454 富邦媒、5321 美而快
 
-  finance:
-    name: 金融
+  # ---------------------------------------------------------------- 金融
+  bank:
+    name: 銀行金融
     tier: standalone
-    chain: traditional
+    chain: financial
     valuation_metric: pb_roe
-    codes: ["2881", "2882", "2891", "2886", "2884", "2892", "2880", "2887"]
+    note: "以銀行子公司為主要獲利來源的金控與純銀行股；估值用股價淨值比＋ROE，不用本益比。"
+    codes: [
+      "2891", "2892", "2880", "2886", "5880", "2884", "2890", "2887",
+      "2801", "2834", "5876", "2812", "2845", "2838", "2836", "2897",
+    ]
+    # 2891 中信金、2892 第一金、2880 華南金、2886 兆豐金、5880 合庫金、2884 玉山金、2890 永豐金、2887 台新新光金、2801 彰銀、2834 臺企銀、5876 上海商銀、2812 台中銀、2845 遠東銀、2838 聯邦銀、2836 高雄銀、2897 王道銀行
 
-  steel:
-    name: 鋼鐵
+  # ---------------------------------------------------------------- 傳產與內需
+  shipping_container:
+    name: 貨櫃航運
     tier: standalone
     chain: traditional
-    codes: ["2002", "2027", "2014", "2029"]
-
+    note: "貨櫃船公司，營收看運價指數（SCFI）與艙位供需。"
+    codes: ["2603", "2609", "2615"]
+    # 2603 長榮、2609 陽明、2615 萬海
+  shipping_bulk:
+    name: 散裝航運
+    tier: standalone
+    chain: traditional
+    note: "散裝船公司，營收看波羅的海乾散貨指數（BDI）與船隊結構。"
+    codes: ["2606", "2605", "2637", "2617", "5608", "2612", "2601", "2641"]
+    # 2606 裕民、2605 新興、2637 慧洋-KY、2617 台航、5608 四維航、2612 中航、2601 益航、2641 正德
+  airline:
+    name: 航空與空運
+    tier: standalone
+    chain: traditional
+    note: "客運與貨運航空公司，以及空運／海空承攬（forwarder）。"
+    codes: ["2610", "2618", "2646", "6757", "5609", "2636", "2643", "7716"]
+    # 2610 華航、2618 長榮航、2646 星宇航空、6757 台灣虎航、5609 中菲行、2636 台驊控股、2643 捷迅、7716 昱臺國際
+  land_transport:
+    name: 陸運與宅配
+    tier: standalone
+    chain: traditional
+    note: "軌道與公路運輸、宅配與物流、貨櫃集散站與港埠作業。"
+    codes: ["2633", "2607", "2608", "2642", "2611", "5607", "2613", "5601", "5603", "8367"]
+    # 2633 台灣高鐵、2607 榮運、2608 嘉里大榮、2642 宅配通、2611 志信、5607 遠雄港、2613 中櫃、5601 台聯櫃、5603 陸海、8367 建新國際
+  defense:
+    name: 國防軍工
+    tier: standalone
+    chain: traditional
+    note: "軍用航太與船艦的製造與維修（MRO）、無人機。營收看國防預算與軍購案落地節奏。"
+    codes: ["2634", "8033", "6753", "2208", "2645", "2630"]
+    # 2634 漢翔、8033 雷虎、6753 龍德造船、2208 台船、2645 長榮航太、2630 亞航
   petrochemical:
-    name: 塑化
+    name: 石化與塑膠產業
     tier: standalone
     chain: traditional
-    #   ★ 2026-09-19 傍晚拿掉 1101（台泥）：這一格其餘四檔是台塑四寶
-    #     （1301 台塑、1303 南亞、1326 台化、6505 台塑化），台泥是**水泥工業**，
-    #     產業別與營收驅動（水泥報價、基建需求）都跟石化無關。
-    #     目前沒有水泥族群，所以台泥暫時不屬於任何題材族群 ——
-    #     它仍然會出現在「法定產業別 → 水泥工業」那一頁，不會不見。
-    codes: ["1301", "1303", "1326", "6505"]
+    note: "上游石化原料與塑膠製品，營收看油價、乙烯價差與中國供需。"
+    codes: ["1301", "1303", "1326", "6505", "1314", "1312", "1304"]
+    # 1301 台塑、1303 南亞、1326 台化、6505 台塑化、1314 中石化、1312 國喬、1304 台聚
+  env_recycle:
+    name: 資源環保工業
+    tier: standalone
+    chain: traditional
+    note: "廢棄物清運與處理、貴金屬與資源回收、水資源與廠務清洗。"
+    codes: ["8390", "9955", "8422", "8473", "6894", "6944", "3551"]
+    # 8390 金益鼎、9955 佳龍、8422 可寧衛*、8473 山林水、6894 衛司特、6944 兆聯實業、3551 世禾
 
-  heavy_electric:
-    name: 重電
+  # ---------------------------------------------------------------- 基礎建設與能源
+  wire_cable:
+    name: 電器電纜
     tier: standalone
     chain: infrastructure
-    note: "AI 資料中心用電需求的間接受惠"
-    codes: ["1503", "1504", "1513", "1519", "1514"]
-
-  green_energy:
-    name: 綠能
+    note: "電力電纜與裸銅線，營收看銅價與電網／資料中心的布線需求。"
+    codes: ["1605", "1609", "1608", "2061"]
+    # 1605 華新、1609 大亞、1608 華榮、2061 風青
+  solar:
+    name: 太陽能產業
     tier: standalone
     chain: infrastructure
-    # ★ 2026-09-19：拿掉 6806（森崴能源）。它確實是綠能公司，但因子公司富崴承攬台電離岸風電
-    #   二期嚴重虧損、淨值轉為負數，證交所公告自 2026-06-23 起終止上市，資料湖最後一筆是 2026-06-22。
-    #   這一檔是機器掃出來的、沒有任何一位分析師回報 —— 「族群成分對不對」與「這檔還在不在」
-    #   是兩件事，後者只有機器查得到。
-    codes: ["3576", "6438", "1513"]
-
-  biotech:
-    name: 生技醫療
+    note: "太陽能電池、模組與電廠系統，以及導電漿等關鍵材料。"
+    codes: ["6443", "3576", "6244", "3691"]
+    # 6443 元晶、3576 聯合再生、6244 茂迪、3691 碩禾
+  wind_power:
+    name: 離岸風電
     tier: standalone
-    chain: traditional
-    valuation_metric: ps
-    codes: ["6446", "4737", "1795", "6547", "4746"]
-
-  tourism:
-    name: 觀光餐旅
+    chain: infrastructure
+    note: "離岸風場的水下基礎、塔架、葉片樹脂與開發商。"
+    codes: ["3708", "2072", "9958"]
+    # 3708 上緯投控、2072 世紀風電、9958 世紀鋼
+  energy_storage:
+    name: 儲能系統整合
     tier: standalone
-    chain: traditional
-    codes: ["2707", "2739", "2731", "5706"]
+    chain: infrastructure
+    note: "電網級儲能系統整合、售電業與汽電共生；營收看台電輔助服務標案。"
+    codes: ["6869", "6994", "8926"]
+    # 6869 雲豹能源、6994 富威電力、8926 台汽電
+  battery_cell:
+    name: 電芯製造與電池模組
+    tier: standalone
+    chain: infrastructure
+    note: "鋰電池電芯製造，以及筆電／儲能／電動載具用的電池模組（Pack）。"
+    codes: ["8038", "6121", "3211"]
+    # 8038 長園科、6121 新普、3211 順達
+  battery_material:
+    name: 電池關鍵材料
+    tier: standalone
+    chain: infrastructure
+    note: "鋰電池正極材料與前驅物（鈷鎳錳鹽），以及電池回收。"
+    codes: ["4739", "4721"]
+    # 4739 康普、4721 美琪瑪
 
-# 供應鏈上下游關係：用來畫關聯圖，也用來判斷「上游先漲，下游會不會跟」
+# 供應鏈上下游關係：用來畫產業鏈頁，也用來判斷「上游先漲，下游會不會跟」。
+# ★ order 沒列到的板塊在產業鏈頁上排不出來，新增板塊一定要回來補這裡。
 chains:
   semiconductor:
     name: 半導體
-    # ★ 2026-09-19 傍晚把 test_interface 加進來。order 沒列到的族群在產業鏈頁上排不出來，
-    #   等於新開的族群沒地方顯示 —— 這條順序表很容易在新增族群時漏掉。
-    order: [silicon_ip, ic_design, semi_equipment, semi_material, test_interface, foundry, memory, osat, advanced_packaging]
+    order: [ip_asic, hpc_network_ic, cpu_agentic_ai, cxl, display_driver_ic, analog_power_ic, optical_sensing, foundry, wide_bandgap, silicon_wafer, fab_material, fab_process_equip, fab_equipment, pkg_equipment, pkg_metrology, osat, ic_test_service, ai_adv_packaging, hbm, nor_niche_memory, memory_module, leadframe_chem, ic_distribution, semi_facility]
   ai_server:
     name: AI 伺服器
-    order: [optical_comm, pcb_abf, connector, server_power, server_thermal, ai_server_odm]
+    order: [ai_server_odm, chassis_rail, liquid_cooling, air_cooling, server_psu, bbu, switch_wireless, optical_module, silicon_photonics, ic_substrate, pcb_rigid, flex_pcb, glass_fiber, glass_substrate, ai_interconnect, connector_ind, connector_auto]
   electronics:
     name: 一般電子
-    order: [passive, panel, casing, networking, handset_chain]
+    order: [ai_pc, ems, edge_ai, smartphone, optical_lens, ar_vr_optics, panel, microled, mlcc, resistor_protect, jp_passive, capacitor, power_inductor, crystal, satellite, precision_parts, factory_automation, machine_tool]
+  software:
+    name: 軟體與資訊服務
+    order: [cyber_security, cloud_msp, saas, ecommerce]
+  financial:
+    name: 金融
+    order: [bank]
   traditional:
-    name: 傳產
-    order: [steel, petrochemical, shipping, finance, biotech, tourism]
+    name: 傳產與內需
+    order: [shipping_container, shipping_bulk, airline, land_transport, defense, petrochemical, env_recycle]
   infrastructure:
-    name: 基礎建設
-    order: [heavy_electric, green_energy]
+    name: 基礎建設與能源
+    order: [wire_cable, solar, wind_power, energy_storage, battery_cell, battery_material]
 
-# 國際對標：族群與哪個國際指標連動最緊，M4 國際連動盤用
+# 國際對標：板塊與哪個國際指標連動最緊，M4 國際連動盤用。
+# 只給「連動關係說得出口」的板塊，說不出來的就不要硬給。
 benchmarks:
   foundry: "^SOX"
-  ic_design: "^SOX"
-  memory: "^SOX"
-  advanced_packaging: "^SOX"
+  hpc_network_ic: "^SOX"
+  ip_asic: "^SOX"
+  cxl: "^SOX"
+  hbm: "^SOX"
+  nor_niche_memory: "^SOX"
+  memory_module: "^SOX"
+  ai_adv_packaging: "^SOX"
+  osat: "^SOX"
+  ic_test_service: "^SOX"
+  ic_substrate: "^SOX"
+  silicon_wafer: "^SOX"
+  pkg_metrology: "^SOX"
   ai_server_odm: "^IXIC"
-  server_thermal: "^IXIC"
-  optical_comm: "^IXIC"
-  finance: "^TWII"
-  shipping: "^TWII"
+  liquid_cooling: "^IXIC"
+  air_cooling: "^IXIC"
+  optical_module: "^IXIC"
+  silicon_photonics: "^IXIC"
+  switch_wireless: "^IXIC"
+  server_psu: "^IXIC"
+  bbu: "^IXIC"
+  ai_interconnect: "^IXIC"
+  bank: "^TWII"
+  shipping_container: "^TWII"
+  shipping_bulk: "^TWII"

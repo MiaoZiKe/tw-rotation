@@ -200,6 +200,21 @@ def group_valuation(val: pd.DataFrame, company: pd.DataFrame | None = None) -> p
     cfg = loader.load()
     metrics = {gid: (g.get("valuation_metric") or "pe")
                for gid, g in (cfg.get("groups") or {}).items()}
+    # ★ 2026-09-21：自動桶（`ind_<法定產業別>`）也要能指定估值口徑。
+    #
+    #   為什麼需要這個：族群改成 tide 的 110 個板塊之後，「銀行金融」只收銀行股，
+    #   **壽險型金控（2881 富邦金、2882 國泰金）、證券、產險、票券全部落到自動桶
+    #   `ind_金融保險`**。自動桶以前一律用本益比 —— 而保險公司的 EPS 會被
+    #   金融資產的評價損益扭曲，用 PE 跟同業比會得到完全錯誤的結論。
+    #   這不是換個 id 的問題，是**金控股的估值口徑真的壞掉了**（pytest 的
+    #   test_fundamental_payload_end_to_end 就是撞到這一條）。
+    #
+    #   做法：`groups.yaml` 的 `meta.ind_display` 登記每個自動桶的顯示名稱，
+    #   需要非預設口徑的再加 `valuation_metric`。口徑仍然只寫在 YAML 裡、
+    #   不在程式碼硬編碼（本檔開頭第 9 行那條規則沒有被打破）。
+    for _ind, _cfg in ((cfg.get("meta") or {}).get("ind_display") or {}).items():
+        if isinstance(_cfg, dict) and _cfg.get("valuation_metric"):
+            metrics["ind_" + str(_ind)] = _cfg["valuation_metric"]
     m = loader.membership(cfg)
 
     joined = val.merge(m, on="code", how="left")
@@ -209,7 +224,9 @@ def group_valuation(val: pd.DataFrame, company: pd.DataFrame | None = None) -> p
         joined = joined.merge(company[["code", "industry"]], on="code", how="left")
         fb = joined["group_id"].isna() & joined["industry"].notna()
         joined.loc[fb, "group_id"] = "ind_" + joined.loc[fb, "industry"].astype(str)
-        joined.loc[fb, "group_name"] = joined.loc[fb, "industry"]
+        _indmap = loader.ind_names()          # 先拿字典，不要逐列呼叫 ind_name（會重讀 YAML）
+        _ind = joined.loc[fb, "industry"].astype(str)
+        joined.loc[fb, "group_name"] = _ind.map(_indmap).fillna(_ind)
     joined = joined[joined["group_id"].notna()].copy()
     if joined.empty:
         return pd.DataFrame()
