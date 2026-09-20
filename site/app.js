@@ -575,15 +575,45 @@
       const [hash, anchor] = d.split('>');
       location.hash = hash;
       if (!anchor) return;
-      // 換頁是非同步的（route() 要等資料與圖表），輪詢到元素出現再捲
-      let tries = 0;
+      /* 換頁是非同步的（route() 要等資料與圖表），輪詢到元素出現再捲。
+         ★ 2026-09-20：原本捲一次就結束，而那一刻圖表往往還在長高
+         （每張圖都有 min-height 佔位，畫完才變成真高度）——
+         於是使用者被留在錯的位置，看起來就像「點了沒反應」。
+         在慢一點的機器上一定會遇到，這跟 Andy 回報的「換一台電腦版面就跑掉」是同一類。
+         改成：捲過去之後繼續盯著目標的位置，位置還在變就再捲一次，
+         直到連續兩次量到同一個位置（或超過上限）為止。
+         使用者只要自己動了滾輪／觸控／方向鍵就立刻放手，不跟人搶。 */
+      let tries = 0, settles = 0, rescrolls = 0, lastTop = null, userMoved = false;
+      const release = () => { userMoved = true; };
+      ['wheel', 'touchstart', 'keydown'].forEach(ev =>
+        window.addEventListener(ev, release, { passive: true, once: true }));
+      const done = () => ['wheel', 'touchstart', 'keydown'].forEach(ev =>
+        window.removeEventListener(ev, release));
+      const go = (el) => (el.closest('.card') || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const settle = () => {
+        if (userMoved) { done(); return; }
+        const el = document.getElementById(anchor);
+        if (!el) { done(); return; }
+        const top = Math.round(el.getBoundingClientRect().top);
+        // 已經在視窗裡而且位置穩住了 → 收工
+        if (lastTop !== null && Math.abs(top - lastTop) <= 2) {
+          if (top >= 0 && top < window.innerHeight) { done(); return; }
+          settles++;
+        } else {
+          settles = 0;
+        }
+        lastTop = top;
+        // 位置變了（版面還在長）或還沒捲進視窗 → 再捲一次，但有上限，不要無限追
+        if ((settles > 0 || top < 0 || top >= window.innerHeight) && rescrolls < 8) {
+          rescrolls++; go(el);
+        }
+        if (rescrolls < 8) setTimeout(settle, 220);
+        else done();
+      };
       const tick = () => {
         const el = document.getElementById(anchor);
-        if (el && el.offsetParent !== null) {
-          (el.closest('.card') || el).scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return;
-        }
-        if (++tries < 40) setTimeout(tick, 100);
+        if (el && el.offsetParent !== null) { go(el); setTimeout(settle, 220); return; }
+        if (++tries < 40) setTimeout(tick, 100); else done();
       };
       setTimeout(tick, 100);
     });

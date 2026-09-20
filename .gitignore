@@ -40,3 +40,4 @@ push*-log*.txt
 # Claude 沒辦法透過遠端檔案橋直接寫 .github/workflows（被平台保護），
 # 所以改把更新後的工作流放在這裡，由 push.bat 複製過去。
 _pending/
+.uitest_times.json

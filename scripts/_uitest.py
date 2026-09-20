@@ -15,7 +15,12 @@ from __future__ import annotations
 import os
 import argparse
 import json
+import pathlib
 import re
+import shutil
+import subprocess
+import sys
+import tempfile
 import threading
 import time
 from functools import partial
@@ -38,6 +43,33 @@ def ok(name: str, cond: bool, detail=None) -> bool:
     if not cond:
         fails.append(f"{name}　←　{detail if detail is not None else ''}")
     return bool(cond)
+
+
+def wait_until(pg, expr: str, timeout: int = 6000, step: int = 150):
+    """輪詢 `expr` 直到它回傳真值，或逾時。回傳最後一次的值。
+
+    為什麼需要這個（2026-09-20，平行化逼出來的）
+    ------------------------------------------
+    以前到處都是 `pg.wait_for_timeout(1400)` 這種**睡固定秒數**。
+    單獨跑時剛好夠；一旦四個 worker 同時佔著 CPU，圖表畫得慢，
+    同樣的 1400ms 就不夠了 —— 於是驗收開始**間歇性假紅**。
+    假紅比慢更糟：它會讓人開始習慣「紅字先無視」，那整套驗收就廢了。
+
+    睡固定秒數還有另一個壞處：不管快慢都要付滿那幾秒。
+    改成等條件成立之後，快的時候立刻往下走，慢的時候才等。
+    """
+    import time as _t
+    end = _t.time() + timeout / 1000.0
+    v = None
+    while _t.time() < end:
+        try:
+            v = pg.evaluate(expr)
+        except Exception:  # noqa: BLE001 —— 換頁途中 evaluate 會炸，再試一次就好
+            v = None
+        if v:
+            return v
+        pg.wait_for_timeout(step)
+    return v
 
 
 def changed(name: str, before, after, detail: str = "") -> bool:
@@ -699,6 +731,13 @@ def t_overview(pg, base):
     kinds = pg.evaluate("[...document.querySelectorAll('#hero .kpi.clickable')].map(k => k.dataset.drill)")
     ok("總覽上方至少四個數字點得開", len(kinds) >= 4, kinds)
     for k in kinds:
+        # ★ 2026-09-20：先捲回頁首再點。這一行是平行化之後補的。
+        #   KPI 那一排就長在 #hero，也就是頁面的最上面 —— 真人要點得到它，
+        #   本來就一定在頁首。但**這一段以前是靠「前面某一段剛好把頁面留在頂端」**，
+        #   一旦它變成某個 worker 的第一段、或前一段把頁面捲到 1592，
+        #   「有沒有真的捲到那張圖」就會量到錯的基準而假紅。
+        #   捲回頁首才是忠於使用者真實狀態的做法，不是為了讓測試變綠。
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
         click(pg, f'#hero .kpi[data-drill="{k}"]', 1400)
         st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
             scrollY: Math.round(window.scrollY),
@@ -715,8 +754,16 @@ def t_overview(pg, base):
             page, _, anchor = k.partition(">")
             ok(f"KPI「{k}」點下去會到那一頁", st["hash"] == page, st)
             if anchor:
-                pg.wait_for_timeout(1400)   # scrollIntoView 是 smooth，而且要等圖表畫完
-                st2 = pg.evaluate("""(a) => { const el = document.getElementById(a); if (!el) return null;
+                # ★ 2026-09-20：原本是 `wait_for_timeout(1400)`。scrollIntoView 是 smooth 的，
+                #   而且圖表畫完之後版面還會再長高、錨點會再往下跑 ——
+                #   固定睡 1400ms 在四個 worker 搶 CPU 時根本不夠，就開始間歇性假紅。
+                #   改成等「錨點真的進到視窗」這個條件成立，快就快走、慢才多等。
+                st2 = wait_until(pg, """() => { const el = document.getElementById('%s'); if (!el) return null;
+                    const r = el.getBoundingClientRect();
+                    if (r.top >= window.innerHeight) return null;   // 還沒捲到，繼續等
+                    return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
+                             h: window.innerHeight }; }""" % anchor, 8000) or pg.evaluate(
+                    """(a) => { const el = document.getElementById(a); if (!el) return null;
                     const r = el.getBoundingClientRect();
                     return { scrollY: Math.round(window.scrollY), top: Math.round(r.top),
                              h: window.innerHeight }; }""", anchor)
@@ -1296,6 +1343,12 @@ def t_group_pages(pg, base):
     以前完全沒有任何一條驗收打開過 #industry/group/<中文 id>，所以這個洞一直沒人發現。
     這裡驗的是「列出來的筆數跟 groups_detail.json 對得起來」，不是「頁面有 render」。
     """
+    # ★ 2026-09-20：這一行是平行化之後才補上的。
+    #   原本這一段直接 fetch('data/groups_detail.json') 這個**相對路徑**，
+    #   而它能成立純粹是因為「前面某一段已經把頁面導到網站上了」——
+    #   依序跑時剛好成立，一旦它變成某個 worker 的第一段，頁面還在 about:blank，
+    #   相對路徑解不出來就整段爆掉。段落之間不該有這種隱性依賴。
+    pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(600)
     want = pg.evaluate("""async () => {
       const r = await fetch('data/groups_detail.json'); const d = await r.json();
       const gs = Object.entries(d.groups || d).filter(([k]) => k.startsWith('ind_'));
@@ -3897,8 +3950,14 @@ def t_batch3(pg, base):
         return { x: r.left + p[0], y: r.top + p[1] - 30 }; }""")
     if hit:
         pg.mouse.click(hit["x"], hit["y"])
-        pg.wait_for_timeout(1200)
-        st = pg.evaluate("""() => { const b = document.getElementById('concSide');
+        # ★ 2026-09-20：原本睡 1200ms。平行跑時 CPU 被搶，面板還沒開就量 → 假紅。
+        #   改成等「面板真的開了而且列得出族群」這個條件。
+        st = wait_until(pg, """() => { const b = document.getElementById('concSide');
+            if (!b || b.hidden) return null;
+            const n = document.querySelectorAll('#concGs button').length;
+            if (!n) return null;
+            return { open: true, gs: n, hash: location.hash }; }""", 6000) or pg.evaluate(
+            """() => { const b = document.getElementById('concSide');
             return { open: !!b && !b.hidden, gs: document.querySelectorAll('#concGs button').length,
                      hash: location.hash }; }""")
         ok("點集中度圖的某一天，旁邊列出那天的族群", st["open"] and st["gs"] > 0, st)
@@ -5725,6 +5784,165 @@ def t_sort(pg, base):
     ok("即時層更新之後，表格照著新的漲跌重排了（不是表頭標 ▲ 但數字亂跳）", mono and len(vals) > 3, vals)
 
 
+# ---------------------------------------------------------------------------
+# 段落表：名稱 → 怎麼呼叫。
+# 簽章各不相同（有的吃 page、有的吃 browser、有的還要股票代號），
+# 統一包成 `(pg, b, base, code)` 之後，只要一份清單就能同時服務
+# 「依序跑」與「拆給多個 worker 平行跑」兩種模式。
+# ---------------------------------------------------------------------------
+SECTIONS = {
+    "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
+    "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
+    "今日事件":            lambda pg, b, base, code: t_events(pg, base),
+    "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
+    "總覽":                lambda pg, b, base, code: t_overview(pg, base),
+    "市場明細":            lambda pg, b, base, code: t_market(pg, base),
+    "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
+    "產業":                lambda pg, b, base, code: t_industry(pg, base),
+    "族群頁":              lambda pg, b, base, code: t_group_pages(pg, base),
+    "產業鏈導覽":          lambda pg, b, base, code: t_chainnav(pg, base),
+    "一般電子鏈":          lambda pg, b, base, code: t_electronics(pg, base),
+    "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),
+    "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
+    "新-資金流向":         lambda pg, b, base, code: t_new_flow(pg, base),
+    "新-輪動時鐘":         lambda pg, b, base, code: t_new_clock(pg, base),
+    "任務板":              lambda pg, b, base, code: t_tasks(pg, base),
+    "新-版面等高與多寬度": lambda pg, b, base, code: t_new_layout(pg, base),
+    "題材":                lambda pg, b, base, code: t_themes(pg, base),
+    "季節性":              lambda pg, b, base, code: t_season(pg, base),
+    "批次1":               lambda pg, b, base, code: t_batch1(pg, base),
+    "批次2":               lambda pg, b, base, code: t_batch2(pg, base),
+    "批次3":               lambda pg, b, base, code: t_batch3(pg, base),
+    "批次4":               lambda pg, b, base, code: t_batch4(pg, base),
+    "批次7":               lambda pg, b, base, code: t_batch7(pg, base),
+    "批次6-N1":            lambda pg, b, base, code: t_batch6_n1(pg, base),
+    "批次6-圖十":          lambda pg, b, base, code: t_batch6_n3(pg, base),
+    "批次6-圖九":          lambda pg, b, base, code: t_batch6_n9(pg, base),
+    "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
+    "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
+    "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
+    "縮放掃描":            lambda pg, b, base, code: t_zoom_sweep(pg, base, code),
+    "排序":                lambda pg, b, base, code: t_sort(pg, base),
+    "資料狀態":            lambda pg, b, base, code: t_freshness(b, base),
+    "網頁版號":            lambda pg, b, base, code: t_buildver(b, base),
+    "設定面板":            lambda pg, b, base, code: t_cfgpop(pg, base, code),
+    "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
+    "淺色主題":            lambda pg, b, base, code: t_lightink(b, base, code),
+    "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
+}
+SECTION_NAMES = list(SECTIONS)
+
+# 每段跑多久（秒）。只用來把工作平均分給 worker，不影響判定。
+# 第一次跑（檔案還不存在）就當每段一樣重；跑完會寫回去，下一次分得更平均。
+TIMES_FILE = pathlib.Path(__file__).resolve().parent / ".uitest_times.json"
+
+took: dict[str, float] = {}
+counts: dict[str, int] = {}
+
+
+def _selected(args, name: str) -> bool:
+    """這一段要不要跑。
+
+    `--sections` 是**精準比對**（給平行模式的 worker 用，名稱逗號分隔）；
+    `--only` 是**子字串比對**（給人用，好打）。
+    兩者的差別很重要：`--only 資金流向` 會同時命中「資金流向」與「新-資金流向」，
+    那對人是方便，對分工卻是災難 —— 同一段被兩個 worker 各跑一次，
+    結果會重複計算。所以 worker 一律走 `--sections`。
+    """
+    if args.sections:
+        return name in [x.strip() for x in args.sections.split(",")]
+    if args.only:
+        return _want(args.only, name)
+    return True
+
+
+def _buckets(names: list[str], n: int) -> list[list[str]]:
+    """把段落分給 n 個 worker，讓每一份的預估耗時盡量接近。
+
+    用最長優先（LPT）：把最重的先放進目前最輕的那一籃。
+    段落之間的耗時差距很大（實測 11 秒到 200 秒都有），
+    用平均分配的話最慢那一籃會拖垮整輪 —— 平行化的效果就沒了。
+    """
+    try:
+        w = json.loads(TIMES_FILE.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 —— 沒有紀錄就當每段一樣重
+        w = {}
+    order = sorted(names, key=lambda x: -float(w.get(x, 30)))
+    out: list[list[str]] = [[] for _ in range(n)]
+    load = [0.0] * n
+    for nm in order:
+        i = load.index(min(load))
+        out[i].append(nm)
+        load[i] += float(w.get(nm, 30))
+    return [x for x in out if x]
+
+
+def run_parallel(args) -> int:
+    """把段落拆給幾個子行程同時跑，再把結果合起來。
+
+    為什麼是「多行程」而不是「多執行緒」（2026-09-20）
+    ------------------------------------------------
+    Playwright 的同步 API **不能跨執行緒共用**，一個執行緒要有自己的
+    `sync_playwright()`。與其在同一個行程裡繞開它，不如直接開子行程：
+    每個 worker 跑的就是**今天已經驗證過的那條路徑**（單行程、依序跑它那幾段），
+    只是段落少一點。風險最低，而驗收程式最怕的就是改出「假綠」。
+
+    每個 worker 自己起一個 HTTP 伺服器，所以埠要分開（`TW_UITEST_PORT`）。
+    """
+    names = [n for n in SECTION_NAMES if _selected(args, n)]
+    if not names:
+        print("沒有符合的段落"); return 0
+    n = max(1, min(args.workers, len(names)))
+    parts = _buckets(names, n)
+    print(f"平行驗收：{len(names)} 段拆成 {len(parts)} 份", flush=True)
+    for i, part in enumerate(parts, 1):
+        print(f"  #{i}（{len(part)} 段）：{'、'.join(part)}", flush=True)
+
+    tmp = pathlib.Path(tempfile.mkdtemp(prefix="uitest-"))
+    procs = []
+    for i, part in enumerate(parts):
+        out = tmp / f"w{i}.json"
+        env = dict(os.environ, TW_UITEST_PORT=str(PORT + 1 + i))
+        cmd = [sys.executable, str(pathlib.Path(__file__).resolve()),
+               "--code", args.code, "--sections", ",".join(part), "--json", str(out)]
+        procs.append((subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT, text=True), out, part))
+
+    for pr, out, part in procs:
+        tail = (pr.communicate()[0] or "")
+        if pr.returncode not in (0, 1):
+            fails.append(f"【worker {'、'.join(part)}】子行程異常結束（code {pr.returncode}）：{tail[-400:]}")
+
+    merged_times: dict[str, float] = {}
+    for _pr, out, part in procs:
+        try:
+            d = json.loads(out.read_text(encoding="utf-8"))
+        except Exception as e:  # noqa: BLE001
+            fails.append(f"【worker {'、'.join(part)}】沒有交回結果：{e}")
+            continue
+        fails.extend(d.get("fails") or [])
+        for nt in (d.get("notes") or []):
+            if nt not in notes:
+                notes.append(nt)
+        counts.update(d.get("counts") or {})
+        merged_times.update(d.get("took") or {})
+    shutil.rmtree(tmp, ignore_errors=True)
+
+    # 依原本的順序印，這樣跟依序跑的輸出可以直接對照
+    for nm in SECTION_NAMES:
+        if nm in counts:
+            print(f"  {nm}：{counts[nm]} 個問題（{merged_times.get(nm, 0):.0f}s）", flush=True)
+    try:
+        old = {}
+        if TIMES_FILE.exists():
+            old = json.loads(TIMES_FILE.read_text(encoding="utf-8"))
+        old.update(merged_times)
+        TIMES_FILE.write_text(json.dumps(old, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:  # noqa: BLE001 —— 記不起來只是下次分得沒那麼平均，不該讓驗收失敗
+        pass
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -5733,7 +5951,22 @@ def main() -> int:
     # 一輪 14 分鐘，改一段就重跑全部是純浪費。**交付前一定要跑完整一輪**，
     # --only 只給開發過程中反覆修同一段的時候用。
     ap.add_argument("--only", default="")
+    # --sections：精準比對的段落清單（逗號分隔）。給平行模式的 worker 用，人不必打。
+    ap.add_argument("--sections", default="")
+    # --json：子行程把結果寫到這個檔，由父行程合併。有值就代表「我是 worker」。
+    ap.add_argument("--json", default="")
+    # --workers：拆成幾個子行程同時跑。1 ＝ 依序跑（改壞的時候用它對照）。
+    #   預設 4：實測 31 段一輪 15 分鐘，最長的那幾段各 2~3 分鐘，
+    #   再多開也被最長那一段卡住，而且每個 worker 都要吃一個 Chromium 的記憶體。
+    ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
+
+    # 父行程模式：自己不跑瀏覽器，只負責拆工與合併
+    if args.workers > 1 and not args.json:
+        t_par = time.time()
+        run_parallel(args)
+        return _report(t_par)
+
     from playwright.sync_api import sync_playwright
 
     srv = serve(); time.sleep(0.4)
@@ -5753,45 +5986,43 @@ def main() -> int:
               and "404" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
-        for name, fn in (("盤中即時", t_live), ("大盤三張圖", t_market3), ("今日事件", t_events), ("明亮主題", t_theme),
-                         ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
-                         ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics),
-                         ("新-大盤三張圖", t_new_market3), ("新-產業與個股", t_new_industry),
-                         ("新-資金流向", t_new_flow), ("新-輪動時鐘", t_new_clock), ("任務板", t_tasks), ("新-版面等高與多寬度", t_new_layout),
-                         ("題材", t_themes), ("季節性", t_season),
-                         ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
-            if args.only and not _want(args.only, name):
+        for name in SECTION_NAMES:
+            if not _selected(args, name):
                 continue
-            n0 = len(fails)
+            n0, ts = len(fails), time.time()
             try:
-                fn(pg, base)
+                # ★ 每一段開始前先確保頁面已經在網站上。
+                #   平行化之後，任何一段都可能是某個 worker 的第一段 ——
+                #   還在 about:blank 的話，那一段裡的相對路徑 fetch 會整段爆掉
+                #   （2026-09-20 的「族群頁」就是這樣被抓出來的）。
+                #   已經在站上就不重載，避免多花時間、也不動既有的頁面狀態。
+                if not (pg.url or "").startswith("http"):
+                    pg.goto(base, wait_until="networkidle"); pg.wait_for_timeout(600)
+                SECTIONS[name](pg, b, base, args.code)
             except Exception as e:  # noqa: BLE001
                 fails.append(f"【{name}】操作中途爆掉：{type(e).__name__} {e}")
-            print(f"  {name}：{len(fails) - n0} 個問題", flush=True)
-        # 這幾段的簽章各不相同（有的吃 pg、有的吃 browser、有的還要 code），
-        # 所以包成 lambda 跟上面同一套跑法 —— 這樣 --only 對整份驗收都有效，
-        # 不會出現「--only 只濾得到前半段」這種一半的東西。
-        for name, fn in (("個股", lambda: t_stock(pg, base, args.code)),
-                         ("個股即時分K", lambda: t_livek(pg, base, args.code)),
-                         ("縮放掃描", lambda: t_zoom_sweep(pg, base, args.code)),
-                         ("排序", lambda: t_sort(pg, base)),
-                         ("資料狀態", lambda: t_freshness(b, base)),
-                         ("網頁版號", lambda: t_buildver(b, base)),
-                         ("設定面板", lambda: t_cfgpop(pg, base, args.code)),
-                         ("K線縮放", lambda: t_kzoom_keep(pg, base, args.code)),
-                         ("淺色主題", lambda: t_lightink(b, base, args.code)),
-                         ("手機", lambda: t_mobile(b, base, args.code))):
-            if args.only and not _want(args.only, name):
-                continue
-            n0 = len(fails)
-            try:
-                fn()
-            except Exception as e:  # noqa: BLE001
-                fails.append(f"【{name}】操作中途爆掉：{type(e).__name__} {e}")
-            print(f"  {name}：{len(fails) - n0} 個問題", flush=True)
+            took[name] = round(time.time() - ts, 1)
+            counts[name] = len(fails) - n0
+            print(f"  {name}：{counts[name]} 個問題（{took[name]:.0f}s）", flush=True)
         b.close()
     srv.shutdown()
 
+    # worker 模式：把結果交回父行程，不自己印總結（父行程會依原順序統一印）
+    if args.json:
+        pathlib.Path(args.json).write_text(json.dumps(
+            {"fails": fails, "notes": notes, "counts": counts, "took": took},
+            ensure_ascii=False), encoding="utf-8")
+        return 1 if fails else 0
+    try:
+        TIMES_FILE.write_text(json.dumps(took, ensure_ascii=False, indent=1), encoding="utf-8")
+    except Exception:  # noqa: BLE001
+        pass
+    return _report(t0)
+
+
+def _report(t0: float) -> int:
+    """印總結。依序跑與平行跑共用這一支，所以兩種模式的輸出格式完全一樣 ——
+    改壞的時候可以直接 diff 兩邊的結果。"""
     print(f"\n===== 真人操作驗收（{time.time() - t0:.0f} 秒）=====")
     if notes:
         print("備註：")
