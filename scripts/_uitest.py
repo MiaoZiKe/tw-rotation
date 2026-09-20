@@ -2450,6 +2450,15 @@ def t_new_layout(pg, base):
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
 
 
+def t_new_clock(pg, base):
+    """輪動時鐘（C4 ＋ A4）：族群篩選、時間軸刷動、軌跡、播放。
+
+    ★ 這一支先開成空殼再派人填，理由同 2026-09-20 那三支：
+      main() 的註冊表是一行，多個 agent 各自去改必然互相蓋掉。
+    """
+    return
+
+
 def t_themes(pg, base):
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
@@ -5419,7 +5428,7 @@ def main() -> int:
                          ("總覽", t_overview), ("市場明細", t_market), ("資金流向", t_flow), ("產業", t_industry), ("族群頁", t_group_pages),
                          ("產業鏈導覽", t_chainnav), ("一般電子鏈", t_electronics),
                          ("新-大盤三張圖", t_new_market3), ("新-產業與個股", t_new_industry),
-                         ("新-資金流向", t_new_flow), ("新-版面等高與多寬度", t_new_layout),
+                         ("新-資金流向", t_new_flow), ("新-輪動時鐘", t_new_clock), ("新-版面等高與多寬度", t_new_layout),
                          ("題材", t_themes), ("季節性", t_season),
                          ("批次1", t_batch1), ("批次2", t_batch2), ("批次3", t_batch3), ("批次4", t_batch4), ("批次7", t_batch7), ("批次6-N1", t_batch6_n1), ("批次6-圖十", t_batch6_n3), ("批次6-圖九", t_batch6_n9), ("產業關係面板", t_relpanel)):
             if args.only and not _want(args.only, name):
