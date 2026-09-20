@@ -35,27 +35,42 @@
  * 同一張卡片上兩個東西、兩套數字，而且夜盤只有數字沒有圖。現在改成：
  * 「日盤／夜盤」就是同一個圖表容器（`#m3c-FUT`）與同一排數字（`.m3-nums`）的切換。
  *
- * 夜盤到底拿得到什麼（2026-09-19 查證，不是猜的）
+ * 夜盤到底拿得到什麼（2026-09-19 查證 ＋ 2026-09-20 修正）
  *   ✔ 報價快照：期交所行情看板 `getQuoteList`（MarketType=1），Worker 的 `/fut?session=night`。
  *     每次只回**當下一筆**：現價／參考價／開高低／累計量／未平倉。fixture 在
  *     `docs/fixtures/taifex_night_probe.json`，實測 200。
- *   ✘ 夜盤分時序列：**沒有**任何已驗證的免費來源。
- *     證交所的 `futures_chart.txt` 只有日盤（白天那一段）。
- *     期交所的 `getChartData1M` 存在但**還沒拿到過一次成功回應** —— 探測那次送了
- *     `{"SymbolID": ["TXFJ6-F"]}` 被回 400，錯誤訊息是
- *     `Cannot deserialize instance of java.lang.String out of START_ARRAY`，
- *     也就是它要的是**字串**不是陣列。要重探一次（把探測腳本那行改成字串）才知道回什麼，
- *     照專案規矩「沒有真實 API 樣本就不寫 parser」，這裡先不接。
- *   ✔ 夜盤的「日 K 歷史」其實 FinMind 有：`TaiwanFuturesDaily` 的
- *     `trading_session == 'after_market'`（`pipeline/sources/finmind.py` 現在刻意只取 `position`）。
- *     資料湖沒存，所以歷史週期切到夜盤時只能用日盤那條，畫面上會講出來。
+ *   ◐ 夜盤分時序列：**正在接期交所的 `getChartData1M`**。
+ *     2026-09-19 那次探測送了 `{"SymbolID": ["TXFJ6-F"]}` 被回 400，但錯誤訊息是
+ *     `Cannot deserialize instance of java.lang.String out of START_ARRAY ... GetChartData1MReqDto["SymbolID"]`
+ *     —— 也就是**這支端點存在**，它要的是字串不是陣列。
+ *     ★ 所以「夜盤沒有現成的分時序列」這個結論是在**還沒正確問過一次**的情況下下的，不算數。
+ *     `scripts/probe_sources.py` 已經改對（字串 ＋ `-M` 代號 ＋ 從報價清單撈近月），
+ *     等 Actions 跑出 fixture 再接 parser（專案規矩：沒有真實樣本不寫 parser）。
+ *     證交所的 `futures_chart.txt` 則確定只有日盤（白天那一段）。
+ *   ✔ 夜盤的「日 K 歷史」FinMind 有：`TaiwanFuturesDaily` 的 `trading_session == 'after_market'`。
+ *     2026-09-20 起 `pipeline/sources/finmind.py` 兩個時段都存（日盤 `FUT`、夜盤 `FUT_N`，
+ *     同一次請求、不多花額度），所以歷史週期切到夜盤時會去讀 `FUT_N`；
+ *     湖裡還沒長出來的期間退回 `FUT` 並在圖上講出來。
  *
- * 所以夜盤的走勢圖是這樣畫的，而且**每個點都是真的**：
- *   自動更新那一輪（盤中 10 秒／盤後 5 分鐘）每拿到一筆夜盤報價，就把
+ * ★ 2026-09-20 Andy：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去，格式 follow 加權指數」
+ * ------------------------------------------------------------------------------------
+ * 他不接受「目前只收到 1 筆，畫成線至少要 2 筆」那塊說明方框把整張圖蓋掉。他是對的：
+ * **「還沒有序列」不是「不要畫圖」的理由** —— 座標軸、參考價虛線、量柱、tooltip、
+ * 工具列（走勢圖／K 線、週期下拉、展開）本來就都算得出來，跟加權指數同一套。
+ * 所以現在夜盤一律**先把圖畫出來**（跟加權指數走同一個 `drawLine()` / `drawK()`），
+ * 點數不足時只在圖上角落留一條窄的說明帶，而不是拿方框把圖換掉。
+ * 最新那一點有呼吸燈，所以就算只有一個點，畫面上也看得到「它在哪、它還在跳」。
+ *
+ * 夜盤走勢的每個點都是真的：自動更新那一輪每拿到一筆夜盤報價，就把
  *   {時間, 成交價, 累計量的增量} 收進 `state.nightPts`，存在 localStorage（以 CDate 分天）。
- *   這是真實觀測到的成交價與真實的量差，不是內插也不是假資料；
- *   代價是「只有你開著網頁的那段時間」才有點 —— 這句話直接寫在圖上，不藏。
- *   點數不足 2 筆時不畫線，改在同一個容器裡寫清楚為什麼。
+ *   真實成交價與真實量差，不內插、不補值；代價是「只有你開著網頁的那段時間」才有點。
+ *   這句話直接寫在圖上，不藏 —— 等 `getChartData1M` 接上就會換成完整的一整晚。
+ *
+ * ★ 呼吸燈（Andy 2026-09-20：「三張走勢圖最新的點需要做呼吸燈圓圈，
+ *   只要他正在即時更新就會執行呼吸燈效果」）
+ * ------------------------------------------------------------------
+ * 三張走勢圖最右端那一點都有一顆小圓 ＋ 一圈擴散的光環（`.m3-pulse`）。
+ * **只有「真的正在即時更新」才會呼吸**，判準見 `isPulsing()` —— 一盞會說謊的燈比沒有燈更糟。
  */
 (function () {
   'use strict';
@@ -123,8 +138,14 @@
 
   const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
     hist: {}, histErr: {}, histBusy: {}, timer: null, nTimer: null, tickMs: 0, fails: 0,
+    // 呼吸燈：tipKey＝上一次看到的「最後一個點」是誰；tipAt＝它最後一次真的往前走的時刻
+    tipKey: {}, tipAt: {}, pulses: {}, pTimer: null,
+    // lakeBack[鍵]=true：夜盤日 K（FUT_N）湖裡還沒有，這個週期先用日盤那一份
+    lakeBack: {},
     // 夜盤：futSession＝日盤/夜盤；futNight＝最新一筆報價；nightPts＝累積到的真實觀測點
     futSession: 'day', futNight: null, futNightErr: '', nightPts: [], nightDate: '',
+    // 期交所 getChartData1M 回來的**真正的分時序列**（2026-09-20 接上）
+    futChart: null, futChartErr: '',
     lakeDaily: {},     // 資料湖原始日線（用來講「歷史只有幾年」，需求二）
     // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
     noSrc: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
@@ -152,15 +173,32 @@
       state.timer = setInterval(() => refresh(), ms);
     }
     if (!state.nTimer) state.nTimer = setInterval(tickNight, MS_NIGHT);
+    /* 呼吸燈要能「自己熄」：資料停了之後沒有任何一輪會再呼叫 draw()，
+       所以另外一組輕量的計時器負責重算亮不亮（只改 class 與位置，不重畫圖）。*/
+    if (!state.pTimer) state.pTimer = setInterval(pulseTick, PULSE_PAINT);
   }
   /** 夜盤那一輪：只補一筆報價、只在真的是夜盤而且使用者也選在夜盤時才跑。 */
   async function tickNight() {
     if (document.hidden) return;
     if (!document.getElementById('m3')) return;
     if (state.futSession !== 'night' || futSession() !== 'night') return;
-    try { state.futNight = await fetchFut('night'); state.futNightErr = ''; pushNight(state.futNight); }
-    catch (e) { state.futNightErr = String(e.message || e); }
+    await pullNight();
     draw();
+  }
+
+  /** 夜盤要抓的兩樣東西：① 報價快照（未平倉只有這裡有）② 分時序列（走勢與 K 線的主體）。
+   *  兩者互不依賴地失敗：序列掛了還有自己收的點，報價掛了序列自己也帶著開高低收。 */
+  async function pullNight() {
+    try {
+      state.futNight = await fetchFut('night');
+      state.futNightErr = '';
+      pushNight(state.futNight);
+    } catch (e) { state.futNightErr = String(e.message || e); }
+    // 近月合約代號從報價清單來（每個月都在換，不寫死）；拿不到就沿用上一輪問到的那支
+    const sym = (state.futNight && state.futNight.symbol) || (state.futChart && state.futChart.symbol);
+    if (!sym) { state.futChartErr = state.futChartErr || 'NOSYMBOL'; return; }
+    try { state.futChart = await fetchFutChart(sym); state.futChartErr = ''; }
+    catch (e) { state.futChartErr = String(e.message || e); }
   }
 
   const ls = {
@@ -223,6 +261,106 @@
     };
   }
 
+  /* ---- ★ 夜盤（與日盤）的真正分時序列：期交所 getChartData1M -------------------
+     2026-09-20 才確認這支能用，前一輪把它判死是因為**問錯了**：
+     送 `{"SymbolID": ["TXFJ6-F"]}`（陣列）被回 400，訊息是
+     `Cannot deserialize instance of java.lang.String out of START_ARRAY`
+     —— 它要的是字串。改成字串之後：
+       夜盤 TXFJ6-M → 200，`RtData.Ticks` **822 筆**（15:01 ~ 翌日 05:00）
+       日盤 TXFJ6-F → 200，300 筆（08:46 ~ 13:45）
+     日盤那 300 筆的筆數與區間跟證交所 `futures_chart.txt` **完全對得上**，
+     等於交叉驗證了口徑：T 是台北時間、O/H/L/C 是那一分鐘真正的開高低收、V 是該分鐘口數。
+     （fixture：docs/fixtures/taifex_night_probe.json）
+
+     ★ 這比證交所的分時檔還好一件事：它給**真的分鐘 OHLC**。
+     證交所那個檔只給每分鐘收盤價，所以我們的 K 棒開盤是「前一分鐘收盤」、
+     高低是「分鐘收盤的極值」（檔頭那段說明講的就是這個）。這支不用合成。
+
+     ⚠ 時間欄位有一個坑，先講清楚我怎麼處理的：
+     夜盤倒數第二筆是 `"046000"` —— 硬切 HHMMSS 會得到 **04:60:00**，不是合法時間。
+     這跟 CLAUDE.md 記過的「重大訊息 `70003` 要補零成 `07:00:03`」是同一類坑。
+     我**沒有辦法從 fixture 數出它是偶發還是每個整點都有** —— 因為 fixture 為了不肥
+     只留了頭 5 筆尾 2 筆（822 筆的中間被截掉了，那是我自己寫的 `shrink()` 幹的）。
+     所以這裡採**兩種解釋都不會畫錯**的做法：
+       ① `MM >= 60` 一律進位到下一個小時（04:60 → 05:00）
+       ② 同一分鐘只留**最後一筆**（後到的那筆累積得比較完整；
+          實測 046000 的量 36、050000 的量 47，後者確實是前者的超集）
+     而且 `scripts/probe_sources.py` 已經補上 `series_stats`，
+     下一次探測會直接把「有幾個怪時間、缺哪幾分鐘、量跟 Quote 對不對得上」算出來，
+     到時候再回來把這段註解換成結論。★ 在那之前，這段是處理方式，不是結論。 */
+  const FUT_TICK_MAX = 2000;                 // 夜盤 840 分鐘，留兩倍的餘裕就夠
+
+  /** `"150100"` / `"046000"` → 台北分鐘數（跨午夜 +1440）。看不懂就回 null，寧可丟掉那一筆。 */
+  function tickMin(t, startMin) {
+    const s0 = String(t == null ? '' : t).trim();
+    if (!/^\d{5,6}$/.test(s0)) return null;
+    const s6 = s0.length === 5 ? '0' + s0 : s0;
+    const h = +s6.slice(0, 2), mi = +s6.slice(2, 4), se = +s6.slice(4, 6);
+    if (h >= 24) return null;
+    let m = mi >= 60 ? h * 60 + 60 : h * 60 + mi + (se >= 60 ? 1 : 0);
+    if (m < startMin) m += 24 * 60;           // 跨午夜
+    return m;
+  }
+
+  /** 期交所分時的原始回應 → `{symbol, date, startMin, points:[{ms,min,o,h,l,c,s}]}`。 */
+  function parseFutChart(j, baseDate) {
+    const rt = (j || {}).RtData || {};
+    const sess = ((rt.Info || {}).Sessions || [])[0] || {};
+    const st = String(sess.Start || '1500');
+    const startMin0 = (+st.slice(0, 2)) * 60 + (+st.slice(2, 4));
+    // 夜盤從 15:00 起算，凌晨那段記成 24*60+，跟這個檔其他地方同一套
+    const startMin = startMin0;
+    const q = rt.Quote || {};
+    const date = String(q.CDate || baseDate || '');
+    const field = (rt.Field || []).map(String);
+    const ix = (k, d) => { const i = field.indexOf(k); return i >= 0 ? i : d; };
+    const iT = ix('T', 0), iO = ix('O', 1), iH = ix('H', 2), iL = ix('L', 3), iC = ix('C', 4), iV = ix('V', 5);
+    const base = dateBaseMs(date);
+    const byMin = {};
+    (rt.Ticks || []).forEach(row => {
+      if (!row || row.length < 5) return;
+      const m = tickMin(row[iT], startMin);
+      const c = num(row[iC]);
+      if (m === null || c === null) return;
+      // 同一分鐘只留最後一筆（見上面那段說明）
+      byMin[m] = { ms: base + m * 60 * 1000, min: m,
+        o: num(row[iO]), h: num(row[iH]), l: num(row[iL]), c, s: num(row[iV]) || 0 };
+    });
+    const pts = Object.keys(byMin).map(k => byMin[k]).sort((a, b) => a.min - b.min);
+    return {
+      symbol: String(rt.SymbolID || ''), name: String(rt.DispCName || ''),
+      date, startMin, points: pts.slice(-FUT_TICK_MAX),
+      // Quote 跟報價清單同一批欄位，拿來補「上排那些數字」（未平倉夜盤這裡是空的，走 /fut）
+      quote: {
+        open: num(q.COpenPrice), high: num(q.CHighPrice), low: num(q.CLowPrice),
+        last: num(q.CLastPrice), ref: num(q.CRefPrice), vol: num(q.CTotalVolume),
+      },
+    };
+  }
+
+  /** 台北 YYYYMMDD 的 00:00 對應的 UTC 毫秒。 */
+  function dateBaseMs(yyyymmdd) {
+    const s0 = String(yyyymmdd || '');
+    if (s0.length !== 8) return Date.now() - (Date.now() % 86400000);
+    return Date.UTC(+s0.slice(0, 4), +s0.slice(4, 6) - 1, +s0.slice(6, 8)) - 8 * 3600 * 1000;
+  }
+
+  async function fetchFutChart(symbol) {
+    const base = proxy();
+    if (!base) throw new Error('還沒設定即時來源');
+    if (!/^[A-Za-z0-9]{3,8}-[FM]$/.test(String(symbol || ''))) throw new Error('NOSYMBOL');
+    const r = await fetch(`${base}/futchart?symbol=${encodeURIComponent(symbol)}&t=${Date.now()}`,
+                          { cache: 'no-store' });
+    // 404＝Worker 還是舊版（沒有 /futchart），要 Andy 去 Cloudflare 重貼一次
+    if (r.status === 404) throw new Error('NOFUTCHART');
+    if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
+    const j = await r.json();
+    if (String(j.RtCode || '0') !== '0') throw new Error('期交所回 RtCode ' + j.RtCode);
+    const out = parseFutChart(j);
+    if (!out.points.length) throw new Error('NOFUTTICKS');
+    return out;
+  }
+
   /* ---- 夜盤走勢：把每一輪真的拿到的報價收成序列 -------------------------------
      期交所只給「當下一筆」，所以序列是我們自己一筆一筆收的。
      每個點都是真實成交價 ＋ 真實的累計量增量，沒有內插、沒有補值。
@@ -274,22 +412,44 @@
     saveNightPts();
     return true;
   }
-  /** 累積到的夜盤點 → 跟 `parse()` 同一個形狀，這樣走勢圖與 K 線可以完全共用。 */
+  /** 夜盤的序列 → 跟 `parse()` 同一個形狀，這樣走勢圖與 K 線可以完全共用。
+   *
+   *  ★ 兩個來源接在一起（2026-09-20），跟個股那一套（DECISIONS #126）同一個想法：
+   *    主體 ← 期交所 `getChartData1M` 的分時序列（**一整晚都在**，而且是真的分鐘 OHLC）
+   *    右緣 ← 這一頁自己每分鐘收到的報價（只補「官方序列最後一筆之後」的那幾分鐘）
+   *  官方序列本身就會跟著更新，所以右緣通常只差 0~1 分鐘；
+   *  真正的用處是官方那支暫時失敗時，畫面右邊不會停住。
+   *  官方序列拿不到時就整條退回自己收的點（以前唯一的來源）。 */
   function nightSeries() {
     const q = state.futNight;
+    const fc = state.futChart;
     const base = nightBaseMs();
-    const pts = state.nightPts.map(p => ({
+    // 自己收的點（[分鐘, 價, 累計量, 該段量]）
+    const mine = state.nightPts.map(p => ({
       // ms 是真正的 UTC epoch 毫秒（toBars 會自己 +8 小時換成台北牆鐘）
       ms: base + p[0] * 60 * 1000,
       min: p[0], c: p[1], s: p[3] || 0,
     }));
+    let pts, src;
+    if (fc && fc.points.length && (!q || !q.symbol || fc.symbol === q.symbol)) {
+      const lastMin = fc.points[fc.points.length - 1].min;
+      pts = fc.points.concat(mine.filter(p => p.min > lastMin));
+      src = 'taifex';
+    } else {
+      pts = mine;
+      src = 'self';
+    }
     return {
-      id: 'FUT', night: true,
-      name: q ? (q.name || '') : '', date: q ? q.date : state.nightDate, time: q ? q.time : '',
-      prev: q ? q.ref : null, prevLabel: '參考價',
-      open: q ? q.open : null, high: q ? q.high : null, low: q ? q.low : null,
-      last: q ? q.last : null, vol: q ? q.vol : null, amt: null, oi: q ? q.oi : null,
-      symbol: q ? q.symbol : '',
+      id: 'FUT', night: true, src,
+      name: q ? (q.name || '') : (fc ? fc.name : ''),
+      date: q ? q.date : (fc ? fc.date : state.nightDate), time: q ? q.time : '',
+      prev: q ? q.ref : (fc ? fc.quote.ref : null), prevLabel: '參考價',
+      open: q ? q.open : (fc ? fc.quote.open : null),
+      high: q ? q.high : (fc ? fc.quote.high : null),
+      low: q ? q.low : (fc ? fc.quote.low : null),
+      last: q ? q.last : (fc ? fc.quote.last : null),
+      vol: q ? q.vol : (fc ? fc.quote.vol : null), amt: null, oi: q ? q.oi : null,
+      symbol: q ? q.symbol : (fc ? fc.symbol : ''),
       points: pts,
     };
   }
@@ -354,10 +514,7 @@
        Andy 要的是「夜盤也具備即時」，那就得跟日盤吃同一個計時器。
        只有選在夜盤時才打，不然平白多一個請求。 */
     if (state.futSession === 'night') {
-      jobs.push((async () => {
-        try { state.futNight = await fetchFut('night'); state.futNightErr = ''; pushNight(state.futNight); }
-        catch (e) { state.futNightErr = String(e.message || e); }
-      })());
+      jobs.push(pullNight());
     }
     await Promise.all(jobs);
     state.busy = false; state.at = Date.now();
@@ -365,20 +522,34 @@
     draw();
   }
 
+  /** 這張卡這個歷史週期，要讀資料湖裡的哪一個代號。
+   *  台指期夜盤有自己的日 K：FinMind `TaiwanFuturesDaily` 的 `after_market`，
+   *  2026-09-20 起 `pipeline/sources/finmind.py` 存成 `FUT_N`（跟日盤 `FUT` 同一張表、同一次請求）。
+   *  湖裡還沒長出來的那段期間會退回 `FUT`，並在圖上寫出來（見 drawK 的 says）。 */
+  function lakeSym(x) { return (isNight(x) && x.id === 'FUT') ? 'FUT_N' : x.id; }
+
   /** 歷史 K。日／週／月／季走資料湖（index_ohlc.json）；1 小時／4 小時走 Yahoo（只有加權有）。 */
   async function fetchHist(x, def) {
-    const key = x.id + '|' + def.id;
+    const sym = def.lake ? lakeSym(x) : x.id;
+    const key = sym + '|' + def.id;
     if (state.hist[key] || state.histBusy[key]) return;
     if (def.lake) {
       state.histBusy[key] = true;
       try {
         const A = window.App;
         const all = await A.load('index_ohlc', { fallback: {} });
-        let bars = (all && all[x.id]) || [];
+        let bars = (all && all[sym]) || [];
+        // 夜盤日 K 還沒進湖 → 退回日盤那一份，並記下來（卡片上要講出這件事）
+        if (!bars.length && sym === 'FUT_N') {
+          bars = (all && all.FUT) || [];
+          state.lakeBack[key] = true;
+        } else {
+          delete state.lakeBack[key];
+        }
         if (!bars.length) throw new Error('NOLAKE');
         bars = bars.map(b => b.slice());
         // 原始日線另外留一份：週／月／季看起來「只有幾根」時，要能講出日線到底有幾年（需求二）
-        state.lakeDaily[x.id] = bars.slice();
+        state.lakeDaily[sym] = bars.slice();
         if (def.roll) bars = rollLake(bars, def.roll);
         if (def.group > 1) bars = groupBars(bars, def.group);
         state.hist[key] = bars;
@@ -463,13 +634,19 @@
     const out = []; let cur = null, key = null, prevClose = null;
     for (const p of pts) {
       const k = Math.floor(p.min / n);
+      /* ★ 有真的分鐘 OHLC 就用真的（期交所 getChartData1M 會給 O/H/L/C）；
+         只有收盤價的來源（證交所分時檔）才照舊合成。
+         合成出來的高低是「分鐘收盤的極值」，不是那一分鐘真正的高低 ——
+         兩者混在同一張圖上會看起來像同一回事，所以哪一根是真的要由資料決定。 */
+      const po = p.o != null ? p.o : (prevClose === null ? p.c : prevClose);
+      const ph = p.h != null ? p.h : Math.max(po, p.c);
+      const pl = p.l != null ? p.l : Math.min(po, p.c);
       if (k !== key) {
         if (cur) { out.push(cur); prevClose = cur[4]; }
         key = k;
-        const o = prevClose === null ? p.c : prevClose;
-        cur = [Math.floor(p.ms / 1000) + 8 * 3600, o, Math.max(o, p.c), Math.min(o, p.c), p.c, p.s * 1000];
+        cur = [Math.floor(p.ms / 1000) + 8 * 3600, po, ph, pl, p.c, p.s * 1000];
       } else {
-        cur[2] = Math.max(cur[2], p.c); cur[3] = Math.min(cur[3], p.c);
+        cur[2] = Math.max(cur[2], ph); cur[3] = Math.min(cur[3], pl);
         cur[4] = p.c; cur[5] += p.s * 1000;
       }
     }
@@ -486,7 +663,9 @@
      不是在日盤上面再疊一塊（Andy 2026-09-19：「夜盤要跟日盤共用同一個走勢圖」）。
      夜盤報價真的抓不到時**退回日盤並在圖上說明**，畫面不會變成一片空白（N11 的規矩）。 */
   function seriesOf(x) {
-    if (isNight(x) && state.futNight && state.futNight.inSession) return nightSeries();
+    // 有期交所的分時序列，或有一筆真的落在夜盤時段的報價 —— 兩者任一就是「夜盤那一份」。
+    // 兩個來源互不依賴：序列掛了還有報價，報價掛了序列自己也帶著開高低收。
+    if (isNight(x) && ((state.futNight && state.futNight.inSession) || state.futChart)) return nightSeries();
     return state.data[x.id];
   }
 
@@ -564,35 +743,58 @@
     schedule();
   }
 
-  /* 夜盤點數不夠畫線時，在**同一個圖表容器裡**寫清楚為什麼，而不是留一塊空白或另外開一塊方框。
-     這是刻意的誠實：期交所行情看板每次只回當下一筆，沒有分時序列可以抓，
-     所以「夜盤走勢」只能由這一頁自己一筆一筆收。收到幾筆就講幾筆。 */
+  /* 夜盤的說明帶。
+     ★ 2026-09-20 Andy：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去，格式 follow 加權指數」
+     以前點數不足 2 筆時，是拿一塊說明方框**把整張圖換掉**。他不接受，而且他是對的 ——
+     「還沒有序列」不是「不要畫圖」的理由：座標軸、參考價虛線、量柱、tooltip、
+     工具列本來就都算得出來，跟加權指數同一套。
+     所以現在一律先畫圖，說明縮成圖上角落一條窄帶，而且只在**還沒有官方序列**時才出現。
+
+     退場說明也改寫過：以前寫「夜盤沒有現成的分時序列」——
+     那句話在我們還沒正確問過期交所那支端點之前是不精確的（我們問錯了，送了陣列）。 */
   function nightWhy() {
     const f = F();
+    const e1 = state.futChartErr, e2 = state.futNightErr;
     const n = state.nightPts.length;
-    const err = state.futNightErr;
-    return err === 'NOFUT'
-      ? 'Worker 還是舊版（沒有 <code>/fut</code>）。推一次 <code>workers/quote-proxy/worker.js</code> 就會自動部署。'
-      : err === 'NOFUTDATA'
-      ? '現在不是夜盤時段（台北 15:00～翌日 05:00），期交所沒有回任何合約報價。'
-      : err ? '夜盤報價抓不到：' + (f ? f.esc(err) : err)
-      : (state.futNight && !state.futNight.inSession)
-        ? '現在不是夜盤時段：期交所回的是日盤最後一筆，不能當夜盤點畫進來。'
-      : n === 0 ? '還沒收到第一筆夜盤報價。'
-      : `目前只收到 ${n} 筆，畫成線至少要 2 筆。`;
+    if (e1 === 'NOFUTCHART')
+      return 'Worker 還是舊版（沒有 <code>/futchart</code>）。到 Cloudflare → Workers → tw-quote，'
+        + '把 repo 裡 <code>workers/quote-proxy/worker.js</code> 整份重貼一次再 Deploy，這條線就會變成一整晚的分時。';
+    if (e2 === 'NOFUT')
+      return 'Worker 還是舊版（沒有 <code>/fut</code>）。推一次 <code>workers/quote-proxy/worker.js</code> 就會自動部署。';
+    if (e2 === 'NOFUTDATA')
+      return '現在不是夜盤時段（台北 15:00～翌日 05:00），期交所沒有回任何合約報價。';
+    if (e1 === 'NOFUTTICKS') return '期交所的分時端點回了空序列（通常是這一晚還沒開始）。';
+    if (e1 === 'NOSYMBOL') return '還沒問到今天的近月合約代號（那是從夜盤報價清單撈的）。';
+    if (e1) return '夜盤分時抓不到：' + (f ? f.esc(e1) : e1);
+    if (e2) return '夜盤報價抓不到：' + (f ? f.esc(e2) : e2);
+    if (state.futNight && !state.futNight.inSession)
+      return '現在不是夜盤時段：期交所回的是日盤最後一筆，不能當夜盤點畫進來。';
+    return n === 0 ? '還沒收到第一筆夜盤報價。' : `目前自己收到 ${n} 筆，連成線至少要 2 筆。`;
   }
-  function nightHint(el) {
-    const n = state.nightPts.length;
-    const why = nightWhy();
-    el.innerHTML = `<div class="m3-night">
-      <div class="m3-q"><b>夜盤沒有現成的分時序列</b></div>
-      <div class="note">期交所行情看板（<span class="mono">getQuoteList</span>）每次只回<b>當下一筆</b>報價，
-        證交所的分時檔只有日盤。所以這張走勢圖是這一頁自己一筆一筆收的：
-        夜盤每分鐘自動更新一次，一次收一個真實成交價與真實的量差，收滿 2 筆就會開始畫。</div>
-      <div class="note">${why}　·　${state.futNight
-        && state.futNight.inSession ? '上面那排數字是最新一筆夜盤報價（即時）。'
-        : '夜盤報價還沒拿到，上面那排暫時是日盤的數字。'}</div>
-    </div>`;
+
+  /** 圖畫完之後補上（或移除）那條說明帶。
+   *  三種狀態、三種講法 —— 講法的輕重要跟「畫面上的東西有多可信」對齊：
+   *    ① 官方序列到手      → 什麼都不用講，整條拿掉
+   *    ② 自己收的點畫得成線 → 圖是真的、線也是真的，只是來源還不是官方，
+   *                          用圖上方那一行細註講就好，不要拿方框蓋住一張能看的圖
+   *    ③ 連線都畫不成      → 這時候圖上幾乎沒東西，才輪到說明帶出場 */
+  function nightNote(el, d) {
+    const had = el.querySelector('.m3-night');
+    if (d && d.src === 'taifex' && d.points.length >= 2) { if (had) had.remove(); return; }
+    if (d && d.points.length >= 2) {
+      if (had) had.remove();
+      /* 這一行是 ::before 畫的，會把底下的圖往下推 —— 所以只能一句話。
+         「為什麼還沒接上」那些細節留給說明帶（連線都畫不成的時候才出場）。*/
+      el.dataset.fallback = '這條線是本頁每分鐘自己收的真實成交價；期交所的完整分時正在接';
+      return;
+    }
+    const box = had || document.createElement('div');
+    box.className = 'm3-night';
+    box.innerHTML = `<div class="m3-q"><b>正在接期交所的分時端點</b></div>
+      <div class="note">夜盤的完整分時序列走期交所 <span class="mono">getChartData1M</span>
+        （2026-09-20 實測可用，一晚 822 筆）。接上之前，這條線是這一頁每分鐘自己收一個
+        真實成交價收出來的，收滿 2 筆才連得成線。${nightWhy()}</div>`;
+    if (!had) el.appendChild(box);
   }
 
   /* 需求二（Andy 2026-09-19：「為何這些走勢都沒有過往歷史數據，幫我新增至少3年」）。
@@ -617,7 +819,7 @@
   }
   /** 歷史不夠 3 年時要標在那張卡片上的話；夠長就回空字串（不夠長才是問題，夠長不用囉嗦）。 */
   function shortHistNote(x) {
-    const s = spanOf(x.id);
+    const s = spanOf(lakeSym(x)) || spanOf(x.id);
     if (!s || s.n >= WANT_BARS) return '';
     return `${x.name}的歷史只有 ${s.n} 根日 K（${s.from} 起，約 ${(s.n / YEAR_BARS).toFixed(1)} 年）`
       + `，所以週／月／季 K 也只有這麼幾根。26 年歷史正在回補（雲端每小時一輪），補完這裡會自己變長。`;
@@ -652,6 +854,8 @@
       if (btn) btn.textContent = state.big === x.id ? '收合 ⤡' : '展開 ⤢';
       drawOne(x);
     });
+    // K 線模式、空狀態、退回日盤 —— 這些情況下 paintPulse 會自己把燈移掉
+    paintPulses();
     setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
   }
 
@@ -673,21 +877,23 @@
        拿它去畫就會變成「按了夜盤卻看到日盤的線」，是最糟的一種說謊。
        點數不足 2 筆就在這裡寫清楚原因（不加 .isempty —— 版面要跟日盤一樣高，不能塌掉）。 */
     if (night) {
-      killK(x.id);
-      if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
       el.classList.remove('isempty');
       delete el.dataset.fallback;
-      if (d && d.night && d.points.length >= 2) {
+      /* ★ 2026-09-20：夜盤一律**先把圖畫出來**，走的就是加權指數那兩支
+         （`drawLine()` / `drawK()`）—— 同一套座標軸、同一排工具列、同一種 tooltip。
+         以前點數不足 2 筆時是拿說明方框把整張圖換掉，Andy 明確說不接受。
+         點數不足時只在圖上角落留一條窄的說明帶（`nightNote()`），
+         而最新那一點有呼吸燈，所以就算只有一個點，也看得到它在哪、還在不在跳。 */
+      if (d && d.night) {
         if (state.mode === 'k') drawK(x, d, el); else drawLine(x, d, el);
+        nightNote(el, d);
         return;
       }
-      /* 有夜盤報價、但累積到的點還不夠畫線 → 在容器裡講清楚（這時候上面那排數字已經是夜盤的，
-         底下卻放日盤的線會前後矛盾，所以寧可先只放說明）。*/
-      if (d && d.night) { el.dataset.kind = 'nighthint'; nightHint(el); return; }
       /* 連一筆夜盤報價都沒有 → 退回日盤那條線，並在圖上標出原因。
          這是 N11 的規矩：「不該出現沒有數據」—— 畫面上要有東西，但要老實說它是什麼。*/
       const dayD = state.data[x.id];
       if (dayD && dayD.points && dayD.points.length) {
+        const had = el.querySelector('.m3-night'); if (had) had.remove();
         el.dataset.fallback = '夜盤報價目前拿不到，先顯示日盤走勢';
         if (state.mode === 'k') drawK(x, dayD, el); else drawLine(x, dayD, el);
         return;
@@ -785,6 +991,113 @@
           } } },
       ],
     }, { notMerge: true });
+
+    /* ---- 呼吸燈：標出「最新的那一點」，而且只在真的還在更新時才呼吸。
+       位置不是算出來寫死的，是每次跟 ECharts 要（`convertToPixel`），
+       所以展開／收合、縮放視窗、換主題之後都不會飄掉。 */
+    let idx = -1;
+    for (let i = price.length - 1; i >= 0; i--) if (price[i] != null) { idx = i; break; }
+    markMove(x, d);
+    state.pulses[x.id] = {
+      idx, val: idx >= 0 ? price[idx] : null, col,
+      label: idx >= 0 ? cats[idx] : '', night: !!d.night, live: isPulsing(x, d),
+    };
+    paintPulse(x.id);
+  }
+
+  /* ================================================================ 呼吸燈
+     Andy 2026-09-20：「三張走勢圖最新的點需要做呼吸燈圓圈…
+                        只要他正在即時更新就會執行呼吸燈效果」
+
+     ★ 判準要能撐住「這盞燈在說謊嗎」這個問題。
+     會呼吸的三個條件，全部成立才亮：
+       ① 分頁在前景（`document.hidden === false`）
+          —— 分頁在背景時 `refresh()` 直接 return、根本沒在打端點，亮著就是假的。
+       ② 現在是走勢圖模式
+          —— K 線沒有「最新的那一個點」這個東西，最右邊那根是「還沒收的 K 棒」，
+             它的語彙是 K 棒不是亮點，硬掛一顆燈只會讓人以為那是別的訊號。
+       ③ ★這條才是重點：這條線的**最後一個點，最近真的往前走過**。
+          量的是「資料有沒有在動」，不是「計時器有沒有在跑」——
+          收盤、來源掛掉、Worker 回舊值，這幾種情況計時器都還在轉，但資料是死的。
+          所以判準放在資料上：最後一個點的 (分鐘, 價) 一變，就記一次時間戳；
+          超過 PULSE_WIN 個輪詢週期沒變，燈就自己熄。
+     另外「第一次看到這條線」不算往前走 —— 不然盤後打開網頁，燈會先騙你 30 秒。 */
+  const PULSE_WIN = 3;                    // 幾個輪詢週期沒有新點就熄燈
+  const PULSE_PAINT = 4 * 1000;           // 多久重算一次燈的位置與亮不亮
+
+  /** 這條線「最後一個點」的身分證。分鐘或價格任一個變了，就是真的往前走了。 */
+  function tipKey(d) {
+    const pts = d && d.points;
+    if (!pts || !pts.length) return '';
+    const p = pts[pts.length - 1];
+    return p.min + ':' + p.c;
+  }
+  /** 同一張卡的日盤與夜盤是兩條不同的線，時間戳要分開記，不然切過去會沿用對方的。 */
+  const pulseId = (x, d) => x.id + (d && d.night ? 'N' : '');
+  /** 記一次「這條線有沒有往前走」。第一次看到只記身分、不算走過（見上面最後一句）。 */
+  function markMove(x, d) {
+    const k = tipKey(d);
+    if (!k) return;
+    const id = pulseId(x, d);
+    if (!(id in state.tipKey)) { state.tipKey[id] = k; return; }
+    if (state.tipKey[id] !== k) { state.tipKey[id] = k; state.tipAt[id] = Date.now(); }
+  }
+  /** 這張卡現在該不該呼吸。 */
+  function isPulsing(x, d) {
+    if (document.hidden) return false;
+    if (state.mode !== 'line') return false;
+    const at = state.tipAt[pulseId(x, d)] || 0;
+    if (!at) return false;
+    // 夜盤自己有一組 60 秒的計時器，日盤跟著盤中 10 秒／盤後 5 分鐘那一組
+    const cadence = (d && d.night) ? MS_NIGHT : (state.tickMs || MS_LIVE);
+    return Date.now() - at <= cadence * PULSE_WIN;
+  }
+
+  /** 把某一張卡的呼吸燈畫到「最新那一點」的像素位置上。
+   *  位置是每次都跟 ECharts 重新要的（`convertToPixel`），所以縮放視窗、
+   *  展開／收合、切主題之後都不會飄掉。 */
+  function paintPulse(id) {
+    const info = state.pulses[id];
+    const el = document.getElementById('m3c-' + id);
+    if (!el) return;
+    let dot = el.querySelector('.m3-pulse');
+    const inst = (typeof echarts !== 'undefined') ? echarts.getInstanceByDom(el) : null;
+    // 不是走勢圖、沒有點、圖表不在了 → 燈就不該存在（留著會浮在 K 線上變成假訊號）
+    if (!info || info.idx < 0 || !inst || el.dataset.kind !== 'line') {
+      if (dot) dot.remove();
+      return;
+    }
+    if (!dot) {
+      dot = document.createElement('div');
+      dot.className = 'm3-pulse';
+      // 兩層：core＝最新點本身（永遠看得到），ring＝會呼吸的光環（只有在更新時才動）
+      dot.innerHTML = '<i class="m3-ring"></i><i class="m3-core"></i>';
+      el.appendChild(dot);
+    }
+    const pos = inst.convertToPixel({ seriesIndex: 0 }, [info.idx, info.val]);
+    if (!pos || !isFinite(pos[0]) || !isFinite(pos[1])) { dot.style.display = 'none'; return; }
+    dot.style.display = '';
+    dot.style.left = pos[0] + 'px';
+    dot.style.top = pos[1] + 'px';
+    dot.style.setProperty('--c', info.col);
+    dot.classList.toggle('on', info.live);
+    dot.dataset.at = info.label || '';
+    dot.dataset.live = info.live ? '1' : '0';
+    dot.title = info.live
+      ? `最新一筆：${info.label}（正在即時更新）`
+      : `最新一筆：${info.label}（目前沒有在更新）`;
+  }
+  function paintPulses() {
+    Object.keys(state.pulses).forEach(paintPulse);
+  }
+  /** 重算「還在不在更新」並重畫。資料沒動也要跑，燈才會自己熄。 */
+  function pulseTick() {
+    IDX.forEach(x => {
+      const info = state.pulses[x.id];
+      if (!info) return;
+      info.live = isPulsing(x, info.night ? { night: true } : {});
+    });
+    paintPulses();
   }
 
   const hexa = (hex, a) => {
@@ -827,7 +1140,7 @@
     if (def && state.noSrc && state.noSrc[fbKey]) def = histDef('D') || def;
     let bars, tfName;
     if (def) {
-      const key = x.id + '|' + def.id;
+      const key = (def.lake ? lakeSym(x) : x.id) + '|' + def.id;
       bars = state.hist[key];
       if (!bars) {
         const err = state.histErr[key];
@@ -859,16 +1172,26 @@
       if (def.lake) {
         const sh = shortHistNote(x);
         if (sh) says.push(sh);
-        if (isNight(x)) says.push('歷史 K 用的是一般交易時段（日盤）收盤 —— 夜盤日 K 資料湖還沒存');
+        /* 夜盤的歷史 K（2026-09-20）：資料湖有 `FUT_N` 就直接用它，並講明這是盤後交易時段的日 K；
+           還沒長出來時退回日盤並把原因寫出來 —— 兩種情況畫面上看起來一樣，所以一定要講。*/
+        if (isNight(x)) {
+          says.push(state.lakeBack[key]
+            ? '夜盤日 K 資料湖還沒長出來（FUT_N），先用一般交易時段（日盤）那一條'
+            : '這是夜盤（盤後交易時段）的日 K，跟上面的日盤是兩條不同的線');
+        }
       }
       if (says.length) el.dataset.fallback = says.join('　·　'); else delete el.dataset.fallback;
     } else {
       bars = toBars(d.points, +state.tf);
       tfName = state.tf + 'm';
     }
-    if (!bars || bars.length < 2) {
+    /* 至少要有一根才畫得出東西。★ 門檻從 2 根降到 1 根（2026-09-20）：
+       夜盤剛開盤只有一根時，以前會整張換成「資料還不夠畫一根 K」——
+       但那時候明明已經有一根真的 K 棒了，Lightweight Charts 畫一根沒有問題。
+       「資料少」該由圖自己表現，不該用一塊文字把圖換掉。 */
+    if (!bars || bars.length < 1) {
       killK(x.id);
-      el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天的分鐘資料還不夠畫一根 K'}</div>`;
+      el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天還沒有任何分鐘資料'}</div>`;
       el.dataset.kind = ''; return;
     }
     const expanded = state.big === x.id;
@@ -904,7 +1227,18 @@
 
   // ---------------------------------------------------------------- 對外
   // 分頁切回來就補抓一次，不用等下一個 10 秒
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) refresh(); });
+  /* ★ 順便處理呼吸燈：分頁切到背景時 `refresh()` 直接 return（不打端點），
+     燈還在呼吸就是在說謊 —— 所以**切走的那一刻**就要重算一次，不能等下一輪。
+     （全站的 visibilitychange 慣例寫在 app.js，但那個檔這一輪不歸我改，所以自己掛一個。）*/
+  document.addEventListener('visibilitychange', () => {
+    pulseTick();
+    if (!document.hidden) refresh();
+  });
+  // 視窗一縮，ECharts 的座標就換了一組 —— 燈的位置要跟著重新跟它要一次
+  window.addEventListener('resize', () => {
+    clearTimeout(state._rzT);
+    state._rzT = setTimeout(paintPulses, 120);
+  });
   // 跨越開盤／收盤時要換節奏（10 秒 ↔ 5 分鐘），每分鐘檢查一次就夠
   setInterval(() => { if (document.getElementById('m3')) schedule(); }, 60 * 1000);
 
@@ -917,6 +1251,14 @@
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
     get lastAt() { return state.at; },
     get ticking() { return !!state.timer; },  // 驗收用：自己的計時器有沒有在跑
+    // 驗收用：三張圖的呼吸燈現在各自亮不亮、燈標在哪一分鐘
+    get pulses() {
+      const o = {};
+      IDX.forEach(x => { const p2 = state.pulses[x.id]; if (p2) o[x.id] = { live: !!p2.live, at: p2.label }; });
+      return o;
+    },
+    get futChart() { return state.futChart; },   // 驗收用：期交所分時序列接到了沒
+    parseFutChart, tickMin,                      // 驗收用：時間欄位的坑（046000）有沒有處理對
     isIntraday,
   };
 })();

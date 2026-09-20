@@ -85,6 +85,8 @@ PROBES: dict[str, list[dict]] = {
          "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
          "json": {"SymbolID": "TXFJ6-M"},
          "symbol_from": {"probe": "taifex_quotelist_night", "suffix": "-M"},
+         "series_stats": {"path": "RtData.Ticks", "session": "RtData.Info.Sessions",
+                          "total": "RtData.Quote.CTotalVolume"},
          "note": "★夜盤 1 分鐘分時：SymbolID 改成字串（上一輪送陣列被回 400），代號取夜盤近月"},
         # 日盤同一支端點：拿得到的話可以跟證交所 futures_chart.txt 對帳，
         # 確認欄位意義（時間是不是台北、價是不是成交價、量是不是該分鐘口數）。
@@ -92,6 +94,8 @@ PROBES: dict[str, list[dict]] = {
          "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
          "json": {"SymbolID": "TXFJ6-F"},
          "symbol_from": {"probe": "taifex_quotelist_day", "suffix": "-F"},
+         "series_stats": {"path": "RtData.Ticks", "session": "RtData.Info.Sessions",
+                          "total": "RtData.Quote.CTotalVolume"},
          "note": "日盤 1 分鐘分時：拿來跟證交所 futures_chart.txt 對帳，確認欄位口徑"},
         # 有些 Spring DTO 會要求帶日期或型態；最小請求被打回票時這一支才有診斷價值。
         {"id": "taifex_chartdata_1m_night_full", "method": "POST",
@@ -136,6 +140,101 @@ def shrink(v, depth: int = 0):
     if isinstance(v, str) and len(v) > 400:
         return v[:400] + f"…（共 {len(v)} 字）"
     return v
+
+
+def _dig(obj, path: str):
+    """`"RtData.Ticks"` → 一路往下取值；中途取不到就回 None。"""
+    cur = obj
+    for k in path.split("."):
+        if not isinstance(cur, dict) or k not in cur:
+            return None
+        cur = cur[k]
+    return cur
+
+
+def _mins(t: str, start_min: int) -> int | None:
+    """期交所分時的時間欄位 `HHMMSS` → 台北分鐘數；跨午夜的往後加 1440。
+
+    ★ 為什麼要寫得這麼囉嗦：2026-09-20 的夜盤 fixture 裡出現了 `"046000"` ——
+    硬切 HHMMSS 會得到 **04:60:00**，不是合法時間。CLAUDE.md 記過同一類坑
+    （重大訊息的 `70003` 要補零成 `07:00:03`）：時間格式看起來單純，每個來源都有自己的怪癖。
+    這裡把 `MM=60` 當成「進位到下一個小時」處理，並把它算進 `weird` 讓人看見，
+    而不是默默丟掉 —— 探測腳本的工作是把事實攤開，不是替上游圓場。
+    """
+    s = str(t).strip()
+    if not s.isdigit() or len(s) not in (5, 6):
+        return None
+    s = s.zfill(6)
+    h, mi, se = int(s[0:2]), int(s[2:4]), int(s[4:6])
+    m = h * 60 + mi + (1 if se >= 60 else 0)
+    if mi >= 60:              # 04:60 → 05:00
+        m = h * 60 + 60
+    if m < start_min:         # 跨午夜（夜盤 15:00 開始、翌日 05:00 結束）
+        m += 24 * 60
+    return m
+
+
+def series_stats(j: dict, spec: dict) -> dict:
+    """把整串序列（**截短之前**）的事實算出來，一次回答「這個時間格式有沒有坑」。
+
+    為什麼非得在這裡算：fixture 為了不肥會把中間截掉（`shrink()`），
+    所以「822 筆裡面有幾個怪時間、缺哪幾分鐘」事後從 fixture 是**數不出來**的。
+    2026-09-20 就是這樣：拿回來的 fixture 只有頭 5 尾 2，
+    看到 `046000` 卻沒辦法確認它是偶發還是每個整點都有。這支就是為了不要再發生一次。
+    """
+    rows = _dig(j, spec["path"])
+    if not isinstance(rows, list) or not rows:
+        return {"n": 0, "note": "序列是空的或路徑不對"}
+    sess = _dig(j, spec.get("session") or "") or []
+    st = str((sess[0] or {}).get("Start") or "0000") if sess else "0000"
+    en = str((sess[0] or {}).get("End") or "0000") if sess else "0000"
+    start_min = int(st[:2]) * 60 + int(st[2:4])
+    end_min = int(en[:2]) * 60 + int(en[2:4])
+    if end_min <= start_min:
+        end_min += 24 * 60                      # 夜盤跨午夜
+    ts = [str(r[0]) for r in rows if isinstance(r, (list, tuple)) and r]
+    weird = {}                                   # 不合法的 HHMMSS → 出現幾次、在第幾筆
+    mins = []
+    for i, t in enumerate(ts):
+        s6 = t.zfill(6)
+        if len(s6) != 6 or not s6.isdigit() or int(s6[2:4]) >= 60 or int(s6[4:6]) != 0 \
+           or int(s6[0:2]) >= 24:
+            w = weird.setdefault(t, {"n": 0, "at": []})
+            w["n"] += 1
+            if len(w["at"]) < 5:
+                w["at"].append(i)
+        m = _mins(t, start_min)
+        if m is not None:
+            mins.append(m)
+    grid = set(range(start_min + 1, end_min + 1))     # 第一根是「開盤後第一分鐘」
+    got = set(mins)
+    dup = sorted({m for m in mins if mins.count(m) > 1}) if len(mins) != len(got) else []
+    vol = 0.0
+    for r in rows:
+        try:
+            vol += float(r[5])
+        except (TypeError, ValueError, IndexError):
+            pass
+    out = {
+        "n": len(rows),
+        "session": {"start": st, "end": en, "grid_minutes": len(grid)},
+        "first": ts[0] if ts else None, "last": ts[-1] if ts else None,
+        # ★ 這三個就是「時間格式有沒有坑」的答案
+        "weird_times": weird,
+        "duplicate_minutes": dup[:40],
+        "missing_minutes": sorted(grid - got)[:60],
+        "missing_n": len(grid - got),
+        "monotonic": all(mins[i] <= mins[i + 1] for i in range(len(mins) - 1)),
+        "volume_sum": vol,
+    }
+    tot = _dig(j, spec.get("total") or "")
+    if tot not in (None, ""):
+        try:
+            out["quote_total_volume"] = float(tot)
+            out["volume_matches_quote"] = abs(vol - float(tot)) < 1e-6
+        except (TypeError, ValueError):
+            pass
+    return out
 
 
 def pick_symbol(rec: dict, suffix: str) -> str | None:
@@ -216,7 +315,9 @@ def one(p: dict, prev: dict | None = None) -> dict:
             rec["kind"] = "list"
             rec["n"] = len(j)
             rec["fields"] = sorted(j[0].keys()) if j and isinstance(j[0], dict) else None
-            rec["sample"] = shrink(j)
+            # 最外層是陣列的來源（TWSE opendata 那一類）照舊只留前三筆 ——
+            # 那種回應每一筆都長一樣，留三筆就夠看欄位；shrink 是給**巢狀的長序列**用的。
+            rec["sample"] = shrink(j[:3])
         elif isinstance(j, dict):
             rec["kind"] = "dict"
             rec["keys"] = sorted(j.keys())[:60]
@@ -248,6 +349,12 @@ def one(p: dict, prev: dict | None = None) -> dict:
                 _walk(j, "")
                 if seqs:
                     rec["sequences"] = seqs
+                # ★ 一定要在 shrink 之前算：截短之後就數不出來了
+                if p.get("series_stats"):
+                    try:
+                        rec["series_stats"] = series_stats(j, p["series_stats"])
+                    except Exception as exc:  # noqa: BLE001
+                        rec["series_stats"] = {"error": f"{type(exc).__name__}: {exc}"}
     except Exception as e:  # 連不上也是結果，要記下來
         rec["status"] = None
         rec["error"] = f"{type(e).__name__}: {e}"
@@ -274,6 +381,12 @@ def run(name: str) -> Path:
         extra = ""
         if r.get("matched_paths") is not None:
             extra = f" 命中 {len(r['matched_paths'])} 個路徑（全部 {r.get('all_paths_n')} 個）"
+        elif r.get("series_stats"):
+            st2 = r["series_stats"]
+            extra = (f" {st2.get('n')} 筆 {st2.get('first')}~{st2.get('last')}"
+                     f" 缺 {st2.get('missing_n')} 分鐘"
+                     f" 怪時間 {list((st2.get('weird_times') or {}).keys())[:4]}"
+                     f" 量對帳 {st2.get('volume_matches_quote')}")
         elif r.get("sequences"):
             extra = " 序列：" + "、".join(f"{k} {v['n']} 筆" for k, v in list(r["sequences"].items())[:3])
         elif r.get("grep"):

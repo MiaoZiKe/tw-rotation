@@ -397,7 +397,10 @@ def build() -> None:
         # 資金去向的逐日版（圖六的拉Bar＋播放）。
         # ★ 刻意拆成獨立檔：flow_v3 已經是全站最大的一份，再加 60 天 × 12 族群 × 3 檔，
         #   連只想看總覽的人都得先下載它。這一份只有資金流向頁會去載。
-        _write("sankey_daily", rrg.sankey_daily(group_hist, price, loader.membership(), 60))
+        # ★ 2026-09-20 多傳一個 company：法定產業別的收容桶（ind_*）不在 membership 裡，
+        #   不補的話四層樹上「其他產業別」整條底下一檔代表股都沒有（理由見 rrg.sankey_daily）。
+        _write("sankey_daily", rrg.sankey_daily(group_hist, price, loader.membership(), 60,
+                                                company=company))
     except Exception as exc:  # noqa: BLE001
         log.warning("資金流向 v3 產出失敗：%s", exc)
         _write("sankey_daily", {"dates": [], "groups": [], "leaves": {}})

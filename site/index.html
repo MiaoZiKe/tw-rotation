@@ -1045,6 +1045,93 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .pill.st-done{color:var(--rise)}
 .card.hot{border-color:color-mix(in srgb,var(--fall) 40%,transparent)}
 @media(max-width:700px){.tkwrap{grid-template-columns:1fr}}
+
+/* ============ C3 後半（2026-09-20 下午）：環節卡清單在手機上的「重點展開」============
+   前一輪把供應鏈關聯圖改成環節卡清單之後，**桌機短了、手機反而長了**：
+   390px 半導體 1088 → 1846、AI 伺服器 780 → 2599。
+   根因不是小卡太多，是「每張環節卡的固定成本（標題＋上下游＋內距外距約 70px）
+   × 環節數」—— AI 伺服器 20 格光固定成本就 1400px，67 張小卡才佔 1200px。
+   所以收的不是小卡（那是 Andy 指名要的東西），是**同時攤開的卡片張數**。
+
+   ★ 這一段只在 ≤560px 生效，桌機（1366／1500／1920）一個像素都不動 ——
+   `.sb` 在桌機只是一層沒有樣式的包裝 div。*/
+.segtools{display:none}
+/* 收合鈕：桌機不存在（桌機永遠攤開，多一顆按不出東西的鈕只會讓人困惑）。
+   13px 不是裝飾字級 —— 全站規定任何字不得小於 11px，而這顆是要用指頭點的。*/
+.segcard .sx{display:none;align-items:center;justify-content:center;flex:none;
+  width:30px;height:24px;margin:-2px -6px -2px 2px;padding:0;border:0;border-radius:6px;
+  background:transparent;color:var(--ink-3);font:inherit;font-size:13px;line-height:1;
+  cursor:pointer;transition:.15s}
+.segcard .sx:hover{color:var(--ink);background:var(--panel)}
+.segcard.open .sx{transform:rotate(180deg)}
+@media (max-width:560px){
+  /* 工具列：一顆總開關＋一句說明。說明要寫「所以我該怎麼用」，不是只說有這個功能 */
+  .segtools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:0 0 8px}
+  .segtools[hidden]{display:none}
+  .segtools .muted{font-size:11.5px;line-height:1.5;flex:1 1 150px;min-width:0}
+  .segcard .sx{display:inline-flex}
+  /* 卡片本身也收緊一點：每張省 5px，20 格就是 100px，而且完全不犧牲任何內容 */
+  .segcard{padding:5px 9px;margin-bottom:6px}
+  .segcard.open{padding-bottom:7px}
+  /* 標題列不准換行 —— 換一行就是多 20px×環節數，等於把收合省下來的又吐回去。
+     名稱可以被擠窄並自己出現省略號，完整名稱本來就在下方成分股標題與 title 裡 */
+  .segcard .sh{flex-wrap:nowrap}
+  .segcard .sh .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .segcard .sh .rl,.segcard .sh .cnt{flex:none}
+}
+
+/* ---------------------------------------------------------------- 2026-09-20
+   資金去向：四層樹 ＋ 右側個股成交值排序面板
+   （Andy：「當點擊族群時會在右邊出現個股的成交值排序」）
+
+   用 flex 不用 grid：面板是「點了才出現」的，grid 要先留一欄，
+   沒開的時候右邊會空一塊，圖也跟著變窄 —— 那是一眼就看得出來的浪費。
+   #sankeyWrap 一定要 min-width:0，否則 flex 子項的最小內容寬度會撐破卡片
+   （ECharts 容器本身沒有內容寬，但 .chart 的 min-height 那條規則不擋這個）。*/
+#sankeyRow{display:flex;gap:14px;align-items:flex-start}
+#sankeyRow #sankeyWrap{flex:1 1 auto;min-width:0}
+#sankeyRow #sankeyPanel{flex:0 0 300px;max-width:300px;margin-top:0}
+/* 清單比 .hpanel 預設的 232px 高一點：右欄本來就有整張圖那麼高，
+   232px 會在一大片空白裡放一個小盒子。仍然是固定高度＋自己捲，規矩沒變。*/
+#sankeyRow #sankeyPanel .ms{max-height:420px}
+@media (max-width:900px){
+  #sankeyRow{display:block}
+  #sankeyRow #sankeyPanel{max-width:none;margin-top:12px}
+  #sankeyRow #sankeyPanel .ms{max-height:190px}
+}
+/* ===================== 2026-09-20：大盤三張圖（site/market3.js）===================== */
+/* ① 夜盤的說明帶。
+   Andy 2026-09-20：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去，格式 follow 加權指數」。
+   以前 .m3-night 是 height:100% 的方框，**把整張圖換掉**；他不接受，而且他是對的 ——
+   「還沒有序列」不是「不要畫圖」的理由。現在圖照畫（跟加權指數同一套 drawLine/drawK），
+   說明縮成圖上方一條窄帶，而且只在還沒接到官方分時序列時才出現。
+   right 留 60px：走勢圖的 y 軸標籤就在右邊那一欄（grid right:58），蓋住會讀不到價格。 */
+.m3-chart .m3-night{position:absolute;left:10px;right:60px;top:6px;z-index:3;
+  height:auto;max-height:46%;overflow:auto;padding:7px 10px;border-radius:9px;
+  display:block;gap:0;
+  background:color-mix(in srgb,var(--chartbg) 90%,transparent);
+  border:1px solid color-mix(in srgb,var(--violet) 32%,transparent)}
+.m3-chart .m3-night .m3-q b{font-size:12.5px}
+.m3-chart .m3-night .note{font-size:11.5px;line-height:1.5;margin-top:2px}
+/* ② 呼吸燈：三張走勢圖「最新的那一點」。
+   Andy 2026-09-20：「三張走勢圖最新的點需要做呼吸燈圓圈…只要他正在即時更新就會執行呼吸燈效果」。
+   兩層是刻意的：core 永遠在（那是「最新一筆在這裡」這個事實），
+   ring 只有 .on 的時候才擴散（那是「它還在跳」這個狀態）。
+   會說謊的燈比沒有燈更糟，所以 .on 由 market3.js 的 isPulsing() 決定，不是一直掛著。
+   定位點就是那一點本身，所以 core/ring 用負的 left/top 讓自己置中。 */
+.m3-pulse{position:absolute;width:0;height:0;pointer-events:none;z-index:4;--c:var(--rise)}
+.m3-pulse .m3-core{position:absolute;left:-3.5px;top:-3.5px;width:7px;height:7px;border-radius:50%;
+  background:var(--c);box-shadow:0 0 7px var(--c);display:block}
+.m3-pulse .m3-ring{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;
+  border:1.5px solid var(--c);opacity:0;transform:scale(.5);display:block}
+.m3-pulse.on .m3-ring{animation:m3breathe 1.6s ease-in-out infinite}
+@keyframes m3breathe{
+  0%{opacity:.9;transform:scale(.45)}
+  70%{opacity:.08;transform:scale(2.2)}
+  100%{opacity:0;transform:scale(2.2)}}
+/* 會暈車的人把動畫放慢，但**不關掉** —— 這盞燈本身是資訊（還在不在更新），關掉等於少一格資料 */
+@media(prefers-reduced-motion:reduce){.m3-pulse.on .m3-ring{animation-duration:3.6s}}
+@media(max-width:900px){.m3-chart .m3-night{right:52px;max-height:52%}}
 </style>
 </head>
 <body>
@@ -1203,8 +1290,14 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     <div class="card" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">族群固定在原位，只有線的粗細與圓圈大小會變</small></h3>
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
-      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變"></div>
-      <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div></div>
+      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播"></div>
+      <!-- 2026-09-20（Andy：「當點擊族群時會在右邊出現個股的成交值排序」）：
+           圖和面板並排。面板沿用全站的 .hpanel / .hpanel .ms（固定高度＋自己的捲軸），
+           不另開第三種清單樣式。窄畫面時 #sankeyRow 改成 block，面板掉到圖下面。 -->
+      <div id="sankeyRow">
+        <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div>
+        <div class="hpanel" id="sankeyPanel" hidden></div>
+      </div></div>
     <div class="grid g2" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">

@@ -50,7 +50,7 @@ import numpy as np
 import pandas as pd
 
 from ..groups import loader
-from ..util.roc import is_tradable_security
+from ..util.roc import is_tradable_security, norm_industry
 
 log = logging.getLogger(__name__)
 
@@ -187,7 +187,8 @@ def sankey(today: pd.DataFrame, members: dict, top_groups: int = 12, top_members
 
 def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
                  membership: "pd.DataFrame | None",
-                 days: int = 60, top_groups: int = 12, top_members: int = 3) -> dict:
+                 days: int = 60, top_groups: int = 18, top_members: int = 3,
+                 company: "pd.DataFrame | None" = None) -> dict:
     """資金去向的**逐日**版本（Andy 2026-09-18 圖六：「一樣都具備相資金輪動的拉Bar
     可以觀察並搭配播放功能」）。
 
@@ -198,7 +199,25 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
       flow_v3 已經是這個網站最大的一份，再加 60 天 × 12 族群 × 3 檔會讓
       每一頁（包含只想看總覽的人）都得先下載它。
 
-    回傳 {dates: [...], groups: [{gid, name, chain, tv: [...]}], leaves: {date: [{gid, code, name, tv}]}}
+    回傳 {dates: [...], groups: [{gid, name, chain, chain_name, tv: [...]}],
+          leaves: {date: [{gid, code, name, tv}]}}
+
+    ★ 2026-09-20（Andy：「半導體產業涵蓋 IC 設計、代工、封測，不應該將他們拆開…
+      一個節點是半導體產業，後面接續是 IC 設計、代工、封裝」）——
+      這裡多送一個 `chain_name`，前端才畫得出「台股成交值 → 產業鏈 → 族群 → 代表股」四層。
+
+      為什麼不是在後端直接把樹組好：前端要能依「被點到哪個族群」重排壓暗、
+      依螢幕寬度決定畫幾層，樹的形狀是**畫面的事**；後端只負責把分類講清楚。
+
+      `chain_name` 的來源是 `groups.yaml` 的 `chains:`（唯一人工維護的分類表），
+      不在任何鏈裡的兩種各有名字：
+        · `industry`＝法定產業別的收容桶（半導體業／電子零組件業／ETF…），
+          它們是「不屬於任何人工族群的股票」的集合，和晶圓代工那種真族群不是同一層 ——
+          擺在一起看就會像 Andy 說的「半導體被拆開了」，所以獨立成「其他產業別」。
+        · `other`＝連產業別都沒有的（理論上不該出現，留一個名字免得畫面上出現 raw id）。
+
+      top_groups 12 → 18（同一次改）：12 個只夠撐出半導體／AI 伺服器／其他產業別三條鏈，
+      傳產與一般電子整條看不到，分類層等於只講了一半。18 個剛好把五條鏈都帶出來。
     """
     if group_hist is None or group_hist.empty:
         return {"dates": [], "groups": [], "leaves": {}}
@@ -212,14 +231,19 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
     order = (g[g["date"] == latest].sort_values("turnover", ascending=False)["group_id"]
              .head(top_groups).tolist())
     meta = g.drop_duplicates("group_id").set_index("group_id")
+    cname = {cid: (c or {}).get("name", cid) for cid, c in (loader.chains() or {}).items()}
+    cname.setdefault("industry", "其他產業別")
+    cname.setdefault("other", "其他")
     groups = []
     for gid in order:
         sub = g[g["group_id"] == gid].set_index("date")["turnover"].reindex(dates)
+        chain = (None if gid not in meta.index or pd.isna(meta.loc[gid].get("chain"))
+                 else str(meta.loc[gid]["chain"]))
         groups.append({
             "gid": str(gid),
             "name": str(meta.loc[gid]["group_name"]) if gid in meta.index else str(gid),
-            "chain": (None if gid not in meta.index or pd.isna(meta.loc[gid].get("chain"))
-                      else str(meta.loc[gid]["chain"])),
+            "chain": chain,
+            "chain_name": cname.get(chain or "other", cname["other"]),
             "tv": [_v(x, 0) for x in sub.tolist()],
         })
     # 每一天、每個族群的前幾檔（給前端展開用）
@@ -232,6 +256,21 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
             for r in membership.itertuples():
                 if str(r.group_id) in keep:
                     code2g.setdefault(str(r.code), []).append(str(r.group_id))
+        # ★ 2026-09-20：法定產業別的收容桶（ind_*）不在 `loader.membership()` 裡 ——
+        #   它們是 `flow._attach_groups()` 在跑的時候現掛的「沒有人工族群的股票」。
+        #   所以以前那 5 個收容桶在圖上**一檔代表股都沒有**，四層之後整條
+        #   「其他產業別」底下會是一整排空白格子（電子零組件業是全場第二大，
+        #   卻連一檔公司都秀不出來，看起來就像壞了）。
+        #   這裡照 `_attach_groups` 同一套規則補上：沒有人工族群的股票掛 ind_<正規化產業別>。
+        if company is not None and len(company) and "industry" in company.columns:
+            named = set(code2g)
+            for c_, ind_ in zip(company["code"], company["industry"]):
+                code = str(c_)
+                if code in named or ind_ is None or (isinstance(ind_, float) and pd.isna(ind_)):
+                    continue
+                gid = "ind_" + str(norm_industry(ind_))
+                if gid in keep:
+                    code2g.setdefault(code, []).append(gid)
         if code2g:
             px = price.copy()
             px["date"] = px["date"].astype(str)

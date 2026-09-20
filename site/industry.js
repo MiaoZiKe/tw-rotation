@@ -198,6 +198,7 @@
         ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
           <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
           <div class="chainrow"><div class="chainpane">
+            <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
             <div class="chainmap" id="chainMap" hidden></div>
           </div></div></div>` : ''}
@@ -297,6 +298,8 @@
         if (!list || !map) return;
         const isMap = chainView === 'map';
         list.hidden = isMap; map.hidden = !isMap;
+        // 收合工具列是清單的工具，切到關聯圖就收起來（不然按了沒有任何事發生）
+        const tools = $('#segTools', el); if (tools) tools.hidden = isMap;
         if (btn) btn.textContent = isMap ? '看環節清單 →' : '看關聯圖 →';
         if (hint) hint.innerHTML = isMap ? HINT.map : HINT.list;
       };
@@ -504,7 +507,9 @@
        只做一半的話，切換檢視會看到「剛剛選的那一格不見了」。
        卡片整張壓暗（而不是只壓暗裡面的小卡），因為卡片標題本身就是那一格。*/
     $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
-      n.classList.toggle('sel', hit); n.classList.toggle('dim', on.size > 0 && !hit); });
+      n.classList.toggle('sel', hit); n.classList.toggle('dim', on.size > 0 && !hit);
+      // 手機收合狀態下被選到的那一格要自己攤開，不然「亮了但看不到小卡」等於沒反應
+      if (hit && on.size === 1 && segListReveal) segListReveal(n); });
   }
   /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
      Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
@@ -647,8 +652,19 @@
      讀不到 localStorage（無痕、公司擋）就回預設，不要讓整頁掛掉。*/
   const loadChainView = () => { try { return localStorage.getItem('tw.chainView') === 'map' ? 'map' : 'list'; } catch (e) { return 'list'; } };
   const saveChainView = (v) => { try { localStorage.setItem('tw.chainView', v); } catch (e) { /* 忽略 */ } };
+  /* 手機上「全部展開／只展開重點」的偏好。預設是「只展開重點」＝false ——
+     Andy 的問題就是手機太長，預設一定要是短的那一種；想看全部的人按一下就有，而且會被記住。
+     跟 chainView 同一個道理：每次重畫都重讀，不要在模組載入時讀一次就算了。*/
+  const loadSegExpand = () => { try { return localStorage.getItem('tw.segExpand') === 'all'; } catch (e) { return false; } };
+  const saveSegExpand = (v) => { try { localStorage.setItem('tw.segExpand', v ? 'all' : 'key'); } catch (e) { /* 忽略 */ } };
   // 由 renderChain 掛上：讓「在圖上highlight」在清單模式下能自己把關聯圖切出來
   let showChainMap = null;
+  // 由 drawSegList 掛上：把某一張環節卡攤開（手機收合時，從外面選到它才看得到小卡）
+  let segListReveal = null;
+  /* 手機收合用的 media query 監聽器。存成模組層級的一份是為了「換一條鏈就換掉」——
+     這個站是 hash 路由，換鏈只是重畫，不會重新載入 JS；每畫一次就掛一個監聽器的話，
+     舊的那些會一直活著、對著已經被丟掉的 DOM 做事（看起來不會壞，但每逛一條鏈就多漏一個）。*/
+  let segFoldMQ = null, segFoldFn = null;
 
   function drawSegList(host, sc, chainId, im, handlers) {
     if (!host) return { nSeg: 0, nTw: 0, nEdge: 0 };
@@ -710,20 +726,52 @@
       const nm = (set) => [...(set || [])].map(x => segName(sc, x)).join('、') || '（沒有）';
       return `上游：${nm(upS[id])}\n下游：${nm(dnS[id])}`;
     };
+    /* ---------------------------------------------------------------- 手機的「重點展開」
+       2026-09-20 下午 Andy 拍板要修的東西：改成環節卡之後**桌機變短了、手機反而變高**
+       （390px 半導體 1088 → 1846、AI 伺服器 780 → 2599）。
+
+       為什麼手機一定會變高（前一輪已經查清楚）：舊的 SVG 高度固定，但它 min-width:860px，
+       在 390px 的視窗裡是**要左右拖才看得完**的；清單只有一欄，14~20 個環節全攤開必然更長。
+
+       ★ 不可以用「把個股小卡收起來」來解 —— Andy 的原始需求就是
+         「顯示族群以及族群標題底下顯示個股小卡」。所以這裡收的**不是小卡，是「卡片的數量」**：
+         量出來 390px 的成本結構是「每張卡固定成本 ~70px × 環節數」遠大於小卡本身
+         （AI 伺服器 20 張卡＝1400px 的固定成本，67 張小卡只佔 1200px），
+         所以真正的槓桿在「不是每一張卡都要同時攤開」。
+
+       做法：手機（≤560px）預設展開**台股檔數最多的前 4 格**，其餘只留標題列
+       （環節名稱＋角色＋N 檔＋一顆 ▾），點 ▾ 就地展開那一張、再點收回去；
+       清單上方一顆「全部展開」總開關，選擇記進 localStorage。
+       桌機完全不受影響（`.sb` 只是一層包裝，CSS 在 >560px 不做任何事），
+       所以 1366／1500／1920 的高度不會退步。
+
+       ★ 為什麼是「整段 DOM 拆下來」而不是 display:none：
+       隱藏起來的小卡**版面框還在**（rect 都是 0,0,0,0 或壓在卡片外面），
+       `_uitest.py` 量的就是這些框，會判成「小卡跑出環節卡」。
+       拆下來收在 `card._sb` 裡，展開時再掛回去 —— 事件在渲染當下就綁好了，
+       元素只是離開文件、沒有被重建，所以掛回去照樣能點。*/
+    const MOBILE_OPEN = 4;
+    // 檔數多的先展開（同檔數維持上游→下游的順序，`sort` 在同值時不動位置）
+    const openIds = new Set(segs.slice()
+      .map((s, i) => ({ id: s.id, i, n: cos.filter(c => c.segment === s.id && c.tw_code).length }))
+      .sort((a, b) => (b.n - a.n) || (a.i - b.i)).slice(0, MOBILE_OPEN).map(x => x.id));
     let nTw = 0;
     host.innerHTML = segs.map(s => {
       const list = cos.filter(c => c.segment === s.id);
       const tw = list.filter(c => c.tw_code), fo = list.filter(c => !c.tw_code);
       nTw += tw.length;
-      return `<div class="segcard" data-seg="${s.id}" style="--c:${segColor(s.id)}">
-        <div class="sh"><i class="dot"></i><b class="nm">${A.fmt.esc(s.name)}</b>${ROLE[s.role] ? `<span class="rl">${ROLE[s.role]}</span>` : ''}<span class="cnt">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span></div>
-        ${upS[s.id] || dnS[s.id] ? `<div class="sf" title="${A.fmt.esc(flowTip(s.id))}">${upS[s.id] ? `<span class="lb">上游</span>${nbr(upS[s.id])}` : ''}${dnS[s.id] ? `<span class="lb">下游</span>${nbr(dnS[s.id])}` : ''}</div>` : ''}
-        ${tw.concat(fo).map(mini).join('') ? `<div class="sms">${tw.concat(fo).map(mini).join('')}</div>` : ''}
-        ${list.length ? '' : `<div class="nt">${A.fmt.esc(s.note || '（台股無直接對應）')}</div>`}</div>`;
+      const body = `${upS[s.id] || dnS[s.id] ? `<div class="sf" title="${A.fmt.esc(flowTip(s.id))}">${upS[s.id] ? `<span class="lb">上游</span>${nbr(upS[s.id])}` : ''}${dnS[s.id] ? `<span class="lb">下游</span>${nbr(dnS[s.id])}` : ''}</div>` : ''}`
+        + `${tw.concat(fo).map(mini).join('') ? `<div class="sms">${tw.concat(fo).map(mini).join('')}</div>` : ''}`
+        + `${list.length ? '' : `<div class="nt">${A.fmt.esc(s.note || '（台股無直接對應）')}</div>`}`;
+      // 沒有公司的環節只有一段說明文字，收起來反而什麼都不剩 —— 那種卡片不給收合鈕
+      const foldable = list.length > 0;
+      return `<div class="segcard${openIds.has(s.id) ? ' pin' : ''}" data-seg="${s.id}" data-n="${list.length}" style="--c:${segColor(s.id)}">
+        <div class="sh"><i class="dot"></i><b class="nm">${A.fmt.esc(s.name)}</b>${ROLE[s.role] ? `<span class="rl">${ROLE[s.role]}</span>` : ''}<span class="cnt">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span>${foldable ? '<button type="button" class="sx" aria-expanded="true">▾</button>' : ''}</div>
+        <div class="sb">${body}</div></div>`;
     }).join('');
-    // 點卡片本身＝選這一格；點卡片裡的小卡或上下游名稱各自有自己的動作，不要一起觸發
+    // 點卡片本身＝選這一格；點卡片裡的小卡、上下游名稱、收合鈕各自有自己的動作，不要一起觸發
     $$('.segcard', host).forEach(card => { card.onclick = (ev) => {
-      if (ev.target.closest('.sco') || ev.target.closest('.sg')) return;
+      if (ev.target.closest('.sco') || ev.target.closest('.sg') || ev.target.closest('.sx')) return;
       if (handlers && handlers.onSegment) handlers.onSegment(card.dataset.seg); }; });
     $$('.segcard .sf .sg', host).forEach(t => { t.onclick = (ev) => {
       ev.stopPropagation(); if (handlers && handlers.onSegment) handlers.onSegment(t.dataset.seg); }; });
@@ -734,6 +782,66 @@
       // 跟關聯圖上點公司同一條路：原地開面板（N7 不跳頁），再同步選取它的環節
       showCompany(co, sc, host);
       if (handlers && handlers.onCompany) handlers.onCompany(co); }; });
+
+    /* ---- 展開／收合：事件全部綁完之後才拆 DOM，拆下來的節點事件還在，掛回去就能點 ---- */
+    const cards = $$('.segcard', host);
+    cards.forEach(c => { c._sb = c.querySelector('.sb'); });
+    const narrow = () => { try { return window.matchMedia('(max-width:560px)').matches; } catch (e) { return false; } };
+    let expandAll = loadSegExpand();
+    const setOpen = (card, open) => {
+      if (!card._sb) return;
+      if (open && !card._sb.parentNode) card.appendChild(card._sb);
+      else if (!open && card._sb.parentNode) card._sb.remove();
+      card.classList.toggle('open', open);
+      const x = $('.sx', card);
+      if (x) { x.setAttribute('aria-expanded', open ? 'true' : 'false');
+        x.title = open ? '收起這一格的個股小卡' : `展開這一格的 ${card.dataset.n} 檔個股小卡`; }
+    };
+    /* 一張卡該不該開：桌機一律開；手機看「全部展開」總開關 →
+       使用者自己點過的那張（dataset.user）→ 預設開的那前 4 格。*/
+    const wantOpen = (c) => {
+      // 沒有公司的環節（只有一段說明文字）沒有收合鈕，收起來會什麼都不剩 —— 一律攤開
+      if (!c._sb || !$('.sx', c)) return true;
+      if (!narrow() || expandAll) return true;
+      if (c.dataset.user) return c.dataset.user === '1';
+      return c.classList.contains('pin');
+    };
+    const applyFold = () => cards.forEach(c => setOpen(c, wantOpen(c)));
+    $$('.segcard .sx', host).forEach(x => { x.onclick = (ev) => {
+      ev.stopPropagation();
+      const card = x.closest('.segcard'); const open = !card.classList.contains('open');
+      card.dataset.user = open ? '1' : '0'; setOpen(card, open); }; });
+    /* 從外面選到某一格（點環節色標、剖析圖零件、成分股、關聯圖）時，
+       手機上要順手把那張卡攤開 —— 不然「選起來了」但小卡還是收著，看起來像沒反應。*/
+    segListReveal = (card) => { if (card && card._sb && !card.classList.contains('open')) {
+      card.dataset.user = '1'; setOpen(card, true); } };
+
+    // 上方的總開關（只在手機顯示，CSS 控制）
+    const tools = host.previousElementSibling && host.previousElementSibling.classList.contains('segtools')
+      ? host.previousElementSibling : null;
+    if (tools) {
+      const paint = () => { const b = $('.segx', tools);
+        if (b) b.textContent = expandAll ? '只展開重點' : '全部展開';
+        const t = $('.segxn', tools);
+        if (t) t.textContent = expandAll
+          ? `${segs.length} 格全部攤開，往下滑會比較長`
+          : `已展開個股最多的 ${Math.min(MOBILE_OPEN, segs.length)} 格；其餘點卡片右邊的 ▾ 就地展開`; };
+      tools.innerHTML = '<button type="button" class="btn small segx"></button><span class="muted segxn"></span>';
+      $('.segx', tools).onclick = () => {
+        expandAll = !expandAll; saveSegExpand(expandAll);
+        cards.forEach(c => delete c.dataset.user);   // 總開關按下去＝重新來過，蓋掉個別卡片的選擇
+        applyFold(); paint();
+      };
+      paint();
+    }
+    applyFold();
+    // 轉橫向／改視窗寬度跨過 560px 時要重算，不然桌機會留著手機的收合狀態。
+    // 掛新的之前先把上一條鏈的拆掉（理由見 segFoldMQ 的註解）
+    try {
+      if (segFoldMQ && segFoldFn) segFoldMQ.removeEventListener('change', segFoldFn);
+      segFoldMQ = window.matchMedia('(max-width:560px)'); segFoldFn = applyFold;
+      segFoldMQ.addEventListener('change', segFoldFn);
+    } catch (e) { /* 舊瀏覽器沒有 addEventListener 就算了，重新整理一樣會對 */ }
     return { nSeg: segs.length, nTw, nEdge };
   }
 

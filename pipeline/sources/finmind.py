@@ -549,17 +549,60 @@ def index_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd.D
     return out.dropna(subset=["close"])
 
 
+def _near_month(df: pd.DataFrame, session: str, symbol: str) -> pd.DataFrame:
+    """從 `TaiwanFuturesDaily` 的原始列裡，挑出某個交易時段的「近月」日 K。
+
+    `contract_date`：除了單一月份（`202609`），還有價差組合（`202609/202610`）
+      → 帶 `/` 的全部丟掉，那是價差不是指數。
+    剩下的月份裡取**成交量最大**的那一個 ＝ 近月
+      （2026-09-14 實測：202609 量 94,885、202610 量 50,428）。
+    """
+    d = df[df.get("trading_session").astype(str) == session]
+    d = d[~d.get("contract_date").astype(str).str.contains("/", na=False)]
+    if d.empty:
+        return pd.DataFrame()
+    d = d.copy()
+    for c in ("open", "max", "min", "close", "volume"):
+        d[c] = pd.to_numeric(d.get(c), errors="coerce")
+    d = d[(d["close"] > 0) & (d["volume"] > 0)]
+    if d.empty:
+        return pd.DataFrame()
+    # 每天留成交量最大的那個月份（＝近月）
+    d = d.sort_values(["date", "volume"]).groupby("date", as_index=False).last()
+    return pd.DataFrame({
+        "date": d["date"].astype(str),
+        "symbol": symbol,
+        "open": d["open"], "high": d["max"], "low": d["min"], "close": d["close"],
+        "change": pd.to_numeric(d.get("spread"), errors="coerce"),
+        "volume": d["volume"],
+        "turnover": pd.NA,
+    }).dropna(subset=["close"])
+
+
 def futures_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd.DataFrame:
-    """台指期（TX）近月的日 K，symbol 固定是 'FUT'。
+    """台指期（TX）近月的日 K。**一次請求同時吐日盤（FUT）與夜盤（FUT_N）兩個 symbol。**
 
     FinMind 的 `TaiwanFuturesDaily` 一天會回很多列，要挑對才不會畫出一條莫名其妙的線
     （2026-09-15 實測 2026-09-14 那天有 32 列）：
-      - `trading_session`：`position`（一般交易）與 `after_market`（盤後）→ **只取 position**，
-        跟總覽那張即時圖的口徑一致（它畫的是一般交易時段）
-      - `contract_date`：除了單一月份（`202609`），還有價差組合（`202609/202610`）
-        → 帶 `/` 的全部丟掉，那是價差不是指數
-      - 剩下的月份裡取**成交量最大**的那一個 ＝ 近月
-        （2026-09-14：202609 量 94,885、202610 量 50,428）
+      - `trading_session`：`position`（一般交易）與 `after_market`（盤後／夜盤）
+      - `contract_date`：帶 `/` 的是價差組合，不是指數，要丟掉
+      - 剩下的月份裡取成交量最大的那一個 ＝ 近月
+
+    ★ 2026-09-20 這裡從「只取 position」改成「兩個時段都取」
+    ------------------------------------------------------
+    Andy：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去」。
+    以前這支刻意只留 `position`，等於**把夜盤的歷史日 K 丟掉** ——
+    而總覽那三張卡切到「夜盤 ＋ 日／週／月／季」時就只剩日盤那條線可以畫，
+    畫面上還得寫一句「夜盤日 K 資料湖還沒存」。資料其實一直都在同一個回應裡。
+
+    夜盤存成 `FUT_N`（跟日盤的 `FUT` 同一張表 `index_ohlc`，靠 symbol 分）。
+    這樣**不多花一次 FinMind 額度** —— 同一次請求本來就兩個時段的列都回來了，
+    我們只是不要再把一半丟掉（額度是這個專案最稀缺的東西，DECISIONS #155）。
+
+    ⚠ 還沒實測、寫在這裡免得以後誤會：**FinMind 對 `after_market` 的 `date`
+      記成哪一個交易日還沒對帳過**（期交所把盤後交易時段的交易日認定為次一營業日，
+      FinMind 是照原樣還是照期交所認定，目前的 token 失效拿不到資料驗證）。
+      先照它給的 `date` 原樣存，拿得到真實回應之後要回來對一次帳。
     """
     data = http.finmind_get("TaiwanFuturesDaily", data_id="TX",
                             start_date=start, end_date=end,
@@ -570,22 +613,16 @@ def futures_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd
     df = pd.DataFrame(data)
     if df.empty:
         return df
-    df = df[df.get("trading_session").astype(str) == "position"]
-    df = df[~df.get("contract_date").astype(str).str.contains("/", na=False)]
-    for c in ("open", "max", "min", "close", "volume"):
-        df[c] = pd.to_numeric(df.get(c), errors="coerce")
-    df = df[(df["close"] > 0) & (df["volume"] > 0)]
-    if df.empty:
+    parts = []
+    for session, symbol, label in (("position", "FUT", "日盤"),
+                                   ("after_market", "FUT_N", "夜盤")):
+        out = _near_month(df, session, symbol)
+        if out.empty:
+            # 夜盤回空不是致命傷（例如那段期間沒有夜盤），但要留一行才查得到
+            log.warning("FinMind 台指期%s（%s）沒有可用的列", label, session)
+            continue
+        log.info("FinMind 台指期%s近月（%s）：%d 天", label, symbol, len(out))
+        parts.append(out)
+    if not parts:
         return pd.DataFrame()
-    # 每天留成交量最大的那個月份（＝近月）
-    df = df.sort_values(["date", "volume"]).groupby("date", as_index=False).last()
-    out = pd.DataFrame({
-        "date": df["date"].astype(str),
-        "symbol": "FUT",
-        "open": df["open"], "high": df["max"], "low": df["min"], "close": df["close"],
-        "change": pd.to_numeric(df.get("spread"), errors="coerce"),
-        "volume": df["volume"],
-        "turnover": pd.NA,
-    })
-    log.info("FinMind 台指期近月：%d 天", len(out))
-    return out.dropna(subset=["close"])
+    return pd.concat(parts, ignore_index=True)

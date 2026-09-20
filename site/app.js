@@ -396,7 +396,19 @@
     if (!box) return null;
     const min = o.min, max = o.max, step = o.step || 1;
     let v = o.value != null ? o.value : max;
-    if (o.key) { try { const s = +localStorage.getItem(o.key); if (s >= min && s <= max) v = s; } catch (e) { /* 私密視窗 */ } }
+    /* ★ 2026-09-20 修掉一個一直沒人看到的 bug：以前寫
+         `const s = +localStorage.getItem(o.key); if (s >= min && s <= max) v = s;`
+       `localStorage.getItem` 沒存過會回 `null`，而 `+null === 0` ——
+       所以只要這支拉Bar 的 min 是 0，第一次打開就會被當成「使用者上次選了 0」。
+       資金去向的「看哪一天」min 就是 0，於是**第一次打開看到的是 60 天前那一天**，
+       不是最新；而且因為畫面本身完全正常，沒有人會覺得它壞了。
+       一定要先確認鍵真的存在、而且是個有限數字，才准覆蓋預設值。*/
+    if (o.key) {
+      try {
+        const raw = localStorage.getItem(o.key);
+        if (raw != null && raw !== '') { const s = +raw; if (isFinite(s) && s >= min && s <= max) v = s; }
+      } catch (e) { /* 私密視窗 */ }
+    }
     v = Math.max(min, Math.min(max, v));
     const label = (x) => (o.fmt ? o.fmt(x) : x + ' 天');
     box.classList.add('rbar');
@@ -1144,6 +1156,15 @@
     { from: 270, to: 360, k: 'weakening' }, // 右下：還強但動能在掉
   ];
   const CLOCK_MAXR = 1.25;
+  /* ★ 2026-09-20（Andy：「每天的移動都需要平均速率，絲滑呈現，而非段點段點式移動」）
+     這兩個數字是同一件事的兩半，**必須相等**，改一個就要改另一個：
+       ROT_ANIM_MS  ECharts 把大圈從「昨天的位置」補間到「今天的位置」要花多久（linear）
+       播放的間隔    playBar 多久推進一天
+     以前是 620 / 820 —— 每一天走完之後有 200ms 站在原地不動，
+     那個空檔就是他說的「段點段點式移動」。改成兩邊都 420 之後首尾相接：
+     一天固定走 420ms（60fps 下約 25 幀），速率完全一致，中間沒有停頓。
+     順帶一提這樣整段 30 天播完是 12.6 秒，比舊的 24.6 秒還快。 */
+  const ROT_ANIM_MS = 420;
   const LBL_FS = 11.5;                 // 標籤字級；排版與驗收都用同一個值
   /* 這一輪排好的標籤位置，key＝scatter 的 dataIndex。
      labelLayout 是每個標籤各呼叫一次的，拿不到「全部標籤」，
@@ -1219,13 +1240,25 @@
       if (picked.length) top0 = picked;
     }
     /* 回放：把每個族群的位置換成 trail 裡「frame 天前」那一筆。
-       trail 是 [日期, rs_ratio, rs_mom] 由舊到新，所以第 k 天前＝倒數第 k+1 筆。*/
+       trail 是 [日期, rs_ratio, rs_mom] 由舊到新，所以第 k 天前＝倒數第 k+1 筆。
+
+       ★ 2026-09-20：frame 允許**小數**。拖曳與播放時 ECharts 會自己在相鄰兩天之間補間，
+         但「軌跡要畫到哪裡」必須跟大圈站在同一個位置上，所以兩邊共用這一支取值，
+         小數就在相鄰兩筆之間線性內插。回傳的第 4 個值是「由舊到新的索引」，
+         軌跡那一段要用它決定畫到哪裡為止。*/
+    const atFrame = (t, f) => {
+      const n = t.length; if (!n) return null;
+      const idx = Math.max(0, Math.min(n - 1, n - 1 - f));
+      const i0 = Math.floor(idx), i1 = Math.min(n - 1, i0 + 1), u = idx - i0;
+      const a = t[i0], b = t[i1];
+      return [a[0], a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, idx];
+    };
     const scope = top0;                       // 尺度與軌跡都用「還沒被 frame 換掉」的原始資料
+    const frame = Math.max(0, +opts.frame || 0);
     let frameDate = null;
-    if (opts.frame > 0) {
+    if (frame > 0) {
       top0 = top0.map(r => {
-        const t = r.trail || [];
-        const w = t[t.length - 1 - opts.frame];
+        const w = atFrame(r.trail || [], frame);
         if (!w) return r;
         frameDate = w[0];
         // 階段要跟著當天的座標重算，否則回放時點還在動、顏色卻停在「今天的階段」
@@ -1279,27 +1312,37 @@
       if (pts.length) out.push(pts[pts.length - 1]);
       return out;
     };
-    /* 尾巴：這 N 天真正走過的路。
-       以前只取「N 天前」與「現在」兩點連一條直線 —— 註解寫的理由是「畫整段會變一團毛線」。
-       折衷：從實際軌跡挑最多 6 個路標（太密才會變毛線），再用 arcPath 把它們接成弧線，
-       這樣既看得出真的怎麼繞，也不會糊成一團。小圈圈仍然標在最舊的那一端。*/
+    /* 尾巴：**已經走過**的那一段路（Andy 2026-09-20：「只有經過才留下軌跡，
+       不是馬上所有軌跡都先印出來」）。
+
+       以前是一開始就把整整 span 天的路全部印出來、大圈在上面滑 ——
+       看起來像「路本來就在那裡」，不是「牠自己走出來的」。現在改成漸進式：
+         起點  = max(0, 目前位置 - span)          ← 所以 span 的語意仍然是「軌跡畫幾天」
+         終點  = 大圈現在站的位置（可小數，最後補一小段殘段）
+       主卡片的 span 固定 30、而 trail 只存 31 天，所以起點永遠是最舊那一天，
+       時間軸刷到「前 30 天」時只剩起點一個點，往「今天」刷才一天一天長出來 ——
+       這就是他要的那個效果。放大視窗的 span 是可調的，語意自然變成「跟在後面的尾巴多長」。
+
+       路標仍然畫滿每一天（不再像 2026-09-18 那版只挑 6 個）：後端把 RS 平滑掉之後
+       一日步長只有盤面半徑的 0.053，畫滿才看得到「一天走一小步」。
+       上限 40 個路標純粹是防呆。*/
     const span = opts.span != null ? opts.span : back;
     const trailOn = opts.trail !== false;
     const trail = (r) => {
       const t = r.trail || [];
       if (!t.length || !trailOn) return [];
-      const seg = t.slice(Math.max(0, t.length - 1 - span));
-      const way = seg.length > 1 ? seg : [t[0]];
-      /* ★ 2026-09-20：以前這裡只挑 6 個路標，理由是「畫整段會變一團毛線」。
-         那個理由在後端把 RS 平滑掉之後已經不成立了（pipeline/compute/rrg.py 的量測：
-         一日步長從盤面半徑的 0.255 降到 0.053、直線度 0.07 → 0.38）——
-         現在畫滿每一天才看得到 Andy 要的「一天就走一小步」。
-         上限 40 個路標純粹是防呆（後端只存 31 天，正常走不到）。*/
+      const end = atFrame(t, frame);
+      if (!end) return [];
+      const iEnd = end[3];
+      const i0 = Math.max(0, Math.floor(iEnd) - span);
+      if (iEnd <= i0 + 1e-9) return [pos(end[1], end[2])];   // 才剛站上起點：只有一個點
+      const way = [];
+      for (let i = i0; i <= Math.floor(iEnd); i++) way.push([t[i][1], t[i][2]]);
+      if (Math.floor(iEnd) < iEnd - 1e-9) way.push([end[1], end[2]]);   // 走到一半的殘段
       const step = Math.max(1, Math.ceil((way.length - 1) / 40));
       const picked = way.filter((_, i) => i % step === 0);
       if (picked[picked.length - 1] !== way[way.length - 1]) picked.push(way[way.length - 1]);
-      const pts = picked.map(w => pos(w[1], w[2]));
-      return arcPath(pts);
+      return arcPath(picked.map(w => pos(w[0], w[1])));
     };
     /* A4 第 6 條（Andy：「越外圈顏色越深」）。
        做法是把族群色**往面板底色調淡**，離圓心越近調得越淡、越外圈越接近原色。
@@ -1420,8 +1463,11 @@
        只有「族群數真的變了」（換篩選、換天數）才需要 notMerge，否則會留下殘線。*/
     const sameShape = rotLastShape === id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
     rotLastShape = id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
-    o.animationDurationUpdate = 620;
-    o.animationEasingUpdate = 'linear';        // 等速才像「緩步走」，不要 easeOut 那種急停
+    /* 補間時間＝播放間隔（ROT_ANIM_MS）。兩者相等的時候一天接著一天、中間沒有空檔，
+       所以看起來是「等速滑過去」而不是「走一步停一下」。easing 一定要 linear：
+       easeOut 會在每一天的尾巴急停，那正是「段點段點」的另一個來源。*/
+    o.animationDurationUpdate = ROT_ANIM_MS;
+    o.animationEasingUpdate = 'linear';
     const c = chart(id, o, { notMerge: !sameShape });
     /* 標籤排版要等圖畫完（要有像素座標才知道誰在左誰在右），
        所以先畫一次、算好位置、再 setOption 一次讓 labelLayout 查表。
@@ -1434,7 +1480,9 @@
       window.App._rotBg = CH.panel;
       window.App._rotPts = top.map(r => ({ gid: r.gid, name: r.name,
         r: Math.min(r.p[0], maxR) / maxR, color: depthColor(r), base: STAGE[r.stage].color }));
-      window.App._rotFrame = { frame: opts.frame || 0, date: frameDate, span, trail: trailOn };
+      window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
+        // 驗收用：目前畫上去的軌跡總共幾個點（漸進式軌跡量的就是這個）
+        trailPts: top.reduce((a, r) => a + trail(r).length, 0) };
     }
     if (c && !compact) {
       /* ★ 2026-09-20：標籤排版必須**跟著容器大小重算**。
@@ -1469,9 +1517,17 @@
       rotLbl = {};
     }
     if (c) c.off('click').on('click', q => { const r = q.data && q.data.row; if (r) location.hash = '#industry/group/' + r.gid; });
-    // N2：兩張圖共用同一份名單（輪動資料的全部族群，依成交值佔比排序）
-    if (!compact) groupChips(id, rows.map(r => ({ gid: r.gid, name: r.name })), rankSel);
+    /* N2：兩張圖共用同一份名單（輪動資料的全部族群，依成交值佔比排序）。
+       ★ 2026-09-20：加一層「名單沒變就不要重建 DOM」。播放現在每 420ms 重畫一次時鐘，
+         每次都把 36 個晶片整排 innerHTML 掉的話，使用者按到一半的晶片會被抽掉，
+         而且那是整個播放迴圈裡最貴的一段。 */
+    if (!compact) {
+      const list = rows.map(r => ({ gid: r.gid, name: r.name }));
+      const key = list.map(g => g.gid).join(',') + '|' + (rankSel || '');
+      if (rotChipKey[id] !== key) { rotChipKey[id] = key; groupChips(id, list, rankSel); }
+    }
   }
+  const rotChipKey = {};                 // id → 上一次畫出來的晶片名單指紋
 
   function renderRotation(rrg, back, ids) {
     const rows = rotRows(rrg, back);
@@ -1483,6 +1539,11 @@
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
       { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail });
+    /* ★ 2026-09-20：`only: 'clock'` ＝只更新時鐘那一張圖。
+       播放現在是每 420ms 推進一天（以前 820ms），如果每一幀都連帶把輪動階段看板
+       四格清單整個 innerHTML 重建一次，瀏覽器會忙到補間動畫掉幀 ——
+       那就又回到「段點段點」了。看板改由呼叫端 debounce 更新（見 renderFlow 的 rotSeek）。*/
+    if (ids.only === 'clock') return;
 
     if (ids.cycle) {
       const cy = $('#' + ids.cycle);
@@ -2054,16 +2115,25 @@
         看的是 5 日佔比減 20 日佔比，不是今天的漲跌。</li>
       <li>所以會出現「紅方塊但今天收綠」——那代表股價在回檔，但錢還在往裡面放。</li>
       <li>上面那排可以只看一條產業鏈，小方塊就會變大、看得清楚；點方塊直接看成分股。</li></ul>`,
-    sankey: `<b>這張圖回答：這一天的量最後流進了誰的口袋，以及它比前幾天變多還是變少。</b>
-      <ul><li>由左到右：大盤 → 族群 → 當天量最大的代表股。
-        <em>圓圈越大、線越粗＝錢越多</em>，小圓點的<em>密度</em>也是同一件事（發得越密＝錢越多）。</li>
-      <li><em>族群的位置固定不動</em>，換日期只會改粗細與大小 ——
-        所以<b>怎麼用</b>：拖「看哪一天」往回走，盯住<em>同一個位置</em>的那條線，
+    sankey: `<b>這張圖回答：這一天的量最後流進了誰的口袋，以及它比前一天變多還是變少。</b>
+      <ul><li>由左到右<em>四層</em>：台股成交值 → <b>產業鏈</b> → 族群 → 當天量最大的代表股。
+        半導體的 IC 設計／晶圓代工／封測是同一條鏈上的三個環節，所以掛在<em>同一個「半導體」節點</em>底下，
+        不跟法定產業別的收容桶（半導體業、電子零組件業、ETF…）並排 —— 那些歸在「其他產業別」。</li>
+      <li><b>每一層的 % 都是「佔它上一層」的比重</b>：產業鏈的 % 是佔全場，
+        族群的 % 是佔它那條產業鏈，代表股的 % 是佔它那個族群。
+        所以「台積電 49.8%」讀作「台積電吃掉晶圓代工的一半」，不是佔全台股一半。
+        滑鼠移上去的小框裡兩種分母都寫（佔上一層、佔全場），還會寫出比前一天增減多少。</li>
+      <li><em>圓圈越大、線越粗＝錢越多</em>，線上小圓點的<em>密度</em>也是同一件事；
+        <em>三段線都會跑點</em>，一眼看得出錢是一路傳到哪一檔股票。
+        節點名字後面的 <em>▲▼</em> 是和前一天比的增減（紅增綠減）。</li>
+      <li><em>位置固定不動</em>，換日期只會改粗細與大小 ——
+        所以<b>怎麼用</b>：拖「看哪一天」往回走（或按 ▶ 一天一天播），盯住<em>同一個位置</em>的那條線，
         它變粗就是錢在往這個族群集中，變細就是在退場；灰掉寫「無資料」的是那天完全沒量。</li>
       <li>大小是跟<em>這 60 天的最大值</em>比，不是跟當天的第一名比 ——
         所以整排一起變細，代表的是大盤量縮，不是族群輪動。</li>
-      <li>下面那排族群點一下＝只看它（其餘壓暗），再點一次取消；點名字右邊的 → 才進族群頁。
-        圖上點族群看成分股、點個股直接進個股頁。</li></ul>`,
+      <li><b>點族群</b>（圖上的圓圈或下面那排晶片）＝右邊列出<em>該族群全部成分股的成交值排序</em>、
+        圖上其餘壓暗，再點一次取消；<b>點產業鏈</b>＝只看那一條鏈；<b>點個股</b>才會離開這一頁進個股頁。
+        晶片名字右邊的 → 是進族群頁。</li></ul>`,
     inst: `<b>這張圖回答：這段時間法人把錢放在哪裡。</b>
       <ul><li>三段堆疊分別是外資、投信、自營，<em>向右＝買超、向左＝賣超</em>（單位張）。</li>
       <li><em>投信</em>的錢比較黏（有作帳壓力、不太會隔天就跑），連續買超的族群參考價值比外資單日大買高。</li>
@@ -2192,14 +2262,27 @@
     /* C4（Andy 2026-09-20：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
        也可以篩選想要的股票」）—— 圖一指的是漲跌分佈那張卡的篩選列。
        這裡把同一套語彙搬過來，`rotFilter` 是排行與時鐘**共用**的那一份選擇。*/
-    const drawRot = (frame) => {
+    const drawRot = (frame, only) => {
       renderRotation(f3 && f3.rrg, flowState.back,
         { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock',
-          pick: rotPickSet(), frame: frame || 0,
-          // 軌跡固定畫滿 30 天：拉Bar 現在是「看哪一天」，不再是「畫多長」（A4 第 7 條）
+          pick: rotPickSet(), frame: frame || 0, only,
+          /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
+             span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
+             配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
+             （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
           span: ROT_SPAN, trail: ROT.trail });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
+    };
+    /* 時間軸刷動／播放：時鐘**立刻**跟著動（這是「絲滑」的來源），
+       底下的輪動階段看板用 160ms debounce 補上 —— 它是整頁最貴的 DOM 重建，
+       每 420ms 跟著重建一次會把補間動畫拖到掉幀。*/
+    let rotBoardT = null;
+    const rotSeek = (v) => {
+      flowState.back = v; rotFrame = v;
+      drawRot(v, 'clock');
+      clearTimeout(rotBoardT);
+      rotBoardT = setTimeout(() => drawRot(rotFrame), 160);
     };
     rotRedraw = () => { drawRot(rotFrame); drawPeriod(); };
     wireRotFilter(f3);
@@ -2214,6 +2297,8 @@
         + '所以最外圈那一圈＝今天全場跟大盤差最多的那個族群，其他人都在它裡面；'
         + '往回刷時間軸時尺度不變，所以看得出那一天大家離大盤更近還是更遠。'
         + '資金照順時針一段一段跑：落後 → 改善 → 領先 → 轉弱 → 再回落後。'
+        + '軌跡是「走到哪畫到哪」：把時間軸刷到前 30 天只會看到起點，'
+        + '按 ▶ 播放（一天 0.42 秒、等速）就會看著牠自己把路走出來。'
         + '　怎麼用：先看外圈（差距大、值得追）再看它在哪一段 ——'
         + '「改善」外圈是剛起漲的候選、「領先」外圈是還在強的主流、'
         + '「轉弱」外圈是該準備減碼的，圓心附近的族群跟大盤沒兩樣，先不用花時間。';
@@ -2238,10 +2323,13 @@
        ★ 值同時餵給輪動階段看板的「和 N 天前比」（flowState.back）——
          兩件事的方向一致（都是「把時間往回拉 N 天」），所以共用同一個值不會打架：
          時鐘回答「N 天前大家在哪」，看板回答「這 N 天誰換了階段」。*/
+    /* ★ 2026-09-20：frame 820 → ROT_ANIM_MS（420），和時鐘的補間時間**相等**。
+       以前補間 620ms、每 820ms 才推進一天 → 每天走完站著不動 200ms，
+       那就是 Andy 說的「段點段點式移動」。相等之後首尾相接、等速。*/
     rotBackBar = playBar('rotBack', { min: ROT_MIN_BACK, max: 30, value: flowState.back,
-      key: 'tw.rot.back', dir: -1, frame: 820,
+      key: 'tw.rot.back', dir: -1, frame: ROT_ANIM_MS,
       label: '看哪一天', fmt: (v) => v + ' 天前',
-      onChange: (v) => { flowState.back = v; rotFrame = v; drawRot(v); } });
+      onChange: (v) => rotSeek(v) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
     flowState.back = rotFrame;
     wireRotTrailToggle(() => drawRot(rotFrame));
@@ -2276,15 +2364,22 @@
 
     /* 圖六：改吃獨立檔 sankey_daily（60 天），配一支「看哪一天」的拉 Bar。
        這份檔案只有這一頁會載，所以在這裡才 load。
-       ★ 2026-09-20：播放鈕拿掉（rangeBar），但「看哪一天」保留 ——
-         族群固定之後，拖這支才看得出同一個族群的錢變多還是變少，那是圖六現在的主要用途。*/
+       ★ 2026-09-20 上午：播放鈕拿掉（rangeBar）。
+       ★ 2026-09-20 下午（Andy：「並且需要具備播放功能」）：**加回來**（playBar）。
+         方向和輪動時鐘相反：這支的值是「第幾個交易日」，由小到大就是時間往前走，
+         所以用 playBar 的預設方向（dir = +1），不要抄時鐘那支的 dir:-1。
+         間隔 650ms 是量出來的：一次 renderSankey 是整張 notMerge 重畫
+         （5 條鏈 ＋ 18 個族群 ＋ 54 個葉子），在 1500px 上約 90~140ms，
+         留三倍以上的餘裕才不會播到一半卡住。
+       ⚠ 這一頁其餘三支拉Bar（排行、族群×法人、法人截止日）**維持沒有播放鈕**，
+         那是 2026-09-20 上午拍板要移除的，不要順手一起加回去。*/
     load('sankey_daily', { fallback: { dates: [], groups: [], leaves: {} } }).then(sd => {
       const n = (sd && sd.dates && sd.dates.length) || 0;
       renderSankey(sd, n ? n - 1 : 0);
       if (n > 1) {
-        rangeBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
-          label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
-          onChange: (v) => renderSankey(sd, v, chipSel.sankey || null) });
+        playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
+          frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
+          onChange: (v) => renderSankey(sd, v, sankeySel) });
       }
     });
     /* ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
@@ -2401,7 +2496,8 @@
       /* ★ 上限寫死 30，不要用 `back` —— back 是軌跡長度，被拉到 1 的時候
          回放就只剩兩格可以播，看起來像播放壞了（2026-09-20 改成兩支分工之後才會發生）。*/
       const PLAY_MAX = 30;
-      playBar('rotZoomPlay', { min: 0, max: PLAY_MAX, value: PLAY_MAX, frame: 700,
+      // 間隔＝補間時間（ROT_ANIM_MS），和卡片上那支同一個理由：相等才不會有空檔
+      playBar('rotZoomPlay', { min: 0, max: PLAY_MAX, value: PLAY_MAX, frame: ROT_ANIM_MS,
         label: '回放', fmt: (v) => (v >= PLAY_MAX ? '現在' : (PLAY_MAX - v) + ' 天前'),
         onChange: (v) => { frame = Math.max(0, PLAY_MAX - v); draw(); } });
       if (close) { /* close 由 openZoom 提供，這裡不另外包裝 */ }
@@ -2672,7 +2768,10 @@
     const box = $('#rotTools'); if (!box) return;
     box.innerHTML = '<label class="rotchk"><input type="checkbox" id="rotTrail"'
       + (ROT.trail ? ' checked' : '') + '>顯示軌跡</label>'
-      + '<span class="muted">大圈＝你選的那一天；線＝這 30 天走過的路</span>';
+      /* ★ 2026-09-20：文案跟著改成漸進式的語意。以前寫「這 30 天走過的路」，
+         那是「整條路一開始就畫好」的說法，和 Andy 要的「只有經過才留下軌跡」剛好相反。*/
+      + '<span class="muted">大圈＝你選的那一天；線＝牠<b>已經走過</b>的那一段'
+      + '（刷到「前 30 天」只剩起點，往今天刷才一天一天長出來）</span>';
     const c = $('#rotTrail', box);
     if (c) c.onchange = () => { ROT.trail = c.checked; redraw(); };
   }
@@ -2744,7 +2843,11 @@
        · 容器真的離開 DOM、或整張圖重畫時，自己收掉 canvas 與 rAF，不留孤兒計時器
        · 系統設定「減少動態效果」就完全不啟動
        · 一條線上的點數上限 6、總數上限 SANKEY_DOT_MAX，單一 rAF 迴圈畫完 */
-  const SANKEY_DOT_MAX = 90;
+  /* ★ 2026-09-20：90 → 170。四層之後要發點的線從 12 條變成
+     （5 條產業鏈 ＋ 18 個族群 ＋ 最多 54 檔代表股）＝ 77 條，
+     每條至少 1 顆的話 90 顆連「每條線上都有一顆」都做不到，
+     最末段（族群 → 代表股）會整排沒有點 —— 那正是 Andy 要的那一段。*/
+  const SANKEY_DOT_MAX = 170;
   const SANKEY_TRAVEL = 2600;          // 一顆點從大盤走到族群要幾毫秒（固定，所以「頻率」＝點數）
   let sankeyFx = null;
   function stopSankeyFlow() { if (sankeyFx) { try { sankeyFx.stop(); } catch (e) { /* 忽略 */ } sankeyFx = null; } }
@@ -2775,6 +2878,10 @@
     const g = cv.getContext('2d');
     if (!g) { cv.remove(); return null; }
     const dots = [];
+    /* flows 用一層 ref 包起來（不是直接用參數）：換一天時族群的位置完全沒變，
+       只有粗細與顆數要換 —— 這時候只換 flowsRef 就好，
+       把整層 canvas 拆掉重建會讓小圓點閃一下（2026-09-20 加播放之後每 650ms 就閃一次）。*/
+    let flowsRef = flows;
     let raf = null, alive = true;
     const sizeTo = () => {
       const w = el.clientWidth, h = el.clientHeight;
@@ -2794,7 +2901,8 @@
     const step = (ts) => {
       raf = null;
       if (!alive) return;
-      if (!el.isConnected) { stop(); return; }
+      // 容器離開 DOM，或整層 canvas 被別人清掉（例如 empty() 把容器 innerHTML 換掉）就收工
+      if (!el.isConnected || !cv.isConnected) { stop(); return; }
       // 換到別的分頁時容器還在 DOM 裡、只是被藏起來（offsetParent 會是 null）：
       // 這時候什麼都不畫，但迴圈留著，回到這一頁就自己接上
       if (el.offsetParent === null) { raf = requestAnimationFrame(step); return; }
@@ -2802,12 +2910,12 @@
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, cv.width, cv.height);
       dots.length = 0;
-      for (const f of flows) {
+      for (const f of flowsRef) {
         for (let i = 0; i < f.n; i++) {
           // 同一條線上的點等距排開：資金越多 → 點越多 → 單位時間通過的顆數越多＝頻率越高
           const t = ((ts / SANKEY_TRAVEL) + f.phase + i / f.n) % 1;
           const p = bez(f.a, f.b, t);
-          dots.push({ x: Math.round(p[0]), y: Math.round(p[1]), r: f.size, gid: f.gid });
+          dots.push({ x: Math.round(p[0]), y: Math.round(p[1]), r: f.size, gid: f.gid, lvl: f.lvl });
           g.beginPath(); g.arc(p[0], p[1], f.size, 0, 6.2832);
           g.fillStyle = f.color; g.fill();
         }
@@ -2827,7 +2935,8 @@
     }
     document.addEventListener('visibilitychange', onVis);
     raf = requestAnimationFrame(step);
-    return { stop, dots, running: () => !!raf };
+    return { stop, dots, running: () => !!raf, alive: () => alive, host: el,
+      setFlows: (f) => { flowsRef = f || []; } };
   }
 
   /* 資金去向（Andy 2026-09-18 圖六）：
@@ -2835,7 +2944,8 @@
          並且一樣都具備相資金輪動的拉Bar 可以觀察並搭配播放功能，
          白色頁面時 顏色不要太深 親和一點」
 
-     所以整張圖從桑基改成**水平的樹**：大盤 → 族群 → 代表股，全部是點跟線。
+     所以整張圖從桑基改成**水平的樹**，全部是點跟線
+     （層數在 2026-09-20 從三層加到四層，見下面那段註解）。
      - 點的大小、線的粗細、顏色深淺，三者都綁在「這條分支的成交值」上
      - 資料改吃 sankey_daily（獨立檔，60 天），所以可以往回拉、可以播
      - 原本那個「電流沿著深度跑」的脈動整段拿掉：它每 90ms 就 setOption 一次，
@@ -2857,23 +2967,110 @@
          ECharts 的 tree 是按葉子數量分配縱向空間的，葉子數一變族群的 y 就會跳，
          「位置固定」就破功了。
 
-     第三個參數 pick＝只看某一個族群（族群晶片點下去會傳進來）：
-     其餘的整棵子樹壓暗，不是整個拿掉 —— 拿掉位置又會變。*/
+     （聚焦參數在 2026-09-20 從「一個族群 id」換成 {gid} / {chain} 兩種，見下段。）*/
   const SANKEY_KIDS = 3;
+  /* ★ 2026-09-20（Andy）：「半導體產業涵蓋 IC 設計、代工、封測，不應該將他們拆開，
+     所以需要整理清楚哪個產業在哪裡…一個節點是半導體產業，後面接續是 IC 設計、代工、封裝」
+
+     他看到的問題是**呈現**，不是數字。查過 `pipeline/compute/flow.py` 的 `_attach_groups()`：
+     `ind_*`（半導體業、電子零組件業、ETF…）是「不屬於任何人工族群的股票」的收容桶
+     （只有 `group_id.isna()` 才會掛上去），台積電只算在「晶圓代工」裡，量能也是 1/n 拆分的 ——
+     所以沒有重複計算。真正的毛病是畫面把收容桶和真族群**並排在同一層**，
+     看起來就像半導體被拆成好幾塊。
+
+     所以改成四層：台股成交值 → 產業鏈 → 族群 → 代表股。
+     產業鏈這一層直接吃 `groups.yaml` 的 `chains:`（唯一人工維護的分類表，
+     28 個族群全部收得進去，沒有落單），後端在 `sankey_daily` 把 `chain_name` 一起送過來。
+     `chain: industry` 的收容桶歸到「其他產業別」，不跟真族群並排。
+
+     位置固定這條（2026-09-20 早上拍板）繼續守著，而且現在要多守一層：
+       · 產業鏈的順序用**最後一天**的成交值排一次就不再動
+       · 族群順序沿用後端 `sd.groups` 的原始順序
+       · 每個族群一律配 SANKEY_KIDS 個代表股格子，不足補看不見的佔位節點
+     三者都不隨「看哪一天」改變，所以拖時間軸看到的只有粗細與圓圈大小在變。
+
+     sel＝目前聚焦的東西（族群晶片或點節點傳進來）：
+       { gid }   只看這個族群      { chain } 只看這條產業鏈
+     被排除的整棵子樹**壓暗**而不是拿掉 —— 拿掉位置就又變了。*/
   // 代表股顯示名：後端給的 name 如果是空的或字串 "nan"，一律退回全市場索引的簡稱、再退回代號
   const leafName = (x) => { const n = String((x && x.name) || '').trim();
     return (!n || n.toLowerCase() === 'nan') ? (L.cname[x.code] || x.code) : n; };
-  function renderSankey(sd, idx, pick) {
-    stopSankeyFlow();
+  /* 節點名稱是 sankeyNodePos() 的 key，**一定要唯一**（撞名的話小圓點會飛到別人身上）。
+     產業鏈名和族群名理論上不會撞，但 groups.yaml 是人工維護的，撞了也不該讓圖壞掉，
+     所以撞名時補一個髮際空格（U+200A，看不見、但字串不同）。*/
+  const uniqName = (seen, name) => { let n = name; while (seen.has(n)) n += ' '; seen.add(n); return n; };
+
+  /* 點族群（或點族群節點）之後右邊那一欄：該族群個股的成交值排序。
+     ★ 沿用 `.hpanel` / `.hpanel .ms` 那一套（排行下方的成分股面板、資金集中度側欄都是它），
+       固定高度＋自己的捲軸，不另外發明第三種清單樣式。
+     ★ 資料來源是 `groups_detail`（最新交易日的全成分股，含成交值）——
+       `sankey_daily.leaves` 每天只留前 3 檔，撐不出一份「排序」。
+       所以時間軸刷到過去時，標題會明講清單是最新交易日的，不要讓人以為那是那一天的數字。*/
+  const sankeyNote = (day, isLatest) => (isLatest
+    ? `依最新交易日（${fmt.esc(day)}）的成交值排序，百分比＝佔這個族群的比重`
+    : `時間軸目前在 ${fmt.esc(day)}，但成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔）`);
+  function sankeyStockPanel(gid, gname, day, isLatest) {
+    const box = $('#sankeyPanel'); if (!box) return;
+    /* ★ 播放時每 650ms 就會重畫一次圖，但這一欄的**內容和日期無關**
+       （成分股排序永遠是最新交易日那一份）。整份 196 列重建一次要 DOM 全換，
+       播放會跟著卡 —— 所以同一個族群只更新上面那行說明就好。*/
+    if (box.dataset.gid === String(gid) && !box.hidden) {
+      const n = box.querySelector('.note');
+      if (n) n.innerHTML = sankeyNote(day, isLatest);
+      return;
+    }
+    box.dataset.gid = String(gid);
+    const det = (D.groups_detail || {})[gid] || {};
+    const ms = (det.members || []).slice()
+      .map(m => ({ ...m, tv: +m.turnover || 0 }))
+      .sort((a, b) => b.tv - a.tv);
+    const sum = ms.reduce((s, m) => s + m.tv, 0) || 1;
+    box.hidden = false;
+    box.innerHTML = `<div class="hh"><b>${fmt.esc(gname || det.group_name || gid)}</b>
+        <span class="m">成交值排序 · ${ms.length} 檔</span><span class="sp"></span>
+        <a class="pill cyan" href="#industry/group/${gid}">進族群頁 →</a>
+        <button class="btn small" data-x="1">收起 ✕</button></div>
+      <div class="note" style="margin:6px 0 0">${sankeyNote(day, isLatest)}</div>
+      ${ms.length ? `<div class="ms">${ms.map(m => `<a href="#stock/${m.code}" data-tv="${Math.round(m.tv)}">
+          <span>${fmt.esc(m.name || m.code)}</span><span class="c">${m.code}</span>
+          <span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%</span></a>`).join('')}</div>`
+        : '<div class="empty">這個族群的成分股整理中</div>'}`;
+    const x = box.querySelector('[data-x]');
+    if (x) x.onclick = () => { box.hidden = true; box.dataset.gid = ''; };
+  }
+  /* 目前聚焦的東西（{gid} / {chain} / null）。放在外面是因為播放拉Bar 的 onChange
+     是在建 playBar 的時候就綁好的閉包，拿不到後來才選的那一個。*/
+  let sankeySel = null;
+  let sankeyState = null;          // {sd, k}：換寬度要重畫時得知道現在在看哪一天
+  /* 容器窄到這個寬度以下就**收掉代表股那一層**（只畫三層）。
+     為什麼要收：四層各佔一欄，扣掉右邊留給葉子標籤的 132px 之後，
+     390px 的手機一欄只剩 45px —— 族群名和代表股名會整片疊在一起，
+     那不是「小」，是「看不懂」。收掉之後族群那一層反而讀得出來，
+     而代表股並沒有不見：點族群，下面那一欄就是完整的成交值排序（手機上面板會掉到圖下方）。
+     700 這個數字是量出來的：再低於它，「PCB / ABF 載板 41.6% ▲3%」這種長標籤
+     就開始壓到隔壁欄。 */
+  const SANKEY_NARROW = 700;
+
+  function renderSankey(sd, idx, sel) {
     const el = $('#sankey'); if (!el) return;
-    if (!sd || !sd.dates || !sd.dates.length) return empty('sankey', '資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+    /* 空狀態要把 JS 量出來的高度也清掉 —— `.isempty` 收的是 CSS 的 min-height，
+       收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
+    const bail = (msg) => { el.style.height = ''; return empty('sankey', msg); };
+    if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
     const day = D2[k];
     const roster = (sd.groups || []);
-    if (!roster.length) return empty('sankey', `${day} 這天沒有資料`);
-    const gs = roster.map(g => ({ ...g, v: (g.tv || [])[k] }));       // 不過濾、不重排
+    if (!roster.length) return bail(`${day} 這天沒有資料`);
+    sel = sel || null;
+    sankeySel = sel;
+    sankeyState = { sd, k };
+    const narrow = (el.clientWidth || 9999) < SANKEY_NARROW;
+    const selG = sel && sel.gid, selC = sel && sel.chain;
+    const gs = roster.map(g => ({ ...g, v: (g.tv || [])[k],
+      prev: k > 0 ? (g.tv || [])[k - 1] : null }));       // 前一天：給「比昨天多還是少」用
     const leaves = (sd.leaves || {})[day] || [];
+    const prevLeaves = k > 0 ? ((sd.leaves || {})[D2[k - 1]] || []) : [];
     const total = gs.reduce((s2, g) => s2 + (g.v || 0), 0) || 1;
     // 全期間最大值：換日期時大小才有可比性
     let maxV = 1;
@@ -2885,84 +3082,207 @@
     const alpha = (v) => LO + (HI - LO) * ratio(v);
     const size = (v) => 8 + 22 * Math.sqrt(ratio(v));
     const width = (v) => 1 + 7 * ratio(v);
-    const pct = (v) => fmt.n((v || 0) / total * 100, 1);
+    /* 每一層的 % 都是「佔它上一層」的比重（分母寫在 #sankeySub 與「怎麼看」裡）。
+       為什麼不全部用全市場當分母：代表股對全市場的佔比常常是 0.1%、0.2%，
+       整欄看起來都一樣，等於沒寫；「台積電佔晶圓代工 49.8%」才回答得了
+       「這個族群的錢是不是集中在一檔上」。*/
+    const pct = (v, base) => fmt.n((v || 0) / (base || 1) * 100, 1);
+    /* 比昨天多還是少（Andy「更豐富」）：紅漲綠跌，用 rich text 才能只給箭頭上色、
+       族群名維持原本的顏色。沒有前一天（第一天）就不畫。*/
+    const RICH = { up: { color: CH.up, fontSize: 11 }, dn: { color: CH.down, fontSize: 11 },
+      fl: { color: CH.ink3, fontSize: 11 } };
+    const dodTag = (v, prev) => {
+      if (v == null || prev == null || prev <= 0) return '';
+      const d = (v - prev) / prev * 100;
+      if (!isFinite(d)) return '';
+      const key = d > 1 ? 'up' : d < -1 ? 'dn' : 'fl';
+      const arrow = d > 1 ? '▲' : d < -1 ? '▼' : '＝';
+      return `{${key}| ${arrow}${fmt.n(Math.abs(d), 0)}%}`;
+    };
+    const dodText = (v, prev) => {
+      if (v == null || prev == null || prev <= 0) return '';
+      const d = (v - prev) / prev * 100;
+      if (!isFinite(d)) return '';
+      return `<br>比前一天 <span style="color:${upDown(d)}">${d > 0 ? '+' : ''}${fmt.n(d, 1)}%</span>`;
+    };
 
     const byG = {};
     leaves.forEach(x => { (byG[x.gid] = byG[x.gid] || []).push(x); });
-    const children = gs.map(g => {
-      const col = L.gcolor[g.gid] || CH.cyan;
-      const has = g.v != null && g.v > 0;
-      const off = pick && pick !== g.gid;                    // 被篩掉的：壓暗但留在原位
-      const fade = off ? DIM : 1;
-      const kids = (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv)
-        .slice(0, SANKEY_KIDS).map(x => ({
-          /* 前端這一層也擋一次「nan」。根因在後端（見 pipeline/compute/rrg.py 的註解）已經修掉，
-             但使用者的瀏覽器可能還快取著舊的 sankey_daily.json，那一份裡每一檔都叫「nan」。
-             寧可顯示代號，也不要讓整排寫 nan。*/
-          name: `${leafName(x)} ${x.code}`, value: x.tv, code: x.code, gidOf: g.gid, dim: off,
-          symbolSize: Math.max(6, size(x.tv) * .62),
-          itemStyle: { color: hexA(col, alpha(x.tv) * .85), borderColor: 'transparent', opacity: fade },
-          lineStyle: { color: hexA(col, alpha(x.tv) * .7), width: Math.max(1, width(x.tv) * .7), opacity: fade },
-          label: { formatter: `${leafName(x)}`, opacity: fade },
-        }));
-      // 補到固定格數：看不見的佔位節點，只為了讓縱向空間每天都一樣
-      for (let i = kids.length; i < SANKEY_KIDS; i++) {
-        kids.push({ name: ` ${g.gid}#${i}`, value: null, placeholder: true,
-          symbolSize: 0, itemStyle: { opacity: 0 }, lineStyle: { opacity: 0 }, label: { show: false } });
-      }
-      return { name: g.name, value: g.v == null ? 0 : g.v, gid: g.gid, children: kids,
-        nodata: !has, dim: off,
-        symbolSize: has ? size(g.v) : 6,
-        itemStyle: { color: hexA(col, has ? alpha(g.v) : DIM), borderColor: 'transparent', opacity: fade },
-        lineStyle: { color: hexA(col, (has ? alpha(g.v) : DIM) * .8), width: has ? width(g.v) : 0.8, opacity: fade },
-        label: { formatter: has ? `${g.name} ${pct(g.v)}%` : `${g.name} 無資料`,
-          opacity: off ? 0.35 : (has ? 1 : 0.55) } };
+    const prevByCode = {};
+    prevLeaves.forEach(x => { prevByCode[x.gid + '|' + x.code] = x.tv; });
+
+    /* ---- 第 1 層：產業鏈。順序用**最後一天**排一次，之後不隨日期改變（位置固定）。*/
+    const lastIdx = D2.length - 1;
+    const chainOrder = [];
+    const chainOf = {};
+    roster.forEach(g => {
+      const cid = g.chain || 'other';
+      if (!chainOf[cid]) { chainOf[cid] = { cid, name: g.chain_name || CHAIN_NAME[cid] || cid, gids: [], last: 0 }; chainOrder.push(chainOf[cid]); }
+      chainOf[cid].gids.push(g.gid);
+      chainOf[cid].last += (g.tv || [])[lastIdx] || 0;
+    });
+    chainOrder.sort((a, b) => b.last - a.last);
+
+    const seen = new Set(['台股成交值']);
+    const nameOfG = {};
+    const chainNodes = chainOrder.map(ch => {
+      const mine = gs.filter(g => (g.chain || 'other') === ch.cid);
+      const cv = mine.reduce((s2, g) => s2 + (g.v || 0), 0);
+      const cprev = mine.reduce((s2, g) => s2 + (g.prev || 0), 0);
+      const cOff = (selC && selC !== ch.cid) || (selG && !ch.gids.includes(selG));
+      const cFade = cOff ? DIM : 1;
+      const ccol = L.gcolor[ch.gids[0]] || CH.cyan;
+      const kids = mine.map(g => {
+        const col = L.gcolor[g.gid] || CH.cyan;
+        const has = g.v != null && g.v > 0;
+        const off = cOff || (selG && selG !== g.gid);
+        const fade = off ? DIM : 1;
+        const gv = g.v || 0;
+        const babies = narrow ? [] : (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv)
+          .slice(0, SANKEY_KIDS).map(x => {
+            /* 前端這一層也擋一次「nan」。根因在後端（見 pipeline/compute/rrg.py 的註解）已經修掉，
+               但使用者的瀏覽器可能還快取著舊的 sankey_daily.json，那一份裡每一檔都叫「nan」。*/
+            const nm = leafName(x);
+            const p = prevByCode[x.gid + '|' + x.code];
+            return {
+              name: uniqName(seen, `${nm} ${x.code}`), value: x.tv, code: x.code, gidOf: g.gid,
+              shown: nm, dim: off, share: gv > 0 ? x.tv / gv : null, prev: p == null ? null : p,
+              symbolSize: Math.max(6, size(x.tv) * .62),
+              itemStyle: { color: hexA(col, alpha(x.tv) * .85), borderColor: 'transparent', opacity: fade },
+              lineStyle: { color: hexA(col, alpha(x.tv) * .7), width: Math.max(1, width(x.tv) * .7), opacity: fade },
+              /* ★ 代表股那一欄也要標占比（Andy 2026-09-20 第 3 件）。
+                 分母是**所屬族群**，畫面上寫清楚（#sankeySub 與「怎麼看」都寫了）。*/
+              label: { formatter: gv > 0 ? `${nm} ${pct(x.tv, gv)}%` : nm, opacity: fade, rich: RICH },
+            };
+          });
+        // 補到固定格數：看不見的佔位節點，只為了讓縱向空間每天都一樣
+        for (let i = babies.length; !narrow && i < SANKEY_KIDS; i++) {
+          babies.push({ name: uniqName(seen, ` ${g.gid}#${i}`), value: null, placeholder: true,
+            symbolSize: 0, itemStyle: { opacity: 0 }, lineStyle: { opacity: 0 }, label: { show: false } });
+        }
+        const gname = uniqName(seen, g.name);
+        nameOfG[g.gid] = gname;
+        return { name: gname, value: gv, gid: g.gid, chainOf: ch.cid, children: babies,
+          nodata: !has, dim: off, prev: g.prev, base: cv,
+          symbolSize: has ? size(g.v) : 6,
+          itemStyle: { color: hexA(col, has ? alpha(g.v) : DIM), borderColor: 'transparent', opacity: fade },
+          lineStyle: { color: hexA(col, (has ? alpha(g.v) : DIM) * .8), width: has ? width(g.v) : 0.8, opacity: fade },
+          /* 窄畫面把名稱與百分比拆成兩行、並且不畫 ▲▼：
+           324px 的手機一欄只有 60~70px，寫成一行的話「電腦及週邊設備業 6.6% ▲32%」
+           會直接被畫布右緣裁掉，連百分比都看不到（截圖量到的）。
+           兩行＋截斷之後至少「是誰、佔多少」一定讀得到，▲▼ 點一下看小框還是有。*/
+        label: { formatter: has ? (narrow ? `${g.name}\n${pct(gv, cv)}%`
+            : `${g.name} ${pct(gv, cv)}%${dodTag(gv, g.prev)}`) : `${g.name} 無資料`,
+          ...(narrow ? { width: 116, overflow: 'truncate', lineHeight: 13, fontSize: 10.5 } : {}),
+          opacity: off ? 0.35 : (has ? 1 : 0.55), rich: RICH } };
+      });
+      const cname = uniqName(seen, ch.name);
+      ch.node = cname;
+      return { name: cname, value: cv, chain: ch.cid, children: kids, prev: cprev, base: total,
+        symbolSize: Math.max(10, size(cv / 2)),
+        itemStyle: { color: hexA(ccol, cOff ? DIM : Math.min(1, alpha(cv / 2) + .1)), borderColor: 'transparent', opacity: cFade },
+        lineStyle: { color: hexA(ccol, (cOff ? DIM : alpha(cv / 2)) * .85), width: Math.max(1.4, width(cv / 2)), opacity: cFade },
+        label: { formatter: narrow ? `${ch.name}\n${pct(cv, total)}%`
+            : `${ch.name} ${pct(cv, total)}%${dodTag(cv, cprev)}`,
+          ...(narrow ? { width: 108, overflow: 'truncate', lineHeight: 13, fontSize: 11 } : {}),
+          fontSize: 12.5, fontWeight: 700, opacity: cOff ? 0.4 : 1, rich: RICH } };
     });
     const root = { name: '台股成交值', value: total, symbolSize: 26,
       itemStyle: { color: hexA(CH.cyan, lt ? .55 : .9), borderColor: 'transparent' },
-      children };
+      label: { formatter: `台股成交值 ${fmt.yi(total)}`, fontWeight: 700, rich: RICH },
+      children: chainNodes };
 
     const sub = $('#sankeySub');
     if (sub) {
-      sub.textContent = `${day}：族群固定在原位，只有線的粗細與圓圈大小會變`
-        + (pick ? `　·　只看「${L.gname[pick] || pick}」` : '');
+      const selName = selG ? (L.gname[selG] || selG) : selC ? (chainOf[selC] || {}).name : '';
+      sub.textContent = (narrow
+        ? `${day}：台股 → 產業鏈 → 族群（畫面太窄，代表股那一層先收起來 ——`
+          + `點族群，下面就是它的成交值排序）`
+        : `${day}：台股 → 產業鏈 → 族群 → 代表股`)
+        + `　·　每一層的 % 都是「佔它上一層」的比重`
+        + `　·　位置固定，只有線的粗細與圓圈大小會變`
+        + (selName ? `　·　只看「${selName}」` : '');
     }
+
+    /* 葉子數決定這張圖要多高：ECharts 的 tree 是把縱向空間平均分給葉子的，
+       高度不夠就會變成一排擠在一起的 11px 字。所以量完葉子數自己算高度，
+       不寫死在 CSS（族群數之後會變，寫死等於埋一個以後才會爆的雷）。*/
+    const gRows = chainNodes.reduce((s2, c) => s2 + c.children.length, 0);
+    el.style.height = (narrow ? Math.max(420, gRows * 36 + 48)
+      : Math.max(560, Math.min(1040, gRows * SANKEY_KIDS * 16 + 64))) + 'px';
 
     const c = chart('sankey', {
       tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
         formatter: (p) => {
-          if (p.data && p.data.placeholder) return '';
-          if (p.data && p.data.nodata) return `<b>${p.name}</b><br>${day} 這天沒有量`;
-          const v = p.data && p.data.value;
+          const d = p.data || {};
+          if (d.placeholder) return '';
+          if (d.nodata) return `<b>${p.name}</b><br>${day} 這天沒有量`;
+          const v = d.value;
           if (v == null) return p.name;
-          return `<b>${p.name}</b><br>成交值 ${fmt.yi(v)}　<b>${pct(v)}%</b>`
-            + (p.data.code ? '<br><small>點一下進個股頁</small>'
-              : p.data.gid ? '<br><small>點一下看成分股</small>' : '');
+          // 每一層都把「金額 ＋ 佔上一層 ＋ 佔全場 ＋ 比前一天」講滿（Andy「需要更豐富」）
+          const own = d.code ? (d.shown + ' ' + d.code) : p.name;
+          const base = d.base != null ? d.base : (d.share != null ? v / d.share : null);
+          return `<b>${fmt.esc(own)}</b><br>成交值 ${fmt.yi(v)}`
+            + (base ? `<br>佔上一層 <b>${pct(v, base)}%</b>` : '')
+            + `<br>佔全場 ${pct(v, total)}%`
+            + dodText(v, d.prev)
+            + (d.code ? '<br><small>點一下進個股頁</small>'
+              : d.gid ? '<br><small>點一下在右邊列出成分股成交值排序</small>'
+                : d.chain ? '<br><small>點一下只看這條產業鏈</small>' : '');
         } },
       series: [{
         type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
-        left: 10, right: 130, top: 14, bottom: 14,
-        initialTreeDepth: 2, expandAndCollapse: false, roam: false,
+        left: 10, right: narrow ? 124 : 132, top: 14, bottom: 18,
+        initialTreeDepth: 3, expandAndCollapse: false, roam: false,
         symbol: 'circle',
         label: { position: 'right', distance: 7, color: CH.ink2, fontSize: 11.5,
-          textBorderColor: CH.panel, textBorderWidth: 3, align: 'left' },
-        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3 } },
-        emphasis: { focus: 'relative' },
+          textBorderColor: CH.panel, textBorderWidth: 3, align: 'left', rich: RICH },
+        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3, rich: RICH } },
+        /* hover 一條就把**整條路徑**亮起來、其餘壓暗（Andy 2026-09-20「更豐富」）。
+           用 'relative' 不用 'ancestor'：滑到代表股時兩者一樣（葉子沒有子孫），
+           但滑到族群時 'relative' 會連它的代表股一起亮 —— 那正是「這個族群的錢去了哪幾檔」。*/
+        emphasis: { focus: 'relative', blurScope: 'series' },
+        blur: { itemStyle: { opacity: 0.18 }, lineStyle: { opacity: 0.12 }, label: { opacity: 0.25 } },
         animationDurationUpdate: 420,
         data: [root],
       }],
     }, { notMerge: true });
     if (c) c.off('click').on('click', p => {
-      if (!p.data || p.data.placeholder) return;
-      if (p.data.code) goStock(p.data.code);
-      else if (p.data.gid) location.hash = '#industry/group/' + p.data.gid;
+      const d = p.data || {};
+      if (d.placeholder) return;
+      if (d.code) return goStock(d.code);
+      /* ★ 點族群**不跳頁**：在右邊原地展開成分股的成交值排序（Andy 2026-09-20 第 4 件）。
+         要去族群頁的話，面板標題右邊與下方晶片列的 → 都還在。*/
+      if (d.gid) {
+        // 再點同一個就取消（和下面晶片列、和產業鏈節點同一套語彙）
+        if (selG === d.gid) {
+          chipSel.sankey = null;
+          const box = $('#sankeyPanel'); if (box) { box.hidden = true; box.dataset.gid = ''; }
+          return renderSankey(sd, k, null);
+        }
+        chipSel.sankey = d.gid;
+        sankeyStockPanel(d.gid, L.gname[d.gid] || d.gid, day, k === lastIdx);
+        return renderSankey(sd, k, { gid: d.gid });
+      }
+      if (d.chain) return renderSankey(sd, k, selC === d.chain ? null : { chain: d.chain });
     });
     /* 族群晶片改成篩選（Andy 2026-09-20：「所有圖表的族群小Tip都需要具備點擊後
        就會在對應圖表上被篩選出去」）。名單也用固定名單，不是只有當天有量的那幾個。*/
-    filterChips('sankey', gs.map(g => ({ gid: g.gid, name: g.name })), pick,
-      (nx) => renderSankey(sd, k, nx));
+    filterChips('sankey', gs.map(g => ({ gid: g.gid, name: g.name })), selG,
+      (nx) => {
+        const box = $('#sankeyPanel');
+        if (nx) sankeyStockPanel(nx, L.gname[nx] || nx, day, k === lastIdx);
+        else if (box) box.hidden = true;
+        renderSankey(sd, k, nx ? { gid: nx } : null);
+      });
+    // 面板開著的話跟著換日期重畫（標題裡的日期與「是不是最新」要跟著走）
+    { const box = $('#sankeyPanel');
+      if (box && !box.hidden && selG) sankeyStockPanel(selG, L.gname[selG] || selG, day, k === lastIdx); }
 
-    // 小圓點傳輸：等 tree 的版面算完（finished）才讀得到節點座標
+    /* 小圓點傳輸：等 tree 的版面算完（finished）才讀得到節點座標。
+       ★ 2026-09-20 第 2 件（Andy：「並都需要具備資金流傳輸效果」）——
+         以前只有第一段（大盤 → 族群）有點，現在**三段都要有**：
+         大盤 → 產業鏈 → 族群 → 代表股。*/
     if (c) {
       c.off('finished');
       let armed = true;
@@ -2972,25 +3292,64 @@
         const pos = sankeyNodePos(c); if (!pos) return;
         const a = pos['台股成交值']; if (!a) return;
         const flows = [];
-        gs.forEach(g => {
-          const b = pos[g.name]; if (!b) return;
-          const r = ratio(g.v);
-          if (!(g.v > 0) || (pick && pick !== g.gid)) return;   // 沒量／被篩掉就不發點
-          flows.push({ a, b, gid: g.gid,
+        const push = (from, to, v, gid, col, scale, lvl) => {
+          if (!from || !to || !(v > 0)) return;
+          const r = ratio(v * (scale || 1));
+          flows.push({ a: from, b: to, gid, lvl,
             // 資金越多 → 同一條線上的點越多 → 單位時間通過的顆數越多＝頻率越高
-            n: Math.max(1, Math.min(6, Math.round(1 + 5 * r))),
-            size: 1.6 + 3.4 * Math.sqrt(r),
-            // 錯開相位，不要整排同時發車。用 gid 的字元和當雜湊 ——
-            // 只用長度的話同長度的 gid 會完全同步，看起來像整排一起跳
-            phase: ([...g.gid].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 997, 7) % 100) / 100,
-            color: hexA(L.gcolor[g.gid] || CH.cyan, lt ? .75 : .95) });
+            n: Math.max(1, Math.min(5, Math.round(1 + 4 * r))),
+            size: 1.4 + 3.2 * Math.sqrt(r),
+            // 錯開相位，不要整排同時發車。用名稱的字元和當雜湊
+            phase: ([...String(gid)].reduce((h, ch2) => (h * 31 + ch2.charCodeAt(0)) % 997, 7) % 100) / 100,
+            color: hexA(col, lt ? .75 : .95) });
+        };
+        chainNodes.forEach(cn => {
+          const cOff = (selC && selC !== cn.chain) || (selG && !cn.children.some(g => g.gid === selG));
+          if (cOff) return;
+          const cp = pos[cn.name];
+          push(a, cp, cn.value, cn.chain, L.gcolor[(cn.children[0] || {}).gid] || CH.cyan, 0.5, 1);
+          cn.children.forEach(g => {
+            if (selG && selG !== g.gid) return;
+            const gp = pos[g.name];
+            const col = L.gcolor[g.gid] || CH.cyan;
+            push(cp, gp, g.value, g.gid, col, 1, 2);
+            g.children.forEach(x => {
+              if (x.placeholder) return;
+              push(gp, pos[x.name], x.value, g.gid + x.code, col, 1, 3);
+            });
+          });
         });
-        let budget = SANKEY_DOT_MAX;
-        const use = [];
-        flows.sort((x, y) => y.size - x.size).forEach(f => { if (budget - f.n >= 0) { budget -= f.n; use.push(f); } });
-        stopSankeyFlow();
-        sankeyFx = startSankeyFlow(el, use);
+        /* 配點：**先保證每一條線都至少有一顆**，剩下的預算才照金額多寡加密。
+           以前是「照 size 由大到小塞滿預算」—— 四層之後最末段（族群 → 代表股）
+           的線又細又多、排在最後面，預算一用完那一整段就一顆點都沒有，
+           而那正是 Andy 這次點名要的「都需要具備資金流傳輸效果」。*/
+        const use = flows.slice(0, SANKEY_DOT_MAX).map(f => ({ ...f, n: 1 }));
+        let budget = SANKEY_DOT_MAX - use.length;
+        flows.slice(0, use.length).map((f, i) => [f.n - 1, i])
+          .sort((x, y) => y[0] - x[0])
+          .forEach(([extra, i]) => { const add = Math.max(0, Math.min(extra, budget));
+            use[i].n += add; budget -= add; });
+        /* ★ 不要每換一天就把整層 canvas 拆掉重建：族群位置是固定的，
+           拆掉重建只會讓小圓點閃一下。有活著的就只換 flows。*/
+        if (sankeyFx && sankeyFx.alive() && sankeyFx.host === el) sankeyFx.setFlows(use);
+        else { stopSankeyFlow(); sankeyFx = startSankeyFlow(el, use); }
       });
+    }
+    /* 寬度跨過 SANKEY_NARROW 就要換層數，所以得自己盯著容器 ——
+       `chart()` 掛的那個 ResizeObserver 只會叫 ECharts resize()，
+       它不知道「層數要變」這回事（和輪動時鐘的標籤重排是同一類問題）。
+       只有**判定翻面**時才重畫，所以拖視窗不會一直重算。*/
+    if (!el.dataset.skRo && window.ResizeObserver) {
+      el.dataset.skRo = '1';
+      let t = null, was = narrow;
+      new ResizeObserver(() => {
+        const nw = (el.clientWidth || 9999) < SANKEY_NARROW;
+        if (nw === was) return;
+        was = nw;
+        clearTimeout(t);
+        t = setTimeout(() => { const st = sankeyState;
+          if (st && el.isConnected) renderSankey(st.sd, st.k, sankeySel); }, 160);
+      }).observe(el);
     }
   }
 
@@ -3749,7 +4108,7 @@
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
-      sankeyDots: () => (sankeyFx ? sankeyFx.dots.map(d => [d.x, d.y]) : []),
+      sankeyDots: () => (sankeyFx ? sankeyFx.dots.map(d => [d.x, d.y, d.lvl]) : []),
       sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()) };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);

@@ -37,6 +37,24 @@ const TAIFEX_BODY = (night) => JSON.stringify({
   ExpireMonth: '', RowSize: '全部', PageNo: '', SortColumn: '', AscDesc: 'A',
 });
 
+/* 台指期的**分時序列**（日盤與夜盤都有）。2026-09-20 才確認這支端點可以用。
+   ---------------------------------------------------------------------
+   2026-09-19 第一次探測送了 `{"SymbolID": ["TXFJ6-F"]}` 被回 400，當時的結論寫成
+   「夜盤沒有現成的分時序列」；但那個 400 的訊息其實是
+   `Cannot deserialize instance of java.lang.String out of START_ARRAY`
+   —— 它要的是**字串**。2026-09-20 用字串重打，夜盤回 200、822 筆，
+   日盤回 200、300 筆（08:46~13:45，跟證交所 futures_chart.txt 的筆數與區間完全對得上，
+   等於交叉驗證過口徑）。fixture：docs/fixtures/taifex_night_probe.json。
+
+   回應形狀：RtData.Field = ["T","O","H","L","C","V"]、RtData.Ticks = [[...], ...]，
+   另外 RtData.Quote 直接附開高低收與累計量 —— 一次請求就拿得到走勢、K 線與上排數字。
+
+   ★ `symbol` 鎖成「英數 3~8 碼 + -F/-M」的合約代號形狀。
+   理由跟 CHART_FILES 的白名單一樣（DECISIONS #108）：這支 Worker 只准代理
+   我們自己要的東西，不可以變成「誰都能拿它去打期交所任意端點」的開放式代理。 */
+const TAIFEX_CHART = 'https://mis.taifex.com.tw/futures/api/getChartData1M';
+const FUT_SYMBOL = /^[A-Z0-9]{3,8}-[FM]$/;
+
 // 大盤／櫃買／台指期的「當日分時」檔。就是證交所基本市況報導那三張走勢圖的資料來源，
 // 每一筆是 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交量}，09:01 起每分鐘一筆。
 // 同樣鎖死成白名單 —— 只放行這幾個檔名，不接受任意路徑。
@@ -109,7 +127,8 @@ export default {
     if (url.pathname === '/' || url.pathname === '/health') {
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw' }, 200, origin);
     }
-    if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y' && url.pathname !== '/fut') {
+    if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y'
+        && url.pathname !== '/fut' && url.pathname !== '/futchart') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
@@ -137,6 +156,35 @@ export default {
         return new Response(txt, { status: r.status,
           headers: { 'Content-Type': 'application/json; charset=utf-8',
                      'Cache-Control': `public, max-age=${CACHE_QUOTE}`, ...cors(origin) } });
+      } catch (e) {
+        return json({ error: 'upstream failed', detail: String(e) }, 502, origin);
+      }
+    }
+
+    // ---- /futchart：台指期的分時序列（日盤與夜盤都走這裡）
+    //      symbol 例：TXFJ6-F（日盤近月）／TXFJ6-M（夜盤近月）。前端從 /fut 的報價清單撈近月，
+    //      所以月份碼不用寫死在任何一邊（每個月都在換）。
+    if (url.pathname === '/futchart') {
+      const sym = (url.searchParams.get('symbol') || '').toUpperCase();
+      if (!FUT_SYMBOL.test(sym)) return json({ error: 'bad symbol', got: sym }, 400, origin);
+      const upstream = new Request(TAIFEX_CHART, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Referer': 'https://mis.taifex.com.tw/futures/',
+          'Origin': 'https://mis.taifex.com.tw',
+          'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
+        },
+        // ★ 一定要是字串。送陣列會被回 400（2026-09-19 就是這樣白等了一輪）。
+        body: JSON.stringify({ SymbolID: sym }),
+      });
+      try {
+        const r = await fetch(upstream, { cf: { cacheTtl: CACHE_CHART, cacheEverything: true } });
+        const txt = await r.text();
+        return new Response(txt, { status: r.status,
+          headers: { 'Content-Type': 'application/json; charset=utf-8',
+                     'Cache-Control': `public, max-age=${CACHE_CHART}`, ...cors(origin) } });
       } catch (e) {
         return json({ error: 'upstream failed', detail: String(e) }, 502, origin);
       }
