@@ -1,15 +1,26 @@
 {
   "probe": "taifex_night",
-  "at": "2026-09-19T06:42:54+08:00",
+  "at": "2026-09-21T00:46:42+08:00",
   "results": [
     {
       "id": "taifex_quotelist_day",
       "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
-      "note": "日盤報價清單：確認欄位名（SymbolID/CLastPrice/CRefPrice/CTotalVolume/OpenInterest…）",
+      "note": "日盤報價清單：確認欄位名，並從這裡取出日盤近月的 SymbolID（-F）",
       "method": "POST",
-      "probed_at": "2026-09-19T06:42:54+08:00",
+      "probed_at": "2026-09-21T00:46:34+08:00",
+      "req": {
+        "MarketType": "0",
+        "SymbolType": "F",
+        "KindID": "1",
+        "CID": "TXF",
+        "ExpireMonth": "",
+        "RowSize": "全部",
+        "PageNo": "",
+        "SortColumn": "",
+        "AscDesc": "A"
+      },
       "status": 200,
-      "elapsed_ms": 1648,
+      "elapsed_ms": 510,
       "content_type": "application/json",
       "bytes": 4545,
       "kind": "dict",
@@ -257,16 +268,65 @@
           ],
           "QuoteCount": "7"
         }
+      },
+      "sequences": {
+        "RtData.QuoteList": {
+          "n": 7,
+          "fields": [
+            "CAmpRate",
+            "CAskPrice1",
+            "CAskSize1",
+            "CBestAskPrice",
+            "CBestAskSize",
+            "CBestBidPrice",
+            "CBestBidSize",
+            "CBidPrice1",
+            "CBidSize1",
+            "CCeilPrice",
+            "CDate",
+            "CDiff",
+            "CDiffRate",
+            "CFloorPrice",
+            "CHighPrice",
+            "CLastPrice",
+            "CLowPrice",
+            "COpenPrice",
+            "CRefPrice",
+            "CTestPrice",
+            "CTestTime",
+            "CTestVolume",
+            "CTime",
+            "CTotalVolume",
+            "DispCName",
+            "DispEName",
+            "OpenInterest",
+            "SettlementPrice",
+            "SpotID",
+            "Status",
+            "SymbolID"
+          ]
+        }
       }
     },
     {
       "id": "taifex_quotelist_night",
       "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
-      "note": "夜盤報價清單：MarketType=1；要確認夜盤時段外會回什麼",
+      "note": "夜盤報價清單：MarketType=1，夜盤近月的 SymbolID 是 -M 結尾",
       "method": "POST",
-      "probed_at": "2026-09-19T06:42:55+08:00",
+      "probed_at": "2026-09-21T00:46:34+08:00",
+      "req": {
+        "MarketType": "1",
+        "SymbolType": "F",
+        "KindID": "1",
+        "CID": "TXF",
+        "ExpireMonth": "",
+        "RowSize": "全部",
+        "PageNo": "",
+        "SortColumn": "",
+        "AscDesc": "A"
+      },
       "status": 200,
-      "elapsed_ms": 1450,
+      "elapsed_ms": 317,
       "content_type": "application/json",
       "bytes": 4419,
       "kind": "dict",
@@ -279,7 +339,6 @@
         "RtCode": "0",
         "RtMsg": "",
         "RtData": {
-          "QuoteCount": "7",
           "QuoteList": [
             {
               "SymbolID": "TXF-P",
@@ -512,46 +571,64 @@
               "CTestPrice": "",
               "CTestVolume": ""
             }
+          ],
+          "QuoteCount": "7"
+        }
+      },
+      "sequences": {
+        "RtData.QuoteList": {
+          "n": 7,
+          "fields": [
+            "CAmpRate",
+            "CAskPrice1",
+            "CAskSize1",
+            "CBestAskPrice",
+            "CBestAskSize",
+            "CBestBidPrice",
+            "CBestBidSize",
+            "CBidPrice1",
+            "CBidSize1",
+            "CCeilPrice",
+            "CDate",
+            "CDiff",
+            "CDiffRate",
+            "CFloorPrice",
+            "CHighPrice",
+            "CLastPrice",
+            "CLowPrice",
+            "COpenPrice",
+            "CRefPrice",
+            "CTestPrice",
+            "CTestTime",
+            "CTestVolume",
+            "CTime",
+            "CTotalVolume",
+            "DispCName",
+            "DispEName",
+            "OpenInterest",
+            "SettlementPrice",
+            "SpotID",
+            "Status",
+            "SymbolID"
           ]
         }
       }
     },
     {
-      "id": "taifex_chartdata_1m",
+      "id": "taifex_chartdata_1m_night",
       "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
-      "note": "夜盤 1 分鐘分時：沒查到公開文件，先打打看有沒有；SymbolID 要用日盤那支回來的實際值",
+      "note": "★夜盤 1 分鐘分時：SymbolID 改成字串（上一輪送陣列被回 400），代號取夜盤近月",
       "method": "POST",
-      "probed_at": "2026-09-19T06:42:57+08:00",
-      "status": 400,
-      "elapsed_ms": 1359,
-      "content_type": "application/json",
-      "bytes": 503,
-      "kind": "dict",
-      "keys": [
-        "error",
-        "message",
-        "path",
-        "status",
-        "timestamp"
-      ],
-      "sample": {
-        "timestamp": 1789771378411,
-        "status": 400,
-        "error": "Bad Request",
-        "message": "JSON parse error: Cannot deserialize instance of `java.lang.String` out of START_ARRAY token; nested exception is com.fasterxml.jackson.databind.exc.MismatchedInputException: Cannot deserialize instance of `java.lang.String` out of START_ARRAY token\n at [Source: (PushbackInputStream); line: 1, column: 14] (through reference chain: com.taifex.future.dto.GetChartData1MReqDto[\"SymbolID\"])",
-        "path": "/futures/api/getChartData1M"
-      }
-    },
-    {
-      "id": "taifex_quotedetail",
-      "url": "https://mis.taifex.com.tw/futures/api/getQuoteDetail",
-      "note": "單一合約明細：同上，先確認存不存在",
-      "method": "POST",
-      "probed_at": "2026-09-19T06:42:58+08:00",
+      "probed_at": "2026-09-21T00:46:34+08:00",
+      "symbol_used": "TXFJ6-M",
+      "symbol_source": "上一支回應",
+      "req": {
+        "SymbolID": "TXFJ6-M"
+      },
       "status": 200,
-      "elapsed_ms": 1635,
+      "elapsed_ms": 2138,
       "content_type": "application/json",
-      "bytes": 1206,
+      "bytes": 50164,
       "kind": "dict",
       "keys": [
         "RtCode",
@@ -562,66 +639,524 @@
         "RtCode": "0",
         "RtMsg": "",
         "RtData": {
-          "QuoteList": [
-            {
-              "Status": "TC",
-              "SymbolID": "TXFJ6-F",
-              "SpotID": "",
-              "DispCName": "臺指期106",
-              "DispEName": "TX106",
-              "COpenPrice": "47080.00",
-              "CHighPrice": "47464.00",
-              "CLowPrice": "46897.00",
-              "CLastPrice": "47418.00",
-              "CSingleVolume": "2",
-              "CTestPrice": "47080.00",
-              "CTestVolume": "73",
-              "CTestTime": "084455",
-              "CTotalVolume": "65760",
-              "OpenInterest": "101893",
-              "CRefPrice": "46459.00",
-              "CCeilPrice": "51104.00",
-              "CFloorPrice": "41814.00",
-              "CBidCount": "49296",
-              "CAskCount": "49176",
-              "CBidUnit": "69021",
-              "CAskUnit": "67525",
-              "CDate": "20260918",
-              "CTime": "134459",
-              "CBidPrice1": "47420.00",
-              "CBidPrice2": "47419.00",
-              "CBidPrice3": "47418.00",
-              "CBidPrice4": "47417.00",
-              "CBidPrice5": "47416.00",
-              "CAskPrice1": "47425.00",
-              "CAskPrice2": "47426.00",
-              "CAskPrice3": "47427.00",
-              "CAskPrice4": "47428.00",
-              "CAskPrice5": "47429.00",
-              "CBidSize1": "4",
-              "CBidSize2": "1",
-              "CBidSize3": "7",
-              "CBidSize4": "6",
-              "CBidSize5": "4",
-              "CAskSize1": "2",
-              "CAskSize2": "3",
-              "CAskSize3": "2",
-              "CAskSize4": "2",
-              "CAskSize5": "3",
-              "CExtBidPrice": "0.00",
-              "CExtAskPrice": "0.00",
-              "CExtBidSize": "0",
-              "CExtAskSize": "0",
-              "CTermHighPrice": "47464.00",
-              "CTermLowPrice": "46897.00",
-              "CBestBidPrice": "47420.00",
-              "CBestAskPrice": "47425.00",
-              "CBestBidSize": "4",
-              "CBestAskSize": "2",
-              "HugeTotalVolume": ""
-            }
+          "SpotID": "",
+          "SymbolID": "TXFJ6-M",
+          "DispCName": "臺指期106",
+          "DispEName": "TX106",
+          "Info": {
+            "Status": "4",
+            "Sessions": [
+              {
+                "Start": "1500",
+                "End": "0500"
+              }
+            ]
+          },
+          "Quote": {
+            "COpenPrice": "47494.00",
+            "CHighPrice": "47584.00",
+            "CLowPrice": "47208.00",
+            "CLastPrice": "47405.00",
+            "CSingleVolume": "1",
+            "CTestPrice": "47450.00",
+            "CTotalVolume": "21499",
+            "OpenInterest": "",
+            "CRefPrice": "47428.00",
+            "CCeilPrice": "52170.00",
+            "CFloorPrice": "42686.00",
+            "CBidCount": "16774",
+            "CAskCount": "16161",
+            "CBidUnit": "22713",
+            "CAskUnit": "22459",
+            "CDate": "20260918",
+            "CBidPrice1": "47404.00",
+            "CBidPrice2": "47403.00",
+            "CBidPrice3": "47400.00",
+            "CBidPrice4": "47399.00",
+            "CBidPrice5": "47398.00",
+            "CAskPrice1": "47415.00",
+            "CAskPrice2": "47416.00",
+            "CAskPrice3": "47420.00",
+            "CAskPrice4": "47422.00",
+            "CAskPrice5": "47427.00",
+            "CBidSize1": "1",
+            "CBidSize2": "1",
+            "CBidSize3": "1",
+            "CBidSize4": "1",
+            "CBidSize5": "5",
+            "CAskSize1": "1",
+            "CAskSize2": "1",
+            "CAskSize3": "1",
+            "CAskSize4": "1",
+            "CAskSize5": "1",
+            "CExtBidPrice": "0.00",
+            "CExtAskPrice": "0.00",
+            "CExtBidSize": "0",
+            "CExtAskSize": "0"
+          },
+          "Field": [
+            "T",
+            "O",
+            "H",
+            "L",
+            "C",
+            "V"
+          ],
+          "Ticks": [
+            [
+              "150100",
+              "47494.00",
+              "47510.00",
+              "47452.00",
+              "47510.00",
+              "394"
+            ],
+            [
+              "150200",
+              "47510.00",
+              "47522.00",
+              "47505.00",
+              "47516.00",
+              "154"
+            ],
+            [
+              "150300",
+              "47520.00",
+              "47521.00",
+              "47495.00",
+              "47508.00",
+              "126"
+            ],
+            [
+              "150400",
+              "47516.00",
+              "47521.00",
+              "47504.00",
+              "47511.00",
+              "93"
+            ],
+            [
+              "150500",
+              "47511.00",
+              "47517.00",
+              "47500.00",
+              "47514.00",
+              "69"
+            ],
+            "…（中間省略 815 筆，整串共 822 筆）",
+            [
+              "046000",
+              "47411.00",
+              "47420.00",
+              "47399.00",
+              "47405.00",
+              "36"
+            ],
+            [
+              "050000",
+              "47409.00",
+              "47420.00",
+              "47399.00",
+              "47405.00",
+              "47"
+            ]
           ]
         }
+      },
+      "sequences": {
+        "RtData.Field": {
+          "n": 6,
+          "fields": null
+        },
+        "RtData.Ticks": {
+          "n": 822,
+          "fields": null
+        }
+      }
+    },
+    {
+      "id": "taifex_chartdata_1m_day",
+      "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+      "note": "日盤 1 分鐘分時：拿來跟證交所 futures_chart.txt 對帳，確認欄位口徑",
+      "method": "POST",
+      "probed_at": "2026-09-21T00:46:37+08:00",
+      "symbol_used": "TXFJ6-F",
+      "symbol_source": "上一支回應",
+      "req": {
+        "SymbolID": "TXFJ6-F"
+      },
+      "status": 200,
+      "elapsed_ms": 1045,
+      "content_type": "application/json",
+      "bytes": 19237,
+      "kind": "dict",
+      "keys": [
+        "RtCode",
+        "RtData",
+        "RtMsg"
+      ],
+      "sample": {
+        "RtCode": "0",
+        "RtMsg": "",
+        "RtData": {
+          "SpotID": "",
+          "SymbolID": "TXFJ6-F",
+          "DispCName": "臺指期106",
+          "DispEName": "TX106",
+          "Info": {
+            "Status": "4",
+            "Sessions": [
+              {
+                "Start": "0845",
+                "End": "1345"
+              }
+            ]
+          },
+          "Quote": {
+            "COpenPrice": "47080.00",
+            "CHighPrice": "47464.00",
+            "CLowPrice": "46897.00",
+            "CLastPrice": "47418.00",
+            "CSingleVolume": "2",
+            "CTestPrice": "47080.00",
+            "CTotalVolume": "65760",
+            "OpenInterest": "101893",
+            "CRefPrice": "46459.00",
+            "CCeilPrice": "51104.00",
+            "CFloorPrice": "41814.00",
+            "CBidCount": "49296",
+            "CAskCount": "49176",
+            "CBidUnit": "69021",
+            "CAskUnit": "67525",
+            "CDate": "20260918",
+            "CBidPrice1": "47420.00",
+            "CBidPrice2": "47419.00",
+            "CBidPrice3": "47418.00",
+            "CBidPrice4": "47417.00",
+            "CBidPrice5": "47416.00",
+            "CAskPrice1": "47425.00",
+            "CAskPrice2": "47426.00",
+            "CAskPrice3": "47427.00",
+            "CAskPrice4": "47428.00",
+            "CAskPrice5": "47429.00",
+            "CBidSize1": "4",
+            "CBidSize2": "1",
+            "CBidSize3": "7",
+            "CBidSize4": "6",
+            "CBidSize5": "4",
+            "CAskSize1": "2",
+            "CAskSize2": "3",
+            "CAskSize3": "2",
+            "CAskSize4": "2",
+            "CAskSize5": "3",
+            "CExtBidPrice": "0.00",
+            "CExtAskPrice": "0.00",
+            "CExtBidSize": "0",
+            "CExtAskSize": "0"
+          },
+          "Field": [
+            "T",
+            "O",
+            "H",
+            "L",
+            "C",
+            "V"
+          ],
+          "Ticks": [
+            [
+              "084600",
+              "47080.00",
+              "47146.00",
+              "47059.00",
+              "47130.00",
+              "700"
+            ],
+            [
+              "084700",
+              "47127.00",
+              "47196.00",
+              "47119.00",
+              "47174.00",
+              "373"
+            ],
+            [
+              "084800",
+              "47171.00",
+              "47186.00",
+              "47136.00",
+              "47136.00",
+              "195"
+            ],
+            [
+              "084900",
+              "47141.00",
+              "47154.00",
+              "47134.00",
+              "47142.00",
+              "97"
+            ],
+            [
+              "085000",
+              "47145.00",
+              "47159.00",
+              "47135.00",
+              "47135.00",
+              "84"
+            ],
+            "…（中間省略 293 筆，整串共 300 筆）",
+            [
+              "134400",
+              "47436.00",
+              "47445.00",
+              "47435.00",
+              "47437.00",
+              "645"
+            ],
+            [
+              "134500",
+              "47435.00",
+              "47442.00",
+              "47417.00",
+              "47418.00",
+              "1076"
+            ]
+          ]
+        }
+      },
+      "sequences": {
+        "RtData.Field": {
+          "n": 6,
+          "fields": null
+        },
+        "RtData.Ticks": {
+          "n": 300,
+          "fields": null
+        }
+      }
+    },
+    {
+      "id": "taifex_chartdata_1m_night_full",
+      "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+      "note": "同上但多帶 MarketType/Interval：最小請求被打回票時，用它分辨是缺欄位還是不支援",
+      "method": "POST",
+      "probed_at": "2026-09-21T00:46:38+08:00",
+      "symbol_used": "TXFJ6-M",
+      "symbol_source": "上一支回應",
+      "req": {
+        "SymbolID": "TXFJ6-M",
+        "MarketType": "1",
+        "Interval": "1"
+      },
+      "status": 200,
+      "elapsed_ms": 2168,
+      "content_type": "application/json",
+      "bytes": 50164,
+      "kind": "dict",
+      "keys": [
+        "RtCode",
+        "RtData",
+        "RtMsg"
+      ],
+      "sample": {
+        "RtCode": "0",
+        "RtMsg": "",
+        "RtData": {
+          "SpotID": "",
+          "SymbolID": "TXFJ6-M",
+          "DispCName": "臺指期106",
+          "DispEName": "TX106",
+          "Info": {
+            "Status": "4",
+            "Sessions": [
+              {
+                "Start": "1500",
+                "End": "0500"
+              }
+            ]
+          },
+          "Quote": {
+            "COpenPrice": "47494.00",
+            "CHighPrice": "47584.00",
+            "CLowPrice": "47208.00",
+            "CLastPrice": "47405.00",
+            "CSingleVolume": "1",
+            "CTestPrice": "47450.00",
+            "CTotalVolume": "21499",
+            "OpenInterest": "",
+            "CRefPrice": "47428.00",
+            "CCeilPrice": "52170.00",
+            "CFloorPrice": "42686.00",
+            "CBidCount": "16774",
+            "CAskCount": "16161",
+            "CBidUnit": "22713",
+            "CAskUnit": "22459",
+            "CDate": "20260918",
+            "CBidPrice1": "47404.00",
+            "CBidPrice2": "47403.00",
+            "CBidPrice3": "47400.00",
+            "CBidPrice4": "47399.00",
+            "CBidPrice5": "47398.00",
+            "CAskPrice1": "47415.00",
+            "CAskPrice2": "47416.00",
+            "CAskPrice3": "47420.00",
+            "CAskPrice4": "47422.00",
+            "CAskPrice5": "47427.00",
+            "CBidSize1": "1",
+            "CBidSize2": "1",
+            "CBidSize3": "1",
+            "CBidSize4": "1",
+            "CBidSize5": "5",
+            "CAskSize1": "1",
+            "CAskSize2": "1",
+            "CAskSize3": "1",
+            "CAskSize4": "1",
+            "CAskSize5": "1",
+            "CExtBidPrice": "0.00",
+            "CExtAskPrice": "0.00",
+            "CExtBidSize": "0",
+            "CExtAskSize": "0"
+          },
+          "Field": [
+            "T",
+            "O",
+            "H",
+            "L",
+            "C",
+            "V"
+          ],
+          "Ticks": [
+            [
+              "150100",
+              "47494.00",
+              "47510.00",
+              "47452.00",
+              "47510.00",
+              "394"
+            ],
+            [
+              "150200",
+              "47510.00",
+              "47522.00",
+              "47505.00",
+              "47516.00",
+              "154"
+            ],
+            [
+              "150300",
+              "47520.00",
+              "47521.00",
+              "47495.00",
+              "47508.00",
+              "126"
+            ],
+            [
+              "150400",
+              "47516.00",
+              "47521.00",
+              "47504.00",
+              "47511.00",
+              "93"
+            ],
+            [
+              "150500",
+              "47511.00",
+              "47517.00",
+              "47500.00",
+              "47514.00",
+              "69"
+            ],
+            "…（中間省略 815 筆，整串共 822 筆）",
+            [
+              "046000",
+              "47411.00",
+              "47420.00",
+              "47399.00",
+              "47405.00",
+              "36"
+            ],
+            [
+              "050000",
+              "47409.00",
+              "47420.00",
+              "47399.00",
+              "47405.00",
+              "47"
+            ]
+          ]
+        }
+      },
+      "sequences": {
+        "RtData.Field": {
+          "n": 6,
+          "fields": null
+        },
+        "RtData.Ticks": {
+          "n": 822,
+          "fields": null
+        }
+      }
+    },
+    {
+      "id": "taifex_quotedetail",
+      "url": "https://mis.taifex.com.tw/futures/api/getQuoteDetail",
+      "note": "夜盤單一合約明細：上一輪送陣列也回 200，這裡改字串確認兩種都吃",
+      "method": "POST",
+      "probed_at": "2026-09-21T00:46:40+08:00",
+      "symbol_used": "TXFJ6-M",
+      "symbol_source": "上一支回應",
+      "req": {
+        "SymbolID": "TXFJ6-M"
+      },
+      "status": 400,
+      "elapsed_ms": 477,
+      "content_type": "application/json",
+      "bytes": 547,
+      "kind": "dict",
+      "keys": [
+        "error",
+        "message",
+        "path",
+        "status",
+        "timestamp"
+      ],
+      "sample": {
+        "timestamp": 1789922800652,
+        "status": 400,
+        "error": "Bad Request",
+        "message": "JSON parse error: Cannot deserialize instance of `java.util.ArrayList<java.lang.Object>` out of VALUE_STRING token; nested exception is com.fasterxml.jackson.databind.exc.MismatchedInputException: Cannot deserialize instance of `java.util.ArrayList<java.lang.Object>` out of VALUE_STRING token\n at [Source: (PushbackInputStream); line: 1, column: 14] (through reference chain: com.taifex.future.dto.G…（共 432 字）",
+        "path": "/futures/api/getQuoteDetail"
+      }
+    },
+    {
+      "id": "taifex_mis_page",
+      "url": "https://mis.taifex.com.tw/futures/",
+      "note": "行情看板首頁：把它引用的 api 路徑與 JS 檔名全部撈出來當候選清單",
+      "method": "GET",
+      "probed_at": "2026-09-21T00:46:40+08:00",
+      "req": null,
+      "status": 200,
+      "elapsed_ms": 2106,
+      "content_type": "text/html",
+      "bytes": 4443,
+      "kind": "text",
+      "sample_text": "<!doctype html>\n\n<html>\n  <head>\n    <meta charset=\"utf-8\">\n    <meta http-equiv=\"x-ua-compatible\" content=\"IE=Edge\">\n    <meta name=\"viewport\" content=\"width=device-width,initial-scale=1,shrink-to-fit=no\">\n    <meta name=\"description\" content=\"èºç£æè²¨äº¤ææè¡æè³è¨ç¶²\">\n    <title>èºç£æè²¨äº¤ææè¡æè³è¨ç¶²</title><link data-n-head=\"1\" rel=\"icon\" type=\"image/x-icon\" href=\"/futures/favicon.ico\"><link data-n-head=\"1\" rel=\"stylesheet\" type=\"text/css\" href=\"/futures/assets/fonts/css/all.min.css\"><link data-n-head=\"1\" rel=\"stylesheet\" type=\"text/css\" href=\"/futures/assets/css/bootstrap.min.css\"><link data-n-head=\"1\" rel=\"stylesheet\" type=\"text/css\" href=\"/futures/assets/css/bootstrap-submenu.css\"><link data-n-head=\"1\" rel=\"stylesheet\" type=\"text/css\" href=\"/futures/assets/css/style.css\"><script data-n-head=\"1\" src=\"/futures/assets/lib/jquery/jquery.min.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/bootstrap/bootstrap.bundle.min.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/bootstrap/bootstrap-submenu.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/jquery/jquery.marquee.min.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/highchart/highstock.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/xlsx-style/jszip.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/lib/xlsx-style/xlsx.js\"></script><script data-n-head=\"1\" src=\"/futures/assets/js/charts.js\"></script><script data-n-head=\"1\" sr",
+      "grep": {
+        "/futures/api/[A-Za-z0-9_]+": [],
+        "[A-Za-z0-9_/.-]+\\.js": [
+          "/futures/_nuxt/37a7b79.js",
+          "/futures/_nuxt/581b4c0.js",
+          "/futures/_nuxt/9f5ce3f.js",
+          "/futures/_nuxt/bb0925f.js",
+          "/futures/assets/js/charts.js",
+          "/futures/assets/js/dictionary.js",
+          "/futures/assets/lib/bootstrap/bootstrap-submenu.js",
+          "/futures/assets/lib/bootstrap/bootstrap.bundle.min.js",
+          "/futures/assets/lib/highchart/highstock.js",
+          "/futures/assets/lib/jquery/jquery.marquee.min.js",
+          "/futures/assets/lib/jquery/jquery.min.js",
+          "/futures/assets/lib/xlsx-style/jszip.js",
+          "/futures/assets/lib/xlsx-style/xlsx.js"
+        ]
       }
     }
   ]
