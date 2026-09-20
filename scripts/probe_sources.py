@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import time
 from datetime import datetime, timedelta, timezone
@@ -49,36 +50,142 @@ PROBES: dict[str, list[dict]] = {
         {"id": "finmind_datalist", "url": "https://api.finmindtrade.com/api/v4/datalist",
          "note": "FinMind 有哪些 dataset（找 Announcement / News / Material）"},
     ],
-    # ---- 台指期夜盤（Andy 2026-09-18 圖一：「台指期需要顯示夜盤」）
-    #      規矩是「沒有真的 fixture 就不准寫 parser」——先打一次看欄位長什麼樣。
-    #      期交所的使用條款沒有爬蟲條款、robots 也沒限制，比證交所寬（見 DECISIONS）。
+    # ---- 台指期夜盤（Andy 2026-09-18 圖一：「台指期需要顯示夜盤」，
+    #      2026-09-20 他又說：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去」）
+    #
+    #      2026-09-19 第一輪探測的結論（docs/fixtures/taifex_night_probe.json）：
+    #        getQuoteList（MarketType 0/1）→ 200，但**只回當下一筆快照**，沒有序列
+    #        getQuoteDetail            → 200，一樣是快照
+    #        getChartData1M            → 400，訊息是
+    #          `Cannot deserialize instance of java.lang.String out of START_ARRAY token
+    #           ... GetChartData1MReqDto["SymbolID"]`
+    #      ★ 400 的內容才是重點：**這支端點存在**，它只是要一個 **字串**，
+    #        而我們送了陣列 `{"SymbolID": ["TXFJ6-F"]}`。也就是說
+    #        「夜盤沒有分時序列」這個結論是在還沒正確問過一次的情況下下的，不算數。
+    #        這一輪就是把它問對：SymbolID 改成字串，夜盤用 `-M` 結尾的代號。
+    #
+    #      合約代號（2026-09-19 實測）：日盤 `TXFJ6-F`、夜盤 `TXFJ6-M`，
+    #      第一筆 `TXF-S`／`TXF-P` 是臺指**現貨**參考列要跳過。
+    #      月份代碼每個月都在換，所以這裡**不寫死** —— 用 `symbol_from`
+    #      從上面那兩支 getQuoteList 的回應裡挑「成交量最大的那一支」（＝近月）。
+    #      寫死的 default 只是整組都失敗時的退路。
     "taifex_night": [
         {"id": "taifex_quotelist_day", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
          "json": {"MarketType": "0", "SymbolType": "F", "KindID": "1", "CID": "TXF",
                   "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
-         "note": "日盤報價清單：確認欄位名（SymbolID/CLastPrice/CRefPrice/CTotalVolume/OpenInterest…）"},
+         "note": "日盤報價清單：確認欄位名，並從這裡取出日盤近月的 SymbolID（-F）"},
         {"id": "taifex_quotelist_night", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
          "json": {"MarketType": "1", "SymbolType": "F", "KindID": "1", "CID": "TXF",
                   "ExpireMonth": "", "RowSize": "全部", "PageNo": "", "SortColumn": "", "AscDesc": "A"},
-         "note": "夜盤報價清單：MarketType=1；要確認夜盤時段外會回什麼"},
-        {"id": "taifex_chartdata_1m", "method": "POST",
+         "note": "夜盤報價清單：MarketType=1，夜盤近月的 SymbolID 是 -M 結尾"},
+        # ★ 這一支才是這輪的主角：SymbolID 送**字串**（上一輪送陣列被回 400）
+        {"id": "taifex_chartdata_1m_night", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
-         "json": {"SymbolID": ["TXFJ6-F"]},
-         "note": "夜盤 1 分鐘分時：沒查到公開文件，先打打看有沒有；SymbolID 要用日盤那支回來的實際值"},
+         "json": {"SymbolID": "TXFJ6-M"},
+         "symbol_from": {"probe": "taifex_quotelist_night", "suffix": "-M"},
+         "note": "★夜盤 1 分鐘分時：SymbolID 改成字串（上一輪送陣列被回 400），代號取夜盤近月"},
+        # 日盤同一支端點：拿得到的話可以跟證交所 futures_chart.txt 對帳，
+        # 確認欄位意義（時間是不是台北、價是不是成交價、量是不是該分鐘口數）。
+        {"id": "taifex_chartdata_1m_day", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+         "json": {"SymbolID": "TXFJ6-F"},
+         "symbol_from": {"probe": "taifex_quotelist_day", "suffix": "-F"},
+         "note": "日盤 1 分鐘分時：拿來跟證交所 futures_chart.txt 對帳，確認欄位口徑"},
+        # 有些 Spring DTO 會要求帶日期或型態；最小請求被打回票時這一支才有診斷價值。
+        {"id": "taifex_chartdata_1m_night_full", "method": "POST",
+         "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+         "json": {"SymbolID": "TXFJ6-M", "MarketType": "1", "Interval": "1"},
+         "symbol_from": {"probe": "taifex_quotelist_night", "suffix": "-M"},
+         "note": "同上但多帶 MarketType/Interval：最小請求被打回票時，用它分辨是缺欄位還是不支援"},
         {"id": "taifex_quotedetail", "method": "POST",
          "url": "https://mis.taifex.com.tw/futures/api/getQuoteDetail",
-         "json": {"SymbolID": ["TXFJ6-F"]},
-         "note": "單一合約明細：同上，先確認存不存在"},
+         "json": {"SymbolID": "TXFJ6-M"},
+         "symbol_from": {"probe": "taifex_quotelist_night", "suffix": "-M"},
+         "note": "夜盤單一合約明細：上一輪送陣列也回 200，這裡改字串確認兩種都吃"},
+        # ★ 萬一 getChartData1M 這條路走不通，要有第二個答案可以接下去，
+        #   而不是再等一輪。行情看板自己的頁面會把它用到的端點寫在 JS 裡，
+        #   把 `futures/api/xxx` 全部撈出來，下一步就有候選清單。
+        {"id": "taifex_mis_page", "method": "GET",
+         "url": "https://mis.taifex.com.tw/futures/",
+         "grep": [r"/futures/api/[A-Za-z0-9_]+", r"[A-Za-z0-9_/.-]+\.js"],
+         "note": "行情看板首頁：把它引用的 api 路徑與 JS 檔名全部撈出來當候選清單"},
     ],
 }
 
 
-def one(p: dict) -> dict:
-    """打一個端點，把「夠不夠寫 parser」需要知道的東西全部記下來。"""
+# 序列型的回應動輒好幾百筆（夜盤 14 小時的 1 分 K 就有 ~840 筆）。
+# 整份存進 fixture 會肥到沒人想打開，但「只留前三筆」又看不出尾端長什麼樣，
+# 所以一律留頭 5 筆 ＋ 尾 2 筆，中間換成一句「…（省略 N 筆）」。
+SAMPLE_HEAD, SAMPLE_TAIL = 5, 2
+
+
+def shrink(v, depth: int = 0):
+    """把回應裡的長串截短，但把「原本有幾筆」記在截斷標記裡（判斷夠不夠用就靠這個數字）。"""
+    if depth > 6:
+        return "…（太深，略）"
+    if isinstance(v, list):
+        if len(v) > SAMPLE_HEAD + SAMPLE_TAIL + 1:
+            head = [shrink(x, depth + 1) for x in v[:SAMPLE_HEAD]]
+            tail = [shrink(x, depth + 1) for x in v[-SAMPLE_TAIL:]]
+            return head + [f"…（中間省略 {len(v) - SAMPLE_HEAD - SAMPLE_TAIL} 筆，整串共 {len(v)} 筆）"] + tail
+        return [shrink(x, depth + 1) for x in v]
+    if isinstance(v, dict):
+        return {k: shrink(x, depth + 1) for k, x in v.items()}
+    if isinstance(v, str) and len(v) > 400:
+        return v[:400] + f"…（共 {len(v)} 字）"
+    return v
+
+
+def pick_symbol(rec: dict, suffix: str) -> str | None:
+    """從 getQuoteList 的回應裡挑近月合約代號。
+
+    近月＝跳過臺指**現貨**參考列（`TXF-S` / `TXF-P`，代號裡沒有月份）之後，
+    `CTotalVolume` 最大的那一支。不寫死月份代碼的理由很單純：
+    每個月都在換，寫死的探測腳本下個月就問錯合約，回空還會被誤判成「沒有這個端點」。
+    """
+    try:
+        lst = ((rec.get("sample") or {}).get("RtData") or {}).get("QuoteList") or []
+    except Exception:  # noqa: BLE001
+        return None
+    best, best_v = None, -1.0
+    for q in lst:
+        if not isinstance(q, dict):
+            continue
+        sid = str(q.get("SymbolID") or "")
+        # 代號長這樣：TXF + 月份碼 + 年 + 時段（-F 日盤／-M 夜盤）；
+        # `TXF-S` / `TXF-P` 中間沒有月份，那是臺指**現貨**參考列，不是合約。
+        if not sid.endswith(suffix) or sid.startswith("TXF-"):
+            continue
+        try:
+            vol = float(q.get("CTotalVolume") or 0)
+        except (TypeError, ValueError):
+            vol = 0.0
+        if vol > best_v:
+            best, best_v = sid, vol
+    return best
+
+
+def one(p: dict, prev: dict | None = None) -> dict:
+    """打一個端點，把「夠不夠寫 parser」需要知道的東西全部記下來。
+
+    `prev` 是同一組裡**前面已經打完**的結果（id → rec）。有 `symbol_from` 的探測
+    會從那裡撈出當下真正的近月合約代號，取代寫死的預設值。
+    """
     rec: dict = {"id": p["id"], "url": p["url"], "note": p.get("note", ""),
                  "method": p.get("method", "GET"), "probed_at": datetime.now(TW).isoformat(timespec="seconds")}
+    body_json = p.get("json")
+    sf = p.get("symbol_from")
+    if sf and isinstance(body_json, dict):
+        body_json = dict(body_json)
+        got = pick_symbol((prev or {}).get(sf["probe"]) or {}, sf["suffix"])
+        # 撈不到就沿用寫死的預設值，並記下來 —— 不然事後看 fixture 會分不清
+        # 「問錯合約」和「端點真的沒資料」。
+        rec["symbol_used"] = got or body_json.get("SymbolID")
+        rec["symbol_source"] = "上一支回應" if got else "寫死的預設值（沒撈到）"
+        body_json["SymbolID"] = rec["symbol_used"]
+    rec["req"] = body_json if body_json is not None else p.get("data")
     t0 = time.time()
     try:
         hdr = {"User-Agent": UA, "Accept": "application/json, */*"}
@@ -87,7 +194,7 @@ def one(p: dict) -> dict:
             hdr["Referer"] = "https://mis.taifex.com.tw/futures/"
             hdr["Origin"] = "https://mis.taifex.com.tw"
         r = requests.request(rec["method"], p["url"], headers=hdr,
-                             data=p.get("data"), json=p.get("json"), timeout=TIMEOUT)
+                             data=p.get("data"), json=body_json, timeout=TIMEOUT)
         rec["status"] = r.status_code
         rec["elapsed_ms"] = int((time.time() - t0) * 1000)
         rec["content_type"] = r.headers.get("Content-Type", "")
@@ -100,11 +207,16 @@ def one(p: dict) -> dict:
         if j is None:
             rec["kind"] = "text"
             rec["sample_text"] = body[:1500]
+            # HTML/JS 這種「不是資料、是線索」的回應：把要找的東西用正規式撈出來，
+            # 不然 1500 字的截斷幾乎一定切在沒用的地方。
+            for pat in (p.get("grep") or []):
+                hits = sorted(set(re.findall(pat, body)))
+                rec.setdefault("grep", {})[pat] = hits[:80]
         elif isinstance(j, list):
             rec["kind"] = "list"
             rec["n"] = len(j)
             rec["fields"] = sorted(j[0].keys()) if j and isinstance(j[0], dict) else None
-            rec["sample"] = j[:3]
+            rec["sample"] = shrink(j)
         elif isinstance(j, dict):
             rec["kind"] = "dict"
             rec["keys"] = sorted(j.keys())[:60]
@@ -119,7 +231,23 @@ def one(p: dict) -> dict:
                 rec["matched_paths"] = hits
                 rec["all_paths_n"] = len(j.get("paths") or {})
             else:
-                rec["sample"] = {k: j[k] for k in list(j)[:8]}
+                # 整份存下來（經過 shrink 截短）—— 序列型回應真正要看的是
+                # 「一共幾筆、每一筆有哪些欄位、尾端長什麼樣」，只留前 8 個 key 會漏掉。
+                rec["sample"] = shrink({k: j[k] for k in list(j)[:12]})
+                # 序列在哪一層、有幾筆：直接算給人看，省得自己數
+                seqs = {}
+
+                def _walk(node, path):
+                    if isinstance(node, dict):
+                        for k, v in node.items():
+                            _walk(v, f"{path}.{k}" if path else k)
+                    elif isinstance(node, list) and len(node) > 3:
+                        seqs[path] = {"n": len(node),
+                                      "fields": sorted(node[0].keys()) if isinstance(node[0], dict) else None}
+
+                _walk(j, "")
+                if seqs:
+                    rec["sequences"] = seqs
     except Exception as e:  # 連不上也是結果，要記下來
         rec["status"] = None
         rec["error"] = f"{type(e).__name__}: {e}"
@@ -129,8 +257,15 @@ def one(p: dict) -> dict:
 
 def run(name: str) -> Path:
     probes = PROBES[name]
+    # 一支一支照順序打：後面的探測要用前面撈到的合約代號（symbol_from）
+    done: dict[str, dict] = {}
+    results = []
+    for p in probes:
+        rec = one(p, done)
+        done[rec["id"]] = rec
+        results.append(rec)
     out = {"probe": name, "at": datetime.now(TW).isoformat(timespec="seconds"),
-           "results": [one(p) for p in probes]}
+           "results": results}
     OUT.mkdir(parents=True, exist_ok=True)
     f = OUT / f"{name}_probe.json"
     f.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -139,9 +274,15 @@ def run(name: str) -> Path:
         extra = ""
         if r.get("matched_paths") is not None:
             extra = f" 命中 {len(r['matched_paths'])} 個路徑（全部 {r.get('all_paths_n')} 個）"
+        elif r.get("sequences"):
+            extra = " 序列：" + "、".join(f"{k} {v['n']} 筆" for k, v in list(r["sequences"].items())[:3])
+        elif r.get("grep"):
+            extra = " 命中：" + "、".join(f"{len(v)} 個" for v in r["grep"].values())
         elif r.get("kind") == "list":
             extra = f" {r.get('n')} 筆，欄位 {r.get('fields')}"
-        print(f"{mark}{r['id']:22s} {r.get('status')} {r.get('bytes', 0)}B{extra}{'  ' + r['error'] if r.get('error') else ''}")
+        sym = f" [{r['symbol_used']}]" if r.get("symbol_used") else ""
+        print(f"{mark}{r['id']:30s} {r.get('status')} {r.get('bytes', 0)}B{sym}{extra}"
+              f"{'  ' + r['error'] if r.get('error') else ''}")
     try:
         print(f"\n寫到 {f.relative_to(ROOT)}")
     except ValueError:       # 測試會把輸出目錄換掉，印絕對路徑就好
