@@ -25,7 +25,7 @@
 #   ask      要 Andy 回答或動手的事
 
 meta:
-  updated: "2026-09-21 下午"
+  updated: "2026-09-21 傍晚"
   site: "https://miaozike.github.io/tw-rotation/"
 
 # ---------------------------------------------------------------- 要 Andy 動手
@@ -56,6 +56,73 @@ questions:
 
 # ---------------------------------------------------------------- 任務
 tasks:
+  - id: E1
+    title: "軌跡線不能比圓圈還動的快"
+    status: doing
+    files: [site/app.js, scripts/_uitest.py]
+    shot: 2026-09-21-E1-輪動時鐘軌跡線.png
+    note: >-
+      根因已量出來（不是猜的）：尾巴是 line series，時間軸每前進一天，
+      `trail(r)` 回傳的**點數會變多**（實測 span=5 是 259 點、span=10 是 519 點）。
+      ECharts 在 merge 更新時只補間「新舊都存在的索引」，新長出來那一段沒有舊位置可對應，
+      所以尾巴尖端**瞬移**到新那一天，而大圈是 420ms linear 慢慢補過去 —— 看起來就是線比圓圈快。
+      修法：讓 `trail()` 永遠回傳**固定點數**（重取樣），每個索引都有新舊對應，
+      整條線就會跟大圈用同一個 duration 一起滑。
+  - id: E2
+    title: "放大之後的功能都沒反應"
+    status: doing
+    files: [site/app.js, site/index.html, scripts/_uitest.py]
+    shot: 2026-09-21-E2-放大視窗功能沒反應.png
+    note: >-
+      根因已確認：`renderRotClock` 結尾只要 `!compact` 就會呼叫 `groupChips(id, …)`，
+      而放大視窗的 id 是 `zoomBody`，所以它也被塞了一排族群晶片。
+      `groupChips` 把那排插成 `#zoomBody` 的下一個兄弟，父層 `.zb` 又是 `display:flex` ——
+      實測 `#zoomBody` 704×756、被插進去的 `.linkrow.gchips` 704×748（36 顆鈕），
+      **放大視窗一半的版面被晶片吃掉**。而且那排晶片綁的是**卡片**的 rankSel／pickGroup，
+      在放大視窗裡按下去對放大的那張圖完全沒有作用 —— 這就是「都沒反應」。
+      （補充：拉Bar 與播放鈕用真滑鼠點是會動的，1440／1100px 都量過，
+       所以問題不在事件綁定，在那排不該存在的晶片。）
+      順手修同源隱患：`rotLbl`／`rotLastShape` 是模組層級共用變數，卡片與放大視窗會互相洗掉。
+  - id: E3
+    title: "篩選族群功能覆蓋下方的族群選取功能"
+    status: doing
+    files: [site/app.js, site/index.html, scripts/_uitest.py]
+    shot: 2026-09-21-E3-篩選族群與族群選取.png
+    note: >-
+      量過 1440／1280／1024／900／560 五個寬度，`.rotpick` 與下方 `.linkrow.gchips`
+      的**幾何重疊都是 0** —— 所以「覆蓋」不是壓在上面，是**功能上蓋過去**：
+      同一張卡片有兩份族群清單，上面那份（族群篩選）真的會篩圖，
+      下面那份只會 highlight／展開成分股、不會篩圖。長得一樣、行為不同。
+      修法：族群選取只留下面那一排（離圖最近，而且 F2 的「點族群展開個股」要長在它身上），
+      並讓它真的改 `ROT.groups`；上面 `.rotfilter` 的族群清單移除，只留產業鏈／前10大／個股篩選／清除。
+  - id: F3
+    title: "圖二的版面配比需要 2:1（輪動時鐘:資金流向排行），資金流向排行改成在右邊"
+    status: doing
+    files: [site/index.html, site/app.js, scripts/_uitest.py]
+    note: >-
+      現在是 .grid.g2 平分、排行在左。要改成 2fr:1fr、時鐘在左排行在右，
+      窄畫面退回單欄（時鐘在上）。七個寬度都要掃溢出與標籤重疊。
+  - id: F1
+    title: "依據 tide-tw.app 上面所有的族群分類，幫我將『資金去向』&『輪動時鐘』重新分類"
+    status: blocked
+    files: [docs/groups_tide_proposal.md, docs/groups_tide_proposal.yaml, pipeline/groups/groups.yaml]
+    note: >-
+      ⛔ tide-tw.app 被我們的網路出口代理擋住（EGRESS_BLOCKED），**抓不到它原始的 110 個板塊清單**。
+      截圖上的泡泡標籤大多被截斷，用 OCR 去猜會猜錯 —— 族群成分是這個網站最不能猜的東西。
+      目前做法：已派 industry-analyst 用公開資料建一份 90～110 個細分板塊的提案
+      （docs/groups_tide_proposal.md ＋ .yaml，每一檔成分股附 confidence 與來源），
+      等 Andy 給正式清單再比對落地。DECISIONS 也規定 groups.yaml 由 Andy 校訂，
+      所以 Agent 只寫提案檔、不直接改 groups.yaml。
+    ask: >-
+      請到 tide-tw.app 把「全部 (110)」那個下拉的板塊名稱整串複製給我（純文字就好）。
+      有這份清單我才能保證分類和你看到的那個網站一致。
+  - id: F2
+    title: "輪動時鐘 & 資金去向 分兩階段：第一階段顯示族群，點擊族群後顯示對應個股，也可以點擊並顯示在圖上"
+    status: todo
+    files: [site/app.js]
+    note: >-
+      和 F1 分開做 —— 這一件不依賴分類顆粒度，groups.yaml 長什麼樣它都能運作，
+      所以先做這件，F1 的清單到了再換資料就好。既有功能（篩選、播放、看哪一天、軌跡）全部保留。
   - id: D0
     title: "（?3 拍板）C3 的關聯圖在手機上變高了，要處理"
     status: done
