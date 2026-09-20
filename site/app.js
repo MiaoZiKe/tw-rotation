@@ -955,8 +955,15 @@
     wireKpiDrill();
     renderHeat(gt, rot);
     renderRotation(f3 && f3.rrg, 5, { board: 'rotMini', clock: 'rotClockMini', compact: true });
-    // 總覽這張是縮圖，只給一顆「放大」；拉Bar／篩選／播放都在放大視窗裡（已拍板）
-    { const mz = $('#rotMiniZoomBtn'); if (mz) mz.onclick = () => openRotZoom(f3 && f3.rrg, 5); }
+    /* 總覽這張是縮圖，只給一顆「放大」；拉Bar／篩選／播放都在放大視窗裡（已拍板）。
+       ★ 2026-09-20（E2）：放大視窗吃的是整份 ROT 狀態（產業鏈、個股索引、全族群名單），
+         而從總覽直接按放大時，資金流向頁可能還沒渲染過、那些東西都還是空的 ——
+         不補的話放大視窗的篩選列會變成一排按了沒反應的鈕（正是這次要修的毛病）。*/
+    { const mz = $('#rotMiniZoomBtn'); if (mz) mz.onclick = () => {
+      if (f3) rotF3 = f3;
+      if (!rotAllGroups) rotAllGroups = rotRows(f3 && f3.rrg, 5).map(r => ({ gid: r.gid, name: r.name }));
+      openRotZoom(f3 && f3.rrg, 5);
+    }; }
     renderThemeStrip(th);
     renderCandidates(cands);
     renderBreadth(heat);
@@ -986,7 +993,7 @@
   /* 放大罩：熱力圖方塊太小看不清楚時，全螢幕看同一張圖。
      刻意不做「拖曳平移」—— treemap 一旦可以拖，整張圖就會被拖走而且回不來
      （Andy 遇到的空白畫面就是這樣來的）。要看細節就放大或下鑽，位置永遠固定。 */
-  function openZoom(title, render) {
+  function openZoom(title, render, onClose) {
     const ov = $('#zoomOv'); if (!ov) return;
     $('#zoomTitle').textContent = title;
     ov.hidden = false;
@@ -995,7 +1002,12 @@
       ov.hidden = true; document.body.style.overflow = '';
       const c = echarts.getInstanceByDom($('#zoomBody')); if (c) c.dispose();
       $('#zoomChips').innerHTML = '';
+      /* ★ 2026-09-20（E2）：控制項列也要清掉。以前只清 #zoomChips，
+         所以開過輪動時鐘的放大視窗之後，再去開熱力圖的放大，
+         上面還掛著輪動時鐘的拉Bar 與篩選列（按了當然沒反應）。*/
+      const tl = $('#zoomTools'); if (tl) tl.innerHTML = '';
       document.removeEventListener('keydown', esc);
+      if (onClose) { try { onClose(); } catch (e) { /* 關閉流程不要因為同步失敗卡住 */ } }
     };
     const esc = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', esc);
@@ -1166,12 +1178,17 @@
      順帶一提這樣整段 30 天播完是 12.6 秒，比舊的 24.6 秒還快。 */
   const ROT_ANIM_MS = 420;
   const LBL_FS = 11.5;                 // 標籤字級；排版與驗收都用同一個值
-  /* 這一輪排好的標籤位置，key＝scatter 的 dataIndex。
+  /* 這一輪排好的標籤位置：`rotLbl[圖表 id][scatter 的 dataIndex]`。
      labelLayout 是每個標籤各呼叫一次的，拿不到「全部標籤」，
-     所以先自己算好放這裡，labelLayout 只負責查表。*/
-  let rotLbl = {};
+     所以先自己算好放這裡，labelLayout 只負責查表。
+     ★ 2026-09-20（E2）：本來是一個共用物件，**卡片時鐘與放大時鐘會互相覆蓋** ——
+       放大視窗開著的時候，卡片那張圖的 ResizeObserver 只要被觸發一次，
+       就會把放大視窗排好的標籤位置整個洗掉（名字停在別張圖的像素座標上）。
+       兩張圖是兩套座標，所以狀態也要分開，以圖表 id 當 key。*/
+  const rotLbl = {};
   // N3：上一次畫的是哪一組族群 —— 一樣就用 merge（點會自己走過去），不一樣才 notMerge
-  let rotLastShape = '';
+  // （同上：以圖表 id 當 key，兩張圖不可以共用一個指紋，否則會互相逼對方 notMerge）
+  const rotLastShape = {};
 
   /* 左右兩欄＋引線的排版（和 3D 剖析圖 E1 同一套）。
      先把每個點用 convertToPixel 轉成像素座標，依 x 分左右欄；
@@ -1218,11 +1235,19 @@
     return out;
   }
 
-  /* opts（2026-09-18 Andy 圖二、2026-09-20 Andy A4）：
-       pick  Set|null  只看這幾個族群（篩選）；null＝全部
-       frame int       **看哪一天**：大圈移到「第 frame 天前」那一天的座標；0＝今天
-       span  int       軌跡要畫幾天（預設＝back）
-       trail bool      軌跡開關（false＝線還在但資料清空，A4 第 7 條「軌跡可以開啟關閉」）
+  /* opts（2026-09-18 Andy 圖二、2026-09-20 Andy A4／E1～E3）：
+       pick   Set|null  只看這幾個族群（篩選）；null＝全部
+       frame  int       **看哪一天**：大圈移到「第 frame 天前」那一天的座標；0＝今天
+       span   int       軌跡要畫幾天（預設＝back）
+       trail  bool      軌跡開關（false＝線還在但資料清空，A4 第 7 條「軌跡可以開啟關閉」）
+       chips  bool      要不要在圖下方掛族群晶片列（**只有卡片上的時鐘要**）
+       expose bool      要不要把這張圖的量測值寫到 window.App（驗收用；只有卡片那張寫）
+
+     ★ chips / expose 是旗標不是 id 比對（E2）：放大視窗的容器 id 是 `zoomBody`，
+       以前那段 `if (!compact) groupChips(...)` 對它也成立，於是放大視窗裡被塞進一排
+       綁在**卡片** rankSel 上的族群晶片 —— 實測 #zoomBody 704×756、那排晶片 704×748，
+       放大視窗一半的版面被吃掉，而且按下去對放大的那張圖完全沒有作用。
+       用 id 字串擋只是把同一個坑換個位置埋，所以改成由呼叫端明講要不要。
 
      ★ A4 第 7 條把這支拉Bar 的語意從「畫多長」換成「看哪一天」之後，
        正規化的尺度**一定要固定**，不能再用「當下這一幀的最大偏離量」。
@@ -1298,18 +1323,70 @@
        角度差一大，那條線就直接橫跨過圓心，看起來像「跳過去」而不是「轉過去」。
        所以自己在角度與半徑上各補中間點；角度一律走較短的那一邊，
        不然從 350° 到 10° 會沿著圓繞一大圈回去。*/
-    const arcPath = (pts) => {
+    /* ★ 2026-09-20（E1，Andy：「軌跡線不能比圓圈還動的快」）：
+       補點的過程**全程用不取模的連續角度**，最後一步才取模還給 ECharts。
+       以前每補一個點就 `% 360`，於是 350°→10° 之間會出現 -340 的數值跳躍；
+       接下來要照弧長重取樣，那一段會被算成「繞了大半圈」，整條尾巴就歪掉。*/
+    const unwrap = (pts) => {
+      let cur = pts.length ? pts[0][1] : 0;
+      return pts.map(([r, a], i) => {
+        if (i === 0) return [r, cur];
+        let d = a - cur;
+        d = ((d % 360) + 540) % 360 - 180;      // 收進 (-180, 180]＝一律走短的那一邊
+        cur += d;
+        return [r, cur];
+      });
+    };
+    const densify = (pts) => {
       const out = [];
       for (let i = 0; i < pts.length - 1; i++) {
         const [r0, a0] = pts[i], [r1, a1] = pts[i + 1];
-        let d = a1 - a0; if (d > 180) d -= 360; if (d < -180) d += 360;
+        const d = a1 - a0;                       // 已經是連續角度，不用再挑邊
         const n = Math.max(2, Math.min(24, Math.round(Math.abs(d) / 6) + 2));
-        for (let k = 0; k < n; k++) {
-          const u = k / n;
-          out.push([r0 + (r1 - r0) * u, (a0 + d * u + 360) % 360]);
-        }
+        for (let k = 0; k < n; k++) { const u = k / n; out.push([r0 + (r1 - r0) * u, a0 + d * u]); }
       }
       if (pts.length) out.push(pts[pts.length - 1]);
+      return out;
+    };
+    /* ★ E1 的解法本體：把整條路**重取樣成固定點數**。
+       Andy 看到的現象是「尾巴比圓圈動得快」，量出來的根因是點數會變：
+       時間軸每前進一天，trail() 回傳的點數就多一段（span=5 是 259 點、span=10 是 519 點）。
+       ECharts 做 merge 更新時只有「新舊都存在的索引」會補間，
+       新長出來的那一段沒有對應的舊位置 —— 所以尾巴的尖端是**瞬移**過去的，
+       而大圈是用 animationDurationUpdate(420ms, linear) 慢慢滑過去的。
+       兩者的位置來源（atFrame）其實一模一樣，差別完全在「一個瞬移、一個補間」。
+       固定成 48 點之後，每一個索引在前後兩幀都有對應，整條線就跟大圈同一個
+       duration/easing 一起滑，尖端永遠貼著大圈。
+       取樣依據是**弧長**不是天數：轉得急的那一段弧長本來就長，會自動分到比較多點，
+       圓弧的形狀才不會被 48 點拉成直線。*/
+    const TRAIL_PTS = 48;
+    const resample = (dense, n) => {
+      const out = [];
+      const xy = dense.map(([r, a]) => { const t = a * Math.PI / 180; return [r * Math.cos(t), r * Math.sin(t)]; });
+      const cum = [0];
+      for (let i = 1; i < xy.length; i++) {
+        const dx = xy[i][0] - xy[i - 1][0], dy = xy[i][1] - xy[i - 1][1];
+        cum.push(cum[i - 1] + Math.sqrt(dx * dx + dy * dy));
+      }
+      const total = cum[cum.length - 1];
+      /* 整條路還縮在一個點上（軌跡剛站上起點）：48 個點全部重疊 ——
+         這正好就是「還沒走出軌跡」該有的樣子，不要特別處理成「只畫一個點」，
+         那會讓點數又變成會動的量，E1 的病根就回來了。*/
+      if (!(total > 1e-9)) {
+        for (let k = 0; k < n; k++) out.push(dense[dense.length - 1]);
+        return out;
+      }
+      let j = 1;
+      for (let k = 0; k < n; k++) {
+        const want = total * k / (n - 1);
+        while (j < cum.length - 1 && cum[j] < want) j++;
+        const seg = cum[j] - cum[j - 1] || 1;
+        const u = Math.max(0, Math.min(1, (want - cum[j - 1]) / seg));
+        out.push([dense[j - 1][0] + (dense[j][0] - dense[j - 1][0]) * u,
+          dense[j - 1][1] + (dense[j][1] - dense[j - 1][1]) * u]);
+      }
+      // 兩端要「完全」落在原來的端點上：尖端差幾個像素就是 Andy 會看到的脫節
+      out[0] = dense[0]; out[n - 1] = dense[dense.length - 1];
       return out;
     };
     /* 尾巴：**已經走過**的那一段路（Andy 2026-09-20：「只有經過才留下軌跡，
@@ -1328,6 +1405,15 @@
        上限 40 個路標純粹是防呆。*/
     const span = opts.span != null ? opts.span : back;
     const trailOn = opts.trail !== false;
+    // 這條軌跡實際走過幾天（＝終點索引 − 起點索引）。固定點數之後「幾個點」不再有鑑別度，
+    // 驗收改量這個值：刷到最舊那一天是 0，往今天刷才一天一天長出來。
+    const trailDays = (r) => {
+      const t = r.trail || [];
+      if (!t.length || !trailOn) return 0;
+      const end = atFrame(t, frame);
+      if (!end) return 0;
+      return Math.max(0, end[3] - Math.max(0, Math.floor(end[3]) - span));
+    };
     const trail = (r) => {
       const t = r.trail || [];
       if (!t.length || !trailOn) return [];
@@ -1335,14 +1421,15 @@
       if (!end) return [];
       const iEnd = end[3];
       const i0 = Math.max(0, Math.floor(iEnd) - span);
-      if (iEnd <= i0 + 1e-9) return [pos(end[1], end[2])];   // 才剛站上起點：只有一個點
       const way = [];
       for (let i = i0; i <= Math.floor(iEnd); i++) way.push([t[i][1], t[i][2]]);
       if (Math.floor(iEnd) < iEnd - 1e-9) way.push([end[1], end[2]]);   // 走到一半的殘段
       const step = Math.max(1, Math.ceil((way.length - 1) / 40));
       const picked = way.filter((_, i) => i % step === 0);
       if (picked[picked.length - 1] !== way[way.length - 1]) picked.push(way[way.length - 1]);
-      return arcPath(picked.map(w => pos(w[0], w[1])));
+      const dense = densify(unwrap(picked.map(w => pos(w[0], w[1]))));
+      // 最後一步才取模：ECharts 的 angleAxis 是 0~360，連續角度餵進去會被畫到盤外
+      return resample(dense, TRAIL_PTS).map(p => [p[0], ((p[1] % 360) + 360) % 360]);
     };
     /* A4 第 6 條（Andy：「越外圈顏色越深」）。
        做法是把族群色**往面板底色調淡**，離圓心越近調得越淡、越外圈越接近原色。
@@ -1424,7 +1511,7 @@
              先把每個點轉成像素座標，依 x 決定排左欄還是右欄，欄內依 y 由上而下擺，
              擺不下就由下往上收，最後夾在畫布內。每個標籤再拉一條細線回到自己的點。*/
           labelLayout: (q) => {
-            const m = rotLbl[q.dataIndex];
+            const m = (rotLbl[id] || {})[q.dataIndex];
             if (!m) return {};
             // 左欄往右長、右欄往左長（見 layoutRotLabels 的註解）
             const align = m.side === 'left' ? 'left' : 'right';
@@ -1461,8 +1548,9 @@
        所以每一幀都是重畫、看起來像跳格。用 merge 的話它會把舊位置補間到新位置，
        點就自己沿著路徑走過去了。
        只有「族群數真的變了」（換篩選、換天數）才需要 notMerge，否則會留下殘線。*/
-    const sameShape = rotLastShape === id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
-    rotLastShape = id + '|' + top.length + '|' + top.map(r => r.gid).join(',');
+    const shape = top.length + '|' + top.map(r => r.gid).join(',');
+    const sameShape = rotLastShape[id] === shape;
+    rotLastShape[id] = shape;
     /* 補間時間＝播放間隔（ROT_ANIM_MS）。兩者相等的時候一天接著一天、中間沒有空檔，
        所以看起來是「等速滑過去」而不是「走一步停一下」。easing 一定要 linear：
        easeOut 會在每一天的尾巴急停，那正是「段點段點」的另一個來源。*/
@@ -1476,13 +1564,16 @@
        半徑、混出來的顏色、以及那一段的原色一起攤出來 ——
        混色是 mixHex(底色, 原色, w)，量的人可以從 (顏色, 原色, 底色) 反推出 w，
        再驗 w 真的隨半徑遞增。攤的是**畫上去的值**，不是我心裡想的值。*/
-    if (!compact) {
+    if (opts.expose) {
       window.App._rotBg = CH.panel;
       window.App._rotPts = top.map(r => ({ gid: r.gid, name: r.name,
         r: Math.min(r.p[0], maxR) / maxR, color: depthColor(r), base: STAGE[r.stage].color }));
       window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
-        // 驗收用：目前畫上去的軌跡總共幾個點（漸進式軌跡量的就是這個）
-        trailPts: top.reduce((a, r) => a + trail(r).length, 0) };
+        /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
+           再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
+           刷到最舊那一天是 0，往今天刷會一天一天長出來，語意跟漸進式軌跡一致。*/
+        trailDays: +top.reduce((a, r) => a + trailDays(r), 0).toFixed(2),
+        trailPts: TRAIL_PTS };                // 固定值，只是讓人知道一條尾巴幾個點
     }
     if (c && !compact) {
       /* ★ 2026-09-20：標籤排版必須**跟著容器大小重算**。
@@ -1497,8 +1588,9 @@
         if (!el.isConnected) return;
         const cur = window.echarts && echarts.getInstanceByDom(el);
         if (cur !== c) return;                       // 圖被換掉或 dispose 了就不要再動它
-        rotLbl = layoutRotLabels(c, el, top);
-        window.App._rotLabels = Object.keys(rotLbl).map(k => rotLbl[k].rect);  // 驗收用：量兩兩不重疊、全在畫布內
+        rotLbl[id] = layoutRotLabels(c, el, top);
+        // 驗收用：量兩兩不重疊、全在畫布內（只有卡片那張圖要攤出來，不然放大時會互相蓋掉）
+        if (opts.expose) window.App._rotLabels = Object.keys(rotLbl[id]).map(k => rotLbl[id][k].rect);
         try { c.setOption({ series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
       relayout();
@@ -1514,17 +1606,17 @@
         }).observe(el);
       }
     } else if (compact) {
-      rotLbl = {};
+      rotLbl[id] = {};
     }
     if (c) c.off('click').on('click', q => { const r = q.data && q.data.row; if (r) location.hash = '#industry/group/' + r.gid; });
     /* N2：兩張圖共用同一份名單（輪動資料的全部族群，依成交值佔比排序）。
        ★ 2026-09-20：加一層「名單沒變就不要重建 DOM」。播放現在每 420ms 重畫一次時鐘，
          每次都把 36 個晶片整排 innerHTML 掉的話，使用者按到一半的晶片會被抽掉，
          而且那是整個播放迴圈裡最貴的一段。 */
-    if (!compact) {
+    if (opts.chips) {
       const list = rows.map(r => ({ gid: r.gid, name: r.name }));
-      const key = list.map(g => g.gid).join(',') + '|' + (rankSel || '');
-      if (rotChipKey[id] !== key) { rotChipKey[id] = key; groupChips(id, list, rankSel); }
+      const key = list.map(g => g.gid).join(',') + '|' + rotSelKey();
+      if (rotChipKey[id] !== key) { rotChipKey[id] = key; groupChips(id, list); }
     }
   }
   const rotChipKey = {};                 // id → 上一次畫出來的晶片名單指紋
@@ -1538,7 +1630,9 @@
       return;
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
-      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail });
+      { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail,
+        // 晶片列與量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
+        chips: !!ids.chips, expose: !!ids.expose });
     /* ★ 2026-09-20：`only: 'clock'` ＝只更新時鐘那一張圖。
        播放現在是每 420ms 推進一天（以前 820ms），如果每一幀都連帶把輪動階段看板
        四格清單整個 innerHTML 重建一次，瀏覽器會忙到補間動畫掉幀 ——
@@ -2270,7 +2364,7 @@
              span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
              配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
              （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
-          span: ROT_SPAN, trail: ROT.trail });
+          span: ROT_SPAN, trail: ROT.trail, chips: true, expose: true });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
     };
@@ -2278,13 +2372,33 @@
        底下的輪動階段看板用 160ms debounce 補上 —— 它是整頁最貴的 DOM 重建，
        每 420ms 跟著重建一次會把補間動畫拖到掉幀。*/
     let rotBoardT = null;
+    /* 只更新下面那塊輪動階段看板，**不要碰時鐘**。
+       ★ 2026-09-20（E1 量出來的）：以前這裡是 `drawRot(rotFrame)`（連時鐘一起重畫）。
+         播放時每 420ms 推進一天、160ms 後又整張重設一次 series，
+         第二次 setOption 會**把還在跑的補間動畫從中途重新開始**（又是 420ms 到同一個目標），
+         於是每一幀都沒跑完就被下一幀接手 —— 尾巴與大圈的脫節會一路累積。
+         實測：播到第 5 天時「光電業」的尾巴尖端已經落後大圈 41px（大圈半徑只有 6.5px）。
+         看板本來就不需要時鐘陪著重畫，分開之後脫節回到 3px 以內。*/
+    const drawBoard = () => renderRotation(f3 && f3.rrg, flowState.back,
+      { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove' });
     const rotSeek = (v) => {
       flowState.back = v; rotFrame = v;
       drawRot(v, 'clock');
       clearTimeout(rotBoardT);
-      rotBoardT = setTimeout(() => drawRot(rotFrame), 160);
+      rotBoardT = setTimeout(drawBoard, 160);
     };
-    rotRedraw = () => { drawRot(rotFrame); drawPeriod(); };
+    /* 篩選（產業鏈／前 10 大／個股／族群晶片）變了就重畫。
+       放大視窗開著時它也要跟著重畫 —— 兩邊吃的是同一份 ROT 狀態，
+       只更新其中一邊的話，使用者關掉放大就會看到「剛剛按的東西不見了」。*/
+    rotRedraw = () => { drawRot(rotFrame); drawPeriod(); if (rotZoomDraw) rotZoomDraw(); };
+    /* 放大視窗關掉時把卡片補回來：天數（rotFrame）與篩選都是在放大視窗裡改的，
+       卡片那張圖在那段期間刻意沒有跟著重畫（每 420ms 重畫兩張會掉幀）。*/
+    rotSyncCard = () => {
+      if (rotBackBar) { try { rotBackBar.set(rotFrame); } catch (e) { /* 忽略 */ } }
+      flowState.back = rotFrame;
+      $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      wireRotFilter(); drawRot(rotFrame); drawPeriod();
+    };
     wireRotFilter(f3);
     /* 圖二「需要補充圓心到圓外 差異為何」：圖下方固定寫一行，不要讓使用者去猜。*/
     const note = $('#rotCenterNote');
@@ -2301,7 +2415,11 @@
         + '按 ▶ 播放（一天 0.42 秒、等速）就會看著牠自己把路走出來。'
         + '　怎麼用：先看外圈（差距大、值得追）再看它在哪一段 ——'
         + '「改善」外圈是剛起漲的候選、「領先」外圈是還在強的主流、'
-        + '「轉弱」外圈是該準備減碼的，圓心附近的族群跟大盤沒兩樣，先不用花時間。';
+        + '「轉弱」外圈是該準備減碼的，圓心附近的族群跟大盤沒兩樣，先不用花時間。'
+        /* E3：族群選取只剩圖下方那一排，所以要在這裡講一句它在哪、按了會怎樣 ——
+           不然使用者會以為「圖上一次只能看全部」。*/
+        + '　只想看某幾個族群：直接點圖下方那一排族群名稱（可多選、再點一次取消），'
+        + '時鐘與右邊的資金流向排行會一起跟著篩，同時在排行下方展開那個族群的成分股。';
     }
     /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
        重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
@@ -2396,6 +2514,18 @@
     // 資金流向頁的六張圖不加滾輪縮放（Andy 09-13）；圖本身已經用足卡片寬度
   }
 
+  /* 量一批字在畫面上實際有多寬（取最寬的那一個）。
+     ECharts 的軸標籤是畫在 canvas 上的，DOM 上量不到，所以自己用 canvas 的 measureText，
+     字型跟 chart() 給的 textStyle 一致 —— 不一致的話量出來的數字沒有意義。*/
+  let _measCtx = null;
+  function textW(list, fs) {
+    try {
+      if (!_measCtx) _measCtx = document.createElement('canvas').getContext('2d');
+      _measCtx.font = `${fs}px "Noto Sans TC", "JetBrains Mono", sans-serif`;
+      return (list || []).reduce((m, t) => Math.max(m, _measCtx.measureText(String(t)).width), 0);
+    } catch (e) { return 0; }                    // 量不到就讓呼叫端用自己的下限
+  }
+
   // ---- 資金流向排行：這段期間誰的成交值佔比長大、誰縮小
   function renderRankFlow(p) {
     let gs = (p.groups || []).filter(g => g.share_chg != null);
@@ -2416,6 +2546,24 @@
       const arrow = g.rank_chg > 0 ? ` ${g.rank_chg}↑` : g.rank_chg < 0 ? ` ${-g.rank_chg}↓` : '';
       return `${g.group_name}${arrow}`;
     };
+    /* ★ F3（Andy 2026-09-20：「圖二的版面配比需要 2:1，資金流向排行改成在右邊」）。
+       這張圖從「半個版面」變成「三分之一個版面」，左右兩塊留白就得跟著縮 ——
+       原本左 132 右 96 共吃掉 228px，1101px 的畫面上這一欄只有 ~300px，
+       長條會只剩 70px，族群名也會被容器裁掉。
+       所以依**量到的容器寬度**分三級：字級、右邊留白跟著縮，
+       最窄的時候右邊那串只留佔比變化（期間報酬讓位給族群名，tooltip 裡還看得到）。*/
+    const rfw = (document.getElementById('rankFlow') || {}).clientWidth || 600;
+    const narrow = rfw < 380, mid = rfw < 470;
+    const GR = narrow ? 58 : mid ? 76 : 96;
+    const FS = narrow ? 11.5 : 12.5;          // 手機也不得小於 11px
+    /* 左留白**量出來**，不要寫死：族群名長度差很多（「金融」2 個字 vs
+       「連接器 / 高速傳輸 3↑」13 個字），而且畫出來是誰會隨著天數換人。
+       2026-09-20 第一版寫死 104px，換一個期間就被「連接器 / 高速傳輸 3↑」凸出容器 9px ——
+       那不是「這個名字太長」，是「留白不該是常數」。
+       下限是為了讓短名字的時候長條不要貼著卡片邊；上限鎖在欄寬的一半，
+       不然窄欄位會被名字整個吃掉、長條沒有地方畫。*/
+    const GL = Math.max(narrow ? 96 : mid ? 108 : 124,
+      Math.min(Math.round(rfw * 0.5), Math.ceil(textW(rows.map(label), FS)) + 12));
     const c = chart('rankFlow', {
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => { const g = rows[q.dataIndex];
@@ -2426,15 +2574,18 @@
             + `<br>成交值 ${fmt.yi(g.turnover)}<br><small>點一下看成分股</small>`; },
       },
       // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
-      grid: { left: 132, right: 96, top: 12, bottom: 38 },
+      grid: { left: GL, right: GR, top: 12, bottom: 38 },
       xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, hideOverlap: true } },
-      yAxis: { ...axisStyle, type: 'category', data: rows.map(label), axisLabel: { color: CH.ink2, fontSize: 12.5 } },
+      yAxis: { ...axisStyle, type: 'category', data: rows.map(label), axisLabel: { color: CH.ink2, fontSize: FS } },
       series: [{
         type: 'bar', barWidth: 15,
         data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
           itemStyle: { color: chgColor(g.share_chg, 1.5), borderRadius: g.share_chg >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4] } })),
         label: { show: true, position: 'right', color: CH.ink2, fontSize: 11.5, fontFamily: 'JetBrains Mono',
-          formatter: (q) => { const g = rows[q.dataIndex]; return `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}　${fmt.pct(g.ret, 1)}`; } },
+          // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
+          formatter: (q) => { const g = rows[q.dataIndex];
+            const v = `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}`;
+            return narrow ? v : `${v}　${fmt.pct(g.ret, 1)}`; } },
         markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
       }],
     });
@@ -2456,51 +2607,83 @@
       highlightClock(rankSel);
     });
     lastRankRows = rows;
-    // N2：跟輪動時鐘用同一份名單、同一個選取狀態
-    groupChips('rankFlow', (rotAllGroups || rows.map(g => ({ gid: g.group_id, name: g.group_name }))), rankSel);
+    /* 欄寬變了一定要**重畫**，不能只 resize：grid 的 left/right 是像素值，
+       `chart()` 掛的 ResizeObserver 只會呼叫 resize()，留白仍然是舊的那一組，
+       於是把瀏覽器縮窄之後長條只剩一點點、族群名被裁掉 —— 這就是 C2「換一台電腦
+       版面就跑掉」在這張圖上的樣子。所以這裡自己盯寬度（120ms 去抖動）。*/
+    {
+      const el = document.getElementById('rankFlow');
+      if (el) {
+        el._rfRedraw = () => renderRankFlow(p);
+        if (!el.dataset.rfRo && window.ResizeObserver) {
+          el.dataset.rfRo = '1';
+          let t = null, lastW = el.clientWidth;
+          new ResizeObserver(() => {
+            if (Math.abs(el.clientWidth - lastW) < 8) return;
+            lastW = el.clientWidth;
+            clearTimeout(t);
+            t = setTimeout(() => { const f = el._rfRedraw; if (f && el.isConnected) f(); }, 120);
+          }).observe(el);
+        }
+      }
+    }
+    // N2：跟輪動時鐘用同一份名單、同一個選取狀態（選取狀態＝ROT.groups，見 groupChips）
+    groupChips('rankFlow', (rotAllGroups || rows.map(g => ({ gid: g.group_id, name: g.group_name }))));
   }
 
   /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
-     已拍板：拉Bar／篩選／播放通通放在這裡，卡片上只留一顆「放大」——
-     卡片本來就只有半個版面，再塞三排控制項就沒有圖了。*/
+
+     ★ 2026-09-20（E2，Andy：「放大之後的功能都沒反應」）—— 兩個根因，都已經量過：
+       ① `renderRotClock` 結尾那段 `if (!compact) groupChips(...)` 對放大視窗也成立，
+          於是 `.linkrow.gchips` 被插在 `#zoomBody` 的下一個兄弟，而 `.zb` 是 flex ——
+          實測 `#zoomBody` 704×756、那排晶片 704×748，**放大視窗一半的版面被晶片吃掉**；
+          更糟的是那排晶片綁的是**卡片**的選取，在放大視窗裡按下去對這張圖完全沒有作用。
+       ② 這裡本來維護**第二套**控制項（只有 16 顆的簡化晶片 ＋ 兩支語意不同的拉Bar），
+          兩套行為不一致就是這個 bug 的溫床。
+     改法：放大視窗吃**同一份 ROT 狀態、同一組控制項**（產業鏈 seg／只看前 10 大／
+     個股篩選／清除篩選／看哪一天／顯示軌跡／族群晶片列），關掉時把卡片同步回來。*/
   function openRotZoom(rrg, back0) {
     const rows0 = rotRows(rrg, back0);
     if (!rows0.length) return;
+    let bar = null;
     openZoom('輪動時鐘', (body, chipBox, close) => {
-      const tools = $('#zoomTools'); if (tools) tools.innerHTML = '<div id="rotZoomBack"></div><div id="rotZoomPlay"></div>';
-      const pick = new Set();
-      let back = back0, frame = 0;
+      /* 控制項一律用 class 或「Zoom」字樣的 id，**不可以和卡片上的 id 撞名** ——
+         同一個 id 出現兩次時 getElementById 只抓得到第一個，另一邊就按了沒反應。*/
+      const tools = $('#zoomTools');
+      if (tools) tools.innerHTML = '<div class="rotfilter" data-rf="zoom"></div>'
+        + '<div id="rotZoomBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>'
+        + '<div class="rottools" id="rotZoomTools"></div>'
+        + '<div class="linkrow gchips" data-sync="n2" id="rotZoomChips"></div>';
       const draw = () => {
-        renderRotClock(rows0, back, 'zoomBody', false, { pick, frame });
-        // 篩選晶片：點一下只看那個族群，再點取消；沒選＝全部
-        chipBox.innerHTML = `<button data-g="" class="${pick.size ? '' : 'on'}">全部</button>`
-          + rows0.slice(0, 16).map(r =>
-            `<button data-g="${r.gid}" class="${pick.has(r.gid) ? 'on' : ''}">${fmt.esc(r.name)}</button>`).join('');
-        $$('button', chipBox).forEach(b => b.onclick = () => {
-          const g = b.dataset.g;
-          if (!g) pick.clear(); else if (pick.has(g)) pick.delete(g); else pick.add(g);
-          draw();
+        renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
+          { pick: rotPickSet(), frame: rotFrame, span: ROT_SPAN, trail: ROT.trail });
+        const row = $('#rotZoomChips');
+        if (!row) return;
+        const n = ROT.groups ? ROT.groups.size : 0;
+        row.innerHTML = `<span class="muted" style="font-size:11.5px">${n
+          ? `只看選起來的這 ${n} 個族群（再點一次取消）` : '點族群名稱＝只看它（可多選，再點一次取消）'}</span>`
+          + rotChipsHTML(rotAllGroups || rows0.map(r => ({ gid: r.gid, name: r.name })));
+        $$('.gchip .pick', row).forEach(b => b.onclick = () => {
+          rotToggleGroup(b.parentNode.dataset.g);
+          wireRotFilter(); rotRedraw();      // rotRedraw 會連這張放大的圖一起重畫
         });
       };
+      rotZoomDraw = draw;
       draw();
-      // 「和幾天前比」：跟卡片上那支同一個 localStorage key，兩邊一致
-      /* 放大視窗裡這支保留原本的語意＝**軌跡要畫幾天**（卡片上那支已經改成「看哪一天」）。
-         兩支分工：這裡決定「看多長的一段路」，下面那支回放決定「停在哪一天」。
-         2026-09-20：min 5 → 1，和卡片上的範圍一致（A4 第 3 條）。*/
-      rangeBar('rotZoomBack', { min: 1, max: 30, value: back, key: 'tw.rot.back',
-        label: '軌跡畫幾天', fmt: (v) => v + ' 天',
-        onChange: (v) => { back = v; draw(); } });
-      /* 播放：Andy「點擊後可以播放我拉Bar 選定的時間」。
-         幀＝「第 N 天前」，所以要從舊播到新 —— 拉Bar 由大到小跑完才是「時間往前走」。
-         playBar 本身只會由小往大遞增，所以這裡把值反過來解讀：值 v → frame = back - v。*/
-      /* ★ 上限寫死 30，不要用 `back` —— back 是軌跡長度，被拉到 1 的時候
-         回放就只剩兩格可以播，看起來像播放壞了（2026-09-20 改成兩支分工之後才會發生）。*/
-      const PLAY_MAX = 30;
-      // 間隔＝補間時間（ROT_ANIM_MS），和卡片上那支同一個理由：相等才不會有空檔
-      playBar('rotZoomPlay', { min: 0, max: PLAY_MAX, value: PLAY_MAX, frame: ROT_ANIM_MS,
-        label: '回放', fmt: (v) => (v >= PLAY_MAX ? '現在' : (PLAY_MAX - v) + ' 天前'),
-        onChange: (v) => { frame = Math.max(0, PLAY_MAX - v); draw(); } });
-      if (close) { /* close 由 openZoom 提供，這裡不另外包裝 */ }
+      wireRotFilter();                        // 放大視窗那排 .rotfilter 也由同一支填
+      /* 「看哪一天」：和卡片上那支**同一個值、同一個 localStorage key、同一個方向**。
+         值變了只重畫這張放大的圖 —— 播放是每 420ms 一幀，
+         連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
+         關閉時 `rotSyncCard()` 會把卡片一次補上。*/
+      bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back',
+        dir: -1, frame: ROT_ANIM_MS, label: '看哪一天', fmt: (v) => v + ' 天前',
+        onChange: (v) => { rotFrame = v; draw(); } });
+      wireRotTrailToggle(draw, 'rotZoomTools');
+    }, () => {
+      // 關閉：停掉播放（拉Bar 的 DOM 已經被清掉了，再跑下去只是空轉）、把卡片同步回來
+      if (bar) { try { bar.stop(); } catch (e) { /* 忽略 */ } }
+      bar = null; rotZoomDraw = null;
+      rotSyncCard();
     });
   }
 
@@ -2511,9 +2694,28 @@
      所以他說「有些篩選不到」。
 
      改法：兩張圖共用同一份名單（輪動資料裡的全部族群，依成交值佔比排序），
-     而且晶片改成**篩選鈕**：點一下同時「排行展開那個族群的成分股」＋
-     「時鐘只亮那個族群」，再點一次取消。要進族群頁的話晶片右邊有個 `→`。*/
-  function groupChips(afterId, list, sel) {
+     而且晶片改成**篩選鈕**（點一次選、再點一次取消）。要進族群頁的話晶片右邊有個 `→`。
+     ★ 當初「選起來」的效果是「排行展開成分股＋時鐘只亮它」，2026-09-20 的 E3 改成
+       **真的把兩張圖都篩掉其他族群**；理由寫在下面那一段。*/
+  /* ★ 2026-09-20（E3，Andy：「篩選族群功能覆蓋下方的族群選取功能」）。
+     量出來的事實：`.rotpick` 面板和這一排在 1440/1280/1024/900/560 五個寬度下
+     **幾何重疊都是 0**，所以他講的「覆蓋」不是壓在上面，是**功能上蓋過去** ——
+     同一張卡片裡有兩份 36 個族群的清單：上面那排「族群篩選」真的會篩圖，
+     這一排卻只 highlight／展開成分股、圖一個族群都沒少。
+     兩排長得幾乎一樣、行為卻不同，上面那排就把這一排的意義吃掉了。
+
+     決議：**族群選取只留這一處**（它離圖最近，而且「點族群展開個股」本來就長在它身上），
+     上面那顆「族群篩選」鈕與它展開的族群清單移除，這一排改成**真的改 ROT.groups**。*/
+  function rotChipsHTML(list) {
+    return list.map(g =>
+      `<span class="gchip${ROT.groups && ROT.groups.has(g.gid) ? ' on' : ''}" data-g="${g.gid}" style="--c:${L.gcolor[g.gid] || CH.cyan}">
+         <button class="pick" title="只看這個族群，再點一次取消">${fmt.esc(g.name)}</button>
+         <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></span>`).join('');
+  }
+  // 選了哪幾個族群的指紋（晶片列與時鐘的重建判斷都用它，免得播放時每幀重建 DOM）
+  function rotSelKey() { return ROT.groups ? [...ROT.groups].sort().join('+') : ''; }
+
+  function groupChips(afterId, list) {
     const el = document.getElementById(afterId); if (!el) return;
     const at = el.closest('.zwrap') || el;
     let row = at.nextElementSibling;
@@ -2522,23 +2724,16 @@
       at.parentNode.insertBefore(row, at.nextSibling);
     }
     row.classList.add('gchips');
-    // data-sync="n2"：排行與時鐘這兩排是「同一個選取」，pickGroup 只同步這兩排。
+    // data-sync="n2"：排行與時鐘這兩排是「同一個選取」。
     // 2026-09-20 資金去向與族群×法人也長出自己的晶片列（filterChips），
-    // 沒有這個標記的話它們會被 pickGroup 一起點亮，但圖上其實沒有被篩選。
+    // 沒有這個標記的話它們會被一起點亮，但圖上其實沒有被篩選。
     row.dataset.sync = 'n2';
-    /* 2026-09-20（C4）：這一排和上面那排篩選列**不是同一件事**，所以要講清楚，
-       不然兩排長得很像的東西擺在一起，使用者會不知道該按哪一個：
-         上面那排「族群篩選」＝多選過濾（圖上只留這幾個）
-         這一排點名字＝單選聚焦（排行原地展開成分股、時鐘只亮它） */
-    row.innerHTML = '<span class="muted" style="font-size:11.5px">點名字＝聚焦並展開成分股（多選過濾請用上面的「族群篩選」）</span>'
-      + list.map(g =>
-      `<span class="gchip${sel === g.gid ? ' on' : ''}" data-g="${g.gid}" style="--c:${L.gcolor[g.gid] || CH.cyan}">
-         <button class="pick" title="只看這個族群">${fmt.esc(g.name)}</button>
-         <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></span>`).join('');
-    $$('.gchip .pick', row).forEach(b => b.onclick = () => {
-      const gid = b.parentNode.dataset.g;
-      pickGroup(rankSel === gid ? null : gid);
-    });
+    const n = ROT.groups ? ROT.groups.size : 0;
+    row.innerHTML = `<span class="muted" style="font-size:11.5px">${n
+      ? `兩張圖都只看選起來的這 ${n} 個族群（再點一次取消）`
+      : '點族群名稱＝兩張圖都只看它，並在下方展開成分股（可多選）'}</span>`
+      + rotChipsHTML(list);
+    $$('.gchip .pick', row).forEach(b => b.onclick = () => pickGroup(b.parentNode.dataset.g));
   }
 
   /* ★ 2026-09-20（Andy）：「所有圖表的族群小Tip都需要具備點擊後就會在對應圖表上被篩選出去，
@@ -2578,20 +2773,35 @@
     });
   }
 
-  /* 選一個族群（null＝取消）：排行原地展開成分股、時鐘只亮它、兩排晶片同步。*/
+  /* 把一個族群加進／移出篩選集合（E3 的核心：晶片列要**真的篩圖**）。
+     只動狀態，不管畫面 —— 卡片與放大視窗各自的「點了要變成什麼樣」由呼叫端接。*/
+  function rotToggleGroup(gid) {
+    if (!gid) return false;
+    ROT.groups = ROT.groups || new Set();
+    const on = !ROT.groups.has(gid);
+    if (on) ROT.groups.add(gid); else ROT.groups.delete(gid);
+    if (!ROT.groups.size) ROT.groups = null;
+    saveRotSel();
+    return on;
+  }
+
+  /* 點卡片下方那一排的族群晶片：**兩張圖真的只剩它**（圖上的族群數會變少），
+     同時在排行卡下方原地展開成分股；再點一次取消。
+     ★ 順手把 `rankSel`（排行長條的「只亮這一個、其餘壓暗」）清掉 ——
+       圖上本來就只剩選到的族群了，再壓暗其他人只會讓人以為畫面壞了。*/
   function pickGroup(gid) {
-    rankSel = gid;
+    if (!gid) return;
+    const on = rotToggleGroup(gid);
+    rankSel = null;
     const box = $('#rankPanel');
-    if (!gid) { if (box) box.hidden = true; }
-    else {
+    if (on) {
       const g = (lastRankRows || []).find(x => x.group_id === gid);
-      heatPanel('rankPanel', gid, g && g.group_name,
+      heatPanel('rankPanel', gid, (g && g.group_name) || (rotGroupMeta[gid] || {}).name,
         g ? `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`
           : '', { scroll: false });
-    }
-    highlightClock(gid);
-    // 兩排晶片一起換狀態（這就是「兩邊對不上」的解法：同一份名單、同一個選取）
-    $$('.gchips[data-sync="n2"] .gchip').forEach(c => c.classList.toggle('on', c.dataset.g === gid));
+    } else if (box) box.hidden = true;
+    wireRotFilter();            // 篩選列的計數與「清除篩選」要跟著出現／消失
+    rotRedraw();                // 兩張圖（開著的話連放大視窗）一起重畫
   }
   /* ---------------------------------------------------------------- C4 ＋ A4 的共用狀態
      C4（Andy 2026-09-20）：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
@@ -2608,9 +2818,14 @@
   const ROT = { chain: '', groups: null, stocks: null, trail: true, topOnly: false };
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rotBackBar = null;           // #rotBack 那支 playBar（播放／＋／−）
-  let rotRedraw = () => {};        // 篩選變了就重畫兩張圖
+  /* 篩選變了就重畫。預設只重畫放大視窗 —— 從總覽直接按「放大」時資金流向頁還沒渲染過，
+     這支會在 renderFlow 裡被換成「兩張卡片＋放大視窗」的版本。*/
+  let rotRedraw = () => { if (rotZoomDraw) rotZoomDraw(); };
   let rotGroupMeta = {};           // gid → {name, chain}
   let rotStockIndex = [];          // [{code, name, gid, gname}]，個股篩選用
+  let rotF3 = null;                // 最後一次拿到的 flow_v3（晶片列／放大視窗要重建篩選列時用）
+  let rotZoomDraw = null;          // 放大視窗開著時＝重畫它的函式；關掉就設回 null
+  let rotSyncCard = () => {};      // 關掉放大視窗時把卡片那張圖同步回來（天數／篩選都共用）
 
   /* 目前生效的族群集合（null／空＝全部）。族群勾選與個股勾選是 **聯集**：
      兩邊都有勾就兩邊都留，因為使用者的意思是「這些我都想看」，不是「同時滿足」。*/
@@ -2640,6 +2855,9 @@
      展開的複選格也沿用 `.chainchips` 與「max-height ＋ overflow:auto」——
      族群有 36 個、個股上千檔，不給高度上限會把整張卡片撐爛。*/
   function wireRotFilter(f3) {
+    /* f3 只有第一次（renderFlow）會傳進來；之後晶片列、放大視窗、清除篩選都會再呼叫一次，
+       那些地方手上沒有 f3，所以記在模組層。沒有它就沒有產業鏈 seg 與個股索引。*/
+    if (f3) rotF3 = f3; else f3 = rotF3;
     const boxes = $$('.rotfilter');
     if (!boxes.length) return;
     rotGroupMeta = {};
@@ -2666,10 +2884,10 @@
           ${chains.map(c => `<button data-c="${fmt.esc(c)}" class="${ROT.chain === c ? 'on' : ''}">${fmt.esc(CHAIN_NAME[c] || c)}</button>`).join('')}
         </div>
         <label class="rotchk"><input type="checkbox" class="rot-top10" ${ROT.topOnly ? 'checked' : ''}>只看前 10 大</label>
-        <button class="btn small rot-gbtn">族群篩選${nG ? `（${nG}）` : ''}</button>
         <button class="btn small rot-sbtn">個股篩選${nS ? `（${nS}）` : ''}</button>
         ${(nG || nS || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除篩選</button>' : ''}
-        <span class="muted rot-note">${picked ? `排行與時鐘都只看這 ${picked} 個族群` : '排行與時鐘顯示全部族群'}</span>`;
+        <span class="muted rot-note">${picked ? `排行與時鐘都只看這 ${picked} 個族群`
+          : '排行與時鐘顯示全部族群'}${nG ? `（其中 ${nG} 個是你在下面點選的）` : '　·　要挑族群請點圖下方那一排族群名稱'}</span>`;
       $$('.rotchain button', box).forEach(b => b.onclick = () => {
         ROT.chain = b.dataset.c; wireRotFilter(f3); rotRedraw();
       });
@@ -2691,23 +2909,11 @@
         if (w.dataset.open === kind) { w.dataset.open = ''; w.innerHTML = ''; w.hidden = true; return; }
         w.dataset.open = kind; w.hidden = false; fill(w);
       };
-      const gb = box.querySelector('.rot-gbtn');
-      if (gb) gb.onclick = () => panel('groups', (w) => {
-        w.innerHTML = '<button data-g="">全部</button>'
-          + (rotAllGroups || []).map(r => `<button data-g="${fmt.esc(r.gid)}"
-               class="${ROT.groups && ROT.groups.has(r.gid) ? 'on' : ''}">${fmt.esc(r.name)}</button>`).join('');
-        $$('button', w).forEach(b => b.onclick = () => {
-          const g = b.dataset.g;
-          if (!g) ROT.groups = null;
-          else {
-            ROT.groups = ROT.groups || new Set();
-            if (ROT.groups.has(g)) ROT.groups.delete(g); else ROT.groups.add(g);
-            if (!ROT.groups.size) ROT.groups = null;
-          }
-          $$('button', w).forEach(x => x.classList.toggle('on', !!ROT.groups && ROT.groups.has(x.dataset.g)));
-          saveRotSel(); wireRotFilter(f3); rotRedraw();
-        });
-      });
+      /* ★ 2026-09-20（E3）：這裡以前還有一顆「族群篩選」，展開是**第二份**
+         一模一樣的 36 個族群清單。它和圖下方那一排（groupChips）功能重疊、
+         行為又不一致，Andy 的「篩選族群功能覆蓋下方的族群選取功能」講的就是它。
+         族群改成只在圖下方那一排選（那一排現在會真的改 ROT.groups），這顆鈕移除。
+         **「個股篩選」保留** —— 它選的是個股不是族群，沒有重複。*/
       const sb = box.querySelector('.rot-sbtn');
       if (sb) sb.onclick = () => panel('stocks', (w) => {
         /* 個股上千檔，一次全列出來沒有人找得到，所以給一個搜尋框（打代號或名字都行）；
@@ -2764,16 +2970,24 @@
   /* A4 第 7 條的後半：「新增軌跡是可以開啟關閉」。
      關掉之後線還在（series 數量不變，highlightClock 認 gid 的那段就不用改），
      只是資料清空 —— 所以「軌跡有沒有關掉」量的是**點數**，不是 series 數。*/
-  function wireRotTrailToggle(redraw) {
-    const box = $('#rotTools'); if (!box) return;
-    box.innerHTML = '<label class="rotchk"><input type="checkbox" id="rotTrail"'
+  function wireRotTrailToggle(redraw, boxId) {
+    const box = $('#' + (boxId || 'rotTools')); if (!box) return;
+    /* ★ class 不用 id：卡片與放大視窗各有一個軌跡開關，
+       同一個 id 出現兩次的話 getElementById 只會抓到第一個，另一個就變成按了沒反應
+       （這正是 Andy 說的「放大之後的功能都沒反應」那一類的坑）。*/
+    box.innerHTML = '<label class="rotchk"><input type="checkbox" class="rot-trail"'
       + (ROT.trail ? ' checked' : '') + '>顯示軌跡</label>'
       /* ★ 2026-09-20：文案跟著改成漸進式的語意。以前寫「這 30 天走過的路」，
          那是「整條路一開始就畫好」的說法，和 Andy 要的「只有經過才留下軌跡」剛好相反。*/
       + '<span class="muted">大圈＝你選的那一天；線＝牠<b>已經走過</b>的那一段'
       + '（刷到「前 30 天」只剩起點，往今天刷才一天一天長出來）</span>';
-    const c = $('#rotTrail', box);
-    if (c) c.onchange = () => { ROT.trail = c.checked; redraw(); };
+    const c = $('.rot-trail', box);
+    if (c) c.onchange = () => {
+      ROT.trail = c.checked;
+      // 兩邊的勾選狀態要一致（放大視窗開著時卡片那個也要跟著打勾）
+      $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
+      redraw();
+    };
   }
 
   let lastRankRows = null;         // 給 pickGroup 查佔比／變化用

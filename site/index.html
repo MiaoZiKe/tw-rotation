@@ -176,6 +176,13 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   text-decoration:none;white-space:nowrap;padding:4px 8px;border-radius:7px;
   border:1px solid var(--line-2);background:var(--panel);transition:.15s}
 .verbadge:hover{color:var(--cyan);border-color:var(--cyan)}
+/* ★ 2026-09-20（F3 的多寬度掃描量到的）：900px 的畫面上版號徽章會把頂欄撐出
+   **27px 的水平捲軸**（documentElement.scrollWidth 927 vs clientWidth 900）。
+   這是既有問題，不是這次版面改動造成的 —— 舊版在同一個寬度量到的數字一模一樣。
+   原本只在 ≤820px 隱藏（那條的理由也一樣是「頂部塞不下」），門檻往上拉到 980px。
+   版號**不會因此看不到**：橫幅那一行照樣寫著同一個版號（DECISIONS #148 要的是
+   「Andy 能對得出線上是不是新版」，不是「一定要出現在頂欄」）。*/
+@media (max-width:980px){ .verbadge{display:none} }
 
 /* ---------------- 卡片 / 格線 ---------------- */
 .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:var(--r);
@@ -231,7 +238,15 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .zoomov .zh b{font-size:17px}
 .zoomov .zh .chainchips{margin:0;flex:1}
 .zoomov .zb{flex:1;min-height:0;display:flex}
-.zoomov .zb>div{flex:1;min-height:0;width:100%}
+/* ★ E2：#zoomBody 要**真的佔滿** .zb。以前寫 `.zb>div`，而 groupChips 會把一排族群晶片
+   插成 .zb 的第二個子元素（實測 704×748），等於放大視窗一半的版面被晶片吃掉。
+   現在晶片列不再插進來，這裡也一併寫死只有 #zoomBody 會長大。*/
+.zoomov .zb>#zoomBody{flex:1 1 auto;min-height:0;width:100%;height:100%}
+/* 放大視窗的控制項列：直式堆疊（篩選列／拉Bar／軌跡開關／族群晶片各一列） */
+.zoomov .ztools{display:flex;flex-direction:column;gap:2px;margin-bottom:8px;max-height:44vh;overflow:auto}
+.zoomov .ztools:empty{display:none}
+.zoomov .ztools .linkrow{margin-top:6px}
+.zoomov .ztools .rotfilter{margin:0 0 2px}
 /* 熱力圖點方塊後在原地列出成分股，不用跳頁 */
 .hpanel{margin-top:12px;padding:12px 14px;border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
 .hpanel[hidden]{display:none}
@@ -304,6 +319,12 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
    以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
 .linkrow.gchips{display:flex;flex-wrap:wrap;gap:5px 6px}
+/* ★ 2026-09-20（E3＋F3）：族群晶片列是**唯一**的族群選擇器，所以 36 個族群全部要列出來；
+   但排行卡在 2:1 的版面裡只剩三分之一寬，整排會排成 12 列、把卡片撐得比時鐘還高
+   （實測 1440px：右卡 1180px vs 左卡 980px，左邊下面空一大塊）。
+   照全站同一套作法處理「列不完」：固定高度＋自己的捲軸（DECISIONS #182），
+   不要讓它把版面比例吃掉。150px 約 5 列，寬螢幕的時鐘卡根本用不到捲軸。*/
+.linkrow.gchips[data-sync="n2"]{max-height:150px;overflow-y:auto;align-content:flex-start}
 .gchip{display:inline-flex;align-items:center;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
   border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}
 .gchip .pick{appearance:none;border:0;background:transparent;color:var(--ink-2);
@@ -1254,16 +1275,11 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
     <!-- 2026-09-18（Andy 圖四）「換位」：名次變化整張拿掉，輪動時鐘搬上來跟排行並排。
          理由是他點排行的長條時要在旁邊同時看到那個族群在時鐘上的位置 ——
          兩張圖離太遠就對不起來。上排的期間鈕保留。 -->
-    <div class="grid g2" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
-        <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
-        <div class="howtxt" id="how-rank" hidden></div>
-        <div id="rankDays" title="最近幾天：0＝跟著上方期間走"></div>
-        <!-- C4（Andy 2026-09-20）：族群列改成「漲跌分佈」那種篩選列。
-             這一排和時鐘卡下面那一排是**同一份選擇**（見 app.js 的 wireRotFilter）。 -->
-        <div class="rotfilter" data-rf="rank"></div>
-        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
-        <div class="hpanel" id="rankPanel" hidden></div></div>
+    <!-- ★ F3（Andy 2026-09-20：「圖二的版面配比需要 2:1（輪動時鐘:資金流向排行），
+         資金流向排行 改成在右邊」）：g2（1:1）改成 g21（2fr:1fr），而且**時鐘寫在前面**。
+         窄畫面（≤1100px）`.g21` 本來就會退回單欄，DOM 順序決定上下 ——
+         時鐘在上、排行在下，剛好是他要的主從關係。 -->
+    <div class="grid g21" style="margin-top:16px">
       <div class="card"><div class="row spread"><h3>輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
         <div class="row" style="gap:8px">
           <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
@@ -1273,9 +1289,21 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
            ＋ / − / ▶ 由 playBar 提供；#rotTools 放軌跡開關。 -->
       <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>
       <div class="rottools" id="rotTools"></div>
+      <!-- E3：這一排只剩 產業鏈 seg／只看前 10 大／個股篩選／清除篩選／狀態說明。
+           **族群**改成只在圖下方那一排晶片選（那一排會真的改 ROT.groups）——
+           以前這裡還有一顆「族群篩選」，展開是第二份一模一樣的族群清單。 -->
       <div class="rotfilter" data-rf="rot"></div>
       <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
       <div class="note" id="rotCenterNote"></div></div>
+      <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
+        <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-rank" hidden></div>
+        <div id="rankDays" title="最近幾天：0＝跟著上方期間走"></div>
+        <!-- C4（Andy 2026-09-20）：族群列改成「漲跌分佈」那種篩選列。
+             這一排和時鐘卡那一排是**同一份選擇**（見 app.js 的 wireRotFilter）。 -->
+        <div class="rotfilter" data-rf="rank"></div>
+        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
+        <div class="hpanel" id="rankPanel" hidden></div></div>
     </div>
     <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>四段循環與換段的族群</small></h3></div>
       <div class="cyclebar" id="rotCycle"></div>
@@ -1405,8 +1433,11 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 <script src="live.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
-    <div id="zoomTools" class="row" style="gap:10px;flex-wrap:wrap"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>
+  <!-- ★ E2（2026-09-20）：控制項列搬出 .zh 自成一列，而且是**直式**堆疊。
+       放大視窗的控制項現在和卡片上同一套（篩選列＋拉Bar＋軌跡開關＋族群晶片），
+       塞回標題列會把標題與關閉鈕擠掉；展開的個股複選格也是插在這一列裡。 -->
+  <div id="zoomTools" class="ztools"></div>
   <div class="zb"><div id="zoomBody" class="chart"></div></div>
 </div>
 </body>

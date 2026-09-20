@@ -2899,6 +2899,8 @@ def t_new_flow(pg, base):
                  oy: getComputedStyle(ms).overflowY }; }"""
     pan = None
     nchip = count(pg, '.gchips[data-sync="n2"] .gchip')
+    # ★ 2026-09-20（E3）：點晶片現在會**真的篩圖**，所以每試完一個一定要先取消再試下一個 ——
+    #   不然十個族群會被一路累加進 ROT.groups，後面幾段就從「已經篩了 10 個」開始跑。
     for i in range(min(10, nchip)):
         pg.eval_on_selector_all('.gchips[data-sync="n2"] .gchip .pick',
                                 "(bs, i) => bs[i] && bs[i].click()", i)
@@ -2908,6 +2910,9 @@ def t_new_flow(pg, base):
             pan = cur
         if pan and pan["n"] >= 15:
             break
+        pg.eval_on_selector_all('.gchips[data-sync="n2"] .gchip .pick',
+                                "(bs, i) => bs[i] && bs[i].click()", i)   # 取消，回到「全部族群」
+        pg.wait_for_timeout(600)
     if ok("點族群晶片，排行下方真的展開成分股面板", bool(pan), pan):
         ok("成分股清單有固定高度（不會把整頁撐長）", pan["ch"] <= 260, pan)
         ok("成分股清單是可以捲的", pan["oy"] in ("auto", "scroll"), pan)
@@ -2922,11 +2927,14 @@ def t_new_flow(pg, base):
     #   這同時是「再點一次真的取消」的正面驗收，也是不把狀態留給後面段落的必要動作 ——
     #   2026-09-20 實測：不取消的話，批次2「點排行長條會原地展開成分股」會拿到一個
     #   **已經開著**的面板，一點反而收起來，看起來像功能壞了（其實是前一段沒收拾）。
-    if count(pg, '.gchips[data-sync="n2"] .gchip.on'):
+    while count(pg, '.gchips[data-sync="n2"] .gchip.on'):
         pg.eval_on_selector('.gchips[data-sync="n2"] .gchip.on .pick', "b => b.click()")
         pg.wait_for_timeout(800)
     ok("再點一次選起來的族群，成分股面板真的收起來",
        pg.evaluate("() => { const b = document.getElementById('rankPanel'); return !b || b.hidden; }"))
+    ok("收拾完之後篩選真的清空了（不要把狀態留給後面的段落）（E3）",
+       pg.evaluate("() => { try { const o = JSON.parse(localStorage.getItem('tw.rot.filter')||'null');"
+                   " return !o || !o.groups || !o.groups.length; } catch (e) { return true; } }"))
     # 輪動階段那四格用的是同一套（.stage ul 固定高度＋內捲）
     st = pg.evaluate("""() => { const u = document.querySelector('#rotBoard .stage ul'); if (!u) return null;
         return { ch: Math.round(u.clientHeight), sh: Math.round(u.scrollHeight),
@@ -3177,6 +3185,100 @@ def t_new_layout(pg, base):
         ok(f"[{w}px] 這三張圖的文字都沒有跑出自己的容器",
            not r["outside"], r["outside"][:4])
         ok(f"[{w}px] 總覽沒有橫向捲軸", not r["sideways"], r["sideways"])
+
+    # ------------------------------------------------ ④ F3：輪動時鐘:資金流向排行＝2:1，排行在右
+    # Andy 2026-09-20：「圖二的版面配比需要 2:1（輪動時鐘:資金流向排行），資金流向排行 改成在右邊」。
+    # 量的是**實際欄寬**與**兩張卡的左右順序**，不是看 class 有沒有換。
+    F3 = """() => {
+      const g = document.querySelector('#v-flow .grid.g21');
+      if (!g) return null;
+      const ks = [...g.children].map(e => {
+        const r = e.getBoundingClientRect();
+        return { h3: ((e.querySelector('h3') || {}).textContent || '').trim().slice(0, 4),
+                 x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width) };
+      });
+      const gr = g.getBoundingClientRect();
+      // 兩張卡裡面的東西有沒有凸出自己的卡片（圖、篩選列、晶片列、拉Bar 全部算）
+      const over = [];
+      g.querySelectorAll('.card').forEach(card => {
+        const cr = card.getBoundingClientRect();
+        card.querySelectorAll('.chart, .rotfilter, .rottools, .rbar, .linkrow, .hpanel, .note').forEach(e => {
+          const r = e.getBoundingClientRect();
+          if (r.width < 2) return;
+          const d = Math.max(r.right - cr.right, cr.left - r.left);
+          if (d > 2) over.push([((e.className || '') + '').slice(0, 24), Math.round(d)]);
+        });
+      });
+      /* 排行圖的族群名稱有沒有被截掉／疊在一起：**量真的畫出去的那些字**。
+         ★ 一定要帶 ?svg=1 —— 線上版是 canvas，圖裡的字在 DOM 上根本不存在，
+           不帶的話這一段永遠量到 0 個字、永遠綠燈（HANDOFF 2026-09-20 記過這件事）。*/
+      const rf = (() => { const el = document.getElementById('rankFlow');
+        const c = el && window.echarts && echarts.getInstanceByDom(el);
+        if (!c) return null;
+        const hr = el.getBoundingClientRect();
+        const bs = [...el.querySelectorAll('svg text')]
+          .filter(t => (t.textContent || '').trim().length)
+          .map(t => ({ t: (t.textContent || '').trim(), r: t.getBoundingClientRect(),
+                       fs: parseFloat(getComputedStyle(t).fontSize) || 0 }))
+          .filter(b => b.r.width > 1 && b.r.height > 1);
+        const cut = [], hit = [];
+        bs.forEach(b => { const over = Math.max(hr.left - b.r.left, b.r.right - hr.right,
+                                                hr.top - b.r.top, b.r.bottom - hr.bottom);
+          if (over > 1.5) cut.push([b.t, Math.round(over)]); });
+        for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) {
+          const a = bs[i].r, b = bs[j].r;
+          const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+          const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+          if (ox <= 1 || oy <= 1) continue;
+          if (ox * oy > 0.25 * Math.min(a.width * a.height, b.width * b.height)) hit.push([bs[i].t, bs[j].t]);
+        }
+        return { w: Math.round(hr.width), n: bs.length, cut, hit,
+                 minFs: bs.length ? Math.min(...bs.map(b => b.fs)) : 0,
+                 left: ((c.getOption().grid || [])[0] || {}).left };
+      })();
+      return { cols: getComputedStyle(g).gridTemplateColumns, ks, gw: Math.round(gr.width), over, rf,
+               sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
+    }"""
+    for w in (1440, 1280, 1024, 900, 800, 560, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        # ?svg=1：圖裡的字才會變成真的 <text> 節點，族群名稱有沒有被截掉才量得到
+        pg.goto(f"{base}?svg=1#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        f = pg.evaluate(F3)
+        if not ok(f"[{w}px] 找得到時鐘／排行那一列（F3）", bool(f) and len(f["ks"]) == 2, f):
+            continue
+        clock, rank = f["ks"][0], f["ks"][1]
+        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",
+           clock["h3"].startswith("輪動") and rank["h3"].startswith("資金"), f["ks"])
+        if w > 1100:
+            ok(f"[{w}px] 欄寬真的是 2:1（F3）",
+               abs(clock["w"] / max(1, rank["w"]) - 2) <= 0.12,
+               f"{clock['w']} : {rank['w']} = {clock['w'] / max(1, rank['w']):.2f}")
+            ok(f"[{w}px] 排行在時鐘的右邊（F3）", rank["x"] > clock["x"], f["ks"])
+        else:
+            ok(f"[{w}px] 窄畫面退回單欄，時鐘在上、排行在下（F3）",
+               f["cols"].count(" ") == 0 and rank["y"] > clock["y"], {"cols": f["cols"], "ks": f["ks"]})
+        ok(f"[{w}px] 兩張卡裡沒有東西凸出卡片（F3）", not f["over"], f["over"][:4])
+        ok(f"[{w}px] 資金流向頁沒有橫向捲軸（F3）", not f["sideways"], f["sideways"])
+        if f["rf"]:
+            ok(f"[{w}px] 排行圖的文字量得到（SVG renderer 有生效）（F3）", f["rf"]["n"] > 8, f["rf"])
+            ok(f"[{w}px] 排行的族群名稱沒有被容器截掉（F3）", not f["rf"]["cut"],
+               {"欄寬": f["rf"]["w"], "左留白": f["rf"]["left"], "被截": f["rf"]["cut"][:4]})
+            ok(f"[{w}px] 排行圖的文字兩兩不重疊（F3）", not f["rf"]["hit"], f["rf"]["hit"][:4])
+            ok(f"[{w}px] 排行圖的文字都不小於 11px（F3）",
+               f["rf"]["minFs"] >= 11, f["rf"]["minFs"])
+        # 換欄寬之後時鐘的族群標籤要真的重排（layoutRotLabels 的 ResizeObserver）
+        lay = pg.evaluate("""() => { const rs = (window.App && window.App._rotLabels) || [];
+            const el = document.getElementById('rotClock');
+            const W = el ? el.clientWidth : 0, H = el ? el.clientHeight : 0;
+            let hit = null, out = null;
+            for (let i = 0; i < rs.length; i++) { const a = rs[i];
+              if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out = out || a.name;
+              for (let j = i + 1; j < rs.length; j++) { const b = rs[j];
+                if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h) hit = hit || [a.name, b.name]; } }
+            return { n: rs.length, hit, out, W, H }; }""")
+        ok(f"[{w}px] 時鐘的族群標籤全在畫布內、兩兩不重疊（F3 換欄寬之後有重排）",
+           lay["n"] > 0 and lay["hit"] is None and lay["out"] is None, lay)
+
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
 
@@ -3192,11 +3294,75 @@ def _rot_scatter(pg, cid="rotClock"):
 
 def _rot_trail_pts(pg, cid="rotClock"):
     """所有尾巴加起來畫了幾個點（軌跡開關量的是這個，不是 series 數量 ——
-    series 一直在，關掉只是把資料清空，highlightClock 認 gid 的那段才不用跟著改）。"""
+    series 一直在，關掉只是把資料清空，highlightClock 認 gid 的那段才不用跟著改）。
+
+    ★ 2026-09-20（E1）之後這個數字是**固定的**（每條尾巴 48 點），
+      所以它只剩下「有沒有畫」這一個用途；「軌跡長到哪裡」請改用 _rot_trail_days()。
+    """
     return pg.evaluate("""(cid) => { const el = document.getElementById(cid);
         const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return -1;
         return (c.getOption().series || []).filter(s => s.type === 'line')
                  .reduce((a, s) => a + ((s.data || []).length), 0); }""", cid)
+
+
+def _rot_trail_days(pg):
+    """所有族群的軌跡「實際走過幾天」加總（app.js 的 window.App._rotFrame.trailDays）。
+
+    E1 把軌跡重取樣成固定 48 點之後，點數不再會動 —— 一條永遠不會變的指標
+    不管紅綠都沒有資訊（DECISIONS #199／#206 同一個教訓）。
+    漸進式軌跡（「只有經過才留下軌跡」）真正要量的本來就是「走過幾天」。
+    """
+    v = pg.evaluate("() => { const f = window.App && window.App._rotFrame; return f ? f.trailDays : null; }")
+    return -1 if v is None else v
+
+
+# E1（Andy 2026-09-20：「軌跡線不能比圓圈還動的快」）的量尺。
+# 讀的是 zrender **當下畫出來的**元素，不是 getOption()（那回的是動畫的目標值，
+# 動畫中途永遠量不到中間狀態）：
+#   · 尾巴＝ec-polyline，shape.points 是攤平的 [x0,y0,x1,y1,…]，最後兩個就是尖端
+#   · 大圈＝帶 shape.symbolType 的 path，scaleX＝symbolSize（尾巴自己那顆小圈圈是 6，
+#     scatter 的 z=5，尾巴自己那顆小圈圈 z=2，所以用 z>=5 把兩者分開）
+# 量之前一定要先篩到**只剩一個族群**，不然 16 條尾巴配 16 顆大圈會有配對歧義。
+_ROT_TIP_JS = """(cid) => {
+  const el = document.getElementById(cid);
+  const c = el && window.echarts && echarts.getInstanceByDom(el);
+  if (!c) return null;
+  const g = (e, x, y) => (e.transformCoordToGlobal ? e.transformCoordToGlobal(x, y) : [x, y]);
+  const tips = [], dots = [];
+  (c.getZr().storage.getDisplayList(true) || []).forEach(e => {
+    if (!e || e.ignore) return;
+    if (e.type === 'ec-polyline' && e.shape && e.shape.points && e.shape.points.length >= 4) {
+      const p = e.shape.points, n = p.length;
+      tips.push(g(e, p[n - 2], p[n - 1]));
+    } else if (e.shape && e.shape.symbolType && (e.scaleX || 0) >= 4 && (e.z || 0) >= 5) {
+      dots.push(g(e, 0, 0).concat([e.scaleX]));
+    }
+  });
+  return { tips, dots };
+}"""
+
+
+def _rot_tip_gap(pg, cid="rotClock"):
+    """軌跡尖端與大圈中心的像素距離（回 (距離, 大圈半徑)）；量不到就回 (None, None)。"""
+    r = pg.evaluate(_ROT_TIP_JS, cid)
+    if not r or len(r["tips"]) != 1 or len(r["dots"]) != 1:
+        return None, None
+    (lx, ly), (dx, dy, sc) = r["tips"][0], r["dots"][0]
+    return ((lx - dx) ** 2 + (ly - dy) ** 2) ** 0.5, sc / 2.0
+
+
+def _rot_tip_gaps_all(pg, cid="rotClock"):
+    """**每一個**族群的「尾巴尖端 vs 它自己的大圈」距離（回 (距離清單, 最小半徑)）。
+
+    配對靠順序：zrender 的顯示列表裡尾巴（line series）與大圈（scatter 的 symbol）
+    都照 series／data 的順序排，而這兩份順序在 renderRotClock 裡本來就是同一份 `top`。
+    這個假設每次量之前都會被「靜止時全部為 0」那一條驗一次 —— 配錯人的話它就會紅。
+    """
+    r = pg.evaluate(_ROT_TIP_JS, cid)
+    if not r or not r["tips"] or len(r["tips"]) != len(r["dots"]):
+        return None, None
+    ds = [((t[0] - d[0]) ** 2 + (t[1] - d[1]) ** 2) ** 0.5 for t, d in zip(r["tips"], r["dots"])]
+    return ds, min(d[2] for d in r["dots"]) / 2.0
 
 
 def t_new_clock(pg, base):
@@ -3285,22 +3451,28 @@ def t_new_clock(pg, base):
     # Andy：「只有經過才留下軌跡，不是馬上所有軌跡都先印出來」。
     # 量的是**畫上去的軌跡點數**：時間軸刷到最舊那一天＝站在起點，每個族群只該有一個點；
     # 往「今天」刷才一天一天長出來。這一條就是驗「不是一開始就整條印好」。
+    # ★ 2026-09-20（E1）量的改成「軌跡實際走過幾天」：
+    #   固定點數是為了讓尾巴和大圈用同一個補間一起走（見下面那一段的像素量測），
+    #   代價是「畫了幾個點」變成常數、再也量不出東西。要守的事情完全沒變。
     set_range(pg, RB, 30, 1800)
     n_grp = len(_rot_scatter(pg) or [])
-    t30 = _rot_trail_pts(pg)
+    d30 = _rot_trail_days(pg)
     set_range(pg, RB, 20, 1800)
-    t20 = _rot_trail_pts(pg)
+    d20 = _rot_trail_days(pg)
     set_range(pg, RB, 10, 1800)
-    t10 = _rot_trail_pts(pg)
+    d10 = _rot_trail_days(pg)
     set_range(pg, RB, 1, 1800)
+    d01 = _rot_trail_days(pg)
     t01 = _rot_trail_pts(pg)
     if ok("讀得到時鐘上的族群數", n_grp > 3, n_grp):
-        ok("刷到最舊那一天，軌跡幾乎是空的（每個族群只剩起點那一個點）",
-           t30 <= n_grp + 2, f"{n_grp} 個族群，軌跡卻有 {t30} 個點（應該 ≈ {n_grp}）")
-        ok("往「今天」刷，軌跡真的一天一天長出來（點數單調變多）",
-           t30 < t20 < t10 < t01, f"前30天 {t30} → 20 {t20} → 10 {t10} → 1 {t01}")
-        ok("走到接近今天時軌跡已經很長（不是兩點直線）",
-           t01 > n_grp * 20, f"{n_grp} 個族群共 {t01} 個軌跡點")
+        ok("刷到最舊那一天，軌跡還沒走出去（走過 0 天）",
+           0 <= d30 <= 1, f"{n_grp} 個族群，軌跡卻已經走了 {d30} 天（應該 ≈ 0）")
+        ok("往「今天」刷，軌跡真的一天一天長出來（走過的天數單調變多）",
+           d30 < d20 < d10 < d01, f"前30天 {d30} → 20 {d20} → 10 {d10} → 1 {d01}")
+        ok("走到接近今天時軌跡已經很長（每個族群都走了 20 天以上）",
+           d01 > n_grp * 20, f"{n_grp} 個族群共走了 {d01} 天")
+        ok("每條軌跡都是固定點數（E1：點數會變就沒有補間，尾巴會比大圈快）",
+           t01 == n_grp * 48, f"{n_grp} 個族群 × 48 點 = {n_grp * 48}，實際 {t01}")
 
     # ------------------------------------------- 2026-09-20「平均速率、絲滑」等速移動
     # Andy：「每天的移動都需要平均速率，絲滑呈現，而非段點段點式移動」。
@@ -3455,40 +3627,117 @@ def t_new_clock(pg, base):
         ok("相鄰兩天沒有異常大跳動：最大 ≤ 0.45 個盤面半徑（A4-8）",
            step["max"] <= 0.45, f"最大 {step['max']:.4f}（舊算法 0.8898）")
 
-    # ---------------------------------------------------------- C4 族群篩選（兩張圖一起變）
+    # ------------------------------------------------ E1 軌跡尖端有沒有黏在大圈上（像素量）
+    # Andy 2026-09-20：「軌跡線不能比圓圈還動的快」。
+    # 根因是舊版 trail() 的點數會隨天數變多，ECharts merge 時新長出來的那一段沒有舊位置
+    # 可以補間 —— 尖端是**瞬移**的，大圈卻用 420ms 慢慢滑，所以看起來尾巴跑在前面。
+    # 量法：篩到只剩一個族群（配對才沒有歧義），播放中每 ~60ms 量一次
+    #       「尾巴最後一點」與「那顆大圈」的像素距離，整段的最大值要小於一個點的半徑。
+    CHIP = '#v-flow .linkrow.gchips[data-sync="n2"]'
+    pg.eval_on_selector(f"{CHIP} .gchip .pick", "b => b.click()")
+    pg.wait_for_timeout(1400)
+    gap0, rad = _rot_tip_gap(pg)
+    if ok("篩到一個族群之後量得到「尾巴尖端」與「大圈」的像素座標（E1）",
+          gap0 is not None, {"gap": gap0, "r": rad}):
+        ok("靜止時尖端就貼在大圈上（E1）", gap0 <= max(1.0, rad * 0.25), f"{gap0:.2f}px（大圈半徑 {rad:.1f}px）")
+        set_range(pg, RB, 30, 1600)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        gaps = []
+        for _ in range(40):
+            pg.wait_for_timeout(60)
+            g, _r = _rot_tip_gap(pg)
+            if g is not None:
+                gaps.append(g)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        pg.wait_for_timeout(400)
+        if ok("播放期間真的量到了一整串樣本（E1）", len(gaps) >= 20, len(gaps)):
+            mx = max(gaps)
+            mid = sorted(gaps)[len(gaps) // 2]
+            ok("播放中軌跡尖端一直貼著大圈（最大距離 < 一個點的半徑）（E1）",
+               mx < rad, f"最大 {mx:.2f}px / 中位 {mid:.2f}px（大圈半徑 {rad:.1f}px；"
+                         f"修好之前量到的是最大 8.25px / 中位 3.77px）")
+    # 收拾：把剛剛為了量測選起來的族群取消掉，後面的條件才是從「全部族群」開始
+    if count(pg, f"{CHIP} .gchip.on"):
+        pg.eval_on_selector(f"{CHIP} .gchip.on .pick", "b => b.click()")
+        pg.wait_for_timeout(1000)
+
+    # 同一件事在「16 個族群一起播」的情況再量一次（一個族群跑得動，不代表 16 個也跟得上）。
+    # 配對靠順序，而順序對不對由下面「靜止時全部為 0」那一條當場驗。
+    set_range(pg, RB, 20, 1700)
+    g_rest, rad_all = _rot_tip_gaps_all(pg)
+    if ok("全部族群時也量得到每條尾巴與它自己的大圈（E1）",
+          bool(g_rest) and rad_all, {"n": len(g_rest or []), "r": rad_all}):
+        ok("靜止時每一條尾巴的尖端都**完全**落在自己的大圈上（E1，同時證明配對沒配錯人）",
+           max(g_rest) < 0.5, [round(x, 2) for x in g_rest])
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        allg = []
+        for _ in range(26):
+            pg.wait_for_timeout(60)
+            ds, _r = _rot_tip_gaps_all(pg)
+            if ds:
+                allg.extend(ds)
+        pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
+        pg.wait_for_timeout(400)
+        if ok("16 個族群一起播時量到一整串樣本（E1）", len(allg) >= 200, len(allg)):
+            allg.sort()
+            p75 = allg[int(len(allg) * 0.75)]
+            p95 = allg[int(len(allg) * 0.95)]
+            ok("播放中四分之三以上的尾巴尖端貼在自己的大圈上（E1）",
+               p75 <= rad_all, f"p75={p75:.1f}px（大圈半徑 {rad_all:.1f}px；修好之前 p75≈17px）")
+            ok("跑最快的那幾個族群也不會脫節太遠（E1，p95 < 3 個半徑）",
+               p95 <= rad_all * 3, f"p95={p95:.1f}px、最大 {allg[-1]:.1f}px"
+                                   f"（修好之前最大 87px，而且會一路累積）")
+
+    # ---------------------------------------------------------- E3 族群選取只剩一處
+    # Andy 2026-09-20：「篩選族群功能覆蓋下方的族群選取功能」。
+    # 他講的不是幾何重疊（量過：1440/1280/1024/900/560 五個寬度的重疊都是 0），
+    # 是**功能上蓋過去**：同一張卡裡兩份 36 個族群的清單，上面那排會篩圖、
+    # 下面那排只會 highlight。現在上面那顆「族群篩選」移除，選族群只在下面那一排。
     ok("排行與時鐘各有一排篩選列（C4）",
        pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length") == 2,
        pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length"))
-    ok("篩選列上有「族群篩選」與「個股篩選」兩顆鈕（C4）",
+    ok("篩選列上沒有「族群篩選」了（E3：族群只在圖下方那一排選）",
+       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter .rot-gbtn').length") == 0,
+       pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter button')].map(b => b.textContent.trim())"))
+    ok("「個股篩選」保留（它選的是個股不是族群，沒有重複）（E3）",
        pg.evaluate("""() => { const b = document.querySelector('.rotfilter[data-rf="rot"]');
-           return !!b && !!b.querySelector('.rot-gbtn') && !!b.querySelector('.rot-sbtn'); }"""))
+           return !!b && !!b.querySelector('.rot-sbtn'); }"""))
+    ok("兩張卡的下方都有族群晶片列（E3：唯一的族群選擇器）",
+       count(pg, CHIP) == 2, count(pg, CHIP))
+
     n_clock0 = len(_rot_scatter(pg) or [])
     n_rank0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
         return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
-    click(pg, '.rotfilter[data-rf="rot"] .rot-gbtn', 700)
-    ok("按「族群篩選」會展開可捲的複選格（C4）",
-       pg.evaluate("() => { const w = document.querySelector('.rotpick'); return !!w && !w.hidden"
-                   " && w.querySelectorAll('button').length > 3; }"))
-    gids = pg.evaluate("() => [...document.querySelectorAll('.rotpick button')].map(b => b.dataset.g).filter(Boolean)")
-    if ok("複選格裡有族群可以勾（C4）", len(gids) >= 3, len(gids)):
+    gids = pg.evaluate("() => [...document.querySelectorAll('#v-flow .linkrow.gchips[data-sync=\"n2\"] .gchip')]"
+                       ".map(c => c.dataset.g)")
+    if ok("下方晶片列真的列得出族群（E3）", len(gids) >= 3, len(gids)):
         for g in gids[:2]:
-            pg.eval_on_selector(f'.rotpick button[data-g="{g}"]', "b => b.click()")
-            pg.wait_for_timeout(700)
+            pg.eval_on_selector(f'{CHIP} .gchip[data-g="{g}"] .pick', "b => b.click()")
+            pg.wait_for_timeout(900)
         n_clock1 = len(_rot_scatter(pg) or [])
+        n_pts1 = pg.evaluate("() => ((window.App && window.App._rotPts) || []).length")
         n_rank1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
             return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
-        ok("勾兩個族群，輪動時鐘上真的只剩這兩個（C4）", n_clock1 == 2 and n_clock0 > 2, f"{n_clock0} → {n_clock1}")
-        changed("勾兩個族群，資金流向排行上的族群數也真的變了（C4）", n_rank0, n_rank1)
+        ok("點下方晶片，輪動時鐘上真的只剩這兩個族群（E3：以前點了圖完全不會變）",
+           n_clock1 == 2 and n_clock0 > 2, f"{n_clock0} → {n_clock1}")
+        ok("_rotPts 的族群數也真的變少（E3）", n_pts1 == 2, f"{n_clock0} → {n_pts1}")
+        changed("點下方晶片，資金流向排行上的族群數也真的變了（E3 兩張圖同一份選擇）", n_rank0, n_rank1)
+        ok("兩排晶片同時被選起來（N2 的機制沒有被拆掉）",
+           count(pg, f"{CHIP} .gchip.on") == 4, count(pg, f"{CHIP} .gchip.on"))
+        ok("點晶片同時在排行下方展開成分股（E3：點族群展開個股長在這一排身上）",
+           pg.evaluate("""() => { const b = document.getElementById('rankPanel');
+               return !!b && !b.hidden && b.querySelectorAll('.ms a[href^="#stock/"]').length > 0; }"""))
         ok("篩選列上寫出目前只看幾個族群（C4）",
            "2" in (pg.evaluate("() => (document.querySelector('.rotfilter .rot-note')||{}).textContent") or ""),
            pg.evaluate("() => (document.querySelector('.rotfilter .rot-note')||{}).textContent"))
         ls = pg.evaluate("() => { try { return localStorage.getItem('tw.rot.filter'); } catch (e) { return null; } }")
         ok("選擇真的寫進 localStorage（C4）", bool(ls) and gids[0] in ls, ls)
-        # 取消：按「全部」要還原
-        pg.eval_on_selector('.rotpick button[data-g=""]', "b => b.click()")
-        pg.wait_for_timeout(900)
+        # 再點一次要取消
+        for g in gids[:2]:
+            pg.eval_on_selector(f'{CHIP} .gchip[data-g="{g}"] .pick', "b => b.click()")
+            pg.wait_for_timeout(900)
         n_clock2 = len(_rot_scatter(pg) or [])
-        ok("按「全部」取消勾選，兩張圖真的還原（C4）", n_clock2 == n_clock0, f"{n_clock1} → {n_clock2}")
+        ok("再點一次取消，兩張圖真的還原（E3）", n_clock2 == n_clock0, f"{n_clock1} → {n_clock2}")
 
     # ---------------------------------------------------------- C4 個股篩選（勾個股＝看它所屬的族群）
     click(pg, '.rotfilter[data-rf="rot"] .rot-sbtn', 700)
@@ -4526,6 +4775,12 @@ def t_batch2(pg, base):
             return { x: r.left + p[0] - (v >= 0 ? 4 : -4), y: r.top + p[1],
                      gid: (typeof d[i] === 'object' ? d[i].gid : null) }; }""")
 
+    # ★ 2026-09-20 修掉一個**假紅燈**：`pg.goto(base + '#flow')` 在已經停在同一個網址時
+    #   只是 hashchange，**不會把頁面捲回最上面**。前一段（資金流向）結束時頁面停在下面，
+    #   於是這裡算出來的長條座標其實在畫面外，點下去什麼也沒發生 ——
+    #   報出來的是「點了沒有展開成分股」，看起來像功能壞掉（在舊版程式上也一樣紅）。
+    #   這是 DECISIONS #188／#190 那一類「驗收方法本身有 bug」的第五次，所以先捲到圖上。
+    scroll_to(pg, "rankFlow")
     spot = rank_spot()
     clicked = spot and spot.get("gid")
     if spot:
@@ -4591,46 +4846,92 @@ def t_batch2(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2000)
 
-    # 放大：拉Bar／篩選／播放都在放大視窗裡
-    click(pg, "#rotZoomBtn", 1400)
+    # 放大（E2，Andy 2026-09-20：「放大之後的功能都沒反應」）
+    # 根因量過兩件事：① renderRotClock 結尾那段 groupChips 連放大視窗也一起塞了一排晶片，
+    #   插在 #zoomBody 的下一個兄弟，而 .zb 是 flex —— 實測 #zoomBody 704×756、
+    #   那排晶片 704×748，**放大視窗一半的版面被吃掉**，而且那排晶片綁的是卡片的選取。
+    #   ② 放大視窗維護第二套只有 16 顆的簡化晶片與語意不同的拉Bar。
+    # 所以這裡驗的是：.zb 只有一個子元素、#zoomBody 真的撐滿、控制項和卡片同一套、
+    # 而且「改了篩選／拉了Bar，放大的那張圖真的變了」。
+    click(pg, "#rotZoomBtn", 1600)
     ok("按「放大」會打開放大視窗（圖二）",
        pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }"))
     ok("放大視窗裡畫的是輪動時鐘", pg.evaluate("() => !!document.querySelector('#zoomBody canvas')"))
-    ok("放大視窗裡有「和幾天前比」拉Bar",
-       pg.evaluate("() => !!document.querySelector('#rotZoomBack input[type=range]')"))
-    ok("放大視窗裡有回放拉Bar＋播放鈕（圖二）",
-       pg.evaluate("() => document.querySelectorAll('#rotZoomPlay .pb').length") == 3,
-       pg.evaluate("() => document.querySelectorAll('#rotZoomPlay .pb').length"))
-    # 篩選：點一個族群晶片，圖上的點數要真的變少
-    n0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
+    zb = pg.evaluate("""() => { const z = document.querySelector('.zb');
+        const b = document.getElementById('zoomBody');
+        const zr = z.getBoundingClientRect(), br = b.getBoundingClientRect();
+        return { kids: z.children.length,
+                 kidCls: [...z.children].map(e => e.id || e.className),
+                 bw: Math.round(br.width), bh: Math.round(br.height),
+                 zw: Math.round(zr.width), zh: Math.round(zr.height) }; }""")
+    ok("放大視窗的 .zb 只有 #zoomBody 一個子元素（E2：以前被硬塞一排族群晶片）",
+       zb["kids"] == 1 and zb["kidCls"] == ["zoomBody"], zb)
+    ok("#zoomBody 真的佔滿 .zb（E2：以前只拿到一半）",
+       zb["bw"] >= zb["zw"] - 2 and zb["bh"] >= zb["zh"] - 2, zb)
+    tools = pg.evaluate("""() => ({
+        filt: document.querySelectorAll('#zoomTools .rotfilter[data-rf="zoom"]').length,
+        seg: document.querySelectorAll('#zoomTools .rotchain button').length,
+        top10: document.querySelectorAll('#zoomTools .rot-top10').length,
+        sbtn: document.querySelectorAll('#zoomTools .rot-sbtn').length,
+        gbtn: document.querySelectorAll('#zoomTools .rot-gbtn').length,
+        back: document.querySelectorAll('#rotZoomBack input[type=range]').length,
+        pb: document.querySelectorAll('#rotZoomBack .pb').length,
+        trail: document.querySelectorAll('#rotZoomTools .rot-trail').length,
+        chips: document.querySelectorAll('#rotZoomChips .gchip').length })""")
+    ok("放大視窗的控制項和卡片是同一套（篩選列／看哪一天＋＋−▶／軌跡開關／族群晶片）（E2）",
+       tools["filt"] == 1 and tools["seg"] >= 2 and tools["top10"] == 1 and tools["sbtn"] == 1
+       and tools["back"] == 1 and tools["pb"] == 3 and tools["trail"] == 1 and tools["chips"] > 3, tools)
+    ok("放大視窗裡也沒有多出一顆「族群篩選」（E3 兩邊一致）", tools["gbtn"] == 0, tools)
+
+    ZN = """() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
         if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
-        return sc ? (sc.data||[]).length : 0; }""")
-    chips = pg.evaluate("() => [...document.querySelectorAll('#zoomChips button')].map(b => b.dataset.g)")
-    if len(chips) > 1:
-        pg.eval_on_selector(f'#zoomChips button[data-g="{chips[1]}"]', "b => b.click()")
-        pg.wait_for_timeout(900)
-        n1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
-            if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
-            return sc ? (sc.data||[]).length : 0; }""")
-        ok("篩選某個族群後，圖上只剩那一個（圖二）", n1 == 1 and n0 > 1, f"{n0} → {n1}")
-        pg.eval_on_selector('#zoomChips button[data-g=""]', "b => b.click()")
-        pg.wait_for_timeout(900)
-        n2 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
-            if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
-            return sc ? (sc.data||[]).length : 0; }""")
-        ok("按「全部」會回到全部族群（圖二）", n2 == n0, f"{n1} → {n2}")
-    # 回放：拉到最舊，圖上要寫出那一天，而且點的位置真的不一樣
+        return sc ? (sc.data||[]).length : 0; }"""
+    n0 = pg.evaluate(ZN)
+    # ① 在放大視窗裡勾「只看前 10 大」—— 放大的那張圖要真的變
+    pg.eval_on_selector('#zoomTools .rot-top10', "e => e.click()")
+    pg.wait_for_timeout(1200)
+    n1 = pg.evaluate(ZN)
+    ok("在放大視窗勾「只看前 10 大」，放大的那張圖真的變了（E2）",
+       n1 == 10 and n0 > 10, f"{n0} → {n1}")
+    pg.eval_on_selector('#zoomTools .rot-clear', "b => b.click()")
+    pg.wait_for_timeout(1200)
+    ok("在放大視窗按「清除篩選」真的還原（E2）", pg.evaluate(ZN) == n0, f"{n1} → {pg.evaluate(ZN)}")
+    # ② 在放大視窗點族群晶片 —— 圖上只剩它
+    zg = pg.evaluate("() => [...document.querySelectorAll('#rotZoomChips .gchip')].map(c => c.dataset.g)")
+    if len(zg) > 1:
+        pg.eval_on_selector(f'#rotZoomChips .gchip[data-g="{zg[1]}"] .pick', "b => b.click()")
+        pg.wait_for_timeout(1200)
+        ok("在放大視窗點族群晶片，放大的那張圖只剩那一個族群（E2）",
+           pg.evaluate(ZN) == 1, f"{n0} → {pg.evaluate(ZN)}")
+        pg.eval_on_selector(f'#rotZoomChips .gchip[data-g="{zg[1]}"] .pick', "b => b.click()")
+        pg.wait_for_timeout(1200)
+        ok("再點一次取消，放大的那張圖回到全部族群（E2）", pg.evaluate(ZN) == n0, pg.evaluate(ZN))
+    # ③ 拉「看哪一天」—— 放大的那張圖真的重畫，而且圖上寫得出是哪一天
     before = canvas_hash(pg, "#zoomBody")
-    set_range(pg, "#rotZoomPlay input[type=range]", 0, 1400)
-    after = canvas_hash(pg, "#zoomBody")
-    changed("回放拉到最舊，時鐘上的點真的移動了（圖二）", before, after)
+    set_range(pg, "#rotZoomBack input[type=range]", 28, 1600)
+    changed("在放大視窗拉「看哪一天」，放大的那張圖真的重畫了（E2）", before, canvas_hash(pg, "#zoomBody"))
     ok("回放時圖上有寫出是哪一天（圖二）",
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
            if (!c) return false; const g = c.getOption().graphic || [];
-           const s = JSON.stringify(g); return s.indexOf('回放') >= 0; }"""))
+           return JSON.stringify(g).indexOf('回放') >= 0; }"""))
+    # ④ 軌跡開關在放大視窗裡也真的有作用
+    pg.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    ok("在放大視窗關掉軌跡，放大的那張圖軌跡真的歸零（E2）",
+       _rot_trail_pts(pg, "zoomBody") == 0, _rot_trail_pts(pg, "zoomBody"))
+    pg.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()")
+    pg.wait_for_timeout(1200)
+    ok("再打開軌跡真的回來（E2）", _rot_trail_pts(pg, "zoomBody") > 20, _rot_trail_pts(pg, "zoomBody"))
+    # ⑤ 關掉之後卡片要跟上（天數是在放大視窗裡改的）
     pg.eval_on_selector("#zoomClose", "b => b.click()")
-    pg.wait_for_timeout(600)
+    pg.wait_for_timeout(1600)
     ok("關閉放大視窗", pg.evaluate("() => document.getElementById('zoomOv').hidden") is True)
+    ok("關掉之後控制項列有清乾淨（不會留給下一張圖一排按了沒反應的鈕）（E2）",
+       pg.evaluate("() => (document.getElementById('zoomTools').innerHTML || '').trim() === ''"))
+    ok("關掉之後卡片上的「看哪一天」跟著同步成放大視窗裡選的那一天（E2）",
+       pg.evaluate("() => +document.querySelector('#rotBack input').value") == 28,
+       pg.evaluate("() => +document.querySelector('#rotBack input').value"))
+    set_range(pg, "#rotBack input[type=range]", 5, 1200)
 
     # 總覽的小輪動圖也有放大鈕
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
@@ -4845,21 +5146,25 @@ def t_batch7(pg, base):
         #   `--only 新-資金流向,批次7` 後面就紅，因為前一段已經把總覽渲染出來了。
         #   這是驗收選錯對象，不是功能壞掉。
         N2 = '#v-flow .linkrow.gchips[data-sync="n2"]'
+        n_before = len(_rot_scatter(pg) or [])
         pg.eval_on_selector(f"{N2} .gchip .pick", "b => b.click()")
-        pg.wait_for_timeout(1000)
+        pg.wait_for_timeout(1200)
         st = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
-            const dim = (() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-              if (!c) return null; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
-              if (!sc) return null;
-              const ops = (sc.data||[]).map(d => (d.itemStyle&&d.itemStyle.opacity!=null)?d.itemStyle.opacity:1);
-              return { lo: Math.min(...ops), hi: Math.max(...ops) }; })();
+            const sc = (() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+              if (!c) return null; const s = (c.getOption().series||[]).filter(x=>x.type==='scatter')[0];
+              return s ? (s.data||[]).length : null; })();
             return { hash: location.hash, panel: !!b && !b.hidden,
                      on: document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"] .gchip.on').length,
-                     dim }; }""")
+                     n: sc }; }""")
         ok("點族群晶片不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
-        ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘只亮它（N2）",
-           st["panel"] and st["dim"] and st["dim"]["lo"] < 0.3, st)
+        ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘上的族群真的變少（N2＋E3）",
+           st["panel"] and st["n"] == 1 and n_before > 1, {"before": n_before, **st})
         ok("兩排晶片同時被選起來（N2）", st["on"] >= 2, st["on"])
+        # 收拾：取消掉，不要把篩選狀態留給後面的段落
+        pg.eval_on_selector(f"{N2} .gchip.on .pick", "b => b.click()")
+        pg.wait_for_timeout(1000)
+        ok("再點一次取消，時鐘回到全部族群（E3）",
+           len(_rot_scatter(pg) or []) == n_before, f"{st['n']} → {len(_rot_scatter(pg) or [])}")
 
     # ---- N4 時間週期拉到 30 天
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
