@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="輪動團隊虛擬辦公室 — 動物森友會風格外觀稿">
+<title>輪動村辦公室</title>
+</head>
+<body>
+<style>
+/* ──────────────────────────────────────────────────────────────
+   A 版：動物森友會風格（白天／夜晚兩種主題）
+   造型規則：大圓角、白色描邊、柔和陰影、木頭與草地、大頭身角色。
+   一樣不用任何外部資源（字體、圖示全部自己畫）。
+   ────────────────────────────────────────────────────────────── */
+:root{
+  --sky-1:#bfeaff; --sky-2:#e8f7ff;
+  --grass:#8ed14f; --grass-2:#6fb93a; --grass-3:#5aa22e;
+  --cream:#fdf4dc; --paper:#fffdf5; --paper-2:#fbf1d8;
+  --wood:#e3ab55; --wood-2:#c07f3a; --wood-3:#9c5f2a;
+  --ink:#5c4326; --ink-2:#8a7050; --ink-3:#b19b7a;
+  --line:#e8d7b0; --line-2:#d8bf8e;
+  --leaf:#4fa64f; --sun:#ffd25e;
+  --pink:#ff9aa2; --blue:#7ec8e3; --mint:#7ddcb1; --lilac:#c3b3f0; --peach:#ffbe7b;
+  --go:#f2a33c; --ok:#4fbf72; --wait:#b19b7a; --stop:#ef6b6b;
+  --r:22px;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
+  --shadow:0 10px 0 -4px rgba(120,90,50,.10), 0 16px 30px -18px rgba(90,70,40,.55);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="day"]){
+    --sky-1:#1f2a52; --sky-2:#2d3b6b;
+    --grass:#2f6b3f; --grass-2:#245432; --grass-3:#1b3f26;
+    --cream:#3b3122; --paper:#463a29; --paper-2:#3a301f;
+    --wood:#a97a3c; --wood-2:#7d5527; --wood-3:#5d3d1b;
+    --ink:#ffeccf; --ink-2:#e0c6a0; --ink-3:#a98f6d;
+    --line:#5e4a2d; --line-2:#7a6137;
+    --leaf:#3f8a4f; --sun:#ffd98a;
+    --shadow:0 10px 0 -4px rgba(0,0,0,.25), 0 18px 30px -18px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="night"]{
+  --sky-1:#1f2a52; --sky-2:#2d3b6b;
+  --grass:#2f6b3f; --grass-2:#245432; --grass-3:#1b3f26;
+  --cream:#3b3122; --paper:#463a29; --paper-2:#3a301f;
+  --wood:#a97a3c; --wood-2:#7d5527; --wood-3:#5d3d1b;
+  --ink:#ffeccf; --ink-2:#e0c6a0; --ink-3:#a98f6d;
+  --line:#5e4a2d; --line-2:#7a6137;
+  --leaf:#3f8a4f; --sun:#ffd98a;
+  --shadow:0 10px 0 -4px rgba(0,0,0,.25), 0 18px 30px -18px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; font-family:var(--sans); font-size:14px; line-height:1.65; color:var(--ink);
+  background:var(--cream);
+  background-image:
+    radial-gradient(1100px 420px at 50% -60px, var(--sky-2), transparent 70%),
+    radial-gradient(10px 10px at 18% 22%, rgba(255,255,255,.55), transparent 70%),
+    radial-gradient(8px 8px at 72% 12%, rgba(255,255,255,.45), transparent 70%);
+  background-attachment:fixed;
+}
+h1,h2,h3{margin:0; font-weight:800; letter-spacing:.02em; text-wrap:balance}
+code,.mono{font-family:var(--mono)}
+:focus-visible{outline:3px solid var(--go); outline-offset:3px}
+
+/* ── 頂部木牌 ─────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  margin:10px auto 0; max-width:1560px; padding:10px 14px;
+  background:var(--paper); border:3px solid #fff; border-radius:var(--r);
+  box-shadow:var(--shadow); outline:2px solid var(--line-2); outline-offset:-3px;
+}
+@media (max-width:640px){ .topbar{margin:8px 8px 0} }
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.brand b{font-size:17px; display:block; line-height:1.2}
+.brand span{font-size:11px; color:var(--ink-3); letter-spacing:.14em}
+.spacer{flex:1 1 auto}
+.pills{display:flex; gap:7px; flex-wrap:wrap}
+.pill{
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-family:inherit;
+  padding:6px 13px; border-radius:999px; border:2px solid var(--line-2);
+  background:var(--paper-2); color:var(--ink-2); font-size:13px; font-weight:700;
+}
+.pill:hover{transform:translateY(-1px)}
+.pill[aria-pressed="true"]{background:var(--go); border-color:var(--wood-3); color:#fff}
+.pill .n{font-family:var(--mono); font-size:12px; opacity:.75}
+.clock{font-family:var(--mono); font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.verbadge{
+  font-family:var(--mono); font-size:11px; color:var(--ink-2); white-space:nowrap;
+  border:2px solid var(--line-2); border-radius:999px; padding:3px 10px; background:var(--paper-2);
+}
+.iconbtn{
+  width:36px; height:36px; display:grid; place-items:center; cursor:pointer; color:var(--ink-2);
+  border-radius:50%; border:2px solid var(--line-2); background:var(--paper-2);
+}
+.iconbtn:hover{background:var(--sun); color:var(--wood-3)}
+
+/* 狀態小圖示 */
+.mk{width:18px; height:18px; border-radius:50%; display:grid; place-items:center; flex:none; background:var(--wait)}
+.mk.working{background:var(--go)} .mk.meeting{background:var(--blue)}
+.mk.idle{background:var(--wait)} .mk.blocked{background:var(--stop)}
+.mk svg{width:11px; height:11px; stroke:#fff; fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round}
+
+/* ── 版面 ─────────────────────────────────────────────── */
+.wrap{max-width:1560px; margin:0 auto; padding:16px 14px 64px}
+.notice{
+  display:flex; gap:10px; align-items:flex-start; font-size:12.5px; color:var(--ink-2);
+  background:var(--paper); border:2px dashed var(--line-2); border-radius:16px; padding:10px 13px; margin-bottom:16px;
+}
+.notice b{color:var(--wood-3)}
+.zonelabel{display:flex; align-items:center; gap:10px; margin:24px 0 12px; font-size:13px; font-weight:800; color:var(--ink-2)}
+.zonelabel::after{content:""; flex:1; height:3px; border-radius:3px; background:repeating-linear-gradient(90deg,var(--line-2) 0 8px, transparent 8px 16px)}
+.zonelabel .tag{background:var(--wood); color:#fff; border-radius:999px; padding:2px 11px; font-size:11.5px; letter-spacing:.06em}
+
+.plaza{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:16px}
+.huts{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:16px}
+@media (max-width:1040px){ .plaza{grid-template-columns:1fr} }
+
+/* ── 小屋（每位 Agent 的辦公室）───────────────────────── */
+.hut{
+  border:0; padding:0; font:inherit; color:inherit; text-align:left; width:100%; cursor:pointer;
+  background:var(--paper); border-radius:var(--r); overflow:hidden; box-shadow:var(--shadow);
+  outline:3px solid #fff; outline-offset:-3px; transition:transform .16s;
+  display:flex; flex-direction:column;
+}
+.hut:hover{transform:translateY(-4px)}
+.hut.dim{opacity:.38; filter:saturate(.5)}
+.roof{
+  height:26px; background:
+    repeating-linear-gradient(90deg, var(--roof) 0 14px, color-mix(in srgb, var(--roof) 76%, #000) 14px 28px);
+  border-radius:var(--r) var(--r) 0 0; position:relative;
+}
+.roof::after{content:""; position:absolute; left:0; right:0; bottom:0; height:5px; background:rgba(255,255,255,.55)}
+.sign{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  background:var(--wood); color:#fff; border-bottom:3px solid var(--wood-2);
+}
+.sign .nm{font-weight:800; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.sign .id{font-size:10.5px; opacity:.85; white-space:nowrap}
+.sign .st{margin-left:auto; font-size:11.5px; background:rgba(0,0,0,.18); border-radius:999px; padding:1px 9px; white-space:nowrap}
+
+.yard{position:relative; height:168px; overflow:hidden; background:linear-gradient(180deg,var(--sky-1),var(--sky-2))}
+.yard .lawn{
+  position:absolute; left:-6%; right:-6%; bottom:-18px; height:60%; border-radius:50% 50% 0 0/28% 28% 0 0;
+  background:linear-gradient(180deg,var(--grass),var(--grass-2));
+  box-shadow:inset 0 6px 0 rgba(255,255,255,.22);
+}
+.yard .lawn::after{
+  content:""; position:absolute; inset:0; opacity:.5;
+  background-image:radial-gradient(3px 5px at 14% 44%, var(--grass-3), transparent 60%),
+    radial-gradient(3px 5px at 38% 62%, var(--grass-3), transparent 60%),
+    radial-gradient(3px 5px at 66% 50%, var(--grass-3), transparent 60%),
+    radial-gradient(3px 5px at 86% 66%, var(--grass-3), transparent 60%);
+}
+.yard .cloud{
+  position:absolute; top:14px; left:12px; width:46px; height:16px; border-radius:999px; background:rgba(255,255,255,.85);
+  box-shadow:14px -7px 0 -2px rgba(255,255,255,.85), 28px 2px 0 -4px rgba(255,255,255,.85);
+  animation:drift 26s linear infinite;
+}
+@keyframes drift{0%{transform:translateX(0)}50%{transform:translateX(26px)}100%{transform:translateX(0)}}
+.yard .tree{position:absolute; right:14px; bottom:44px; width:44px; height:56px}
+.yard .tree i{position:absolute; left:18px; bottom:0; width:8px; height:22px; border-radius:3px; background:var(--wood-2)}
+.yard .tree b{
+  position:absolute; left:0; bottom:16px; width:44px; height:40px; border-radius:50%;
+  background:radial-gradient(circle at 34% 30%, color-mix(in srgb,var(--leaf) 78%, #fff), var(--leaf));
+  box-shadow:0 4px 0 -1px rgba(0,0,0,.08);
+}
+.yard .flower{position:absolute; left:16px; bottom:16px; width:14px; height:14px; border-radius:50%;
+  background:radial-gradient(circle at 50% 50%, var(--sun) 0 4px, var(--pink) 4px)}
+.yard .flower.two{left:auto; right:64px; bottom:12px; transform:scale(.8);
+  background:radial-gradient(circle at 50% 50%, var(--sun) 0 4px, var(--lilac) 4px)}
+.yard .door{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:42px; width:46px; height:52px;
+  border-radius:24px 24px 6px 6px; background:var(--wood-2); border:3px solid var(--wood-3);
+  box-shadow:inset 0 -6px 0 rgba(0,0,0,.12);
+}
+.yard .door::after{content:""; position:absolute; right:8px; top:26px; width:6px; height:6px; border-radius:50%; background:var(--sun)}
+.person{position:absolute; bottom:12px; left:24px; width:72px; transform-origin:bottom center}
+.person svg{display:block; width:100%; height:auto; overflow:visible}
+.hop{animation:hop 2.6s ease-in-out infinite}
+@keyframes hop{0%,72%,100%{transform:translateY(0)}80%{transform:translateY(-5px)}88%{transform:translateY(0)}}
+.sway{animation:sway 3.6s ease-in-out infinite}
+@keyframes sway{0%,100%{transform:rotate(-1.6deg)}50%{transform:rotate(1.6deg)}}
+.mood{
+  position:absolute; left:74px; bottom:104px; display:flex; align-items:center; gap:5px;
+  background:var(--paper); border:2px solid var(--line-2); border-radius:14px 14px 14px 4px;
+  padding:3px 9px; font-size:11.5px; font-weight:700; color:var(--ink-2); white-space:nowrap;
+  animation:pop .4s ease both;
+}
+@keyframes pop{from{opacity:0; transform:translateY(5px) scale(.9)}to{opacity:1; transform:none}}
+.away{position:absolute; left:26px; bottom:70px; font-size:12px; font-weight:800; color:var(--wood-3);
+  background:var(--paper); border:2px dashed var(--line-2); border-radius:14px; padding:4px 10px}
+
+.task{padding:11px 13px 13px; background:var(--paper-2); border-top:3px solid var(--line); display:grid; gap:8px}
+.task .now{font-size:12.5px; color:var(--ink-2)}
+.task .now b{color:var(--ink)}
+.bar{height:10px; border-radius:999px; background:var(--paper); border:2px solid var(--line-2); overflow:hidden}
+.bar i{display:block; height:100%; background:repeating-linear-gradient(135deg,var(--go) 0 7px, #ffbe63 7px 14px)}
+.bar.stop i{background:repeating-linear-gradient(135deg,var(--stop) 0 7px,#ff9c9c 7px 14px)}
+.counts{display:flex; gap:12px; font-size:11.5px; font-weight:700; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.counts b{font-family:var(--mono)}
+.counts .c1 b{color:var(--ok)} .counts .c2 b{color:var(--go)} .counts .c3 b{color:var(--ink-2)}
+
+/* ── 廣場：CEO 舞台 ＋ 布告欄 ─────────────────────────── */
+.stage .yard{height:272px}
+.stage .dais{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:26px; width:min(54%,230px); height:34px;
+  border-radius:16px; background:linear-gradient(180deg,var(--wood),var(--wood-2)); border:3px solid var(--wood-3);
+}
+.stage .banner{
+  position:absolute; left:50%; transform:translateX(-50%); top:12px; width:min(72%,320px);
+  background:var(--paper); border:3px solid var(--wood); border-radius:16px; padding:8px 12px;
+  box-shadow:var(--shadow);
+}
+.stage .banner h4{font-size:11.5px; color:var(--wood-3); letter-spacing:.1em; margin-bottom:5px}
+.stage .banner li{list-style:none; font-size:11.5px; color:var(--ink-2); display:flex; gap:6px}
+.stage .banner li em{font-style:normal; font-family:var(--mono); color:var(--go); font-weight:700}
+.stage .person.boss{left:50%; transform:translateX(-50%); bottom:50px; width:88px}
+.stage .crowd{position:absolute; right:10px; bottom:6px; display:flex; align-items:flex-end}
+.stage .crowd .person{position:static; width:58px; margin-left:-12px}
+.stage .flag{position:absolute; left:14px; bottom:60px; width:5px; height:74px; border-radius:3px; background:var(--wood-2)}
+.stage .flag::after{content:""; position:absolute; left:5px; top:4px; width:34px; height:22px; border-radius:0 8px 8px 0;
+  background:var(--pink); box-shadow:inset 0 -4px 0 rgba(0,0,0,.08)}
+
+.board{
+  background:var(--paper); border-radius:var(--r); box-shadow:var(--shadow);
+  outline:3px solid #fff; outline-offset:-3px; overflow:hidden; display:flex; flex-direction:column;
+}
+.board > header{display:flex; align-items:center; gap:9px; padding:10px 13px; background:var(--wood); color:#fff; border-bottom:3px solid var(--wood-2)}
+.board > header h2{font-size:15px}
+.board > header .sub{margin-left:auto; font-size:11px; font-family:var(--mono); opacity:.9}
+.boardbody{display:grid; grid-template-columns:1fr 1fr; gap:14px; padding:14px; flex:1}
+@media (max-width:620px){ .boardbody{grid-template-columns:1fr} }
+.col h3{font-size:12px; color:var(--ink-2); margin-bottom:9px; display:flex; gap:7px; align-items:center}
+.col h3 .c{background:var(--paper-2); border:2px solid var(--line-2); border-radius:999px; padding:0 8px; font-family:var(--mono); font-size:11px}
+.notes{display:grid; gap:9px}
+.note{
+  position:relative; width:100%; text-align:left; font-family:inherit; cursor:pointer;
+  padding:10px 12px; border-radius:14px; font-size:12.5px; line-height:1.5;
+  background:#fff4bf; color:#6a5314; border:2px solid #e8cf72; box-shadow:0 4px 0 -1px #e8cf72;
+  transform:rotate(-.5deg);
+}
+.note:nth-child(even){transform:rotate(.6deg); background:#d9f2c6; border-color:#a9d98b; box-shadow:0 4px 0 -1px #a9d98b; color:#3f5a26}
+.note:hover{transform:translateY(-2px) rotate(0)}
+.note .k{display:block; font-family:var(--mono); font-size:10.5px; opacity:.72}
+.note .who{display:inline-block; margin-top:6px; font-size:10.5px; background:rgba(0,0,0,.09); border-radius:999px; padding:1px 8px}
+.note.done{background:var(--paper-2); border-color:var(--line-2); box-shadow:none; color:var(--ink-2); transform:none}
+.note.done .t{text-decoration:line-through; text-decoration-color:var(--ink-3)}
+.note.wait{background:#ffd6cf; border-color:#f0a595; box-shadow:0 4px 0 -1px #f0a595; color:#7a3223}
+
+/* ── 廣場圓桌（會議）───────────────────────────────── */
+.meet .yard{height:300px}
+.meet .rtable{
+  position:absolute; left:50%; transform:translateX(-50%); bottom:64px; width:min(56%,300px); height:78px;
+  border-radius:50%; background:radial-gradient(ellipse at 50% 34%, var(--wood), var(--wood-2));
+  border:4px solid var(--wood-3); box-shadow:0 10px 0 -4px rgba(0,0,0,.12);
+}
+.meet .rtable::after{content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:44px; height:30px; border-radius:8px; background:var(--paper); border:3px solid var(--line-2)}
+.seat{position:absolute; width:66px}
+.seat .person{position:static; width:100%}
+.seat .tag{display:block; text-align:center; font-size:11px; font-weight:700; color:var(--ink-2);
+  background:var(--paper); border:2px solid var(--line-2); border-radius:999px; padding:0 6px; margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.bubble{
+  position:absolute; max-width:200px; padding:8px 11px; border-radius:16px 16px 16px 5px;
+  background:var(--paper); border:3px solid var(--line-2); color:var(--ink); font-size:11.5px; line-height:1.45;
+  box-shadow:var(--shadow); animation:pop .45s ease both;
+}
+.bubble .sp{display:block; font-size:10.5px; font-weight:800; color:var(--wood-3); margin-bottom:2px}
+.mtimer{position:absolute; left:12px; top:12px; font-family:var(--mono); font-size:11px; color:#fff;
+  background:var(--blue); border:3px solid #fff; border-radius:999px; padding:2px 10px; box-shadow:var(--shadow)}
+
+/* ── 詳情卡 ───────────────────────────────────────────── */
+.scrim{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:50; opacity:0; transition:opacity .2s}
+.drawer{
+  position:fixed; z-index:60; top:0; right:0; height:100%; width:min(440px,100%);
+  background:var(--paper); border-left:4px solid var(--wood); box-shadow:-18px 0 40px -30px #000;
+  transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.9,.3,1);
+  display:flex; flex-direction:column;
+}
+body.open .drawer{transform:none}
+body.open .scrim{opacity:1}
+.drawer > header{display:flex; gap:12px; align-items:center; padding:14px; background:var(--wood); color:#fff}
+.drawer > header .av{width:62px; height:74px; flex:none; background:rgba(255,255,255,.22); border-radius:16px}
+.drawer > header .av svg{width:100%; height:100%}
+.drawer h2{font-size:17px}
+.drawer .sub{font-family:var(--mono); font-size:11px; opacity:.9}
+.drawer .body{overflow-y:auto; padding:14px; display:grid; gap:16px}
+.sect h3{font-size:12px; color:var(--ink-2); margin-bottom:9px; display:flex; align-items:center; gap:8px}
+.sect h3 .c{background:var(--paper-2); border:2px solid var(--line-2); border-radius:999px; padding:0 8px; font-family:var(--mono); font-size:11px}
+.list{display:grid; gap:7px}
+.item{display:flex; gap:9px; align-items:flex-start; padding:9px 11px; border-radius:14px;
+  background:var(--paper-2); border:2px solid var(--line-2); font-size:12.5px; color:var(--ink-2)}
+.item .k{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); min-width:24px}
+.item.ok{background:#e7f6e0; border-color:#b6dfa2; color:#3f5a26}
+.item.go{background:#fff3d6; border-color:#efcf85; color:#6a5314}
+.item.blocked{background:#ffe3dd; border-color:#f0a595; color:#7a3223}
+.files{display:flex; flex-wrap:wrap; gap:7px}
+.files code{font-size:11px; background:var(--paper-2); border:2px solid var(--line-2); border-radius:10px; padding:3px 8px; color:var(--ink-2)}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:7px 12px; font-size:12.5px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0}
+.talkline{border-left:4px solid var(--blue); border-radius:0 10px 10px 0; background:var(--paper-2);
+  padding:7px 11px; font-size:12.5px; color:var(--ink-2); margin-bottom:7px}
+.talkline b{color:var(--ink)}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+
+<header class="topbar">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true">
+      <circle cx="17" cy="17" r="15" fill="var(--grass)" stroke="#fff" stroke-width="3"></circle>
+      <path d="M9 21 q8 -10 16 0" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"></path>
+      <circle cx="17" cy="12" r="3.4" fill="var(--sun)"></circle>
+    </svg>
+    <div>
+      <b>輪動村辦公室</b>
+      <span>TW-ROTATION VILLAGE</span>
+    </div>
+  </div>
+  <div class="spacer"></div>
+  <div class="pills" id="filters" role="group" aria-label="依狀態篩選"></div>
+  <div class="spacer"></div>
+  <span class="clock" id="clock">--:--:--</span>
+  <button class="iconbtn" id="themebtn" type="button" title="白天／夜晚" aria-label="切換白天或夜晚">
+    <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.4"></circle>
+      <path d="M12 2.6v2.4M12 19v2.4M2.6 12H5M19 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M18.7 5.3L17 7M7 17l-1.7 1.7" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <span class="verbadge" id="ver">v0.1 外觀稿 · 09-20</span>
+</header>
+
+<div class="wrap">
+  <p class="notice">
+    <span aria-hidden="true">✿</span>
+    <span><b>這是外觀稿</b>：畫面上的狀態、任務、對話全部是<strong>示意資料</strong>，還沒接上真實的 Agent 狀態。
+    先看樣式（村民造型、小屋、廣場圓桌、布告欄、點開後的詳情），滿意之後再接資料與功能。</span>
+  </p>
+
+  <div class="zonelabel"><span class="tag">廣場</span> 村長（CEO）的舞台與布告欄</div>
+  <div class="plaza">
+    <div id="stage"></div>
+    <div id="board"></div>
+  </div>
+
+  <div class="zonelabel"><span class="tag">圓桌</span> 正在討論的村民會走到這裡</div>
+  <div id="meeting"></div>
+
+  <div class="zonelabel"><span class="tag">村子</span> 每位專家的小屋 · <span id="officecount"></span></div>
+  <div class="huts" id="offices"></div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dname" hidden>
+  <header>
+    <div class="av" id="dav" aria-hidden="true"></div>
+    <div style="min-width:0">
+      <h2 id="dname">—</h2>
+      <span class="sub" id="did">—</span>
+    </div>
+    <button class="iconbtn" id="closebtn" type="button" aria-label="關閉" style="margin-left:auto; background:rgba(255,255,255,.25); border-color:#fff; color:#fff">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path>
+      </svg>
+    </button>
+  </header>
+  <div class="body" id="dbody"></div>
+</aside>
+
+<script>
+/* ============================================================
+   村民（大頭身）：頭大、眼睛大、有腮紅，動作是一跳一跳的。
+   道具沿用同一套（每個角色一眼認得出是誰）。
+   ============================================================ */
+const SKIN = {a:'#f6d3ae', b:'#e8bb8f', c:'#cf9765', d:'#96643f', e:'#fce0c6'};
+const HAIRC = {blk:'#3b3145', brn:'#6b4527', gry:'#a9a0b5', red:'#c25a32', gold:'#e9c06a', ink:'#2e2838'};
+
+function hairSVG(style, c){
+  const f = HAIRC[c] || HAIRC.blk;
+  const cap = '<path d="M11 27 a21 21 0 0 1 42 0 q-21 -10 -42 0 z" fill="' + f + '"/>';
+  switch(style){
+    case 'bald':  return '<path d="M15 20 q17 -9 34 0 q-17 -4 -34 0 z" fill="' + f + '" opacity=".4"/>';
+    case 'buzz':  return '<path d="M11 26 a21 21 0 0 1 42 0 q-21 -5 -42 0 z" fill="' + f + '" opacity=".9"/>';
+    case 'bun':   return cap + '<circle cx="32" cy="3.5" r="6.5" fill="' + f + '"/>';
+    case 'long':  return cap + '<rect x="8" y="24" width="9" height="28" rx="4.5" fill="' + f + '"/><rect x="47" y="24" width="9" height="28" rx="4.5" fill="' + f + '"/>';
+    case 'pony':  return cap + '<path d="M50 22 q12 8 6 22 l-7 -3 q4 -10 -3 -15 z" fill="' + f + '"/>';
+    case 'curly': return '<circle cx="19" cy="18" r="9" fill="' + f + '"/><circle cx="32" cy="11" r="10" fill="' + f + '"/><circle cx="45" cy="18" r="9" fill="' + f + '"/>';
+    case 'wave':  return cap + '<path d="M11 22 q10 -7 21 -2 q11 5 21 -2 l0 7 q-10 7 -21 2 q-11 -5 -21 2 z" fill="' + f + '" opacity=".6"/>';
+    default:      return cap;
+  }
+}
+function hatSVG(hat){
+  switch(hat){
+    case 'helmet': return '<path d="M12 24 a20 20 0 0 1 40 0 z" fill="#ffc94d"/><rect x="7" y="22" width="50" height="6" rx="3" fill="#f0a92e"/>';
+    case 'beret':  return '<path d="M12 22 q4 -18 22 -18 q20 0 19 16 q-20 -8 -41 2 z" fill="#c3b3f0"/><circle cx="36" cy="3" r="3.4" fill="#7ddcb1"/>';
+    case 'cap':    return '<path d="M12 23 a20 20 0 0 1 40 0 z" fill="#7ddcb1"/><path d="M50 23 q12 0 14 5 l-14 1 z" fill="#4cc699"/>';
+    case 'headset':return '<path d="M12 24 a20 20 0 0 1 40 0" fill="none" stroke="#7ec8e3" stroke-width="5" stroke-linecap="round"/>' +
+                          '<rect x="6" y="21" width="9" height="14" rx="4.5" fill="#7ec8e3"/><rect x="49" y="21" width="9" height="14" rx="4.5" fill="#7ec8e3"/>';
+    default: return '';
+  }
+}
+const PROP_POS = {
+  baton:[46,44], calc:[45,46], palette:[45,46], web:[45,46], kline:[44,48], wafer:[44,46],
+  glass:[44,46], curve:[43,48], easel:[43,48], db:[45,46], gantt:[43,48], cube:[45,46],
+  watch:[45,46], coin:[45,46], caliper:[44,48], swatch:[45,44], chip:[45,46], pcb:[43,48], rack:[46,44]
+};
+
+function avatar(L, move, label){
+  const skin = SKIN[L.skin] || SKIN.a, suit = L.suit;
+  const p = PROP_POS[L.prop] || [45,46];
+  const cls = move === 'type' ? 'hop' : (move === 'nod' ? 'sway' : '');
+  return '<svg viewBox="0 0 64 82" role="img" aria-label="' + (label || '') + '">' +
+    '<ellipse cx="32" cy="79" rx="17" ry="3.4" fill="rgba(80,60,30,.22)"/>' +
+    '<g class="' + cls + '" style="transform-origin:32px 79px">' +
+      '<ellipse cx="25" cy="75" rx="6.5" ry="4" fill="#4a3a2a"/><ellipse cx="39" cy="75" rx="6.5" ry="4" fill="#4a3a2a"/>' +
+      '<path d="M32 44 c11 0 14 8 14 16 c0 8 -5 12 -14 12 c-9 0 -14 -4 -14 -12 c0 -8 3 -16 14 -16 z" fill="' + suit + '"/>' +
+      '<path d="M32 44 c5 0 8 2 10 5 l-10 6 l-10 -6 c2 -3 5 -5 10 -5 z" fill="rgba(255,255,255,.65)"/>' +
+      '<circle cx="15" cy="60" r="6" fill="' + suit + '"/><circle cx="49" cy="60" r="6" fill="' + suit + '"/>' +
+      '<circle cx="12.5" cy="65" r="4.6" fill="' + skin + '"/><circle cx="51.5" cy="65" r="4.6" fill="' + skin + '"/>' +
+      '<g transform="translate(' + p[0] + ',' + p[1] + ') scale(.82)">' + propSVG(L.prop) + '</g>' +
+      '<g style="transform-origin:32px 44px">' +
+        '<circle cx="32" cy="26" r="21" fill="' + skin + '"/>' +
+        '<circle cx="11" cy="28" r="4.4" fill="' + skin + '"/><circle cx="53" cy="28" r="4.4" fill="' + skin + '"/>' +
+        hairSVG(L.hair, L.hairC) + hatSVG(L.hat) +
+        '<g fill="#3a3040"><ellipse cx="25" cy="29" rx="2.9" ry="3.6"/><ellipse cx="39" cy="29" rx="2.9" ry="3.6"/></g>' +
+        '<g fill="#fff"><circle cx="26" cy="27.6" r="1.1"/><circle cx="40" cy="27.6" r="1.1"/></g>' +
+        '<g fill="#ff9aa2" opacity=".75"><ellipse cx="19" cy="34" rx="4" ry="2.6"/><ellipse cx="45" cy="34" rx="4" ry="2.6"/></g>' +
+        '<path d="M29.5 36 q2.5 3 5 0" fill="none" stroke="#b8714a" stroke-width="1.6" stroke-linecap="round"/>' +
+        (L.glasses ? '<g fill="none" stroke="#5c4326" stroke-width="1.6" opacity=".8">' +
+          '<circle cx="25" cy="29" r="6"/><circle cx="39" cy="29" r="6"/><path d="M31 29h2"/></g>' : '') +
+      '</g>' +
+    '</g></svg>';
+}
+</script>
+
+<script>
+function propSVG(id){
+  const P = {
+    baton:  '<rect x="0" y="2" width="3" height="22" rx="1.5" fill="#e8eeff"/><circle cx="1.5" cy="2" r="2.6" fill="#ff4d6d"/>',
+    calc:   '<rect x="0" y="0" width="14" height="19" rx="2" fill="#20304f" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<rect x="2" y="2" width="10" height="4" rx="1" fill="#3ee0ff" opacity=".75"/>'+
+            '<g fill="#a9b6d6"><rect x="2.5" y="8" width="2.6" height="2.4"/><rect x="6" y="8" width="2.6" height="2.4"/><rect x="9.5" y="8" width="2.6" height="2.4"/>'+
+            '<rect x="2.5" y="11.6" width="2.6" height="2.4"/><rect x="6" y="11.6" width="2.6" height="2.4"/><rect x="9.5" y="11.6" width="2.6" height="2.4"/>'+
+            '<rect x="2.5" y="15.2" width="6.1" height="2.4"/><rect x="9.5" y="15.2" width="2.6" height="2.4"/></g>',
+    palette:'<path d="M9 0 C15 0 18 5 17 9 C16 13 11 11 10 14 C9 17 5 18 2 15 C-1 12 1 3 9 0 Z" fill="#141e36" stroke="#8b7bff" stroke-width="1"/>'+
+            '<circle cx="6" cy="5" r="1.9" fill="#ff4d6d"/><circle cx="11.5" cy="4.5" r="1.9" fill="#3ee0ff"/>'+
+            '<circle cx="13" cy="9.5" r="1.9" fill="#ffb454"/><circle cx="6" cy="11" r="1.9" fill="#2ee59d"/>',
+    web:    '<g stroke="#3ee0ff" stroke-width="1.1" fill="none"><path d="M3 3 L13 7 M13 7 L5 15 M3 3 L5 15 M13 7 L15 15"/></g>'+
+            '<g fill="#3ee0ff"><circle cx="3" cy="3" r="2.4"/><circle cx="13" cy="7" r="2.4"/><circle cx="5" cy="15" r="2.4"/><circle cx="15" cy="15" r="2"/></g>',
+    kline:  '<rect x="0" y="0" width="18" height="16" rx="2" fill="#071827" stroke="#2a3860" stroke-width="1"/>'+
+            '<g stroke-width="1"><path d="M4 3 L4 13" stroke="#ff4d6d"/><rect x="2.6" y="5" width="2.8" height="6" fill="#ff4d6d"/>'+
+            '<path d="M9 2 L9 12" stroke="#2ee59d"/><rect x="7.6" y="4" width="2.8" height="5" fill="#2ee59d"/>'+
+            '<path d="M14 4 L14 14" stroke="#ff4d6d"/><rect x="12.6" y="6" width="2.8" height="6" fill="#ff4d6d"/></g>',
+    wafer:  '<circle cx="9" cy="9" r="8.6" fill="#141e36" stroke="#8b7bff" stroke-width="1.1"/>'+
+            '<path d="M9 .5 L9 2.6" stroke="#8b7bff" stroke-width="1.6"/>'+
+            '<g stroke="rgba(62,224,255,.55)" stroke-width=".8"><path d="M2 5.5h14M2 9h14M2 12.5h14M5.5 2v14M9 2v14M12.5 2v14"/></g>',
+    glass:  '<circle cx="7" cy="7" r="6.2" fill="rgba(62,224,255,.12)" stroke="#3ee0ff" stroke-width="1.6"/>'+
+            '<path d="M11.6 11.6 L17 17" stroke="#a9b6d6" stroke-width="2.4" stroke-linecap="round"/>'+
+            '<path d="M4.4 7.2 L6.4 9.2 L10 4.8" fill="none" stroke="#2ee59d" stroke-width="1.6" stroke-linecap="round"/>',
+    curve:  '<rect x="0" y="0" width="19" height="15" rx="2" fill="#071827" stroke="#2a3860" stroke-width="1"/>'+
+            '<path d="M2 12 L6 8 L9 10 L13 4 L17 6" fill="none" stroke="#c3ff5b" stroke-width="1.5" stroke-linecap="round"/>'+
+            '<circle cx="13" cy="4" r="1.7" fill="#c3ff5b"/>',
+    easel:  '<rect x="0" y="0" width="18" height="14" rx="1.5" fill="#0f172b" stroke="#ffb454" stroke-width="1"/>'+
+            '<path d="M3 10 L7 5 L10 8 L15 3" fill="none" stroke="#ffb454" stroke-width="1.3"/>'+
+            '<path d="M2.5 12.4 h9" stroke="#a9b6d6" stroke-width="1.2"/>',
+    db:     '<ellipse cx="8" cy="3.4" rx="7.4" ry="3.1" fill="#1a2542" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<path d="M.6 3.4 v10 c0 1.7 3.3 3.1 7.4 3.1 s7.4-1.4 7.4-3.1 V3.4" fill="#141e36" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<path d="M.6 8.4 c0 1.7 3.3 3.1 7.4 3.1 s7.4-1.4 7.4-3.1" fill="none" stroke="#3ee0ff" stroke-width=".9" opacity=".6"/>',
+    gantt:  '<rect x="0" y="0" width="19" height="15" rx="2" fill="#0f172b" stroke="#2a3860" stroke-width="1"/>'+
+            '<rect x="2.5" y="3" width="11" height="2.4" rx="1.2" fill="#3ee0ff"/>'+
+            '<rect x="5" y="6.6" width="9" height="2.4" rx="1.2" fill="#8b7bff"/>'+
+            '<rect x="8" y="10.2" width="8" height="2.4" rx="1.2" fill="#ffb454"/>',
+    cube:   '<path d="M9 0 L18 5 L9 10 L0 5 Z" fill="#8b7bff"/>'+
+            '<path d="M0 5 L9 10 L9 19 L0 14 Z" fill="#5a4ec2"/>'+
+            '<path d="M18 5 L9 10 L9 19 L18 14 Z" fill="#6f61e0"/>',
+    watch:  '<circle cx="9" cy="10" r="7.6" fill="#141e36" stroke="#c3ff5b" stroke-width="1.4"/>'+
+            '<rect x="7" y="0" width="4" height="3" rx="1" fill="#c3ff5b"/>'+
+            '<path d="M9 10 L9 5.5 M9 10 L12.4 12" stroke="#c3ff5b" stroke-width="1.4" stroke-linecap="round"/>',
+    coin:   '<ellipse cx="8" cy="13" rx="7.4" ry="3" fill="#ffb454"/><ellipse cx="8" cy="9.6" rx="7.4" ry="3" fill="#ffc978"/>'+
+            '<ellipse cx="8" cy="6.2" rx="7.4" ry="3" fill="#ffb454"/>'+
+            '<path d="M6 6.2 h4 M8 4.6 v3.2" stroke="#7a4d00" stroke-width="1"/>',
+    caliper:'<rect x="0" y="4" width="18" height="3" rx="1" fill="#a9b6d6"/>'+
+            '<rect x="1" y="1" width="3" height="12" rx="1" fill="#8ea0c4"/>'+
+            '<rect x="10" y="1" width="3" height="12" rx="1" fill="#3ee0ff"/>'+
+            '<g stroke="#5b6a8c" stroke-width=".7"><path d="M5 4v-2M7 4v-2M9 4v-2M15 4v-2"/></g>',
+    swatch: '<g><rect x="0" y="4" width="5" height="14" rx="1.5" fill="#ff4d6d" transform="rotate(-16 2.5 11)"/>'+
+            '<rect x="5" y="3" width="5" height="14" rx="1.5" fill="#ffb454"/>'+
+            '<rect x="10" y="4" width="5" height="14" rx="1.5" fill="#3ee0ff" transform="rotate(16 12.5 11)"/></g>',
+    chip:   '<rect x="3" y="3" width="12" height="12" rx="1.6" fill="#141e36" stroke="#3ee0ff" stroke-width="1.2"/>'+
+            '<rect x="6" y="6" width="6" height="6" rx="1" fill="#3ee0ff" opacity=".7"/>'+
+            '<g stroke="#a9b6d6" stroke-width="1.2"><path d="M6 3V.8M9 3V.8M12 3V.8M6 15v2.2M9 15v2.2M12 15v2.2M3 6H.8M3 9H.8M3 12H.8M15 6h2.2M15 9h2.2M15 12h2.2"/></g>',
+    pcb:    '<rect x="0" y="0" width="18" height="15" rx="1.6" fill="#0d3b2e" stroke="#2ee59d" stroke-width="1"/>'+
+            '<g stroke="#c3ff5b" stroke-width=".9" fill="none"><path d="M2 3h6v4h7M2 8v4h5M11 12h5"/></g>'+
+            '<g fill="#ffb454"><rect x="8" y="2" width="4" height="3" rx=".6"/><circle cx="4" cy="12" r="1.3"/></g>',
+    rack:   '<rect x="0" y="0" width="15" height="19" rx="1.8" fill="#0f172b" stroke="#2a3860" stroke-width="1"/>'+
+            '<g><rect x="2" y="2.4" width="11" height="3" rx=".8" fill="#1a2542"/><rect x="2" y="6.6" width="11" height="3" rx=".8" fill="#1a2542"/>'+
+            '<rect x="2" y="10.8" width="11" height="3" rx=".8" fill="#1a2542"/><rect x="2" y="15" width="11" height="2.4" rx=".8" fill="#1a2542"/></g>'+
+            '<g fill="#2ee59d"><circle cx="4" cy="3.9" r="1"/><circle cx="4" cy="8.1" r="1"/><circle cx="4" cy="12.3" r="1"/></g>'+
+            '<g fill="#3ee0ff"><circle cx="7" cy="3.9" r="1"/><circle cx="7" cy="12.3" r="1"/></g>'
+  };
+  return P[id] || '';
+}
+
+const STATUS = {
+  working:{label:'工作中', cls:'working'},
+  meeting:{label:'開會中', cls:'meeting'},
+  idle:   {label:'待命',   cls:'idle'},
+  blocked:{label:'等決策', cls:'blocked'},
+  briefing:{label:'台上分派', cls:'meeting'}
+};
+
+const CEO = {
+  id:'ceo', name:'CEO（主 session）', role:'拆任務、派工、追進度、push 與回報',
+  status:'briefing', floor:'10F 指揮層',
+  look:{skin:'b', hair:'short', hairC:'gry', glasses:1, suit:'#2b3a63', shirt:'#e8eeff', prop:'baton'},
+  now:{t:'本輪分派：C1／C2 先做，C4 ＋ A4 併成同一輪', pct:35, since:'15:12'},
+  files:['CLAUDE.md','HANDOFF.md','DECISIONS.md','.github/workflows/'],
+  assign:[
+    {k:'C1', t:'兩格等大、超出改拉 Bar', who:'frontend-ui'},
+    {k:'C2', t:'多寬度掃描（canvas 的字看不到）', who:'reviewer'},
+    {k:'C3', t:'供應鏈關聯圖改環節卡', who:'industry-analyst'},
+    {k:'C4+A4', t:'併同一輪，排在 C1／C2 之後', who:'frontend-ui'}
+  ]
+};
+
+const AGENTS = [
+  { id:'finance-quant', name:'金融專家', role:'這個數字該怎麼算、什麼時候可以用', status:'working', floor:'6F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#1f5d7a',prop:'calc'},
+    now:{t:'N8：查熱力圖 avg_excess 是不是真的全空', pct:62, since:'14:05'},
+    done:['PE 一律自算（不用單季 ×4）','財報可用日改用法定期限','分位樣本 <5 退回法定產業、<3 留白'],
+    doing:['N8 超額 & 絕對報酬看起來沒變化 —— 先查是不是真的沒變，再談畫面'],
+    todo:['N9：季節性改「最近 12×N 個完整月」滾動視窗（併在批次4）','樣本數 n 要顯示到前端每一張季節性圖'],
+    files:['compute/fundamental.py','compute/season.py','compute/stockpage.py'] },
+
+  { id:'frontend-ui', name:'UI 專家', role:'版面、圖表、互動、手機寬', status:'meeting', floor:'5F',
+    look:{skin:'e',hair:'bun',hairC:'brn',glasses:0,suit:'#6f61e0',prop:'palette'},
+    now:{t:'會議中：C4 ＋ A4 要怎麼併成一輪', pct:20, since:'15:12'},
+    done:['批次1 六件純前端（_uitest 0 個問題）','N2 兩排族群晶片名單統一','N5 輪動時鐘圓圈放大'],
+    doing:['C1 熱門題材內容被裁掉、沒有捲軸 —— 先量再改','C2 三張圖改掉百分比定位'],
+    todo:['C4 族群列改「漲跌分佈」式篩選（沿用 wireDistFilter，不重寫）','A4 輪動時鐘八條：＋／− 鈕、移除旋轉箭頭、30 天、平滑移動、軌跡可開關'],
+    files:['site/app.js','site/index.html','site/industry.js'] },
+
+  { id:'data-scraper', name:'爬蟲專家', role:'資料源接入、額度、可失敗設計', status:'blocked', floor:'4F',
+    look:{skin:'c',hair:'buzz',hairC:'blk',glasses:0,hat:'headset',suit:'#2b6d5a',prop:'web'},
+    now:{t:'卡住：FinMind token 失效，全站資料停止更新', pct:0, since:'昨日 22:46'},
+    done:['mis 即時報價白名單接入','分 K 進資料湖（部署省下 13 分 43 秒）','每輪第一件事先做 FinMind 健檢'],
+    doing:[],
+    todo:['等 Andy 重新產生 FinMind token 並更新 GitHub Secret','N4：rrg trail 由 20 天拉到 30 天','N11：台指夜盤 mis.taifex（批次5）'],
+    blockedBy:'HTTP 400：Token is illegal.（data/_state 健檢原文）',
+    files:['pipeline/sources/finmind.py','pipeline/util/http.py','run_daily.py'] },
+
+  { id:'smc-technical', name:'技術分析專家', role:'指標、SMC、多週期判讀', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'wave',hairC:'blk',glasses:0,suit:'#7a3f5d',prop:'kline'},
+    now:null,
+    done:['KD 9,3,3 初始 50 前後端對齊','RSI Wilder 用 SMA 種子，與 TradingView 對得上','多週期 SMC 支撐壓力區'],
+    doing:[],
+    todo:['技術分析教學層（等 visual-explainer 的名詞字典）','分 K 指標與日線口徑再驗一次'],
+    files:['pipeline/indicators.py','compute/technical.py','compute/mtf.py','site/chart.js'] },
+
+  { id:'industry-analyst', name:'產業分析師', role:'族群成分、題材、供應鏈、剖析圖', status:'meeting', floor:'7F',
+    look:{skin:'a',hair:'long',hairC:'blk',glasses:1,suit:'#3f5aa6',prop:'wafer'},
+    now:{t:'會議中：C3 供應鏈圖改成環節卡怎麼切', pct:30, since:'15:12'},
+    done:['圖十供應鏈關聯圖上線','三位鏈別分析師查證後改掉 5 條錯的關係'],
+    doing:['C3：關聯圖上下太長 → 改成環節卡 ＋ 個股小卡'],
+    todo:['其餘產業鏈 3D 剖析圖（ROADMAP 第二批）'],
+    files:['groups/supply_chain.yaml','groups/themes.yaml','site/diagrams.js'] },
+
+  { id:'reviewer', name:'審核專家', role:'只驗收不改扣，跑完整清單不抽查', status:'working', floor:'8F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#4a5c8f',prop:'glass'},
+    now:{t:'把 _preview.py 改成多寬度掃描（1366／1440／1536／1920）', pct:48, since:'13:40'},
+    done:['批次1 十二條新驗收全過','抓出 _uitest 在 main 上本來就有 47 條紅的'],
+    doing:['C2 根因：app.js 用 canvas renderer，圖裡的字在 DOM 上不存在 → 驗收時切 SVG'],
+    todo:['祖先元素不算重疊（探測腳本的坑，已記）','新功能一律補一段「真的操作它」的驗收'],
+    files:['scripts/_preview.py','scripts/_uitest.py','tests/'] },
+
+  { id:'strategy-backtest', name:'策略回測', role:'照這套規則做，過去到底賺不賺', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'curly',hairC:'brn',glasses:0,suit:'#8a5a2b',prop:'curve'},
+    now:null, done:[],
+    doing:[],
+    todo:['compute/backtest.py、strategy.py 都還沒建立','訊號一律「收盤後產生 → 隔日開盤成交」','紙上帳本：每次訊號的進出價、報酬率、最大回撤'],
+    files:['compute/backtest.py（未建立）','compute/strategy.py（未建立）'] },
+
+  { id:'visual-explainer', name:'圖解教學', role:'看不懂的東西要有人翻成人話', status:'working', floor:'7F',
+    look:{skin:'e',hair:'pony',hairC:'gold',glasses:1,suit:'#b26a2e',prop:'easel'},
+    now:{t:'N6：四段之間順時針箭頭畫到位 ＋ 一句白話', pct:70, since:'14:20'},
+    done:['名詞字典 TERMS 第一版','每張圖的「怎麼看 ?」說明'],
+    doing:['A4 第 4 條：補充「圓心到圓圈邊緣代表什麼」'],
+    todo:['技術分析教學層','剖析圖旁邊的知識連結'],
+    files:['site/app.js（TERMS）','site/industry.js'] },
+
+  { id:'data-steward', name:'資料治理', role:'資料新不新、壞了誰知道', status:'working', floor:'4F',
+    look:{skin:'c',hair:'short',hairC:'gry',glasses:1,suit:'#2f6f8f',prop:'db'},
+    now:{t:'健檢機制：每輪第一件事問「台積電最近 10 天日線」', pct:85, since:'09:05'},
+    done:['頂端資料狀態列','backfill_progress.json 寫入健檢結果','抓到 FinMind token 失效並寫出原文'],
+    doing:['把三個長期失敗的來源列進橫幅：twse.dividend／tdcc.shareholding／macro.fred'],
+    todo:['每週健檢報告'],
+    files:['data/_state/','pipeline/build_payload.py'] },
+
+  { id:'delivery-planner', name:'交付排程', role:'這批有幾件事、先做哪個、做完了沒', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'short',hairC:'brn',glasses:0,suit:'#3d7a63',prop:'gantt'},
+    now:{t:'會議中：C 批順序與併輪', pct:55, since:'15:12'},
+    done:['C 批任務板（C1–C4 ＋ A4）','批次1–5、7 與 6-N1 逐項核對'],
+    doing:['盯 C4 那句「也可以篩選想要的股票」要先定義清楚'],
+    todo:['交付後逐項回頭核對 HANDOFF 的進度欄'],
+    files:['HANDOFF.md'] },
+
+  { id:'tech-illustrator', name:'機構繪圖', role:'剖析圖、封裝結構、3D 零件', status:'idle', floor:'7F',
+    look:{skin:'b',hair:'bun',hairC:'red',glasses:0,hat:'cap',suit:'#6a4fa3',prop:'cube'},
+    now:null,
+    done:['圖九、圖十上線','N1：3D 圖可平移、仰角放開（看得到底部）'],
+    doing:[],
+    todo:['等 mechanical-engineer 簽掉 docs/diagram_specs/ 才能開畫下一張'],
+    files:['site/diagrams.js','site/themes3d.js','site/three3d.js'] },
+
+  { id:'efficiency-planner', name:'效率規劃', role:'這步能不能不做、哪個 CP 值最高', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'buzz',hairC:'blk',glasses:1,suit:'#4f7a2e',prop:'watch'},
+    now:{t:'會議中：三個都動 app.js，不能平行', pct:40, since:'15:12'},
+    done:['純前端改動可跳過 pytest（省 7.5 分鐘）','分 K 進資料湖（部署 14m26s 降到約 3 分）'],
+    doing:['關卡一輪 18 分鐘，評估哪幾段可以只跑受影響的部分'],
+    todo:['部署後自動比對線上版號，省掉人工確認'],
+    files:['.github/workflows/','scripts/'] },
+
+  { id:'resource-auditor', name:'資源稽核', role:'Token／額度／Actions 分鐘數', status:'working', floor:'9F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#8a6a1f',prop:'coin'},
+    now:{t:'估這一批的 Token 預算與 Actions 分鐘數', pct:30, since:'15:20'},
+    done:['FinMind 額度用量記錄','抓出重抓分 K 每天白花的額度'],
+    doing:['這一輪：外觀稿先做、功能後接，避免整套重做'],
+    todo:['每批工作設 Token 上限並在超出前示警'],
+    files:['pipeline/util/http.py','.github/workflows/'] },
+
+  { id:'mechanical-engineer', name:'結構審查', role:'畫得對不對（開畫前先寫規格書）', status:'idle', floor:'8F',
+    look:{skin:'b',hair:'short',hairC:'blk',glasses:0,hat:'helmet',suit:'#7a4a2e',prop:'caliper'},
+    now:null,
+    done:['圖十規格書與驗收','擋掉三張「先畫再想」的圖'],
+    doing:[],
+    todo:['下一張剖析圖的 docs/diagram_specs/<id>.md'],
+    files:['docs/diagram_specs/'] },
+
+  { id:'art-director', name:'視覺總監', role:'畫得好不好看（擁有 --dg-*）', status:'idle', floor:'8F',
+    look:{skin:'e',hair:'long',hairC:'red',glasses:0,hat:'beret',suit:'#5b4b9c',prop:'swatch'},
+    now:null,
+    done:['--dg-* 視覺變數收斂','淺色主題白字白線一次清掉'],
+    doing:[],
+    todo:['這張辦公室頁的配色與字級要過一次（外觀稿待審）'],
+    files:['site/index.html（--dg-*）','site/diagrams.js'] },
+
+  { id:'semi-chain-analyst', name:'半導體鏈分析師', role:'去外面查：誰幫誰代工、封測客戶是誰', status:'working', floor:'3F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#2d6e8c',prop:'chip'},
+    now:{t:'查證 CoWoS 與測試介面的三條關係（兩個獨立來源才給高信心）', pct:55, since:'14:50'},
+    done:['打掉 5 條錯的供應鏈關係、2 條半對的'],
+    doing:['先進封裝環節的客戶關係方向確認'],
+    todo:['查不到的要寫「查不到」，不要用推測補'],
+    files:['（只查不改）'] },
+
+  { id:'pcb-substrate-analyst', name:'載板分析師', role:'去外面查：載板 vs PCB、材料來自誰', status:'idle', floor:'3F',
+    look:{skin:'c',hair:'wave',hairC:'brn',glasses:0,suit:'#2f7a4e',prop:'pcb'},
+    now:null,
+    done:['ABF／BT 載板與高階 PCB 的分類修正'],
+    doing:[],
+    todo:['CCL／銅箔／玻纖布這一段的客戶關係待查'],
+    files:['（只查不改）'] },
+
+  { id:'ai-server-analyst', name:'AI 伺服器分析師', role:'去外面查：散熱／電源／光通訊／機櫃', status:'idle', floor:'3F',
+    look:{skin:'b',hair:'curly',hairC:'blk',glasses:1,suit:'#3a5f9c',prop:'rack'},
+    now:null,
+    done:['光通訊磊晶／晶粒／模組分層更正','800V HVDC 電源鏈補齊'],
+    doing:[],
+    todo:['機櫃組裝這一段有沒有斷頭斷尾要再掃一次'],
+    files:['（只查不改）'] }
+];
+
+const MEETING = {
+  topic:'C4 ＋ A4 併成同一輪（三個都動 site/app.js，不能平行）',
+  since:'15:12', elapsed:'進行 23 分',
+  members:['frontend-ui','delivery-planner','efficiency-planner','industry-analyst'],
+  log:[
+    {who:'delivery-planner', s:'C1／C2 沒驗完之前 C4 不要開工 —— 三個都動 app.js。'},
+    {who:'efficiency-planner', s:'C4 跟 A4 動的是同一張圖，拆兩輪＝同一張圖改兩次、驗兩次。'},
+    {who:'frontend-ui', s:'C4 用現成的 wireDistFilter（app.js:576），不重寫一套篩選。'},
+    {who:'industry-analyst', s:'C3 的環節卡我自己來，跟 app.js 不衝突，可以平行。'},
+    {who:'delivery-planner', s:'「也可以篩選想要的股票」先照 (a) 做：面板裡除了族群也能勾個股。'},
+    {who:'efficiency-planner', s:'這輪只動 site/**，pytest 可以跳過，省 7.5 分鐘 —— 但要跟 Andy 講一聲。'}
+  ]
+};
+
+const BOARD = {
+  todo:[
+    {k:'C1', t:'熱門題材／今日候選兩格一樣大，超出改拉 Bar', who:'frontend-ui', state:'go'},
+    {k:'C2', t:'換一台電腦版面就跑掉（多寬度掃描）', who:'reviewer', state:'go'},
+    {k:'C3', t:'供應鏈關聯圖改成環節卡 ＋ 個股小卡', who:'industry-analyst', state:'go'},
+    {k:'C4', t:'資金流向排行／輪動時鐘的族群列改成篩選式', who:'frontend-ui', state:'queue'},
+    {k:'A4', t:'輪動時鐘一整包八條（與 C4 併輪）', who:'frontend-ui', state:'queue'}
+  ],
+  wait:[
+    {k:'★', t:'FinMind token 失效 —— 只有 Andy 能換（Secrets）', who:'data-scraper'}
+  ],
+  done:[
+    {k:'批次1', t:'六件純前端快修，_uitest 0 個問題'},
+    {k:'批次7', t:'N1–N7、N10 上線'},
+    {k:'圖九／圖十', t:'產業鏈剖析圖與供應鏈關聯圖'},
+    {k:'健檢', t:'每輪先問一次台積電日線，壞了馬上知道'},
+    {k:'分 K', t:'進資料湖，部署 14m26s 變約 3 分'}
+  ]
+};
+
+/* ============================================================
+   3. 畫出村子
+   ============================================================ */
+const byId = id => id === 'ceo' ? CEO : AGENTS.find(a => a.id === id);
+const nameOf = id => (byId(id) || {name:id}).name;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ROOFS = ['#ff9aa2','#7ec8e3','#7ddcb1','#ffbe7b','#c3b3f0','#9ad86f','#ffd25e','#f4a6c8'];
+const ICON = {
+  working:'<path d="M4 20l4-1 10-10-3-3L5 16z"/>',
+  meeting:'<path d="M4 5h16v10H9l-5 4z"/>',
+  idle:'<path d="M7 8h7l-7 8h7"/>',
+  blocked:'<path d="M12 6v7"/><path d="M12 17v.4"/>',
+  briefing:'<path d="M4 5h16v10H9l-5 4z"/>'
+};
+const mk = s => '<span class="mk ' + STATUS[s].cls + '"><svg viewBox="0 0 24 24" aria-hidden="true">' + ICON[s] + '</svg></span>';
+const moveOf = st => st === 'working' ? 'type' : (st === 'meeting' || st === 'briefing' ? 'nod' : 'idle');
+
+function yardHTML(a){
+  const away = a.status === 'meeting';
+  return '<span class="yard">' +
+    '<span class="cloud"></span><span class="lawn"></span>' +
+    '<span class="door"></span>' +
+    '<span class="tree"><b></b><i></i></span>' +
+    '<span class="flower"></span><span class="flower two"></span>' +
+    (away
+      ? '<span class="away">到圓桌開會去了 →</span>'
+      : '<span class="person">' + avatar(a.look, moveOf(a.status), a.name) + '</span>' +
+        '<span class="mood">' + mk(a.status) + esc(a.now ? STATUS[a.status].label : '曬太陽中') + '</span>') +
+    '</span>';
+}
+function hutHTML(a, i){
+  const st = STATUS[a.status], now = a.now;
+  return '<button class="hut" type="button" data-id="' + a.id + '" data-status="' + a.status + '" style="--roof:' + ROOFS[i % ROOFS.length] + '">' +
+    '<span class="roof"></span>' +
+    '<span class="sign"><span class="nm">' + esc(a.name) + '</span><code class="id">' + esc(a.id) + '</code>' +
+      '<span class="st">' + st.label + '</span></span>' +
+    yardHTML(a) +
+    '<span class="task">' +
+      '<span class="now">' + (now ? '<b>現在：</b>' + esc(now.t) : '<b>待命中</b> · 沒有進行中的任務') + '</span>' +
+      '<span class="bar' + (a.status === 'blocked' ? ' stop' : '') + '"><i style="width:' + (now ? now.pct : 0) + '%"></i></span>' +
+      '<span class="counts"><span class="c1">完成 <b>' + (a.done || []).length + '</b></span>' +
+        '<span class="c2">進行 <b>' + (a.doing || []).length + '</b></span>' +
+        '<span class="c3">未完成 <b>' + (a.todo || []).length + '</b></span></span>' +
+    '</span></button>';
+}
+function renderOffices(){
+  document.getElementById('offices').innerHTML = AGENTS.map(hutHTML).join('');
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  document.getElementById('officecount').textContent =
+    AGENTS.length + ' 位 · 工作中 ' + c('working') + ' · 開會中 ' + c('meeting') + ' · 待命 ' + c('idle') + ' · 等決策 ' + c('blocked');
+}
+
+function renderStage(){
+  const crowd = ['frontend-ui','reviewer','industry-analyst'].map(id => {
+    const a = byId(id);
+    return '<span class="person">' + avatar(a.look, 'idle', a.name) + '</span>';
+  }).join('');
+  document.getElementById('stage').innerHTML =
+    '<button class="hut stage" type="button" data-id="ceo" data-status="briefing" style="--roof:#ffd25e">' +
+      '<span class="roof"></span>' +
+      '<span class="sign"><span class="nm">村長的舞台 · 分派中</span><code class="id">main session</code>' +
+        '<span class="st">台上分派</span></span>' +
+      '<span class="yard">' +
+        '<span class="cloud"></span><span class="lawn"></span>' +
+        '<span class="banner"><h4>今天的分工</h4>' +
+          CEO.assign.map(x => '<li><em>' + esc(x.k) + '</em>' + esc(x.t) + '</li>').join('') + '</span>' +
+        '<span class="flag"></span><span class="dais"></span>' +
+        '<span class="person boss">' + avatar(CEO.look, 'nod', 'CEO') + '</span>' +
+        '<span class="crowd">' + crowd + '</span>' +
+      '</span>' +
+      '<span class="task"><span class="now"><b>現在：</b>' + esc(CEO.now.t) + '</span>' +
+        '<span class="bar"><i style="width:' + CEO.now.pct + '%"></i></span>' +
+        '<span class="counts"><span class="c1">已完成 <b>' + BOARD.done.length + '</b></span>' +
+          '<span class="c2">待辦 <b>' + BOARD.todo.length + '</b></span>' +
+          '<span class="c3">等 Andy <b>' + BOARD.wait.length + '</b></span></span></span>' +
+    '</button>';
+}
+
+function noteHTML(n, kind){
+  const cls = kind === 'done' ? 'note done' : (kind === 'wait' ? 'note wait' : 'note');
+  return '<button class="' + cls + '" type="button" data-id="' + (n.who || '') + '">' +
+    '<span class="k">' + esc(n.k) + '</span><span class="t">' + esc(n.t) + '</span>' +
+    (n.who ? '<span class="who">' + esc(nameOf(n.who)) + '</span>' : '') + '</button>';
+}
+function renderBoard(){
+  document.getElementById('board').innerHTML =
+    '<header><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" aria-hidden="true">' +
+      '<rect x="3" y="4" width="18" height="15" rx="3"></rect><path d="M7 9h10M7 13h6" stroke-linecap="round"></path></svg>' +
+      '<h2>廣場布告欄</h2><span class="sub">C 批 · 2026-09-20</span></header>' +
+    '<div class="boardbody">' +
+      '<div class="col"><h3>今天要做 <span class="c">' + (BOARD.todo.length + BOARD.wait.length) + '</span></h3>' +
+        '<div class="notes">' + BOARD.wait.map(n => noteHTML(n, 'wait')).join('') + BOARD.todo.map(n => noteHTML(n)).join('') + '</div></div>' +
+      '<div class="col"><h3>之前完成 <span class="c">' + BOARD.done.length + '</span></h3>' +
+        '<div class="notes">' + BOARD.done.map(n => noteHTML(n, 'done')).join('') + '</div></div></div>';
+}
+
+const SEATS = [{left:'8%', bottom:'152px'}, {left:'64%', bottom:'152px'},
+               {left:'22%', bottom:'18px'},  {left:'54%', bottom:'18px'}];
+function renderMeeting(){
+  const seats = MEETING.members.map((id, i) => {
+    const a = byId(id), p = SEATS[i] || SEATS[0];
+    return '<span class="seat" style="left:' + p.left + ';bottom:' + p.bottom + '">' +
+      '<span class="person">' + avatar(a.look, 'nod', a.name) + '</span>' +
+      '<span class="tag">' + esc(a.name) + '</span></span>';
+  }).join('');
+  document.getElementById('meeting').innerHTML =
+    '<button class="hut meet" type="button" data-id="meeting" data-status="meeting" style="--roof:#7ec8e3">' +
+      '<span class="roof"></span>' +
+      '<span class="sign"><span class="nm">廣場圓桌 · 討論中</span><code class="id">' + MEETING.members.length + ' 位</code>' +
+        '<span class="st">' + esc(MEETING.elapsed) + '</span></span>' +
+      '<span class="yard">' +
+        '<span class="cloud"></span><span class="lawn"></span>' +
+        '<span class="mtimer">' + esc(MEETING.since) + ' 開始</span>' +
+        '<span class="rtable"></span>' + seats +
+        '<span class="bubble" id="bub1" style="left:12px;bottom:198px"></span>' +
+        '<span class="bubble" id="bub2" style="right:12px;bottom:240px"></span>' +
+      '</span>' +
+      '<span class="task"><span class="now"><b>討論中：</b>' + esc(MEETING.topic) + '</span>' +
+        '<span class="counts">' + MEETING.members.map(id => '<span class="c2">' + esc(nameOf(id)) + '</span>').join('') + '</span></span>' +
+    '</button>';
+  cycleBubbles();
+}
+let bubTimer = null, bubIdx = 0;
+function paintBubble(node, entry){
+  if (!node) return;
+  node.innerHTML = '<span class="sp">' + esc(nameOf(entry.who)) + '</span>' + esc(entry.s);
+  node.style.animation = 'none'; void node.offsetWidth; node.style.animation = '';
+}
+function cycleBubbles(){
+  const b1 = document.getElementById('bub1'), b2 = document.getElementById('bub2');
+  const step = () => {
+    paintBubble(b1, MEETING.log[bubIdx % MEETING.log.length]);
+    paintBubble(b2, MEETING.log[(bubIdx + 1) % MEETING.log.length]);
+    bubIdx = (bubIdx + 2) % MEETING.log.length;
+  };
+  step();
+  if (bubTimer) clearInterval(bubTimer);
+  bubTimer = setInterval(step, 4200);
+}
+
+function listHTML(arr, cls, empty){
+  if (!arr || !arr.length) return '<p class="item" style="color:var(--ink-3)">' + empty + '</p>';
+  return '<div class="list">' + arr.map((t, i) =>
+    '<div class="item ' + cls + '"><span class="k">' + String(i + 1).padStart(2, '0') + '</span><span>' + esc(t) + '</span></div>').join('') + '</div>';
+}
+function openDrawer(id){
+  const body = document.getElementById('dbody');
+  if (id === 'meeting'){
+    document.getElementById('dav').innerHTML = avatar(byId(MEETING.members[0]).look, 'nod', '');
+    document.getElementById('dname').textContent = '廣場圓桌';
+    document.getElementById('did').textContent = MEETING.members.join(' · ');
+    body.innerHTML =
+      '<div class="sect"><h3>議題</h3><p class="item go">' + esc(MEETING.topic) + '</p></div>' +
+      '<div class="sect"><h3>參與者 <span class="c">' + MEETING.members.length + '</span></h3><div class="files">' +
+        MEETING.members.map(m => '<code>' + esc(nameOf(m)) + '</code>').join('') + '</div></div>' +
+      '<div class="sect"><h3>討論內容 <span class="c">' + MEETING.log.length + ' 則</span></h3>' +
+        MEETING.log.map(l => '<p class="talkline"><b>' + esc(nameOf(l.who)) + '</b>：' + esc(l.s) + '</p>').join('') + '</div>';
+  } else {
+    const a = byId(id); if (!a) return;
+    const st = STATUS[a.status];
+    document.getElementById('dav').innerHTML = avatar(a.look, moveOf(a.status), a.name);
+    document.getElementById('dname').textContent = a.name;
+    document.getElementById('did').textContent = a.id + ' · ' + (a.floor || '');
+    body.innerHTML =
+      '<div class="sect"><dl class="kv">' +
+        '<dt>狀態</dt><dd>' + mk(a.status) + ' ' + st.label + '</dd>' +
+        '<dt>職責</dt><dd>' + esc(a.role) + '</dd>' +
+        (a.now ? '<dt>開始於</dt><dd class="mono">' + esc(a.now.since) + '</dd>' : '') +
+        (a.blockedBy ? '<dt>卡在</dt><dd style="color:var(--stop)">' + esc(a.blockedBy) + '</dd>' : '') +
+      '</dl></div>' +
+      (a.now ? '<div class="sect"><h3>目前進行 <span class="c">' + a.now.pct + '%</span></h3>' +
+        '<p class="item go">' + esc(a.now.t) + '</p>' +
+        '<div class="bar" style="margin-top:9px"><i style="width:' + a.now.pct + '%"></i></div></div>' : '') +
+      '<div class="sect"><h3>已完成 <span class="c">' + (a.done || []).length + '</span></h3>' + listHTML(a.done, 'ok', '還沒有完成項目') + '</div>' +
+      '<div class="sect"><h3>進行中 <span class="c">' + (a.doing || []).length + '</span></h3>' + listHTML(a.doing, 'go', '目前沒有進行中的項目') + '</div>' +
+      '<div class="sect"><h3>未完成／在等什麼 <span class="c">' + (a.todo || []).length + '</span></h3>' +
+        listHTML(a.todo, a.status === 'blocked' ? 'blocked' : '', '沒有排隊中的項目') + '</div>' +
+      (a.status === 'meeting' ? '<div class="sect"><h3>正在討論</h3><p class="talkline"><b>' + esc(MEETING.topic) + '</b></p>' +
+        MEETING.log.filter(l => l.who === a.id).map(l => '<p class="talkline">' + esc(l.s) + '</p>').join('') + '</div>' : '') +
+      '<div class="sect"><h3>負責檔案</h3><div class="files">' + (a.files || []).map(f => '<code>' + esc(f) + '</code>').join('') + '</div></div>';
+  }
+  document.getElementById('scrim').hidden = false;
+  document.getElementById('drawer').hidden = false;
+  requestAnimationFrame(() => document.body.classList.add('open'));
+  document.getElementById('closebtn').focus();
+}
+function closeDrawer(){
+  document.body.classList.remove('open');
+  setTimeout(() => { document.getElementById('scrim').hidden = true; document.getElementById('drawer').hidden = true; }, 220);
+}
+function renderFilters(){
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  const defs = [['all','全部',AGENTS.length,''],['working','工作中',c('working'),'working'],
+                ['meeting','開會中',c('meeting'),'meeting'],['idle','待命',c('idle'),'idle'],
+                ['blocked','等決策',c('blocked'),'blocked']];
+  document.getElementById('filters').innerHTML = defs.map(([k, label, n, s], i) =>
+    '<button class="pill" type="button" data-f="' + k + '" aria-pressed="' + (i === 0) + '">' +
+      (s ? mk(s) : '') + label + ' <span class="n">' + n + '</span></button>').join('');
+}
+function applyFilter(f){
+  document.querySelectorAll('#filters .pill').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === f)));
+  document.querySelectorAll('#offices .hut').forEach(r => r.classList.toggle('dim', f !== 'all' && r.dataset.status !== f));
+}
+function tick(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+function initTheme(){
+  let saved = null;
+  try { saved = localStorage.getItem('village-theme'); } catch (e) {}
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themebtn').addEventListener('click', () => {
+    const now = document.documentElement.getAttribute('data-theme');
+    const isNight = now === 'night' || (!now && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const next = isNight ? 'day' : 'night';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('village-theme', next); } catch (e) {}
+  });
+}
+
+renderFilters(); renderStage(); renderBoard(); renderMeeting(); renderOffices();
+initTheme(); tick(); setInterval(tick, 1000);
+
+document.addEventListener('click', (e) => {
+  const note = e.target.closest('.note');
+  if (note){ if (note.dataset.id) openDrawer(note.dataset.id); return; }
+  const pill = e.target.closest('#filters .pill');
+  if (pill){ applyFilter(pill.dataset.f); return; }
+  const hut = e.target.closest('.hut');
+  if (hut){ openDrawer(hut.dataset.id); return; }
+  if (e.target.closest('#closebtn') || e.target.id === 'scrim') closeDrawer();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeDrawer(); });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="輪動團隊虛擬辦公室 — 像素風（Star-Office 架構）外觀稿">
+<title>輪動像素辦公室</title>
+</head>
+<body>
+<style>
+/* ──────────────────────────────────────────────────────────────
+   B 版：像素辦公室
+   架構參考 Star-Office-UI（ringhyacinth）：一間共用辦公室，
+   角色依「狀態」自動站到對應區域（工位／圓桌／休息區／Bug 角落／講台），
+   右邊是狀態總覽、昨日備忘、Agent 名單。
+   整個場景是一張 SVG，所以縮放不會糊；shape-rendering 用 crispEdges 保持像素邊。
+   ────────────────────────────────────────────────────────────── */
+:root{
+  --bg:#141426; --bg-2:#1d1d35; --panel:#232342; --panel-2:#2c2c51; --panel-3:#383866;
+  --line:#3d3d6b; --line-2:#55558f; --edge:#0e0e1c;
+  --ink:#eef0ff; --ink-2:#b3b6e0; --ink-3:#7d81b5;
+  --go:#ffc24d; --ok:#5fd79a; --info:#63c7f0; --stop:#ff6b81; --idle:#8d92c4;
+  --wall:#46527f; --wall-2:#39446b; --floor:#a9744f; --floor-2:#96643f;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,"Segoe UI",sans-serif;
+  --hard:4px 4px 0 var(--edge);
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#e7e9f7; --bg-2:#dcdff2; --panel:#ffffff; --panel-2:#f1f2fb; --panel-3:#e2e4f6;
+    --line:#c3c7e4; --line-2:#9aa0cc; --edge:#2b2f52;
+    --ink:#1b1f3d; --ink-2:#4b5182; --ink-3:#797fae;
+    --go:#c8860a; --ok:#1c9c62; --info:#1682ad; --stop:#d63a54; --idle:#6f75a5;
+    --hard:4px 4px 0 rgba(43,47,82,.25);
+  }
+}
+:root[data-theme="dark"]{ color-scheme:dark }
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; line-height:1.6;
+  background-image:linear-gradient(180deg,var(--bg),var(--bg-2));
+  background-attachment:fixed;
+}
+h1,h2,h3{margin:0; font-weight:800; text-wrap:balance}
+code,.mono{font-family:var(--mono)}
+:focus-visible{outline:2px solid var(--go); outline-offset:2px}
+
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:10px 16px;
+  background:var(--panel); border-bottom:3px solid var(--edge);
+}
+.brand b{font-size:16px; letter-spacing:.06em; display:block; line-height:1.2}
+.brand span{font-size:10.5px; color:var(--ink-3); letter-spacing:.2em; font-family:var(--mono)}
+.spacer{flex:1 1 auto}
+.pill{
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-family:var(--mono);
+  padding:5px 11px; border:2px solid var(--line-2); background:var(--panel-2); color:var(--ink-2); font-size:12px;
+}
+.pill:hover{border-color:var(--go); color:var(--ink)}
+.pill[aria-pressed="true"]{background:var(--panel-3); color:var(--ink); border-color:var(--go)}
+.px{width:10px; height:10px; flex:none; background:var(--idle); box-shadow:0 0 0 2px var(--edge)}
+.px.working{background:var(--go)} .px.meeting{background:var(--info)}
+.px.idle{background:var(--idle)} .px.blocked{background:var(--stop)} .px.briefing{background:#c49bff}
+.clock{font-family:var(--mono); font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.verbadge{font-family:var(--mono); font-size:11px; color:var(--ink-2); border:2px solid var(--line-2); padding:2px 9px; white-space:nowrap}
+.iconbtn{width:32px; height:32px; display:grid; place-items:center; cursor:pointer;
+  border:2px solid var(--line-2); background:var(--panel-2); color:var(--ink-2)}
+.iconbtn:hover{border-color:var(--go); color:var(--go)}
+
+.wrap{max-width:1560px; margin:0 auto; padding:16px 16px 60px}
+.notice{display:flex; gap:10px; align-items:flex-start; font-size:12.5px; color:var(--ink-2);
+  background:var(--panel); border:2px dashed var(--line-2); padding:9px 12px; margin-bottom:16px}
+.notice b{color:var(--go)}
+.cols{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr); gap:16px; align-items:start}
+@media (max-width:1000px){ .cols{grid-template-columns:1fr} }
+
+.card{background:var(--panel); border:3px solid var(--edge); box-shadow:var(--hard)}
+.card > header{
+  display:flex; align-items:center; gap:9px; padding:8px 11px;
+  background:var(--panel-3); border-bottom:3px solid var(--edge);
+}
+.card > header h2{font-size:13px; letter-spacing:.1em}
+.card > header .sub{margin-left:auto; font-family:var(--mono); font-size:11px; color:var(--ink-2)}
+.card .pad{padding:12px}
+
+.scene{display:block; width:100%; height:auto; background:#0f1024; image-rendering:pixelated}
+.legend{display:flex; flex-wrap:wrap; gap:10px; padding:9px 11px; border-top:3px solid var(--edge); background:var(--panel-2);
+  font-family:var(--mono); font-size:11px; color:var(--ink-2)}
+.legend span{display:inline-flex; align-items:center; gap:6px}
+
+.sprite{cursor:pointer}
+.sprite:hover .hl{opacity:1}
+.bob{animation:bob 1.4s steps(2,end) infinite}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}
+.bob2{animation:bob 2.2s steps(2,end) infinite}
+.blink{animation:blink 1.6s steps(2,end) infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+.rows{display:grid}
+.row{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer;
+  padding:8px 11px; background:transparent; border:0; border-bottom:2px solid var(--line); color:inherit; font:inherit;
+}
+.row:hover{background:var(--panel-2)}
+.row .mini{width:26px; height:34px; flex:none}
+.row .mini svg{width:100%; height:100%; display:block}
+.row .nm{font-size:13px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.row .zone{font-family:var(--mono); font-size:10.5px; color:var(--ink-3)}
+.row .st{margin-left:auto; display:flex; align-items:center; gap:6px; font-size:11.5px; color:var(--ink-2); white-space:nowrap}
+.row.dim{opacity:.35}
+
+.memo{display:grid; gap:9px}
+.memoitem{display:flex; gap:9px; padding:8px 10px; background:var(--panel-2); border-left:4px solid var(--ok); font-size:12.5px; color:var(--ink-2)}
+.memoitem .k{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); flex:none}
+.todoitem{border-left-color:var(--go)}
+.waititem{border-left-color:var(--stop)}
+.meter{display:grid; gap:7px}
+.meter .m{display:grid; grid-template-columns:70px 1fr 34px; gap:9px; align-items:center; font-size:12px; color:var(--ink-2)}
+.meter .track{height:12px; background:var(--panel-2); border:2px solid var(--line-2)}
+.meter .track i{display:block; height:100%; background:repeating-linear-gradient(90deg,currentColor 0 4px, transparent 4px 6px)}
+.meter .n{font-family:var(--mono); text-align:right; color:var(--ink)}
+
+.scrim{position:fixed; inset:0; background:rgba(8,8,20,.66); z-index:50; opacity:0; transition:opacity .2s}
+.drawer{position:fixed; z-index:60; top:0; right:0; height:100%; width:min(440px,100%);
+  background:var(--panel); border-left:3px solid var(--edge); transform:translateX(102%);
+  transition:transform .2s steps(6,end); display:flex; flex-direction:column}
+body.open .drawer{transform:none}
+body.open .scrim{opacity:1}
+.drawer > header{display:flex; gap:12px; align-items:center; padding:12px; background:var(--panel-3); border-bottom:3px solid var(--edge)}
+.drawer > header .av{width:52px; height:68px; flex:none}
+.drawer > header .av svg{width:100%; height:100%}
+.drawer h2{font-size:16px}
+.drawer .sub{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+.drawer .body{overflow-y:auto; padding:13px; display:grid; gap:15px}
+.sect h3{font-size:11.5px; letter-spacing:.14em; color:var(--ink-3); margin-bottom:8px; display:flex; gap:8px; align-items:center}
+.sect h3 .c{font-family:var(--mono); color:var(--ink-2); border:2px solid var(--line); padding:0 6px}
+.list{display:grid; gap:6px}
+.item{display:flex; gap:9px; padding:8px 10px; background:var(--panel-2); border-left:4px solid var(--line-2); font-size:12.5px; color:var(--ink-2)}
+.item .k{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); min-width:24px}
+.item.ok{border-left-color:var(--ok)} .item.go{border-left-color:var(--go)} .item.blocked{border-left-color:var(--stop)}
+.files{display:flex; flex-wrap:wrap; gap:6px}
+.files code{font-size:11px; background:var(--panel-2); border:2px solid var(--line); padding:3px 7px; color:var(--ink-2)}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:12.5px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0}
+.talkline{border-left:4px solid var(--info); background:var(--panel-2); padding:7px 10px; font-size:12.5px; color:var(--ink-2); margin-bottom:6px}
+.talkline b{color:var(--ink)}
+.bar{height:12px; background:var(--panel-2); border:2px solid var(--line-2)}
+.bar i{display:block; height:100%; background:repeating-linear-gradient(90deg,var(--go) 0 4px, transparent 4px 6px)}
+@media (prefers-reduced-motion: reduce){ *{animation:none !important; transition:none !important} }
+</style>
+
+<header class="topbar">
+  <div class="brand">
+    <b>輪動像素辦公室</b>
+    <span>STAR-OFFICE LAYOUT</span>
+  </div>
+  <div class="spacer"></div>
+  <div class="pills" id="filters" style="display:flex; gap:7px; flex-wrap:wrap" role="group" aria-label="依狀態篩選"></div>
+  <div class="spacer"></div>
+  <span class="clock" id="clock">--:--:--</span>
+  <button class="iconbtn" id="themebtn" type="button" title="切換主題" aria-label="切換主題">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.2"></circle>
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.5 5.5L7 7M17 17l1.5 1.5M18.5 5.5L17 7M7 17l-1.5 1.5" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <span class="verbadge" id="ver">v0.1 外觀稿 · 09-20</span>
+</header>
+
+<div class="wrap">
+  <p class="notice"><span aria-hidden="true">▣</span>
+    <span><b>這是外觀稿</b>：狀態、任務、對話都是<strong>示意資料</strong>。
+    架構照 Star-Office-UI：<strong>角色依狀態自動站到對應區域</strong> —— 工作中在工位、討論中在圓桌、
+    待命在休息區、卡住的在 Bug 角落、CEO 在講台。</span></p>
+
+  <div class="cols">
+    <div style="display:grid; gap:16px">
+    <div class="card">
+      <header><span class="px working"></span><h2>OFFICE FLOOR</h2><span class="sub" id="headcount"></span></header>
+      <div id="sceneWrap"></div>
+      <div class="legend">
+        <span><span class="px working"></span>工位區</span>
+        <span><span class="px meeting"></span>圓桌</span>
+        <span><span class="px idle"></span>休息區</span>
+        <span><span class="px blocked"></span>Bug 角落</span>
+        <span><span class="px briefing"></span>講台</span>
+        <span style="color:var(--ink-3)">點角色看詳情</span>
+      </div>
+    </div>
+    <div class="card">
+      <header><span class="px meeting"></span><h2>圓桌討論</h2><span class="sub" id="talkmeta"></span></header>
+      <div class="pad" id="talk"></div>
+    </div>
+    </div>
+
+    <div style="display:grid; gap:16px">
+      <div class="card">
+        <header><h2>STATUS</h2><span class="sub" id="statsum"></span></header>
+        <div class="pad meter" id="meters"></div>
+      </div>
+      <div class="card">
+        <header><h2>昨日備忘</h2><span class="sub">MEMO</span></header>
+        <div class="pad memo" id="memo"></div>
+      </div>
+      <div class="card">
+        <header><h2>AGENTS</h2><span class="sub" id="agcount"></span></header>
+        <div class="rows" id="rows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dname" hidden>
+  <header>
+    <div class="av" id="dav" aria-hidden="true"></div>
+    <div style="min-width:0"><h2 id="dname">—</h2><span class="sub" id="did">—</span></div>
+    <button class="iconbtn" id="closebtn" type="button" aria-label="關閉" style="margin-left:auto">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path></svg>
+    </button>
+  </header>
+  <div class="body" id="dbody"></div>
+</aside>
+
+<script>
+const STATUS = {
+  working:{label:'工作中', cls:'working'},
+  meeting:{label:'開會中', cls:'meeting'},
+  idle:   {label:'待命',   cls:'idle'},
+  blocked:{label:'等決策', cls:'blocked'},
+  briefing:{label:'台上分派', cls:'meeting'}
+};
+
+const CEO = {
+  id:'ceo', name:'CEO（主 session）', role:'拆任務、派工、追進度、push 與回報',
+  status:'briefing', floor:'10F 指揮層',
+  look:{skin:'b', hair:'short', hairC:'gry', glasses:1, suit:'#2b3a63', shirt:'#e8eeff', prop:'baton'},
+  now:{t:'本輪分派：C1／C2 先做，C4 ＋ A4 併成同一輪', pct:35, since:'15:12'},
+  files:['CLAUDE.md','HANDOFF.md','DECISIONS.md','.github/workflows/'],
+  assign:[
+    {k:'C1', t:'兩格等大、超出改拉 Bar', who:'frontend-ui'},
+    {k:'C2', t:'多寬度掃描（canvas 的字看不到）', who:'reviewer'},
+    {k:'C3', t:'供應鏈關聯圖改環節卡', who:'industry-analyst'},
+    {k:'C4+A4', t:'併同一輪，排在 C1／C2 之後', who:'frontend-ui'}
+  ]
+};
+
+const AGENTS = [
+  { id:'finance-quant', name:'金融專家', role:'這個數字該怎麼算、什麼時候可以用', status:'working', floor:'6F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#1f5d7a',prop:'calc'},
+    now:{t:'N8：查熱力圖 avg_excess 是不是真的全空', pct:62, since:'14:05'},
+    done:['PE 一律自算（不用單季 ×4）','財報可用日改用法定期限','分位樣本 <5 退回法定產業、<3 留白'],
+    doing:['N8 超額 & 絕對報酬看起來沒變化 —— 先查是不是真的沒變，再談畫面'],
+    todo:['N9：季節性改「最近 12×N 個完整月」滾動視窗（併在批次4）','樣本數 n 要顯示到前端每一張季節性圖'],
+    files:['compute/fundamental.py','compute/season.py','compute/stockpage.py'] },
+
+  { id:'frontend-ui', name:'UI 專家', role:'版面、圖表、互動、手機寬', status:'meeting', floor:'5F',
+    look:{skin:'e',hair:'bun',hairC:'brn',glasses:0,suit:'#6f61e0',prop:'palette'},
+    now:{t:'會議中：C4 ＋ A4 要怎麼併成一輪', pct:20, since:'15:12'},
+    done:['批次1 六件純前端（_uitest 0 個問題）','N2 兩排族群晶片名單統一','N5 輪動時鐘圓圈放大'],
+    doing:['C1 熱門題材內容被裁掉、沒有捲軸 —— 先量再改','C2 三張圖改掉百分比定位'],
+    todo:['C4 族群列改「漲跌分佈」式篩選（沿用 wireDistFilter，不重寫）','A4 輪動時鐘八條：＋／− 鈕、移除旋轉箭頭、30 天、平滑移動、軌跡可開關'],
+    files:['site/app.js','site/index.html','site/industry.js'] },
+
+  { id:'data-scraper', name:'爬蟲專家', role:'資料源接入、額度、可失敗設計', status:'blocked', floor:'4F',
+    look:{skin:'c',hair:'buzz',hairC:'blk',glasses:0,hat:'headset',suit:'#2b6d5a',prop:'web'},
+    now:{t:'卡住：FinMind token 失效，全站資料停止更新', pct:0, since:'昨日 22:46'},
+    done:['mis 即時報價白名單接入','分 K 進資料湖（部署省下 13 分 43 秒）','每輪第一件事先做 FinMind 健檢'],
+    doing:[],
+    todo:['等 Andy 重新產生 FinMind token 並更新 GitHub Secret','N4：rrg trail 由 20 天拉到 30 天','N11：台指夜盤 mis.taifex（批次5）'],
+    blockedBy:'HTTP 400：Token is illegal.（data/_state 健檢原文）',
+    files:['pipeline/sources/finmind.py','pipeline/util/http.py','run_daily.py'] },
+
+  { id:'smc-technical', name:'技術分析專家', role:'指標、SMC、多週期判讀', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'wave',hairC:'blk',glasses:0,suit:'#7a3f5d',prop:'kline'},
+    now:null,
+    done:['KD 9,3,3 初始 50 前後端對齊','RSI Wilder 用 SMA 種子，與 TradingView 對得上','多週期 SMC 支撐壓力區'],
+    doing:[],
+    todo:['技術分析教學層（等 visual-explainer 的名詞字典）','分 K 指標與日線口徑再驗一次'],
+    files:['pipeline/indicators.py','compute/technical.py','compute/mtf.py','site/chart.js'] },
+
+  { id:'industry-analyst', name:'產業分析師', role:'族群成分、題材、供應鏈、剖析圖', status:'meeting', floor:'7F',
+    look:{skin:'a',hair:'long',hairC:'blk',glasses:1,suit:'#3f5aa6',prop:'wafer'},
+    now:{t:'會議中：C3 供應鏈圖改成環節卡怎麼切', pct:30, since:'15:12'},
+    done:['圖十供應鏈關聯圖上線','三位鏈別分析師查證後改掉 5 條錯的關係'],
+    doing:['C3：關聯圖上下太長 → 改成環節卡 ＋ 個股小卡'],
+    todo:['其餘產業鏈 3D 剖析圖（ROADMAP 第二批）'],
+    files:['groups/supply_chain.yaml','groups/themes.yaml','site/diagrams.js'] },
+
+  { id:'reviewer', name:'審核專家', role:'只驗收不改扣，跑完整清單不抽查', status:'working', floor:'8F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#4a5c8f',prop:'glass'},
+    now:{t:'把 _preview.py 改成多寬度掃描（1366／1440／1536／1920）', pct:48, since:'13:40'},
+    done:['批次1 十二條新驗收全過','抓出 _uitest 在 main 上本來就有 47 條紅的'],
+    doing:['C2 根因：app.js 用 canvas renderer，圖裡的字在 DOM 上不存在 → 驗收時切 SVG'],
+    todo:['祖先元素不算重疊（探測腳本的坑，已記）','新功能一律補一段「真的操作它」的驗收'],
+    files:['scripts/_preview.py','scripts/_uitest.py','tests/'] },
+
+  { id:'strategy-backtest', name:'策略回測', role:'照這套規則做，過去到底賺不賺', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'curly',hairC:'brn',glasses:0,suit:'#8a5a2b',prop:'curve'},
+    now:null, done:[],
+    doing:[],
+    todo:['compute/backtest.py、strategy.py 都還沒建立','訊號一律「收盤後產生 → 隔日開盤成交」','紙上帳本：每次訊號的進出價、報酬率、最大回撤'],
+    files:['compute/backtest.py（未建立）','compute/strategy.py（未建立）'] },
+
+  { id:'visual-explainer', name:'圖解教學', role:'看不懂的東西要有人翻成人話', status:'working', floor:'7F',
+    look:{skin:'e',hair:'pony',hairC:'gold',glasses:1,suit:'#b26a2e',prop:'easel'},
+    now:{t:'N6：四段之間順時針箭頭畫到位 ＋ 一句白話', pct:70, since:'14:20'},
+    done:['名詞字典 TERMS 第一版','每張圖的「怎麼看 ?」說明'],
+    doing:['A4 第 4 條：補充「圓心到圓圈邊緣代表什麼」'],
+    todo:['技術分析教學層','剖析圖旁邊的知識連結'],
+    files:['site/app.js（TERMS）','site/industry.js'] },
+
+  { id:'data-steward', name:'資料治理', role:'資料新不新、壞了誰知道', status:'working', floor:'4F',
+    look:{skin:'c',hair:'short',hairC:'gry',glasses:1,suit:'#2f6f8f',prop:'db'},
+    now:{t:'健檢機制：每輪第一件事問「台積電最近 10 天日線」', pct:85, since:'09:05'},
+    done:['頂端資料狀態列','backfill_progress.json 寫入健檢結果','抓到 FinMind token 失效並寫出原文'],
+    doing:['把三個長期失敗的來源列進橫幅：twse.dividend／tdcc.shareholding／macro.fred'],
+    todo:['每週健檢報告'],
+    files:['data/_state/','pipeline/build_payload.py'] },
+
+  { id:'delivery-planner', name:'交付排程', role:'這批有幾件事、先做哪個、做完了沒', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'short',hairC:'brn',glasses:0,suit:'#3d7a63',prop:'gantt'},
+    now:{t:'會議中：C 批順序與併輪', pct:55, since:'15:12'},
+    done:['C 批任務板（C1–C4 ＋ A4）','批次1–5、7 與 6-N1 逐項核對'],
+    doing:['盯 C4 那句「也可以篩選想要的股票」要先定義清楚'],
+    todo:['交付後逐項回頭核對 HANDOFF 的進度欄'],
+    files:['HANDOFF.md'] },
+
+  { id:'tech-illustrator', name:'機構繪圖', role:'剖析圖、封裝結構、3D 零件', status:'idle', floor:'7F',
+    look:{skin:'b',hair:'bun',hairC:'red',glasses:0,hat:'cap',suit:'#6a4fa3',prop:'cube'},
+    now:null,
+    done:['圖九、圖十上線','N1：3D 圖可平移、仰角放開（看得到底部）'],
+    doing:[],
+    todo:['等 mechanical-engineer 簽掉 docs/diagram_specs/ 才能開畫下一張'],
+    files:['site/diagrams.js','site/themes3d.js','site/three3d.js'] },
+
+  { id:'efficiency-planner', name:'效率規劃', role:'這步能不能不做、哪個 CP 值最高', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'buzz',hairC:'blk',glasses:1,suit:'#4f7a2e',prop:'watch'},
+    now:{t:'會議中：三個都動 app.js，不能平行', pct:40, since:'15:12'},
+    done:['純前端改動可跳過 pytest（省 7.5 分鐘）','分 K 進資料湖（部署 14m26s 降到約 3 分）'],
+    doing:['關卡一輪 18 分鐘，評估哪幾段可以只跑受影響的部分'],
+    todo:['部署後自動比對線上版號，省掉人工確認'],
+    files:['.github/workflows/','scripts/'] },
+
+  { id:'resource-auditor', name:'資源稽核', role:'Token／額度／Actions 分鐘數', status:'working', floor:'9F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#8a6a1f',prop:'coin'},
+    now:{t:'估這一批的 Token 預算與 Actions 分鐘數', pct:30, since:'15:20'},
+    done:['FinMind 額度用量記錄','抓出重抓分 K 每天白花的額度'],
+    doing:['這一輪：外觀稿先做、功能後接，避免整套重做'],
+    todo:['每批工作設 Token 上限並在超出前示警'],
+    files:['pipeline/util/http.py','.github/workflows/'] },
+
+  { id:'mechanical-engineer', name:'結構審查', role:'畫得對不對（開畫前先寫規格書）', status:'idle', floor:'8F',
+    look:{skin:'b',hair:'short',hairC:'blk',glasses:0,hat:'helmet',suit:'#7a4a2e',prop:'caliper'},
+    now:null,
+    done:['圖十規格書與驗收','擋掉三張「先畫再想」的圖'],
+    doing:[],
+    todo:['下一張剖析圖的 docs/diagram_specs/<id>.md'],
+    files:['docs/diagram_specs/'] },
+
+  { id:'art-director', name:'視覺總監', role:'畫得好不好看（擁有 --dg-*）', status:'idle', floor:'8F',
+    look:{skin:'e',hair:'long',hairC:'red',glasses:0,hat:'beret',suit:'#5b4b9c',prop:'swatch'},
+    now:null,
+    done:['--dg-* 視覺變數收斂','淺色主題白字白線一次清掉'],
+    doing:[],
+    todo:['這張辦公室頁的配色與字級要過一次（外觀稿待審）'],
+    files:['site/index.html（--dg-*）','site/diagrams.js'] },
+
+  { id:'semi-chain-analyst', name:'半導體鏈分析師', role:'去外面查：誰幫誰代工、封測客戶是誰', status:'working', floor:'3F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#2d6e8c',prop:'chip'},
+    now:{t:'查證 CoWoS 與測試介面的三條關係（兩個獨立來源才給高信心）', pct:55, since:'14:50'},
+    done:['打掉 5 條錯的供應鏈關係、2 條半對的'],
+    doing:['先進封裝環節的客戶關係方向確認'],
+    todo:['查不到的要寫「查不到」，不要用推測補'],
+    files:['（只查不改）'] },
+
+  { id:'pcb-substrate-analyst', name:'載板分析師', role:'去外面查：載板 vs PCB、材料來自誰', status:'idle', floor:'3F',
+    look:{skin:'c',hair:'wave',hairC:'brn',glasses:0,suit:'#2f7a4e',prop:'pcb'},
+    now:null,
+    done:['ABF／BT 載板與高階 PCB 的分類修正'],
+    doing:[],
+    todo:['CCL／銅箔／玻纖布這一段的客戶關係待查'],
+    files:['（只查不改）'] },
+
+  { id:'ai-server-analyst', name:'AI 伺服器分析師', role:'去外面查：散熱／電源／光通訊／機櫃', status:'idle', floor:'3F',
+    look:{skin:'b',hair:'curly',hairC:'blk',glasses:1,suit:'#3a5f9c',prop:'rack'},
+    now:null,
+    done:['光通訊磊晶／晶粒／模組分層更正','800V HVDC 電源鏈補齊'],
+    doing:[],
+    todo:['機櫃組裝這一段有沒有斷頭斷尾要再掃一次'],
+    files:['（只查不改）'] }
+];
+
+const MEETING = {
+  topic:'C4 ＋ A4 併成同一輪（三個都動 site/app.js，不能平行）',
+  since:'15:12', elapsed:'進行 23 分',
+  members:['frontend-ui','delivery-planner','efficiency-planner','industry-analyst'],
+  log:[
+    {who:'delivery-planner', s:'C1／C2 沒驗完之前 C4 不要開工 —— 三個都動 app.js。'},
+    {who:'efficiency-planner', s:'C4 跟 A4 動的是同一張圖，拆兩輪＝同一張圖改兩次、驗兩次。'},
+    {who:'frontend-ui', s:'C4 用現成的 wireDistFilter（app.js:576），不重寫一套篩選。'},
+    {who:'industry-analyst', s:'C3 的環節卡我自己來，跟 app.js 不衝突，可以平行。'},
+    {who:'delivery-planner', s:'「也可以篩選想要的股票」先照 (a) 做：面板裡除了族群也能勾個股。'},
+    {who:'efficiency-planner', s:'這輪只動 site/**，pytest 可以跳過，省 7.5 分鐘 —— 但要跟 Andy 講一聲。'}
+  ]
+};
+
+const BOARD = {
+  todo:[
+    {k:'C1', t:'熱門題材／今日候選兩格一樣大，超出改拉 Bar', who:'frontend-ui', state:'go'},
+    {k:'C2', t:'換一台電腦版面就跑掉（多寬度掃描）', who:'reviewer', state:'go'},
+    {k:'C3', t:'供應鏈關聯圖改成環節卡 ＋ 個股小卡', who:'industry-analyst', state:'go'},
+    {k:'C4', t:'資金流向排行／輪動時鐘的族群列改成篩選式', who:'frontend-ui', state:'queue'},
+    {k:'A4', t:'輪動時鐘一整包八條（與 C4 併輪）', who:'frontend-ui', state:'queue'}
+  ],
+  wait:[
+    {k:'★', t:'FinMind token 失效 —— 只有 Andy 能換（Secrets）', who:'data-scraper'}
+  ],
+  done:[
+    {k:'批次1', t:'六件純前端快修，_uitest 0 個問題'},
+    {k:'批次7', t:'N1–N7、N10 上線'},
+    {k:'圖九／圖十', t:'產業鏈剖析圖與供應鏈關聯圖'},
+    {k:'健檢', t:'每輪先問一次台積電日線，壞了馬上知道'},
+    {k:'分 K', t:'進資料湖，部署 14m26s 變約 3 分'}
+  ]
+};
+
+/* ============================================================
+   像素角色：12 × 16 的格子，每一格都是一個 1×1 的方塊。
+   shape-rendering="crispEdges" 讓邊緣不做抗鋸齒，放大也還是像素。
+   ============================================================ */
+const PXSKIN = {a:'#f3c49a', b:'#e0a878', c:'#c1854f', d:'#8a5531', e:'#fcdcc0'};
+const PXHAIR = {blk:'#2a2338', brn:'#5b3a20', gry:'#9aa0c0', red:'#b2482a', gold:'#e0b154', ink:'#1e1930'};
+const r = (x, y, w, h, f) => '<rect x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" fill="' + f + '"/>';
+
+function sprite(L){
+  const sk = PXSKIN[L.skin] || PXSKIN.a;
+  const hc = PXHAIR[L.hairC] || PXHAIR.blk;
+  const cloth = L.suit, pants = '#2f3355', shoe = '#1b1b2e', dark = '#241f33';
+  let s = '';
+  s += r(3, 16, 6, 1, 'rgba(0,0,0,.28)');
+  s += r(3, 13, 2, 2, pants) + r(7, 13, 2, 2, pants);
+  s += r(3, 15, 3, 1, shoe) + r(6, 15, 3, 1, shoe);
+  s += r(3, 9, 6, 4, cloth) + r(2, 9, 1, 3, cloth) + r(9, 9, 1, 3, cloth);
+  s += r(2, 12, 1, 1, sk) + r(9, 12, 1, 1, sk);
+  s += r(5, 8, 2, 1, sk);
+  s += r(3, 3, 6, 5, sk);
+  s += r(2, 3, 1, 2, hc) + r(9, 3, 1, 2, hc);
+  if (L.hair !== 'bald') s += r(3, 0, 6, 1, hc) + r(2, 1, 8, 2, hc);
+  if (L.hair === 'long') s += r(2, 5, 1, 4, hc) + r(9, 5, 1, 4, hc);
+  if (L.hair === 'bun') s += r(4, -2, 4, 2, hc);
+  if (L.hair === 'pony') s += r(9, 2, 2, 5, hc);
+  if (L.hair === 'curly') s += r(2, -1, 8, 2, hc);
+  if (L.hat === 'helmet') s += r(2, -1, 8, 3, '#ffc24d') + r(1, 2, 10, 1, '#e09c1f');
+  if (L.hat === 'beret')  s += r(2, -1, 8, 3, '#c49bff') + r(8, -2, 2, 1, '#5fd79a');
+  if (L.hat === 'cap')    s += r(2, -1, 8, 3, '#5fd79a') + r(9, 2, 3, 1, '#35a877');
+  if (L.hat === 'headset') s += r(2, 0, 8, 1, '#63c7f0') + r(1, 3, 1, 3, '#63c7f0') + r(10, 3, 1, 3, '#63c7f0');
+  if (L.glasses) s += r(3, 5, 6, 1, '#63c7f0');
+  s += r(4, 5, 1, 1, dark) + r(7, 5, 1, 1, dark);
+  s += r(5, 7, 2, 1, '#b5735a');
+  s += r(10, 10, 2, 2, L.tool || '#ffc24d');
+  return s;
+}
+function spriteSVG(L, cls, label){
+  return '<svg viewBox="-2 -3 16 21" role="img" aria-label="' + (label || '') + '" shape-rendering="crispEdges">' +
+    '<g class="' + (cls || '') + '">' + sprite(L) + '</g></svg>';
+}
+
+/* ============================================================
+   場景：一張 680 × 380 的 SVG。角色依狀態放到對應區域的座標。
+   ============================================================ */
+const TOOL = ['#ffc24d','#63c7f0','#5fd79a','#ff6b81','#c49bff','#f0a3d2','#9ad86f','#ffe066'];
+const SHORT = {
+  'ceo':'CEO','finance-quant':'金融','frontend-ui':'UI','data-scraper':'爬蟲','smc-technical':'技術',
+  'industry-analyst':'產業','reviewer':'審核','strategy-backtest':'回測','visual-explainer':'圖解',
+  'data-steward':'治理','delivery-planner':'排程','tech-illustrator':'繪圖','efficiency-planner':'效率',
+  'resource-auditor':'稽核','mechanical-engineer':'結構','art-director':'視覺','semi-chain-analyst':'半導',
+  'pcb-substrate-analyst':'載板','ai-server-analyst':'伺服'
+};
+const ZONE = {working:'工位區', meeting:'圓桌', idle:'休息區', blocked:'Bug 角落', briefing:'講台'};
+
+const DESKS = [[46,206],[136,206],[226,206],[46,288],[136,288],[226,288]];
+const CHAIRS = [[344,176],[430,176],[344,262],[430,262]];
+const LOUNGE = [[520,250],[552,250],[584,250],[616,250],[520,318],[556,318],[592,318],[628,318]];
+const BUG = [[556,96]];
+const PODIUM = [[112,120]];
+
+function pawn(a, x, y, cls){
+  const L = Object.assign({}, a.look, {tool: TOOL[(a.id.length + a.name.length) % TOOL.length]});
+  return '<g class="sprite" data-id="' + a.id + '" transform="translate(' + x + ',' + y + ') scale(2)" tabindex="0" role="button">' +
+    '<title>' + esc(a.name) + '：' + esc(STATUS[a.status].label) + '</title>' +
+    '<rect class="hl" x="-2.5" y="-3.5" width="17" height="22" fill="none" stroke="#ffc24d" stroke-width=".6" opacity="0"/>' +
+    '<g class="' + (cls || '') + '">' + sprite(L) + '</g>' +
+    '<rect x="-1" y="17.4" width="14" height="5.4" fill="rgba(10,10,24,.72)"/>' +
+    '<text x="6" y="21.4" font-size="4.2" fill="#eef0ff" text-anchor="middle" font-family="var(--sans)">' + esc(SHORT[a.id] || '') + '</text>' +
+    '</g>';
+}
+function bubbleSVG(x, y, w, txt, who){
+  return '<g id="mbubble" transform="translate(' + x + ',' + y + ')">' +
+    '<rect x="0" y="0" width="' + w + '" height="30" fill="#eef0ff" stroke="#0e0e1c" stroke-width="2"/>' +
+    '<rect x="10" y="30" width="8" height="6" fill="#eef0ff" stroke="#0e0e1c" stroke-width="2"/>' +
+    '<text x="7" y="13" font-size="9" fill="#5a3ea8" font-weight="700">' + esc(who) + '</text>' +
+    '<text x="7" y="25" font-size="9" fill="#1b1f3d">' + esc(txt) + '</text></g>';
+}
+
+function buildScene(){
+  const all = [CEO].concat(AGENTS);
+  const pick = s => AGENTS.filter(a => a.status === s);
+  let s = '<svg class="scene" viewBox="0 0 680 380" shape-rendering="crispEdges" role="img" aria-label="辦公室平面">';
+
+  /* 牆與地板 */
+  s += r(0, 0, 680, 168, 'var(--wall)') + r(0, 150, 680, 18, 'var(--wall-2)');
+  s += r(0, 168, 680, 212, 'var(--floor)');
+  for (let i = 0; i < 18; i++) for (let j = 0; j < 6; j++)
+    if ((i + j) % 2 === 0) s += r(i * 40, 168 + j * 36, 40, 36, 'var(--floor-2)');
+  s += r(0, 168, 680, 3, '#5d3b23');
+
+  /* 牆上：窗、時鐘、佈告欄 */
+  s += r(300, 26, 92, 62, '#0f1430') + r(300, 26, 92, 62, 'none');
+  s += '<rect x="300" y="26" width="92" height="62" fill="#132046" stroke="#0e0e1c" stroke-width="3"/>';
+  s += r(316, 40, 8, 8, '#ffe9a8') + r(352, 58, 5, 5, '#ffe9a8') + r(330, 66, 4, 4, '#ffe9a8');
+  s += '<circle cx="372" cy="44" r="9" fill="#f6f1c8"/>';
+  s += r(344, 26, 4, 62, '#0e0e1c') + r(300, 54, 92, 4, '#0e0e1c');
+  s += '<circle cx="470" cy="46" r="16" fill="#eef0ff" stroke="#0e0e1c" stroke-width="3"/>';
+  s += r(469, 34, 2, 13, '#1b1f3d') + r(470, 45, 9, 2, '#1b1f3d');
+
+  /* 講台區（CEO） */
+  s += r(40, 40, 132, 74, '#2f2a52') + '<rect x="40" y="40" width="132" height="74" fill="#2f2a52" stroke="#0e0e1c" stroke-width="3"/>';
+  s += '<text x="50" y="58" font-size="10" fill="#c49bff" font-weight="700">今日分派</text>';
+  CEO.assign.slice(0, 4).forEach((x, i) => {
+    s += r(50, 64 + i * 12, 6, 6, ['#ffc24d','#63c7f0','#5fd79a','#ff6b81'][i % 4]);
+    s += '<text x="62" y="' + (70 + i * 12) + '" font-size="8" fill="#eef0ff">' + esc(x.k + ' ' + x.t.slice(0, 9)) + '</text>';
+  });
+  s += r(92, 150, 68, 12, '#6b4a2f') + r(96, 162, 60, 22, '#7d5836');
+  s += '<text x="196" y="164" font-size="10" fill="#c49bff" font-weight="700">講台 BRIEFING</text>';
+  s += pawn(CEO, PODIUM[0][0], PODIUM[0][1], 'bob2');
+
+  /* 工位區 */
+  s += '<text x="46" y="358" font-size="10" fill="#ffc24d" font-weight="700">工位區 WORK</text>';
+  DESKS.forEach(([x, y], i) => {
+    s += r(x, y + 34, 66, 10, '#6b4a2f') + r(x + 4, y + 44, 6, 14, '#5a3d26') + r(x + 56, y + 44, 6, 14, '#5a3d26');
+    s += r(x + 14, y + 14, 30, 20, '#1d2b3a') + r(x + 17, y + 17, 24, 14, '#5fd7c6') + r(x + 26, y + 34, 6, 4, '#1d2b3a');
+    s += r(x + 48, y + 26, 10, 8, '#c96a6a');
+  });
+  pick('working').forEach((a, i) => { const p = DESKS[i % DESKS.length]; s += pawn(a, p[0] + 18, p[1] - 22, 'bob'); });
+
+  /* 圓桌 */
+  s += r(340, 212, 124, 54, '#7d5836') + '<rect x="340" y="212" width="124" height="54" fill="#7d5836" stroke="#0e0e1c" stroke-width="3"/>';
+  s += r(386, 228, 32, 22, '#1d2b3a') + r(389, 231, 26, 16, '#5fd7c6');
+  s += '<text x="402" y="340" font-size="10" fill="#63c7f0" text-anchor="middle" font-weight="700">圓桌 MEETING</text>';
+  pick('meeting').forEach((a, i) => { const p = CHAIRS[i % CHAIRS.length]; s += pawn(a, p[0], p[1], 'bob2'); });
+
+  /* 休息區 */
+  s += r(508, 262, 150, 16, '#b8566b') + r(508, 278, 150, 26, '#c96a6a') + r(508, 256, 150, 8, '#9d4459');
+  s += r(640, 300, 26, 30, '#3a7d4f') + r(650, 330, 6, 10, '#6b4a2f');
+  s += '<text x="583" y="236" font-size="10" fill="#8d92c4" text-anchor="middle" font-weight="700">休息區 LOUNGE</text>';
+  pick('idle').forEach((a, i) => { const p = LOUNGE[i % LOUNGE.length]; s += pawn(a, p[0], p[1], ''); });
+
+  /* Bug 角落 */
+  s += r(516, 60, 130, 76, '#4a2036') + '<rect x="516" y="60" width="130" height="76" fill="#4a2036" stroke="#0e0e1c" stroke-width="3"/>';
+  s += r(600, 78, 34, 26, '#1d2b3a') + r(603, 81, 28, 20, '#ff6b81');
+  s += '<text x="526" y="76" font-size="10" fill="#ff6b81" font-weight="700">BUG 角落</text>';
+  s += r(526, 84, 6, 6, '#ff6b81') + r(536, 84, 6, 6, '#ff6b81') + r(546, 84, 6, 6, '#ffc24d');
+  pick('blocked').forEach((a, i) => { const p = BUG[i % BUG.length]; s += pawn(a, p[0], p[1], 'blink'); });
+
+  s += '<g id="bubslot"></g></svg>';
+  return s;
+}
+
+
+/* ============================================================
+   右側面板：狀態總覽、昨日備忘、Agent 名單
+   ============================================================ */
+const byId = id => id === 'ceo' ? CEO : AGENTS.find(a => a.id === id);
+const nameOf = id => (byId(id) || {name:id}).name;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function renderScene(){
+  document.getElementById('sceneWrap').innerHTML = buildScene();
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  document.getElementById('headcount').textContent =
+    '在場 ' + (AGENTS.length + 1) + ' 位 · 工位 ' + c('working') + ' · 圓桌 ' + c('meeting') + ' · 休息 ' + c('idle') + ' · Bug ' + c('blocked');
+  cycleBubbles();
+}
+function renderMeters(){
+  const defs = [['working','工位區','var(--go)'],['meeting','圓桌','var(--info)'],
+                ['idle','休息區','var(--idle)'],['blocked','Bug 角落','var(--stop)']];
+  const total = AGENTS.length;
+  document.getElementById('meters').innerHTML = defs.map(([k, label, col]) => {
+    const n = AGENTS.filter(a => a.status === k).length;
+    return '<div class="m"><span>' + label + '</span>' +
+      '<span class="track" style="color:' + col + '"><i style="width:' + Math.round(n / total * 100) + '%"></i></span>' +
+      '<span class="n">' + n + '</span></div>';
+  }).join('');
+  document.getElementById('statsum').textContent = total + ' AGENTS';
+}
+function renderMemo(){
+  const rows = []
+    .concat(BOARD.wait.map(n => ['waititem', n.k, n.t + '（' + nameOf(n.who) + '）']))
+    .concat(BOARD.todo.map(n => ['todoitem', n.k, n.t + '（' + nameOf(n.who) + '）']))
+    .concat(BOARD.done.map(n => ['', n.k, n.t]));
+  document.getElementById('memo').innerHTML =
+    '<p style="margin:0 0 4px; font-size:12px; color:var(--ink-3)">CEO 佈告欄 · 紅＝等 Andy、黃＝今天要做、綠＝之前完成</p>' +
+    rows.map(([cls, k, t]) => '<div class="memoitem ' + cls + '"><span class="k">' + esc(k) + '</span><span>' + esc(t) + '</span></div>').join('');
+}
+function renderRows(){
+  const all = [CEO].concat(AGENTS);
+  document.getElementById('rows').innerHTML = all.map(a =>
+    '<button class="row" type="button" data-id="' + a.id + '" data-status="' + a.status + '">' +
+      '<span class="mini">' + spriteSVG(a.look, '', a.name) + '</span>' +
+      '<span style="min-width:0"><span class="nm">' + esc(a.name) + '</span>' +
+        '<span class="zone">' + esc(a.id) + ' · ' + ZONE[a.status] + '</span></span>' +
+      '<span class="st"><span class="px ' + STATUS[a.status].cls + '"></span>' + STATUS[a.status].label + '</span>' +
+    '</button>').join('');
+  document.getElementById('agcount').textContent = all.length + ' 位';
+}
+
+function renderTalk(){
+  document.getElementById('talkmeta').textContent = MEETING.members.length + ' 位 · ' + MEETING.elapsed;
+  document.getElementById('talk').innerHTML =
+    '<p style="margin:0 0 9px; font-size:12.5px"><b>議題：</b>' + esc(MEETING.topic) + '</p>' +
+    MEETING.log.map(l => '<p class="talkline"><b>' + esc(nameOf(l.who)) + '</b>：' + esc(l.s) + '</p>').join('');
+}
+let bubTimer = null, bubIdx = 0;
+function cycleBubbles(){
+  const slot = document.getElementById('bubslot');
+  if (!slot) return;
+  const step = () => {
+    const e = MEETING.log[bubIdx % MEETING.log.length];
+    slot.innerHTML = bubbleSVG(330, 130, 210, e.s.slice(0, 22), nameOf(e.who));
+    bubIdx++;
+  };
+  step();
+  if (bubTimer) clearInterval(bubTimer);
+  bubTimer = setInterval(step, 4200);
+}
+
+/* ── 詳情 ─────────────────────────────────────────────── */
+function listHTML(arr, cls, empty){
+  if (!arr || !arr.length) return '<p class="item" style="color:var(--ink-3)">' + empty + '</p>';
+  return '<div class="list">' + arr.map((t, i) =>
+    '<div class="item ' + cls + '"><span class="k">' + String(i + 1).padStart(2, '0') + '</span><span>' + esc(t) + '</span></div>').join('') + '</div>';
+}
+function openDrawer(id){
+  const a = byId(id); if (!a) return;
+  const st = STATUS[a.status];
+  document.getElementById('dav').innerHTML = spriteSVG(a.look, 'bob', a.name);
+  document.getElementById('dname').textContent = a.name;
+  document.getElementById('did').textContent = a.id + ' · ' + ZONE[a.status];
+  const meetingHere = a.status === 'meeting' || a.id === 'ceo';
+  document.getElementById('dbody').innerHTML =
+    '<div class="sect"><dl class="kv">' +
+      '<dt>狀態</dt><dd><span class="px ' + st.cls + '" style="display:inline-block;vertical-align:-1px"></span> ' + st.label + '（' + ZONE[a.status] + '）</dd>' +
+      '<dt>職責</dt><dd>' + esc(a.role) + '</dd>' +
+      (a.now ? '<dt>開始於</dt><dd class="mono">' + esc(a.now.since) + '</dd>' : '') +
+      (a.blockedBy ? '<dt>卡在</dt><dd style="color:var(--stop)">' + esc(a.blockedBy) + '</dd>' : '') +
+    '</dl></div>' +
+    (a.now ? '<div class="sect"><h3>目前進行 <span class="c">' + a.now.pct + '%</span></h3>' +
+      '<p class="item go">' + esc(a.now.t) + '</p><div class="bar" style="margin-top:8px"><i style="width:' + a.now.pct + '%"></i></div></div>' : '') +
+    (a.id === 'ceo'
+      ? '<div class="sect"><h3>今日分派 <span class="c">' + CEO.assign.length + '</span></h3>' +
+        '<div class="list">' + CEO.assign.map(x => '<div class="item go"><span class="k">' + esc(x.k) + '</span><span>' + esc(x.t) + ' → ' + esc(nameOf(x.who)) + '</span></div>').join('') + '</div></div>' +
+        '<div class="sect"><h3>佈告欄 · 之前完成 <span class="c">' + BOARD.done.length + '</span></h3>' +
+        '<div class="list">' + BOARD.done.map(n => '<div class="item ok"><span class="k">' + esc(n.k) + '</span><span>' + esc(n.t) + '</span></div>').join('') + '</div></div>'
+      : '<div class="sect"><h3>已完成 <span class="c">' + (a.done || []).length + '</span></h3>' + listHTML(a.done, 'ok', '還沒有完成項目') + '</div>' +
+        '<div class="sect"><h3>進行中 <span class="c">' + (a.doing || []).length + '</span></h3>' + listHTML(a.doing, 'go', '目前沒有進行中的項目') + '</div>' +
+        '<div class="sect"><h3>未完成／在等什麼 <span class="c">' + (a.todo || []).length + '</span></h3>' +
+          listHTML(a.todo, a.status === 'blocked' ? 'blocked' : '', '沒有排隊中的項目') + '</div>') +
+    (meetingHere ? '<div class="sect"><h3>圓桌討論</h3><p class="talkline"><b>' + esc(MEETING.topic) + '</b></p>' +
+      MEETING.log.filter(l => a.id === 'ceo' || l.who === a.id).map(l =>
+        '<p class="talkline">' + (a.id === 'ceo' ? '<b>' + esc(nameOf(l.who)) + '</b>：' : '') + esc(l.s) + '</p>').join('') + '</div>' : '') +
+    '<div class="sect"><h3>負責檔案</h3><div class="files">' + (a.files || []).map(f => '<code>' + esc(f) + '</code>').join('') + '</div></div>';
+  document.getElementById('scrim').hidden = false;
+  document.getElementById('drawer').hidden = false;
+  requestAnimationFrame(() => document.body.classList.add('open'));
+  document.getElementById('closebtn').focus();
+}
+function closeDrawer(){
+  document.body.classList.remove('open');
+  setTimeout(() => { document.getElementById('scrim').hidden = true; document.getElementById('drawer').hidden = true; }, 220);
+}
+
+function renderFilters(){
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  const defs = [['all','全部',AGENTS.length,''],['working','工位',c('working'),'working'],
+                ['meeting','圓桌',c('meeting'),'meeting'],['idle','休息',c('idle'),'idle'],
+                ['blocked','Bug',c('blocked'),'blocked']];
+  document.getElementById('filters').innerHTML = defs.map(([k, label, n, s], i) =>
+    '<button class="pill" type="button" data-f="' + k + '" aria-pressed="' + (i === 0) + '">' +
+      (s ? '<span class="px ' + s + '"></span>' : '') + label + ' ' + n + '</button>').join('');
+}
+function applyFilter(f){
+  document.querySelectorAll('#filters .pill').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === f)));
+  document.querySelectorAll('#rows .row').forEach(r2 => r2.classList.toggle('dim', f !== 'all' && r2.dataset.status !== f));
+  document.querySelectorAll('.sprite').forEach(g => {
+    const a = byId(g.dataset.id);
+    g.style.opacity = (f === 'all' || (a && a.status === f)) ? '1' : '.28';
+  });
+}
+function tick(){
+  const d = new Date(), p = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+function initTheme(){
+  let saved = null;
+  try { saved = localStorage.getItem('pixel-theme'); } catch (e) {}
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themebtn').addEventListener('click', () => {
+    const now = document.documentElement.getAttribute('data-theme');
+    const isDark = now === 'dark' || (!now && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const next = isDark ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('pixel-theme', next); } catch (e) {}
+  });
+}
+
+renderFilters(); renderScene(); renderMeters(); renderMemo(); renderRows(); renderTalk();
+initTheme(); tick(); setInterval(tick, 1000);
+
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest('#filters .pill');
+  if (pill){ applyFilter(pill.dataset.f); return; }
+  const sp = e.target.closest('.sprite');
+  if (sp){ openDrawer(sp.dataset.id); return; }
+  const row = e.target.closest('.row');
+  if (row){ openDrawer(row.dataset.id); return; }
+  if (e.target.closest('#closebtn') || e.target.id === 'scrim') closeDrawer();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && document.body.classList.contains('open')) closeDrawer();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.closest && e.target.closest('.sprite')){
+    e.preventDefault(); openDrawer(e.target.closest('.sprite').dataset.id);
+  }
+});
+
+</script>
+</body>
+</html>

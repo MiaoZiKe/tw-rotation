@@ -1,0 +1,1055 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="輪動團隊虛擬辦公室 — 深色科技風外觀稿">
+<title>輪動團隊辦公室</title>
+</head>
+<body>
+<style>
+/* ──────────────────────────────────────────────────────────────
+   輪動團隊辦公室 — 外觀稿 v0.1
+   刻意不使用任何外部資源（字體、圖示、圖表庫全部自己畫）：
+   Andy 公司網路擋 CDN，而且 GitHub Pages 上這頁要能離線打開。
+   配色沿用 site/index.html 的深色科技風變數，讓它看起來是同一個產品。
+   ────────────────────────────────────────────────────────────── */
+
+/* 預設＝深色（這個設計是深色優先）；淺色在下面兩個區塊覆蓋 */
+:root{
+  --bg:#070b16; --bg-2:#0b1224; --panel:#0f172b; --panel-2:#141e36; --panel-3:#1a2542;
+  --line:#1e2a48; --line-2:#2a3860;
+  --ink:#e8eeff; --ink-2:#a9b6d6; --ink-3:#6f7ea3;
+  --cyan:#3ee0ff; --violet:#8b7bff; --amber:#ffb454; --lime:#c3ff5b;
+  --rose:#ff4d6d; --mint:#2ee59d;
+  --wall-1:#16203a; --wall-2:#0d1528;
+  --floor-1:#101a30; --floor-2:#0a1122; --floor-line:rgba(62,224,255,.10);
+  --desk:#24314f; --desk-top:#31426b; --screen:#071827; --screen-2:#0c2740;
+  --board:#15203a; --board-frame:#2d3c63;
+  --note:#f3c969; --note-ink:#3a2c06;
+  --topbar:rgba(7,11,22,.86);
+  --drop:0 18px 40px -26px rgba(0,0,0,.95);
+  --r:14px;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]){
+    --bg:#eef1f8; --bg-2:#e5eaf5; --panel:#ffffff; --panel-2:#f6f8fd; --panel-3:#eaeffa;
+    --line:#d3dbeb; --line-2:#bcc7de;
+    --ink:#101a2e; --ink-2:#4a5a7a; --ink-3:#7a89a6;
+    --cyan:#0b8fb3; --violet:#6a56e8; --amber:#b97400; --lime:#5e8f00;
+    --rose:#d62c4e; --mint:#0a9b68;
+    --wall-1:#dde4f3; --wall-2:#cdd7ec;
+    --floor-1:#e7ecf8; --floor-2:#d8e0f1; --floor-line:rgba(11,143,179,.16);
+    --desk:#b9c4dc; --desk-top:#cbd4e8; --screen:#20304a; --screen-2:#31486b;
+    --board:#f2f5fc; --board-frame:#c6d0e6;
+    --note:#ffe08a; --note-ink:#4a3705;
+    --topbar:rgba(238,241,248,.88);
+    --drop:0 14px 32px -24px rgba(20,30,60,.55);
+  }
+}
+:root[data-theme="light"]{
+  --bg:#eef1f8; --bg-2:#e5eaf5; --panel:#ffffff; --panel-2:#f6f8fd; --panel-3:#eaeffa;
+  --line:#d3dbeb; --line-2:#bcc7de;
+  --ink:#101a2e; --ink-2:#4a5a7a; --ink-3:#7a89a6;
+  --cyan:#0b8fb3; --violet:#6a56e8; --amber:#b97400; --lime:#5e8f00;
+  --rose:#d62c4e; --mint:#0a9b68;
+  --wall-1:#dde4f3; --wall-2:#cdd7ec;
+  --floor-1:#e7ecf8; --floor-2:#d8e0f1; --floor-line:rgba(11,143,179,.16);
+  --desk:#b9c4dc; --desk-top:#cbd4e8; --screen:#20304a; --screen-2:#31486b;
+  --board:#f2f5fc; --board-frame:#c6d0e6;
+  --note:#ffe08a; --note-ink:#4a3705;
+  --topbar:rgba(238,241,248,.88);
+  --drop:0 14px 32px -24px rgba(20,30,60,.55);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.6;
+  background-image:
+    radial-gradient(900px 500px at 12% -10%, rgba(139,123,255,.14), transparent 60%),
+    radial-gradient(800px 460px at 88% 0%, rgba(62,224,255,.10), transparent 60%);
+  background-attachment:fixed;
+}
+h1,h2,h3{margin:0; text-wrap:balance; font-weight:700; letter-spacing:.01em}
+code,.mono{font-family:var(--mono)}
+
+/* ── 頂部列 ───────────────────────────────────────────────── */
+.topbar{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:40;
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:10px 16px; background:var(--topbar); backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.brand{display:flex; align-items:center; gap:10px; min-width:0}
+.brand .logo{width:30px; height:30px; flex:none}
+.brand b{font-size:16px; letter-spacing:.02em}
+.brand span{display:block; font-size:11px; color:var(--ink-3); letter-spacing:.06em}
+.spacer{flex:1 1 auto}
+.pills{display:flex; gap:6px; flex-wrap:wrap}
+.pill{
+  display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+  padding:5px 11px; border-radius:999px; border:1px solid var(--line-2);
+  background:var(--panel); color:var(--ink-2); font-size:12.5px; font-family:inherit;
+}
+.pill:hover{border-color:var(--cyan); color:var(--ink)}
+.pill[aria-pressed="true"]{background:var(--panel-3); color:var(--ink); border-color:var(--cyan)}
+.pill .n{font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:12px; color:var(--ink-3)}
+.pill[aria-pressed="true"] .n{color:var(--cyan)}
+.dot{width:8px; height:8px; border-radius:50%; background:var(--ink-3); flex:none}
+.dot.working{background:var(--cyan); box-shadow:0 0 0 3px rgba(62,224,255,.18)}
+.dot.meeting{background:var(--amber); box-shadow:0 0 0 3px rgba(255,180,84,.18)}
+.dot.idle{background:var(--ink-3)}
+.dot.blocked{background:var(--rose); box-shadow:0 0 0 3px rgba(255,77,109,.20)}
+.clock{font-family:var(--mono); font-size:13px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+.verbadge{
+  font-family:var(--mono); font-size:11px; letter-spacing:.04em; color:var(--ink-3);
+  border:1px solid var(--line-2); border-radius:999px; padding:3px 9px; white-space:nowrap;
+}
+.iconbtn{
+  width:32px; height:32px; display:grid; place-items:center; cursor:pointer;
+  border-radius:9px; border:1px solid var(--line-2); background:var(--panel); color:var(--ink-2);
+}
+.iconbtn:hover{border-color:var(--cyan); color:var(--cyan)}
+:focus-visible{outline:2px solid var(--cyan); outline-offset:2px}
+
+/* ── 版面骨架 ─────────────────────────────────────────────── */
+.wrap{padding:18px 16px 64px; max-width:1560px; margin:0 auto}
+.notice{
+  display:flex; gap:10px; align-items:flex-start;
+  border:1px dashed var(--line-2); border-radius:10px; padding:9px 12px; margin-bottom:16px;
+  color:var(--ink-2); font-size:12.5px; background:var(--panel);
+}
+.notice b{color:var(--amber)}
+.floorlabel{
+  display:flex; align-items:center; gap:10px; margin:22px 0 10px;
+  font-size:12px; letter-spacing:.18em; color:var(--ink-3);
+}
+.floorlabel::after{content:""; flex:1; height:1px; background:linear-gradient(90deg,var(--line-2),transparent)}
+.floorlabel .fl{font-family:var(--mono); color:var(--cyan); letter-spacing:.08em}
+
+.strip{display:grid; grid-template-columns:minmax(0,1.35fr) minmax(0,1fr); gap:14px}
+.offices{display:grid; grid-template-columns:repeat(auto-fill,minmax(258px,1fr)); gap:14px}
+@media (max-width:1080px){ .strip{grid-template-columns:1fr} }
+
+/* ── 房間 ─────────────────────────────────────────────────── */
+.room{
+  border:1px solid var(--line); border-radius:var(--r); overflow:hidden;
+  background:var(--panel); box-shadow:var(--drop); transition:border-color .18s, transform .18s;
+  display:flex; flex-direction:column; text-align:left; padding:0; font:inherit; color:inherit;
+  width:100%; cursor:pointer;
+}
+.room:hover{border-color:var(--cyan); transform:translateY(-2px)}
+.room.dim{opacity:.32; filter:saturate(.35)}
+.plate{
+  display:flex; align-items:center; gap:8px; padding:9px 11px;
+  border-bottom:1px solid var(--line); background:var(--panel-3);
+}
+.plate .nm{font-weight:700; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.plate .id{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); white-space:nowrap}
+.plate .st{margin-left:auto; font-size:11px; color:var(--ink-2); white-space:nowrap}
+
+/* 場景：後牆 ＋ 2.5D 地板 */
+.scene{position:relative; height:164px; overflow:hidden; background:linear-gradient(180deg,var(--wall-1),var(--wall-2))}
+.scene .floor{
+  position:absolute; left:-20%; right:-20%; bottom:0; height:46%;
+  background:linear-gradient(180deg,var(--floor-1),var(--floor-2));
+  border-top:1px solid var(--line-2);
+}
+.scene .floor::before{
+  content:""; position:absolute; inset:0;
+  background-image:
+    repeating-linear-gradient(90deg, var(--floor-line) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(0deg, var(--floor-line) 0 1px, transparent 1px 22px);
+  transform:perspective(150px) rotateX(58deg); transform-origin:bottom center;
+}
+.scene .win{
+  position:absolute; right:12px; top:12px; width:62px; height:44px; border-radius:4px;
+  border:1px solid var(--line-2);
+  background:linear-gradient(180deg,#0a1630,#123055 70%, #1b4a6e);
+  box-shadow:inset 0 0 18px rgba(62,224,255,.14);
+}
+:root[data-theme="light"] .scene .win, :root:not([data-theme="dark"]) .scene .win{}
+.scene .win::after{
+  content:""; position:absolute; left:6px; right:6px; bottom:0; height:16px;
+  background:
+    linear-gradient(90deg, transparent 0 8px, currentColor 8px 13px, transparent 13px 20px,
+    currentColor 20px 24px, transparent 24px 34px, currentColor 34px 41px, transparent 41px);
+  color:rgba(10,16,32,.85); opacity:.75;
+}
+.scene .lamp{
+  position:absolute; left:50%; top:-26px; width:120px; height:80px; transform:translateX(-50%);
+  background:radial-gradient(60px 40px at 50% 0%, rgba(255,180,84,.20), transparent 70%);
+  pointer-events:none;
+}
+/* 辦公桌 */
+.desk{position:absolute; right:14px; bottom:14px; width:104px}
+.desk .top{height:9px; border-radius:3px; background:linear-gradient(180deg,var(--desk-top),var(--desk))}
+.desk .leg{position:absolute; bottom:-16px; width:5px; height:16px; background:var(--desk)}
+.desk .leg.l{left:8px} .desk .leg.r{right:8px}
+.monitor{
+  position:absolute; right:22px; bottom:23px; width:62px; height:40px; border-radius:4px;
+  border:1px solid var(--line-2); background:var(--screen); overflow:hidden;
+  box-shadow:0 0 16px -4px rgba(62,224,255,.5);
+}
+.monitor .bars{position:absolute; left:5px; right:5px; bottom:5px; height:22px; display:flex; align-items:flex-end; gap:3px}
+.monitor .bars i{flex:1; background:var(--cyan); opacity:.85; border-radius:1px}
+.monitor .bars i:nth-child(2){background:var(--violet)}
+.monitor .bars i:nth-child(4){background:var(--amber)}
+.monitor .ln{position:absolute; left:5px; top:5px; height:3px; width:26px; border-radius:2px; background:var(--screen-2)}
+.plantpot{position:absolute; left:10px; bottom:12px; width:16px; height:12px; border-radius:0 0 5px 5px; background:#7b5a3a}
+.plantpot::before{
+  content:""; position:absolute; left:2px; bottom:10px; width:12px; height:18px; border-radius:60% 60% 20% 20%;
+  background:linear-gradient(180deg,#2ee59d,#137a55);
+}
+/* 人物 */
+.person{position:absolute; bottom:10px; left:30px; width:66px; transform-origin:bottom center}
+.person svg{display:block; width:100%; height:auto; overflow:visible}
+.breathe{animation:breathe 4.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:translateY(0) scaleY(1)}50%{transform:translateY(-1px) scaleY(1.012)}}
+.typing{animation:typing 1.1s steps(2,end) infinite}
+@keyframes typing{0%,100%{transform:translateY(0)}50%{transform:translateY(-1.6px)}}
+.nod{animation:nod 3.2s ease-in-out infinite}
+@keyframes nod{0%,100%{transform:rotate(0)}45%{transform:rotate(-5deg)}70%{transform:rotate(2deg)}}
+.zzz{position:absolute; left:52px; bottom:70px; font-family:var(--mono); font-size:11px; color:var(--ink-3); animation:floaty 3.4s ease-in-out infinite}
+@keyframes floaty{0%,100%{transform:translateY(0); opacity:.35}50%{transform:translateY(-6px); opacity:.85}}
+
+/* 房間底部：目前任務 */
+.task{padding:10px 11px 12px; border-top:1px solid var(--line); background:var(--panel-2); display:grid; gap:7px}
+.task .now{font-size:12.5px; color:var(--ink-2)}
+.task .now b{margin-right:5px}
+.task .now b{color:var(--ink); font-weight:600}
+.bar{height:5px; border-radius:99px; background:var(--panel-3); overflow:hidden; border:1px solid var(--line)}
+.bar i{display:block; height:100%; background:linear-gradient(90deg,var(--cyan),var(--violet))}
+.bar.amberbar i{background:linear-gradient(90deg,var(--amber),var(--rose))}
+.counts{display:flex; gap:12px; font-family:var(--mono); font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+.counts b{font-weight:600}
+.counts .ok b{color:var(--mint)} .counts .go b{color:var(--cyan)} .counts .wait b{color:var(--ink-2)}
+
+/* 狀態外框：用形狀＋顏色一起編碼，不只用顏色 */
+.room[data-status="working"]{border-left:3px solid var(--cyan)}
+.room[data-status="meeting"]{border-left:3px solid var(--amber)}
+.room[data-status="blocked"]{border-left:3px solid var(--rose)}
+.room[data-status="idle"]{border-left:3px solid var(--line-2)}
+
+/* ── CEO 舞台 ─────────────────────────────────────────────── */
+.stage .scene{height:250px}
+.stage .slide{
+  position:absolute; left:16px; top:14px; width:min(46%,240px); height:112px; border-radius:6px;
+  border:1px solid var(--line-2); background:var(--screen); padding:9px 11px; overflow:hidden;
+  box-shadow:0 0 30px -8px rgba(62,224,255,.55);
+}
+.stage .slide h4{margin:0 0 6px; font-size:11.5px; letter-spacing:.1em; color:var(--cyan); font-weight:700}
+.stage .slide li{list-style:none; font-size:11px; color:#c9d6f5; display:flex; gap:6px; margin-bottom:3px}
+.stage .slide li s{color:#6f7ea3; text-decoration-color:#6f7ea3}
+.stage .slide li em{font-style:normal; font-family:var(--mono); color:var(--amber)}
+.podium{
+  position:absolute; left:calc(min(46%,240px) + 46px); bottom:38px; width:54px; height:40px;
+  background:linear-gradient(180deg,var(--desk-top),var(--desk)); border-radius:4px 4px 2px 2px;
+  border:1px solid var(--line-2);
+}
+.podium::after{content:""; position:absolute; left:8px; right:8px; top:8px; height:3px; background:var(--cyan); opacity:.5; border-radius:2px}
+.dais{
+  position:absolute; left:calc(min(46%,240px) + 22px); bottom:22px; width:118px; height:18px; border-radius:3px;
+  background:linear-gradient(180deg,var(--panel-3),var(--panel-2)); border:1px solid var(--line-2);
+}
+.stage .person.boss{left:calc(min(46%,240px) + 58px); bottom:36px; width:82px}
+.stage .crowd{position:absolute; right:14px; bottom:8px; display:flex; align-items:flex-end; gap:2px}
+.stage .crowd .person{position:static; width:58px}
+.beam{
+  position:absolute; left:calc(min(46%,240px) + 70px); bottom:70px; width:2px; height:46px;
+  background:linear-gradient(180deg,rgba(255,77,109,.9),transparent); transform-origin:bottom center;
+  transform:rotate(38deg); animation:point 5s ease-in-out infinite;
+}
+@keyframes point{0%,100%{transform:rotate(38deg)}50%{transform:rotate(18deg)}}
+
+/* ── 佈告欄 ──────────────────────────────────────────────── */
+.board{
+  border:1px solid var(--board-frame); border-radius:var(--r); background:var(--board);
+  box-shadow:var(--drop); display:flex; flex-direction:column; overflow:hidden;
+}
+.board > header{
+  display:flex; align-items:center; gap:9px; padding:10px 12px;
+  border-bottom:1px solid var(--line); background:var(--panel-3);
+}
+.board > header h2{font-size:14px}
+.board > header .sub{margin-left:auto; font-size:11px; color:var(--ink-3); font-family:var(--mono)}
+.boardbody{display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:12px; flex:1}
+@media (max-width:620px){ .boardbody{grid-template-columns:1fr} }
+.col h3{font-size:11.5px; letter-spacing:.14em; color:var(--ink-3); margin-bottom:8px; display:flex; gap:7px; align-items:center}
+.col h3 .c{font-family:var(--mono); color:var(--ink-2)}
+.notes{display:grid; gap:8px}
+.note{
+  position:relative; padding:9px 10px 9px 12px; border-radius:3px; font-size:12.5px; line-height:1.45;
+  background:var(--note); color:var(--note-ink); box-shadow:0 6px 14px -10px rgba(0,0,0,.9);
+  transform:rotate(-.35deg); cursor:pointer; border:0; font-family:inherit; text-align:left; width:100%;
+}
+.note:nth-child(even){transform:rotate(.45deg)}
+.note:hover{filter:brightness(1.06)}
+.note .k{font-family:var(--mono); font-size:10.5px; opacity:.72; display:block}
+.note .who{display:inline-block; margin-top:5px; font-size:10.5px; background:rgba(0,0,0,.14); border-radius:99px; padding:1px 7px}
+.note::before{content:""; position:absolute; left:50%; top:-4px; width:8px; height:8px; border-radius:50%; background:#c9432f; box-shadow:0 2px 4px rgba(0,0,0,.5)}
+.note.done{background:var(--panel-2); color:var(--ink-2); box-shadow:none; transform:none; border:1px solid var(--line)}
+.note.done::before{background:var(--mint)}
+.note.done .t{text-decoration:line-through; text-decoration-color:var(--ink-3)}
+.note.wait{background:#e07a5f; color:#2c0f06}
+.note.wait::before{background:#ffd76b}
+
+/* ── 會議室 ──────────────────────────────────────────────── */
+.meeting-room .scene{height:300px}
+.meeting-room .floor{height:62%}
+.mtable{
+  position:absolute; left:50%; bottom:60px; transform:translateX(-50%);
+  width:min(58%,330px); height:90px; border-radius:50%;
+  background:radial-gradient(ellipse at 50% 30%, var(--desk-top), var(--desk));
+  border:1px solid var(--line-2); box-shadow:0 22px 30px -24px #000;
+}
+.mtable::after{
+  content:""; position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:38px; height:26px; border-radius:3px; background:var(--screen); border:1px solid var(--line-2);
+  box-shadow:0 0 22px -4px rgba(62,224,255,.6);
+}
+.seat{position:absolute; width:62px}
+.seat .person{position:static; width:100%}
+.seat .tag{
+  display:block; text-align:center; font-size:10.5px; color:var(--ink-2); margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bubble{
+  position:absolute; max-width:190px; padding:7px 10px; border-radius:11px 11px 11px 3px;
+  background:var(--panel-3); border:1px solid var(--line-2); color:var(--ink); font-size:11.5px;
+  box-shadow:var(--drop); animation:pop .5s ease both;
+}
+.bubble .sp{display:block; font-size:10px; color:var(--cyan); font-family:var(--mono); margin-bottom:2px}
+@keyframes pop{from{opacity:0; transform:translateY(6px) scale(.96)}to{opacity:1; transform:none}}
+.mtimer{
+  position:absolute; left:14px; top:12px; font-family:var(--mono); font-size:11px; color:var(--amber);
+  border:1px solid rgba(255,180,84,.4); border-radius:99px; padding:2px 9px; background:rgba(255,180,84,.08);
+}
+
+/* ── 右側詳情抽屜 ────────────────────────────────────────── */
+.scrim{position:fixed; inset:0; background:rgba(4,7,14,.6); backdrop-filter:blur(2px); z-index:50; opacity:0; transition:opacity .2s}
+.drawer{
+  position:fixed; z-index:60; top:0; right:0; height:100%; width:min(440px,100%);
+  background:var(--panel); border-left:1px solid var(--line-2); box-shadow:-24px 0 60px -40px #000;
+  transform:translateX(102%); transition:transform .24s cubic-bezier(.22,.9,.3,1);
+  display:flex; flex-direction:column;
+}
+body.open .drawer{transform:none}
+body.open .scrim{opacity:1}
+.drawer > header{
+  display:flex; gap:12px; align-items:center; padding:14px 14px 12px;
+  border-bottom:1px solid var(--line); background:var(--panel-3);
+}
+.drawer > header .av{width:56px; height:72px; flex:none}
+.drawer > header .av svg{width:100%; height:100%}
+.drawer h2{font-size:16px}
+.drawer .sub{font-family:var(--mono); font-size:11px; color:var(--ink-3)}
+.drawer .body{overflow-y:auto; padding:14px; display:grid; gap:16px}
+.sect h3{
+  font-size:11.5px; letter-spacing:.14em; color:var(--ink-3); margin-bottom:8px;
+  display:flex; align-items:center; gap:8px;
+}
+.sect h3 .c{font-family:var(--mono); color:var(--ink-2)}
+.list{display:grid; gap:6px}
+.item{
+  display:flex; gap:9px; align-items:flex-start; padding:8px 10px; border-radius:9px;
+  border:1px solid var(--line); background:var(--panel-2); font-size:12.5px; color:var(--ink-2);
+}
+.item .k{font-family:var(--mono); font-size:10.5px; color:var(--ink-3); flex:none; padding-top:1px; min-width:26px}
+.item.ok{border-left:3px solid var(--mint)}
+.item.go{border-left:3px solid var(--cyan)}
+.item.todo{border-left:3px solid var(--line-2)}
+.item.blocked{border-left:3px solid var(--rose)}
+.files{display:flex; flex-wrap:wrap; gap:6px}
+.files code{
+  font-size:11px; color:var(--ink-2); background:var(--panel-2);
+  border:1px solid var(--line); border-radius:6px; padding:3px 7px;
+}
+.kv{display:grid; grid-template-columns:auto 1fr; gap:6px 12px; font-size:12.5px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0; color:var(--ink)}
+.talkline{
+  border-left:2px solid var(--amber); padding:4px 0 4px 10px; font-size:12.5px; color:var(--ink-2);
+}
+.talkline b{color:var(--ink); font-weight:600}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+}
+</style>
+
+<header class="topbar">
+  <div class="brand">
+    <svg class="logo" viewBox="0 0 32 32" aria-hidden="true">
+      <rect x="2" y="2" width="28" height="28" rx="8" fill="none" stroke="var(--line-2)"></rect>
+      <circle cx="16" cy="16" r="9" fill="none" stroke="var(--cyan)" stroke-width="1.6"></circle>
+      <circle cx="16" cy="16" r="3" fill="var(--violet)"></circle>
+      <path d="M16 7 L16 2" stroke="var(--amber)" stroke-width="1.6" stroke-linecap="round"></path>
+    </svg>
+    <div>
+      <b>輪動團隊辦公室</b>
+      <span>TW-ROTATION · AGENT FLOOR</span>
+    </div>
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="pills" id="filters" role="group" aria-label="依狀態篩選"></div>
+
+  <div class="spacer"></div>
+
+  <span class="clock" id="clock">--:--:--</span>
+  <button class="iconbtn" id="themebtn" type="button" title="切換淺色／深色" aria-label="切換淺色／深色">
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+      <circle cx="12" cy="12" r="4.2"></circle>
+      <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.2 5.2l1.6 1.6M17.2 17.2l1.6 1.6M18.8 5.2l-1.6 1.6M6.8 17.2l-1.6 1.6" stroke-linecap="round"></path>
+    </svg>
+  </button>
+  <span class="verbadge" id="ver">v0.1 外觀稿 · 09-20</span>
+</header>
+
+<div class="wrap">
+  <p class="notice">
+    <span aria-hidden="true">⚑</span>
+    <span><b>這是外觀稿</b>：畫面上的狀態、任務、對話全部是<strong>示意資料</strong>，尚未接上真實的 Agent 執行狀態。
+    先確認樣式（人物、辦公室、會議室、佈告欄、點擊後的詳情）要不要調整，確認後再接真實資料與功能。</span>
+  </p>
+
+  <div class="floorlabel"><span class="fl">10F</span> 指揮層 · CEO 辦公室與佈告欄</div>
+  <div class="strip">
+    <div id="stage"></div>
+    <div id="board"></div>
+  </div>
+
+  <div class="floorlabel"><span class="fl">9F</span> 會議層 · 討論中的 Agent 會進到這裡</div>
+  <div id="meeting"></div>
+
+  <div class="floorlabel"><span class="fl">3–8F</span> 專家辦公室 · <span id="officecount"></span></div>
+  <div class="offices" id="offices"></div>
+</div>
+
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-labelledby="dname" hidden>
+  <header>
+    <div class="av" id="dav" aria-hidden="true"></div>
+    <div style="min-width:0">
+      <h2 id="dname">—</h2>
+      <span class="sub" id="did">—</span>
+    </div>
+    <button class="iconbtn" id="closebtn" type="button" aria-label="關閉" style="margin-left:auto">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M6 6l12 12M18 6L6 18" stroke-linecap="round"></path>
+      </svg>
+    </button>
+  </header>
+  <div class="body" id="dbody"></div>
+</aside>
+
+<script>
+/* ============================================================
+   1. 人物：純 SVG 畫，不用任何外部圖檔
+   每個角色＝膚色 ＋ 髮型 ＋ 配件（眼鏡／帽子／耳機）＋ 服裝色 ＋ 手上的道具。
+   道具是「一眼認得出這是誰」的關鍵，所以每個角色都不一樣。
+   ============================================================ */
+const SKIN = {a:'#f2cba7', b:'#e0b085', c:'#c68e62', d:'#8f5c3c', e:'#f8dcc4'};
+const HAIRC = {blk:'#272c3b', brn:'#5b3c27', gry:'#98a3bb', red:'#a44b2a', gold:'#d8b069', ink:'#1b2030'};
+
+function hairSVG(style, c){
+  const f = HAIRC[c] || HAIRC.blk;
+  const cap = '<path d="M18 24 C18 10 24 6.5 32 6.5 C40 6.5 46 10 46 24 L43 24 C43 16 39 12.5 32 12.5 C25 12.5 21 16 21 24 Z" fill="'+f+'"/>';
+  switch(style){
+    case 'bald':  return '<path d="M20 20 C22 14 27 11.5 32 11.5 C37 11.5 42 14 44 20 L44 22 C40 17 24 17 20 22 Z" fill="'+f+'" opacity=".35"/>';
+    case 'buzz':  return '<path d="M19 23 C19 12 25 8.5 32 8.5 C39 8.5 45 12 45 23 L42 23 C42 15 38 12 32 12 C26 12 22 15 22 23 Z" fill="'+f+'" opacity=".85"/>';
+    case 'bun':   return cap + '<circle cx="32" cy="5" r="5" fill="'+f+'"/><path d="M27 6 h10" stroke="rgba(0,0,0,.18)" stroke-width="1.2"/>';
+    case 'long':  return cap + '<path d="M18 22 L18 44 L23 44 L23 22 Z" fill="'+f+'"/><path d="M46 22 L46 44 L41 44 L41 22 Z" fill="'+f+'"/>';
+    case 'pony':  return cap + '<path d="M45 20 C52 24 52 34 47 40 L43 38 C47 32 47 25 43 22 Z" fill="'+f+'"/>';
+    case 'curly': return '<circle cx="24" cy="13" r="6.5" fill="'+f+'"/><circle cx="32" cy="9.5" r="7" fill="'+f+'"/><circle cx="40" cy="13" r="6.5" fill="'+f+'"/>';
+    case 'wave':  return cap + '<path d="M19 17 Q26 12 32 16 Q38 20 45 15 L45 20 Q38 25 32 21 Q26 17 19 22 Z" fill="'+f+'" opacity=".55"/>';
+    default:      return cap;
+  }
+}
+function hatSVG(hat){
+  switch(hat){
+    case 'helmet': return '<path d="M17 21 C17 10 24 5.5 32 5.5 C40 5.5 47 10 47 21 Z" fill="#ffb454"/>'+
+                          '<rect x="14" y="20" width="36" height="4" rx="2" fill="#e89a2d"/>'+
+                          '<path d="M32 5.5 L32 21" stroke="#e89a2d" stroke-width="1.6"/>';
+    case 'beret':  return '<path d="M17 18 C17 9 25 5 33 5 C42 5 47 10 47 17 L46 19 C40 15 24 15 18 20 Z" fill="#8b7bff"/>'+
+                          '<circle cx="35" cy="4.5" r="2.4" fill="#c3ff5b"/>';
+    case 'cap':    return '<path d="M18 19 C18 9 24 5.5 32 5.5 C40 5.5 46 9 46 19 Z" fill="#2ee59d"/>'+
+                          '<path d="M44 19 L58 21 L58 17 C52 15 47 15 44 16 Z" fill="#1fb97c"/>';
+    case 'headset':return '<path d="M18 22 C18 10 46 10 46 22" fill="none" stroke="#3ee0ff" stroke-width="3" stroke-linecap="round"/>'+
+                          '<rect x="14" y="20" width="6" height="11" rx="3" fill="#3ee0ff"/>'+
+                          '<rect x="44" y="20" width="6" height="11" rx="3" fill="#3ee0ff"/>'+
+                          '<path d="M20 30 q-4 6 2 7" fill="none" stroke="#3ee0ff" stroke-width="1.6"/>';
+    default: return '';
+  }
+}
+function propSVG(id){
+  const P = {
+    baton:  '<rect x="0" y="2" width="3" height="22" rx="1.5" fill="#e8eeff"/><circle cx="1.5" cy="2" r="2.6" fill="#ff4d6d"/>',
+    calc:   '<rect x="0" y="0" width="14" height="19" rx="2" fill="#20304f" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<rect x="2" y="2" width="10" height="4" rx="1" fill="#3ee0ff" opacity=".75"/>'+
+            '<g fill="#a9b6d6"><rect x="2.5" y="8" width="2.6" height="2.4"/><rect x="6" y="8" width="2.6" height="2.4"/><rect x="9.5" y="8" width="2.6" height="2.4"/>'+
+            '<rect x="2.5" y="11.6" width="2.6" height="2.4"/><rect x="6" y="11.6" width="2.6" height="2.4"/><rect x="9.5" y="11.6" width="2.6" height="2.4"/>'+
+            '<rect x="2.5" y="15.2" width="6.1" height="2.4"/><rect x="9.5" y="15.2" width="2.6" height="2.4"/></g>',
+    palette:'<path d="M9 0 C15 0 18 5 17 9 C16 13 11 11 10 14 C9 17 5 18 2 15 C-1 12 1 3 9 0 Z" fill="#141e36" stroke="#8b7bff" stroke-width="1"/>'+
+            '<circle cx="6" cy="5" r="1.9" fill="#ff4d6d"/><circle cx="11.5" cy="4.5" r="1.9" fill="#3ee0ff"/>'+
+            '<circle cx="13" cy="9.5" r="1.9" fill="#ffb454"/><circle cx="6" cy="11" r="1.9" fill="#2ee59d"/>',
+    web:    '<g stroke="#3ee0ff" stroke-width="1.1" fill="none"><path d="M3 3 L13 7 M13 7 L5 15 M3 3 L5 15 M13 7 L15 15"/></g>'+
+            '<g fill="#3ee0ff"><circle cx="3" cy="3" r="2.4"/><circle cx="13" cy="7" r="2.4"/><circle cx="5" cy="15" r="2.4"/><circle cx="15" cy="15" r="2"/></g>',
+    kline:  '<rect x="0" y="0" width="18" height="16" rx="2" fill="#071827" stroke="#2a3860" stroke-width="1"/>'+
+            '<g stroke-width="1"><path d="M4 3 L4 13" stroke="#ff4d6d"/><rect x="2.6" y="5" width="2.8" height="6" fill="#ff4d6d"/>'+
+            '<path d="M9 2 L9 12" stroke="#2ee59d"/><rect x="7.6" y="4" width="2.8" height="5" fill="#2ee59d"/>'+
+            '<path d="M14 4 L14 14" stroke="#ff4d6d"/><rect x="12.6" y="6" width="2.8" height="6" fill="#ff4d6d"/></g>',
+    wafer:  '<circle cx="9" cy="9" r="8.6" fill="#141e36" stroke="#8b7bff" stroke-width="1.1"/>'+
+            '<path d="M9 .5 L9 2.6" stroke="#8b7bff" stroke-width="1.6"/>'+
+            '<g stroke="rgba(62,224,255,.55)" stroke-width=".8"><path d="M2 5.5h14M2 9h14M2 12.5h14M5.5 2v14M9 2v14M12.5 2v14"/></g>',
+    glass:  '<circle cx="7" cy="7" r="6.2" fill="rgba(62,224,255,.12)" stroke="#3ee0ff" stroke-width="1.6"/>'+
+            '<path d="M11.6 11.6 L17 17" stroke="#a9b6d6" stroke-width="2.4" stroke-linecap="round"/>'+
+            '<path d="M4.4 7.2 L6.4 9.2 L10 4.8" fill="none" stroke="#2ee59d" stroke-width="1.6" stroke-linecap="round"/>',
+    curve:  '<rect x="0" y="0" width="19" height="15" rx="2" fill="#071827" stroke="#2a3860" stroke-width="1"/>'+
+            '<path d="M2 12 L6 8 L9 10 L13 4 L17 6" fill="none" stroke="#c3ff5b" stroke-width="1.5" stroke-linecap="round"/>'+
+            '<circle cx="13" cy="4" r="1.7" fill="#c3ff5b"/>',
+    easel:  '<rect x="0" y="0" width="18" height="14" rx="1.5" fill="#0f172b" stroke="#ffb454" stroke-width="1"/>'+
+            '<path d="M3 10 L7 5 L10 8 L15 3" fill="none" stroke="#ffb454" stroke-width="1.3"/>'+
+            '<path d="M2.5 12.4 h9" stroke="#a9b6d6" stroke-width="1.2"/>',
+    db:     '<ellipse cx="8" cy="3.4" rx="7.4" ry="3.1" fill="#1a2542" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<path d="M.6 3.4 v10 c0 1.7 3.3 3.1 7.4 3.1 s7.4-1.4 7.4-3.1 V3.4" fill="#141e36" stroke="#3ee0ff" stroke-width="1"/>'+
+            '<path d="M.6 8.4 c0 1.7 3.3 3.1 7.4 3.1 s7.4-1.4 7.4-3.1" fill="none" stroke="#3ee0ff" stroke-width=".9" opacity=".6"/>',
+    gantt:  '<rect x="0" y="0" width="19" height="15" rx="2" fill="#0f172b" stroke="#2a3860" stroke-width="1"/>'+
+            '<rect x="2.5" y="3" width="11" height="2.4" rx="1.2" fill="#3ee0ff"/>'+
+            '<rect x="5" y="6.6" width="9" height="2.4" rx="1.2" fill="#8b7bff"/>'+
+            '<rect x="8" y="10.2" width="8" height="2.4" rx="1.2" fill="#ffb454"/>',
+    cube:   '<path d="M9 0 L18 5 L9 10 L0 5 Z" fill="#8b7bff"/>'+
+            '<path d="M0 5 L9 10 L9 19 L0 14 Z" fill="#5a4ec2"/>'+
+            '<path d="M18 5 L9 10 L9 19 L18 14 Z" fill="#6f61e0"/>',
+    watch:  '<circle cx="9" cy="10" r="7.6" fill="#141e36" stroke="#c3ff5b" stroke-width="1.4"/>'+
+            '<rect x="7" y="0" width="4" height="3" rx="1" fill="#c3ff5b"/>'+
+            '<path d="M9 10 L9 5.5 M9 10 L12.4 12" stroke="#c3ff5b" stroke-width="1.4" stroke-linecap="round"/>',
+    coin:   '<ellipse cx="8" cy="13" rx="7.4" ry="3" fill="#ffb454"/><ellipse cx="8" cy="9.6" rx="7.4" ry="3" fill="#ffc978"/>'+
+            '<ellipse cx="8" cy="6.2" rx="7.4" ry="3" fill="#ffb454"/>'+
+            '<path d="M6 6.2 h4 M8 4.6 v3.2" stroke="#7a4d00" stroke-width="1"/>',
+    caliper:'<rect x="0" y="4" width="18" height="3" rx="1" fill="#a9b6d6"/>'+
+            '<rect x="1" y="1" width="3" height="12" rx="1" fill="#8ea0c4"/>'+
+            '<rect x="10" y="1" width="3" height="12" rx="1" fill="#3ee0ff"/>'+
+            '<g stroke="#5b6a8c" stroke-width=".7"><path d="M5 4v-2M7 4v-2M9 4v-2M15 4v-2"/></g>',
+    swatch: '<g><rect x="0" y="4" width="5" height="14" rx="1.5" fill="#ff4d6d" transform="rotate(-16 2.5 11)"/>'+
+            '<rect x="5" y="3" width="5" height="14" rx="1.5" fill="#ffb454"/>'+
+            '<rect x="10" y="4" width="5" height="14" rx="1.5" fill="#3ee0ff" transform="rotate(16 12.5 11)"/></g>',
+    chip:   '<rect x="3" y="3" width="12" height="12" rx="1.6" fill="#141e36" stroke="#3ee0ff" stroke-width="1.2"/>'+
+            '<rect x="6" y="6" width="6" height="6" rx="1" fill="#3ee0ff" opacity=".7"/>'+
+            '<g stroke="#a9b6d6" stroke-width="1.2"><path d="M6 3V.8M9 3V.8M12 3V.8M6 15v2.2M9 15v2.2M12 15v2.2M3 6H.8M3 9H.8M3 12H.8M15 6h2.2M15 9h2.2M15 12h2.2"/></g>',
+    pcb:    '<rect x="0" y="0" width="18" height="15" rx="1.6" fill="#0d3b2e" stroke="#2ee59d" stroke-width="1"/>'+
+            '<g stroke="#c3ff5b" stroke-width=".9" fill="none"><path d="M2 3h6v4h7M2 8v4h5M11 12h5"/></g>'+
+            '<g fill="#ffb454"><rect x="8" y="2" width="4" height="3" rx=".6"/><circle cx="4" cy="12" r="1.3"/></g>',
+    rack:   '<rect x="0" y="0" width="15" height="19" rx="1.8" fill="#0f172b" stroke="#2a3860" stroke-width="1"/>'+
+            '<g><rect x="2" y="2.4" width="11" height="3" rx=".8" fill="#1a2542"/><rect x="2" y="6.6" width="11" height="3" rx=".8" fill="#1a2542"/>'+
+            '<rect x="2" y="10.8" width="11" height="3" rx=".8" fill="#1a2542"/><rect x="2" y="15" width="11" height="2.4" rx=".8" fill="#1a2542"/></g>'+
+            '<g fill="#2ee59d"><circle cx="4" cy="3.9" r="1"/><circle cx="4" cy="8.1" r="1"/><circle cx="4" cy="12.3" r="1"/></g>'+
+            '<g fill="#3ee0ff"><circle cx="7" cy="3.9" r="1"/><circle cx="7" cy="12.3" r="1"/></g>'
+  };
+  return P[id] || '';
+}
+const PROP_POS = {
+  baton:[46,50], calc:[44,52], palette:[44,52], web:[44,52], kline:[43,54], wafer:[43,52],
+  glass:[43,52], curve:[42,54], easel:[42,54], db:[44,52], gantt:[42,54], cube:[44,52],
+  watch:[44,52], coin:[44,52], caliper:[43,56], swatch:[44,50], chip:[44,52], pcb:[42,54], rack:[45,50]
+};
+
+/* 一個人＝一張 SVG。move 控制待機動作：type（打字）／nod（點頭）／idle（發呆） */
+function avatar(L, move, label){
+  const skin = SKIN[L.skin] || SKIN.a;
+  const suit = L.suit, pants = L.pants || '#26314d', shirt = L.shirt || '#e8eeff';
+  const pos = PROP_POS[L.prop] || [44,52];
+  const armCls = move === 'type' ? 'typing' : '';
+  const headCls = move === 'nod' ? 'nod' : '';
+  return '<svg viewBox="0 0 64 106" role="img" aria-label="' + (label||'') + '">' +
+    '<ellipse cx="32" cy="103" rx="19" ry="3" fill="rgba(0,0,0,.34)"/>' +
+    '<g class="breathe">' +
+      '<rect x="23" y="70" width="8" height="30" rx="2.4" fill="' + pants + '"/>' +
+      '<rect x="33" y="70" width="8" height="30" rx="2.4" fill="' + pants + '"/>' +
+      '<rect x="20" y="97" width="12" height="5.4" rx="2.4" fill="#1b2233"/>' +
+      '<rect x="32" y="97" width="12" height="5.4" rx="2.4" fill="#1b2233"/>' +
+      '<path d="M21 46 C21 39 26 35.5 32 35.5 C38 35.5 43 39 43 46 L45 74 L19 74 Z" fill="' + suit + '"/>' +
+      '<path d="M28 35.8 L32 44 L36 35.8 L34 34.6 L32 38.6 L30 34.6 Z" fill="' + shirt + '"/>' +
+      '<g class="' + armCls + '">' +
+        '<rect x="13.5" y="44" width="7.6" height="25" rx="3.8" fill="' + suit + '"/>' +
+        '<rect x="42.9" y="44" width="7.6" height="25" rx="3.8" fill="' + suit + '"/>' +
+        '<circle cx="17.3" cy="70" r="4" fill="' + skin + '"/>' +
+        '<circle cx="46.7" cy="70" r="4" fill="' + skin + '"/>' +
+      '</g>' +
+      '<g transform="translate(' + pos[0] + ',' + pos[1] + ')">' + propSVG(L.prop) + '</g>' +
+      '<rect x="28.5" y="29" width="7" height="9" rx="2" fill="' + skin + '"/>' +
+      '<g class="' + headCls + '" style="transform-origin:32px 34px">' +
+        '<circle cx="19.6" cy="24" r="3" fill="' + skin + '"/><circle cx="44.4" cy="24" r="3" fill="' + skin + '"/>' +
+        '<rect x="20" y="10" width="24" height="26" rx="11.5" fill="' + skin + '"/>' +
+        hairSVG(L.hair, L.hairC) + hatSVG(L.hat) +
+        '<g fill="#2a3045"><ellipse cx="27" cy="25" rx="1.5" ry="1.9"/><ellipse cx="37" cy="25" rx="1.5" ry="1.9"/></g>' +
+        '<path d="M29.5 30.5 q2.5 2 5 0" fill="none" stroke="#a8613f" stroke-width="1.2" stroke-linecap="round"/>' +
+        (L.glasses ? '<g fill="none" stroke="#3ee0ff" stroke-width="1.2" opacity=".9">' +
+          '<rect x="23" y="21.6" width="8" height="6.6" rx="2.4"/><rect x="33" y="21.6" width="8" height="6.6" rx="2.4"/>' +
+          '<path d="M31 25h2"/></g>' : '') +
+      '</g>' +
+    '</g></svg>';
+}
+</script>
+
+<script>
+/* ============================================================
+   2. 示意資料（之後這一整塊會換成真實的 Agent 狀態來源）
+   內容取自 HANDOFF.md 的 C 批任務板，讓外觀看起來就是這個專案在跑。
+   ============================================================ */
+const STATUS = {
+  working:{label:'工作中', cls:'working'},
+  meeting:{label:'開會中', cls:'meeting'},
+  idle:   {label:'待命',   cls:'idle'},
+  blocked:{label:'等決策', cls:'blocked'},
+  briefing:{label:'台上分派', cls:'meeting'}
+};
+
+const CEO = {
+  id:'ceo', name:'CEO（主 session）', role:'拆任務、派工、追進度、push 與回報',
+  status:'briefing', floor:'10F 指揮層',
+  look:{skin:'b', hair:'short', hairC:'gry', glasses:1, suit:'#2b3a63', shirt:'#e8eeff', prop:'baton'},
+  now:{t:'本輪分派：C1／C2 先做，C4 ＋ A4 併成同一輪', pct:35, since:'15:12'},
+  files:['CLAUDE.md','HANDOFF.md','DECISIONS.md','.github/workflows/'],
+  assign:[
+    {k:'C1', t:'兩格等大、超出改拉 Bar', who:'frontend-ui'},
+    {k:'C2', t:'多寬度掃描（canvas 的字看不到）', who:'reviewer'},
+    {k:'C3', t:'供應鏈關聯圖改環節卡', who:'industry-analyst'},
+    {k:'C4+A4', t:'併同一輪，排在 C1／C2 之後', who:'frontend-ui'}
+  ]
+};
+
+const AGENTS = [
+  { id:'finance-quant', name:'金融專家', role:'這個數字該怎麼算、什麼時候可以用', status:'working', floor:'6F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#1f5d7a',prop:'calc'},
+    now:{t:'N8：查熱力圖 avg_excess 是不是真的全空', pct:62, since:'14:05'},
+    done:['PE 一律自算（不用單季 ×4）','財報可用日改用法定期限','分位樣本 <5 退回法定產業、<3 留白'],
+    doing:['N8 超額 & 絕對報酬看起來沒變化 —— 先查是不是真的沒變，再談畫面'],
+    todo:['N9：季節性改「最近 12×N 個完整月」滾動視窗（併在批次4）','樣本數 n 要顯示到前端每一張季節性圖'],
+    files:['compute/fundamental.py','compute/season.py','compute/stockpage.py'] },
+
+  { id:'frontend-ui', name:'UI 專家', role:'版面、圖表、互動、手機寬', status:'meeting', floor:'5F',
+    look:{skin:'e',hair:'bun',hairC:'brn',glasses:0,suit:'#6f61e0',prop:'palette'},
+    now:{t:'會議中：C4 ＋ A4 要怎麼併成一輪', pct:20, since:'15:12'},
+    done:['批次1 六件純前端（_uitest 0 個問題）','N2 兩排族群晶片名單統一','N5 輪動時鐘圓圈放大'],
+    doing:['C1 熱門題材內容被裁掉、沒有捲軸 —— 先量再改','C2 三張圖改掉百分比定位'],
+    todo:['C4 族群列改「漲跌分佈」式篩選（沿用 wireDistFilter，不重寫）','A4 輪動時鐘八條：＋／− 鈕、移除旋轉箭頭、30 天、平滑移動、軌跡可開關'],
+    files:['site/app.js','site/index.html','site/industry.js'] },
+
+  { id:'data-scraper', name:'爬蟲專家', role:'資料源接入、額度、可失敗設計', status:'blocked', floor:'4F',
+    look:{skin:'c',hair:'buzz',hairC:'blk',glasses:0,hat:'headset',suit:'#2b6d5a',prop:'web'},
+    now:{t:'卡住：FinMind token 失效，全站資料停止更新', pct:0, since:'昨日 22:46'},
+    done:['mis 即時報價白名單接入','分 K 進資料湖（部署省下 13 分 43 秒）','每輪第一件事先做 FinMind 健檢'],
+    doing:[],
+    todo:['等 Andy 重新產生 FinMind token 並更新 GitHub Secret','N4：rrg trail 由 20 天拉到 30 天','N11：台指夜盤 mis.taifex（批次5）'],
+    blockedBy:'HTTP 400：Token is illegal.（data/_state 健檢原文）',
+    files:['pipeline/sources/finmind.py','pipeline/util/http.py','run_daily.py'] },
+
+  { id:'smc-technical', name:'技術分析專家', role:'指標、SMC、多週期判讀', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'wave',hairC:'blk',glasses:0,suit:'#7a3f5d',prop:'kline'},
+    now:null,
+    done:['KD 9,3,3 初始 50 前後端對齊','RSI Wilder 用 SMA 種子，與 TradingView 對得上','多週期 SMC 支撐壓力區'],
+    doing:[],
+    todo:['技術分析教學層（等 visual-explainer 的名詞字典）','分 K 指標與日線口徑再驗一次'],
+    files:['pipeline/indicators.py','compute/technical.py','compute/mtf.py','site/chart.js'] },
+
+  { id:'industry-analyst', name:'產業分析師', role:'族群成分、題材、供應鏈、剖析圖', status:'meeting', floor:'7F',
+    look:{skin:'a',hair:'long',hairC:'blk',glasses:1,suit:'#3f5aa6',prop:'wafer'},
+    now:{t:'會議中：C3 供應鏈圖改成環節卡怎麼切', pct:30, since:'15:12'},
+    done:['圖十供應鏈關聯圖上線','三位鏈別分析師查證後改掉 5 條錯的關係'],
+    doing:['C3：關聯圖上下太長 → 改成環節卡 ＋ 個股小卡'],
+    todo:['其餘產業鏈 3D 剖析圖（ROADMAP 第二批）'],
+    files:['groups/supply_chain.yaml','groups/themes.yaml','site/diagrams.js'] },
+
+  { id:'reviewer', name:'審核專家', role:'只驗收不改扣，跑完整清單不抽查', status:'working', floor:'8F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#4a5c8f',prop:'glass'},
+    now:{t:'把 _preview.py 改成多寬度掃描（1366／1440／1536／1920）', pct:48, since:'13:40'},
+    done:['批次1 十二條新驗收全過','抓出 _uitest 在 main 上本來就有 47 條紅的'],
+    doing:['C2 根因：app.js 用 canvas renderer，圖裡的字在 DOM 上不存在 → 驗收時切 SVG'],
+    todo:['祖先元素不算重疊（探測腳本的坑，已記）','新功能一律補一段「真的操作它」的驗收'],
+    files:['scripts/_preview.py','scripts/_uitest.py','tests/'] },
+
+  { id:'strategy-backtest', name:'策略回測', role:'照這套規則做，過去到底賺不賺', status:'idle', floor:'6F',
+    look:{skin:'b',hair:'curly',hairC:'brn',glasses:0,suit:'#8a5a2b',prop:'curve'},
+    now:null, done:[],
+    doing:[],
+    todo:['compute/backtest.py、strategy.py 都還沒建立','訊號一律「收盤後產生 → 隔日開盤成交」','紙上帳本：每次訊號的進出價、報酬率、最大回撤'],
+    files:['compute/backtest.py（未建立）','compute/strategy.py（未建立）'] },
+
+  { id:'visual-explainer', name:'圖解教學', role:'看不懂的東西要有人翻成人話', status:'working', floor:'7F',
+    look:{skin:'e',hair:'pony',hairC:'gold',glasses:1,suit:'#b26a2e',prop:'easel'},
+    now:{t:'N6：四段之間順時針箭頭畫到位 ＋ 一句白話', pct:70, since:'14:20'},
+    done:['名詞字典 TERMS 第一版','每張圖的「怎麼看 ?」說明'],
+    doing:['A4 第 4 條：補充「圓心到圓圈邊緣代表什麼」'],
+    todo:['技術分析教學層','剖析圖旁邊的知識連結'],
+    files:['site/app.js（TERMS）','site/industry.js'] },
+
+  { id:'data-steward', name:'資料治理', role:'資料新不新、壞了誰知道', status:'working', floor:'4F',
+    look:{skin:'c',hair:'short',hairC:'gry',glasses:1,suit:'#2f6f8f',prop:'db'},
+    now:{t:'健檢機制：每輪第一件事問「台積電最近 10 天日線」', pct:85, since:'09:05'},
+    done:['頂端資料狀態列','backfill_progress.json 寫入健檢結果','抓到 FinMind token 失效並寫出原文'],
+    doing:['把三個長期失敗的來源列進橫幅：twse.dividend／tdcc.shareholding／macro.fred'],
+    todo:['每週健檢報告'],
+    files:['data/_state/','pipeline/build_payload.py'] },
+
+  { id:'delivery-planner', name:'交付排程', role:'這批有幾件事、先做哪個、做完了沒', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'short',hairC:'brn',glasses:0,suit:'#3d7a63',prop:'gantt'},
+    now:{t:'會議中：C 批順序與併輪', pct:55, since:'15:12'},
+    done:['C 批任務板（C1–C4 ＋ A4）','批次1–5、7 與 6-N1 逐項核對'],
+    doing:['盯 C4 那句「也可以篩選想要的股票」要先定義清楚'],
+    todo:['交付後逐項回頭核對 HANDOFF 的進度欄'],
+    files:['HANDOFF.md'] },
+
+  { id:'tech-illustrator', name:'機構繪圖', role:'剖析圖、封裝結構、3D 零件', status:'idle', floor:'7F',
+    look:{skin:'b',hair:'bun',hairC:'red',glasses:0,hat:'cap',suit:'#6a4fa3',prop:'cube'},
+    now:null,
+    done:['圖九、圖十上線','N1：3D 圖可平移、仰角放開（看得到底部）'],
+    doing:[],
+    todo:['等 mechanical-engineer 簽掉 docs/diagram_specs/ 才能開畫下一張'],
+    files:['site/diagrams.js','site/themes3d.js','site/three3d.js'] },
+
+  { id:'efficiency-planner', name:'效率規劃', role:'這步能不能不做、哪個 CP 值最高', status:'meeting', floor:'10F',
+    look:{skin:'a',hair:'buzz',hairC:'blk',glasses:1,suit:'#4f7a2e',prop:'watch'},
+    now:{t:'會議中：三個都動 app.js，不能平行', pct:40, since:'15:12'},
+    done:['純前端改動可跳過 pytest（省 7.5 分鐘）','分 K 進資料湖（部署 14m26s 降到約 3 分）'],
+    doing:['關卡一輪 18 分鐘，評估哪幾段可以只跑受影響的部分'],
+    todo:['部署後自動比對線上版號，省掉人工確認'],
+    files:['.github/workflows/','scripts/'] },
+
+  { id:'resource-auditor', name:'資源稽核', role:'Token／額度／Actions 分鐘數', status:'working', floor:'9F',
+    look:{skin:'d',hair:'short',hairC:'blk',glasses:1,suit:'#8a6a1f',prop:'coin'},
+    now:{t:'估這一批的 Token 預算與 Actions 分鐘數', pct:30, since:'15:20'},
+    done:['FinMind 額度用量記錄','抓出重抓分 K 每天白花的額度'],
+    doing:['這一輪：外觀稿先做、功能後接，避免整套重做'],
+    todo:['每批工作設 Token 上限並在超出前示警'],
+    files:['pipeline/util/http.py','.github/workflows/'] },
+
+  { id:'mechanical-engineer', name:'結構審查', role:'畫得對不對（開畫前先寫規格書）', status:'idle', floor:'8F',
+    look:{skin:'b',hair:'short',hairC:'blk',glasses:0,hat:'helmet',suit:'#7a4a2e',prop:'caliper'},
+    now:null,
+    done:['圖十規格書與驗收','擋掉三張「先畫再想」的圖'],
+    doing:[],
+    todo:['下一張剖析圖的 docs/diagram_specs/<id>.md'],
+    files:['docs/diagram_specs/'] },
+
+  { id:'art-director', name:'視覺總監', role:'畫得好不好看（擁有 --dg-*）', status:'idle', floor:'8F',
+    look:{skin:'e',hair:'long',hairC:'red',glasses:0,hat:'beret',suit:'#5b4b9c',prop:'swatch'},
+    now:null,
+    done:['--dg-* 視覺變數收斂','淺色主題白字白線一次清掉'],
+    doing:[],
+    todo:['這張辦公室頁的配色與字級要過一次（外觀稿待審）'],
+    files:['site/index.html（--dg-*）','site/diagrams.js'] },
+
+  { id:'semi-chain-analyst', name:'半導體鏈分析師', role:'去外面查：誰幫誰代工、封測客戶是誰', status:'working', floor:'3F',
+    look:{skin:'a',hair:'short',hairC:'blk',glasses:1,suit:'#2d6e8c',prop:'chip'},
+    now:{t:'查證 CoWoS 與測試介面的三條關係（兩個獨立來源才給高信心）', pct:55, since:'14:50'},
+    done:['打掉 5 條錯的供應鏈關係、2 條半對的'],
+    doing:['先進封裝環節的客戶關係方向確認'],
+    todo:['查不到的要寫「查不到」，不要用推測補'],
+    files:['（只查不改）'] },
+
+  { id:'pcb-substrate-analyst', name:'載板分析師', role:'去外面查：載板 vs PCB、材料來自誰', status:'idle', floor:'3F',
+    look:{skin:'c',hair:'wave',hairC:'brn',glasses:0,suit:'#2f7a4e',prop:'pcb'},
+    now:null,
+    done:['ABF／BT 載板與高階 PCB 的分類修正'],
+    doing:[],
+    todo:['CCL／銅箔／玻纖布這一段的客戶關係待查'],
+    files:['（只查不改）'] },
+
+  { id:'ai-server-analyst', name:'AI 伺服器分析師', role:'去外面查：散熱／電源／光通訊／機櫃', status:'idle', floor:'3F',
+    look:{skin:'b',hair:'curly',hairC:'blk',glasses:1,suit:'#3a5f9c',prop:'rack'},
+    now:null,
+    done:['光通訊磊晶／晶粒／模組分層更正','800V HVDC 電源鏈補齊'],
+    doing:[],
+    todo:['機櫃組裝這一段有沒有斷頭斷尾要再掃一次'],
+    files:['（只查不改）'] }
+];
+
+const MEETING = {
+  topic:'C4 ＋ A4 併成同一輪（三個都動 site/app.js，不能平行）',
+  since:'15:12', elapsed:'進行 23 分',
+  members:['frontend-ui','delivery-planner','efficiency-planner','industry-analyst'],
+  log:[
+    {who:'delivery-planner', s:'C1／C2 沒驗完之前 C4 不要開工 —— 三個都動 app.js。'},
+    {who:'efficiency-planner', s:'C4 跟 A4 動的是同一張圖，拆兩輪＝同一張圖改兩次、驗兩次。'},
+    {who:'frontend-ui', s:'C4 用現成的 wireDistFilter（app.js:576），不重寫一套篩選。'},
+    {who:'industry-analyst', s:'C3 的環節卡我自己來，跟 app.js 不衝突，可以平行。'},
+    {who:'delivery-planner', s:'「也可以篩選想要的股票」先照 (a) 做：面板裡除了族群也能勾個股。'},
+    {who:'efficiency-planner', s:'這輪只動 site/**，pytest 可以跳過，省 7.5 分鐘 —— 但要跟 Andy 講一聲。'}
+  ]
+};
+
+const BOARD = {
+  todo:[
+    {k:'C1', t:'熱門題材／今日候選兩格一樣大，超出改拉 Bar', who:'frontend-ui', state:'go'},
+    {k:'C2', t:'換一台電腦版面就跑掉（多寬度掃描）', who:'reviewer', state:'go'},
+    {k:'C3', t:'供應鏈關聯圖改成環節卡 ＋ 個股小卡', who:'industry-analyst', state:'go'},
+    {k:'C4', t:'資金流向排行／輪動時鐘的族群列改成篩選式', who:'frontend-ui', state:'queue'},
+    {k:'A4', t:'輪動時鐘一整包八條（與 C4 併輪）', who:'frontend-ui', state:'queue'}
+  ],
+  wait:[
+    {k:'★', t:'FinMind token 失效 —— 只有 Andy 能換（Secrets）', who:'data-scraper'}
+  ],
+  done:[
+    {k:'批次1', t:'六件純前端快修，_uitest 0 個問題'},
+    {k:'批次7', t:'N1–N7、N10 上線'},
+    {k:'圖九／圖十', t:'產業鏈剖析圖與供應鏈關聯圖'},
+    {k:'健檢', t:'每輪先問一次台積電日線，壞了馬上知道'},
+    {k:'分 K', t:'進資料湖，部署 14m26s 變約 3 分'}
+  ]
+};
+
+/* ============================================================
+   3. 畫出來
+   ============================================================ */
+const byId = id => id === 'ceo' ? CEO : AGENTS.find(a => a.id === id);
+const nameOf = id => (byId(id) || {name:id}).name;
+const el = (h) => { const d = document.createElement('div'); d.innerHTML = h.trim(); return d.firstElementChild; };
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function barsHTML(seed){
+  const h = [];
+  for (let i = 0; i < 5; i++) h.push('<i style="height:' + (28 + ((seed * (i + 3) * 7) % 68)) + '%"></i>');
+  return h.join('');
+}
+function moveOf(st){ return st === 'working' ? 'type' : (st === 'meeting' || st === 'briefing' ? 'nod' : 'idle'); }
+
+function sceneHTML(a, seed){
+  const away = a.status === 'meeting';
+  return '<div class="scene">' +
+    '<div class="lamp"></div><div class="win"></div><div class="floor"></div>' +
+    '<div class="desk"><div class="top"></div><div class="leg l"></div><div class="leg r"></div></div>' +
+    '<div class="monitor"><div class="ln"></div><div class="bars">' + barsHTML(seed) + '</div></div>' +
+    '<div class="plantpot"></div>' +
+    (a.status === 'idle' ? '<div class="zzz">···</div>' : '') +
+    (away
+      ? '<div class="zzz" style="left:26px;bottom:52px;color:var(--amber)">↗ 9F 會議室</div>'
+      : '<div class="person">' + avatar(a.look, moveOf(a.status), a.name) + '</div>') +
+    '</div>';
+}
+
+function roomHTML(a, i){
+  const st = STATUS[a.status];
+  const now = a.now;
+  return '<button class="room" type="button" data-id="' + a.id + '" data-status="' + a.status + '">' +
+    '<span class="plate"><span class="dot ' + st.cls + '"></span>' +
+      '<span class="nm">' + esc(a.name) + '</span>' +
+      '<code class="id">' + esc(a.id) + '</code>' +
+      '<span class="st">' + st.label + '</span></span>' +
+    sceneHTML(a, i + 2) +
+    '<span class="task">' +
+      '<span class="now">' + (now ? '<b>現在：</b>' + esc(now.t) : '<b>待命中</b>　沒有進行中的任務') + '</span>' +
+      (now ? '<span class="bar' + (a.status === 'blocked' ? ' amberbar' : '') + '"><i style="width:' + now.pct + '%"></i></span>' : '<span class="bar"><i style="width:0"></i></span>') +
+      '<span class="counts">' +
+        '<span class="ok">完成 <b>' + (a.done || []).length + '</b></span>' +
+        '<span class="go">進行 <b>' + (a.doing || []).length + '</b></span>' +
+        '<span class="wait">未完成 <b>' + (a.todo || []).length + '</b></span>' +
+      '</span>' +
+    '</span>' +
+  '</button>';
+}
+
+function renderOffices(){
+  document.getElementById('offices').innerHTML = AGENTS.map(roomHTML).join('');
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  document.getElementById('officecount').textContent =
+    AGENTS.length + ' 間 · 工作中 ' + c('working') + ' · 開會中 ' + c('meeting') + ' · 待命 ' + c('idle') + ' · 等決策 ' + c('blocked');
+}
+
+function renderStage(){
+  const crowd = ['frontend-ui','reviewer','industry-analyst'].map(id => {
+    const a = byId(id);
+    return '<span class="person">' + avatar(a.look, 'idle', a.name) + '</span>';
+  }).join('');
+  document.getElementById('stage').innerHTML =
+    '<button class="room stage" type="button" data-id="ceo" data-status="briefing">' +
+      '<span class="plate"><span class="dot meeting"></span><span class="nm">CEO 辦公室 · 分派中</span>' +
+        '<code class="id">main session</code><span class="st">台上分派</span></span>' +
+      '<span class="scene">' +
+        '<span class="lamp"></span><span class="floor"></span>' +
+        '<span class="slide"><h4>本輪分派</h4>' +
+          CEO.assign.map(x => '<li><em>' + esc(x.k) + '</em>' + esc(x.t) + '</li>').join('') +
+        '</span>' +
+        '<span class="dais"></span><span class="podium"></span><span class="beam"></span>' +
+        '<span class="person boss">' + avatar(CEO.look, 'nod', 'CEO') + '</span>' +
+        '<span class="crowd">' + crowd + '</span>' +
+      '</span>' +
+      '<span class="task"><span class="now"><b>現在：</b>' + esc(CEO.now.t) + '</span>' +
+        '<span class="bar"><i style="width:' + CEO.now.pct + '%"></i></span>' +
+        '<span class="counts"><span class="ok">佈告欄已完成 <b>' + BOARD.done.length + '</b></span>' +
+        '<span class="go">待辦 <b>' + BOARD.todo.length + '</b></span>' +
+        '<span class="wait">等 Andy <b>' + BOARD.wait.length + '</b></span></span>' +
+      '</span>' +
+    '</button>';
+}
+
+function noteHTML(n, kind){
+  const cls = kind === 'done' ? 'note done' : (kind === 'wait' ? 'note wait' : 'note');
+  return '<button class="' + cls + '" type="button" data-id="' + (n.who || '') + '">' +
+    '<span class="k">' + esc(n.k) + '</span><span class="t">' + esc(n.t) + '</span>' +
+    (n.who ? '<span class="who">' + esc(nameOf(n.who)) + '</span>' : '') + '</button>';
+}
+function renderBoard(){
+  document.getElementById('board').innerHTML =
+    '<header><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="1.8" aria-hidden="true">' +
+      '<rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M7 9h10M7 13h6" stroke-linecap="round"></path></svg>' +
+      '<h2>CEO 佈告欄</h2><span class="sub">C 批 · 2026-09-20</span></header>' +
+    '<div class="boardbody">' +
+      '<div class="col"><h3>本批待辦 <span class="c">' + (BOARD.todo.length + BOARD.wait.length) + '</span></h3>' +
+        '<div class="notes">' + BOARD.wait.map(n => noteHTML(n, 'wait')).join('') + BOARD.todo.map(n => noteHTML(n)).join('') + '</div></div>' +
+      '<div class="col"><h3>之前完成 <span class="c">' + BOARD.done.length + '</span></h3>' +
+        '<div class="notes">' + BOARD.done.map(n => noteHTML(n, 'done')).join('') + '</div></div>' +
+    '</div>';
+}
+
+const SEATS = [
+  {left:'10%', bottom:'150px'}, {left:'64%', bottom:'150px'},
+  {left:'22%', bottom:'16px'},  {left:'54%', bottom:'16px'}
+];
+function renderMeeting(){
+  const seats = MEETING.members.map((id, i) => {
+    const a = byId(id), p = SEATS[i] || SEATS[0];
+    return '<span class="seat" style="left:' + p.left + ';bottom:' + p.bottom + '">' +
+      '<span class="person">' + avatar(a.look, 'nod', a.name) + '</span>' +
+      '<span class="tag">' + esc(a.name) + '</span></span>';
+  }).join('');
+  document.getElementById('meeting').innerHTML =
+    '<button class="room meeting-room" type="button" data-id="meeting" data-status="meeting">' +
+      '<span class="plate"><span class="dot meeting"></span><span class="nm">9F 會議室 · 討論中</span>' +
+        '<code class="id">' + MEETING.members.length + ' 人</code><span class="st">' + esc(MEETING.elapsed) + '</span></span>' +
+      '<span class="scene">' +
+        '<span class="lamp"></span><span class="floor"></span>' +
+        '<span class="mtimer">' + esc(MEETING.since) + ' 開始</span>' +
+        '<span class="mtable"></span>' + seats +
+        '<span class="bubble" id="bub1" style="left:14px;bottom:196px"></span>' +
+        '<span class="bubble" id="bub2" style="right:14px;bottom:238px"></span>' +
+      '</span>' +
+      '<span class="task"><span class="now"><b>討論中：</b>' + esc(MEETING.topic) + '</span>' +
+        '<span class="counts">' + MEETING.members.map(id => '<span class="go">' + esc(nameOf(id)) + '</span>').join('') + '</span>' +
+      '</span>' +
+    '</button>';
+  cycleBubbles();
+}
+let bubTimer = null, bubIdx = 0;
+function paintBubble(node, entry){
+  if (!node) return;
+  node.innerHTML = '<span class="sp">' + esc(nameOf(entry.who)) + '</span>' + esc(entry.s);
+  node.style.animation = 'none'; void node.offsetWidth; node.style.animation = '';
+}
+function cycleBubbles(){
+  const b1 = document.getElementById('bub1'), b2 = document.getElementById('bub2');
+  const step = () => {
+    paintBubble(b1, MEETING.log[bubIdx % MEETING.log.length]);
+    paintBubble(b2, MEETING.log[(bubIdx + 1) % MEETING.log.length]);
+    bubIdx = (bubIdx + 2) % MEETING.log.length;
+  };
+  step();
+  if (bubTimer) clearInterval(bubTimer);
+  bubTimer = setInterval(step, 4200);
+}
+
+/* ── 右側詳情 ───────────────────────────────────────────── */
+function listHTML(arr, cls, empty){
+  if (!arr || !arr.length) return '<p class="item todo" style="color:var(--ink-3)">' + empty + '</p>';
+  return '<div class="list">' + arr.map((t, i) =>
+    '<div class="item ' + cls + '"><span class="k">' + String(i + 1).padStart(2, '0') + '</span><span>' + esc(t) + '</span></div>').join('') + '</div>';
+}
+function openDrawer(id){
+  const body = document.getElementById('dbody');
+  if (id === 'meeting'){
+    document.getElementById('dav').innerHTML = avatar(byId(MEETING.members[0]).look, 'nod', '');
+    document.getElementById('dname').textContent = '9F 會議室';
+    document.getElementById('did').textContent = MEETING.members.join(' · ');
+    body.innerHTML =
+      '<div class="sect"><h3>議題</h3><p class="item go">' + esc(MEETING.topic) + '</p></div>' +
+      '<div class="sect"><h3>參與者 <span class="c">' + MEETING.members.length + '</span></h3><div class="files">' +
+        MEETING.members.map(m => '<code>' + esc(nameOf(m)) + '</code>').join('') + '</div></div>' +
+      '<div class="sect"><h3>討論內容 <span class="c">' + MEETING.log.length + ' 則</span></h3>' +
+        MEETING.log.map(l => '<p class="talkline"><b>' + esc(nameOf(l.who)) + '</b>：' + esc(l.s) + '</p>').join('') + '</div>';
+  } else {
+    const a = byId(id); if (!a) return;
+    const st = STATUS[a.status];
+    document.getElementById('dav').innerHTML = avatar(a.look, moveOf(a.status), a.name);
+    document.getElementById('dname').textContent = a.name;
+    document.getElementById('did').textContent = a.id + ' · ' + (a.floor || '');
+    body.innerHTML =
+      '<div class="sect"><dl class="kv">' +
+        '<dt>狀態</dt><dd><span class="dot ' + st.cls + '" style="display:inline-block;vertical-align:-1px"></span> ' + st.label + '</dd>' +
+        '<dt>職責</dt><dd>' + esc(a.role) + '</dd>' +
+        (a.now ? '<dt>開始於</dt><dd class="mono">' + esc(a.now.since) + '</dd>' : '') +
+        (a.blockedBy ? '<dt>卡在</dt><dd style="color:var(--rose)">' + esc(a.blockedBy) + '</dd>' : '') +
+      '</dl></div>' +
+      (a.now ? '<div class="sect"><h3>目前進行 <span class="c">' + a.now.pct + '%</span></h3>' +
+        '<p class="item go">' + esc(a.now.t) + '</p>' +
+        '<div class="bar" style="margin-top:8px"><i style="width:' + a.now.pct + '%"></i></div></div>' : '') +
+      '<div class="sect"><h3>已完成 <span class="c">' + (a.done || []).length + '</span></h3>' + listHTML(a.done, 'ok', '還沒有完成項目') + '</div>' +
+      '<div class="sect"><h3>進行中 <span class="c">' + (a.doing || []).length + '</span></h3>' + listHTML(a.doing, 'go', '目前沒有進行中的項目') + '</div>' +
+      '<div class="sect"><h3>未完成／在等什麼 <span class="c">' + (a.todo || []).length + '</span></h3>' + listHTML(a.todo, a.status === 'blocked' ? 'blocked' : 'todo', '沒有排隊中的項目') + '</div>' +
+      (a.status === 'meeting' ? '<div class="sect"><h3>正在討論</h3>' +
+        '<p class="talkline"><b>' + esc(MEETING.topic) + '</b></p>' +
+        MEETING.log.filter(l => l.who === a.id).map(l => '<p class="talkline">' + esc(l.s) + '</p>').join('') + '</div>' : '') +
+      '<div class="sect"><h3>負責檔案</h3><div class="files">' + (a.files || []).map(f => '<code>' + esc(f) + '</code>').join('') + '</div></div>';
+  }
+  document.getElementById('scrim').hidden = false;
+  document.getElementById('drawer').hidden = false;
+  requestAnimationFrame(() => document.body.classList.add('open'));
+  document.getElementById('closebtn').focus();
+}
+function closeDrawer(){
+  document.body.classList.remove('open');
+  setTimeout(() => { document.getElementById('scrim').hidden = true; document.getElementById('drawer').hidden = true; }, 220);
+}
+
+/* ── 篩選、時鐘、主題 ──────────────────────────────────── */
+function renderFilters(){
+  const c = s => AGENTS.filter(a => a.status === s).length;
+  const defs = [['all','全部',AGENTS.length,''],['working','工作中',c('working'),'working'],
+                ['meeting','開會中',c('meeting'),'meeting'],['idle','待命',c('idle'),'idle'],
+                ['blocked','等決策',c('blocked'),'blocked']];
+  document.getElementById('filters').innerHTML = defs.map(([k, label, n, dot], i) =>
+    '<button class="pill" type="button" data-f="' + k + '" aria-pressed="' + (i === 0) + '">' +
+      (dot ? '<span class="dot ' + dot + '"></span>' : '') + label + ' <span class="n">' + n + '</span></button>').join('');
+}
+function applyFilter(f){
+  document.querySelectorAll('#filters .pill').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.f === f)));
+  document.querySelectorAll('#offices .room').forEach(r => r.classList.toggle('dim', f !== 'all' && r.dataset.status !== f));
+}
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  document.getElementById('clock').textContent = p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
+}
+function initTheme(){
+  let saved = null;
+  try { saved = localStorage.getItem('office-theme'); } catch (e) {}
+  if (saved) document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themebtn').addEventListener('click', () => {
+    const now = document.documentElement.getAttribute('data-theme');
+    const isLight = now === 'light' || (!now && window.matchMedia('(prefers-color-scheme: light)').matches);
+    const next = isLight ? 'dark' : 'light';
+    document.documentElement.setAttribute('data-theme', next);
+    try { localStorage.setItem('office-theme', next); } catch (e) {}
+  });
+}
+
+/* ── 啟動 ─────────────────────────────────────────────── */
+renderFilters(); renderStage(); renderBoard(); renderMeeting(); renderOffices();
+initTheme(); tick(); setInterval(tick, 1000);
+
+document.addEventListener('click', (e) => {
+  const note = e.target.closest('.note');
+  if (note){ if (note.dataset.id) openDrawer(note.dataset.id); return; }
+  const pill = e.target.closest('#filters .pill');
+  if (pill){ applyFilter(pill.dataset.f); return; }
+  const room = e.target.closest('.room');
+  if (room){ openDrawer(room.dataset.id); return; }
+  if (e.target.closest('#closebtn') || e.target.id === 'scrim') closeDrawer();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && document.body.classList.contains('open')) closeDrawer(); });
+</script>
+</body>
+</html>
