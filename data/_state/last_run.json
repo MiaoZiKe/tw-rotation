@@ -3,10 +3,10 @@
     "news.collect": {
       "ok": true,
       "rows": 148,
-      "seconds": 3.1
+      "seconds": 3.2
     },
     "news": {
-      "stored": 123
+      "stored": 24
     },
     "news.broker_views": {
       "ok": true,
@@ -14,7 +14,7 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 1
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
@@ -22,12 +22,12 @@
       "seconds": 1.2
     },
     "material_news": {
-      "stored": 5
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1761,
-      "seconds": 0.8
+      "rows": 1762,
+      "seconds": 1.0
     },
     "intl_daily": {
       "stored": 1
@@ -35,7 +35,7 @@
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.0
+      "seconds": 11.1
     },
     "build_payload": {
       "ok": true
@@ -46,9 +46,9 @@
     "macro.fred"
   ],
   "phase": "news",
-  "started_at": "2026-09-20T07:12:18.350647+00:00",
-  "finished_at": "2026-09-20T07:16:26.336989+00:00",
-  "duration_seconds": 248.0,
+  "started_at": "2026-09-20T15:00:43.369224+00:00",
+  "finished_at": "2026-09-20T15:05:02.467223+00:00",
+  "duration_seconds": 259.1,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 486,
@@ -115,7 +115,7 @@
     },
     {
       "table": "news",
-      "rows": 1408,
+      "rows": 1432,
       "latest": "2026-09-20"
     },
     {
@@ -125,7 +125,7 @@
     },
     {
       "table": "intl_daily",
-      "rows": 1808,
+      "rows": 1809,
       "latest": "2026-09-20"
     },
     {
