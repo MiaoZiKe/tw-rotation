@@ -9065,6 +9065,13 @@ def t_mlcc(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+# ★ 2026-09-21：`force_open` 是 `dg_force_open` 的別名。
+#   t_mlcc 裡本來有一份區域別名，但 t_psu 與 t_cooling 也都直接用 `force_open`
+#   這個名字 —— 合併兩批時就炸成 NameError。
+#   放在模組層級一份，三段共用；不要在各自的函式裡再抄一次。
+force_open = dg_force_open
+
+
 def _shut_side(pg):
     """把「今日事件」抽屜關掉，並等它真的收起來。
 
@@ -9106,70 +9113,6 @@ def t_psu(pg, base):
     FEAT = "伺服器電源：從牆上的電到晶片核心"      # 這張圖上的特徵字串
     FEAT_AI = "AI 伺服器機櫃"                       # 鏈層級那張（回歸用）
     DGID = "server_psu"
-
-def t_cooling(pg, base):
-    """批次12-散熱：`liquid_cooling`（液冷）與 `air_cooling`（氣冷）兩張剖析圖。
-
-    ★ 這兩張是**一對**：規格書（docs/diagram_specs/{liquid,air}_cooling.md）明文要求
-      「液冷帶走多少比例的熱」兩張必須用**同一套寫法**，否則同一個網站會自打嘴巴。
-      所以這一段除了各自驗，還多一條**跨圖字串比對**（第 6 項）。
-
-    每一項驗的都是「畫面真的因此改變了」，不是「元素存在」：
-      1. `#industry/ai_server` 的圖別入口裡真的多出**兩個**新項目（選單卡片與切換晶片都要有）
-      2. 各自點進去 → 圖真的畫出來、**網址真的變成 /dg/<id>**、重新整理一樣打得開
-      3. 點**兩個不同的 data-part** → 主角真的換人，而且**兩次的 computed style 快照真的不同**
-         （MLCC 那張當初就是漏了這條，點誰都逐像素相同）
-      4. 點零件 → 成分股筆數**一動都不動**（DECISIONS #73：零件只亮不篩）；
-         點環節色標 → 筆數**真的變少**
-      5. 「點零件篩到的是環節、不是整個族群」那行字真的在畫面上（規格書 §6-N5）
-      6. ★ 兩張圖對「液冷帶走多少比例的熱」的寫法**完全一致**（字串比對）
-      7. 規格書的兩條紅線真的守住：
-         · 氣冷那張畫面上**一個風扇規格數字都沒有**（轉速／CFM／mmH₂O／dBA，§6-N2）
-         · 兩張都**沒有良率／成本／市占率**的數字（§6-N1）
-      8. 名詞陷阱（§6-N6）：液冷那張**同時**有「均熱片／蓋板（IHS，實心銅）」與
-         「均熱板 VC（vapor chamber）」兩格並排，沒有任何一處只寫「均熱片」就指向 VC
-      9. 「動畫：開／關」按了**真的停下來**（量 SMIL 光點的座標 ＋ CSS 動畫的 computed 值）
-     10. 1440／800／390 三個寬度下，圖上**每一個字**的畫面真實字級 ≥ 12px、文字兩兩不重疊
-    """
-    import re as _re
-    DGS = [("liquid_cooling", "液冷：熱從晶片走到機房外面"),
-           ("air_cooling", "氣冷：風扇賣的是")]
-    FOOT = "點零件篩到的是「供應鏈環節」，不是整個族群"
-
-    def dg(pg_):
-        return pg_.evaluate("""() => {
-          const h = document.querySelector('#prodDiagram');
-          const svg = h && h.querySelector('svg');
-          if (!svg) return {present: false};
-          const ns = [...h.querySelectorAll('[data-seg]')];
-          const mo = svg.querySelector('animateMotion');
-          const dot = mo && mo.parentNode;
-          // 轉動中的扇葉／葉輪：CSS 動畫，關掉之後 computed animation-name 要變成 none
-          const spin = svg.querySelector('.spin');
-          return {present: true,
-                  parts: ns.length,
-                  noPart: ns.filter(n => !n.getAttribute('data-part')).length,
-                  segs: [...new Set(ns.map(n => n.getAttribute('data-seg')))].sort(),
-                  share: [...svg.querySelectorAll('[data-share]')].map(n => n.textContent.trim()).join(''),
-                  texts: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\\n'),
-                  dotX: dot ? +dot.getBoundingClientRect().x.toFixed(1) : null,
-                  spinName: spin ? getComputedStyle(spin).animationName : '',
-                  hash: location.hash,
-                  svgW: Math.round(svg.getBoundingClientRect().width)};
-        }""")
-
-    # 每一個零件的 computed 外觀快照：主角是誰、誰被壓暗、描邊多粗。
-    # 比的是**這個快照**，不是「有沒有那個 class」—— 有 class 但長得一樣，對使用者就是沒發生。
-    SNAP = """() => {
-      const h = document.querySelector('#prodDiagram');
-      const ns = [...h.querySelectorAll('[data-seg]')];
-      const hero = h.querySelector('[data-seg].sel-part');
-      return {hero: hero ? hero.dataset.dgkey : null,
-              n: ns.length,
-              look: ns.map(n => { const p = n.querySelector('.part');
-                return n.dataset.dgkey + ':' + (+getComputedStyle(n).opacity).toFixed(2)
-                     + '/' + (p ? (+parseFloat(getComputedStyle(p).strokeWidth)).toFixed(1) : '-'); }).join('|')};
-    }"""
 
     def rows(pg_):
         return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
@@ -9463,6 +9406,76 @@ def t_cooling(pg, base):
     r8 = rows(pg)
     ok("[800px] 點零件一樣只亮不篩（筆數不變）",
        (click_part(pg, "psu_vrm"), rows(pg))[-1] == r8, f"{r8} → {rows(pg)}")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+def t_cooling(pg, base):
+    """批次12-散熱：`liquid_cooling`（液冷）與 `air_cooling`（氣冷）兩張剖析圖。
+
+    ★ 這兩張是**一對**：規格書（docs/diagram_specs/{liquid,air}_cooling.md）明文要求
+      「液冷帶走多少比例的熱」兩張必須用**同一套寫法**，否則同一個網站會自打嘴巴。
+      所以這一段除了各自驗，還多一條**跨圖字串比對**（第 6 項）。
+
+    每一項驗的都是「畫面真的因此改變了」，不是「元素存在」：
+      1. `#industry/ai_server` 的圖別入口裡真的多出**兩個**新項目（選單卡片與切換晶片都要有）
+      2. 各自點進去 → 圖真的畫出來、**網址真的變成 /dg/<id>**、重新整理一樣打得開
+      3. 點**兩個不同的 data-part** → 主角真的換人，而且**兩次的 computed style 快照真的不同**
+         （MLCC 那張當初就是漏了這條，點誰都逐像素相同）
+      4. 點零件 → 成分股筆數**一動都不動**（DECISIONS #73：零件只亮不篩）；
+         點環節色標 → 筆數**真的變少**
+      5. 「點零件篩到的是環節、不是整個族群」那行字真的在畫面上（規格書 §6-N5）
+      6. ★ 兩張圖對「液冷帶走多少比例的熱」的寫法**完全一致**（字串比對）
+      7. 規格書的兩條紅線真的守住：
+         · 氣冷那張畫面上**一個風扇規格數字都沒有**（轉速／CFM／mmH₂O／dBA，§6-N2）
+         · 兩張都**沒有良率／成本／市占率**的數字（§6-N1）
+      8. 名詞陷阱（§6-N6）：液冷那張**同時**有「均熱片／蓋板（IHS，實心銅）」與
+         「均熱板 VC（vapor chamber）」兩格並排，沒有任何一處只寫「均熱片」就指向 VC
+      9. 「動畫：開／關」按了**真的停下來**（量 SMIL 光點的座標 ＋ CSS 動畫的 computed 值）
+     10. 1440／800／390 三個寬度下，圖上**每一個字**的畫面真實字級 ≥ 12px、文字兩兩不重疊
+    """
+    import re as _re
+    DGS = [("liquid_cooling", "液冷：熱從晶片走到機房外面"),
+           ("air_cooling", "氣冷：風扇賣的是")]
+    FOOT = "點零件篩到的是「供應鏈環節」，不是整個族群"
+
+    def dg(pg_):
+        return pg_.evaluate("""() => {
+          const h = document.querySelector('#prodDiagram');
+          const svg = h && h.querySelector('svg');
+          if (!svg) return {present: false};
+          const ns = [...h.querySelectorAll('[data-seg]')];
+          const mo = svg.querySelector('animateMotion');
+          const dot = mo && mo.parentNode;
+          // 轉動中的扇葉／葉輪：CSS 動畫，關掉之後 computed animation-name 要變成 none
+          const spin = svg.querySelector('.spin');
+          return {present: true,
+                  parts: ns.length,
+                  noPart: ns.filter(n => !n.getAttribute('data-part')).length,
+                  segs: [...new Set(ns.map(n => n.getAttribute('data-seg')))].sort(),
+                  share: [...svg.querySelectorAll('[data-share]')].map(n => n.textContent.trim()).join(''),
+                  texts: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\\n'),
+                  dotX: dot ? +dot.getBoundingClientRect().x.toFixed(1) : null,
+                  spinName: spin ? getComputedStyle(spin).animationName : '',
+                  hash: location.hash,
+                  svgW: Math.round(svg.getBoundingClientRect().width)};
+        }""")
+
+    # 每一個零件的 computed 外觀快照：主角是誰、誰被壓暗、描邊多粗。
+    # 比的是**這個快照**，不是「有沒有那個 class」—— 有 class 但長得一樣，對使用者就是沒發生。
+    SNAP = """() => {
+      const h = document.querySelector('#prodDiagram');
+      const ns = [...h.querySelectorAll('[data-seg]')];
+      const hero = h.querySelector('[data-seg].sel-part');
+      return {hero: hero ? hero.dataset.dgkey : null,
+              n: ns.length,
+              look: ns.map(n => { const p = n.querySelector('.part');
+                return n.dataset.dgkey + ':' + (+getComputedStyle(n).opacity).toFixed(2)
+                     + '/' + (p ? (+parseFloat(getComputedStyle(p).strokeWidth)).toFixed(1) : '-'); }).join('|')};
+    }"""
+
+    def rows(pg_):
+        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
     def click_part(pg_, key):
         """真的用滑鼠點圖上那個 data-part。重疊時補一次事件派送（同 t_mlcc 的理由）。"""
         n = pg_.query_selector('#prodDiagram [data-part="%s"]' % key)
