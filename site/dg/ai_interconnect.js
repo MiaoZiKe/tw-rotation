@@ -1,4 +1,4 @@
-/* 連接器與高速互連 —— docs/diagram_plan.md 的第 10 張（族群 `connector_ind`、ai_server 鏈）
+/* 連接器與高速互連 —— docs/diagram_plan.md 的第 10 張（族群 `ai_interconnect`、ai_server 鏈）
 
    ★ 還沒畫。這個檔目前**不呼叫 `window.DG.register`**，
      所以 SLOTS 裡不會多出一個畫不出東西的空項目，
@@ -12,7 +12,7 @@
      4. 畫布 **980 寬**、宣告 `native: 980`（DECISIONS #227：欄寬才是字級守不住的根因）
      5. 最後在檔尾註冊：
 
-        window.DG.register('connector_ind', {
+        window.DG.register('ai_interconnect', {
           level: 'group', chain: 'ai_server',
           name: '…', draw: <你的函式>, native: 980, scene: null,
           q: '這張圖回答什麼問題（會印在圖別選單與標題上）',
@@ -20,3 +20,12 @@
 
    ⚠ `site/index.html` 已經把這個檔的 <script> 寫好了，**不要再去動 index.html**
      —— 那個檔一動就會跟同時在畫別張圖的人撞在一起。*/
+
+/* ★ 2026-09-21 掛點更正：原本排在 `connector_ind`（連接器 工業消費），改成 `ai_interconnect`。
+   依據是 `groups.yaml` 兩個族群自己的 note：
+     connector_ind    「工業、醫療、綠能與消費性的連接器與線束，**不是資料中心高速料號**」
+     ai_interconnect  「機櫃內外的高速互連：GPU／CPU 插槽連接器、高速線束與背板連接器」
+   而 `docs/diagram_specs/connector_hsio.md` 從頭到尾講的就是資料中心高速料號
+   （OSFP 籠／PCIe 金手指／MCIO 線纜／背板匣）。
+   掛到 connector_ind 上就是「圖在講 A、點下去列出 B」——
+   跟「金像電被放進 ABF 載板」同一條錯。*/

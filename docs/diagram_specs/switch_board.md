@@ -8,22 +8,32 @@
 > 這份只寫這張圖自己的六段。深度對齊 `mlcc_stack.md`。
 
 - **id**：`switch_board`
-- **放在哪**：**待 Andy 決定掛點，但不擋開畫。** 現況是**沒有空的掛點**，這點要先講清楚：
-  - `window.Diagrams[<chain id>]`（`site/diagrams.js`）只認 chain id，`ai_server` 已經被
-    `aiServer()` 佔走，**同一條鏈掛不了第二張**（`industry.js`：`window.Diagrams[ch.id]()`）。
-  - `window.ThemeDiagrams[<theme id>]`（`site/themes3d.js`）十八個題材 key 全被佔走，
-    `ai_server`、`pcb_ccl`、`silicon_photonics` 都已經有 3D 場景。
-  - **首選**：`themes.yaml` 新增 `switch_network`（交換器／網通）題材 →
-    掛 `window.ThemeDiagrams.switch_network`。`groups.yaml` 已有 `networking` 族群
-    （2345 智邦、3704 合勤控、6285 啟碁、5388 中磊、4906 正文）與 `pcb_abf`、`optical_comm`、
-    `connector`，成分可直接對上，是最小改動。
-    ※ 附帶提醒給 `industry-analyst`：`networking` 五檔裡只有 **2345 智邦**做資料中心交換器，
-    其餘四檔是電信／消費性網通，題材成分若直接沿用整個族群會失真。**這不是繪圖端能決定的事**，
-    只寫在這裡供 Andy 校訂（AGENTS §5：YAML 由 Andy 校訂，繪圖端不准自己加）。
-  - **次選**：覆蓋 `window.ThemeDiagrams.pcb_ccl`（高階 PCB／CCL 題材）。主題其實非常吻合
-    ——「PCB 層數為什麼重要」正是這張圖要回答的事 —— 但會蓋掉現有 3D 場景，**要 Andy 拍板**。
-  - **在 Andy 決定之前**：函式先寫成 `window.ThemeDiagrams.switch_board`，
-    不掛路由也能用 `_preview.py` 單獨渲染驗收（做法同 `mlcc_stack`）。
+- **放在哪**：**`SLOTS` 的 `switch_wireless` 族群層級 slot（已定案，不用再等誰決定）。**
+
+  > ⚠ **2026-09-21：這一段整個重寫過。** 原文花了十幾行在討論
+  > 「`window.Diagrams[<chain id>]` 只認 chain id，`ai_server` 已經被 `aiServer()` 佔走，
+  > 同一條鏈掛不了第二張」、以及要不要覆蓋 `window.ThemeDiagrams.pcb_ccl`。
+  > **那是 DECISIONS #226 改架構之前的世界。**
+  > 現在剖析圖是「**族群優先、鏈為預設**」，一條鏈要掛幾張就掛幾張，
+  > 每一張還有自己的網址（`#industry/<chain>/dg/<slot>`）。
+  > 留著舊文字比刪掉更危險 —— 下一個實作的人會照著一個不存在的限制去做妥協設計
+  > （例如去覆蓋別人的題材圖）。
+
+  做法：在 `site/dg/switch_wireless.js` 檔尾直接註冊
+  ```js
+  window.DG.register('switch_wireless', {
+    level: 'group', chain: 'ai_server', name: '…', draw: <fn>,
+    native: 980, scene: null, q: '…',
+  });
+  ```
+  **不覆蓋任何題材圖、不動 `themes3d.js`、不動 `index.html`**
+  （`site/index.html` 的檔位已經一次寫滿）。
+
+  ※ 原文那條給 `industry-analyst` 的提醒仍然成立，留著：
+  `groups.yaml` 的 `networking` 五檔裡只有 **2345 智邦**做資料中心交換器，
+  其餘四檔是電信／消費性網通 —— 題材成分若直接沿用整個族群會失真。
+  **這不是繪圖端能決定的事**（AGENTS §5：YAML 由 Andy 校訂）。
+
 - **型式**：**2.5D 等角切開圖（cut-away）為主 ＋ 右側 2D 放大疊構剖面為輔**。
   - 不用真 3D。理由：這張圖有兩個答案，一個在**板子的平面佈局**（什麼元件在哪、走線怎麼走），
     一個在**板子的側剖面**（層數）。真 3D 轉一圈只會看到一塊不透明的綠色平板，

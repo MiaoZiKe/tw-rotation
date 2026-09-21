@@ -430,14 +430,31 @@
 
 ### D. `data-seg` 的掛法與三個限制
 
-**D1　只准掛 `ai_server` 這條鏈上真的存在的環節 id。**
-`site/industry.js` 的 `segs = chainSegments(sc, ch.id)` 是**依鏈過濾**的
-（`renderChain()` 裡那一行），所以在這張圖上掛一個屬於 `semiconductor` 鏈的 seg（例如 `abf_pcb`），
-環節色標那一排**根本不會有對應的 chip**，點下去只會半動半不動
-（下方成分股被篩了，色標卻沒有任何一格亮起來）。
-→ **ABF 載板對照格一律不掛 `data-seg`**，改用純文字標
-「這是另一種板子，台股在半導體鏈的『IC 載板（ABF / BT）』那一格」。
-（這一條與 MLCC §6-D 的教訓同源：當時是「環節根本不存在」，這次是「環節存在但不在這條鏈上」。）
+**D1　ABF 載板對照格不掛 `data-seg`（結論不變，但理由改寫過）。**
+
+> ⚠ **2026-09-21 更正：這一條原本寫的機制是錯的。**
+> 原文說「在 `ai_server` 的圖上掛 `abf_pcb`（semiconductor 鏈的 seg），
+> 環節色標那一排**根本不會有對應的 chip**」。
+> 實際去讀 `site/industry.js` 就會發現 **`CHAIN_EXTRA['ai_server']` 裡本來就有
+> `abf_pcb` 與 `substrate_material`**（連 `ic_design`、`foundry`、`adv_pkg`、`hbm`、
+> `osat_test`、`test_interface` 都拉進來了），`chainSegments()` 會回傳它們、**色標會亮**。
+> 也就是說「半動半不動」那個後果**不會發生**。
+> 這條錯誤是寫規格書時憑印象推論機制、沒有回去讀程式碼造成的 ——
+> 留著它比刪掉更危險，因為下一個人會照著一句錯的機制去做別的決定。
+
+**結論仍然是不掛，但理由是「一張圖一個主體」，不是「掛了會壞」：**
+這張圖的主體是**硬板**（把零件焊上去的那種）。ABF 載板是**另一種板子**
+（把晶片黏上去的那種，線寬細一個量級、介電層是增層膜不是 prepreg），
+它在畫面上只是一格**對照**，不是這張圖要講的東西。
+對照格掛上 seg 會讓「點這張圖的任何一處」都可能跳到別條產品線的公司，
+把「這張圖在講什麼」稀釋掉。
+→ **ABF 載板對照格用純文字標**「這是另一種板子，台股在『IC 載板（ABF / BT）』那一格」，
+並由 `docs/diagram_specs/abf_substrate.md`（第 3 張）專門處理它。
+
+⚠ 真正該照 MLCC §6-D 那條教訓檢查的是**另一件事**：
+掛之前去 `supply_chain.yaml` 確認那個環節**真的存在**，
+並確認它**在 `chainSegments()` 回傳的清單裡**（本籍鏈 ＋ `CHAIN_EXTRA`）。
+兩個條件都成立才掛。
 
 這張圖實際要用的三個 seg（全部已在 `pipeline/groups/supply_chain.yaml` 逐一查證存在）：
 
