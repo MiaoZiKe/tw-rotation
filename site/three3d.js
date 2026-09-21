@@ -125,7 +125,11 @@
           box: [34, 0.8, 24], at: [0, 5.6, 0], ghost: true },
         { seg: 'adv_pkg', part: 'sc_stiffener', name: 'Stiffener 補強環', note: '大尺寸封裝防翹曲',
           box: [42, 2, 3], at: [0, 6, 0], n: 2, gap: 30, axis: 'z' },
-        { seg: 'osat_test', part: 'sc_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
+        /* ★ 2026-09-21 更正：以前掛 `osat_test`，那是**封測服務廠**（日月光、力成、京元電、矽格…）。
+           做探針卡與測試座的是 `test_interface`（6515 穎崴、6223 旺矽、6510 中華精測、6683 雍智）——
+           **設備耗材 ≠ 封測服務**，這正是 AGENTS 半導體鏈那節第 3 條點名的錯。
+           掛錯的後果不是「少列幾家」，是**點下去列出一批不做這個東西的公司**。 */
+        { seg: 'test_interface', part: 'sc_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
           kind: 'probe', box: [10, 1.2, 10], at: [24, 3, 16] },
         { seg: 'adv_pkg', part: 'sc_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板',
           box: [40, 2.2, 30], at: [0, 12.4, 0], ghost: true },
