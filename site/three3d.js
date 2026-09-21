@@ -50,7 +50,12 @@
 
   /* ---------------------------------------------------------------- 場景資料
      單位：1 = 1 公分左右的感覺，機櫃高 42U 畫成 84。
-     每個零件：{ seg, name, note, kind, box:[w,h,d], at:[x,y,z], n:重複幾個, gap, axis }
+     每個零件：{ seg, part, alias, name, note, kind, box:[w,h,d], at:[x,y,z], n:重複幾個, gap, axis }
+     `part` ＝**零件身分**，對得上 2D 剖析圖那個零件的 `data-part`（site/diagrams.js）。
+       兩層高亮靠它分辨「你剛剛點的是哪一個」，也靠它讓「2D 點完切到 3D」維持同一個狀態。
+       沒寫就自動補 `seg#3d<idx>` —— 同一個場景裡夠用，但跟 2D 對不起來。
+     `alias` ＝這一塊在 2D 上被拆成好幾塊時，那幾塊的 data-part（例如 MLCC 的端電極：
+       2D 有消費級與車規兩張放大剖面，3D 只有一圈）。
      ★ n > 1 時 at 是**整排的中心**（程式會把整排對稱擺在 at 兩側），不是第一個的位置——
        寫成第一個的位置，整排就會整個偏出機櫃外面（第一版就是這樣，GPU 模組跑到機櫃左邊去了）。
      kind 決定用哪支建造函式（見下面的 PARTS）；沒寫就是一顆方塊。
@@ -61,39 +66,39 @@
       sub: '18 個運算托盤 × 4 顆 GPU；後方是 NVLink 銅背板，前方是光模組，側邊是電源與液冷',
       camera: [86, 62, 96], target: [0, 34, 0], fit: 1,
       parts: [
-        { seg: 'assembly', name: '機櫃與機構件', note: '19吋機櫃、滑軌、鈑金；整櫃出貨前做燒機與水路壓測',
+        { seg: 'assembly', part: 'ag_rack', name: '機櫃與機構件', note: '19吋機櫃、滑軌、鈑金；整櫃出貨前做燒機與水路壓測',
           kind: 'rack', box: [52, 84, 40], at: [0, 42, 0], frame: true },
-        { seg: 'switch', name: 'NVLink 銅背板', note: '機櫃內把 72 顆 GPU 連成一台（scale-up）；走銅不走光',
+        { seg: 'switch', part: 'ag_backplane', name: 'NVLink 銅背板', note: '機櫃內把 72 顆 GPU 連成一台（scale-up）；走銅不走光',
           kind: 'backplane', box: [46, 52, 3], at: [0, 44, -17] },
-        { seg: 'switch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
+        { seg: 'switch', part: 'ag_nvswitch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
           kind: 'tray', box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y' },
-        { seg: 'adv_pkg', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
+        { seg: 'adv_pkg', part: 'ag_gpu', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
           kind: 'gpu', box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x' },
-        { seg: 'foundry', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
+        { seg: 'foundry', part: 'ag_cpu', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
           kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x' },
-        { seg: 'hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
+        { seg: 'hbm', part: 'ag_hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
           kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x' },
-        { seg: 'hdi_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
+        { seg: 'hdi_pcb', part: 'ag_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
           kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y' },
-        { seg: 'ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
+        { seg: 'ccl', part: 'ag_ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
           kind: 'laminate', box: [46, 0.5, 32], at: [0, 30.2, 0] },
-        { seg: 'thermal', name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
+        { seg: 'thermal', part: 'ag_cdu', alias: ['ag_coldplate'], name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
           kind: 'cdu', box: [4.5, 64, 4.5], at: [31, 38, 0] },
-        { seg: 'thermal', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
+        { seg: 'thermal', part: 'ag_uqd', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
           kind: 'uqd', box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y' },
         /* 2026-09-18 新增：Andy 舉的例子就是「風扇有扇片」。真的機櫃後門本來就有風扇牆，
            原本的場景整個漏掉這一段，等於把散熱只畫了液冷那一半。*/
-        { seg: 'thermal', name: '後門風扇模組', note: '液冷之外仍要帶走記憶體與電源的熱；風扇牆掛在後門',
+        { seg: 'thermal', part: 'ag_fan', name: '後門風扇模組', note: '液冷之外仍要帶走記憶體與電源的熱；風扇牆掛在後門',
           kind: 'fan', box: [13, 13, 5], at: [0, 24, 19], n: 3, gap: 15, axis: 'x' },
-        { seg: 'power', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
+        { seg: 'power', part: 'ag_psu', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
           kind: 'psu', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y' },
-        { seg: 'power', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
+        { seg: 'power', part: 'ag_bbu', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
           kind: 'battery', box: [18, 4, 26], at: [0, 4, 0] },
-        { seg: 'optical', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
+        { seg: 'optical', part: 'ag_optic', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
           kind: 'optic', box: [2.4, 1.4, 8], at: [0, 72, 15], n: 8, gap: 4.4, axis: 'x' },
-        { seg: 'switch', name: 'ToR 交換器', note: '跨機櫃那張網（scale-out）：InfiniBand 或 Ethernet',
+        { seg: 'switch', part: 'ag_tor', name: 'ToR 交換器', note: '跨機櫃那張網（scale-out）：InfiniBand 或 Ethernet',
           kind: 'switch', box: [46, 4, 30], at: [0, 76, 0] },
-        { seg: 'hyperscaler', name: '雲端業者 / Neocloud', note: '終端需求：CSP、主權 AI、Neocloud',
+        { seg: 'hyperscaler', part: 'ag_csp', name: '雲端業者 / Neocloud', note: '終端需求：CSP、主權 AI、Neocloud',
           box: [26, 4, 18], at: [0, 90, 0], ghost: true },
       ],
     },
@@ -102,27 +107,27 @@
       sub: '由下往上：載板 → RDL 有機重佈線 ＋ LSI 矽橋 → 晶粒與 HBM → 上蓋；灰色是台廠切不進去的部分',
       camera: [50, 34, 52], target: [0, 8, 0], fit: 1, hk: 0.46,
       parts: [
-        { seg: 'abf_pcb', name: 'ABF 載板', note: 'core + 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板',
+        { seg: 'abf_pcb', part: 'sc_abf', name: 'ABF 載板', note: 'core + 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板',
           kind: 'substrate', box: [44, 3, 34], at: [0, 1.5, 0] },
-        { seg: 'abf_pcb', name: 'BGA 錫球', note: '載板連到主機板',
+        { seg: 'abf_pcb', part: 'sc_bga', name: 'BGA 錫球', note: '載板連到主機板',
           kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x' },
-        { seg: 'adv_pkg', name: 'RDL 重佈線層（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
+        { seg: 'adv_pkg', part: 'sc_interposer', name: 'RDL 重佈線層（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
           kind: 'rdl', box: [36, 1.6, 26], at: [0, 3.8, 0] },
-        { seg: 'adv_pkg', name: 'LSI 局部矽橋', note: '只埋在晶粒交界處，負責 die-to-die 的高密度連線',
+        { seg: 'adv_pkg', part: 'sc_bridge', name: 'LSI 局部矽橋', note: '只埋在晶粒交界處，負責 die-to-die 的高密度連線',
           kind: 'bridge', box: [6, 1, 10], at: [0, 5.2, 0], n: 2, gap: 12, axis: 'x' },
-        { seg: 'foundry', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅無凸塊），再進 CoWoS-L',
+        { seg: 'foundry', part: 'sc_die', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅無凸塊），再進 CoWoS-L',
           kind: 'die', box: [14, 2.4, 14], at: [0, 6.6, 0] },
-        { seg: 'foundry', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，台積電差異化的核心',
+        { seg: 'foundry', part: 'sc_die2', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，台積電差異化的核心',
           kind: 'die', box: [12, 1.8, 12], at: [0, 8.8, 0] },
-        { seg: 'hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）',
+        { seg: 'hbm', part: 'sc_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）',
           kind: 'hbm', box: [7, 5.4, 11], at: [0, 8, 0], n: 2, gap: 26, axis: 'x' },
-        { seg: 'adv_pkg', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；日商為主',
+        { seg: 'adv_pkg', part: 'sc_underfill', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；日商為主',
           box: [34, 0.8, 24], at: [0, 5.6, 0], ghost: true },
-        { seg: 'adv_pkg', name: 'Stiffener 補強環', note: '大尺寸封裝防翹曲',
+        { seg: 'adv_pkg', part: 'sc_stiffener', name: 'Stiffener 補強環', note: '大尺寸封裝防翹曲',
           box: [42, 2, 3], at: [0, 6, 0], n: 2, gap: 30, axis: 'z' },
-        { seg: 'osat_test', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
+        { seg: 'osat_test', part: 'sc_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
           kind: 'probe', box: [10, 1.2, 10], at: [24, 3, 16] },
-        { seg: 'adv_pkg', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板',
+        { seg: 'adv_pkg', part: 'sc_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板',
           box: [40, 2.2, 30], at: [0, 12.4, 0], ghost: true },
       ],
     },
@@ -150,13 +155,13 @@
          `chipnote` 是晶片上方那行小字，把「這排是哪一群」講白。
          第三個零件（PCB 焊墊）沒有 codes —— 它不是 MLCC 專屬的結構，照舊走環節名單。 */
       parts: [
-        { seg: 'passive_comp', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
+        { seg: 'passive_comp', part: 'mlcc_body', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
           kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0],
           codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
-        { seg: 'passive_comp', name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
+        { seg: 'passive_comp', part: 'mlcc_term', alias: ['mlcc_term_cons', 'mlcc_term_auto'], name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
           kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0],
           codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
-        { seg: 'passive_comp', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
+        { seg: 'passive_comp', part: 'mlcc_pad', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
           kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0] },
       ],
     },
@@ -836,6 +841,8 @@
 
     spec.parts.forEach((p, idx) => {
       const hex = o.color(p.seg) || '#8ea0c4';
+      // 零件身分：沒宣告就自動補一個（同場景內唯一，但跟 2D 的 data-part 對不起來）
+      const pkey = p.part || (p.seg + '#3d' + idx);
       const K = kit(THREE, hex, p.ghost, (n) => getComputedStyle(el).getPropertyValue(n).trim());
       const build = B[p.kind] || B.plain;
       const proto = build(p, K);
@@ -848,7 +855,7 @@
         g.position.set(p.at[0] + (axis === 'x' ? off : 0),
           p.at[1] + (axis === 'y' ? off : 0),
           p.at[2] + (axis === 'z' ? off : 0));
-        g.userData = { seg: p.seg, idx, name: p.name, note: p.note };
+        g.userData = { seg: p.seg, part: pkey, idx, name: p.name, note: p.note };
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.userData && x.userData.spin) spinners.push(x);
@@ -864,7 +871,7 @@
       }
       K.mats.forEach(m => { if (m.userData && m.userData.led) leds.push(m); });
       byIdx[idx] = {
-        seg: p.seg, groups, meshes, hex, ghost: !!p.ghost, name: p.name, note: p.note,
+        seg: p.seg, part: pkey, alias: p.alias || [], groups, meshes, hex, ghost: !!p.ghost, name: p.name, note: p.note,
         mats: K.mats.slice(),
         baseOp: new Map(K.mats.map(m => [m, m.opacity])),
         baseCol: new Map(K.mats.map(m => [m, m.color.clone()])),
@@ -927,7 +934,7 @@
       d.style.cursor = 'pointer';
       d.title = p.note || p.name;
       d.addEventListener('pointerdown', (e) => {
-        labelDown = { seg: p.seg, data: { seg: p.seg, idx, name: p.name, note: p.note } };
+        labelDown = { seg: p.seg, data: { seg: p.seg, part: pkey, idx, name: p.name, note: p.note } };
         /* 標籤蓋在畫布上，按在它上面畫布收不到 pointerdown，整台機櫃就轉不動了
            （驗收 1 就是這樣掛的）。把這個 pointerdown 原樣轉給畫布，OrbitControls
            會接手並 setPointerCapture，之後的移動與放開都走畫布那條路。 */
@@ -1053,7 +1060,13 @@
     // ---- 高亮：和 SVG 版同一個介面（highlightSegments 會呼叫它）
     /* E2：高亮不再是「整顆發光」。選起來的維持原色、其餘變很透明，
        選起來的只給一點點 emissive（0.22）當提示。指示燈另外算，它本來就該亮。*/
-    let lastHi = { on: null, color: null };
+    let lastHi = { on: null, color: null, part: null };
+    /* 整個場景只有一個環節嗎（MLCC 那種）。單一環節的場景裡，「同環節的其餘」＝
+       「除了主角以外的全部」，跟主角擺在一起分不出來，所以要另外退一階（見 index.html 的 .dg1.haspart）。*/
+    const singleSeg = new Set(spec.parts.map(p => p.seg)).size === 1;
+    el.classList.toggle('dg1', singleSeg);
+    // 這個零件是不是「被點的那一個」（alias 見 SCENES 檔頭）
+    const isPart = (p, key) => !!key && (p.part === key || (p.alias || []).indexOf(key) >= 0);
     // ↑ lastHi 要宣告在色票區塊之前：applyPal() 會回頭呼叫 highlight(lastHi...)，
     //   放在後面會踩到 TDZ，3D 直接退回平面圖（2026-09-19 實測到的）
     /* ---- 圖九 2-2：三種配色（tech / soft / calm）
@@ -1094,34 +1107,47 @@
       hemi.intensity = palNum('--dg-hemi', 0.62);
       key.intensity = palNum('--dg-key', 1.0);
       fill.intensity = palNum('--dg-fill', 0.34);
-      highlight(lastHi.on, lastHi.color);     // 重新套用目前的選取狀態，顏色才會真的換掉
+      highlight(lastHi.on, lastHi.color, lastHi.part);     // 重新套用目前的選取狀態，顏色才會真的換掉
       return pal;
     }
     applyPal(o.pal || 'tech');     // 圖九 2-2：一掛上去就照使用者選的色票，不要先畫成預設再閃一下
 
-    function highlight(on, color) {
-      lastHi = { on, color };
+    /* 兩層高亮（2026-09-21 晚間）：`part` 是**被點的那一個零件**的身分，
+       跟 2D 剖析圖共用同一個 key（見 SCENES 檔頭的 `part`）。
+         · 被點的那一個 → 最強（emissive 拉到 --dg-part-em、標籤加粗框）
+         · 同環節的其餘 → 次強（維持原本的 --dg-sel-em，多環節場景的既有外觀一個值都沒動）
+         · 其餘環節     → 淡出（本來就有的行為）
+       單一環節的場景多一條：次強那一層要退到 --dg-sib-o，不然三顆長得一模一樣。*/
+    function highlight(on, color, part) {
+      lastHi = { on, color, part: part || null };
       const has = on && on.size > 0;
       const tint = color ? new THREE.Color(color) : null;
+      const hasPart = !!part && byIdx.some(p => p && isPart(p, part));
+      el.classList.toggle('haspart', hasPart);
+      const sibO = palNum('--dg-sib-o', 0.4);
       byIdx.forEach(p => {
         if (!p) return;
         const sel = has && on.has(p.seg);
+        const selPart = sel && isPart(p, part);
+        // 單一環節的場景才壓暗「同環節但不是主角」的那幾顆；多環節場景維持原樣（零回歸）
+        const sib = sel && hasPart && !selPart && singleSeg;
         const fade = has && !sel;
         p.mats.forEach(m => {
           const b = p.baseOp.get(m), bc = p.baseCol.get(m);
-          m.opacity = fade ? Math.min(b, 0.12) : b;
-          m.transparent = fade || b < 1;
+          m.opacity = fade ? Math.min(b, 0.12) : (sib ? Math.min(b, sibO) : b);
+          m.transparent = fade || sib || b < 1;
           if (m.userData && m.userData.led) {
             // 圖九 2-2：指示燈的亮度基準由色票決定（soft 是 0＝完全不發光，印得出來）
             const lb = palNum('--dg-led', 0.55);
             m.emissiveIntensity = fade ? lb * 0.07 : (sel ? lb * 1.55 : lb); return;
           }
-          if (m.emissive) m.emissiveIntensity = sel ? palNum('--dg-sel-em', 0.22) : 0;
+          if (m.emissive) m.emissiveIntensity = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
           // 套族群色時只把原色往那個方向拉一半，保留零件本身的明暗結構
           if (sel && tint) m.color.copy(bc).lerp(tint, 0.55); else m.color.copy(bc);
         });
         if (p.el) {
           p.el.classList.toggle('sel', sel);
+          p.el.classList.toggle('sel-part', selPart);
           p.el.classList.toggle('dim', fade);
         }
         // 引線跟著標籤一起淡出／亮起來，不然選了一個環節，畫面上還有一堆別人的線

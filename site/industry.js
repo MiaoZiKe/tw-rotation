@@ -330,19 +330,27 @@
        不捲動、也不動下面的成分股表 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
        要真的篩成分股，用下面的環節晶片、族群卡片，或說明框裡那顆按鈕。 */
     let segHi = null;
+    /* partHi ＝**剛剛被點的那一個零件**（`data-part`，或 stampParts 自動補的 key）。
+       為什麼要跟 segHi 分開：高亮以前只有環節這一層，所以「點一個零件」在程式裡
+       等於「選一個環節」—— 多環節的圖還說得通，但**單一環節的圖**
+       （MLCC 14 個零件全是 passive_comp，後面 13 張多數也是）就變成
+       「14 個全部 .sel、0 個 dim」＝ 點下去畫面沒有任何事情發生。
+       分成兩層之後：被點的那一個最強（.sel-part）、同環節其餘次強（.sel）、其餘 dim。
+       ★ 這仍然只是「亮」，不是「篩」—— DECISIONS #73 沒有被動到。*/
+    let partHi = null;
     const syncHighlight = (opt) => {
       const o = opt || {};
       const shown = segFilter || segHi;
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
-      highlightSegments(el, segsOn, color);
+      highlightSegments(el, segsOn, color, partHi);
       /* noscroll：從關聯圖上「點公司」進來的那一條路。使用者的眼睛就在關聯圖上，
          再把圖捲到那一欄只會讓他剛剛點的那張卡片跑掉。點環節色標（在圖下面）才需要捲。*/
       if (segFilter && !o.quiet && !o.noscroll) scrollChainTo(el, segFilter);
       $$('#groupCards .tile', el).forEach(t => t.classList.toggle('sel', !!state.group && t.dataset.gid === state.group || (!!segFilter && (A.L.sgroups[segFilter] || []).includes(t.dataset.gid))));
       $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
       renderSegBox($('#segBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
-        segFilter = shown; segHi = null; state.group = null; syncHighlight();
+        segFilter = shown; segHi = null; partHi = null; state.group = null; syncHighlight();
       } });
       if (!o.quiet) renderMembers();
       // 族群換了就換圖（族群優先、鏈為預設）。沒換就什麼都不做 —— 不會閃
@@ -360,8 +368,20 @@
         + (DS.native(dgId) ? '　·　圖以原尺寸顯示（字不縮小），欄位放不下時可左右滑' : '')
         + (state.group && !mine ? '　·　你選的族群還沒有專屬剖析圖，這張是這條鏈目前有的那一張' : '');
     }
-    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; syncHighlight(); });
-    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; state.group = null; syncHighlight(); });
+    /* 點零件（2D 剖析圖與 3D 場景共用這一支）。
+       ★ 跟舊版的差別：以前是「再點同一個 **環節** 就取消」，所以在單一環節的圖上
+         點第二個零件會把整個選取取消掉（14 個零件全是同一個環節）——
+         使用者以為自己點到了別的零件，畫面卻整個暗下來。
+         現在是「再點同一個 **零件** 才取消」，點別的零件就是把主角換過去。*/
+    const pickPart = (seg, key) => {
+      if (key && partHi === key) { partHi = null; segHi = null; }
+      else if (!key && segHi === seg) { partHi = null; segHi = null; }
+      else { partHi = key || null; segHi = seg; }
+      segFilter = null;
+      syncHighlight({ quiet: true });
+    };
+    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; partHi = null; syncHighlight(); });
+    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     // E5：上方切換列 —— 按了直接換一條鏈，不用退回產業地圖（按自己就捲回頁首，不重畫）
     $$('#chainSwitch button', el).forEach(b => b.onclick = () => {
@@ -374,10 +394,10 @@
          刻意跟「點剖析圖零件」（segHi，只亮不篩，DECISIONS #73）分開：
          零件是圖上的一個小東西，使用者只是想知道「這個零件是誰做的」；
          環節卡是一個明確的清單標題，點它就是「我要看這一格」。*/
-      const segPick = (seg) => { segFilter = segFilter === seg ? null : seg; segHi = null; state.group = null; syncHighlight(); };
+      const segPick = (seg) => { segFilter = segFilter === seg ? null : seg; segHi = null; partHi = null; state.group = null; syncHighlight(); };
       /* 點個股小卡：跟點關聯圖上的公司走同一條路 —— 開右側產業關係面板（不跳頁）、
          同時把它所屬的環節選起來。noscroll 是因為使用者的眼睛就停在剛剛點的那張小卡上。*/
-      const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; state.group = null; syncHighlight({ noscroll: true }); };
+      const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = null; state.group = null; syncHighlight({ noscroll: true }); };
       const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
       /* 兩種畫面共用同一份資料，只是呈現方式不同：
          清單＝「這條鏈有哪些格、每格有誰」（預設，因為高度只有關聯圖的三分之一）
@@ -404,7 +424,7 @@
       if (btn) btn.onclick = () => { chainView = chainView === 'map' ? 'list' : 'map'; saveChainView(chainView); applyView(); syncHighlight({ quiet: true, noscroll: true }); };
       applyView();
       drawChainMap($('#chainMap', el), sc, ch.id, im, {
-        onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
+        onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = null; syncHighlight({ quiet: true }); },
         /* 點公司＝連同它所屬的環節一起選起來（Andy 2026-09-20）。
            ★ 選的是「環節」不是「族群」，三個理由：
              ① 一家公司只有一個 segment，卻可能掛在好幾個族群（groups 是陣列）——
@@ -418,7 +438,7 @@
            不是另一個獨立的篩選條件（真的設了 state.group，成分股會被「族群 ∩ 環節」再砍一刀）。
            不做 toggle（再點一次不取消）—— 這個動作的主要目的是開右側面板，
            面板還開著、選取卻被取消掉會前後矛盾。要取消就點下面的環節色標。*/
-        onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; state.group = null; syncHighlight({ noscroll: true }); },
+        onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = null; state.group = null; syncHighlight({ noscroll: true }); },
       });
     }
     if (hasDiagram && sc) {
@@ -451,7 +471,7 @@
         /* 點圖別＝點那個族群（族群卡片、環節色標、成分股全部跟著走），
            不是另外開一個獨立的選取狀態 —— 兩套選取並存的話使用者分不出現在篩的是誰。*/
         state.group = DS.chainDefault(ch.id) === id ? null : id;
-        segFilter = null; segHi = null; syncHighlight();
+        segFilter = null; segHi = null; partHi = null; syncHighlight();
       });
     }
     // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
@@ -459,7 +479,7 @@
       applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
+      wireDiagram(el, pickPart);
       /* E4：動畫鈕現在同時管平面圖與 3D（Andy 2026-09-18：「3D 可切動態／靜止」）。
          以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。
          3D 的「動態」＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；「靜止」＝完全不自己動。*/
@@ -485,7 +505,7 @@
       // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
       if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
       wire3D(el, DS.scene(dgId), {
-        onSeg: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
+        onSeg: (seg, data) => pickPart(seg, data && data.part),
         sync: () => syncHighlight({ quiet: true }),
         /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
            3D 的文字框以前只有「零件名＋一行說明」，是死的。
@@ -505,6 +525,7 @@
       const host = $('#prodDiagram', el); if (!host) return;
       swapping = true;
       dgId = next;
+      partHi = null;          // 換一張圖，上一張的零件身分在新圖上不存在
       $$('#dgPick .segchip', el).forEach(c => c.classList.toggle('sel', c.dataset.dgid === next));
       paintDgTitle();
       host.style.opacity = '0';
@@ -697,10 +718,25 @@
     // 關聯圖本身也要進到視野裡，不然捲對了位置使用者還是看不到
     if (map.scrollIntoView) map.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
-  function highlightSegments(root, segs, color) {
+  /* 高亮分三層（2026-09-21 晚間）：
+       `part` ＝被點的那一個零件的身分 → `.sel-part`（最強）
+       同一個 `data-seg` 的其餘          → `.sel`（次強，值一個都沒改＝多環節圖零回歸）
+       其餘                              → `.dim`（本來就有的行為）
+     單一環節的圖（整張只有一個 data-seg）在 CSS 那邊多一條：次強要退到 --dg-sib-o，
+     不然「14 個一起亮」跟「沒點」長得一模一樣。`.haspart` 就是那條規則的開關。*/
+  function highlightSegments(root, segs, color, part) {
     const on = new Set(segs || []);
-    if (view3d) view3d.highlight(on, color);       // 3D 場景與 SVG 用同一套高亮規則
-    $$('#prodDiagram [data-seg]', root).forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
+    const DG = window.DG || {};
+    const hit = (n) => on.has(n.dataset.seg) && !!DG.partHit && DG.partHit(n, part);
+    if (view3d) view3d.highlight(on, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
+    const nodes = $$('#prodDiagram [data-seg]', root);
+    /* `.haspart` ＝「這張圖上真的有一個主角」。一定要先數過才掛：
+       2D 與 3D 的零件不是一一對應（3D 的 MLCC 焊墊在 2D 是畫在端電極剖面裡的），
+       從 3D 點完再切回 2D 時可能一個都對不上 —— 那時候掛了 .haspart 就會變成
+       「同環節全部退一階、卻沒有任何主角」，比改之前還糟。*/
+    const anyPart = nodes.some(hit);
+    $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
+    nodes.forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
     /* 環節卡清單跟關聯圖是同一份資料的兩種畫法，所以高亮規則也要同一套 ——
@@ -760,7 +796,8 @@
       try {
         v = await R.mount(host, chainId, {
           color: segColor,
-          onSeg: (seg) => onSeg(seg),
+          // 第二個參數是零件身分（three3d.js 的 userData.part）—— 兩層高亮靠它，別在這裡吃掉
+          onSeg: (seg, data) => onSeg(seg, data),
           anim: animPref(),          // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
           members: hk.members || null,   // 圖九 2-3：文字框底下那排可點的台股晶片
           onStock: hk.onStock || null,
@@ -817,7 +854,14 @@
     setMode(want);
   }
 
-  function wireDiagram(root, onSeg) { $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg); }; }); }
+  /* 每一個零件在綁 click 之前先被蓋上「零件身分」（data-dgkey）——
+     沒有身分就只認得出環節，單一環節的圖點下去等於沒事發生。stampParts 也會順手
+     替「整張只有一個環節」的圖補上 .dg1，畫圖的人不用記得自己加。*/
+  function wireDiagram(root, onSeg) {
+    const host = $('#prodDiagram', root);
+    if (window.DG && window.DG.stampParts) window.DG.stampParts(host);
+    $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg, n.dataset.dgkey || null); }; });
+  }
 
   // ---------------------------------------------------------------- 分層關聯圖（SVG）
   /* ================================================================ 供應鏈環節卡清單
