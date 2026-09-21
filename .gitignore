@@ -41,3 +41,4 @@ push*-log*.txt
 # 所以改把更新後的工作流放在這裡，由 push.bat 複製過去。
 _pending/
 .uitest_times.json
+docs/_show/

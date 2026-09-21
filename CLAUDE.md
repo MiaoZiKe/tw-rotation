@@ -39,13 +39,42 @@
 - **每次工作結束前更新 `HANDOFF.md`**（進度勾選、已知 bug、下一步、最後更新時間），**commit + push 到 main**。
   沒有 push 的工作等於沒做。
 - **絕不 force push、絕不覆寫 `data/*.parquet`。** 雲端是資料的權威來源（`store.append()` 只增不改）。
+- **★★ 2026-09-21 起的新流程：改完先展示，不要馬上推。**
+  Andy：「我想要把效率的問題處理，我覺得跑東西太久，每次修改都要全部重新測試太花時間…
+  你改完之後可以先不用推上去，先在 Claude 這邊展示給我，並且還沒驗證的部分先記錄下來…
+  之後我說驗證，再全部一起執行。初步功能我先人為測試，我確認後你再看細項」。
+
+  以前每一次小改都要「跑關卡 → 推 → 等部署 → 他打開網頁看 → 不對 → 再來一輪」，
+  一輪至少 15 分鐘，而**大部分來回其實只是在確認「長得對不對」**——
+  那不需要關卡也不需要部署。新流程：
+
+  1. **改完先截圖給他看**：`python scripts/_show.py --view flow --width 1440,390`
+     （本機伺服器 ＋ 真圖表庫，秒級；`--sel` 只截某一塊、`--zoom 3` 看細節、
+     `--click` 先點幾下再截、`--full` 整頁）。用 SendUserFile 把圖傳給他。
+     **這支不是關卡** —— 它只證明「長這樣」，不證明「對」。
+  2. **登記進 `obsidian/unverified.yaml`**：改了什麼、動到哪些檔、
+     「驗證」時要跑哪幾段（照下面那張對照表挑）、他看過了沒、他說對了沒。
+     跑 `python scripts/gen_unverified.py` 產出 `obsidian/120-未驗證清單.md`。
+  3. **★ 先推到 `claude/wip` 分支，不要推 main。**
+     這個容器是暫時的，**沒推的東西一旦容器被回收就消失**；
+     而 `pages.yml` 只在 `main` 觸發，所以推 wip 不會部署、不會動到他看的網站。
+     「先不推」的正確做法是「先推 wip」，不是「留在工作區」。
+  4. **他說「驗證」** → 把清單裡所有 gates 的**聯集**一次跑完
+     （`120-未驗證清單.md` 最後一節會直接把指令列出來）→ 合併到 main → 推 → 清空清單。
+  5. 順序是**他先人工測基本功能，確認之後我才查細項（數據、口徑、邊界）**——
+     不要反過來，先花時間查細項卻發現方向就不是他要的。
+
+  ⚠ 例外：他明確說「這個先上」、或是修的是他**現在正在看**的東西，就照舊直接驗完推。
+
 - **push 前跑三件事**：`pytest tests/ -q`、`python scripts/_preview.py`（真圖表庫走過所有頁面、抓文字重疊、手機寬）、
   `python scripts/_uitest.py`（**真人操作驗收**，含全站縮放掃描）。
   - **★ 只有純前端改動可以跳過 pytest**（Andy 2026-09-18 拍板，省 7.5 分鐘）。
     pytest 測的全是 Python 端（`pipeline/`、`compute/`、`indicators.py`），改 `site/*.js`
     在物理上不可能讓它變紅。**判斷一律用機器，不准靠記憶**：
     `git diff --name-only <上次 push 的 commit>..HEAD` —— 清單裡只要出現
-    `pipeline/`、`tests/`、`scripts/`（`_uitest.py` 除外）、`requirements.txt`、`.github/`
+    `pipeline/`、`tests/`、`scripts/`（`_uitest.py`、`_preview.py`、`_show.py`、
+    `gen_unverified.py` 除外 —— 機器確認過 `tests/` 沒有 import 它們任何一支，
+    只在註解裡被提到，所以它們壞掉在物理上不可能讓 pytest 變紅）、`requirements.txt`、`.github/`
     其中任何一項，**就一定要跑 pytest**；只有全部落在 `site/**` 才准跳過。
     反過來也一樣：`_preview.py` 與 `_uitest.py` 測的是前端，所以清單裡**完全沒有 `site/**`
     也沒有 `pipeline/build_payload.py`**（產出 JSON 的那支）時，那兩支可以跳過。
