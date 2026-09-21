@@ -6,7 +6,10 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   let A;                                   // window.App（app.js 提供）
   const state = { level: 0, chain: null, group: null, code: null, tf: '1d', mtfMode: false, cfg: null, tab: 'overview' };
-  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '產業別' };
+  /* ★ 2026-09-21：中文名一律先讀 payload（`A.L.chains`，來源是 groups.yaml 的 chains.<id>.name），
+     這張表只當「payload 裡沒有的虛擬鍵」與 L 還沒 init 完的 fallback ——
+     以前它是第二份對照表，新增的 software / financial 沒補進來就直接印英文 id 上畫面。*/
+  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
   // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
@@ -1209,7 +1212,7 @@
     const ns = (news || []).filter(n => String(n.codes || '').split(',').includes(code)).slice(0, 8);
 
     state.chain = chainOfGroup(im, gid) || 'industry'; state.group = null;
-    const chainName = CHAIN_NAME[state.chain] || state.chain;
+    const chainName = A.L.chains[state.chain] || CHAIN_NAME[state.chain] || state.chain;   // 中文名以 payload 為準，寫死的表只當 fallback
     crumbs([{ label: '產業地圖', href: '#industry' },
             { label: chainName, href: '#industry/' + state.chain },
             { label: `${known.name || ''} ${code}` }]);
@@ -1292,7 +1295,7 @@
     const m = pg.meta, s = pg.summary || {};
     // 上方產業鏈（同步高亮）
     state.chain = chainOfGroup(im, m.group_id) || 'industry'; state.group = null;
-    const chainName = CHAIN_NAME[state.chain] || state.chain;
+    const chainName = A.L.chains[state.chain] || CHAIN_NAME[state.chain] || state.chain;   // 中文名以 payload 為準，寫死的表只當 fallback
     crumbs([{ label: '產業地圖', href: '#industry' }, { label: chainName, href: '#industry/' + state.chain }, { label: `${m.name} ${m.code}` }]);
     renderChainStrip(im, sc, m);
     // 個股主體
