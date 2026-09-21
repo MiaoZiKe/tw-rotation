@@ -203,6 +203,8 @@
     const hasDiagram = !!dgId;
     // 宣告要早於任何會呼叫 swapDiagram 的路徑（wireDg → wire3D → sync），不然會踩到 TDZ
     let swapping = false;
+    // 剖析圖是展開還是收起來（手機預設收）。swapDiagram 也要看得到它，所以放在這一層
+    let dgOpen = true;
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
     const segs = chainSegments(sc, ch.id);
@@ -426,7 +428,7 @@
          收起來不是把功能拿掉：鈕就在標題旁邊，按一下就展開，而且會記住。
          640px 這條線刻意比 820px（手機版面斷點）低 —— 800px 的筆電半視窗仍然直接看得到圖。*/
       const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
-      let dgOpen = window.innerWidth >= 640;
+      dgOpen = window.innerWidth >= 640;
       try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
       let did3d = false;
       const paintFold = () => {
@@ -507,7 +509,7 @@
         ['dg3d', 'dgDrag', 'dgPal', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false;
         host.innerHTML = DS.draw(next);
-        wireDg();
+        wireDg(!dgOpen);      // 收合狀態下不要順手把 3D 掛起來（手機背景多一個 WebGL context）
         host.style.opacity = '1';
         swapping = false;
         syncHighlight({ quiet: true, noscroll: true });
