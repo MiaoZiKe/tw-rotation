@@ -24,7 +24,23 @@
 #   at       登記時間
 
 meta:
-  updated: "2026-09-21 上午"
+  updated: "2026-09-21 上午（第一筆進來）"
   note: "空的代表沒有待驗證的東西 —— 全部都已經驗過並推上 main。"
 
-pending: []
+pending:
+  - id: V1
+    what: "依證據查證後新增 6 個板塊：CCL 銅箔基板、銅箔、重電設備、電信服務、壽險金控、證券金控；4770 上品從玻璃基板移到廠務工程"
+    files:
+      - pipeline/groups/groups.yaml
+      - docs/groups_tide110_evidence.md
+      - docs/tide_deviations.md
+      - tests/test_delivery_guard.py
+      - tests/test_pipeline_e2e.py
+    gates: ["pytest", "preview", "總覽", "資金流向", "新-資金流向", "新-輪動時鐘", "產業", "族群頁", "批次2", "批次3", "批次7"]
+    shown: false
+    ok: null
+    at: "2026-09-21 09:2x"
+    note: >-
+      ★ pytest 已經跑過了（435 全過），但**前端一次都還沒驗** ——
+      板塊從 110 變 116、族群卡 111 張變 117 張，熱力圖／桑基圖／輪動時鐘都會變。
+      還沒重算 site/data（重算要 5 分鐘），所以截圖給 Andy 看之前要先跑一次 build_payload。
