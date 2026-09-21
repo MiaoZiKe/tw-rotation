@@ -1169,9 +1169,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    會說謊的燈比沒有燈更糟，所以 .on 由 market3.js 的 isPulsing() 決定，不是一直掛著。
    定位點就是那一點本身，所以 core/ring 用負的 left/top 讓自己置中。 */
 .m3-pulse{position:absolute;width:0;height:0;pointer-events:none;z-index:4;--c:var(--rise)}
+/* 開盤前幾分鐘資料只佔幾個 px，核心 7px 會比整條線還寬 —— 收到 5px（見 market3.js 的註解） */
+.m3-pulse.tiny .m3-core{left:-2.5px;top:-2.5px;width:5px;height:5px}
 .m3-pulse .m3-core{position:absolute;left:-3.5px;top:-3.5px;width:7px;height:7px;border-radius:50%;
   background:var(--c);box-shadow:0 0 7px var(--c);display:block}
-.m3-pulse .m3-ring{position:absolute;left:-8px;top:-8px;width:16px;height:16px;border-radius:50%;
+.m3-pulse .m3-ring{position:absolute;left:calc(var(--r,16px) / -2);top:calc(var(--r,16px) / -2);
+  width:var(--r,16px);height:var(--r,16px);border-radius:50%;
   border:1.5px solid var(--c);opacity:0;transform:scale(.5);display:block}
 .m3-pulse.on .m3-ring{animation:m3breathe 1.6s ease-in-out infinite}
 @keyframes m3breathe{

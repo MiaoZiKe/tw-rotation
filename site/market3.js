@@ -867,6 +867,11 @@
     const el = document.getElementById('m3c-' + x.id);
     if (!el) return;
     const night = isNight(x);
+    /* ★ 2026-09-21（Andy 的截圖：日盤被選取，畫面上卻寫著「夜盤報價目前拿不到」）
+       `dataset.fallback` 只在夜盤那條路徑裡被清掉，所以從夜盤切回日盤時那句話會留著。
+       它是用 CSS 的 ::before 印出來的，所以不會報錯、只會一直說謊。
+       切到日盤時一律先清乾淨，需要的人自己再設。*/
+    if (!night) delete el.dataset.fallback;
     let d = night ? seriesOf(x) : state.data[x.id];
     let err = night ? '' : state.err[x.id];
     // 歷史週期不需要今天的分時檔（Worker 沒更新也照樣看得到日線）
@@ -1039,8 +1044,10 @@
     let idx = -1;
     for (let i = price.length - 1; i >= 0; i--) if (price[i] != null) { idx = i; break; }
     markMove(x, d);
+    let i0 = -1;
+    for (let i = 0; i < price.length; i++) if (price[i] != null) { i0 = i; break; }
     state.pulses[x.id] = {
-      idx, val: idx >= 0 ? price[idx] : null, col,
+      idx, i0, val: idx >= 0 ? price[idx] : null, col,
       label: idx >= 0 ? cats[idx] : '', night: !!d.night, live: isPulsing(x, d),
     };
     paintPulse(x.id);
@@ -1120,6 +1127,23 @@
     dot.style.display = '';
     dot.style.left = pos[0] + 'px';
     dot.style.top = pos[1] + 'px';
+    /* ★ 2026-09-21（Andy：「這點點怎麼不在正確位置上」）
+       量出來的事實：那顆點的位置是**精準的**（實測 convertToPixel 給的座標與它的
+       style.left/top 完全相同，一個像素都沒偏）。看起來脫節的原因是**它比線還大**——
+       開盤 8 分鐘時，整段資料在 5 小時的軸上只佔 **4.6px**，
+       而光環直徑 16px、核心 7px，等於一顆球掛在一條髮絲旁邊。
+       所以這裡讓燈跟著「資料實際佔幾 px」縮：資料很窄時把光環收到和資料差不多寬，
+       核心留 5px（再小就看不見了，那才是真的幫倒忙）。
+       ★ 不要改成「把軸縮到目前為止」——「時間軸固定到收盤」是刻意的決定，
+         而且那句話就印在卡片上方（空白＝還沒走到）。要改是產品決策，不是這裡的事。*/
+    let spanPx = Infinity;
+    try {
+      const p0 = inst.convertToPixel({ seriesIndex: 0 }, [info.i0 != null ? info.i0 : 0, info.val]);
+      if (p0 && isFinite(p0[0])) spanPx = Math.abs(pos[0] - p0[0]);
+    } catch (e) { /* 圖還沒排好版就先不縮 */ }
+    const tiny = spanPx < 20;
+    dot.classList.toggle('tiny', tiny);
+    dot.style.setProperty('--r', (tiny ? Math.max(8, Math.round(spanPx) + 4) : 16) + 'px');
     dot.style.setProperty('--c', info.col);
     dot.classList.toggle('on', info.live);
     dot.dataset.at = info.label || '';
