@@ -164,7 +164,17 @@
     if (!el._ro && typeof ResizeObserver !== 'undefined') {
       el._ro = new ResizeObserver(() => {
         const i = echarts.getInstanceByDom(el);
-        if (i && el.clientWidth > 0 && el.clientHeight > 0) i.resize();
+        if (!i || !(el.clientWidth > 0) || !(el.clientHeight > 0)) return;
+        /* ★ 2026-09-21：尺寸沒有真的變就不要再 resize 一次。
+           `resize()` 會**立刻**重排並且吃掉正在跑的補間動畫；
+           資金去向展開族群時容器要長高，是「先自己 resize 到新高度、再 setOption 補間」，
+           如果 ResizeObserver 隨後又補一次 resize，換位動畫就會在第一幀被切斷
+           （實測：y 從 885 直接跳到 1007，中間一格都沒有）。
+           ResizeObserver 本來就只在尺寸變動時才發，所以這道閘門平常是 no-op。*/
+        const sig = el.clientWidth + 'x' + el.clientHeight;
+        if (el._roSize === sig) return;
+        el._roSize = sig;
+        i.resize();
       });
       el._ro.observe(el);
     }
@@ -2446,14 +2456,24 @@
       <li><em>圓圈越大、線越粗＝錢越多</em>，線上小圓點的<em>密度</em>也是同一件事；
         <em>三段線都會跑點</em>，一眼看得出錢是一路傳到哪一檔股票。
         節點名字後面的 <em>▲▼</em> 是和前一天比的增減（紅增綠減）。</li>
-      <li><em>位置固定不動</em>，換日期只會改粗細與大小 ——
+      <li><em>回放時位置固定不動</em>，換日期只會改粗細與大小 ——
         所以<b>怎麼用</b>：拖「看哪一天」往回走（或按 ▶ 一天一天播），盯住<em>同一個位置</em>的那條線，
         它變粗就是錢在往這個族群集中，變細就是在退場；灰掉寫「無資料」的是那天完全沒量。</li>
+      <li><b>按「即時」就換一種讀法</b>：那一刻起產業鏈與族群<em>會依當下成交值重新排名、名次變了就換位</em>
+        （每分鐘一輪，有補間動畫；名次沒變就完全不動）。
+        所以<b>怎麼用</b>：盯著<em>往上爬</em>的那一格 —— 回放看的是「這 60 天誰一直在變粗」，
+        即時看的是「現在這一刻誰突然插隊」，那才是盤中要抓的東西。
+        自動桶（〇〇・其他）抓不到即時，一律標「盤後」、排在最後、不進分母。</li>
       <li>大小是跟<em>這 60 天的最大值</em>比，不是跟當天的第一名比 ——
         所以整排一起變細，代表的是大盤量縮，不是族群輪動。</li>
-      <li><b>點族群</b>（圖上的圓圈或下面那排晶片）＝右邊列出<em>該族群全部成分股的成交值排序</em>、
-        圖上其餘壓暗，再點一次取消；<b>點產業鏈</b>＝只看那一條鏈；
-        晶片名字右邊的 → 是進族群頁。</li>
+      <li><b>點族群</b>（圖上的圓圈或下面那排晶片）＝<em>水流就地延伸</em>：
+        原本只畫前 3 大代表股，點下去會展開成<em>該族群全部成分股</em>（名字 ＋ 佔這個族群的 %），
+        右邊同時列出成交值排序、圖上其餘壓暗；再點一次、點背景或按 ESC 收回。
+        成分股超過 20 檔的（實務上只有 ETF 那一格）只畫前 20，
+        剩下的收成一顆灰色的「其餘 N 檔 X.X%」——<em>量沒有丟掉，是加總</em>。
+        所以<b>怎麼用</b>：展開之後比的是「這個族群的錢是集中在一兩檔，還是整排都在動」——
+        前者是單一公司的事，後者才是族群輪動。
+        <b>點產業鏈</b>＝只看那一條鏈；晶片名字右邊的 → 是進族群頁。</li>
       <li><b>右邊清單裡再點個股的名字，那一檔就會掛到它族群底下變成一個新的葉節點</b>
         （邊框比較亮、線是虛線，和固定那三檔代表股分得出來），可以多選、再點一次拿掉；
         這份選擇和左邊的輪動時鐘是<em>同一份</em>，所以兩張圖會一起變。
@@ -3772,7 +3792,37 @@
          「位置固定」就破功了。
 
      （聚焦參數在 2026-09-20 從「一個族群 id」換成 {gid} / {chain} 兩種，見下段。）*/
+  /* ★★ 2026-09-21（Andy 本人推翻上面那條的**一半**，不是整條）：
+       「我這邊提到的即時包含 他突然某個族群、個我變大，會自動交換位置，這點功能需要達成
+         另外需新增當我點擊族群 會延伸顯示其他股票…並且這功能都在這圖表內建立
+         不是即時的也要，一樣顯示名稱百分比」
+
+     所以「位置固定」從**一條通則**改成**分模式**，兩邊的理由不一樣，不要合併：
+
+       · **歷史回放（拖時間軸／▶ 播放）＝ 位置固定，照舊。**
+         回放要看的是「同一個族群這 60 天變粗還是變細」，一洗牌就看不到了 ——
+         上面 2026-09-20 那一整段的理由到今天仍然成立，一個字都沒有過期。
+       · **即時模式（`SKL.on`）＝ 依當下成交值重排（產業鏈層與族群層都排）。**
+         即時要看的是「現在誰突然變大」，而「名次換了」本身就是那個訊號；
+         位置鎖死的話，第 8 名衝到第 2 名在畫面上只會變成「那顆點大了一點」。
+         每分鐘一輪，名次沒變就不會有任何位移（setOption 合併、座標一樣）。
+
+     換位一定要**補間動畫**，不能瞬間跳 —— 跳一下人眼追不到「誰跟誰換了」，
+     那就退化成「圖每分鐘閃一次」。做法是重排時走 `setOption`（合併、保留 series 身分），
+     讓 ECharts 自己用 `animationDurationUpdate` 補間；只有版面**型態**真的變了
+     （窄畫面翻面）才 `notMerge: true` 整張重建，見下面 `skShape`。
+
+     展開全部成分股（`SANKEY_EXPAND_MAX`）也會讓位置動：ECharts 的 tree 是按葉子數
+     分配縱向空間的，某個族群從 3 片葉子變成 20 片，它的兄弟一定會被推開 ——
+     這是版面演算法的物理限制，繞不過去。接受它，用同一套動畫緩解。*/
   const SANKEY_KIDS = 3;
+  /* 展開之後最多畫幾檔。20 是量出來的：這張圖上 18 個族群，
+     除了 `ind_ETF`（356 檔有量）之外最大的是 `bank` 16 檔，其餘都 ≤ 11 檔 ——
+     也就是說 20 這條線只會夾到自動桶那一格，真正的題材族群全部畫得完整。
+     超過的收成一個「其餘 N 檔 X.X%」節點（量有加回去，不是丟掉）。
+     為什麼不畫滿 356 檔：那要 5,700px 的高度，而且每片葉子分不到 16px，
+     標籤會整片疊在一起 —— 那不是「完整」，是「看不懂」。*/
+  const SANKEY_EXPAND_MAX = 20;
   /* ★ 2026-09-20（Andy）：「半導體產業涵蓋 IC 設計、代工、封測，不應該將他們拆開，
      所以需要整理清楚哪個產業在哪裡…一個節點是半導體產業，後面接續是 IC 設計、代工、封裝」
 
@@ -3824,9 +3874,14 @@
      ★ 資料來源是 `groups_detail`（最新交易日的全成分股，含成交值）——
        `sankey_daily.leaves` 每天只留前 3 檔，撐不出一份「排序」。
        所以時間軸刷到過去時，標題會明講清單是最新交易日的，不要讓人以為那是那一天的數字。*/
-  const sankeyNote = (day, isLatest) => (isLatest
-    ? `依最新交易日（${fmt.esc(day)}）的成交值排序，百分比＝佔這個族群的比重`
-    : `時間軸目前在 ${fmt.esc(day)}，但成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔）`);
+  const sankeyNote = (day, isLatest) => (
+    /* 即時模式下圖上的葉子是「價 × 量」的估算，這一欄卻是收盤值 —— 兩邊數字會不一樣。
+       不寫出來的話看起來就像其中一邊算錯了（而且無從判斷是哪一邊）。*/
+    (SKL.on && !SKL.err && Object.keys(SKL.tv).length)
+      ? `即時模式：圖上展開的個股是「價 × 量」的即時估算，這一欄仍是最新交易日（${fmt.esc(day)}）的收盤值，兩者不是同一個時點`
+      : isLatest
+        ? `依最新交易日（${fmt.esc(day)}）的成交值排序，百分比＝佔這個族群的比重（和圖上展開的葉子同一個分母）`
+        : `時間軸目前在 ${fmt.esc(day)}，但成分股排序只有最新交易日的版本（逐日檔每天只留前 3 檔）`);
   /* ★ 2026-09-21：`sankeyStockPanel()` 移除。資金去向與輪動時鐘現在共用同一支
      成分股面板（`renderDrillPanel`），兩階段下鑽的狀態也只有一份。
      留著一支沒有人呼叫的舊面板，只會讓下一個人以為資金去向還有自己的一套。*/
@@ -4026,7 +4081,7 @@
     const el = $('#sankey'); if (!el) return;
     /* 空狀態要把 JS 量出來的高度也清掉 —— `.isempty` 收的是 CSS 的 min-height，
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
-    const bail = (msg) => { el.style.height = ''; return empty('sankey', msg); };
+    const bail = (msg) => { el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
     if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
@@ -4036,6 +4091,17 @@
     sel = sel || null;
     sankeySel = sel;
     sankeyState = { sd, k };
+    /* ★ 先決定「面板要放右邊還是放下面」，再量圖有多寬 —— 順序不能反。
+       右側面板固定 300px ＋ 14px 間距，1280～1440 的筆電一開面板圖就掉到 700px 以下，
+       接著被判成窄畫面、代表股那一層整個被收掉：**點族群想看成分股，反而看不到成分股**。
+       所以量一下「如果面板放右邊，圖還剩幾 px」，撐不住四層就把面板改放到圖下面。
+       判準是「圖剩幾 px」不是「螢幕幾 px」（中間隔著側欄與卡片內距），所以只能用 JS 量，
+       媒體查詢算不出來。*/
+    const row = $('#sankeyRow');
+    if (row) {
+      const rw = row.clientWidth || 0;
+      row.classList.toggle('stack', rw > 0 && rw - 314 < SANKEY_NARROW);
+    }
     const narrow = (el.clientWidth || 9999) < SANKEY_NARROW;
     const selG = sel && sel.gid, selC = sel && sel.chain;
     const gs = roster.map(g => ({ ...g, v: (g.tv || [])[k],
@@ -4104,22 +4170,102 @@
     const prevByCode = {};
     prevLeaves.forEach(x => { prevByCode[x.gid + '|' + x.code] = x.tv; });
 
-    /* ---- 第 1 層：產業鏈。順序用**最後一天**排一次，之後不隨日期改變（位置固定）。*/
+    /* ---- 第 1 層：產業鏈。
+       **歷史回放**：順序用最後一天排一次，之後不隨日期改變（位置固定，2026-09-20 拍板）。
+       **即時模式**：改用這一輪的即時值重排（Andy 2026-09-21「會自動交換位置」）。
+       整條鏈都抓不到即時（例如「其他產業別」全是自動桶）的排到最後 ——
+       它留著的是上一個收盤的整天成交值，混進來排就會永遠佔著第一名。*/
     const lastIdx = D2.length - 1;
     const chainOrder = [];
     const chainOf = {};
+    const gOf = {};
+    gs.forEach(g => { gOf[g.gid] = g; });
     roster.forEach(g => {
       const cid = g.chain || 'other';
-      if (!chainOf[cid]) { chainOf[cid] = { cid, name: g.chain_name || chainLabel(cid), gids: [], last: 0 }; chainOrder.push(chainOf[cid]); }
+      if (!chainOf[cid]) { chainOf[cid] = { cid, name: g.chain_name || chainLabel(cid), gids: [], last: 0, nowV: 0, anyLive: false }; chainOrder.push(chainOf[cid]); }
       chainOf[cid].gids.push(g.gid);
       chainOf[cid].last += (g.tv || [])[lastIdx] || 0;
+      const cur = gOf[g.gid];
+      if (cur && cur.live) { chainOf[cid].nowV += cur.v || 0; chainOf[cid].anyLive = true; }
     });
-    chainOrder.sort((a, b) => b.last - a.last);
+    chainOrder.sort(live
+      ? (a, b) => (b.anyLive ? b.nowV : -1) - (a.anyLive ? a.nowV : -1)
+      : (a, b) => b.last - a.last);
 
     const seen = new Set(['台股成交值']);
     const nameOfG = {};
+
+    /* ★ 點族群 → 水流延伸出**全部**成分股（Andy 2026-09-21：「當我點擊族群 會延伸顯示
+       其他股票…水流原本出現前三名，但因為我點擊了那個族群，他就會延伸前三名之後的全部顯示」）。
+       掛在既有的 `DRILL.gid` 上（點節點、點晶片、點輪動時鐘都是同一份狀態），
+       不另開一套「展開中」的旗標 —— 再點一次／點背景／ESC 都已經會 `drillClose()`，
+       收回自然就跟著發生，不用寫第二套復原。
+
+       ★★ 口徑：**分母用「這個族群成分股成交值的加總」，不是族群節點自己的值。**
+       兩者在多數族群相等，但有股票同時掛兩個板塊時不相等 —— 後端的族群成交值是
+       1/n 拆分過的（例如 HBM 少 12%）。展開之後全部成分股都在畫面上，
+       拿族群值當分母的話百分比會加到 111%，一眼就看得出是錯的；
+       而且右側 `#sankeyPanel` 面板用的就是「成分股加總」這個分母
+       （`renderDrillPanel` 的 `sum`），兩邊對不起來就是 bug。
+       所以這裡刻意和面板走同一份資料（`groups_detail`）、同一個分母。
+
+       即時模式下值換成 `SKL.stv` 的估算（報價本來就逐檔抓，不多打一個請求），
+       分母同步換成「有報價的成分股加總」，圖上仍然自洽；
+       右側面板是盤後那一份，差異寫在 tooltip 與副標裡，不假裝一樣。*/
+    const expandRows = (gid) => {
+      const det = (D.groups_detail || {})[gid] || {};
+      const rows = (det.members || []).map(m => {
+        const code = String(m.code);
+        const lv = live ? live.stv[code] : null;
+        return { code, name: m.name || code, tv: live ? (+lv || 0) : (+m.turnover || 0) };
+      }).filter(r => r.tv > 0).sort((a, b) => b.tv - a.tv);   // 當天沒量的不列
+      return { rows, sum: rows.reduce((s2, r) => s2 + r.tv, 0) };
+    };
+    const expandBabies = (g, col, off, fade) => {
+      const { rows, sum } = expandRows(g.gid);
+      if (!rows.length || !(sum > 0)) return null;            // 一檔都算不出來就退回原本的三檔
+      const head = rows.slice(0, SANKEY_EXPAND_MAX);
+      /* 被使用者點開、要單獨畫一顆的那幾檔從「其餘」裡扣掉 ——
+         不扣的話同一檔會同時出現在自己的節點和「其餘 N 檔」的加總裡。*/
+      const rest = rows.slice(SANKEY_EXPAND_MAX).filter(r => !DRILL.stocks.has(r.code));
+      /* 展開之後全部成分股本來就都在圖上了，所以「從右欄點個股」不再是「多長一顆」，
+         而是**把已經在的那一顆標起來**（亮邊框＋虛線，和收合狀態下那顆自己長出來的一樣）。
+         不標的話使用者點了清單，圖上完全沒有回應，會以為點壞了。*/
+      const out = head.map(r => {
+        const pk = DRILL.stocks.has(r.code);
+        return {
+          name: uniqName(seen, `${r.name} ${r.code}`), value: r.tv, code: r.code, gidOf: g.gid,
+          shown: r.name, dim: off, share: r.tv / sum, base: sum, expanded: true, gsum: sum,
+          picked: pk,
+          symbolSize: Math.max(pk ? 7 : 6, size(r.tv) * .62),
+          itemStyle: { color: hexA(col, alpha(r.tv) * (pk ? .95 : .85)),
+            borderColor: pk ? hexA(CH.ink2, .9) : 'transparent', borderWidth: pk ? 1.4 : 0, opacity: fade },
+          lineStyle: { color: hexA(col, alpha(r.tv) * .7), width: Math.max(1, width(r.tv) * .7),
+            ...(pk ? { type: 'dashed' } : {}), opacity: fade },
+          label: { formatter: `${r.name} ${pct(r.tv, sum)}%`, opacity: fade, rich: RICH },
+        };
+      });
+      if (rest.length) {
+        const rv = rest.reduce((s2, r) => s2 + r.tv, 0);
+        /* 「其餘 N 檔」：量沒有被丟掉，只是收成一顆灰色虛線的點。
+           不給 code＝點它不會跳頁（它不是一檔股票）；要看完整名單就看右邊那一欄。*/
+        out.push({
+          name: uniqName(seen, `其餘 ${g.gid}`), value: rv, gidOf: g.gid, restN: rest.length,
+          shown: `其餘 ${rest.length} 檔`, dim: off, share: rv / sum, base: sum, expanded: true, gsum: sum,
+          symbolSize: Math.max(6, size(rv) * .62),
+          itemStyle: { color: hexA(CH.ink3, .55), borderColor: 'transparent', opacity: fade },
+          lineStyle: { color: hexA(CH.ink3, .45), width: Math.max(1, width(rv) * .6), type: 'dashed', opacity: fade },
+          label: { formatter: `其餘 ${rest.length} 檔 ${pct(rv, sum)}%`, opacity: fade, rich: RICH },
+        });
+      }
+      return out;
+    };
     const chainNodes = chainOrder.map(ch => {
       const mine = gs.filter(g => (g.chain || 'other') === ch.cid);
+      /* 族群層的排序和上面產業鏈層同一條規矩：歷史回放沿用 `sd.groups` 的原始順序
+         （後端依最新一天排過一次，位置固定）；即時模式依這一輪的即時值重排，
+         抓不到即時的自動桶排到最後。*/
+      if (live) mine.sort((a, b) => (b.live ? b.v || 0 : -1) - (a.live ? a.v || 0 : -1));
       // 即時模式：鏈的值只加總有即時值的板塊，和上面的 total 同一個分母口徑
       const cv = (live ? mine.filter(g => g.live) : mine).reduce((s2, g) => s2 + (g.v || 0), 0);
       const cprev = mine.reduce((s2, g) => s2 + (g.prev || 0), 0);
@@ -4133,7 +4279,11 @@
         const off = cOff || (selG && selG !== g.gid);
         const fade = off ? DIM : 1;
         const gv = g.v || 0;
-        const babies = narrow ? [] : (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv)
+        /* 展開中的那一個族群（`DRILL.gid`）：葉子從固定 3 檔換成全部成分股。
+           窄畫面（< SANKEY_NARROW）本來就沒有代表股這一層，所以不展開 ——
+           那時候完整名單在圖下方的面板裡，字還讀得到。*/
+        const expanded = !narrow && DRILL.gid === g.gid ? expandBabies(g, col, off, fade) : null;
+        const babies = expanded || (narrow ? [] : (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv)
           .slice(0, SANKEY_KIDS).map(x => {
             /* 前端這一層也擋一次「nan」。根因在後端（見 pipeline/compute/rrg.py 的註解）已經修掉，
                但使用者的瀏覽器可能還快取著舊的 sankey_daily.json，那一份裡每一檔都叫「nan」。*/
@@ -4151,7 +4301,7 @@
               label: { formatter: x.stale ? `${nm} 盤後` : gv > 0 ? `${nm} ${pct(x.tv, gv)}%` : nm,
                 opacity: fade, rich: RICH },
             };
-          });
+          }));
         /* 階段三（Andy 2026-09-21「也可以點擊，並顯示在圖上」）：
            使用者在成分股清單裡點開的個股，要掛在**它所屬的族群**底下多長出一個葉節點。
            流量用成交值、% 的分母是所屬族群（沿用 D4 已經拍板的口徑）。
@@ -4203,6 +4353,7 @@
         const drawn = has && !shrink;
         return { name: gname, value: gv, gid: g.gid, chainOf: ch.cid, children: babies,
           nodata: !has, dim: off, prev: g.prev, base: cv, stale: !!g.stale, isLive: !!g.live,
+          expanded: !!expanded, esum: expanded ? expanded[0].gsum : null,
           symbolSize: drawn ? size(g.v) : 6,
           itemStyle: { color: hexA(col, drawn ? alpha(g.v) : DIM), borderColor: 'transparent', opacity: fade },
           lineStyle: { color: hexA(col, (drawn ? alpha(g.v) : DIM) * .8), width: drawn ? width(g.v) : 0.8, opacity: fade },
@@ -4212,7 +4363,8 @@
            兩行＋截斷之後至少「是誰、佔多少」一定讀得到，▲▼ 點一下看小框還是有。*/
         label: { formatter: g.stale ? `${g.name}${narrow ? '\n' : ' '}盤後`
           : has ? (narrow ? `${g.name}\n${pct(gv, cv)}%`
-            : `${g.name} ${pct(gv, cv)}%${dodTag(gv, g.prev)}`) : `${g.name} 無資料`,
+            // ▾ ＝ 這個族群現在是展開的（再點一次收回）。標在名字前面，不用讀說明也知道。
+            : `${expanded ? '▾ ' : ''}${g.name} ${pct(gv, cv)}%${dodTag(gv, g.prev)}`) : `${g.name} 無資料`,
           ...(narrow ? { width: 116, overflow: 'truncate', lineHeight: 13, fontSize: 10.5 } : {}),
           opacity: off ? 0.35 : (drawn ? 1 : 0.55), rich: RICH } };
       });
@@ -4247,6 +4399,8 @@
         ...(narrow ? { position: 'bottom', distance: 8, align: 'left', fontSize: 11 } : {}) },
       children: chainNodes };
 
+    // 哪一個族群現在是展開的（給副標寫「已展開 N 檔」用；沒有就是 null）
+    const expNode = chainNodes.reduce((f, c) => f || (c.children || []).find(g => g.expanded), null);
     const sub = $('#sankeySub');
     if (sub) {
       const selName = selG ? (L.gname[selG] || selG) : selC ? (chainOf[selC] || {}).name : '';
@@ -4258,17 +4412,47 @@
           + `點族群，下面就是它的成交值排序）`
         : `${when}：台股 → 產業鏈 → 族群 → 代表股`)
         + `　·　每一層的 % 都是「佔它上一層」的比重`
-        + (live ? '　·　板塊成交值是「價 × 量」的估算值，自動桶標「盤後」且不進分母'
-          : '　·　位置固定，只有線的粗細與圓圈大小會變')
-        + (selName ? `　·　只看「${selName}」` : '');
+        /* ★ 這一句一定要跟著模式換（Andy 2026-09-21）——
+           即時模式真的會換位，副標卻寫著「位置固定」就是「圖在動、字說不會動」。*/
+        + (live ? '　·　依當下成交值即時排名，名次變了就會換位（有補間動畫）'
+          + '　·　板塊成交值是「價 × 量」的估算值，自動桶標「盤後」且不進分母'
+          : '　·　位置固定（往回拖／播放都不洗牌），只有線的粗細與圓圈大小會變')
+        + (selName ? `　·　只看「${selName}」` : '')
+        + (expNode
+          ? `　·　已展開「${expNode.gid ? (L.gname[expNode.gid] || expNode.gid) : ''}」的 `
+            + `${expNode.children.length} 格成分股（再點一次族群、點背景或按 ESC 收回）`
+          : (narrow ? '' : '　·　點族群的圓圈＝把它的代表股展開成全部成分股'));
     }
 
     /* 葉子數決定這張圖要多高：ECharts 的 tree 是把縱向空間平均分給葉子的，
        高度不夠就會變成一排擠在一起的 11px 字。所以量完葉子數自己算高度，
        不寫死在 CSS（族群數之後會變，寫死等於埋一個以後才會爆的雷）。*/
     const gRows = chainNodes.reduce((s2, c) => s2 + c.children.length, 0);
+    /* ★ 2026-09-21：改成數**真正的葉子數**，不再用「族群數 × SANKEY_KIDS」估。
+       以前每個族群一定是 3 片葉子，兩者相等；現在展開的族群可以有到 21 片
+       （20 檔 ＋「其餘 N 檔」），估算值會少算一大截，標籤就會擠在一起。
+       順手也修掉一個一直都在的小問題：使用者從右欄點開的個股本來就會多長葉子，
+       高度卻沒跟著加，多開幾檔就開始擠。
+       一片葉子 16px 是現況量出來的（54 片 → 928px，沒有重疊）；
+       展開之後最多 17 × 3 ＋ 21 ＝ 72 片 → 1216px，所以上限從 1040 放到 1400。*/
+    const leafRows = chainNodes.reduce((s2, c) =>
+      s2 + c.children.reduce((t, g) => t + (g.children || []).length, 0), 0);
     el.style.height = (narrow ? Math.max(420, gRows * 36 + 48)
-      : Math.max(560, Math.min(1040, gRows * SANKEY_KIDS * 16 + 64))) + 'px';
+      : Math.max(560, Math.min(expNode ? 1400 : 1040, leafRows * 16 + 64))) + 'px';
+    /* ★ 高度變了就**先自己 resize 一次**，再去 setOption。
+       原因：ECharts 記的是上一次量到的寬高，不會自己去讀 DOM。
+       不先 resize 的話它會用「舊高度」算好版面、開始補間，
+       然後 ResizeObserver 在下一幀補一次 resize —— resize 是立刻重排、不補間，
+       動畫就在第一幀被切斷（實測 y 從 885 直接跳到 1007）。
+       先 resize 等於把「容器長高」這件事一次做完，接著的 setOption 才是純粹的位置補間。
+       `_roSize` 要同步蓋掉，免得 ResizeObserver 等一下又來一次（見 chart() 裡那道閘門）。*/
+    try {
+      const prev = window.echarts && echarts.getInstanceByDom(el);
+      if (prev && el.clientHeight > 0) {
+        const sig = el.clientWidth + 'x' + el.clientHeight;
+        if (el._roSize !== sig) { el._roSize = sig; prev.resize(); }
+      }
+    } catch (e) { /* 拿不到實例就算了，最多就是少一段動畫 */ }
 
     const c = chart('sankey', {
       tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
@@ -4286,20 +4470,32 @@
               + `<br><span class="muted">它不進即時佔比的分母（時點不同，比了會騙人）</span>`;
           }
           // 每一層都把「金額 ＋ 佔上一層 ＋ 佔全場 ＋ 比前一天」講滿（Andy「需要更豐富」）
-          const own = d.code ? (d.shown + ' ' + d.code) : p.name;
+          const own = d.code ? (d.shown + ' ' + d.code) : (d.shown || p.name);
           const base = d.base != null ? d.base : (d.share != null ? v / d.share : null);
           return `<b>${fmt.esc(own)}</b><br>成交值 ${fmt.yi(v)}`
             + (base ? `<br>佔上一層 <b>${pct(v, base)}%</b>` : '')
             + `<br>佔全場 ${pct(v, total)}%`
             + dodText(v, d.prev)
+            /* 展開狀態下的葉子：分母是「成分股加總」不是族群節點的值，講清楚 ——
+               有股票同時掛兩個板塊時族群值是 1/n 拆過的，兩個數字對不起來很正常，
+               但沒寫出來的話看起來就像算錯。*/
+            + (d.gsum != null ? '<br><span class="muted">分母＝這個族群成分股成交值加總，和右邊清單同一份</span>' : '')
+            + (d.restN ? `<br><span class="muted">第 ${SANKEY_EXPAND_MAX + 1} 名之後的 ${d.restN} 檔收成這一顆`
+              + '（量沒有丟掉，是加總）。完整名單在右邊那一欄</span>' : '')
+            + (d.expanded && d.esum != null && Math.abs(d.esum - v) / (v || 1) > 0.01
+              ? `<br><span class="muted">成分股加總 ${fmt.yi(d.esum)}：比這一格大，`
+                + '因為有股票同時掛在別的板塊，族群成交值是 1/n 拆分過的</span>' : '')
             + (d.est ? '<br><span class="muted">（逐日明細每天只存前 3 大，這一檔用的是最新交易日的成交值）</span>' : '')
             + (live ? '<br><span class="muted">即時模式：成交值是「最後成交價 × 累積成交張數 × 1000」的<b>估算值</b>'
               + '（端點沒有每檔的累積成交金額）；雙掛兩個板塊的股票已照 1/n 拆分</span>'
               + (d.marketAmt != null ? `<br>台股總成交值 <b>${fmt.yi(d.marketAmt)}</b>（證交所真實值，不是估算）` : '') : '')
             + (d.picked ? '<br><small>你自己點開的個股 · 要拿掉就再點一次右邊清單裡那一列</small>' : '')
             + (d.code ? '<br><small>點一下進個股頁</small>'
-              : d.gid ? '<br><small>點一下在右邊列出成分股成交值排序</small>'
-                : d.chain ? '<br><small>點一下只看這條產業鏈</small>' : '');
+              : d.restN ? ''
+                : d.gid ? (d.expanded
+                  ? '<br><small>再點一次＝把水流收回成 3 檔代表股</small>'
+                  : '<br><small>點一下：水流延伸成全部成分股，右邊同時列出成交值排序</small>')
+                  : d.chain ? '<br><small>點一下只看這條產業鏈</small>' : '');
         } },
       series: [{
         type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
@@ -4314,13 +4510,29 @@
            但滑到族群時 'relative' 會連它的代表股一起亮 —— 那正是「這個族群的錢去了哪幾檔」。*/
         emphasis: { focus: 'relative', blurScope: 'series' },
         blur: { itemStyle: { opacity: 0.18 }, lineStyle: { opacity: 0.12 }, label: { opacity: 0.25 } },
-        animationDurationUpdate: 420,
+        /* ★ 2026-09-21：換位與展開都要**補間**，不能瞬間跳（Andy「會自動交換位置」）。
+           跳一下人眼追不到誰跟誰換了，那就退化成「圖每分鐘閃一次」。
+           `animationDurationUpdate` 只有在 series 身分被保留（setOption 合併）時才有用，
+           所以下面的 notMerge 不是常數了。*/
+        animationDurationUpdate: 520,
+        animationEasingUpdate: 'cubicInOut',
         data: [root],
       }],
-    }, { notMerge: true });
+      /* ★ 只有版面**型態**真的變了才整張重建（notMerge: true），其餘一律合併。
+         型態＝窄畫面翻面（層數從四層變三層）。那一刻本來就沒有「誰換到哪裡」
+         這回事，補間反而會看到一堆節點從畫面外飛進來。
+         其他情況（換日期、即時重排、展開／收回、聚焦）節點集合大致相同，
+         合併才補得了間 —— ECharts 對 tree 是用節點名稱對位的，
+         而這張圖的名稱唯一（`uniqName`），所以對得上。
+         ⚠ `series[].data` 在合併時是**整個換掉**（ECharts 不會深層合併 data），
+           所以「收回」時多出來的葉子會真的消失，不會殘留。*/
+    }, { notMerge: el._skShape !== (narrow ? 'n' : 'w') });
+    el._skShape = narrow ? 'n' : 'w';
     if (c) c.off('click').on('click', p => {
       const d = p.data || {};
       if (d.placeholder) return;
+      // 「其餘 N 檔」不是一檔股票，點它不該跳到任何地方（完整名單在右邊那一欄）
+      if (d.restN) return;
       if (d.code) return goStock(d.code);
       /* ★ 點族群**不跳頁**：在右邊原地展開成分股的成交值排序（Andy 2026-09-20 第 4 件）。
          要去族群頁的話，面板標題右邊與下方晶片列的 → 都還在。*/
@@ -4434,7 +4646,7 @@
             push(cp, gp, g.value, g.gid, col, 1, 2);
             g.children.forEach(x => {
               if (x.placeholder) return;
-              push(gp, pos[x.name], x.value, g.gid + x.code, col, 1, 3);
+              push(gp, pos[x.name], x.value, g.gid + (x.code || 'rest'), col, 1, 3);
             });
           });
         });
@@ -4459,13 +4671,20 @@
        `chart()` 掛的那個 ResizeObserver 只會叫 ECharts resize()，
        它不知道「層數要變」這回事（和輪動時鐘的標籤重排是同一類問題）。
        只有**判定翻面**時才重畫，所以拖視窗不會一直重算。*/
+    /* ★ 2026-09-21：除了「層數要不要變」，也要盯「面板該放右邊還是放下面」。
+       可用寬度不只跟著視窗走 —— 開／關「今日事件」那個抽屜就會讓整列寬度差 360px
+       （1440 上量到 1358 vs 998）。只盯層數的話，關掉抽屜之後面板會一直留在圖下面。
+       `.stack` 的判準只吃 `#sankeyRow` 的寬度（不吃 `.stack` 自己），所以不會來回跳。*/
+    const stackWanted = () => { const r2 = $('#sankeyRow');
+      return !!(r2 && r2.clientWidth > 0 && r2.clientWidth - 314 < SANKEY_NARROW); };
     if (!el.dataset.skRo && window.ResizeObserver) {
       el.dataset.skRo = '1';
-      let t = null, was = narrow;
+      let t = null, was = narrow, wasStack = stackWanted();
       new ResizeObserver(() => {
         const nw = (el.clientWidth || 9999) < SANKEY_NARROW;
-        if (nw === was) return;
-        was = nw;
+        const sk = stackWanted();
+        if (nw === was && sk === wasStack) return;
+        was = nw; wasStack = sk;
         clearTimeout(t);
         t = setTimeout(() => { const st = sankeyState;
           if (st && el.isConnected) renderSankey(st.sd, st.k, sankeySel); }, 160);
@@ -5250,6 +5469,17 @@
         intraday: SKL.intraday, boards: Object.keys(SKL.tv).length,
         codes: SKL.codes, reqs: SKL.reqs, marketAmt: SKL.marketAmt, quoteAt: SKL.quoteAt }),
       sankeyLiveToggle: () => sklToggle(),
+      /* 驗收「即時模式真的換位」用：把每個節點在畫布上的座標讀出來。
+         驗排序陣列是不夠的 —— 陣列換了但畫面沒動（例如整張圖是 notMerge 重建、
+         或動畫被吃掉）在驗收上會過，使用者看到的卻還是舊版面。
+         y 座標是使用者真正看到的東西，所以驗這個。*/
+      sankeyNodeXY: () => {
+        const el = document.getElementById('sankey');
+        const c = el && (window.echarts ? window.echarts.getInstanceByDom(el) : null);
+        return c ? sankeyNodePos(c) : null;
+      },
+      // 手動催一輪即時（驗收用；平常是 setInterval 每分鐘一次，等不了）
+      sankeyLiveTick: () => sklTick(),
       // 下鑽狀態（驗收「點背景回復預設」用）
       drillState: () => ({ gid: DRILL.gid, chain: DRILL.chain, open: [...DRILL.open],
         stocks: [...DRILL.stocks], sel: sankeySel }) };

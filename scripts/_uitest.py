@@ -3294,10 +3294,11 @@ def t_new_flow(pg, base):
     # 而且這份選擇和輪動時鐘是**同一份**（兩張圖一起變）。
     LEAF = """() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
         if (!c) return null; const root = ((c.getOption().series || [])[0] || {}).data[0];
-        let n = 0; const picked = [];
-        (root.children || []).forEach(ch => (ch.children || []).forEach(g =>
-          (g.children || []).forEach(x => { if (!x.placeholder) { n++; if (x.picked) picked.push(x.code); } })));
-        return { leaves: n, picked }; }"""
+        let n = 0; const picked = [], exp = [];
+        (root.children || []).forEach(ch => (ch.children || []).forEach(g => {
+          if (g.expanded) exp.push(g.gid);
+          (g.children || []).forEach(x => { if (!x.placeholder) { n++; if (x.picked) picked.push(x.code); } }); }));
+        return { leaves: n, picked, exp }; }"""
     skg = pg.eval_on_selector_all(skchip, "cs => cs.map(c => c.dataset.g)")
     pick_g = best_g or (skg[0] if skg else None)
     if pick_g:
@@ -3312,23 +3313,32 @@ def t_new_flow(pg, base):
             pg.eval_on_selector(f'#sankeyPanel .ms a[data-code="{code}"]', "a => a.click()")
             pg.wait_for_timeout(1800)
             lf1 = pg.evaluate(LEAF)
-            changed("點個股，資金去向的葉節點真的多一個", lf0["leaves"], lf1["leaves"])
-            ok("多出來的那一個就是我點的那一檔，而且掛在它所屬的族群底下",
-               code in (lf1["picked"] or []), lf1)
+            # ★ 2026-09-21 起「點族群」會把那個族群的葉子展開成全部成分股
+            #   （Andy：「當我點擊族群 會延伸顯示其他股票」），所以第 5 名那一檔
+            #   **本來就已經在圖上**了 —— 再去驗「葉節點多一個」是驗一件已經不成立的事。
+            #   真正要守的行為沒有變：點清單裡的個股，圖上那一顆要**被標起來**
+            #   （picked：亮邊框＋虛線），而且輪動時鐘要一起變。
+            #   前 20 名以外的那幾檔仍然是「多長一顆」，所以兩種結果都接受，
+            #   但一定要驗到 picked 真的出現。
+            ok("點個股，資金去向圖上那一顆真的被標起來（picked）",
+               code in (lf1["picked"] or []), {"picked": lf1["picked"], "葉子數": [lf0["leaves"], lf1["leaves"]]})
             ok("同一份選擇也反映在輪動時鐘上（兩張圖共用一份狀態）",
                any(x["stock"] and x["code"] == code for x in _rot_pts(pg)), _rot_pts(pg))
             pg.eval_on_selector(f'#sankeyPanel .ms a[data-code="{code}"]', "a => a.click()")
             pg.wait_for_timeout(1600)
-            ok("再點一次，葉節點真的收回去",
-               pg.evaluate(LEAF)["leaves"] == lf0["leaves"],
-               [lf0["leaves"], pg.evaluate(LEAF)["leaves"]])
-        # 麵包屑的「全部族群」要真的回到階段一
+            lf2 = pg.evaluate(LEAF)
+            ok("再點一次，標記真的拿掉、葉節點數回到點之前",
+               code not in (lf2["picked"] or []) and lf2["leaves"] == lf0["leaves"],
+               {"前": lf0, "標記後": lf1, "取消後": lf2})
+        # 麵包屑的「全部族群」要真的回到階段一：面板收起，而且**展開的族群收回成 3 檔**
         pg.eval_on_selector("#sankeyPanel [data-all]", "b => b.click()")
         pg.wait_for_timeout(1600)
-        ok("按麵包屑的「全部族群」真的回到階段一（面板收起、圖回到只有族群）",
+        lf3 = pg.evaluate(LEAF)
+        ok("按麵包屑的「全部族群」真的回到階段一（面板收起、展開的族群收回去）",
            pg.evaluate("() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }")
-           and pg.evaluate(LEAF)["leaves"] == (lf0 or {}).get("leaves", 0),
-           pg.evaluate(LEAF))
+           and lf3["leaves"] <= (lf0 or {}).get("leaves", 0)
+           and not lf3["picked"] and not lf3["exp"],
+           {"展開時": lf0, "回到階段一": lf3})
 
     # ================================================================== D5（Andy 2026-09-21）
     # 「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，並下面多出裡面還蓋族群，
@@ -6253,8 +6263,13 @@ def t_batch3(pg, base):
        pg.evaluate("() => { try { return (localStorage.getItem('tw.conc.ma')||'').indexOf('240') >= 0; } catch(e){ return false; } }"))
     # 點圖上某一天 → 側欄出現那天的族群
     # 圖在頁面很下面，座標是相對視窗的 —— 不先捲進畫面的話會點到別的地方
-    pg.eval_on_selector("#conc", "e => e.scrollIntoView({block:'center'})")
-    pg.wait_for_timeout(600)
+    # ★ 2026-09-21：一定要寫 behavior:'instant'。`html{scroll-behavior:smooth}` 會讓
+    #   scrollIntoView 變成**動畫**捲動；平行跑（預設 4 個 worker）CPU 被搶時，
+    #   600ms 不一定捲得完，下面量到的 getBoundingClientRect() 就是捲到一半的位置，
+    #   滑鼠點下去落在別的地方 → 側欄永遠不開 → 等滿 6 秒報假紅。
+    #   （同一個坑在「桑基展開與即時」那一段也踩過，兩邊都改成 instant。）
+    pg.eval_on_selector("#conc", "e => e.scrollIntoView({block:'center', behavior:'instant'})")
+    pg.wait_for_timeout(400)
     hit = pg.evaluate("""() => { const el = document.getElementById('conc');
         const c = echarts.getInstanceByDom(el); if (!c) return null;
         const o = c.getOption(); const n = (o.series[0].data||[]).length; if (!n) return null;
@@ -8116,6 +8131,269 @@ def t_sort(pg, base):
     ok("即時層更新之後，表格照著新的漲跌重排了（不是表頭標 ▲ 但數字亂跳）", mono and len(vals) > 3, vals)
 
 
+# ===========================================================================
+# 桑基展開與即時換位（Andy 2026-09-21）
+#
+# 「我這邊提到的即時包含 他突然某個族群、個我變大，會自動交換位置，這點功能需要達成
+#   另外需新增當我點擊族群 會延伸顯示其他股票，意思是水流原本出現前三名，
+#   但因為我點擊了那個族群，他就會延伸前三名之後的全部顯示，
+#   並且這功能都在這圖表內建立 不是即時的也要，一樣顯示名稱百分比」
+#
+# 這一段驗的全是「畫面真的因此改變」，不是「元素存在」：
+#   · 點族群節點（真的用滑鼠點圖上的座標）→ 那個族群的葉子數真的從 3 變成該族群的檔數
+#   · 葉子的文字真的是「個股名 + 百分比」，而且百分比和右邊面板**逐字相同**
+#   · 再點一次 / 點背景 → 真的收回成 3
+#   · 800px 窄畫面重跑一次（Andy 的規矩：新版面元件一律要驗窄畫面）
+#   · 即時換位驗的是**節點的 y 座標真的交換了**，不是「排序陣列變了」——
+#     陣列變了但畫面沒動（動畫被吃掉、或 notMerge 重建）在驗收上會過，使用者卻看不到
+# ===========================================================================
+
+# 桑基圖上每個族群的葉子狀態（讀 ECharts 的 data，不是看有沒有 render）
+_SK_EXP = """() => { const el = document.getElementById('sankey');
+    const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+    const root = ((c.getOption().series || [])[0] || {}).data[0]; const g2 = {};
+    (root.children || []).forEach(ch => (ch.children || []).forEach(g => {
+      const kids = (g.children || []).filter(x => !x.placeholder);
+      g2[g.gid] = { n: kids.length, exp: !!g.expanded,
+        lbl: kids.map(x => (x.label || {}).formatter),
+        rest: kids.filter(x => x.restN).map(x => x.restN)[0] || 0 }; }));
+    return { g: g2, h: Math.round(el.getBoundingClientRect().height),
+             sub: (document.getElementById('sankeySub') || {}).textContent || '' }; }"""
+
+# 面板那一欄的「名稱 → 百分比」，拿來和圖上的葉子逐字比對
+_SK_PAN = """() => { const b = document.getElementById('sankeyPanel');
+    if (!b || b.hidden) return null;
+    return [...b.querySelectorAll('.ms a[data-code]')].slice(0, 25).map(a => {
+      const nm = (a.querySelector('span') || {}).textContent.replace('● ', '').trim();
+      const g = ((a.querySelector('.g') || {}).textContent || '').split('　');
+      return [nm, (g[1] || '').trim()]; }); }"""
+
+# 圖上某個節點在畫面上的座標（要真的用滑鼠點，不是呼叫 onclick）。
+# ★ 一定要先把那顆節點捲進可視範圍再回座標：展開之後圖高到 1216px，
+#   而視窗只有 1000px —— 不捲的話回來的 y 在視窗外，滑鼠點下去什麼都點不到，
+#   驗收會報「葉子數沒變」而其實是「根本沒點到」。
+_SK_XY = """(nm) => { const el = document.getElementById('sankey');
+    const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+    const d = c.getModel().getSeriesByIndex(0).getData();
+    for (let i = 0; i < d.count(); i++) {
+      if (d.getName(i) !== nm) continue;
+      const g = d.getItemGraphicEl(i); if (!g) continue;
+      const q = g.transformCoordToGlobal(0, 0);
+      const r0 = el.getBoundingClientRect();
+      const pageY = window.scrollY + r0.top + q[1];
+      /* ★ 一定要寫 behavior:'instant'。`html{scroll-behavior:smooth}` 會讓
+         `window.scrollTo(0, y)` 變成動畫捲動 —— 回傳的座標在滑鼠點下去的時候已經過期，
+         結果是「點了但什麼都沒發生」，而驗收會誤報成功能壞掉。*/
+      window.scrollTo({ top: Math.max(0, Math.round(pageY - window.innerHeight / 2)),
+                        behavior: 'instant' });
+      const r = el.getBoundingClientRect();
+      return [Math.round(r.left + q[0]), Math.round(r.top + q[1])]; }
+    return null; }"""
+
+# 圖上族群節點的顯示名稱（葉子的 key 就是這個名字）
+_SK_GNAMES = """() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+    const root = ((c.getOption().series || [])[0] || {}).data[0]; const o = [];
+    (root.children || []).forEach(ch => (ch.children || []).forEach(g =>
+      o.push({ gid: g.gid, name: g.name, chain: ch.chain })));
+    return o; }"""
+
+# 假報價（stub）：容器打不到證交所，所以自己餵。
+# ★ 這是**驗口徑與換位機制**用的假數字，不是真實成交值 —— 任何「值對不對」都不能用它推論。
+_SK_STUB = """(boost) => {
+    const D = window.App.D, sd = D.sankey_daily;
+    const gids = sd.groups.map(g => g.gid).filter(g => !/^ind_/.test(g));
+    const vol = {};
+    gids.forEach((gid, i) => {
+      const ms = (D.groups_detail[gid] || {}).members || [];
+      const per = (gids.length - i) * 1000 / Math.max(1, ms.length) * (gid === boost ? 100 : 1);
+      ms.forEach(m => { const c = String(m.code); if (vol[c] == null) vol[c] = per; });
+    });
+    window.Live = { isIntraday: () => true,
+      fetchQuotes: async (cs) => { const o = {};
+        cs.forEach(c => { o[c] = { price: 100, volume: vol[c] || 1, time: '10:30:00' }; }); return o; } };
+    window.Market3 = { lastAt: Date.now(), marketAmt: 1.23e12, refresh: async () => {} };
+    return gids; }"""
+
+
+def _sk_expand_round(pg, base, w):
+    """在寬度 w 下真的操作一次「點族群 → 展開 → 收回」。"""
+    pg.set_viewport_size({"width": w, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.wait_for_timeout(2800)
+    pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+    st0 = pg.evaluate(_SK_EXP)
+    if not ok(f"[{w}px] 資金去向畫得出來", bool(st0) and len(st0["g"]) > 3, st0 and len(st0["g"])):
+        return
+    # 挑一個「成分股比 3 檔多很多」的族群，展開才看得出差別
+    big = pg.evaluate("""(gids) => { const det = window.App.D.groups_detail || {};
+        let best = null, n = 0;
+        gids.forEach(g => { const m = ((det[g] || {}).members || [])
+            .filter(x => (+x.turnover || 0) > 0).length;
+          if (m > n && m <= 40) { n = m; best = g; } });
+        return [best, n]; }""", list(st0["g"].keys()))
+    gname = next((x["name"] for x in pg.evaluate(_SK_GNAMES) if x["gid"] == big[0]), None)
+    if not ok(f"[{w}px] 挑得到一個成分股夠多的族群來展開", bool(gname) and big[1] > 3, big):
+        return
+    xy = pg.evaluate(_SK_XY, gname)
+    if not ok(f"[{w}px] 抓得到「{gname}」這顆族群節點的座標", bool(xy), xy):
+        return
+    pg.mouse.click(xy[0], xy[1])
+    pg.wait_for_timeout(2000)
+    st1 = pg.evaluate(_SK_EXP)
+    a, b2 = st0["g"][big[0]]["n"], st1["g"][big[0]]["n"]
+    changed(f"[{w}px] 點族群節點：這個族群的葉子數真的從 3 變多", a, b2)
+    ok(f"[{w}px] 展開之後真的是「全部成分股」（{big[1]} 檔，上限 20）",
+       b2 == min(20, big[1]) + (1 if big[1] > 20 else 0), {"畫出來": b2, "該有": big[1]})
+    lbl = st1["g"][big[0]]["lbl"]
+    ok(f"[{w}px] 每一片葉子都寫著「名稱 + 百分比」",
+       len(lbl) > 3 and all("%" in (x or "") for x in lbl)
+       and all(any("一" <= ch <= "鿿" for ch in (x or "")) for x in lbl),
+       lbl[:4])
+    changed(f"[{w}px] 容器高度跟著葉子數長高（標籤不會擠在一起）", st0["h"], st1["h"])
+    ok(f"[{w}px] 副標寫出「已展開」（圖在動，字不可以說沒動）", "已展開" in st1["sub"], st1["sub"][-70:])
+    # ---- 百分比要和右邊那一欄逐字相同（Andy：兩邊對不起來就是 bug）
+    pan = pg.evaluate(_SK_PAN)
+    if ok(f"[{w}px] 右邊面板同時也開著", bool(pan), pan and len(pan)):
+        want = [(nm, p) for nm, p in pan[:5]]
+        got = []
+        for nm, p in want:
+            got.append(any((x or "").startswith(nm) and p in (x or "") for x in lbl))
+        ok(f"[{w}px] 圖上的百分比和面板逐字相同（同一個分母）", all(got),
+           {"面板": want, "圖上": lbl[:5]})
+    # ---- 再點一次同一顆 → 收回
+    xy2 = pg.evaluate(_SK_XY, gname)
+    pg.mouse.click(xy2[0], xy2[1])
+    pg.wait_for_timeout(2000)
+    st2 = pg.evaluate(_SK_EXP)
+    ok(f"[{w}px] 再點一次同一個族群，水流真的收回成 3 檔",
+       st2["g"][big[0]]["n"] == a and not st2["g"][big[0]]["exp"], st2["g"][big[0]])
+    # ---- 再展開一次 → 點背景 → 收回
+    xy3 = pg.evaluate(_SK_XY, gname)
+    pg.mouse.click(xy3[0], xy3[1])
+    pg.wait_for_timeout(2000)
+    ok(f"[{w}px] 為了驗點背景，先再展開一次", pg.evaluate(_SK_EXP)["g"][big[0]]["n"] > a)
+    blank = pg.evaluate("""() => { const el = document.getElementById('sankey');
+        const c = echarts.getInstanceByDom(el); const zr = c.getZr();
+        // 先把圖捲到畫面中間，不然算出來的座標可能在視窗外，滑鼠點不到
+        el.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const r = el.getBoundingClientRect();
+        for (let fx = 0.30; fx < 0.85; fx += 0.03)
+          for (let fy = 0.05; fy < 0.95; fy += 0.04) {
+            const x = r.width * fx, y = r.height * fy;
+            const X = Math.round(r.left + x), Y = Math.round(r.top + y);
+            if (Y < 70 || Y > window.innerHeight - 70) continue;   // 避開固定的頁首與底部導覽
+            const h = zr.handler.findHover(x, y);
+            if (!(h && h.target) && document.elementFromPoint(X, Y) === el.querySelector('canvas'))
+              return [X, Y]; }
+        return null; }""")
+    if ok(f"[{w}px] 圖上找得到一個真的空白的點", bool(blank), blank):
+        pg.mouse.click(blank[0], blank[1])
+        pg.wait_for_timeout(2000)
+        st3 = pg.evaluate(_SK_EXP)
+        ok(f"[{w}px] 點背景：展開的水流真的收回成 3 檔",
+           st3["g"][big[0]]["n"] == a and not st3["g"][big[0]]["exp"], st3["g"][big[0]])
+
+
+def t_sankey_expand_live(pg, base):
+    """桑基：點族群展開全部成分股（兩個寬度）＋ 即時換位（假報價）。"""
+    # ---------------------------------------------------------- ① 1500px
+    _sk_expand_round(pg, base, 1500)
+    # ---------------------------------------------------------- ② 800px（窄畫面）
+    # 800px 時面板會掉到圖下面（.stack），圖拿回整列寬度，四層仍然畫得出來 ——
+    # 這正是 2026-09-21 補的那條：面板吃掉 314px 會把圖壓到 700 以下、
+    # 代表股那一層整個被收掉，「點族群想看成分股反而看不到成分股」。
+    _sk_expand_round(pg, base, 800)
+    ok("800px 時面板改放到圖下面（圖才留得住四層）",
+       pg.evaluate("() => document.getElementById('sankeyRow').classList.contains('stack')"))
+
+    # ---------------------------------------------------------- ③ 展開上限與「其餘 N 檔」
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.wait_for_timeout(2800)
+    pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+    huge = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+        const root = ((c.getOption().series||[])[0]||{}).data[0]; const det = window.App.D.groups_detail||{};
+        let best = null, n = 0;
+        (root.children||[]).forEach(ch => (ch.children||[]).forEach(g => {
+          const m = ((det[g.gid]||{}).members||[]).filter(x => (+x.turnover||0) > 0).length;
+          if (m > n) { n = m; best = g.gid; } }));
+        return [best, n]; }""")
+    if ok(f"找得到一個成分股超過 20 檔的族群（量到最大 {huge[1]} 檔）", huge[1] > 20, huge):
+        pg.eval_on_selector(f'.linkrow.gchips[data-for="sankey"] .gchip[data-g="{huge[0]}"] .pick',
+                            "b => b.click()")
+        pg.wait_for_timeout(2200)
+        st = pg.evaluate(_SK_EXP)[ "g"][huge[0]]
+        ok("超過 20 檔只畫前 20，加一顆「其餘 N 檔」＝ 21 格", st["n"] == 21, st["n"])
+        ok("最後那一顆真的寫著「其餘 N 檔 X.X%」",
+           any("其餘" in (x or "") and "%" in (x or "") for x in st["lbl"]), st["lbl"][-2:])
+        ok(f"「其餘」收的檔數對得上（{huge[1]} − 20）", st["rest"] == huge[1] - 20,
+           {"寫的": st["rest"], "該是": huge[1] - 20})
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(1400)
+
+    # ---------------------------------------------------------- ④ 即時換位（假報價）
+    # ⚠ 容器打不到證交所，所以這一段用 stub 餵兩輪不同名次的假報價。
+    #   它驗的是**換位這件事真的發生在畫面上**（y 座標交換）與副標的口徑，
+    #   **不是**驗任何一個數字對不對 —— 假數字推不出真結論。
+    fixed = [x["gid"] for x in pg.evaluate(_SK_GNAMES)]
+    pg.evaluate(_SK_STUB, None)
+    pg.evaluate("() => window.App.sankeyLiveToggle()")
+    pg.wait_for_timeout(2600)
+    lv = pg.evaluate("() => window.App.sankeyLive()")
+    if not ok("即時模式開得起來（stub 假報價，不是真實數字）",
+              bool(lv) and lv["on"] and not lv["err"] and lv["boards"] > 3, lv):
+        return
+    sub = text(pg, "#sankeySub")
+    ok("即時模式的副標換成「會換位」那一版（不可以出現圖在動、字說不會動）",
+       "換位" in sub and "位置固定" not in sub, sub[:140])
+    o1 = pg.evaluate(_SK_GNAMES)
+    xy1 = pg.evaluate("() => window.App.sankeyNodeXY()")
+    # 同一條鏈裡相鄰的兩個族群，把後面那個灌大讓它插隊
+    pair = next(((o1[i], o1[i + 1]) for i in range(len(o1) - 1)
+                 if o1[i]["chain"] == o1[i + 1]["chain"]), None)
+    if not ok("找得到同一條鏈裡相鄰的兩個族群（才驗得出交換）", bool(pair),
+              [x["gid"] for x in o1][:6]):
+        return
+    # ---- 第 1.5 輪：名次沒變就不該有任何移動
+    pg.evaluate("() => window.App.sankeyLiveTick()")
+    pg.wait_for_timeout(2200)
+    xy15 = pg.evaluate("() => window.App.sankeyNodeXY()")
+    same = all(abs((xy15.get(x["name"]) or {"y": -1})["y"] - (xy1.get(x["name"]) or {"y": -2})["y"]) < 1
+               for x in o1)
+    ok("再跑一輪、名次沒變 → 節點完全沒有移動（不是每分鐘閃一次）", same,
+       {x["gid"]: [round((xy1.get(x["name"]) or {}).get("y", -1)),
+                   round((xy15.get(x["name"]) or {}).get("y", -1))] for x in o1[:4]})
+    # ---- 第 2 輪：把第二名灌大
+    pg.evaluate(_SK_STUB, pair[1]["gid"])
+    pg.evaluate("() => window.App.sankeyLiveTick()")
+    pg.wait_for_timeout(2600)
+    o2 = [x["gid"] for x in pg.evaluate(_SK_GNAMES)]
+    xy2 = pg.evaluate("() => window.App.sankeyNodeXY()")
+    ya1 = (xy1.get(pair[0]["name"]) or {}).get("y")
+    yb1 = (xy1.get(pair[1]["name"]) or {}).get("y")
+    ya2 = (xy2.get(pair[0]["name"]) or {}).get("y")
+    yb2 = (xy2.get(pair[1]["name"]) or {}).get("y")
+    ok("第二輪之後兩個族群的名次真的對調（排序）",
+       o2.index(pair[1]["gid"]) < o2.index(pair[0]["gid"]),
+       {"第一輪": [pair[0]["gid"], pair[1]["gid"]], "第二輪": o2[:6]})
+    ok("而且是畫面上真的換位：兩顆節點的 y 座標互換了（不是只有陣列變）",
+       all(v is not None for v in (ya1, yb1, ya2, yb2))
+       and abs(ya2 - yb1) < 2 and abs(yb2 - ya1) < 2,
+       {pair[0]["gid"]: [ya1, ya2], pair[1]["gid"]: [yb1, yb2]})
+    notes.append("即時換位這一段用的是 stub 假報價（容器打不到證交所）："
+                 "驗的是換位機制與副標口徑，數字本身沒有意義。")
+    # ---- 退出即時 → 順序回到「歷史回放固定」那一份
+    pg.evaluate("() => window.App.sankeyLiveToggle()")
+    pg.wait_for_timeout(2000)
+    ok("退出即時之後，順序真的回到歷史回放那一份固定順序",
+       [x["gid"] for x in pg.evaluate(_SK_GNAMES)] == fixed,
+       {"固定": fixed[:6], "退出後": [x["gid"] for x in pg.evaluate(_SK_GNAMES)][:6]})
+    ok("退出即時之後副標也換回「位置固定」那一版",
+       "位置固定" in text(pg, "#sankeySub"), text(pg, "#sankeySub")[:140])
+
+
 # ---------------------------------------------------------------------------
 # 段落表：名稱 → 怎麼呼叫。
 # 簽章各不相同（有的吃 page、有的吃 browser、有的還要股票代號），
@@ -8150,6 +8428,7 @@ SECTIONS = {
     "批次3":               lambda pg, b, base, code: t_batch3(pg, base),
     "批次4":               lambda pg, b, base, code: t_batch4(pg, base),
     "批次7":               lambda pg, b, base, code: t_batch7(pg, base),
+    "桑基展開與即時":      lambda pg, b, base, code: t_sankey_expand_live(pg, base),
     "批次6-N1":            lambda pg, b, base, code: t_batch6_n1(pg, base),
     "批次6-圖十":          lambda pg, b, base, code: t_batch6_n3(pg, base),
     "批次6-圖九":          lambda pg, b, base, code: t_batch6_n9(pg, base),

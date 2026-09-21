@@ -1212,6 +1212,20 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   #sankeyRow #sankeyPanel{max-width:none;margin-top:12px}
   #sankeyRow #sankeyPanel .ms{max-height:190px}
 }
+/* ★ 2026-09-21：`.stack` ＝「這個寬度放不下『圖 ＋ 300px 面板』，面板改放到圖下面」。
+   為什麼要有這個：面板一打開就吃掉 314px，1280～1440 的筆電上圖會被壓到 700px 以下，
+   於是 renderSankey 判定成窄畫面、**把代表股那一整層收掉** ——
+   結果就是「點族群想看它的成分股，反而看不到成分股」。
+   這條是 JS 量完 #sankeyRow 的寬度才掛上去的（不是媒體查詢），因為判準是
+   「圖剩幾 px」而不是「螢幕幾 px」，中間還隔著側欄與卡片內距，媒體查詢算不出來。*/
+#sankeyRow.stack{display:block}
+#sankeyRow.stack #sankeyPanel{max-width:none;margin-top:12px}
+/* 面板從 300px 的側欄變成整列之後，格子會被排成一堆 168px 的窄欄 ——
+   「元大台灣50正2」就會被折成一個字一行，而右邊的「87.0 億 11.5% +1.7%」也折成三行。
+   一格真正需要的寬度是 名稱 80 ＋ 代號 40 ＋ 數字 150 ≈ 272px，所以整列模式改用 272。
+   名稱再長就截字（…），不要讓它去折行 —— 中文可以在任何字之間斷，折起來只會變成直排。*/
+#sankeyRow.stack #sankeyPanel .ms{max-height:260px;grid-template-columns:repeat(auto-fill,minmax(272px,1fr))}
+#sankeyRow.stack #sankeyPanel .ms a>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* ===================== 2026-09-20：大盤三張圖（site/market3.js）===================== */
 /* ① 夜盤的說明帶。
    Andy 2026-09-20：「台指期夜盤怎麼可能沒數據，幫我更新走勢圖以及 K 線上去，格式 follow 加權指數」。
@@ -1420,10 +1434,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          而集中度那張還多了六條均線與逐日鑽取。
          空出來的半格給「資金去向」—— 它現在是固定 12 個族群 × 3 檔代表股的樹，
          半個版面會把族群名擠掉，改成整列反而是這一批最需要寬度的一張。 -->
-    <div class="card" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">族群固定在原位，只有線的粗細與圓圈大小會變</small></h3>
+    <!-- #sankeySub 的字是 renderSankey() 每次重畫都會換掉的（會依「歷史回放／即時」換說法）。
+         這裡只是圖還沒畫出來前的預設值，所以也不可以寫死成「位置固定」——
+         切到即時的時候圖真的會換位，字說不會動就是在騙人。 -->
+    <div class="card" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
-      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播"></div>
+      <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
       <!-- 盤中即時模式的狀態列（Andy 2026-09-21「即時」）。誠實標示全寫在這一行：
            哪一個數字是真實值、哪一個是估算、% 的分母是誰、哪幾格是盤後、這一輪打了幾個請求。
            不塞進圖裡是刻意的 —— 圖上塞不下，而這幾句話少一句整張圖就會被讀錯。 -->
