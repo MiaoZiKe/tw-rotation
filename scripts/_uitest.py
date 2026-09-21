@@ -8543,6 +8543,14 @@ def t_mlcc(pg, base):
             pg_.evaluate("(n) => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))", h[i])
             pg_.wait_for_timeout(450)
             got = hero_key(pg_)
+        # ★ 2026-09-21：`want_sel=False`（再點一次＝取消）以前沒有補償，
+        #   於是零件重疊時真滑鼠落到旁邊那一塊 → 變成「選到別人」而不是「取消」，
+        #   驗收報 selpart=1 看起來像功能壞掉，其實是這裡沒點中。
+        #   和上面同一個原則：重點是「這個零件真的被點過」，不是用哪一種方式送出點擊。
+        if not want_sel and got is not None:
+            pg_.evaluate("(n) => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))", h[i])
+            pg_.wait_for_timeout(450)
+            got = hero_key(pg_)
         return got
 
     def pick_group(pg_, gid):
@@ -8599,18 +8607,46 @@ def t_mlcc(pg, base):
     pg.wait_for_timeout(500)
     pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：關
     pg.wait_for_timeout(700)
-    off1 = dg(pg)["dotX"]
-    pg.wait_for_timeout(1100)
-    off2 = dg(pg)["dotX"]
-    ok("B4：按「動畫：關」之後，SMIL 那顆白點連續兩次取樣的 x 座標相同（真的停住）",
-       off1 is not None and off1 == off2, f"{off1} → {off2}")
-    pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：開
-    pg.wait_for_timeout(700)
-    on1 = dg(pg)["dotX"]
-    pg.wait_for_timeout(1000)
-    on2 = dg(pg)["dotX"]
-    ok("B4：切回「動畫：開」之後白點真的又動起來（不是永遠停著）",
-       on1 is not None and on1 != on2, f"{on1} → {on2}")
+    # ★ 2026-09-21：先把剖析圖**確實展開**再驗。
+    #   C 批加的「<640px 預設收合、會記住」把收合狀態存進 localStorage，
+    #   平行跑時被窄畫面那幾段汙染，1440px 這一輪就變成收合 ——
+    #   單獨跑永遠綠、4-worker 跑才紅，是最難查的那一種。
+    #   （不是把前提檢查拿掉，是把前提**做出來**。）
+    pg.evaluate("""() => { const b = document.getElementById('dgFold');
+        const body = document.getElementById('dgBody');
+        const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+        if (b && hidden) b.click(); }""")
+    pg.wait_for_timeout(600)
+    # ★ 2026-09-21：先確認那顆點**真的量得到**，不然 0 == 0 會判成「停住了」（假綠）、
+    #   0 != 0 判成「沒動起來」（假紅）。實測機制本身是好的
+    #   （關 1079.9 → 1079.9 凍住、開 1234.7 → 132.1 繞回去），
+    #   當時紅的是量到兩個 0 —— 那代表那顆點當下根本沒被 render，
+    #   而驗收卻拿兩個 0 互比，等於什麼都沒驗。
+    _dotOK = pg.evaluate("""() => { const h = document.querySelector('#prodDiagram');
+        const mo = h && h.querySelector('animateMotion'); const d = mo && mo.parentNode;
+        if (!d) return {ok: false, why: '找不到 animateMotion'};
+        const r = d.getBoundingClientRect();
+        const hidden = getComputedStyle(h).display === 'none' || !h.offsetParent;
+        return {ok: r.width > 0 && !hidden, why: hidden ? '剖析圖是收合/隱藏的' :
+                (r.width > 0 ? '' : '那顆點沒有 render'), w: +r.width.toFixed(1)}; }""")
+    if ok("B4 的前提：流程列那顆白點真的畫在畫面上（量不到就不要拿 0 互比）",
+          _dotOK["ok"], _dotOK):
+        off1 = dg(pg)["dotX"]
+        pg.wait_for_timeout(1100)
+        off2 = dg(pg)["dotX"]
+        ok("B4：按「動畫：關」之後，SMIL 那顆白點連續兩次取樣的 x 座標相同（真的停住）",
+           off1 is not None and off1 != 0 and off1 == off2, f"{off1} → {off2}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：開
+        pg.wait_for_timeout(700)
+        on1 = dg(pg)["dotX"]
+        pg.wait_for_timeout(1000)
+        on2 = dg(pg)["dotX"]
+        ok("B4：切回「動畫：開」之後白點真的又動起來（不是永遠停著）",
+           on1 is not None and on1 != 0 and on1 != on2, f"{on1} → {on2}")
+    else:
+        # 前提不成立就把狀態還原，不要把「動畫：關」帶進後面的段落
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+        pg.wait_for_timeout(400)
 
     # ---------------- 4d. 兩層高亮：單一環節的圖，點下去到底有沒有「真的變」
     #  改之前：高亮只綁 data-seg，MLCC 14 個零件全是 passive_comp
