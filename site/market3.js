@@ -908,13 +908,54 @@
       if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
       el.classList.add('isempty');
       el.dataset.kind = '';
+      // 沒資料時先問「是不是根本還沒開盤」，再落回「載入中」——
+      // 開盤前寫「載入中…」會讓人以為壞掉（Andy 2026-09-21 就是這樣問的）
+      const hint = sessionHint(x, x.id === 'FUT' && state.futSession === 'night');
       el.innerHTML = `<div class="empty">${err === 'NOCHART'
         ? 'Worker 還是舊版（只有 /quote）。到 Cloudflare → Workers → tw-quote → 編輯程式碼，把 repo 裡 <code>workers/quote-proxy/worker.js</code> 整份貼上去再按 Deploy，這三張圖就會出現。'
-        : err ? '抓不到：' + (window.App ? window.App.fmt.esc(err) : err) : '載入中…'}</div>`;
+        : err ? '抓不到：' + (window.App ? window.App.fmt.esc(err) : err)
+        : hint || '載入中…'}</div>`;
       return;
     }
     el.classList.remove('isempty');
     if (state.mode === 'k') drawK(x, d, el); else drawLine(x, d, el);
+  }
+
+  /* ★ 2026-09-21（Andy：「為何這是載入中，台指不應該先開始了嗎 在 08:30」）
+     以前只要沒資料又沒錯誤就一律印「載入中…」，所以**開盤前打開網頁，三張圖會永遠寫著載入中**
+     —— 看起來像壞掉，而其實只是還沒開盤。他 07:50 打開時：
+       現貨 09:00 才正式開盤（08:30 只是盤前集合競價試撮，不成交）
+       台指期日盤 08:45 開始
+       台指期夜盤 15:00~翌日 05:00，05:00 就收了
+     三個都還沒有資料，是對的；錯的是我們把「還沒開始」講成「正在載入」。
+
+     ★ 08:30 不是台指期開盤時間。這一點要寫在程式裡，不然下次還會有人搞混。 */
+  function sessionHint(x, night) {
+    const d = (() => {
+      try { return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' })); }
+      catch (e) { return new Date(); }
+    })();
+    const w = d.getDay(), m = d.getHours() * 60 + d.getMinutes();
+    const hhmm2 = (t) => String(Math.floor((t % 1440) / 60)).padStart(2, '0') + ':'
+      + String(t % 60).padStart(2, '0');
+    if (night) {
+      // 夜盤跨午夜：15:00(900) ~ 翌日 05:00(300)。週五夜盤跨到週六凌晨，週日晚上沒有夜盤。
+      const inNight = (m >= 900 && w >= 1 && w <= 5) || (m < 300 && w >= 2 && w <= 6);
+      if (inNight) return '';                       // 真的在夜盤裡卻沒資料 → 交給原本的錯誤訊息
+      if (w === 6 || w === 0) return '週末休市 · 夜盤週一 15:00 開始';
+      return m < 900 ? '夜盤尚未開始 · 15:00 開盤（到翌日 05:00）'
+                     : '夜盤已收盤 · 15:00 再開';
+    }
+    const [s0, s1] = SESSION[x.id] || SESSION.TSE;
+    if (w === 0 || w === 6) return '週末休市 · 下一個交易日 ' + hhmm2(s0) + ' 開盤';
+    if (m < s0) {
+      // 現貨 08:30 開始盤前試撮，但那不是成交，所以講清楚「試撮中」而不是「開盤了」
+      const pre = x.id !== 'FUT' && m >= 8 * 60 + 30;
+      return pre ? '盤前試撮中（不成交）· ' + hhmm2(s0) + ' 正式開盤'
+                 : '尚未開盤 · ' + hhmm2(s0) + ' 開始';
+    }
+    if (m > s1 + 5) return '今天已收盤（' + hhmm2(s1) + '）';
+    return '';                                      // 在盤中卻沒資料 → 交給原本的錯誤訊息
   }
 
   // ---------------------------------------------------------------- 走勢圖（ECharts）
