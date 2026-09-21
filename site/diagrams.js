@@ -78,6 +78,16 @@
     .dg3 .scode:hover text{fill:#fff}
     .dg3 .step .num{fill:color-mix(in srgb,var(--c,var(--ce)) 55%,#0b1226);stroke:color-mix(in srgb,var(--c,var(--ce)) 70%,transparent)}
     .dg3 .step .nn{font-size:11px;font-weight:700;fill:#e8eeff;font-family:"JetBrains Mono",monospace}
+    /* ---- 量產圖的字級下限（AGENTS §11：文字最小 12px，手機也是）。
+       舊的兩張圖 .sub 是 10.5px、.cap 11.5px、.tag 10px —— 那是 12px 規則之前畫的。
+       新圖一律掛 .dgm，整張圖的最小字級被拉到 12px；舊圖不動，避免版面整個位移。 */
+    .dgm .sub,.dgm .cap,.dgm .tag{font-size:12px}
+    .dgm .lbl{font-size:12.5px}
+    .dgm .hd{font-size:12.5px;font-weight:700;fill:#e8eeff}
+    .dgm .num{font-family:"JetBrains Mono",monospace;font-size:12px;fill:#9fb0d0}
+    .dgm .frame{fill:rgba(18,26,46,.5);stroke:rgba(120,150,210,.2)}
+    .dgm .warn{fill:#ff8fab}
+    .dgm .chg{fill:var(--c,#3ee0ff)}
   </style>`;
 
   // 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)
@@ -111,6 +121,14 @@
   const fc = (cls, pts) => `<path class="part ${cls}" d="M${pts.join('L')}Z"/>`;
   // 把 2D 內容貼到 z 高度的水平面上（模型座標不變，交給矩陣壓成等角）
   const onTop = (z, inner) => `<g transform="matrix(${IX},${IY},${-IX},${IY},0,${-(z || 0)})">${inner}</g>`;
+  /* 切開面用的兩個平面。剖析圖的重點常常在「切下去看到什麼」，
+     而 onTop 只處理水平面，所以補這兩支：
+       onXZ(x0,y0)：y = y0 的垂直面（沿 x 展開）—— 疊層剖面就畫在這上面
+       onYZ(x0,y0)：x = x0 的垂直面（沿 y 展開）—— 側邊餘白那種「第三個方向」的東西
+     兩支都把內容的局部座標定成 (u, v)：u 沿該平面的水平方向、v 就是高度 z。
+     ★ 行列式是負的（鏡射），所以**不要把文字放進去**，文字會左右相反。*/
+  const onXZ = (x0, y0) => `<g transform="translate(${px(x0, y0).toFixed(1)},${py(x0, y0, 0).toFixed(1)}) matrix(${IX},${IY},0,-1,0,0)">`;
+  const onYZ = (x0, y0) => `<g transform="translate(${px(x0, y0).toFixed(1)},${py(x0, y0, 0).toFixed(1)}) matrix(${-IX},${IY},0,-1,0,0)">`;
 
   // 立方體：(x,y,z) 是底面近角，w/d/h 為 x/y/z 三個方向的長度
   function box(x, y, z, w, d, h, inner) {
@@ -318,7 +336,292 @@
     </svg>`;
   }
 
-  window.Diagrams = { ai_server: aiServer, semiconductor };
+  /* ================================================================ 被動元件：MLCC 疊層剖析
+     規格書：docs/diagram_specs/mlcc_stack.md（mechanical-engineer 2026-09-19 簽「可開畫」）。
+     這張圖只回答兩件事：**為什麼疊越多層越貴、車規為什麼難做。**
+
+     ---- 事實來源（2026-09-21 用 WebSearch 重新查證過一次，不是照抄規格書）----
+     容器的 WebFetch 對 murata.com / ele.kyocera.com / escatec.com / ctee.com.tw 都回
+     EGRESS_BLOCKED，所以底下是**搜尋摘要層級**的證據（原文讀不到的地方一律不寫成精確數字）：
+       · 介電層 0.5–2 µm、內電極（Ni，BME 賤金屬）約 0.5–0.6 µm、層數 400–1000 層
+         → USPTO 專利族 11302478 / 11037727 說明；Murata 官方部落格「next-generation MLCC」
+       · 端子由內到外 Cu →〔導電樹脂〕→ Ni → Sn；**樹脂層夾在 Cu 與 Ni 之間**（不是最外層）
+         → TDK soft-termination 技術文章 tdk-electronics.tdk.com/.../2237758
+           KYOCERA/AVX 樹脂端子 ele.kyocera.com/en/technical/kavx_resinele/
+       · 製程順序：流延 → 網印 → 疊層 → 加壓 → 切割 → 排膠 → **燒結** → 研磨 → **端電極** → 電鍍 → 測試編帶
+         （燒結一定在端電極之前）→ dron-tech.com/news/the-most-comprehensive-process-flow-of-mlcc/
+       · 尺寸代號兩套：EIA 0402 ＝ 公制 1005 ＝ 1.0×0.5 mm；EIA 0201 ＝ 公制 0603；EIA 01005 ＝ 公制 0402
+         → blog.knowlescapacitors.com/blog/eia-mlcc-case-sizes-past-and-future
+           core-emt.com/imperial-code-vs-metric-code-smd-components-sizes
+       · AEC-Q200 涵蓋電性／耐濕／壽命／機械衝擊振動／**基板彎曲** → aecouncil.com AEC_Q004
+       · 2026 村田對部分消費級（GRM／GRJ）與車規（GCM／GCJ／GCG）料號發 EOL，
+         最後下單 2028-03-31、最後出貨 2029-03-31 → 工商時報 2026-09-10、鉅亨網、MoneyDJ
+     ★ 查不到公開數字的一律不畫：**車規與消費級的良率差距一個百分比都不出現**（規格書 §6-C）。
+
+     ---- 立體語言 ----
+     2.5D 等角「切近角」cut-away：把 x≥XC 且 y≥YC 那一塊挖掉，露出兩個切面 ——
+       y=YC 的 x–z 切面：**交錯指狀電極**（MLCC 唯一的決定性特徵）
+       x=XC 的 y–z 切面：**側邊餘白**（電極不到側面，這是第三個方向上的事，純 2D 剖面看不到）
+     端電極的四層（Cu／樹脂／Ni／Sn）另外用右下的 2D 放大剖面講，等角圖上只給金屬帶與分層提示。 */
+  function mlccStack() {
+    const SEG = 'passive_comp';
+    // 模型尺寸。真實 EIA 0402 是 1.0 × 0.5 × 約 0.5 mm；高度在畫面上放大過（畫面已標「非實物比例」）
+    const L = 252, W = 126, H = 150;
+    const XC = 56, YC = 58;          // 切掉的近角
+    const COV = 16;                  // 上下保護層（無電極素坯）
+    const TW = 42;                   // 端電極帶寬（構圖比例，畫面不標數字：規格書 §6-B4 信心低）
+    const EM = 30;                   // 端部餘白：電極不准碰到對面的端電極（碰到＝短路）
+    const SM = 11;                   // 側邊餘白：電極不到側面
+    const NEL = 16;                  // 畫 16 層（實際 400～1000 層，畫面另外標）
+    const PIT = (H - COV * 2) / NEL, ET = 2.2;
+    const ez = (i) => COV + i * PIT + (PIT - ET) / 2;   // 第 i 層電極的下緣 z
+    const CX = 411, CY = 226;                            // 等角本體在畫面上的原點
+    const ax = (x, y) => (CX + (x - y) * IX).toFixed(1);
+    const ay = (x, y, z) => (CY + (x + y) * IY - z).toFixed(1);
+    const poly = (cls, fill, pts) => `<path class="${cls}" fill="${fill}" d="M${pts.join('L')}Z"/>`;
+    // (u,v) 平面上的矩形；onXZ / onYZ 的局部座標裡 y 就是 v（矩陣已經把方向翻好）
+    const RV = (u0, v0, u1, v1) => `M${u0},${v0}H${u1}V${v1}H${u0}Z`;
+
+    // ---------------- 切面 B（y = YC 的 x–z 面）：交錯指狀電極
+    const uB = L - XC;                       // 196
+    const uCap = (L - 18) - XC;              // 178：端電極內側面（陶瓷在這裡讓出位置）
+    const uStop = (L - EM) - XC;             // 166：不連到右端的那一組，停在這裡
+    const uTerm = (L - TW) - XC;             // 154：端電極帶的起點
+    const els = [], chg = [];
+    for (let i = 0; i < NEL; i++) {
+      const v0 = ez(i), u1 = (i % 2) ? uCap : uStop;   // 奇數層連右端電極、偶數層從左端伸進來
+      els.push(`<rect x="0" y="${v0.toFixed(1)}" width="${u1}" height="${ET}" fill="#4e5866"/>`);
+      if (i < NEL - 1) {
+        const g0 = v0 + ET, g1 = ez(i + 1);
+        chg.push(`<rect class="chg pulse" x="6" y="${g0.toFixed(1)}" width="${uStop - 12}" height="${(g1 - g0).toFixed(1)}" fill-opacity=".26" style="animation-delay:${(i * 0.16).toFixed(2)}s"/>`);
+      }
+    }
+    // 端電極斷面：由外到內 Sn → Ni → Cu（車規在右下的放大圖裡才多一層樹脂）
+    const termBand = (d, fill) => `<path fill="${fill}" fill-rule="evenodd" d="${RV(uTerm, d, uB - d, H - d)} ${RV(uTerm, COV, uCap, H - COV)}"/>`;
+    const faceB = onXZ(XC, YC)
+      + `<rect x="0" y="0" width="${uB}" height="${H}" fill="url(#mcCut)"/>`
+      + `<rect x="0" y="0" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
+      + `<rect x="0" y="${H - COV}" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
+      + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="rgba(30,36,50,.5)" stroke-width=".9" fill="none"/>`
+      + chg.join('') + els.join('')
+      + termBand(0, '#e2e7ec') + termBand(3, '#a9b1b9') + termBand(6.5, '#b0743a')
+      + `</g>`;
+
+    // ---------------- 切面 A（x = XC 的 y–z 面）：側邊餘白
+    const uA = W - YC, uSide = (W - SM) - YC;
+    const elsA = [];
+    for (let i = 0; i < NEL; i++) elsA.push(`<rect x="0" y="${ez(i).toFixed(1)}" width="${uSide}" height="${ET}" fill="#4e5866"/>`);
+    const faceA = onYZ(XC, YC)
+      + `<rect x="0" y="0" width="${uA}" height="${H}" fill="url(#mcCutB)"/>`
+      + `<rect x="0" y="0" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
+      + `<rect x="0" y="${H - COV}" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
+      + elsA.join('')
+      + `<path d="M${uSide},${COV + 2}V${H - COV - 2}" stroke="#ff8fab" stroke-width="1.1" stroke-dasharray="3 3" fill="none"/>`
+      + `</g>`;
+
+    // ---------------- 外表面
+    const topFace = poly('part', 'url(#mcT)', [P3(0, 0, H), P3(L, 0, H), P3(L, YC, H), P3(XC, YC, H), P3(XC, W, H), P3(0, W, H)]);
+    const topTermL = poly('', 'url(#mcMetT)', [P3(0, 0, H), P3(TW, 0, H), P3(TW, W, H), P3(0, W, H)]);
+    const topTermR = poly('', 'url(#mcMetT)', [P3(L - TW, 0, H), P3(L, 0, H), P3(L, YC, H), P3(L - TW, YC, H)]);
+    const rightFace = poly('part', 'url(#mcMetR)', [P3(L, 0, H), P3(L, YC, H), P3(L, YC, 0), P3(L, 0, 0)]);
+    const leftCer = poly('part', 'url(#mcL)', [P3(XC, W, H), P3(TW, W, H), P3(TW, W, 0), P3(XC, W, 0)]);
+    const leftTerm = poly('part', 'url(#mcMetL)', [P3(TW, W, H), P3(0, W, H), P3(0, W, 0), P3(TW, W, 0)]);
+    // 端電極分層提示：兩條細線，遠看就知道那條金屬帶不是一塊實心
+    const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="rgba(255,255,255,.35)" stroke-width=".9" fill="none"/>`;
+
+    const iso = `<g data-seg="${SEG}" data-part="mlcc_body" transform="translate(${CX},${CY})">
+      ${topFace}${topTermL}${topTermR}${leftCer}${leftTerm}${rightFace}${hint}${faceA}${faceB}</g>`;
+
+    // ---------------- 左欄：尺寸比較尺（1 mm ＝ 110px）
+    const chip = (x, w, h) => {
+      const t = Math.max(5, w * 0.17);
+      return `<g><rect x="${x}" y="${160 - h}" width="${w}" height="${h}" rx="2" fill="url(#mcT)"/>`
+        + `<rect x="${x}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="#dfe4e8"/>`
+        + `<rect x="${x + w - t}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="#dfe4e8"/></g>`;
+    };
+
+    // ---------------- 右下：端電極 2D 放大剖面（消費級三層 vs 車規四層）
+    function endCut(x, auto) {
+      /* 端電極的 2D 放大剖面。畫法：由外到內一層一層疊上去（外層最大、內層最小），
+         最後把陶瓷本體壓在上面 —— 這樣每一層自然變成一圈「C」，包住端部五個面的一段。
+         ★ 厚薄關係是唯一要對的事：Cu 最厚、樹脂次之、Ni／Sn 最薄（規格書 §6-B3，不標數字）。*/
+      /* 畫的是**整顆**的縱剖面（兩端都有端子），不是只有一端 ——
+         只畫一端的版本測下來會被讀成「螢幕＋底座」，整顆的輪廓才一眼認得出是 MLCC。*/
+      const BL = x + 34, BR = x + 258, BT = 566, BB = 654;     // 陶瓷本體
+      const WL = x + 96, WR = x + 196;                          // 端子往本體上包到這裡（左／右）
+      const lay = auto
+        ? [[9, 546, 674, '#e2e7ec'], [12, 549, 671, '#a9b1b9'], [16, 553, 667, '#6f6858'], [22, 558, 662, '#b0743a']]
+        : [[9, 546, 674, '#e2e7ec'], [13, 550, 670, '#a9b1b9'], [22, 558, 662, '#b0743a']];
+      const shells = lay.map(([dx, y0, y1, c]) =>
+        `<rect x="${x + dx}" y="${y0}" width="${WL - x - dx}" height="${y1 - y0}" rx="1.5" fill="${c}"/>`
+        + `<rect x="${WR}" y="${y0}" width="${x + 292 - dx - WR}" height="${y1 - y0}" rx="1.5" fill="${c}"/>`).join('');
+      // 交錯指狀電極：偶數層連左端、奇數層連右端，兩邊都留餘白（碰到對面＝短路）
+      const stubs = [574, 586, 598, 610, 622, 634, 646].map((y, i) =>
+        `<rect x="${i % 2 ? BL + 30 : BL}" y="${y}" width="${i % 2 ? BR - BL - 30 : BR - BL - 30}" height="3.4" fill="#4e5866"/>`).join('');
+      const pcb = `<rect x="${x}" y="684" width="292" height="10" rx="2" fill="#1a4230"/>`
+        + `<rect x="${x + 2}" y="678" width="100" height="6" rx="1" fill="#b0743a"/>`
+        + `<rect x="${x + 190}" y="678" width="100" height="6" rx="1" fill="#b0743a"/>`
+        + `<path d="M${x + 2},678 Q${x + 7},678 ${x + 9},660 L${x + 9},678 Z" fill="#c9ced4"/>`
+        + `<path d="M${x + 290},678 Q${x + 285},678 ${x + 283},660 L${x + 283},678 Z" fill="#c9ced4"/>`;
+      const crack = auto ? '' : `<path d="M${BL},654 L${BL + 20},630 L${BL + 40},642 L${BL + 72},612" stroke="#ff4d6d" stroke-width="2.2" fill="none"/>`;
+      const relief = auto
+        ? `<path d="M${x + 19},624 l0,-18 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="#7ee8c7" stroke-width="1.6" fill="none"/>`
+        : '';
+      return `<g data-seg="${SEG}" data-part="${auto ? 'mlcc_term_auto' : 'mlcc_term_cons'}">
+        <text class="hd" x="${x}" y="526">${auto ? '車規：四層（多一層導電樹脂）' : '消費級：三層'}</text>
+        ${shells}<rect class="part" x="${BL}" y="${BT}" width="${BR - BL}" height="${BB - BT}" fill="url(#mcT)"/>${stubs}${pcb}${crack}${relief}
+        <text class="sub" x="${x}" y="712" ${auto ? '' : 'style="fill:#ff8fab"'}>${auto ? '樹脂層先變形，把應力吃掉' : '陶瓷直接吃到應力 → 板彎裂'}</text></g>`;
+    }
+
+    const legend = [['#e2e7ec', 'Sn 錫鍍層', '最外一層，讓焊錫吃得上去'],
+      ['#a9b1b9', 'Ni 鎳鍍層', '阻障層，擋焊料把底下的銅吃掉'],
+      ['#6f6858', '導電樹脂（軟端子）', '只有車規／高可靠度品才有；抗板彎，代價是 ESR 變高'],
+      ['#b0743a', 'Cu 基底層', '最厚的一層，銅膏沾附後約 800 °C 燒附在陶瓷端面上']]
+      .map(([c, t, s], i) => `<g><rect x="640" y="${548 + i * 44}" width="15" height="15" rx="3" fill="${c}"/>`
+        + `<text class="lbl" x="664" y="${560 + i * 44}">${t}</text><text class="sub" x="664" y="${578 + i * 44}">${s}</text></g>`).join('');
+
+    return `<svg class="dg dgm" viewBox="0 0 980 1024" width="100%" style="display:block">${STYLE}
+      <defs>
+        <linearGradient id="mcT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3cbb7"/><stop offset="1" stop-color="#bbb39f"/></linearGradient>
+        <linearGradient id="mcL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#948c7c"/><stop offset="1" stop-color="#7a7263"/></linearGradient>
+        <linearGradient id="mcCut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3ab98"/><stop offset="1" stop-color="#9a9280"/></linearGradient>
+        <linearGradient id="mcCutB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a09884"/><stop offset="1" stop-color="#8a8270"/></linearGradient>
+        <linearGradient id="mcCov" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c2"/><stop offset="1" stop-color="#d0c8b4"/></linearGradient>
+        <linearGradient id="mcCovB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6bfab"/><stop offset="1" stop-color="#b8b09c"/></linearGradient>
+        <linearGradient id="mcMetT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9cfd5"/><stop offset="1" stop-color="#a8afb6"/></linearGradient>
+        <linearGradient id="mcMetR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aab1b8"/><stop offset="1" stop-color="#858c94"/></linearGradient>
+        <linearGradient id="mcMetL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6adb4"/><stop offset="1" stop-color="#7f868d"/></linearGradient>
+      </defs>
+      <text class="ttl" x="16" y="26">MLCC 積層陶瓷電容：層數怎麼變成容值，也怎麼變成成本</text>
+      <text class="cap" x="16" y="46">中間是切開近角的本體 —— 右下切面看「交錯指狀電極」，左下切面看「側邊餘白」。右邊逐層說明，下面是端電極四層與製程。</text>
+
+      <!-- 左欄 ① 尺寸代號 -->
+      <text class="hd" x="16" y="84">① 尺寸代號有兩套，別記混</text>
+      ${chip(22, 110, 55)}${chip(150, 66, 33)}${chip(234, 44, 22)}
+      <path d="M22,178V190M132,178V190M22,184H132" stroke="rgba(120,150,210,.55)" stroke-width="1" fill="none"/>
+      <text class="num" x="140" y="189">1 mm</text>
+      <text class="sub" x="16" y="214">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
+      <text class="sub" x="16" y="232">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
+      <text class="sub" x="16" y="250">EIA 01005 ＝ 公制 0402 ＝ 0.4 × 0.2 mm</text>
+
+      <!-- 左欄 ② 容值公式 -->
+      <rect class="frame" x="16" y="266" width="270" height="86" rx="8"/>
+      <text class="hd" x="30" y="288">② 容值是層數堆出來的</text>
+      <text class="num" x="30" y="310">C ＝ ε₀ · εr × n × A ÷ d</text>
+      <text class="sub" x="30" y="328">n＝層數、A＝重疊面積、d＝單層厚度</text>
+      <text class="sub" x="30" y="346">n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑</text>
+
+      <!-- 左欄 ③ 板彎裂 -->
+      <rect class="frame" x="16" y="366" width="270" height="112" rx="8"/>
+      <text class="hd" x="30" y="388">③ 板彎裂（flex crack）</text>
+      <path d="M32,432 Q151,408 270,432" stroke="#1a4230" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <rect x="113" y="410" width="30" height="5" rx="1" fill="#b0743a"/><rect x="161" y="410" width="30" height="5" rx="1" fill="#b0743a"/>
+      <rect x="123" y="394" width="60" height="16" rx="2" fill="url(#mcT)"/>
+      <rect x="123" y="394" width="11" height="16" rx="1.5" fill="#dfe4e8"/><rect x="172" y="394" width="11" height="16" rx="1.5" fill="#dfe4e8"/>
+      <path d="M134,410 L143,401 L139,394" stroke="#ff4d6d" stroke-width="1.8" fill="none"/>
+      <path d="M40,446 l0,-9 m-3.5,3.5 l3.5,-3.5 l3.5,3.5M262,446 l0,-9 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="#8ea0c4" stroke-width="1.2" fill="none"/>
+      <text class="sub" x="30" y="462">板子受力 → 應力傳到陶瓷本體 → 裂</text>
+      <text class="sub" x="30" y="476">車規靠軟端子（導電樹脂）擋這一刀</text>
+
+      <!-- 中：等角切開本體 -->
+      ${iso}
+
+      <!-- 右：說明欄（引線接回零件） -->
+      ${labelRow(SEG, 654, 110, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 312)}
+      ${labelRow(SEG, 654, 164, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 312)}
+      ${labelRow(SEG, 654, 218, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 312)}
+      ${labelRow(SEG, 654, 272, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), 312)}
+      ${labelRow(SEG, 654, 326, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 312)}
+      ${labelRow(SEG, 654, 380, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), 312)}
+      <text class="sub" x="654" y="434" style="fill:#ff8fab">★ 相鄰兩層電極必定來自相反的兩端，</text>
+      <text class="sub" x="654" y="452" style="fill:#ff8fab">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
+
+      <!-- 下一段：端電極 2D 放大剖面 -->
+      <text class="hd" x="16" y="502">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
+      ${endCut(16, false)}${endCut(324, true)}
+      <text class="hd" x="640" y="526">四層各自在幹嘛</text>
+      ${legend}
+      <text class="sub" x="16" y="738" style="fill:#ff8fab">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
+
+      <!-- 製程 -->
+      <text class="cap" x="16" y="764">製造流程（十道併成五格）　★ 燒結一定在端電極之前 —— 反過來端電極會先被燒掉</text>
+      ${processBar(16, 772, [{ seg: SEG, t: '流延成膜', s: '陶瓷漿料刮成生胚膜' },
+    { seg: SEG, t: '網印 ＋ 疊層', s: '交替方向印 Ni 電極' },
+    { seg: SEG, t: '加壓 ＋ 切割', s: '壓實後切成單顆' },
+    { seg: SEG, t: '排膠 ＋ 燒結', s: '還原氣氛 1050–1200 °C' },
+    { seg: SEG, t: '端電極 ＋ 電鍍', s: '800 °C 燒附 → 鍍 Ni／Sn' }], 184)}
+
+      <!-- 兩個結論 -->
+      <rect class="frame" x="16" y="818" width="476" height="140" rx="8"/>
+      <text class="hd" x="30" y="840">為什麼疊越多層越貴</text>
+      <text class="sub" x="30" y="862">容值 ∝ 層數 ÷ 單層厚度 → 要大容值只有</text>
+      <text class="sub" x="30" y="880">兩條路：疊更多層，或把每層做更薄。</text>
+      <text class="sub" x="30" y="898">每多一層就多一次網印與疊層，而整顆良率</text>
+      <text class="sub" x="30" y="916">是每層良率的連乘 —— 層數越多越陡。</text>
+      <text class="sub" x="30" y="934">層變薄 → 粉體要更細、絕緣裕度變小；燒結</text>
+      <text class="sub" x="30" y="952">時電極與陶瓷收縮不匹配，容易分層與裂。</text>
+      <path class="axis" d="M330,852V936H474"/>
+      <path d="M330,858 C362,861 388,872 408,890 S446,924 472,933" stroke="var(--c,#3ee0ff)" stroke-width="2" fill="none" opacity=".85"/>
+      <text class="sub" x="330" y="850">整顆良率</text><text class="sub" x="404" y="950">層數 →</text>
+      <rect class="frame" x="508" y="818" width="458" height="140" rx="8"/>
+      <text class="hd" x="522" y="840">車規為什麼難做</text>
+      <text class="sub" x="522" y="862">溫度等級（例如 X8R 到 150 °C）要換一套配方，</text>
+      <text class="sub" x="522" y="880">不是同一顆貼個標籤。</text>
+      <text class="sub" x="522" y="898">車子的板子會彎 → 要加導電樹脂層（軟端子），</text>
+      <text class="sub" x="522" y="916">多一道製程，而且 ESR 變高。</text>
+      <text class="sub" x="522" y="934">AEC-Q200 全項（含基板彎曲）＋ 零缺陷框架；</text>
+      <text class="sub" x="522" y="952">認證與換料時程長，產能一綁就難轉。</text>
+
+      <text class="cap" x="16" y="982">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
+      <text class="cap" x="16" y="1002">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），實際高容量品 400～1000 層以上；介電 0.5–2 µm、內電極約 0.5 µm。</text>
+      <text class="cap" x="16" y="1020">零件顏色＝環節色（被動元件 MLCC / 電阻）；點零件看供應商。資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
+    </svg>`;
+  }
+
+  /* ================================================================ 剖析圖的掛點（slot）
+     2026-09-21 改：以前是「一條產業鏈一張圖」（`window.Diagrams[<chain id>]`），
+     所以五張已經寫好的規格書一張都畫不出來 —— 它們畫的全是**族群層級**的東西
+     （MLCC／面板／網通板卡在 electronics，輕油裂解在 traditional，變壓器 GIS 在 infrastructure），
+     而 electronics 一條鏈就要掛三張、traditional 更是塑化與生技觀光共用一個位子。
+     現在：**key 可以是族群 id，也可以是產業鏈 id。**
+       查找順序＝ 族群專屬圖 → 這條鏈的預設圖 → 都沒有就不畫。
+     `scene` 是對應的 Three.js 場景 id（site/three3d.js 的 SCENES），沒有就是沒有 3D。*/
+  const SLOTS = {
+    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor' },
+    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server' },
+    mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980 },
+  };
+  const isGroupSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'group');
+  const isChainSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'chain');
+  window.DiagramSlots = {
+    /* 這一頁現在該畫哪一張？回傳 slot id 或 null。
+       groupId 傳進來的是「使用者選到的族群」；沒選就傳 null。*/
+    pick(chainId, groupId) {
+      if (groupId && isGroupSlot(groupId) && SLOTS[groupId].chain === chainId) return groupId;
+      if (chainId && isChainSlot(chainId)) return chainId;
+      return null;
+    },
+    // 這條鏈上有專屬圖的族群（順序不保證，呼叫端自己照成交值排）
+    groupsOf(chainId) { return Object.keys(SLOTS).filter(k => isGroupSlot(k) && SLOTS[k].chain === chainId); },
+    // 這條鏈「有可能」畫得出圖嗎（鏈層級或任何一個族群層級）—— 上方切換列的小標記用
+    anyIn(chainId) { return isChainSlot(chainId) || this.groupsOf(chainId).length > 0; },
+    chainDefault(chainId) { return isChainSlot(chainId) ? chainId : null; },
+    // 目前有鏈層級圖的鏈（跨鏈面板的縮圖用；以前寫死成 DG_CHAINS）
+    chains() { return Object.keys(SLOTS).filter(isChainSlot); },
+    draw(id) { return SLOTS[id] ? SLOTS[id].draw() : ''; },
+    name(id) { return SLOTS[id] ? SLOTS[id].name : ''; },
+    scene(id) { return SLOTS[id] ? (SLOTS[id].scene || null) : null; },
+    /* native＝這張圖要用「原尺寸」畫，不准被欄寬壓縮（回傳最小寬度 px，0＝沒宣告）。
+       為什麼要有這個：產業鏈頁的 main 只有 1080px（右邊有側欄），1100px 的螢幕更只剩 740，
+       量出來 1440→984px(×0.81)、1100→644px(×0.53)、900→444px(×0.36)——
+       12px 的字會被壓成 6.3px 甚至 4.4px。這正是 Andy 一直在講的「文字太小」。
+       宣告 native 的圖改成「維持原尺寸、欄位不夠寬就左右滑」，字級才守得住。*/
+    native(id) { return SLOTS[id] ? (SLOTS[id].native || 0) : 0; },
+    has(id) { return !!SLOTS[id]; },
+  };
+  /* 舊介面留著（`window.Diagrams[<id>]()`）—— 題材圖與驗收腳本還在用。
+     新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
+  window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { STYLE, labelRow, lrow3, processBar, chainLink, IX, IY, px, py, P3, onTop, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { STYLE, labelRow, lrow3, processBar, chainLink, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 })();

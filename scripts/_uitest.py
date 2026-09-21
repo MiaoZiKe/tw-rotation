@@ -7851,6 +7851,156 @@ def t_sort(pg, base):
 # 統一包成 `(pg, b, base, code)` 之後，只要一份清單就能同時服務
 # 「依序跑」與「拆給多個 worker 平行跑」兩種模式。
 # ---------------------------------------------------------------------------
+def t_mlcc(pg, base):
+    """圖11-1 MLCC ＋ 剖析圖 slot 從「一鏈一圖」改成「族群優先、鏈為預設」（DECISIONS #225）。
+
+    這一段驗的全部是**畫面真的因此改變了**，不是「元素存在」：
+      1. 一般電子鏈一進去就有剖析圖（以前這條鏈根本沒有），而且是 MLCC 那張（比對圖上的特徵字串）
+      2. 點「被動元件 MLCC」族群卡片 → 下方成分股**筆數真的變少**
+      3. 點「面板」族群（它還沒有專屬圖）→ 標題**真的多出那句誠實說明**，筆數也跟著換
+      4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：零件只亮不篩，所以驗的是 .sel 數）
+      5. 點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數真的變少
+      6. 切 3D → 真的掛得起 WebGL 場景（不是退回平面圖），動畫關掉真的停
+      7. **回歸**：半導體鏈與 AI 伺服器鏈的圖沒被換掉、零件數沒少
+      8. 個股頁：2327（被動元件 MLCC 族群）看到 MLCC 那張、2330 看到 CoWoS 那張
+      9. 800px 窄畫面重跑一次，並且量**實際字級 ≥ 12px**（Andy 從 2026-09-15 一直在講「文字太小」）
+    """
+    FEAT = "積層陶瓷電容"          # MLCC 那張圖上的特徵字串
+    FEAT_SEMI = "CoWoS 2.5D"
+    FEAT_AI = "AI 伺服器機櫃"
+
+    def dg(pg_):
+        return pg_.evaluate("""() => {
+          const h = document.querySelector('#prodDiagram');
+          if (!h) return {present: false};
+          const svg = h.querySelector('svg');
+          const r = svg ? svg.getBoundingClientRect() : null;
+          const vb = svg && svg.viewBox ? svg.viewBox.baseVal.width : 0;
+          const k = (r && vb) ? r.width / vb : 0;
+          const fs = (sel) => { const n = svg && svg.querySelector(sel); return n ? +(parseFloat(getComputedStyle(n).fontSize) * k).toFixed(2) : 0; };
+          return {present: true, full: h.innerHTML, parts: h.querySelectorAll('[data-seg]').length,
+                  sel: h.querySelectorAll('[data-seg].sel').length,
+                  title: (document.querySelector('#dgTitle') || {}).textContent || '',
+                  svgW: r ? Math.round(r.width) : 0, minFs: Math.min(fs('.sub'), fs('.cap')) || 0};
+        }""")
+
+    def rows(pg_):
+        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
+    def pick_group(pg_, gid):
+        return pg_.evaluate("(g) => { const t = [...document.querySelectorAll('#groupCards .tile')]"
+                            ".find(x => x.dataset.gid === g); if (!t) return false; t.click(); return true; }", gid)
+
+    # ---------------- 1. 一般電子鏈：以前完全沒有剖析圖，現在預設就是 MLCC 那張
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    d0 = dg(pg); r0 = rows(pg)
+    ok("一般電子鏈有剖析圖了（以前這條鏈沒有任何圖）", d0.get("present"), d0)
+    if not d0.get("present"):
+        return
+    ok("一般電子鏈預設顯示的就是 MLCC 那張（比對圖上的特徵字串）", FEAT in d0["full"], d0["title"][:60])
+    ok("MLCC 圖的零件真的掛上環節（點得到）", d0["parts"] >= 3, d0["parts"])
+
+    # ---------------- 2. 點族群卡片 → 成分股筆數真的變少
+    ok("找得到「被動元件 MLCC」族群卡片", pick_group(pg, "mlcc"))
+    pg.wait_for_timeout(900)
+    d1 = dg(pg); r1 = rows(pg)
+    ok("點「被動元件 MLCC」→ 下方成分股筆數真的變少", r1 < r0, f"{r0} → {r1}")
+    ok("點「被動元件 MLCC」之後圖還是 MLCC 那張", FEAT in d1["full"], d1["title"][:60])
+    ok("選到有專屬圖的族群時，標題不會多那句「還沒有專屬剖析圖」",
+       "還沒有專屬剖析圖" not in d1["title"], d1["title"][:90])
+
+    # ---------------- 3. 點沒有專屬圖的族群 → 標題真的多一句誠實說明
+    ok("找得到「面板」族群卡片", pick_group(pg, "panel"))
+    pg.wait_for_timeout(900)
+    d2 = dg(pg); r2 = rows(pg)
+    ok("點「面板」→ 成分股換成另一批（筆數或內容真的變了）", r2 != r1, f"{r1} → {r2}")
+    ok("選到沒有專屬圖的族群時，標題真的講出「你選的族群還沒有專屬剖析圖」",
+       "還沒有專屬剖析圖" in d2["title"], d2["title"][:120])
+
+    # ---------------- 4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：只亮不篩）
+    pick_group(pg, "panel")        # 取消族群選取，回到預設狀態
+    pg.wait_for_timeout(700)
+    before = dg(pg)["sel"]
+    clicked = pg.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg]');"
+                          " if (!n) return false; n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }")
+    pg.wait_for_timeout(600)
+    after = dg(pg)["sel"]
+    ok("點 MLCC 圖上的零件，圖上的選取狀態真的改變（DECISIONS #73：零件只亮不篩）",
+       clicked and after != before, f"sel {before} → {after}")
+
+    # ---------------- 5. 點環節色標 → 成分股筆數真的變少（這條才是「篩」）
+    base_rows = rows(pg)
+    hit = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg=\"passive_comp\"]');"
+                      " if (!c) return false; c.click(); return true; }")
+    pg.wait_for_timeout(900)
+    r3 = rows(pg)
+    ok("點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數真的變少", hit and r3 < base_rows, f"{base_rows} → {r3}")
+
+    # ---------------- 6. 3D：真的進 WebGL，不是退回平面圖
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            click(pg, "#dg3d", 3000); pg.wait_for_timeout(3200)
+        got = pg.evaluate("""() => ({
+          mounted: !!(window.Rack3D && window.Rack3D.current),
+          canvas: !!document.querySelector('#prod3d canvas'),
+          svgHidden: !!(document.querySelector('#prodDiagram') || {}).hidden,
+          chips: document.querySelectorAll('#prod3d .lbl3d .chip3d').length,
+        })""")
+        ok("MLCC 切 3D 真的掛起 WebGL 場景（不是退回平面圖）",
+           got["mounted"] and got["canvas"] and got["svgHidden"], got)
+        ok("MLCC 的 3D 文字框底下掛了該環節的台股晶片", got["chips"] > 0, got["chips"])
+        if got["mounted"]:
+            st = pg.evaluate("() => window.Rack3D.current.stats()")
+            ok("MLCC 3D 的 mesh 數沒有失控（效能棘輪，同圖九的上限）", st["meshes"] <= 900, st["meshes"])
+            # 動畫：開 → 關，場景真的停下來（不是只有變數改了）
+            pg.eval_on_selector("#dgAnim", "b => b.click()")
+            pg.wait_for_timeout(700)
+            a0 = pg.evaluate("() => window.Rack3D.current.cam()")
+            pg.wait_for_timeout(1000)
+            a1 = pg.evaluate("() => window.Rack3D.current.cam()")
+            ok("MLCC 3D 按「動畫：關」之後場景真的停住", a0 == a1, f"{a0} → {a1}")
+            pg.eval_on_selector("#dgAnim", "b => b.click()")     # 還原偏好，不要汙染後面的段落
+            pg.wait_for_timeout(400)
+        click(pg, "#dg3d", 2000); pg.wait_for_timeout(1200)      # 切回平面圖
+    else:
+        notes.append("MLCC 3D：這個環境沒有 WebGL，3D 那幾條跳過（與圖九 / N1 同一條規矩）")
+
+    # ---------------- 7. 回歸：既有兩張圖沒被換掉
+    for cid, feat, least in (("semiconductor", FEAT_SEMI, 15), ("ai_server", FEAT_AI, 15)):
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        d = dg(pg)
+        ok(f"回歸：{cid} 鏈還是畫自己那張圖", d.get("present") and feat in d["full"], d.get("title", "")[:60])
+        ok(f"回歸：{cid} 鏈的圖零件數沒有變少", d.get("parts", 0) >= least, d.get("parts"))
+
+    # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
+    for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),
+                             ("2330", FEAT_SEMI, "半導體鏈 → 鏈層級的 CoWoS 那張")):
+        pg.goto(f"{base}#stock/{code_}", wait_until="networkidle"); pg.wait_for_timeout(3000)
+        pg.evaluate("() => { const t = document.querySelector('#chainToggle');"
+                    " if (t && t.textContent.includes('展開')) t.click(); }")
+        pg.wait_for_timeout(900)
+        got = pg.evaluate("() => { const h = document.querySelector('#prodDiagram');"
+                          " return h ? h.innerHTML : ''; }")
+        ok(f"個股頁 {code_} 看得到剖析圖（{why}）", feat in got, (got[:80] or "<沒有剖析圖>"))
+
+    # ---------------- 9. 800px 窄畫面 ＋ 字級真的 ≥ 12px
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    d8 = dg(pg)
+    ok("[800px] 一般電子鏈的 MLCC 剖析圖還在", d8.get("present") and FEAT in d8.get("full", ""), d8.get("svgW"))
+    ok("[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮）", d8.get("svgW", 0) >= 960, d8.get("svgW"))
+    ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
+       d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
+    r8a = rows(pg)
+    ok("[800px] 找得到「被動元件 MLCC」族群卡片", pick_group(pg, "mlcc"))
+    pg.wait_for_timeout(900)
+    r8b = rows(pg)
+    ok("[800px] 點族群卡片，成分股筆數真的變少", 0 < r8b < r8a, f"{r8a} → {r8b}")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
@@ -7879,6 +8029,7 @@ SECTIONS = {
     "批次6-N1":            lambda pg, b, base, code: t_batch6_n1(pg, base),
     "批次6-圖十":          lambda pg, b, base, code: t_batch6_n3(pg, base),
     "批次6-圖九":          lambda pg, b, base, code: t_batch6_n9(pg, base),
+    "批次11-MLCC":         lambda pg, b, base, code: t_mlcc(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),

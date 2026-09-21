@@ -96,7 +96,28 @@
     if (cid === 'industry') return { id: 'industry', name: '產業別', groups: im.industries };
     return im.chains.find(c => c.id === cid) || null;
   }
-  const HAS_DIAGRAM = (cid) => ['semiconductor', 'ai_server'].includes(cid);
+  /* ---------------------------------------------------------------- 剖析圖掛點（DECISIONS #225）
+     2026-09-21 之前是「一條產業鏈一張圖」（`window.Diagrams[<chain id>]`），
+     所以 docs/diagram_specs/ 那五張寫好的規格書一張都沒地方掛 ——
+     它們畫的全是**族群層級**的東西（MLCC／面板／網通板卡都在 electronics 這一條鏈上）。
+     現在查找順序：**選到的族群有專屬圖 → 這條鏈的預設圖 → 這條鏈成交值最大的那張族群圖 → 不畫。**
+     名單只有一份，在 site/diagrams.js 的 SLOTS；這裡不准再維護第二份。*/
+  const DS = window.DiagramSlots || null;
+  // 這條鏈上有專屬剖析圖的族群，照成交值由大到小（沒選族群時就用第一個當預設）
+  const dgGroupsOf = (ch) => {
+    if (!DS || !ch) return [];
+    const has = new Set(DS.groupsOf(ch.id));
+    return (ch.groups || []).filter(g => has.has(g.id))
+      .slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).map(g => g.id);
+  };
+  /* strict＝不准跨族群退回。個股頁一定要 strict：
+     一檔面板股掉到「這條鏈成交值最大的族群圖（MLCC）」上，等於在說「它做 MLCC」—— 那是錯的。
+     產業鏈頁可以退回，因為那一頁的標題會寫清楚現在顯示的是哪一個族群的圖，而且切得動。*/
+  const dgPick = (ch, gid, strict) => {
+    if (!DS || !ch) return null;
+    return DS.pick(ch.id, gid) || (strict ? null : (dgGroupsOf(ch)[0] || null));
+  };
+  const HAS_DIAGRAM = (cid) => !!(DS && DS.anyIn(cid));
   // 哪些環節屬於這條鏈（半導體鏈把載板／封測也畫進來；AI 伺服器鏈把代工／封裝／HBM 畫進來）
   /* 一條鏈要畫哪些環節。
      ★ 2026-09-19（Andy 圖十「連線根本都沒對齊 確實連線」）查出來的第一個根因：
@@ -174,7 +195,14 @@
        innerHTML 一換，舊的 canvas 就離開 DOM，但它的 requestAnimationFrame 迴圈還活著 ——
        用上方切換列連續換幾條鏈，就會累積好幾個在背景空轉的 WebGL context（瀏覽器上限約 16 個）。*/
     dispose3D();
-    const hasDiagram = HAS_DIAGRAM(ch.id);
+    /* 這一頁要畫哪一張剖析圖（族群優先、鏈為預設）。dgId 會隨「點族群卡片」換，
+       所以它是 let；換圖走 swapDiagram()（有淡出淡入，不會閃一下）。*/
+    const dgGroups = dgGroupsOf(ch);
+    const dgOpts = (DS && DS.chainDefault(ch.id) ? [DS.chainDefault(ch.id)] : []).concat(dgGroups);
+    let dgId = dgPick(ch, state.group);
+    const hasDiagram = !!dgId;
+    // 宣告要早於任何會呼叫 swapDiagram 的路徑（wireDg → wire3D → sync），不然會踩到 TDZ
+    let swapping = false;
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
     const segs = chainSegments(sc, ch.id);
@@ -196,7 +224,9 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasDiagram ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted">原創示意圖，非實物比例；每個零件對應一個供應鏈環節，點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span></div></div><div id="prodDiagram" class="dgwrap">${window.Diagrams[ch.id]()}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div>` : ''}
+        ${hasDiagram ? `<div style="margin-top:14px"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle">${A.fmt.esc(DS.name(dgId))}　·　原創示意圖，非實物比例；點零件看供應商</small></h4><div class="row" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></div></div><div id="dgBody">
+          ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<span class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="換一張剖析圖"><i></i>${A.fmt.esc(DS.name(id))}</span>`).join('')}</div>` : ''}
+          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${DS.draw(dgId)}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
           <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
@@ -313,7 +343,21 @@
         segFilter = shown; segHi = null; state.group = null; syncHighlight();
       } });
       if (!o.quiet) renderMembers();
+      // 族群換了就換圖（族群優先、鏈為預設）。沒換就什麼都不做 —— 不會閃
+      paintDgTitle();
+      swapDiagram(dgPick(ch, state.group));
     };
+    /* 標題要**誠實**：選到的族群沒有自己的剖析圖時，畫面上顯示的是這條鏈目前有的那一張，
+       不講清楚的話「選了面板卻看到 MLCC」會被讀成「面板族群做 MLCC」。
+       鏈層級的圖不用講（它本來就涵蓋整條鏈）。*/
+    function paintDgTitle() {
+      const t = $('#dgTitle', el);
+      if (!t || !dgId) return;
+      const mine = DS.pick(ch.id, state.group);
+      t.textContent = `${DS.name(dgId)}　·　原創示意圖，非實物比例；點零件看供應商`
+        + (DS.native(dgId) ? '　·　圖以原尺寸顯示（字不縮小），欄位放不下時可左右滑' : '')
+        + (state.group && !mine ? '　·　你選的族群還沒有專屬剖析圖，這張是這條鏈目前有的那一張' : '');
+    }
     $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; syncHighlight(); });
     $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
@@ -376,6 +420,41 @@
       });
     }
     if (hasDiagram && sc) {
+      /* 手機（<640px）預設把剖析圖收起來。
+         Andy 抱怨過兩次「上下框度太長」，而一張剖析圖在 390px 上就是 1000px 高 ——
+         一般電子鏈補上 MLCC 之後，390px 的整頁從 3944 直接變成 6082（_uitest 當場紅）。
+         收起來不是把功能拿掉：鈕就在標題旁邊，按一下就展開，而且會記住。
+         640px 這條線刻意比 820px（手機版面斷點）低 —— 800px 的筆電半視窗仍然直接看得到圖。*/
+      const foldBtn = $('#dgFold', el), dgBody = $('#dgBody', el);
+      let dgOpen = window.innerWidth >= 640;
+      try { const v = localStorage.getItem('tw.dgOpen'); if (v != null) dgOpen = v === '1'; } catch (e) { /* 忽略 */ }
+      let did3d = false;
+      const paintFold = () => {
+        if (dgBody) dgBody.style.display = dgOpen ? '' : 'none';
+        if (foldBtn) { foldBtn.textContent = dgOpen ? '收合圖 ▴' : '展開剖析圖 ▾'; foldBtn.classList.toggle('cyan', !dgOpen); }
+        // 收起來的時候不要掛 3D：背景多一個 WebGL context 在空轉，手機最吃不消
+        if (dgOpen && !did3d) { did3d = true; wireDg(); }
+      };
+      wireDg(!dgOpen);
+      did3d = dgOpen;
+      if (foldBtn) foldBtn.onclick = () => {
+        dgOpen = !dgOpen;
+        try { localStorage.setItem('tw.dgOpen', dgOpen ? '1' : '0'); } catch (e) { /* 忽略 */ }
+        paintFold();
+      };
+      if (dgBody) dgBody.style.display = dgOpen ? '' : 'none';
+      if (foldBtn) { foldBtn.textContent = dgOpen ? '收合圖 ▴' : '展開剖析圖 ▾'; foldBtn.classList.toggle('cyan', !dgOpen); }
+      $$('#dgPick .segchip', el).forEach(c => c.onclick = () => {
+        const id = c.dataset.dgid;
+        /* 點圖別＝點那個族群（族群卡片、環節色標、成分股全部跟著走），
+           不是另外開一個獨立的選取狀態 —— 兩套選取並存的話使用者分不出現在篩的是誰。*/
+        state.group = DS.chainDefault(ch.id) === id ? null : id;
+        segFilter = null; segHi = null; syncHighlight();
+      });
+    }
+    // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
+    function wireDg(skip3d) {
+      applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       wireDiagram(el, (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); });
@@ -393,7 +472,8 @@
       setAnimAll(animPref());
       // wire3D 是模組層級的函式，看不到這裡的 segHi／segFilter／syncHighlight，
       // 所以把要用到的動作當參數傳進去（之前直接寫在函式裡會噴 syncHighlight is not defined）。
-      wire3D(el, ch.id, {
+      if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
+      wire3D(el, DS.scene(dgId), {
         onSeg: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; syncHighlight({ quiet: true }); },
         sync: () => syncHighlight({ quiet: true }),
         /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
@@ -404,6 +484,34 @@
           return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; },
         onStock: (code) => A.goStock(code),
       });
+    }
+    /* 換一張剖析圖。刻意做成「淡出 → 換內容 → 淡入」180ms：
+       直接換 innerHTML 會在畫面上閃一下白（SVG 很大，瀏覽器重排那一幀是空的）。
+       swapping 這個旗標是因為 wireDg() 裡的 wire3D 會回頭呼叫 sync()，
+       而 sync() 又會走到 swapDiagram —— 沒有旗標就會無限遞迴。*/
+    function swapDiagram(next) {
+      if (!hasDiagram || !next || next === dgId || swapping) return;
+      const host = $('#prodDiagram', el); if (!host) return;
+      swapping = true;
+      dgId = next;
+      $$('#dgPick .segchip', el).forEach(c => c.classList.toggle('sel', c.dataset.dgid === next));
+      paintDgTitle();
+      host.style.opacity = '0';
+      setTimeout(() => {
+        /* 換圖之前一定要先收掉 3D：新的那張可能根本沒有 3D 場景，
+           不收的話畫面會停在上一張的 WebGL 場景上（看起來像換圖沒生效）。*/
+        dispose3D();
+        const host3 = $('#prod3d', el), note = $('#dg3dNote', el);
+        if (host3) { host3.hidden = true; host3.innerHTML = ''; }
+        if (note) note.hidden = true;
+        ['dg3d', 'dgDrag', 'dgPal', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        host.hidden = false;
+        host.innerHTML = DS.draw(next);
+        wireDg();
+        host.style.opacity = '1';
+        swapping = false;
+        syncHighlight({ quiet: true, noscroll: true });
+      }, 180);
     }
     syncHighlight();
   }
@@ -436,10 +544,13 @@
      看到的都只有「當下這條鏈」的畫面 —— 另一半的上下游關係整個看不到。
      現在跨鏈的環節會多出一塊：**兩條鏈各一張剖析圖縮圖**（這個環節在各自的圖上亮起來）＋
      各自的上下游鄰居、各自的相關族群，以及直接跳過去的入口。*/
-  const DG_CHAINS = ['semiconductor', 'ai_server'];       // 目前有剖析圖的兩條鏈
+  /* 跨鏈面板的縮圖只放**鏈層級**的總圖（半導體、AI 伺服器）——
+     名單從 window.DiagramSlots 拿，不再另外寫死一份。族群層級的圖不進這裡：
+     這個面板回答的是「這個環節在哪幾條鏈上、位置有什麼不同」，不是「這個族群長什麼樣」。*/
+  const DG_CHAINS = () => (DS ? DS.chains() : []);
   function chainsOfSeg(sc, seg) {
     if (!sc || !seg) return [];
-    return DG_CHAINS.filter(cid => chainSegments(sc, cid).some(x => x.id === seg));
+    return DG_CHAINS().filter(cid => chainSegments(sc, cid).some(x => x.id === seg));
   }
   /* 同一張剖析圖被畫兩次時，裡面的漸層 id 會撞在一起（後畫的把先畫的蓋掉，顏色整個跑掉）。
      縮圖一律把 id 加上後綴，連 url(#) 與 href="#" 一起改，兩張才互不干擾。*/
@@ -488,7 +599,8 @@
       const dn = segs.filter(x => x.layer === me.layer + 1).map(x => x.name);
       const gs = (A.L.sgroups[seg] || []).filter(g => A.L.gchain[g] === cid);
       const nm = A.L.chains[cid] || CHAIN_NAME[cid] || cid;
-      const dg = window.Diagrams && window.Diagrams[cid] ? uniqIds(window.Diagrams[cid](), '__x' + cid) : '';
+      const dgSlot = DS ? DS.chainDefault(cid) : null;
+      const dg = dgSlot ? uniqIds(DS.draw(dgSlot), '__x' + cid) : '';
       return `<div class="xchain${cid === cur ? ' cur' : ''}" data-c="${cid}">
         <div class="row spread"><b>${A.fmt.esc(nm)}${cid === cur ? ' <span class="muted">（現在這條）</span>' : ''}</b>
           ${cid === cur ? '' : `<button class="btn small xgo" data-c="${cid}">切到這條鏈看 →</button>`}</div>
@@ -517,6 +629,22 @@
     setTimeout(fitAll, 60); setTimeout(fitAll, 400);
     if (window.ResizeObserver) { const ro = new ResizeObserver(fitAll); minis.forEach(m => ro.observe(m)); }
     else window.addEventListener('resize', fitAll);
+  }
+  /* ---------------------------------------------------------------- 原尺寸剖析圖
+     Andy 從 2026-09-15 一直在講「文字太小」。這次量出根因：**不是字級，是欄寬。**
+     產業鏈頁的 main 只有 1080px（右邊有側欄），量到的 #prodDiagram 實際寬度是
+       1440px 螢幕 → 984px（×0.81）｜1100px → 644px（×0.53）｜900px → 444px（×0.36）
+     1220 寬的 viewBox 被壓到 0.36 倍，12px 的字就只剩 4.4px —— 怎麼調字級都沒用。
+     所以新的量產圖在 SLOTS 裡宣告 native 寬度：圖維持原尺寸、字維持 12px，
+     欄位不夠寬就**左右滑**（外框改成 overflow-x:auto）。
+     樣式直接寫成 inline，不走 CSS —— site/index.html 現在有別的 agent 在改，不碰它。*/
+  function applyDgNative(host, id) {
+    if (!host) return;
+    const w = (DS && DS.native) ? DS.native(id) : 0;
+    const svg = host.querySelector('svg');
+    host.style.overflowX = w ? 'auto' : '';
+    host.style.overflowY = w ? 'hidden' : '';
+    if (svg) svg.style.minWidth = w ? w + 'px' : '';
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -1351,8 +1479,12 @@
   function renderChainStrip(im, sc, m) {
     const el = $('#indChain'); const cid = state.chain;
     const ch = chainData(im, cid);
-    const hasDiagram = HAS_DIAGRAM(cid);
     if (!ch) { el.innerHTML = ''; return; }
+    /* 個股頁的剖析圖：先看**這一檔所屬的族群**有沒有專屬圖，沒有才退回鏈層級的總圖。
+       strict＝true，不准退回「這條鏈成交值最大的那張族群圖」——
+       一檔面板股掉到 MLCC 那張圖上，等於在網站上說「它做 MLCC」。*/
+    const dgId = dgPick(ch, m.group_id, true);
+    const hasDiagram = !!dgId;
     const g = ch.groups.find(x => x.id === m.group_id) || (im.industries || []).find(x => x.id === m.group_id);
     const sibs = g ? (g.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : [];
     const co = sc ? sc.companies.find(c => c.tw_code === m.code) : null;
@@ -1369,7 +1501,8 @@
       ${!hasDiagram ? `<div class="row" style="margin-top:8px;gap:6px">${ch.groups.map(x => `<span class="pill ${x.id === m.group_id ? 'cyan' : ''}" style="cursor:pointer" onclick="location.hash='#industry/group/${x.id}'"><i class="gdot" style="--c:${A.L.gcolor[x.id] || '#8ea0c4'}"></i>${A.fmt.esc(x.name)} <span class="${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></span>`).join('')}</div>` : ''}
       ${hasDiagram ? `<div id="chainBody" style="${open ? '' : 'display:none'};margin-top:10px">
         <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
-        <div id="prodDiagram" class="dgwrap" style="margin-top:10px;max-width:1080px">${window.Diagrams[cid]()}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
+        <div class="sub" style="margin:8px 0 2px">${A.fmt.esc(DS.name(dgId))}　<span class="muted">原創示意圖，非實物比例；點零件看這個環節的供應商</span></div>
+        <div id="prodDiagram" class="dgwrap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
     </div>`;
     /* 同族群那一列橫向捲到目前這檔 —— 一樣只捲那一列，不用 scrollIntoView。
        產業鏈區塊搬到個股頁最下面之後，scrollIntoView 會把整頁拖到底（見 drawChainMap 的註解）。*/
@@ -1382,6 +1515,7 @@
     }, 30);
     if (hasDiagram && sc) {
       const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
+      applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       drawChainMap($('#chainMap', el), sc, cid, im, { onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
