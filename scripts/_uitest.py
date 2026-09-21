@@ -9885,6 +9885,34 @@ def t_whomakes(pg, base):
            cc["dgBottom"] is not None and cc["top"] >= cc["dgBottom"] - 2,
            {"卡片上緣": cc["top"], "圖的下緣": cc["dgBottom"]})
         ok(f"[{w}px] 小卡上的字都 ≥ 12px", cc["minFs"] >= 12, cc["minFs"])
+
+    # ---------------- 10. 真的用滑鼠點下去（不是派發合成事件）
+    #   上面 1～9 用的是 `dispatchEvent(new MouseEvent('click'))`，那會**跳過命中測試**，
+    #   所以「零件其實被別的東西蓋住、真人根本點不到」這種錯它抓不到 ——
+    #   而 Andy 的硬性要求就是「每個按鈕真的按」。
+    #   為什麼不把 1～9 全改成真滑鼠：這些零件是 SVG 的 <g>，有兩個物理限制
+    #     (a) 圖上有 SMIL 動畫在跑，Playwright 的 click 會等元素「靜止」，永遠等不到；
+    #     (b) 窄畫面時圖框是橫向可捲的（overflow-x:auto，980 的圖塞進 322 的框），
+    #         零件中心會落在捲動視窗外面 —— 真人用手指撥一下就點得到，
+    #         但 Playwright 不會自己去橫捲那個容器。
+    #   （2026-09-21 實測：1440px 未關動畫 → 逾時；關掉動畫 → 一次就點到。
+    #     390px 量到零件中心 x = -48，就是 (b) 那個情形。）
+    #   所以這一條只在 1440px、而且**先把動畫關掉**之後驗一次，
+    #   證明「命中測試過得去、真人點得到」。內容正確性仍然靠 1～9。
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(400)
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2200)
+    force_open(pg)
+    pg.evaluate("() => { const b = document.getElementById('dgAnim'); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+    try:
+        pg.locator("[data-part='abf_film'] .part").first.click(timeout=6000)
+        rtxt = pg.evaluate("() => (document.getElementById('partCard') || {}).textContent || ''")
+        ok("真的用滑鼠點 ABF 膜（1440px、動畫關掉）→ 小卡出現味之素",
+           "味之素" in rtxt, rtxt[:120])
+    except Exception as e:  # noqa: BLE001 —— 點不到就是點不到，要報出來
+        ok("真的用滑鼠點得到 ABF 膜（1440px、動畫關掉）", False, str(e).split(chr(10))[0])
+
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
