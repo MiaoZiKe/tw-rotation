@@ -8461,12 +8461,25 @@ def t_sankey_expand_live(pg, base):
 # 「依序跑」與「拆給多個 worker 平行跑」兩種模式。
 # ---------------------------------------------------------------------------
 def t_mlcc(pg, base):
-    """圖11-1 MLCC ＋ 剖析圖 slot 從「一鏈一圖」改成「族群優先、鏈為預設」（DECISIONS #225）。
+    """圖11-1 MLCC ＋ 剖析圖入口架構：**同一條鏈但不同產品 → 各自獨立分頁**。
+
+    ★ 2026-09-21 Andy：「我剛剛發現你做的 MLCC 他如果是歸類在一般電子，
+      那必需要再獨立一個項是 MLCC，不能一般電子點進去後就是 MLCC，因為他不代表全部…
+      若是其他同個族群、為不同產品，則需要獨立分頁」。
+      改之前：產業鏈頁沒選族群就退回「這條鏈成交值最大的那張族群圖」，
+      electronics 只有 MLCC 一張 → 點進一般電子＝看到 MLCC ＝ 在宣稱「一般電子就是 MLCC」。
+      改之後：沒有鏈層級架構圖的鏈先給**圖別選單**，每張圖有自己的網址。
+      原本那句道歉文案「你選的族群還沒有專屬剖析圖，這張是這條鏈目前有的那一張」
+      **整句拿掉**，因為那個情形不會再發生 —— 這一段對應改成驗新的正確行為。
 
     這一段驗的全部是**畫面真的因此改變了**，不是「元素存在」：
-      1. 一般電子鏈一進去就有剖析圖（以前這條鏈根本沒有），而且是 MLCC 那張（比對圖上的特徵字串）
-      2. 點「被動元件 MLCC」族群卡片 → 下方成分股**筆數真的變少**
-      3. 點「面板」族群（它還沒有專屬圖）→ 標題**真的多出那句誠實說明**，筆數也跟著換
+      1. 一般電子鏈預設**不畫任何一張圖**，改成圖別選單（數得出入口、每個入口寫了它回答什麼問題）
+     1b. 點 MLCC 入口 → 圖真的畫出來，**而且網址真的變了**
+     1c. **直接貼那個網址重新整理** → 一樣打得開那張圖（沒有這條就不叫分頁）
+     1d. 瀏覽器上一頁 → 回到鏈頁的選單
+     1e. 手打別條鏈的圖網址不會畫出別人的圖
+      2. 點「被動元件 MLCC」族群卡片 → 下方成分股**筆數真的變少**，而且圖跟著出現
+      3. 點「面板」族群（它還沒有專屬圖）→ **圖真的收起來、換回選單**，那句道歉文案整句不見
       4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：零件只亮不篩，所以驗的是 .sel 數）
      4d. **兩層高亮**（2026-09-21 晚間）：被點的那一個 `.sel-part` 剛好 1 個，
          而且它跟同環節其餘零件的 **computed style 真的不同**（量 opacity 與 stroke-width，
@@ -8509,7 +8522,8 @@ def t_mlcc(pg, base):
           const mo = svg && svg.querySelector('animateMotion');
           const dot = mo && mo.parentNode;
           return {present: true, full: h.innerHTML, parts: h.querySelectorAll('[data-seg]').length,
-                  sel: h.querySelectorAll('[data-seg].sel').length, glow: glow, ov: ov,
+                  sel: h.querySelectorAll('[data-seg].sel').length,
+                  selpart: h.querySelectorAll('[data-seg].sel-part').length, glow: glow, ov: ov,
                   dotX: dot ? +dot.getBoundingClientRect().x.toFixed(1) : null,
                   title: (document.querySelector('#dgTitle') || {}).textContent || '',
                   svgW: r ? Math.round(r.width) : 0, minFs: Math.min(fs('.sub'), fs('.cap')) || 0};
@@ -8517,6 +8531,41 @@ def t_mlcc(pg, base):
 
     def rows(pg_):
         return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
+    def menu(pg_):
+        """圖別選單 vs 剖析圖，現在是哪一種？（量的是「看不看得見」，不是「在不在 DOM 裡」）"""
+        return pg_.evaluate("""() => {
+          const vis = (n) => !!(n && n.offsetParent !== null);
+          const h = document.querySelector('#prodDiagram');
+          return {hash: location.hash,
+                  menuVis: vis(document.querySelector('#dgMenu')),
+                  cards: document.querySelectorAll('#dgMenu .dgcard').length,
+                  cardq: [...document.querySelectorAll('#dgMenu .dgcard .q')].map(n => n.textContent.trim()),
+                  links: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('href')),
+                  dgVis: vis(document.querySelector('#dgBody')),
+                  tools: vis(document.querySelector('#dgTools')),
+                  back: vis(document.querySelector('#dgBack')),
+                  svg: !!(h && h.querySelector('svg')),
+                  dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
+        }""")
+
+    def force_open(pg_):
+        """把剖析圖**確實展開**再驗。
+
+        C 批加的「<640px 預設收合、會記住」會把收合狀態寫進 localStorage，
+        4-worker 平行跑時汙染 1440px 那一輪 —— 單獨跑永遠綠、平行跑才紅。
+        ★ 只有「現在真的有一張圖」時才動它：選單模式下 #dgBody 本來就該是收起來的，
+          在那裡按收合鈕只會把偏好反過來設，等於自己製造下一個假紅。
+        """
+        pg_.evaluate("""() => {
+          const menu = document.getElementById('dgMenu');
+          if (menu && menu.offsetParent !== null) return;     // 選單模式：沒有圖可以展開
+          const b = document.getElementById('dgFold');
+          const body = document.getElementById('dgBody');
+          const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+          if (b && hidden) b.click();
+        }""")
+        pg_.wait_for_timeout(500)
 
     # 兩層高亮（2026-09-21 晚間）：量的是 computed style，不是「有沒有那個 class」。
     # 有 class 但長得一模一樣，對使用者來說就是沒發生 —— 那正是改之前的狀態。
@@ -8580,44 +8629,94 @@ def t_mlcc(pg, base):
         return pg_.evaluate("(g) => { const t = [...document.querySelectorAll('#groupCards .tile')]"
                             ".find(x => x.dataset.gid === g); if (!t) return false; t.click(); return true; }", gid)
 
-    # ---------------- 1. 一般電子鏈：以前完全沒有剖析圖，現在預設就是 MLCC 那張
+    # ---------------- 1. 一般電子鏈：預設**不畫任何一張圖**，改成圖別選單
+    #  Andy 2026-09-21：「不能一般電子點進去後就是 MLCC，因為他不代表全部」。
+    #  MLCC 是被動元件，它代表不了面板、交換器板卡、PCB —— 那是三種完全不同的產品。
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    d0 = dg(pg); r0 = rows(pg)
-    ok("一般電子鏈有剖析圖了（以前這條鏈沒有任何圖）", d0.get("present"), d0)
+    m0 = menu(pg)
+    ok("一般電子鏈預設**不畫任何一張剖析圖**（不再拿 MLCC 那張充數）",
+       not m0["dgVis"] and not m0["svg"], m0)
+    ok("改成顯示圖別選單，而且真的數得出入口（現在 1 張，之後會有 PCB／面板／交換器板卡）",
+       m0["menuVis"] and m0["cards"] >= 1, f"入口 {m0['cards']} 個 {m0['links']}")
+    ok("選單模式下 3D／動畫／收合那排工具鈕跟著收起來（沒有圖可動的鈕不要留在畫面上）",
+       not m0["tools"], m0)
+    ok("每個入口都寫清楚「這張圖回答什麼問題」（不寫的話得先點進去才知道要不要點）",
+       bool(m0["cardq"]) and all(len(x) > 10 for x in m0["cardq"]), m0["cardq"])
+    ok("每個入口都是真的連結（有自己的網址，可分享、可回上一頁）",
+       bool(m0["links"]) and all(x and x.startswith("#industry/") for x in m0["links"]), m0["links"])
+
+    # ---------------- 1b. 點入口 → 圖真的畫出來，而且**網址真的變了**（這才叫獨立分頁）
+    h_before = pg.evaluate("() => location.hash")
+    pg.click('#dgMenu .dgcard[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
+    m1 = menu(pg); d0 = dg(pg)
+    ok("點 MLCC 那個入口 → 剖析圖真的畫出來、選單真的收起來",
+       d0.get("present") and m1["svg"] and not m1["menuVis"], m1)
     if not d0.get("present"):
         return
-    ok("一般電子鏈預設顯示的就是 MLCC 那張（比對圖上的特徵字串）", FEAT in d0["full"], d0["title"][:60])
+    ok("而且畫出來的就是 MLCC 那張（比對圖上的特徵字串）", FEAT in d0["full"], d0["title"][:60])
+    ok("★ 點入口之後**網址真的變了**（#industry/electronics/dg/mlcc）",
+       m1["hash"] != h_before and m1["hash"].endswith("/dg/mlcc"), f"{h_before} → {m1['hash']}")
+    ok("圖旁邊寫著這張圖回答什麼問題（只解釋畫了什麼等於沒寫）",
+       "這張圖回答" in m1["dgq"] and len(m1["dgq"]) > 20, m1["dgq"][:70])
+    ok("看完回得去：標題旁邊出現「← 全部剖析圖」", m1["back"], m1)
     ok("MLCC 圖的零件真的掛上環節（點得到）", d0["parts"] >= 3, d0["parts"])
 
-    # ---------------- 2. 點族群卡片 → 成分股筆數真的變少
+    # ---------------- 1c. ★ 直接貼網址重新整理 —— 沒有這條就不算分頁
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    m2 = menu(pg); d0b = dg(pg)
+    ok("★ 直接貼那個網址重新整理，一樣打得開那張圖（沒有這條就不叫分頁）",
+       m2["hash"].endswith("/dg/mlcc") and FEAT in d0b.get("full", "") and m2["svg"],
+       f"{m2['hash']} svg={m2['svg']}")
+
+    # ---------------- 1d. 瀏覽器上一頁 → 回到鏈頁的選單
+    pg.go_back(); pg.wait_for_timeout(2500)
+    m3 = menu(pg)
+    ok("瀏覽器上一頁 → 回到鏈頁的圖別選單（圖收起來、選單回來）",
+       m3["hash"].endswith("electronics") and m3["menuVis"] and not m3["svg"], m3)
+
+    # ---------------- 1e. 手打別條鏈的圖網址，不可以在這條鏈上畫出別人的圖
+    pg.goto(f"{base}#industry/semiconductor/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    dbad = dg(pg)
+    ok("手打 #industry/semiconductor/dg/mlcc 不會在半導體鏈上畫出 MLCC（安全退回鏈層級圖）",
+       FEAT not in dbad.get("full", "") and FEAT_SEMI in dbad.get("full", ""), dbad.get("title", "")[:60])
+
+    # ---------------- 2. 點族群卡片 → 成分股筆數真的變少，而且有專屬圖的族群圖會跟著出現
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    r0 = rows(pg)
     ok("找得到「被動元件 MLCC」族群卡片", pick_group(pg, "mlcc"))
-    pg.wait_for_timeout(900)
+    pg.wait_for_timeout(1000)
+    force_open(pg)
     d1 = dg(pg); r1 = rows(pg)
     ok("點「被動元件 MLCC」→ 下方成分股筆數真的變少", r1 < r0, f"{r0} → {r1}")
-    ok("點「被動元件 MLCC」之後圖還是 MLCC 那張", FEAT in d1["full"], d1["title"][:60])
-    ok("選到有專屬圖的族群時，標題不會多那句「還沒有專屬剖析圖」",
-       "還沒有專屬剖析圖" not in d1["title"], d1["title"][:90])
+    ok("點「被動元件 MLCC」→ 它有專屬圖，所以圖真的從選單換成 MLCC 那張",
+       FEAT in d1["full"] and menu(pg)["svg"], d1["title"][:60])
 
-    # ---------------- 3. 點沒有專屬圖的族群 → 標題真的多一句誠實說明
+    # ---------------- 3. 點沒有專屬圖的族群 → 圖**真的收起來、換回選單**
+    #  ★ 2026-09-21 改：以前這裡驗的是「標題多一句『你選的族群還沒有專屬剖析圖』」。
+    #    那句話是在**替一個不該發生的行為道歉**（跨族群退回）。Andy 把那個行為否掉了，
+    #    所以現在驗的是「面板沒有專屬圖 → 畫面上就不該出現任何一張圖」。
     ok("找得到「面板」族群卡片", pick_group(pg, "panel"))
-    pg.wait_for_timeout(900)
-    d2 = dg(pg); r2 = rows(pg)
+    pg.wait_for_timeout(1000)
+    m4 = menu(pg); r2 = rows(pg)
     ok("點「面板」→ 成分股換成另一批（筆數或內容真的變了）", r2 != r1, f"{r1} → {r2}")
-    ok("選到沒有專屬圖的族群時，標題真的講出「你選的族群還沒有專屬剖析圖」",
-       "還沒有專屬剖析圖" in d2["title"], d2["title"][:120])
+    ok("點「面板」（沒有專屬剖析圖）→ 圖真的收起來、換回圖別選單，不會借 MLCC 那張",
+       m4["menuVis"] and not m4["dgVis"] and not m4["svg"], m4)
+    ok("那句道歉文案整句消失（整頁找不到「還沒有專屬剖析圖」）",
+       "還沒有專屬剖析圖" not in pg.content(), "整頁掃過，找不到那句話")
 
     # ---------------- 4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：只亮不篩）
-    pick_group(pg, "panel")        # 取消族群選取，回到預設狀態
-    pg.wait_for_timeout(700)
-    before = dg(pg)["sel"]
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    b4 = dg(pg)
     clicked = pg.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg]');"
                           " if (!n) return false; n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }")
     pg.wait_for_timeout(600)
     d4 = dg(pg)
     after = d4["sel"]
     ok("點 MLCC 圖上的零件，圖上的選取狀態真的改變（DECISIONS #73：零件只亮不篩）",
-       clicked and after != before, f"sel {before} → {after}")
+       clicked and b4["selpart"] == 0 and d4["selpart"] == 1,
+       f"主角 {b4['selpart']} → {d4['selpart']}（同環節 sel {b4['sel']} → {after}）")
     ok("B1：點零件之後**沒有整張圖發青光**（computed filter 不是 none 的元素數＝0）",
        d4["glow"] == 0, f"sel {after} 個、真的在發光 {d4['glow']} 個")
 
@@ -8630,16 +8729,8 @@ def t_mlcc(pg, base):
     pg.wait_for_timeout(500)
     pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：關
     pg.wait_for_timeout(700)
-    # ★ 2026-09-21：先把剖析圖**確實展開**再驗。
-    #   C 批加的「<640px 預設收合、會記住」把收合狀態存進 localStorage，
-    #   平行跑時被窄畫面那幾段汙染，1440px 這一輪就變成收合 ——
-    #   單獨跑永遠綠、4-worker 跑才紅，是最難查的那一種。
-    #   （不是把前提檢查拿掉，是把前提**做出來**。）
-    pg.evaluate("""() => { const b = document.getElementById('dgFold');
-        const body = document.getElementById('dgBody');
-        const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
-        if (b && hidden) b.click(); }""")
-    pg.wait_for_timeout(600)
+    # ★ 2026-09-21：先把剖析圖**確實展開**再驗（理由寫在 force_open 的 docstring 裡）
+    force_open(pg)
     # ★ 2026-09-21：先確認那顆點**真的量得到**，不然 0 == 0 會判成「停住了」（假綠）、
     #   0 != 0 判成「沒動起來」（假紅）。實測機制本身是好的
     #   （關 1079.9 → 1079.9 凍住、開 1234.7 → 132.1 繞回去），
@@ -8676,7 +8767,8 @@ def t_mlcc(pg, base):
     #  → 點誰都是「14 個一起 .sel、0 個 dim」，點零件 A 跟點零件 B 的畫面**逐像素相同**。
     #  所以這裡驗的不是 class，而是：主角剛好 1 個、主角與其餘的 computed style 真的不同、
     #  換點一個就真的換人、而且成分股筆數一動都不動（DECISIONS #73）。
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
     t0 = pg.evaluate(TIER)
     ok("MLCC 是單一環節的圖（整張只有一個 data-seg，所以才需要兩層高亮）",
        t0["nseg"] == 1 and t0["dg1"], f"nseg={t0['nseg']} dg1={t0['dg1']} {t0['segs']}")
@@ -8711,6 +8803,9 @@ def t_mlcc(pg, base):
        t3["selpart"] == 0 and not t3["haspart"], f"selpart={t3['selpart']} haspart={t3['haspart']}")
 
     # ---------------- 5. 點環節色標 → 成分股筆數真的變少（這條才是「篩」）
+    #  ★ 先回到沒有任何篩選的鏈頁：上一節停在 MLCC 自己的網址（已經篩成該族群 4 檔），
+    #    在那裡點環節色標是「換一種篩法」，不是這一條要驗的「從全部篩到一格」。
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2400)
     base_rows = rows(pg)
     hit = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg=\"passive_comp\"]');"
                       " if (!c) return false; c.click(); return true; }")
@@ -8719,7 +8814,8 @@ def t_mlcc(pg, base):
     ok("點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數真的變少", hit and r3 < base_rows, f"{base_rows} → {r3}")
 
     # ---------------- 6. 3D：真的進 WebGL，不是退回平面圖
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
     # 兩層高亮要跨 2D／3D：先在 2D 點「端電極（消費級）」，切到 3D 之後那一顆也得是主角
     picked2d = pg.evaluate("""() => { const n = [...document.querySelectorAll('#prodDiagram [data-seg]')]
         .find(x => x.dataset.part === 'mlcc_term_cons');
@@ -8817,19 +8913,29 @@ def t_mlcc(pg, base):
                           " return h ? h.innerHTML : ''; }")
         ok(f"個股頁 {code_} 看得到剖析圖（{why}）", feat in got, (got[:80] or "<沒有剖析圖>"))
 
-    # ---------------- 9. 800px 窄畫面 ＋ 字級真的 ≥ 12px
+    # ---------------- 9. 800px 窄畫面：選單、點入口、字級真的 ≥ 12px、切回選單
+    #  （開發過程就要驗窄畫面 —— 2026-09-18 的 E6 就是只驗寬螢幕放過去的）
     pg.set_viewport_size({"width": 800, "height": 1000})
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    m8 = menu(pg)
+    ok("[800px] 一般電子鏈一樣是圖別選單，不是直接塞一張 MLCC",
+       m8["menuVis"] and not m8["svg"], m8)
+    pg.click('#dgMenu .dgcard[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
+    m8b = menu(pg)
+    ok("[800px] 真的用滑鼠點入口 → 網址真的變了、圖真的畫出來",
+       m8b["hash"].endswith("/dg/mlcc") and m8b["svg"] and not m8b["menuVis"], m8b)
+    force_open(pg)
     d8 = dg(pg)
-    ok("[800px] 一般電子鏈的 MLCC 剖析圖還在", d8.get("present") and FEAT in d8.get("full", ""), d8.get("svgW"))
+    ok("[800px] MLCC 剖析圖還在", d8.get("present") and FEAT in d8.get("full", ""), d8.get("svgW"))
     ok("[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮）", d8.get("svgW", 0) >= 960, d8.get("svgW"))
     ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
        d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
     r8a = rows(pg)
-    ok("[800px] 找得到「被動元件 MLCC」族群卡片", pick_group(pg, "mlcc"))
-    pg.wait_for_timeout(900)
-    r8b = rows(pg)
-    ok("[800px] 點族群卡片，成分股筆數真的變少", 0 < r8b < r8a, f"{r8a} → {r8b}")
+    ok("[800px] 找得到「面板」族群卡片", pick_group(pg, "panel"))
+    pg.wait_for_timeout(1000)
+    m8c = menu(pg); r8b = rows(pg)
+    ok("[800px] 點沒有專屬圖的族群 → 成分股換掉，而且圖真的收起來換回選單",
+       r8b != r8a and m8c["menuVis"] and not m8c["svg"], f"{r8a} → {r8b}；{m8c}")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
