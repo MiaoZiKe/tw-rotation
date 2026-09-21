@@ -4885,22 +4885,60 @@ def t_rotmerge(pg, base):
         # ---------------------------------------------------------- ① 一次點擊同時影響兩張圖
         c0, r0 = _n_clock(), _n_rank()
         ok(tag + "起手式：兩張圖都畫得出東西", c0 > 3 and r0 > 3, {"時鐘": c0, "排行": r0})
-        chains = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotchain button')]"
-                             ".map(b => ({ c: b.dataset.c, t: b.textContent.trim() }))")
-        pick = next((x for x in chains if x["t"] == "半導體"),
-                    next((x for x in chains if x["c"]), None))
-        if ok(tag + "產業鏈那一排點得到（至少有一條鏈）", bool(pick), chains):
-            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{pick["c"]}"]', "b => b.click()")
+        chains = pg.evaluate("""() => {
+            const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+            const size = {};
+            pts.forEach(p => { const c = p.chain || ''; if (c) size[c] = (size[c] || 0) + 1; });
+            return [...document.querySelectorAll('#v-flow .rotchain button')]
+              .filter(b => b.dataset.c)
+              .map(b => ({ c: b.dataset.c, t: b.textContent.trim(), n: size[b.dataset.c] || 0 })); }""")
+        # ★ 挑鏈要挑「真的會讓筆數變少」的那一條：時鐘最多畫 16 個族群、排行最多畫 15 根，
+        #   所以點「半導體」（剛好 16 個族群）時兩張圖的**筆數不會變**，
+        #   拿它當判準會量出一個假的紅燈（2026-09-21 第一次跑就踩到）。
+        #   這裡改成自動挑最小的那一條鏈（仍然是 Andy 說的「點產業鏈其中一顆」這個動作），
+        #   而「半導體」那種塞滿的鏈另外用「名單真的換人了」來驗。
+        small = min([x for x in chains if 2 <= x["n"] < 15], key=lambda x: x["n"], default=None)
+        if ok(tag + "產業鏈那一排點得到（至少有一條族群數 < 15 的鏈）", bool(small), chains):
+            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{small["c"]}"]', "b => b.click()")
             pg.wait_for_timeout(1400)
             c1, r1 = _n_clock(), _n_rank()
-            ok(tag + f"點「{pick['t']}」→ 時鐘上的族群真的變少", c1 < c0 and c1 > 0, f"{c0} → {c1}")
-            ok(tag + f"點「{pick['t']}」→ 排行的長條筆數也真的變少（同一次點擊影響兩張圖）",
-               r1 < r0 and r1 > 0, f"{r0} → {r1}")
+            ok(tag + f"點「{small['t']}」→ 時鐘上的族群真的變少",
+               0 < c1 <= small["n"] < c0, f"{c0} → {c1}（這條鏈只有 {small['n']} 個族群）")
+            ok(tag + f"點「{small['t']}」→ 排行的長條筆數也真的變少（同一次點擊同時影響兩張圖）",
+               0 < r1 <= small["n"] < r0, f"{r0} → {r1}")
+            inchain = pg.evaluate("""(c) => {
+                const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+                const set = new Set(pts.filter(p => p.chain === c).map(p => p.group_id));
+                const bad = ((window.App || {})._rotPts || [])
+                  .filter(p => !p.stock && !set.has(p.gid)).map(p => p.name);
+                return bad; }""", small["c"])
+            ok(tag + f"而且時鐘上剩下的每一個都真的屬於「{small['t']}」", not inchain, inchain[:5])
             pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
             pg.wait_for_timeout(1400)
             ok(tag + "按「全部」兩張圖一起還原",
                _n_clock() == c0 and _n_rank() == r0,
                {"時鐘": f"{c1} → {_n_clock()}（原 {c0}）", "排行": f"{r1} → {_n_rank()}（原 {r0}）"})
+
+        # 「半導體」這種族群數剛好塞滿上限的鏈：筆數不會變，但**名單一定要換人**。
+        semi = next((x for x in chains if x["t"] == "半導體"), None)
+        if semi:
+            before = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
+            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{semi["c"]}"]', "b => b.click()")
+            pg.wait_for_timeout(1400)
+            after = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
+            changed(tag + "點「半導體」→ 時鐘上的族群名單真的換人了（筆數受上限所限不會變）",
+                    before, after)
+            bad = pg.evaluate("""(c) => {
+                const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+                const set = new Set(pts.filter(p => p.chain === c).map(p => p.group_id));
+                const el = document.getElementById('rankFlow');
+                const ch = el && window.echarts && echarts.getInstanceByDom(el);
+                const gs = ch ? (((ch.getOption().series || [])[0] || {}).data || [])
+                                  .map(d => d.gid).filter(g => !set.has(g)) : ['<沒有圖>'];
+                return gs; }""", semi["c"])
+            ok(tag + "排行上剩下的每一根長條也都是半導體鏈的（同一份篩選）", not bad, bad[:5])
+            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
+            pg.wait_for_timeout(1400)
 
         # ---------------------------------------------------------- ② 一支「看哪一天」決定兩張圖的日期
         RB = "#rotBack input[type=range]"

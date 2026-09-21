@@ -2808,7 +2808,12 @@
       const sub = gs.filter(g => pk.has(g.group_id));
       if (sub.length) gs = sub;
     }
-    if (!gs.length) return empty('rankFlow', p.prev_from ? '這個期間沒有可比的族群' : '沒有上一段期間可以比，換一個期間看看');
+    /* ★ 2026-09-21：截止日跟著「看哪一天」之後，多了一種空狀態 ——
+       截止日往回拉太多、又要看很多天時，它前面就沒有「同樣長度的上一段」可以比了
+       （逐日佔比只存 60 天）。文案要指名是哪兩顆旋鈕造成的，不然使用者只會以為圖壞了。*/
+    if (!gs.length) return empty('rankFlow', p.prev_from ? '這個期間沒有可比的族群'
+      : '這一段前面沒有同樣長度的上一段可以比（逐日佔比只存 60 天）——'
+        + '把「看哪一天」往今天拉，或把「最近 N 天」調小一點');
     const up = gs.slice().sort((a, b) => b.share_chg - a.share_chg).slice(0, 9);
     const down = gs.slice().sort((a, b) => a.share_chg - b.share_chg).slice(0, 6).reverse();
     const rows = up.concat(down.filter(d => !up.some(u => u.group_id === d.group_id)));
