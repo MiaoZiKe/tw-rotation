@@ -9053,6 +9053,22 @@ def t_mlcc(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+def _shut_side(pg):
+    """把「今日事件」抽屜關掉，並等它真的收起來。
+
+    ★ 2026-09-21 加的。抽屜開著的時候 `aside#side.open` 會蓋住右半邊，
+      任何落在那一帶的真滑鼠點擊都會被它攔截（Playwright 直接報
+      「intercepts pointer events」）。以前圖少、切換列在左上角所以沒事；
+      圖變多之後切換列換行往下掉，就開始被蓋到。
+      ⚠ 這也是為什麼之前有兩批的窄畫面截圖等於沒驗 —— 同一個抽屜。
+    """
+    pg.evaluate("""() => { const b = document.getElementById('evClose');
+        const a = document.getElementById('side');
+        if (b && a && a.classList.contains('open')) b.click();
+        try { localStorage.setItem('tw.side', '0'); } catch (e) { /* 私密視窗 */ } }""")
+    pg.wait_for_timeout(450)
+
+
 def t_psu(pg, base):
     """圖9 伺服器電源 PSU ＋ BBU（`site/dg/server_psu.js`，規格書 docs/diagram_specs/server_psu.md）。
 
@@ -9123,6 +9139,13 @@ def t_psu(pg, base):
     ok("圖別入口列上真的出現「電源：PSU、匯流排、板上降壓與 BBU」這個入口",
        DGID in s0["picks"] and DGID in s0["cards"], f"切換晶片 {s0['picks']}／選單卡片 {s0['cards']}")
     h_before = pg.evaluate("() => location.hash")
+    # ★ 2026-09-21：點之前一定要先把「今日事件」抽屜關掉。
+    #   這一條在 AI 伺服器鏈只有一張圖的時候會過，多了 PCB 與交換器之後
+    #   圖別切換列換行往下掉，抽屜（aside#side.open）就把它蓋住了 ——
+    #   Playwright 報的是「<aside id="side" class="open"> intercepts pointer events」。
+    #   壞掉的不是功能，是「驗收假設抽屜是關的」。用畫面上那顆關閉鈕，
+    #   而不是繞過去用 dispatchEvent —— 真人操作驗收要真的點得到才算。
+    _shut_side(pg)
     pg.click(f'#dgPick .segchip[data-dgid="{DGID}"]', timeout=5000); pg.wait_for_timeout(2600)
     force_open(pg)
     s1 = state(pg)
@@ -9349,6 +9372,13 @@ def t_psu(pg, base):
     force_open(pg)
     s8 = state(pg)
     ok("[800px] 圖別入口列上一樣看得到這張圖", DGID in s8["picks"], s8["picks"])
+    # ★ 2026-09-21：點之前一定要先把「今日事件」抽屜關掉。
+    #   這一條在 AI 伺服器鏈只有一張圖的時候會過，多了 PCB 與交換器之後
+    #   圖別切換列換行往下掉，抽屜（aside#side.open）就把它蓋住了 ——
+    #   Playwright 報的是「<aside id="side" class="open"> intercepts pointer events」。
+    #   壞掉的不是功能，是「驗收假設抽屜是關的」。用畫面上那顆關閉鈕，
+    #   而不是繞過去用 dispatchEvent —— 真人操作驗收要真的點得到才算。
+    _shut_side(pg)
     pg.click(f'#dgPick .segchip[data-dgid="{DGID}"]', timeout=5000); pg.wait_for_timeout(2500)
     force_open(pg)
     s8b = state(pg)
