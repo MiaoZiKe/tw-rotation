@@ -8445,9 +8445,13 @@ def t_mlcc(pg, base):
       2. 點「被動元件 MLCC」族群卡片 → 下方成分股**筆數真的變少**
       3. 點「面板」族群（它還沒有專屬圖）→ 標題**真的多出那句誠實說明**，筆數也跟著換
       4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：零件只亮不篩，所以驗的是 .sel 數）
+     4d. **兩層高亮**（2026-09-21 晚間）：被點的那一個 `.sel-part` 剛好 1 個，
+         而且它跟同環節其餘零件的 **computed style 真的不同**（量 opacity 與 stroke-width，
+         不是看有沒有 class）；換點另一個零件，主角真的換人；點零件**不會**改成分股筆數
       5. 點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數真的變少
       6. 切 3D → 真的掛得起 WebGL 場景（不是退回平面圖），動畫關掉真的停
-      7. **回歸**：半導體鏈與 AI 伺服器鏈的圖沒被換掉、零件數沒少
+      7. **回歸**：半導體鏈與 AI 伺服器鏈的圖沒被換掉、零件數沒少，
+         而且點零件之後 **dim 的數量跟兩層高亮之前一模一樣**（dim ＝ 不同環節的零件數）
       8. 個股頁：2327（被動元件 MLCC 族群）看到 MLCC 那張、2330 看到 CoWoS 那張
       9. 800px 窄畫面重跑一次，並且量**實際字級 ≥ 12px**（Andy 從 2026-09-15 一直在講「文字太小」）
     """
@@ -8490,6 +8494,56 @@ def t_mlcc(pg, base):
 
     def rows(pg_):
         return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
+    # 兩層高亮（2026-09-21 晚間）：量的是 computed style，不是「有沒有那個 class」。
+    # 有 class 但長得一模一樣，對使用者來說就是沒發生 —— 那正是改之前的狀態。
+    TIER = """() => {
+      const h = document.querySelector('#prodDiagram'), svg = h.querySelector('svg');
+      const ns = [...h.querySelectorAll('[data-seg]')];
+      const info = (n) => { const pt = n.querySelector('.part');
+        return {key: n.dataset.dgkey, seg: n.dataset.seg,
+                part: n.classList.contains('sel-part'), sel: n.classList.contains('sel'),
+                dim: n.classList.contains('dim'),
+                op: +(+getComputedStyle(n).opacity).toFixed(3),
+                sw: pt ? +parseFloat(getComputedStyle(pt).strokeWidth).toFixed(2) : null}; };
+      const a = ns.map(info), segs = {};
+      ns.forEach(n => { segs[n.dataset.seg] = (segs[n.dataset.seg] || 0) + 1; });
+      return {parts: ns.length, nseg: Object.keys(segs).length, segs: segs,
+              dg1: svg.classList.contains('dg1'), haspart: svg.classList.contains('haspart'),
+              sel: a.filter(x => x.sel).length, selpart: a.filter(x => x.part).length,
+              dim: a.filter(x => x.dim).length,
+              hero: a.filter(x => x.part), sib: a.filter(x => x.sel && !x.part), rest: a.filter(x => x.dim)};
+    }"""
+
+    def hero_key(pg_):
+        return pg_.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg].sel-part');"
+                            " return n ? n.dataset.dgkey : null; }")
+
+    def click_part(pg_, i, want_sel=True):
+        """真的用滑鼠點圖上第 i 個零件，回傳點完之後的主角 key。
+
+        剖析圖上的零件會互相重疊（等角本體壓在切面上、說明列壓在引線上），
+        所以真滑鼠點有機會落到旁邊那一塊。`want_sel=True` 時如果沒點到指定的那一個，
+        就補一次事件派送 —— 重點是「這個零件真的被點過、而且畫面真的因此改變」，
+        不是「一定要用哪一種方式送出這個點擊」。
+        `want_sel=False` 用在「再點一次同一個＝取消」，那一次本來就不該有主角。
+        """
+        h = pg_.query_selector_all("#prodDiagram [data-seg]")
+        if i >= len(h):
+            return None
+        want = pg_.evaluate("(n) => n.dataset.dgkey", h[i])
+        try:
+            h[i].scroll_into_view_if_needed(timeout=3000)
+            h[i].click(timeout=4000, force=True)
+        except Exception:
+            pass
+        pg_.wait_for_timeout(450)
+        got = hero_key(pg_)
+        if want_sel and got != want:
+            pg_.evaluate("(n) => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))", h[i])
+            pg_.wait_for_timeout(450)
+            got = hero_key(pg_)
+        return got
 
     def pick_group(pg_, gid):
         return pg_.evaluate("(g) => { const t = [...document.querySelectorAll('#groupCards .tile')]"
@@ -8558,6 +8612,45 @@ def t_mlcc(pg, base):
     ok("B4：切回「動畫：開」之後白點真的又動起來（不是永遠停著）",
        on1 is not None and on1 != on2, f"{on1} → {on2}")
 
+    # ---------------- 4d. 兩層高亮：單一環節的圖，點下去到底有沒有「真的變」
+    #  改之前：高亮只綁 data-seg，MLCC 14 個零件全是 passive_comp
+    #  → 點誰都是「14 個一起 .sel、0 個 dim」，點零件 A 跟點零件 B 的畫面**逐像素相同**。
+    #  所以這裡驗的不是 class，而是：主角剛好 1 個、主角與其餘的 computed style 真的不同、
+    #  換點一個就真的換人、而且成分股筆數一動都不動（DECISIONS #73）。
+    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    t0 = pg.evaluate(TIER)
+    ok("MLCC 是單一環節的圖（整張只有一個 data-seg，所以才需要兩層高亮）",
+       t0["nseg"] == 1 and t0["dg1"], f"nseg={t0['nseg']} dg1={t0['dg1']} {t0['segs']}")
+    rows_before = rows(pg)
+    k1 = click_part(pg, 0)
+    t1 = pg.evaluate(TIER)
+    ok("點 MLCC 的零件 → 主角（.sel-part）剛好 1 個",
+       t1["selpart"] == 1, f"selpart={t1['selpart']} key={k1} sel={t1['sel']} dim={t1['dim']}")
+    hero = (t1["hero"] or [{}])[0]
+    sib = t1["sib"]
+    ok("主角跟同環節其餘零件的 opacity 真的不同（量 computed style，不是看 class）",
+       bool(sib) and all(x["op"] < hero.get("op", 0) - 0.15 for x in sib),
+       f"主角 op={hero.get('op')} ／ 其餘 {len(sib)} 個 op={sorted({x['op'] for x in sib})}")
+    hsw = [x["sw"] for x in [hero] if x.get("sw")]
+    ssw = [x["sw"] for x in sib if x.get("sw")]
+    ok("主角的描邊也比同環節其餘零件粗（--dg-part-w vs 2.2）",
+       not hsw or not ssw or min(hsw) > max(ssw),
+       f"主角 stroke-width={hsw} ／ 其餘={sorted(set(ssw))}")
+    ok("dim 仍然是 0（單一環節的圖本來就沒有「別的環節」可以壓暗）", t1["dim"] == 0, t1["dim"])
+    ok("DECISIONS #73：點零件**不會**改成分股筆數（只亮不篩）",
+       rows(pg) == rows_before, f"{rows_before} → {rows(pg)}")
+    # 換點另一個零件：主角要真的換人（改之前這一步會把整個選取取消掉）
+    k2 = click_part(pg, 4)
+    t2 = pg.evaluate(TIER)
+    ok("換點另一個零件，主角真的換人（不是整個取消掉）",
+       t2["selpart"] == 1 and k2 is not None and k2 != k1, f"{k1} → {k2} selpart={t2['selpart']}")
+    ok("換點之後成分股筆數還是一動都不動", rows(pg) == rows_before, f"{rows_before} → {rows(pg)}")
+    # 再點一次同一個＝取消（把狀態還原，不要汙染後面的段落）
+    click_part(pg, 4, want_sel=False)
+    t3 = pg.evaluate(TIER)
+    ok("再點一次同一個零件＝取消選取（主角歸零、haspart 也拿掉）",
+       t3["selpart"] == 0 and not t3["haspart"], f"selpart={t3['selpart']} haspart={t3['haspart']}")
+
     # ---------------- 5. 點環節色標 → 成分股筆數真的變少（這條才是「篩」）
     base_rows = rows(pg)
     hit = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip[data-seg=\"passive_comp\"]');"
@@ -8568,6 +8661,11 @@ def t_mlcc(pg, base):
 
     # ---------------- 6. 3D：真的進 WebGL，不是退回平面圖
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    # 兩層高亮要跨 2D／3D：先在 2D 點「端電極（消費級）」，切到 3D 之後那一顆也得是主角
+    picked2d = pg.evaluate("""() => { const n = [...document.querySelectorAll('#prodDiagram [data-seg]')]
+        .find(x => x.dataset.part === 'mlcc_term_cons');
+      if (!n) return null; n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return n.dataset.dgkey; }""")
+    pg.wait_for_timeout(500)
     if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
         if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
             click(pg, "#dg3d", 3000); pg.wait_for_timeout(3200)
@@ -8580,6 +8678,22 @@ def t_mlcc(pg, base):
         ok("MLCC 切 3D 真的掛起 WebGL 場景（不是退回平面圖）",
            got["mounted"] and got["canvas"] and got["svgHidden"], got)
         ok("MLCC 的 3D 文字框底下掛了台股晶片", got["chips"] > 0, got["chips"])
+        # 兩層高亮跨 2D／3D：剛剛在 2D 點的那一顆，在 3D 裡也要是最強的那一個
+        t3d = pg.evaluate("""() => {
+          const host = document.querySelector('#prod3d');
+          const ls = [...host.querySelectorAll('.lbl3d')].map(n => ({
+            t: (n.querySelector('b') || {}).textContent || '',
+            part: n.classList.contains('sel-part'), sel: n.classList.contains('sel'),
+            op: +(+getComputedStyle(n).opacity).toFixed(2)}));
+          return {dg1: host.classList.contains('dg1'), haspart: host.classList.contains('haspart'),
+                  n: ls.length, hero: ls.filter(x => x.part), sib: ls.filter(x => x.sel && !x.part)};
+        }""")
+        ok("2D 點了零件再切到 3D：3D 裡的主角剛好 1 個，而且就是端電極那一顆",
+           t3d["haspart"] and len(t3d["hero"]) == 1 and "端電極" in (t3d["hero"][0]["t"] if t3d["hero"] else ""),
+           f"2D 點的是 {picked2d}；3D 主角 {[x['t'] for x in t3d['hero']]}")
+        ok("3D 的主角跟同場景其餘零件的 opacity 真的不同（量 computed style）",
+           bool(t3d["sib"]) and all(x["op"] < (t3d["hero"][0]["op"] if t3d["hero"] else 1) - 0.15 for x in t3d["sib"]),
+           f"主角 op={[x['op'] for x in t3d['hero']]} ／ 其餘 op={[x['op'] for x in t3d['sib']]}")
         # A5：晶片改列「被動元件 MLCC」族群（2327／2492／3026／6173），不是含鋁電容的 passive_comp 環節名單
         grp = pg.evaluate("""() => {
           const b = [...document.querySelectorAll('#prod3d .lbl3d')].find(n => n.dataset.seg === 'passive_comp');
@@ -8613,6 +8727,25 @@ def t_mlcc(pg, base):
         d = dg(pg)
         ok(f"回歸：{cid} 鏈還是畫自己那張圖", d.get("present") and feat in d["full"], d.get("title", "")[:60])
         ok(f"回歸：{cid} 鏈的圖零件數沒有變少", d.get("parts", 0) >= least, d.get("parts"))
+        # 多環節的圖：兩層高亮只是「多一層最強」，dim 的規則一個字都沒改。
+        # dim 的數量＝不同環節的零件數 —— 這個數字在兩層高亮之前是多少、之後就得是多少。
+        rows_b = rows(pg)
+        # 挑一個「同環節還有別人」的零件來點，不然驗不到次強那一層
+        idx = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#prodDiagram [data-seg]')];
+          const c = {}; ns.forEach(n => { c[n.dataset.seg] = (c[n.dataset.seg] || 0) + 1; });
+          return ns.findIndex(n => c[n.dataset.seg] > 1); }""")
+        key = click_part(pg, max(idx, 0))
+        t_after = pg.evaluate(TIER)
+        seg_of = pg.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg].sel-part');"
+                             " return n ? n.dataset.seg : null; }")
+        same = t_after["segs"].get(seg_of, 0)
+        ok(f"回歸：{cid} 點零件 → 主角 1 個、同環節其餘 >1 個、其餘環節被壓暗 >0 個",
+           t_after["selpart"] == 1 and t_after["sel"] > 1 and t_after["dim"] > 0,
+           f"key={key} selpart={t_after['selpart']} sel={t_after['sel']} dim={t_after['dim']}")
+        ok(f"回歸：{cid} 的 dim 數量跟兩層高亮之前一模一樣（＝不同環節的零件數）",
+           t_after["dim"] == t_after["parts"] - same and t_after["sel"] == same,
+           f"零件 {t_after['parts']}、同環節 {same}、sel {t_after['sel']}、dim {t_after['dim']}")
+        ok(f"回歸：{cid} 點零件不會改成分股筆數（DECISIONS #73）", rows(pg) == rows_b, f"{rows_b} → {rows(pg)}")
 
     # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
     for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),

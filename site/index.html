@@ -65,6 +65,17 @@
   --dg-ink:#e8eeff; --dg-ink-2:#a9b6d6; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
   --dg-warn:#ff8fab; --dg-err:#ff4d6d;             /* 警語、裂紋 */
   --dg-chg-a:.12;             /* 電荷疊色的透明度（.26 會把陶瓷的色相整個推掉，見 B2） */
+  /* ---------------- 兩層高亮（art-director 2026-09-21 晚間新增）----------------
+     為什麼要分兩層：以前高亮只綁 data-seg，所以「點一個零件」＝「同環節的全部一起亮」。
+     多環節的圖還說得通（那句話是「這幾塊來自同一個環節」），但**單一環節的圖**
+     （MLCC 14 個零件全是 passive_comp，後面 13 張多數也是）就退化成
+     「14 個全亮、0 個被 dim」＝ 點下去畫面等於沒變。
+     現在最強那一層（.sel-part＝你剛剛點的那一個）跟次強那一層（.sel＝同環節其餘）分開給值。 */
+  --dg-part-w:3.6;            /* 最強那一層的描邊寬（次強維持 2.2，多環節圖的既有外觀不動） */
+  --dg-part-r:11px;           /* 最強那一層的暈開半徑（次強是 7px；單一環節圖 --dg-glow:none，這裡也就不發光） */
+  --dg-sib-o:.4;              /* 單一環節圖：同環節、但**不是**你點的那些，退到這個不透明度
+                                 （不是 .dim 的 .3 —— 它們仍然是「選到的環節」，只是不是主角） */
+  --dg-part-em:.5;            /* 3D：被點的那一顆的 emissive（同環節其餘維持 --dg-sel-em .22） */
   --ovl:rgba(10,16,32,.55);   /* K 線圖上那幾個浮在圖上的小標籤 */
   --ovl-sh:0 1px 2px #000;    /* 浮在圖上的文字陰影 */
 }
@@ -951,6 +962,15 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lbl3d u.chips3d s.chipnote{flex:0 0 100%;margin-bottom:1px}
 .lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}
 .lbl3d.sel b{color:var(--cyan)}
+/* 主角用「底色再深一階 ＋ 外圈光暈」，刻意不動 border-width ——
+   .lbl3d 的左邊框是 3px、其餘 1px，一改寬度整個文字框就位移，標籤排版會連帶重算。*/
+.lbl3d.sel-part{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 24%,var(--panel));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--cyan) 42%,transparent),0 2px 10px rgba(0,0,0,.22)}
+/* 單一環節的 3D 場景（MLCC 那種）：同環節但不是被點的那一顆，標籤也要退一階，
+   不然三個標籤長得一模一樣，使用者仍然看不出剛剛點到誰。
+   兩個 class 都要在才生效：.dg1＝整個場景只有一個環節、.haspart＝現在真的有人被點著。
+   少了 .haspart 的話，「從環節色標選這一格」會把三個標籤一起壓暗 —— 那時候根本沒有主角。*/
+.dg3d.dg1.haspart .lbl3d.sel:not(.sel-part){opacity:var(--dg-sib-o,.4)}
 .lbl3d.dim{opacity:.26}
 /* 轉到背面、或兩欄都排滿了，離相機最遠的那幾個先讓位 */
 .lbl3d.hid{opacity:0;pointer-events:none}

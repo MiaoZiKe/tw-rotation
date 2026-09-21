@@ -24,12 +24,28 @@
        而且 0 個被 dim ＝ 這個狀態沒有傳達任何資訊。那種圖掛 .dg1，--dg-glow:none 直接關掉發光。 */
     .dg [data-seg]:hover .part,.dg [data-seg].sel .part{stroke:var(--c,#3ee0ff);stroke-width:2.2;filter:var(--dg-glow,drop-shadow(0 0 7px var(--c,#3ee0ff)))}
     .dg.dg1{--dg-glow:none}
+    /* ---- 兩層高亮（2026-09-21 晚間）----
+       .sel-part ＝**你剛剛點的那一個零件**（最強）；.sel ＝同一個 data-seg 的其餘（次強，值沒動）。
+       為什麼要多這一層：以前高亮只綁環節，單一環節的圖（MLCC 14 個零件全是 passive_comp，
+       後面 13 張多數也是）點下去就是「14 個全部 .sel、0 個 dim」—— 畫面沒有任何事情發生。
+       多環節的圖完全不受影響：.sel 那一層一個值都沒改，只是被點的那一個再往上一階。
+       描邊寬與暈開半徑都走 --dg-*（art-director 擁有），JS 與這裡都不准寫死。 */
+    .dg [data-seg].sel-part .part{stroke:var(--c,#3ee0ff);stroke-width:var(--dg-part-w,3.6);
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-part-r,11px) var(--c,#3ee0ff)))}
+    .dg [data-seg].sel-part .lbl,.dg [data-seg].sel-part .hd{font-weight:700}
+    /* 單一環節的圖：次強那一層等於「除了主角以外的全部」，跟主角擺在一起看不出差別，
+       所以在這種圖上讓它退一階。.haspart 是 highlightSegments 掛的 ——
+       沒有人被點著的時候（例如從環節色標選這一格）不准壓暗，那時候根本沒有主角。*/
+    .dg.dg1.haspart [data-seg].sel:not(.sel-part){opacity:var(--dg-sib-o,.4)}
     .dg [data-seg].sel .lbl,.dg [data-seg]:hover .lbl{fill:var(--c,#3ee0ff)}
     .dg [data-seg] .dot{fill:var(--c,var(--dg-ink-3,#8ea0c4))}
     .dg [data-seg] .leader{stroke:color-mix(in srgb,var(--c,#8ea0c4) 55%,#1e2a48);stroke-width:1;fill:none}
     .dg [data-seg].sel .leader,.dg [data-seg]:hover .leader{stroke:var(--c);stroke-width:1.6}
     .dg [data-seg].dim{opacity:.3}
     .dg .lrow{cursor:pointer} .dg .lrow rect.bg{fill:transparent} .dg .lrow:hover rect.bg,.dg .lrow.sel rect.bg{fill:color-mix(in srgb,var(--c,#3ee0ff) 12%,transparent)}
+    /* 說明列當主角時底色再深一階（12% → 26%）。這條一定要排在上面那條之後：
+       兩者特異性一樣，先寫的會被後寫的蓋掉 —— 排錯順序主角就跟次強一樣淡。*/
+    .dg [data-seg].sel-part rect.bg{fill:color-mix(in srgb,var(--c,#3ee0ff) 26%,transparent)}
     .dg [data-chain]{cursor:pointer} .dg [data-chain]:hover rect{stroke:#3ee0ff}
     .dg .flow{stroke-dasharray:7 7;animation:dgdash 1.4s linear infinite}
     .dg .flow.slow{animation-duration:2.4s} .dg .flow.fast{animation-duration:.9s}
@@ -52,12 +68,16 @@
     /* ---- 等角 3D：每個零件永遠帶自己的環節色（--c），選到就整塊變亮，顏色與族群一致 ---- */
     .dg .p3{--m1:66%;--m2:42%;--m3:26%;--ce:#4a6ea8;cursor:pointer;transition:opacity .2s}
     .dg .p3:hover,.dg .p3.sel{--m1:94%;--m2:66%;--m3:46%}
+    .dg .p3.sel-part{--m1:100%;--m2:78%;--m3:58%}
     .dg .p3.dim{opacity:.2}
     .dg .f1{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m1,66%),#0c1428)}
     .dg .f2{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m2,42%),#080e1c)}
     .dg .f3{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m3,26%),#050a14)}
     .dg .p3 .part{stroke:color-mix(in srgb,var(--c,var(--ce)) 40%,#0a1024);stroke-width:.8;stroke-linejoin:round;transition:stroke .15s,filter .15s}
     .dg .p3:hover .part,.dg .p3.sel .part{stroke:var(--c,var(--ce));stroke-width:1.5;filter:drop-shadow(0 0 6px var(--c,var(--ce)))}
+    /* 等角零件不動描邊寬（它的線本來就只有 .8，拉到 3.6 會變成一團黑）——
+       .sel-part 靠 --m1/--m2/--m3 再亮一階 ＋ 暈開半徑加大來當最強那一層。*/
+    .dg .p3.sel-part .part{filter:drop-shadow(0 0 var(--dg-part-r,11px) var(--c,var(--ce)))}
     .dg .p3 .etch{stroke:color-mix(in srgb,var(--c,var(--ce)) 60%,transparent);fill:none;stroke-width:.9}
     .dg .p3 .lit{fill:color-mix(in srgb,var(--c,var(--ce)) 78%,transparent)}
     .dg .p3 .lbl{fill:var(--dg-ink,#e8eeff)} .dg .p3:hover .lbl,.dg .p3.sel .lbl{fill:var(--c,var(--ce))}
@@ -65,6 +85,7 @@
     .dg .p3 .leader{stroke:color-mix(in srgb,var(--c,var(--ce)) 50%,#1e2a48);stroke-width:1;fill:none}
     .dg .p3:hover .leader,.dg .p3.sel .leader{stroke:var(--c,var(--ce));stroke-width:1.6}
     .dg .p3 rect.bg{fill:transparent} .dg .p3:hover rect.bg,.dg .p3.sel rect.bg{fill:color-mix(in srgb,var(--c,var(--ce)) 13%,transparent)}
+    .dg .p3.sel-part rect.bg{fill:color-mix(in srgb,var(--c,var(--ce)) 28%,transparent)}   /* 順序同上：一定要排在 .sel 之後 */
     .dg .grd{stroke:rgba(120,150,210,.14);fill:none;stroke-width:.7}
     .dg .axis{stroke:rgba(120,150,210,.3);stroke-width:1;fill:none;stroke-dasharray:3 4}
     /* ---- 題材供應鏈圖：上游／中游／下游三段 + 站點 + 流動彩帶 + 個股標籤 ---- */
@@ -101,6 +122,36 @@
        而不鋪的保護層還是 42° —— 讀者會以為兩者是不同材質，但它們是同一種陶瓷。*/
     .dgm .chg{fill:var(--dg-accent);fill-opacity:var(--dg-chg-a,.12)}
   </style>`;
+
+  /* ================================================================ 零件身分（兩層高亮用）
+     問題：高亮以前只綁 `data-seg`，所以「點一個零件」在程式裡等於「選一個環節」。
+     多環節的圖還說得通，但**單一環節的圖**（MLCC 14 個零件全掛 passive_comp，
+     docs/diagram_plan.md 後面 13 張多數也是）就退化成「14 個全部 .sel、0 個 dim」——
+     點下去畫面完全沒有事情發生。要修就得先認得出「你剛剛點的是哪一個」。
+
+     `data-part` 是那個身分。沒有標 data-part 的舊零件（說明列、流程列、半導體與
+     AI 伺服器那兩張的大部分群組）由 stampParts() 自動補一個「環節 id ＋ 文件順序」，
+     所以**不用先把 13 張圖都補完 data-part**，這個行為就已經到位。
+     自動補的 key 只在同一張圖裡有意義（2D 與 3D 對不起來），
+     真的要讓 2D 點完切到 3D 還是同一個狀態，就替兩邊標同一個 data-part。*/
+  function stampParts(host) {
+    if (!host) return;
+    host.querySelectorAll('svg').forEach((svg) => {
+      const ns = [].slice.call(svg.querySelectorAll('[data-seg]'));
+      ns.forEach((n, i) => { n.dataset.dgkey = n.getAttribute('data-part') || (n.getAttribute('data-seg') + ':' + i); });
+      /* 單一環節的圖自己判定，不要求畫圖的人記得加 class ——
+         「忘了加」正是這個缺陷會被複製 13 次的原因。*/
+      if (ns.length && new Set(ns.map(n => n.getAttribute('data-seg'))).size === 1) svg.classList.add('dg1');
+    });
+  }
+  /* 這個零件是不是「被點的那一個」。`data-alias` 是給「2D 拆成兩塊、3D 只有一塊」那種
+     對不齊的情況用的（例如 MLCC 的端電極：2D 有消費級與車規兩張放大剖面，3D 只有一圈端電極）。*/
+  function partHit(node, key) {
+    if (!key || !node) return false;
+    if (node.dataset.dgkey === key) return true;
+    const al = node.getAttribute('data-alias');
+    return !!al && al.split(',').indexOf(key) >= 0;
+  }
 
   // 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)
   function labelRow(seg, x, y, title, sub, tx, ty, w) {
@@ -228,11 +279,11 @@
       <text class="cap" x="16" y="44">由下往上：主機板 → 載板 → 矽中介層 → 邏輯晶片與 HBM → 上蓋。左側是晶片的來路，右側說明對應的供應鏈環節。</text>
 
       <!-- 左：晶片誕生流程 -->
-      <g data-seg="ip_eda"><rect class="part" x="16" y="70" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="90">IP / EDA / 設計服務</text><text class="sub" x="28" y="106">矽智財授權、ASIC 設計服務（NRE）</text></g>
+      <g data-seg="ip_eda" data-part="sc_ipeda"><rect class="part" x="16" y="70" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="90">IP / EDA / 設計服務</text><text class="sub" x="28" y="106">矽智財授權、ASIC 設計服務（NRE）</text></g>
       <path class="flow" d="M126,120 L126,144" stroke="#3ee0ff" stroke-width="2"/>
-      <g data-seg="ic_design"><rect class="part" x="16" y="146" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="166">IC 設計</text><text class="sub" x="28" y="182">GPU / ASIC / 網通晶片，交付 GDS 光罩資料</text></g>
+      <g data-seg="ic_design" data-part="sc_icdesign"><rect class="part" x="16" y="146" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="166">IC 設計</text><text class="sub" x="28" y="182">GPU / ASIC / 網通晶片，交付 GDS 光罩資料</text></g>
       <path class="flow" d="M126,196 L126,228" stroke="#3ee0ff" stroke-width="2"/>
-      <g data-seg="foundry">
+      <g data-seg="foundry" data-part="sc_wafer">
         <circle class="part" cx="126" cy="300" r="66" fill="url(#sgWafer)"/>
         <g clip-path="url(#sgWaferClip)">${wafer}<rect class="scan" x="60" y="292" width="132" height="4" fill="rgba(62,224,255,.55)"/></g>
         <rect x="118" y="292" width="16" height="16" rx="2" fill="#3ee0ff" opacity=".9"/>
@@ -243,22 +294,22 @@
       <text class="cap" x="16" y="500">示意圖，非實物比例</text><text class="cap" x="16" y="516">零件顏色＝環節色；點零件看供應商</text>
 
       <!-- 中：剖面（由下往上） -->
-      <g data-seg="abf_pcb"><rect class="part" x="300" y="384" width="600" height="32" rx="4" fill="url(#sgPcb)"/>
+      <g data-seg="abf_pcb" data-part="sc_pcb"><rect class="part" x="300" y="384" width="600" height="32" rx="4" fill="url(#sgPcb)"/>
         <path class="flow slow" d="M316,394 H560 M316,406 H420 M640,394 H884 M700,406 H884" stroke="rgba(255,180,84,.55)" stroke-width="1.4"/>
         <text class="sub" x="312" y="404" style="fill:#c7f2d6">主機板 PCB</text></g>
-      <g data-seg="abf_pcb">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="880" y="366" style="font-size:9.5px">BGA</text></g>
-      <g data-seg="abf_pcb"><rect class="part" x="310" y="310" width="580" height="50" rx="4" fill="url(#sgAbf)"/>
+      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="880" y="366" style="font-size:9.5px">BGA</text></g>
+      <g data-seg="abf_pcb" data-part="sc_abf"><rect class="part" x="310" y="310" width="580" height="50" rx="4" fill="url(#sgAbf)"/>
         <path d="M318,322 H882 M318,334 H882 M318,346 H882" stroke="rgba(255,255,255,.08)"/>${vias.join('')}
         <text class="sub" x="322" y="329" style="fill:#c7f2d6">ABF 載板（多層增層基板）</text></g>
-      <g data-seg="adv_pkg">${bumps(304, 4, 20, 330, 870, '#ffb454')}</g>
-      <g data-seg="adv_pkg"><rect class="part" x="320" y="258" width="560" height="42" rx="3" fill="url(#sgInter)"/>
+      <g data-seg="adv_pkg" data-part="sc_c4">${bumps(304, 4, 20, 330, 870, '#ffb454')}</g>
+      <g data-seg="adv_pkg" data-part="sc_interposer"><rect class="part" x="320" y="258" width="560" height="42" rx="3" fill="url(#sgInter)"/>
         ${tsv.join('')}<path d="M330,270 H870 M330,280 H870 M330,290 H870" stroke="rgba(62,224,255,.22)"/>
         <path class="flow fast" d="M375,272 H600" stroke="#3ee0ff" stroke-width="2"/><path class="flow fast rev" d="M600,286 H815" stroke="#3ee0ff" stroke-width="2"/>
         <text class="sub" x="332" y="294" style="fill:#9fd8ff">矽中介層 Interposer</text></g>
-      <g data-seg="adv_pkg">${bumps(254, 2.5, 10, 340, 870, 'rgba(255,180,84,.85)')}</g>
-      <g data-seg="hbm">${hbmStack(340, 142, 0)}${hbmStack(420, 142, .3)}${hbmStack(700, 142, .6)}${hbmStack(780, 142, .9)}<rect class="part" x="336" y="138" width="158" height="116" rx="3" fill="none"/><rect class="part" x="696" y="138" width="158" height="116" rx="3" fill="none"/></g>
-      <g data-seg="foundry"><rect class="part" x="510" y="142" width="180" height="108" rx="3" fill="url(#sgSi)"/>${dieCells.join('')}<text class="mono" x="522" y="243" style="font-size:9.5px;fill:#9fd8ff">GPU / ASIC DIE</text></g>
-      <g data-seg="osat_test"><rect x="330" y="134" width="540" height="6" fill="#0b1224"/><rect class="part" x="330" y="110" width="540" height="26" rx="5" fill="url(#sgLid)"/>
+      <g data-seg="adv_pkg" data-part="sc_ubump">${bumps(254, 2.5, 10, 340, 870, 'rgba(255,180,84,.85)')}</g>
+      <g data-seg="hbm" data-part="sc_hbm">${hbmStack(340, 142, 0)}${hbmStack(420, 142, .3)}${hbmStack(700, 142, .6)}${hbmStack(780, 142, .9)}<rect class="part" x="336" y="138" width="158" height="116" rx="3" fill="none"/><rect class="part" x="696" y="138" width="158" height="116" rx="3" fill="none"/></g>
+      <g data-seg="foundry" data-part="sc_die"><rect class="part" x="510" y="142" width="180" height="108" rx="3" fill="url(#sgSi)"/>${dieCells.join('')}<text class="mono" x="522" y="243" style="font-size:9.5px;fill:#9fd8ff">GPU / ASIC DIE</text></g>
+      <g data-seg="osat_test" data-part="sc_lid"><rect x="330" y="134" width="540" height="6" fill="#0b1224"/><rect class="part" x="330" y="110" width="540" height="26" rx="5" fill="url(#sgLid)"/>
         ${[380, 460, 540, 620, 700, 780].map((x, i) => `<path class="heat" d="M${x},104 c4,-6 -4,-10 0,-16" stroke="#ff8fab" stroke-width="1.6" fill="none" style="animation-delay:${i * .4}s"/>`).join('')}
         <text class="sub" x="596" y="128" style="fill:#e8eeff" text-anchor="middle">散熱上蓋（Lid）</text></g>
 
@@ -307,23 +358,23 @@
       <text class="cap" x="16" y="44">左：整機櫃（交換器、8 個運算托盤、電源櫃、液冷 CDU）。中：一個運算托盤拆開由下往上看。右：對應的供應鏈環節。</text>
 
       <!-- 左：機櫃 -->
-      <g data-seg="assembly"><rect class="part" x="20" y="60" width="200" height="550" rx="10" fill="#0f172b"/>${trays.join('')}<text class="sub" x="34" y="112">GPU 運算托盤 ×8</text><text class="lbl" x="28" y="632">整機櫃 Rack（系統組裝）</text></g>
-      <g data-seg="switch"><rect class="part" x="34" y="72" width="172" height="30" rx="4" fill="#182a3f"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${44 + j * 12}" y="80" width="8" height="10" rx="1" fill="#ffb454"/>`).join('')}<circle class="blink b2" cx="196" cy="87" r="3" fill="#3ee0ff"/><text class="sub" x="150" y="68" style="fill:#e8eeff">ToR 交換器</text></g>
-      <g data-seg="power"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="34" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
-      <g data-seg="thermal"><rect class="part" x="34" y="524" width="172" height="76" rx="4" fill="#0e2a33"/>
+      <g data-seg="assembly" data-part="ag_rack"><rect class="part" x="20" y="60" width="200" height="550" rx="10" fill="#0f172b"/>${trays.join('')}<text class="sub" x="34" y="112">GPU 運算托盤 ×8</text><text class="lbl" x="28" y="632">整機櫃 Rack（系統組裝）</text></g>
+      <g data-seg="switch" data-part="ag_tor"><rect class="part" x="34" y="72" width="172" height="30" rx="4" fill="#182a3f"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${44 + j * 12}" y="80" width="8" height="10" rx="1" fill="#ffb454"/>`).join('')}<circle class="blink b2" cx="196" cy="87" r="3" fill="#3ee0ff"/><text class="sub" x="150" y="68" style="fill:#e8eeff">ToR 交換器</text></g>
+      <g data-seg="power" data-part="ag_psu"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="34" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
+      <g data-seg="thermal" data-part="ag_cdu"><rect class="part" x="34" y="524" width="172" height="76" rx="4" fill="#0e2a33"/>
         <circle class="spin" cx="66" cy="562" r="16" fill="none" stroke="#3ee0ff" stroke-width="2.5" stroke-dasharray="7 6"/><circle cx="66" cy="562" r="4" fill="#3ee0ff"/>
         <text class="lbl" x="94" y="556" style="font-size:12px">CDU</text><text class="sub" x="94" y="571">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="585">冷水進 · 熱水回</text>
         <path class="flow" d="M212,596 V120" stroke="#3ee0ff" stroke-width="2.4"/><path class="flow rev" d="M218,120 V596" stroke="#ff4d6d" stroke-width="2.4"/></g>
 
       <!-- 中：托盤爆炸圖（skewX 做出斜視角） -->
       <g transform="skewX(-28)">
-        <g data-seg="ccl"><rect x="560" y="528" width="440" height="40" rx="3" fill="#0a1d12"/><rect class="part" x="560" y="520" width="440" height="40" rx="3" fill="url(#agCcl)"/>${weave.join('')}</g>
-        <g data-seg="abf_pcb"><rect x="560" y="453" width="440" height="40" rx="3" fill="#0b2418"/><rect class="part" x="560" y="445" width="440" height="40" rx="3" fill="url(#agPcb)"/>${traces}
+        <g data-seg="ccl" data-part="ag_ccl"><rect x="560" y="528" width="440" height="40" rx="3" fill="#0a1d12"/><rect class="part" x="560" y="520" width="440" height="40" rx="3" fill="url(#agCcl)"/>${weave.join('')}</g>
+        <g data-seg="abf_pcb" data-part="ag_pcb"><rect x="560" y="453" width="440" height="40" rx="3" fill="#0b2418"/><rect class="part" x="560" y="445" width="440" height="40" rx="3" fill="url(#agPcb)"/>${traces}
           ${[0, 1, 2].map(j => `<rect x="${640 + j * 120}" y="449" width="70" height="7" rx="1.5" fill="#0f172b" stroke="#2a3860" stroke-width=".7"/>`).join('')}</g>
-        <g data-seg="power"><rect class="part" x="470" y="445" width="76" height="40" rx="3" fill="#1a1530"/><path class="flow" d="M478,452 H538 M478,462 H538 M478,472 H538 M478,482 H538" stroke="#ffb454" stroke-width="2"/></g>
-        <g data-seg="optical"><rect class="part" x="1000" y="447" width="64" height="36" rx="3" fill="#141e36"/>${cages}</g>
-        <g data-seg="adv_pkg"><rect x="580" y="316" width="440" height="110" rx="6" fill="rgba(20,30,54,.55)"/>${modules.join('')}<rect class="part" x="580" y="316" width="440" height="110" rx="6" fill="none"/></g>
-        <g data-seg="thermal"><rect class="part" x="560" y="150" width="480" height="120" rx="8" fill="url(#agPlate)"/>
+        <g data-seg="power" data-part="ag_vrm"><rect class="part" x="470" y="445" width="76" height="40" rx="3" fill="#1a1530"/><path class="flow" d="M478,452 H538 M478,462 H538 M478,472 H538 M478,482 H538" stroke="#ffb454" stroke-width="2"/></g>
+        <g data-seg="optical" data-part="ag_optic"><rect class="part" x="1000" y="447" width="64" height="36" rx="3" fill="#141e36"/>${cages}</g>
+        <g data-seg="adv_pkg" data-part="ag_gpu"><rect x="580" y="316" width="440" height="110" rx="6" fill="rgba(20,30,54,.55)"/>${modules.join('')}<rect class="part" x="580" y="316" width="440" height="110" rx="6" fill="none"/></g>
+        <g data-seg="thermal" data-part="ag_coldplate"><rect class="part" x="560" y="150" width="480" height="120" rx="8" fill="url(#agPlate)"/>
           <path class="flow" d="M580,172 H1020 M580,196 H1020 M580,220 H1020 M580,244 H1020" stroke="url(#agCool)" stroke-width="3.5" fill="none" opacity=".85"/>
           <path class="flow" d="M520,172 H580" stroke="#3ee0ff" stroke-width="3.5"/><path class="flow rev" d="M1020,244 H1080" stroke="#ff4d6d" stroke-width="3.5"/>
           <circle cx="520" cy="172" r="6" fill="#0f172b" stroke="#3ee0ff" stroke-width="2"/><circle cx="1080" cy="244" r="6" fill="#0f172b" stroke="#ff4d6d" stroke-width="2"/>
@@ -335,7 +386,7 @@
       <text class="sub" x="${sx(560, 146)}" y="146">液冷冷板（冷水進 → 熱水回）+ 快接頭</text>
 
       <!-- 右：說明欄 -->
-      <g data-seg="hyperscaler"><path class="part" d="M954,88 a18,18 0 0 1 34,-8 a16,16 0 0 1 30,10 a14,14 0 0 1 -6,27 h-56 a15,15 0 0 1 -2,-29 z" fill="#0f172b"/>
+      <g data-seg="hyperscaler" data-part="ag_csp"><path class="part" d="M954,88 a18,18 0 0 1 34,-8 a16,16 0 0 1 30,10 a14,14 0 0 1 -6,27 h-56 a15,15 0 0 1 -2,-29 z" fill="#0f172b"/>
         ${[0, 1, 2].map(j => `<circle class="drop d${j + 1}" cx="${966 + j * 22}" cy="126" r="2.5" fill="#8b7bff"/>`).join('')}
         <text class="lbl" x="1030" y="94">雲端業者（終端需求）</text><text class="sub" x="1030" y="110">Microsoft / Google / Amazon / Meta</text></g>
       ${labelRow('thermal', 934, 196, '液冷冷板 / CDU', '冷板、快接頭、分歧管；機櫃 CDU 循環', sx(1040, 210), 210)}
@@ -511,7 +562,12 @@
       const relief = auto
         ? `<path d="M${x + 19},624 l0,-18 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="var(--dg-accent)" stroke-width="1.6" fill="none"/>`
         : '';
-      return `<g data-seg="${SEG}" data-part="${auto ? 'mlcc_term_auto' : 'mlcc_term_cons'}">
+      /* data-alias：2D 與 3D 的切塊方式不一樣，對不上的地方在這裡接起來。
+           · 3D 只有一圈「端電極」（mlcc_term），2D 拆成消費級與車規兩張放大剖面
+           · 3D 的「PCB 焊墊與焊錫」（mlcc_pad）在 2D 就是畫在這兩張剖面底下的那塊板子與焊錫圓角
+         所以從 3D 點這兩顆、切回 2D 時這兩塊都算「你剛剛點的那一個」，
+         不會出現「同環節全部退一階、卻沒有任何主角」的空狀態。*/
+      return `<g data-seg="${SEG}" data-part="${auto ? 'mlcc_term_auto' : 'mlcc_term_cons'}" data-alias="mlcc_term,mlcc_pad">
         <text class="hd" x="${x}" y="526">${auto ? '車規：四層（多一層導電樹脂）' : '消費級：三層'}</text>
         ${shells}<rect class="part" x="${BL}" y="${BT}" width="${BR - BL}" height="${BB - BT}" fill="url(#mcT)"/>${stubs}${pcb}${crack}${relief}
         <text class="sub" x="${x}" y="712" ${auto ? '' : 'style="fill:var(--dg-warn)"'}>${auto ? '樹脂層先變形，把應力吃掉' : '陶瓷直接吃到應力 → 板彎裂'}</text></g>`;
@@ -703,5 +759,5 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { STYLE, labelRow, lrow3, processBar, chainLink, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { STYLE, labelRow, lrow3, processBar, chainLink, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 })();
