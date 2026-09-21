@@ -270,6 +270,30 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms::-webkit-scrollbar{width:6px}
 .hpanel .ms::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 @media (max-width:900px){ .hpanel .ms{max-height:190px} }
+/* ★ 2026-09-21（Andy：「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，
+   並下面多出裡面還蓋族群，並且都具備下拉選單可以看個股」）。
+   產業鏈面板＝族群列（可展開）＋展開後的個股列。**沒有另開第四種清單樣式** ——
+   還是上面那套 .hpanel .ms，只多兩個修飾類：
+     .grow 橫跨整排（grid-column:1/-1），所以它底下展開的個股自然另起一行，
+           而個股仍然吃多欄格線，一個族群 20 檔也只佔 5 列，不會把面板撐長；
+     .sub  往內縮一格，看得出「這幾列是屬於上面那一列的」。 */
+.hpanel .ms a.grow{grid-column:1/-1;background:var(--panel);border-left:3px solid var(--c,var(--cyan));
+  flex-wrap:wrap;row-gap:2px;align-items:center}
+.hpanel .ms a.grow .tw2{font-family:var(--mono);font-size:11px;color:var(--c,var(--cyan));width:10px;flex:none}
+.hpanel .ms a.grow .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.hpanel .ms a.grow .g{flex:1 0 100%;margin-left:16px;text-align:left;color:var(--ink-2)}
+.hpanel .ms a.grow.ison{background:var(--panel-2)}
+.hpanel .ms a.grow .go{flex:none;margin-left:8px;opacity:.65}
+.hpanel .ms a.grow .go:hover{opacity:1;color:var(--cyan)}
+/* 個股列。和族群列一樣拆成兩行（第一行「簡稱 代號」、第二行數字）。
+   不拆的話窄畫面（800px）一欄只剩 130px，flex 會把名字擠成「台／光／電」直排；
+   只夾 ellipsis 也不行 —— 會變成「台… 2…」，等於讀不出是哪一檔。
+   1440 看不到、800 一看就發現，是 DECISIONS #171 那一類的坑。*/
+.hpanel .ms a.sub{margin-left:12px;font-size:12.5px;flex-wrap:wrap;row-gap:1px;align-items:center}
+.hpanel .ms a.sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpanel .ms a.sub .c{flex:none}
+.hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
+.hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
 
 /* ★ 2026-09-20（Andy：「熱門題材 & 今日候選 框格需要一樣大，超出部分改拉Bar」
    ＋「換另一台電腦、螢幕大小不同就會影響整體變化」）。
@@ -319,12 +343,30 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
    以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
 .linkrow.gchips{display:flex;flex-wrap:wrap;gap:5px 6px}
-/* ★ 2026-09-20（E3＋F3）：族群晶片列是**唯一**的族群選擇器，所以 36 個族群全部要列出來；
-   但排行卡在 2:1 的版面裡只剩三分之一寬，整排會排成 12 列、把卡片撐得比時鐘還高
+/* ★ 2026-09-20（E3＋F3）：族群晶片列是**唯一**的族群選擇器，所以全部族群都要列出來；
+   但排行卡在 2:1 的版面裡只剩三分之一寬，整排會排成十幾列、把卡片撐得比時鐘還高
    （實測 1440px：右卡 1180px vs 左卡 980px，左邊下面空一大塊）。
-   照全站同一套作法處理「列不完」：固定高度＋自己的捲軸（DECISIONS #182），
-   不要讓它把版面比例吃掉。150px 約 5 列，寬螢幕的時鐘卡根本用不到捲軸。*/
+   照全站同一套作法處理「列不完」：固定高度＋自己的捲軸（DECISIONS #182）。
+   ★ 2026-09-21 起這兩排都住在 `.rotfilter` 裡，實際生效的高度是下面那條 96px；
+     這裡留著的是 overflow 與 align-content（下面那條靠它們）。*/
 .linkrow.gchips[data-sync="n2"]{max-height:150px;overflow-y:auto;align-content:flex-start}
+/* ★ 2026-09-21（Andy：「族群篩選幫我改到 全部、半導體、… 下方…並且需要縮小一點
+   我只是需要篩選選取」）：晶片列搬進 .rotfilter、掛在產業鏈 seg 的正下方。
+   · `flex-basis:100%` 逼它自己佔一整行 —— .rotfilter 是 flex-wrap，
+     不這樣做的話晶片會和「只看前 10 大」擠在同一行、順序看起來就亂了。
+   · 尺寸整體縮一級（12px → 11px、內距減半、圓角縮小）：這是功能鈕不是閱讀內容。
+   · 高度上限 150 → 96px（約 4 列）：它現在在圖的**上面**，太高會把圖整個推下去。 */
+.rotfilter .linkrow.gchips{flex:0 0 100%;max-height:96px;margin:1px 0 2px;gap:4px 5px}
+/* ★ 產業鏈那一排：`.seg` 預設是 inline-flex **不換行**，7 顆鈕塞進「資金流向排行」那張
+   只有三分之一寬的卡片時，flex 會把每一顆壓到剩一個字寬 ——「其他產業別」變成
+   直排的五個字（量到：右卡 seg 高 129px，左卡只有 27px）。
+   這一排是功能鈕，寧可折成兩行也不要把字壓成直的。 */
+.rotfilter .seg.rotchain{display:flex;flex-wrap:wrap;max-width:100%;row-gap:3px}
+.rotfilter .seg.rotchain button{white-space:nowrap;flex:0 0 auto}
+.rotfilter .gchip{font-size:11px;border-radius:7px}
+.rotfilter .gchip .pick{font-size:11px;padding:1px 3px 1px 6px}
+.rotfilter .gchip .go{padding:1px 5px 1px 3px}
+@media (max-width:900px){ .rotfilter .linkrow.gchips{max-height:84px} }
 .gchip{display:inline-flex;align-items:center;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
   border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}
 .gchip .pick{appearance:none;border:0;background:transparent;color:var(--ink-2);
@@ -367,6 +409,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rbar .pb:disabled{opacity:.35;cursor:default}
 .rbar .pb.play{width:30px;font-size:12px}
 .rbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
+/* 「即時」鈕（Andy 2026-09-21）。比 ＋／−／▶ 寬，因為它是兩個中文字不是一個符號；
+   開著的時候整顆亮起來 —— 使用者一定要看得出「現在畫的不是收盤那一張」。 */
+.rbar .pb.livebtn{width:auto;padding:0 10px;font-size:12px;letter-spacing:.5px}
+.rbar .pb.livebtn.on{border-color:var(--rise);color:var(--rise);box-shadow:var(--glow)}
+.livenote{margin-top:6px;line-height:1.7}
+.livenote .live{color:var(--rise)}
+.livenote .warn{color:var(--amber)}
+.livenote .bad{color:var(--rise)}
 @media (prefers-reduced-motion:reduce){ .rbar .pb{transition:none} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
@@ -1060,13 +1110,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .rotchk{display:inline-flex;align-items:center;gap:4px;cursor:pointer;font-size:12.5px;color:var(--ink-2);white-space:nowrap}
 .rottools{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin:2px 0 0;font-size:12px;color:var(--ink-3)}
 .rottools .muted{font-size:11.5px}
-/* 展開的複選格：一定要有高度上限＋自己的捲軸，族群 36 個、個股上千檔 */
-.chainchips.rotpick{margin:4px 0 6px;max-height:132px;overflow:auto}
-.chainchips.rotpick .rotstocklist{display:flex;flex-wrap:wrap;gap:5px 6px}
-.rotsearch{width:100%;box-sizing:border-box;margin-bottom:6px;padding:5px 8px;font-size:12.5px;
-  color:var(--ink);background:var(--panel-2);border:1px solid var(--line-2);border-radius:8px}
-.rotsearch:focus{outline:none;border-color:var(--cyan)}
-@media (max-width:900px){ .rotfilter{gap:5px 6px} .chainchips.rotpick{max-height:110px} }
+/* 2026-09-21：個股篩選面板（.rotpick / .rotsearch / .rotstocklist）整組移除，樣式一併刪掉，不留死碼 */
+@media (max-width:900px){ .rotfilter{gap:5px 6px} }
 
 /* ---------------------------------------------------------------- 任務板（#tasks）
    刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
@@ -1320,12 +1365,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
            ＋ / − / ▶ 由 playBar 提供；#rotTools 放軌跡開關。 -->
       <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>
       <div class="rottools" id="rotTools"></div>
-      <!-- E3：這一排只剩 產業鏈 seg／只看前 10 大／個股篩選／清除篩選／狀態說明。
-           **族群**改成只在圖下方那一排晶片選（那一排會真的改 ROT.groups）——
-           以前這裡還有一顆「族群篩選」，展開是第二份一模一樣的族群清單。 -->
+      <!-- ★ 2026-09-21（Andy：「個股篩選拿掉，下方的族群篩選幫我改到 全部、半導體、…
+           下方 包含資金流向排行，並且需要縮小一點」）：
+           這一排現在是 產業鏈 seg → **族群晶片列** → 只看前 10 大／清除篩選／狀態說明，
+           族群晶片就長在 seg 的正下方（同一組控制項的粗細兩層）。個股篩選整顆移除。 -->
       <div class="rotfilter" data-rf="rot"></div>
-      <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
-      <div class="note" id="rotCenterNote"></div></div>
+      <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div></div>
       <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
         <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rank" hidden></div>
@@ -1350,6 +1395,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播"></div>
+      <!-- 盤中即時模式的狀態列（Andy 2026-09-21「即時」）。誠實標示全寫在這一行：
+           哪一個數字是真實值、哪一個是估算、% 的分母是誰、哪幾格是盤後、這一輪打了幾個請求。
+           不塞進圖裡是刻意的 —— 圖上塞不下，而這幾句話少一句整張圖就會被讀錯。 -->
+      <div id="sankeyLive" class="note livenote" hidden></div>
       <!-- 2026-09-20（Andy：「當點擊族群時會在右邊出現個股的成交值排序」）：
            圖和面板並排。面板沿用全站的 .hpanel / .hpanel .ms（固定高度＋自己的捲軸），
            不另開第三種清單樣式。窄畫面時 #sankeyRow 改成 block，面板掉到圖下面。 -->

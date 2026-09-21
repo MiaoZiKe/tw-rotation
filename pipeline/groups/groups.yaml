@@ -9,7 +9,22 @@
 # 並親自截圖提供官方清單（逐字抄錄在 docs/tide_110_boards.md，那份是權威清單）。
 # **板塊名稱一律用 tide 的原文**，不自己改名 —— 名字不同就對不起來，改名等於白做。
 #
-# 這個檔案裡只有 77 個板塊，另外 33 個去哪了？
+# ★ tide 的清單是起點，不是聖經（Andy 2026-09-21：「即使他是那樣寫也需要查證」）
+# ------------------------------------------------------------------------
+# 收容桶（〇〇・其他）只該裝「真的沒有共同驅動力」的零散股。如果一籃股票明顯一起動，
+# 卻因為 tide 沒開那一格就丟進收容桶，M1 的資金面就看不到它 —— CCL 那四家合計
+# 日均 319 億（20 日平均），連同銅箔與德宏一起整包躺在「電子零組件・其他」裡 ——
+# 那一桶 536.7 億裡有 426 億（79%）是這六檔，等於台股 AI 板材主線在儀表板上消失。
+# 所以新增板塊的判準是**兩條都要過**：
+#   1. 資金流同向 —— 用 data/price_daily 實際算 120 個交易日、剔除大盤 beta 後的
+#      日報酬殘差相關。基準線：全市場隨機配對中位 +0.08、95 百分位 +0.29
+#      （2026-09-21 用 395 檔深歷史股實測）。組內要明顯高於這個基準，
+#      而且要高於它對隔壁板塊的相關。
+#   2. 有獨立敘事 —— 查得到公開來源說明這一籃被同一件事驅動（同一個終端需求、
+#      同一波政策、同一個缺料）。只有一條成立的，寫進 docs/tide_deviations.md 並維持現狀。
+# 只成立一條就硬開一格，等於把「看起來像」當成證據；兩條都不成立就留在收容桶。
+#
+# 這個檔案裡只有 83 個板塊，另外 33 個去哪了？
 # --------------------------------------------
 # tide 的 110 個板塊裡有 33 個「就等於一個法定產業別」：
 #   · 16 個是「〈法定產業別〉・其他」的收容桶（半導體・其他、光電・其他…），
@@ -46,7 +61,10 @@ meta:
   note: >-
     板塊名稱以 tide 原文為準。象限（漲潮／輪動／觀望／退潮）是每天會變的資金狀態，
     不是分類，所以刻意沒有寫進這個檔案。
-    77 個板塊在 groups 裡手寫成分，另外 33 個由 build_payload 的 ind_* 自動桶供應（見 ind_display）。
+    83 個板塊在 groups 裡手寫成分，另外 33 個由 build_payload 的 ind_* 自動桶供應（見 ind_display）。
+    2026-09-21 第二輪查證後，依「資金流是否同向 ＋ 有沒有獨立敘事」新增 6 個 tide 沒有的板塊
+    （CCL 銅箔基板、銅箔、重電設備、電信服務、壽險金控、證券金控），
+    每一筆偏離的理由、相關係數與代價都寫在 docs/tide_deviations.md。
 
   # ★ 給 pipeline 的請求（這個檔案自己做不到，需要 build_payload.py 配合）：
   #   ind_* 自動桶目前用法定產業別原名當 group_name（「半導體業」「生技醫療業」）。
@@ -263,8 +281,11 @@ groups:
     tier: upstream
     chain: semiconductor
     note: "晶圓廠與封裝廠的無塵室、氣體化學品輸送與機電統包工程；營收看在手訂單與新廠開工節奏。"
-    codes: ["2404", "6139", "6196", "5536", "6691", "6667", "3402", "6613"]
-    # 2404 漢唐、6139 亞翔、6196 帆宣、5536 聖暉*、6691 洋基工程、6667 信紘科、3402 漢科、6613 朋億*
+    codes: ["2404", "6139", "6196", "5536", "6691", "6667", "3402", "6613", "4770"]
+    # 2404 漢唐、6139 亞翔、6196 帆宣、5536 聖暉*、6691 洋基工程、6667 信紘科、3402 漢科、6613 朋億*、4770 上品
+    # 4770 上品 2026-09-21 從「玻璃基板」改掛到這裡：氟塑料內襯管道／儲槽／ISO Tank，
+    # 做的就是晶圓廠的高純度化學品輸送與回收，和 6667 信紘科、6613 朋億是同一個環節。
+    # ⚠ 它的法定產業別是化學工業，資料湖也沒有深歷史，所以沒有相關係數佐證，依營收結構判定。
 
   # ---------------------------------------------------------------- AI 伺服器
   ai_server_odm:
@@ -351,20 +372,55 @@ groups:
     note: "軟性印刷電路板（FPC）與軟板材料，終端以手機、穿戴與車用為主。"
     codes: ["6269", "6153", "8039", "3645", "3354"]
     # 6269 台郡、6153 嘉聯益、8039 台虹、3645 達邁、3354 律勝
+  ccl:
+    name: CCL 銅箔基板
+    tier: upstream
+    chain: ai_server
+    # 為什麼 tide 沒有這一格、我們卻自己開（偏離理由詳見 docs/tide_deviations.md）：
+    # 這四家日均成交值合計 319 億（20 日平均；7 日平均是 349 億），原本整包躺在
+    # 自動桶「電子零組件・其他」裡，一格就占那一桶 536.7 億的 59% ——
+    # 等於 M1 資金面看不到台股 AI 板材這條主線。
+    # 實測（120 個交易日、剔除大盤 beta 後的殘差相關）：組內中位 +0.45、最低 +0.31，
+    # 而全市場隨機配對的中位只有 +0.08、95 百分位 +0.29 —— 這一籃明顯是同一團資金。
+    # 對外：玻纖布 +0.29、PCB 硬板 +0.31、載板 +0.35、電子零組件業其餘 61 檔 +0.17，
+    # 全部低於組內，所以它不是既有任何一格的延伸，是自己一格。
+    note: "銅箔基板（CCL）與膠片（PP）：把玻纖布、樹脂與銅箔壓合成板材，再賣給 PCB／載板廠。等級（M6→M9）決定高速訊號損耗，是 AI 伺服器板材的瓶頸環節。"
+    codes: ["2383", "6274", "6213", "6672"]
+    # 2383 台光電、6274 台燿、6213 聯茂、6672 騰輝電子-KY
+    # 騰輝 CCL 占營收 36.3%、鋁基板 31.6%、膠片 19.8% —— CCL 是單一最大項，故納入。
+  copper_foil:
+    name: 銅箔
+    tier: upstream
+    chain: ai_server
+    # 金居原本也在「電子零組件・其他」（日均 95.5 億）。它是 CCL 的**材料**不是 CCL，
+    # 數字也支持分開：把金居併進 CCL 那一格，組內中位會從 +0.45 掉到 +0.39、
+    # 最差的一對從 +0.31 掉到 +0.12（金居 × 台光電只有 +0.12）。
+    # 金居對 CCL 四家平均 +0.33、對玻纖布 +0.33、對載板只有 +0.22 —— 高於雜訊但不屬於任何一格。
+    note: "電解銅箔 —— CCL 的導體層。高速板材要的是低粗糙度反轉銅箔（HVLP3／HVLP4），是目前整條板材鏈最缺的一段。"
+    codes: ["8358", "4989"]
+    # 8358 金居（HVLP4 已量產、已停產標準銅箔轉高階）、4989 榮科（李長榮集團，電解銅箔，HVLP1/2 認證中）
+    # ⚠ 4989 榮科日均僅 1.7 億且資料湖沒有深歷史（只有近 7 日），沒辦法做相關檢定，
+    #    納入的依據是「主要營收就是電解銅箔」這個事實，不是資金流。
   glass_fiber:
     name: 玻纖布
     tier: upstream
     chain: ai_server
     note: "玻纖紗與玻纖布 —— 銅箔基板（CCL）的補強材，低介電（Low-Dk）等級是高速板材的瓶頸。"
-    codes: ["1815", "5340"]
-    # 1815 富喬、5340 建榮
+    codes: ["1815", "5340", "5475"]
+    # 1815 富喬、5340 建榮、5475 德宏
+    # 5475 德宏是 2026-09-21 從「電子零組件・其他」補進來的：玻纖布占它營收 96.7%，
+    # 本來就該在這一格。殘差相關 對建榮 +0.50、對富喬 +0.37（三家組內中位 +0.50），
+    # 對 CCL 四家只有 +0.11～+0.40，證實它跟的是玻纖布不是 CCL。
   glass_substrate:
     name: 玻璃基板
     tier: midstream
     chain: ai_server
     note: "玻璃核心載板與玻璃穿孔（TGV）：下一代載板的候選材料，目前多在試產階段。"
-    codes: ["3149", "8064", "4770", "3673"]
-    # 3149 正達、8064 東捷、4770 上品、3673 TPK-KY
+    codes: ["3149", "8064", "3673"]
+    # 3149 正達、8064 東捷、3673 TPK-KY
+    # 2026-09-21 移出 4770 上品：它的主體是氟素樹脂內襯管道、化學品儲槽與 ISO Tank，
+    # 近九成營收來自電子級化學品廠與晶圓廠，跟玻璃核心載板沒有關係（前兩位分析師都標
+    # 「最沒把握的一筆」）。已改掛 semi_facility 廠務工程。
   ai_interconnect:
     name: AI 互連元件
     tier: midstream
@@ -566,6 +622,39 @@ groups:
       "2801", "2834", "5876", "2812", "2845", "2838", "2836", "2897",
     ]
     # 2891 中信金、2892 第一金、2880 華南金、2886 兆豐金、5880 合庫金、2884 玉山金、2890 永豐金、2887 台新新光金、2801 彰銀、2834 臺企銀、5876 上海商銀、2812 台中銀、2845 遠東銀、2838 聯邦銀、2836 高雄銀、2897 王道銀行
+    # 2887 台新新光金**刻意留在這一格**：雖然併入新光金之後壽險部位變大，
+    # 但實測它對銀行六大的殘差相關中位 +0.42、對富邦／國泰只有 +0.36 ——
+    # 現在的資金還是把它當銀行股在買。等資料改變再移，不照新聞標題移。
+  life_fhc:
+    name: 壽險金控
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    # tide 的「銀行金融」只收銀行，這兩家落到自動桶「金融保險・其他」。
+    # 實測：兩家之間殘差相關 +0.74、成交值佔比變動 +0.70（全案最高的一對），
+    # 對銀行六大只有 +0.34 —— 驅動力不同（壽險是利率與股債評價，銀行是利差與放款）。
+    # valuation_metric 一定要自己帶 pb_roe：自動桶「金融保險」原本設了 pb_roe，
+    # 拆出來之後若不寫就會退回預設的 pe，而壽險的 EPS 會被評價損益扭曲。
+    note: "獲利主體是壽險子公司的金控：帳面隨利率、匯率與股債評價擺動，不是靠存放款利差；估值用股價淨值比＋ROE。"
+    codes: ["2881", "2882"]
+    # 2881 富邦金、2882 國泰金
+  securities_fhc:
+    name: 證券金控
+    tier: standalone
+    chain: financial
+    valuation_metric: pb_roe
+    # 同樣是從「金融保險・其他」拆出來的。兩家之間殘差相關 +0.60，
+    # 對銀行六大 2885 元大金 +0.29、2883 凱基金 +0.43（中位 +0.39），明顯較低。
+    # ★ 這是本批我最沒把握的一格，理由寫在 docs/tide_deviations.md：
+    #   2883 凱基金旗下同時有凱基人壽與凱基證券，它對壽險二家 +0.59、對元大金 +0.60，
+    #   兩邊幾乎一樣高。放這裡的依據是它四家子公司裡有三家（人壽投資收益、證券、
+    #   中華開發資本）都是資本市場評價驅動，只有銀行是穩定的。
+    # ⚠ 純券商（2855 統一證、6005 群益證、6016 康和證、6023 元大期）**沒有**放進來：
+    #   實測 6016 對元大金只有 +0.16、6023 只有 +0.05，「受成交量驅動」這個故事
+    #   在它們的股價上量不到，而且日均成交值都在 2.5 億以下。它們留在「金融保險・其他」。
+    note: "獲利主體是證券、期貨與創投的金控：帳面隨市場成交量與投資部位評價走，不是靠利差；估值用股價淨值比＋ROE。"
+    codes: ["2885", "2883"]
+    # 2885 元大金、2883 凱基金
 
   # ---------------------------------------------------------------- 傳產與內需
   shipping_container:
@@ -618,7 +707,41 @@ groups:
     codes: ["8390", "9955", "8422", "8473", "6894", "6944", "3551"]
     # 8390 金益鼎、9955 佳龍、8422 可寧衛*、8473 山林水、6894 衛司特、6944 兆聯實業、3551 世禾
 
+  telecom:
+    name: 電信服務
+    tier: downstream
+    chain: traditional
+    # tide 把它們留在「通信網路・其他」，和網通設備商同一桶 —— 這一格是這次五組裡
+    # 證據最強的一筆，而且是「合在一起會產生錯誤訊號」而不只是「分開比較好看」：
+    #   中華電 × 台灣大 殘差相關 +0.63、成交值佔比變動 +0.37；
+    #   但它們對「通信網路業」其餘 22 檔深歷史股（智邦、中磊、啟碁、光環…）
+    #   的殘差相關中位是 **−0.06**，最高也只有 +0.05。
+    # 也就是說同一個自動桶裡裝了兩團**反向移動**的資金，M1 算出來的桶內平均等於互相抵銷。
+    # 另一個佐證：這一格對國際指數幾乎沒有連動（^SOX 落後一日 −0.05、^IXIC −0.00），
+    # 所以 benchmarks 刻意不給它國際對標 —— 它就是內需防禦，不跟外盤走。
+    note: "行動與固網電信業者：營收來自月租與加值服務，現金流穩、股利政策明確，是資金在震盪期停泊的防禦型高股息標的；驅動力是殖利率與利率預期，不是電信設備的資本支出。"
+    codes: ["2412", "3045", "4904"]
+    # 2412 中華電、3045 台灣大、4904 遠傳
+    # ⚠ 4904 遠傳資料湖沒有深歷史（只有近 7 日），沒辦法進相關檢定。
+    #    納入的依據是它與另外兩家同樣是電信服務業者、同樣走完整除息填息的高股息路徑。
+
   # ---------------------------------------------------------------- 基礎建設與能源
+  heavy_electric:
+    name: 重電設備
+    tier: midstream
+    chain: infrastructure
+    # tide 沒有這一格，五家全躺在自動桶「電機機械・其他」。實測支持獨立：
+    # 剔除大盤後殘差相關 組內中位 +0.56（最低 +0.40、最高 +0.77），
+    # 對「電機機械」其餘 8 檔深歷史股（上銀、亞德客、新代…）只有 +0.11，
+    # 對現有板塊「電器電纜」只有 +0.18 —— 同產業別但完全不是同一團資金。
+    # 成交值佔比日變動的相關中位也有 +0.50，是這次五組裡最高的，代表是真的一起被買。
+    note: "變壓器、氣體絕緣開關設備（GIS）與配電盤：台電強韌電網計畫與 AI 資料中心擴廠的受電端設備，營收看在手訂單而非當期景氣。"
+    codes: ["1503", "1504", "1513", "1514", "1519"]
+    # 1503 士電、1504 東元、1513 中興電、1514 亞力、1519 華城
+    # 1504 東元原本被懷疑「馬達與家電太大、跟不上」，數字否定了這個懷疑：
+    # 它對其餘四家的平均殘差相關 +0.50，比 1519 華城的 +0.48 還高，所以留著。
+    # ⚠ 2371 大同媒體也常並稱，但資料湖沒有深歷史（只有近 7 日），
+    #    而且它還有資產與電線電纜兩塊獨立故事，沒有證據就不放進來。
   wire_cable:
     name: 電器電纜
     tier: standalone
@@ -670,7 +793,7 @@ chains:
     order: [ip_asic, hpc_network_ic, cpu_agentic_ai, cxl, display_driver_ic, analog_power_ic, optical_sensing, foundry, wide_bandgap, silicon_wafer, fab_material, fab_process_equip, fab_equipment, pkg_equipment, pkg_metrology, osat, ic_test_service, ai_adv_packaging, hbm, nor_niche_memory, memory_module, leadframe_chem, ic_distribution, semi_facility]
   ai_server:
     name: AI 伺服器
-    order: [ai_server_odm, chassis_rail, liquid_cooling, air_cooling, server_psu, bbu, switch_wireless, optical_module, silicon_photonics, ic_substrate, pcb_rigid, flex_pcb, glass_fiber, glass_substrate, ai_interconnect, connector_ind, connector_auto]
+    order: [ai_server_odm, chassis_rail, liquid_cooling, air_cooling, server_psu, bbu, switch_wireless, optical_module, silicon_photonics, ic_substrate, pcb_rigid, flex_pcb, ccl, copper_foil, glass_fiber, glass_substrate, ai_interconnect, connector_ind, connector_auto]
   electronics:
     name: 一般電子
     order: [ai_pc, ems, edge_ai, smartphone, optical_lens, ar_vr_optics, panel, microled, mlcc, resistor_protect, jp_passive, capacitor, power_inductor, crystal, satellite, precision_parts, factory_automation, machine_tool]
@@ -679,13 +802,13 @@ chains:
     order: [cyber_security, cloud_msp, saas, ecommerce]
   financial:
     name: 金融
-    order: [bank]
+    order: [bank, life_fhc, securities_fhc]
   traditional:
     name: 傳產與內需
-    order: [shipping_container, shipping_bulk, airline, land_transport, defense, petrochemical, env_recycle]
+    order: [shipping_container, shipping_bulk, airline, land_transport, telecom, defense, petrochemical, env_recycle]
   infrastructure:
     name: 基礎建設與能源
-    order: [wire_cable, solar, wind_power, energy_storage, battery_cell, battery_material]
+    order: [heavy_electric, wire_cable, solar, wind_power, energy_storage, battery_cell, battery_material]
 
 # 國際對標：板塊與哪個國際指標連動最緊，M4 國際連動盤用。
 # 只給「連動關係說得出口」的板塊，說不出來的就不要硬給。
@@ -713,5 +836,9 @@ benchmarks:
   bbu: "^IXIC"
   ai_interconnect: "^IXIC"
   bank: "^TWII"
+  life_fhc: "^TWII"
+  securities_fhc: "^TWII"
+  # 電信服務（telecom）刻意不給國際對標：實測對 ^SOX／^IXIC／^GSPC 的落後一日相關
+  # 分別是 −0.05／−0.00／+0.02，對 ^TWII 同日 −0.09 —— 量不到連動就不要硬給。
   shipping_container: "^TWII"
   shipping_bulk: "^TWII"

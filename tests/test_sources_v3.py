@@ -394,3 +394,133 @@ def test_其他來源的4xx行為不變(monkeypatch, caplog):
     assert http.get("https://example.invalid/api") is None
     assert http.get("https://example.invalid/api", error_body=True) == {
         "status": 400, "msg": "Bad Request"}
+
+
+# ================================================================== TechNews 分類篩選
+#
+# Andy 2026-09-21：「今日事件這邊的科技新聞請確實篩選跟科技有關的，
+# 我發現很多無關的，例如醫療科技等等」。
+# 下面每一組標籤都是從資料湖 data/news 的真實 technews 記錄抄下來的，不是想像的資料。
+
+from pipeline.sources import news  # noqa: E402
+
+# （標題, 標籤, 應該落在哪一格）—— 標籤原封不動取自資料湖
+TECHNEWS_CASES = [
+    # --- Andy 截圖點名的四則，全部不該留在科技
+    ("腫瘤完全消失！美男童接受實驗性 CAR-T 療法，肝癌治癒且一年未復發",
+     "生物科技,醫療科技,CAR-T 療法,兒童癌症,癌症,肝癌", None),
+    ("每天一杯手搖飲代價有多大？哈佛最新研究：胃癌風險狂飆 2.5 倍",
+     "生物科技,科技生活,醫療科技,代糖,健康,含糖飲料,幽門桿菌,慢性發炎", None),
+    ("腸道細菌會影響情緒嗎？研究發現它們可能牽動大腦化學訊號",
+     "生物科技,醫療科技,腦腸系統,腸腦軸", None),
+    ("拒當盤子，購買二手電腦零件必看的六大避險心法與驗貨訣竅",
+     "3C,3C周邊,科技生活,電腦,二手交易,二手電腦,交易平台,信用卡", None),
+    # --- 生醫題目被順手標上「晶片」：強拒絕要壓得過硬訊號
+    ("全球首創「多器官晶片」問世：重現腫瘤擴散、加速抗癌新藥開發",
+     "半導體,晶片,生物科技,醫療科技,器官,多器官晶片,抗癌,毫米", None),
+    # --- 天文／地科／基礎科學
+    ("水星冷卻收縮之路尚未結束，新研究：縮水速度比過去預估快 30%",
+     "天文,自然科學,太陽系,水星,皺脊,行星收縮", None),
+    # --- 生活化的 AI 題目：有 AI 標籤也不該進科技
+    ("自拍照丟給 ChatGPT 求變美？實測真相：建議多是舊招，照片還可能被留存",
+     "AI 人工智慧,ChatGPT,國際觀察,社群,AI 生成,Glow-up,提示詞,隱私", None),
+    # --- 半導體供應鏈：一定要留
+    ("CPO 題材太熱估值過高！大摩降評大立光至中立、減碼玉晶光",
+     "CPO,iPhone,半導體,鏡頭,FAU,大立光,玉晶光", "科技"),
+    ("AI 需求旺  村田製作所：「大膽評估」擴增 MLCC 產能",
+     "AI 人工智慧,國際貿易,零組件,AI 伺服器,MLCC,村田製作所", "科技"),
+    ("CPO 鬼故事嚇崩 CCL 三雄！大摩霸氣喊台光電、台燿逢低就是買點",
+     "AI 人工智慧,CPO,PCB,半導體,尖端科技,財經,零組件,CCL", "科技"),
+    # --- 硬訊號要壓得過弱拒絕：半導體廠的人才／房市／能源新聞仍然是科技
+    ("AI 擴產潮遇人力瓶頸，美半導體業 2030 年恐面臨逾 15 萬人才缺口",
+     "AI 人工智慧,人力資源,半導體,國際觀察,晶圓,晶片,AI 晶片,SK 海力士", "科技"),
+    ("2026 年全球資料中心用電需求估年增 31%，電網供應缺口自 2028 年擴大",
+     "AI 人工智慧,伺服器,能源科技,電力儲存,AI,AI 伺服器,供電,散熱", "科技"),
+    # --- 3C 是弱拒絕不是強拒絕：帶筆電硬訊號的機種新聞要留
+    ("打破入門機框架！Googlebook 規格曝光，搭 15.3 吋 OLED 螢幕與 Core Ultra 5 處理器",
+     "3C,Android,Google,筆記型電腦,Gemini,Googlebook,lenovo,聯想", "科技"),
+    # --- 泛科技（AI／資安／軟體）：沒有硬訊號但也沒被拒絕，留
+    ("最新 AI 代理模擬世界結果出爐，說謊、偷竊、串通繞過安全護欄樣樣來",
+     "AI 人工智慧,資訊安全,AI 代理,AI 越獄,Emergence AI,Emergence World,密語,黑話", "科技"),
+    # --- 改標總經：央行、升息、油價、關稅
+    ("高盛：聯準會比預期偏鷹  預料 10 月將再升息", "國際金融,財經,Fed,升息,通膨", "總經"),
+    ("AI 通膨來襲？央行：短期可控、長期生產力提升將降壓",
+     "AI 人工智慧,財經,金融政策,AI,央行,經濟成長,通膨", "總經"),
+    ("彭博：傳美國將產能過剩關稅延至下週川習會後宣布",
+     "國際觀察,國際貿易,川普,川習會,習近平,關稅", "總經"),
+    ("電價暫不調整，台電爭取 711 億元撥補、12 月再議", "能源科技,台電,漲價,電價", "總經"),
+    # --- 改標台股：ETF／基金的行情題
+    ("台股 ETF 超級除息週！總計 13 檔年化配息率飆破 10% 一次看",
+     "AI 人工智慧,半導體,證券,財經,台股 ETF,年化配息率,超級除息週", "台股"),
+    # --- 但「台股」兩個字本身不算行情題：台積電的新聞還是科技
+    ("費半跳水衝擊台股力守 4 萬 7 關卡，台積電創高營收力抗空軍",
+     "證券,財經,ASIC,CoWoS,先進封裝,台積電,台股,晶圓代工", "科技"),
+]
+
+
+@pytest.mark.parametrize("title,tags,want", TECHNEWS_CASES)
+def test_technews分類(title, tags, want):
+    assert news.classify_technews(title, tags) == want, f"分錯了：{title}"
+
+
+def test_technews分類遇到空標籤不會炸():
+    """RSS 偶爾不給 category，標籤是空字串。這時只能看標題，而且不可以丟例外。"""
+    assert news.classify_technews("台積電 2 奈米量產", "") == "科技"
+    assert news.classify_technews("", "") is None
+    assert news.classify_technews(None, None) is None
+
+
+def test_technews抓回來會重新分類而且不收的直接丟掉(monkeypatch):
+    """整份 RSS 不是每一則都是台股科技族群的事 —— technews() 要自己重分類。
+
+    用假的 RSS 回應（真實標籤），不打真 API。
+    """
+    pytest.importorskip("feedparser")
+    rss = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <item>
+    <title>CPO 題材太熱估值過高！大摩降評大立光至中立</title>
+    <link>https://technews.tw/2026/09/20/cpo-1/</link>
+    <pubDate>Sat, 20 Sep 2026 01:30:00 +0000</pubDate>
+    <description>大摩報告</description>
+    <category>半導體</category><category>CPO</category>
+  </item>
+  <item>
+    <title>腸道細菌會影響情緒嗎？</title>
+    <link>https://technews.tw/2026/09/20/gut/</link>
+    <pubDate>Sat, 20 Sep 2026 02:00:00 +0000</pubDate>
+    <description>研究</description>
+    <category>生物科技</category><category>醫療科技</category>
+  </item>
+  <item>
+    <title>高盛：聯準會比預期偏鷹  預料 10 月將再升息</title>
+    <link>https://technews.tw/2026/09/20/fed/</link>
+    <pubDate>Sat, 20 Sep 2026 03:00:00 +0000</pubDate>
+    <description>高盛</description>
+    <category>國際金融</category><category>升息</category>
+  </item>
+</channel></rss>"""
+    monkeypatch.setattr(http, "get", lambda *a, **k: rss)
+    df = news.technews()
+    assert len(df) == 2, "醫療那則應該被丟掉"
+    assert set(df["category"]) == {"科技", "總經"}
+    assert df[df.category == "科技"].iloc[0]["title"].startswith("CPO")
+    # 日期仍然要吃回應裡的 pubDate 轉台北，不是執行當下的日期
+    assert set(df["date"]) == {"2026-09-20"}
+
+
+def test_篩選器在真實評估集上的precision與recall沒有退步():
+    """護欄：清單是放在 config.py 讓人調的，調壞了要當場被擋下來。
+
+    評估集是 docs/fixtures/technews_labels.tsv（121 則人工標註，
+    取自資料湖 data/news 裡 363 則真實 technews 的每 3 則第 1 則）。
+    門檻 0.85 是 Andy 這一批的驗收標準；現況遠高於此，掉到 0.85 以下代表清單被改壞了。
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        "eval_news", Path(__file__).resolve().parent.parent / "scripts" / "eval_news_tech_filter.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    res = mod.evaluate(mod.load_labels())
+    assert res["precision"] >= 0.85, f"precision 掉到 {res['precision']:.3f}"
+    assert res["recall"] >= 0.85, f"recall 掉到 {res['recall']:.3f}"

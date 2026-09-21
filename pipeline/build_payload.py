@@ -17,6 +17,8 @@ import pandas as pd
 from . import config, indicators
 from .compute import flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
+# TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
+from .sources import news as news_src
 from .util import store
 from .util.roc import is_tradable_security, norm_industry
 
@@ -439,6 +441,32 @@ def build() -> None:
     if not news_df.empty:
         if "category" not in news_df.columns:
             news_df["category"] = "台股"
+        # ★ 2026-09-21（Andy：「科技新聞請確實篩選跟科技有關的，我發現很多無關的，例如醫療科技等等」）
+        #   TechNews 的 RSS 以前被無條件標成「科技」，於是天文／醫療／健康／3C 開箱全進了科技格。
+        #   `news.classify_technews()` 現在會重新分類，哪一格都不屬於的標成「其他」。
+        #   這裡要把「其他」濾掉 —— 側欄的篩選晶片（#evFilters）只有
+        #   台股／科技／總經／券商四顆，「其他」沒有自己的晶片，
+        #   **卻還是會出現在「全部」清單裡**，等於篩了跟沒篩一樣。
+        #   ★ 濾在這裡而不是在 news.py：資料湖只增不改、原始分類要留著，
+        #     哪天判準改了可以重跑；被濾掉的是「這一版判斷不該顯示的」，不是「不存在的」。
+        #
+        #   ★★ 而且分類是**在這裡重跑一次**，不是只信資料湖裡存的那個值。
+        #   原因：TechNews 的 RSS 一次只給最新 20 則，已經躺在湖裡的幾百則舊記錄
+        #   永遠不會被重抓，`category` 會一直是舊的「科技」——
+        #   使用者重新整理還是看到 CAR-T 掛在科技格，看起來像「修了沒用」。
+        #   在讀取端重跑有兩個好處，都比「寫回資料湖」乾淨：
+        #     ① 資料湖維持只增不改（CLAUDE.md 的紅線），原始分類完整保留；
+        #     ② 判準之後再調，下一次部署就自動套用到全部歷史，不用再補一次資料。
+        if "source" in news_df.columns:
+            _tn = news_df["source"] == "technews"
+            if _tn.any():
+                _new = [news_src.classify_technews(t, k) or "其他"
+                        for t, k in zip(news_df.loc[_tn, "title"].fillna(""),
+                                        news_df.loc[_tn, "keywords"].fillna(""))]
+                news_df.loc[_tn, "category"] = _new
+                log.info("TechNews 重新分類 %d 則：%s", int(_tn.sum()),
+                         pd.Series(_new).value_counts().to_dict())
+        news_df = news_df[news_df["category"] != "其他"]
         ts = pd.to_datetime(news_df.get("published_at"), errors="coerce", utc=True, format="mixed")
         fallback = pd.to_datetime(news_df.get("date"), errors="coerce", utc=True)
         news_df = news_df.assign(_ts=ts.fillna(fallback))

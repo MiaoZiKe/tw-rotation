@@ -182,6 +182,7 @@
     if (document.hidden) return;
     if (!document.getElementById('m3')) return;
     if (state.futSession !== 'night' || futSession() !== 'night') return;
+    // 走到這裡代表時鐘與畫面都在夜盤，不用再同步
     await pullNight();
     draw();
   }
@@ -231,6 +232,25 @@
   function futSession() {
     const mm = nightMin(taipeiNow());
     return (mm >= SESSION_NIGHT[0] && mm <= SESSION_NIGHT[1]) ? 'night' : 'day';
+  }
+  /** 現在該看哪一段：時鐘說了算，除非使用者「在這一段裡」自己切過。
+   *  舊格式（只存 'day' / 'night' 的純字串）一律當成過期 —— 那正是造成黏住的那一版。*/
+  function pickSession() {
+    const now = futSession();
+    let raw = '';
+    try { raw = ls.get(KEY_FUTS, '') || ''; } catch (e) { raw = ''; }
+    if (!raw || raw.charAt(0) !== '{') return now;          // 沒存過、或是舊格式 → 跟時鐘
+    try {
+      const o = JSON.parse(raw);
+      return (o && o.base === now && (o.sess === 'day' || o.sess === 'night')) ? o.sess : now;
+    } catch (e) { return now; }
+  }
+  /** 時段翻頁時把畫面帶回當下該看的那一段。回傳「有沒有真的換」。 */
+  function syncSession() {
+    const want = pickSession();
+    if (want === state.futSession) return false;
+    state.futSession = want;
+    return true;
   }
   async function fetchFut(session) {
     const base = proxy();
@@ -494,7 +514,13 @@
       prev: num(info.y),
       open: num(info.o), high: num(info.h), low: num(info.l), last: num(info.z),
       vol: num((j.staticObj || {}).tv),                  // 累計成交張數（台指期是口數）
-      amt: num(info.v),                                  // 成交金額（百萬元）；台指期沒有
+      /* 成交金額（百萬元）；台指期沒有。
+         ★ 加權指數這一筆就是**台股當日累積成交值**，而且是盤中就有的真實值
+           （對照 fixture：info.v = 630917 百萬 ↔ staticObj.tz = 630,917,830,610 元）。
+           「盤中即時資金去向」的分母用的就是它 —— 這張圖每分鐘本來就會抓，
+           所以拿它當分母是**零額外請求、而且不是估算值**。
+           取用點見下面的 `Market3.marketAmt`。*/
+      amt: num(info.v),
       points: pts,
     };
   }
@@ -504,6 +530,9 @@
     if (!document.getElementById('m3')) return;          // 不在總覽就不用抓
     // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
+    /* ★ 每一輪都重新評估要看哪一段 —— 網頁可能整天開著，跨過 13:45（日盤收）
+       或 15:00（夜盤開）時要自己翻過去，不能等使用者重新整理。*/
+    syncSession();
     state.busy = true;
     const jobs = IDX.map(async x => {
       try { state.data[x.id] = await fetchOne(x.id); state.err[x.id] = ''; }
@@ -725,13 +754,24 @@
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
     $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
     /* 台指期的日盤／夜盤（Andy 2026-09-18 圖一）。
-       預設依台北時間自己選：15:00~翌日 05:00 算夜盤。使用者可以自己切，切了就記住。*/
-    state.futSession = ls.get(KEY_FUTS, '') || futSession();
+       ★ 2026-09-21 改掉一個會讓人以為壞掉的行為（Andy：「日盤跟夜盤統一一頁，
+         到夜盤的週期走勢圖就顯示夜盤的，同理日盤就是日盤」）。
+         以前是 `ls.get(KEY_FUTS, '') || futSession()` ——
+         **使用者按過一次之後那個選擇就永久記住，再也不會跟著時間走**。
+         他 09:36（日盤時段）打開看到的還停在夜盤，卡片上寫「夜盤報價未取得」，
+         而夜盤 05:00 就收了、當然拿不到 —— 畫面看起來像壞掉，其實是黏住了。
+         現在：**預設一律跟著台北時間走**；手動切只在「做選擇時的那個時段」內有效，
+         時段一翻（日盤↔夜盤）就自動回到當下該看的那一個。
+         存的是 {sess, base}：base＝做這個選擇時時鐘在哪一段，用來判斷過期。*/
+    state.futSession = pickSession();
     loadNightPts();
     /* 切日盤／夜盤：換的是**同一張卡片**的資料來源（數字 ＋ 圖），不是多開一塊。
        切過去先 draw() 讓畫面立刻反應，再 refresh() 去補最新一筆夜盤報價。*/
     $$('#futSeg button').forEach(b => b.onclick = () => {
-      state.futSession = b.dataset.s; ls.set(KEY_FUTS, state.futSession);
+      state.futSession = b.dataset.s;
+      // 連同「做這個選擇時時鐘在哪一段」一起存，時段翻頁時才知道要作廢
+      try { ls.set(KEY_FUTS, JSON.stringify({ sess: state.futSession, base: futSession() })); }
+      catch (e) { /* 私密視窗 */ }
       draw(); refresh(true);
     });
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
@@ -1315,6 +1355,14 @@
     get nightPoints() { return state.nightPts.slice(); },  // 驗收用：真的收到幾個夜盤點
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
     get lastAt() { return state.at; },
+    /** 台股當日累積成交值（元）。盤中即時、真實值不是估算 —— 見上面 `amt` 的註解。
+     *  「即時資金去向」的分母用這個；分子（各板塊成交值）只能用「價×量」估算，
+     *  所以**板塊佔比要用「板塊 ÷ 所有板塊加總」算**，不要拿估算的分子去除這個真實分母，
+     *  那個百分比會系統性偏掉。 */
+    get marketAmt() {
+      const d = state.data && state.data.TSE;
+      return d && d.amt != null ? d.amt * 1e6 : null;
+    },
     get ticking() { return !!state.timer; },  // 驗收用：自己的計時器有沒有在跑
     // 驗收用：三張圖的呼吸燈現在各自亮不亮、燈標在哪一分鐘
     get pulses() {

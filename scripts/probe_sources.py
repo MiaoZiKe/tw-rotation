@@ -116,6 +116,50 @@ PROBES: dict[str, list[dict]] = {
          "grep": [r"/futures/api/[A-Za-z0-9_]+", r"[A-Za-z0-9_/.-]+\.js"],
          "note": "行情看板首頁：把它引用的 api 路徑與 JS 檔名全部撈出來當候選清單"},
     ],
+    # ---- 金十數據（Andy 2026-09-21：「並且需要多一項 金十數據」）
+    #
+    #      金十數據 jin10.com 是中國的即時財經快訊站，以總經／央行／商品／地緣政治的
+    #      即時快訊為主 —— 這個站現在的「總經」格正好缺這一塊。
+    #
+    #      ★★ 這一組**先問合規，不是先問欄位**。順序是刻意的：前三支是 robots.txt
+    #      與版權／免責頁，後面才是資料端點。理由：
+    #        1. CLAUDE.md 第一條紅線就是「只用免費且合規的來源」，
+    #           `www.twse.com.tw/rwd/...` 被永久封殺就是因為使用條款，不是因為技術。
+    #        2. 2026-09-21 用 WebSearch 查到的二手說法是「金十的版權聲明寫
+    #           『未經授權，不得將本站的資訊、數據、行情用於 AI 訓練或其他商業用途』」，
+    #           而且開放平台（open.jin10.com）是**付費**的，只給 15 天試用。
+    #           但那是搜尋摘要，不是原文 —— 這個 repo 的規矩是不拿二手摘要當結論，
+    #           所以這裡把原文抓回來，讓人讀了再決定。
+    #        3. Claude 的容器打不到 jin10（出口代理對 jin10.com / www.jin10.com /
+    #           flash-api.jin10.com 一律 403），所以只有 Actions 問得到。
+    #
+    #      ★ 刻意**不帶** `x-app-id` / `x-version`：網路上流傳的那組值
+    #      （RSSHub 寫死的 `bVBF4FyRTn5NJF5n`）是從官網前端逆向出來的 app 憑證，
+    #      帶著它去打等於繞過反爬、冒用它的用戶端身分 —— 那是 CLAUDE.md 明令禁止的事。
+    #      這裡就是要看「**不作假、規規矩矩地問**」拿不拿得到；
+    #      拿不到（401/403/502）本身就是答案：這條路對我們是關的。
+    "jin10": [
+        {"id": "jin10_robots", "method": "GET", "url": "https://www.jin10.com/robots.txt",
+         "note": "★先看這個：robots.txt 有沒有禁止抓取。整份都會存進 sample_text"},
+        {"id": "jin10_copyright", "method": "GET",
+         "url": "https://www.jin10.com/about/index.html",
+         "grep": [r"未經[^，。；]{0,40}", r"未经[^，。；]{0,40}", r"禁止[^，。；]{0,40}",
+                  r"不得[^，。；]{0,40}", r"商業用途|商业用途|爬蟲|爬虫|AI 訓練|AI训练"],
+         "note": "★版權／免責頁：把「未經」「不得」「禁止」的句子整句撈出來，原文說了算"},
+        {"id": "jin10_open_platform", "method": "GET", "url": "https://open.jin10.com/",
+         "grep": [r"免費|免费|試用|试用|價格|价格|收費|收费|元/月|API"],
+         "note": "官方開放平台：確認是不是付費、有沒有免費層。有官方授權的路就走官方的"},
+        # --- 以下三支才是資料端點，而且一律不帶偽造的用戶端標頭
+        {"id": "jin10_flash_newest_js", "method": "GET",
+         "url": "https://www.jin10.com/flash_newest.js",
+         "grep": [r"\"id\":\"[0-9a-zA-Z-]+\"", r"\"time\":\"[^\"]+\"", r"\"type\":[0-9]+"],
+         "note": "官網首頁自己會載的快訊 JS（公開靜態檔，不需要任何標頭）：看結構與筆數"},
+        {"id": "jin10_flash_api_plain", "method": "GET",
+         "url": "https://flash-api.jin10.com/get_flash_list?channel=-8200&vip=1",
+         "note": "★不帶 x-app-id 直接問：拿得到就代表它是公開的；被擋就代表這條路要繞反爬，不走"},
+        {"id": "jin10_rss_try", "method": "GET", "url": "https://xnews.jin10.com/rss.xml",
+         "note": "有沒有官方 RSS。有的話最乾淨（RSS 本來就是給人訂閱的），沒有就記 404"},
+    ],
 }
 
 

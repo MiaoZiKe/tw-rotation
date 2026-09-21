@@ -15,9 +15,49 @@
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
      「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
      ★ 切換時是**就地改寫這個陣列**（length=0 再 push），不是換一個新陣列 ——
-       外面已經拿走 PALETTE 參照的地方才會跟著變。*/
-  const PALETTE_DARK = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
-  const PALETTE_LIGHT = ['#0b7fa6', '#5f4ddb', '#b06a00', '#4a8a15', '#c2185b', '#0369a1', '#8a6d00', '#0f766e', '#c2410c', '#6d28d9', '#047857', '#b91c1c', '#1d4ed8', '#a16207'];
+       外面已經拿走 PALETTE 參照的地方才會跟著變。
+     ★★ 2026-09-21：族群換成 tide-tw.app 的板塊之後，卡片從 28 張變成 117 張
+        （83 個手寫板塊 + 33 個法定產業別自動桶 + ETF），而色盤只有 14 色 ——
+        `PALETTE[gidx % 14]` 於是產生 446 對「兩個不同板塊長得一模一樣」。
+        熱力圖、桑基圖、輪動時鐘都是跨產業鏈顯示的，那裡一定看得到。
+        **14 → 34 色。為什麼剛好是 34：**
+        - 每條產業鏈的族群索引是「連續的一段」（半導體 0–23、AI 伺服器 24–42、
+          一般電子 43–60 …、法定產業別自動桶 83–116）。最長的一段是自動桶的 **34** 張，
+          所以色盤只要 ≥34，任何一條鏈內部就不會有兩張卡同色。
+        - `supply_chain.yaml` 現在有 **34** 個環節（color_idx 0–33），34 色剛好讓
+          剖析圖的每個環節各有一色，不再兩個環節共用一個顏色。
+        - 再往上加沒有意義：新色與既有色的 CIEDE2000 下限訂在 **10**
+          （對照組：Tableau 20 的下限 9.1、Kelly 22 色的 10.0 —— 這是公認做得到的極限附近），
+          超過 34 色就一定得把某兩色壓到「看起來一樣」，那跟同色對使用者沒有差別。
+        新增的 20 色**大多刻意壓低彩度**：既有 14 色配在「人工校訂的產業鏈」上，
+        新色多半落在法定產業別自動桶，讓主線亮、雜項退後，畫面才有重點。
+        另外三條硬性條件，改這一段之前先量過再改：
+        ① 每個新色與 --rise／--fall 的 ΔE ≥18（鎖定區最差只有 5.7），
+           不會被讀成「這個板塊在漲／在跌」；
+        ② 深色對 --chartbg 的對比 ≥7.2、淺色對白底 ≥4.30
+           —— 都不低於鎖定區自己最弱的那一個（深 5.75、淺 4.25）；
+        ③ 索引相鄰的兩色 ΔE ≥34（卡片在格線裡是相鄰的，那裡最容易看錯）。
+        量測腳本的作法：CIEDE2000 ＋ 依 L.init() 重現 gidx／color_idx 的配色順序。*/
+  const PALETTE_DARK = [
+    /* 0–13　★ 鎖定區：2026-09-12 起沿用的 14 色。loader.py 的 color_idx 靠它記住既有板塊的顏色，
+       動一個值就等於把全站既有板塊的顏色洗牌一次（DECISIONS #48）。只准往後 append。*/
+    '#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871',
+    '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a',
+    /* 14–33　2026-09-21 新增的 20 色（見下方說明）。*/
+    '#56acc2', '#e4bcca', '#70ac99', '#e5beab', '#75b138', '#acb1d9', '#a6a366',
+    '#c8a8d9', '#ccc98a', '#ded4ff', '#be9e16', '#cddbf5', '#e48c2f', '#ace3ec',
+    '#d59078', '#bed04b', '#ffc9fc', '#c29967', '#da83c9', '#efd7b4'
+  ];
+  const PALETTE_LIGHT = [
+    /* 0–13　★ 鎖定區：2026-09-12 起沿用的 14 色。loader.py 的 color_idx 靠它記住既有板塊的顏色，
+       動一個值就等於把全站既有板塊的顏色洗牌一次（DECISIONS #48）。只准往後 append。*/
+    '#0b7fa6', '#5f4ddb', '#b06a00', '#4a8a15', '#c2185b', '#0369a1', '#8a6d00',
+    '#0f766e', '#c2410c', '#6d28d9', '#047857', '#b91c1c', '#1d4ed8', '#a16207',
+    /* 14–33　2026-09-21 新增的 20 色（見下方說明）。*/
+    '#285662', '#a75577', '#36564c', '#9c6140', '#305a00', '#515e94', '#53522e',
+    '#77528e', '#737243', '#9d48f7', '#604e00', '#547abb', '#794200', '#5c8085',
+    '#7a402c', '#667700', '#bf46c2', '#634c2e', '#842c77', '#927548'
+  ];
   const PALETTE = PALETTE_DARK.slice();
 
   // ---------------------------------------------------------------- 工具
@@ -444,11 +484,43 @@
      ★ 會自己停的時機（不停的話會對已經 dispose 的 ECharts 實例 setOption 而拋錯）：
        分頁切到背景、換頁（route）、換主題（applyTheme 會 dispose 所有圖表）、
        使用者自己動手拉 Bar。*/
-  const _players = new Set();
+  /* ★ 2026-09-21（Andy：「輪動時鐘 暫停功能壞掉了，無法停止」）—— 量出來的根因在這裡。
+     以前這是一個 `Set`，而且**只增不減**，於是有兩個坑：
+
+     ① **同一個值被兩支拉Bar 控制，暫停只停得掉自己那一支。**
+        「看哪一天」在卡片上是 `#rotBack`、在放大視窗裡是 `#rotZoomBack`，
+        兩支改的是同一個 `rotFrame`。實測（計時器 id ＋ 間隔）：
+          卡片按 ▶ → interval 36@420；開放大 → 36@420 還在；
+          在放大裡按 ▶ → 36@420 + 48@420（**兩支同時在跑**）；
+          在放大裡按 ⏸ → 只剩 36@420；ESC 關掉放大 → 36@420 **繼續跑**，
+          「幾天前」3 秒內從 3 一路跑到 27。
+        使用者的感受就是「我明明按了暫停，它還在自己跑」。
+     ② 容器被重畫（`rangeBar` 每次都 `box.innerHTML = …`）之後，舊的 api 還留在集合裡，
+        指著一個已經被拔掉的 `<input>`。今天還沒有人這樣用，但放大視窗每開一次就留一筆。
+
+     改法：**以容器元素當 key**（同一個容器只會有一支活著），
+     再加一個 `group`＝「這支在控制哪個值」。同一個 group 一次只准一支在播，
+     而按 ⏸ 停的是**整個 group**，因為使用者按的是「停下這個時鐘」，
+     不是「停下我手上這顆按鈕」。*/
+  const _players = new Map();          // 容器元素 → api
   function stopAllPlay() { _players.forEach(p => { try { p.stop(); } catch (e) { /* 忽略 */ } }); }
+  /** 停掉「控制同一個值」的其他播放器（except 傳自己，避免把剛要啟動的那支也停掉）。*/
+  function stopPlayGroup(group, except) {
+    if (!group) return;
+    _players.forEach(p => {
+      if (p.group === group && p !== except) { try { p.stop(); } catch (e) { /* 忽略 */ } }
+    });
+  }
   function playBar(box, o) {
     box = typeof box === 'string' ? document.getElementById(box) : box;
     if (!box) return null;
+    // 這個容器上一支播放器先收乾淨（下面 rangeBar 會把它的 <input> 換掉，留著就是幽靈計時器）
+    const prev = _players.get(box);
+    if (prev) { try { prev.stop(); } catch (e) { /* 忽略 */ } _players.delete(box); }
+    // 順手清掉已經離開 DOM 的（放大視窗每開一次就會換一個新容器）
+    _players.forEach((p, el) => {
+      if (!el.isConnected) { try { p.stop(); } catch (e) { /* 忽略 */ } _players.delete(el); }
+    });
     const rb = rangeBar(box, o);
     if (!rb) return null;
     const inp = box.querySelector('input');
@@ -477,6 +549,7 @@
       return true;
     };
     let timer = null;
+    let api = null;                    // start() 會先用到（stopPlayGroup 要排除自己），所以提前宣告
     const paintBtn = () => {
       const { min, max } = lim();
       bMinus.disabled = +inp.value <= min;
@@ -502,20 +575,24 @@
     };
     const start = () => {
       if (timer) return;
+      stopPlayGroup(o.group, api);      // 同一個值一次只准一支在播（見 _players 那一段的量測）
       const { min, max } = lim();
       const d = dirOf();
       if (d > 0 ? +inp.value >= max : +inp.value <= min) setV(d > 0 ? min : max);   // 已經在尾端就從頭播
       timer = setInterval(tick, o.frame || 600);
       paintBtn();
     };
-    bPlay.onclick = () => (timer ? stop() : start());
+    /* 按 ⏸ 停的是**整個 group**：使用者按的是「停下這個時鐘」，
+       而同一個時鐘可能同時被卡片與放大視窗兩支拉Bar 推著走。*/
+    bPlay.onclick = () => { if (timer) { stop(); stopPlayGroup(o.group, null); } else start(); };
     bMinus.onclick = () => { stop(); setV(+inp.value - lim().st); paintBtn(); };
     bPlus.onclick = () => { stop(); setV(+inp.value + lim().st); paintBtn(); };
     inp.addEventListener('pointerdown', stop);  // 自己動手拉就停播放
     inp.addEventListener('input', paintBtn);
     paintBtn();
-    const api = { get value() { return +inp.value; }, set(x) { setV(x); paintBtn(); }, stop, start, playing: () => !!timer, el: box };
-    _players.add(api);
+    api = { get value() { return +inp.value; }, set(x) { setV(x); paintBtn(); },
+      stop, start, playing: () => !!timer, el: box, group: o.group || '' };
+    _players.set(box, api);
     return api;
   }
 
@@ -995,8 +1072,18 @@
   // 資金熱力圖：不用 treemap 的 roam 縮放 —— 它會把整張圖平移縮放，而且狀態留在 instance 裡，
   // 換分頁再回來就是一片空白（Andy 遇到的就是這個），而且「只能放大縮小整張圖」也解決不了小方塊看不到。
   // 改成產業鏈下鑽：上面一排晶片點半導體就只看半導體，點「全部」回到原來的圖。
+  /* 產業鏈的中文名。★ 2026-09-21（Andy 截圖上出現一格英文 `financial`）：
+     這張表以前是**寫死的第二份對照表**，族群改版新增的 `software` / `financial`
+     沒補進來，篩選列就直接把英文 id 印在畫面上（全站繁體中文是硬規則）。
+     正解不是再補兩行，是**以 payload 為準**：`industry_map.json` 的 `chains[].name`
+     已經帶著「金融」「軟體與資訊服務」進來了（`L.chains`，來源是 groups.yaml）。
+     這裡只留兩種 fallback：
+       · `industry`＝法定產業別那個**虛擬**分類鍵，它不是 groups.yaml 的一條鏈，payload 裡沒有；
+       · `L` 還沒 init 完就被讀到時的暫時值（實務上不會發生，但不要讓畫面出現英文 id）。*/
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子',
+    software: '軟體與資訊服務', financial: '金融',
     traditional: '傳產', infrastructure: '基礎建設', industry: '其他產業別' };
+  const chainLabel = (cid) => L.chains[cid] || CHAIN_NAME[cid] || cid;
   let heatChain = null;
 
   /* 放大罩：熱力圖方塊太小看不清楚時，全螢幕看同一張圖。
@@ -1056,7 +1143,7 @@
       itemStyle: { color: chgColor(rotMap[g.group_id] != null ? rotMap[g.group_id] * 3 : g.chg_pct, 3) } });
     const inChain = chain && chains[chain] ? chains[chain] : null;
     const data = inChain ? inChain.map(mk)
-      : Object.keys(chains).map(cid => ({ name: CHAIN_NAME[cid] || cid, cid, children: chains[cid].map(mk) }));
+      : Object.keys(chains).map(cid => ({ name: chainLabel(cid), cid, children: chains[cid].map(mk) }));
     const SK = treeSkin();
     return { chains, inChain, option: {
       tooltip: { ...tip, formatter: p => p.data.gid
@@ -1083,7 +1170,7 @@
     box.innerHTML = `<button data-c="" class="${cur ? '' : 'on'}">全部</button>`
       + order.map(cid => {
         const sh = chains[cid].reduce((s, g) => s + (g.turnover_share || 0), 0);
-        return `<button data-c="${cid}" class="${cur === cid ? 'on' : ''}">${CHAIN_NAME[cid] || cid}<em>${fmt.n(sh, 1)}%</em></button>`;
+        return `<button data-c="${cid}" class="${cur === cid ? 'on' : ''}">${chainLabel(cid)}<em>${fmt.n(sh, 1)}%</em></button>`;
       }).join('');
     $$('button', box).forEach(b => b.onclick = () => onPick(b.dataset.c || null));
   }
@@ -1177,6 +1264,13 @@
     { from: 270, to: 360, k: 'weakening' }, // 右下：還強但動能在掉
   ];
   const CLOCK_MAXR = 1.25;
+  /* 盤緣（外圈虛線）**外面**留的那條緩衝帶，單位是 CLOCK_MAXR 的倍數。
+     回放到「比今天更極端」的日子時，那些族群落在這裡而不是被硬夾在盤緣上
+     （見 renderRotClock 的 pos()）。radiusAxis 的 max 也用同一個數，兩邊一定要一致。
+     0.18 是量出來的：緩衝帶要在畫面上寬到看得出誰在外面誰更外面 ——
+     1440px 時盤面半徑約 190px，0.18 ≈ 34px，夠分得開三四顆點；
+     再大就是拿整張盤面的尺寸去換一條大部分時候空著的帶子。*/
+  const CLOCK_TAIL = 0.18;
   /* ★ 2026-09-20（Andy：「每天的移動都需要平均速率，絲滑呈現，而非段點段點式移動」）
      這兩個數字是同一件事的兩半，**必須相等**，改一個就要改另一個：
        ROT_ANIM_MS  ECharts 把大圈從「昨天的位置」補間到「今天的位置」要花多久（linear）
@@ -1216,7 +1310,7 @@
     const px = [];
     pts.forEach((r, i) => {
       let q;
-      try { q = c.convertToPixel({ seriesIndex: si }, [Math.min(r.p[0], CLOCK_MAXR), r.p[1]]); }
+      try { q = c.convertToPixel({ seriesIndex: si }, [r.p[0], r.p[1]]); }
       catch (e) { q = null; }
       if (!q || !isFinite(q[0]) || !isFinite(q[1])) return;
       px.push({ i, x: q[0], y: q[1], name: r.lbl || r.name });
@@ -1326,10 +1420,46 @@
       sx = Math.max(sx, Math.abs((r.rs || 100) - 100));
       sy = Math.max(sy, Math.abs((r.mo || 100) - 100));
     });
+    /* ★ 2026-09-21（Andy：「部分族群一直貼在圓圈邊緣上，是否數值過大 導致一直維持最大值」）。
+
+       ── 我先照「理論上限」的假設改了一版，量完發現那不是主因，記在這裡免得有人改回去 ──
+       原本半徑是 `√(dx²+dy²)` 直接夾在 `CLOCK_MAXR`(1.25)，而 dx、dy 各自上限是 1，
+       所以理論上限是 √2≈1.414。但這份資料**今天**的最大值只有 1.288 ——
+       換句話說「理論上會超過」在實務上只讓 1 個族群多跨過門檻，改了幾乎沒差
+       （實測：frame 0 時舊尺 1 個貼邊、新尺還是 1 個）。
+
+       ── 真正的根因（量出來的）──
+       尺是**凍結在今天**的（DECISIONS 已拍板：改用整段軌跡的最大值會把靠圓心那圈全部
+       擠在一起，使用者點不到自己要的那顆點），而過去 30 天的偏離可以遠大於今天：
+         今天最大偏離 sr = 1.288，整段 30 天的最大偏離 srAll = 2.476（**1.92 倍**）。
+       於是硬夾的後果是：
+         被動元件 MLCC　31 天裡 **31 天**都被夾在盤緣　矽晶圓 28/31　矽光子與 CPO 8/31
+       —— 播放整段從頭到尾，這兩顆點的半徑動也不動。那就是他說的「一直維持最大值」。
+
+       ── 修法：盤緣外留一條**壓縮過的緩衝帶**，不要硬夾 ──
+         · `u ≤ 1`（今天的尺度內）：完全線性，和以前一模一樣 ——
+           兩圈虛線「今天最大偏離的一半 / 今天偏離最大的那個族群」的意思一字不變，
+           今天這一天的畫面也一個像素都沒動。
+         · `u > 1`（回放到比今天更極端的日子）：把 `1 → srAll/sr` 這一段壓進
+           盤緣外的 `CLOCK_TAIL` 那條帶子裡。點會落在外圈虛線**外面**，
+           而那正是事實（那一天它真的比今天任何族群都離大盤更遠），
+           重點是**它們彼此分得開、而且會跟著時間軸動**。
+       兩個分母（sr、srAll）都只吃 `scope`＝**今天**那一份原始資料，
+       所以刷時間軸時整把尺完全不動，拍板過的約束沒有被破壞。*/
+    const rawR = (x, y) => Math.hypot(((x || 100) - 100) / sx, ((y || 100) - 100) / sy);
+    let sr = 1e-9, srAll = 1e-9;
+    scope.forEach(r => {
+      sr = Math.max(sr, rawR(r.rs, r.mo));
+      (r.trail || []).forEach(w => { if (w && w[1] != null && w[2] != null) srAll = Math.max(srAll, rawR(w[1], w[2])); });
+    });
+    srAll = Math.max(srAll, sr);
+    const tailSpan = Math.max(1e-6, srAll / sr - 1);     // 緩衝帶要裝下「比今天多出來」的那一截
     const pos = (x, y) => {                              // (相對強弱, 動能) → [半徑, 角度]
       const dx = ((x || 100) - 100) / sx, dy = ((y || 100) - 100) / sy;
       let a = Math.atan2(dy, dx) * 180 / Math.PI; if (a < 0) a += 360;
-      return [Math.min(CLOCK_MAXR, Math.sqrt(dx * dx + dy * dy)), a];
+      const u = Math.sqrt(dx * dx + dy * dy) / sr;       // 1＝今天偏離最大的那個族群（＝外圈虛線）
+      const k = u <= 1 ? u : 1 + CLOCK_TAIL * (u - 1) / tailSpan;
+      return [Math.min(CLOCK_MAXR * (1 + CLOCK_TAIL), k * CLOCK_MAXR), a];
     };
     const pts = top0.map(r => ({ ...r, p: pos(r.rs, r.mo) }));
     /* 順序固定成「族群在前、個股在後」：兩個 scatter series 共用同一張標籤位置表
@@ -1502,12 +1632,15 @@
           color: (v) => { const s = CLOCK_SECTOR.find(z => Math.abs((z.from + z.to) / 2 - v) < 1); return s ? STAGE[s.k].color : 'transparent'; },
         },
       },
-      /* 外圈留一點餘裕，被夾住的「N 天前」小圈圈才不會壓在盤緣上。
-         2026-09-18（Andy 圖二「需要補充圓心到圓外 差異為何」）：
+      /* 2026-09-18（Andy 圖二「需要補充圓心到圓外 差異為何」）：
          以前是等距好幾圈細線，看不出哪一圈代表什麼。改成只留兩圈**虛線**，
-         並在圖下方用一行字講清楚它們是什麼（#rotCenterNote）：
-           0.5 圈＝偏離大盤的一半　/　1.0 圈＝偏離最大的那個族群。*/
-      radiusAxis: { type: 'value', min: 0, max: maxR * 1.08, axisLine: { show: false }, axisTick: { show: false },
+         並在「怎麼看 ?」裡講清楚它們是什麼（2026-09-21 前是圖下方常駐的 #rotCenterNote，已移除）：
+           0.5 圈＝今天最大偏離的一半　/　1.0 圈＝今天偏離最大的那個族群。
+         `interval: maxR/2` 就是這兩圈，**軸的上限變了也不會跟著跑掉**。
+         ★ 軸的上限 = 1.0 圈 ＋ 緩衝帶（CLOCK_TAIL）＋ 6% ——
+           最後那 6% 是「點的半徑」本身要站的地方，不留的話回放到最極端那一天時
+           那顆大圈會有一半落在盤外。*/
+      radiusAxis: { type: 'value', min: 0, max: maxR * (1 + CLOCK_TAIL) * 1.06, axisLine: { show: false }, axisTick: { show: false },
         axisLabel: { show: false },
         splitLine: { show: true, lineStyle: { color: hexA(CH.ink3, .45), type: 'dashed', width: 1 } },
         splitNumber: 2, interval: maxR / 2 },
@@ -1526,7 +1659,7 @@
         // 現在的位置（族群：實心圓）
         {
           type: 'scatter', coordinateSystem: 'polar', z: 5, name: '族群',
-          data: top.slice(0, nG).map(r => ({ value: [Math.min(r.p[0], maxR), r.p[1]], row: r,
+          data: top.slice(0, nG).map(r => ({ value: [r.p[0], r.p[1]], row: r,
             itemStyle: { color: depthColor(r), borderColor: CH.panel, borderWidth: 1.5,
               shadowBlur: r.moved ? 14 : 0, shadowColor: STAGE[r.stage].color },
             // 左半邊的點把名字放左邊、右半邊放右邊，字才不會全部擠在同一側疊住
@@ -1556,14 +1689,14 @@
         },
         /* 階段三：使用者點開的個股（Andy 2026-09-21「也可以點擊，並顯示在圖上」）。
            ★ **樣式一定要和族群分得出來**：族群是實心圓、個股是空心圓（只有一圈邊）＋
-             細虛線軌跡，圖下方 #rotCenterNote 也寫了哪個是哪個。
+             細虛線軌跡，「怎麼看 ?」裡也寫了哪個是哪個。
              一樣畫成實心圓的話，盤上會變成 26 顆長得一模一樣的點，
              使用者根本不知道自己剛剛點開的是哪幾顆。
            ★ 圈圈大小改用「佔所屬族群成交值的比例」（族群那一顆用的是佔全市場），
              兩者的分母不同，直接共用同一支 symbolSize 會讓個股全部比族群還大。*/
         ...(top.length > nG ? [{
           type: 'scatter', coordinateSystem: 'polar', z: 6, name: '個股',
-          data: top.slice(nG).map(r => ({ value: [Math.min(r.p[0], maxR), r.p[1]], row: r,
+          data: top.slice(nG).map(r => ({ value: [r.p[0], r.p[1]], row: r,
             itemStyle: { color: hexA(STAGE[r.stage].color, .16), borderColor: depthColor(r), borderWidth: 2 },
             label: { position: r.p[1] > 95 && r.p[1] < 265 ? 'left' : 'right' } })),
           symbolSize: (v, q) => { const r = q.data.row;
@@ -1595,7 +1728,8 @@
            （Andy 在 A4 輪動時鐘的需求第 2 條本來就寫「移除旋轉箭頭」。）*/
         /* ★ 2026-09-20：原本這裡有三行說明，在 1280px 的畫面上整串凸出容器 26px、
             而且壓到右下角那個 ↻ 箭頭（新的多寬度掃描量出來的）。
-            「↻ 箭頭＝行進方向」那一句搬到圖下方的 #rotCenterNote —— 它是 HTML，
+            「↻ 箭頭＝行進方向」那一句搬到文字說明裡（當時是 #rotCenterNote，
+            2026-09-21 起併進「怎麼看 ?」）—— 它是 HTML，
             會自己換行，任何寬度都不可能溢出。圖裡只留「回放日期」與一行最短的比例說明。*/
         { type: 'text', right: 12, bottom: 8, silent: true,
           style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
@@ -1630,7 +1764,7 @@
       window.App._rotPts = top.map(r => ({ gid: r.gid, name: r.name,
         // 下鑽之後盤上會同時有族群與個股，驗收要分得出來（點數變多的是哪一種）
         code: r.code || null, stock: !!r.isStock,
-        r: Math.min(r.p[0], maxR) / maxR, color: depthColor(r), base: STAGE[r.stage].color }));
+        r: +(r.p[0] / maxR).toFixed(4), color: depthColor(r), base: STAGE[r.stage].color }));
       window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
         /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
            再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
@@ -1680,17 +1814,11 @@
       if (r.isStock) { if (r.has_page) goStock(r.code); else drillToggleStock(r.code); return; }
       drillOpen(r.gid, r.name);
     });
-    /* N2：兩張圖共用同一份名單（輪動資料的全部族群，依成交值佔比排序）。
-       ★ 2026-09-20：加一層「名單沒變就不要重建 DOM」。播放現在每 420ms 重畫一次時鐘，
-         每次都把 36 個晶片整排 innerHTML 掉的話，使用者按到一半的晶片會被抽掉，
-         而且那是整個播放迴圈裡最貴的一段。 */
-    if (opts.chips) {
-      const list = rows.map(r => ({ gid: r.gid, name: r.name }));
-      const key = list.map(g => g.gid).join(',') + '|' + rotSelKey();
-      if (rotChipKey[id] !== key) { rotChipKey[id] = key; groupChips(id, list); }
-    }
+    /* ★ 2026-09-21：族群晶片列**不再由這裡產**。它搬進 `.rotfilter`（產業鏈 seg 的正下方），
+       所以由 `wireRotFilter()` 一支負責 —— 一份名單、一套樣式、一個插入點。
+       順帶解決一個播放時的老問題：以前每 420ms 重畫時鐘都要判斷要不要重建晶片列
+       （`rotChipKey` 指紋），現在播放完全不會碰到晶片列。*/
   }
-  const rotChipKey = {};                 // id → 上一次畫出來的晶片名單指紋
 
   function renderRotation(rrg, back, ids) {
     const rows = rotRows(rrg, back);
@@ -1702,8 +1830,8 @@
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
       { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail,
-        // 晶片列與量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
-        chips: !!ids.chips, expose: !!ids.expose });
+        // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
+        expose: !!ids.expose });
     /* ★ 2026-09-20：`only: 'clock'` ＝只更新時鐘那一張圖。
        播放現在是每 420ms 推進一天（以前 820ms），如果每一幀都連帶把輪動階段看板
        四格清單整個 innerHTML 重建一次，瀏覽器會忙到補間動畫掉幀 ——
@@ -2250,8 +2378,14 @@
       <li>資金照<em>順時針</em>一塊一塊跑：落後（左下）→ 改善（左上）→ 領先（右上）→ 轉弱（右下）→ 回落後。
         點後面那條尾巴是牠這幾天走過的路，尾巴往前拉＝正在往下一段前進，往回縮＝走回頭路。</li>
       <li><em>離圓心越遠＝和大盤差距越大</em>；擠在圓心附近就是跟大盤差不多，沒特色。
-        盤面上兩圈虛線由內而外是「偏離程度的一半」與「偏離最大的那個族群」。</li>
-      <li>右上角「⤢ 放大」可以放大；放大後才有<em>族群篩選</em>與<em>回放</em>（按 ▶ 會把你拉的那段時間一天一天播出來）。</li>
+        盤面上兩圈虛線由內而外是「今天最大偏離的一半」與「今天偏離最大的那個族群」——
+        所以<b>今天的畫面上剛好有一個族群踩在最外圈</b>，其他人都在它裡面。
+        這把尺是<em>鎖在今天</em>的，往回刷時間軸時不會變，所以看得出那一天大家離大盤更近還是更遠；
+        <em>跑到外圈虛線外面</em>的，就是那一天比今天任何族群都還偏離大盤的。</li>
+      <li><b>只想看某幾個族群</b>：點圖上方那一排族群名稱（就在「全部／半導體／…」那一排的正下方），
+        可多選、再點一次取消，<em>時鐘與右邊的資金流向排行會一起跟著篩</em>。</li>
+      <li><b>回放</b>：「看哪一天」拖到幾天前，按 <em>▶</em> 就會一天 0.42 秒等速播回今天，
+        軌跡是「走到哪畫到哪」；右上角「⤢ 放大」可以整張放大來看，控制項完全一樣。</li>
       <li>族群跟著大盤轉，順序幾乎都是 <em>改善 → 領先 → 轉弱 → 落後 → 再回改善</em>。</li>
       <li><em>改善</em>：還比大盤弱，但動能已經轉強 —— 資金剛進場，這是最早可以布局的一段。</li>
       <li><em>領先</em>：現在的主流。回檔找買點，別追高，因為下一站是轉弱。</li>
@@ -2313,7 +2447,23 @@
       <li>怎麼用這一層：固定只畫前 3 大代表股，看不出第 4～10 名在不在吸金。
         <em>把你關心的那幾檔叫出來，看它的線有沒有比代表股粗</em> ——
         粗就是錢其實正在往它集中，只是排名還沒輪到它。</li>
-      <li>回到只看族群：按面板左上的「‹ 全部族群」、「收起 ✕」，或直接按 <em>ESC</em>。</li></ul>`,
+      <li><b>點產業鏈那一格</b>（例如「AI 伺服器」）＝右邊列出<em>它底下所有族群</em>，依成交值排序、
+        寫出佔這條鏈多少與今天漲跌；每一列都能<em>就地展開</em>看成分股，展開後點個股就進個股頁，
+        最右邊的 <b>◎</b> 是「圖上只看這個族群」。
+        <b>怎麼用</b>：先用產業鏈那一欄挑出今天最吸金的那條鏈，再往下看錢集中在鏈上的哪一段
+        （例如 AI 伺服器的錢是跑到組裝，還是跑到散熱與電源），最後才看是哪幾檔在吃。</li>
+      <li>回到上一階：按面板左上的麵包屑（從鏈點進族群時它會寫「‹ AI 伺服器」，<em>一次只退一階</em>）、
+        「收起 ✕」、按 <em>ESC</em>，或直接<b>點圖上的空白處</b> —— 四個入口是同一件事。</li>
+      <li><b>「即時」鈕</b>（拉Bar 那一排最右邊）＝切到盤中即時。切下去之後：
+        <em>手寫板塊每分鐘更新</em>，成交值是「最後成交價 × 累積成交張數」的<b>估算值</b>
+        （即時端點沒有每檔的累積成交金額；雙掛兩個板塊的股票已照 1/n 拆分）；
+        <em>「〇〇・其他」自動桶做不到</em>（光 ETF 一格就 358 檔），一律標<b>盤後</b>、
+        而且<b>不進佔比的分母</b> —— 拿盤中的半天成交值去跟收盤的整天成交值比，
+        自動桶會被灌成第一名。最上面那一格的「台股總成交值」是證交所的<b>真實值</b>（不是估算），
+        但它只作展示，<em>% 的分母是「所有即時板塊加總」</em>。
+        非盤中（現貨 09:00–13:30 以外）按下去會明講「現在不是盤中」，畫的是最近一次的報價快照。
+        <b>怎麼用</b>：盤中想知道「今天的錢正在往哪跑」就按它，看哪一條鏈的線比它平常的位置更粗；
+        要看歷史就拖時間軸（一拖就自動退出即時）。</li></ul>`,
     inst: `<b>這張圖回答：這段時間法人把錢放在哪裡。</b>
       <ul><li>三段堆疊分別是外資、投信、自營，<em>向右＝買超、向左＝賣超</em>（單位張）。</li>
       <li><em>投信</em>的錢比較黏（有作帳壓力、不太會隔天就跑），連續買超的族群參考價值比外資單日大買高。</li>
@@ -2450,7 +2600,7 @@
              span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
              配上漸進式軌跡，刷到「前 30 天」就只剩起點一個點，往今天刷才一路長出來
              （Andy 2026-09-20：「只有經過才留下軌跡」）。*/
-          span: ROT_SPAN, trail: ROT.trail, chips: true, expose: true });
+          span: ROT_SPAN, trail: ROT.trail, expose: true });
       // 排行選了誰，時鐘就跟著只亮誰（圖四點長條的連動）
       if (rankSel) highlightClock(rankSel);
     };
@@ -2486,36 +2636,13 @@
       wireRotFilter(); drawRot(rotFrame); drawPeriod();
     };
     wireRotFilter(f3);
-    /* 圖二「需要補充圓心到圓外 差異為何」：圖下方固定寫一行，不要讓使用者去猜。*/
-    const note = $('#rotCenterNote');
-    if (note) {
-      /* A4 第 4 條（Andy：「補充說明圓心到圓圈邊緣代表什麼」）。
-         ★ 只解釋座標等於沒寫 —— 最後一句一定要講「所以我該怎麼用」。*/
-      note.textContent = '圓心＝跟大盤走得一模一樣；越往外＝和大盤差得越多，'
-        + '顏色也跟著越深（A4：越外圈顏色越深）。'
-        + '兩圈虛線由內而外分別是「今天最大偏離的一半」與「偏離最大的那個族群」，'
-        + '所以最外圈那一圈＝今天全場跟大盤差最多的那個族群，其他人都在它裡面；'
-        + '往回刷時間軸時尺度不變，所以看得出那一天大家離大盤更近還是更遠。'
-        + '資金照順時針一段一段跑：落後 → 改善 → 領先 → 轉弱 → 再回落後。'
-        + '軌跡是「走到哪畫到哪」：把時間軸刷到前 30 天只會看到起點，'
-        + '按 ▶ 播放（一天 0.42 秒、等速）就會看著牠自己把路走出來。'
-        + '　怎麼用：先看外圈（差距大、值得追）再看它在哪一段 ——'
-        + '「改善」外圈是剛起漲的候選、「領先」外圈是還在強的主流、'
-        + '「轉弱」外圈是該準備減碼的，圓心附近的族群跟大盤沒兩樣，先不用花時間。'
-        /* E3：族群選取只剩圖下方那一排，所以要在這裡講一句它在哪、按了會怎樣 ——
-           不然使用者會以為「圖上一次只能看全部」。*/
-        + '　只想看某幾個族群：直接點圖下方那一排族群名稱（可多選、再點一次取消），'
-        + '時鐘與右邊的資金流向排行會一起跟著篩，同時在排行下方展開那個族群的成分股。'
-        /* ★ 2026-09-21 兩階段：圖上多了一種點，就一定要在圖旁邊寫出「哪個是哪個」，
-           不然使用者只會看到 26 顆點。*/
-        + '　看個股：點盤上任何一顆族群點，右邊就會列出它的成分股；'
-        + '再點清單裡的名字，那一檔會被畫到同一張盤上 ——'
-        + '族群是實心圓、個股是空心圓＋虛線尾巴，可以多選、再點一次拿掉，按 ESC 回到只看族群。'
-        + '加入個股之後盤面會連它一起重新縮放（尺度永遠是「場上偏離最大的那一個」），'
-        + '所以族群點會跟著往內縮一點，那是正常的。'
-        + '　怎麼用：族群在「改善」不代表每一檔都在改善 ——'
-        + '把成交值最大的幾檔叫上來，落在外圈同一段的才是真的帶著族群跑的人。';
-    }
+    /* ★ 2026-09-21（Andy：「下方這段也移除」，指的是圖下方那一整段
+       「圓心＝跟大盤走得一模一樣…」的長說明）。
+       `#rotCenterNote` 是**常駐**的，622 個字，量起來在 1440px 佔掉 225px、
+       800px 206px、390px **469px**（手機上比半個螢幕還長），
+       而它講的每一件事「怎麼看 ?」那顆鈕裡都有（或已經補進去了）。
+       他要拿掉的是「一直佔著版面的那一段」，不是說明本身 ——
+       所以整段刪掉、說明留在按鈕後面，需要的人自己展開。*/
     /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
        重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
     const zb = $('#rotZoomBtn');
@@ -2539,8 +2666,10 @@
     /* ★ 2026-09-20：frame 820 → ROT_ANIM_MS（420），和時鐘的補間時間**相等**。
        以前補間 620ms、每 820ms 才推進一天 → 每天走完站著不動 200ms，
        那就是 Andy 說的「段點段點式移動」。相等之後首尾相接、等速。*/
+    /* ★ group: 'rot.back' —— 卡片這支和放大視窗那支 `#rotZoomBack` 控制的是**同一個值**，
+       所以歸成同一組：一次只准一支在播，按 ⏸ 兩支一起停（2026-09-21 的「暫停停不下來」）。*/
     rotBackBar = playBar('rotBack', { min: ROT_MIN_BACK, max: 30, value: flowState.back,
-      key: 'tw.rot.back', dir: -1, frame: ROT_ANIM_MS,
+      key: 'tw.rot.back', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
       label: '看哪一天', fmt: (v) => v + ' 天前',
       onChange: (v) => rotSeek(v) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
@@ -2592,8 +2721,13 @@
       if (n > 1) {
         playBar('sankeyDays', { min: 0, max: n - 1, value: n - 1, key: 'tw.sankey.day',
           frame: 650, label: '看哪一天', fmt: (v) => (v >= n - 1 ? '最新' : sd.dates[v]),
-          onChange: (v) => renderSankey(sd, v, sankeySel) });
+          /* 拖時間軸＝「我要看過去某一天」，和「即時」是互斥的兩件事。
+             不退出的話拉Bar 看起來完全沒作用（畫面還是盤中那一張），像壞掉。*/
+          onChange: (v) => { if (SKL.on) sklOff(false); renderSankey(sd, v, sankeySel); } });
       }
+      // ★「即時」鈕掛在同一列（Andy：「在紅框那排」）。playBar 會換掉整個容器的
+      //   innerHTML，所以一定要等它建完才 append。
+      sklMountBtn();
     });
     /* ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
        「族群佔比河流」整塊（圖表 ＋ 它的『最近 N 天』時間週期拉Bar ＋ 截止日回放）
@@ -2725,8 +2859,8 @@
         }
       }
     }
-    // N2：跟輪動時鐘用同一份名單、同一個選取狀態（選取狀態＝ROT.groups，見 groupChips）
-    groupChips('rankFlow', (rotAllGroups || rows.map(g => ({ gid: g.group_id, name: g.group_name }))));
+    /* ★ 2026-09-21：排行卡下方那一排族群晶片也搬到 `.rotfilter[data-rf="rank"]` 裡
+       （產業鏈 seg 的正下方），所以這裡不再插一排 —— 見 wireRotFilter()。*/
   }
 
   /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
@@ -2738,11 +2872,18 @@
           更糟的是那排晶片綁的是**卡片**的選取，在放大視窗裡按下去對這張圖完全沒有作用。
        ② 這裡本來維護**第二套**控制項（只有 16 顆的簡化晶片 ＋ 兩支語意不同的拉Bar），
           兩套行為不一致就是這個 bug 的溫床。
-     改法：放大視窗吃**同一份 ROT 狀態、同一組控制項**（產業鏈 seg／只看前 10 大／
-     個股篩選／清除篩選／看哪一天／顯示軌跡／族群晶片列），關掉時把卡片同步回來。*/
+     改法：放大視窗吃**同一份 ROT 狀態、同一組控制項**（產業鏈 seg／族群晶片列／
+     只看前 10 大／清除篩選／看哪一天／顯示軌跡），關掉時把卡片同步回來。
+     ★ 2026-09-21：族群晶片列搬進 `.rotfilter` 之後，這裡連 `#rotZoomChips` 都不用自己維護了 ——
+       `wireRotFilter()` 會把三排（時鐘卡／排行卡／放大視窗）一起填好。*/
   function openRotZoom(rrg, back0) {
     const rows0 = rotRows(rrg, back0);
     if (!rows0.length) return;
+    /* ★ 2026-09-21：卡片那支如果正在播，開放大之前先停掉。
+       不停的話它會躲在遮罩後面繼續每 420ms 推進 `rotFrame`，
+       而使用者在放大視窗裡按的 ⏸ 停的是另一支 —— 關掉放大就會看到時鐘還在自己跑。
+       （量測：ESC 之後「幾天前」3 秒內從 3 跑到 27。）*/
+    if (rotBackBar) { try { rotBackBar.stop(); } catch (e) { /* 忽略 */ } }
     let bar = null;
     openZoom('輪動時鐘', (body, chipBox, close) => {
       /* 控制項一律用 class 或「Zoom」字樣的 id，**不可以和卡片上的 id 撞名** ——
@@ -2750,22 +2891,9 @@
       const tools = $('#zoomTools');
       if (tools) tools.innerHTML = '<div class="rotfilter" data-rf="zoom"></div>'
         + '<div id="rotZoomBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>'
-        + '<div class="rottools" id="rotZoomTools"></div>'
-        + '<div class="linkrow gchips" data-sync="n2" id="rotZoomChips"></div>';
-      const draw = () => {
-        renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
-          { pick: rotPickSet(), frame: rotFrame, span: ROT_SPAN, trail: ROT.trail });
-        const row = $('#rotZoomChips');
-        if (!row) return;
-        const n = ROT.groups ? ROT.groups.size : 0;
-        row.innerHTML = `<span class="muted" style="font-size:11.5px">${n
-          ? `只看選起來的這 ${n} 個族群（再點一次取消）` : '點族群名稱＝只看它（可多選，再點一次取消）'}</span>`
-          + rotChipsHTML(rotAllGroups || rows0.map(r => ({ gid: r.gid, name: r.name })));
-        $$('.gchip .pick', row).forEach(b => b.onclick = () => {
-          rotToggleGroup(b.parentNode.dataset.g);
-          wireRotFilter(); rotRedraw();      // rotRedraw 會連這張放大的圖一起重畫
-        });
-      };
+        + '<div class="rottools" id="rotZoomTools"></div>';
+      const draw = () => renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
+        { pick: rotPickSet(), frame: rotFrame, span: ROT_SPAN, trail: ROT.trail });
       rotZoomDraw = draw;
       draw();
       wireRotFilter();                        // 放大視窗那排 .rotfilter 也由同一支填
@@ -2774,7 +2902,7 @@
          連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
          關閉時 `rotSyncCard()` 會把卡片一次補上。*/
       bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back',
-        dir: -1, frame: ROT_ANIM_MS, label: '看哪一天', fmt: (v) => v + ' 天前',
+        dir: -1, frame: ROT_ANIM_MS, group: 'rot.back', label: '看哪一天', fmt: (v) => v + ' 天前',
         onChange: (v) => { rotFrame = v; draw(); } });
       wireRotTrailToggle(draw, 'rotZoomTools');
     }, () => {
@@ -2810,30 +2938,6 @@
          <button class="pick" title="只看這個族群，再點一次取消">${fmt.esc(g.name)}</button>
          <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></span>`).join('');
   }
-  // 選了哪幾個族群的指紋（晶片列與時鐘的重建判斷都用它，免得播放時每幀重建 DOM）
-  function rotSelKey() { return ROT.groups ? [...ROT.groups].sort().join('+') : ''; }
-
-  function groupChips(afterId, list) {
-    const el = document.getElementById(afterId); if (!el) return;
-    const at = el.closest('.zwrap') || el;
-    let row = at.nextElementSibling;
-    if (!row || !row.classList.contains('linkrow')) {
-      row = document.createElement('div'); row.className = 'linkrow';
-      at.parentNode.insertBefore(row, at.nextSibling);
-    }
-    row.classList.add('gchips');
-    // data-sync="n2"：排行與時鐘這兩排是「同一個選取」。
-    // 2026-09-20 資金去向與族群×法人也長出自己的晶片列（filterChips），
-    // 沒有這個標記的話它們會被一起點亮，但圖上其實沒有被篩選。
-    row.dataset.sync = 'n2';
-    const n = ROT.groups ? ROT.groups.size : 0;
-    row.innerHTML = `<span class="muted" style="font-size:11.5px">${n
-      ? `兩張圖都只看選起來的這 ${n} 個族群（再點一次取消）`
-      : '點族群名稱＝兩張圖都只看它，並在下方展開成分股（可多選）'}</span>`
-      + rotChipsHTML(list);
-    $$('.gchip .pick', row).forEach(b => b.onclick = () => pickGroup(b.parentNode.dataset.g));
-  }
-
   /* ★ 2026-09-20（Andy）：「所有圖表的族群小Tip都需要具備點擊後就會在對應圖表上被篩選出去，
      以此達到篩選功能」。
 
@@ -2915,27 +3019,22 @@
        成分股在排行卡下方的面板與輪動階段看板裡各有一份了，再加一份只是重複。*/
   const ROT_SPAN = 30;             // 軌跡固定畫 30 天（拉Bar 現在是「看哪一天」）
   const ROT_MIN_BACK = 1;          // A4 第 3 條：前一天 ～ 前三十天
-  const ROT = { chain: '', groups: null, stocks: null, trail: true, topOnly: false };
+  const ROT = { chain: '', groups: null, trail: true, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rotBackBar = null;           // #rotBack 那支 playBar（播放／＋／−）
   /* 篩選變了就重畫。預設只重畫放大視窗 —— 從總覽直接按「放大」時資金流向頁還沒渲染過，
      這支會在 renderFlow 裡被換成「兩張卡片＋放大視窗」的版本。*/
   let rotRedraw = () => { if (rotZoomDraw) rotZoomDraw(); };
   let rotGroupMeta = {};           // gid → {name, chain}
-  let rotStockIndex = [];          // [{code, name, gid, gname}]，個股篩選用
   let rotF3 = null;                // 最後一次拿到的 flow_v3（晶片列／放大視窗要重建篩選列時用）
   let rotZoomDraw = null;          // 放大視窗開著時＝重畫它的函式；關掉就設回 null
   let rotSyncCard = () => {};      // 關掉放大視窗時把卡片那張圖同步回來（天數／篩選都共用）
 
-  /* 目前生效的族群集合（null／空＝全部）。族群勾選與個股勾選是 **聯集**：
-     兩邊都有勾就兩邊都留，因為使用者的意思是「這些我都想看」，不是「同時滿足」。*/
+  /* 目前生效的族群集合（null／空＝全部）。
+     2026-09-21：個股勾選移除之後只剩「族群晶片 ∩ 產業鏈 ∩ 前 10 大」。*/
   function rotPickSet() {
     const out = new Set();
     if (ROT.groups) ROT.groups.forEach(g => out.add(g));
-    if (ROT.stocks) ROT.stocks.forEach(code => {
-      const g = rotStockIndex.find(x => x.code === code);
-      if (g) out.add(g.gid);
-    });
     if (ROT.chain) {
       // 產業鏈 seg：沒有另外勾東西時＝只看這條鏈；有勾就再和鏈取交集
       const inChain = (rotAllGroups || []).filter(r => (rotGroupMeta[r.gid] || {}).chain === ROT.chain).map(r => r.gid);
@@ -2951,12 +3050,24 @@
     return out;
   }
 
-  /* 篩選列本體。結構刻意和 `wireDistFilter()` 一模一樣（seg ＋ 勾選 ＋ 兩顆展開鈕），
-     展開的複選格也沿用 `.chainchips` 與「max-height ＋ overflow:auto」——
-     族群有 36 個、個股上千檔，不給高度上限會把整張卡片撐爛。*/
+  /* 篩選列本體。結構刻意和 `wireDistFilter()` 一模一樣（seg ＋ 勾選 ＋ 狀態說明）。
+
+     ★ 2026-09-21（Andy：「個股篩選拿掉，下方的族群篩選幫我改到 全部、半導體、…、傳產
+       下方 包含資金流向排行，並且需要縮小一點 我只是需要篩選選取」）——
+     兩件事一起改，理由都是「這一排是功能鈕，不是閱讀內容」：
+
+       ① **「個股篩選」整顆移除。** 它選的是個股，但這兩張圖的單位是族群，
+          勾了個股只是把「它所屬的族群」留在圖上 —— 繞了一圈做的事和直接點族群一樣。
+          兩階段下鑽（點族群 → 列成分股 → 點名字畫上盤面）上線之後，
+          「我要看某一檔」已經有一條更直接的路，這顆鈕只剩重複。
+       ② **族群晶片列從「圖下方」搬到「產業鏈 seg 的正下方」。**
+          它和產業鏈 seg 是同一件事的粗細兩層（先挑鏈、再挑族群），
+          放在一起才看得出是同一組控制項；而且以前那一排夾在圖與說明之間，
+          在窄畫面上會把圖推得很遠。字級與 padding 一起縮小（見 index.html 的
+          `.rotfilter .gchips`），因為它是選單不是內文。 */
   function wireRotFilter(f3) {
     /* f3 只有第一次（renderFlow）會傳進來；之後晶片列、放大視窗、清除篩選都會再呼叫一次，
-       那些地方手上沒有 f3，所以記在模組層。沒有它就沒有產業鏈 seg 與個股索引。*/
+       那些地方手上沒有 f3，所以記在模組層。沒有它就沒有產業鏈 seg。*/
     if (f3) rotF3 = f3; else f3 = rotF3;
     const boxes = $$('.rotfilter');
     if (!boxes.length) return;
@@ -2964,88 +3075,51 @@
     ((f3 && f3.rrg && f3.rrg.points) || []).forEach(p => {
       rotGroupMeta[p.group_id] = { name: p.group_name, chain: p.chain || '' };
     });
-    // 個股索引：groups_detail 是 gid → members，這頁進來之前已經 load 過
-    const gd = D.groups_detail || {};
-    rotStockIndex = [];
-    (rotAllGroups || []).forEach(r => {
-      ((gd[r.gid] || {}).members || []).forEach(m => {
-        rotStockIndex.push({ code: String(m.code), name: m.name || String(m.code), gid: r.gid, gname: r.name });
-      });
-    });
     const chains = [...new Set((rotAllGroups || []).map(r => (rotGroupMeta[r.gid] || {}).chain).filter(Boolean))];
-    const nG = ROT.groups ? ROT.groups.size : 0, nS = ROT.stocks ? ROT.stocks.size : 0;
+    const nG = ROT.groups ? ROT.groups.size : 0;
     const picked = rotPickSet().size;
+    const list = rotAllGroups || [];
     /* ★ 兩張卡各有一排（排行一排、時鐘一排），但**吃同一份狀態**，
        所以裡面的控制項一律用 class 不用 id —— 同一個 id 出現兩次的話
        `document.getElementById` 只會抓到第一個，另一排就變成按了沒反應。*/
     boxes.forEach(box => {
+      const zoom = box.dataset.rf === 'zoom';
+      /* 晶片列有 50 幾顆、框高只有 96px，所以是捲得動的。
+         這一排每點一次晶片就整個 innerHTML 重建一次，不記捲動位置的話
+         使用者每選一個族群就被彈回最上面 —— 選第 30 個族群等於要重捲 30 次。*/
+      const oldRow = box.querySelector('.linkrow.gchips');
+      const keepTop = oldRow ? oldRow.scrollTop : 0;
       box.innerHTML = `<div class="seg tiny rotchain">
           <button data-c="" class="${ROT.chain ? '' : 'on'}">全部</button>
-          ${chains.map(c => `<button data-c="${fmt.esc(c)}" class="${ROT.chain === c ? 'on' : ''}">${fmt.esc(CHAIN_NAME[c] || c)}</button>`).join('')}
+          ${chains.map(c => `<button data-c="${fmt.esc(c)}" class="${ROT.chain === c ? 'on' : ''}">${fmt.esc(chainLabel(c))}</button>`).join('')}
         </div>
+        <div class="linkrow gchips" data-sync="n2">${rotChipsHTML(list)}</div>
         <label class="rotchk"><input type="checkbox" class="rot-top10" ${ROT.topOnly ? 'checked' : ''}>只看前 10 大</label>
-        <button class="btn small rot-sbtn">個股篩選${nS ? `（${nS}）` : ''}</button>
-        ${(nG || nS || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除篩選</button>' : ''}
+        ${(nG || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除篩選</button>' : ''}
         <span class="muted rot-note">${picked ? `排行與時鐘都只看這 ${picked} 個族群`
-          : '排行與時鐘顯示全部族群'}${nG ? `（其中 ${nG} 個是你在下面點選的）` : '　·　要挑族群請點圖下方那一排族群名稱'}</span>`;
+          : `排行與時鐘顯示全部 ${list.length} 個族群`}${nG ? `（其中 ${nG} 個是你自己點的，再點一次取消）`
+          /* ★ 一定要寫「往下捲」：那一排只看得到四列，56 個族群有一大半在框外面，
+             不講的話使用者會以為「我要的族群不在清單裡」。*/
+          : '　·　點上面那排族群名稱就只看它（可多選，那一排往下捲還有）'}</span>`;
+      const row = box.querySelector('.linkrow.gchips');
+      if (row && keepTop) row.scrollTop = keepTop;
       $$('.rotchain button', box).forEach(b => b.onclick = () => {
         ROT.chain = b.dataset.c; wireRotFilter(f3); rotRedraw();
+      });
+      /* 族群晶片：點名字＝真的改 `ROT.groups`（兩張圖一起篩），右邊的 → 才是進族群頁。
+         放大視窗那一排只做「切換＋重畫」—— `pickGroup` 還會去展開排行卡下方的成分股面板，
+         而那張面板整個被遮罩蓋住，使用者看不到，等於按了沒反應。*/
+      $$('.gchip .pick', box).forEach(b => b.onclick = () => {
+        const gid = b.parentNode.dataset.g;
+        if (zoom) { rotToggleGroup(gid); wireRotFilter(f3); rotRedraw(); } else pickGroup(gid);
       });
       const t10 = box.querySelector('.rot-top10');
       if (t10) t10.onchange = () => { ROT.topOnly = t10.checked; wireRotFilter(f3); rotRedraw(); };
       const clr = box.querySelector('.rot-clear');
       if (clr) clr.onclick = () => {
-        ROT.chain = ''; ROT.groups = null; ROT.stocks = null; ROT.topOnly = false;
+        ROT.chain = ''; ROT.groups = null; ROT.topOnly = false;
         saveRotSel(); wireRotFilter(f3); rotRedraw();
       };
-      /* 展開的複選格插在這一排的正下方（和 wireDistFilter 的 #distGroups 一樣），
-         再點同一顆鈕就收起來。高度上限＋自己的捲軸：族群 36 個、個股上千檔。*/
-      const panel = (kind, fill) => {
-        let w = box.nextElementSibling;
-        if (!w || !w.classList.contains('rotpick')) {
-          w = document.createElement('div'); w.className = 'chainchips rotpick';
-          box.parentNode.insertBefore(w, box.nextSibling);
-        }
-        if (w.dataset.open === kind) { w.dataset.open = ''; w.innerHTML = ''; w.hidden = true; return; }
-        w.dataset.open = kind; w.hidden = false; fill(w);
-      };
-      /* ★ 2026-09-20（E3）：這裡以前還有一顆「族群篩選」，展開是**第二份**
-         一模一樣的 36 個族群清單。它和圖下方那一排（groupChips）功能重疊、
-         行為又不一致，Andy 的「篩選族群功能覆蓋下方的族群選取功能」講的就是它。
-         族群改成只在圖下方那一排選（那一排現在會真的改 ROT.groups），這顆鈕移除。
-         **「個股篩選」保留** —— 它選的是個股不是族群，沒有重複。*/
-      const sb = box.querySelector('.rot-sbtn');
-      if (sb) sb.onclick = () => panel('stocks', (w) => {
-        /* 個股上千檔，一次全列出來沒有人找得到，所以給一個搜尋框（打代號或名字都行）；
-           沒打字時只列「每個族群成交值最大的那一檔」當入口。
-           ★ 勾個股＝把**它所屬的族群**留在圖上（這兩張圖的單位是族群，不是個股）。*/
-        w.innerHTML = '<input class="rotsearch" placeholder="打代號或名字找個股，例如 2330 或 台積電">'
-          + '<div class="rotstocklist"></div>';
-        const list = w.querySelector('.rotstocklist');
-        const draw = (kw) => {
-          const q = String(kw || '').trim();
-          const pool = q ? rotStockIndex.filter(x => x.code.indexOf(q) >= 0 || x.name.indexOf(q) >= 0
-              || x.gname.indexOf(q) >= 0).slice(0, 120)
-            : (rotAllGroups || []).map(r => rotStockIndex.find(x => x.gid === r.gid)).filter(Boolean);
-          list.innerHTML = '<button data-s="">全部</button>'
-            + pool.map(x => `<button data-s="${fmt.esc(x.code)}" title="屬於「${fmt.esc(x.gname)}」"
-                 class="${ROT.stocks && ROT.stocks.has(x.code) ? 'on' : ''}">${fmt.esc(x.name)} ${fmt.esc(x.code)}</button>`).join('');
-          $$('button', list).forEach(b => b.onclick = () => {
-            const c = b.dataset.s;
-            if (!c) ROT.stocks = null;
-            else {
-              ROT.stocks = ROT.stocks || new Set();
-              if (ROT.stocks.has(c)) ROT.stocks.delete(c); else ROT.stocks.add(c);
-              if (!ROT.stocks.size) ROT.stocks = null;
-            }
-            $$('button', list).forEach(x => x.classList.toggle('on', !!ROT.stocks && ROT.stocks.has(x.dataset.s)));
-            saveRotSel(); wireRotFilter(f3); rotRedraw();
-          });
-        };
-        const q = w.querySelector('.rotsearch');
-        if (q) q.oninput = () => draw(q.value);
-        draw('');
-      });
     });
   }
 
@@ -3055,7 +3129,6 @@
     try {
       localStorage.setItem('tw.rot.filter', JSON.stringify({
         groups: ROT.groups ? [...ROT.groups] : null,
-        stocks: ROT.stocks ? [...ROT.stocks] : null,
       }));
     } catch (e) { /* 私密視窗 */ }
   }
@@ -3063,7 +3136,9 @@
     try {
       const o = JSON.parse(localStorage.getItem('tw.rot.filter') || 'null');
       if (o && o.groups && o.groups.length) ROT.groups = new Set(o.groups);
-      if (o && o.stocks && o.stocks.length) ROT.stocks = new Set(o.stocks);
+      /* ★ 2026-09-21：舊版存進去的 `stocks` 直接忽略（個股篩選已移除）。
+         不用特地去刪那個鍵 —— 這裡不讀它，它就不會再影響任何東西；
+         主動刪反而會在使用者同時開著舊分頁時互相打架。*/
     } catch (e) { /* 忽略壞掉的值 */ }
   })();
 
@@ -3112,6 +3187,17 @@
     data: null,           // rrg_members.json（下鑽時才抓）
     state: '',            // ''｜loading｜ok｜fail
     notes: {},            // panelId → 那個面板專屬的一行說明（例如資金去向的「這一天」）
+    /* ★ 2026-09-21（Andy：「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，
+       並下面多出裡面還蓋族群，並且都具備下拉選單可以看個股」）——
+       多一個「產業鏈」階段。以前只有「族群 → 個股」兩階，點產業鏈節點右邊什麼都不會發生，
+       等於圖上最粗的那幾個點是死的。
+       chain 與 gid 可以同時有值：那代表「從 AI 伺服器鏈點進 CCL 銅箔基板」，
+       麵包屑要寫成「‹ AI 伺服器 › CCL 銅箔基板」，返回鍵回到鏈而不是直接關掉 ——
+       「點擊優先在原地展開」的另一面是「返回也要一階一階回」。*/
+    chain: null,          // 產業鏈 id（cid）
+    chainName: '',
+    chainRows: [],        // [{gid, name, v, share, chg}]：點下去那一刻的族群排序快照
+    open: new Set(),      // 鏈模式下被展開（下拉）的族群 gid
   };
   // 哪一個面板服務哪一張圖（兩個都吃同一份 DRILL）
   const DRILL_PANELS = ['rankPanel', 'sankeyPanel'];
@@ -3154,9 +3240,13 @@
     return out;
   }
 
-  function drillOpen(gid, gname, note, panelId) {
+  /* keepChain＝這一次下鑽是「從產業鏈面板點進去的」，麵包屑要保留上一階。
+     其餘入口（族群晶片、圖上的族群節點、輪動時鐘）都是直接跳到族群那一階，
+     這時候要把鏈清掉 —— 不清的話麵包屑會寫著一條你根本沒點過的鏈。*/
+  function drillOpen(gid, gname, note, panelId, keepChain) {
     if (!gid) return;
     gid = String(gid);
+    if (!keepChain && DRILL.chain) { DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set(); }
     const same = DRILL.gid === gid;
     const had = DRILL.stocks.size;
     if (panelId) DRILL.notes[panelId] = note || '';
@@ -3170,17 +3260,50 @@
     if (!same && had) drillRedraw();                     // 只有真的少掉點才需要重畫
   }
 
+  /* 點產業鏈節點：右邊列出「這條鏈底下的族群」，每一列可以就地展開看個股。
+     rows 是點下去那一刻算好的快照（值來自目前這一天的桑基資料），
+     不在面板裡自己再算一次 —— 面板要是自己算，拖時間軸時兩邊就會對不起來。*/
+  function drillOpenChain(cid, cname, rows, note, panelId) {
+    if (!cid) return;
+    const same = DRILL.chain === cid;
+    const had = DRILL.stocks.size;
+    if (panelId) DRILL.notes[panelId] = note || '';
+    DRILL.chain = String(cid);
+    DRILL.chainName = cname || String(cid);
+    DRILL.chainRows = rows || [];
+    if (!same) DRILL.open = new Set();
+    // 回到「整條鏈」這一階：族群層級的聚焦與畫上圖的個股都要收掉，不然圖上會留著上一階的殘影
+    DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set();
+    renderDrillPanels();
+    if (had) drillRedraw();
+  }
+
   /* 回到階段一。三個入口（麵包屑／收起 ✕／ESC）都走這一支，
      所以「返回之後圖上剩下什麼」只有一種答案。*/
   function drillClose() {
     const had = DRILL.stocks.size;
     DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set(); DRILL.notes = {};
+    DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set();
     DRILL_PANELS.forEach(id => { const b = $('#' + id); if (b) { b.hidden = true; b.dataset.gid = ''; b.dataset.sig = ''; } });
     // 排行的「只亮這一個族群」與資金去向的聚焦也一起還原，不然圖上會留著壓暗的殘影
     if (rankSel) { rankSel = null; highlightClock(null); }
     if (chipSel.sankey) chipSel.sankey = null;
     if (sankeyState) { sankeySel = null; renderSankey(sankeyState.sd, sankeyState.k, null); }
     if (had) drillRedraw();
+  }
+
+  /* 從族群那一階退回產業鏈那一階（麵包屑左邊那顆鈕）。
+     圖上的聚焦也要跟著從 {gid} 換成 {chain}，不然清單回到整條鏈、圖卻還壓著只看一個族群。*/
+  function drillBackToChain() {
+    const cid = DRILL.chain; if (!cid) return drillClose();
+    const had = DRILL.stocks.size;
+    DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set();
+    const rank = $('#rankPanel'); if (rank) { rank.hidden = true; rank.dataset.gid = ''; rank.dataset.sig = ''; }
+    if (rankSel) { rankSel = null; highlightClock(null); }
+    chipSel.sankey = null;
+    renderDrillPanels();
+    if (sankeyState) { sankeySel = { chain: cid }; renderSankey(sankeyState.sd, sankeyState.k, { chain: cid }); }
+    else if (had) drillRedraw();
   }
 
   function drillToggleStock(code) {
@@ -3198,9 +3321,79 @@
 
   function renderDrillPanels() { DRILL_PANELS.forEach(renderDrillPanel); }
 
+  /* 階段〇：整條產業鏈。只有資金去向那一欄畫得出來（輪動時鐘的單位是族群，沒有鏈這一層），
+     所以 rankPanel 在鏈模式下維持收起 —— 與其給它一份看起來像壞掉的空清單，不如不開。*/
+  function renderDrillChainPanel(box, panelId) {
+    const rows = DRILL.chainRows || [];
+    const extra = DRILL.notes[panelId] || '';
+    const sig = ['chain', DRILL.chain, rows.length, [...DRILL.open].sort().join(','), extra].join('|');
+    if (box.dataset.sig === sig && !box.hidden) return;
+    box.dataset.sig = sig; box.dataset.gid = '';
+    const det = D.groups_detail || {};
+    const li = rows.map(r => {
+      const col = L.gcolor[r.gid] || CH.cyan;
+      const on = DRILL.open.has(r.gid);
+      const ms = ((det[r.gid] || {}).members || []).slice()
+        .map(m => ({ ...m, tv: +m.turnover || 0 })).sort((a, b) => b.tv - a.tv);
+      const sum = ms.reduce((s, m) => s + m.tv, 0) || 1;
+      /* 族群那一列橫跨整排（grid-column:1/-1），所以它底下展開的個股會自己另起一行，
+         而且還是走 .hpanel .ms 的多欄格線 —— 不用為了「下拉」另外發明一套版面。*/
+      /* 兩行：第一行是「▸ 族群名　◎」，第二行才是數字。
+         右欄只有 300px，硬擠成一行的話族群名會被折成「CCL 銅箔／基板」、
+         「4 檔」還會被推到下一行 —— 看起來像壞掉（1440px 截圖量到的）。*/
+      const head = `<a class="dp grow${on ? ' ison' : ''}" data-g="${fmt.esc(r.gid)}"`
+        + ` style="border-color:${on ? col : 'transparent'};--c:${col}"`
+        + ` title="${fmt.esc(r.name)}　${ms.length} 檔　${on ? '再點一次收起來' : '點一下展開成分股'}">`
+        + `<span class="tw2">${on ? '▾' : '▸'}</span>`
+        + `<span class="nm">${fmt.esc(r.name)}</span>`
+        + `<span class="c go" data-only="1" title="只看這個族群（圖上其餘壓暗）">◎</span>`
+        + `<span class="g">${fmt.yi(r.v)}　<b>${fmt.n(r.share * 100, 1)}%</b>`
+        + (r.chg == null ? '' : `　<b class="${fmt.cls(r.chg)}">${fmt.pct(r.chg)}</b>`)
+        + `　${ms.length} 檔</span></a>`;
+      if (!on) return head;
+      const kids = ms.length ? ms.map(m => {
+        const code = String(m.code);
+        return `<a class="dp sub" data-code="${fmt.esc(code)}" data-tv="${Math.round(m.tv)}"`
+          + `${m.has_page ? ` href="#stock/${fmt.esc(code)}"` : ''} title="進個股頁">`
+          + `<span>${fmt.esc(m.name || code)}</span><span class="c">${fmt.esc(code)}</span>`
+          + `<span class="g">${fmt.yi(m.tv)}　${fmt.n(m.tv / sum * 100, 1)}%　`
+          + `<b class="${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b></span></a>`;
+      }).join('') : '<a class="dp sub muted">這個族群的成分股整理中</a>';
+      return head + kids;
+    }).join('');
+    box.hidden = false;
+    box.innerHTML = `<div class="hh">
+        <button class="btn small" data-all="1" title="回到全部產業鏈（按 ESC 也可以）">‹ 全部族群</button>
+        <b>› ${fmt.esc(DRILL.chainName)}</b>
+        <span class="m">${rows.length} 個族群 · 依成交值排序</span>
+        <span class="sp"></span>
+        <button class="btn small" data-x="1">收起 ✕</button></div>
+      <div class="note" style="margin:6px 0 0">點族群名稱＝<b>就地展開</b>它的成分股（再點一次收起來）；展開後點個股就進個股頁；最右邊的 <b>◎</b> 是「圖上只看這個族群」。${extra ? '　' + extra : ''}</div>
+      ${rows.length ? `<div class="ms tree">${li}</div>` : '<div class="empty">這條產業鏈今天沒有量</div>'}`;
+    const x = box.querySelector('[data-x]'); if (x) x.onclick = () => drillClose();
+    const all = box.querySelector('[data-all]'); if (all) all.onclick = () => drillClose();
+    $$('.ms a.grow', box).forEach(a => {
+      a.onclick = (e) => {
+        e.preventDefault();
+        const gid = a.dataset.g;
+        // ◎ ＝ 走到下一階（族群），麵包屑保留「‹ AI 伺服器」這一層
+        if (e.target && e.target.dataset && e.target.dataset.only) {
+          const r = (DRILL.chainRows || []).find(z => z.gid === gid) || {};
+          drillOpen(gid, r.name || L.gname[gid] || gid, DRILL.notes[panelId], panelId, true);
+          chipSel.sankey = gid;
+          if (sankeyState) renderSankey(sankeyState.sd, sankeyState.k, { gid });
+          return;
+        }
+        if (DRILL.open.has(gid)) DRILL.open.delete(gid); else DRILL.open.add(gid);
+        renderDrillPanel(panelId);
+      };
+    });
+  }
+
   function renderDrillPanel(panelId) {
     const box = $('#' + panelId); if (!box) return;
     const gid = DRILL.gid;
+    if (!gid && DRILL.chain && panelId === 'sankeyPanel') return renderDrillChainPanel(box, panelId);
     if (!gid) { box.hidden = true; box.dataset.gid = ''; box.dataset.sig = ''; return; }
     const det = (D.groups_detail || {})[gid] || {};
     const ms = (det.members || []).slice().map(m => ({ ...m, tv: +m.turnover || 0 }))
@@ -3211,7 +3404,7 @@
     /* ★ 播放中每 420ms／650ms 就會重畫一次圖，但這一欄的內容只跟
        「哪個族群 × 選了哪幾檔」有關。整份 196 列重建一次要 DOM 全換，
        不擋的話播放會跟著卡（sankeyStockPanel 當初就是為了這件事才加快取的）。*/
-    const sig = [gid, [...DRILL.stocks].sort().join(','), DRILL.state, ms.length, extra].join('|');
+    const sig = [gid, DRILL.chain || '', [...DRILL.stocks].sort().join(','), DRILL.state, ms.length, extra].join('|');
     if (box.dataset.sig === sig && !box.hidden) return;
     box.dataset.sig = sig; box.dataset.gid = String(gid);
     const sum = ms.reduce((s, m) => s + m.tv, 0) || 1;
@@ -3224,7 +3417,7 @@
         : nRRG ? '' : '這個族群的個股輪動資料還沒算出來（上市未滿 50 個交易日的個股本來就不會有），所以現在只能看清單。';
     box.hidden = false;
     box.innerHTML = `<div class="hh">
-        <button class="btn small" data-all="1" title="回到只看族群（按 ESC 也可以）">‹ 全部族群</button>
+        <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群（按 ESC 也可以）'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
         <span class="m">${ms.length} 檔 · 依成交值排序${DRILL.stocks.size ? ` · 已畫上圖 ${DRILL.stocks.size} 檔` : ''}</span>
         <span class="sp"></span>
@@ -3243,7 +3436,11 @@
           + (m.has_page ? '<span class="c go" title="進個股頁">→</span>' : '') + '</a>';
       }).join('')}</div>` : '<div class="empty">這個族群的成分股整理中</div>'}`;
     const x = box.querySelector('[data-x]'); if (x) x.onclick = () => drillClose();
-    const all = box.querySelector('[data-all]'); if (all) all.onclick = () => drillClose();
+    /* 返回鍵一次只退一階：從鏈點進來的就退回鏈，直接點族群進來的才整個關掉。
+       一次退到底的話，Andy 從 AI 伺服器鏈點進 CCL 之後想回去看隔壁族群，
+       得重新在圖上找到那個節點再點一次 —— 那正是「不要動不動就把人帶離現場」。*/
+    const all = box.querySelector('[data-all]');
+    if (all) all.onclick = () => { if (DRILL.chain) return drillBackToChain(); drillClose(); };
     $$('.ms a', box).forEach(a => {
       a.onclick = (e) => {
         e.preventDefault();                    // 點整列＝畫到圖上，不是跳頁
@@ -3258,8 +3455,14 @@
 
   /* ESC 回到階段一。放大視窗開著時先讓它關（openZoom 自己綁了一個 ESC）——
      一次按下去兩件事同時發生，使用者會覺得「按一下跳太多」。*/
+  /* ★ 2026-09-21：條件從「只看 DRILL.gid」放寬到「任何下鑽狀態」。
+     以前只點了產業鏈（或只點了族群晶片做篩選）時 DRILL.gid 還是 null，
+     按 ESC 完全沒反應 —— 使用者會以為圖卡住了。
+     點桑基圖空白處走的也是這一支（Andy：「當點擊背景時會恢復 Default 狀態」），
+     ESC 與空白處一定要是同一套，不要寫第二個「復原」。*/
+  const drillActive = () => !!(DRILL.gid || DRILL.chain || sankeySel || DRILL.stocks.size);
   document.addEventListener('keydown', (e) => {
-    if (e.key !== 'Escape' || !DRILL.gid) return;
+    if (e.key !== 'Escape' || !drillActive()) return;
     const ov = document.getElementById('zoomOv');
     if (ov && !ov.hidden) return;
     drillClose();
@@ -3335,10 +3538,30 @@
   /* ★ 2026-09-20：90 → 170。四層之後要發點的線從 12 條變成
      （5 條產業鏈 ＋ 18 個族群 ＋ 最多 54 檔代表股）＝ 77 條，
      每條至少 1 顆的話 90 顆連「每條線上都有一顆」都做不到，
-     最末段（族群 → 代表股）會整排沒有點 —— 那正是 Andy 要的那一段。*/
-  const SANKEY_DOT_MAX = 170;
-  const SANKEY_TRAVEL = 2600;          // 一顆點從大盤走到族群要幾毫秒（固定，所以「頻率」＝點數）
+     最末段（族群 → 代表股）會整排沒有點 —— 那正是 Andy 要的那一段。
+     ★ 2026-09-21（Andy：「傳輸密度提升，需要差異大點」）：170 → 420、
+       單線上限 5 → 14，而且「錢多」現在同時吃三個通道 —— 點數、點大小、**速度**。
+       為什麼要三個一起動：單靠點數的話對比被單線上限夾死（以前最粗 5 顆、最細 1 顆，
+       只有 5 倍），而 5 顆和 1 顆在一條 300px 的曲線上看起來都只是「幾顆點」。
+       量出來的差別（1500px、最新交易日、實測見回報）：
+         改前 最粗 5 顆 / 最細 1 顆 ＝ 5.0 倍，通過率（顆/秒）也是 5.0 倍
+         改後 最粗 14 顆 / 最細 1 顆 ＝ 14 倍，通過率 14 × 1.5 ÷ (1 × 0.55) ≈ 38 倍
+       ★ 保留「每條線至少 1 顆」（D4 修過的 bug，不要退回去）—— 下面配點那段照舊先發 1 顆。*/
+  const SANKEY_DOT_MAX = 420;
+  const SANKEY_DOT_LINE_MAX = 14;      // 單一條線最多幾顆點
+  /* 一顆點從頭走到尾要幾毫秒。★ 2026-09-21 起**不再固定**：每條線自己帶一個
+     `spd`（0.55 ~ 1.5 倍），錢多的線跑得快。所以「頻率（單位時間通過幾顆）」
+     ＝ 點數 × 速度，兩個通道相乘才拉得開差距。*/
+  const SANKEY_TRAVEL = 2600;
+  /* 流量 → 點數／點大小／速度。三支都吃同一個 r（＝這條線的量 ÷ 全期間最大值，0~1）。
+     點數用 r^0.8 而不是線性：線性時 r=0.1 只拿到 2.3 顆，中段的族群會整片塌在 1~2 顆，
+     看起來就像「只有第一名有點」；^0.8 讓中段拉開到 3~9 顆，兩端的 1 與 14 不變。*/
+  const dotN = (r) => Math.max(1, Math.min(SANKEY_DOT_LINE_MAX,
+    Math.round(1 + (SANKEY_DOT_LINE_MAX - 1) * Math.pow(Math.max(0, r), 0.8))));
+  const dotR = (r) => 1.3 + 4.6 * Math.pow(Math.max(0, r), 0.6);   // 半徑 1.3 ~ 5.9（面積差 20 倍）
+  const dotSpd = (r) => 0.55 + 0.95 * Math.max(0, r);              // 0.55 ~ 1.5 倍速
   let sankeyFx = null;
+  let sankeyFlows = [];                // 目前這一輪配好的連線（驗收要量密度對比）
   function stopSankeyFlow() { if (sankeyFx) { try { sankeyFx.stop(); } catch (e) { /* 忽略 */ } sankeyFx = null; } }
 
   /* 把 tree 每個節點的像素座標讀出來（key＝節點名稱，名稱在這張圖裡是唯一的）。
@@ -3401,8 +3624,9 @@
       dots.length = 0;
       for (const f of flowsRef) {
         for (let i = 0; i < f.n; i++) {
-          // 同一條線上的點等距排開：資金越多 → 點越多 → 單位時間通過的顆數越多＝頻率越高
-          const t = ((ts / SANKEY_TRAVEL) + f.phase + i / f.n) % 1;
+          /* 同一條線上的點等距排開；再乘上這條線自己的速度倍率 ——
+             單位時間通過的顆數 ＝ 點數 × 速度，那就是「錢的流量」。*/
+          const t = ((ts * (f.spd || 1) / SANKEY_TRAVEL) + f.phase + i / f.n) % 1;
           const p = bez(f.a, f.b, t);
           dots.push({ x: Math.round(p[0]), y: Math.round(p[1]), r: f.size, gid: f.gid, lvl: f.lvl });
           g.beginPath(); g.arc(p[0], p[1], f.size, 0, 6.2832);
@@ -3489,6 +3713,20 @@
      所以撞名時補一個髮際空格（U+200A，看不見、但字串不同）。*/
   const uniqName = (seen, name) => { let n = name; while (seen.has(n)) n += ' '; seen.add(n); return n; };
 
+  /* 族群當天的漲跌幅（%）。產業鏈面板那一欄要「佔比與漲跌」兩個數字，
+     而 sankey_daily 只送成交值 —— 漲跌在 groups_today 裡（同樣是最新交易日的口徑）。
+     每呼叫一次就掃一遍 117 列太浪費，所以第一次用到時建索引
+     （HANDOFF 2026-09-21 記過的熱路徑教訓：逐列轉換一律先拿字典）。*/
+  let _gchg = null;
+  function gchgOf(gid) {
+    if (!_gchg) {
+      _gchg = {};
+      (D.groups_today || []).forEach(g => { if (g.group_id != null) _gchg[g.group_id] = g.chg_pct; });
+    }
+    const v = _gchg[gid];
+    return v == null ? null : v;
+  }
+
   /* 點族群（或點族群節點）之後右邊那一欄：該族群個股的成交值排序。
      ★ 沿用 `.hpanel` / `.hpanel .ms` 那一套（排行下方的成分股面板、資金集中度側欄都是它），
        固定高度＋自己的捲軸，不另外發明第三種清單樣式。
@@ -3514,6 +3752,185 @@
      就開始壓到隔壁欄。 */
   const SANKEY_NARROW = 700;
 
+  /* ------------------------------------------------ 盤中即時資金去向（Andy 2026-09-21）
+     「好那在幫我多新增一個『即時』項目可以點選觀看　在紅框那排」
+     （紅框那排＝「看哪一天 − ▬▬ ＋ 最新 ▶」那一列）。
+
+     ★★ 口徑（這一段是整個功能的重點，寫錯整張圖就是假的）
+
+     分母：`Market3.marketAmt` 是台股當日累積成交值（元），盤中就有、**真實值不是估算**
+       —— 它來自加權指數那一筆 mis 報價的 `info.v`，大盤三張圖本來每分鐘就會抓。
+       但它**只拿來顯示「台股總成交值」那一格**。
+
+     分子：即時報價端點（/quote?ex_ch=…）給的是「最後成交價」與「累積成交量（張）」，
+       **沒有每檔的累積成交金額**，所以板塊成交值只能用 `價 × 量 × 1000` 估。
+
+     所以佔比一律是「板塊 ÷ 所有即時板塊加總」，**不拿估算的分子去除真實的 marketAmt** ——
+     那個百分比會系統性偏掉（分子低估、分母是全市場，每一格都會偏小，而且偏多少不一定）。
+
+     ★ 1/n 拆分：一檔股票同時掛在兩個手寫板塊時，成交值要各算一半。
+       這是後端 `compute/flow.py` 的口徑，實測對得起來（osat 用 1/n 算出 326.9 億，
+       `groups_today` 也是 326.9 億；不拆的話是 434.2 億，差 33%）。
+
+     ★ 範圍與誠實標示（不准打折）
+       · 手寫板塊（這張圖上目前 17 個、111 檔成分股）→ 每分鐘更新，標「即時」
+       · 「〇〇・其他」自動桶（ind_*，光 ETF 一格就 358 檔）→ **做不到**，
+         要多 4 個請求/分鐘而且那一格本來就不是題材，一律標「盤後」、
+         **不進佔比的分母**（拿盤中的部分成交值去和收盤的整天成交值比，
+         上午十點時自動桶會被灌成第一名 —— 那比不做還糟）
+       · 成交值本身寫明「估算值」
+
+     請求量：111 檔 ÷ 每批 100 檔 ＝ **2 個請求/分鐘**，沿用 live.js 的 Worker 代理與批次。 */
+  const SKL = {
+    on: false, busy: false, at: 0, err: '',
+    tv: {},            // gid  → 估算成交值（元）
+    stv: {},           // code → 估算成交值（元）
+    codes: 0, reqs: 0, quoteAt: '', marketAmt: null,
+    intraday: true, timer: null,
+  };
+  const SKL_BATCH = 100;               // 一個請求塞幾檔（live.js 實測 120 檔 OK，留邊際）
+  const SKL_MS = 60 * 1000;            // 每分鐘一輪（和 live.js 的盤中節奏一致）
+  const isAutoBucket = (gid) => /^ind_/.test(String(gid));
+
+  /* 一檔股票掛在幾個手寫板塊 → 它的成交值要拆成幾份。
+     用 groups_detail 的全部 83 個手寫板塊算（不是只算這張圖上的 17 個）——
+     後端就是這樣拆的，只算圖上的會把雙掛股灌大。*/
+  function sklWeights() {
+    const n = {};
+    Object.entries(D.groups_detail || {}).forEach(([gid, det]) => {
+      if (isAutoBucket(gid)) return;
+      (det.members || []).forEach(m => { const c = String(m.code); n[c] = (n[c] || 0) + 1; });
+    });
+    return n;
+  }
+
+  async function sklFetch(sd) {
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    const det = D.groups_detail || {};
+    const gids = ((sd && sd.groups) || []).map(g => g.gid).filter(g => !isAutoBucket(g));
+    const codes = [], seen = new Set();
+    gids.forEach(gid => ((det[gid] || {}).members || []).forEach(m => {
+      const c = String(m.code); if (c && !seen.has(c)) { seen.add(c); codes.push(c); }
+    }));
+    if (!codes.length) throw new Error('這張圖上的板塊還沒有成分股資料，抓不了即時');
+    const q = {};
+    let reqs = 0;
+    for (let i = 0; i < codes.length; i += SKL_BATCH) {
+      Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + SKL_BATCH)));
+      reqs++;
+    }
+    const w = sklWeights();
+    const stv = {}, tv = {};
+    let at = '';
+    codes.forEach(c => {
+      const x = q[c];
+      if (!x || x.price == null || x.volume == null) return;
+      stv[c] = x.price * x.volume * 1000;          // ★ 估算：端點沒有每檔的累積成交金額
+      if (x.time && x.time > at) at = x.time;
+    });
+    gids.forEach(gid => {
+      let sum = 0, hit = 0;
+      ((det[gid] || {}).members || []).forEach(m => {
+        const c = String(m.code);
+        if (stv[c] == null) return;
+        hit++; sum += stv[c] / Math.max(1, w[c] || 1);
+      });
+      if (hit) tv[gid] = sum;
+    });
+    if (!Object.keys(tv).length) throw new Error('報價回來了，但沒有一個板塊算得出成交值');
+    /* 分母那一格：Market3 有多久沒更新就自己叫它一次。使用者開過「總覽」的話
+       它本來就每分鐘在跑（零額外請求）；沒開過的話這裡會多 3 個請求，
+       而那是「台股總成交值」這一格唯一的真實來源，值得。*/
+    try {
+      const M = window.Market3;
+      if (M) {
+        if (!M.lastAt || Date.now() - M.lastAt > 90 * 1000) await M.refresh(true);
+        SKL.marketAmt = M.marketAmt;
+      }
+    } catch (e) { SKL.marketAmt = null; }          // 大盤抓不到不該讓整個即時模式失敗
+    SKL.tv = tv; SKL.stv = stv; SKL.codes = codes.length; SKL.reqs = reqs;
+    SKL.quoteAt = at; SKL.at = Date.now(); SKL.err = '';
+    return tv;
+  }
+
+  // 狀態列（就在拉Bar 底下那一行）。誠實標示全部寫在這裡，不要散在圖上。
+  function sklStamp() {
+    const el = $('#sankeyLive');
+    const btn = $('#sankeyLiveBtn');
+    if (btn) { btn.classList.toggle('on', SKL.on); btn.setAttribute('aria-pressed', SKL.on ? 'true' : 'false'); }
+    if (!el) return;
+    if (!SKL.on) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    if (SKL.busy && !SKL.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
+    if (SKL.err) { el.innerHTML = `<b class="bad">即時抓不到</b>　${fmt.esc(SKL.err)}　·　再按一次「即時」可退回盤後資料`; return; }
+    const amt = SKL.marketAmt != null ? `台股總成交值 <b>${fmt.yi(SKL.marketAmt)}</b>（證交所真實值）` : '台股總成交值：這一輪沒取到';
+    el.innerHTML = (SKL.intraday
+      ? `<b class="live">即時</b>　報價 ${fmt.esc(SKL.quoteAt || '—')}　每分鐘更新`
+      : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最近一次收盤後的報價快照</b>，不是盤中變化')
+      + `　·　${amt}`
+      + `　·　板塊成交值是 <b>價 × 量</b> 的<b>估算值</b>（端點沒有每檔的累積成交金額）`
+      + `　·　% 的分母＝<b>${Object.keys(SKL.tv).length} 個即時板塊加總</b>，`
+      + `「〇〇・其他」自動桶要 4 個請求/分鐘、做不到，一律標<b>盤後</b>且不進分母`
+      + `　·　這一輪 ${SKL.reqs} 個請求 / ${SKL.codes} 檔`;
+  }
+
+  async function sklTick() {
+    if (!SKL.on || SKL.busy) return;
+    const st = sankeyState; if (!st) return;
+    /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
+       這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 2 個請求純浪費。
+       回到資金流向頁時計時器還在，下一輪就自己接上。*/
+    { const el = $('#sankey'); if (el && el.offsetParent === null) return; }
+    SKL.busy = true; SKL.intraday = !window.Live || window.Live.isIntraday();
+    sklStamp();
+    try { await sklFetch(st.sd); }
+    catch (e) { SKL.err = String((e && e.message) || e).slice(0, 80); SKL.tv = {}; SKL.stv = {}; }
+    finally {
+      SKL.busy = false;
+      const s2 = sankeyState;
+      if (SKL.on && s2) renderSankey(s2.sd, s2.k, sankeySel);
+      sklStamp();
+    }
+  }
+
+  /* 退出即時。`redraw=false` 給「使用者自己拖時間軸」用 ——
+     那一路本來就會接著重畫一次，這裡再畫一次等於同一幀畫兩張圖。*/
+  function sklOff(redraw) {
+    if (SKL.timer) { clearInterval(SKL.timer); SKL.timer = null; }
+    SKL.on = false; SKL.tv = {}; SKL.stv = {}; SKL.err = '';
+    sklStamp();
+    if (redraw !== false) { const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel); }
+  }
+
+  function sklToggle() {
+    if (SKL.on) return sklOff();
+    if (SKL.timer) { clearInterval(SKL.timer); SKL.timer = null; }
+    SKL.on = true;
+    stopAllPlay();                     // 即時和「往回播」是互斥的兩件事，同時跑只會互相蓋
+    SKL.err = ''; SKL.at = 0; SKL.tv = {}; SKL.stv = {};
+    SKL.intraday = !window.Live || window.Live.isIntraday();
+    sklStamp();
+    sklTick();
+    SKL.timer = setInterval(() => { if (!document.hidden) sklTick(); }, SKL_MS);
+  }
+
+  // 拉Bar 建好之後才掛得上去（playBar 會把整個容器的 innerHTML 換掉）
+  function sklMountBtn() {
+    const box = $('#sankeyDays'); if (!box || $('#sankeyLiveBtn')) return;
+    box.classList.add('rbar');         // 沒有拉Bar（只有一天資料）時容器還沒有這個類，鈕會沒有樣式
+    const b = document.createElement('button');
+    b.type = 'button'; b.id = 'sankeyLiveBtn'; b.className = 'pb livebtn';
+    b.textContent = '即時';
+    b.title = '切到盤中即時：板塊成交值改用即時報價估算（價 × 量），每分鐘更新';
+    b.setAttribute('aria-pressed', 'false');
+    b.onclick = sklToggle;
+    box.appendChild(b);
+    /* 換主題會把整頁重畫一次（applyTheme → route），playBar 連帶把這一排的 innerHTML
+       換掉，所以這顆鈕是全新的一顆。即時模式如果還開著，要把「亮起來」的樣子補回去，
+       不然畫的明明是即時資料、鈕看起來卻是關的。*/
+    sklStamp();
+  }
+
   function renderSankey(sd, idx, sel) {
     const el = $('#sankey'); if (!el) return;
     /* 空狀態要把 JS 量出來的高度也清掉 —— `.isempty` 收的是 CSS 的 min-height，
@@ -3532,12 +3949,28 @@
     const selG = sel && sel.gid, selC = sel && sel.chain;
     const gs = roster.map(g => ({ ...g, v: (g.tv || [])[k],
       prev: k > 0 ? (g.tv || [])[k - 1] : null }));       // 前一天：給「比昨天多還是少」用
+    /* ★ 即時模式（Andy 2026-09-21「即時」鈕）：把手寫板塊的成交值換成即時估算值。
+       自動桶（ind_*）抓不到，所以**留著收盤值、標成「盤後」、而且不進分母** ——
+       上午十點拿「板塊的部分成交值」去和「自動桶的整天成交值」比，
+       自動桶會被灌成第一名，那比不做還糟。*/
+    const live = SKL.on && !SKL.err && Object.keys(SKL.tv).length ? SKL : null;
+    if (live) gs.forEach(g => {
+      const lv = live.tv[g.gid];
+      if (lv != null) { g.v = lv; g.prev = null; g.live = true; }
+      else { g.stale = true; g.prev = null; }             // 盤後：不比前一天（兩邊不是同一個時點）
+    });
     const leaves = (sd.leaves || {})[day] || [];
     const prevLeaves = k > 0 ? ((sd.leaves || {})[D2[k - 1]] || []) : [];
-    const total = gs.reduce((s2, g) => s2 + (g.v || 0), 0) || 1;
-    // 全期間最大值：換日期時大小才有可比性
+    /* 分母。即時模式只加總「有即時值」的板塊 —— 這就是那條不准打折的規矩：
+       佔比一定要用「板塊 ÷ 所有即時板塊加總」，不要拿估算的分子去除
+       `Market3.marketAmt` 那個真實分母（會系統性偏掉）。*/
+    const total = (live ? gs.filter(g => g.live) : gs).reduce((s2, g) => s2 + (g.v || 0), 0) || 1;
+    /* 大小的基準。平常是「全期間最大值」（換日期時大小才有可比性）；
+       即時模式改成「這一輪的最大值」—— 盤中累積的成交值本來就比整天小，
+       跟 60 天最大值比的話開盤半小時整張圖只剩幾個小點，等於看不到東西。*/
     let maxV = 1;
-    roster.forEach(g => (g.tv || []).forEach(v => { if (v != null && v > maxV) maxV = v; }));
+    if (live) gs.forEach(g => { if (g.live && g.v > maxV) maxV = g.v; });
+    else roster.forEach(g => (g.tv || []).forEach(v => { if (v != null && v > maxV) maxV = v; }));
     const lt = theme() === 'light';
     const HI = lt ? .62 : .95, LO = lt ? .22 : .30;          // 顏色深淺的上下限
     const DIM = 0.14;                                        // 沒量／沒被選中時壓到多暗
@@ -3570,7 +4003,13 @@
     };
 
     const byG = {};
-    leaves.forEach(x => { (byG[x.gid] = byG[x.gid] || []).push(x); });
+    /* 即時模式下代表股那一欄也換成估算值（報價本來就是逐檔抓的，不多打一個請求）。
+       自動桶底下的代表股抓不到，維持收盤值並標 stale。*/
+    leaves.forEach(x => {
+      const lv = live ? live.stv[String(x.code)] : null;
+      const row = live ? { ...x, tv: lv == null ? x.tv : lv, stale: lv == null } : x;
+      (byG[x.gid] = byG[x.gid] || []).push(row);
+    });
     const prevByCode = {};
     prevLeaves.forEach(x => { prevByCode[x.gid + '|' + x.code] = x.tv; });
 
@@ -3580,7 +4019,7 @@
     const chainOf = {};
     roster.forEach(g => {
       const cid = g.chain || 'other';
-      if (!chainOf[cid]) { chainOf[cid] = { cid, name: g.chain_name || CHAIN_NAME[cid] || cid, gids: [], last: 0 }; chainOrder.push(chainOf[cid]); }
+      if (!chainOf[cid]) { chainOf[cid] = { cid, name: g.chain_name || chainLabel(cid), gids: [], last: 0 }; chainOrder.push(chainOf[cid]); }
       chainOf[cid].gids.push(g.gid);
       chainOf[cid].last += (g.tv || [])[lastIdx] || 0;
     });
@@ -3590,8 +4029,10 @@
     const nameOfG = {};
     const chainNodes = chainOrder.map(ch => {
       const mine = gs.filter(g => (g.chain || 'other') === ch.cid);
-      const cv = mine.reduce((s2, g) => s2 + (g.v || 0), 0);
+      // 即時模式：鏈的值只加總有即時值的板塊，和上面的 total 同一個分母口徑
+      const cv = (live ? mine.filter(g => g.live) : mine).reduce((s2, g) => s2 + (g.v || 0), 0);
       const cprev = mine.reduce((s2, g) => s2 + (g.prev || 0), 0);
+      const cAllStale = !!live && !mine.some(g => g.live);      // 整條鏈都是自動桶（例如「其他產業別」）
       const cOff = (selC && selC !== ch.cid) || (selG && !ch.gids.includes(selG));
       const cFade = cOff ? DIM : 1;
       const ccol = L.gcolor[ch.gids[0]] || CH.cyan;
@@ -3610,12 +4051,14 @@
             return {
               name: uniqName(seen, `${nm} ${x.code}`), value: x.tv, code: x.code, gidOf: g.gid,
               shown: nm, dim: off, share: gv > 0 ? x.tv / gv : null, prev: p == null ? null : p,
-              symbolSize: Math.max(6, size(x.tv) * .62),
-              itemStyle: { color: hexA(col, alpha(x.tv) * .85), borderColor: 'transparent', opacity: fade },
-              lineStyle: { color: hexA(col, alpha(x.tv) * .7), width: Math.max(1, width(x.tv) * .7), opacity: fade },
+              stale: !!x.stale,
+              symbolSize: x.stale ? 5 : Math.max(6, size(x.tv) * .62),
+              itemStyle: { color: hexA(col, x.stale ? DIM : alpha(x.tv) * .85), borderColor: 'transparent', opacity: fade },
+              lineStyle: { color: hexA(col, (x.stale ? DIM : alpha(x.tv) * .7)), width: x.stale ? 0.8 : Math.max(1, width(x.tv) * .7), opacity: fade },
               /* ★ 代表股那一欄也要標占比（Andy 2026-09-20 第 3 件）。
                  分母是**所屬族群**，畫面上寫清楚（#sankeySub 與「怎麼看」都寫了）。*/
-              label: { formatter: gv > 0 ? `${nm} ${pct(x.tv, gv)}%` : nm, opacity: fade, rich: RICH },
+              label: { formatter: x.stale ? `${nm} 盤後` : gv > 0 ? `${nm} ${pct(x.tv, gv)}%` : nm,
+                opacity: fade, rich: RICH },
             };
           });
         /* 階段三（Andy 2026-09-21「也可以點擊，並顯示在圖上」）：
@@ -3658,45 +4101,74 @@
         }
         const gname = uniqName(seen, g.name);
         nameOfG[g.gid] = gname;
+        /* ★ 即時模式：抓不到的自動桶一律標「盤後」而且不給 % ——
+           它的值是上一個收盤的整天成交值，和旁邊的盤中估算值不是同一個時點，
+           放一個百分比在旁邊就是在騙人（不准假裝整張圖都是即時的）。*/
+        /* ★ 即時模式下自動桶要畫成「不參與比較」的樣子（小點＋細線＋壓暗）。
+           它留著的是**上一個收盤的整天成交值**，比盤中半天的估算值大得多 ——
+           照原本的規則畫，ETF 會變成整張圖最粗的那一條、旁邊還寫著「盤後」，
+           那是最糟的一種誤導：標示是對的，但圖在說另一件事。*/
+        const shrink = !!g.stale;
+        const drawn = has && !shrink;
         return { name: gname, value: gv, gid: g.gid, chainOf: ch.cid, children: babies,
-          nodata: !has, dim: off, prev: g.prev, base: cv,
-          symbolSize: has ? size(g.v) : 6,
-          itemStyle: { color: hexA(col, has ? alpha(g.v) : DIM), borderColor: 'transparent', opacity: fade },
-          lineStyle: { color: hexA(col, (has ? alpha(g.v) : DIM) * .8), width: has ? width(g.v) : 0.8, opacity: fade },
+          nodata: !has, dim: off, prev: g.prev, base: cv, stale: !!g.stale, isLive: !!g.live,
+          symbolSize: drawn ? size(g.v) : 6,
+          itemStyle: { color: hexA(col, drawn ? alpha(g.v) : DIM), borderColor: 'transparent', opacity: fade },
+          lineStyle: { color: hexA(col, (drawn ? alpha(g.v) : DIM) * .8), width: drawn ? width(g.v) : 0.8, opacity: fade },
           /* 窄畫面把名稱與百分比拆成兩行、並且不畫 ▲▼：
            324px 的手機一欄只有 60~70px，寫成一行的話「電腦及週邊設備業 6.6% ▲32%」
            會直接被畫布右緣裁掉，連百分比都看不到（截圖量到的）。
            兩行＋截斷之後至少「是誰、佔多少」一定讀得到，▲▼ 點一下看小框還是有。*/
-        label: { formatter: has ? (narrow ? `${g.name}\n${pct(gv, cv)}%`
+        label: { formatter: g.stale ? `${g.name}${narrow ? '\n' : ' '}盤後`
+          : has ? (narrow ? `${g.name}\n${pct(gv, cv)}%`
             : `${g.name} ${pct(gv, cv)}%${dodTag(gv, g.prev)}`) : `${g.name} 無資料`,
           ...(narrow ? { width: 116, overflow: 'truncate', lineHeight: 13, fontSize: 10.5 } : {}),
-          opacity: off ? 0.35 : (has ? 1 : 0.55), rich: RICH } };
+          opacity: off ? 0.35 : (drawn ? 1 : 0.55), rich: RICH } };
       });
       const cname = uniqName(seen, ch.name);
       ch.node = cname;
       return { name: cname, value: cv, chain: ch.cid, children: kids, prev: cprev, base: total,
+        stale: cAllStale,
         symbolSize: Math.max(10, size(cv / 2)),
         itemStyle: { color: hexA(ccol, cOff ? DIM : Math.min(1, alpha(cv / 2) + .1)), borderColor: 'transparent', opacity: cFade },
         lineStyle: { color: hexA(ccol, (cOff ? DIM : alpha(cv / 2)) * .85), width: Math.max(1.4, width(cv / 2)), opacity: cFade },
-        label: { formatter: narrow ? `${ch.name}\n${pct(cv, total)}%`
+        label: { formatter: cAllStale ? `${ch.name}${narrow ? '\n' : ' '}盤後`
+          : narrow ? `${ch.name}\n${pct(cv, total)}%`
             : `${ch.name} ${pct(cv, total)}%${dodTag(cv, cprev)}`,
           ...(narrow ? { width: 108, overflow: 'truncate', lineHeight: 13, fontSize: 11 } : {}),
           fontSize: 12.5, fontWeight: 700, opacity: cOff ? 0.4 : 1, rich: RICH } };
     });
-    const root = { name: '台股成交值', value: total, symbolSize: 26,
+    /* 根節點。★ 即時模式下這一格是唯一一個「真實值」—— `Market3.marketAmt` 是
+       台股當日累積成交值（元），盤中就有。第二行才是這張圖底下 % 的分母
+       （即時板塊的估算加總），兩個數字一定要分開寫，不然會被讀成同一件事。*/
+    const rootLbl = live
+      ? `台股成交值 ${SKL.marketAmt != null ? fmt.yi(SKL.marketAmt) : '—'}（真實）`
+        + `\n即時板塊合計 ${fmt.yi(total)}（估算 · % 的分母）`
+      : `台股成交值 ${fmt.yi(total)}`;
+    const root = { name: '台股成交值', value: total, symbolSize: 26, marketAmt: live ? SKL.marketAmt : null,
       itemStyle: { color: hexA(CH.cyan, lt ? .55 : .9), borderColor: 'transparent' },
-      label: { formatter: `台股成交值 ${fmt.yi(total)}`, fontWeight: 700, rich: RICH },
+      /* ★ 窄畫面把根節點的標籤改放**正下方**。
+         放右邊的話「台股成交值 8271 億」這一串在 390px 上會橫跨到第二欄，
+         整片蓋住產業鏈那幾顆點 —— 實測：在 AI 伺服器那顆點上按下去，
+         ECharts 判定你點的是**根節點的標籤**（`p.name` 回「台股成交值」），
+         所以「點產業鏈」在手機上完全點不動，而且畫面沒有任何異狀可以看出原因。*/
+      label: { formatter: rootLbl, fontWeight: 700, lineHeight: 15, rich: RICH,
+        ...(narrow ? { position: 'bottom', distance: 8, align: 'left', fontSize: 11 } : {}) },
       children: chainNodes };
 
     const sub = $('#sankeySub');
     if (sub) {
       const selName = selG ? (L.gname[selG] || selG) : selC ? (chainOf[selC] || {}).name : '';
+      const when = live
+        ? (SKL.intraday ? `盤中即時（報價 ${SKL.quoteAt || '—'}）` : '即時報價快照（現在不是盤中）')
+        : day;
       sub.textContent = (narrow
-        ? `${day}：台股 → 產業鏈 → 族群（畫面太窄，代表股那一層先收起來 ——`
+        ? `${when}：台股 → 產業鏈 → 族群（畫面太窄，代表股那一層先收起來 ——`
           + `點族群，下面就是它的成交值排序）`
-        : `${day}：台股 → 產業鏈 → 族群 → 代表股`)
+        : `${when}：台股 → 產業鏈 → 族群 → 代表股`)
         + `　·　每一層的 % 都是「佔它上一層」的比重`
-        + `　·　位置固定，只有線的粗細與圓圈大小會變`
+        + (live ? '　·　板塊成交值是「價 × 量」的估算值，自動桶標「盤後」且不進分母'
+          : '　·　位置固定，只有線的粗細與圓圈大小會變')
         + (selName ? `　·　只看「${selName}」` : '');
     }
 
@@ -3715,6 +4187,13 @@
           if (d.nodata) return `<b>${p.name}</b><br>${day} 這天沒有量`;
           const v = d.value;
           if (v == null) return p.name;
+          // 即時模式下自動桶（以及整條都是自動桶的鏈）拿的是收盤值，要講清楚，不要給假的佔比
+          if (live && d.stale) {
+            return `<b>${fmt.esc(p.name)}</b><br><b>盤後</b>：這一格抓不到即時`
+              + `<br>「〇〇・其他」自動桶光 ETF 一格就 358 檔，每分鐘要多 4 個請求`
+              + `<br>下面是 ${fmt.esc(day)} <b>收盤</b>的成交值 ${fmt.yi(v)}`
+              + `<br><span class="muted">它不進即時佔比的分母（時點不同，比了會騙人）</span>`;
+          }
           // 每一層都把「金額 ＋ 佔上一層 ＋ 佔全場 ＋ 比前一天」講滿（Andy「需要更豐富」）
           const own = d.code ? (d.shown + ' ' + d.code) : p.name;
           const base = d.base != null ? d.base : (d.share != null ? v / d.share : null);
@@ -3723,6 +4202,9 @@
             + `<br>佔全場 ${pct(v, total)}%`
             + dodText(v, d.prev)
             + (d.est ? '<br><span class="muted">（逐日明細每天只存前 3 大，這一檔用的是最新交易日的成交值）</span>' : '')
+            + (live ? '<br><span class="muted">即時模式：成交值是「最後成交價 × 累積成交張數 × 1000」的<b>估算值</b>'
+              + '（端點沒有每檔的累積成交金額）；雙掛兩個板塊的股票已照 1/n 拆分</span>'
+              + (d.marketAmt != null ? `<br>台股總成交值 <b>${fmt.yi(d.marketAmt)}</b>（證交所真實值，不是估算）` : '') : '')
             + (d.picked ? '<br><small>你自己點開的個股 · 要拿掉就再點一次右邊清單裡那一列</small>' : '')
             + (d.code ? '<br><small>點一下進個股頁</small>'
               : d.gid ? '<br><small>點一下在右邊列出成分股成交值排序</small>'
@@ -3759,8 +4241,43 @@
         drillOpen(d.gid, L.gname[d.gid] || d.gid, sankeyNote(day, k === lastIdx), 'sankeyPanel');
         return renderSankey(sd, k, { gid: d.gid });
       }
-      if (d.chain) return renderSankey(sd, k, selC === d.chain ? null : { chain: d.chain });
+      /* ★ 2026-09-21（Andy：「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，
+         並下面多出裡面還蓋族群，並且都具備下拉選單可以看個股」）。
+         以前點產業鏈只會把其餘壓暗，右邊什麼都不會出現 —— 圖上最粗的那幾顆點是死的。*/
+      if (d.chain) {
+        if (selC === d.chain) { return drillClose(); }        // 再點同一條＝取消（和族群同一套語彙）
+        const node = chainNodes.find(z => z.chain === d.chain) || {};
+        const cv2 = node.value || 0;
+        const rows = (node.children || []).map(g => ({
+          gid: g.gid, name: L.gname[g.gid] || g.gid, v: g.value || 0,
+          share: cv2 > 0 ? (g.value || 0) / cv2 : 0, chg: gchgOf(g.gid),
+        })).sort((a, b) => b.v - a.v);
+        drillOpenChain(d.chain, (chainOf[d.chain] || {}).name || d.chain, rows,
+          `${sankeyNote(day, k === lastIdx)}　·　族群的 % 是佔「${(chainOf[d.chain] || {}).name || d.chain}」這條鏈`,
+          'sankeyPanel');
+        return renderSankey(sd, k, { chain: d.chain });
+      }
+      // 根節點（台股成交值）＝回到最上層，和點背景／ESC 同一個結果
+      if (p.name === '台股成交值' || p.dataIndex === 0) return drillClose();
     });
+    /* ★ 點背景就回復預設（Andy 2026-09-21：「當點擊背景時會恢復 Default 狀態」）。
+       ECharts 的 series click 只在點到圖元時才發，所以「點到空白」要跟 zrender 要 ——
+       `ev.target` 是 null 就代表這一下沒有打到任何圖元。
+       疊在上面那層小圓點 canvas 是 `pointer-events:none`，不會把事件吃掉。
+       復原走的是既有的 drillClose()，和 ESC、麵包屑完全同一支（不要寫第二套復原）。*/
+    if (c) {
+      try {
+        const zr = c.getZr();
+        /* ★ 絕對不可以寫 `zr.off('click')`。ECharts 自己**也是**在 zrender 上掛 click
+           來把原生事件翻譯成 series 的 click —— 整個關掉的話圖上所有節點都點不動了
+           （2026-09-21 我就是這樣寫，實測「點 AI 伺服器沒反應」，
+           zr 收得到事件、series 的 click 一次都沒進來）。
+           所以只解除**上一次自己掛的那一支**，用具名 handler 存在元素上。*/
+        if (el._skBlank) zr.off('click', el._skBlank);
+        el._skBlank = (ev) => { if (!ev || !ev.target) { if (drillActive()) drillClose(); } };
+        zr.on('click', el._skBlank);
+      } catch (e) { /* zrender 換版本時最多就是沒有這個功能，不能讓整張圖掛掉 */ }
+    }
     /* 族群晶片改成篩選（Andy 2026-09-20：「所有圖表的族群小Tip都需要具備點擊後
        就會在對應圖表上被篩選出去」）。名單也用固定名單，不是只有當天有量的那幾個。*/
     filterChips('sankey', gs.map(g => ({ gid: g.gid, name: g.name })), selG,
@@ -3771,7 +4288,21 @@
       });
     // 面板開著的話跟著換日期重畫（標題裡的日期與「是不是最新」要跟著走）
     { const box = $('#sankeyPanel');
-      if (box && !box.hidden && selG) drillOpen(selG, L.gname[selG] || selG, sankeyNote(day, k === lastIdx), 'sankeyPanel'); }
+      // keepChain＝true：換日期不可以把「我是從哪條鏈點進來的」洗掉（麵包屑會突然少一階）
+      if (box && !box.hidden && selG) drillOpen(selG, L.gname[selG] || selG, sankeyNote(day, k === lastIdx), 'sankeyPanel', true);
+      else if (box && !box.hidden && DRILL.chain && selC === DRILL.chain) {
+        // 鏈模式：換日期要把佔比與成交值一起換掉，否則清單會停在剛點下去的那一天
+        const node = chainNodes.find(z => z.chain === DRILL.chain);
+        if (node) {
+          const cv2 = node.value || 0;
+          DRILL.chainRows = (node.children || []).map(g => ({
+            gid: g.gid, name: L.gname[g.gid] || g.gid, v: g.value || 0,
+            share: cv2 > 0 ? (g.value || 0) / cv2 : 0, chg: gchgOf(g.gid),
+          })).sort((a, b) => b.v - a.v);
+          DRILL.notes.sankeyPanel = `${sankeyNote(day, k === lastIdx)}　·　族群的 % 是佔「${DRILL.chainName}」這條鏈`;
+          renderDrillPanel('sankeyPanel');
+        }
+      } }
 
     /* 小圓點傳輸：等 tree 的版面算完（finished）才讀得到節點座標。
        ★ 2026-09-20 第 2 件（Andy：「並都需要具備資金流傳輸效果」）——
@@ -3789,21 +4320,24 @@
         const push = (from, to, v, gid, col, scale, lvl) => {
           if (!from || !to || !(v > 0)) return;
           const r = ratio(v * (scale || 1));
-          flows.push({ a: from, b: to, gid, lvl,
-            // 資金越多 → 同一條線上的點越多 → 單位時間通過的顆數越多＝頻率越高
-            n: Math.max(1, Math.min(5, Math.round(1 + 4 * r))),
-            size: 1.4 + 3.2 * Math.sqrt(r),
+          flows.push({ a: from, b: to, gid, lvl, r,
+            /* 資金越多 → 點越多、點越大、跑得越快。三個通道一起動，
+               「哪條線的錢比較多」才一眼看得出來（Andy 2026-09-21）。*/
+            n: dotN(r),
+            size: dotR(r),
+            spd: dotSpd(r),
             // 錯開相位，不要整排同時發車。用名稱的字元和當雜湊
             phase: ([...String(gid)].reduce((h, ch2) => (h * 31 + ch2.charCodeAt(0)) % 997, 7) % 100) / 100,
             color: hexA(col, lt ? .75 : .95) });
         };
         chainNodes.forEach(cn => {
           const cOff = (selC && selC !== cn.chain) || (selG && !cn.children.some(g => g.gid === selG));
-          if (cOff) return;
+          if (cOff || cn.stale) return;
           const cp = pos[cn.name];
           push(a, cp, cn.value, cn.chain, L.gcolor[(cn.children[0] || {}).gid] || CH.cyan, 0.5, 1);
           cn.children.forEach(g => {
             if (selG && selG !== g.gid) return;
+            if (g.stale) return;            // 即時模式的自動桶：不是即時流量，不發點
             const gp = pos[g.name];
             const col = L.gcolor[g.gid] || CH.cyan;
             push(cp, gp, g.value, g.gid, col, 1, 2);
@@ -3823,6 +4357,7 @@
           .sort((x, y) => y[0] - x[0])
           .forEach(([extra, i]) => { const add = Math.max(0, Math.min(extra, budget));
             use[i].n += add; budget -= add; });
+        sankeyFlows = use;               // 給驗收量「最粗 vs 最細的線各有幾顆點」
         /* ★ 不要每換一天就把整層 canvas 拆掉重建：族群位置是固定的，
            拆掉重建只會讓小圓點閃一下。有活著的就只換 flows。*/
         if (sankeyFx && sankeyFx.alive() && sankeyFx.host === el) sankeyFx.setFlows(use);
@@ -4603,7 +5138,30 @@
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
       sankeyDots: () => (sankeyFx ? sankeyFx.dots.map(d => [d.x, d.y, d.lvl]) : []),
-      sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()) };
+      sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()),
+      /* 量密度對比用：每條連線配到幾顆點、多大、多快。
+         Andy 要的是「一眼看出哪條線的錢比較多」，而那是量得出來的 ——
+         最粗與最細的線各有幾顆點、通過率差幾倍。*/
+      sankeyFlowStats: () => {
+        const f = (sankeyFlows || []).filter(x => x && x.n);
+        if (!f.length) return null;
+        const by = f.slice().sort((a, b) => b.r - a.r);
+        const top = by[0], bot = by[by.length - 1];
+        const rate = (x) => x.n * (x.spd || 1);          // 單位時間通過幾顆＝點數 × 速度
+        return { lines: f.length, dots: f.reduce((s2, x) => s2 + x.n, 0),
+          maxN: Math.max(...f.map(x => x.n)), minN: Math.min(...f.map(x => x.n)),
+          top: { n: top.n, size: +top.size.toFixed(2), spd: +(top.spd || 1).toFixed(2), r: +top.r.toFixed(4) },
+          bot: { n: bot.n, size: +bot.size.toFixed(2), spd: +(bot.spd || 1).toFixed(2), r: +bot.r.toFixed(4) },
+          nRatio: +(top.n / bot.n).toFixed(2), rateRatio: +(rate(top) / rate(bot)).toFixed(2) };
+      },
+      // 即時資金去向：現在是不是開著、這一輪打了幾個請求、算出幾個板塊
+      sankeyLive: () => ({ on: SKL.on, busy: SKL.busy, err: SKL.err, at: SKL.at,
+        intraday: SKL.intraday, boards: Object.keys(SKL.tv).length,
+        codes: SKL.codes, reqs: SKL.reqs, marketAmt: SKL.marketAmt, quoteAt: SKL.quoteAt }),
+      sankeyLiveToggle: () => sklToggle(),
+      // 下鑽狀態（驗收「點背景回復預設」用）
+      drillState: () => ({ gid: DRILL.gid, chain: DRILL.chain, open: [...DRILL.open],
+        stocks: [...DRILL.stocks], sel: sankeySel }) };
     const [im, gt, cands, th, sc, all] = await Promise.all([load('industry_map'), load('groups_today'), load('candidates'), load('themes'), load('supply_chain'), load('stocks', { fallback: [] })]);
     L.init(im, gt, cands, th, sc, all);
     await Promise.all([renderEvents(), initSearch()]);

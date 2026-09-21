@@ -19,11 +19,16 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 CODES = {
     "2330": "foundry", "2303": "foundry", "3711": "osat", "2311": "osat",
-    # 2026-09-21：族群換成 tide 的 110 板塊，這裡的 id 跟著改。
-    # 2881/2882 是壽險型金控，tide 的「銀行金融」只收銀行 ——
-    # 它們落到自動桶 ind_金融保險（口徑由 meta.ind_display 指定 pb_roe）。
+    # 2026-09-21 上午：族群換成 tide 的 110 板塊，這裡的 id 跟著改。
+    # 2026-09-21 下午：壽險型金控依資金流證據拆成手寫板塊 life_fhc
+    #   （富邦金×國泰金殘差相關 +0.74、對銀行只有 +0.34，見 docs/tide_deviations.md），
+    #   所以 2881/2882 不再落到自動桶。
+    # ★ 但這個測試原本**同時守兩件事**：①金控不准用 PE ②自動桶吃得到 ind_display 的口徑。
+    #   只把 id 改掉的話第②條就沒人守了，所以補一檔沒有被手寫板塊收走的金融股
+    #   （2889 國票金，機器確認過它不屬於任何手寫板塊）當自動桶的樣本。
     "2317": "ai_server_odm", "2382": "ai_server_odm", "3017": "liquid_cooling",
-    "2881": "ind_金融保險", "2882": "ind_金融保險", "2603": "shipping_container",
+    "2881": "life_fhc", "2882": "life_fhc", "2889": "ind_金融保險",
+    "2603": "shipping_container",
 }
 
 # ★ 科技股 vs 傳產只寫這一份。
@@ -32,7 +37,7 @@ CODES = {
 # 測試紅了卻和真正要守的事（強弱排序）無關。兩份名單必須是同一份。
 TECH_GROUPS = {"foundry", "osat", "ai_server_odm", "liquid_cooling", "air_cooling"}
 # 反過來的那一份給 test_relative_strength_beats_market 用
-LAGGARD_GROUPS = {"ind_金融保險", "shipping_container"}
+LAGGARD_GROUPS = {"life_fhc", "ind_金融保險", "shipping_container"}
 
 
 @pytest.fixture()
@@ -55,7 +60,7 @@ def lake(tmp_path, monkeypatch):
 
 
 def _synth(days: int = 300, seed: int = 7):
-    """造一段 10 檔股票、300 個交易日的行情，族群之間刻意給不同的走勢。"""
+    """造一段 11 檔股票、300 個交易日的行情，族群之間刻意給不同的走勢。"""
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range("2025-06-02", periods=days).strftime("%Y-%m-%d").tolist()
 
@@ -124,7 +129,7 @@ def _synth(days: int = 300, seed: int = 7):
          # groups.yaml 的 meta.ind_display 指定的（pb_roe）—— 給「其他」就繞過這條路徑，
          # 測試會通過但實際上什麼都沒守到。
          "industry": ("半導體業" if g in ("foundry", "osat")
-                      else "金融保險" if c in ("2881", "2882") else "其他"),
+                      else "金融保險" if c in ("2881", "2882", "2889") else "其他"),
          "industry_code": "24"}
         for c, g in CODES.items()
     ])
@@ -464,8 +469,12 @@ def test_fundamental_payload_end_to_end(populated):
     # ★ 守的不變式沒變：**金控股不准用本益比跟同業比**（保險的 EPS 會被評價損益扭曲）。
     # 變的只是它現在落在哪一格 —— tide 的「銀行金融」只收銀行，壽險型金控落到
     # 自動桶 ind_金融保險，所以這條同時在守「自動桶也吃得到 meta.ind_display 的口徑」。
+    # 變的只是它現在落在哪一格 —— 壽險金控已拆成手寫板塊 life_fhc，
+    # 自動桶那條由 2889 國票金守著。**兩條路徑都要走 pb_roe，缺一不可。**
+    assert any(g["group_id"] == "life_fhc" and g["metric"] == "pb_roe" for g in gv), (
+        "壽險金控（手寫板塊）要走 PB+ROE —— 口徑寫在 groups.yaml 的 groups.life_fhc.valuation_metric")
     assert any(g["group_id"] == "ind_金融保險" and g["metric"] == "pb_roe" for g in gv), (
-        "壽險型金控落到自動桶之後仍然要走 PB+ROE —— "
+        "沒被手寫板塊收走的金融股落到自動桶之後仍然要走 PB+ROE —— "
         "口徑由 groups.yaml 的 meta.ind_display 指定，fundamental.group_valuation() 要讀它")
 
     bv = json.loads((site / "broker_views.json").read_text(encoding="utf-8"))

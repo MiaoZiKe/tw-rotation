@@ -27,4 +27,88 @@ meta:
   updated: "2026-09-21 上午"
   note: "空的代表沒有待驗證的東西 —— 全部都已經驗過並推上 main。"
 
-pending: []
+pending:
+  - id: V1
+    what: "依證據查證後新增 6 個板塊：CCL 銅箔基板、銅箔、重電設備、電信服務、壽險金控、證券金控；4770 上品從玻璃基板移到廠務工程"
+    files:
+      - pipeline/groups/groups.yaml
+      - docs/groups_tide110_evidence.md
+      - docs/tide_deviations.md
+      - tests/test_delivery_guard.py
+      - tests/test_pipeline_e2e.py
+    gates: ["pytest", "preview", "總覽", "資金流向", "新-資金流向", "新-輪動時鐘", "產業", "族群頁", "批次2", "批次3", "批次7"]
+    shown: true
+    ok: true
+    at: "2026-09-21 09:2x"
+    note: >-
+      ★ pytest 已經跑過了（435 全過），但**前端一次都還沒驗** ——
+      板塊從 110 變 116、族群卡 111 張變 117 張，熱力圖／桑基圖／輪動時鐘都會變。
+      已重算 site/data 並發布成互動預覽（claude.ai/artifact/WMwLHNzPAsns4rdJKHHPJZ）。
+      Andy 2026-09-21 看過並裁示：「2883 凱基金放證券，其餘的照資料安排」→ ok=true。
+      ★ 仍然**一段前端驗收都沒跑**，等他說「驗證」。
+  - id: V2
+    what: "日盤／夜盤統一：走勢圖跟著台北時間自己選，手動切只在當下那個時段內有效"
+    files: [site/market3.js]
+    gates: ["preview", "大盤三張圖", "新-大盤三張圖", "盤中即時", "總覽"]
+    shown: false
+    ok: null
+    at: "2026-09-21 09:40"
+    note: >-
+      Andy：「日盤跟夜盤統一一頁，到夜盤的週期走勢圖就顯示夜盤的，同理日盤就是日盤」。
+      根因：`state.futSession = ls.get(KEY_FUTS, '') || futSession()` ——
+      使用者按過一次之後那個選擇就**永久記住**，再也不跟著時間走。
+      他 09:36（日盤時段）打開還停在夜盤，而夜盤 05:00 就收了、當然拿不到，
+      畫面寫「夜盤報價未取得」，看起來像壞掉其實是黏住。
+      改成 pickSession()：預設跟時鐘；手動切連同「當時在哪一段」一起存，
+      時段一翻就作廢。舊格式（純字串）一律當過期 —— 這樣他現在卡住的狀態會自己解開。
+      另外在 refresh() 每一輪呼叫 syncSession()，網頁整天開著跨過 13:45／15:00 時會自己翻。
+      八種情況都用 node 驗過（沒存過×3、舊格式、同時段手動×2、跨時段過期×2）。
+  - id: V3
+    what: "今日事件的「科技」真的只留科技（用 RSS 自己的標籤重新分類）；金十數據卡在合規，等探測"
+    files:
+      - pipeline/sources/news.py
+      - pipeline/config.py
+      - pipeline/build_payload.py
+      - tests/test_sources_v3.py
+      - scripts/eval_news_tech_filter.py
+      - scripts/probe_sources.py
+      - .github/workflows/probe.yml
+    gates: ["pytest", "preview", "總覽", "今日事件"]
+    shown: false
+    ok: null
+    at: "2026-09-21 10:00"
+    note: >-
+      pytest 458 已過（原 435 ＋ 新增 23）。precision 0.981 / recall 0.946。
+      Andy 點名的四則實測全部不收。
+      ★ 分類改在**讀取端**重跑（build_payload），不寫回資料湖 ——
+      資料湖維持只增不改，而且判準以後再調會自動套用到全部歷史。
+      ⬜ 要在 Actions 觸發「端點探測」選 jin10，拿到 robots.txt 與版權頁原文再判斷金十能不能接。
+      ⬜ 還沒重算 site/data，所以預覽上還看不到效果。
+  - id: V4
+    what: "族群配色 14 色 → 34 色（前 14 色一個都沒動）：撞色板塊對 446 → 167，自動桶內部歸零"
+    files: [site/app.js]
+    gates: ["preview", "資金流向", "新-資金流向", "新-輪動時鐘", "產業", "族群頁", "淺色主題", "明亮主題", "批次2", "批次3"]
+    shown: false
+    ok: null
+    at: "2026-09-21 10:15"
+    note: >-
+      Agent 這一輪已經跑過 _preview 與那 12 段（全綠），但照規矩仍然要等 Andy 說「驗證」
+      時和其他批一起重跑一次 —— 因為 V1~V3 也動了東西，合在一起可能互相影響。
+      ⬜ 兩件要 Andy 決定：① 鎖定區的 #7ee8c7 與 #6ee7b7 深色下 ΔE 3.99 ＝實務同色，
+      而且後者離「綠＝跌」只有 5.7；換掉能拉到 ~9，代價是 2 個板塊換色一次。
+      ② 色盲：34 色不可能全色盲友善，真解法是桑基／時鐘直接標名字（會動版面，另案）。
+  - id: V5
+    what: "輪動時鐘五件：暫停修好、個股篩選拿掉、族群晶片搬到產業鏈列下方並縮小、貼邊修正、移除長說明；＋ financial 沒翻譯"
+    files: [site/app.js, site/index.html, site/industry.js, scripts/_uitest.py]
+    gates: ["preview", "資金流向", "新-資金流向", "新-輪動時鐘", "產業", "族群頁", "批次2", "批次3", "批次7", "新-版面等高與多寬度", "手機"]
+    shown: false
+    ok: null
+    at: "2026-09-21 10:45"
+    note: >-
+      ★ 我給的兩個根因假設都被量測推翻，記下來免得下次又猜同一個：
+      ① 暫停不是 rangeBar 的幽靈計時器 —— renderFlow 一頁只跑一次，rangeBar 沒重跑過。
+         真因是 #rotBack 與 #rotZoomBack 兩支拉Bar 控制同一個 rotFrame，暫停只停自己那支。
+      ② 貼邊不是 √2 超過 CLOCK_MAXR（今天最大偏離 1.288，跟上限只差 3%）。
+         真因是尺凍結在今天、而 30 天前的偏離是今天的 1.92 倍，
+         MLCC 整段 31 天都被夾在 1.000 —— 那才是「一直維持最大值」。
+      這一批 agent 已跑完 13 段 + _preview（全綠），驗證時仍要和其他批一起重跑。

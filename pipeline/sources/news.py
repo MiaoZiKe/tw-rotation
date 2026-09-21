@@ -118,9 +118,82 @@ def _rss(url: str, source: str, category: str) -> pd.DataFrame:
     return df
 
 
+def classify_technews(title: str, keywords: str) -> str | None:
+    """判定一則 TechNews 到底該放哪一格：「科技」「總經」「台股」，或 None（不收）。
+
+    為什麼需要這個（Andy 2026-09-21：「科技新聞請確實篩選跟科技有關的，
+    我發現很多無關的，例如醫療科技等等」）：TechNews 科技新報同時涵蓋天文、醫療、
+    健康、生活科學，以前整份 RSS 無條件標成「科技」，於是 CAR-T 療法、腸道細菌、
+    二手電腦開箱全跑進科技格。這個網站的「科技」只回答
+    **「跟台股科技族群的資金流有關的事」**。
+
+    判斷主力是 `keywords`（RSS 自己的分類標籤，來源標的比猜標題可靠），
+    標題關鍵字只在標籤給不出訊號時當補強。清單與理由全部在 `config.py`，
+    Andy 之後要自己加減字就改那裡，不用動這支程式。
+
+    順序（每一層都是刻意的，改順序等於改行為）：
+      0. 證券標籤 ＋ 標題在講 ETF／基金／配息 → 台股（這是行情題，不是科技題）
+      1. 強拒絕標籤 → 不是科技（連硬訊號都壓不過；生醫題目常被順手標上「晶片」）
+      2. 硬訊號標籤 → 科技（半導體廠的人才／電價／房市新聞仍然是科技）
+      3. 弱拒絕標籤 → 不是科技
+      4. 弱允許標籤 → 科技
+      5. 標題補強關鍵字 → 科技
+      6. 都沒有 → 走 `_fallback_category()` 決定改標總經還是不收
+    """
+    tags = {t.strip() for t in (keywords or "").split(",") if t.strip()}
+    title = title or ""
+
+    if "證券" in tags and any(h in title for h in config.NEWS_TW_MARKET_TITLE_HINTS):
+        return "台股"
+    if tags & config.NEWS_TECH_STRONG_DENY_TAGS:
+        return _fallback_category(title, tags)
+    if tags & config.NEWS_TECH_HARD_TAGS:
+        return "科技"
+    if tags & config.NEWS_TECH_SOFT_DENY_TAGS:
+        return _fallback_category(title, tags)
+    # 帶明確的貨幣／貿易／股市標籤又完全沒有硬訊號 → 那是總經題，不是科技題。
+    # （「AI 通膨來襲？央行：短期可控」只因為標了 AI 就進科技格，是改版前的老毛病）
+    if tags & config.NEWS_MACRO_TAGS:
+        return "總經"
+    if tags & config.NEWS_TECH_SOFT_TAGS:
+        return "科技"
+    if any(h in title for h in config.NEWS_TECH_TITLE_HINTS):
+        return "科技"
+    return _fallback_category(title, tags)
+
+
+def _fallback_category(title: str, tags: set[str]) -> str | None:
+    """不是科技的那些要去哪裡。
+
+    ★ 不直接丟掉：講央行利率、關稅、油價、美股行情的那幾則改標「總經」比較誠實
+    （Andy 2026-09-21）。真的哪一格都不屬於的（天文、醫療、開箱、食譜）才回 None 不收。
+    """
+    if tags & config.NEWS_MACRO_TAGS:
+        return "總經"
+    if any(h in (title or "") for h in config.NEWS_MACRO_TITLE_HINTS):
+        return "總經"
+    return None
+
+
 def technews() -> pd.DataFrame:
-    """TechNews 科技新報，補半導體 / AI 的深度報導（RSS 帶分類標籤）。"""
-    return _rss(config.TECHNEWS_RSS, "technews", "科技")
+    """TechNews 科技新報，補半導體 / AI 的深度報導（RSS 帶分類標籤）。
+
+    抓回來之後一律重新分類（見 `classify_technews`）——整份 RSS 不是每一則都是
+    台股科技族群的事。分不進任何一格的直接不收，並把筆數記進 log，
+    之後調清單時看 log 就知道砍掉多少。
+    """
+    df = _rss(config.TECHNEWS_RSS, "technews", "科技")
+    if df.empty:
+        return df
+    before = len(df)
+    df["category"] = [
+        classify_technews(t, k) for t, k in zip(df["title"], df["keywords"])
+    ]
+    kept = df[df["category"].notna()].copy()
+    dist = kept["category"].value_counts().to_dict() if not kept.empty else {}
+    log.info("TechNews 重新分類：%d 則 → %s，不收 %d 則",
+             before, dist, before - len(kept))
+    return kept.reset_index(drop=True)
 
 
 def udn_money() -> pd.DataFrame:
