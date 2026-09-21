@@ -548,5 +548,4 @@
 
   window.ThemeDiagrams = T;
   window.ThemeDiagrams.fit = fit;
-  window.ThemeDiagrams.CW = CW;
 })();
