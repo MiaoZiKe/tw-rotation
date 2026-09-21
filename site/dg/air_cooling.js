@@ -39,23 +39,11 @@
      ⚠ `--dg-*` 的家本來在 `site/index.html` 的 :root，但這一批不准動 index.html，
        所以先定義在圖自己的 scoped style 裡：色值只出現在這一個區塊，
        底下所有形狀一律 `var(--dg-*)`。之後 art-director 要收進 :root，整塊搬過去即可。*/
+  /* 這張圖的材質色 token 已經在 2026-09-21 深夜收進 `site/index.html` 的 :root（art-director 擁有）。
+     收進去的理由：配色切換（html 的 data-dgpal）在 :root 那一層蓋不掉圖自己 scope 裡的變數，
+     不收就等於「休閒配色只有一張圖有效」。**是同值搬家，值一個都沒改。**
+     這裡只留下這張圖自己的**規則**（class 定義），那些不是 token，不該進 :root。*/
   const VARS = `<style>
-    .dgair{
-      --dg-cold:#4ea8dc; --dg-cold-2:#2b6f99;   /* 進氣（冷） */
-      --dg-hot:#e8854a;  --dg-hot-2:#a9542a;    /* 排氣（熱）—— 不是紅色 */
-      --dg-fws:#8b96ad;  --dg-fws-2:#5d6679;
-      --dg-vap:#24324a;                          /* 兩相元件的蒸氣腔（真空腔，不是液體） */
-      --dg-wick:#8f6a45;                         /* 毛細結構 */
-      --dg-steel:#9aa6b4; --dg-steel-2:#6b7683;  /* 鋼：軸、滾珠 */
-      --dg-alu:#a3b2c4;  --dg-alu-2:#75849a;     /* 鋁：鰭片、扇框 */
-      --dg-mag:#5b4a7a;                          /* 磁鐵（轉子）*/
-      --dg-die:#39476a;                          /* 矽裸晶 */
-      --dg-void:#0d1424;                         /* 切面上的空隙 */
-      --dg-frame:#1a2540;                        /* 框與盒的底 */
-      --dg-oil:#c9a24a;                          /* 潤滑油／壓力油膜 */
-      --dg-alu-3:#5e6b7e;                        /* 鋁的暗面（扇框的厚度那一側） */
-      --dg-hub-lit:#7c8ba1; --dg-hub-dim:#44506a;/* 輪轂的亮面／暗面（球面漸層兩端） */
-    }
     .dgair .fine{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
   </style>`;
 

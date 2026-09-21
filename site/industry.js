@@ -588,6 +588,9 @@
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       wireDiagram(el, pickPart);
+      /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
+         放在 skip3d 的 return 之前 —— 收合狀態下也要先接好，不然展開前按它是死的。*/
+      wirePal(el, () => view3d);
       /* E4：動畫鈕現在同時管平面圖與 3D（Andy 2026-09-18：「3D 可切動態／靜止」）。
          以前它只把 SVG 加上 .noanim，切到 3D 之後這顆鈕等於是壞的。
          3D 的「動態」＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；「靜止」＝完全不自己動。*/
@@ -644,7 +647,8 @@
         const host3 = $('#prod3d', el), note3 = $('#dg3dNote', el);
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note3) note3.hidden = true;
-        ['dg3d', 'dgDrag', 'dgPal', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        // ★ dgPal 不在這裡：配色是 2D 也要能切的（見 wirePal），收掉 3D 不等於收掉配色
+        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false; host.innerHTML = ''; host.style.opacity = '1';
         paintDgMode();
         swapping = false;
@@ -659,7 +663,8 @@
         const host3 = $('#prod3d', el), note = $('#dg3dNote', el);
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note) note.hidden = true;
-        ['dg3d', 'dgDrag', 'dgPal', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        // ★ dgPal 不在這裡：配色是 2D 也要能切的（見 wirePal），收掉 3D 不等於收掉配色
+        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false;
         host.innerHTML = DS.draw(next);
         paintDgMode();        // 從「選單」換回「有圖」時要先把 #dgBody 打開，3D 才量得到尺寸
@@ -884,10 +889,56 @@
 
   function dispose3D() { if (view3d) { try { view3d.dispose(); } catch (e) { /* 忽略 */ } view3d = null; } }
 
-  /* 圖九 2-2：記住使用者選的色票。讀不到（無痕、擋 localStorage）就回預設，不要讓整個 3D 掛掉。*/
+  /* ================================================================ 剖析圖配色（2D ＋ 3D）
+     2026-09-21 深夜改（Andy：「幫我圖片色系色調多個休閒風格，更平易近人」
+     ＋「2D3D 都需要新增那樣的風格」）。
+
+     改之前：`#dgPal` 這顆鈕**只在 3D 模式才出現**（wire3D 的 setMode 會把它跟
+     「重設視角」「拖曳」一起 hidden），而且只呼叫 view3d.setPal() ——
+     也就是 **9 張 2D 剖析圖從頭到尾只有一種配色**，切都切不了。
+     現在改成：配色掛在 `<html data-dgpal>`，2D 的 SVG（吃 :root 的 --dg-*）與
+     3D（three3d.js 讀同一組 --dg-*）同時生效，鈕在 2D 也看得見。
+
+     ★ 深色／淺色主題**共用同一份記憶**（不是各記一份）。
+       理由：剖析圖的畫布底 `--illus` 在兩個主題下都是深底（index.html:50 的既有決策），
+       所以配色的效果跟主題無關；分開記只會變成「切一次主題、配色莫名其妙換掉」。
+     ★ localStorage 的 key 沿用 `tw.dg3d.pal`，不另開一個 —— 換 key 等於把
+       已經選過「沉穩」的人重設回預設，那是白白製造一次「咦我的設定不見了」。*/
+  const DG_PALS = ['tech', 'soft', 'calm', 'casual'];
+  const DG_PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩', casual: '休閒' };
   function palPref() {
-    try { const v = localStorage.getItem('tw.dg3d.pal'); return ['tech', 'soft', 'calm'].includes(v) ? v : 'tech'; }
+    try { const v = localStorage.getItem('tw.dg3d.pal'); return DG_PALS.includes(v) ? v : 'tech'; }
     catch (e) { return 'tech'; }
+  }
+  /* 把配色掛到 <html> 上。掛在 :root 而不是掛在某一個容器上，是因為題材頁的產品圖
+     （site/themes3d.js）也吃同一組 --dg-*，掛在 #prodDiagram 上它就吃不到。*/
+  function applyDgPal(name) {
+    const v = DG_PALS.includes(name) ? name : 'tech';
+    try { document.documentElement.dataset.dgpal = v; } catch (e) { /* 忽略 */ }
+    return v;
+  }
+  applyDgPal(palPref());      // 一載入就套用，不要等使用者走到產業頁才變色
+
+  /* 配色鈕。跟 3D 完全解耦：有沒有 3D 都能用，切了之後如果 3D 正開著就順手同步過去。*/
+  function wirePal(el, getView) {
+    const plb = $('#dgPal', el); if (!plb) return;
+    const paint = () => {
+      const cur = palPref();
+      plb.textContent = '配色：' + (DG_PAL_NAME[cur] || cur);
+      plb.classList.toggle('cyan', cur !== 'tech');
+      plb.title = '換一種配色（2D 與 3D 共用）：科技／柔和／沉穩／休閒';
+    };
+    plb.hidden = false;
+    paint();
+    plb.onclick = () => {
+      const cur = palPref();
+      const next = DG_PALS[(DG_PALS.indexOf(cur) + 1) % DG_PALS.length];
+      try { localStorage.setItem('tw.dg3d.pal', next); } catch (e) { /* 忽略 */ }
+      applyDgPal(next);
+      const v = getView && getView();
+      if (v && v.setPal) v.setPal(next);     // 3D 正開著就一起換，不用等重掛
+      paint();
+    };
   }
 
   function wire3D(el, chainId, hooks) {
@@ -895,7 +946,7 @@
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
     const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
-    const drg = $('#dgDrag', el), plb = $('#dgPal', el);
+    const drg = $('#dgDrag', el);     // 配色鈕 #dgPal 已經不歸 wire3D 管（見 wirePal）
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
     const R = window.Rack3D;
@@ -912,8 +963,7 @@
       btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
-      if (plb) plb.hidden = !on;
-      svg.hidden = on; host.hidden = !on;
+      svg.hidden = on; host.hidden = !on;     // dgPal 不跟著 3D 開關（2D 也要能換配色）
       if (!on) { dispose3D(); note.hidden = true; sync(); return; }
       note.hidden = false;
       note.textContent = '載入 3D 中…';
@@ -957,20 +1007,10 @@
           paint();
         };
       }
-      /* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）：三種配色。
-         一顆鈕輪流切 科技 → 柔和 → 沉穩。「柔和」是淺底、零件不發光，
-         Andy 要拿去給客戶看的時候印得出來。*/
-      if (plb && v.setPal) {
-        const paintPal = () => { plb.textContent = '配色：' + v.palName(v.pal()); plb.classList.toggle('cyan', v.pal() !== 'tech'); };
-        paintPal();
-        plb.onclick = () => {
-          if (!view3d || !view3d.setPal) return;
-          const list = view3d.pals(), next = list[(list.indexOf(view3d.pal()) + 1) % list.length];
-          view3d.setPal(next);
-          try { localStorage.setItem('tw.dg3d.pal', next); } catch (e) { /* 忽略 */ }
-          paintPal();
-        };
-      }
+      /* 圖九 2-2 的配色鈕已經搬到 wirePal()（2026-09-21 深夜）——
+         它現在 2D 也要用，不能再掛在「3D 掛起來之後」這條路上。
+         這裡只剩「3D 剛掛好，把目前選的配色套上去」，而 R.mount 的 pal: palPref()
+         已經做掉了，所以這裡什麼都不用做。*/
       note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
       sync();
     };

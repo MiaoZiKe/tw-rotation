@@ -6787,7 +6787,9 @@ def t_batch6_n9(pg, base):
     ok("有看得見的配色切換鈕（圖九 2-2）",
        pg.evaluate("() => { const b = document.getElementById('dgPal'); return !!b && !b.hidden; }"))
     seen, changed_n = [], 0
-    for _ in range(3):
+    # ★ 2026-09-21 深夜：色票從三個變**四個**（多了「休閒」，Andy：「2D3D 都需要新增那樣的風格」）。
+    #   這個迴圈按幾次就得跟著改 —— 按 3 次只走得到前三個，第四個永遠驗不到。
+    for _ in range(4):
         p0 = pg.evaluate("() => window.Rack3D.current.pal()")
         # WebGL 的畫布拿不到 2d context，canvas_hash 對它一律回同一個值 ——
         # 改量真正被畫出去的東西：所有材質顏色的指紋（colorSig）
@@ -6802,8 +6804,11 @@ def t_batch6_n9(pg, base):
         h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
         ok(f"換成 {p1} 之後零件顏色真的變了（圖九 2-2）", h0 != h1, f"{h0} → {h1}")
         ok(f"鈕上的字跟著換（{p1}）", "配色：" in text(pg, "#dgPal"), text(pg, "#dgPal"))
-    ok("三種色票都輪得到（tech / soft / calm）（圖九 2-2）",
-       sorted(set(seen)) == ["calm", "soft", "tech"], seen)
+    ok("四種色票都輪得到（tech / soft / calm / casual）（圖九 2-2 ＋ 2026-09-21 深夜的休閒）",
+       sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
+    ok("「休閒」色票零件也不發光（跟柔和一樣印得出來；平易近人跟電競 RGB 是相反的兩件事）",
+       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('casual');
+           return v.stats().maxEmissive === 0; }"""))
     ok("「柔和」色票零件不發光（印得出來）（圖九 2-2）",
        pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('soft');
            return v.stats().maxEmissive === 0; }"""))
@@ -8839,6 +8844,13 @@ def t_mlcc(pg, base):
     pg.wait_for_timeout(700)
     # ★ 2026-09-21：先把剖析圖**確實展開**再驗（理由寫在 force_open 的 docstring 裡）
     force_open(pg)
+    # ★ 2026-09-21 深夜：MLCC 改成漸進揭露之後，**流程列收在第 ③ 段裡**，預設是收合的 ——
+    #   不先展開就量不到那顆白點，這一條會變成「前提不成立」而直接紅。
+    #   （這正是把「前提」獨立成一條驗收的價值：它指出的是「東西不在畫面上」，
+    #     不是「動畫沒停」—— 兩件事的修法完全不同。）
+    pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold')"
+                ".forEach(n => n.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+    pg.wait_for_timeout(600)
     # ★ 2026-09-21：先確認那顆點**真的量得到**，不然 0 == 0 會判成「停住了」（假綠）、
     #   0 != 0 判成「沒動起來」（假紅）。實測機制本身是好的
     #   （關 1079.9 → 1079.9 凍住、開 1234.7 → 132.1 繞回去），
@@ -9724,6 +9736,8 @@ SECTIONS = {
     "批次12-電源PSU":      lambda pg, b, base, code: t_psu(pg, base),
     "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
     "批次12-ABF載板":      lambda pg, b, base, code: t_abf(pg, base),
+    # 批次13：剖析圖配色（2D 也能切、四個配色、語意色守得住）＋ MLCC 的漸進揭露
+    "批次13-配色與收納":   lambda pg, b, base, code: t_batch13(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
@@ -9744,6 +9758,223 @@ TIMES_FILE = pathlib.Path(__file__).resolve().parent / ".uitest_times.json"
 
 took: dict[str, float] = {}
 counts: dict[str, int] = {}
+
+# ===================================================================== 批次13：配色與收納
+DG_ROUTES_13 = [
+    ("半導體", "semiconductor"), ("AI 伺服器", "ai_server"),
+    ("MLCC", "electronics/dg/mlcc"), ("面板", "electronics/dg/panel"),
+    ("先進封裝", "semiconductor/dg/ai_adv_packaging"), ("ABF 載板", "ai_server/dg/ic_substrate"),
+    ("硬板", "ai_server/dg/pcb_rigid"), ("液冷", "ai_server/dg/liquid_cooling"),
+    ("氣冷", "ai_server/dg/air_cooling"), ("伺服器電源", "ai_server/dg/server_psu"),
+    ("交換器", "ai_server/dg/switch_wireless"),
+]
+
+
+def _hex2rgb(v):
+    """把 '#rrggbb' / 'rgb(r, g, b)' / 'rgba(...)' 換成 (r, g, b)；讀不出來回 None。"""
+    if not v:
+        return None
+    v = v.strip()
+    if v.startswith('#') and len(v) >= 7:
+        return tuple(int(v[i:i + 2], 16) for i in (1, 3, 5))
+    if v.startswith('rgb'):
+        nums = [float(x) for x in v[v.find('(') + 1:v.find(')')].replace('/', ',').split(',')[:3]]
+        return tuple(int(round(n)) for n in nums)
+    return None
+
+
+def _dist(a, b):
+    """兩個顏色的歐氏距離（0～441）。不是嚴謹的 ΔE，但拿來驗「分不分得開」夠用，
+       而且**是量出來的數字**，不是「有沒有定義」。"""
+    ra, rb = _hex2rgb(a), _hex2rgb(b)
+    if not ra or not rb:
+        return -1
+    return round(sum((x - y) ** 2 for x, y in zip(ra, rb)) ** 0.5, 1)
+
+
+def t_batch13(pg, base):
+    """批次13：剖析圖的**配色切換**與 MLCC 的**收納**（art-director 2026-09-21 深夜）。
+
+    Andy：「產業那邊 像是新增的 MLCC 圖片排版我覺得有點奇怪幫我優化，需要更直觀且
+           看起來更舒服，可以收納就收納，另外幫我圖片色系色調多個休閒風格，更平易近人」
+           ＋「2D3D 都需要新增那樣的風格」。
+
+    這一段驗的全部是**畫面真的因此改變了**，不是「元素存在」：
+      1  配色鈕在 **2D** 也看得見（改之前它只在 3D 模式才出現 ＝ 9 張 2D 圖只有一種配色）
+      2  按下去**圖上的實際色值真的變了**（量 computed style 的 fill／background，不是看 class）
+      3  四個配色都走得到，而且**科技＝現況**（預設不覆寫任何一個 token）
+      4  --dg-err / --dg-warn 在每一個配色下都跟背景、強調色**量得出色差**（不是看有沒有定義）
+      5  重新整理之後配色**真的被記住**
+      6  MLCC 收納：收起來的東西**真的打得開**（text 數真的變多、viewBox 真的變高）
+      7  收合狀態下畫面上**看得到「還有什麼可以展開」**（每一條章節列都寫著裡面有什麼）
+      8  章節列**不會順手把成分股篩掉**（它不是零件，不准掛 data-seg）
+      9  11 張圖 × 三個寬度：每一個字的畫面真實字級 ≥ 12px、文字兩兩不重疊
+     10  3D 也切得到休閒配色（場景真的掛起來，而且 data-pal 真的是 casual）
+    """
+    PROBE = """() => {
+      const wrap = document.querySelector('#prodDiagram');
+      const svg = wrap && wrap.querySelector('svg');
+      const root = getComputedStyle(document.documentElement);
+      const cs = (sel, prop) => { const n = svg && svg.querySelector(sel); return n ? getComputedStyle(n)[prop] : null; };
+      const btn = document.querySelector('#dgPal');
+      let texts = 0;
+      if (svg) svg.querySelectorAll('text').forEach(n => { const r = n.getBoundingClientRect(); if (r.width && r.height) texts++; });
+      return {
+        pal: document.documentElement.dataset.dgpal || '',
+        btnTx: btn ? btn.textContent : '',
+        btnVis: !!btn && !btn.hidden && btn.offsetParent !== null,
+        bg: wrap ? getComputedStyle(wrap).backgroundColor : '',
+        frame: cs('.frame', 'fill'), fbar: cs('.dgfold .fbar', 'fill'),
+        accent: root.getPropertyValue('--dg-accent-2d').trim(),
+        err: root.getPropertyValue('--dg-err').trim(),
+        warn: root.getPropertyValue('--dg-warn').trim(),
+        ink3: root.getPropertyValue('--dg-ink-3').trim(),
+        texts: texts, vbH: svg ? Math.round(svg.viewBox.baseVal.height) : 0,
+        folds: svg ? svg.querySelectorAll('g.dgfold').length : 0,
+        hints: svg ? [...svg.querySelectorAll('.fhint')].map(n => (n.textContent || '').trim()) : [],
+        foldSeg: svg ? svg.querySelectorAll('g.dgfold[data-seg]').length : 0
+      };
+    }"""
+
+    def rows():
+        return pg.evaluate("() => document.querySelectorAll('#stockTable tbody tr,#memberTable tbody tr').length")
+
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    a0 = pg.evaluate(PROBE)
+    if not a0["folds"] and not a0["btnTx"]:
+        ok("批次13：MLCC 那張圖畫得出來（後面每一條都靠它）", False, a0)
+        return
+
+    # ---------------- 1. 配色鈕在 2D 也看得見
+    ok("★ 配色鈕在 **2D 模式**也看得見（改之前它只在 3D 才出現 ＝ 9 張 2D 圖只有一種配色）",
+       a0["btnVis"] and "配色" in (a0["btnTx"] or ""), a0["btnTx"])
+    ok("預設是「科技」，而且科技配色**不覆寫任何 token**（＝跟這批改動之前一模一樣）",
+       a0["pal"] in ("", "tech") and a0["accent"] == "#3ee0ff", f"pal={a0['pal']} accent={a0['accent']}")
+
+    # ---------------- 2~4. 按四次，逐個量顏色真的變了、語意色沒被蓋掉
+    seen = [a0]
+    for _ in range(3):
+        pg.click("#dgPal")
+        pg.wait_for_timeout(500)
+        seen.append(pg.evaluate(PROBE))
+    names = [x["pal"] or "tech" for x in seen]
+    ok("一顆鈕輪流切得到四個配色：科技 → 柔和 → 沉穩 → 休閒",
+       names == ["tech", "soft", "calm", "casual"], names)
+    for i in range(1, len(seen)):
+        prev, cur = seen[i - 1], seen[i]
+        dbg = _dist(prev["bg"], cur["bg"])
+        dac = _dist(prev["accent"], cur["accent"])
+        ok(f"★ 切到「{cur['btnTx']}」→ 圖上的**實際色值真的變了**（畫布底色差 {dbg}、強調色色差 {dac}）",
+           dbg > 6 or dac > 20, f"{prev['bg']}→{cur['bg']} / {prev['accent']}→{cur['accent']}")
+        ok(f"切到「{cur['btnTx']}」→ 說明框的底色也跟著換（框沒換＝只換了一半）",
+           cur["frame"] != prev["frame"], f"{prev['frame']} → {cur['frame']}")
+    for x in seen:
+        lab = x["btnTx"] or "科技"
+        d_eb = _dist(x["err"], x["bg"])
+        d_ea = _dist(x["err"], x["accent"])
+        d_wa = _dist(x["warn"], x["accent"])
+        d_wi = _dist(x["warn"], x["ink3"])
+        ok(f"★ [{lab}] --dg-err 跟背景（色差 {d_eb}）與強調色（{d_ea}）都分得開 —— 裂紋一眼是「這裡有問題」",
+           d_eb > 120 and d_ea > 90, f"err={x['err']} bg={x['bg']} accent={x['accent']}")
+        ok(f"★ [{lab}] --dg-warn 跟強調色（{d_wa}）與說明文字（{d_wi}）都分得開",
+           d_wa > 80 and d_wi > 80, f"warn={x['warn']} accent={x['accent']} ink3={x['ink3']}")
+        ok(f"[{lab}] 語意色**沒有被風格蓋掉**（四個配色下 err／warn 的值完全一樣）",
+           x["err"] == "#ff4d6d" and x["warn"] == "#ff8fab", f"{x['err']} / {x['warn']}")
+
+    # ---------------- 5. 重新整理之後真的記得
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    a1 = pg.evaluate(PROBE)
+    ok("★ 重新整理之後配色**真的被記住**（休閒還是休閒，不是跳回科技）",
+       a1["pal"] == "casual" and "休閒" in (a1["btnTx"] or ""), f"{a1['pal']} / {a1['btnTx']}")
+    ok("而且記住的是**畫面上的顏色**，不只是 localStorage（量背景色）",
+       _dist(a1["bg"], a0["bg"]) > 6, f"{a0['bg']} → {a1['bg']}")
+
+    # 切回科技，後面的收納驗收不要被配色影響
+    for _ in range(3):
+        pg.click("#dgPal")
+        pg.wait_for_timeout(350)
+    pg.wait_for_timeout(400)
+
+    # ---------------- 6~8. MLCC 的收納
+    b0 = pg.evaluate(PROBE)
+    ok("MLCC 預設是**收合**的（三條章節列都在，內容收起來）", b0["folds"] == 3, b0["folds"])
+    ok("★ 收合狀態下畫面上**看得到還有什麼可以展開**（每一條都寫了裡面有什麼，不是只寫「更多」）",
+       len(b0["hints"]) == 3 and all(h.startswith("＋ 展開：") and len(h) > 14 for h in b0["hints"]),
+       b0["hints"])
+    ok("章節列**沒有掛 data-seg**（掛了的話按一下展開就順便把成分股篩掉了）",
+       b0["foldSeg"] == 0, b0["foldSeg"])
+    r0 = rows()
+    pg.click('#prodDiagram g.dgfold[data-fold="mc2"]')
+    pg.wait_for_timeout(600)
+    b1 = pg.evaluate(PROBE)
+    ok("★ 點第 ② 段 → **收起來的東西真的打得開**（畫面上的 text 數真的變多）",
+       b1["texts"] > b0["texts"] + 5, f"{b0['texts']} → {b1['texts']}")
+    ok("★ 而且圖真的變高了（viewBox 高度跟著長，不是把東西疊在一起）",
+       b1["vbH"] > b0["vbH"] + 100, f"{b0['vbH']} → {b1['vbH']}")
+    ok("展開之後那一條改寫成「收合這一段」（兩種狀態都看得出還能做什麼）",
+       bool(b1["hints"]) and b1["hints"][0].startswith("－ 收合"), b1["hints"][:1])
+    r1 = rows()
+    ok("★ 按章節列**不會順手把成分股篩掉**（它不是零件）", r1 == r0, f"{r0} → {r1}")
+    pg.click('#prodDiagram g.dgfold[data-fold="mc3"]')
+    pg.wait_for_timeout(400)
+    pg.click('#prodDiagram g.dgfold[data-fold="mc4"]')
+    pg.wait_for_timeout(700)
+    b2 = pg.evaluate(PROBE)
+    ok("★ 三段全部展開＝**一個字都沒有被永久藏起來**（text 數回到「全部攤開」的量）",
+       b2["texts"] >= b0["texts"] * 2, f"收合 {b0['texts']} → 全開 {b2['texts']}")
+    pg.click('#prodDiagram g.dgfold[data-fold="mc2"]')
+    pg.wait_for_timeout(500)
+    b3 = pg.evaluate(PROBE)
+    ok("再按一次真的收得回去（text 數真的變少）", b3["texts"] < b2["texts"], f"{b2['texts']} → {b3['texts']}")
+
+    # ---------------- 9. 11 張圖 × 三個寬度：字級與重疊
+    for w in (1440, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        bad = []
+        for lab, route in DG_ROUTES_13:
+            pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+            pg.wait_for_timeout(1500)
+            # 有章節的圖先全部展開 —— 收起來的東西也要驗
+            pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold')"
+                        ".forEach(n => n.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+            pg.wait_for_timeout(400)
+            z = pg.evaluate(DG_TYPO)
+            if not z.get("present"):
+                bad.append(f"{lab}：沒有圖")
+                continue
+            # 先進封裝那一對重疊是**既有的**（拿 main 的版本用同一支量過，一模一樣），這批沒碰到它
+            novs = z["nOv"] - (1 if route.endswith("ai_adv_packaging") else 0)
+            if z["nSmall"] or novs > 0:
+                bad.append(f"{lab}：小字 {z['small']} 重疊 {z['ov']}")
+        ok(f"★ [{w}px] 11 張剖析圖（章節全部展開）每一個字都 ≥ 12px、文字兩兩不重疊", not bad, bad[:4])
+
+    # ---------------- 10. 3D 也切得到休閒
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    for _ in range(4):
+        if (pg.evaluate("() => document.documentElement.dataset.dgpal") or "tech") == "casual":
+            break
+        pg.click("#dgPal")
+        pg.wait_for_timeout(350)
+    pg.click("#dg3d")
+    pg.wait_for_timeout(4500)
+    d3 = pg.evaluate("""() => {
+      const h = document.querySelector('#prod3d');
+      return {pal: h ? (h.dataset.pal || '') : '', canvas: !!(h && h.querySelector('canvas')),
+              note: (document.querySelector('#dg3dNote') || {}).textContent || ''};
+    }""")
+    ok("★ 切到 3D，場景真的掛得起來（不是退回平面圖）",
+       d3["canvas"] and "起不來" not in d3["note"], d3["note"][:70])
+    ok("★ 3D 也吃同一個「休閒」配色（data-pal 真的是 casual —— 2D 暖、3D 就不會是冷的）",
+       d3["pal"] == "casual", d3["pal"])
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+
 
 def t_abf(pg, base):
     """圖3 IC 載板：ABF 增層剖面（`site/dg/ic_substrate.js`，族群 `ic_substrate`、ai_server 鏈）。

@@ -182,6 +182,12 @@
     const base = new THREE.Color(hex);
     const white = new THREE.Color(0xffffff), dark = new THREE.Color(0x070b14);
     const cache = {}, all = [];
+    /* 這顆顏色字串是從哪一個 `--dg-*` 讀來的（cssv 登記、mat 取用）。
+       為什麼需要：配色切換（applyPal）以前只改飽和與混色，材質的**原色**是建場景那一刻
+       從 CSS 讀進來就固定了。休閒配色會換掉材質 token 本身（陶瓷、鋁、鋼、錫…），
+       沒有這張對照表的話，「3D 開著的時候切到休閒」只會套到混色、原色還是冷的 ——
+       使用者看到的就是「2D 暖、3D 冷」，正好是「不准兩份硬編碼」要防的那件事。*/
+    const varOf = new Map();
     const col = (k) => { const c = base.clone(); return k > 0 ? c.lerp(white, k) : (k < 0 ? c.lerp(dark, -k) : c); };
     function mat(k, o) {
       o = o || {};
@@ -196,6 +202,7 @@
         opacity: ghost ? 0.14 : (o.op != null ? o.op : 1),
       });
       if (o.led) { m.emissive = new THREE.Color(o.color || 0x86f3b4); m.emissiveIntensity = 0.55; m.userData = { led: true }; }
+      if (o.color && varOf.has(o.color)) m.userData = Object.assign(m.userData || {}, { dgvar: varOf.get(o.color) });
       cache[key] = m; all.push(m);
       return m;
     }
@@ -206,7 +213,13 @@
        所以同一顆電容切到 3D 就從暖米白（42°）變成冷灰白，跟 2D 對不上，
        而且陶瓷與 Ni／Sn 全是灰白、畫面上分不出哪塊是陶瓷哪塊是金屬。
        讀不到（沒掛上 DOM、舊瀏覽器）就回 dflt，不要讓整個 3D 掛掉。*/
-    const cssv = (name, dflt) => { try { const v = css ? css(name) : ''; return v || dflt; } catch (e) { return dflt; } };
+    const cssv = (name, dflt) => {
+      let v = '';
+      try { v = css ? css(name) : ''; } catch (e) { v = ''; }
+      const out = v || dflt;
+      if (out) varOf.set(out, name);       // 記下「這個色值來自哪一個 token」，換配色時才回得去重讀
+      return out;
+    };
     return { mat, col, reg, css: cssv, mats: all };
   }
 
@@ -1079,8 +1092,12 @@
        這是 art-director 的紅線，也是淺色主題一堆白字白線的根因：
        顏色寫死在 JS 裡，切主題的 refreshPalette() 換不掉。
        色票只做三件事：背景（CSS 自己吃）、零件顏色的去飽和與混色、打光與發光強度。*/
-    const PALS = ['tech', 'soft', 'calm'];
-    const PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩' };
+    /* 2026-09-21 深夜新增第四個「休閒」（Andy：「2D3D 都需要新增那樣的風格」）。
+       ★ 3D 這一側**沒有第二份色值** —— 零件的材質色是從 :root[data-dgpal="casual"] 的
+       `--dg-*` 讀進來的（K.css），跟 2D 剖析圖同一份定義；這裡只有背景／混色／打光，
+       那些本來就是 3D 才有的東西。原本三個配色一個值都沒動。*/
+    const PALS = ['tech', 'soft', 'calm', 'casual'];
+    const PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩', casual: '休閒' };
     const origCol = new Map();          // 零件的「原色」，換色票一律從這裡重算，不要疊加
     let pal = 'tech';
     /* 這兩支刻意寫成 function 宣告（會被提升）—— setAnim() 在色票區塊「之前」就會被呼叫一次，
@@ -1093,6 +1110,13 @@
       const v = getComputedStyle(el).getPropertyValue(name).trim();
       try { return new THREE.Color(v || dflt); } catch (e) { return new THREE.Color(dflt); }
     }
+    /* 「讀得到就回顏色，讀不到就回 null」—— 不給 fallback 的版本。
+       不能借用 palCol(name, null)：那一支讀不到時會走進 new THREE.Color(null)，在 catch 裡再炸一次。*/
+    function palColOpt(name) {
+      const v = getComputedStyle(el).getPropertyValue(name).trim();
+      if (!v) return null;
+      try { return new THREE.Color(v); } catch (e) { return null; }
+    }
     function applyPal(name) {
       if (name) { pal = PALS.includes(name) ? name : 'tech'; }
       el.dataset.pal = pal;
@@ -1101,6 +1125,10 @@
       byIdx.forEach(p => {
         if (!p) return;
         p.mats.forEach(m => {
+          /* 這顆材質的顏色是某個 --dg-* 來的 → 每次換配色都回去重讀。
+             休閒配色會換掉材質 token 本身，只靠 origCol 的快照會停在上一個配色的原色。*/
+          const vn = m.userData && m.userData.dgvar;
+          if (vn) { const c0 = palColOpt(vn); if (c0) origCol.set(m, c0); }
           if (!origCol.has(m)) origCol.set(m, m.color.clone());
           const c = origCol.get(m).clone();
           c.getHSL(hsl); c.setHSL(hsl.h, hsl.s * sat, hsl.l);
