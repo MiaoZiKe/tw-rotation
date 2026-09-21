@@ -63,3 +63,24 @@ pending:
       時段一翻就作廢。舊格式（純字串）一律當過期 —— 這樣他現在卡住的狀態會自己解開。
       另外在 refresh() 每一輪呼叫 syncSession()，網頁整天開著跨過 13:45／15:00 時會自己翻。
       八種情況都用 node 驗過（沒存過×3、舊格式、同時段手動×2、跨時段過期×2）。
+  - id: V3
+    what: "今日事件的「科技」真的只留科技（用 RSS 自己的標籤重新分類）；金十數據卡在合規，等探測"
+    files:
+      - pipeline/sources/news.py
+      - pipeline/config.py
+      - pipeline/build_payload.py
+      - tests/test_sources_v3.py
+      - scripts/eval_news_tech_filter.py
+      - scripts/probe_sources.py
+      - .github/workflows/probe.yml
+    gates: ["pytest", "preview", "總覽", "今日事件"]
+    shown: false
+    ok: null
+    at: "2026-09-21 10:00"
+    note: >-
+      pytest 458 已過（原 435 ＋ 新增 23）。precision 0.981 / recall 0.946。
+      Andy 點名的四則實測全部不收。
+      ★ 分類改在**讀取端**重跑（build_payload），不寫回資料湖 ——
+      資料湖維持只增不改，而且判準以後再調會自動套用到全部歷史。
+      ⬜ 要在 Actions 觸發「端點探測」選 jin10，拿到 robots.txt 與版權頁原文再判斷金十能不能接。
+      ⬜ 還沒重算 site/data，所以預覽上還看不到效果。
