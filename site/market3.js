@@ -514,7 +514,13 @@
       prev: num(info.y),
       open: num(info.o), high: num(info.h), low: num(info.l), last: num(info.z),
       vol: num((j.staticObj || {}).tv),                  // 累計成交張數（台指期是口數）
-      amt: num(info.v),                                  // 成交金額（百萬元）；台指期沒有
+      /* 成交金額（百萬元）；台指期沒有。
+         ★ 加權指數這一筆就是**台股當日累積成交值**，而且是盤中就有的真實值
+           （對照 fixture：info.v = 630917 百萬 ↔ staticObj.tz = 630,917,830,610 元）。
+           「盤中即時資金去向」的分母用的就是它 —— 這張圖每分鐘本來就會抓，
+           所以拿它當分母是**零額外請求、而且不是估算值**。
+           取用點見下面的 `Market3.marketAmt`。*/
+      amt: num(info.v),
       points: pts,
     };
   }
@@ -1349,6 +1355,14 @@
     get nightPoints() { return state.nightPts.slice(); },  // 驗收用：真的收到幾個夜盤點
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
     get lastAt() { return state.at; },
+    /** 台股當日累積成交值（元）。盤中即時、真實值不是估算 —— 見上面 `amt` 的註解。
+     *  「即時資金去向」的分母用這個；分子（各板塊成交值）只能用「價×量」估算，
+     *  所以**板塊佔比要用「板塊 ÷ 所有板塊加總」算**，不要拿估算的分子去除這個真實分母，
+     *  那個百分比會系統性偏掉。 */
+    get marketAmt() {
+      const d = state.data && state.data.TSE;
+      return d && d.amt != null ? d.amt * 1e6 : null;
+    },
     get ticking() { return !!state.timer; },  // 驗收用：自己的計時器有沒有在跑
     // 驗收用：三張圖的呼吸燈現在各自亮不亮、燈標在哪一分鐘
     get pulses() {
