@@ -270,6 +270,30 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms::-webkit-scrollbar{width:6px}
 .hpanel .ms::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 @media (max-width:900px){ .hpanel .ms{max-height:190px} }
+/* ★ 2026-09-21（Andy：「當點擊 AI 伺服器第一個 Node 右邊應當顯示 AI 伺服器，
+   並下面多出裡面還蓋族群，並且都具備下拉選單可以看個股」）。
+   產業鏈面板＝族群列（可展開）＋展開後的個股列。**沒有另開第四種清單樣式** ——
+   還是上面那套 .hpanel .ms，只多兩個修飾類：
+     .grow 橫跨整排（grid-column:1/-1），所以它底下展開的個股自然另起一行，
+           而個股仍然吃多欄格線，一個族群 20 檔也只佔 5 列，不會把面板撐長；
+     .sub  往內縮一格，看得出「這幾列是屬於上面那一列的」。 */
+.hpanel .ms a.grow{grid-column:1/-1;background:var(--panel);border-left:3px solid var(--c,var(--cyan));
+  flex-wrap:wrap;row-gap:2px;align-items:center}
+.hpanel .ms a.grow .tw2{font-family:var(--mono);font-size:11px;color:var(--c,var(--cyan));width:10px;flex:none}
+.hpanel .ms a.grow .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.hpanel .ms a.grow .g{flex:1 0 100%;margin-left:16px;text-align:left;color:var(--ink-2)}
+.hpanel .ms a.grow.ison{background:var(--panel-2)}
+.hpanel .ms a.grow .go{flex:none;margin-left:8px;opacity:.65}
+.hpanel .ms a.grow .go:hover{opacity:1;color:var(--cyan)}
+/* 個股列。和族群列一樣拆成兩行（第一行「簡稱 代號」、第二行數字）。
+   不拆的話窄畫面（800px）一欄只剩 130px，flex 會把名字擠成「台／光／電」直排；
+   只夾 ellipsis 也不行 —— 會變成「台… 2…」，等於讀不出是哪一檔。
+   1440 看不到、800 一看就發現，是 DECISIONS #171 那一類的坑。*/
+.hpanel .ms a.sub{margin-left:12px;font-size:12.5px;flex-wrap:wrap;row-gap:1px;align-items:center}
+.hpanel .ms a.sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpanel .ms a.sub .c{flex:none}
+.hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
+.hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
 
 /* ★ 2026-09-20（Andy：「熱門題材 & 今日候選 框格需要一樣大，超出部分改拉Bar」
    ＋「換另一台電腦、螢幕大小不同就會影響整體變化」）。
@@ -385,6 +409,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rbar .pb:disabled{opacity:.35;cursor:default}
 .rbar .pb.play{width:30px;font-size:12px}
 .rbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}
+/* 「即時」鈕（Andy 2026-09-21）。比 ＋／−／▶ 寬，因為它是兩個中文字不是一個符號；
+   開著的時候整顆亮起來 —— 使用者一定要看得出「現在畫的不是收盤那一張」。 */
+.rbar .pb.livebtn{width:auto;padding:0 10px;font-size:12px;letter-spacing:.5px}
+.rbar .pb.livebtn.on{border-color:var(--rise);color:var(--rise);box-shadow:var(--glow)}
+.livenote{margin-top:6px;line-height:1.7}
+.livenote .live{color:var(--rise)}
+.livenote .warn{color:var(--amber)}
+.livenote .bad{color:var(--rise)}
 @media (prefers-reduced-motion:reduce){ .rbar .pb{transition:none} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}
@@ -1363,6 +1395,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播"></div>
+      <!-- 盤中即時模式的狀態列（Andy 2026-09-21「即時」）。誠實標示全寫在這一行：
+           哪一個數字是真實值、哪一個是估算、% 的分母是誰、哪幾格是盤後、這一輪打了幾個請求。
+           不塞進圖裡是刻意的 —— 圖上塞不下，而這幾句話少一句整張圖就會被讀錯。 -->
+      <div id="sankeyLive" class="note livenote" hidden></div>
       <!-- 2026-09-20（Andy：「當點擊族群時會在右邊出現個股的成交值排序」）：
            圖和面板並排。面板沿用全站的 .hpanel / .hpanel .ms（固定高度＋自己的捲軸），
            不另開第三種清單樣式。窄畫面時 #sankeyRow 改成 block，面板掉到圖下面。 -->

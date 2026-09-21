@@ -343,6 +343,14 @@
     tick,
     paint,
     proxy,                                     // market3.js 共用同一組設定（⚙ 面板改這裡也跟著改）
+    /* ★ 2026-09-21：對外開放這一支，給「即時資金去向」批次抓板塊成分股用。
+       它要的不是「畫面上看得到的代號」（那是 codesOnScreen 的工作），
+       而是一組指定的代號 —— 但 Worker 代理、上市上櫃判定（exch）、
+       `z` 是 '-' 時的退位順序（normalise）這三件事必須共用，
+       各寫一套的話盤中一定會有一邊拿到錯的價（2026-09-15 那個「一直在跌」的 bug）。
+       MAX_CODES 一起送出去，呼叫端才知道一批最多能塞幾檔。*/
+    fetchQuotes,
+    MAX_CODES,
     get quotes() { return state.quotes; },
     get timerOn() { return !!state.timer; },   // 驗收用：自動更新到底有沒有在跑
     isIntraday,
