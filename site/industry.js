@@ -869,7 +869,9 @@
     /* R4：台股沒有人做就明說，而且要寫出實際上是誰做的 —— 留白會讓人以為「這裡漏了」。
        `none` 是繪圖端寫的整句話；沒寫 none 又真的沒有台股，就退回「外商是誰」，
        連外商都沒有就寫「查不到」（R5：不准為了讓卡片看起來完整而編一個對應）。*/
-    const noneRow = tw.length ? '' : `<div class="pc-row"><span class="k">做這個的台股</span><span class="pc-none">${
+    /* ★ 標題不可以還是寫「做這個的台股」—— 後面接的是外商名字，
+       第一眼會讀成「味之素是台股」。沒有台股時標題要自己就講清楚是在回答哪個問題。*/
+    const noneRow = tw.length ? '' : `<div class="pc-row"><span class="k">台股有沒有人做</span><span class="pc-none">${
       def && def.none ? A.fmt.esc(def.none)
         : (fo.length ? `台股沒有廠商做這一格，實際上做的是：${A.fmt.esc(fo.map(c => c.name + ((c.tech || []).length ? '（' + c.tech.join('、') + '）' : '')).join('、'))}。`
           : '查不到這一格是誰做的 —— supply_chain.yaml 還沒有這一格的公司。查不到就寫查不到，不編一個對應。')
