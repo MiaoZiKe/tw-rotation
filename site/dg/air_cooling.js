@@ -53,6 +53,8 @@
       --dg-void:#0d1424;                         /* 切面上的空隙 */
       --dg-frame:#1a2540;                        /* 框與盒的底 */
       --dg-oil:#c9a24a;                          /* 潤滑油／壓力油膜 */
+      --dg-alu-3:#5e6b7e;                        /* 鋁的暗面（扇框的厚度那一側） */
+      --dg-hub-lit:#7c8ba1; --dg-hub-dim:#44506a;/* 輪轂的亮面／暗面（球面漸層兩端） */
     }
     .dgair .fine{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
   </style>`;
@@ -113,7 +115,7 @@
         `<circle cx="${FX + sx * (FR - 15)}" cy="${FY + sy * (FR - 15)}" r="7" fill="var(--dg-void)"/>`).join('');
       return `<rect x="${x0 + DX}" y="${y0 + DY}" width="${s}" height="${s}" rx="12" fill="var(--dg-alu-2)" opacity=".8"/>`
         + `<path fill="var(--dg-alu-2)" d="M${x0},${y0}L${x0 + DX},${y0 + DY}L${x0 + s + DX},${y0 + DY}L${x0 + s},${y0}Z"/>`
-        + `<path fill="#5e6b7e" d="M${x0 + s},${y0}L${x0 + s + DX},${y0 + DY}L${x0 + s + DX},${y0 + s + DY}L${x0 + s},${y0 + s}Z"/>`
+        + `<path fill="var(--dg-alu-3)" d="M${x0 + s},${y0}L${x0 + s + DX},${y0 + DY}L${x0 + s + DX},${y0 + s + DY}L${x0 + s},${y0 + s}Z"/>`
         + `<path class="part" fill="var(--dg-alu)" fill-rule="evenodd" d="M${x0 + 12},${y0}h${s - 24}a12,12 0 0 1 12,12v${s - 24}a12,12 0 0 1 -12,12h-${s - 24}a12,12 0 0 1 -12,-12v-${s - 24}a12,12 0 0 1 12,-12Z ${hole}"/>`
         + holes;
     })();
@@ -283,12 +285,17 @@
       + (extra || ''));
 
     // ================================================================ 組裝
+    /* class 多一個 `dg1`（理由與 `liquid_cooling.js` 同一條，那邊寫得比較長）：
+       `stampParts` 只在單一 data-seg 時自動掛它，這張有兩個（thermal ＋ assembly），
+       所以自己掛 —— 它的作用是 `--dg-glow:none`。全圖三十幾個零件幾乎全是 thermal，
+       不關掉的話點一個零件會讓三十幾個群組一起發光（「螢光感太重」）。
+       層次改由描邊寬與 `--dg-sib-o` 表達，驗收量的是這三層的 computed style 真的不同。*/
     return `<svg class="dg dgm dgair dg1" viewBox="0 0 980 1780" width="100%" style="display:block">${STYLE}${VARS}
       <defs>
         <linearGradient id="acAir" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-cold)"/><stop offset="1" stop-color="var(--dg-hot)"/></linearGradient>
         <radialGradient id="acHub" cx="38%" cy="32%" r="72%">
-          <stop offset="0" stop-color="#7c8ba1"/><stop offset="1" stop-color="#44506a"/></radialGradient>
+          <stop offset="0" stop-color="var(--dg-hub-lit)"/><stop offset="1" stop-color="var(--dg-hub-dim)"/></radialGradient>
         <linearGradient id="acFin" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-cold)"/><stop offset="1" stop-color="var(--dg-hot)"/></linearGradient>
       </defs>

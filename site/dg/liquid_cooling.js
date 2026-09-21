@@ -66,6 +66,8 @@
       --dg-die:#39476a;                          /* 矽裸晶 */
       --dg-void:#0d1424;                         /* 切面上的空隙／腔體背景 */
       --dg-frame:#1a2540;                        /* 框與盒的底 */
+      --dg-cu-lit:#c88a4e; --dg-cu-dim:#9c6432;  /* 銅的亮面／暗面（等角上蓋的漸層兩端） */
+      --dg-cu-cut:#8a5525;                       /* 銅在剖面上的斜線（表示這裡是實心的） */
     }
     .dgcool .fine{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
   </style>`;
@@ -294,15 +296,23 @@
       + lines.map((s, i) => `<text class="sub" x="${x + 14}" y="${y + 48 + i * 18}"${/^★/.test(s) ? ' style="fill:var(--dg-warn)"' : ''}>${s}</text>`).join('')
       + (extra || ''));
 
-    // ================================================================ 組裝
+    /* ================================================================ 組裝
+       class 多一個 `dg1`：`stampParts` 只在「整張圖只有一個 data-seg」時自動掛它，
+       這張圖有兩個（thermal ＋ assembly），所以要**自己掛**。理由是發光量 ——
+       `dg1` 的作用就是 `--dg-glow:none`。全圖三十幾個零件裡只有機櫃襯景掛 assembly，
+       其餘全是 thermal；不關掉的話，點任何一個零件都會讓三十幾個群組**同時**
+       drop-shadow，那正是 Andy 講的「螢光感太重、像電競 RGB」。
+       關掉之後層次改由 `.sel-part` 的描邊寬（--dg-part-w 3.6）與
+       `--dg-sib-o`（同環節其餘退到 .4）表達，主角／同環節其餘／別的環節三層
+       仍然一眼分得開 —— 驗收量的就是這三層的 computed style 真的不同。*/
     return `<svg class="dg dgm dgcool dg1" viewBox="0 0 980 1668" width="100%" style="display:block">${STYLE}${VARS}
       <defs>
         <linearGradient id="lcFlow" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-cold)"/><stop offset="1" stop-color="var(--dg-hot)"/></linearGradient>
         <linearGradient id="lcLid" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#c88a4e"/><stop offset="1" stop-color="#9c6432"/></linearGradient>
+          <stop offset="0" stop-color="var(--dg-cu-lit)"/><stop offset="1" stop-color="var(--dg-cu-dim)"/></linearGradient>
         <pattern id="lcSolid" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="8" height="8" fill="var(--dg-cu)"/><path d="M0,0V8" stroke="#8a5525" stroke-width="2"/></pattern>
+          <rect width="8" height="8" fill="var(--dg-cu)"/><path d="M0,0V8" stroke="var(--dg-cu-cut)" stroke-width="2"/></pattern>
         <pattern id="lcWick" width="6" height="6" patternUnits="userSpaceOnUse">
           <rect width="6" height="6" fill="var(--dg-wick)"/>
           <circle cx="1.6" cy="1.6" r="1.1" fill="var(--dg-void)" opacity=".75"/>
