@@ -95,7 +95,7 @@ def reset_rot(pg, base, wait: int = 2400):
     """
     pg.goto(f"{base}#flow", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.rot.filter');"
-                " localStorage.removeItem('tw.rot.back2'); } catch (e) { /* 私密視窗 */ } }")
+                " localStorage.removeItem('tw.rot.back3'); } catch (e) { /* 私密視窗 */ } }")
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(wait)
 
@@ -1083,9 +1083,17 @@ def t_flow(pg, base):
     ok("輪動階段的天數是拉 Bar 不是按鈕", bool(bar), bar)
     # 2026-09-19（Andy N4「時間週期拉到 30 天」）：上限 20 → 30，後端 trail 同步
     # 2026-09-20（Andy A4 第 3 條「時間範圍改成前一天～前三十天」）：下限 5 → 1。
+    # ★ 2026-09-21 Andy 再拍板 1 → 0：兩張卡合併之後排行也跟著這支走，
+    #   下限 1 等於「最新」只到前一天，而頁首寫著資料更新到最新那一天 —— 圖跟字對不起來。
+    #   0 ＝ 資料裡的最後一個交易日，而且標籤要寫「最新」不是「0 天前」。
     #   下限一定要是 1 —— 這根拉 Bar 現在的語意是「看哪一天」而不是「軌跡畫幾天」，
     #   下限卡在 5 等於使用者永遠看不到最近四天。
-    ok("拉 Bar 的範圍是 1–30 天", bool(bar) and bar["min"] == 1 and bar["max"] == 30, bar)
+    ok("拉 Bar 的範圍是 0–30 天（0＝最新一天）", bool(bar) and bar["min"] == 0 and bar["max"] == 30, bar)
+    # 0 不可以顯示成「0 天前」
+    _lab0 = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+        if (!i) return null; i.value = 0; i.dispatchEvent(new Event('input', {bubbles:true}));
+        return (document.querySelector('#rotBack .val')||{}).textContent || ''; }""")
+    ok("拉到 0 時標籤寫「最新」，不是「0 天前」", "最新" in (_lab0 or ""), _lab0)
     seenb = {}
     for v in (5, 12, 20):
         set_range(pg, "#rotBack input[type=range]", v, 800)
@@ -1119,7 +1127,7 @@ def t_flow(pg, base):
        len({v["clockday"] for v in seenb.values()}) >= 2,
        {k: v["clockday"] for k, v in seenb.items()})
     ok("拉 Bar 的值有記住（換頁回來還是同一個天數）",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back2'); } catch(e){ return null; } }") is not None)
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back3'); } catch(e){ return null; } }") is not None)
 
     # --- 資金輪動時鐘：Andy 要「輪動族群要搭配圖表，看圖就懂」
     clk = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -4063,7 +4071,8 @@ def t_new_clock(pg, base):
                       play: document.querySelectorAll('#rotBack .pb.play').length }; }""")
     if not ok("輪動時鐘的拉Bar 還在（A4）", bool(bar), bar):
         return
-    ok("拉Bar 範圍是前一天～前三十天（A4-3）", bar["min"] == 1 and bar["max"] == 30, bar)
+    # ★ 2026-09-21：下限 1 → 0（Andy 拍板，0＝最新一天）
+    ok("拉Bar 範圍是最新一天～前三十天", bar["min"] == 0 and bar["max"] == 30, bar)
 
     # ---------------------------------------------------------- A4-1 ＋ / − 真的按下去
     ok("拉Bar 旁邊有 ＋ 與 −（A4-1）", bar["steps"] == 2, bar)
@@ -8307,7 +8316,11 @@ def t_sankey_expand_live(pg, base):
     ok("800px 時面板改放到圖下面（圖才留得住四層）",
        pg.evaluate("() => document.getElementById('sankeyRow').classList.contains('stack')"))
 
-    # ---------------------------------------------------------- ③ 展開上限與「其餘 N 檔」
+    # ---------------------------------------------------------- ③ 自動桶不展開
+    # ★ 2026-09-21：Andy 對「ETF 那桶 356 檔、上限 20 ＋『其餘 336 檔』」的答覆是「不用」。
+    #   所以展開只給人工族群，`ind_*` 自動桶（〇〇・其他、ETF）一律不展開。
+    #   這一段本來在驗「超過 20 檔只畫前 20 ＋ 其餘 N 檔」，現在改成驗
+    #   **成分股最多的那個族群一定是自動桶，而且點它不會展開、但右邊清單要開得起來**。
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle")
     pg.wait_for_timeout(2800)
@@ -8321,17 +8334,41 @@ def t_sankey_expand_live(pg, base):
           if (m > n) { n = m; best = g.gid; } }));
         return [best, n]; }""")
     if ok(f"找得到一個成分股超過 20 檔的族群（量到最大 {huge[1]} 檔）", huge[1] > 20, huge):
+        ok("成分股最多的那一個是自動桶（ind_*），不是人工族群", str(huge[0]).startswith("ind_"), huge)
         pg.eval_on_selector(f'.linkrow.gchips[data-for="sankey"] .gchip[data-g="{huge[0]}"] .pick',
                             "b => b.click()")
         pg.wait_for_timeout(2200)
-        st = pg.evaluate(_SK_EXP)[ "g"][huge[0]]
-        ok("超過 20 檔只畫前 20，加一顆「其餘 N 檔」＝ 21 格", st["n"] == 21, st["n"])
-        ok("最後那一顆真的寫著「其餘 N 檔 X.X%」",
-           any("其餘" in (x or "") and "%" in (x or "") for x in st["lbl"]), st["lbl"][-2:])
-        ok(f"「其餘」收的檔數對得上（{huge[1]} − 20）", st["rest"] == huge[1] - 20,
-           {"寫的": st["rest"], "該是": huge[1] - 20})
+        st = pg.evaluate(_SK_EXP)["g"].get(huge[0]) or {}
+        # 不展開＝葉子數維持預設的 3（SANKEY_KIDS），不是幾百顆
+        ok("點自動桶不會展開（葉子維持 3 顆，不是把幾百檔攤上去）",
+           st.get("n", 0) <= 3, {"葉子數": st.get("n"), "成分股": huge[1]})
+        ok("圖上沒有「其餘 N 檔」那顆節點了",
+           not any("其餘" in (x or "") for x in (st.get("lbl") or [])), (st.get("lbl") or [])[-3:])
+        # 但右邊的清單一定要開得起來 —— 要看完整名單就在那裡看
+        ok("點自動桶，右邊的成分股清單還是開得起來",
+           pg.evaluate("""() => { const b = document.getElementById('sankeyPanel');
+               return !!b && !b.hidden
+                   && document.querySelectorAll('#sankeyPanel .ms a[href^="#stock/"]').length > 0; }"""))
         pg.keyboard.press("Escape")
         pg.wait_for_timeout(1400)
+        # 再驗一個**人工**族群：它才該展開，而且要畫完整名單（不被 20 夾）
+        real = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+            const root = ((c.getOption().series||[])[0]||{}).data[0]; const det = window.App.D.groups_detail||{};
+            let best = null, n = 0;
+            (root.children||[]).forEach(ch => (ch.children||[]).forEach(g => {
+              if (String(g.gid||'').indexOf('ind_') === 0) return;
+              const m = ((det[g.gid]||{}).members||[]).filter(x => (+x.turnover||0) > 0).length;
+              if (m > n) { n = m; best = g.gid; } }));
+            return [best, n]; }""")
+        if ok(f"找得到一個成分股 >3 檔的人工族群（量到最大 {real[1]} 檔）", real[1] > 3, real):
+            pg.eval_on_selector(f'.linkrow.gchips[data-for="sankey"] .gchip[data-g="{real[0]}"] .pick',
+                                "b => b.click()")
+            pg.wait_for_timeout(2200)
+            st2 = pg.evaluate(_SK_EXP)["g"].get(real[0]) or {}
+            ok(f"人工族群真的展開成完整名單（該有 {real[1]} 顆，沒有被 20 夾）",
+               st2.get("n") == real[1], {"畫出來": st2.get("n"), "該是": real[1]})
+            pg.keyboard.press("Escape")
+            pg.wait_for_timeout(1400)
 
     # ---------------------------------------------------------- ④ 即時換位（假報價）
     # ⚠ 容器打不到證交所，所以這一段用 stub 餵兩輪不同名次的假報價。

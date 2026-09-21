@@ -2470,7 +2470,8 @@
         原本只畫前 3 大代表股，點下去會展開成<em>該族群全部成分股</em>（名字 ＋ 佔這個族群的 %），
         右邊同時列出成交值排序、圖上其餘壓暗；再點一次、點背景或按 ESC 收回。
         成分股超過 20 檔的（實務上只有 ETF 那一格）只畫前 20，
-        剩下的收成一顆灰色的「其餘 N 檔 X.X%」——<em>量沒有丟掉，是加總</em>。
+        自動桶（「〇〇・其他」、ETF 這種收容桶）<b>不展開</b> —— 它們是「沒有被歸進任何族群的股票」，
+        攤開幾百檔讀不出東西；點它一樣會開右邊的清單。
         所以<b>怎麼用</b>：展開之後比的是「這個族群的錢是集中在一兩檔，還是整排都在動」——
         前者是單一公司的事，後者才是族群輪動。
         <b>點產業鏈</b>＝只看那一條鏈；晶片名字右邊的 → 是進族群頁。</li>
@@ -2535,7 +2536,7 @@
        - 輪動階段看板的比較窗長獨立成 ROT_BOARD_WIN，固定 5 天，不隨時間軸變
      看板上寫的字本來就是「最近 5 個交易日換階段的族群」，固定成 5 反而跟文案對得上。*/
   const ROT_BOARD_WIN = 5;         // 輪動階段看板：和幾個交易日前比（窗長，與「看哪一天」無關）
-  let flowState = { period: 'w0', back: 1, concTop: 5 };
+  let flowState = { period: 'w0', back: 0, concTop: 5 };
   async function renderFlow() {
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
     const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental'), load('groups_detail')]);
@@ -2743,8 +2744,9 @@
     /* ★ group: 'rot.back' —— 卡片這支和放大視窗那支 `#rotZoomBack` 控制的是**同一個值**，
        所以歸成同一組：一次只准一支在播，按 ⏸ 兩支一起停（2026-09-21 的「暫停停不下來」）。*/
     rotBackBar = playBar('rotBack', { min: ROT_MIN_BACK, max: 30, value: flowState.back,
-      key: 'tw.rot.back2', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
-      label: '看哪一天', fmt: (v) => v + ' 天前',
+      key: 'tw.rot.back3', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
+      // ★ 下限從 1 改成 0 之後，0 不可以寫成「0 天前」—— 它是「最新的那一個交易日」
+      label: '看哪一天', fmt: (v) => (+v === 0 ? '最新' : v + ' 天前'),
       onChange: (v) => rotSeek(v) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
     flowState.back = rotFrame;
@@ -2996,8 +2998,9 @@
          值變了只重畫這張放大的圖 —— 播放是每 420ms 一幀，
          連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
          關閉時 `rotSyncCard()` 會把卡片一次補上。*/
-      bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back2',
-        dir: -1, frame: ROT_ANIM_MS, group: 'rot.back', label: '看哪一天', fmt: (v) => v + ' 天前',
+      bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back3',
+        dir: -1, frame: ROT_ANIM_MS, group: 'rot.back', label: '看哪一天',
+        fmt: (v) => (+v === 0 ? '最新' : v + ' 天前'),   // 和卡片那支同一套口徑
         onChange: (v) => { rotFrame = v; draw(); } });
       wireRotTrailToggle(draw, 'rotZoomTools');
     }, () => {
@@ -3113,7 +3116,12 @@
        做成 (b)「勾族群再下鑽個股」的話，這兩張圖會變成第三個成分股清單 ——
        成分股在排行卡下方的面板與輪動階段看板裡各有一份了，再加一份只是重複。*/
   const ROT_SPAN = 30;             // 軌跡固定畫 30 天（拉Bar 現在是「看哪一天」）
-  const ROT_MIN_BACK = 1;          // A4 第 3 條：前一天 ～ 前三十天
+  /* ★ 2026-09-21 Andy 拍板下限 1 -> 0：「看哪一天」要看得到**最新那一天**。
+     原本是 A4 第 3 條（2026-09-20）的「前一天 ～ 前三十天」，下限 1。
+     兩張卡合併之後排行也跟著這支走，於是「最新」只到前一天（09-17），
+     而頁首明明寫著資料更新到 09-18 —— 圖跟字對不起來。
+     0 ＝ 資料裡的最後一個交易日（rrg.trail 與 share_daily 的最後一筆）。*/
+  const ROT_MIN_BACK = 0;          // 0＝最新一天 ～ 前三十天（Andy 2026-09-21）
   const ROT = { chain: '', groups: null, trail: true, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rotBackBar = null;           // #rotBack 那支 playBar（播放／＋／−）
@@ -4282,7 +4290,17 @@
         /* 展開中的那一個族群（`DRILL.gid`）：葉子從固定 3 檔換成全部成分股。
            窄畫面（< SANKEY_NARROW）本來就沒有代表股這一層，所以不展開 ——
            那時候完整名單在圖下方的面板裡，字還讀得到。*/
-        const expanded = !narrow && DRILL.gid === g.gid ? expandBabies(g, col, off, fade) : null;
+        /* ★ 2026-09-21 Andy 對「ETF 那桶 356 檔、上限 20 ＋『其餘 336 檔』」的答覆是「不用」。
+           所以展開**只給人工族群**，`ind_*` 自動桶（半導體業・其他、ETF…）不展開 ——
+           它們是「不屬於任何人工族群的股票」的收容桶，不是一個有意義的族群，
+           把 356 檔 ETF 攤在圖上也讀不出任何東西。點它一樣會開右邊的面板，
+           要看完整名單就在那裡看。
+           自動桶排除之後，真正的族群最大是 bank 16 檔、其餘 ≤ 11 檔，
+           所以 20 檔上限與「其餘 N 檔」那顆節點都不會再被觸發 ——
+           程式留著當防線（YAML 是人工維護的，哪天有人加到 21 檔也不會爆版面），
+           但正常情況下畫的一律是完整名單。*/
+        const canExpand = DRILL.gid === g.gid && !String(g.gid || '').startsWith('ind_');
+        const expanded = !narrow && canExpand ? expandBabies(g, col, off, fade) : null;
         const babies = expanded || (narrow ? [] : (byG[g.gid] || []).slice().sort((a2, b2) => b2.tv - a2.tv)
           .slice(0, SANKEY_KIDS).map(x => {
             /* 前端這一層也擋一次「nan」。根因在後端（見 pipeline/compute/rrg.py 的註解）已經修掉，

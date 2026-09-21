@@ -112,7 +112,10 @@ segments:
      material_of: [panel_mfg],
      note: "TFT-LCD 玻璃基板與半導體級玻璃（玻璃核心基板 GCS）。★ 台股沒有 TFT 玻璃基板廠 —— 全球是康寧／AGC／NEG 三家，所以這一格只有外商。台玻 1802 做的是建築玻璃與玻纖、不是 TFT 基板，不要放進來"}
   - {id: passive_comp,     name: "被動元件 MLCC / 電阻", layer: 1, chain: electronics,
-     note: "MLCC、晶片電阻、鋁質電解電容。★ 這一格三家全部查不到具名客戶，所以只有節點沒有邊，圖上會掛「?」—— 那是誠實，不是漏畫"}
+     note: "MLCC、晶片電阻、鋁質電解電容。★ 這一格全部查不到具名客戶，所以只有節點沒有邊，圖上會掛「?」—— 那是誠實，不是漏畫。
+       ★ 2026-09-21 補進 3026 禾伸堂與 6173 信昌電：`groups.yaml` 的 mlcc 族群早就有這兩家，
+       但這一格漏了，於是 MLCC 剖析圖點下去只列得出國巨／華新科／凱美 ——
+       圖在講 MLCC，卻少了兩家真的做 MLCC 的，這是呈現上的錯"}
   - {id: panel_mfg,        name: "面板 TFT-LCD", layer: 2, chain: electronics,
      note: "面板製造。2026 年這一格的資金故事已經不是面板報價，而是「把既有 LCD 產線轉成面板級封裝 FOPLP 與玻璃核心基板」"}
   - {id: handset_optics,   name: "手機光學鏡頭", layer: 2, chain: electronics}
@@ -428,7 +431,25 @@ companies:
      note: "★ 英文名 Walsin Technology，不要跟華新麗華 Walsin Lihwa 1605（電線電纜）搞混。公司自估 AI 相關的 MLCC 與電阻約占 2025 年營收 12～15%、2026 年目標 15～20%。同樣查不到具名客戶"}
   - {id: kaimei,      ticker: "2375", name: 凱美,     segment: passive_comp,
      tech: [鋁質電解電容, 電阻 / 微電阻, 馬達風扇],
-     note: "★ 它跟同格兩家不是同一種東西 —— 主體是鋁質電解電容，不是 MLCC。2019 年智寶與凱美合併、智寶為存續公司並更名為凱美電機；國巨為第一大股東（持股比例只查到投資平台整理、非公司揭露，所以不寫數字）"}
+     note: "★ 它不做 MLCC，是用**電阻**進到這一格的（這一格的名字就是「MLCC / 電阻」）。
+       2026-09-21 更正：舊 note 寫「主體是鋁質電解電容」已經過期 ——
+       依 2025H1 的公開整理，營收 27.7 億創高而**晶片電阻佔比約 49%**、是最大且成長最快的一塊
+       （旗下 RALEC 旺詮晶片電阻與 ASJ 電阻），鋁質電解電容與馬達風扇是另外兩塊。
+       2019 年智寶與凱美合併、智寶為存續公司並更名為凱美電機；國巨為第一大股東
+       （持股比例只查到投資平台整理、非公司揭露，所以不寫數字）。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文或財報，佔比數字只當量級看"}
+  - {id: holystone,   ticker: "3026", name: 禾伸堂,   segment: passive_comp,
+     tech: [MLCC, 高壓 MLCC 1kV 以上, NP0 / C0G 溫度特性],
+     note: "★ 2026-09-21 補進來（原本只在 groups.yaml 的 mlcc 族群裡，供應鏈這一格漏了）。
+       自主粉末配方 ＋ 1kV 以上高壓 MLCC；高毛利的高壓 NP0 比重在拉高。
+       2026-09 的報導把它列為村田 MLCC 料號 EOL 的受惠者之一，理由是村田短期不切入 NP0。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。同樣查不到具名客戶，所以只放節點不連邊"}
+  - {id: chilisin_elec, ticker: "6173", name: 信昌電, segment: passive_comp,
+     tech: [MLCC, 諧振電容, DC BIOS, 介電瓷粉],
+     note: "★ 2026-09-21 補進來（原因同禾伸堂）。華新科集團旗下，從**粉末到元件自製**，
+       著重車規 MLCC；諧振電容類產品約佔 10.5%，DC BIOS 是容量高於一般品的特殊品。
+       2026-09 的報導同樣把它列為村田 EOL 的受惠者。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文。查不到具名客戶，只放節點不連邊"}
   # ---- 面板
   - {id: auo,         ticker: "2409", name: 友達,     segment: panel_mfg,
      tech: [TFT-LCD 面板, 車用顯示 Tier 1, Micro LED, 玻璃核心基板 GCS / TGV / RDL],
