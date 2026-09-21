@@ -8469,7 +8469,13 @@ def t_sankey_expand_live(pg, base):
 # 統一包成 `(pg, b, base, code)` 之後，只要一份清單就能同時服務
 # 「依序跑」與「拆給多個 worker 平行跑」兩種模式。
 # ---------------------------------------------------------------------------
-def force_open(pg_):
+
+
+# ================================================================ 剖析圖共用的兩支量測工具
+# 這兩支本來寫在 t_mlcc 裡面，散熱那兩張（批次12-散熱）也要用 ——
+# 抄第二份的下場是「改了一邊、另一邊還在用舊的判準」，所以提到模組層級，一份定義兩段共用。
+
+def dg_force_open(pg_):
     """把剖析圖**確實展開**再驗。
 
     C 批加的「<640px 預設收合、會記住」會把收合狀態寫進 localStorage，
@@ -8477,8 +8483,9 @@ def force_open(pg_):
     ★ 只有「現在真的有一張圖」時才動它：選單模式下 #dgBody 本來就該是收起來的，
       在那裡按收合鈕只會把偏好反過來設，等於自己製造下一個假紅。
 
-    ★ 2026-09-21：本來寫在 t_mlcc 裡面，畫第 9 張（server_psu）時要用同一支 ——
-      搬到模組層級共用，內容一個字都沒改（不要造第二套）。
+    ★ 2026-09-21：本來寫在 t_mlcc 裡面，第 9 張（server_psu）與
+      第 5/6 張（散熱）都要用 —— 搬到模組層級共用，內容一個字都沒改。
+      抄第二份的下場是「改了一邊、另一邊還在用舊的判準」。
     """
     pg_.evaluate("""() => {
       const menu = document.getElementById('dgMenu');
@@ -8490,6 +8497,40 @@ def force_open(pg_):
     }""")
     pg_.wait_for_timeout(500)
 
+# 剖析圖的字級與文字重疊量測（畫面真實字級 ＝ computed font-size × svg 實寬 ÷ viewBox 寬）
+# ⚠ 量的是**畫面上的真實字級**，不是 SVG 原始碼裡寫的值 —— 那正是 DECISIONS #227 的重點。
+DG_TYPO = """() => {
+  const h = document.querySelector('#prodDiagram');
+  const svg = h && h.querySelector('svg');
+  if (!svg) return {present: false};
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+  const k = (r.width && vb) ? r.width / vb : 0;
+  const a = [];
+  svg.querySelectorAll('text').forEach(n => {
+    if (!(n.textContent || '').trim()) return;
+    const cs = getComputedStyle(n);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+    const b = n.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    a.push({t: (n.textContent || '').trim().slice(0, 18), cls: n.getAttribute('class') || '',
+            eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
+            x: b.x, y: b.y, w: b.width, hh: b.height});
+  });
+  const ov = [];
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+    const p2 = a[i], q = a[j];
+    const ox = Math.min(p2.x + p2.w, q.x + q.w) - Math.max(p2.x, q.x);
+    const oy = Math.min(p2.y + p2.hh, q.y + q.hh) - Math.max(p2.y, q.y);
+    if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' ⨯ ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+  }
+  const small = a.filter(z => z.eff < 11.9)
+                 .map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
+  return {present: true, n: a.length, svgW: Math.round(r.width),
+          min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+          small: small.slice(0, 8), nSmall: small.length,
+          ov: ov.slice(0, 6), nOv: ov.length};
+}"""
 
 def t_mlcc(pg, base):
     """圖11-1 MLCC ＋ 剖析圖入口架構：**同一條鏈但不同產品 → 各自獨立分頁**。
@@ -8579,6 +8620,8 @@ def t_mlcc(pg, base):
                   svg: !!(h && h.querySelector('svg')),
                   dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
         }""")
+
+    force_open = dg_force_open      # 模組層級那一份（見檔案上方），不要再抄第二份
 
     # 兩層高亮（2026-09-21 晚間）：量的是 computed style，不是「有沒有那個 class」。
     # 有 class 但長得一模一樣，對使用者來說就是沒發生 —— 那正是改之前的狀態。
@@ -8990,38 +9033,7 @@ def t_mlcc(pg, base):
     #    畫面上真實字級 ＝ computed font-size × (svg 實寬 ÷ viewBox 寬) ≥ 12px
     #  順便把「文字兩兩重疊」一起驗掉（字級一升、行距沒跟著長就會相貼，
     #  labelRow／lrow3 在改之前就已經六對重疊 1.00px）。
-    TYPO = """() => {
-      const h = document.querySelector('#prodDiagram');
-      const svg = h && h.querySelector('svg');
-      if (!svg) return {present: false};
-      const r = svg.getBoundingClientRect();
-      const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
-      const k = (r.width && vb) ? r.width / vb : 0;
-      const a = [];
-      svg.querySelectorAll('text').forEach(n => {
-        if (!(n.textContent || '').trim()) return;
-        const cs = getComputedStyle(n);
-        if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
-        const b = n.getBoundingClientRect();
-        if (!b.width || !b.height) return;
-        a.push({t: (n.textContent || '').trim().slice(0, 18), cls: n.getAttribute('class') || '',
-                eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
-                x: b.x, y: b.y, w: b.width, hh: b.height});
-      });
-      const ov = [];
-      for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
-        const p2 = a[i], q = a[j];
-        const ox = Math.min(p2.x + p2.w, q.x + q.w) - Math.max(p2.x, q.x);
-        const oy = Math.min(p2.y + p2.hh, q.y + q.hh) - Math.max(p2.y, q.y);
-        if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' ⨯ ' + q.t + ' (' + oy.toFixed(1) + 'px)');
-      }
-      const small = a.filter(z => z.eff < 11.9)
-                     .map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
-      return {present: true, n: a.length, svgW: Math.round(r.width),
-              min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
-              small: small.slice(0, 8), nSmall: small.length,
-              ov: ov.slice(0, 6), nOv: ov.length};
-    }"""
+    TYPO = DG_TYPO
     #  ★ 路由：剖析圖改成獨立分頁之後，族群層級的 MLCC 有自己的網址，
     #    鏈層級的兩張仍然是點進鏈就直接看到（見本函式第 1~2 段）。
     for route, what in (("electronics/dg/mlcc", "MLCC"), ("semiconductor", "半導體"),
@@ -9094,6 +9106,70 @@ def t_psu(pg, base):
     FEAT = "伺服器電源：從牆上的電到晶片核心"      # 這張圖上的特徵字串
     FEAT_AI = "AI 伺服器機櫃"                       # 鏈層級那張（回歸用）
     DGID = "server_psu"
+
+def t_cooling(pg, base):
+    """批次12-散熱：`liquid_cooling`（液冷）與 `air_cooling`（氣冷）兩張剖析圖。
+
+    ★ 這兩張是**一對**：規格書（docs/diagram_specs/{liquid,air}_cooling.md）明文要求
+      「液冷帶走多少比例的熱」兩張必須用**同一套寫法**，否則同一個網站會自打嘴巴。
+      所以這一段除了各自驗，還多一條**跨圖字串比對**（第 6 項）。
+
+    每一項驗的都是「畫面真的因此改變了」，不是「元素存在」：
+      1. `#industry/ai_server` 的圖別入口裡真的多出**兩個**新項目（選單卡片與切換晶片都要有）
+      2. 各自點進去 → 圖真的畫出來、**網址真的變成 /dg/<id>**、重新整理一樣打得開
+      3. 點**兩個不同的 data-part** → 主角真的換人，而且**兩次的 computed style 快照真的不同**
+         （MLCC 那張當初就是漏了這條，點誰都逐像素相同）
+      4. 點零件 → 成分股筆數**一動都不動**（DECISIONS #73：零件只亮不篩）；
+         點環節色標 → 筆數**真的變少**
+      5. 「點零件篩到的是環節、不是整個族群」那行字真的在畫面上（規格書 §6-N5）
+      6. ★ 兩張圖對「液冷帶走多少比例的熱」的寫法**完全一致**（字串比對）
+      7. 規格書的兩條紅線真的守住：
+         · 氣冷那張畫面上**一個風扇規格數字都沒有**（轉速／CFM／mmH₂O／dBA，§6-N2）
+         · 兩張都**沒有良率／成本／市占率**的數字（§6-N1）
+      8. 名詞陷阱（§6-N6）：液冷那張**同時**有「均熱片／蓋板（IHS，實心銅）」與
+         「均熱板 VC（vapor chamber）」兩格並排，沒有任何一處只寫「均熱片」就指向 VC
+      9. 「動畫：開／關」按了**真的停下來**（量 SMIL 光點的座標 ＋ CSS 動畫的 computed 值）
+     10. 1440／800／390 三個寬度下，圖上**每一個字**的畫面真實字級 ≥ 12px、文字兩兩不重疊
+    """
+    import re as _re
+    DGS = [("liquid_cooling", "液冷：熱從晶片走到機房外面"),
+           ("air_cooling", "氣冷：風扇賣的是")]
+    FOOT = "點零件篩到的是「供應鏈環節」，不是整個族群"
+
+    def dg(pg_):
+        return pg_.evaluate("""() => {
+          const h = document.querySelector('#prodDiagram');
+          const svg = h && h.querySelector('svg');
+          if (!svg) return {present: false};
+          const ns = [...h.querySelectorAll('[data-seg]')];
+          const mo = svg.querySelector('animateMotion');
+          const dot = mo && mo.parentNode;
+          // 轉動中的扇葉／葉輪：CSS 動畫，關掉之後 computed animation-name 要變成 none
+          const spin = svg.querySelector('.spin');
+          return {present: true,
+                  parts: ns.length,
+                  noPart: ns.filter(n => !n.getAttribute('data-part')).length,
+                  segs: [...new Set(ns.map(n => n.getAttribute('data-seg')))].sort(),
+                  share: [...svg.querySelectorAll('[data-share]')].map(n => n.textContent.trim()).join(''),
+                  texts: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\\n'),
+                  dotX: dot ? +dot.getBoundingClientRect().x.toFixed(1) : null,
+                  spinName: spin ? getComputedStyle(spin).animationName : '',
+                  hash: location.hash,
+                  svgW: Math.round(svg.getBoundingClientRect().width)};
+        }""")
+
+    # 每一個零件的 computed 外觀快照：主角是誰、誰被壓暗、描邊多粗。
+    # 比的是**這個快照**，不是「有沒有那個 class」—— 有 class 但長得一樣，對使用者就是沒發生。
+    SNAP = """() => {
+      const h = document.querySelector('#prodDiagram');
+      const ns = [...h.querySelectorAll('[data-seg]')];
+      const hero = h.querySelector('[data-seg].sel-part');
+      return {hero: hero ? hero.dataset.dgkey : null,
+              n: ns.length,
+              look: ns.map(n => { const p = n.querySelector('.part');
+                return n.dataset.dgkey + ':' + (+getComputedStyle(n).opacity).toFixed(2)
+                     + '/' + (p ? (+parseFloat(getComputedStyle(p).strokeWidth)).toFixed(1) : '-'); }).join('|')};
+    }"""
 
     def rows(pg_):
         return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
@@ -9387,6 +9463,193 @@ def t_psu(pg, base):
     r8 = rows(pg)
     ok("[800px] 點零件一樣只亮不篩（筆數不變）",
        (click_part(pg, "psu_vrm"), rows(pg))[-1] == r8, f"{r8} → {rows(pg)}")
+    def click_part(pg_, key):
+        """真的用滑鼠點圖上那個 data-part。重疊時補一次事件派送（同 t_mlcc 的理由）。"""
+        n = pg_.query_selector('#prodDiagram [data-part="%s"]' % key)
+        if not n:
+            return None
+        try:
+            n.scroll_into_view_if_needed(timeout=3000)
+            n.click(timeout=4000, force=True)
+        except Exception:
+            pass
+        pg_.wait_for_timeout(420)
+        got = pg_.evaluate(SNAP)["hero"]
+        if got != key:
+            pg_.evaluate("(n) => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))", n)
+            pg_.wait_for_timeout(420)
+            got = pg_.evaluate(SNAP)["hero"]
+        return got
+
+    # ---------------- 1. 圖別入口真的多出兩個
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    ent = pg.evaluate("""() => ({
+      cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
+      cardq: Object.fromEntries([...document.querySelectorAll('#dgMenu .dgcard')]
+              .map(n => [n.dataset.dgid, (n.querySelector('.q') || {}).textContent || ''])),
+      chips: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
+      chipHref: Object.fromEntries([...document.querySelectorAll('#dgPick .segchip')]
+                 .map(n => [n.dataset.dgid, n.getAttribute('href')])),
+    })""")
+    for did, _feat in DGS:
+        ok("AI 伺服器鏈的圖別入口真的多出「%s」（選單卡片）" % did, did in ent["cards"], ent["cards"])
+        ok("上方的圖別切換晶片也真的多出「%s」（那是這條鏈上看得見的那一排）" % did,
+           did in ent["chips"], ent["chips"])
+        ok("「%s」的入口有自己的網址（可分享、可回上一頁）" % did,
+           (ent["chipHref"].get(did) or "").endswith("/dg/" + did), ent["chipHref"].get(did))
+        ok("「%s」的入口寫清楚它回答什麼問題（不寫的話得先點進去才知道要不要點）" % did,
+           len(ent["cardq"].get(did, "")) > 15, ent["cardq"].get(did, "")[:50])
+
+    snap = {}
+    for did, feat in DGS:
+        # ---------------- 2. 點進去 → 圖畫出來、網址真的變了、重新整理打得開
+        pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        before = pg.evaluate("() => location.hash")
+        pg.click('#dgPick .segchip[data-dgid="%s"]' % did, timeout=5000); pg.wait_for_timeout(2400)
+        dg_force_open(pg)
+        d = dg(pg)
+        if not ok("[%s] 真的用滑鼠點那個入口 → 圖真的畫出來" % did, d.get("present"), d.get("hash")):
+            continue
+        ok("[%s] 畫出來的就是這一張（比對圖上的特徵字串）" % did, feat in d["texts"], d["texts"][:60])
+        ok("[%s] ★ 網址真的跟著變（#industry/ai_server/dg/%s）" % (did, did),
+           d["hash"] != before and d["hash"].endswith("/dg/" + did), "%s → %s" % (before, d["hash"]))
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2500); dg_force_open(pg)
+        d2 = dg(pg)
+        ok("[%s] ★ 直接貼那個網址重新整理，一樣打得開同一張（沒有這條就不叫分頁）" % did,
+           d2.get("present") and feat in d2.get("texts", "") and d2["hash"].endswith("/dg/" + did),
+           d2.get("hash"))
+        ok("[%s] 圖以原尺寸顯示、沒有被欄寬壓縮（native 980，DECISIONS #227）" % did,
+           d2.get("svgW", 0) >= 960, d2.get("svgW"))
+        ok("[%s] 每一個零件都有 data-part（沒有身分的話「點誰都一樣」）" % did,
+           d2["noPart"] == 0, "%s 個沒標／共 %s 個" % (d2["noPart"], d2["parts"]))
+        ok("[%s] 零件掛到這條鏈上真的存在的環節（thermal ＋ assembly）" % did,
+           d2["segs"] == ["assembly", "thermal"], d2["segs"])
+        snap[did] = d2
+
+        # ---------------- 3. 點兩個不同的 data-part → 主角真的換人，而且畫面快照真的不同
+        #  氣冷刻意挑「四格軸承裡的兩格」—— 四格長得很像，正是最容易做成「點誰都一樣」的地方。
+        keys = ["cold_plate", "vc"] if did == "liquid_cooling" else ["brg_ball", "brg_mag"]
+        rows0 = rows(pg)
+        k1 = click_part(pg, keys[0]); s1 = pg.evaluate(SNAP)
+        ok("[%s] 點「%s」→ 它真的變成主角（.sel-part 就是它）" % (did, keys[0]), k1 == keys[0], k1)
+        rows1 = rows(pg)
+        k2 = click_part(pg, keys[1]); s2 = pg.evaluate(SNAP)
+        ok("[%s] 換點「%s」→ 主角真的換人" % (did, keys[1]), k2 == keys[1] and k1 != k2, "%s → %s" % (k1, k2))
+        ok("[%s] ★ 而且兩次的**畫面快照真的不同**（量 computed opacity 與描邊寬，不是看 class）" % did,
+           s1["look"] != s2["look"] and s1["n"] == s2["n"],
+           "%s ／ %s" % (s1["look"][:70], s2["look"][:70]))
+
+        # ---------------- 4. 點零件不篩（#73）；點環節色標真的篩
+        ok("[%s] 點零件之後成分股筆數一動都不動（DECISIONS #73：零件只亮不篩）" % did,
+           rows1 == rows0, "%s → %s" % (rows0, rows1))
+        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(1000)
+        rows2 = rows(pg)
+        mtitle = pg.evaluate("() => (document.querySelector('#memberTitle') || {}).textContent || ''")
+        ok("[%s] 點「散熱」環節色標 → 成分股**真的換了一批**（筆數與標題都變）" % did,
+           rows2 != rows0 and "環節" in mtitle, "%s → %s（%s）" % (rows0, rows2, mtitle.strip()))
+        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(800)
+
+        # ---------------- 5. 族群 ≠ 環節 那一行真的在畫面上
+        ok("[%s] ★ 畫面最底下有「%s」那一行（族群 ≠ 環節，規格書 §6-N5）" % (did, FOOT),
+           FOOT in d2["texts"], d2["texts"][-90:].replace("\n", "／"))
+        ok("[%s] 畫面上有「示意圖，非實物比例」（查不到的東西一律標示意）" % did,
+           "示意圖，非實物比例" in d2["texts"])
+        # ★ 把那行字裡寫的家數跟**實際篩出來的筆數**對起來。
+        #   規格書叫我們在圖上寫「散熱這一格目前收錄六家」—— 如果之後 Andy 校訂 YAML
+        #   加了一家，這一條就會紅，提醒我們回來改那行字，而不是讓畫面繼續說謊。
+        CN = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+        m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", d2["texts"])
+        ok("[%s] 畫面上寫的「散熱這一格收錄 N 家」跟實際篩出來的筆數一致（寫的 ≠ 算的 ＝ 在說謊）" % did,
+           bool(m) and CN.get(m.group(1)) == rows2,
+           "畫面寫 %s ／ 實際 %s" % (m.group(1) if m else "（沒寫）", rows2))
+        if did == "air_cooling":
+            m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", d2["texts"])
+            ok("[air_cooling] 畫面上寫的「族群有 N 檔」跟族群實際的成分股筆數一致",
+               bool(m2) and CN.get(m2.group(1)) == rows0,
+               "畫面寫 %s ／ 實際 %s" % (m2.group(1) if m2 else "（沒寫）", rows0))
+
+        # ---------------- 7. 紅線：不准出現的數字
+        pct = _re.findall(r"(?:良率|成本|市占率?)[^\n]{0,12}\d", d2["texts"])
+        ok("[%s] 紅線 §6-N1：畫面上沒有良率／成本／市占率的數字" % did, not pct, pct[:4])
+
+        # ---------------- 9. 動畫：開／關真的停得下來
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+        pg.wait_for_timeout(500)
+        pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：關
+        pg.wait_for_timeout(800); dg_force_open(pg)
+        off = dg(pg)
+        ok("[%s] 按「動畫：關」→ CSS 動畫真的停（.spin 的 computed animation-name 變成 none）" % did,
+           off["spinName"] in ("none", ""), off["spinName"])
+        if off["dotX"]:
+            x1 = off["dotX"]; pg.wait_for_timeout(1100); x2 = dg(pg)["dotX"]
+            ok("[%s] 按「動畫：關」→ 流程列那顆 SMIL 光點連續兩次取樣的 x 相同（真的凍住）" % did,
+               x1 == x2, "%s → %s" % (x1, x2))
+        pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：開
+        pg.wait_for_timeout(800)
+        on = dg(pg)
+        ok("[%s] 切回「動畫：開」→ 扇葉／葉輪真的又轉起來（animation-name 回到 dgspin）" % did,
+           on["spinName"] not in ("none", ""), on["spinName"])
+
+    # ---------------- 6. ★ 跨圖：「液冷帶走多少比例的熱」兩張的寫法必須一模一樣
+    if len(snap) == 2:
+        sa, sb = snap["liquid_cooling"]["share"], snap["air_cooling"]["share"]
+        ok("★ 兩張圖對「液冷帶走多少比例的熱」的寫法**完全一致**（同一個網站不准自打嘴巴）",
+           bool(sa) and sa == sb, "液冷「%s」／氣冷「%s」" % (sa, sb))
+        ok("★ 而且它寫成區間、並講明各來源分母不一致（不挑一個當定論，規格書 §7-B）",
+           "7～8 成" in sa and "分母不同" in sa, sa)
+        lt, at = snap["liquid_cooling"]["texts"], snap["air_cooling"]["texts"]
+        for k in ("70%", "80%", "70-80", "70–80"):
+            ok("★ 沒有把它寫成單一數字「%s」（兩個來源的分母根本不同）" % k,
+               k not in lt and k not in at)
+
+        # ---------------- 8. 名詞陷阱：實心 IHS vs 空腔 VC 必須並排對照
+        ok("★ 名詞陷阱 §6-P2：液冷那張同時有「均熱片／蓋板（IHS，實心銅）」與「均熱板 VC」兩格",
+           "均熱片／蓋板（IHS，實心銅）" in lt and "均熱板 VC（vapor chamber）" in lt,
+           [x for x in lt.split("\n") if "均熱" in x][:4])
+        # 紅線 §6-N6 禁的是「只寫『均熱片』三個字**就指向 VC**」。
+        # 所以驗的是：沒有任何一行把「均熱片」跟 VC／vapor chamber 綁在一起當成同一個東西，
+        # 唯一允許同時出現兩者的，是那句明講「它們是兩種東西」的對照標題。
+        bad_ln = [ln for ln in lt.split("\n")
+                  if "均熱片" in ln and ("VC" in ln or "vapor" in ln)
+                  and "兩種東西" not in ln]
+        ok("★ 名詞陷阱 §6-N6：沒有任何一處只寫「均熱片」就指向 VC", not bad_ln, bad_ln)
+        ok("★ 而且畫面上明講它們是兩種東西（那句對照標題就是這條紅線的解藥）",
+           "「均熱片」與「均熱板 VC」是兩種東西" in lt,
+           [x for x in lt.split("\n") if "兩種東西" in x])
+        ok("★ 任務單標題那個踩到陷阱的寫法「均熱片 VC」不准出現在畫面上",
+           "均熱片 VC" not in lt and "均熱片 VC" not in at)
+        ok("★ VC 那一格講明它是真空腔 ＋ 毛細層，而且有支撐柱（§6-P5：熱管不准有）",
+           "真空腔" in lt and "支撐柱" in lt and "圓管不用支撐柱" in lt)
+
+        # ---------------- 7b. 氣冷那張的專屬紅線：一個風扇規格數字都不准寫
+        bad = _re.findall(r"\d[\d,\.]*\s*(?:rpm|RPM|CFM|cfm|mmH|dBA|dBa|dB)\b", at)
+        ok("★ 紅線 §6-N2：氣冷那張畫面上**一個風扇規格數字都沒有**（轉速／CFM／mmH₂O／dBA）",
+           not bad, bad[:5])
+        ok("★ §7-B3：軸承壽命一個小時數都沒寫（來源自相矛盾，FDB 竟然低於滾珠）",
+           not _re.search(r"\d[\d,]*\s*(?:小時|hours)", at))
+        ok("★ §7-B4：一櫃的風扇顆數只寫「數百顆」，沒有把「257」那個估計值搬上畫面",
+           "數百顆" in at and "257" not in at)
+        ok("★ §7-C：把「不要拿 U 數當散熱規格」這個結論正面寫進畫面（它本身就是有用的結論）",
+           "U 數當散熱規格" in at)
+        ok("★ §6-Q1：P-Q 圖上同時有系統阻抗曲線與被標出來的「工作點」",
+           "系統阻抗曲線" in at and "工作點" in at)
+
+    # ---------------- 10. 三個寬度 × 每一個字 ≥ 12px、文字不重疊
+    for did, _feat in DGS:
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(base + "#industry/ai_server/dg/" + did, wait_until="networkidle")
+            # goto 到「跟現在同一個 hash」不會觸發 hashchange（瀏覽器行為），所以補一次 reload
+            pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+            # <640px 預設收合而且會記進 localStorage，平行跑時會汙染別的寬度 → 用現成的那一支
+            dg_force_open(pg)
+            z = pg.evaluate(DG_TYPO)
+            if not ok("[%spx][%s] 剖析圖畫得出來" % (w, did), z.get("present"), z):
+                continue
+            ok("[%spx][%s] 圖上**每一個**字的畫面真實字級都 ≥ 12px（共 %s 個）" % (w, did, z["n"]),
+               z["nSmall"] == 0, "最小 %spx；低於下限 %s 個 %s" % (z["min"], z["nSmall"], z["small"]))
+            ok("[%spx][%s] 圖上的文字兩兩不重疊" % (w, did), z["nOv"] == 0, "%s 對 %s" % (z["nOv"], z["ov"]))
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -9426,6 +9689,7 @@ SECTIONS = {
     # 圖9 伺服器電源 PSU ＋ BBU（site/dg/server_psu.js）。三個真 seg，所以
     # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
     "批次12-電源PSU":      lambda pg, b, base, code: t_psu(pg, base),
+    "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
