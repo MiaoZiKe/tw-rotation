@@ -35,9 +35,10 @@
 >
 > 不因為規格書已經寫成規格書就當成對的。六條全部對得上，逐條來源寫在
 > `docs/diagram_specs/mlcc_stack.md` 的審查紀錄與 `site/diagrams.js` 的檔頭註解。
-> ⚠ 容器的 `WebFetch` 對 murata.com / ele.kyocera.com / escatec.com / ctee.com.tw
-> 全部回 `EGRESS_BLOCKED`，證據等級是 **WebSearch 摘要不是原文**，
-> 所以原文讀不到的地方一律不寫精確數字（車規與消費級的良率差距**一個百分比都沒出現**）。
+> ⚠ **這個容器只有 `WebSearch` 能用，`WebFetch` 一律回 `EGRESS_BLOCKED`**
+> （murata.com / ele.kyocera.com / escatec.com / ctee.com.tw / moneydj.com 逐一試過都是）。
+> 所以每一條的證據等級都是 **WebSearch 摘要，沒有人讀過原文** ——
+> 摘要沒明講的數字一律不寫（車規與消費級的良率差距**一個百分比都沒出現**）。
 >
 > ### ★★ 「文字太小」的根因是欄寬，不是字級（DECISIONS #226）
 >

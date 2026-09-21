@@ -186,6 +186,14 @@
 
 ### A. 查得到來源的（可以寫成數字）
 
+> ★ **證據強度（2026-09-21 補，這一段以前沒寫清楚）**：這個容器
+> **只有 `WebSearch` 能用，`WebFetch` 一律回 `EGRESS_BLOCKED`** ——
+> murata.com、ele.kyocera.com、escatec.com、ctee.com.tw、moneydj.com 逐一試過都是。
+> 所以下表每一條的證據等級都是「**WebSearch 摘要**」，**沒有人讀過原文**。
+> 網址留在表裡是給下一個人去讀，不是宣稱我們讀過。
+> 凡是摘要沒有明講的數字，畫面上一律不寫；查不到就標低信心（§B）或明講查不到（§C）。
+
+
 | 代號 | 事實 | 來源 |
 |---|---|---|
 | A1 | 尺寸代號兩套制度：**EIA（英制）0402 ＝ 公制 1005 ＝ 1.0×0.5 mm**；**EIA 0201 ＝ 公制 0603 ＝ 0.6×0.3 mm**；**EIA 01005 ＝ 公制 0402 ＝ 0.4×0.2 mm** | <https://blog.knowlescapacitors.com/blog/eia-mlcc-case-sizes-past-and-future>（EIA 案號與尺寸沿革）；<https://core-emt.com/imperial-code-vs-metric-code-smd-components-sizes>（英制／公制對照，明講公制 0603＝0.6×0.3 mm＝英制 0201）；料號側佐證：Murata GRM1555 標示 `0402 [1005 Metric]` |

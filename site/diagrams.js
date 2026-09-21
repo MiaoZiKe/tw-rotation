@@ -341,8 +341,10 @@
      這張圖只回答兩件事：**為什麼疊越多層越貴、車規為什麼難做。**
 
      ---- 事實來源（2026-09-21 用 WebSearch 重新查證過一次，不是照抄規格書）----
-     容器的 WebFetch 對 murata.com / ele.kyocera.com / escatec.com / ctee.com.tw 都回
-     EGRESS_BLOCKED，所以底下是**搜尋摘要層級**的證據（原文讀不到的地方一律不寫成精確數字）：
+     ★ 證據強度先講清楚：這個容器**只有 WebSearch 能用，WebFetch 一律回 EGRESS_BLOCKED**
+       （murata.com / ele.kyocera.com / escatec.com / ctee.com.tw 逐一試過都是）。
+       所以底下每一條的證據都是「**WebSearch 摘要**」，不是原文 —— 沒有人讀過整篇。
+       原文讀不到的地方一律不寫成精確數字；網址留著是給下一個人去讀，不是宣稱我讀過。
        · 介電層 0.5–2 µm、內電極（Ni，BME 賤金屬）約 0.5–0.6 µm、層數 400–1000 層
          → USPTO 專利族 11302478 / 11037727 說明；Murata 官方部落格「next-generation MLCC」
        · 端子由內到外 Cu →〔導電樹脂〕→ Ni → Sn；**樹脂層夾在 Cu 與 Ni 之間**（不是最外層）
