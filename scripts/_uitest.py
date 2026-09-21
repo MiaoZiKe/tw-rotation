@@ -8984,6 +8984,16 @@ def t_mlcc(pg, base):
         for w in (1440, 800, 390):
             pg.set_viewport_size({"width": w, "height": 1000})
             pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+            # ★ 為什麼要多一次 reload（2026-09-21 量出來的，不是保險起見）：
+            #   前一段點了「面板」族群 —— 畫面換回圖別選單了，**但網址沒有跟著改**，
+            #   還停在 #industry/electronics/dg/mlcc。於是這裡 goto 同一個 hash
+            #   不會觸發 hashchange，router 根本沒有跑，畫面就一直停在選單上
+            #   （量到的：goto 之後再等 3 秒還是 svg=False，reload 一次立刻 svg=True）。
+            #   ⚠ 那個「畫面換了、網址沒換」本身是 site/industry.js 的 bug，不是這裡的
+            #   —— 影響是「複製網址給別人，對方看到的跟你看到的不是同一個東西」，
+            #   而且按重新整理會跳回剖析圖。修它要動 industry.js，不在這一批的範圍，
+            #   已經寫進 HANDOFF。這裡先用 reload 讓量測拿到乾淨的路由結果。
+            pg.reload(wait_until="networkidle")
             pg.wait_for_timeout(2400)
             # ★ 同 4c 的陷阱：<640px 預設收合、而且會記進 localStorage，
             #   4-worker 平行跑時會汙染別的寬度。用現成的 force_open()
