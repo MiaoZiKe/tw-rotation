@@ -16,7 +16,7 @@ on:
       probe:
         description: "要探測哪一組"
         type: choice
-        options: [material_news, taifex_night]
+        options: [material_news, taifex_night, jin10]
         default: taifex_night
 
 permissions:
