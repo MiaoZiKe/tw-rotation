@@ -311,7 +311,7 @@
           <div id="dgBody">
           ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
-          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div></div></div>` : ''}
+          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
           <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
@@ -421,19 +421,36 @@
        分成兩層之後：被點的那一個最強（.sel-part）、同環節其餘次強（.sel）、其餘 dim。
        ★ 這仍然只是「亮」，不是「篩」—— DECISIONS #73 沒有被動到。*/
     let partHi = null;
+    /* partSel ＝「小卡現在在講哪一個零件」。為什麼要跟 partHi 分開：
+       partHi 只是「高亮的主角」，而 segHi 也會被**關聯圖上的環節標題**設起來
+       （drawChainMap 的 onSegment）—— 那不是「點零件」，不該彈出零件小卡。
+       所以只有 pickPart（點剖析圖或 3D 的零件）會寫 partSel，其餘一律清掉。*/
+    let partSel = null;
+    let pcOpen = partCardOpen();        // 小卡收合狀態（localStorage 記住）
     const syncHighlight = (opt) => {
       const o = opt || {};
       const shown = segFilter || segHi;
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
       highlightSegments(el, segsOn, color, partHi);
+      /* 「這個零件是誰做的」小卡。只有點零件才畫（partSel），
+         點環節色標／族群卡片走的是下面那個 segBox，兩者不互相取代。*/
+      renderPartCard($('#partCard', el), el, sc, dgId, partSel && partSel.seg, partSel && partSel.key, {
+        open: pcOpen,
+        onToggle: () => { pcOpen = !pcOpen; setPartCardOpen(pcOpen); syncHighlight({ quiet: true, noscroll: true }); },
+        // ✕＝取消選取這個零件（跟再點一次同一個零件同一個結果）
+        onClose: () => { partHi = partSel = null; segHi = null; syncHighlight({ quiet: true, noscroll: true }); },
+        /* 小卡上的「環節 →」是唯一一個「從零件走到篩選」的入口 ——
+           它是一顆寫著環節名的按鈕，不是零件本身，所以 DECISIONS #73 沒有被動到。*/
+        onSeg: (sg) => { segFilter = sg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); },
+      });
       /* noscroll：從關聯圖上「點公司」進來的那一條路。使用者的眼睛就在關聯圖上，
          再把圖捲到那一欄只會讓他剛剛點的那張卡片跑掉。點環節色標（在圖下面）才需要捲。*/
       if (segFilter && !o.quiet && !o.noscroll) scrollChainTo(el, segFilter);
       $$('#groupCards .tile', el).forEach(t => t.classList.toggle('sel', !!state.group && t.dataset.gid === state.group || (!!segFilter && (A.L.sgroups[segFilter] || []).includes(t.dataset.gid))));
       $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
       renderSegBox($('#segBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
-        segFilter = shown; segHi = null; partHi = null; state.group = null; syncHighlight();
+        segFilter = shown; segHi = null; partHi = partSel = null; state.group = null; syncHighlight();
       } });
       if (!o.quiet) renderMembers();
       /* 族群換了就換圖。★ 2026-09-21：換到「沒有圖」也是一種結果 ——
@@ -475,18 +492,20 @@
          使用者以為自己點到了別的零件，畫面卻整個暗下來。
          現在是「再點同一個 **零件** 才取消」，點別的零件就是把主角換過去。*/
     const pickPart = (seg, key) => {
-      if (key && partHi === key) { partHi = null; segHi = null; }
-      else if (!key && segHi === seg) { partHi = null; segHi = null; }
+      if (key && partHi === key) { partHi = partSel = null; segHi = null; }
+      else if (!key && segHi === seg) { partHi = partSel = null; segHi = null; }
       else { partHi = key || null; segHi = seg; }
+      // 只有「真的選起來了」才有小卡；再點一次同一個零件＝取消，小卡跟著收掉
+      partSel = (partHi || segHi) ? { seg, key: key || null } : null;
       segFilter = null;
       syncHighlight({ quiet: true });
     };
     $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return;
       state.group = state.group === t.dataset.gid ? null : t.dataset.gid;
-      segFilter = null; segHi = null; partHi = null;
+      segFilter = null; segHi = null; partHi = partSel = null;
       syncDgHash();        // ★ 先把網址對齊，再重畫（見 syncDgHash 上方註解）
       syncHighlight(); });
-    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = null; state.group = null; syncHighlight(); });
+    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     // E5：上方切換列 —— 按了直接換一條鏈，不用退回產業地圖（按自己就捲回頁首，不重畫）
     $$('#chainSwitch button', el).forEach(b => b.onclick = () => {
@@ -499,10 +518,10 @@
          刻意跟「點剖析圖零件」（segHi，只亮不篩，DECISIONS #73）分開：
          零件是圖上的一個小東西，使用者只是想知道「這個零件是誰做的」；
          環節卡是一個明確的清單標題，點它就是「我要看這一格」。*/
-      const segPick = (seg) => { segFilter = segFilter === seg ? null : seg; segHi = null; partHi = null; state.group = null; syncHighlight(); };
+      const segPick = (seg) => { segFilter = segFilter === seg ? null : seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); };
       /* 點個股小卡：跟點關聯圖上的公司走同一條路 —— 開右側產業關係面板（不跳頁）、
          同時把它所屬的環節選起來。noscroll 是因為使用者的眼睛就停在剛剛點的那張小卡上。*/
-      const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = null; state.group = null; syncHighlight({ noscroll: true }); };
+      const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); };
       const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
       /* 兩種畫面共用同一份資料，只是呈現方式不同：
          清單＝「這條鏈有哪些格、每格有誰」（預設，因為高度只有關聯圖的三分之一）
@@ -529,7 +548,7 @@
       if (btn) btn.onclick = () => { chainView = chainView === 'map' ? 'list' : 'map'; saveChainView(chainView); applyView(); syncHighlight({ quiet: true, noscroll: true }); };
       applyView();
       drawChainMap($('#chainMap', el), sc, ch.id, im, {
-        onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = null; syncHighlight({ quiet: true }); },
+        onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
         /* 點公司＝連同它所屬的環節一起選起來（Andy 2026-09-20）。
            ★ 選的是「環節」不是「族群」，三個理由：
              ① 一家公司只有一個 segment，卻可能掛在好幾個族群（groups 是陣列）——
@@ -543,7 +562,7 @@
            不是另一個獨立的篩選條件（真的設了 state.group，成分股會被「族群 ∩ 環節」再砍一刀）。
            不做 toggle（再點一次不取消）—— 這個動作的主要目的是開右側面板，
            面板還開著、選取卻被取消掉會前後矛盾。要取消就點下面的環節色標。*/
-        onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = null; state.group = null; syncHighlight({ noscroll: true }); },
+        onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
       });
     }
     if (hasSlots && sc) {
@@ -633,7 +652,7 @@
       const host = $('#prodDiagram', el); if (!host) return;
       swapping = true;
       dgId = next;
-      partHi = null;          // 換一張圖，上一張的零件身分在新圖上不存在
+      partHi = partSel = null;          // 換一張圖，上一張的零件身分在新圖上不存在
       $$('#dgPick .segchip', el).forEach(c => c.classList.toggle('sel', c.dataset.dgid === next));
       /* ★ 2026-09-21 新增的狀態：換成「沒有圖」。
          選到一個還沒有專屬剖析圖的族群（例：面板）時，以前會退回 MLCC 那張再加一句道歉；
@@ -695,6 +714,203 @@
     if (btn) { btn.disabled = !!o.filtered; if (o.onFilter && !o.filtered) btn.onclick = o.onFilter; }
     paintCross(box, seg);
   }
+
+
+  /* ================================================================ 「這個零件是誰做的」小卡
+     docs/diagram_purpose.md §4。以前點零件只會亮 —— `segPick` 上面那段註解自己就寫了
+     「使用者只是想知道『這個零件是誰做的』」，但程式碼從來沒有回答過這個問題。
+     這張小卡就是那個答案：**這是什麼 → 屬於哪個環節 → 做這個的台股有誰（負責什麼）
+     → 相關料號 → 台股沒人做的話是誰做的**，順序照 docs 那五條。
+
+     ★ 它是「多給資訊」，不是「改掉既有行為」：DECISIONS #73 的「點零件只亮不篩成分股」
+       一個字都沒有動 —— 下面的成分股表不會因為點零件而變，要篩仍然是點環節色標。
+
+     兩層資料來源，順序是刻意的：
+       ① 預設 —— 零件的 `data-seg` → 那個環節的台股（附 companies[].tech）＋
+          流進／流出那一格的 edges[].item。**九張已經畫好的圖一行都不用改就馬上有東西看。**
+       ② 精修 —— 那張圖在 `DG.register` 的定義裡宣告 `parts: { <data-part>: {...} }`，有就蓋掉預設。
+          精修只住在繪圖端（`site/dg/<slot>.js` 與 `diagrams.js` 的 SLOTS），
+          **不准寫進 `pipeline/groups/supply_chain.yaml`** —— 那份是 Andy 校訂的成分表。
+     誠實（R4／R5）：查不到就寫查不到，`edges[].confidence` 照實顯示在畫面上，
+     台股沒人做的一律用 `none` 明講是誰做的，不留白、也不湊一個對應出來。*/
+
+  /* 樣式為什麼注入在這裡，而不是寫進 site/index.html 的 :root
+     ------------------------------------------------------------
+     這一輪同時有別的 agent 在改 `site/index.html`（配色）與 `site/diagrams.js` 的 MLCC 版面，
+     那個檔一動就撞。DECISIONS #227 當時為了同一個理由把 native 的樣式寫成 inline；
+     這裡要的是 media query 與多條子選擇器，inline 寫不了，所以改成注入一次。
+     ⚠ 這是暫時的：等這一批合完，這段應該搬回 index.html 跟 .segbox 放在一起。
+     顏色全部走既有變數與零件的環節色 `--c`，**一個色票都沒有寫死**。*/
+  function ensurePartCss() {
+    if (document.getElementById('partCardCss')) return;
+    const st = document.createElement('style');
+    st.id = 'partCardCss';
+    st.textContent = `
+      .partcard{margin-top:10px;padding:10px 12px;border-radius:10px;
+        border:1px solid var(--c,var(--line-2));
+        background:color-mix(in srgb,var(--c,#8ea0c4) 8%,var(--panel));
+        font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+      .partcard[hidden]{display:none}
+      .partcard .pc-hd{display:flex;flex-wrap:wrap;align-items:center;gap:6px 9px}
+      .partcard .pc-dot{width:10px;height:10px;border-radius:50%;background:var(--c);
+        box-shadow:0 0 8px var(--c);flex:none}
+      .partcard .pc-t{font-size:14px;color:var(--ink);font-weight:700}
+      .partcard .pc-seg{font-size:12px;color:var(--c);border:1px solid var(--c);
+        border-radius:999px;padding:1px 9px;cursor:pointer;background:transparent}
+      .partcard .pc-seg:hover{background:color-mix(in srgb,var(--c) 20%,transparent)}
+      .partcard .pc-btns{margin-left:auto;display:flex;gap:6px;flex:none}
+      .partcard .pc-btns button{font-size:12px;color:var(--ink-2);background:var(--panel-3);
+        border:1px solid var(--line-2);border-radius:7px;padding:2px 9px;cursor:pointer}
+      .partcard .pc-btns button:hover{color:var(--ink);border-color:var(--c)}
+      .partcard .pc-bd{margin-top:7px}
+      .partcard .pc-desc{font-size:12.5px;color:var(--ink-2)}
+      .partcard .pc-row{display:flex;flex-wrap:wrap;gap:5px 9px;align-items:baseline;margin-top:7px}
+      .partcard .pc-row>.k{font-size:12px;color:var(--ink-3);letter-spacing:.06em;flex:none}
+      .partcard .pc-co{display:inline-flex;align-items:baseline;gap:5px;flex-wrap:wrap;
+        border:1px solid var(--line-2);border-radius:8px;padding:2px 8px;background:var(--panel-3)}
+      .partcard .pc-why{font-size:12px;color:var(--ink-3)}
+      .partcard .pc-item{font-size:12px;color:var(--ink-2);border:1px solid var(--line-2);
+        border-radius:8px;padding:2px 8px;background:var(--panel-3)}
+      .partcard .pc-none{font-size:12.5px;color:var(--amber)}
+      .partcard .pc-miss{font-size:12.5px;color:var(--ink-3)}
+      .partcard .pc-note{font-size:12px;color:var(--ink-3);margin-top:6px}
+      .partcard .pc-ft{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line-2);
+        font-size:12px;color:var(--ink-3)}
+      .partcard .cf{font-style:normal;font-size:12px;margin-left:4px;padding:0 5px;
+        border-radius:4px;border:1px solid var(--line-2);color:var(--ink-3)}
+      .partcard .cf-verified{color:var(--fall);border-color:color-mix(in srgb,var(--fall) 45%,transparent)}
+      .partcard .cf-estimated{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+      /* 窄畫面（筆電半視窗與手機）：間距收一點，字級仍然守住 12px 下限 */
+      @media (max-width:640px){
+        .partcard{padding:9px 10px;font-size:12.5px}
+        .partcard .pc-t{font-size:13px}
+        .partcard .pc-row{gap:5px 7px}
+      }`;
+    document.head.appendChild(st);
+  }
+
+  // 這個零件在圖上本來就寫了什麼（labelRow／lrow 的標題與副標）。
+  // 名稱與白話說明直接拿圖上的字 —— 那幾句是規格書簽過、審查過的，
+  // 另外再編一份只會讓小卡跟圖對不起來（而且那才是真正會編出假資訊的地方）。
+  function partTextOf(root, key) {
+    const DG = window.DG || {};
+    if (!key || !DG.partHit) return null;
+    const nodes = $$('#prodDiagram [data-seg]', root).filter(n => DG.partHit(n, key));
+    for (let i = 0; i < nodes.length; i++) {
+      const lbl = nodes[i].querySelector('text.lbl');
+      if (!lbl) continue;
+      const subs = [].slice.call(nodes[i].querySelectorAll('text.sub'))
+        .map(t => (t.textContent || '').trim()).filter(Boolean);
+      const name = (lbl.textContent || '').trim();
+      if (name) return { name, desc: subs.join('') };
+    }
+    return null;
+  }
+
+  /* 這一格流進／流出的料號。**只看跨出這一格的邊** ——
+     同一格內部互相供貨（例如日東紡供建榮玻璃原紗）不是「這個零件的進出料」，
+     放進來只會讓清單看起來比較長，卻回答不了「這塊東西吃什麼、出什麼」。*/
+  function segItems(sc, seg) {
+    const ids = new Set((sc.companies || []).filter(c => c.segment === seg).map(c => c.id));
+    const inn = [], out = [], seenI = new Set(), seenO = new Set();
+    (sc.edges || []).forEach(e => {
+      if (!e || !e.item) return;
+      const fi = ids.has(e.from), ti = ids.has(e.to);
+      if (ti && !fi && !seenI.has(e.item)) { seenI.add(e.item); inn.push(e); }
+      else if (fi && !ti && !seenO.has(e.item)) { seenO.add(e.item); out.push(e); }
+    });
+    return { inn, out };
+  }
+
+  const confTag = (c) => (c ? `<em class="cf cf-${c}">${CONF_TEXT[c] || c}</em>` : '');
+  const itemHtml = (e) => `<span class="pc-item">${A.fmt.esc(e.item)}${confTag(e.confidence)}</span>`;
+  // 上限 6 筆：再多就變成一面料號牆，讀不出「這塊東西吃什麼、出什麼」
+  const itemsRow = (k, list) => (list.length
+    ? `<div class="pc-row"><span class="k">${k}</span>${list.slice(0, 6).map(itemHtml).join('')}`
+      + (list.length > 6 ? `<span class="pc-why">還有 ${list.length - 6} 項</span>` : '') + '</div>'
+    : '');
+
+  function coHtml(c) {
+    const why = (c.tech || []).join(' · ');
+    const who = c.tw_code ? A.L.stock(c.tw_code, c.name) : `<b>${A.fmt.esc(c.name)}</b>`;
+    return `<span class="pc-co">${who}<span class="pc-why">${why ? A.fmt.esc(why) : '（這家的負責項目 supply_chain.yaml 還沒填）'}</span></span>`;
+  }
+
+  /* 小卡本體。`seg` 一定有（零件的 data-seg）；`key` 可能沒有（3D 場景的零件沒對到 2D 時）。*/
+  function renderPartCard(box, root, sc, dgId, seg, key, opt) {
+    if (!box) return;
+    ensurePartCss();
+    if (!seg || !sc) { box.hidden = true; box.innerHTML = ''; return; }
+    const o = opt || {};
+    const def = (key && DS && DS.parts && (DS.parts(dgId) || {})[key]) || null;
+    const onFig = partTextOf(root, key);
+    const s = (sc.segments || []).find(x => x.id === seg) || {};
+    const segNm = s.name || seg;
+    const name = (def && def.name) || (onFig && onFig.name) || segNm;
+    const desc = (def && def.desc) || (onFig && onFig.desc) || (s.desc || '');
+
+    // 誰做的：精修有指名就用指名的那幾家，沒有就是「這個環節的台股全部」
+    let tw;
+    if (def && def.cos) tw = def.cos.map(c => (sc.companies || []).find(x => x.tw_code === c || x.id === c)).filter(Boolean);
+    else tw = twOf(sc, seg);
+    const fo = foreignOf(sc, seg);
+
+    // 料號：精修指名的字串要回去 edges 對一次，對得到就把 confidence 一起顯示（誠實）
+    let inn, out;
+    if (def && def.items) {
+      const all = (sc.edges || []).filter(e => e && e.item);
+      inn = def.items.map(it => all.find(e => e.item === it) || { item: it, confidence: null });
+      out = [];
+    } else { const r = segItems(sc, seg); inn = r.inn; out = r.out; }
+
+    const twRow = tw.length
+      ? `<div class="pc-row"><span class="k">做這個的台股</span>${tw.map(coHtml).join('')}</div>`
+      : '';
+    /* R4：台股沒有人做就明說，而且要寫出實際上是誰做的 —— 留白會讓人以為「這裡漏了」。
+       `none` 是繪圖端寫的整句話；沒寫 none 又真的沒有台股，就退回「外商是誰」，
+       連外商都沒有就寫「查不到」（R5：不准為了讓卡片看起來完整而編一個對應）。*/
+    const noneRow = tw.length ? '' : `<div class="pc-row"><span class="k">做這個的台股</span><span class="pc-none">${
+      def && def.none ? A.fmt.esc(def.none)
+        : (fo.length ? `台股沒有廠商做這一格，實際上做的是：${A.fmt.esc(fo.map(c => c.name + ((c.tech || []).length ? '（' + c.tech.join('、') + '）' : '')).join('、'))}。`
+          : '查不到這一格是誰做的 —— supply_chain.yaml 還沒有這一格的公司。查不到就寫查不到，不編一個對應。')
+    }</span></div>`;
+    const foRow = (tw.length && fo.length)
+      ? `<div class="pc-row"><span class="k">同一格的外商</span>${fo.map(coHtml).join('')}</div>` : '';
+    const itemRows = (def && def.items) ? itemsRow('相關料號', inn) : (itemsRow('進料', inn) + itemsRow('出貨', out));
+    const noItem = (!inn.length && !out.length)
+      ? '<div class="pc-row"><span class="k">相關料號</span><span class="pc-miss">這一格目前查不到具名的上下游料號（supply_chain.yaml 的 edges 還沒有這一格的邊）。</span></div>' : '';
+
+    box.hidden = false;
+    box.style.setProperty('--c', segColor(seg));
+    box.innerHTML = `<div class="pc-hd"><span class="pc-dot"></span><span class="pc-t">${A.fmt.esc(name)}</span>
+        <button type="button" class="pc-seg" id="pcSeg" title="把下方成分股篩成「${A.fmt.esc(segNm)}」這一格">環節：${A.fmt.esc(segNm)} →</button>
+        <span class="pc-btns"><button type="button" id="pcFold">${o.open ? '收合 ▴' : '展開 ▾'}</button><button type="button" id="pcClose" title="取消選取這個零件">✕</button></span></div>
+      <div class="pc-bd" id="pcBody"${o.open ? '' : ' hidden'}>
+        ${desc ? `<div class="pc-desc">${A.fmt.esc(desc)}</div>` : ''}
+        ${twRow}${noneRow}${foRow}${itemRows}${noItem}
+        ${def && def.note ? `<div class="pc-note">★ ${A.fmt.esc(def.note)}</div>` : ''}
+        <div class="pc-ft">公司與「負責什麼」讀 supply_chain 的 <b>companies[].tech</b>，料號讀 <b>edges[].item</b>；標籤是資料可信度（官方揭露／媒體報導／產業推論）。點零件只會亮起來，<b>不會</b>動到下方成分股 —— 要篩請按上面的「環節」。</div>
+      </div>`;
+    const bSeg = $('#pcSeg', box); if (bSeg && o.onSeg) bSeg.onclick = () => o.onSeg(seg);
+    const bX = $('#pcClose', box); if (bX && o.onClose) bX.onclick = () => o.onClose();
+    const bF = $('#pcFold', box); if (bF && o.onToggle) bF.onclick = () => o.onToggle();
+  }
+
+  // 收合狀態記在 localStorage：Andy「可以收納就收納」。讀不到就當展開，不要讓整頁掛掉。
+  const partCardOpen = () => { try { return localStorage.getItem('tw.dgPartOpen') !== '0'; } catch (e) { return true; } };
+  const setPartCardOpen = (v) => { try { localStorage.setItem('tw.dgPartOpen', v ? '1' : '0'); } catch (e) { /* 忽略 */ } };
+
+  /* ⚠ 這裡原本有一支 revealPartCard()：小卡不在畫面上時，用最小幅度把它捲進視野。
+     **拿掉了**，因為它違反 2026-09-19 就定下來的「點零件不會把畫面捲走」
+     （`_uitest` 的「點零件不會把畫面捲走」當場紅：451 → 565，容許值是 40px）。
+     那條規則的由來跟這張小卡是同一件事：Andy 說「當我點擊圖片時，不用馬上切換到下方股票」——
+     畫面自己動，使用者剛剛點的那個零件就跑掉了。
+
+     代價要寫清楚：**剖析圖很長**（PCB 那張 1446px、載板 1300px），
+     所以點圖最上面的零件時，小卡（排在圖下面）可能落在畫面外，看起來像「沒反應」。
+     沒有把它改成浮層，是因為浮層一定會蓋住圖，而 Andy 要的是「看著圖、同時知道誰做的」。
+     下一步該做的是**寬螢幕改成「圖左、卡右」兩欄**（卡片在自己的欄裡 sticky），
+     那樣才是同時解決「不蓋圖」「不捲畫面」「看得到」三件事，而不是在這裡二選一。*/
 
   /* ---------------------------------------------------------------- E6：跨產業鏈的環節
      Andy 2026-09-18：「ABF 這種跨類別環節要同時出現兩張架構圖與兩邊內容」。

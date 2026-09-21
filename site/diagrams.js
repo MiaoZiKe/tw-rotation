@@ -790,7 +790,39 @@
     ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
       q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
     mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980,
-      q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？' },
+      q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？',
+      /* ★ 2026-09-21：`parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
+         為什麼 MLCC 這張特別需要精修：**整張圖只有一個環節**（14 個 [data-seg] 全是 passive_comp），
+         所以預設那條路（零件的 data-seg → 該環節的台股）會讓 14 個零件給出一模一樣的答案 ——
+         等於沒有回答「這個零件是誰做的」。這裡只覆寫真的有差別的那幾個，其餘照預設走。
+         `cos` 只放代號，**「這家在這裡負責什麼」一律讀 supply_chain.json 的 companies[].tech**
+         （R3：不准在圖上寫出 YAML 裡沒有的角色描述）。*/
+      parts: {
+        mlcc_body: {
+          name: '陶瓷本體與交錯內電極',
+          desc: '陶瓷介電層與鎳（Ni）內電極一層一層疊出來的本體。容值來自「相鄰兩片電極重疊的那一塊」，所以層數越多、每層越薄，容值越大 —— 貴的也是這件事，不是體積。',
+          /* 這一格共 5 家，但「做 MLCC 的」只有這 4 家：2375 凱美是以晶片電阻進到這一格的。
+             依據不是我的判斷，是 supply_chain.yaml 自己的 note 與圖下方那行註腳（#228①）。*/
+          cos: ['2327', '2492', '3026', '6173'],
+          note: '同一格還有 2375 凱美，但它是以晶片電阻與鋁質電解電容進到這一格、不做 MLCC，所以這個零件沒有列它。',
+        },
+        // 端電極：2D 拆成消費級／車規兩張放大剖面、3D 只有一圈（data-alias 接起來），
+        // 三個 key 指向同一件事，所以內容寫在 SLOTS 後面一次指派給三個 key（見下方）
+        mlcc_pad: {
+          name: 'PCB 焊墊與焊錫',
+          desc: 'PCB 上的焊墊與焊錫。板子受力時應力就是從這裡傳進陶瓷，車規靠導電樹脂軟端子擋這一刀。',
+          cos: [],
+          none: '焊墊在板子上，不屬於被動元件這一格 —— 做板子的是 PCB 廠，看「PCB 硬板：多層板剖面與走線」那張圖。',
+        },
+      },
+    },
+  };
+  /* 端電極三個 key 內容相同，寫一次就好（避免三份文字日後改到不同步）。*/
+  SLOTS.mlcc.parts.mlcc_term = SLOTS.mlcc.parts.mlcc_term_cons = SLOTS.mlcc.parts.mlcc_term_auto = {
+    name: '端電極（包住端部五個面）',
+    desc: '包住兩個端部的金屬帶，由內到外是銅（Cu）→〔車規多一層導電樹脂〕→ 鎳（Ni）→ 錫（Sn）。樹脂層夾在 Cu 與 Ni 之間，不是最外層 —— 它是車規擋板彎裂的那一層。',
+    cos: ['2327', '2492', '3026', '6173'],
+    note: '端電極是 MLCC 廠自己做的一道製程（燒附 → 鍍 Ni → 鍍 Sn），不是外購零件，所以這裡列的就是做 MLCC 的那幾家。',
   };
   const isGroupSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'group');
   const isChainSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'chain');
@@ -824,6 +856,11 @@
        12px 的字會被壓成 6.3px 甚至 4.4px。這正是 Andy 一直在講的「文字太小」。
        宣告 native 的圖改成「維持原尺寸、欄位不夠寬就左右滑」，字級才守得住。*/
     native(id) { return SLOTS[id] ? (SLOTS[id].native || 0) : 0; },
+    /* 這張圖有沒有「零件 → 誰做的」精修對應（key＝data-part）。
+       回 null ＝沒有精修，小卡就走預設的那條路（data-seg → 該環節的台股與料號）。
+       ★ 這份對應**只住在繪圖端**（SLOTS 或 site/dg/<slot>.js 的 register 定義），
+         不准寫進 pipeline/groups/supply_chain.yaml —— 那份是 Andy 校訂的成分表。*/
+    parts(id) { return (SLOTS[id] && SLOTS[id].parts) || null; },
     has(id) { return !!SLOTS[id]; },
   };
   /* 舊介面留著（`window.Diagrams[<id>]()`）—— 題材圖與驗收腳本還在用。

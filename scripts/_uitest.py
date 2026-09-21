@@ -9686,6 +9686,208 @@ def t_cooling(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+def t_whomakes(pg, base):
+    """點零件 → 「這個零件是誰做的」小卡（`docs/diagram_purpose.md` §4）。
+
+    這一段驗的全部是**「畫面真的因此改變了」**，不是「元素存在」：
+
+      1   一開始沒有小卡；點一個零件 → 小卡出現，而且內容**真的是那個零件的**
+          （抓得到指名的公司代號）
+      2   再點**另一個**零件 → 小卡的字串跟上一次**不一樣**，而且是「台股沒人做」那一種
+          （ABF 增層膜＝味之素獨占，台股掛零 —— 這是 R4 的教科書案例）
+      3   再點**同一個**零件 → 取消（小卡收掉、主角也不見了）：既有行為不准被弄壞
+      4   點零件的前後，下方成分股**筆數一動都不動**（DECISIONS #73：零件只亮不篩）
+      5   點環節色標 → 成分股筆數**真的變了**（既有行為不准被弄壞）
+      6   小卡上的「環節 →」按下去 → 成分股真的被篩到那一格（這是唯一從零件走到篩選的入口）
+      7   收合鈕真的把內容收掉，而且 localStorage 真的寫進去了
+      8   精修過的另外兩張圖（PCB 硬板、MLCC）各抽一個零件，驗它**沒有退回環節層級的答案**
+      9   800px 與 390px：小卡沒有橫向溢出、**沒有蓋住剖析圖**（它排在圖下面）、字級 ≥ 12px
+    """
+    DGH = f"{base}#industry/ai_server/dg/ic_substrate"
+
+    def force_open(pg_):
+        """<640px 預設收合，收起來就點不到零件。只有「現在真的有一張圖」時才動它。"""
+        pg_.evaluate("""() => {
+          const menu = document.getElementById('dgMenu');
+          if (menu && menu.offsetParent !== null) return;
+          const b = document.getElementById('dgFold');
+          const body = document.getElementById('dgBody');
+          const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+          if (b && hidden) b.click();
+        }""")
+        pg_.wait_for_timeout(450)
+
+    def card(pg_):
+        """小卡現在的樣子。text 用來比對「前後不一樣」，codes 用來確認是**那個零件**的答案。"""
+        return pg_.evaluate("""() => {
+          const c = document.getElementById('partCard');
+          if (!c || c.hidden) return {on: false, text: '', codes: [], none: '', title: ''};
+          const r = c.getBoundingClientRect();
+          const d = document.getElementById('prodDiagram');
+          const dr = d ? d.getBoundingClientRect() : null;
+          return {on: true,
+                  text: (c.innerText || '').replace(/\s+/g, ' ').trim(),
+                  title: ((c.querySelector('.pc-t') || {}).textContent || '').trim(),
+                  codes: [...c.querySelectorAll('.pc-co a.lk-stock')].map(a => (a.getAttribute('href') || '').split('/').pop()),
+                  none: ((c.querySelector('.pc-none') || {}).textContent || '').trim(),
+                  items: [...c.querySelectorAll('.pc-item')].map(n => n.textContent.trim()),
+                  confs: [...c.querySelectorAll('.pc-item .cf')].map(n => n.textContent.trim()),
+                  bodyOn: !!(c.querySelector('.pc-bd') && !c.querySelector('.pc-bd').hidden),
+                  ovX: c.scrollWidth - c.clientWidth,
+                  right: Math.round(r.right), top: Math.round(r.top), bottom: Math.round(r.bottom),
+                  dgBottom: dr ? Math.round(dr.bottom) : null,
+                  minFs: Math.min(...[...c.querySelectorAll('*')]
+                    .filter(n => n.childNodes.length && [...n.childNodes].some(x => x.nodeType === 3 && x.textContent.trim()))
+                    .map(n => parseFloat(getComputedStyle(n).fontSize)).concat([99])),
+                  vw: window.innerWidth};
+        }""")
+
+    def hero(pg_):
+        return pg_.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg].sel-part');"
+                            " return n ? (n.dataset.dgkey || '') : null; }")
+
+    def click_part(pg_, part):
+        """真的點圖上那個零件（不是說明列 .lrow）。"""
+        got = pg_.evaluate("""(p) => {
+          const ns = [...document.querySelectorAll('#prodDiagram [data-seg]')]
+            .filter(x => x.dataset.part === p);
+          const n = ns.find(x => !x.classList.contains('lrow')) || ns[0];
+          if (!n) return null;
+          n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+          return n.dataset.dgkey;
+        }""", part)
+        pg_.wait_for_timeout(420)
+        return got
+
+    def rows(pg_):
+        """成分股真的有資料的那幾列（0 筆時 tbody 裡有一列說明用的 colspan，不能一起數）。"""
+        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+
+    # ---------------- 1. 一開始沒有小卡；點一個零件 → 小卡出現，而且是那個零件的答案
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    c0 = card(pg)
+    ok("還沒點任何零件時，小卡是收著的（不預先佔一塊空白）", not c0["on"], c0)
+    n_all = rows(pg)
+
+    y0 = pg.evaluate("() => Math.round(scrollY)")
+    k1 = click_part(pg, "abf_trace")
+    c1 = card(pg)
+    ok("點零件**不會**把畫面捲走（2026-09-19 的既有規則；小卡不准為了讓自己被看到而動畫面）",
+       abs(pg.evaluate("() => Math.round(scrollY)") - y0) < 40,
+       {"點之前": y0, "點之後": pg.evaluate("() => Math.round(scrollY)")})
+    ok("點「半加成細線」這個零件 → 小卡真的出現了", c1["on"] and bool(k1), {"key": k1, "card": c1["on"]})
+    ok("小卡回答的是**這個零件**（標題就是零件名，不是環節名）",
+       "半加成" in c1["title"] or "SAP" in c1["title"], c1["title"])
+    ok("小卡真的列出做這個的台股（欣興 3037／南電 8046／景碩 3189），而且每一家後面接它負責什麼",
+       {"3037", "8046", "3189"} <= set(c1["codes"]) and "ABF 載板" in c1["text"], c1["codes"])
+    ok("小卡列出相關料號，而且每一個料號都標了資料可信度",
+       len(c1["items"]) > 0 and len(c1["confs"]) == len(c1["items"]), {"items": c1["items"], "confs": c1["confs"]})
+
+    # ---------------- 2. 點另一個零件 → 內容真的換了，而且是「台股沒人做」那一種
+    k2 = click_part(pg, "abf_film")
+    c2 = card(pg)
+    changed("點另一個零件（ABF 增層膜）→ 小卡的內容真的換了", c1["text"][:160], c2["text"][:160])
+    ok("ABF 增層膜這一層明說「台股沒有廠商做」，而且寫出實際上是誰做的（味之素）",
+       c2["on"] and not c2["codes"] and "味之素" in c2["none"] and "台股沒有廠商做" in c2["none"], c2["none"])
+    ok("主角真的換人了（高亮跟著小卡走）", hero(pg) == k2 and k2 != k1, {"k1": k1, "k2": k2, "hero": hero(pg)})
+
+    # ---------------- 3. 再點同一個零件 → 取消（既有行為不准被弄壞）
+    click_part(pg, "abf_film")
+    c3 = card(pg)
+    ok("再點一次同一個零件 → 取消選取，小卡跟著收掉", not c3["on"] and hero(pg) is None,
+       {"card": c3["on"], "hero": hero(pg)})
+
+    # ---------------- 4. 點零件的前後，成分股筆數一動都不動（DECISIONS #73）
+    click_part(pg, "abf_trace")
+    ok("點零件**不會**動到下方成分股（DECISIONS #73：只亮不篩）", rows(pg) == n_all,
+       {"點之前": n_all, "點之後": rows(pg)})
+
+    # ---------------- 5. 點環節色標 → 成分股真的被篩了（既有行為不准被弄壞）
+    #   ★ 刻意挑 substrate_material 而不是 abf_pcb：這個網址已經把族群選成「PCB 載板」（3 檔），
+    #     而 abf_pcb 這一格的台股剛好就是同樣那 3 家 —— 拿它來驗「篩了沒」會篩前篩後都是 3 筆，
+    #     那條斷言恆真、等於沒驗。substrate_material 台股掛零，篩完一定是 0 筆。
+    hit = pg.evaluate("""() => { const c = document.querySelector('#segChips .segchip[data-seg="substrate_material"]');
+      if (!c) return false; c.click(); return true; }""")
+    pg.wait_for_timeout(700)
+    n_seg = rows(pg)
+    ok("點環節色標（載板材料）→ 成分股真的篩了（這一格台股掛零，所以筆數從 %s 變成 0）" % n_all,
+       hit and n_seg != n_all and n_seg == 0, {"全部": n_all, "篩完": n_seg})
+    pg.evaluate("""() => { const c = document.querySelector('#segChips .segchip[data-seg="substrate_material"]');
+      if (c) c.click(); }""")
+    pg.wait_for_timeout(600)
+
+    # ---------------- 6. 小卡上的「環節 →」真的會篩
+    click_part(pg, "abf_film")           # 這個零件的環節就是 substrate_material
+    pg.evaluate("() => { const b = document.getElementById('pcSeg'); if (b) b.click(); }")
+    pg.wait_for_timeout(700)
+    n_pc = rows(pg)
+    ok("小卡上的「環節 →」按下去，成分股真的被篩到那一格", n_pc != n_all and n_pc == n_seg,
+       {"全部": n_all, "按環節之後": n_pc, "點色標時": n_seg})
+
+    # ---------------- 7. 收合鈕真的收得掉，而且記得住
+    #   ★ 先繞一次 #industry/ai_server 再回來：`page.goto` 到**完全一樣的網址**（含 hash）
+    #     不會觸發重新載入，頁內狀態（剛剛選起來的零件）會整包留著，
+    #     於是下一次點同一個零件變成「取消」—— 看起來像功能壞了，其實是根本沒重置。
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(600)
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
+    force_open(pg)
+    click_part(pg, "abf_trace")
+    b_on = card(pg)["bodyOn"]
+    pg.evaluate("() => { const b = document.getElementById('pcFold'); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+    b_off = card(pg)["bodyOn"]
+    ls = pg.evaluate("() => { try { return localStorage.getItem('tw.dgPartOpen'); } catch (e) { return 'ERR'; } }")
+    changed("小卡的收合鈕真的把內容收掉了", b_on, b_off)
+    ok("收合狀態真的寫進 localStorage（下次進來記得住）", ls == "0", ls)
+    pg.evaluate("() => { const b = document.getElementById('pcFold'); if (b) b.click(); }")
+    pg.wait_for_timeout(350)
+    ok("再按一次真的展開回來", card(pg)["bodyOn"] is True, card(pg)["bodyOn"])
+
+    # ---------------- 8. 另外兩張精修過的圖：不准退回環節層級的答案
+    pg.goto(f"{base}#industry/ai_server/dg/pcb_rigid", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    force_open(pg)
+    click_part(pg, "foil_rough")
+    cf = card(pg)
+    ok("PCB 硬板：點「銅箔稜面」只列做銅箔的那幾家（8358／4989／1303），不是整格 7 家全列",
+       cf["on"] and {"8358", "4989", "1303"} == set(cf["codes"]), cf["codes"])
+    click_part(pg, "fiber_weave")
+    cw = card(pg)
+    changed("再點「玻纖織效應」→ 小卡換成做玻纖布的那幾家", sorted(cf["codes"]), sorted(cw["codes"]))
+    ok("玻纖那一格列的是做布／紗的公司（5340／1815／5475／1303）",
+       {"5340", "1815", "5475"} <= set(cw["codes"]), cw["codes"])
+
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    force_open(pg)
+    click_part(pg, "mlcc_body")
+    cm = card(pg)
+    ok("MLCC：點本體只列真的做 MLCC 的四家（2327／2492／3026／6173），不含以電阻進來的 2375 凱美",
+       cm["on"] and {"2327", "2492", "3026", "6173"} == set(cm["codes"]), cm["codes"])
+    ok("MLCC 這一格沒有具名的上下游料號 → 小卡照實說「查不到」，不編一個出來",
+       "查不到" in cm["text"], cm["text"][:200])
+
+    # ---------------- 9. 窄畫面：不溢出、不蓋住圖、字級守得住
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        # 同上：先繞一次別的網址，不然第二圈的 goto 不會重新載入、狀態會留著
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(500)
+        pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
+        force_open(pg)
+        k = click_part(pg, "abf_film")
+        cc = card(pg)
+        if not ok(f"[{w}px] 點零件之後小卡真的出現", cc["on"], {"key": k, "card": cc}):
+            continue
+        ok(f"[{w}px] 小卡自己沒有橫向捲軸", cc["ovX"] <= 1, cc["ovX"])
+        ok(f"[{w}px] 小卡沒有超出視窗右緣", cc["right"] <= cc["vw"] + 1, {"right": cc["right"], "vw": cc["vw"]})
+        ok(f"[{w}px] 小卡排在剖析圖**下面**，沒有蓋住圖",
+           cc["dgBottom"] is not None and cc["top"] >= cc["dgBottom"] - 2,
+           {"卡片上緣": cc["top"], "圖的下緣": cc["dgBottom"]})
+        ok(f"[{w}px] 小卡上的字都 ≥ 12px", cc["minFs"] >= 12, cc["minFs"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
@@ -9725,6 +9927,8 @@ SECTIONS = {
     "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
     "批次12-ABF載板":      lambda pg, b, base, code: t_abf(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
+    # 點零件 → 「這個零件是誰做的」小卡（docs/diagram_purpose.md §4）
+    "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
     "縮放掃描":            lambda pg, b, base, code: t_zoom_sweep(pg, base, code),
