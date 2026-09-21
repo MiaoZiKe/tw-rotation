@@ -204,6 +204,7 @@
 | A6 | 端電極：Ni 內電極者用**銅膏**燒附（約 800 °C），之後電鍍**一層 Ni、一層 Sn**；Ni 防焊料侵蝕、Sn 助焊 | <https://article.murata.com/en-global/article/basics-of-capacitors-3>（製程與燒附溫度）；<https://www.murata.com/en-us/support/faqs/products/capacitor/mlcc/mnt/0002>（GRM 系列鍍層結構） |
 | A7 | 軟端子（soft termination）＝端子裡有**導電樹脂層**，用來抵抗板彎應力；代價是 ESR 增加；X8R 軟端子 AEC-Q200 品 2015 年起量產 | <https://www.tdk-electronics.tdk.com/en/374108/tech-library/articles/products-technologies/products-technologies/soft-termination-mlccs-with-x8r-thermal-characteristics-for-automotive-applications/1277866>；<https://ele.kyocera.com/en/technical/kavx_resinele/>（樹脂端子解決基板翹曲裂） |
 | A8 | 板彎裂（flex crack）是 MLCC 的已知失效模式，原廠有專門對策文件 | <https://product.tdk.com/en/techlibrary/solutionguide/mlcc_flex-crack.html> |
+| A8b | **板彎裂的走向（2026-09-21 補查，信心高）**：裂紋起於**安裝面（底面）、端電極邊緣（termination margin 的起點）**，以接近 **45°** 斜向**上方且往元件外側**延伸，一直走到**外側的端電極**。俗稱「45° 裂」，是最常見的板彎裂型態；成因是板子彎曲時底面受拉。嚴重彎曲時兩端都可能出現。一般只有在剖片（DPA／cross-section）之後才看得到 | NASA NEPP（Teverovsky）<https://nepp.nasa.gov/files/29931/NEPP-BOK-2018-Teverovsky-Paper-NEPPWeb-BOK-Cracking-MLCC-TN65668.pdf>（摘要明講「mostly originate at the bottom surface near the edge of the termination margin and propagate inside at angles close to 45º」）；KEMET／Mouser《Flex Crack Mitigation》<https://www.mouser.com/pdfdocs/TechnicalOverviewofFlexMitigationSolutions.pdf>（摘要明講「originate near the start of the termination on the mounted side … continue upwards at a 45° angle until it reaches the termination at the outer edge」）；TDK FAQ <https://product.tdk.com/en/contact/faq/capacitors-0085.html>。⚠ 三條都是 **WebSearch 摘要**，沒有讀過原文（容器擋 WebFetch），但三個獨立來源的敘述一致，所以給高信心 |
 | A9 | 容值公式 **C ＝ ε₀·εr·n·A/d**（n＝有效層數、A＝電極重疊面積、d＝單層介電厚度） | <https://www.nextpcb.com/blog/what-is-mlcc-ceramic-capacitor-pcb-guide>；<https://passive-components.eu/capacitors-capacitance-dipoles-and-dielectric-absorption/> |
 | A10 | 製程順序：流延 → 網印 → 疊層（交替）→ 加壓 → 切割 → **還原氣氛燒結約 1050–1200 °C** → 端電極 → 電鍍 | <https://encyclopedia.pub/entry/42276>（MLCC 製程總覽）；USPTO 專利族（燒結溫度與還原氣氛） |
 | A11 | 高容量品層數落在**數百層**，上限現已超過 **1000 層** | <https://passive-components.eu/mlcc-and-ceramic-capacitors/>；Murata 同 A2 一文 |
@@ -256,12 +257,28 @@
 → 所以零件改成帶 `data-seg="passive_comp"`。好處是三件事一次成立：
 零件顏色跟環節色標同色、點環節色標時圖上會亮、3D 文字框自動長出那三檔台股晶片。
 
-⚠ 已知的不一致（**不是這張圖能修的，留給 Andy 校訂 YAML**）：
-`groups.yaml` 的 `mlcc` 族群是 `2327 / 2492 / 3026 禾伸堂 / 6173 信昌電`，
-而 `supply_chain.yaml` 的 `passive_comp` 是 `2327 / 2492 / 2375 凱美`。
-兩邊只有兩檔重疊，而且凱美的主體是鋁質電解電容不是 MLCC（YAML 自己的 note 就這樣寫）。
-所以「點環節色標篩出來的三檔」跟「點族群卡片篩出來的四檔」不會一樣 —— 這是資料層的事實，
-不是畫面 bug。2026-09 的公開報導也把 `3026 禾伸堂`、`6173 信昌電` 列為村田 EOL 的受惠者。
+⚠ **這一段在 2026-09-21 晚間已經過期，以下是更新後的事實**（main 的 commit `570a04e`）：
+
+- `supply_chain.yaml` 的 `passive_comp` 現在是 **`2327 / 2492 / 2375 凱美 / 3026 禾伸堂 / 6173 信昌電` 五家** ——
+  禾伸堂與信昌電原本漏掉，已補進去。所以「族群裡真正做 MLCC 的兩家在圖上完全不出現」那條**已經不成立**。
+- 凱美的舊 note「主體是鋁質電解電容、不是 MLCC」也**已經作廢**。更正後的說法是：
+  依 2025H1 的公開整理，**晶片電阻約佔其營收 49%**、是最大且成長最快的一塊，
+  所以它是**用電阻**進到這一格的（這一格的名字就是「被動元件 MLCC / 電阻」）——
+  掛在這裡是合理的，但**它不做 MLCC**。
+  ⚠ 證據等級：WebSearch 摘要，沒有讀過原文或財報，佔比數字只當量級看。
+
+**還成立、而且這張圖必須自己處理的落差有兩條**：
+
+1. 環節有五家，而 3D 文字框的晶片只排得下四個 —— 照 YAML 順序切前四家會
+   **留下凱美、擠掉信昌電**，正好是最不該的那四家。
+   → 作法：`SCENES.mlcc` 的**兩個 MLCC 專屬零件**（陶瓷本體、端電極）改用 `codes`
+   直接列「被動元件 MLCC」族群 `2327 / 2492 / 3026 / 6173`，並在晶片上方加一行
+   `chipnote` 講明這是哪一群；第三個零件（PCB 焊墊）不是 MLCC 專屬結構，照舊走環節名單。
+   `data-seg` 一律保留 `passive_comp`（顏色連動、環節色標、篩選全靠它）。
+2. 2D 那張的最底下兩行要把「點零件篩到的是哪一格、那一格含什麼、誰才真的做 MLCC」寫清楚，
+   否則讀者會把畫面上出現的每一檔都讀成「這家做 MLCC」。
+
+2026-09 的公開報導把 `3026 禾伸堂`、`6173 信昌電` 列為村田 EOL 的受惠者。
 
 ## 7. 給 `tech-illustrator` 的實作邊界（不是規格，是省時間的提醒）
 

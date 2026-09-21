@@ -465,7 +465,16 @@
          3D 的「動態」＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；「靜止」＝完全不自己動。*/
       const animBtn = $('#dgAnim', el);
       const setAnimAll = (on) => {
-        $('#prodDiagram', el).classList.toggle('noanim', !on);
+        const wrap = $('#prodDiagram', el);
+        wrap.classList.toggle('noanim', !on);
+        /* B4（art-director 2026-09-21）：`.dgwrap.noanim *{animation:none!important}` **只管 CSS 動畫**。
+           processBar 那顆白點走的是 SVG 的 SMIL（<animateMotion>），CSS 完全管不到它 ——
+           實測按下「動畫：關」之後白點照樣每 900ms 跑約 200px（x: 283.4 → 486.2 → 685.3）。
+           SMIL 要用 SVG 自己的時間軸 API 停：pauseAnimations() / unpauseAnimations()。
+           三張圖都在發作（流程列是共用函式），所以修在這裡而不是修某一張圖。*/
+        wrap.querySelectorAll('svg').forEach(s => {
+          try { if (on) s.unpauseAnimations(); else s.pauseAnimations(); } catch (e) { /* 舊瀏覽器沒這支就算了 */ }
+        });
         if (animBtn) { animBtn.textContent = on ? '動畫：開' : '動畫：關'; animBtn.classList.toggle('cyan', on); }
         if (view3d && view3d.setAnim) view3d.setAnim(on);
         try { localStorage.setItem('tw.dganim', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
@@ -647,6 +656,19 @@
     host.style.overflowX = w ? 'auto' : '';
     host.style.overflowY = w ? 'hidden' : '';
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
+    /* ★ 2026-09-21（art-director 複驗 C）：手機寬展開之後，看得到的是**左欄**，
+       主角（等角切開的本體）整個在畫面外 —— 讀者第一眼看到的是尺寸表而不是那顆電容。
+       欄寬窄到一定程度（不到原尺寸的 62%）就先把捲軸捲到圖的正中央，
+       主角先進畫面，要看左右兩欄再自己滑。**沒有動幾何、沒有動字級**。
+       ⚠ 這只是止血。規格書 §7 要求的「窄畫面把右側說明欄改成圖下方堆疊」還沒做。*/
+    if (w && svg) {
+      const center = () => {
+        const cw = host.clientWidth;
+        if (cw && cw < w * 0.62) host.scrollLeft = Math.max(0, (w - cw) / 2);
+      };
+      center();
+      requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
+    }
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -1524,7 +1546,15 @@
       highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
       wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
       $$('.segchip', el).forEach(c => c.onclick = () => { location.hash = `#industry/${cid}/${c.dataset.seg}`; });
-      try { if (localStorage.getItem('tw.dganim') === '0') $('#prodDiagram', el).classList.add('noanim'); } catch (e) { /* 忽略 */ }
+      /* 個股頁沒有動畫鈕，但要吃同一個偏好。B4：CSS 的 .noanim 管不到 SMIL（<animateMotion>），
+         所以「動畫：關」之後跑到個股頁，流程列那顆白點會自己活過來。兩件事都要做。*/
+      try {
+        if (localStorage.getItem('tw.dganim') === '0') {
+          const wrap = $('#prodDiagram', el);
+          wrap.classList.add('noanim');
+          wrap.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (e2) { /* 忽略 */ } });
+        }
+      } catch (e) { /* 忽略 */ }
     }
   }
 

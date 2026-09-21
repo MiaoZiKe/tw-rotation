@@ -8464,8 +8464,26 @@ def t_mlcc(pg, base):
           const vb = svg && svg.viewBox ? svg.viewBox.baseVal.width : 0;
           const k = (r && vb) ? r.width / vb : 0;
           const fs = (sel) => { const n = svg && svg.querySelector(sel); return n ? +(parseFloat(getComputedStyle(n).fontSize) * k).toFixed(2) : 0; };
+          /* B1：真的在發光的元素數（computed filter 不是 none）。
+             單一環節的圖點任何零件都會讓 14 個群組一起 .sel，
+             所以「會不會整張圖發青光」只能用這個數字驗，不能用 .sel 數。*/
+          const glow = [...h.querySelectorAll('*')]
+            .filter(n => { const f = getComputedStyle(n).filter; return f && f !== 'none'; }).length;
+          /* B3：流程列的標題與副標 bbox 不准重疊（行距只有 12px 時，12px 中文字會直接相貼）*/
+          const ov = [];
+          h.querySelectorAll('[data-seg]').forEach(g => {
+            const a = g.querySelector('text.lbl'), c = g.querySelector('text.sub');
+            if (!a || !c || !g.querySelector('rect.part')) return;
+            const ra = a.getBoundingClientRect(), rc = c.getBoundingClientRect();
+            const d = Math.min(ra.bottom, rc.bottom) - Math.max(ra.top, rc.top);
+            if (d > 0) ov.push(a.textContent + '／' + c.textContent + ' 重疊 ' + d.toFixed(2) + 'px');
+          });
+          /* B4：流程列那顆光點走的是 SVG SMIL（<animateMotion>），CSS 的 .noanim 管不到它 */
+          const mo = svg && svg.querySelector('animateMotion');
+          const dot = mo && mo.parentNode;
           return {present: true, full: h.innerHTML, parts: h.querySelectorAll('[data-seg]').length,
-                  sel: h.querySelectorAll('[data-seg].sel').length,
+                  sel: h.querySelectorAll('[data-seg].sel').length, glow: glow, ov: ov,
+                  dotX: dot ? +dot.getBoundingClientRect().x.toFixed(1) : null,
                   title: (document.querySelector('#dgTitle') || {}).textContent || '',
                   svgW: r ? Math.round(r.width) : 0, minFs: Math.min(fs('.sub'), fs('.cap')) || 0};
         }""")
@@ -8511,9 +8529,34 @@ def t_mlcc(pg, base):
     clicked = pg.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg]');"
                           " if (!n) return false; n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }")
     pg.wait_for_timeout(600)
-    after = dg(pg)["sel"]
+    d4 = dg(pg)
+    after = d4["sel"]
     ok("點 MLCC 圖上的零件，圖上的選取狀態真的改變（DECISIONS #73：零件只亮不篩）",
        clicked and after != before, f"sel {before} → {after}")
+    ok("B1：點零件之後**沒有整張圖發青光**（computed filter 不是 none 的元素數＝0）",
+       d4["glow"] == 0, f"sel {after} 個、真的在發光 {d4['glow']} 個")
+
+    # ---------------- 4b. B3：流程列的標題與副標不重疊
+    ok("B3：流程列（processBar）的標題與副標 bbox 不重疊",
+       not d4["ov"], d4["ov"][:5] or "0 筆")
+
+    # ---------------- 4c. B4：「動畫：關」要真的停得掉 SMIL 那顆白點
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+    pg.wait_for_timeout(500)
+    pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：關
+    pg.wait_for_timeout(700)
+    off1 = dg(pg)["dotX"]
+    pg.wait_for_timeout(1100)
+    off2 = dg(pg)["dotX"]
+    ok("B4：按「動畫：關」之後，SMIL 那顆白點連續兩次取樣的 x 座標相同（真的停住）",
+       off1 is not None and off1 == off2, f"{off1} → {off2}")
+    pg.eval_on_selector("#dgAnim", "b => b.click()")          # → 動畫：開
+    pg.wait_for_timeout(700)
+    on1 = dg(pg)["dotX"]
+    pg.wait_for_timeout(1000)
+    on2 = dg(pg)["dotX"]
+    ok("B4：切回「動畫：開」之後白點真的又動起來（不是永遠停著）",
+       on1 is not None and on1 != on2, f"{on1} → {on2}")
 
     # ---------------- 5. 點環節色標 → 成分股筆數真的變少（這條才是「篩」）
     base_rows = rows(pg)
@@ -8536,7 +8579,18 @@ def t_mlcc(pg, base):
         })""")
         ok("MLCC 切 3D 真的掛起 WebGL 場景（不是退回平面圖）",
            got["mounted"] and got["canvas"] and got["svgHidden"], got)
-        ok("MLCC 的 3D 文字框底下掛了該環節的台股晶片", got["chips"] > 0, got["chips"])
+        ok("MLCC 的 3D 文字框底下掛了台股晶片", got["chips"] > 0, got["chips"])
+        # A5：晶片改列「被動元件 MLCC」族群（2327／2492／3026／6173），不是含鋁電容的 passive_comp 環節名單
+        grp = pg.evaluate("""() => {
+          const b = [...document.querySelectorAll('#prod3d .lbl3d')].find(n => n.dataset.seg === 'passive_comp');
+          if (!b) return null;
+          return {note: (b.querySelector('u.chips3d s.chipnote') || {}).textContent || '',
+                  chips: [...b.querySelectorAll('.chip3d')].map(c => c.title || c.textContent)};
+        }""")
+        ok("A5-c：MLCC 3D 的晶片列的是「被動元件 MLCC」族群（看得到 3026 禾伸堂與 6173 信昌電）",
+           bool(grp) and any("3026" in t for t in grp["chips"]) and any("6173" in t for t in grp["chips"]), grp)
+        ok("A5-b：晶片上方有一行小字講清楚這排台股是哪一群（不會被讀成「這幾家做這個零件」）",
+           bool(grp) and "族群" in (grp["note"] or ""), grp and grp["note"])
         if got["mounted"]:
             st = pg.evaluate("() => window.Rack3D.current.stats()")
             ok("MLCC 3D 的 mesh 數沒有失控（效能棘輪，同圖九的上限）", st["meshes"] <= 900, st["meshes"])

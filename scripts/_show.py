@@ -57,6 +57,12 @@ def main() -> int:
     ap.add_argument("--zoom", type=float, default=1, help="裝置縮放；要看細節就開 2~3")
     ap.add_argument("--full", action="store_true", help="整頁截圖（版面問題用這個）")
     ap.add_argument("--tag", default="", help="檔名前綴，方便一次比較好幾版")
+    ap.add_argument("--ls", default="",
+                    help="進頁面前先寫好的 localStorage，逗號分隔的 key=value，"
+                         "例如 tw.side=0,tw.theme=light。"
+                         "★ 2026-09-21 加的：以前截圖沒辦法指定狀態，"
+                         "所以 MLCC 那批的 800／390 截圖是在「今日事件抽屜開著、蓋住右半邊」的狀態下拍的，"
+                         "等於那兩個寬度根本沒驗到。")
     args = ap.parse_args()
 
     from playwright.sync_api import sync_playwright
@@ -77,6 +83,10 @@ def main() -> int:
             for w in [int(x) for x in args.width.split(",") if x.strip()]:
                 pg = b.new_page(viewport={"width": w, "height": args.height},
                                 device_scale_factor=args.zoom)
+                for kv in [s.strip() for s in args.ls.split(",") if s.strip()]:
+                    k, _, v = kv.partition("=")
+                    pg.add_init_script(
+                        f"try{{localStorage.setItem({k.strip()!r},{v.strip()!r});}}catch(e){{}}")
                 pg.on("pageerror", lambda e: errs.append(str(e)))
                 pg.goto(f"{base}#{args.view.lstrip('#')}", wait_until="networkidle")
                 pg.wait_for_timeout(args.wait)
