@@ -2362,18 +2362,32 @@
   //             「右側本益比需要多可篩選功能 全部在一起」「也需要附上說明怎麼觀看」
   // 所以整頁由上方一個期間切換列統一控制「什麼時候」，每張圖都有一顆「怎麼看」。
   const HOW = {
-    rank: `<b>這張圖回答：這段時間錢往哪裡跑。</b>
-      <ul><li>長條長度＝這個族群的<em>成交值佔比變化</em>（和上一段同樣長度的期間比），單位是百分點 pp。</li>
-      <li><em>紅色向右</em>＝資金流進來，<em>綠色向左</em>＝資金退出去。只看金額會被大盤量能帶著走，所以看佔比。</li>
-      <li>名字後面的 <em>3 ↑</em> 是成交值排名進步了 3 名；括號是這段期間的族群報酬。</li>
-      <li>用法：先看誰在最上面（主流在換人），再去「名次變化」確認是一天的事還是連續好幾週。</li></ul>`,
+    /* ★ 2026-09-21：HOW.rank 整段刪掉，內容併進 HOW.rot（兩張圖合併成一張卡，
+       只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
     bump: `<b>這張圖回答：主流是穩穩的還是一直換人。</b>
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
       <li>線一路往上＝資金連續好幾週往它集中，通常比單週衝上來的更值得跟。</li>
       <li>線上下亂跳＝那一段時間在輪動，沒有明確主流，追高容易兩面挨巴掌。</li>
       <li>滑鼠移上去看每一週的實際佔比；點線上的點可以進該族群。</li></ul>`,
-    rot: `<b>這張圖回答：每個族群現在跑到「強弱循環」的哪一段，以及該怎麼辦。</b>
-      <ul><li><b>先看那個圓盤（資金輪動時鐘）</b>：圓盤切成四塊，就是循環的四段。
+    /* ★ 2026-09-21 合併之後，這一段同時是「輪動時鐘」與「資金流向排行」的說明
+       （原本 HOW.rank 那一段併進來了）—— 同一張卡不該有兩顆問號鈕。
+       開頭先把兩張圖各自回答什麼講清楚，再講怎麼一起用：
+       Andy 的標準是「每張圖都要能回答一個具體問題，而且說明要寫到『所以我該怎麼用』」。*/
+    rot: `<b>這張卡回答兩件事：<em>錢這幾天往哪個族群跑</em>（右邊的排行），
+        以及<em>那個族群跑到強弱循環的哪一段</em>（左邊的時鐘）。</b>
+      <ul><li><b>兩張圖吃同一份設定</b>：上面那排產業鏈／族群晶片／「只看前 10 大」是**共用**的，
+        點一次兩張圖一起篩；「看哪一天」也是共用的 ——
+        <em>它同時決定時鐘大圈落在哪一天、以及排行那一段的結尾是哪一天</em>，
+        所以兩張圖永遠在講同一天的事。「最近 N 天」只管排行要從那一天往回看多久。</li>
+      <li><b>怎麼一起用</b>：先看右邊排行最上面那幾個（錢正在進去），
+        再到左邊時鐘找同一個名字 —— <em>錢在進、而且位置在「改善」或「領先」</em>的才值得追；
+        錢在進但還卡在「落後」的，多半是單日題材。</li>
+      <li><b>（排行）</b>長條長度＝這個族群的<em>成交值佔比變化</em>（和上一段同樣長度的期間比），
+        單位是百分點 pp。<em>紅色向右</em>＝資金流進來，<em>綠色向左</em>＝資金退出去。
+        只看金額會被大盤量能帶著走，所以看佔比。名字後面的 <em>3 ↑</em> 是成交值排名進步了 3 名；
+        長條右邊那個百分比是這段期間的族群報酬。<b>點長條</b>會在下面列出它的成分股，
+        同時左邊的時鐘只亮這一個族群。</li>
+      <li><b>先看那個圓盤（資金輪動時鐘）</b>：圓盤切成四塊，就是循環的四段。
         一顆點是一個族群，<em>點落在哪一塊＝現在在哪一段</em>；點越大＝成交值佔比越高。</li>
       <li>資金照<em>順時針</em>一塊一塊跑：落後（左下）→ 改善（左上）→ 領先（右上）→ 轉弱（右下）→ 回落後。
         點後面那條尾巴是牠這幾天走過的路，尾巴往前拉＝正在往下一段前進，往回縮＝走回頭路。</li>
@@ -2490,7 +2504,18 @@
     });
   }
 
-  let flowState = { period: 'w0', back: 5, concTop: 5 };
+  /* ★ 2026-09-21（合併成一張卡之後才浮出來的舊毛病）：`back` 一直被當成兩件事用 --
+     `renderRotation(rrg, back, ...)` 裡它是**窗長**（「最近 N 個交易日換階段的族群」），
+     而同一個值又被餵給 `frame`（**大圈停在哪一天**）。兩件事方向一樣、意思不一樣。
+     以前看不出來，是因為排行永遠顯示最新一天、各看各的；
+     現在排行跟著「看哪一天」走，預設 5 就會讓**整張卡一打開就停在 5 個交易日前**
+     （截圖實測：最新交易日 2026-09-18，卡片卻寫「回放 2026-09-11」）。
+     所以拆開：
+       - `flowState.back` 只剩「看哪一天」（＝ rotFrame），預設 ROT_MIN_BACK＝最新一天
+       - 輪動階段看板的比較窗長獨立成 ROT_BOARD_WIN，固定 5 天，不隨時間軸變
+     看板上寫的字本來就是「最近 5 個交易日換階段的族群」，固定成 5 反而跟文案對得上。*/
+  const ROT_BOARD_WIN = 5;         // 輪動階段看板：和幾個交易日前比（窗長，與「看哪一天」無關）
+  let flowState = { period: 'w0', back: 1, concTop: 5 };
   async function renderFlow() {
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
     const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental'), load('groups_detail')]);
@@ -2506,21 +2531,39 @@
     let instDays = null, rankDays = null;
     const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
-      drawRankDays(rankDays ? Math.max(1, +rankDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
+      drawRankDays(rankVal());
       drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
     };
     /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
        0 保留成「跟著上方期間走」，跟 I1 同一套語彙。
        比較基準是「再往前同樣長度的一段」，所以後端 share_daily 給 60 天（拉滿 30 天時剛好夠）。*/
+    /* ★ 2026-09-21（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）。
+       「共用週期」的實質不只是把兩排篩選併成一排，而是**排行也要吃「看哪一天」**：
+       以前時鐘刷到「20 天前」、排行卻永遠結尾在最新一天，兩張圖並排看起來像同一段時間，
+       其實差了 20 天 —— 那是最糟的一種誤導（看得懂但看錯）。
+       資料撐得住：`share_daily` 有 60 天的逐日欄位，`rrg.points[].trail` 有 31 天，
+       兩邊最後一天是同一天，所以**用日期字串對**（不要用索引減法，兩份資料長度不一樣）。 */
+    const rotFrameDate = () => {
+      const t = (((f3 && f3.rrg && f3.rrg.points) || [])[0] || {}).trail || [];
+      if (!t.length) return null;
+      // 和 renderRotClock 的 atFrame() 同一條公式：frame 允許小數，取 floor 才對得上大圈那一天
+      const i = Math.max(0, Math.min(t.length - 1, t.length - 1 - Math.floor(rotFrame || 0)));
+      return (t[i] || [])[0] || null;
+    };
     const drawRankDays = (n) => {
       const src = f3 && f3.share_daily;
       if (!src || !src.dates || !src.dates.length) {
         return empty('rankFlow', '逐日佔比資料還沒產出（下一輪盤後管線就會有）');
       }
       const D2 = src.dates, N = D2.length;   // 不要叫 L —— 外層的 L 是連結工具（L.group/L.stock）
-      const k = Math.min(n, N);
-      const curFrom = N - k, prevFrom = Math.max(0, N - 2 * k), prevTo = curFrom;
+      /* 截止日＝時鐘大圈落在的那一天。對不到（例如那一天不在逐日佔比裡）就退回最新一天，
+         並且在副標寫清楚 —— 兩張圖的日期看起來一樣其實不一樣，比少一個功能糟得多。*/
+      const fd = rotFrameDate();
+      const fi = fd ? D2.indexOf(fd) : -1;
+      const end = fi >= 0 ? fi + 1 : N;      // 1-based 的「不含」結尾
+      const k = Math.min(n, end);
+      const curFrom = end - k, prevFrom = Math.max(0, end - 2 * k), prevTo = curFrom;
       const avg = (arr, a, b) => { let s = 0, c = 0;
         for (let i = a; i < b; i++) { const v = (arr || [])[i]; if (v != null) { s += v; c++; } }
         return c ? s / c : null; };
@@ -2532,10 +2575,10 @@
         return c ? (f - 1) * 100 : null; };
       let gs = src.groups.map(g => ({
         group_id: g.group_id, group_name: g.group_name, chain: g.chain,
-        share: avg(g.share, curFrom, N),
+        share: avg(g.share, curFrom, end),
         share_prev: prevTo > prevFrom ? avg(g.share, prevFrom, prevTo) : null,
-        turnover: sum(g.turnover, curFrom, N),
-        ret: compound(g.chg, curFrom, N),
+        turnover: sum(g.turnover, curFrom, end),
+        ret: compound(g.chg, curFrom, end),
       })).filter(g => g.share != null);
       gs.forEach(g => { g.share_chg = g.share_prev == null ? null : g.share - g.share_prev; });
       // 名次：這一段與上一段各自按佔比排一次，才算得出 rank_chg
@@ -2544,12 +2587,16 @@
       const rc = rankOf('share'), rp = rankOf('share_prev');
       gs.forEach(g => { g.rank = rc[g.group_id] || null; g.rank_prev = rp[g.group_id] || null;
         g.rank_chg = (g.rank && g.rank_prev) ? g.rank_prev - g.rank : 0; });
-      const from = D2[curFrom], to = D2[N - 1];
+      const from = D2[curFrom], to = D2[end - 1];
       /* ★ 2026-09-20：期間卡拿掉之後 #periodNote 不存在了，
          所以日期範圍與比較基準改寫進排行自己的副標 —— 使用者仍然看得到
-         「現在這張圖是哪一段、跟誰比」，資訊沒有因為拿掉那張卡而消失。 */
+         「現在這張圖是哪一段、跟誰比」，資訊沒有因為拿掉那張卡而消失。
+         ★ 2026-09-21：再加一句「截止日是誰決定的」。合併之後兩張圖並排、共用一支
+           「看哪一天」，副標必須讓人一眼看出排行看的就是同一天結尾的那一段；
+           對不到截止日時要**明講**是最新一天，不可以讓它看起來跟著時鐘走。 */
       $('#rankSub').textContent = `${from} ～ ${to}（${k} 個交易日）`
-        + (prevTo > prevFrom ? `　·　和前 ${prevTo - prevFrom} 個交易日相比` : '　·　沒有可比的上一段');
+        + (prevTo > prevFrom ? `　·　和前 ${prevTo - prevFrom} 個交易日相比` : '　·　沒有可比的上一段')
+        + (fi >= 0 ? '　·　截止日跟著「看哪一天」' : '　·　截止到最新一天（時鐘那一天沒有逐日佔比）');
       renderRankFlow({ label: `最近 ${k} 天`, from, to, days: k,
         prev_from: prevTo > prevFrom ? D2[prevFrom] : null, groups: gs });
     };
@@ -2587,13 +2634,13 @@
 
     // ---- 輪動階段：和幾天前比，用來判斷誰剛換階段
     // N2：兩張圖共用的完整族群名單（依成交值佔比排序），在畫圖之前就算好
-    rotAllGroups = rotRows(f3 && f3.rrg, flowState.back)
+    rotAllGroups = rotRows(f3 && f3.rrg, ROT_BOARD_WIN)
       .map(r => ({ gid: r.gid, name: r.name }));
     /* C4（Andy 2026-09-20：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
        也可以篩選想要的股票」）—— 圖一指的是漲跌分佈那張卡的篩選列。
        這裡把同一套語彙搬過來，`rotFilter` 是排行與時鐘**共用**的那一份選擇。*/
     const drawRot = (frame, only) => {
-      renderRotation(f3 && f3.rrg, flowState.back,
+      renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
         { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock',
           pick: rotPickSet(), frame: frame || 0, only,
           /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
@@ -2615,13 +2662,19 @@
          於是每一幀都沒跑完就被下一幀接手 —— 尾巴與大圈的脫節會一路累積。
          實測：播到第 5 天時「光電業」的尾巴尖端已經落後大圈 41px（大圈半徑只有 6.5px）。
          看板本來就不需要時鐘陪著重畫，分開之後脫節回到 3px 以內。*/
-    const drawBoard = () => renderRotation(f3 && f3.rrg, flowState.back,
+    const drawBoard = () => renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
       { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove' });
+    /* ★ 2026-09-21：刷「看哪一天」時，排行也要跟著換截止日。
+       但**不要每一幀都重畫** —— 播放是每 420ms 推進一天，排行是整張 notMerge 重畫
+       （量測：1500px 下 60~90ms），跟著跑會把時鐘的補間動畫拖到掉幀，
+       那就又回到 Andy 說的「段點段點式移動」。所以和輪動階段看板共用同一個 160ms 去抖動：
+       手放開（或播放停下來）之後 160ms，排行一次補到對的那一段。*/
+    const rankVal = () => (rankDays ? Math.max(1, +rankDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
     const rotSeek = (v) => {
       flowState.back = v; rotFrame = v;
       drawRot(v, 'clock');
       clearTimeout(rotBoardT);
-      rotBoardT = setTimeout(drawBoard, 160);
+      rotBoardT = setTimeout(() => { drawBoard(); drawRankDays(rankVal()); }, 160);
     };
     /* 篩選（產業鏈／前 10 大／個股／族群晶片）變了就重畫。
        放大視窗開著時它也要跟著重畫 —— 兩邊吃的是同一份 ROT 狀態，
@@ -2646,7 +2699,7 @@
     /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
        重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
     const zb = $('#rotZoomBtn');
-    if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, flowState.back);
+    if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, ROT_BOARD_WIN);
     /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar」）→ N4（2026-09-19）拉到 30 天
        → **A4（2026-09-20）第 1、3、5、7 條，四件事都在這一支拉Bar 上**：
 
@@ -2660,7 +2713,8 @@
          軌跡長度改由 ROT_SPAN 固定成 30 天，所以整條路一直在，大圈沿著它走。
          平滑移動靠 renderRotClock 的 merge ＋ animationDurationUpdate，不是這裡。
 
-       ★ 值同時餵給輪動階段看板的「和 N 天前比」（flowState.back）——
+       ★ 2026-09-21 起這支**只管「看哪一天」**；輪動階段看板的比較窗長
+         已拆成獨立的 ROT_BOARD_WIN（固定 5 天）。舊註解留著當紀錄：
          兩件事的方向一致（都是「把時間往回拉 N 天」），所以共用同一個值不會打架：
          時鐘回答「N 天前大家在哪」，看板回答「這 N 天誰換了階段」。*/
     /* ★ 2026-09-20：frame 820 → ROT_ANIM_MS（420），和時鐘的補間時間**相等**。
@@ -2669,7 +2723,7 @@
     /* ★ group: 'rot.back' —— 卡片這支和放大視窗那支 `#rotZoomBack` 控制的是**同一個值**，
        所以歸成同一組：一次只准一支在播，按 ⏸ 兩支一起停（2026-09-21 的「暫停停不下來」）。*/
     rotBackBar = playBar('rotBack', { min: ROT_MIN_BACK, max: 30, value: flowState.back,
-      key: 'tw.rot.back', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
+      key: 'tw.rot.back2', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
       label: '看哪一天', fmt: (v) => v + ' 天前',
       onChange: (v) => rotSeek(v) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
@@ -2766,7 +2820,12 @@
       const sub = gs.filter(g => pk.has(g.group_id));
       if (sub.length) gs = sub;
     }
-    if (!gs.length) return empty('rankFlow', p.prev_from ? '這個期間沒有可比的族群' : '沒有上一段期間可以比，換一個期間看看');
+    /* ★ 2026-09-21：截止日跟著「看哪一天」之後，多了一種空狀態 ——
+       截止日往回拉太多、又要看很多天時，它前面就沒有「同樣長度的上一段」可以比了
+       （逐日佔比只存 60 天）。文案要指名是哪兩顆旋鈕造成的，不然使用者只會以為圖壞了。*/
+    if (!gs.length) return empty('rankFlow', p.prev_from ? '這個期間沒有可比的族群'
+      : '這一段前面沒有同樣長度的上一段可以比（逐日佔比只存 60 天）——'
+        + '把「看哪一天」往今天拉，或把「最近 N 天」調小一點');
     const up = gs.slice().sort((a, b) => b.share_chg - a.share_chg).slice(0, 9);
     const down = gs.slice().sort((a, b) => a.share_chg - b.share_chg).slice(0, 6).reverse();
     const rows = up.concat(down.filter(d => !up.some(u => u.group_id === d.group_id)));
@@ -2793,6 +2852,19 @@
        不然窄欄位會被名字整個吃掉、長條沒有地方畫。*/
     const GL = Math.max(narrow ? 96 : mid ? 108 : 124,
       Math.min(Math.round(rfw * 0.5), Math.ceil(textW(rows.map(label), FS)) + 12));
+    /* ★ 2026-09-21：留白有上限（欄寬的一半，否則長條沒地方畫），所以**名字仍然可能放不下**。
+       實測：1280px 合併版面下右欄只剩 ~330px，「NOR Flash 利基記憶體 1↓」凸出容器 4px。
+       上面那段註解說「留白不該是常數」是對的，但它沒處理「量出來也還是不夠」這種情形。
+       所以這裡再補一層：量到放不下就**截斷加省略號**，完整名稱 tooltip 裡還在。
+       截斷而不是縮字級 —— 字級已經有 11px 的下限（手機可讀性），不能再往下壓。*/
+    const LBUD = GL - 12;
+    const fit = (t) => {
+      if (textW([t], FS) <= LBUD) return t;
+      let lo = 1, hi = t.length;
+      while (lo < hi) { const m = (lo + hi + 1) >> 1;
+        if (textW([t.slice(0, m) + '…'], FS) <= LBUD) lo = m; else hi = m - 1; }
+      return t.slice(0, lo) + '…';
+    };
     const c = chart('rankFlow', {
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => { const g = rows[q.dataIndex];
@@ -2805,7 +2877,7 @@
       // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
       grid: { left: GL, right: GR, top: 12, bottom: 38 },
       xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, hideOverlap: true } },
-      yAxis: { ...axisStyle, type: 'category', data: rows.map(label), axisLabel: { color: CH.ink2, fontSize: FS } },
+      yAxis: { ...axisStyle, type: 'category', data: rows.map(g => fit(label(g))), axisLabel: { color: CH.ink2, fontSize: FS } },
       series: [{
         type: 'bar', barWidth: 15,
         data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
@@ -2829,14 +2901,17 @@
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/
-      if (rankSel === gid) { rankSel = null; drillClose(); }
-      else {
-        rankSel = gid;
-        drillOpen(gid, g.group_name,
-          `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`,
-          'rankPanel');
-      }
-      highlightClock(rankSel);
+      if (rankSel === gid) { rankSel = null; drillClose(); highlightClock(null); return; }
+      rankSel = gid;
+      /* ★ 2026-09-21：時鐘只畫前 16 個族群（成交值佔比），而這張排行是依**佔比變化**排的 ——
+         變化最大的那一個未必在時鐘上。以前碰到這種情形會把 16 個全部壓暗（整張圖灰掉），
+         現在 highlightClock 會回 false、不動時鐘，改成在面板的說明裡**明講一句**，
+         不要讓使用者以為自己點壞了。*/
+      const onClock = highlightClock(gid);
+      drillOpen(gid, g.group_name,
+        `佔比 ${fmt.n(g.share, 2)}%　·　變化 ${g.share_chg > 0 ? '+' : ''}${fmt.n(g.share_chg, 2)} pp　·　期間報酬 ${fmt.pct(g.ret, 1)}`
+        + (onClock ? '' : '　·　這個族群不在左邊時鐘的前 16 名內，所以時鐘沒有變化'),
+        'rankPanel');
     });
     lastRankRows = rows;
     /* 欄寬變了一定要**重畫**，不能只 resize：grid 的 left/right 是像素值，
@@ -2901,7 +2976,7 @@
          值變了只重畫這張放大的圖 —— 播放是每 420ms 一幀，
          連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
          關閉時 `rotSyncCard()` 會把卡片一次補上。*/
-      bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back',
+      bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back2',
         dir: -1, frame: ROT_ANIM_MS, group: 'rot.back', label: '看哪一天', fmt: (v) => v + ' 天前',
         onChange: (v) => { rotFrame = v; draw(); } });
       wireRotTrailToggle(draw, 'rotZoomTools');
@@ -3079,14 +3154,18 @@
     const nG = ROT.groups ? ROT.groups.size : 0;
     const picked = rotPickSet().size;
     const list = rotAllGroups || [];
-    /* ★ 兩張卡各有一排（排行一排、時鐘一排），但**吃同一份狀態**，
-       所以裡面的控制項一律用 class 不用 id —— 同一個 id 出現兩次的話
+    /* ★ 2026-09-21 合併之後，卡片上只剩**一排**（`data-rf="flow"`）；
+       放大視窗打開時會多一排（`data-rf="zoom"`），所以這裡仍然是「對每個 box 各產一份」。
+       裡面的控制項一律用 class 不用 id —— 同一個 id 出現兩次的話
        `document.getElementById` 只會抓到第一個，另一排就變成按了沒反應。*/
     boxes.forEach(box => {
       const zoom = box.dataset.rf === 'zoom';
       /* 晶片列有 50 幾顆、框高只有 96px，所以是捲得動的。
          這一排每點一次晶片就整個 innerHTML 重建一次，不記捲動位置的話
          使用者每選一個族群就被彈回最上面 —— 選第 30 個族群等於要重捲 30 次。*/
+      /* `data-sync="n2"` 留著當 CSS 與驗收的抓手。這個名字是 N2 那次「兩排族群對不上」
+         留下來的，2026-09-21 合併之後卡片上只剩一排，已經沒有「兩排要同步」這件事；
+         改名會連動樣式與一整批驗收選擇器，代價大於收益，所以只在這裡把語意講清楚。*/
       const oldRow = box.querySelector('.linkrow.gchips');
       const keepTop = oldRow ? oldRow.scrollTop : 0;
       box.innerHTML = `<div class="seg tiny rotchain">
@@ -3479,11 +3558,22 @@
   /* 只亮某一個族群：其餘的點與尾巴壓到 0.18 透明度。
      用 setOption 就地改（notMerge 預設 false），不重建圖表 ——
      重建的話尾巴會整個重畫一次，看起來像閃了一下。*/
+  /* ★ 2026-09-21：`gid` 不在時鐘上時**什麼都不要做**。
+     這是合併成一張卡之後才浮出來的既有 bug：時鐘為了看得清楚只畫前 16 個族群，
+     而排行是依「佔比變化」排的 —— 變化最大的那一個未必在成交值前 16 名裡。
+     以前的寫法是「不等於 gid 的一律壓到 0.18」，所以點到一個時鐘上沒有的族群時，
+     16 個全部被壓暗、整張圖灰掉（實測 lo=hi=0.18），看起來像壞掉。
+     現在先確認它真的畫在上面，不在就原樣不動，並回傳 false 讓呼叫端去說明。*/
   function highlightClock(gid) {
     const el = document.getElementById('rotClock');
     const c = el && window.echarts && echarts.getInstanceByDom(el);
-    if (!c) return;
-    const o = c.getOption(); if (!o || !o.series) return;
+    if (!c) return false;
+    const o = c.getOption(); if (!o || !o.series) return false;
+    if (gid) {
+      const on = (o.series || []).some(sr => sr.gid === gid
+        || (sr.type === 'scatter' && (sr.data || []).some(d => d && d.row && d.row.gid === gid)));
+      if (!on) return false;                     // 不在時鐘上：不要把整張圖壓暗
+    }
     const series = o.series.map(sr => {
       const own = sr.gid;                         // renderRotClock 幫每條尾巴都標了 gid
       if (sr.type === 'line') {
@@ -3500,6 +3590,7 @@
       return {};
     });
     c.setOption({ series }, { notMerge: false, lazyUpdate: true });
+    return true;
   }
 
   /* 名次變化（bump）已於 2026-09-18 整張移除（Andy 圖四：「右邊的名次變化刪掉」），

@@ -95,7 +95,7 @@ def reset_rot(pg, base, wait: int = 2400):
     """
     pg.goto(f"{base}#flow", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.rot.filter');"
-                " localStorage.removeItem('tw.rot.back'); } catch (e) { /* 私密視窗 */ } }")
+                " localStorage.removeItem('tw.rot.back2'); } catch (e) { /* 私密視窗 */ } }")
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(wait)
 
@@ -1052,8 +1052,14 @@ def t_flow(pg, base):
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
     hows = pg.evaluate("[...document.querySelectorAll('#v-flow .howbtn')].map(b => b.dataset.how)")
     # 2026-09-20：族群佔比河流整張移除（Andy 指示），所以門檻 7 → 6。
-    # 這條只准往下調一次、而且要說得出哪一張沒了 —— 不是為了讓測試變綠隨手改數字。
-    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 6, hows)
+    # 2026-09-21：輪動時鐘與資金流向排行合併成一張卡（Andy：「這兩張圖合併」），
+    #   只留一顆「怎麼看 ?」（rank 那段說明併進 how-rot），所以 6 → 5。
+    # 這條每次往下調都要說得出哪一張沒了 —— 不是為了讓測試變綠隨手改數字。
+    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 5, hows)
+    ok("合併之後同一張卡只剩一顆問號鈕（rank 那顆已經併進 rot）",
+       "rank" not in hows and "rot" in hows, hows)
+    ok("排行的說明沒有消失，是併進了 how-rot（裡面還看得到「佔比變化」與 pp）",
+       all(k in how_text(pg, "rot") for k in ("佔比變化", "pp")), how_text(pg, "rot")[:160])
     for h in hows:
         click(pg, f'#v-flow .howbtn[data-how="{h}"]', 250)
         st = pg.evaluate(f"""() => {{ const b = document.getElementById('how-{h}');
@@ -1086,14 +1092,34 @@ def t_flow(pg, base):
         seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input').value,
             lab: (document.querySelector('#rotBack .val')||{}).textContent,
             move: (document.getElementById('rotMove')||{}).innerText,
+            clockday: ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)
+                      ? ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)[0]
+                      : ((window.App&&window.App._rotFrame&&window.App._rotFrame.date)||''),
             items: document.querySelectorAll('#rotBoard li[data-gid]').length })""")
         ok(f"拉到 {v} 天，值真的變了", seenb[v]["v"] == v, seenb[v])
         ok(f"拉到 {v} 天，旁邊的字跟著寫 {v}", str(v) in (seenb[v]["lab"] or ""), seenb[v]["lab"])
-        ok(f"拉到 {v} 天有寫出換階段的族群或明講沒有", str(v) in (seenb[v]["move"] or ""), seenb[v]["move"][:40])
-    ok("換天數，換階段的名單真的不一樣", len({v["move"] for v in seenb.values()}) >= 2,
+        # ★ 2026-09-21 改寫：這兩條以前驗的是「拉時間軸會改變看板的比較窗長」。
+        #   那是一個**已經被判定為錯的耦合** —— `renderRotation(rrg, back, …)` 的 back 是
+        #   「最近 N 個交易日換階段」的**窗長**，而同一個值又被餵給 frame（大圈停在哪一天），
+        #   兩件事意思不一樣。合併成一張卡之後，排行也跟著這支走，
+        #   預設 5 就讓整張卡一打開停在 5 個交易日前（最新明明是 2026-09-18）。
+        #   現在拆開了：這支只管「看哪一天」，看板的窗長固定 ROT_BOARD_WIN=5。
+        #   所以改成驗**新的正確行為**，不是把驗收拔掉。
+        ok(f"拉到 {v} 天，看板的比較窗長固定寫 5（不隨時間軸變）",
+           "最近 5 個交易日換階段" in (seenb[v]["move"] or "") or not (seenb[v]["move"] or "").strip(),
+           seenb[v]["move"][:40])
+        ok(f"拉到 {v} 天，時鐘的回放日期真的跟著換",
+           str(v) in (seenb[v]["lab"] or "") and bool(seenb[v]["clockday"]), seenb[v])
+    # 看板窗長固定，所以三次的名單**應該一樣**（這正是拆開之後要保證的事）
+    ok("看板的換階段名單不隨時間軸變（窗長已固定 5 天）",
+       len({v["move"] for v in seenb.values()}) == 1,
        {k: v["move"][:30] for k, v in seenb.items()})
+    # 但時鐘的回放日期**一定要**跟著變，否則就是拉Bar 根本沒接上
+    ok("時鐘的回放日期真的隨時間軸變（三次至少兩個不同）",
+       len({v["clockday"] for v in seenb.values()}) >= 2,
+       {k: v["clockday"] for k, v in seenb.items()})
     ok("拉 Bar 的值有記住（換頁回來還是同一個天數）",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back'); } catch(e){ return null; } }") is not None)
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back2'); } catch(e){ return null; } }") is not None)
 
     # --- 資金輪動時鐘：Andy 要「輪動族群要搭配圖表，看圖就懂」
     clk = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -3803,27 +3829,40 @@ def t_new_layout(pg, base):
 
     # ------------------------------------------------ ④ F3：輪動時鐘:資金流向排行＝2:1，排行在右
     # Andy 2026-09-20：「圖二的版面配比需要 2:1（輪動時鐘:資金流向排行），資金流向排行 改成在右邊」。
-    # 量的是**實際欄寬**與**兩張卡的左右順序**，不是看 class 有沒有換。
+    # 量的是**實際欄寬**與**左右順序**，不是看 class 有沒有換。
+    # ★ 2026-09-21（Andy：「這兩張圖合併…彙整並一頁」）：兩張卡合併成**一張**，
+    #   `.g21` 裡面現在是兩塊 `.rotpane`（各有一行 h4 小標），共用的篩選列與時間列
+    #   移到 grid 外面、卡片標題底下。所以：
+    #     · 小標改讀 h4（h3 現在是整張卡的「資金輪動」）；
+    #     · 「有沒有凸出卡片」改成量**那一張合併卡**（以前是量 grid 裡的兩張卡，
+    #       合併之後 grid 裡一張卡都沒有，照舊寫法會量到空集合＝永遠綠燈，等於沒驗）。
     F3 = """() => {
       const g = document.querySelector('#v-flow .grid.g21');
       if (!g) return null;
       const ks = [...g.children].map(e => {
         const r = e.getBoundingClientRect();
-        return { h3: ((e.querySelector('h3') || {}).textContent || '').trim().slice(0, 4),
+        return { h3: ((e.querySelector('h4, h3') || {}).textContent || '').trim().slice(0, 4),
                  x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width) };
       });
       const gr = g.getBoundingClientRect();
-      // 兩張卡裡面的東西有沒有凸出自己的卡片（圖、篩選列、晶片列、拉Bar 全部算）
+      // 合併卡裡面的東西有沒有凸出卡片（圖、篩選列、晶片列、時間列、拉Bar 全部算）
       const over = [];
-      g.querySelectorAll('.card').forEach(card => {
+      const card = g.closest('.card');
+      if (card) {
         const cr = card.getBoundingClientRect();
-        card.querySelectorAll('.chart, .rotfilter, .rottools, .rbar, .linkrow, .hpanel, .note').forEach(e => {
-          const r = e.getBoundingClientRect();
-          if (r.width < 2) return;
-          const d = Math.max(r.right - cr.right, cr.left - r.left);
-          if (d > 2) over.push([((e.className || '') + '').slice(0, 24), Math.round(d)]);
-        });
-      });
+        card.querySelectorAll('.chart, .rotfilter, .rottools, .rottime, .rbar, .linkrow, .hpanel, .note, h4.subh')
+          .forEach(e => {
+            const r = e.getBoundingClientRect();
+            if (r.width < 2) return;
+            const d = Math.max(r.right - cr.right, cr.left - r.left);
+            if (d > 2) over.push([((e.className || '') + '').slice(0, 24), Math.round(d)]);
+          });
+      }
+      // 合併的重點：整張卡只准有**一份**篩選列與**一顆**問號鈕
+      const merged = card ? { rf: card.querySelectorAll('.rotfilter').length,
+                              chips: card.querySelectorAll('.linkrow.gchips').length,
+                              how: card.querySelectorAll('.howbtn').length,
+                              inner: g.querySelectorAll('.card').length } : null;
       /* 排行圖的族群名稱有沒有被截掉／疊在一起：**量真的畫出去的那些字**。
          ★ 一定要帶 ?svg=1 —— 線上版是 canvas，圖裡的字在 DOM 上根本不存在，
            不帶的話這一段永遠量到 0 個字、永遠綠燈（HANDOFF 2026-09-20 記過這件事）。*/
@@ -3851,7 +3890,7 @@ def t_new_layout(pg, base):
                  minFs: bs.length ? Math.min(...bs.map(b => b.fs)) : 0,
                  left: ((c.getOption().grid || [])[0] || {}).left };
       })();
-      return { cols: getComputedStyle(g).gridTemplateColumns, ks, gw: Math.round(gr.width), over, rf,
+      return { cols: getComputedStyle(g).gridTemplateColumns, ks, gw: Math.round(gr.width), over, rf, merged,
                sideways: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1 };
     }"""
     for w in (1440, 1280, 1024, 900, 800, 560, 390):
@@ -3872,7 +3911,14 @@ def t_new_layout(pg, base):
         else:
             ok(f"[{w}px] 窄畫面退回單欄，時鐘在上、排行在下（F3）",
                f["cols"].count(" ") == 0 and rank["y"] > clock["y"], {"cols": f["cols"], "ks": f["ks"]})
-        ok(f"[{w}px] 兩張卡裡沒有東西凸出卡片（F3）", not f["over"], f["over"][:4])
+        ok(f"[{w}px] 卡片裡沒有東西凸出卡片（F3）", not f["over"], f["over"][:4])
+        # ★ 2026-09-21 合併：這三條是「重複的篩選列真的消失了」的證據，每個寬度都要成立
+        ok(f"[{w}px] 整張卡只有一份篩選列（合併：不再左右各長一份）",
+           bool(f["merged"]) and f["merged"]["rf"] == 1 and f["merged"]["chips"] == 1, f["merged"])
+        ok(f"[{w}px] 整張卡只有一顆「怎麼看 ?」（合併）",
+           bool(f["merged"]) and f["merged"]["how"] == 1, f["merged"])
+        ok(f"[{w}px] 圖區裡已經沒有巢狀的卡片了（真的是一張卡）",
+           bool(f["merged"]) and f["merged"]["inner"] == 0, f["merged"])
         ok(f"[{w}px] 資金流向頁沒有橫向捲軸（F3）", not f["sideways"], f["sideways"])
         if f["rf"]:
             ok(f"[{w}px] 排行圖的文字量得到（SVG renderer 有生效）（F3）", f["rf"]["n"] > 8, f["rf"])
@@ -4199,7 +4245,7 @@ def t_new_clock(pg, base):
     _paused("按暫停之後時鐘真的停住（2026-09-21：暫停壞掉）")
 
     # ①-b 「重畫之後再按暫停」—— 播到一半點族群晶片（會重建篩選列與晶片列）再暫停
-    CHIP0 = '#v-flow .rotfilter[data-rf="rot"] .linkrow.gchips'
+    CHIP0 = '#v-flow .rotfilter[data-rf="flow"] .linkrow.gchips'
     set_range(pg, RB, 26, 1200)
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(1400)
@@ -4393,13 +4439,19 @@ def t_new_clock(pg, base):
     # 他講的不是幾何重疊，是**功能上蓋過去**：同一張卡裡兩份族群清單，
     # 上面那排會篩圖、下面那排只會 highlight。現在族群只在晶片列選。
     # ★ 2026-09-21：那排晶片列從「圖下方」搬到「產業鏈 seg 的正下方」（見下面的位置量測）。
-    ok("排行與時鐘各有一排篩選列（C4）",
-       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length") == 2,
-       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length"))
+    # ★ 2026-09-21（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）：
+    #   以前是「排行一排、時鐘一排，吃同一份狀態」——他在截圖上看到的就是
+    #   產業鏈那一排與 56 顆族群晶片**各長了兩份**。現在整張卡只留一份。
+    ok("整張卡只有一排篩選列（2026-09-21 合併）",
+       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length") == 1,
+       pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter')].map(b => b.dataset.rf)"))
+    ok("舊的 data-rf=\"rank\" 那一排真的不在 DOM 裡（不是藏起來）",
+       pg.evaluate("() => document.querySelectorAll('.rotfilter[data-rf=\"rank\"]').length") == 0)
     ok("篩選列上沒有「族群篩選」了（E3：族群只在晶片列選）",
        pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter .rot-gbtn').length") == 0,
        pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter button')].map(b => b.textContent.trim())"))
-    ok("兩張卡都有族群晶片列（唯一的族群選擇器）", count(pg, CHIP) == 2, count(pg, CHIP))
+    ok("整張卡只有一排族群晶片列（唯一的族群選擇器，2026-09-21 合併）",
+       count(pg, CHIP) == 1, count(pg, CHIP))
 
     # ------------------------------------------- 2026-09-21②「個股篩選拿掉」
     # Andy 的原話就是這三個字。驗的是**全站一顆都不剩**（含放大視窗），
@@ -4436,10 +4488,11 @@ def t_new_clock(pg, base):
                  aboveChart: cr ? c.bottom <= cr.top + 1 : null,
                  h: Math.round(c.height), n: ch.querySelectorAll('.gchip').length,
                  fs: pick ? parseFloat(getComputedStyle(pick).fontSize) : null }; })""")
-    ok("兩張卡都量得到晶片列的位置", len(place) == 2 and not any(x.get("missing") for x in place), place)
-    if len(place) == 2 and not any(x.get("missing") for x in place):
+    ok("量得到那一排晶片列的位置（合併後只有一排）",
+       len(place) == 1 and not any(x.get("missing") for x in place), place)
+    if len(place) == 1 and not any(x.get("missing") for x in place):
         for x in place:
-            tag = "輪動時鐘" if x["rf"] == "rot" else "資金流向排行"
+            tag = "共用篩選列"
             ok(f"[{tag}] 晶片列在產業鏈那一排的正下方（DOM 順序＋同一個容器）",
                x["afterSeg"] and x["sameBox"], x)
             ok(f"[{tag}] 而且真的貼著它（垂直間距 0～14px）", 0 <= x["gapY"] <= 14, x)
@@ -4452,6 +4505,14 @@ def t_new_clock(pg, base):
                    "#rankFlowWrap .linkrow.gchips').length") == 0,
        pg.evaluate("() => document.querySelectorAll('#rotClockWrap .linkrow.gchips, "
                    "#rankFlowWrap .linkrow.gchips').length"))
+    # ★ 2026-09-21 合併：共用篩選列必須在**兩張圖**的上面（它管的是兩張圖）
+    ok("共用篩選列在時鐘與排行兩張圖的上面",
+       pg.evaluate("""() => { const f = document.querySelector('#v-flow .rotfilter');
+           const a = document.getElementById('rotClock'), b = document.getElementById('rankFlow');
+           if (!f || !a || !b) return false;
+           const fr = f.getBoundingClientRect();
+           return fr.bottom <= a.getBoundingClientRect().top + 1
+               && fr.bottom <= b.getBoundingClientRect().top + 1; }"""))
 
     # ------------------------------------------- 2026-09-21⑥ 畫面上不准出現英文 id
     # Andy 的截圖上有一格寫著 `financial`。根因是 CHAIN_NAME 那張寫死的對照表沒跟上族群改版；
@@ -4470,7 +4531,7 @@ def t_new_clock(pg, base):
     n_clock0 = len(_rot_scatter(pg) or [])
     n_rank0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
         return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
-    gids = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter[data-rf=\"rot\"] "
+    gids = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter[data-rf=\"flow\"] "
                        ".linkrow.gchips .gchip')].map(c => c.dataset.g)")
     if ok("晶片列真的列得出族群（E3）", len(gids) >= 3, len(gids)):
         for g in gids[:2]:
@@ -4484,8 +4545,8 @@ def t_new_clock(pg, base):
            n_clock1 == 2 and n_clock0 > 2, f"{n_clock0} → {n_clock1}")
         ok("_rotPts 的族群數也真的變少（E3）", n_pts1 == 2, f"{n_clock0} → {n_pts1}")
         changed("點晶片，資金流向排行上的族群數也真的變了（兩張圖同一份選擇）", n_rank0, n_rank1)
-        ok("兩排晶片同時被選起來（data-sync=\"n2\" 的同步沒有被拆掉）",
-           count(pg, f"{CHIP} .gchip.on") == 4, count(pg, f"{CHIP} .gchip.on"))
+        ok("那一排晶片上兩顆都被選起來了（合併後只有一排，所以是 2 不是 4）",
+           count(pg, f"{CHIP} .gchip.on") == 2, count(pg, f"{CHIP} .gchip.on"))
         ok("點晶片同時在排行下方展開成分股（點族群展開個股長在這一排身上）",
            pg.evaluate("""() => { const b = document.getElementById('rankPanel');
                return !!b && !b.hidden && b.querySelectorAll('.ms a[href^="#stock/"]').length > 0; }"""))
@@ -4503,8 +4564,8 @@ def t_new_clock(pg, base):
         # 「清除篩選」也要還能用（個股篩選拿掉之後它的出現條件改過）
         pg.eval_on_selector(f'{CHIP} .gchip[data-g="{gids[0]}"] .pick', "b => b.click()")
         pg.wait_for_timeout(900)
-        ok("選了族群才會冒出「清除篩選」", count(pg, '.rotfilter[data-rf="rot"] .rot-clear') == 1)
-        click(pg, '.rotfilter[data-rf="rot"] .rot-clear', 1000)
+        ok("選了族群才會冒出「清除篩選」", count(pg, '.rotfilter[data-rf="flow"] .rot-clear') == 1)
+        click(pg, '.rotfilter[data-rf="flow"] .rot-clear', 1000)
         ok("按「清除篩選」真的全部還原",
            len(_rot_scatter(pg) or []) == n_clock0, f"→ {len(_rot_scatter(pg) or [])}（原本 {n_clock0}）")
 
@@ -4639,7 +4700,7 @@ def t_new_clock(pg, base):
                [before_xy["s"], after_xy["s"]])
             set_range(pg, RB, 5, 1400)
             n_g0 = sum(1 for x in _rot_pts(pg) if not x["stock"])
-            pg.eval_on_selector('.rotfilter[data-rf="rot"] .rot-top10', "c => { c.checked = true; c.onchange(); }")
+            pg.eval_on_selector('.rotfilter[data-rf="flow"] .rot-top10', "c => { c.checked = true; c.onchange(); }")
             pg.wait_for_timeout(1400)
             ptop = _rot_pts(pg)
             ok("下鑽狀態下「只看前 10 大」照樣有效：族群真的變少",
@@ -4647,7 +4708,7 @@ def t_new_clock(pg, base):
                f"{n_g0} → {sum(1 for x in ptop if not x['stock'])}")
             ok("但我自己點開的個股不會被那個勾選掃掉（那是我明確選的）",
                sum(1 for x in ptop if x["stock"]) == len(codes[:3]), ptop)
-            pg.eval_on_selector('.rotfilter[data-rf="rot"] .rot-top10', "c => { c.checked = false; c.onchange(); }")
+            pg.eval_on_selector('.rotfilter[data-rf="flow"] .rot-top10', "c => { c.checked = false; c.onchange(); }")
             pg.wait_for_timeout(1400)
 
             # --- 放大視窗也要看得到個股（E2 的教訓：放大之後功能都沒反應）
@@ -4772,6 +4833,195 @@ def t_new_clock(pg, base):
 
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1200)
+
+
+def t_rotmerge(pg, base):
+    """★ 2026-09-21 合併卡（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等
+    所以他們彙整並一頁」）的真人操作驗收。
+
+    這一段要守的是「合併」這件事的**實質**，不是版面長相：
+      ① 一次點擊要同時影響兩張圖（篩選是共用的）
+      ② 一支「看哪一天」要同時決定兩張圖的日期（週期是共用的）
+      ③ 窄畫面（800px）底下三件事都還要成立
+    每一條都量「畫面真的因此改變了」：時鐘上的點數、排行的長條筆數、排行副標的日期。
+    """
+
+    def _n_clock():
+        return len(_rot_scatter(pg) or [])
+
+    def _n_rank():
+        return pg.evaluate("""() => { const el = document.getElementById('rankFlow');
+            const c = el && window.echarts && echarts.getInstanceByDom(el);
+            return c ? (((c.getOption().yAxis || [])[0] || {}).data || []).length : 0; }""")
+
+    def _clock_date():
+        return pg.evaluate("() => { const f = window.App && window.App._rotFrame; return f ? f.date : null; }")
+
+    def _run(w):
+        tag = f"[{w}px] "
+        pg.set_viewport_size({"width": w, "height": 1000})
+        reset_rot(pg, base, 2600)
+
+        # ---------------------------------------------------------- 版面：真的只剩一份
+        one = pg.evaluate("""() => { const a = document.getElementById('rotClock'),
+                                           b = document.getElementById('rankFlow');
+            const card = a && a.closest('.card');
+            if (!card || !b || b.closest('.card') !== card) return null;
+            const r = card.getBoundingClientRect();
+            const out = [];
+            card.querySelectorAll('.rotfilter, .rottime, .linkrow.gchips, .rbar, .chart, h4.subh')
+              .forEach(e => { const q = e.getBoundingClientRect();
+                if (q.width < 2) return;
+                const d = Math.max(q.right - r.right, r.left - q.left);
+                if (d > 2) out.push([(e.className + '').slice(0, 20), Math.round(d)]); });
+            return { rf: card.querySelectorAll('.rotfilter').length,
+                     chips: card.querySelectorAll('.linkrow.gchips').length,
+                     how: card.querySelectorAll('.howbtn').length,
+                     zoom: card.querySelectorAll('#rotZoomBtn').length,
+                     back: card.querySelectorAll('#rotBack').length,
+                     days: card.querySelectorAll('#rankDays').length,
+                     out,
+                     sideways: document.documentElement.scrollWidth
+                               > document.documentElement.clientWidth + 1 }; }""")
+        if not ok(tag + "時鐘與排行在同一張卡裡（合併）", bool(one), one):
+            return
+        ok(tag + "共用控制區只有一份（產業鏈 seg ＋ 族群晶片列）",
+           one["rf"] == 1 and one["chips"] == 1, one)
+        ok(tag + "「看哪一天」與「最近幾天」都在同一張卡的時間列上",
+           one["back"] == 1 and one["days"] == 1, one)
+        ok(tag + "只剩一顆「怎麼看 ?」與一顆「⤢ 放大」",
+           one["how"] == 1 and one["zoom"] == 1, one)
+        ok(tag + "卡片裡沒有東西凸出卡片（控制區三排不會互相擠出去）", not one["out"], one["out"][:4])
+        ok(tag + "沒有橫向捲軸", not one["sideways"], one)
+        # 族群晶片列在窄畫面仍然是「有上限、捲得動」——不然 56 顆會把圖推到看不見
+        sc = pg.evaluate("""() => { const r = document.querySelector('#v-flow .linkrow.gchips');
+            if (!r) return null; const cs = getComputedStyle(r);
+            return { ch: Math.round(r.clientHeight), sh: Math.round(r.scrollHeight),
+                     oy: cs.overflowY, n: r.querySelectorAll('.gchip').length }; }""")
+        ok(tag + "族群晶片列有高度上限而且捲得動（56 顆不會把圖推下去）",
+           bool(sc) and sc["ch"] <= 110 and sc["oy"] in ("auto", "scroll")
+           and sc["sh"] > sc["ch"], sc)
+
+        # ---------------------------------------------------------- ① 一次點擊同時影響兩張圖
+        c0, r0 = _n_clock(), _n_rank()
+        ok(tag + "起手式：兩張圖都畫得出東西", c0 > 3 and r0 > 3, {"時鐘": c0, "排行": r0})
+        chains = pg.evaluate("""() => {
+            const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+            const size = {};
+            pts.forEach(p => { const c = p.chain || ''; if (c) size[c] = (size[c] || 0) + 1; });
+            return [...document.querySelectorAll('#v-flow .rotchain button')]
+              .filter(b => b.dataset.c)
+              .map(b => ({ c: b.dataset.c, t: b.textContent.trim(), n: size[b.dataset.c] || 0 })); }""")
+        # ★ 挑鏈要挑「真的會讓筆數變少」的那一條：時鐘最多畫 16 個族群、排行最多畫 15 根，
+        #   所以點「半導體」（剛好 16 個族群）時兩張圖的**筆數不會變**，
+        #   拿它當判準會量出一個假的紅燈（2026-09-21 第一次跑就踩到）。
+        #   這裡改成自動挑最小的那一條鏈（仍然是 Andy 說的「點產業鏈其中一顆」這個動作），
+        #   而「半導體」那種塞滿的鏈另外用「名單真的換人了」來驗。
+        small = min([x for x in chains if 2 <= x["n"] < 15], key=lambda x: x["n"], default=None)
+        if ok(tag + "產業鏈那一排點得到（至少有一條族群數 < 15 的鏈）", bool(small), chains):
+            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{small["c"]}"]', "b => b.click()")
+            pg.wait_for_timeout(1400)
+            c1, r1 = _n_clock(), _n_rank()
+            ok(tag + f"點「{small['t']}」→ 時鐘上的族群真的變少",
+               0 < c1 <= small["n"] < c0, f"{c0} → {c1}（這條鏈只有 {small['n']} 個族群）")
+            ok(tag + f"點「{small['t']}」→ 排行的長條筆數也真的變少（同一次點擊同時影響兩張圖）",
+               0 < r1 <= small["n"] < r0, f"{r0} → {r1}")
+            inchain = pg.evaluate("""(c) => {
+                const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+                const set = new Set(pts.filter(p => p.chain === c).map(p => p.group_id));
+                const bad = ((window.App || {})._rotPts || [])
+                  .filter(p => !p.stock && !set.has(p.gid)).map(p => p.name);
+                return bad; }""", small["c"])
+            ok(tag + f"而且時鐘上剩下的每一個都真的屬於「{small['t']}」", not inchain, inchain[:5])
+            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
+            pg.wait_for_timeout(1400)
+            ok(tag + "按「全部」兩張圖一起還原",
+               _n_clock() == c0 and _n_rank() == r0,
+               {"時鐘": f"{c1} → {_n_clock()}（原 {c0}）", "排行": f"{r1} → {_n_rank()}（原 {r0}）"})
+
+        # 「半導體」這種族群數剛好塞滿上限的鏈：筆數不會變，但**名單一定要換人**。
+        semi = next((x for x in chains if x["t"] == "半導體"), None)
+        if semi:
+            before = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
+            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{semi["c"]}"]', "b => b.click()")
+            pg.wait_for_timeout(1400)
+            after = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
+            changed(tag + "點「半導體」→ 時鐘上的族群名單真的換人了（筆數受上限所限不會變）",
+                    before, after)
+            bad = pg.evaluate("""(c) => {
+                const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
+                const set = new Set(pts.filter(p => p.chain === c).map(p => p.group_id));
+                const el = document.getElementById('rankFlow');
+                const ch = el && window.echarts && echarts.getInstanceByDom(el);
+                const gs = ch ? (((ch.getOption().series || [])[0] || {}).data || [])
+                                  .map(d => d.gid).filter(g => !set.has(g)) : ['<沒有圖>'];
+                return gs; }""", semi["c"])
+            ok(tag + "排行上剩下的每一根長條也都是半導體鏈的（同一份篩選）", not bad, bad[:5])
+            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
+            pg.wait_for_timeout(1400)
+
+        # ---------------------------------------------------------- ② 一支「看哪一天」決定兩張圖的日期
+        RB = "#rotBack input[type=range]"
+        set_range(pg, RB, 3, 1400)
+        pg.wait_for_timeout(500)
+        d0, s0 = _clock_date(), text(pg, "#rankSub")
+        set_range(pg, RB, 22, 1600)
+        pg.wait_for_timeout(600)
+        d1, s1 = _clock_date(), text(pg, "#rankSub")
+        changed(tag + "拖「看哪一天」往回，時鐘的日期真的變了", d0, d1)
+        changed(tag + "同一個動作，排行的副標日期也跟著變（共用週期的實質）", s0, s1)
+        ok(tag + "排行副標寫得出它看的是哪一段（起訖日期）",
+           "～" in (s1 or "") and "截止日" in (s1 or ""), s1)
+        # 排行那一段的結尾，必須就是時鐘大圈落在的那一天（不是「看起來一樣其實差 20 天」）
+        ok(tag + "排行那一段的結尾日期，就是時鐘上的那一天",
+           bool(d1) and d1 in (s1 or ""), {"時鐘": d1, "排行副標": s1})
+        set_range(pg, RB, 5, 1400)
+
+        # ---------------------------------------------------------- ③ 只看前 10 大
+        c2, r2 = _n_clock(), _n_rank()
+        pg.eval_on_selector('#v-flow .rotfilter .rot-top10', "c => { c.checked = true; c.onchange(); }")
+        pg.wait_for_timeout(1500)
+        c3, r3 = _n_clock(), _n_rank()
+        ok(tag + "「只看前 10 大」→ 時鐘上剛好剩 10 個族群", c3 == 10, f"{c2} → {c3}")
+        # 排行本來就只畫前 9 ＋ 後 6，筆數可能本來就 ≤10；那就改驗「真的變少或本來就已經在 10 以內」
+        if r2 > 10:
+            ok(tag + "「只看前 10 大」→ 排行的長條筆數也降到 10 以內", r3 <= 10 and r3 > 0, f"{r2} → {r3}")
+        else:
+            ok(tag + f"排行本來就只有 {r2} 筆（≤10），改驗它沒有因此變成空圖", r3 > 0, f"{r2} → {r3}")
+        pg.eval_on_selector('#v-flow .rotfilter .rot-top10', "c => { c.checked = false; c.onchange(); }")
+        pg.wait_for_timeout(1500)
+        ok(tag + "取消「只看前 10 大」，兩張圖一起還原",
+           _n_clock() == c2 and _n_rank() == r2,
+           {"時鐘": f"{c3} → {_n_clock()}（原 {c2}）", "排行": f"{r3} → {_n_rank()}（原 {r2}）"})
+
+    # 桌機寬與窄畫面各跑一次（Andy 2026-09-18 的 E6 就是只驗 1440px 放過去的）
+    _run(1440)
+    _run(800)
+
+    # ------------------------------------------------- 放大視窗：只放大時鐘，關掉之後排行要是對的
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    reset_rot(pg, base, 2600)
+    set_range(pg, "#rotBack input[type=range]", 4, 1400)
+    sub_before = text(pg, "#rankSub")
+    pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
+    pg.wait_for_timeout(2400)
+    zin = pg.evaluate("""() => ({ open: !document.getElementById('zoomOv').hidden,
+        rank: document.querySelectorAll('#zoomOv #rankFlow, #zoomOv .hpanel').length,
+        clock: !!(window.echarts && echarts.getInstanceByDom(document.getElementById('zoomBody'))) })""")
+    ok("按「⤢ 放大」只放大時鐘（排行沒有被塞進放大視窗）",
+       zin["open"] and zin["clock"] and zin["rank"] == 0, zin)
+    # 在放大視窗裡把「看哪一天」拉到別天，關掉之後卡片上的排行要跟著那一天
+    set_range(pg, "#rotZoomBack input[type=range]", 18, 1600)
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(2200)
+    sub_after = text(pg, "#rankSub")
+    changed("在放大視窗裡改「看哪一天」，關掉之後卡片的排行也跟著換了那一段",
+            sub_before, sub_after)
+    ok("而且關掉之後排行的結尾就是時鐘現在那一天",
+       (_clock_date() or "\x00") in (sub_after or ""),
+       {"時鐘": _clock_date(), "排行副標": sub_after})
+
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 def t_tasks(pg, base):
@@ -5791,8 +6041,24 @@ def t_batch2(pg, base):
         #   在物理上量不出來（沒有別人可以被壓暗），紅綠都沒有資訊（DECISIONS #206）。
         ok("輪動時鐘盤上本來就有好幾個族群（不然「只亮一個」量不出來）",
            bool(dim) and dim["n"] > 3, dim)
-        ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
-           bool(dim) and dim["n"] > 3 and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
+        # ★ 2026-09-21：這條以前是**假紅燈的溫床**。時鐘為了看得清楚只畫前 16 個族群
+        #   （依成交值佔比），而這張排行是依**佔比變化**排的 —— 變化最大的那一個
+        #   未必在時鐘上。舊的 highlightClock 碰到這種情形會把 16 個全部壓到 0.18，
+        #   整張圖灰掉（lo=hi=0.18），而驗收只會說「沒有只亮一個」，看不出真正的毛病。
+        #   現在的正確行為分兩種，兩種都要驗：
+        #     · 點到的族群**在**時鐘上 → 只亮它、其餘壓暗
+        #     · 點到的族群**不在**時鐘上 → 時鐘**原樣不動**（不准整張灰掉），
+        #       而且面板的說明要**明講**一句，不能讓使用者以為自己點壞了
+        note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
+        offclock = "不在左邊時鐘" in note
+        if offclock:
+            ok("點到時鐘上沒有的族群時，時鐘不准整張灰掉",
+               bool(dim) and dim["hi"] > 0.9, dim)
+            ok("點到時鐘上沒有的族群時，面板有明講原因（不是靜悄悄沒反應）",
+               True, note[:60])
+        else:
+            ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
+               bool(dim) and dim["n"] > 3 and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
         # 再點一次要取消 —— 座標要重算，而且要等 scrollIntoView 的**平滑捲動停下來**才算。
         # heatPanel 用的是 behavior:'smooth'，捲動是動畫；捲到一半就量座標，
         # 等滑鼠真的按下去時頁面又移位了，點就落在圖外面（2026-09-18 踩到兩次）。
@@ -5806,11 +6072,14 @@ def t_batch2(pg, base):
            pg.evaluate("() => { const b=document.getElementById('rankPanel'); return !b || b.hidden; }"))
 
     # ---------------------------------------------------------- 圖二：輪動時鐘
-    ok("輪動時鐘搬到排行旁邊那一格了（圖四換位）",
+    # ★ 2026-09-21：兩張卡合併成一張（Andy：「這兩張圖合併…彙整並一頁」），
+    #   所以判準從「兩張卡是兄弟」升級成「兩張圖在**同一張卡**裡」——
+    #   圖四要的「兩張圖要對得起來」比以前更成立，不是放寬。
+    ok("輪動時鐘與資金流向排行在同一張卡裡（2026-09-21 合併）",
        pg.evaluate("""() => { const a = document.getElementById('rankFlow'), b = document.getElementById('rotClock');
            if (!a || !b) return false;
            const ca = a.closest('.card'), cb = b.closest('.card');
-           return !!ca && !!cb && ca.parentNode === cb.parentNode; }"""))
+           return !!ca && ca === cb && ca.querySelectorAll('.rotfilter').length === 1; }"""))
     # 2026-09-21：常駐的 #rotCenterNote 移除，說明搬進「怎麼看 ?」（見 how_text 的 docstring）
     _how = how_text(pg, "rot")
     ok("「怎麼看」裡有寫清楚圓心到圓外是什麼意思（圖二）",
@@ -6138,11 +6407,13 @@ def t_batch7(pg, base):
     #   這條就變成在比兩張不相干的圖（實測 4 vs 36）。
     lists = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"]')]
         .map(r => [...r.querySelectorAll('.gchip')].map(c => c.dataset.g))""")
-    ok("排行與時鐘各有一排族群晶片（N2）", len(lists) >= 2, [len(x) for x in (lists or [])])
-    if len(lists) >= 2:
-        ok("兩邊族群名單完全一樣（N2「兩邊族群對不上」）", lists[0] == lists[1],
-           {"排行": len(lists[0]), "時鐘": len(lists[1]),
-            "只在一邊": sorted(set(lists[0]) ^ set(lists[1]))[:6]})
+    # ★ 2026-09-21：N2 當初要解的是「兩排名單對不上」。兩張卡合併之後**只剩一排**，
+    #   那個問題在結構上就不可能再發生 —— 所以判準改成「真的只有一排，而且列得出族群」。
+    #   這不是放寬：以前是「兩排要一樣」，現在是「根本沒有第二排可以不一樣」。
+    ok("排行與時鐘共用同一排族群晶片（2026-09-21 合併，N2 的根因消失）",
+       len(lists) == 1, [len(x) for x in (lists or [])])
+    if lists:
+        ok("那一排真的列得出族群（N2）", len(lists[0]) > 20, len(lists[0]))
     hash0 = pg.evaluate("() => location.hash")
     if lists and lists[0]:
         # ★ 2026-09-20：選擇器一定要限定在 [data-sync="n2"] 這兩排。
@@ -6165,7 +6436,7 @@ def t_batch7(pg, base):
         ok("點族群晶片不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
         ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘上的族群真的變少（N2＋E3）",
            st["panel"] and st["n"] == 1 and n_before > 1, {"before": n_before, **st})
-        ok("兩排晶片同時被選起來（N2）", st["on"] >= 2, st["on"])
+        ok("晶片真的被選起來了（合併後只有一排，所以是 1 排 × 1 顆）", st["on"] == 1, st["on"])
         # 收拾：取消掉，不要把篩選狀態留給後面的段落
         pg.eval_on_selector(f"{N2} .gchip.on .pick", "b => b.click()")
         pg.wait_for_timeout(1000)
@@ -7867,6 +8138,9 @@ SECTIONS = {
     "新-產業與個股":       lambda pg, b, base, code: t_new_industry(pg, base),
     "新-資金流向":         lambda pg, b, base, code: t_new_flow(pg, base),
     "新-輪動時鐘":         lambda pg, b, base, code: t_new_clock(pg, base),
+    # ★ 2026-09-21：輪動時鐘與資金流向排行合併成一張卡（Andy：「這兩張圖合併…彙整並一頁」）。
+    #   合併本身的驗收自成一段：共用篩選、共用「看哪一天」、窄畫面 800px 都要成立。
+    "資金輪動合併":        lambda pg, b, base, code: t_rotmerge(pg, base),
     "任務板":              lambda pg, b, base, code: t_tasks(pg, base),
     "新-版面等高與多寬度": lambda pg, b, base, code: t_new_layout(pg, base),
     "題材":                lambda pg, b, base, code: t_themes(pg, base),
