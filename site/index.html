@@ -980,6 +980,31 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dgwrap svg{display:block;width:100%;height:auto}
 .dgwrap.compact svg{max-height:380px}
 .dgwrap.noanim *{animation:none!important}
+/* ---- 圖別選單（2026-09-21，Andy：「同個族群、為不同產品，則需要獨立分頁」）
+   一條鏈沒有「整條鏈的架構圖」時（例：一般電子），點進去看到的是這一排入口，
+   而不是這條鏈剛好有的某一張族群圖 —— MLCC 代表不了面板，也代表不了交換器板卡。
+   ★ 要撐得住一條鏈 3～5 張（electronics 之後還有 PCB 硬板、面板、交換器板卡），
+     所以用 auto-fit 的 grid，不寫死欄數；390px 自動變成一欄。
+   ★ 這三條 [hidden] 是必要的收尾：.row（flex）與 .pill（inline-flex）這些
+     有 display 規則的類別會**蓋掉** UA 預設的 [hidden]{display:none}，
+     不補的話「選單模式」下那幾顆工具鈕照樣看得到，按下去卻沒有圖可以動。*/
+.dgmenu[hidden],#dgBody[hidden],#dgTools[hidden],#dgBack[hidden]{display:none}
+.dgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.dgcard{display:block;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);
+  border-left:4px solid var(--c,var(--cyan));background:var(--panel-3);color:var(--ink-2);transition:.15s}
+.dgcard:hover{border-color:var(--c,var(--cyan));border-left-color:var(--c,var(--cyan));
+  background:color-mix(in srgb,var(--c,#3ee0ff) 10%,var(--panel-3));transform:translateY(-1px)}
+.dgcard .t{font-weight:700;font-size:15px;color:var(--ink)}
+.dgcard .q{font-size:13px;line-height:1.7;color:var(--ink-2);margin-top:5px}
+.dgcard .m{font-size:12px;color:var(--ink-3);margin-top:7px}
+.dgcard .go{font-size:12.5px;font-weight:700;color:var(--c,var(--cyan));margin-top:8px}
+@media (max-width:640px){
+  /* 手機一欄；問題那一行是這張卡真正的內容，字級不准跟著縮 */
+  .dgcards{grid-template-columns:1fr}
+  .dgcard{padding:11px 12px}
+  .dgcard .q{font-size:13.5px}
+  .dgcard .m{font-size:12px}
+}
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
 .tile:hover{border-color:var(--cyan);transform:translateY(-1px)}

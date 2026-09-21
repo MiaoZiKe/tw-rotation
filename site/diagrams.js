@@ -723,9 +723,16 @@
        900px 的縮放從 ×0.659 拉回 ×1.0，最小字級 6.26 → 9.5px。
        ⚠ 還沒到 12px：那要把兩張掛上 .dgm 並**重排版面**（字級一升，labelRow 與
        processBar 的行距會擠在一起），那是另外一批、自己一個 commit，不跟新圖綁在一起。*/
-    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor', native: 1220 },
-    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220 },
-    mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980 },
+    /* ★ 2026-09-21（Andy）：`q` ＝**這張圖回答哪一個具體問題**，一定要寫。
+       它不是裝飾文案 —— 圖別選單就是靠它讓人在「還沒點進去」的時候就知道
+       自己要不要點；沒有 `q` 的圖等於在叫人先點進去再猜。
+       寫法：一句話、問句、講到「所以我該怎麼用」，不要只描述圖上有什麼。*/
+    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor', native: 1220,
+      q: '一顆 AI 晶片是怎麼被封在一起的？從晶圓、中介層到載板，每一層是誰在做、台廠吃到哪幾層？' },
+    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
+      q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
+    mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980,
+      q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？' },
   };
   const isGroupSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'group');
   const isChainSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'chain');
@@ -742,6 +749,12 @@
     // 這條鏈「有可能」畫得出圖嗎（鏈層級或任何一個族群層級）—— 上方切換列的小標記用
     anyIn(chainId) { return isChainSlot(chainId) || this.groupsOf(chainId).length > 0; },
     chainDefault(chainId) { return isChainSlot(chainId) ? chainId : null; },
+    // 這張圖掛在哪一條鏈上（路由要驗「網址上的 slot 真的屬於這條鏈」，不然貼錯網址會畫出別條鏈的圖）
+    chainOf(id) { return SLOTS[id] ? SLOTS[id].chain : null; },
+    // 'chain'＝整條鏈的架構圖（點進鏈就直接看到）；'group'＝單一產品，要有自己的網址
+    level(id) { return SLOTS[id] ? SLOTS[id].level : null; },
+    // 這張圖回答哪一個問題（圖別選單與標題都讀它）
+    q(id) { return SLOTS[id] ? (SLOTS[id].q || '') : ''; },
     // 目前有鏈層級圖的鏈（跨鏈面板的縮圖用；以前寫死成 DG_CHAINS）
     chains() { return Object.keys(SLOTS).filter(isChainSlot); },
     draw(id) { return SLOTS[id] ? SLOTS[id].draw() : ''; },
