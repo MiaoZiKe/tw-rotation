@@ -65,6 +65,21 @@
   --dg-ink:#e8eeff; --dg-ink-2:#a9b6d6; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
   --dg-warn:#ff8fab; --dg-err:#ff4d6d;             /* 警語、裂紋 */
   --dg-chg-a:.12;             /* 電荷疊色的透明度（.26 會把陶瓷的色相整個推掉，見 B2） */
+  /* ---------------- 剖析圖的字級標準（art-director 2026-09-21 訂）----------------
+     Andy 從 2026-09-15 講到現在的「文字太小」，以前每次都是去調某一張圖的某一個字級，
+     所以永遠有下一張圖是舊的。這一組把標準收成**四階、一處定義**：
+       ttl 16   圖名（一張圖只有一個）
+       hd  13.5 區塊小標（① ② ③ 那種）
+       lbl 12.5 零件名、說明列標題
+       min 12   說明、註腳、代號、數字 —— **這是下限，畫面上真實字級不准低於它**
+     「畫面上真實字級」＝ CSS 字級 × (svg 實際寬 ÷ viewBox 寬)。
+     所以光訂字級沒有用，圖一定要同時宣告 native 寬度（DECISIONS #226），
+     不然欄寬一窄，12px 會被壓成 6px —— 那正是 2026-09-15 到 09-21 一直沒解決的那件事。 */
+  --dg-fs-ttl:16px; --dg-fs-hd:13.5px; --dg-fs-lbl:12.5px; --dg-fs-min:12px;
+  --dg-hair-w:2;              /* 圖上細虛線的線寬。1.1 在 1440 幾乎看不見，
+                                 而「側邊餘白」那條虛線是「為什麼不能無限縮小」的一半答案 */
+  --dg-mute:#78859f;          /* 附註級圖形的單色。降權用：附註不准跟主角共用材質質感，
+                                 給它一個單色就好（例如尺寸比較尺那三顆晶片） */
   /* ---------------- 兩層高亮（art-director 2026-09-21 晚間新增）----------------
      為什麼要分兩層：以前高亮只綁 data-seg，所以「點一個零件」＝「同環節的全部一起亮」。
      多環節的圖還說得通（那句話是「這幾塊來自同一個環節」），但**單一環節的圖**
@@ -948,16 +963,19 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   border-left:3px solid var(--c,var(--line-2));border-radius:7px;padding:4px 8px;
   white-space:normal;transition:opacity .15s,border-color .15s;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:2}
 .lbl3d b{display:block;font-weight:700;color:var(--ink)}
-.lbl3d i{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
-  font-style:normal;font-size:11px;color:var(--ink-3);margin-top:2px}
+/* P4-d（art-director 2026-09-21）：這一行的說明以前是 11px、而且 line-clamp:2 把它截斷。
+   11px 低於字級下限（--dg-fs-min 12px），截斷又讓「這一層變薄會怎樣」講到一半就沒了 ——
+   那正是規格書 §1 定義的成敗條件。改成 12px、放寬到三行。*/
+.lbl3d i{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+  font-style:normal;font-size:var(--dg-fs-min,12px);color:var(--ink-3);margin-top:2px}
 /* 圖九 2-3：文字框底下那排可點的台股晶片（規格書 docs/diagram_specs/dg3d_standard.md）。
    晶片是 DOM 不是畫進畫布 —— 這樣文字重疊驗得到、也真的選得起來。 */
 .lbl3d u.chips3d{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;text-decoration:none}
-.lbl3d .chip3d{font-size:11px;line-height:1.5;padding:0 5px;border-radius:5px;text-decoration:none;
+.lbl3d .chip3d{font-size:var(--dg-fs-min,12px);line-height:1.45;padding:0 5px;border-radius:5px;text-decoration:none;
   color:var(--ink-2);background:color-mix(in srgb,var(--c,var(--cyan)) 16%,transparent);
   border:1px solid color-mix(in srgb,var(--c,var(--cyan)) 38%,transparent);cursor:pointer;white-space:nowrap}
 .lbl3d .chip3d:hover{color:var(--ink);background:color-mix(in srgb,var(--c,var(--cyan)) 32%,transparent)}
-.lbl3d u.chips3d s{font-size:10.5px;color:var(--ink-3);text-decoration:none;align-self:center}
+.lbl3d u.chips3d s{font-size:var(--dg-fs-min,12px);color:var(--ink-3);text-decoration:none;align-self:center}
 /* A5-b：晶片上方那行「這排台股是哪一群」的小字，要自己占一整行，不要跟晶片擠在同一列 */
 .lbl3d u.chips3d s.chipnote{flex:0 0 100%;margin-bottom:1px}
 .lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}

@@ -9,12 +9,15 @@
        這兩行是 --dg-accent 唯一的定義處 —— 寫在 :root 的話 var(--c) 會在 :root 就被解析掉，
        每個零件自己的環節色永遠吃不到。 */
     .dg [data-seg],.dg .p3{--dg-accent:var(--c,#3ee0ff)}
-    .dg text{fill:var(--dg-ink-2,#a9b6d6);font-size:12px}
-    .dg .ttl{font-size:15px;font-weight:700;fill:var(--dg-ink,#e8eeff);letter-spacing:.02em}
-    .dg .cap{font-size:11.5px;fill:#6f7ea3}
-    .dg .lbl{font-size:12.5px;fill:var(--dg-ink,#e8eeff);font-weight:600}
-    .dg .sub{font-size:10.5px;fill:var(--dg-ink-3,#8ea0c4)}
-    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:10px;fill:var(--c,var(--dg-ink-3,#8ea0c4));letter-spacing:.04em}
+    /* 字級一律走 :root 的 --dg-fs-*（art-director 擁有，見 index.html 的說明）。
+       這裡不准再出現第二套數字 —— 以前 .sub 10.5／.cap 11.5／.tag 10 三個值散在這裡，
+       每畫一張新圖就得決定一次「這張要不要跟舊的一樣」，所以永遠有一張是舊的。 */
+    .dg text{fill:var(--dg-ink-2,#a9b6d6);font-size:var(--dg-fs-min,12px)}
+    .dg .ttl{font-size:var(--dg-fs-ttl,16px);font-weight:700;fill:var(--dg-ink,#e8eeff);letter-spacing:.02em}
+    .dg .cap{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
+    .dg .lbl{font-size:var(--dg-fs-lbl,12.5px);fill:var(--dg-ink,#e8eeff);font-weight:600}
+    .dg .sub{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
+    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);fill:var(--c,var(--dg-ink-3,#8ea0c4));letter-spacing:.04em}
     .dg .mono{font-family:"JetBrains Mono",monospace}
     .dg [data-seg]{cursor:pointer;transition:opacity .2s}
     .dg [data-seg] .part{transition:stroke .15s,filter .15s;stroke:color-mix(in srgb,var(--c,#3ee0ff) 55%,#2a3860)}
@@ -90,7 +93,7 @@
     .dg .axis{stroke:rgba(120,150,210,.3);stroke-width:1;fill:none;stroke-dasharray:3 4}
     /* ---- 題材供應鏈圖：上游／中游／下游三段 + 站點 + 流動彩帶 + 個股標籤 ---- */
     .dg3 .band rect{fill:rgba(30,42,72,.5);stroke:rgba(120,150,210,.18)}
-    .dg3 .band text{font-size:12px;font-weight:600;fill:#a9b6d6;letter-spacing:.03em}
+    .dg3 .band text{font-size:var(--dg-fs-min,12px);font-weight:600;fill:var(--dg-ink-2,#a9b6d6);letter-spacing:.03em}
     .dg3 .band.b0 rect{fill:rgba(62,224,255,.10);stroke:rgba(62,224,255,.28)} .dg3 .band.b0 text{fill:#9fe6ff}
     .dg3 .band.b1 rect{fill:rgba(139,123,255,.10);stroke:rgba(139,123,255,.3)} .dg3 .band.b1 text{fill:#c3baff}
     .dg3 .band.b2 rect{fill:rgba(255,180,84,.10);stroke:rgba(255,180,84,.28)} .dg3 .band.b2 text{fill:#ffd79a}
@@ -103,18 +106,18 @@
     .dg3 .rib.flow{stroke:rgba(62,224,255,.5);stroke-dasharray:10 16;animation:dgdash 2.2s linear infinite}
     .dg3 .scode{cursor:pointer}
     .dg3 .scode rect{fill:color-mix(in srgb,var(--c,var(--ce)) 14%,rgba(15,23,43,.9));stroke:color-mix(in srgb,var(--c,var(--ce)) 42%,transparent)}
-    .dg3 .scode text{font-size:11.5px;fill:#d6e2ff;font-weight:600}
+    .dg3 .scode text{font-size:var(--dg-fs-min,12px);fill:#d6e2ff;font-weight:600}
     .dg3 .scode:hover rect{fill:color-mix(in srgb,var(--c,var(--ce)) 34%,rgba(15,23,43,.9));stroke:var(--c,var(--ce))}
     .dg3 .scode:hover text{fill:#fff}
     .dg3 .step .num{fill:color-mix(in srgb,var(--c,var(--ce)) 55%,#0b1226);stroke:color-mix(in srgb,var(--c,var(--ce)) 70%,transparent)}
-    .dg3 .step .nn{font-size:11px;font-weight:700;fill:#e8eeff;font-family:"JetBrains Mono",monospace}
-    /* ---- 量產圖的字級下限（AGENTS §11：文字最小 12px，手機也是）。
-       舊的兩張圖 .sub 是 10.5px、.cap 11.5px、.tag 10px —— 那是 12px 規則之前畫的。
-       新圖一律掛 .dgm，整張圖的最小字級被拉到 12px；舊圖不動，避免版面整個位移。 */
-    .dgm .sub,.dgm .cap,.dgm .tag{font-size:12px}
-    .dgm .lbl{font-size:12.5px}
-    .dgm .hd{font-size:12.5px;font-weight:700;fill:var(--dg-ink,#e8eeff)}
-    .dgm .num{font-family:"JetBrains Mono",monospace;font-size:12px;fill:#9fb0d0}
+    .dg3 .step .nn{font-size:var(--dg-fs-min,12px);font-weight:700;fill:var(--dg-ink,#e8eeff);font-family:"JetBrains Mono",monospace}
+    /* ---- 量產圖專屬的兩個類別。
+       ★ 2026-09-21 art-director：.dgm 以前的工作是「把這一張的最小字級拉到 12px」，
+       所以只有掛了 .dgm 的新圖合格，半導體與 AI 伺服器兩張舊圖永遠是 10.5px。
+       現在 12px 變成 .dg 的基準（上面那一段），.dgm 不再負責字級，
+       只剩下量產圖自己才有的 .hd（區塊小標）與 .num（數字）。*/
+    .dgm .hd{font-size:var(--dg-fs-hd,13.5px);font-weight:700;fill:var(--dg-ink,#e8eeff)}
+    .dgm .num{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-2,#9fb0d0)}
     .dgm .frame{fill:rgba(18,26,46,.5);stroke:rgba(120,150,210,.2)}
     .dgm .warn{fill:var(--dg-warn,#ff8fab)}
     /* B2（art-director 2026-09-21）：電荷疊色的透明度從 .26 降到 .12。
@@ -153,14 +156,30 @@
     return !!al && al.split(',').indexOf(key) >= 0;
   }
 
-  // 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)
-  function labelRow(seg, x, y, title, sub, tx, ty, w) {
+  /* 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)。**共用函式，三張圖都在用。**
+
+     ★ 行距（art-director 2026-09-21）：標題基線 y+2、副標基線以前是 y+15 ＝ 行距只有 13px。
+     `.dg .sub` 從 10.5px 升到 12px 之後，13px 行距配 12px 中文字 —— 量到 MLCC 那張
+     **六對標題／副標的 bbox 互相重疊 1.00px**（1440／800／390 都一樣，深淺主題也一樣）。
+     這跟 processBar 的 B3 是同一個病：行距沒有跟著字級長。
+     改成 y+18（行距 16px，與 processBar 對齊），底框 34 → 40 撐得下。
+     列距是 52～54px，底框 40 之後兩列之間還留 12～14px。
+
+     ★ `dropY`（art-director 2026-09-21，P4-a）：引線預設是「從零件水平走到轉折點再垂直上去」。
+     當零件的錨點落在**主體的另一側**時，那條水平線會**橫跨整個主角**——
+     MLCC 的「側邊餘白」就是這樣：錨點在本體最左 x≈360、標註框在最右 x=654，
+     中間那條線從主角身上穿過去。傳 dropY 就改成「先垂直走到 dropY（主體下方）再水平過去」，
+     繞過主角而不是穿過它。沒傳的呼叫端一行都不用改。*/
+  function labelRow(seg, x, y, title, sub, tx, ty, w, dropY) {
     w = w || 250;
     const elbow = x - 14;
-    return `<g class="lrow" data-seg="${seg}"><rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="34" rx="6"/>
-      ${tx != null ? `<path class="leader" d="M${tx},${ty} L${elbow},${ty} L${elbow},${y - 2} L${x - 2},${y - 2}"/>` : ''}
+    const lead = dropY != null
+      ? `M${tx},${ty} L${tx},${dropY} L${elbow},${dropY} L${elbow},${y - 2} L${x - 2},${y - 2}`
+      : `M${tx},${ty} L${elbow},${ty} L${elbow},${y - 2} L${x - 2},${y - 2}`;
+    return `<g class="lrow" data-seg="${seg}"><rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="40" rx="6"/>
+      ${tx != null ? `<path class="leader" d="${lead}"/>` : ''}
       <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
-      <text class="lbl" x="${x + 16}" y="${y + 2}">${title}</text><text class="sub" x="${x + 16}" y="${y + 15}">${sub}</text></g>`;
+      <text class="lbl" x="${x + 16}" y="${y + 2}">${title}</text><text class="sub" x="${x + 16}" y="${y + 18}">${sub}</text></g>`;
   }
   /* 底部流程列：一串步驟方塊，帶移動的光點。**共用函式，三張圖都在用。**
      B3（art-director 2026-09-21）：方塊本來高 34、標題基線 y+16、副標基線 y+28 ＝ 行距只有 12px。
@@ -171,7 +190,7 @@
   const PB_H = 40, PB_MID = 20;
   function processBar(x, y, steps, w) {
     w = w || 150; const gap = 12;
-    const boxes = steps.map((s, i) => { const bx = x + i * (w + gap); return `<g data-seg="${s.seg}"><rect class="part" x="${bx}" y="${y}" width="${w}" height="${PB_H}" rx="7" fill="#0f172b"/><text class="lbl" x="${bx + 12}" y="${y + 16}" style="font-size:12px">${s.t}</text><text class="sub" x="${bx + 12}" y="${y + 32}">${s.s}</text></g>`
+    const boxes = steps.map((s, i) => { const bx = x + i * (w + gap); return `<g data-seg="${s.seg}"><rect class="part" x="${bx}" y="${y}" width="${w}" height="${PB_H}" rx="7" fill="#0f172b"/><text class="lbl" x="${bx + 12}" y="${y + 16}">${s.t}</text><text class="sub" x="${bx + 12}" y="${y + 32}">${s.s}</text></g>`
       + (i < steps.length - 1 ? `<path class="flow fast" d="M${bx + w},${y + PB_MID} L${bx + w + gap},${y + PB_MID}" stroke="var(--dg-accent)" stroke-width="2"/>` : ''); }).join('');
     const total = steps.length * (w + gap) - gap;
     return `<g>${boxes}<circle r="3" fill="#fff" opacity=".9"><animateMotion dur="6s" repeatCount="indefinite" path="M${x},${y + PB_MID} L${x + total},${y + PB_MID}"/></circle></g>`;
@@ -246,10 +265,10 @@
     // 每一列的轉折點錯開，不然七條引線的垂直段會疊成一條粗線，看起來像畫錯
     const elbow = x - 14 - (i || 0) * 8;
     return `<g class="p3 lrow" data-part="${o.id}"${o.codes && o.codes.length ? ` data-codes="${o.codes.join(',')}"` : ''}${o.seg ? ` data-seg="${o.seg}"` : ''}>
-      <rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="34" rx="6"/>
+      <rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="40" rx="6"/>
       ${o.ax != null ? `<path class="leader" d="M${o.ax.toFixed(1)},${o.ay.toFixed(1)} L${elbow},${o.ay.toFixed(1)} L${elbow},${y - 2} L${x - 2},${y - 2}"/>` : ''}
       <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
-      <text class="lbl" x="${x + 16}" y="${y + 2}">${o.label}</text><text class="sub" x="${x + 16}" y="${y + 15}">${o.sub || ''}</text></g>`;
+      <text class="lbl" x="${x + 16}" y="${y + 2}">${o.label}</text><text class="sub" x="${x + 16}" y="${y + 18}">${o.sub || ''}</text></g>`;
   }
 
   // ================================================================ 半導體：CoWoS 2.5D 剖面
@@ -265,7 +284,7 @@
     const tsv = []; for (let x = 340; x <= 860; x += 26) tsv.push(`<line x1="${x}" y1="262" x2="${x}" y2="296" stroke="rgba(62,224,255,.35)" stroke-width="1"/>`);
     const vias = []; for (let x = 330; x <= 870; x += 36) vias.push(`<line x1="${x}" y1="314" x2="${x}" y2="356" stroke="rgba(255,180,84,.45)" stroke-width="1.2"/>`);
     const wafer = (() => { const cx = 126, cy = 300, R = 66; const lines = []; for (let d = -54; d <= 54; d += 18) { const h = Math.sqrt(R * R - d * d) - 2; lines.push(`<line x1="${cx - h}" y1="${cy + d}" x2="${cx + h}" y2="${cy + d}" stroke="#0b1224" stroke-width=".9"/><line x1="${cx + d}" y1="${cy - h}" x2="${cx + d}" y2="${cy + h}" stroke="#0b1224" stroke-width=".9"/>`); } return lines.join(''); })();
-    return `<svg class="dg" viewBox="0 0 1220 545" width="100%" style="display:block">${STYLE}
+    return `<svg class="dg dgm" viewBox="0 0 1220 545" width="100%" style="display:block">${STYLE}
       <defs>
         <linearGradient id="sgSi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3f7a"/><stop offset="1" stop-color="#1a2856"/></linearGradient>
         <linearGradient id="sgLid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b7aa8"/><stop offset=".5" stop-color="#3d4a74"/><stop offset="1" stop-color="#2a3560"/></linearGradient>
@@ -281,8 +300,8 @@
       <!-- 左：晶片誕生流程 -->
       <g data-seg="ip_eda" data-part="sc_ipeda"><rect class="part" x="16" y="70" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="90">IP / EDA / 設計服務</text><text class="sub" x="28" y="106">矽智財授權、ASIC 設計服務（NRE）</text></g>
       <path class="flow" d="M126,120 L126,144" stroke="#3ee0ff" stroke-width="2"/>
-      <g data-seg="ic_design" data-part="sc_icdesign"><rect class="part" x="16" y="146" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="166">IC 設計</text><text class="sub" x="28" y="182">GPU / ASIC / 網通晶片，交付 GDS 光罩資料</text></g>
-      <path class="flow" d="M126,196 L126,228" stroke="#3ee0ff" stroke-width="2"/>
+      <g data-seg="ic_design" data-part="sc_icdesign"><rect class="part" x="16" y="146" width="220" height="66" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="166">IC 設計</text><text class="sub" x="28" y="184">GPU / ASIC / 網通晶片</text><text class="sub" x="28" y="202">交付 GDS 光罩資料</text></g>
+      <path class="flow" d="M126,212 L126,228" stroke="#3ee0ff" stroke-width="2"/>
       <g data-seg="foundry" data-part="sc_wafer">
         <circle class="part" cx="126" cy="300" r="66" fill="url(#sgWafer)"/>
         <g clip-path="url(#sgWaferClip)">${wafer}<rect class="scan" x="60" y="292" width="132" height="4" fill="rgba(62,224,255,.55)"/></g>
@@ -297,7 +316,7 @@
       <g data-seg="abf_pcb" data-part="sc_pcb"><rect class="part" x="300" y="384" width="600" height="32" rx="4" fill="url(#sgPcb)"/>
         <path class="flow slow" d="M316,394 H560 M316,406 H420 M640,394 H884 M700,406 H884" stroke="rgba(255,180,84,.55)" stroke-width="1.4"/>
         <text class="sub" x="312" y="404" style="fill:#c7f2d6">主機板 PCB</text></g>
-      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="880" y="366" style="font-size:9.5px">BGA</text></g>
+      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="880" y="366">BGA</text></g>
       <g data-seg="abf_pcb" data-part="sc_abf"><rect class="part" x="310" y="310" width="580" height="50" rx="4" fill="url(#sgAbf)"/>
         <path d="M318,322 H882 M318,334 H882 M318,346 H882" stroke="rgba(255,255,255,.08)"/>${vias.join('')}
         <text class="sub" x="322" y="329" style="fill:#c7f2d6">ABF 載板（多層增層基板）</text></g>
@@ -308,7 +327,7 @@
         <text class="sub" x="332" y="294" style="fill:#9fd8ff">矽中介層 Interposer</text></g>
       <g data-seg="adv_pkg" data-part="sc_ubump">${bumps(254, 2.5, 10, 340, 870, 'rgba(255,180,84,.85)')}</g>
       <g data-seg="hbm" data-part="sc_hbm">${hbmStack(340, 142, 0)}${hbmStack(420, 142, .3)}${hbmStack(700, 142, .6)}${hbmStack(780, 142, .9)}<rect class="part" x="336" y="138" width="158" height="116" rx="3" fill="none"/><rect class="part" x="696" y="138" width="158" height="116" rx="3" fill="none"/></g>
-      <g data-seg="foundry" data-part="sc_die"><rect class="part" x="510" y="142" width="180" height="108" rx="3" fill="url(#sgSi)"/>${dieCells.join('')}<text class="mono" x="522" y="243" style="font-size:9.5px;fill:#9fd8ff">GPU / ASIC DIE</text></g>
+      <g data-seg="foundry" data-part="sc_die"><rect class="part" x="510" y="142" width="180" height="108" rx="3" fill="url(#sgSi)"/>${dieCells.join('')}<text class="mono" x="522" y="243" style="fill:#9fd8ff">GPU / ASIC DIE</text></g>
       <g data-seg="osat_test" data-part="sc_lid"><rect x="330" y="134" width="540" height="6" fill="#0b1224"/><rect class="part" x="330" y="110" width="540" height="26" rx="5" fill="url(#sgLid)"/>
         ${[380, 460, 540, 620, 700, 780].map((x, i) => `<path class="heat" d="M${x},104 c4,-6 -4,-10 0,-16" stroke="#ff8fab" stroke-width="1.6" fill="none" style="animation-delay:${i * .4}s"/>`).join('')}
         <text class="sub" x="596" y="128" style="fill:#e8eeff" text-anchor="middle">散熱上蓋（Lid）</text></g>
@@ -347,7 +366,7 @@
     const cages = [0, 1, 2, 3].map(j => `<rect x="${1004 + j * 14}" y="452" width="11" height="26" rx="1.5" fill="#0f172b" stroke="#2a3860"/><circle class="blink b${(j % 3) + 1}" cx="${1009.5 + j * 14}" cy="${458}" r="1.8" fill="#3ee0ff"/>`).join('');
     const traces = [[590, 470], [640, 458], [720, 476], [800, 462], [880, 472], [940, 460]].map(([x, y], i) => `<path class="flow ${i % 2 ? 'rev' : ''} slow" d="M${x},${y} h${40 + (i % 3) * 20}" stroke="rgba(255,180,84,.5)" stroke-width="1.3"/>`).join('');
     const weave = []; for (let x = 570; x <= 990; x += 22) weave.push(`<line x1="${x}" y1="522" x2="${x}" y2="560" stroke="rgba(120,200,150,.16)"/>`); for (let y = 530; y <= 556; y += 9) weave.push(`<line x1="562" y1="${y}" x2="1000" y2="${y}" stroke="rgba(120,200,150,.16)"/>`);
-    return `<svg class="dg" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
+    return `<svg class="dg dgm" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
       <defs>
         <linearGradient id="agCool" x1="0" x2="1"><stop offset="0" stop-color="#3ee0ff"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient>
         <linearGradient id="agPlate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(62,224,255,.28)"/><stop offset="1" stop-color="rgba(62,224,255,.08)"/></linearGradient>
@@ -359,11 +378,11 @@
 
       <!-- 左：機櫃 -->
       <g data-seg="assembly" data-part="ag_rack"><rect class="part" x="20" y="60" width="200" height="550" rx="10" fill="#0f172b"/>${trays.join('')}<text class="sub" x="34" y="112">GPU 運算托盤 ×8</text><text class="lbl" x="28" y="632">整機櫃 Rack（系統組裝）</text></g>
-      <g data-seg="switch" data-part="ag_tor"><rect class="part" x="34" y="72" width="172" height="30" rx="4" fill="#182a3f"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${44 + j * 12}" y="80" width="8" height="10" rx="1" fill="#ffb454"/>`).join('')}<circle class="blink b2" cx="196" cy="87" r="3" fill="#3ee0ff"/><text class="sub" x="150" y="68" style="fill:#e8eeff">ToR 交換器</text></g>
-      <g data-seg="power" data-part="ag_psu"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="34" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
+      <g data-seg="switch" data-part="ag_tor"><rect class="part" x="34" y="72" width="172" height="30" rx="4" fill="#182a3f"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${44 + j * 12}" y="80" width="8" height="10" rx="1" fill="#ffb454"/>`).join('')}<circle class="blink b2" cx="196" cy="87" r="3" fill="#3ee0ff"/><text class="sub" x="136" y="68" style="fill:#e8eeff">ToR 交換器</text></g>
+      <g data-seg="power" data-part="ag_psu"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="26" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
       <g data-seg="thermal" data-part="ag_cdu"><rect class="part" x="34" y="524" width="172" height="76" rx="4" fill="#0e2a33"/>
         <circle class="spin" cx="66" cy="562" r="16" fill="none" stroke="#3ee0ff" stroke-width="2.5" stroke-dasharray="7 6"/><circle cx="66" cy="562" r="4" fill="#3ee0ff"/>
-        <text class="lbl" x="94" y="556" style="font-size:12px">CDU</text><text class="sub" x="94" y="571">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="585">冷水進 · 熱水回</text>
+        <text class="lbl" x="94" y="556">CDU</text><text class="sub" x="94" y="571">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="585">冷水進 · 熱水回</text>
         <path class="flow" d="M212,596 V120" stroke="#3ee0ff" stroke-width="2.4"/><path class="flow rev" d="M218,120 V596" stroke="#ff4d6d" stroke-width="2.4"/></g>
 
       <!-- 中：托盤爆炸圖（skewX 做出斜視角） -->
@@ -388,7 +407,7 @@
       <!-- 右：說明欄 -->
       <g data-seg="hyperscaler" data-part="ag_csp"><path class="part" d="M954,88 a18,18 0 0 1 34,-8 a16,16 0 0 1 30,10 a14,14 0 0 1 -6,27 h-56 a15,15 0 0 1 -2,-29 z" fill="#0f172b"/>
         ${[0, 1, 2].map(j => `<circle class="drop d${j + 1}" cx="${966 + j * 22}" cy="126" r="2.5" fill="#8b7bff"/>`).join('')}
-        <text class="lbl" x="1030" y="94">雲端業者（終端需求）</text><text class="sub" x="1030" y="110">Microsoft / Google / Amazon / Meta</text></g>
+        <text class="lbl" x="1030" y="94">雲端業者（終端需求）</text><text class="sub" x="1030" y="112">Microsoft / Google</text><text class="sub" x="1030" y="130">Amazon / Meta</text></g>
       ${labelRow('thermal', 934, 196, '液冷冷板 / CDU', '冷板、快接頭、分歧管；機櫃 CDU 循環', sx(1040, 210), 210)}
       ${labelRow('adv_pkg', 934, 248, 'GPU 模組（CoWoS 封裝）', '邏輯晶片 + HBM 放在矽中介層上', sx(1020, 330), 330)}
       ${labelRow('foundry', 934, 300, 'GPU 晶片・晶圓代工', '3nm / 2nm 邏輯晶粒（看半導體鏈）', sx(946, 356), 356)}
@@ -717,12 +736,14 @@
     /* ★ 2026-09-21 art-director 獨立量測：這兩張舊圖在**任何寬度都不合格**，
        連 1440 全寬都還沒到 12px（半導體 10.47px、AI 伺服器 11.57px），
        900px 螢幕上只剩 6.26px / 6.92px。Andy 已經講過三次「文字太小」。
-       根因和 MLCC 那張完全一樣：產業鏈頁右邊有側欄，欄寬永遠遠小於螢幕寬，
-       viewBox 1220 被壓成 ×0.659 —— **字級怎麼調都沒用**。
-       這裡先補上 native（一行、不動任何幾何、零回歸風險），
-       900px 的縮放從 ×0.659 拉回 ×1.0，最小字級 6.26 → 9.5px。
-       ⚠ 還沒到 12px：那要把兩張掛上 .dgm 並**重排版面**（字級一升，labelRow 與
-       processBar 的行距會擠在一起），那是另外一批、自己一個 commit，不跟新圖綁在一起。*/
+       根因和 MLCC 那張完全一樣：欄寬永遠遠小於螢幕寬，viewBox 1220 被壓成 ×0.659
+       —— **字級怎麼調都沒用**。分兩步修完：
+         第一步（已做）native：圖維持原尺寸，900px 的縮放從 ×0.659 拉回 ×1.0。
+         第二步（已做，分支 claude/dg-typo）字級標準：12px 變成 .dg 的基準
+         （--dg-fs-min），labelRow／lrow3 的行距同步從 13px 改成 16px ——
+         那正是「字級一升就會擠在一起」的那件事，不是順手改的，
+         是先量到 MLCC 已經有六對重疊 1.00px 才動的。
+       現在量到的畫面真實字級：1440 13.22px／800 12.00px／390 12.00px。*/
     /* ★ 2026-09-21（Andy）：`q` ＝**這張圖回答哪一個具體問題**，一定要寫。
        它不是裝飾文案 —— 圖別選單就是靠它讓人在「還沒點進去」的時候就知道
        自己要不要點；沒有 `q` 的圖等於在叫人先點進去再猜。

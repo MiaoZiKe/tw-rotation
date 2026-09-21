@@ -21,17 +21,22 @@
 
   // ---------------------------------------------------------------- 個股標籤（直接可點）
   const nameOf = (c) => (window.Link && window.Link.cname[c]) || '';
+  /* ★ 2026-09-21 art-director：晶片上的字從 11.5px 升到 12px（--dg-fs-min，字級下限）。
+     字一長，**盒子與列距一定要跟著長**，不然就是 processBar 那個老毛病重演一次 ——
+     所以這三個數字（估寬的 11.5、盒高 19、列距 23）是同一組，不准只改其中一個。
+     估寬用 12.5/字：中文字在 12px 下大約就是 12px 寬，多的 0.5 是安全邊。*/
+  const CHIP_H = 21, CHIP_ROW = 25;
   function chips(codes, x, y, maxW) {
     let cx = x, cy = y, out = '';
     (codes || []).forEach(code => {
       const nm = nameOf(code), t = nm ? code + ' ' + nm : code;
-      const w = Math.round(30 + (nm ? nm.length * 11.5 : 0) + 12);
-      if (cx > x && cx + w > x + maxW) { cx = x; cy += 23; }
-      out += `<g class="scode" data-code="${code}"><rect x="${cx}" y="${cy}" width="${w}" height="19" rx="5"/>`
-        + `<text x="${cx + 7}" y="${cy + 13.5}">${esc(t)}</text></g>`;
+      const w = Math.round(32 + (nm ? nm.length * 12.5 : 0) + 12);
+      if (cx > x && cx + w > x + maxW) { cx = x; cy += CHIP_ROW; }
+      out += `<g class="scode" data-code="${code}"><rect x="${cx}" y="${cy}" width="${w}" height="${CHIP_H}" rx="5"/>`
+        + `<text x="${cx + 7}" y="${cy + 14.8}">${esc(t)}</text></g>`;
       cx += w + 6;
     });
-    return { svg: out, rows: Math.round((cy - y) / 23) + 1 };
+    return { svg: out, rows: Math.round((cy - y) / CHIP_ROW) + 1 };
   }
 
   // ---------------------------------------------------------------- 場景外框
@@ -43,9 +48,9 @@
     const body = st.map((s, i) => {
       const x = slot(i), cx = x + W / 2;
       const ch = chips(s.codes, x, CHIP_Y, W); maxRows = Math.max(maxRows, ch.rows);
-      const sub = (s.sub || []).map((t, j) => `<text class="sub" x="${x}" y="${CAP_Y + 18 + j * 14}">${esc(t)}</text>`).join('');
+      const sub = (s.sub || []).map((t, j) => `<text class="sub" x="${x}" y="${CAP_Y + 19 + j * 17}">${esc(t)}</text>`).join('');
       return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${x - 7}" y="${BAND_Y + 16}" width="${W + 14}" height="${CHIP_Y - BAND_Y - 12 + ch.rows * 23}" rx="10"/>
+        <rect class="slot" x="${x - 7}" y="${BAND_Y + 16}" width="${W + 14}" height="${CHIP_Y - BAND_Y - 12 + ch.rows * CHIP_ROW}" rx="10"/>
         <g transform="translate(${cx},${ART_Y}) scale(${s.k || 1})">${s.art()}</g>
         <text class="lbl" x="${x}" y="${CAP_Y}">${esc(s.label)}</text>${sub}${ch.svg}</g>`;
     }).join('');
@@ -62,17 +67,17 @@
       return `<g class="band b${b}"><rect x="${x}" y="${BAND_Y - 19}" width="${w}" height="26" rx="7"/>
         <text x="${x + 13}" y="${BAND_Y - 1}">${BANDS[b]}</text></g>`;
     }).join('');
-    const sy = CHIP_Y + maxRows * 23 + 30;
+    const sy = CHIP_Y + maxRows * CHIP_ROW + 30;
     const H = sy + 82;
     const steps = (o.steps || []).length;
     const sw = steps ? Math.floor((CW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
     const strip = (o.steps || []).map((s, i) => {
       const x = PADX + i * (sw + 10);
-      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="34" rx="8"/>
-        <circle class="num" cx="${x + 18}" cy="${sy + 17}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 21}" text-anchor="middle">${i + 1}</text>
-        <text class="lbl" x="${x + 36}" y="${sy + 15}" style="font-size:12px">${esc(s.t)}</text>
-        <text class="sub" x="${x + 36}" y="${sy + 28}">${esc(s.s || '')}</text></g>`
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 17} L${x + sw + 10},${sy + 17}" stroke="#3ee0ff" stroke-width="2"/>` : '');
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
+        <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
+        <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="#3ee0ff" stroke-width="2"/>` : '');
     }).join('');
     return `<svg class="dg dg3" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${STYLE}
       <text class="ttl" x="${PADX}" y="26">${esc(o.title)}</text>
@@ -104,14 +109,14 @@
     }).join('');
     const rows = ly.map((s, i) => {
       const y = rowY(i);
-      const ch = chips(s.codes, EX.LX, y + 14, EX.LW - 10);
+      const ch = chips(s.codes, EX.LX, y + 18, EX.LW - 10);
       maxRows = Math.max(maxRows, ch.rows);
       const sub = (s.sub || []).map((t, j) =>
-        `<text class="sub" x="${EX.LX}" y="${y - 7 + j * 13}">${esc(t)}</text>`).join('');
+        `<text class="sub" x="${EX.LX}" y="${y - 6 + j * 17}">${esc(t)}</text>`).join('');
       // 引線：從零件右緣往右拉一段、折一次、接到標註區
       const d = `M${EX.X + 152},${y - 12} H${EX.LX - 66} L${EX.LX - 34},${y - 26} H${EX.LX - 8}`;
       return `<g class="p3 stn ex" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${EX.LX - 14}" y="${y - 46}" width="${EX.LW + 14}" height="${52 + (s.sub || []).length * 13 + ch.rows * 23}" rx="9"/>
+        <rect class="slot" x="${EX.LX - 14}" y="${y - 46}" width="${EX.LW + 14}" height="${52 + (s.sub || []).length * 17 + ch.rows * CHIP_ROW}" rx="9"/>
         <g class="art" data-cx="${EX.X}" data-cy="${y - 22}" data-mh="${EX.ROW - 26}" data-mw="196"
            transform="translate(${EX.X},${y}) scale(${(s.k || 1) * EX.K})">${s.art()}</g>
         <path class="leader" d="${d}"/><circle class="lit" cx="${EX.X + 152}" cy="${y - 12}" r="3.2"/>
@@ -119,17 +124,17 @@
         <text class="tag" x="${EX.LX + 10 + esc(s.label).length * 13}" y="${y - 26}">${BAND_TAG[s.band] || ''}</text>
         ${sub}${ch.svg}</g>`;
     }).join('');
-    const sy = rowY(n - 1) + 34 + maxRows * 23 + 22;
+    const sy = rowY(n - 1) + 34 + maxRows * CHIP_ROW + 22;
     const H = sy + 82;
     const steps = (o.steps || []).length;
     const sw = steps ? Math.floor((CW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
     const strip = (o.steps || []).map((s, i) => {
       const x = PADX + i * (sw + 10);
-      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="34" rx="8"/>
-        <circle class="num" cx="${x + 18}" cy="${sy + 17}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 21}" text-anchor="middle">${i + 1}</text>
-        <text class="lbl" x="${x + 36}" y="${sy + 15}" style="font-size:12px">${esc(s.t)}</text>
-        <text class="sub" x="${x + 36}" y="${sy + 28}">${esc(s.s || '')}</text></g>`
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 17} L${x + sw + 10},${sy + 17}" stroke="#3ee0ff" stroke-width="2"/>` : '');
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
+        <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
+        <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="#3ee0ff" stroke-width="2"/>` : '');
     }).join('');
     const axis = `<text class="cap" x="${PADX}" y="${EX.TOP - 58}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
     return `<svg class="dg dg3" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${STYLE}
@@ -506,6 +511,7 @@
      app.js 插完圖就呼叫這支；沒有爆炸圖的題材直接跳過。 */
   function fit(root) {
     if (!root) return;
+    nativeWidth(root);
     root.querySelectorAll('.p3.stn.ex > g.art').forEach(art => {
       const cx = +art.dataset.cx, cy = +art.dataset.cy;
       const mh = +art.dataset.mh, mw = +art.dataset.mw;
@@ -521,6 +527,26 @@
     });
   }
 
+  /* ---------------------------------------------------------------- 原尺寸（native）
+     ★ 2026-09-21 art-director，量出來的事實：
+       題材圖的 viewBox 寬是 CW＝1180，而它掛的那張卡在 1440 螢幕上是 1344px（放大 1.139 倍），
+       在 **800px 螢幕上只剩 940px（壓成 0.797 倍）** —— 12px 的字被壓成 9.56px，
+       整張圖 44～57 個文字節點全部低於下限。**這跟字級無關，字級怎麼調都沒用**
+       （產業鏈剖析圖 2026-09-21 已經踩過同一個坑，DECISIONS #226）。
+     修法跟那邊一模一樣：圖維持原尺寸、欄位不夠寬就左右滑。
+     為什麼寫在這裡而不是 app.js：`fit()` 本來就是「SVG 進 DOM 之後再量一次」的那支，
+     app.js 插完圖一定會呼叫它 —— 這一批不動 app.js。
+     ⚠ 代價寫清楚：800px 一次看得到 940/1180＝80%，390px 只看得到 33%，要左右滑。
+     這是 #226 已經拍板的取捨（字級守住優先），不是新的決定。*/
+  function nativeWidth(root) {
+    const svg = root && root.querySelector('svg');
+    if (!svg) return;
+    root.style.overflowX = 'auto';
+    root.style.overflowY = 'hidden';
+    svg.style.minWidth = CW + 'px';
+  }
+
   window.ThemeDiagrams = T;
   window.ThemeDiagrams.fit = fit;
+  window.ThemeDiagrams.CW = CW;
 })();
