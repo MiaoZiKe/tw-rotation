@@ -146,10 +146,27 @@ def scan_widths(pg, base, problems, state, pages=(("overview", "總覽"), ("flow
 
 
 def serve():
+    """起一個只給本機用的靜態伺服器。
+
+    ★ 埠要自己找，不可以寫死（2026-09-21 踩到）。
+      原本寫死 8766，於是「同時在跑 `_uitest.py`」就會讓這支直接
+      `OSError: [Errno 98] Address already in use` 整個死掉 ——
+      而那個錯誤長得像「預覽關卡壞了」，實際上只是埠被佔走。
+      `_uitest.py` 早就改成自動找埠了，這支漏掉，這次補上。
+      回傳的 srv 身上帶著真正用到的埠（`srv.server_address[1]`），呼叫端要讀那個，
+      不可以再讀模組層的 PORT。"""
     handler = partial(SimpleHTTPRequestHandler, directory=str(SITE))
     handler.log_message = lambda *a, **k: None
     SimpleHTTPRequestHandler.log_message = lambda *a, **k: None
-    srv = ThreadingHTTPServer(("127.0.0.1", PORT), handler)
+    last = None
+    for off in range(0, 40):
+        try:
+            srv = ThreadingHTTPServer(("127.0.0.1", PORT + off), handler)
+            break
+        except OSError as e:
+            last = e
+    else:
+        raise RuntimeError(f"從 {PORT} 起連續 40 個埠都被佔走了：{last}")
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
 
@@ -170,7 +187,7 @@ def main() -> int:
               and "ERR_TUNNEL_CONNECTION_FAILED" not in m.text and "workers.dev" not in m.text
               and "ERR_NAME_NOT_RESOLVED" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-        base = f"http://127.0.0.1:{PORT}/index.html"
+        base = f"http://127.0.0.1:{srv.server_address[1]}/index.html"
 
         def visit(hash_, name, wait=1500):
             pg.goto(f"{base}#{hash_}", wait_until="networkidle"); pg.wait_for_timeout(wait)
