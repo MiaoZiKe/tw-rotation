@@ -306,7 +306,7 @@
         <circle class="part" cx="126" cy="300" r="66" fill="url(#sgWafer)"/>
         <g clip-path="url(#sgWaferClip)">${wafer}<rect class="scan" x="60" y="292" width="132" height="4" fill="rgba(62,224,255,.55)"/></g>
         <rect x="118" y="292" width="16" height="16" rx="2" fill="#3ee0ff" opacity=".9"/>
-        <text class="lbl" x="56" y="392">晶圓代工 3nm / 2nm</text><text class="sub" x="42" y="408">300mm 晶圓 → 切割成邏輯晶片；HBM 基底晶片</text>
+        <text class="lbl" x="56" y="392">晶圓代工 3nm / 2nm</text><text class="sub" x="42" y="408">300mm 晶圓 → 切割成邏輯晶片</text><text class="sub" x="42" y="426">HBM 的基底晶片也在這裡做</text>
       </g>
       <path class="flow" d="M196,300 L300,300" stroke="#3ee0ff" stroke-width="2"/><text class="cap" x="206" y="292">切割 → 封裝</text>
       ${chainLink('ai_server', 16, 444, '→ 下游：組裝進 AI 伺服器')}
@@ -316,7 +316,7 @@
       <g data-seg="abf_pcb" data-part="sc_pcb"><rect class="part" x="300" y="384" width="600" height="32" rx="4" fill="url(#sgPcb)"/>
         <path class="flow slow" d="M316,394 H560 M316,406 H420 M640,394 H884 M700,406 H884" stroke="rgba(255,180,84,.55)" stroke-width="1.4"/>
         <text class="sub" x="312" y="404" style="fill:#c7f2d6">主機板 PCB</text></g>
-      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="880" y="366">BGA</text></g>
+      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="898" y="368">BGA</text></g>
       <g data-seg="abf_pcb" data-part="sc_abf"><rect class="part" x="310" y="310" width="580" height="50" rx="4" fill="url(#sgAbf)"/>
         <path d="M318,322 H882 M318,334 H882 M318,346 H882" stroke="rgba(255,255,255,.08)"/>${vias.join('')}
         <text class="sub" x="322" y="329" style="fill:#c7f2d6">ABF 載板（多層增層基板）</text></g>
@@ -470,8 +470,30 @@
     const PIT = (H - COV * 2) / NEL, ET = 2.2;
     const ez = (i) => COV + i * PIT + (PIT - ET) / 2;   // 第 i 層電極的下緣 z
     const CX = 411, CY = 226;                            // 等角本體在畫面上的原點
-    const ax = (x, y) => (CX + (x - y) * IX).toFixed(1);
-    const ay = (x, y, z) => (CY + (x + y) * IY - z).toFixed(1);
+    /* P2（art-director 2026-09-21）：主角只佔畫布面積 9.9%，一眼掃過去贏不了左上角的尺寸尺。
+       S 是主角的等比放大倍率 —— **純等比縮放，幾何一行都沒動**，
+       mechanical-engineer 簽過的結構（層數、餘白、切法、端子順序）完全不受影響。
+       上限是算出來的、不是喬出來的：中間那條帶子被左欄（右緣 286）與右側說明欄
+       （底框左緣 646）夾住，寬 352；本體原尺寸寬 327.3 → S ≤ 352/327.3 ＝ 1.076。
+       ★ 為什麼不能再大：畫布寬 980 是 DECISIONS #226 訂的（1440 螢幕上欄寬剛好 984，
+         不用左右滑）。要讓主角再大就得把畫布加寬，那等於在 Andy 的預設寬度上
+         生出一條水平捲軸 —— 那個代價比「主角再大 4%」貴，所以不換。
+       主角要贏不是靠變大，是靠**附註級的東西不要穿主角的材質、不要站在閱讀起點**（見下）。
+       ★ 兩個夾住主角的東西都先讓了一步，S 才拉得到 1.15：
+         · 右側說明欄的底框畫到 948，但**最長的一行字只到 860** —— 右邊 88px 是空的。
+           欄位右移到 688、寬度收到 268，文字最遠約 909（離畫布右緣還有 71px），
+           主角的右界從 646 放寬到 674。
+         · 左欄在 y 282～322 之間本來就是空的（② 的框到 282、③ 的小標從 322 起），
+           而主角最寬的那一點正好落在 y≈298 —— 左邊其實一直沒有真的卡住。
+       1.15 的四邊留白：左 12.6／右 12.1／上 33.5／下 56.6px。*/
+    const S = 1.15;
+    const ax = (x, y) => (CX + S * (x - y) * IX).toFixed(1);
+    const ay = (x, y, z) => (CY + S * ((x + y) * IY - z)).toFixed(1);
+    const BOT = CY + S * (L + W) * IY;                   // 主角最低點（引線要繞到它下面）
+    /* 省略記號「⋮ ×N」的位置：切面 B 的局部座標 (u≈85, v≈75) 換算回畫面。
+       以前寫死成 (484, 250)，主角一放大就跟條紋區脫鉤 —— 現在跟著 S 走。*/
+    const NX = +(CX + S * (px(XC, YC) + IX * 85)).toFixed(1);
+    const NY = +(CY + S * (py(XC, YC, 0) + IY * 85 - 75)).toFixed(1);
     const poly = (cls, fill, pts) => `<path class="${cls}" fill="${fill}" d="M${pts.join('L')}Z"/>`;
     // (u,v) 平面上的矩形；onXZ / onYZ 的局部座標裡 y 就是 v（矩陣已經把方向翻好）
     const RV = (u0, v0, u1, v1) => `M${u0},${v0}H${u1}V${v1}H${u0}Z`;
@@ -514,7 +536,7 @@
       + `<rect x="0" y="0" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
       + `<rect x="0" y="${H - COV}" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
       + elsA.join('')
-      + `<path d="M${uSide},${COV + 2}V${H - COV - 2}" stroke="var(--dg-warn)" stroke-width="1.1" stroke-dasharray="3 3" fill="none"/>`
+      + `<path d="M${uSide},${COV + 2}V${H - COV - 2}" stroke="var(--dg-warn)" stroke-width="var(--dg-hair-w,2)" stroke-dasharray="5 4" fill="none"/>`
       + `</g>`;
 
     // ---------------- 外表面
@@ -527,15 +549,23 @@
     // 端電極分層提示：兩條細線，遠看就知道那條金屬帶不是一塊實心
     const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="rgba(255,255,255,.35)" stroke-width=".9" fill="none"/>`;
 
-    const iso = `<g data-seg="${SEG}" data-part="mlcc_body" transform="translate(${CX},${CY})">
+    const iso = `<g data-seg="${SEG}" data-part="mlcc_body" data-hero="mlcc_body" transform="translate(${CX},${CY}) scale(${S})">
       ${topFace}${topTermL}${topTermR}${leftCer}${leftTerm}${rightFace}${hint}${faceA}${faceB}</g>`;
 
-    // ---------------- 左欄：尺寸比較尺（1 mm ＝ 110px）
-    const chip = (x, w, h) => {
-      const t = Math.max(5, w * 0.17);
-      return `<g><rect x="${x}" y="${160 - h}" width="${w}" height="${h}" rx="2" fill="url(#mcT)"/>`
-        + `<rect x="${x}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-sn)"/>`
-        + `<rect x="${x + w - t}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-sn)"/></g>`;
+    /* ---------------- 左欄：尺寸比較尺（降權後 1 mm ＝ 79px）
+       P2（art-director 2026-09-21）：這一塊是**附註**，卻是整張圖最先被看到的東西 ——
+       它站在閱讀起點（左上角），而且用了跟主角一模一樣的陶瓷漸層 url(#mcT) 與錫色端子
+       var(--dg-sn)。兩個條件湊在一起，讀者的第一眼會停在附註上。
+       降權的做法是**拿掉材質、不是拿掉資訊**：
+         · 顏色改成單一 --dg-mute 的兩階透明度（輪廓＝本體＋兩個端子，一個都沒少）
+         · 尺寸縮到 0.72（比例尺同步縮，1 mm 仍然量得準）
+         · 位置從左欄最上面移到左欄最下面（見下方的閱讀順序）
+       三套代號、雙標尺寸、比例尺一個字都沒刪。*/
+    const chip = (x, w, h, by) => {
+      const t = Math.max(4, w * 0.17);
+      return `<g><rect x="${x}" y="${by - h}" width="${w}" height="${h}" rx="2" fill="var(--dg-mute)" opacity=".45"/>`
+        + `<rect x="${x}" y="${by - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-mute)" opacity=".85"/>`
+        + `<rect x="${x + w - t}" y="${by - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-mute)" opacity=".85"/></g>`;
     };
 
     // ---------------- 右下：端電極 2D 放大剖面（消費級三層 vs 車規四層）
@@ -620,57 +650,64 @@
       <text class="ttl" x="16" y="26">MLCC 積層陶瓷電容：層數怎麼變成容值，也怎麼變成成本</text>
       <text class="cap" x="16" y="46">中間是切開近角的本體 —— 右下切面看「交錯指狀電極」，左下切面看「側邊餘白」。右邊逐層說明，下面是端電極四層與製程。</text>
 
-      <!-- 左欄 ① 尺寸代號 -->
-      <text class="hd" x="16" y="84">① 尺寸代號有兩套，別記混</text>
-      ${chip(22, 110, 55)}${chip(150, 66, 33)}${chip(234, 44, 22)}
-      <path d="M22,178V190M132,178V190M22,184H132" stroke="var(--dg-accent)" stroke-width="1" opacity=".55" fill="none"/>
-      <text class="num" x="140" y="189">1 mm</text>
-      <text class="sub" x="16" y="214">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
-      <text class="sub" x="16" y="232">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
-      <text class="sub" x="16" y="250">EIA 01005 ＝ 公制 0402 ＝ 0.4 × 0.2 mm</text>
+      <!-- ================= 左欄：閱讀順序改過（art-director 2026-09-21，P2）=================
+           改之前的順序是 ① 尺寸尺 → ② 容值公式 → ③ 板彎裂，也就是**附註站在閱讀起點**。
+           這張圖的命題是標題那句「層數怎麼變成容值，也怎麼變成成本」——
+           那句話的展開式就是容值公式，它才該是讀者第一眼讀到的東西。
+           尺寸尺是「順便知道一下」等級的資訊，移到左欄最下面（＝附註該待的地方），
+           內容一個字都沒刪。板彎裂排第二，因為它是「車規為什麼難做」的前提。 -->
 
-      <!-- 左欄 ② 容值公式 -->
-      <rect class="frame" x="16" y="266" width="270" height="86" rx="8"/>
-      <text class="hd" x="30" y="288">② 容值是層數堆出來的</text>
-      <text class="num" x="30" y="310">C ＝ ε₀ · εr × n × A ÷ d</text>
-      <text class="sub" x="30" y="328">n＝層數、A＝重疊面積、d＝單層厚度</text>
-      <text class="sub" x="30" y="346">n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑</text>
+      <!-- 左欄 ① 容值公式（命題本身，所以排在閱讀起點） -->
+      <rect class="frame" x="16" y="70" width="270" height="86" rx="8"/>
+      <text class="hd" x="30" y="92">① 容值是層數堆出來的</text>
+      <text class="num" x="30" y="114">C ＝ ε₀ · εr × n × A ÷ d</text>
+      <text class="sub" x="30" y="132">n＝層數、A＝重疊面積、d＝單層厚度</text>
+      <text class="sub" x="30" y="150">n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑</text>
 
-      <!-- 左欄 ③ 板彎裂 -->
-      <rect class="frame" x="16" y="366" width="270" height="112" rx="8"/>
-      <text class="hd" x="30" y="388">③ 板彎裂（flex crack）</text>
-      <path d="M32,432 Q151,408 270,432" stroke="var(--dg-pcb)" stroke-width="9" fill="none" stroke-linecap="round"/>
-      <rect x="113" y="410" width="30" height="5" rx="1" fill="var(--dg-cu)"/><rect x="161" y="410" width="30" height="5" rx="1" fill="var(--dg-cu)"/>
-      <rect x="123" y="394" width="60" height="16" rx="2" fill="url(#mcT)"/>
-      <rect x="123" y="394" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/><rect x="172" y="394" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/>
+      <!-- 左欄 ② 板彎裂 -->
+      <rect class="frame" x="16" y="170" width="270" height="112" rx="8"/>
+      <text class="hd" x="30" y="192">② 板彎裂（flex crack）</text>
+      <path d="M32,236 Q151,212 270,236" stroke="var(--dg-pcb)" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <rect x="113" y="214" width="30" height="5" rx="1" fill="var(--dg-cu)"/><rect x="161" y="214" width="30" height="5" rx="1" fill="var(--dg-cu)"/>
+      <rect x="123" y="198" width="60" height="16" rx="2" fill="url(#mcT)"/>
+      <rect x="123" y="198" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/><rect x="172" y="198" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/>
       <!-- A2：45° 裂。起點在安裝面（底面）的端電極內緣 x=134，往「外」上方 45° 走到端電極 x=123 -->
-      <path d="M134,410 L129,405 L127,404 L123,399" stroke="var(--dg-err)" stroke-width="1.8" fill="none"/>
+      <path d="M134,214 L129,209 L127,208 L123,203" stroke="var(--dg-err)" stroke-width="1.8" fill="none"/>
       <!-- A1：三點彎。板子中間上凸（元件在凸面＝受拉面，陶瓷怕拉不怕壓），
            所以受力一定是「兩端往下、中央往上」。舊版兩端朝上＝只會讓中間下凹，跟畫出來的變形相反。 -->
-      <path d="M40,437 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5M262,437 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5" stroke="var(--dg-ink-3)" stroke-width="1.2" fill="none"/>
-      <path d="M151,446 l0,-14 m-4,4.5 l4,-4.5 l4,4.5" stroke="var(--dg-ink-3)" stroke-width="1.4" fill="none"/>
-      <text class="sub" x="30" y="462">板子受力 → 應力傳到陶瓷本體 → 裂</text>
-      <text class="sub" x="30" y="476">車規靠軟端子（導電樹脂）擋這一刀</text>
+      <path d="M40,241 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5M262,241 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5" stroke="var(--dg-ink-3)" stroke-width="1.2" fill="none"/>
+      <path d="M151,250 l0,-14 m-4,4.5 l4,-4.5 l4,4.5" stroke="var(--dg-ink-3)" stroke-width="1.4" fill="none"/>
+      <text class="sub" x="30" y="266">板子受力 → 應力傳到陶瓷本體 → 裂</text>
+      <text class="sub" x="30" y="282">車規靠軟端子（導電樹脂）擋這一刀</text>
+
+      <!-- 左欄 ③ 尺寸代號（附註級：降權＋移到左欄最下面。內容一個字都沒刪） -->
+      <text class="hd" x="16" y="322">③ 尺寸代號有兩套，別記混</text>
+      ${chip(22, 79, 40, 396)}${chip(114, 48, 24, 396)}${chip(174, 32, 16, 396)}
+      <path d="M22,410V422M101,410V422M22,416H101" stroke="var(--dg-mute)" stroke-width="1" opacity=".7" fill="none"/>
+      <text class="num" x="109" y="421" style="fill:var(--dg-mute)">1 mm</text>
+      <text class="sub" x="16" y="446">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
+      <text class="sub" x="16" y="464">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
+      <text class="sub" x="16" y="482">EIA 01005 ＝ 公制 0402 ＝ 0.4 × 0.2 mm</text>
 
       <!-- 中：等角切開本體 -->
       ${iso}
       <!-- A6（規格書 §6-C）：省略記號要畫在條紋區**中間**，不是只寫在最底下的文字裡。
            座標是切面 B 上 (u≈85, v≈75) 換算回畫面的位置：x = 409.3 + 0.866u、y = 283 + 0.5u − v。 -->
       <g pointer-events="none">
-        <rect x="462" y="232" width="44" height="36" rx="5" fill="url(#mcCov)" stroke="var(--dg-el)" stroke-width="1"/>
-        <text class="num" x="484" y="250" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">⋮</text>
-        <text class="num" x="484" y="264" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">×N</text>
+        <rect x="${NX - 23}" y="${NY - 19}" width="46" height="38" rx="5" fill="url(#mcCov)" stroke="var(--dg-el)" stroke-width="1"/>
+        <text class="num" x="${NX}" y="${NY}" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">⋮</text>
+        <text class="num" x="${NX}" y="${NY + 15}" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">×N</text>
       </g>
 
       <!-- 右：說明欄（引線接回零件） -->
-      ${labelRow(SEG, 654, 110, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 312)}
-      ${labelRow(SEG, 654, 164, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 312)}
-      ${labelRow(SEG, 654, 218, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 312)}
-      ${labelRow(SEG, 654, 272, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), 312)}
-      ${labelRow(SEG, 654, 326, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 312)}
-      ${labelRow(SEG, 654, 380, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), 312)}
-      <text class="sub" x="654" y="434" style="fill:var(--dg-warn)">★ 相鄰兩層電極必定來自相反的兩端，</text>
-      <text class="sub" x="654" y="452" style="fill:var(--dg-warn)">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
+      ${labelRow(SEG, 688, 110, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 268)}
+      ${labelRow(SEG, 688, 164, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 268)}
+      ${labelRow(SEG, 688, 218, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 268)}
+      ${labelRow(SEG, 688, 272, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), 268)}
+      ${labelRow(SEG, 688, 326, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 268, BOT + 18)}
+      ${labelRow(SEG, 688, 380, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), 268)}
+      <text class="sub" x="664" y="440" style="fill:var(--dg-warn)">★ 相鄰兩層電極必定來自相反的兩端，</text>
+      <text class="sub" x="664" y="458" style="fill:var(--dg-warn)">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
 
       <!-- 下一段：端電極 2D 放大剖面 -->
       <text class="hd" x="16" y="502">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>

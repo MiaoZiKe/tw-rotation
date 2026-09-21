@@ -42,6 +42,9 @@ push*-log*.txt
 _pending/
 .uitest_times.json
 docs/_show/
+# 剖析圖字級／版面的改前改後截圖（art-director 2026-09-21）。
+# 跟 docs/_show/ 同一條規矩：截圖是本機產物，不進 public repo。
+docs/_dgtypo/
 
 # Agent 用的暫時 worktree（每個 agent 一份 repo 副本），不進版控
 .claude/worktrees/

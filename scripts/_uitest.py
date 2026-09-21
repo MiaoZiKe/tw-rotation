@@ -8936,6 +8936,66 @@ def t_mlcc(pg, base):
     m8c = menu(pg); r8b = rows(pg)
     ok("[800px] 點沒有專屬圖的族群 → 成分股換掉，而且圖真的收起來換回選單",
        r8b != r8a and m8c["menuVis"] and not m8c["svg"], f"{r8a} → {r8b}；{m8c}")
+
+    # ---------------- 10. 字級標準（art-director 2026-09-21，分支 claude/dg-typo）
+    #  以前只驗 MLCC 一張、只驗 800px、只看 .sub 與 .cap 兩個 class ——
+    #  於是半導體與 AI 伺服器兩張舊圖 10.47／11.57px 一路綠燈過關，
+    #  Andy 從 2026-09-15 講到 09-21 都還在講「文字太小」。
+    #  現在驗的是**三張圖 × 三個寬度 × 圖上每一個 text**：
+    #    畫面上真實字級 ＝ computed font-size × (svg 實寬 ÷ viewBox 寬) ≥ 12px
+    #  順便把「文字兩兩重疊」一起驗掉（字級一升、行距沒跟著長就會相貼，
+    #  labelRow／lrow3 在改之前就已經六對重疊 1.00px）。
+    TYPO = """() => {
+      const h = document.querySelector('#prodDiagram');
+      const svg = h && h.querySelector('svg');
+      if (!svg) return {present: false};
+      const r = svg.getBoundingClientRect();
+      const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+      const k = (r.width && vb) ? r.width / vb : 0;
+      const a = [];
+      svg.querySelectorAll('text').forEach(n => {
+        if (!(n.textContent || '').trim()) return;
+        const cs = getComputedStyle(n);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+        const b = n.getBoundingClientRect();
+        if (!b.width || !b.height) return;
+        a.push({t: (n.textContent || '').trim().slice(0, 18), cls: n.getAttribute('class') || '',
+                eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
+                x: b.x, y: b.y, w: b.width, hh: b.height});
+      });
+      const ov = [];
+      for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+        const p2 = a[i], q = a[j];
+        const ox = Math.min(p2.x + p2.w, q.x + q.w) - Math.max(p2.x, q.x);
+        const oy = Math.min(p2.y + p2.hh, q.y + q.hh) - Math.max(p2.y, q.y);
+        if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' ⨯ ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+      }
+      const small = a.filter(z => z.eff < 11.9)
+                     .map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
+      return {present: true, n: a.length, svgW: Math.round(r.width),
+              min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+              small: small.slice(0, 8), nSmall: small.length,
+              ov: ov.slice(0, 6), nOv: ov.length};
+    }"""
+    #  ★ 路由：剖析圖改成獨立分頁之後，族群層級的 MLCC 有自己的網址，
+    #    鏈層級的兩張仍然是點進鏈就直接看到（見本函式第 1~2 段）。
+    for route, what in (("electronics/dg/mlcc", "MLCC"), ("semiconductor", "半導體"),
+                        ("ai_server", "AI 伺服器")):
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+            pg.wait_for_timeout(2400)
+            # ★ 同 4c 的陷阱：<640px 預設收合、而且會記進 localStorage，
+            #   4-worker 平行跑時會汙染別的寬度。用現成的 force_open()
+            #   （它會避開「選單模式下亂按收合鈕」那個自製假紅）。
+            force_open(pg)
+            z = pg.evaluate(TYPO)
+            if not ok(f"[{w}px] {what} 的剖析圖畫得出來", z.get("present"), z):
+                continue
+            ok(f"[{w}px] {what}：圖上**每一個**字的畫面真實字級都 ≥ 12px（共 {z['n']} 個）",
+               z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
+            ok(f"[{w}px] {what}：圖上的文字兩兩不重疊",
+               z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
