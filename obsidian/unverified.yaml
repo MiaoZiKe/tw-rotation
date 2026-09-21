@@ -37,10 +37,12 @@ pending:
       - tests/test_delivery_guard.py
       - tests/test_pipeline_e2e.py
     gates: ["pytest", "preview", "總覽", "資金流向", "新-資金流向", "新-輪動時鐘", "產業", "族群頁", "批次2", "批次3", "批次7"]
-    shown: false
-    ok: null
+    shown: true
+    ok: true
     at: "2026-09-21 09:2x"
     note: >-
       ★ pytest 已經跑過了（435 全過），但**前端一次都還沒驗** ——
       板塊從 110 變 116、族群卡 111 張變 117 張，熱力圖／桑基圖／輪動時鐘都會變。
-      還沒重算 site/data（重算要 5 分鐘），所以截圖給 Andy 看之前要先跑一次 build_payload。
+      已重算 site/data 並發布成互動預覽（claude.ai/artifact/WMwLHNzPAsns4rdJKHHPJZ）。
+      Andy 2026-09-21 看過並裁示：「2883 凱基金放證券，其餘的照資料安排」→ ok=true。
+      ★ 仍然**一段前端驗收都沒跑**，等他說「驗證」。
