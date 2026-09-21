@@ -250,6 +250,25 @@
     // 這條鏈總共有哪幾張圖（鏈層級的排前面）。圖別選單與切換晶片都讀這一份
     const dgOpts = (DS && DS.chainDefault(ch.id) ? [DS.chainDefault(ch.id)] : []).concat(dgGroups);
     const dgHash = (id) => '#industry/' + ch.id + ((DS && DS.chainDefault(ch.id) === id) ? '' : '/dg/' + id);
+    /* ★ 2026-09-21：**畫面換了，網址就一定要跟著換。**
+       踩到的情形：在 `#industry/electronics/dg/mlcc` 上點「面板」族群（它沒有專屬圖），
+       畫面正確地換回圖別選單了，**網址卻還停在 /dg/mlcc** ——
+       於是「複製網址貼給別人，對方看到的跟你看到的不是同一個東西」，
+       而那正是「剖析圖改成獨立分頁」這件事要解決的問題本身。
+       按重新整理或上一頁也會跳回剖析圖。
+
+       用 `history.replaceState` 而**不是**改 `location.hash`：
+       改 hash 會觸發 router 整頁重畫，把 segFilter 之類的頁內狀態沖掉；
+       而點族群卡片是**頁內篩選**，不是一次導覽 —— 不該在歷史紀錄裡多留一筆。
+       （從圖別選單點進某一張圖那條路徑仍然是真的導覽，用的還是 hash，上一頁回得去。）*/
+    const syncDgHash = () => {
+      const want = state.group ? dgPick(ch, state.group)
+                               : (state.dg || (DS ? DS.chainDefault(ch.id) : null));
+      // 只有族群層級的圖要記進網址；鏈層級的圖本來就是那條鏈的預設，不必帶 /dg/
+      state.dg = (want && DS && DS.level(want) === 'group') ? want : null;
+      const h = want ? dgHash(want) : '#industry/' + ch.id;
+      try { if (location.hash !== h) history.replaceState(null, '', h); } catch (e) { /* 舊瀏覽器沒這支就算了 */ }
+    };
     /* 這一頁現在該畫哪一張（或不畫）。三層，順序是刻意的：
          ① 使用者選到的族群有自己的圖 → 就是那一張（strict，不借別人的）
          ② 網址指定了 /dg/<slot> → 那一張
@@ -462,7 +481,11 @@
       segFilter = null;
       syncHighlight({ quiet: true });
     };
-    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return; state.group = state.group === t.dataset.gid ? null : t.dataset.gid; segFilter = null; segHi = null; partHi = null; syncHighlight(); });
+    $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return;
+      state.group = state.group === t.dataset.gid ? null : t.dataset.gid;
+      segFilter = null; segHi = null; partHi = null;
+      syncDgHash();        // ★ 先把網址對齊，再重畫（見 syncDgHash 上方註解）
+      syncHighlight(); });
     $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = null; state.group = null; syncHighlight(); });
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     // E5：上方切換列 —— 按了直接換一條鏈，不用退回產業地圖（按自己就捲回頁首，不重畫）

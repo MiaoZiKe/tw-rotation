@@ -8704,6 +8704,23 @@ def t_mlcc(pg, base):
        m4["menuVis"] and not m4["dgVis"] and not m4["svg"], m4)
     ok("那句道歉文案整句消失（整頁找不到「還沒有專屬剖析圖」）",
        "還沒有專屬剖析圖" not in pg.content(), "整頁掃過，找不到那句話")
+    # ★ 2026-09-21 補：**畫面換了，網址也要跟著換。**
+    #   這一條以前只驗畫面，所以放過了一個真 bug —— 在 /dg/mlcc 上點「面板」，
+    #   畫面正確換回選單，網址卻還停在 /dg/mlcc。後果是
+    #   「複製網址貼給別人，對方看到的跟你看到的不是同一個東西」，
+    #   而那正是「剖析圖改成獨立分頁」要解決的問題本身；按重新整理也會跳回剖析圖。
+    ok("點「面板」→ 網址也回到鏈頁（不可以還停在 /dg/mlcc）",
+       "/dg/" not in pg.evaluate("() => location.hash"), pg.evaluate("() => location.hash"))
+    # 反向再驗一次：點回有專屬圖的族群，網址要變成那張圖的網址
+    pick_group(pg, "mlcc"); pg.wait_for_timeout(1000)
+    m5 = menu(pg)
+    ok("點回「被動元件 MLCC」→ 圖回來了，而且網址變成 /dg/mlcc",
+       m5["svg"] and pg.evaluate("() => location.hash").endswith("/dg/mlcc"),
+       {"svg": m5["svg"], "hash": pg.evaluate("() => location.hash")})
+    ok("而且重新整理之後看到的是同一個東西（網址是誠實的）",
+       (pg.reload(wait_until="networkidle"), pg.wait_for_timeout(2200), force_open(pg),
+        menu(pg))[-1]["svg"], "reload 後圖還在")
+    pick_group(pg, "panel"); pg.wait_for_timeout(900)   # 還原成後面那一段預期的狀態
 
     # ---------------- 4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：只亮不篩）
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -8984,15 +9001,14 @@ def t_mlcc(pg, base):
         for w in (1440, 800, 390):
             pg.set_viewport_size({"width": w, "height": 1000})
             pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
-            # ★ 為什麼要多一次 reload（2026-09-21 量出來的，不是保險起見）：
-            #   前一段點了「面板」族群 —— 畫面換回圖別選單了，**但網址沒有跟著改**，
-            #   還停在 #industry/electronics/dg/mlcc。於是這裡 goto 同一個 hash
-            #   不會觸發 hashchange，router 根本沒有跑，畫面就一直停在選單上
-            #   （量到的：goto 之後再等 3 秒還是 svg=False，reload 一次立刻 svg=True）。
-            #   ⚠ 那個「畫面換了、網址沒換」本身是 site/industry.js 的 bug，不是這裡的
-            #   —— 影響是「複製網址給別人，對方看到的跟你看到的不是同一個東西」，
-            #   而且按重新整理會跳回剖析圖。修它要動 industry.js，不在這一批的範圍，
-            #   已經寫進 HANDOFF。這裡先用 reload 讓量測拿到乾淨的路由結果。
+            # ★ 這一次 reload 留著，但理由已經不是原本那個（2026-09-21 當天修掉了）：
+            #   原本是因為「畫面換了、網址沒換」—— 前一段點了「面板」之後網址還停在
+            #   /dg/mlcc，於是這裡 goto 同一個 hash 不會觸發 hashchange、router 沒跑。
+            #   那個 bug 已經用 history.replaceState 修好（site/industry.js 的 syncDgHash），
+            #   上面也補了專門驗它的斷言。
+            #   reload 留著的理由變成單純的**穩定性**：goto 到「跟現在同一個 hash」
+            #   在任何實作下都不會觸發 hashchange，這是瀏覽器的行為不是我們的 bug，
+            #   量測不該建立在「前一段剛好把 hash 換掉了」這種假設上。
             pg.reload(wait_until="networkidle")
             pg.wait_for_timeout(2400)
             # ★ 同 4c 的陷阱：<640px 預設收合、而且會記進 localStorage，
