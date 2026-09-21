@@ -140,7 +140,7 @@
       parts: [
         { seg: 'passive_comp', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
           kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0] },
-        { seg: 'passive_comp', name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
+        { seg: 'passive_comp', name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
           kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0] },
         { seg: 'passive_comp', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
           kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0] },
