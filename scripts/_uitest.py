@@ -95,7 +95,7 @@ def reset_rot(pg, base, wait: int = 2400):
     """
     pg.goto(f"{base}#flow", wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.removeItem('tw.rot.filter');"
-                " localStorage.removeItem('tw.rot.back'); } catch (e) { /* 私密視窗 */ } }")
+                " localStorage.removeItem('tw.rot.back2'); } catch (e) { /* 私密視窗 */ } }")
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(wait)
 
@@ -1092,14 +1092,34 @@ def t_flow(pg, base):
         seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input').value,
             lab: (document.querySelector('#rotBack .val')||{}).textContent,
             move: (document.getElementById('rotMove')||{}).innerText,
+            clockday: ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)
+                      ? ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)[0]
+                      : ((window.App&&window.App._rotFrame&&window.App._rotFrame.date)||''),
             items: document.querySelectorAll('#rotBoard li[data-gid]').length })""")
         ok(f"拉到 {v} 天，值真的變了", seenb[v]["v"] == v, seenb[v])
         ok(f"拉到 {v} 天，旁邊的字跟著寫 {v}", str(v) in (seenb[v]["lab"] or ""), seenb[v]["lab"])
-        ok(f"拉到 {v} 天有寫出換階段的族群或明講沒有", str(v) in (seenb[v]["move"] or ""), seenb[v]["move"][:40])
-    ok("換天數，換階段的名單真的不一樣", len({v["move"] for v in seenb.values()}) >= 2,
+        # ★ 2026-09-21 改寫：這兩條以前驗的是「拉時間軸會改變看板的比較窗長」。
+        #   那是一個**已經被判定為錯的耦合** —— `renderRotation(rrg, back, …)` 的 back 是
+        #   「最近 N 個交易日換階段」的**窗長**，而同一個值又被餵給 frame（大圈停在哪一天），
+        #   兩件事意思不一樣。合併成一張卡之後，排行也跟著這支走，
+        #   預設 5 就讓整張卡一打開停在 5 個交易日前（最新明明是 2026-09-18）。
+        #   現在拆開了：這支只管「看哪一天」，看板的窗長固定 ROT_BOARD_WIN=5。
+        #   所以改成驗**新的正確行為**，不是把驗收拔掉。
+        ok(f"拉到 {v} 天，看板的比較窗長固定寫 5（不隨時間軸變）",
+           "最近 5 個交易日換階段" in (seenb[v]["move"] or "") or not (seenb[v]["move"] or "").strip(),
+           seenb[v]["move"][:40])
+        ok(f"拉到 {v} 天，時鐘的回放日期真的跟著換",
+           str(v) in (seenb[v]["lab"] or "") and bool(seenb[v]["clockday"]), seenb[v])
+    # 看板窗長固定，所以三次的名單**應該一樣**（這正是拆開之後要保證的事）
+    ok("看板的換階段名單不隨時間軸變（窗長已固定 5 天）",
+       len({v["move"] for v in seenb.values()}) == 1,
        {k: v["move"][:30] for k, v in seenb.items()})
+    # 但時鐘的回放日期**一定要**跟著變，否則就是拉Bar 根本沒接上
+    ok("時鐘的回放日期真的隨時間軸變（三次至少兩個不同）",
+       len({v["clockday"] for v in seenb.values()}) >= 2,
+       {k: v["clockday"] for k, v in seenb.items()})
     ok("拉 Bar 的值有記住（換頁回來還是同一個天數）",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back'); } catch(e){ return null; } }") is not None)
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back2'); } catch(e){ return null; } }") is not None)
 
     # --- 資金輪動時鐘：Andy 要「輪動族群要搭配圖表，看圖就懂」
     clk = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -6021,8 +6041,24 @@ def t_batch2(pg, base):
         #   在物理上量不出來（沒有別人可以被壓暗），紅綠都沒有資訊（DECISIONS #206）。
         ok("輪動時鐘盤上本來就有好幾個族群（不然「只亮一個」量不出來）",
            bool(dim) and dim["n"] > 3, dim)
-        ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
-           bool(dim) and dim["n"] > 3 and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
+        # ★ 2026-09-21：這條以前是**假紅燈的溫床**。時鐘為了看得清楚只畫前 16 個族群
+        #   （依成交值佔比），而這張排行是依**佔比變化**排的 —— 變化最大的那一個
+        #   未必在時鐘上。舊的 highlightClock 碰到這種情形會把 16 個全部壓到 0.18，
+        #   整張圖灰掉（lo=hi=0.18），而驗收只會說「沒有只亮一個」，看不出真正的毛病。
+        #   現在的正確行為分兩種，兩種都要驗：
+        #     · 點到的族群**在**時鐘上 → 只亮它、其餘壓暗
+        #     · 點到的族群**不在**時鐘上 → 時鐘**原樣不動**（不准整張灰掉），
+        #       而且面板的說明要**明講**一句，不能讓使用者以為自己點壞了
+        note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
+        offclock = "不在左邊時鐘" in note
+        if offclock:
+            ok("點到時鐘上沒有的族群時，時鐘不准整張灰掉",
+               bool(dim) and dim["hi"] > 0.9, dim)
+            ok("點到時鐘上沒有的族群時，面板有明講原因（不是靜悄悄沒反應）",
+               True, note[:60])
+        else:
+            ok("點排行的長條，旁邊的輪動時鐘只亮那一個族群（圖四）",
+               bool(dim) and dim["n"] > 3 and dim["lo"] < 0.3 and dim["hi"] > 0.9, dim)
         # 再點一次要取消 —— 座標要重算，而且要等 scrollIntoView 的**平滑捲動停下來**才算。
         # heatPanel 用的是 behavior:'smooth'，捲動是動畫；捲到一半就量座標，
         # 等滑鼠真的按下去時頁面又移位了，點就落在圖外面（2026-09-18 踩到兩次）。
