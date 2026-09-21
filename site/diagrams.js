@@ -831,4 +831,30 @@
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
   window.DG = { STYLE, labelRow, lrow3, processBar, chainLink, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+
+  /* ★ 2026-09-21：一張圖一個檔（`site/dg/<slot>.js`）。
+     `docs/diagram_plan.md` 排了 14 張，全部塞進這個檔會變成兩千多行，
+     而且**多個人同時畫不同的圖就會一直撞在同一個檔上** ——
+     這是 Andy 說「一口氣把所有圖完成」之後第一個會卡住的地方。
+
+     所以這裡開一支註冊介面，每張圖在自己的檔裡呼叫：
+         window.DG.register('pcb_rigid', {
+           level: 'group', chain: 'ai_server', name: '…', draw: fn,
+           native: 980, q: '這張圖回答什麼問題', scene: null,
+         });
+     `site/index.html` 已經把 14 個檔位的 <script> 一次寫好，
+     **所以新增一張圖不需要再動 index.html**（那個檔一動就會跟別人撞）。
+     還沒畫的檔只有一行註解、不呼叫 register，SLOTS 裡就不會多出空的項目。
+
+     順序：`diagrams.js` → `dg/*.js` → `industry.js`（都是同步 <script>，
+     所以 industry.js 讀 DiagramSlots 時 14 張已經註冊完了）。*/
+  window.DG.register = function (id, def) {
+    if (!id || !def || typeof def.draw !== 'function') {
+      console.warn('[DG.register] 略過不合格的註冊：', id);   // 壞掉的一張不該讓整頁掛掉
+      return;
+    }
+    if (SLOTS[id]) { console.warn('[DG.register] 重複註冊，後面的蓋掉前面的：', id); }
+    SLOTS[id] = def;
+    window.Diagrams[id] = def.draw;     // 舊介面同步（題材圖與驗收腳本還在用）
+  };
 })();

@@ -1630,6 +1630,26 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 <script src="chart.js"></script>
 <script src="diagrams.js"></script>
+<!-- ★ 2026-09-21：一張剖析圖一個檔（site/dg/<slot>.js），各自呼叫 window.DG.register。
+     docs/diagram_plan.md 排了 14 張，全塞進 diagrams.js 會變兩千多行，
+     而且多個人同時畫不同的圖就會一直撞在同一個檔上。
+     ★ 14 個檔位**一次寫滿**，所以新增一張圖不必再動這個檔（動了就會跟別人撞）。
+     還沒畫的檔只有一行註解、不呼叫 register，SLOTS 裡不會多出空項目。
+     順序必須在 industry.js 之前 —— 它讀 DiagramSlots 時要已經註冊完。
+     stamp_assets.py 是用正規式掃 src=，所以這些檔會自動加版本戳，不用改它。 -->
+<script src="dg/pcb_rigid.js"></script>
+<script src="dg/ic_substrate.js"></script>
+<script src="dg/ai_adv_packaging.js"></script>
+<script src="dg/liquid_cooling.js"></script>
+<script src="dg/air_cooling.js"></script>
+<script src="dg/panel.js"></script>
+<script src="dg/switch_wireless.js"></script>
+<script src="dg/server_psu.js"></script>
+<script src="dg/connector_ind.js"></script>
+<script src="dg/power_inductor.js"></script>
+<script src="dg/wide_bandgap.js"></script>
+<script src="dg/petrochemical.js"></script>
+<script src="dg/heavy_electric.js"></script>
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
