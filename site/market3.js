@@ -182,6 +182,7 @@
     if (document.hidden) return;
     if (!document.getElementById('m3')) return;
     if (state.futSession !== 'night' || futSession() !== 'night') return;
+    // 走到這裡代表時鐘與畫面都在夜盤，不用再同步
     await pullNight();
     draw();
   }
@@ -231,6 +232,25 @@
   function futSession() {
     const mm = nightMin(taipeiNow());
     return (mm >= SESSION_NIGHT[0] && mm <= SESSION_NIGHT[1]) ? 'night' : 'day';
+  }
+  /** 現在該看哪一段：時鐘說了算，除非使用者「在這一段裡」自己切過。
+   *  舊格式（只存 'day' / 'night' 的純字串）一律當成過期 —— 那正是造成黏住的那一版。*/
+  function pickSession() {
+    const now = futSession();
+    let raw = '';
+    try { raw = ls.get(KEY_FUTS, '') || ''; } catch (e) { raw = ''; }
+    if (!raw || raw.charAt(0) !== '{') return now;          // 沒存過、或是舊格式 → 跟時鐘
+    try {
+      const o = JSON.parse(raw);
+      return (o && o.base === now && (o.sess === 'day' || o.sess === 'night')) ? o.sess : now;
+    } catch (e) { return now; }
+  }
+  /** 時段翻頁時把畫面帶回當下該看的那一段。回傳「有沒有真的換」。 */
+  function syncSession() {
+    const want = pickSession();
+    if (want === state.futSession) return false;
+    state.futSession = want;
+    return true;
   }
   async function fetchFut(session) {
     const base = proxy();
@@ -504,6 +524,9 @@
     if (!document.getElementById('m3')) return;          // 不在總覽就不用抓
     // 分頁切走就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
+    /* ★ 每一輪都重新評估要看哪一段 —— 網頁可能整天開著，跨過 13:45（日盤收）
+       或 15:00（夜盤開）時要自己翻過去，不能等使用者重新整理。*/
+    syncSession();
     state.busy = true;
     const jobs = IDX.map(async x => {
       try { state.data[x.id] = await fetchOne(x.id); state.err[x.id] = ''; }
@@ -725,13 +748,24 @@
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
     $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
     /* 台指期的日盤／夜盤（Andy 2026-09-18 圖一）。
-       預設依台北時間自己選：15:00~翌日 05:00 算夜盤。使用者可以自己切，切了就記住。*/
-    state.futSession = ls.get(KEY_FUTS, '') || futSession();
+       ★ 2026-09-21 改掉一個會讓人以為壞掉的行為（Andy：「日盤跟夜盤統一一頁，
+         到夜盤的週期走勢圖就顯示夜盤的，同理日盤就是日盤」）。
+         以前是 `ls.get(KEY_FUTS, '') || futSession()` ——
+         **使用者按過一次之後那個選擇就永久記住，再也不會跟著時間走**。
+         他 09:36（日盤時段）打開看到的還停在夜盤，卡片上寫「夜盤報價未取得」，
+         而夜盤 05:00 就收了、當然拿不到 —— 畫面看起來像壞掉，其實是黏住了。
+         現在：**預設一律跟著台北時間走**；手動切只在「做選擇時的那個時段」內有效，
+         時段一翻（日盤↔夜盤）就自動回到當下該看的那一個。
+         存的是 {sess, base}：base＝做這個選擇時時鐘在哪一段，用來判斷過期。*/
+    state.futSession = pickSession();
     loadNightPts();
     /* 切日盤／夜盤：換的是**同一張卡片**的資料來源（數字 ＋ 圖），不是多開一塊。
        切過去先 draw() 讓畫面立刻反應，再 refresh() 去補最新一筆夜盤報價。*/
     $$('#futSeg button').forEach(b => b.onclick = () => {
-      state.futSession = b.dataset.s; ls.set(KEY_FUTS, state.futSession);
+      state.futSession = b.dataset.s;
+      // 連同「做這個選擇時時鐘在哪一段」一起存，時段翻頁時才知道要作廢
+      try { ls.set(KEY_FUTS, JSON.stringify({ sess: state.futSession, base: futSession() })); }
+      catch (e) { /* 私密視窗 */ }
       draw(); refresh(true);
     });
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
