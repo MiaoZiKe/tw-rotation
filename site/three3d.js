@@ -126,6 +126,26 @@
           box: [40, 2.2, 30], at: [0, 12.4, 0], ghost: true },
       ],
     },
+    /* 被動元件：MLCC 疊層（規格書 docs/diagram_specs/mlcc_stack.md）。
+       規格書原本寫「不用真 3D，轉一圈只會看到一顆不透明的陶瓷方塊」——
+       那句話對「完整的一顆」成立，對**切開近角的一顆**不成立：
+         ① 端電極是「包住端部五個面的一段」，是不是真的包住五個面，只有轉過去看得到
+         ② 側邊餘白是第三個方向上的事，2D 剖面畫不出來
+       所以這裡做的是 cut-away 3D，切法跟 2D 那張完全一致（x>0 且 z>0 那一角挖掉），
+       兩邊看到的是同一個剖面。轉到背面就是完整、沒被切開的一顆。 */
+    mlcc: {
+      title: 'MLCC 積層陶瓷電容（切開近角）',
+      sub: '陶瓷疊層 ＋ 交錯指狀電極 ＋ 端電極 Cu → Ni → Sn；圖上 12 層為示意，實際 400～1000 層',
+      camera: [64, 44, 72], target: [0, 18, 0], fit: 1, hk: 0.56,
+      parts: [
+        { seg: 'passive_comp', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
+          kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0] },
+        { seg: 'passive_comp', name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
+          kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0] },
+        { seg: 'passive_comp', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
+          kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0] },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -625,6 +645,93 @@
       return g;
     }
 
+    /* ================================================================ MLCC（量產圖 11-1）
+       切掉「x > 0 且 z > 0」那一角，露出兩個切面：
+         z = 0 的切面 → 交錯指狀電極（一端進、另一端留餘白）
+         x = 0 的切面 → 側邊餘白（電極不到側面）
+       lslab() 就是「畫一塊方板，但把那一角挖掉」，所以每一層只要呼叫一次。
+       over：讓電極在切面上多凸出一點點，不然它跟介電層在切面上共面會 z-fighting。*/
+    function lslab(x0, x1, y0, y1, z0, z1, m, over) {
+      const o = over || 0, out = [];
+      const add = (ax0, ax1, az0, az1) => {
+        if (ax1 - ax0 < 0.02 || az1 - az0 < 0.02) return;
+        const b = box(ax1 - ax0, y1 - y0, az1 - az0, m);
+        b.position.set((ax0 + ax1) / 2, (y0 + y1) / 2, (az0 + az1) / 2);
+        out.push(b);
+      };
+      add(x0, x1, z0, Math.min(z1, o));                    // 後半（z ≤ 0）保留整條
+      add(x0, Math.min(x1, o), Math.max(z0, 0), z1);       // 前半只留 x ≤ 0
+      return out;
+    }
+
+    function mlccBody(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cov = h * 0.11;          // 上下保護層（無電極素坯）
+      const em = w * 0.14;           // 端部餘白：不准碰到對面的端電極
+      const sm = d * 0.1;            // 側邊餘白：電極不到側面
+      const n = 12, pit = (h - cov * 2) / n, et = pit * 0.3;
+      const cer = K.mat(0.72, { rough: 0.88, metal: 0.03 });   // 陶瓷：很淡的環節色＝米白霧面
+      const cvm = K.mat(0.86, { rough: 0.92, metal: 0.02 });   // 保護層：更淡一階，一眼分得出來
+      const elm = K.mat(-0.5, { rough: 0.32, metal: 0.78 });   // 內電極：暗鋼色
+      const push = (a) => a.forEach(o => g.add(o));
+      push(lslab(-w / 2, w / 2, -h / 2, -h / 2 + cov, -d / 2, d / 2, cvm));
+      push(lslab(-w / 2, w / 2, h / 2 - cov, h / 2, -d / 2, d / 2, cvm));
+      for (let i = 0; i < n; i++) {
+        const y0 = -h / 2 + cov + i * pit;
+        push(lslab(-w / 2, w / 2, y0, y0 + pit, -d / 2, d / 2, cer));
+        // ★ 交替：偶數層連左端、奇數層連右端。這一行就是規格書 §3-A 的硬規則
+        const ex0 = (i % 2) ? -w / 2 + em : -w / 2;
+        const ex1 = (i % 2) ? w / 2 : w / 2 - em;
+        const ey = y0 + (pit - et) / 2;
+        push(lslab(ex0, ex1, ey, ey + et, -d / 2 + sm, d / 2 - sm, elm, 0.3));
+      }
+      return g;
+    }
+
+    /* 端電極：由內到外 Cu → Ni → Sn，包住端部五個面的一段。
+       ★ 順序不准對調（Ni 畫到 Sn 外面是最常見的錯）。厚薄只表達關係，不標數字。*/
+    function mlccTerm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const wl = w * 0.18, tw = h * 0.13, cw = w * 0.11;
+      const push = (a) => a.forEach(o => g.add(o));
+      /* metalness 壓在 0.45 以下：這個場景只有方向光、沒有環境貼圖，
+         金屬度拉高就變成一塊黑（第一版的端電極就是這樣，三層全糊在一起看不出來）。*/
+      const L3 = [[0, 0.62, K.mat(0, { color: '#d08a46', metal: 0.42, rough: 0.42 })],
+        [0.62, 0.85, K.mat(0, { color: '#b9c1c9', metal: 0.4, rough: 0.38 })],
+        [0.85, 1, K.mat(0, { color: '#eef2f5', metal: 0.3, rough: 0.34 })]];
+      [-1, 1].forEach(sx => {
+        const wx0 = sx < 0 ? -w / 2 : w / 2 - wl, wx1 = sx < 0 ? -w / 2 + wl : w / 2;
+        L3.forEach(([a, b, m]) => {
+          const x0 = sx < 0 ? -w / 2 - cw * b : w / 2 + cw * a;
+          const x1 = sx < 0 ? -w / 2 - cw * a : w / 2 + cw * b;
+          push(lslab(x0, x1, -h / 2 - tw, h / 2 + tw, -d / 2 - tw, d / 2 + tw, m));          // 端面
+          push(lslab(wx0, wx1, h / 2 + tw * a, h / 2 + tw * b, -d / 2 - tw, d / 2 + tw, m)); // 上面
+          push(lslab(wx0, wx1, -h / 2 - tw * b, -h / 2 - tw * a, -d / 2 - tw, d / 2 + tw, m)); // 下面
+          push(lslab(wx0, wx1, -h / 2, h / 2, d / 2 + tw * a, d / 2 + tw * b, m));            // 兩側
+          push(lslab(wx0, wx1, -h / 2, h / 2, -d / 2 - tw * b, -d / 2 - tw * a, m));
+        });
+      });
+      return g;
+    }
+
+    // PCB 焊墊：板子 ＋ 兩塊銅墊 ＋ 焊錫圓角（圓角用壓扁的球，看得出是「爬上去」的）
+    function mlccPad(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(-0.6, { rough: 0.9, metal: 0.05, color: '#1a4230' })));
+      const cu = K.mat(0, { color: '#d08a46', metal: 0.42, rough: 0.44 });
+      const sn = K.mat(0, { color: '#cfd5db', metal: 0.35, rough: 0.36 });
+      [-1, 1].forEach(s => {
+        g.add(put(box(w * 0.3, h * 0.6, d * 0.55, cu), s * w * 0.3, h * 0.7, 0));
+        // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
+        const f = ball(w * 0.018, sn); f.scale.set(1.6, 1.8, 9);
+        g.add(put(f, s * w * 0.375, h * 0.98, 0));
+      });
+      return g;
+    }
+
     // 探針卡：基板 ＋ 一叢探針
     function probe(p, K) {
       const g = new T.Group();
@@ -639,6 +746,7 @@
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe,
+      mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
       // 圖九 2-1 的共用件，量產圖11 時直接用
       _traceLayer: traceLayer, _fingers: fingers, _ballGrid: ballGrid, _meander: meander, _traceMesh: traceMesh };
   }
