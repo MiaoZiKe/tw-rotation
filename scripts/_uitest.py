@@ -8460,6 +8460,28 @@ def t_sankey_expand_live(pg, base):
 # 統一包成 `(pg, b, base, code)` 之後，只要一份清單就能同時服務
 # 「依序跑」與「拆給多個 worker 平行跑」兩種模式。
 # ---------------------------------------------------------------------------
+def force_open(pg_):
+    """把剖析圖**確實展開**再驗。
+
+    C 批加的「<640px 預設收合、會記住」會把收合狀態寫進 localStorage，
+    4-worker 平行跑時汙染 1440px 那一輪 —— 單獨跑永遠綠、平行跑才紅。
+    ★ 只有「現在真的有一張圖」時才動它：選單模式下 #dgBody 本來就該是收起來的，
+      在那裡按收合鈕只會把偏好反過來設，等於自己製造下一個假紅。
+
+    ★ 2026-09-21：本來寫在 t_mlcc 裡面，畫第 9 張（server_psu）時要用同一支 ——
+      搬到模組層級共用，內容一個字都沒改（不要造第二套）。
+    """
+    pg_.evaluate("""() => {
+      const menu = document.getElementById('dgMenu');
+      if (menu && menu.offsetParent !== null) return;     // 選單模式：沒有圖可以展開
+      const b = document.getElementById('dgFold');
+      const body = document.getElementById('dgBody');
+      const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+      if (b && hidden) b.click();
+    }""")
+    pg_.wait_for_timeout(500)
+
+
 def t_mlcc(pg, base):
     """圖11-1 MLCC ＋ 剖析圖入口架構：**同一條鏈但不同產品 → 各自獨立分頁**。
 
@@ -8548,24 +8570,6 @@ def t_mlcc(pg, base):
                   svg: !!(h && h.querySelector('svg')),
                   dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
         }""")
-
-    def force_open(pg_):
-        """把剖析圖**確實展開**再驗。
-
-        C 批加的「<640px 預設收合、會記住」會把收合狀態寫進 localStorage，
-        4-worker 平行跑時汙染 1440px 那一輪 —— 單獨跑永遠綠、平行跑才紅。
-        ★ 只有「現在真的有一張圖」時才動它：選單模式下 #dgBody 本來就該是收起來的，
-          在那裡按收合鈕只會把偏好反過來設，等於自己製造下一個假紅。
-        """
-        pg_.evaluate("""() => {
-          const menu = document.getElementById('dgMenu');
-          if (menu && menu.offsetParent !== null) return;     // 選單模式：沒有圖可以展開
-          const b = document.getElementById('dgFold');
-          const body = document.getElementById('dgBody');
-          const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
-          if (b && hidden) b.click();
-        }""")
-        pg_.wait_for_timeout(500)
 
     # 兩層高亮（2026-09-21 晚間）：量的是 computed style，不是「有沒有那個 class」。
     # 有 class 但長得一模一樣，對使用者來說就是沒發生 —— 那正是改之前的狀態。
@@ -9025,6 +9029,313 @@ def t_mlcc(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+def t_psu(pg, base):
+    """圖9 伺服器電源 PSU ＋ BBU（`site/dg/server_psu.js`，規格書 docs/diagram_specs/server_psu.md）。
+
+    這一段**全部驗「畫面真的因此改變了」**，不驗「元素存在」：
+
+      1. `#industry/ai_server` 的圖別入口列上真的多出這張圖，而且點了**網址真的變**
+      2. 直接貼網址重新整理，一樣打得開（沒有這條就不叫分頁）
+      3. ★ **三個真 seg**（power／connector／assembly）—— 依序點三個環節色標，
+         **三次篩出來的成分股筆數彼此不同**。這一條是規格書 §8 指定的，
+         另外兩張散熱圖只有兩個 seg 所以驗不動，這張驗得動。
+      4. 點零件 → 成分股筆數**一動都不動**（DECISIONS #73：只亮不篩），
+         但**主角真的換人**（兩層高亮量 computed style，不是看 class）
+      5. 「BBU 尚未建檔」「點零件篩到的是環節不是族群」兩句話**真的在畫面上**
+      6. 結構紅線用**幾何**驗，不是用字串：BBU 在機櫃虛線框**裡面**、
+         「機房 UPS」在框**外面**、板上 DC-DC 是**一排 ≥4 個**、
+         匯流排比電源線組**粗**、800 VDC 那一欄**方塊數比較少**而且匯流排**比較細**
+      7. 誠實性紅線：畫面上的 % **只出現在效率表那一格**（不准有市占率）、
+         時間軸那一格的文字裡**一個數字都沒有**（不准標秒數）
+      8. 動畫：開／關 → 流程列那顆 SMIL 白點**真的停住**、切回來**真的又動**
+      9. 1440／800／390 三個寬度：每一個 text 的**畫面真實字級 ≥ 12px**、
+         文字兩兩不重疊、不溢出畫布右緣
+    """
+    FEAT = "伺服器電源：從牆上的電到晶片核心"      # 這張圖上的特徵字串
+    FEAT_AI = "AI 伺服器機櫃"                       # 鏈層級那張（回歸用）
+    DGID = "server_psu"
+
+    def rows(pg_):
+        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
+    def state(pg_):
+        return pg_.evaluate("""() => {
+          const vis = (n) => !!(n && n.offsetParent !== null);
+          const h = document.querySelector('#prodDiagram');
+          const svg = h && h.querySelector('svg');
+          return {hash: location.hash, svg: !!svg,
+                  full: h ? h.innerHTML : '',
+                  txt: svg ? [...svg.querySelectorAll('text')].map(n => n.textContent).join('｜') : '',
+                  parts: h ? h.querySelectorAll('[data-seg]').length : 0,
+                  menuVis: vis(document.querySelector('#dgMenu')),
+                  picks: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
+                  cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
+                  dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
+        }""")
+
+    def click_seg_chip(pg_, seg):
+        hit = pg_.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"'+s+'\"]');"
+                           " if (!c) return false; c.click(); return true; }", seg)
+        pg_.wait_for_timeout(900)
+        return hit
+
+    def click_part(pg_, part):
+        """真的派一個滑鼠 click 到指定 data-part 的零件上，回傳點完之後的主角 key。"""
+        got = pg_.evaluate("""(p) => { const n = document.querySelector('#prodDiagram [data-part="'+p+'"]');
+          if (!n) return null; n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""", part)
+        pg_.wait_for_timeout(500)
+        if not got:
+            return None
+        return pg_.evaluate("() => { const n = document.querySelector('#prodDiagram [data-seg].sel-part');"
+                            " return n ? n.dataset.dgkey : null; }")
+
+    # ---------------- 1. 入口：ai_server 鏈上真的多了這張圖，點了網址真的變
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    s0 = state(pg)
+    ok("AI 伺服器鏈預設還是鏈層級那張機櫃圖（新增一張族群圖不可以把它擠掉）",
+       FEAT_AI in s0["full"] and FEAT not in s0["full"], s0["hash"])
+    ok("圖別入口列上真的出現「電源：PSU、匯流排、板上降壓與 BBU」這個入口",
+       DGID in s0["picks"] and DGID in s0["cards"], f"切換晶片 {s0['picks']}／選單卡片 {s0['cards']}")
+    h_before = pg.evaluate("() => location.hash")
+    pg.click(f'#dgPick .segchip[data-dgid="{DGID}"]', timeout=5000); pg.wait_for_timeout(2600)
+    force_open(pg)
+    s1 = state(pg)
+    ok("點那個入口 → 圖真的換成這一張（比對圖上的特徵字串）", FEAT in s1["full"], s1["hash"])
+    if FEAT not in s1["full"]:
+        return
+    ok("★ 點入口之後**網址真的變了**（#industry/ai_server/dg/server_psu）",
+       s1["hash"] != h_before and s1["hash"].endswith("/dg/" + DGID), f"{h_before} → {s1['hash']}")
+    ok("圖旁邊寫著這張圖回答什麼問題（只描述畫了什麼等於沒寫）",
+       "這張圖回答" in s1["dgq"] and "降壓" in s1["dgq"], s1["dgq"][:80])
+    ok("零件真的掛上環節（點得到）", s1["parts"] >= 20, s1["parts"])
+
+    # ---------------- 2. 直接貼網址重新整理，一樣打得開
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    s2 = state(pg)
+    ok("★ 直接貼那個網址重新整理，一樣打得開這張圖",
+       s2["hash"].endswith("/dg/" + DGID) and FEAT in s2["full"] and s2["svg"], f"{s2['hash']} svg={s2['svg']}")
+
+    # ---------------- 3. ★ 三個真 seg：三次篩出來的筆數彼此不同（規格書 §8 指定）
+    #   這張圖是三張裡唯一有三個真 seg 的 —— power（電源）、connector（匯流排與 power whip
+    #   是連接器廠做的，不是電源廠）、assembly（機櫃）。三次筆數一樣就代表 seg 掛錯或全掛同一個。
+    seg_rows = {}
+    for seg in ("power", "connector", "assembly"):
+        # ⚠ 點環節色標**不會換 hash**，所以 goto 到同一個 hash 是 no-op（瀏覽器不觸發
+        #   hashchange）—— 上一輪的篩選會留著，下一輪量到的 base_rows 就是上一輪的結果。
+        #   實測就是這樣紅的：assembly 那一輪量到 base_rows=1（其實是 connector 的 1 檔）。
+        #   所以一定要 reload，把頁面狀態真的清掉。
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        base_rows = rows(pg)
+        hit = click_seg_chip(pg, seg)
+        seg_rows[seg] = rows(pg) if hit else None
+        ok(f"點「{seg}」環節色標 → 成分股筆數真的變少（從全鏈篩到這一格）",
+           hit and seg_rows[seg] is not None and 0 < seg_rows[seg] < base_rows,
+           f"{base_rows} → {seg_rows[seg]}")
+    vals = [v for v in seg_rows.values() if v is not None]
+    ok("★ power／connector／assembly 三次篩出來的筆數**彼此不同**（證明三個 seg 真的分開掛對）",
+       len(vals) == 3 and len(set(vals)) == 3, seg_rows)
+
+    # ---------------- 4. 點零件：只亮不篩，而且主角真的換人
+    pg.goto(f"{base}#industry/ai_server/dg/{DGID}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    rows0 = rows(pg)
+    k1 = click_part(pg, "psu_bbu")
+    t1 = pg.evaluate("""() => { const h = document.querySelector('#prodDiagram');
+      const ns = [...h.querySelectorAll('[data-seg]')];
+      const info = (n) => { const p = n.querySelector('.part');
+        return {key: n.dataset.dgkey, seg: n.dataset.seg,
+                op: +(+getComputedStyle(n).opacity).toFixed(3),
+                sw: p ? +parseFloat(getComputedStyle(p).strokeWidth).toFixed(2) : null}; };
+      const a = ns.map(n => Object.assign(info(n), {part: n.classList.contains('sel-part'),
+                                                    sel: n.classList.contains('sel'),
+                                                    dim: n.classList.contains('dim')}));
+      return {selpart: a.filter(x => x.part).length, sel: a.filter(x => x.sel).length,
+              dim: a.filter(x => x.dim).length,
+              hero: a.filter(x => x.part), sib: a.filter(x => x.sel && !x.part)}; }""")
+    ok("點 BBU 這個零件 → 主角（.sel-part）剛好 1 個", t1["selpart"] == 1, f"key={k1} {t1['selpart']}")
+    ok("而且其餘環節真的被壓暗（這張圖有三個環節，dim 一定 > 0）", t1["dim"] > 0, t1["dim"])
+    hero_sw = [x["sw"] for x in t1["hero"] if x.get("sw")]
+    sib_sw = [x["sw"] for x in t1["sib"] if x.get("sw")]
+    ok("主角的描邊比同環節其餘零件粗（量 computed style，不是看 class）",
+       bool(hero_sw) and bool(sib_sw) and min(hero_sw) > max(sib_sw),
+       f"主角 {hero_sw} ／ 同環節其餘 {sorted(set(sib_sw))}")
+    ok("DECISIONS #73：點零件**不會**改成分股筆數（只亮不篩）",
+       rows(pg) == rows0, f"{rows0} → {rows(pg)}")
+    k2 = click_part(pg, "psu_busbar")
+    sp2 = pg.evaluate("() => document.querySelectorAll('#prodDiagram [data-seg].sel-part').length")
+    ok("換點匯流排（另一個環節的零件）→ 主角真的換人，不是整個取消掉",
+       sp2 == 1 and k2 is not None and k2 != k1, f"{k1} → {k2}（主角 {sp2} 個）")
+    ok("換點之後成分股筆數還是一動都不動", rows(pg) == rows0, f"{rows0} → {rows(pg)}")
+
+    # ---------------- 5. 兩句非講不可的話真的在畫面上（規格書 §6-N5）
+    s5 = state(pg)
+    ok("★「BBU 尚未建檔」那句話真的印在圖上（不准默默讓它篩到電源那一格）",
+       "BBU 尚未建檔" in s5["txt"], s5["txt"][-160:])
+    ok("★「點零件篩到的是環節、不是整個族群」那行字真的印在圖上",
+       "不是整個族群" in s5["txt"] and "供應鏈環節" in s5["txt"], "找到了" if "不是整個族群" in s5["txt"] else "沒找到")
+    ok("★「示意圖，非實物比例」與「時間軸不標秒數」兩行都在（§6-N6）",
+       "示意圖，非實物比例" in s5["txt"] and "時間軸不標秒數" in s5["txt"], "")
+
+    # ---------------- 6. 結構紅線：用**幾何**驗，不是用字串
+    geo = pg.evaluate("""() => {
+      const h = document.querySelector('#prodDiagram'), svg = h.querySelector('svg');
+      const bb = (sel) => { const n = svg.querySelector(sel); if (!n) return null;
+        const r = n.getBBox(); return {x: r.x, y: r.y, w: r.width, h: r.height}; };
+      const rack = bb('[data-part="psu_rack"] rect.part');
+      const bbu = bb('[data-part="psu_bbu"] rect.part');
+      const scap = bb('[data-part="psu_scap"] rect.part');
+      // 「機房 UPS」這行字的位置 ＝ UPS 畫在哪裡（它刻意不掛 data-seg，所以只能靠文字定位）
+      const ups = [...svg.querySelectorAll('text')].find(n => (n.textContent || '').trim() === '機房 UPS');
+      const ur = ups ? ups.getBBox() : null;
+      const inside = (a, b) => !!(a && b && a.x >= b.x && a.y >= b.y &&
+                                  a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h);
+      // 板上 DC-DC：一排等距電感（外框 1 個 ＋ 電感 N 個）
+      const vrm = [...svg.querySelectorAll('[data-part="psu_vrm"] rect.part')];
+      const ind = vrm.map(n => ({x: +n.getAttribute('x'), w: +n.getAttribute('width')}))
+                     .filter(z => z.w <= 20).sort((a, b) => a.x - b.x);
+      const gaps = ind.slice(1).map((z, i) => +(z.x - ind[i].x).toFixed(1));
+      // 匯流排 vs 電源線組：前者是實心厚排（rect 寬），後者是線（stroke-width）
+      const busW = +svg.querySelector('[data-part="psu_busbar"] rect.part').getAttribute('width');
+      const whipW = Math.max(...[...svg.querySelectorAll('[data-part="psu_whip"] path.part')]
+                     .map(n => parseFloat(getComputedStyle(n).strokeWidth) || 0));
+      // 兩欄架構對照：左欄（現行）x < 738、右欄（800 VDC）x >= 738
+      const arch = [...svg.querySelectorAll('[data-part="psu_arch"] rect.part')]
+                    .map(n => ({x: +n.getAttribute('x'), h: +n.getAttribute('height')}));
+      const L = arch.filter(z => z.x < 738).length, R = arch.filter(z => z.x >= 738).length;
+      // 兩欄的匯流排粗細（不是 .part 的那兩條 rect，是銅色的那兩條）
+      const bars = [...svg.querySelectorAll('[data-part="psu_arch"] rect:not(.part)')]
+                    .map(n => ({x: +n.getAttribute('x'), h: +n.getAttribute('height')}))
+                    .sort((a, b) => a.x - b.x);
+      return {rackIn_bbu: inside(bbu, rack), rackIn_scap: inside(scap, rack),
+              upsOutside: !!(ur && rack && ur.x + ur.width <= rack.x),
+              nInd: ind.length, gaps: gaps, busW: busW, whipW: whipW,
+              archL: L, archR: R, bars: bars.map(z => z.h)};
+    }""")
+    ok("§6-P1：BBU 畫在機櫃虛線框**裡面**（畫到框外＝直接退回）", geo["rackIn_bbu"], geo)
+    ok("§6-P5：超級電容也在框裡、跟 BBU 同一個直流節點那一側", geo["rackIn_scap"], geo)
+    ok("§6-P2：機房 UPS 畫在機櫃虛線框**外面**（而且在左邊的交流側）", geo["upsOutside"], geo)
+    ok("§6-V4：板上 DC-DC 是**一排 ≥4 個等距元件**（多相），不是單一顆",
+       geo["nInd"] >= 4 and len(set(geo["gaps"])) == 1, f"{geo['nInd']} 個、間距 {geo['gaps']}")
+    ok("§6-V3：匯流排比電源線組粗一個量級（厚銅排 vs 線束）",
+       geo["busW"] >= geo["whipW"] * 2, f"匯流排寬 {geo['busW']} ／ power whip 線寬 {geo['whipW']}")
+    ok("§6-C2：800 VDC 那一欄的方塊數**比現行那一欄少**（少掉的就是機櫃內那一級）",
+       geo["archR"] < geo["archL"], f"現行 {geo['archL']} 格 ／ 800 VDC {geo['archR']} 格")
+    ok("§6-C3：兩欄的匯流排同一個比例尺，而且 800 VDC 那一欄明顯比較細",
+       len(geo["bars"]) == 2 and geo["bars"][1] < geo["bars"][0] / 5,
+       f"現行 {geo['bars'][0] if geo['bars'] else '?'}px ／ 800 VDC {geo['bars'][1] if len(geo['bars']) > 1 else '?'}px")
+
+    # ---------------- 7. 誠實性紅線（§6-N1／N2／T2）
+    honest = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const pct = [], bad = [];
+      svg.querySelectorAll('text').forEach(n => {
+        const t = (n.textContent || '');
+        if (!/[0-9]\\s*%/.test(t)) return;
+        pct.push(t.trim().slice(0, 30));
+        if (!n.closest('[data-part="psu_eff"]')) bad.push(t.trim().slice(0, 30));
+      });
+      const tl = [...svg.querySelectorAll('[data-part="psu_time"] text')].map(n => n.textContent || '');
+      return {pct: pct, bad: bad, timeNums: tl.filter(t => /[0-9]/.test(t)).map(t => t.trim().slice(0, 30))};
+    }""")
+    ok("§6-N1／N2：畫面上的百分比**只出現在效率表那一格**（不准有市占率、良率）",
+       not honest["bad"], f"效率表外的百分比 {honest['bad']}；表內 {honest['pct']}")
+    ok("§6-T2：時間軸那一格的文字裡**一個數字都沒有**（三個來源三個答案，所以不標秒數）",
+       not honest["timeNums"], honest["timeNums"])
+
+    # ---------------- 8. 動畫：開／關真的停得掉 SMIL 那顆白點
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+    pg.wait_for_timeout(500)
+    pg.eval_on_selector("#dgAnim", "b => b.click()")            # → 動畫：關
+    pg.wait_for_timeout(700)
+    force_open(pg)
+    dot = "() => { const h = document.querySelector('#prodDiagram');" \
+          " const mo = h && h.querySelector('animateMotion'); const d = mo && mo.parentNode;" \
+          " return d ? +d.getBoundingClientRect().x.toFixed(1) : null; }"
+    pre = pg.evaluate(dot)
+    if ok("動畫那一條的前提：流程列那顆 SMIL 白點真的畫得出來（量不到就不要拿 0 互比）",
+          pre is not None and pre != 0, pre):
+        off1 = pg.evaluate(dot); pg.wait_for_timeout(1100); off2 = pg.evaluate(dot)
+        ok("按「動畫：關」之後，那顆點連續兩次取樣的 x 座標相同（真的停住）",
+           off1 == off2, f"{off1} → {off2}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")        # → 動畫：開
+        pg.wait_for_timeout(700)
+        on1 = pg.evaluate(dot); pg.wait_for_timeout(1000); on2 = pg.evaluate(dot)
+        ok("切回「動畫：開」之後那顆點真的又動起來", on1 != on2, f"{on1} → {on2}")
+    else:
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+        pg.wait_for_timeout(400)
+
+    # ---------------- 9. 三個寬度：字級 ≥ 12px、文字不重疊、不溢出畫布
+    #   ★ 2026-09-15 起 Andy 一直在講「文字太小」，所以量的是**畫面上的真實字級**
+    #     ＝ computed font-size × (svg 實寬 ÷ viewBox 寬)，不是原始碼裡寫的值。
+    TYPO = """() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      if (!svg) return {present: false};
+      const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal;
+      const k = (r.width && vb.width) ? r.width / vb.width : 0;
+      const a = [];
+      svg.querySelectorAll('text').forEach(n => {
+        if (!(n.textContent || '').trim()) return;
+        const cs = getComputedStyle(n);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+        const b = n.getBoundingClientRect();
+        if (!b.width || !b.height) return;
+        a.push({t: (n.textContent || '').trim().slice(0, 20), cls: n.getAttribute('class') || '',
+                eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
+                x0: (b.x - r.x) / k, x1: (b.x + b.width - r.x) / k,
+                y0: b.y, y1: b.y + b.height, x: b.x, w: b.width});
+      });
+      const ov = [];
+      for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+        const p = a[i], q = a[j];
+        const ox = Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x);
+        const oy = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0);
+        if (ox > 0.6 && oy > 0.6) ov.push(p.t + ' ⨯ ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+      }
+      const out = a.filter(z => z.x1 > vb.width - 2).map(z => z.t + ' → x=' + z.x1.toFixed(1));
+      const small = a.filter(z => z.eff < 11.9).map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
+      return {present: true, n: a.length, svgW: Math.round(r.width),
+              min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+              small: small.slice(0, 8), nSmall: small.length,
+              ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length};
+    }"""
+    for w in (1440, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#industry/ai_server/dg/{DGID}", wait_until="networkidle")
+        # goto 到「跟現在同一個 hash」不會觸發 hashchange（瀏覽器行為，不是我們的 bug），
+        # 所以照 MLCC 那一段的做法補一次 reload，量測不要建立在「上一段剛好換過 hash」的假設上
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2500)
+        force_open(pg)
+        z = pg.evaluate(TYPO)
+        if not ok(f"[{w}px] 伺服器電源那張圖畫得出來", z.get("present"), z):
+            continue
+        ok(f"[{w}px] 以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 960, z["svgW"])
+        ok(f"[{w}px] 圖上**每一個**字的畫面真實字級都 ≥ 12px（共 {z['n']} 個）",
+           z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
+        ok(f"[{w}px] 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
+        ok(f"[{w}px] 沒有文字溢出畫布右緣（兩欄架構對照最容易撞到這條）",
+           z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
+    # ---------------- 10. 800px 窄畫面：入口 → 點進去 → 圖真的換掉（重跑一次操作）
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    s8 = state(pg)
+    ok("[800px] 圖別入口列上一樣看得到這張圖", DGID in s8["picks"], s8["picks"])
+    pg.click(f'#dgPick .segchip[data-dgid="{DGID}"]', timeout=5000); pg.wait_for_timeout(2500)
+    force_open(pg)
+    s8b = state(pg)
+    ok("[800px] 真的用滑鼠點入口 → 網址真的變了、圖真的換成這一張",
+       s8b["hash"].endswith("/dg/" + DGID) and FEAT in s8b["full"], s8b["hash"])
+    r8 = rows(pg)
+    ok("[800px] 點零件一樣只亮不篩（筆數不變）",
+       (click_part(pg, "psu_vrm"), rows(pg))[-1] == r8, f"{r8} → {rows(pg)}")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
@@ -9058,6 +9369,9 @@ SECTIONS = {
     "批次6-圖十":          lambda pg, b, base, code: t_batch6_n3(pg, base),
     "批次6-圖九":          lambda pg, b, base, code: t_batch6_n9(pg, base),
     "批次11-MLCC":         lambda pg, b, base, code: t_mlcc(pg, base),
+    # 圖9 伺服器電源 PSU ＋ BBU（site/dg/server_psu.js）。三個真 seg，所以
+    # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
+    "批次12-電源PSU":      lambda pg, b, base, code: t_psu(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
