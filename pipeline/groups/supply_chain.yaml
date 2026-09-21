@@ -82,7 +82,13 @@ segments:
   - {id: pkg_equipment,  name: "封裝設備 / 濕製程",         layer: 3, chain: semiconductor, role: equipment}
   - {id: test_interface, name: "測試介面 探針卡", layer: 3, chain: semiconductor, role: equipment}
   # ---- AI 伺服器
-  - {id: hdi_pcb,      name: "高階 PCB（MLB / UBB）", layer: 3, chain: ai_server}
+  # ★ 2026-09-21：顯示名補上 HDI。id 叫 hdi_pcb、名字卻只寫「MLB / UBB」，
+  #   而 HDI（高密度互連、細線路少層）與 MLB/UBB（高層數厚板）是**兩種不同的板**。
+  #   原本格子裡三家主要做高層板所以看不出來，華通（全球 HDI 龍頭）進來之後就矛盾了。
+  #   id 不動（前端有引用），只改顯示名。
+  #   顯示名有 150px 的硬上限（tests/test_delivery_guard.py，欄寬只有 ~155px），
+  #   所以寫成「高階 PCB（HDI/高層板）」（斜線兩側不留空白剛好壓到 147px）—— MLB / UBB 是高層板的兩種，收進去不失真。
+  - {id: hdi_pcb,      name: "高階 PCB（HDI/高層板）", layer: 3, chain: ai_server}
   # CCL 標 material，但**不**因此弱化到跟設備同級 —— 它是 PCB 裡**最大的單一材料成本**，
   # 是這輪行情的「因」不是「果」。灰色、粗細仍依 strength。
   # ★ 2026-09-21 更正：原本這句寫「占材料成本 50% 以上」，**查不到支撐**。
@@ -282,6 +288,40 @@ companies:
   - {id: tripod,  ticker: "3044", name: 健鼎,      segment: hdi_pcb,
      tech: [伺服器 PCB, 網通板, 記憶體模組板, 車用板],
      note: "2026 預估記憶體佔營收 26%、伺服器佔 33%。★ 不畫「健鼎 → NVIDIA」：GB200 板的直接客戶是 ODM 不是輝達，而且出處是投顧文"}
+  # ★ 2026-09-21（第三輪）補三家。起因是 pcb_rigid 族群 7 檔、這個環節只有 3 家，
+  #   PCB 剖析圖點下去列出的清單會跟族群卡片對不起來（MLCC 那張踩過同一個坑）。
+  #   ⚠⚠ 這三家裡有一對**母子公司**：5469 瀚宇博是母、6191 精成科是子。
+  #      圖上並列成兩個節點會讓人以為是兩家互相競爭的供應商，所以兩邊的 note 都寫明。
+  #      查證時也因此差點出錯 —— 媒體給 5469 的 AI 數字有一大半其實是 6191／Lincstech 的產能。
+  #      （schema 目前沒有表達母子關係的 rel 欄位，和建榮 5340／日東紡那條是同一個缺口，
+  #       一樣先寫進 note。）
+  - {id: topoint, ticker: "6191", name: 精成科,    segment: hdi_pcb,
+     tech: [AI ASIC 加速卡板, 交換器 Switch 板, UBB 主板, 50 層級高層板, 探針卡 PCB],
+     note: "★ 是 5469 瀚宇博的**子公司**（華新麗華集團 PSA 華科事業群）。
+       四家裡證據最直接的一家：2025 年以 84 億併購日本 Lincstech（前身日立化成 PCB 事業部）全數股權，
+       新加坡廠具 50 層板能力、聚焦 AI ASIC 加速卡與交換器板，400G 已量產、800G 明年量產、
+       AI Server 板 2026Q1 起量產，訂單能見度到 2027 上半年。
+       ★ 不畫「精成科 → Google」：『Google TPU 的 UBB 供應商』只見於 AI 問答與投顧刊物，
+       沒有公司或 Google 的具名揭露（DECISIONS #201 的標準）。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過法說原文"}
+  - {id: hannstar_bd, ticker: "5469", name: 瀚宇博,  segment: hdi_pcb,
+     tech: [筆電板, 伺服器主板, 網通板, 26-50 層 High-End 板],
+     note: "★ 是 6191 精成科的**母公司**，含子公司是全球 PCB 產能最大的集團。
+       ⚠ 媒體報導的『新加坡／馬來西亞廠』『26–50 層 High-End』其實是子公司旗下 Lincstech 的產能，
+       是**合併口徑**；瀚宇博自己的廠是觀音與桃科。所以『瀚宇博做 AI 伺服器高階板』這句成立，
+       但成立的路徑有一大半是透過 6191 —— 不寫清楚會讓人以為是兩家獨立的供應商。
+       自述產品是雙面板到 30 層的多層板，主體長期是筆電板；AI 相關合併營收占比逾 20%。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文"}
+  - {id: unimicron_gtw, ticker: "2313", name: 華通,  segment: hdi_pcb,
+     tech: [800G+ 光模組板 12-16L MSAP, 八階 HDI OAM 板, 低軌衛星板, any-layer HDI, 手機板],
+     note: "全球 HDI 板龍頭，營收主體是手機板、低軌衛星板與 PC。
+       ★ 它在 AI 這一塊做的是**光模組板（12–16 層、MSAP 半加成）與 OAM 加速模組板，不是 UBB** ——
+       這也是這個環節的顯示名這次補上「HDI」的原因，否則等於在說華通是 UBB 廠。
+       媒體報導已切入兩家美系 AI 主板供應鏈、2026 伺服器業務營收占比預估 7%，
+       但**兩家客戶都沒有具名，所以不連任何一條邊**。
+       ★『50 層以上伺服器板能力』只見於理財周刊與社群等級深度報告、非公司揭露，
+       所以 tech 只寫得出來的產品別，不寫層數上限那個數字。
+       ⚠ 證據等級：WebSearch 摘要，沒有讀過原文"}
   # ---- CCL（材料）
   - {id: emc,     ticker: "2383", name: 台光電,     segment: ccl,      tech: [M8/M9 高階 CCL],
      note: "高階 CCL 龍頭。做的是 PCB 用高速 CCL，不是 ABF 載板材料（載板的膜是味之素、core 是三菱瓦斯）"}
