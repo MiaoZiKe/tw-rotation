@@ -593,8 +593,17 @@
        查找順序＝ 族群專屬圖 → 這條鏈的預設圖 → 都沒有就不畫。
      `scene` 是對應的 Three.js 場景 id（site/three3d.js 的 SCENES），沒有就是沒有 3D。*/
   const SLOTS = {
-    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor' },
-    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server' },
+    /* ★ 2026-09-21 art-director 獨立量測：這兩張舊圖在**任何寬度都不合格**，
+       連 1440 全寬都還沒到 12px（半導體 10.47px、AI 伺服器 11.57px），
+       900px 螢幕上只剩 6.26px / 6.92px。Andy 已經講過三次「文字太小」。
+       根因和 MLCC 那張完全一樣：產業鏈頁右邊有側欄，欄寬永遠遠小於螢幕寬，
+       viewBox 1220 被壓成 ×0.659 —— **字級怎麼調都沒用**。
+       這裡先補上 native（一行、不動任何幾何、零回歸風險），
+       900px 的縮放從 ×0.659 拉回 ×1.0，最小字級 6.26 → 9.5px。
+       ⚠ 還沒到 12px：那要把兩張掛上 .dgm 並**重排版面**（字級一升，labelRow 與
+       processBar 的行距會擠在一起），那是另外一批、自己一個 commit，不跟新圖綁在一起。*/
+    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor', native: 1220 },
+    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220 },
     mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980 },
   };
   const isGroupSlot = (id) => !!(SLOTS[id] && SLOTS[id].level === 'group');
