@@ -49,6 +49,22 @@
   --body-1:rgba(139,123,255,.16); --body-2:rgba(62,224,255,.12);
   --illus:#0a1020;          /* 產業鏈示意圖（SVG 插畫，兩種主題都維持深色底） */
   --dg-1:#132038; --dg-2:#070b16;
+  /* ---------------- 剖析圖（2D／2.5D）的材質色與強調色 ----------------
+     art-director 2026-09-21 裁定的名單（AGENTS §15：這一組由它擁有，
+     **JS 不准再寫死 #xxxxxx**）。先做「同值搬家」—— 值跟搬家之前一模一樣，
+     只是換了來源，所以外觀零變化，但之後 14 張圖只要改這裡一處。
+     兩種主題共用同一組：--illus 在深色與淺色下都是深底（既有決策），
+     所以剖析圖的對比在兩個主題下本來就一樣。*/
+  --dg-cer:#d3cbb7; --dg-cer-2:#bbb39f;           /* 陶瓷本體（暖米白霧面） */
+  --dg-cer-cut:#b3ab98; --dg-cer-cut-2:#9a9280;   /* 切面上的陶瓷（暗一階，看得出是剖面） */
+  --dg-cover:#ddd6c2; --dg-cover-2:#d0c8b4;       /* 保護層（無電極素坯） */
+  --dg-el:#4e5866;                                 /* 內電極（暗鋼灰） */
+  --dg-sn:#e2e7ec; --dg-ni:#a9b1b9;                /* 端子：錫、鎳 */
+  --dg-cu:#b0743a; --dg-resin:#6f6858;             /* 端子：銅基底、導電樹脂（軟端子） */
+  --dg-pcb:#1a4230;                                /* 板材 */
+  --dg-ink:#e8eeff; --dg-ink-2:#a9b6d6; --dg-ink-3:#8ea0c4;   /* 圖上的文字三階 */
+  --dg-warn:#ff8fab; --dg-err:#ff4d6d;             /* 警語、裂紋 */
+  --dg-chg-a:.12;             /* 電荷疊色的透明度（.26 會把陶瓷的色相整個推掉，見 B2） */
   --ovl:rgba(10,16,32,.55);   /* K 線圖上那幾個浮在圖上的小標籤 */
   --ovl-sh:0 1px 2px #000;    /* 浮在圖上的文字陰影 */
 }
@@ -931,6 +947,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   border:1px solid color-mix(in srgb,var(--c,var(--cyan)) 38%,transparent);cursor:pointer;white-space:nowrap}
 .lbl3d .chip3d:hover{color:var(--ink);background:color-mix(in srgb,var(--c,var(--cyan)) 32%,transparent)}
 .lbl3d u.chips3d s{font-size:10.5px;color:var(--ink-3);text-decoration:none;align-self:center}
+/* A5-b：晶片上方那行「這排台股是哪一群」的小字，要自己占一整行，不要跟晶片擠在同一列 */
+.lbl3d u.chips3d s.chipnote{flex:0 0 100%;margin-bottom:1px}
 .lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}
 .lbl3d.sel b{color:var(--cyan)}
 .lbl3d.dim{opacity:.26}

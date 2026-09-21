@@ -137,11 +137,25 @@
       title: 'MLCC 積層陶瓷電容（切開近角）',
       sub: '陶瓷疊層 ＋ 交錯指狀電極 ＋ 端電極 Cu → Ni → Sn；圖上 12 層為示意，實際 400～1000 層',
       camera: [64, 44, 72], target: [0, 18, 0], fit: 1, hk: 0.56,
+      /* A5（mechanical-engineer 2026-09-21 複驗）：文字框底下那排台股改成列
+         **「被動元件 MLCC」族群**（2327／2492／3026／6173），不是 passive_comp 環節。
+         ⚠ 審查意見當時的理由有一半已經被 YAML 的更新推翻，所以這裡寫的是**現在的**理由：
+           · 環節在 2026-09-21 已經補進 3026 禾伸堂與 6173 信昌電，所以「真正做 MLCC 的
+             兩家在圖上完全不出現」那條**已經不成立**（那一條是 YAML 修掉的，不是這裡）。
+           · 還成立的是這一條：環節現在有五家，而晶片只排得下四個 ——
+             照 YAML 順序切前四家會**留下凱美、擠掉信昌電**，正好是最不該的那四家。
+             而 supply_chain.yaml 自己寫「凱美**不做 MLCC**，是用電阻進到這一格的」，
+             它被貼在「陶瓷本體與交錯電極／介電層 0.5–2 µm」這段說明正下方，就是在宣稱它做 MLCC。
+         `data-seg` 一律保留 passive_comp（顏色連動、環節色標、篩選全靠它），YAML 一行都沒動。
+         `chipnote` 是晶片上方那行小字，把「這排是哪一群」講白。
+         第三個零件（PCB 焊墊）沒有 codes —— 它不是 MLCC 專屬的結構，照舊走環節名單。 */
       parts: [
         { seg: 'passive_comp', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
-          kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0] },
+          kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0],
+          codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
         { seg: 'passive_comp', name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
-          kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0] },
+          kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0],
+          codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
         { seg: 'passive_comp', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
           kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0] },
       ],
@@ -155,7 +169,7 @@
      一律「畫在自己的局部座標、以 box 的中心為原點」，擺位交給外面統一處理。
      K.mat(明暗, 選項) 回傳材質：明暗 > 0 偏亮、< 0 偏暗，同一組參數會共用同一顆材質，
      highlight() 才有辦法一次把整個零件變透明。led:true 的是指示燈（E2 唯一准發光的東西）。 */
-  function kit(THREE, hex, ghost) {
+  function kit(THREE, hex, ghost, css) {
     const base = new THREE.Color(hex);
     const white = new THREE.Color(0xffffff), dark = new THREE.Color(0x070b14);
     const cache = {}, all = [];
@@ -178,7 +192,13 @@
     }
     // 邊線用的 LineBasicMaterial 不是從 mat() 來的，要自己登記，highlight 才吃得到它
     const reg = (m) => { all.push(m); return m; };
-    return { mat, col, reg, mats: all };
+    /* B5／B6（art-director 2026-09-21）：**材質色一律讀 CSS 變數 `--dg-*`，JS 不寫死 #xxxxxx。**
+       這一支讓零件建造函式拿得到那組變數 —— 以前 3D 的陶瓷是「把環節色 --c 調淡」，
+       所以同一顆電容切到 3D 就從暖米白（42°）變成冷灰白，跟 2D 對不上，
+       而且陶瓷與 Ni／Sn 全是灰白、畫面上分不出哪塊是陶瓷哪塊是金屬。
+       讀不到（沒掛上 DOM、舊瀏覽器）就回 dflt，不要讓整個 3D 掛掉。*/
+    const cssv = (name, dflt) => { try { const v = css ? css(name) : ''; return v || dflt; } catch (e) { return dflt; } };
+    return { mat, col, reg, css: cssv, mats: all };
   }
 
   function mkBuilders(T) {
@@ -671,9 +691,12 @@
       const em = w * 0.14;           // 端部餘白：不准碰到對面的端電極
       const sm = d * 0.1;            // 側邊餘白：電極不到側面
       const n = 12, pit = (h - cov * 2) / n, et = pit * 0.3;
-      const cer = K.mat(0.72, { rough: 0.88, metal: 0.03 });   // 陶瓷：很淡的環節色＝米白霧面
-      const cvm = K.mat(0.86, { rough: 0.92, metal: 0.02 });   // 保護層：更淡一階，一眼分得出來
-      const elm = K.mat(-0.5, { rough: 0.32, metal: 0.78 });   // 內電極：暗鋼色
+      /* B6：材質色跟 2D 那張用同一組 `--dg-*`，不再拿環節色去調淡 ——
+         以前 cer 是 K.mat(0.72)＝環節色 #ace3ec 調淡（冷灰白），
+         2D 卻是 #d3cbb7（暖米白 42°），同一顆電容切到 3D 就換材質。*/
+      const cer = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.88, metal: 0.03 });   // 陶瓷：暖米白霧面
+      const cvm = K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.92, metal: 0.02 }); // 保護層：淡一階，一眼分得出來
+      const elm = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.32, metal: 0.78 });    // 內電極：暗鋼灰
       const push = (a) => a.forEach(o => g.add(o));
       push(lslab(-w / 2, w / 2, -h / 2, -h / 2 + cov, -d / 2, d / 2, cvm));
       push(lslab(-w / 2, w / 2, h / 2 - cov, h / 2, -d / 2, d / 2, cvm));
@@ -698,9 +721,10 @@
       const push = (a) => a.forEach(o => g.add(o));
       /* metalness 壓在 0.45 以下：這個場景只有方向光、沒有環境貼圖，
          金屬度拉高就變成一塊黑（第一版的端電極就是這樣，三層全糊在一起看不出來）。*/
-      const L3 = [[0, 0.62, K.mat(0, { color: '#d08a46', metal: 0.42, rough: 0.42 })],
-        [0.62, 0.85, K.mat(0, { color: '#b9c1c9', metal: 0.4, rough: 0.38 })],
-        [0.85, 1, K.mat(0, { color: '#eef2f5', metal: 0.3, rough: 0.34 })]];
+      // B5／B6：Cu／Ni／Sn 三層也改讀 --dg-*，跟 2D 的端子剖面是同一組顏色
+      const L3 = [[0, 0.62, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.42 })],
+        [0.62, 0.85, K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.4, rough: 0.38 })],
+        [0.85, 1, K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.3, rough: 0.34 })]];
       [-1, 1].forEach(sx => {
         const wx0 = sx < 0 ? -w / 2 : w / 2 - wl, wx1 = sx < 0 ? -w / 2 + wl : w / 2;
         L3.forEach(([a, b, m]) => {
@@ -720,9 +744,9 @@
     function mlccPad(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.6, { rough: 0.9, metal: 0.05, color: '#1a4230' })));
-      const cu = K.mat(0, { color: '#d08a46', metal: 0.42, rough: 0.44 });
-      const sn = K.mat(0, { color: '#cfd5db', metal: 0.35, rough: 0.36 });
+      g.add(box(w, h, d, K.mat(0, { rough: 0.9, metal: 0.05, color: K.css('--dg-pcb', '#1a4230') })));
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.44 });
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.35, rough: 0.36 });
       [-1, 1].forEach(s => {
         g.add(put(box(w * 0.3, h * 0.6, d * 0.55, cu), s * w * 0.3, h * 0.7, 0));
         // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
@@ -812,7 +836,7 @@
 
     spec.parts.forEach((p, idx) => {
       const hex = o.color(p.seg) || '#8ea0c4';
-      const K = kit(THREE, hex, p.ghost);
+      const K = kit(THREE, hex, p.ghost, (n) => getComputedStyle(el).getPropertyValue(n).trim());
       const build = B[p.kind] || B.plain;
       const proto = build(p, K);
       const n = p.n || 1, gap = p.gap || 0, axis = p.axis || 'x';
@@ -860,7 +884,21 @@
          以前標籤只是死的文字 —— 使用者看得到「ABF 載板」，卻要自己回去翻是誰做的。
          該環節台股掛零（hyperscaler、HBM）就明講「台股無直接對應」，不要留白。*/
       const chipBox = d.querySelector('u.chips3d');
-      const mem = o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 };
+      /* A5-c（mechanical-engineer 2026-09-21）：零件可以自己指定要列哪幾檔（`codes`），
+         沒指定才退回「這個環節的台股」（`members(seg)`）。理由見 SCENES.mlcc 那一段。
+         一句話版本：一個環節可以比一個零件**廣**（「被動元件 MLCC / 電阻」含晶片電阻廠），
+         晶片又只排得下四個，切前四家不一定切到對的四家 ——
+         零件說明講的是 MLCC 的結構，底下列的名單就必須是真的做這件事的人。
+         `data-seg` 沒有動（顏色連動、環節色標、篩選都靠它），動的只有「列誰」。*/
+      const mem = (p.codes && p.codes.length)
+        ? { list: p.codes.slice(0, 4).map(c => ({ code: c, name: (window.Link && window.Link.cname[c]) || c })), total: p.codes.length }
+        : (o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 });
+      // A5-b：晶片上方一行小字，講清楚這排台股是「哪一群」，不要讓它貼著零件說明被讀成「這幾家做這個零件」
+      if (p.chipnote && mem.list.length) {
+        const s = document.createElement('s');
+        s.className = 'chipnote'; s.textContent = p.chipnote;
+        chipBox.appendChild(s);
+      }
       if (!mem.list.length) {
         chipBox.innerHTML = '<s>台股無直接對應</s>';
       } else {

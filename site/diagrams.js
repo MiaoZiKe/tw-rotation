@@ -4,19 +4,28 @@
 (function () {
   'use strict';
   const STYLE = `<style>
-    .dg{font-family:"Noto Sans TC",sans-serif}
-    .dg text{fill:#a9b6d6;font-size:12px}
-    .dg .ttl{font-size:15px;font-weight:700;fill:#e8eeff;letter-spacing:.02em}
+    .dg{font-family:"Noto Sans TC",sans-serif;--dg-accent:#3ee0ff}
+    /* 零件群組裡的強調色＝那個環節的顏色；群組外（流程箭頭、良率曲線、比例尺）就是固定的青色。
+       這兩行是 --dg-accent 唯一的定義處 —— 寫在 :root 的話 var(--c) 會在 :root 就被解析掉，
+       每個零件自己的環節色永遠吃不到。 */
+    .dg [data-seg],.dg .p3{--dg-accent:var(--c,#3ee0ff)}
+    .dg text{fill:var(--dg-ink-2,#a9b6d6);font-size:12px}
+    .dg .ttl{font-size:15px;font-weight:700;fill:var(--dg-ink,#e8eeff);letter-spacing:.02em}
     .dg .cap{font-size:11.5px;fill:#6f7ea3}
-    .dg .lbl{font-size:12.5px;fill:#e8eeff;font-weight:600}
-    .dg .sub{font-size:10.5px;fill:#8ea0c4}
-    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:10px;fill:var(--c,#8ea0c4);letter-spacing:.04em}
+    .dg .lbl{font-size:12.5px;fill:var(--dg-ink,#e8eeff);font-weight:600}
+    .dg .sub{font-size:10.5px;fill:var(--dg-ink-3,#8ea0c4)}
+    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:10px;fill:var(--c,var(--dg-ink-3,#8ea0c4));letter-spacing:.04em}
     .dg .mono{font-family:"JetBrains Mono",monospace}
     .dg [data-seg]{cursor:pointer;transition:opacity .2s}
     .dg [data-seg] .part{transition:stroke .15s,filter .15s;stroke:color-mix(in srgb,var(--c,#3ee0ff) 55%,#2a3860)}
-    .dg [data-seg]:hover .part,.dg [data-seg].sel .part{stroke:var(--c,#3ee0ff);stroke-width:2.2;filter:drop-shadow(0 0 7px var(--c,#3ee0ff))}
+    /* B1（art-director 2026-09-21）：發光半徑收成變數。
+       一張圖只有一個環節時（MLCC 那種單一族群的量產圖），點任何零件都會讓**全部**零件
+       同時加上 .sel —— 14 個群組、11 個元素一起 drop-shadow，那就是 Andy 講的「螢光感太重」，
+       而且 0 個被 dim ＝ 這個狀態沒有傳達任何資訊。那種圖掛 .dg1，--dg-glow:none 直接關掉發光。 */
+    .dg [data-seg]:hover .part,.dg [data-seg].sel .part{stroke:var(--c,#3ee0ff);stroke-width:2.2;filter:var(--dg-glow,drop-shadow(0 0 7px var(--c,#3ee0ff)))}
+    .dg.dg1{--dg-glow:none}
     .dg [data-seg].sel .lbl,.dg [data-seg]:hover .lbl{fill:var(--c,#3ee0ff)}
-    .dg [data-seg] .dot{fill:var(--c,#8ea0c4)}
+    .dg [data-seg] .dot{fill:var(--c,var(--dg-ink-3,#8ea0c4))}
     .dg [data-seg] .leader{stroke:color-mix(in srgb,var(--c,#8ea0c4) 55%,#1e2a48);stroke-width:1;fill:none}
     .dg [data-seg].sel .leader,.dg [data-seg]:hover .leader{stroke:var(--c);stroke-width:1.6}
     .dg [data-seg].dim{opacity:.3}
@@ -51,7 +60,7 @@
     .dg .p3:hover .part,.dg .p3.sel .part{stroke:var(--c,var(--ce));stroke-width:1.5;filter:drop-shadow(0 0 6px var(--c,var(--ce)))}
     .dg .p3 .etch{stroke:color-mix(in srgb,var(--c,var(--ce)) 60%,transparent);fill:none;stroke-width:.9}
     .dg .p3 .lit{fill:color-mix(in srgb,var(--c,var(--ce)) 78%,transparent)}
-    .dg .p3 .lbl{fill:#e8eeff} .dg .p3:hover .lbl,.dg .p3.sel .lbl{fill:var(--c,var(--ce))}
+    .dg .p3 .lbl{fill:var(--dg-ink,#e8eeff)} .dg .p3:hover .lbl,.dg .p3.sel .lbl{fill:var(--c,var(--ce))}
     .dg .p3 .dot{fill:var(--c,var(--ce))}
     .dg .p3 .leader{stroke:color-mix(in srgb,var(--c,var(--ce)) 50%,#1e2a48);stroke-width:1;fill:none}
     .dg .p3:hover .leader,.dg .p3.sel .leader{stroke:var(--c,var(--ce));stroke-width:1.6}
@@ -83,11 +92,14 @@
        新圖一律掛 .dgm，整張圖的最小字級被拉到 12px；舊圖不動，避免版面整個位移。 */
     .dgm .sub,.dgm .cap,.dgm .tag{font-size:12px}
     .dgm .lbl{font-size:12.5px}
-    .dgm .hd{font-size:12.5px;font-weight:700;fill:#e8eeff}
+    .dgm .hd{font-size:12.5px;font-weight:700;fill:var(--dg-ink,#e8eeff)}
     .dgm .num{font-family:"JetBrains Mono",monospace;font-size:12px;fill:#9fb0d0}
     .dgm .frame{fill:rgba(18,26,46,.5);stroke:rgba(120,150,210,.2)}
-    .dgm .warn{fill:#ff8fab}
-    .dgm .chg{fill:var(--c,#3ee0ff)}
+    .dgm .warn{fill:var(--dg-warn,#ff8fab)}
+    /* B2（art-director 2026-09-21）：電荷疊色的透明度從 .26 降到 .12。
+       量過：.26 的青色鋪滿整個有效層區，把陶瓷從暖米白 42° 推成偏綠 102°，
+       而不鋪的保護層還是 42° —— 讀者會以為兩者是不同材質，但它們是同一種陶瓷。*/
+    .dgm .chg{fill:var(--dg-accent);fill-opacity:var(--dg-chg-a,.12)}
   </style>`;
 
   // 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)
@@ -99,13 +111,19 @@
       <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
       <text class="lbl" x="${x + 16}" y="${y + 2}">${title}</text><text class="sub" x="${x + 16}" y="${y + 15}">${sub}</text></g>`;
   }
-  // 底部流程列：一串步驟方塊，帶移動的光點
+  /* 底部流程列：一串步驟方塊，帶移動的光點。**共用函式，三張圖都在用。**
+     B3（art-director 2026-09-21）：方塊本來高 34、標題基線 y+16、副標基線 y+28 ＝ 行距只有 12px。
+     `.dgm .sub` 從 10.5px 升到 12px 之後，12px 的中文字配 12px 行距 ——
+     量到 5 對文字的 bbox 互相重疊 1.7～2.0px（800px 與 1100px 都是），副標下緣也頂到框線。
+     改成高 40、標題 y+16、副標 y+32（行距 16px）：上緣留 6.6px、下緣留 5.2px。
+     光點與箭頭跟著移到新的垂直中線 y+20。 */
+  const PB_H = 40, PB_MID = 20;
   function processBar(x, y, steps, w) {
     w = w || 150; const gap = 12;
-    const boxes = steps.map((s, i) => { const bx = x + i * (w + gap); return `<g data-seg="${s.seg}"><rect class="part" x="${bx}" y="${y}" width="${w}" height="34" rx="7" fill="#0f172b"/><text class="lbl" x="${bx + 12}" y="${y + 16}" style="font-size:12px">${s.t}</text><text class="sub" x="${bx + 12}" y="${y + 28}">${s.s}</text></g>`
-      + (i < steps.length - 1 ? `<path class="flow fast" d="M${bx + w},${y + 17} L${bx + w + gap},${y + 17}" stroke="#3ee0ff" stroke-width="2"/>` : ''); }).join('');
+    const boxes = steps.map((s, i) => { const bx = x + i * (w + gap); return `<g data-seg="${s.seg}"><rect class="part" x="${bx}" y="${y}" width="${w}" height="${PB_H}" rx="7" fill="#0f172b"/><text class="lbl" x="${bx + 12}" y="${y + 16}" style="font-size:12px">${s.t}</text><text class="sub" x="${bx + 12}" y="${y + 32}">${s.s}</text></g>`
+      + (i < steps.length - 1 ? `<path class="flow fast" d="M${bx + w},${y + PB_MID} L${bx + w + gap},${y + PB_MID}" stroke="var(--dg-accent)" stroke-width="2"/>` : ''); }).join('');
     const total = steps.length * (w + gap) - gap;
-    return `<g>${boxes}<circle r="3" fill="#fff" opacity=".9"><animateMotion dur="6s" repeatCount="indefinite" path="M${x},${y + 17} L${x + total},${y + 17}"/></circle></g>`;
+    return `<g>${boxes}<circle r="3" fill="#fff" opacity=".9"><animateMotion dur="6s" repeatCount="indefinite" path="M${x},${y + PB_MID} L${x + total},${y + PB_MID}"/></circle></g>`;
   }
   const chainLink = (chain, x, y, text) => `<g data-chain="${chain}"><rect x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8" fill="#0f172b" stroke="#2a3860"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:#3ee0ff;font-weight:600">${text}</text></g>`;
 
@@ -393,13 +411,17 @@
     const uCap = (L - 18) - XC;              // 178：端電極內側面（陶瓷在這裡讓出位置）
     const uStop = (L - EM) - XC;             // 166：不連到右端的那一組，停在這裡
     const uTerm = (L - TW) - XC;             // 154：端電極帶的起點
+    /* B2：電荷疊色只畫 CHG_AT 這幾段，不是 15 段全鋪。
+       鋪滿的話那一片青色就等於「有效層區是另一種材質」；只在幾段之間畫，
+       讀起來才是「電荷存在相鄰這兩片電極之間」—— 也正是這張圖要講的事。*/
+    const CHG_AT = [3, 6, 9, 12];
     const els = [], chg = [];
     for (let i = 0; i < NEL; i++) {
       const v0 = ez(i), u1 = (i % 2) ? uCap : uStop;   // 奇數層連右端電極、偶數層從左端伸進來
-      els.push(`<rect x="0" y="${v0.toFixed(1)}" width="${u1}" height="${ET}" fill="#4e5866"/>`);
-      if (i < NEL - 1) {
+      els.push(`<rect x="0" y="${v0.toFixed(1)}" width="${u1}" height="${ET}" fill="var(--dg-el)"/>`);
+      if (i < NEL - 1 && CHG_AT.includes(i)) {
         const g0 = v0 + ET, g1 = ez(i + 1);
-        chg.push(`<rect class="chg pulse" x="6" y="${g0.toFixed(1)}" width="${uStop - 12}" height="${(g1 - g0).toFixed(1)}" fill-opacity=".26" style="animation-delay:${(i * 0.16).toFixed(2)}s"/>`);
+        chg.push(`<rect class="chg pulse" x="6" y="${g0.toFixed(1)}" width="${uStop - 12}" height="${(g1 - g0).toFixed(1)}" style="animation-delay:${(i * 0.16).toFixed(2)}s"/>`);
       }
     }
     // 端電極斷面：由外到內 Sn → Ni → Cu（車規在右下的放大圖裡才多一層樹脂）
@@ -410,19 +432,19 @@
       + `<rect x="0" y="${H - COV}" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
       + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="rgba(30,36,50,.5)" stroke-width=".9" fill="none"/>`
       + chg.join('') + els.join('')
-      + termBand(0, '#e2e7ec') + termBand(3, '#a9b1b9') + termBand(6.5, '#b0743a')
+      + termBand(0, 'var(--dg-sn)') + termBand(3, 'var(--dg-ni)') + termBand(6.5, 'var(--dg-cu)')
       + `</g>`;
 
     // ---------------- 切面 A（x = XC 的 y–z 面）：側邊餘白
     const uA = W - YC, uSide = (W - SM) - YC;
     const elsA = [];
-    for (let i = 0; i < NEL; i++) elsA.push(`<rect x="0" y="${ez(i).toFixed(1)}" width="${uSide}" height="${ET}" fill="#4e5866"/>`);
+    for (let i = 0; i < NEL; i++) elsA.push(`<rect x="0" y="${ez(i).toFixed(1)}" width="${uSide}" height="${ET}" fill="var(--dg-el)"/>`);
     const faceA = onYZ(XC, YC)
       + `<rect x="0" y="0" width="${uA}" height="${H}" fill="url(#mcCutB)"/>`
       + `<rect x="0" y="0" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
       + `<rect x="0" y="${H - COV}" width="${uA}" height="${COV}" fill="url(#mcCovB)"/>`
       + elsA.join('')
-      + `<path d="M${uSide},${COV + 2}V${H - COV - 2}" stroke="#ff8fab" stroke-width="1.1" stroke-dasharray="3 3" fill="none"/>`
+      + `<path d="M${uSide},${COV + 2}V${H - COV - 2}" stroke="var(--dg-warn)" stroke-width="1.1" stroke-dasharray="3 3" fill="none"/>`
       + `</g>`;
 
     // ---------------- 外表面
@@ -442,8 +464,8 @@
     const chip = (x, w, h) => {
       const t = Math.max(5, w * 0.17);
       return `<g><rect x="${x}" y="${160 - h}" width="${w}" height="${h}" rx="2" fill="url(#mcT)"/>`
-        + `<rect x="${x}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="#dfe4e8"/>`
-        + `<rect x="${x + w - t}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="#dfe4e8"/></g>`;
+        + `<rect x="${x}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-sn)"/>`
+        + `<rect x="${x + w - t}" y="${160 - h}" width="${t}" height="${h}" rx="1.5" fill="var(--dg-sn)"/></g>`;
     };
 
     // ---------------- 右下：端電極 2D 放大剖面（消費級三層 vs 車規四層）
@@ -455,44 +477,66 @@
          只畫一端的版本測下來會被讀成「螢幕＋底座」，整顆的輪廓才一眼認得出是 MLCC。*/
       const BL = x + 34, BR = x + 258, BT = 566, BB = 654;     // 陶瓷本體
       const WL = x + 96, WR = x + 196;                          // 端子往本體上包到這裡（左／右）
+      /* A3（mechanical-engineer 2026-09-21）：**兩顆的 Sn／Ni／Cu 厚度完全一樣**，
+         車規靠「端子整體往外長厚」容納中間那層導電樹脂。
+         以前消費級的 Ni 被畫成跟 Cu 一樣厚、而且是車規那顆 Ni 的三倍，
+         等於畫面在說「兩顆的差別只有多一層樹脂」但 Ni 自己偷偷變三倍 —— 對照就失效了。
+         每一列是 [端面向外的偏移 dx, 上包帶頂緣 y0, 下包帶底緣 y1, 顏色]，
+         由外到內排；厚度＝相鄰兩列的差（規格書 §6-B3：只表達厚薄關係，不標數字）。
+           端面厚度：Sn 4 ／ Ni 4 ／〔樹脂 6〕／ Cu 12（Cu 最厚）
+           上下包帶：Sn 3 ／ Ni 3 ／〔樹脂 5〕／ Cu 8 */
       const lay = auto
-        ? [[9, 546, 674, '#e2e7ec'], [12, 549, 671, '#a9b1b9'], [16, 553, 667, '#6f6858'], [22, 558, 662, '#b0743a']]
-        : [[9, 546, 674, '#e2e7ec'], [13, 550, 670, '#a9b1b9'], [22, 558, 662, '#b0743a']];
+        ? [[8, 547, 673, 'var(--dg-sn)'], [12, 550, 670, 'var(--dg-ni)'], [16, 553, 667, 'var(--dg-resin)'], [22, 558, 662, 'var(--dg-cu)']]
+        : [[14, 552, 668, 'var(--dg-sn)'], [18, 555, 665, 'var(--dg-ni)'], [22, 558, 662, 'var(--dg-cu)']];
+      const OUT = lay[0][0];        // 端子最外緣（焊錫圓角要爬到這裡）
       const shells = lay.map(([dx, y0, y1, c]) =>
         `<rect x="${x + dx}" y="${y0}" width="${WL - x - dx}" height="${y1 - y0}" rx="1.5" fill="${c}"/>`
         + `<rect x="${WR}" y="${y0}" width="${x + 292 - dx - WR}" height="${y1 - y0}" rx="1.5" fill="${c}"/>`).join('');
       // 交錯指狀電極：偶數層連左端、奇數層連右端，兩邊都留餘白（碰到對面＝短路）
       const stubs = [574, 586, 598, 610, 622, 634, 646].map((y, i) =>
-        `<rect x="${i % 2 ? BL + 30 : BL}" y="${y}" width="${i % 2 ? BR - BL - 30 : BR - BL - 30}" height="3.4" fill="#4e5866"/>`).join('');
-      const pcb = `<rect x="${x}" y="684" width="292" height="10" rx="2" fill="#1a4230"/>`
-        + `<rect x="${x + 2}" y="678" width="100" height="6" rx="1" fill="#b0743a"/>`
-        + `<rect x="${x + 190}" y="678" width="100" height="6" rx="1" fill="#b0743a"/>`
-        + `<path d="M${x + 2},678 Q${x + 7},678 ${x + 9},660 L${x + 9},678 Z" fill="#c9ced4"/>`
-        + `<path d="M${x + 290},678 Q${x + 285},678 ${x + 283},660 L${x + 283},678 Z" fill="#c9ced4"/>`;
-      const crack = auto ? '' : `<path d="M${BL},654 L${BL + 20},630 L${BL + 40},642 L${BL + 72},612" stroke="#ff4d6d" stroke-width="2.2" fill="none"/>`;
+        `<rect x="${i % 2 ? BL + 30 : BL}" y="${y}" width="${i % 2 ? BR - BL - 30 : BR - BL - 30}" height="3.4" fill="var(--dg-el)"/>`).join('');
+      const pcb = `<rect x="${x}" y="684" width="292" height="10" rx="2" fill="var(--dg-pcb)"/>`
+        + `<rect x="${x + 2}" y="678" width="100" height="6" rx="1" fill="var(--dg-cu)"/>`
+        + `<rect x="${x + 190}" y="678" width="100" height="6" rx="1" fill="var(--dg-cu)"/>`
+        + `<path d="M${x + OUT - 8},678 Q${x + OUT - 3},678 ${x + OUT},660 L${x + OUT},678 Z" fill="var(--dg-sn)"/>`
+        + `<path d="M${x + 300 - OUT},678 Q${x + 295 - OUT},678 ${x + 292 - OUT},660 L${x + 292 - OUT},678 Z" fill="var(--dg-sn)"/>`;
+      /* A2（2026-09-21 重查，信心高 —— 見檔頭的來源註記）：板彎裂是「45° 裂」。
+         起點在**安裝面（底面）、端電極內緣**（termination margin 的起點），
+         往**外上方 45°** 走，一直走到端電極 —— 也就是往元件外側、不是往中間。
+         舊版兩條都畫成由外往內，方向正好相反。
+         這裡從 (WL, BB) 走到 (BL, BB−62)：水平 −62、垂直 −62 ＝ 正好 45°，
+         終點落在本體端面，也就是被端電極蓋住的那一面。*/
+      const crack = auto ? ''
+        : `<path d="M${WL},${BB} L${WL - 16},${BB - 16} L${WL - 24},${BB - 22} L${WL - 40},${BB - 40} L${BL},${BB - 62}" stroke="var(--dg-err)" stroke-width="2.2" fill="none"/>`;
       const relief = auto
-        ? `<path d="M${x + 19},624 l0,-18 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="#7ee8c7" stroke-width="1.6" fill="none"/>`
+        ? `<path d="M${x + 19},624 l0,-18 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="var(--dg-accent)" stroke-width="1.6" fill="none"/>`
         : '';
       return `<g data-seg="${SEG}" data-part="${auto ? 'mlcc_term_auto' : 'mlcc_term_cons'}">
         <text class="hd" x="${x}" y="526">${auto ? '車規：四層（多一層導電樹脂）' : '消費級：三層'}</text>
         ${shells}<rect class="part" x="${BL}" y="${BT}" width="${BR - BL}" height="${BB - BT}" fill="url(#mcT)"/>${stubs}${pcb}${crack}${relief}
-        <text class="sub" x="${x}" y="712" ${auto ? '' : 'style="fill:#ff8fab"'}>${auto ? '樹脂層先變形，把應力吃掉' : '陶瓷直接吃到應力 → 板彎裂'}</text></g>`;
+        <text class="sub" x="${x}" y="712" ${auto ? '' : 'style="fill:var(--dg-warn)"'}>${auto ? '樹脂層先變形，把應力吃掉' : '陶瓷直接吃到應力 → 板彎裂'}</text></g>`;
     }
 
-    const legend = [['#e2e7ec', 'Sn 錫鍍層', '最外一層，讓焊錫吃得上去'],
-      ['#a9b1b9', 'Ni 鎳鍍層', '阻障層，擋焊料把底下的銅吃掉'],
-      ['#6f6858', '導電樹脂（軟端子）', '只有車規／高可靠度品才有；抗板彎，ESR 變高'],
-      ['#b0743a', 'Cu 基底層', '最厚的一層，銅膏沾附後約 800–900 °C 燒附上去']]
+    /* A4：圖例的順序必須跟它正上方那句「由內到外 Cu →〔樹脂〕→ Ni → Sn」一致。
+       舊版是由外到內（Sn → Ni → 樹脂 → Cu），一張專門防止順序搞混的圖，
+       兩個相反的順序並列在同一個畫面上。*/
+    const legend = [['var(--dg-cu)', 'Cu 基底層（最內）', '最厚的一層，銅膏沾附後約 800–900 °C 燒附上去'],
+      ['var(--dg-resin)', '導電樹脂（軟端子）', '只有車規／高可靠度品才有；抗板彎，ESR 變高'],
+      ['var(--dg-ni)', 'Ni 鎳鍍層', '阻障層，擋焊料把底下的銅吃掉'],
+      ['var(--dg-sn)', 'Sn 錫鍍層（最外）', '最外一層，讓焊錫吃得上去']]
       .map(([c, t, s], i) => `<g><rect x="640" y="${548 + i * 44}" width="15" height="15" rx="3" fill="${c}"/>`
         + `<text class="lbl" x="664" y="${560 + i * 44}">${t}</text><text class="sub" x="664" y="${578 + i * 44}">${s}</text></g>`).join('');
 
-    return `<svg class="dg dgm" viewBox="0 0 980 1024" width="100%" style="display:block">${STYLE}
+    /* class 多一個 `dg1`：**這張圖只有一個環節**（整張 14 個 [data-seg] 全是 passive_comp），
+       所以點任何零件都會讓全部零件一起 .sel。發光留著就是「整張圖發青光、0 個被 dim」，
+       那個狀態不傳達任何資訊，只剩螢光感。`.dg.dg1{--dg-glow:none}` 把它關掉（B1）。*/
+    return `<svg class="dg dgm dg1" viewBox="0 0 980 1046" width="100%" style="display:block">${STYLE}
       <defs>
-        <linearGradient id="mcT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#d3cbb7"/><stop offset="1" stop-color="#bbb39f"/></linearGradient>
+        <linearGradient id="mcT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer)"/><stop offset="1" stop-color="var(--dg-cer-2)"/></linearGradient>
         <linearGradient id="mcL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#948c7c"/><stop offset="1" stop-color="#7a7263"/></linearGradient>
-        <linearGradient id="mcCut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b3ab98"/><stop offset="1" stop-color="#9a9280"/></linearGradient>
+        <linearGradient id="mcCut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer-cut)"/><stop offset="1" stop-color="var(--dg-cer-cut-2)"/></linearGradient>
         <linearGradient id="mcCutB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a09884"/><stop offset="1" stop-color="#8a8270"/></linearGradient>
-        <linearGradient id="mcCov" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ddd6c2"/><stop offset="1" stop-color="#d0c8b4"/></linearGradient>
+        <linearGradient id="mcCov" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cover)"/><stop offset="1" stop-color="var(--dg-cover-2)"/></linearGradient>
         <linearGradient id="mcCovB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6bfab"/><stop offset="1" stop-color="#b8b09c"/></linearGradient>
         <linearGradient id="mcMetT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9cfd5"/><stop offset="1" stop-color="#a8afb6"/></linearGradient>
         <linearGradient id="mcMetR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aab1b8"/><stop offset="1" stop-color="#858c94"/></linearGradient>
@@ -504,7 +548,7 @@
       <!-- 左欄 ① 尺寸代號 -->
       <text class="hd" x="16" y="84">① 尺寸代號有兩套，別記混</text>
       ${chip(22, 110, 55)}${chip(150, 66, 33)}${chip(234, 44, 22)}
-      <path d="M22,178V190M132,178V190M22,184H132" stroke="rgba(120,150,210,.55)" stroke-width="1" fill="none"/>
+      <path d="M22,178V190M132,178V190M22,184H132" stroke="var(--dg-accent)" stroke-width="1" opacity=".55" fill="none"/>
       <text class="num" x="140" y="189">1 mm</text>
       <text class="sub" x="16" y="214">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
       <text class="sub" x="16" y="232">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
@@ -520,17 +564,28 @@
       <!-- 左欄 ③ 板彎裂 -->
       <rect class="frame" x="16" y="366" width="270" height="112" rx="8"/>
       <text class="hd" x="30" y="388">③ 板彎裂（flex crack）</text>
-      <path d="M32,432 Q151,408 270,432" stroke="#1a4230" stroke-width="9" fill="none" stroke-linecap="round"/>
-      <rect x="113" y="410" width="30" height="5" rx="1" fill="#b0743a"/><rect x="161" y="410" width="30" height="5" rx="1" fill="#b0743a"/>
+      <path d="M32,432 Q151,408 270,432" stroke="var(--dg-pcb)" stroke-width="9" fill="none" stroke-linecap="round"/>
+      <rect x="113" y="410" width="30" height="5" rx="1" fill="var(--dg-cu)"/><rect x="161" y="410" width="30" height="5" rx="1" fill="var(--dg-cu)"/>
       <rect x="123" y="394" width="60" height="16" rx="2" fill="url(#mcT)"/>
-      <rect x="123" y="394" width="11" height="16" rx="1.5" fill="#dfe4e8"/><rect x="172" y="394" width="11" height="16" rx="1.5" fill="#dfe4e8"/>
-      <path d="M134,410 L143,401 L139,394" stroke="#ff4d6d" stroke-width="1.8" fill="none"/>
-      <path d="M40,446 l0,-9 m-3.5,3.5 l3.5,-3.5 l3.5,3.5M262,446 l0,-9 m-3.5,3.5 l3.5,-3.5 l3.5,3.5" stroke="#8ea0c4" stroke-width="1.2" fill="none"/>
+      <rect x="123" y="394" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/><rect x="172" y="394" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/>
+      <!-- A2：45° 裂。起點在安裝面（底面）的端電極內緣 x=134，往「外」上方 45° 走到端電極 x=123 -->
+      <path d="M134,410 L129,405 L127,404 L123,399" stroke="var(--dg-err)" stroke-width="1.8" fill="none"/>
+      <!-- A1：三點彎。板子中間上凸（元件在凸面＝受拉面，陶瓷怕拉不怕壓），
+           所以受力一定是「兩端往下、中央往上」。舊版兩端朝上＝只會讓中間下凹，跟畫出來的變形相反。 -->
+      <path d="M40,437 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5M262,437 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5" stroke="var(--dg-ink-3)" stroke-width="1.2" fill="none"/>
+      <path d="M151,446 l0,-14 m-4,4.5 l4,-4.5 l4,4.5" stroke="var(--dg-ink-3)" stroke-width="1.4" fill="none"/>
       <text class="sub" x="30" y="462">板子受力 → 應力傳到陶瓷本體 → 裂</text>
       <text class="sub" x="30" y="476">車規靠軟端子（導電樹脂）擋這一刀</text>
 
       <!-- 中：等角切開本體 -->
       ${iso}
+      <!-- A6（規格書 §6-C）：省略記號要畫在條紋區**中間**，不是只寫在最底下的文字裡。
+           座標是切面 B 上 (u≈85, v≈75) 換算回畫面的位置：x = 409.3 + 0.866u、y = 283 + 0.5u − v。 -->
+      <g pointer-events="none">
+        <rect x="462" y="232" width="44" height="36" rx="5" fill="url(#mcCov)" stroke="var(--dg-el)" stroke-width="1"/>
+        <text class="num" x="484" y="250" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">⋮</text>
+        <text class="num" x="484" y="264" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">×N</text>
+      </g>
 
       <!-- 右：說明欄（引線接回零件） -->
       ${labelRow(SEG, 654, 110, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 312)}
@@ -539,15 +594,15 @@
       ${labelRow(SEG, 654, 272, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), 312)}
       ${labelRow(SEG, 654, 326, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 312)}
       ${labelRow(SEG, 654, 380, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), 312)}
-      <text class="sub" x="654" y="434" style="fill:#ff8fab">★ 相鄰兩層電極必定來自相反的兩端，</text>
-      <text class="sub" x="654" y="452" style="fill:#ff8fab">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
+      <text class="sub" x="654" y="434" style="fill:var(--dg-warn)">★ 相鄰兩層電極必定來自相反的兩端，</text>
+      <text class="sub" x="654" y="452" style="fill:var(--dg-warn)">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
 
       <!-- 下一段：端電極 2D 放大剖面 -->
       <text class="hd" x="16" y="502">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
       ${endCut(16, false)}${endCut(324, true)}
-      <text class="hd" x="640" y="526">四層各自在幹嘛</text>
+      <text class="hd" x="640" y="526">四層各自在幹嘛（由內到外）</text>
       ${legend}
-      <text class="sub" x="16" y="738" style="fill:#ff8fab">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
+      <text class="sub" x="16" y="738" style="fill:var(--dg-warn)">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
 
       <!-- 製程 -->
       <text class="cap" x="16" y="764">製造流程（十道併成五格）　★ 燒結一定在端電極之前 —— 反過來端電極會先被燒掉</text>
@@ -567,7 +622,7 @@
       <text class="sub" x="30" y="934">層變薄 → 粉體要更細、絕緣裕度變小；燒結</text>
       <text class="sub" x="30" y="952">時電極與陶瓷收縮不匹配，容易分層與裂。</text>
       <path class="axis" d="M330,852V936H474"/>
-      <path d="M330,858 C362,861 388,872 408,890 S446,924 472,933" stroke="var(--c,#3ee0ff)" stroke-width="2" fill="none" opacity=".85"/>
+      <path d="M330,858 C362,861 388,872 408,890 S446,924 472,933" stroke="var(--dg-accent)" stroke-width="2" fill="none" opacity=".85"/>
       <text class="sub" x="330" y="850">整顆良率</text><text class="sub" x="404" y="950">層數 →</text>
       <rect class="frame" x="508" y="818" width="458" height="140" rx="8"/>
       <text class="hd" x="522" y="840">車規為什麼難做</text>
@@ -580,7 +635,17 @@
 
       <text class="cap" x="16" y="982">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
       <text class="cap" x="16" y="1002">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），實際高容量品 400～1000 層以上；介電 0.5–2 µm、內電極約 0.5 µm。</text>
-      <text class="cap" x="16" y="1020">零件顏色＝環節色（被動元件 MLCC / 電阻）；點零件看供應商。資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
+      <!-- A5-a（mechanical-engineer 2026-09-21 複驗）：把「這張圖對應到誰」講清楚。
+           零件掛的是 supply_chain.yaml 的 passive_comp 環節，但那一格的名字是
+           「被動元件 MLCC／**電阻**」—— 成分跟「被動元件 MLCC」族群不是同一份名單。
+           不寫出來的話，讀者會把畫面上出現的每一檔都讀成「這家做 MLCC」。
+           ⚠ 這兩行是照 **2026-09-21 更新過的 YAML** 寫的，跟審查意見當時的版本不同：
+             · 環節已經補進 3026 禾伸堂與 6173 信昌電（原本漏掉，那才是真正的錯）
+             · 凱美的舊 note「主體是鋁質電解電容」已經作廢 —— 更正後的說法是
+               晶片電阻約佔其營收 49%，它是**用電阻**進到這一格的，不做 MLCC
+           YAML 一行都沒動（成分是 Andy 校訂的，AGENTS §5），這裡只把落差寫在畫面上。 -->
+      <text class="cap" x="16" y="1020">零件顏色＝環節色。點零件篩的是「被動元件 MLCC／電阻」這一格：2327 國巨／2492 華新科／2375 凱美／3026 禾伸堂／6173 信昌電。</text>
+      <text class="cap" x="16" y="1038">這一格含晶片電阻 —— 凱美是以電阻進到這一格、不做 MLCC；做 MLCC 的是 2327／2492／3026／6173。資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
     </svg>`;
   }
 
