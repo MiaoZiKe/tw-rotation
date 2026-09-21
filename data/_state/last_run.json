@@ -2,40 +2,40 @@
   "steps": {
     "news.collect": {
       "ok": true,
-      "rows": 148,
-      "seconds": 2.5
+      "rows": 136,
+      "seconds": 3.4
     },
     "news": {
-      "stored": 24
+      "stored": 106
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 4,
+      "rows": 2,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 1
     },
     "mops.material_news": {
       "ok": true,
       "rows": 3,
-      "seconds": 1.0
+      "seconds": 4.8
     },
     "material_news": {
-      "stored": 3
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1763,
-      "seconds": 2.0
+      "rows": 1759,
+      "seconds": 1.1
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 3
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.6
+      "seconds": 0.9
     },
     "build_payload": {
       "ok": true
@@ -46,9 +46,9 @@
     "macro.fred"
   ],
   "phase": "news",
-  "started_at": "2026-09-20T22:49:40.982405+00:00",
-  "finished_at": "2026-09-20T22:52:52.862747+00:00",
-  "duration_seconds": 191.9,
+  "started_at": "2026-09-21T05:44:23.170641+00:00",
+  "finished_at": "2026-09-21T05:49:04.440133+00:00",
+  "duration_seconds": 281.3,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 486,
@@ -85,17 +85,17 @@
     },
     {
       "table": "revenue_monthly",
-      "rows": 99321,
+      "rows": 137571,
       "latest": "2026-08"
     },
     {
       "table": "financial_q",
-      "rows": 32701,
+      "rows": 45250,
       "latest": "—"
     },
     {
       "table": "balance_q",
-      "rows": 32550,
+      "rows": 45568,
       "latest": "—"
     },
     {
@@ -115,18 +115,18 @@
     },
     {
       "table": "news",
-      "rows": 1456,
+      "rows": 1562,
       "latest": "2026-09-21"
     },
     {
       "table": "broker_views",
-      "rows": 21,
-      "latest": "2026-09-19"
+      "rows": 22,
+      "latest": "2026-09-21"
     },
     {
       "table": "intl_daily",
-      "rows": 1810,
-      "latest": "2026-09-20"
+      "rows": 1813,
+      "latest": "2026-09-21"
     },
     {
       "table": "macro",
@@ -160,16 +160,33 @@
     }
   ],
   "groups_health": {
-    "reviewed": "2026-09-11",
-    "days_since_review": 9,
+    "reviewed": "2026-09-21",
+    "days_since_review": 0,
     "is_stale": false,
-    "group_count": 28,
-    "code_count": 126,
+    "group_count": 83,
+    "code_count": 444,
     "multi_group_codes": {
-      "1513": 2,
       "2317": 2,
-      "3680": 2,
-      "6187": 2
+      "2354": 2,
+      "2467": 2,
+      "2486": 2,
+      "3008": 2,
+      "3017": 2,
+      "3211": 2,
+      "3324": 2,
+      "3653": 2,
+      "3711": 2,
+      "4938": 2,
+      "5269": 2,
+      "5289": 2,
+      "5351": 2,
+      "5388": 2,
+      "6121": 2,
+      "6223": 2,
+      "6239": 2,
+      "6285": 2,
+      "6789": 2,
+      "6805": 2
     },
     "empty_groups": []
   }
