@@ -40,12 +40,17 @@ segments:
   #   公司掛得沒錯，錯的是格子的名字漏了一種材料，讀者會以為樹脂沒人做。
   #   （CCL 的成本結構：銅箔約 35~45%、補強材料（玻纖布）約 25~40%、絕緣材料（樹脂）約 20~30%，
   #    三者都在這一格 —— 證據等級：WebSearch 摘要，區間只當量級看。）
-  - {id: ccl_material,       name: "銅箔 / 玻纖布 / 樹脂",      layer: 1, chain: ai_server,     role: material}
+  # ★ 2026-09-21 補上 material_of：CLAUDE.md 要求「材料類的零件要標清楚它是哪個元件裡的材料」
+  #   （ABF 是載板的材料、CCL 是 PCB 的材料）。ccl 那一格早就有 material_of: [hdi_pcb]，
+  #   再上一層的這兩格卻沒有，讀 YAML 的人看不出「銅箔／玻纖布／樹脂是 CCL 的材料」。
+  - {id: ccl_material,       name: "銅箔 / 玻纖布 / 樹脂",      layer: 1, chain: ai_server,     role: material,
+     material_of: [ccl]}
   # ★ 2026-09-19（第二輪）：半導體這一側原本完全沒有「製程材料」這一格 ——
   #   兩個材料格（ccl_material、substrate_material）都在載板／PCB 那一側，
   #   所以靶材、特化、耗材這種真正卡在晶圓廠前面的東西無處可放。
   - {id: semi_material,      name: "半導體製程材料", layer: 1, chain: semiconductor, role: material}
-  - {id: substrate_material, name: "載板材料 ABF / BT", layer: 2, chain: semiconductor, role: material}
+  - {id: substrate_material, name: "載板材料 ABF / BT", layer: 2, chain: semiconductor, role: material,
+     material_of: [abf_pcb]}
   # ---- 半導體主幹
   - {id: ip_eda,       name: "IP / EDA / 設計服務", layer: 0, chain: semiconductor}
   - {id: ic_design,    name: "IC 設計",             layer: 1, chain: semiconductor}
@@ -329,6 +334,17 @@ companies:
      note: "M8 等級 CCL 全球第二大。直接出貨對象是 PCB 廠與 ODM，公開來源未具名；已知的終端關係是 AWS Trainium ASIC 平台的板材第二供應商（CSP 直接指定 AVL）。尚無來源證實進入 NVIDIA 供應鏈 —— 中英文法人稿在這件事上互相打架，所以不畫"}
   - {id: iteq,    ticker: "6213", name: 聯茂,       segment: ccl,      tech: [高階 CCL],
      note: "CCL 三雄之一（台光電、台燿、聯茂）"}
+  # ★ 2026-09-21 全面對帳補進：groups.yaml 的 ccl 族群**四**檔（台光電／台燿／聯茂／騰輝），
+  #   這一格卻只有三家 —— CCL 剖析圖點下去就列不出第四家真的在做 CCL 的公司。
+  #   這跟 MLCC（族群四檔、環節三家）與 hdi_pcb（族群七檔、環節三家）是同一種錯。
+  - {id: teng_hui, ticker: "6672", name: 騰輝電子-KY, segment: ccl,
+     tech: [銅箔基板 CCL, 膠片 PP, 鋁基板],
+     note: "公司自述主營是『印刷電路板所需的黏合片（膠片）、銅箔基板與鋁基板』，媒體一律以『CCL 廠』稱之；
+       產品別裡 CCL 是單一最大項（財報狗：CCL 36.3%、鋁基板 31.6%、膠片 19.8%，這個數字記在
+       docs/groups_tide110_evidence.md，本檔不重複寫百分比）。
+       ★ 鋁基板（LED／電源用散熱基板）在這個 schema 裡沒有對應環節，所以它只出現在 tech 不另開格。
+       ★ 不連任何一條邊：公開來源查不到具名客戶（DECISIONS #201 的標準）。
+       ⚠ 證據等級：WebSearch 摘要（鉅亨標題直稱『CCL 廠騰輝電子』、財報狗產品比重），沒有讀過法說原文，信心中高"}
   # ---- 材料上游（2026-09-19 新增。這一層才是這輪行情真正的瓶頸）
   - {id: kingco,  ticker: "8358", name: 金居,       segment: ccl_material, tech: [HVLP 銅箔, 先進 RTF 反轉銅箔],
      note: "高盛點名為「台版三井金屬」。已終止部分標準 HTE 銅箔、轉向 HVLP3/HVLP4；全球同時取得先進 RTF 與 HVLP3/HVLP4 認證的只有金居與日本三井金屬兩家"}
@@ -341,10 +357,41 @@ companies:
   - {id: fuchiao, ticker: "1815", name: 富喬,       segment: ccl_material,
      tech: [玻纖紗, 玻纖布, Low-Dk / Low-CTE 高階玻纖布],
      note: "從紗到布垂直整合（這是它跟純織布廠的差別）。泰國新廠 2027Q3 量產、產能已被客戶訂滿；M9 石英布已研製並啟動認證"}
+  # ★ 2026-09-21 全面對帳補進兩家。這一格的名字叫「銅箔 / 玻纖布 / 樹脂」，
+  #   但 groups.yaml 的 copper_foil 族群有兩檔、glass_fiber 族群有三檔，這裡各只到了一半：
+  #   銅箔只有金居、玻纖布只有建榮與富喬。剖析圖的「銅箔層」「玻纖布層」點下去就少人。
+  - {id: jung_ke,  ticker: "4989", name: 榮科,      segment: ccl_material,
+     tech: [電解銅箔, RTF 反轉銅箔, VLP / HVLP 低粗糙度銅箔],
+     note: "李長榮集團旗下的電解銅箔廠，主營登記就是『電解銅箔之製造及銷售』，
+       近年由標準 HTE 轉攻 RTF／VLP／HVLP，鎖定 AI 伺服器與 HDI 板材。
+       ★ 不連邊，但這裡留一條線索給下一個查的人：有一篇投顧等級文章寫它的客戶
+         『包括健鼎、華通、敬鵬、聯茂』—— 只有**單一**內容平台來源、不是公司揭露，
+         依 DECISIONS #201 的標準不夠畫線。找到第二個獨立來源（法說、年報、主流媒體具名報導）就可以連。
+       ⚠ 它是這一段裡唯一沒有資金流證據的一檔（日均約 1.8 億、資料湖沒有深歷史），
+         納入依據是業務事實不是資金流，理由寫在 docs/groups_tide110_evidence.md。
+       ⚠ 證據等級：WebSearch 摘要（鉅亨公司簡介、口袋學堂專文），沒有讀過年報原文，信心中"}
+  - {id: de_hong,  ticker: "5475", name: 德宏,      segment: ccl_material,
+     tech: [電子級玻璃纖維布, 電子級石英纖維紗 / 布],
+     note: "電子級玻纖布占營收約 97%（2024 年產品別），用於 FR-4 銅箔基板、高頻高速板與封裝基板補強。
+       ★ 為什麼放在玻纖布這一段而不是 CCL：資料湖實測的殘差相關對建榮 +0.50、對富喬 +0.37，
+         對 CCL 四家只有 +0.11～+0.40 —— 營收結構與資金流兩邊都指向玻纖布（數字在
+         docs/groups_tide110_evidence.md）。
+       ★ 不連邊：查不到具名客戶。
+       ⚠ 證據等級：WebSearch 摘要（財報狗產品比重、MoneyDJ 公司介紹），沒有讀過法說原文，信心中高"}
   # ---- 軟板（2026-09-19 新增）
   - {id: flexium, ticker: "6269", name: 台郡, segment: fpc,
      tech: [軟板 FPC, 機櫃漏液感測軟板, CPO/NPO 高速傳輸軟板],
      note: "軟板三雄之一，Apple 約佔營收 70–80%，2026H1 仍在虧損。AI 這一塊量產的是機櫃漏液感測軟板（裝在快接頭 UQD、分歧管、水冷板上，Sensor Rope 偵測滲液即通知 BMC 斷電），2026 目標 100 萬片；CPO 高速傳輸軟板與 MetaLink 仍在開發"}
+  # ★ 2026-09-21 全面對帳補進：groups.yaml 的 flex_pcb 族群五檔，這一格只有台郡一家。
+  #   五檔裡真正的「軟板廠」是台郡與嘉聯益兩家，其餘三檔（8039 台虹、3645 達邁、3354 律勝）
+  #   是**軟板的材料**（FCCL、PI 膜），這個 schema 目前沒有「軟板材料」這一格，
+  #   硬掛進 fpc 等於宣稱它們在做軟板 —— 所以這次只補嘉聯益，材料三家留在對帳報告裡等開格。
+  - {id: chia_lien_yi, ticker: "6153", name: 嘉聯益, segment: fpc,
+     tech: [軟板 FPC, 軟硬結合板],
+     note: "主營登記是『軟性電路板之設計、研發、製造與買賣』，產品別 FPC 占比約 100%（財報狗）。
+       ★ 不連邊：查不到具名客戶。過去以手機軟板為主，但公開來源沒有具名的現行客戶揭露，
+         依 DECISIONS #201 的標準只放節點不畫線。
+       ⚠ 證據等級：WebSearch 摘要（鉅亨公司簡介、財報狗產品比重），沒有讀過年報原文，信心中高"}
   # ---- 連接器 / 線材（2026-09-19 新增）
   - {id: bizlink, ticker: "3665", name: 貿聯-KY, segment: connector,
      tech: [Busbar 電源匯流排, power whip 伺服器電源線組, 高速傳輸線],
