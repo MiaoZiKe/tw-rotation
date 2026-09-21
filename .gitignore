@@ -16,6 +16,9 @@ site/data/
 # 預覽截圖
 docs/preview.png
 docs/*.png
+# 交付用的改前改後對照截圖（一批 27MB，repo 是 public，不進版控）
+docs/_shots/
+docs/_show/
 
 # 金鑰與推送暫存：永遠不進版控（repo 是 public）
 .env

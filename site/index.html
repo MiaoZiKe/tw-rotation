@@ -91,6 +91,110 @@
   --dg-sib-o:.4;              /* 單一環節圖：同環節、但**不是**你點的那些，退到這個不透明度
                                  （不是 .dim 的 .3 —— 它們仍然是「選到的環節」，只是不是主角） */
   --dg-part-em:.5;            /* 3D：被點的那一顆的 emissive（同環節其餘維持 --dg-sel-em .22） */
+  /* ---------------- 剖析圖的「畫面調性」四個 token（art-director 2026-09-21 深夜新增）----------------
+     為什麼要有這四個：配色切換（下面的 [data-dgpal]）要換掉的就是這四樣東西，
+     而它們以前分別寫死在三個地方 —— 底色寫在 `.dgwrap{background:var(--illus)}`、
+     強調色寫在 `diagrams.js` 的 `.dg{--dg-accent:#3ee0ff}`、底框色寫在 `.dgm .frame`。
+     寫死的東西換不掉，那正是 DECISIONS #198 講的那個病。*/
+  --dg-bg:var(--illus);                 /* 剖析圖畫布的底（配色會換掉它） */
+  /* 等角零件的陰影底色與線色。以前這六個值寫死在 diagrams.js 的 STYLE 裡（#0c1428 那一組），
+     全部偏藍 —— 配色換成暖色之後，零件的暗面還是冷的，整張圖就會「一半暖一半冷」。*/
+  --dg-sh0:#0a1024; --dg-sh1:#0c1428; --dg-sh2:#080e1c; --dg-sh3:#050a14;
+  --dg-part-mix:#2a3860;                /* 零件描邊往哪個底色混 */
+  --dg-line-mix:#1e2a48;                /* 引線往哪個底色混 */
+  --dg-iso-c:#4a6ea8;                   /* 等角零件沒有環節色時的預設色 */
+  --dg-grd:rgba(120,150,210,.14);       /* 地板格線 */
+  --dg-axis:rgba(120,150,210,.3);       /* 座標軸虛線 */
+  --dg-step-f:#0f172b;                  /* 流程列方塊的底 */
+  --dg-accent-2d:#3ee0ff;               /* 「不屬於任何零件」的強調色（流程箭頭、良率曲線、電荷） */
+  --dg-frame-f:rgba(18,26,46,.5);       /* 說明框的底 */
+  --dg-frame-s:rgba(120,150,210,.2);    /* 說明框的線 */
+  /* ================ 各張剖析圖的材質色（2026-09-21 深夜：從九個檔的 scoped <style> 收進來）================
+     搬家之前這些 token 住在 `site/dg/*.js` 各自的 `<style>` 裡（`.dgabf` / `.dgcool` /
+     `.dgair` / `.dg.psu` / `.dgpcb` / `.dgpn` / `.dgsw`）。當時不准動 index.html，
+     所以只能先放在圖檔裡；每個檔頭也都寫了「之後 art-director 要收進 :root」。
+     **這一次是同值搬家，值一個都沒改**，唯一的例外是兩組撞名的（見下面的 ⚠）。
+     收進來的理由很實際：配色切換必須碰得到材質色，而 scoped 的變數在 `:root[data-dgpal]`
+     這一層**蓋不掉**（圖自己的 class 特異性比較高）—— 不收就等於「休閒配色只有 MLCC 有效」。
+     ⚠ 撞名兩組（同名不同值，本來靠 scope 各自為政，收進來一定要先改名）：
+       `--dg-core`  pcb_rigid 的硬板芯板 #33452f  ←→ ic_substrate 的載板 core #3f4a30
+                    → 硬板那個改叫 `--dg-pcb-core`
+       `--dg-glass` pcb_rigid 的玻纖紗束 #cfc8a4 ←→ ic_substrate 的玻璃核心 #8fb6c9
+                    → 紗束那個改叫 `--dg-yarn` */
+  /* 散熱兩張（液冷 .dgcool ／ 氣冷 .dgair）—— 兩檔的這幾個值本來就一模一樣，合成一份 */
+  --dg-cold:#4ea8dc; --dg-cold-2:#2b6f99;    /* 進水／進氣（冷）★ 語意色，配色不准蓋 */
+  --dg-hot:#e8854a;  --dg-hot-2:#a9542a;     /* 出水／排氣（熱）★ 語意色，配色不准蓋 */
+  --dg-fws:#8b96ad;  --dg-fws-2:#5d6679;     /* 一次側（設施側）：第三種顏色 */
+  --dg-vap:#24324a;                          /* 兩相元件的蒸氣腔（真空腔，不是液體） */
+  --dg-wick:#8f6a45;                         /* 毛細結構（燒結銅粉／溝槽／網目） */
+  --dg-steel:#9aa6b4; --dg-steel-2:#6b7683;  /* 不鏽鋼：快接頭、管件、軸、滾珠 */
+  --dg-tim:#b6a3b2;                          /* 導熱介面材料 TIM */
+  --dg-die:#39476a;                          /* 矽裸晶 */
+  --dg-void:#0d1424;                         /* 切面上的空隙／腔體背景 */
+  --dg-frame:#1a2540;                        /* 框與盒的底 */
+  --dg-cu-lit:#c88a4e; --dg-cu-dim:#9c6432;  /* 銅的亮面／暗面（等角上蓋的漸層兩端） */
+  --dg-cu-cut:#8a5525;                       /* 銅在剖面上的斜線（表示這裡是實心的） */
+  --dg-alu:#a3b2c4;  --dg-alu-2:#75849a; --dg-alu-3:#5e6b7e;   /* 鋁：鰭片、扇框、扇框厚度那一側 */
+  --dg-mag:#5b4a7a;                          /* 磁鐵（轉子） */
+  --dg-oil:#c9a24a;                          /* 潤滑油／壓力油膜 */
+  --dg-hub-lit:#7c8ba1; --dg-hub-dim:#44506a;/* 輪轂的亮面／暗面（球面漸層兩端） */
+  /* 硬板 .dgpcb */
+  --dg-pcb-core:#33452f;      /* 芯板 core 的介電：已固化，暗綠（⚠ 原名 --dg-core，撞名改的） */
+  --dg-pp:#8a8355;            /* 半固化片 prepreg：玻纖布佔比高，比 core 淺、偏卡其 */
+  --dg-yarn:#cfc8a4;          /* 玻纖紗束（⚠ 原名 --dg-glass，撞名改的） */
+  --dg-au:#e3b75a;            /* 表面處理最外層的金 */
+  --dg-edge:#0e1526;          /* 剖面描邊與鑽孔孔洞（比 --illus 更暗，孔才像孔） */
+  /* ABF 載板 .dgabf */
+  --dg-core:#3f4a30; --dg-core-2:#2f3824;   /* core：玻纖布補強樹脂（偏暗墨綠） */
+  --dg-weave:#7d8c5c;                       /* core 的玻纖織紋（整張圖只有 core 有） */
+  --dg-abf:#c3b9a4; --dg-abf-2:#9d947f;     /* ABF 增層膜：均勻、無織紋的樹脂膜 */
+  --dg-sr:#2a6e86; --dg-sr-2:#1f5365;       /* 防焊層 */
+  --dg-plug:#6b5f49;                        /* core 貫孔內的填塞物 */
+  --dg-pcb-2:#12301f;                       /* 主機板的頂面（暗一階） */
+  --dg-glass:#8fb6c9;                       /* 玻璃核心（路線圖第三格） */
+  /* 先進封裝 .dg（ai_adv_packaging 本來就寫成 var(--dg-x, fallback)，這裡把 fallback 扶正） */
+  --dg-si:#33488a; --dg-si-2:#1d2b57;       /* 矽：晶粒、矽中介層、矽橋 */
+  --dg-organic:#8a6636; --dg-organic-2:#6a4c27; /* 有機介電：RDL 中介層、ABF 增層膜（琥珀） */
+  --dg-emc:#2f3039;                         /* 模封 EMC（含填料的深色樹脂） */
+  --dg-uf:#c08f4e;                          /* 底部填充（半透明琥珀） */
+  --dg-metal-2:#7d868f;                     /* 補強環（比上蓋暗一階的金屬灰） */
+  --dg-sub-2:#10291d;                       /* 載板的暗階（核心層） */
+  /* 面板 .dgpn */
+  --dg-pn-bezel:#3c4552;  --dg-pn-bezel-d:#293039;   /* 背板／膠框（深灰金屬＋黑塑框） */
+  --dg-pn-refl:#eef1f7;   --dg-pn-refl-d:#c2c8d3;    /* 反射片（白霧面） */
+  --dg-pn-lgp:#bcdaec;    --dg-pn-lgp-d:#8ab2cc;     /* 導光板（透明壓克力） */
+  --dg-pn-led:#ffe2a0;    --dg-pn-led-d:#d7b969;     /* LED 燈條（暖白） */
+  --dg-pn-diff:#e1e8f1;   --dg-pn-diff-d:#b4bdca;    /* 擴散片（半透明乳白） */
+  --dg-pn-bef:#c7d6e5;    --dg-pn-bef-d:#9aaabd;     /* 稜鏡片／增亮膜 */
+  --dg-pn-pol:#69738a;    --dg-pn-pol-d:#495162;     /* 偏光板（深灰半透） */
+  --dg-pn-glass:#a9d2e6;  --dg-pn-glass-d:#76a5be;   /* 玻璃基板 */
+  --dg-pn-tft:#9aa6b8;    --dg-pn-tft-d:#6f7b8e;     /* TFT 陣列層（金屬灰） */
+  --dg-pn-lc:#3b4775;     --dg-pn-lc-d:#2a3356;      /* 液晶層（盒內） */
+  --dg-pn-rod:#cfbdf2;                                /* 液晶短棒 */
+  --dg-pn-cf:#262c3a;     --dg-pn-cf-d:#1a1f2a;      /* 彩色濾光片層底（黑色矩陣） */
+  --dg-pn-bm:#11141b;                                 /* 黑色矩陣 */
+  --dg-pn-r:#e2565f; --dg-pn-g:#45b46e; --dg-pn-b:#4c7ee0;   /* R／G／B 色阻 ★ 語意色，配色不准蓋 */
+  --dg-pn-ic:#1e232d;     --dg-pn-ic-d:#141821;      /* 驅動 IC 黑方塊 */
+  --dg-pn-cof:#c99a44;    --dg-pn-cof-d:#9a742f;     /* COF 軟板（聚醯亞胺琥珀色） */
+  --dg-pn-pad:#d9b56b;                                /* 端子區的金屬墊 */
+  --dg-pn-org:#9b86e0;                                /* OLED 有機發光層 */
+  --dg-pn-line:rgba(255,255,255,.34);                 /* 表面紋理（稜線、偏光紋、格柵） */
+  --dg-pn-line2:rgba(10,16,32,.42);                   /* 深色分層線 */
+  /* 交換器／無線 .dgsw ★ 四個全是語意色（電／光／電源／接點），配色不准蓋 */
+  --dg-sw-sig:#3ee0ff;     /* 高速電訊號（差動對、SerDes 通道）—— 冷色＝電 */
+  --dg-sw-fiber:#f2c14e;   /* 光纖與光訊號 —— 暖黃，一眼跟「電」分得開 */
+  --dg-sw-pwr:#ff9d4d;     /* 供電（PSU → VRM → ASIC）—— 橘，而且線一定畫得比訊號粗 */
+  --dg-sw-gold:#d9a441;    /* 金手指／電接點 —— 比 --dg-cu 的銅更黃，不會跟銅層混 */
+  /* 伺服器電源 .dg.psu —— 全部是既有 token 的 color-mix，所以配色一換它們自己會跟著換 */
+  --dg-psu-ac:color-mix(in srgb,var(--dg-cu) 82%,var(--dg-cover));      /* 交流側 */
+  --dg-psu-gold:color-mix(in srgb,var(--dg-cu) 54%,var(--dg-cover));    /* 鍍金接點 */
+  --dg-psu-cu:var(--dg-cu);                                             /* 銅排（亮面） */
+  --dg-psu-cu2:color-mix(in srgb,var(--dg-cu) 58%,var(--dg-el));        /* 銅排（暗面） */
+  --dg-psu-box:color-mix(in srgb,var(--dg-ink) 7%,transparent);         /* 方塊底 */
+  --dg-psu-box2:color-mix(in srgb,var(--dg-ink) 13%,transparent);       /* 方塊底（深一階） */
+  --dg-psu-line:color-mix(in srgb,var(--dg-ink-3) 52%,transparent);     /* 一般外框線 */
+  --dg-psu-off:color-mix(in srgb,var(--dg-mute) 52%,transparent);       /* 機房基礎設施（不在這條鏈上） */
+  --dg-psu-die:color-mix(in srgb,var(--dg-el) 86%,var(--dg-ink-3));     /* 晶片本體 */
   --ovl:rgba(10,16,32,.55);   /* K 線圖上那幾個浮在圖上的小標籤 */
   --ovl-sh:0 1px 2px #000;    /* 浮在圖上的文字陰影 */
 }
@@ -111,6 +215,90 @@
   --grid:rgba(15,24,48,.07);
   --drop:rgba(15,24,48,.18);
   --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
+}
+/* ================ 剖析圖的四個配色（art-director 2026-09-21 深夜）================
+   Andy：「幫我圖片色系色調多個休閒風格，更平易近人」＋「2D3D 都需要新增那樣的風格」。
+
+   掛在 `<html data-dgpal="…">`，所以 **2D 與 3D 讀的是同一份定義**：
+     · 2D 剖析圖（SVG）直接用 `var(--dg-*)` 上色
+     · 3D（`site/three3d.js`）的 `K.css('--dg-cer')`／`palNum('--dg-sat')` 也是讀同一組變數
+   —— 這就是「不准兩份硬編碼」那條的實作：休閒在 2D 偏暖，3D 一定也偏暖。
+
+   四個配色：科技（預設）／柔和／沉穩／休閒。
+     tech   ＝ **一個值都不覆寫**。這是刻意的：預設配色必須跟這批改動之前一模一樣，
+              不然「新增一個配色」會變成「順手把大家看習慣的那張圖改掉」。
+     soft   ＝ 柔和：底亮一階、零發光、青色去飽和。
+     calm   ＝ 沉穩：中性暗灰底、琥珀強調（跟 3D 的 --dg-mix #c9973f 同一個琥珀）。
+     casual ＝ 休閒：暖炭底、暖灰材質、琥珀強調、零發光。
+
+   ★ 為什麼休閒不是「換成白底」
+     「平易近人」直覺上會想到淺底，但 11 張剖析圖的材質色（陶瓷 #d3cbb7、錫 #e2e7ec、
+     反射片 #eef1f7…）全部是**為深底調的亮色**，換白底會整片消失 ——
+     那正是 DECISIONS #198 記的「淺色主題一堆白字白線」同一個坑。
+     所以休閒走的是**色相轉暖 ＋ 降低螢光感 ＋ 圓潤的中明度**，不是換底色明暗。
+
+   ★ 語意色在任何配色下都不覆寫（AGENTS 的紅線）
+     `--dg-err`（裂紋）／`--dg-warn`（警語）／`--dg-cold`／`--dg-hot`（冷熱側）／
+     `--dg-sw-sig`／`--dg-sw-fiber`／`--dg-sw-pwr`（電／光／電源）／`--dg-pn-r|g|b`（色阻）
+     —— 下面四個區塊裡一個都沒有出現，就是這個意思。
+     它們也刻意避開台股的紅漲綠跌：三個配色的強調色分別是青、琥珀、琥珀，沒有紅也沒有綠。 */
+:root[data-dgpal="soft"]{
+  --dg-bg:#141a28;                      /* 比 #0a1020 亮一階，仍是深底（材質對比守得住） */
+  --dg-accent-2d:#7fc7dd;               /* 去飽和的青：從 S100 降到 S42 */
+  --dg-ink-2:#b6c2dd; --dg-ink-3:#9fb0cf;  /* 底變亮 → 文字跟著提亮一階，對比不掉 */
+  --dg-frame-f:rgba(255,255,255,.05); --dg-frame-s:rgba(180,200,235,.22);
+  --dg-glow:none;                       /* 柔和＝不發光（跟 3D 的 --dg-led:0 同一個意思） */
+  --dg-mute:#8794ab;
+  --dg-sh0:#141a28; --dg-sh1:#161d2e; --dg-sh2:#121826; --dg-sh3:#0e1320;
+  --dg-step-f:#192134; --dg-part-mix:#36435f; --dg-line-mix:#2b364d;
+}
+:root[data-dgpal="calm"]{
+  --dg-bg:#16181c;                      /* 中性暗灰，不帶藍 */
+  --dg-accent-2d:#c9973f;               /* 跟 3D calm 的 --dg-mix 同一個琥珀 */
+  --dg-ink:#e9e6df; --dg-ink-2:#b3afa6; --dg-ink-3:#8d8a83;
+  --dg-frame-f:rgba(255,255,255,.04); --dg-frame-s:rgba(200,195,185,.2);
+  --dg-glow:none;
+  --dg-mute:#77736c;
+  --dg-el:#4a4d52; --dg-fws:#94918a; --dg-fws-2:#65635d;
+  --dg-alu:#a8a49c; --dg-alu-2:#7d7a73; --dg-alu-3:#64615b;
+  --dg-steel:#a09c94; --dg-steel-2:#726f69; --dg-void:#101114; --dg-frame:#1f2125;
+  --dg-sh0:#17191d; --dg-sh1:#191b20; --dg-sh2:#131519; --dg-sh3:#0e1013;
+  --dg-step-f:#1e2126; --dg-part-mix:#3a3d43; --dg-line-mix:#2e3137;
+  --dg-iso-c:#8a7a5e; --dg-grd:rgba(200,195,185,.12); --dg-axis:rgba(200,195,185,.26);
+}
+:root[data-dgpal="casual"]{
+  --dg-bg:#2b2622;                      /* 暖炭：色相 30°（現況 #0a1020 是 225°），一眼就不是深夜實驗室 */
+  --dg-accent-2d:#e0a24a;               /* 琥珀。飽和度 67% ／ 亮度 88%，對照 #3ee0ff 的 100%／100% */
+  /* 暖白三階。★ ink-3 是 2026-09-21 深夜量出來改的：本來是 #bfae99，
+     跟 --dg-warn（#ff8fab）的色差只有 73 —— 警語跟一般說明文字在暖底上太接近，
+     「這一句是警告」就讀不出來了。改成 #a99f92 之後色差 95，對背景仍有 5.7:1。*/
+  --dg-ink:#fdf7ee; --dg-ink-2:#e2d5c4; --dg-ink-3:#a99f92;
+  --dg-frame-f:rgba(255,246,235,.05); --dg-frame-s:rgba(225,200,165,.28);
+  --dg-glow:none;                       /* 休閒＝完全不發光。「平易近人」跟「電競 RGB」是相反的兩件事 */
+  --dg-part-r:8px;                      /* 主角的暈開半徑收一階（發光關掉之後它只影響 3D 那邊的一致感） */
+  --dg-mute:#9b8d7c;
+  /* 材質：只把**冷藍**的那幾個轉暖，本來就暖的（陶瓷 #d3cbb7、保護層、銅、金）一個都不動 */
+  --dg-el:#5d5348;                      /* 內電極：冷鋼灰 → 暖炭灰 */
+  --dg-void:#1c1814; --dg-frame:#332c26; --dg-edge:#1a1511;
+  --dg-fws:#a4988a; --dg-fws-2:#6f6559;
+  --dg-alu:#bdb2a4; --dg-alu-2:#8e8478; --dg-alu-3:#736a5f;
+  --dg-steel:#b0a79b; --dg-steel-2:#7d7468;
+  --dg-hub-lit:#a3978a; --dg-hub-dim:#5a5147;
+  --dg-die:#5c5142; --dg-si:#5a5570; --dg-si-2:#3a3548;
+  --dg-sn:#ece4d8; --dg-ni:#bdb3a5;     /* 錫／鎳：冷灰白 → 暖灰白（兩者的明度差維持不變） */
+  --dg-emc:#3a352f; --dg-metal-2:#8f877d; --dg-vap:#332c26;
+  --dg-pcb:#2f4a2a; --dg-pcb-2:#20351c; --dg-sub-2:#1d3020;   /* 板子還是綠的（那是事實），只是暖一階 */
+  --dg-pn-bezel:#4a443c; --dg-pn-bezel-d:#332e28;
+  --dg-pn-pol:#7d746a; --dg-pn-pol-d:#57504a;
+  --dg-pn-tft:#a8a094; --dg-pn-tft-d:#7b746a;
+  --dg-pn-lc:#4f4560; --dg-pn-lc-d:#3a3247;
+  --dg-pn-cf:#332e28; --dg-pn-cf-d:#241f1b; --dg-pn-bm:#17130f;
+  --dg-pn-ic:#2a251f; --dg-pn-ic-d:#1c1814;
+  --dg-pn-line2:rgba(43,38,34,.46);
+  /* 等角零件的暗面也要跟著轉暖，不然「亮面暖、暗面藍」會看起來像上錯色 */
+  --dg-sh0:#241f1b; --dg-sh1:#2b2622; --dg-sh2:#221d1a; --dg-sh3:#191512;
+  --dg-step-f:#332c26; --dg-part-mix:#5a4d40; --dg-line-mix:#473c32;
+  --dg-iso-c:#9a7f55; --dg-grd:rgba(226,213,197,.13); --dg-axis:rgba(226,213,197,.28);
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
@@ -939,7 +1127,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(62,224,255,.6)))}
 .chainmap .segtitle{cursor:pointer} .chainmap .segtitle.sel rect{fill-opacity:.4}
 .chainmap .segtitle:hover rect{fill-opacity:.3}
-.dgwrap{border-radius:10px;background:var(--illus);border:1px solid var(--line);padding:6px;overflow:hidden}
+/* 畫布底改讀 --dg-bg（預設就是 var(--illus)，所以科技配色下外觀零變化）。
+   寫死成 var(--illus) 的話，配色切換換不掉底色 —— 那就只剩「零件變色、底色沒變」的半套。*/
+.dgwrap{border-radius:10px;background:var(--dg-bg,var(--illus));border:1px solid var(--line);padding:6px;overflow:hidden;
+  transition:background .2s}
 /* 3D 剖析圖：畫布 + 疊在上面的 DOM 標籤（用 DOM 才選得起來，文字重疊驗收也還跑得動） */
 /* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）：三種配色。
    這一組 --dg-* 由 art-director 擁有，**JS 不准寫死任何 #xxxxxx** ——
@@ -952,6 +1143,14 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   --dg-led:0;--dg-sel-em:0;--dg-hemi:.95;--dg-key:1.25;--dg-fill:.5}
 .dg3d[data-pal="calm"]{--dg-1:#23262d;--dg-2:#131519;--dg-mix:#c9973f;--dg-mix-k:.20;--dg-sat:.34;
   --dg-led:.16;--dg-sel-em:.1;--dg-hemi:.5;--dg-key:.88;--dg-fill:.3}
+/* 休閒（2026-09-21 深夜新增，Andy：「2D3D 都需要新增那樣的風格」）。
+   這裡只放「3D 才有的東西」—— 背景漸層、混色、飽和倍率、打光、發光。
+   **零件的材質色不在這裡**：它們讀的是 :root[data-dgpal="casual"] 那一組 --dg-*，
+   跟 2D 同一份。所以 2D 切到休閒是暖的，3D 切到休閒一定也是暖的。
+   --dg-led:0 ＋ --dg-sel-em:0 ＝ 完全不發光（跟 soft 一樣印得出來）；
+   --dg-mix 是暖奶油色，把所有零件往同一個暖調拉 22%，這就是「平易近人」的來源。*/
+.dg3d[data-pal="casual"]{--dg-1:#3a322b;--dg-2:#1e1a16;--dg-mix:#e8d5b5;--dg-mix-k:.22;--dg-sat:.62;
+  --dg-led:0;--dg-sel-em:0;--dg-hemi:.9;--dg-key:1.1;--dg-fill:.45}
 .dg3d{position:relative;border-radius:10px;background:radial-gradient(120% 90% at 50% 0%,var(--dg-1),var(--dg-2));
   border:1px solid var(--line);overflow:hidden;min-height:360px}
 .dg3d[hidden]{display:none}

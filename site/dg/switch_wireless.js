@@ -113,12 +113,6 @@
      深淺主題共用同一組：剖析圖的底 `--illus` 在兩個主題下都是深色（既有決策），
      所以這四個色在兩個主題下的對比是一樣的。 */
   const SW_STYLE = `<style>
-    .dgsw{
-      --dg-sw-sig:#3ee0ff;     /* 高速電訊號（差動對、SerDes 通道）—— 冷色＝電 */
-      --dg-sw-fiber:#f2c14e;   /* 光纖與光訊號 —— 暖黃，一眼跟「電」分得開 */
-      --dg-sw-pwr:#ff9d4d;     /* 供電（PSU → VRM → ASIC）—— 橘，而且線一定畫得比訊號粗 */
-      --dg-sw-gold:#d9a441;    /* 金手指／電接點 —— 比 --dg-cu 的銅更黃，不會跟銅層混 */
-    }
     .dgsw .fib{stroke:var(--dg-sw-fiber);fill:none;stroke-linecap:round}
     .dgsw .sig{stroke:var(--dg-sw-sig);fill:none;stroke-linecap:round}
     .dgsw .air{stroke:var(--dg-mute);fill:none;stroke-dasharray:7 7;opacity:.6;animation:dgdash 2.4s linear infinite}

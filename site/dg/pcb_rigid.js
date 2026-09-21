@@ -51,11 +51,6 @@
      沒有「已固化的芯板介電」「半固化片」「玻纖紗束」「金」這四種，
      而 core 與 prepreg 一眼分不分得開**正是這張圖的成敗**（規格書 §4）。*/
   const CSS = `<style>
-    .dgpcb{--dg-core:#33452f;   /* 芯板 core 的介電：已固化，暗綠（暗於銅、暗於 prepreg） */
-           --dg-pp:#8a8355;     /* 半固化片 prepreg：玻纖布佔比高，比 core 淺、偏卡其 */
-           --dg-glass:#cfc8a4;  /* 玻纖紗束（織紋放大時的亮紗） */
-           --dg-au:#e3b75a;     /* 表面處理最外層的金 */
-           --dg-edge:#0e1526}   /* 剖面描邊與鑽孔孔洞（比 --illus 更暗，孔才像孔） */
     .dgpcb .hair{stroke:var(--dg-ink-3);stroke-width:var(--dg-hair-w,2);fill:none;opacity:.5}
     .dgpcb .mk{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);font-weight:700;fill:var(--dg-ink)}
     .dgpcb .mkc{fill:var(--dg-edge);stroke:var(--dg-ink-3);stroke-width:1.2}
@@ -219,12 +214,12 @@
     const faceBand = (kind) => FACES.map((f, i) => f.open()
       + LAY.filter(l => l.kind === kind).map(l => kind === 'cu'
         ? copperBand(l, f.umax, i === 0)
-        : R(0, l.z0, f.umax, l.h, kind === 'core' ? 'var(--dg-core)' : 'var(--dg-pp)')).join('')
+        : R(0, l.z0, f.umax, l.h, kind === 'core' ? 'var(--dg-pcb-core)' : 'var(--dg-pp)')).join('')
       + (kind === 'pp'
         // prepreg 裡看得出玻纖織紋（§6-M1 在放大格，這裡是遠看也認得出來的那一半）
         ? LAY.filter(l => l.kind === 'pp').map(l => {
           const t = []; for (let u = 6; u < f.umax - 4; u += 13) t.push(`M${u},${l.z0 + 2} v${l.h - 4}`);
-          return `<path d="${t.join('')}" stroke="var(--dg-glass)" stroke-width="1.4" opacity=".5" fill="none"/>`;
+          return `<path d="${t.join('')}" stroke="var(--dg-yarn)" stroke-width="1.4" opacity=".5" fill="none"/>`;
         }).join('') : '')
       + '</g>').join('');
 
@@ -376,7 +371,7 @@
     const Y = 682, HGT = 170, DR = Y + 10;      // 框的 y、高、繪圖區起點
     const box = (i) => 16 + i * 238;
     const plane = (x, y, w) => `<rect x="${x}" y="${y}" width="${w}" height="5" fill="var(--dg-cu)"/>`;
-    const die = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--dg-core)"/>`;
+    const die = (x, y, w, h) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="var(--dg-pcb-core)"/>`;
     const cells = [];
 
     // ① 單端 50 Ω：一條線 ＋ 下一層的整片參考面
@@ -449,8 +444,8 @@
     const cell = (i, amp, step, name) => {
       const x = 28 + i * (cellW + 10), y = Y + 66;
       return `<rect x="${x}" y="${y - 30}" width="${cellW}" height="30" fill="var(--dg-cu)"/>`
-        + `<rect x="${x}" y="${y}" width="${cellW}" height="22" fill="var(--dg-core)"/>`
-        + `<path d="${rough(x, y, amp, step)} L${x + cellW},${y} L${x + cellW},${y + 22} L${x},${y + 22} Z" fill="var(--dg-core)"/>`
+        + `<rect x="${x}" y="${y}" width="${cellW}" height="22" fill="var(--dg-pcb-core)"/>`
+        + `<path d="${rough(x, y, amp, step)} L${x + cellW},${y} L${x + cellW},${y + 22} L${x},${y + 22} Z" fill="var(--dg-pcb-core)"/>`
         + `<path d="${rough(x, y - 3, amp, step)}" stroke="var(--dg-accent)" stroke-width="1.6" fill="none" class="pulse"/>`
         + `<text class="tag" x="${x + cellW / 2}" y="${y + 40}" text-anchor="middle">${name}</text>`;
     };
@@ -463,8 +458,8 @@
 
     // ---- 玻纖織紋：紗束與膠的介電常數不同，差動對兩條壓在不同介質上就有時間差
     const wv = [];
-    for (let i = 0; i < 9; i++) wv.push(`<rect x="${346 + i * 30}" y="${Y + 34}" width="16" height="64" rx="3" fill="var(--dg-glass)" opacity=".85"/>`);
-    for (let j = 0; j < 4; j++) wv.push(`<rect x="${340}" y="${Y + 38 + j * 17}" width="268" height="9" rx="3" fill="var(--dg-glass)" opacity="${j % 2 ? '.45' : '.62'}"/>`);
+    for (let i = 0; i < 9; i++) wv.push(`<rect x="${346 + i * 30}" y="${Y + 34}" width="16" height="64" rx="3" fill="var(--dg-yarn)" opacity=".85"/>`);
+    for (let j = 0; j < 4; j++) wv.push(`<rect x="${340}" y="${Y + 38 + j * 17}" width="268" height="9" rx="3" fill="var(--dg-yarn)" opacity="${j % 2 ? '.45' : '.62'}"/>`);
     const weave = `<g data-seg="ccl_material" data-part="fiber_weave">`
       + `<rect class="part" x="332" y="${Y}" width="300" height="${HGT}" rx="7" fill="#0f172b" fill-opacity=".55"/>`
       + `<text class="lbl" x="344" y="${Y + 22}">玻纖織效應（fiber weave effect）</text>`

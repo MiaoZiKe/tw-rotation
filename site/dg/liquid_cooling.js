@@ -54,21 +54,11 @@
        之後 art-director 要收進 :root，把這一段整塊搬過去即可，形狀一行都不用改。
      ⚠ `--dg-hot` 刻意**不用紅色** —— `--dg-err`（#ff4d6d）已經是「錯誤／裂紋」，
        撞色的話「出水側」會被讀成「這裡壞了」（規格書 §8）。*/
+  /* 這張圖的材質色 token 已經在 2026-09-21 深夜收進 `site/index.html` 的 :root（art-director 擁有）。
+     收進去的理由：配色切換（html 的 data-dgpal）在 :root 那一層蓋不掉圖自己 scope 裡的變數，
+     不收就等於「休閒配色只有一張圖有效」。**是同值搬家，值一個都沒改。**
+     這裡只留下這張圖自己的**規則**（class 定義），那些不是 token，不該進 :root。*/
   const VARS = `<style>
-    .dgcool{
-      --dg-cold:#4ea8dc; --dg-cold-2:#2b6f99;   /* 進水／進氣（冷） */
-      --dg-hot:#e8854a;  --dg-hot-2:#a9542a;    /* 出水／排氣（熱）—— 不是紅色 */
-      --dg-fws:#8b96ad;  --dg-fws-2:#5d6679;    /* 一次側（設施側）：第三種顏色 */
-      --dg-vap:#24324a;                          /* 兩相元件的蒸氣腔（真空腔，不是液體） */
-      --dg-wick:#8f6a45;                         /* 毛細結構（燒結銅粉／溝槽／網目） */
-      --dg-steel:#9aa6b4; --dg-steel-2:#6b7683;  /* 不鏽鋼：快接頭、管件 */
-      --dg-tim:#b6a3b2;                          /* 導熱介面材料 TIM */
-      --dg-die:#39476a;                          /* 矽裸晶 */
-      --dg-void:#0d1424;                         /* 切面上的空隙／腔體背景 */
-      --dg-frame:#1a2540;                        /* 框與盒的底 */
-      --dg-cu-lit:#c88a4e; --dg-cu-dim:#9c6432;  /* 銅的亮面／暗面（等角上蓋的漸層兩端） */
-      --dg-cu-cut:#8a5525;                       /* 銅在剖面上的斜線（表示這裡是實心的） */
-    }
     .dgcool .fine{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
   </style>`;
 

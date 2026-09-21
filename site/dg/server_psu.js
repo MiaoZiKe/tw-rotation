@@ -71,17 +71,6 @@
      scoped 在 .psu 上，所以不會汙染別張圖；art-director 要換色只要改 index.html
      的 --dg-cu／--dg-cover／--dg-ink，這裡跟著變。 */
   const VARS = `<style>
-    .dg.psu{
-      --dg-psu-ac:color-mix(in srgb,var(--dg-cu) 82%,var(--dg-cover));      /* 交流側 */
-      --dg-psu-gold:color-mix(in srgb,var(--dg-cu) 54%,var(--dg-cover));    /* 鍍金接點 */
-      --dg-psu-cu:var(--dg-cu);                                             /* 銅排（亮面） */
-      --dg-psu-cu2:color-mix(in srgb,var(--dg-cu) 58%,var(--dg-el));        /* 銅排（暗面） */
-      --dg-psu-box:color-mix(in srgb,var(--dg-ink) 7%,transparent);         /* 方塊底 */
-      --dg-psu-box2:color-mix(in srgb,var(--dg-ink) 13%,transparent);       /* 方塊底（深一階） */
-      --dg-psu-line:color-mix(in srgb,var(--dg-ink-3) 52%,transparent);     /* 一般外框線 */
-      --dg-psu-off:color-mix(in srgb,var(--dg-mute) 52%,transparent);       /* 機房基礎設施（不在這條鏈上） */
-      --dg-psu-die:color-mix(in srgb,var(--dg-el) 86%,var(--dg-ink-3));     /* 晶片本體 */
-    }
     .dg.psu .off{stroke:var(--dg-psu-off);fill:none;stroke-width:1.4}
     .dg.psu .offtx{fill:var(--dg-psu-off)}
     .dg.psu .acw{stroke:var(--dg-psu-ac);fill:none;stroke-width:3;stroke-linecap:round}

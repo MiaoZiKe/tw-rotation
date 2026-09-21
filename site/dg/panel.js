@@ -102,28 +102,6 @@
      剖析圖的容器 --illus 在深色與淺色主題下**都是深底**（index.html:50 的既有決策），
      所以同一組值在兩種主題下都成立，不需要第二套。*/
   const PN_STYLE = `<style>
-    .dgpn{
-      --dg-pn-bezel:#3c4552;  --dg-pn-bezel-d:#293039;   /* 背板／膠框（深灰金屬＋黑塑框） */
-      --dg-pn-refl:#eef1f7;   --dg-pn-refl-d:#c2c8d3;    /* 反射片（白霧面） */
-      --dg-pn-lgp:#bcdaec;    --dg-pn-lgp-d:#8ab2cc;     /* 導光板（透明壓克力） */
-      --dg-pn-led:#ffe2a0;    --dg-pn-led-d:#d7b969;     /* LED 燈條（暖白） */
-      --dg-pn-diff:#e1e8f1;   --dg-pn-diff-d:#b4bdca;    /* 擴散片（半透明乳白） */
-      --dg-pn-bef:#c7d6e5;    --dg-pn-bef-d:#9aaabd;     /* 稜鏡片／增亮膜 */
-      --dg-pn-pol:#69738a;    --dg-pn-pol-d:#495162;     /* 偏光板（深灰半透） */
-      --dg-pn-glass:#a9d2e6;  --dg-pn-glass-d:#76a5be;   /* 玻璃基板 */
-      --dg-pn-tft:#9aa6b8;    --dg-pn-tft-d:#6f7b8e;     /* TFT 陣列層（金屬灰） */
-      --dg-pn-lc:#3b4775;     --dg-pn-lc-d:#2a3356;      /* 液晶層（盒內） */
-      --dg-pn-rod:#cfbdf2;                                /* 液晶短棒 */
-      --dg-pn-cf:#262c3a;     --dg-pn-cf-d:#1a1f2a;      /* 彩色濾光片層底（黑色矩陣） */
-      --dg-pn-bm:#11141b;                                 /* 黑色矩陣 */
-      --dg-pn-r:#e2565f; --dg-pn-g:#45b46e; --dg-pn-b:#4c7ee0;   /* R／G／B 色阻 */
-      --dg-pn-ic:#1e232d;     --dg-pn-ic-d:#141821;      /* 驅動 IC 黑方塊 */
-      --dg-pn-cof:#c99a44;    --dg-pn-cof-d:#9a742f;     /* COF 軟板（聚醯亞胺琥珀色） */
-      --dg-pn-pad:#d9b56b;                                /* 端子區的金屬墊 */
-      --dg-pn-org:#9b86e0;                                /* OLED 有機發光層 */
-      --dg-pn-line:rgba(255,255,255,.34);                 /* 表面紋理（稜線、偏光紋、格柵） */
-      --dg-pn-line2:rgba(10,16,32,.42);                   /* 深色分層線 */
-    }
     /* ★ 關掉發光（Andy 講過三次的「螢光感太重」）。
        實測：這張圖掛在 panel 族群的頁面上，預設狀態就是「族群已選」，
        於是 panel_mfg 與 display_material 的零件全部被加上 .sel ——
