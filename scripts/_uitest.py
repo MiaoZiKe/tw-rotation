@@ -125,9 +125,29 @@ class _NoCache(SimpleHTTPRequestHandler):
 
 
 def serve():
+    """起本機伺服器。**埠被佔走就往後找一個沒人用的**，不要直接死掉。
+
+    ★ 2026-09-21 踩到兩次（兩個不同的 agent 各報一次）：
+      多個人同時在這個容器裡跑 `_uitest.py` 時，worker 的埠是寫死的 `PORT + 1 + i`，
+      撞到別人就 `OSError: Address already in use` —— worker 當場死掉、
+      父行程只報「沒有交回結果」，看起來像**那一段的功能壞了**，
+      實際上是環境。那是最糟的一種假紅：它指向錯的地方。
+
+      修法是「找一個沒人用的」而不是「賭這個沒人用」。
+      回傳的 srv 帶著真正用到的埠（`srv.server_address[1]`），
+      呼叫端一律從那裡讀，不要再自己組 PORT。
+    """
     handler = partial(_NoCache, directory=str(SITE))
     _NoCache.log_message = lambda *a, **k: None
-    srv = _QuietServer(("127.0.0.1", PORT), handler)
+    last = None
+    for off in range(0, 40):                      # 最多往後找 40 個
+        try:
+            srv = _QuietServer(("127.0.0.1", PORT + off), handler)
+            break
+        except OSError as e:                      # 被佔走就換下一個
+            last = e
+    else:
+        raise RuntimeError(f"從 {PORT} 起連續 40 個埠都被佔走了：{last}")
     threading.Thread(target=srv.serve_forever, daemon=True).start()
     return srv
 
@@ -9703,6 +9723,7 @@ SECTIONS = {
     # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
     "批次12-電源PSU":      lambda pg, b, base, code: t_psu(pg, base),
     "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
+    "批次12-ABF載板":      lambda pg, b, base, code: t_abf(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     "個股":                lambda pg, b, base, code: t_stock(pg, base, code),
     "個股即時分K":         lambda pg, b, base, code: t_livek(pg, base, code),
@@ -9723,6 +9744,368 @@ TIMES_FILE = pathlib.Path(__file__).resolve().parent / ".uitest_times.json"
 
 took: dict[str, float] = {}
 counts: dict[str, int] = {}
+
+def t_abf(pg, base):
+    """圖3 IC 載板：ABF 增層剖面（`site/dg/ic_substrate.js`，族群 `ic_substrate`、ai_server 鏈）。
+
+    規格書＝`docs/diagram_specs/abf_substrate.md`，這一段就是它 §8 的「互動」與「視覺」那兩組。
+    **驗的全部是「畫面真的因此改變了」**，不是「元素存在」也不是「有 render」：
+
+      1   `#industry/ai_server` 的圖別入口真的多一個 ic_substrate，而且寫了它回答什麼問題
+      1b  點入口 → 圖真的畫出來、**網址真的變成 /dg/ic_substrate**
+      1c  直接貼那個網址重新整理 → 一樣打得開（沒有這條就不叫分頁）
+      2   點兩個不同的 `data-part` → **主角真的換人**，而且主角與同環節其餘的
+          computed style 真的不同（量 stroke-width，不是看有沒有 class）
+      3   點零件 → 成分股筆數**一動都不動**（DECISIONS #73：零件只亮不篩）
+      4   點三個環節色標 → 筆數 0 / 3 / 6，**三個彼此不同**
+          （這才證明 substrate_material / abf_pcb / hdi_pcb 三個 seg 真的分開掛對）
+      4b  `substrate_material` 那一次要驗**「台股沒有直接對應，看外商」那個狀態真的出現**
+          —— 這一格台股掛零是這張圖的重點之一，不是 bug
+      5   畫面上真的印著「這一格為什麼是 0 筆」與「點零件篩到的是環節、不是整個族群」
+      6   「動畫：開／關」按了**真的停下來**（CSS 的 dgdash 與 SMIL 的 animateMotion 兩種都要停），
+          靜止時疊構、微孔、三種節距仍然看得見
+      7   **結構**：規格書 §6 裡「看圖就能判定」的那幾條（S1/S2/S3/S4/V1/V2/V3/M6/M7/N1/N5）
+          直接量幾何與掃字串，不靠眼睛
+      8   1440 / 800 / 390 三個寬度 × 深淺兩個主題：每一個 text 的**畫面真實字級 ≥ 12px**、
+          文字兩兩不重疊、沒有溢出畫布
+    """
+    FEAT = "IC 載板：晶片底下那塊板子"        # 這張圖的特徵字串（標題）
+    DGH = f"{base}#industry/ai_server/dg/ic_substrate"
+    CORE_Y = (246, 324)                        # core 在 viewBox 裡的上下緣（源頭是 ic_substrate.js 的 Y.core）
+
+    def force_open(pg_):
+        """把剖析圖確實展開再驗。
+
+        跟 `t_mlcc` 裡那一支同一套邏輯（它是 t_mlcc 的巢狀函式，這裡取不到，所以照抄一份）：
+        「<640px 預設收合、而且會記進 localStorage」會在 4-worker 平行跑時汙染別的寬度，
+        而選單模式下按收合鈕只會把偏好反過來設 —— 所以只有「現在真的有一張圖」時才動它。
+        """
+        pg_.evaluate("""() => {
+          const menu = document.getElementById('dgMenu');
+          if (menu && menu.offsetParent !== null) return;
+          const b = document.getElementById('dgFold');
+          const body = document.getElementById('dgBody');
+          const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+          if (b && hidden) b.click();
+        }""")
+        pg_.wait_for_timeout(500)
+
+    def rows(pg_):
+        """成分股「真的有資料的那幾列」。不能數 `tbody tr` —— 0 筆的時候 tbody 裡有一列說明用的
+        `<tr><td colspan>`，數進去會把 0 筆讀成 1 筆，`substrate_material` 那一條就白驗了。"""
+        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+
+    def dg(pg_):
+        return pg_.evaluate("""() => {
+          const h = document.querySelector('#prodDiagram');
+          if (!h) return {present: false};
+          const svg = h.querySelector('svg');
+          if (!svg) return {present: false};
+          const r = svg.getBoundingClientRect();
+          const ns = [...h.querySelectorAll('[data-seg]')];
+          const segs = {}; ns.forEach(n => { segs[n.dataset.seg] = (segs[n.dataset.seg] || 0) + 1; });
+          const sw = (n) => { const p2 = n.querySelector('.part');
+            return p2 ? +parseFloat(getComputedStyle(p2).strokeWidth).toFixed(2) : null; };
+          const heroes = ns.filter(n => n.classList.contains('sel-part'));
+          const sibs = ns.filter(n => n.classList.contains('sel') && !n.classList.contains('sel-part'));
+          return {present: true, full: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\u3002'),
+                  texts: [...svg.querySelectorAll('text')].map(n => n.textContent),
+                  parts: ns.length, segs: segs,
+                  sel: ns.filter(n => n.classList.contains('sel')).length,
+                  selpart: heroes.length, dim: ns.filter(n => n.classList.contains('dim')).length,
+                  heroKey: heroes.length ? heroes[0].dataset.dgkey : null,
+                  heroSW: heroes.map(sw).filter(x => x != null),
+                  sibSW: [...new Set(sibs.map(sw).filter(x => x != null))],
+                  glow: [...h.querySelectorAll('*')].filter(n => {
+                    const f = getComputedStyle(n).filter; return f && f !== 'none'; }).length,
+                  svgW: Math.round(r.width)};
+        }""")
+
+    def click_part(pg_, part):
+        """真的點圖上那個零件（不是說明列）。回傳點完之後的主角 key。"""
+        got = pg_.evaluate("""(p) => {
+          const n = [...document.querySelectorAll('#prodDiagram [data-seg]')]
+            .find(x => x.dataset.part === p && x.tagName.toLowerCase() === 'g' && !x.classList.contains('lrow'));
+          if (!n) return null;
+          n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+          return n.dataset.dgkey;
+        }""", part)
+        pg_.wait_for_timeout(450)
+        return got
+
+    def seg_chip(pg_, seg):
+        return pg_.evaluate("""(s) => { const c = document.querySelector('#segChips .segchip[data-seg="' + s + '"]');
+          if (!c) return false; c.click(); return true; }""", seg)
+
+    # ---------------- 1. 圖別入口：ai_server 鏈上真的多一個 ic_substrate
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    m0 = pg.evaluate("""() => {
+      const vis = n => !!(n && n.offsetParent !== null);
+      const pick = [...document.querySelectorAll('#dgPick .segchip')];
+      return {hash: location.hash, pickVis: vis(document.querySelector('#dgPick')),
+              ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
+              titles: pick.map(n => n.getAttribute('title') || ''),
+              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid'))};
+    }""")
+    ok("ai_server 鏈的圖別選單裡真的多了「IC 載板」這個入口（選單卡與上方切換列都要有）",
+       "ic_substrate" in m0["cards"] and "ic_substrate" in m0["ids"] and m0["pickVis"], m0)
+    _q = [t for i, t in zip(m0["ids"], m0["titles"]) if i == "ic_substrate"]
+    ok("那個入口寫清楚它回答什麼問題（不寫的話得先點進去才知道要不要點）",
+       bool(_q) and len(_q[0]) > 15 and "？" in _q[0], _q)
+    ok("那個入口是真的連結（有自己的網址，可以分享、可以回上一頁）",
+       "#industry/ai_server/dg/ic_substrate" in m0["hrefs"], m0["hrefs"])
+
+    # ---------------- 1b. 真的用滑鼠點下去 → 圖畫出來、網址真的變了
+    h_before = pg.evaluate("() => location.hash")
+    pg.click('#dgPick .segchip[data-dgid="ic_substrate"]', timeout=5000); pg.wait_for_timeout(2500)
+    force_open(pg)
+    d0 = dg(pg)
+    hash1 = pg.evaluate("() => location.hash")
+    ok("點那個入口 → ABF 載板剖析圖真的畫出來（比對圖上的特徵字串）",
+       d0.get("present") and FEAT in d0.get("full", ""), (d0.get("full", "")[:40] or "<沒有圖>"))
+    if not d0.get("present"):
+        return
+    ok("★ 點入口之後**網址真的變了**（#industry/ai_server/dg/ic_substrate）",
+       hash1 != h_before and hash1.endswith("/dg/ic_substrate"), f"{h_before} → {hash1}")
+    _dgq = pg.evaluate("() => (document.querySelector('#dgQ')||{}).textContent || ''")
+    ok("圖旁邊寫著這張圖回答什麼問題（而且換成了這張圖自己的問題，不是 AI 伺服器那張的）",
+       "這張圖回答" in _dgq and "ABF" in _dgq and "機櫃" not in _dgq, _dgq[:60])
+    ok("三個環節真的都掛上去了（substrate_material / abf_pcb / hdi_pcb）",
+       set(d0["segs"]) == {"substrate_material", "abf_pcb", "hdi_pcb"}, d0["segs"])
+
+    # ---------------- 1c. 直接貼網址重新整理 —— 沒有這條就不算分頁
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    force_open(pg)
+    d0b = dg(pg)
+    ok("★ 直接貼那個網址重新整理，一樣打得開同一張圖",
+       pg.evaluate("() => location.hash").endswith("/dg/ic_substrate") and FEAT in d0b.get("full", ""),
+       pg.evaluate("() => location.hash"))
+
+    # ---------------- 2. 兩層高亮：點兩個不同的 data-part，主角真的換人
+    rows_before = rows(pg)
+    k1 = click_part(pg, "abf_core")
+    t1 = dg(pg)
+    ok("點 core → 主角（.sel-part）真的出現，而且就是 core",
+       t1["selpart"] >= 1 and t1["heroKey"] == "abf_core", f"key={t1['heroKey']} selpart={t1['selpart']}")
+    ok("主角的描邊比同環節其餘零件粗（量 computed style，不是看有沒有 class）",
+       bool(t1["heroSW"]) and bool(t1["sibSW"]) and min(t1["heroSW"]) > max(t1["sibSW"]),
+       f"主角 stroke-width={t1['heroSW']} ／ 同環節其餘={t1['sibSW']}")
+    ok("★ 螢光感：整張圖只有**主角**在發光（其餘 computed filter 都是 none）",
+       t1["glow"] <= 2, f"真的在發光的元素 {t1['glow']} 個（主角自己算 1～2 個）")
+    k2 = click_part(pg, "abf_uvia")
+    t2 = dg(pg)
+    ok("★ 換點「雷射微孔」→ 主角真的換人（不是整個取消掉）",
+       t2["heroKey"] == "abf_uvia" and k2 != k1, f"{k1} → {t2['heroKey']}")
+    ok("換點之後畫面真的不一樣（被選起來的環節也跟著換了）",
+       t1["sel"] != t2["sel"] or t1["dim"] != t2["dim"],
+       f"sel {t1['sel']}→{t2['sel']}、dim {t1['dim']}→{t2['dim']}")
+
+    # ---------------- 3. DECISIONS #73：點零件只亮不篩
+    ok("DECISIONS #73：點零件**不會**改成分股筆數（只亮不篩）",
+       rows(pg) == rows_before, f"{rows_before} → {rows(pg)}")
+
+    # ---------------- 4. 點環節色標 → 筆數真的變，而且三個 seg 的結果彼此不同
+    got = {}
+    for seg in ("substrate_material", "abf_pcb", "hdi_pcb"):
+        pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2300)
+        base_rows = rows(pg)
+        hit = seg_chip(pg, seg)
+        pg.wait_for_timeout(900)
+        got[seg] = {"n": rows(pg), "base": base_rows,
+                    "title": pg.evaluate("() => document.querySelector('#memberTitle').textContent.replace(/\\s+/g,' ')"),
+                    "body": pg.evaluate("() => { const t = document.querySelector('#memberTable tbody'); return t ? t.textContent.trim() : ''; }"),
+                    "hit": hit}
+    ok("點「載板材料 ABF / BT」色標 → 成分股筆數真的**變少**（3 → 0）",
+       got["substrate_material"]["hit"] and got["substrate_material"]["n"] < got["substrate_material"]["base"],
+       f"{got['substrate_material']['base']} → {got['substrate_material']['n']}")
+    ok("★ 三個環節色標篩出來的筆數**彼此不同**（證明三個 seg 真的分開掛對）",
+       len({got[s]["n"] for s in got}) == 3, {s: got[s]["n"] for s in got})
+    ok("★「載板材料」那一次真的出現「台股沒有直接對應、看外商」的狀態（這一格台股掛零，不是 bug）",
+       got["substrate_material"]["n"] == 0 and "沒有台股直接對應" in got["substrate_material"]["body"]
+       and "味之素" in got["substrate_material"]["body"],
+       got["substrate_material"]["body"][:70])
+    ok("點「IC 載板（ABF / BT）」色標 → 標題真的換成那一格（3037／8046／3189）",
+       "IC 載板" in got["abf_pcb"]["title"] and got["abf_pcb"]["n"] == 3
+       and "3037" in got["abf_pcb"]["body"], got["abf_pcb"]["title"][:50])
+    ok("點「高階 PCB」色標 → 篩到的是另外一批（筆數變多，底下那一小段主機板掛的就是這一格）",
+       got["hdi_pcb"]["n"] > got["hdi_pcb"]["base"], f"{got['hdi_pcb']['base']} → {got['hdi_pcb']['n']}")
+
+    # ---------------- 5. 兩句一定要印在畫面上的話
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
+    force_open(pg)
+    txt = dg(pg).get("full", "")
+    ok("★「這一格台股掛零、所以會是 0 筆，那不是壞掉」這句話真的印在圖上",
+       "台股掛零" in txt and "0 筆" in txt and "不是壞掉" in txt,
+       [s for s in txt.split("★") if "台股掛零" in s][:1])
+    ok("★「點零件篩到的是『環節』不是整個族群」那一行真的印在圖上（三份規格書都要求）",
+       "點零件篩到的是" in txt and "環節" in txt and "不是整個族群" in txt,
+       [s for s in txt.split("。") if "不是整個族群" in s][:1])
+    ok("另外兩行誠實性標示也在（非實物比例／層數為示意）",
+       "示意圖，非實物比例" in txt and "實際為十幾至二十幾層" in txt, "")
+
+    # ---------------- 6. 動畫：開／關 真的停得掉
+    #  這張圖有兩種動畫：CSS 的 dgdash（訊號虛線）與 SMIL 的 animateMotion（訊號亮點＋流程列光點）。
+    #  `.dgwrap.noanim *{animation:none}` 只管 CSS，SMIL 要靠 svg.pauseAnimations() —— 兩種都要驗。
+    DOTS = """() => { const h = document.querySelector('#prodDiagram');
+      return [...h.querySelectorAll('animateMotion')].map(m => {
+        const r = m.parentNode.getBoundingClientRect();
+        return [+r.x.toFixed(1), +r.y.toFixed(1), +r.width.toFixed(1)]; }); }"""
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+    pg.wait_for_timeout(600)
+    force_open(pg)
+    d_pre = pg.evaluate(DOTS)
+    if ok("動畫的前提：那兩顆會跑的點真的畫在畫面上（量不到就不要拿兩個 0 互比）",
+          len(d_pre) == 2 and all(x[2] > 0 for x in d_pre), d_pre):
+        a1 = pg.evaluate(DOTS); pg.wait_for_timeout(1400); a2 = pg.evaluate(DOTS)
+        ok("「動畫：開」的時候，訊號亮點與流程列光點真的在動",
+           a1 != a2, f"{a1} → {a2}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")     # → 動畫：關
+        pg.wait_for_timeout(800)
+        b1 = pg.evaluate(DOTS); pg.wait_for_timeout(1400); b2 = pg.evaluate(DOTS)
+        ok("★ 按「動畫：關」之後**真的停下來**（連續兩次取樣完全一樣，SMIL 也停了）",
+           b1 == b2, f"{b1} → {b2}")
+        anim = pg.evaluate("""() => { const h = document.querySelector('#prodDiagram');
+          const f = h.querySelector('.flow');
+          return {noanim: h.classList.contains('noanim'),
+                  css: f ? getComputedStyle(f).animationName : null,
+                  flowVisible: f ? +(+getComputedStyle(f).opacity).toFixed(2) : null,
+                  layers: h.querySelectorAll('[data-part="abf_film"] rect').length,
+                  vias: (() => { const q = h.querySelector('[data-part="abf_uvia"] path.part');
+                    return q && (q.getAttribute('d') || '').length > 50 ? 1 : 0; })()}; }""")
+        ok("而且 CSS 那一種（訊號虛線 dgdash）也停了",
+           anim["noanim"] and anim["css"] in ("none", None), anim)
+        ok("★ 靜止的時候疊構、微孔、訊號路徑仍然看得見（不是把東西藏起來才停住）",
+           anim["layers"] >= 6 and anim["vias"] == 1 and (anim["flowVisible"] or 0) > 0.3, anim)
+        pg.eval_on_selector("#dgAnim", "b => b.click()")     # 還原偏好，不要汙染後面的段落
+        pg.wait_for_timeout(500)
+
+    # ---------------- 7. 結構審查（規格書 §6 裡「看圖就能判定」的那幾條）
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
+    force_open(pg)
+    st = pg.evaluate("""(coreY) => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (s) => { const n = svg.querySelector(s); return n ? n.getBBox() : null; };
+      const all = (s) => [...svg.querySelectorAll(s)].map(n => n.getBBox());
+      const core = bb('[data-part="abf_core"] rect.part');
+      const films = all('[data-part="abf_film"] rect.part')
+        .map(b => ({y: +b.y.toFixed(1), h: +b.height.toFixed(1)})).sort((a, b2) => a.y - b2.y);
+      const cvia = all('[data-part="abf_core_via"] rect.part')
+        .map(b => ({y0: +b.y.toFixed(1), y1: +(b.y + b.height).toFixed(1)}));
+      // 微孔：解析梯形的四個角，檢查「外寬內窄」與「窄的那一端朝 core」
+      const mid = (coreY[0] + coreY[1]) / 2;
+      const tra = [];
+      svg.querySelectorAll('[data-part="abf_uvia"] path.part,[data-part="abf_stack_via"] path.part')
+        .forEach(p => { const d = p.getAttribute('d') || '';
+          const re = /M([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+)Z/g;
+          let m; while ((m = re.exec(d))) { const v = m.slice(1).map(Number);
+            tra.push({wOut: Math.abs(v[2] - v[0]), wIn: Math.abs(v[4] - v[6]),
+                      yOut: v[1], yIn: v[5]}); } });
+      const straight = tra.filter(t => t.wOut <= t.wIn + 1);              // 直筒＝不過（V2）
+      const wrongDir = tra.filter(t => Math.abs(t.yIn - mid) >= Math.abs(t.yOut - mid));  // 窄端沒朝 core（V3）
+      // 織紋只准出現在 core 這一層（S4）
+      const weaveInFilm = svg.querySelectorAll('[data-part="abf_film"] [stroke*="--dg-weave"]').length;
+      const weaveInCore = svg.querySelectorAll('[data-part="abf_core"] [stroke*="--dg-weave"]').length;
+      return {nCore: svg.querySelectorAll('[data-part="abf_core"] rect.part').length,
+              coreH: core ? +core.height.toFixed(1) : 0, films: films, nVia: tra.length,
+              cvia: cvia, straight: straight.length, wrongDir: wrongDir.length,
+              weaveInFilm: weaveInFilm, weaveInCore: weaveInCore,
+              texts: [...svg.querySelectorAll('text')].map(n => n.textContent),
+              text: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\u3002')};
+    }""", list(CORE_Y))
+    ok("S1：全圖只有一片 core，而且圖上沒有任何一片 prepreg 膠片（畫成 core 夾 prepreg 就是畫成 PCB）",
+       st["nCore"] == 1 and "prepreg" not in st["text"].lower().replace("不是 prepreg 膠片", ""),
+       f"core 片數 {st['nCore']}")
+    ok("S2：core 明顯厚於任何一層增層（量 bbox，不是看起來）",
+       bool(st["films"]) and st["coreH"] >= 2 * max(f["h"] for f in st["films"]),
+       f"core {st['coreH']}px ／ 增層 {sorted({f['h'] for f in st['films']})}")
+    up = [f for f in st["films"] if f["y"] < CORE_Y[0]]
+    dn = [f for f in st["films"] if f["y"] >= CORE_Y[1]]
+    ok("S3：core 上方與下方的增層**層數相等**，而且對應層的厚度也相等",
+       len(up) == len(dn) == 3 and sorted(f["h"] for f in up) == sorted(f["h"] for f in dn),
+       f"上 {[f['h'] for f in up]} ／ 下 {[f['h'] for f in dn]}")
+    ok("S4：只有 core 那一層有織紋，任何一層增層裡都沒有（ABF 不含織造玻纖）",
+       st["weaveInCore"] > 0 and st["weaveInFilm"] == 0,
+       f"core {st['weaveInCore']} 條／增層 {st['weaveInFilm']} 條")
+    ok("V1：core 貫孔**只穿 core**，兩端都停在 core 的表面（沒有穿進任何一層增層）",
+       bool(st["cvia"]) and all(abs(v["y0"] - CORE_Y[0]) < 1 and abs(v["y1"] - CORE_Y[1]) < 1 for v in st["cvia"]),
+       f"core {CORE_Y}；孔 {st['cvia']}")
+    ok("V2：每一個雷射微孔都是錐形，沒有一個畫成直筒",
+       st["nVia"] >= 20 and st["straight"] == 0, f"微孔 {st['nVia']} 個、直筒 {st['straight']} 個")
+    ok("★ V3：上半部的微孔朝下收窄、下半部朝上收窄 —— **兩側都朝 core**（這是最容易錯的一條）",
+       st["wrongDir"] == 0, f"窄端沒朝 core 的 {st['wrongDir']} 個／共 {st['nVia']} 個")
+    # M6：這五樣是 `pcb_stackup`（PCB 硬板那張）的內容，這張圖不准重複畫
+    dup = [w for w in ("銅箔稜面", "HVLP", "背鑽", "埋孔", "差動對", "蛇行", "ENIG", "ENEPIG", "OSP", "浸銀")
+           if w in st["text"]]
+    ok("M6：沒有重複畫 PCB 那張的五樣東西（銅箔稜面／玻纖織紋放大格／四種孔／走線頂視／表面處理比較表）",
+       not dup, dup or "一樣都沒有")
+    ok("M7：圖上沒有散熱蓋、均熱片、風扇、連接器（那些是別張圖的主題，畫了會搶版面）",
+       not [w for w in ("散熱蓋", "均熱片", "風扇", "連接器", "IHS") if w in st["text"]], "")
+    ok("M5：晶粒與中介層只是灰色剪影，沒有在這張圖上解釋 CoWoS／TSV／微凸塊結構，而且有一句把人導去半導體鏈那張",
+       "CoWoS" in st["text"] and "TSV" not in st["text"] and "RDL" not in st["text"]
+       and "不是這張圖的主題" in st["text"], "")
+    # N1：畫面上唯一准出現的百分比是 ABF 膜市占，而且必須連來源一起寫
+    pct = [t for t in st["texts"] if "%" in t]
+    ok("★ N1：畫面上唯一的百分比是 ABF 膜市占，而且跟來源寫在一起（其餘一個百分比都沒有）",
+       len(pct) == 1 and "95%" in pct[0] and "今周刊" in pct[0], pct)
+    ok("N5：供需缺口、長約漲幅、各家營收占比一個都沒有進畫面（那幾個來源彼此對不起來）",
+       not [w for w in ("缺口", "漲幅", "營收占比", "目標價") if w in st["text"]], "")
+    ok("§7-B：載板線寬、CTE 的 ppm 值、封裝的 mm 數都沒有寫成數字（只寫相對關係）",
+       "ppm" not in st["text"].replace("不寫 ppm 值", "") and "µm" in st["text"], "")
+
+    # ---------------- 8. 三個寬度 × 深淺主題：字級、重疊、溢出
+    TYPO = """() => {
+      const h = document.querySelector('#prodDiagram');
+      const svg = h && h.querySelector('svg');
+      if (!svg) return {present: false};
+      const r = svg.getBoundingClientRect();
+      const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+      const k = (r.width && vb) ? r.width / vb : 0;
+      const a = [], out = [];
+      svg.querySelectorAll('text').forEach(n => {
+        if (!(n.textContent || '').trim()) return;
+        const cs = getComputedStyle(n);
+        if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+        const b = n.getBoundingClientRect(); if (!b.width || !b.height) return;
+        const g = n.getBBox();
+        if (g.x < -1 || g.x + g.width > vb + 1) out.push((n.textContent || '').trim().slice(0, 18));
+        a.push({t: (n.textContent || '').trim().slice(0, 18), cls: n.getAttribute('class') || '',
+                eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
+                x: b.x, y: b.y, w: b.width, hh: b.height});
+      });
+      const ov = [];
+      for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+        const p2 = a[i], q = a[j];
+        const ox = Math.min(p2.x + p2.w, q.x + q.w) - Math.max(p2.x, q.x);
+        const oy = Math.min(p2.y + p2.hh, q.y + q.hh) - Math.max(p2.y, q.y);
+        if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' ⨯ ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+      }
+      const small = a.filter(z => z.eff < 11.9).map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
+      return {present: true, n: a.length, svgW: Math.round(r.width),
+              min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+              small: small.slice(0, 8), nSmall: small.length,
+              ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length};
+    }"""
+    for theme in ("dark", "light"):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(DGH, wait_until="networkidle")
+            pg.reload(wait_until="networkidle")      # 同 hash 的 goto 不會觸發 hashchange，穩定性用
+            pg.wait_for_timeout(2400)
+            force_open(pg)
+            z = pg.evaluate(TYPO)
+            lab = f"[{w}px·{'深色' if theme == 'dark' else '淺色'}]"
+            if not ok(f"{lab} ABF 載板剖析圖畫得出來", z.get("present"), z):
+                continue
+            ok(f"{lab} 圖以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 970, z["svgW"])
+            ok(f"{lab} 圖上**每一個**字的畫面真實字級都 ≥ 12px（共 {z['n']} 個）",
+               z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
+            ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
+            ok(f"{lab} 沒有文字溢出畫布（左右都在 viewBox 裡）", z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
 
 
 def _selected(args, name: str) -> bool:
@@ -9855,7 +10238,9 @@ def main() -> int:
     from playwright.sync_api import sync_playwright
 
     srv = serve(); time.sleep(0.4)
-    base = f"http://127.0.0.1:{PORT}/index.html"
+    # ★ 讀 srv 真正綁到的埠（serve() 會在被佔走時自動往後找），不要自己組 PORT
+    _port = srv.server_address[1]
+    base = f"http://127.0.0.1:{_port}/index.html"
     t0 = time.time()
 
     with sync_playwright() as p:
