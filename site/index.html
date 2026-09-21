@@ -1113,6 +1113,25 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 /* 2026-09-21：個股篩選面板（.rotpick / .rotsearch / .rotstocklist）整組移除，樣式一併刪掉，不留死碼 */
 @media (max-width:900px){ .rotfilter{gap:5px 6px} }
 
+/* ★ 2026-09-21 合併卡（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）。
+   `.rottime` 是「看哪一天 ＋ 最近幾天 ＋ 軌跡開關」那一列。兩支拉Bar 並排是刻意的：
+   它們回答的是同一個問題的兩半（截止日在哪、往回看幾天），分兩行看不出關係。
+   flex-wrap 是硬需求 —— 800px／390px 下兩支拉Bar ＋ 軌跡開關一定擠不下同一行，
+   不換行就會凸出卡片（2026-09-18 E6 那次就是只驗寬螢幕放過去的）。
+   軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行，
+   而不是把兩支拉Bar 擠成細條。*/
+.rottime{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:2px 0 4px}
+.rottime>#rotBack,.rottime>#rankDays{flex:0 1 auto}
+.rottime>.rottools{flex:1 1 320px;margin:0}
+/* 合併之後兩張圖各自需要一行小標（卡片標題已經被「資金輪動」佔走）。
+   用 h4 而不是 h3：同一張卡裡的層級要看得出來，而且 h3 的字級會把圖往下推。*/
+.rotpane{display:flex;flex-direction:column;min-width:0}
+h4.subh{margin:0 0 6px;font-size:13.5px;color:var(--ink-1);display:flex;flex-wrap:wrap;
+  align-items:baseline;gap:4px 8px}
+h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
+/* 圖區在窄畫面退單欄之後，上下兩塊要有間隔（.grid 的 gap 只在格與格之間） */
+@media (max-width:1100px){ .rotpane+.rotpane{margin-top:4px} }
+
 /* ---------------------------------------------------------------- 任務板（#tasks）
    刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
    而 Andy 有時候是在手機上看「到底做完了沒」。 */
@@ -1355,31 +1374,41 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
          資金流向排行 改成在右邊」）：g2（1:1）改成 g21（2fr:1fr），而且**時鐘寫在前面**。
          窄畫面（≤1100px）`.g21` 本來就會退回單欄，DOM 順序決定上下 ——
          時鐘在上、排行在下，剛好是他要的主從關係。 -->
-    <div class="grid g21" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h3>
+    <!-- ★ 2026-09-21（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等 所以他們彙整並一頁」）：
+         「輪動時鐘」與「資金流向排行」兩張卡合併成**一張**。
+         合併的理由是量得到的重複：兩張卡各長一份產業鏈 seg（8 顆鈕）與一份 56 顆族群晶片，
+         而它們**本來就是同一份選擇**（wireRotFilter 對每個 .rotfilter 各產一份，吃同一個 ROT 狀態）——
+         同樣的東西佔了兩次版面，而且使用者看到兩排會以為是兩組互相獨立的篩選。
+         現在由上到下是：標題列 → 共用篩選區（產業鏈 seg／族群晶片／只看前 10 大／清除）
+         → 共用時間列（看哪一天 ＋ 最近幾天 ＋ 軌跡開關）→ 圖區（2fr 時鐘 : 1fr 排行）。
+         「怎麼看 ?」也只留一顆（原本 rank 那段說明併進 how-rot）—— 同一張卡不該有兩個問號鈕。 -->
+    <div class="card rotcard" style="margin-top:16px">
+      <div class="row spread"><h3>資金輪動 <small>錢跑到哪個族群，那個族群在強弱循環的哪一段</small></h3>
         <div class="row" style="gap:8px">
           <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
           <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-rot" hidden></div>
-      <!-- A4 第 1/3/5/7 條：這支拉Bar 現在是「看哪一天」的時間軸刷動，
-           ＋ / − / ▶ 由 playBar 提供；#rotTools 放軌跡開關。 -->
-      <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去"></div>
-      <div class="rottools" id="rotTools"></div>
-      <!-- ★ 2026-09-21（Andy：「個股篩選拿掉，下方的族群篩選幫我改到 全部、半導體、…
-           下方 包含資金流向排行，並且需要縮小一點」）：
-           這一排現在是 產業鏈 seg → **族群晶片列** → 只看前 10 大／清除篩選／狀態說明，
-           族群晶片就長在 seg 的正下方（同一組控制項的粗細兩層）。個股篩選整顆移除。 -->
-      <div class="rotfilter" data-rf="rot"></div>
-      <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div></div>
-      <div class="card"><div class="row spread"><h3>資金流向排行 <small id="rankSub">誰把錢吸走了</small></h3>
-        <button class="howbtn" data-how="rank">怎麼看 ?</button></div>
-        <div class="howtxt" id="how-rank" hidden></div>
-        <div id="rankDays" title="最近幾天：0＝跟著上方期間走"></div>
-        <!-- C4（Andy 2026-09-20）：族群列改成「漲跌分佈」那種篩選列。
-             這一排和時鐘卡那一排是**同一份選擇**（見 app.js 的 wireRotFilter）。 -->
-        <div class="rotfilter" data-rf="rank"></div>
-        <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
-        <div class="hpanel" id="rankPanel" hidden></div></div>
+      <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
+           data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
+      <div class="rotfilter" data-rf="flow"></div>
+      <!-- 共用時間列：#rotBack「看哪一天」決定**兩張圖的截止日**，#rankDays 決定排行往回看幾天。
+           窄畫面自動換行（見 .rottime）。 -->
+      <div class="rottime">
+        <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去；排行也會以這一天當結尾"></div>
+        <div id="rankDays" title="排行往回看幾天（結尾就是左邊「看哪一天」指到的那一天）"></div>
+        <div class="rottools" id="rotTools"></div>
+      </div>
+      <div class="grid g21">
+        <div class="rotpane">
+          <h4 class="subh">輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h4>
+          <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+        </div>
+        <div class="rotpane">
+          <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
+          <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
+          <div class="hpanel" id="rankPanel" hidden></div>
+        </div>
+      </div>
     </div>
     <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>四段循環與換段的族群</small></h3></div>
       <div class="cyclebar" id="rotCycle"></div>
