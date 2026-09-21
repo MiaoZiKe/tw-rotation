@@ -2788,7 +2788,16 @@ def t_new_industry(pg, base):
     #   (鏈, 改前清單, 改後實測, 清單門檻, 改前整頁, 整頁門檻)
     M390 = [("semiconductor", 1846, 1034, 1250, 6983, 6500),
             ("ai_server",     2599, 1263, 1500, 6790, 6600),
-            ("electronics",   1300,  836, 1000, 3944, 5300)]
+            # ★ 2026-09-21：electronics 的整頁門檻 5300 -> 5800。
+            #   不是「調門檻讓它過」—— 高度變高的來源是**新功能**：
+            #   這條鏈的圖別選單從 1 張卡變成 2 張（MLCC ＋ 面板），
+            #   之後還會再加 PCB、交換器、電感電阻石英。實測 5444。
+            #   ⚠ 這條絕對值本來就不是真正擋退化的那一條（見上面註解）——
+            #   真正擋的是「每個板塊平均不超過 75px」與「按顯示全部之後整頁真的變高很多」，
+            #   那兩條跟資料量、跟圖的張數都無關。
+            #   如果哪天這個數字又要往上調，先問「是不是清單又炸開了」，
+            #   而不是直接加 500。
+            ("electronics",   1300,  836, 1000, 3944, 5800)]
     pg.set_viewport_size({"width": 390, "height": 1000})
     for cid, was_list, got, cap, was_page, cap_page in M390:
         pg.evaluate(KEY)
@@ -8696,11 +8705,20 @@ def t_mlcc(pg, base):
     #  ★ 2026-09-21 改：以前這裡驗的是「標題多一句『你選的族群還沒有專屬剖析圖』」。
     #    那句話是在**替一個不該發生的行為道歉**（跨族群退回）。Andy 把那個行為否掉了，
     #    所以現在驗的是「面板沒有專屬圖 → 畫面上就不該出現任何一張圖」。
-    ok("找得到「面板」族群卡片", pick_group(pg, "panel"))
+    # ★ 2026-09-21（第二次改）：本來用「面板」當「沒有專屬圖的族群」——
+    #   **面板現在有自己的剖析圖了**（docs/diagram_plan.md 第 7 張），這條會反過來紅。
+    #   改用「智慧型手機」：它在 electronics 鏈上、而且確定沒有圖。
+    #   ⚠ 以後再有新圖上線，這裡要跟著換一個仍然沒有圖的族群 ——
+    #   所以下面多加一條前置斷言，直接把「它真的沒有圖」驗出來，
+    #   免得哪天它也有圖了，這一段變成靜悄悄的假綠。
+    NO_DG = "smartphone"
+    ok(f"前置：`{NO_DG}` 這個族群真的沒有專屬剖析圖（有了就要換一個來驗）",
+       not pg.evaluate("(g) => !!(window.DiagramSlots && window.DiagramSlots.has(g))", NO_DG))
+    ok(f"找得到「{NO_DG}」族群卡片", pick_group(pg, NO_DG))
     pg.wait_for_timeout(1000)
     m4 = menu(pg); r2 = rows(pg)
-    ok("點「面板」→ 成分股換成另一批（筆數或內容真的變了）", r2 != r1, f"{r1} → {r2}")
-    ok("點「面板」（沒有專屬剖析圖）→ 圖真的收起來、換回圖別選單，不會借 MLCC 那張",
+    ok("點沒有專屬圖的族群 → 成分股換成另一批（筆數或內容真的變了）", r2 != r1, f"{r1} → {r2}")
+    ok("點沒有專屬圖的族群 → 圖真的收起來、換回圖別選單，不會借別人那張",
        m4["menuVis"] and not m4["dgVis"] and not m4["svg"], m4)
     ok("那句道歉文案整句消失（整頁找不到「還沒有專屬剖析圖」）",
        "還沒有專屬剖析圖" not in pg.content(), "整頁掃過，找不到那句話")
@@ -8709,7 +8727,7 @@ def t_mlcc(pg, base):
     #   畫面正確換回選單，網址卻還停在 /dg/mlcc。後果是
     #   「複製網址貼給別人，對方看到的跟你看到的不是同一個東西」，
     #   而那正是「剖析圖改成獨立分頁」要解決的問題本身；按重新整理也會跳回剖析圖。
-    ok("點「面板」→ 網址也回到鏈頁（不可以還停在 /dg/mlcc）",
+    ok("點沒有專屬圖的族群 → 網址也回到鏈頁（不可以還停在 /dg/…）",
        "/dg/" not in pg.evaluate("() => location.hash"), pg.evaluate("() => location.hash"))
     # 反向再驗一次：點回有專屬圖的族群，網址要變成那張圖的網址
     pick_group(pg, "mlcc"); pg.wait_for_timeout(1000)
@@ -8720,7 +8738,13 @@ def t_mlcc(pg, base):
     ok("而且重新整理之後看到的是同一個東西（網址是誠實的）",
        (pg.reload(wait_until="networkidle"), pg.wait_for_timeout(2200), force_open(pg),
         menu(pg))[-1]["svg"], "reload 後圖還在")
-    pick_group(pg, "panel"); pg.wait_for_timeout(900)   # 還原成後面那一段預期的狀態
+    # ★ 面板現在有自己的圖了，順便正面驗一次「點有圖的族群 → 換成它自己那張」
+    pick_group(pg, "panel"); pg.wait_for_timeout(1100)
+    m6 = menu(pg)
+    ok("點「面板」→ 換成面板自己那張圖，網址也跟著變 /dg/panel",
+       m6["svg"] and pg.evaluate("() => location.hash").endswith("/dg/panel"),
+       {"svg": m6["svg"], "hash": pg.evaluate("() => location.hash")})
+    pick_group(pg, NO_DG); pg.wait_for_timeout(900)   # 還原成後面那一段預期的狀態
 
     # ---------------- 4. 點剖析圖上的零件 → 選取狀態真的改變（DECISIONS #73：只亮不篩）
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -8948,7 +8972,7 @@ def t_mlcc(pg, base):
     ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
        d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
     r8a = rows(pg)
-    ok("[800px] 找得到「面板」族群卡片", pick_group(pg, "panel"))
+    ok("[800px] 找得到沒有專屬圖的族群卡片", pick_group(pg, NO_DG))   # 面板現在有圖了，見上面 NO_DG
     pg.wait_for_timeout(1000)
     m8c = menu(pg); r8b = rows(pg)
     ok("[800px] 點沒有專屬圖的族群 → 成分股換掉，而且圖真的收起來換回選單",
