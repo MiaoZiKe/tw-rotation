@@ -6731,6 +6731,9 @@ def t_batch6_n9(pg, base):
     # frame rate 直接砍半（29.8 → 14.1 fps，容器裡的軟體渲染）。
     # 改成「一層走線併成一個 mesh ＋ BGA 用 InstancedMesh」之後是 671 個、28.6 fps。
     # 量產圖11 時這個數字只准往下，不准往上。
+    # ★ 2026-09-22 更新：第一層零件字彙把陣列類（金手指、進氣孔、電芯、背板端子、探針）
+    #   收成 InstancedMesh，所以 mesh 數從 671 掉到 476 —— 補了焊墊／絲印／鍍通孔／金手指
+    #   之後**還是**變少的。上限維持 900（棘輪只准往下）。
     ok("3D 的 mesh 數沒有失控（圖九／量產圖11 的效能棘輪）", st["meshes"] <= 900, st["meshes"])
     ok("3D 文字框底下掛了該環節的台股晶片（圖九 2-3）", st["chips"] > 10, st["chips"])
     ok("台股掛零的環節明講「台股無直接對應」，不是留白（圖九 2-3）",
@@ -6778,8 +6781,11 @@ def t_batch6_n9(pg, base):
         pg.wait_for_timeout(900)
         b1 = pg.evaluate("() => { const s = window.Rack3D.current.stats(); return [s.flowT, s.flowAt]; }")
         ok("按「動畫：關」電流真的停下來（圖九 2-1）", b0 == b1, f"{b0} → {b1}")
+        # 下限從 500 改成 300：mesh 數不是「細節多寡」的指標 —— 2026-09-22 把陣列類收成
+        # InstancedMesh 之後，機櫃**更細**但 mesh 只剩 476。真正在驗「走線還在」的是
+        # flowVisible == 0（粒子收起來）加上場景仍然有幾百顆物件。
         ok("靜止時粒子收起來，走線本身還在（圖九 2-1）",
-           s2["flowVisible"] == 0 and s2["meshes"] > 500, s2["flowVisible"])
+           s2["flowVisible"] == 0 and s2["meshes"] > 300, s2["flowVisible"])
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(700)
 
@@ -9983,6 +9989,9 @@ SECTIONS = {
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
     "淺色主題":            lambda pg, b, base, code: t_lightink(b, base, code),
     "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
+    # 第一層 3D 零件字彙（docs/diagram_3d_upgrade.md §3）：新的 kind 真的畫得出來、
+    # 點得到、切得動配色，而且 draw call 沒有比改之前多
+    "3D零件字彙":          lambda pg, b, base, code: t_dg3d_parts(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11024,6 +11033,263 @@ def _report(t0: float) -> int:
         return 1
     print("\n✅ 每個功能都實際操作過，全部都有反應。")
     return 0
+
+
+# ===================================================================== 第一層：3D 零件字彙
+# 計畫：docs/diagram_3d_upgrade.md §3「第一層」。
+# Andy 2026-09-22：「所有 3D 圖請都麻煩補上（2D）這樣程度的細緻程度」
+#                ＋「不能看起來只有像是一般的方塊，他是電路圖就是要有電路圖的樣貌」。
+#
+# 這一段驗的全部是**畫面真的因此改變了**，不是「有沒有那個函式」：
+#   ① 三個場景各開一次 → 真的畫出東西（draw call 與三角形都 > 0），而且比改之前**細**
+#   ② 真的用滑鼠點一顆零件 → 只亮那一顆；真的點背景 → 全部恢復全亮
+#   ③ 四個配色各切一次 → 材質色的指紋（colorSig）真的變（讀的是實際色值，不是 class）
+#   ④ 效能：每張量 draw call 與三角形數，斷言在上限內
+#   ⑤ 動畫開關按下去真的停（相機／扇葉／電流全部不再前進）
+#   ⑥ 每一個 kind 單獨量幾何：不准只是一顆方塊（下限），也不准失控（上限）
+#
+# ---- 效能棘輪（量出來的數字，不是猜的）----
+# 改之前（git HEAD，2026-09-22 早上量的）：
+#   ai_server      draw call 680 / 三角形 13,184 / mesh 671
+#   semiconductor  draw call 129 / 三角形 14,368 / mesh 126
+#   mlcc           draw call  93 / 三角形  1,476 / mesh  93
+# 改之後（補了焊墊／絲印／鍍通孔／金手指／微孔／切割道／金屬層，同時把陣列類收成 InstancedMesh）：
+#   ai_server      draw call 485 / 三角形 23,144 / mesh 476
+#   semiconductor  draw call 114 / 三角形 16,672 / mesh 111
+#   mlcc           draw call  93 / 三角形  1,476 / mesh  93（這張沒動到任何 kind）
+# 所以上限直接用**改之前的 draw call** —— 意思是「細節變多，但送進 GPU 的批次不准變多」。
+# 三角形給上限（不准失控）也給下限（不准退回方塊）。
+L1_BUDGET = {
+    # 路由,                              (draw call 上限, 三角形上限, 三角形下限)
+    "industry/ai_server":                (680, 40000, 15000),
+    "industry/semiconductor":            (129, 30000, 14400),
+    "industry/electronics/dg/mlcc":      (93,   6000,  1400),
+}
+
+# 第一層新增的 kind（舊的一個都沒拿掉，這裡只列新的）
+L1_NEW_KINDS = ["interposer", "bump", "bga", "mlccchip", "inductor", "resistor", "ecap",
+                "heatsink", "vc", "heatpipe", "coldplate", "connector", "cable", "busbar",
+                "rail", "screw", "bracket", "chassis"]
+L1_KIND_TRI_MAX = 12000      # 量出來最大的是 bump 8,400（14×10 的銅柱＋錫帽）
+# 「不准只是一顆方塊」：BoxGeometry ＝ 1 個 mesh／12 個三角形，所以下限就照這兩個數字訂
+L1_KIND_MESH_MIN = 2
+
+# 找一個「真的打不到任何零件」的畫布座標。
+# ★ 不可以用猜的（例如畫布左上角）：那裡常常壓著文字框，點下去會變成「選了那個標籤」，
+#   於是「點背景要全部恢復全亮」這一條就變成隨機紅燈。
+#   hitAt() 是 three3d.js 給驗收用的鉤子（跟 cam()／screen()／stats() 同一類），
+#   它直接問 raycaster「這個座標打到誰」，回 null 才是真的背景。
+_L1_BG = """() => {
+  const v = window.Rack3D && window.Rack3D.current; if (!v || !v.hitAt) return null;
+  const cv = document.querySelector('#prod3d canvas'); if (!cv) return null;
+  const r = cv.getBoundingClientRect();
+  for (let fy = 0.05; fy < 0.96; fy += 0.035) {
+    for (let fx = 0.05; fx < 0.96; fx += 0.035) {
+      const x = Math.round(r.left + r.width * fx), y = Math.round(r.top + r.height * fy);
+      if (y < 4 || y > window.innerHeight - 4) continue;
+      if (document.elementFromPoint(x, y) !== cv) continue;   // 壓著文字框就不算
+      if (v.hitAt(x, y)) continue;                            // 打到零件就不算
+      return { x: x, y: y };
+    }
+  }
+  return null;
+}"""
+
+# 「畫面上現在有多少零件被壓暗」——點零件／點背景要比的就是這個數字
+_L1_HI = """() => ({
+  sel: document.querySelectorAll('.lbl3d.sel').length,
+  dim: document.querySelectorAll('.lbl3d.dim').length,
+  selPart: document.querySelectorAll('.lbl3d.sel-part').length,
+})"""
+
+
+def _l1_open(pg, base, route):
+    """開到某張 3D 剖析圖並確定 3D 真的掛起來了。掛不起來回 False（WebGL 不支援就整段跳過）。"""
+    pg.goto(f"{base}#{route}", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        return False                              # 這條鏈沒有 3D 場景，或 WebGL 不支援
+    # #dg3d 是開關而且記在 localStorage：已經開著就不要再按（按了會關掉）
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 3000)
+        pg.wait_for_timeout(3200)
+    return pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)")
+
+
+def t_dg3d_parts(pg, base):
+    """第一層零件字彙：真的開三個場景、真的點、真的切配色、真的量效能。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(base, wait_until="networkidle")
+    # 從乾淨狀態開始：配色固定回科技，3D 開關設成「開」
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal','tech'); } catch (e) {} }")
+
+    # ---------------- ⑥ 先量字彙本身（不需要開場景，probe 是離線建一次就丟）
+    if not pg.evaluate("() => !!window.Rack3D"):
+        notes.append("這個環境載不到 Rack3D（WebGL？），第一層零件字彙整段跳過")
+        return
+    have = pg.evaluate("() => window.Rack3D.kinds()")
+    if not have:
+        notes.append("Rack3D.kinds() 回空（WebGL 不支援），第一層零件字彙整段跳過")
+        return
+    missing = [k for k in L1_NEW_KINDS if k not in have]
+    ok("第一層新增的 kind 全部掛進分派表了（21 張場景之後都叫得到）", not missing, missing)
+    # 舊的 kind 一個都不准消失 —— 21 張既有場景全靠它們
+    old_kinds = ["plain", "rack", "backplane", "tray", "gpu", "chip", "hbm", "pcb", "laminate",
+                 "cdu", "uqd", "fan", "psu", "battery", "optic", "switch", "substrate", "balls",
+                 "rdl", "bridge", "die", "probe", "mlcc", "mlccterm", "mlccpad"]
+    lost = [k for k in old_kinds if k not in have]
+    ok("舊的 kind 一個都沒有被拿掉（新字彙是「多出來的詞」，不是換掉）", not lost, lost)
+
+    probes = pg.evaluate("""async (ks) => { const out = [];
+        for (const k of ks) out.push(await window.Rack3D.probe(k)); return out; }""", L1_NEW_KINDS)
+    bad_err = [p for p in probes if not p or p.get("error")]
+    ok("每一個新 kind 都建得起來（沒有一個丟例外）", not bad_err, bad_err[:3])
+    flat = [p for p in probes if p and not p.get("error")
+            and (p["meshes"] < L1_KIND_MESH_MIN or p["tris"] <= 12)]
+    ok("每一個新 kind 都**不只是一顆方塊**（方塊＝1 個 mesh／12 個三角形）",
+       not flat, [(p["kind"], p["meshes"], p["tris"]) for p in flat])
+    fat = [p for p in probes if p and not p.get("error") and p["tris"] > L1_KIND_TRI_MAX]
+    ok(f"沒有任何一個新 kind 的三角形數失控（上限 {L1_KIND_TRI_MAX}）",
+       not fat, [(p["kind"], p["tris"]) for p in fat])
+    # 陣列類（錫球、凸塊、鰭片、TSV、沖孔、滾珠）一定要收成 InstancedMesh，不然 21 張會直接卡死
+    arr = {"interposer", "bump", "bga", "heatsink", "vc", "coldplate", "rail", "chassis", "connector"}
+    noinst = [p["kind"] for p in probes if p and not p.get("error")
+              and p["kind"] in arr and p["instanced"] < 1]
+    ok("陣列類零件真的收成 InstancedMesh（一次 draw call，不是一顆一個 mesh）", not noinst, noinst)
+    # R2（docs/diagram_purpose.md）：螺絲刻意不畫螺紋 —— 畫了不會讓人更懂，只會多幾千個三角形
+    sc = next((p for p in probes if p and p.get("kind") == "screw"), None)
+    ok("螺絲刻意保持便宜（沒有畫螺紋，R2：再細下去對到的還是同一批公司）",
+       bool(sc) and sc["tris"] < 400, sc)
+
+    # ---------------- ①～⑤ 三個場景各走一次
+    for route, (cmax, tmax, tmin) in L1_BUDGET.items():
+        nice = route.split("/")[-1]
+        if not _l1_open(pg, base, route):
+            notes.append(f"{nice}：3D 掛不起來（WebGL？），這一張跳過")
+            continue
+        st = pg.evaluate("() => window.Rack3D.current.stats()")
+
+        # ① 真的畫出東西了
+        ok(f"[{nice}] 3D 真的畫出東西（draw call 與三角形都 > 0）",
+           st["drawCalls"] > 0 and st["triangles"] > 0, st)
+        # ④ 效能：draw call 不准比改之前多；三角形有上下限
+        ok(f"[{nice}] draw call 沒有變多（上限 {cmax} ＝ 改之前的數字）",
+           st["drawCalls"] <= cmax, st["drawCalls"])
+        ok(f"[{nice}] 三角形數沒有失控（上限 {tmax}）", st["triangles"] <= tmax, st["triangles"])
+        ok(f"[{nice}] 三角形數沒有退回「一堆方塊」（下限 {tmin}）",
+           st["triangles"] >= tmin, st["triangles"])
+
+        # ⑤ 動畫開關：按下去要真的停。
+        #    比的是「相機、扇葉、電流」三個一起 —— 只看 anim 旗標是自己寫的變數，不算數。
+        def motion():
+            a = pg.evaluate("""() => { const v = window.Rack3D.current, s = v.stats();
+                return [v.cam(), s.spinAt, s.flowT]; }""")
+            return a
+        anim_txt = text(pg, "#dgAnim")
+        if "開" in anim_txt:
+            m0 = motion(); pg.wait_for_timeout(1100); m1 = motion()
+            ok(f"[{nice}] 動畫「開」的時候畫面真的在動", m0 != m1, f"{m0} → {m1}")
+            pg.eval_on_selector("#dgAnim", "b => b.click()")
+            pg.wait_for_timeout(1200)
+        b0 = motion(); pg.wait_for_timeout(1100); b1 = motion()
+        ok(f"[{nice}] 按「動畫：關」之後真的停住（相機／扇葉／電流全部不再前進）",
+           b0 == b1, f"{b0} → {b1}")
+
+        # ② 真的用滑鼠點一顆零件（動畫已經關掉，座標不會在點下去之前飄走）
+        scroll_to(pg, "prod3d")
+        seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
+        pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
+        # 整張圖只有一個環節時（MLCC），「其餘變暗」不成立 —— 同環節的零件不會互相壓暗，
+        # 走的是另一條路：被點的那一顆掛 .sel-part、同環節的其餘退到 --dg-sib-o。
+        # 所以判定要分兩種，不能一律驗 dim（DECISIONS #73 的兩層高亮就是這樣設計的）。
+        single = pg.evaluate("() => new Set(window.Rack3D.current.segs()).size === 1")
+        h0 = pg.evaluate(_L1_HI)
+        # matSig ＝ 材質**狀態**（透明度＋自體發光）的指紋。
+        # 不用 colorSig：單一環節的圖（MLCC）點零件時同環節的顏色本來就不會變，
+        # 變的是「不是主角的那幾顆退到 --dg-sib-o」—— 那才是使用者看到的事。
+        sig0 = pg.evaluate("() => window.Rack3D.current.stats().matSig")
+        if pt:
+            pg.mouse.click(pt["x"], pt["y"])
+            pg.wait_for_timeout(900)
+        h1 = pg.evaluate(_L1_HI)
+        sig1 = pg.evaluate("() => window.Rack3D.current.stats().matSig")
+        if single:
+            ok(f"[{nice}] 真的用滑鼠點一顆零件 → 只有那一顆被標成主角（單一環節圖）",
+               h1["selPart"] == 1 and pg.evaluate(
+                   "() => { const e = document.getElementById('prod3d');"
+                   " return e.classList.contains('dg1') && e.classList.contains('haspart'); }"),
+               {"點之前": h0, "點之後": h1, "座標": pt})
+        else:
+            ok(f"[{nice}] 真的用滑鼠點一顆零件 → 它亮起來、其餘真的被壓暗",
+               h1["sel"] > 0 and h1["dim"] > 0, {"點之前": h0, "點之後": h1, "座標": pt})
+        # 材質那一側也要真的變（只看 DOM 的 class 會漏掉「class 有換但材質沒換」）
+        ok(f"[{nice}] 點完之後材質狀態的指紋也變了（不是只有 class 換）",
+           sig0 != sig1, f"{sig0} -> {sig1}")
+
+        # ② 真的點背景 → 全部恢復全亮（2026-09-22 的 onBg）
+        bg = pg.evaluate(_L1_BG)
+        if not bg:
+            fails.append(f"[{nice}] 在畫布上找不到任何「打不到零件」的空白點，「點背景」驗不了")
+        else:
+            pg.mouse.click(bg["x"], bg["y"])
+            pg.wait_for_timeout(900)
+            h2 = pg.evaluate(_L1_HI)
+            back = pg.evaluate("() => !document.getElementById('prod3d').classList.contains('haspart')")
+            ok(f"[{nice}] 真的點背景 → 全部恢復全亮"
+               f"（dim {h1['dim']} → {h2['dim']}、主角 {h1['selPart']} → {h2['selPart']}）",
+               h2["dim"] == 0 and h2["selPart"] == 0 and back,
+               {"點之前": h1, "點之後": h2, "座標": bg})
+
+        # ③ 四個配色各切一次：材質色的指紋真的要變
+        sigs = {}
+        # ★ 從 soft 開始輪、tech 放最後：目前就停在 tech，第一輪照 tech 切等於沒切，
+        #   那一條會永遠紅（2026-09-22 第一次跑就是這樣紅的）。
+        for name in ["soft", "calm", "casual", "tech"]:
+            s0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+            got = pg.evaluate("(n) => window.Rack3D.current.setPal(n)", name)
+            pg.wait_for_timeout(700)
+            s1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+            ok(f"[{nice}] 切到「{name}」配色，材質色真的變了（{s0} → {s1}）",
+               got == name and s0 != s1, f"{s0} → {s1}")
+            sigs[name] = s1
+        ok(f"[{nice}] 四個配色互不相同（不是換了 class 但畫面一樣）",
+           len(set(sigs.values())) == 4, sigs)
+        # 新零件的材質色是從 --dg-* 讀來的：換配色時「休閒」一定要把冷色轉暖，
+        # 所以它跟「科技」的指紋差距不可以只有零頭
+        ok(f"[{nice}] 「休閒」跟「科技」的差距是看得出來的（不是四捨五入的誤差）",
+           abs(sigs["casual"] - sigs["tech"]) > 1.0, sigs)
+        pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+
+        # ⑤ 動畫開回來：要真的又動起來（關得掉但開不回來也是壞的）
+        pg.eval_on_selector("#dgAnim", "b => b.click()")
+        pg.wait_for_timeout(3200)          # 剛剛點過畫布，autoRotate 會先讓步 2.5 秒
+        c0 = motion(); pg.wait_for_timeout(1100); c1 = motion()
+        ok(f"[{nice}] 再按一次「動畫：開」，畫面真的又動起來", c0 != c1, f"{c0} → {c1}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")     # 關掉，不要影響下一張
+
+    # ---------------- 窄畫面：800px 也要畫得出來、文字框不出框
+    pg.set_viewport_size({"width": 800, "height": 1000})
+    if _l1_open(pg, base, "industry/ai_server"):
+        pg.wait_for_timeout(1500)
+        nar = pg.evaluate("""() => { const host = document.getElementById('prod3d');
+            const r = host.getBoundingClientRect();
+            const ls = [...host.querySelectorAll('.lbl3d')].filter(e => !e.classList.contains('hid'));
+            const out = ls.filter(e => { const b = e.getBoundingClientRect();
+              return b.left < r.left - 1 || b.right > r.right + 1; }).map(e => e.querySelector('b').textContent);
+            const s = window.Rack3D.current.stats();
+            return { out: out, labels: ls.length, calls: s.drawCalls, tris: s.triangles }; }""")
+        ok("800px 下新零件照樣畫得出來（draw call 與三角形都 > 0）",
+           nar["calls"] > 0 and nar["tris"] > 0, nar)
+        ok("800px 下文字框沒有出框", not nar["out"], nar["out"][:4])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ★ 收尾：把 3D 關回平面圖。
+    #   3D 開關記在 localStorage（tw.dg3d），不關的話同一個 worker 的下一段
+    #   —— 例如「批次19-剖析圖版面」驗的是 2D 那張 SVG —— 會看到 #prodDiagram 被藏起來，整段紅。
+    #   2026-09-22 實測過：單獨跑批次19 是 0 個問題，跟這一段排在同一個 worker 就變 7 個。
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
 if __name__ == "__main__":

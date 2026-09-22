@@ -334,13 +334,21 @@
     /* 金手指：成排、鍍金、前緣倒角。少了倒角看起來就只是一排小方塊。*/
     function fingers(K, w, h, d, n, y, z) {
       const g = new T.Group();
-      const au = K.mat(0.62, { color: '#d8b25a', metal: 0.85, rough: 0.22 });
+      // 2026-09-22：色值改讀 `--dg-sw-gold`（2D 那邊金手指用的就是它），
+      // fallback 維持原本的 #d8b25a —— 讀不到變數時外觀一個像素都不變。
+      const au = K.mat(0.62, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.22 });
+      /* ★ 2026-09-22：從「一根手指兩個 Mesh」改成兩個 InstancedMesh。
+         外觀完全一樣，但 14 根手指從 28 個 draw call 變成 2 個 ——
+         主機板 ×6 ＋ 光模組 ×8 都用到它，省下來的是三位數。*/
+      const at = [], at2 = [];
       for (let i = 0; i < n; i++) {
         const x = (-(n - 1) / 2 + i) * (w / n);
-        g.add(put(box(w / n * 0.55, h, d, au), x, y, z));
+        at.push([x, y, z]);
         // 倒角：前緣壓一片更薄的，看起來就是「插得進去」的那種斜邊
-        g.add(put(box(w / n * 0.55, h * 0.45, d * 0.35, au), x, y - h * 0.3, z + d * 0.62));
+        at2.push([x, y - h * 0.3, z + d * 0.62]);
       }
+      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h, d), au, at));
+      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h * 0.45, d * 0.35), au, at2));
       return g;
     }
 
@@ -395,12 +403,16 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(-0.15)));
       const cm = K.mat(0.25, { metal: 0.55, rough: 0.35 });
+      /* 圖九 2-1：連接器不只是一個方塊，要看得出裡面成排的端子。
+         ★ 2026-09-22：15 個連接器 × 4 個 Mesh ＝ 60 個 draw call → 收成 2 個 InstancedMesh。
+           畫出來的東西一個像素都沒變，省下來的是 58 個 draw call。*/
+      const body = [], term = [];
       for (let r = -1; r <= 1; r++) for (let c = -2; c <= 2; c++) {
-        // 圖九 2-1：連接器不只是一個方塊，要看得出裡面成排的端子
-        g.add(put(box(w * 0.1, h * 0.14, d * 0.9, cm), c * w * 0.18, r * h * 0.26, d * 0.35));
-        for (let k = -1; k <= 1; k++) g.add(put(box(w * 0.01, h * 0.07, d * 0.5, K.mat(0.55, { metal: 0.8, rough: 0.25 })),
-          c * w * 0.18 + k * w * 0.026, r * h * 0.26, d * 0.62));
+        body.push([c * w * 0.18, r * h * 0.26, d * 0.35]);
+        for (let k = -1; k <= 1; k++) term.push([c * w * 0.18 + k * w * 0.026, r * h * 0.26, d * 0.62]);
       }
+      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.14, d * 0.9), cm, body));
+      g.add(instOf(new T.BoxGeometry(w * 0.01, h * 0.07, d * 0.5), K.mat(0.55, { metal: 0.8, rough: 0.25 }), term));
       // 背板是直立的：走線鋪在 x–y 平面上，所以先把走線層轉 90° 再貼上去
       const tl = traceLayer(K, w, h, 0, { pairs: 4, cycles: 6, dir: 1 });
       tl.group.rotation.x = -Math.PI / 2; tl.group.position.z = d * 0.52;
@@ -465,7 +477,12 @@
       return g;
     }
 
-    // 主機板：板子 ＋ 線路層 ＋ 幾顆 IC ＋ 插槽 ＋ 電容
+    /* 主機板：板子 ＋ 線路層 ＋ 幾顆 IC ＋ 插槽 ＋ 電容
+       ★ 2026-09-22（第一層零件字彙）：補上**焊墊陣列／絲印／鍍通孔／金手指**。
+         Andy：「他是電路圖就是要有電路圖的樣貌」。一塊只有走線的綠板子還是像板材，
+         要有「零件焊在哪裡（焊墊）、零件叫什麼（絲印）、訊號怎麼換層（通孔）、
+         怎麼插到別人身上（金手指）」才看得出它是一塊**設計過的板子**。
+         全部走 instOf／mboxes，四樣加起來只多 4 個 draw call。*/
     function pcb(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
@@ -480,6 +497,16 @@
       // 圖九 2-1：板面的蛇行等長差動對。訊號方向＝由 GPU（板中）往背板（-x）
       const tl = traceLayer(K, w, d, h * 0.55, { pairs: 4, cycles: 5, dir: -1 });
       g.add(tl.group); g.userData.flows = tl.flows;
+      // 焊墊：每顆 IC 底下一整片（表面處理鍍金）
+      g.add(padField(K, w * 0.22, d * 0.3, h * 0.52, 6, 5));
+      // 絲印：三顆 IC 的外框 ＋ 第 1 腳記號
+      g.add(silk(K, w, d, h * 0.53, [[-0.3 * w, -0.2 * d, w * 0.13, d * 0.18],
+        [0.18 * w, 0.24 * d, w * 0.13, d * 0.18], [0.34 * w, -0.3 * d, w * 0.13, d * 0.18]]));
+      // 鍍通孔：換層用的直筒孔（跟載板的錐形微孔是兩種設備）
+      g.add(pthRow(K, w, h, d, 14, -d * 0.4));
+      // 金手指：板子前緣的插接區（OCP／PCIe 那種）。
+      // ★ 貼在板面、往內縮一點 —— 掛在板緣外面會變成一排凸出來的牙齒，那不是金手指的樣子。
+      g.add(fingers(K, w * 0.46, h * 0.5, d * 0.08, 14, h * 0.5, d * 0.4));
       return g;
     }
 
@@ -557,24 +584,23 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(-0.15, { metal: 0.35 })));
       const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      // ★ 2026-09-22：18 個進氣孔收成一個 InstancedMesh（圓柱預設立著，要放倒才是面對前面板的孔）
+      const holes = [];
       for (let i = -4; i <= 4; i++) for (let j = -1; j <= 1; j += 2) {
-        const c = cyl(w * 0.02, d * 0.06, hole, 6);
-        c.rotation.x = Math.PI / 2;              // 圓柱預設立著，要放倒才會是「面對前面板的孔」
-        g.add(put(c, i * w * 0.08, j * h * 0.22, d / 2));
+        holes.push([i * w * 0.08, j * h * 0.22, d / 2, Math.PI / 2, 0, 0]);
       }
+      g.add(instOf(new T.CylinderGeometry(w * 0.02, w * 0.02, d * 0.06, 6), hole, holes));
       g.add(put(box(w * 0.26, h * 0.16, d * 0.05, K.mat(0.3, { metal: 0.5 })), -w * 0.3, 0, d / 2 + d * 0.02));
       g.add(put(box(w * 0.05, h * 0.16, d * 0.03, K.mat(0, { led: true })), w * 0.38, 0, d / 2 + d * 0.02));
       /* 圖九 2-1：PSU 後端的**直流匯流排端子**。這是電源件最好認的特徵 ——
          一整片厚銅排加上鎖螺絲的孔，跟訊號端子完全不是同一個量級。*/
       const busM = K.mat(0.5, { color: '#c98a3c', metal: 0.8, rough: 0.3 });
+      const scr = [];
       [-1, 1].forEach(sy => {
         g.add(put(box(w * 0.3, h * 0.13, d * 0.05, busM), sy * w * 0.22, sy * h * 0.22, -d / 2 - d * 0.02));
-        for (let i = -1; i <= 1; i++) {
-          const sc = cyl(w * 0.012, d * 0.07, K.mat(-0.5, { rough: 0.85, metal: 0.1 }), 6);
-          sc.rotation.x = Math.PI / 2;
-          g.add(put(sc, sy * w * 0.22 + i * w * 0.09, sy * h * 0.22, -d / 2 - d * 0.03));
-        }
+        for (let i = -1; i <= 1; i++) scr.push([sy * w * 0.22 + i * w * 0.09, sy * h * 0.22, -d / 2 - d * 0.03, Math.PI / 2, 0, 0]);
       });
+      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, d * 0.07, 6), K.mat(-0.5, { rough: 0.85, metal: 0.1 }), scr));
       return g;
     }
 
@@ -589,9 +615,11 @@
       [-1, 1].forEach(s => g.add(put(box(w * 0.04, h * 0.62, d, shell), s * (w / 2 - w * 0.02), -h * 0.06, 0)));
       [-1, 1].forEach(s => g.add(put(box(w, h * 0.62, d * 0.03, shell), 0, -h * 0.06, s * (d / 2 - d * 0.015))));
       const cellM = K.mat(0.15, { metal: 0.45, rough: 0.42 });
+      const cells3 = [];
       for (let i = -2; i <= 3; i++) for (let j = -1; j <= 1; j += 2) {
-        g.add(put(cyl(w * 0.055, h * 0.8, cellM, 10), (i - 0.5) * w * 0.15, h * 0.06, j * d * 0.24));
+        cells3.push([(i - 0.5) * w * 0.15, h * 0.06, j * d * 0.24]);
       }
+      g.add(instOf(new T.CylinderGeometry(w * 0.055, w * 0.055, h * 0.8, 10), cellM, cells3));
       // 端子：一正一負，正極用銅色、負極壓深，遠看就知道哪邊是哪邊
       g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: '#c98a3a', metal: 0.75, rough: 0.3 })), w * 0.4, h * 0.5, -d * 0.32));
       g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: '#2b3240', metal: 0.55, rough: 0.5 })), w * 0.4, h * 0.5, d * 0.32));
@@ -630,15 +658,28 @@
       return g;
     }
 
-    // ABF 載板：core ＋ 上下增層 ＋ 表面的細線路
+    /* ABF 載板：core ＋ 上下增層 ＋ 表面的細線路
+       ★ 2026-09-22：補上**雷射盲孔（微孔）**與第二層增層。
+         載板跟硬板在圖上唯一分得開的地方就是孔形：載板是一層一層疊上去、
+         每層用雷射打上寬下窄的錐形盲孔；硬板是整疊壓合完再機械鑽直筒通孔。
+         兩者對到的是完全不同的設備、不同的廠（欣興／南電／景碩 vs 金像電）。*/
     function substrate(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       g.add(box(w, h * 0.5, d, K.mat(-0.3, { rough: 0.8, metal: 0.06 })));
       [-1, 1].forEach(s => g.add(put(box(w * 0.99, h * 0.22, d * 0.99, K.mat(-0.05, { rough: 0.6 })), 0, s * h * 0.36, 0)));
+      // 增層第二層：比第一層窄一點，看得出是「一層一層疊上去」而不是一塊實心板
+      /* 第二層增層：比第一層窄一階，看得出是「一層一層疊上去」。
+         ★ 厚度刻意壓在 0.1h、疊到 0.54h 為止 —— 原本這顆的最高點是 0.49h，
+           長太高會讓 fitCamera 重新取景、整張圖的構圖跟著跑掉（那就不是「更細緻」是「跑版」）。*/
+      [-1, 1].forEach(s => g.add(put(box(w * 0.86, h * 0.1, d * 0.86,
+        K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.66, metal: 0.08 })), 0, s * h * 0.49, 0)));
+      // 雷射盲孔：錐形、上寬下窄，打穿最上面那層增層膜（所以要露在它上面看得到）
+      g.add(microvias(K, w * 0.86, d * 0.86, h * 0.5, h * 0.12, 9, 6));
       // 圖九 2-1：以前是 15 條等距直線，看起來像百葉窗不像走線。
       // 換成蛇行等長線（差動對成雙、轉角 45°），這才是載板表面真正的樣子。
-      const tl = traceLayer(K, w, d, h * 0.48, { pairs: 5, cycles: 6, wdt: Math.min(w, d) * 0.009, dir: 1 });
+      // 表面線路擺在**最上層增層膜之上**（2026-09-22 起多了第二層增層，壓在下面就看不到了）
+      const tl = traceLayer(K, w * 0.9, d * 0.9, h * 0.56, { pairs: 5, cycles: 6, wdt: Math.min(w, d) * 0.009, dir: 1 });
       g.add(tl.group); g.userData.flows = tl.flows;
       return g;
     }
@@ -673,7 +714,12 @@
       return g;
     }
 
-    // 晶粒：矽片 ＋ 表面功能區塊格
+    /* 晶粒：矽片 ＋ 表面功能區塊格
+       ★ 2026-09-22：補上**切割道**與**金屬層紋理**。
+         切割道（scribe lane）＝ 這顆晶粒是從一片晶圓上鋸下來的，四周留著那一圈空白；
+         金屬層紋理＝ 晶粒上表面是縱橫兩層的金屬佈線，不是一片平的鏡面。
+         這兩件事就是「晶粒」跟「一塊藍色方塊」的差別，而且它們各自對到
+         切割（DA／DB 設備）與後段金屬製程 —— 不同的環節、不同的公司。*/
     function die(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
@@ -684,6 +730,20 @@
         g.add(put(box(w * 0.26, h * 0.1, d * 0.26, blk), i * w * 0.3, h * 0.53, j * d * 0.3));
       }
       g.add(put(box(w * 0.3, h * 0.12, d * 0.3, K.mat(0.45, { rough: 0.35, metal: 0.4 })), 0, h * 0.54, 0));
+      // 切割道：四周一圈沒有電路的空白，鋸片就走在這裡
+      const lane = K.mat(-0.3, { rough: 0.5, metal: 0.18 });
+      const lw = Math.min(w, d) * 0.035;
+      g.add(put(mboxes([[w, h * 0.08, lw, 0, 0, -d / 2 + lw / 2], [w, h * 0.08, lw, 0, 0, d / 2 - lw / 2],
+        [lw, h * 0.08, d, -w / 2 + lw / 2, 0, 0], [lw, h * 0.08, d, w / 2 - lw / 2, 0, 0]], lane), 0, h * 0.5, 0));
+      // 金屬層紋理：縱橫兩組細線（M1 走一個方向、M2 走另一個方向）
+      const mtl = K.mat(0.55, { metal: 0.72, rough: 0.26 });
+      const tw = Math.min(w, d) * 0.012, at = [];
+      // 蓋在功能區塊**上面**（頂層金屬就是走在最上層）—— 壓在底下會被區塊整片擋掉
+      for (let i = 0; i < 11; i++) at.push([(-5 + i) * w * 0.078, h * 0.605, 0]);
+      g.add(instOf(new T.BoxGeometry(tw, h * 0.03, d * 0.84), mtl, at));
+      const at2 = [];
+      for (let i = 0; i < 8; i++) at2.push([0, h * 0.63, (-3.5 + i) * d * 0.105]);
+      g.add(instOf(new T.BoxGeometry(w * 0.84, h * 0.03, tw), mtl, at2));
       return g;
     }
 
@@ -784,17 +844,509 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(-0.15, { rough: 0.7 })));
       const pin = K.mat(0.45, { metal: 0.8, rough: 0.25 });
-      for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) {
-        g.add(put(cyl(w * 0.012, h * 1.6, pin, 6), i * w * 0.16, -h * 0.9, j * d * 0.16));
+      const pins = [];
+      for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) pins.push([i * w * 0.16, -h * 0.9, j * d * 0.16]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, h * 1.6, 6), pin, pins));
+      return g;
+    }
+
+    /* ================================================================ 第一層：零件字彙
+       （計畫在 docs/diagram_3d_upgrade.md §3「第一層」）
+
+       Andy 2026-09-22：「所有 3D 圖請都麻煩補上（2D）這樣程度的細緻程度」
+       ＋「不能看起來只有像是一般的方塊，他是電路圖就是要有電路圖的樣貌」。
+
+       21 張場景共用同一套宣告式設定（一個零件一行、交給 kind 產生幾何），
+       所以**補細緻度的正確位置是這裡**，不是回頭一張一張手刻。
+
+       ★ 每一個零件只畫「對得到不同公司／不同原理」的特徵（docs/diagram_purpose.md 的 R2）。
+         寫得出那一句話才畫，寫不出來就不畫 —— 所以螺絲沒有螺紋（畫了不會讓任何人更懂，
+         只是多幾千個三角形），但 PCB 有走線、電感有繞線、鋁擠有鰭片。
+
+       ★ 效能：陣列類（錫球、凸塊、鰭片、TSV、沖孔、滾珠）一律走 instOf()／mboxes()，
+         收成一個 draw call。一個一個 Mesh 的代價實測過（2026-09-19）：
+         走線一段一個方塊時整台機櫃從 483 個 mesh 暴增到 1846、fps 直接砍半。 */
+
+    /* 同一個形狀重複很多次 → InstancedMesh（一次 draw call）。
+       items 每一筆是 [x, y, z, rx, ry, rz, sx, sy, sz]（後六個可省）。*/
+    function instOf(geo, m, items) {
+      const im = new T.InstancedMesh(geo, m, items.length);
+      const mx = new T.Matrix4(), q = new T.Quaternion(), e = new T.Euler();
+      const v = new T.Vector3(), s = new T.Vector3();
+      items.forEach((it, i) => {
+        v.set(it[0] || 0, it[1] || 0, it[2] || 0);
+        e.set(it[3] || 0, it[4] || 0, it[5] || 0); q.setFromEuler(e);
+        s.set(it[6] == null ? 1 : it[6], it[7] == null ? 1 : it[7], it[8] == null ? 1 : it[8]);
+        mx.compose(v, q, s); im.setMatrixAt(i, mx);
+      });
+      im.instanceMatrix.needsUpdate = true;
+      return im;
+    }
+
+    /* 形狀不一樣、但同一種材質 → 併成一個 geometry（也是一次 draw call）。
+       vendor 沒有內建 BufferGeometryUtils（而且不准為了這個引新函式庫），所以自己併。*/
+    function mergeGeos(geos) {
+      const pos = [], nor = [], idx = [];
+      let base = 0;
+      geos.forEach(g => {
+        const gp = g.attributes.position, gn = g.attributes.normal;
+        for (let i = 0; i < gp.count; i++) {
+          pos.push(gp.getX(i), gp.getY(i), gp.getZ(i));
+          nor.push(gn ? gn.getX(i) : 0, gn ? gn.getY(i) : 1, gn ? gn.getZ(i) : 0);
+        }
+        const gi = g.index;
+        if (gi) { for (let i = 0; i < gi.count; i++) idx.push(base + gi.getX(i)); }
+        else { for (let i = 0; i < gp.count; i++) idx.push(base + i); }
+        base += gp.count;
+        g.dispose();
+      });
+      const out = new T.BufferGeometry();
+      out.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+      out.setAttribute('normal', new T.Float32BufferAttribute(nor, 3));
+      out.setIndex(idx);
+      return out;
+    }
+    // 一堆尺寸不同的方塊併成一個 mesh。每一筆 [w, h, d, x, y, z]
+    function mboxes(list, m) {
+      return new T.Mesh(mergeGeos(list.map(([w, h, d, x, y, z]) => {
+        const g = new T.BoxGeometry(w, h, d); g.translate(x || 0, y || 0, z || 0); return g;
+      })), m);
+    }
+    // nx × nz 的陣列座標（給 instOf 用）
+    function gridXZ(nx, nz, px, pz, y) {
+      const out = [];
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+        out.push([(-(nx - 1) / 2 + i) * px, y || 0, (-(nz - 1) / 2 + j) * pz]);
       }
+      return out;
+    }
+
+    // ---------------------------------------------------------------- 板類
+
+    /* 焊墊陣列：板子上「零件要焊在哪裡」的那些銅墊（表面處理鍍金）。
+       為什麼值得畫：有焊墊才看得出這是一塊**要裝件的板子**而不是一片板材；
+       而且焊墊的表面處理（ENIG／OSP）本身就是不同的製程與不同的藥水供應商。*/
+    function padField(K, w, d, y, nx, nz) {
+      const au = K.mat(0, { color: K.css('--dg-au', '#e3b75a'), metal: 0.8, rough: 0.26 });
+      const pw = w / nx * 0.46, pd = d / nz * 0.46;
+      return instOf(new T.BoxGeometry(pw, Math.max(0.02, w * 0.004), pd), au,
+        gridXZ(nx, nz, w / nx, d / nz, y));
+    }
+
+    /* 鍍通孔（PTH）：貫穿板子、孔壁鍍銅。
+       為什麼值得畫：**機械鑽孔的直孔**（PCB）跟**雷射盲孔的錐形微孔**（載板）
+       是兩種完全不同的設備與供應商 —— 這兩個形狀就是分辨「板廠」與「載板廠」的那個特徵。*/
+    function pthRow(K, w, h, d, n, z) {
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
+      const vd = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.95, metal: 0.02 });
+      const g = new T.Group();
+      const r = Math.min(w, d) * 0.009;
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w * 0.7 / n), 0, z]);
+      g.add(instOf(new T.CylinderGeometry(r * 2.1, r * 2.1, h * 1.02, 8), cu, at));  // 鍍銅孔壁
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 1.06, 6), vd, at));              // 孔本身（暗）
+      return g;
+    }
+
+    /* 絲印：零件外框與極性記號的白漆。
+       為什麼值得畫：絲印是「這塊板子已經被設計過、每個零件有自己的位置」的證據 ——
+       沒有絲印的綠板子看起來就只是一片板材。*/
+    function silk(K, w, d, y, marks) {
+      const ink = K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 });
+      const t = Math.min(w, d) * 0.006, list = [];
+      (marks || []).forEach(([cx, cz, mw, md]) => {
+        list.push([mw, t, t * 1.6, cx, y, cz - md / 2]);
+        list.push([mw, t, t * 1.6, cx, y, cz + md / 2]);
+        list.push([t * 1.6, t, md, cx - mw / 2, y, cz]);
+        list.push([t * 1.6, t, md, cx + mw / 2, y, cz]);
+        list.push([t * 2.6, t, t * 2.6, cx - mw / 2 - t * 3, y, cz - md / 2]);   // 第 1 腳記號
+      });
+      return mboxes(list, ink);
+    }
+
+    /* 微孔（雷射盲孔）：只打穿一層增層膜、孔形是**上寬下窄的錐**。
+       為什麼值得畫：錐形＝雷射，直筒＝機械鑽 —— 這是載板與硬板分家的地方。*/
+    function microvias(K, w, d, y, h, nx, nz) {
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
+      const r = Math.min(w, d) * 0.012;
+      return instOf(new T.CylinderGeometry(r, r * 0.45, h, 8), cu, gridXZ(nx, nz, w / (nx + 1), d / (nz + 1), y));
+    }
+
+    /* 矽中介層：識別特徵＝**貫穿整片的 TSV 陣列**。
+       為什麼值得畫：有 TSV 的是矽中介層（CoWoS-S），沒有 TSV、只有有機重佈線的是 CoWoS-L ——
+       對到的是不同的製程、不同的設備、不同的供應商。 */
+    function interposer(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(0, { color: K.css('--dg-si', '#33488a'), rough: 0.34, metal: 0.3 })));
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
+      const r = Math.min(w, d) * 0.013;
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 1.08, 6), cu, gridXZ(11, 7, w * 0.082, d * 0.12, 0)));
+      // 表面的重佈線（細、直、密 —— 中介層上不走蛇行等長線，那是板子的事）
+      const tl = traceLayer(K, w, d, h * 0.54, { pairs: 5, cycles: 8, wdt: Math.min(w, d) * 0.007, dir: 1 });
+      g.add(tl.group); g.userData.flows = tl.flows;
+      return g;
+    }
+
+    // ---------------------------------------------------------------- 晶片類
+
+    /* 微凸塊陣列：銅柱 ＋ 錫帽。
+       為什麼值得畫：**銅柱凸塊**（micro-bump，間距數十 µm）跟**錫球**（BGA，間距 0.8 mm）
+       差了一個數量級，用的材料與設備完全不同；畫成一樣大的球就看不出這件事。*/
+    function bumpField(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const nx = 14, nz = 10, px = w / nx, pz = d / nz;
+      const r = Math.min(px, pz) * 0.27;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.38, rough: 0.34 });
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 0.62, 6), cu, gridXZ(nx, nz, px, pz, -h * 0.12)));
+      g.add(instOf(new T.SphereGeometry(r * 1.15, 6, 4), sn, gridXZ(nx, nz, px, pz, h * 0.26)));
+      return g;
+    }
+
+    /* BGA 封裝體：載板 ＋ 模封 ＋ 底下整片錫球。
+       為什麼值得畫：BGA 的識別特徵是「看不到腳、腳全在肚子底下」——
+       跟看得到腳的 QFP／連接器是完全不同的封裝與不同的封測廠。*/
+    function bgaPkg(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.22, d, K.mat(0, { color: K.css('--dg-core', '#3f4a30'), rough: 0.72, metal: 0.08 })), 0, -h * 0.18, 0));
+      g.add(put(box(w * 0.92, h * 0.5, d * 0.92, K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.62, metal: 0.1 })), 0, h * 0.2, 0));
+      // 上蓋的第 1 腳圓點：封裝上一定有的方向記號
+      g.add(put(cyl(Math.min(w, d) * 0.04, h * 0.06, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 }), 10),
+        -w * 0.34, h * 0.46, -d * 0.34));
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.5, rough: 0.34 });
+      const nx = 9, nz = 7, px = w * 0.92 / nx, pz = d * 0.92 / nz;
+      g.add(instOf(new T.SphereGeometry(Math.min(px, pz) * 0.34, 8, 6), sn, gridXZ(nx, nz, px, pz, -h * 0.34)));
+      return g;
+    }
+
+    // ---------------------------------------------------------------- 被動元件
+
+    /* 晶片電容（0402／0603 那種，不是切開的那顆）：陶瓷本體 ＋ 兩端端電極。
+       為什麼值得畫：端電極**包住端部五個面**是 MLCC 的識別特徵；
+       只畫一個米白方塊的話，它跟電阻、跟電感在圖上長得一模一樣。*/
+    function mlccChip(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w * 0.66, h, d, K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.88, metal: 0.03 })));
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.34, rough: 0.34 });
+      const ni = K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.4, rough: 0.38 });
+      [-1, 1].forEach(s => {
+        g.add(put(box(w * 0.2, h * 1.06, d * 1.06, ni), s * w * 0.31, 0, 0));   // Ni 阻障（露一圈）
+        g.add(put(box(w * 0.14, h * 1.1, d * 1.1, sn), s * w * 0.37, 0, 0));    // Sn 最外層
+      });
+      return g;
+    }
+
+    /* 功率電感：鼓型磁芯 ＋ 看得見的繞線 ＋ 兩端電極。
+       為什麼值得畫：**繞線**就是電感與電容在外觀上唯一分得開的地方；
+       而繞線是扁線還是圓線、一體成型還是繞線式，對到的是不同的廠（乾坤／台慶科／美磊…）。*/
+    function inductor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const core = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.76, metal: 0.16 });
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.32 });
+      const R = Math.min(w, d) * 0.5;
+      g.add(put(cyl(R * 0.98, h * 0.14, core, 16), 0, h * 0.43, 0));     // 上凸緣
+      g.add(put(cyl(R * 0.98, h * 0.14, core, 16), 0, -h * 0.43, 0));    // 下凸緣
+      g.add(cyl(R * 0.4, h * 0.76, core, 14));                           // 中柱
+      const rings = [], n = 7;
+      for (let i = 0; i < n; i++) rings.push([0, -h * 0.28 + i * (h * 0.56 / (n - 1)), 0, Math.PI / 2, 0, 0]);
+      g.add(instOf(new T.TorusGeometry(R * 0.62, h * 0.05, 5, 14), cu, rings));   // 繞線
+      // 端電極：繞線的兩個線頭壓在下凸緣上，這是它焊得上板子的地方
+      [-1, 1].forEach(s => g.add(put(box(w * 0.26, h * 0.1, d * 0.5, cu), s * w * 0.32, -h * 0.5, 0)));
+      return g;
+    }
+
+    /* 厚膜晶片電阻：陶瓷基板 ＋ 電阻膜 ＋ **雷射調阻的切口** ＋ 保護玻璃 ＋ 兩端電極。
+       為什麼值得畫：那道切口是電阻獨有的 —— 阻值靠雷射一刀一刀修到規格內，
+       這一刀本身就是一道製程（也是為什麼電阻廠的良率結構跟電容廠不一樣）。*/
+    function resistor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w * 0.7, h * 0.72, d, K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.9, metal: 0.03 })));
+      const film = K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.66, metal: 0.12 });
+      g.add(put(box(w * 0.5, h * 0.16, d * 0.86, film), 0, h * 0.42, 0));            // 電阻膜
+      // 雷射調阻切口：從一邊切進去一段（L 形的那一刀）
+      const cut = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.9, metal: 0.03 });
+      g.add(put(box(w * 0.05, h * 0.2, d * 0.44, cut), -w * 0.08, h * 0.43, -d * 0.2));
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.34, rough: 0.34 });
+      [-1, 1].forEach(s => g.add(put(box(w * 0.18, h * 0.86, d * 1.04, sn), s * w * 0.35, 0, 0)));
+      return g;
+    }
+
+    /* 鋁電解電容：鋁殼 ＋ 頂部**防爆紋** ＋ 絕緣套 ＋ 底部負極條。
+       為什麼值得畫：防爆紋（十字刻痕）與負極條是電解電容獨有的 ——
+       它有極性、會爆，這兩件事決定了它在電源板上怎麼擺、壽命怎麼算。*/
+    function ecap(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, d) / 2;
+      g.add(cyl(r, h, K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.62, rough: 0.34 }), 18));
+      // 絕緣套：包住側面的那層塑膠，比鋁殼暗一階
+      g.add(cyl(r * 1.03, h * 0.86, K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.72, metal: 0.1 }), 18));
+      // 防爆紋：頂面的十字刻痕
+      const sc = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      g.add(put(mboxes([[r * 1.5, h * 0.04, r * 0.14, 0, 0, 0], [r * 0.14, h * 0.04, r * 1.5, 0, 0, 0]], sc), 0, h * 0.5, 0));
+      // 負極條：側面一道垂直白條 ＋ 底部橡膠塞
+      g.add(put(box(r * 0.5, h * 0.8, r * 0.06, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 })), 0, 0, r * 1.02));
+      g.add(put(cyl(r * 0.92, h * 0.08, K.mat(0, { color: K.css('--dg-resin', '#6f6858'), rough: 0.88, metal: 0.04 }), 16), 0, -h * 0.5, 0));
+      return g;
+    }
+
+    // ---------------------------------------------------------------- 散熱
+
+    /* 鋁擠／鏟齒散熱片：底板 ＋ 鰭片陣列。
+       為什麼值得畫：鰭片間距與片數就是散熱片的規格本身；一個實心鋁塊散不了熱，
+       畫成方塊等於把「為什麼需要這個零件」整個刪掉。*/
+    function heatsink(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const al = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.55, rough: 0.42 });
+      const al2 = K.mat(0, { color: K.css('--dg-alu-2', '#75849a'), metal: 0.5, rough: 0.46 });
+      g.add(put(box(w, h * 0.16, d, al2), 0, -h * 0.42, 0));            // 底板
+      const n = Math.max(9, Math.round(w / (h * 0.16)));
+      const ft = w / n * 0.34;
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), h * 0.08, 0]);
+      g.add(instOf(new T.BoxGeometry(ft, h * 0.84, d * 0.96), al, at));  // 鰭片
+      return g;
+    }
+
+    /* 均熱板（VC）：上下銅板 ＋ 毛細層 ＋ 蒸氣腔 ＋ 支撐柱陣列（掀開上蓋看得到裡面）。
+       為什麼值得畫：支撐柱與毛細層是 VC 跟「一塊銅板」唯一的差別 ——
+       兩相流靠毛細回水、靠支撐柱撐住真空不被壓扁，這兩件事決定了它是誰在做。*/
+    function vaporChamber(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.7, rough: 0.32 });
+      const wick = K.mat(0, { color: K.css('--dg-wick', '#8f6a45'), rough: 0.88, metal: 0.12 });
+      const vap = K.mat(0, { color: K.css('--dg-vap', '#24324a'), rough: 0.8, metal: 0.05 });
+      g.add(put(box(w, h * 0.2, d, cu), 0, -h * 0.4, 0));                       // 下銅板
+      g.add(put(box(w * 0.96, h * 0.12, d * 0.96, wick), 0, -h * 0.24, 0));     // 燒結銅粉毛細層
+      g.add(put(box(w * 0.96, h * 0.34, d * 0.96, vap), 0, h * 0.02, 0));       // 蒸氣腔（真空）
+      // 支撐柱：把上下板撐開，不然大氣壓會把腔體壓扁
+      g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.028, Math.min(w, d) * 0.028, h * 0.34, 8), cu,
+        gridXZ(5, 4, w * 0.19, d * 0.22, h * 0.02)));
+      // 上銅板只蓋一半 —— 剖開才看得到裡面，這張圖要講的就是裡面
+      g.add(put(box(w, h * 0.2, d * 0.52, cu), 0, h * 0.3, -d * 0.24));
+      return g;
+    }
+
+    /* 熱管：壓扁的銅管 ＋ 彎折 ＋ 切口露出管壁毛細與中央蒸氣道。
+       為什麼值得畫：熱管一定是彎的（要繞過零件），而剖面的「外銅管／毛細／中空」
+       三層就是它跟一根實心銅棒的差別。*/
+    function heatpipe(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.72, rough: 0.3 });
+      const wick = K.mat(0, { color: K.css('--dg-wick', '#8f6a45'), rough: 0.88, metal: 0.12 });
+      const vap = K.mat(0, { color: K.css('--dg-vap', '#24324a'), rough: 0.82, metal: 0.05 });
+      const r = Math.min(h, d) * 0.34;
+      // U 形：一端貼晶片（蒸發段）、另一端插進鰭片（冷凝段）。熱管在機器裡一定是彎的。
+      const curve = new T.CatmullRomCurve3([
+        new T.Vector3(-w * 0.48, 0, d * 0.3), new T.Vector3(-w * 0.1, 0, d * 0.32),
+        new T.Vector3(w * 0.18, 0, d * 0.05), new T.Vector3(w * 0.3, 0, -d * 0.24),
+        new T.Vector3(w * 0.48, 0, -d * 0.3)]);
+      const tube = new T.Mesh(new T.TubeGeometry(curve, 30, r, 10, false), cu);
+      tube.scale.y = 0.5;                        // 壓扁：熱管貼上晶片那一段一定是扁的
+      g.add(tube);
+      // 切開的那一端：管壁毛細（環）＋ 中央蒸氣道。三層剖面＝它不是一根實心銅棒
+      const end = put(cyl(r * 0.78, r * 0.34, wick, 14), -w * 0.49, 0, d * 0.3);
+      end.rotation.z = Math.PI / 2; end.scale.z = 0.5; g.add(end);
+      const core = put(cyl(r * 0.42, r * 0.4, vap, 14), -w * 0.5, 0, d * 0.3);
+      core.rotation.z = Math.PI / 2; core.scale.z = 0.5; g.add(core);
+      return g;
+    }
+
+    /* 冷板：銅底板 ＋ 內部微流道鰭片 ＋ 蓋板 ＋ 進出水接頭（藍進紅出）。
+       為什麼值得畫：冷板值錢的地方全在裡面 —— 流道密度決定熱阻，
+       而「進水是冷的、出水是熱的」是整條液冷鏈的敘事起點。
+       ★ 冷熱用 --dg-cold／--dg-hot（語意色，任何配色都不准蓋）。*/
+    function coldplate(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.7, rough: 0.32 });
+      const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.68, rough: 0.3 });
+      g.add(put(box(w, h * 0.26, d, cu), 0, -h * 0.37, 0));                    // 底板（貼晶片那一面）
+      // 微流道鰭片：一片一片鏟出來的，水從鰭片之間流過
+      const n = 18, ft = w * 0.9 / n * 0.42;
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w * 0.9 / n), -h * 0.06, 0]);
+      g.add(instOf(new T.BoxGeometry(ft, h * 0.36, d * 0.78), cu, at));
+      g.add(put(box(w, h * 0.16, d * 0.46, st), 0, h * 0.26, -d * 0.27));      // 蓋板只蓋一半（看得到流道）
+      const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.4, rough: 0.4 });
+      const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.4, rough: 0.4 });
+      [[-1, cold], [1, hot]].forEach(([s, m]) => {
+        const t = put(cyl(Math.min(w, d) * 0.07, h * 1.1, m, 12), s * w * 0.34, h * 0.5, -d * 0.3);
+        g.add(t);
+      });
+      return g;
+    }
+
+    // ---------------------------------------------------------------- 連接
+
+    /* 高速連接器：屏蔽金屬籠 ＋ 塑膠舌片 ＋ 舌片上的金手指 ＋ 背面壓接針。
+       為什麼值得畫：籠子（cage）是高速連接器的識別特徵 —— 它是為了擋 EMI 才存在的；
+       而金手指的根數就是通道數。畫成方塊的話，它跟電源端子分不開。*/
+    function connector(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const sh = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.72, rough: 0.28 });
+      const pl = K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.66, metal: 0.08 });
+      const t = h * 0.12;
+      // 籠子：四片鈑金圍成一個開口朝前的框
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2]], sh));
+      // 塑膠舌片往前伸出籠口，金手指鋪在舌片上面 —— 不伸出來就被籠子擋住、等於沒畫
+      g.add(put(box(w * 0.78, h * 0.24, d * 0.8, pl), 0, -h * 0.08, d * 0.26));
+      g.add(fingers(K, w * 0.72, h * 0.1, d * 0.56, 9, h * 0.08, d * 0.3));
+      // 背面壓接針：一整排壓進板子的針，這是它「怎麼裝上去」的答案
+      const pin = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.66, rough: 0.32 });
+      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 0.5, w * 0.012), pin,
+        gridXZ(12, 2, w * 0.07, w * 0.06, -h * 0.6).map(a => [a[0], -h * 0.6, a[2] - d * 0.4])));
+      return g;
+    }
+
+    /* 線束：幾股絞在一起的導線 ＋ 束帶 ＋ 端子。
+       為什麼值得畫：線束是「這兩個東西之間有實體連線」的視覺證據，
+       而股數與線徑對到的是電流容量（電源線束跟訊號線束粗細差很多）。*/
+    function cable(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const ins = K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.78, metal: 0.05 });
+      const tie = K.mat(0, { color: K.css('--dg-mute', '#78859f'), rough: 0.8, metal: 0.06 });
+      const r = h * 0.17;
+      for (let i = 0; i < 4; i++) {
+        const o = (i - 1.5) * r * 1.5;
+        const curve = new T.CatmullRomCurve3([
+          new T.Vector3(-w * 0.5, o * 0.4, d * 0.2 + o), new T.Vector3(-w * 0.15, h * 0.22 + o * 0.5, o),
+          new T.Vector3(w * 0.15, -h * 0.16 + o * 0.5, -o), new T.Vector3(w * 0.5, o * 0.4, -d * 0.2 + o)]);
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 18, r, 7, false), ins));
+      }
+      const t1 = put(cyl(r * 2.6, w * 0.05, tie, 12), -w * 0.12, 0, 0); t1.rotation.z = Math.PI / 2; g.add(t1);
+      const t2 = put(cyl(r * 2.6, w * 0.05, tie, 12), w * 0.2, 0, 0); t2.rotation.z = Math.PI / 2; g.add(t2);
+      // 端子：一頭有殼、有鎖扣
+      g.add(put(box(w * 0.12, h * 0.9, d * 0.7, K.mat(0, { color: K.css('--dg-frame', '#1a2540'), rough: 0.7, metal: 0.1 })), -w * 0.48, 0, 0));
+      return g;
+    }
+
+    /* 匯流排銅排：厚銅條 ＋ 鎖固孔 ＋ 一段絕緣套。
+       為什麼值得畫：銅排的**厚度**就是它的規格（幾百安培靠截面積過），
+       鎖固孔則說明它是「鎖上去」不是「焊上去」—— 這是電源與訊號最大的差別。*/
+    function busbar(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.8, rough: 0.28 });
+      const ins = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.8, metal: 0.06 });
+      g.add(box(w, h, d, cu));
+      g.add(put(box(w * 0.36, h * 1.12, d * 1.12, ins), 0, 0, 0));      // 中段絕緣套
+      /* 鎖固孔：**穿過厚度方向（y）** —— 銅排是用螺栓鎖上去的，不是焊的。
+         這一條是電源件跟訊號件最直接的差別（訊號端子沒有人拿扳手鎖）。*/
+      const r = Math.min(h, d) * 0.3;
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const at = [];
+      [-1, 1].forEach(s => { for (let i = 0; i < 2; i++) at.push([s * w * (0.28 + i * 0.14), 0, 0]); });
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 1.3, 10), hl, at));
+      return g;
+    }
+
+    // ---------------------------------------------------------------- 機構
+
+    /* 滑軌：外軌 ＋ 內軌 ＋ 滾珠列。
+       為什麼值得畫：滾珠是「這台機器抽得出來」的證據 ——
+       機櫃裡每一台伺服器都要能單獨抽出來維修，這是機構件廠真正在賣的東西。*/
+    function rail(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.66, rough: 0.34 });
+      const st2 = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.6, rough: 0.4 });
+      const t = h * 0.14;
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2]], st2));                        // 外軌（ㄈ 型）
+      g.add(put(box(w * 0.86, h * 0.3, d * 0.5, st), w * 0.06, 0, d * 0.1));   // 內軌（抽出來一點）
+      // 滾珠：排在內外軌之間的兩條滾道上 —— 這是「抽得出來」的那個機構
+      const r = h * 0.15, at = [];
+      for (let i = 0; i < 9; i++) [-1, 1].forEach(s => at.push([(-4 + i) * w * 0.1, s * h * 0.26, d * 0.22]));
+      g.add(instOf(new T.SphereGeometry(r, 8, 6), st, at));
+      return g;
+    }
+
+    /* 螺絲：頭 ＋ 墊圈 ＋ 桿。**刻意不畫螺紋** ——
+       docs/diagram_purpose.md R2：再細下去對到的還是同一批公司，那就不要拆。
+       螺紋只會多幾千個三角形，不會讓任何人更懂這張圖。*/
+    function screw(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      // 直徑一律用 min(w, d)：螺絲是圓的，拿 w 當半徑的話 box 一寬它就變成一塊煎餅
+      const r0 = Math.min(w, d) * 0.5;
+      const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.72, rough: 0.3 });
+      g.add(put(cyl(r0 * 0.62, h * 0.3, st, 6), 0, h * 0.35, 0));       // 六角頭
+      g.add(put(cyl(r0 * 0.78, h * 0.08, st, 12), 0, h * 0.16, 0));     // 墊圈
+      g.add(put(cyl(r0 * 0.32, h * 0.66, st, 10), 0, -h * 0.21, 0));    // 桿
+      return g;
+    }
+
+    /* L 型支架：兩片折板 ＋ 補強肋 ＋ 鎖固孔。
+       為什麼值得畫：折邊與補強肋是鈑金件的識別特徵（不是鑄造、不是塑膠），
+       對到的是沖壓與折彎那一段工序。*/
+    function bracket(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.58, rough: 0.42 });
+      const t = Math.min(w, h) * 0.1;
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0], [t, h, d, -w / 2 + t / 2, 0, 0]], st));
+      // 補強肋：折角處的三角肋，鈑金件才有
+      g.add(put(box(w * 0.4, h * 0.4, t * 0.8, st), -w * 0.22, -h * 0.22, 0));
+      const r = Math.min(w, d) * 0.06;
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      g.add(instOf(new T.CylinderGeometry(r, r, t * 2.2, 10), hl,
+        [[w * 0.1, -h / 2 + t / 2, -d * 0.24], [w * 0.1, -h / 2 + t / 2, d * 0.24],
+          [w * 0.32, -h / 2 + t / 2, 0]]));
+      return g;
+    }
+
+    /* 機殼鈑金：面板 ＋ 沖孔網 ＋ 折邊 ＋ 把手。
+       為什麼值得畫：**沖孔網**是伺服器面板一定有的（進氣要過），
+       孔率直接決定風阻；一片沒有孔的鈑金在機殼上是不存在的東西。*/
+    function chassis(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.56, rough: 0.44 });
+      const st2 = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.62, rough: 0.38 });
+      const t = d * 0.16;
+      g.add(box(w, h, t, st));                                          // 面板
+      // 上下折邊：鈑金件一定有的折邊（靠它才有剛性）。只折一小段，折太深整片就看不出是面板了
+      g.add(mboxes([[w, t, d * 0.45, 0, h / 2 - t / 2, -d * 0.2], [w, t, d * 0.45, 0, -h / 2 + t / 2, -d * 0.2]], st));
+      // 沖孔網：六角排列的圓孔，一次 draw call
+      const r = Math.min(w, h) * 0.032, holes = [];
+      for (let i = 0; i < 16; i++) for (let j = 0; j < 7; j++) {
+        holes.push([(-7.5 + i) * w * 0.055 + (j % 2 ? w * 0.027 : 0), (-3 + j) * h * 0.12, 0, Math.PI / 2, 0, 0]);
+      }
+      g.add(instOf(new T.CylinderGeometry(r, r, t * 1.08, 8),
+        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 }), holes));
+      [-1, 1].forEach(s => g.add(put(box(w * 0.05, h * 0.34, t * 1.6, st2), s * w * 0.45, 0, t * 0.6)));  // 把手
       return g;
     }
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe,
       mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
+      /* ---- 第一層零件字彙（2026-09-22）。舊的 kind 一個都沒有拿掉：
+         21 張既有場景照舊走原本那幾支，新的是**多出來的詞**，不是換掉。*/
+      interposer, bump: bumpField, bga: bgaPkg,
+      mlccchip: mlccChip, inductor, resistor, ecap,
+      heatsink, vc: vaporChamber, heatpipe, coldplate,
+      connector, cable, busbar,
+      rail, screw, bracket, chassis,
       // 圖九 2-1 的共用件，量產圖11 時直接用
-      _traceLayer: traceLayer, _fingers: fingers, _ballGrid: ballGrid, _meander: meander, _traceMesh: traceMesh };
+      _traceLayer: traceLayer, _fingers: fingers, _ballGrid: ballGrid, _meander: meander, _traceMesh: traceMesh,
+      // 第一層的共用件：陣列類一律走這三支收成一個 draw call
+      _instOf: instOf, _mboxes: mboxes, _gridXZ: gridXZ, _padField: padField, _pthRow: pthRow,
+      _silk: silk, _microvias: microvias };
   }
 
   /* ---------------------------------------------------------------- 建場景 */
@@ -1363,6 +1915,16 @@
         if (!m.color) return; v += m.color.r * 7.1 + m.color.g * 3.3 + m.color.b * 1.7; }); });
       return +v.toFixed(3);
     };
+    /* 材質**狀態**的指紋（透明度 ＋ 自體發光），跟 colorSig（顏色）是兩回事。
+       為什麼需要它：單一環節的場景（MLCC）點零件時，同環節的零件顏色本來就不會變 ——
+       變的是「同環節但不是主角的那幾顆退到 --dg-sib-o」與主角的 emissive。
+       只量 colorSig 的話，那張圖的「點零件真的有反應」就永遠驗不到（2026-09-22 實際踩到）。*/
+    const matSig = () => {
+      let v = 0;
+      byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => {
+        v += (m.opacity == null ? 1 : m.opacity) * 3.1 + (m.emissiveIntensity || 0) * 7.7; }); });
+      return +v.toFixed(3);
+    };
     const stats = () => {
       let meshes = 0, maxEm = 0, idleEm = 0, maxMetal = 0, ledN = 0;
       byIdx.forEach(p => {
@@ -1396,15 +1958,31 @@
         flowAt += a[0] + a[1] + a[2];
         flowT += o2.userData.flow.t;
       });
-      return { parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
+      /* ★ 2026-09-22（第一層零件字彙）：**效能要量，不准憑感覺**。
+         renderer.info.render 是 WebGL 真的送出去的東西：
+           calls     ＝ 這一幀的 draw call 數（陣列類有沒有真的收成一個，看它就知道）
+           triangles ＝ 這一幀畫了幾個三角形
+         autoReset 預設是開的，所以讀到的是**上一幀**的數字（呼叫 stats() 時已經畫過很多幀了）。
+         驗收用它訂上限；只看 mesh 數不夠 —— InstancedMesh 是 1 個 mesh、卻可能是 5 萬個三角形。*/
+      const ri = renderer.info.render;
+      return { drawCalls: ri.calls, triangles: ri.triangles,
+        parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
-        flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(),
+        flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
+    /* 給驗收腳本用：「這個畫面座標打得到零件嗎」。
+       驗「點背景要全部恢復全亮」一定要先找到一個**真的是背景**的點 ——
+       用猜的（例如畫布左上角）會踩到標籤或剛好打到零件，那一條就變成隨機紅燈。 */
+    const hitAt = (x, y) => {
+      toNdc({ clientX: x, clientY: y });
+      const m = hit();
+      return m ? (m.userData.part || m.userData.seg || '?') : null;
+    };
     const view = {
-      highlight, cam, screen, stats, setAnim,
+      highlight, cam, screen, stats, setAnim, hitAt,
       // 圖九 2-2：色票
       setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
       isAnim: () => anim,
@@ -1445,5 +2023,46 @@
     return view;
   }
 
-  global.Rack3D = { supported, hasScene, mount, SCENES, current: null };
+  /* ---------------------------------------------------------------- 零件字彙的量測與清單
+     第一層（docs/diagram_3d_upgrade.md §3）的驗收要的是兩件事：
+       ① 這個 kind **真的比一顆方塊細**（三角形數有下限）
+       ② 但**沒有失控**（三角形數有上限，陣列類要真的收成 InstancedMesh）
+     mount() 只量得到「整個場景」，所以另外開這一支：離線建一次那個零件、數幾何。
+     不開 renderer、不上畫面，量完就 dispose —— 驗收腳本可以一口氣把 30 幾個 kind 全量一遍。*/
+  async function probe(kind, boxArr) {
+    const { THREE } = await load();
+    const B = mkBuilders(THREE);
+    const build = B[kind];
+    if (typeof build !== 'function') return null;
+    const css = (n) => {
+      try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); } catch (e) { return ''; }
+    };
+    const K = kit(THREE, '#8ea0c4', false, css);
+    let grp;
+    try { grp = build({ box: boxArr || [14, 7, 12], at: [0, 0, 0] }, K); } catch (e) {
+      return { kind, error: String((e && e.message) || e) };
+    }
+    let meshes = 0, tris = 0, inst = 0, instTotal = 0;
+    grp.traverse(x => {
+      if (!x.isMesh) return;
+      meshes++;
+      const g = x.geometry;
+      if (!g) return;
+      const n = g.index ? g.index.count : (g.attributes.position ? g.attributes.position.count : 0);
+      const c = x.isInstancedMesh ? x.count : 1;
+      if (x.isInstancedMesh) { inst++; instTotal += c; }
+      tris += (n / 3) * c;
+    });
+    grp.traverse(x => { if (x.geometry) x.geometry.dispose(); });
+    K.mats.forEach(m => { if (m.dispose) m.dispose(); });
+    return { kind, meshes, instanced: inst, instances: instTotal, tris: Math.round(tris), mats: K.mats.length };
+  }
+  /* 目前有哪些 kind（`_` 開頭的是共用件，不是零件本身）。
+     場景設定裡寫了字彙表沒有的 kind 會安靜退回方塊 —— 有這支就查得出來是哪一個。*/
+  async function kinds() {
+    const { THREE } = await load();
+    return Object.keys(mkBuilders(THREE)).filter(k => k[0] !== '_');
+  }
+
+  global.Rack3D = { supported, hasScene, mount, SCENES, probe, kinds, current: null };
 })(window);
