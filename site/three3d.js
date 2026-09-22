@@ -5363,10 +5363,17 @@
       if (srgb.l > lmax) c.setHSL(srgb.h, Math.max(srgb.s, 0.35), lmax, THREE.SRGBColorSpace);
       return '#' + c.getHexString();
     };
-    /* 爆炸拆解（DECISIONS #238）：每個 group 記住「原位」與「拆開的位移」，
-       expT 0→1 之間插值。進場時動畫拉開；動畫關掉就直接停在拆開的狀態。*/
+    /* 爆炸拆解（DECISIONS #238，行為在 #246 改掉）：每個 group 記住「原位」與「拆開的位移」，
+       expT 0→1 之間插值。
+       ★ 2026-09-23（DECISIONS #246，Andy：「所有 3D 圖都需要預設是收攏的，游標移動過去才會自動分開」）：
+         進場一律 expT = 0（看起來是組裝好的成品），游標移進容器才補間到 1、移開再收回 0。*/
     let expT = 0;
     const explodable = [];
+    /* ★ 按需渲染（#245）的兩個旗標宣告提前到這裡。
+       爆炸補間（#246）在「建完場景、還沒進 tick()」的階段就會呼叫 markDirty()，
+       留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
+    let dirty = true, lastDraw = 0;
+    const markDirty = () => { dirty = true; };
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
       explodable.forEach(g => {
@@ -5374,6 +5381,17 @@
         g.position.set(b.x + e[0] * expT, b.y + e[1] * expT, b.z + e[2] * expT);
       });
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
+      markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
+    };
+    /* 「零件離原位最遠跑了多少」。驗收用它證明**收攏態真的是合攏的**（t=0 時一定是 0），
+       而不是只看 expT 這個變數 —— 變數改了不等於零件動了。*/
+    const exMove = () => {
+      let m = 0;
+      explodable.forEach(g => {
+        const e = g.userData.ex, k = Math.hypot(e[0], e[1], e[2]) * expT;
+        if (k > m) m = k;
+      });
+      return +m.toFixed(3);
     };
 
     spec.parts.forEach((p, idx) => {
@@ -5714,7 +5732,12 @@
       /* ★ 2026-09-22：打空＝點到場景背景 → 回到 Default（全部零件恢復全亮、小卡收掉）。
          Andy：「當點擊背景時會恢復到原來的 Default」。上面已經擋掉「拖超過 5px＝在轉視角」，
          所以走到這裡的一定是「原地按一下、而且沒打到任何零件」。*/
-      if (!m && o.onBg) o.onBg();
+      if (!m) {
+        /* ★ #246：沒有 hover 的裝置（手機／平板）收不到 pointerenter，
+           改成「點背景＝展開／收攏切換」。點零件仍然是選零件，兩件事不打架。選擇要記住（EXP_KEY）。*/
+        if (!canHover) { setExplode(expTarget !== 1); expSave(expTarget === 1); }
+        if (o.onBg) o.onBg();
+      }
     };
     renderer.domElement.addEventListener('pointerup', onUp);
     // 沒抓到 pointer capture 時（少數瀏覽器）放開會落在標籤上，補一條同樣的路；
@@ -5729,12 +5752,61 @@
        動態＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；靜止＝一律不動。
        使用者一動手就先把自轉停掉（不然會跟他搶方向），放開兩秒半再接回去。*/
     let anim = o.anim !== false, userHold = false, holdT = null;
-    /* 爆炸拆解的進場動畫：從原位（0）慢慢拉開到拆開（1），1.6 秒 ease-out。
-       系統設定「減少動態效果」或動畫關掉 → 直接停在拆開的狀態。*/
     let expAnim = null;
     const reduced = (() => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } })();
-    if (anim && !reduced) { applyExplode(0); expAnim = { t0: performance.now(), dur: 1600 }; }
-    else applyExplode(1);
+
+    /* ================================================================ #246：收攏 → 游標移過去才爆開
+       Andy 2026-09-23：「所有 3D 圖都需要預設是收攏的，游標移動過去才會自動分開，變成爆炸圖」。
+       以前（#238）是「一進來就自己拉開 1.6 秒」—— 使用者還沒看清楚它是什麼，零件就散了。
+       現在：
+         進場            expT = 0（組裝好的成品）
+         游標移進容器    0 → 1，EXP_IN 毫秒 ease-out（慢一點，像被拆開）
+         游標移開        1 → 0，EXP_OUT 毫秒（快一點，像彈回去）
+         沒有 hover 的裝置（手機／平板）改成「點背景切換」，而且記在 localStorage
+         動畫：關／減少動態效果  兩種狀態都切得動，但**不補間**，直接跳到目標值
+       ⚠ 進出快速切換時一律**從目前的 expT 接著補間**（記 from／to），不是每次從 0 或 1 重來 ——
+         重來就會看到零件瞬間跳回去再重跑一次。補間長度也照剩下的距離等比縮短，
+         所以「拉開到一半就移開」收回去的速度跟「完全拉開才移開」是同一個手感。*/
+    const EXP_IN = 820, EXP_OUT = 500;
+    let expTarget = 0;
+    /* 這台裝置有沒有「游標」。手機／平板是 (hover: none)，pointerenter 永遠不會來，
+       所以那些裝置改用點一下切換。讀不到就當成有 hover（桌機是多數）。*/
+    const canHover = (() => {
+      try { return !(window.matchMedia && window.matchMedia('(hover: none)').matches)
+               && !!(window.matchMedia && window.matchMedia('(hover: hover)').matches); } catch (e) { return true; }
+    })();
+    /* 記住「用點的」那種裝置上使用者最後選的狀態。hover 裝置**不記** ——
+       hover 本來就是暫時的，記住它只會讓下次進來看到一張已經散掉的圖。
+       key：tw.dg3d.exp（'1' ＝ 展開、其餘 ＝ 收攏）*/
+    const EXP_KEY = 'tw.dg3d.exp';
+    const expSaved = () => { try { return localStorage.getItem(EXP_KEY) === '1'; } catch (e) { return false; } };
+    const expSave = (on) => { try { localStorage.setItem(EXP_KEY, on ? '1' : '0'); } catch (e) { /* 忽略 */ } };
+    /* 切換到「展開」或「收攏」。instant＝不補間（動畫關、減少動態效果、驗收要一幀到位時用）。*/
+    const setExplode = (on, instant) => {
+      const to = on ? 1 : 0;
+      expTarget = to;
+      if (instant || !anim || reduced) { expAnim = null; applyExplode(to); return to; }
+      const d = Math.abs(to - expT);
+      if (d < 0.002) { expAnim = null; applyExplode(to); return to; }
+      // 從目前的 t 接著補間，長度照剩下的距離等比縮短（最短 80ms，不然近距離會像瞬跳）
+      expAnim = { from: expT, to, t0: performance.now(), dur: Math.max(80, (to > expT ? EXP_IN : EXP_OUT) * d) };
+      markDirty();
+      return to;
+    };
+    /* ⚠ 具名：#prod3d 這個容器是**跨 mount 重用**的（關掉 3D 再開一次是新的 view、同一個 div），
+       匿名函式掛上去就拿不下來，每開一次就多一組監聽 —— 收攏／展開會被觸發好幾次。*/
+    const onEnter = () => setExplode(true);
+    const onLeave = () => setExplode(false);
+    // 進場：收攏。沒有 hover 的裝置照它上一次的選擇（#246 第 6 點）
+    applyExplode(canHover ? 0 : (expSaved() ? 1 : 0));
+    expTarget = expT;
+    if (canHover) {
+      /* 掛在**容器**（#prod3d）上，不是畫布：標籤卡片疊在畫布上方，
+         掛畫布的話游標一滑過卡片就會收回去。pointerenter／pointerleave 不會因為
+         在子元素之間移動而重複觸發（mouseover 會，所以刻意不用它）。*/
+      el.addEventListener('pointerenter', onEnter);
+      el.addEventListener('pointerleave', onLeave);
+    }
     const applyAuto = () => { controls.autoRotate = anim && !userHold; };
     function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
@@ -5747,8 +5819,10 @@
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
       flowAll.forEach(x => { x.visible = anim; });
       if (!anim) {
-        // 動畫關掉：爆炸拆解直接停在拆開的狀態（DECISIONS #238），不留一半
-        if (expT < 1) { applyExplode(1); expAnim = null; }
+        /* 動畫關掉：爆炸展開**不做過場**，直接跳到目前的目標狀態（#246）。
+           以前（#238）是「一律停在拆開的狀態」—— 那是因為當時展開是進場動畫、沒有目標可言；
+           現在展開與否是使用者用游標決定的，關動畫只該關掉「過場」，不該替他決定要不要展開。*/
+        if (expAnim || expT !== expTarget) { expAnim = null; applyExplode(expTarget); }
         // 靜止時燈定在中間亮度；亮度基準由色票決定（soft 是 0，完全不發光）
         const lb = palNum('--dg-led', 0.55);
         leds.forEach(m => { m.emissiveIntensity = lb; });
@@ -6146,8 +6220,7 @@
            ③ 靜止時每 400ms 補畫一次當安全網 —— 萬一有哪個狀態變更忘了標記 dirty，
               畫面最多晚 0.4 秒跟上，不會出現「改了卻不更新」的死畫面。 */
     let raf = null, alive = true, visible = true, relayout = 0, t0 = performance.now();
-    let dirty = true, lastDraw = 0;
-    const markDirty = () => { dirty = true; };
+    // （dirty／lastDraw／markDirty 宣告在 applyExplode 那一段：#246 的補間在建場景階段就會用到）
     controls.addEventListener('change', markDirty);
     const tick = () => {
       if (!alive) return;
@@ -6162,11 +6235,17 @@
         const k = lb + lb * 0.55 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
         leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
         stepFlows(dt);
-        if (expAnim) {
-          const u = Math.min(1, (performance.now() - expAnim.t0) / expAnim.dur);
-          applyExplode(1 - Math.pow(1 - u, 3));          // ease-out cubic：一開始快、最後慢慢停
-          if (u >= 1) expAnim = null;
-        }
+      }
+      /* ★ #246 的爆炸補間刻意放在 `if (anim)` **外面**：
+         展開／收攏是使用者用游標控制的狀態，不是「動態效果」的一部分。
+         （動畫關著時 setExplode 根本不會建 expAnim，所以這裡等於不會跑到；
+           放外面是為了「補間跑到一半才按關」那一瞬間也能收得乾淨。）
+         applyExplode() 自己會 markDirty()，所以補間期間每一幀都真的畫得出來（#245）。*/
+      if (expAnim) {
+        const u = Math.min(1, (performance.now() - expAnim.t0) / expAnim.dur);
+        const k = 1 - Math.pow(1 - u, 3);                // ease-out cubic：一開始快、最後慢慢停
+        applyExplode(expAnim.from + (expAnim.to - expAnim.from) * k);
+        if (u >= 1) expAnim = null;
       }
       controls.update();
       if (!anim && !dirty && now0 - lastDraw < 400) return;      // ②③ 靜止：沒變就不畫，400ms 補一張
@@ -6203,6 +6282,8 @@
       if (io) io.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
+      el.removeEventListener('pointerenter', onEnter);      // #246：容器是重用的，監聽一定要拆
+      el.removeEventListener('pointerleave', onLeave);
       controls.dispose();
       scene.traverse(x => {
         if (x.geometry) x.geometry.dispose();
@@ -6325,6 +6406,14 @@
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
         flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
         explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
+        /* #246：expTarget＝游標決定的目標狀態；exMove＝零件離原位最遠跑了多少
+           （驗收要量「零件真的合攏／真的分開」，不是只看 expT 這個變數）；
+           canHover＝這台裝置有沒有游標（沒有的話改成點背景切換）。*/
+        explodeTarget: expTarget, exMove: exMove(), canHover,
+        /* expFrom＝目前這段補間是「從哪個 t 開始」的。驗收用它證明
+           「進出快速切換時是從目前的 t 接著補，不是每次從 0 或 1 重來」——
+           這個值跟幀率無關，所以在軟體渲染的容器裡也量得準。*/
+        expFrom: expAnim ? +expAnim.from.toFixed(3) : null,
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
     /* ★ 2026-09-22 PBR 精緻化（DECISIONS #244）的量測介面。
@@ -6441,9 +6530,21 @@
       highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf,
       // 兩種模式（DECISIONS #238）：tech／read；舊名字會被映射
       setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
-      // 爆炸拆解：讀／設 0～1（設了就把進場動畫停掉，給驗收與「重看一次拆解」用）
-      explode: (t) => { if (t != null) { expAnim = null; applyExplode(+t); } return expT; },
-      replay: () => { if (reduced || !anim) { applyExplode(1); return false; } applyExplode(0); expAnim = { t0: performance.now(), dur: 1600 }; return true; },
+      // 爆炸拆解：讀／設 0～1（設了就把補間停掉，給驗收用）
+      explode: (t) => { if (t != null) { expAnim = null; applyExplode(+t); expTarget = +t >= 0.5 ? 1 : 0; } return expT; },
+      /* #246：展開／收攏的程式介面。setExplode(on)＝跟游標移進／移開同一條路（會補間）；
+         setExplode(on, true)＝一幀到位。hoverExplode() 說這台裝置是不是「游標控制」。*/
+      setExplode: (on, instant) => setExplode(!!on, !!instant),
+      explodeTarget: () => expTarget,
+      hoverExplode: () => canHover,
+      /* replay()：**語意在 #246 改了**。以前它是「重播進場的爆炸動畫」（進場本來就會自己爆開）；
+         現在進場一律收攏，所以它變成「先收攏、再跑一次展開補間」——
+         給「我想再看一次它怎麼拆開」與驗收用。回傳值的意思不變：
+         true＝真的會有過場、false＝不補間直接到位（動畫關掉或系統要求減少動態效果）。*/
+      replay: () => {
+        if (reduced || !anim) { setExplode(true, true); return false; }
+        expAnim = null; applyExplode(0); setExplode(true); return true;
+      },
       isAnim: () => anim,
       /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
          右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/

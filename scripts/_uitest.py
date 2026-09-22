@@ -592,7 +592,9 @@ def check_3d(pg):
             "(s) => { const e = document.querySelector('.lbl3d.sel'); return !!e && e.dataset.seg === s; }", lp["seg"]),
            lp["seg"])
     # 切回平面再切回來：不可以留下第二張 canvas（WebGL context 有上限）
-    click(pg, "#dg3d", 900)
+    # ★ #246：上面剛用滑鼠點過 3D 標籤，游標還停在畫布上（圖是展開的、還在補間）——
+    #   直接按工具列會 6 秒點不到，見 _dg3d_toolbar_click 的說明。
+    _dg3d_toolbar_click(pg, "#dg3d", 900)
     off = pg.evaluate("""() => ({ svg: !(document.getElementById('prodDiagram')||{}).hidden,
         canvas: document.querySelectorAll('#prod3d canvas').length })""")
     ok("切回平面圖，3D 收乾淨", off["svg"] and off["canvas"] == 0, off)
@@ -6571,7 +6573,7 @@ def t_batch6_n1(pg, base):
     #   **SECTIONS 的宣告順序**跑的 —— 這裡不關的話，後面任何一段驗 2D 剖析圖的
     #   都會看到 #prodDiagram 被 3D 蓋住，整段紅。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -6840,7 +6842,7 @@ def t_batch6_n9(pg, base):
     # ★ 2026-09-22 收尾：同 N1 —— 3D 開關記在 localStorage，開著離開會讓同一個 worker
     #   後面那些驗 2D 剖析圖的段落看到「圖被藏起來」。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -10049,7 +10051,7 @@ SECTIONS = {
     "批次22-鋁電容":       lambda pg, b, base, code: t_e2_alumcap(pg, base),
     "批次22-保護元件":     lambda pg, b, base, code: t_e3_protect(pg, base),
     # DECISIONS #238：3D 的兩種模式（科技／閱讀）、材質不走環節色、玻璃機櫃、流線、爆炸拆解、響應式卡片欄
-    "3D風格兩模式":        lambda pg, b, base, code: (t_dg3d_style(pg, base), t_dg3d_pbr(pg, base)),
+    "3D風格兩模式":        lambda pg, b, base, code: (t_dg3d_style(pg, base), t_dg3d_pbr(pg, base), t_dg3d_hover(pg, base)),
     # 批次22：剖析圖風格系統（兩種模式跟主題走、卡片／引線共用元件、對比度與字級逐元素量、v2 版面三個寬度）
     "批次22-風格系統":     lambda pg, b, base, code: t_style22(pg, base),
     # 批次25：產業鏈頁的族群關聯圖（Obsidian 式力導向、四種風格、兩種展開、成分股覆蓋事件面板）
@@ -12526,7 +12528,7 @@ def t_dg3d_parts(pg, base):
     #   —— 例如「批次19-剖析圖版面」驗的是 2D 那張 SVG —— 會看到 #prodDiagram 被藏起來，整段紅。
     #   2026-09-22 實測過：單獨跑批次19 是 0 個問題，跟這一段排在同一個 worker 就變 7 個。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -14945,7 +14947,14 @@ def t_dg3d_style(pg, base):
            a["cOk"] == a["nCards"], f"{a['cOk']}/{a['nCards']}")
         ok(f"[{nice}] 卡片上最小的字 ≥ 12px", a["minFs"] is not None and a["minFs"] >= 11.9, a["minFs"])
 
-        # ---------------- ④ 爆炸拆解：動畫開 → 從原位拉開；關 → 直接停在拆開的狀態
+        # ---------------- ④ 爆炸展開的補間
+        # ★ 2026-09-23（DECISIONS #246）：replay() 的**語意改了**。
+        #   以前它是「重播進場那段自動爆開的動畫」（進場本來就會自己散開）；
+        #   現在進場一律收攏、要游標移過去才展開，所以 replay() 變成
+        #   「先收攏、再跑一次展開補間」—— 那是「我想再看一次它怎麼拆開」的程式入口。
+        #   斷言的**嚴格度一條都沒放寬**（一樣要 0 < 中途 < 1、一樣要 2 秒後到底、
+        #   一樣要在動畫關掉時一幀到位），改的只有敘述與「到底是什麼觸發它」。
+        #   進場是不是收攏、hover 進出會不會動 → 由 t_dg3d_hover() 直接量，不靠 replay()。
         anim_on = pg.evaluate("() => window.Rack3D.current.isAnim()")
         if not anim_on:
             pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(300)
@@ -14954,7 +14963,7 @@ def t_dg3d_style(pg, base):
         e0 = pg.evaluate("() => window.Rack3D.current.stats().explode")
         pg.wait_for_timeout(2200)
         e1 = pg.evaluate("() => window.Rack3D.current.stats().explode")
-        ok(f"[{nice}] 爆炸拆解真的在動：重播後先在中途（{e0}），2 秒後拉到底（{e1}）",
+        ok(f"[{nice}] replay()：先收攏再跑一次展開補間，中途真的在半路（{e0}），2 秒後拉到底（{e1}）",
            rep and 0 < e0 < 1 and e1 == 1, f"{rep} {e0} → {e1}")
         pg.eval_on_selector("#dgAnim", "b => b.click()")          # 關掉
         pg.wait_for_timeout(300)
@@ -14962,7 +14971,8 @@ def t_dg3d_style(pg, base):
         e2 = pg.evaluate("() => window.Rack3D.current.stats().explode")
         pg.wait_for_timeout(600)
         e3 = pg.evaluate("() => window.Rack3D.current.stats().explode")
-        ok(f"[{nice}] 「動畫：關」時直接停在拆開的狀態（不重播、不動）", (not rep2) and e2 == 1 and e3 == 1, f"{rep2} {e2} {e3}")
+        ok(f"[{nice}] 「動畫：關」時 replay() 一幀到位（不補間、之後也不再動）",
+           (not rep2) and e2 == 1 and e3 == 1, f"{rep2} {e2} {e3}")
 
         # ---------------- ③ 點零件 → 只有那一顆吃環節色；點背景 → 全部恢復
         scroll_to(pg, "prod3d")
@@ -15011,7 +15021,14 @@ def t_dg3d_style(pg, base):
                pg.evaluate("() => document.querySelectorAll('.dgstage-l .lbl3d').length === 0 && document.querySelectorAll('.dgstage-r .lbl3d').length > 0"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # 收尾：3D 關回平面圖、動畫偏好與模式還原（跟其他 3D 段落同一條規矩）
+    # ★ #246：按工具列的鈕之前先把游標移出 3D，再等展開補間停下來。
+    #   理由不是「讓測試好過」，是**真人本來就做不到「游標停在畫布上同時去按工具列」**——
+    #   工具列在 #prod3d 外面，手移過去的那一刻圖就收攏了。
+    #   測試把游標留在畫布裡按鈕，等於要求瀏覽器一邊用 3fps（容器是軟體渲染）畫爆炸補間、
+    #   一邊在 6 秒內回應 Playwright 的可點擊性輪詢 —— 實測就是這樣紅的，而且紅在收尾。
+    pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
         click(pg, "#dg3d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
@@ -16535,11 +16552,347 @@ def t_dg3d_pbr(pg, base):
             ok(f"[{nice} {w}px] 3D 畫布真的吃到欄寬（不是縮成一小塊）：{z['hostW']}px",
                z["hostW"] >= min(300, w - 90), z["hostW"])
     pg.set_viewport_size({"width": 1500, "height": 1000})
+    # ★ #246：按工具列的鈕之前先把游標移出 3D，再等展開補間停下來。
+    #   理由不是「讓測試好過」，是**真人本來就做不到「游標停在畫布上同時去按工具列」**——
+    #   工具列在 #prod3d 外面，手移過去的那一刻圖就收攏了。
+    #   測試把游標留在畫布裡按鈕，等於要求瀏覽器一邊用 3fps（容器是軟體渲染）畫爆炸補間、
+    #   一邊在 6 秒內回應 Playwright 的可點擊性輪詢 —— 實測就是這樣紅的，而且紅在收尾。
+    pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
         click(pg, "#dg3d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
+# ================================================================ #246：3D 預設收攏、游標移過去才爆開
+# Andy 2026-09-23：「所有 3D 圖都需要預設是收攏的，游標移動過去才會自動分開，變成爆炸圖」。
+# 這一段驗的全部是「畫面真的因此改變」——量的是**零件離原位跑了多遠**（exMove，世界座標、
+# 跟相機無關），不是只看 explode 這個變數。變數改了不等於零件動了。
+DG3D_EXP_IN_MS = 820          # 展開補間的長度（site/three3d.js 的 EXP_IN）
+DG3D_EXP_OUT_MS = 500         # 收回補間的長度（site/three3d.js 的 EXP_OUT）
+
+# 「這一格 3D 容器的裡面一點／外面一點」。移出去要走**垂直**方向（同一個 x、y 拉到畫面最上緣）：
+# 往左移在窄畫面會還踩在容器裡，那樣 pointerleave 根本不會來，測出來就是假紅。
+_DG3D_PTS = """() => { const h = document.getElementById('prod3d'); if (!h) return null;
+  const r = h.getBoundingClientRect();
+  if (r.width < 40 || r.height < 40 || r.top > innerHeight - 40) return null;
+  const cx = Math.round(r.left + r.width / 2);
+  const cy = Math.round(Math.max(r.top + 12, Math.min(r.bottom - 12, r.top + r.height / 2)));
+  if (cy < 2 || cy > innerHeight - 2 || r.top < 30) return null;   // 容器要離畫面上緣夠遠，才有地方「移出去」
+  return { inX: cx, inY: cy, outX: cx, outY: 4 }; }"""
+
+# 目前的展開狀態。explode() 不像 stats() 要遍歷整個場景，取樣可以每一幀跑
+_DG3D_EXP = """() => { const v = window.Rack3D.current; const st = v.stats();
+  return { t: +v.explode().toFixed(3), target: st.explodeTarget, move: st.exMove,
+           from: st.expFrom, hover: st.canHover, running: st.exploding }; }"""
+
+# rAF 取樣器：把每一幀的 explode 記下來，用它看「進 → 出 → 進」的軌跡真的有上去、下來、再上去
+_DG3D_REC_ON = """() => { window.__expRec = []; window.__expRecOff = false;
+  const v = window.Rack3D.current;
+  const f = () => { if (window.__expRecOff) return;
+    window.__expRec.push(+v.explode().toFixed(4)); requestAnimationFrame(f); };
+  requestAnimationFrame(f); }"""
+_DG3D_REC_OFF = """() => { window.__expRecOff = true; return window.__expRec || []; }"""
+
+# 掃一個「射線真的打得到零件」的畫布座標（_L1_BG 的反面）。
+# 不用 screen(seg)：那是引線的錨點（零件上緣再往上），小畫布上常常落在空白處。
+_DG3D_PART_PT = """() => {
+  const v = window.Rack3D && window.Rack3D.current; if (!v || !v.hitAt) return null;
+  const cv = document.querySelector('#prod3d canvas'); if (!cv) return null;
+  const r = cv.getBoundingClientRect();
+  for (let fy = 0.1; fy < 0.92; fy += 0.04) {
+    for (let fx = 0.1; fx < 0.92; fx += 0.04) {
+      const x = Math.round(r.left + r.width * fx), y = Math.round(r.top + r.height * fy);
+      if (y < 4 || y > window.innerHeight - 4) continue;
+      if (document.elementFromPoint(x, y) !== cv) continue;   // 壓著文字框就不算
+      const hitp = v.hitAt(x, y);
+      if (hitp) return { x: x, y: y, part: hitp };
+    }
+  }
+  return null;
+}"""
+
+
+def _dg3d_wait_t(pg, lo, hi, ms=4000):
+    """等到 explode 落進 [lo, hi]（或逾時）。**不要用固定的 wait 賭幀率**——
+    這個容器只有 3~8 fps，同一句 `wait_for_timeout(300)` 有時走到 0.005、有時走到 0.9。"""
+    t0 = time.time()
+    while (time.time() - t0) * 1000 < ms:
+        v = pg.evaluate("() => window.Rack3D.current.explode()")
+        if lo <= v <= hi:
+            return v
+        pg.wait_for_timeout(40)
+    return pg.evaluate("() => window.Rack3D.current.explode()")
+
+
+def _dg3d_toolbar_click(pg, sel, wait=900):
+    """按 3D 工具列的鈕（#dg3d／#dgPal／#dgReset…）之前，先把游標移出 #prod3d 再等它靜下來。
+
+    ★ #246 之後這件事變成必要：游標停在畫布上時圖是展開的、而且補間期間每一幀都要重畫，
+      容器又是 swiftshader 軟體渲染（3~8 fps）—— Playwright 的可點擊性輪詢就被主執行緒餓死，
+      6 秒點不到，紅在收尾而且會連鎖（3D 沒關掉 → 後面驗 2D 的段落看到圖被藏起來，整段紅）。
+      而**真人根本做不到「游標停在畫布上同時按工具列」**：工具列在 #prod3d 外面，
+      手移過去的那一刻圖就收攏了。所以這不是放寬，是把測試改成真人做得到的順序。
+    """
+    pg.mouse.move(4, 4)
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
+    click(pg, sel, wait)
+
+
+def _dg3d_settle(pg, want, ms=6000):
+    """等到爆炸展開**真的停下來**在 want（補間跑完、expAnim 清掉）。
+
+    ★ 為什麼不能用固定的 `wait_for_timeout(900)`：捲動會讓容器在游標底下移動，
+      Chromium 會因此補送 pointerenter／pointerleave（游標沒動、元素動了）——
+      那一發會在我們把游標移開之後才進來，於是「等 900ms」量到的是
+      **一段還沒跑完的收回補間**（實測 t=0、exMove=0.001、exploding=True）。
+      要驗的是「沒有游標在上面時的靜止狀態」，所以等的條件是「停下來了」，不是「過了幾毫秒」。
+    """
+    t0 = time.time()
+    while (time.time() - t0) * 1000 < ms:
+        v, run = pg.evaluate("() => { const x = window.Rack3D.current; return [x.explode(), x.stats().exploding]; }")
+        if abs(v - want) < 1e-6 and not run:
+            return True
+        pg.wait_for_timeout(50)
+    return False
+
+
+def _dg3d_open_mobile(pg, base, route):
+    """行動版（390px）開 3D。`dgOpen = innerWidth >= 640`，所以手機進來剖析圖是**收合**的，
+    收合時 industry.js 刻意不掛 3D（`wireDg(!dgOpen)`），#dg3d 那顆鈕也還是 hidden ——
+    所以要先真的按一下「展開剖析圖 ▾」，鈕才會出現。這就是手機使用者真正的操作順序。"""
+    pg.goto(f"{base}#{route}", wait_until="networkidle")
+    # ★ 一定要 reload：goto 到**同一個 hash** 是 same-document navigation、不會重畫，
+    #   第二次呼叫這支（驗「下次進來照上一次的狀態」）會拿到上一輪還活著的那個 view，
+    #   localStorage 存的展開狀態根本沒被讀過 —— 那是假紅（跟 t_clickbg 踩到的是同一件事）。
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && b.hidden; }"):
+        fold = pg.query_selector("#dgFold")
+        if fold:
+            fold.click()
+            pg.wait_for_timeout(2600)
+    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        return False
+    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        b = pg.query_selector("#dg3d")
+        if b:
+            b.click()
+            pg.wait_for_timeout(4000)
+    return pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)")
+
+
+def t_dg3d_hover(pg, base):
+    """#246：進場收攏、游標移進才爆開、移開收回；動畫關＝一幀到位；沒有 hover 的裝置改成點背景切換。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("""() => { try { localStorage.setItem('tw.dg3d.pal', 'tech');
+        localStorage.setItem('tw.dganim', '1'); localStorage.removeItem('tw.dg3d.exp'); } catch (e) {} }""")
+    if not pg.evaluate("() => !!window.Rack3D"):
+        notes.append("這個環境載不到 Rack3D（WebGL？），#246 收攏／展開整段跳過")
+        return
+
+    for nice, (route, _c, _t) in L3_ROUTES.items():
+        if not _l1_open(pg, base, route):
+            notes.append(f"{nice}：3D 掛不起來（WebGL？），#246 這一張跳過")
+            continue
+        scroll_to(pg, "prod3d")
+        pts = pg.evaluate(_DG3D_PTS)
+        if not ok(f"[{nice}] 3D 容器在畫面裡、而且上方有地方可以把游標移出去", bool(pts), pts):
+            continue
+        # 先把游標移到容器外，確定沒有殘留的 hover（上一張圖可能停在畫布上），
+        # 然後**等到真的停下來**再量（捲動補送的 pointerenter/leave 會晚一拍到，見 _dg3d_settle）
+        pg.mouse.move(pts["outX"], pts["outY"])
+        settled = _dg3d_settle(pg, 0)
+        ok(f"[{nice}] 游標不在圖上時，展開狀態會**停下來**（補間跑完、不是一直在動）", settled)
+
+        # ---------------- ① 進場＝完全收攏，而且零件真的是合攏的
+        a = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 進場就是收攏：explode = 0、目標也是 0（不是一進來就自己爆開）",
+           a["t"] == 0 and a["target"] == 0, a)
+        ok(f"[{nice}] ★ 零件**真的**回在原位：離原位最遠的那一顆只跑了 {a['move']}（世界座標，跟相機無關）",
+           a["move"] == 0, a)
+        ok(f"[{nice}] 這個環境量得到「有游標」（桌機瀏覽器），所以 hover 那條路才適用", a["hover"] is True, a)
+
+        # ---------------- ② 游標移進去 → 平滑爆開（先確認它是「補間」不是「瞬跳」）
+        pg.mouse.move(pts["inX"], pts["inY"])
+        pg.wait_for_timeout(70)
+        mid = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 游標一進來就**開始補間**而不是瞬間爆開（70ms 時 t = {mid['t']}，補間中 = {mid['running']})",
+           0 <= mid["t"] < 0.8 and mid["target"] == 1, mid)
+        pg.wait_for_timeout(DG3D_EXP_IN_MS + 260)
+        b = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 游標移進 3D 容器 → {DG3D_EXP_IN_MS}ms 後真的爆開到底（t = {b['t']}）",
+           b["t"] >= 0.99 and b["target"] == 1 and not b["running"], b)
+        ok(f"[{nice}] ★ 零件**真的**分開了：離原位最遠的那一顆跑了 {b['move']}（收攏時是 {a['move']}）",
+           b["move"] >= 2 and b["move"] > a["move"] + 1, {"收攏": a["move"], "展開": b["move"]})
+
+        # ---------------- ③ 游標移開 → 平滑收回
+        pg.mouse.move(pts["outX"], pts["outY"])
+        pg.wait_for_timeout(70)
+        mid2 = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] 游標一離開就開始往回收，不是瞬間合攏（70ms 時 t = {mid2['t']}）",
+           mid2["t"] > 0.2 and mid2["target"] == 0, mid2)
+        pg.wait_for_timeout(DG3D_EXP_OUT_MS + 500)
+        c = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 游標移開 → {DG3D_EXP_OUT_MS}ms 後真的收回原位（t = {c['t']}、離原位 {c['move']}）",
+           c["t"] <= 0.01 and c["move"] <= 0.15 and c["target"] == 0, c)
+
+        # ---------------- ④ 快速進 → 出 → 進：從目前的 t 接著補，不准跳回 0 或 1 重來
+        #   ★ 量的是 expFrom（這一段補間「從哪個 t 開始」），**不是 rAF 取樣的 Δt**。
+        #     這個容器是 swiftshader 軟體渲染、只有 3~8 fps：一個**正常**的補間單幀就會前進 0.7，
+        #     跟「真的跳回去」分不出來；而且「hover 進去等 300ms」常常只走到 0.005，
+        #     拿它當「一半」是賭幀率（第一版就是這樣紅的）。
+        #     所以先用 explode(0.45) 把零件**停在半路**（這是狀態，不是事件），
+        #     再用**真的滑鼠移動**觸發方向改變 —— 接手點就必須正好是 0.45。
+        for seed, go_in, why in ((0.45, False, "展開到一半就把游標移開 → 往回收"),
+                                 (0.40, True, "收到一半又把游標移回來 → 往外爆")):
+            pg.mouse.move(pts["outX"] if go_in else pts["inX"], pts["outY"] if go_in else pts["inY"])
+            pg.wait_for_timeout(120)
+            pg.evaluate("(x) => window.Rack3D.current.explode(x)", seed)
+            pg.mouse.move(pts["inX"] if go_in else pts["outX"], pts["inY"] if go_in else pts["outY"])
+            f = pg.evaluate(_DG3D_EXP)
+            ok(f"[{nice}] ★ {why}：補間從**目前的 t**（{f['from']}）接手，不是從 {1 - int(go_in)} 重來",
+               f["from"] is not None and abs(f["from"] - seed) <= 0.02
+               and f["target"] == (1 if go_in else 0), {"seed": seed, **f})
+        # 回到收攏的起點，再跑一次真的「快速進 → 出 → 進」，看軌跡真的轉過向
+        pg.mouse.move(pts["outX"], pts["outY"])
+        pg.wait_for_timeout(DG3D_EXP_OUT_MS + 700)
+        pg.evaluate(_DG3D_REC_ON)
+        pg.mouse.move(pts["inX"], pts["inY"])
+        _dg3d_wait_t(pg, 0.30, 1.0)               # 等到真的爆開一段（不賭幀率）
+        pg.mouse.move(pts["outX"], pts["outY"])
+        _dg3d_wait_t(pg, 0.0, 0.20)               # 等到真的收回一段
+        pg.mouse.move(pts["inX"], pts["inY"])
+        # 尾巴用「等到真的到底」而不是固定秒數：3~8 fps 的機器最後一幀可能落在 0.988，
+        # 那不是壞了，是還沒畫到下一幀（這裡量的是「轉過向」，不是「幾毫秒到底」）
+        _dg3d_wait_t(pg, 0.999, 1.0, 4000)
+        pg.wait_for_timeout(200)
+        rec = pg.evaluate(_DG3D_REC_OFF)
+        ok(f"[{nice}] 快速進出的過程真的被畫出來了（rAF 取到 {len(rec)} 幀、{len(set(rec))} 個不同的值）",
+           len(rec) >= 6 and len(set(rec)) >= 4, rec[:12])
+        ok(f"[{nice}] 整段軌跡都落在 0～1 之間（沒有出現超界或 NaN）",
+           bool(rec) and all(isinstance(x, (int, float)) and -0.001 <= x <= 1.001 for x in rec), rec[:12])
+        # 「轉過向」＝某一點之後的最低值比那一點低 0.08 以上；最後一定要回到 1
+        drop = max((x - min(rec[i:]) for i, x in enumerate(rec)), default=0)
+        ok(f"[{nice}] ★ 軌跡真的轉過向（中途往回收了 {drop:.2f}）、最後停在 {rec[-1] if rec else None}",
+           bool(rec) and drop >= 0.08 and rec[-1] >= 0.99, {"回收幅度": round(drop, 3), "尾": rec[-3:], "取樣": len(rec)})
+
+        # ---------------- ⑤ 動畫：關 → 不補間，一幀到位（狀態本身仍然切得動）
+        pg.mouse.move(pts["outX"], pts["outY"])
+        _dg3d_settle(pg, 0)
+        if pg.evaluate("() => window.Rack3D.current.isAnim()"):
+            pg.eval_on_selector("#dgAnim", "b => b.click()")
+            pg.wait_for_timeout(400)
+        ok(f"[{nice}] 「動畫：關」真的關掉了（後面兩條的前提）",
+           pg.evaluate("() => !window.Rack3D.current.isAnim()"))
+        d0 = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] 「動畫：關」時游標在外面 → 還是收攏的（關動畫不等於替使用者決定要攤開）",
+           d0["t"] == 0 and d0["move"] == 0, d0)
+        pg.mouse.move(pts["inX"], pts["inY"])
+        pg.wait_for_timeout(60)
+        d1 = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 「動畫：關」時游標移進來 → **一幀內**就到 1（不補間）、零件真的分開（{d1['move']}）",
+           d1["t"] == 1 and not d1["running"] and d1["move"] >= 2, d1)
+        pg.mouse.move(pts["outX"], pts["outY"])
+        pg.wait_for_timeout(60)
+        d2 = pg.evaluate(_DG3D_EXP)
+        ok(f"[{nice}] ★ 「動畫：關」時游標移開 → **一幀內**回到 0、零件真的回原位",
+           d2["t"] == 0 and not d2["running"] and d2["move"] == 0, d2)
+        pg.eval_on_selector("#dgAnim", "b => b.click()")     # 開回來，還原給下一張
+        pg.wait_for_timeout(300)
+
+    # ---------------- ⑥ 沒有 hover 的裝置：點背景切換、而且記得住
+    #   用一個真的 is_mobile 的分頁（(hover: none)），不是把旗標改掉騙自己。
+    #   ⚠ 先把**桌機這一頁的 3D 收掉**再開手機分頁。兩個分頁在 Playwright 裡都算「看得見」，
+    #     所以桌機那個場景會一直用 30fps 畫下去，跟手機分頁的場景搶同一顆 CPU
+    #     （容器是 swiftshader 軟體渲染）—— 實測結果是收尾那一下 `#dg3d` 6 秒點不下去，
+    #     報出來長得跟「功能壞了」一模一樣。真實世界不會這樣（一次只有一個分頁在前景）。
+    pg.mouse.move(4, 4)
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
+        click(pg, "#dg3d", 1200)
+    mob = None
+    try:
+        mob = pg.context.browser.new_page(viewport={"width": 390, "height": 844},
+                                          device_scale_factor=2, is_mobile=True, has_touch=True)
+        mob.on("pageerror", lambda e: fails.append(f"[無 hover 裝置] pageerror: {e}"))
+        mob.goto(base, wait_until="networkidle")
+        mob.evaluate("""() => { try { localStorage.setItem('tw.dg3d', '1');
+            localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dganim', '1');
+            localStorage.removeItem('tw.dg3d.exp'); } catch (e) {} }""")
+        hv = mob.evaluate("() => matchMedia('(hover: none)').matches")
+        if not ok("[無 hover 裝置] 這個分頁真的是 (hover: none)（手機／平板）", hv is True, hv):
+            raise RuntimeError("拿不到無 hover 的環境")
+        if not _dg3d_open_mobile(mob, base, L3_ROUTES["ai_server"][0]):
+            notes.append("[無 hover 裝置] 3D 掛不起來，⑥ 跳過")
+        else:
+            # ★ 手機不能用 scroll_to(mob, "prod3d")：窄畫面時卡片全部搬到畫布底下，
+            #   #prod3d 整格高達 ~2000px，把「整格」捲到畫面中央會讓**畫布本身跑到視窗上方外面**
+            #   （實測 canvas.top = -574），_L1_BG 掃到的每一點都在視窗外 → 找不到背景。
+            #   要捲的是畫布，不是整格。
+            mob.evaluate("() => { const c = document.querySelector('#prod3d canvas');"
+                         " if (c) c.scrollIntoView({ block: 'center' }); }")
+            mob.wait_for_timeout(700)
+            e0 = mob.evaluate(_DG3D_EXP)
+            ok("[無 hover 裝置] 進場一樣是收攏的，而且它知道自己沒有游標",
+               e0["t"] == 0 and e0["hover"] is False, e0)
+            bg = mob.evaluate(_L1_BG)
+            if ok("[無 hover 裝置] 畫布上找得到一塊真的背景可以點", bool(bg), bg):
+                mob.mouse.click(bg["x"], bg["y"])
+                mob.wait_for_timeout(DG3D_EXP_IN_MS + 400)
+                e1 = mob.evaluate(_DG3D_EXP)
+                ok("[無 hover 裝置] ★ 點一下背景 → 真的展開（零件離原位 "
+                   f"{e1['move']}，收攏時是 {e0['move']}）",
+                   e1["t"] >= 0.99 and e1["move"] > e0["move"] + 1, {"前": e0, "後": e1})
+                ok("[無 hover 裝置] 展開的選擇寫進 localStorage（tw.dg3d.exp）",
+                   mob.evaluate("() => { try { return localStorage.getItem('tw.dg3d.exp'); } catch (e) { return null; } }") == "1")
+                bg2 = mob.evaluate(_L1_BG)
+                if ok("[無 hover 裝置] 展開之後仍然找得到背景可以再點一次", bool(bg2), bg2):
+                    mob.mouse.click(bg2["x"], bg2["y"])
+                    mob.wait_for_timeout(DG3D_EXP_OUT_MS + 500)
+                    e2 = mob.evaluate(_DG3D_EXP)
+                    ok("[無 hover 裝置] ★ 再點一下背景 → 真的收回去（不是只會展開）",
+                       e2["t"] <= 0.01 and e2["move"] <= 0.15, e2)
+                # 點零件仍然是選零件，不會被「點背景切換」吃掉
+                # ★ 用 hitAt 掃一個**射線真的打得到零件**的座標，不要用 screen(seg)：
+                #   screen() 回的是引線錨點（零件上緣再往上），在手機的小畫布上常常落在空白處 ——
+                #   那樣點下去就變成「點背景」，這一條會紅在錯的地方。
+                pt = mob.evaluate(_DG3D_PART_PT)
+                if pt:
+                    before = mob.evaluate(_DG3D_EXP)
+                    mob.mouse.click(pt["x"], pt["y"])
+                    mob.wait_for_timeout(700)
+                    after = mob.evaluate(_DG3D_EXP)
+                    selp = mob.evaluate("() => { const e = document.querySelector('.lbl3d.sel-part'); return e ? e.dataset.dgpart : null; }")
+                    ok("[無 hover 裝置] ★ 點**零件**只選零件、不會順手把展開狀態切掉（兩件事不打架）",
+                       selp is not None and after["target"] == before["target"],
+                       {"選到": selp, "前": before["target"], "後": after["target"]})
+                # 記憶：重新載入一次，展開狀態要照上一次
+                mob.evaluate("() => { try { localStorage.setItem('tw.dg3d.exp', '1'); } catch (e) {} }")
+                if _dg3d_open_mobile(mob, base, L3_ROUTES["ai_server"][0]):
+                    mob.wait_for_timeout(500)
+                    e3 = mob.evaluate(_DG3D_EXP)
+                    ok("[無 hover 裝置] ★ 下次進來照上一次的狀態（存了「展開」→ 進場就是展開的）",
+                       e3["t"] == 1 and e3["move"] >= 2, e3)
+    except Exception as e:                       # noqa: BLE001 —— 拿不到無 hover 環境就記一筆，不要讓整段掛掉
+        notes.append(f"[無 hover 裝置] 這一節跑不完：{e}")
+    finally:
+        if mob:
+            try:
+                mob.close()
+            except Exception:                    # noqa: BLE001
+                pass
+
+    # 收尾：偏好還原（3D 在開手機分頁之前就已經收掉了，見上面那段註解）
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.mouse.move(4, 4)
+    pg.wait_for_timeout(600)          # 手機分頁剛關掉，讓 GPU 行程喘一口氣再繼續
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("""() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1');
+        localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.removeItem('tw.dg3d.exp'); } catch (e) {} }""")
 """★ 批次24（2026-09-23）：半導體鏈四張剖析圖補上 3D 立體。
 
 Andy 2026-09-23：「確保這邊都有 3D 圖」。晶圓代工／矽晶圓／HBM／第三代半導體
