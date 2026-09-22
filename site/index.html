@@ -109,6 +109,22 @@
   --dg-accent-2d:#3ee0ff;               /* 「不屬於任何零件」的強調色（流程箭頭、良率曲線、電荷） */
   --dg-frame-f:rgba(18,26,46,.5);       /* 說明框的底 */
   --dg-frame-s:rgba(120,150,210,.2);    /* 說明框的線 */
+  /* ---------------- 產業鏈頁上「以前寫死在 CSS 裡」的三個色（visual-director 2026-09-22）----------------
+     Andy 2026-09-22：「重新規劃…顏色怎麼配置、**切換到亮色系版面怎麼配色**」。
+     量出來的事實：`.segcard .sco .rel.iso` 的琥珀 `#d9a441` 畫在淺色主題的白卡上，
+     對比度只有 **2.25**（深色主題是 7.93）—— 那顆「?」在亮色系底下等於不存在。
+     根因跟 DECISIONS #198 一樣：**色值寫死在 CSS 規則裡，主題換不掉它**。
+     所以拆成兩個 token，依「它畫在什麼底上」分：
+       · `--dg-iso`     畫在**剖析／關聯圖的深色畫布**上（`--illus` 兩個主題都是深底），
+                        所以深淺共用一個值，不需要 light 覆寫。
+       · `--dg-iso-ink` 畫在**頁面面板**上（`--panel` 亮色是白的），所以兩個主題各一個值。
+     ⚠ 兩個都在講同一件事（「這家公司還沒查到具名的上下游」），
+       名字刻意只差 `-ink`，改一個要記得想另一個。*/
+  --err-ink:#ff8fae; --err-line:#5a2338; --err-bg:rgba(255,92,138,.1);  /* 「壞掉了」的警示膠囊 */
+  --dg-iso:#d9a441;                     /* 孤立節點：畫在深色畫布上（關聯圖的圈與數字） */
+  --dg-iso-ink:#d9a441;                 /* 孤立節點：畫在頁面面板上（環節卡小卡的「?」） */
+  --dg-edge-mat:#9aa6bd;                /* 關聯圖：材料邊（灰，不跟主鏈搶視覺） */
+  --dg-edge-eq:#8792ab;                 /* 關聯圖：設備／材料環節邊（更灰更細） */
   /* ================ 各張剖析圖的材質色（2026-09-21 深夜：從九個檔的 scoped <style> 收進來）================
      搬家之前這些 token 住在 `site/dg/*.js` 各自的 `<style>` 裡（`.dgabf` / `.dgcool` /
      `.dgair` / `.dg.psu` / `.dgpcb` / `.dgpn` / `.dgsw`）。當時不准動 index.html，
@@ -206,7 +222,15 @@
   --line:#dde4f1; --line-2:#c2cde1;
   --ink:#0f1830; --ink-2:#3f4e6d; --ink-3:#6a7896;
   --cyan:#0b7fa6; --violet:#5f4ddb; --amber:#b06a00; --lime:#4a8a15;
-  --rise:#dc2440; --fall:#0a9b6a; --flat:#7a879f;
+  /* ★ 2026-09-22 visual-director：亮色系的漲跌三色各壓深一階。**紅漲綠跌沒有動**
+     （紅還是紅、綠還是綠），動的只有明度 —— 因為量出來它們在亮底上讀不到：
+       舊 --fall #0a9b6a 對 --panel-3 #eef2fa 只有 3.17:1（族群清單的漲跌是 15px 正文，要 4.5）
+       舊 --rise #dc2440 對同一個底 4.28:1（也不到 4.5）
+       舊 --flat #7a879f 對同一個底 3.23:1
+     新值量到：--fall 4.78／--rise 4.79／--flat 4.66（對 --panel-3，最嚴苛的那個底），
+     對純白 --panel 分別是 5.37／5.37／5.20 —— 三個都過 4.5。
+     深色主題那組**一個字都沒改**（#ff4d6d 對 --panel-3 是 4.71、#2ee59d 是 9.23，本來就過）。*/
+  --rise:#cf1f3a; --fall:#077a51; --flat:#606d84;
   --glow:0 0 0 1px rgba(11,127,166,.22), 0 4px 16px -8px rgba(11,127,166,.4);
   --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(15,24,48,.35);
   --ontop:#ffffff; --chartbg:#ffffff;
@@ -215,6 +239,12 @@
   --grid:rgba(15,24,48,.07);
   --drop:rgba(15,24,48,.18);
   --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
+  /* 孤立節點的琥珀：只有「畫在頁面面板上」那一顆要換（見 :root 那邊的說明）。
+     #d9a441 對白底 2.25 → #9a6100 對白底 5.14、對 --panel-3 4.58。
+     `--dg-iso`（畫在深色畫布上的那一顆）刻意**不覆寫** —— 那塊底在亮色主題下還是深的。*/
+  --dg-iso-ink:#9a6100;
+  /* 警示膠囊：#ff8fae 對白底只有 2.14，換成同色相壓深的 #c2185b（5.87） */
+  --err-ink:#c2185b; --err-line:#f0c3d1; --err-bg:rgba(194,24,91,.08);
 }
 /* ================ 剖析圖的四個配色（art-director 2026-09-21 深夜）================
    Andy：「幫我圖片色系色調多個休閒風格，更平易近人」＋「2D3D 都需要新增那樣的風格」。
@@ -362,7 +392,9 @@ small{font-size:12.5px}
   padding:3px 8px;border-radius:7px;border:1px solid transparent}
 .livestate.live{color:var(--ontop);background:var(--cyan);font-weight:600}
 .livestate.ok{color:var(--ink-2);border-color:var(--line-2)}
-.livestate.bad{color:#ff8fae;border-color:#5a2338;background:rgba(255,92,138,.1)}
+/* 即時報價出錯時那顆膠囊：舊值 #ff8fae 是為深底調的粉紅，畫在亮色主題的白色頂部列上
+   只有 2.14:1 —— 也就是「報價掛掉了」這句警告在亮色系下等於沒說。改走變數。*/
+.livestate.bad{color:var(--err-ink);border-color:var(--err-line);background:var(--err-bg)}
 .livepop{position:absolute;top:42px;right:0;width:min(420px,92vw);z-index:60;
   background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r);
   box-shadow:var(--shadow);padding:14px 16px}
@@ -929,11 +961,11 @@ a.lk.sm{font-size:12px;font-weight:500}
   border-bottom:1px solid var(--line);scrollbar-width:thin}
 .chainsw button{flex:0 0 auto;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);
   padding:5px 12px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;transition:.15s}
-.chainsw button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:6px}
+.chainsw button em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:6px}
 .chainsw button:hover{border-color:var(--cyan);color:var(--ink)}
 .chainsw button.on{background:rgba(62,224,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
 .chainsw button.on em{color:var(--cyan)}
-.chainsw button[data-dg]::before{content:'◧';margin-right:5px;font-size:11px;opacity:.75}
+.chainsw button[data-dg]::before{content:'◧';margin-right:5px;font-size:12px;opacity:.75}
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px}
 .qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
@@ -949,10 +981,23 @@ a.lk.sm{font-size:12px;font-weight:500}
 .segchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .segchip{display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel-3);
   color:var(--ink-2);font-size:13px;cursor:pointer;transition:.15s;user-select:none}
-.segchip i{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
+/* ★ 2026-09-22 visual-director：色點**平常不發光**，只有選起來的那一顆才發光。
+   Andy 2026-09-15／16 講過兩次「螢光感太重」。半導體鏈一次擺 14 顆色點，
+   每一顆都掛 `0 0 8px` 的光暈＝14 顆一起亮＝沒有重點（AGENTS 的紅線：
+   「發光只給現在被選起來的那一個」）。色相本身沒有動，動的只有光暈。*/
+.segchip i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.segchip.sel i{box-shadow:0 0 8px var(--c)}
 .segchip:hover{border-color:var(--c);color:var(--ink)}
 .segchip.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--panel-3));color:var(--ink);font-weight:700}
-.segchip .n{font-family:var(--mono);font-size:11px;color:var(--ink-3)} .segchip.sel .n{color:var(--ink-2)}
+/* ★ 2026-09-22 visual-director：產業鏈頁的字級一律拉到 12px 下限。
+   Andy 從 2026-09-15 起講過三次「文字太小」，而這一頁的環節卡、關聯圖、
+   鏈切換列裡還留著 10.5／11／11.5px —— 那是「擠在一排晶片裡」時代的權宜。
+   環節卡清單這一輪加了高度天花板（.chainscroll），卡片變高不會再把頁面撐長，
+   所以沒有理由再讓任何一個字低於 12px。
+   ⚠ 唯一留在 12px 以下的是 `.chainmap .iso text`（9.5px）：那是畫在半徑 7px 的
+     小圓圈裡的一個「?」符號，不是可讀文字；放大它會戳出圓圈，屬於幾何問題，
+     是 tech-illustrator 的範圍，不在版面這一批動。*/
+.segchip .n{font-family:var(--mono);font-size:12px;color:var(--ink-3)} .segchip.sel .n{color:var(--ink-2)}
 .segchip.nomem{opacity:.6;border-style:dashed}
 /* ============ 環節色標：從「會換行的一排晶片」改成清單（Andy 2026-09-22）============
    他的原話：「版面的族群改成用清單式好了，因為卡片會一直延伸導致影響版面」。
@@ -1125,7 +1170,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .co rect{rx:8;fill:var(--panel-3);stroke:var(--line-2);cursor:pointer;transition:.15s}
 .chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--cyan);filter:drop-shadow(0 0 8px rgba(62,224,255,.6))}
 .chainmap .co text{font-size:12.5px;fill:var(--ink);pointer-events:none}
-.chainmap .co .sub{font-size:11px;fill:var(--ink-3);font-family:var(--mono)}
+.chainmap .co .sub{font-size:12px;fill:var(--ink-3);font-family:var(--mono)}
 .chainmap .co.foreign rect{fill:var(--panel);stroke-dasharray:3 3}
 .chainmap .elayer{pointer-events:none}   /* 圖十：邊改畫在卡片之上，才不會被卡片蓋掉；但不能吃掉卡片的點擊 */
 .chainmap .edge{fill:none;stroke:var(--line-2);stroke-opacity:.55;stroke-width:var(--w,1.2)}  /* --w＝依存度 strength，見 industry.js drawChainMap */
@@ -1133,8 +1178,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .chainmap .edge.dim{stroke-opacity:.08}
 .chainmap .edge.dash{stroke-dasharray:5 4}            /* outsources_to：委外，錢的方向跟供貨相反 */
 .chainmap .edge.spec{stroke-dasharray:1.5 3.5;stroke-opacity:.5}  /* designated_by：終端指定料號 AVL，實體出貨不一定經過它 */
-.chainmap .edge.mat{stroke:#9aa6bd;stroke-opacity:.42}            /* 材料：灰色，但粗細仍依 strength */
-.chainmap .edge.eq{stroke:#8792ab;stroke-opacity:.28;stroke-width:1}  /* 設備／材料環節：灰色細線，不跟主鏈搶視覺 */
+.chainmap .edge.mat{stroke:var(--dg-edge-mat);stroke-opacity:.42}            /* 材料：灰色，但粗細仍依 strength */
+.chainmap .edge.eq{stroke:var(--dg-edge-eq);stroke-opacity:.28;stroke-width:1}  /* 設備／材料環節：灰色細線，不跟主鏈搶視覺 */
 /* 產業關係說明（Andy 2026-09-19：「點擊關聯圖時，在旁邊新增這類說明」）。
    圖上只有一條線，看得到「有關係」但看不懂「是什麼關係」——
    這一塊把那條線攤開講：誰供什麼給它、它又賣什麼給誰、以及那是官方揭露還是產業推論。 */
@@ -1145,26 +1190,30 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .relbox li{padding:5px 0 5px 9px;border-left:2px solid var(--line-2);margin-bottom:3px;font-size:12.5px}
 .relbox li:hover{border-left-color:var(--cyan)}
 .relbox .rl{color:var(--ink-3);margin-right:5px}
-.relbox .it{font-size:11.5px;color:var(--ink-2);margin-top:2px}
-.relbox .nt{font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.5}
+.relbox .it{font-size:12px;color:var(--ink-2);margin-top:2px}
+.relbox .nt{font-size:12px;color:var(--ink-3);margin-top:3px;line-height:1.5}
 /* 依存度：五格小方塊，滿幾格就是 strength 幾 —— 比寫「4」直覺 */
 .relbox .dep{display:inline-block;width:26px;height:7px;margin-left:6px;vertical-align:middle;border-radius:2px;
   background:linear-gradient(to right,var(--cyan) 0,var(--cyan) calc(var(--n,1)*20%),var(--line-2) calc(var(--n,1)*20%))}
-.relbox .cf{font-style:normal;font-size:10.5px;margin-left:6px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2)}
-.relbox .cf-verified{color:#6ee7a8;border-color:rgba(110,231,168,.45)}
+.relbox .cf{font-style:normal;font-size:12px;margin-left:6px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2)}
+/* 「已查證」是常態，不需要用顏色喊 —— 走灰階＋實線框就夠了（visual-director 2026-09-22）。
+   改之前它是 #6ee7a8，那個綠在淺色主題的白卡上量到 1.53:1（等於看不見），
+   而且跟「綠＝跌」撞在同一頁上。現在整頁只留一個強調色：琥珀＝「這是推估，要小心」。*/
+.relbox .cf-verified{color:var(--ink-2);border-color:var(--line-2)}
 .relbox .cf-reported{color:var(--ink-3)}
-.relbox .cf-estimated{color:#d9a441;border-color:rgba(217,164,65,.45)}
+.relbox .cf-estimated{color:var(--dg-iso-ink);border-color:color-mix(in srgb,var(--dg-iso-ink) 45%,transparent)}
 /* Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」。
    推論整塊染成橘色並留一道左邊框 —— 事實與推論在畫面上要一眼分得開，
    不然使用者會把我的推論當成誰講過的事實。 */
-.relbox li.guess{border-left-color:rgba(217,164,65,.6)}
-.relbox .why{margin-top:4px;padding:5px 7px;border-radius:6px;font-size:11px;line-height:1.55;
-  color:var(--ink-2);background:rgba(217,164,65,.08);border:1px solid rgba(217,164,65,.28)}
-.relbox .why b{display:block;color:#d9a441;font-size:11px;margin-bottom:2px}
-.relbox .src{display:inline-block;margin-top:3px;font-size:10.5px;color:var(--cyan);text-decoration:none}
+.relbox li.guess{border-left-color:color-mix(in srgb,var(--dg-iso-ink) 60%,transparent)}
+.relbox .why{margin-top:4px;padding:5px 7px;border-radius:6px;font-size:12px;line-height:1.55;
+  color:var(--ink-2);background:color-mix(in srgb,var(--dg-iso-ink) 8%,transparent);
+  border:1px solid color-mix(in srgb,var(--dg-iso-ink) 28%,transparent)}
+.relbox .why b{display:block;color:var(--dg-iso-ink);font-size:12px;margin-bottom:2px}
+.relbox .src{display:inline-block;margin-top:3px;font-size:12px;color:var(--cyan);text-decoration:none}
 .relbox .src:hover{text-decoration:underline}
-.chainmap .iso circle{fill:none;stroke:#d9a441;stroke-opacity:.75}
-.chainmap .iso text{font-size:9.5px;fill:#d9a441;text-anchor:middle;pointer-events:none}
+.chainmap .iso circle{fill:none;stroke:var(--dg-iso);stroke-opacity:.75}
+.chainmap .iso text{font-size:9.5px;fill:var(--dg-iso);text-anchor:middle;pointer-events:none}
 .chainmap .co.dim{opacity:.28}
 .chainmap .co rect{stroke:var(--line-2)}
 .chainmap .co:hover rect,.chainmap .co.sel rect{stroke:var(--c,var(--cyan));filter:drop-shadow(0 0 8px var(--c,rgba(62,224,255,.6)))}
@@ -1327,7 +1376,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .ev a:hover{color:var(--cyan)}
 .ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;gap:8px;align-items:center}
 .ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:11px}
-.close{border:0;background:transparent;color:var(--ink-3);font-size:20px;cursor:pointer}
+/* 關閉鈕的 × 提到 --ink-2：--ink-3 在亮色主題對 --bg-2 只有 3.78:1，
+   20px 的圖示字在 WCAG 不算大字，要 4.5（visual-director 2026-09-22 量到的）。*/
+.close{border:0;background:transparent;color:var(--ink-2);font-size:20px;cursor:pointer}
 
 /* ---------------- 手機 ---------------- */
 .cards{display:none}
@@ -1397,14 +1448,16 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .segcard.sel{background:color-mix(in srgb,var(--c) 12%,var(--panel-3));box-shadow:0 0 0 1px var(--c) inset}
 .segcard.dim{opacity:.42}
 .segcard .sh{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.segcard .sh .dot{width:9px;height:9px;border-radius:50%;background:var(--c);box-shadow:0 0 8px var(--c);flex:none}
+/* 同上：環節卡的色點也是選起來才發光（20 格全發光＝一片螢光） */
+.segcard .sh .dot{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.segcard.sel .sh .dot,.segcard.open .sh .dot{box-shadow:0 0 8px var(--c)}
 .segcard .sh .nm{font-size:14.5px;font-weight:700;color:var(--ink);line-height:1.35}
-.segcard .sh .rl{font-size:11px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
-.segcard .sh .cnt{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.segcard .sh .rl{font-size:12px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:5px;padding:0 4px}
+.segcard .sh .cnt{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
 /* 上游／下游那兩行＝把關聯圖上那 140 條邊收斂成「環節對環節」的說法，可以點 */
 /* 一行到底（nowrap＋省略號）：多一行就是多 17px，20 格就是 340px。
    切掉的部分在 title 裡完整列出，滑過去看得到 */
-.segcard .sf{display:flex;gap:3px 5px;align-items:center;margin-top:4px;font-size:11.5px;
+.segcard .sf{display:flex;gap:3px 5px;align-items:center;margin-top:4px;font-size:12px;
   color:var(--ink-3);line-height:1.5;white-space:nowrap;overflow:hidden;min-width:0}
 .segcard .sf .lb{opacity:.8;white-space:nowrap;flex:none}
 /* 名稱可以被擠窄並自己出現省略號 —— 這樣字框**永遠留在卡片裡**。
@@ -1427,15 +1480,16 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .segcard .sco:hover{border-color:var(--cyan)}
 .segcard .sco .nm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
-.segcard .sco .code{font-family:var(--mono);font-size:11px;color:var(--cyan);opacity:.9;flex:none}
+.segcard .sco .code{font-family:var(--mono);font-size:12px;color:var(--cyan);opacity:.9;flex:none}
 .segcard .sco .code.fo{color:var(--ink-3)}
 .segcard .sco.foreign{border-style:dashed}
 /* 關係條數；0 沿用關聯圖那個橘色「?」（還沒查到具名客戶／供應商，寧可留白也不猜） */
-.segcard .sco .rel{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--ink-3);
+.segcard .sco .rel{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);
   background:var(--panel-3);border-radius:4px;padding:0 2px;flex:none}
-.segcard .sco .rel.iso{color:#d9a441;background:transparent;border:1px solid rgba(217,164,65,.45)}
+.segcard .sco .rel.iso{color:var(--dg-iso-ink);background:transparent;
+  border:1px solid color-mix(in srgb,var(--dg-iso-ink) 45%,transparent)}
 .segcard .sco.dim{opacity:.35}
-.segcard .nt{margin-top:6px;font-size:11.5px;color:var(--ink-3);line-height:1.5}
+.segcard .nt{margin-top:6px;font-size:12px;color:var(--ink-3);line-height:1.5}
 /* 手機：一欄，但小卡仍然兩張一列（grid 的 minmax 在 330px 的卡裡剛好排得下兩張），
    字級往上加到 13.5／15px —— 手機正文不得小於 15px、任何字不得小於 11px */
 @media (max-width:560px){ .seglist{columns:1} .segcard .sco .nm{font-size:13.5px} .segcard .sh .nm{font-size:15px} }
@@ -1461,9 +1515,16 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
       ★ 原本 @media (max-width:560px) 那一整塊也拿掉：那是「手機專用的一行一個」，
         現在所有寬度都是一行一個，留著等於同一件事寫兩遍，而且它的 `display:block`
         會把 grid 蓋掉。*/
+/* ★ 2026-09-22 visual-director：上限 27vh → 24vh（900px 視窗 243px → 216px）。
+   為什麼要再收一點：族群清單這一輪從頁面中段**搬到剖析圖上面**，變成「控制台」的左欄。
+   控制台是控制項，不准比它控制的東西（剖析圖）還佔畫面 —— 24vh 讓
+   「族群 ＋ 環節色標 ＋ 兩個標題」這一整條帶子在 900px 的視窗裡約 250px（28%）。
+   ⚠ 這是**往下收**，不是放寬：既有驗收的 270px 天花板照樣成立，而且還多了 54px 餘裕。
+   欄寬 minmax 維持 260px —— 在控制台的半欄（1440px 約 490px）裡就是一欄，
+   全寬（800px 以下控制台會疊成一欄）時自動變兩欄，兩種情況的列高都一樣。*/
 #groupCards.glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:5px;padding:5px;align-content:start;
-  max-height:clamp(150px,27vh,252px);overflow-y:auto;overflow-x:hidden;
+  max-height:clamp(150px,24vh,224px);overflow-y:auto;overflow-x:hidden;
   border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
 /* 一列的長相：名稱在左、漲跌與「族群頁 →」在右，第二行放檔數／佔比／本益比。
    ★ 三樣東西一個都不准掉（既有驗收在數）：.t 名稱、.v 漲跌、a[href^="#industry/group/"]。*/
@@ -1482,6 +1543,156 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 #groupCards.glist::-webkit-scrollbar{width:10px}
 #groupCards.glist::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
 #groupCards.glist::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel-2)}
+
+/* ================= 產業鏈頁的控制台 .chainband（visual-director 2026-09-22）=================
+   Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化，**需要於使用者立場思考**，
+   並重新規劃 哪個圖表放哪裡、顏色怎麼配置、切換到亮色系版面怎麼配色…
+   **能固定大小就固定**…若過多資訊採用清單或是拉 Bar 呈現。」
+
+   改之前的由上到下是：剖析圖 → 環節色標 → 環節卡 → **族群** → 成分股。
+   量出來的兩個毛病：
+     ① **族群清單是剖析圖的選擇器，卻排在剖析圖下面 1300px 的地方。**
+        點一列族群，上面那張圖真的會換 —— 但在 1440px／900px 的視窗裡，
+        圖早就捲出畫面了，使用者看到的是「我點了一下，好像沒事發生」。
+        控制項必須在它控制的東西旁邊，這是版面問題不是功能問題。
+     ② 一個人打開某條產業鏈，第一個問題是「**這條鏈今天誰在漲**」，
+        那個答案（族群清單）卻要捲過一張 560px 的剖析圖才看得到。
+
+   所以族群清單與環節色標一起提到剖析圖**上面**，並排成一條「控制台」：
+     左欄＝誰在漲（族群）  右欄＝這條鏈分成幾段（環節色標）
+   兩欄都是既有的、已經有天花板的清單，**一行互動邏輯都沒有動**
+   （`#groupCards` / `#segChips` 的 id、class、data-* 全部原封不動搬過來）。
+
+   為什麼用 auto-fit 而不是 media query
+   ------------------------------------
+   這一頁的 main 寬度不等於視窗寬度（右邊還有 360px 的事件側欄），
+   所以「視窗 1366px」在這裡其實只有 1006px。用視窗的 media query 會在
+   1366／1440 這兩個 Andy 實際在用的寬度上判斷錯邊。
+   auto-fit + minmax(380px,1fr) 量的是**容器**：容器 ≥772px 才排兩欄，
+   於是 1366／1440／1500／1920 都是兩欄，800px 與 390px 自動疊成一欄。*/
+/* ★ 門檻 340px（不是 380）：800px 半邊瀏覽器的容器內寬約 738px，
+   380 會讓它疊成上下兩欄 —— 量到控制台整條 519px，把剖析圖整個推出第一畫面。
+   340 讓它排成兩欄各約 362px，控制台掉到約 270px。390px 的內寬只有約 328px，
+   小於 340，所以手機仍然自動疊成一欄（實測 band 欄數 = 1）。*/
+.chainband{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));
+  gap:10px 14px;align-items:start;margin-top:14px}
+.chainband .cbcol{min-width:0}
+/* 標題那一行：名稱 + 格數在同一行，說明另起一行。
+   格數用 em 包起來（等寬字、灰階）—— 它是「有幾個」不是「哪一個」，不該搶顏色。*/
+.chainband .cbhd{margin-bottom:6px}
+.chainband .cbhd h4{display:flex;align-items:baseline;gap:8px;margin:0}
+.chainband .cbhd h4 em{font-style:normal;font-family:var(--mono);font-size:12px;
+  font-weight:500;color:var(--ink-3)}
+.chainband .cbhd small{display:block;margin-top:2px;font-size:12px;line-height:1.5}
+/* 兩欄的清單框上緣要對齊：說明文字長度不同會把清單推成一高一低。
+   用 grid 讓每一欄自己是「標題列 auto ＋ 清單 auto」，再把標題列的最小高度固定住。*/
+.chainband .cbcol{display:grid;grid-template-rows:auto auto}
+.chainband .cbhd{min-height:46px}
+/* 控制台裡的兩個清單框上邊距歸零（外距由 .chainband 的 gap 統一管） */
+.chainband .seglistpick{margin-top:0}
+
+/* ================= 環節卡清單的天花板（visual-director 2026-09-22）=================
+   `#chainList` 的高度是「環節數 × 每格固定成本 ＋ 公司數」的函數，**完全沒有上限**：
+   半導體鏈量到 1920px 339px、1440px 518px、1366px 645px、**390px 1076px**。
+   Andy 的原話是「能固定大小就固定，避免不同題材數量不一致導致版面不同」——
+   這一塊正是「不同鏈差最多」的那一塊（AI 伺服器 20 格、一般電子 8 格）。
+
+   ★ 為什麼是外面包一層 `.chainscroll`，而不是直接給 `.seglist` 一個 max-height
+   -----------------------------------------------------------------------
+   `.seglist` 是 CSS multi-column（`columns:236px`）。多欄容器一旦被指定高度，
+   放不下的內容**不會往下溢出，而是再開一欄往右長** —— 結果會變成橫向捲軸，
+   正好是最不該出現的東西。所以高度限制放在外層的一般區塊上，
+   讓多欄自己算它的自然高度，由外層負責捲。
+   ⚠ `#segTools` 也一起放進這一層：`drawSegList()` 是用
+     `host.previousElementSibling` 找那顆手機版總開關的，兩者不能被拆開。*/
+.chainscroll{max-height:clamp(240px,44vh,460px);overflow-y:auto;overflow-x:hidden;
+  padding:6px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+/* 切到關聯圖時 `#chainList` 會被設成 hidden，但外面這層框還在 ——
+   不處理的話關聯圖上面會多一條「有邊框、有底色、空的」橫帶。
+   `:has()` 是 2023 起的瀏覽器基準功能，這裡只拿它做一件收尾的事，
+   就算某個舊瀏覽器不支援，最糟也只是多一條 14px 的空框，不會壞掉。*/
+.chainscroll:has(>.seglist[hidden]){display:none}
+.chainscroll::-webkit-scrollbar{width:10px}
+.chainscroll::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.chainscroll::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel-2)}
+/* 關聯圖也要有天花板（它以前只有 overflow:auto，沒有 max-height，
+   所以環節一多整張圖就把頁面撐開）。橫向捲動的既有行為不動。*/
+.chainmap{max-height:clamp(300px,54vh,560px)}
+.chainmap::-webkit-scrollbar{width:10px;height:10px}
+.chainmap::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.chainmap::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+
+/* 環節詳情（點色標之後出現的那一塊）也給天花板：它的內容是「這一格有幾家公司」的函數 */
+#segBox .segbox{max-height:clamp(140px,26vh,260px);overflow-y:auto;overflow-x:hidden}
+
+/* ================= 成分股表的天花板（visual-director 2026-09-22）=================
+   量出來這一頁**最高的一塊就是它**：半導體鏈 1315px，佔整頁 3727px 的 35%，
+   而且那還只是預設的 30 筆 —— 按下「顯示全部」是 149 筆，整張表會超過 6000px。
+   高度完全是「這條鏈有幾檔股票」的函數，正是 Andy 說的「不同題材數量不一致導致版面不同」。
+
+   `th` 本來就已經是 `position:sticky; top:0`（見上面的 table 規則），
+   所以只要讓外層 `.tw` 變成可捲的框，**表頭就會自己黏在框頂** ——
+   捲到第 80 檔還看得到「漲跌」是哪一欄。這是加天花板的附帶好處，不是額外工程。
+   ⚠ 這裡**不寫** scrollbar-width／scrollbar-color（跟 .seglistpick 同一個理由）：
+     新版 Chromium 看到那兩個標準屬性就會整組忽略 ::-webkit-scrollbar，
+     換成平常隱形的覆蓋式捲軸 —— 那就不是 Andy 講的「拉 Bar」了。
+   ⚠ `.tw` 原本就是 `overflow:auto`（橫向給窄畫面用），這裡只是多加一個高度上限。*/
+.tw.memcap{max-height:clamp(320px,56vh,620px)}
+.tw.memcap::-webkit-scrollbar{width:11px;height:11px}
+.tw.memcap::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.tw.memcap::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+.tw.memcap::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
+/* 黏住的表頭要有實底，不然捲上來的資料列會透出來 */
+.tw.memcap thead th{background:var(--panel-3);box-shadow:0 1px 0 var(--line-2)}
+
+/* 零件小卡也給天花板：它的高度是「這個零件有幾家公司、幾個料號」的函數。
+   位置在圖的正下方，太長會把下面整條控制列推走。*/
+.partcard{max-height:clamp(150px,30vh,300px);overflow-y:auto;overflow-x:hidden}
+.partcard::-webkit-scrollbar{width:9px}
+.partcard::-webkit-scrollbar-track{background:color-mix(in srgb,var(--dg-ink-3) 12%,transparent);border-radius:8px}
+.partcard::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--dg-ink-3) 42%,transparent);border-radius:8px}
+
+/* 手機（390px）：控制台自動疊成一欄（auto-fit 已經做到），這裡只收間距。
+   兩個清單框的天花板一律沿用桌機那一組 vh —— 手機視窗矮，vh 算出來本來就比較小。*/
+@media (max-width:560px){
+  .chainband{gap:8px}
+  .chainband .cbhd{min-height:0}
+  /* 手機疊成一欄，兩個清單是上下相加，所以各自都要再矮一點 ——
+     390×844 量到控制台原本 547px（視窗的 65%），收完約 430px。*/
+  #groupCards.glist{max-height:clamp(140px,22vh,190px)}
+  .chainband .seglistpick{max-height:clamp(110px,18vh,158px)}
+  .chainscroll{max-height:clamp(220px,48vh,420px);padding:5px}
+  .tw.memcap{max-height:clamp(280px,58vh,520px)}
+}
+
+
+/* ============ 產業鏈頁的標題列：摘要膠囊不准掉到第二行（visual-director 2026-09-22）============
+   量出來的事實（1440px、一般電子鏈）：`.row.spread` 是 flex-wrap，而左邊那一塊
+   （標題 ＋ 四行說明）在 1080px 的 main 裡吃掉整列，於是「157 檔／今日／本益比／← 返回」
+   那四顆膠囊**整排掉到第二行**，白白多佔 63px。
+   這 63px 很貴：它把剖析圖往下推 63px，而這一輪的重點就是
+   「點了控制台的族群，下面那張圖要看得到在變」。
+   ★ 只鎖 ≥821px（桌機與半邊瀏覽器）。820px 以下側欄變成浮層、內容更窄，
+     那裡硬要不換行會把標題擠爛，所以維持既有的換行行為。*/
+@media (min-width:821px){
+  .chainhd{flex-wrap:nowrap;align-items:flex-start;gap:14px}
+  .chainhd>.chainhd-t{flex:1 1 auto;min-width:0}
+  .chainhd>.row{flex:none;align-items:flex-start;padding-top:2px}
+}
+/* 剖析圖那一列的工具：標題 ＋ 七顆膠囊在 1080px 的 main 裡會排成兩行（23px 變 63px）。
+   膠囊本身不縮小（字級下限 12px 要守住），改成把行距收掉 ——
+   兩行仍然是兩行，但不再各留 8px 的行間空白。*/
+#dgSec>.row.spread{row-gap:4px;align-items:flex-start}
+#dgSec>.row.spread>h4{margin:0;padding-top:2px}
+
+/* 圖別晶片（`#dgPick`，「這條鏈有哪幾張圖」那一排）也是「有幾張圖」的函數：
+   半導體鏈 11 張，在 390px 排成六列約 200px，而且每畫一張新圖就再長一列。
+   跟其他四個清單同一套：給天花板、超過就在框內捲、拉 Bar 看得見。*/
+#dgPick{max-height:clamp(64px,13vh,112px);overflow-y:auto;overflow-x:hidden}
+#dgPick::-webkit-scrollbar{width:9px}
+#dgPick::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+#dgPick::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+
 /* 成分股表下面那一排：一顆鈕 ＋ 一句「所以我該怎麼用」 */
 .morebar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
 .morebar[hidden]{display:none}

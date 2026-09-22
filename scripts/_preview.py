@@ -33,17 +33,31 @@ OVERLAP_JS = r"""
     const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
     return r.width > 6 && r.height > 6 && cs.visibility !== 'hidden' && cs.display !== 'none' && r.bottom > 0 && r.top < document.documentElement.scrollHeight;
   });
-  // 在可捲動容器裡、已經捲出可視範圍的元素不算重疊（它其實被容器裁掉了）
-  const clipped = (e) => {
+  /* 在可捲動（或 overflow:hidden 的）容器裡，**使用者看得到的只有交集那一塊**。
+     ★ 2026-09-22 改寫（visual-director）：原本只判「整個跑到框外面才不算」，
+       那漏掉了**跨在框邊緣上**的那一列 —— 它有一半被裁掉、畫面上根本看不到，
+       可是 getBoundingClientRect() 仍然回它完整的高度，於是跟框**下面**那段文字
+       量出一個不存在的重疊。
+       2026-09-22 產業鏈頁把成分股表關進 `.tw.memcap` 之後立刻踩到：
+       報「觀望」跟「目前依漲跌排序…還有 68 檔收著」重疊 —— 截圖上兩者離得很遠。
+       改成「一路跟每一個會裁切的祖先取交集」，交集空了就整個不算。
+       這只會讓掃描更準，不會放過真的重疊：被裁掉的東西本來就不在畫面上。*/
+  const clipRect = (e) => {
+    let r = e.getBoundingClientRect();
+    r = { top: r.top, left: r.left, bottom: r.bottom, right: r.right, width: r.width, height: r.height };
     for (let p = e.parentElement; p; p = p.parentElement) {
       const cs = getComputedStyle(p);
       if (!/auto|scroll|hidden/.test(cs.overflowY + cs.overflowX)) continue;
-      const pr = p.getBoundingClientRect(), er = e.getBoundingClientRect();
-      if (er.bottom < pr.top - 1 || er.top > pr.bottom + 1 || er.right < pr.left - 1 || er.left > pr.right + 1) return true;
+      const pr = p.getBoundingClientRect();
+      const top = Math.max(r.top, pr.top), left = Math.max(r.left, pr.left);
+      const bottom = Math.min(r.bottom, pr.bottom), right = Math.min(r.right, pr.right);
+      if (bottom <= top || right <= left) return null;     // 整個被裁掉，看不到
+      r = { top, left, bottom, right, width: right - left, height: bottom - top };
     }
-    return false;
+    return r;
   };
-  const rects = els.filter(e => !clipped(e)).map(e => ({ e, r: e.getBoundingClientRect() }));
+  const rects = els.map(e => ({ e, r: clipRect(e) }))
+                   .filter(x => x.r && x.r.width > 6 && x.r.height > 6);
   const bad = [];
   for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) {
     const a = rects[i], b = rects[j];
