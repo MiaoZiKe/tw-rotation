@@ -55,7 +55,7 @@
     .dg .leader{stroke:var(--dg-lead,color-mix(in srgb,${CC} 55%,var(--dg-line-mix)));stroke-width:var(--dg-lead-w,1);fill:none}
     .dg [data-seg].sel .leader,.dg [data-seg]:hover .leader,.dg .p3.sel .leader,.dg .p3:hover .leader{stroke:${CC};stroke-width:var(--dg-lead-sel-w,1.6)}
     .dg .anchor{fill:var(--card-c,${CC});stroke:var(--dg-bg);stroke-width:1;r:var(--dg-node-r,2.8px);
-      filter:drop-shadow(0 0 var(--dg-node-glow,3px) var(--card-c,${CC}))}
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-node-glow,3px) var(--card-c,${CC})))}
     :root[data-dgpal="read"] .dg .anchor{filter:none}
     /* v2 版面（Andy 2026-09-22「左右對齊、版面更滿、依螢幕大小變化」）：卡片離開 SVG 變成 HTML（index.html 的 .dgc），
        SVG 裡只留「資料來源」的 .lrow.ext（永遠不畫）與畫布上的錨點群組 .anc（編號圓點／小圓）。
@@ -85,7 +85,7 @@
     .dg .lrow:hover rect.bg,.dg .lrow.sel rect.bg{stroke:var(--card-c);fill:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
     /* 主角那一張卡：底再深一階 ＋ 光暈（科技）／落影（閱讀）。要排在上面那條之後，不然特異性一樣會被蓋掉。*/
     .dg .lrow.sel-part rect.bg{stroke:var(--card-c);stroke-width:1.6;fill:color-mix(in srgb,var(--card-c) 26%,var(--dg-card-f));
-      filter:drop-shadow(0 0 var(--dg-card-glow-r,6px) color-mix(in srgb,var(--card-c) 60%,transparent))}
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-card-glow-r,6px) color-mix(in srgb,var(--card-c) 60%,transparent)))}
     :root[data-dgpal="read"] .dg .lrow.sel-part rect.bg{filter:var(--dg-card-sh,none)}
     /* 閱讀模式的卡片：標題不換成元件色（深灰字才讀得到，色相由色條／圓點／邊框扛），
        編號圓點改成「粉彩底 ＋ 元件色的環 ＋ 深灰數字」—— 白字印在壓深過的粉彩上量出來只有 4.05:1。*/
@@ -454,6 +454,10 @@
             const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
             while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
             hi.setAttribute('display', hit() ? 'none' : 'inline');
+            // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
+            let tt2 = r.el.querySelector(':scope > title');
+            if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
+            tt2.textContent = full;
           }
         }
       });

@@ -9116,7 +9116,10 @@ def t_mlcc(pg, base):
     force_open(pg)
     d8 = dg(pg)
     ok("[800px] MLCC 剖析圖還在", d8.get("present") and FEAT in d8.get("full", ""), d8.get("svgW"))
-    ok("[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮）", d8.get("svgW", 0) >= 960, d8.get("svgW"))
+    # ★ 2026-09-22 風格系統 v2：MLCC 的卡片搬到 HTML 的左右欄，畫布只剩主角，native 從 980 縮成 660。
+    #   「原尺寸」一律拿圖自己宣告的 native 來比，不再寫死 960。
+    nat8 = pg.evaluate("() => (window.DiagramSlots && window.DiagramSlots.native('mlcc')) || 980")
+    ok(f"[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮；宣告 native {nat8}）", d8.get("svgW", 0) >= nat8 - 4, d8.get("svgW"))
     ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
        d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
     r8a = rows(pg)
@@ -10265,8 +10268,10 @@ def t_batch13(pg, base):
     # ---------------- 6~8. MLCC 的收納
     b0 = pg.evaluate(PROBE)
     ok("MLCC 預設是**收合**的（三條章節列都在，內容收起來）", b0["folds"] == 3, b0["folds"])
+    # ★ 2026-09-22：v2 畫布 660 寬，wireFolds 會把提示砍短讓標題有位置（全文掛在列的 title 上）。
+    #   所以門檻從 14 字放到 8 字 —— 要守的仍然是「寫了裡面有什麼、不是只寫更多」，不是字數。
     ok("★ 收合狀態下畫面上**看得到還有什麼可以展開**（每一條都寫了裡面有什麼，不是只寫「更多」）",
-       len(b0["hints"]) == 3 and all(h.startswith("＋ 展開：") and len(h) > 14 for h in b0["hints"]),
+       len(b0["hints"]) == 3 and all(h.startswith("＋ 展開：") and len(h) > 8 and "更多" not in h for h in b0["hints"]),
        b0["hints"])
     ok("章節列**沒有掛 data-seg**（掛了的話按一下展開就順便把成分股篩掉了）",
        b0["foldSeg"] == 0, b0["foldSeg"])
