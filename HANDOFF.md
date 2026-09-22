@@ -2317,3 +2317,49 @@ Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化…重新�
   放大會戳出圓圈，屬於幾何問題 → `tech-illustrator`。
 - `.partcard` 的樣式仍然是 JS 注入的 `<style id="partCardCss">`（上一批的暫時做法）。
   這一批只在 `index.html` 補了它的天花板，沒有把整塊搬回來 —— 搬家要跟改動 `industry.js` 的人協調。
+
+## 2026-09-22（晚）：版面退回原格式 → 風格拍板（#238）→ 地基兩支 agent 開工 → dg-scale 收尾
+
+### 這一段發生的事（依時間）
+1. **Andy 否決重排**：「你後續更動的版面格式很糟糕，我覺得先回到原本的格式」→ `industry.js`／`index.html`
+   版面整個退回 `2e10e6c`，只留 bug 修正（`.noside` 藏側欄、≤820 抽屜改浮層自動收、`.dgwrap svg.dgm{max-width:984px}`、
+   點背景恢復 `onBg`、漸層 18 個色值改 token）。上一節「產業鏈頁全面重排」的**版面部分已作廢**，
+   它列的「還沒做」也跟著作廢，不要撿回來做。
+2. **風格拍板 DECISIONS #238**：兩種模式（亮色「閱讀」／暗色「科技」）、卡片式標註＋細引線＋垂直爆炸拆解，
+   **所有 2D／3D 圖都改**；排程在 `docs/diagram_restyle_plan.md`（七波、每波 ≤3 支 agent）。
+   Andy 稍後再補 **3D 三個推薦**（玻璃機櫃／發光流線／半拉出托盤／卡片與元件同色串聯），已寫進 #238「3D 補充」並轉給兩支地基 agent。
+3. **地基兩支 agent 進行中**（回來要合併、驗、推）：
+   - `style-system`（分支 `claude/style-system`）：`_STYLE.md`、兩套色票、卡片磨砂玻璃、引線發光端點、
+     `--dg-sig`／`--dg-pwr`／`--dg-cool` 三組語意色、卡片吃 `--dg-card-c`（2D／3D 共用介面）。
+   - `style-3d`（分支 `claude/style-3d`）：兩套打光材質、根治「環節色當底色」、`glass`／`flow`／`airflow` 三種新材質、
+     先拿 AI 伺服器機櫃當範本（外框玻璃、托盤三色、CDU 水路與 CPO 光路發光、風扇氣流、前排托盤半拉出）。
+   - `dg-elec-1`（工業自動化／鋁電容／電路保護三張一般電子）也還在跑。
+4. **dg-scale 收尾**：`2bb02d8`（規格書 §0）與 `92786e4`（`D.fold()`、`wireFolds` 自動量 `getBBox`）已 cherry-pick 進 main
+   （`5ad86c0`／`ea10c1f`）。13 張的收納草稿與 `批次22-剖析圖尺寸` 棘輪表留在 `origin/claude/dg-scale` 的 `847838d`，
+   逐張改風格時當起點；每張的 §1 高度與切法表在 `docs/diagram_restyle_plan.md`。
+
+### 這批只驗了哪幾段（cherry-pick 那兩筆，動到的只有 `site/diagrams.js` 與兩個 `.md`）
+`批次11-MLCC`、`批次13-配色與收納`、`點背景恢復`、`批次21-CoWoS去重`、`批次21-晶圓代工`、`批次21-矽晶圓`、`批次21-HBM`
+＋ `_preview.py` 全綠。**跳過 pytest**（`git diff --name-only` 只有 `site/diagrams.js`、`docs/**`、`DECISIONS.md`）。
+**沒驗的**：其他所有段落。`wireFolds` 改成執行期量高度，手寫 `data-y0/y1` 的舊路相容，四張有章節的圖高度一個數字都沒變。
+
+### 一般電子三張已合併上線（`claude/dg-elec-1` → main，2026-09-22 晚）
+| 圖 | 族群 | 收合高度 | `parts` | 備註 |
+|---|---|---|---|---|
+| 傳動件 `site/dg/motion_control.js` | `factory_automation` ＋ `machine_tool` | 686px | 40 | **0 個 `data-seg`**：那兩個族群 19 檔全部不在 `supply_chain.yaml`，畫面上明講「環節色標篩不到它們」 |
+| 鋁電容 `site/dg/alum_cap.js` | `capacitor` | 652px | 26 | 6 檔只有 2375 凱美在 YAML；立敦那句「做電蝕箔不做電容成品」用 `note:`（`none:` 只在一家都列不出時才印） |
+| 保護元件 `site/dg/circuit_protection.js` | `resistor_protect` | 660px | 24 | 6 檔全部不在 YAML；GDT 查不到台股對應 |
+
+- 規格書 91 條硬規則機器驗到 81 條、**19 條紅線全部用幾何量**；驗不動的 10 條（廠商外觀、證據表逐字比對與 X5「不准法人用語」衝突改驗 X5、低信心全稱否定、章節列 seg）理由在各檔檔頭。
+- 查不到的一律標在圖上（台灣精銳做諧波還是 RV、防爆閥刻痕位置、電解紙／電解液／陰極箔誰做的）。
+- ⚠ **動了一個棘輪**：`_uitest.py` electronics 390px 整頁門檻 **5800 → 6500**。來源是圖別選單 3 → 7 張卡（`#chainList` 866／`#groupCards` 1197／`#memberTable` 1300 都沒變），實測 +7%。
+- ⚠ **已知、刻意沒修**：390px 下 `#dgMenu` 佔 1079px，使用者要捲過一整頁卡片才看得到圖。三條鏈共用元件的手機版面問題，要改 `industry.js` 並三條鏈一起驗，不混進這批。
+- **這批只驗了**：`批次22-傳動件`、`批次22-鋁電容`、`批次22-保護元件`、`一般電子鏈`、`產業鏈導覽`、`零件誰做的`、`點背景恢復`、`手機` ＋ `_preview.py` 全綠（agent 自己那輪另外跑過 `產業` 展開的四段也綠）。**跳過 pytest**（只有 `site/**` 與 `scripts/_uitest.py`）。
+
+### 下一步
+1. 等 `style-system`／`style-3d` 回來 → 各自合併到 main → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
+2. ~~等 `dg-elec-1` 回來~~ 已合併上線（上面那節）。
+3. 地基上線後開始波 1（AI 伺服器鏈：液冷、氣冷、PSU＋BBU），照 `docs/diagram_restyle_plan.md`。
+4. 已知的小 bug 未修：MLCC 右欄在 800px 被裁到（早就有，跟這批無關）。
+
+**最後更新：2026-09-22（晚，台北）** by Claude（session 01Ec3nix…）
