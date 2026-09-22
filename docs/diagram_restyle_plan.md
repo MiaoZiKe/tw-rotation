@@ -75,11 +75,22 @@
 ### 卡片（`.lbl3d`，DOM，three3d.js 產生）
 | 介面 | 意思 | 誰寫 |
 |---|---|---|
-| `--c`（行內樣式） | 這張卡片指到的**元件顏色**：有角色就是角色色（訊號藍／電力橘／液冷青綠／光青），沒有就是材質族的底色；太暗的會先往 `--dg-lit` 提亮到編號圓點看得見 | 3D 餵、CSS 吃（邊框、編號圓點、引線、端點） |
+| `--c` ＝ `--dg-card-c`（行內樣式，兩個名字同值） | 這張卡片指到的**元件顏色**：有角色就是角色色（v3 五色系，見下），沒有就是材質族的底色；太暗的會先往 `--dg-lit` 提亮到編號圓點看得見 | 3D 餵、CSS 吃（邊框、編號圓點、引線、端點） |
 | `data-dgcolor` | 同 `--c`（給量測與不吃 CSS 變數的地方） | 3D |
 | `--seg`／`data-dgseg` | 環節色（segColor）。只用在 `.sel-part` 的外圈與零件本體的提亮，**不再當底色** | 3D |
 | `data-dgno` ＋ `em.no3d` | 編號（01、02…） | 3D 餵、CSS 畫圓點 |
-| `data-dgrole` | `sig`／`pwr`／`cool`／`opt`／空字串 | 3D |
+| `data-dgrole` | `sig`（訊號／網通）`opt`（光）`pwr`（電力／快接頭）`gpu`（運算晶粒）`ind`（NVSwitch）`cool`（CDU／manifold）`hot`（排熱）`cu`（紅銅／銅箔）或空字串 | 3D |
+| `b small.en` | 英文標題（v3 §4 中英雙語），字級 12px、顏色 `--dg3-ink-3` | 3D 餵、CSS 排 |
+
+角色色的 token 在 `.dg3d{}`：`--dg-fl-sig/opt/pwr/gpu/ind/cool/cold/hot/cu/cu-2/trace/air`；
+其中 `--dg-fl-sig/opt/pwr/cool` 寫成 `var(--dg-sig, …)` 那種形式，**style-system 若在 `:root` 定義 `--dg-sig`／`--dg-opt`／`--dg-pwr`／`--dg-cool`，3D 會直接吃它們**。
+
+### 族群晶片列 ↔ 機櫃內元件的連線（v3 §5，style-system 畫線、3D 出端點）
+`Rack3D.current` 上的三支：
+- `pointOf(id)` → `{x, y, front, part, color}`：`id` 是零件 id（`ag_cdu`）或環節 id（`thermal`），回**視窗座標**（引線的終點）與那個零件的元件色；轉到背面 `front=false` 就不要畫線。
+- `colorOf(id)` → 元件色（跟卡片的 `data-dgcolor` 同一個值，晶片上的發光小點用這個）。
+- `partsOf(seg)` → 這個環節在場景裡的零件 id 清單（一個環節可能有好幾顆，例如 thermal → cdu／uqd／fan）。
+每一幀零件在動（自轉、爆炸拆解），所以連線要在 rAF 裡重取 `pointOf`，不能存一次。
 | `data-dgpart` | 零件身分（跟 2D 的 `data-part` 同一組 key） | 3D |
 | 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
 | 文字顏色 | 一律吃 `--dg3-ink`／`-2`／`-3`，**不吃 `--ink`**（卡片底跟模式走、不跟全站主題走） | CSS |

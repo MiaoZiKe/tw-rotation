@@ -1196,15 +1196,24 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
      陰影    --dg-shadow --dg-shadow-a（模型底下那一片柔和接觸陰影）
      卡片    --dg3-card --dg3-card-line --dg3-card-sh --dg3-ink/-2/-3 --dg3-badge-ink --dg3-lead-w --dg3-halo --dg3-blur */
 .dg3d{
-  --dg-1:#162243; --dg-2:#0b132b;
-  --dg-key:1.45; --dg-fill:.55; --dg-hemi:.8; --dg-bounce:.2; --dg-rim:.5; --dg-expo:1.05;
-  --dg-l-key:#ffffff; --dg-l-fill:#b9c8e6; --dg-l-sky:#cbd4e6; --dg-l-gnd:#0b1120; --dg-l-rim:#cfe3ff;
+  /* 科技 v3（docs/diagram_style_tech_v3.md）：深邃暗藍黑 #080C14、中心微亮 #0E1626 的徑向漸層 */
+  --dg-1:var(--dg-bg-tech-2,#0E1626); --dg-2:var(--dg-bg-tech,#080C14);
+  --dg-key:1.6; --dg-fill:.55; --dg-hemi:.8; --dg-bounce:.2; --dg-rim:.7; --dg-expo:1.05;
+  /* 輪廓光用螢光藍：玻璃與金屬的邊緣會帶一圈藍色折射感（v3 §3-01） */
+  --dg-l-key:#ffffff; --dg-l-fill:#b9c8e6; --dg-l-sky:#cbd4e6; --dg-l-gnd:#0b1120; --dg-l-rim:#58C4FF;
   --dg-sat:.9; --dg-mix:#dde6f5; --dg-mix-k:.08;
   --dg-rough-k:1; --dg-metal-k:1;
   --dg-lit:#ffffff; --dg-dim:#070b14;
-  --dg-glass:#9fc3d8; --dg-glass-a:.22;
-  --dg-led:.9; --dg-led-c:#86f3b4; --dg-sel-em:.28; --dg-part-em:.5; --dg-flow-em:.9; --dg-flow-a:.95;
-  --dg-fl-sig:#4fa3ff; --dg-fl-pwr:#ff9d4d; --dg-fl-cool:#38d9b0; --dg-fl-opt:#3ee0ff; --dg-fl-air:#b9c8e6;
+  --dg-glass:#58C4FF; --dg-glass-a:.16;
+  --dg-led:.9; --dg-led-c:#22E5C8; --dg-sel-em:.28; --dg-part-em:.5; --dg-flow-em:.9; --dg-flow-a:.95;
+  /* v3 §2 五色系（每一類元件固定一個主色）。style-system 若在 :root 定義 --dg-sig／--dg-pwr／--dg-cool／--dg-opt
+     這裡會直接吃它們（var 的第一個值），沒有才用 v3 的值。
+       sig 螢光藍＝訊號／網通／背板／ToR   opt 松石綠＝光模組／CPO／光路   pwr 亮橙＝電力／快接頭
+       gpu 紫＝GPU／CoWoS 晶粒            ind 靛藍＝NVSwitch               cool 霓虹綠＝CDU／manifold 外殼
+       cold 冷水管（螢光藍） hot 熱水管（發光紅）  cu 紅銅（冷板、銅箔） trace 金色走線  air 氣流（淡藍白） */
+  --dg-fl-sig:var(--dg-sig,#58C4FF); --dg-fl-sig-2:#2F7FE0; --dg-fl-opt:var(--dg-opt,#22E5C8); --dg-fl-pwr:var(--dg-pwr,#FF8A3D);
+  --dg-fl-gpu:#9B6DFF; --dg-fl-ind:#7C86FF; --dg-fl-cool:var(--dg-cool,#3BF29A);
+  --dg-fl-cold:#58C4FF; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A; --dg-fl-air:#BFE9FF;
   --dg-shadow:#000000; --dg-shadow-a:.5;
   --dg3-card:rgba(13,19,38,.6); --dg3-card-line:rgba(160,190,240,.26); --dg3-card-sh:0 8px 24px -12px rgba(0,0,0,.6);
   --dg3-ink:#eef3ff; --dg3-ink-2:#b5c2de; --dg3-ink-3:#8ea0c4; --dg3-badge-ink:#0b132b;
@@ -1219,7 +1228,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   --dg-lit:#ffffff; --dg-dim:#4a443c;
   --dg-glass:#eef1f3; --dg-glass-a:.38;
   --dg-led:0; --dg-sel-em:0; --dg-part-em:.1; --dg-flow-em:0; --dg-flow-a:.55;
-  --dg-fl-sig:#6d98d6; --dg-fl-pwr:#e39a5e; --dg-fl-cool:#6fb9a4; --dg-fl-opt:#5fb1c6; --dg-fl-air:#a3aab8;
+  /* 閱讀模式維持 v2 的低飽和粉彩：v3 那份只套科技模式 */
+  --dg-fl-sig:#6d98d6; --dg-fl-sig-2:#5a7fb8; --dg-fl-pwr:#e39a5e; --dg-fl-cool:#6fb9a4; --dg-fl-opt:#5fb1c6; --dg-fl-air:#a3aab8;
+  --dg-fl-gpu:#9a8fc4; --dg-fl-ind:#8d94c9; --dg-fl-cold:#6d98d6; --dg-fl-hot:#d98a8a; --dg-fl-cu:#c9a08a; --dg-fl-cu-2:#a8785e; --dg-fl-trace:#c9b48a;
   --dg-shadow:#5a4f40; --dg-shadow-a:.22;
   --dg3-card:rgba(255,255,255,.84); --dg3-card-line:rgba(60,55,48,.16); --dg3-card-sh:0 8px 22px -14px rgba(60,50,40,.45);
   --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#262320;
@@ -1244,6 +1255,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .lbl3d{-webkit-backdrop-filter:blur(var(--dg3-blur)) saturate(1.15);backdrop-filter:blur(var(--dg3-blur)) saturate(1.15)}
 }
 .lbl3d b{display:block;font-weight:700;color:var(--dg3-ink);padding-left:24px;min-height:18px}
+/* v3 §4：中英雙語標題。英文一行、字級守 12px 下限、顏色退一階 */
+.lbl3d b small.en{display:block;font-weight:500;font-size:var(--dg-fs-min,12px);color:var(--dg3-ink-3);letter-spacing:.01em;line-height:1.3}
 /* 編號圓點：跟卡片同色、字用深色（不管圓點是霓虹藍還是粉彩藍，深字都讀得到）；字級不低於 12px */
 .lbl3d em.no3d{position:absolute;left:8px;top:6px;width:18px;height:18px;border-radius:50%;
   background:var(--c,var(--dg3-ink-3));color:var(--dg3-badge-ink);font-style:normal;font-weight:700;
