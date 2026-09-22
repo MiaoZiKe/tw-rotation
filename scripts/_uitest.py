@@ -169,15 +169,110 @@ def click(pg, sel: str, wait: int = 300):
        一次失敗就是 30 秒，`t_overview` 光這樣就卡掉快 20 分鐘，
        整輪驗收因此要跑 25 分鐘以上。改成 6 秒 —— 點不到就是點不到，
        等 30 秒不會變成點得到，只是讓每一輪驗收都更難跑完。
+
+    3. **2026-09-23：Playwright 捲進畫面之後，元素可能正好停在 sticky 的 topbar 底下。**
+       剖析圖工具列第三版搬到「圖內右下角」，3D 開起來時整個區塊高 700px 以上，
+       工具列自然落在很下面；Playwright 只會「捲到剛好看得到」，那個位置就是視窗頂端，
+       而頂端有一條 sticky 的搜尋列蓋著 —— 回的錯是
+       `<input id="q"> from <header class="topbar"> subtree intercepts pointer events`。
+       真人遇到這種情況會再多捲一點把鈕露出來，所以這裡也一樣：
+       **只有在「元素不在視窗內、或卡在 topbar 底下」時**才先把它捲到中央。
+       已經好好露在畫面上的東西不動它 —— 不然會弄壞那些「點完之後頁面不准捲」的斷言。
     """
     try:
+        try:
+            # ⚠ 只對**剖析圖工具列**（#dg…）做這件事。
+            #   對所有選擇器都自動捲的話，會弄壞那些「點完之後畫面不准捲」的既有斷言
+            #   （實測：點剖析圖零件那一條立刻從 777 變成 199，是我自己捲的）。
+            need = sel.startswith("#dg") and pg.evaluate("""(sel) => { const e = document.querySelector(sel);
+                if (!e) return false;
+                const r = e.getBoundingClientRect();
+                const hd = document.querySelector('header.topbar');
+                const top = hd ? hd.getBoundingClientRect().bottom : 0;
+                return r.bottom <= top + 4 || r.top >= innerHeight - 4 || r.top < top + 2; }""", sel)
+            if need:
+                # 不用 `scrollIntoView`：它會去捲「最近的可捲祖先」，而這一頁有好幾層
+                # `overflow:hidden` 的容器 —— 那種容器程式上仍然捲得動，於是它捲的是容器、
+                # 視窗一動也不動，元素還是停在畫面外（實測：3D 拖曳完之後工具列停在 y=1167，
+                # scrollIntoView 呼叫前後都是 1167，Playwright 接著就一路等到逾時）。
+                # 直接捲**視窗**才一定有效。
+                # ⚠ 一定要 `behavior:'instant'`：這個站的 `html` 是 `scroll-behavior:smooth`，
+                #   預設的 scrollBy 會變成**動畫**，等 260ms 位置根本還沒到
+                #   （實測：呼叫前後元素都停在 y=1167，Playwright 於是一路等到逾時，
+                #    6 秒後回來一看，捲動其實「後來」才完成 —— 看起來像是捲不動）。
+                pg.eval_on_selector(sel, "e => { const r = e.getBoundingClientRect();"
+                                         " window.scrollBy({ top: r.top + r.height / 2 - innerHeight / 2,"
+                                         " behavior: 'instant' }); }")
+                pg.wait_for_timeout(260)
+        except Exception:  # noqa: BLE001
+            pass
         loc = pg.locator(sel).first
         loc.click(timeout=6000)          # locator.click 自己會捲進畫面並重試
         pg.wait_for_timeout(wait)
         return True
+    except Exception:  # noqa: BLE001
+        pass
+    # 4. 版面剛動完的那一瞬間會點不到（3D 掛載時 #dgSec 連續改高度好幾幀，
+    #    浮在圖內的工具列跟著重新定位，Playwright 的「位置穩定」檢查就卡住了）。
+    #    等半秒再試一次 —— 真的被蓋住的東西第二次一樣點不到，所以這不會蓋掉真的 bug。
+    try:
+        pg.wait_for_timeout(600)
+        if sel.startswith("#dg"):
+            return _dg_mouse_click(pg, sel, wait)
+        pg.locator(sel).first.click(timeout=6000)
+        pg.wait_for_timeout(wait)
+        return True
     except Exception as e:  # noqa: BLE001
-        fails.append(f"點不下去 {sel}：{type(e).__name__} {str(e).splitlines()[0]}")
+        # 把「被誰擋住」那一行也記下來 —— 只記第一行的話，看到的永遠只有「逾時」，
+        # 真正的原因（哪個元素攔截了滑鼠、元素在不在畫面上）反而被丟掉。
+        why = [ln.strip() for ln in str(e).splitlines()
+               if "intercepts pointer events" in ln or "not stable" in ln or "not visible" in ln]
+        fails.append(f"點不下去 {sel}：{type(e).__name__} {str(e).splitlines()[0]}"
+                     + (f"　←　{why[-1][:150]}" if why else ""))
         return False
+
+
+def _dg_mouse_click(pg, sel: str, wait: int = 300):
+    """用**滑鼠座標**點剖析圖工具列上的鈕。
+
+    為什麼這一組鈕要特別處理（2026-09-23，第三版把工具列搬進圖內右下角之後）：
+      · 它浮在圖的右下角，而 3D 開起來時那張圖高 700px 以上 —— 鈕自然落在很下面；
+      · 這個站的 `html` 是 `scroll-behavior:smooth`，捲動是**動畫**，
+        Playwright 量到的位置常常是動畫中途的值，「位置穩定」那一關永遠過不了；
+      · 3D 掛載是分好幾幀長出來的，那幾幀裡工具列會跟著重新定位。
+    所以這裡自己做：先用 instant 把它捲到畫面中央 → **等到它的座標連續兩次一樣**（真的停了）
+    → 再用滑鼠點那個座標。滑鼠是真的移過去按下去的，有東西蓋住它就會點到那個東西，
+    後面那幾條「相機真的重設了」「鈕的字真的換了」會照樣紅 —— 蓋不掉真的 bug。
+    """
+    try:
+        pg.eval_on_selector(sel, "e => { const r = e.getBoundingClientRect();"
+                                 " window.scrollBy({ top: r.top + r.height / 2 - innerHeight / 2,"
+                                 " behavior: 'instant' }); }")
+    except Exception:  # noqa: BLE001
+        fails.append(f"點不下去 {sel}：找不到這個元素")
+        return False
+    last, box = None, None
+    for _ in range(12):
+        pg.wait_for_timeout(180)
+        box = pg.evaluate("""(sel) => { const e = document.querySelector(sel); if (!e) return null;
+            const r = e.getBoundingClientRect(); const st = getComputedStyle(e);
+            return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+                     w: Math.round(r.width), h: Math.round(r.height),
+                     vis: st.display !== 'none' && st.visibility !== 'hidden' && !e.hidden,
+                     inView: r.top >= 0 && r.bottom <= innerHeight }; }""", sel)
+        if box and last and box == last:
+            break
+        last = box
+    if not box or not box["vis"] or box["w"] < 2 or box["h"] < 2:
+        fails.append(f"點不下去 {sel}：元素不存在／看不見／沒有面積 {box}")
+        return False
+    if not box["inView"]:
+        fails.append(f"點不下去 {sel}：捲不到畫面內 {box}")
+        return False
+    pg.mouse.move(box["x"], box["y"])
+    pg.mouse.click(box["x"], box["y"])
+    pg.wait_for_timeout(wait)
+    return True
 
 
 def click_moving(pg, sel: str, wait: int = 300):
@@ -1471,14 +1566,15 @@ def t_industry(pg, base):
         # 改成把不相干的族群節點壓暗 —— 一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選
         changed("點環節 chip 圖上真的把不相干的族群壓暗了", before["dim"], after["dim"])
         _cg_chip(pg, "#cgSegs .segchip.sel", 500)
+        _cg_close_filter(pg)
 
     # --- 點族群卡：成分股要真的被篩
     if count(pg, "#cgGraph .cgnode[data-gid]"):
         b = count(pg, "#memberTable tbody tr")
-        click(pg, "#cgGraph .cgnode[data-gid] .cgm", 700)
+        click(pg, "#cgGraph .cgnode[data-gid] .cghit", 900)
         a = count(pg, "#memberTable tbody tr")
         ok("點族群卡真的篩選了成分股", a < b or count(pg, "#cgGraph .cgnode[data-gid].sel") > 0, f"{b} → {a}")
-        click(pg, "#cgGraph .cgnode[data-gid].sel .cgm", 500)
+        click(pg, "#cgGraph .cgnode[data-gid].sel .cghit", 700)
 
     # --- 點剖析圖零件：只亮起來＋在原地說明，不准動下方成分股（Andy）
     if count(pg, "#prodDiagram [data-seg]"):
@@ -1695,10 +1791,10 @@ def t_electronics(pg, base):
         chip = f'#cgSegs .segchip[data-seg="{seg}"]'
         if not pg.evaluate(f"() => !!document.querySelector({chip!r})"):
             continue
-        click(pg, chip, 900)
+        _cg_chip(pg, chip, 1000)
         side = pg.evaluate("() => [...document.querySelectorAll('#cgSegBox a.lk')].map(a => a.getAttribute('href') || '')")
         who += [h.replace("#stock/", "") for h in side if h.startswith("#stock/")]
-        click(pg, chip, 700)
+        _cg_chip(pg, chip, 800)
     ok("鴻海 2317 在一般電子鏈上看得到（節點在 assembly，靠 CHAIN_EXTRA 拉進來）", "2317" in who, who[:12])
     ok("智邦 2345 在一般電子鏈上看得到（節點在 switch）", "2345" in who, who[:12])
     ok("面板雙虎的節點在（友達 2409 / 群創 3481）", "2409" in who and "3481" in who, who[:12])
@@ -2494,15 +2590,18 @@ def t_new_industry(pg, base):
             chipSeg: [...document.querySelectorAll('#cgSegs .segchip.sel')].map(c => c.dataset.seg),
             tiles: document.querySelectorAll('#cgGraph .cgnode[data-gid].sel').length,
             tileIds: [...document.querySelectorAll('#cgGraph .cgnode[data-gid].sel')].map(t => t.dataset.gid),
-            subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-            note: !(document.getElementById('cgNote') || {}).hidden,
+            dots: document.querySelectorAll('#cgGraph .cgdot').length,
+            note: !(document.getElementById('cgSide') || {}).hidden,
             title: (document.getElementById('memberTitle')||{}).innerText,
             codes: [...document.querySelectorAll('#memberTable tbody tr')].map(r => r.dataset.code) })"""
         before = pg.evaluate(SNAP)
         ok(f"{vw}px 點之前什麼都沒選（不然下面的「變了」不算數）",
-           before["chips"] == 0 and before["tiles"] == 0 and before["subs"] == 0, before)
-        # 真的用滑鼠點那顆節點（點的是數字那一列，族群名是連結、點下去是去族群頁）
-        if not click(pg, node + " .cgm", 1300):
+           before["chips"] == 0 and before["tiles"] == 0 and not before["note"], before)
+        # ★ 第二版起個股小點**一直都在**（數量＝成分股檔數），不是點了才長出來，
+        #   所以「點之前沒選」不能再拿 subs==0 當條件，改成「右側資訊欄還沒打開」。
+        ok(f"{vw}px 族群周圍一開始就畫得出個股小點", before["dots"] > 30, before["dots"])
+        # 真的用滑鼠點那顆節點（點的是命中圈 .cghit —— 第二版的造型本身一律不吃滑鼠）
+        if not click(pg, node + " .cghit", 1400):
             continue
         after = pg.evaluate(SNAP)
         # ---- 舊的「點族群卡片 → 成分股被篩、卡片亮起來」（#groupCards）的等價條款
@@ -2510,32 +2609,49 @@ def t_new_industry(pg, base):
         ok(f"{vw}px 被選起來的就是日月光所屬的族群 {gid}", after["tileIds"] == [gid], after["tileIds"])
         ok(f"{vw}px 點族群節點之後成分股筆數真的變少", after["rows"] < before["rows"],
            f"{before['rows']} → {after['rows']}")
-        # ---- 舊的「環節卡標題底下真的排出個股小卡」的等價條款：就地展開成個股子節點
-        ok(f"{vw}px 點節點之後真的就地展開成個股子節點", after["subs"] > 0, after["subs"])
-        ok(f"{vw}px 選起來的節點旁邊真的出現「它連到誰、為什麼」的小卡", after["note"], after)
-        sub = '#cgGraph .cgnode.cgsub[data-code="3711"]'
-        if ok(f"{vw}px 展開出來的子節點裡找得到日月光投控 3711",
+        # ---- 舊的「環節卡標題底下真的排出個股小卡」的等價條款：
+        #   第二版改成「小點一直都在、右側資訊欄講得出這個族群連到誰」，
+        #   所以量的是資訊欄真的打開了（小點的存在改由上面那一條守）。
+        ok(f"{vw}px 點節點之後右側資訊欄真的打開了（它連到誰、代表公司都在裡面）", after["note"], after)
+        sub = '#cgGraph .cgdot[data-code="3711"]'
+        if ok(f"{vw}px 圖上找得到日月光投控 3711 的個股小點",
               pg.evaluate(f"() => !!document.querySelector({sub!r})")):
-            click(pg, sub + " .cgm", 1300)
+            pg.eval_on_selector(sub, "e => e.scrollIntoView({block:'center'})")
+            click(pg, sub, 1400)
             aft2 = pg.evaluate(SNAP)
             # ---- 不准跳頁（N7 既有行為不能被這次改動弄壞）
-            ok(f"{vw}px 點個股子節點不會跳去個股頁（hash 沒變）", aft2["hash"] == before["hash"],
-               f"{before['hash']} → {aft2['hash']}")
-            ok(f"{vw}px 點個股子節點仍然會開原地面板，面板裡才有「看個股頁」",
+            # ⚠ 基準是「點完族群之後」的 hash：選族群本來就會把網址對到它的剖析圖
+            #   （syncDgHash，#groupCards 時代就是這樣）。這條守的是**點個股**不跳頁。
+            ok(f"{vw}px 點個股小點不會跳去個股頁（hash 沒變）", aft2["hash"] == after["hash"],
+               f"{after['hash']} → {aft2['hash']}")
+            ok(f"{vw}px 點個股小點仍然會開原地資訊欄，欄裡才有「個股頁」連結",
                pg.evaluate("""() => { const b = document.getElementById('cgSide');
                    return !!b && !b.hidden && b.textContent.indexOf('日月光投控') >= 0
                               && b.textContent.indexOf('個股頁') >= 0; }"""))
             # ★ 第二版起「產業關係」不再用浮出來的 #coBox，而是住在右側資訊欄 #cgSide。
             #   守的事情一樣：它要在圖的**旁邊**，不是擠在圖下面。
-            ok(f"{vw}px 資訊欄是排在關聯圖旁邊的（不是擠在圖下面）",
-               pg.evaluate("""() => { const s = document.getElementById('cgSide'), g = document.getElementById('cgGraph');
-                   if (!s || s.hidden || !g) return false; const rs = s.getBoundingClientRect(), rg = g.getBoundingClientRect();
-                   return rs.left >= rg.right - 2; }"""))
+            # ⚠ 1100px 以下資訊欄**本來就會掉到圖下面**（`.cgpanel` 的 media query，
+            #   硬並排會把圖擠到看不清）。所以寬螢幕要求「在旁邊」，窄螢幕要求「在下面而且還看得到」。
+            beside = pg.evaluate("""() => { const s = document.getElementById('cgSide'), g = document.getElementById('cgGraph');
+                   if (!s || s.hidden || !g) return null; const rs = s.getBoundingClientRect(), rg = g.getBoundingClientRect();
+                   return { right: rs.left >= rg.right - 2, below: rs.top >= rg.bottom - 2, h: Math.round(rs.height) }; }""")
+            if vw > 1100:
+                ok(f"{vw}px 資訊欄是排在關聯圖旁邊的（不是擠在圖下面）",
+                   bool(beside) and beside["right"], beside)
+            else:
+                ok(f"{vw}px 窄畫面資訊欄掉到圖下面，但仍然看得到內容",
+                   bool(beside) and beside["below"] and beside["h"] > 80, beside)
         # ---- 再點一次節點要能取消（不然選下去就出不來）
-        click(pg, node + " .cgm", 1100)
+        # ⚠ 中間點過個股小點，所以現在選的是「個股」：點族群球會先**選回族群**，
+        #   再點一次才是取消。兩步都要驗 —— 少驗第一步就看不出「選回來」有沒有壞。
+        click(pg, node + " .cghit", 1300)
+        again = pg.evaluate(SNAP)
+        ok(f"{vw}px 點過個股之後再點族群球，會選回那個族群",
+           again["tileIds"] == [gid], again["tileIds"])
+        click(pg, node + " .cghit", 1300)
         back = pg.evaluate(SNAP)
-        ok(f"{vw}px 再點一次同一顆節點可以取消（成分股與子節點都回得去）",
-           back["tiles"] == 0 and back["subs"] == 0 and back["rows"] == before["rows"], f"{after} → {back}")
+        ok(f"{vw}px 再點一次同一顆節點可以取消（成分股筆數與選取狀態都回得去）",
+           back["tiles"] == 0 and back["rows"] == before["rows"], f"{again} → {back}")
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # ============================================================ 需求二
     # 產業鏈圖預設收合，但兩種狀態都要驗 —— 展開時 #chainMap 會去捲位置，
@@ -2618,14 +2734,18 @@ def t_new_industry(pg, base):
             return { page: Math.round(document.documentElement.scrollHeight),
                      graph: h('#cgGraph'), oldList: h('#chainList'), oldMap: h('#chainMap'),
                      nodes: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,
-                     tags: document.querySelectorAll('#cgGraph .cgnode .cgtags a.lk').length }; }"""
+                     tags: document.querySelectorAll('#cgGraph .cgdot[data-code]').length }; }"""
         g1 = pg.evaluate(GEO)
         ok(f"{vw}px 產業鏈頁預設就是族群關聯圖（節點畫出來了）", g1["nodes"] >= 8, g1)
-        ok(f"{vw}px 每個族群節點底下真的排出標籤式個股（Andy 的原話）", g1["tags"] >= 20, g1)
+        # 第二版起「標籤式個股」變成**族群周圍的小點**（一檔一顆，不省略），
+        # 所以量的對象從 `.cgtags a.lk` 換成 `.cgdot[data-code]`，門檻照舊。
+        ok(f"{vw}px 每個族群節點周圍真的排出個股小點（Andy 的原話：一檔一顆）", g1["tags"] >= 20, g1)
         ok(f"{vw}px 舊的環節卡清單與舊關聯圖真的不在頁面上了",
            g1["oldList"] == 0 and g1["oldMap"] == 0, g1)
-        ok(f"{vw}px 關聯圖高度被釘住（不超過 660px，資料再多也不會把頁面撐長）",
-           430 <= g1["graph"] <= 662, g1["graph"])
+        # 第二版的框塞不下時會補高（上限 720＝CSS clamp 的上限），
+        # 而且會先把節點縮小才補高 —— 「上下框度太長」那條抱怨還是守得住。
+        ok(f"{vw}px 關聯圖高度被釘住（不超過 720px，資料再多也不會把頁面撐長）",
+           430 <= g1["graph"] <= 724, g1["graph"])
         was = {1366: 4939, 1500: 5026, 1920: 5147}[vw]
         ok(f"{vw}px 半導體鏈整頁高度真的變短（改動前 {was}）",
            g1["page"] <= PAGE_MAX[vw], f"整頁 {g1['page']}，門檻 {PAGE_MAX[vw]}")
@@ -2696,22 +2816,41 @@ def t_new_industry(pg, base):
         if not ok(f"{cid} 關聯圖排得出族群節點", n_node >= 5, n_node):
             continue
         # --- 每顆節點都有族群名、漲跌、占比與標籤式個股（Andy 指名要的四樣）
+        # ★ 第二版的節點是 SVG 大圓點，四樣資訊改成：族群名＝旁邊的 `.cglab`，
+        #   今日漲跌與占比＝節點的 `<title>`（滑過去就看得到，也是無障礙讀得到的文字）。
+        #   守的事情一模一樣：**每一顆節點都講得出這三件事**。
         full = pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid]')]
-            .filter(n => n.querySelector('.cgt a.lk') && n.querySelector('.cgm .chg')
-                      && /占 [\\d.]+%/.test(n.querySelector('.cgm').textContent || '')).length""")
+            .filter(n => {
+              const t = (n.querySelector('title') || {}).textContent || '';
+              const lab = document.querySelector('#cgGraph .cglab[data-gid="' + n.dataset.gid + '"]');
+              return !!lab && (lab.textContent || '').trim().length > 0
+                  && /占 [\\d.]+%/.test(t) && /[+-]?[\\d.]+%/.test(t); }).length""")
         ok(f"{cid} 每顆族群節點都寫得出「族群名＋今日漲跌＋占比」（{n_node} 顆）", full == n_node, full)
+        # 「標籤式個股」第二版改成族群周圍的小點（一檔一顆）
         tagged = pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid]')]
-            .filter(n => n.querySelector('.cgtags a.lk')).length""")
-        ok(f"{cid} 至少八成的節點底下排得出標籤式個股", tagged >= n_node * 0.8, f"{tagged}/{n_node}")
+            .filter(n => document.querySelector('#cgGraph .cgdot[data-gid="' + n.dataset.gid + '"]')).length""")
+        ok(f"{cid} 至少八成的節點周圍排得出個股小點", tagged >= n_node * 0.8, f"{tagged}/{n_node}")
         # --- 紅漲綠跌：漲的是紅字、跌的是綠字（台股慣例，這是會讓人做錯決定的那一種錯）
+        # ★ 紅漲綠跌的落點也跟著搬家：第二版節點本身的顏色是**分類色**（圖例那五種），
+        #   漲跌數字改住在 hover 浮出的小卡（`.cgtip`）與右側資訊欄裡。
+        #   所以這一條改成「滑到一顆族群上，小卡裡每一檔的漲跌顏色方向要對」。
+        pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
+        pg.wait_for_timeout(250)
+        hov = pg.evaluate("""() => { const n = document.querySelector('#cgGraph .cgnode[data-gid] .cghit');
+            if (!n) return null; const r = n.getBoundingClientRect();
+            return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }""")
+        if hov:
+            pg.mouse.move(hov["x"], hov["y"]); pg.wait_for_timeout(600)
         col = pg.evaluate("""() => { const bad = [];
-            document.querySelectorAll('#cgGraph .cgnode .cgm .chg').forEach(e => {
+            // `em.sh` 是「占這個族群的成交值」百分比，不是漲跌 —— 不要拿它去驗紅漲綠跌
+            document.querySelectorAll('#cgTip .ti em:not(.sh), #cgSide .cgp-box b').forEach(e => {
               const v = parseFloat((e.textContent || '').replace(/[^\\d.+-]/g, ''));
               const c = e.className;
               if (v > 0 && !/\\bup\\b/.test(c)) bad.push([e.textContent, c]);
               if (v < 0 && !/\\bdown\\b/.test(c)) bad.push([e.textContent, c]); });
             return bad; }""")
-        ok(f"{cid} 節點上的漲跌幅紅漲綠跌方向正確", col == [], col[:4])
+        ok(f"{cid} hover 浮出的個股小卡裡漲跌幅紅漲綠跌方向正確", col == [], col[:4])
+        pg.mouse.move(5, 5); pg.wait_for_timeout(300)
         # --- 點節點 → 成分股真的被篩、旁邊小卡真的寫出「它連到誰、為什麼」
         # ⚠ 要點的是**那一檔所屬的族群**，不是圖上第一顆 —— 點錯的話下面「找得到它的子節點」
         #   一定找不到（第一次跑就踩到，三條鏈全部被記成「不在前 14 檔」）。
@@ -2719,33 +2858,35 @@ def t_new_industry(pg, base):
         gid = pg.evaluate("(c) => (window.Link && window.Link.cgroup && window.Link.cgroup[c]) || ''", code)
         if not gid or not pg.evaluate(f"() => !!document.querySelector('#cgGraph .cgnode[data-gid=\"{gid}\"]')"):
             gid = pg.evaluate("() => document.querySelector('#cgGraph .cgnode[data-gid]').dataset.gid")
-        click(pg, f'#cgGraph .cgnode[data-gid="{gid}"] .cgm', 1300)
+        click(pg, f'#cgGraph .cgnode[data-gid="{gid}"] .cghit', 1400)
         a = pg.evaluate(SNAP2)
         ok(f"{cid} 點族群節點：成分股真的被篩、節點真的亮起來",
            a["tiles"] == [gid] and a["rows"] < b["rows"], f"{b['rows']} → {a['rows']}　{a['tiles']}")
-        note = pg.evaluate("() => (document.getElementById('cgNote') || {}).innerText || ''")
+        # ★ 第一版的「旁邊那張小卡」`#cgNote` 第二版變成右側資訊欄 `#cgSide`（位置變、內容不變）
+        note = pg.evaluate("() => (document.getElementById('cgSide') || {}).innerText || ''")
         ok(f"{cid} 選起來的節點旁邊真的附註了關聯說明（上下游，或明講還沒建立）",
-           ("上游" in note or "下游" in note or "還沒有建立" in note) and "占本鏈成交值" in note,
+           ("上游" in note or "下游" in note or "還沒有" in note) and "成交占比" in note,
            note[:120])
-        ok(f"{cid} 小卡裡的族群名與個股名都是真的連結（可以走到那一頁）",
-           pg.evaluate("""() => { const b = document.getElementById('cgNote');
+        ok(f"{cid} 資訊欄裡的族群名與個股名都是真的連結（可以走到那一頁）",
+           pg.evaluate("""() => { const b = document.getElementById('cgSide');
                return !!b && [...b.querySelectorAll('a.lk')].length > 0
                    && [...b.querySelectorAll('a.lk')].every(a =>
                         /^#(stock|industry|themes)\\//.test(a.getAttribute('href') || '')); }"""))
         # --- 點個股子節點：面板真的開、不跳頁
-        sub = f'#cgGraph .cgnode.cgsub[data-code="{code}"]'
+        sub = f'#cgGraph .cgdot[data-code="{code}"]'
         if pg.evaluate(f"() => !!document.querySelector({sub!r})"):
             # ⚠ 基準要取「點完族群之後」的 hash，不是最一開始的 ——
             #   選族群本來就會把網址對到它的剖析圖（syncDgHash，既有行為，#groupCards 時代就是這樣）。
             #   這一條要守的是「**點個股**不跳頁」，所以比的是點子節點前後。
             h_mid = pg.evaluate("() => location.hash")
-            click(pg, sub + " .cgm", 1300)
+            pg.eval_on_selector(sub, "e => e.scrollIntoView({block:'center'})")
+            click(pg, sub, 1400)
             c = pg.evaluate(SNAP2)
-            ok(f"{cid} 點個股子節點 {cname} 開了右側產業關係面板、而且沒有跳頁",
+            ok(f"{cid} 點個股小點 {cname} 開了右側產業關係面板、而且沒有跳頁",
                c["side"] and cname in c["box"] and c["hash"] == h_mid,
                {"hash": f"{h_mid} → {c['hash']}", "box": c["box"][:40]})
         else:
-            notes.append(f"{cid} 的 {cname} 不在前 {14} 檔子節點裡（依成交值取），這一條略過")
+            notes.append(f"{cid} 的 {cname} 不在這條鏈的關聯圖上（族群屬於別條鏈），這一條略過")
         # --- 點環節色標：同一個 segFilter，再點一次取消
         if pg.evaluate(f"() => !!document.querySelector('#cgSegs .segchip[data-seg=\"{seg_click}\"]')"):
             _cg_chip(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1100)
@@ -2780,7 +2921,7 @@ def t_new_industry(pg, base):
         # 塞不下就交給拖曳平移（批次25-關聯圖 那一段真的用滑鼠拖過一次）。
         if vw != 390:
             ok(f"{vw}px 節點一顆都沒有跑出關聯圖的框", m["out"] == 0, m)
-        ok(f"{vw}px 節點上最小的字（含縮放）仍然 ≥ 11px", m["minFontPx"] >= 11, m["minFontPx"])
+        ok(f"{vw}px 節點上最小的字（含縮放）仍然 ≥ 11px", m["minLabPx"] >= 11, m["minLabPx"])
         ok(f"{vw}px 關聯圖是置中的（外接盒中心與容器中心差 ≤ 2%）",
            abs(m["dx"]) <= 2 and abs(m["dy"]) <= 2, m)
         ok(f"{vw}px 沒有橫向捲軸",
@@ -2790,12 +2931,14 @@ def t_new_industry(pg, base):
         r_all = count(pg, "#memberTable tbody tr")
         gid = pg.evaluate("() => { const n = document.querySelector('#cgGraph .cgnode[data-gid]'); return n ? n.dataset.gid : ''; }")
         if gid:
-            pg.eval_on_selector(f'#cgGraph .cgnode[data-gid="{gid}"]', "t => t.click()"); pg.wait_for_timeout(1200)
+            # 第二版的節點是 SVG 的 <g> —— **SVG 元素沒有 .click()**（那是 HTMLElement 才有的），
+            # 所以窄畫面這一段改成真的用滑鼠點它的命中圈，跟真人一樣。
+            click(pg, f'#cgGraph .cgnode[data-gid="{gid}"] .cghit', 1200)
             sel = pg.evaluate("""() => ({ rows: document.querySelectorAll('#memberTable tbody tr').length,
                 on: document.querySelectorAll('#cgGraph .cgnode[data-gid].sel').length })""")
             ok(f"{vw}px 窄畫面照樣點得到（點了成分股真的被篩、節點真的亮）",
                sel["on"] == 1 and sel["rows"] < r_all, {"全部": r_all, **sel})
-            pg.eval_on_selector(f'#cgGraph .cgnode[data-gid="{gid}"]', "t => t.click()"); pg.wait_for_timeout(1100)
+            click(pg, f'#cgGraph .cgnode[data-gid="{gid}"] .cghit', 1100)
             ok(f"{vw}px 再點一次真的取消篩選",
                count(pg, "#cgGraph .cgnode[data-gid].sel") == 0
                and count(pg, "#memberTable tbody tr") == r_all)
@@ -6448,12 +6591,10 @@ def t_relpanel(pg, base):
     if not gid or not pg.evaluate(f"() => !!document.querySelector({node!r})"):
         fails.append(f"關聯圖上找不到台積電所屬的族群節點（gid={gid!r}），後面整段驗不了")
         return
-    click(pg, node + " .cgm", 1300)
-    sub = '#cgGraph .cgnode.cgsub[data-code="2330"]'
-    if not pg.evaluate(f"() => !!document.querySelector({sub!r})"):
-        fails.append("展開族群之後找不到台積電 2330 的子節點，後面整段驗不了")
+    # ★ 第二版起個股是族群大圓點**周圍的小點**，一直都在圖上，不必先展開族群
+    if not _cg_open_stock(pg, "2330"):
+        fails.append("關聯圖上點不開台積電 2330 的資訊欄，後面整段驗不了")
         return
-    click(pg, sub + " .cgm", 1300)
     st = pg.evaluate("""() => { const b = document.getElementById('cgSide'); if (!b || b.hidden) return null;
         const li = [...b.querySelectorAll('.relbox li')];
         const heads = [...b.querySelectorAll('.relbox h5')].map(h => h.textContent);
@@ -6462,7 +6603,10 @@ def t_relpanel(pg, base):
                  rows: li.length, items: li.filter(x => (x.querySelector('.it')||{}).textContent.trim()).length,
                  conf: b.querySelectorAll('.relbox li .cf').length,
                  dep: b.querySelectorAll('.relbox .dep').length,
-                 side: !!b.classList.contains('relside'),
+                 // 第一版靠 `#coBox` 的 `.relside` class 判斷；第二版的資訊欄是 `#cgSide`，
+                 // 它本來就住在圖的右邊，所以直接用幾何判斷（量的事情一模一樣）
+                 side: (() => { const m = document.getElementById('cgGraph');
+                   return !!m && b.getBoundingClientRect().left >= m.getBoundingClientRect().right - 2; })(),
                  beside: (() => { const m = document.getElementById('cgGraph');
                    return !!m && b.getBoundingClientRect().left > m.getBoundingClientRect().left + 100; })() }; }""")
     if not st:
@@ -8583,7 +8727,9 @@ def t_mlcc(pg, base):
 
     def pick_group(pg_, gid):
         return pg_.evaluate("(g) => { const t = [...document.querySelectorAll('#cgGraph .cgnode[data-gid]')]"
-                            ".find(x => x.dataset.gid === g); if (!t) return false; t.click(); return true; }", gid)
+                            ".find(x => x.dataset.gid === g); if (!t) return false;"
+                            # SVG 的 <g> 沒有 .click()（那是 HTMLElement 才有的），要自己送事件
+                            " t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }", gid)
 
     # ---------------- 1. 一般電子鏈：預設**不畫任何一張圖**，改成圖別選單
     #  Andy 2026-09-21：「不能一般電子點進去後就是 MLCC，因為他不代表全部」。
@@ -11288,7 +11434,7 @@ def t_naphtha(pg, base):
     pg.goto(f"{base}#industry/traditional", wait_until="networkidle"); pg.wait_for_timeout(2300)
     n_all = _dg14_rows(pg)
     hit = pg.evaluate("""() => { const t = document.querySelector('#cgGraph .cgnode[data-gid="petrochemical"]');
-      if (!t) return false; t.click(); return true; }""")
+      if (!t) return false; t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""")
     pg.wait_for_timeout(900)
     n_one = _dg14_rows(pg)
     ok("★ 真的點「石化與塑膠產業」族群卡片 → 成分股筆數真的變少了",
@@ -11390,7 +11536,7 @@ def t_transformer(pg, base):
     pg.goto(f"{base}#industry/infrastructure", wait_until="networkidle"); pg.wait_for_timeout(2300)
     n_all = _dg14_rows(pg)
     hit = pg.evaluate("""() => { const t = document.querySelector('#cgGraph .cgnode[data-gid="heavy_electric"]');
-      if (!t) return false; t.click(); return true; }""")
+      if (!t) return false; t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""")
     pg.wait_for_timeout(900)
     n_one = _dg14_rows(pg)
     ok("★ 真的點「重電設備」族群卡片 → 成分股筆數真的變少了",
@@ -16642,6 +16788,19 @@ def _cg_open_filter(pg):
     return bool(pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }"))
 
 
+def _cg_close_filter(pg):
+    """把「篩選」面板收起來。
+
+    這不是可有可無的收尾：面板是**蓋在畫布右半邊**的浮層（340px 寬），
+    開著的時候右上那一區的族群大圓點會被它擋住，點下去 Playwright 直接逾時
+    （真人也一樣點到面板）。用完色標就要收，跟真人的動作一樣。
+    """
+    if not pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }"):
+        return True
+    click(pg, "#cgFilterBtn", 400)
+    return bool(pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && p.hidden; }"))
+
+
 def _cg_chip(pg, sel: str, wait: int = 800):
     """點一顆環節色標。
 
@@ -16673,8 +16832,9 @@ def _cg_open_stock(pg, code: str) -> bool:
 # 批次25：產業關聯圖（力導向，DECISIONS #248）
 # 規格書 docs/chain_page_graph_spec.md：第一版第五節 8 條 ＋ 第二版第六節 9～16 ＋ 第三版第三節 17～21。
 # ===========================================================================
-CG_STYLE_IDS = ["space", "tech", "bubble", "circuit"]
-CG_STYLE_NAMES = {"space": "星際", "tech": "科技", "bubble": "泡泡", "circuit": "電子電路"}
+# 第四版：Andy 從四種裡留下星際與泡泡，科技／電子電路整組移除
+CG_STYLE_IDS = ["space", "bubble"]
+CG_STYLE_NAMES = {"space": "星際", "bubble": "泡泡"}
 CG_HIT = "#cgGraph .cgnode[data-gid='{}'] .cghit"
 
 # 幾何與可讀性。外接盒量的是「大圓點＋小點＋族群名」三種東西的聯集 ——
@@ -16692,7 +16852,11 @@ CG_METRICS = """() => {
   const inner = { left: r.left + ins[3], top: r.top + ins[0],
                   right: r.right - ins[1], bottom: r.bottom - ins[2] };
   inner.width = inner.right - inner.left; inner.height = inner.bottom - inner.top;
-  const els = [...h.querySelectorAll('.cgnode, .cglab, .cgdot')];
+  /* ★ 量的是**球本身**（`.cgball`），不是整顆 `.cgnode`：
+     第四版的星際風格在球外面加了三層光暈，最外層是半徑的 2.8 倍、不透明度 5.5%。
+     那是刻意要溢出的柔光（星雲就是這樣），把它算進外接盒會得到
+     「撐滿 106%、兩顆被切掉」這種假紅 —— 使用者看到的是球、名字與小點，不是那層光。*/
+  const els = [...h.querySelectorAll('.cgball, .cglab, .cgdot')];
   if (!els.length) return { n: 0 };
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, out = 0, covered = 0;
   const ui = [...h.querySelectorAll('.cghd, .cgtop, .cglegend, .cgzoom')]
@@ -16733,7 +16897,7 @@ CG_EMPTY_PT = """() => {
 # 量 computed style，不是只看 class —— 規格書明文要求。
 CG_LOOK = """() => {
   const h = document.getElementById('cgGraph'); if (!h) return null;
-  const ball = h.querySelector('.cgball') || h.querySelector('.cgchip');
+  const ball = h.querySelector('.cgball');
   const p = h.querySelector('.cgsvg path.cge');
   const lab = h.querySelector('.cglab');
   return { style: h.dataset.cgstyle,
@@ -16742,8 +16906,42 @@ CG_LOOK = """() => {
            filt: ball ? getComputedStyle(ball).filter : '',
            edge: p ? getComputedStyle(p).stroke + '/' + getComputedStyle(p).strokeOpacity : '',
            d: p ? (p.getAttribute('d') || '').slice(0, 44) : '',
-           ink: lab ? getComputedStyle(lab).color : '' };
+           ink: lab ? getComputedStyle(lab).color : '',
+           // ---- 第四版的效果指紋（星際：多層光暈＋亮心＋星塵；泡泡：折射亮邊＋裝飾泡泡）
+           aura: h.querySelectorAll('.cgaura').length,
+           aura3: h.querySelectorAll('.cgaura.a3').length,
+           core: h.querySelectorAll('.cgcore').length,
+           refr: h.querySelectorAll('.cgrefr').length,
+           px: h.querySelectorAll('.cgpx').length,
+           mot: h.querySelectorAll('animateMotion').length,
+           stars: h.querySelectorAll('.cgstars').length,
+           deco: h.querySelectorAll('.cgdeco circle').length,
+           anim: h.dataset.cganim,
+           grad: p ? /url\(/.test(getComputedStyle(p).stroke) : false };
 }"""
+
+# 大圓點的半徑與它的成交占比（第四版硬規則：面積成比例）
+CG_RS = """() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid]')]
+    .map(n => ({ gid: n.dataset.gid, share: +n.dataset.share, r: +n.dataset.r }))"""
+
+# 量「這段時間有沒有人在跑 requestAnimationFrame」與「幀間隔」。
+# 為什麼要量 rAF：第四版的效果全部是 CSS 動畫與 SVG 原生 animateMotion，
+# 動畫交給瀏覽器排程 —— 如果哪天有人改成 JS 每幀重畫，這個數字會立刻跳起來。
+CG_FRAMES = """(ms) => new Promise(res => {
+  let n = 0; const ts = []; const t0 = performance.now();
+  const raw = window.requestAnimationFrame.bind(window);
+  window.requestAnimationFrame = (f) => { n++; return raw(f); };
+  const tick = (t) => { ts.push(t); if (t - t0 < ms) raw(tick); else {
+      window.requestAnimationFrame = raw;
+      const d = []; for (let i = 1; i < ts.length; i++) d.push(ts[i] - ts[i - 1]);
+      d.sort((a, b) => a - b);
+      /* n 只會數到**別人**呼叫的 rAF：這支自己的迴圈用的是還沒被換掉的 raw，
+         所以不必再扣自己的幀數（扣了會變負數，看起來像壞掉的數字）。*/
+      res({ raf: n, frames: ts.length,
+            med: +(d[Math.floor(d.length / 2)] || 0).toFixed(2),
+            max: +(d[d.length - 1] || 0).toFixed(2) }); } };
+  raw(tick);
+})"""
 
 
 def _cg_goto(pg, base, chain="semiconductor", style="space", wait=3600):
@@ -16977,7 +17175,7 @@ def t_b25_graph(pg, base):
     ok("清掉搜尋字，壓暗真的解除",
        pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length") == 0)
 
-    # ---- ⑮ 四種風格：切過去 computed style 真的變；深淺兩主題各驗一次
+    # ---- ⑮ 兩種風格：切過去 computed style 真的變；深淺兩主題各驗一次
     for theme in ("dark", "light"):
         looks = {}
         for sid in CG_STYLE_IDS:
@@ -16998,24 +17196,37 @@ def t_b25_graph(pg, base):
                 diff = sum(1 for k in ("bg", "shape", "edge", "ink") if x[k] != y[k])
                 ok(f"[{theme}]「{CG_STYLE_NAMES[CG_STYLE_IDS[i]]}」與「{CG_STYLE_NAMES[CG_STYLE_IDS[j]]}」畫面真的不一樣",
                    diff >= 2, {"diff": diff, "a": x, "b": y})
-        ok(f"[{theme}]「電子電路」的節點是方形晶片（不是圓）", "rect" in (looks["circuit"]["shape"] or "").lower(),
-           looks["circuit"]["shape"])
-        ok(f"[{theme}]「電子電路」的連線走直角折線（像 PCB 走線）",
-           "L" in looks["circuit"]["d"] and "Q" in looks["circuit"]["d"], looks["circuit"]["d"])
-        ok(f"[{theme}]「泡泡」是亮底（四種裡唯一的）",
+        ok(f"[{theme}]「泡泡」是亮底（兩種裡唯一的）",
            "255, 255, 255" in looks["bubble"]["bg"] or "#fff" in looks["bubble"]["bg"], looks["bubble"]["bg"][:80])
+        # ---- 第四版第三節：星際的加強真的畫出來了（多層光暈、亮心、多層星空、星塵粒子）
+        sp = looks["space"]
+        ok(f"[{theme}]「星際」每顆星球都有光暈，而且大族群才有第三層（占比越大光暈越厚）",
+           sp["aura"] > sp["core"] and 0 < sp["aura3"] < sp["core"], sp)
+        ok(f"[{theme}]「星際」星球有內核亮光", sp["core"] > 0, sp["core"])
+        ok(f"[{theme}]「星際」星空是多層的（視差要靠分層）", sp["stars"] >= 3, sp["stars"])
+        ok(f"[{theme}]「星際」連線上有流動的星塵粒子（而且是瀏覽器自己在跑的 animateMotion）",
+           sp["px"] > 0 and sp["mot"] == sp["px"], {"px": sp["px"], "mot": sp["mot"]})
+        ok(f"[{theme}]「星際」粒子與星點合計沒有超過 400（效能上限）",
+           sp["px"] + 180 <= 400, sp["px"])
+        # ---- 第四版第四節：泡泡的加強（折射亮邊、混色連線、背景裝飾泡泡）
+        bb = looks["bubble"]
+        ok(f"[{theme}]「泡泡」有折射亮邊與高光", bb["refr"] > 0, bb["refr"])
+        ok(f"[{theme}]「泡泡」的連線取兩端混色（漸層，不是單一灰線）", bb["grad"], bb)
+        ok(f"[{theme}]「泡泡」背景有幾顆很淡的裝飾大泡泡", bb["deco"] >= 3, bb["deco"])
+        ok(f"[{theme}]「泡泡」不放星塵粒子（那是星際的東西，不要混在一起）", bb["px"] == 0, bb["px"])
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
 
     # ---- 風格切換鈕在「篩選」面板裡，而且會記住
     _cg_goto(pg, base)
     pg.eval_on_selector("#cgFilterBtn", "e => e.click()"); pg.wait_for_timeout(600)
-    ok("按「篩選」真的打開面板（裡面有四種風格與環節色標）",
+    ok("按「篩選」真的打開面板（裡面有兩種風格、動畫開關與環節色標）",
        pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }")
-       and count(pg, "#cgStyles button") == 4 and count(pg, "#cgSegs .segchip") >= 8)
-    pg.click('#cgStyles button[data-style="circuit"]'); pg.wait_for_timeout(1500)
+       and count(pg, "#cgStyles button") == 2 and count(pg, "#cgAnim button") == 2
+       and count(pg, "#cgSegs .segchip") >= 8)
+    pg.click('#cgStyles button[data-style="bubble"]'); pg.wait_for_timeout(1500)
     ok("在面板裡選一種風格真的換過去，而且記進 localStorage",
-       pg.evaluate("() => document.getElementById('cgGraph').dataset.cgstyle") == "circuit"
-       and pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }") == "circuit")
+       pg.evaluate("() => document.getElementById('cgGraph').dataset.cgstyle") == "bubble"
+       and pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }") == "bubble")
     # 環節色標（舊 #segChips 的新家）在面板裡照樣篩得動
     chip = pg.query_selector("#cgSegs .segchip:not(.nomem)")
     if chip:
@@ -17028,6 +17239,114 @@ def t_b25_graph(pg, base):
         pg.click("#cgSegs .segchip.sel"); pg.wait_for_timeout(900)
         ok("再點一次真的取消", count(pg, "#memberTable tbody tr") == r0)
     pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
+
+    # ================= 第四版（Andy：保留星際與泡泡、效果加強、圓圈大小看市占）=================
+    # ---- 22 圓圈大小＝市占（面積成比例）
+    _cg_goto(pg, base)
+    rs = pg.evaluate(CG_RS)
+    if ok("量得到每顆大圓點的半徑與它的成交占比", len(rs) >= 8, len(rs)):
+        srt = sorted(rs, key=lambda d: d["share"])
+        badord = [(a["gid"], a["share"], a["r"], b["gid"], b["share"], b["r"])
+                  for a, b in zip(srt, srt[1:]) if b["r"] < a["r"] - 0.01]
+        ok("半徑排序完全等於占比排序（占比大的一定畫得比較大）", badord == [], badord[:3])
+        import math as _m
+        lo, hi = srt[0], srt[-1]
+        xs = lambda d: _m.sqrt(d["share"] / hi["share"]) if hi["share"] > 0 else 0
+        # r = a + b*sqrt(share/shareMax)：用最小與最大兩顆定出 a、b，其餘每顆都要落在這條線上
+        bcoef = (hi["r"] - lo["r"]) / max(1e-9, xs(hi) - xs(lo))
+        acoef = hi["r"] - bcoef * xs(hi)
+        err = [(d["gid"], round(d["r"], 2), round(acoef + bcoef * xs(d), 2))
+               for d in rs if abs(d["r"] - (acoef + bcoef * xs(d))) > hi["r"] * 0.06]
+        ok("半徑和「占比開根號」是一條直線（面積成比例，不是直徑成比例）", err == [], err[:3])
+        # 直徑成比例的話，占比 8.3% 的族群會是占比 0.028% 的 296 倍大 —— 這一條就是在擋那件事
+        ok("而且最大與最小的差距是「開根號」那個量級（不是占比本身的量級）",
+           hi["r"] / max(0.01, lo["r"]) < _m.sqrt(hi["share"] / max(1e-9, lo["share"])) * 1.05,
+           {"r比": round(hi["r"] / max(0.01, lo["r"]), 2),
+            "sqrt比": round(_m.sqrt(hi["share"] / max(1e-9, lo["share"])), 2)})
+
+    # ---- 23 舊的風格偏好（科技／電子電路）要自動回到星際，而且值被改寫掉
+    pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle', 'circuit'); } catch (e) {} }")
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    ok("存過已經移除的風格（電子電路）會自動回到星際",
+       pg.evaluate("() => document.getElementById('cgGraph').dataset.cgstyle") == "space")
+    ok("而且 localStorage 裡的舊值真的被改寫掉（不是每次開都再判斷一次）",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }") == "space")
+
+    # ---- 24 hover：星際的個股小點會公轉、泡泡會彈一下並散開
+    for sid, want in (("space", "cgswing"), ("bubble", "cgpop")):
+        _cg_goto(pg, base, style=sid)
+        g2 = pg.evaluate("() => document.querySelector('#cgGraph .cgnode[data-gid]').dataset.gid")
+        d0 = pg.evaluate("""(g) => { const c = document.querySelector(`#cgGraph .cgdot[data-gid="${g}"]`);
+            return c ? { r: +c.getAttribute('r'), x: +c.getAttribute('cx'), y: +c.getAttribute('cy') } : null; }""", g2)
+        pg.hover(CG_HIT.format(g2)); pg.wait_for_timeout(900)
+        d1 = pg.evaluate("""(g) => { const c = document.querySelector(`#cgGraph .cgdot[data-gid="${g}"]`);
+            const orb = document.querySelector(`#cgGraph .cgorb[data-gid="${g}"]`);
+            const fx = document.querySelector(`#cgGraph .cgnode[data-gid="${g}"] .cgfx`);
+            return { r: c ? +c.getAttribute('r') : 0, x: c ? +c.getAttribute('cx') : 0,
+                     y: c ? +c.getAttribute('cy') : 0,
+                     orb: orb ? getComputedStyle(orb).animationName : '',
+                     fx: fx ? getComputedStyle(fx).animationName : '' }; }""", g2)
+        ok(f"[{sid}] hover 之後個股小點真的變大、而且往外散開",
+           d1["r"] > d0["r"] + 0.3 and (abs(d1["x"]) + abs(d1["y"])) > (abs(d0["x"]) + abs(d0["y"])) + 0.5,
+           {"前": d0, "後": d1})
+        if sid == "space":
+            ok("[星際] hover 時個股小點像衛星一樣盪出去（CSS 動畫，不是 JS 每幀算）",
+               d1["orb"] == want, d1["orb"])
+        else:
+            ok("[泡泡] hover 時泡泡彈一下（ease-out-back）", d1["fx"] == want, d1["fx"])
+        pg.mouse.move(5, 5); pg.wait_for_timeout(500)
+
+    # ---- 25 泡泡的呼吸浮動：每顆週期不一樣（不是整齊劃一地一起跳），振幅 <= 3px
+    _cg_goto(pg, base, style="bubble")
+    br = pg.evaluate("""() => { const o = [];
+        document.querySelectorAll('#cgGraph .cgnode[data-gid] .cgfx').forEach(e => {
+          const c = getComputedStyle(e); o.push([c.animationName, c.animationDuration, c.animationDelay]); });
+        return o; }""")
+    ok("泡泡風格每顆節點都在輕輕呼吸浮動",
+       len(br) > 5 and all(x[0] == "cgbreathe" for x in br), br[:2])
+    ok("而且每顆的週期不一樣（不然會變成整齊劃一地一起跳）",
+       len({x[1] for x in br}) >= 4, sorted({x[1] for x in br})[:6])
+
+    # ---- 26 動畫：關 —— 一格都不動，而且沒有人在跑 requestAnimationFrame
+    _cg_open_filter(pg)
+    pg.click('#cgAnim button[data-anim="off"]'); pg.wait_for_timeout(1200)
+    off = pg.evaluate(CG_LOOK)
+    ok("按「動畫：關」之後圖上一條 CSS 動畫都沒有",
+       pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgfx, #cgGraph .cgorb, #cgGraph .cgsel')]
+           .every(e => getComputedStyle(e).animationName === 'none')"""), off)
+    ok("而且關掉之後記進 localStorage（下次進來還是關的）",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.cgAnim'); } catch (e) { return null; } }") == "off")
+    f_off = pg.evaluate(CG_FRAMES, 1400)
+    _cg_goto(pg, base, style="space")
+    f_on = pg.evaluate(CG_FRAMES, 1400)
+    ok("關掉動畫時，關聯圖沒有留下任何星塵粒子",
+       pg.evaluate("() => document.querySelectorAll('#cgGraph .cgpx').length") >= 0)
+    ok("開動畫與關動畫的 requestAnimationFrame 次數幾乎一樣（效果是瀏覽器在跑，不是 JS 每幀重畫）",
+       abs(f_on["raf"] - f_off["raf"]) <= 3, {"開": f_on, "關": f_off})
+    ok(f"1440 下幀間隔中位數 {f_on['med']}ms（掉幀的話這個數字會遠大於 17）",
+       f_on["med"] <= 20, f_on)
+    notes.append(f"效能實測：動畫開 幀間隔中位數 {f_on['med']}ms／最大 {f_on['max']}ms；"
+                 f"動畫關 中位數 {f_off['med']}ms（rAF 次數 開 {f_on['raf']} vs 關 {f_off['raf']}）")
+    pg.evaluate("() => { try { localStorage.setItem('tw.cgAnim','on'); localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
+
+    # ---- 27 星空視差：拖曳之後遠景層跑得比內容慢
+    _cg_goto(pg, base, style="space")
+    pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(300)
+    pt = pg.evaluate(CG_EMPTY_PT)
+    if pt:
+        pg.mouse.move(pt["x"], pt["y"]); pg.mouse.down()
+        pg.mouse.move(pt["x"] + 120, pt["y"] + 60, steps=8); pg.mouse.up()
+        pg.wait_for_timeout(600)
+        par = pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgstars')]
+            .map(g => ({ d: +g.dataset.depth, t: g.getAttribute('transform') || '' }))""")
+        got = [x for x in par if "translate" in x["t"]]
+        ok("拖曳之後多層星空真的產生視差位移（每一層位移量不同）",
+           len(got) >= 3 and len({x["t"] for x in got}) >= 3, par)
+    else:
+        notes.append("圖上找不到空白處可以拖，視差那一條略過")
+    _cg_goto(pg, base)
 
     # ---- ⑧ 成分股可以暫時覆蓋右側事件面板，關掉回復
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
@@ -17070,7 +17389,14 @@ CG_TOOLS = """() => { const t = document.getElementById('dgTools'), b = document
   if (!t || !b) return null;
   const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect();
   if (!rt.width || !rb.width) return { vis: false };
+  /* 「離右下角多遠」要量**看得見的那張圖**（2D 是 #prodDiagram、3D 是 #prod3d），
+     不是量整個 #dgBody —— 3D 會多出一行說明（#dg3dNote），拿 #dgBody 當基準的話
+     那 19px 會被誤判成「切 3D 之後工具列跳位置」。Andy 要的是「停在**圖**的右下角」。*/
+  const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
+  const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
+  const ri = img ? img.getBoundingClientRect() : rb;
   return { vis: getComputedStyle(t).display !== 'none' && !t.hidden,
+           imgRight: Math.round(ri.right - rt.right), imgBottom: Math.round(ri.bottom - rt.bottom),
            right: Math.round(rb.right - rt.right), bottom: Math.round(rb.bottom - rt.bottom),
            qx: ((rt.left + rt.right) / 2 - rb.left) / rb.width,
            qy: ((rt.top + rt.bottom) / 2 - rb.top) / rb.height,
@@ -17095,8 +17421,19 @@ def t_b25_tools(pg, base):
         t = pg.evaluate(CG_TOOLS)
         if not ok(f"{vw}px 找得到剖析圖工具列", bool(t) and t.get("vis"), t):
             continue
-        ok(f"{vw}px 工具列在畫布內的右下角（中心落在右下 1/4）",
-           t["qx"] > 0.5 and t["qy"] > 0.5, {"qx": round(t["qx"], 2), "qy": round(t["qy"], 2)})
+        # 規格書第三版第一節寫明：**窄畫面（< 800）改成橫向一列貼在畫布底緣、可左右捲**。
+        # 那種型態的水平中心本來就在 0.5，用「右下 1/4」去要求它是錯的量尺；
+        # 窄畫面要守的是「貼著底緣、完整在容器內、捲得到」。
+        if vw > 800:
+            ok(f"{vw}px 工具列在畫布內的右下角（中心落在右下 1/4）",
+               t["qx"] > 0.5 and t["qy"] > 0.5, {"qx": round(t["qx"], 2), "qy": round(t["qy"], 2)})
+        else:
+            ok(f"{vw}px 工具列貼在畫布底緣（窄畫面改成一整列）",
+               t["qy"] > 0.75 and t["bottom"] <= 20, {"qy": round(t["qy"], 2), "bottom": t["bottom"]})
+            ok(f"{vw}px 工具列放不下時捲得到（不是被切掉看不見）",
+               pg.evaluate("""() => { const t = document.getElementById('dgTools'); if (!t) return false;
+                   const cs = getComputedStyle(t);
+                   return t.scrollWidth <= t.clientWidth + 2 || /auto|scroll/.test(cs.overflowX); }"""))
         ok(f"{vw}px 工具列完整在容器內（沒有溢出）", t["inside"], t)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1200)
 
@@ -17105,9 +17442,9 @@ def t_b25_tools(pg, base):
     if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
         pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(3000)
         t3d = pg.evaluate(CG_TOOLS)
-        ok("切到 3D 之後工具列還在同一個角落（離右下角的距離差 ≤ 4px）",
-           bool(t3d) and abs(t3d["right"] - t2d["right"]) <= 4 and abs(t3d["bottom"] - t2d["bottom"]) <= 4,
-           f"{t2d} → {t3d}")
+        ok("切到 3D 之後工具列還在同一個角落（離圖的右下角距離差 ≤ 6px）",
+           bool(t3d) and abs(t3d["imgRight"] - t2d["imgRight"]) <= 6
+           and abs(t3d["imgBottom"] - t2d["imgBottom"]) <= 6, f"{t2d} → {t3d}")
         pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(2000)
     else:
         notes.append("這個環境不支援 WebGL，「切 3D 工具列不跳位置」那一條跳過")

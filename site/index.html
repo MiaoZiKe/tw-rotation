@@ -1925,8 +1925,20 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgsvg .cge.hi{stroke:var(--cg-edge-hi);stroke-opacity:.95;stroke-width:calc(var(--w,1.2) + 1)}
 .cgsvg .cge.dim{stroke-opacity:.06}
 .cgsvg .cgvia{fill:var(--cg-edge);opacity:.9}
-.cgsvg .cgstars circle{fill:#fff;opacity:.55}
-.cgsvg .cgbg{opacity:.5}
+.cgsvg .cgstars circle{fill:#fff}
+.cgsvg .cgstars.s0 circle{fill:#cfd8ff}
+/* 星點呼吸：純 CSS，錯開 delay 才不會整片一起閃 */
+.cgsvg .cgstars.tw circle{animation:cgtwinkle 3.4s ease-in-out var(--dly,0s) infinite}
+@keyframes cgtwinkle{0%,100%{opacity:1}50%{opacity:.35}}
+/* 星塵粒子：沿著連線由上游流向下游（軌跡由 SVG 原生的 animateMotion 跑） */
+.cgsvg .cgpx{fill:var(--c);opacity:.85;filter:drop-shadow(0 0 3px var(--c));pointer-events:none}
+.cgsvg .cgpx.hi{opacity:1}
+.cgsvg .cgpxs{pointer-events:none}
+/* 泡泡風格的背景裝飾大泡泡（純裝飾） */
+.cgsvg .cgdeco circle{fill:var(--cg-deco,rgba(120,150,210,.08));pointer-events:none}
+.cgsvg .cgdeco.fl circle{animation:cgfloat 9s ease-in-out var(--dly,0s) infinite;
+  transform-box:fill-box;transform-origin:50% 50%}
+@keyframes cgfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 /* 個股小點 */
 .cgsvg .cgdot{fill:var(--c);opacity:.72;cursor:pointer;transition:r .14s,opacity .14s}
 .cgsvg .cgdot.up{opacity:1}
@@ -1943,14 +1955,40 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgsvg .cgstars,.cgsvg .cgbg{pointer-events:none}
 .cgsvg .cgnode.dim{opacity:.22}
 .cgsvg .cgball{fill:var(--c)}
-.cgsvg .cgaura{fill:var(--c);opacity:.14}
-.cgsvg .cgring{fill:none;stroke:var(--c);stroke-opacity:.35;stroke-width:1.2}
-.cgsvg .cgshadow{fill:rgba(15,24,48,.22)}
-.cgsvg .cggloss{fill:#fff;opacity:.38}
-.cgsvg .cgsel{fill:none;stroke:var(--cg-ink-hi);stroke-width:2}
-.cgsvg .cgchip{fill:var(--c);stroke:var(--cg-chip-line);stroke-width:1.2}
-.cgsvg .cgchip2{fill:var(--cg-chip-core);opacity:.55}
-.cgsvg .cgpin{stroke:var(--cg-edge);stroke-width:1.6;stroke-linecap:round}
+/* 星際：三層光暈（層數由占比決定，大族群才有 a3）＋亮心 */
+.cgsvg .cgaura{fill:var(--c)}
+.cgsvg .cgaura.a1{opacity:.22}
+.cgsvg .cgaura.a2{opacity:.1}
+.cgsvg .cgaura.a3{opacity:.055}
+.cgsvg .cgcore{pointer-events:none}
+/* 泡泡：柔和陰影＋折射亮邊＋高光點 */
+.cgsvg .cgshadow{fill:rgba(15,24,48,.18)}
+.cgsvg .cgrefr{pointer-events:none}
+.cgsvg .cggloss{fill:#fff;opacity:.72}
+/* 選中：外圈緩慢旋轉的虛線光環 */
+.cgsvg .cgsel{fill:none;stroke:var(--cg-ink-hi);stroke-width:2;stroke-dasharray:7 8;opacity:.9}
+/* ★ 會動的那一層。定位用的 transform 屬性掛在 `.cgnode` 上，動畫掛在 `.cgfx` 上 ——
+   合在一起的話 CSS 動畫的 transform 會整個蓋掉定位，節點會全部飛到畫布左上角。*/
+.cgfx,.cgorb,.cgsvg .cgsel{transform-box:fill-box;transform-origin:50% 50%}
+@keyframes cgspin{to{transform:rotate(360deg)}}
+/* ★ 衛星是「盪過去就停」，不是永遠轉。
+   無限公轉的話小點**永遠在動**：真人瞄不準，Playwright 也直接拒絕點擊
+   （"element is not stable"，實測 30 秒全部重試失敗）。
+   而「能點的東西就要能點到底」比「一直轉」重要，所以改成 hover 時轉一段（帶一點回彈）就定住。*/
+@keyframes cgswing{0%{transform:rotate(0)}70%{transform:rotate(19deg)}100%{transform:rotate(16deg)}}
+@keyframes cgbreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@keyframes cgpop{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1.04)}}
+@keyframes cgglow{0%,100%{opacity:.22}50%{opacity:.34}}
+.cgraph[data-cganim="on"] .cgsvg .cgsel{animation:cgspin 14s linear infinite}
+/* 星際：光暈自己緩緩明滅；hover 時個股小點像衛星公轉（26 秒一圈，慢到不會讓人暈） */
+.cgraph[data-cganim="on"][data-cgstyle="space"] .cgaura.a1{animation:cgglow 5.5s ease-in-out var(--dly,0s) infinite}
+.cgraph[data-cganim="on"] .cgorb.orb{animation:cgswing 1.1s cubic-bezier(.22,.9,.24,1) forwards}
+/* 泡泡：輕微呼吸浮動（振幅 3px，週期每顆不同）；hover 彈一下（ease-out-back） */
+.cgraph[data-cganim="on"][data-cgstyle="bubble"] .cgnode .cgfx{
+  animation:cgbreathe var(--dur,5s) ease-in-out var(--dly,0s) infinite}
+.cgraph[data-cganim="on"][data-cgstyle="bubble"] .cgnode.hov .cgfx{
+  animation:cgpop .45s cubic-bezier(.34,1.56,.64,1) forwards}
+/* 「動畫：關」＝這裡一條都不掛，瀏覽器自然不重繪（全程沒有 requestAnimationFrame） */
 /* ---- 疊在畫布上的 UI（照參考圖的四個角）---- */
 .cghd{position:absolute;left:14px;top:12px;z-index:4;pointer-events:none}
 .cghd .cgt1{font-size:19px;font-weight:800;color:var(--cg-ink-hi);letter-spacing:.02em}
@@ -1977,6 +2015,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cggpop h6{font-size:12px;color:var(--ink-3);margin:8px 0 6px;font-weight:600}
 .cggpop h6 small{font-weight:400}
 .cgstyles{display:grid;gap:6px}
+#cgAnim{grid-template-columns:1fr 1fr}
 .cgstyles button{text-align:left;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;
   padding:6px 9px;cursor:pointer;color:var(--ink-2)}
 .cgstyles button b{display:block;font-size:13px;color:var(--ink)}
@@ -2046,7 +2085,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 環節詳情（原 #segBox）住在圖下面，不跟右側資訊欄搶容器 */
 #cgSegBox{margin-top:10px}
 
-/* ---------------- 四種風格（照 graph_ref_4styles.webp）---------------- */
+/* ---------------- 兩種風格（第四版：Andy 從四種裡留下星際與泡泡）---------------- */
 /* 01 星際：深邃宇宙・星辰連結・探索無限產業可能 */
 .cgraph[data-cgstyle="space"]{
   --cg-bg:radial-gradient(120% 90% at 22% 12%,#2a2350 0%,#161a3d 42%,#080a1c 100%);
@@ -2054,39 +2093,22 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   --cg-edge:#aab6ee; --cg-edge-2:#8f9ad0; --cg-edge-op:.34; --cg-edge-hi:#ffffff;
   --cg-grid:rgba(180,190,255,.16); --cg-hud:rgba(14,16,38,.72); --cg-hud-line:rgba(160,175,255,.25);
   --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);}
-.cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 7px var(--c))}
-/* 02 科技：精準科技・網格秩序・數據驅動產業洞察 */
-.cgraph[data-cgstyle="tech"]{
-  --cg-bg:linear-gradient(160deg,#0b1730 0%,#0a1224 60%,#070c18 100%);
-  --cg-ink:#dbe7ff; --cg-ink-hi:#ffffff; --cg-ink-2:#9fb2d6; --cg-ink-3:#7285a8;
-  --cg-edge:#4f9ff5; --cg-edge-2:#6b7fa5; --cg-edge-op:.42; --cg-edge-hi:#7fd4ff;
-  --cg-grid:rgba(110,160,230,.16); --cg-hud:rgba(10,18,36,.78); --cg-hud-line:rgba(120,170,240,.26);
-  --cg-lab-sh:0 1px 3px rgba(0,0,0,.6);}
-.cgraph[data-cgstyle="tech"] .cgball{filter:drop-shadow(0 0 6px var(--c))}
-/* 03 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（四種裡唯一的亮底） */
+.cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 9px var(--c))}
+/* 02 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（唯一的亮底） */
 .cgraph[data-cgstyle="bubble"]{
   --cg-bg:radial-gradient(110% 90% at 40% 8%,#ffffff 0%,#eef4fd 55%,#e2eaf7 100%);
   --cg-ink:#1d2742; --cg-ink-hi:#0f1830; --cg-ink-2:#465577; --cg-ink-3:#6b7994;
-  --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.45; --cg-edge-hi:#2b6cb0;
+  --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.5; --cg-edge-hi:#2b6cb0;
   --cg-grid:rgba(120,140,180,.12); --cg-hud:rgba(255,255,255,.86); --cg-hud-line:#cfd9ea;
-  --cg-lab-sh:none;}
-.cgraph[data-cgstyle="bubble"] .cgball{opacity:.85}
+  --cg-deco:rgba(120,160,225,.055); --cg-lab-sh:none;}
+.cgraph[data-cgstyle="bubble"] .cgball{opacity:.8}
 .cgraph[data-cgstyle="bubble"] .cgdot{opacity:.85}
-/* 04 電子電路：晶片脈絡・電路連結・驅動產業未來 */
-.cgraph[data-cgstyle="circuit"]{
-  --cg-bg:linear-gradient(170deg,#0c2018 0%,#08170f 55%,#050d08 100%);
-  --cg-ink:#d6e9d8; --cg-ink-hi:#f2e2a8; --cg-ink-2:#9ec2a4; --cg-ink-3:#7fa286;
-  --cg-edge:#d4af5f; --cg-edge-2:#9aa06a; --cg-edge-op:.6; --cg-edge-hi:#ffe08a;
-  --cg-grid:rgba(212,175,95,.2); --cg-hud:rgba(8,22,14,.8); --cg-hud-line:rgba(212,175,95,.3);
-  --cg-chip-line:#e3c479; --cg-chip-core:#07140c; --cg-lab-sh:0 1px 3px rgba(0,0,0,.7);}
-/* 淺色主題：星際／科技／電子電路**刻意維持深底**（它們的名字就是深底的意思，
-   而且 .chainmap 本來就是兩個主題都深底 —— DECISIONS #239 第一節末尾），
-   只把連線與圖例的不透明度往上調，讓它在明亮環境下仍然分得出層次。
+.cgraph[data-cgstyle="bubble"] .cgball{filter:drop-shadow(0 4px 8px rgba(30,50,90,.18))}
+/* 淺色主題：星際**刻意維持深底**（它的名字就是深底的意思，而且 .chainmap 本來就是
+   兩個主題都深底 —— DECISIONS #239 第一節末尾），只把連線調亮一點。
    泡泡本來就是亮底，深色主題下字色由它自己的 token 決定，不跟著全站主題走。*/
 :root[data-theme="light"] .cgraph[data-cgstyle="space"]{--cg-edge-op:.44}
-:root[data-theme="light"] .cgraph[data-cgstyle="tech"]{--cg-edge-op:.52}
-:root[data-theme="light"] .cgraph[data-cgstyle="circuit"]{--cg-edge-op:.68}
-:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#6b7a95;--cg-edge-op:.5}
+:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#6b7a95;--cg-edge-op:.55}
 /* 手機：控制項換行、圖高一點；字一律 ≥ 11px */
 @media (max-width:640px){
   .cgraph{height:clamp(470px,78vh,680px)}

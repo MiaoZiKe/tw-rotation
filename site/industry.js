@@ -595,6 +595,38 @@
       if (state.dg) dgOpen = true;
       let did3d = false;
       const dgSecEl = $('#dgSec', el);
+      /* ★ 工具列要停在**圖的右下角**，不是整個區塊的右下角。
+         它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，住在裡面會一起消失），
+         但 `#dgSec` 底下還有 3D 說明與零件卡 —— 一開 3D，區塊長高 480px，
+         工具列就跟著掉到圖外面、掉出視窗（實測：按了 3D 之後「重設視角」整個點不到）。
+         所以量一次「圖的底緣離區塊底緣多遠」，把那段距離補進 bottom。
+         窄畫面不套：那邊的規則是「貼在畫布底緣的一整列」，由 CSS 自己管。*/
+      const placeDgTools = () => {
+        /* 一律用 document 問「現在畫面上的那一個」：這一頁會整段重畫（換鏈、換圖別、
+           視窗變寬都會），舊 closure 手上的 el 早就脫離 DOM 了，對它設 style 沒有人看得到。*/
+        const sec = document.getElementById('dgSec'), tools = document.getElementById('dgTools');
+        if (!tools || !sec) return;
+        if (window.innerWidth <= 800 || sec.classList.contains('dgfold')) { tools.style.bottom = ''; return; }
+        const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
+        const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
+        if (!img || img.hidden || !img.clientHeight) { tools.style.bottom = ''; return; }
+        const gap = sec.getBoundingClientRect().bottom - img.getBoundingClientRect().bottom;
+        const want = Math.max(12, Math.round(gap) + 12);
+        // 差不到 8px 就不動：3D 掛載的那幾幀高度會一直微調，每幀都搬會變成一顆在抖的鈕
+        if (Math.abs(want - (parseFloat(tools.style.bottom) || 12)) >= 8) tools.style.bottom = want + 'px';
+      };
+      try {
+        // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
+        let roT = 0;
+        const ro2 = new ResizeObserver(() => {
+          clearTimeout(roT);
+          roT = setTimeout(placeDgTools, 90);   // 緩衝一下，等高度真的停下來再搬
+        });
+        if (dgSecEl) { ro2.observe(dgSecEl); const bd = $('#dgBody', el); if (bd) ro2.observe(bd); }
+      } catch (e) { /* 舊瀏覽器沒有就算了，位置只是會停在區塊底部 */ }
+      // 3D 場景是分好幾幀長出來的（WebGL 掛載 → 量尺寸 → 補說明行），補幾個時間點確保有對到
+      [300, 1200, 3000].forEach(ms => setTimeout(placeDgTools, ms));
+      window.addEventListener('resize', placeDgTools);
       const paintFold = () => {
         if (dgBody) dgBody.style.display = dgOpen ? '' : 'none';
         /* 收起來之後 `#dgSec` 只剩一列標題，工具列再絕對定位在右下角就會飄到標題外面。
@@ -604,6 +636,7 @@
         if (foldBtn) { foldBtn.textContent = dgOpen ? '收合圖 ▴' : '展開剖析圖 ▾'; foldBtn.classList.toggle('cyan', !dgOpen); }
         // 收起來的時候不要掛 3D：背景多一個 WebGL context 在空轉，手機最吃不消
         if (dgOpen && !did3d && dgId) { did3d = true; wireDg(); }
+        placeDgTools();
       };
       // 選單模式（dgId 為 null）沒有圖可以接線，wireDg 會對著空的 #prodDiagram 做事
       if (dgId) { wireDg(!dgOpen); did3d = dgOpen; }
@@ -621,6 +654,7 @@
       const back = $('#dgBack', el);
       if (back) back.onclick = () => { location.hash = '#industry/' + ch.id; };
       paintDgMode();
+      placeDgTools();
     }
     // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
     function wireDg(skip3d) {
@@ -1129,7 +1163,18 @@
   function scrollChainTo(root, seg) {
     if (!seg) return;
     const chip = $(`#cgSegs .segchip[data-seg="${seg}"]`, root);
-    if (chip && chip.scrollIntoView) { chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); return; }
+    if (chip && chip.scrollIntoView) {
+      /* ⚠ 面板收起來的時候色標是「存在但沒有面積」的（`.cggpop[hidden]`）。
+         對那種元素呼叫 scrollIntoView，瀏覽器會把整頁捲到它「理論上的位置」——
+         實測點一個剖析圖零件之後整頁自己往上跳 366px（scrollY 777 → 411）。
+         看不到的東西不需要「帶進視野」，直接跳過。*/
+      const pop = chip.closest('.cggpop');
+      const r = chip.getBoundingClientRect();
+      if ((!pop || !pop.hidden) && r.width > 0 && r.height > 0) {
+        chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+      return;
+    }
     const map = $('#chainMap', root); if (!map || map.hidden) return;
     const t = $(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root);
     if (!t || !t.getBBox) return;
@@ -1436,18 +1481,29 @@
      ----
      佈局一次同步算完（420 迭代），算完就不再動；拖曳時只搬被拖的那一顆。
      **全程沒有 requestAnimationFrame 迴圈**，靜止時 CPU 是 0（#245 那個坑的正面回答）。*/
-  const CG_STYLES = ['space', 'tech', 'bubble', 'circuit'];
-  const CG_STYLE_NAME = { space: '星際', tech: '科技', bubble: '泡泡', circuit: '電子電路' };
+  /* 第四版：Andy 看完四張之後只留 **星際** 與 **泡泡**（科技／電子電路整組移除，
+     token、CSS、切換選項一起清掉，不留註解掉的死碼 —— 死碼下一個人會以為還能開回來）。*/
+  const CG_STYLES = ['space', 'bubble'];
+  const CG_STYLE_NAME = { space: '星際', bubble: '泡泡' };
   // 標語照參考圖 `graph_ref_4styles.webp` 每一格的標題列逐字抄
   const CG_STYLE_SLOGAN = {
     space: '深邃宇宙・星辰連結・探索無限產業可能',
-    tech: '精準科技・網格秩序・數據驅動產業洞察',
     bubble: '輕盈柔和・繽紛氣泡・親切易讀的產業地圖',
-    circuit: '晶片脈絡・電路連結・驅動產業未來',
   };
+  const CG_ANIMS = ['on', 'off'];
   const CG_RELS = ['supply', 'peer', 'equip'];
   const CG_REL_NAME = { supply: '上下游', peer: '同環節', equip: '設備與材料' };
-  const cgPref = (k, list, dft) => { try { const v = localStorage.getItem(k); return list.indexOf(v) >= 0 ? v : dft; } catch (e) { return dft; } };
+  /* 存過 `tech` / `circuit` 的人（第二、三版用過的）一進來要自動回到星際，
+     而且**把值改寫掉** —— 不改寫的話每次開頁都要再判斷一次，
+     而且他之後如果自己換成泡泡，舊值還躺在那裡看不出來。*/
+  const cgPref = (k, list, dft) => {
+    try {
+      const v = localStorage.getItem(k);
+      if (list.indexOf(v) >= 0) return v;
+      if (v != null) localStorage.setItem(k, dft);
+      return dft;
+    } catch (e) { return dft; }
+  };
   const cgSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 忽略 */ } };
 
   /* 分類（參考圖左下的圖例）。用環節的 layer 與 role 推，**不寫死每一條鏈** ——
@@ -1633,18 +1689,6 @@
     return n;
   }
   // 正交折線（電子電路風格用），轉角切圓角
-  function cgCorner(pts, r0) {
-    let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
-    for (let i = 1; i < pts.length - 1; i++) {
-      const p = pts[i - 1], c = pts[i], n = pts[i + 1];
-      const r = Math.min(r0 || 8, Math.hypot(c[0] - p[0], c[1] - p[1]) / 2, Math.hypot(n[0] - c[0], n[1] - c[1]) / 2);
-      d += 'L' + (c[0] - Math.sign(c[0] - p[0]) * r).toFixed(1) + ',' + (c[1] - Math.sign(c[1] - p[1]) * r).toFixed(1);
-      d += 'Q' + c[0].toFixed(1) + ',' + c[1].toFixed(1) + ' '
-         + (c[0] + Math.sign(n[0] - c[0]) * r).toFixed(1) + ',' + (c[1] + Math.sign(n[1] - c[1]) * r).toFixed(1);
-    }
-    const e = pts[pts.length - 1];
-    return d + 'L' + e[0].toFixed(1) + ',' + e[1].toFixed(1);
-  }
   /* 一條邊的路徑。從兩顆大圓點的邊緣出發（不是圓心），不然線會從圓底下鑽出來。
      形狀由風格決定（四種風格「只換視覺」，佈局與互動是同一份）。*/
   function cgPath(a, b, style) {
@@ -1653,13 +1697,9 @@
     const d = Math.sqrt(dx * dx + dy * dy) || 1;
     const p1 = { x: ax + dx / d * (a.R + 2), y: ay + dy / d * (a.R + 2) };
     const p2 = { x: bx - dx / d * (b.R + 2), y: by - dy / d * (b.R + 2) };
-    if (style === 'circuit') {
-      const mx = (p1.x + p2.x) / 2;
-      return { d: cgCorner([[p1.x, p1.y], [mx, p1.y], [mx, p2.y], [p2.x, p2.y]], 9),
-               mid: { x: mx, y: (p1.y + p2.y) / 2 }, p1: p1, p2: p2 };
-    }
     const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-    const bow = (style === 'bubble' ? 0.16 : style === 'space' ? 0.09 : 0.05);
+    // 泡泡是柔曲線（彎一點），星際是近乎筆直的星塵軌跡（彎太多粒子會像在繞路）
+    const bow = (style === 'bubble' ? 0.22 : 0.08);
     const nx = -(p2.y - p1.y) * bow, ny = (p2.x - p1.x) * bow;
     return { d: 'M' + p1.x.toFixed(1) + ',' + p1.y.toFixed(1)
                 + 'Q' + (mx + nx).toFixed(1) + ',' + (my + ny).toFixed(1)
@@ -1761,6 +1801,14 @@
     if (!nodes.length) { host.innerHTML = ''; return null; }
     const byId = {}; nodes.forEach(n => (byId[n.id] = n));
     let style = ctx.style || 'space';
+    /* 動畫開關。**關掉時一格都不動**：所有效果都是 CSS 動畫與 SVG 原生的 animateMotion，
+       全程沒有 requestAnimationFrame —— 關掉等於不輸出那些元素、不掛那些 class，
+       瀏覽器自然就不重繪（#245「按需渲染」的正面回答）。
+       系統層級的「減少動態效果」也視為關：那是使用者在作業系統就表達過的意願。*/
+    let anim = cgPref('tw.cgAnim', CG_ANIMS, 'on');
+    let reduceMo = false;
+    try { reduceMo = window.matchMedia('(prefers-reduced-motion:reduce)').matches; } catch (e) { /* 忽略 */ }
+    const animOn = () => anim === 'on' && !reduceMo;
     let scale = 1, tx = 0, ty = 0, LW = 0, LH = 0;
     let selKind = null, selId = null, selCode = null, hoverId = null, centerId = null;
     const view = { hop: 1, rel: { supply: true, peer: true, equip: true } };
@@ -1781,6 +1829,9 @@
       + '<h6>風格</h6><div class="cgstyles" id="cgStyles">'
       + CG_STYLES.map((s, i) => '<button type="button" data-style="' + s + '"><b>0' + (i + 1) + ' '
           + CG_STYLE_NAME[s] + '</b><span>' + CG_STYLE_SLOGAN[s] + '</span></button>').join('')
+      + '</div><h6>動畫</h6><div class="cgstyles" id="cgAnim">'
+      + '<button type="button" data-anim="on"><b>開</b><span>星塵流動・泡泡呼吸</span></button>'
+      + '<button type="button" data-anim="off"><b>關</b><span>完全靜止，最省效能</span></button>'
       + '</div><h6>依環節篩選 <small>點一下只看那一格的成分股，再點一次取消</small></h6>'
       + '<div class="segchips" id="cgSegs"></div></div>'
       + '<div class="cglegend" id="cgLegend"></div>'
@@ -1794,15 +1845,32 @@
 
     const mobile = () => host.clientWidth < 560;
 
-    /* ---- 尺寸：大圓點依成交占比、小點數量＝成分股檔數（規格書第二版第一節，不准用「+N」省略） */
+    /* ---- 尺寸：大圓點的**面積**正比於成交占比（第四版硬規則）；
+       小點數量＝成分股檔數（第二版，不准用「+N」省略）。
+
+       r = rMin + (rMax - rMin) * sqrt(share / shareMax)，`n.k` 就是那個 sqrt 比值。
+       為什麼開根號：人眼比的是**面積**不是直徑。讓 r 直接正比於占比的話，
+       占 8.3% 的族群會畫成占 0.028% 的 296 倍大，整張圖只會剩下一顆球。
+       rMin 不設 0（＝純面積比例）的理由：本鏈 sqrt 比值 17 倍，rMin=0 會讓最小的族群
+       只剩 2.3px —— 比它自己的個股小點還小，看不到也點不到。
+       所以留一個「看得見的下限」，**排序與相對大小仍然完全照占比**。*/
+    const CG_RMIN = 7, CG_RMAX = 46;
+    /* 框高的上限。Andy 抱怨過「上下框度太長」，所以塞不下的時候**先縮節點**，
+       縮到底還塞不下才補高，而且補到 720 為止（＝CSS clamp 的上限）。
+       第四版把半徑改成跟市占走之後最大的球大了快一倍，不管的話框會被撐到 866。*/
+    const CG_HMAX = 720;
+    let SK = 1;   // 節點整體縮放（只縮圓點與小點，族群名的字級不動 —— 那條有 11px 下限）
     function sizes() {
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       // 節點總面積不准超過畫布的三分之一，不然 390px 上會糊成一片
       let area = 0;
-      nodes.forEach(n => { const R = 8 + 18 * n.k; area += Math.PI * Math.pow(R + 26, 2); });
-      const k = Math.min(1, Math.sqrt(cw * chh * 0.34 / Math.max(1, area)));
+      nodes.forEach(n => { const R = CG_RMIN + (CG_RMAX - CG_RMIN) * n.k; area += Math.PI * Math.pow(R + 26, 2); });
+      const k = Math.min(1, Math.sqrt(cw * chh * 0.34 / Math.max(1, area))) * SK;
       nodes.forEach(n => {
-        n.R = Math.max(5, (8 + 18 * n.k) * k);
+        n.R = Math.max(4, (CG_RMIN + (CG_RMAX - CG_RMIN) * n.k) * k);
+        // 泡泡的呼吸浮動：每顆週期不一樣才不會變成整齊劃一的「一起跳」
+        n.dur = (4.2 + (n.seed % 1.7)).toFixed(2);
+        n.dly = ((n.seed * 0.37) % 2.4).toFixed(2);
         const cnt = n.members.length;
         n.dotR = Math.max(1.8, (cnt > 14 ? 2.7 : 3.4) * k);
         n.ring1 = n.R + 13 * k + n.dotR * 2;
@@ -1829,7 +1897,12 @@
         const el = labs.querySelector('.cglab[data-gid="' + n.id + '"]');
         n.lw = el ? el.offsetWidth : 60;
         n.lh = el ? el.offsetHeight : 16;
-        const right = Math.max(n.halo, n.R + 7 + n.lw);
+        /* ★ 族群名要放在**所有個股小點的外面**（n.halo 是最外圈小點的半徑）。
+           放在 `n.R + 7`（貼著球）的話，名字會整片壓在右邊那幾顆小點上 ——
+           那幾檔就真的點不下去（Playwright 直接回
+           "<span class=cglab>被動元件 MLCC</span> intercepts pointer events"，真人也一樣）。*/
+        n.lx = n.halo + 6;
+        const right = Math.max(n.halo, n.lx + n.lw);
         n.w = n.halo + right; n.h = Math.max(n.halo * 2, n.lh + 4);
         n.ox = (right - n.halo) / 2;          // 碰撞框中心相對圓心的位移
         n.el = el;
@@ -1837,7 +1910,7 @@
     }
     function placeLabels() {
       nodes.forEach(n => { if (!n.el) return;
-        n.el.style.left = Math.round(n.x - n.ox + n.R + 7) + 'px';
+        n.el.style.left = Math.round(n.x - n.ox + (n.lx || n.R + 7)) + 'px';
         n.el.style.top = Math.round(n.y - n.lh / 2) + 'px'; });
     }
 
@@ -1890,6 +1963,21 @@
       return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     }
     function relayout(keep) {
+      /* 塞不下的處理順序（第四版改的）：**先把節點縮小，最後才補高**，而且補高有上限。
+         第二版是「一直把框拉高」，配上第四版跟市占走的半徑（最大的球大了快一倍）
+         會把框撐到 866px —— 那正是 Andy 抱怨過的「上下框度太長」。
+         縮節點不會破壞面積比例：每一顆都乘同一個數，排序與相對大小完全不變。*/
+      SK = 1;
+      let need = layoutOnce(keep);
+      for (let pass = 0; pass < 2 && cgOverlaps(nodes) > 0 && SK > 0.74; pass++) {
+        SK = Math.max(0.72, SK * 0.88);
+        need = layoutOnce(keep);
+      }
+      if (need > host.clientHeight + 8) host.style.height = Math.min(CG_HMAX, need) + 'px';
+      fill(); paint(); fit();
+    }
+    /* 算一輪佈局，回傳「這樣排下來框要多高」。不改框高、不畫 —— 那是 relayout 的事。*/
+    function layoutOnce(keep) {
       host.style.height = '';                     // 先回到 CSS 的高度再量（不然會愈長愈高）
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       sizes(); paintLabels();
@@ -1901,19 +1989,18 @@
       cgLayout(nodes, links, LW, LH, { keep: !!keep, pin: keep && centerId ? byId[centerId] : null });
       /* 還有節點疊在一起就把**版面高度**放大再算一次（寬度動不得 —— 動了就會橫向溢出，
          而橫向拖是最不直覺的手勢）。*/
-      for (let t = 0; t < 3 && cgOverlaps(nodes) > 0; t++) {
-        LH *= 1.12;
+      /* 版面高度可以放大，但**不准超過框的上限** —— 超過的部分在框外面，
+         等於下面一整排節點被裁掉（第二版實測 800px 有 29 顆看不到）。
+         放到頂還是疊在一起的話，交給 relayout 去縮節點，不要再往上長。*/
+      const LHMAX = Math.max(LH, CG_HMAX - IN.t - IN.b);
+      for (let t = 0; t < 3 && cgOverlaps(nodes) > 0 && LH < LHMAX - 1; t++) {
+        LH = Math.min(LHMAX, LH * 1.12);
         cgLayout(nodes, links, LW, LH, { keep: true, iters: 120 });
       }
       /* 版面被放高之後，**框也要跟著補高** —— 不然多出來的那一截是在框外面，
          等於下面一整排節點被裁掉（實測 800px 有 29 顆看不到）。
          上限 1000px：再高就真的變成「上下框度太長」。*/
-      {
-        const bb0 = bbox();
-        const need = Math.ceil(bb0.h) + IN.t + IN.b + 16;
-        if (need > host.clientHeight + 8) host.style.height = Math.min(1000, need) + 'px';
-      }
-      fill(); paint(); fit();
+      return Math.ceil(bbox().h) + IN.t + IN.b + 16;
     }
 
     /* ---- 畫。整張 SVG 重畫（24 顆大點＋約 150 顆小點＋70 條邊，實測 2ms 以內），
@@ -1945,35 +2032,69 @@
       svg.setAttribute('width', Math.round(vw)); svg.setAttribute('height', Math.round(vh));
       svg.style.left = Math.round(vx) + 'px'; svg.style.top = Math.round(vy) + 'px';
       calcHop2();
-      let s = cgDefs(style) + cgBackdrop(style, vx, vy, vw, vh);
-      // 邊
-      s += '<g class="celayer">';
-      links.forEach(l => {
+      let s = cgDefs(style) + cgBackdrop(style, vx, vy, vw, vh, animOn());
+      // 邊。泡泡風格要「取兩端混色」，所以每條邊各自帶一個漸層 def
+      let gs = '', es = '<g class="celayer">', px = '';
+      let pxN = 0;
+      const PX_MAX = 300;   // 粒子上限（規格第四版第五節：粒子／星點合計 <= 400，星點 180 顆）
+      links.forEach((l, li) => {
         const a = byId[l.a], b = byId[l.b]; if (!a || !b || a.x == null) return;
         if (!edgeOn(l)) return;
         const p = cgPath(a, b, style);
         const w = Math.max(1, Math.min(3.4, 0.8 + l.w * 0.3));
         const hi = !!selId && selKind === 'group' && (l.a === selId || l.b === selId);
+        let st = '--w:' + w.toFixed(2);
+        if (style === 'bubble') {
+          const gid = 'cggr' + li;
+          gs += '<linearGradient id="' + gid + '" gradientUnits="userSpaceOnUse" x1="' + p.p1.x.toFixed(1)
+            + '" y1="' + p.p1.y.toFixed(1) + '" x2="' + p.p2.x.toFixed(1) + '" y2="' + p.p2.y.toFixed(1)
+            + '"><stop offset="0" stop-color="' + a.color + '"/><stop offset="1" stop-color="' + b.color + '"/></linearGradient>';
+          st += ';stroke:url(#' + gid + ')';
+        }
         /* class 同時掛 `edge`：資訊欄裡那顆「在圖上 highlight」（wireRelBlock）是既有程式，
            它找的是 `.edge`。多掛一個 class 比改那支共用函式安全 —— 個股頁的 #chainMap 也在用它。*/
-        s += '<path class="cge edge cge-' + l.rel + (hi ? ' hi' : '') + '" data-a="' + l.a + '" data-b="' + l.b
-          + '" data-rel="' + l.rel + '" style="--w:' + w.toFixed(2) + '" d="' + p.d + '"'
+        es += '<path class="cge edge cge-' + l.rel + (hi ? ' hi' : '') + '" data-a="' + l.a + '" data-b="' + l.b
+          + '" data-rel="' + l.rel + '" style="' + st + '" d="' + p.d + '"'
           + (hi ? ' marker-end="url(#cgArrow)"' : '') + '><title>' + A.fmt.esc(cgEdgeTip(l, a, b)) + '</title></path>';
-        if (style === 'circuit') s += '<circle class="cgvia" cx="' + p.mid.x.toFixed(1) + '" cy="' + p.mid.y.toFixed(1) + '" r="2.6"/>';
+        /* 星塵軌跡：粒子沿著線從 **上游（l.a）流向下游（l.b）**，方向本身就是資訊。
+           用 SVG 原生的 animateMotion 而不是 rAF —— 動畫交給瀏覽器排程，
+           JS 這邊一幀都不用跑，關掉動畫就是根本不輸出這些元素。*/
+        if (style === 'space' && animOn() && pxN < PX_MAX) {
+          const dur = Math.max(2.2, Math.min(6, Math.hypot(p.p2.x - p.p1.x, p.p2.y - p.p1.y) / 55));
+          const cnt = hi ? 3 : 2;
+          for (let i = 0; i < cnt && pxN < PX_MAX; i++, pxN++) {
+            px += '<circle class="cgpx' + (hi ? ' hi' : '') + '" r="' + (hi ? 2 : 1.5) + '" style="--c:' + b.color + '">'
+              + '<animateMotion dur="' + dur.toFixed(2) + 's" repeatCount="indefinite" begin="'
+              + (-dur * i / cnt).toFixed(2) + 's" path="' + p.d + '"/></circle>';
+          }
+        }
       });
-      s += '</g>';
-      // 小點（個股）。數量＝成分股檔數，一顆都不省略
+      es += '</g>';
+      s += (gs ? '<defs>' + gs + '</defs>' : '') + es + (px ? '<g class="cgpxs">' + px + '</g>' : '');
+      /* 小點（個股）。數量＝成分股檔數，一顆都不省略。
+         每個族群的小點包成自己的一層：外層 g 負責「搬到族群中心」（transform 屬性），
+         內層 `.cgorb` 只負責轉 —— 分兩層是因為 CSS 動畫的 transform 會**整個蓋掉**
+         元素上的 transform 屬性，合在一起的話小點會全部飛到畫布左上角。*/
       s += '<g class="cdots">';
       nodes.forEach(n => {
         const dim = !matches(n);
+        const hov = hoverId === n.id;
+        const sp = hov ? 1.12 : 1;   // hover 時小點往外散開一點，名字才不會壓在球上
+        s += '<g class="cgorbw" transform="translate(' + (n.x - n.ox).toFixed(1) + ',' + n.y.toFixed(1) + ')">'
+          + '<g class="cgorb' + (hov && animOn() ? ' orb' : '') + '" data-gid="' + n.id + '">'
+          /* 這顆看不見的圓只為了把這一層的外框撐成「正圓、正中心」：
+             公轉是 CSS 動畫，轉軸取的是 fill-box 的中心，而小點鋪在圓周上時
+             外框會有幾 px 的偏心 —— 不補這一顆，衛星轉起來會晃。*/
+          + '<circle class="cgorbb" r="' + n.halo.toFixed(1) + '" fill="none" stroke="none"/>';
         n.dots.forEach(d => {
-          const cxp = (n.x - n.ox + d.dx).toFixed(1), cyp = (n.y + d.dy).toFixed(1);
           s += '<circle class="cgdot' + (dim ? ' dim' : '') + (selCode === d.m.code ? ' sel' : '')
-            + (hoverId === n.id ? ' up' : '') + '" data-code="' + d.m.code + '" data-gid="' + n.id
-            + '" cx="' + cxp + '" cy="' + cyp + '" r="' + (hoverId === n.id ? n.dotR * 1.5 : n.dotR).toFixed(2)
+            + (hov ? ' up' : '') + '" data-code="' + d.m.code + '" data-gid="' + n.id
+            + '" cx="' + (d.dx * sp).toFixed(1) + '" cy="' + (d.dy * sp).toFixed(1)
+            + '" r="' + (hov ? n.dotR * 1.5 : n.dotR).toFixed(2)
             + '" style="--c:' + n.color + '"><title>' + A.fmt.esc(d.m.name + ' ' + d.m.code + '　'
             + A.fmt.pct(d.m.chg_pct)) + '</title></circle>';
         });
+        s += '</g></g>';
       });
       s += '</g>';
       // 大圓點（族群）
@@ -1981,13 +2102,23 @@
       nodes.forEach(n => {
         const cxp = n.x - n.ox, cyp = n.y;
         const on = selId === n.id && selKind === 'group';
-        s += '<g class="cgnode' + (on ? ' sel' : '') + (matches(n) ? '' : ' dim') + '" data-gid="' + n.id
-          + '" style="--c:' + n.color + '" transform="translate(' + cxp.toFixed(1) + ',' + cyp.toFixed(1) + ')">'
-          + cgNodeShape(n, style, on)
+        const hov = hoverId === n.id;
+        /* `.cgfx` 是「會動的那一層」（泡泡呼吸浮動、hover 彈一下）。
+           理由同上：CSS 動畫的 transform 會蓋掉定位用的 transform 屬性，所以分兩層。
+           命中圈 `.cghit` **故意留在會動的那一層外面** —— 點擊目標跟著呼吸上下飄的話，
+           真人會點空、Playwright 也會抓到移動中的座標。*/
+        s += '<g class="cgnode' + (on ? ' sel' : '') + (matches(n) ? '' : ' dim') + (hov ? ' hov' : '')
+          + '" data-gid="' + n.id + '" data-share="' + (n.share || 0) + '" data-r="' + n.R.toFixed(2)
+          + '" style="--c:' + n.color + ';--dur:' + n.dur + 's;--dly:' + n.dly + 's"'
+          + ' transform="translate(' + cxp.toFixed(1) + ',' + cyp.toFixed(1) + ')">'
+          + '<g class="cgfx">' + cgNodeShape(n, style, on) + '</g>'
+          + '<circle class="cghit" r="' + (n.R + 6).toFixed(1) + '"/>'
           + '<title>' + A.fmt.esc(n.name + '　' + A.fmt.pct(n.chg) + '　占 ' + A.fmt.n(n.share, 1) + '%　' + n.n + ' 檔') + '</title></g>';
       });
       s += '</g>';
       svg.innerHTML = s;
+      // 星空是每次重畫都重新產生的，視差位移要跟著補回去（不補的話一重畫就跳回原位）
+      parallax();
       placeLabels();
       nodes.forEach(n => { if (n.el) {
         n.el.classList.toggle('sel', selId === n.id && selKind === 'group');
@@ -2014,7 +2145,19 @@
 
     function apply() {
       stage.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + scale.toFixed(3) + ')';
+      parallax();
       if (ctx.onZoom) ctx.onZoom(scale);
+    }
+    /* 多層星空的視差：整個 `.cgstage` 已經被平移了，星空層再往回推
+       (depth - 1) * tx / scale，合起來就變成「這一層只跟著跑 depth 倍」。
+       depth 越小＝越遠＝跑得越慢。拖曳時才會重算，靜止時不做任何事。*/
+    function parallax() {
+      if (style !== 'space') return;
+      $$('.cgstars', svg).forEach(g => {
+        const dp = parseFloat(g.dataset.depth) || 1;
+        g.setAttribute('transform', 'translate(' + (tx * (dp - 1) / scale).toFixed(1)
+          + ',' + (ty * (dp - 1) / scale).toFixed(1) + ')');
+      });
     }
     function fit() {
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
@@ -2197,6 +2340,14 @@
     $$('#cgStyles button', host).forEach(b => b.onclick = () => {
       setStyle(b.dataset.style); cgSave('tw.cgStyle', b.dataset.style);
     });
+    $$('#cgAnim button', host).forEach(b => b.onclick = () => {
+      anim = b.dataset.anim; cgSave('tw.cgAnim', anim); syncAnim(); paint();
+    });
+    function syncAnim() {
+      host.dataset.cganim = animOn() ? 'on' : 'off';
+      $$('#cgAnim button', host).forEach(b => b.classList.toggle('on', b.dataset.anim === anim));
+    }
+    syncAnim();
     const rbtn = $('#cgResetBtn', host);
     if (rbtn) rbtn.onclick = () => {
       centerId = null; view.hop = 1; CG_RELS.forEach(r => (view.rel[r] = true));
@@ -2253,81 +2404,85 @@
     };
   }
 
-  /* ---- 四種風格的 SVG 素材（defs 與背景紋路）。
-     只換視覺，佈局與互動是同一份 —— 規格書第二版第四節。*/
+  /* ---- 兩種風格的 SVG 素材（defs 與背景紋路）。
+     只換視覺，佈局與互動是同一份 —— 規格書第二版第四節、第四版第三／四節。
+     ★ 會動的東西一律用 CSS 動畫或 SVG 原生的 animateMotion，**沒有任何 rAF**：
+       動畫交給瀏覽器的合成執行緒排程，JS 這邊一幀都不用跑；關掉動畫＝不輸出這些元素。*/
   function cgDefs(style) {
     let d = '<defs><marker id="cgArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7"'
       + ' markerUnits="userSpaceOnUse" orient="auto"><path d="M0.5,0.8 L7.5,4 L0.5,7.2 z" fill="context-stroke"/></marker>';
-    if (style === 'tech') {
-      d += '<pattern id="cgGrid" width="34" height="34" patternUnits="userSpaceOnUse">'
-        + '<path d="M34,0 L0,0 0,34" fill="none" stroke="var(--cg-grid)" stroke-width="1"/></pattern>';
+    if (style === 'space') {
+      // 星球內核的亮心：中心近白、邊緣回到族群色，才有「自己在發光」的感覺
+      d += '<radialGradient id="cgCore" cx="38%" cy="34%" r="70%">'
+        + '<stop offset="0" stop-color="#fff" stop-opacity=".92"/>'
+        + '<stop offset="45%" stop-color="#fff" stop-opacity=".28"/>'
+        + '<stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient>';
     }
-    if (style === 'circuit') {
-      d += '<pattern id="cgPcb" width="64" height="64" patternUnits="userSpaceOnUse">'
-        + '<path d="M0,16 H22 L32,26 H64 M0,48 H14 L24,38 M40,64 V44 L52,32 H64" fill="none"'
-        + ' stroke="var(--cg-grid)" stroke-width="1.2"/>'
-        + '<circle cx="22" cy="16" r="2" fill="var(--cg-grid)"/><circle cx="24" cy="38" r="2" fill="var(--cg-grid)"/>'
-        + '</pattern>';
+    if (style === 'bubble') {
+      // 泡泡的折射亮邊：左上亮、右下留一圈淡淡的反光
+      d += '<radialGradient id="cgRefr" cx="34%" cy="30%" r="78%">'
+        + '<stop offset="0" stop-color="#fff" stop-opacity=".75"/>'
+        + '<stop offset="58%" stop-color="#fff" stop-opacity=".06"/>'
+        + '<stop offset="100%" stop-color="#fff" stop-opacity=".34"/></radialGradient>';
     }
     return d + '</defs>';
   }
-  function cgBackdrop(style, vx, vy, vw, vh) {
-    if (style === 'tech') return '<rect class="cgbg" x="' + vx + '" y="' + vy + '" width="' + vw + '" height="' + vh + '" fill="url(#cgGrid)"/>';
-    if (style === 'circuit') return '<rect class="cgbg" x="' + vx + '" y="' + vy + '" width="' + vw + '" height="' + vh + '" fill="url(#cgPcb)"/>';
+  function cgBackdrop(style, vx, vy, vw, vh, anim) {
     if (style === 'space') {
-      // 星點：位置用等差亂數（seed 固定），每次畫出來一樣，不會閃
-      let s = '<g class="cgstars">';
-      let r = 1234.5678;
-      for (let i = 0; i < 120; i++) {
-        r = (r * 9301 + 49297) % 233280;
-        const a = r / 233280;
-        r = (r * 9301 + 49297) % 233280;
-        const b = r / 233280;
-        r = (r * 9301 + 49297) % 233280;
-        s += '<circle cx="' + (vx + a * vw).toFixed(1) + '" cy="' + (vy + b * vh).toFixed(1)
-          + '" r="' + (0.6 + (r / 233280) * 1.3).toFixed(2) + '"/>';
-      }
-      return s + '</g>';
+      /* 三層星空：depth 越小＝越遠＝拖曳時跑得越慢（視差在 parallax() 裡套）。
+         星點位置用固定種子的等差亂數 —— 每次畫出來一模一樣，不會「每次重畫就換一片星空」。
+         範圍放大到 viewBox 的 1.6 倍，視差推開之後邊緣才不會出現一塊沒有星星的空白。*/
+      const layers = [{ d: 0.35, n: 70, r: 0.5, o: '.35' }, { d: 0.6, n: 62, r: 0.8, o: '.5' },
+                      { d: 0.85, n: 48, r: 1.1, o: '.75' }];
+      let out = '', rnd = 1234.5678;
+      const nx = vx - vw * 0.3, ny = vy - vh * 0.3, nw = vw * 1.6, nh = vh * 1.6;
+      layers.forEach((L, li) => {
+        out += '<g class="cgstars s' + li + (anim ? ' tw' : '') + '" data-depth="' + L.d + '" style="opacity:' + L.o + '">';
+        for (let i = 0; i < L.n; i++) {
+          rnd = (rnd * 9301 + 49297) % 233280; const a = rnd / 233280;
+          rnd = (rnd * 9301 + 49297) % 233280; const b = rnd / 233280;
+          rnd = (rnd * 9301 + 49297) % 233280; const c = rnd / 233280;
+          out += '<circle cx="' + (nx + a * nw).toFixed(1) + '" cy="' + (ny + b * nh).toFixed(1)
+            + '" r="' + (L.r + c * L.r * 0.9).toFixed(2) + '" style="--dly:' + (c * 4).toFixed(2) + 's"/>';
+        }
+        out += '</g>';
+      });
+      return out;
+    }
+    if (style === 'bubble') {
+      // 背景幾顆很淡的裝飾大泡泡（純裝飾，不吃滑鼠、不影響佈局）
+      const B = [[0.18, 0.22, 0.17], [0.74, 0.16, 0.11], [0.62, 0.78, 0.19], [0.28, 0.82, 0.09], [0.9, 0.55, 0.13]];
+      return '<g class="cgdeco' + (anim ? ' fl' : '') + '">' + B.map((b, i) =>
+        '<circle cx="' + (vx + b[0] * vw).toFixed(1) + '" cy="' + (vy + b[1] * vh).toFixed(1)
+        + '" r="' + (Math.min(vw, vh) * b[2]).toFixed(1) + '" style="--dly:' + (i * 1.3).toFixed(1) + 's"/>').join('') + '</g>';
     }
     return '';
   }
-  /* 大圓點的造型：電子電路是帶接腳的方形晶片，其餘是圓（星際多一圈光暈）。 */
+  /* 大圓點的造型。兩種風格都是圓，差在「怎麼發光」：
+     星際＝多層光暈＋亮心（占比越大光暈層數越多），泡泡＝高光點＋折射亮邊＋柔和陰影。
+     ⚠ 命中圈 `.cghit` 不在這裡產生，由 paint() 掛在會動的那一層外面
+       —— 點擊目標不可以跟著呼吸上下飄。*/
   function cgNodeShape(n, style, on) {
     const R = n.R;
-    /* 每一種造型都先放一顆看不見的命中圈：
-       ① 小圓點（占比小的族群只有 5px）用滑鼠很難點到，圈大一點好點；
-       ② 四種風格的造型不一樣（電子電路是方形晶片，沒有 .cgball），
-          有這一顆之後「怎麼點一顆族群」永遠是同一個選擇器，驗收與腳本不必分風格寫。
-       fill 要用 transparent 不可以用 none —— none 不吃滑鼠事件。
-       ⚠ 它一定要排在**最後**（畫在最上面）。排在前面的話上層的圓會先吃到滑鼠，
-         Playwright 會直接拒絕點擊（「.cgball intercepts pointer events」）—— 真人也一樣點在圓上而不是命中圈。*/
-    const hit = '<circle class="cghit" r="' + (R + 6).toFixed(1) + '"/>';
-    if (style === 'circuit') {
-      const a = R * 0.95, pin = Math.max(2.5, R * 0.3);
-      let s = '';
-      for (let i = 0; i < 3; i++) {
-        const t = (i - 1) * a * 0.55;
-        s += '<line class="cgpin" x1="' + (-a) + '" y1="' + t + '" x2="' + (-a - pin) + '" y2="' + t + '"/>'
-          + '<line class="cgpin" x1="' + a + '" y1="' + t + '" x2="' + (a + pin) + '" y2="' + t + '"/>'
-          + '<line class="cgpin" x1="' + t + '" y1="' + (-a) + '" x2="' + t + '" y2="' + (-a - pin) + '"/>'
-          + '<line class="cgpin" x1="' + t + '" y1="' + a + '" x2="' + t + '" y2="' + (a + pin) + '"/>';
-      }
-      return s + '<rect class="cgchip" x="' + (-a) + '" y="' + (-a) + '" width="' + (a * 2)
-        + '" height="' + (a * 2) + '" rx="' + (a * 0.22).toFixed(1) + '"/>'
-        + '<rect class="cgchip2" x="' + (-a * 0.45) + '" y="' + (-a * 0.45) + '" width="' + (a * 0.9)
-        + '" height="' + (a * 0.9) + '" rx="' + (a * 0.14).toFixed(1) + '"/>' + hit;
-    }
     let s = '';
-    if (style === 'space') s += '<circle class="cgaura" r="' + (R * 2.2).toFixed(1) + '"/>';
-    if (style === 'tech') s += '<circle class="cgring" r="' + (R * 1.5).toFixed(1) + '"/>';
-    if (style === 'bubble') s += '<circle class="cgshadow" cx="0" cy="' + (R * 0.22).toFixed(1) + '" r="' + R.toFixed(1) + '"/>';
-    s += '<circle class="cgball" r="' + R.toFixed(1) + '"/>';
-    if (style === 'bubble' || style === 'space') {
-      s += '<circle class="cggloss" cx="' + (-R * 0.32).toFixed(1) + '" cy="' + (-R * 0.34).toFixed(1)
-        + '" r="' + (R * 0.34).toFixed(1) + '"/>';
+    if (style === 'space') {
+      // 光暈層數依占比：大族群三層、中型兩層、小的一層，「大的看起來更亮」本身就是資訊
+      const lv = n.k > 0.62 ? 3 : n.k > 0.3 ? 2 : 1;
+      if (lv >= 3) s += '<circle class="cgaura a3" r="' + (R * 2.8).toFixed(1) + '"/>';
+      if (lv >= 2) s += '<circle class="cgaura a2" r="' + (R * 2.05).toFixed(1) + '"/>';
+      s += '<circle class="cgaura a1" r="' + (R * 1.45).toFixed(1) + '"/>'
+        + '<circle class="cgball" r="' + R.toFixed(1) + '"/>'
+        + '<circle class="cgcore" r="' + R.toFixed(1) + '" fill="url(#cgCore)"/>';
+    } else {
+      s += '<circle class="cgshadow" cx="0" cy="' + (R * 0.22).toFixed(1) + '" r="' + R.toFixed(1) + '"/>'
+        + '<circle class="cgball" r="' + R.toFixed(1) + '"/>'
+        + '<circle class="cgrefr" r="' + R.toFixed(1) + '" fill="url(#cgRefr)"/>'
+        + '<circle class="cggloss" cx="' + (-R * 0.32).toFixed(1) + '" cy="' + (-R * 0.34).toFixed(1)
+        + '" r="' + (R * 0.28).toFixed(1) + '"/>';
     }
-    if (on) s += '<circle class="cgsel" r="' + (R + 5).toFixed(1) + '"/>';
-    return s + hit;
+    // 選中：外圈緩慢旋轉的虛線光環（CSS 動畫，關動畫時 CSS 自己會停）
+    if (on) s += '<circle class="cgsel" r="' + (R + 6).toFixed(1) + '"/>';
+    return s;
   }
 
   function drawChainMap(host, sc, chainId, im, handlers) {
