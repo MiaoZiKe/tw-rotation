@@ -11479,8 +11479,89 @@ def t_transformer(pg, base):
     _dg14_typo(pg, dgh, "變壓器GIS")
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+
+
+
+B14B_DG = """() => {
+  const h = document.querySelector('#prodDiagram');
+  if (!h) return {present: false};
+  const svg = h.querySelector('svg');
+  if (!svg) return {present: false};
+  const segNodes = [...h.querySelectorAll('[data-seg]')];
+  const segs = {}; segNodes.forEach(n => { segs[n.dataset.seg] = (segs[n.dataset.seg] || 0) + 1; });
+  const heroes = [...h.querySelectorAll('.sel-part')];
+  const sw = (n) => { const p2 = n.querySelector('.part');
+    return p2 ? +parseFloat(getComputedStyle(p2).strokeWidth).toFixed(2) : null; };
+  return {present: true,
+          full: [...svg.querySelectorAll('text')].map(n => n.textContent).join('。'),
+          segs: segs, nSeg: segNodes.length,
+          parts: [...new Set([...h.querySelectorAll('[data-part]')].map(n => n.getAttribute('data-part')))],
+          selpart: heroes.length, heroKey: heroes.length ? (heroes[0].dataset.dgkey
+            || heroes[0].getAttribute('data-part')) : null,
+          heroSW: heroes.map(sw).filter(x => x != null),
+          sibSW: [...new Set([...h.querySelectorAll('[data-seg].sel:not(.sel-part)')]
+            .map(sw).filter(x => x != null))],
+          vbH: svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 0,
+          glow: [...h.querySelectorAll('*')].filter(n => {
+            const f = getComputedStyle(n).filter; return f && f !== 'none'; }).length};
+}"""
+
+B14B_DOTS = """() => { const h = document.querySelector('#prodDiagram');
+  if (!h) return [];
+  return [...h.querySelectorAll('animateMotion')].map(m => {
+    const r = m.parentNode.getBoundingClientRect();
+    return [+r.x.toFixed(1), +r.y.toFixed(1)]; }); }"""
+
+B14B_GUTTER = """(gaps) => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const bad = [];
+  svg.querySelectorAll('text').forEach(n => {
+    const t = (n.textContent || '').trim(); if (!t) return;
+    const g = n.getBBox();
+    gaps.forEach(([a, b, colLeft, y0, y1]) => {
+      if (g.y < y0 || g.y > y1) return;          // 只看「真的排成多欄」的那一段高度
+      if (g.x > colLeft && g.x < a && g.x + g.width > b) {
+        bad.push(t.slice(0, 16) + '（右緣 ' + (g.x + g.width).toFixed(0) + '）');
+      }
+    });
+  });
+  return {present: true, nBad: bad.length, bad: bad.slice(0, 6)};
+}"""
+
+B14B_TYPO = """() => {
+  const h = document.querySelector('#prodDiagram');
+  const svg = h && h.querySelector('svg');
+  if (!svg) return {present: false};
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+  const k = (r.width && vb) ? r.width / vb : 0;
+  const a = [], out = [];
+  svg.querySelectorAll('text').forEach(n => {
+    if (!(n.textContent || '').trim()) return;
+    const cs = getComputedStyle(n);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+    const b = n.getBoundingClientRect(); if (!b.width || !b.height) return;
+    const g = n.getBBox();
+    if (g.x < -1 || g.x + g.width > vb + 1) out.push((n.textContent || '').trim().slice(0, 18));
+    a.push({t: (n.textContent || '').trim().slice(0, 18),
+            eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2),
+            x: b.x, y: b.y, w: b.width, hh: b.height});
+  });
+  const ov = [];
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+    const p2 = a[i], q = a[j];
+    const ox = Math.min(p2.x + p2.w, q.x + q.w) - Math.max(p2.x, q.x);
+    const oy = Math.min(p2.y + p2.hh, q.y + q.hh) - Math.max(p2.y, q.y);
+    if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' X ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+  }
+  const small = a.filter(z => z.eff < 11.9).map(z => z.eff + 'px「' + z.t + '」');
+  return {present: true, n: a.length, svgW: Math.round(r.width),
+          min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+          small: small.slice(0, 8), nSmall: small.length,
+          ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length,
+          pageScroll: document.documentElement.scrollWidth - document.documentElement.clientWidth};
+}"""
 
 
 def _b14b_anim(pg, label, need_dots):
