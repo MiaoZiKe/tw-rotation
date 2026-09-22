@@ -16024,7 +16024,11 @@ DG3D_AUDIT = """() => { const v = window.Rack3D.current;
   return { audit: a, mats: v.mats(), calls: st.drawCalls, tris: st.triangles,
     scrollW: h3 ? h3.scrollWidth : 0, clientW: h3 ? h3.clientWidth : 0,
     bodyScrollW: body ? body.scrollWidth : 0, bodyClientW: body ? body.clientWidth : 0,
-    dgOverflowX: host ? getComputedStyle(host).overflowX : '',
+    /* ★ 量的是 **inline** 的 overflow-x（applyDgNative 寫的那一個），不是 computed ——
+       窄畫面的 `.dgwrap{overflow-x:auto}` 是 CSS 媒體查詢給 **2D** 的規則，
+       而 3D 開著時 #prodDiagram 本來就是 hidden，那條規則碰不到 3D。*/
+    dgInlineOx: host ? host.style.overflowX : '',
+    dgHidden: host ? !!host.hidden : null,
     sticksOut: !!(br && hr && (hr.right > br.right + 1 || hr.left < br.left - 1)),
     pageW: document.documentElement.scrollWidth, pageC: document.documentElement.clientWidth,
     cardsOut: cardsOut, hostW: h3 ? Math.round(hr.width) : 0 }; }"""
@@ -16146,8 +16150,11 @@ def t_dg3d_pbr(pg, base):
             ok(f"[{nice} {w}px] ★ 3D 區塊的外層不橫向捲動（卡片不會被捲到畫面外）"
                f"：{z['bodyScrollW']} ≤ {z['bodyClientW']}",
                z["bodyScrollW"] <= z["bodyClientW"] + 1, z)
-            ok(f"[{nice} {w}px] ★ 3D 開著時剖析圖外框沒有被設成 overflow-x:auto（那條規則只給 2D）",
-               z["dgOverflowX"] != "auto", z["dgOverflowX"])
+            ok(f"[{nice} {w}px] ★ 3D 開著時 applyDgNative 沒有把「原尺寸左右滑」套到 3D 上"
+               f"（inline overflow-x = {z['dgInlineOx']!r}）",
+               z["dgInlineOx"] != "auto", z)
+            ok(f"[{nice} {w}px] 3D 開著時 2D 外框是收起來的（所以它的捲動規則碰不到 3D）",
+               z["dgHidden"] is True, z["dgHidden"])
             ok(f"[{nice} {w}px] 3D 畫布沒有凸出它的容器", not z["sticksOut"], z)
             ok(f"[{nice} {w}px] ★ 每一張卡片都完整落在 3D 容器內（不會被切一半）",
                not z["cardsOut"], z["cardsOut"][:5])

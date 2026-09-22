@@ -1224,8 +1224,11 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(0, { rough: 0.55, metal: 0.05, color: K.css('--dg-m-pcb', '#0E3B32') })));
-      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 });
-      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.24 });
+      /* 焊墊是**朝上的大平面**：metalness 拉到 .9 的話它整片鏡射上方那片大柔光板，
+         銅色被沖成白色（2026-09-22 截圖實測）。壓到 .72／rough .45 —— 還是金屬，
+         但看得出是銅。焊錫維持高反射（錫本來就亮）。*/
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.72, rough: 0.45 });
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.28 });
       /* ★ 2026-09-22：兩塊銅墊併成一個 mesh、兩個焊錫圓角收成一個 InstancedMesh ——
          省下的 2 個 draw call是給模型底下那片接觸陰影用的（#238「柔和環境陰影」），
          MLCC 場景的棘輪（93）才守得住。畫出來的東西一個像素都沒變。*/
@@ -1865,11 +1868,16 @@
        所以自己搭一個程序式的小棚：一個包住原點的暗房 ＋ 上方大柔光板 ＋ 左冷右暖兩片補光板
        ＋ 後上方一片輪廓光板 ＋ 下方暗板，再用 `fromScene()` 捲成 envMap。
        兩種模式各生一份（顏色不同），切模式時重生。*/
-    let pmrem = null, envTex = null, envPal = '';
+    /* 環境貼圖一個模式**只生一次**就快取起來（envByPal）。
+       PMREM 要畫六個面再做多階模糊，在軟體渲染的環境裡要好幾百毫秒，而且是**同步**的 ——
+       每切一次模式就重生會把 rAF 卡住，畫面上看到的就是「切配色的時候整個停一下」。*/
+    let pmrem = null, envPal = '';
+    const envByPal = {};
     const cssRead0 = (n) => { try { return getComputedStyle(el).getPropertyValue(n).trim(); } catch (e) { return ''; } };
     const envCol = (n, d) => new THREE.Color(cssRead0(n) || d);
-    function buildEnv() {
+    function buildEnv(key) {
       try {
+        if (envByPal[key]) { scene.environment = envByPal[key]; return; }
         if (!pmrem) { pmrem = new THREE.PMREMGenerator(renderer); pmrem.compileEquirectangularShader(); }
         const es = new THREE.Scene();
         const geos = [];
@@ -1891,8 +1899,7 @@
         const t = pmrem.fromScene(es, 0.04).texture;
         geos.forEach(g => g.dispose());
         es.traverse(x => { if (x.material) x.material.dispose(); });
-        if (envTex) envTex.dispose();
-        envTex = t;
+        envByPal[key] = t;
         scene.environment = t;
       } catch (e) {
         /* 生不出來（極舊的 WebGL1、浮點貼圖不支援）就維持沒有 envMap 的樣子 ——
@@ -2431,7 +2438,7 @@
          只在**模式真的換了**的時候生 —— PMREM 要畫六個面再做多階模糊，每次都生會很貴。
          envMapIntensity 走 --dg-env（科技 .9、閱讀 1.15）：閱讀模式的棚比較亮，
          金屬要反射得多一點才不會在白底上變成一塊灰。*/
-      if (envPal !== pal || !scene.environment) { buildEnv(); envPal = pal; }
+      if (envPal !== pal || !scene.environment) { buildEnv(pal); envPal = pal; }
       const envK = palNum('--dg-env', 1);
       byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => { if (m.envMapIntensity != null) m.envMapIntensity = envK; }); });
       applyShadowMode();
@@ -2756,7 +2763,7 @@
         if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => m.dispose());
       });
       if (shadowMat.map) shadowMat.map.dispose();      // 粒子與陰影共用的那張 sprite 貼圖
-      if (envTex) { envTex.dispose(); envTex = null; }
+      Object.keys(envByPal).forEach(k => { if (envByPal[k]) envByPal[k].dispose(); delete envByPal[k]; });
       if (pmrem) { pmrem.dispose(); pmrem = null; }
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
