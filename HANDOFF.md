@@ -2317,3 +2317,36 @@ Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化…重新�
   放大會戳出圓圈，屬於幾何問題 → `tech-illustrator`。
 - `.partcard` 的樣式仍然是 JS 注入的 `<style id="partCardCss">`（上一批的暫時做法）。
   這一批只在 `index.html` 補了它的天花板，沒有把整塊搬回來 —— 搬家要跟改動 `industry.js` 的人協調。
+
+## 2026-09-22（晚）：版面退回原格式 → 風格拍板（#238）→ 地基兩支 agent 開工 → dg-scale 收尾
+
+### 這一段發生的事（依時間）
+1. **Andy 否決重排**：「你後續更動的版面格式很糟糕，我覺得先回到原本的格式」→ `industry.js`／`index.html`
+   版面整個退回 `2e10e6c`，只留 bug 修正（`.noside` 藏側欄、≤820 抽屜改浮層自動收、`.dgwrap svg.dgm{max-width:984px}`、
+   點背景恢復 `onBg`、漸層 18 個色值改 token）。上一節「產業鏈頁全面重排」的**版面部分已作廢**，
+   它列的「還沒做」也跟著作廢，不要撿回來做。
+2. **風格拍板 DECISIONS #238**：兩種模式（亮色「閱讀」／暗色「科技」）、卡片式標註＋細引線＋垂直爆炸拆解，
+   **所有 2D／3D 圖都改**；排程在 `docs/diagram_restyle_plan.md`（七波、每波 ≤3 支 agent）。
+   Andy 稍後再補 **3D 三個推薦**（玻璃機櫃／發光流線／半拉出托盤／卡片與元件同色串聯），已寫進 #238「3D 補充」並轉給兩支地基 agent。
+3. **地基兩支 agent 進行中**（回來要合併、驗、推）：
+   - `style-system`（分支 `claude/style-system`）：`_STYLE.md`、兩套色票、卡片磨砂玻璃、引線發光端點、
+     `--dg-sig`／`--dg-pwr`／`--dg-cool` 三組語意色、卡片吃 `--dg-card-c`（2D／3D 共用介面）。
+   - `style-3d`（分支 `claude/style-3d`）：兩套打光材質、根治「環節色當底色」、`glass`／`flow`／`airflow` 三種新材質、
+     先拿 AI 伺服器機櫃當範本（外框玻璃、托盤三色、CDU 水路與 CPO 光路發光、風扇氣流、前排托盤半拉出）。
+   - `dg-elec-1`（工業自動化／鋁電容／電路保護三張一般電子）也還在跑。
+4. **dg-scale 收尾**：`2bb02d8`（規格書 §0）與 `92786e4`（`D.fold()`、`wireFolds` 自動量 `getBBox`）已 cherry-pick 進 main
+   （`5ad86c0`／`ea10c1f`）。13 張的收納草稿與 `批次22-剖析圖尺寸` 棘輪表留在 `origin/claude/dg-scale` 的 `847838d`，
+   逐張改風格時當起點；每張的 §1 高度與切法表在 `docs/diagram_restyle_plan.md`。
+
+### 這批只驗了哪幾段（cherry-pick 那兩筆，動到的只有 `site/diagrams.js` 與兩個 `.md`）
+`批次11-MLCC`、`批次13-配色與收納`、`點背景恢復`、`批次21-CoWoS去重`、`批次21-晶圓代工`、`批次21-矽晶圓`、`批次21-HBM`
+＋ `_preview.py` 全綠。**跳過 pytest**（`git diff --name-only` 只有 `site/diagrams.js`、`docs/**`、`DECISIONS.md`）。
+**沒驗的**：其他所有段落。`wireFolds` 改成執行期量高度，手寫 `data-y0/y1` 的舊路相容，四張有章節的圖高度一個數字都沒變。
+
+### 下一步
+1. 等 `style-system`／`style-3d` 回來 → 各自合併到 main → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
+2. 等 `dg-elec-1` 回來 → 合併三張 → 驗 → 推。
+3. 地基上線後開始波 1（AI 伺服器鏈：液冷、氣冷、PSU＋BBU），照 `docs/diagram_restyle_plan.md`。
+4. 已知的小 bug 未修：MLCC 右欄在 800px 被裁到（早就有，跟這批無關）。
+
+**最後更新：2026-09-22（晚，台北）** by Claude（session 01Ec3nix…）
