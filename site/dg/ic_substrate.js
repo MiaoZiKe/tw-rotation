@@ -436,7 +436,8 @@
   window.DG.register('ic_substrate', {
     level: 'group', chain: 'ai_server',
     name: 'IC 載板：ABF 增層剖面',
-    draw: abfSubstrate, native: CW, scene: null,
+    draw: abfSubstrate, native: CW, scene: 'ic_substrate',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: 'AI 晶片底下那塊板子為什麼比主機板貴？ABF 膜、細線、微孔各卡在哪一關，台股站在哪幾家？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        這張圖是 R4（台股沒有人做的零件要明說）最典型的案例：**核心層與 ABF 膜這兩層台股一家都沒有**，

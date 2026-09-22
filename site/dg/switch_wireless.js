@@ -491,7 +491,8 @@
   window.DG.register('switch_wireless', {
     level: 'group', chain: 'ai_server',
     name: '網通：交換器板卡 ＋ 800G 光模組 ＋ CPO',
-    draw: switchBoard, native: CW, scene: null,
+    draw: switchBoard, native: CW, scene: 'switch_wireless',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: '一台 800G／1.6T 交換器的板子上到底有什麼？光模組插在前面板跟搬進封裝（CPO）差在哪、台股吃得到哪幾格？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        v2 之後零件的名字不在 SVG 裡（卡片是 HTML），小卡拿不到 text.lbl，所以每一個零件都要自己給 name。

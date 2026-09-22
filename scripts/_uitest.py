@@ -10097,9 +10097,8 @@ SECTIONS = {
     "批次22-風格系統":     lambda pg, b, base, code: t_style22(pg, base),
     # 批次24：半導體鏈四張補上 3D（晶圓代工／矽晶圓／HBM／第三代半導體）。★ 這一段一律 --workers 1
     "批次24-半導體鏈3D":   lambda pg, b, base, code: t_b24_semi3d(pg, base),
-    # 批次28：一般電子鏈六張補上 3D（面板／工業自動化＋CNC 工具機／被動保護／電容器／被動 RLC）。
-    # ★ 這一段一律 --workers 1
-    "批次28-一般電子鏈3D": lambda pg, b, base, code: t_b28_elec3d(pg, base),
+    # 批次27：AI 伺服器鏈六張補上 3D（IC 載板／PCB 硬板／電源／液冷／氣冷／網通）。★ 這一段一律 --workers 1
+    "批次27-AI伺服器鏈3D": lambda pg, b, base, code: t_b27_aiserver3d(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -16829,133 +16828,88 @@ def t_b24_semi3d(pg, base):
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
+"""批次27：AI 伺服器鏈六張補上 3D（IC 載板／PCB 硬板／電源／液冷／氣冷／網通）。
 
-"""★ 批次28（2026-09-23）：一般電子鏈六張剖析圖補上 3D 立體 —— 補完這批，全站 19 張全部有 3D。
+★ 這一段一律 `--workers 1`（跟批次24 同一個理由）：多工時 CPU 被吃滿，
+  工具列的「3D 立體」鈕六秒都點不到，整批會變成假紅。
 
-面板／工業自動化／CNC 工具機／被動保護／電容器／被動 RLC 六張原本 `scene: null`，
-現在各自有自己的場景（site/three3d.js 的 SCENES 檔尾五筆；
-工業自動化與 CNC 工具機**共用同一個場景** `motion_axis`，因為它們本來就共用同一張 2D）。
-
-寫法照抄批次24（`t_b24_semi3d`），驗的全部是「畫面真的因此改變」，不是「元素存在」：
-  ① 六張都真的掛得起來，而且零件數等於場景宣告的那個數（少一個就是有 kind 叫不到、退回方塊）
-  ② 材質底色不是環節色（#238 那一刀；這六張刻意一張一個主色）
-  ③ 換模式 → 材質色的指紋、畫布底、卡片底色真的變；閱讀模式零件完全不自體發光
+驗的跟批次24 完全一樣的八件事（寫法直接照抄 `t_b24_semi3d`，連踩過的坑都照抄）：
+  ① 3D 真的掛得起來、零件數＝場景宣告的數字
+  ② 材質底色不是環節色（DECISIONS #238 那一刀）
+  ③ 切「科技／閱讀」→ 材質指紋、畫布底、卡片底色、字色四樣都真的變
   ④ 用滑鼠真的點一顆零件 → 只有那一顆被標成主角；真的點背景 → 回到點之前的樣子
-  ⑤ 收攏（explode 0）與展開（explode 1）零件的世界座標真的不同
+  ⑤ 收攏（explode 0）與展開（explode 1）零件在畫面上真的移動了
   ⑥ 卡片：編號圓點、中英雙語、字級 ≥ 12px、台股晶片或明寫「台股無直接對應」（不准留白）
-     ★ 這一批多一條：場景裡寫了 `codes: []` 的零件（查不到台股具名對應的那些）
-       **一定**要顯示「台股無直接對應」而且那張卡片上的晶片數是 0 ——
-       舊的 `p.codes && p.codes.length` 對空陣列會掉回 members(seg)，
-       那會把整個環節的公司貼到一個查不到對應的零件底下，那不是留白、是錯誤宣稱（R5）。
   ⑦ 效能上下限；⑧ 800px 窄畫面不橫向捲動、卡片不出框
+另外多驗一條批次24 沒有的：**`codes: []` 的零件真的顯示「台股無直接對應」** ——
+這一批新增了「明說沒有對應」這個寫法（DECISIONS #250），沒有斷言的話它安靜退回去
+列該環節的台股，就會變成「散熱廠在做那顆晶片」這種錯誤宣稱。
 """
-B28_ROUTES = {
+B27_ROUTES = {
     # 名稱: (路由, draw call 上限, 三角形上限, 三角形下限, 場景宣告的零件數)
-    #   上限＝量出來的數字留約一倍餘裕；下限是「不准退回一堆方塊」的地板，各張自己訂
-    #   （批次24 已經記過：拿一個全站數字去量「一疊薄層」的圖就是拿錯尺）。
-    "面板疊層":     ("industry/electronics/dg/panel", 90, 24000, 5000, 14),
-    "工業自動化":   ("industry/electronics/dg/factory_automation", 110, 24000, 5000, 12),
-    "CNC 工具機":   ("industry/electronics/dg/machine_tool", 110, 24000, 5000, 12),
-    "被動保護":     ("industry/electronics/dg/resistor_protect", 60, 14000, 2500, 10),
-    "鋁電容":       ("industry/electronics/dg/capacitor", 80, 16000, 3000, 14),
-    "電感電阻石英": ("industry/electronics/dg/power_inductor", 70, 14000, 2500, 16),
+    #   上限＝量出來的數字留約一倍餘裕；下限是「不准退回一堆方塊」的地板。
+    #   ⚠ 下限各自訂，不是一個全站的數字：載板與硬板畫的是**一疊薄層的半剖**，
+    #     一層就是一塊板，資訊量在「層的順序與厚薄關係」，不在多邊形數（#247 §三 同一條）。
+    "IC載板":     ("industry/ai_server/dg/ic_substrate", 80, 18000, 3000, 11),
+    "PCB硬板":    ("industry/ai_server/dg/pcb_rigid", 50, 11000, 1800, 13),
+    "電源PSU3D":  ("industry/ai_server/dg/server_psu", 150, 12000, 2000, 10),
+    "液冷":       ("industry/ai_server/dg/liquid_cooling", 130, 12000, 2000, 13),
+    "氣冷":       ("industry/ai_server/dg/air_cooling", 120, 14000, 2200, 12),
+    "網通板卡":   ("industry/ai_server/dg/switch_wireless", 210, 30000, 6000, 13),
 }
 
-# 批次28 新增的零件字彙（site/three3d.js 的 mkBuilders 檔尾那一段）。
+# 批次27 新增的零件字彙（site/three3d.js 的 mkBuilders 檔尾那一段）。
 # 少掛一個的後果不是「畫得醜一點」，是**那個 kind 安靜退回方塊**、而且沒有人會發現。
-B28_KINDS = ["pnframe", "pnfilm", "pnlgp", "pnledbar", "pnprism", "pnpol", "pnglass",
-             "pntft", "pnlc", "pncf", "pndriver",
-             "mcbase", "mcmotor", "mcenc", "mccoup", "mcbrg", "mcscrew", "mcnut",
-             "mcballs", "mcreturn", "mcrail", "mcblock", "mctable",
-             "cppoly", "cpcarbon", "cpfoil", "cpshell", "cpntc", "cpgrain", "cpgb", "cpelec", "cppn",
-             "accan", "acsleeve", "accore", "acfoil", "acpore", "acspine", "acoxide",
-             "acpaper", "acelyte", "acseal", "aclead", "acvent", "acsolid",
-             "indbody", "indwind", "indflux", "indterm",
-             "reslay", "resfilm", "restrim", "resglass", "resterm", "resback",
-             "xtalbase", "xtalmount", "xtalblank", "xtalelec", "xtallid"]
+B27_KINDS = ["abfcore", "abfbu", "abftrace", "abfvia", "abfsr", "abfpad", "abfbga",
+             "pcblay", "pcbtrc", "pcbmask", "pcbenig", "pcbvia",
+             "pshelf", "pshell", "pboard", "pcardedge", "pbusbar", "pvrm", "pbbu", "pscap",
+             "timlay", "ihslid", "cplate", "cpfin", "cpport", "lcmani", "lcphe",
+             "fframe", "frotor", "fhub", "fmotor", "fbear", "fwire", "fwall", "fshroud",
+             "swboard", "swasic", "swcage", "swmod", "swgold", "swcpo"]
 
-# 「層」類：它們**本來就是一塊板／一條溝**，對它們要求「比方塊細」是拿錯尺量
-# （批次24 已經為 wbglay／wbggate／wbgpgan 記過同一條）。
-# 它們改驗「本體之外還畫得出剖面」—— 那才是它們該有的東西。
-B28_LAYERS = {"cppoly", "reslay", "restrim", "resglass", "resback"}
+# 陣列類：這幾個 kind 一定要收成 InstancedMesh，不然光是籠架 24 格就是 24 個 draw call。
+B27_ARRAY_KINDS = {"abfvia", "abfpad", "abfbga", "abftrace", "pcbtrc", "pcbvia",
+                   "cpfin", "pvrm", "pbbu", "pscap", "fwall", "swcage"}
 
-# 陣列類一律要收成 InstancedMesh，不然光是導光板的 96 顆網點就是 96 個 draw call。
-B28_ARRAYS = {"pnlgp", "pntft", "pnlc", "pncf", "mcballs", "mcbrg", "mcblock",
-              "cpcarbon", "cpgrain", "acpore", "indwind", "xtallid"}
-
-# 每張卡片：編號圓點／中英雙語／台股不留白／最小字級，外加「codes: [] 的那幾顆真的是 0 個晶片」
-_B28_CARDS = """() => { const host = document.getElementById('prod3d');
-  const cards = [...host.querySelectorAll('.lbl3d')];
-  let minFs = 1e9;
-  cards.forEach(c => c.querySelectorAll('b,i,em,.chip3d,s,small').forEach(t => {
-    if (!t.textContent.trim()) return;
-    const r = t.getBoundingClientRect(); if (r.width < .5) return;
-    minFs = Math.min(minFs, parseFloat(getComputedStyle(t).fontSize)); }));
-  const chipsOf = {};
-  cards.forEach(c => { const u = c.querySelector('u.chips3d');
-    chipsOf[c.dataset.dgpart || ''] = { chips: u ? u.querySelectorAll('a.chip3d').length : -1,
-      none: !!(u && /台股無直接對應/.test(u.textContent)) }; });
-  return { n: cards.length,
-    no: cards.filter(c => { const e = c.querySelector('em.no3d'); return e && e.textContent.trim(); }).length,
-    en: cards.filter(c => { const e = c.querySelector('b small.en'); return e && e.textContent.trim(); }).length,
-    told: cards.filter(c => { const u = c.querySelector('u.chips3d'); if (!u) return false;
-      return u.querySelector('a.chip3d') || /台股無直接對應/.test(u.textContent); }).length,
-    minFs: minFs === 1e9 ? null : minFs,
-    chipsOf: chipsOf,
-    noPart: cards.filter(c => !c.dataset.dgpart).map(c => c.dataset.dgno) }; }"""
-
-# 收攏／展開量的是「零件在畫面上真的動了」，不是 explode 這個變數本身（DECISIONS #199 那一類的錯）
-_B28_SCREEN = """() => { const out = {};
-  document.querySelectorAll('#prod3d .lead3d .ld-dot').forEach((d, i) => {
-    out[String(i)] = [parseFloat(d.getAttribute('cx') || '0'), parseFloat(d.getAttribute('cy') || '0')]; });
-  return out; }"""
-
-# 場景裡宣告「查不到台股具名對應」（codes: []）的零件是哪幾顆 —— 直接讀場景資料，不靠記憶
-_B28_NOCODE = """(id) => { const s = window.Rack3D.SCENES[id];
-  return s ? s.parts.filter(p => Array.isArray(p.codes) && p.codes.length === 0).map(p => p.part) : []; }"""
-
-# 場景 id 不一定等於路由最後一段：工業自動化與 CNC 工具機兩個族群**共用**同一個 3D 場景
-B28_SCENE_OF = {"panel": "panel", "factory_automation": "motion_axis", "machine_tool": "motion_axis",
-                "resistor_protect": "resistor_protect", "capacitor": "capacitor",
-                "power_inductor": "power_inductor"}
+# `codes: []` ＝ 明說「台股無直接對應」。少了斷言，它退回去列該環節的台股就會變成錯誤宣稱。
+B27_NO_TW = {
+    "industry/ai_server/dg/ic_substrate": ["abf_die_ghost"],
+    "industry/ai_server/dg/server_psu": ["psu_die"],
+    "industry/ai_server/dg/liquid_cooling": ["die"],
+    "industry/ai_server/dg/switch_wireless": ["sw_cpu"],
+}
 
 
-def t_b28_elec3d(pg, base):
-    """批次28：一般電子鏈六張的 3D（真的開、真的點、真的切模式、真的收攏展開）。"""
+def t_b27_aiserver3d(pg, base):
+    """批次27：AI 伺服器鏈六張的 3D（真的開、真的點、真的切模式、真的收攏展開）。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(base, wait_until="networkidle")
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech');"
                 " localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
     if not pg.evaluate("() => !!window.Rack3D"):
-        notes.append("這個環境載不到 Rack3D（WebGL？），批次28-一般電子鏈3D 整段跳過")
+        notes.append("這個環境載不到 Rack3D（WebGL？），批次27-AI伺服器鏈3D 整段跳過")
         return
     have = pg.evaluate("() => window.Rack3D.kinds()")
     if not have:
-        notes.append("Rack3D.kinds() 回空（WebGL 不支援），批次28-一般電子鏈3D 整段跳過")
+        notes.append("Rack3D.kinds() 回空（WebGL 不支援），批次27-AI伺服器鏈3D 整段跳過")
         return
-    missing = [k for k in B28_KINDS if k not in have]
-    ok("批次28 新增的 kind 全部掛進分派表了（叫不到就會安靜退回方塊）", not missing, missing)
+    missing = [k for k in B27_KINDS if k not in have]
+    ok("批次27 新增的 kind 全部掛進分派表了（叫不到就會安靜退回方塊）", not missing, missing)
     probes = pg.evaluate("""async (ks) => { const out = [];
-        for (const k of ks) out.push(await window.Rack3D.probe(k)); return out; }""", B28_KINDS)
+        for (const k of ks) out.push(await window.Rack3D.probe(k)); return out; }""", B27_KINDS)
     bad = [p for p in probes if not p or p.get("error")]
-    ok("批次28 每一個新 kind 都建得起來（沒有一個丟例外）", not bad, bad[:3])
-    flat = [p for p in probes if p and not p.get("error")
-            and p["kind"] not in B28_LAYERS and p["tris"] <= 24]
-    ok("批次28 每一個新 kind 都不只是一顆方塊（方塊＝12 個三角形，門檻放在兩倍）",
+    ok("批次27 每一個新 kind 都建得起來（沒有一個丟例外）", not bad, bad[:3])
+    # ⚠ 判準是「三角形數」不是「mesh 數」（#247 §五-1 踩過）：這一批也有好幾個 kind
+    #   刻意**只有一兩顆 mesh** —— 一整疊層 merge 成一個、整片孔收成 InstancedMesh，
+    #   那正是效能要的樣子。一顆方塊是 12 個三角形，門檻放在它的兩倍。
+    flat = [p for p in probes if p and not p.get("error") and p["tris"] <= 24]
+    ok("批次27 每一個新 kind 都不只是一顆方塊（方塊＝12 個三角形，門檻放在兩倍）",
        not flat, [(p["kind"], p["meshes"], p["tris"]) for p in flat])
-    thin = [p for p in probes if p and not p.get("error")
-            and p["kind"] in B28_LAYERS and p["meshes"] < 2]
-    ok("批次28 的「層」類 kind 除了本體還畫得出剖面（不是一塊光板子）",
-       not thin, [(p["kind"], p["meshes"]) for p in thin])
     noinst = [p["kind"] for p in probes if p and not p.get("error")
-              and p["kind"] in B28_ARRAYS and p["instanced"] < 1]
-    ok("批次28 陣列類零件真的收成 InstancedMesh（一次 draw call）", not noinst, noinst)
-    # 兩個族群共用同一個 3D 場景：物件要是**同一個**，不是兩份長得一樣的
-    same = pg.evaluate("() => window.Rack3D.SCENES.motion_axis === window.Rack3D.SCENES.motion_axis"
-                       " && !!window.Rack3D.hasScene('motion_axis')")
-    ok("工業自動化與 CNC 工具機共用的那個場景真的存在（motion_axis）", same, same)
+              and p["kind"] in B27_ARRAY_KINDS and p["instanced"] < 1]
+    ok("批次27 陣列類零件真的收成 InstancedMesh（一次 draw call）", not noinst, noinst)
 
-    for nice, (route, cmax, tmax, tmin, nparts) in B28_ROUTES.items():
+    for nice, (route, cmax, tmax, tmin, nparts) in B27_ROUTES.items():
         if not _l1_open(pg, base, route):
             fails.append(f"[{nice}] 3D 掛不起來 —— 這張圖的 `scene:` 沒接上，或 WebGL 壞了")
             continue
@@ -16999,7 +16953,7 @@ def t_b28_elec3d(pg, base):
         pg.wait_for_timeout(300)
 
         # ---------------- ⑥ 卡片：編號圓點、中英雙語、字級、台股不留白
-        c = pg.evaluate(_B28_CARDS)
+        c = pg.evaluate(_B24_CARDS)
         ok(f"[{nice}] 每張卡片都有編號圓點", c["no"] == c["n"] and c["n"] > 0, f"{c['no']}/{c['n']}")
         ok(f"[{nice}] 每張卡片都有英文副標（中英雙語，v3 §4）", c["en"] == c["n"], f"{c['en']}/{c['n']}")
         ok(f"[{nice}] 每張卡片的零件身分（data-dgpart）都在，2D 才點得到同一個零件",
@@ -17007,27 +16961,28 @@ def t_b28_elec3d(pg, base):
         ok(f"[{nice}] 每張卡片底下要嘛列得出台股、要嘛明寫「台股無直接對應」（不准留白）",
            c["told"] == c["n"], f"{c['told']}/{c['n']}")
         ok(f"[{nice}] 卡片上最小的字 ≥ 12px", c["minFs"] is not None and c["minFs"] >= 11.9, c["minFs"])
-        # ★ 這一批的新斷言：場景寫 `codes: []` 的零件一定要「顯示無對應」而且晶片數是 0。
-        #   會壞掉的路徑是「空陣列被當成沒指定 → 掉回 members(seg)」——
-        #   那會把整個環節的公司貼到一個查不到對應的零件底下（錯誤宣稱，不是留白）。
-        nocode = pg.evaluate(_B28_NOCODE, B28_SCENE_OF[route.rsplit("/", 1)[-1]])
-        wrong = [(k, c["chipsOf"].get(k)) for k in nocode
-                 if not (c["chipsOf"].get(k) or {}).get("none") or (c["chipsOf"].get(k) or {}).get("chips") != 0]
-        ok(f"[{nice}] 場景宣告查不到台股（codes: []）的 {len(nocode)} 顆零件，"
-           f"卡片上真的顯示「台股無直接對應」而且晶片數是 0", not wrong, wrong[:4])
+        # ★ 批次27 多的這一條：`codes: []` 的零件**一定要**顯示「台股無直接對應」。
+        #   它要是安靜退回去列該環節的台股，畫面上就會變成
+        #   「散熱廠在做那顆晶片」「電源廠在做那顆 GPU」這種錯誤宣稱 —— 那比沒有圖還糟。
+        for part in B27_NO_TW.get(route, []):
+            said = pg.evaluate("""(pt) => { const c = document.querySelector(`#prod3d .lbl3d[data-dgpart="${pt}"]`);
+                if (!c) return null; const u = c.querySelector('u.chips3d');
+                return { none: !!u && /台股無直接對應/.test(u.textContent), chips: u ? u.querySelectorAll('a.chip3d').length : -1 }; }""", part)
+            ok(f"[{nice}] `{part}` 明寫「台股無直接對應」，沒有退回去列該環節的台股",
+               bool(said) and said["none"] and said["chips"] == 0, said)
 
         # ---------------- ⑤ 收攏／展開兩種狀態都成立
-        #   ⚠ 一定要先把畫布捲進畫面（離開視窗時 IntersectionObserver 會把 rAF 停掉），
-        #     而且等 1200ms 不是隨便抓的：容器是軟體渲染、這幾張大約 3 fps，一幀就要 330ms，
-        #     等 300ms 有可能一幀都還沒畫 —— 那是假紅（批次24 在矽晶圓那張實際踩到）。
+        #   ⚠ 先捲進畫面再量，而且等 1200ms —— 兩個都是 #247 §五-3 記過的坑：
+        #     離開視窗時 IntersectionObserver 會把 rAF 停掉；容器裡是軟體渲染，
+        #     一幀就要三百多毫秒，等 300ms 會拿到同一批舊座標（假紅）。
         scroll_to(pg, "prod3d")
         pg.wait_for_timeout(500)
         pg.evaluate("() => window.Rack3D.current.explode(0)")
         pg.wait_for_timeout(1200)
-        p0 = pg.evaluate(_B28_SCREEN)
+        p0 = pg.evaluate(_B24_SCREEN)
         pg.evaluate("() => window.Rack3D.current.explode(1)")
         pg.wait_for_timeout(1200)
-        p1 = pg.evaluate(_B28_SCREEN)
+        p1 = pg.evaluate(_B24_SCREEN)
         moved = sum(1 for k in p0 if k in p1 and (abs(p0[k][0] - p1[k][0]) > 2 or abs(p0[k][1] - p1[k][1]) > 2))
         ok(f"[{nice}] ★ 收攏 → 展開時零件真的在畫面上移動了（{moved}/{len(p0)} 個零件）",
            moved >= max(2, len(p0) // 2), {"收攏": dict(list(p0.items())[:3]), "展開": dict(list(p1.items())[:3])})
@@ -17035,10 +16990,10 @@ def t_b28_elec3d(pg, base):
         # 拿畫面位移當唯一證據會變成「看不到就當沒給」—— 那是量錯了東西。
         noex = pg.evaluate("""(id) => { const s = window.Rack3D.SCENES[id];
             return s.parts.filter(p => !p.ex || (!p.ex[0] && !p.ex[1] && !p.ex[2])).map(p => p.part); }""",
-                           B28_SCENE_OF[route.rsplit("/", 1)[-1]])
+                           route.rsplit("/", 1)[-1])
         ok(f"[{nice}] 每個零件都給了爆炸位移 ex（收攏看得出成品、展開看得出層次）", not noex, noex)
 
-        # ---------------- ④ 真的用滑鼠點一顆零件 → 只有那一顆；點背景 → 回到點之前的樣子
+        # ---------------- ④ 真的用滑鼠點一顆零件 → 只有那一顆；點背景 → 回到點之前
         anim_txt = text(pg, "#dgAnim")
         if "開" in anim_txt:                       # 先把動畫關掉，座標才不會在點下去之前飄走
             pg.eval_on_selector("#dgAnim", "b => b.click()")
@@ -17054,7 +17009,8 @@ def t_b28_elec3d(pg, base):
                        && p.y > Math.max(r.top, 0) + 8 && p.y < Math.min(r.bottom, innerHeight) - 8; }); }""")
         pt = pg.evaluate("(s) => s ? window.Rack3D.current.screen(s) : null", seg)
         sig0 = pg.evaluate("() => window.Rack3D.current.stats().matSig")
-        # ★ 基準是「點零件之前長什麼樣」，不是 0：族群層級的網址本來就會把那個族群的環節點亮
+        # ★ 基準是「點零件之前長什麼樣」，不是 0（#247 §五-2）：`/dg/<族群>` 本來就會
+        #   把那個族群的環節點亮，在那種頁面上「點背景＝全部歸零」從一開始就是錯的期待。
         h0 = pg.evaluate(_L1_HI)
         if not pt:
             fails.append(f"[{nice}] 在畫布上找不到任何點得到的零件座標，「點零件」這一條驗不了")
@@ -17081,7 +17037,7 @@ def t_b28_elec3d(pg, base):
                    {"點零件之前": h0, "點零件之後": h1, "點背景之後": h2, "座標": bg})
 
     # ---------------- ⑧ 800px 窄畫面：不橫向捲動、卡片不出框
-    for nice, (route, _c, _t, _tm, _n) in B28_ROUTES.items():
+    for nice, (route, _c, _t, _tm, _n) in B27_ROUTES.items():
         pg.set_viewport_size({"width": 800, "height": 1000})
         if not _l1_open(pg, base, route):
             notes.append(f"[800px] {nice} 3D 掛不起來，窄畫面那一條跳過")
