@@ -10021,6 +10021,10 @@ SECTIONS = {
     "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
     # 批次21：輪動時鐘的盤中即時（Andy 2026-09-22「幫我也做一個即時功能像是圖一那樣」）
     "輪動時鐘即時":        lambda pg, b, base, code: t_rot_live(pg, base),
+    # 批次21：半導體三張剖析圖（S1 晶圓代工／S2 矽晶圓／S3 HBM）
+    "批次21-晶圓代工":     lambda pg, b, base, code: t_b21_foundry(pg, base),
+    "批次21-矽晶圓":       lambda pg, b, base, code: t_b21_silicon_wafer(pg, base),
+    "批次21-HBM":          lambda pg, b, base, code: t_b21_hbm(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -12771,6 +12775,787 @@ def t_clickbg(pg, base):
            {"點之前": base0, "點背景之後": b})
         ok("點背景不准動到成分股（那是環節色標的篩選，兩件事）", b["rows"] == a["rows"],
            {"點之前": a["rows"], "點之後": b["rows"]})
+# ================================================================ 批次21：半導體三張剖析圖
+#  S1 晶圓代工（site/dg/foundry.js）／S2 矽晶圓（site/dg/silicon_wafer.js）／
+#  S3 HBM（site/dg/hbm.js）。規格書分別是 docs/diagram_specs/ 底下的
+#  foundry_process.md §6、silicon_wafer.md §6、hbm_stack.md §6。
+#  ★ 這三段驗的是**規格書裡「看圖就能判定」的那些硬規則**，一律用機器量
+#    （鰭高／鰭寬比、奈米片之間有沒有金屬、粗糙度是不是單調變細、TSV 貫穿幾層…），
+#    不是驗「元素存在」。驗收條件寫錯比功能寫錯更貴，所以每一條都附上量到的數字。
+
+# ---------------------------------------------------------------- 章節列（漸進揭露）的共用驗收
+#  Andy 2026-09-22：「幫我將所有 2D 3D 圖的圖片及文字縮小一半大小…希望能一次看到完整資訊。」
+#  ★ 這一段驗的是**畫面真的因此改變**：收合時量得到高度、按下去圖真的變高、
+#    再按一次真的縮回原本那個數字 —— 不是驗「有沒有那個元素」。
+FOLD_STATE = """() => { const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return null;
+  const bars = [...svg.querySelectorAll('g.dgfold[data-fold]')];
+  return {n: bars.length, open: bars.filter(b => b.classList.contains('open')).length,
+          vbH: +svg.viewBox.baseVal.height.toFixed(0),
+          hints: bars.map(b => ((b.querySelector('.fhint') || {}).textContent) || ''),
+          titles: bars.map(b => ((b.querySelector('.hd') || {}).textContent) || ''),
+          bodies: [...svg.querySelectorAll('g.dgbody[data-fold]')]
+            .filter(g => g.getAttribute('display') !== 'none').length}; }"""
+
+_FOLD_CLICK = """(i) => { const b = document.querySelectorAll('#prodDiagram svg g.dgfold[data-fold]')[i];
+  if (!b) return false; b.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }"""
+
+_FOLD_OPEN_ALL = """() => { const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return 0; let n = 0;
+  svg.querySelectorAll('g.dgfold[data-fold]').forEach(g => {
+    if (!g.classList.contains('open')) { g.dispatchEvent(new MouseEvent('click', {bubbles: true})); n++; } });
+  return n; }"""
+
+
+def _b21_folds(pg, label, n_bars, h_max=700):
+    """收合高度 ≤ h_max、章節列打得開也收得回。**跑完會把所有章節展開**
+    （後面的結構量測要量得到收在章節裡的那些零件 —— `getBBox()` 對 display:none 的元素回 0）。
+    回傳全開時的高度，給回報當備註。"""
+    z0 = pg.evaluate(FOLD_STATE)
+    if not ok(f"{label}：圖上有章節列（漸進揭露）", bool(z0) and z0["n"] > 0, z0):
+        return 0
+    ok(f"{label}：★★ 收合狀態下**整張圖的高度 ≤ {h_max}px** —— 1440×900 一個畫面看得完",
+       z0["vbH"] <= h_max, f"量到 {z0['vbH']}px（上限 {h_max}）")
+    ok(f"{label}：預設**全部收合**，而且剛好 {n_bars} 條章節列",
+       z0["n"] == n_bars and z0["open"] == 0 and z0["bodies"] == 0,
+       f"列 {z0['n']} 條、展開 {z0['open']} 條、看得見的內容區 {z0['bodies']} 個")
+    ok(f"{label}：每一條章節列都寫著「按了會看到什麼」（收納 ≠ 藏起來；不准只寫「更多」）",
+       all(('展開' in h and len(h) > 14) for h in z0["hints"]), z0["hints"])
+    ok(f"{label}：每一條章節列都有自己的標題（看得出那一段在講什麼）",
+       all(len(t) > 6 for t in z0["titles"]), z0["titles"])
+
+    pg.evaluate(_FOLD_CLICK, 0)
+    pg.wait_for_timeout(420)
+    z1 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：★ 點第一條章節列 → **真的打得開**（圖真的變高、那一段的內容真的出現）",
+       z1["open"] == 1 and z1["bodies"] == 1 and z1["vbH"] > z0["vbH"],
+       f"{z0['vbH']}px／0 段 → {z1['vbH']}px／{z1['bodies']} 段")
+    ok(f"{label}：展開之後那一條列改寫成「收合這一段」（兩種狀態都看得出還能做什麼）",
+       '收合' in z1["hints"][0], z1["hints"][0])
+
+    pg.evaluate(_FOLD_CLICK, 0)
+    pg.wait_for_timeout(420)
+    z2 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：★ 再點一次 → **真的收得回去**，高度回到原本那個數字",
+       z2["open"] == 0 and z2["bodies"] == 0 and z2["vbH"] == z0["vbH"],
+       f"{z1['vbH']}px → {z2['vbH']}px（原本 {z0['vbH']}px）")
+
+    pg.evaluate(_FOLD_OPEN_ALL)
+    pg.wait_for_timeout(500)
+    z3 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：{n_bars} 段全部展開之後內容都在（備註：全開高度 {z3['vbH']}px，這個數字不受 {h_max} 限制）",
+       z3["open"] == n_bars and z3["bodies"] == n_bars and z3["vbH"] > z0["vbH"], z3)
+    return z3["vbH"]
+
+
+FD_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s) => [...svg.querySelectorAll(s)];
+  const n = (e, a) => +e.getAttribute(a);
+  const bx = (e) => ({x: n(e,'x'), y: n(e,'y'), w: n(e,'width'), h: n(e,'height')});
+  const fl = (e) => getComputedStyle(e).fill;
+  const sub = A('[data-part="fd_sub"] rect.part');
+  const gateStack = A('[data-part="fd_gate_stack"] rect.part').map(bx);
+  // 製程迴圈九站：照宣告順序取，算它們在環上的角度
+  const ids = ['fd_clean','fd_depo','fd_resist','fd_litho','fd_dev','fd_etch','fd_strip','fd_cmp','fd_metro'];
+  const st = ids.map(id => { const r = svg.querySelector('[data-part="' + id + '"] rect.st');
+    const t = svg.querySelector('[data-part="' + id + '"] text');
+    return r ? {id: id, cx: n(r,'x') + n(r,'width')/2, cy: n(r,'y') + n(r,'height')/2,
+                t: (t && t.textContent) || ''} : null; });
+  const ok9 = st.every(Boolean);
+  let ang = [];
+  if (ok9) {
+    const mx = st.reduce((a,b)=>a+b.cx,0)/9, my = st.reduce((a,b)=>a+b.cy,0)/9;
+    ang = st.map(s => { let a2 = Math.atan2(s.cy-my, s.cx-mx) * 180/Math.PI + 90;
+      while (a2 < 0) a2 += 360; while (a2 >= 360) a2 -= 360; return +a2.toFixed(1); });
+  }
+  // 節點列四格
+  const nodes = A('[data-part="fd_node"] > g').map(g => [...g.querySelectorAll('text')].map(t=>t.textContent));
+  // 晶圓：完整格 vs 邊緣殘缺格
+  const wc = svg.querySelector('[data-part="fd_wafer"] circle.part');
+  const full = A('[data-part="fd_wafer"] rect.wcell').map(bx);
+  const edge = A('[data-part="fd_wafer"] rect.wedge').map(bx);
+  const far = (b, cx, cy) => Math.max(
+    Math.hypot(b.x-cx, b.y-cy), Math.hypot(b.x+b.w-cx, b.y-cy),
+    Math.hypot(b.x-cx, b.y+b.h-cy), Math.hypot(b.x+b.w-cx, b.y+b.h-cy));
+  const wcx = wc ? n(wc,'cx') : 0, wcy = wc ? n(wc,'cy') : 0, wr = wc ? n(wc,'r') : 0;
+  return {present: true,
+    subs: sub.map(bx), subFills: [...new Set(sub.map(fl))],
+    fins: A('[data-part="fd_fin"] rect.part').map(bx),
+    sti: A('[data-part="fd_sti"] rect.part').map(bx),
+    finGate: A('[data-part="fd_gate"] path.part').length,
+    planarGate: A('[data-part="fd_gate"] rect.part').map(bx),
+    channel: A('[data-part="fd_planar"] rect.part').map(bx),
+    sheets: A('[data-part="fd_sheet"] rect.part').map(bx),
+    gm: A('[data-part="fd_gaa"] rect.gm').map(bx),
+    gs: A('[data-part="fd_gaa"] rect.gs').map(bx),
+    sd: A('[data-part="fd_sd"] rect.part').map(bx),
+    faces: {p: A('[data-part="fd_face1"] path.arw').length,
+            f: A('[data-part="fd_face3"] path.arw').length,
+            g: A('[data-part="fd_face4"] path.arw').length},
+    stack: gateStack, stackFills: gateStack.length ? A('[data-part="fd_gate_stack"] rect.part').map(fl) : [],
+    st: st, ang: ang, ok9: ok9,
+    rarr: A('path.rarr').length, rarrh: A('path.rarrh').length,
+    nodes: nodes, notch: A('[data-part="fd_wafer"] path.notch').length,
+    full: full.length, edge: edge.length,
+    edgeOut: edge.filter(b => far(b, wcx, wcy) > wr + 0.01).length,
+    fullIn: full.filter(b => far(b, wcx, wcy) <= wr + 0.01).length,
+    feol: (svg.querySelector('[data-part="fd_feol"] path.phase') || {}).getAttribute
+      ? svg.querySelector('[data-part="fd_feol"] path.phase').getAttribute('d') : '',
+    beol: (svg.querySelector('[data-part="fd_beol"] path.phase') || {}).getAttribute
+      ? svg.querySelector('[data-part="fd_beol"] path.phase').getAttribute('d') : ''};
+}"""
+
+
+def _pt(d):
+    """從 path 的 d 抓第一個座標（給弧線比先後用）。"""
+    import re as _re
+    m = _re.search(r"M([-\d.]+),([-\d.]+)", d or "")
+    return (float(m.group(1)), float(m.group(2))) if m else None
+
+
+def t_b21_foundry(pg, base):
+    """S1 晶圓代工：一顆電晶體與一個製程迴圈（`site/dg/foundry.js`，族群 `foundry`）。
+
+    規格書＝`docs/diagram_specs/foundry_process.md` §6／§8。這一段驗的是：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   T1  三格共用同一塊基板（同 y、同高、同色）＝同一個放大倍率、同一套材質色
+      3   T2  平面格：通道是水平薄層、閘極只在通道上方、控制面標記＝1
+      4   T3  ★ FinFET 格：**量得出 鰭高 > 鰭寬 × 2**
+      5   T4  FinFET 格：閘極是 ㄇ 字形的 path、鰭底被 STI 埋住、控制面標記＝3
+      6   T5  至少 2 片平行的鰭
+      7   T6  ★★ GAA 格：奈米片 2～4 片、水平、彼此分開，**片寬 > 片厚 × 3**
+      8   T7  ★★★ **每一對相鄰奈米片之間都有閘極金屬**，最上片上方與最下片下方也有
+      9   T8  三格的控制面標記分別是 1／3／4
+      10  T9  GAA 的源汲磊晶把**所有**片的端部一起接起來
+      11  T10 三格的源汲都在通道左右兩端
+      12  G1  閘極堆疊由下到上：界面層 → high-k → 功函數金屬 → 填充金屬
+      13  G2  介電層是全圖最薄的層之一（比源汲薄一個量級）
+      14  P1  ★ 迴圈**閉合**（九站、九段箭頭，最後一段回到第一站）
+      15  P2  九站的順序與角度都對（順時針、i × 360/9）
+      16  P3/P4 BARC 在光阻底下、CMP 在沉積與蝕刻之後
+      17  P6  FEOL 弧在 BEOL 弧之前
+      18  Z1/Z2/Z3 晶圓 → 晶粒 → 電晶體；**邊緣那一圈真的是殘缺方格**；有 notch
+      19  N1/N2/N3 節點順序、分界線位置、N3 標 FinFET／N2 標 GAA
+      20  N4  ★★ **背面供電只出現在 A16 那一格**
+      21  N5  N2 的效能敘述寫明比較基準是 N3E
+      22  H3/H5 四行誠實性標示 ＋ 族群 7 檔 vs 供應鏈 3 家的落差提示
+      23  零件小卡：點 GAA 金屬 → 只列 2330（不會把聯電與力積電一起列出來）
+      24  點環節色標 → 成分股筆數真的變了
+      25  動畫：開／關 真的停得住（一顆點沿著迴圈跑）
+      26  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      27  ★ 收合狀態下整張圖 ≤ 700px；四條章節列按了真的打得開、再按一次真的收回
+    """
+    FEAT = "GAA 奈米片"
+    drawn, DGH = _b14b_entry(pg, base, "semiconductor", "foundry", FEAT, "晶圓代工")
+    if not drawn:
+        return
+    # ★ 收合高度 ≤ 700px、四條章節列打得開也收得回。跑完會把四段全部展開，
+    #   後面的結構量測才量得到收在章節裡的零件（getBBox 對 display:none 回 0）。
+    _b21_folds(pg, "晶圓代工", 4)
+    d = pg.evaluate(B14B_DG)
+    txt = d.get("full", "")
+    g = pg.evaluate(FD_GEOM)
+    if not ok("晶圓代工：圖畫得出來（結構量測拿得到資料）", g.get("present"), g):
+        return
+
+    # ---------------- T1
+    ok("晶圓代工・T1：三格共用同一塊基板（同一個 y、同一個高度、同一個材質色）＝可以互相比較",
+       len(g["subs"]) == 3 and len(set(round(s["y"], 1) for s in g["subs"])) == 1
+       and len(set(round(s["h"], 1) for s in g["subs"])) == 1 and len(g["subFills"]) == 1,
+       f"{g['subs']} ／ 色 {g['subFills']}")
+    # ---------------- T2
+    ch = g["channel"][0] if g["channel"] else None
+    pgate = [b for b in g["planarGate"] if ch and b["x"] < ch["x"] + ch["w"] and b["x"] + b["w"] > ch["x"]]
+    ok("晶圓代工・T2：平面格的通道是一條**水平薄層**（寬 > 高 ×5），而且閘極只在它上方",
+       bool(ch) and ch["w"] > ch["h"] * 5 and bool(pgate)
+       and all(b["y"] + b["h"] <= ch["y"] + 0.6 for b in pgate),
+       f"通道 {ch} ／ 閘極 {pgate}")
+    # ---------------- T3（★ 紅線等級的可辨識性下限）
+    fins = g["fins"]
+    ok("晶圓代工・T3：★ **鰭高 > 鰭寬 × 2**（又矮又胖就跟平面電晶體分不出來）",
+       len(fins) >= 2 and all(f["h"] > f["w"] * 2 for f in fins),
+       f"鰭 {[(f['w'], f['h'], round(f['h'] / f['w'], 2)) for f in fins]}")
+    ok("晶圓代工・T5：FinFET 格畫了**至少 2 片**平行的鰭（單鰭看不出「鰭是重複單元」）",
+       len(fins) >= 2, len(fins))
+    # ---------------- T4
+    sti = g["sti"][0] if g["sti"] else None
+    ok("晶圓代工・T4：閘極是 ㄇ 字形的 path（不是貼在鰭頂上的一塊方塊），而且**鰭底埋在 STI 裡、沒被包到**",
+       g["finGate"] == len(fins) and bool(sti) and all(sti["y"] > f["y"] and sti["y"] + sti["h"] >= f["y"] + f["h"] - 0.6 for f in fins),
+       f"ㄇ 字閘極 {g['finGate']} 個 ／ STI {sti} ／ 鰭 {fins}")
+    # ---------------- T6
+    sh = sorted(g["sheets"], key=lambda b: b["y"])
+    ok("晶圓代工・T6：★★ 奈米片 **2～4 片、水平、彼此分開**，而且**片寬 > 片厚 × 3**（正方形斷面那是奈米線）",
+       2 <= len(sh) <= 4 and all(b["w"] > b["h"] * 3 for b in sh)
+       and all(sh[i]["y"] + sh[i]["h"] < sh[i + 1]["y"] - 0.5 for i in range(len(sh) - 1)),
+       f"{[(b['w'], b['h']) for b in sh]}")
+    # ---------------- T7（★★★ 紅線）
+    gm = sorted(g["gm"], key=lambda b: b["y"])
+    gaps_ok = []
+    for i in range(len(sh) - 1):
+        lo, hi = sh[i]["y"] + sh[i]["h"], sh[i + 1]["y"]
+        gaps_ok.append(any(b["y"] >= lo - 0.6 and b["y"] + b["h"] <= hi + 0.6 for b in gm))
+    above = any(b["y"] + b["h"] <= sh[0]["y"] + 0.6 for b in gm) if sh else False
+    below = any(b["y"] >= sh[-1]["y"] + sh[-1]["h"] - 0.6 for b in gm) if sh else False
+    ok("晶圓代工・T7：★★★ **每一對相鄰奈米片之間都有閘極金屬**，而且最上片上方、最下片下方也有 —— "
+       "只畫在最上面那片上方＝畫的是 FinFET",
+       len(gm) == len(sh) + 1 and all(gaps_ok) and above and below,
+       f"金屬 {len(gm)} 層／片 {len(sh)} 片；片間 {gaps_ok}；最上方 {above}、最下方 {below}")
+    ok("晶圓代工・T7 附帶：閘極金屬還從左右兩側包住整疊（四面包覆的側邊那兩面）",
+       len(g["gs"]) == 2, len(g["gs"]))
+    # ---------------- T8
+    ok("晶圓代工・T8：三格的「閘極控制面數」標記分別是 **1 ／ 3 ／ 4**，而且數得出來",
+       g["faces"] == {"p": 1, "f": 3, "g": 4}, g["faces"])
+    # ---------------- T9／T10
+    gsd = [b for b in g["sd"] if sh and b["h"] > 80]        # GAA 那格的磊晶跨過整疊
+    ok("晶圓代工・T9：GAA 的源汲磊晶把**所有**奈米片的端部一起接起來（不是一片接一個）",
+       len(gsd) == 2 and all(b["y"] <= sh[0]["y"] + 0.6 and b["y"] + b["h"] >= sh[-1]["y"] + sh[-1]["h"] - 0.6 for b in gsd),
+       f"磊晶 {gsd} ／ 最上片 {sh[0] if sh else None} ／ 最下片 {sh[-1] if sh else None}")
+    ok("晶圓代工・T10：三格都有源汲，而且都在通道的左右兩端（每格各 2 塊、一左一右）",
+       len(g["sd"]) == 6, f"共 {len(g['sd'])} 塊")
+    # ---------------- G1／G2
+    stk = sorted(zip(g["stack"], g["stackFills"]), key=lambda z: z[0]["y"])
+    hh = [round(z[0]["h"], 1) for z in stk]
+    # 由上到下＝填充金屬 → 功函數金屬 → high-k → 界面層 → 通道。
+    # 不比對絕對數字（改一次版面就要跟著改一次測試），只比對**關係**：
+    # 上面三層一層比一層薄、界面層是全部最薄、最底下的通道又厚回來。
+    ok("晶圓代工・G1：閘極堆疊由上到下是 填充金屬 → 功函數金屬 → high-k → 界面層 → 通道，"
+       "而且 **high-k 在功函數金屬底下**（順序不准對調）",
+       len(stk) == 5 and hh[0] > hh[1] > hh[2] > hh[3] and hh[4] > hh[3], hh)
+    ok("晶圓代工・G2：介電層是全圖最薄的層之一 —— 比源汲薄一個量級",
+       len(stk) == 5 and min(z[0]["h"] for z in stk) <= 6
+       and (not g["sd"] or min(z[0]["h"] for z in stk) * 4 < min(b["h"] for b in g["sd"])),
+       f"堆疊最薄 {min(z[0]['h'] for z in stk) if stk else None} ／ 源汲最薄 {min((b['h'] for b in g['sd']), default=None)}")
+    ok("晶圓代工・G3：畫面上明講先進節點是 high-k／金屬閘（HKMG），不是二十年前的複晶矽閘",
+       "high-k／金屬閘" in txt and "HKMG" in txt, "")
+    # ---------------- P 組
+    ok("晶圓代工・P1：★ 製程迴圈是**閉合**的 —— 九站、九段箭頭（最後一段回到第一站，少一段環就不閉合）",
+       g["ok9"] and g["rarr"] == 9 and g["rarrh"] == 9,
+       f"站 {sum(1 for s in g['st'] if s)} ／ 弧 {g['rarr']} ／ 箭頭 {g['rarrh']}")
+    want = ["清洗", "沉積", "塗光阻", "曝光", "顯影", "蝕刻", "去光阻", "CMP", "量測"]
+    got = [(s or {}).get("t", "") for s in g["st"]]
+    ok("晶圓代工・P2：九站的順序是 清洗 → 沉積 → 塗光阻 → 曝光 → 顯影 → 蝕刻 → 去光阻 → CMP → 量測",
+       all(w in t for w, t in zip(want, got)), got)
+    ok("晶圓代工・P2 附帶：九站真的**照角度順時針排**（i × 360/9），不是手刻九組座標排歪",
+       g["ok9"] and all(abs((g["ang"][i] - i * 40) % 360) < 2 for i in range(9)), g["ang"])
+    ok("晶圓代工・P3：★ 塗光阻那一站寫明**先塗 BARC、再塗光阻**（BARC 是「底部」抗反射層，畫反就是上下顛倒）",
+       "先塗底部抗反射層（BARC），再塗光阻" in txt and "BARC 在光阻底下" in txt, "")
+    ok("晶圓代工・P4：CMP 排在沉積與蝕刻**之後**、下一輪塗光阻**之前**（第 8 站）",
+       got[7] and "CMP" in got[7], got)
+    ok("晶圓代工・P5：環的正中央寫了「這個環要繞 80～120 次」—— 沒有這句，這張圖的命題就不見了",
+       "80～120 次" in txt and "約 90 道光罩" in txt and "3～4 個月" in txt, "")
+    f0, b0 = _pt(g["feol"]), _pt(g["beol"])
+    ok("晶圓代工・P6：FEOL 弧在 BEOL 弧**之前**（順時針較早的位置），而且畫面上寫明「電晶體先、金屬線後」",
+       bool(f0) and bool(b0) and f0[1] < b0[1]
+       and "FEOL（電晶體本身）先做、BEOL（上面那幾十層金屬線）後做" in txt,
+       f"FEOL 起點 {f0} ／ BEOL 起點 {b0}")
+    ok("晶圓代工・P7：迴圈上**沒有畫任何機台外觀**（機台是另一張圖），而且畫面上有這一句",
+       "不畫任何機台外觀" in txt, "")
+    # ---------------- Z 組
+    ok("晶圓代工・Z1：三級縮放尺 晶圓 → 晶粒 → 電晶體 三件都在",
+       all(k in d["parts"] for k in ("fd_wafer", "fd_die", "fd_zoom")), d["parts"][:8])
+    ok("晶圓代工・Z2：★ 晶圓邊緣那一圈**真的是殘缺方格** —— 每一個標成殘缺的格子都量得出有角落落在圓外，"
+       "而每一個標成完整的格子四個角都在圓內",
+       g["edge"] > 0 and g["full"] > 0 and g["edgeOut"] == g["edge"] and g["fullIn"] == g["full"],
+       f"完整 {g['full']}（都在圓內 {g['fullIn']}）／殘缺 {g['edge']}（真的出圓 {g['edgeOut']}）")
+    ok("晶圓代工・Z3：晶圓有 notch（不是一個完美的圓）", g["notch"] == 1, g["notch"])
+    ok("晶圓代工・Z4：良率只寫關係、不寫任何數字",
+       "晶粒越大、報廢的比例越高" in txt, "")
+    # ---------------- N 組
+    nodes = g["nodes"]
+    heads = [c[0] if c else "" for c in nodes]
+    ok("晶圓代工・N1：節點順序是 N5 → N3 → N2 → A16（由左到右，時間往右）",
+       heads == ["N5", "N3", "N2", "A16"], heads)
+    ok("晶圓代工・N3：N3 那格標 FinFET、N2 那格標 GAA（標反就是在公開網站上講錯一個可以查證的事實）",
+       len(nodes) == 4 and "FinFET" in nodes[1][1] and "GAA" in nodes[2][1],
+       [c[1] for c in nodes] if len(nodes) == 4 else nodes)
+    back = [i for i, c in enumerate(nodes) if any("背面供電" in t for t in c)]
+    ok("晶圓代工・N4：★★ **背面供電（Super Power Rail）只出現在 A16 那一格** —— N2 是正面供電，畫錯是可查證的事實錯誤",
+       back == [3], f"出現在第 {back} 格（0 起算）")
+    front = [i for i, c in enumerate(nodes) if any("供電：正面" in t for t in c)]
+    ok("晶圓代工・N4 反向：N5／N3／N2 三格都明寫「供電：正面」",
+       front == [0, 1, 2], front)
+    ok("晶圓代工・N2：兩條分界線就寫在畫面上（FinFET ↔ GAA 在 N3/N2 之間；正面 ↔ 背面供電在 N2/A16 之間）",
+       "FinFET ↔ GAA" in txt and "正面供電 ↔ 背面供電" in txt, "")
+    ok("晶圓代工・N5：N2 的效能敘述寫明比較基準是 **N3E**（基準寫錯比數字寫錯更難被發現）",
+       "相對 N3E" in txt, "")
+    # ---------------- M／H 組
+    # M1：圖上不准畫中介層／CoWoS／HBM／微凸塊／底填／載板 —— 那是封裝那兩張的範圍。
+    # ⚠ 有兩個字串是**引用供應鏈資料自己的欄位**（R3 要求照抄 companies[].tech 與 note）：
+    #     · 台積電的 tech：「N3/N2 先進製程, CoWoS-L, SoIC」
+    #     · 力積電的 note：「…是供矽電容與矽中介層」（規格書 §7-D2 明文要求寫這一句）
+    #   它們是「誰做的」那一段的文字，不是畫出來的零件，所以扣掉之後再檢查。
+    quoted = txt
+    for q in ("「N3/N2 先進製程, CoWoS-L, SoIC」", "是供矽電容與矽中介層"):
+        quoted = quoted.replace(q, "")
+    for bad in ("中介層", "CoWoS", "HBM", "底填", "微凸塊"):
+        ok(f"晶圓代工・M1：圖上沒有「{bad}」—— 那是封裝那兩張的範圍"
+           "（供應鏈資料的 tech／note 原文引用不算）", bad not in quoted, "")
+    ok("晶圓代工・M1 附帶：零件清單裡沒有任何封裝件（中介層／凸塊／底填／載板）",
+       not [k for k in d["parts"] if any(w in k for w in ("inter", "bump", "cowos", "hbm", "sub_pkg"))],
+       [k for k in d["parts"] if any(w in k for w in ("inter", "bump", "cowos", "hbm"))])
+    ok("晶圓代工・M3：畫面上有一行明講本圖只講矽邏輯製程，化合物半導體代工見「第三代半導體」那張",
+       "本圖講矽邏輯製程" in txt, "")
+    ok("晶圓代工・H1：畫面上沒有任何良率、成本金額、市占率、產能片數與單價",
+       "不寫任何良率、成本、市占率與產能數字" in txt and "月產" not in txt and "億元" not in txt, "")
+    ok("晶圓代工・H2：帶年份的東西都附了時效標示（讓它自己會過期）",
+       "來源：業界整理" in txt and "媒體整理（2026）" in txt and "放量時程各家說法不一" in txt, "")
+    ok("晶圓代工・H3：§5 那四行誠實性標示全部都在畫面上",
+       "示意圖，非實物比例" in txt and "本圖講矽邏輯製程" in txt
+       and "本圖止於「一片做完的晶圓」" in txt and "會過期" in txt, "")
+    ok("晶圓代工・H5：★ 反向驗收 —— 「族群 7 檔、供應鏈環節只有 3 家」的落差提示**看得見**（我們沒有把落差藏起來）",
+       "族群成分股有 7 檔" in txt and "不在供應鏈資料裡，所以零件小卡列不出它們" in txt
+       and "那不是壞掉" in txt, "")
+    ok("晶圓代工・7-C5：圖上沒有畫穩懋／宏捷科／環宇的結構，只在標示線上列名並說明「本圖不畫其結構」",
+       "本圖不畫其結構" in txt, "")
+
+    # ---------------- 零件小卡（真的點下去，看卡片的字有沒有換人）
+    _b14b_click_part(pg, "fd_loop")
+    c_loop = _b14b_card(pg) or ""
+    _b14b_click_part(pg, "fd_gaa")
+    c_gaa = _b14b_card(pg) or ""
+    ok("晶圓代工：點零件 → 小卡的字**真的換成那個零件的**（迴圈 vs GAA 金屬兩張卡內容不同）",
+       bool(c_loop) and bool(c_gaa) and c_loop != c_gaa
+       and "Gate-All-Around" in c_gaa and "繞好幾十次" in c_loop,
+       (c_gaa[:60], c_loop[:60]))
+    ok("晶圓代工：★ GAA 那一格的 cos 真的生效 —— 小卡只列 2330 台積電，**沒有**把聯電 2303 與力積電 6770 一起列出來",
+       "2330" in c_gaa and "2303" not in c_gaa and "6770" not in c_gaa, c_gaa[:120])
+    ok("晶圓代工：沒有指定 cos 的零件走預設 —— 迴圈那張卡列得出晶圓代工環節的 3 家",
+       "2330" in c_loop and "2303" in c_loop and "6770" in c_loop, c_loop[:140])
+
+    # ---------------- 點環節色標 → 成分股筆數真的變了（不是驗元素存在）
+    n0 = _b14b_rows(pg)
+    if _b14b_seg_chip(pg, "foundry"):
+        pg.wait_for_timeout(600)
+        n1 = _b14b_rows(pg)
+        ok("晶圓代工：點「晶圓代工」環節色標 → **成分股筆數真的變了**（畫面真的因此改變）",
+           n1 != n0 and n1 > 0, f"{n0} 筆 → {n1} 筆")
+        _b14b_seg_chip(pg, "foundry")
+        pg.wait_for_timeout(400)
+
+    # ---------------- 動畫 ＋ 字級
+    _b14b_anim(pg, "晶圓代工", 1)
+    _b14b_typo(pg, DGH, "晶圓代工")
+
+
+SW_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s) => [...svg.querySelectorAll(s)];
+  const n = (e, a) => +e.getAttribute(a);
+  const bx = (e) => ({x: n(e,'x'), y: n(e,'y'), w: n(e,'width'), h: n(e,'height')});
+  const bb = (s) => { const e = svg.querySelector(s); return e ? e.getBBox() : null; };
+  const g2 = (s) => { const e = svg.querySelector(s); return e ? {x: e.getBBox().x, y: e.getBBox().y,
+    w: e.getBBox().width, h: e.getBBox().height} : null; };
+  // 提拉箭頭：直接讀 d，判定方向
+  const pull = svg.querySelector('[data-part="sw_pull"] path.arw');
+  let pullD = null;
+  if (pull) { const m = /M([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+)/.exec(pull.getAttribute('d'));
+    if (m) pullD = {x0: +m[1], y0: +m[2], x1: +m[3], y1: +m[4]}; }
+  const surf = svg.querySelector('[data-part="sw_melt"] path.surf');
+  const cru = g2('[data-part="sw_crucible"] path.part');
+  const heat = A('[data-part="sw_heater"] rect.part').map(bx);
+  const seed = A('[data-part="sw_seed"] rect.part').map(bx);
+  // 粗糙度五段：量每一段 profile 的 bbox 高度（＝2 × 振幅），由左到右
+  const prof = A('.prof').map(e => ({x: e.getBBox().x, h: +e.getBBox().height.toFixed(2)}))
+    .sort((a, b2) => a.x - b2.x);
+  const dmg = A('rect.dmg').map(bx).sort((a, b2) => a.x - b2.x);
+  const epi = g2('[data-part="sw_epi"] rect.epi');
+  const epiBase = g2('[data-part="sw_epi"] rect.epibase');
+  // 8 吋 vs 12 吋
+  const big = svg.querySelector('[data-part="sw_size"] circle.part');
+  const r8c = svg.querySelector('[data-part="sw_size"] circle.ring8');
+  const cellW = [...new Set(A('[data-part="sw_size"] rect').map(e => +(+e.getAttribute('width')).toFixed(2)))];
+  return {present: true,
+    pull: pullD, surf: surf ? surf.getAttribute('d') : null,
+    melt: g2('[data-part="sw_melt"] path.part'), cru: cru, heat: heat, seed: seed,
+    neck: g2('[data-part="sw_ingot"] rect.neck'), body: g2('[data-part="sw_ingot"] rect.body'),
+    shld: A('[data-part="sw_ingot"] path.shld').length, tail: A('[data-part="sw_ingot"] path.tail').length,
+    grind: g2('[data-part="sw_grind"] rect.cylbody'), saw: g2('[data-part="sw_saw"] rect.cylbody'),
+    groove: g2('[data-part="sw_notch"] rect.groove'), notchCyl: g2('[data-part="sw_notch"] rect.cylbody'),
+    wires: A('[data-part="sw_saw"] line.wire').length,
+    prof: prof, dmg: dmg, epi: epi, epiBase: epiBase,
+    r12: big ? +big.getAttribute('r') : null, r8: r8c ? +r8c.getAttribute('r') : null,
+    cellW: cellW, notches: A('[data-part="sw_size"] path.notch').length,
+    e8: A('[data-part="sw_size"] rect.e8').length, e12: A('[data-part="sw_size"] rect.e12').length,
+    c8: A('[data-part="sw_size"] rect.c8').length,
+    flow: ['sw_poly','sw_cz','sw_grind2','sw_saw2','sw_lap2','sw_polish2','sw_epi2']
+      .map(id => { const e = svg.querySelector('[data-part="' + id + '"] text.lbl');
+        const r = svg.querySelector('[data-part="' + id + '"] rect.st');
+        return e ? {t: e.textContent, x: r ? +r.getAttribute('x') : null,
+                    y: r ? +r.getAttribute('y') : null} : null; }),
+    reclaim: g2('[data-part="sw_reclaim"] rect.part')};
+}"""
+
+
+def t_b21_silicon_wafer(pg, base):
+    """S2 矽晶圓：從熔湯到一片鏡面（`site/dg/silicon_wafer.js`，族群 `silicon_wafer`）。
+
+    規格書＝`docs/diagram_specs/silicon_wafer.md` §6／§8。
+    ⚠ 這一段的第一條是**反向驗收**：它要證明的是「我們**沒有**偷偷掛一個錯的環節」——
+      供應鏈資料的半導體鏈 14 格裡沒有一格是矽晶圓，掛 `semi_material` 等於宣稱
+      「光洋科做矽晶圓」、掛 `foundry` 等於宣稱「台積電自己長晶圓」，兩個都是錯的。
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   ★ `[data-seg]` 的數量是 **0**，而且畫面上那一行說明看得見
+      3   C1／C2 熔湯在下、籽晶在上；★ **提拉箭頭朝上**（畫成往下就是把柱子推進湯裡）
+      4   C3 晶碇有頸縮／肩／等徑段／尾錐（頸縮量得出比等徑段細）
+      5   C4／C5／C6 外圓研磨在切片之前；notch 是一整條軸向溝；切片是一組 ≥8 條平行鋼線
+      6   C7 ★★ 爐子是 **CZ 提拉式（有熔湯液面）**，不是 SiC 的 PVT 昇華爐
+      7   C8 加熱器環繞坩堝**側面**
+      8   S1 ★★ **五段的表面起伏單調變細，量得出來**
+      9   S3／S4／E1 磊晶在拋光之後、損傷層只在前三段、磊晶層比基板薄一個量級
+      10  D1／D2／D3／D4 兩圓半徑比 2:3、方格一樣大、兩圓都有 notch、兩圓都有殘缺方格
+      11  F1／F2／F3 流程七格順序、磊晶標「選配」、再生晶圓在主線之外
+      12  H2 「2.25 倍」把算式寫出來，不是丟一個數字
+      13  H5 母子公司警告（環球晶是中美晶分割出去的子公司）
+      14  動畫：開／關 真的停得住，靜止時提拉與旋轉箭頭仍然看得見
+      15  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      16  ★ 收合狀態下整張圖 ≤ 700px；三條章節列按了真的打得開、再按一次真的收回
+    """
+    FEAT = "CZ 提拉法長晶爐"
+    drawn, DGH = _b14b_entry(pg, base, "semiconductor", "silicon_wafer", FEAT, "矽晶圓")
+    if not drawn:
+        return
+    _b21_folds(pg, "矽晶圓", 3)
+    d = pg.evaluate(B14B_DG)
+    txt = d.get("full", "")
+    g = pg.evaluate(SW_GEOM)
+    if not ok("矽晶圓：圖畫得出來（結構量測拿得到資料）", g.get("present"), g):
+        return
+
+    # ---------------- 反向驗收
+    ok("矽晶圓：★★ 圖上**一個 data-seg 都沒有**（掛 semi_material 或 foundry 都會產生錯誤宣稱）",
+       d["nSeg"] == 0, f"量到 {d['nSeg']} 個：{d['segs']}")
+    ok("矽晶圓：★ 而且畫面上寫清楚「半導體鏈 14 個環節裡沒有一格是矽晶圓，點零件不會篩成分股，那不是壞掉」",
+       "沒有一格是矽晶圓" in txt and "那不是壞掉" in txt, "")
+    ok("矽晶圓：★ 每個零件都有自己寫死的 data-part（沒有 seg 的圖更要自己寫，不然 key 會退化成 null＋序號）",
+       len(d["parts"]) >= 22 and "sw_melt" in d["parts"] and "sw_pull" in d["parts"],
+       f"共 {len(d['parts'])} 個")
+
+    # ---------------- C 組
+    melt, seed = g["melt"], g["seed"]
+    ok("矽晶圓・C1：熔湯在下、籽晶在上（上下顛倒＝物理上不成立）",
+       bool(melt) and len(seed) == 2 and max(s["y"] + s["h"] for s in seed) < melt["y"],
+       f"熔湯 {melt} ／ 籽晶 {seed}")
+    p = g["pull"]
+    ok("矽晶圓・C2：★★ **提拉箭頭朝上**（終點的 y 小於起點）—— 畫成往下就是在把柱子推進湯裡",
+       bool(p) and p["y1"] < p["y0"] and abs(p["x1"] - p["x0"]) < 0.6,
+       f"{p}")
+    ok("矽晶圓・C3：晶碇有頸縮／肩／等徑段／尾錐，而且**量得出頸縮比等徑段細**（畫成上下等粗就少了 CZ 的識別特徵）",
+       bool(g["neck"]) and bool(g["body"]) and g["neck"]["w"] * 3 < g["body"]["w"]
+       and g["shld"] == 1 and g["tail"] == 1,
+       f"頸縮 {g['neck']} ／ 等徑段 {g['body']} ／ 肩 {g['shld']} ／ 尾錐 {g['tail']}")
+    ok("矽晶圓・C7：★★ 爐子是 **CZ 提拉式** —— 熔湯有液面（那條 surf 線就畫在熔湯上緣），"
+       "不是 SiC 那種沒有液面的 PVT 昇華爐",
+       bool(g["surf"]) and bool(melt) and melt["h"] > 20
+       and bool(g["cru"]) and melt["y"] > g["cru"]["y"], f"液面 {g['surf']} ／ 熔湯 {melt}")
+    hs = g["heat"]
+    ok("矽晶圓・C8：加熱器環繞在坩堝**側面**（不是裝在爐子頂上）—— 兩支的高度都跟坩堝重疊、x 都落在坩堝外側",
+       len(hs) == 2 and bool(g["cru"])
+       and all(h["y"] < g["cru"]["y"] + g["cru"]["h"] and h["y"] + h["h"] > g["cru"]["y"] for h in hs)
+       and hs[0]["x"] + hs[0]["w"] <= g["cru"]["x"] + 1 and hs[1]["x"] >= g["cru"]["x"] + g["cru"]["w"] - 1,
+       f"加熱器 {hs} ／ 坩堝 {g['cru']}")
+    ok("矽晶圓・C4：★ 外圓研磨畫在切片**之前**（由上到下就是先後順序）",
+       bool(g["grind"]) and bool(g["saw"]) and g["grind"]["y"] < g["saw"]["y"],
+       f"外圓研磨 y={g['grind']} ／ 線鋸 y={g['saw']}")
+    ok("矽晶圓・C5：notch 是晶碇上**一整條軸向的溝**（溝的長度等於晶碇的長度），不是切完之後在每一片上單獨挖",
+       bool(g["groove"]) and bool(g["notchCyl"]) and abs(g["groove"]["w"] - g["notchCyl"]["w"]) < 1.5,
+       f"溝 {g['groove']} ／ 晶碇 {g['notchCyl']}")
+    ok("矽晶圓・C6：切片用的是**一組平行鋼線**（≥ 8 條），不是單一圓盤鋸",
+       g["wires"] >= 8, g["wires"])
+
+    # ---------------- S 組（★★ 這一區唯一的命題）
+    prof = g["prof"]
+    hs2 = [x["h"] for x in prof]
+    ok("矽晶圓・S1：★★ **五段的表面起伏一段比一段小，量得出來**（任何一段比前一段粗＝不過）",
+       len(prof) == 5 and all(hs2[i] > hs2[i + 1] - 0.01 for i in range(4)) and hs2[0] > hs2[4] + 5,
+       f"由左到右的起伏高度 {hs2}")
+    ok("矽晶圓・S2：拋光是最後一道表面加工，表面是一條直線（起伏 ≈ 0）",
+       len(hs2) == 5 and hs2[4] < 1.0, hs2)
+    ok("矽晶圓・S4：加工損傷層只在**前三段**看得到，蝕刻／拋光之後就消失了",
+       len(g["dmg"]) == 3 and all(g["dmg"][i]["x"] < prof[3]["x"] for i in range(3)),
+       f"損傷層 {len(g['dmg'])} 段，x={[round(b['x']) for b in g['dmg']]}")
+    ok("矽晶圓・S3／E1：★ 磊晶在拋光**之後**（最右邊那一格），而且**磊晶層比基板薄一個量級**",
+       bool(g["epi"]) and bool(g["epiBase"]) and g["epi"]["x"] > prof[4]["x"]
+       and g["epiBase"]["h"] > g["epi"]["h"] * 10,
+       f"磊晶層 {g['epi']} ／ 基板 {g['epiBase']}")
+
+    # ---------------- D 組
+    ok("矽晶圓・D1：★ 兩圓的半徑比**量得出來就是 2:3**（直接用 200／300 乘同一個 k 算，不是手填兩個差不多的數字）",
+       g["r8"] and g["r12"] and abs(g["r12"] / g["r8"] - 1.5) < 0.01,
+       f"r8={g['r8']} ／ r12={g['r12']} ／ 比值 {round(g['r12'] / g['r8'], 4) if g['r8'] else None}")
+    ok("矽晶圓・D2：★ 兩個圓上的方格**一樣大**（同一個 CELL 常數，代表同一顆晶粒）",
+       len(g["cellW"]) == 1, g["cellW"])
+    ok("矽晶圓・D3：兩個圓都有 notch", g["notches"] == 2, g["notches"])
+    ok("矽晶圓・D4：兩圓邊緣都畫得出殘缺方格（小圓一圈、大圓一圈）",
+       g["e8"] > 0 and g["e12"] > 0 and g["c8"] > 0,
+       f"小圓殘缺 {g['e8']} ／ 大圓殘缺 {g['e12']} ／ 小圓完整 {g['c8']}")
+    ok("矽晶圓・H2：「2.25 倍」把**算式**寫出來，不是丟一個數字",
+       "(300 / 200)² = 2.25 倍" in txt, "")
+
+    # ---------------- F 組
+    flow = g["flow"]
+    ft = [(f or {}).get("t", "") for f in flow]
+    want = ["多晶矽", "CZ 長晶", "外圓磨", "線鋸切片", "倒角研磨蝕刻", "拋光", "磊晶"]
+    ok("矽晶圓・F1：流程七格的順序是 多晶矽 → CZ 長晶 → 外圓磨 → 線鋸切片 → 倒角研磨蝕刻 → 拋光清洗 → 磊晶",
+       all(w in t for w, t in zip(want, ft))
+       and all(flow[i]["x"] < flow[i + 1]["x"] for i in range(6) if flow[i] and flow[i + 1]), ft)
+    ok("矽晶圓・F2：磊晶在最後，而且標「選配」（不是每一片晶圓都有磊晶層）",
+       "選配" in ft[6], ft[6])
+    ok("矽晶圓・F3：★ 再生晶圓畫在**主線之外**（y 比流程列低），而且有一條返回箭頭接回去",
+       bool(g["reclaim"]) and flow[0] and g["reclaim"]["y"] > flow[0]["y"] + 40
+       and "不是主線的一段" in txt and "另一條路" in txt,
+       f"再生 {g['reclaim']} ／ 流程列 y={flow[0]['y'] if flow[0] else None}")
+    ok("矽晶圓・F4：台股標示線逐段標，而且**查不到的段真的寫「查不到」**（R5：不編一個對應）",
+       "本圖查不到台股的具名對應" in txt and "6488 環球晶" in txt and "3532 台勝科" in txt
+       and "8028 昇陽半導體" in txt, "")
+    ok("矽晶圓・H5：★ 母子公司警告 —— 畫面上講清楚 6488 環球晶是 5483 中美晶分割出去的子公司，兩者不是競爭對手",
+       "5483 中美晶是 6488 環球晶的母公司" in txt and "不是競爭對手" in txt, "")
+    ok("矽晶圓・M3／M4：畫面上明講本圖講矽晶圓（碳化矽與氮化鎵是昇華法）、而且只講半導體級不含太陽能",
+       "碳化矽與氮化鎵用的是昇華法" in txt and "不含太陽能矽晶圓" in txt, "")
+    ok("矽晶圓・M1／M2：圖上沒有電晶體、光罩、曝光、封裝這些別張圖的東西",
+       "光罩" not in txt and "曝光" not in txt and "打線" not in txt, "")
+    ok("矽晶圓・H1：畫面上沒有任何良率、市占率、產能、單價與漲價幅度",
+       "不寫任何良率、市占率、產能、單價與漲價幅度" in txt and "漲 10" not in txt, "")
+
+    # ---------------- 點零件：這張圖**沒有 data-seg**，所以點了不會高亮、也不會出小卡
+    #   `site/industry.js` 的 wireDiagram() 只對 `[data-seg]` 綁點擊，
+    #   `renderPartCard()` 也在 `if (!seg)` 就把小卡藏起來（`wide_bandgap.js` 同一條路）。
+    #   ★ 所以這裡驗的是**誠實的代價有沒有被補起來**，不是驗高亮：
+    #     ① 每個零件都真的有自己的 data-part（industry.js 一支援就自己亮起來）
+    #     ② 點下去**確實沒有**任何東西被選起來（反向驗收：證明我們沒有偷掛一個錯的環節）
+    #     ③ 「誰做的」已經印在畫面上（台股標示線），不是留白
+    k1 = _b14b_click_part(pg, "sw_melt")
+    st1 = pg.evaluate(B14B_DG)
+    k2 = _b14b_click_part(pg, "sw_epi")
+    st2 = pg.evaluate(B14B_DG)
+    ok("矽晶圓：每個零件都點得到，而且每個都有自己寫死的 data-part（熔湯、磊晶各一）",
+       k1 == "sw_melt" and k2 == "sw_epi", f"{k1} ／ {k2}")
+    ok("矽晶圓：★ 反向驗收 —— 點零件之後**沒有任何東西被選起來**（因為一個 data-seg 都沒掛），"
+       "而這正是「不掛錯環節」的代價",
+       st1["selpart"] == 0 and st2["selpart"] == 0 and st1["nSeg"] == 0,
+       f"sel-part {st1['selpart']}／{st2['selpart']}；data-seg {st1['nSeg']}")
+    ok("矽晶圓：★ 代價已經補起來 —— 「誰做的」直接印在畫面上（台股標示線列得出五檔與各自做到哪一段）",
+       "6488 環球晶" in txt and "6182 合晶" in txt and "3532 台勝科" in txt
+       and "8028 昇陽半導體" in txt and "5483 中美晶" in txt, "")
+
+    _b14b_anim(pg, "矽晶圓", 1)
+    _b14b_typo(pg, DGH, "矽晶圓")
+
+
+HB_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s) => [...svg.querySelectorAll(s)];
+  const n = (e, a) => +e.getAttribute(a);
+  const bx = (e) => ({x: n(e,'x'), y: n(e,'y'), w: n(e,'width'), h: n(e,'height')});
+  const fl = (e) => getComputedStyle(e).fill;
+  const cores = A('[data-part="hb_core"] rect.cdie').map(bx).sort((a,b2)=>a.y-b2.y);
+  const base = svg.querySelector('[data-part="hb_base"] rect.bdie');
+  const tsv = A('[data-part="hb_tsv"] rect.tsv').map(bx);
+  const ub = A('[data-part="hb_ubump"] rect.ub').map(bx);
+  const ob = A('[data-part="hb_outbump"] circle.ob').map(e => ({x: n(e,'cx'), y: n(e,'cy')}));
+  const uniq = (a) => [...new Set(a.map(v => +v.toFixed(1)))].sort((x,y2)=>x-y2);
+  const hb = A('[data-part="hb_hbm_pkg"] rect.hblk').map(bx);
+  const gp = svg.querySelector('[data-part="hb_gpu"] rect.gblk');
+  const it = svg.querySelector('[data-part="hb_interposer"] rect.part');
+  const sb = svg.querySelector('[data-part="hb_sub"] rect.part');
+  const tvg = svg.querySelector('[data-part="hb_topview"] rect.tvg');
+  const tvh = A('[data-part="hb_topview"] rect.tvh').map(bx);
+  const bandTxt = ['hb_band1','hb_band2','hb_band3','hb_band4','hb_band5'].map(id => {
+    const g3 = svg.querySelector('[data-part="' + id + '"]');
+    return g3 ? {t: [...g3.querySelectorAll('text')].map(x=>x.textContent).join('｜'),
+                 none: g3.querySelectorAll('.mk-none').length,
+                 weak: g3.querySelectorAll('.mk-weak').length,
+                 has: g3.querySelectorAll('.mk-has').length} : null; });
+  return {present: true,
+    cores: cores, coreFill: cores.length ? fl(svg.querySelector('[data-part="hb_core"] rect.cdie')) : '',
+    base: base ? bx(base) : null, baseFill: base ? fl(base) : '',
+    tsv: tsv, tsvX: uniq(tsv.map(b=>b.x+b.w/2)),
+    ub: ub, ubX: uniq(ub.map(b=>b.x+b.w/2)), ubY: uniq(ub.map(b=>b.y)),
+    ob: ob.length,
+    bumpZoom: A('[data-part="hb_ubump_zoom"] rect.bump').length,
+    hybridBump: A('[data-part="hb_hybrid"] rect.bump').length,
+    bondline: A('[data-part="hb_hybrid"] path.bondline').length,
+    panelDie: A('rect.bdie2').map(bx),
+    panelDieFill: [...new Set(A('rect.bdie2').map(fl))],
+    hb: hb, gpu: gp ? bx(gp) : null, it: it ? bx(it) : null, sb: sb ? bx(sb) : null,
+    route: A('[data-part="hb_interposer"] path.route').length,
+    tvg: tvg ? bx(tvg) : null, tvh: tvh,
+    band: bandTxt};
+}"""
+
+
+def t_b21_hbm(pg, base):
+    """S3 HBM：堆疊起來的記憶體與底下那顆邏輯晶粒（`site/dg/hbm.js`，族群 `hbm`）。
+
+    規格書＝`docs/diagram_specs/hbm_stack.md` §6／§8。**四條紅線全部在這一段量**：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   H1 ★★★ **base die 在整疊的最底下**（畫在中間或最上面＝直接退回）
+      3   H2 ★★★ **TSV 貫穿 base die 與其上每一層 core die**（數 TSV 通過的層數 ≥ 總層數 − 1）
+      4   H3／H4 微凸塊在每兩層之間（N−1 排）、而且 x 跟 TSV 完全對齊
+      5   H5／H6 base die 與 core die 不同色且比較厚；core die ≥ 4 層
+      6   B1／B2／B3 微凸塊格有一排凸塊、混合鍵合格沒有凸塊只有一條界線；兩格的晶粒同色同厚
+      7   Y1／Y2 ★★★ 由下到上 載板 → 中介層 → 晶粒；**HBM 與 GPU 並排、HBM 沒有疊在 GPU 上**
+      8   Y3／Y4 俯視小格 GPU 在中間 HBM 在兩側；中介層裡畫得出細密繞線且連著兩邊
+      9   T1 ★★★ **南亞科與力成沒有出現在「HBM 顆粒」或「堆疊封裝」那兩段上**
+      10  T2／T3／T4 ①③ 是紅章並寫出實際是誰做的；② 指名台積電且寫明是 base die／12 奈米；⑤ 是黃章
+      11  Ho1 沒有市占率、沒有那句「base die 成本是 core die 的 3～4 倍」
+      12  Ho5 ★ 反向驗收：點 core die → 小卡列出來的是**外商**，台股那一列寫「台股沒有廠商做」
+      13  點 base die → 小卡列出 2330，而且**名單裡沒有 2303 與 6770**（驗 cos 真的生效）
+      14  點環節色標 → 成分股筆數真的變了
+      15  動畫：開／關 真的停得住；靜止時 TSV 與凸塊仍然看得見
+      16  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      17  ★ 收合狀態下整張圖 ≤ 700px；兩條章節列按了真的打得開、再按一次真的收回
+    """
+    FEAT = "HBM 那一疊裡面是什麼"
+    drawn, DGH = _b14b_entry(pg, base, "semiconductor", "hbm", FEAT, "HBM")
+    if not drawn:
+        return
+    _b21_folds(pg, "HBM", 2)
+    d = pg.evaluate(B14B_DG)
+    txt = d.get("full", "")
+    g = pg.evaluate(HB_GEOM)
+    if not ok("HBM：圖畫得出來（結構量測拿得到資料）", g.get("present"), g):
+        return
+
+    cores, bs = g["cores"], g["base"]
+    # ---------------- H1（★★★ 紅線）
+    ok("HBM・H1：★★★ **base die（邏輯晶粒）在整疊的最底下** —— 畫在中間或最上面就是把 HBM 的定義畫錯了",
+       bool(bs) and bool(cores) and bs["y"] >= max(c["y"] + c["h"] for c in cores) - 0.6,
+       f"base die y={bs} ／ 最低那層 core die 底 {max((c['y'] + c['h'] for c in cores), default=None)}")
+    # ---------------- H2（★★★ 紅線）
+    layers = [{"y": c["y"], "h": c["h"]} for c in cores] + ([{"y": bs["y"], "h": bs["h"]}] if bs else [])
+    t0 = min((b["y"] for b in g["tsv"]), default=None)
+    t1 = max((b["y"] + b["h"] for b in g["tsv"]), default=None)
+    passed = [l for l in layers if t0 is not None and t0 <= l["y"] + 0.6 and t1 >= l["y"] + l["h"] - 0.6]
+    ok("HBM・H2：★★★ **TSV 貫穿 base die 與其上每一層 core die** —— 數 TSV 真的通過的層數，"
+       "必須 ≥ 總層數 − 1（最頂層可以不畫，但不可以只有最頂層有）",
+       t0 is not None and len(passed) >= len(layers) - 1,
+       f"TSV 由 y={t0} 到 y={t1}，通過 {len(passed)} 層／共 {len(layers)} 層")
+    ok("HBM・H2 附帶：TSV 是好幾根一起貫穿（不是只畫一根意思意思）",
+       len(g["tsv"]) >= 4, len(g["tsv"]))
+    # ---------------- H3／H4
+    ok("HBM・H3：★★ 微凸塊夾在**每兩層之間** —— N 層晶粒就有 N−1 排",
+       len(g["ubY"]) == len(layers) - 1, f"量到 {len(g['ubY'])} 排／應為 {len(layers) - 1} 排；y={g['ubY']}")
+    ok("HBM・H4：★ TSV 與微凸塊**上下對齊**（兩者的 x 完全相同）—— 對不齊就電氣上接不起來",
+       g["tsvX"] and g["tsvX"] == g["ubX"], f"TSV x={g['tsvX']} ／ 微凸塊 x={g['ubX']}")
+    ok("HBM：base die 底下有一排對外凸塊（整疊對外就是從這裡出去）", g["ob"] >= 4, g["ob"])
+    # ---------------- H5／H6
+    ok("HBM・H5：★ base die 與 core die **不同色**，而且 base die **畫得比較厚**"
+       "（讀者要分得出「最底下那顆不是記憶體」）",
+       bool(bs) and g["baseFill"] != g["coreFill"] and bs["h"] > cores[0]["h"] * 1.2,
+       f"base {bs['h'] if bs else None}px {g['baseFill']} ／ core {cores[0]['h'] if cores else None}px {g['coreFill']}")
+    ok("HBM・H6：★ core die **至少 4 層**（少於 4 層看不出「堆疊」），而且畫面上的層數說明跟畫的一致",
+       len(cores) >= 4 and f"本圖畫 {len(cores)} 層 core die 示意" in txt,
+       f"{len(cores)} 層")
+    # ---------------- B 組
+    ok("HBM・B1：★ 微凸塊那一格**有一排凸塊**、混合鍵合那一格**一顆都沒有**（兩格都畫凸塊這一區就沒有存在意義）",
+       g["bumpZoom"] >= 6 and g["hybridBump"] == 0,
+       f"微凸塊格 {g['bumpZoom']} 顆 ／ 混合鍵合格 {g['hybridBump']} 顆")
+    ok("HBM・B2：混合鍵合那一格的兩層之間只有**一條接合界線**（銅對銅直接接，不是一層膠）",
+       g["bondline"] == 1, g["bondline"])
+    ok("HBM・B3：兩格的晶粒**同色同厚**（是同一種晶粒，只有接法不同）",
+       len(g["panelDie"]) == 4 and len(set(round(b["h"], 1) for b in g["panelDie"])) == 1
+       and len(g["panelDieFill"]) == 1,
+       f"{[b['h'] for b in g['panelDie']]} ／ 色 {g['panelDieFill']}")
+    # ---------------- Y 組（Y2 是紅線）
+    it, sb, gp, hb = g["it"], g["sb"], g["gpu"], g["hb"]
+    ok("HBM・Y1：★ 由下到上是 載板 → 中介層 → 晶粒",
+       all([it, sb, gp]) and sb["y"] > it["y"] and it["y"] > gp["y"],
+       f"載板 y={sb['y'] if sb else None} ／ 中介層 y={it['y'] if it else None} ／ 晶粒 y={gp['y'] if gp else None}")
+    sameBottom = all(abs((b["y"] + b["h"]) - (gp["y"] + gp["h"])) < 1.5 for b in hb) if (hb and gp) else False
+    noOverlapX = all(b["x"] + b["w"] <= gp["x"] + 0.5 or b["x"] >= gp["x"] + gp["w"] - 0.5 for b in hb) if (hb and gp) else False
+    ok("HBM・Y2：★★★ **HBM 與 GPU 並排站在中介層上** —— 兩者底面同高、x 互不重疊，"
+       "HBM **沒有**疊在 GPU 上面（疊上去是完全不同的封裝架構）",
+       len(hb) == 2 and bool(gp) and sameBottom and noOverlapX
+       and all(abs((b["y"] + b["h"]) - it["y"]) < 1.5 for b in hb),
+       f"HBM {hb} ／ GPU {gp} ／ 中介層頂 {it['y'] if it else None}")
+    ok("HBM・Y3：俯視小格 —— GPU 在中間、HBM 在兩側，數量對稱",
+       bool(g["tvg"]) and len(g["tvh"]) == 4
+       and sum(1 for b in g["tvh"] if b["x"] < g["tvg"]["x"]) == 2
+       and sum(1 for b in g["tvh"] if b["x"] > g["tvg"]["x"]) == 2,
+       f"GPU {g['tvg']} ／ HBM {len(g['tvh'])} 塊")
+    ok("HBM・Y4：中介層裡畫得出**細密繞線**，而且是連著 GPU 與 HBM 兩邊（畫成一塊空白的板子就少了它存在的理由）",
+       g["route"] >= 12, g["route"])
+    ok("HBM・Y5：區 C **沒有**補強環、模封與載板的內部層數（那是別張圖的範圍），而且畫面上有這一句",
+       "本格不畫補強環、模封與載板的內部層數" in txt and "模封與載板的內部層數" in txt, "")
+    # ---------------- T 組（T1 是紅線）
+    band = g["band"]
+    b1 = (band[0] or {}).get("t", "")
+    b3 = (band[2] or {}).get("t", "")
+    ok("HBM・T1：★★★ **2408 南亞科與 6239 力成沒有被畫在「HBM 顆粒」那一段上** —— "
+       "它們的既有資料明確排除這件事（南亞科看淡 HBM、力成非 HBM 本體）",
+       "南亞科" not in b1 and "力成" not in b1 and "2408" not in b1 and "6239" not in b1, b1[:80])
+    ok("HBM・T1（下半）：★★★ 「堆疊與封裝」那一段也沒有列它們兩家",
+       "南亞科" not in b3 and "力成" not in b3 and "2408" not in b3 and "6239" not in b3, b3[:80])
+    ok("HBM・T2：★★ 第 ① 段與第 ③ 段是**紅章**，而且寫出「實際上是誰做的」（只寫台股沒有＝留白）",
+       (band[0] or {}).get("none") == 1 and (band[2] or {}).get("none") == 1
+       and "SK hynix" in b1 and "Micron" in b1 and "Samsung" in b1
+       and "由記憶體原廠自家做" in b3,
+       f"①章 {(band[0] or {}).get('none')} ／ ③章 {(band[2] or {}).get('none')}")
+    b2t = (band[1] or {}).get("t", "")
+    ok("HBM・T3：★ 第 ② 段指名 2330 台積電，並寫明是 **base die／12 奈米／HBM4**",
+       "2330" in b2t and "base die" in b2t and "12 奈米" in b2t and "HBM4" in b2t, b2t[:100])
+    ok("HBM・T3 反向：整張圖上**沒有出現「台積電做 HBM」這種字** —— 它做的是那顆邏輯晶粒，不是記憶體顆粒",
+       "台積電做 HBM" not in txt and "不是做記憶體顆粒" in txt, "")
+    ok("HBM・T4：第 ⑤ 段（製程設備）是**黃章**（單一來源、投資媒體整理，信心中低）",
+       (band[4] or {}).get("weak") == 1 and "信心中低" in (band[4] or {}).get("t", ""),
+       (band[4] or {}).get("t", "")[:90])
+    ok("HBM・T2 反向：五段裡**至少兩段是紅章**（全綠就等於把這張圖最有價值的資訊藏起來了）",
+       sum((b or {}).get("none", 0) for b in band) >= 2,
+       [(b or {}).get("none") for b in band])
+    # ---------------- Ho 組
+    ok("HBM・Ho1：畫面上沒有市占率、產能、單價，也**沒有**那句「base die 成本是 core die 的 3～4 倍」",
+       "市占" not in txt and "3～4 倍" not in txt and "62%" not in txt and "21%" not in txt, "")
+    ok("HBM・Ho2：帶年份的東西都附了時效標示",
+       "來源：產業媒體，2026" in txt, "")
+    ok("HBM・Ho3：§5 那五行誠實性標示全部都在畫面上",
+       "示意圖，非實物比例" in txt and "堆疊層數為示意" in txt
+       and "CoWoS 2.5D 封裝剖面" in txt and "台股沒有 HBM 顆粒廠" in txt
+       and "點零件列出來的是外商，這是刻意的" in txt, "")
+    ok("HBM・Ho4：低信心的東西都沒有寫成確定敘述（混合鍵合只寫「路線之一、各家做法不同」）",
+       "各家做法不同" in txt and "路線之一" in txt, "")
+    ok("HBM：同族群另外兩檔為什麼不畫，畫面上直接寫出理由（引用的是供應鏈資料自己的欄位）",
+       "看淡 HBM" in txt and "非 HBM 本體" in txt and "本圖未查證" in txt, "")
+    ok("HBM・M3：圖上沒有 DRAM 單元結構（電容／字元線／位元線）—— 本圖沒有查證",
+       "字元線" not in txt.replace("不畫 DRAM 單元結構（電容／字元線／位元線）", ""), "")
+
+    # ---------------- Ho5 ★ 反向驗收：小卡列外商是刻意的
+    _b14b_click_part(pg, "hb_core")
+    c_core = _b14b_card(pg) or ""
+    ok("HBM・Ho5：★ 點 core die → 小卡列出來的是**外商**（SK hynix／Micron），"
+       "而且台股那一列明寫「台股沒有廠商做」—— 這是刻意的，不是 bug",
+       "SK hynix" in c_core and "Micron" in c_core and "台股沒有廠商做" in c_core,
+       c_core[:140])
+    _b14b_click_part(pg, "hb_base")
+    c_base = _b14b_card(pg) or ""
+    ok("HBM：★ 點 base die → 小卡列出 **2330 台積電**，而且名單裡**沒有 2303 與 6770**"
+       "（走預設會把聯電與力積電一起列出來，那是錯誤宣稱）",
+       "2330" in c_base and "2303" not in c_base and "6770" not in c_base and c_base != c_core,
+       c_base[:140])
+    _b14b_click_part(pg, "hb_band4")
+    c_probe = _b14b_card(pg) or ""
+    ok("HBM：點「堆疊前的測試」 → 小卡列出 **6223 旺矽**（MEMS 探針卡）",
+       "6223" in c_probe or "旺矽" in c_probe, c_probe[:120])
+
+    # ---------------- 點環節色標 → 筆數真的變了
+    n0 = _b14b_rows(pg)
+    if _b14b_seg_chip(pg, "hbm"):
+        pg.wait_for_timeout(600)
+        n1 = _b14b_rows(pg)
+        ok("HBM：點「HBM 記憶體」環節色標 → **成分股筆數真的變了**（畫面真的因此改變）",
+           n1 != n0, f"{n0} 筆 → {n1} 筆")
+        _b14b_seg_chip(pg, "hbm")
+        pg.wait_for_timeout(400)
+
+    _b14b_anim(pg, "HBM", 1)
+    _b14b_typo(pg, DGH, "HBM")
+
 
 
 if __name__ == "__main__":
