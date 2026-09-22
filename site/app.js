@@ -623,6 +623,7 @@
   // ---------------------------------------------------------------- 路由
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'themes', 'season', 'tasks'];
   const rendered = {};
+  let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -633,6 +634,14 @@
        改成讓動畫迴圈自己判斷「我現在看得見嗎」，看不見就只空轉不畫（見 startSankeyFlow）。*/
     // 產業鏈的外商小面板不屬於任何 view，換頁一定要自己清（Andy 2026-09-18 圖12）
     { const cb = document.getElementById('coBox'); if (cb) cb.remove(); }
+    /* 「成分股放寬、暫時蓋住事件面板」也是同一種東西：它掛在 <body> 上、不屬於任何 view。
+       換頁不清的話，使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。
+       remember=false —— 那是暫時狀態，不該改掉他自己設定的偏好（DECISIONS #248）。*/
+    if (document.body.classList.contains('memwide')) {
+      document.body.classList.remove('memwide');
+      let want = true; try { want = localStorage.getItem('tw.side') !== '0'; } catch (e) { /* 忽略 */ }
+      if (typeof window.twSetSide === 'function') window.twSetSide(want, false);
+    }
     const h = location.hash.replace('#', '') || 'overview';
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
@@ -652,7 +661,17 @@
     let wide = true;
     try { const v = localStorage.getItem('tw.kwide'); if (v !== null) wide = v === '1'; } catch (e) { /* 忽略 */ }
     document.body.classList.toggle('kwide', head === 'stock' && wide);
-    window.scrollTo({ top: 0 });
+    /* ★ 2026-09-23（Andy：「每次切換族群不會一直跳到上面，還要再滑下來看」）。
+       根因就是這一行：路由**每換一次**就捲頁首，而「切圖別／換族群／換關聯圖中心」
+       都會改 hash → 觸發路由 → 整頁彈回最上面，使用者得再滑下來一次。
+       改成有條件：**同一頁內的切換保留捲動位置，換頁或換一條鏈才捲頁首**。
+       「同一頁」的定義＝hash 的頁面部分（第一段 ＋ 鏈 id／個股代號）一樣。
+       ⚠ 不是把捲動關掉：`#industry/semiconductor` → `#industry/ai_server` 仍然會捲，
+         `#flow` → `#overview` 也會 —— 驗收有一條就是反過來證明這件事。*/
+    const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : hd;
+    const key = pageKey(head, rest);
+    if (key !== _lastPageKey) window.scrollTo({ top: 0 });
+    _lastPageKey = key;
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
     if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }
@@ -5857,6 +5876,11 @@
     let sideOpen = true;
     try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
     setSide(sideIsOverlay() ? false : sideOpen, false);
+    /* 讓別的模組也開得了關得了這一欄（DECISIONS #248：成分股可以暫時蓋住事件面板）。
+       第二個參數 remember=false 很重要 —— 那是「暫時蓋住」，不是使用者改了偏好，
+       關掉之後要回到他自己設定的狀態。*/
+    window.twSetSide = setSide;
+    window.twSideWanted = () => { try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { return true; } };
     $('#evToggle').onclick = () => setSide($('#layout').classList.contains('noside'));
     $('#evClose').onclick = () => setSide(false);
     // 點浮層外面就收掉。用 capture 才攔得到那些自己 stopPropagation 的元件（剖析圖的零件就是）。
