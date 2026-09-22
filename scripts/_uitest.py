@@ -4922,12 +4922,21 @@ def t_new_clock(pg, base):
           if (r.right > p.right + 1 || r.left < p.left - 1) out.over.push(Math.round(r.right - p.right)); });
         const i = document.querySelector('#rotBack input[type=range]');
         if (i) { const r = i.getBoundingClientRect();
-          out.bar = { w: Math.round(r.width), steps: document.querySelectorAll('#rotBack .pb').length }; }
+          /* ★ 2026-09-22：只數 ＋／−／▶ 這三顆（.pb.step / .pb.play）。
+             以前是數 `#rotBack .pb` 全部，但同一排現在多了一顆「即時」（.pb.livebtn，
+             和資金去向那顆同一套），於是這一條會變成 4 ≠ 3 而紅 ——
+             紅的不是功能，是這個選擇器把新按鈕也算進來了。
+             這一條要驗的本來就是「三顆播放控制項在窄畫面下沒有被擠掉」，所以只數那三顆。*/
+          out.bar = { w: Math.round(r.width),
+                      steps: document.querySelectorAll('#rotBack .pb.step, #rotBack .pb.play').length,
+                      live: document.querySelectorAll('#rotBack .pb.livebtn').length }; }
         return out; }""")
     ok("800px 不會出現橫向捲軸（窄畫面）", not narrow["sideways"], narrow)
     ok("800px 篩選列沒有凸出卡片（窄畫面）", not narrow["over"], narrow["over"])
     ok("800px 拉Bar 與 ＋／−／▶ 都還在而且量得到寬度（窄畫面）",
        bool(narrow["bar"]) and narrow["bar"]["w"] > 40 and narrow["bar"]["steps"] == 3, narrow["bar"])
+    ok("800px 那顆「即時」也還在同一排（窄畫面不可以把它擠掉）",
+       bool(narrow["bar"]) and narrow["bar"]["live"] == 1, narrow["bar"])
     # 800px 底下真的按一次 −，值要變（不是只是畫得出來）
     set_range(pg, RB, 12, 1200)
     w0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
@@ -10055,6 +10064,8 @@ SECTIONS = {
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
     "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
+    # 批次21：輪動時鐘的盤中即時（Andy 2026-09-22「幫我也做一個即時功能像是圖一那樣」）
+    "輪動時鐘即時":        lambda pg, b, base, code: t_rot_live(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -13138,6 +13149,291 @@ def t_dg3d_parts(pg, base):
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
         click(pg, "#dg3d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+
+
+
+# ================================================================ 盤中即時輪動時鐘（RLV）
+# Andy 2026-09-22：「輪動時鐘理論上也有辦法與資金去向做到即時對吧？…幫我也做一個即時功能像是圖一那樣。」
+#
+# ⚠ 容器打不到證交所，所以這一段用 stub 餵假報價。
+#   它驗的是**機制真的發生在畫面上**（座標真的變了、線真的畫出來了、
+#   涵蓋率真的印出一個百分比、再按一次真的回到原位），
+#   **不是**驗任何一個數字對不對 —— 假數字推不出真結論。
+#   續算公式本身的正確性由 `pipeline/compute/rrg.py` 那邊的 pytest 守。
+
+# 假報價：每個族群給一個**不一樣**的漲跌幅，位移才有大有小、排得出名次。
+# mode='fail' 時 fetchQuotes 直接丟例外 —— 用來驗「抓不到報價的那條路」。
+_RLV_STUB = """(mode) => {
+    const D = window.App.D;
+    const rrg = (D.flow_v3 || {}).rrg || {};
+    const det = D.groups_detail || {};
+    const info = {};
+    const gids = (rrg.points || []).map(p => p.group_id).filter(g => !/^ind_/.test(g));
+    gids.forEach((gid, i) => {
+      const pct = ((i % 13) - 6) * 0.5;          // −3% ~ +3%
+      ((det[gid] || {}).members || []).forEach(m => {
+        const c = String(m.code);
+        if (info[c] == null) info[c] = { price: 100, volume: 800 + (i * 37) % 900, chgPct: pct };
+      });
+    });
+    window.Live = { isIntraday: () => true,
+      fetchQuotes: async (cs) => {
+        if (mode === 'fail') throw new Error('代理回 HTTP 503');
+        const o = {};
+        cs.forEach(c => { const x = info[c]; if (x) o[c] = {
+          price: x.price, volume: x.volume, chgPct: x.chgPct, time: '10:31:00' }; });
+        return o;
+      } };
+    window.Market3 = { lastAt: Date.now(), marketAmt: 4.2e11, refresh: async () => {} };
+    return gids.length; }"""
+
+# 盤上每個族群「畫上去的那一點」。比對前後就知道座標有沒有真的變。
+_RLV_XY = ("() => { const o = {}; ((window.App && window.App._rotPts) || [])"
+           ".forEach(p => { if (!p.stock) o[p.gid] = [p.x, p.y]; }); return o; }")
+
+
+def _rlv_wait(pg, timeout=8000):
+    """等這一輪即時真的算完（`at` 被寫進去，或是錯誤訊息出來）。"""
+    return wait_until(pg, "() => { const s = window.App.rotLive();"
+                          " return (s.at > 0 || s.err) ? s : null; }", timeout)
+
+
+def t_rot_live(pg, base):
+    """輪動時鐘的盤中即時：按下去座標真的變、箭頭真的畫出來、涵蓋率真的印出來、
+    再按一次真的退回盤後、拖時間軸真的自動退出、抓不到報價圖也不會空白。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    reset_rot(pg, base)
+    pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+
+    # ---------------------------------------------------------- ① 鈕真的長在時鐘那排工具列上
+    btn = pg.evaluate("""() => { const b = document.getElementById('rotLiveBtn');
+        if (!b) return null;
+        const bar = b.closest('#rotBack');
+        return { text: (b.textContent || '').trim(), inBar: !!bar,
+                 cls: b.className, pressed: b.getAttribute('aria-pressed'),
+                 sameAsSankey: !!document.querySelector('#sankeyDays .pb.livebtn') }; }""")
+    if not ok("「即時」鈕真的掛在輪動時鐘那排時間軸上（#rotBack）", bool(btn) and btn["inBar"], btn):
+        return
+    ok("和資金去向那顆是同一套樣式（.pb.livebtn）與同一個文字",
+       "livebtn" in btn["cls"] and btn["text"] == "即時", btn)
+
+    xy0 = pg.evaluate(_RLV_XY)
+    if not ok("按之前：盤上已經有族群點（拿來當比對基準）", len(xy0) > 5, len(xy0)):
+        return
+    n_series0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        return ((c.getOption() || {}).series || []).length; }""")
+
+    # ---------------------------------------------------------- ② 真的按下去 → 座標真的變了
+    pg.evaluate(_RLV_STUB, None)
+    if not click(pg, "#rotLiveBtn", 500):
+        return
+    st = _rlv_wait(pg)
+    if not ok("即時模式開得起來（stub 假報價，不是真實數字）",
+              bool(st) and st["on"] and not st["err"] and st["groups"] > 5, st):
+        return
+    pg.wait_for_timeout(900)
+    xy1 = pg.evaluate(_RLV_XY)
+    moved = [g for g in xy0 if g in xy1 and (abs(xy1[g][0] - xy0[g][0]) > 1e-6
+                                             or abs(xy1[g][1] - xy0[g][1]) > 1e-6)]
+    ok(f"按「即時」之後，時鐘上的點**座標真的變了**（{len(moved)}/{len(xy0)} 個族群動了）",
+       len(moved) >= max(3, len(xy0) // 2),
+       {g: [xy0[g], xy1[g]] for g in list(xy0)[:4]})
+    ok("鈕本身也亮起來了（aria-pressed 真的變 true）",
+       pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "true")
+
+    # ---------------------------------------------------------- ③ 那條「上一個收盤 → 現在」真的畫出來了
+    seg = pg.evaluate("() => window.App.rotLiveSeg()")
+    lens = [s["px"] for s in (seg or []) if s.get("px") is not None]
+    # ★ 這兩個 series **永遠都在**（見 app.js 的註解：merge 是照索引對的，
+    #   series 陣列變短時舊的不會被移掉）。所以驗的是「資料真的被餵進去了」，不是「series 存在」。
+    ok("時鐘上「即時位移」與「漣漪」兩個 series 真的被餵了資料（不是只有點換位置）",
+       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+           const ss = ((c.getOption() || {}).series || []);
+           const a = ss.find(s => s.type === 'custom'), b = ss.find(s => s.type === 'effectScatter');
+           return !!a && !!b && (a.data || []).length > 3 && (b.data || []).length > 3; }"""),
+       {"按之前 series 數": n_series0})
+    if ok("量得到每一條連線的兩端（極座標 → 像素）", bool(lens) and len(lens) > 3, seg and len(seg)):
+        ok(f"連線**長度真的大於 0**（最長 {max(lens):.1f}px、中位 {sorted(lens)[len(lens)//2]:.1f}px）",
+           max(lens) > 1.0 and sum(1 for v in lens if v > 0) == len(lens),
+           sorted(lens)[-5:])
+        # ★ 線刻意畫成**兩段**：灰虛線＝慣性（平盤也會走）、彩色箭頭＝今天的錢推的。
+        #   只畫一整條的話，開盤什麼都還沒發生箭頭就已經很長了（實測慣性中位 0.59 點，
+        #   比「贏大盤 2%」的 0.35 點還多）—— 那是一張看起來有在動、動的卻是指標自己的圖。
+        two = [s for s in seg if s.get("pxInertia") is not None and s.get("pxToday") is not None]
+        ok(f"每一條線都量得到「慣性」與「今天推的」兩段（{len(two)}/{len(seg)}）",
+           len(two) == len(seg) and len(two) > 3, seg[:2])
+        ok("兩段加起來就是整條（幾何上是折線，所以整條 ≤ 兩段和，而且不會是 0）",
+           all(s["px"] <= s["pxInertia"] + s["pxToday"] + 0.6 for s in two)
+           and max(s["pxToday"] for s in two) > 0.8,
+           sorted([s["pxToday"] for s in two])[-3:])
+        # 位移不可以被放大：彩色那段畫上去的像素長度要和「今天推的那一段」成同一個比例
+        far = max(two, key=lambda s: s["pxToday"])
+        near = min([s for s in two if s["pxToday"] > 0], key=lambda s: s["pxToday"])
+        r_px = far["pxToday"] / near["pxToday"]
+        r_dat = (abs(far["tdx"]) + abs(far["tdy"])) / max(1e-9, abs(near["tdx"]) + abs(near["tdy"]))
+        ok(f"長的那條 ÷ 短的那條，畫面上是 {r_px:.2f} 倍、資料上是 {r_dat:.2f} 倍"
+           "（比例對得上＝沒有為了好看把位移放大）",
+           0.45 < r_px / max(1e-9, r_dat) < 2.2, {"畫面": far, "資料": near})
+
+    # ---------------------------------------------------------- ④ 涵蓋率真的印出一個百分比
+    note = text(pg, "#rotLive")
+    ok("狀態列真的出現了（#rotLive 不是 hidden）",
+       bool(note) and note != "<缺>" and len(note) > 40, note[:80])
+    ok("涵蓋率那一行真的印出一個百分比",
+       bool(re.search(r"涵蓋率[^\n]*?\d+(\.\d+)?%", note)),
+       next((ln for ln in note.splitlines() if "涵蓋率" in ln), note[:120]))
+    ok("涵蓋率的數字和程式裡算的是同一個（不是另外湊一個給人看的）",
+       st["cover"] is not None
+       and abs(st["cover"] - float(re.search(r"涵蓋率[^\n]*?(\d+(?:\.\d+)?)%", note).group(1))) < 0.11,
+       {"程式": st["cover"], "畫面": note[note.find("涵蓋率"):note.find("涵蓋率") + 60]})
+    # 兩條誠實界線一定要在畫面上
+    ok("誠實界線①「權重是估的、報酬是真的」寫在畫面上",
+       "權重是估的" in note and "報酬是真的" in note and "估算" in note,
+       note[:200])
+    ok("誠實界線②「即時的大盤是代理值」寫在畫面上（而且講明不是全市場）",
+       "代理值" in note and "全市場" in note, note[:400])
+    ok("「位移很小是真的、我們沒有放大」也寫在畫面上（不然使用者會以為按了沒反應）",
+       "沒有放大" in note, note[:600])
+    ok("「箭頭分兩段（慣性 vs 今天推的）」也寫在畫面上 —— 不寫的話使用者會把慣性讀成資金在動",
+       "慣性" in note and "分兩段" in note and "平盤" in note, note[:800])
+    ok("盤中／非盤中講清楚（stub 說是盤中，所以要出現「即時」與報價時間）",
+       "即時" in note and "10:31:00" in note, note[:120])
+    # 走得最多的那一排：數字要印出來，而且點得進成分股
+    chips = pg.evaluate("""() => [...document.querySelectorAll('#rotLive .rlvchip')]
+        .map(b => ({ g: b.dataset.g, t: b.innerText.replace(/\\s+/g, ' ').trim() }))""")
+    ok("「今天被推得最多的族群」那一排真的印出 Δ強弱／Δ動能 的數字",
+       len(chips) >= 3 and all("強弱" in c["t"] and "動能" in c["t"] for c in chips),
+       chips[:3])
+    # 那排數字必須是**彩色箭頭那一段**（tdx/tdy），不是含慣性的總位移 —— 兩者差很多，寫錯就是在騙人
+    top1 = st["top"][0]
+    ok("那排數字用的是「今天推的那一段」（tdx），不是含慣性的總位移（dx）",
+       f"{top1['tdx']:+.2f}".replace("+", "+") in chips[0]["t"].replace("　", " ")
+       or f"{top1['tdx']:.2f}" in chips[0]["t"],
+       {"chip": chips[0]["t"], "tdx": top1["tdx"], "dx": top1["dx"]})
+    ok("標題也講明那排數字不含慣性", "不含慣性" in note, note[-300:])
+    if chips:
+        before = pg.evaluate("() => (window.App.drillState() || {}).gid")
+        click(pg, f'#rotLive .rlvchip[data-g="{chips[0]["g"]}"]', 900)
+        after = pg.evaluate("() => (window.App.drillState() || {}).gid")
+        changed("點那一排的族群 → 真的在原地展開成分股（下鑽狀態變了）", before, after)
+        ok("展開的成分股清單真的列得出個股（能點的東西要能點到底）",
+           count(pg, '#rankPanel .ms a[href^="#stock/"]') > 0)
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(600)
+
+    # ---------------------------------------------------------- ⑤ 再按一次 → 真的退回盤後的座標
+    click(pg, "#rotLiveBtn", 1200)
+    ok("再按一次「即時」：狀態真的關掉了",
+       pg.evaluate("() => !window.App.rotLive().on")
+       and pg.evaluate("() => document.getElementById('rotLive').hidden"))
+    xy2 = pg.evaluate(_RLV_XY)
+    same = all(abs(xy2.get(g, [9e9, 9e9])[0] - xy0[g][0]) < 1e-6
+               and abs(xy2.get(g, [9e9, 9e9])[1] - xy0[g][1]) < 1e-6 for g in xy0)
+    ok("退回盤後之後，每一個族群的座標和按之前**完全一樣**", same,
+       {g: [xy0[g], xy2.get(g)] for g in list(xy0)[:4]})
+    ok("那條「上一個收盤 → 現在」的線也真的不見了（兩個 series 的 data 都被清空）",
+       not pg.evaluate("() => window.App.rotLiveSeg().length")
+       and pg.evaluate("""() => { const ss = ((echarts.getInstanceByDom(
+               document.getElementById('rotClock')).getOption() || {}).series || []);
+           const a = ss.find(s => s.type === 'custom'), b = ss.find(s => s.type === 'effectScatter');
+           return (!a || !(a.data || []).length) && (!b || !(b.data || []).length); }"""),
+       pg.evaluate("""() => { const ss = ((echarts.getInstanceByDom(
+               document.getElementById('rotClock')).getOption() || {}).series || []);
+           return ss.filter(s => s.type === 'custom' || s.type === 'effectScatter')
+                    .map(s => s.type + ':' + (s.data || []).length); }"""))
+
+    # ---------------------------------------------------------- ⑥ 拖時間軸 → 自動退出即時（互斥）
+    pg.evaluate(_RLV_STUB, None)
+    click(pg, "#rotLiveBtn", 500)
+    _rlv_wait(pg)
+    ok("為了驗互斥，先把即時重新打開", pg.evaluate("() => window.App.rotLive().on"))
+    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+        if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' });
+        const r = i.getBoundingClientRect();
+        return { x: r.left, y: r.top + r.height / 2, w: r.width, v: +i.value }; }""")
+    if ok("抓得到「看哪一天」那支拉Bar 的位置（要真的用滑鼠拖）", bool(box), box):
+        pg.mouse.move(box["x"] + box["w"] * 0.05, box["y"])
+        pg.mouse.down()
+        pg.mouse.move(box["x"] + box["w"] * 0.45, box["y"], steps=12)
+        pg.mouse.up()
+        pg.wait_for_timeout(1200)
+        v1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+        if ok(f"滑鼠真的把時間軸拖動了（{box['v']} → {v1}）", v1 != box["v"], {"前": box["v"], "後": v1}):
+            ok("拖時間軸 → **自動退出即時**（和資金去向同一條互斥規矩）",
+               pg.evaluate("() => !window.App.rotLive().on")
+               and pg.evaluate("() => document.getElementById('rotLive').hidden"))
+            ok("鈕也跟著暗回去（不可以畫的是盤後、鈕卻還亮著）",
+               pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "false")
+        set_range(pg, "#rotBack input[type=range]", 0, 900)
+
+    # ---------------------------------------------------------- ⑦ 抓不到報價：有錯誤訊息，而且圖沒有變空白
+    pg.evaluate(_RLV_STUB, "fail")
+    click(pg, "#rotLiveBtn", 500)
+    st2 = _rlv_wait(pg)
+    if ok("抓不到報價時真的走到錯誤那條路", bool(st2) and bool(st2["err"]), st2):
+        err = text(pg, "#rotLive")
+        ok("錯誤訊息是**具體**的（寫得出是哪一步壞掉），不是一句「發生錯誤」",
+           "抓不到" in err and ("503" in err or "HTTP" in err), err[:160])
+        ok("而且明講「圖上畫的仍然是盤後資料」", "盤後" in err, err[:160])
+        xy3 = pg.evaluate(_RLV_XY)
+        ok("圖**沒有變空白**：族群點數和盤後那一份一樣多",
+           len(xy3) == len(xy0), {"盤後": len(xy0), "抓不到報價時": len(xy3)})
+        ok("而且座標就是盤後那一份（沒有被半套的即時資料污染）",
+           all(abs(xy3.get(g, [9e9, 9e9])[0] - xy0[g][0]) < 1e-6 for g in xy0),
+           {g: [xy0[g], xy3.get(g)] for g in list(xy0)[:3]})
+        # 一鍵退回盤後
+        if ok("錯誤訊息旁邊有「一鍵退回盤後」", count(pg, "#rotLiveBack") == 1):
+            click(pg, "#rotLiveBack", 1000)
+            ok("按下去真的退回盤後（即時關掉、狀態列收起來）",
+               pg.evaluate("() => !window.App.rotLive().on")
+               and pg.evaluate("() => document.getElementById('rotLive').hidden"))
+
+    # ---------------------------------------------------------- ⑧ 800px 與 390px：不溢出、字 ≥ 12px
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.wait_for_timeout(700)
+        pg.evaluate(_RLV_STUB, None)
+        pg.evaluate("() => window.App.rotLiveToggle()")
+        s = _rlv_wait(pg)
+        if not ok(f"[{w}px] 即時模式開得起來", bool(s) and s["on"] and not s["err"], s):
+            continue
+        pg.wait_for_timeout(900)
+        m = pg.evaluate("""() => { const el = document.getElementById('rotLive');
+            if (!el || el.hidden) return null;
+            const r = el.getBoundingClientRect();
+            const small = [];
+            const walk = (n) => { [...n.children].forEach(c => {
+              const cs = getComputedStyle(c);
+              const fs = parseFloat(cs.fontSize) || 0;
+              if ((c.textContent || '').trim() && fs > 0 && fs < 11.95)
+                small.push(c.tagName + '.' + c.className + ' ' + fs + 'px');
+              walk(c); }); };
+            walk(el);
+            const own = parseFloat(getComputedStyle(el).fontSize) || 0;
+            if (own < 11.95) small.push('#rotLive ' + own + 'px');
+            return { side: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+                     over: Math.round(r.right) > window.innerWidth + 1,
+                     chips: document.querySelectorAll('#rotLive .rlvchip').length,
+                     small: small.slice(0, 6), nSmall: small.length,
+                     clockH: Math.round(document.getElementById('rotClock').getBoundingClientRect().height) }; }""")
+        if ok(f"[{w}px] 狀態列畫得出來", bool(m), m):
+            ok(f"[{w}px] 沒有水平捲軸", not m["side"], m)
+            ok(f"[{w}px] 狀態列沒有凸出視窗", not m["over"], m)
+            ok(f"[{w}px] 狀態列裡沒有小於 12px 的字", m["nSmall"] == 0, m["small"])
+            ok(f"[{w}px] 「走得最多的族群」那一排還在（不是窄畫面就整排消失）", m["chips"] >= 3, m)
+            ok(f"[{w}px] 時鐘本身沒有被狀態列擠掉（高度 > 260px）", m["clockH"] > 260, m)
+            seg2 = pg.evaluate("() => window.App.rotLiveSeg()")
+            ok(f"[{w}px] 連線一樣畫得出來、長度 > 0",
+               bool(seg2) and max([x["px"] or 0 for x in seg2]) > 0.8,
+               sorted([x["px"] or 0 for x in seg2])[-3:])
+        pg.evaluate("() => window.App.rotLiveToggle()")
+        pg.wait_for_timeout(600)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    notes.append("輪動時鐘的即時這一段用的是 stub 假報價（容器打不到證交所）："
+                 "驗的是「按了畫面真的變」「線真的畫出來」「涵蓋率真的印出來」"
+                 "「再按一次真的回到原位」，數字本身沒有意義。")
 
 
 if __name__ == "__main__":
