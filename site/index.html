@@ -954,6 +954,41 @@ a.lk.sm{font-size:12px;font-weight:500}
 .segchip.sel{border-color:var(--c);background:color-mix(in srgb,var(--c) 18%,var(--panel-3));color:var(--ink);font-weight:700}
 .segchip .n{font-family:var(--mono);font-size:11px;color:var(--ink-3)} .segchip.sel .n{color:var(--ink-2)}
 .segchip.nomem{opacity:.6;border-style:dashed}
+/* ============ 環節色標：從「會換行的一排晶片」改成清單（Andy 2026-09-22）============
+   他的原話：「版面的族群改成用清單式好了，因為卡片會一直延伸導致影響版面」。
+
+   為什麼換掉而不是把晶片縮小
+   --------------------------
+   `.segchips` 是 flex-wrap，所以**高度是「有幾個環節」的函數**：
+   半導體 14 格在 1440px 佔 110px、800px 佔 135px、390px 直接佔 275px，
+   而且是「多一個環節就整頁往下推一次」—— 誰也預測不了它會多高。
+   (之前「今日事件」抽屜攔截點擊那個病，根因也是這種會長高的浮動排。)
+   改成一列一格之後高度只有兩種可能：**格數 × 列高**，或**撞到上限就在自己的框裡捲**。
+   兩者都是可以事先算出來的數字，下面那顆「一個畫面看得完」的驗收才量得動。
+
+   ★ 只換版面，互動一行都沒動：`.segchip` 這個 class 與 `data-seg` 都留著，
+     所以 `syncHighlight()` 的 `.sel` 同步、`onclick` 的篩選、既有驗收的選擇器全部照舊。
+   ★ 上限用 vh 推算（21vh），不寫死 px —— 900px 高的視窗給 189px（約 5 列半，
+     看得出「下面還有」），1080p 給 226px。下限 120px 保證至少露出 3 列，
+     不然使用者會以為這裡只有一格。*/
+.seglistpick{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:5px;
+  max-height:clamp(120px,21vh,196px);overflow-y:auto;overflow-x:hidden;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+.seglistpick .segchip{width:100%;border-radius:8px;padding:5px 10px;gap:8px;
+  background:var(--panel-3);flex:none;font-size:13px}
+/* 名稱包成 .t 才吃得到 ellipsis（裸文字節點在 flex 裡是匿名項目，設不了 overflow）。
+   一定要 ellipsis：環節名長短差很多，讓它換行的話列高就又變成不可預測的了。*/
+.seglistpick .segchip .t{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 檔數提到 12px：`.segchip .n` 原本是 11px，那是「擠在一排晶片裡」時的權宜。
+   換成清單之後右欄有的是空間，沒有理由再讓它低於全站的字級下限 12px。*/
+.seglistpick .segchip .n{flex:none;margin-left:auto;font-size:12px}
+/* 捲軸要看得出來（Andy 講的是「拉 Bar」，那根 Bar 要存在，不能用隱形捲軸） */
+.seglistpick::-webkit-scrollbar{width:10px}
+.seglistpick::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.seglistpick::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel-2)}
+/* ⚠ 刻意**不寫** scrollbar-width / scrollbar-color：新版 Chromium 只要看到這兩個標準屬性，
+   就會整組忽略上面的 ::-webkit-scrollbar 規則，換成瀏覽器預設的覆蓋式（overlay）捲軸 ——
+   那種捲軸平常是隱形的、不佔寬度，正是 Andy 說的「看不出有拉 Bar」。*/
 .segbox{margin-top:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--c,var(--line-2));background:color-mix(in srgb,var(--c,#8ea0c4) 8%,var(--panel));font-size:13.5px}
 .segbox b.t{color:var(--c)}
 a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
@@ -1195,6 +1230,36 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lead3d .ld{fill:none;stroke:var(--line-2);stroke-width:1.1;opacity:.72}
 .lead3d .ld-dot{fill:none;stroke-width:1.4;opacity:.9}
 .dgwrap svg{display:block;width:100%;height:auto}
+/* ============ 剖析圖固定高度 ＋ 垂直拉 Bar（Andy 2026-09-22）============
+   他的原話：「所有 2D 版面需要優化…版面太大希望固定大小改用拉 Bar 延伸觀看」，
+   而且指著兩張截圖說：半導體鏈那張（圖＋下面的環節色標同時看得到）可以，
+   **MLCC 那張就太大了，下面的資訊看不到**。
+
+   改之前：`.dgwrap` 只有橫向可捲（`overflow:auto hidden`，Y 是 applyDgNative 寫死的 hidden），
+   所以**圖有多高、版面就被撐多高**。實測 MLCC 三段全開時 SVG 1732px，
+   環節色標整個被推到視窗外 —— 那正是他說「下面的資訊看不到」。
+
+   改之後：高度從**視窗高度**推算（不是寫死 px），超過就在框內垂直捲。
+     clamp(280px, 100vh - 340px, 620px)
+   那個 340 是「圖框底下到環節色標底」要留的空間：
+     色標清單上限 196 ＋ 它的框線內距 12 ＋ 上下 margin 20 ＝ 228，再留 112px 給頁面呼吸。
+   1440x900 → 560px；800x900 → 560px；390x844 → 504px。
+   ★ 340 是量出來的，不是挑好看的數字：半導體鏈那張圖原生高 557px，而 Andy 指名
+     「半導體那張的範圍可以」—— 上限給 560 剛好讓它**一格都不用捲**就整張看得到，
+     被捲的只有真的太高的那幾張（MLCC 全開 1732px）。
+   三個寬度下「圖頂 → 色標底」都落在一個視窗高度內（驗收「一個畫面看得完」量的就是這個）。
+
+   ★ 為什麼是 max-height 不是 height：圖比上限矮的時候（例如只有 300px 的小圖）
+     不該硬撐出一塊空白框，那是把「固定大小」做成「固定浪費」。
+   ★ 橫向捲動的既有行為原封不動（applyDgNative 的 min-width 還在），只是 Y 從 hidden 變成 auto。*/
+.dgwrap.dgcap{max-height:clamp(280px,calc(100vh - 340px),620px);overflow-y:auto}
+/* 捲軸要看得出來 —— 他講的是「拉 Bar」，那根 Bar 要存在。
+   軌道刻意上色（不是透明），不然深底的畫布上只剩一根浮著的滑塊，看不出可以拉。*/
+.dgwrap.dgcap::-webkit-scrollbar{width:11px;height:11px}
+.dgwrap.dgcap::-webkit-scrollbar-track{background:color-mix(in srgb,var(--line) 55%,transparent);border-radius:8px}
+.dgwrap.dgcap::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid transparent;background-clip:padding-box}
+.dgwrap.dgcap::-webkit-scrollbar-thumb:hover{background:var(--ink-3);background-clip:padding-box}
+/* 同上：不寫 scrollbar-width，否則這幾條 ::-webkit-scrollbar 會被整組忽略掉 */
 .dgwrap.compact svg{max-height:380px}
 .dgwrap.noanim *{animation:none!important}
 /* ---- 圖別選單（2026-09-21，Andy：「同個族群、為不同產品，則需要獨立分頁」）
@@ -1205,7 +1270,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    ★ 這三條 [hidden] 是必要的收尾：.row（flex）與 .pill（inline-flex）這些
      有 display 規則的類別會**蓋掉** UA 預設的 [hidden]{display:none}，
      不補的話「選單模式」下那幾顆工具鈕照樣看得到，按下去卻沒有圖可以動。*/
-.dgmenu[hidden],#dgBody[hidden],#dgTools[hidden],#dgBack[hidden]{display:none}
+.dgmenu[hidden],#dgBody[hidden],#dgTools[hidden],#dgBack[hidden],#dgScrollHint[hidden]{display:none}
 .dgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
 .dgcard{display:block;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);
   border-left:4px solid var(--c,var(--cyan));background:var(--panel-3);color:var(--ink-2);transition:.15s}

@@ -306,13 +306,13 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div></div>
+        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span><span class="pill cyan" id="dgScrollHint" hidden title="圖框高度固定，剩下的在框內往下捲">↕ 框內可上下捲</span></span></div></div>
           <div class="dgmenu" id="dgMenu" hidden>${dgMenuHtml(ch, dgOpts, dgHash)}</div>
           <div id="dgBody">
           ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
-          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
-        ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
+          <div id="prodDiagram" class="dgwrap dgcap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
+        ${segs.length ? `<div class="seglistpick" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i><span class="t">${A.fmt.esc(s.name)}</span><span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
         ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
           <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
           <div class="chainrow"><div class="chainpane">
@@ -500,6 +500,16 @@
       segFilter = null;
       syncHighlight({ quiet: true });
     };
+    /* 點背景 ＝ 回到 Default：全部零件恢復全亮、零件小卡收掉（Andy 2026-09-22）。
+       ⚠ **刻意不動 segFilter** —— 那是環節色標的「篩選」，跟零件的「高亮」是兩件事。
+         把它一起清掉的話，使用者只是想退出零件選取，下面的成分股卻莫名其妙全部跑回來。
+       已經是 Default 就什麼都不做：避免每點一次背景就重畫一次成分股表。
+       noscroll：使用者的眼睛在圖上，不要把頁面捲到別的地方去。*/
+    const clearPart = () => {
+      if (!partHi && !segHi && !partSel) return;
+      partHi = partSel = segHi = null;
+      syncHighlight({ quiet: true, noscroll: true });
+    };
     $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return;
       state.group = state.group === t.dataset.gid ? null : t.dataset.gid;
       segFilter = null; segHi = null; partHi = partSel = null;
@@ -606,7 +616,8 @@
       applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      wireDiagram(el, pickPart);
+      wireDiagram(el, pickPart, clearPart);
+      markDgScroll($('#prodDiagram', el), el);
       /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
          放在 skip3d 的 return 之前 —— 收合狀態下也要先接好，不然展開前按它是死的。*/
       wirePal(el, () => view3d);
@@ -636,6 +647,8 @@
       if (skip3d) return;                 // 收合狀態下不掛 3D（展開時才補掛）
       wire3D(el, DS.scene(dgId), {
         onSeg: (seg, data) => pickPart(seg, data && data.part),
+        // 3D 場景點空白處＝跟 2D 一樣回到 Default（Andy 2026-09-22 明講「3D 也要」）
+        onBg: clearPart,
         sync: () => syncHighlight({ quiet: true }),
         /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
            3D 的文字框以前只有「零件名＋一行說明」，是死的。
@@ -1037,7 +1050,11 @@
     const w = (DS && DS.native) ? DS.native(id) : 0;
     const svg = host.querySelector('svg');
     host.style.overflowX = w ? 'auto' : '';
-    host.style.overflowY = w ? 'hidden' : '';
+    /* ★ 2026-09-22：Y 軸不再寫死 hidden。
+       以前這一行是「圖有多高、版面就被撐多高」的直接原因 —— 行內樣式蓋得過 CSS，
+       所以 `.dgwrap.dgcap{overflow-y:auto}` 那條固定高度的規則會被它整個吃掉。
+       現在交給 CSS 決定：有 .dgcap 就在框內垂直捲，沒有的話維持原本的 hidden。*/
+    host.style.overflowY = host.classList.contains('dgcap') ? '' : (w ? 'hidden' : '');
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
     /* ★ 2026-09-21（art-director 複驗 C）：手機寬展開之後，看得到的是**左欄**，
        主角（等角切開的本體）整個在畫面外 —— 讀者第一眼看到的是尺寸表而不是那顆電容。
@@ -1051,6 +1068,26 @@
       };
       center();
       requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
+    }
+  }
+  /* ★ 2026-09-22：固定高度的圖框要「看得出來還有下半部」。
+     Andy 講的是「拉 Bar」，而 Chromium 的覆蓋式捲軸平常是隱形的（滑鼠碰到才浮出來），
+     所以只靠捲軸等於沒告訴他。這一顆晶片是明說的那一半：**框內還有東西、可以往下捲**。
+
+     為什麼用 ResizeObserver 而不是算一次就好：MLCC 的章節（wireFolds）展開／收合會改 viewBox，
+     圖的實際高度當場變一倍 —— 算一次的話，「三段全開之後才需要捲」的那個狀態就永遠提示不到。
+     RO 觀察 svg 本身，展開收合、換寬度、換一張圖都會重新量。*/
+  function markDgScroll(host, root) {
+    if (!host || !host.classList.contains('dgcap')) return;
+    const hint = $('#dgScrollHint', root || document);
+    const paint = () => { if (hint) hint.hidden = !(host.scrollHeight > host.clientHeight + 4); };
+    paint();
+    requestAnimationFrame(paint);        // 剛換過 innerHTML 時高度還沒定案
+    const svg = host.querySelector('svg');
+    if (svg && window.ResizeObserver) {
+      if (host._dgRo) { try { host._dgRo.disconnect(); } catch (e) { /* 忽略 */ } }
+      host._dgRo = new ResizeObserver(paint);
+      host._dgRo.observe(svg);
     }
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
@@ -1205,6 +1242,8 @@
           color: segColor,
           // 第二個參數是零件身分（three3d.js 的 userData.part）—— 兩層高亮靠它，別在這裡吃掉
           onSeg: (seg, data) => onSeg(seg, data),
+          // 點到場景空白處（raycast 沒打到任何零件）→ 回到 Default，跟 2D 同一支 clearPart
+          onBg: hk.onBg || null,
           anim: animPref(),          // E4：一掛上去就照使用者目前的動畫偏好，不要先動起來再被關掉
           members: hk.members || null,   // 圖九 2-3：文字框底下那排可點的台股晶片
           onStock: hk.onStock || null,
@@ -1254,10 +1293,24 @@
   /* 每一個零件在綁 click 之前先被蓋上「零件身分」（data-dgkey）——
      沒有身分就只認得出環節，單一環節的圖點下去等於沒事發生。stampParts 也會順手
      替「整張只有一個環節」的圖補上 .dg1，畫圖的人不用記得自己加。*/
-  function wireDiagram(root, onSeg) {
+  function wireDiagram(root, onSeg, onBg) {
     const host = $('#prodDiagram', root);
     if (window.DG && window.DG.stampParts) window.DG.stampParts(host);
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg, n.dataset.dgkey || null); }; });
+    /* ★ 點空白背景 → 取消選取、全部恢復全亮（Andy 2026-09-22：
+         「當點擊背景時會恢復到原來的 Default…我如果特定點選一個元件他會只亮那個，
+           當我點選背景他會恢復所有都亮」）。
+
+       改之前只有「再點同一個零件」才取消 —— 使用者要先記得剛剛點的是哪一個才退得出來，
+       而單一環節的圖上 14 個零件長得很像，等於退不出來。
+
+       為什麼掛在 host 上就夠：零件的 onclick 與章節列（wireFolds）都有 stopPropagation，
+       所以能冒泡到這裡的**本來就只有背景**。closest 那一層是保險 ——
+       萬一哪張新圖忘了擋，也不會把「點零件」誤判成「點背景」。*/
+    if (host && onBg) host.onclick = (e) => {
+      if (e.target.closest && e.target.closest('[data-seg],[data-part],[data-fold],[data-chain],a')) return;
+      onBg();
+    };
   }
 
   // ---------------------------------------------------------------- 分層關聯圖（SVG）
@@ -1967,7 +2020,7 @@
       ${hasDiagram ? `<div id="chainBody" style="${open ? '' : 'display:none'};margin-top:10px">
         <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
         <div class="sub" style="margin:8px 0 2px">${A.fmt.esc(DS.name(dgId))}　<span class="muted">原創示意圖，非實物比例；點零件看這個環節的供應商</span></div>
-        <div id="prodDiagram" class="dgwrap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
+        <div id="prodDiagram" class="dgwrap dgcap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
     </div>`;
     /* 同族群那一列橫向捲到目前這檔 —— 一樣只捲那一列，不用 scrollIntoView。
        產業鏈區塊搬到個股頁最下面之後，scrollIntoView 會把整頁拖到底（見 drawChainMap 的註解）。*/
