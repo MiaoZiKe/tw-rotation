@@ -416,8 +416,16 @@
       let b = null; try { b = c.getBBox(); } catch (e) { b = null; }
       if (b && b.height >= 0 && Number.isFinite(b.y)) solidBottom = Math.max(solidBottom, b.y + b.height);
     });
-    const base = Math.max(Math.min.apply(null, bodies.map((r) => r.off)) - FOLD_H,
+    /* ★ 候選 ① 只看**手寫 y0/y1** 的段落（tech-illustrator 2026-09-22）。
+       `D.fold()` 的自動段落本來就會被整段 translate，作者把內容畫在 y=573 還是 y=453 沒有意義 ——
+       拿它的自然位置當候選，等於讓「原始碼裡剛好寫在哪裡」決定章節列離 §1 多遠。
+       以前沒發作是因為流程列那顆 SMIL 光點把每個 body 的 bbox 拉到 y＝−3（見 processBar 的註解），
+       候選 ① 永遠是負的；光點修好之後 MLCC 的章節列立刻往下掉 80px（574 → 653）。
+       沒有手寫段落、§1 又量不到時才退回舊算法，不留 −Infinity。*/
+    const manual = bodies.filter((r) => r.el.getAttribute('data-auto') !== '1');
+    let base = Math.max(manual.length ? Math.min.apply(null, manual.map((r) => r.off)) - FOLD_H : -Infinity,
       solidBottom > -Infinity ? solidBottom + 8 : -Infinity);
+    if (!Number.isFinite(base)) base = Math.min.apply(null, bodies.map((r) => r.off)) - FOLD_H;
     const W = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 980;
     const PAD = 10;               // 最後一條章節列底下留的空白
     const open = new Set();                           // 預設全部收合
@@ -619,7 +627,15 @@
       return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${PB_H}" rx="7"/>${no}<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text></g>`
         + (link ? `<path class="flow fast" d="${link}" fill="none" stroke="var(--dg-accent)" stroke-width="var(--dg-flow-w,2)"/>` : '');
     }).join('');
-    return `<g>${boxes}<circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${dot}"/></circle></g>`;
+    /* ★ 光點放在一個 translate 到起點的群組裡、路徑改成相對座標（tech-illustrator 2026-09-22）。
+       以前 circle 沒有 cx/cy、路徑是絕對座標：SMIL 還沒跑（或被 pauseAnimations 停住）時那顆圓待在原點 (0,0)，
+       章節 body 的 getBBox 就從 y＝−3 起算 —— wireFolds 量到的高度多出一千多 px，
+       MLCC 的 ③、液冷的 ④ 一展開就是一大片空白（實測 MLCC 全開 2917、應該是 1800 左右）。
+       animateMotion 的位移是疊在元素自己的座標系上的，所以不能直接給 cx/cy（會偏移一整段），
+       改成外面包一層 translate、路徑相對起點 —— 靜態時圓就在流程列上，量出來的框才是對的。*/
+    const x0 = pos[0].bx, y0 = pos[0].by + PB_MID;
+    const rel = dot.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (m, a, b) => `${+a - x0},${+b - y0}`);
+    return `<g>${boxes}<g transform="translate(${x0},${y0})"><circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${rel}"/></circle></g></g>`;
   }
   const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
   /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
