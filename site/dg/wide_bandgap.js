@@ -344,7 +344,8 @@
   window.DG.register('wide_bandgap', {
     level: 'group', chain: 'semiconductor',
     name: '第三代半導體：SiC 與 GaN 功率元件',
-    draw: wideBandgap, native: 980, scene: null,
+    draw: wideBandgap, native: 980, scene: 'wide_bandgap',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+                       那個判斷被推翻的理由寫在 site/three3d.js 的 SCENES.wide_bandgap 檔頭（一句話：這張圖最重要的那件事本來就是三維的）。2D 的 data-part 與 3D 的 part 是同一組，所以切過去還是選著同一個零件。*/
     q: 'SiC 跟 GaN 差在哪？為什麼一個守高壓、一個守高頻？台股是在做材料還是做元件？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        ⚠ 這張圖**一個 data-seg 都沒有**（§7-D1／N6），而 `site/industry.js` 的

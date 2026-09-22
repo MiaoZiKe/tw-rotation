@@ -354,7 +354,8 @@
   window.DG.register('hbm', {
     level: 'group', chain: 'semiconductor',
     name: 'HBM：堆疊起來的記憶體與底下那顆邏輯晶粒',
-    draw: hbmStackFig, native: 980, scene: null,
+    draw: hbmStackFig, native: 980, scene: 'hbm',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+                       那個判斷被推翻的理由寫在 site/three3d.js 的 SCENES.hbm 檔頭（一句話：這張圖最重要的那件事本來就是三維的）。2D 的 data-part 與 3D 的 part 是同一組，所以切過去還是選著同一個零件。*/
     q: 'HBM 為什麼要疊？TSV 跟微凸塊各做什麼？最底下那顆為什麼是邏輯晶粒、而且是台積電做的？台股在這條鏈上到底站在哪裡？',
     parts: {
       hb_core: {
