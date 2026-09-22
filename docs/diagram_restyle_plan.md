@@ -43,6 +43,44 @@
 4. 12px 下限（閱讀 13px）；對比度正文 ≥ 4.5、次要 ≥ 3
 5. 800／390 不溢出
 
+## 卡片介面（2D／3D 共用；art-director 2026-09-22 訂，style-3d 照這個餵）
+
+規格全文在 `docs/diagram_specs/_STYLE.md` §3～§5。這裡只寫「兩邊怎麼接」。
+
+### 卡片的元件色 `--dg-card-c`
+
+| 誰 | 怎麼餵 | 讀到的地方 |
+|---|---|---|
+| 2D（`diagrams.js`） | `labelRow`／`lrow3`／`note` 的群組上寫 `data-dgcolor="#xxxxxx"`，或 inline style `--dg-card-c:#xxxxxx`；`stampParts()` 會把 `data-dgcolor` 搬成 inline 的 `--dg-card-c` | `STYLE` 的 `.lrow{--card-c:var(--dg-card-c,var(--cc,var(--dg-ink)))}`；HTML 卡片 `.dgc` 同一條 |
+| 3D（`three3d.js`） | 在 `.lbl3d` 那個 div 上 `style.setProperty('--dg-card-c', hex)`；引線端點 `.ld-dot` 也給同一個 `--dg-card-c`（或 inline stroke） | `index.html` 的 `.lbl3d{--card-c:var(--dg-card-c,var(--c,var(--dg-ink)))}`、`.lead3d .ld-dot` 的光暈色 |
+| 沒餵 | 落回環節色（2D 是 `--cc`，3D 是 `--c`），再沒有就 `--dg-ink` | |
+
+用到 `--card-c` 的地方（兩邊一樣）：左側 3px 色條、編號圓點（科技實心／閱讀粉彩底＋色環）、
+邊框（跟 `--dg-card-s` 混 40%，選到時 100%）、選到時的底染（12%／主角 26%）、引線選到時的線色、引線端點的光暈。
+
+### 磨砂玻璃
+
+- HTML 卡片（`.lbl3d`、`.dgc`、零件小卡）：`background:var(--dg-card-f)` ＋ `backdrop-filter:var(--dg-card-blur)`。
+  不支援 backdrop-filter 的瀏覽器自然退回半透明實色。
+- SVG 卡片（`.lrow rect.bg`）：只有半透明實色（`--dg-card-f`）—— backdrop-filter 對 SVG 元素無效。
+- 科技：`rgba(14,20,36,.66)` ＋ `blur(8px) saturate(1.15)`（偏冷）；閱讀：`rgba(255,255,255,.80)` ＋ `blur(10px)`（霧面白）。
+
+### 引線與端點
+
+- 2D：`D.pointer(ax, ay, bx, by, {elbow, drop, node})`；v2 版面由 `externalize()` 在 `.dglead` 疊層上畫，resize 重算。
+- 3D：`.lead3d .ld`（線）吃 `--dg-lead`／`--dg-lead-w`；`.lead3d .ld-dot`（端點）科技帶 `--dg-node-glow` 的光暈、閱讀 `filter:none`。
+- 端點顏色＝元件色；有編號時端點就是編號圓點。
+
+### 語意色三組（3D 托盤分區也用這三個）
+
+`--dg-sig`（訊號藍）、`--dg-pwr`（電力橘）、`--dg-cool`（液冷青綠），兩種模式各一套（`_STYLE.md` §1-B 有對比度表）。
+`--dg-sw-sig`／`--dg-sw-pwr` 是別名，值就是前兩個。
+
+### 3D 打光 token（`index.html` 的 `.dg3d[data-pal]`）
+
+`tech`＝`.dg3d` 的預設值（沒動）；`read`＝`--dg-1:#f7f6f2 --dg-2:#e2dfd6 --dg-mix:#f2ede3 --dg-mix-k:.14 --dg-sat:.72 --dg-led:0 --dg-sel-em:0 --dg-hemi:.95 --dg-key:1.25 --dg-fill:.5`
+是一組能跑的起始值，細調是 style-3d 的事。`three3d.js` 的 `PALS` 只認 `tech`／`read`。
+
 ## 逐張改造時的起點：§1 高度與建議切法（dg-scale 量的，2026-09-22）
 `§1` ＝ 永遠看得到那一段的底部（viewBox 單位，上限 560）。標 ★ 的超過 560，**收納收不到，改風格時要順手把主圖壓矮**。
 切點就是各檔原始碼裡 `<!-- ===== -->` 的分區註解。機制（`D.fold()`、`wireFolds` 自動量 `getBBox`）已在 main；
@@ -80,7 +118,10 @@
 | `--seg`／`data-dgseg` | 環節色（segColor）。只用在 `.sel-part` 的外圈與零件本體的提亮，**不再當底色** | 3D |
 | `data-dgno` ＋ `em.no3d` | 編號（01、02…） | 3D 餵、CSS 畫圓點 |
 | `data-dgrole` | `sig`（訊號／網通）`opt`（光）`pwr`（電力／快接頭）`gpu`（運算晶粒）`ind`（NVSwitch）`cool`（CDU／manifold）`hot`（排熱）`cu`（紅銅／銅箔）或空字串 | 3D |
-| `b small.en` | 英文標題（v3 §4 中英雙語），字級 12px、顏色 `--dg3-ink-3` | 3D 餵、CSS 排 |
+| `b small.en` | 英文標題（v3 §4 中英雙語），字級 12px、顏色 `--dg-ink-3` | 3D 餵、CSS 排 |
+| `data-dgpart` | 零件身分（跟 2D 的 `data-part` 同一組 key） | 3D |
+| 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
+| 文字顏色 | 合併 main 之後照 style-system：`--dg-ink`／`-2`／`-3`（跟 `html[data-dgpal]` 走；`setPal` 會把 html 的 data-dgpal 一起對齊） | CSS |
 
 角色色的 token 在 `.dg3d{}`：`--dg-fl-sig/opt/pwr/gpu/ind/cool/cold/hot/cu/cu-2/trace/air`；
 其中 `--dg-fl-sig/opt/pwr/cool` 寫成 `var(--dg-sig, …)` 那種形式，**style-system 若在 `:root` 定義 `--dg-sig`／`--dg-opt`／`--dg-pwr`／`--dg-cool`，3D 會直接吃它們**。
@@ -91,9 +132,6 @@
 - `colorOf(id)` → 元件色（跟卡片的 `data-dgcolor` 同一個值，晶片上的發光小點用這個）。
 - `partsOf(seg)` → 這個環節在場景裡的零件 id 清單（一個環節可能有好幾顆，例如 thermal → cdu／uqd／fan）。
 每一幀零件在動（自轉、爆炸拆解），所以連線要在 rAF 裡重取 `pointOf`，不能存一次。
-| `data-dgpart` | 零件身分（跟 2D 的 `data-part` 同一組 key） | 3D |
-| 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
-| 文字顏色 | 一律吃 `--dg3-ink`／`-2`／`-3`，**不吃 `--ink`**（卡片底跟模式走、不跟全站主題走） | CSS |
 
 ### 卡片欄（響應式，Andy 2026-09-22「版面需要左右對齊…會依據螢幕大小變化」）
 容器 `#prod3d.dg3d` 掛 `.dgstage` ＋ 模式 class；**斷點看視窗寬度**（跟 style-system 的 media query 同一組數字），**欄寬看容器寬度**（側欄開著時容器比較窄，欄就縮到下限 220）：
@@ -104,8 +142,10 @@
 | `.dgstage--r` | 960～1279 | 畫布 ＋ `.dgstage-r`，卡片全部靠右 | `minmax(0,984px) minmax(220px,1fr)` |
 | `.dgstage--below` | < 960（390 也是） | 畫布，卡片搬進 `.dgstage-b`（一欄、文件流），畫布上用編號圓點 `.ld-no` 標位置 | `1fr` |
 
-欄寬＝那條 grid 解出來的值（`max(220, (容器寬 − 984) / 欄數)`）。塞不下的卡片**不藏**，往 `.dgstage-b` 排（畫布上補一個編號圓點）。
-引線 `.lead3d` 每 4 幀重算一次，resize 時模式一變就重新取景（`fitCamera`）。
+欄寬＝那條 grid 解出來的值（`max(220, (容器寬 − 984) / 欄數)`）。
+欄位塞不下時的順序（Andy 2026-09-22：「不准掉到下面」）：① 那一欄的卡片**收成一行**（`.compact`：標題＋英文＋前兩顆晶片；被點的那一張維持全開、滑過暫時展開）→ ② 收了還塞不下才往 `.dgstage-b` 排（畫布上補一個編號圓點）。
+收起來／排到底下的狀態是**黏的**（自轉時投影點每幀都在動，不黏就會閃），欄寬、模式、選取變了才重算。
+引線 `.lead3d` 每 4 幀重算一次，resize 時模式一變就重新取景（`fitCamera`）；模型吃畫布高度的 ~94%（v3 第二輪「畫布要把中欄填滿」）。
 
 ### 模式與 token
 - `Rack3D.current.setPal('tech' | 'read')`；舊名字 `soft`／`casual` → `read`、`calm` → `tech`；沒指定就跟全站主題（淺色 → 閱讀）。

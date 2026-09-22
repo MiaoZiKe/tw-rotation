@@ -306,7 +306,7 @@
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div></div>
+        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。預設跟著全站主題走">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div></div>
           <div class="dgmenu" id="dgMenu" hidden>${dgMenuHtml(ch, dgOpts, dgHash)}</div>
           <div id="dgBody">
           ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
@@ -1181,25 +1181,45 @@
      現在改成：配色掛在 `<html data-dgpal>`，2D 的 SVG（吃 :root 的 --dg-*）與
      3D（three3d.js 讀同一組 --dg-*）同時生效，鈕在 2D 也看得見。
 
-     ★ 深色／淺色主題**共用同一份記憶**（不是各記一份）。
-       理由：剖析圖的畫布底 `--illus` 在兩個主題下都是深底（index.html:50 的既有決策），
-       所以配色的效果跟主題無關；分開記只會變成「切一次主題、配色莫名其妙換掉」。
-     ★ localStorage 的 key 沿用 `tw.dg3d.pal`，不另開一個 —— 換 key 等於把
-       已經選過「沉穩」的人重設回預設，那是白白製造一次「咦我的設定不見了」。*/
-  const DG_PALS = ['tech', 'soft', 'calm', 'casual'];
-  const DG_PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩', casual: '休閒' };
+     ★ 2026-09-22（art-director，Andy 拍板）：四個配色收斂成**兩種模式** —— 科技（深底）／閱讀（紙底），
+       規格在 docs/diagram_specs/_STYLE.md。
+       · **預設跟著全站主題走**：深色主題 → 科技、淺色主題 → 閱讀（沒有存過偏好時）。
+         這改掉了「剖析圖畫布恆為深底」的既有決策：淺色主題下畫布是暖白。
+       · `#dgPal` 仍可手動切；手動切過就記住（跨主題都用那一個，直到再按一次）。
+       · localStorage 的 key 沿用 `tw.dg3d.pal`。**舊值（soft／calm／casual）一律當成「沒設定」清掉、
+         退回跟主題走** —— 深色主題下就是科技（＝那些人以前的預設），不會看到破圖。
+       · 切主題時（app.js 的 tw:theme 事件）沒有手動偏好的人跟著換模式，3D 開著也一起換。*/
+  const DG_PALS = ['tech', 'read'];
+  const DG_PAL_NAME = { tech: '科技', read: '閱讀' };
+  const themePal = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 'read' : 'tech');
   function palPref() {
-    try { const v = localStorage.getItem('tw.dg3d.pal'); return DG_PALS.includes(v) ? v : 'tech'; }
-    catch (e) { return 'tech'; }
+    try {
+      const v = localStorage.getItem('tw.dg3d.pal');
+      if (DG_PALS.includes(v)) return v;
+      if (v) localStorage.removeItem('tw.dg3d.pal');   // 舊配色名 → 當成沒設定
+    } catch (e) { /* 私密視窗 */ }
+    return themePal();
   }
   /* 把配色掛到 <html> 上。掛在 :root 而不是掛在某一個容器上，是因為題材頁的產品圖
      （site/themes3d.js）也吃同一組 --dg-*，掛在 #prodDiagram 上它就吃不到。*/
   function applyDgPal(name) {
     const v = DG_PALS.includes(name) ? name : 'tech';
     try { document.documentElement.dataset.dgpal = v; } catch (e) { /* 忽略 */ }
+    // 字級跟著模式變，diagrams.js 聽這個事件重新「量完再縮」（fitTexts）
+    try { window.dispatchEvent(new CustomEvent('tw:dgpal', { detail: { pal: v } })); } catch (e) { /* 忽略 */ }
     return v;
   }
   applyDgPal(palPref());      // 一載入就套用，不要等使用者走到產業頁才變色
+  /* 切主題 → 沒有手動偏好的人跟著換模式；鈕的字與開著的 3D 也要同步。
+     app.js 的 applyTheme() 會 dispatch 這個事件（而且會整頁重畫，所以鈕多半會重新 wire 一次，
+     這裡的 paint 只是保險）。*/
+  let palBtnPaint = null, palView = null;
+  window.addEventListener('tw:theme', () => {
+    const v = applyDgPal(palPref());
+    const view = palView && palView();
+    if (view && view.setPal) view.setPal(v);
+    if (palBtnPaint) palBtnPaint();
+  });
 
   /* 配色鈕。跟 3D 完全解耦：有沒有 3D 都能用，切了之後如果 3D 正開著就順手同步過去。*/
   function wirePal(el, getView) {
@@ -1207,9 +1227,10 @@
     const paint = () => {
       const cur = palPref();
       plb.textContent = '配色：' + (DG_PAL_NAME[cur] || cur);
-      plb.classList.toggle('cyan', cur !== 'tech');
-      plb.title = '換一種配色（2D 與 3D 共用）：科技／柔和／沉穩／休閒';
+      plb.classList.toggle('cyan', cur !== themePal());   // 跟主題預設不一樣的時候才亮，表示「你手動切過」
+      plb.title = '換一種模式（2D 與 3D 共用）：科技（深底）／閱讀（紙底）。預設跟著全站主題走：深色→科技、淺色→閱讀';
     };
+    palBtnPaint = paint; palView = getView;
     plb.hidden = false;
     paint();
     plb.onclick = () => {

@@ -164,6 +164,39 @@
 <!-- ===== delivery-planner 2026-09-22 插入區塊 結束 ===== -->
 
 
+> ## 2026-09-22：剖析圖風格系統地基（分支 `claude/style-system`，**沒有推 main**，等 CEO 合併）（最新）
+>
+> Andy 拍板（DECISIONS #238）：兩種模式（亮色「閱讀」／暗色「科技」）、卡片式標註、細引線、垂直爆炸；所有圖都改。
+> 這一批是地基：**色票、共用元件、v2 版面**改一次，後面每一張圖跟著變。落地決策在 DECISIONS #239，規格在 `docs/diagram_specs/_STYLE.md`。
+>
+> **動到的檔案**：`site/index.html`（`--dg-*` 兩套、`.dgv2`／`.dgc`／`.dglead`、`.lbl3d` 吃卡片 token、`.dg3d[data-pal="read"]`）、
+> `site/diagrams.js`（STYLE 全部吃 token、`labelRow`／`lrow3`／`note`／`processBar`／`pointer`／`explode`／`shadow`／`fitTexts`／`externalize`、MLCC 重排 660）、
+> `site/dg/panel.js`（八條說明卡加編號、掛 `.rs`）、`site/industry.js`（只有配色鈕：兩種模式、預設跟主題、舊值 fallback、`tw:theme`／`tw:dgpal` 事件）、
+> `site/three3d.js`（只有 `PALS` 認 `tech`／`read`）、`scripts/_uitest.py`、`docs/diagram_specs/_STYLE.md`、`docs/diagram_restyle_plan.md`、`.gitignore`。
+>
+> ### 做了什麼（一句一件）
+> - 模式跟主題走：深色→科技、淺色→閱讀；`#dgPal` 可手動切、切了記住；舊 localStorage 值清掉退回跟主題。
+> - 閱讀模式整組色票（底、三階字、79 個材質、語意色重算明度、環節色 `--cc` 降飽和）；科技一個 token 都沒動。
+> - 卡片（圓角、細邊、左側色條、編號圓點、磨砂玻璃 token）、引線（細線＋端點）、`--dg-card-c` 介面（2D／3D 共用）、三組語意色 `--dg-sig`／`--dg-pwr`／`--dg-cool`。
+> - v2 版面：卡片離開 SVG 變 HTML，畫布 660 在中間、卡片左右欄、容器寬決定欄數、引線 resize 重畫、併成一欄照編號排。MLCC 是樣板（收合 574）。
+> - 閱讀字級 13px 只給 `.rs`（MLCC、面板）；`fitTexts` 量完再縮。
+>
+> ### 對照樣板（本機截圖，`docs/_style/`，gitignore）
+> MLCC：`mlcc-{light,dark}-{1440,1100,800}-v2c.png`（抽屜關）、`mlcc-{light,dark}-1440-v2.png`（抽屜開＝兩欄）；面板：`panel-{light,dark}-1440-r3.png`。
+>
+> ### 這批驗了哪幾段（#223 的配套）
+> `_preview.py` 全跑（overlaps 0／outside 0）。`_uitest --only`：批次22-風格系統（新增）、批次13-配色與收納、批次11-MLCC、零件誰做的、點背景恢復、
+> 淺色主題、明亮主題、產業、3D零件字彙、批次6-圖九、批次21-CoWoS去重。pytest 跳過（改動全在 `site/**`、`scripts/_uitest.py`、docs）。
+> 改掉的既有斷言逐條在 DECISIONS #239 第八節。
+>
+> ### ⬜ 這批沒做／要記著的
+> - 只有 MLCC 走 v2 版面；面板與其他 16 張仍是「卡片在 SVG 裡」的舊版面（共用元件已換成卡片樣式，兩種模式都畫得出來）。逐張改造時把 `labelRow` 多傳 `side` 就會外掛。
+> - 閱讀模式 13px 只給 `.rs`；其餘圖 12px（8 張在 13px 會撞字，見 #239 第六節）。
+> - `#dgQ`（「這張圖回答：…」）在 `industry.js` 版面裡，左緣對齊那一條沒動它。
+> - AI 伺服器鏈層級圖（`diagrams.js` 的 `aiServer`）與 `themes3d.js` 的 18 張題材圖仍有寫死色值，閱讀模式下部分元素（例：「ToR 交換器」白字）看不到 —— 逐張改造那一波處理。
+> - 3D：`.dg3d[data-pal="read"]` 只是一組能跑的起始值，打光材質細調在 style-3d。
+
+
 > ## 2026-09-21 深夜：MLCC 版面收納 ＋ 剖析圖「休閒」配色（分支 `claude/dg-casual`，**沒有推 main**）（最新）
 >
 > Andy：「產業那邊 像是新增的 MLCC 圖片排版我覺得有點奇怪幫我優化，需要更直觀且看起來更舒服，
@@ -2356,8 +2389,15 @@ Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化…重新�
 - ⚠ **已知、刻意沒修**：390px 下 `#dgMenu` 佔 1079px，使用者要捲過一整頁卡片才看得到圖。三條鏈共用元件的手機版面問題，要改 `industry.js` 並三條鏈一起驗，不混進這批。
 - **這批只驗了**：`批次22-傳動件`、`批次22-鋁電容`、`批次22-保護元件`、`一般電子鏈`、`產業鏈導覽`、`零件誰做的`、`點背景恢復`、`手機` ＋ `_preview.py` 全綠（agent 自己那輪另外跑過 `產業` 展開的四段也綠）。**跳過 pytest**（只有 `site/**` 與 `scripts/_uitest.py`）。
 
+### 風格地基（`claude/style-system` `ebc34f2`）已合併上線（2026-09-22 晚）
+- 兩種模式跟主題走（深→科技、淺→閱讀），`#dgPal` 只剩兩個選項，舊 localStorage 值清掉；共用元件卡片化；MLCC 走 v2 版面（畫布 660 在中間、HTML 卡片左右欄、容器寬判欄數、引線 resize 重算、收合 574）。
+- 細節與被改的斷言在 DECISIONS #239；規格 `docs/diagram_specs/_STYLE.md`；卡片介面 `docs/diagram_restyle_plan.md`。
+- **這批只驗了**（合併後在 main 重跑）：`批次22-風格系統`、`批次13-配色與收納`、`批次11-MLCC`、`零件誰做的`、`點背景恢復`、`淺色主題`、`明亮主題`、`產業鏈導覽`、`產業關係面板`、`新-產業與個股`、`3D零件字彙`、`批次21-CoWoS去重`、`批次22-傳動件／鋁電容／保護元件`、`批次12-ABF載板`、`批次14b-被動RLC`、`手機` ＋ `_preview.py`，全部 0 問題。**跳過 pytest**（`site/**`、`scripts/_uitest.py`、docs、`.gitignore`）。
+- **沒驗的**：`產業`（agent 自己那輪單跑綠）、批次14 兩張、批次12 另兩張、批次14b 另兩張、批次21 三張、題材頁 18 張 2.5D（`themes3d.js` 沒動）。
+- 已知未修（逐張改造那一波）：閱讀 13px 只給 `.rs` 的圖；面板等 16 張還是卡片在 SVG 裡的舊版面；`aiServer` 舊圖與 `themes3d.js` 18 張仍有寫死色值（閱讀模式下有白字看不到）；`#dgQ` 左緣對齊在 `industry.js` 版面。
+
 ### 下一步
-1. 等 `style-system`／`style-3d` 回來 → 各自合併到 main → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
+1. ~~style-system~~ 已上線；等 `style-3d`（v3 科技模式，規格 `docs/diagram_style_tech_v3.md`）回來 → 合併到 main → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
 2. ~~等 `dg-elec-1` 回來~~ 已合併上線（上面那節）。
 3. 地基上線後開始波 1（AI 伺服器鏈：液冷、氣冷、PSU＋BBU），照 `docs/diagram_restyle_plan.md`。
 4. 已知的小 bug 未修：MLCC 右欄在 800px 被裁到（早就有，跟這批無關）。

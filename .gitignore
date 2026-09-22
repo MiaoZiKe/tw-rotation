@@ -53,3 +53,6 @@ docs/_dgtypo/
 # Agent 用的暫時 worktree（每個 agent 一份 repo 副本），不進版控
 .claude/worktrees/
 docs/_dgpages/
+
+# 風格系統的對照樣板截圖（art-director 2026-09-22）。跟 docs/_show/ 同一條規矩：本機產物，不進 public repo。
+docs/_style/
