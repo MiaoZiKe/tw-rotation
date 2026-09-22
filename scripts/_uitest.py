@@ -9983,6 +9983,9 @@ SECTIONS = {
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
     "淺色主題":            lambda pg, b, base, code: t_lightink(b, base, code),
     "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
+    # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
+    "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
+    "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11024,6 +11027,453 @@ def _report(t0: float) -> int:
         return 1
     print("\n✅ 每個功能都實際操作過，全部都有反應。")
     return 0
+
+
+# ===================================================================== 批次14：輕油裂解 ＋ 變壓器 GIS
+# 兩張新剖析圖（`site/dg/petrochemical.js`、`site/dg/heavy_electric.js`）。
+# 這兩段驗的全部是「畫面真的因此改變了」，不是「元素存在」也不是「有 render」。
+#
+# ★ 這兩張圖跟前面十一張有一個結構性的差別，驗收也因此不一樣：
+#   它們掛在 `traditional` 與 `infrastructure` 兩條鏈上，而 `supply_chain.yaml`
+#   目前只建了 semiconductor／ai_server／electronics 三條鏈 ——
+#   **這兩條鏈一個環節都沒有**，所以這兩頁根本不會畫出環節色標（`#segChips`）。
+#   因此「點環節色標 → 筆數變了」這一條在這裡驗不動；改成驗
+#     ① 環節色標真的不存在（確認是資料的事，不是圖畫錯）
+#     ② 圖上真的印著「按環節 → 會是 0 筆，那不是壞掉」那句話
+#     ③ 改用**族群卡片**驗「成分股筆數真的變了」
+#   這個取捨寫在這裡，不是藏起來的。
+
+_DG14_TYPO = """() => {
+  const h = document.querySelector('#prodDiagram');
+  const svg = h && h.querySelector('svg');
+  if (!svg) return {present: false};
+  const r = svg.getBoundingClientRect();
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+  const vbh = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.height : 0;
+  const k = (r.width && vb) ? r.width / vb : 0;
+  const a = [], out = [];
+  svg.querySelectorAll('text').forEach(n => {
+    if (!(n.textContent || '').trim()) return;
+    const cs = getComputedStyle(n);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+    const b = n.getBoundingClientRect(); if (!b.width || !b.height) return;
+    const g = n.getBBox();
+    if (g.x < -1 || g.x + g.width > vb + 1 || g.y + g.height > vbh + 1)
+      out.push((n.textContent || '').trim().slice(0, 18));
+    a.push({t: (n.textContent || '').trim().slice(0, 18), cls: n.getAttribute('class') || '',
+            eff: +((parseFloat(cs.fontSize) || 0) * k).toFixed(2), x: b.x, y: b.y, w: b.width, hh: b.height});
+  });
+  const ov = [];
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) {
+    const p = a[i], q = a[j];
+    const ox = Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x);
+    const oy = Math.min(p.y + p.hh, q.y + q.hh) - Math.max(p.y, q.y);
+    if (ox > 0.6 && oy > 0.6) ov.push(p.t + ' X ' + q.t + ' (' + oy.toFixed(1) + 'px)');
+  }
+  const small = a.filter(z => z.eff < 11.9).map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
+  return {present: true, n: a.length, svgW: Math.round(r.width),
+          min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
+          small: small.slice(0, 8), nSmall: small.length,
+          ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length};
+}"""
+
+
+def _dg14_open(pg):
+    """把剖析圖確實展開（窄畫面預設收合，而且會記進 localStorage）。"""
+    pg.evaluate("""() => {
+      const menu = document.getElementById('dgMenu');
+      if (menu && menu.offsetParent !== null) return;
+      const b = document.getElementById('dgFold');
+      const body = document.getElementById('dgBody');
+      const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+      if (b && hidden) b.click();
+    }""")
+    pg.wait_for_timeout(420)
+
+
+def _dg14_rows(pg):
+    """成分股「真的有資料的那幾列」。不能數 tbody tr —— 0 筆時裡面有一列說明用的 colspan。"""
+    return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+
+
+def _dg14_state(pg):
+    return pg.evaluate("""() => {
+      const h = document.querySelector('#prodDiagram');
+      const svg = h && h.querySelector('svg');
+      if (!svg) return {present: false};
+      const ns = [...h.querySelectorAll('[data-seg]')];
+      const heroes = ns.filter(n => n.classList.contains('sel-part'));
+      const sw = (n) => { const p = n.querySelector('.part');
+        return p ? +parseFloat(getComputedStyle(p).strokeWidth).toFixed(2) : null; };
+      const segs = {}; ns.forEach(n => { segs[n.dataset.seg] = (segs[n.dataset.seg] || 0) + 1; });
+      return {present: true,
+              full: [...svg.querySelectorAll('text')].map(n => n.textContent).join('。'),
+              parts: ns.length, segs: segs,
+              nSegChip: document.querySelectorAll('#segChips .segchip').length,
+              sel: ns.filter(n => n.classList.contains('sel')).length,
+              selSegs: [...new Set(ns.filter(n => n.classList.contains('sel')).map(n => n.dataset.seg))].sort(),
+              selpart: heroes.length,
+              dim: ns.filter(n => n.classList.contains('dim') &&
+                                  getComputedStyle(n).opacity < 0.9).length,
+              heroKey: heroes.length ? heroes[0].dataset.dgkey : null,
+              heroSW: heroes.map(sw).filter(x => x != null),
+              glow: [...h.querySelectorAll('*')].filter(n => {
+                const f = getComputedStyle(n).filter; return f && f !== 'none'; }).length};
+    }""")
+
+
+def _dg14_click(pg, part):
+    """真的用滑鼠事件點圖上那個零件（不是說明列），回傳點完之後的主角 key。"""
+    got = pg.evaluate("""(p) => {
+      const n = [...document.querySelectorAll('#prodDiagram [data-seg]')]
+        .find(x => x.dataset.part === p && x.tagName.toLowerCase() === 'g' && !x.classList.contains('lrow'));
+      if (!n) return null;
+      n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      return n.dataset.part;
+    }""", part)
+    pg.wait_for_timeout(420)
+    return got
+
+
+def _dg14_card(pg):
+    return pg.evaluate("""() => { const c = document.getElementById('partCard');
+      return {hidden: !!c.hidden, t: (c.textContent || '').replace(/\\s+/g, ' ')}; }""")
+
+
+def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_word, second_word):
+    """兩張圖共用的那一半：入口 → 網址 → 點零件換主角 → 小卡換人 → 只亮不篩 → 動畫停得住。"""
+    dgh = f"{base}#industry/{chain}/dg/{slot}"
+
+    # ---- 1. 圖別入口真的多一個，而且寫了它回答什麼問題、是真的連結
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/{chain}", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    m0 = pg.evaluate("""() => {
+      const pick = [...document.querySelectorAll('#dgPick .segchip')];
+      return {ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
+              titles: pick.map(n => n.getAttribute('title') || ''),
+              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid')),
+              menuVis: !!(document.querySelector('#dgMenu') || {}).offsetParent};
+    }""")
+    inmenu = slot in m0["cards"] or slot in m0["ids"]
+    ok(f"[{slot}] {chain} 鏈的圖別入口裡真的多了這一張", inmenu, m0)
+    _q = [t for i, t in zip(m0["ids"], m0["titles"]) if i == slot] \
+        or pg.evaluate("""(s) => [...document.querySelectorAll('#dgMenu .dgcard')]
+             .filter(n => n.getAttribute('data-dgid') === s)
+             .map(n => (n.querySelector('.q') || {}).textContent || '')""", slot)
+    ok(f"[{slot}] 那個入口寫清楚它回答什麼問題（不寫就得先點進去才知道要不要點）",
+       bool(_q) and len(_q[0]) > 15 and "？" in _q[0], _q)
+
+    # ---- 2. 真的用滑鼠點下去 → 圖畫出來、網址真的變了
+    h_before = pg.evaluate("() => location.hash")
+    clicked = pg.evaluate("""(s) => {
+      const a = document.querySelector('#dgPick .segchip[data-dgid="' + s + '"]')
+             || document.querySelector('#dgMenu .dgcard[data-dgid="' + s + '"]');
+      if (!a) return false; a.click(); return true;
+    }""", slot)
+    pg.wait_for_timeout(2400)
+    _dg14_open(pg)
+    d0 = _dg14_state(pg)
+    hash1 = pg.evaluate("() => location.hash")
+    ok(f"[{slot}] 真的點那個入口 → 圖真的畫出來（比對圖上的特徵字串）",
+       clicked and d0.get("present") and feat in d0.get("full", ""),
+       (d0.get("full", "")[:40] or "<沒有圖>"))
+    if not d0.get("present"):
+        return None
+    ok(f"[{slot}] ★ 點入口之後網址真的變了（#industry/{chain}/dg/{slot}）",
+       hash1 != h_before and hash1.endswith(f"/dg/{slot}"), f"{h_before} → {hash1}")
+
+    # ---- 3. 直接貼網址重新整理 —— 沒有這條就不算分頁
+    pg.goto(dgh, wait_until="networkidle")
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    _dg14_open(pg)
+    d0b = _dg14_state(pg)
+    ok(f"[{slot}] ★ 直接貼網址重新整理，一樣打得開同一張圖",
+       feat in d0b.get("full", ""), pg.evaluate("() => location.hash"))
+
+    # ---- 4. 點兩個不同零件 → 主角真的換人、小卡的字真的換成那個零件的
+    rows_before = _dg14_rows(pg)
+    k1 = _dg14_click(pg, first_part)
+    t1 = _dg14_state(pg)
+    c1 = _dg14_card(pg)
+    ok(f"[{slot}] 點「{first_part}」→ 主角（.sel-part）真的出現，而且就是它",
+       t1["selpart"] >= 1 and t1["heroKey"] == first_part, f"key={t1['heroKey']} selpart={t1['selpart']}")
+    ok(f"[{slot}] ★ 零件小卡真的打開，而且講的是這個零件（找得到『{first_word}』）",
+       (not c1["hidden"]) and first_word in c1["t"], c1["t"][:120])
+    k2 = _dg14_click(pg, second_part)
+    t2 = _dg14_state(pg)
+    c2 = _dg14_card(pg)
+    ok(f"[{slot}] ★ 換點「{second_part}」→ 主角真的換人（不是整個取消掉）",
+       t2["heroKey"] == second_part and k2 != k1, f"{k1} → {t2['heroKey']}")
+    ok(f"[{slot}] ★ 小卡的文字真的跟著換成那個零件的（找得到『{second_word}』，而且不再是前一個）",
+       second_word in c2["t"] and first_word not in c2["t"], c2["t"][:120])
+    # ★ 不能只比「被選起來的個數」—— 兩站剛好一樣多的時候數字不會動，那條斷言等於沒驗。
+    #   要比的是**被選起來的到底是哪一站**（以及有沒有東西被壓暗）。
+    ok(f"[{slot}] 換點之後畫面真的不一樣（被選起來的那一站真的換了，而且其餘真的被壓暗）",
+       t1["selSegs"] != t2["selSegs"] and t2["dim"] > 0,
+       f"{t1['selSegs']} → {t2['selSegs']}；被壓暗 {t2['dim']} 個")
+    ok(f"[{slot}] ★ 螢光感：整張圖只有主角在發光（其餘 computed filter 都是 none）",
+       t2["glow"] <= 2, f"真的在發光的元素 {t2['glow']} 個（主角自己算 1～2 個）")
+    ok(f"[{slot}] 主角的描邊真的比較粗（量 computed style，不是看有沒有 class）",
+       bool(t2["heroSW"]) and min(t2["heroSW"]) >= 2.3, t2["heroSW"])
+
+    # ---- 5. DECISIONS #73：點零件只亮不篩
+    ok(f"[{slot}] DECISIONS #73：點零件不會改成分股筆數（只亮不篩）",
+       _dg14_rows(pg) == rows_before, f"{rows_before} → {_dg14_rows(pg)}")
+
+    # ---- 6. 這條鏈沒有環節資料：色標不存在，而且圖上有把這件事講出來
+    ok(f"[{slot}] 這條鏈在供應鏈資料裡沒有環節 → 環節色標真的不存在（不是畫壞）",
+       d0b["nSegChip"] == 0, f"#segChips 有 {d0b['nSegChip']} 個")
+    txt = d0b.get("full", "")
+    ok(f"[{slot}] ★ 圖上真的印著「按『環節 →』會是 0 筆，那不是壞掉」那句話",
+       "0 筆" in txt and "不是壞掉" in txt and "環節" in txt,
+       [s for s in txt.split("。") if "0 筆" in s][:1])
+    ok(f"[{slot}] 誠實性標示在：非實物比例那一行",
+       "非實物比例" in txt, "")
+
+    # ---- 7. 動畫：開／關 真的停得掉（SMIL 的 animateMotion ＋ CSS 的 dgdash 兩種）
+    DOTS = """() => { const h = document.querySelector('#prodDiagram');
+      return [...h.querySelectorAll('animateMotion')].map(m => {
+        const r = m.parentNode.getBoundingClientRect();
+        return [+r.x.toFixed(1), +r.y.toFixed(1), +r.width.toFixed(1)]; }); }"""
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+    pg.wait_for_timeout(600)
+    _dg14_open(pg)
+    pre = pg.evaluate(DOTS)
+    if ok(f"[{slot}] 動畫的前提：流程列那顆會跑的光點真的畫在畫面上",
+          len(pre) >= 1 and all(x[2] > 0 for x in pre), pre):
+        a1 = pg.evaluate(DOTS); pg.wait_for_timeout(1300); a2 = pg.evaluate(DOTS)
+        ok(f"[{slot}] 「動畫：開」的時候，流程列的光點真的在動", a1 != a2, f"{a1} → {a2}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")        # → 動畫：關
+        pg.wait_for_timeout(800)
+        b1 = pg.evaluate(DOTS); pg.wait_for_timeout(1300); b2 = pg.evaluate(DOTS)
+        ok(f"[{slot}] ★ 按「動畫：關」之後真的停下來（連續兩次取樣完全一樣，SMIL 也停了）",
+           b1 == b2, f"{b1} → {b2}")
+        anim = pg.evaluate("""() => { const h = document.querySelector('#prodDiagram');
+          const f = h.querySelector('.flow');
+          return {noanim: h.classList.contains('noanim'),
+                  css: f ? getComputedStyle(f).animationName : null,
+                  flowVisible: f ? +(+getComputedStyle(f).opacity).toFixed(2) : null,
+                  parts: h.querySelectorAll('[data-seg]').length}; }""")
+        ok(f"[{slot}] 而且 CSS 那一種（流向虛線 dgdash）也停了",
+           anim["noanim"] and anim["css"] in ("none", None), anim)
+        ok(f"[{slot}] ★ 靜止的時候零件與路徑仍然看得見（不是把東西藏起來才停住）",
+           anim["parts"] >= 15 and (anim["flowVisible"] or 1) > 0.3, anim)
+        pg.eval_on_selector("#dgAnim", "b => b.click()")        # 還原偏好，不汙染後面的段落
+        pg.wait_for_timeout(400)
+    return dgh
+
+
+def _dg14_typo(pg, dgh, label):
+    """三個寬度 × 深淺兩個主題：字級、重疊、溢出。"""
+    for theme in ("dark", "light"):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(dgh, wait_until="networkidle")
+            pg.reload(wait_until="networkidle")
+            pg.wait_for_timeout(2300)
+            _dg14_open(pg)
+            z = pg.evaluate(_DG14_TYPO)
+            lab = f"[{label}·{w}px·{'深色' if theme == 'dark' else '淺色'}]"
+            if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
+                continue
+            ok(f"{lab} 圖以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 970, z["svgW"])
+            ok(f"{lab} 圖上每一個字的畫面真實字級都 >= 12px（共 {z['n']} 個）",
+               z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
+            ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
+            ok(f"{lab} 沒有文字溢出畫布", z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+def t_naphtha(pg, base):
+    """圖13 輕油裂解廠（`site/dg/petrochemical.js`，族群 `petrochemical`、traditional 鏈）。
+
+    規格書＝`docs/diagram_specs/naphtha_cracker.md`。除了共用的那一半（入口／網址／點零件換主角／
+    小卡換人／只亮不篩／動畫停得住／字級與重疊）之外，這一段另外**量幾何**驗規格書的七條硬規則：
+      · §4    六支塔的高度明顯不一樣，而且脫甲烷最高、脫丁烷最矮（一排等高的圓柱＝錯）
+      · §4    冷箱是方箱不是塔（塔有頂橢圓，方箱沒有）
+      · §4    丙烯與丁二烯是球槽（circle），不是開頂圓筒
+      · §3-A 8  PTA 的原料線從芳香烴抽取出發，不是從乙烯
+      · §3-A 9  苯乙烯 SM 有兩條線匯進來（只畫一條＝錯）
+      · §3-A 10 PVC 路徑中間看得到 VCM
+      · §5-E  台泥 1101 不准出現在圖上（負向驗收）
+    """
+    dgh = _dg14_common(pg, base, "traditional", "petrochemical",
+                       "輕油裂解廠", "nc_furnace", "nc_towers", "裂解爐", "分離塔組")
+    if not dgh:
+        return
+
+    # ---- 結構：量幾何，不靠眼睛
+    pg.goto(dgh, wait_until="networkidle"); pg.wait_for_timeout(2300)
+    _dg14_open(pg)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bx = (s) => [...svg.querySelectorAll(s)].map(n => n.getBBox());
+      // 分離塔組：塔身是高度 >= 50 的 rect.part（附件的小臥式圓筒高度都在 10 以下）
+      const towers = bx('[data-part="nc_towers"] rect.part')
+        .filter(b => b.height >= 50)
+        .map(b => ({x: +b.x.toFixed(1), h: +b.height.toFixed(1), w: +b.width.toFixed(1)}))
+        .sort((a, b) => a.x - b.x);
+      const ds = [...svg.querySelectorAll('path')].map(p => p.getAttribute('d') || '');
+      return {towers: towers,
+              coldboxRect: svg.querySelectorAll('[data-part="nc_coldbox"] rect.part').length,
+              coldboxEllipse: svg.querySelectorAll('[data-part="nc_coldbox"] ellipse').length,
+              towerEllipse: svg.querySelectorAll('[data-part="nc_towers"] ellipse').length,
+              spheres: svg.querySelectorAll('[data-part="nc_sphere"] circle.part').length,
+              // SM 那一格：有幾條線的終點落在它的左緣（H786）
+              toSM: ds.filter(d => /H786$/.test(d)).length,
+              // PTA 的原料線：起點是芳香烴抽取（x=158），終點是 PTA（H884）
+              pxToPta: ds.filter(d => /^M158,/.test(d) && /H884/.test(d)).length,
+              text: [...svg.querySelectorAll('text')].map(n => n.textContent).join('。')};
+    }""")
+    t = st["towers"]
+    ok("§4：分離塔組真的是六支塔", len(t) == 6, [x["h"] for x in t])
+    if len(t) == 6:
+        ok("★ §4：六支塔的高度明顯不一樣（一排等高的圓柱＝錯）",
+           len({x["h"] for x in t}) == 6 and max(x["h"] for x in t) >= 2 * min(x["h"] for x in t),
+           [x["h"] for x in t])
+        ok("★ §4：最左邊的脫甲烷塔最高最粗、最右邊的脫丁烷塔最矮",
+           t[0]["h"] == max(x["h"] for x in t) and t[0]["w"] == max(x["w"] for x in t)
+           and t[5]["h"] == min(x["h"] for x in t),
+           f"最左 {t[0]} ／ 最右 {t[5]}")
+    ok("★ §4：冷箱是方箱不是塔（塔有頂橢圓，冷箱一個都沒有）",
+       st["coldboxRect"] >= 1 and st["coldboxEllipse"] == 0 and st["towerEllipse"] > 0,
+       f"冷箱 rect {st['coldboxRect']}／ellipse {st['coldboxEllipse']}；塔 ellipse {st['towerEllipse']}")
+    ok("★ §4：丙烯與丁二烯畫成球槽（兩顆圓），不是開頂圓筒",
+       st["spheres"] == 2, st["spheres"])
+    ok("★ §3-A 硬規則 9：苯乙烯 SM 真的有兩條線匯進來（只畫一條＝錯）",
+       st["toSM"] == 2, f"匯進 SM 的線有 {st['toSM']} 條")
+    ok("★ §3-A 硬規則 8：PTA 的原料線從芳香烴抽取出發（不是從乙烯接過來）",
+       st["pxToPta"] == 1, st["pxToPta"])
+    ok("★ §3-A 硬規則 10：PVC 路徑中間看得到 VCM（不是乙烯直接聚合）",
+       "VCM" in st["text"] and "EDC" in st["text"], "")
+    ok("★ §3-A 硬規則 6：圖上寫明丁二烯從混合碳四抽取",
+       "混合碳四" in st["text"], "")
+    ok("★ §5-E：台泥 1101 一個字都沒有出現在圖上（負向驗收）",
+       "1101" not in st["text"] and "台泥" not in st["text"], "")
+    # ★ 掃之前先把「我們自己宣告不寫這些」的那一行拿掉 —— 不然那行免責聲明本身會把自己判紅。
+    _body = st["text"].replace("本圖不放任何價差數字、產能噸數、市占率、營收占比或 EPS（會過期）", "")
+    _hit = [w for w in ("市占", "營收占比", "EPS", "噸", "美元", "%") if w in _body]
+    ok("§6-C1：畫面上沒有任何價差／產能／市占／營收占比／EPS 數字", not _hit, _hit)
+    ok("§5-E：四寶每一檔都在圖上找得到（1301／1303／1326／6505）",
+       all(c in st["text"] for c in ("1301", "1303", "1326", "6505")), "")
+
+    # ---- 沒有環節色標 → 改用族群卡片驗「成分股筆數真的變了」
+    pg.goto(f"{base}#industry/traditional", wait_until="networkidle"); pg.wait_for_timeout(2300)
+    n_all = _dg14_rows(pg)
+    hit = pg.evaluate("""() => { const t = document.querySelector('#groupCards .tile[data-gid="petrochemical"]');
+      if (!t) return false; t.click(); return true; }""")
+    pg.wait_for_timeout(900)
+    n_one = _dg14_rows(pg)
+    ok("★ 真的點「石化與塑膠產業」族群卡片 → 成分股筆數真的變少了",
+       hit and 0 < n_one < n_all, f"{n_all} → {n_one}")
+
+    _dg14_typo(pg, dgh, "輕油裂解")
+
+
+def t_transformer(pg, base):
+    """圖14 電力路徑：變壓器與 GIS（`site/dg/heavy_electric.js`，族群 `heavy_electric`、infrastructure 鏈）。
+
+    規格書＝`docs/diagram_specs/transformer_gis.md`。除了共用的那一半之外，這一段另外**量幾何**：
+      · §3-A 3  ★ 電壓階梯只准往下，而且在段 2（GIS）與段 4（配電盤）必須是平的
+      · §3-C    高壓側套管明顯比低壓側高，而且高壓側在左
+      · §4      散熱片是垂直薄片（高 > 寬）
+      · §4      GIS 是水平圓筒（寬 >> 高），不是方箱
+      · §4      乾式變壓器看得見三個直立樹脂線圈
+      · §3-A 6  電池是 UPS 直流側的分支（圖上要寫出來）
+      · §5-A    段 6 不列任何代號（負向驗收）
+    """
+    dgh = _dg14_common(pg, base, "infrastructure", "heavy_electric",
+                       "電力路徑", "he_gis", "he_tx", "氣體絕緣", "油浸式")
+    if not dgh:
+        return
+
+    pg.goto(dgh, wait_until="networkidle"); pg.wait_for_timeout(2300)
+    _dg14_open(pg)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const num = (v) => +parseFloat(v).toFixed(1);
+      // 電壓階梯：每一階是一條水平線 M x0,y H x1
+      const steps = [...svg.querySelectorAll('.heStep')].map(p => {
+        const m = /^M([-\\d.]+),([-\\d.]+) H([-\\d.]+)$/.exec(p.getAttribute('d') || '');
+        return m ? {x0: num(m[1]), y: num(m[2]), x1: num(m[3])} : null;
+      }).filter(Boolean);
+      const drops = [...svg.querySelectorAll('.hedrop')].map(p => {
+        const m = /^M([-\\d.]+),([-\\d.]+) V([-\\d.]+)$/.exec(p.getAttribute('d') || '');
+        return m ? {x: num(m[1]), y0: num(m[2]), y1: num(m[3])} : null;
+      }).filter(Boolean);
+      const bb = (s) => [...svg.querySelectorAll(s)].map(n => {
+        const b = n.getBBox(); return {x: num(b.x), y: num(b.y), w: num(b.width), h: num(b.height)}; });
+      return {steps: steps, drops: drops,
+              bush: bb('[data-part="he_bush"] rect.part'),
+              fins: bb('[data-part="he_rad"] rect').filter(r => r.h > 20),
+              gis: bb('[data-part="he_gis"] rect.part'),
+              coils: bb('[data-part="he_drytx"] rect.part').filter(r => r.h > r.w),
+              batt: svg.querySelectorAll('[data-part="he_batt"] rect').length,
+              swgr: bb('[data-part="he_swgr"] rect.part').length,
+              text: [...svg.querySelectorAll('text')].map(n => n.textContent).join('。')};
+    }""")
+    S = st["steps"]
+    ok("電壓階梯真的畫了六階", len(S) == 6, S)
+    if len(S) == 6:
+        ok("★ §3-A 硬規則 2：電壓只准降不准升（每一階的 y 只會變大或持平）",
+           all(S[i + 1]["y"] >= S[i]["y"] for i in range(5)), [s["y"] for s in S])
+        ok("★ §3-A 硬規則 3：段 4（中壓配電盤）跟前一階同高 —— 開關設備不降壓",
+           S[3]["y"] == S[2]["y"], f"段3 y={S[2]['y']} ／ 段4 y={S[3]['y']}")
+        flat_in = [d for d in st["drops"]
+                   if (S[1]["x0"] < d["x"] < S[1]["x1"]) or (S[3]["x0"] < d["x"] < S[3]["x1"])]
+        ok("★ §3-A 硬規則 3：GIS（段 2）與配電盤（段 4）那兩格裡面沒有任何一條降壓豎線",
+           not flat_in, flat_in)
+        ok("真的發生降壓的位置只有變壓器那幾格（四條降壓豎線：超高壓變電所／主變壓器／廠內變壓器／機櫃）",
+           len(st["drops"]) == 4, len(st["drops"]))
+    b = sorted(st["bush"], key=lambda r: r["x"])
+    ok("★ §3-C：高壓側套管在左邊，而且明顯比低壓側高（兩側等高＝錯）",
+       len(b) == 2 and b[0]["h"] > b[1]["h"] * 1.5, b)
+    ok("★ §4：散熱片是垂直薄片（每一片的高都大於寬）—— 畫成水平橫條就變成冷氣機了",
+       len(st["fins"]) >= 8 and all(f["h"] > f["w"] * 3 for f in st["fins"]),
+       f"{len(st['fins'])} 片：{st['fins'][:2]}")
+    ok("★ §4：GIS 是水平圓筒（寬遠大於高），不是方箱",
+       len(st["gis"]) >= 3 and sum(1 for g in st["gis"] if g["w"] > g["h"] * 5) >= 3,
+       st["gis"][:4])
+    ok("★ §4：乾式變壓器看得見三個直立的樹脂線圈",
+       len(st["coils"]) == 3, st["coils"])
+    ok("★ §4：電池櫃是一層一層的模組抽屜，不是一顆大方塊",
+       st["batt"] >= 5, st["batt"])
+    ok("★ §4：中壓配電盤是一整排金屬櫃（不是一個大方塊）",
+       st["swgr"] >= 5, st["swgr"])
+    ok("★ §3-A 硬規則 6：圖上寫明電池掛在 UPS 的直流側、是分支不是串在輸出上",
+       "直流側" in st["text"] and "不是串在輸出上" in st["text"], "")
+    ok("★ §5-E：亞力的 GIS 一定要標「中壓級」（不標會讓人以為它做超高壓 GIS）",
+       "中壓級" in pg.evaluate("""() => { const n = [...document.querySelectorAll('#prodDiagram [data-seg]')]
+            .find(x => x.dataset.part === 'he_gis' && !x.classList.contains('lrow'));
+         n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+         return (document.getElementById('partCard').textContent || ''); }"""), "")
+    pg.wait_for_timeout(300)
+    ok("★ §5-B：漢唐只出現在工程統包帶，而且寫了「不製造重電設備」與「半導體」",
+       "不製造重電設備" in st["text"] and "2404" in st["text"] and "半導體" in st["text"], "")
+    ok("★ §5-A：段 6（機櫃取電）那一站不列任何代號（負向驗收：圖上沒有 2308／2301／6669）",
+       not [c for c in ("2308", "2301", "6669", "2382") if c in st["text"]], "")
+    # ★ 掃之前先把「我們自己宣告不寫這些」的那一行拿掉 —— 不然那行免責聲明本身會把自己判紅。
+    _body = st["text"].replace("本圖不放任何在手訂單、市占率、營收占比或能見度年份（會過期）", "")
+    _hit = [w for w in ("在手訂單", "市占", "營收占比", "能見度", "%") if w in _body]
+    ok("§6-C1：畫面上沒有在手訂單／市占率／營收占比／能見度數字", not _hit, _hit)
+    ok("§5-E：五檔成分股的角色在圖上或小卡裡找得到（1503／1504／1513／1514／1519）",
+       all(c in st["text"] for c in ("1513", "2404")), "")
+
+    # ---- 沒有環節色標 → 改用族群卡片驗「成分股筆數真的變了」
+    pg.goto(f"{base}#industry/infrastructure", wait_until="networkidle"); pg.wait_for_timeout(2300)
+    n_all = _dg14_rows(pg)
+    hit = pg.evaluate("""() => { const t = document.querySelector('#groupCards .tile[data-gid="heavy_electric"]');
+      if (!t) return false; t.click(); return true; }""")
+    pg.wait_for_timeout(900)
+    n_one = _dg14_rows(pg)
+    ok("★ 真的點「重電設備」族群卡片 → 成分股筆數真的變少了",
+       hit and 0 < n_one < n_all, f"{n_all} → {n_one}")
+
+    _dg14_typo(pg, dgh, "變壓器GIS")
 
 
 if __name__ == "__main__":
