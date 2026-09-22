@@ -55,6 +55,20 @@
      只是換了來源，所以外觀零變化，但之後 14 張圖只要改這裡一處。
      兩種主題共用同一組：--illus 在深色與淺色下都是深底（既有決策），
      所以剖析圖的對比在兩個主題下本來就一樣。*/
+    /* ★ 2026-09-22：`site/diagrams.js` 的六條漸層原本把 18 個色值**寫死在 stop-color 上**，
+       所以換配色時它們一個都不會變 —— 淺底配色上會留下三塊深底時代的冷灰端子面。
+       那是 DECISIONS #198 那個病，只是這次發生在漸層的 <stop> 上。
+       這裡把它們原值搬成 token（**值逐字相同，外觀零變化**），
+       四個配色與未來任何新配色才蓋得掉。 */
+    --dg-cer-sh:#948c7c; --dg-cer-sh-2:#7a7263;          /* MLCC 本體側面暗面 */
+    --dg-cer-cutb:#a09884; --dg-cer-cutb-2:#8a8270;      /* 切面底 */
+    --dg-cover-b:#c6bfab; --dg-cover-b-2:#b8b09c;        /* 保護層底 */
+    --dg-met-t:#c9cfd5; --dg-met-t-2:#a8afb6;            /* 端電極 上面 */
+    --dg-met-r:#aab1b8; --dg-met-r-2:#858c94;            /* 端電極 右面 */
+    --dg-met-l:#a6adb4; --dg-met-l-2:#7f868d;            /* 端電極 左面 */
+    --dg-ag-cool:#3ee0ff; --dg-ag-cool-2:#ff4d6d;        /* AI 伺服器：冷卻水 進→出 */
+    --dg-ag-pcb:#173a2a; --dg-ag-pcb-2:#10291d;          /* AI 伺服器：板子 */
+    --dg-ag-ccl:#12331f; --dg-ag-ccl-2:#0c2416;          /* AI 伺服器：銅箔基板 */
   --dg-cer:#d3cbb7; --dg-cer-2:#bbb39f;           /* 陶瓷本體（暖米白霧面） */
   --dg-cer-cut:#b3ab98; --dg-cer-cut-2:#9a9280;   /* 切面上的陶瓷（暗一階，看得出是剖面） */
   --dg-cover:#ddd6c2; --dg-cover-2:#d0c8b4;       /* 保護層（無電極素坯） */

@@ -404,10 +404,10 @@
     const weave = []; for (let x = 570; x <= 990; x += 22) weave.push(`<line x1="${x}" y1="522" x2="${x}" y2="560" stroke="rgba(120,200,150,.16)"/>`); for (let y = 530; y <= 556; y += 9) weave.push(`<line x1="562" y1="${y}" x2="1000" y2="${y}" stroke="rgba(120,200,150,.16)"/>`);
     return `<svg class="dg dgm" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
       <defs>
-        <linearGradient id="agCool" x1="0" x2="1"><stop offset="0" stop-color="#3ee0ff"/><stop offset="1" stop-color="#ff4d6d"/></linearGradient>
+        <linearGradient id="agCool" x1="0" x2="1"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
         <linearGradient id="agPlate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(62,224,255,.28)"/><stop offset="1" stop-color="rgba(62,224,255,.08)"/></linearGradient>
-        <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#173a2a"/><stop offset="1" stop-color="#10291d"/></linearGradient>
-        <linearGradient id="agCcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#12331f"/><stop offset="1" stop-color="#0c2416"/></linearGradient>
+        <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-pcb)"/><stop offset="1" stop-color="var(--dg-ag-pcb-2)"/></linearGradient>
+        <linearGradient id="agCcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-ccl)"/><stop offset="1" stop-color="var(--dg-ag-ccl-2)"/></linearGradient>
       </defs>
       <text class="ttl" x="16" y="26">AI 伺服器機櫃與 GPU 運算托盤</text>
       <text class="cap" x="16" y="44">左：整機櫃（交換器、8 個運算托盤、電源櫃、液冷 CDU）。中：一個運算托盤拆開由下往上看。右：對應的供應鏈環節。</text>
@@ -702,14 +702,14 @@
     return `<svg class="dg dgm dg1" viewBox="0 0 980 1732" width="100%" style="display:block">${STYLE}
       <defs>
         <linearGradient id="mcT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer)"/><stop offset="1" stop-color="var(--dg-cer-2)"/></linearGradient>
-        <linearGradient id="mcL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#948c7c"/><stop offset="1" stop-color="#7a7263"/></linearGradient>
+        <linearGradient id="mcL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer-sh)"/><stop offset="1" stop-color="var(--dg-cer-sh-2)"/></linearGradient>
         <linearGradient id="mcCut" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer-cut)"/><stop offset="1" stop-color="var(--dg-cer-cut-2)"/></linearGradient>
-        <linearGradient id="mcCutB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a09884"/><stop offset="1" stop-color="#8a8270"/></linearGradient>
+        <linearGradient id="mcCutB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer-cutb)"/><stop offset="1" stop-color="var(--dg-cer-cutb-2)"/></linearGradient>
         <linearGradient id="mcCov" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cover)"/><stop offset="1" stop-color="var(--dg-cover-2)"/></linearGradient>
-        <linearGradient id="mcCovB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c6bfab"/><stop offset="1" stop-color="#b8b09c"/></linearGradient>
-        <linearGradient id="mcMetT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c9cfd5"/><stop offset="1" stop-color="#a8afb6"/></linearGradient>
-        <linearGradient id="mcMetR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#aab1b8"/><stop offset="1" stop-color="#858c94"/></linearGradient>
-        <linearGradient id="mcMetL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a6adb4"/><stop offset="1" stop-color="#7f868d"/></linearGradient>
+        <linearGradient id="mcCovB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cover-b)"/><stop offset="1" stop-color="var(--dg-cover-b-2)"/></linearGradient>
+        <linearGradient id="mcMetT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-met-t)"/><stop offset="1" stop-color="var(--dg-met-t-2)"/></linearGradient>
+        <linearGradient id="mcMetR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-met-r)"/><stop offset="1" stop-color="var(--dg-met-r-2)"/></linearGradient>
+        <linearGradient id="mcMetL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-met-l)"/><stop offset="1" stop-color="var(--dg-met-l-2)"/></linearGradient>
       </defs>
       <text class="ttl" x="16" y="26">MLCC 積層陶瓷電容：層數怎麼變成容值，也怎麼變成成本</text>
       <text class="cap" x="16" y="46">中間是切開近角的本體 —— 右下切面看「交錯指狀電極」，左下切面看「側邊餘白」。右邊逐層說明；端電極、製程、尺寸代號收在下面三段裡。</text>
