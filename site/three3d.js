@@ -355,7 +355,8 @@
       camera: [58, 44, 96], target: [0, 11, 0], fit: 1.02, hk: 0.46,
       parts: [
         { seg: 'wide_bandgap', part: 'wbg_sic_drain', name: 'SiC：汲極金屬（背面）', note: '在背面。電流從正面的源極穿過整片晶片到這裡 —— 三個電極畫在同一面就是 GaN HEMT，不是 SiC MOSFET',
-          kind: 'wbglay', box: [40, 2.4, 32], at: [-32, 1.2, 0], tint: '--dg-m-rack', metal: 0.86, rough: 0.3, ex: [0, -9, 0] },
+          kind: 'wbglay', box: [40, 2.4, 32], at: [-32, 1.2, 0], tint: '--dg-m-rack', metal: 0.86, rough: 0.3, ex: [0, -9, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（背面金屬跟正面金屬是同一段製程，信心：中）' },
         { seg: 'wide_bandgap', part: 'wbg_sic_sub', name: 'SiC：n⁺ 基板', note: '機械支撐＋導電。這一片的品質決定上面能不能長出好磊晶 —— 微管與基面差排這類缺陷在長晶那一步就決定了，後面救不回來。它比漂移層厚得多',
           kind: 'wbglay', box: [40, 7, 32], at: [-32, 6.2, 0], k: -0.32, ex: [0, -4, 0] },
         { seg: 'wide_bandgap', part: 'wbg_sic_drift', name: 'SiC：n⁻ 漂移層（磊晶）', note: '這一層的厚度就是耐壓。寬能隙 → 崩潰電場高 → 同樣耐壓只要更薄的一層 → 電阻低、損耗小。它比底下的基板薄得多，因為它是長上去的、不是切出來的',
