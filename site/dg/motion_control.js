@@ -691,7 +691,13 @@
   window.DG.register('factory_automation', {
     level: 'group', chain: 'electronics',
     name: '工業自動化：一個會動的軸拆開看',
-    draw: motionControl, native: 980, scene: null,
+    /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0-A 原本寫「不做真 3D」，
+       推翻的不是那個理由本身，是它漏掉的另一半（判準見 DECISIONS #247／#251）：
+       原本的理由是「五個資訊點裡沒有一個靠轉一圈才看得懂」——
+       漏掉的是第六件事：一根軸是一**串**零件（馬達→聯軸器→軸承座→螺桿＋螺帽→滑軌＋滑塊），
+       而「誰接誰」只有沿著軸拆開才看得出來；螺帽剖開才看得到鋼珠是一個閉合的迴圈。
+       ⚠ 3D 場景跟 `machine_tool` 共用同一個（兩個族群本來就共用同一張 2D）。*/
+    draw: motionControl, native: 980, scene: 'motion_axis',
     q: '工廠裡一次直線移動、一次關節轉動，各自靠哪幾個零件？滾珠螺桿跟線性滑軌差在哪？諧波減速機跟 RV 減速機為什麼不能互換？',
     parts: PARTS,
   });
@@ -701,7 +707,9 @@
   window.DG.register('machine_tool', {
     level: 'group', chain: 'electronics',
     name: 'CNC 工具機：它身上的傳動件是誰做的',
-    draw: motionControl, native: 980, scene: null,
+    /* 3D 跟 `factory_automation` 指向**同一個場景**（`motion_axis`）——
+       兩個族群本來就共用同一張 2D，3D 再開第二份只會變成兩份要一起改的東西。*/
+    draw: motionControl, native: 980, scene: 'motion_axis',
     q: '一台加工機的三個軸裡面裝的是什麼？台股做整機的跟做傳動件的是不同的兩群人，各是誰？',
     parts: PARTS,
   });

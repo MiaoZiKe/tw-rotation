@@ -515,7 +515,12 @@
   window.DG.register('capacitor', {
     level: 'group', chain: 'electronics',
     name: '電容器：鋁電解與固態電容剖面',
-    draw: alumCap, native: 980, scene: null,
+    /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0-A 原本寫「不做真 3D」，
+       推翻的不是那個理由本身，是它漏掉的另一半（判準見 DECISIONS #247／#251）：
+       原本的理由是「四個資訊點全部是剖面關係」—— 成立，但它假設了只能看一個剖面。
+       漏掉的那一半是：鋁電解是一顆**捲**出來的東西（MLCC 是疊出來的），
+       而「捲」這件事要整顆縱剖 ＋ 看得到頂面那幾圈同心弧才成立，一個平面剖面看不到。*/
+    draw: alumCap, native: 980, scene: 'capacitor',
     q: '鋁電容的容量是怎麼來的？為什麼要把箔咬出洞？固態電容把什麼換掉了，所以不會爆？',
     parts: PARTS,
   });

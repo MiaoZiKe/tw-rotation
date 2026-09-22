@@ -373,7 +373,12 @@
   window.DG.register('power_inductor', {
     level: 'group', chain: 'electronics',
     name: '被動元件：電感·電阻·石英',
-    draw: passiveRLC, native: 980, scene: null,
+    /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0-A 原本寫「不做真 3D」，
+       推翻的不是那個理由本身，是它漏掉的另一半（判準見 DECISIONS #247／#251）：
+       原本的理由是「三種零件的識別特徵全部在剖面裡」—— 成立，
+       漏掉的是那三個特徵**都被蓋住了**：繞組埋在磁粉裡、雷射修整溝壓在玻璃層底下、
+       石英片封在密封腔裡。半剖是唯一看得到它們的方式，而半剖就是 3D。*/
+    draw: passiveRLC, native: 980, scene: 'power_inductor',
     q: '電感、電阻、石英這三種零件各自長什麼樣？為什麼電感要看兩種電流、電阻要雷射刻一刀、石英要抽真空？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        ⚠ 只有 **seg 為 `passive_comp` 的電阻欄**現在真的點得出小卡（見檔頭那段說明）。
