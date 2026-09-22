@@ -747,7 +747,7 @@
           kind: 'cpfoil', box: [22, 14, 18], at: [-42, 8, 0], ex: [0, 9, 0],
           codes: ['6224', '6642'], chipnote: 'PPTC 台股：6224 聚鼎、6642 富致（兩家都不在 supply_chain.yaml 裡）' },
         { seg: 'passive_comp', part: 'cp_poly', name: 'PPTC：高分子基體', note: '聚乙烯類的高分子。低溫時結晶之間的導電粒子構成三維網路而導通；電流過大升溫後體積膨脹、由結晶態轉為非結晶態，網路斷裂而不導通；溫度降低後恢復結晶，又可導通 —— 這就是「自恢復」',
-          kind: 'cppoly', box: [22, 10, 18], at: [-42, 8, 0], ex: [0, 0, 0],
+          kind: 'cppoly', box: [22, 10, 18], at: [-42, 8, 0], ex: [0, 4, 0],
           codes: ['6224', '6642'], chipnote: 'PPTC 台股：6224 聚鼎、6642 富致（兩家都不在 supply_chain.yaml 裡）' },
         { seg: 'passive_comp', part: 'cp_carbon', name: 'PPTC：導電碳黑粒子（串成鏈）', note: '★ 常溫時黑色顆粒連成貫穿上下電極的通路 —— 它是一條一條的鏈，不是均勻的黑色。過流發熱時高分子膨脹、鏈被拉斷。只畫「變紅」不畫「變厚＋斷鏈」就沒有解釋機制。膨脹的實際比例查不到，本圖不寫百分比',
           kind: 'cpcarbon', box: [22, 10, 18], at: [-42, 8, 0], ex: [0, 16, 0],
@@ -4968,9 +4968,14 @@
     function resTrim(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(mboxes([[Math.max(0.04, w * 0.035), h, d * 0.3, 0, 0, -d * 0.34],
-        [w * 0.22, h, Math.max(0.04, d * 0.035), w * 0.1, 0, -d * 0.2]],
+      const cw = Math.max(0.04, w * 0.035), cd = Math.max(0.04, d * 0.035);
+      g.add(mboxes([[cw, h, d * 0.3, 0, 0, -d * 0.34], [w * 0.22, h, cd, w * 0.1, 0, -d * 0.2]],
         K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 })));
+      /* ★ 雷射是**切穿電阻膜**的，所以溝底露出來的是底下的陶瓷基板 ——
+         溝畫成一條全黑的線就少了「它切到哪裡為止」這件事。*/
+      g.add(mboxes([[cw * 1.6, h * 0.18, d * 0.3, 0, -h * 0.42, -d * 0.34],
+        [w * 0.22, h * 0.18, cd * 1.6, w * 0.1, -h * 0.42, -d * 0.2]],
+        K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.66, metal: 0.04 })));
       return g;
     }
 
