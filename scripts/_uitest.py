@@ -1461,7 +1461,7 @@ def t_industry(pg, base):
         before = pg.evaluate("""() => ({ sel: document.querySelectorAll('#cgSegs .segchip.sel').length,
             rows: document.querySelectorAll('#memberTable tbody tr').length,
             dim: document.querySelectorAll('#cgGraph .cgnode.dim').length })""")
-        click(pg, "#cgSegs .segchip:not(.nomem)", 800)
+        _cg_chip(pg, "#cgSegs .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#cgSegs .segchip.sel').length,
             rows: document.querySelectorAll('#memberTable tbody tr').length,
             dim: document.querySelectorAll('#cgGraph .cgnode.dim').length })""")
@@ -1470,7 +1470,7 @@ def t_industry(pg, base):
         # 舊版量的是「關聯圖自己捲到那一欄」（scrollLeft）。新的族群關聯圖不捲、
         # 改成把不相干的族群節點壓暗 —— 一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選
         changed("點環節 chip 圖上真的把不相干的族群壓暗了", before["dim"], after["dim"])
-        click(pg, "#cgSegs .segchip.sel", 500)
+        _cg_chip(pg, "#cgSegs .segchip.sel", 500)
 
     # --- 點族群卡：成分股要真的被篩
     if count(pg, "#cgGraph .cgnode[data-gid]"):
@@ -1591,7 +1591,7 @@ def t_chainnav(pg, base):
     # ---------------- E6：ABF 載板同時屬於半導體與 AI 伺服器
     if not ok("E6 半導體鏈看得到 ABF 載板環節", count(pg, "#cgSegs .segchip[data-seg='abf_pcb']") == 1):
         return
-    click(pg, "#cgSegs .segchip[data-seg='abf_pcb']", 1200)
+    _cg_chip(pg, "#cgSegs .segchip[data-seg='abf_pcb']", 1200)
     x = pg.evaluate("""() => { const w = document.getElementById('cgXChains'); if (!w) return null;
         const svgs = [...w.querySelectorAll('.xmini svg')];
         return { panels: w.querySelectorAll('.xchain').length, minis: svgs.length,
@@ -1643,7 +1643,7 @@ def t_chainnav(pg, base):
         pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
         if not pg.evaluate("() => { const c = document.querySelector(\"#cgSegs .segchip[data-seg='abf_pcb']\");"
                            " return !!c && c.classList.contains('sel'); }"):
-            click(pg, "#cgSegs .segchip[data-seg='abf_pcb']", 2400)
+            _cg_chip(pg, "#cgSegs .segchip[data-seg='abf_pcb']", 2400)
         fit = pg.evaluate(fit_js)
         ok(f"E6 視窗 {vw}px 時兩張縮圖都整張縮進框裡（沒有被切掉）",
            len(fit) == 2 and all(f["over"] <= 2 for f in fit), fit)
@@ -1707,11 +1707,11 @@ def t_electronics(pg, base):
     n_all = count(pg, "#memberTable tbody tr")
     ok("一般電子鏈有成分股", n_all > 0, n_all)
     if pg.query_selector("#cgSegs .segchip[data-seg='passive_comp']"):
-        click(pg, "#cgSegs .segchip[data-seg='passive_comp']", 900)
+        _cg_chip(pg, "#cgSegs .segchip[data-seg='passive_comp']", 900)
         n_sel = count(pg, "#memberTable tbody tr")
         ok("點「被動元件」環節，成分股筆數真的被篩掉", 0 < n_sel < n_all, f"全部 {n_all} → 篩後 {n_sel}")
         ok("而且那一格真的亮起來", count(pg, "#cgSegs .segchip.sel") == 1)
-        click(pg, "#cgSegs .segchip[data-seg='passive_comp']", 900)   # 再按一次取消
+        _cg_chip(pg, "#cgSegs .segchip[data-seg='passive_comp']", 900)   # 再按一次取消
         ok("再按一次取消篩選，筆數回到全部", count(pg, "#memberTable tbody tr") == n_all)
 
     # --- 2. 只有外商的兩格：點下去要列得出族群（FALLBACK）
@@ -1728,13 +1728,13 @@ def t_electronics(pg, base):
             return {{ gids, names: gids.map(g => L.gname[g]).filter(Boolean) }}; }}""")
         ok(f"「{seg}」這一格在 FALLBACK 裡真的接到了台股族群（不是接到一個已經不存在的 id）",
            bool(fb) and len(fb["names"]) > 0 and len(fb["names"]) == len(fb["gids"]), fb)
-        click(pg, f"#cgSegs .segchip[data-seg='{seg}']", 900)
+        _cg_chip(pg, f"#cgSegs .segchip[data-seg='{seg}']", 900)
         box = pg.evaluate("() => (document.getElementById('cgSegBox')||{}).innerText || ''")
         ok(f"點只有外商的「{seg}」，說明框不是空白", len(box.strip()) > 10, box[:80])
         want = (fb or {}).get("names") or []
         ok(f"而且接到了對應族群「{'／'.join(want)}」（app.js 的 FALLBACK）",
            bool(want) and any(w in box for w in want), box[:160])
-        click(pg, f"#cgSegs .segchip[data-seg='{seg}']", 600)
+        _cg_chip(pg, f"#cgSegs .segchip[data-seg='{seg}']", 600)
 
     # --- 2026-09-20 Andy 拍板的族群搬動：要驗「名單真的變了」，不是驗註解有寫
     #     2474 可成退出 iPhone 機殼（2020 賣廠）、筆電占 8 成，放在手機供應鏈會讓
@@ -1781,6 +1781,9 @@ def t_electronics(pg, base):
     # --- 窄畫面（Andy 2026-09-18：開發過程就要驗 800px，不要只在 1440px 看）
     pg.set_viewport_size({"width": 800, "height": 1000})
     pg.wait_for_timeout(900)
+    # 環節色標住在「篩選」面板裡（DECISIONS #248 第二版），要先打開才量得到它的版面
+    _cg_open_filter(pg)
+    pg.wait_for_timeout(500)
     over = pg.evaluate("""() => { const w = document.getElementById('cgSegs'); if (!w) return null;
         const r = w.getBoundingClientRect();
         return [...w.querySelectorAll('.segchip')]
@@ -2519,11 +2522,15 @@ def t_new_industry(pg, base):
             ok(f"{vw}px 點個股子節點不會跳去個股頁（hash 沒變）", aft2["hash"] == before["hash"],
                f"{before['hash']} → {aft2['hash']}")
             ok(f"{vw}px 點個股子節點仍然會開原地面板，面板裡才有「看個股頁」",
-               pg.evaluate("""() => { const b = document.getElementById('coBox');
-                   return !!b && b.textContent.indexOf('日月光投控') >= 0
-                              && b.textContent.indexOf('看個股頁') >= 0; }"""))
-            ok(f"{vw}px 面板是排在關聯圖旁邊的（.chainrow > #coBox.relside）",
-               pg.evaluate("() => !!document.querySelector('.chainrow > #coBox.relside')"))
+               pg.evaluate("""() => { const b = document.getElementById('cgSide');
+                   return !!b && !b.hidden && b.textContent.indexOf('日月光投控') >= 0
+                              && b.textContent.indexOf('個股頁') >= 0; }"""))
+            # ★ 第二版起「產業關係」不再用浮出來的 #coBox，而是住在右側資訊欄 #cgSide。
+            #   守的事情一樣：它要在圖的**旁邊**，不是擠在圖下面。
+            ok(f"{vw}px 資訊欄是排在關聯圖旁邊的（不是擠在圖下面）",
+               pg.evaluate("""() => { const s = document.getElementById('cgSide'), g = document.getElementById('cgGraph');
+                   if (!s || s.hidden || !g) return false; const rs = s.getBoundingClientRect(), rg = g.getBoundingClientRect();
+                   return rs.left >= rg.right - 2; }"""))
         # ---- 再點一次節點要能取消（不然選下去就出不來）
         click(pg, node + " .cgm", 1100)
         back = pg.evaluate(SNAP)
@@ -2668,7 +2675,7 @@ def t_new_industry(pg, base):
     #     「每張環節卡有標題與小卡」→ 每顆族群節點有族群名、漲跌、占比與標籤式個股
     #     「卡片寫得出上下游」      → 選起來的節點旁邊那張小卡逐條列出上游／下游與品項
     #     「小卡標了關係條數 / ?」  → 沒有任何上下游時小卡明講「還沒有建立」，不留白也不亂猜
-    #     「點小卡開面板不跳頁」    → 點個股子節點開 `#coBox.relside`、hash 不變
+    #     「點小卡開面板不跳頁」    → 點族群周圍的個股小點，右側資訊欄 `#cgSide` 換成那一檔、hash 不變
     #     「點卡片標題篩成分股」    → 點環節色標 `#cgSegs`（同一個 segFilter，同一條路）
     CHAINS = [("semiconductor", "3711", "日月光投控", "foundry"),
               ("ai_server", "3017", "奇鋐", "thermal"),
@@ -2677,8 +2684,10 @@ def t_new_industry(pg, base):
         rows: document.querySelectorAll('#memberTable tbody tr').length,
         chipSeg: [...document.querySelectorAll('#cgSegs .segchip.sel')].map(c => c.dataset.seg),
         tiles: [...document.querySelectorAll('#cgGraph .cgnode[data-gid].sel')].map(t => t.dataset.gid),
-        box: (document.getElementById('coBox') || {}).innerText || '',
-        side: !!document.querySelector('.chainrow > #coBox.relside') })"""
+        box: (document.getElementById('cgSide') || {}).innerText || '',
+        side: (() => { const s = document.getElementById('cgSide'), g = document.getElementById('cgGraph');
+          if (!s || s.hidden || !g) return false; const rs = s.getBoundingClientRect(), rg = g.getBoundingClientRect();
+          return rs.left >= rg.right - 2; })() })"""
     for cid, code, cname, seg_click in CHAINS:
         pg.evaluate(GOLIST)
         pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
@@ -2739,7 +2748,7 @@ def t_new_industry(pg, base):
             notes.append(f"{cid} 的 {cname} 不在前 {14} 檔子節點裡（依成交值取），這一條略過")
         # --- 點環節色標：同一個 segFilter，再點一次取消
         if pg.evaluate(f"() => !!document.querySelector('#cgSegs .segchip[data-seg=\"{seg_click}\"]')"):
-            click(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1100)
+            _cg_chip(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1100)
             d = pg.evaluate(SNAP2)
             # 跟**沒有任何篩選**的那一次比（b），不要跟「已經篩成某個族群」的那一次比（a）——
             # 環節與族群是兩種切法，環節篩出來的可能比族群多（實測 thermal 6 檔 vs 液冷 5 檔）
@@ -2748,7 +2757,7 @@ def t_new_industry(pg, base):
             dim = count(pg, "#cgGraph .cgnode[data-gid].dim")
             ok(f"{cid} 而且不屬於那一格的族群節點真的被壓暗（篩選在圖上看得到）",
                0 < dim < n_node, f"{dim}/{n_node}")
-            click(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1000)
+            _cg_chip(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1000)
             e2 = pg.evaluate(SNAP2)
             ok(f"{cid} 再點一次環節色標真的取消",
                e2["chipSeg"] == [] and count(pg, "#cgGraph .cgnode[data-gid].dim") == 0, e2)
@@ -5736,8 +5745,8 @@ def t_batch1(pg, base):
            pg.evaluate("() => location.hash") == h_before,
            pg.evaluate("() => location.hash"))
         ok("點公司會開原地面板，面板裡才有「看個股頁」（N7）",
-           pg.evaluate("""() => { const b = document.getElementById('coBox');
-               return !!b && b.textContent.indexOf('看個股頁') >= 0; }"""))
+           pg.evaluate("""() => { const b = document.getElementById('cgSide');
+               return !!b && !b.hidden && b.textContent.indexOf('個股頁') >= 0; }"""))
     # 外商：原地小面板，而且它是 #chainMap 的兄弟節點（不是掛在 body 上）
     # ★ 外商沒有台股代號，所以**不會**出現在族群關聯圖上（那張圖的子節點是成分股）。
     #   `drawChainMap` 這張公司層級的圖仍然活在**個股頁**下方，外商也只在那裡點得到 ——
@@ -6426,7 +6435,7 @@ def t_relpanel(pg, base):
       - 寬螢幕面板在圖的**旁邊**；800px 掉到圖的下面（硬並排會把圖擠到看不清）
     """
     # ★ 2026-09-23（DECISIONS #248）：產業鏈頁的關聯圖節點從「公司」換成「族群」，
-    #   公司變成**點開族群之後長出來的子節點**。面板本身（#coBox / .relbox）一個字都沒改，
+    #   公司變成**族群大圓點周圍的小點**。`relBlock()` 產生的內容一個字都沒改，
     #   所以這一段只換「怎麼把面板叫出來」，下面每一條斷言原封不動。
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.setItem('tw.cgExpand', 'inline'); } catch (e) {} }")
@@ -6445,7 +6454,7 @@ def t_relpanel(pg, base):
         fails.append("展開族群之後找不到台積電 2330 的子節點，後面整段驗不了")
         return
     click(pg, sub + " .cgm", 1300)
-    st = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+    st = pg.evaluate("""() => { const b = document.getElementById('cgSide'); if (!b || b.hidden) return null;
         const li = [...b.querySelectorAll('.relbox li')];
         const heads = [...b.querySelectorAll('.relbox h5')].map(h => h.textContent);
         return { has: !!b.querySelector('.relbox'), up: heads.filter(h => h.indexOf('上游') >= 0).length,
@@ -6473,7 +6482,7 @@ def t_relpanel(pg, base):
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
     pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2100)
     _cg_open_stock(pg, "2368")
-    gs = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+    gs = pg.evaluate("""() => { const b = document.getElementById('cgSide'); if (!b || b.hidden) return null;
         const g = [...b.querySelectorAll('.relbox li.guess')];
         return { n: g.length,
                  why: g.filter(x => x.querySelector('.why')).length,
@@ -6520,7 +6529,7 @@ def t_relpanel(pg, base):
     hit = None
     for c in ISO_CANDIDATES:
         if _cg_open_stock(pg, c):
-            txt = text(pg, "#coBox")
+            txt = text(pg, "#cgSegBox") + text(pg, "#cgSide")
             if "還沒有建立上下游關聯" in txt:
                 hit = c
                 break
@@ -6533,7 +6542,7 @@ def t_relpanel(pg, base):
     # ---- 800px：面板要掉到圖的下面，不能硬並排
     pg.set_viewport_size({"width": 800, "height": 1000})
     pg.wait_for_timeout(900)
-    nar = pg.evaluate("""() => { const b = document.getElementById('coBox'), m = document.getElementById('cgGraph');
+    nar = pg.evaluate("""() => { const b = document.getElementById('cgSide'), m = document.getElementById('cgGraph');
         if (!b || !m) return null; const rb = b.getBoundingClientRect(), rm = m.getBoundingClientRect();
         return { below: rb.top >= rm.top + 40, width: Math.round(rb.width),
                  host: Math.round(document.querySelector('.chainrow').getBoundingClientRect().width) }; }""")
@@ -16621,354 +16630,395 @@ def t_b24_semi3d(pg, base):
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
-def _cg_open_stock(pg, code: str) -> bool:
-    """在族群關聯圖上把某一檔台股的「產業關係」面板點開。
 
-    ★ 2026-09-23（DECISIONS #248）：產業鏈頁的關聯圖節點從「公司」換成「族群」，
-    公司變成「點開族群之後長出來的子節點」。所以要點一家公司，得先展開它所屬的族群。
-    回 True 代表面板真的開了（#coBox 裡有這一檔），回 False 代表這一檔不在圖上
-    （例如它不在前 14 檔成分股裡）—— 呼叫端要自己決定那算不算失敗。
+
+def _cg_open_filter(pg):
+    """把關聯圖右上角的「篩選」面板打開（環節色標住在裡面）。已經開著就不動它。"""
+    if pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }"):
+        return True
+    if not pg.query_selector("#cgFilterBtn"):
+        return False
+    click(pg, "#cgFilterBtn", 500)
+    return bool(pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }"))
+
+
+def _cg_chip(pg, sel: str, wait: int = 800):
+    """點一顆環節色標。
+
+    ★ 第二版（DECISIONS #248）把環節色標搬進「篩選」面板裡（參考圖右上角就是那顆鈕），
+    所以要先把面板打開才點得到 —— 那正是真人要走的兩步。
+    面板本身不關：後面往往還要再點第二顆（或再點一次取消）。
     """
-    gid = pg.evaluate("(c) => (window.Link && window.Link.cgroup && window.Link.cgroup[c]) || ''", code)
-    if not gid:
-        return False
-    node = f'#cgGraph .cgnode[data-gid="{gid}"]'
-    if not pg.evaluate(f"() => !!document.querySelector({node!r})"):
-        return False
-    # 已經展開的話再點一次會收起來，所以先確認它現在是不是就是展開的那一顆
-    opened = pg.evaluate(f"() => !!document.querySelector({node + '.sel'!r})")
-    if not opened:
-        click(pg, node + " .cgm", 1200)
-    sub = f'#cgGraph .cgnode.cgsub[data-code="{code}"]'
-    if not pg.evaluate(f"() => !!document.querySelector({sub!r})"):
-        return False
-    click(pg, sub + " .cgm", 1200)
-    return pg.evaluate("(c) => { const b = document.getElementById('coBox'); return !!b && b.dataset.code === c; }", code)
+    _cg_open_filter(pg)
+    return click(pg, sel, wait)
 
+def _cg_open_stock(pg, code: str) -> bool:
+    """在產業關聯圖上把某一檔台股的資訊欄打開，回傳「真的打開了嗎」。
+
+    ★ 第二版（DECISIONS #248）起，個股是**族群大圓點周圍的小點**，一直都在圖上，
+    所以直接點那顆小點就好 —— 不必先展開族群（第一版要先展開，那個設計已經沒有了）。
+    回 False 代表這一檔不在這條鏈的圖上（例如它的族群屬於別條鏈），
+    呼叫端要自己決定那算不算失敗。
+    """
+    sel = f'#cgGraph .cgdot[data-code="{code}"]'
+    if not pg.evaluate(f"() => !!document.querySelector({sel!r})"):
+        return False
+    pg.eval_on_selector(sel, "e => e.scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(350)
+    click(pg, sel, 1400)
+    return bool(pg.evaluate("(c) => { const s = document.getElementById('cgSide');"
+                            " return !!s && !s.hidden && (s.innerText || '').indexOf(c) >= 0; }", code))
 
 # ===========================================================================
-# 批次25：產業鏈頁的族群關聯圖（Obsidian 式力導向，DECISIONS #248）
-# 規格書 docs/chain_page_graph_spec.md 第五節那 8 條，逐條寫成真人操作。
+# 批次25：產業關聯圖（力導向，DECISIONS #248）
+# 規格書 docs/chain_page_graph_spec.md：第一版第五節 8 條 ＋ 第二版第六節 9～16 ＋ 第三版第三節 17～21。
 # ===========================================================================
-CG_STYLE_IDS = ["tech", "circuit", "space", "bubble"]
-CG_STYLE_NAMES = {"tech": "科技", "circuit": "電路", "space": "星際", "bubble": "泡泡"}
+CG_STYLE_IDS = ["space", "tech", "bubble", "circuit"]
+CG_STYLE_NAMES = {"space": "星際", "tech": "科技", "bubble": "泡泡", "circuit": "電子電路"}
+CG_HIT = "#cgGraph .cgnode[data-gid='{}'] .cghit"
 
-# 關聯圖的幾何與可讀性。**縮放是 transform**，`getComputedStyle().fontSize` 量不到它，
-# 所以字級一定要自己乘上 scale 才是螢幕上的真實大小（跟 SVG 要乘 getScreenCTM 同一件事）。
+# 幾何與可讀性。外接盒量的是「大圓點＋小點＋族群名」三種東西的聯集 ——
+# 那才是使用者看到的那張圖，只量圓點會少掉右邊那一行字。
 CG_METRICS = """() => {
   const h = document.getElementById('cgGraph'); if (!h) return null;
   const st = h.querySelector('.cgstage'); if (!st) return null;
   const k = new DOMMatrix(getComputedStyle(st).transform).a;
   const r = h.getBoundingClientRect();
-  const ns = [...h.querySelectorAll('.cgnode')];
-  if (!ns.length) return { n: 0 };
+  const els = [...h.querySelectorAll('.cgnode, .cglab, .cgdot')];
+  if (!els.length) return { n: 0 };
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, out = 0;
-  ns.forEach(n => { const b = n.getBoundingClientRect();
+  els.forEach(e => { const b = e.getBoundingClientRect();
     x0 = Math.min(x0, b.left); y0 = Math.min(y0, b.top);
     x1 = Math.max(x1, b.right); y1 = Math.max(y1, b.bottom);
     if (b.left < r.left - 1 || b.right > r.right + 1 || b.top < r.top - 1 || b.bottom > r.bottom + 1) out++; });
-  const fonts = [...h.querySelectorAll('.cgnode *')]
-    .map(e => parseFloat(getComputedStyle(e).fontSize)).filter(v => v > 0);
-  return { n: ns.length, scale: +k.toFixed(3), out,
+  const labs = [...h.querySelectorAll('.cglab')];
+  return { nodes: h.querySelectorAll('.cgnode').length, dots: h.querySelectorAll('.cgdot').length,
+           out: out, scale: +k.toFixed(3),
+           fillW: +(((x1 - x0) / r.width) * 100).toFixed(1),
+           fillH: +(((y1 - y0) / r.height) * 100).toFixed(1),
            dx: +(((x0 + x1) / 2 - (r.left + r.right) / 2) / r.width * 100).toFixed(2),
            dy: +(((y0 + y1) / 2 - (r.top + r.bottom) / 2) / r.height * 100).toFixed(2),
-           minFontPx: +(Math.min.apply(null, fonts) * k).toFixed(2),
-           edges: h.querySelectorAll('.cgedges path').length };
+           minLabPx: +(Math.min.apply(null, labs.map(e => parseFloat(getComputedStyle(e).fontSize))) * k).toFixed(2),
+           edges: h.querySelectorAll('.cgsvg path.cge').length };
 }"""
 
-# 圖上一個「沒有任何節點」的點（給「點背景取消選取」用）。找不到就回 null。
+# 圖上一個「什麼都沒有」的點（給「點背景取消選取」與「拖背景平移」用）
 CG_EMPTY_PT = """() => {
   const h = document.getElementById('cgGraph'); if (!h) return null;
   const r = h.getBoundingClientRect();
-  const ns = [...h.querySelectorAll('.cgnode')].map(n => n.getBoundingClientRect());
-  for (let gy = 0.06; gy < 0.96; gy += 0.05) for (let gx = 0.03; gx < 0.97; gx += 0.04) {
+  const ns = [...h.querySelectorAll('.cgnode, .cglab, .cgdot')].map(n => n.getBoundingClientRect());
+  const ui = [...h.querySelectorAll('.cghd, .cgtop, .cgzoom, .cglegend, .cgtip, .cgpop')]
+    .filter(e => !e.hidden).map(e => e.getBoundingClientRect());
+  for (let gy = 0.06; gy < 0.96; gy += 0.04) for (let gx = 0.03; gx < 0.97; gx += 0.03) {
     const x = r.left + r.width * gx, y = r.top + r.height * gy;
-    if (ns.every(b => x < b.left - 10 || x > b.right + 10 || y < b.top - 10 || y > b.bottom + 10))
-      return { x: Math.round(x), y: Math.round(y) };
+    const free = (b) => x < b.left - 12 || x > b.right + 12 || y < b.top - 12 || y > b.bottom + 12;
+    if (ns.every(free) && ui.every(free)) return { x: Math.round(x), y: Math.round(y) };
   }
   return null;
 }"""
 
-# 一種風格「長什麼樣」的指紋：節點底色／邊框／圓角／連線顏色與不透明度／畫布底。
-# 量 computed style，不是只看 class —— 規格書第五節第 1 條明文要求。
+# 一種風格「長什麼樣」的指紋：畫布底、節點造型與填色、連線顏色與路徑形狀。
+# 量 computed style，不是只看 class —— 規格書明文要求。
 CG_LOOK = """() => {
   const h = document.getElementById('cgGraph'); if (!h) return null;
-  const n = h.querySelector('.cgnode'); const p = h.querySelector('.cgedges path');
-  const cs = n ? getComputedStyle(n) : null, ps = p ? getComputedStyle(p) : null;
+  const ball = h.querySelector('.cgball') || h.querySelector('.cgchip');
+  const p = h.querySelector('.cgsvg path.cge');
+  const lab = h.querySelector('.cglab');
   return { style: h.dataset.cgstyle,
-           bg: getComputedStyle(h).backgroundImage.slice(0, 120),
-           node: cs ? (cs.backgroundImage !== 'none' ? cs.backgroundImage.slice(0, 90) : cs.backgroundColor) : '',
-           border: cs ? cs.borderTopColor + '/' + cs.borderTopWidth : '',
-           radius: cs ? cs.borderTopLeftRadius : '',
-           edge: ps ? ps.stroke + '/' + ps.strokeOpacity : '',
-           d: p ? (p.getAttribute('d') || '').slice(0, 40) : '' };
+           bg: getComputedStyle(h).backgroundImage.slice(0, 140),
+           shape: ball ? ball.tagName + '/' + getComputedStyle(ball).fill : '',
+           filt: ball ? getComputedStyle(ball).filter : '',
+           edge: p ? getComputedStyle(p).stroke + '/' + getComputedStyle(p).strokeOpacity : '',
+           d: p ? (p.getAttribute('d') || '').slice(0, 44) : '',
+           ink: lab ? getComputedStyle(lab).color : '' };
 }"""
 
 
+def _cg_goto(pg, base, chain="semiconductor", style="space", wait=3600):
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
+    pg.evaluate("(s) => { try { localStorage.setItem('tw.cgStyle', s); } catch (e) {} }", style)
+    pg.goto(f"{base}#industry/{chain}", wait_until="networkidle"); pg.wait_for_timeout(wait)
+
+
 def t_b25_graph(pg, base):
-    """族群關聯圖（#cgGraph）的真人操作驗收 —— 規格書第五節那 8 條。
+    """產業關聯圖（#cgGraph）的真人操作驗收。
 
     每一條都是「操作前記一次 → 真的操作 → 操作後再記一次 → 兩次必須不一樣」，
     沒有任何一條是「元素存在」。
     """
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#overview", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle', 'tech');"
-                " localStorage.setItem('tw.cgExpand', 'inline'); } catch (e) {} }")
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {} }")
+    _cg_goto(pg, base)
 
     m0 = pg.evaluate(CG_METRICS)
-    if not ok("關聯圖畫出來了（節點與連線都有）",
-              bool(m0) and m0.get("n", 0) >= 8 and m0.get("edges", 0) > 0, m0):
+    if not ok("關聯圖畫出來了（大圓點、小點、連線都有）",
+              bool(m0) and m0.get("nodes", 0) >= 8 and m0.get("dots", 0) > 30 and m0.get("edges", 0) > 0, m0):
         return
 
-    # ---- ⑦ 被拿掉的四塊確實不在 DOM 裡（規格書第一節）
+    # ---- ⑦ 被拿掉的四塊確實不在 DOM 裡（規格書第一版第一節）
     gone = pg.evaluate("""() => ['segChips','segBox','xChains','chainList','chainView','groupCards','segTools']
         .filter(id => !!document.getElementById(id))""")
     ok("環節色標／環節詳情／跨鏈對照／環節清單／看關聯圖鈕／族群卡片都不在 DOM 了", gone == [], gone)
-    # 而它們承載的功能在新圖上找得到對應操作
     homes = pg.evaluate("""() => ({
-        seg: document.querySelectorAll('#cgSegs .segchip').length,        // 環節篩選的新家
-        side: !!document.getElementById('cgSegBox'),                        // 環節詳情（含跨鏈對照）的新家
-        node: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,  // 族群篩選的新家
-        tools: !!document.getElementById('cgStyleBtn') && !!document.getElementById('cgExpandBtn')
-               && !!document.getElementById('cgFitBtn') })""")
-    ok("它們的功能都在新圖上找得到入口（環節色標／環節詳情容器／族群節點／工具鈕）",
-       homes["seg"] >= 8 and homes["side"] and homes["node"] >= 8 and homes["tools"], homes)
+        seg: document.querySelectorAll('#cgSegs .segchip').length,          // 環節篩選的新家（篩選面板裡）
+        segbox: !!document.getElementById('cgSegBox'),                      // 環節詳情（含跨鏈對照）的新家
+        node: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,   // 族群篩選的新家
+        panel: !!document.getElementById('cgSide'),                         // 右側資訊欄
+        ui: ['cgSearch','cgFilterBtn','cgResetBtn','cgZoomIn','cgZoomOut','cgFitBtn','cgLegend']
+              .filter(id => !!document.getElementById(id)).length })""")
+    ok("它們的功能都在新圖上找得到入口（環節色標／環節詳情／族群大圓點／資訊欄／工具）",
+       homes["seg"] >= 8 and homes["segbox"] and homes["node"] >= 8 and homes["panel"] and homes["ui"] == 7, homes)
 
-    # ---- ③ 節點上有漲跌幅與占比，而且紅漲綠跌方向正確
-    meta = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#cgGraph .cgnode[data-gid]')];
-        const bad = [];
-        ns.forEach(n => { const c = n.querySelector('.cgm .chg'), m = n.querySelector('.cgm');
-          if (!c || !m || !/占 [\\d.]+%/.test(m.textContent || '')) { bad.push([n.dataset.gid, 'no-meta']); return; }
-          const v = parseFloat((c.textContent || '').replace(/[^\\d.+-]/g, ''));
-          const col = getComputedStyle(c).color;
-          if (v > 0 && !/\\bup\\b/.test(c.className)) bad.push([n.dataset.gid, c.textContent, col]);
-          if (v < 0 && !/\\bdown\\b/.test(c.className)) bad.push([n.dataset.gid, c.textContent, col]); });
-        return { n: ns.length, bad }; }""")
-    ok("每顆節點都寫得出今日漲跌幅與占比，而且紅漲綠跌方向正確",
-       meta["bad"] == [], meta["bad"][:4])
-    # 紅跟綠真的是兩個顏色（量 computed color，不是看 class）
-    cols = pg.evaluate("""() => { const c = {};
-        document.querySelectorAll('#cgGraph .cgnode .cgm .chg').forEach(e => {
-          const k = /\\bup\\b/.test(e.className) ? 'up' : /\\bdown\\b/.test(e.className) ? 'down' : 'flat';
-          c[k] = getComputedStyle(e).color; });
-        return c; }""")
-    ok("漲的顏色跟跌的顏色真的不一樣（台股紅漲綠跌）",
-       cols.get("up") and cols.get("down") and cols["up"] != cols["down"], cols)
+    # ---- ⑨ 小點數量＝該族群的成分股檔數（抽三個族群逐一比對，不准用「+N」省略）
+    cnt = pg.evaluate("""() => { const im = window.__IM__ || null; const out = [];
+        document.querySelectorAll('#cgGraph .cgnode[data-gid]').forEach(g => {
+          const gid = g.dataset.gid;
+          out.push([gid, document.querySelectorAll(`#cgGraph .cgdot[data-gid="${gid}"]`).length]); });
+        return out; }""")
+    want = pg.evaluate("""() => { const o = {};
+        (window.Industry && window.Industry.__nmembers ? [] : []).forEach(() => {});
+        return o; }""")
+    # 檔數的真相來自資料本身：族群頁連結上的 gid → industry_map 的 members 長度
+    truth = pg.evaluate("""async () => { const r = await fetch('data/industry_map.json'); const im = await r.json();
+        const o = {}; (im.chains||[]).forEach(c => (c.groups||[]).forEach(g => { o[g.id] = (g.members||[]).length; }));
+        return o; }""")
+    bad = [[g, n, truth.get(g)] for g, n in cnt if truth.get(g) != n]
+    ok("每個族群周圍的小點數量＝它的成分股檔數（一顆都沒有省略）", bad == [], bad[:5])
+    # ⚠ 不可以拿 `#cgGraph.textContent` 去比對 /\+\d+/ —— 那會把 <title> 裡的漲跌幅
+    #   （「台積電 2330　+3.9%」）一起算進來，變成永遠紅。要量的是**畫面上的省略標記**：
+    #   沒有 `.cgmore` 這種元件，也沒有任何一個看得見的標籤長得像「+12」。
+    ok("而且圖上沒有任何「+N」這種省略標記",
+       pg.evaluate("""() => !document.querySelector('#cgGraph .cgmore')
+           && [...document.querySelectorAll('#cgGraph .cglab')]
+                .every(e => !/^\\s*\\+\\d+\\s*$/.test(e.textContent || ''))"""))
 
-    # ---- ② 預設只顯示族群名稱＋標籤式個股；點節點才出現個股清單
-    d0 = pg.evaluate("""() => ({ tags: document.querySelectorAll('#cgGraph .cgnode .cgtags a.lk').length,
-        subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-        list: document.querySelectorAll('#cgList .cgls a.lk').length })""")
-    ok("預設就有標籤式個股，但還沒有展開成完整清單",
-       d0["tags"] >= 20 and d0["subs"] == 0 and d0["list"] == 0, d0)
+    # ---- ③ 大圓點旁邊有族群名；紅漲綠跌在 hover 小卡與資訊欄裡
+    labs = pg.evaluate("""() => ({ n: document.querySelectorAll('#cgGraph .cglab').length,
+        named: [...document.querySelectorAll('#cgGraph .cglab')].filter(e => (e.textContent||'').trim().length > 1).length })""")
+    ok("每顆大圓點旁邊都有族群名稱（預設只顯示族群名，小點不帶文字）",
+       labs["n"] == m0["nodes"] and labs["named"] == labs["n"], labs)
+    ok("預設小點上沒有任何個股文字",
+       pg.evaluate("() => document.querySelectorAll('#cgGraph .cgdot text, #cgGraph .cgdotlab').length") == 0)
+
+    # ---- ⑩ hover 族群大點才浮出個股名稱／漲幅／占比；移開真的收回
     gid = pg.evaluate("() => document.querySelector('#cgGraph .cgnode[data-gid]').dataset.gid")
-    node = f'#cgGraph .cgnode[data-gid="{gid}"]'
-    rows0 = count(pg, "#memberTable tbody tr")
-    click(pg, node + " .cgm", 1400)
-    d1 = pg.evaluate("""() => ({ subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-        sel: document.querySelectorAll('#cgGraph .cgnode[data-gid].sel').length,
-        note: !(document.getElementById('cgNote') || {}).hidden,
-        rows: document.querySelectorAll('#memberTable tbody tr').length })""")
-    changed("點節點之後真的展開成個股子節點", d0["subs"], d1["subs"])
-    ok("而且只有被點的那一顆被選起來", d1["sel"] == 1, d1)
-    ok("點節點之後成分股真的被篩成那個族群", d1["rows"] < rows0, f"{rows0} → {d1['rows']}")
-
-    # ---- 旁邊真的附註了「它連到誰、為什麼」（沿用產業關係面板的措辭）
-    note = pg.evaluate("() => (document.getElementById('cgNote') || {}).innerText || ''")
-    ok("選起來的節點旁邊出現關聯說明小卡", d1["note"] and len(note) > 20, note[:80])
-    ok("小卡真的在講關係（上游／下游，或明講還沒查到）",
-       ("上游" in note or "下游" in note or "還沒有建立" in note), note[:120])
-    beside = pg.evaluate("""() => { const b = document.getElementById('cgNote'), h = document.getElementById('cgGraph');
-        if (!b || b.hidden) return null; const rb = b.getBoundingClientRect(), rh = h.getBoundingClientRect();
-        return { inside: rb.left >= rh.left - 1 && rb.right <= rh.right + 1
-                      && rb.top >= rh.top - 1 && rb.bottom <= rh.bottom + 1 }; }""")
-    ok("小卡整張在關聯圖框內（不會被裁掉、也不會蓋到別的區塊）", bool(beside) and beside["inside"], beside)
-
-    # ---- ⑥ 所有介紹資訊該有連結的都有（規格書第三節）
-    links = pg.evaluate("""() => {
-      const bad = [];
-      document.querySelectorAll('#cgGraph .cgnode[data-gid]').forEach(n => {
-        const a = n.querySelector('.cgt a.lk');
-        if (!a || a.getAttribute('href') !== '#industry/group/' + n.dataset.gid) bad.push(['族群名', n.dataset.gid, a && a.getAttribute('href')]); });
-      document.querySelectorAll('#cgGraph .cgnode .cgtags a.lk').forEach(a => {
-        if (a.getAttribute('href') !== '#stock/' + a.dataset.code) bad.push(['個股標籤', a.dataset.code, a.getAttribute('href')]); });
-      document.querySelectorAll('#cgGraph .cgnode.cgsub').forEach(n => {
-        const a = n.querySelector('.cgt a.lk');
-        if (!a || a.getAttribute('href') !== '#stock/' + n.dataset.code) bad.push(['個股子節點', n.dataset.code, a && a.getAttribute('href')]); });
-      const nb = document.getElementById('cgNote');
-      if (nb && !nb.hidden) [...nb.querySelectorAll('a')].forEach(a => {
-        const h = a.getAttribute('href') || '';
-        if (!/^#(stock|industry|themes)\\//.test(h) && !/^https:\\/\\//.test(h)) bad.push(['小卡', a.textContent.slice(0, 10), h]); });
-      return bad; }""")
-    ok("族群名、個股標籤、個股子節點、小卡裡的每一個連結 href 都正確", links == [], links[:5])
-    segl = pg.evaluate("""() => { const nb = document.getElementById('cgNote'); if (!nb) return [];
-        return [...nb.querySelectorAll('a.lk-chain')].map(a => a.getAttribute('href')); }""")
-    ok("小卡上的環節名是連到那一格的剖析圖（#industry/<鏈>/<環節>）",
-       all(h.startswith("#industry/semiconductor/") for h in segl) if segl else True, segl[:3])
-
-    # ---- ⑤ 拖曳節點真的移動
-    pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
-    pg.wait_for_timeout(500)
-    box = pg.evaluate("""(gid) => { const n = document.querySelector(`#cgGraph .cgnode[data-gid='${gid}']`);
-        const b = n.getBoundingClientRect(); const m = n.querySelector('.cgm').getBoundingClientRect();
-        return { x: Math.round(m.left + m.width / 2), y: Math.round(m.top + m.height / 2),
-                 left: n.style.left, top: n.style.top }; }""", gid)
-    pg.mouse.move(box["x"], box["y"]); pg.mouse.down()
-    pg.mouse.move(box["x"] + 110, box["y"] + 70, steps=12); pg.mouse.up()
+    t0 = pg.evaluate("() => document.getElementById('cgTip').hidden")
+    ok("預設沒有浮出任何個股資訊", t0 is True, t0)
+    pg.hover(CG_HIT.format(gid))
     pg.wait_for_timeout(900)
-    moved = pg.evaluate("""(gid) => { const n = document.querySelector(`#cgGraph .cgnode[data-gid='${gid}']`);
-        return { left: n.style.left, top: n.style.top }; }""", gid)
-    ok("拖曳節點，它真的搬到新位置了",
-       moved["left"] != box["left"] or moved["top"] != box["top"], f"{box['left']},{box['top']} → {moved}")
-    ok("拖曳不會被誤判成點連結而跳頁", pg.evaluate("() => location.hash").startswith("#industry/semiconductor"),
-       pg.evaluate("() => location.hash"))
+    t1 = pg.evaluate("""() => { const t = document.getElementById('cgTip');
+        return { hidden: t.hidden, rows: t.querySelectorAll('.ti').length,
+                 hasName: !!t.querySelector('.ti .nm'), hasChg: !!t.querySelector('.ti em'),
+                 txt: (t.innerText || '').slice(0, 60) }; }""")
+    changed("hover 族群大點，個股資訊真的浮出來了", t0, t1["hidden"])
+    ok("浮出來的每一列都有名稱、漲跌與占比", t1["rows"] > 0 and t1["hasName"] and t1["hasChg"], t1)
+    ok("浮出來的檔數跟那個族群的成分股檔數一樣（沒有省略）",
+       t1["rows"] == truth.get(gid), f"{t1['rows']} vs {truth.get(gid)}")
+    up = pg.evaluate("""() => { const bad = [];
+        document.querySelectorAll('#cgTip .ti').forEach(r => { const e = r.querySelector('em');
+          if (!e) return; const v = parseFloat((e.textContent||'').replace(/[^\\d.+-]/g,''));
+          if (v > 0 && !/\\bup\\b/.test(e.className)) bad.push(e.textContent);
+          if (v < 0 && !/\\bdown\\b/.test(e.className)) bad.push(e.textContent); });
+        return bad; }""")
+    ok("浮出來的漲跌紅漲綠跌方向正確", up == [], up[:4])
+    pg.mouse.move(4, 4); pg.wait_for_timeout(700)
+    ok("滑鼠移開，個股資訊真的收回去",
+       pg.evaluate("() => document.getElementById('cgTip').hidden") is True)
 
-    # ---- ⑤ 滾輪真的縮放；雙擊／「置中」鈕回得去
-    t0 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
-    pg.mouse.move(box["x"], box["y"]); pg.mouse.wheel(0, -420); pg.wait_for_timeout(700)
-    t1 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
-    changed("滾輪真的縮放（stage 的 transform 變了）", t0, t1)
-    click(pg, "#cgFitBtn", 900)
-    t2 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
-    ok("按「置中」真的回到置中（跟縮放後不一樣）", t2 != t1, f"{t1} → {t2}")
-    ok("「置中」鈕上寫得出現在的縮放倍率",
-       "%" in (text(pg, "#cgFitBtn") or ""), text(pg, "#cgFitBtn"))
-
-    # ---- ④ 置中誤差 ≤ 容器寬的 2%，四個寬度都成立；字（含縮放）不得小於 11px
-    # ★ 先把剛剛展開的那一顆收起來再量 —— 量的是**預設狀態**。
-    #   展開之後節點多 7 顆，390px 那種寬度本來就塞不下，那時候的答案是「使用者自己拖曳」，
-    #   不是「把字縮到看不清楚」（縮放下限 0.92 就是為了守這件事）。
-    click(pg, node + " .cgm", 1300)
-    # 手機（≤560px）塞不下是設計內的：那時候改成可以拖曳平移，下面另外驗它真的拖得動。
-    CG_FIT_W = (1440, 1100, 800)
+    # ---- ⑪⑫ 佈局撐滿（寬高各自 ≥ 80%）、置中誤差 ≤ 2%，四個寬度都成立
     for vw in (1440, 1100, 800, 390):
-        pg.set_viewport_size({"width": vw, "height": 950}); pg.wait_for_timeout(1600)
+        pg.set_viewport_size({"width": vw, "height": 950}); pg.wait_for_timeout(1700)
         m = pg.evaluate(CG_METRICS)
-        ok(f"{vw}px 關聯圖置中（外接盒中心與容器中心差 ≤ 2%）",
+        ok(f"{vw}px 佈局撐滿畫布（寬 ≥ 80%）", bool(m) and m["fillW"] >= 80, m)
+        ok(f"{vw}px 佈局撐滿畫布（高 ≥ 80%）", bool(m) and m["fillH"] >= 80, m)
+        ok(f"{vw}px 置中（外接盒中心與畫布中心差 ≤ 2%）",
            bool(m) and abs(m["dx"]) <= 2 and abs(m["dy"]) <= 2, m)
-        if vw in CG_FIT_W:
-            ok(f"{vw}px 節點一顆都沒有被容器切掉", bool(m) and m["out"] == 0, m)
-        ok(f"{vw}px 節點上最小的字（乘過縮放）仍然 ≥ 11px", bool(m) and m["minFontPx"] >= 11, m)
-        ok(f"{vw}px 沒有橫向捲軸（關聯圖自己吃掉溢出，不准把整頁撐寬）",
+        ok(f"{vw}px 節點與族群名一個都沒有被畫布切掉", bool(m) and m["out"] == 0, m)
+        ok(f"{vw}px 族群名（乘過縮放）≥ 11px", bool(m) and m["minLabPx"] >= 11, m)
+        ok(f"{vw}px 沒有橫向捲軸",
            pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
            pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
-    # 390px 塞不下的那一段：一定要拖得動，不然使用者就真的看不到剩下的節點
-    # ⚠ 先把圖捲進視窗 —— `mouse.move` 吃的是**視窗座標**，圖在畫面外的話滑鼠根本沒碰到它
-    #   （第一次跑就踩到：transform 完全沒變，看起來像拖不動，其實是沒點到）
-    pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
-    pg.wait_for_timeout(600)
-    pt = pg.evaluate(CG_EMPTY_PT)
-    if ok("390px 圖上找得到空白處可以拖（不然「拖曳平移」這條驗不了）", bool(pt), pt):
-        t_a = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
-        pg.mouse.move(pt["x"], pt["y"]); pg.mouse.down()
-        pg.mouse.move(pt["x"] - 80, pt["y"] - 40, steps=10); pg.mouse.up()
-        pg.wait_for_timeout(700)
-        t_b = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
-        changed("390px 拖背景真的把圖平移了（塞不下的部分看得到）", t_a, t_b)
-    pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.wait_for_timeout(1200)
-    click(pg, "#cgFitBtn", 900)
-    click(pg, node + " .cgm", 1300)          # 再展開回來，下面「點背景取消」才有東西可以取消
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1500)
 
-    # ---- ⑤ 點背景真的取消選取
-    click(pg, "#cgFitBtn", 800)
+    # ---- ⑬⑭ 點大圓點 → 右側資訊欄；欄裡每一個該有連結的都有
+    rows0 = count(pg, "#memberTable tbody tr")
+    pg.click(CG_HIT.format(gid)); pg.wait_for_timeout(1600)
+    pane = pg.evaluate("""() => { const s = document.getElementById('cgSide'); if (!s || s.hidden) return null;
+        const t = s.innerText || '';
+        return { open: true, chg: !!s.querySelector('.cgp-box .up, .cgp-box .down, .cgp-box .flat'),
+                 share: /成交占比/.test(t), co: s.querySelectorAll('.cgp-co a.lk').length,
+                 range: s.querySelectorAll('#cgRange button').length,
+                 rels: s.querySelectorAll('#cgRels input').length,
+                 center: !!s.querySelector('#cgCenter'),
+                 hrefs: [...s.querySelectorAll('a')].map(a => a.getAttribute('href') || '') }; }""")
+    if ok("點大圓點，右側資訊欄真的打開了", bool(pane), pane):
+        ok("資訊欄有族群漲跌與成交占比兩個數據", pane["chg"] and pane["share"], pane)
+        ok("資訊欄有代表公司清單（每一列都是連到個股頁的連結）",
+           pane["co"] > 0 and all(h.startswith("#stock/") for h in pane["hrefs"][:pane["co"]]), pane["hrefs"][:4])
+        ok("資訊欄有「顯示範圍」兩顆、「關係類型」三個勾選框、「以此節點為中心」",
+           pane["range"] == 2 and pane["rels"] == 3 and pane["center"], pane)
+        bad = [h for h in pane["hrefs"]
+               if not (h.startswith("#stock/") or h.startswith("#industry/") or h.startswith("#themes/")
+                       or h.startswith("https://"))]
+        ok("資訊欄裡每一個連結的 href 都是真的（個股／族群／環節／鏈／外部來源），沒有死連結",
+           bad == [], bad[:5])
+        ok("資訊欄裡連得到族群頁、環節的剖析圖、以及這條產業鏈",
+           any(h.startswith("#industry/group/") for h in pane["hrefs"])
+           and any(h.startswith("#industry/semiconductor/") for h in pane["hrefs"])
+           and "#industry/semiconductor" in pane["hrefs"], pane["hrefs"][-6:])
+    ok("點大圓點之後下方成分股真的被篩成那個族群",
+       count(pg, "#memberTable tbody tr") < rows0, f"{rows0} → {count(pg, '#memberTable tbody tr')}")
+
+    # ---- ⑯ 關係類型三個勾選框：取消勾選，那一類的線真的消失
+    for rel in ("supply", "peer", "equip"):
+        n_before = pg.evaluate(f"() => document.querySelectorAll('#cgGraph path.cge-{rel}').length")
+        if n_before == 0:
+            notes.append(f"這條鏈沒有 {rel} 這一類的線，該項跳過")
+            continue
+        pg.eval_on_selector(f'#cgRels input[data-rel="{rel}"]', "e => e.click()")
+        pg.wait_for_timeout(900)
+        n_after = pg.evaluate(f"() => document.querySelectorAll('#cgGraph path.cge-{rel}').length")
+        ok(f"取消勾選「{rel}」，那一類的線真的從 DOM 上消失", n_after == 0, f"{n_before} → {n_after}")
+        pg.eval_on_selector(f'#cgRels input[data-rel="{rel}"]', "e => e.click()")
+        pg.wait_for_timeout(900)
+        ok(f"重新勾選「{rel}」，線真的回來",
+           pg.evaluate(f"() => document.querySelectorAll('#cgGraph path.cge-{rel}').length") == n_before)
+
+    # ---- 顯示範圍：兩層關聯真的畫出更多線
+    e1 = pg.evaluate("() => document.querySelectorAll('#cgGraph path.cge').length")
+    pg.eval_on_selector('#cgRange button[data-hop="2"]', "e => e.click()"); pg.wait_for_timeout(900)
+    e2 = pg.evaluate("() => document.querySelectorAll('#cgGraph path.cge').length")
+    ok("切到「兩層關聯」，畫出來的線真的變多", e2 > e1, f"{e1} → {e2}")
+    pg.eval_on_selector('#cgRange button[data-hop="1"]', "e => e.click()"); pg.wait_for_timeout(900)
+
+    # ---- 「以此節點為中心」真的重新佈局
+    pos0 = pg.evaluate(f"""() => {{ const g = document.querySelector('#cgGraph .cgnode[data-gid="{gid}"]');
+        return g ? g.getAttribute('transform') : null; }}""")
+    pg.eval_on_selector('#cgCenter', "e => e.click()"); pg.wait_for_timeout(1600)
+    pos1 = pg.evaluate(f"""() => {{ const g = document.querySelector('#cgGraph .cgnode[data-gid="{gid}"]');
+        return g ? g.getAttribute('transform') : null; }}""")
+    changed("按「以此節點為中心」，這顆節點真的被搬到中間（座標變了）", pos0, pos1)
+
+    # ---- 點個股小點 → 資訊欄換成那一檔
+    code = pg.evaluate(f"""() => {{ const d = document.querySelector('#cgGraph .cgdot[data-gid="{gid}"]');
+        return d ? d.dataset.code : null; }}""")
+    if ok(f"族群 {gid} 周圍找得到個股小點", bool(code), code):
+        pg.click(f'#cgGraph .cgdot[data-code="{code}"]'); pg.wait_for_timeout(1500)
+        st = pg.evaluate("""() => { const s = document.getElementById('cgSide'); if (!s || s.hidden) return null;
+            return { txt: (s.innerText || '').slice(0, 40),
+                     hrefs: [...s.querySelectorAll('a')].map(a => a.getAttribute('href') || ''),
+                     rel: !!s.querySelector('.relbox'), hi: !!s.querySelector('#relHi') }; }""")
+        if ok("點個股小點，資訊欄換成那一檔", bool(st), st):
+            ok("個股模式有所屬族群與所屬環節的連結",
+               any(h.startswith("#industry/group/") for h in st["hrefs"])
+               and any(h.startswith("#industry/semiconductor/") for h in st["hrefs"]), st["hrefs"][:6])
+            ok("個股模式沿用既有的「產業關係」區塊（含在圖上 highlight）", st["rel"] and st["hi"], st)
+        # 「在圖上 highlight」真的讓線變
+        b4 = pg.evaluate("""() => ({ hi: document.querySelectorAll('#cgGraph path.cge.hi').length,
+                                     dim: document.querySelectorAll('#cgGraph path.cge.dim').length })""")
+        pg.eval_on_selector("#relHi", "b => b.click()"); pg.wait_for_timeout(700)
+        a4 = pg.evaluate("""() => ({ hi: document.querySelectorAll('#cgGraph path.cge.hi').length,
+                                     dim: document.querySelectorAll('#cgGraph path.cge.dim').length })""")
+        ok("按「在圖上 highlight」，圖上的線真的亮起來／變暗", a4 != b4, f"{b4} → {a4}")
+        pg.eval_on_selector("#relHi", "b => b.click()"); pg.wait_for_timeout(600)
+
+    # ---- ⑤ 拖曳節點真的移動；滾輪真的縮放；點背景真的取消
+    pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    box = pg.evaluate(f"""(g) => {{ const e = document.querySelector(`#cgGraph .cgnode[data-gid='${{g}}'] .cghit`);
+        const b = e.getBoundingClientRect(); const n = e.closest('.cgnode');
+        return {{ x: Math.round((b.left + b.right) / 2), y: Math.round((b.top + b.bottom) / 2), t: n.getAttribute('transform') }}; }}""", gid)
+    pg.mouse.move(box["x"], box["y"]); pg.mouse.down()
+    pg.mouse.move(box["x"] + 90, box["y"] + 60, steps=12); pg.mouse.up()
+    pg.wait_for_timeout(900)
+    t_after = pg.evaluate(f"""(g) => {{ const n = document.querySelector(`#cgGraph .cgnode[data-gid='${{g}}']`);
+        return n ? n.getAttribute('transform') : null; }}""", gid)
+    changed("拖曳大圓點，它真的搬到新位置了", box["t"], t_after)
+    ok("拖曳不會被誤判成點連結而跳頁",
+       pg.evaluate("() => location.hash").startswith("#industry/semiconductor"), pg.evaluate("() => location.hash"))
+
+    z0 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
+    pg.mouse.move(box["x"], box["y"]); pg.mouse.wheel(0, -420); pg.wait_for_timeout(700)
+    z1 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
+    changed("滾輪真的縮放（stage 的 transform 變了）", z0, z1)
+    pg.eval_on_selector("#cgZoomIn", "e => e.click()"); pg.wait_for_timeout(600)
+    z2 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
+    changed("右下角「＋」也真的放大", z1, z2)
+    pg.eval_on_selector("#cgFitBtn", "e => e.click()"); pg.wait_for_timeout(800)
+    z3 = pg.evaluate("() => getComputedStyle(document.querySelector('#cgGraph .cgstage')).transform")
+    changed("右下角「◎」真的回到置中", z2, z3)
+
     pt = pg.evaluate(CG_EMPTY_PT)
-    if ok("圖上找得到一塊空白可以點（不然「點背景」這條驗不了）", bool(pt), pt):
+    if ok("圖上找得到一塊空白可以點", bool(pt), pt):
         pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
-        bg = pg.evaluate("""() => ({ sel: document.querySelectorAll('#cgGraph .cgnode[data-gid].sel').length,
-            subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-            rows: document.querySelectorAll('#memberTable tbody tr').length })""")
-        ok("點背景真的取消選取（節點不亮了、子節點收起來、成分股回到全部）",
-           bg["sel"] == 0 and bg["subs"] == 0 and bg["rows"] == rows0, {"before": rows0, **bg})
+        ok("點背景真的取消選取（資訊欄收掉、成分股回到全部）",
+           pg.evaluate("() => document.getElementById('cgSide').hidden") is True
+           and count(pg, "#memberTable tbody tr") == rows0,
+           {"hidden": pg.evaluate("() => document.getElementById('cgSide').hidden"),
+            "rows": count(pg, "#memberTable tbody tr"), "before": rows0})
 
-    # ---- ① 四種風格各切一次，節點／連線／底色真的變（量 computed style）
-    looks = {}
-    pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle', 'tech'); } catch (e) {} }")
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    for i, sid in enumerate(CG_STYLE_IDS):
-        if i:
-            click(pg, "#cgStyleBtn", 1600)
-        lk = pg.evaluate(CG_LOOK)
-        ok(f"切到「{CG_STYLE_NAMES[sid]}」風格，data-cgstyle 真的變成 {sid}", lk and lk["style"] == sid, lk)
-        ok(f"「{CG_STYLE_NAMES[sid]}」的鈕上寫得出現在的風格",
-           CG_STYLE_NAMES[sid] in (text(pg, "#cgStyleBtn") or ""), text(pg, "#cgStyleBtn"))
-        looks[sid] = lk
-        m = pg.evaluate(CG_METRICS)
-        ok(f"「{CG_STYLE_NAMES[sid]}」換完仍然置中、沒有節點被切掉、字 ≥ 11px",
-           bool(m) and abs(m["dx"]) <= 2 and abs(m["dy"]) <= 2 and m["out"] == 0 and m["minFontPx"] >= 11, m)
-    # 四種風格**真的長得不一樣**：底色、節點底、邊框圓角、連線 —— 四項裡至少三項兩兩不同
-    for a in range(len(CG_STYLE_IDS)):
-        for b in range(a + 1, len(CG_STYLE_IDS)):
-            x, y = looks[CG_STYLE_IDS[a]], looks[CG_STYLE_IDS[b]]
-            diff = sum(1 for k in ("bg", "node", "radius", "edge") if x[k] != y[k])
-            ok(f"「{CG_STYLE_NAMES[CG_STYLE_IDS[a]]}」與「{CG_STYLE_NAMES[CG_STYLE_IDS[b]]}」畫面真的不一樣",
-               diff >= 3, {"diff": diff, "a": x, "b": y})
-    # 電路風格的連線要是直角折線（路徑裡有 L/Q 的轉角），科技風格是直線
-    ok("「電路」風格的連線真的走直角折線（像 PCB 走線）",
-       "L" in looks["circuit"]["d"] or "Q" in looks["circuit"]["d"], looks["circuit"]["d"])
-    ok("「科技」風格的連線是直線（只有一段 L）",
-       looks["tech"]["d"].count("L") <= 1 and "Q" not in looks["tech"]["d"], looks["tech"]["d"])
-    # 風格會被記住
-    ok("風格真的寫進 localStorage（重新整理還在）",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }") == "bubble",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }"))
+    # ---- 搜尋框真的篩（不是擺著好看）
+    pg.fill("#cgSearch", "台積電"); pg.wait_for_timeout(900)
+    dim = pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length")
+    ok("在搜尋框打字，不相干的族群真的被壓暗", 0 < dim < m0["nodes"], f"{dim}/{m0['nodes']}")
+    pg.fill("#cgSearch", ""); pg.wait_for_timeout(700)
+    ok("清掉搜尋字，壓暗真的解除",
+       pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length") == 0)
 
-    # ---- 淺色主題下四種風格也要成立（底色與字色都量得到，而且不是同一個值）
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light');"
-                " localStorage.setItem('tw.cgStyle', 'tech'); } catch (e) {} }")
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    lt = pg.evaluate(CG_LOOK)
-    ok("淺色主題下關聯圖照樣畫得出來（科技風格仍然是深底，跟 .chainmap 同一條既有決策）",
-       bool(lt) and lt["style"] == "tech" and "gradient" in lt["bg"], lt)
-    m = pg.evaluate(CG_METRICS)
-    ok("淺色主題下仍然置中、沒有節點被切掉、字 ≥ 11px",
-       bool(m) and abs(m["dx"]) <= 2 and m["out"] == 0 and m["minFontPx"] >= 11, m)
-    click(pg, "#cgStyleBtn", 1200); click(pg, "#cgStyleBtn", 1200); click(pg, "#cgStyleBtn", 1600)
-    lb = pg.evaluate(CG_LOOK)
-    ok("淺色主題下也切得到「泡泡」風格", bool(lb) and lb["style"] == "bubble", lb)
-    con = pg.evaluate("""() => { const n = document.querySelector('#cgGraph .cgnode .cgt a.lk');
-        return n ? { color: getComputedStyle(n).color,
-                     bg: getComputedStyle(n.closest('.cgnode')).backgroundImage.slice(0, 60) } : null; }""")
-    ok("泡泡風格是亮底，所以字被改成深色（不是沿用全站的淺色字）",
-       bool(con) and con["color"] not in ("rgb(232, 238, 255)", "rgb(255, 255, 255)"), con)
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark');"
-                " localStorage.setItem('tw.cgStyle', 'tech'); } catch (e) {} }")
+    # ---- ⑮ 四種風格：切過去 computed style 真的變；深淺兩主題各驗一次
+    for theme in ("dark", "light"):
+        looks = {}
+        for sid in CG_STYLE_IDS:
+            pg.evaluate("([t,s]) => { try { localStorage.setItem('tw.theme', t); localStorage.setItem('tw.cgStyle', s); } catch (e) {} }",
+                        [theme, sid])
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
+            pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3000)
+            lk = pg.evaluate(CG_LOOK)
+            ok(f"[{theme}] 切到「{CG_STYLE_NAMES[sid]}」，data-cgstyle 真的變成 {sid}", lk and lk["style"] == sid, lk)
+            looks[sid] = lk
+            m = pg.evaluate(CG_METRICS)
+            ok(f"[{theme}]「{CG_STYLE_NAMES[sid]}」換完仍然撐滿、置中、沒被切掉、字 ≥ 11px",
+               bool(m) and m["fillW"] >= 80 and m["fillH"] >= 80 and abs(m["dx"]) <= 2
+               and m["out"] == 0 and m["minLabPx"] >= 11, m)
+        for i in range(len(CG_STYLE_IDS)):
+            for j in range(i + 1, len(CG_STYLE_IDS)):
+                x, y = looks[CG_STYLE_IDS[i]], looks[CG_STYLE_IDS[j]]
+                diff = sum(1 for k in ("bg", "shape", "edge", "ink") if x[k] != y[k])
+                ok(f"[{theme}]「{CG_STYLE_NAMES[CG_STYLE_IDS[i]]}」與「{CG_STYLE_NAMES[CG_STYLE_IDS[j]]}」畫面真的不一樣",
+                   diff >= 2, {"diff": diff, "a": x, "b": y})
+        ok(f"[{theme}]「電子電路」的節點是方形晶片（不是圓）", "rect" in (looks["circuit"]["shape"] or "").lower(),
+           looks["circuit"]["shape"])
+        ok(f"[{theme}]「電子電路」的連線走直角折線（像 PCB 走線）",
+           "L" in looks["circuit"]["d"] and "Q" in looks["circuit"]["d"], looks["circuit"]["d"])
+        ok(f"[{theme}]「泡泡」是亮底（四種裡唯一的）",
+           "255, 255, 255" in looks["bubble"]["bg"] or "#fff" in looks["bubble"]["bg"], looks["bubble"]["bg"][:80])
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
 
-    # ---- ② 兩種「點節點展開」做法都要能切，而且畫面真的不一樣
-    pg.evaluate("() => { try { localStorage.setItem('tw.cgExpand', 'inline'); } catch (e) {} }")
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    gid = pg.evaluate("() => document.querySelector('#cgGraph .cgnode[data-gid]').dataset.gid")
-    node = f'#cgGraph .cgnode[data-gid="{gid}"]'
-    click(pg, node + " .cgm", 1400)
-    e1 = pg.evaluate("""() => ({ subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-        list: document.querySelectorAll('#cgList .cgls a.lk').length })""")
-    ok("「原地展開」模式：個股長在圖上，側欄沒有清單", e1["subs"] > 0 and e1["list"] == 0, e1)
-    click(pg, "#cgExpandBtn", 1600)
-    e2 = pg.evaluate("""() => ({ subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-        list: document.querySelectorAll('#cgList .cgls a.lk').length,
-        href: (document.querySelector('#cgList .cgls a.lk') || {}).getAttribute
-              ? document.querySelector('#cgList .cgls a.lk').getAttribute('href') : null })""")
-    ok("切到「側欄清單」模式：圖上不再長子節點，改成在旁邊列出完整清單",
-       e2["subs"] == 0 and e2["list"] > 0, e2)
-    ok("側欄清單上的每一檔都是真的個股連結", bool(e2["href"]) and e2["href"].startswith("#stock/"), e2["href"])
-    ok("展開模式的鈕上寫得出現在是哪一種", "側欄" in (text(pg, "#cgExpandBtn") or ""), text(pg, "#cgExpandBtn"))
-    click(pg, "#cgExpandBtn", 1600)
-    e3 = pg.evaluate("""() => ({ subs: document.querySelectorAll('#cgGraph .cgnode.cgsub').length,
-        list: document.querySelectorAll('#cgList .cgls a.lk').length })""")
-    ok("切回「原地展開」真的回得去", e3["subs"] > 0 and e3["list"] == 0, e3)
+    # ---- 風格切換鈕在「篩選」面板裡，而且會記住
+    _cg_goto(pg, base)
+    pg.eval_on_selector("#cgFilterBtn", "e => e.click()"); pg.wait_for_timeout(600)
+    ok("按「篩選」真的打開面板（裡面有四種風格與環節色標）",
+       pg.evaluate("() => { const p = document.getElementById('cgFilterPop'); return !!p && !p.hidden; }")
+       and count(pg, "#cgStyles button") == 4 and count(pg, "#cgSegs .segchip") >= 8)
+    pg.click('#cgStyles button[data-style="circuit"]'); pg.wait_for_timeout(1500)
+    ok("在面板裡選一種風格真的換過去，而且記進 localStorage",
+       pg.evaluate("() => document.getElementById('cgGraph').dataset.cgstyle") == "circuit"
+       and pg.evaluate("() => { try { return localStorage.getItem('tw.cgStyle'); } catch (e) { return null; } }") == "circuit")
+    # 環節色標（舊 #segChips 的新家）在面板裡照樣篩得動
+    chip = pg.query_selector("#cgSegs .segchip:not(.nomem)")
+    if chip:
+        r0 = count(pg, "#memberTable tbody tr")
+        chip.click(); pg.wait_for_timeout(1100)
+        r1 = count(pg, "#memberTable tbody tr")
+        ok("在篩選面板裡點環節色標，成分股真的被篩", r1 < r0, f"{r0} → {r1}")
+        ok("而且圖上不屬於那一格的族群真的被壓暗",
+           pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length") > 0)
+        pg.click("#cgSegs .segchip.sel"); pg.wait_for_timeout(900)
+        ok("再點一次真的取消", count(pg, "#memberTable tbody tr") == r0)
+    pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
 
     # ---- ⑧ 成分股可以暫時覆蓋右側事件面板，關掉回復
-    # ⚠ 一定要 reload 不是 goto：只差 hash 的 goto 是**同文件導覽**，頁面不會重新載入，
-    #   所以 app.js 的 setSide 不會重跑，上面 390px 那一輪留下的 `.layout.noside` 會一路帶過來
-    #   （第一次跑就踩到：量到 aside 一開始就是 display:none，整段變成假紅）。
-    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {} }")
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
-    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(3000)
     W = """() => ({ aside: getComputedStyle(document.querySelector('aside')).display,
         w: Math.round(document.getElementById('memberTable').getBoundingClientRect().width),
         btn: (document.getElementById('memWide') || {}).textContent || '' })"""
@@ -16978,25 +17028,114 @@ def t_b25_graph(pg, base):
     w1 = pg.evaluate(W)
     ok("按「放寬」之後成分股表真的變寬，而且事件面板被蓋住",
        w1["w"] > w0["w"] + 100 and w1["aside"] == "none", f"{w0} → {w1}")
-    changed("鈕的字真的跟著換（看得出現在是放寬狀態）", w0["btn"], w1["btn"])
+    changed("鈕的字真的跟著換", w0["btn"], w1["btn"])
     click(pg, "#memWide", 1200)
     w2 = pg.evaluate(W)
     ok("再按一次真的還原（事件面板回來、寬度回到原本）",
        w2["aside"] != "none" and abs(w2["w"] - w0["w"]) <= 4, f"{w1} → {w2}")
-    # 換頁要自己還原，不可以把「暫時覆蓋」帶去別的頁
     click(pg, "#memWide", 1000)
     pg.goto(f"{base}#overview"); pg.wait_for_timeout(1400)
     ok("在別的頁面不會留著「成分股覆蓋事件面板」的狀態",
        pg.evaluate("() => !document.body.classList.contains('memwide')"
                    " && getComputedStyle(document.querySelector('aside')).display !== 'none'"))
 
+    # ---- ⑰⑱⑲⑳㉑ 第三版：工具列在圖內右下角、切換不跳頁首
+    t_b25_tools(pg, base)
+
     # ---- 效能：靜止時不可以有 rAF 在空轉（DECISIONS #245 剛踩過）
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2600)
     frames = pg.evaluate("""() => new Promise(res => { let n = 0; const t0 = performance.now();
         const tick = () => { n++; if (performance.now() - t0 < 900) requestAnimationFrame(tick); else res(n); };
         requestAnimationFrame(tick); })""")
-    ok("關聯圖靜止時沒有掛住瀏覽器（rAF 還跑得動，代表沒有在忙著重算佈局）",
-       frames >= 8, frames)
+    ok("關聯圖靜止時沒有把瀏覽器佔住（rAF 還跑得動）", frames >= 8, frames)
+
+
+# 工具列位置：量的是「離畫布右下角多遠」，不是絕對座標 ——
+# 2D 與 3D 的畫布高度本來就不一樣（SVG 是固定高、WebGL 吃剩餘欄寬），
+# 拿絕對座標比等於在比兩張不同大小的圖，那不是 Andy 要的「位置不准跳」。
+CG_TOOLS = """() => { const t = document.getElementById('dgTools'), b = document.getElementById('dgBody');
+  if (!t || !b) return null;
+  const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  if (!rt.width || !rb.width) return { vis: false };
+  return { vis: getComputedStyle(t).display !== 'none' && !t.hidden,
+           right: Math.round(rb.right - rt.right), bottom: Math.round(rb.bottom - rt.bottom),
+           qx: ((rt.left + rt.right) / 2 - rb.left) / rb.width,
+           qy: ((rt.top + rt.bottom) / 2 - rb.top) / rb.height,
+           inside: rt.left >= rb.left - 1 && rt.right <= rb.right + 1
+                && rt.top >= rb.top - 1 && rt.bottom <= rb.bottom + 1 }; }"""
+
+
+def t_b25_tools(pg, base):
+    """第三版：剖析圖工具列搬進圖內右下角、切換不跳回頁首（規格第三節 17～21）。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0');"
+                " localStorage.setItem('tw.side','0'); } catch (e) {} }")
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3000)
+
+    # ⑰ 四個寬度都要在右下 1/4、而且完整在容器內
+    for vw in (1440, 1100, 800, 390):
+        pg.set_viewport_size({"width": vw, "height": 950}); pg.wait_for_timeout(1500)
+        t = pg.evaluate(CG_TOOLS)
+        if not ok(f"{vw}px 找得到剖析圖工具列", bool(t) and t.get("vis"), t):
+            continue
+        ok(f"{vw}px 工具列在畫布內的右下角（中心落在右下 1/4）",
+           t["qx"] > 0.5 and t["qy"] > 0.5, {"qx": round(t["qx"], 2), "qy": round(t["qy"], 2)})
+        ok(f"{vw}px 工具列完整在容器內（沒有溢出）", t["inside"], t)
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1200)
+
+    # ⑱ 切 3D 之後位置不跳（量離右下角的距離）
+    t2d = pg.evaluate(CG_TOOLS)
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(3000)
+        t3d = pg.evaluate(CG_TOOLS)
+        ok("切到 3D 之後工具列還在同一個角落（離右下角的距離差 ≤ 4px）",
+           bool(t3d) and abs(t3d["right"] - t2d["right"]) <= 4 and abs(t3d["bottom"] - t2d["bottom"]) <= 4,
+           f"{t2d} → {t3d}")
+        pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(2000)
+    else:
+        notes.append("這個環境不支援 WebGL，「切 3D 工具列不跳位置」那一條跳過")
+
+    # ㉑ 收合之後工具列仍然在、仍然點得到（真的按一次把圖展開回來）
+    pg.eval_on_selector("#dgFold", "e => e.click()"); pg.wait_for_timeout(1200)
+    fold = pg.evaluate("""() => { const t = document.getElementById('dgTools'), b = document.getElementById('dgBody');
+        const r = t.getBoundingClientRect();
+        return { vis: getComputedStyle(t).display !== 'none' && r.width > 10 && r.height > 6,
+                 bodyHidden: getComputedStyle(b).display === 'none',
+                 btn: (document.getElementById('dgFold') || {}).textContent || '' }; }""")
+    ok("按「收合圖」之後圖真的收起來，但工具列還在、還看得到", fold["bodyHidden"] and fold["vis"], fold)
+    ok("而且鈕的字換成「展開剖析圖」", "展開" in fold["btn"], fold["btn"])
+    pg.eval_on_selector("#dgFold", "e => e.click()"); pg.wait_for_timeout(1400)
+    ok("再按一次真的把圖展開回來",
+       pg.evaluate("() => getComputedStyle(document.getElementById('dgBody')).display !== 'none'"))
+
+    # ⑲ 切圖別不跳頁首
+    n_chip = count(pg, "#dgPick .segchip")
+    if n_chip > 1:
+        pg.evaluate("() => window.scrollTo({ top: 420 })"); pg.wait_for_timeout(500)
+        y0 = pg.evaluate("() => Math.round(scrollY)")
+        h0 = pg.evaluate("() => location.hash")
+        pg.eval_on_selector("#dgPick .segchip:not(.sel)", "a => a.click()")
+        pg.wait_for_timeout(2000)
+        y1 = pg.evaluate("() => Math.round(scrollY)")
+        changed("切圖別，網址真的跟著換", h0, pg.evaluate("() => location.hash"))
+        ok("切圖別**不會**跳回頁首（scrollY 差 ≤ 8px）", abs(y1 - y0) <= 8, f"{y0} → {y1}")
+    else:
+        notes.append("這條鏈只有一張剖析圖，「切圖別不跳頁首」那一條跳過")
+
+    # ⑳ 換一條鏈仍然捲頁首（反向驗證：不是把捲動整個關掉）
+    pg.evaluate("() => window.scrollTo({ top: 600 })"); pg.wait_for_timeout(400)
+    ok("先把頁面捲下去（不然下面的『捲回頁首』不算數）",
+       pg.evaluate("() => Math.round(scrollY)") > 200, pg.evaluate("() => Math.round(scrollY)"))
+    pg.evaluate("() => { location.hash = '#industry/ai_server'; }")
+    pg.wait_for_timeout(2400)
+    ok("換一條鏈仍然捲回頁首（證明不是把捲動關掉）",
+       pg.evaluate("() => Math.round(scrollY)") <= 8, pg.evaluate("() => Math.round(scrollY)"))
+    pg.evaluate("() => window.scrollTo({ top: 600 })"); pg.wait_for_timeout(400)
+    pg.evaluate("() => { location.hash = '#overview'; }")
+    pg.wait_for_timeout(1600)
+    ok("換到別的分頁也仍然捲回頁首",
+       pg.evaluate("() => Math.round(scrollY)") <= 8, pg.evaluate("() => Math.round(scrollY)"))
 
 
 if __name__ == "__main__":

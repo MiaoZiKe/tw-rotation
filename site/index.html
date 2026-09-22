@@ -1930,7 +1930,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgsvg .cgdot.dim{opacity:.12}
 /* 族群大圓點 */
 .cgsvg .cgnode{cursor:pointer}
-.cgsvg .cghit{fill:transparent}   /* 看不見但吃得到滑鼠：小族群才點得準，四種風格共用同一個選擇器 */
+/* ★ 只有命中圈吃滑鼠，族群造型本身一律不吃。
+   星際風格的光暈 `.cgaura` 半徑是節點的 2.2 倍，會整片蓋在旁邊族群的個股小點上，
+   那幾顆小點就**點不下去**（Playwright 直接回 ".cgaura intercepts pointer events"，真人也一樣）。
+   造型全部關掉滑鼠之後，圖上真正可以點的東西只剩兩種：族群的命中圈、個股的小點。*/
+.cgsvg .cgnode *{pointer-events:none}
+.cgsvg .cghit{fill:transparent;pointer-events:auto}
+.cgsvg .cgstars,.cgsvg .cgbg{pointer-events:none}
 .cgsvg .cgnode.dim{opacity:.22}
 .cgsvg .cgball{fill:var(--c)}
 .cgsvg .cgaura{fill:var(--c);opacity:.14}
@@ -2088,6 +2094,27 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
+/* ---- 剖析圖工具列浮在畫布內右下角（Andy 2026-09-23：「這邊的功能都需要在圖內右下角」）----
+   為什麼掛在 `#dgSec` 而不是 `#dgBody`：按「收合圖」時 `#dgBody` 是 display:none，
+   工具列住在裡面會一起消失 —— 連「展開剖析圖」那顆鈕都不見，圖就再也開不回來。
+   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。*/
+#dgSec{position:relative}
+#dgTools{position:absolute;right:12px;bottom:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
+  justify-content:flex-end;max-width:calc(100% - 24px);
+  background:var(--dg-card-f,rgba(14,20,36,.66));backdrop-filter:var(--dg-card-blur,blur(8px));
+  border:1px solid var(--line-2);border-radius:11px;padding:5px 7px;
+  opacity:.75;transition:opacity .15s}
+#dgTools:hover,#dgTools:focus-within{opacity:1}
+#dgTools[hidden]{display:none}
+#dgSec.dgfold #dgTools{position:static;opacity:1;background:none;backdrop-filter:none;border:0;
+  padding:0;margin-top:8px;max-width:none}
+/* 窄畫面：貼底緣排成一列，可左右捲，不准溢出容器 */
+@media (max-width:800px){
+  #dgTools{left:12px;right:12px;bottom:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+    -webkit-overflow-scrolling:touch}
+  #dgTools .pill{flex:none}
+}
+
 </style>
 </head>
 <body>

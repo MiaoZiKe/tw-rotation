@@ -623,6 +623,7 @@
   // ---------------------------------------------------------------- 路由
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'themes', 'season', 'tasks'];
   const rendered = {};
+  let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -660,7 +661,17 @@
     let wide = true;
     try { const v = localStorage.getItem('tw.kwide'); if (v !== null) wide = v === '1'; } catch (e) { /* 忽略 */ }
     document.body.classList.toggle('kwide', head === 'stock' && wide);
-    window.scrollTo({ top: 0 });
+    /* ★ 2026-09-23（Andy：「每次切換族群不會一直跳到上面，還要再滑下來看」）。
+       根因就是這一行：路由**每換一次**就捲頁首，而「切圖別／換族群／換關聯圖中心」
+       都會改 hash → 觸發路由 → 整頁彈回最上面，使用者得再滑下來一次。
+       改成有條件：**同一頁內的切換保留捲動位置，換頁或換一條鏈才捲頁首**。
+       「同一頁」的定義＝hash 的頁面部分（第一段 ＋ 鏈 id／個股代號）一樣。
+       ⚠ 不是把捲動關掉：`#industry/semiconductor` → `#industry/ai_server` 仍然會捲，
+         `#flow` → `#overview` 也會 —— 驗收有一條就是反過來證明這件事。*/
+    const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : hd;
+    const key = pageKey(head, rest);
+    if (key !== _lastPageKey) window.scrollTo({ top: 0 });
+    _lastPageKey = key;
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
     if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }
