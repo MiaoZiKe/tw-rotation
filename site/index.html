@@ -1203,6 +1203,20 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lead3d .ld{fill:none;stroke:var(--line-2);stroke-width:1.1;opacity:.72}
 .lead3d .ld-dot{fill:none;stroke-width:1.4;opacity:.9}
 .dgwrap svg{display:block;width:100%;height:auto}
+/* ★★ 2026-09-22：`native`（DECISIONS #227）只設了 **min-width** ——
+   它擋的是「欄位太窄把圖壓小、字跟著縮」，**另一邊完全沒擋**：
+   svg 是 width:100%，欄位一變寬整張圖就跟著放大。
+
+   實測（1440 螢幕、MLCC）：
+     「今日事件」抽屜開著 → 欄寬  998 → 畫布  984×749
+     抽屜關掉           → 欄寬 1358 → 畫布 1344×1023   ← **放大 1.366 倍**
+   1920 只會更誇張。Andy 說「圖片及文字縮小一半…大小問題導致版面塞太滿」，
+   這就是那個大小問題的根因之一：**同一張圖會有好幾種尺寸，而且沒有上限。**
+
+   給 max-width 之後，不管欄位多寬都是固定 984 —— 那才是他要的「統一大小」。
+   ⚠ 只給 `.dgm`（產業鏈的量產剖析圖）。題材頁那幾張是 `.dg3`、畫布 1180 寬，
+     套上去會被縮成 0.834 倍、12px 的字變成 10px。 */
+.dgwrap svg.dgm{max-width:984px;margin-inline:auto}
 .dgwrap.compact svg{max-height:380px}
 .dgwrap.noanim *{animation:none!important}
 /* ---- 圖別選單（2026-09-21，Andy：「同個族群、為不同產品，則需要獨立分頁」）
