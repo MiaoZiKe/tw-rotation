@@ -10092,7 +10092,7 @@ SECTIONS = {
     "批次22-鋁電容":       lambda pg, b, base, code: t_e2_alumcap(pg, base),
     "批次22-保護元件":     lambda pg, b, base, code: t_e3_protect(pg, base),
     # DECISIONS #238：3D 的兩種模式（科技／閱讀）、材質不走環節色、玻璃機櫃、流線、爆炸拆解、響應式卡片欄
-    "3D風格兩模式":        lambda pg, b, base, code: t_dg3d_style(pg, base),
+    "3D風格兩模式":        lambda pg, b, base, code: (t_dg3d_style(pg, base), t_dg3d_pbr(pg, base)),
     # 批次22：剖析圖風格系統（兩種模式跟主題走、卡片／引線共用元件、對比度與字級逐元素量、v2 版面三個寬度）
     "批次22-風格系統":     lambda pg, b, base, code: t_style22(pg, base),
 }
@@ -16363,6 +16363,194 @@ def t_switch_v2(pg, base):
     ok(f"[{FEAT}] 點飛越纜線 → 小卡列連接器廠 3665，不是光通訊廠", bool(c3) and "3665" in c3["codes"] and "4979" not in c3["codes"], c3 and c3["codes"])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
+
+def _lab(rgb):
+    """sRGB(0~255) → CIE L*a*b*（D65）。只給 _de76 用。"""
+    def inv(c):
+        c = c / 255.0
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (inv(x) for x in rgb)
+    x = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+    y = (0.2126 * r + 0.7152 * g + 0.0722 * b)
+    z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+
+    def f(t):
+        return t ** (1.0 / 3.0) if t > 0.008856 else 7.787 * t + 16.0 / 116.0
+    fx, fy, fz = f(x), f(y), f(z)
+    return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
+
+
+def _de76(a, b):
+    """兩個 #rrggbb 的 CIE76 色差。算不出來回 -1（讓驗收看得出是「量不到」不是「很接近」）。"""
+    ra, rb = _hex2rgb(a), _hex2rgb(b)
+    if not ra or not rb:
+        return -1.0
+    la, lb = _lab(ra), _lab(rb)
+    return round(sum((p - q) ** 2 for p, q in zip(la, lb)) ** 0.5, 1)
+
+
+# 關／開文字標籤的開關（驗收第 1 條「關掉標籤還認得出七類」要真的關掉，而且要關得回來）
+_DG3D_NOLBL_ON = """() => { let st = document.getElementById('dg3dNoLbl');
+  if (!st) { st = document.createElement('style'); st.id = 'dg3dNoLbl'; document.head.appendChild(st); }
+  st.textContent = '.lbl3d,.lead3d{display:none!important}'; }"""
+_DG3D_NOLBL_OFF = """() => { const st = document.getElementById('dg3dNoLbl'); if (st) st.textContent = ''; }"""
+
+DG3D_AUDIT = """() => { const v = window.Rack3D.current;
+  const a = v.audit ? v.audit() : null, st = v.stats();
+  const host = document.getElementById('prodDiagram'), h3 = document.getElementById('prod3d');
+  const hr = h3 ? h3.getBoundingClientRect() : null;
+  const cardsOut = hr ? [...h3.querySelectorAll('.lbl3d')].filter(c => !c.classList.contains('hid'))
+      .filter(c => { const b = c.getBoundingClientRect();
+        return b.width > 1 && (b.left < hr.left - 1 || b.right > hr.right + 1); }).map(c => c.dataset.dgno) : [];
+  /* ★ 量「誰會捲」要量對東西：3D 開著的時候 #prodDiagram 是 hidden（scrollWidth 一律 0），
+     量它等於沒量。真正會捲的是 3D 畫布本身（#prod3d）與它的外層（#dgBody），
+     而且要順便確認 #prodDiagram 的 overflow-x **沒有**被 native 那條規則設成 auto。*/
+  const body = document.getElementById('dgBody') || (h3 ? h3.parentElement : null);
+  const br = body ? body.getBoundingClientRect() : null;
+  return { audit: a, mats: v.mats(), calls: st.drawCalls, tris: st.triangles,
+    scrollW: h3 ? h3.scrollWidth : 0, clientW: h3 ? h3.clientWidth : 0,
+    bodyScrollW: body ? body.scrollWidth : 0, bodyClientW: body ? body.clientWidth : 0,
+    /* ★ 量的是 **inline** 的 overflow-x（applyDgNative 寫的那一個），不是 computed ——
+       窄畫面的 `.dgwrap{overflow-x:auto}` 是 CSS 媒體查詢給 **2D** 的規則，
+       而 3D 開著時 #prodDiagram 本來就是 hidden，那條規則碰不到 3D。*/
+    dgInlineOx: host ? host.style.overflowX : '',
+    dgHidden: host ? !!host.hidden : null,
+    sticksOut: !!(br && hr && (hr.right > br.right + 1 || hr.left < br.left - 1)),
+    pageW: document.documentElement.scrollWidth, pageC: document.documentElement.clientWidth,
+    cardsOut: cardsOut, hostW: h3 ? Math.round(hr.width) : 0 }; }"""
+
+
+def t_dg3d_pbr(pg, base):
+    """DECISIONS #244：環境貼圖、真陰影、收透明、七類模組配色、效能、3D 不橫向捲動。
+
+    這一段驗的全部是「畫面真的因此改變」：
+      ① 關掉 .lbl3d 之後，七類模組的代表色兩兩 ΔE76 ≥ 25（關掉標籤仍然認得出來）
+      ② scene.environment 不是 null、而且至少一顆零件 metalness ≥ .8（證明上限真的解除了）
+      ③ renderer.shadowMap.enabled、castShadow 的 mesh 數落在 [5, 60]
+      ④ 「沒有選取」的靜止狀態下，半透明 mesh ≤ 25%
+      ⑤ 三角形／draw call 在上限內
+      ⑥ 四個寬度下 #prodDiagram 不橫向捲動、卡片完整落在 #prod3d 內
+    """
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    if not pg.evaluate("() => !!window.Rack3D"):
+        notes.append("這個環境載不到 Rack3D（WebGL？），3D PBR 整段跳過")
+        return
+
+    for nice, (route, cmax, tmax) in L3_ROUTES.items():
+        if not _l1_open(pg, base, route):
+            notes.append(f"{nice}：3D 掛不起來（WebGL？），這一張跳過")
+            continue
+        for pal in ("tech", "read"):
+            pg.evaluate("(x) => window.Rack3D.current.setPal(x)", pal)
+            pg.wait_for_timeout(500)
+            lab = "科技" if pal == "tech" else "閱讀"
+            # ---- 先點背景把選取清掉：透明比例要量的是「靜止狀態」，
+            #      不是「選了一個環節、其餘淡到 0.12」那個狀態（那是高亮，不是設計）
+            bg = pg.evaluate(_L1_BG)
+            if bg:
+                pg.mouse.click(bg["x"], bg["y"])
+                pg.wait_for_timeout(500)
+            z = pg.evaluate(DG3D_AUDIT)
+            a = z["audit"]
+            if not ok(f"[{nice}／{lab}] audit() 量得到（env／陰影／透明比例）", bool(a), a):
+                continue
+
+            # ---------------- ② 環境貼圖：金屬才會是金屬
+            ok(f"[{nice}／{lab}] ★ scene.environment 真的掛上了環境貼圖（沒有它 PBR 金屬只會變暗灰）",
+               a["env"] is True, a)
+            ok(f"[{nice}／{lab}] envMapIntensity 是模式自己的值（--dg-env），不是寫死的 1",
+               a["envIntensity"] > 0, a["envIntensity"])
+            ok(f"[{nice}／{lab}] ★ metalness 的上限真的解除了：至少一顆零件 ≥ .8（現在 {a['maxMetal']}）",
+               a["maxMetal"] >= 0.8, a["maxMetal"])
+
+            # ---------------- ③ 真陰影
+            ok(f"[{nice}／{lab}] ★ renderer.shadowMap 真的開著（不是只有底下那片 sprite）",
+               a["shadowMap"] is True, a)
+            ok(f"[{nice}／{lab}] castShadow 的 mesh 數在 [5, 60]（太多＝效能會爆，太少＝等於沒做）：{a['castShadow']}",
+               5 <= a["castShadow"] <= 60, a["castShadow"])
+            ok(f"[{nice}／{lab}] 有接收陰影的面（不然影子沒地方落）：{a['receiveShadow']}",
+               a["receiveShadow"] >= 3, a["receiveShadow"])
+
+            # ---------------- ④ 收透明
+            # ★ 量的是 **designRatio**（baseOp：沒有選取時該有的不透明度），不是當下的 opacity。
+            #   高亮會把「沒被選到的環節」壓到 0.12（#238），而多環節場景一進來就有選取 ——
+            #   量 opacity 會得到 68.5% 的假數字，那是**高亮狀態**不是設計（2026-09-22 實際踩到）。
+            ratio = a.get("designRatio", a["transRatio"])
+            ok(f"[{nice}／{lab}] ★ 設計上半透明的 mesh 佔比 ≤ 25%"
+               f"（{a.get('designTrans')}/{a.get('designTotal')} ＝ {ratio:.1%}；"
+               f"當下含高亮淡出的是 {a['transparent']}/{a['meshTotal']}）",
+               ratio <= 0.25, a)
+
+            # ---------------- ⑤ 效能
+            tm, cm = DG3D_PERF.get(nice, (tmax, cmax))
+            ok(f"[{nice}／{lab}] 三角形 ≤ {tm}（{z['tris']}）", 0 < z["tris"] <= tm, z["tris"])
+            ok(f"[{nice}／{lab}] draw call ≤ {cm}（{z['calls']}）", 0 < z["calls"] <= cm, z["calls"])
+
+            # ---------------- ① 七類模組：關掉標籤還認得出來（只有機櫃場景七類齊全）
+            if nice == "ai_server":
+                # 用一個具名的 <style> 當開關：關完要能「真的把那條規則拿掉」——
+                # 再補一條 display:revert!important 會連卡片原本的 display 一起改掉（版面跟著變）
+                pg.evaluate(_DG3D_NOLBL_ON)
+                pg.wait_for_timeout(350)
+                gone = pg.evaluate("""() => [...document.querySelectorAll('.lbl3d')]
+                    .filter(c => c.getBoundingClientRect().width > 1).length""")
+                ok(f"[{nice}／{lab}] 標籤真的關掉了（畫面上一張卡片都看不到）", gone == 0, gone)
+                m2 = {m["part"]: m["now"] for m in pg.evaluate(DG3D_AUDIT)["mats"]}
+                cols = {}
+                miss = []
+                for cls, part in DG3D_MODULES.items():
+                    c = m2.get(part)
+                    if c:
+                        cols[cls] = c
+                    else:
+                        miss.append((cls, part))
+                if ok(f"[{nice}／{lab}] 七類模組的代表零件都在場景裡", not miss, miss):
+                    ks = list(cols)
+                    pairs = [(_de76(cols[ks[i]], cols[ks[j]]), ks[i], ks[j])
+                             for i in range(len(ks)) for j in range(i + 1, len(ks))]
+                    pairs.sort()
+                    same = [(x, y) for d, x, y in pairs if d <= 0.5]
+                    ok(f"[{nice}／{lab}] ★ 沒有任何兩類模組是同一個顏色", not same, same[:3])
+                    worst = pairs[0] if pairs else (0, "", "")
+                    ok(f"[{nice}／{lab}] ★ 關掉標籤：七類模組兩兩色差 ΔE76 ≥ {DG3D_DE_MIN}"
+                       f"（最接近的是 {worst[1]}／{worst[2]} ΔE={worst[0]}）",
+                       bool(pairs) and worst[0] >= DG3D_DE_MIN,
+                       {"色": cols, "最接近的三組": pairs[:3]})
+                # 把標籤放回去（下一輪還要量卡片有沒有出框）：清掉那條規則，不是再蓋一條
+                pg.evaluate(_DG3D_NOLBL_OFF)
+                pg.wait_for_timeout(300)
+
+    # ---------------- ⑥ 四個寬度：不橫向捲動、卡片完整在容器內
+    for nice, (route, _c, _t) in L3_ROUTES.items():
+        for w in (1440, 1100, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            if not _l1_open(pg, base, route):
+                notes.append(f"[{w}px] {nice} 3D 掛不起來，版面那一條跳過")
+                continue
+            pg.wait_for_timeout(900)
+            z = pg.evaluate(DG3D_AUDIT)
+            ok(f"[{nice} {w}px] ★ 3D 畫布本身不橫向捲動：scrollWidth {z['scrollW']} ≤ clientWidth {z['clientW']}",
+               z["scrollW"] <= z["clientW"] + 1, z)
+            ok(f"[{nice} {w}px] ★ 3D 區塊的外層不橫向捲動（卡片不會被捲到畫面外）"
+               f"：{z['bodyScrollW']} ≤ {z['bodyClientW']}",
+               z["bodyScrollW"] <= z["bodyClientW"] + 1, z)
+            ok(f"[{nice} {w}px] ★ 3D 開著時 applyDgNative 沒有把「原尺寸左右滑」套到 3D 上"
+               f"（inline overflow-x = {z['dgInlineOx']!r}）",
+               z["dgInlineOx"] != "auto", z)
+            ok(f"[{nice} {w}px] 3D 開著時 2D 外框是收起來的（所以它的捲動規則碰不到 3D）",
+               z["dgHidden"] is True, z["dgHidden"])
+            ok(f"[{nice} {w}px] 3D 畫布沒有凸出它的容器", not z["sticksOut"], z)
+            ok(f"[{nice} {w}px] ★ 每一張卡片都完整落在 3D 容器內（不會被切一半）",
+               not z["cardsOut"], z["cardsOut"][:5])
+            ok(f"[{nice} {w}px] 3D 畫布真的吃到欄寬（不是縮成一小塊）：{z['hostW']}px",
+               z["hostW"] >= min(300, w - 90), z["hostW"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
 if __name__ == "__main__":

@@ -1070,11 +1070,23 @@
      樣式直接寫成 inline，不走 CSS —— site/index.html 現在有別的 agent 在改，不碰它。*/
   function applyDgNative(host, id) {
     if (!host) return;
-    const w = (DS && DS.native) ? DS.native(id) : 0;
+    /* ★ 2026-09-22（Andy 的「圖二」：3D 的卡片被切掉、要左右滑才看得到）。
+       「圖以原尺寸顯示、放不下時左右滑」這條規則是給 **2D** 的 —— 2D 的字不能縮，
+       所以寧可讓它超出欄寬。但 **3D 沒有「原尺寸」這回事**：它是 WebGL，
+       相機可以退、畫布寬度就該吃剩下的欄寬。把 native 的橫向捲動套到 3D 上，
+       等於讓一個本來就塞得進去的東西去捲，卡片就被捲到畫面外。
+       3D 開著的時候（#prod3d 沒有 hidden）一律不給橫向捲動。*/
+    const host3 = document.getElementById('prod3d');
+    const on3d = !!(host3 && !host3.hidden);
+    // 記住這張圖的 id：切 2D／3D 時要重套一次，那時候只拿得到 DOM
+    if (id) host.dataset.dgid = id; else id = host.dataset.dgid || '';
+    const w = (!on3d && DS && DS.native) ? DS.native(id) : 0;
     const svg = host.querySelector('svg');
     host.style.overflowX = w ? 'auto' : '';
     host.style.overflowY = w ? 'hidden' : '';
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
+    // 3D 畫布永遠不准比容器寬（它自己會依 clientWidth 取景，撐寬只會產生橫向捲動）
+    if (host3) { host3.style.maxWidth = '100%'; host3.style.overflowX = 'hidden'; }
     /* ★ 2026-09-21（art-director 複驗 C）：手機寬展開之後，看得到的是**左欄**，
        主角（等角切開的本體）整個在畫面外 —— 讀者第一眼看到的是尺寸表而不是那顆電容。
        欄寬窄到一定程度（不到原尺寸的 62%）就先把捲軸捲到圖的正中央，
@@ -1267,6 +1279,10 @@
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
       svg.hidden = on; host.hidden = !on;     // dgPal 不跟著 3D 開關（2D 也要能換配色）
+      /* 切換 2D／3D 之後重套一次「原尺寸」規則：native 的橫向捲動只給 2D，
+         3D 一律不捲（見 applyDgNative 的註解）。不重套的話切回 2D 會少掉捲動、
+         切到 3D 又會留著上一輪的 overflow 設定。*/
+      applyDgNative(svg, svg.dataset.dgid || '');
       if (!on) { dispose3D(); note.hidden = true; sync(); return; }
       note.hidden = false;
       note.textContent = '載入 3D 中…';
