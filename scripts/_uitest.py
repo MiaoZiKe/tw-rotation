@@ -16684,20 +16684,32 @@ CG_METRICS = """() => {
   const st = h.querySelector('.cgstage'); if (!st) return null;
   const k = new DOMMatrix(getComputedStyle(st).transform).a;
   const r = h.getBoundingClientRect();
+  /* 「撐滿」與「置中」量的是**可用區域**，不是整塊畫布：
+     左上的標題、右上的搜尋列、左下的圖例、右下的縮放鈕是疊在畫布上的 UI，
+     那幾條邊被佔掉的地方不是「空白」，節點也不該長到它們底下（會被蓋住看不到）。
+     前端把這四條邊的厚度寫在 #cgGraph 的 data-inset（上,右,下,左）。*/
+  const ins = (h.dataset.inset || '0,0,0,0').split(',').map(Number);
+  const inner = { left: r.left + ins[3], top: r.top + ins[0],
+                  right: r.right - ins[1], bottom: r.bottom - ins[2] };
+  inner.width = inner.right - inner.left; inner.height = inner.bottom - inner.top;
   const els = [...h.querySelectorAll('.cgnode, .cglab, .cgdot')];
   if (!els.length) return { n: 0 };
-  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, out = 0;
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, out = 0, covered = 0;
+  const ui = [...h.querySelectorAll('.cghd, .cgtop, .cglegend, .cgzoom')]
+    .filter(e => !e.hidden).map(e => e.getBoundingClientRect());
   els.forEach(e => { const b = e.getBoundingClientRect();
     x0 = Math.min(x0, b.left); y0 = Math.min(y0, b.top);
     x1 = Math.max(x1, b.right); y1 = Math.max(y1, b.bottom);
-    if (b.left < r.left - 1 || b.right > r.right + 1 || b.top < r.top - 1 || b.bottom > r.bottom + 1) out++; });
+    if (b.left < r.left - 1 || b.right > r.right + 1 || b.top < r.top - 1 || b.bottom > r.bottom + 1) out++;
+    if (ui.some(u => b.left < u.right - 2 && u.left < b.right - 2
+                  && b.top < u.bottom - 2 && u.top < b.bottom - 2)) covered++; });
   const labs = [...h.querySelectorAll('.cglab')];
   return { nodes: h.querySelectorAll('.cgnode').length, dots: h.querySelectorAll('.cgdot').length,
-           out: out, scale: +k.toFixed(3),
-           fillW: +(((x1 - x0) / r.width) * 100).toFixed(1),
-           fillH: +(((y1 - y0) / r.height) * 100).toFixed(1),
-           dx: +(((x0 + x1) / 2 - (r.left + r.right) / 2) / r.width * 100).toFixed(2),
-           dy: +(((y0 + y1) / 2 - (r.top + r.bottom) / 2) / r.height * 100).toFixed(2),
+           out: out, covered: covered, scale: +k.toFixed(3), inset: h.dataset.inset,
+           fillW: +(((x1 - x0) / inner.width) * 100).toFixed(1),
+           fillH: +(((y1 - y0) / inner.height) * 100).toFixed(1),
+           dx: +(((x0 + x1) / 2 - (inner.left + inner.right) / 2) / inner.width * 100).toFixed(2),
+           dy: +(((y0 + y1) / 2 - (inner.top + inner.bottom) / 2) / inner.height * 100).toFixed(2),
            minLabPx: +(Math.min.apply(null, labs.map(e => parseFloat(getComputedStyle(e).fontSize))) * k).toFixed(2),
            edges: h.querySelectorAll('.cgsvg path.cge').length };
 }"""
@@ -16834,6 +16846,7 @@ def t_b25_graph(pg, base):
         ok(f"{vw}px 置中（外接盒中心與畫布中心差 ≤ 2%）",
            bool(m) and abs(m["dx"]) <= 2 and abs(m["dy"]) <= 2, m)
         ok(f"{vw}px 節點與族群名一個都沒有被畫布切掉", bool(m) and m["out"] == 0, m)
+        ok(f"{vw}px 沒有節點或族群名被標題／圖例／工具列蓋住", bool(m) and m["covered"] == 0, m)
         ok(f"{vw}px 族群名（乘過縮放）≥ 11px", bool(m) and m["minLabPx"] >= 11, m)
         ok(f"{vw}px 沒有橫向捲軸",
            pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
@@ -16957,10 +16970,10 @@ def t_b25_graph(pg, base):
             "rows": count(pg, "#memberTable tbody tr"), "before": rows0})
 
     # ---- 搜尋框真的篩（不是擺著好看）
-    pg.fill("#cgSearch", "台積電"); pg.wait_for_timeout(900)
+    pg.fill("#cggSearch", "台積電"); pg.wait_for_timeout(900)
     dim = pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length")
     ok("在搜尋框打字，不相干的族群真的被壓暗", 0 < dim < m0["nodes"], f"{dim}/{m0['nodes']}")
-    pg.fill("#cgSearch", ""); pg.wait_for_timeout(700)
+    pg.fill("#cggSearch", ""); pg.wait_for_timeout(700)
     ok("清掉搜尋字，壓暗真的解除",
        pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length") == 0)
 

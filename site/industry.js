@@ -1769,11 +1769,11 @@
       + '<div class="cgt2">拖曳節點・滾輪縮放・點選查看關聯</div>'
       + '<div class="cgscope"><span class="chip" id="cgScope">' + A.fmt.esc(chainName)
       + '<button type="button" id="cgScopeX" title="回到產業地圖">×</button></span></div></div>'
-      + '<div class="cgtop"><label class="cgsearch"><span>⌕</span>'
-      + '<input id="cgSearch" type="search" placeholder="搜尋產業或公司" autocomplete="off"></label>'
+      + '<div class="cgtop"><label class="cggsearch"><span>⌕</span>'
+      + '<input id="cggSearch" type="search" placeholder="搜尋產業或公司" autocomplete="off"></label>'
       + '<button class="cgbtn" id="cgFilterBtn" type="button">篩選</button>'
       + '<button class="cgbtn" id="cgResetBtn" type="button">重設視角</button></div>'
-      + '<div class="cgpop" id="cgFilterPop" hidden>'
+      + '<div class="cggpop" id="cgFilterPop" hidden>'
       + '<h6>風格</h6><div class="cgstyles" id="cgStyles">'
       + CG_STYLES.map((s, i) => '<button type="button" data-style="' + s + '"><b>0' + (i + 1) + ' '
           + CG_STYLE_NAME[s] + '</b><span>' + CG_STYLE_SLOGAN[s] + '</span></button>').join('')
@@ -1837,18 +1837,40 @@
         n.el.style.top = Math.round(n.y - n.lh / 2) + 'px'; });
     }
 
+    /* 疊在畫布上的標題、搜尋列、圖例、縮放鈕會蓋住節點 —— 390px 上「產業關聯圖」那一行
+       直接壓在兩顆族群的名字上。所以佈局只能用「扣掉這些東西之後剩下的那一塊」，
+       而且是**量出來的**不是寫死的：手機上搜尋列會換到底部、圖例會換行，寫死一定會算錯。*/
+    function inset() {
+      const r = host.getBoundingClientRect();
+      const pad = { t: 10, r: 12, b: 10, l: 12 };
+      const seen = (sel) => { const e = $(sel, host); if (!e || e.hidden) return null;
+        const b = e.getBoundingClientRect(); return b.width > 0 && b.height > 0 ? b : null; };
+      ['.cghd', '.cgtop'].forEach(sel => { const b = seen(sel); if (!b) return;
+        // 它貼在上緣還是下緣？用中心點在哪一半判斷（手機上 .cgtop 會搬到底部）
+        if ((b.top + b.bottom) / 2 < (r.top + r.bottom) / 2) pad.t = Math.max(pad.t, b.bottom - r.top + 10);
+        else pad.b = Math.max(pad.b, r.bottom - b.top + 10);
+      });
+      ['.cglegend', '.cgzoom'].forEach(sel => { const b = seen(sel); if (!b) return;
+        pad.b = Math.max(pad.b, r.bottom - b.top + 10);
+      });
+      // 上下加起來不准吃掉超過六成的高度，不然節點會被擠成一條線
+      const maxSide = (r.height || 400) * 0.3;
+      pad.t = Math.min(pad.t, maxSide); pad.b = Math.min(pad.b, maxSide);
+      return pad;
+    }
+    let IN = { t: 10, r: 12, b: 10, l: 12 };
     /* ---- 「不可留太多空白」：把節點之間的距離整體放大，讓外接盒撐到畫布的 ~90%。
        只動座標、不動節點大小 —— 放大只會把間距拉開，不可能製造出新的重疊。
        迭代三次是因為外接盒含節點半徑，不是線性關係，一次乘不到位。*/
     function fill() {
-      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
+      const cw = (host.clientWidth || 800) - IN.l - IN.r, chh = (host.clientHeight || 520) - IN.t - IN.b;
       /* ★ 兩軸**各自**放大，不是等比例。等比例的話短邊一撐滿就停手，長邊永遠留一大片空白 ——
          實測 998×627 的畫布上，等比例只撐到 464×560（寬度 46%），左右各空掉四分之一。
          只放大、不縮小：把節點之間的距離拉開只會讓間距變大，不可能製造出新的重疊。*/
       for (let t = 0; t < 4; t++) {
         const bb = bbox();
         if (bb.w < 1 || bb.h < 1) return;
-        const kx = Math.max(1, 0.92 * cw / bb.w), ky = Math.max(1, 0.92 * chh / bb.h);
+        const kx = Math.max(1, 0.96 * cw / bb.w), ky = Math.max(1, 0.96 * chh / bb.h);
         if (kx < 1.005 && ky < 1.005) return;
         const cx0 = bb.x + bb.w / 2, cy0 = bb.y + bb.h / 2;
         nodes.forEach(n => { n.x = cx0 + (n.x - cx0) * kx; n.y = cy0 + (n.y - cy0) * ky; });
@@ -1867,7 +1889,11 @@
       host.style.height = '';                     // 先回到 CSS 的高度再量（不然會愈長愈高）
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       sizes(); paintLabels();
-      LW = cw; LH = chh;
+      IN = inset();
+      /* 把「疊在畫布上的 UI 佔掉哪幾條邊」寫到 dataset：
+         驗收要量「撐滿度」時得知道可用區域是哪一塊 —— 被標題與圖例佔掉的地方不算空白。*/
+      host.dataset.inset = [IN.t, IN.r, IN.b, IN.l].map(v => Math.round(v)).join(',');
+      LW = Math.max(120, cw - IN.l - IN.r); LH = Math.max(120, chh - IN.t - IN.b);
       cgLayout(nodes, links, LW, LH, { keep: !!keep, pin: keep && centerId ? byId[centerId] : null });
       /* 還有節點疊在一起就把**版面高度**放大再算一次（寬度動不得 —— 動了就會橫向溢出，
          而橫向拖是最不直覺的手勢）。*/
@@ -1880,7 +1906,7 @@
          上限 1000px：再高就真的變成「上下框度太長」。*/
       {
         const bb0 = bbox();
-        const need = Math.ceil(bb0.h) + 26;
+        const need = Math.ceil(bb0.h) + IN.t + IN.b + 16;
         if (need > host.clientHeight + 8) host.style.height = Math.min(1000, need) + 'px';
       }
       fill(); paint(); fit();
@@ -1990,7 +2016,9 @@
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       const bb = bbox();
       scale = 1;
-      tx = cw / 2 - (bb.x + bb.w / 2); ty = chh / 2 - (bb.y + bb.h / 2);
+      // 對的是「中間那一塊」的中心，不是整個畫布的中心（上面被標題吃掉一截、下面被圖例吃掉一截）
+      tx = IN.l + (cw - IN.l - IN.r) / 2 - (bb.x + bb.w / 2);
+      ty = IN.t + (chh - IN.t - IN.b) / 2 - (bb.y + bb.h / 2);
       apply(); placeTip();
     }
     function zoomBy(k) {
@@ -2088,7 +2116,7 @@
     host.addEventListener('click', (e) => {
       if (swallow) { swallow = false; e.preventDefault(); e.stopPropagation(); return; }
       if (Date.now() - lastPointerAt < 400) return;      // 滑鼠那一路已經處理過了
-      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const dot = dotAt(e.target);
       if (dot) { pickStock(dot.dataset.gid, dot.dataset.code); return; }
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
@@ -2096,7 +2124,11 @@
       if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     }, true);
     host.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      /* ★ 新手勢開始，先把上一次拖曳留下的「吞掉下一個 click」清掉。
+         不清的話：拖過一顆節點之後，右下角的「＋」、篩選面板裡的風格與環節色標
+         全部會變成「按了沒反應」—— 因為那一下被當成拖曳的尾巴吞掉了。*/
+      swallow = false;
+      if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
       const dot0 = dotAt(e.target);
       drag = { gid: gid, code: dot0 ? dot0.dataset.code : null, dotGid: dot0 ? dot0.dataset.gid : null,
@@ -2124,7 +2156,7 @@
       if (d.moved) { swallow = true; return; }
       if (d.code) { pickStock(d.dotGid || d.gid, d.code); return; }
       if (d.gid) { pickGroup(d.gid); return; }
-      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     });
     host.addEventListener('wheel', (e) => {
@@ -2162,7 +2194,7 @@
     const rbtn = $('#cgResetBtn', host);
     if (rbtn) rbtn.onclick = () => {
       centerId = null; view.hop = 1; CG_RELS.forEach(r => (view.rel[r] = true));
-      query = ''; const sf = $('#cgSearch', host); if (sf) sf.value = '';
+      query = ''; const sf = $('#cggSearch', host); if (sf) sf.value = '';
       selKind = selId = selCode = null;
       relayout(false); paintPanel();
     };
@@ -2170,7 +2202,7 @@
     if (zi) zi.onclick = () => zoomBy(1.25);
     if (zo) zo.onclick = () => zoomBy(1 / 1.25);
     if (fb) fb.onclick = () => fit();
-    const sfi = $('#cgSearch', host);
+    const sfi = $('#cggSearch', host);
     if (sfi) sfi.oninput = () => { query = (sfi.value || '').trim().toLowerCase(); paint(); };
 
     function setStyle(s) {

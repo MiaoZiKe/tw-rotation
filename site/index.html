@@ -1893,7 +1893,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    ★ 自訂屬性裡寫 `var(--c)` 是在**宣告它的那個元素**上求值，不是在用它的地方。
      所以凡是要吃族群色的，一律寫成 `.cgraph[data-cgstyle=…] .cgnode{…}` 這種掛在節點上的規則，
      不可以塞進 `.cgraph` 的 token（第一版踩過：泡泡風格的節點整片變白，顏色一顆都沒出現）。*/
-.cgsec{margin-top:14px}
+/* 這一整塊不准把整頁撐寬。1100px 上量到過整頁 1116（多 16px），
+   而橫向捲軸是 Andy 抱怨過好幾次的東西 —— 與其追是哪一個子元素，直接把上限釘死。*/
+.cgsec{margin-top:14px;max-width:100%;min-width:0}
+.cgsec .chainrow{max-width:100%;min-width:0}
+.cgpane,.cgpanel,.cgraph{max-width:100%}
 .cgwrap{align-items:stretch}
 .cgpane{flex:1 1 620px;min-width:0}
 .cgpanel{flex:0 0 288px;min-width:0;background:var(--panel-2);border:1px solid var(--line-2);
@@ -1959,19 +1963,19 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   line-height:1;padding:0}
 .cgtop{position:absolute;right:12px;top:12px;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
   justify-content:flex-end;max-width:calc(100% - 24px)}
-.cgsearch{display:inline-flex;align-items:center;gap:6px;background:var(--cg-hud);
+.cggsearch{display:inline-flex;align-items:center;gap:6px;background:var(--cg-hud);
   border:1px solid var(--cg-hud-line);border-radius:9px;padding:5px 10px}
-.cgsearch span{color:var(--cg-ink-3);font-size:14px}
-.cgsearch input{border:0;background:none;color:var(--cg-ink);font:inherit;font-size:12.5px;width:150px;outline:none}
+.cggsearch span{color:var(--cg-ink-3);font-size:14px}
+.cggsearch input{border:0;background:none;color:var(--cg-ink);font:inherit;font-size:12.5px;width:150px;outline:none}
 .cgbtn{display:inline-flex;align-items:center;gap:5px;background:var(--cg-hud);color:var(--cg-ink);
   border:1px solid var(--cg-hud-line);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer}
 .cgbtn:hover,.cgbtn.on{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
-.cgpop{position:absolute;right:12px;top:52px;z-index:6;width:min(340px,calc(100% - 24px));
+.cggpop{position:absolute;right:12px;top:52px;z-index:6;width:min(340px,calc(100% - 24px));
   max-height:calc(100% - 70px);overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);
   border-radius:11px;padding:10px 12px 12px;box-shadow:0 18px 40px -20px var(--drop)}
-.cgpop[hidden]{display:none}
-.cgpop h6{font-size:12px;color:var(--ink-3);margin:8px 0 6px;font-weight:600}
-.cgpop h6 small{font-weight:400}
+.cggpop[hidden]{display:none}
+.cggpop h6{font-size:12px;color:var(--ink-3);margin:8px 0 6px;font-weight:600}
+.cggpop h6 small{font-weight:400}
 .cgstyles{display:grid;gap:6px}
 .cgstyles button{text-align:left;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;
   padding:6px 9px;cursor:pointer;color:var(--ink-2)}
@@ -2088,7 +2092,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgraph{height:clamp(470px,78vh,680px)}
   .cghd .cgt1{font-size:16px} .cghd .cgt1 small{display:block;margin:2px 0 0}
   .cgtop{left:12px;right:12px;top:auto;bottom:52px;justify-content:flex-start}
-  .cgsearch input{width:96px}
+  .cggsearch input{width:96px}
   .cglegend{bottom:12px;max-width:calc(100% - 92px);gap:6px 8px}
   .cglab{font-size:12px;max-width:110px}
   .cgtip{width:min(230px,calc(100% - 16px))}
