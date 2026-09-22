@@ -1921,24 +1921,26 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   overflow:hidden;text-overflow:ellipsis;min-width:0;border:0;padding:0;background:none}
 .cgnode .cgt a.lk i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);
   margin-right:5px;vertical-align:middle}
-.cgnode .cgm{display:flex;align-items:baseline;gap:6px;margin-top:2px;font-family:var(--mono);font-size:11.5px;
+/* 字級下限：節點會被 fit() 縮到最小 0.92 倍，所以**基準不得小於 12px**
+   （12 × 0.92 ＝ 11.04px）。11.5px 會變成 10.6px，在手機上讀不出來。*/
+.cgnode .cgm{display:flex;align-items:baseline;gap:6px;margin-top:2px;font-family:var(--mono);font-size:12px;
   white-space:nowrap;overflow:hidden}
-.cgnode .cgm .chg{font-weight:700;font-size:12.5px}
+.cgnode .cgm .chg{font-weight:700;font-size:13px}
 .cgnode .cgm .sh{color:var(--ink-3)}
 /* 標籤式個股：Default 只列代號，點節點才展開成完整清單 */
 .cgnode .cgtags{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
-.cgnode .cgtags a.lk,.cgnode .cgtags .cgmore{font-family:var(--mono);font-size:11px;line-height:1.5;
+.cgnode .cgtags a.lk,.cgnode .cgtags .cgmore{font-family:var(--mono);font-size:12px;line-height:1.5;
   padding:0 4px;border-radius:5px;background:var(--cg-tag);border:1px solid var(--cg-tagline);
   color:var(--ink-2);white-space:nowrap}
-.cgnode .cgtags a.lk .code{font-size:11px;color:inherit}
+.cgnode .cgtags a.lk .code{font-size:12px;color:inherit}
 .cgnode .cgtags a.lk .nm{display:inline-block;max-width:66px;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;vertical-align:bottom}
 .cgnode .cgtags a.lk:hover{color:var(--ink);border-color:var(--c)}
 .cgnode .cgtags .cgmore{cursor:pointer;color:var(--ink-3)}
 /* 展開之後長出來的個股子節點（「原地展開」模式） */
 .cgnode.cgsub{padding:3px 7px 4px;border-radius:var(--cg-subr,9px)}
-.cgnode.cgsub .cgt a.lk{font-size:12px;font-weight:600}
-.cgnode.cgsub .cgm{font-size:11px;margin-top:1px}
+.cgnode.cgsub .cgt a.lk{font-size:13px;font-weight:600}
+.cgnode.cgsub .cgm{font-size:12px;margin-top:1px}
 /* 連線 */
 .cgedges path{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.5);
   stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
@@ -1962,6 +1964,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgnote .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
 .cgnote .src{font-size:11.5px;color:var(--ink-3);margin-top:6px}
 .cgnote .empty{color:var(--ink-3)}
+.cgsec .chainrow>.chainpane{flex:1 1 560px;min-width:0}
+/* 「側欄清單」展開模式：個股不長在圖上，改列在圖下面（跟「原地展開」二選一，DECISIONS #248） */
+.cglist{margin-top:10px;background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:9px 11px}
+.cgls{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+.cgls a.lk{display:inline-flex;align-items:baseline;gap:5px;font-size:13px;background:var(--panel);
+  border:1px solid var(--line);border-radius:8px;padding:3px 8px}
+.cgls a.lk .code{font-family:var(--mono);font-size:11.5px;color:var(--cyan)}
+.cgls a.lk em{font-style:normal;font-family:var(--mono);font-size:11.5px}
 
 /* ---------------- 四種風格 ----------------
    ⚠ 這裡有一條 CSS 的規則一定要記住，不記住就會重踩：
@@ -2041,7 +2051,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media (max-width:560px){
   .cgraph{height:clamp(420px,72vh,600px)}
   .cgnode .cgt a.lk{font-size:13px}
-  .cgnode .cgm{font-size:11.5px} .cgnode .cgm .chg{font-size:12px}
+  .cgnode .cgm{font-size:12px} .cgnode .cgm .chg{font-size:12.5px}
   .cgnote{width:min(260px,calc(100% - 16px));font-size:12.5px}
 }
 </style>

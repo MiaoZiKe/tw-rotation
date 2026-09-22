@@ -5857,6 +5857,11 @@
     let sideOpen = true;
     try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
     setSide(sideIsOverlay() ? false : sideOpen, false);
+    /* 讓別的模組也開得了關得了這一欄（DECISIONS #248：成分股可以暫時蓋住事件面板）。
+       第二個參數 remember=false 很重要 —— 那是「暫時蓋住」，不是使用者改了偏好，
+       關掉之後要回到他自己設定的狀態。*/
+    window.twSetSide = setSide;
+    window.twSideWanted = () => { try { return localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { return true; } };
     $('#evToggle').onclick = () => setSide($('#layout').classList.contains('noside'));
     $('#evClose').onclick = () => setSide(false);
     // 點浮層外面就收掉。用 capture 才攔得到那些自己 stopPropagation 的元件（剖析圖的零件就是）。
