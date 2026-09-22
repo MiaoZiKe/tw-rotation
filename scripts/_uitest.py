@@ -12770,6 +12770,71 @@ def t_clickbg(pg, base):
 #    （鰭高／鰭寬比、奈米片之間有沒有金屬、粗糙度是不是單調變細、TSV 貫穿幾層…），
 #    不是驗「元素存在」。驗收條件寫錯比功能寫錯更貴，所以每一條都附上量到的數字。
 
+# ---------------------------------------------------------------- 章節列（漸進揭露）的共用驗收
+#  Andy 2026-09-22：「幫我將所有 2D 3D 圖的圖片及文字縮小一半大小…希望能一次看到完整資訊。」
+#  ★ 這一段驗的是**畫面真的因此改變**：收合時量得到高度、按下去圖真的變高、
+#    再按一次真的縮回原本那個數字 —— 不是驗「有沒有那個元素」。
+FOLD_STATE = """() => { const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return null;
+  const bars = [...svg.querySelectorAll('g.dgfold[data-fold]')];
+  return {n: bars.length, open: bars.filter(b => b.classList.contains('open')).length,
+          vbH: +svg.viewBox.baseVal.height.toFixed(0),
+          hints: bars.map(b => ((b.querySelector('.fhint') || {}).textContent) || ''),
+          titles: bars.map(b => ((b.querySelector('.hd') || {}).textContent) || ''),
+          bodies: [...svg.querySelectorAll('g.dgbody[data-fold]')]
+            .filter(g => g.getAttribute('display') !== 'none').length}; }"""
+
+_FOLD_CLICK = """(i) => { const b = document.querySelectorAll('#prodDiagram svg g.dgfold[data-fold]')[i];
+  if (!b) return false; b.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }"""
+
+_FOLD_OPEN_ALL = """() => { const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return 0; let n = 0;
+  svg.querySelectorAll('g.dgfold[data-fold]').forEach(g => {
+    if (!g.classList.contains('open')) { g.dispatchEvent(new MouseEvent('click', {bubbles: true})); n++; } });
+  return n; }"""
+
+
+def _b21_folds(pg, label, n_bars, h_max=700):
+    """收合高度 ≤ h_max、章節列打得開也收得回。**跑完會把所有章節展開**
+    （後面的結構量測要量得到收在章節裡的那些零件 —— `getBBox()` 對 display:none 的元素回 0）。
+    回傳全開時的高度，給回報當備註。"""
+    z0 = pg.evaluate(FOLD_STATE)
+    if not ok(f"{label}：圖上有章節列（漸進揭露）", bool(z0) and z0["n"] > 0, z0):
+        return 0
+    ok(f"{label}：★★ 收合狀態下**整張圖的高度 ≤ {h_max}px** —— 1440×900 一個畫面看得完",
+       z0["vbH"] <= h_max, f"量到 {z0['vbH']}px（上限 {h_max}）")
+    ok(f"{label}：預設**全部收合**，而且剛好 {n_bars} 條章節列",
+       z0["n"] == n_bars and z0["open"] == 0 and z0["bodies"] == 0,
+       f"列 {z0['n']} 條、展開 {z0['open']} 條、看得見的內容區 {z0['bodies']} 個")
+    ok(f"{label}：每一條章節列都寫著「按了會看到什麼」（收納 ≠ 藏起來；不准只寫「更多」）",
+       all(('展開' in h and len(h) > 14) for h in z0["hints"]), z0["hints"])
+    ok(f"{label}：每一條章節列都有自己的標題（看得出那一段在講什麼）",
+       all(len(t) > 6 for t in z0["titles"]), z0["titles"])
+
+    pg.evaluate(_FOLD_CLICK, 0)
+    pg.wait_for_timeout(420)
+    z1 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：★ 點第一條章節列 → **真的打得開**（圖真的變高、那一段的內容真的出現）",
+       z1["open"] == 1 and z1["bodies"] == 1 and z1["vbH"] > z0["vbH"],
+       f"{z0['vbH']}px／0 段 → {z1['vbH']}px／{z1['bodies']} 段")
+    ok(f"{label}：展開之後那一條列改寫成「收合這一段」（兩種狀態都看得出還能做什麼）",
+       '收合' in z1["hints"][0], z1["hints"][0])
+
+    pg.evaluate(_FOLD_CLICK, 0)
+    pg.wait_for_timeout(420)
+    z2 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：★ 再點一次 → **真的收得回去**，高度回到原本那個數字",
+       z2["open"] == 0 and z2["bodies"] == 0 and z2["vbH"] == z0["vbH"],
+       f"{z1['vbH']}px → {z2['vbH']}px（原本 {z0['vbH']}px）")
+
+    pg.evaluate(_FOLD_OPEN_ALL)
+    pg.wait_for_timeout(500)
+    z3 = pg.evaluate(FOLD_STATE)
+    ok(f"{label}：{n_bars} 段全部展開之後內容都在（備註：全開高度 {z3['vbH']}px，這個數字不受 {h_max} 限制）",
+       z3["open"] == n_bars and z3["bodies"] == n_bars and z3["vbH"] > z0["vbH"], z3)
+    return z3["vbH"]
+
+
 FD_GEOM = """() => {
   const svg = document.querySelector('#prodDiagram svg');
   if (!svg) return {present: false};
@@ -12868,11 +12933,15 @@ def t_b21_foundry(pg, base):
       24  點環節色標 → 成分股筆數真的變了
       25  動畫：開／關 真的停得住（一顆點沿著迴圈跑）
       26  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      27  ★ 收合狀態下整張圖 ≤ 700px；四條章節列按了真的打得開、再按一次真的收回
     """
     FEAT = "GAA 奈米片"
     drawn, DGH = _b14b_entry(pg, base, "semiconductor", "foundry", FEAT, "晶圓代工")
     if not drawn:
         return
+    # ★ 收合高度 ≤ 700px、四條章節列打得開也收得回。跑完會把四段全部展開，
+    #   後面的結構量測才量得到收在章節裡的零件（getBBox 對 display:none 回 0）。
+    _b21_folds(pg, "晶圓代工", 4)
     d = pg.evaluate(B14B_DG)
     txt = d.get("full", "")
     g = pg.evaluate(FD_GEOM)
@@ -13131,11 +13200,13 @@ def t_b21_silicon_wafer(pg, base):
       13  H5 母子公司警告（環球晶是中美晶分割出去的子公司）
       14  動畫：開／關 真的停得住，靜止時提拉與旋轉箭頭仍然看得見
       15  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      16  ★ 收合狀態下整張圖 ≤ 700px；三條章節列按了真的打得開、再按一次真的收回
     """
     FEAT = "CZ 提拉法長晶爐"
     drawn, DGH = _b14b_entry(pg, base, "semiconductor", "silicon_wafer", FEAT, "矽晶圓")
     if not drawn:
         return
+    _b21_folds(pg, "矽晶圓", 3)
     d = pg.evaluate(B14B_DG)
     txt = d.get("full", "")
     g = pg.evaluate(SW_GEOM)
@@ -13326,11 +13397,13 @@ def t_b21_hbm(pg, base):
       14  點環節色標 → 成分股筆數真的變了
       15  動畫：開／關 真的停得住；靜止時 TSV 與凸塊仍然看得見
       16  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      17  ★ 收合狀態下整張圖 ≤ 700px；兩條章節列按了真的打得開、再按一次真的收回
     """
     FEAT = "HBM 那一疊裡面是什麼"
     drawn, DGH = _b14b_entry(pg, base, "semiconductor", "hbm", FEAT, "HBM")
     if not drawn:
         return
+    _b21_folds(pg, "HBM", 2)
     d = pg.evaluate(B14B_DG)
     txt = d.get("full", "")
     g = pg.evaluate(HB_GEOM)
