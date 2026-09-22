@@ -5605,6 +5605,13 @@
     /* 相機距離用「把整個場景包起來的球」算出來，不要寫死：
        寫死的話換一個場景、或畫面比例一變，機櫃頭尾就被切掉（第一版就是這樣）。 */
     const fitCamera = () => {
+      /* ★ 2026-09-23：取景一律用「**拆開之後**」的外接盒。
+         進場改成收攏（#246）之後，`reset()` 在收攏狀態重算會得到比較小的盒子 →
+         相機比第一次進來時更靠近，「重設視角真的回到預設」那條驗收就紅
+         （實測 [114.3, 79.5, 134.2] → [103.7, 77.0, 124.6]，近了 9%）。
+         做法：量之前先暫時攤開、量完立刻還原 —— 同一幀內完成，畫面上看不到。 */
+      const keepT = expT;
+      if (keepT !== 1) applyExplode(1);
       const box = new THREE.Box3().setFromObject(root);
       const sph = box.getBoundingSphere(new THREE.Sphere());
       const size = box.getSize(new THREE.Vector3());
@@ -5627,6 +5634,7 @@
       controls.minDistance = dist * 0.28; controls.maxDistance = dist * 2.6;
       camera.updateProjectionMatrix();
       controls.update();
+      if (keepT !== 1) applyExplode(keepT);       // 還原成量之前的展開程度
     };
     fitCamera();
 
