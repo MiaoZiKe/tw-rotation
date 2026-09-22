@@ -255,18 +255,41 @@
        現在：**大塊幾何讀材質族的 token**（板子是板子色、金屬是金屬色），
        環節色只留給「被點的那一顆」的提亮與卡片上的小圓點（segHex 存在 byIdx，不進材質）。
      材質族 → token（讀不到就退到後面那個，最後才用 dflt；dflt 跟 :root 的值一樣，只是保險）。*/
+  /* ★ 2026-09-22（DECISIONS #243，規格書一-4）：每一族先讀「模組色」token（`--dg-m-*`）。
+     以前的根因是**顏色依角色（訊號／電力／液冷）整片上色**，整台被青藍洗掉，
+     關掉標籤就認不出哪塊是電源、哪塊是運算。現在顏色由「這是什麼模組、什麼材質」決定：
+       機架銀灰金屬 ／ PCB 墨綠 ／ 晶片深藍與石墨灰 ／ 銅件暖銅 ／ 液冷青綠 ／ 風扇框藍灰 ／ 電源暖橘。
+     `--dg-m-*` 只定義在 `.dg3d` 上（2D 讀不到、一個像素都不受影響），
+     讀不到就往後退到原本的 token，所以 probe()／舊環境仍然畫得出東西。*/
   const FAMILY_TOKENS = {
-    metal:   [['--dg-metal', '--dg-steel'], '#9aa6b4'],
+    metal:   [['--dg-m-rack', '--dg-metal', '--dg-steel'], '#9aa6b4'],
     cer:     [['--dg-cer'], '#d3cbb7'],
-    pcb:     [['--dg-pcb-3d', '--dg-pcb'], '#1a4230'],   // 科技模式先讀 3D 的板子色（v3 #0F3D3A），閱讀模式交回 root
-    cu:      [['--dg-cu'], '#b0743a'],
+    pcb:     [['--dg-m-pcb', '--dg-pcb-3d', '--dg-pcb'], '#1a4230'],
+    cu:      [['--dg-m-cu', '--dg-cu'], '#b0743a'],
     glass:   [['--dg-glass'], '#8fb6c9'],
-    plastic: [['--dg-plastic', '--dg-frame'], '#1a2540'],
-    si:      [['--dg-si'], '#33488a'],
+    plastic: [['--dg-m-fanf', '--dg-plastic', '--dg-frame'], '#1a2540'],
+    si:      [['--dg-m-die', '--dg-si'], '#33488a'],
     sn:      [['--dg-sn'], '#e2e7ec'],
     organic: [['--dg-organic'], '#8a6636'],
-    alu:     [['--dg-alu'], '#a3b2c4'],
-    emc:     [['--dg-emc'], '#2f3039'],
+    alu:     [['--dg-m-hs', '--dg-alu'], '#a3b2c4'],
+    emc:     [['--dg-m-graphite', '--dg-emc'], '#2f3039'],
+  };
+  /* 材質族的 PBR 預設手感（規格書一-4 那張表的第三欄）。
+     以前所有材質不分族都是 `rough .55 / metal .22` —— 那個 .22 是「沒有環境貼圖只好壓低金屬度」
+     的補償值（根因 1），補上 envMap 之後就不必了，金屬可以真的是金屬。
+     建造函式自己寫了 metal／rough 的地方**優先**，這張表只補沒寫的。*/
+  const FAMILY_PBR = {
+    metal:   { metal: 0.85, rough: 0.35 },   // 機架／滑軌／鈑金：銀灰霧面金屬
+    alu:     { metal: 0.70, rough: 0.45 },   // 鋁擠鰭片／散熱蓋
+    cu:      { metal: 0.90, rough: 0.30 },   // 銅件／快接頭／冷板
+    sn:      { metal: 0.60, rough: 0.34 },   // 錫（球、鍍層）
+    pcb:     { metal: 0.05, rough: 0.55 },   // 板材是介電質，不是金屬
+    cer:     { metal: 0.04, rough: 0.58 },   // 陶瓷
+    si:      { metal: 0.35, rough: 0.45 },   // 矽（晶粒、中介層）
+    organic: { metal: 0.06, rough: 0.68 },   // 有機基材（ABF、重佈線）
+    emc:     { metal: 0.10, rough: 0.62 },   // 模封
+    plastic: { metal: 0.15, rough: 0.62 },   // 塑膠框
+    glass:   { metal: 0.02, rough: 0.14 },
   };
   // kind 的預設材質族（場景可以用 `mat:` 蓋掉）
   const FAMILY = {
@@ -328,22 +351,35 @@
     const roleHex = role && ROLE_TOKENS[role] ? cssv(ROLE_TOKENS[role], '') : '';
     function mat(k, o) {
       o = o || {};
-      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}`;
+      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}|${o.cool ? 1 : 0}`;
       if (cache[key]) return cache[key];
-      /* shell:true ＝ 這是零件的**外殼**：有角色（訊號／電力／液冷）的零件外殼改成該角色的半透明色
-         （Andy 推薦一：「各托盤用溫和但有區隔度的半透明彩色區分」）；沒角色的照材質族。*/
-      const isGlass = !!(o.glass || (o.shell && roleHex));
-      const colorHex = o.color || (o.shell && roleHex ? roleHex : null);
+      /* ★ 2026-09-22（DECISIONS #243，規格書一-3「收透明」＋ 一-4「依模組配色」）：
+         `shell:true` **不再等於半透明的角色色**。
+         以前外殼一律染成角色色（訊號藍／電力橘／液冷青）而且半透明，兩件事一起造成
+         「整台被青藍洗掉」與「五六層半透明疊在一起」—— 根因 3 與根因 5。
+         現在：外殼是**不透明**的，顏色由建造函式明講的 `--dg-m-*` 模組色決定；
+         只有三種東西可以透明 —— 機櫃外殼板（glass:true）、液冷（cool:true）、示意層（ghost）。
+         `role` 留著，但只用在卡片與引線的顏色（calcElColor），不再進材質。*/
+      const isGlass = !!o.glass;
+      const isCool = !!o.cool;
+      const colorHex = o.color || null;
+      /* ★ 2026-09-22：沒指定 metal／rough 的材質改吃**材質族的 PBR 預設**（FAMILY_PBR），
+         不再是所有東西都 `.22 / .55`。那個 .22 是沒有環境貼圖時的補償值，
+         補上 envMap 之後就該讓金屬是金屬、板材是介電質。*/
+      const pbr = FAMILY_PBR[fam] || FAMILY_PBR.metal;
       const m = new THREE.MeshStandardMaterial({
         color: colorHex ? new THREE.Color(colorHex) : col(k || 0),
-        // E2：金屬度與粗糙度改成「實體塑膠／陽極鋁」的手感，不是會反青光的鏡面
-        roughness: o.rough != null ? o.rough : (isGlass ? 0.26 : (ghost ? 0.92 : 0.55)),
-        metalness: o.metal != null ? o.metal : (isGlass ? 0.04 : (ghost ? 0.02 : 0.22)),
-        transparent: !!(ghost || isGlass || o.op != null),
-        opacity: isGlass ? 0.3 : (ghost ? 0.14 : (o.op != null ? o.op : 1)),
+        roughness: o.rough != null ? o.rough : (isCool ? 0.15 : (isGlass ? 0.18 : (ghost ? 0.92 : pbr.rough))),
+        metalness: o.metal != null ? o.metal : (isGlass || isCool ? 0.04 : (ghost ? 0.02 : pbr.metal)),
+        transparent: !!(ghost || isGlass || isCool || o.op != null),
+        opacity: isCool ? 0.62 : (isGlass ? 0.3 : (ghost ? 0.14 : (o.op != null ? o.op : 1))),
       });
+      m.envMapIntensity = 1;      // 實際值由 applyPal 依 --dg-env 套（兩種模式不同）
       m.userData = { rough0: m.roughness, metal0: m.metalness };
-      if (isGlass) { m.userData.glass = true; m.depthWrite = false; if (o.shell && roleHex) m.userData.shell = true; }
+      /* 透明件的排序（規格書一-3）：實體透明件（機櫃外殼板、液冷管線）**要** depthWrite，
+         不然前後會疊成一片分不出來；只有發光點與引線才准關掉 depthWrite。*/
+      if (isGlass) { m.userData.glass = true; m.depthWrite = true; }
+      if (isCool) { m.userData.cool = true; m.depthWrite = true; }
       if (o.led) { m.emissive = new THREE.Color(o.color || cssv('--dg-led-c', '#86f3b4')); m.emissiveIntensity = 0.55; m.userData.led = true; }
       /* glow ＝ 流線（水路、光路、氣流、金色走線、接口燈）：科技模式微發光（--dg-flow-em × glowK），
          閱讀模式不發光只留顏色。glow 給數字就是那個倍率（走線用 .35，不然一片金光）。*/
@@ -526,7 +562,7 @@
       const wdt = (o.wdt || Math.min(w, d) * 0.012) * 1.3;   // v3 第二輪：線寬加三成，金線才看得見
       const thk = o.thk || wdt * 0.6;
       // v3 §3：板上的走線是**金色、發光**（--dg-fl-trace；閱讀模式是不發光的淡金）
-      const cu = K.mat(0, { color: K.css('--dg-fl-trace', '#FFD37A'), metal: 0.72, rough: 0.28, glow: 0.7 });
+      const cu = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.28, glow: 0.45 });
       const pairs = o.pairs || 4, cycles = o.cycles || 5;
       const flows = [];
       const x0 = -w * 0.44, x1 = w * 0.44;
@@ -635,15 +671,21 @@
       edgeM.userData = { dgvar: '--dg-glass-edge', edge: true };
       g.add(new T.LineSegments(new T.EdgesGeometry(gm), edgeM));
       gm.dispose();
+      /* ★ 2026-09-22（規格書一-3「收透明」＋一-4「機架是銀灰霧面金屬」）：
+         以前**整座機櫃連立柱帶橫樑都是玻璃**，所以「機架與機構件」這一類
+         在圖上根本沒有自己的顏色，而且是五六層半透明的第一層。
+         現在：**立柱與上下橫樑是實體銀灰金屬**（19 吋機櫃的柱子本來就是鈑金），
+         只有「要看見內部」的側板與後板留半透明玻璃，而且更透（--dg-shell-a .28）、更薄。*/
+      const steel = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.35 });
       const glass = K.mat(0, { glass: true });
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) =>
-        g.add(put(rbox(3, h, 3, 1, glass), sx * (w / 2 - 1.5), 0, sz * (d / 2 - 1.5))));
-      // 上下橫樑：圓角玻璃板，機櫃看起來是一個有厚度的框，不是四根線
-      g.add(put(rbox(w, 1.6, d, 0.6, glass), 0, h / 2 - 0.8, 0));
-      g.add(put(rbox(w, 1.6, d, 0.6, glass), 0, -h / 2 + 0.8, 0));
-      // 側板與後板：霧面玻璃（前面留空，托盤才抽得出來），0.9 厚才看得出是一片板
-      [-1, 1].forEach(sx => g.add(put(box(0.9, h * 0.94, d * 0.88, glass), sx * (w / 2 - 0.45), 0, 0)));
-      g.add(put(box(w * 0.88, h * 0.94, 0.9, glass), 0, 0, -(d / 2 - 0.45)));
+        g.add(put(rbox(3, h, 3, 1, steel), sx * (w / 2 - 1.5), 0, sz * (d / 2 - 1.5))));
+      // 上下橫樑：圓角金屬板，機櫃看起來是一個有厚度的框，不是四根線
+      g.add(put(rbox(w, 2.2, d, 0.6, steel), 0, h / 2 - 1.1, 0));
+      g.add(put(rbox(w, 2.2, d, 0.6, steel), 0, -h / 2 + 1.1, 0));
+      // 側板與後板：霧面玻璃（前面留空，托盤才抽得出來）；0.6 厚 —— 它是「看得進去的殼」不是結構件
+      [-1, 1].forEach(sx => g.add(put(box(0.6, h * 0.94, d * 0.88, glass), sx * (w / 2 - 0.3), 0, 0)));
+      g.add(put(box(w * 0.88, h * 0.94, 0.6, glass), 0, 0, -(d / 2 - 0.3)));
       // 機櫃前柱上的 U 位安裝孔：一眼看得出是 19 吋機櫃而不是一個箱子
       const holeM = K.mat(-0.5, { rough: 0.8, metal: 0.1 });
       const holes = [];
@@ -693,10 +735,12 @@
     function tray(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h * 0.7, d, h * 0.25, K.mat(-0.2, { metal: 0.4, shell: true })));
+      // 托盤是鈑金件：銀灰金屬實體（規格書一-4）。以前是角色色半透明，整排托盤被染成同一個藍
+      g.add(rbox(w, h * 0.7, d, h * 0.25, K.mat(-0.18, { metal: 0.8, rough: 0.4 })));
       g.add(aoPad(K, w, d, -h * 0.35 - 0.9));
-      g.add(put(box(w * 0.26, h * 0.7, d * 0.4, K.mat(0.1)), 0, h * 0.5, 0));
-      const fin = K.mat(0.3, { metal: 0.5, rough: 0.4 });
+      // 托盤中央那顆是交換／控制晶片：石墨灰模封（不是跟鈑金同色的一塊凸起）
+      g.add(put(box(w * 0.26, h * 0.7, d * 0.4, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.18, rough: 0.6 })), 0, h * 0.5, 0));
+      const fin = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.42 });
       const at = [];
       for (let i = -5; i <= 5; i++) at.push([i * w * 0.028, h * 0.8, 0]);
       g.add(instOf(new T.BoxGeometry(w * 0.012, h * 1.1, d * 0.38), fin, at));
@@ -709,14 +753,18 @@
     function gpu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(put(box(w, h * 0.3, d, K.mat(-0.3)), 0, -h * 0.35, 0));
-      g.add(put(box(w * 0.8, h * 0.18, d * 0.8, K.mat(-0.05, { metal: 0.35 })), 0, -h * 0.11, 0));
-      // CoWoS 晶粒：紫（角色色），emissive 0.6（v3 第二輪：一眼要看得出這一層是運算）
-      g.add(put(box(w * 0.4, h * 0.3, d * 0.5, K.mat(0, { color: K.css('--dg-fl-gpu', '#9B6DFF'), metal: 0.3, rough: 0.35, glow: 0.55 })), 0, h * 0.14, 0));
+      // 運算模組的載板：深藍（規格書一-4「晶片本體（GPU／ASIC／CPU）深藍」）——
+      // 這是整台機櫃認得出「哪幾層在算」的那個顏色，不能跟陶瓷米白混在一起
+      g.add(put(box(w, h * 0.3, d, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.35, rough: 0.45 })), 0, -h * 0.35, 0));
+      g.add(put(box(w * 0.8, h * 0.18, d * 0.8, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.3, rough: 0.5 })), 0, -h * 0.11, 0));
+      /* ★ 規格書一-6「發光克制」：CoWoS 晶粒與 HBM 以前掛 emissive 0.55／0.18，
+         那是「整片 emissive」—— 一顆矽晶粒本來就不發光，發光的是指示燈與資料流。
+         現在改成**矽的材質**（深藍、金屬度 .35），立體感交給 envMap 與陰影去做。*/
+      g.add(put(box(w * 0.4, h * 0.3, d * 0.5, K.mat(0, { color: K.css('--dg-si', '#33488a'), metal: 0.35, rough: 0.35 })), 0, h * 0.14, 0));
       // 銅質冷板：壓在晶粒上的一小片紅銅，金屬度拉高才有高光
-      g.add(put(box(w * 0.46, h * 0.16, d * 0.56, K.mat(0, { color: K.css('--dg-fl-cu', '#E8A97E'), metal: 0.88, rough: 0.22 })), 0, h * 0.37, 0));
-      // HBM 堆疊：兩側各 3 顆、每顆 4 層 DRAM（層縫＝每層之間留 0.2h 的空隙）；層是淡紫（跟運算同一族但退一階）
-      const hb = K.mat(0, { color: K.css('--dg-fl-gpu', '#9B6DFF'), rough: 0.55, metal: 0.15, glow: 0.18 });
+      g.add(put(box(w * 0.46, h * 0.16, d * 0.56, K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.9, rough: 0.22 })), 0, h * 0.37, 0));
+      // HBM 堆疊：兩側各 3 顆、每顆 4 層 DRAM（層縫＝每層之間留 0.2h 的空隙）
+      const hb = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.5, metal: 0.2 });
       const layers = [], lay = h * 0.36 / 4;
       [-1, 1].forEach(s => { for (let i = -1; i <= 1; i++) for (let L = 0; L < 4; L++) {
         layers.push([w * 0.11, lay * 0.72, d * 0.2, s * w * 0.3, h * 0.0 + L * lay + lay * 0.36, i * d * 0.24]);
@@ -729,9 +777,10 @@
     function chip(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(put(box(w, h * 0.35, d, K.mat(-0.3)), 0, -h * 0.32, 0));
-      g.add(put(box(w * 0.66, h * 0.5, d * 0.66, K.mat(0.3, { metal: 0.55, rough: 0.35 })), 0, h * 0.15, 0));
-      const pas = K.mat(-0.15, { rough: 0.7 });
+      // 載板深藍（運算）、上蓋是銀灰散熱蓋（規格書一-4 的「晶片散熱蓋／鰭片」比機架亮一階）
+      g.add(put(box(w, h * 0.35, d, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.35, rough: 0.45 })), 0, -h * 0.32, 0));
+      g.add(put(box(w * 0.66, h * 0.5, d * 0.66, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 })), 0, h * 0.15, 0));
+      const pas = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.12 });
       for (let i = -2; i <= 2; i++) {
         g.add(put(box(w * 0.06, h * 0.16, d * 0.09, pas), i * w * 0.13, -h * 0.06, d * 0.4));
         g.add(put(box(w * 0.06, h * 0.16, d * 0.09, pas), i * w * 0.13, -h * 0.06, -d * 0.4));
@@ -769,21 +818,26 @@
       const [w, h, d] = p.box;
       g.add(box(w, h, d, K.mat(-0.25, { rough: 0.72, metal: 0.08 })));
       g.add(aoPad(K, w, d, -h / 2 - 1.2));        // v9：板子底下的淡陰影
-      const ic = K.mat(0.15, { rough: 0.5 });
-      [[-0.3, -0.2], [0.18, 0.24], [0.34, -0.3]].forEach(([fx, fz]) =>
-        g.add(put(box(w * 0.1, h * 1.5, d * 0.14, ic), fx * w, h, fz * d)));
+      /* ★ 2026-09-22 減面：三顆 IC、三條插槽、六顆電容以前是 12 個獨立 Mesh（六塊板 ＝ 72 個 draw call）。
+         形狀沒變、位置沒變，只是同材質的併成一個、同形狀的收成 InstancedMesh。*/
+      // 板上的 IC 封裝是黑色模封（石墨灰），不是跟板子同色的凸塊 —— 規格書一-4 的「晶片本體」那一列
+      const ic = K.mat(0.15, { rough: 0.5, metal: 0.18, color: K.css('--dg-m-graphite', '#3A3F47') });
+      g.add(mboxes([[-0.3, -0.2], [0.18, 0.24], [0.34, -0.3]].map(([fx, fz]) =>
+        [w * 0.1, h * 1.5, d * 0.14, fx * w, h, fz * d]), ic));
       const slot = K.mat(0.3, { metal: 0.4, rough: 0.45 });
-      for (let i = -1; i <= 1; i++) g.add(put(box(w * 0.34, h * 1.2, d * 0.045, slot), -w * 0.06, h * 0.9, i * d * 0.17));
+      g.add(mboxes([-1, 0, 1].map(i => [w * 0.34, h * 1.2, d * 0.045, -w * 0.06, h * 0.9, i * d * 0.17]), slot));
       const cap = K.mat(-0.05, { rough: 0.6 });
-      for (let i = 0; i < 6; i++) g.add(put(cyl(Math.min(w, d) * 0.014, h * 2.2, cap, 8), (-0.42 + i * 0.05) * w, h * 1.4, d * 0.4));
+      const capAt = [];
+      for (let i = 0; i < 6; i++) capAt.push([(-0.42 + i * 0.05) * w, h * 1.4, d * 0.4]);
+      g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.014, Math.min(w, d) * 0.014, h * 2.2, 6), cap, capAt));
       // 圖九 2-1：板面的蛇行等長差動對。訊號方向＝由 GPU（板中）往背板（-x）
       const tl = traceLayer(K, w, d, h * 0.55, { pairs: 4, cycles: 5, dir: -1 });
       g.add(tl.group); g.userData.flows = tl.flows;
       // 焊墊：每顆 IC 底下一整片（表面處理鍍金）
-      g.add(padField(K, w * 0.22, d * 0.3, h * 0.52, 6, 5));
+      g.add(padField(K, w * 0.22, d * 0.3, h * 0.52, 5, 4));
       // v3 §3-04：板上的 BGA 錫球陣列（instanced 低細分球）—— 一組 3×3 放在第三顆 IC 旁邊
       //（六塊板共用同一份幾何；4×4 的 8×6 球一塊板就 1,500 個三角形，六塊板會把場景推破 40,000 的上限）
-      g.add(put(ballGrid(K, w * 0.02, w * 0.007, 3, 0, [6, 4]), w * 0.06, h * 0.56, -d * 0.3));
+      g.add(put(ballGrid(K, w * 0.02, w * 0.007, 3, 0, [6, 3]), w * 0.06, h * 0.56, -d * 0.3));
       // 絲印：三顆 IC 的外框 ＋ 第 1 腳記號
       g.add(silk(K, w, d, h * 0.53, [[-0.3 * w, -0.2 * d, w * 0.13, d * 0.18],
         [0.18 * w, 0.24 * d, w * 0.13, d * 0.18], [0.34 * w, -0.3 * d, w * 0.13, d * 0.18]]));
@@ -825,8 +879,12 @@
     function cdu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, w * 0.22, K.mat(-0.1, { metal: 0.35, shell: true })));
-      const pump = K.mat(0.2, { metal: 0.5, rough: 0.4 });
+      /* 液冷是規格書一-3 准許透明的三種之一：青綠半透明、粗糙度低、**有厚度**
+         （外殼半透明 ＋ 內層較飽和的水體，轉過去看得出「裡面有水」而不是一片色紙）。*/
+      g.add(rbox(w, h, d, w * 0.22, K.mat(0, { color: K.css('--dg-m-cool', '#2FB8A6'), cool: true })));
+      g.add(put(rbox(w * 0.62, h * 0.94, d * 0.62, w * 0.14,
+        K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), op: 0.78, rough: 0.2, metal: 0.05 })), 0, 0, 0));
+      const pump = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 });
       [-0.3, 0.1].forEach(fy => g.add(put(cyl(w * 0.42, h * 0.1, pump), 0, fy * h, 0)));
       // v3：冷水管螢光藍、熱水管發光紅（3D 自己的 token，閱讀模式是粉彩版，不發光）
       const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
@@ -843,11 +901,15 @@
     function uqd(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const body = put(cyl(w * 0.42, h * 1.1, K.mat(0.2, { metal: 0.5, rough: 0.38 })), 0, 0, 0);
+      /* 快接頭（UQD）是**銅合金**件（規格書一-4 的「銅件／接頭／快接頭」），
+         不是銀灰鈑金 —— 圖上看得出它跟機櫃柱子不是同一種東西，才對得上不同的供應商。*/
+      const cuM = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 });
+      const body = put(cyl(w * 0.46, h * 1.15, cuM), 0, 0, 0);
       body.rotation.z = Math.PI / 2; g.add(body);
-      const ring = put(cyl(w * 0.55, h * 0.3, K.mat(0.45, { metal: 0.7, rough: 0.25 })), w * 0.3, 0, 0);
+      const ring = put(cyl(w * 0.55, h * 0.3, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })), w * 0.3, 0, 0);
       ring.rotation.z = Math.PI / 2; g.add(ring);
-      const hose = put(cyl(w * 0.24, d * 2.2, K.mat(-0.25, { rough: 0.85, metal: 0.05 })), -w * 0.9, 0, 0);
+      // 軟管是橡膠：深灰、完全不金屬（跟銅接頭的對比就是「金屬 vs 非金屬」）
+      const hose = put(cyl(w * 0.24, d * 2.2, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })), -w * 0.9, 0, 0);
       hose.rotation.z = Math.PI / 2; g.add(hose);
       return g;
     }
@@ -858,14 +920,17 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2, open = r * 1.64;
-      const fm = K.mat(-0.2, { rough: 0.7, shell: true });
+      // 風扇外框：藍灰、不透明（規格書一-4）。以前是角色色半透明 —— 扇葉看起來像浮在空中
+      const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.5, rough: 0.5 });
       // 外框：一塊圓角方框、中間挖一個圓（ExtrudeGeometry 的 hole）—— 這才是風扇框的樣子
       g.add(rbox(w, h, d, Math.min(w, h) * 0.08, fm, open / 2));
       const rotor = new T.Group();
-      const hub = cyl(r * 0.26, d * 0.8, K.mat(0.1, { metal: 0.45, rough: 0.4 }));
+      const hub = cyl(r * 0.26, d * 0.8, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }));
       hub.rotation.x = Math.PI / 2; rotor.add(hub);
-      // v9：扇葉走 --dg-fl-blade（科技＝藍色霓虹發光、閱讀＝淡藍白不發光），參考圖「風扇藍色霓虹光」
-      const bm = K.mat(0, { color: K.css('--dg-fl-blade', '#7FD4FF'), rough: 0.5, metal: 0.1, glow: 0.8 });
+      /* ★ 規格書一-4：扇葉是**實體**深灰藍，不准只剩透明輪廓、也不准發霓虹光。
+         「電競 RGB」是 Andy 點名要拿掉的那一件事；風扇之所以看得出是風扇，
+         靠的是七片有攻角的實心葉片與輪轂，不是藍光。*/
+      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
       for (let i = 0; i < 7; i++) {
         const b = box(r * 0.62, r * 0.36, d * 0.16, bm);
         b.position.set(Math.cos(i * Math.PI * 2 / 7) * r * 0.48, Math.sin(i * Math.PI * 2 / 7) * r * 0.48, 0);
@@ -877,8 +942,9 @@
       g.add(rotor);
       /* v3 §3-11：向外旋轉出淡藍白的氣流波紋 —— 兩圈越往外越大、越淡的環（一個 InstancedMesh）。
          波紋本身是靜的（氣流的「動」由場景層級的 airflow 粒子負責，靜止模式一起停）。*/
-      const airM = K.mat(0, { color: K.css('--dg-fl-airline', '#BFE9FF'), glow: 0.6, rough: 0.6, metal: 0, op: 0.36 });
-      g.add(instOf(new T.TorusGeometry(r * 0.7, r * 0.03, 5, 20), airM,
+      const airM = K.mat(0, { color: K.css('--dg-fl-airline', '#BFE9FF'), glow: 0.35, rough: 0.6, metal: 0, op: 0.3 });
+      // 減面：波紋是淡到幾乎看不見的細環，截面 5×20 換成 4×12（一個風扇省 288 個三角形）
+      g.add(instOf(new T.TorusGeometry(r * 0.7, r * 0.03, 4, 12), airM,
         [[0, 0, d * 0.9, 0, 0, 0, 1, 1, 1], [0, 0, d * 1.7, 0, 0, 0, 1.25, 1.25, 1]]));
       return g;
     }
@@ -887,7 +953,8 @@
     function psu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, h * 0.18, K.mat(-0.15, { metal: 0.35, shell: true })));
+      // 電源櫃：暖橘實體（規格書一-4 的「電源／BBU 暖橘」）——「暖三成」的主要來源就是這幾台
+      g.add(rbox(w, h, d, h * 0.18, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.4, rough: 0.5 })));
       g.add(aoPad(K, w, d, -h / 2 - 0.8));
       const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
       // ★ 2026-09-22：18 個進氣孔收成一個 InstancedMesh（圓柱預設立著，要放倒才是面對前面板的孔）
@@ -895,7 +962,8 @@
       for (let i = -4; i <= 4; i++) for (let j = -1; j <= 1; j += 2) {
         holes.push([i * w * 0.08, j * h * 0.22, d / 2, Math.PI / 2, 0, 0]);
       }
-      g.add(instOf(new T.CylinderGeometry(w * 0.02, w * 0.02, d * 0.06, 6), hole, holes));
+      // 減面：孔是「管」，兩端的圓盤看不到 → openEnded（18 個孔省 144 個三角形 × 3 台）
+      g.add(instOf(new T.CylinderGeometry(w * 0.02, w * 0.02, d * 0.06, 6, 1, true), hole, holes));
       g.add(put(box(w * 0.26, h * 0.16, d * 0.05, K.mat(0.3, { metal: 0.5 })), -w * 0.3, 0, d / 2 + d * 0.02));
       g.add(put(box(w * 0.05, h * 0.16, d * 0.03, K.mat(0, { led: true })), w * 0.38, 0, d / 2 + d * 0.02));
       /* 圖九 2-1：PSU 後端的**直流匯流排端子**。這是電源件最好認的特徵 ——
@@ -906,7 +974,7 @@
         g.add(put(box(w * 0.3, h * 0.13, d * 0.05, busM), sy * w * 0.22, sy * h * 0.22, -d / 2 - d * 0.02));
         for (let i = -1; i <= 1; i++) scr.push([sy * w * 0.22 + i * w * 0.09, sy * h * 0.22, -d / 2 - d * 0.03, Math.PI / 2, 0, 0]);
       });
-      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, d * 0.07, 6), K.mat(-0.5, { rough: 0.85, metal: 0.1 }), scr));
+      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, d * 0.07, 6, 1, true), K.mat(-0.5, { rough: 0.85, metal: 0.1 }), scr));
       return g;
     }
 
@@ -916,12 +984,13 @@
     function battery(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const shell = K.mat(-0.3, { rough: 0.75, metal: 0.12, shell: true });
+      // BBU 跟 PSU 同一類（電源）：暖橘托盤 ＋ 石墨灰電芯
+      const shell = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.4 });
       g.add(put(rbox(w, h * 0.2, d, h * 0.08, shell), 0, -h * 0.4, 0));                       // 底盤（圓角托盤）
       g.add(aoPad(K, w, d, -h * 0.5 - 0.8));
       [-1, 1].forEach(s => g.add(put(box(w * 0.04, h * 0.62, d, shell), s * (w / 2 - w * 0.02), -h * 0.06, 0)));
       [-1, 1].forEach(s => g.add(put(box(w, h * 0.62, d * 0.03, shell), 0, -h * 0.06, s * (d / 2 - d * 0.015))));
-      const cellM = K.mat(0.15, { metal: 0.45, rough: 0.42 });
+      const cellM = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.45, rough: 0.42 });
       const cells3 = [];
       for (let i = -2; i <= 3; i++) for (let j = -1; j <= 1; j += 2) {
         cells3.push([(i - 0.5) * w * 0.15, h * 0.06, j * d * 0.24]);
@@ -941,7 +1010,7 @@
     function optic(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.45, rough: 0.4, shell: true })));
+      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.82, rough: 0.34 })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
       [-1, 1].forEach(s => g.add(put(box(w * 0.3, h * 0.45, d * 0.1, port), s * w * 0.22, 0, d * 0.44)));
       g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
@@ -957,7 +1026,7 @@
     function switchBox(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(rbox(w, h, d, h * 0.2, K.mat(-0.15, { metal: 0.35, shell: true })));
+      g.add(rbox(w, h, d, h * 0.2, K.mat(-0.12, { metal: 0.82, rough: 0.38 })));
       g.add(aoPad(K, w, d, -h / 2 - 1.0));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
       const optHex = K.css('--dg-fl-opt', '#22E5C8'), sigHex = K.css('--dg-fl-sig', '#58C4FF');
@@ -1127,12 +1196,14 @@
       const [w, h, d] = p.box;
       const wl = w * 0.18, tw = h * 0.13, cw = w * 0.11;
       const push = (a) => a.forEach(o => g.add(o));
-      /* metalness 壓在 0.45 以下：這個場景只有方向光、沒有環境貼圖，
-         金屬度拉高就變成一塊黑（第一版的端電極就是這樣，三層全糊在一起看不出來）。*/
+      /* ★ 2026-09-22（規格書一-1）：以前這裡把 metalness 壓在 0.45 以下，註解自己寫了原因 ——
+         「這個場景只有方向光、沒有環境貼圖，金屬度拉高就變成一塊黑」。
+         那是**症狀的補償**不是修正。環境貼圖補上之後上限解除：
+         Cu／Ni／Sn 三層現在是真的鍍層，轉一圈看得出三種不同的金屬光澤。*/
       // B5／B6：Cu／Ni／Sn 三層也改讀 --dg-*，跟 2D 的端子剖面是同一組顏色
-      const L3 = [[0, 0.62, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.42 })],
-        [0.62, 0.85, K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.4, rough: 0.38 })],
-        [0.85, 1, K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.3, rough: 0.34 })]];
+      const L3 = [[0, 0.62, K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })],
+        [0.62, 0.85, K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.82, rough: 0.26 })],
+        [0.85, 1, K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.2 })]];
       [-1, 1].forEach(sx => {
         const wx0 = sx < 0 ? -w / 2 : w / 2 - wl, wx1 = sx < 0 ? -w / 2 + wl : w / 2;
         L3.forEach(([a, b, m]) => {
@@ -1152,9 +1223,9 @@
     function mlccPad(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(0, { rough: 0.9, metal: 0.05, color: K.css('--dg-pcb', '#1a4230') })));
-      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.44 });
-      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.35, rough: 0.36 });
+      g.add(box(w, h, d, K.mat(0, { rough: 0.55, metal: 0.05, color: K.css('--dg-m-pcb', '#0E3B32') })));
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 });
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.24 });
       /* ★ 2026-09-22：兩塊銅墊併成一個 mesh、兩個焊錫圓角收成一個 InstancedMesh ——
          省下的 2 個 draw call是給模型底下那片接觸陰影用的（#238「柔和環境陰影」），
          MLCC 場景的棘輪（93）才守得住。畫出來的東西一個像素都沒變。*/
@@ -1255,7 +1326,7 @@
        為什麼值得畫：有焊墊才看得出這是一塊**要裝件的板子**而不是一片板材；
        而且焊墊的表面處理（ENIG／OSP）本身就是不同的製程與不同的藥水供應商。*/
     function padField(K, w, d, y, nx, nz) {
-      const au = K.mat(0, { color: K.css('--dg-au', '#e3b75a'), metal: 0.8, rough: 0.26 });
+      const au = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.28 });
       const pw = w / nx * 0.46, pd = d / nz * 0.46;
       return instOf(new T.BoxGeometry(pw, Math.max(0.02, w * 0.004), pd), au,
         gridXZ(nx, nz, w / nx, d / nz, y));
@@ -1271,8 +1342,12 @@
       const r = Math.min(w, d) * 0.009;
       const at = [];
       for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w * 0.7 / n), 0, z]);
-      g.add(instOf(new T.CylinderGeometry(r * 2.1, r * 2.1, h * 1.02, 8), cu, at));  // 鍍銅孔壁
-      g.add(instOf(new T.CylinderGeometry(r, r, h * 1.06, 6), vd, at));              // 孔本身（暗）
+      /* ★ 2026-09-22 減面（DECISIONS #243）：孔壁與孔本身都是**管**，兩端的圓盤蓋
+         不是被板子夾住就是被對方擋住，一個像素都看不到 —— openEnded 砍掉它們。
+         細分同時從 8／6 降到 6／5：一個孔從 48 個三角形變成 22 個，
+         一塊主機板 14 個孔省 364、六塊板省 2,184，剛好是「加陰影」要的預算。*/
+      g.add(instOf(new T.CylinderGeometry(r * 2.1, r * 2.1, h * 1.02, 6, 1, true), cu, at));  // 鍍銅孔壁
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 1.06, 5, 1, true), vd, at));              // 孔本身（暗）
       return g;
     }
 
@@ -1631,7 +1706,7 @@
       g.add(put(box(w * 0.4, h * 0.4, t * 0.8, st), -w * 0.22, -h * 0.22, 0));
       const r = Math.min(w, d) * 0.06;
       const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
-      g.add(instOf(new T.CylinderGeometry(r, r, t * 2.2, 10), hl,
+      g.add(instOf(new T.CylinderGeometry(r, r, t * 2.2, 6, 1, true), hl,
         [[w * 0.1, -h / 2 + t / 2, -d * 0.24], [w * 0.1, -h / 2 + t / 2, d * 0.24],
           [w * 0.32, -h / 2 + t / 2, 0]]));
       return g;
@@ -1654,7 +1729,7 @@
       for (let i = 0; i < 16; i++) for (let j = 0; j < 7; j++) {
         holes.push([(-7.5 + i) * w * 0.055 + (j % 2 ? w * 0.027 : 0), (-3 + j) * h * 0.12, 0, Math.PI / 2, 0, 0]);
       }
-      g.add(instOf(new T.CylinderGeometry(r, r, t * 1.08, 8),
+      g.add(instOf(new T.CylinderGeometry(r, r, t * 1.08, 6, 1, true),
         K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 }), holes));
       [-1, 1].forEach(s => g.add(put(box(w * 0.05, h * 0.34, t * 1.6, st2), s * w * 0.45, 0, t * 0.6)));  // 把手
       return g;
@@ -1702,7 +1777,15 @@
        （dgstage / dgstage-l / dgstage-r / dgstage-b，寫在 docs/diagram_restyle_plan.md）。*/
     const COL_MIN = 220, STAGE_MAX = 984;
     const vw = () => (window.innerWidth || W());
-    const mode = () => (vw() >= 1280 ? 'lr' : (vw() >= 960 ? 'r' : 'below'));
+    /* ★ 2026-09-22（Andy 的「圖二」：MLCC 的 3D 左右兩欄卡片被切掉、要左右滑才看得到）。
+       斷點以前**只看視窗寬度**，但欄寬是從**容器寬度**算的 ——
+       視窗 1280 而側欄開著時容器只有 836，兩欄各 220（下限，不准再窄，不然卡片的字會折成一長條）
+       就吃掉 440，畫布只剩 396：機櫃被擠成一條，卡片幾乎貼著畫面邊。
+       所以兩個條件都要成立：**視窗夠寬**（媒體查詢那組數字）**而且容器塞得下**
+       （兩欄至少要留 54% 給模型，不然「左右兩欄」這個版面本身就不成立）。
+       塞不下就退一階：兩欄 → 右欄 → 卡片搬到畫布底下。*/
+    const fitsCols = (n) => (W() - COL_MIN * n) >= W() * 0.54;
+    const mode = () => (vw() >= 1280 && fitsCols(2) ? 'lr' : ((vw() >= 960 && fitsCols(1)) ? 'r' : 'below'));
     const colW = () => { const m = mode(); if (m === 'below') return 0;
       return Math.max(COL_MIN, Math.round((W() - STAGE_MAX) / (m === 'lr' ? 2 : 1))); };
     const cols = () => (mode() === 'lr' ? 2 : (mode() === 'r' ? 1 : 0));
@@ -1717,6 +1800,15 @@
        曝光量走 token（--dg-expo），兩種模式各自調。*/
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
+    /* ★ 2026-09-22（DECISIONS #243，規格書一-2）：開真的陰影。
+       以前「扁」的第二個根因就是這裡 —— 托盤與托盤之間、晶片與板子之間完全沒有投影，
+       只有一片貼在模型底下的 radial sprite（那片留著當軟接觸陰影，兩者疊加）。
+       只有 key 投影、只有大件 castShadow、shadow camera 貼著外接盒收緊 ——
+       不收緊的話 1024 的貼圖攤在整個場景上會糊成一團。
+       手機（< 960）由 `--dg-shadow-on` 關掉：陰影 pass 等於多畫一次投影件，
+       小螢幕看不出差別卻要付這個錢。*/
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(W(), H());
     renderer.domElement.style.display = 'block';
@@ -1756,6 +1848,58 @@
     const fill = new THREE.DirectionalLight(0xffffff, 0.34); fill.position.set(-70, 40, -60); scene.add(fill);
     const bounce = new THREE.DirectionalLight(0xffffff, 0.16); bounce.position.set(0, -60, 20); scene.add(bounce);
     const rim = new THREE.DirectionalLight(0xffffff, 0.0); rim.position.set(-40, 50, -90); scene.add(rim);
+    /* 只有主光投影（規格書一-2）。補光與輪廓光投影只會讓同一個物體出現三組互相打架的影子，
+       而且陰影 pass 的成本是「每一盞會投影的燈 × 每一顆 castShadow 的 mesh」。*/
+    key.castShadow = true;
+    key.shadow.mapSize.set(1024, 1024);
+    key.shadow.bias = -0.0012;            // 自體陰影的條紋（shadow acne）：板子這麼薄一定要給
+    key.shadow.normalBias = 0.6;
+    scene.add(key.target);
+
+    /* ================================================================ 環境貼圖（規格書一-1）
+       ★ 這是「灰」的**最大主因**：PBR 的金屬幾乎全靠環境反射，沒有 envMap 的 metalness
+         只會把物件變暗灰 —— 所以以前只好把金屬度壓低，結果銀灰機架、銅件、鰭片
+         全都變成霧面塑膠。補上環境貼圖之後金屬才是金屬。
+       vendor 的 three 有 `PMREMGenerator`（核心）但**沒有 RoomEnvironment**（那是 examples），
+       而且不准為了這個多塞一支 vendor 檔（Andy 公司網路擋 CDN）——
+       所以自己搭一個程序式的小棚：一個包住原點的暗房 ＋ 上方大柔光板 ＋ 左冷右暖兩片補光板
+       ＋ 後上方一片輪廓光板 ＋ 下方暗板，再用 `fromScene()` 捲成 envMap。
+       兩種模式各生一份（顏色不同），切模式時重生。*/
+    let pmrem = null, envTex = null, envPal = '';
+    const cssRead0 = (n) => { try { return getComputedStyle(el).getPropertyValue(n).trim(); } catch (e) { return ''; } };
+    const envCol = (n, d) => new THREE.Color(cssRead0(n) || d);
+    function buildEnv() {
+      try {
+        if (!pmrem) { pmrem = new THREE.PMREMGenerator(renderer); pmrem.compileEquirectangularShader(); }
+        const es = new THREE.Scene();
+        const geos = [];
+        /* 面板一律用 MeshBasicMaterial：PMREM 是把這個小場景「拍」成環境光，
+           面板本身就是光源，不需要再被照亮。*/
+        const panel = (w, h, hex, dflt, px, py, pz, rx, ry) => {
+          const gg = new THREE.PlaneGeometry(w, h); geos.push(gg);
+          const mm = new THREE.MeshBasicMaterial({ color: envCol(hex, dflt), side: THREE.DoubleSide });
+          const me = new THREE.Mesh(gg, mm);
+          me.position.set(px, py, pz); me.rotation.set(rx || 0, ry || 0, 0);
+          es.add(me); return me;
+        };
+        es.background = envCol('--dg-env-bot', '#0A0F18');                 // 暗房底色（照不到的地方是什麼顏色）
+        panel(26, 26, '--dg-env-top', '#C8D8F0', 0, 9, 0, Math.PI / 2, 0);  // 上方大柔光板（主要的反射來源）
+        panel(14, 20, '--dg-env-l', '#4E7FB8', -9, 1, 0, 0, Math.PI / 2);   // 左：冷色補光
+        panel(14, 20, '--dg-env-r', '#C08A52', 9, 1, 0, 0, Math.PI / 2);    // 右：暖色補光（冷暖對比就是從這裡來的）
+        panel(18, 10, '--dg-env-back', '#121A2A', 0, 5, -9, 0, 0);          // 後上方：勾邊緣的那一道
+        panel(26, 26, '--dg-env-bot', '#0A0F18', 0, -9, 0, Math.PI / 2, 0); // 下方暗板：底面要暗，不然整台會浮起來
+        const t = pmrem.fromScene(es, 0.04).texture;
+        geos.forEach(g => g.dispose());
+        es.traverse(x => { if (x.material) x.material.dispose(); });
+        if (envTex) envTex.dispose();
+        envTex = t;
+        scene.environment = t;
+      } catch (e) {
+        /* 生不出來（極舊的 WebGL1、浮點貼圖不支援）就維持沒有 envMap 的樣子 ——
+           畫面會回到「比較灰」但不會掛掉。*/
+        scene.environment = null;
+      }
+    }
 
     const root = new THREE.Group(); scene.add(root);
     const picks = [];            // 可以點的 group
@@ -2047,6 +2191,72 @@
     };
     fitCamera();
 
+    /* ================================================================ 真陰影的兩件事（規格書一-2）
+       ① shadow camera 要**貼著模型的外接盒**收緊。1024 的貼圖攤在預設的 ±5 正交範圍上
+          （或反過來攤在整個場景上）都會糊成一片灰，看起來像髒掉而不是像影子。
+       ② castShadow **只給大件**。一個零件有幾十顆小 mesh（錫球、微孔、走線、端子），
+          全部投影等於把整個場景再畫一次：陰影 pass 的三角形與 draw call 都會翻倍，
+          而使用者看到的差別是零 —— 一塊板子的影子就是那塊板子的輪廓。
+          做法：每個零件取**體積最大的前三顆** mesh，而且那顆本身要「便宜」（≤ 600 個三角形）
+          且不透明（玻璃、AO 墊、流線不投影）。*/
+    const fitShadow = () => {
+      const bb = new THREE.Box3().setFromObject(root);
+      const c = bb.getCenter(new THREE.Vector3()), sz = bb.getSize(new THREE.Vector3());
+      const r = Math.max(sz.x, sz.y, sz.z) * 0.78 + 2;
+      /* 主光的方向刻意**偏到右側**而不是「跟相機同一邊的右上前 45°」：
+         光跟相機同向時影子全部落在物體背後，等於做了陰影卻看不到
+         （第一版的 MLCC 就是這樣，三個零件一個影子都看不見）。
+         偏右之後影子往左前方落，預設視角就看得到，而且正面仍然吃得到掠射光。*/
+      const dir = new THREE.Vector3(0.84, 0.78, 0.16).normalize();
+      key.position.copy(c).addScaledVector(dir, r * 2.2);
+      key.target.position.copy(c); key.target.updateMatrixWorld();
+      const cam = key.shadow.camera;
+      cam.left = -r; cam.right = r; cam.top = r; cam.bottom = -r;
+      cam.near = Math.max(0.5, r * 0.4); cam.far = r * 4.4;
+      cam.updateProjectionMatrix();
+    };
+    /* 真陰影的開關（規格書一-2 的效能備案）：窄畫面關掉 —— 陰影 pass 等於把投影件再畫一次，
+       小螢幕看不出差別卻要付這個錢。`--dg-shadow` 已經被「底下那片軟接觸陰影的**顏色**」佔用了，
+       所以開關用 `--dg-shadow-on`。*/
+    const applyShadowMode = () => {
+      const want = (parseFloat(cssRead0('--dg-shadow-on')) || 1) > 0.5 && (window.innerWidth || W()) >= 960;
+      if (renderer.shadowMap.enabled !== want) {
+        renderer.shadowMap.enabled = want;
+        // shader 會因為「有沒有陰影」而不同，不重編的話開關等於沒按
+        scene.traverse(x => { if (x.isMesh && x.material) x.material.needsUpdate = true; });
+      }
+      key.castShadow = want;
+      return want;
+    };
+    const SHADOW_MAX = 60;          // 投影件的硬上限（驗收也用這個數字：太多＝效能會爆）
+    const markShadows = () => {
+      let n = 0;
+      byIdx.forEach(p => {
+        if (!p || p.ghost) return;
+        const cand = [];
+        p.meshes.forEach(x => {
+          if (!x.geometry || !x.material) return;
+          const ud = (x.material.userData) || {};
+          if (ud.ao || ud.glass || ud.glow || ud.flowPts || ud.flowLine) return;   // 墊片、玻璃、流線不投影
+          if (x.material.transparent && x.material.opacity < 0.95) return;
+          const gi = x.geometry.index, gp = x.geometry.attributes.position;
+          const tris = Math.round(((gi ? gi.count : (gp ? gp.count : 0)) / 3)) * (x.isInstancedMesh ? x.count : 1);
+          if (tris > 600) return;                                                  // 陣列小件（錫球、凸塊）太貴
+          if (!x.geometry.boundingBox) x.geometry.computeBoundingBox();
+          const sz = x.geometry.boundingBox.getSize(new THREE.Vector3());
+          cand.push({ x, v: Math.abs(sz.x * sz.y * sz.z) * (x.scale.x * x.scale.y * x.scale.z || 1) });
+        });
+        cand.sort((a, b) => b.v - a.v);
+        cand.slice(0, 3).forEach(o2 => {
+          if (n >= SHADOW_MAX) return;
+          o2.x.castShadow = true; o2.x.receiveShadow = true; n++;
+        });
+      });
+      return n;
+    };
+    markShadows();
+    fitShadow();
+
     // ---- 點零件：接回原本那條路（亮起來 ＋ 帶出台股清單）
     const ray = new THREE.Raycaster(); const ptr = new THREE.Vector2();
     let downAt = null;
@@ -2203,7 +2413,9 @@
           p.baseCol.set(m, c.clone());
           if (ud.rough0 != null && m.roughness != null) m.roughness = Math.min(1, ud.rough0 * roughK);
           if (ud.metal0 != null && m.metalness != null) m.metalness = Math.min(1, ud.metal0 * metalK);
-          if (ud.glass) { p.baseOp.set(m, ud.shell ? shellA : glassA); }   // 角色外殼比純玻璃實（托盤要看得出是哪一色）
+          if (ud.glass) { p.baseOp.set(m, ud.shell ? shellA : glassA); }   // 機櫃外殼板（規格書一-3 准許透明的三種之一）
+          // 液冷：青綠半透明，兩種模式各自的不透明度（--dg-m-cool-a）
+          if (ud.cool) p.baseOp.set(m, palNum('--dg-m-cool-a', 0.62));
           if (ud.edge) p.baseOp.set(m, palNum('--dg-glass-edge-a', 0.55));    // 玻璃邊光（科技淡藍、閱讀白）
           if (ud.ao) { m.color.copy(palCol('--dg-ao', '#000000')); p.baseOp.set(m, palNum('--dg-ao-a', 0.4)); p.baseCol.set(m, m.color.clone()); }
           if (ud.glow && m.emissive) { m.emissive.copy(c); m.emissiveIntensity = flowEm * (ud.glowK || 1); }
@@ -2215,6 +2427,14 @@
           if (ud.flowLine) p.baseOp.set(m, Math.min(0.85, flowA));
         });
       });
+      /* ★ 環境貼圖（規格書一-1）：兩種模式的棚色不同，所以換模式要重生一份。
+         只在**模式真的換了**的時候生 —— PMREM 要畫六個面再做多階模糊，每次都生會很貴。
+         envMapIntensity 走 --dg-env（科技 .9、閱讀 1.15）：閱讀模式的棚比較亮，
+         金屬要反射得多一點才不會在白底上變成一塊灰。*/
+      if (envPal !== pal || !scene.environment) { buildEnv(); envPal = pal; }
+      const envK = palNum('--dg-env', 1);
+      byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => { if (m.envMapIntensity != null) m.envMapIntensity = envK; }); });
+      applyShadowMode();
       hemi.intensity = palNum('--dg-hemi', 0.62);
       hemi.color.copy(palCol('--dg-l-sky', '#ffffff')); hemi.groundColor.copy(palCol('--dg-l-gnd', '#000000'));
       key.intensity = palNum('--dg-key', 1.0); key.color.copy(palCol('--dg-l-key', '#ffffff'));
@@ -2515,6 +2735,9 @@
       const before = lastMode;
       layoutLabels();
       if (before !== lastMode) { fitCamera(); layoutLabels(); }
+      // 陰影跟著寬度開關（≥960 才開）：窄畫面關掉是效能的備案，不是「壞了」
+      applyShadowMode();
+      fitShadow();
     };
     window.addEventListener('resize', onResize);
     tick();
@@ -2533,6 +2756,8 @@
         if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => m.dispose());
       });
       if (shadowMat.map) shadowMat.map.dispose();      // 粒子與陰影共用的那張 sprite 貼圖
+      if (envTex) { envTex.dispose(); envTex = null; }
+      if (pmrem) { pmrem.dispose(); pmrem = null; }
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       if (layer.parentNode) layer.parentNode.removeChild(layer);
@@ -2649,6 +2874,70 @@
         explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
+    /* ★ 2026-09-22 PBR 精緻化（DECISIONS #243）的量測介面。
+       stats() 量的是「畫了幾個三角形、發光多強」，量不到這一批真正要驗的四件事：
+         env        ＝ scene.environment 有沒有真的掛上去（沒有 envMap 的 PBR 金屬只會變暗灰）
+         shadowMap  ＝ 真陰影開了沒、有幾顆 mesh 在投影（太多會爆效能、太少等於沒做）
+         transRatio ＝ 半透明 mesh 佔全部 mesh 的比例（規格書一-3 的「收透明」要量得到）
+         maxMetal   ＝ 全場最高金屬度（證明「metalness 上限解除」這件事真的發生了）
+       全部走 scene.traverse，量的是**真的被畫出去的那些物件**，不是設定值。*/
+    const audit = () => {
+      let meshTotal = 0, transN = 0, castN = 0, recvN = 0, maxMetal = 0, maxEnv = 0, opaqueN = 0;
+      const byPart = {};      // 逐零件的三角形數：減面之前要先知道面在哪一個零件上
+      /* ★「這張圖設計上有多透明」要量 **baseOp**（沒有選取時該有的不透明度），不是當下的 opacity。
+         高亮機制會把「沒被選到的環節」壓到 0.12（DECISIONS #238），
+         而多環節場景一進來就有選取 —— 直接量 opacity 會得到「68% 的 mesh 是半透明的」，
+         那量到的是**高亮狀態**不是設計。2026-09-22 第一版驗收就踩到這個。*/
+      const baseOf = new Map();
+      byIdx.forEach(p => { if (!p || !p.baseOp) return; p.baseOp.forEach((v, m) => baseOf.set(m, v)); });
+      let designN = 0, designTotal = 0;
+      scene.traverse(x => {
+        if (!x.isMesh) return;
+        meshTotal++;
+        if (x.geometry) {
+          let up = x; while (up && !(up.userData && up.userData.part)) up = up.parent;
+          const key = up ? up.userData.part : '(場景層)';
+          const g = x.geometry;
+          const nn = g.index ? g.index.count : (g.attributes.position ? g.attributes.position.count : 0);
+          byPart[key] = (byPart[key] || 0) + Math.round(nn / 3) * (x.isInstancedMesh ? x.count : 1);
+        }
+        if (x.castShadow) castN++;
+        if (x.receiveShadow) recvN++;
+        const ms = Array.isArray(x.material) ? x.material : [x.material];
+        let tr = false;
+        ms.forEach(m => {
+          if (!m) return;
+          if (m.transparent && m.opacity != null && m.opacity < 0.9) tr = true;
+          if (m.metalness != null) maxMetal = Math.max(maxMetal, m.metalness);
+          if (m.envMapIntensity != null) maxEnv = Math.max(maxEnv, m.envMapIntensity);
+        });
+        if (tr) transN++; else opaqueN++;
+        // 設計上的透明：用 baseOp（量不到就退回當下的 opacity）
+        let dtr = false, known = false;
+        ms.forEach(m => {
+          if (!m) return;
+          const b = baseOf.has(m) ? baseOf.get(m) : null;
+          if (b != null) { known = true; if (b < 0.9) dtr = true; }
+          else if (m.transparent && m.opacity != null && m.opacity < 0.9) dtr = true;
+        });
+        if (known || ms.some(Boolean)) { designTotal++; if (dtr) designN++; }
+      });
+      return {
+        env: !!scene.environment, envIntensity: +maxEnv.toFixed(2),
+        bg: scene.background ? (scene.background.isTexture ? 'texture' : 'color') : 'none',
+        shadowMap: !!renderer.shadowMap.enabled, shadowType: renderer.shadowMap.type,
+        castShadow: castN, receiveShadow: recvN,
+        meshTotal, transparent: transN, opaque: opaqueN, byPart,
+        transRatio: meshTotal ? +(transN / meshTotal).toFixed(3) : 0,
+        // ★ 驗收要看的是這一組：設計上半透明的 mesh 佔比（跟「現在選了誰」無關）
+        designTrans: designN, designTotal,
+        designRatio: designTotal ? +(designN / designTotal).toFixed(3) : 0,
+        maxMetal: +maxMetal.toFixed(2),
+        expo: +renderer.toneMappingExposure.toFixed(3),
+        lights: { hemi: +hemi.intensity.toFixed(2), key: +key.intensity.toFixed(2), fill: +fill.intensity.toFixed(2),
+          bounce: +bounce.intensity.toFixed(2), rim: +rim.intensity.toFixed(2) },
+      };
+    };
     /* 給驗收用：每個零件「材質底色 vs 環節色 vs 現在畫出來的顏色」。
        DECISIONS #238 那一刀（零件底色不再來自環節色）要量得到：
          base    ＝ 材質族 token 讀到的底色（K.base）
@@ -2659,6 +2948,10 @@
       let big = null, bigV = -1;
       p.meshes.forEach(x => {
         if (!x.geometry || !x.material || !x.material.color || x.material.userData.led) return;
+        /* ★ 2026-09-22：掛在零件身上的**流線**（液冷水路、光路、氣流）不算它的本體色。
+           以前 ag_cdu 量到的是那條紅色熱水管（TubeGeometry 橫跨半個機櫃，外接盒體積最大），
+           所以「液冷模組是什麼顏色」永遠量到熱水紅 —— 量錯了東西，不是顏色錯了。*/
+        let up = x; while (up) { if (up.userData && up.userData.flowOf) return; up = up.parent; }
         if (!x.geometry.boundingBox) x.geometry.computeBoundingBox();
         const s = x.geometry.boundingBox.getSize(new THREE.Vector3());
         const v = s.x * s.y * s.z * (x.isInstancedMesh ? x.count : 1) * (x.scale.x * x.scale.y * x.scale.z || 1);
@@ -2692,7 +2985,7 @@
     const colorOf = (id) => { const p = findP(id); return p ? p.elColor : null; };
     const partsOf = (seg) => byIdx.filter(x => x && x.seg === seg).map(x => x.part);
     const view = {
-      highlight, cam, screen, stats, setAnim, hitAt, mats, pointOf, colorOf, partsOf,
+      highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf,
       // 兩種模式（DECISIONS #238）：tech／read；舊名字會被映射
       setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
       // 爆炸拆解：讀／設 0～1（設了就把進場動畫停掉，給驗收與「重看一次拆解」用）

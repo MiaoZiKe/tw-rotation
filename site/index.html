@@ -1260,19 +1260,48 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
      卡片    --dg3-card --dg3-card-line --dg3-card-sh --dg3-ink/-2/-3 --dg3-badge-ink --dg3-lead-w --dg3-halo --dg3-blur */
 .dg3d{
   /* 科技 v3（docs/diagram_style_tech_v3.md）：深邃暗藍黑 #080C14、中心微亮 #0E1626 的徑向漸層 */
-  --dg-1:var(--dg-bg-tech-2,#0E1626); --dg-2:var(--dg-bg-tech,#080C14);
-  --dg-key:1.6; --dg-fill:.55; --dg-hemi:.8; --dg-bounce:.2; --dg-rim:.7; --dg-expo:1.05;
-  /* 輪廓光用螢光藍：玻璃與金屬的邊緣會帶一圈藍色折射感（v3 §3-01） */
-  --dg-l-key:#ffffff; --dg-l-fill:#b9c8e6; --dg-l-sky:#cbd4e6; --dg-l-gnd:#0b1120; --dg-l-rim:#58C4FF;
-  /* v3 第二輪（Andy：「色彩還不夠豐富」）：飽和度拉滿、不再往冷白混；角色外殼（托盤、PSU、CDU）比機櫃玻璃實得多 */
-  --dg-sat:1.2; --dg-mix:#dde6f5; --dg-mix-k:0;
+  /* ★ 2026-09-22 PBR 精緻化（DECISIONS #243、docs/diagram_3d_pbr_spec.md）：
+     背景改成規格書七的「科技深海軍藍」（#0A1428 → #060B14）。
+     徑向漸層本來就在（CSS 的 radial-gradient），所以不需要再生一張 canvas texture 當
+     scene.background —— 畫布是 alpha:true，CSS 的底直接透出來，成本是零。*/
+  --dg-1:var(--dg-bg-tech-2,#0A1428); --dg-2:var(--dg-bg-tech,#060B14);
+  /* 打光（規格書一-5）：暖白主光投影 ＋ 冷白補光 ＋ 後上方輪廓光；
+     半球光從 .8 降到 .35 —— envMap 進來之後它不需要那麼強，強了只會把立體感洗平。*/
+  --dg-key:1.25; --dg-fill:.4; --dg-hemi:.35; --dg-bounce:.16; --dg-rim:.8; --dg-expo:1.0;
+  --dg-l-key:#FFF4E6; --dg-l-fill:#DCE9FF; --dg-l-sky:#1B2740; --dg-l-gnd:#05070C; --dg-l-rim:#BFE3FF;
+  /* 環境貼圖（規格書一-1）：程序式棚的五片面板顏色 ＋ envMapIntensity。
+     上方大柔光板是主要的反射來源；左冷右暖就是零件邊緣那一道冷暖對比的來源。*/
+  --dg-env:.9; --dg-env-top:#C8D8F0; --dg-env-l:#4E7FB8; --dg-env-r:#C08A52;
+  --dg-env-back:#16203A; --dg-env-bot:#080D16;
+  --dg-shadow-on:1;                     /* 真陰影的開關（窄畫面由 three3d.js 自己關）*/
+  /* 規格書一-4：整體色溫收斂降到接近 0 —— 那是「灰」的根因 6。
+     ★ 實測之後直接歸零：sat 1.05 ＋ mix-k .02 會把七類模組的 ΔE76 從 31 壓到 26
+       （差一點就破 25 的線）。顏色差異全部交給下面那組 --dg-m-*，全域色溫不准再碰它。*/
+  --dg-sat:1; --dg-mix:#dde6f5; --dg-mix-k:0;
   --dg-rough-k:1; --dg-metal-k:1;
   --dg-lit:#ffffff; --dg-dim:#070b14;
-  --dg-glass:#58C4FF; --dg-glass-a:.16; --dg-shell-a:.58;
+  /* 收透明（規格書一-3）：只有機櫃**外殼板**可以很透（.28），主要零件一律不透明 */
+  --dg-glass:#7FB4D8; --dg-glass-a:.28; --dg-shell-a:.28;
+  /* ★ 模組色（規格書一-4 那張表）：關掉標籤也要認得出七類。冷（銀灰／墨綠／青綠）七成、暖（銅／橘）三成 */
+  --dg-m-rack:#B8C2CC;        /* 機架／滑軌／鈑金：銀灰霧面金屬 */
+  --dg-m-pcb:#0E3B32;         /* PCB 板材：墨綠 */
+  --dg-m-trace:#E6B95C;       /* PCB 走線／焊墊：金 */
+  --dg-m-die:#1E2E52;         /* 晶片本體：深藍 */
+  --dg-m-graphite:#3A3F47;    /* 晶片模封／IC 封裝：石墨灰 */
+  --dg-m-hs:#CBD5DE;          /* 散熱蓋／鰭片：銀灰，比機架亮一階 */
+  /* 銅件：香檳金偏暖銅。規格書給的 #C98A5E 跟電源的暖橘 #E08A3C 在 Lab 上只差 ΔE76 22
+     —— 關掉標籤時「銅接頭」與「電源櫃」會分不開，所以往香檳金那一端拉到 ΔE 34。*/
+  --dg-m-cu:#D6A886;
+  --dg-m-cool:#2FB8A6;        /* 液冷：青綠（半透明有厚度） */
+  --dg-m-cool-a:.62;
+  --dg-m-fanf:#5A7285;        /* 風扇外框：藍灰 */
+  --dg-m-blade:#2E3A45;       /* 風扇葉片：實體深灰藍（不准只剩透明輪廓） */
+  --dg-m-pwr:#E08A3C;         /* 電源／BBU：暖橘 */
   /* 科技模式的板子底色（v3 §3-08：#0F3D3A，配金色走線）。這是 3D 專用的覆寫 token：
      材質族 pcb 先讀它、讀不到才讀 :root 的 --dg-pcb；閱讀模式把它設成 initial ＝ 交回 root 的粉彩值 */
   --dg-pcb-3d:#0F3D3A;
-  --dg-led:.9; --dg-led-c:#22E5C8; --dg-sel-em:.28; --dg-part-em:.5; --dg-flow-em:1.15; --dg-flow-a:.95;
+  /* 發光克制（規格書一-6）：只有指示燈、資料流／光路、液冷流向、被點選的那一顆准發光 */
+  --dg-led:.7; --dg-led-c:#22E5C8; --dg-sel-em:.22; --dg-part-em:.45; --dg-flow-em:.8; --dg-flow-a:.9;
   /* v3 §2 五色系（每一類元件固定一個主色）。style-system 若在 :root 定義 --dg-sig／--dg-pwr／--dg-cool／--dg-opt
      這裡會直接吃它們（var 的第一個值），沒有才用 v3 的值。
        sig 螢光藍＝訊號／網通／背板／ToR   opt 松石綠＝光模組／CPO／光路   pwr 亮橙＝電力／快接頭
@@ -1285,8 +1314,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   --dg-fl-cold:#2FD9C4; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A;
   --dg-fl-air:#58C4FF; --dg-fl-blade:#7FD4FF; --dg-fl-airline:#BFE9FF;   /* air＝風扇模組（框／卡片），blade＝扇葉，airline＝吹出來的氣流線 */
   --dg-glass-edge:#9FE0FF; --dg-glass-edge-a:.55;
-  --dg-ao:#000000; --dg-ao-a:.42;
-  --dg-shadow:#000000; --dg-shadow-a:.5;
+  /* 有了真陰影之後，這片軟接觸陰影退成「補一點點」就好，不然底下會糊成一塊黑 */
+  --dg-ao:#000000; --dg-ao-a:.3;
+  --dg-shadow:#000000; --dg-shadow-a:.38;
   --dg3-card:rgba(13,19,38,.6); --dg3-card-line:rgba(160,190,240,.26); --dg3-card-sh:0 8px 24px -12px rgba(0,0,0,.6);
   --dg3-ink:#eef3ff; --dg3-ink-2:#b5c2de; --dg3-ink-3:#8ea0c4; --dg3-badge-ink:#0b132b;
   --dg-card-lmin:.48; --dg-card-lmax:1;          /* 卡片元件色的明度夾限：深底上太暗的拉亮到 .48，不壓暗 */
@@ -1296,21 +1326,34 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   /* v9（Andy 的亮色參考圖 docs/diagram_refs/3d_rack_light_glass.webp）：**不是灰掉的粉彩**。
      暖白底、托盤藍／綠／橙保留中等飽和、水路青綠帶柔光（約科技模式的 40%）、霧面玻璃有厚度與白邊高光、
      托盤底下淡陰影、柔和攝影棚光。這一組蓋掉之前「閱讀不發光、去飽和」的值。*/
-  --dg-1:#F8F9FA; --dg-2:#E9E7E1;
-  --dg-key:1.0; --dg-fill:.65; --dg-hemi:1.3; --dg-bounce:.35; --dg-rim:.28; --dg-expo:1.0;
-  --dg-l-key:#fff6e8; --dg-l-fill:#e6e0d4; --dg-l-sky:#ffffff; --dg-l-gnd:#b6ae9f; --dg-l-rim:#ffffff;
-  --dg-sat:1; --dg-mix:#f2ede3; --dg-mix-k:.08;
-  --dg-rough-k:1.15; --dg-metal-k:.6;
+  /* 規格書七：閱讀模式的底是淡藍灰（#E8EDF2 → #D6DEE6），不是奶油白 ——
+     奶油白 ＋ --dg-mix-k .08 就是「閱讀模式整體霧化、對比掉下去」的根因 6。*/
+  --dg-1:#E8EDF2; --dg-2:#D6DEE6;
+  --dg-key:1.15; --dg-fill:.38; --dg-hemi:.35; --dg-bounce:.2; --dg-rim:.35; --dg-expo:1.06;
+  --dg-l-key:#FFF4E6; --dg-l-fill:#DCE9FF; --dg-l-sky:#E8EEF5; --dg-l-gnd:#B9C2CC; --dg-l-rim:#FFF6EA;
+  /* 閱讀模式的棚比較亮（白牆棚拍），所以 envMapIntensity 反而要高一點，金屬才不會在白底上變灰 */
+  --dg-env:1.15; --dg-env-top:#FFFFFF; --dg-env-l:#C6D8EA; --dg-env-r:#EAD3B6;
+  --dg-env-back:#E4E9EF; --dg-env-bot:#9AA4AE;
+  --dg-shadow-on:1;
+  --dg-sat:1; --dg-mix:#f2ede3; --dg-mix-k:0;
+  /* ★ --dg-metal-k 從 .6 拉回 1.0（規格書一-1）：那個 0.6 是「沒有環境貼圖只好把暗金屬藏起來」
+     的補償值，根因修掉之後它就只是在把金屬變成塑膠。*/
+  --dg-rough-k:1.05; --dg-metal-k:1;
   --dg-lit:#ffffff; --dg-dim:#4a443c;
-  --dg-glass:#E6EEF3; --dg-glass-a:.42; --dg-shell-a:.55;
+  --dg-glass:#DCE8F0; --dg-glass-a:.3; --dg-shell-a:.28;
   --dg-pcb-3d:#5E9A63;                  /* 運算托盤＝綠色 PCB 板（參考圖亮色版），不是灰板 */
-  --dg-led:.35; --dg-sel-em:0; --dg-part-em:.15; --dg-flow-em:.45; --dg-flow-a:.8;
+  /* 模組色的閱讀版：同一組語意、明度往上提，對白底仍然分得開（兩兩色差 ≥ 25） */
+  --dg-m-rack:#C9D1D9; --dg-m-pcb:#2E6B58; --dg-m-trace:#D9B35B;
+  --dg-m-die:#39466B; --dg-m-graphite:#5A6069; --dg-m-hs:#DCE3E9;
+  --dg-m-cu:#D9AE7E; --dg-m-cool:#3FC2B0; --dg-m-cool-a:.6;
+  --dg-m-fanf:#6E8697; --dg-m-blade:#49586A; --dg-m-pwr:#D9843C;
+  --dg-led:.3; --dg-sel-em:0; --dg-part-em:.15; --dg-flow-em:.3; --dg-flow-a:.8;
   --dg-fl-sig:#4A90D9; --dg-fl-sig-2:#3A73B5; --dg-fl-pwr:#F0883A; --dg-fl-cool:#22B5A0; --dg-fl-opt:#2BB3A0;
   --dg-fl-gpu:#7D5BD6; --dg-fl-ind:#5B6FD6; --dg-fl-cold:#2FC9B4; --dg-fl-hot:#E8626B; --dg-fl-cu:#C98A63; --dg-fl-cu-2:#A8785E; --dg-fl-trace:#D9B35B;
   --dg-fl-air:#F0883A; --dg-fl-blade:#DCE8F0; --dg-fl-airline:#9FC4E8;   /* 亮色：風扇橙框、扇葉淡藍白、氣流淡藍 */
   --dg-glass-edge:#FFFFFF; --dg-glass-edge-a:.85;
-  --dg-ao:#3A342C; --dg-ao-a:.2;
-  --dg-shadow:#5a4f40; --dg-shadow-a:.22;
+  --dg-ao:#3A342C; --dg-ao-a:.14;
+  --dg-shadow:#5a4f40; --dg-shadow-a:.18;
   --dg3-card:rgba(255,255,255,.84); --dg3-card-line:rgba(60,55,48,.16); --dg3-card-sh:0 8px 22px -14px rgba(60,50,40,.45);
   --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#ffffff;   /* 閱讀模式圓點底是中深的元件色，字改白 */
   --dg-card-lmin:.30; --dg-card-lmax:.40;        /* 白卡上的標題字／圓點底／引線：太亮的（玻璃、陶瓷）壓到 .40 以下 */
