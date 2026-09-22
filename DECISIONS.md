@@ -2709,18 +2709,18 @@ E4 兩種動畫都停、層間小銅柱 > 0、發光預算 ≤ 3。舊的 `t_psu
 畫布收到 680、三段章節（`D.fold()`）。收合高度液冷 565／氣冷 583（ai_server 額度 656）。材質照 Andy 稍後給的 2D 參考圖
 （`docs/diagram_refs/2d_panel_dark_light.webp`）改成玻璃板。
 
-### 一、`D.fx`：2.5D 材質共用區塊（`site/diagrams.js` 檔尾 `// ===== 2.5D 材質（玻璃／發光／光束）=====`）
-- `fx.defs()`（sheen 漸層 ＋ 兩個柔光濾鏡）、`fx.glass(x,y,w,h,{c,r,depth,top,side,alpha,cls,shadow,hi})`、`fx.tube()`、`fx.disc(cx,cy,r,T,{c,k,inner})`、
-  `fx.beam(d,{c,w,core,glow,speed,rev,style})`、`fx.dot()`、`fx.pad()`；`window.DG.STYLE` 接上 `fx.STYLE`。
-- 色值一律由呼叫端傳 `--dg-*`；只新增三個 token：`--dg-fx-hi`／`--dg-fx-lo`（高光與陰影往哪混）、`--dg-fx-halo`（暈光底線不透明度，閱讀 .16）。
-- **柔光濾鏡只掛在靜態暈光底線上、一張圖 ≤ 3**（液冷 2 條主幹、氣冷 3 條穿導風罩的氣流）；動態虛線核心永遠不掛濾鏡（#239 效能不變）。
-- 波 1b（PSU／ABF）用同一個區塊名，誰先合併誰的為準。
+### 一、材質走波 1b 的 `D.fx`（`site/diagrams.js` 檔尾 `// ===== 2.5D 材質（玻璃／發光／光束）=====`，以 main 為準）
+- 我原本自己寫了一套（`fx.glass／tube／disc／beam／dot／pad／defs` ＋ `--dg-fx-*` 三個 token）；波 1b 先合併，
+  收尾時整個改成呼叫它的介面：`fx.glass(x,y,w,h,{fill,cls,rx,iso:{dx,dy}})`、`fx.beam(d,{color,w,glow,flow})`、
+  `fx.shadows()`、`fx.glowDefs()`；模式差異全在 STYLE 的 `--fx-*` 旋鈕，**不留兩套**，我的 token 也拿掉了。
+- 圓盤（風扇沿轉軸拆開的那五層）`D.fx` 沒有現成的，`air_cooling.js` 用它的 class（`fxg／fxb／fxs／fxe／fxr`）在檔內拼，沒有另開共用區塊。
+- **濾鏡元素一張圖 ≤ 3**（#239）：液冷＝兩條主幹的光暈 ＋ 拆解那一疊的一組柔陰影；氣冷＝穿過導風罩的三條氣流光暈；其餘 beam 一律 `glow:false`。
 
-### 二、順手修的兩個地基缺陷（都在 `diagrams.js`，MLCC 一起受惠）
-1. `processBar` 的 SMIL 光點以前待在原點 (0,0)：章節 body 的 `getBBox` 從 y＝−3 起算，**MLCC 的 ③ 一展開多出一千多 px 空白**（全開 2917 → 修後 1813）。
-   改成外面包一層 translate、路徑相對起點。
-2. `wireFolds` 的候選 ①（第一段內容上緣退一列）改成**只看手寫 y0/y1 的段落**：`D.fold()` 的自動段落本來就會整段 translate，
-   作者把內容畫在哪裡沒有意義。光點修好之後這條才發作（MLCC 收合 574 → 653），改完回到 574。
+### 二、順手抓到的兩個地基缺陷（最後以 main 的修法為準）
+1. `processBar` 的 SMIL 光點待在原點 (0,0)：章節 body 的 `getBBox` 從 y＝−3 起算，**MLCC 的 ③ 一展開多出一千多 px 空白**（全開 2917）。
+   我先改成 translate＋相對路徑；波 1b 改成 `bodyBBox()` 量的時候暫時藏掉帶 animateMotion 的元素 —— 合併後取 main 的。
+2. `wireFolds` 的候選 ①（第一段內容上緣退一列）只看**手寫 y0/y1** 的段落：`D.fold()` 的自動段落本來就會整段 translate。
+   光點修好之後這條才發作（MLCC 收合 574 → 653），兩邊改法相同，取 main 的。
 
 ### 三、卡片與零件共用 `data-part`
 液冷／氣冷的卡片直接帶零件的 `data-part`（`extRow({part})`）：點卡片 → SVG 零件亮、點零件 → 卡片亮，主角是「同一個身分的兩個節點」。
