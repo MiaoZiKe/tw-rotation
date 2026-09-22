@@ -337,8 +337,8 @@
   --dg-frame-f:rgba(255,255,255,.55); --dg-frame-s:rgba(58,53,45,.18);
   --dg-step-f:rgba(255,255,255,.80);
   /* ---- 語意色：色相不動、明度壓到亮底讀得到（數字見 _STYLE.md 的對比表） ---- */
-  --dg-err:#b3122a; --dg-warn:#a5334c;
-  --dg-sig:#1f5fa6; --dg-pwr:#b4550e; --dg-cool:#0f7d74;
+  --dg-err:#b3122a; --dg-warn:#a8304b;
+  --dg-sig:#1b6a9c; --dg-pwr:#b4550e; --dg-cool:#0f7d74;
   --dg-cold:#2b73a8; --dg-cold-2:#1c4f75; --dg-hot:#c1531c; --dg-hot-2:#8a3a12;
   --dg-sw-fiber:#9a7300; --dg-sw-gold:#a87f2a;
   --dg-pn-r:#c9353f; --dg-pn-g:#2e8f52; --dg-pn-b:#3a67c4;
@@ -1321,6 +1321,69 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
      套上去會被縮成 0.834 倍、12px 的字變成 10px。 */
 .dgwrap svg.dgm{max-width:984px;margin-inline:auto}
 .dgwrap.compact svg{max-height:380px}
+/* ================ 風格系統 v2 版面（art-director 2026-09-22）================
+   Andy：「這邊的版面需要左右對齊，可以適當分配左右間隔，讓版面更滿，看起來舒適，並且會依據螢幕大小變化」。
+   畫布（SVG，原尺寸、不放大）在中間，說明卡片（HTML .dgc）在左右兩欄，整個 .dgwrap 填滿容器。
+   欄數看的是**容器**的寬度（container query），不是視窗 —— 產業鏈頁的 main 旁邊有 360px 的事件側欄，
+   視窗 1440 時 main 只有 998（抽屜開）或 1358（抽屜關）；用視窗量會在 Andy 真的在用的寬度上判錯邊。
+     ≥1280：左欄 ｜ 畫布 ｜ 右欄（minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr)）
+     960～1279：畫布 ｜ 右欄（左欄的卡片也排進右欄）
+     <960：單欄，卡片在畫布下面；390 一欄一張、字 12px 下限
+   引線由 diagrams.js 的 externalize() 在 .dglead 疊層上畫，寬度變了（ResizeObserver）就重算，沒有寫死座標。*/
+.dgwrap.dgv2{container-type:inline-size;padding:10px 12px 12px}
+.dgv2 .dggrid{position:relative;display:grid;gap:12px 18px;align-items:start;
+  grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "c" "l" "r"}
+.dgv2 .dghead{grid-area:head;min-width:0}
+.dgv2 .dghead b{display:block;font-size:var(--dg-fs-ttl);font-weight:700;color:var(--dg-ink);letter-spacing:.02em;line-height:1.35}
+.dgv2 .dghead span{display:block;font-size:var(--dg-fs-min);color:var(--dg-ink-3);line-height:1.55;margin-top:3px}
+.dgv2 .dgcanvas{grid-area:c;min-width:0;max-width:100%;overflow-x:auto;overflow-y:hidden;justify-self:center}
+.dgv2 .dgcanvas svg{display:block;height:auto;margin:0}
+/* 卡片：併成一欄（單欄／兩欄堆疊）時 .dgcards 是格子、左右欄 display:contents，卡片照 order（＝編號）排，
+   dense 讓落單的那張補進空格；三欄時反過來，.dgcards 是 display:contents，兩個 .dgcol 各自站到 l／r。*/
+.dgv2 .dgcards{grid-area:r;min-width:0;display:grid;gap:8px;align-content:start;grid-auto-flow:dense;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}
+.dgv2 .dgcol{display:contents}
+@container (min-width:960px){
+  .dgv2 .dggrid{grid-template-columns:minmax(0,1fr) minmax(240px,32%);grid-template-areas:"head head" "c r"}
+  .dgv2 .dgcanvas{justify-self:end}
+  .dgv2 .dgcards{grid-template-columns:1fr}
+}
+@container (min-width:1280px){
+  .dgv2 .dggrid{grid-template-columns:minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr);grid-template-areas:"head head head" "l c r"}
+  .dgv2 .dgcanvas{justify-self:center}
+  .dgv2 .dgcards{display:contents}
+  .dgv2 .dgcol{display:grid;min-width:0;gap:8px;align-content:start;grid-template-columns:1fr}
+  .dgv2 .dgcol.l{grid-area:l} .dgv2 .dgcol.r{grid-area:r}
+}
+.dglead{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.dglead path{fill:none;stroke:var(--dg-lead,color-mix(in srgb,var(--c,var(--dg-ink-3)) 55%,var(--dg-line-mix)));stroke-width:var(--dg-lead-w,1);transition:stroke .15s}
+.dglead path.sel,.dglead path.sel-part{stroke:var(--c,var(--dg-accent-2d));stroke-width:var(--dg-lead-sel-w,1.6)}
+.dglead path.dim{opacity:.25}
+/* ---- HTML 卡片（跟 SVG 的 .lrow、3D 的 .lbl3d 同一組 token：磨砂玻璃、細邊、左側色條、編號圓點）---- */
+.dgc{position:relative;--card-c:var(--dg-card-c,var(--c,var(--dg-ink)));display:grid;grid-template-columns:auto minmax(0,1fr);gap:0 9px;align-items:start;
+  background:var(--dg-card-f);-webkit-backdrop-filter:var(--dg-card-blur);backdrop-filter:var(--dg-card-blur);
+  border:1px solid color-mix(in srgb,var(--card-c) 40%,var(--dg-card-s));border-left:3px solid var(--card-c);
+  border-radius:var(--dg-card-r,8px);padding:8px 11px 8px 11px;box-shadow:var(--dg-card-box-sh);cursor:pointer;
+  font-size:var(--dg-fs-min,12px);line-height:1.5;color:var(--dg-ink-3);transition:border-color .15s,background .15s,opacity .2s}
+.dgc .no{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;margin-top:1px;
+  background:var(--card-c);color:var(--dg-no-ink);font-family:var(--mono);font-size:var(--dg-fs-min,12px);font-weight:700;letter-spacing:0}
+.dgc .bd{min-width:0}
+.dgc b{display:block;font-size:var(--dg-fs-lbl,12.5px);font-weight:600;color:var(--dg-ink);line-height:1.4}
+.dgc i{display:block;font-style:normal;color:var(--dg-ink-3);margin-top:2px}
+.dgc.note{cursor:default} .dgc.note .bd{grid-column:1 / -1}
+.dgc.warn{--dg-card-c:var(--dg-warn)} .dgc.warn b,.dgc.warn i{color:var(--dg-warn)}
+.dgc:hover{border-color:var(--card-c)}
+.dgc.sel{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
+.dgc.sel b{color:var(--card-c)}
+.dgc.sel-part{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 24%,var(--dg-card-f));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--card-c) 42%,transparent),var(--dg-card-box-sh)}
+.dgc.sel-part b{font-weight:700}
+.dgc.dim{opacity:.3}
+/* 單一環節的圖：同環節但不是主角的卡片退一階（跟 SVG 的 .dg.dg1.haspart 同一條規則） */
+.dgwrap.dg1.haspart .dgc.sel:not(.sel-part){opacity:var(--dg-sib-o,.4)}
+/* 閱讀模式：標題維持深灰、編號圓點改成粉彩底＋色環＋深灰數字（同 SVG 那一套） */
+:root[data-dgpal="read"] .dgc.sel b{color:var(--dg-ink)}
+:root[data-dgpal="read"] .dgc .no{background:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));color:var(--dg-ink);box-shadow:inset 0 0 0 1.2px var(--card-c)}
 .dgwrap.noanim *{animation:none!important}
 /* ---- 圖別選單（2026-09-21，Andy：「同個族群、為不同產品，則需要獨立分頁」）
    一條鏈沒有「整條鏈的架構圖」時（例：一般電子），點進去看到的是這一排入口，
