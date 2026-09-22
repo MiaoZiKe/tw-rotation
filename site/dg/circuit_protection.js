@@ -225,7 +225,10 @@
       + R(512, 350, 194, 10, 'var(--dg-ni)', 'part cpmovel')));
     g.push(mv.svg);
     // ④ TVS：P 區 ／ 空乏區 ／ N 區 ＋ 上下金屬電極
-    g.push(part('cp_tvs', R(750, 288, 190, 8, 'var(--dg-ni)', 'part cptvsel')
+    // ⚠ 上下金屬電極自己一個群組（`cp_tvsel`），不要併進 `cp_tvs` ——
+    //   併進去的話 `parts.cp_tvsel` 那張小卡永遠開不起來，
+    //   變成「定義在那裡、但點不到」的死條目。
+    g.push(part('cp_tvsel', R(750, 288, 190, 8, 'var(--dg-ni)', 'part cptvsel')
       + R(750, 354, 190, 8, 'var(--dg-ni)', 'part cptvsel')));
     g.push(part('cp_pn', R(750, 296, 190, 26, 'var(--dg-cp-p)', 'part cpp')
       + R(750, 322, 190, 6, 'var(--dg-cp-depl)', 'part cpdepl')
