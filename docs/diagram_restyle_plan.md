@@ -123,8 +123,11 @@
 | 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
 | 文字顏色 | 合併 main 之後照 style-system：`--dg-ink`／`-2`／`-3`（跟 `html[data-dgpal]` 走；`setPal` 會把 html 的 data-dgpal 一起對齊） | CSS |
 
-角色色的 token 在 `.dg3d{}`：`--dg-fl-sig/opt/pwr/gpu/ind/cool/cold/hot/cu/cu-2/trace/air`；
+角色色的 token 在 `.dg3d{}`：`--dg-fl-sig/opt/pwr/gpu/ind/cool/cold/hot/cu/cu-2/trace/air/blade/airline`
+（`air`＝風扇模組框與卡片：科技藍、閱讀橙；`blade`＝扇葉；`airline`＝吹出來的氣流線）；
 其中 `--dg-fl-sig/opt/pwr/cool` 寫成 `var(--dg-sig, …)` 那種形式，**style-system 若在 `:root` 定義 `--dg-sig`／`--dg-opt`／`--dg-pwr`／`--dg-cool`，3D 會直接吃它們**。
+v9（參考圖 `docs/diagram_refs/3d_rack_*`）之後**閱讀模式也有顏色有柔光**：托盤藍／綠／橙中等飽和、流線發光是科技的 40%（`--dg-flow-em` .45 vs 1.15）、
+玻璃有厚度＋白邊高光（`--dg-glass-edge`）、托盤底下 AO（`--dg-ao`／`--dg-ao-a`）、板子 `--dg-pcb-3d` 閱讀＝綠板 `#5E9A63`。
 
 ### 族群晶片列 ↔ 機櫃內元件的連線（v3 §5，style-system 畫線、3D 出端點）
 `Rack3D.current` 上的三支：
