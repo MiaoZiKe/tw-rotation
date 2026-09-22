@@ -1281,31 +1281,43 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
      這裡會直接吃它們（var 的第一個值），沒有才用 v3 的值。
        sig 螢光藍＝訊號／網通／背板／ToR   opt 松石綠＝光模組／CPO／光路   pwr 亮橙＝電力／快接頭
        gpu 紫＝GPU／CoWoS 晶粒            ind 靛藍＝NVSwitch               cool 霓虹綠＝CDU／manifold 外殼
-       cold 冷水管（螢光藍） hot 熱水管（發光紅）  cu 紅銅（冷板、銅箔） trace 金色走線  air 氣流（淡藍白） */
+       cold 冷水（青綠迴路） hot 熱水管（發光紅）  cu 紅銅（冷板、銅箔） trace 金色走線
+       air 風扇模組（暗藍／亮橙） blade 扇葉  airline 吹出來的氣流線（淡藍白） */
   --dg-fl-sig:var(--dg-sig,#58C4FF); --dg-fl-sig-2:#2F7FE0; --dg-fl-opt:var(--dg-opt,#22E5C8); --dg-fl-pwr:var(--dg-pwr,#FF8A3D);
-  --dg-fl-gpu:#9B6DFF; --dg-fl-ind:#7C86FF; --dg-fl-cool:var(--dg-cool,#3BF29A);
-  --dg-fl-cold:#58C4FF; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A; --dg-fl-air:#BFE9FF;
+  --dg-fl-gpu:#9B6DFF; --dg-fl-ind:#7C86FF; --dg-fl-cool:var(--dg-cool,#2FD9C4);
+  /* v9（參考圖 docs/diagram_refs/3d_rack_*）：液冷迴路青綠發光；風扇框藍、扇葉藍色霓虹；玻璃邊緣高光；托盤底下 AO */
+  --dg-fl-cold:#2FD9C4; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A;
+  --dg-fl-air:#58C4FF; --dg-fl-blade:#7FD4FF; --dg-fl-airline:#BFE9FF;   /* air＝風扇模組（框／卡片），blade＝扇葉，airline＝吹出來的氣流線 */
+  --dg-glass-edge:#9FE0FF; --dg-glass-edge-a:.55;
+  --dg-ao:#000000; --dg-ao-a:.42;
   --dg-shadow:#000000; --dg-shadow-a:.5;
   --dg3-card:rgba(13,19,38,.6); --dg3-card-line:rgba(160,190,240,.26); --dg3-card-sh:0 8px 24px -12px rgba(0,0,0,.6);
   --dg3-ink:#eef3ff; --dg3-ink-2:#b5c2de; --dg3-ink-3:#8ea0c4; --dg3-badge-ink:#0b132b;
+  --dg-card-lmin:.48; --dg-card-lmax:1;          /* 卡片元件色的明度夾限：深底上太暗的拉亮到 .48，不壓暗 */
   --dg3-lead-w:1; --dg3-halo:.55; --dg3-blur:10px;
 }
 .dg3d[data-pal="read"]{
-  --dg-1:#fbf9f4; --dg-2:#ebe6dc;
-  --dg-key:.95; --dg-fill:.6; --dg-hemi:1.35; --dg-bounce:.35; --dg-rim:0; --dg-expo:1.0;
+  /* v9（Andy 的亮色參考圖 docs/diagram_refs/3d_rack_light_glass.webp）：**不是灰掉的粉彩**。
+     暖白底、托盤藍／綠／橙保留中等飽和、水路青綠帶柔光（約科技模式的 40%）、霧面玻璃有厚度與白邊高光、
+     托盤底下淡陰影、柔和攝影棚光。這一組蓋掉之前「閱讀不發光、去飽和」的值。*/
+  --dg-1:#F8F9FA; --dg-2:#E9E7E1;
+  --dg-key:1.0; --dg-fill:.65; --dg-hemi:1.3; --dg-bounce:.35; --dg-rim:.28; --dg-expo:1.0;
   --dg-l-key:#fff6e8; --dg-l-fill:#e6e0d4; --dg-l-sky:#ffffff; --dg-l-gnd:#b6ae9f; --dg-l-rim:#ffffff;
-  --dg-sat:.55; --dg-mix:#eee6d8; --dg-mix-k:.3;
-  --dg-rough-k:1.45; --dg-metal-k:.3;
+  --dg-sat:1; --dg-mix:#f2ede3; --dg-mix-k:.08;
+  --dg-rough-k:1.15; --dg-metal-k:.6;
   --dg-lit:#ffffff; --dg-dim:#4a443c;
-  --dg-glass:#eef1f3; --dg-glass-a:.38; --dg-shell-a:.42;
-  --dg-pcb-3d:initial;                  /* 閱讀模式的板子色交回 :root[data-dgpal="read"] 的 --dg-pcb */
-  --dg-led:0; --dg-sel-em:0; --dg-part-em:.1; --dg-flow-em:0; --dg-flow-a:.55;
-  /* 閱讀模式維持 v2 的低飽和粉彩：v3 那份只套科技模式 */
-  --dg-fl-sig:#6d98d6; --dg-fl-sig-2:#5a7fb8; --dg-fl-pwr:#e39a5e; --dg-fl-cool:#6fb9a4; --dg-fl-opt:#5fb1c6; --dg-fl-air:#a3aab8;
-  --dg-fl-gpu:#9a8fc4; --dg-fl-ind:#8d94c9; --dg-fl-cold:#6d98d6; --dg-fl-hot:#d98a8a; --dg-fl-cu:#c9a08a; --dg-fl-cu-2:#a8785e; --dg-fl-trace:#c9b48a;
+  --dg-glass:#E6EEF3; --dg-glass-a:.42; --dg-shell-a:.55;
+  --dg-pcb-3d:#5E9A63;                  /* 運算托盤＝綠色 PCB 板（參考圖亮色版），不是灰板 */
+  --dg-led:.35; --dg-sel-em:0; --dg-part-em:.15; --dg-flow-em:.45; --dg-flow-a:.8;
+  --dg-fl-sig:#4A90D9; --dg-fl-sig-2:#3A73B5; --dg-fl-pwr:#F0883A; --dg-fl-cool:#22B5A0; --dg-fl-opt:#2BB3A0;
+  --dg-fl-gpu:#7D5BD6; --dg-fl-ind:#5B6FD6; --dg-fl-cold:#2FC9B4; --dg-fl-hot:#E8626B; --dg-fl-cu:#C98A63; --dg-fl-cu-2:#A8785E; --dg-fl-trace:#D9B35B;
+  --dg-fl-air:#F0883A; --dg-fl-blade:#DCE8F0; --dg-fl-airline:#9FC4E8;   /* 亮色：風扇橙框、扇葉淡藍白、氣流淡藍 */
+  --dg-glass-edge:#FFFFFF; --dg-glass-edge-a:.85;
+  --dg-ao:#3A342C; --dg-ao-a:.2;
   --dg-shadow:#5a4f40; --dg-shadow-a:.22;
   --dg3-card:rgba(255,255,255,.84); --dg3-card-line:rgba(60,55,48,.16); --dg3-card-sh:0 8px 22px -14px rgba(60,50,40,.45);
-  --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#262320;
+  --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#ffffff;   /* 閱讀模式圓點底是中深的元件色，字改白 */
+  --dg-card-lmin:.30; --dg-card-lmax:.40;        /* 白卡上的標題字／圓點底／引線：太亮的（玻璃、陶瓷）壓到 .40 以下 */
   --dg3-lead-w:.9; --dg3-halo:0; --dg3-blur:8px;
   --dg3-lead:rgba(70,64,56,.72);        /* 閱讀模式的引線是深灰細線（#238）；科技模式不定義＝跟元件同色 */
 }
