@@ -62,7 +62,7 @@
      上下兩側都朝 core 收窄（V3）；疊孔固定在 x=380（U1 與 U2 軸心對齊，V4）。*/
   const VIA = {
     core: [78, 250, 432],
-    u1: [96, 190, 290], u2: [140, 236, 330], u3: [112, 200, 306, 432],
+    u1: [96, 190, 290], u2: [140, 262, 330], u3: [112, 200, 306, 432],
     l1: [130, 240, 386], l2: [104, 286, 410], l3: [170, 316, 424],
     stack: 380,
   };
@@ -109,8 +109,13 @@
   /* 一層裡的銅線。載板的線寬 7／節距 16，最底下那一小段主機板的走線寬 34／節距 60 ——
      兩者放在同一張圖上，「**細一個量級**」這句話就不必靠數字（§7-B1：三個來源的載板線寬互相對不起來）。*/
   function traces(y, x0, x1, w, pitch) {
+    /* 條數取奇數、置中：整條 path 的外框中心正好落在中間那一條線上。
+       真滑鼠（Playwright）點的是外框中心，偶數條的話中心落在兩條線的空隙、打到底下的膜 ——
+       「零件誰做的」那一段 2026-09-22 就是這樣點不到細線的。*/
+    let n = Math.floor((x1 - w - x0) / pitch) + 1;
+    if (n % 2 === 0) { x0 += pitch / 2; n -= 1; }
     const a = [];
-    for (let x = x0; x <= x1 - w; x += pitch) a.push(`M${x},${y} h${w} v${CUH} h${-w}Z`);
+    for (let k = 0; k < n; k++) { const x = x0 + k * pitch; a.push(`M${x},${y} h${w} v${CUH} h${-w}Z`); }
     return `<path class="part" d="${a.join(' ')}" fill="var(--dg-cu)"/>`;
   }
 
@@ -145,8 +150,9 @@
     ${FILMS().map(r => plate(r, 'var(--dg-abf)', topTraces(3))).join('')}</g>`;
 
   // ---- 半加成細線（SAP／mSAP）＋ core 的兩面線路。U1 的線從 XL+30 起，讓左欄的編號錨點有地方站。
+  //      U2 那一條排第一個：它上面沒有墊子、中間那一條線也沒有微孔壓著，真滑鼠點外框中心一定點得到細線本身。
   const gTrace = () => `<g data-seg="abf_pcb" data-part="abf_trace">
-    ${traces(CU.u3, XL + 6, XR - 6, 7, 16)}${traces(CU.u2, XL + 10, XR - 6, 7, 16)}${traces(CU.u1, XL + 30, XR - 6, 7, 16)}
+    ${traces(CU.u2, XL + 10, XR - 6, 7, 16)}${traces(CU.u3, XL + 6, XR - 6, 7, 16)}${traces(CU.u1, XL + 30, XR - 6, 7, 16)}
     ${traces(CU.coreT, XL + 8, XR - 6, 9, 20)}${traces(CU.coreB, XL + 8, XR - 6, 9, 20)}
     ${traces(CU.l1, XL + 10, XR - 6, 7, 16)}${traces(CU.l2, XL + 6, XR - 6, 7, 16)}${traces(CU.l3, XL + 10, XR - 6, 7, 16)}</g>`;
 
@@ -372,7 +378,7 @@
       '示意圖，非實物比例；圖上 core ＋ 上下各 3 層，實際為十幾至二十幾層。'] })}
       ${extRow({ side: 'r', no: 2, seg: 'abf_pcb', part: 'abf_core_via', color: COL.cu, ax: 432, ay: (Y.core[0] + Y.core[1]) / 2,
     title: 'core 的貫孔：只穿 core', sub: '鑽穿→鍍銅→填塞→兩端蓋銅' })}
-      ${extRow({ side: 'r', no: 4, seg: 'abf_pcb', part: 'abf_trace', color: COL.cu, ax: 440, ay: CU.u2 + 3,
+      ${extRow({ side: 'r', no: 4, seg: 'abf_pcb', part: 'abf_trace', color: COL.cu, ax: 429.5, ay: CU.u2 + 3,
     title: '半加成細線（SAP／mSAP）', sub: '比高階 PCB 再細一個量級' })}
       ${extRow({ side: 'r', no: 5, seg: 'abf_pcb', part: 'abf_uvia', color: COL.cu, ax: 432, ay: Y.u3[0] + 11,
     title: '雷射微孔：上寬下窄，窄端朝 core', sub: '一孔只穿一層；先除膠渣' })}
@@ -437,12 +443,16 @@
        而那正是整條鏈的卡點。`cos` 只放代號，「這家在這裡負責什麼」一律讀 supply_chain.json 的 companies[].tech（R3）。
        `items` 只填 supply_chain 的 edges[].item 真的有的字串；沒寫 items 的零件走預設（該環節流進／流出的全部品項）。*/
     parts: {
+      /* v2 之後零件的名字不在 SVG 裡（卡片是 HTML），小卡拿不到 text.lbl，所以每一個零件都要自己給 name，
+         不然小卡標題會退成環節名「IC 載板（ABF / BT）」（零件誰做的那一段抓到的）。*/
       abf_core: {
+        name: '核心層 core（玻纖布補強的樹脂板）',
         desc: '整塊載板最厚、也是唯一看得出玻纖織紋的那一層。它的工作是撐住不變形，上下增層才有東西可以長。',
         items: ['BT 樹脂 core CCL'],
         none: 'core 用的 BT 樹脂銅箔基板由三菱瓦斯化學（MGC，日）供應 —— ★ 這一層的板材台股沒有廠商做。把 core 加工成載板的才是下面那三家台廠。',
       },
       abf_film: {
+        name: 'ABF 增層膜（味之素增層膜）',
         desc: '不含織造玻纖的熱固性樹脂膜，一層一層貼上去（不是 prepreg 膠片）。正因為沒有玻纖，才打得出更小的孔、做得出更細的線。',
         items: ['ABF 增層膜'],
         none: '味之素（Ajinomoto，日）一家供應全球，市占約 95%、近乎獨占（來源：今周刊 2026-05）。★ 台股沒有廠商做這一層 —— 這是整條載板鏈最硬的卡點。',
@@ -459,12 +469,12 @@
         cos: [],
         none: '無核心與玻璃核心這兩條路「台股是誰在做」目前查不到具名來源 —— 查不到就寫查不到，不編一個對應（R5）。有核心那條路的載板廠見上面各層。',
       },
-      abf_core_via: { desc: '鑽穿 core → 鍍銅 → 填塞 → 兩端蓋銅，而且只穿 core。跟主機板那種貫穿整塊板的孔不是同一件事。' },
-      abf_trace: { desc: '半加成法（SAP／mSAP）：先鍍一層很薄的銅，再把線「長」出來，不是把整片銅蝕掉。載板的線寬要比高階 PCB 再細一個量級。' },
-      abf_uvia: { desc: '雷射微孔，上寬下窄、窄的那一端朝向 core，一個孔只穿一層增層。打完一定要先除膠渣（desmear），銅才附得上去。拆開來看，每一層的孔都接到下一層的銅（圖上的小銅柱）。' },
-      abf_stack_via: { desc: '疊孔：微孔要先用電鍍銅填實，正上方才能再疊一個孔。層數越多、疊得越高，越吃電鍍能力 —— 這是載板廠之間真正拉開差距的地方。' },
-      abf_bump_pad: { desc: '晶片的凸塊就焊在這裡。上表面接晶片的墊子，比下表面接主機板的球墊小得多。' },
-      abf_sr: { desc: '防焊蓋住整面，只在要接晶片、要接主機板的墊子上開窗 —— 開窗的位置與大小決定焊得上焊不上。' },
+      abf_core_via: { name: 'core 的貫孔', desc: '鑽穿 core → 鍍銅 → 填塞 → 兩端蓋銅，而且只穿 core。跟主機板那種貫穿整塊板的孔不是同一件事。' },
+      abf_trace: { name: '半加成細線（SAP／mSAP）', desc: '半加成法（SAP／mSAP）：先鍍一層很薄的銅，再把線「長」出來，不是把整片銅蝕掉。載板的線寬要比高階 PCB 再細一個量級。' },
+      abf_uvia: { name: '雷射微孔', desc: '雷射微孔，上寬下窄、窄的那一端朝向 core，一個孔只穿一層增層。打完一定要先除膠渣（desmear），銅才附得上去。拆開來看，每一層的孔都接到下一層的銅（圖上的小銅柱）。' },
+      abf_stack_via: { name: '疊孔（stacked via）', desc: '疊孔：微孔要先用電鍍銅填實，正上方才能再疊一個孔。層數越多、疊得越高，越吃電鍍能力 —— 這是載板廠之間真正拉開差距的地方。' },
+      abf_bump_pad: { name: '凸塊墊（bump pad）＋ 表面處理', desc: '晶片的凸塊就焊在這裡。上表面接晶片的墊子，比下表面接主機板的球墊小得多。' },
+      abf_sr: { name: '防焊開窗（SR opening）', desc: '防焊蓋住整面，只在要接晶片、要接主機板的墊子上開窗 —— 開窗的位置與大小決定焊得上焊不上。' },
       abf_motherboard: {
         name: '主機板（載板底下那塊板）',
         desc: '載板底下那塊主機板（這張圖只畫一小段）。它的走線寬與節距比載板粗一個量級，兩者擺在同一張圖上就是那把尺。',

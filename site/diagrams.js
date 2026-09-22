@@ -170,6 +170,9 @@
        sheen 用 --dg-sn（錫，兩種模式都是近白）、暗面用 --dg-sh0，所以一個色值都不寫死。*/
     .dg{--fx-body:.6;--fx-sheen:.3;--fx-shade:.36;--fx-edge:.55;--fx-hl:.5;--fx-glow-a:.85;--fx-shadow-a:.9}
     :root[data-dgpal="read"] .dg{--fx-body:.7;--fx-sheen:.58;--fx-shade:.16;--fx-edge:.5;--fx-hl:.75;--fx-glow-a:.38;--fx-shadow-a:.6}
+    /* 裝飾面（sheen／邊線／高光／暗面）不吃滑鼠：真滑鼠點在方塊正中央要落到 .part 那一塊上，不是落到疊在上面的 sheen
+       （Playwright 的 click 打的是元素外框中心，2026-09-22 就是這樣點不到 ABF 膜的） */
+    .dg .fxg .fxs,.dg .fxg .fxst,.dg .fxg .fxe,.dg .fxg .fxh,.dg .fxg .fxr{pointer-events:none}
     .dg .fxg .fxb{fill:var(--fxc,var(--dg-steel));fill-opacity:var(--fx-body)}
     .dg .fxg .fxt{fill:var(--fxc,var(--dg-steel));fill-opacity:calc(var(--fx-body) * .8)}
     .dg .fxg .fxs{fill:url(#fxSheen)} .dg .fxg .fxst{fill:url(#fxSheenT)}
