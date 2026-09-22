@@ -195,6 +195,29 @@
   --dg-psu-line:color-mix(in srgb,var(--dg-ink-3) 52%,transparent);     /* 一般外框線 */
   --dg-psu-off:color-mix(in srgb,var(--dg-mute) 52%,transparent);       /* 機房基礎設施（不在這條鏈上） */
   --dg-psu-die:color-mix(in srgb,var(--dg-el) 86%,var(--dg-ink-3));     /* 晶片本體 */
+  /* 一般電子鏈三張新圖（2026-09-22）：傳動件 .dgmc ／ 鋁電容 .dgac ／ 保護元件 .dgcp。
+     ★ 全部寫成既有 token 的 color-mix，所以**四個配色（科技／柔和／沉穩／休閒）一換
+       它們自己會跟著換** —— 不必在下面四個 data-dgpal 區塊裡各覆寫一次。
+       這是 PSU 那一組已經走過的做法（見上面那七行）。 */
+  --dg-mc-ball:color-mix(in srgb,var(--dg-sn) 72%,var(--dg-steel));     /* 鋼珠（亮金屬球） */
+  --dg-mc-case:color-mix(in srgb,var(--dg-el) 72%,var(--dg-frame));     /* 馬達／減速機／滑塊的外殼 */
+  --dg-mc-flex:color-mix(in srgb,var(--dg-steel) 58%,var(--dg-cu));     /* 柔輪：薄壁，帶一點銅色好認 */
+  --dg-mc-cam:color-mix(in srgb,var(--dg-steel-2) 72%,var(--dg-el));    /* 波產生器的橢圓凸輪 */
+  --dg-mc-disc:color-mix(in srgb,var(--dg-steel) 64%,var(--dg-alu-3));  /* 擺線盤 */
+  --dg-ac-foil:color-mix(in srgb,var(--dg-alu) 82%,var(--dg-sn));       /* 鋁箔基體（陽極／陰極共用） */
+  --dg-ac-oxide:color-mix(in srgb,var(--dg-cover) 52%,var(--dg-accent-2d)); /* 陽極氧化膜（全圖最薄，所以對比要拉開才看得見） */
+  --dg-ac-paper:color-mix(in srgb,var(--dg-cer) 68%,var(--dg-cu));      /* 電解紙（纖維、偏黃） */
+  --dg-ac-elyte:color-mix(in srgb,var(--dg-si) 74%,var(--dg-void));     /* 電解液（半透明流體，要比氧化膜暗才分得開） */
+  --dg-ac-poly:color-mix(in srgb,var(--dg-resin) 68%,var(--dg-el));     /* 導電高分子（實心固體） */
+  --dg-ac-rubber:color-mix(in srgb,var(--dg-el) 74%,var(--dg-void));    /* 橡膠封口 */
+  --dg-ac-sleeve:color-mix(in srgb,var(--dg-si) 60%,var(--dg-frame));   /* 外套膠膜 */
+  --dg-cp-grain:color-mix(in srgb,var(--dg-cer) 80%,var(--dg-steel));   /* ZnO 晶粒 */
+  --dg-cp-gb:color-mix(in srgb,var(--dg-accent-2d) 58%,var(--dg-cer-cut)); /* 晶界（一定要是線，不是色差） */
+  --dg-cp-poly:color-mix(in srgb,var(--dg-cover) 68%,var(--dg-mute));   /* PPTC 高分子基體 */
+  --dg-cp-carbon:color-mix(in srgb,var(--dg-void) 68%,var(--dg-el));    /* 導電碳黑 */
+  --dg-cp-p:color-mix(in srgb,var(--dg-cu) 58%,var(--dg-die));          /* 半導體 P 區 */
+  --dg-cp-n:color-mix(in srgb,var(--dg-die) 76%,var(--dg-steel));       /* 半導體 N 區 */
+  --dg-cp-depl:color-mix(in srgb,var(--dg-cover) 70%,var(--dg-steel));  /* 空乏區（TVS 的識別特徵） */
   --ovl:rgba(10,16,32,.55);   /* K 線圖上那幾個浮在圖上的小標籤 */
   --ovl-sh:0 1px 2px #000;    /* 浮在圖上的文字陰影 */
 }
@@ -1885,6 +1908,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 <script src="dg/foundry.js"></script>
 <script src="dg/silicon_wafer.js"></script>
 <script src="dg/hbm.js"></script>
+<script src="dg/motion_control.js"></script>
+<script src="dg/alum_cap.js"></script>
+<script src="dg/circuit_protection.js"></script>
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
