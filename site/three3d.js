@@ -392,6 +392,240 @@
           codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
       ],
     },
+    /* ===== AI 伺服器鏈：IC 載板 ===== */
+    /* 2D 是 `site/dg/ic_substrate.js`，`part` 沿用它的 `data-part`（abf_*）——
+       2D 點完一個零件再切到 3D，還是同一個零件被選著。
+       半剖（z > 0 整個切掉），留下一個乾淨的 z = 0 剖面：這是**一疊薄層**，
+       切角只會變成「一疊缺了一角的板子」（#247 §二 已經踩過一次）。
+       由下往上（y 是中心）：
+         主機板 −18~−14 ｜ BGA 錫球 −13.9~−10.1 ｜ 下防焊 −10.05 ｜ 增層 L3/L2/L1 −8.5~−3
+         ｜ core −3~3 ｜ 增層 U1/U2/U3 3~9.6 ｜ 上防焊 10.05 ｜ bump pad 10.4 ｜ 晶粒剪影 16
+       改任何一個 y 之前先回來對這一排；ABF 那組常數（core 6／增層 2.2／各 3 層）寫在
+       mkBuilders 的 `ABF`，四支建造函式共用。*/
+    ic_substrate: {
+      title: 'IC 載板：ABF 增層剖面（半剖立體）',
+      sub: '中間一片最厚、而且**只有它看得出玻纖織紋**的是 core；上下各三層均勻無織紋的是 ABF 增層膜。孔的形狀就是載板與硬板分家的地方：core 走直筒貫孔、增層走上寬下窄的雷射微孔，而且窄的那一端一律朝向 core。示意圖，非實物比例',
+      camera: [54, 38, 90], target: [0, -1, -8], fit: 0.98, hk: 0.62,
+      parts: [
+        { seg: 'substrate_material', part: 'abf_core', name: '核心層 core（玻纖補強樹脂）', note: '全圖最厚、也是**唯一看得出織紋**的一層（剖面上：經紗被切斷成一排圓、緯紗順著切面成一條帶）。它的工作是撐住不變形，上下增層才有東西可以長。core 只有一片、而且在正中間 —— 畫成「兩片 core 夾膠片」就是畫成 PCB 了',
+          kind: 'abfcore', box: [60, 6, 44], at: [0, 0, 0], ex: [0, 5, 0] },
+        { seg: 'abf_pcb', part: 'abf_core_via', name: 'core 貫孔（鍍銅、填塞、兩端蓋銅）', note: '★ **只穿 core**，一格增層都不准穿進去 —— 它跟 PCB 那張的機械通孔（貫穿全板）不是同一件事。孔內是**填塞**的、不是空心，兩端還要蓋一片銅，上面那一層的微孔才疊得上來',
+          kind: 'abfvia', v: 'core', box: [60, 6, 44], at: [0, 0, 0], ex: [0, 17, 0] },
+        { seg: 'substrate_material', part: 'abf_film', name: 'ABF 增層膜（上下各 3 層）', note: '味之素的增層膜（Ajinomoto Build-up Film）。它是**膜**不是膠片，而且**不含織造玻纖** —— 畫出織紋就是結構錯誤。★ 上下層數與厚度必須相等：不對稱就翹曲，而翹曲正是這塊板子做大之後最難的一關',
+          kind: 'abfbu', box: [60, 19.2, 44], at: [0, 0, 0], ex: [-28, 0, 0] },
+        { seg: 'abf_pcb', part: 'abf_trace', name: '增層裡的細線路（半加成 SAP／mSAP）', note: '線寬比主機板的走線細一個量級，所以做法也不一樣：不是把整片銅蝕刻掉多餘的（減成），是先鍍一層薄銅、再把要的地方長厚（半加成）。這一段就是載板廠的門檻所在',
+          kind: 'abftrace', box: [60, 19.2, 44], at: [0, 0, 0], ex: [-28, 0, 14] },
+        { seg: 'abf_pcb', part: 'abf_uvia', name: '雷射微孔（錐形，窄端朝 core）', note: '★ 錐度方向是這張圖最容易錯的一條：上半部的孔**朝下**收窄、下半部的孔**朝上**收窄 —— 兩邊都是「從外面往 core 打」。只穿一層增層；畫成直筒那是機械鑽孔，畫成空心就疊不上去',
+          kind: 'abfvia', v: 'micro', box: [60, 19.2, 44], at: [0, 0, 0], ex: [-28, 0, -14] },
+        { seg: 'abf_pcb', part: 'abf_stack_via', name: '疊孔（stacked via）', note: '兩個微孔**軸心對齊**疊起來，中間看得到一段被電鍍填平的銅。沒有填平就不准疊 —— 上面那個孔會塌進去。疊孔讓訊號從表面直接下到深層，不必在板面上繞路',
+          kind: 'abfvia', v: 'stack', box: [60, 19.2, 44], at: [0, 0, 0], ex: [-28, 12, -14] },
+        { seg: 'abf_pcb', part: 'abf_sr', name: '防焊層與開窗（solder resist）', note: '上下兩面都有一層，而且**在墊子的位置開窗**（不是整片蓋滿）。開窗的位置決定焊錫黏在哪 —— 開窗開歪了，凸塊就接不到下面的銅',
+          kind: 'abfsr', box: [60, 21.9, 44], at: [0, 0, 0], ex: [26, 0, 0] },
+        { seg: 'abf_pcb', part: 'abf_bump_pad', name: '凸塊墊 ＋ 表面處理', note: '★ 只長在**上表面**（接晶片那一面）開窗露出來的銅上；下表面是 BGA 球墊。兩者對調就是把「上面接晶片、下面接主機板」整個講反了',
+          kind: 'abfpad', box: [40, 1.4, 30], at: [0, 10.4, -11], ex: [0, 18, 0] },
+        { seg: 'abf_pcb', part: 'abf_bga', name: 'BGA 錫球（載板 ↔ 主機板）', note: '三種接點裡**最大**的那一種（微凸塊 ＜ C4 凸塊 ＜ BGA 錫球，差一個量級）。迴焊之後是略扁的球，不是正圓，也不是方塊',
+          kind: 'abfbga', box: [52, 3.8, 38], at: [0, -12, -11], ex: [0, -17, 0] },
+        { seg: 'adv_pkg', part: 'abf_die_ghost', name: '晶粒與中介層（剪影）', note: '這一段是**別張圖的主題** —— 微凸塊、TSV、CoWoS 的 LSI 與重佈線請看半導體鏈的「先進封裝」與「HBM」。這裡只畫輪廓，是為了說明載板的上表面是接到什麼東西',
+          box: [30, 6, 22], at: [0, 16, -11], ghost: true, mat: 'glass', ex: [0, 27, 0], codes: [],
+          chipnote: '' },
+        { seg: 'hdi_pcb', part: 'abf_motherboard', name: '主機板（只畫一小段）', note: '載板的下游。★ 它跟載板**不是同一批廠**：主機板走機械鑽的通孔、走一般減成線路（金像電、健鼎那一群），載板走雷射微孔與半加成細線（欣興、南電、景碩）。設備不同、廠不同、毛利也不同',
+          kind: 'pcb', box: [66, 4, 48], at: [0, -16, -2], ex: [0, -30, 0] },
+      ],
+    },
+    /* ===== AI 伺服器鏈：PCB 硬板 ===== */
+    /* 2D 是 `site/dg/pcb_rigid.js`。同樣半剖，剖面是唯一的主角。
+       疊構（規格書 pcb_stackup.md §3-A）：10 層銅、4 片芯板、5 片半固化片，上下完全對稱。
+       ★ **core 一定是「銅－介電－銅」三件一組；prepreg 一定沒有銅** —— 兩者畫成同一種顏色
+         是這張圖最常見也最致命的錯，所以厚度表寫死在 mkBuilders 的 `pcbStack()`，五支共用。
+       四種孔並排在同一張剖面上，跨距寫死：PTH L1→L10、背鑽 L1→L4（從背面鑽、留殘餘）、
+       盲孔 L1→L2、埋孔 L4→L7。*/
+    pcb_rigid: {
+      title: 'PCB 硬板：多層板剖面與四種孔（半剖立體）',
+      sub: '一片高層數板是很多片薄板壓起來的：芯板（銅－介電－銅 三件一組）與半固化片（沒有銅）交替，上下對稱。四種孔的差別只在「從哪一層到哪一層」—— 通孔上下貫穿、背鑽從背面鑽掉用不到的那一段、盲孔只碰一個外層、埋孔兩端都碰不到外層。示意圖，非實物比例',
+      camera: [56, 38, 92], target: [0, 0, -9], fit: 0.98, hk: 0.6,
+      parts: [
+        { seg: 'ccl', part: 'pcb_core', name: '芯板 core（銅－介電－銅）', note: '★ 它是**已經固化、而且兩面已經覆好銅**的一片 CCL。整片板子是拿好幾片芯板去疊的 —— 這就是「為什麼一片 38 層板是很多片薄板壓起來的」那句話的實體',
+          kind: 'pcblay', lay: 'core', box: [64, 21, 46], at: [0, 0, 0], ex: [-32, 0, 0] },
+        { seg: 'ccl', part: 'pcb_pp', name: '半固化片 prepreg（無銅）', note: '★ 它**沒有銅**，工作是把芯板黏起來。把它跟芯板畫成同一種顏色的介電層，是這張圖最常見也最致命的錯 —— 那樣就看不出層數是怎麼疊出來的',
+          kind: 'pcblay', lay: 'pp', box: [64, 21, 46], at: [0, 0, 0], ex: [32, 0, 0] },
+        { seg: 'ccl_material', part: 'pcb_foil', name: '銅箔（外層兩面）', note: '板子最外面那兩層銅。銅箔的**稜面粗糙度**（HTE → RTF → HVLP 越來越平）直接決定高速訊號的損耗 —— 越平損耗越小，但也越難黏住',
+          kind: 'pcblay', lay: 'foil', box: [64, 21, 46], at: [0, 0, 0], ex: [0, 28, 0] },
+        { seg: 'ccl_material', part: 'fiber_weave', name: '玻纖織紋（fiber weave）', note: '芯板與半固化片裡都有一層織造玻纖布。剖面上經紗被切斷成一排圓。★ 織紋會讓差動對的兩條線一條壓在玻纖上、一條壓在樹脂上，介電常數不一樣 → 兩條線速度不一樣（織效應）。這是高速板要斜著布線的原因',
+          kind: 'pcblay', lay: 'weave', box: [64, 21, 46], at: [0, 0, 0], ex: [-32, 15, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_plane', name: '接地／電源平面（整片銅）', note: '★ **每一層高速訊號層的正上方與正下方，都必須各有一層完整的參考層。** 這一條就是「為什麼層數這麼多」的全部答案 —— 兩層訊號層直接相鄰、中間沒有地，訊號就互相串擾。平面是整片銅，不准開一堆槽',
+          kind: 'pcblay', lay: 'plane', box: [64, 21, 46], at: [0, 0, 0], ex: [0, -28, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_trace', name: '內層線路（帶狀線差動對）', note: '夾在兩層接地之間的走線叫帶狀線。剖面上是**一對一對**的小方塊 —— 成雙才是差動對，單一根那是單端線',
+          kind: 'pcbtrc', box: [64, 21, 46], at: [0, 0, 0], ex: [0, 0, -28] },
+        { seg: 'hdi_pcb', part: 'pcb_top_trace', name: '頂層走線（蛇行等長、45° 轉角）', note: '外層看得到的那一組：差動對成雙並排、間距固定、轉角一律 45°（90° 會在轉角形成阻抗不連續），長度不夠的那一條用蛇行繞回來補 —— 兩條線長度差一點點，到了接收端就變成相位差',
+          kind: 'pcbtrc', top: true, box: [64, 21, 46], at: [0, 0, 0], ex: [0, 22, -15] },
+        { seg: 'hdi_pcb', part: 'pcb_mask', name: '防焊（solder mask）與開窗', note: '外層**兩面都要有**，而且在焊墊處**開窗**（不是整片蓋滿）。防焊決定焊錫流到哪裡去，也是板子看起來是綠色的原因',
+          kind: 'pcbmask', box: [64, 21, 46], at: [0, 0, 0], ex: [0, 0, 28] },
+        { seg: 'hdi_pcb', part: 'pcb_enig', name: '表面處理（ENIG＝化鎳浸金）', note: '★ **只出現在防焊開窗露出來的銅上**，不准畫在防焊之上、也不准畫成整片。鎳（暗）在下擋擴散、金（亮）在上防氧化。ENIG／OSP／ENEPIG 是三種不同的藥水與設備，對到不同的供應商',
+          kind: 'pcbenig', box: [64, 21, 46], at: [0, 0, 0], ex: [0, 34, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_pth', name: '機械通孔 PTH ＋ 殘端', note: '從 L1 一路貫穿到 L10，兩端都開口。★ 紅色那一段是**殘端（stub）**：訊號其實只走到 L4，L4 以下那一截是多出來的，在高速下會變成一根天線 —— 這就是下一顆「背鑽」存在的理由',
+          kind: 'pcbvia', via: 'pth', box: [64, 21, 46], at: [-21, 0, 0], ex: [-10, 26, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_backdrill', name: '背鑽（back drill）', note: '從**背面**用一支**比原孔粗**的鑽頭往上鑽，把殘端的孔銅吃掉。★ 一定要留一小段鑽不乾淨的殘餘 —— 工程上鑽不到零，畫成「鑽得剛剛好」就是把這張圖唯一的工程現實抹掉了',
+          kind: 'pcbvia', via: 'bd', box: [64, 21, 46], at: [-7, 0, 0], ex: [-3, 26, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_blind', name: '雷射盲孔（micro via）', note: '只穿**一層**介電（L1 → L2），**只碰得到一個外層**、不准穿到另一面。形狀是上寬下窄的錐 —— 錐形＝雷射，直筒＝機械鑽，這是兩種完全不同的設備',
+          kind: 'pcbvia', via: 'blind', box: [64, 21, 46], at: [7, 0, 0], ex: [3, 26, 0] },
+        { seg: 'hdi_pcb', part: 'pcb_buried', name: '埋孔（buried via）', note: '從 L4 到 L7，**兩端都不准碰到任何外層** —— 上下都要看得到介電把它蓋住。它是在壓合之前就先鑽好、鍍好的，所以壓完之後外面完全看不到',
+          kind: 'pcbvia', via: 'buried', box: [64, 21, 46], at: [21, 0, 0], ex: [10, 26, 0] },
+      ],
+    },
+    /* ===== AI 伺服器鏈：電源 ===== */
+    /* 2D 是 `site/dg/server_psu.js`。3D 這張的主角是**一顆 PSU 被拆開**：
+       電源架（左，N+1 有一格空著）→ 拉出來的那一顆（中：外罩掀起 → 主板上四級由後往前）
+       → 匯流排與線組（右）→ 板上降壓與晶片（最右）；BBU 與超級電容掛在**直流側**（下方）。
+       ★ 硬規則（規格書 §3-A／§3-B）：降壓不准跳級、匯流排是厚銅排不是圓線、
+         板上 DC-DC 是一排等距元件（多相）、BBU 在直流側而 UPS 在交流側機櫃外
+         —— UPS 與設施側不在這條產業鏈上，所以 3D 這張**不畫它**（2D 那張有）。*/
+    server_psu: {
+      title: '電源：一顆 PSU 拆開，到晶片核心電壓（立體）',
+      sub: '交流進來 → PSU 的四級（PFC → LLC → 同步整流 → 輸出）→ 直流匯流排 → 板上多相降壓 → 晶片。每一級都有一個實體，降壓不跳級。BBU 與超級電容掛在直流側、在機櫃裡；UPS 在交流側、在機櫃外（不在這條鏈上，本圖不畫）。示意圖，非實物比例',
+      camera: [74, 54, 132], target: [8, -4, 0], fit: 1.08, hk: 0.58,
+      parts: [
+        { seg: 'power', part: 'psu_shelf', name: '電源架（power shelf，N+1）', note: '★ 中間那一格刻意**空著** —— 那就是 N+1 冗餘：少一顆還撐得住，而且可以熱插拔換掉。整架的輸出併到同一組直流匯流排上',
+          kind: 'pshelf', box: [30, 34, 46], at: [-54, 6, 0], ex: [-18, 0, 0] },
+        { seg: 'power', part: 'psu_unit', name: 'PSU 外罩：上蓋、側板、前面板', note: 'CRPS（通用冗餘電源）把**尺寸、連接器與管理介面**標準化，所以不同家的可以互換、可以熱插拔。前面板有把手（抽得出來）與風扇開孔，後端是卡緣不是電線',
+          kind: 'pshell', box: [30, 16, 44], at: [0, 4, 0], ex: [0, 20, 0] },
+        { seg: 'power', part: 'psu_board', name: 'PSU 主板：PFC → LLC → 同步整流 → 輸出', note: '四級由後往前排開，而且**每一級的元件形狀不同**：① PFC 是兩顆大電解電容加一個扼流圈（整顆 PSU 裡最大的東西）② LLC 是一顆有繞線窗口的變壓器 ③ 同步整流是輸出側一整排扁平封裝（低壓大電流所以要並聯）④ 輸出是一條厚銅排往卡緣去',
+          kind: 'pboard', box: [28, 12, 42], at: [0, -2, 0], ex: [0, -8, 0] },
+        { seg: 'power', part: 'psu_cardedge', name: '卡緣連接器（card-edge）', note: '★ CRPS 的後端是**上下兩排鍍金接點**，不是一束電線 —— 畫成電線就認不出是伺服器 PSU。它同時走電力與管理訊號（主機讀得到電壓、電流、溫度與告警）',
+          kind: 'pcardedge', box: [20, 3.4, 4], at: [0, -2, -23], ex: [0, 0, -20] },
+        { seg: 'connector', part: 'psu_busbar', name: '直流匯流排（busbar）', note: '★ **厚銅排，不是圓線**，而且明顯比任何訊號線粗一個量級 —— 幾百安培靠的是截面積。鎖固孔說明它是**鎖**上去的不是焊的。正負兩條中間隔一片絕緣',
+          kind: 'pbusbar', box: [10, 46, 8], at: [34, 6, 0], ex: [12, 0, 0] },
+        { seg: 'connector', part: 'psu_whip', name: '電源線組（power whip）', note: '從匯流排的分接點拉到每一台運算托盤。股數與線徑對到的是電流容量 —— 電源線束跟訊號線束粗細差很多',
+          kind: 'cable', box: [24, 6, 6], at: [50, -8, 0], ex: [6, -12, 0] },
+        { seg: 'power', part: 'psu_vrm', name: '板上降壓 DC-DC／VRM（多相）', note: '★ 畫成**一排等距的電感**才對：一顆電感就是一相，多相輪流出力，電流才分得開、紋波才壓得下去。畫成一顆方塊就看不出「多相」這件事。它一定**緊鄰晶片** —— 電流大、壓降走不遠',
+          kind: 'pvrm', box: [28, 6, 16], at: [68, 3, 12], ex: [12, 8, 0] },
+        { seg: 'power', part: 'psu_die', name: 'GPU／ASIC 核心（受電端）', note: '整條供電路徑的終點：電壓降到零點幾伏特、電流上到幾百安培。★ 這一顆是**熱源與受電端，不是電源零件** —— 它由晶圓代工做，不是電源供應商做，所以底下不列電源台股',
+          kind: 'die', box: [18, 4, 18], at: [68, 4, -14], ex: [12, 14, 0], codes: [] },
+        { seg: 'power', part: 'psu_bbu', name: 'BBU 電池備援模組', note: '★ 掛在**直流側、機櫃裡面**（畫到交流側就變成 UPS 了，那是這張圖最致命的錯）。撐的是「掉電到柴油發電機接手」之間那一段。看得到電芯、看得到串聯的連片、看得到一正一負兩根極柱',
+          kind: 'pbbu', box: [36, 15, 36], at: [-54, -30, 0], ex: [-18, -14, 0] },
+        { seg: 'power', part: 'psu_scap', name: '超級電容／鋰離子電容（LIC）', note: '比 BBU 小，跟 BBU 掛在**同一個直流節點**上，但管的是**毫秒級**的功率突波（一整櫃 GPU 同時起算那一下），不是秒到分鐘的斷電。頂面的防爆刻痕是它的識別特徵',
+          kind: 'pscap', box: [22, 13, 22], at: [-12, -32, 0], ex: [0, -16, 0] },
+      ],
+    },
+    /* ===== AI 伺服器鏈：液冷 ===== */
+    /* 2D 是 `site/dg/liquid_cooling.js`。3D 這張是**熱的路徑**由內到外攤開：
+       裸晶 → TIM1 → 蓋板／VC → TIM2 → 冷板（剖開，看得到流道）→ 接口 → QD → 分歧管 → CDU（內含板熱）。
+       ★ 硬規則（規格書 §3-A／§3-C）：每兩個固體之間都要有 TIM 而且 TIM 最薄、
+         冷板一定在蓋板之上、進水冷出水熱兩種顏色、
+         **兩個迴路只在板式熱交換器處靠在一起，絕不相接**。*/
+    liquid_cooling: {
+      title: '液冷：從晶片到 CDU 的一條路（立體剖面）',
+      sub: '熱從裸晶出發，每經過一個界面就要一層導熱介面材料（TIM，全圖最薄的東西）。冷板剖開看得到微鰭片流道 —— 那才是冷板值錢的地方。進水冷、出水熱；機櫃這一環與機房那一環只在板式熱交換器處靠在一起，水完全不相通。示意圖，非實物比例',
+      camera: [70, 50, 126], target: [-6, -6, 0], fit: 1.1, hk: 0.6,
+      parts: [
+        { seg: 'thermal', part: 'die', name: '裸晶 die（熱源）', note: '熱的起點。★ 它是**熱源，不是散熱零件** —— 這張圖上的台股都在它上面那幾層，所以這一顆底下不列散熱廠',
+          kind: 'die', box: [22, 3.2, 22], at: [-54, -16, 0], ex: [0, -16, 0], codes: [] },
+        { seg: 'thermal', part: 'tim1', name: 'TIM1（裸晶 ↔ 蓋板）', note: '★ **全圖最薄的一層**，而且是被壓扁的膏（四邊會溢出一點）。它薄不是因為省料，是因為它的導熱率比銅差兩個量級 —— 厚一點點熱阻就上去了',
+          kind: 'timlay', box: [22, 1.1, 22], at: [-54, -13.7, 0], ex: [0, -9, 0] },
+        { seg: 'thermal', part: 'ihs', name: '均熱片／蓋板（IHS，實心銅）', note: '一塊**實心**銅蓋，四周有裙邊黏在載板上。它跟均熱板 VC 的差別就是「實心 vs 真空腔」—— 實心靠銅本身導熱，VC 靠兩相流，後者等效導熱率高得多',
+          kind: 'ihslid', box: [30, 5, 30], at: [-54, -10.6, 0], ex: [0, -3, 0] },
+        { seg: 'thermal', part: 'tim2', name: 'TIM2（蓋板 ↔ 冷板）', note: '第二層導熱介面材料。★ **每兩個固體之間都要有一層** —— 少畫一層，熱就變成「直接穿過去」，那在物理上不成立。它一樣比上下的金屬層薄得多',
+          kind: 'timlay', box: [30, 1.1, 30], at: [-54, -7.6, 0], ex: [0, 3, 0] },
+        { seg: 'thermal', part: 'cold_plate', name: '冷板（cold plate）', note: '★ 冷板一定**在蓋板之上**（晶片在下），畫反就是把熱往下送。蓋板只蓋一半是為了看得到裡面。四顆彈簧螺絲說明它是**壓**在晶片上的 —— 壓力不夠，TIM 壓不薄，熱就過不去',
+          kind: 'cplate', box: [34, 9, 34], at: [-54, -2, 0], ex: [0, 9, 0] },
+        { seg: 'thermal', part: 'cp_fin', name: '冷板內部流道（微鰭片）', note: '一片一片鏟出來的微鰭片，水從鰭片之間流過。**鰭片密度就是熱阻**，也就是冷板有貴賤之分的原因。兩端各留一條沒有鰭片的集流走道，水才分得均勻',
+          kind: 'cpfin', box: [30, 5, 30], at: [-54, -2.4, 0], ex: [0, 19, 0] },
+        { seg: 'thermal', part: 'cp_port', name: '進出水口（進水冷、出水熱）', note: '★ 兩種顏色不是裝飾：**進水是冷的、出水是熱的**，而這個溫差乘上流量就是這塊冷板帶走的熱。顏色一路延續到分歧管與 CDU',
+          kind: 'cpport', box: [12, 13, 26], at: [-54, 6, 0], ex: [0, 24, 0] },
+        { seg: 'thermal', part: 'qd', name: '快接頭 QD（UQD／盲插 UQDB）', note: '每一個「可拆的接點」都要一組，而且**一定成對**（一進一出）。它讓一台伺服器可以單獨抽出來維修而不放掉整櫃的水。漏液是 2026 年最被盯的品質風險',
+          kind: 'uqd', box: [9, 9, 9], at: [-14, 10, 0], n: 2, gap: 18, axis: 'z', ex: [8, 8, 0],
+          chipnote: '散熱這一格的台股（★ 族群「液冷散熱」裡做快接頭的富世達 6805 不在這個環節名單上，點它列不出來）' },
+        { seg: 'thermal', part: 'manifold', name: '分歧管（供水／回水各一根）', note: '★ 多個冷板是**並聯**：每一個冷板各自從供水管拿水、各自回到回水管。畫成「這一個的出水接下一個的進水」（串聯）就錯了 —— 那樣後面的晶片只拿得到已經被加熱過的水',
+          kind: 'lcmani', box: [22, 42, 16], at: [6, 4, 0], ex: [10, 0, 0] },
+        { seg: 'thermal', part: 'cdu', name: 'CDU（冷卻液分配單元）', note: '機櫃這一環（二次側）的心臟：泵在這裡、過濾與控制也在這裡。它把機櫃的熱交給機房的水，但兩邊的水不相通',
+          kind: 'cdu', box: [16, 46, 16], at: [44, 2, 0], ex: [16, 0, 0] },
+        { seg: 'thermal', part: 'phe', name: '板式熱交換器（PHE，CDU 內）', note: '★ 這張圖最致命的錯就是把兩個迴路畫成一條管。它是**一疊交錯的板片**：一片縫走機櫃的水、下一片縫走機房的水 —— 只有熱過得去，水過不去',
+          kind: 'lcphe', box: [18, 18, 16], at: [44, -22, 0], ex: [16, -20, 0] },
+        { seg: 'thermal', part: 'vc', name: '均熱板 VC（真空腔剖面）', note: '掀開上蓋看得到裡面：下蓋板 → **毛細層**（液體在這裡往熱源回流）→ **蒸氣腔**（蒸氣往冷端跑）→ **支撐柱**（撐住真空、不然大氣壓會把它壓扁）→ 上蓋板。★ 腔裡不准畫滿液體，它是真空腔加少量工作流體',
+          kind: 'vc', box: [28, 8, 28], at: [-10, -34, 26], ex: [-8, -16, 10] },
+        { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '跟 VC 同樣是兩相流，但形狀不同：**熱管是管、VC 是扁腔**，兩者不准互換。切開那一端看得到三層：外銅管 → 毛細 → 中央蒸氣道。★ 熱管**不准有支撐柱**（圓管靠管壁本身撐），而且它一定是彎的（要繞過零件）',
+          kind: 'heatpipe', box: [36, 7, 18], at: [30, -34, 26], ex: [10, -16, 10] },
+      ],
+    },
+    /* ===== AI 伺服器鏈：氣冷 ===== */
+    /* 2D 是 `site/dg/air_cooling.js`。3D 這張把**一顆風扇沿轉軸拆開** ——
+       那正是「轉一圈能多理解一件事」的地方：2D 剖面只看得到切開的那一刀，
+       看不到六個件是怎麼套在同一根軸上的。轉軸取 z（朝鏡頭），所有位移都沿 z 走。
+       ★ 硬規則（規格書 §3-B）：扇葉從輪轂長出來、馬達在輪轂裡、軸承在軸與輪轂之間。
+       右邊那一疊是氣流路徑：風扇牆 → 導風罩 → 鰭片（熱真正交給空氣的地方）→ 熱管／VC。*/
+    air_cooling: {
+      title: '氣冷：一顆風扇拆開，加上熱交給空氣的那一段（立體）',
+      sub: '左邊沿轉軸拆開：扇框 → 前轉子（扇葉從輪轂長出來、有攻角）→ 輪轂（馬達裝在裡面）→ 定子馬達 → 軸承（在軸與輪轂之間）→ 後轉子（反轉，攻角相反）。右邊是氣流路徑：★ 風扇只是把空氣推過來，**熱真正交給空氣是在鰭片那一格**。示意圖，非實物比例',
+      camera: [62, 44, 124], target: [0, -4, 0], fit: 1.12, hk: 0.62,
+      parts: [
+        { seg: 'thermal', part: 'fan_frame', name: '扇框（frame／housing）', note: '四角有鎖孔的方框、中間一個圓孔。四根支撐臂從框伸到中央撐住馬達 —— 沒有它，輪轂就是浮在空中的。鎖孔說明風扇是**鎖**在機殼上的，不是一顆自由的葉輪',
+          kind: 'fframe', box: [46, 46, 13], at: [-48, 2, 0], ex: [0, 0, -24] },
+        { seg: 'thermal', part: 'blade', name: '前轉子：扇葉（有攻角）', note: '★ 扇葉**一定從輪轂長出來**，不可以懸空。每一片都有攻角 —— 平的葉片推不動空氣，只會攪。攻角、片數與外徑決定它的風量與風壓',
+          kind: 'frotor', box: [39, 39, 11], at: [-48, 2, 3], ex: [0, 0, 38] },
+        { seg: 'thermal', part: 'hub', name: '輪轂（hub）', note: '一個開口朝後的**杯狀件** —— 馬達與軸承裝在它裡面。畫成實心圓柱就沒地方放馬達了。杯壁內側那一圈方塊是**轉子磁鐵**：外轉子馬達就是把磁鐵貼在輪轂內壁上',
+          kind: 'fhub', box: [18, 18, 11], at: [-48, 2, 3], ex: [0, 0, 26] },
+        { seg: 'thermal', part: 'motor', name: '馬達（定子線圈 ＋ 轉子磁鐵）', note: '★ **馬達一定在輪轂裡**，不在扇框上。定子是鐵芯的齒加上繞在齒上的銅線圈，在內；轉子磁鐵貼在輪轂內壁，在外；中間那一圈空隙是氣隙。底下那一小塊板上有霍爾元件 —— 轉速回授就是從那裡出去的',
+          kind: 'fmotor', box: [15, 15, 10], at: [-48, 2, 0], ex: [0, 0, 14] },
+        { seg: 'thermal', part: 'bearing', name: '軸承（在軸與輪轂之間）', note: '★ 位置是硬規則：**在軸與輪轂之間**。這裡畫的是滾珠型 —— **看得到鋼珠**才是滾珠軸承；含油軸承是軸與襯套直接接觸、沒有珠；流體動壓是中間一層油膜加襯套溝槽；磁浮是兩者之間有可見空隙。四型不准互換',
+          kind: 'fbear', box: [9, 9, 14], at: [-48, 2, -1], ex: [0, 0, 4] },
+        { seg: 'thermal', part: 'counter_rot', name: '後轉子（反轉雙轉子的第二組）', note: '第二組葉輪**反方向**轉，而且攻角相反。前轉子把空氣旋著吹出去，後轉子把那個旋轉再扳直 —— 所以同樣厚度下風壓明顯更高。兩組同向就不是反轉，只是兩顆風扇疊在一起',
+          kind: 'frotor', rev: true, box: [39, 39, 10], at: [-48, 2, -8], ex: [0, 0, -40] },
+        { seg: 'thermal', part: 'wire4', name: '四線接頭（電源／地／轉速／PWM）', note: '★ **四線**就是伺服器風扇跟家用風扇最好認的差別：多出來的兩條一條回報轉速、一條讓主機用 PWM 控速。兩線的風扇只能全速或不轉',
+          kind: 'fwire', box: [14, 6, 18], at: [-48, -24, -3], ex: [0, -18, -12] },
+        { seg: 'thermal', part: 'fan_wall', name: '風扇牆（fan wall，N+1）', note: '一整排風扇裝在同一個框上，而且**多一顆** —— 壞一顆時其餘的提高轉速頂上。每一顆都看得到框、輪轂與葉片；一排空圓圈不是風扇牆',
+          kind: 'fwall', box: [60, 30, 10], at: [36, 28, 0], ex: [0, 28, 0] },
+        { seg: 'assembly', part: 'shroud', name: '導風罩（air shroud／duct）', note: '它本身不散熱，但沒有它風會從鰭片旁邊溜掉。出風那一端收窄，氣流才會被逼著穿過鰭片。★ 氣流方向**全程單向、由前到後**，圖上不准出現往回吹的箭頭',
+          kind: 'fshroud', box: [48, 20, 34], at: [36, 0, 2], ex: [0, 14, 26] },
+        { seg: 'thermal', part: 'fin', name: '散熱鰭片組（heat sink fin stack）', note: '★ **這一格才是熱真正交給空氣的地方；風扇只是把空氣推過來。** 很多人以為「風扇在散熱」，其實風扇只負責換掉鰭片表面那層被加熱的空氣。鰭片的總表面積就是它的本事',
+          kind: 'heatsink', box: [38, 17, 32], at: [36, -14, 0], ex: [0, -8, 0] },
+        { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '把熱從晶片底座**橫著**搬到鰭片裡面去 —— 光靠鋁底板傳，遠端的鰭片根本吃不到熱。★ 熱的方向（晶片 → 底座 → 熱管 → 鰭片）跟氣流方向是**垂直交會**的，不是同一條線',
+          kind: 'heatpipe', box: [38, 7, 28], at: [36, -26, 0], ex: [0, -20, 0] },
+        { seg: 'thermal', part: 'vc', name: '均熱板 VC（當底座）', note: '晶片越大，熱越不可能只靠一塊銅底板攤開。VC 用兩相流把熱先**攤成一個面**再交給熱管與鰭片 —— 熱管是線、VC 是面，這就是兩者的分工',
+          kind: 'vc', box: [34, 7, 30], at: [36, -34, 0], ex: [0, -30, 0] },
+      ],
+    },
+    /* ===== AI 伺服器鏈：網通 ===== */
+    /* 2D 是 `site/dg/switch_wireless.js`。3D 這張是一張交換器板卡：
+       主板（高層數 MLB）＋ 中央的 ASIC 與散熱片 ＋ 緊鄰它的 VRM
+       ＋ 前面板的光模組籠架陣列（一顆模組抽出來，看得到裡面的四顆晶片）
+       ＋ 同一片基板上的 CPO 光引擎（另一半答案）＋ 後方的風扇與 PSU。
+       ★ 硬規則（規格書 §3-C）：**VRM 一定緊鄰 ASIC**（電流大、壓降走不遠）。
+       ★ §2：**不准出現 DIMM 插槽、PCIe 插槽、CPU 插座** —— 那是伺服器主機板，
+         所以主板不沿用 `pcb`（那一支畫了三條插槽），另寫了 `swboard`。*/
+    switch_wireless: {
+      title: '網通：交換器板卡 ＋ 800G 光模組 ＋ CPO（立體）',
+      sub: '板中央那顆是交換晶片，散熱片蓋在它上面、多相供電緊貼在它旁邊（電流太大，壓降走不遠）。前面板是兩列光模組籠架，抽出來那一顆裡面有 DSP、驅動 IC、雷射與 TIA —— 光電轉換發生在模組裡，不在板子上。CPO 則是把光引擎搬到跟晶片同一片基板上。示意圖，非實物比例',
+      camera: [68, 56, 122], target: [0, 4, 0], fit: 1.06, hk: 0.62,
+      parts: [
+        { seg: 'hdi_pcb', part: 'sw_pcb', name: '主板：高層數多層板（MLB）', note: '一塊 38–48 層等級的板子。★ 它上面**沒有記憶體插槽、沒有 PCIe 插槽** —— 有那些的是伺服器主機板。晶片底下那一片密密麻麻的過孔，是訊號從外層沉到內層的通道',
+          kind: 'swboard', box: [92, 3.4, 64], at: [0, 0, 0], ex: [0, -18, 0] },
+        { seg: 'ccl', part: 'sw_layers', name: '板子前緣那一疊：core／prepreg 交替', note: '把板緣切開才看得到：已覆銅的芯板（core）與沒有銅的半固化片（prepreg）交替壓起來。★ 層數之所以這麼多，是因為**每一層高速訊號層的上下都必須各有一層完整的接地參考層**',
+          kind: 'laminate', box: [20, 5, 44], at: [-62, 0, 0], ex: [-24, 8, 0] },
+        { seg: 'switch', part: 'sw_asic', name: '交換器晶片（switch ASIC）', note: '板上**最大的單一元件**：有機基板 ＋ 覆晶的矽晶粒 ＋ 上面的蓋板，底下一整片球柵陣列。它負責查表決定每一個封包要從哪一個埠出去 —— 整台交換器的頻寬就是這一顆的規格',
+          kind: 'swasic', box: [22, 6, 22], at: [0, 4.4, -8], ex: [0, 12, 0],
+          chipnote: '交換器這一格的台股（★ 是做**整機**的，不是做這顆晶片 —— 交換晶片由美系原廠設計，台股沒有直接對應）' },
+        { seg: 'thermal', part: 'sw_hs', name: '晶片散熱片（鰭片順著前後氣流）', note: '鰭片的方向一定順著機箱前後的氣流走 —— 擺橫的就把風擋住了。它的覆蓋面積比晶片封裝大，因為熱要先攤開再交給空氣',
+          kind: 'heatsink', box: [30, 15, 30], at: [0, 14, -8], ex: [0, 30, 0] },
+        { seg: 'power', part: 'sw_vrm', name: '板上多相供電模組（VRM）', note: '★ **一定緊鄰 ASIC** —— 幾百安培的電流在板子上走不遠（壓降與損耗都吃不消）。一排等距的電感就是一相一顆；把它畫在板子另一頭是一眼就能驗的結構錯誤',
+          kind: 'pvrm', box: [28, 6, 12], at: [0, 4, -26], ex: [0, 14, -14] },
+        { seg: 'optical', part: 'sw_cage', name: '前面板光模組籠架（cage）', note: '金屬籠排成**上下兩列**佔滿前面板 —— 排數 × 列數就是埠數。籠子存在的理由有兩個：擋電磁干擾，以及把 800G 模組的熱帶出去（所以籠背上有鰭片）',
+          kind: 'swcage', box: [84, 15, 14], at: [0, 9, 26], ex: [0, 8, 18] },
+        { seg: 'optical', part: 'sw_mod_fiber', name: '抽出來的一顆光模組（OSFP／QSFP-DD800）', note: '★ 光電轉換發生在**模組裡面**，不在板子上。上蓋掀開一半看得到四顆：最大的那顆是 **DSP**（也是最耗電的一顆，正是 CPO 想拿掉的東西），再來是驅動 IC、雷射晶粒與 TIA。前端兩個接口接光纖',
+          kind: 'swmod', box: [9, 7, 26], at: [-24, 9, 50], ex: [0, 6, 26] },
+        { seg: 'connector', part: 'sw_mod_gold', name: '金手指：模組唯一的電接點', note: '在模組**後端**（插進籠子的那一頭），不是光纖那一頭。上下兩排鍍金接點，前緣倒角才插得進去。整顆模組跟板子之間所有的電，都只從這裡過',
+          kind: 'swgold', box: [8, 4, 8], at: [-24, 9, 35], ex: [0, 6, 34] },
+        { seg: 'optical', part: 'sw_cmp_cpo', name: '共同封裝光學（CPO）光引擎', note: '★ 這是「另一半答案」：把光引擎搬到**跟交換晶片同一片基板上**、環繞在它四周，光纖直接從基板邊緣拉出去。電訊號只要走幾公釐就進光引擎，DSP 那一顆的功耗因此省掉一大塊。代價是壞掉不能像可插拔模組那樣單顆換',
+          kind: 'swcpo', box: [42, 5, 42], at: [0, 3, -8], ex: [0, 22, 12] },
+        { seg: 'connector', part: 'sw_fly', name: '近晶片飛越纜線（flyover cable）', note: '從晶片旁邊的小連接器**架空**拉到籠架背面，繞開 PCB。理由很簡單：同樣的距離，細同軸纜線的損耗比板子上的銅走線小得多 —— 速率越高，這條替代路徑越划算。★ 走了纜線的那幾個埠，板子內層就不該再有同一條訊號的走線',
+          kind: 'cable', box: [30, 5, 5], at: [18, 10, 12], ex: [0, 16, 10] },
+        { seg: 'switch', part: 'sw_cpu', name: '管理用處理器（跑網路作業系統）', note: '角落那一小塊，明顯小於交換晶片。它不負責轉封包（那是 ASIC 的事），只負責跑網路作業系統、算路由表再寫進 ASIC。跟 ASIC 之間走的是低速管理匯流排，不是高速差動對',
+          kind: 'chip', box: [12, 4, 12], at: [36, 3.5, -22], ex: [0, 12, -12], codes: [] },
+        { seg: 'thermal', part: 'sw_fan', name: '系統風扇（後方、可熱抽換）', note: '★ 在**後方**不在前面板 —— 前面板全部留給 I/O。可熱抽換，壞一顆不必關機',
+          kind: 'fan', box: [16, 16, 7], at: [22, 9, -36], n: 3, gap: 18, axis: 'x', ex: [0, 0, -20],
+          chipnote: '散熱這一格的台股（★ 族群裡做風扇與熱管的尼得科超眾 6230、泰碩 3338、力致 3483、元山 6275 不在這個環節名單上）' },
+        { seg: 'power', part: 'sw_psu', name: '電源供應器 PSU（後方、1+1 冗餘）', note: '兩顆並排、可熱抽換：一顆壞掉另一顆撐住。交流進來、轉成板上要的直流，再由板上的 VRM 降到晶片核心電壓',
+          kind: 'psu', box: [26, 11, 18], at: [-32, 7, -36], ex: [0, 0, -24] },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -461,6 +695,24 @@
     seedrod: 'metal', heater: 'emc',
     hbmcore: 'si', hbmbase: 'si', tsvcol: 'cu', ubumprows: 'cu',
     wbglay: 'si', wbgbody: 'si', wbggate: 'si', wbgtop: 'metal', wbgpgan: 'organic', wbgelec: 'metal',
+    /* AI 伺服器鏈六張（2026-09-23，DECISIONS #250）。同一條規矩：一張圖一個主色，
+       層與層之間靠明暗分，不是一層一個色相。
+         載板／硬板 → 有機基材與板材（organic／pcb），銅件（走線、孔、墊）走 cu、錫球走 sn
+         電源       → 鈑金銀灰（metal）＋ 板材（pcb）＋ 銅排（cu）；電池殼走 plastic（卡片仍是電源暖橘）
+         液冷       → 銅（cu）為主，接頭與管路走 metal，TIM 是有機膏（organic）
+         氣冷       → 風扇框與導風罩走 plastic（藍灰）、輪轂走 alu、馬達與線材走 emc（石墨灰）
+         網通       → 板材 pcb、籠架與模組殼 metal、ASIC 模封 emc、CPO 光引擎 si */
+    abfcore: 'organic', abfbu: 'organic', abftrace: 'cu', abfvia: 'cu',
+    abfsr: 'organic', abfpad: 'cu', abfbga: 'sn',
+    pcblay: 'pcb', pcbtrc: 'cu', pcbmask: 'pcb', pcbenig: 'cu', pcbvia: 'cu',
+    pshelf: 'metal', pshell: 'metal', pboard: 'pcb', pcardedge: 'pcb',
+    pbusbar: 'cu', pvrm: 'pcb', pbbu: 'plastic', pscap: 'alu',
+    timlay: 'organic', ihslid: 'cu', cplate: 'cu', cpfin: 'cu', cpport: 'metal',
+    lcmani: 'metal', lcphe: 'metal',
+    fframe: 'plastic', frotor: 'plastic', fhub: 'alu', fmotor: 'emc',
+    fbear: 'metal', fwire: 'emc', fwall: 'plastic', fshroud: 'plastic',
+    swboard: 'pcb', swasic: 'emc', swcage: 'metal', swmod: 'metal',
+    swgold: 'pcb', swcpo: 'si',
   };
   /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；
      閱讀模式（v9，docs/diagram_refs/README.md）是同名 token 的中飽和值＋約 40% 柔光，不是灰粉彩）
@@ -500,6 +752,37 @@
     wbg_gan_sub: 'GaN substrate (Si / SiC)', wbg_gan_buf: 'Buffer layer (AlN / AlGaN)', wbg_gan_ch: 'GaN channel layer',
     wbg_2deg: 'Two-dimensional electron gas', wbg_gan_bar: 'AlGaN barrier', wbg_pgan: 'p-GaN gate',
     wbg_gan_elec: 'Source / gate / drain (all on top)',
+    /* AI 伺服器鏈六張（2026-09-23）。key 一樣用**2D 那張圖同一組 data-part**。
+       ⚠ `vc`／`heatpipe` 同時出現在液冷與氣冷兩張圖上，兩邊講的是同一個零件，所以共用一列。*/
+    abf_core: 'Core layer (glass-reinforced)', abf_core_via: 'Plated through-hole in core',
+    abf_film: 'ABF build-up films', abf_trace: 'Fine lines (SAP / mSAP)',
+    abf_uvia: 'Laser micro-vias (tapered)', abf_stack_via: 'Stacked vias',
+    abf_sr: 'Solder resist & openings', abf_bump_pad: 'Bump pads & surface finish',
+    abf_bga: 'BGA solder balls', abf_die_ghost: 'Die & interposer (silhouette)',
+    abf_motherboard: 'Motherboard (partial)',
+    pcb_core: 'Core (copper-dielectric-copper)', pcb_pp: 'Prepreg (no copper)',
+    pcb_foil: 'Copper foil (outer layers)', fiber_weave: 'Glass fibre weave',
+    pcb_plane: 'Ground / power plane', pcb_trace: 'Inner-layer striplines',
+    pcb_top_trace: 'Top-layer routing', pcb_mask: 'Solder mask & openings',
+    pcb_enig: 'Surface finish (ENIG)', pcb_pth: 'Through-hole + stub',
+    pcb_backdrill: 'Back drill', pcb_blind: 'Laser blind via', pcb_buried: 'Buried via',
+    psu_shelf: 'Power shelf (N+1)', psu_unit: 'PSU enclosure', psu_board: 'PSU main board (4 stages)',
+    psu_cardedge: 'Card-edge connector', psu_busbar: 'DC busbar', psu_whip: 'Power whip',
+    psu_vrm: 'On-board multiphase VRM', psu_die: 'GPU / ASIC (load)',
+    psu_bbu: 'BBU battery module', psu_scap: 'Supercapacitors / LIC',
+    die: 'Bare die (heat source)', tim1: 'TIM1 (die to lid)', ihs: 'Integrated heat spreader',
+    tim2: 'TIM2 (lid to cold plate)', cold_plate: 'Cold plate', cp_fin: 'Micro-fin channels',
+    cp_port: 'Inlet (cold) / outlet (hot)', qd: 'Quick disconnects', manifold: 'Supply / return manifolds',
+    cdu: 'Coolant distribution unit', phe: 'Plate heat exchanger',
+    vc: 'Vapor chamber', heatpipe: 'Heat pipe',
+    fan_frame: 'Fan frame', blade: 'Front rotor blades', hub: 'Hub', motor: 'Stator & rotor magnets',
+    bearing: 'Bearing (shaft to hub)', counter_rot: 'Counter-rotating rear rotor',
+    wire4: '4-wire connector', fan_wall: 'Fan wall (N+1)', shroud: 'Air shroud', fin: 'Heat-sink fin stack',
+    sw_pcb: 'Main board (high-layer MLB)', sw_layers: 'Core / prepreg stack-up',
+    sw_asic: 'Switch ASIC', sw_hs: 'ASIC heat sink', sw_vrm: 'On-board multiphase VRM',
+    sw_cage: 'Front-panel optical cages', sw_mod_fiber: 'Pluggable optical module',
+    sw_mod_gold: 'Gold fingers', sw_cmp_cpo: 'Co-packaged optics', sw_fly: 'Flyover cable',
+    sw_cpu: 'Management CPU', sw_fan: 'System fans (rear)', sw_psu: 'PSU (rear, 1+1)',
   };
 
   function kit(THREE, fam, ghost, css, role) {
@@ -2412,6 +2695,1020 @@
       return g;
     }
 
+
+    /* ================================================================ AI 伺服器鏈六張的零件字彙（2026-09-23，DECISIONS #250）
+       這六張的規格書 §0 都寫過「不做真 3D」。推翻的不是那幾句話，是它們**漏掉的另一半**
+       （跟 #247 同一條判準：「轉一圈能不能多理解一件事」）—— 逐張的理由寫在 DECISIONS #250。
+       畫法上的共同規矩（跟半導體鏈那四張一致，不要在這裡另立一套）：
+         · **一疊薄層**（IC 載板、多層板）一律**半剖**（`_halfSlab`／`_halfFace`），
+           孔畫成貼在剖面上的**半截管** —— 整根管埋進不透明的板子裡等於沒畫。
+         · **立體件**（PSU、風扇、冷板、交換器板卡）不切，層次交給爆炸位移拉開。
+         · 顏色只走 FAMILY_TOKENS 與 `--dg-*`；一張圖一個主色，層與層靠明暗（`K.mat` 的 k）分。
+         · 陣列（錫球、微孔、鰭片、籠架、電芯、光模組籠）一律 `instOf`（InstancedMesh）。
+         · 不加自體發光，只有指示燈（`led`）例外 —— Andy：「不是電競 RGB」。*/
+
+    /* 半剖的剖面上，孔是一截**內壁朝向鏡頭**的半管。
+       CylinderGeometry 的 theta 0 在 +z，[π/2, π] 這一段剛好落在留下來的 z < 0 那一半；
+       從 +z 看過去看到的是它的背面，所以材質一定要 `twoSided`，不然會被背面剔除吃掉。*/
+    function halfTube(r0, r1, h, seg) {
+      return new T.CylinderGeometry(r0, r1, h, seg || 10, 1, true, Math.PI / 2, Math.PI);
+    }
+
+    /* ---------------------------------------------------------------- IC 載板：ABF 增層剖面
+       規格書 docs/diagram_specs/abf_substrate.md §3-A／§3-B 的硬規則，這裡逐條畫出來：
+         · core **只有一片、在正中間、明顯最厚**，而且**全圖只有它看得出織紋**；
+         · 上下增層**層數與厚度相等**（不對稱＝翹曲，而翹曲正是這張圖在講的事）；
+         · 微孔是**錐形**、**窄的那一端朝向 core**：上半朝下收窄、下半朝上收窄。
+       ABF 這組常數是**四支建造函式共用**的（核心層、增層、走線、孔）——
+       各算各的一定會錯開，而「孔對不準銅線就導不通」正是這張圖的主題。*/
+    const ABF = { core: 6, bu: 2.2, n: 3 };
+    function abfY(i) {                     // 第 i 層增層的中心 y（i ＞ 0 往上、i ＜ 0 往下）
+      const s = i > 0 ? 1 : -1, k = Math.abs(i);
+      return s * (ABF.core / 2 + ABF.bu * (k - 0.5));
+    }
+    const abfTop = () => ABF.core / 2 + ABF.bu * ABF.n;        // 最上層增層的上表面
+
+    /* 核心層 core：半剖的厚板 ＋ 剖面上的玻纖織紋 ＋ 兩面覆銅。
+       織紋畫在**剖面上**才對：經紗被切斷 → 一排小圓；緯紗順著切面 → 一條長帶。
+       畫成一片均勻的板子就分不出 core 與 ABF 膜，而那是這張圖的第一件事。*/
+    function abfCore(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box, h = ABF.core;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(-0.34, { rough: 0.7, metal: 0.06 })));
+      g.add(halfFace(K, w, h, d, 0, -0.34));
+      const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.4;      // 剖面板的前方一點點
+      const wv = K.mat(0.26, { color: K.css('--dg-pp', '#8a8355'), rough: 0.82, metal: 0.04 });
+      const cir = [];
+      for (let i = 0; i < 11; i++) cir.push([(-5 + i) * (w / 12), h * 0.16, fz, Math.PI / 2, 0, 0]);
+      g.add(instOf(new T.CylinderGeometry(h * 0.1, h * 0.1, fz, 8), wv, cir));      // 經紗（被切斷）
+      g.add(mboxes([[w * 0.96, h * 0.12, fz, 0, -h * 0.2, fz / 2]], wv));           // 緯紗（順著切面）
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.8, rough: 0.3 });
+      g.add(mboxes([[w, h * 0.08, d / 2, 0, h * 0.46, -d / 4],
+        [w, h * 0.08, d / 2, 0, -h * 0.46, -d / 4]], cu));                          // core 兩面的線路
+      return g;
+    }
+
+    /* ABF 增層膜：上下各 n 層，**均勻、沒有織紋**（ABF 本來就不含織造玻纖，畫了是結構錯誤）。
+       每一層自己一塊半剖的板，層與層之間留一條更暗的接縫 —— 看得出是「一層一層貼上去」的。*/
+    function abfBuildup(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      /* ★ 顏色走**材質族 organic 的明暗**，不寫死 `--dg-abf`：
+         那個 token（淺色 #cfc6b1）是給 2D「畫在白紙上、外面有描邊」用的，
+         3D 沒有描邊、底又是淡藍灰，整疊載板會糊進背景裡（截圖比對出來的）。
+         膜亮、接縫暗、core 更暗 —— #244 的「一張圖一個主色，層與層靠明暗分」。*/
+      const film = K.mat(0.3, { rough: 0.66, metal: 0.06 });
+      const seam = K.mat(-0.08, { rough: 0.76, metal: 0.05 });
+      const slabs = [], seams = [];
+      for (let s = -ABF.n; s <= ABF.n; s++) {
+        if (!s) continue;
+        const y = abfY(s);
+        // ★ 上下對稱：同一個 |s| 的厚度完全一樣。外層略窄一階，看得出是疊上去不是一塊實心板
+        const kw = w * (1 - Math.abs(s) * 0.02);
+        slabs.push([kw, ABF.bu * 0.86, d / 2, 0, y, -d / 4]);
+        seams.push([kw, ABF.bu * 0.1, d / 2 * 0.995, 0, y - (s > 0 ? 1 : -1) * ABF.bu * 0.47, -d / 4]);
+      }
+      g.add(mboxes(slabs, film));
+      g.add(mboxes(seams, seam));
+      return g;
+    }
+
+    /* 增層裡的銅線路（半加成 SAP／mSAP 做出來的細線）：剖面上是一排**明顯比 PCB 走線細**的矩形。
+       每一層增層的底面都有一層 —— 微孔就是打到這一層的銅上才停的。*/
+    function abfTrace(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
+      const tw = w * 0.012, at = [];
+      for (let s = -ABF.n; s <= ABF.n; s++) {
+        if (!s) continue;
+        const y = abfY(s) - (s > 0 ? 1 : -1) * ABF.bu * 0.4;
+        for (let i = 0; i < 15; i++) at.push([(-7 + i) * (w / 17), y, -d / 4]);
+      }
+      g.add(instOf(new T.BoxGeometry(tw, ABF.bu * 0.16, d / 2 * 0.98), cu, at));
+      return g;
+    }
+
+    /* 三種孔共用一支（`v`）：core 貫孔 ／ 雷射微孔 ／ 疊孔。
+       ★ 它們的差別就是這張圖跟「PCB 硬板」那張分家的地方，所以形狀一條都不准含糊：
+         core  ＝ **直筒**、只穿 core、孔內**填塞**、兩端**蓋銅**（不是空心）
+         micro ＝ **錐形**、只穿**一層**增層、**窄端朝 core**（上半朝下、下半朝上收窄）
+         stack ＝ 兩個微孔**軸心對齊**、中間看得到一段被電鍍填平的銅（沒填平就不准疊）*/
+    function abfVia(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const cu = twoSided(K, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.28 }));
+      const fill = K.mat(-0.15, { rough: 0.8, metal: 0.06 });
+      const cap = K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
+      const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.2;
+      const v = p.v || 'core';
+      if (v === 'core') {
+        const r = w * 0.022, h = ABF.core;
+        const at = [];
+        for (let i = 0; i < 5; i++) at.push([(-2 + i) * (w * 0.17), 0, fz]);
+        g.add(instOf(halfTube(r, r, h, 10), cu, at));                        // 鍍銅孔壁（直筒）
+        g.add(instOf(halfTube(r * 0.72, r * 0.72, h * 0.99, 8), fill, at));  // 填塞物（不是空心）
+        const caps = [];
+        at.forEach(a => { caps.push([r * 2.6, h * 0.07, fz, a[0], h * 0.46, fz / 2]);
+          caps.push([r * 2.6, h * 0.07, fz, a[0], -h * 0.46, fz / 2]); });
+        g.add(mboxes(caps, cap));                                            // 兩端蓋銅
+      } else if (v === 'micro') {
+        const r = w * 0.014;
+        const up = [], dn = [];
+        for (let s = -ABF.n; s <= ABF.n; s++) {
+          if (!s) continue;
+          const y = abfY(s);
+          for (let i = 0; i < 6; i++) (s > 0 ? up : dn).push([(-3.4 + i * 1.25) * (w * 0.1), y, fz]);
+        }
+        // 上半：上寬下窄（窄端朝下＝朝 core）；下半：上窄下寬（窄端朝上＝朝 core）
+        g.add(instOf(halfTube(r * 2.2, r, ABF.bu * 0.9, 8), cu, up));
+        g.add(instOf(halfTube(r, r * 2.2, ABF.bu * 0.9, 8), cu, dn));
+      } else {
+        const r = w * 0.016;
+        const upAt = [], dnAt = [], mid = [];
+        [-1, 1].forEach(sg => {
+          const x = sg * w * 0.3;
+          for (let k = 1; k <= 2; k++) {
+            const y = abfY(sg > 0 ? k : -k);
+            (sg > 0 ? upAt : dnAt).push([x, y, fz]);
+            if (k < 2) mid.push([r * 2.8, ABF.bu * 0.18, fz, x, y + sg * ABF.bu * 0.5, fz / 2]);
+          }
+        });
+        // 疊孔的兩顆跟一般微孔一樣朝 core 收窄，而且**軸心對齊**（沒對齊就不叫疊孔）
+        g.add(instOf(halfTube(r * 2.3, r, ABF.bu * 0.92, 8), cu, upAt));
+        g.add(instOf(halfTube(r, r * 2.3, ABF.bu * 0.92, 8), cu, dnAt));
+        g.add(mboxes(mid, cap));                                             // 中間那一段被電鍍填平的銅
+      }
+      return g;
+    }
+
+    /* 防焊層（solder resist）與開窗：上下各一片，**在墊子的位置開窗**（不是整片蓋滿）。
+       一條連續的帶子被缺口斷開 —— 缺口就是開窗，墊子從那裡露出來。*/
+    function abfSr(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const sr = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.72, metal: 0.05 });
+      /* 寬度跟**最外層增層膜**一致（那一層是 w × 0.94）—— 比它寬的話，合攏時防焊帶會從板子兩側凸出來，
+         看起來像掛在外面的裝飾條而不是蓋在板面上的一層。*/
+      const bw = w * (1 - ABF.n * 0.02);
+      const t = 0.9, segs = [], gap = bw * 0.055, n = 7;
+      [1, -1].forEach(sg => {
+        const y = sg * (abfTop() + t / 2);
+        for (let i = 0; i <= n; i++) {
+          const x0 = -bw / 2 + i * (bw / (n + 1)), x1 = x0 + (bw / (n + 1)) - gap;
+          segs.push([x1 - x0, t, d / 2, (x0 + x1) / 2, y, -d / 4]);
+        }
+      });
+      g.add(mboxes(segs, sr));
+      return g;
+    }
+
+    /* 凸塊墊（bump pad）＋ 表面處理：只長在**上表面**開窗露出來的銅上。
+       上下對調（把球墊畫成 bump pad）就是把「上面接晶片、下面接主機板」整個講反了。*/
+    function abfPad(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
+      const au = K.mat(0, { color: K.css('--dg-sw-gold', '#d9a441'), metal: 0.9, rough: 0.22 });
+      const at = gridXZ(7, 5, w / 7.6, d / 5.6, 0);
+      g.add(instOf(new T.BoxGeometry(w / 7.6 * 0.5, h * 0.55, d / 5.6 * 0.5), cu, at));
+      g.add(instOf(new T.BoxGeometry(w / 7.6 * 0.5, h * 0.2, d / 5.6 * 0.5), au,
+        at.map(a => [a[0], a[1] + h * 0.36, a[2]])));
+      return g;
+    }
+
+    /* BGA 錫球：三種節距裡**最大**的那一種（微凸塊 ＜ C4 ＜ BGA）。
+       球就是球 —— 方塊看起來像腳墊。迴焊之後是略扁的球，所以 y 方向壓過。*/
+    function abfBga(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      /* ★ 錦球刷暗一階，不用 `--dg-sn` 的原色：
+         量出來的對比是 **1.06**（#e2e7ec 對閱讀模式的淡藍灰底 #E8EDF2）——
+         白球在白底上幾乎看不見。走材質族的明暗（k 負）拉到 1.6 以上。*/
+      const sn = K.mat(-0.32, { metal: 0.6, rough: 0.34 });
+      const r = Math.min(w / 5, d / 4) * 0.3;
+      const at = [];
+      for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) {
+        at.push([(-2 + i) * (w / 5), 0, (-1.5 + j) * (d / 4), 0, 0, 0, 1, Math.max(0.5, h / (r * 2)) * 0.6, 1]);
+      }
+      g.add(instOf(new T.SphereGeometry(r, 10, 7), sn, at));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- PCB 硬板：多層板剖面與四種孔
+       規格書 docs/diagram_specs/pcb_stackup.md §3-A：
+         **core 一定是「銅－介電－銅」三件一組；prepreg 一定沒有銅。**
+         兩者畫成同一種顏色的介電層是這張圖最常見也最致命的錯 —— 所以連厚度表都寫死共用。
+       由下到上：外層銅 L10 ｜ pp ｜ core(L9-介電-L8) ｜ pp ｜ core(L7-介電-L6)
+                 ｜ pp ｜ core(L5-介電-L4) ｜ pp ｜ core(L3-介電-L2) ｜ pp ｜ 外層銅 L1
+       ＝ 10 層銅、4 片芯板、5 片半固化片，上下完全對稱。*/
+    const PCB_CU = 0.45, PCB_PP = 1.7, PCB_DI = 2.0;
+    const PCB_CORE_H = PCB_CU * 2 + PCB_DI;
+    const PCB_H = PCB_CU * 2 + PCB_PP * 5 + PCB_CORE_H * 4;          // 21.0
+    /* 由下往上把每一片排好：[種類, 中心 y, 厚度]。五支建造函式共用同一張表 ——
+       各算各的一定會錯開，而「孔停在哪一層銅上」全靠這張表對齊。*/
+    function pcbStack() {
+      const out = [];
+      let y = -PCB_H / 2;
+      const push = (t, h) => { out.push([t, y + h / 2, h]); y += h; };
+      push('foil', PCB_CU);
+      for (let i = 0; i < 4; i++) { push('pp', PCB_PP); push('core', PCB_CORE_H); }
+      push('pp', PCB_PP); push('foil', PCB_CU);
+      return out;
+    }
+    // 第 n 層銅（1 ＝ 最上面那一層外層銅，10 ＝ 最下面）的中心 y
+    function pcbCuY(n) {
+      const cu = [];
+      pcbStack().forEach(([t, cy, h]) => {
+        if (t === 'foil') cu.push(cy);
+        else if (t === 'core') { cu.push(cy + (h - PCB_CU) / 2); cu.push(cy - (h - PCB_CU) / 2); }
+      });
+      cu.sort((a, b) => b - a);
+      return cu[Math.max(0, Math.min(cu.length - 1, n - 1))];
+    }
+
+    /* 五種層共用一支（`lay`）：芯板 core ／ 半固化片 prepreg ／ 外層銅箔 ／ 接地平面 ／ 玻纖織紋。
+       全部畫成半剖（z > 0 切掉），剖面才是這張圖唯一的主角。*/
+    function pcbLayer(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const lay = p.lay || 'core';
+      const st = pcbStack();
+      if (lay === 'core') {
+        // 芯板：已固化的介電 ＋ **兩面**覆銅。銅一定明顯薄於它旁邊的介電
+        const di = [], cus = [];
+        st.filter(a => a[0] === 'core').forEach(([, cy, h]) => {
+          di.push([w, PCB_DI, d / 2, 0, cy, -d / 4]);
+          cus.push([w, PCB_CU, d / 2, 0, cy + (h - PCB_CU) / 2, -d / 4]);
+          cus.push([w, PCB_CU, d / 2, 0, cy - (h - PCB_CU) / 2, -d / 4]);
+        });
+        g.add(mboxes(di, K.mat(-0.2, { color: K.css('--dg-core', '#3f4a30'), rough: 0.72, metal: 0.05 })));
+        g.add(mboxes(cus, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.28 })));
+      } else if (lay === 'pp') {
+        // 半固化片：**沒有銅**。它是把芯板黏起來的膠片，顏色與芯板明顯不同
+        g.add(mboxes(st.filter(a => a[0] === 'pp').map(([, cy]) => [w * 0.998, PCB_PP, d / 2, 0, cy, -d / 4]),
+          K.mat(0.08, { color: K.css('--dg-pp', '#8a8355'), rough: 0.78, metal: 0.04 })));
+      } else if (lay === 'foil') {
+        g.add(mboxes(st.filter(a => a[0] === 'foil').map(([, cy]) => [w, PCB_CU, d / 2, 0, cy, -d / 4]),
+          K.mat(0.25, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.24 })));
+      } else if (lay === 'plane') {
+        // 接地／電源平面：**整片**銅（不准開一堆槽）。畫在 L3／L5／L6／L8 四層上
+        g.add(mboxes([3, 5, 6, 8].map(n => [w * 0.99, PCB_CU * 1.12, d / 2 * 0.99, 0, pcbCuY(n), -d / 4]),
+          K.mat(0.12, { color: K.css('--dg-cu-dim', '#9a5f34'), metal: 0.84, rough: 0.3 })));
+      } else {
+        // 玻纖織紋：只有 core 與 prepreg 有（外層銅箔沒有）。做在剖面上：經紗被切斷成一排圓
+        const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.4;
+        const wv = K.mat(0.3, { color: K.css('--dg-cer-2', '#bbb39f'), rough: 0.84, metal: 0.03 });
+        const at = [];
+        st.forEach(([t, cy]) => {
+          if (t === 'foil') return;
+          for (let i = 0; i < 13; i++) at.push([(-6 + i) * (w / 14), cy, fz, Math.PI / 2, 0, 0]);
+        });
+        g.add(instOf(new T.CylinderGeometry(PCB_PP * 0.2, PCB_PP * 0.2, fz, 7), wv, at));
+      }
+      return g;
+    }
+
+    /* 走線：內層是夾在兩層接地之間的**帶狀線**差動對；外層是頂視看得到的蛇行等長線。
+       `top` ＝ 頂層那一組（走在 L1 的上表面，45° 轉角、成雙成對）。*/
+    function pcbTrace(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      if (p.top) {
+        const tl = traceLayer(K, w * 0.92, d * 0.42, pcbCuY(1) + PCB_CU * 0.8, { pairs: 4, cycles: 5, dir: 1 });
+        tl.group.position.z = -d / 4;
+        g.add(tl.group); g.userData.flows = tl.flows;
+        return g;
+      }
+      const cu = K.mat(0.3, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.24 });
+      const at = [];
+      // 高速訊號層（L4／L7）：剖面上是一對一對的小方塊 —— 成雙才是差動對
+      [4, 7].forEach(n => {
+        const y = pcbCuY(n);
+        for (let i = 0; i < 6; i++) {
+          const x = (-2.5 + i) * (w * 0.15);
+          at.push([x - w * 0.018, y, -d / 4]); at.push([x + w * 0.018, y, -d / 4]);
+        }
+      });
+      g.add(instOf(new T.BoxGeometry(w * 0.022, PCB_CU * 1.1, d / 2 * 0.98), cu, at));
+      return g;
+    }
+
+    /* 防焊（solder mask）：外層兩面都要有，而且**在焊墊處開窗**（不是整片蓋滿）。
+       一條被缺口斷開的帶子 —— 缺口就是開窗。*/
+    function pcbMask(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const sm = K.mat(-0.15, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.7, metal: 0.04 });
+      const t = PCB_CU * 1.5, segs = [], n = 6, gap = w * 0.06;
+      [1, -1].forEach(sg => {
+        const y = sg * (PCB_H / 2 + t / 2);
+        for (let i = 0; i <= n; i++) {
+          const x0 = -w / 2 + i * (w / (n + 1)), x1 = x0 + (w / (n + 1)) - gap;
+          segs.push([x1 - x0, t, d / 2, (x0 + x1) / 2, y, -d / 4]);
+        }
+      });
+      g.add(mboxes(segs, sm));
+      return g;
+    }
+
+    /* 表面處理（ENIG＝化鎳浸金）：**只出現在防焊開窗露出來的銅上**，
+       不准畫在防焊之上、也不准畫成整片。鎳（暗）在下、金（亮）在上，兩層。*/
+    function pcbEnig(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const ni = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.8, rough: 0.34 });
+      const au = K.mat(0, { color: K.css('--dg-sw-gold', '#d9a441'), metal: 0.92, rough: 0.2 });
+      const n = 6, gap = w * 0.06, pw = gap * 0.9;
+      const niL = [], auL = [];
+      [1, -1].forEach(sg => {
+        const y = sg * (PCB_H / 2 + PCB_CU * 0.4);
+        for (let i = 0; i < n; i++) {
+          const x = -w / 2 + (i + 1) * (w / (n + 1)) - gap / 2;
+          niL.push([pw, PCB_CU * 0.5, d / 2 * 0.9, x, y, -d / 4]);
+          auL.push([pw * 0.94, PCB_CU * 0.26, d / 2 * 0.88, x, y + sg * PCB_CU * 0.36, -d / 4]);
+        }
+      });
+      g.add(mboxes(niL, ni)); g.add(mboxes(auL, au));
+      return g;
+    }
+
+    /* 四種孔共用一支（`via`）。跨距與形狀照規格書 §3-B 寫死，一條都不准含糊：
+         pth      L1 → L10，**上下都貫穿、兩端都開口**，另標一段**殘端**（stub）
+         bd       背鑽：從**背面**往上鑽掉深層的孔銅，**鑽頭比原孔粗**，
+                  而且**一定留一小段鑽不乾淨的殘餘**（工程上鑽不到零，畫成剛剛好就是錯的）
+         blind    L1 → L2，**只穿一層介電**、**上寬下窄的錐形**，不准穿到另一面
+         buried   L4 → L7，**兩端都不准碰到任何外層**，上下都要看得到介電把它蓋住 */
+    function pcbVia(p, K) {
+      const g = new T.Group();
+      const [w, , d] = p.box;
+      const v = p.via || 'pth';
+      const cu = twoSided(K, K.mat(0.1, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.28 }));
+      const stub = twoSided(K, K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.4, rough: 0.45 }));
+      const gone = twoSided(K, K.mat(0, { color: K.css('--dg-void', '#0d1424'), metal: 0.05, rough: 0.94 }));
+      const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.2;
+      const r = w * 0.016;
+      const xs = [-w * 0.16, w * 0.16];
+      const span = (a, b) => ({ y: (pcbCuY(a) + pcbCuY(b)) / 2, h: Math.abs(pcbCuY(a) - pcbCuY(b)) + PCB_CU });
+      if (v === 'pth') {
+        const s = span(1, 10);
+        g.add(instOf(halfTube(r, r, s.h, 10), cu, xs.map(x => [x, s.y, fz])));
+        // 殘端：訊號其實只走到 L4，L4 以下那一段是「多出來的」—— 它會變成天線
+        const st = span(4, 10);
+        g.add(instOf(halfTube(r * 0.99, r * 0.99, st.h * 0.98, 8), stub, xs.map(x => [x, st.y, fz + 0.02])));
+      } else if (v === 'bd') {
+        const s = span(1, 10);
+        g.add(instOf(halfTube(r, r, s.h, 10), cu, xs.map(x => [x, s.y, fz])));
+        // 鑽掉的那一段：孔徑**比原孔粗**（鑽頭要能吃掉原本的孔銅）
+        const dr = span(5, 10);
+        g.add(instOf(halfTube(r * 1.55, r * 1.55, dr.h, 8), gone, xs.map(x => [x, dr.y, fz + 0.03])));
+        // 鑽不乾淨的殘餘：一小截還留在 L5 下面（畫成剛剛好＝把這張圖唯一的工程現實抹掉）
+        g.add(instOf(halfTube(r, r, PCB_CU * 2.4, 8), stub,
+          xs.map(x => [x, pcbCuY(5) - PCB_CU * 1.6, fz + 0.05])));
+      } else if (v === 'blind') {
+        const y0 = pcbCuY(1), y1 = pcbCuY(2), h = y0 - y1 + PCB_CU;
+        // 上寬下窄的錐（雷射打的），只碰到 L1 這一個外層
+        g.add(instOf(halfTube(r * 2, r * 0.9, h, 8), cu, xs.map(x => [x, (y0 + y1) / 2, fz])));
+      } else {
+        const s = span(4, 7);
+        g.add(instOf(halfTube(r, r, s.h, 8), cu, xs.map(x => [x, s.y, fz])));
+      }
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 電源：PSU、匯流排、板上降壓與 BBU
+       規格書 docs/diagram_specs/server_psu.md §3-A／§3-B 的硬規則：
+         · **降壓不准跳級**：交流 → PSU（約 50–54 V 直流）→ 匯流排 → 板上 DC-DC → 晶片核心電壓。
+         · **匯流排是厚銅排、不是圓線**，而且明顯比訊號線粗一個量級。
+         · **板上 DC-DC 是「一排等距元件」**（多相），畫成一顆就看不出「多相」這件事。
+         · **BBU 掛在直流側、在機櫃裡**（畫到交流側就變成 UPS 了）。
+       3D 這張把「一顆 PSU 拆開」當主角：電源架拉出一顆 → 外罩掀起來 → 主板上四級由後往前排開。*/
+
+    /* 電源架（power shelf）：一排 PSU 槽位，其中一格**空著**——
+       那一格就是 N+1 冗餘的畫面證據（少一顆還撐得住）。*/
+    function psuShelf(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.38 });
+      const t = h * 0.05;
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2]], st));                       // 框
+      const slotH = h / 3.4, pw = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.42, rough: 0.5 });
+      const at = [];
+      for (let i = 0; i < 3; i++) at.push([0, (i - 1) * (h / 3.2), d * 0.04]);
+      // 中間那一格刻意留空：N+1 —— 一顆失效時另外兩顆接手
+      g.add(instOf(new T.BoxGeometry(w * 0.9, slotH * 0.74, d * 0.9), pw, [at[0], at[2]]));
+      g.add(put(box(w * 0.9, slotH * 0.74, d * 0.9,
+        K.mat(-0.55, { rough: 0.9, metal: 0.08 })), at[1][0], at[1][1], at[1][2]));   // 空槽（暗）
+      // 每一顆的前面板指示燈
+      g.add(instOf(new T.BoxGeometry(w * 0.05, slotH * 0.12, d * 0.02), K.mat(0, { led: true }),
+        [[w * 0.38, at[0][1], d / 2 + 0.05], [w * 0.38, at[2][1], d / 2 + 0.05]]));
+      g.add(aoPad(K, w, d, -h / 2 - 0.8));
+      return g;
+    }
+
+    /* PSU 外罩：上蓋 ＋ 兩側板 ＋ 前面板（把手、風扇開孔）。
+       它是一個倒 ㄇ 字的鈑金罩 —— 合攏時看起來是一顆完整的 CRPS，
+       爆炸時整個往上掀，底下的主板與四級才露出來。*/
+    function psuShell(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0.05, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.34 });
+      const t = h * 0.08;
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
+        [t, h * 0.92, d, -w / 2 + t / 2, t * 0.4, 0], [t, h * 0.92, d, w / 2 - t / 2, t * 0.4, 0]], st));
+      // 前面板：把手 ＋ 風扇開孔（CRPS 是熱插拔的，把手是它「抽得出來」的證據）
+      g.add(put(box(w * 0.98, h * 0.9, t, st), 0, t * 0.4, d / 2 - t / 2));
+      g.add(put(box(w * 0.3, h * 0.16, t * 1.6, K.mat(0.3, { metal: 0.6, rough: 0.35 })), -w * 0.28, 0, d / 2 + t * 0.4));
+      const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      const hl = [];
+      for (let i = -2; i <= 2; i++) for (let j = -1; j <= 1; j++) {
+        hl.push([w * 0.2 + i * w * 0.07, j * h * 0.2, d / 2, Math.PI / 2, 0, 0]);
+      }
+      g.add(instOf(new T.CylinderGeometry(w * 0.024, w * 0.024, t * 2.4, 6, 1, true), hole, hl));
+      g.add(put(box(w * 0.04, h * 0.12, t * 1.4, K.mat(0, { led: true })), w * 0.44, -h * 0.28, d / 2 + t * 0.4));
+      return g;
+    }
+
+    /* PSU 主板：底殼 ＋ 板子 ＋ **四級由後往前**排開 —— 這是整張圖的主軸。
+         ① PFC（功率因數校正）：大電感 ＋ 大電解電容（整顆 PSU 裡最大的那幾顆）
+         ② LLC 諧振轉換：變壓器（一顆有繞線的大方塊）＋ 諧振電感
+         ③ 同步整流：輸出側一排低壓大電流的功率元件
+         ④ 輸出：厚銅排 → 卡緣
+       ⚠ 每一級的**元件形狀刻意不同**：電容是圓柱、變壓器是有窗口的方塊、整流是一排扁平封裝。
+         全部畫成一樣的小方塊，讀者就看不出這是四個不同的級。*/
+    function psuBoard(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const tray = K.mat(-0.1, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.42 });
+      g.add(put(box(w, h * 0.12, d, tray), 0, -h * 0.44, 0));                        // 底殼
+      g.add(put(box(w * 0.94, h * 0.1, d * 0.94,
+        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.3, 0));  // 板
+      const y0 = -h * 0.25;
+      // ① PFC：大電解電容（圓柱，立著）＋ 扼流圈
+      const alu = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.72, rough: 0.4 });
+      g.add(instOf(new T.CylinderGeometry(w * 0.075, w * 0.075, h * 0.62, 12), alu,
+        [[-w * 0.3, y0 + h * 0.31, -d * 0.3], [-w * 0.3, y0 + h * 0.31, -d * 0.12]]));
+      g.add(put(box(w * 0.16, h * 0.34, d * 0.16,
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.14 })), -w * 0.3, y0 + h * 0.17, d * 0.08));
+      // ② LLC：變壓器 —— 有繞線窗口的方塊（跟電容、跟整流都不是同一個形狀）
+      const fer = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 });
+      const cuw = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
+      g.add(put(box(w * 0.22, h * 0.5, d * 0.3, fer), 0, y0 + h * 0.25, -d * 0.1));
+      g.add(put(box(w * 0.24, h * 0.2, d * 0.2, cuw), 0, y0 + h * 0.25, -d * 0.1));   // 繞線
+      g.add(put(box(w * 0.1, h * 0.26, d * 0.12, fer), 0, y0 + h * 0.13, d * 0.2));   // 諧振電感
+      // ③ 同步整流：輸出側一排扁平的功率元件（低壓大電流，所以是一整排並聯）
+      const pkg = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.55, metal: 0.2 });
+      const rec = [];
+      for (let i = 0; i < 7; i++) rec.push([w * 0.2 + 0, y0 + h * 0.08, (-3 + i) * d * 0.11]);
+      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.16, d * 0.06), pkg, rec));
+      // ④ 輸出：厚銅排往卡緣去（比板上任何一條線都粗一個量級）
+      g.add(put(box(w * 0.3, h * 0.08, d * 0.06, cuw), w * 0.3, y0 + h * 0.04, d * 0.34));
+      g.add(put(box(w * 0.06, h * 0.08, d * 0.7, cuw), w * 0.42, y0 + h * 0.04, 0));
+      return g;
+    }
+
+    /* 卡緣連接器（card-edge）：CRPS 的後端是**一排鍍金接點**，不是一束電線。
+       畫成電線就認不出是 CRPS 型的伺服器 PSU（規格書 §6-S2）。*/
+    function psuCardEdge(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pl = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 });
+      g.add(box(w, h, d, pl));
+      // 上下兩排金手指（CRPS 是 2 排）—— 排數就是它跟一般單排卡緣的差別
+      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, h * 0.3, 0), 0, 0, 0));
+      g.add(put(fingers(K, w * 0.9, h * 0.22, d * 0.8, 13, -h * 0.3, 0), 0, 0, 0));
+      return g;
+    }
+
+    /* 直流匯流排（busbar）：沿機櫃背面**垂直**走的厚銅排 ＋ 分接點 ＋ 鎖固孔。
+       它的**厚度**就是它的規格（幾百安培靠截面積過），而鎖固孔說明它是鎖上去不是焊上去。*/
+    function psuBusbar(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.28 });
+      const ins = K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.82, metal: 0.06 });
+      [-1, 1].forEach(s => g.add(put(box(w * 0.34, h, d, cu), s * w * 0.32, 0, 0)));   // 正負兩條
+      g.add(put(box(w * 0.2, h * 0.9, d * 0.66, ins), 0, 0, -d * 0.14));              // 中間絕緣隔板（往後縮，正面看得到兩條銅排）
+      // 分接點：每一層托盤從這裡接一組出去（成對，正負各一）
+      const tap = [];
+      for (let i = 0; i < 4; i++) [-1, 1].forEach(s => tap.push([s * w * 0.32, (-1.5 + i) * h * 0.22, d * 0.62]));
+      g.add(instOf(new T.BoxGeometry(w * 0.3, h * 0.05, d * 0.3), cu, tap));
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, d * 1.3, 8, 1, true), hl,
+        tap.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
+      return g;
+    }
+
+    /* 板上降壓 DC-DC／VRM：**一排等距的電感**（多相）＋ 旁邊一串電容。
+       畫成一顆方塊就看不出「多相」，而多相正是「大電流怎麼供到晶片」的答案。*/
+    function psuVrm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.16, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, -h * 0.42, 0));
+      const ind = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.16 });
+      const n = 8, at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), 0, -d * 0.16]);
+      g.add(instOf(new T.BoxGeometry(w / n * 0.66, h * 0.62, d * 0.4), ind, at));       // 一排電感＝一相一顆
+      const cap = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.55, metal: 0.05 });
+      const cat = [];
+      for (let i = 0; i < n * 2; i++) cat.push([(-(n * 2 - 1) / 2 + i) * (w / (n * 2)), -h * 0.24, d * 0.3]);
+      g.add(instOf(new T.BoxGeometry(w / (n * 2) * 0.5, h * 0.2, d * 0.14), cap, cat));
+      // 電感底下那一排厚銅：相電流就是從這裡灌進晶片底下的
+      g.add(put(box(w * 0.94, h * 0.08, d * 0.5, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.84, rough: 0.3 })), 0, -h * 0.3, -d * 0.16));
+      return g;
+    }
+
+    /* BBU 電池備援模組：托盤 ＋ **一排電芯** ＋ 正負極柱 ＋ 管理電路 ＋ 電量燈條。
+       Andy 點名過「看到電池要感覺得到電壓／極柱」—— 所以極柱一正一負、顏色不同、而且比殼高。
+       ★ 它掛在**直流側、機櫃裡**（畫到交流側或櫃外就變成 UPS 了，規格書 §3-B）。*/
+    function psuBbu(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const shell = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.4 });
+      g.add(put(rbox(w, h * 0.18, d, h * 0.07, shell), 0, -h * 0.41, 0));
+      g.add(aoPad(K, w, d, -h * 0.5 - 0.8));
+      [-1, 1].forEach(s => g.add(put(box(w * 0.035, h * 0.6, d, shell), s * (w / 2 - w * 0.018), -h * 0.02, 0)));
+      [-1, 1].forEach(s => g.add(put(box(w, h * 0.6, d * 0.03, shell), 0, -h * 0.02, s * (d / 2 - d * 0.015))));
+      // 電芯：兩排圓柱（看得到就是電池，看不到就只是一個橘盒子）
+      const cell = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), metal: 0.45, rough: 0.42 });
+      const at = [];
+      for (let i = 0; i < 6; i++) for (let j = -1; j <= 1; j += 2) at.push([(-2.5 + i) * w * 0.15, h * 0.02, j * d * 0.22]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.06, w * 0.06, h * 0.72, 10), cell, at));
+      // 電芯之間的連片：串聯起來電壓才疊得上去
+      g.add(instOf(new T.BoxGeometry(w * 0.13, h * 0.05, d * 0.06),
+        K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.62, rough: 0.34 }),
+        at.filter((_, i) => i % 2 === 0).map(a => [a[0] + w * 0.075, h * 0.4, a[2]])));
+      // 極柱：正銅、負深灰，而且比殼高 —— 一眼看得出哪邊是哪邊
+      g.add(put(box(w * 0.09, h * 0.42, d * 0.09, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.28 })), w * 0.4, h * 0.44, -d * 0.3));
+      g.add(put(box(w * 0.09, h * 0.42, d * 0.09, K.mat(0, { color: K.css('--dg-el', '#4e5866'), metal: 0.55, rough: 0.5 })), w * 0.4, h * 0.44, d * 0.3));
+      // 管理電路（BMS）：一小塊板，它決定這組電池撐得住幾次充放
+      g.add(put(box(w * 0.36, h * 0.1, d * 0.2, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), -w * 0.26, h * 0.36, 0));
+      const led = [];
+      for (let i = 0; i < 4; i++) led.push([(-0.2 + i * 0.08) * w, h * 0.02, d / 2 + 0.06]);
+      g.add(instOf(new T.BoxGeometry(w * 0.05, h * 0.14, d * 0.02), K.mat(0, { led: true }), led));
+      return g;
+    }
+
+    /* 超級電容／鋰離子電容（LIC）：**比 BBU 小**、圓柱陣列、跟 BBU 掛在**同一個直流節點**上。
+       它管的是毫秒級的功率突波（GPU 一起動那一下），跟 BBU 的秒到分鐘不是同一回事。*/
+    function psuScap(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const tray = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.5, metal: 0.4 });
+      g.add(put(rbox(w, h * 0.16, d, h * 0.06, tray), 0, -h * 0.42, 0));
+      g.add(aoPad(K, w, d, -h * 0.5 - 0.8));
+      const can = K.mat(0, { color: K.css('--dg-alu', '#a3b2c4'), metal: 0.74, rough: 0.36 });
+      const at = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) at.push([(-1 + i) * w * 0.3, h * 0.06, (-1 + j) * d * 0.3]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.115, w * 0.115, h * 0.78, 12), can, at));
+      // 頂面的防爆刻痕：超電／電解電容的識別特徵（一個十字或 K 字）
+      const sc = K.mat(-0.4, { rough: 0.7, metal: 0.3 });
+      g.add(instOf(new T.BoxGeometry(w * 0.2, h * 0.02, w * 0.02), sc, at.map(a => [a[0], h * 0.45, a[2]])));
+      g.add(instOf(new T.BoxGeometry(w * 0.02, h * 0.02, w * 0.2), sc, at.map(a => [a[0], h * 0.45, a[2]])));
+      // 匯流條：九顆串在一起，接到跟 BBU 同一個直流節點
+      g.add(put(box(w * 0.9, h * 0.06, d * 0.07, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 })), 0, h * 0.49, -d * 0.3));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 液冷：冷板、均熱板 VC 與熱管
+       規格書 docs/diagram_specs/liquid_cooling.md §3-A 的硬規則：
+         · **每兩個固體之間都要有 TIM**，而且 TIM 畫得**比它上下的任何金屬層都薄**；
+         · **冷板一定在蓋板／VC 之上**，不可以畫成冷板在下、晶片在上；
+         · **進水冷、出水熱**，兩種顏色（`--dg-cold`／`--dg-hot` 是語意色，任何配色都不准蓋）；
+         · 兩個迴路**只在板式熱交換器處靠在一起，絕不相接**（畫成一條管貫穿到底＝最致命的錯）。*/
+
+    /* 導熱介面材料 TIM：**全圖最薄的一層**，而且看得出是被壓扁的膏狀物（邊緣會溢出來一點）。
+       畫得跟金屬層一樣厚就把「熱阻卡在這裡」這句話抹掉了。*/
+    function timLayer(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const tim = K.mat(0, { color: K.css('--dg-wick', '#8f6a45'), rough: 0.88, metal: 0.05 });
+      g.add(box(w, h, d, tim));
+      // 被壓出來的那一圈：四邊各溢出一點點，一看就知道它是膏不是板
+      g.add(mboxes([[w * 1.03, h * 0.5, d * 0.16, 0, 0, -d / 2], [w * 1.03, h * 0.5, d * 0.16, 0, 0, d / 2],
+        [w * 0.16, h * 0.5, d * 1.03, -w / 2, 0, 0], [w * 0.16, h * 0.5, d * 1.03, w / 2, 0, 0]], tim));
+      return g;
+    }
+
+    /* 均熱片／蓋板（IHS）：**實心銅**的一塊蓋子，四周有腳黏在載板上。
+       它跟 VC 的差別就是「實心 vs 真空腔」—— 所以這一顆刻意畫成一塊沒有內部構造的銅。*/
+    function ihsLid(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0.1, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.28 });
+      g.add(put(rbox(w * 0.82, h * 0.62, d * 0.82, h * 0.2, cu), 0, h * 0.18, 0));      // 中央凸台（貼晶片那一面）
+      g.add(put(box(w, h * 0.3, d, cu), 0, -h * 0.34, 0));                              // 外緣的裙邊
+      return g;
+    }
+
+    /* 冷板本體：銅底板 ＋ **掀開一半的蓋板**（不掀開就看不到裡面，而裡面才是它值錢的地方）
+       ＋ 進出水的兩個接口座。*/
+    function coldPlate(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.3 });
+      const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.8, rough: 0.32 });
+      g.add(put(box(w, h * 0.24, d, cu), 0, -h * 0.38, 0));                             // 底板（貼 TIM2 那一面）
+      // 四周的側牆：水被關在裡面才流得成流道
+      const t = w * 0.045;
+      g.add(mboxes([[w, h * 0.5, t, 0, 0, -d / 2 + t / 2], [w, h * 0.5, t, 0, 0, d / 2 - t / 2],
+        [t, h * 0.5, d, -w / 2 + t / 2, 0, 0], [t, h * 0.5, d, w / 2 - t / 2, 0, 0]], cu));
+      g.add(put(box(w, h * 0.16, d * 0.46, st), 0, h * 0.33, -d * 0.27));                // 蓋板只蓋一半
+      // 鎖附的四顆彈簧螺絲：冷板是**壓**在晶片上的，壓力不夠熱就過不去
+      const scr = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.8, rough: 0.3 });
+      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, h * 0.9, 8), scr,
+        gridXZ(2, 2, w * 0.88, d * 0.88, h * 0.1)));
+      return g;
+    }
+
+    /* 冷板內部流道：一片一片鏟出來的**微鰭片**，水從鰭片之間流過。
+       鰭片密度就是熱阻 —— 畫成一個空盒子，這張圖就沒有回答「冷板為什麼有貴賤之分」。*/
+    function cpFin(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0.12, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
+      const n = 22, at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), 0, 0]);
+      g.add(instOf(new T.BoxGeometry(w / n * 0.4, h, d * 0.86), cu, at));
+      // 進出水的集流區：鰭片兩端各留一條沒有鰭片的走道，水才分得均勻
+      g.add(mboxes([[w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, -d * 0.45],
+        [w * 0.98, h * 0.2, d * 0.07, 0, -h * 0.38, d * 0.45]], cu));
+      return g;
+    }
+
+    /* 進出水口：**進水冷（藍）、出水熱（紅）**，兩個接口座 ＋ 各一小段管。
+       冷熱是語意色（`--dg-cold`／`--dg-hot`），任何配色模式都不准蓋掉。*/
+    function cpPort(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.45, rough: 0.38 });
+      const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.45, rough: 0.38 });
+      const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.82, rough: 0.3 });
+      [[-1, cold], [1, hot]].forEach(([s, m]) => {
+        g.add(put(cyl(Math.min(w, d) * 0.3, h * 0.9, m, 14), 0, 0, s * d * 0.3));         // 管
+        g.add(put(cyl(Math.min(w, d) * 0.42, h * 0.16, st, 14), 0, -h * 0.4, s * d * 0.3)); // 接口座
+      });
+      return g;
+    }
+
+    /* 分歧管（manifold）：供水、回水**各一根**，每一根有數個分支 ——
+       多個冷板是**並聯**（各自從供水管拿水、各自回到回水管），不是一個接一個串下去。*/
+    function lcManifold(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.4, rough: 0.4 });
+      const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.4, rough: 0.4 });
+      const r = Math.min(w, d) * 0.16;
+      [[-1, cold], [1, hot]].forEach(([s, m]) => {
+        g.add(put(cyl(r, h, m, 14), s * w * 0.28, 0, 0));                                 // 主管（直立）
+        const br = [];
+        for (let i = 0; i < 4; i++) br.push([s * w * 0.28, (-1.5 + i) * h * 0.22, d * 0.26, Math.PI / 2, 0, 0]);
+        g.add(instOf(new T.CylinderGeometry(r * 0.5, r * 0.5, d * 0.52, 10), m, br));      // 分支（並聯）
+      });
+      // 兩根管之間的固定夾：它們是兩條獨立的管路，不是同一條
+      g.add(instOf(new T.BoxGeometry(w * 0.7, h * 0.05, d * 0.14),
+        K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.4 }),
+        [[0, h * 0.4, 0], [0, -h * 0.4, 0]]));
+      return g;
+    }
+
+    /* 板式熱交換器（PHE，在 CDU 裡）：一疊**交錯**的板片。
+       ★ 這張圖最致命的錯就是把兩個迴路畫成一條管 —— 所以這一顆刻意畫成
+         「一片冷、一片熱交錯疊起來」：兩邊的水各走各的縫，只有熱過得去，水過不去。*/
+    function lcPhe(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cold = K.mat(0, { color: K.css('--dg-cold', '#4ea8dc'), metal: 0.5, rough: 0.34 });
+      const hot = K.mat(0, { color: K.css('--dg-hot', '#e8854a'), metal: 0.5, rough: 0.34 });
+      const st = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.84, rough: 0.3 });
+      const n = 9, pit = h / (n + 1), c = [], t = [];
+      for (let i = 0; i < n; i++) {
+        const y = -h / 2 + pit * (i + 1);
+        (i % 2 ? t : c).push([0, y, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), cold, c));   // 一次側（設施水）走的縫
+      g.add(instOf(new T.BoxGeometry(w * 0.9, pit * 0.42, d * 0.9), hot, t));    // 二次側（機櫃水）走的縫
+      [-1, 1].forEach(s => g.add(put(box(w, pit * 0.7, d, st), 0, s * h * 0.47, 0)));   // 上下端板
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 氣冷：風扇、風扇牆與散熱模組
+       規格書 docs/diagram_specs/air_cooling.md §3-B（風扇本體，由內到外）：
+         軸／軸承 → 馬達（定子在內、轉子磁鐵在輪轂內壁）→ 輪轂 → 扇葉（有傾角）→ 扇框。
+       硬規則：**扇葉一定從輪轂長出來**（不可以懸空）、**馬達一定在輪轂裡**（不在扇框上）、
+               **軸承一定在軸與輪轂之間**。
+       3D 這張把一顆風扇**沿轉軸**拆開 —— 那正是「轉一圈能多理解一件事」的地方：
+       2D 剖面只看得到切開的那一刀，看不到六個件是怎麼套在同一根軸上的。
+       轉軸一律取 z（朝鏡頭），所有零件的爆炸位移都沿 z 走，拆開仍看得出誰跟誰是一組。*/
+
+    /* 扇框：四角有鎖孔的方框、中間一個圓孔（風從這裡過）。
+       ExtrudeGeometry 的 hole 挖出來的才是風扇框的樣子，四條邊圍起來的不是。*/
+    function fanFrame(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, h) / 2;
+      const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
+      g.add(rbox(w, h, d * 0.86, Math.min(w, h) * 0.09, fm, r * 0.82));
+      // 四角鎖孔：風扇是**鎖**在機殼上的，這是它跟一顆自由葉輪的差別
+      const hl = K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.92, metal: 0.04 });
+      const at = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sy => at.push([sx * w * 0.42, sy * h * 0.42, 0, Math.PI / 2, 0, 0])));
+      g.add(instOf(new T.CylinderGeometry(w * 0.035, w * 0.035, d, 8, 1, true), hl, at));
+      // 四根支撐臂：馬達是靠這幾根撐在框中央的（不然輪轂是浮著的）
+      g.add(instOf(new T.BoxGeometry(r * 1.4, h * 0.05, d * 0.12), K.mat(-0.15, { metal: 0.4, rough: 0.6 }),
+        [0, 1, 2, 3].map(i => [0, 0, -d * 0.3, 0, 0, i * Math.PI / 4])));
+      return g;
+    }
+
+    /* 轉子的扇葉：七片有**攻角**的葉片，從輪轂長出來。
+       `rev` ＝ 反轉雙轉子的第二組 —— 葉片的攻角與旋轉方向都跟前轉子相反
+       （兩組同向就不是「反轉」，那只是兩顆風扇疊在一起）。*/
+    function fanRotor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, h) / 2;
+      const rev = !!p.rev, sg = rev ? -1 : 1;
+      const rotor = new T.Group();
+      const bm = K.mat(rev ? -0.12 : 0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
+      for (let i = 0; i < 7; i++) {
+        const a = i * Math.PI * 2 / 7;
+        const b = box(r * 0.72, r * 0.4, d * 0.18, bm);
+        b.position.set(Math.cos(a) * r * 0.56, Math.sin(a) * r * 0.56, 0);
+        b.rotation.z = a + Math.PI / 2;
+        b.rotation.y = 0.46 * sg;                       // 攻角：平的看起來像葉輪玩具
+        rotor.add(b);
+      }
+      // 葉根：葉片是**從輪轂長出來**的，所以根部要有一圈實體把它們連起來
+      const root = cyl(r * 0.3, d * 0.6, K.mat(-0.2, { metal: 0.3, rough: 0.6 }), 16);
+      root.rotation.x = Math.PI / 2; rotor.add(root);
+      rotor.userData.spin = { axis: 'z', speed: rev ? -2.1 : 2.4 };
+      g.add(rotor);
+      return g;
+    }
+
+    /* 輪轂（hub）：一個杯狀件 —— 開口朝後，馬達與軸承**裝在它裡面**。
+       畫成實心圓柱就沒地方放馬達，那正是「馬達在輪轂裡」這條硬規則會被畫錯的原因。*/
+    function fanHub(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, h) / 2;
+      const hm = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.38 });
+      const wall = twoSided(K, K.mat(-0.06, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.7, rough: 0.4 }));
+      const cap = put(cyl(r, d * 0.14, hm, 20), 0, 0, d * 0.42);
+      cap.rotation.x = Math.PI / 2; g.add(cap);                                         // 前蓋
+      const side = put(new T.Mesh(new T.CylinderGeometry(r, r, d * 0.84, 20, 1, true), wall), 0, 0, 0);
+      side.rotation.x = Math.PI / 2; g.add(side);                                        // 杯壁（開口朝後）
+      // 轉子磁鐵：貼在**輪轂內壁**上的一圈（外轉子馬達就是這樣裝的）
+      const mag = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.58, metal: 0.3 });
+      const at = [];
+      for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.86, Math.sin(i * Math.PI / 4) * r * 0.86,
+        -d * 0.08, 0, 0, i * Math.PI / 4]);
+      g.add(instOf(new T.BoxGeometry(r * 0.2, r * 0.5, d * 0.5), mag, at));
+      return g;
+    }
+
+    /* 馬達（定子）：鐵芯的**齒**＋ 纏在齒上的銅線圈 ＋ 底下的驅動板。
+       定子在內、轉子磁鐵在輪轂內壁 —— 兩者之間那一圈空隙就是氣隙。
+       畫成一個圓柱就看不出它是馬達，也看不出它為什麼要四線（電源／地／轉速／PWM）。*/
+    function fanMotor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, h) / 2;
+      const fe = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.8, rough: 0.34 });
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.82, rough: 0.3 });
+      const teeth = [], coils = [];
+      for (let i = 0; i < 6; i++) {
+        const a = i * Math.PI / 3;
+        teeth.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
+        coils.push([Math.cos(a) * r * 0.55, Math.sin(a) * r * 0.55, 0, 0, 0, a]);
+      }
+      g.add(instOf(new T.BoxGeometry(r * 0.8, r * 0.28, d * 0.6), fe, teeth));           // 鐵芯的齒
+      g.add(instOf(new T.BoxGeometry(r * 0.42, r * 0.52, d * 0.68), cu, coils));         // 繞在齒上的線圈
+      const yoke = put(cyl(r * 0.34, d * 0.62, fe, 16), 0, 0, 0); yoke.rotation.x = Math.PI / 2; g.add(yoke);
+      // 驅動板：霍爾元件在這上面，轉速回授就是從這裡出去的
+      g.add(put(box(r * 1.7, r * 1.7, d * 0.1, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, 0, -d * 0.4));
+      return g;
+    }
+
+    /* 軸承：**在軸與輪轂之間**（不在扇框上）。這裡畫的是滾珠型 ——
+       看得到鋼珠就是滾珠軸承；含油軸承是軸與襯套直接接觸、沒有珠。
+       四種軸承的辨識特徵不准互換（規格書 §3-B），所以這一顆一定要看得到珠。*/
+    function fanBearing(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, h) / 2;
+      const st = K.mat(0, { color: K.css('--dg-steel', '#9aa6b4'), metal: 0.86, rough: 0.24 });
+      const sh = K.mat(0.18, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.88, rough: 0.2 });
+      const shaft = put(cyl(r * 0.32, d, sh, 14), 0, 0, 0); shaft.rotation.x = Math.PI / 2; g.add(shaft);  // 軸
+      [-1, 1].forEach(s => {
+        const ring = put(new T.Mesh(new T.CylinderGeometry(r, r * 0.92, d * 0.2, 18, 1, true),
+          twoSided(K, st)), 0, 0, s * d * 0.3);
+        ring.rotation.x = Math.PI / 2; g.add(ring);                                      // 外環
+        const at = [];
+        for (let i = 0; i < 8; i++) at.push([Math.cos(i * Math.PI / 4) * r * 0.64, Math.sin(i * Math.PI / 4) * r * 0.64, s * d * 0.3]);
+        g.add(instOf(new T.SphereGeometry(r * 0.22, 8, 6), st, at));                     // 鋼珠（看得到才是滾珠軸承）
+      });
+      return g;
+    }
+
+    /* 四線接頭：電源／地／轉速回授／PWM。
+       為什麼值得畫：**四線**就是「伺服器風扇會被主機控速、也會回報轉速」的證據 ——
+       兩線的是家用風扇，那是這張圖 §「伺服器風扇跟家用風扇差在哪」的答案之一。*/
+    function fanWire(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const hs = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.7, metal: 0.1 });
+      g.add(put(box(w * 0.5, h, d * 0.3, hs), w * 0.24, 0, 0));                          // 接頭外殼
+      const cols = ['--dg-el', '--dg-edge', '--dg-fl-sig', '--dg-fl-pwr'];
+      cols.forEach((cv, i) => {
+        const m = K.mat(0, { color: K.css(cv, '#4e5866'), rough: 0.8, metal: 0.08 });
+        const o = (i - 1.5) * h * 0.2;
+        const curve = new T.CatmullRomCurve3([
+          new T.Vector3(0, o, -d * 0.4), new T.Vector3(-w * 0.2, o * 0.6, -d * 0.1),
+          new T.Vector3(-w * 0.34, o * 0.4, d * 0.2), new T.Vector3(-w * 0.5, o * 0.3, d * 0.45)]);
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 12, h * 0.07, 5, false), m));
+      });
+      return g;
+    }
+
+    /* 風扇牆（fan wall）：一整排風扇裝在同一個框上，而且**多一顆**（N+1）。
+       每一顆都看得到框、輪轂與葉片 —— 一排空圓圈不是風扇牆。*/
+    function fanWall(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = 4, cw = w / n;
+      const r = Math.min(cw, h) * 0.44;
+      const fm = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.45, rough: 0.55 });
+      g.add(put(box(w, h, d * 0.2, fm), 0, 0, -d * 0.4));                                // 背板
+      const hub = K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.72, rough: 0.4 });
+      const bm = K.mat(0, { color: K.css('--dg-m-blade', '#2E3A45'), rough: 0.6, metal: 0.2 });
+      const rings = [], hubs = [], blades = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * cw;
+        rings.push([x, 0, 0]);
+        hubs.push([x, 0, 0, Math.PI / 2, 0, 0]);
+        for (let j = 0; j < 7; j++) {
+          const a = j * Math.PI * 2 / 7;
+          blades.push([x + Math.cos(a) * r * 0.58, Math.sin(a) * r * 0.58, 0, 0, 0.44, a + Math.PI / 2]);
+        }
+      }
+      g.add(instOf(new T.TorusGeometry(r, r * 0.09, 6, 16), fm, rings));                 // 每一顆的框
+      g.add(instOf(new T.CylinderGeometry(r * 0.28, r * 0.28, d * 0.5, 12), hub, hubs));
+      g.add(instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades));
+      return g;
+    }
+
+    /* 導風罩（air shroud／duct）：把氣流圍成一條路的塑膠件 ——
+       上面一片頂蓋、兩側各一片、前後開口。它本身不散熱，但沒有它風會從旁邊溜掉。*/
+    function fanShroud(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pl = twoSided(K, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), metal: 0.16, rough: 0.66, op: 0.72 }));
+      const t = h * 0.07;
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], pl));
+      // 收口：出風那一端收窄，氣流才會被逼著穿過鰭片而不是繞過去
+      g.add(mboxes([[w * 0.2, h * 0.9, t * 1.4, -w * 0.38, 0, -d / 2 + t],
+        [w * 0.2, h * 0.9, t * 1.4, w * 0.38, 0, -d / 2 + t]], pl));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 網通：交換器板卡 ＋ 光模組 ＋ CPO
+       規格書 docs/diagram_specs/switch_board.md §3-C 的硬規則：
+         **VRM 一定緊鄰 ASIC**（電流大、壓降走不遠），供電線明顯比訊號線粗。
+       §2「不要出現的東西」：**DIMM 插槽陣列、PCIe 金手指插槽陣列、CPU 插座卡榫**——
+       那是伺服器主機板；交換器板上只有一小塊管理用處理器。
+       所以主板**不能**沿用 `pcb`（那一支畫了三條插槽），這裡另寫一支。*/
+
+    /* 交換器主板（MLB）：深色防焊 ＋ 高速扇出走線 ＋ 晶片底下的密集過孔陣列 ＋ 邊緣露出的一疊層。
+       沒有插槽、沒有記憶體插座 —— 那正是它跟伺服器主機板的差別。*/
+    function swBoard(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(-0.22, { rough: 0.72, metal: 0.06 })));
+      g.add(aoPad(K, w, d, -h / 2 - 1.2));
+      // 邊緣露出來的那一疊：38–48 層是很多片薄板壓起來的，切面才看得到
+      const lam = K.mat(0.1, { color: K.css('--dg-pp', '#8a8355'), rough: 0.78, metal: 0.05 });
+      const ly = [];
+      for (let i = 0; i < 6; i++) ly.push([w * 0.999, h * 0.06, d * 0.06, 0, (-2.5 + i) * h * 0.13, -d / 2 + d * 0.03]);
+      g.add(mboxes(ly, lam));
+      // 高速扇出：從晶片底下往前面板方向走的蛇行等長差動對
+      const tl = traceLayer(K, w * 0.9, d * 0.7, h * 0.56, { pairs: 5, cycles: 6, dir: 1 });
+      g.add(tl.group); g.userData.flows = tl.flows;
+      // 晶片底下的過孔陣列：訊號要從外層沉到內層，密度就是這裡
+      g.add(put(padField(K, w * 0.24, d * 0.3, h * 0.53, 6, 6), 0, 0, -d * 0.1));
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.78, rough: 0.3 });
+      g.add(instOf(new T.CylinderGeometry(w * 0.004, w * 0.004, h * 1.1, 6, 1, true), cu,
+        gridXZ(9, 7, w * 0.028, d * 0.04, 0).map(a => [a[0], 0, a[2] - d * 0.1])));
+      return g;
+    }
+
+    /* 交換器晶片（switch ASIC）：**板上最大的單一元件** ——
+       有機基板 ＋ 底下一整片球柵陣列 ＋ 上面的矽蓋板。
+       球柵陣列是它「怎麼接到板子」的答案，也是它跟一顆普通 IC 差一個量級的地方。*/
+    function swAsic(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.3, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })), 0, -h * 0.3, 0));
+      g.add(put(box(w * 0.66, h * 0.36, d * 0.66, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.4, rough: 0.4 })), 0, h * 0.02, 0));
+      g.add(put(box(w * 0.78, h * 0.26, d * 0.78, K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.82, rough: 0.28 })), 0, h * 0.32, 0));  // 蓋板
+      // 球柵陣列：整片、密密麻麻 —— 三顆三顆的看起來像腳墊
+      g.add(put(ballGrid(K, w * 0.08, w * 0.028, 9, 0, [6, 4]), 0, -h * 0.5, 0));
+      return g;
+    }
+
+    /* 前面板光模組籠架（cage）：**上下兩列**金屬籠佔滿前面板。
+       籠子是為了擋 EMI 與導熱才存在的，而排數 × 列數就是這台機器的埠數 ——
+       畫成一片平板就看不出「64 個埠」這件事。*/
+    function swCage(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.34 });
+      const dark = K.mat(-0.6, { rough: 0.9, metal: 0.06 });
+      const n = 12, cw = w / n;
+      const cells = [], holes = [];
+      for (let i = 0; i < n; i++) for (let j = -1; j <= 1; j += 2) {
+        const x = (-(n - 1) / 2 + i) * cw, y = j * h * 0.26;
+        cells.push([x, y, 0]);
+        holes.push([x, y, d * 0.12]);
+      }
+      // 一格籠子＝四片鈑金圍成的框（用薄壁盒子的外殼表示），開口朝前
+      g.add(instOf(new T.BoxGeometry(cw * 0.86, h * 0.44, d * 0.9), st, cells));
+      g.add(instOf(new T.BoxGeometry(cw * 0.66, h * 0.3, d * 0.72), dark, holes));     // 插槽開口（暗）
+      // 籠架上的散熱鰭片：800G 模組的熱要靠籠子帶走，所以籠背上有鰭片
+      const fin = [];
+      for (let i = 0; i < n * 2; i++) fin.push([(-(n * 2 - 1) / 2 + i) * (w / (n * 2)), h * 0.5, -d * 0.1]);
+      g.add(instOf(new T.BoxGeometry(w / (n * 2) * 0.3, h * 0.16, d * 0.7), st, fin));
+      return g;
+    }
+
+    /* 可插拔光模組（OSFP／QSFP-DD800）：外殼 ＋ 拉環 ＋ 前端光纖接口 ＋ 內部四顆主要晶片。
+       ★ 光電轉換發生在**模組裡面**，不在板子上 —— 所以這一顆一定要看得到裡面有東西：
+         DSP（最大也最耗電）、驅動 IC、雷射晶粒、TIA。*/
+    function swModule(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0.05, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.32 });
+      const t = h * 0.14;
+      // 上蓋掀開一半：不掀開就只是一個金屬盒子，光模組真正的內容看不到
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, -d * 0.22], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], st));
+      g.add(put(box(w * 0.2, h * 0.36, d * 0.36, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.6, metal: 0.2 })), 0, h * 0.34, d * 0.56));  // 拉環
+      const brd = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 });
+      g.add(put(box(w * 0.8, h * 0.1, d * 0.86, brd), 0, -h * 0.2, 0));
+      const chip = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.52, metal: 0.22 });
+      // 四顆一字排開，DSP 最大（它就是可插拔模組耗電的主因，也是 CPO 想拿掉的那一顆）
+      g.add(mboxes([[w * 0.56, h * 0.26, d * 0.2, 0, -h * 0.02, -d * 0.24],
+        [w * 0.4, h * 0.18, d * 0.1, 0, -h * 0.06, -d * 0.02],
+        [w * 0.3, h * 0.16, d * 0.08, -w * 0.12, -h * 0.07, d * 0.12],
+        [w * 0.24, h * 0.16, d * 0.08, w * 0.16, -h * 0.07, d * 0.12]], chip));
+      // 前端的兩個光纖接口
+      g.add(instOf(new T.CylinderGeometry(w * 0.09, w * 0.09, d * 0.16, 10),
+        K.mat(0, { color: K.css('--dg-fl-opt', '#22E5C8'), glow: 0.5, rough: 0.5, metal: 0.1 }),
+        [[-w * 0.17, -h * 0.06, d * 0.5, Math.PI / 2, 0, 0], [w * 0.17, -h * 0.06, d * 0.5, Math.PI / 2, 0, 0]]));
+      return g;
+    }
+
+    /* 金手指：光模組**唯一**的電接點 —— 成排、鍍金、前緣倒角。
+       它在模組的後端（插進籠子的那一頭），不是在光纖那一頭。*/
+    function swGold(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.5, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.05 })), 0, 0, 0));
+      g.add(fingers(K, w * 0.92, h * 0.3, d * 0.8, 9, h * 0.3, 0));
+      g.add(fingers(K, w * 0.92, h * 0.3, d * 0.8, 9, -h * 0.3, 0));
+      return g;
+    }
+
+    /* 共同封裝光學（CPO）：光引擎搬到**跟 ASIC 同一片基板上**、環繞在它四周，
+       光纖直接從基板邊緣拉出去 —— 前面板就不必再插 64 顆會發熱的模組。
+       ★ 這一顆是「另一半答案」的主角：它跟可插拔模組是**兩種做法**，不是同一條路。*/
+    function swCpo(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const sub = K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 });
+      g.add(put(box(w, h * 0.26, d, sub), 0, -h * 0.34, 0));                          // 共用的那一片基板
+      const eng = K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.42, rough: 0.4 });
+      const at = [];
+      for (let i = 0; i < 3; i++) {
+        const t = (-1 + i) * w * 0.3;
+        at.push([t, 0, -d * 0.38]); at.push([t, 0, d * 0.38]);
+        at.push([-w * 0.38, 0, t]); at.push([w * 0.38, 0, t]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.16, h * 0.4, d * 0.16), eng, at));          // 8 顆光引擎環繞
+      // 光纖：直接從基板邊緣拉出去（這就是 CPO 省掉前面板模組的地方）
+      const fib = K.mat(0, { color: K.css('--dg-fl-opt', '#22E5C8'), glow: 0.35, rough: 0.55, metal: 0.08 });
+      [-1, 1].forEach(s => {
+        const curve = new T.CatmullRomCurve3([
+          new T.Vector3(s * w * 0.42, 0, 0), new T.Vector3(s * w * 0.72, h * 0.2, d * 0.2),
+          new T.Vector3(s * w * 0.92, h * 0.1, d * 0.6), new T.Vector3(s * w * 0.98, -h * 0.1, d * 1.0)]);
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 14, h * 0.07, 5, false), fib));
+      });
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -2436,6 +3733,19 @@
       hbmcore: hbmCore, hbmbase: hbmBase, tsvcol: tsvCols, ubumprows: ubumpRows,
       wbglay: wbgLayer, wbgbody: wbgBody, wbggate: wbgGate, wbgtop: wbgTop,
       wbgpgan: wbgPgan, wbgelec: wbgElec,
+      /* ---- AI 伺服器鏈六張的字彙（2026-09-23，DECISIONS #250）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      abfcore: abfCore, abfbu: abfBuildup, abftrace: abfTrace, abfvia: abfVia,
+      abfsr: abfSr, abfpad: abfPad, abfbga: abfBga,
+      pcblay: pcbLayer, pcbtrc: pcbTrace, pcbmask: pcbMask, pcbenig: pcbEnig, pcbvia: pcbVia,
+      pshelf: psuShelf, pshell: psuShell, pboard: psuBoard, pcardedge: psuCardEdge,
+      pbusbar: psuBusbar, pvrm: psuVrm, pbbu: psuBbu, pscap: psuScap,
+      timlay: timLayer, ihslid: ihsLid, cplate: coldPlate, cpfin: cpFin, cpport: cpPort,
+      lcmani: lcManifold, lcphe: lcPhe,
+      fframe: fanFrame, frotor: fanRotor, fhub: fanHub, fmotor: fanMotor,
+      fbear: fanBearing, fwire: fanWire, fwall: fanWall, fshroud: fanShroud,
+      swboard: swBoard, swasic: swAsic, swcage: swCage, swmod: swModule,
+      swgold: swGold, swcpo: swCpo,
+      _halfTube: halfTube, _abfY: abfY, _pcbStack: pcbStack, _pcbCuY: pcbCuY,
       _cutSlab: cutSlab, _cutFace: cutFace, _twoSided: twoSided, _hbmLayout: hbmLayout };
   }
 
@@ -2775,7 +4085,13 @@
          晶片又只排得下四個，切前四家不一定切到對的四家 ——
          零件說明講的是 MLCC 的結構，底下列的名單就必須是真的做這件事的人。
          `data-seg` 沒有動（顏色連動、環節色標、篩選都靠它），動的只有「列誰」。*/
-      const mem = (p.codes && p.codes.length)
+      /* ★ 2026-09-23（DECISIONS #250）：`codes: []` ＝ **明說這個零件台股沒有直接對應**，
+         不是「沒寫」。以前寫的是 `p.codes && p.codes.length`，空陣列會退回去列「這個環節的台股」——
+         而那正是錯誤宣稱的來源：液冷那張的「裸晶 die」掛在 thermal 環節上，
+         退回去就會列出奇鋐、雙鴻，等於說散熱廠在做那顆晶片。
+         判斷改成「有沒有給 codes 這個欄位」：給了空陣列就照它，卡片顯示「台股無直接對應」。
+         既有場景一個都沒受影響（它們的 codes 從來沒有空陣列）。*/
+      const mem = p.codes
         ? { list: p.codes.slice(0, 4).map(c => ({ code: c, name: (window.Link && window.Link.cname[c]) || c })), total: p.codes.length }
         : (o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 });
       // A5-b：晶片上方一行小字，講清楚這排台股是「哪一群」，不要讓它貼著零件說明被讀成「這幾家做這個零件」
