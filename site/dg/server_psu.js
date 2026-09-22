@@ -49,18 +49,20 @@
   'use strict';
   const DG = window.DG;
   if (!DG || typeof DG.register !== 'function') return;
-  const { STYLE, extRow, note, processBar, fold, onXZ, onYZ, box } = DG;
+  if (!DG.fx) return;
+  const { STYLE, extRow, note, processBar, fold, onXZ, onYZ, box, fx } = DG;
+  const GL = { steel: 'var(--dg-steel)', alu: 'var(--dg-alu)', pcb: 'var(--dg-pcb)', cu: 'var(--dg-cu)', si: 'var(--dg-si)', off: 'var(--dg-mute)' };   // 玻璃方塊的底色（token）
 
   const P = 'power', C = 'connector', A = 'assembly';
   const CW = 640;                                           // 畫布寬＝主角寬（native 跟著改）
-  const COL = { pwr: 'var(--dg-pwr)', cu: 'var(--dg-cu)', off: 'var(--dg-mute)' };   // 卡片的元件色（token，不寫死）
+  const COL = { pwr: 'var(--dg-pwr)', cu: 'var(--dg-cu-lit)', off: 'var(--dg-mute)' };   // 卡片的元件色（token，不寫死；銅用亮面 --dg-cu-lit，選到時的卡片標題在深底上才有 ≥ 4.5）
 
   /* 這張圖自己的樣式。**全部吃 --dg-* token，一個 #xxxxxx 都沒有。**
      交流側＝--dg-sig（電訊號藍）、直流側＝--dg-pwr（電力橘）：兩種語意色、兩種模式都有對比表（_STYLE.md §1-B）。
      ⚠ 最後三條一定要排在 STYLE 之後、特異性也要比它高（多一個 svg 型別選擇器），不然蓋不掉。*/
   const VARS = `<style>
     .dg.psu .off{stroke:var(--dg-psu-off);fill:none;stroke-width:1.3}
-    .dg.psu .offtx{fill:var(--dg-psu-off)}
+    .dg.psu .offtx{fill:var(--dg-mute)}   /* 設施側的字：實色 mute（科技 5.0:1、閱讀 4.7:1）；52% 透明的 --dg-psu-off 只有 2.2:1，留給線 */
     .dg.psu .acw{stroke:var(--dg-sig);fill:none;stroke-width:2.4;stroke-linecap:round}
     .dg.psu .dcw{stroke:var(--dg-pwr);fill:none;stroke-width:2.4;stroke-linecap:round}
     .dg.psu .thin{stroke:var(--dg-psu-line);fill:none;stroke-width:1}
@@ -74,6 +76,9 @@
     svg.dg.psu [data-seg].sel .part{filter:none;stroke-width:1.6}
     svg.dg.psu [data-seg].sel-part .part{stroke-width:2.6;filter:var(--dg-glow,drop-shadow(0 0 6px var(--cc)))}
     svg.dg.psu g[data-part="psu_ups"].sel-part .off{stroke:var(--dg-ink-2);stroke-width:2}
+    svg.dg.psu g[data-part="psu_ups"].sel-part .fxb{fill-opacity:.9}
+    /* 卡片的壓暗跟 SVG 同一階（.55）：進來的預設狀態是 power 被選、connector 兩張卡被壓暗，.3 連字都讀不到 */
+    .dgwrap:has(svg.dg.psu) .dgc.dim{opacity:.55}
   </style>`;
 
   /* 兩欄架構對照的匯流排粗細：**兩欄共用這一個常數**（規格書 §6-C3）。
@@ -105,7 +110,7 @@
       const blades = [0, 1, 2, 3, 4].map(j =>
         `<path class="thin" d="M0,0 L${(8 * Math.cos(j * 1.2566)).toFixed(1)},${(8 * Math.sin(j * 1.2566)).toFixed(1)}"/>`).join('');
       return `<g${out ? ' transform="translate(8,4)"' : ''}>
-        <rect class="part bd2" x="${x}" y="${y}" width="${w}" height="${h}" rx="3"/>
+        ${fx.glass(x, y, w, h, { fill: GL.alu, cls: 'part', rx: 3 })}
         <rect x="${x + 8}" y="${y + 5}" width="18" height="4" rx="2" fill="var(--dg-ink-3)"/>
         <circle class="thin" cx="${x + 17}" cy="${y + 30}" r="10"/>
         <g transform="translate(${x + 17},${y + 30})"><g class="spin" style="animation-delay:${(i * 0.4).toFixed(1)}s">${blades}</g></g>
@@ -124,8 +129,8 @@
     const STAGES = [['pfc', '功因校正 PFC'], ['llc', '諧振轉換 LLC'], ['sr', '同步整流 SR'], ['out', '輸出匯流排']];
     const boardRows = STAGES.map(([k, t], i) => {
       const y = LAY.board[0] + 8 + i * 34;
-      return `<rect class="bd2" x="156" y="${y}" width="34" height="22" rx="3"/>${icon(k, 156, y)}`
-        + `<text class="sub" x="198" y="${y + 15}">${t}</text>`
+      return `${fx.glass(156, y, 34, 22, { fill: GL.alu, rx: 3 })}${icon(k, 156, y)}`
+        + `<text class="sub" x="198" y="${y + 15}" style="fill:var(--dg-ink)">${t}</text>`
         + (i < 3 ? `<path class="dcw" d="M173,${y + 23} V${y + 30}" marker-end="url(#psuAr)" stroke-width="1.6"/>` : '');
     }).join('');
 
@@ -133,7 +138,7 @@
     const phases = [];
     for (let i = 0; i < 6; i++) {
       const x = 399 + i * 20;
-      phases.push(`<rect class="part bd2" x="${x}" y="${136}" width="14" height="22" rx="3"/>`
+      phases.push(fx.glass(x, 136, 14, 22, { fill: GL.alu, cls: 'part', rx: 3 })
         + `<path class="thin" d="M${x + 2},142 H${x + 12} M${x + 2},147 H${x + 12} M${x + 2},152 H${x + 12}"/>`
         + `<rect x="${x + 2}" y="162" width="10" height="8" rx="1.5" fill="var(--dg-el)"/>`);
     }
@@ -147,7 +152,7 @@
     const cells = [];
     for (let r = 0; r < 2; r++) for (let c = 0; c < 3; c++) {
       const x = 522 + c * 32, y = 310 + r * 26;
-      cells.push(`<rect class="part bd2" x="${x}" y="${y}" width="28" height="20" rx="2.5"/>`
+      cells.push(fx.glass(x, y, 28, 20, { fill: GL.alu, cls: 'part', rx: 2.5 })
         + `<rect x="${x + 4}" y="${y - 3}" width="6" height="4" rx="1" fill="var(--dg-sw-gold)"/>`
         + `<rect x="${x + 18}" y="${y - 3}" width="6" height="4" rx="1" fill="var(--dg-ink-3)"/>`
         + `<path class="thin" d="M${x + 4},${y + 11} h6 M${x + 7},${y + 8} v6 M${x + 18},${y + 11} h6"/>`);
@@ -156,12 +161,12 @@
     const scaps = [];
     for (let i = 0; i < 4; i++) {
       const x = 388 + i * 20;
-      scaps.push(`<rect class="part bd2" x="${x}" y="316" width="16" height="34" rx="3"/>`
+      scaps.push(fx.glass(x, 316, 16, 34, { fill: GL.alu, cls: 'part', rx: 5 })
         + `<ellipse class="thin" cx="${x + 8}" cy="316" rx="8" ry="3.4" fill="var(--dg-psu-box2)"/>`
         + `<path class="thin" d="M${x + 4},314 H${x + 12} M${x + 8},311 V319"/>`);
     }
     // 其餘運算托盤（同一條路徑，簡化畫）
-    const miniTray = (y) => `<g><rect class="bd" x="${TRX}" y="${y}" width="${TRW}" height="24" rx="4" stroke="var(--dg-psu-line)"/>
+    const miniTray = (y) => `<g>${fx.glass(TRX, y, TRW, 24, { fill: GL.steel, rx: 4 })}
       ${[0, 1, 2, 3, 4, 5].map(j => `<rect x="${TRX + 8 + j * 9}" y="${y + 7}" width="6" height="10" rx="1.5" fill="var(--dg-psu-off)"/>`).join('')}
       <rect x="${TRX + 70}" y="${y + 6}" width="22" height="12" rx="2" fill="var(--dg-psu-die)"/>
       <text class="sub" x="${TRX + 102}" y="${y + 16}">其餘托盤（同一條路徑）</text></g>`;
@@ -169,7 +174,7 @@
     // ---------------------------------------------------------------- ③ 兩欄架構對照（章節裡）
     const AC1 = 16, AC2 = 330, ACW = 294;                    // 左欄（現行）／右欄（800 VDC）
     const slot = (n) => 940 + n * 50;                        // 五個插槽的 y（兩欄對齊，才看得出右欄少一格）
-    const archBox = (x, n, t, s, extra) => `<g><rect class="part bd" x="${x}" y="${slot(n)}" width="${ACW}" height="42" rx="6"/>
+    const archBox = (x, n, t, s, extra) => `<g>${fx.glass(x, slot(n), ACW, 42, { fill: GL.steel, cls: 'part', rx: 6 })}
       <text class="lbl" x="${x + 10}" y="${slot(n) + 17}">${t}</text>
       <text class="sub" x="${x + 10}" y="${slot(n) + 33}">${s}</text>${extra || ''}</g>`;
     const busBar = (x, n, v) => `<rect x="${x + ACW - 92}" y="${(slot(n) + 21 - busH(v) / 2).toFixed(2)}" width="82"
@@ -221,7 +226,7 @@
 
     // ---------------------------------------------------------------- 組起來
     return `<svg class="dg dgm rs psu" viewBox="0 0 ${CW} 2300" width="100%" style="display:block">${STYLE}${VARS}
-      <defs>
+      <defs>${fx.glowDefs({ r: 4, soft: 4 })}
         <linearGradient id="psuCu" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-psu-cu2)"/><stop offset=".45" stop-color="var(--dg-psu-cu)"/><stop offset="1" stop-color="var(--dg-psu-cu2)"/></linearGradient>
         <marker id="psuAr" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
@@ -250,7 +255,7 @@
         <!-- 機房 UPS：接在**交流側**、畫在機櫃虛線框**外面**（§6-P2）；符號是雙轉換加旁路（§6-P4） -->
         <path class="off" d="M96,99 V300"/>
         <text class="lbl offtx" x="8" y="292">機房 UPS</text>
-        <rect class="off" x="8" y="300" width="96" height="46" rx="5"/>
+        ${fx.glass(8, 300, 96, 46, { fill: GL.off, rx: 5 })}
         <rect class="off" x="14" y="316" width="20" height="16" rx="3"/>
         <path class="off" d="M18,325 q3,-6 6,0 t6,0"/>
         <rect class="off" x="46" y="316" width="20" height="16" rx="3"/>
@@ -260,18 +265,22 @@
         <path class="off" d="M20,312 q36,-10 72,0"/>
         <text class="sub offtx" x="8" y="364">交流側・櫃外</text>
       </g>
-      <!-- 交流進機櫃（跨過那條虛線框） -->
-      <path class="acw flow" d="M104,96 H112 V60 H${SHX}"/>
+      <!-- 交流進機櫃（跨過那條虛線框）：訊號藍的光束，不發光（發光預算留給直流主路徑） -->
+      ${fx.beam(`M104,96 H112 V60 H${SHX}`, { color: 'var(--dg-sig)', w: 2, glow: false, flow: true, dots: [[SHX, 60]], dotR: 2.6 })}
 
       <!-- 機櫃虛線框（assembly）：沒有這個框，「櫃內／櫃外」就沒有畫面上的依據（§6-P3） -->
       <g data-seg="${A}" data-part="psu_rack">
         <rect class="part" x="${RX}" y="${RY}" width="${RW}" height="${RH}" rx="10" fill="none" stroke-dasharray="9 7"/>
         <text class="sub" x="128" y="414">機櫃（虛線框內＝櫃內；UPS 與設施電都在框外）</text>
       </g>
+      <!-- 柔陰影：主要方塊各一個影子，全部包成一個群組（一次 feGaussianBlur；亮色版靠它有「浮起來」的感覺） -->
+      ${fx.shadows([[SHX, SHY, SHW, SHH], [EX0, LAY.cover[0], EX1 - EX0, LAY.cover[1] - LAY.cover[0]], [EX0, LAY.board[0], EX1 - EX0, LAY.board[1] - LAY.board[0]],
+      [EX0, LAY.base[0], EX1 - EX0, LAY.base[1] - LAY.base[0]], [TRX, 104, TRW, 104], [TRX, 300, 92, 64], [492, 300, 128, 72], [8, 300, 96, 46]]
+      .map(([x, y, w, h]) => `<rect x="${x + 3}" y="${y + 7}" width="${w}" height="${h}" rx="6"/>`).join(''))}
 
       <!-- 電源架 ＋ 4 顆 PSU（power）：3 顆在架上、第 4 顆抽出來一點（熱插拔、N＋1，§6-S1／S3） -->
       <g data-seg="${P}" data-part="psu_shelf">
-        <rect class="part bd" x="${SHX}" y="${SHY}" width="${SHW}" height="${SHH}" rx="6"/>
+        ${fx.glass(SHX, SHY, SHW, SHH, { fill: GL.steel, cls: 'part', rx: 6, t: 3 })}
         ${psuUnit(142, 36, 0, false)}${psuUnit(182, 36, 1, false)}${psuUnit(222, 36, 2, false)}
         <rect class="pull" x="262" y="36" width="34" height="64" rx="3"/>
         ${psuUnit(262, 36, 3, true)}
@@ -282,9 +291,9 @@
 
       <!-- 拉出來的那一顆：由上往下拆成 上蓋 → 主板 → 底殼（垂直爆炸拆解，層與層之間留呼吸空間） -->
       <g data-seg="${P}" data-part="psu_unit">
-        <rect class="part bd2" x="${EX0}" y="${LAY.cover[0]}" width="${EX1 - EX0}" height="${LAY.cover[1] - LAY.cover[0]}" rx="3"/>
+        ${fx.glass(EX0, LAY.cover[0], EX1 - EX0, LAY.cover[1] - LAY.cover[0], { fill: GL.steel, cls: 'part', rx: 3, t: 2 })}
         ${[0, 1, 2, 3, 4, 5, 6, 7].map(j => `<path class="thin" d="M${160 + j * 16},${LAY.cover[0] + 5} V${LAY.cover[1] - 5}"/>`).join('')}
-        <rect class="part bd2" x="${EX0}" y="${LAY.base[0]}" width="${EX1 - EX0}" height="${LAY.base[1] - LAY.base[0]}" rx="4"/>
+        ${fx.glass(EX0, LAY.base[0], EX1 - EX0, LAY.base[1] - LAY.base[0], { fill: GL.steel, cls: 'part', rx: 4, t: 3 })}
         <rect x="146" y="${LAY.base[0] + 10}" width="5" height="38" rx="2" fill="var(--dg-ink-3)"/>
         <circle class="thin" cx="178" cy="${LAY.base[0] + 29}" r="19"/>
         <g transform="translate(178,${LAY.base[0] + 29})"><g class="spin">${[0, 1, 2, 3, 4, 5, 6].map(j =>
@@ -295,70 +304,66 @@
         <path class="thin" d="M234,${LAY.base[0] + 39} H298"/>
       </g>
       <g data-seg="${P}" data-part="psu_board">
-        <rect class="part pcbf" x="${EX0}" y="${LAY.board[0]}" width="${EX1 - EX0}" height="${LAY.board[1] - LAY.board[0]}" rx="3"/>
+        ${fx.glass(EX0, LAY.board[0], EX1 - EX0, LAY.board[1] - LAY.board[0], { fill: GL.pcb, cls: 'part', rx: 3, t: 2 })}
         <path class="acw" d="M173,${LAY.board[0] - 8} V${LAY.board[0] + 6}" marker-end="url(#psuAr)" stroke-width="1.6"/>
         ${boardRows}
         <path class="dcw" d="M173,${LAY.board[1] - 10} V${LAY.board[1] + 6}" marker-end="url(#psuAr)" stroke-width="1.6"/>
       </g>
 
-      <!-- PSU → 匯流排（直流側從這裡開始） -->
-      <path class="dcw flow" d="M${SHX + SHW},60 H${BBX}"/>
       <text class="tag" x="${BBX + BBW + 10}" y="20">約 50–54 V 直流</text>
 
-      <!-- 直流匯流排：厚銅排、實心，不是圓電線（§6-V3）。掛 connector 不是 power（§7-D2） -->
+      <!-- 直流匯流排：厚銅排、實心，不是圓電線（§6-V3）—— 銅色玻璃板，頂面與右側面帶厚度。掛 connector 不是 power（§7-D2） -->
       <g data-seg="${C}" data-part="psu_busbar">
-        <rect class="part" x="${BBX}" y="${BBY}" width="${BBW}" height="${BBH}" fill="url(#psuCu)"/>
-        <path class="part" d="M${BBX},${BBY} L${BBX + BBW},${BBY} L${BBX + BBW + 8},${BBY - 8} L${BBX + 8},${BBY - 8} Z" fill="var(--dg-psu-cu)"/>
-        <path class="part" d="M${BBX + BBW},${BBY} L${BBX + BBW + 8},${BBY - 8} L${BBX + BBW + 8},${BBY + BBH - 8} L${BBX + BBW},${BBY + BBH} Z" fill="var(--dg-psu-cu2)"/>
+        ${fx.glass(BBX, BBY, BBW, BBH, { fill: GL.cu, cls: 'part', rx: 2, iso: { dx: 8, dy: -8 } })}
       </g>
 
       <!-- 電源線組 power whip：從匯流排接到托盤（§6-V5），一樣掛 connector -->
       <g data-seg="${C}" data-part="psu_whip">
-        ${[42, 78, 128].map(y => `<path class="part" d="M${BBX + BBW},${y} H${TRX}" stroke-width="7" stroke-linecap="round" fill="none"/>
-          <path class="flow" d="M${BBX + BBW},${y} H${TRX}" stroke="var(--dg-pwr)" stroke-width="2.2" fill="none"/>`).join('')}
+        ${[42, 78, 128].map(y => `<path class="part" d="M${BBX + BBW},${y} H${TRX}" stroke-width="7" stroke-linecap="round" fill="none"/>`).join('')}
+        ${[42, 78].map(y => `<path d="M${BBX + BBW},${y} H${TRX}" stroke="var(--dg-pwr)" stroke-width="1.6" fill="none" opacity=".7"/>`).join('')}
       </g>
 
       <!-- 其餘托盤（簡化）＋ 主托盤（展開） -->
       ${miniTray(30)}${miniTray(66)}
-      <rect class="bd" x="${TRX}" y="104" width="${TRW}" height="104" rx="6" stroke="var(--dg-psu-line)"/>
+      ${fx.glass(TRX, 104, TRW, 104, { fill: GL.steel, rx: 6 })}
       <text class="sub" x="${TRX + 8}" y="120">運算托盤（展開）</text>
 
       <!-- 板上 DC-DC／VRM：一排 6 個等距電感（多相）＋ 開關元件（§6-V4） -->
       <g data-seg="${P}" data-part="psu_vrm">
-        <rect class="part bd" x="384" y="128" width="134" height="50" rx="5"/>
+        ${fx.glass(384, 128, 134, 50, { fill: GL.pcb, cls: 'part', rx: 5 })}
         ${phases.join('')}
       </g>
-      <path class="dcw flow" d="M518,153 H548" marker-end="url(#psuAr)"/>
 
-      <!-- 受電端晶片 -->
+      <!-- 受電端晶片：矽色玻璃方塊 ＋ 一顆靜態的光暈（第三個、也是最後一個 feGaussianBlur）＝ 供電路徑的終點 -->
+      <circle cx="580" cy="153" r="26" fill="var(--dg-pwr)" style="opacity:calc(var(--fx-glow-a) * .35)" filter="url(#fxGlow)" pointer-events="none"/>
       <g data-seg="${P}" data-part="psu_die">
-        <rect class="part" x="548" y="128" width="64" height="50" rx="4" fill="var(--dg-psu-die)"/>
+        ${fx.glass(548, 128, 64, 50, { fill: GL.si, cls: 'part', rx: 4, t: 2 })}
         ${dieCells.join('')}
       </g>
       <text class="sub" x="388" y="200">多相：一排電感輪流工作</text>
       <text class="tag" x="548" y="200">約 1 V 以下</text>
 
-      <!-- 直流節點：BBU 與超級電容接在**同一個**直流節點上（§6-P5），而且都在虛線框裡 -->
-      <path class="dcw" d="M${BBX + BBW},336 H${TRX}"/>
-      <circle cx="${BBX + BBW + 8}" cy="336" r="4.2" fill="var(--dg-pwr)"/>
-      <path class="dcw" d="M${BBX + BBW + 8},336 V386 H${586} V372"/>
+      <!-- 直流主路徑（電力橘的發光光束，整張圖唯一發光的線）：電源架 → 匯流排 → 第三條 power whip → VRM → 晶片；
+           另一段從匯流排上的直流節點分到超級電容與 BBU（§6-P5：兩者接在同一個節點）。端點光點＝電流到達的地方。-->
+      ${fx.beam(`M${SHX + SHW},60 H${BBX + BBW / 2} V128 H384 M518,153 H548 M${BBX + BBW / 2},336 H${TRX} M${BBX + BBW + 8},336 V386 H586 V372`,
+      { color: 'var(--dg-pwr)', w: 2.2, flow: true, dots: [[BBX + BBW / 2, 60], [548, 153], [BBX + BBW + 8, 336], [TRX, 336], [586, 372]] })}
 
       <!-- 超級電容／鋰離子電容（power）：比 BBU 小一號，管最短的那一段 -->
       <g data-seg="${P}" data-part="psu_scap">
-        <rect class="part bd" x="${TRX}" y="300" width="92" height="64" rx="6"/>
+        ${fx.glass(TRX, 300, 92, 64, { fill: GL.steel, cls: 'part', rx: 6, t: 2 })}
         ${scaps.join('')}
       </g>
       <!-- BBU（power）：電池芯 ＋ 正負極柱 ＋ 管理電路 ＋ 連接器金手指 -->
       <g data-seg="${P}" data-part="psu_bbu">
-        <rect class="part bd" x="492" y="300" width="128" height="72" rx="6"/>
-        <rect class="part bd2" x="500" y="308" width="14" height="46" rx="3"/>
+        ${fx.glass(492, 300, 128, 72, { fill: GL.steel, cls: 'part', rx: 6, t: 2 })}
+        ${fx.glass(500, 308, 14, 46, { fill: GL.pcb, cls: 'part', rx: 3 })}
         ${[0, 1, 2].map(j => `<circle cx="507" cy="${316 + j * 14}" r="2.4" fill="var(--dg-pwr)"/>`).join('')}
         ${cells.join('')}
         ${[0, 1, 2, 3].map(j => `<rect class="gold" x="${560 + j * 8}" y="372" width="5" height="7" rx="1"/>`).join('')}
       </g>
 
-      <!-- 沿路變小的光點：每經過一級就小一圈＝電壓一級一級降下來（示意，不代表任何數字） -->
-      <circle r="6" fill="var(--dg-ink)" opacity=".92">
+      <!-- 沿路變小的光點：每經過一級就小一圈＝電壓一級一級降下來（示意，不代表任何數字）。走 SMIL，動畫鈕會 pause -->
+      <circle r="6" fill="var(--dg-sn)" opacity=".92">
         <animateMotion dur="7s" repeatCount="indefinite" path="M60,96 L112,96 L112,60 L${BBX + BBW / 2},60 L${BBX + BBW / 2},128 L${TRX},128 L388,153 L548,153 L600,153"/>
         <animate attributeName="r" values="6;6;4.4;4.4;2.6;1.4" dur="7s" repeatCount="indefinite"/>
       </circle>

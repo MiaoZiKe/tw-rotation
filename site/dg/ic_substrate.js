@@ -10,48 +10,42 @@
      · §7-B／§7-C：查不到的東西一個數字都不編。畫面上唯一的百分比是 ABF 膜市占，而且必須連同「來源：今周刊 2026-05」一起寫（N1）。
        載板線寬、CTE 的 ppm、封裝 mm 數、供需缺口、良率與單價差距**全部不進畫面**。
 
-   ---- 2026-09-22 v2（DECISIONS #238／#239，分支 claude/restyle-w1b）----
-   · svg 根掛 `.rs`：閱讀模式字級升一階、說明卡片離開 SVG 變成 HTML（extRow 多傳 side）。
-   · 畫布從 980 收到 **520**（主角寬），`native: 520` 跟著改；欄數由 index.html 的 .dgv2 容器查詢決定。
-   · 繪圖本體改成**垂直爆炸拆解**：九層（上防焊、U3、U2、U1、core、L1、L2、L3、下防焊）一層一片薄板，
-     層與層之間留 14px 的呼吸空間；每一片都帶自己的頂面與右側面（2.5D 厚度感）。
-     疊構關係沒有變：core 在正中間、上下各 3 層厚度相等、只有 core 有織紋、微孔朝 core 收窄、貫孔只穿 core。
-     拆開之後多出來的一件事看得更清楚：**微孔是「這一層自己的孔」**（從這一層的銅打到這一層的底面），疊孔靠虛線軸心對齊。
-   · §1 從 606 壓到約 480：右欄九列說明全部變成卡片、三格放大與路線圖收進兩個章節（一個字沒刪，只改斷行與位置）。
-     收合 ≈ 480 ＋ 8 ＋ 42×2 ＋ 10 ＝ 582。
-   · 卡片與畫布上的零件是同一個 data-part：點卡片亮零件、點零件亮卡片（主角是一個 data-part，畫面上兩個節點）。
-   · 卡片元件色（data-dgcolor）：core --dg-weave（織紋色，深底上讀得到）、ABF 膜 --dg-abf、銅件 --dg-cu、灰色剪影 --dg-mute；
-     防焊與主機板不指定（落回環節色）—— --dg-sr／--dg-pcb 在深底上對編號數字的對比不到 4.5，不拿來當卡片色。
-   · 訊號路徑用箭頭 ＋ 虛線（--dg-sig），不加發光濾鏡；發光只給主角（下面 scoped style）。
-
-   為什麼主視圖是「正剖面 ＋ 等角厚度」而不是整塊等角切角
-   ------------------------------------------------------
-   這張圖的內容是**九層薄層疊構 ＋ 錐形微孔 ＋ 只穿 core 的貫孔**，全部的資訊都在剖面上。
-   整塊等角切角會把剖面壓成 30° 斜面：20px 厚的增層在斜面上只剩 10px、錐度看不出來。
-   所以主體畫成**正剖面**，另外把每一層的頂面與右側面往右後上擠出去（`TF`／`RF`）當厚度。
+   ---- 2026-09-22 v2（DECISIONS #238／#239 ＋ Andy 晚間的參考圖 docs/diagram_refs/2d_panel_dark_light.webp）----
+   · 構圖：**等角爆炸層疊**（層疊類走這一套）。九片薄板（上防焊、U3、U2、U1、core、L1、L2、L3、下防焊）
+     一片一片浮著，每一片都是 D.fx.glass 畫的**帶厚度、圓角、半透明漸層的玻璃板**（頂面 ＋ 前面 ＋ 右側面），
+     層與層之間留 24px 的呼吸空間。**剖面內容畫在每一片的前面**（那正是原本的正剖面）：織紋、貫孔、細線、錐形微孔、防焊開窗、墊子，
+     一條規則都沒有變（core 在正中間、上下各 3 層厚度相等、只有 core 有織紋、微孔朝 core 收窄、貫孔只穿 core）。
+     拆開之後多出來的兩件事：微孔畫成**穿過層間空隙的小銅柱**（這一層的孔接到下一層的銅），疊孔靠虛線軸心對齊。
+   · 訊號路徑用 D.fx.beam：一條發光光束（一個 feGaussianBlur）＋ 流動虛線 ＋ 端點光點；柔陰影一組（第二個 blur）。
+     兩種模式構圖相同、只換材質與光：亮＝米白底＋柔陰影，暗＝深藍底＋發光；全部走 --dg-*／--fx-* token。
+   · svg 根掛 `.rs`：閱讀模式字級升一階、說明卡片離開 SVG 變成 HTML（extRow 多傳 side）。畫布 980 → **520**，native 跟著改。
+   · §1 從 606 壓到約 504：右欄九列說明全部變成卡片、三格放大與路線圖收進兩個章節（一個字沒刪，只改斷行與位置）。
+   · 卡片與畫布上的零件是同一個 data-part：點卡片亮零件、點零件亮卡片。
+   · 卡片元件色：core --dg-weave、ABF 膜 --dg-abf、銅件 --dg-cu、灰色剪影 --dg-mute；防焊與主機板不指定（落回環節色）——
+     --dg-sr／--dg-pcb 在深底上對編號數字的對比不到 4.5，不拿來當卡片色。
 
    這個檔不碰 `site/index.html`／`site/three3d.js`。共用工具一律走 `window.DG`。*/
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function') return;   // diagrams.js 沒載到就安靜退出
-  const { STYLE, extRow, note, processBar, fold } = D;
+  if (!D || typeof D.register !== 'function' || !D.fx) return;   // diagrams.js 沒載到就安靜退出
+  const { STYLE, extRow, note, processBar, fold, fx } = D;
 
   /* ================================================================ 版面常數（全部是畫布座標，寬 520）
-     剖面：x ∈ [XL, XR]＝載板的長，y 往下＝往底層。等角厚度往右後上 (DX, DY)。*/
-  const CW = 520, XL = 24, XR = 452, DX = 16, DY = -7;
-  const G = 14;                                            // 層與層之間的呼吸空間（爆炸間距）
+     每一片薄板：前面 x ∈ [XL, XR]、厚度 t；頂面往右後上擠出 (DX, DY)；片與片之間的間距 G（含頂面的 20px，所以空氣是 4px）。*/
+  const CW = 520, XL = 24, XR = 452, W = XR - XL, DX = 32, DY = -18, G = 22;
+  const ISO = { dx: DX, dy: DY };
 
   /* 層界（由上往下，用厚度累加出來，所以「上下對稱」是算出來的不是手抄的）。
-     **core 56、每一層增層 20 ＝ core 是任一層增層的 2.8 倍厚**（S2）；上下各三層、對應層厚度相同（S3）；
-     防焊上下各 8、成對出現（S6）。*/
-  const Y = { dieT: 16, dieB: 38, ubT: 38, ubB: 48, itT: 48, itB: 66, c4T: 66, c4B: 86 };
+     **core 44、每一層增層 16 ＝ core 是任一層增層的 2.75 倍厚**（S2）；上下各三層、對應層厚度相同（S3）；
+     防焊上下各 7、成對出現（S6）。*/
+  const Y = { dieT: 26, dieB: 36, ubT: 36, ubB: 52, itT: 52, itB: 62, c4T: 62, c4B: 80 };
+  const ORDER = [['srT', 7], ['u3', 16], ['u2', 16], ['u1', 16], ['core', 44], ['l1', 16], ['l2', 16], ['l3', 16], ['srB', 7]];
   (function stack() {
-    let y = 100;
-    [['srT', 8], ['u3', 20], ['u2', 20], ['u1', 20], ['core', 56], ['l1', 20], ['l2', 20], ['l3', 20], ['srB', 8]]
-      .forEach(([k, h]) => { Y[k] = [y, y + h]; y += h + G; });
-    Y.ball = Y.srB[1] + G + 6;                             // 錫球中心
-    Y.mbT = Y.ball + 30; Y.mbB = Y.mbT + 24;               // 主機板（只畫一小段）
+    let y = Y.c4B + G;
+    ORDER.forEach(([k, h]) => { Y[k] = [y, y + h]; y += h + G; });
+    Y.ball = Y.srB[1] + 18;                                // 錫球中心（r 12）
+    Y.mbT = Y.ball + 16; Y.mbB = Y.mbT + 18;               // 主機板（只畫一小段）
   })();
   /* 每一層增層「自己那一層的銅」在**外側**：上半部在該層上緣、下半部在該層下緣
      —— 因為增層是從 core 往外一層一層長出來的，這也是微孔錐度方向的由來。*/
@@ -74,22 +68,29 @@
   };
 
   /* 卡片的元件色（token，不寫死）*/
-  const COL = { core: 'var(--dg-weave)', abf: 'var(--dg-abf)', cu: 'var(--dg-cu)', off: 'var(--dg-mute)' };
+  const COL = { core: 'var(--dg-weave)', abf: 'var(--dg-abf)', cu: 'var(--dg-cu-lit)', off: 'var(--dg-mute)' };   // 銅用亮面：選到的卡片標題在深底上 --dg-cu 只有 4.24:1
 
-  /* ================================================================ 小工具
-     `TF`／`RF` 就是那個 2.5D：把每一片薄板往右後上擠出去的頂面與右側面。*/
-  const TF = (x0, x1, y, fill) =>
-    `<path d="M${x0},${y} L${x1},${y} L${x1 + DX},${y + DY} L${x0 + DX},${y + DY}Z" fill="${fill}"/>`;
-  const RF = (y0, y1, fill) =>
-    `<path d="M${XR},${y0} L${XR + DX},${y0 + DY} L${XR + DX},${y1 + DY} L${XR},${y1}Z" fill="${fill}"/>`;
+  /* ================================================================ 小工具 */
   const R = (x, y, w, h, fill, cls, rx) =>
     `<rect${cls ? ` class="${cls}"` : ''} x="${x}" y="${y}" width="${w}" height="${h}"${rx ? ` rx="${rx}"` : ''} fill="${fill}"/>`;
+  // 頂面座標：u 沿板長、v 是深度（0 前緣、1 後緣）
+  const tp = (u, v) => `${(u + v * DX).toFixed(1)},${(v * DY).toFixed(1)}`;
+  // 頂面上的示意銅線（三條，不同深度）：這一層的線路往後延伸
+  const topTraces = (n) => [0.3, 0.55, 0.8].slice(0, n).map(v =>
+    `<path d="M${tp(8, v)} L${tp(W - 8, v)}" stroke="var(--dg-cu)" stroke-width="1.1" opacity=".38" fill="none"/>`).join('');
+  // 頂面上的圓形（貫孔的蓋銅、防焊開窗看到的墊子）
+  const topDots = (xs, rxv, fill, op) => xs.map(x =>
+    `<ellipse cx="${(x - XL + 0.5 * DX).toFixed(1)}" cy="${(0.5 * DY).toFixed(1)}" rx="${rxv}" ry="${(rxv / 2).toFixed(1)}" fill="${fill}" opacity="${op}"/>`).join('');
+  // 一片玻璃板（前面 ＋ 頂面 ＋ 右側面），前面那塊 rect 帶 .part 讓選取描邊有地方掛
+  const plate = (r, fill, top) => fx.glass(XL, r[0], W, r[1] - r[0], { iso: ISO, fill, cls: 'part', rx: 4, top });
+  // 柔陰影：每一片頂面往下 12px 的影子，全部包成一個群組（一次濾鏡）
+  const plateShadow = (r) => `<path d="M${XL + 4},${r[1] + 12} L${XR - 2},${r[1] + 12} L${XR + DX - 2},${r[1] + 12 + DY} L${XL + DX + 4},${r[1] + 12 + DY}Z"/>`;
 
   /* 玻纖織紋。**整張圖只有 core 那一層可以呼叫它**（S4）——
      ABF 是不含織造玻纖的樹脂膜，那正是它能打出更小的孔、做出更細的線的原因（§7-A1）。*/
   function weave(x0, x1, y0, y1) {
     const h = y1 - y0, w = x1 - x0;
-    const n = Math.max(1, Math.floor((h - 4) / 14));
+    const n = Math.max(1, Math.floor((h - 4) / 13));
     const gap = h / (n + 1), amp = Math.min(4, gap / 3);
     const seg = Math.min(18, Math.max(8, w / 6));
     const q1 = (seg / 4).toFixed(1), q2 = (seg / 2).toFixed(1), a = amp.toFixed(1);
@@ -118,23 +119,15 @@
      上半部 yOut < yIn、下半部 yOut > yIn，同一支函式兩邊都對。內部一律畫成**填實**（V4）。*/
   const uvia = (x, yOut, yIn, wOut, wIn) =>
     `M${x - wOut / 2},${yOut} L${x + wOut / 2},${yOut} L${x + wIn / 2},${yIn} L${x - wIn / 2},${yIn}Z`;
+  // 穿過層間空隙的小銅柱：這一層的微孔接到下一層的銅（拆開之後才看得到的組裝關係）
+  const pillar = (x, y0, y1) => R(x - 2.5, Math.min(y0, y1), 5, Math.abs(y1 - y0), 'var(--dg-cu)', '', 1.5).replace('<rect', '<rect opacity=".55"');
 
-  /* ================================================================ 主視圖的各個零件 */
+  /* ================================================================ 主視圖的各個零件（玻璃板 ＋ 前面的剖面內容） */
 
-  // ---- 每一片薄板的等角厚度：頂面與右側面（先畫，正剖面壓在上面）。拆開之後每一層都露出自己的頂面。
-  const slab = (r, fill) => TF(XL, XR, r[0], fill) + RF(r[0], r[1], fill);
-  const gSlab = () => [
-    slab(Y.srT, 'var(--dg-sr-2)'),
-    slab(Y.u3, 'var(--dg-abf-2)'), slab(Y.u2, 'var(--dg-abf-2)'), slab(Y.u1, 'var(--dg-abf-2)'),
-    slab(Y.core, 'var(--dg-core-2)'),
-    slab(Y.l1, 'var(--dg-abf-2)'), slab(Y.l2, 'var(--dg-abf-2)'), slab(Y.l3, 'var(--dg-abf-2)'),
-    slab(Y.srB, 'var(--dg-sr-2)'),
-  ].join('');
-
-  // ---- 核心層 core：唯一有織紋的一層，也是全圖最厚的一層
+  // ---- 核心層 core：唯一有織紋的一層，也是全圖最厚的一層。頂面畫三個貫孔的蓋銅。
   const gCore = () => `<g data-seg="substrate_material" data-part="abf_core">
-    ${R(XL, Y.core[0], XR - XL, Y.core[1] - Y.core[0], 'var(--dg-core)', 'part')}
-    ${weave(XL + 4, XR - 4, Y.core[0], Y.core[1])}</g>`;
+    ${plate(Y.core, 'var(--dg-core)', topDots(VIA.core, 10, 'var(--dg-cu)', '.85'))}
+    ${weave(XL + 4, XR - 4, Y.core[0] + 2, Y.core[1] - 2)}</g>`;
 
   /* ---- core 的貫孔（§7-B7 低信心：畫成孔壁銅 ＋ 內部填塞物 ＋ 兩端蓋銅，文字只寫「鍍銅 → 填塞 → 兩端蓋銅」）。
      V1：孔身嚴格落在 core 的兩面之間；蓋銅是「長在 core 表面上的那一片銅」，各往外多 4px，不是孔穿出去。*/
@@ -145,35 +138,38 @@
     + R(x - 17, Y.core[0] - 4, 34, 10, 'var(--dg-cu)', '', 1.5)
     + R(x - 17, Y.core[1] - 6, 34, 10, 'var(--dg-cu)', '', 1.5)).join('')}</g>`;
 
-  /* ---- ABF 增層膜：上下各三層，**層數與厚度都相等**（S3）、**沒有織紋**（S4）。不是 prepreg 膠片（S1）。*/
+  /* ---- ABF 增層膜：上下各三層，**層數與厚度都相等**（S3）、**沒有織紋**（S4）。不是 prepreg 膠片（S1）。
+     每一片是一塊玻璃板；頂面上畫幾條往後延伸的線路。*/
   const FILMS = () => [Y.u3, Y.u2, Y.u1, Y.l1, Y.l2, Y.l3];
   const gFilm = () => `<g data-seg="substrate_material" data-part="abf_film">
-    ${FILMS().map(r => R(XL, r[0], XR - XL, r[1] - r[0], 'var(--dg-abf)', 'part')).join('')}</g>`;
+    ${FILMS().map(r => plate(r, 'var(--dg-abf)', topTraces(3))).join('')}</g>`;
 
-  // ---- 半加成細線（SAP／mSAP）＋ core 的兩面線路。U1 與 core 兩面的線從 XL+30 起，讓左欄的編號錨點有地方站。
+  // ---- 半加成細線（SAP／mSAP）＋ core 的兩面線路。U1 的線從 XL+30 起，讓左欄的編號錨點有地方站。
   const gTrace = () => `<g data-seg="abf_pcb" data-part="abf_trace">
     ${traces(CU.u3, XL + 6, XR - 6, 7, 16)}${traces(CU.u2, XL + 10, XR - 6, 7, 16)}${traces(CU.u1, XL + 30, XR - 6, 7, 16)}
     ${traces(CU.coreT, XL + 8, XR - 6, 9, 20)}${traces(CU.coreB, XL + 8, XR - 6, 9, 20)}
     ${traces(CU.l1, XL + 10, XR - 6, 7, 16)}${traces(CU.l2, XL + 6, XR - 6, 7, 16)}${traces(CU.l3, XL + 10, XR - 6, 7, 16)}</g>`;
 
-  // ---- 雷射微孔（錐形、只穿一層、內部填實）
+  // ---- 雷射微孔（錐形、只穿一層、內部填實）＋ 穿過層間空隙的小銅柱
   const gUvia = () => {
-    const d = [];
-    [[VIA.u3, CU.u3 + CUH, Y.u3[1]], [VIA.u2, CU.u2 + CUH, Y.u2[1]], [VIA.u1, CU.u1 + CUH, Y.u1[1]],
-      [VIA.l1, CU.l1, Y.l1[0]], [VIA.l2, CU.l2, Y.l2[0]], [VIA.l3, CU.l3, Y.l3[0]]]
-      .forEach(([xs, yOut, yIn]) => xs.forEach(x => d.push(uvia(x, yOut, yIn, 16, 8))));
-    return `<g data-seg="abf_pcb" data-part="abf_uvia"><path class="part" d="${d.join('')}" fill="var(--dg-cu)"/></g>`;
+    const d = [], pil = [];
+    [[VIA.u3, CU.u3 + CUH, Y.u3[1], Y.u2[0]], [VIA.u2, CU.u2 + CUH, Y.u2[1], Y.u1[0]], [VIA.u1, CU.u1 + CUH, Y.u1[1], Y.core[0]],
+      [VIA.l1, CU.l1, Y.l1[0], Y.core[1]], [VIA.l2, CU.l2, Y.l2[0], Y.l1[1]], [VIA.l3, CU.l3, Y.l3[0], Y.l2[1]]]
+      .forEach(([xs, yOut, yIn, yNext]) => xs.forEach(x => { d.push(uvia(x, yOut, yIn, 16, 8)); pil.push(pillar(x, yIn, yNext)); }));
+    return `<g data-seg="abf_pcb" data-part="abf_uvia">${pil.join('')}<path class="part" d="${d.join('')}" fill="var(--dg-cu)"/></g>`;
   };
 
   /* ---- 疊孔：U1 與 U2 兩個微孔**軸心對齊**，中間那一塊是被電鍍填平的銅（V4）。
-     拆開之後兩個孔隔著一層呼吸空間，虛線就是那條軸心。*/
+     拆開之後兩個孔隔著一層呼吸空間，小銅柱 ＋ 虛線就是那條軸心。*/
   const gStack = () => { const x = VIA.stack; return `<g data-seg="abf_pcb" data-part="abf_stack_via">
+    ${pillar(x, Y.u2[1], Y.u1[0])}
     <path class="part" d="${uvia(x, CU.u1 + CUH, Y.u1[1], 16, 8)}${uvia(x, CU.u2 + CUH, Y.u2[1], 16, 8)}" fill="var(--dg-cu)"/>
     ${R(x - 11, CU.u1 - 2, 22, 10, 'var(--dg-cu)', '', 2)}
-    <path d="M${x},${CU.u2 + CUH - 4} V${Y.u1[1] + 4}" stroke="var(--dg-sig)" stroke-width=".9" stroke-dasharray="3 3" opacity=".6"/></g>`; };
+    <path d="M${x},${CU.u2 + CUH - 2} V${Y.u1[1] + 2}" stroke="var(--dg-sig)" stroke-width=".9" stroke-dasharray="3 3" opacity=".7"/></g>`; };
 
   /* ---- 防焊層與開窗：**兩個外表面都有**（S6），而且只在墊子處開窗。
-     上表面開窗給 bump pad（接晶片）、下表面開窗給球墊（接主機板）—— 兩側不准對調（S5）。*/
+     上表面開窗給 bump pad（接晶片）、下表面開窗給球墊（接主機板）—— 兩側不准對調（S5）。
+     前面畫開窗的缺口，上防焊的頂面畫「從開窗看到的墊子」。*/
   function srBand(y0, y1, gaps) {
     const segs = []; let cur = XL;
     gaps.forEach(([a, b]) => { if (a > cur) segs.push([cur, a]); cur = b; });
@@ -181,7 +177,9 @@
     return segs.map(([a, b]) => R(a, y0, b - a, y1 - y0, 'var(--dg-sr)', 'part')).join('');
   }
   const gSr = () => `<g data-seg="abf_pcb" data-part="abf_sr">
+    ${plate(Y.srT, 'var(--dg-sr)', topDots(PADS, 6, 'var(--dg-cu)', '.9'))}
     ${srBand(Y.srT[0], Y.srT[1], PADS.map(x => [x - 7, x + 7]))}
+    ${plate(Y.srB, 'var(--dg-sr)', '')}
     ${srBand(Y.srB[0], Y.srB[1], BALLS.map(x => [x - 13, x + 13]))}</g>`;
 
   /* ---- 凸塊墊 ＋ 表面處理。上表面 bump pad 寬 16、下表面 BGA 球墊寬 30 ——**兩側墊子大小明顯不同**（S5）。
@@ -190,42 +188,35 @@
     ${PADS.map(x => R(x - 8, CU.u3, 16, CUH, 'var(--dg-cu)', 'part') + R(x - 6, CU.u3 - 4, 12, 4, 'var(--dg-ni)')).join('')}
     ${BALLS.map(x => R(x - 15, CU.l3, 30, CUH, 'var(--dg-cu)', 'part') + R(x - 11, CU.l3 + CUH, 22, 5, 'var(--dg-ni)')).join('')}</g>`;
 
-  /* ---- 三種凸塊（§7-D2：**一律不掛 data-seg**）。凸塊算封裝廠還是載板廠做的依製程分工而異，查不到可引用的分工說法。*/
+  /* ---- 三種凸塊（§7-D2：**一律不掛 data-seg**）。凸塊算封裝廠還是載板廠做的依製程分工而異，查不到可引用的分工說法。
+     錫球畫成帶高光的小球（玻璃語言）。*/
   const gBumps = () => `<g pointer-events="none">
     ${UBUMPS.map(x => R(x - 1.7, Y.ubT, 3.4, Y.ubB - Y.ubT, 'var(--dg-sn)')).join('')}
     ${PADS.map(x => R(x - 5, Y.c4T, 10, Y.c4B - Y.c4T, 'var(--dg-sn)', '', 4)).join('')}
-    ${BALLS.map(x => `<ellipse cx="${x}" cy="${Y.ball}" rx="14" ry="14" fill="var(--dg-sn)"/>`).join('')}</g>`;
+    ${BALLS.map(x => `<circle cx="${x}" cy="${Y.ball}" r="12" fill="var(--dg-sn)"/><ellipse cx="${x - 3.5}" cy="${Y.ball - 4.5}" rx="4" ry="2.4" fill="var(--dg-pn-refl)" opacity=".85"/>`).join('')}</g>`;
 
-  /* ---- 晶粒與中介層：**灰色剪影，不標任何內部細節**（M5、§0-B 二）。
+  /* ---- 晶粒與中介層：**灰色剪影，不標任何內部細節**（M5、§0-B 二）。兩片灰玻璃板。
      不掛 data-seg；掛 data-part 只是讓小卡能把讀者導去半導體鏈那張圖。*/
-  function ghost(x0, x1, y0, y1) {
-    return `<path d="M${x0},${y0} L${x1},${y0} L${x1 + DX},${y0 + DY} L${x0 + DX},${y0 + DY}Z" fill="var(--dg-mute)" opacity=".5"/>`
-      + `<path d="M${x1},${y0} L${x1 + DX},${y0 + DY} L${x1 + DX},${y1 + DY} L${x1},${y1}Z" fill="var(--dg-mute)" opacity=".3"/>`
-      + `<path d="M${x0},${y0} L${x1},${y0} L${x1},${y1} L${x0},${y1}Z" fill="var(--dg-mute)" opacity=".42"/>`;
-  }
-  const gGhost = () => `<g data-part="abf_die_ghost" style="cursor:pointer">${ghost(190, 400, Y.itT, Y.itB)}${ghost(215, 366, Y.dieT, Y.dieB)}</g>`;
+  const gGhost = () => `<g data-part="abf_die_ghost" style="cursor:pointer">
+    ${fx.glass(190, Y.itT, 210, Y.itB - Y.itT, { iso: ISO, fill: 'var(--dg-mute)', rx: 3 })}
+    ${fx.glass(215, Y.dieT, 151, Y.dieB - Y.dieT, { iso: ISO, fill: 'var(--dg-mute)', rx: 3 })}</g>`;
 
-  /* ---- 主機板（只畫一小段）。右端畫成鋸齒＝「還有，只是沒畫」。走線寬 34／節距 60 ＝「細一個量級」的尺。*/
-  const gMb = () => {
-    const mx0 = 8, mx1 = 466, zig = [];
-    for (let i = 0; i * 6 + Y.mbT < Y.mbB; i++) zig.push(`L${mx1 - (i % 2 ? 6 : 0)},${Y.mbT + (i + 1) * 6}`);
-    return `<g data-seg="hdi_pcb" data-part="abf_motherboard">
-      ${TF(mx0, mx1, Y.mbT, 'var(--dg-pcb-2)')}
-      <path class="part" d="M${mx0},${Y.mbT} L${mx1},${Y.mbT} ${zig.join(' ')} L${mx0},${Y.mbB}Z" fill="var(--dg-pcb)"/>
-      ${BALLS.map(x => R(x - 15, Y.mbT - 4, 30, CUH, 'var(--dg-cu)')).join('')}
-      ${traces(Y.mbT + 12, mx0 + 10, mx1 - 20, 34, 60)}</g>`;
-  };
+  /* ---- 主機板（只畫一小段）：綠色玻璃板，比載板寬。走線寬 34／節距 60 ＝「細一個量級」的尺。*/
+  const gMb = () => `<g data-seg="hdi_pcb" data-part="abf_motherboard">
+    ${fx.glass(8, Y.mbT, 458, Y.mbB - Y.mbT, { iso: ISO, fill: 'var(--dg-pcb)', cls: 'part', rx: 4,
+    top: [0.35, 0.7].map(v => `<path d="M${(10 + v * DX).toFixed(1)},${(v * DY).toFixed(1)} L${(446 + v * DX).toFixed(1)},${(v * DY).toFixed(1)}" stroke="var(--dg-cu)" stroke-width="3" opacity=".45" fill="none"/>`).join('') })}
+    ${BALLS.map(x => R(x - 15, Y.mbT - 4, 30, CUH, 'var(--dg-cu)')).join('')}
+    ${traces(Y.mbT + 6, 18, 446, 34, 60)}</g>`;
 
   /* ---- 訊號路徑（這張圖唯一的動畫，§9）：從 BGA 錫球進來 → 穿過 core 貫孔 → 沿增層的細線與微孔往上 → 從 bump pad 出去。
-     拆開之後路徑會跨過層與層之間的空隙 —— 那正好把「這一層的孔接到下一層的銅」講出來。
-     虛線走 CSS 的 dgdash、光點走 SMIL，industry.js 的 setAnimAll 兩種都會停。不加發光濾鏡。*/
-  const SIG = `M243,${Y.ball + 8} L243,${CU.l3 + 3} L170,${CU.l3 + 3} L170,${CU.l2 + 3} L286,${CU.l2 + 3} `
+     D.fx.beam：一條發光光束（整張圖的第一個 feGaussianBlur）＋ 流動虛線（CSS dgdash）＋ 兩個端點光點；
+     再加一顆走 SMIL 的光點 —— industry.js 的 setAnimAll 兩種都會停。*/
+  const SIG = `M243,${Y.ball + 6} L243,${CU.l3 + 3} L170,${CU.l3 + 3} L170,${CU.l2 + 3} L286,${CU.l2 + 3} `
     + `L286,${CU.l1 + 3} L240,${CU.l1 + 3} L240,${CU.coreB + 3} L250,${CU.coreB + 3} L250,${CU.coreT + 3} `
-    + `L380,${CU.coreT + 3} L380,${CU.u2 + 3} L306,${CU.u2 + 3} L306,${CU.u3 + 3} L304,${CU.u3 + 3} L304,${Y.c4B}`;
+    + `L380,${CU.coreT + 3} L380,${CU.u2 + 3} L306,${CU.u2 + 3} L306,${CU.u3 + 3} L304,${CU.u3 + 3} L304,${Y.c4B - 2}`;
   const gSignal = () => `<g pointer-events="none">
-    <path d="${SIG}" stroke="var(--dg-sig)" stroke-width="1.4" fill="none" opacity=".32"/>
-    <path class="flow slow" d="${SIG}" stroke="var(--dg-sig)" stroke-width="2" fill="none" opacity=".9"/>
-    <circle r="3.2" fill="var(--dg-sig)" opacity=".95"><animateMotion dur="7s" repeatCount="indefinite" path="${SIG}"/></circle></g>`;
+    ${fx.beam(SIG, { color: 'var(--dg-sig)', w: 2, flow: true, dots: [[243, Y.ball + 6], [304, Y.c4B - 2]] })}
+    <circle r="3.2" fill="var(--dg-sn)" opacity=".95"><animateMotion dur="7s" repeatCount="indefinite" path="${SIG}"/></circle></g>`;
 
   /* ================================================================ 〔放大格 A〕三種節距
      同一條基線、同一個起點，**線段長度就是節距**。長度比例取 §7-A10 兩個獨立來源區間的中位數（約 45 : 175 : 750），
@@ -235,7 +226,7 @@
     const rows = [['微凸塊　晶片 ↔ 中介層（最小）', 45, 3.2],
       ['C4 凸塊　晶片／中介層 ↔ 載板（中）', 175, 6],
       ['BGA 錫球　載板 ↔ 主機板（最大）', 750, 11]];
-    return `<g pointer-events="none"><rect class="frame" x="${x}" y="${y}" width="${w}" height="232" rx="8"/>
+    return `<g pointer-events="none"><rect class="frame" x="${x}" y="${y}" width="${w}" height="248" rx="8"/>
       <text class="hd" x="${x + 14}" y="${y + 24}">〔A〕三種節距，差一個量級</text>
       ${rows.map(([t, p, r], i) => { const yy = y + 58 + i * 40, len = p * k;
     return `<text class="sub" x="${x0}" y="${yy - 13}">${t}</text>`
@@ -276,7 +267,7 @@
      紅色（--dg-err）整張圖只用在這一格翹掉的那一塊，不當裝飾色。*/
   function panelC(x, y, w) {
     const x0 = x + 14;
-    return `<g pointer-events="none"><rect class="frame" x="${x}" y="${y}" width="${w}" height="232" rx="8"/>
+    return `<g pointer-events="none"><rect class="frame" x="${x}" y="${y}" width="${w}" height="248" rx="8"/>
       <text class="hd" x="${x + 14}" y="${y + 24}">〔C〕板子越大越翹</text>
       <text class="sub" x="${x0}" y="${y + 48}">小板子：迴焊完還是平的</text>
       <path d="M${x0},${y + 70} H${x0 + 150}" stroke="var(--dg-abf)" stroke-width="7" stroke-linecap="round"/>
@@ -289,7 +280,8 @@
       <text class="sub" x="${x0}" y="${y + 174}">樹脂的熱膨脹係數比矽大很多，</text>
       <text class="sub" x="${x0}" y="${y + 190}">迴焊高溫下尺寸越大翹得越兇，</text>
       <text class="sub" x="${x0}" y="${y + 206}">翹了就焊不好。</text>
-      <text class="cap" x="${x0}" y="${y + 224}">不寫 ppm 值與封裝 mm 數（來源對不起來）。</text></g>`;
+      <text class="cap" x="${x0}" y="${y + 224}">不寫 ppm 值與封裝 mm 數</text>
+      <text class="cap" x="${x0}" y="${y + 240}">（來源對不起來）。</text></g>`;
   }
 
   /* ================================================================ 路線圖：三條路，差別只在中間那一層
@@ -326,14 +318,19 @@
       { seg: 'abf_pcb', t: '④ 防焊與表面', s: '防焊·開窗·表面處理' },
       { seg: 'abf_pcb', t: '⑤ 成品', s: '切割·檢測·出貨封裝廠' },
     ];
+    // 柔陰影：每一片板子一個影子，全部包成一個群組（第二個、也是最後一個 feGaussianBlur）
+    const shadows = fx.shadows([Y.srT, Y.u3, Y.u2, Y.u1, Y.core, Y.l1, Y.l2, Y.l3, Y.srB].map(plateShadow).join('')
+      + `<path d="M12,${Y.mbB + 12} L462,${Y.mbB + 12} L${462 + DX},${Y.mbB + 12 + DY} L${12 + DX},${Y.mbB + 12 + DY}Z"/>`);
 
-    return `<svg class="dg dgm rs dgabf" viewBox="0 0 ${CW} 1800" width="100%" style="display:block">${STYLE}
+    return `<svg class="dg dgm rs dgabf" viewBox="0 0 ${CW} 1870" width="100%" style="display:block">${STYLE}
+      <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
       <style>
         /* ---- 描邊與發光各降一階（只作用在這一張圖）----
            這張圖的零件細碎得多：200 多條 7px 的細線、30 幾個微孔、16 個微凸塊。共用的 2.2px 描邊套在 7px 寬的線上，
            那條線會整條變成實心的環節色塊，整片板子就變成一面發光的格子 —— 那正是「螢光感太重」。
-           四個狀態：平時／選到的環節 → 不描邊；滑鼠移上去 → 1.4px；**你點的那一個** → 2.4px ＋ 一圈 5px 的暈開
-           （閱讀模式 --dg-glow:none 就不暈）。多一個 svg 型別選擇器是必要的：特異性才壓得過 diagrams.js 的那一條。*/
+           四個狀態：平時／選到的環節 → 不描邊（玻璃板自己有 .fxe 的細邊）；滑鼠移上去 → 1.4px；
+           **你點的那一個** → 2.4px ＋ 一圈 5px 的暈開（閱讀模式 --dg-glow:none 就不暈）。
+           多一個 svg 型別選擇器是必要的：特異性才壓得過 diagrams.js 的那一條。*/
         svg.dgabf [data-seg] .part{stroke-width:0}
         svg.dgabf [data-seg].sel .part{stroke-width:0;filter:none}
         svg.dgabf [data-seg]:hover .part{stroke-width:1.4;filter:none}
@@ -341,26 +338,33 @@
         /* 壓暗那一階從 .3 放寬到 .55：進來的預設狀態是「族群 ic_substrate 被選起來」＝ abf_pcb 亮、
            substrate_material 與 hdi_pcb 被壓暗，而**被壓暗的正好是 core 與 ABF 膜**，也就是這張圖的主角。*/
         svg.dgabf [data-seg].dim{opacity:.55}
-        svg.dgabf g[data-part="abf_die_ghost"].sel-part path{opacity:.8}
+        .dgwrap:has(svg.dgabf) .dgc.dim{opacity:.55}
+        svg.dgabf g[data-part="abf_die_ghost"].sel-part .fxb{fill-opacity:.9}
       </style>
       <!-- 標題與說明：v2 搬到 HTML 的 .dghead，SVG 裡不畫 -->
       <text class="ttl ext" x="0" y="0">IC 載板：晶片底下那塊板子，跟主機板不是同一種東西</text>
-      <text class="cap ext" x="0" y="0">以中間那片 core 為中心、上下對稱長出 ABF 增層；上表面用 bump pad 接晶片，下表面用 BGA 錫球接主機板。這裡把九層一片一片拆開來看：每一層的微孔都是「這一層自己的孔」（從這一層的銅打到底面），疊孔靠虛線軸心對齊。藍色虛線＝訊號路徑：BGA → core 貫孔 → 微孔 → bump pad（可用「動畫」鈕停）。三格放大、三條路線與製程收在下面兩段。</text>
+      <text class="cap ext" x="0" y="0">以中間那片 core 為中心、上下對稱長出 ABF 增層；上表面用 bump pad 接晶片，下表面用 BGA 錫球接主機板。這裡把九層一片一片拆開浮著看：剖面畫在每一片的前緣，微孔畫成穿過層間空隙的小銅柱（這一層的孔接到下一層的銅），疊孔靠虛線軸心對齊。藍色光束＝訊號路徑：BGA → core 貫孔 → 微孔 → bump pad（可用「動畫」鈕停）。三格放大、三條路線與製程收在下面兩段。</text>
 
-      <!-- ================= §1 主視圖：垂直爆炸拆解 =================
-           畫的順序＝由後往前：厚度面 → 增層 → core → 孔 → 線 → 防焊 → 墊子 → 主機板 → 灰色剪影 → 凸塊 → 訊號。-->
-      ${gSlab()}
-      ${gFilm()}${gCore()}${gCoreVia()}${gUvia()}${gStack()}${gTrace()}${gSr()}${gPad()}
-      ${gMb()}${gGhost()}${gBumps()}${gSignal()}
+      <!-- ================= §1 主視圖：等角爆炸層疊 =================
+           畫的順序＝由下往上、由後往前（上面的板子會蓋住下面板子的頂面，這是爆炸圖該有的遮擋）：
+           陰影 → 主機板 → 下防焊 → L3 → L2 → L1 → core（含貫孔）→ U1 → U2 → U3 → 上防焊 → 墊子 → 剪影 → 凸塊 → 訊號。
+           零件群組（data-part）是跨層的（例如所有增層膜是同一個群組），所以這裡先組好每一層要畫的東西，再照層序輸出。-->
+      ${shadows}
+      ${gMb()}
+      ${gSr()}
+      ${gFilm()}
+      ${gCore()}${gCoreVia()}
+      ${gUvia()}${gStack()}${gTrace()}${gPad()}
+      ${gGhost()}${gBumps()}${gSignal()}
 
       <!-- ================= 說明卡片（HTML，左右兩欄）：左欄錨點在剖面左緣、右欄錨點在右半邊 ================= -->
       ${extRow({ side: 'l', no: 1, seg: 'substrate_material', part: 'abf_core', color: COL.core, ax: 34, ay: (Y.core[0] + Y.core[1]) / 2,
     title: '核心層 core：玻纖布補強的樹脂板', sub: '最厚、唯一有織紋的一層' })}
-      ${extRow({ side: 'l', no: 3, seg: 'substrate_material', part: 'abf_film', color: COL.abf, ax: 34, ay: Y.u1[0] + 14,
+      ${extRow({ side: 'l', no: 3, seg: 'substrate_material', part: 'abf_film', color: COL.abf, ax: 34, ay: Y.u1[0] + 8,
     title: 'ABF 增層膜（味之素增層膜）', sub: '無玻纖樹脂膜，一層一層貼上' })}
-      ${extRow({ side: 'l', no: 8, seg: 'abf_pcb', part: 'abf_sr', ax: 34, ay: Y.srT[0] + 4,
+      ${extRow({ side: 'l', no: 8, seg: 'abf_pcb', part: 'abf_sr', ax: 34, ay: Y.srT[0] + 3,
     title: '防焊開窗（SR opening）', sub: '蓋住整面，只在墊子處開窗' })}
-      ${extRow({ side: 'l', no: 9, seg: 'hdi_pcb', part: 'abf_motherboard', ax: 34, ay: Y.mbT + 12,
+      ${extRow({ side: 'l', no: 9, seg: 'hdi_pcb', part: 'abf_motherboard', ax: 34, ay: Y.mbT + 9,
     title: '這一條才是「PCB」：主機板', sub: '走線比載板粗一個量級' })}
       ${note({ side: 'l', warn: true, title: '★「載板材料 ABF / BT」這一格台股掛零',
     lines: ['ABF 膜是味之素（市占約 95%，來源：今周刊 2026-05）、BT 樹脂 core 是三菱瓦斯化學 —— 兩家都是外商；點 core／ABF 膜再點色標，成分股會是 0 筆，那不是壞掉。',
@@ -370,7 +374,7 @@
     title: 'core 的貫孔：只穿 core', sub: '鑽穿→鍍銅→填塞→兩端蓋銅' })}
       ${extRow({ side: 'r', no: 4, seg: 'abf_pcb', part: 'abf_trace', color: COL.cu, ax: 440, ay: CU.u2 + 3,
     title: '半加成細線（SAP／mSAP）', sub: '比高階 PCB 再細一個量級' })}
-      ${extRow({ side: 'r', no: 5, seg: 'abf_pcb', part: 'abf_uvia', color: COL.cu, ax: 432, ay: Y.u3[0] + 13,
+      ${extRow({ side: 'r', no: 5, seg: 'abf_pcb', part: 'abf_uvia', color: COL.cu, ax: 432, ay: Y.u3[0] + 11,
     title: '雷射微孔：上寬下窄，窄端朝 core', sub: '一孔只穿一層；先除膠渣' })}
       ${extRow({ side: 'r', no: 6, seg: 'abf_pcb', part: 'abf_stack_via', color: COL.cu, ax: VIA.stack, ay: (Y.u2[1] + Y.u1[0]) / 2,
     title: '疊孔（stacked via）', sub: '填實了才能正上方再疊一個' })}
@@ -381,45 +385,45 @@
 
       <!-- ================= ② 為什麼載板比主機板貴 ＋ 三格放大（預設收合；座標由 wireFolds 量）================= -->
       ${fold('abf2', '② 為什麼載板比主機板貴 ＋ 三格放大', '四點結論；三種節距差一個量級、ABF 無玻纖 BT 有、板子越大越翹', `
-      <rect class="frame" x="16" y="500" width="488" height="176" rx="8"/>
-      <text class="hd" x="30" y="524">為什麼載板比主機板貴</text>
-      <text class="sub" x="30" y="546">① 線細一個量級：走半加成（SAP／mSAP），一層一層長出來</text>
-      <text class="sub" x="30" y="564">② 層數是「循環」出來的：每多一層就多一次貼膜、雷射、除膠渣、</text>
-      <text class="sub" x="30" y="582">　 電鍍、蝕刻，而整片的良率是每一層的連乘</text>
-      <text class="sub" x="30" y="600">③ 關鍵材料幾乎只有一家（ABF 增層膜），材料漲價直接進成本</text>
-      <text class="sub" x="30" y="618">④ 越做越大就越難：尺寸一大，翹曲、平坦度、電鍍均勻度同時變嚴</text>
-      <text class="cap" x="30" y="644">一般高階 PCB 的線寬到 50 µm 已算高階，載板要細一個量級</text>
-      <text class="cap" x="30" y="662">（50 µm 的來源見規格書 §7-B1，2026 查；載板自己的線寬不寫數字）。</text>
-      ${panelA(16, 690, 238)}${panelC(266, 690, 238)}
-      ${panelB(16, 936, 488)}`)}
+      <rect class="frame" x="16" y="560" width="488" height="176" rx="8"/>
+      <text class="hd" x="30" y="584">為什麼載板比主機板貴</text>
+      <text class="sub" x="30" y="606">① 線細一個量級：走半加成（SAP／mSAP），一層一層長出來</text>
+      <text class="sub" x="30" y="624">② 層數是「循環」出來的：每多一層就多一次貼膜、雷射、除膠渣、</text>
+      <text class="sub" x="30" y="642">　 電鍍、蝕刻，而整片的良率是每一層的連乘</text>
+      <text class="sub" x="30" y="660">③ 關鍵材料幾乎只有一家（ABF 增層膜），材料漲價直接進成本</text>
+      <text class="sub" x="30" y="678">④ 越做越大就越難：尺寸一大，翹曲、平坦度、電鍍均勻度同時變嚴</text>
+      <text class="cap" x="30" y="704">一般高階 PCB 的線寬到 50 µm 已算高階，載板要細一個量級</text>
+      <text class="cap" x="30" y="722">（50 µm 的來源見規格書 §7-B1，2026 查；載板自己的線寬不寫數字）。</text>
+      ${panelA(16, 750, 238)}${panelC(266, 750, 238)}
+      ${panelB(16, 1012, 488)}`)}
 
       <!-- ================= ③ 路線圖 ＋ AI 為什麼推到極限 ＋ 製程五格 ＋ 台股掛零（預設收合）================= -->
       ${fold('abf3', '③ 三條路線圖、AI 為什麼把載板推到極限、製程五格', '有核心／無核心／玻璃核心只差中間一層；五格製程與除膠渣；材料那一格為什麼沒有台股', `
-      ${roadmap(16, 1176, 488)}
-      <rect class="frame" x="16" y="1326" width="488" height="116" rx="8"/>
-      <text class="hd" x="30" y="1350">AI 為什麼把載板推到極限</text>
-      <text class="sub" x="30" y="1374">① 晶片變大、要接的線變多 → 載板跟著變大、層數變多</text>
-      <text class="sub" x="30" y="1392">② 大板子在迴焊高溫下翹得更兇（樹脂與矽差太多）</text>
-      <text class="sub" x="30" y="1410">③ 所以才有人提無核心（路徑短）與玻璃核心（更硬）</text>
-      <text class="sub" x="30" y="1428">④ 這兩條路都要換設備、重新認證，不是換個材料就好</text>
+      ${roadmap(16, 1240, 488)}
+      <rect class="frame" x="16" y="1390" width="488" height="116" rx="8"/>
+      <text class="hd" x="30" y="1414">AI 為什麼把載板推到極限</text>
+      <text class="sub" x="30" y="1438">① 晶片變大、要接的線變多 → 載板跟著變大、層數變多</text>
+      <text class="sub" x="30" y="1456">② 大板子在迴焊高溫下翹得更兇（樹脂與矽差太多）</text>
+      <text class="sub" x="30" y="1474">③ 所以才有人提無核心（路徑短）與玻璃核心（更硬）</text>
+      <text class="sub" x="30" y="1492">④ 這兩條路都要換設備、重新認證，不是換個材料就好</text>
 
       <!-- 製程列（五格）＝ §3-C：P1 增層在防焊之前、P2 第三格裡有除膠渣、P3 材料商與載板廠之間有分界線、P4 第三格標明上下同時 -->
-      <text class="cap" x="16" y="1472">製造流程（五格）　★ 增層循環一定在防焊與表面處理之前；</text>
-      <text class="cap" x="16" y="1490">雷射開孔之後、鍍銅之前一定有「除膠渣」那一步</text>
-      <path d="M178,1496 V1546" stroke="var(--dg-warn)" stroke-dasharray="5 4" fill="none" opacity=".85" style="stroke-width:var(--dg-hair-w,2)"/>
-      ${processBar(16, 1500, steps, 156, { cols: 3 })}
-      <text class="sub" x="16" y="1618" style="fill:var(--dg-warn)">← 材料商（外商）</text>
-      <text class="sub" x="184" y="1618">載板廠（3037 欣興／8046 南電／3189 景碩）→</text>
-      <text class="cap" x="16" y="1642">③ 的完整一圈：貼 ABF 膜 → 雷射開微孔 → 除膠渣（desmear）→ 化學鍍薄銅</text>
-      <text class="cap" x="16" y="1660">　 → 圖案電鍍（SAP／mSAP）→ 蝕刻，上下兩面同時做、重複 N 次。</text>
+      <text class="cap" x="16" y="1536">製造流程（五格）　★ 增層循環一定在防焊與表面處理之前；</text>
+      <text class="cap" x="16" y="1554">雷射開孔之後、鍍銅之前一定有「除膠渣」那一步</text>
+      <path d="M170,1560 V1610" stroke="var(--dg-warn)" stroke-dasharray="5 4" fill="none" opacity=".85" style="stroke-width:var(--dg-hair-w,2)"/>
+      ${processBar(8, 1564, steps, 156, { cols: 3 })}
+      <text class="sub" x="8" y="1682" style="fill:var(--dg-warn)">← 材料商（外商）</text>
+      <text class="sub" x="176" y="1682">載板廠（3037 欣興／8046 南電／3189 景碩）→</text>
+      <text class="cap" x="16" y="1706">③ 的完整一圈：貼 ABF 膜 → 雷射開微孔 → 除膠渣（desmear）→ 化學鍍薄銅</text>
+      <text class="cap" x="16" y="1724">　 → 圖案電鍍（SAP／mSAP）→ 蝕刻，上下兩面同時做、重複 N 次。</text>
 
       <!-- 台股掛零那一格：畫面上一定要解釋，不要讓人以為點壞了 -->
-      <text class="sub" x="16" y="1688" style="fill:var(--dg-warn)">★「載板材料 ABF / BT」這一格台股掛零：ABF 膜幾乎是單一供應商（味之素）、</text>
-      <text class="sub" x="16" y="1706" style="fill:var(--dg-warn)">　 BT 樹脂 core 是三菱瓦斯化學，兩家都是外商。點 core、ABF 膜、〔B〕或路線圖，</text>
-      <text class="sub" x="16" y="1724" style="fill:var(--dg-warn)">　 再點下面同色的環節色標，成分股會是 0 筆 —— 那不是壞掉，是這一格真的沒有台股。</text>
-      <text class="cap" x="16" y="1750">示意圖，非實物比例｜層數與各層厚度均為示意；載板線寬、CTE、封裝尺寸、供需與價格</text>
-      <text class="cap" x="16" y="1768">一律不寫數字（來源對不起來，見規格書 §7-B／§7-C）。圖上畫 core ＋ 上下各 3 層增層，</text>
-      <text class="cap" x="16" y="1786">實際為十幾至二十幾層（這句話本身也是示意，不是規格）。</text>`)}
+      <text class="sub" x="16" y="1752" style="fill:var(--dg-warn)">★「載板材料 ABF / BT」這一格台股掛零：ABF 膜幾乎是單一供應商（味之素）、</text>
+      <text class="sub" x="16" y="1770" style="fill:var(--dg-warn)">　 BT 樹脂 core 是三菱瓦斯化學，兩家都是外商。點 core、ABF 膜、〔B〕或路線圖，</text>
+      <text class="sub" x="16" y="1788" style="fill:var(--dg-warn)">　 再點下面同色的環節色標，成分股會是 0 筆 —— 那不是壞掉，是這一格真的沒有台股。</text>
+      <text class="cap" x="16" y="1814">示意圖，非實物比例｜層數與各層厚度均為示意；載板線寬、CTE、封裝尺寸、供需與價格</text>
+      <text class="cap" x="16" y="1832">一律不寫數字（來源對不起來，見規格書 §7-B／§7-C）。圖上畫 core ＋ 上下各 3 層增層，</text>
+      <text class="cap" x="16" y="1850">實際為十幾至二十幾層（這句話本身也是示意，不是規格）。</text>`)}
     </svg>`;
   }
 
@@ -457,13 +461,13 @@
       },
       abf_core_via: { desc: '鑽穿 core → 鍍銅 → 填塞 → 兩端蓋銅，而且只穿 core。跟主機板那種貫穿整塊板的孔不是同一件事。' },
       abf_trace: { desc: '半加成法（SAP／mSAP）：先鍍一層很薄的銅，再把線「長」出來，不是把整片銅蝕掉。載板的線寬要比高階 PCB 再細一個量級。' },
-      abf_uvia: { desc: '雷射微孔，上寬下窄、窄的那一端朝向 core，一個孔只穿一層增層。打完一定要先除膠渣（desmear），銅才附得上去。' },
+      abf_uvia: { desc: '雷射微孔，上寬下窄、窄的那一端朝向 core，一個孔只穿一層增層。打完一定要先除膠渣（desmear），銅才附得上去。拆開來看，每一層的孔都接到下一層的銅（圖上的小銅柱）。' },
       abf_stack_via: { desc: '疊孔：微孔要先用電鍍銅填實，正上方才能再疊一個孔。層數越多、疊得越高，越吃電鍍能力 —— 這是載板廠之間真正拉開差距的地方。' },
       abf_bump_pad: { desc: '晶片的凸塊就焊在這裡。上表面接晶片的墊子，比下表面接主機板的球墊小得多。' },
       abf_sr: { desc: '防焊蓋住整面，只在要接晶片、要接主機板的墊子上開窗 —— 開窗的位置與大小決定焊得上焊不上。' },
       abf_motherboard: {
         name: '主機板（載板底下那塊板）',
-        desc: '載板底下那塊主機板（這張圖只畫一小段，右端鋸齒＝還有、只是沒畫）。它的走線寬與節距比載板粗一個量級，兩者擺在同一張圖上就是那把尺。',
+        desc: '載板底下那塊主機板（這張圖只畫一小段）。它的走線寬與節距比載板粗一個量級，兩者擺在同一張圖上就是那把尺。',
       },
       abf_die_ghost: {
         name: '晶粒與中介層（灰色剪影）',

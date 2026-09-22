@@ -10035,9 +10035,9 @@ SECTIONS = {
     "批次11-MLCC":         lambda pg, b, base, code: t_mlcc(pg, base),
     # 圖9 伺服器電源 PSU ＋ BBU（site/dg/server_psu.js）。三個真 seg，所以
     # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
-    "批次12-電源PSU":      lambda pg, b, base, code: t_psu(pg, base),
+    "批次12-電源PSU":      lambda pg, b, base, code: t_psu_v2(pg, base),   # 2026-09-22 v2 版面（舊的 t_psu 留著當對照，不再跑）
     "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
-    "批次12-ABF載板":      lambda pg, b, base, code: t_abf(pg, base),
+    "批次12-ABF載板":      lambda pg, b, base, code: t_abf_v2(pg, base),   # 2026-09-22 v2 版面（舊的 t_abf 留著當對照，不再跑）
     # 批次13：剖析圖配色（2D 也能切、四個配色、語意色守得住）＋ MLCC 的漸進揭露
     "批次13-配色與收納":   lambda pg, b, base, code: t_batch13(pg, base),
     # 批次19：剖析圖版面改造（色標清單化、圖框固定高度＋拉 Bar、點背景回 Default、一個畫面看得完）
@@ -15104,6 +15104,337 @@ def t_style22(pg, base):
     ok("章節 ② 打得開：畫布真的變高、引線跟著重畫（還是 6 條）", s5["vbH"] > s0["vbH"] + 100 and s5["leads"] == 6, f"{s0['vbH']} → {s5['vbH']} leads={s5['leads']}")
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
+
+# ================================================================ 批次12 v2：伺服器電源 ＋ ABF 載板（restyle-w1b，2026-09-22）
+#  兩張圖改成 DECISIONS #238／#239 的最終風格（v2 版面：畫布收到主角寬、卡片是 HTML 在左右欄、章節列、兩種模式）
+#  ＋ Andy 晚間參考圖的材質語言（玻璃板／光束／柔陰影，D.fx）。
+#  這一段取代 t_psu／t_abf。**被改掉的斷言與理由**（逐條，都不是放寬）：
+#    · 「圖以原尺寸顯示 svgW ≥ 960」→ svgW ＝ 圖自己宣告的 native（640／520）：v2 畫布收到主角寬（#239 第五節）
+#    · 「主角（.sel-part）剛好 1 個節點」→ 「主角剛好 1 個 data-part」：v2 的卡片跟畫布區塊是同一個零件身分，
+#      點下去兩個節點同時是主角（卡片 ＋ 區塊），比的是 data-part 的集合，而且**同時要求卡片與區塊都亮**（比舊的更嚴）
+#    · 「整張圖只有主角在發光（computed filter ≠ none ≤ 2）」→ 改數 **feGaussianBlur 的元素 ≤ 3**（#239 效能限制）
+#      ＋ 主角以外的 .part 不發光：#238 允許端點與光束發光，舊的數法會把設計要的東西當 bug
+#    · 「兩句非講不可的話印在 svg text 裡」→ 在**整張圖的文字**裡（svg text ＋ HTML 卡片 ＋ 標題列）：v2 把它們搬進警語卡
+#    · 「百分比只出現在效率表那一格」→ 效率表以外的 svg text 沒有 %，**HTML 卡片也一起掃**（範圍變大不是變小）
+#    · ABF「core 在 246～324」寫死座標 → 從 [data-part=abf_core] 量出來（爆炸拆解之後座標全變）
+#    · ABF「微孔 ≥ 20 個、直筒 0 個」照舊；新增「層間小銅柱 ＞ 0」（拆開之後多出來的東西要真的畫出來）
+#  ★ 新增的：收合 ≤ 700、§1 ≤ 560、章節 2～4、每一段真的開得起來收得回去（文字數變多變少）、
+#    兩種模式真的變（底、卡片、引線三樣）、對比逐元素、13px 升階、1440／1100／800／390 四個寬度、
+#    卡片照編號排、點卡片亮區塊、點區塊亮卡片、點背景恢復、E4 動畫（SMIL 與 CSS 兩種都停）。
+
+def _v2_land(pg, url, theme, w=1440, side="0", pal=None):
+    """換主題／寬度一定要 reload：同一頁換 hash 不會重新載入 JS（#235 抓過這個假結果）。"""
+    pg.set_viewport_size({"width": w, "height": 1000})
+    pg.goto(url, wait_until="networkidle")
+    pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme','{theme}'); localStorage.setItem('tw.side','{side}');"
+                "localStorage.setItem('tw.dg3d','0');"
+                + (f"localStorage.setItem('tw.dg3d.pal','{pal}');" if pal else "localStorage.removeItem('tw.dg3d.pal');")
+                + " } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    dg_force_open(pg)
+
+
+_V2 = """() => {
+  const wrap = document.querySelector('#prodDiagram'), svg = wrap && wrap.querySelector('svg');
+  if (!svg) return {present: false};
+  const vb = svg.viewBox.baseVal;
+  const bars = [...svg.querySelectorAll('g.dgfold')];
+  const firstBar = bars.length ? Math.min(...bars.map(g => { const m = g.getCTM(); return m ? m.f : 1e9; })) : null;
+  const txt = [...svg.querySelectorAll('text')].filter(n => n.getClientRects().length).map(n => n.textContent);
+  const cards = [...wrap.querySelectorAll('.dgc')];
+  const all = txt.join('\\n') + '\\n' + cards.map(c => c.innerText).join('\\n') + '\\n' + ((wrap.querySelector('.dghead') || {}).innerText || '');
+  const heroes = [...wrap.querySelectorAll('.sel-part')].filter(n => !n.classList.contains('anc') && n.tagName.toLowerCase() !== 'path');
+  const heroParts = new Set(heroes.map(n => n.dataset.part || n.dataset.dgkey).filter(Boolean));
+  const blur = [...svg.querySelectorAll('[filter]')].filter(n => /fxGlow|fxSoft/.test(n.getAttribute('filter') || '')).length;
+  const glowParts = [...svg.querySelectorAll('[data-seg] .part')].filter(p => { const f = getComputedStyle(p).filter; return f && f !== 'none'; });
+  const glowNonHero = glowParts.filter(p => !p.closest('.sel-part')).length;
+  return {present: true, vbW: vb.width, vbH: Math.round(vb.height), firstBar: firstBar == null ? null : Math.round(firstBar),
+    nBars: bars.length, open: bars.filter(g => g.classList.contains('open')).length, nText: txt.length, all,
+    cards: cards.length, cardOrder: cards.map(c => ({o: +(c.style.order || 0), y: c.getBoundingClientRect().top, x: c.getBoundingClientRect().left})).sort((a, b) => a.y - b.y || a.x - b.x).map(c => c.o),
+    warn: cards.filter(c => c.classList.contains('warn')).length, fxg: svg.querySelectorAll('.fxg').length, beams: svg.querySelectorAll('.fxbeam').length,
+    blur, glowNonHero, heroParts: [...heroParts], heroCard: !!wrap.querySelector('.dgc.sel-part'), heroSvg: !!svg.querySelector('[data-part].sel-part'),
+    ancSel: svg.querySelectorAll('.anc.sel-part').length, leadSel: wrap.querySelectorAll('.dglead path.sel-part').length,
+    rows: document.querySelectorAll('#memberTable tbody tr[data-code]').length,
+    card: (() => { const c = document.getElementById('partCard'); if (!c || c.hidden) return null;
+      return {title: ((c.querySelector('.pc-t') || {}).textContent || '').trim(), none: ((c.querySelector('.pc-none') || {}).textContent || '').trim(),
+              codes: [...c.querySelectorAll('.pc-co a.lk-stock')].map(a => (a.getAttribute('href') || '').split('/').pop()), text: (c.innerText || '').replace(/\\s+/g, ' ')}; })(),
+    dots: [...wrap.querySelectorAll('animateMotion')].map(m => { const r = m.parentNode.getBoundingClientRect(); return [+r.x.toFixed(1), +r.y.toFixed(1)]; }),
+    flowAnim: (() => { const f = wrap.querySelector('.fxb-flow,.flow'); return f ? getComputedStyle(f).animationName : null; })(),
+    noanim: wrap.classList.contains('noanim')};
+}"""
+
+
+def _v2_open_all(pg):
+    pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold').forEach(n => { if (!n.classList.contains('open')) n.dispatchEvent(new MouseEvent('click', {bubbles: true})); })")
+    pg.wait_for_timeout(600)
+
+
+def _v2_click_part(pg, part):
+    """真的派一個滑鼠 click 到畫布上那個 data-part 的區塊（不是卡片）。"""
+    got = pg.evaluate("""(p) => { const ns = [...document.querySelectorAll('#prodDiagram svg [data-part="' + p + '"]')];
+      const n = ns.find(x => x.tagName.toLowerCase() === 'g'); if (!n) return false;
+      n.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""", part)
+    pg.wait_for_timeout(450)
+    return got
+
+
+def _v2_common(pg, base, route, feat, native, parts_click, secs):
+    """兩張圖共用的驗收：版面／模式／字級／對比／互動。route＝#industry/… 的路由，feat＝標題特徵字串，
+    native＝畫布宣告的寬，parts_click＝(卡片零件 a, 畫布零件 b) 兩個不同的 data-part，secs＝(最少, 最多) 章節數。"""
+    url = f"{base}#{route}"
+    _v2_land(pg, url, "dark", 1440, "0")
+    s0 = pg.evaluate(_V2)
+    if not ok(f"[{feat}] 圖畫得出來（後面每一條都靠它）", s0.get("present"), s0):
+        return None
+    ok(f"[{feat}] 標題在 HTML 標題列（v2：ttl 搬出 SVG），特徵字串找得到", feat in s0["all"], s0["all"][:60])
+    ok(f"[{feat}] 收合狀態畫布高 ≤ 700（量到 {s0['vbH']}）", 0 < s0["vbH"] <= 700, s0["vbH"])
+    ok(f"[{feat}] §1（第一條章節列的位置）≤ 560（量到 {s0['firstBar']}）", s0["firstBar"] is not None and 0 < s0["firstBar"] <= 560, s0["firstBar"])
+    ok(f"[{feat}] 章節 {secs[0]}～{secs[1]} 段、預設全部收合", secs[0] <= s0["nBars"] <= secs[1] and s0["open"] == 0, f"bars={s0['nBars']} open={s0['open']}")
+    ok(f"[{feat}] 畫布維持宣告的原尺寸 {native}（不放大去填）", s0["vbW"] == native and pg.evaluate("() => Math.round(document.querySelector('#prodDiagram svg').getBoundingClientRect().width)") == native, s0["vbW"])
+    ok(f"[{feat}] 材質語言：玻璃板 ≥ 6 塊、光束 ≥ 1 條、feGaussianBlur 的元素 ≤ 3（#239 效能限制）",
+       s0["fxg"] >= 6 and s0["beams"] >= 1 and 1 <= s0["blur"] <= 3, {"fxg": s0["fxg"], "beams": s0["beams"], "blur": s0["blur"]})
+    ok(f"[{feat}] 沒有主角時，畫布上沒有任何零件在發光（發光只給端點、光束與被選的那一個）", s0["glowNonHero"] == 0, s0["glowNonHero"])
+    ok(f"[{feat}] 卡片照編號排（左欄由上到下、右欄由上到下都遞增）、而且有一張警語卡",
+       s0["warn"] == 1 and s0["cards"] >= 8, {"cards": s0["cards"], "warn": s0["warn"]})
+    # ---- 章節真的開得起來、收得回去（文字數變多變少、畫布變高變矮）
+    for i in range(s0["nBars"]):
+        pg.evaluate("(i) => document.querySelectorAll('#prodDiagram g.dgfold')[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", i)
+        pg.wait_for_timeout(500)
+        so = pg.evaluate(_V2)
+        ok(f"[{feat}] 章節 {i + 1} 打得開：畫布真的變高、看得到的文字真的變多", so["open"] == 1 and so["vbH"] > s0["vbH"] + 60 and so["nText"] > s0["nText"], f"{s0['vbH']}→{so['vbH']} text {s0['nText']}→{so['nText']}")
+        pg.evaluate("(i) => document.querySelectorAll('#prodDiagram g.dgfold')[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", i)
+        pg.wait_for_timeout(400)
+        sc = pg.evaluate(_V2)
+        ok(f"[{feat}] 章節 {i + 1} 再點真的收回去（高度與文字數回到原狀）", sc["open"] == 0 and sc["vbH"] == s0["vbH"] and sc["nText"] == s0["nText"], f"{sc['vbH']} text={sc['nText']}")
+    _v2_open_all(pg)
+    s_all = pg.evaluate(_V2)
+    ok(f"[{feat}] 全部展開之後沒有出現「章節之間一大片空白」：全開高度 ＜ 收合高度 ＋ 各段內容（＜ 3000）", s0["vbH"] + 200 < s_all["vbH"] < 3000, s_all["vbH"])
+    # ---- 兩種模式真的變（底、卡片、引線三樣），字級升階
+    d = pg.evaluate(STYLE22)
+    _v2_land(pg, url, "light", 1440, "0")
+    l = pg.evaluate(STYLE22)
+    ok(f"[{feat}] 深色→科技、淺色→閱讀：畫布底、卡片底、引線色三樣都真的變了",
+       d["pal"] == "tech" and l["pal"] == "read" and d["bgLum"] < 0.2 and l["bgLum"] > 0.8 and d["cardFill"] != l["cardFill"] and d["lead"] != l["lead"],
+       {"d": [d["pal"], d["bgLum"], d["cardFill"]], "l": [l["pal"], l["bgLum"], l["cardFill"]]})
+    ok(f"[{feat}] 閱讀模式字級升一階（--dg-fs-min 13px；科技 12px）", d["fsMin"] == "12px" and l["fsMin"] == "13px", f"{d['fsMin']}/{l['fsMin']}")
+    for lab, x in (("科技", d), ("閱讀", l)):
+        ok(f"[{feat}][{lab}] 圖上與卡片裡每一個字的對比都過（正文 ≥ 4.5、次要 ≥ 3；量了 {x['n']} 段，最低 {x['minCr']}）", not x["low"], x["low"][:6])
+    # ---- 12px／13px 下限、不重疊、不出畫布：兩種模式 × 四個寬度（章節全開，最嚴）
+    for theme, lab, floor in (("dark", "科技", 11.9), ("light", "閱讀", 12.9)):
+        for w in (1440, 1100, 800, 390):
+            _v2_land(pg, url, theme, w, "0")
+            _v2_open_all(pg)
+            z = pg.evaluate(DG_TYPO)
+            ok(f"[{feat}][{lab} {w}px] 章節全開：每一個字 ≥ {floor + 0.1:.0f}px、文字兩兩不重疊（共 {z.get('n')} 個）",
+               z.get("present") and z["min"] >= floor and z["nOv"] == 0, f"min={z.get('min')} small={z.get('small', [])[:3]} ov={z.get('ov', [])[:4]}")
+            out = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg'); const vb = svg.viewBox.baseVal.width; const bad = [];
+                svg.querySelectorAll('text').forEach(n => { if (!n.getClientRects().length) return; const b = n.getBBox(), m = n.getCTM();
+                  const l = m ? m.a*b.x + m.c*b.y + m.e : b.x; if (l + b.width*(m ? m.a : 1) > vb + 1 || l < -1) bad.push((n.textContent||'').slice(0,16)); }); return bad; }""")
+            ok(f"[{feat}][{lab} {w}px] 沒有任何一段字畫出畫布左右緣", not out, out[:3])
+            ok(f"[{feat}][{lab} {w}px] 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+               pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    # ---- v2 版面：三個容器寬度
+    _v2_land(pg, url, "light", 1440, "0")
+    v = pg.evaluate(STYLE22)
+    ok(f"[{feat}][1440 抽屜關] 三欄：左欄在畫布左邊、右欄在畫布右邊，畫布 {native} 在中間",
+       v["v2"] and v["colL"] and v["colR"] and v["colL"]["r"] <= v["canvas"]["l"] and v["colR"]["l"] >= v["canvas"]["r"] and v["svgW"] == native,
+       {"canvas": v["canvas"], "L": v["colL"], "R": v["colR"]})
+    ok(f"[{feat}][1440 抽屜關] 每張有錨點的卡片一條引線（leads ＝ anchors ＝ {v['anchors']}）", v["leads"] == v["anchors"] and v["anchors"] >= 8, f"leads={v['leads']} anchors={v['anchors']}")
+    ok(f"[{feat}][1440 抽屜關] 卡片欄不比畫布高（一頁看完：欄底 ≤ 畫布底 ＋ 12）",
+       v["colL"]["b"] <= v["canvas"]["b"] + 12 and v["colR"]["b"] <= v["canvas"]["b"] + 12, {"canvas_b": v["canvas"]["b"], "L_b": v["colL"]["b"], "R_b": v["colR"]["b"]})
+    _v2_land(pg, url, "light", 1440, "1")
+    v2 = pg.evaluate(STYLE22)
+    ok(f"[{feat}][1440 抽屜開] 兩欄：卡片全部在畫布右邊、照編號排、引線重算了",
+       v2["v2"] and v2["colL"]["l"] >= v2["canvas"]["r"] - 2 and v2["colR"]["l"] >= v2["canvas"]["r"] - 2 and v2["order"] == sorted(v2["order"]) and v2["leads"] == v2["anchors"],
+       {"canvas": v2["canvas"], "L": v2["colL"], "order": v2["order"], "leads": v2["leads"]})
+    _v2_land(pg, url, "light", 800, "0")
+    v3 = pg.evaluate(STYLE22)
+    ok(f"[{feat}][800] 單欄：卡片在畫布下面、照編號排、不畫引線（靠編號對照）",
+       v3["v2"] and v3["colL"]["t"] >= v3["canvas"]["b"] - 2 and v3["order"] == sorted(v3["order"]) and v3["leads"] == 0, {"canvas": v3["canvas"], "L": v3["colL"], "order": v3["order"]})
+    _v2_land(pg, url, "light", 390, "0")
+    ok(f"[{feat}][390] 卡片一欄一張", pg.evaluate("() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')]; return new Set(cs.map(c => Math.round(c.getBoundingClientRect().left))).size === 1; }"), "")
+    # ---- 互動：點卡片亮區塊、點區塊亮卡片、只亮不篩、點背景恢復、換模式後選取還在
+    _v2_land(pg, url, "dark", 1440, "0")
+    r0 = pg.evaluate(_V2)["rows"]
+    a, b = parts_click
+    pg.click(f'#prodDiagram .dgc[data-part="{a}"]'); pg.wait_for_timeout(500)
+    s1 = pg.evaluate(_V2)
+    ok(f"[{feat}] ★ 點卡片「{a}」→ 主角剛好一個零件身分，而且**卡片與畫布區塊同時亮**、錨點與引線跟著變",
+       s1["heroParts"] == [a] and s1["heroCard"] and s1["heroSvg"] and s1["ancSel"] == 1 and s1["leadSel"] == 1,
+       {"parts": s1["heroParts"], "card": s1["heroCard"], "svg": s1["heroSvg"], "anc": s1["ancSel"], "lead": s1["leadSel"]})
+    ok(f"[{feat}] 主角亮的時候，其餘 .part 一個都不發光（發光只給被選的那一個）", s1["glowNonHero"] == 0, s1["glowNonHero"])
+    ok(f"[{feat}] DECISIONS #73：點卡片只亮不篩（成分股筆數一動都不動）", s1["rows"] == r0, f"{r0} → {s1['rows']}")
+    ok(f"[{feat}] 點卡片之後「誰做的」小卡開了，而且講的是這個零件", bool(s1["card"]) and len(s1["card"]["title"]) > 2, s1["card"] and s1["card"]["title"])
+    _v2_click_part(pg, b)
+    s2 = pg.evaluate(_V2)
+    ok(f"[{feat}] ★ 換點畫布上的區塊「{b}」→ 主角換人（不是取消）、它的卡片跟著變主角", s2["heroParts"] == [b] and s2["heroCard"] and s2["heroSvg"], s2["heroParts"])
+    ok(f"[{feat}] 換點之後筆數還是一動都不動", s2["rows"] == r0, f"{r0} → {s2['rows']}")
+    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    s2b = pg.evaluate(_V2)
+    ok(f"[{feat}] 切模式（科技→閱讀）之後選取還在、引線還是 {s2['ancSel']} 條被選", s2b["heroParts"] == [b] and pg.evaluate("() => document.documentElement.dataset.dgpal") == "read", s2b["heroParts"])
+    pg.click("#dgPal"); pg.wait_for_timeout(400)
+    bgpt = pg.evaluate(_DGL_BG)
+    if ok(f"[{feat}] 圖上找得到一塊空白可以點（點背景恢復的前提）", bool(bgpt), bgpt):
+        pg.mouse.click(bgpt["x"], bgpt["y"]); pg.wait_for_timeout(500)
+        s3 = pg.evaluate(_V2)
+        ok(f"[{feat}] ★ 點背景 → 主角清掉、小卡收掉、錨點與引線回到平常", not s3["heroParts"] and s3["ancSel"] == 0 and s3["leadSel"] == 0 and not s3["card"], {"parts": s3["heroParts"], "card": bool(s3["card"])})
+    # ---- E4 動畫：SMIL 光點停住、CSS 流動虛線停住、切回來又動
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }"); pg.wait_for_timeout(400)
+    p1 = pg.evaluate(_V2)["dots"]; pg.wait_for_timeout(1100); p2 = pg.evaluate(_V2)["dots"]
+    ok(f"[{feat}] 「動畫：開」時 SMIL 光點真的在動（{len(p1)} 顆）", len(p1) >= 1 and p1 != p2, f"{p1} → {p2}")
+    pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(700)
+    q1 = pg.evaluate(_V2); pg.wait_for_timeout(1100); q2 = pg.evaluate(_V2)
+    ok(f"[{feat}] ★ 按「動畫：關」→ SMIL 光點連續兩次取樣同一個位置、CSS 流動虛線的 animation 也是 none",
+       q1["noanim"] and q1["dots"] == q2["dots"] and q1["flowAnim"] in ("none", None), {"noanim": q1["noanim"], "flow": q1["flowAnim"], "dots": q1["dots"] == q2["dots"]})
+    pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(700)
+    o1 = pg.evaluate(_V2)["dots"]; pg.wait_for_timeout(1000); o2 = pg.evaluate(_V2)["dots"]
+    ok(f"[{feat}] 切回「動畫：開」光點真的又動起來", o1 != o2, f"{o1} → {o2}")
+    return s0
+
+
+def t_psu_v2(pg, base):
+    """圖9 伺服器電源 PSU ＋ BBU（v2）：共用驗收 ＋ 這張圖自己的硬規則（規格書 server_psu.md §6）。"""
+    ROUTE = "industry/ai_server/dg/server_psu"
+    FEAT = "伺服器電源"
+    s0 = _v2_common(pg, base, ROUTE, FEAT, 640, ("psu_bbu", "psu_busbar"), (3, 3))
+    if not s0:
+        return
+    url = f"{base}#{ROUTE}"
+    # ---- 三個真 seg：三次篩出來的筆數彼此不同（規格書 §8 指定；點色標要 reload，同 hash 的 goto 不會重置）
+    seg_rows = {}
+    for seg in ("power", "connector", "assembly"):
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+        base_rows = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"'+s+'\"]'); if (!c) return false; c.click(); return true; }", seg)
+        pg.wait_for_timeout(800)
+        seg_rows[seg] = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length") if hit else None
+        ok(f"[{FEAT}] 點「{seg}」環節色標 → 成分股筆數真的變少", hit and seg_rows[seg] is not None and 0 < seg_rows[seg] < base_rows, f"{base_rows} → {seg_rows[seg]}")
+    vals = [v for v in seg_rows.values() if v is not None]
+    ok(f"[{FEAT}] ★ power／connector／assembly 三次篩出來的筆數**彼此不同**", len(vals) == 3 and len(set(vals)) == 3, seg_rows)
+    # ---- 非講不可的話（§6-N5／N6）：在整張圖的文字裡（警語卡 ＋ svg）
+    _v2_land(pg, url, "dark", 1440, "0")
+    s = pg.evaluate(_V2)
+    for kw in ("BBU 尚未建檔", "不是整個族群", "示意圖，非實物比例", "時間軸不標秒數"):
+        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上（警語卡永遠看得到）", kw in s["all"], "")
+    ok(f"[{FEAT}] 拆開的 PSU 四級都在畫面上（PFC／LLC／同步整流／輸出匯流排），而且標了示意", all(k in s["all"] for k in ("功因校正 PFC", "諧振轉換 LLC", "同步整流 SR", "輸出匯流排")) and "示意" in s["all"], "")
+    # ---- 結構紅線：用幾何驗（章節全開之後 ③ 的東西才量得到）
+    _v2_open_all(pg)
+    geo = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (sel) => { const n = svg.querySelector(sel); if (!n) return null; const r = n.getBBox(); return {x: r.x, y: r.y, w: r.width, h: r.height}; };
+      const rack = bb('[data-part="psu_rack"] rect.part'), bbu = bb('[data-part="psu_bbu"] rect.part'), scap = bb('[data-part="psu_scap"] rect.part');
+      const ups = [...svg.querySelectorAll('text')].find(n => (n.textContent || '').trim() === '機房 UPS'); const ur = ups ? ups.getBBox() : null;
+      const inside = (a, b) => !!(a && b && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h);
+      const ind = [...svg.querySelectorAll('[data-part="psu_vrm"] rect.part')].map(n => ({x: +n.getAttribute('x'), w: +n.getAttribute('width')})).filter(z => z.w <= 20).sort((a, b) => a.x - b.x);
+      const gaps = ind.slice(1).map((z, i) => +(z.x - ind[i].x).toFixed(1));
+      const busW = +svg.querySelector('[data-part="psu_busbar"] rect.part').getAttribute('width');
+      const whipW = Math.max(...[...svg.querySelectorAll('[data-part="psu_whip"] path.part')].map(n => parseFloat(getComputedStyle(n).strokeWidth) || 0));
+      const arch = [...svg.querySelectorAll('[data-part="psu_arch"] rect.part')].map(n => +n.getAttribute('x'));
+      const L = arch.filter(x => x < 320).length, R = arch.filter(x => x >= 320).length;
+      const bars = [...svg.querySelectorAll('[data-part="psu_arch"] rect:not(.part)')].map(n => ({x: +n.getAttribute('x'), h: +n.getAttribute('height')})).filter(z => z.h < 20).sort((a, b) => a.x - b.x);
+      // 直流節點：BBU 與超級電容接在同一個節點 —— 那條光束從節點分兩路，兩個端點光點一個在超級電容邊、一個在 BBU 底
+      const dots = [...svg.querySelectorAll('.fxbeam .fxd')].map(c => [+c.getAttribute('cx'), +c.getAttribute('cy')]);
+      const pctBad = [...svg.querySelectorAll('text')].filter(n => /[0-9]\\s*%/.test(n.textContent || '') && !n.closest('[data-part="psu_eff"]')).map(n => n.textContent.trim().slice(0, 24));
+      const pctCards = [...document.querySelectorAll('#prodDiagram .dgc')].filter(c => /[0-9]\\s*%/.test(c.innerText)).length;
+      const timeNums = [...svg.querySelectorAll('[data-part="psu_time"] text')].map(n => n.textContent || '').filter(t => /[0-9]/.test(t));
+      return {rackIn_bbu: inside(bbu, rack), rackIn_scap: inside(scap, rack), upsOutside: !!(ur && rack && ur.x + ur.width <= rack.x),
+              nInd: ind.length, gaps, busW, whipW, archL: L, archR: R, bars: bars.map(z => z.h), dots, pctBad, pctCards, timeNums};
+    }""")
+    ok(f"[{FEAT}] §6-P1：BBU 畫在機櫃虛線框裡面", geo["rackIn_bbu"], geo)
+    ok(f"[{FEAT}] §6-P5：超級電容也在框裡，而且光束從同一個直流節點分到兩者（端點光點各一）", geo["rackIn_scap"] and len(geo["dots"]) >= 4, geo["dots"])
+    ok(f"[{FEAT}] §6-P2：機房 UPS 在機櫃框外面（左邊的交流側）", geo["upsOutside"], geo)
+    ok(f"[{FEAT}] §6-V4：板上 DC-DC 是一排 ≥4 個等距元件", geo["nInd"] >= 4 and len(set(geo["gaps"])) == 1, f"{geo['nInd']} 個、間距 {geo['gaps']}")
+    ok(f"[{FEAT}] §6-V3：匯流排（厚銅排）比 power whip 粗一個量級", geo["busW"] >= geo["whipW"] * 2, f"{geo['busW']} / {geo['whipW']}")
+    ok(f"[{FEAT}] §6-C2：800 VDC 那一欄的方塊數比現行那一欄少", 0 < geo["archR"] < geo["archL"], f"{geo['archL']} / {geo['archR']}")
+    ok(f"[{FEAT}] §6-C3：兩欄匯流排同一個比例尺、800 V 那一條明顯較細", len(geo["bars"]) == 2 and geo["bars"][1] < geo["bars"][0] / 5, geo["bars"])
+    ok(f"[{FEAT}] §6-N1／N2：百分比只出現在效率表那一格（svg 其他地方 0 個、HTML 卡片 0 張）", not geo["pctBad"] and geo["pctCards"] == 0, {"svg": geo["pctBad"], "cards": geo["pctCards"]})
+    ok(f"[{FEAT}] §6-T2：時間軸那一格的文字裡一個數字都沒有", not geo["timeNums"], geo["timeNums"])
+    # ---- 誰做的：BBU 要明說「尚未建檔」、匯流排列連接器廠、設施側明說不在鏈上
+    _v2_land(pg, url, "dark", 1440, "0")
+    _v2_click_part(pg, "psu_bbu"); c1 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] ★ 點 BBU → 小卡明說「BBU 尚未建檔」，而且**不列**電源那兩家（圖在講 A 不准小卡答 B）",
+       bool(c1) and "BBU 尚未建檔" in c1["none"] and not c1["codes"], c1 and (c1["none"][:60], c1["codes"]))
+    _v2_click_part(pg, "psu_busbar"); c2 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點匯流排 → 小卡列的是連接器廠 3665，不是電源廠", bool(c2) and "3665" in c2["codes"] and "2308" not in c2["codes"], c2 and c2["codes"])
+    _v2_click_part(pg, "psu_ups"); c3 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點設施側／UPS（沒掛環節的零件）→ 小卡也開得起來，明說不在這條產業鏈上", bool(c3) and "不在這條產業鏈上" in c3["none"], c3 and c3["none"][:50])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
+
+def t_abf_v2(pg, base):
+    """圖3 IC 載板 ABF（v2，等角爆炸層疊）：共用驗收 ＋ 規格書 abf_substrate.md §6 的結構紅線。"""
+    ROUTE = "industry/ai_server/dg/ic_substrate"
+    FEAT = "IC 載板"
+    s0 = _v2_common(pg, base, ROUTE, FEAT, 520, ("abf_film", "abf_uvia"), (2, 3))
+    if not s0:
+        return
+    url = f"{base}#{ROUTE}"
+    # ---- 三個 seg：0／3／更多，彼此不同；材料那一格要出現「台股沒有直接對應」
+    got = {}
+    for seg in ("substrate_material", "abf_pcb", "hdi_pcb"):
+        pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+        b0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
+        pg.wait_for_timeout(800)
+        got[seg] = {"n": pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length"), "base": b0, "hit": hit,
+                    "body": pg.evaluate("() => { const t = document.querySelector('#memberTable tbody'); return t ? t.textContent.trim() : ''; }")}
+    ok(f"[{FEAT}] 三個環節色標篩出來的筆數彼此不同", len({got[s]["n"] for s in got}) == 3 and all(got[s]["hit"] for s in got), {s: got[s]["n"] for s in got})
+    ok(f"[{FEAT}] ★「載板材料」那一次真的是 0 筆、而且畫面說「沒有台股直接對應」＋ 味之素（台股掛零不是 bug）",
+       got["substrate_material"]["n"] == 0 and "沒有台股直接對應" in got["substrate_material"]["body"] and "味之素" in got["substrate_material"]["body"], got["substrate_material"]["body"][:60])
+    ok(f"[{FEAT}] 「IC 載板」那一格 3 筆、「高階 PCB」那一格比基準多", got["abf_pcb"]["n"] == 3 and got["hdi_pcb"]["n"] > got["hdi_pcb"]["base"], {s: got[s]["n"] for s in got})
+    # ---- 非講不可的話 ＋ N1（整張圖唯一的百分比是 ABF 膜市占，連來源一起）
+    _v2_land(pg, url, "dark", 1440, "0")
+    s = pg.evaluate(_V2)
+    for kw in ("台股掛零", "0 筆", "不是壞掉", "不是整個族群", "示意圖，非實物比例", "實際為十幾至二十幾層", "CoWoS", "不是這張圖的主題"):
+        ok(f"[{FEAT}] ★「{kw}」真的在畫面上", kw in s["all"], "")
+    pct = [ln for ln in s["all"].split("\n") if "%" in ln]
+    ok(f"[{FEAT}] ★ N1：整張圖（svg ＋ 卡片）唯一的百分比是 ABF 膜市占，而且跟來源寫在一起", len(pct) == 1 and "95%" in pct[0] and "今周刊" in pct[0], pct)
+    # ---- 結構紅線（爆炸拆解之後全部從畫面量，不寫死座標）
+    _v2_open_all(pg)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const core = svg.querySelector('[data-part="abf_core"] rect.part').getBBox();
+      const films = [...svg.querySelectorAll('[data-part="abf_film"] rect.part')].map(n => n.getBBox()).map(b => ({y: +b.y.toFixed(1), h: +b.height.toFixed(1)})).sort((a, b) => a.y - b.y);
+      const cvia = [...svg.querySelectorAll('[data-part="abf_core_via"] rect.part')].map(n => n.getBBox()).map(b => ({y0: +b.y.toFixed(1), y1: +(b.y + b.height).toFixed(1)}));
+      const mid = core.y + core.height / 2, tra = [];
+      svg.querySelectorAll('[data-part="abf_uvia"] path.part,[data-part="abf_stack_via"] path.part').forEach(p => { const d = p.getAttribute('d') || '';
+        const re = /M([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+)Z/g; let m;
+        while ((m = re.exec(d))) { const v = m.slice(1).map(Number); tra.push({wOut: Math.abs(v[2] - v[0]), wIn: Math.abs(v[4] - v[6]), yOut: v[1], yIn: v[5]}); } });
+      const pillars = svg.querySelectorAll('[data-part="abf_uvia"] rect, [data-part="abf_stack_via"] rect').length;
+      const gapOK = films.every(f => f.y + f.h < core.y || f.y > core.y + core.height);   // 拆開之後每一層跟 core 之間真的有空隙
+      const texts = [...svg.querySelectorAll('text')].map(n => n.textContent).join('。') + [...document.querySelectorAll('#prodDiagram .dgc')].map(c => c.innerText).join('。');
+      return {coreY: [core.y, core.y + core.height], coreH: +core.height.toFixed(1), nCore: svg.querySelectorAll('[data-part="abf_core"] rect.part').length, films, cvia, nVia: tra.length,
+              straight: tra.filter(t => t.wOut <= t.wIn + 1).length, wrongDir: tra.filter(t => Math.abs(t.yIn - mid) >= Math.abs(t.yOut - mid)).length,
+              weaveInFilm: svg.querySelectorAll('[data-part="abf_film"] [stroke*="--dg-weave"]').length, weaveInCore: svg.querySelectorAll('[data-part="abf_core"] [stroke*="--dg-weave"]').length,
+              pillars, gapOK, texts};
+    }""")
+    up = [f for f in st["films"] if f["y"] < st["coreY"][0]]; dn = [f for f in st["films"] if f["y"] >= st["coreY"][1]]
+    ok(f"[{FEAT}] S1：只有一片 core、沒有 prepreg", st["nCore"] == 1 and "prepreg" not in st["texts"].lower().replace("不是 prepreg 膠片", ""), st["nCore"])
+    ok(f"[{FEAT}] S2：core 明顯厚於任何一層增層", bool(st["films"]) and st["coreH"] >= 2 * max(f["h"] for f in st["films"]), f"core {st['coreH']} / films {sorted({f['h'] for f in st['films']})}")
+    ok(f"[{FEAT}] S3：core 上下各 3 層、對應層厚度相等（爆炸拆開後仍然對稱）", len(up) == len(dn) == 3 and sorted(f["h"] for f in up) == sorted(f["h"] for f in dn), f"{[f['h'] for f in up]} / {[f['h'] for f in dn]}")
+    ok(f"[{FEAT}] S4：只有 core 有織紋，增層裡沒有", st["weaveInCore"] > 0 and st["weaveInFilm"] == 0, f"{st['weaveInCore']} / {st['weaveInFilm']}")
+    ok(f"[{FEAT}] V1：core 貫孔只穿 core（兩端停在 core 的表面）", bool(st["cvia"]) and all(abs(v["y0"] - st["coreY"][0]) < 1 and abs(v["y1"] - st["coreY"][1]) < 1 for v in st["cvia"]), st["cvia"][:3])
+    ok(f"[{FEAT}] V2：微孔 ≥ 20 個、沒有一個是直筒", st["nVia"] >= 20 and st["straight"] == 0, f"{st['nVia']} / 直筒 {st['straight']}")
+    ok(f"[{FEAT}] ★ V3：上半部朝下收窄、下半部朝上收窄（兩側都朝 core）", st["wrongDir"] == 0, st["wrongDir"])
+    ok(f"[{FEAT}] 爆炸拆解真的拆開了：每一層與 core 之間有空隙，層間小銅柱 ＞ 0", st["gapOK"] and st["pillars"] >= 20, {"gap": st["gapOK"], "pillars": st["pillars"]})
+    dup = [w for w in ("銅箔稜面", "HVLP", "背鑽", "埋孔", "差動對", "蛇行", "ENIG", "ENEPIG", "OSP", "浸銀") if w in st["texts"]]
+    ok(f"[{FEAT}] M6：沒有重複畫 PCB 那張的五樣東西", not dup, dup)
+    ok(f"[{FEAT}] M7：沒有散熱蓋、均熱片、風扇、連接器", not [w for w in ("散熱蓋", "均熱片", "風扇", "連接器", "IHS") if w in st["texts"]], "")
+    ok(f"[{FEAT}] M5：沒有在這張圖上解釋 TSV／RDL（晶片那一側只有剪影）", "TSV" not in st["texts"] and "RDL" not in st["texts"], "")
+    ok(f"[{FEAT}] §7-B：不寫 ppm、寫了 µm 的那句附了來源", "ppm" not in st["texts"].replace("不寫 ppm 值", "") and "µm" in st["texts"], "")
+    # ---- 誰做的（R4 教科書案例：ABF 膜台股掛零）
+    _v2_land(pg, url, "dark", 1440, "0")
+    _v2_click_part(pg, "abf_film"); c1 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] ★ 點 ABF 增層膜 → 小卡明說台股沒有廠商做、實際是味之素", bool(c1) and not c1["codes"] and "味之素" in c1["none"] and "台股沒有廠商做" in c1["none"], c1 and c1["none"][:60])
+    _v2_click_part(pg, "abf_trace"); c2 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點半加成細線 → 小卡列出三家載板廠", bool(c2) and {"3037", "8046", "3189"} <= set(c2["codes"]), c2 and c2["codes"])
+    _v2_click_part(pg, "abf_die_ghost"); c3 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點灰色剪影（沒掛環節）→ 小卡開得起來，把讀者導去 CoWoS 那張", bool(c3) and "CoWoS" in c3["text"], c3 and c3["text"][:60])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
 
 if __name__ == "__main__":
