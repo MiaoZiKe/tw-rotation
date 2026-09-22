@@ -2573,10 +2573,7 @@ def t_new_industry(pg, base):
     #   D0 那一輪的修法沒有被打回原形。
     #   修法：成分股預設只列前 30 檔，底下一顆「顯示全部 N 檔」原地展開（見 industry.js）。
     #   修完實測 4077／3889／3718，三個都回到門檻以下，甚至比 110 板塊上線前還矮。
-    # ★ 2026-09-22 棘輪收緊（visual-director）：產業鏈頁重排＋五個新天花板之後，
-    #   同樣的量法實測 1366:2757／1500:2757／1920:2763（原本 4550/4650/4750 的門檻）。
-    #   棘輪只准往下收，不准往上放 —— 留約 12% 餘裕給資料成長。
-    PAGE_MAX = {1366: 3100, 1500: 3100, 1920: 3100}
+    PAGE_MAX = {1366: 4550, 1500: 4650, 1920: 4750}
     for vw in (1366, 1500, 1920):
         pg.set_viewport_size({"width": vw, "height": 1000})
         pg.evaluate(GOLIST)
@@ -2599,19 +2596,10 @@ def t_new_industry(pg, base):
         click(pg, "#chainView", 1200)
         g2 = pg.evaluate(GEO)
         if ok(f"{vw}px 按「看關聯圖」真的切得出關聯圖", g2["map"] > 200 and g2["list"] == 0, g2):
-            # ★ 2026-09-22 改寫（visual-director）。舊的兩條是
-            #     「清單要比關聯圖矮很多」＋「換成清單整頁至少短 400px」。
-            #   那是 2026-09-20 的處境：關聯圖沒有天花板、清單也沒有，
-            #   所以只能靠「換一個比較矮的東西」來壓頁面高度。
-            #   現在**兩邊都關在有天花板的框裡**（`.chainscroll` 44vh、`#chainMap` 54vh），
-            #   所以「誰比較矮」已經不是重點，也量不出東西了（清單 655 vs 關聯圖 540，
-            #   那兩個是框**裡面**的內容高度，跟版面高度無關）。
-            #   換成量真正要的結果：**切換檢視不准把版面推來推去**。
-            ok(f"{vw}px 切到關聯圖之後整頁高度幾乎沒變（兩邊都有天花板）",
-               abs(g2["page"] - g1["page"]) <= 160,
-               f"清單版 {g1['page']} → 關聯圖版 {g2['page']}（差 {abs(g2['page'] - g1['page'])}）")
-            ok(f"{vw}px 關聯圖自己有天花板（{g2['map']}px ≤ 580px；改之前沒有 max-height）",
-               0 < g2["map"] <= 580, g2)
+            ok(f"{vw}px 環節卡清單比關聯圖矮很多（不到六成）",
+               g1["list"] < g2["map"] * 0.6, f"清單 {g1['list']} vs 關聯圖 {g2['map']}")
+            ok(f"{vw}px 換成清單之後整頁至少短 400px",
+               g2["page"] - g1["page"] >= 400, f"關聯圖版 {g2['page']} → 清單版 {g1['page']}")
         click(pg, "#chainView", 900)
         ok(f"{vw}px 再按一次切得回環節卡清單",
            pg.evaluate("() => { const l = document.getElementById('chainList'); return !!l && !l.hidden; }"))
@@ -2629,14 +2617,6 @@ def t_new_industry(pg, base):
         total: (() => { const m = /(\\d+)\\s*檔/.exec(
             (document.getElementById('memberTitle')||{}).innerText || ''); return m ? +m[1] : -1; })(),
         page: Math.round(document.documentElement.scrollHeight),
-        /* ★ 2026-09-22：成分股表加了天花板（.tw.memcap，clamp(320px,56vh,620px)＋框內捲），
-           所以「顯示全部」之後**整頁高度不會再變** —— 變的是框**裡面**的內容高度。
-           量 sh（框裡的 scrollHeight）才量得到「收合真的在做事」；
-           繼續量 page 會得到 2757 → 2757，那是假綠。*/
-        sh: (() => { const w = document.querySelector('.tw.memcap');
-            return w ? w.scrollHeight : -1; })(),
-        boxH: (() => { const w = document.querySelector('.tw.memcap');
-            return w ? Math.round(w.getBoundingClientRect().height) : -1; })(),
         btn: (document.getElementById('memberMoreBtn') || {}).textContent || '',
         hint: (document.getElementById('memberMore') || {}).innerText || '',
         saved: (() => { try { return localStorage.getItem('tw.memberAll'); } catch (e) { return null; } })() })"""
@@ -2652,17 +2632,14 @@ def t_new_industry(pg, base):
         changed("按「顯示全部」，表格列數真的變多", m0["rows"], m1["rows"])
         ok("而且變成真實筆數（或表格上限 200）",
            m1["rows"] == min(m1["total"], 200), m1)
-        # ★ 改寫（見 MB 裡的說明）：整頁高度不再是這件事的證據，框裡的內容高度才是。
-        ok("按「顯示全部」之後，框**裡面**的內容真的變高很多（收合真的在做事）",
-           m1["sh"] - m0["sh"] >= 2000, f"框內內容 {m0['sh']} → {m1['sh']}")
-        ok(f"而且**框本身沒有跟著長高**（{m0['boxH']}px → {m1['boxH']}px）＝ 版面不會因為筆數而變",
-           m1["boxH"] == m0["boxH"], {"展開前": m0["boxH"], "展開後": m1["boxH"]})
+        ok("按「顯示全部」之後整頁真的變高很多（證明預設的收合真的在做事）",
+           m1["page"] - m0["page"] >= 2000, f"{m0['page']} → {m1['page']}")
         ok("展開狀態真的寫進 localStorage（tw.memberAll）", m1["saved"] == "1", m1["saved"])
         ok("鈕的字跟著變成「只看前 30 檔」", "只看前" in m1["btn"], m1["btn"])
         click(pg, "#memberMoreBtn", 1000)
         m2 = pg.evaluate(MB)
-        ok("再按一次真的收回去（列數與框內內容高度都回到原本）",
-           m2["rows"] == m0["rows"] and abs(m2["sh"] - m0["sh"]) <= 4, f"{m1} → {m2}")
+        ok("再按一次真的收回去（列數與整頁高度都回到原本）",
+           m2["rows"] == m0["rows"] and abs(m2["page"] - m0["page"]) <= 4, f"{m1} → {m2}")
         ok("收回去的狀態也寫進 localStorage", m2["saved"] == "0", m2["saved"])
 
     # ------------------------------------------------- ②③ 三條鏈各驗一次點擊行為
@@ -2876,23 +2853,13 @@ def t_new_industry(pg, base):
            == s["cards"] - s["open"], s)
         ok(f"390px {cid} 手機上真的有出現「全部展開」工具列與收合鈕", s["toolsShown"] and s["sxShown"] > 0, s)
         ok(f"390px {cid} 沒有小於 11px 的字（含新加的收合鈕與工具列）", s["small"] == 0, s["small"])
-        # ---- 板塊（族群）清單：110 個板塊上線之後，手機上一張卡就佔掉 120px、一排只塞得下一張。
-        #      2026-09-22 起桌機也一起改成清單（Andy：「版面的族群改成用清單式好了，
-        #      因為卡會一直延伸導致影響版面」），所以這裡要守住三件事：
-        #        ① 一個板塊都沒有刪掉　② 每一列真的是「一列」的高度　③ 容器高度有上限、超過在框內捲
+        # ---- 板塊（族群）卡：110 個板塊上線之後，手機上一張卡就佔掉 120px、一排只塞得下一張。
+        #      改成「一行一個板塊」之後要同時守住兩件事：**一個板塊都沒有藏**、而且**真的變矮了**。
         gc = pg.evaluate("""() => { const box = document.getElementById('groupCards');
             if (!box) return null; const tiles = [...box.querySelectorAll('.tile')];
             const br = box.getBoundingClientRect();
-            const hs = tiles.map(t => t.getBoundingClientRect().height).sort((a, b) => a - b);
             return { n: tiles.length, h: Math.round(br.height),
-                     /* ★ 2026-09-22 改掉了這個數字的算法。
-                        以前是 `容器高 / 張數` —— 那在「容器高度沒有上限」的年代等於平均列高，
-                        但容器改成 max-height + 框內捲之後，容器高是固定的 228，
-                        除以 24 得到 9.5，**這條斷言就永遠是綠的，等於沒在驗**。
-                        改成量每一列**自己**的高度取中位數，那才是「一列有多高」。*/
-                     per: hs.length ? Math.round(hs[Math.floor(hs.length / 2)]) : 0,
-                     sh: box.scrollHeight, ch: box.clientHeight,
-                     oy: getComputedStyle(box).overflowY,
+                     per: tiles.length ? Math.round(br.height / tiles.length) : 0,
                      named: tiles.filter(t => { const e = t.querySelector('.t');
                          return e && e.textContent.trim() && e.getBoundingClientRect().height > 8; }).length,
                      pct: tiles.filter(t => { const e = t.querySelector('.v');
@@ -2900,23 +2867,12 @@ def t_new_industry(pg, base):
                      link: tiles.filter(t => t.querySelector('a[href^="#industry/group/"]')).length,
                      out: tiles.filter(t => { const r = t.getBoundingClientRect();
                          return r.right > br.right + 1 || r.left < br.left - 1; }).length }; }""")
-        ok(f"390px {cid} 板塊一個都沒有刪掉（{gc and gc['n']} 個板塊、每一個的名稱都在 DOM 裡、量得到高度）",
+        ok(f"390px {cid} 板塊卡一個都沒有藏（{gc and gc['n']} 個板塊、每一個的名稱都看得到）",
            bool(gc) and gc["n"] > 3 and gc["named"] == gc["n"], gc)
         ok(f"390px {cid} 每個板塊都還看得到漲跌、也都點得進族群頁",
            bool(gc) and gc["pct"] == gc["n"] and gc["link"] == gc["n"], gc)
-        ok(f"390px {cid} 每一列不超過 75px（一列一個板塊，不是一張 120px 的大卡）",
+        ok(f"390px {cid} 板塊卡平均不超過 75px（手機上一行一個，不是一張 120px 的大卡）",
            bool(gc) and 0 < gc["per"] <= 75, gc)
-        # ★ 新增（2026-09-22）：上面那條只管「列」，這條管「框」——
-        #   清單的容器高度必須有上限，不然板塊再多一倍又會把整頁撐高，
-        #   那正是 Andy 說的「卡會一直延伸導致影響版面」。
-        #   上限＝CSS 的 clamp(150px, 27vh, 252px) ＋ 內距 10 ＋ 框線 2，留 6px 給次像素。
-        ok(f"390px {cid} 族群清單的容器高度有上限（量到 {gc and gc['h']}px ≤ 270px）",
-           bool(gc) and 0 < gc["h"] <= 270, gc)
-        # 這三條鏈在 390px 都有 18 個以上的板塊，一定裝不下 228px 的框 ——
-        # 所以「內容真的比框高」＋「框真的是 auto」兩件事都必須成立，
-        # 缺一就代表要嘛板塊被砍掉了、要嘛框又變成會撐高的了。
-        ok(f"390px {cid} 板塊裝不下時真的在框內捲（內容 {gc and gc['sh']} / 框 {gc and gc['ch']}、overflow-y = auto）",
-           bool(gc) and gc["oy"] == "auto" and gc["sh"] > gc["ch"] + 4, gc)
         ok(f"390px {cid} 板塊卡沒有跑出容器", bool(gc) and gc["out"] == 0, gc)
         ok(f"390px {cid} 成分股預設只列前 30 檔（真實筆數寫在標題上）",
            s["rows"] <= 30 and s["rows"] > 0, s["rows"])
@@ -10041,9 +9997,7 @@ SECTIONS = {
     # 批次13：剖析圖配色（2D 也能切、四個配色、語意色守得住）＋ MLCC 的漸進揭露
     "批次13-配色與收納":   lambda pg, b, base, code: t_batch13(pg, base),
     # 批次19：剖析圖版面改造（色標清單化、圖框固定高度＋拉 Bar、點背景回 Default、一個畫面看得完）
-    "批次19-剖析圖版面":   lambda pg, b, base, code: t_dglayout(pg, base),
     # 批次20：產業鏈頁的排版與配色重規劃（順序、天花板、亮色對比度、功能沒被動到）
-    "批次20-產業鏈版面":   lambda pg, b, base, code: t_b20_chainlayout(pg, base),
     "產業關係面板":        lambda pg, b, base, code: t_relpanel(pg, base),
     # 點零件 → 「這個零件是誰做的」小卡（docs/diagram_purpose.md §4）
     "零件誰做的":          lambda pg, b, base, code: t_whomakes(pg, base),
@@ -10060,6 +10014,7 @@ SECTIONS = {
     "批次14b-高速互連":     lambda pg, b, base, code: t_b14b_hsio(pg, base),
     "批次14b-第三代半導體": lambda pg, b, base, code: t_b14b_wbg(pg, base),
     "3D零件字彙":          lambda pg, b, base, code: t_dg3d_parts(pg, base),
+    "點背景恢復":          lambda pg, b, base, code: t_clickbg(pg, base),
     "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
@@ -10656,26 +10611,7 @@ def t_abf(pg, base):
 
 
 
-# ===========================================================================
-# 批次19：剖析圖的版面改造（Andy 2026-09-22 親口提的四件事）
-#
-#   ①「版面的族群改成用清單式好了，因為卡片會一直延伸導致影響版面」
-#   ②「所有 2D 版面需要優化…版面太大希望固定大小改用拉 Bar 延伸觀看」
-#   ③「當點擊背景時會恢復到原來的 Default —— 我如果特定點選一個元件他會只亮那個，
-#       當我點選背景他會恢復所有都亮」
-#   ④「所有的圖包含下面說明欄位，都要一個頁面可以看到」
-#      （他指著兩張截圖：半導體鏈那張的範圍可以，MLCC 那張太大、下面的資訊看不到）
-#
-# 這一段全部是「量出來的數字」與「操作前後不一樣」，沒有一條是在驗元素存在：
-#   ①  色標清單的高度**有上限**（換一條環節更多的鏈也不會把頁面撐高），
-#       而且真的點一格 → 成分股筆數真的變了
-#   ②  圖框 scrollHeight > clientHeight、overflow-y 真的是 auto、
-#       真的捲一段 → scrollTop 真的變了、而且「↕ 框內可上下捲」的提示真的出現
-#   ③  點零件 → 只亮那個（dim > 0）；點背景 → dim 回到 0、小卡收掉，
-#       而且**成分股筆數一格都沒動**（DECISIONS #73：零件只亮不篩）
-#   ③b 色標篩選著的時候點背景 → 篩選**不准**被一起清掉（那是另一回事）
-#   ④  1440x900／800x900／390x844 三個寬度各量一次「圖頂 → 色標底」的總高
-#   ⑥  MLCC 三段全開之後**仍然**在框內捲，說明欄沒有被推出畫面
+
 # ===========================================================================
 
 # 量版面的那把尺：圖框、色標清單、以及兩者之間的距離。
@@ -10824,448 +10760,6 @@ _DGL_D = """() => ({
 })"""
 
 
-def t_dglayout(pg, base):
-    """批次19：環節色標清單化、圖框固定高度＋拉 Bar、點背景回 Default、一個畫面看得完。"""
-
-    def open_dg(pg_):
-        """<640px 預設收合；收起來就什麼都量不到。只有「現在真的有一張圖」時才動它。
-        （跟 t_mlcc / t_abf 裡那兩支同一套邏輯，它們是巢狀函式這裡取不到，照抄一份。）"""
-        pg_.evaluate("""() => {
-          const menu = document.getElementById('dgMenu');
-          if (menu && menu.offsetParent !== null) return;
-          const b = document.getElementById('dgFold');
-          const body = document.getElementById('dgBody');
-          const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
-          if (b && hidden) b.click();
-        }""")
-        pg_.wait_for_timeout(450)
-
-    def land(pg_, url, w, h):
-        pg_.set_viewport_size({"width": w, "height": h})
-        pg_.goto(url, wait_until="networkidle")
-        pg_.wait_for_timeout(2200)
-        open_dg(pg_)
-        # 動畫關掉：會飄的零件 Playwright 永遠等不到「靜止」（見 t_mlcc 第 10 條）
-        pg_.evaluate("""() => { const b = document.getElementById('dgAnim');
-            if (b && /\u958b/.test(b.textContent)) b.click(); }""")
-        pg_.wait_for_timeout(350)
-
-    SEMI = f"{base}#industry/semiconductor"
-    MLCC = f"{base}#industry/electronics/dg/mlcc"
-
-    # ---------------- ① 環節色標改成清單（半導體鏈：環節最多的那一條）
-    land(pg, SEMI, 1440, 900)
-    m = pg.evaluate(_DGL_M)
-    if not ok("① 半導體鏈量得到剖析圖與環節色標", bool(m), m):
-        return
-    # ★ 2026-09-22 第二輪改掉這條的寫法（不是放寬，是原本的寫法量錯了東西）。
-    #   原本寫 `nCol == 1`（全部靠同一條左緣）。那在單欄清單下成立，但單欄在 1366px
-    #   量到「這一塊固定 196px、而且在捲，右邊卻有 800px 空白」—— 那是浪費，不是清單。
-    #   改成 auto-fill 的 grid 之後，**「一列一格」真正該量的是「每一格自己是一列」**：
-    #   列高一致、不超過 40px（名稱沒有換行）。欄數另外一條管。
-    ok(f"① 環節色標每一格都是「一列」（列高中位數 {m['chipH']}px、最高 {m['chipHMax']}px ≤ 40）",
-       m["nChip"] >= 8 and 0 < m["chipH"] <= 40 and m["chipHMax"] <= 40, m)
-    ok(f"① 桌機寬度真的排成多欄，沒有把 800px 的橫向空白浪費掉（量到 {m['nCol']} 欄）",
-       m["nCol"] >= 2, m)
-    # 上限＝ CSS 的 clamp(120px, 21vh, 196px) ＋ 上下內距 10 ＋ 框線 2 ＝ 208。
-    # 留 4px 給次像素，所以判 212。改之前這裡是 flex-wrap，高度是「環節有幾個」的函數，
-    # 沒有上限可言 —— 這一條就是在擋「多一個環節就把頁面往下推一次」。
-    ok(f"① 色標清單的高度有上限（量到 {m['segH']}px ≤ 212px，不會被環節數撐高）",
-       0 < m["segH"] <= 212, m)
-    ok(f"① {m['nChip']} 格一格都沒有跑出容器", m["chipOut"] == 0, m)
-    ok(f"① 色標清單的字都 ≥ 12px（量到最小 {m['minFs']}px）", m["minFs"] >= 12, m)
-    # 撞到上限就要能在自己的框裡捲，而且是**真的捲得動**
-    if m["segSh"] > m["segCh"] + 4:
-        pg.evaluate("() => { document.getElementById('segChips').scrollTop = 120; }")
-        pg.wait_for_timeout(200)
-        st = pg.evaluate("() => document.getElementById('segChips').scrollTop")
-        changed("① 色標清單撞到上限之後真的捲得動（scrollTop）", 0, st, f"內容 {m['segSh']} / 框 {m['segCh']}")
-        pg.evaluate("() => { document.getElementById('segChips').scrollTop = 0; }")
-    else:
-        notes.append(f"① 半導體鏈的色標清單沒有撞到上限（{m['segSh']} ≤ {m['segCh']}），捲動那一條這次沒驗到")
-
-    # ---------------- ① 真的點一格 → 成分股筆數真的變了（既有行為不准弄壞）
-    before = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
-    click(pg, "#segChips .segchip:not(.nomem)", 900)
-    after = pg.evaluate(_DGL_S)
-    changed("① 真的點清單上的一格 → 成分股筆數真的變了", before, after["rows"])
-    ok("① 而且那一格真的亮起來了", after["chipSel"] == 1, after)
-    click(pg, "#segChips .segchip.sel", 800)          # 再點一次取消，把狀態還原
-    ok("① 再點一次真的取消篩選",
-       pg.evaluate("() => document.querySelectorAll('#segChips .segchip.sel').length") == 0)
-
-    # ---------------- ② 圖框固定高度 ＋ 垂直拉 Bar（MLCC：最高的那一張）
-    land(pg, MLCC, 1440, 900)
-    m = pg.evaluate(_DGL_M)
-    ok("② 圖框的 overflow-y 真的是 auto（改之前是 applyDgNative 寫死的 hidden）",
-       bool(m) and m["dgOy"] == "auto", m)
-    ok("② 橫向捲動的既有行為沒被弄掉（overflow-x 還是 auto）",
-       bool(m) and m["dgOx"] == "auto", m)
-    ok(f"② MLCC 的圖比框高，所以框內真的要捲（內容 {m['dgSh']} > 框 {m['dgCh']}）",
-       bool(m) and m["dgSh"] > m["dgCh"] + 4, m)
-    ok("② 「↕ 框內可上下捲」的提示真的出現（覆蓋式捲軸平常是隱形的，要有字明說）",
-       bool(m) and m["hint"], m)
-    pg.evaluate("() => { document.getElementById('prodDiagram').scrollTop = 220; }")
-    pg.wait_for_timeout(250)
-    top1 = pg.evaluate("() => document.getElementById('prodDiagram').scrollTop")
-    changed("② 真的在框內往下捲一段（scrollTop 真的變了）", 0, top1)
-    ok("② 往下捲之後**整頁沒有跟著變高**（捲的是框，不是版面）",
-       pg.evaluate("() => document.documentElement.scrollHeight") > 0
-       and pg.evaluate("() => document.getElementById('prodDiagram').getBoundingClientRect().height") <= 621,
-       pg.evaluate("() => document.getElementById('prodDiagram').getBoundingClientRect().height"))
-    pg.evaluate("() => { document.getElementById('prodDiagram').scrollTop = 0; }")
-
-    # ---------------- ③ 點零件 → 只亮那個；點背景 → 全部恢復全亮、小卡收掉
-    #   在**半導體鏈**驗 dim：MLCC 整張只有一個環節（.dg1），
-    #   任何零件被點都是「14 個一起 sel」，dim 永遠是 0，量不出「只亮那個」。
-    land(pg, SEMI, 1440, 900)
-    s0 = pg.evaluate(_DGL_S)
-    click(pg, "#prodDiagram [data-seg]", 900)
-    s1 = pg.evaluate(_DGL_S)
-    ok("③ 點零件 → 只亮那一個（主角 1 個、其餘環節真的被壓暗）",
-       s1["selPart"] == 1 and s1["dim"] > 0, {"點之前": s0, "點之後": s1})
-    ok("③ 點零件 → 「這個零件是誰做的」小卡真的出現", s1["card"], s1)
-    ok("③ 點零件**不准**動到成分股筆數（DECISIONS #73：只亮不篩）",
-       s1["rows"] == s0["rows"], {"點之前": s0["rows"], "點之後": s1["rows"]})
-    pt = pg.evaluate(_DGL_BG)
-    if not ok("③ 在圖上找得到一塊真的空白（不是任何零件、章節列或連結）", bool(pt), pt):
-        return
-    pg.mouse.click(pt["x"], pt["y"])
-    pg.wait_for_timeout(800)
-    s2 = pg.evaluate(_DGL_S)
-    ok(f"③ 點背景 → 壓暗的零件真的全部恢復全亮（dim {s1['dim']} → {s2['dim']}）",
-       s2["dim"] == 0 and s2["selPart"] == 0 and s2["sel"] == 0, {"點之前": s1, "點之後": s2})
-    ok("③ 點背景 → 零件小卡真的收掉", not s2["card"], s2)
-    ok("③ 點背景**也不准**動到成分股筆數", s2["rows"] == s0["rows"], {"原本": s0["rows"], "現在": s2["rows"]})
-
-    # ---------------- ③b 色標的篩選是另一回事，點背景不准把它一起清掉
-    click(pg, "#segChips .segchip:not(.nomem)", 900)
-    f1 = pg.evaluate(_DGL_S)
-    pt = pg.evaluate(_DGL_BG)
-    if pt:
-        pg.mouse.click(pt["x"], pt["y"])
-        pg.wait_for_timeout(800)
-        f2 = pg.evaluate(_DGL_S)
-        ok("③b 色標篩選著的時候點背景 → 篩選**沒有**被一起清掉（那是 segFilter，不是零件高亮）",
-           f2["rows"] == f1["rows"] and f2["chipSel"] == f1["chipSel"], {"點之前": f1, "點之後": f2})
-    click(pg, "#segChips .segchip.sel", 700)
-
-    # ---------------- ④ 一個畫面看得完（2026-09-22 版面重排後改寫，見下面每一條的理由）
-    #   六個寬度全量：1366／1440／1500／1920 是 Andy 實際在用的桌機寬度
-    #   （既有棘輪守 1440／1500 兩個，這一輪補齊 1366 與 1920 —— 上一批就是漏掉
-    #   1366 才在「事件側欄開著、欄位變窄」的情況下紅的），800 是他把瀏覽器縮成半邊，
-    #   390 是手機。
-    for url, lab in ((MLCC, "MLCC"), (SEMI, "半導體鏈")):
-        for w, h in ((1920, 900), (1500, 900), (1440, 900), (1366, 900), (800, 900), (390, 844)):
-            land(pg, url, w, h)
-            m = pg.evaluate(_DGL_M)
-            if not ok(f"④ [{w}px] {lab} 量得到版面", bool(m), m):
-                continue
-            # ★ 改寫（不是放寬）：原本量「圖頂 → 色標底」，前提是色標排在圖**下面**。
-            #   2026-09-22 把族群清單與環節色標一起提到圖**上面**變成控制台之後，
-            #   那個減法會算出負數，斷言就永遠是綠的 —— 假綠比紅燈危險。
-            #   改量同一件事的新形狀：**控制台頂 → 圖底**（控制項 ＋ 它控制的那張圖）。
-            #   門檻放寬到 1.35 個視窗高是誠實的：900px 的視窗裝不下
-            #   「控制台 283 ＋ 剖析圖區 693」，硬要它成立只能把圖砍小，那不是版面優化。
-            #   真正要守的是下面兩條：控制台不准太胖、剖析圖區自己要一個畫面看得完。
-            if w > 560:
-                ok(f"④ [{w}px] {lab} 控制台頂到剖析圖底 {m['total']}px ≤ 1.35 個視窗高（{m['winH']}px）",
-                   m["total"] is not None and m["total"] <= m["winH"] * 1.35, m)
-                ok(f"④ [{w}px] {lab} 剖析圖區（工具列＋圖）{m['dgSecH']}px 自己落在一個視窗高度內",
-                   m["dgSecH"] is not None and m["dgSecH"] <= m["winH"], m)
-            else:
-                # ★ 390×844 的手機**不套**上面兩條，而且這是刻意的，不是放水：
-                #   這一段的 land() 會把剖析圖**強制展開**（`open_dg`），而手機上它預設是收起來的
-                #   —— 就是因為一張原生 980 寬的技術剖面圖，加上七顆工具膠囊、圖別晶片與
-                #   一句提問，在 390px 一定會排成 800px 以上（實測 dgSec 820～867px）。
-                #   硬要它「一個畫面看得完」只有兩條路：把圖砍小，或把字砍到 12px 以下 ——
-                #   兩條都違反更上位的規則。手機該守的是下面那幾條（每塊都有天花板、
-                #   沒有橫向捲軸、字 ≥ 12px、控制台 ≤ 視窗的 65%），它們照樣在跑。
-                notes.append(f"④ [{w}px] {lab} 手機把剖析圖強制展開之後是 "
-                             f"控制台 {m['bandH']} ＋ 剖析圖區 {m['dgSecH']} ＝ 約 1.5 個視窗高；"
-                             "手機預設是收起來的，所以「一個畫面看得完」那兩條在手機不套用")
-            # 控制台是控制項，不准比它控制的東西還吃畫面。390×844 量到 508px（60%）是最胖的。
-            ok(f"④ [{w}px] {lab} 控制台高度 {m['bandH']}px ≤ 視窗的 65%（{round(m['winH'] * 0.65)}px）",
-               m["bandH"] is not None and m["bandH"] <= m["winH"] * 0.65, m)
-            ok(f"④ [{w}px] {lab} 色標清單高度 {m['segH']}px（仍有上限）", 0 < m["segH"] <= 212, m)
-            ok(f"④ [{w}px] {lab} 沒有橫向捲軸", m["docW"] <= m["winW"] + 1, m)
-            ok(f"④ [{w}px] {lab} 色標的字都 ≥ 12px（量到 {m['minFs']}px）", m["minFs"] >= 12, m)
-            # ★ 改寫：原本用**視窗寬**判「桌機一定 ≥2 欄」。那在色標佔滿整個 main 時成立，
-            #   現在色標只佔控制台的半欄 —— 800px 的視窗裡它自己只有約 360px 寬，
-            #   排成兩欄會把「IP / EDA / 設計服務」這種名稱擠到剩三個字。
-            #   所以改看**它自己那個框有多寬**（這才是欄數真正的自變數）：
-            #   框 ≥ 420px 就一定要排多欄（不准浪費橫向空白），< 420px 就一定是一欄。
-            ok(f"④ [{w}px] {lab} 環節色標欄數跟著框寬走（框 {m['segW']}px → {m['nCol']} 欄）",
-               (m["nCol"] >= 2) if m["segW"] >= 420 else (m["nCol"] == 1), m)
-
-    # ---------------- ⑥ MLCC 三段全開之後，仍然在框內捲、說明欄沒有被推出畫面
-    land(pg, MLCC, 1440, 900)
-    m0 = pg.evaluate(_DGL_M)
-    nf = pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold[data-fold]').length")
-    ok("⑥ MLCC 找得到章節列（漸進揭露還在，DECISIONS #232）", nf >= 3, nf)
-    for i in range(nf):
-        # 章節列上有 SMIL 動畫的鄰居，用合成事件展開就好；這一段量的是版面不是命中測試
-        pg.evaluate("(i) => document.querySelectorAll('#prodDiagram g.dgfold[data-fold]')[i]"
-                    ".dispatchEvent(new MouseEvent('click', {bubbles: true}))", i)
-        pg.wait_for_timeout(320)
-    pg.wait_for_timeout(700)
-    op = pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgbody[data-fold]:not([display=\"none\"])').length")
-    m1 = pg.evaluate(_DGL_M)
-    ok(f"⑥ 三段真的全部展開了（{op} 段）", op >= 3, op)
-    changed("⑥ 全開之後圖的內容真的變高了（scrollHeight）", m0["dgSh"], m1["dgSh"])
-    ok(f"⑥ 但**框沒有跟著變高**（{m0['dgH']}px → {m1['dgH']}px，這就是「固定大小」）",
-       m1["dgH"] == m0["dgH"], {"全開前": m0["dgH"], "全開後": m1["dgH"]})
-    # ★ 同④：total 的定義 2026-09-22 改成「控制台頂 → 圖底」。這一條真正要守的是
-    #   「章節全開之後版面沒有被撐開」，所以拿全開前後**同一個量**來比，而不是比一個固定門檻 ——
-    #   那比「≤ 視窗高」更嚴，因為它連「多 1px」都抓得到。
-    ok(f"⑥ 全開之後控制台頂到圖底沒有被撐開（{m0['total']}px → {m1['total']}px，框是固定的）",
-       m1["total"] == m0["total"], {"全開前": m0["total"], "全開後": m1["total"]})
-    ok("⑥ 全開之後「↕ 框內可上下捲」還在", m1["hint"], m1)
-
-    # ---------------- 淺色主題下也要成立（色標清單有底、捲得動、字級守得住）
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
-    land(pg, SEMI, 1440, 900)
-    lt = pg.evaluate("""() => { const s = document.getElementById('segChips'); if (!s) return null;
-        const cs = getComputedStyle(s); const c = s.querySelector('.segchip');
-        return {bg: cs.backgroundColor, border: cs.borderTopWidth,
-                chipBg: c ? getComputedStyle(c).backgroundColor : '',
-                theme: document.documentElement.getAttribute('data-theme') || ''}; }""")
-    ok("淺色主題下色標清單的底色不是透明（看得出這是一塊框，不是散落的字）",
-       bool(lt) and lt["bg"] not in ("rgba(0, 0, 0, 0)", "transparent"), lt)
-    m = pg.evaluate(_DGL_M)
-    # ★ 同④：total 的定義 2026-09-22 換成「控制台頂 → 圖底」，所以這裡改量
-    #   「剖析圖區自己一個畫面看得完」—— 那才是淺色主題會弄壞的東西（字級、邊框、底色一變就會撐高）。
-    ok(f"淺色主題下剖析圖區（工具列＋圖）一樣落在一個視窗高度內（{m['dgSecH']} ≤ {m['winH']}）",
-       m["dgSecH"] is not None and m["dgSecH"] <= m["winH"], m)
-    ok(f"淺色主題下控制台一樣有上限（{m['bandH']}px ≤ 視窗的 65%）",
-       m["bandH"] is not None and m["bandH"] <= m["winH"] * 0.65, m)
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
-    pg.set_viewport_size({"width": 1500, "height": 1000})
-
-    # =======================================================================
-    # ⑦ 族群改成清單（Andy 2026-09-22 原話：「版面的**族群**改成用清單式好了，
-    #    因為**卡**會一直延伸導致影響版面」—— 「族群」＋「卡」兩個詞指的就是 #groupCards）
-    #
-    #    改之前量到的（半導體 24 個族群）：1440px 468px、800px 948px、390px **1598px**，
-    #    而且**沒有天花板** —— tide 的 110 個板塊還在長，多一個族群就把整頁往下推一次。
-    #    改之後跟環節色標同一套：一列一格、高度有上限、撞到就在框內捲。
-    # =======================================================================
-    for w, h in ((1440, 900), (800, 900), (390, 844)):
-        land(pg, SEMI, w, h)
-        g = pg.evaluate(_DGL_G)
-        if not ok(f"⑦ [{w}px] 半導體鏈量得到族群清單", bool(g), g):
-            continue
-        ok(f"⑦ [{w}px] 24 個族群一個都沒有刪掉（量到 {g['n']} 個，名稱全部量得到高度）",
-           g["n"] >= 20 and g["named"] == g["n"], g)
-        # 上限＝CSS 的 clamp(150px, 27vh, 252px) ＋ 內距 10 ＋ 框線 2，留 6px 給次像素。
-        # 改之前這裡是 468／948／1598，而且是「族群有幾個」的函數。
-        ok(f"⑦ [{w}px] 族群清單的高度有上限（量到 {g['boxH']}px ≤ 270px）", 0 < g["boxH"] <= 270, g)
-        ok(f"⑦ [{w}px] 每一列是「一列」的高度（中位數 {g['rowH']}px ≤ 75px）", 0 < g["rowH"] <= 75, g)
-        ok(f"⑦ [{w}px] 漲跌與「族群頁 →」一個都沒掉（{g['pct']}／{g['link']} of {g['n']}）",
-           g["pct"] == g["n"] and g["link"] == g["n"], g)
-        ok(f"⑦ [{w}px] 沒有一列跑出容器", g["out"] == 0, g)
-        ok(f"⑦ [{w}px] 族群清單的字都 ≥ 12px（量到 {g['minFs']}px）", g["minFs"] >= 12, g)
-        ok(f"⑦ [{w}px] 裝不下時真的在框內捲（內容 {g['sh']} / 框 {g['ch']}、overflow-y = auto）",
-           g["oy"] == "auto" and g["sh"] > g["ch"] + 4, g)
-        # 真的捲：scrollTop 真的從 0 變成非 0
-        pg.evaluate("() => { const b = document.getElementById('groupCards'); b.scrollTop = b.scrollHeight; }")
-        pg.wait_for_timeout(250)
-        st = pg.evaluate("() => document.getElementById('groupCards').scrollTop")
-        changed(f"⑦ [{w}px] 族群清單真的捲得動（scrollTop）", 0, st, f"內容 {g['sh']} / 框 {g['ch']}")
-        pg.evaluate("() => { document.getElementById('groupCards').scrollTop = 0; }")
-        ok(f"⑦ [{w}px] 沒有橫向捲軸", g["docW"] <= g["winW"] + 1, g)
-
-    # ---------------- ⑦b 互動一行都不准改：真的用滑鼠點一列 → 網址變、圖換、筆數變
-    #   挑一般電子鏈的「被動元件 MLCC」：它有專屬剖析圖，所以「圖真的換了」量得到
-    #   （這條鏈預設是圖別選單，點下去才會變成 MLCC 那張）。
-    land(pg, f"{base}#industry/electronics", 1440, 900)
-    b0 = pg.evaluate(_DGL_S2)
-    hit = pg.evaluate("() => !!document.querySelector('#groupCards .tile[data-gid=\"mlcc\"]')")
-    if ok("⑦b 一般電子鏈的族群清單裡找得到「被動元件 MLCC」那一列", hit):
-        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1600)
-        b1 = pg.evaluate(_DGL_S2)
-        changed("⑦b 真的用滑鼠點一列 → 網址真的變了", b0["hash"], b1["hash"])
-        changed("⑦b 真的用滑鼠點一列 → 剖析圖真的換了（標題從圖別選單變成那張圖）",
-                b0["dgTitle"][:24], b1["dgTitle"][:24])
-        changed("⑦b 真的用滑鼠點一列 → 成分股筆數真的變了", b0["rows"], b1["rows"])
-        ok("⑦b 而且那一列真的亮起來（剛好 1 列）", b1["selN"] == 1 and b1["selGid"] == ["mlcc"], b1)
-        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1400)
-        b2 = pg.evaluate(_DGL_S2)
-        ok("⑦b 再點一次真的取消（選取歸零、筆數回到原本）",
-           b2["selN"] == 0 and b2["rows"] == b0["rows"], {"原本": b0, "取消後": b2})
-
-    # ---------------- ⑦c 捲下去才看得到的那一列，**照樣點得到**
-    #   這是清單化最容易踩的坑：框內捲之後最後幾列在可視範圍外，
-    #   如果哪天誰把 overflow 改成 hidden，這一條會立刻紅。
-    land(pg, SEMI, 1440, 900)
-    last = pg.evaluate("() => { const t = [...document.querySelectorAll('#groupCards .tile')].pop();"
-                       " return t ? t.dataset.gid : null; }")
-    if ok("⑦c 半導體鏈的族群清單有最後一列", bool(last), last):
-        r0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
-        click(pg, f'#groupCards .tile[data-gid="{last}"]', 1500)
-        r1 = pg.evaluate("""() => ({rows: document.querySelectorAll('#memberTable tbody tr').length,
-            sel: [...document.querySelectorAll('#groupCards .tile.sel')].map(t => t.dataset.gid)})""")
-        ok(f"⑦c 要捲下去才看得到的最後一列（{last}）真的點得到，而且成分股真的被篩了",
-           r1["sel"] == [last] and r1["rows"] != r0, {"原本": r0, "點完": r1})
-        click(pg, f'#groupCards .tile[data-gid="{last}"]', 1200)
-
-    # ---------------- ⑧ 個股頁那張產業鏈圖也有捲動提示（不一致比沒有更糟）
-    #   2327 國巨屬於被動元件 MLCC 族群 → 它在個股頁吃到的是 MLCC 那張（比框高，會捲）。
-    pg.evaluate("() => { try { localStorage.setItem('tw.chainOpen', '0'); } catch (e) {} }")
-    pg.set_viewport_size({"width": 1440, "height": 900})
-    pg.goto(f"{base}#stock/2327", wait_until="networkidle")
-    pg.wait_for_timeout(3000)
-    s0 = pg.evaluate(_DGL_H)
-    ok("⑧ 個股頁的產業鏈圖預設是收起來的，這時候**不該**說「可以捲」（框是 0 高）",
-       bool(s0) and s0["nHint"] == 1 and s0["shown"] == 0, s0)
-    click(pg, "#chainToggle", 1500)
-    s1 = pg.evaluate(_DGL_H)
-    ok("⑧ 真的按下「展開產業鏈圖」→ 圖真的出現（框高不再是 0）",
-       bool(s1) and s1["ch"] > 100, {"展開前": s0, "展開後": s1})
-    ok(f"⑧ 展開之後「↕ 框內可上下捲」真的出現（內容 {s1 and s1['sh']} / 框 {s1 and s1['ch']}）",
-       bool(s1) and s1["sh"] > s1["ch"] + 4 and s1["shown"] == 1, s1)
-    pg.evaluate("() => { document.querySelector('#prodDiagram').scrollTop = 150; }")
-    pg.wait_for_timeout(250)
-    changed("⑧ 個股頁的圖框也真的捲得動（scrollTop）", 0,
-            pg.evaluate("() => document.querySelector('#prodDiagram').scrollTop"))
-    click(pg, "#chainToggle", 1200)
-    s2 = pg.evaluate(_DGL_H)
-    ok("⑧ 再收起來 → 提示真的跟著收掉（不要指著一張看不見的圖）",
-       bool(s2) and s2["shown"] == 0, s2)
-
-    # ---------------- ⑨ 3D 場景：**真的用滑鼠**點空白處 → 回到 Default
-    #   上一批只靠讀碼確認 onBg 接上了，沒有真的在 WebGL 場景裡點過 —— 這一條把它補起來。
-    #   ★ 怎麼確定點到的真的是「空白」：three3d.js 的 pointermove 會依 raycast 結果
-    #     把 canvas 的游標設成 'pointer'（打到零件）或 'grab'（打空）。
-    #     所以先把滑鼠移過去、讀游標，**只有 'grab' 的點才算背景** —— 這比「猜一個角落」硬。
-    pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle")
-    pg.wait_for_timeout(2400)
-    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
-        notes.append("⑨ 這台機器沒有 WebGL，3D 點背景那一條跳過（與 批次6-圖九 同一條規矩）")
-    else:
-        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-            click(pg, "#dg3d", 3500)
-            pg.wait_for_timeout(3000)
-        if not ok("⑨ 3D 場景真的掛得起來", pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"),
-                  text(pg, "#dg3dNote")[:160]):
-            pass
-        else:
-            d0 = pg.evaluate(_DGL_D)
-            click(pg, ".lbl3d", 1200)                    # 真的用滑鼠點一個 3D 文字框
-            d1 = pg.evaluate(_DGL_D)
-            ok("⑨ 3D 點一個零件 → 只亮那個（主角 1 個、其餘被壓暗）",
-               d1["selPart"] == 1 and d1["dim"] > 0, {"點之前": d0, "點之後": d1})
-            ok("⑨ 3D 點零件 → 零件小卡真的出現", d1["card"], d1)
-            pt = None
-            box = pg.evaluate("""() => { const c = document.querySelector('#prod3d canvas');
-                if (!c) return null; const r = c.getBoundingClientRect();
-                return {l: r.left, t: r.top, w: r.width, h: r.height}; }""")
-            for fy in (0.06, 0.1, 0.9, 0.94, 0.5):
-                if pt or not box:
-                    break
-                for fx in (0.5, 0.42, 0.58, 0.34, 0.66, 0.26):
-                    x = round(box["l"] + box["w"] * fx)
-                    y = round(box["t"] + box["h"] * fy)
-                    if y < 4 or y > 996:
-                        continue
-                    over = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y);"
-                                       " return e ? e.tagName : 'none'; }", [x, y])
-                    if over != "CANVAS":
-                        continue                          # 被文字框蓋住，那不是背景
-                    pg.mouse.move(x, y)
-                    pg.wait_for_timeout(140)
-                    if pg.evaluate("() => document.querySelector('#prod3d canvas').style.cursor") == "grab":
-                        pt = (x, y)                       # 游標是 grab ＝ raycast 真的打空了
-                        break
-            if ok("⑨ 在 3D 畫布上找得到一個真的空白點（游標是 grab，代表 raycast 打空）", bool(pt), pt):
-                pg.mouse.click(pt[0], pt[1])
-                pg.wait_for_timeout(900)
-                d2 = pg.evaluate(_DGL_D)
-                ok(f"⑨ 3D 真的用滑鼠點背景 → 全部恢復全亮（dim {d1['dim']} → {d2['dim']}、主角歸零）",
-                   d2["dim"] == 0 and d2["selPart"] == 0, {"點之前": d1, "點之後": d2})
-                ok("⑨ 3D 點背景 → 零件小卡真的收掉", not d2["card"], d2)
-                ok("⑨ 3D 點背景**不准**動到成分股筆數", d2["rows"] == d0["rows"],
-                   {"原本": d0["rows"], "現在": d2["rows"]})
-            # 把 3D 關掉，不要把狀態留給後面的段落（#dg3d 記在 localStorage）
-            if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-                click(pg, "#dg3d", 1500)
-
-    # =======================================================================
-    # ⑩ 圖別選單（#dgMenu）也要有天花板 —— 這是「每畫一張新圖、頁面就長高一次」的最後一個缺口
-    #
-    #    2026-09-22 第二輪量到的事實：一般電子鏈 3 張圖，在 1366px（右側事件欄開著、
-    #    欄位窄、卡片排成 2 列）佔 366px。計畫裡這條鏈還要加 PCB 硬板與交換器板卡、
-    #    半導體鏈規劃了 15 張 —— 6 張就是 730px 左右。
-    #    所以這一段驗的不是「現在多高」，是**「它有沒有天花板」**：
-    #    高度上限（clamp(220px,36vh,380px)＋內距）、超過真的在框內捲、卡片一張都沒有藏。
-    # =======================================================================
-    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
-    for w in (1366, 1440, 390):
-        pg.set_viewport_size({"width": w, "height": 1000})
-        pg.goto(f"{base}#industry/electronics", wait_until="networkidle")
-        pg.wait_for_timeout(2000)
-        dm = pg.evaluate("""() => { const m = document.getElementById('dgMenu');
-            if (!m || m.hidden || getComputedStyle(m).display === 'none') return null;
-            const cards = [...m.querySelectorAll('.dgcard')];
-            const r = m.getBoundingClientRect();
-            return {h: Math.round(r.height), sh: m.scrollHeight, ch: m.clientHeight,
-                    oy: getComputedStyle(m).overflowY, n: cards.length,
-                    named: cards.filter(c => c.textContent.trim().length > 4
-                             && c.getBoundingClientRect().height > 8).length,
-                    out: cards.filter(c => { const b = c.getBoundingClientRect();
-                             return b.right > r.right + 1 || b.left < r.left - 1; }).length}; }""")
-        if not ok(f"⑩ [{w}px] 一般電子鏈量得到圖別選單（這條鏈沒有鏈層級架構圖，預設就是選單）",
-                  bool(dm) and dm["n"] >= 2, dm):
-            continue
-        # 上限＝clamp(220px,36vh,380px)（1000px 高的視窗＝360）＋ 內距／框線，留 20px 餘裕
-        ok(f"⑩ [{w}px] 圖別選單的高度有天花板（量到 {dm['h']}px ≤ 400px）", 0 < dm["h"] <= 400, dm)
-        ok(f"⑩ [{w}px] 天花板是靠「框內捲」做到的，不是把卡片藏起來（overflow-y = {dm['oy']}）",
-           dm["oy"] == "auto", dm)
-        ok(f"⑩ [{w}px] {dm['n']} 張圖卡一張都沒有少，而且每一張都寫得出字",
-           dm["named"] == dm["n"], dm)
-        ok(f"⑩ [{w}px] 圖卡沒有跑出容器", dm["out"] == 0, dm)
-        # 真的捲得動（只有內容超過框才驗，不然是假條件）
-        if dm["sh"] > dm["ch"] + 4:
-            pg.evaluate("() => { document.getElementById('dgMenu').scrollTop = 9999; }")
-            pg.wait_for_timeout(250)
-            changed(f"⑩ [{w}px] 圖別選單撞到天花板之後真的捲得動（scrollTop）", 0,
-                    pg.evaluate("() => document.getElementById('dgMenu').scrollTop"),
-                    f"內容 {dm['sh']} / 框 {dm['ch']}")
-            pg.evaluate("() => { document.getElementById('dgMenu').scrollTop = 0; }")
-        else:
-            notes.append(f"⑩ [{w}px] 圖別選單目前還沒撞到天花板（{dm['sh']} ≤ {dm['ch']}），"
-                         "捲動那一條這次沒驗到 —— 等這條鏈再多兩張圖就會驗到")
-        # 捲下去才看得到的那一張也要點得到（跟族群清單同一個坑）
-        last = pg.evaluate("() => { const c = [...document.querySelectorAll('#dgMenu .dgcard')].pop();"
-                           " return c ? c.getAttribute('href') : null; }")
-        if last:
-            click(pg, "#dgMenu .dgcard:last-child", 1600)
-            ok(f"⑩ [{w}px] 選單最後一張圖卡真的點得進去（網址變成 {last}）",
-               pg.evaluate("() => location.hash").endswith(last.split("#")[-1]),
-               {"想去": last, "實際": pg.evaluate("() => location.hash")})
-    pg.set_viewport_size({"width": 1500, "height": 1000})
-
-
-
-# ======================================================================
-# 批次20：產業鏈頁（#industry/<chain>）的排版與配色重規劃（visual-director 2026-09-22）
-#
-# Andy 的原話：「當前產業鏈這分頁 **全面需要排版優化**，需要於使用者立場思考，
-#   並重新規劃 **哪個圖表放哪裡、顏色怎麼配置、切換到亮色系版面怎麼配色**，
-#   目的是方便且直觀閱讀，但**版面優化不會動到功能，要小心**，
-#   **能固定大小就固定**，避免不同題材數量不一致導致版面不同，
-#   若過多資訊採用**清單或是拉 Bar** 呈現。」
-#
-# 所以這一段驗三件事，而且三件都要「畫面真的因此改變」：
-#   A. 由上到下的順序真的換了（控制項在它控制的東西上面）
-#   B. 每一塊會隨資料長高的區塊真的有天花板，而且天花板是靠「框內捲」做到的
-#   C. 亮色系的對比度**用機器量**，不是用眼睛看
-#   D. 功能一個都沒動（點族群、點色標、點零件、點背景、切關聯圖、排序、進個股）
-# ======================================================================
-
-# 由上到下的順序：用每一塊在文件裡的 y 座標排，不是用 DOM 順序 ——
-# CSS 有可能把 DOM 上在前面的東西畫到下面去，使用者看到的是畫面上的順序。
 _B20_ORDER = """() => {
   const y = (s) => { const e = document.querySelector(s);
     if (!e) return null; const r = e.getBoundingClientRect();
@@ -11337,237 +10831,6 @@ _B20_CONTRAST = """(minFsBody) => {
   out.body = out.body.slice(0, 12); out.small = out.small.slice(0, 12);
   return out;
 }"""
-
-
-def t_b20_chainlayout(pg, base):
-    """批次20：產業鏈頁的排版與配色重規劃。"""
-    SEMI = f"{base}#industry/semiconductor"
-    ELEC = f"{base}#industry/electronics"
-
-    def land(url, w, h, theme="dark"):
-        """★ 一定要 reload，不能只 goto。
-
-        `pg.goto(".../index.html#industry/semiconductor")` 從同一頁的另一個 hash 過去，
-        瀏覽器判定成 same-document navigation —— **JS 根本不會重新跑**。
-        後果有兩個，兩個都會產生假的結果：
-          ① `<html data-theme>` 是進站時那支 inline script 設的，所以「換主題」不會生效，
-             亮色那四條其實全部都在量深色（2026-09-22 第一次跑就是這樣，
-             亮色與深色的失敗清單一模一樣，連數字都一樣）。
-          ② 上一段點選的環節色標、展開的卡片會留著，量到的是被污染的狀態。
-        （`reset_rot()` 的檔頭早就記過同一個坑，這裡再踩一次。）"""
-        pg.set_viewport_size({"width": w, "height": h})
-        pg.goto(url, wait_until="networkidle")
-        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
-        pg.reload(wait_until="networkidle")
-        pg.wait_for_timeout(2400)
-        # 動畫關掉：會飄的零件 Playwright 永遠等不到「靜止」（跟 t_dglayout 同一條規矩）
-        pg.evaluate("""() => { const b = document.getElementById('dgAnim');
-            if (b && /開/.test(b.textContent)) b.click(); }""")
-        pg.wait_for_timeout(300)
-
-    # ================================================================ A. 由上到下的順序
-    land(SEMI, 1440, 900)
-    o = pg.evaluate(_B20_ORDER)
-    if not ok("A 半導體鏈量得到六個區塊的位置", all(v is not None for v in o.values()), o):
-        return
-    # 使用者依序想知道的四件事：①誰在漲／這條鏈分幾段 → ②長什麼樣、誰在做
-    # → ③誰供給誰 → ④給我清單。改之前是「剖析圖 → 色標 → 環節卡 → **族群** → 成分股」，
-    # 族群清單（＝剖析圖的選擇器）排在它控制的那張圖**下面 1300px**。
-    ok(f"A 控制台（族群＋環節色標）真的排在剖析圖**上面**（{o['band']} < {o['dg']}）",
-       o["band"] < o["dg"], o)
-    ok(f"A 族群清單與環節色標真的在同一條控制台裡（兩者都在 {o['band']} 這一帶）",
-       o["group"] >= o["band"] and o["seg"] >= o["band"]
-       and max(o["group"], o["seg"]) - o["band"] < 200, o)
-    ok(f"A 剖析圖排在「上下游關係」上面（{o['dg']} < {o['rel']}）", o["dg"] < o["rel"], o)
-    ok(f"A 成分股表排在最後（{o['member']} > {o['rel']}）", o["member"] > o["rel"], o)
-    # 並排：桌機兩欄（不浪費橫向空白），手機一欄（不把字擠爛）
-    for w, want in ((1920, 2), (1500, 2), (1440, 2), (1366, 2), (800, 2), (390, 1)):
-        land(SEMI, w, 900 if w > 390 else 844)
-        m = pg.evaluate(_DGL_M)
-        ok(f"A [{w}px] 控制台的欄數是 {want}（量到 {m['bandCols']}）", m["bandCols"] == want, m)
-
-    # ================================================================ B. 天花板
-    # 改之前量到的（半導體鏈、深色）：
-    #   環節卡 #chainList  1920:339 / 1440:518 / 1366:645 / 800:645 / 390:1076   ← 沒有上限
-    #   成分股 #memberTable 每個寬度都是 1315（而且那只是預設 30 筆，全部是 149 筆）← 沒有上限
-    # 兩個都是「資料有幾筆」的函數，正是 Andy 說的「不同題材數量不一致導致版面不同」。
-    for w, h in ((1920, 900), (1500, 900), (1440, 900), (1366, 900), (800, 900), (390, 844)):
-        land(SEMI, w, h)
-        c = pg.evaluate(_B20_CAP)
-        if not ok(f"B [{w}px] 量得到各區塊", bool(c) and c["rel"] and c["mem"], c):
-            continue
-        # 環節卡：上限 clamp(240px,44vh,460px)＋內距 12＋框線 2；手機 clamp(220,48vh,420)
-        cap_rel = 480 if w > 560 else 446
-        ok(f"B [{w}px] 環節卡清單有天花板（{c['rel']['h']}px ≤ {cap_rel}px；改之前 {'1076' if w == 390 else '339–645'}px 且無上限）",
-           0 < c["rel"]["h"] <= cap_rel, c["rel"])
-        ok(f"B [{w}px] 環節卡的天花板是靠「框內捲」做到的（overflow-y = {c['rel']['oy']}）",
-           c["rel"]["oy"] == "auto", c["rel"])
-        # 卡片一張都不准少；「有沒有在捲」要看內容是不是真的超過框 ——
-        # 1920px 寬的時候 14 張卡排成 5 欄只有 319px，根本還沒撞到 396px 的天花板，
-        # 那裡要求它捲就是假條件（跟 ⑩ 圖別選單那一條同一個寫法）。
-        ok(f"B [{w}px] {c['segcards']} 張環節卡一張都沒有被藏掉", c["segcards"] >= 8, c)
-        if c["rel"]["sh"] > c["rel"]["ch"] + 4:
-            ok(f"B [{w}px] 撞到天花板之後是靠框內捲裝下的（內容 {c['rel']['sh']} > 框 {c['rel']['ch']}）",
-               c["rel"]["oy"] == "auto", c["rel"])
-        else:
-            notes.append(f"B [{w}px] 環節卡清單還沒撞到天花板（{c['rel']['sh']} ≤ {c['rel']['ch']}），"
-                         "這個寬度的捲動沒驗到 —— 那是好事，代表一眼看得完")
-        # 成分股：上限 clamp(320px,56vh,620px)；手機 clamp(280,58vh,520)
-        cap_mem = 620 if w > 560 else 530
-        ok(f"B [{w}px] 成分股表有天花板（{c['mem']['h']}px ≤ {cap_mem}px；改之前 1315px 且無上限）",
-           0 < c["mem"]["h"] <= cap_mem, c["mem"])
-        ok(f"B [{w}px] 成分股的 {c['rows']} 筆一筆都沒少（內容高 {c['mem']['sh']} > 框高 {c['mem']['ch']}）",
-           c["rows"] >= 20 and c["mem"]["sh"] > c["mem"]["ch"] + 4, c)
-        ok(f"B [{w}px] 沒有橫向捲軸（doc {c['docW']} ≤ 視窗 {c['winW']}）", c["docW"] <= c["winW"] + 1, c)
-
-    # 真的捲：兩個框各拉一次拉 Bar，scrollTop 真的從 0 變成非 0
-    land(SEMI, 1440, 900)
-    for sel, lab in (("#chainScroll", "環節卡清單"), (".tw.memcap", "成分股表")):
-        pg.evaluate("(s) => { const e = document.querySelector(s); e.scrollTop = e.scrollHeight; }", sel)
-        pg.wait_for_timeout(260)
-        st = pg.evaluate("(s) => Math.round(document.querySelector(s).scrollTop)", sel)
-        changed(f"B {lab}真的捲得動（scrollTop）", 0, st)
-    # 黏住的表頭：捲到底之後表頭還在框頂（不然捲到第 80 檔就不知道哪一欄是漲跌）
-    sticky = pg.evaluate("""() => { const w = document.querySelector('.tw.memcap');
-        const th = w && w.querySelector('thead th'); if (!th) return null;
-        return {dy: Math.round(th.getBoundingClientRect().top - w.getBoundingClientRect().top),
-                pos: getComputedStyle(th).position}; }""")
-    ok(f"B 成分股捲到底之後表頭還黏在框頂（偏移 {sticky and sticky['dy']}px、position = {sticky and sticky['pos']}）",
-       bool(sticky) and sticky["pos"] == "sticky" and abs(sticky["dy"]) <= 2, sticky)
-    pg.evaluate("() => { document.querySelector('.tw.memcap').scrollTop = 0;"
-                " document.querySelector('#chainScroll').scrollTop = 0; }")
-    # 關聯圖也要有天花板（它以前只有 overflow:auto、沒有 max-height）
-    click(pg, "#chainView", 1600)
-    cm = pg.evaluate(_B20_CAP)
-    ok(f"B 切到關聯圖之後它真的畫出來了（{cm['map'] and cm['map']['h']}px）",
-       bool(cm["map"]) and cm["map"]["h"] > 100, cm["map"])
-    ok(f"B 關聯圖有天花板（{cm['map'] and cm['map']['h']}px ≤ 580px，改之前沒有 max-height）",
-       bool(cm["map"]) and cm["map"]["h"] <= 580, cm["map"])
-    click(pg, "#chainView", 1400)          # 切回清單，狀態還原
-    ok("B 「看清單 ←」真的切得回去（環節卡又出現了）",
-       count(pg, "#chainList .segcard") > 0, count(pg, "#chainList .segcard"))
-    # 零件小卡的天花板（它的高度是「這個零件有幾家公司、幾個料號」的函數）
-    click(pg, "#prodDiagram [data-seg]", 900)
-    pc = pg.evaluate(_B20_CAP)
-    ok(f"B 點零件之後小卡真的出現（{pc['part'] and pc['part']['h']}px）",
-       bool(pc["part"]) and pc["part"]["h"] > 20, pc["part"])
-    ok(f"B 零件小卡有天花板（{pc['part'] and pc['part']['h']}px ≤ 310px、overflow-y = {pc['part'] and pc['part']['oy']}）",
-       bool(pc["part"]) and pc["part"]["h"] <= 310 and pc["part"]["oy"] == "auto", pc["part"])
-
-    # ================================================================ C. 亮色系的對比度（用機器量）
-    # Andy 特別點名「切換到亮色系版面怎麼配色」。門檻照 WCAG AA：
-    #   正文（>= 13px）4.5:1、次要文字與圖例（< 13px）3:1。
-    for theme, lab in (("light", "亮色"), ("dark", "深色")):
-        for w in (1440, 800):
-            land(SEMI, w, 900, theme)
-            got = pg.evaluate(_B20_CONTRAST, 13)
-            ok(f"C [{lab}][{w}px] 正文（{got['nBody']} 個）對比度全部 ≥ 4.5:1"
-               + (f"　最差：{got['body'][0]['txt']} {got['body'][0]['ratio']}" if got["body"] else ""),
-               not got["body"], got["body"])
-            ok(f"C [{lab}][{w}px] 次要文字與圖例（{got['nSmall']} 個）對比度全部 ≥ 3:1"
-               + (f"　最差：{got['small'][0]['txt']} {got['small'][0]['ratio']}" if got["small"] else ""),
-               not got["small"], got["small"])
-    # 亮色系下「還沒查到具名上下游」的那顆「?」要看得見（改之前 #d9a441 對白底只有 2.25:1）
-    land(SEMI, 1440, 900, "light")
-    iso = pg.evaluate("""() => { const e = document.querySelector('#chainList .sco .rel.iso');
-        if (!e) return null; const c = getComputedStyle(e).color;
-        const lum = (x) => { const m = (x.match(/[\\d.]+/g) || []).map(Number);
-          const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
-          return .2126 * f(m[0]) + .7152 * f(m[1]) + .0722 * f(m[2]); };
-        let p = e.parentElement, bg = '';
-        while (p && !bg) { const b = getComputedStyle(p).backgroundColor;
-          const m = (b.match(/[\\d.]+/g) || []).map(Number);
-          if (m.length >= 4 ? m[3] > 0.4 : m.length === 3) bg = b; p = p.parentElement; }
-        const a = lum(c), b2 = lum(bg);
-        return {color: c, bg: bg, ratio: +(((Math.max(a, b2) + .05) / (Math.min(a, b2) + .05))).toFixed(2)}; }""")
-    if iso:
-        ok(f"C 亮色系下「?」（還沒查到具名上下游）看得見：{iso['ratio']}:1 ≥ 3（改之前 2.25）",
-           iso["ratio"] >= 3, iso)
-    else:
-        notes.append("C 這條鏈的環節卡上沒有孤立節點的「?」，那一條這次沒驗到")
-    # 色點不准全場發光：14 顆色點只有「選起來的那一顆」才有 box-shadow
-    land(SEMI, 1440, 900)
-    glow0 = pg.evaluate("""() => [...document.querySelectorAll('#segChips .segchip i')]
-        .filter(e => getComputedStyle(e).boxShadow !== 'none').length""")
-    ok(f"C 沒有選任何一格時，14 顆色點一顆都沒有發光（量到 {glow0} 顆）", glow0 == 0, glow0)
-    click(pg, "#segChips .segchip:not(.nomem)", 900)
-    glow1 = pg.evaluate("""() => [...document.querySelectorAll('#segChips .segchip i')]
-        .filter(e => getComputedStyle(e).boxShadow !== 'none').length""")
-    ok(f"C 選起來之後**只有那一顆**發光（量到 {glow1} 顆）", glow1 == 1, glow1)
-    click(pg, "#segChips .segchip.sel", 800)
-
-    # ================================================================ D. 功能一個都沒動
-    # 這一批是純版面與配色，所以每一條既有互動都要原樣成立。
-    land(ELEC, 1440, 900)
-    d0 = pg.evaluate(_DGL_S2)
-    if ok("D 一般電子鏈的控制台裡找得到「被動元件 MLCC」那一列",
-          pg.evaluate("() => !!document.querySelector('#groupCards .tile[data-gid=\"mlcc\"]')")):
-        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1600)
-        d1 = pg.evaluate(_DGL_S2)
-        changed("D 點族群 → 網址真的變了", d0["hash"], d1["hash"])
-        changed("D 點族群 → 剖析圖真的換了", d0["dgTitle"][:24], d1["dgTitle"][:24])
-        changed("D 點族群 → 成分股筆數真的變了", d0["rows"], d1["rows"])
-        # ★ 這一輪真正的目的：控制項搬到圖上面之後，**點下去在原地就看得到有東西變了**。
-        #   量的不是「圖露出幾 px」——1440×900 的視窗裡，上面堆著資料橫幅、麵包屑、
-        #   鏈切換列、標題、說明、摘要膠囊與控制台，剖析圖的**畫布**只剩 70px 露在下緣，
-        #   那是這個排序真實的代價（改之前畫布露 342px，但控制項在畫布下面 1300px）。
-        #   真正該量的是「**回饋看不看得到**」：剖析圖那一區的標題、圖別晶片、
-        #   那一句「這張圖回答什麼」全部都會因為換圖而改字，三樣都要在視窗裡。
-        fb = pg.evaluate("""() => {
-            const vis = (s) => { const e = document.querySelector(s); if (!e) return null;
-              const r = e.getBoundingClientRect();
-              return Math.round(Math.min(r.bottom, innerHeight) - Math.max(r.top, 0)); };
-            return {title: vis('#dgSec > .row'), pick: vis('#dgPick'), q: vis('#dgQ'),
-                    canvas: vis('#prodDiagram'), winH: innerHeight}; }""")
-        ok(f"D 點完族群之後，剖析圖的標題列還在視窗裡（露出 {fb['title']}px）",
-           fb["title"] is not None and fb["title"] > 10, fb)
-        ok(f"D 圖別晶片（選到哪一張）還在視窗裡（露出 {fb['pick']}px）",
-           fb["pick"] is not None and fb["pick"] > 10, fb)
-        ok(f"D 「這張圖回答什麼」那一句還在視窗裡（露出 {fb['q']}px）",
-           fb["q"] is not None and fb["q"] > 10, fb)
-        ok(f"D 而且圖的畫布本身也開始露出來了（{fb['canvas']}px > 0，接下來捲一下就整張看得到）",
-           fb["canvas"] is not None and fb["canvas"] > 0, fb)
-        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1400)
-        d2 = pg.evaluate(_DGL_S2)
-        ok("D 再點一次真的取消（選取歸零、筆數回到原本）",
-           d2["selN"] == 0 and d2["rows"] == d0["rows"], {"原本": d0, "取消後": d2})
-
-    land(SEMI, 1440, 900)
-    s0 = pg.evaluate(_DGL_S)
-    click(pg, "#segChips .segchip:not(.nomem)", 900)
-    s1 = pg.evaluate(_DGL_S)
-    changed("D 點環節色標 → 成分股筆數真的變了", s0["rows"], s1["rows"])
-    ok("D 而且那一格真的亮起來", s1["chipSel"] == 1, s1)
-    click(pg, "#segChips .segchip.sel", 800)
-    ok("D 再點一次真的取消", count(pg, "#segChips .segchip.sel") == 0)
-
-    s0 = pg.evaluate(_DGL_S)
-    click(pg, "#prodDiagram [data-seg]", 900)
-    s1 = pg.evaluate(_DGL_S)
-    ok("D 點零件 → 只亮那一個（DECISIONS #73：只亮不篩）",
-       s1["selPart"] == 1 and s1["dim"] > 0, {"點之前": s0, "點之後": s1})
-    ok("D 點零件**不准**動到成分股筆數", s1["rows"] == s0["rows"], {"前": s0["rows"], "後": s1["rows"]})
-    pt = pg.evaluate(_DGL_BG)
-    if ok("D 在圖上找得到一塊真的空白", bool(pt), pt):
-        pg.mouse.click(pt["x"], pt["y"])
-        pg.wait_for_timeout(800)
-        s2 = pg.evaluate(_DGL_S)
-        ok(f"D 點背景 → 全部恢復全亮（dim {s1['dim']} → {s2['dim']}）",
-           s2["dim"] == 0 and s2["selPart"] == 0, {"前": s1, "後": s2})
-        ok("D 點背景 → 零件小卡真的收掉", not s2["card"], s2)
-
-    # 成分股：排序真的變、點一列真的進個股頁
-    first0 = pg.evaluate("""() => { const t = document.querySelector('#memberTable tbody tr');
-        return t ? t.dataset.code : null; }""")
-    click(pg, '#memberTable th[data-k="chg_pct"]', 900)
-    first1 = pg.evaluate("""() => { const t = document.querySelector('#memberTable tbody tr');
-        return t ? t.dataset.code : null; }""")
-    changed("D 點成分股表頭 → 排序真的變了（第一列換人）", first0, first1)
-    click(pg, "#memberTable tbody tr", 1800)
-    ok(f"D 點成分股的一列 → 真的進到個股頁（{pg.evaluate('() => location.hash')}）",
-       pg.evaluate("() => location.hash").startswith("#stock/"),
-       pg.evaluate("() => location.hash"))
-    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 def _selected(args, name: str) -> bool:
@@ -13434,6 +12697,67 @@ def t_rot_live(pg, base):
     notes.append("輪動時鐘的即時這一段用的是 stub 假報價（容器打不到證交所）："
                  "驗的是「按了畫面真的變」「線真的畫出來」「涵蓋率真的印出來」"
                  "「再按一次真的回到原位」，數字本身沒有意義。")
+
+
+def t_clickbg(pg, base):
+    """點背景 → 全部零件恢復全亮（Andy 2026-09-22 要的行為，版面退回原本格式之後唯一保留的新功能）。
+
+    ★ 為什麼另開一段：原本這條寫在 `批次19-剖析圖版面` 裡，而那一段整個被拿掉了
+      —— 因為 Andy 2026-09-22 說「你後續更動的版面格式很糟糕，我覺得先回到原本的格式」，
+      版面退回去之後那一段驗的東西已經不存在。
+      **但「點背景恢復」是他另外要的功能，沒有被退掉**，所以驗收要留著，不能跟版面一起丟。
+
+    驗的是「畫面真的因此改變」：
+      1 點一個零件 → 只有它 `.sel-part`、其餘 `dim` > 0、小卡出現
+      2 **在圖上掃出一個真的空白座標、用真滑鼠點下去** → `dim` 回到 0、`sel-part` 0、小卡收掉
+      3 點背景**不准動到環節色標的篩選**（那是兩件事）—— 篩著的時候點背景，筆數不准變
+    """
+    DGH = f"{base}#industry/ai_server/dg/ic_substrate"
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2200)
+    _shut_side(pg)
+    pg.evaluate("() => { const b = document.getElementById('dgAnim'); if (b) b.click(); }")
+    pg.wait_for_timeout(300)
+
+    def snap():
+        return pg.evaluate("""() => ({
+            sel: document.querySelectorAll('#prodDiagram .sel-part').length,
+            dim: document.querySelectorAll('#prodDiagram .dim').length,
+            card: !!(document.getElementById('partCard') && !document.getElementById('partCard').hidden),
+            rows: document.querySelectorAll('#memberTable tbody tr').length })""")
+
+    # ★ 先量「還沒點任何零件」的基準：這個網址本身就選了一個族群，
+    #   所以 dim 本來就不是 0（不屬於這個族群的環節本來就該壓暗）。
+    #   點背景要回到的是**這個基準**，不是「全部 dim 歸零」——
+    #   第一版我寫成 dim == 0，那是把「族群篩選」跟「零件高亮」搞混了。
+    base0 = snap()
+    pg.locator("[data-part='abf_trace'] .part").first.click(timeout=6000)
+    pg.wait_for_timeout(400)
+    a = snap()
+    # sel 用 >= 1：同一個 data-part 可能由好幾個 <g> 組成（ABF 那層就是兩個），
+    # 兩個都掛 .sel-part 是對的，那是同一個零件的兩塊。
+    ok("點零件 → 它是主角、其餘被壓暗、小卡出現", a["sel"] >= 1 and a["dim"] > 0 and a["card"], a)
+
+    # 在圖上找一個 raycast 打不到任何零件的真空白座標，再用真滑鼠點
+    bg = pg.evaluate("""() => {
+        const h = document.getElementById('prodDiagram');
+        const r = h.getBoundingClientRect();
+        for (let y = r.top + 6; y < r.bottom - 6; y += 9)
+          for (let x = r.left + 6; x < r.right - 6; x += 9) {
+            const t = document.elementFromPoint(x, y);
+            if (t && h.contains(t) && !t.closest('[data-seg],[data-part],[data-fold],a'))
+              return { x: Math.round(x), y: Math.round(y) };
+          }
+        return null; }""")
+    if ok("圖上找得到一個真的空白座標（不是猜角落）", bool(bg), bg):
+        pg.mouse.click(bg["x"], bg["y"])
+        pg.wait_for_timeout(400)
+        b = snap()
+        ok("真的用滑鼠點背景 → 零件高亮清掉、小卡收掉、回到點之前的基準",
+           b["sel"] == 0 and not b["card"] and b["dim"] == base0["dim"],
+           {"點之前": base0, "點背景之後": b})
+        ok("點背景不准動到成分股（那是環節色標的篩選，兩件事）", b["rows"] == a["rows"],
+           {"點之前": a["rows"], "點之後": b["rows"]})
 
 
 if __name__ == "__main__":

@@ -303,42 +303,32 @@
     el.innerHTML = `
       <div class="card">
         <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
-        <div class="row spread chainhd"><div class="chainhd-t"><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
+        <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
-          <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${(groups.length || segs.length) ? `<div class="chainband">
-          ${groups.length ? `<section class="cbcol"><div class="cbhd"><h4>族群 <em>${groups.length}</em></h4><small class="muted">今天誰在漲。點一列＝篩成分股＋換上面那張剖析圖，再點一次取消；「族群頁 →」看該族群全部。清單超過框高就在框內往下捲。</small></div><div class="glist" id="groupCards"></div></section>` : ''}
-          ${segs.length ? `<section class="cbcol"><div class="cbhd"><h4>供應鏈環節 <em>${segs.length}</em></h4><small class="muted">這條鏈分成幾段、每段有幾檔台股。顏色跟剖析圖零件、環節卡、族群是同一套；點一格＝篩成分股並把同色的一起亮起來。</small></div><div class="seglistpick" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i><span class="t">${A.fmt.esc(s.name)}</span><span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div></section>` : ''}
-        </div>` : ''}
-        ${segs.length ? '<div id="segBox"></div>' : ''}
-        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span><span class="pill cyan dgshint" id="dgScrollHint" hidden title="圖框高度固定，剩下的在框內往下捲">↕ 框內可上下捲</span></span></div></div>
+          <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
+        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種配色：科技／柔和／沉穩">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div></div>
           <div class="dgmenu" id="dgMenu" hidden>${dgMenuHtml(ch, dgOpts, dgHash)}</div>
           <div id="dgBody">
           ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
-          <div id="prodDiagram" class="dgwrap dgcap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
-        ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">上下游關係 <small class="muted">每一格在做什麼、有誰、供給誰</small></h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
+          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
+        ${segs.length ? `<div class="segchips" id="segChips">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div><div id="segBox"></div>` : ''}
+        ${hasMap ? `<div style="margin-top:14px"><div class="row spread"><h4 style="margin:0">供應鏈環節</h4><button class="btn small" id="chainView" type="button">看關聯圖 →</button></div>
           <div class="sub" id="chainHint" style="margin:2px 0 8px"></div>
           <div class="chainrow"><div class="chainpane">
-            <div class="chainscroll" id="chainScroll">
-              <div class="segtools" id="segTools"></div>
-              <div class="seglist" id="chainList"></div>
-            </div>
+            <div class="segtools" id="segTools"></div>
+            <div class="seglist" id="chainList"></div>
             <div class="chainmap" id="chainMap" hidden></div>
           </div></div></div>` : ''}
+        <div style="margin-top:14px"><h4>族群 <small class="muted">卡片顏色＝剖析圖零件與環節色；點卡片篩選成分股，點「族群頁」看該族群全部</small></h4><div class="row" id="groupCards" style="margin-top:8px;align-items:stretch"></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
       <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div>
-        <div class="tw memcap" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div>
+        <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div>
         <div class="morebar" id="memberMore" hidden></div></div>`;
-    // 族群清單的一列（顏色跟環節一致）
-    // 尺寸全部寫在 CSS 的 #groupCards.glist —— 行內樣式蓋得過 class 規則，
-    // 寫在這裡的話「一列一格＋高度上限」那組規則就會被它吃掉（2026-09-22 改清單時踩過）
-    /* ★ 2026-09-22：族群從「卡片」改成「一列一格的清單」（Andy：「版面的族群改成用清單式好了，
-       因為卡會一直延伸導致影響版面」）。名稱前面加一顆色點 ——
-       跟下面環節色標那份清單用同一種語彙（色點＋名稱＋數字），兩份清單看起來才是同一套東西。
-       左邊那條 4px 的色邊（.tile.colored）留著，它在清單裡會排成一整條色帶，比單一色點更好掃。*/
-    const cardHtml = (g) => `<div class="tile colored ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="--c:${A.L.gcolor[g.id] || '#8ea0c4'}"><div class="t"><i class="gdot"></i>${A.fmt.esc(g.name)}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="row spread" style="margin-top:4px"><div class="v ${A.fmt.cls(g.chg_pct)}" style="margin:0">${A.fmt.pct(g.chg_pct)}</div>${A.L.group(g.id, '族群頁 →', { dot: false, cls: 'sm' })}</div></div>`;
+    // 族群卡片（顏色跟環節一致）
+    // 尺寸搬到 CSS（#groupCards .tile）—— 寫成行內樣式的話手機那條「窄畫面改排成列」蓋不掉它
+    const cardHtml = (g) => `<div class="tile colored ${state.group === g.id ? 'sel' : ''}" data-gid="${g.id}" style="--c:${A.L.gcolor[g.id] || '#8ea0c4'}"><div class="t">${A.fmt.esc(g.name)}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%${g.valuation && g.valuation.median ? ' · PE ' + A.fmt.n(g.valuation.median, 1) : ''}</div><div class="row spread" style="margin-top:4px"><div class="v ${A.fmt.cls(g.chg_pct)}" style="margin:0">${A.fmt.pct(g.chg_pct)}</div>${A.L.group(g.id, '族群頁 →', { dot: false, cls: 'sm' })}</div></div>`;
     $('#groupCards', el).innerHTML = groups.map(cardHtml).join('');
     let segFilter = opts.seg || null, mkt = 'ALL';
     const members = () => {
@@ -517,7 +507,7 @@
        noscroll：使用者的眼睛在圖上，不要把頁面捲到別的地方去。*/
     const clearPart = () => {
       if (!partHi && !segHi && !partSel) return;
-      partHi = partSel = segHi = null;
+      partHi = partSel = segHi = null;      // partSel 是小卡的狀態，忘了清小卡就收不掉
       syncHighlight({ quiet: true, noscroll: true });
     };
     $$('#groupCards .tile', el).forEach(t => t.onclick = (e) => { if (e.target.closest('a.lk')) return;
@@ -548,7 +538,7 @@
          關聯圖＝「誰連到誰、線多粗」（140 條邊本身，只有圖畫得出來）*/
       let chainView = loadChainView();       // 每次進這一頁都重讀偏好，見 loadChainView 的註解
       const HINT = {
-        list: `這條鏈分成 ${stat.nSeg} 格、${stat.nTw} 檔台股，已建立 ${stat.nEdge} 條上下游關係。<b>先看哪一格公司最多、有沒有你手上的股票</b>；點一張個股小卡，旁邊就展開「誰供給它、它供給誰」（不跳頁），裡面有品項、依存度與資料可信度。小卡上的數字＝這家已建立的上下游關係條數，<b style="color:var(--dg-iso-ink)">?</b>＝還沒查到具名客戶或供應商。`,
+        list: `這條鏈分成 ${stat.nSeg} 格、${stat.nTw} 檔台股，已建立 ${stat.nEdge} 條上下游關係。<b>先看哪一格公司最多、有沒有你手上的股票</b>；點一張個股小卡，旁邊就展開「誰供給它、它供給誰」（不跳頁），裡面有品項、依存度與資料可信度。小卡上的數字＝這家已建立的上下游關係條數，<b style="color:#d9a441">?</b>＝還沒查到具名客戶或供應商。`,
         map: '上游 → 下游；線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；「?」＝還沒建立上下游關聯。點公司看它的產業關係',
       };
       const applyView = () => {
@@ -627,7 +617,6 @@
       paintDiagram($('#prodDiagram', el));
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       wireDiagram(el, pickPart, clearPart);
-      markDgScroll($('#prodDiagram', el), el);
       /* 配色鈕：跟 3D 無關，只要這一頁上有剖析圖就該能按（2D 也要能換配色）。
          放在 skip3d 的 return 之前 —— 收合狀態下也要先接好，不然展開前按它是死的。*/
       wirePal(el, () => view3d);
@@ -1060,11 +1049,7 @@
     const w = (DS && DS.native) ? DS.native(id) : 0;
     const svg = host.querySelector('svg');
     host.style.overflowX = w ? 'auto' : '';
-    /* ★ 2026-09-22：Y 軸不再寫死 hidden。
-       以前這一行是「圖有多高、版面就被撐多高」的直接原因 —— 行內樣式蓋得過 CSS，
-       所以 `.dgwrap.dgcap{overflow-y:auto}` 那條固定高度的規則會被它整個吃掉。
-       現在交給 CSS 決定：有 .dgcap 就在框內垂直捲，沒有的話維持原本的 hidden。*/
-    host.style.overflowY = host.classList.contains('dgcap') ? '' : (w ? 'hidden' : '');
+    host.style.overflowY = w ? 'hidden' : '';
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
     /* ★ 2026-09-21（art-director 複驗 C）：手機寬展開之後，看得到的是**左欄**，
        主角（等角切開的本體）整個在畫面外 —— 讀者第一眼看到的是尺寸表而不是那顆電容。
@@ -1078,29 +1063,6 @@
       };
       center();
       requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
-    }
-  }
-  /* ★ 2026-09-22：固定高度的圖框要「看得出來還有下半部」。
-     Andy 講的是「拉 Bar」，而 Chromium 的覆蓋式捲軸平常是隱形的（滑鼠碰到才浮出來），
-     所以只靠捲軸等於沒告訴他。這一顆晶片是明說的那一半：**框內還有東西、可以往下捲**。
-
-     為什麼用 ResizeObserver 而不是算一次就好：MLCC 的章節（wireFolds）展開／收合會改 viewBox，
-     圖的實際高度當場變一倍 —— 算一次的話，「三段全開之後才需要捲」的那個狀態就永遠提示不到。
-     RO 觀察 svg 本身，展開收合、換寬度、換一張圖都會重新量。*/
-  function markDgScroll(host, root) {
-    if (!host || !host.classList.contains('dgcap')) return;
-    const hints = $$('.dgshint', root || document);
-    /* 收合狀態下 scrollHeight 是 0（display:none），那時候不該說「可以捲」——
-       所以條件裡要含 clientHeight > 0，不然個股頁沒展開就先掛上一顆提示，指著一張看不見的圖。*/
-    const paint = () => { const on = host.clientHeight > 0 && host.scrollHeight > host.clientHeight + 4;
-      hints.forEach(h => { h.hidden = !on; }); };
-    paint();
-    requestAnimationFrame(paint);        // 剛換過 innerHTML 時高度還沒定案
-    const svg = host.querySelector('svg');
-    if (svg && window.ResizeObserver) {
-      if (host._dgRo) { try { host._dgRo.disconnect(); } catch (e) { /* 忽略 */ } }
-      host._dgRo = new ResizeObserver(paint);
-      host._dgRo.observe(svg);
     }
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
@@ -1310,16 +1272,11 @@
     const host = $('#prodDiagram', root);
     if (window.DG && window.DG.stampParts) window.DG.stampParts(host);
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg, n.dataset.dgkey || null); }; });
-    /* ★ 點空白背景 → 取消選取、全部恢復全亮（Andy 2026-09-22：
-         「當點擊背景時會恢復到原來的 Default…我如果特定點選一個元件他會只亮那個，
-           當我點選背景他會恢復所有都亮」）。
-
+    /* ★ 點空白背景 → 取消選取、全部恢復全亮（Andy 2026-09-22）。
        改之前只有「再點同一個零件」才取消 —— 使用者要先記得剛剛點的是哪一個才退得出來，
-       而單一環節的圖上 14 個零件長得很像，等於退不出來。
-
-       為什麼掛在 host 上就夠：零件的 onclick 與章節列（wireFolds）都有 stopPropagation，
-       所以能冒泡到這裡的**本來就只有背景**。closest 那一層是保險 ——
-       萬一哪張新圖忘了擋，也不會把「點零件」誤判成「點背景」。*/
+       而單一環節的圖上十幾個零件長得很像，等於退不出來。
+       為什麼掛在 host 上就夠：零件的 onclick 與章節列都有 stopPropagation，
+       能冒泡到這裡的**本來就只有背景**。closest 那一層是保險。*/
     if (host && onBg) host.onclick = (e) => {
       if (e.target.closest && e.target.closest('[data-seg],[data-part],[data-fold],[data-chain],a')) return;
       onBg();
@@ -2027,13 +1984,13 @@
     el.innerHTML = `<div class="card tight">
       <h4 style="margin:0 0 8px">產業鏈位置 <small class="muted">這一檔卡在上下游的哪一段、同族群還有誰在動；要換一檔比較就直接點下面那排</small></h4>
       <div class="row spread"><div class="row" style="gap:8px"><b>${A.L.chain(cid, ch.name)}</b><span class="muted">›</span>${g ? A.L.group(g.id, g.name) : A.fmt.esc(m.group || '')}${co ? `<span class="muted">›</span><span class="pill" style="border-color:${segColor(co.segment)};color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>` : ''}</div>
-        <div class="row" style="gap:8px">${hasDiagram ? `<span class="pill cyan dgshint" hidden title="圖框高度固定，剩下的在框內往下捲">↕ 框內可上下捲</span><button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
+        <div class="row" style="gap:8px">${hasDiagram ? `<button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
       ${sibs.length ? `<div class="sibs" id="sibs"><span class="muted" style="flex:none;font-size:12px;align-self:center">同族群</span>${sibs.map(x => `<a class="lk ${x.code === m.code ? 'cur' : ''}" href="#stock/${x.code}">${A.fmt.esc(x.name)}<span class="code">${x.code}</span><span class="chg ${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></a>`).join('')}</div>` : ''}
       ${!hasDiagram ? `<div class="row" style="margin-top:8px;gap:6px">${ch.groups.map(x => `<span class="pill ${x.id === m.group_id ? 'cyan' : ''}" style="cursor:pointer" onclick="location.hash='#industry/group/${x.id}'"><i class="gdot" style="--c:${A.L.gcolor[x.id] || '#8ea0c4'}"></i>${A.fmt.esc(x.name)} <span class="${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></span>`).join('')}</div>` : ''}
       ${hasDiagram ? `<div id="chainBody" style="${open ? '' : 'display:none'};margin-top:10px">
         <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
         <div class="sub" style="margin:8px 0 2px">${A.fmt.esc(DS.name(dgId))}　<span class="muted">原創示意圖，非實物比例；點零件看這個環節的供應商</span></div>
-        <div id="prodDiagram" class="dgwrap dgcap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
+        <div id="prodDiagram" class="dgwrap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
     </div>`;
     /* 同族群那一列橫向捲到目前這檔 —— 一樣只捲那一列，不用 scrollIntoView。
        產業鏈區塊搬到個股頁最下面之後，scrollIntoView 會把整頁拖到底（見 drawChainMap 的註解）。*/
@@ -2045,13 +2002,9 @@
       sibBox.scrollLeft = Math.max(0, sibBox.scrollLeft + d - sibBox.clientWidth / 2 + cur.offsetWidth / 2);
     }, 30);
     if (hasDiagram && sc) {
-      /* ★ 2026-09-22：展開／收合之後要重量一次「框內還有沒有東西可以捲」。
-         這張圖預設是收起來的（display:none），收起來時 scrollHeight 是 0，
-         算一次就走的話提示永遠不會出現 —— 使用者會以為那張圖就是被裁掉了。*/
-      const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } markDgScroll($('#prodDiagram', el), el); };
+      const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
       applyDgNative($('#prodDiagram', el), dgId);
       paintDiagram($('#prodDiagram', el));
-      markDgScroll($('#prodDiagram', el), el);
       // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
       drawChainMap($('#chainMap', el), sc, cid, im, { onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
       highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
