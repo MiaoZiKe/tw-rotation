@@ -1823,7 +1823,21 @@
     }
 
     function relayout(keep) {
-      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
+      host.style.height = '';                 // 先回到 CSS 給的高度再量（不然會愈長愈高）
+      const cw = host.clientWidth || 800;
+      let chh = host.clientHeight || 520;
+      /* ★ 塞不下的時候**把框加高，不要把字縮小**。
+         縮放下限是 0.92（字不得小於 11px），所以「塞不下」的唯一出路本來是讓使用者自己拖 ——
+         但 800px／1100px（事件抽屜開著時容器只有 698）這種很常見的寬度上，
+         24 顆節點有三分之一在畫面外，使用者根本不知道還有東西。
+         解法：依「要多高才放得下」把框加高，上限 920px（再高就一頁看不完，
+         那正是 Andy 抱怨過兩次的「上下框度太長」）。真的還是塞不下（390px）才交給拖曳。 */
+      {
+        let a0 = 0; nodes.forEach(n => (a0 += (n.w + 18) * (n.h + 18)));
+        const need = Math.ceil(a0 * 1.3 * CG_MIN_SCALE * CG_MIN_SCALE / Math.max(1, cw - 32)) + 32;
+        const grow = Math.min(920, Math.max(chh, need));
+        if (grow > chh + 8) { host.style.height = grow + 'px'; chh = host.clientHeight || grow; }
+      }
       /* 版面要多大 —— 這段改過三次，把踩到的坑寫下來免得又繞回去：
          ① 一開始是「總節點面積 × 2.8，比例跟容器一樣」。半導體鏈 24 顆節點算出 1414×736，
             容器只有 1000×589，要縮到 0.66 才看得完 —— 但縮放下限是 0.85
@@ -1940,20 +1954,27 @@
       const x = $('.x', note); if (x) x.onclick = () => { note.hidden = true; };
       placeNote();
     }
-    /* 小卡貼在節點旁邊（右邊放不下就放左邊），而且**不跟著縮放** ——
-       它是要讀的字，縮到 60% 就等於沒寫。*/
+    /* 小卡**不跟著縮放**（它是要讀的字，縮到 60% 就等於沒寫），而且靠在
+       「選起來那顆節點的另一邊」的框緣：節點在左半邊就貼右緣，在右半邊就貼左緣。
+       ★ 為什麼不是「緊貼節點旁邊」（第一版就是那樣）：展開之後個股子節點是**圍著母節點**長的，
+         緊貼母節點的小卡一定會壓到其中一兩顆 —— 驗收裡點那幾顆子節點直接逾時，
+         真人也一樣點不到。靠框緣放，離那一圈子節點最遠，而且位置固定、好找。
+       垂直方向仍然對齊節點，所以「這張卡在講哪一顆」看得出來。*/
     function placeNote() {
       if (note.hidden) return;
       const n = selId ? byId[selId] : (openId ? byId[openId] : null); if (!n || n.x == null) return;
       const cw = host.clientWidth, chh = host.clientHeight;
-      const sx = n.x * scale + tx, sy = n.y * scale + ty, hw = n.w * scale / 2;
+      const sx = n.x * scale + tx, sy = n.y * scale + ty;
       const nw = note.offsetWidth || 300, nh = note.offsetHeight || 160;
-      let L = sx + hw + 12;
-      if (L + nw > cw - 8) L = sx - hw - 12 - nw;
-      note.style.left = Math.max(8, Math.min(cw - nw - 8, L)) + 'px';
-      note.style.top = Math.max(8, Math.min(chh - nh - 8, sy - nh / 2)) + 'px';
+      const L = (sx < cw / 2) ? (cw - nw - 8) : 8;
+      note.style.left = Math.max(8, Math.min(Math.max(8, cw - nw - 8), L)) + 'px';
+      note.style.top = Math.max(8, Math.min(Math.max(8, chh - nh - 8), sy - nh / 2)) + 'px';
     }
     function hover(nid) {
+      /* 面板裡那顆「在圖上 highlight」按下去之後，圖上會被釘住一組高亮（.cghold）。
+         這裡不讓滑鼠經過把它洗掉 —— 不然使用者按完 highlight、手一動，線就全部恢復，
+         看起來像按鈕壞了。（第一次驗收就是量到 before 已經有 hi=1、dim=30 的污染狀態。）*/
+      if (host.classList.contains('cghold')) return;
       $$('.cgedges path', host).forEach(p => {
         const on = !nid || p.dataset.a === nid || p.dataset.b === nid;
         p.classList.toggle('hi', !!nid && on);
@@ -1962,11 +1983,22 @@
     }
 
     /* ---- 互動：拖曳節點、拖背景平移、滾輪縮放、雙擊置中、點背景取消 ---- */
-    let drag = null, swallowClick = false;
+    let drag = null, swallowClick = false, lastPointerAt = 0;
+    /* 除了滑鼠的 pointer 流程，**純粹的 `click` 事件也要能選到節點**。
+       兩個真實的理由，不是為了測試方便：
+         ① 鍵盤：節點裡的族群名是 `<a>`，Tab 過去按 Enter 只會發 click，不會發 pointerup。
+         ② 程式觸發：驗收腳本與別的模組用 `el.click()` 叫得動它。
+       用時間戳擋重複 —— 滑鼠點一下會先發 pointerup（那裡已經選過了）再發 click，
+       兩邊都選就等於連點兩次＝選了又取消，畫面看起來完全沒反應。*/
     host.addEventListener('click', (e) => {
-      if (!swallowClick) return;
-      swallowClick = false;
-      e.preventDefault(); e.stopPropagation();
+      if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
+      if (Date.now() - lastPointerAt < 400) return;        // 剛剛已經用滑鼠處理過這一下了
+      if (e.target.closest('a.lk') || e.target.closest('.cgnote')) return;
+      const nd = e.target.closest('.cgnode');
+      if (nd) { pick(nd.dataset.nid); return; }
+      openId = null; buildNodes(); relayout(true);
+      if (ctx.onBg) ctx.onBg();
+      if (ctx.onExpand) ctx.onExpand(null, expand);
     }, true);
     host.addEventListener('pointerdown', (e) => {
       if (e.target.closest('.cgnote')) return;
@@ -1994,6 +2026,7 @@
     });
     host.addEventListener('pointerup', (e) => {
       const d = drag; drag = null; host.classList.remove('panning');
+      lastPointerAt = Date.now();
       try { host.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
       if (!d) return;
       if (d.moved) {
@@ -2346,6 +2379,8 @@
       btn.dataset.on = on ? '0' : '1';
       btn.classList.toggle('cyan', !on);
       btn.textContent = on ? '在圖上highlight' : '取消 highlight';
+      // 釘住這組高亮：滑鼠經過節點不准把它洗掉（見 drawGroupGraph 的 hover）
+      if (svgHost && svgHost.classList) svgHost.classList.toggle('cghold', !on);
       const id = box.dataset.co, gid = box.dataset.gid || '';
       $$('.edge', svgHost).forEach(e => {
         const d = e.dataset;

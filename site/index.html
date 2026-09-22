@@ -1933,6 +1933,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   padding:0 4px;border-radius:5px;background:var(--cg-tag);border:1px solid var(--cg-tagline);
   color:var(--ink-2);white-space:nowrap}
 .cgnode .cgtags a.lk .code{font-size:12px;color:inherit}
+/* `a.lk .code` 全站是 .82em，掛在 13px 的子節點標題上就變成 10.66px ——
+   乘上最小縮放 0.92 之後只剩 9.8px，破了「任何字不得小於 11px」。
+   關聯圖裡的代號一律釘成 12px（12 × 0.92 ＝ 11.04px）。*/
+.cgnode .code{font-size:12px}
 .cgnode .cgtags a.lk .nm{display:inline-block;max-width:66px;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap;vertical-align:bottom}
 .cgnode .cgtags a.lk:hover{color:var(--ink);border-color:var(--c)}

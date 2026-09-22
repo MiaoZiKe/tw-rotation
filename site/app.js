@@ -633,6 +633,14 @@
        改成讓動畫迴圈自己判斷「我現在看得見嗎」，看不見就只空轉不畫（見 startSankeyFlow）。*/
     // 產業鏈的外商小面板不屬於任何 view，換頁一定要自己清（Andy 2026-09-18 圖12）
     { const cb = document.getElementById('coBox'); if (cb) cb.remove(); }
+    /* 「成分股放寬、暫時蓋住事件面板」也是同一種東西：它掛在 <body> 上、不屬於任何 view。
+       換頁不清的話，使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。
+       remember=false —— 那是暫時狀態，不該改掉他自己設定的偏好（DECISIONS #248）。*/
+    if (document.body.classList.contains('memwide')) {
+      document.body.classList.remove('memwide');
+      let want = true; try { want = localStorage.getItem('tw.side') !== '0'; } catch (e) { /* 忽略 */ }
+      if (typeof window.twSetSide === 'function') window.twSetSide(want, false);
+    }
     const h = location.hash.replace('#', '') || 'overview';
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
