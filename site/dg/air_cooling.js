@@ -405,7 +405,8 @@
   window.DG.register('air_cooling', {
     level: 'group', chain: 'ai_server',
     name: '氣冷：風扇、風扇牆與散熱模組',
-    draw: airCooling, native: 680, scene: null,
+    draw: airCooling, native: 680, scene: 'air_cooling',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: '伺服器風扇跟家用風扇差在哪？為什麼都上液冷了，一櫃還是要幾百顆風扇？',
     /* ★ `parts` ＝ 點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        cos 只放代號，而且**只放 supply_chain.yaml 的 companies[].tech 欄自己寫了這個品項的公司**（R3）；
