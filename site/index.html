@@ -1240,17 +1240,71 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dgwrap{border-radius:10px;background:var(--dg-bg,var(--illus));border:1px solid var(--line);padding:6px;overflow:hidden;
   transition:background .2s}
 /* 3D 剖析圖：畫布 + 疊在上面的 DOM 標籤（用 DOM 才選得起來，文字重疊驗收也還跑得動） */
-/* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）→ 2026-09-22 收斂成兩種模式：科技／閱讀。
-   這一組 --dg-* 由 art-director 擁有，**JS 不准寫死任何 #xxxxxx** ——
-   three3d.js 的 applyPal() 是讀這些變數去算零件顏色與打光的。
-   mix/mix-k＝零件原色往哪個顏色拉多少；sat＝飽和度倍率；
-   led＝指示燈亮度基準（閱讀是 0，完全不發光才印得出來）；hemi/key/fill＝打光強度。
-   **零件的材質色不在這裡**：它們讀的是 :root[data-dgpal="read"] 那一組 --dg-*，跟 2D 同一份，
-   所以 2D 切到閱讀是紙底粉彩，3D 切到閱讀一定也是。
-   ⚠ 打光與材質的細調另一支（style-3d）在做；這裡只給 token 與一組能跑的起始值。 */
-.dg3d{--dg-mix:#ffffff;--dg-mix-k:0;--dg-sat:1;--dg-led:.55;--dg-sel-em:.22;--dg-hemi:.62;--dg-key:1;--dg-fill:.34}
-.dg3d[data-pal="read"]{--dg-1:#f7f6f2;--dg-2:#e2dfd6;--dg-mix:#f2ede3;--dg-mix-k:.14;--dg-sat:.72;
-  --dg-led:0;--dg-sel-em:0;--dg-hemi:.95;--dg-key:1.25;--dg-fill:.5}
+/* ================ 3D 剖析圖的兩種模式（DECISIONS #238，2026-09-22）================
+   只放「3D 才有的東西」：畫布底、打光、材質手感、玻璃、流線、卡片。
+   零件的**材質色**仍然讀 :root 的 --dg-*（陶瓷、銅、板子…），跟 2D 同一份；
+   這裡的 --dg-sat／--dg-mix 只是再往模式的色溫收一次（閱讀＝往暖奶油、科技＝往冷白）。
+   ★ 舊的 soft／calm／casual 三個 3D 區塊在這一批**拿掉了**（Andy 改口只要兩套），
+     three3d.js 會把舊名字映射成 read／tech，舊的 localStorage 不會讓 3D 掛掉。
+   科技（預設）＝深藍炭底、冷白主光 ＋ 一盞後方輪廓光（電影感）、玻璃偏冷、流線微發光；
+   閱讀＝暖白底、大半球光 ＋ 低主光（柔和環境光遮蔽、沒有強高光）、玻璃霧面白、
+        流線不發光、收斂成細線 ＋ 端點；材質整組粗糙度拉高、金屬度壓低（霧面塑膠、陶瓷、黏土）。
+   token 一覽（three3d.js 的 applyPal 每次換模式都會重讀）：
+     畫布底  --dg-1 / --dg-2
+     打光    --dg-key --dg-fill --dg-hemi --dg-bounce --dg-rim（強度） --dg-l-key/fill/sky/gnd/rim（顏色） --dg-expo（曝光）
+     材質    --dg-sat --dg-mix --dg-mix-k（色溫收斂） --dg-rough-k --dg-metal-k（手感倍率） --dg-lit --dg-dim（明暗兩端）
+     玻璃    --dg-glass（顏色，3D 這裡蓋掉 2D 的值） --dg-glass-a（不透明度）
+     發光    --dg-led --dg-led-c --dg-sel-em --dg-part-em（指示燈、同環節、被點的那一顆） --dg-flow-em --dg-flow-a（流線）
+     角色色  --dg-fl-sig 訊號藍 --dg-fl-pwr 電力橘 --dg-fl-cool 液冷青綠 --dg-fl-opt 光青 --dg-fl-air 氣流灰白
+     陰影    --dg-shadow --dg-shadow-a（模型底下那一片柔和接觸陰影）
+     卡片    --dg3-card --dg3-card-line --dg3-card-sh --dg3-ink/-2/-3 --dg3-badge-ink --dg3-lead-w --dg3-halo --dg3-blur */
+.dg3d{
+  /* 科技 v3（docs/diagram_style_tech_v3.md）：深邃暗藍黑 #080C14、中心微亮 #0E1626 的徑向漸層 */
+  --dg-1:var(--dg-bg-tech-2,#0E1626); --dg-2:var(--dg-bg-tech,#080C14);
+  --dg-key:1.6; --dg-fill:.55; --dg-hemi:.8; --dg-bounce:.2; --dg-rim:.7; --dg-expo:1.05;
+  /* 輪廓光用螢光藍：玻璃與金屬的邊緣會帶一圈藍色折射感（v3 §3-01） */
+  --dg-l-key:#ffffff; --dg-l-fill:#b9c8e6; --dg-l-sky:#cbd4e6; --dg-l-gnd:#0b1120; --dg-l-rim:#58C4FF;
+  /* v3 第二輪（Andy：「色彩還不夠豐富」）：飽和度拉滿、不再往冷白混；角色外殼（托盤、PSU、CDU）比機櫃玻璃實得多 */
+  --dg-sat:1.2; --dg-mix:#dde6f5; --dg-mix-k:0;
+  --dg-rough-k:1; --dg-metal-k:1;
+  --dg-lit:#ffffff; --dg-dim:#070b14;
+  --dg-glass:#58C4FF; --dg-glass-a:.16; --dg-shell-a:.58;
+  /* 科技模式的板子底色（v3 §3-08：#0F3D3A，配金色走線）。這是 3D 專用的覆寫 token：
+     材質族 pcb 先讀它、讀不到才讀 :root 的 --dg-pcb；閱讀模式把它設成 initial ＝ 交回 root 的粉彩值 */
+  --dg-pcb-3d:#0F3D3A;
+  --dg-led:.9; --dg-led-c:#22E5C8; --dg-sel-em:.28; --dg-part-em:.5; --dg-flow-em:1.15; --dg-flow-a:.95;
+  /* v3 §2 五色系（每一類元件固定一個主色）。style-system 若在 :root 定義 --dg-sig／--dg-pwr／--dg-cool／--dg-opt
+     這裡會直接吃它們（var 的第一個值），沒有才用 v3 的值。
+       sig 螢光藍＝訊號／網通／背板／ToR   opt 松石綠＝光模組／CPO／光路   pwr 亮橙＝電力／快接頭
+       gpu 紫＝GPU／CoWoS 晶粒            ind 靛藍＝NVSwitch               cool 霓虹綠＝CDU／manifold 外殼
+       cold 冷水管（螢光藍） hot 熱水管（發光紅）  cu 紅銅（冷板、銅箔） trace 金色走線  air 氣流（淡藍白） */
+  --dg-fl-sig:var(--dg-sig,#58C4FF); --dg-fl-sig-2:#2F7FE0; --dg-fl-opt:var(--dg-opt,#22E5C8); --dg-fl-pwr:var(--dg-pwr,#FF8A3D);
+  --dg-fl-gpu:#9B6DFF; --dg-fl-ind:#7C86FF; --dg-fl-cool:var(--dg-cool,#3BF29A);
+  --dg-fl-cold:#58C4FF; --dg-fl-hot:#FF4D5E; --dg-fl-cu:#E8A97E; --dg-fl-cu-2:#B8694A; --dg-fl-trace:#FFD37A; --dg-fl-air:#BFE9FF;
+  --dg-shadow:#000000; --dg-shadow-a:.5;
+  --dg3-card:rgba(13,19,38,.6); --dg3-card-line:rgba(160,190,240,.26); --dg3-card-sh:0 8px 24px -12px rgba(0,0,0,.6);
+  --dg3-ink:#eef3ff; --dg3-ink-2:#b5c2de; --dg3-ink-3:#8ea0c4; --dg3-badge-ink:#0b132b;
+  --dg3-lead-w:1; --dg3-halo:.55; --dg3-blur:10px;
+}
+.dg3d[data-pal="read"]{
+  --dg-1:#fbf9f4; --dg-2:#ebe6dc;
+  --dg-key:.95; --dg-fill:.6; --dg-hemi:1.35; --dg-bounce:.35; --dg-rim:0; --dg-expo:1.0;
+  --dg-l-key:#fff6e8; --dg-l-fill:#e6e0d4; --dg-l-sky:#ffffff; --dg-l-gnd:#b6ae9f; --dg-l-rim:#ffffff;
+  --dg-sat:.55; --dg-mix:#eee6d8; --dg-mix-k:.3;
+  --dg-rough-k:1.45; --dg-metal-k:.3;
+  --dg-lit:#ffffff; --dg-dim:#4a443c;
+  --dg-glass:#eef1f3; --dg-glass-a:.38; --dg-shell-a:.42;
+  --dg-pcb-3d:initial;                  /* 閱讀模式的板子色交回 :root[data-dgpal="read"] 的 --dg-pcb */
+  --dg-led:0; --dg-sel-em:0; --dg-part-em:.1; --dg-flow-em:0; --dg-flow-a:.55;
+  /* 閱讀模式維持 v2 的低飽和粉彩：v3 那份只套科技模式 */
+  --dg-fl-sig:#6d98d6; --dg-fl-sig-2:#5a7fb8; --dg-fl-pwr:#e39a5e; --dg-fl-cool:#6fb9a4; --dg-fl-opt:#5fb1c6; --dg-fl-air:#a3aab8;
+  --dg-fl-gpu:#9a8fc4; --dg-fl-ind:#8d94c9; --dg-fl-cold:#6d98d6; --dg-fl-hot:#d98a8a; --dg-fl-cu:#c9a08a; --dg-fl-cu-2:#a8785e; --dg-fl-trace:#c9b48a;
+  --dg-shadow:#5a4f40; --dg-shadow-a:.22;
+  --dg3-card:rgba(255,255,255,.84); --dg3-card-line:rgba(60,55,48,.16); --dg3-card-sh:0 8px 22px -14px rgba(60,50,40,.45);
+  --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#262320;
+  --dg3-lead-w:.9; --dg3-halo:0; --dg3-blur:8px;
+  --dg3-lead:rgba(70,64,56,.72);        /* 閱讀模式的引線是深灰細線（#238）；科技模式不定義＝跟元件同色 */
+}
 .dg3d{position:relative;border-radius:10px;background:radial-gradient(120% 90% at 50% 0%,var(--dg-1),var(--dg-2));
   border:1px solid var(--line);overflow:hidden;min-height:360px}
 .dg3d[hidden]{display:none}
@@ -1270,6 +1324,15 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   border-left:3px solid var(--card-c);border-radius:7px;padding:4px 8px;
   white-space:normal;transition:opacity .15s,border-color .15s;box-shadow:var(--dg-card-box-sh);z-index:2}
 .lbl3d b{display:block;font-weight:700;color:var(--dg-ink)}
+/* ★ style-3d 在 main 的卡片 CSS 上補的三樣（其餘照 main 的 token 名走）：
+   ① 編號圓點 em.no3d（v3 §4；顏色＝卡片的元件色 --card-c，字用 --dg3-badge-ink，深字在霓虹或粉彩上都讀得到）
+   ② 中英雙語標題 b small.en
+   ③ 標題左邊留 24px 給圓點 */
+.lbl3d b{padding-left:24px;min-height:18px}
+.lbl3d b small.en{display:block;font-weight:500;font-size:var(--dg-fs-min,12px);color:var(--dg-ink-3);letter-spacing:.01em;line-height:1.3}
+.lbl3d em.no3d{position:absolute;left:8px;top:6px;width:18px;height:18px;border-radius:50%;
+  background:var(--card-c);color:var(--dg3-badge-ink,#0b132b);font-style:normal;font-weight:700;
+  font-size:var(--dg-fs-min,12px);line-height:18px;text-align:center;font-family:var(--mono);letter-spacing:0}
 /* P4-d（art-director 2026-09-21）：這一行的說明以前是 11px、而且 line-clamp:2 把它截斷。
    11px 低於字級下限（--dg-fs-min 12px），截斷又讓「這一層變薄會怎樣」講到一半就沒了 ——
    那正是規格書 §1 定義的成敗條件。改成 12px、放寬到三行。*/
@@ -1305,6 +1368,26 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lead3d .ld{fill:none;stroke:var(--dg-lead,var(--line-2));stroke-width:var(--dg-lead-w,1.1);opacity:.72}
 .lead3d .ld-dot{fill:var(--dg-bg);stroke-width:1.4;opacity:.95;filter:drop-shadow(0 0 var(--dg-node-glow,3px) var(--dg-card-c,var(--c,var(--cyan))))}
 :root[data-dgpal="read"] .lead3d .ld-dot{filter:none}
+.lead3d .ld.sel{stroke-width:1.5}
+.lead3d .ld-halo{display:none}   /* 端點的光暈由 main 的 .ld-dot drop-shadow 負責，這顆舊的暈圈不再畫 */
+/* ★ 響應式的卡片欄（Andy 2026-09-22「版面需要左右對齊…會依據螢幕大小變化」）。
+   模式由 three3d.js 依**視窗寬度**判斷並掛 class（跟 style-system 共用這組名字，見 docs/diagram_restyle_plan.md）：
+     .dgstage--lr     視窗 ≥1280：左右兩欄（.dgstage-l／.dgstage-r 疊在畫布兩側，寬度＝ grid 的 minmax(220px,1fr) 解出來的值）
+     .dgstage--r      960～1279：只留右欄
+     .dgstage--below  <960：卡片搬進 .dgstage-b（畫布底下、文件流、一欄），畫布上改用編號圓點（.ld-no） */
+.dg3d .dgstage-l,.dg3d .dgstage-r{position:absolute;top:0;bottom:0;width:220px;pointer-events:none}
+.dg3d .dgstage-l{left:0} .dg3d .dgstage-r{right:0}
+.dg3d .dgstage-b{display:grid;grid-template-columns:1fr;gap:6px;padding:8px}
+.dg3d .dgstage-b[hidden]{display:none}
+.dg3d .lbl3d.below{position:relative;left:auto;top:auto;width:auto}
+/* 欄位塞不下時卡片先**收成一行**（標題＋英文＋前兩顆晶片），不掉到畫布底下（Andy 2026-09-22：「不准掉到下面」）。
+   被點的那一張永遠是全開的；滑過收起來的卡片會暫時展開（z-index 疊在上面）。*/
+.dg3d .lbl3d.compact i{display:none}
+.dg3d .lbl3d.compact u.chips3d .chip3d:nth-child(n+3),.dg3d .lbl3d.compact u.chips3d s{display:none}
+.dg3d .lbl3d.compact:hover i{display:-webkit-box}
+.dg3d .lbl3d.compact:hover u.chips3d .chip3d:nth-child(n+3),.dg3d .lbl3d.compact:hover u.chips3d s{display:initial}
+.lead3d .ld-no circle{fill:var(--c,var(--dg-ink-3));stroke:var(--dg-2);stroke-width:1.5}
+.lead3d .ld-no text{fill:var(--dg3-badge-ink,#0b132b);font-family:var(--mono);font-weight:700;font-size:12px}
 .dgwrap svg{display:block;width:100%;height:auto}
 /* ★★ 2026-09-22：`native`（DECISIONS #227）只設了 **min-width** ——
    它擋的是「欄位太窄把圖壓小、字跟著縮」，**另一邊完全沒擋**：
