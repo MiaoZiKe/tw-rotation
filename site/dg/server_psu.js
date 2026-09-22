@@ -248,8 +248,8 @@
         <text class="lbl offtx" x="62" y="128">中壓交流</text>
         <text class="sub offtx" x="62" y="144">例如 13.8 kV</text>
         <text class="sub offtx" x="66" y="178">變壓器</text>
-        <text class="sub offtx" x="16" y="226">機房配電盤</text>
-        <text class="sub offtx" x="16" y="244">數百伏特交流</text>
+        <text class="sub offtx" x="16" y="224">機房配電盤</text>
+        <text class="sub offtx" x="16" y="242">數百伏特交流</text>
       </g>
       <!-- 交流進機櫃（跨過那條虛線） -->
       <path class="acw flow" d="M126,208 V241 H${SHX}"/>
@@ -258,7 +258,7 @@
            符號是「交流 → 直流 → 交流」的雙轉換加旁路，跟 BBU 那疊電池完全不同（§6-P4） -->
       <g>
         <path class="off" d="M110,208 V264"/>
-        <text class="lbl offtx" x="16" y="258">機房 UPS</text>
+        <text class="lbl offtx" x="16" y="260">機房 UPS</text>
         <rect class="off" x="16" y="264" width="122" height="60" rx="6"/>
         <rect class="off" x="24" y="284" width="26" height="20" rx="3"/>
         <path class="off" d="M29,296 q4,-8 8,0 t8,0"/>
@@ -371,6 +371,8 @@
       ${labelRow(P, LBX, 366, '終點：GPU／ASIC 核心', '電壓很低、電流很大，最後一段要靠近晶片', 692, 418, LBW)}
       ${labelRow(P, LBX, 420, '超級電容／LIC：最短的那一段', '負責瞬間的電流尖峰，更長的交給 BBU', 660, 550, LBW)}
       ${labelRow(P, LBX, 474, 'BBU：接在直流側、在機櫃裡', '電力一閃失就立刻頂上，爭取時間寫回資料', 360, 588, LBW)}
+
+      ${DG.fold('psu2', '② BBU 與 UPS｜③ 兩種機櫃架構｜④ CRPS｜⑤ 80 PLUS｜⑥ 五格流程', '四層防線、50–54 V 與 800 V 並排、卡緣連接器、效率表、三塊結論框', `
       <text class="cap" x="${LBX}" y="532">★ UPS 接在交流側、機櫃外；BBU 在直流側、</text>
       <text class="cap" x="${LBX}" y="550">　 機櫃內。兩者是互補的兩層，不是誰替代誰。</text>
       <text class="cap" x="${LBX}" y="568">★ BBU 與超級電容接在同一個直流節點上。</text>
@@ -505,6 +507,7 @@
       <text class="cap" x="16" y="1758">時間軸不標秒數：公開來源對 BBU 的持續時間說法不一致</text>
       <text class="cap" x="16" y="1776">點零件篩到的是「供應鏈環節」，不是整個族群；「電源」這一格目前收錄兩家台股（2308 台達電、2301 光寶科）。</text>
       <text class="cap" x="16" y="1794" style="fill:var(--dg-warn)">★ BBU 尚未建檔：供應鏈設定裡 AI 伺服器鏈沒有 BBU 環節，點 BBU 零件篩到的是「電源」這一格，不是做 BBU 的那幾家。</text>
+      `)}
     </svg>`;
   }
 

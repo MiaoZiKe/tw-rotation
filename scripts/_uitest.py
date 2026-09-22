@@ -8544,6 +8544,26 @@ def t_sankey_expand_live(pg, base):
 # 這兩支本來寫在 t_mlcc 裡面，散熱那兩張（批次12-散熱）也要用 ——
 # 抄第二份的下場是「改了一邊、另一邊還在用舊的判準」，所以提到模組層級，一份定義兩段共用。
 
+def dg_open_sections(pg_):
+    """把圖**自己的章節列**全部展開（`site/diagrams.js` 的 wireFolds，預設全部收合）。
+
+    ★ 為什麼要跟 `dg_force_open` 分開（2026-09-22 合在一起過一次，錯了）：
+      「展開整張圖」（外層 `#dgFold`）是**所有**量測的前提 —— 圖收起來什麼都量不到；
+      「展開章節」只有「要看收在裡面的東西」時才該做。
+      把第二件事塞進 `dg_force_open`，`批次21` 那三段就爆了 ——
+      它們驗的正是「**預設全部收合**」，而落地時就被順手打開了。
+      **一支工具只做一件事**；需要看裡面的那幾段自己多叫這一支。
+
+    只點**還沒展開**的那幾條（冪等）：無條件 toggle 會把別人剛打開的又關回去，
+    症狀跟「沒展開」一模一樣、原因剛好相反（`批次11-MLCC` 的 B4 踩過）。
+    """
+    pg_.evaluate("""() => document.querySelectorAll('#prodDiagram g.dgfold[data-fold]').forEach(g => {
+        if (!g.classList.contains('open'))
+          (g.querySelector('.fbar') || g).dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      })""")
+    pg_.wait_for_timeout(420)
+
+
 def dg_force_open(pg_):
     """把剖析圖**確實展開**再驗。
 
@@ -8901,9 +8921,10 @@ def t_mlcc(pg, base):
     #   不先展開就量不到那顆白點，這一條會變成「前提不成立」而直接紅。
     #   （這正是把「前提」獨立成一條驗收的價值：它指出的是「東西不在畫面上」，
     #     不是「動畫沒停」—— 兩件事的修法完全不同。）
-    pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold')"
-                ".forEach(n => n.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
-    pg.wait_for_timeout(600)
+    # ⚠ 2026-09-22：改成**只點還沒展開的那幾條**（冪等）。
+    #   無條件 toggle 的話，只要別人（例如上游的工具）已經打開過，這一行就會再關回去 ——
+    #   症狀跟「沒展開」一模一樣，但原因剛好相反。共用版本在 dg_open_sections()。
+    dg_open_sections(pg)
     # ★ 2026-09-21：先確認那顆點**真的量得到**，不然 0 == 0 會判成「停住了」（假綠）、
     #   0 != 0 判成「沒動起來」（假紅）。實測機制本身是好的
     #   （關 1079.9 → 1079.9 凍住、開 1234.7 → 132.1 繞回去），
@@ -10055,6 +10076,8 @@ SECTIONS = {
     "批次21-晶圓代工":     lambda pg, b, base, code: t_b21_foundry(pg, base),
     "批次21-矽晶圓":       lambda pg, b, base, code: t_b21_silicon_wafer(pg, base),
     "批次21-HBM":          lambda pg, b, base, code: t_b21_hbm(pg, base),
+    # 批次22：所有剖析圖的尺寸標準化（Andy 2026-09-22「希望能一次看到完整資訊」）
+    "批次22-剖析圖尺寸":   lambda pg, b, base, code: t_dgsize(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -10499,6 +10522,9 @@ def t_abf(pg, base):
     pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
     pg.wait_for_timeout(600)
     force_open(pg)
+    # ★ 2026-09-22（批次22）：會跑的那顆點收在章節裡，不展開就量不到 ——
+    #   這一條會紅在「前提不成立」，不是「動畫沒停」。兩件事的修法完全不同。
+    dg_open_sections(pg)
     d_pre = pg.evaluate(DOTS)
     if ok("動畫的前提：那兩顆會跑的點真的畫在畫面上（量不到就不要拿兩個 0 互比）",
           len(d_pre) == 2 and all(x[2] > 0 for x in d_pre), d_pre):
@@ -11285,6 +11311,9 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
     pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
     pg.wait_for_timeout(600)
     _dg14_open(pg)
+    # ★ 2026-09-22（批次22）：會跑的那顆點收在章節裡，不展開就量不到 ——
+    #   這一條會紅在「前提不成立」，不是「動畫沒停」。兩件事的修法完全不同。
+    dg_open_sections(pg)
     pre = pg.evaluate(DOTS)
     if ok(f"[{slot}] 動畫的前提：流程列那顆會跑的光點真的畫在畫面上",
           len(pre) >= 1 and all(x[2] > 0 for x in pre), pre):
@@ -11613,6 +11642,9 @@ def _b14b_anim(pg, label, need_dots):
     pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
     pg.wait_for_timeout(600)
     _b14b_open(pg)
+    # ★ 2026-09-22（批次22）：會跑的那顆點收在章節裡，不展開就量不到 ——
+    #   這一條會紅在「前提不成立」，不是「動畫沒停」。兩件事的修法完全不同。
+    dg_open_sections(pg)
     d_pre = pg.evaluate(B14B_DOTS)
     if not ok(f"{label}：動畫的前提 —— 會跑的那 {need_dots} 顆點真的畫在畫面上",
               len(d_pre) == need_dots, f"量到 {len(d_pre)} 顆"):
@@ -11871,8 +11903,12 @@ def t_b14b_hsio(pg, base):
     ok("互連・X2：★ 路徑帶的編號與下面四格的標題編號**一致**（沒有編號路徑帶就只是裝飾）",
        all(n in txt for n in ("②", "③", "④", "⑤")) and txt.count("②") >= 2 and txt.count("⑤") >= 2,
        {n: txt.count(n) for n in ("②", "③", "④", "⑤")})
+    # ★ 這一條比的是「主角佔**整張圖**的幾分之幾」，分母要是**全開**的高度。
+    #   收合狀態下分母只剩第一畫面，主角當然會超過三分之一 —— 那是量錯，不是畫錯。
+    dg_open_sections(pg)
+    vbFull = pg.evaluate("() => { const s = document.querySelector('#prodDiagram svg'); return s ? Math.round(s.viewBox.baseVal.height) : 0; }")
     ok("互連・X3：路徑帶的高度**不超過整張圖的三分之一**",
-       st["bandH"] > 0 and st["bandH"] <= d["vbH"] / 3, f"路徑帶 {st['bandH']}px ／ 全圖 {d['vbH']}px")
+       st["bandH"] > 0 and st["bandH"] <= vbFull / 3, f"路徑帶 {st['bandH']}px ／ 全圖 {vbFull}px")
     # X4：「層數」這兩個字**准**出現（畫面上寫「板子的層數也能往下壓」，那是論點不是違規）；
     #     要判的是有沒有真的畫一張疊構剖面出來，所以看零件名單 ＋ 沒有「背鑽／疊構」這兩個詞。
     ok("互連・X4：圖上**沒有畫** PCB 疊構剖面、沒有背鑽；CPO 只用一行字導去「交換器板卡」那張",
@@ -12052,9 +12088,13 @@ def t_b14b_rlc(pg, base):
        and "不畫任何電容" in txt, d["parts"])
     ok("RLC・X5：★ 整張圖**只有 passive_comp 一個 data-seg**（電感欄與石英欄一個都沒掛）",
        set(d["segs"]) == {"passive_comp"}, d["segs"])
+    # ★ 這一條比的是「主角佔**整張圖**的幾分之幾」，分母要是**全開**的高度。
+    #   收合狀態下分母只剩第一畫面，主角當然會超過三分之一 —— 那是量錯，不是畫錯。
+    dg_open_sections(pg)
+    vbFull = pg.evaluate("() => { const s = document.querySelector('#prodDiagram svg'); return s ? Math.round(s.viewBox.baseVal.height) : 0; }")
     ok("RLC・X6：共同舞台的高度**不超過整張圖的三分之一**",
-       st["stageH"] > 0 and st["stageH"] <= d["vbH"] / 3,
-       f"舞台 {st['stageH']}px ／ 全圖 {d['vbH']}px")
+       st["stageH"] > 0 and st["stageH"] <= vbFull / 3,
+       f"舞台 {st['stageH']}px ／ 全圖 {vbFull}px")
     ok("RLC・R1：電阻膜的兩端**壓在上面電極之上**（有重疊，不是頭碰頭對接）",
        st["film"] and st["inner"] and st["film"][3] > st["inner"][0],
        f"膜 {st['film']} ／ 上面電極 {st['inner']}")
@@ -13945,6 +13985,363 @@ def t_b21_cowos(pg, base):
 
 
 
+
+# ===================================================================== 批次22：剖析圖尺寸標準化
+#   Andy 2026-09-22：「幫我將所有 2D 3D 圖的**圖片及文字縮小一半大小**，我發現是**大小問題**
+#   導致整理版面塞太滿，或是**整理統一大小**，你這邊安排一下，**希望能一次看到完整資訊**。」
+#
+#   「文字縮小一半」跟字級下限 12px（DECISIONS #227）在物理上衝突 —— 12 → 6px 沒人讀得懂，
+#   所以縮的是**版面**不是字級；判準落在他最後那句話上：
+#       **1440×900 的視窗裡，一張剖析圖連同它的標題與說明要能一次看完。**
+#
+#   下面那張表是**逐張的棘輪**（ratchet），不是一個籠統的上限：
+#     · 「上限」＝ 實測值再加 40px 的餘裕。有人把圖改長了就會紅，而不是等 Andy 回報。
+#     · 這張表本身就是規格：docs/diagram_specs/_TEMPLATE.md §0 寫的是同一組數字。
+#   ⚠ 餘裕給 40 不給 100：給太寬等於這條棘輪擋不住任何東西。
+DG22 = [
+    # (顯示名, 路由, 收合畫布上限, #dgSec 上限)
+    #
+    # 「#dgSec 上限」的 842 是算出來的，不是抓的：
+    #     視窗 900 − **固定頁首 .topbar 58px（position:sticky，量出來的）** ＝ 842
+    #   捲到這一區之後，頁首永遠蓋著上面 58px，所以「不必捲動就看得完」的真正額度是 842。
+    #   ⚠ 第一版我用 900，那是**忘了扣頁首** —— 截圖一看就知道下緣被切掉。
+    #
+    # ★ 量的是**「今日事件」抽屜開著**那一邊（那是預設狀態，也是比較糟的那一邊）：
+    #   抽屜開著欄寬只有 998，圖別選單的晶片會多換一行，chrome 從 147 變成 185。
+    #   A 段兩種狀態都量，取**大**的那一個來比 —— 這一輪的教訓就是
+    #   「同一個畫面有兩種寬度，就要兩種都量」。
+    #
+    # 標 ★ 的是**已知還差一截**，不是漏掉。兩種原因，修法完全不同：
+    #   (a) §1 太高（MLCC ＋19／ABF 載板 ＋51／伺服器電源 ＋46）——
+    #       §1 是主角本體（剖面／單線圖／等角），**收納收不到它**，只能重排幾何。
+    #   (b) **鏈的圖別選單多換了一行**（先進封裝 ＋32／晶圓代工 ＋36／矽晶圓 ＋36）——
+    #       這三張畫布只有 689～693，本身是合格的；是 `semiconductor` 鏈補到**第五張**之後
+    #       晶片排成兩行、chrome 跳了 38px 才頂出來的。
+    #       **最省力的一刀是讓那排晶片在 998px 的欄寬裡只排一行**（一次救五張），
+    #       那是 industry.js／index.html 的範圍，不是這一批能動的。
+    #   兩種都照實把現值 ＋10 寫成上限：**只准變好，不准變差**。
+    ("AI 伺服器機櫃", "ai_server", 575, 842),
+    ("先進封裝 CoWoS", "semiconductor/dg/ai_adv_packaging", 730, 884),   # ★(b) 差 32
+    ("晶圓代工", "semiconductor/dg/foundry", 735, 888),                  # ★(b) 差 36
+    ("矽晶圓", "semiconductor/dg/silicon_wafer", 735, 888),              # ★(b) 差 36
+    ("HBM", "semiconductor/dg/hbm", 660, 842),
+    ("第三代半導體", "semiconductor/dg/wide_bandgap", 695, 842),
+    ("MLCC", "electronics/dg/mlcc", 755, 871),                           # ★(a) 差 19
+    ("面板", "electronics/dg/panel", 615, 842),
+    ("電感電阻石英", "electronics/dg/power_inductor", 425, 842),
+    ("高速互連", "ai_server/dg/ai_interconnect", 425, 842),
+    ("氣冷風扇", "ai_server/dg/air_cooling", 670, 842),
+    ("ABF 載板", "ai_server/dg/ic_substrate", 750, 903),                 # ★(a) 差 51
+    ("液冷", "ai_server/dg/liquid_cooling", 655, 842),
+    ("硬板 PCB", "ai_server/dg/pcb_rigid", 690, 842),
+    ("伺服器電源", "ai_server/dg/server_psu", 745, 898),                 # ★(a) 差 46
+    ("交換器板卡", "ai_server/dg/switch_wireless", 690, 842),
+    ("變壓器 GIS", "infrastructure/dg/heavy_electric", 735, 842),
+    ("輕油裂解", "traditional/dg/petrochemical", 675, 842),
+]
+
+# 固定頁首的高度：這條斷言在 topbar 變高時會紅，提醒回來重算上面那張表。
+DG22_TOPBAR = 58
+
+DG22_PROBE = r"""() => {
+  const wrap = document.querySelector('#prodDiagram');
+  const svg = wrap && wrap.querySelector('svg');
+  if (!svg) return {err: '沒有 svg'};
+  const sec = document.querySelector('#dgSec');
+  const r = svg.getBoundingClientRect();
+  const sr = sec ? sec.getBoundingClientRect() : null;
+  const k = r.width / (svg.viewBox.baseVal.width || 980);
+  // 只算「畫得出來」的文字：收合起來那幾段掛 display:none，不該拿來當證據
+  const vis = [];
+  svg.querySelectorAll('text').forEach(t => {
+    if (!(t.textContent || '').trim()) return;
+    for (let n = t; n && n !== svg; n = n.parentNode)
+      if (n.getAttribute && n.getAttribute('display') === 'none') return;
+    const b = t.getBoundingClientRect();
+    if (!b.width || !b.height) return;
+    vis.push({b, fs: parseFloat(getComputedStyle(t).fontSize) * k, s: (t.textContent || '').trim().slice(0, 22)});
+  });
+  let minFs = 999, minTx = '', over = 0, ovPairs = [];
+  vis.forEach(o => { if (o.fs < minFs) { minFs = o.fs; minTx = o.s; } });
+  for (let i = 0; i < vis.length; i++) for (let j = i + 1; j < vis.length; j++) {
+    const a = vis[i].b, c = vis[j].b;
+    if (Math.min(a.right, c.right) - Math.max(a.left, c.left) > 1.5 &&
+        Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > 1.5) {
+      over++; if (ovPairs.length < 3) ovPairs.push([vis[i].s, vis[j].s]);
+    }
+  }
+  let outside = 0;
+  vis.forEach(o => { if (o.b.left < r.left - 2 || o.b.right > r.right + 2 ||
+                         o.b.top < r.top - 2 || o.b.bottom > r.bottom + 2) outside++; });
+  const bars = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold]'));
+  return {
+    h: Math.round(r.height), w: Math.round(r.width),
+    vbW: Math.round(svg.viewBox.baseVal.width), vbH: Math.round(svg.viewBox.baseVal.height),
+    secH: sr ? Math.round(sr.height) : null,
+    minFs: +minFs.toFixed(2), minTx: minTx, texts: vis.length,
+    over: over, ovPairs: ovPairs, outside: outside,
+    bars: bars.length,
+    barSeg: svg.querySelectorAll('g.dgfold[data-seg]').length,
+    hints: bars.map(g => (g.querySelector('.fhint') || {}).textContent || ''),
+    wrapOvX: wrap ? wrap.scrollWidth - wrap.clientWidth : 0,
+    pageOvX: document.documentElement.scrollWidth - document.documentElement.clientWidth
+  };
+}"""
+
+
+def _dg22_open_all(pg):
+    """把所有章節列真的按開（用真的 click 事件，走 wireFolds 綁的那支 listener）。"""
+    return pg.evaluate("""() => {
+      const bars = document.querySelectorAll('#prodDiagram g.dgfold[data-fold]');
+      bars.forEach(g => (g.querySelector('.fbar') || g).dispatchEvent(new MouseEvent('click', {bubbles: true})));
+      return bars.length; }""")
+
+
+def _dg22_land(pg, base, route, w=1440, h=900, shut=True):
+    """走到一張圖自己的網址，並且把狀態壓成「2D、抽屜關著、圖展開」再量。
+
+    ★ 為什麼要 reload（2026-09-22 被這一條咬過）：
+      這一段量的是 **2D 畫布**，但 `tw.dg3d` 是**記在 localStorage 的全站偏好** ——
+      只要這一輪之前有任何一段把 3D 打開過，`#prodDiagram` 就會被 `svg.hidden = true`
+      藏起來，量到的高度是 **0**，而「0 ≤ 上限」是會過的 —— **假綠**。
+      實際發作時 AI 伺服器量到 857（那是 3D 畫布 ＋ chrome，不是剖析圖），
+      MLCC 量到 0。設完偏好一定要 reload：換 hash 是 same-document navigation，JS 不會重跑。
+    """
+    pg.set_viewport_size({"width": w, "height": h})
+    pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+    pg.evaluate("""([shut]) => { try {
+        localStorage.setItem('tw.dg3d', '0');
+        localStorage.setItem('tw.side', shut ? '0' : '1'); } catch (e) { /* 私密視窗 */ } }""", [shut])
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(1500)
+    if shut:
+        _shut_side(pg)
+    # 手機寬預設把剖析圖收起來（#dgFold「展開剖析圖 ▾」），要先展開才量得到
+    pg.evaluate("""() => { const b = document.getElementById('dgFold');
+        const s = document.getElementById('dgBody');
+        if (b && s && getComputedStyle(s).display === 'none') b.click(); }""")
+    pg.wait_for_timeout(400)
+    got = wait_until(pg, "() => !!document.querySelector('#prodDiagram svg')", 8000)
+    # 捲到「#dgSec 的上緣貼在固定頁首底下」——兩個理由：
+    #   ① 這就是使用者真的會停在的位置，#dgSec 的高度要在這個位置量才有意義；
+    #   ② F 段用 elementFromPoint 在圖上掃空白，**點必須落在視窗內**才掃得到。
+    #     DECISIONS #235 §七 就是這個坑：那裡用的 scrollIntoView 因為
+    #     html{scroll-behavior:smooth} 是非同步的，下一行量到的還是捲動前的位置，
+    #     掃描點全部被「超出視窗」濾掉 —— 症狀長得像「圖上找不到空白」。
+    #     這裡直接用 window.scrollTo（同步），不碰 scrollIntoView。
+    pg.evaluate("""() => { const s = document.getElementById('dgSec');
+        if (!s) return;
+        const h = document.querySelector('.topbar');
+        const pad = (h ? h.getBoundingClientRect().height : 0) + 6;
+        window.scrollTo(0, s.getBoundingClientRect().top + window.scrollY - pad); }""")
+    pg.wait_for_timeout(250)
+    return got
+
+
+def t_dgsize(pg, base):
+    """批次22：所有剖析圖的尺寸標準化（art-director 2026-09-22）。
+
+    逐條驗的是「**畫面真的因此改變了**」，不是「元素存在」：
+      A 1440×900：每一張的收合高度在棘輪內，而且 `#dgSec` 整塊塞得進
+        「視窗 900 − 固定頁首 58px ＝ 842」（＝捲到這一區之後不必再捲）
+      B 全開（最壞情況）：真的變高、文字真的變多 ＝ 收起來的東西**真的還在、真的打得開**
+      C 再按一次真的收得回（回到跟收合時**一模一樣**的高度）
+      D 字級下限 12px：深／淺主題 × 四個配色，逐張逐個 text 量畫面真實字級
+      E 800px 與 390px：不溢出、文字不重疊
+      F 既有互動沒被動到：點零件只亮不篩、點背景恢復全亮、點色標筆數真的變、動畫開關
+    """
+    # ---------------- A. 1440×900：一次看完
+    # 先落地一次再量頁首 —— 這支拿到的 page 可能還停在別段留下的畫面上，
+    # 對著空白頁量出來的 0 會讓下面整張上限表失去依據。
+    _dg22_land(pg, base, DG22[0][1])
+    topbar = pg.evaluate("() => { const h = document.querySelector('.topbar');"
+                         " return h ? Math.round(h.getBoundingClientRect().height) : 0; }")
+    ok(f"固定頁首還是 {DG22_TOPBAR}px（變了就要回去重算 #dgSec 的上限表）",
+       abs((topbar or 0) - DG22_TOPBAR) <= 2, topbar)
+
+    for name, route, cap, seccap in DG22:
+        if not _dg22_land(pg, base, route):
+            ok(f"[{name}] 圖畫得出來（後面每一條都靠它）", False, route)
+            continue
+        a = pg.evaluate(DG22_PROBE)
+        if a.get("err"):
+            ok(f"[{name}] 圖畫得出來", False, a)
+            continue
+        # 先擋假綠：高度 0 代表圖根本沒畫出來（例如 3D 開著把 2D 藏起來），
+        # 而「0 ≤ 上限」是會過的 —— 這一條就是那個洞的塞子。
+        if not ok(f"[{name}] 2D 畫布真的畫出來了（高度 > 0）", a["h"] > 0, a):
+            continue
+        ok(f"[{name}] 收合高度 {a['h']} ≤ 上限 {cap}", a["h"] <= cap, a["h"])
+        # ★ 兩種抽屜狀態都量，比**大**的那一個。
+        #   「今日事件」抽屜開著時欄寬只有 998，圖別選單的晶片會多換一行，chrome 147 → 185。
+        #   只量關著那一邊 ＝ 只量比較好看的那一半 —— 這一輪就是這樣漏掉 38px 的。
+        _dg22_land(pg, base, route, shut=False)
+        aOpen = pg.evaluate(DG22_PROBE)
+        secMax = max(a["secH"] or 0, (aOpen.get("secH") or 0))
+        ok(f"[{name}] 標題＋圖別選單＋說明＋畫布整塊 {secMax} ≤ {seccap}"
+           f"（抽屜開 {aOpen.get('secH')}／關 {a['secH']}；"
+           f"1440×900 扣掉 {DG22_TOPBAR}px 固定頁首，額度 900−{DG22_TOPBAR}＝842）",
+           secMax and secMax <= seccap, {"抽屜開": aOpen.get("secH"), "抽屜關": a["secH"]})
+        ok(f"[{name}] 抽屜開關不影響畫布尺寸（max-width 真的釘住了）",
+           aOpen.get("h") == a["h"] and aOpen.get("w") == a["w"],
+           {"抽屜關": [a["w"], a["h"]], "抽屜開": [aOpen.get("w"), aOpen.get("h")]})
+        _dg22_land(pg, base, route)   # 回到抽屜關著，下面 B／C 段要真的按章節列
+        ok(f"[{name}] 畫布寬度沒有超出欄寬（不必左右滑）", a["wrapOvX"] <= 1, a["wrapOvX"])
+        ok(f"[{name}] 收合狀態文字不重疊", a["over"] == 0, a["ovPairs"])
+        ok(f"[{name}] 收合狀態文字沒有出框", a["outside"] == 0, a["outside"])
+        ok(f"[{name}] 最小字級 {a['minFs']} ≥ 12px", a["minFs"] >= 11.95, f"{a['minFs']}px「{a['minTx']}」")
+
+        if not a["bars"]:
+            continue    # 這張圖本來就短到不用收納（半導體、AI 伺服器）
+        # 收合狀態要看得出「還有什麼可以展開」——寫「更多」等於叫人先點開再猜
+        ok(f"[{name}] 每一條章節列都寫著裡面有什麼（不是「更多」）",
+           all(len(t.strip()) >= 8 and "更多" not in t for t in a["hints"]), a["hints"])
+        ok(f"[{name}] 章節列沒有掛 data-seg（掛了按一下就順手把成分股篩掉）",
+           a["barSeg"] == 0, a["barSeg"])
+
+        # ---------------- B. 全開 ＝ 最壞情況
+        _dg22_open_all(pg)
+        pg.wait_for_timeout(450)
+        b = pg.evaluate(DG22_PROBE)
+        ok(f"[{name}] 按章節列 → 畫布真的變高（收起來的東西真的打得開）",
+           b["h"] > a["h"] + 40, {"收合": a["h"], "全開": b["h"]})
+        ok(f"[{name}] 全開之後畫得出來的文字真的變多（＝內容沒有被刪掉，只是收起來）",
+           b["texts"] > a["texts"], {"收合": a["texts"], "全開": b["texts"]})
+        ok(f"[{name}] 全開狀態文字仍然不重疊", b["over"] == 0, b["ovPairs"])
+        ok(f"[{name}] 全開狀態最小字級 {b['minFs']} ≥ 12px", b["minFs"] >= 11.95,
+           f"{b['minFs']}px「{b['minTx']}」")
+
+        # ---------------- C. 再按一次真的收得回
+        _dg22_open_all(pg)
+        pg.wait_for_timeout(450)
+        c = pg.evaluate(DG22_PROBE)
+        ok(f"[{name}] 再按一次真的收回去（高度回到跟收合時一模一樣）",
+           c["h"] == a["h"], {"第一次收合": a["h"], "收回去之後": c["h"]})
+        ok(f"[{name}] 收回去之後畫得出來的文字數也回到原樣",
+           c["texts"] == a["texts"], {"收合": a["texts"], "收回去": c["texts"]})
+
+    # ---------------- D. 字級下限：深／淺主題 × 四個配色
+    #   為什麼要重新整理：同一頁換 hash 是 same-document navigation，JS 不會重跑，
+    #   切主題就不生效 —— DECISIONS #235 §七 已經踩過一次，量出來的「亮色」其實還是深色。
+    for theme in ("dark", "light"):
+        for pal in ("tech", "soft", "calm", "casual"):
+            pg.goto(f"{base}#industry/ai_server/dg/server_psu", wait_until="networkidle")
+            pg.evaluate("""([t, p]) => { try {
+                localStorage.setItem('tw.theme', t);
+                localStorage.setItem('tw.dg3d.pal', p);
+                localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }""", [theme, pal])
+            pg.reload(wait_until="networkidle")
+            pg.wait_for_timeout(1800)
+            _shut_side(pg)
+            d = pg.evaluate(DG22_PROBE)
+            if d.get("err"):
+                ok(f"[{theme}／{pal}] 圖畫得出來", False, d)
+                continue
+            ok(f"[{theme}／{pal}] 最小字級 {d['minFs']} ≥ 12px",
+               d["minFs"] >= 11.95, f"{d['minFs']}px「{d['minTx']}」")
+            ok(f"[{theme}／{pal}] 文字不重疊", d["over"] == 0, d["ovPairs"])
+    pg.evaluate("""() => { try { localStorage.setItem('tw.theme', 'dark');
+        localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }""")
+    # ★ 一定要 reload：下面 E 段換的是 hash，那是 same-document navigation，JS 不會重跑，
+    #   主題與配色會留在 D 段最後一輪（亮色＋休閒）。DECISIONS #235 §七 就是這個坑。
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(900)
+
+    # ---------------- E. 800px 與 390px
+    #   800 是 Andy 把瀏覽器縮成半邊的寬度（DECISIONS #171 就是只驗寬螢幕放過去的）。
+    for w in (800, 390):
+        for name, route, cap, seccap in DG22:
+            if not _dg22_land(pg, base, route, w=w):
+                ok(f"[{w}px][{name}] 圖畫得出來", False, route)
+                continue
+            e = pg.evaluate(DG22_PROBE)
+            if e.get("err"):
+                ok(f"[{w}px][{name}] 圖畫得出來", False, e)
+                continue
+            ok(f"[{w}px][{name}] 整頁沒有橫向捲軸（圖框自己可以左右滑是對的）",
+               e["pageOvX"] <= 1, e["pageOvX"])
+            ok(f"[{w}px][{name}] 文字不重疊", e["over"] == 0, e["ovPairs"])
+            ok(f"[{w}px][{name}] 最小字級 {e['minFs']} ≥ 12px", e["minFs"] >= 11.95,
+               f"{e['minFs']}px「{e['minTx']}」")
+            ok(f"[{w}px][{name}] 收合高度 {e['h']} ≤ 上限 {cap}", e["h"] <= cap, e["h"])
+
+    # ---------------- F. 既有互動一個都沒被動到（抽一張有章節、有多個環節的圖）
+    _dg22_land(pg, base, "ai_server/dg/pcb_rigid")
+    pg.evaluate("() => { const b = document.getElementById('dgAnim'); if (b) b.click(); }")
+    pg.wait_for_timeout(300)
+
+    def snap():
+        return pg.evaluate("""() => ({
+            sel: document.querySelectorAll('#prodDiagram .sel-part').length,
+            dim: document.querySelectorAll('#prodDiagram .dim').length,
+            card: !!(document.getElementById('partCard') && !document.getElementById('partCard').hidden),
+            rows: document.querySelectorAll('#memberTable tbody tr').length,
+            vbH: Math.round(document.querySelector('#prodDiagram svg').viewBox.baseVal.height) })""")
+
+    s0 = snap()
+    # F1 點零件：只亮不篩（DECISIONS #73）
+    # ★ 一定要挑**畫得出來**的那一個零件：收起來那幾段裡的零件掛著 display:none，
+    #   dispatchEvent 照樣打得到它（不做命中測試），那就等於驗了一個真人點不到的東西。
+    pg.evaluate("""() => {
+        const ok = n => { for (let q = n; q; q = q.parentNode)
+            if (q.getAttribute && q.getAttribute('display') === 'none') return false; return true; };
+        const n = [].slice.call(document.querySelectorAll('#prodDiagram [data-part]')).filter(ok)[0];
+        if (n) n.dispatchEvent(new MouseEvent('click', {bubbles: true})); }""")
+    pg.wait_for_timeout(400)
+    s1 = snap()
+    ok("F1 點零件 → 它真的變成主角（.sel-part 多出來）", s1["sel"] >= 1, s1)
+    ok("F1 點零件**只亮不篩**：成分股筆數一筆都不准變（DECISIONS #73）",
+       s1["rows"] == s0["rows"], {"點之前": s0["rows"], "點之後": s1["rows"]})
+
+    # F2 點背景：恢復全亮、小卡收掉，而且**不准把章節收回去**
+    bg = pg.evaluate("""() => {
+        const h = document.getElementById('prodDiagram'); const r = h.getBoundingClientRect();
+        for (let y = r.top + 6; y < r.bottom - 6; y += 9)
+          for (let x = r.left + 6; x < r.right - 6; x += 9) {
+            const t = document.elementFromPoint(x, y);
+            if (t && h.contains(t) && !t.closest('[data-seg],[data-part],[data-fold],a'))
+              return {x: Math.round(x), y: Math.round(y)};
+          }
+        return null; }""")
+    if ok("F2 圖上找得到一個真的空白座標", bool(bg), bg):
+        pg.mouse.click(bg["x"], bg["y"])
+        pg.wait_for_timeout(400)
+        s2 = snap()
+        ok("F2 點背景 → 高亮清掉、小卡收掉、回到基準",
+           s2["sel"] == 0 and not s2["card"] and s2["dim"] == s0["dim"], {"基準": s0, "點背景後": s2})
+        ok("F2 點背景**不准順手把章節收回去**（那是兩件事）",
+           s2["vbH"] == s0["vbH"], {"點之前": s0["vbH"], "點之後": s2["vbH"]})
+
+    # F3 展開一段之後點零件，仍然只亮不篩 —— 收納不准把既有行為換掉
+    _dg22_open_all(pg)
+    pg.wait_for_timeout(450)
+    s3 = snap()
+    pg.evaluate("""() => { const ns = document.querySelectorAll('#prodDiagram .dgbody [data-part]');
+        if (ns.length) ns[0].dispatchEvent(new MouseEvent('click', {bubbles: true})); }""")
+    pg.wait_for_timeout(400)
+    s4 = snap()
+    ok("F3 展開之後，章節**裡面**的零件也點得到（真的變成主角）", s4["sel"] >= 1, s4)
+    ok("F3 章節裡面的零件一樣只亮不篩", s4["rows"] == s3["rows"],
+       {"點之前": s3["rows"], "點之後": s4["rows"]})
+
+    # F4 點環節色標：成分股筆數真的變
+    seg = pg.evaluate("""() => { const c = document.querySelector('#segChips .segchip:not(.nomem)');
+        if (!c) return null; c.click(); return c.dataset.seg; }""")
+    pg.wait_for_timeout(600)
+    s5 = snap()
+    if ok("F4 找得到一個有成分股的環節色標", bool(seg), seg):
+        ok("F4 點環節色標 → 成分股筆數真的變了（不是只驗元素存在）",
+           s5["rows"] != s3["rows"], {"點之前": s3["rows"], "點之後": s5["rows"]})
+
+    # F5 動畫開關：真的把動畫關掉（class 真的掛上去、按回去真的拿掉）
+    st = pg.evaluate("""() => { const b = document.getElementById('dgAnim');
+        const w = document.getElementById('prodDiagram');
+        const before = w.classList.contains('noanim');
+        b.click(); const after = w.classList.contains('noanim');
+        b.click(); const back = w.classList.contains('noanim');
+        return {before, after, back, tx: b.textContent}; }""")
+    ok("F5 動畫開關真的切得動（class 真的變，兩次按回原狀）",
+       st["after"] != st["before"] and st["back"] == st["before"], st)
 
 if __name__ == "__main__":
     raise SystemExit(main())

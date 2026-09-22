@@ -9,7 +9,12 @@
        ⚠ 這段註解裡**不准出現角括號**：這個 style 是 SVG 裡的 style，
          瀏覽器會把它當標記解析，寫一個像標籤的東西進去會把整張樣式表吃掉
          （2026-09-21 深夜實測：寫了「角括號 html」四個字，整個 cssRules 變成 0 條）。*/
-    .dg{font-family:"Noto Sans TC",sans-serif;--dg-accent:var(--dg-accent-2d,#3ee0ff)}
+    /* 畫布寬度的上限（.dgwrap svg.dgm 的 max-width:984px）**住在 site/index.html**，
+       不在這裡 —— 理由與實測數字寫在那一段註解裡。
+       一句話版本：native 只設 min-width，擋的是「欄位太窄把圖壓小」；
+       欄位變寬時 svg 是 width:100% 會整張放大（1440 把事件抽屜關掉就放大 1.365 倍），
+       兩個一起有，畫布才真的是固定 984×H 一個尺寸。
+       ⚠ 這裡**刻意不再寫第二份**：同一條規則兩個出處，遲早有人只改一邊。*/
     /* 零件群組裡的強調色＝那個環節的顏色；群組外（流程箭頭、良率曲線、比例尺）就是固定的青色。
        這兩行是 --dg-accent 唯一的定義處 —— 寫在 :root 的話 var(--c) 會在 :root 就被解析掉，
        每個零件自己的環節色永遠吃不到。 */
@@ -121,6 +126,25 @@
        所以只有掛了 .dgm 的新圖合格，半導體與 AI 伺服器兩張舊圖永遠是 10.5px。
        現在 12px 變成 .dg 的基準（上面那一段），.dgm 不再負責字級，
        只剩下量產圖自己才有的 .hd（區塊小標）與 .num（數字）。*/
+    /* ---- .dgw：1220 寬的舊圖（現在只剩 AI 伺服器機櫃）收進 980 的欄寬 ----
+       art-director 2026-09-22。Andy：「把所有 2D 3D 圖的圖片及文字縮小一半…希望能一次看到完整資訊」。
+       它是 DECISIONS #227 之前畫的，viewBox 1220 寬，掛 native:1220 之後在 1440 螢幕上
+       （半導體 CoWoS 那張本來也是，2026-09-22 隨 DECISIONS #234 退場了）
+       **需要左右滑才看得完**——「一次看到完整資訊」在水平方向是不成立的。
+       重排幾何要 tech-illustrator 動手，但有一個不動幾何的做法：
+       **畫布收進 984（欄寬），幾何自然被壓成 0.807 倍，字級同步除以 0.807 補回去。**
+       算式：984 ÷ 1220 ＝ 0.8066；12 ÷ 0.8066 ＝ 14.88px → 畫面上量到 12.0px。
+       這正是「縮幾何、字不跟著縮」——圖小了、字沒小。
+       ⚠ 代價寫在前面：字相對於版位變大 24%，所以這一張的文字框留白被吃掉一截；
+         scripts/_preview.py 的文字重疊掃描就是守這件事的那道網。*/
+    .dg.dgw{--dg-fs-ttl:19.8px;--dg-fs-hd:16.7px;--dg-fs-lbl:15.5px;--dg-fs-min:14.88px}
+    /* 行距要跟著字級長，否則就是 DECISIONS #227 那個病的第三次復發。
+       這兩張舊圖從頭到尾用 16 個單位當「標題 → 副標」的行距，字級除以 0.807 之後
+       量到 **27 對標題／副標互相重疊 1.1px**（1440／800／390 都一樣）。
+       27 對全部是同一個形狀（.lbl 在 y、.sub 在 y+16），所以一條規則就收得完：
+       副標整體往下 3 個單位 ＝ 行距 19，量出來重疊歸零、而且不會頂到下一列。
+       ⚠ 只推副標、不推標題：兩個都推的話行距不會變，那是搬家不是加行距。*/
+    .dg.dgw .sub{transform:translateY(3px)}
     .dgm .hd{font-size:var(--dg-fs-hd,13.5px);font-weight:700;fill:var(--dg-ink,#e8eeff)}
     .dgm .num{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-2,#9fb0d0)}
     /* 底框的底與線也收成 token（值跟搬家之前一樣），配色才換得掉「框」這一層 */
@@ -499,7 +523,7 @@
     const cages = [0, 1, 2, 3].map(j => `<rect x="${1004 + j * 14}" y="452" width="11" height="26" rx="1.5" fill="#0f172b" stroke="#2a3860"/><circle class="blink b${(j % 3) + 1}" cx="${1009.5 + j * 14}" cy="${458}" r="1.8" fill="#3ee0ff"/>`).join('');
     const traces = [[590, 470], [640, 458], [720, 476], [800, 462], [880, 472], [940, 460]].map(([x, y], i) => `<path class="flow ${i % 2 ? 'rev' : ''} slow" d="M${x},${y} h${40 + (i % 3) * 20}" stroke="rgba(255,180,84,.5)" stroke-width="1.3"/>`).join('');
     const weave = []; for (let x = 570; x <= 990; x += 22) weave.push(`<line x1="${x}" y1="522" x2="${x}" y2="560" stroke="rgba(120,200,150,.16)"/>`); for (let y = 530; y <= 556; y += 9) weave.push(`<line x1="562" y1="${y}" x2="1000" y2="${y}" stroke="rgba(120,200,150,.16)"/>`);
-    return `<svg class="dg dgm" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
+    return `<svg class="dg dgm dgw" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
       <defs>
         <linearGradient id="agCool" x1="0" x2="1"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
         <linearGradient id="agPlate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(62,224,255,.28)"/><stop offset="1" stop-color="rgba(62,224,255,.08)"/></linearGradient>
@@ -515,7 +539,9 @@
       <g data-seg="power" data-part="ag_psu"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="26" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
       <g data-seg="thermal" data-part="ag_cdu"><rect class="part" x="34" y="524" width="172" height="76" rx="4" fill="#0e2a33"/>
         <circle class="spin" cx="66" cy="562" r="16" fill="none" stroke="#3ee0ff" stroke-width="2.5" stroke-dasharray="7 6"/><circle cx="66" cy="562" r="4" fill="#3ee0ff"/>
-        <text class="lbl" x="94" y="556">CDU</text><text class="sub" x="94" y="571">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="585">冷水進 · 熱水回</text>
+        <!-- 行距 15／14 → 20：.dgw 把字級除以 0.807 補回 12px 之後，14px 的行距配 14.88 的字
+             會疊在一起（量到 2～3px）。CDU 這個框高 76，三行走 20 的行距剛好收得下。 -->
+        <text class="lbl" x="94" y="550">CDU</text><text class="sub" x="94" y="570">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="590">冷水進 · 熱水回</text>
         <path class="flow" d="M212,596 V120" stroke="#3ee0ff" stroke-width="2.4"/><path class="flow rev" d="M218,120 V596" stroke="#ff4d6d" stroke-width="2.4"/></g>
 
       <!-- 中：托盤爆炸圖（skewX 做出斜視角） -->
@@ -778,10 +804,10 @@
          放在左上角時它跟主角互相搶第一眼；放在同一欄的最上面，閱讀順序就只有一條線：
          公式（為什麼要疊）→ 六條（疊了什麼）→ 警語（疊錯會怎樣）。 */
     const R = 656, RW = 284;              // 右側說明欄：文字起點 x 與底框寬
-    const S1 = 580;                       // 主畫面（§1）結束的位置
-    /* 三個章節的自然位置（＝全部展開時的版面）。收合是 wireFolds() 在執行期重新堆的，
-       所以這幾個數字只要「展開時看起來對」就好，不必去算收合後的位置。*/
-    const Y2 = 638, Y3 = 1136, Y4 = 1470; // 三段內容區的起點
+    /* 章節的 y0/y1 以前寫在這裡（S1／Y2／Y3／Y4 四個常數），2026-09-22 拿掉了：
+       改用 D.fold()，位置由 wireFolds() 量 getBBox() 得到。
+       拿掉的好處是實的 —— 舊算法讓第一條章節列固定落在 592（Y2 − 46），
+       但 §1 其實在 534 就結束了，白白多出 58px 的空白。量出來之後收合高度 746 → 696。*/
     const D2 = 176;                       // ② 段裡「端電極放大剖面 ＋ 四層圖例」的整體位移
     const D3 = 24, D4 = 32;               // ③／④ 段內容的微調位移（讓每段的上緣留白一致）
     // 四層圖例（順序＝正上方那句「由內到外 Cu →〔樹脂〕→ Ni → Sn」，A4 修過的，不准倒回去）
@@ -838,8 +864,7 @@
       <text class="sub" x="${R + 8}" y="530" style="fill:var(--dg-warn)">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
 
       <!-- ================= ② 端電極四層 ＋ 板彎裂（預設收合） ================= -->
-      ${foldBar('mc2', Y2 - 46, '② 端電極四層 ＋ 板彎裂：為什麼車規賣得比消費級貴', '消費級／車規兩張放大剖面、四層各自在幹嘛、板彎裂示意')}
-      <g class="dgbody" data-fold="mc2" data-y0="${Y2}" data-y1="1090">
+      ${fold('mc2', '② 端電極四層 ＋ 板彎裂：為什麼車規賣得比消費級貴', '消費級／車規兩張放大剖面、四層各自在幹嘛、板彎裂示意', `
         <text class="hd" x="16" y="666">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
         <g transform="translate(0,${D2})">${endCut(16, false)}${endCut(324, true)}
           <text class="hd" x="640" y="526">四層各自在幹嘛（由內到外）</text>${legend}</g>
@@ -871,11 +896,11 @@
           <text class="sub" x="522" y="880">車子的板子會彎 → 要加導電樹脂層（軟端子），多一道製程，而且 ESR 變高。</text>
           <text class="sub" x="522" y="898">AEC-Q200 全項（含基板彎曲）＋ 零缺陷框架；認證與換料時程長，產能一綁就難轉。</text>
         </g>
-      </g>
+      `)}
 
       <!-- ================= ③ 製造流程 ＋ 為什麼越貴（預設收合） ================= -->
-      ${foldBar('mc3', Y3 - 46, '③ 怎麼做出來的：十道製程併成五格，以及為什麼疊越多層越貴', '五格製程流程、整顆良率隨層數下滑的曲線')}
-      <g class="dgbody" data-fold="mc3" data-y0="${Y3}" data-y1="1424"><g transform="translate(0,${D3})">
+      ${fold('mc3', '③ 怎麼做出來的：十道製程併成五格，以及為什麼疊越多層越貴', '五格製程流程、整顆良率隨層數下滑的曲線', `
+      <g transform="translate(0,${D3})">
         <text class="cap" x="16" y="1152">製造流程（十道併成五格）　★ 燒結一定在端電極之前 —— 反過來端電極會先被燒掉</text>
         ${processBar(16, 1162, [{ seg: SEG, t: '流延成膜', s: '陶瓷漿料刮成生胚膜' },
     { seg: SEG, t: '網印 ＋ 疊層', s: '交替方向印 Ni 電極' },
@@ -895,11 +920,12 @@
           <path d="M330,858 C362,861 388,872 408,890 S446,924 472,933" stroke="var(--dg-accent)" stroke-width="2" fill="none" opacity=".85"/>
           <text class="sub" x="330" y="850">整顆良率</text><text class="sub" x="404" y="950">層數 →</text>
         </g>
-      </g></g>
+      </g>
+      `)}
 
       <!-- ================= ④ 尺寸代號、這一格有誰、資料來源（預設收合） ================= -->
-      ${foldBar('mc4', Y4 - 46, '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數')}
-      <g class="dgbody" data-fold="mc4" data-y0="${Y4}" data-y1="1716"><g transform="translate(0,${D4})">
+      ${fold('mc4', '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數', `
+      <g transform="translate(0,${D4})">
         <text class="hd" x="16" y="1468">③ 尺寸代號有兩套，別記混</text>
         <!-- 尺寸尺是附註級：單色 --dg-mute、不穿主角的陶瓷材質（上一輪降權的結論，維持） -->
         <g transform="translate(0,1130)">
@@ -922,7 +948,8 @@
         <text class="cap" x="574" y="1592">資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
         <text class="cap" x="16" y="1638">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
         <text class="cap" x="16" y="1656">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），實際高容量品 400～1000 層以上；介電 0.5–2 µm、內電極約 0.5 µm。</text>
-      </g></g>
+      </g>
+      `)}
     </svg>`;
   }
 
@@ -953,7 +980,7 @@
     /* ⚠ `semiconductor` 這個鏈層級的檔位在 2026-09-22 退場了（DECISIONS #234）——
        它跟 `ai_adv_packaging` 畫的是同一顆 CoWoS 封裝的剖面。理由與「內容搬到哪裡」
        寫在本檔上方那段註解。半導體鏈現在走圖別選單，跟 AI 伺服器鏈同一個模式。*/
-    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
+    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 984,
       q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
     mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980,
       q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？',
