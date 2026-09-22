@@ -392,6 +392,266 @@
           codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
       ],
     },
+    /* ===== 一般電子鏈：面板 TFT-LCD 疊層 ===== */
+    /* 2D 是 `site/dg/panel.js`，`part` 沿用它的 `data-part`（pn_*）。
+       背光模組在 2D 上是**一個** data-part（`pn_backlight`），3D 把它拆成五層各自一件，
+       所以那五件各自用 `alias: ['pn_backlight']` 指回去 —— 2D 點背光模組，3D 那五層一起亮。
+       構圖：整疊沿 y 垂直爆炸。收攏時是一片完整的面板，展開時十三層的順序一目了然。
+       ⚠ 共同電極、配向層、平坦化層沒有畫：它們的位置與有無依顯示模式（TN／VA／IPS）而異，
+         查不到可引用的定論 —— 寧可不畫，也不要畫一個看起來很專業的錯結構（跟 2D 那張同一條）。*/
+    panel: {
+      title: '面板：一片 TFT-LCD 拆成十三層（垂直爆炸）',
+      sub: '由下往上＝背板／反射片／導光板／下擴散／稜鏡片 → 下偏光 → 下玻璃與 TFT 陣列 → 液晶 → 彩色濾光片 → 上玻璃 → 上偏光。★ 兩片偏光板都在**兩片玻璃的外側**、而且透光軸正交；光源是導光板**側邊**那條 LED 燈條，不是正下方。下玻璃多出來的那一條是端子區，驅動 IC 與 COF 貼在那裡。示意圖，非實物比例',
+      camera: [96, 78, 116], target: [0, 14, 0], fit: 0.98, hk: 0.46,
+      parts: [
+        { seg: 'panel_mfg', part: 'pn_bl_back', alias: ['pn_backlight'], name: '背板與膠框（整疊的底）', note: '鈑金盤 ＋ 壓在上緣的一圈塑膠膠框。★ 膠框不是裝飾：整疊光學膜片就是靠它壓住定位的，少了它整疊會鬆掉',
+          kind: 'pnframe', box: [88, 4, 58], at: [0, 2, 0], ex: [0, -34, 0],
+          codes: ['6176'], chipnote: '背光模組台股：6176 瑞儀（導光板／擴散板／背光模組）。供應鏈資料還沒把背光模組建成獨立環節，所以這一欄直接指名、不走環節名單' },
+        { seg: 'panel_mfg', part: 'pn_bl_ref', alias: ['pn_backlight'], name: '反射片', note: '貼在導光板底下，把往下漏的光打回去。它只做一件事，但少了它整片亮度就掉一截',
+          kind: 'pnfilm', box: [82, 0.6, 54], at: [0, 4.7, 0], k: 0.5, ex: [0, -26, 0],
+          codes: ['6176'], chipnote: '背光模組台股：6176 瑞儀（供應鏈資料沒有這一格，直接指名）' },
+        { seg: 'panel_mfg', part: 'pn_lgp', alias: ['pn_backlight'], name: '導光板（底面有網點）', note: '★ 底面的網點是它唯一的識別特徵：離入光側越遠、點越大越密。沒有這個梯度，光會全部從靠近 LED 那一頭漏出去，整片一邊亮一邊暗。畫成一塊光板子＝畫的是壓克力板',
+          kind: 'pnlgp', box: [82, 3.4, 54], at: [0, 7, 0], ex: [0, -18, 0],
+          codes: ['6176'], chipnote: '導光板台股：6176 瑞儀（供應鏈資料沒有這一格，直接指名）' },
+        { seg: 'panel_mfg', part: 'pn_led', name: 'LED 燈條（側光式的光源）', note: '★ 一排白光 LED 朝著導光板的**側面**，不是朝上 —— 朝上就是直下式背光，那是另一種結構。背光是白的，畫面的顏色不是它給的',
+          kind: 'pnledbar', box: [5, 3.4, 54], at: [-44, 7, 0], ex: [-30, -18, 0],
+          codes: [], chipnote: 'LED 晶粒屬 LED 族群、燈條組裝屬背光模組（6176 瑞儀），兩者都不在這張圖涵蓋的環節裡 —— 這一格不指名，避免把「做燈條」講成「做面板」' },
+        { seg: 'panel_mfg', part: 'pn_bl_diff', alias: ['pn_backlight'], name: '下擴散片', note: '把導光板打出來的光打散，網點才不會一顆一顆被看見。它在稜鏡片底下 —— 順序反了就會看到網點',
+          kind: 'pnfilm', box: [82, 0.7, 54], at: [0, 9.5, 0], k: 0.36, ex: [0, -10, 0],
+          codes: ['6176'], chipnote: '擴散板台股：6176 瑞儀（供應鏈資料沒有這一格，直接指名）' },
+        { seg: 'panel_mfg', part: 'pn_bl_prism', alias: ['pn_backlight'], name: '稜鏡片 ×2（兩片正交）', note: '★ 兩片的稜線必須正交：一片只把光收一個方向，兩片同向就少收了另一個方向、正面亮度提不上去。這也是「為什麼是兩片不是一片」的答案',
+          kind: 'pnprism', box: [82, 1.8, 54], at: [0, 11, 0], ex: [0, -3, 0],
+          codes: ['6176'], chipnote: '背光模組台股：6176 瑞儀（供應鏈資料沒有這一格，直接指名）' },
+        { seg: 'panel_mfg', part: 'pn_pol_lo', name: '下偏光板', note: '★ 貼在下玻璃的**外側**，不是夾在液晶旁邊。它先把背光整理成單一方向的光，液晶轉不轉才決定光到不到得了上偏光板',
+          kind: 'pnpol', box: [80, 1.0, 52], at: [0, 12.5, 0], ex: [0, 4, 0],
+          codes: ['8215', '4960'], chipnote: '偏光板台股：8215 明基材、4960 誠美材（在「面板產業」族群裡）。供應鏈資料還沒把偏光板建成獨立環節，所以這一欄直接指名' },
+        { seg: 'display_material', part: 'pn_glass_lo', name: 'TFT 陣列玻璃基板（下玻璃）', note: '下面那片玻璃，內側做 TFT 陣列；★ 它比上玻璃大，多出來的那一條就是端子區。面板廠在這片玻璃上做大面積精細金屬線路的能力，就是它能轉去做封裝 RDL 的本錢。★ 台股沒有 TFT 玻璃基板廠 —— 康寧、AGC、NEG 三家外商供應；台玻 1802 做的是建築玻璃與玻纖，不是 TFT 基板',
+          kind: 'pnglass', box: [88, 1.8, 52], at: [0, 14, 0], ex: [0, 10, 0], codes: [] },
+        { seg: 'panel_mfg', part: 'pn_tft', name: 'TFT 陣列層', note: '★ 橫的閘極線選一列、縱的資料線送電壓，兩者正交成格，每一格角落一顆薄膜電晶體開關那一個子像素的像素電極。少掉其中一組線就不是「陣列」，只是一堆電極',
+          kind: 'pntft', box: [76, 0.9, 50], at: [0, 15.4, 0], ex: [0, 16, 0] },
+        { seg: 'panel_mfg', part: 'pn_lc', name: '液晶層', note: '★ 液晶靠「轉向」控制光，不是靠自己發光：不加電躺平、加電立起來，通過的光量就不同（圖上左右兩半就是這兩個狀態）。周邊一圈封框膠封住，中間幾根光阻間隙物撐住盒厚。哪一邊亮依顯示模式（TN／VA／IPS）而定，圖上不指定',
+          kind: 'pnlc', box: [76, 1.8, 50], at: [0, 16.8, 0], ex: [0, 22, 0] },
+        { seg: 'panel_mfg', part: 'pn_cf', name: '彩色濾光片（黑色矩陣 ＋ R／G／B 色阻）', note: '做在上玻璃內側。★ R／G／B 是三個**水平並排**的子像素，不是上下疊三層（疊三層等於把光濾光，什麼都看不到）。黑色矩陣把每一格框起來擋住串色。顏色是它濾出來的，不是背光給的',
+          kind: 'pncf', box: [76, 1.0, 50], at: [0, 18.2, 0], ex: [0, 28, 0] },
+        { seg: 'display_material', part: 'pn_glass_up', name: '彩色濾光片玻璃基板（上玻璃）', note: '上面那片玻璃，內側做彩色濾光片。★ 面積比下玻璃小 —— 下玻璃多出來的那一條是端子區。★ 台股沒有 TFT 玻璃基板廠：康寧、AGC、NEG 三家外商供應',
+          kind: 'pnglass', box: [80, 1.8, 52], at: [0, 19.6, 0], ex: [0, 34, 0], codes: [] },
+        { seg: 'panel_mfg', part: 'pn_pol_up', name: '上偏光板（透光軸與下片正交）', note: '★ 貼在上玻璃的**外側**，偏振方向與下偏光板正交。兩片一夾，液晶轉多少、光就過多少 —— 少一片就沒有「擋得掉」這件事，兩片同向則是永遠全亮',
+          kind: 'pnpol', box: [80, 1.0, 52], at: [0, 21.1, 0], cross: true, ex: [0, 40, 0],
+          codes: ['8215', '4960'], chipnote: '偏光板台股：8215 明基材、4960 誠美材（在「面板產業」族群裡，供應鏈資料還沒建成獨立環節）' },
+        { seg: 'panel_mfg', part: 'pn_driver', name: '端子區：驅動 IC ＋ COF 軟板', note: '★ 貼在下玻璃外露的那一條端子區上 —— 兩片玻璃錯開就是為了留這條邊。COF 是壓在軟性電路板上再接過來，軟板往背面折。晶片本身屬半導體鏈的「顯示驅動 IC」（3034 聯詠等），這裡只畫它貼在哪裡，不宣稱晶片是面板廠做的',
+          kind: 'pndriver', box: [16, 3.4, 50], at: [38, 15, 0], ex: [26, 10, 0] },
+      ],
+    },
+    /* ===== 一般電子鏈：工業自動化／CNC 工具機 —— 一個會動的軸 ===== */
+    /* 2D 是 `site/dg/motion_control.js`（一張圖掛兩個族群：`factory_automation` 與 `machine_tool`），
+       所以這一個場景也被那兩個 id 共用。`part` 沿用 2D 的 `data-part`（mc_*）。
+       構圖：一根單軸模組沿著 x 拆開 —— 馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽 → 滑軌＋滑塊 → 工作台。
+       ⚠ 這張圖**沒有對應的供應鏈環節**：一般電子鏈 8 格裡沒有一格是傳動件，
+         所以 `seg: 'motion_axis'` 只是佔位，台股一律用零件自己的 `codes` 列（跟矽晶圓那張同一套）。
+       ⚠ 減速機（諧波／RV）與氣壓件在 2D 那張各有一格，3D 這一張只畫「直線軸」那一條 ——
+         轉動關節的兩種減速機在剖面上比並排立體更清楚（那是齒數與相位的事，不是空間的事）。*/
+    motion_axis: {
+      title: '工業自動化：一個會動的軸沿著軸拆開',
+      sub: '馬達轉 → 聯軸器接 → 軸承座撐 → 滾珠螺桿把「轉」變成「直線走」→ 滑軌撐住工作台不歪。★ 螺帽剖開看得到鋼珠與那條 U 形回流通道 —— 鋼珠是一個閉合的迴圈，沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的。示意圖，非實物比例',
+      camera: [64, 56, 118], target: [0, 8, 0], fit: 1.02, hk: 0.5,
+      parts: [
+        { seg: 'motion_axis', part: 'mc_base', name: '底座（鋁擠型）', note: '★ 斷面有空腔：同樣重量下拿到比較高的斷面剛性 —— 實心方塊不是鋁擠型。上緣的 T 型槽是軌道與感測器鎖上去的地方',
+          kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], codes: [] },
+        { seg: 'motion_axis', part: 'mc_enc', name: '編碼器（回授的起點）', note: '★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——「會轉」跟「知道自己轉到哪」是兩件事。它裝在馬達的尾端（遠離螺桿那一側），把位置送回驅動器與控制器',
+          kind: 'mcenc', box: [13, 17, 17], at: [-70, 9, 0], ex: [-42, 4, 0],
+          codes: [], chipnote: '編碼器這一件，查不到台股的具名對應 —— 查不到就寫查不到，不編一個對應' },
+        { seg: 'motion_axis', part: 'mc_motor', name: '伺服馬達', note: '方殼、外殼有散熱肋、前面一片法蘭鎖到機構上、軸從法蘭伸出去。★ 沒有尾端那顆編碼器就只是一般感應馬達。本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）',
+          kind: 'mcmotor', box: [40, 20, 20], at: [-44, 9, 0], ex: [-24, 4, 0],
+          codes: ['4576'], chipnote: '4576 大銀微系統（線性馬達與傳動，信心：verified）。★ 本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
+        { seg: 'motion_axis', part: 'mc_coupling', name: '聯軸器', note: '★ 馬達與螺桿之間一定要有它。直接畫成一根連續的軸就是錯 —— 那表示兩根軸完全同心且剛性連接，實務上做不到，也沒有可更換的犧牲件。中間那一段撓性溝就是它的識別特徵',
+          kind: 'mccoup', box: [20, 13, 13], at: [-21, 9, 0], ex: [-12, 4, 0],
+          codes: [], chipnote: '聯軸器這一件，查不到台股的具名對應' },
+        { seg: 'motion_axis', part: 'mc_bearing', name: '軸承座（固定端／支撐端）', note: '螺桿兩端各一個：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）—— 兩端都畫成固定端，螺桿熱起來就被自己頂彎。剖面看得到內外環與夾在中間的一圈滾珠',
+          kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], n: 2, gap: 76, axis: 'x', ex: [0, 17, 0],
+          codes: [], chipnote: '軸承座這一件，查不到台股的具名對應' },
+        { seg: 'motion_axis', part: 'mc_screw', name: '滾珠螺桿・螺桿軸', note: '把馬達的「轉」變成工作台的「直線走」。★ 表面的溝槽剖面是圓弧（哥德弧或單圓弧），不是 V 形三角 —— V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。兩端的軸頸比較細且有階級，那是要裝軸承的地方',
+          kind: 'mcscrew', box: [86, 13, 13], at: [0, 9, 0], ex: [0, 3, 0],
+          codes: ['2049', '4540'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。終端不同：上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
+        { seg: 'motion_axis', part: 'mc_nut', name: '滾珠螺桿・螺帽（含法蘭）', note: '套在螺桿上的金屬套筒，長度約螺桿全長的六分之一。★ 用半管切開而不是切方塊：壁厚看得見，才看得出鋼珠與回流通道真的在這個套筒的裡面。外側的法蘭是它鎖到工作台上的那一片',
+          kind: 'mcnut', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 3, 0],
+          codes: ['2049', '4540'], chipnote: '同螺桿軸：2049 上銀、4540 全球傳動。兩檔都不在 supply_chain.yaml 裡' },
+        { seg: 'motion_axis', part: 'mc_ball', name: '鋼珠（兩點接觸）', note: '★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。鋼珠把滑動摩擦換成滾動摩擦，這是滾珠螺桿跟一般螺桿唯一的差別',
+          kind: 'mcballs', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 13, 0],
+          codes: [], chipnote: '鋼珠（鋼球）這一件，查不到台股的具名對應' },
+        { seg: 'motion_axis', part: 'mc_return', name: '循環器（鋼珠回流通道）', note: '★ 這張圖的紅線零件：鋼珠滾到螺帽的一端之後，從這條 U 形通道繞回另一端，重新進入溝槽 —— 是一個閉合的迴圈。沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿',
+          kind: 'mcreturn', box: [22, 17, 17], at: [16, 9, 0], ex: [22, 21, 0],
+          codes: [], chipnote: '循環器是螺桿廠自己做的零件，查不到獨立供應的台股對應' },
+        { seg: 'motion_axis', part: 'mc_rail', name: '線性滑軌・軌道 ×2', note: '凸出來的一條，兩側有圓弧溝。★ 一定是兩條平行軌，而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的',
+          kind: 'mcrail', box: [110, 8, 13], at: [0, 2, 0], n: 2, gap: 30, axis: 'z', ex: [0, -6, 0],
+          codes: ['2049', '1597'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、1597 直得（線性滑軌）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
+        { seg: 'motion_axis', part: 'mc_block', name: '線性滑軌・滑塊 ×2', note: '★ ㄇ 字形，從上方罩下來、包住軌道的兩側。畫成「一個方塊放在軌道上面」就是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，而滑軌存在的理由就是吃這兩種力。滑軌不出力，只負責「別歪掉」與承重',
+          kind: 'mcblock', box: [26, 11, 21], at: [26, 5, 0], n: 2, gap: 30, axis: 'z', ex: [26, 13, 0],
+          codes: ['2049', '1597'], chipnote: '同軌道：2049 上銀、1597 直得。兩檔都不在 supply_chain.yaml 裡' },
+        { seg: 'motion_axis', part: 'mc_table', name: '工作台（滑座）', note: '★ 同時鎖在螺帽與滑塊上：螺帽推它走、滑塊撐住它不歪 —— 兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方',
+          kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [22, 30, 0], codes: [] },
+      ],
+    },
+    /* ===== 一般電子鏈：被動保護 —— 過流與過壓元件 ===== */
+    /* 2D 是 `site/dg/circuit_protection.js`，`part` 沿用它的 `data-part`（cp_*）。
+       構圖：四顆並排、切掉同一個角（半剖，切掉 z > 0）。
+       ★ 為什麼非得剖開：這四顆的外觀都只是小方塊，差別**全部在裡面**——
+         MOV 是陶瓷晶粒與晶界、PPTC 是高分子與碳黑鏈、NTC 是均質燒結陶瓷、TVS 是 PN 接面與空乏區。
+         不剖開就等於沒有畫出任何一件事。
+       ⚠ 2D 那張的第 ② 段講的是串／並聯拓樸（哪一顆掛在地上、哪一顆串在線上）——
+         那是電路關係不是空間形狀，所以 3D 這一張不重畫，保留在 2D。
+       ⚠ 氣體放電管（GDT）不在這一張：它的內部是氣體游離電漿，畫不出可查證的結構，
+         而且 2D 已經明寫「查不到台股對應」。*/
+    resistor_protect: {
+      title: '被動保護：四顆並排剖開，四種完全不同的物理',
+      sub: '左到右＝PPTC（高分子＋碳黑鏈，過流自恢復）／NTC（均質燒結陶瓷，擋開機湧浪電流）／MOV（氧化鋅晶粒＋晶界，過壓導走能量）／TVS（PN 接面＋空乏區，把電壓壓到最低、擺最靠近 IC）。★ 四顆的外觀都只是小方塊，差別全部在裡面。示意圖，非實物比例',
+      camera: [62, 48, 104], target: [0, 7, 0], fit: 1.0, hk: 0.48,
+      parts: [
+        { seg: 'passive_comp', part: 'cp_ins', name: 'PPTC：外包絕緣層', note: '最外面那一層樹脂或塑膠薄膜。它不參與導電，只是把裡面包起來 —— 所以這裡畫成一個空的殼，不是一塊實心',
+          kind: 'cpshell', box: [26, 17, 20], at: [-42, 8, 0], ex: [0, -14, 0],
+          codes: ['6224', '6642'], chipnote: 'PPTC 自恢復保險絲台股：6224 聚鼎、6642 富致。兩家都不在 supply_chain.yaml 裡，所以直接指名；本圖不區分兩家的技術差異（查不到就不編）' },
+        { seg: 'passive_comp', part: 'cp_ni', name: 'PPTC：鎳電極箔 ×2', note: '上下各一片，夾住中間的高分子基體。★ 是相對的兩面，不是同一面的兩端 —— 電流要垂直穿過高分子。底下那一層薄錫說明它是表面黏著件',
+          kind: 'cpfoil', box: [22, 14, 18], at: [-42, 8, 0], ex: [0, 9, 0],
+          codes: ['6224', '6642'], chipnote: 'PPTC 台股：6224 聚鼎、6642 富致（兩家都不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'cp_poly', name: 'PPTC：高分子基體', note: '聚乙烯類的高分子。低溫時結晶之間的導電粒子構成三維網路而導通；電流過大升溫後體積膨脹、由結晶態轉為非結晶態，網路斷裂而不導通；溫度降低後恢復結晶，又可導通 —— 這就是「自恢復」',
+          kind: 'cppoly', box: [22, 10, 18], at: [-42, 8, 0], ex: [0, 0, 0],
+          codes: ['6224', '6642'], chipnote: 'PPTC 台股：6224 聚鼎、6642 富致（兩家都不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'cp_carbon', name: 'PPTC：導電碳黑粒子（串成鏈）', note: '★ 常溫時黑色顆粒連成貫穿上下電極的通路 —— 它是一條一條的鏈，不是均勻的黑色。過流發熱時高分子膨脹、鏈被拉斷。只畫「變紅」不畫「變厚＋斷鏈」就沒有解釋機制。膨脹的實際比例查不到，本圖不寫百分比',
+          kind: 'cpcarbon', box: [22, 10, 18], at: [-42, 8, 0], ex: [0, 16, 0],
+          codes: ['6224', '6642'], chipnote: 'PPTC 台股：6224 聚鼎、6642 富致（兩家都不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'cp_ntc', name: 'NTC 熱敏電阻（串在線上）', note: '★ 金屬氧化物燒結的均質陶瓷本體 ＋ 兩個相對面電極，沒有晶界網也沒有 PN 接面。★ 它擋的不是突波電壓，是開機瞬間的湧浪電流 —— 跟另外三顆不是同一件事，而且它串在主線上、沒有接地腿',
+          kind: 'cpntc', box: [22, 16, 18], at: [-14, 7, 0], ex: [0, 8, 0],
+          codes: ['2428'], chipnote: '2428 興勤（NTC 熱敏電阻、壓敏電阻與保護元件）。興勤不在 supply_chain.yaml 裡，所以直接指名。信心：reported（產業媒體）' },
+        { seg: 'passive_comp', part: 'cp_grain', name: 'MOV：ZnO 晶粒（本體）', note: '氧化鋅晶粒燒結而成（加入少量鉍、鈷、錳等金屬氧化物）。★ 一堆大小不一的多邊形，不是一塊均質陶瓷 —— 畫成均質方塊就不是 MOV，那跟旁邊的 NTC 長得一模一樣。晶粒的實際尺寸與數量查不到，圖上是示意',
+          kind: 'cpgrain', box: [24, 15, 18], at: [14, 8, 0], ex: [0, 2, 0],
+          codes: ['2428'], chipnote: '2428 興勤（壓敏電阻 MOV 與保護元件）。興勤不在 supply_chain.yaml 裡。信心：reported（產業媒體）' },
+        { seg: 'passive_comp', part: 'cp_gb', name: 'MOV：晶界（電流真正被擋住的地方）', note: '★ MOV 的非線性完全來自晶界：每一對相鄰晶粒之間的界面形成一個微觀位壘，一顆裡面有數以百萬計個，串並聯成一張三維的網。圖上那條折線是電流穿過好幾道晶界的路徑（示意，不是只有一條）',
+          kind: 'cpgb', box: [24, 15, 18], at: [14, 8, 0], ex: [0, 15, 0],
+          codes: ['2428'], chipnote: '2428 興勤（壓敏電阻 MOV 與保護元件，不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'cp_movel', name: 'MOV：電極 ×2（並聯到地）', note: '★ 在兩個相對的面（上下），不是同一面的兩端 —— 電流要垂直穿過整疊晶粒才會撞到那些晶界。★ 它是會消耗的：每吸收一次突波內部就退化一點，最後通常以短路收場；寄生電容大，不適合掛在高速資料線上',
+          kind: 'cpelec', box: [24, 19, 18], at: [14, 8, 0], ex: [0, 10, 0],
+          codes: ['2428'], chipnote: '2428 興勤（壓敏電阻 MOV，不在 supply_chain.yaml 裡）。「每擋一次就退化、最終短路」與「寄生電容大」來自同一篇比較型整理（單一來源），所以本圖不寫任何鉗位比、電壓值與 pF 數字' },
+        { seg: 'passive_comp', part: 'cp_pn', name: 'TVS：PN 接面（P 區／空乏區／N 區）', note: '★ 兩種不同摻雜的半導體區、中間一條空乏區窄帶 —— 這是 TVS 的識別特徵，雪崩就發生在那條窄帶裡。畫成陶瓷晶粒就是畫成了 MOV（兩者的物理機制完全不同），畫成三明治薄膜就是畫成了晶片電阻',
+          kind: 'cppn', box: [22, 13, 18], at: [42, 7, 0], ex: [0, 3, 0],
+          codes: ['6284'], chipnote: '6284 佳邦（ESD／TVS 等過電壓保護元件）。佳邦不在 supply_chain.yaml 裡，所以直接指名' },
+        { seg: 'passive_comp', part: 'cp_tvsel', name: 'TVS：金屬電極 ×2（並聯到地，最靠近 IC）', note: '上下各一片，把 PN 接面夾在中間。★ 它與 IC 之間不准再插別的元件：把電壓壓得比壓敏電阻更低、漂移更小 —— 這就是「分層」，靠外的第一道擋大能量、靠近 IC 的第二道把電壓壓下來。順序反過來就沒有意義',
+          kind: 'cpelec', box: [22, 17, 18], at: [42, 7, 0], ex: [0, 11, 0],
+          codes: ['6284'], chipnote: '6284 佳邦（ESD／TVS 過電壓保護元件，不在 supply_chain.yaml 裡）' },
+      ],
+    },
+    /* ===== 一般電子鏈：電容器 —— 鋁電解與固態電容剖面 ===== */
+    /* 2D 是 `site/dg/alum_cap.js`，`part` 沿用它的 `data-part`（ac_*）。
+       構圖：左邊整顆鋁電解縱剖（用半管切，壁厚看得見）、中間把捲芯的四層水平拉開、右邊固態電容對照。
+       ★ 為什麼非得立體：鋁電解是一顆**捲**出來的東西，這是它跟 MLCC（疊出來的）最根本的差別 ——
+         整顆縱剖看得到捲芯塞在鋁殼裡、頂面那幾圈同心弧說明它是捲的，四層帶再拉開才看得懂
+         「四層一起捲」跟「一層一層疊」不是同一件事。
+       ⚠ 防爆閥畫在與封口相反的那一端，但這一點查不到可引用的來源（各家做法不同），標為示意。*/
+    capacitor: {
+      title: '電容器：一顆鋁電解縱剖開，加上它捲起來的那四層',
+      sub: '左：整顆鋁電解縱剖 —— 外套膠膜／鋁殼／捲芯／橡膠封口／兩根導針／底部防爆閥。中：捲芯的四層水平拉開 —— 陽極箔（表面咬出蜂窩孔、孔壁長氧化膜）／電解紙含浸電解液／陰極箔（一樣有孔，但沒有氧化膜）。★ 真正的陰極是電解液，不是陰極箔；介電質是長出來的氧化膜，不是買來的。右：固態電容對照。示意圖，非實物比例',
+      camera: [72, 66, 108], target: [6, 26, 0], fit: 1.0, hk: 0.52,
+      parts: [
+        { seg: 'passive_comp', part: 'ac_sleeve', name: '外套膠膜', note: '包在鋁殼外面的有色薄膜。★ 本圖上面一個字、一個色碼、一個廠商標示都沒有 —— 那些是產品外觀，不是結構',
+          kind: 'acsleeve', box: [29, 56, 29], at: [-30, 28, 0], ex: [-28, 0, 0],
+          codes: ['2375', '2472', '4939'], chipnote: '做鋁質電解電容的台股：2375 智寶，另有 2472 立隆電與 4939 亞電（兩家不在 supply_chain.yaml 裡，這裡一併指名）' },
+        { seg: 'passive_comp', part: 'ac_can', name: '鋁殼', note: '捲芯含浸完之後裝進去的薄壁圓筒，一端封死、另一端才封口。★ 用半管切開而不是切方塊：壁厚看得見，才看得出「裡面裝著捲芯」。上緣那道頸縮就是封口橡膠卡住的地方',
+          kind: 'accan', box: [28, 56, 28], at: [-30, 28, 0], ex: [-16, 0, 0],
+          codes: ['2375', '2472', '4939'], chipnote: '做鋁質電解電容的台股：2375 智寶、2472 立隆電、4939 亞電（後兩家不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'ac_winding', name: '捲芯（四層一起捲成一個圓柱）', note: '★ 四層同時捲在一個大直徑輪上，兩張箔稍微橫向錯開避免邊緣接觸。三層捲起來，上一圈的陽極會直接碰到下一圈的陰極 —— 短路。頂面那幾圈同心弧就是「它是捲出來的」的證據',
+          kind: 'accore', box: [23, 44, 23], at: [-30, 27, 0], ex: [-6, 0, 0],
+          codes: ['2375', '2472', '4939'], chipnote: '做鋁質電解電容的台股：2375 智寶、2472 立隆電、4939 亞電' },
+        { seg: 'passive_comp', part: 'ac_seal', name: '橡膠封口', note: '在鋁殼的一端，兩根導針從這裡穿出去。它同時是密封件，也是壓力上來時的洩壓路徑之一',
+          kind: 'acseal', box: [26, 6, 26], at: [-30, 53, 0], ex: [0, 22, 0],
+          codes: ['2375', '2472', '4939'], chipnote: '做鋁質電解電容的台股：2375 智寶、2472 立隆電、4939 亞電' },
+        { seg: 'passive_comp', part: 'ac_lead', name: '導針（引線）×2', note: '一根接陽極箔、一根接陰極箔。★ 整顆的兩根導針從同一端穿出（徑向引線型）—— 一端一根那是軸向型，跟這裡的捲芯畫法對不起來。焊在箔上的那一段是扁的，穿出去的那一段才是圓的',
+          kind: 'aclead', box: [3.4, 18, 3.4], at: [-30, 63, 0], n: 2, gap: 12, axis: 'x', ex: [0, 32, 0],
+          codes: [], chipnote: '導針這一件，查不到台股的具名對應' },
+        { seg: 'passive_comp', part: 'ac_vent', name: '防爆閥（刻痕）', note: '壓力上來時先從這裡裂開，不讓整顆炸掉。★ 本圖把它畫在與封口相反的那一端，但這一點查不到可引用的來源（徑向引線型的防爆結構各家做法不同），所以標為示意，也不寫刻痕形狀的規格',
+          kind: 'acvent', box: [24, 3, 24], at: [-30, 1.5, 0], ex: [0, -20, 0],
+          codes: ['2375', '2472', '4939'], chipnote: '做鋁質電解電容的台股：2375 智寶、2472 立隆電、4939 亞電' },
+        { seg: 'passive_comp', part: 'ac_anode', name: '陽極箔（容量就是從這裡來的）', note: '先用電化學蝕刻把表面咬成蜂窩狀，有效表面積放大很多倍 —— 容量就是從這裡來的。再通電做陽極氧化，在孔壁上長出氧化鋁介電質',
+          kind: 'acfoil', box: [40, 2.6, 22], at: [26, 43, 0], k: 0.3, ex: [16, 18, 0],
+          codes: ['2375'], chipnote: '★ 這一層的上游是 6175 立敦（電容用鋁箔 —— 電蝕箔、化成箔）。立敦不做電容成品，它做的是這一層的材料；立敦不在 supply_chain.yaml 裡' },
+        { seg: 'passive_comp', part: 'ac_pore', name: '蝕刻孔（隧道／海綿狀）', note: '咬出來的孔。孔越多越深，同一片箔的表面積越大。★ 兩面都咬，中間要留一條實心芯 —— 沒有芯的箔會斷。本圖不寫孔徑、孔密度與表面積放大倍數（查不到共通值）',
+          kind: 'acpore', box: [40, 2.6, 22], at: [26, 43, 0], ex: [16, 27, 0],
+          codes: ['2375'], chipnote: '上游是 6175 立敦（電容用鋁箔，不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'ac_core', name: '箔的基體（未蝕刻的芯部）', note: '兩面被咬之後中間留下來的那一條實心鋁。圖上的芯厚是「箔厚 − 2×孔深」真的減出來的，不是目測',
+          kind: 'acspine', box: [40, 2.6, 22], at: [26, 43, 0], ex: [16, 36, 0],
+          codes: ['2375'], chipnote: '上游是 6175 立敦（電容用鋁箔，不在 supply_chain.yaml 裡）' },
+        { seg: 'passive_comp', part: 'ac_oxide', name: '陽極氧化膜（Al₂O₃，介電質）', note: '★ 介電質不是買來的，是長出來的：鋁箔通電做陽極氧化，表面長出一層氧化鋁。膜厚由外加電壓決定 —— 耐壓越高、膜越厚、容量越小（每伏特幾埃是 roughly 的說法，所以不寫數字）。★ 它只長在陽極箔上，陰極箔沒有這層膜，這就是「為什麼有極性」',
+          kind: 'acoxide', box: [40, 3.0, 22], at: [26, 43, 0], ex: [16, 11, 0],
+          codes: [], chipnote: '氧化膜是「化成」這一道製程長出來的，屬於箔的加工、不是電容廠的獨立採購件 —— 做化成箔的是 6175 立敦，它不做電容成品也不在 supply_chain.yaml 裡，所以這一格不列' },
+        { seg: 'passive_comp', part: 'ac_paper', name: '電解紙（隔離紙）', note: '天然纖維素做的紙，含浸電解液，同時把兩張箔隔開。★ 它本身不是電極，也不是介電質 —— 介電質是陽極箔上那層氧化膜',
+          kind: 'acpaper', box: [40, 1.6, 22], at: [26, 34, 0], ex: [16, 2, 0],
+          codes: [], chipnote: '電解紙與電解液這一段，查不到台股對應，先標為未知 —— 查不到就寫查不到' },
+        { seg: 'passive_comp', part: 'ac_elyte', name: '電解液（★ 它才是真正的陰極）', note: '★ 這張圖的第三句話：陰極箔不是陰極，真正的陰極是含浸在紙裡的電解液。它要鑽進陽極箔的孔裡、貼住氧化膜 —— 只畫在紙裡就是沒有接觸到介電質，電容不成立',
+          kind: 'acelyte', box: [40, 1.4, 22], at: [26, 30, 0], ex: [16, -6, 0],
+          codes: [], chipnote: '電解液的配方與化學品這一段，查不到台股對應，先標為未知' },
+        { seg: 'passive_comp', part: 'ac_cathode', name: '陰極箔（不是陰極，是集電體）', note: '★ 一樣有蝕刻孔，但沒有那層氧化膜（只有自然氧化層）。它的工作是把電解液的電引出來 —— 兩面都畫氧化膜就變成了雙極性電容，而且把「為什麼有極性」這件事畫掉了',
+          kind: 'acfoil', box: [40, 2.6, 22], at: [26, 25, 0], k: -0.12, ex: [16, -16, 0],
+          codes: [], chipnote: '陰極箔是誰做的本次查不到。查到的 6175 立敦講的是電蝕箔與化成箔（陽極側），不能直接套到陰極箔上' },
+        { seg: 'passive_comp', part: 'ac_solid', name: '固態電容（對照組）', note: '★ 固態電容只換了一樣東西：把電解液換成固態的導電高分子。它一樣要鑽進陽極箔的孔裡。等效串聯電阻大幅下降，而且沒有液體可以汽化，所以不會鼓脹爆漿（來源只講材料導電度，不是成品的 ESR 改善倍數，所以不寫倍數）',
+          kind: 'acsolid', box: [24, 26, 24], at: [66, 13, 0], ex: [30, 0, 0],
+          codes: ['6449'], chipnote: '6449 鈺邦（固態電容）。鈺邦不在 supply_chain.yaml 裡，所以直接指名' },
+      ],
+    },
+    /* ===== 一般電子鏈：被動元件 —— 電感・電阻・石英 ===== */
+    /* 2D 是 `site/dg/power_inductor.js`，`part` 沿用它的 `data-part`（ind_* / res_* / xtal_*）。
+       構圖：三顆並排、各自切掉朝鏡頭那一半。
+       ★ 這三顆的識別特徵**都被蓋住了** —— 繞組埋在磁粉裡、雷射修整溝壓在玻璃層底下、
+         石英片封在密封腔裡。半剖是唯一看得到它們的方式，這就是這張圖做 3D 的理由。
+       ⚠ 三者之間**沒有上下游關係**，所以這一張刻意沒有任何流線與箭頭
+         （放在一起是因為它們真的在同一塊板子的同一區）。
+       ⚠ 只有「晶片電阻」那一欄對得到供應鏈環節（passive_comp）；
+         電感與石英在供應鏈圖上還沒有自己的一格，所以台股用零件自己的 `codes` 列。*/
+    power_inductor: {
+      title: '被動元件：電感・電阻・石英，三顆各切開一半',
+      sub: '左：功率電感 —— 磁芯與外殼是同一塊金屬磁粉，扁平銅線立繞埋在裡面，磁通走在本體裡不外漏。中：晶片電阻 —— 陶瓷基板上印電阻膜，量完用雷射切一道 L 形溝把阻值修上去，再蓋玻璃層（所以溝在玻璃底下）。右：石英諧振器 —— 石英片只靠同一端的兩點架著、懸空在密封腔裡，封不住時間就走鐘。示意圖，非實物比例',
+      camera: [58, 46, 100], target: [0, 7, 0], fit: 1.0, hk: 0.46,
+      parts: [
+        { seg: 'power_inductor', part: 'ind_body', name: '電感：金屬磁粉壓製的本體', note: '★ 磁芯與外殼是同一塊 —— 看不到縫，那正是它跟「繞線型＋鐵氧體上蓋」最好分辨的地方（後者磁芯、圓線、上蓋是分開的件，看得到縫隙）。比鐵氧體更耐大電流。剖面上那層細顆粒是壓製的粉粒感（示意）',
+          kind: 'indbody', box: [30, 16, 24], at: [-36, 8, 0], ex: [0, -4, 0],
+          codes: ['3357', '3236', '6155'], chipnote: '台股在「功率電感」族群：3357 臺慶科、3236 千如、6155 鈞寶。★ 這一欄在供應鏈圖上沒有自己的環節，所以直接指名' },
+        { seg: 'power_inductor', part: 'ind_wind', name: '電感：扁平銅線繞組', note: '★ 斷面是長方形（高 > 寬）—— 扁平線立繞，同樣空間塞進更多銅，直流電阻更低。畫成圓線就變成另一種做法了。一段一段拼成的環就是「繞」出來的，不是一顆環',
+          kind: 'indwind', box: [24, 12, 18], at: [-36, 8, 0], ex: [0, 15, 0],
+          codes: ['3357', '3236', '6155'], chipnote: '台股在「功率電感」族群：3357 臺慶科、3236 千如、6155 鈞寶（供應鏈圖上沒有這一格）' },
+        { seg: 'power_inductor', part: 'ind_flux', name: '電感：磁通路徑（封閉、走在本體裡）', note: '★ 磁通不跑出本體之外 —— 那就是「磁屏蔽」這個說法的意思。而且路徑一定是封閉的：從繞組中心往上、沿本體外圍下來、再回到中心。畫成一條有頭有尾的線就是把磁路畫成了電路',
+          kind: 'indflux', box: [30, 16, 24], at: [-36, 8, 0], ex: [0, -16, 0],
+          codes: [], chipnote: '磁通是物理現象，不是一個買得到的零件' },
+        { seg: 'power_inductor', part: 'ind_term', name: '電感：引出端子（只在底面）', note: '★ 繞組兩端折出來貼在底面，所以它是表面黏著件，不是插件（沒有腳穿過板子）。★ 規格要看兩個電流：飽和電流 Isat 與溫升電流 Irms，小的那一個才是天花板',
+          kind: 'indterm', box: [30, 2.6, 24], at: [-36, 1, 0], ex: [0, -10, 0],
+          codes: ['3357', '3236', '6155'], chipnote: '台股在「功率電感」族群：3357 臺慶科、3236 千如、6155 鈞寶' },
+        { seg: 'passive_comp', part: 'res_substrate', name: '電阻：氧化鋁陶瓷基板', note: '整顆零件的底，也是散熱的路；上面的每一層都印在它身上',
+          kind: 'reslay', box: [26, 2.8, 18], at: [0, 1.4, 0], ex: [0, -6, 0] },
+        { seg: 'passive_comp', part: 'res_bottom', name: '電阻：背面電極', note: '基板背面也印一層 —— 它是散熱與焊接的路。只畫正面那一層的話，這顆零件焊在板子上是靠什麼貼住的就沒有答案',
+          kind: 'resback', box: [26, 0.8, 18], at: [0, -0.4, 0], ex: [0, -14, 0] },
+        { seg: 'passive_comp', part: 'res_film', name: '電阻：電阻膜（釕系厚膜）', note: '網印上去再燒結。★ 兩端壓在電極上（是重疊，不是頭碰頭對接）—— 對接的接口一受熱就開路',
+          kind: 'resfilm', box: [26, 1.4, 18], at: [0, 3.5, 0], ex: [0, 9, 0] },
+        { seg: 'passive_comp', part: 'res_trim', name: '電阻：雷射修整溝 ← 它的身分證', note: '★ 印出來的阻值不會剛好，量完用雷射切一道溝，把電流的路徑拉長、阻值往上修。溝是 L 形（先切進去再轉向），不是一條直線 —— 直線切過頭就報廢了，L 形才修得準',
+          kind: 'restrim', box: [26, 1.6, 18], at: [0, 3.6, 0], ex: [0, 17, 0] },
+        { seg: 'passive_comp', part: 'res_glass', name: '電阻：玻璃保護層', note: '★ 修完才蓋上去，所以那道溝在它底下 —— 溝露在最外面就是畫錯。半透明才看得到底下那道溝，那正是這一層要證明的事',
+          kind: 'resglass', box: [20, 1.2, 18], at: [0, 4.9, 0], ex: [0, 24, 0] },
+        { seg: 'passive_comp', part: 'res_term3', name: '電阻：三層端電極', note: '★ 一定是三層：內層（與電阻膜接觸）→ 鎳阻障（擋焊錫把內層吃掉）→ 錫（好焊）。少掉鎳那一層，焊兩次就把內層吃光。這跟 MLCC 的端電極是同一套道理',
+          kind: 'resterm', box: [28, 7, 18], at: [0, 3.4, 0], ex: [0, 1, 0] },
+        { seg: 'power_inductor', part: 'xtal_base', name: '石英：陶瓷底座（有凹穴）', note: '★ 石英片是懸空在凹穴裡的，不是貼在底面上 —— 貼死就振不動了。底面四個焊墊說明它是表面黏著件',
+          kind: 'xtalbase', box: [28, 6, 20], at: [38, 3, 0], ex: [0, -8, 0],
+          codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩。★ 這一欄在供應鏈圖上沒有自己的環節，所以直接指名' },
+        { seg: 'power_inductor', part: 'xtal_mount', name: '石英：只靠同一端的兩點架著', note: '★ 四周都不能碰到東西 —— 碰到就振不動。支撐點數量為示意。導電膠同時是機械支撐與電氣連接（電極的引線就走這裡下來）',
+          kind: 'xtalmount', box: [10, 2.4, 14], at: [38, 7.2, 0], ex: [0, 6, 0],
+          codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
+        { seg: 'power_inductor', part: 'xtal_blank', name: '石英：石英片（AT 切）', note: '★ 厚度決定頻率（越薄頻率越高）—— 所以這一片的厚薄不是隨便畫的。AT 切＝相對於晶軸切一個特定角度，那個角度決定它的溫度特性',
+          kind: 'xtalblank', box: [22, 1.4, 15], at: [38, 9, 0], ex: [0, 13, 0],
+          codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
+        { seg: 'power_inductor', part: 'xtal_elec', name: '石英：電極（上下各一片）', note: '★ 面積比石英片小 —— 電場要垂直穿過石英才激得起厚度剪切振動。兩片各自拉一條引線到同一端的支撐點，所以那兩條引線一定在同一側、不是對角',
+          kind: 'xtalelec', box: [22, 3, 15], at: [38, 9, 0], ex: [0, 20, 0],
+          codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
+        { seg: 'power_inductor', part: 'xtal_cavity', name: '石英：密封的空腔（裡面是空的）', note: '★ 封不住，頻率就跟著環境跑掉 —— 這是這一類零件的生死線。這一格是「空的」，不是一種材料',
+          kind: 'plain', box: [23, 5.5, 16], at: [38, 9.6, 0], ghost: true, mat: 'glass', ex: [0, -18, 0],
+          codes: [], chipnote: '空腔不是一個買得到的零件' },
+        { seg: 'power_inductor', part: 'xtal_lid', name: '石英：金屬蓋＋縫焊密封', note: '用電阻加熱把金屬蓋焊在陶瓷底座上。★ 焊縫是一圈連續的 —— 斷一個點就封不住，時間就跟著走鐘',
+          kind: 'xtallid', box: [28, 5, 20], at: [38, 13, 0], ex: [0, 28, 0],
+          codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -461,6 +721,22 @@
     seedrod: 'metal', heater: 'emc',
     hbmcore: 'si', hbmbase: 'si', tsvcol: 'cu', ubumprows: 'cu',
     wbglay: 'si', wbgbody: 'si', wbggate: 'si', wbgtop: 'metal', wbgpgan: 'organic', wbgelec: 'metal',
+    /* 一般電子鏈六張（2026-09-23）。同樣是**多出來的詞**，舊的一個都沒有動。
+       ⚠ 一張圖一個主色（#244）：面板整疊走玻璃／薄膜的冷色，靠明暗分十三層；
+          傳動件整根走金屬銀灰；保護元件走陶瓷與有機；電容走鋁；電感電阻石英走各自的本體材質。
+          層與層之間靠 K.mat 的 k（明暗）分，不是一層一個色相。*/
+    pnframe: 'metal', pnfilm: 'sn', pnlgp: 'glass', pnledbar: 'cer', pnprism: 'glass',
+    pnpol: 'emc', pnglass: 'glass', pntft: 'cu', pnlc: 'glass', pncf: 'cer', pndriver: 'emc',
+    mcbase: 'alu', mcmotor: 'metal', mcenc: 'emc', mccoup: 'metal', mcbrg: 'metal', mcscrew: 'metal',
+    mcnut: 'metal', mcballs: 'metal', mcreturn: 'plastic', mcrail: 'metal', mcblock: 'metal', mctable: 'alu',
+    cppoly: 'organic', cpcarbon: 'emc', cpfoil: 'metal', cpshell: 'plastic', cpntc: 'cer',
+    cpgrain: 'cer', cpgb: 'cer', cpelec: 'metal', cppn: 'si',
+    accan: 'alu', acsleeve: 'plastic', accore: 'cer', acfoil: 'alu', acpore: 'alu', acspine: 'alu',
+    acoxide: 'cer', acpaper: 'organic', acelyte: 'organic', acseal: 'organic', aclead: 'metal',
+    acvent: 'alu', acsolid: 'emc',
+    indbody: 'emc', indwind: 'cu', indflux: 'si', indterm: 'sn',
+    reslay: 'cer', resfilm: 'emc', restrim: 'cer', resglass: 'glass', resterm: 'sn', resback: 'sn',
+    xtalbase: 'cer', xtalmount: 'cu', xtalblank: 'glass', xtalelec: 'metal', xtallid: 'metal',
   };
   /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；
      閱讀模式（v9，docs/diagram_refs/README.md）是同名 token 的中飽和值＋約 40% 柔光，不是灰粉彩）
@@ -500,6 +776,32 @@
     wbg_gan_sub: 'GaN substrate (Si / SiC)', wbg_gan_buf: 'Buffer layer (AlN / AlGaN)', wbg_gan_ch: 'GaN channel layer',
     wbg_2deg: 'Two-dimensional electron gas', wbg_gan_bar: 'AlGaN barrier', wbg_pgan: 'p-GaN gate',
     wbg_gan_elec: 'Source / gate / drain (all on top)',
+    /* 一般電子鏈六張（2026-09-23）。key 一樣用 2D 那張圖的同一組 data-part，
+       所以 2D 點完一個零件再切到 3D，還是同一個零件被選著。
+       背光模組那五層在 2D 是同一個 data-part，3D 拆開之後各自有自己的 key（pn_bl_*）。*/
+    pn_bl_back: 'Back plate & plastic frame', pn_bl_ref: 'Reflector film', pn_lgp: 'Light guide plate',
+    pn_led: 'LED light bar (edge-lit)', pn_bl_diff: 'Lower diffuser film', pn_bl_prism: 'Prism films x2 (crossed)',
+    pn_pol_lo: 'Lower polarizer', pn_glass_lo: 'TFT array glass substrate', pn_tft: 'TFT array layer',
+    pn_lc: 'Liquid crystal layer', pn_cf: 'Color filter (BM + RGB)', pn_glass_up: 'Color filter glass substrate',
+    pn_pol_up: 'Upper polarizer (crossed axis)', pn_driver: 'Driver IC & COF on the terminal ledge',
+    mc_base: 'Extruded aluminium base', mc_enc: 'Encoder', mc_motor: 'Servo motor', mc_coupling: 'Shaft coupling',
+    mc_bearing: 'Bearing housings (fixed / supported)', mc_screw: 'Ball screw shaft', mc_nut: 'Ball nut with flange',
+    mc_ball: 'Steel balls (two-point contact)', mc_return: 'Ball return circuit', mc_rail: 'Linear guide rails x2',
+    mc_block: 'Guide blocks x2', mc_table: 'Moving table',
+    cp_ins: 'PPTC outer insulation', cp_ni: 'PPTC nickel foil electrodes', cp_poly: 'PPTC polymer matrix',
+    cp_carbon: 'PPTC carbon-black chains', cp_ntc: 'NTC thermistor', cp_grain: 'MOV zinc-oxide grains',
+    cp_gb: 'MOV grain boundaries', cp_movel: 'MOV electrodes', cp_pn: 'TVS p-n junction', cp_tvsel: 'TVS electrodes',
+    ac_sleeve: 'Outer sleeve film', ac_can: 'Aluminium can', ac_winding: 'Wound element (4 layers)',
+    ac_seal: 'Rubber seal', ac_lead: 'Lead wires x2', ac_vent: 'Pressure-relief vent (scored)',
+    ac_anode: 'Anode foil', ac_pore: 'Etched tunnels', ac_core: 'Unetched foil core',
+    ac_oxide: 'Anodic oxide (dielectric)', ac_paper: 'Separator paper', ac_elyte: 'Electrolyte (the real cathode)',
+    ac_cathode: 'Cathode foil (current collector)', ac_solid: 'Polymer (solid) capacitor',
+    ind_body: 'Molded metal-powder body', ind_wind: 'Flat-wire winding', ind_flux: 'Closed magnetic flux path',
+    ind_term: 'Bottom terminations', res_substrate: 'Alumina substrate', res_bottom: 'Back-side electrode',
+    res_film: 'Thick-film resistive layer', res_trim: 'Laser trim cut', res_glass: 'Glass overcoat',
+    res_term3: 'Three-layer terminations', xtal_base: 'Ceramic base with cavity', xtal_mount: 'Two-point mounts',
+    xtal_blank: 'AT-cut quartz blank', xtal_elec: 'Electrodes (both faces)', xtal_cavity: 'Sealed cavity',
+    xtal_lid: 'Metal lid & seam weld',
   };
 
   function kit(THREE, fam, ghost, css, role) {
@@ -2412,6 +2714,1085 @@
       return g;
     }
 
+
+    /* ================================================================ 一般電子鏈的零件字彙（2026-09-23）
+       一般電子鏈原本有六張剖析圖是 `scene: null`（面板／工業自動化／被動保護／鋁電容／被動 RLC）。
+       跟半導體鏈那四張（#247）同一個判準：推翻「不做真 3D」的是**那個理由漏掉的另一半**，
+       不是那個理由本身 —— 六件只有立體才成立的事：
+         · 一片面板是十三層薄膜疊出來的，而「兩片偏光板在兩片玻璃的**外側**、光從**側邊**進來」
+           這兩件事在一張剖面上只是兩條線；把整疊垂直拉開轉一圈，順序與內外就是一眼的事
+         · 一根軸是「馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽 → 滑軌＋滑塊」串起來的**一串**，
+           沿著軸拆開才看得出誰接誰；螺帽剖開才看得到鋼珠是一個**閉合的迴圈**
+         · 四顆保護元件的差別全部在「裡面長什麼樣」（晶粒與晶界／高分子與碳黑鏈／PN 與空乏區），
+           並排半剖轉一圈，四種物理機制一次比得出來
+         · 鋁電解電容是一顆**捲**出來的東西：整顆縱剖看得到捲芯塞在鋁殼裡，
+           捲芯再把四層帶拉出來，才看得懂「四層一起捲」跟「一層一層疊」不是同一件事
+         · 電感的繞組埋在磁粉裡、電阻的雷射修整溝壓在玻璃層底下、石英片懸空在密封腔裡 ——
+           三件都是「被蓋住的識別特徵」，半剖是唯一看得到它們的方式
+       共同規矩（#244）：顏色一律走 FAMILY_TOKENS 與 `--dg-*`（不寫死色值）、一張圖一個主色、
+       層與層靠明暗分、陣列類一律 InstancedMesh、不加任何自體發光（Andy：「不是電競 RGB」）。*/
+
+    /* 沿 x 軸躺著的圓柱。傳動件（馬達軸、螺桿、軸承）幾乎都是躺著的，
+       而 cyl() 給的是站著的（three.js 的 CylinderGeometry 軸在 y）。*/
+    function cylX(r, l, m, seg) { const c = cyl(r, l, m, seg || 16); c.rotation.z = Math.PI / 2; return c; }
+
+    /* 縱剖用的半管：外徑 ro、內徑 ri（ri = 0 就是實心半柱）、長 len，**保留 local y > 0 那一半**。
+       為什麼不沿用 #247 的 halfSlab：那一支切的是方塊，切圓筒會變成「一個被削掉一邊的罐頭」。
+       電容的鋁殼、螺帽、軸承座要的是「壁真的有厚度」——
+       看得到壁厚才看得出「裡面裝著東西」，實心圓柱看不出來。
+       ⚠ 保留哪一半是固定的（local y > 0），轉向由下面兩支包起來，
+         兩支都保證最後切掉的是**世界座標的 z > 0**（跟全站其他剖面同一個切面，
+         使用者不必在兩張圖之間重新學一次「哪一面是切面」）。*/
+    function halfBore(ro, ri, len) {
+      const s = new T.Shape();
+      s.moveTo(-ro, 0);
+      s.absarc(0, 0, ro, Math.PI, 0, true);
+      if (ri > 0) { s.lineTo(ri, 0); s.absarc(0, 0, ri, 0, Math.PI, false); }
+      s.lineTo(-ro, 0);
+      const gg = new T.ExtrudeGeometry(s, { depth: len, bevelEnabled: false, curveSegments: 14 });
+      gg.translate(0, 0, -len / 2);
+      return gg;
+    }
+    // 軸沿 y（站著的圓筒：電容、固態電容、封口、防爆閥）
+    function halfTubeY(ro, ri, len, m) { const x = new T.Mesh(halfBore(ro, ri, len), m); x.rotateX(-Math.PI / 2); return x; }
+    // 軸沿 x（躺著的圓筒：螺帽、軸承座）。先把擠出方向轉到 x，再繞自己的軸轉 90°，切面才落在 z = 0
+    function halfTubeX(ro, ri, len, m) {
+      const x = new T.Mesh(halfBore(ro, ri, len), m);
+      x.rotateY(Math.PI / 2); x.rotateZ(-Math.PI / 2);
+      return x;
+    }
+
+    /* ---------------------------------------------------------------- 面板：TFT-LCD 十三層
+       整疊沿 y 垂直爆炸。每一層都是一張**薄片**，所以每一支都要有「它是一張片」的識別特徵
+       （定位耳、網點、稜線、格線、色阻），不然十三層疊起來就是十三塊一樣的板子。*/
+
+    /* 背板與膠框：整個背光模組的底。鈑金盤 ＋ 壓在上緣的一圈塑膠膠框。
+       ★ 膠框不是裝飾：整疊光學膜片就是靠它壓住定位的，少了它整疊會鬆掉。*/
+    function pnFrame(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = h * 0.3;
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], K.mat(-0.1, { rough: 0.4 })));
+      const b = Math.max(0.05, w * 0.022);
+      g.add(mboxes([[w, b, b * 2, 0, h / 2, -d / 2 + b], [w, b, b * 2, 0, h / 2, d / 2 - b],
+        [b * 2, b, d, -w / 2 + b, h / 2, 0], [b * 2, b, d, w / 2 - b, h / 2, 0]],
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      return g;
+    }
+
+    /* 光學膜片（反射片／擴散片共用）：一張薄片 ＋ 四邊突出來的定位耳。
+       定位耳就是「這是一張膜」而不是一塊板的識別特徵 —— 組裝時它卡在膠框上。*/
+    function pnFilm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(p.k == null ? 0.42 : p.k, { rough: p.rough == null ? 0.72 : p.rough, metal: 0.04 })));
+      const e = Math.max(0.05, w * 0.03);
+      g.add(mboxes([[e * 2, h, e, -w * 0.28, 0, d / 2 + e / 2], [e * 2, h, e, w * 0.28, 0, d / 2 + e / 2],
+        [e, h, e * 2, -w / 2 - e / 2, 0, 0], [e, h, e * 2, w / 2 + e / 2, 0, 0]],
+        K.mat((p.k == null ? 0.42 : p.k) - 0.3, { rough: 0.82 })));
+      return g;
+    }
+
+    /* 導光板：★ 底面的網點是它唯一的識別特徵 ——
+       離入光側（−x）越遠、點越大越密。沒有這個梯度的話，光會全部從靠近 LED 那一頭漏出去，
+       整片就是一邊亮一邊暗。畫成一塊光板子＝畫的是壓克力板，不是導光板。*/
+    function pnLgp(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(0.2, { rough: 0.12, metal: 0.02, op: 0.55 })));
+      const dots = [], nx = 12, nz = 8;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+        const s = 0.35 + (i / (nx - 1)) * 1.15;
+        dots.push([(-0.5 + (i + 0.5) / nx) * w * 0.94, -h / 2 - h * 0.04,
+          (-0.5 + (j + 0.5) / nz) * d * 0.94, 0, 0, 0, s, 1, s]);
+      }
+      g.add(instOf(new T.CylinderGeometry(w * 0.008, w * 0.008, h * 0.12, 6),
+        K.mat(0.86, { rough: 0.92, metal: 0.02 }), dots));
+      return g;
+    }
+
+    /* LED 燈條：★ 一排 LED 朝著導光板的**側面**（+x），不是朝上 ——
+       朝上就是直下式背光，那是另一種結構（本圖畫的是側光式）。*/
+    function pnLedBar(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w * 0.5, h, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })));
+      const n = 10, at = [];
+      for (let i = 0; i < n; i++) at.push([w * 0.28, 0, (-(n - 1) / 2 + i) * (d / n)]);
+      g.add(instOf(new T.BoxGeometry(w * 0.4, h * 0.5, d / n * 0.52),
+        K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.42, metal: 0.05 }), at));
+      // 發光面：只有這一小片准亮（#244 一-6 發光克制 —— 指示燈與光源類才准 led）
+      g.add(instOf(new T.BoxGeometry(w * 0.06, h * 0.32, d / n * 0.34),
+        K.mat(0, { color: K.css('--dg-l-key', '#FFF4E6'), led: true, rough: 0.3, metal: 0.02 }),
+        at.map(a => [a[0] + w * 0.22, 0, a[2]])));
+      return g;
+    }
+
+    /* 稜鏡片 ×2：★ 兩片的稜線必須**正交** —— 一片只把光收一個方向，
+       兩片同向就少收了另一個方向，正面亮度提不上去。*/
+    function pnPrism(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m1 = K.mat(0.24, { rough: 0.16, metal: 0.02, op: 0.72 });
+      const m2 = K.mat(0.48, { rough: 0.16, metal: 0.02, op: 0.72 });
+      const a = h * 0.26;
+      g.add(put(box(w, h * 0.16, d, m1), 0, -h * 0.34, 0));
+      const lo = [], n = 24;
+      for (let i = 0; i < n; i++) lo.push([(-(n - 1) / 2 + i) * (w / n), -h * 0.24, 0, 0, 0, Math.PI / 4]);
+      g.add(instOf(new T.BoxGeometry(a, a, d), m1, lo));
+      g.add(put(box(w, h * 0.16, d, m2), 0, h * 0.08, 0));
+      const up = [], nz = 16;
+      for (let i = 0; i < nz; i++) up.push([0, h * 0.18, (-(nz - 1) / 2 + i) * (d / nz), Math.PI / 4, 0, 0]);
+      g.add(instOf(new T.BoxGeometry(w, a, a), m2, up));
+      return g;
+    }
+
+    /* 偏光板：★ 兩片的透光軸**正交**（下片沿 x、上片沿 z，p.cross 決定）。
+       兩片同向＝光全部通過，那片面板就永遠是亮的、液晶轉不轉都沒有用 ——
+       「為什麼非得要兩片偏光板」這個問題的答案就是這一對方向。*/
+    function pnPol(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(-0.18, { rough: 0.54, metal: 0.05 })));
+      const n = 20, at = [];
+      const geo = p.cross ? new T.BoxGeometry(w * 0.05, h * 0.5, d * 0.94)
+        : new T.BoxGeometry(w * 0.94, h * 0.5, d * 0.05);
+      for (let i = 0; i < n; i++) {
+        const u = (-(n - 1) / 2 + i);
+        at.push(p.cross ? [u * (w / n), h * 0.4, 0] : [0, h * 0.4, u * (d / n)]);
+      }
+      g.add(instOf(geo, K.mat(0.5, { rough: 0.36, metal: 0.12 }), at));
+      return g;
+    }
+
+    /* 玻璃基板：一片玻璃在畫面上如果只是一塊霧，它就跟旁邊的膜片分不開。
+       切過的那一圈邊才是玻璃的識別特徵（它會反白光），所以上下緣各補一條亮邊。*/
+    function pnGlass(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(0.34, { rough: 0.08, metal: 0.02, op: 0.42 })));
+      const t = h * 0.14;
+      g.add(mboxes([[w, t, d * 1.004, 0, h / 2 - t / 2, 0], [w, t, d * 1.004, 0, -h / 2 + t / 2, 0]],
+        K.mat(0.82, { rough: 0.05, metal: 0.06, op: 0.75 })));
+      return g;
+    }
+
+    /* TFT 陣列層：★ 橫的閘極線選一列、縱的資料線送電壓，兩者**正交成格**，
+       每一格角落一顆薄膜電晶體開關那一個子像素的像素電極。
+       少掉其中一組線就不是「陣列」，只是一堆電極。*/
+    function pnTft(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const nx = 10, nz = 7;
+      const cu = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.86, rough: 0.3 });
+      const lw = Math.max(0.05, w * 0.007);
+      const gate = [], data = [], px = [], tft = [];
+      for (let j = 0; j < nz; j++) gate.push([0, h * 0.2, (-(nz - 1) / 2 + j) * (d / nz)]);
+      for (let i = 0; i < nx; i++) data.push([(-(nx - 1) / 2 + i) * (w / nx), h * 0.34, 0]);
+      g.add(instOf(new T.BoxGeometry(w * 0.96, h * 0.3, lw), cu, gate));
+      g.add(instOf(new T.BoxGeometry(lw, h * 0.3, d * 0.96), cu, data));
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+        const x = (-(nx - 1) / 2 + i + 0.5) * (w / nx), z = (-(nz - 1) / 2 + j + 0.5) * (d / nz);
+        px.push([x, -h * 0.1, z]);
+        tft.push([x - w / nx * 0.36, h * 0.24, z - d / nz * 0.36]);
+      }
+      g.add(instOf(new T.BoxGeometry(w / nx * 0.74, h * 0.16, d / nz * 0.74),
+        K.mat(0.55, { rough: 0.3, metal: 0.3 }), px));
+      g.add(instOf(new T.BoxGeometry(w / nx * 0.2, h * 0.5, d / nz * 0.2),
+        K.mat(-0.42, { rough: 0.5, metal: 0.2 }), tft));
+      return g;
+    }
+
+    /* 液晶層：★ 液晶靠「轉向」控制光，不是靠自己發光。
+       左半躺平（不加電）、右半立起來（加電）—— 畫成一片均勻的膠就把整張圖的機制畫掉了。
+       周邊一圈封框膠把液晶封住，中間幾根光阻間隙物撐住盒厚（盒厚是被撐出來的，不是靠運氣）。*/
+    function pnLc(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const b = Math.max(0.05, w * 0.02);
+      g.add(mboxes([[w, h, b, 0, 0, -d / 2 + b / 2], [w, h, b, 0, 0, d / 2 - b / 2],
+        [b, h, d, -w / 2 + b / 2, 0, 0], [b, h, d, w / 2 - b / 2, 0, 0]],
+        K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.72, metal: 0.05 })));
+      const at = [], nx = 12, nz = 8;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+        const x = (-(nx - 1) / 2 + i + 0.5) * (w * 0.86 / nx), z = (-(nz - 1) / 2 + j + 0.5) * (d * 0.86 / nz);
+        at.push([x, 0, z, 0, 0, x < 0 ? Math.PI / 2 : 0]);
+      }
+      g.add(instOf(new T.CylinderGeometry(h * 0.055, h * 0.055, h * 0.62, 5),
+        K.mat(0.3, { rough: 0.3, metal: 0.1, op: 0.85 }), at));
+      g.add(instOf(new T.CylinderGeometry(w * 0.006, w * 0.009, h, 6),
+        K.mat(-0.3, { rough: 0.6, metal: 0.04 }), gridXZ(4, 3, w * 0.22, d * 0.28, 0)));
+      return g;
+    }
+
+    /* 彩色濾光片：★ R／G／B 是三個**水平並排**的子像素，不是上下疊三層 ——
+       疊三層就是把光濾光了，什麼都看不到。黑色矩陣把每一格框起來擋住串色。
+       顏色本身就是這個零件的身分，所以這三個色是全圖唯一刻意的色相差異。*/
+    function pnCf(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const nx = 11, nz = 7;
+      const cw = w * 0.92 / nx, cd = d * 0.92 / nz;
+      [K.css('--dg-fl-hot', '#FF4D5E'), K.css('--dg-m-cool', '#2FB8A6'), K.css('--dg-fl-sig', '#58C4FF')]
+        .forEach((c, s) => {
+          const at = [];
+          for (let i = 0; i < nx; i++) for (let j = 0; j < nz; j++) {
+            at.push([(-(nx - 1) / 2 + i) * cw + (s - 1) * cw * 0.3, 0, (-(nz - 1) / 2 + j) * cd]);
+          }
+          g.add(instOf(new T.BoxGeometry(cw * 0.26, h * 0.72, cd * 0.8),
+            K.mat(0, { color: c, rough: 0.5, metal: 0.04 }), at));
+        });
+      const bm = [];
+      for (let i = 0; i <= nx; i++) bm.push([Math.max(0.03, w * 0.008), h, d * 0.92, (-nx / 2 + i) * cw, 0, 0]);
+      for (let j = 0; j <= nz; j++) bm.push([w * 0.92, h, Math.max(0.03, d * 0.012), 0, 0, (-nz / 2 + j) * cd]);
+      g.add(mboxes(bm, K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.9, metal: 0.02 })));
+      return g;
+    }
+
+    /* 端子區：驅動 IC ＋ COF 軟板。★ 它貼在下玻璃**外露的那一條端子區**上 ——
+       兩片玻璃錯開就是為了留這條邊。COF 是壓在軟板上再接過來，軟板往背面折。
+       晶片本身屬半導體鏈的「顯示驅動 IC」，這裡只畫它貼在哪裡。*/
+    function pnDriver(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = 5, pz = d / n;
+      g.add(instOf(new T.BoxGeometry(w * 0.3, h * 0.34, pz * 0.6),
+        K.mat(-0.2, { rough: 0.44, metal: 0.16 }), gridXZ(1, n, 0, pz, 0)));
+      const fx = w * 0.22, cof = [];
+      for (let j = 0; j < n; j++) {
+        const z = (-(n - 1) / 2 + j) * pz;
+        cof.push([w * 0.5, h * 0.08, pz * 0.66, fx, -h * 0.12, z]);
+        cof.push([h * 0.08, h * 0.9, pz * 0.66, fx + w * 0.24, -h * 0.6, z]);
+      }
+      g.add(mboxes(cof, K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.62, metal: 0.07 })));
+      g.add(put(box(w * 0.5, h * 0.2, d * 0.92,
+        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.58, metal: 0.06 })),
+        fx + w * 0.34, -h * 1.05, 0));
+      // 端子區的接點：玻璃邊上那一排 ITO 金手指，晶片就壓在它上面
+      g.add(instOf(new T.BoxGeometry(w * 0.12, h * 0.05, pz * 0.5),
+        K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 }),
+        gridXZ(1, n, 0, pz, 0).map(a => [-w * 0.3, -h * 0.16, a[2]])));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 工業自動化：一根會動的軸
+       沿 x 拆開。★ 這張圖的主張是「一根軸是一**串**零件」：
+       馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽 → 滑軌＋滑塊 → 工作台。
+       所以每一件都要看得出它接的是誰（軸、法蘭、鎖付孔、法蘭盤都不能省）。*/
+
+    /* 底座（鋁擠型）：★ 斷面有空腔 —— 同樣重量下拿到比較高的斷面剛性。
+       實心方塊不是鋁擠型，上緣的 T 型槽也是它的識別特徵（軌道與感測器鎖在裡面）。*/
+    function mcBase(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = h * 0.22;
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0], [w, t, d, 0, h / 2 - t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
+        [w, h, t, 0, 0, -d / 6], [w, h, t, 0, 0, d / 6]], K.mat(-0.12, { rough: 0.5 })));
+      g.add(mboxes([[w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, -d * 0.34],
+        [w, t * 0.5, t * 0.9, 0, h / 2 - t * 1.1, d * 0.34]], K.mat(-0.5, { rough: 0.82 })));
+      return g;
+    }
+
+    /* 伺服馬達：方殼 ＋ 散熱肋 ＋ 前法蘭與四顆鎖付孔 ＋ 伸出去的軸 ＋ 出線接頭。
+       ★ 有軸才看得出它是「出力」的那一端；有法蘭才看得出它是被鎖在機構上的。
+       本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）。*/
+    function mcMotor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      const m = K.mat(-0.1, { rough: 0.38 });
+      g.add(put(rbox(w * 0.6, R * 1.86, R * 1.86, R * 0.18, m), -w * 0.08, 0, 0));
+      const fins = [];
+      for (let i = 0; i < 7; i++) {
+        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, R * 0.95, (-3 + i) * R * 0.5]);
+        fins.push([w * 0.56, R * 0.1, R * 0.12, -w * 0.08, -R * 0.95, (-3 + i) * R * 0.5]);
+      }
+      g.add(mboxes(fins, K.mat(0.12, { rough: 0.44 })));
+      g.add(put(cylX(R * 1.02, w * 0.08, m, 20), w * 0.26, 0, 0));
+      g.add(instOf(new T.CylinderGeometry(R * 0.11, R * 0.11, w * 0.12, 8),
+        K.mat(-0.6, { rough: 0.9, metal: 0.1 }),
+        [[w * 0.26, R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, R * 0.66, -R * 0.66, 0, 0, Math.PI / 2],
+          [w * 0.26, -R * 0.66, R * 0.66, 0, 0, Math.PI / 2], [w * 0.26, -R * 0.66, -R * 0.66, 0, 0, Math.PI / 2]]));
+      g.add(put(cylX(R * 0.2, w * 0.3, K.mat(0.3, { rough: 0.22, metal: 0.95 }), 14), w * 0.42, 0, 0));
+      g.add(put(box(w * 0.1, R * 0.4, R * 0.4, K.mat(-0.46, { rough: 0.7, metal: 0.2 })), -w * 0.1, R * 1.04, 0));
+      return g;
+    }
+
+    /* 編碼器：★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——
+       「會轉」跟「知道自己轉到哪」是兩件事，而差別只有這片盤。
+       外罩切掉朝鏡頭那一半才看得到它。裝在馬達的**尾端**（遠離螺桿那一側）。*/
+    function mcEnc(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      g.add(mboxes(halfSlab(w * 0.9, R * 1.8, R * 1.8), K.mat(-0.2, { rough: 0.64, metal: 0.2 })));
+      g.add(halfFace(K, w * 0.9, R * 1.8, R * 1.8, 0, -0.2));
+      g.add(put(cylX(R * 0.78, w * 0.06, K.mat(0.42, { rough: 0.2, metal: 0.5 }), 22), 0, 0, -R * 0.45));
+      const slots = [];
+      for (let i = 0; i < 20; i++) {
+        const a = i / 20 * Math.PI * 2;
+        slots.push([0, Math.sin(a) * R * 0.6, -R * 0.45 + Math.cos(a) * R * 0.6, a, 0, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.09, R * 0.24, R * 0.09),
+        K.mat(-0.76, { rough: 0.95, metal: 0.02 }), slots));
+      // 讀取頭：隔著碼盤讀那些刻線的那一小塊板子
+      g.add(put(box(w * 0.22, R * 0.3, R * 0.26,
+        K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })), -w * 0.24, R * 0.66, -R * 0.45));
+      return g;
+    }
+
+    /* 聯軸器：★ 中段那條螺旋切槽是它的識別特徵 ——
+       沒有它就是一根硬軸，吃不了兩根軸之間必然存在的偏心與角度誤差，
+       也沒有一個可更換的犧牲件。兩端各一顆夾緊螺絲。*/
+    function mcCoup(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      const m = K.mat(0.06, { rough: 0.3, metal: 0.9 });
+      g.add(put(cylX(R, w * 0.3, m, 18), -w * 0.34, 0, 0));
+      g.add(put(cylX(R, w * 0.3, m, 18), w * 0.34, 0, 0));
+      g.add(put(cylX(R * 0.94, w * 0.4, K.mat(-0.1, { rough: 0.34, metal: 0.88 }), 18), 0, 0, 0));
+      const cuts = [], n = 22;
+      for (let i = 0; i < n; i++) {
+        const t = i / n, a = t * Math.PI * 5;
+        cuts.push([(-0.5 + t) * w * 0.38, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86, a, 0, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.024, R * 0.3, R * 0.24),
+        K.mat(-0.8, { rough: 0.95, metal: 0.04 }), cuts));
+      g.add(instOf(new T.CylinderGeometry(R * 0.16, R * 0.16, R * 0.5, 8),
+        K.mat(-0.4, { rough: 0.5, metal: 0.82 }), [[-w * 0.34, R * 0.8, 0], [w * 0.34, R * 0.8, 0]]));
+      return g;
+    }
+
+    /* 軸承座：座體半剖，裡面看得到內外環與夾在中間的一圈滾珠。
+       ★ 沒有滾珠的「軸承」只是一個襯套（滑動摩擦），撐不住螺桿的軸向力。
+       螺桿兩端各一個：一端固定（吃軸向力）、一端支撐（讓螺桿受熱可以伸長）。*/
+    function mcBrg(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(-0.16, { rough: 0.46 })));
+      g.add(halfFace(K, w, h, d, 0, -0.16));
+      const st = K.mat(0.26, { rough: 0.2, metal: 0.95 });
+      g.add(put(cylX(R * 0.72, w * 0.62, st, 20), 0, 0, -d * 0.24));
+      g.add(put(cylX(R * 0.34, w * 0.7, K.mat(0.08, { rough: 0.24, metal: 0.95 }), 16), 0, 0, -d * 0.24));
+      const balls = [];
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2;
+        balls.push([0, Math.sin(a) * R * 0.53, -d * 0.24 + Math.cos(a) * R * 0.53]);
+      }
+      g.add(instOf(new T.SphereGeometry(R * 0.17, 8, 6), st, balls));
+      return g;
+    }
+
+    /* 滾珠螺桿・螺桿軸：★ 溝槽剖面是**圓弧**（哥德弧／單圓弧），不是 V 形三角 ——
+       V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。
+       兩端的軸頸比較細而且有階級（那是要裝軸承的地方）。*/
+    function mcScrew(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      const st = K.mat(0.2, { rough: 0.2, metal: 0.95 });
+      g.add(cylX(R * 0.82, w, st, 20));
+      const turns = 9, seg = turns * 12, pts = [];
+      for (let i = 0; i <= seg; i++) {
+        const t = i / seg, a = t * turns * Math.PI * 2;
+        pts.push(new T.Vector3((-0.5 + t) * w * 0.96, Math.sin(a) * R * 0.86, Math.cos(a) * R * 0.86));
+      }
+      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.13, 6, false),
+        K.mat(-0.3, { rough: 0.3, metal: 0.9 })));
+      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), -w * 0.53, 0, 0));
+      g.add(put(cylX(R * 0.5, w * 0.1, st, 14), w * 0.53, 0, 0));
+      return g;
+    }
+
+    /* 滾珠螺桿・螺帽：★ 用半管切開（不是切方塊）——
+       壁厚看得見，才看得出「鋼珠與回流通道真的在這個套筒的**裡面**」。
+       外側的法蘭是它鎖到工作台上的那一片：沒有法蘭就看不出它是推東西的那一端。*/
+    function mcNut(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      g.add(halfTubeX(R, R * 0.62, w * 0.8, K.mat(-0.08, { rough: 0.42 })));
+      const fl = halfTubeX(R * 1.46, R * 0.62, w * 0.16, K.mat(-0.2, { rough: 0.46 }));
+      fl.position.x = -w * 0.44;
+      g.add(fl);
+      // 內壁的圓弧溝：跟螺桿上那一條對得起來，鋼珠才夾得住（兩點接觸）
+      g.add(halfTubeX(R * 0.72, R * 0.6, w * 0.8, K.mat(-0.5, { rough: 0.55, metal: 0.65 })));
+      return g;
+    }
+
+    /* 鋼珠：★ 每一顆都同時碰到螺桿溝與螺帽溝 —— 浮在中間就不傳力。
+       只畫剖面看得到的那半圈（z < 0），另外幾顆畫在回流通道裡 ——
+       因為鋼珠是一個**閉合的迴圈**，不是一條有頭有尾的鏈。*/
+    function mcBalls(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      const at = [], n = 30;
+      for (let i = 0; i < n; i++) {
+        const t = i / (n - 1), a = -Math.PI / 2 + t * Math.PI * 4.5;
+        const z = Math.cos(a) * R * 0.66;
+        if (z > 0) continue;
+        at.push([(-0.34 + t * 0.68) * w * 0.8, Math.sin(a) * R * 0.66, z]);
+      }
+      for (let i = 0; i < 6; i++) at.push([(-0.3 + i * 0.12) * w * 0.8, R * 0.92, -R * 0.3]);
+      g.add(instOf(new T.SphereGeometry(R * 0.11, 8, 6),
+        K.mat(0.34, { rough: 0.14, metal: 0.96 }), at));
+      return g;
+    }
+
+    /* 循環器（鋼珠回流通道）：★ 這張圖的紅線零件 ——
+       鋼珠沿溝槽滾到螺帽的一端之後，從這條 U 形通道繞回另一端重新進入溝槽。
+       沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿。*/
+    function mcReturn(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      const pts = [[-w * 0.34, R * 0.5, -R * 0.4], [-w * 0.38, R * 0.92, -R * 0.3],
+        [0, R * 1.02, -R * 0.3], [w * 0.38, R * 0.92, -R * 0.3], [w * 0.34, R * 0.5, -R * 0.4]];
+      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts.map(a => new T.Vector3(a[0], a[1], a[2]))),
+        26, R * 0.17, 7, false),
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.6, metal: 0.12 })));
+      // 兩張嘴：通道跟溝槽接起來的進出口
+      g.add(instOf(new T.CylinderGeometry(R * 0.2, R * 0.2, R * 0.22, 10),
+        K.mat(-0.3, { rough: 0.55, metal: 0.3 }),
+        [[-w * 0.34, R * 0.46, -R * 0.4], [w * 0.34, R * 0.46, -R * 0.4]]));
+      return g;
+    }
+
+    /* 線性滑軌・軌道：下寬上窄的一條，**兩側各有一道圓弧溝**（滾珠就滾在那兩道溝裡）。
+       ★ 一定是兩條平行軌、而且螺桿在兩軌之間 —— 螺桿畫在旁邊的話推力不在滑座形心上，
+       工作台會被扭起來。鎖付孔也不能省：軌道是鎖在底座上的，不是放上去的。*/
+    function mcRail(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes([[w, h * 0.42, d, 0, -h * 0.29, 0], [w, h * 0.6, d * 0.7, 0, h * 0.2, 0]],
+        K.mat(0.08, { rough: 0.26, metal: 0.92 })));
+      g.add(instOf(new T.CylinderGeometry(h * 0.12, h * 0.12, w, 8),
+        K.mat(-0.36, { rough: 0.4, metal: 0.8 }),
+        [[0, h * 0.2, -d * 0.35, 0, 0, Math.PI / 2], [0, h * 0.2, d * 0.35, 0, 0, Math.PI / 2]]));
+      const n = 5, holes = [];
+      for (let i = 0; i < n; i++) holes.push([(-(n - 1) / 2 + i) * (w / n), h * 0.46, 0]);
+      g.add(instOf(new T.CylinderGeometry(d * 0.12, d * 0.12, h * 0.34, 10),
+        K.mat(-0.72, { rough: 0.9, metal: 0.1 }), holes));
+      return g;
+    }
+
+    /* 線性滑軌・滑塊：★ ㄇ 字形，從上方罩下來包住軌道的**兩側**。
+       畫成「一個方塊放在軌道上面」是錯的 —— 那樣的東西吃不了側向力也吃不了拉拔力，
+       而滑軌存在的理由就是吃這兩種力。兩端的端蓋是滑塊內部滾珠循環的轉彎處。*/
+    function mcBlock(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes([[w, h * 0.42, d, 0, h * 0.29, 0],
+        [w, h * 0.6, d * 0.22, 0, -h * 0.2, -d * 0.39], [w, h * 0.6, d * 0.22, 0, -h * 0.2, d * 0.39]],
+        K.mat(-0.12, { rough: 0.44 })));
+      const at = [], n = 7;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w / n);
+        at.push([x, -h * 0.02, -d * 0.3]); at.push([x, -h * 0.02, d * 0.3]);
+      }
+      g.add(instOf(new T.SphereGeometry(h * 0.1, 8, 6), K.mat(0.3, { rough: 0.15, metal: 0.95 }), at));
+      g.add(mboxes([[w * 0.08, h * 0.9, d * 0.96, -w * 0.46, 0, 0], [w * 0.08, h * 0.9, d * 0.96, w * 0.46, 0, 0]],
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.66, metal: 0.1 })));
+      return g;
+    }
+
+    /* 工作台（滑座）：★ 同時鎖在螺帽與滑塊上 —— 螺帽推它走、滑塊撐住它不歪，
+       兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方。*/
+    function mcTable(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h * 0.45, d, K.mat(0.1, { rough: 0.5 })));
+      g.add(mboxes([[w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, -d * 0.36],
+        [w * 0.36, h * 0.55, d * 0.2, 0, -h * 0.5, d * 0.36],
+        [w * 0.22, h * 0.55, d * 0.3, -w * 0.3, -h * 0.5, 0]], K.mat(-0.1, { rough: 0.55 })));
+      const sl = [], n = 3;
+      for (let i = 0; i < n; i++) sl.push([w * 0.94, h * 0.2, d * 0.07, 0, h * 0.18, (-(n - 1) / 2 + i) * d * 0.3]);
+      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.8 })));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 被動保護：四顆並排半剖
+       ★ 這四顆的差別**全部在裡面**：MOV 是陶瓷晶粒與晶界、PPTC 是高分子與碳黑鏈、
+       NTC 是均質燒結陶瓷（沒有晶界網也沒有 PN）、TVS 是 PN 接面與空乏區。
+       外觀上它們都只是四顆小方塊 —— 不剖開就等於沒有畫出任何一件事。
+       半剖（切掉 z > 0）跟第三代半導體那張同一種切法：它們都是一疊薄層。*/
+
+    /* PPTC 的高分子基體：低溫時結晶之間的導電粒子連成網路而導通；
+       電流過大升溫 → 體積膨脹、聚合物由結晶態轉為非結晶態 → 網路斷裂而不導通；
+       冷了恢復結晶又導通 —— 這就是「自恢復」。*/
+    function cpPoly(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.74, metal: 0.05 })));
+      g.add(halfFace(K, w, h, d, 0, 0));
+      return g;
+    }
+
+    /* 導電碳黑粒子：★ 它是一條一條**貫穿上下電極的鏈**，不是均勻的黑色。
+       只畫「變紅」不畫「變厚＋斷鏈」就沒有解釋機制。膨脹的實際比例查不到，本圖不寫百分比。*/
+    function cpCarbon(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const at = [], nx = 9, ny = 6;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+        const jit = ((i * 7 + j * 13) % 5 - 2) * w * 0.012;
+        /* ⚠ z 一定要落在剖面**前方**（≈ 0），不是本體中心（−d/4）：
+           halfFace 那片切面貼在 z = 0 的前面，擺在後面就整批被它擋住，
+           畫了等於沒畫（第一版就是這樣，截圖上 PPTC 是一塊純色）。*/
+        at.push([(-(nx - 1) / 2 + i) * (w * 0.88 / nx) + jit,
+          (-(ny - 1) / 2 + j) * (h * 0.8 / ny), 0]);
+      }
+      g.add(instOf(new T.SphereGeometry(Math.min(w, h) * 0.038, 7, 5),
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.82, metal: 0.08 }), at));
+      return g;
+    }
+
+    /* PPTC 的鎳電極箔 ×2：上下各一片、夾住中間的高分子基體。
+       ★ 是**相對的兩面**，不是同一面的兩端 —— 電流要垂直穿過高分子。
+       底下那一層薄錫說明它是表面黏著件。*/
+    function cpFoil(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m = K.mat(0.2, { rough: 0.3, metal: 0.9 });
+      g.add(mboxes(halfSlab(w, h * 0.12, d, h * 0.44).concat(halfSlab(w, h * 0.12, d, -h * 0.44)), m));
+      g.add(mboxes(halfSlab(w * 0.9, h * 0.06, d * 0.9, -h * 0.53),
+        K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.36, metal: 0.6 })));
+      return g;
+    }
+
+    /* PPTC 的外包絕緣層：最外面那一層樹脂或塑膠薄膜。
+       它不參與導電，只是把裡面包起來 —— 所以它畫成一個**空的殼**，不是一塊實心。*/
+    function cpShell(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = Math.min(w, h) * 0.06;
+      g.add(mboxes([[w, t, d / 2, 0, h / 2 - t / 2, -d / 4], [w, t, d / 2, 0, -h / 2 + t / 2, -d / 4],
+        [t, h, d / 2, -w / 2 + t / 2, 0, -d / 4], [t, h, d / 2, w / 2 - t / 2, 0, -d / 4]],
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.74, metal: 0.06 })));
+      return g;
+    }
+
+    /* NTC 熱敏電阻：★ 金屬氧化物燒結的**均質**陶瓷本體 ＋ 兩個相對面電極，
+       沒有晶界網也沒有 PN 接面。★ 它擋的不是突波電壓，是開機瞬間的湧浪電流
+       —— 跟另外三顆不是同一件事。兩根導線從同一側出去（圓盤型的樣子）。*/
+    function cpNtc(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h * 0.76, d), K.mat(-0.1, { rough: 0.64, metal: 0.04 })));
+      g.add(halfFace(K, w, h * 0.76, d, 0, -0.1));
+      const mt = K.mat(0.3, { rough: 0.3, metal: 0.86 });
+      g.add(mboxes(halfSlab(w * 0.94, h * 0.07, d * 0.94, h * 0.42)
+        .concat(halfSlab(w * 0.94, h * 0.07, d * 0.94, -h * 0.42)), mt));
+      g.add(instOf(new T.CylinderGeometry(w * 0.03, w * 0.03, h * 0.8, 8), mt,
+        [[-w * 0.26, -h * 0.82, -d * 0.2], [w * 0.26, -h * 0.82, -d * 0.2]]));
+      return g;
+    }
+
+    /* MOV 的 ZnO 晶粒：★ 一堆**大小不一的多邊形**，不是一塊均質陶瓷 ——
+       畫成均質方塊就不是 MOV，那跟 NTC 長得一模一樣。
+       晶粒的實際尺寸與數量查不到，圖上是示意。*/
+    function cpGrain(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const at = [], nx = 8, ny = 5;
+      for (let i = 0; i < nx; i++) for (let j = 0; j < ny; j++) {
+        const s = 0.62 + ((i * 5 + j * 11) % 7) / 7 * 0.7;
+        at.push([(-(nx - 1) / 2 + i) * (w * 0.9 / nx), (-(ny - 1) / 2 + j) * (h * 0.8 / ny), -d / 4 + d * 0.03,
+          (i % 3) * 0.7, (j % 3) * 0.7, 0, s, s, s]);
+      }
+      g.add(instOf(new T.DodecahedronGeometry(Math.min(w / nx, h / ny) * 0.66, 0),
+        K.mat(-0.04, { rough: 0.58, metal: 0.05 }), at));
+      return g;
+    }
+
+    /* MOV 的晶界：★ 它的非線性**完全**來自晶界 ——
+       每一對相鄰晶粒之間的界面形成一個微觀位壘，一顆裡面有數以百萬計個、
+       串並聯成一張三維的網。這條折線是電流穿過好幾道晶界的路徑（示意，不是只有一條）。*/
+    function cpGb(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pts = [], n = 9;
+      for (let i = 0; i < n; i++) {
+        // z ≈ 0：這條路徑要跑在剖面上，埋進晶粒堆裡就看不到了
+        pts.push(new T.Vector3(((i % 3) - 1) * w * 0.16, (-0.5 + i / (n - 1)) * h * 0.86, Math.min(w, h) * 0.02));
+      }
+      g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), 30, Math.min(w, h) * 0.018, 6, false),
+        K.mat(0, { color: K.css('--dg-fl-trace', '#FFD37A'), glow: 0.35, rough: 0.4, metal: 0.2 })));
+      g.add(instOf(new T.BoxGeometry(w * 0.09, h * 0.014, d * 0.1),
+        K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), rough: 0.5, metal: 0.1 }),
+        pts.slice(1, n - 1).map(v => [v.x, v.y, v.z])));
+      return g;
+    }
+
+    /* 保護元件的金屬電極 ×2（MOV 與 TVS 共用）：
+       ★ 在兩個**相對**的面（上下），不是同一面的兩端 ——
+       電流要垂直穿過整疊晶粒／整個 PN 接面，才會撞到裡面那些界面。*/
+    function cpElec(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const mt = K.mat(0.26, { rough: 0.3, metal: 0.88 });
+      g.add(mboxes(halfSlab(w, h * 0.1, d, h * 0.45).concat(halfSlab(w, h * 0.1, d, -h * 0.45)), mt));
+      g.add(instOf(new T.CylinderGeometry(w * 0.028, w * 0.028, h * 0.8, 8), mt,
+        [[-w * 0.3, h * 0.9, -d * 0.2], [w * 0.3, h * 0.9, -d * 0.2]]));
+      return g;
+    }
+
+    /* TVS 的 PN 接面：★ 兩種不同摻雜的半導體區 ＋ 中間一條**空乏區**窄帶，
+       這是 TVS 的識別特徵。畫成陶瓷晶粒就是畫成了 MOV（兩者的物理機制完全不同），
+       畫成三明治薄膜就是畫成了晶片電阻。雪崩就發生在那條窄帶裡。*/
+    function cpPn(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      /* ⚠ 每一段各自補自己的切面，**不准**最後蓋一片整面的 halfFace ——
+         那會把 p／n／空乏區三段的明暗差一起蓋掉，整顆變成一塊黑
+         （第一版就是這樣，而 TVS 的識別特徵正好就是那三段）。*/
+      g.add(mboxes(halfSlab(w, h * 0.42, d, h * 0.24), K.mat(0.62, { rough: 0.42 })));
+      g.add(halfFace(K, w, h * 0.42, d, h * 0.24, 0.62));
+      g.add(mboxes(halfSlab(w, h * 0.42, d, -h * 0.24), K.mat(-0.08, { rough: 0.42 })));
+      g.add(halfFace(K, w, h * 0.42, d, -h * 0.24, -0.08));
+      g.add(mboxes(halfSlab(w * 0.995, h * 0.1, d * 0.995, 0),
+        K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), rough: 0.44, metal: 0.1 })));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 電容器：鋁電解整顆縱剖
+       ★ 鋁電解是一顆**捲**出來的東西，這是它跟 MLCC（疊出來的）最根本的差別。
+       所以整顆用半管縱剖（看得到鋁殼的壁厚與塞在裡面的捲芯），
+       捲芯旁邊再把四層帶水平拉開 —— 「四層一起捲」才看得懂。*/
+
+    /* 鋁殼：薄壁圓筒（縱剖）＋ 封死的底 ＋ 上緣那道頸縮（封口橡膠就卡在這道溝裡）。
+       畫成實心圓柱就看不出「裡面裝著捲芯」。*/
+    function acCan(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const m = K.mat(0.06, { rough: 0.34 });
+      g.add(halfTubeY(R, R * 0.9, h * 0.94, m));
+      g.add(put(halfTubeY(R, 0, h * 0.06, m), 0, -h * 0.47, 0));
+      g.add(put(halfTubeY(R * 1.01, R * 0.86, h * 0.05, K.mat(-0.22, { rough: 0.46 })), 0, h * 0.38, 0));
+      return g;
+    }
+
+    /* 外套膠膜：包在鋁殼外面的有色薄膜。
+       ★ 本圖上面一個字、一個色碼、一個廠商標示都沒有 —— 那些是產品外觀，不是結構。*/
+    function acSleeve(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(halfTubeY(R, R * 0.955, h, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.68, metal: 0.08 })));
+      return g;
+    }
+
+    /* 捲芯：★ 四層（陽極箔／紙／陰極箔／紙）**一起**捲在一個輪上。
+       縱剖面看到的是一圈一圈交替的帶；頂面那幾圈同心弧說明它是「捲」出來的，不是疊出來的。
+       三層捲起來，上一圈的陽極會直接碰到下一圈的陰極 —— 短路。*/
+    function acCore(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(halfTubeY(R, 0, h, K.mat(-0.24, { rough: 0.6, metal: 0.2 })));
+      const foil = K.mat(0.36, { rough: 0.3, metal: 0.82 });
+      const paper = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.8, metal: 0.03 });
+      const fb = [], pb = [];
+      for (let t = 0; t < 4; t++) for (let k = 0; k < 4; k++) {
+        const r = R * (0.24 + (t * 4 + k) * 0.045);
+        [-1, 1].forEach(s => (k % 2 ? pb : fb).push([s * r, 0, -R * 0.02]));
+      }
+      g.add(instOf(new T.BoxGeometry(R * 0.03, h * 0.9, R * 0.03), foil, fb));
+      g.add(instOf(new T.BoxGeometry(R * 0.03, h * 0.9, R * 0.03), paper, pb));
+      const ev = [], od = [];
+      for (let i = 0; i < 6; i++) {
+        const r = R * (0.24 + i * 0.13);
+        const rg = new T.RingGeometry(r, r + R * 0.055, 14, 1, 0, Math.PI);
+        rg.rotateX(-Math.PI / 2); rg.translate(0, h * 0.502, 0);
+        (i % 2 ? od : ev).push(rg);
+      }
+      g.add(new T.Mesh(mergeGeos(ev), foil));
+      g.add(new T.Mesh(mergeGeos(od), paper));
+      return g;
+    }
+
+    /* 箔（陽極／陰極共用）：蝕刻過的表面不是鏡面，兩面都是粗糙的。
+       ★ 陰極箔一樣有孔，它跟陽極箔的差別只在「有沒有那層氧化膜」——
+       兩面都畫氧化膜就變成雙極性電容，而且把「為什麼有極性」這件事畫掉了。*/
+    function acFoil(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const k = p.k == null ? 0.24 : p.k;
+      g.add(box(w, h, d, K.mat(k, { rough: 0.46, metal: 0.8 })));
+      const rid = [], n = 18;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.94 / n);
+        rid.push([x, h * 0.5, 0]); rid.push([x, -h * 0.5, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.94 / n * 0.5, h * 0.12, d * 0.94),
+        K.mat(k - 0.35, { rough: 0.82, metal: 0.42 }), rid));
+      return g;
+    }
+
+    /* 蝕刻孔（隧道／海綿狀）：★ 兩面都咬，中間要留一條實心芯 —— 沒有芯的箔會斷。
+       孔越多越深，同一片箔的表面積越大，容量就是從這裡來的。
+       本圖不寫孔徑、孔密度與表面積放大倍數（查不到共通值）。*/
+    function acPore(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const at = [], n = 22, nz = 4;
+      for (let i = 0; i < n; i++) for (let j = 0; j < nz; j++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.92 / n), z = (-(nz - 1) / 2 + j) * (d * 0.76 / nz);
+        at.push([x, h * 0.26, z]); at.push([x, -h * 0.26, z]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.4, h * 0.44, d * 0.76 / nz * 0.4),
+        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 }), at));
+      return g;
+    }
+
+    /* 箔的基體（未蝕刻的芯部）：兩面被咬之後中間留下來的那一條實心鋁。
+       厚度＝箔厚 − 2×孔深，是真的減出來的，不是目測。*/
+    function acSpine(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h * 0.16, d, K.mat(0.48, { rough: 0.3, metal: 0.9 })));
+      g.add(mboxes([[w * 1.004, h * 0.03, d * 1.004, 0, h * 0.095, 0],
+        [w * 1.004, h * 0.03, d * 1.004, 0, -h * 0.095, 0]], K.mat(0.05, { rough: 0.62, metal: 0.5 })));
+      return g;
+    }
+
+    /* 陽極氧化膜（Al₂O₃，介電質）：★ 它不是買來的，是**長出來的** ——
+       鋁箔通電做陽極氧化，表面長出一層氧化鋁。膜厚由外加電壓決定
+       （耐壓越高、膜越厚、容量越小；每伏特幾埃是 roughly 的說法，所以不寫數字）。
+       ★ 膜是沿著**孔的內壁**長的，不是只鋪在表面 —— 只鋪表面就沒有那些被放大的面積。*/
+    function acOxide(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.3, metal: 0.04, op: 0.9 });
+      g.add(mboxes([[w, h * 0.16, d, 0, h * 0.42, 0], [w, h * 0.16, d, 0, -h * 0.42, 0]], m));
+      const at = [], n = 14;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.92 / n);
+        at.push([x, h * 0.16, 0]); at.push([x, -h * 0.16, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.54, h * 0.34, d * 0.9), m, at));
+      return g;
+    }
+
+    /* 電解紙（隔離紙）：天然纖維素做的紙，含浸電解液、同時把兩張箔隔開。
+       ★ 它本身不是電極，也不是介電質 —— 介電質是陽極箔上那層氧化膜。
+       表面那些纖維是它跟金屬箔一眼分得開的地方。*/
+    function acPaper(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.88, metal: 0.02 })));
+      const at = [], n = 20;
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w * 0.96 / n), h * 0.5, 0, 0, (i % 3) * 0.4, 0]);
+      g.add(instOf(new T.BoxGeometry(w * 0.03, h * 0.12, d * 0.9), K.mat(0.32, { rough: 0.9, metal: 0.02 }), at));
+      return g;
+    }
+
+    /* 電解液：★ 它才是真正的陰極。它要鑽進陽極箔的孔裡、貼住氧化膜 ——
+       只畫在紙裡就是沒有接觸到介電質，電容不成立。*/
+    function acElyte(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const c = K.css('--dg-m-cool', '#2FB8A6');
+      g.add(box(w, h * 0.5, d, K.mat(0, { color: c, rough: 0.2, metal: 0.05, op: 0.6 })));
+      const at = [], n = 16;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.92 / n);
+        at.push([x, h * 0.6, 0]); at.push([x, -h * 0.6, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.42, h * 0.9, d * 0.8),
+        K.mat(0, { color: c, rough: 0.22, metal: 0.05, op: 0.45 }), at));
+      return g;
+    }
+
+    /* 橡膠封口：在鋁殼的一端，兩根導針從這裡穿出去。
+       它同時是密封件，也是壓力上來時的洩壓路徑之一。*/
+    function acSeal(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(halfTubeY(R * 0.92, 0, h, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.88, metal: 0.03 })));
+      g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.13, h * 1.1, 10),
+        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.9, metal: 0.05 }),
+        [[-R * 0.4, 0, -R * 0.3], [R * 0.4, 0, -R * 0.3]]));
+      return g;
+    }
+
+    /* 導針（引線）×2：★ 整顆的兩根導針從**同一端**穿出（徑向引線型）——
+       一端一根那是軸向型，跟這裡的捲芯畫法對不起來。
+       焊在箔上的那一段是扁的，穿出去的那一段才是圓的。*/
+    function acLead(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const r = Math.min(w, d) * 0.42;
+      g.add(cyl(r, h, K.mat(0.3, { rough: 0.3, metal: 0.9 }), 12));
+      g.add(put(box(r * 2.2, h * 0.3, r * 0.5, K.mat(0.05, { rough: 0.46, metal: 0.8 })), 0, -h * 0.58, 0));
+      return g;
+    }
+
+    /* 防爆閥（刻痕）：壓力上來時先從這裡裂開，不讓整顆炸掉。
+       ★ 本圖把它畫在與封口相反的那一端，但這一點**查不到可引用的來源**
+       （徑向引線型的防爆結構各家做法不同），所以標為示意，也不寫刻痕形狀的規格。*/
+    function acVent(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(halfTubeY(R, 0, h, K.mat(-0.1, { rough: 0.4 })));
+      const sc = [];
+      for (let i = 0; i < 3; i++) sc.push([0, h * 0.5, 0, 0, i * Math.PI / 3, 0]);
+      g.add(instOf(new T.BoxGeometry(R * 1.5, h * 0.34, R * 0.1),
+        K.mat(-0.76, { rough: 0.9, metal: 0.1 }), sc));
+      return g;
+    }
+
+    /* 固態電容（對照）：★ 只換了一樣東西 —— 把電解液換成固態的導電高分子。
+       它一樣要鑽進陽極箔的孔裡；沒有液體可以汽化，所以不會鼓脹爆漿。
+       等效串聯電阻大幅下降（來源只講材料導電度，所以不寫倍數）。*/
+    function acSolid(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(halfTubeY(R, R * 0.88, h * 0.9, K.mat(0.06, { rough: 0.34 })));
+      g.add(halfTubeY(R * 0.86, 0, h * 0.84,
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.2 })));
+      g.add(put(halfTubeY(R * 1.02, 0, h * 0.08,
+        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.72, metal: 0.08 })), 0, -h * 0.5, 0));
+      g.add(instOf(new T.BoxGeometry(R * 0.5, h * 0.06, R * 0.3),
+        K.mat(0.4, { rough: 0.3, metal: 0.85 }),
+        [[-R * 0.5, -h * 0.55, -R * 0.3], [R * 0.5, -h * 0.55, -R * 0.3]]));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 被動元件：電感・電阻・石英
+       三顆並排半剖。三者之間**沒有上下游關係**，放在一起是因為它們真的在同一塊板子的同一區；
+       所以這一組刻意沒有任何流線與箭頭。
+       每一顆的識別特徵都被蓋住了（繞組埋在磁粉裡、修整溝壓在玻璃層底下、石英片封在腔裡），
+       半剖是唯一看得到它們的方式。*/
+
+    /* 功率電感的本體：金屬磁粉壓製（一體成型）。
+       ★ 磁芯與外殼是**同一塊** —— 看不到縫，那正是它跟「繞線型＋鐵氧體上蓋」最好分辨的地方。
+       剖面上那層細顆粒是壓製的粉粒感（示意，不是真的顆粒尺寸）。*/
+    function indBody(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(-0.06, { rough: 0.74, metal: 0.18 })));
+      g.add(halfFace(K, w, h, d, 0, -0.06));
+      const at = [], n = 10, ny = 5;
+      for (let i = 0; i < n; i++) for (let j = 0; j < ny; j++) {
+        const s = 0.6 + ((i * 3 + j) % 4) * 0.25;
+        // z ≈ 0：粉粒要長在剖面上（埋進本體裡就被 halfFace 擋住了，見 cpCarbon 那一條）
+        at.push([(-(n - 1) / 2 + i) * (w * 0.9 / n), (-(ny - 1) / 2 + j) * (h * 0.8 / ny), 0,
+          0, 0, 0, s, s, s]);
+      }
+      g.add(instOf(new T.DodecahedronGeometry(Math.min(w, h) * 0.026, 0),
+        K.mat(-0.3, { rough: 0.86, metal: 0.12 }), at));
+      return g;
+    }
+
+    /* 扁平銅線繞組：★ 斷面是**長方形**（高 > 寬）—— 扁平線立繞，
+       同樣空間塞進更多銅，直流電阻更低。畫成圓線就變成另一種做法了。
+       一段一段拼成的環就是「繞」出來的，不是一顆環。*/
+    function indWind(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const turns = 4, seg = 16, at = [];
+      for (let t = 0; t < turns; t++) for (let i = 0; i < seg; i++) {
+        const a = (i + t * 0.25) / seg * Math.PI * 2;
+        at.push([Math.cos(a) * R * 0.66, (-(turns - 1) / 2 + t) * h * 0.2, Math.sin(a) * R * 0.66,
+          0, -a + Math.PI / 2, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(R * 0.27, h * 0.17, R * 0.09),
+        K.mat(0.12, { rough: 0.3, metal: 0.92 }), at));
+      return g;
+    }
+
+    /* 磁通路徑：★ 磁通不跑出本體之外 —— 那就是「磁屏蔽」這個說法的意思。
+       而且路徑一定是**封閉**的：從繞組中心往上、沿著本體外圍下來、再回到中心。
+       畫成一條有頭有尾的線就是把磁路畫成了電路。*/
+    function indFlux(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const m = K.mat(0, { color: K.css('--dg-fl-gpu', '#9B6DFF'), glow: 0.3, rough: 0.4, metal: 0.1, op: 0.8 });
+      [-1, 1].forEach(s => {
+        const pts = [[0, -h * 0.3, 0], [0, h * 0.3, 0], [s * R * 0.5, h * 0.42, 0],
+          [s * R * 0.84, 0, 0], [s * R * 0.5, -h * 0.42, 0]];
+        const cv = new T.CatmullRomCurve3(pts.map(a => new T.Vector3(a[0], a[1], a[2] - d * 0.24)), true);
+        g.add(new T.Mesh(new T.TubeGeometry(cv, 26, Math.min(w, h) * 0.02, 5, true), m));
+      });
+      return g;
+    }
+
+    /* 引出端子：★ 繞組兩端折出來貼在**底面** —— 所以它是表面黏著件，不是插件
+       （沒有腳穿過板子）。底下那一圈是真的焊在板子上的錫。*/
+    function indTerm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes([[w * 0.3, h, d * 0.72, -w * 0.33, 0, 0], [w * 0.3, h, d * 0.72, w * 0.33, 0, 0]],
+        K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.36, metal: 0.62 })));
+      g.add(instOf(new T.BoxGeometry(w * 0.36, h * 0.5, d * 0.8),
+        K.mat(0.2, { rough: 0.3, metal: 0.55 }), [[-w * 0.33, -h * 0.6, 0], [w * 0.33, -h * 0.6, 0]]));
+      return g;
+    }
+
+    /* 晶片電阻的氧化鋁陶瓷基板：整顆零件的底，也是散熱的路 ——
+       上面的每一層都印在它身上。半剖才看得到上面疊了幾層。*/
+    function resLay(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const k = p.k == null ? -0.08 : p.k;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(k, { rough: 0.62, metal: 0.04 })));
+      g.add(halfFace(K, w, h, d, 0, k));
+      return g;
+    }
+
+    /* 電阻膜（釕系厚膜）：網印上去再燒結。
+       ★ 兩端**壓在電極上**（是重疊，不是頭碰頭對接）—— 對接的接口一受熱就開路。*/
+    function resFilm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.1 });
+      g.add(mboxes(halfSlab(w * 0.84, h, d * 0.92), m));
+      g.add(mboxes([[w * 0.14, h * 0.8, d * 0.46, -w * 0.45, h * 0.3, -d * 0.23],
+        [w * 0.14, h * 0.8, d * 0.46, w * 0.45, h * 0.3, -d * 0.23]], m));
+      return g;
+    }
+
+    /* 雷射修整溝 ← ★ 它就是晶片電阻的身分證。
+       印出來的阻值不會剛好，量完用雷射切一道溝，把電流的路徑拉長、阻值往上修。
+       溝是 L 形（先切進去再轉向），不是一條直線 —— 直線切過頭就報廢了，L 形才修得準。*/
+    function resTrim(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes([[Math.max(0.04, w * 0.035), h, d * 0.3, 0, 0, -d * 0.34],
+        [w * 0.22, h, Math.max(0.04, d * 0.035), w * 0.1, 0, -d * 0.2]],
+        K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 })));
+      return g;
+    }
+
+    /* 玻璃保護層：★ 修完才蓋上去，所以那道溝在它**底下** —— 溝露在最外面就是畫錯。
+       半透明才看得到底下那道溝，那正是這一層要證明的事。*/
+    function resGlass(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(0.3, { rough: 0.16, metal: 0.03, op: 0.6 })));
+      // 剖面上那一條切口比外表面暗一階，不然「被切開的面」跟原本就有的面長得一模一樣
+      g.add(halfFace(K, w, h, d, 0, 0.3));
+      return g;
+    }
+
+    /* 端電極：★ 一定是**三層** —— 內層（與電阻膜接觸）→ 鎳阻障（擋焊錫把內層吃掉）→ 錫（好焊）。
+       少掉鎳那一層，焊兩次就把內層吃光。這跟 MLCC 的端電極是同一套道理（那張圖已經講完原理）。*/
+    function resTerm(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      [['--dg-m-trace', '#E6B95C', 0.9], ['--dg-m-rack', '#B8C2CC', 0.8], ['--dg-sn', '#e2e7ec', 0.6]]
+        .forEach((L, i) => {
+          const t = 1 - i * 0.14, off = w * 0.45 - i * w * 0.05;
+          const m = K.mat(0, { color: K.css(L[0], L[1]), metal: L[2], rough: 0.3 });
+          g.add(mboxes([[w * 0.1, h * t, d / 2 * 0.98, -off, 0, -d / 4],
+            [w * 0.1, h * t, d / 2 * 0.98, off, 0, -d / 4]], m));
+        });
+      return g;
+    }
+
+    /* 背面電極：基板背面也印一層 —— 它是散熱與焊接的路。
+       只畫正面那一層的話，這顆零件焊在板子上是靠什麼貼住的就沒有答案。*/
+    function resBack(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w * 0.9, h, d * 0.9),
+        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.62, metal: 0.2 })));
+      g.add(halfFace(K, w * 0.9, h, d * 0.9, 0, 0));
+      return g;
+    }
+
+    /* 石英諧振器的陶瓷底座：一個有**凹穴**的盒子。
+       ★ 石英片是懸空在凹穴裡的，不是貼在底面上 —— 貼死就振不動了。
+       底面四個焊墊說明它是表面黏著件。*/
+    function xtalBase(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = h * 0.3;
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]],
+        K.mat(-0.08, { rough: 0.62, metal: 0.04 })));
+      g.add(instOf(new T.BoxGeometry(w * 0.22, h * 0.08, d * 0.3),
+        K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 }),
+        gridXZ(2, 2, w * 0.66, d * 0.52, -h / 2 - h * 0.04)));
+      return g;
+    }
+
+    /* 導電膠支撐點：★ 只靠**同一端**的兩點架著，四周都不能碰到東西 —— 碰到就振不動。
+       支撐點數量為示意。它同時是機械支撐與電氣連接（電極的引線就走這裡下來）。*/
+    function xtalMount(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(instOf(new T.CylinderGeometry(w * 0.16, w * 0.22, h, 10),
+        K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), rough: 0.5, metal: 0.6 }),
+        [[-w * 0.25, 0, -d * 0.24], [-w * 0.25, 0, d * 0.24]]));
+      return g;
+    }
+
+    /* 石英片（AT 切）：一片薄薄的長方形，★ **厚度決定頻率**（越薄頻率越高）——
+       所以這一片的厚薄不是隨便畫的。兩條亮邊表示它是被「切」出來的
+       （AT 切＝相對於晶軸切一個特定角度，那個角度決定它的溫度特性）。*/
+    function xtalBlank(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h, d, K.mat(0.34, { rough: 0.1, metal: 0.03, op: 0.62 })));
+      g.add(mboxes([[w * 1.002, h * 0.3, Math.max(0.03, d * 0.06), 0, 0, -d / 2],
+        [w * 1.002, h * 0.3, Math.max(0.03, d * 0.06), 0, 0, d / 2]],
+        K.mat(0.64, { rough: 0.08, metal: 0.05, op: 0.8 })));
+      return g;
+    }
+
+    /* 電極：★ 上下各一片、面積比石英片小 ——
+       電場要垂直穿過石英才激得起厚度剪切振動。兩片各自拉一條引線到同一端的支撐點
+       （所以那兩條引線一定在同一側，不是對角）。*/
+    function xtalElec(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes([[w * 0.56, h * 0.1, d * 0.6, 0, h * 0.4, 0], [w * 0.56, h * 0.1, d * 0.6, 0, -h * 0.4, 0],
+        [w * 0.3, h * 0.08, d * 0.12, -w * 0.4, h * 0.4, -d * 0.24],
+        [w * 0.3, h * 0.08, d * 0.12, -w * 0.4, -h * 0.4, d * 0.24]],
+        K.mat(0.2, { rough: 0.24, metal: 0.92 })));
+      return g;
+    }
+
+    /* 金屬蓋 ＋ 縫焊：用電阻加熱把金屬蓋焊在陶瓷底座上。
+       ★ 焊縫是**一圈連續**的 —— 斷一個點就封不住，頻率會跟著環境跑掉，
+       而「封不住，時間就跟著走鐘」是這一類零件的生死線。*/
+    function xtalLid(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = h * 0.22;
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]],
+        K.mat(0.12, { rough: 0.3, metal: 0.9 })));
+      const sm = [], n = 14;
+      for (let i = 0; i < n; i++) {
+        const u = (-0.5 + (i + 0.5) / n) * w;
+        sm.push([u, -h / 2, -d / 2]); sm.push([u, -h / 2, d / 2]);
+      }
+      for (let i = 0; i < 5; i++) {
+        const v = (-0.5 + (i + 0.5) / 5) * d;
+        sm.push([-w / 2, -h / 2, v]); sm.push([w / 2, -h / 2, v]);
+      }
+      g.add(instOf(new T.SphereGeometry(Math.min(w, d) * 0.03, 6, 5),
+        K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), rough: 0.35, metal: 0.7 }), sm));
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -2436,7 +3817,21 @@
       hbmcore: hbmCore, hbmbase: hbmBase, tsvcol: tsvCols, ubumprows: ubumpRows,
       wbglay: wbgLayer, wbgbody: wbgBody, wbggate: wbgGate, wbgtop: wbgTop,
       wbgpgan: wbgPgan, wbgelec: wbgElec,
-      _cutSlab: cutSlab, _cutFace: cutFace, _twoSided: twoSided, _hbmLayout: hbmLayout };
+      _cutSlab: cutSlab, _cutFace: cutFace, _twoSided: twoSided, _hbmLayout: hbmLayout,
+      /* ---- 一般電子鏈六張的字彙（2026-09-23）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      pnframe: pnFrame, pnfilm: pnFilm, pnlgp: pnLgp, pnledbar: pnLedBar, pnprism: pnPrism,
+      pnpol: pnPol, pnglass: pnGlass, pntft: pnTft, pnlc: pnLc, pncf: pnCf, pndriver: pnDriver,
+      mcbase: mcBase, mcmotor: mcMotor, mcenc: mcEnc, mccoup: mcCoup, mcbrg: mcBrg, mcscrew: mcScrew,
+      mcnut: mcNut, mcballs: mcBalls, mcreturn: mcReturn, mcrail: mcRail, mcblock: mcBlock, mctable: mcTable,
+      cppoly: cpPoly, cpcarbon: cpCarbon, cpfoil: cpFoil, cpshell: cpShell, cpntc: cpNtc,
+      cpgrain: cpGrain, cpgb: cpGb, cpelec: cpElec, cppn: cpPn,
+      accan: acCan, acsleeve: acSleeve, accore: acCore, acfoil: acFoil, acpore: acPore, acspine: acSpine,
+      acoxide: acOxide, acpaper: acPaper, acelyte: acElyte, acseal: acSeal, aclead: acLead,
+      acvent: acVent, acsolid: acSolid,
+      indbody: indBody, indwind: indWind, indflux: indFlux, indterm: indTerm,
+      reslay: resLay, resfilm: resFilm, restrim: resTrim, resglass: resGlass, resterm: resTerm, resback: resBack,
+      xtalbase: xtalBase, xtalmount: xtalMount, xtalblank: xtalBlank, xtalelec: xtalElec, xtallid: xtalLid,
+      _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 
   /* ---------------------------------------------------------------- 建場景 */
@@ -2757,7 +4152,11 @@
          晶片又只排得下四個，切前四家不一定切到對的四家 ——
          零件說明講的是 MLCC 的結構，底下列的名單就必須是真的做這件事的人。
          `data-seg` 沒有動（顏色連動、環節色標、篩選都靠它），動的只有「列誰」。*/
-      const mem = (p.codes && p.codes.length)
+      /* ★ 2026-09-23：`codes: []` ＝這個零件**自己明講**「查不到台股的具名對應」，
+         不是「沒指定、退回環節名單」。舊寫法用 `p.codes.length` 判斷，空陣列會掉回 members(seg)，
+         那會把整個環節的公司貼到一個查不到對應的零件底下 —— 那不是留白，是錯誤宣稱（R5）。
+         改成 Array.isArray：沒寫 codes 的零件（既有 21 張場景全部）行為一個字都沒變。*/
+      const mem = Array.isArray(p.codes)
         ? { list: p.codes.slice(0, 4).map(c => ({ code: c, name: (window.Link && window.Link.cname[c]) || c })), total: p.codes.length }
         : (o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 });
       // A5-b：晶片上方一行小字，講清楚這排台股是「哪一群」，不要讓它貼著零件說明被讀成「這幾家做這個零件」

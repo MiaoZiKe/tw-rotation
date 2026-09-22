@@ -458,7 +458,13 @@
   window.DG.register('resistor_protect', {
     level: 'group', chain: 'electronics',
     name: '被動保護：過流與過壓元件',
-    draw: circuitProtection, native: 980, scene: null,
+    /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0-A 原本寫「不做真 3D」，
+       推翻的不是那個理由本身，是它漏掉的另一半（判準見 DECISIONS #247／#251）：
+       原本的理由是「串／並是電路拓樸不是空間形狀」—— 那一句今天仍然成立，
+       所以 3D 這一張**不重畫拓樸**（拓樸留在 2D）。漏掉的那一半是：
+       這四顆的外觀都只是小方塊，差別全部在**裡面**（晶粒與晶界／高分子與碳黑鏈／
+       均質陶瓷／PN 接面與空乏區）—— 四顆並排剖開轉一圈，四種物理一次比得出來。*/
+    draw: circuitProtection, native: 980, scene: 'resistor_protect',
     q: '一條線從插座進到晶片，中間被幾個零件擋過？PPTC、NTC、壓敏電阻、TVS 各擋什麼，為什麼不能互換？',
     parts: PARTS,
   });
