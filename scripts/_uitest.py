@@ -9982,6 +9982,9 @@ SECTIONS = {
     "設定面板":            lambda pg, b, base, code: t_cfgpop(pg, base, code),
     "K線縮放":             lambda pg, b, base, code: t_kzoom_keep(pg, base, code),
     "淺色主題":            lambda pg, b, base, code: t_lightink(b, base, code),
+    "批次14b-被動RLC":     lambda pg, b, base, code: t_b14b_rlc(pg, base),
+    "批次14b-高速互連":     lambda pg, b, base, code: t_b14b_hsio(pg, base),
+    "批次14b-第三代半導體": lambda pg, b, base, code: t_b14b_wbg(pg, base),
     "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
@@ -11474,6 +11477,635 @@ def t_transformer(pg, base):
        hit and 0 < n_one < n_all, f"{n_all} → {n_one}")
 
     _dg14_typo(pg, dgh, "變壓器GIS")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+def _b14b_anim(pg, label, need_dots):
+    """「動畫：開／關」真的停得住。
+    SMIL（animateMotion）要靠 svg.pauseAnimations() 停，CSS 的 .noanim 管不到它 ——
+    所以這裡量的是**那顆點的螢幕座標有沒有停下來**，不是有沒有加上 class。"""
+    pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }")
+    pg.wait_for_timeout(600)
+    _b14b_open(pg)
+    d_pre = pg.evaluate(B14B_DOTS)
+    if not ok(f"{label}：動畫的前提 —— 會跑的那 {need_dots} 顆點真的畫在畫面上",
+              len(d_pre) == need_dots, f"量到 {len(d_pre)} 顆"):
+        return
+    a1 = pg.evaluate(B14B_DOTS)
+    pg.wait_for_timeout(1400)
+    a2 = pg.evaluate(B14B_DOTS)
+    ok(f"{label}：「動畫：開」的時候，那些點真的在動", a1 != a2, f"{a1} → {a2}")
+    pg.eval_on_selector("#dgAnim", "b => b.click()")        # → 動畫：關
+    pg.wait_for_timeout(800)
+    b1 = pg.evaluate(B14B_DOTS)
+    pg.wait_for_timeout(1400)
+    b2 = pg.evaluate(B14B_DOTS)
+    ok(f"{label}：★ 按「動畫：關」之後**真的停下來**（連續兩次取樣完全一樣，SMIL 也停了）",
+       b1 == b2, f"{b1} → {b2}")
+    still = pg.evaluate("""() => { const h = document.querySelector('#prodDiagram');
+      return {noanim: h.classList.contains('noanim'),
+              parts: h.querySelectorAll('[data-part]').length,
+              texts: h.querySelectorAll('text').length}; }""")
+    ok(f"{label}：★ 靜止的時候結構與標註仍然看得見（不是把東西藏起來才停住）",
+       still["noanim"] and still["parts"] >= 15 and still["texts"] >= 50, still)
+    pg.eval_on_selector("#dgAnim", "b => b.click()")        # 還原偏好，不汙染後面的段落
+    pg.wait_for_timeout(400)
+
+
+def _b14b_card(pg):
+    """零件小卡現在說了什麼（沒有就回 None）。"""
+    return pg.evaluate("""() => { const b = document.querySelector('#partCard');
+      if (!b || b.hidden) return null;
+      return (b.textContent || '').replace(/\\s+/g, ' ').trim(); }""")
+
+
+def _b14b_click_part(pg, key):
+    """真的點圖上那個零件（不是說明列）。回傳被點到的那個節點的 data-part。"""
+    got = pg.evaluate("""(p) => {
+      const n = [...document.querySelectorAll('#prodDiagram [data-part]')]
+        .find(x => x.getAttribute('data-part') === p && !x.classList.contains('lrow'));
+      if (!n) return null;
+      n.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+      return n.getAttribute('data-part');
+    }""", key)
+    pg.wait_for_timeout(420)
+    return got
+
+
+def _b14b_entry(pg, base, chain, dgid, feat, label):
+    """共用的前四條：圖別入口 → 點進去 → 網址真的變 → 重新整理一樣打得開。
+    回傳 (是否畫得出來, 該圖的網址)。"""
+    dgh = f"{base}#industry/{chain}/dg/{dgid}"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/{chain}", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    m0 = pg.evaluate("""() => {
+      const pick = [...document.querySelectorAll('#dgPick .segchip')];
+      return {ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
+              titles: pick.map(n => n.getAttribute('title') || ''),
+              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid'))};
+    }""")
+    ok(f"{label}：{chain} 鏈的圖別選單裡真的多了這個入口（選單卡與上方切換列都要有）",
+       dgid in m0["cards"] and dgid in m0["ids"], m0["ids"])
+    q = [t for i, t in zip(m0["ids"], m0["titles"]) if i == dgid]
+    ok(f"{label}：那個入口寫清楚它回答什麼問題（不寫的話得先點進去才知道要不要點）",
+       bool(q) and len(q[0]) > 15 and "？" in q[0], q)
+    ok(f"{label}：那個入口是真的連結（有自己的網址，可以分享、可以回上一頁）",
+       f"#industry/{chain}/dg/{dgid}" in m0["hrefs"], m0["hrefs"])
+    if dgid not in m0["ids"]:
+        return False, dgh
+    h_before = pg.evaluate("() => location.hash")
+    # 沒有「鏈層級總圖」的鏈（例如 electronics）進來看到的是**圖別選單**（#dgMenu），
+    # 上方那條切換列（#dgPick）是隱藏的 —— 直接 click 會卡在「element is not visible」。
+    # 所以哪一個看得到就點哪一個，兩條路都要真的用滑鼠點下去。
+    sel = pg.evaluate("""(id) => {
+      const vis = n => !!(n && n.offsetParent !== null);
+      const a = document.querySelector('#dgPick .segchip[data-dgid="' + id + '"]');
+      if (vis(a)) return '#dgPick .segchip[data-dgid="' + id + '"]';
+      const b = document.querySelector('#dgMenu .dgcard[data-dgid="' + id + '"]');
+      if (vis(b)) return '#dgMenu .dgcard[data-dgid="' + id + '"]';
+      return null;
+    }""", dgid)
+    if not ok(f"{label}：那個入口在畫面上真的看得到（切換列或圖別選單至少一個）", bool(sel), sel):
+        return False, dgh
+    pg.click(sel, timeout=5000)
+    pg.wait_for_timeout(2400)
+    _b14b_open(pg)
+    d0 = pg.evaluate(B14B_DG)
+    h_after = pg.evaluate("() => location.hash")
+    drawn = bool(d0.get("present")) and feat in d0.get("full", "")
+    ok(f"{label}：點那個入口 → 圖真的畫出來（比對圖上的特徵字串）",
+       drawn, (d0.get("full", "")[:46] or "<沒有圖>"))
+    ok(f"{label}：★ 點入口之後**網址真的變了**",
+       h_after != h_before and h_after.endswith(f"/dg/{dgid}"), f"{h_before} → {h_after}")
+    pg.reload(wait_until="networkidle")
+    pg.wait_for_timeout(2500)
+    _b14b_open(pg)
+    d0b = pg.evaluate(B14B_DG)
+    ok(f"{label}：★ 直接貼那個網址重新整理，一樣打得開同一張圖",
+       pg.evaluate("() => location.hash").endswith(f"/dg/{dgid}") and feat in d0b.get("full", ""),
+       pg.evaluate("() => location.hash"))
+    return drawn, dgh
+
+
+def _b14b_gutter(pg, label, gaps):
+    """多欄版面：沒有任何一行字從自己那一欄伸進隔壁欄。gaps＝[[溝左, 溝右, 該欄左緣], …]。"""
+    z = pg.evaluate(B14B_GUTTER, gaps)
+    ok(f"{label}：★ 沒有任何一行字從自己那一欄**伸進隔壁欄**（字級與重疊都量不到這一種壞法）",
+       z.get("present") and z["nBad"] == 0, f"{z.get('nBad')} 行 {z.get('bad')}")
+
+
+def _b14b_open(pg):
+    """把剖析圖確實展開（窄畫面預設收合，而且會寫進 localStorage）。
+    只有「現在真的有一張圖」時才動它 —— 選單模式下按收合鈕只會把偏好反過來設。"""
+    pg.evaluate("""() => {
+      const menu = document.getElementById('dgMenu');
+      if (menu && menu.offsetParent !== null) return;
+      const b = document.getElementById('dgFold');
+      const body = document.getElementById('dgBody');
+      const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+      if (b && hidden) b.click();
+    }""")
+    pg.wait_for_timeout(450)
+
+
+def _b14b_rows(pg):
+    """成分股「真的有資料的那幾列」。不能數 tbody tr —— 0 筆的時候裡面有一列說明用的
+    colspan，數進去會把 0 筆讀成 1 筆。"""
+    return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+
+
+def _b14b_seg_chip(pg, seg):
+    return pg.evaluate("""(s) => { const c = document.querySelector('#segChips .segchip[data-seg="' + s + '"]');
+      if (!c) return false; c.click(); return true; }""", seg)
+
+
+def _b14b_typo(pg, dgh, label, widths=(1440, 800, 390)):
+    """三個寬度 × 深淺兩個主題：畫面真實字級 ≥ 12px、文字兩兩不重疊、沒有溢出畫布、
+    沒有整頁水平捲軸（圖自己可以左右滑，但整頁不可以）。"""
+    for theme in ("dark", "light"):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        for w in widths:
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(dgh, wait_until="networkidle")
+            pg.reload(wait_until="networkidle")
+            pg.wait_for_timeout(2400)
+            _b14b_open(pg)
+            z = pg.evaluate(B14B_TYPO)
+            lab = f"{label}[{w}px·{'深色' if theme == 'dark' else '淺色'}]"
+            if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
+                continue
+            ok(f"{lab} 圖以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 970, z["svgW"])
+            ok(f"{lab} 圖上**每一個**字的畫面真實字級都 ≥ 12px（共 {z['n']} 個）",
+               z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
+            ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
+            ok(f"{lab} 沒有文字溢出畫布（左右都在 viewBox 裡）", z["nOut"] == 0, f"{z['nOut']} 個 {z['out']}")
+            ok(f"{lab} 沒有整頁水平捲軸（圖自己可以左右滑，整頁不行）",
+               z["pageScroll"] <= 2, f"整頁多出 {z['pageScroll']}px")
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+def t_b14b_hsio(pg, base):
+    """圖10 連接器：高速互連四個站（`site/dg/ai_interconnect.js`，族群 `ai_interconnect`）。
+
+    規格書＝`docs/diagram_specs/connector_hsio.md` §8：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   依序點 connector / hdi_pcb / optical / thermal 各一個零件 →
+          **四次的環節色標亮的不是同一格、小卡的字也不一樣**
+      3   點四個環節色標 → **四次篩出來的筆數彼此不同**（這才證明四個 seg 真的分開掛對）
+      4   在同一格裡依序點三個不同零件 → **三次的主角不同**（驗 data-part）
+      5   點零件 → 成分股筆數一動都不動（DECISIONS #73）
+      6   結構：E1 鍍層 Cu→Ni→Au、E2 金比鎳薄、B1/B2 twinax 兩導體共用一層遮蔽、
+          K1 導引柱比接點更靠前、X2 路徑帶編號與格子編號一致、X3 路徑帶不超過全圖 1/3、
+          X4 沒有 CPO／疊構／層數／背鑽、N1 沒有百分比、N2 距離對照有來源與前提
+      7   動畫：開／關 真的停得住
+      8   1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+    """
+    FEAT = "連接器與高速互連"
+    drawn, DGH = _b14b_entry(pg, base, "ai_server", "ai_interconnect", FEAT, "互連")
+    if not drawn:
+        return
+
+    d0 = pg.evaluate(B14B_DG)
+    ok("互連：四個環節真的都掛上去了（connector / hdi_pcb / optical / thermal）",
+       set(d0["segs"]) == {"connector", "hdi_pcb", "optical", "thermal"}, d0["segs"])
+
+    # ---------------- 2/4/5. 點零件：主角換人、小卡換人、成分股不動
+    rows_before = _b14b_rows(pg)
+    seen_keys, seen_cards = [], []
+    for key in ("gold_finger", "slot_beam", "cage_hs", "optic_module"):
+        _b14b_click_part(pg, key)
+        dd = pg.evaluate(B14B_DG)
+        seen_keys.append(dd["heroKey"])
+        seen_cards.append((_b14b_card(pg) or "")[:80])
+    ok("互連：★ 依序點四個掛在不同環節的零件 → **四次的主角都不一樣**（驗 data-part 真的分得開）",
+       len(set(seen_keys)) == 4, seen_keys)
+    ok("互連：★ 四次的零件小卡**內容彼此都不同**（不是每次都退回同一段環節說明）",
+       len(set(seen_cards)) == 4 and all(seen_cards), [c[:24] for c in seen_cards])
+    ok("互連：小卡真的講到「騎在籠子上的散熱片」那一件事（第三次點的是 cage_hs）",
+       "散熱片" in seen_cards[2], seen_cards[2][:60])
+    ok("互連：DECISIONS #73 —— 點零件**不會**改成分股筆數（只亮不篩）",
+       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+
+    # ---------------- 3. 四個環節色標篩出來的筆數彼此不同
+    got = {}
+    for seg in ("connector", "hdi_pcb", "optical", "thermal"):
+        pg.goto(DGH, wait_until="networkidle")
+        pg.wait_for_timeout(2300)
+        _b14b_open(pg)
+        b0 = _b14b_rows(pg)
+        hit = _b14b_seg_chip(pg, seg)
+        pg.wait_for_timeout(900)
+        codes = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr[data-code]')]
+          .map(r => r.dataset.code).sort().join(',')""")
+        got[seg] = {"n": _b14b_rows(pg), "base": b0, "hit": hit, "codes": codes}
+    # ⚠ 這裡**不能**比「筆數彼此不同」（規格書 §8 原本是這樣寫的）——
+    #   實際資料裡 hdi_pcb 與 thermal 剛好都是 6 家，比筆數會永遠紅，而且它紅得沒有道理：
+    #   要證明的是「四個 seg 真的分開掛對」，那就該比**篩出來的是不是同一批公司**。
+    ok("互連：★ 四個環節色標篩出來的**成分股名單彼此都不同**（這才證明四個 seg 真的分開掛對）",
+       all(g["hit"] for g in got.values()) and len({g["codes"] for g in got.values()}) == 4,
+       {s: (got[s]["n"], got[s]["codes"][:24]) for s in got})
+    ok("互連：★「連接器 / 線材」那一格真的只篩出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）",
+       got["connector"]["n"] == 1, got["connector"])
+
+    # ---------------- 6. 結構審查
+    pg.goto(DGH, wait_until="networkidle")
+    pg.wait_for_timeout(2300)
+    _b14b_open(pg)
+    d = pg.evaluate(B14B_DG)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (s) => { const n = svg.querySelector(s); return n ? n.getBBox() : null; };
+      const cells = [...svg.querySelectorAll('rect.frame')].map(n => ({
+        y: +n.getAttribute('y'), w: +n.getAttribute('width'), h: +n.getAttribute('height')}));
+      const quad = cells.filter(c => Math.abs(c.w - 464) < 1 && Math.abs(c.h - 440) < 1);
+      const plating = [...svg.querySelectorAll('[data-part="gold_finger"] rect.part')]
+        .map(n => ({x: +n.getAttribute('x'), w: +n.getAttribute('width')}))
+        .sort((a, b) => a.x - b.x);
+      const tw = [...svg.querySelectorAll('[data-part="twinax"] ellipse.part,[data-part="twinax"] circle.part')]
+        .map(n => n.tagName.toLowerCase());
+      const guide = bb('[data-part="guide_pin"] path.part');
+      const contact = bb('[data-part="float_conn"] rect.part:last-of-type');
+      const band = bb('[data-part="path_band"]');
+      const vents = svg.querySelectorAll('[data-part="cage_body"] rect').length;
+      const fingers = svg.querySelectorAll('[data-part="emi_finger"] path').length;
+      const hs = bb('[data-part="cage_hs"]');
+      const cage = bb('[data-part="cage_body"] rect.part');
+      return {quad: quad.map(c => [c.h, c.w]), plating: plating,
+              tw: tw, guideX: guide ? guide.x + guide.width : null,
+              contactX: contact ? contact.x : null,
+              bandH: band ? band.height : 0, vents: vents, fingers: fingers,
+              hsY: hs ? hs.y + hs.height : null, cageY: cage ? cage.y : null};
+    }""")
+    txt = d.get("full", "")
+    ok("互連・X1：四格**等高等寬**（同一支 cell() 產生的，所以誤差只可能是 0）",
+       len(st["quad"]) == 4 and len({tuple(v) for v in st["quad"]}) == 1, st["quad"])
+    ok("互連・X2：★ 路徑帶的編號與下面四格的標題編號**一致**（沒有編號路徑帶就只是裝飾）",
+       all(n in txt for n in ("②", "③", "④", "⑤")) and txt.count("②") >= 2 and txt.count("⑤") >= 2,
+       {n: txt.count(n) for n in ("②", "③", "④", "⑤")})
+    ok("互連・X3：路徑帶的高度**不超過整張圖的三分之一**",
+       st["bandH"] > 0 and st["bandH"] <= d["vbH"] / 3, f"路徑帶 {st['bandH']}px ／ 全圖 {d['vbH']}px")
+    # X4：「層數」這兩個字**准**出現（畫面上寫「板子的層數也能往下壓」，那是論點不是違規）；
+    #     要判的是有沒有真的畫一張疊構剖面出來，所以看零件名單 ＋ 沒有「背鑽／疊構」這兩個詞。
+    ok("互連・X4：圖上**沒有畫** PCB 疊構剖面、沒有背鑽；CPO 只用一行字導去「交換器板卡」那張",
+       not [w for w in ("背鑽", "疊構", "層數標示") if w in txt]
+       and not [k for k in d["parts"] if any(w in k for w in ("stack", "drill", "layer"))]
+       and "CPO" in txt and "見「交換器板卡」那張" in txt, d["parts"])
+    ok("互連・X5：圖上沒有風扇、晶片散熱片、電源模組（籠架自己的散熱片除外）",
+       not [w for w in ("風扇", "電源模組", "均熱片") if w in txt], "")
+    ok("互連・E1：金手指鍍層由內到外是 **銅 → 鎳 → 硬金**（左端三塊的 x 由大到小）",
+       len(st["plating"]) == 6 and st["plating"][0]["x"] < st["plating"][1]["x"] < st["plating"][2]["x"],
+       st["plating"])
+    ok("互連・E2：硬金層**明顯薄於**鎳層（2px vs 4px）",
+       len(st["plating"]) == 6 and st["plating"][0]["w"] < st["plating"][1]["w"],
+       [p["w"] for p in st["plating"]])
+    ok("互連・B1／B2：twinax 橫剖面是**兩根等徑導體並排 ＋ 包住整對的橢圓遮蔽**（不是單根同軸）",
+       st["tw"].count("circle") == 4 and st["tw"].count("ellipse") == 2, st["tw"])
+    ok("互連・K1：★ **導引柱比訊號接點更靠前**（畫成接點先碰到，在工程上就是把接點撞壞）",
+       st["guideX"] is not None and st["contactX"] is not None and st["guideX"] < st["contactX"],
+       f"導引柱尖端 x={st['guideX']} ／ 接點 x={st['contactX']}")
+    ok("互連・G1：籠架有通風孔（一排小方孔陣列，不是貼圖）", st["vents"] >= 20, st["vents"])
+    ok("互連・G3：EMI 指片圍在開口四周（畫得出一根一根的金屬指）", st["fingers"] >= 5, st["fingers"])
+    ok("互連・G4：散熱片在**籠架之上**（不在籠架裡、也不在模組裡）",
+       st["hsY"] is not None and st["cageY"] is not None and st["hsY"] <= st["cageY"] + 1,
+       f"散熱片下緣 {st['hsY']} ／ 籠架上緣 {st['cageY']}")
+    ok("互連・N1：畫面上**沒有任何市占率、單價、成長率、營收占比**（一個百分比都沒有）",
+       "%" not in txt, [t for t in txt.split("。") if "%" in t][:1])
+    ok("互連・N2：★ 距離對照那兩個數字**同時標了來源與前提**（只寫數字不寫前提＝不過）",
+       "22 吋" in txt and "4.5 吋" in txt and "802.3ck" in txt and "單一來源" in txt and "原廠技術頁" in txt, "")
+    # 2×2 的溝：480–500，只在四格那兩段高度裡成立
+    #（上方路徑帶與底部對照條是整張寬的，跨過去是對的）。
+    _b14b_gutter(pg, "互連", [[480, 500, 16, 296, 736], [480, 500, 16, 752, 1192]])
+    ok("互連・N3：三行誠實性標示都在（非實物比例／距離對照的限制／環節不等於族群）",
+       "示意圖，非實物比例" in txt and "依板材、頻率與設計規則而異" in txt and "不是整個族群" in txt, "")
+
+    # ---------------- 7/8
+    _b14b_anim(pg, "互連", 1)
+    _b14b_typo(pg, DGH, "互連")
+
+
+def t_b14b_rlc(pg, base):
+    """圖11 被動元件：電感·電阻·石英（`site/dg/power_inductor.js`，族群 `power_inductor`）。
+
+    規格書＝`docs/diagram_specs/passive_rlc.md`，這一段就是它 §8 的「互動」「視覺」兩組：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   點**電阻欄**任一個零件 → `.sel-part` 真的出現，而且**零件小卡的字真的換人**
+      3   在電阻欄依序點基板、修整溝、端電極 → **三次的主角不同**（驗 data-part）
+      4   點零件 → 成分股筆數**一動都不動**（DECISIONS #73：零件只亮不篩）
+      5   點 `passive_comp` 環節色標 → 成分股筆數**真的變了**
+      6   ★ 點**電感欄**與**石英欄**的零件 → **筆數不變、也不會冒出別人的小卡**
+          （§7-D2：那兩欄不掛 data-seg，掛上去等於宣稱國巨那五家做電感）
+      7   結構（§6 裡看圖就判得出來的那幾條）：X3 沒有流程箭頭、X4 沒有任何電容、
+          X5 只有 passive_comp 一個 seg、X6 舞台不超過全圖 1/3、N1 沒有百分比
+      8   動畫：開／關 真的停得住
+      9   1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+    """
+    FEAT = "電感·電阻·石英"
+    drawn, DGH = _b14b_entry(pg, base, "electronics", "power_inductor", FEAT, "RLC")
+    if not drawn:
+        return
+
+    # ---------------- 2/3. 兩層高亮 ＋ data-part：主角真的換人，小卡的字也真的換
+    rows_before = _b14b_rows(pg)
+    _b14b_click_part(pg, "res_substrate")
+    d1 = pg.evaluate(B14B_DG)
+    c1 = _b14b_card(pg)
+    ok("RLC：點電阻欄的「陶瓷基板」→ 主角（.sel-part）真的出現，而且就是它",
+       d1["selpart"] >= 1 and d1["heroKey"] == "res_substrate",
+       f"key={d1['heroKey']} selpart={d1['selpart']}")
+    ok("RLC：主角的描邊比同環節其餘零件粗（量 computed style，不是看有沒有 class）",
+       bool(d1["heroSW"]) and bool(d1["sibSW"]) and min(d1["heroSW"]) > max(d1["sibSW"]),
+       f"主角 {d1['heroSW']} ／ 同環節其餘 {d1['sibSW']}")
+    ok("RLC：★ 零件小卡真的出現，而且講的是「陶瓷基板」這一件事",
+       bool(c1) and "陶瓷基板" in c1, (c1 or "<沒有小卡>")[:70])
+    _b14b_click_part(pg, "res_trim")
+    d2 = pg.evaluate(B14B_DG)
+    c2 = _b14b_card(pg)
+    ok("RLC：★ 換點「雷射修整溝」→ 主角真的換人（不是整個取消掉）",
+       d2["heroKey"] == "res_trim", f"{d1['heroKey']} → {d2['heroKey']}")
+    ok("RLC：★ 小卡的文字**真的換了**，而且換成修整溝那一段（身分證那句話）",
+       bool(c2) and c2 != c1 and "修整溝" in c2, (c2 or "")[:70])
+    _b14b_click_part(pg, "res_term3")
+    d3 = pg.evaluate(B14B_DG)
+    ok("RLC：再點「端電極三層」→ 三次的主角彼此都不同（這才證明 data-part 真的分得開）",
+       len({d1["heroKey"], d2["heroKey"], d3["heroKey"]}) == 3,
+       [d1["heroKey"], d2["heroKey"], d3["heroKey"]])
+
+    # ---------------- 4. DECISIONS #73：點零件只亮不篩
+    ok("RLC：DECISIONS #73 —— 點零件**不會**改成分股筆數（只亮不篩）",
+       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+
+    # ---------------- 6. ★ 電感欄與石英欄：不掛 seg，所以點了不該冒出任何小卡
+    for key, nm in (("ind_body", "電感本體"), ("xtal_blank", "石英晶片")):
+        pg.goto(DGH, wait_until="networkidle")
+        pg.reload(wait_until="networkidle")      # 同 hash 的 goto 不會重畫，上一次選的零件會留著
+        pg.wait_for_timeout(2400)
+        _b14b_open(pg)
+        n0 = _b14b_rows(pg)
+        _b14b_click_part(pg, key)
+        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 成分股筆數**一動都不動**，也沒有冒出別人的小卡",
+           _b14b_rows(pg) == n0 and not _b14b_card(pg),
+           f"{n0} → {_b14b_rows(pg)}；小卡＝{(_b14b_card(pg) or '沒有')[:36]}")
+
+    # ---------------- 5. 點環節色標 → 筆數真的變
+    pg.goto(DGH, wait_until="networkidle")
+    pg.wait_for_timeout(2300)
+    _b14b_open(pg)
+    base_rows = _b14b_rows(pg)
+    hit = _b14b_seg_chip(pg, "passive_comp")
+    pg.wait_for_timeout(900)
+    after = _b14b_rows(pg)
+    title = pg.evaluate("() => document.querySelector('#memberTitle').textContent.replace(/\\s+/g,' ')")
+    ok("RLC：★ 點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數**真的變了**，標題也換了",
+       hit and after != base_rows and ("被動元件" in title or "電阻" in title),
+       f"{base_rows} → {after}；標題 {title[:34]}")
+
+    # ---------------- 7. 結構審查（§6 裡看圖就判得出來的那幾條）
+    pg.goto(DGH, wait_until="networkidle")
+    pg.wait_for_timeout(2300)
+    _b14b_open(pg)
+    d = pg.evaluate(B14B_DG)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (s) => { const n = svg.querySelector(s); return n ? n.getBBox() : null; };
+      const cols = [...svg.querySelectorAll('rect.frame')].map(n => ({
+        x: +n.getAttribute('x'), y: +n.getAttribute('y'),
+        w: +n.getAttribute('width'), h: +n.getAttribute('height')}));
+      // 三欄＝y 一樣、寬一樣的那三個框
+      const byY = {}; cols.forEach(c => { byY[c.y] = (byY[c.y] || []).concat([c]); });
+      const trio = Object.values(byY).find(a => a.length === 3) || [];
+      const term = [...svg.querySelectorAll('[data-part="res_term3"] rect.part')]
+        .map(n => +n.getAttribute('x')).sort((a, b) => a - b);
+      const film = bb('[data-part="res_film"] rect.part');
+      const inner = bb('[data-part="res_inner_term"] rect.part');
+      const trim = bb('[data-part="res_trim"] rect.part');
+      const glass = bb('[data-part="res_glass"] rect.part');
+      const stage = bb('[data-part="stage_board"]');
+      const wind = svg.querySelectorAll('[data-part="ind_wind"] rect.part').length;
+      const body = bb('[data-part="ind_body"] rect.part');
+      const windBB = bb('[data-part="ind_wind"]');
+      const blank = bb('[data-part="xtal_blank"] rect.part');
+      const cav = bb('[data-part="xtal_cavity"] rect.part');
+      const mounts = svg.querySelectorAll('[data-part="xtal_mount"] circle.part').length;
+      const seam = svg.querySelector('[data-part="xtal_lid"] path[stroke-width="3"]');
+      return {trio: trio.map(c => [c.h, c.w]), nFrame: cols.length,
+              term: term, film: film && [film.x, film.x + film.width, film.y, film.y + film.height],
+              inner: inner && [inner.y, inner.y + inner.height],
+              trim: trim && [trim.y, trim.y + trim.height],
+              glass: glass && [glass.y, glass.y + glass.height],
+              stageH: stage ? stage.height : 0, wind: wind,
+              bodyBB: body && [body.x, body.x + body.width, body.y, body.y + body.height],
+              windBB: windBB && [windBB.x, windBB.x + windBB.width, windBB.y, windBB.y + windBB.height],
+              blank: blank && [blank.x, blank.x + blank.width, blank.y, blank.y + blank.height],
+              cav: cav && [cav.x, cav.x + cav.width, cav.y, cav.y + cav.height],
+              mounts: mounts, seamDash: seam ? (seam.getAttribute('stroke-dasharray') || '') : 'X',
+              arrows: svg.querySelectorAll('marker,[marker-end]').length};
+    }""")
+    txt = d.get("full", "")
+    ok("RLC・X1：三欄**等高等寬**（誤差 2px 以內，因為三欄是同一支 col() 產生的）",
+       len(st["trio"]) == 3 and max(h for h, w in st["trio"]) - min(h for h, w in st["trio"]) <= 2
+       and max(w for h, w in st["trio"]) - min(w for h, w in st["trio"]) <= 2, st["trio"])
+    ok("RLC・X3：三欄之間**沒有任何流程箭頭**（三者沒有上下游關係，畫成流程等於宣稱一件假的事）",
+       st["arrows"] == 0 and "沒有任何流程箭頭" in txt, f"marker 數 {st['arrows']}")
+    # X4：不能用「字串裡有沒有出現『電容』」來判 —— 畫面上刻意寫了
+    # 「這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）」，那是宣告不是違規。
+    # 要判的是**有沒有真的畫一個電容零件出來**，所以看 data-part 的名單。
+    ok("RLC・X4：圖上**沒有任何電容零件**（零件名單裡沒有 mlcc／cap／diel），而且畫面自己講明了這件事",
+       not [k for k in d["parts"] if any(w in k for w in ("mlcc", "cap", "diel"))]
+       and "不畫任何電容" in txt, d["parts"])
+    ok("RLC・X5：★ 整張圖**只有 passive_comp 一個 data-seg**（電感欄與石英欄一個都沒掛）",
+       set(d["segs"]) == {"passive_comp"}, d["segs"])
+    ok("RLC・X6：共同舞台的高度**不超過整張圖的三分之一**",
+       st["stageH"] > 0 and st["stageH"] <= d["vbH"] / 3,
+       f"舞台 {st['stageH']}px ／ 全圖 {d['vbH']}px")
+    ok("RLC・R1：電阻膜的兩端**壓在上面電極之上**（有重疊，不是頭碰頭對接）",
+       st["film"] and st["inner"] and st["film"][3] > st["inner"][0],
+       f"膜 {st['film']} ／ 上面電極 {st['inner']}")
+    ok("RLC・R2：雷射修整溝**只切在電阻膜上**，沒有切到陶瓷基板",
+       st["trim"] and st["film"] and st["trim"][0] >= st["film"][2] - 0.5 and st["trim"][1] <= st["film"][3],
+       f"溝 {st['trim']} ／ 膜 {st['film']}")
+    ok("RLC・R3：玻璃保護層在**修整溝的外側**（修完才蓋上去，溝沒有露在最外面）",
+       st["glass"] and st["trim"] and st["glass"][0] < st["trim"][0], f"保護層 {st['glass']} ／ 溝 {st['trim']}")
+    ok("RLC・R4：端電極由內到外是 Cu → Ni → Sn（左端三層的 x 由大到小；Ni 畫在 Sn 外面＝不過）",
+       len(st["term"]) == 6 and st["term"][0] < st["term"][1] < st["term"][2], st["term"])
+    ok("RLC・L1／L2：繞組**被磁粉完全包住**（四邊都在本體之內），而且圈數數得出來（≥3 圈）",
+       st["wind"] >= 3 and st["bodyBB"] and st["windBB"]
+       and st["windBB"][0] > st["bodyBB"][0] and st["windBB"][1] < st["bodyBB"][1]
+       and st["windBB"][2] > st["bodyBB"][2] and st["windBB"][3] < st["bodyBB"][3],
+       f"圈數 {st['wind']}；本體 {st['bodyBB']} ／ 繞組 {st['windBB']}")
+    ok("RLC・Q1：石英片**四周與上下都沒有碰到**腔壁與蓋子（碰到就振不動）",
+       st["blank"] and st["cav"] and st["blank"][0] > st["cav"][0] and st["blank"][1] < st["cav"][1]
+       and st["blank"][2] > st["cav"][2] and st["blank"][3] < st["cav"][3],
+       f"石英片 {st['blank']} ／ 腔 {st['cav']}")
+    ok("RLC・Q2：固定點**只有兩個**（懸臂式，四個角都黏就壓住振動了）", st["mounts"] == 2, st["mounts"])
+    ok("RLC・Q5：金屬蓋的焊縫是**一條連續的線**，不是斷續的點或虛線",
+       st["seamDash"] in ("", "none"), st["seamDash"])
+    ok("RLC・N1：畫面上**一個百分比都沒有**（良率、單價、市占一律不准）",
+       "%" not in txt.replace("10%／20%／30%", ""), [t for t in txt.split("。") if "%" in t][:1])
+    # 三欄的溝：322–338（A|B）與 644–660（B|C）。後三個數字是該欄的左緣與「真的排成三欄」的那一段高度
+    #（底下那兩塊說明框是兩欄不是三欄，不在這一段高度裡，不然會被誤判）。
+    _b14b_gutter(pg, "RLC", [[322, 338, 16, 292, 948], [644, 660, 338, 292, 948]])
+    ok("RLC・N3：兩行誠實性標示都在（非實物比例／環節不等於族群）",
+       "示意圖，非實物比例" in txt and "不是整個族群" in txt, "")
+    ok("RLC：★ 畫面上寫清楚「電感與石英在供應鏈圖上還沒有自己的一格」（不寫的話會被讀成那五家做電感）",
+       "還沒有自己的一格" in txt and "不掛環節" in txt, "")
+
+    # ---------------- 8/9. 動畫 ＋ 字級／重疊／溢出
+    _b14b_anim(pg, "RLC", 1)
+    _b14b_typo(pg, DGH, "RLC")
+
+
+def t_b14b_wbg(pg, base):
+    """圖12 第三代半導體 SiC / GaN（`site/dg/wide_bandgap.js`，族群 `wide_bandgap`）。
+
+    規格書＝`docs/diagram_specs/wide_bandgap.md` §8。
+    ⚠ 這一段的第一條是**反向驗收**：它要證明的是「我們**沒有**偷偷掛一個錯的環節」。
+      supply_chain.yaml 的半導體鏈 14 格裡沒有一格對應第三代半導體，
+      硬掛 foundry 等於在公開網站上同時宣稱「漢磊做先進邏輯代工」與「台積電做 SiC」。
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   ★ `[data-seg]` 的數量是 **0**，而且畫面底部那一行「沒有對應環節」看得見
+      3   每個零件都有自己的 `data-part`（stampParts 自動補的 key 在這裡會退化成 null＋序號）
+      4   結構：W1 汲極在背面、W3 基板比漂移層厚、W4 有閘極氧化層、W7 溝槽閘沒有 JFET 區、
+          W9 2DEG 在 GaN 那一側、W10 GaN 背面沒有電極、W11 兩支箭頭方向差 90 度、
+          W12 AlGaN 比通道層薄、W13 GaN-on-Si 的緩衝層比 GaN-on-SiC 厚、
+          W16 三條帶互相重疊、W19 流程順序、N1 沒有百分比以外的數字、M3 有「只講功率元件」那一行
+      5   動畫：開／關 真的停得住（三顆電荷），靜止時兩條電流路徑仍然看得見
+      6   1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+    """
+    FEAT = "第三代半導體"
+    drawn, DGH = _b14b_entry(pg, base, "semiconductor", "wide_bandgap", FEAT, "第三代")
+    if not drawn:
+        return
+
+    d = pg.evaluate(B14B_DG)
+    txt = d.get("full", "")
+    # ---------------- 2. ★ 反向驗收
+    ok("第三代：★★ 圖上**一個 data-seg 都沒有**（掛 foundry／semi_material 都會產生錯誤宣稱）",
+       d["nSeg"] == 0, f"量到 {d['nSeg']} 個：{d['segs']}")
+    ok("第三代：★ 而且畫面上寫清楚「這一格在供應鏈資料裡還沒有對應環節，點零件不會篩成分股」",
+       "還沒有對應環節" in txt and "不是壞掉" in txt, "")
+    ok("第三代：R4／R5 —— 查不到的那三段誠實標成「查不到」，而查得到的兩段寫出公司與代號",
+       "查不到台股的具名對應" in txt and "3016 嘉晶" in txt and "3707 漢磊" in txt, "")
+    ok("第三代：§7-C7 的踩雷 —— 圖上**沒有**穩懋與宏捷科（那組對應是 WebSearch 摘要自己湊的）",
+       "穩懋" not in txt and "宏捷科" not in txt, "")
+
+    # ---------------- 3. data-part
+    need = ["wbg_sic_drift", "wbg_sic_sub", "wbg_sic_gox", "wbg_sic_jfet", "wbg_sic_trench",
+            "wbg_2deg", "wbg_gan_buf", "wbg_pgan", "wbg_cascode", "wbg_band", "wbg_boule", "wbg_flow"]
+    miss = [k for k in need if k not in d["parts"]]
+    ok("第三代：★ 每個零件都有自己寫死的 data-part（沒有 seg 的圖更要自己寫，不然 key 會退化成 null＋序號）",
+       not miss and len(d["parts"]) >= 20, f"缺 {miss}；共 {len(d['parts'])} 個")
+
+    # ---------------- 4. 結構審查
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (s) => { const n = svg.querySelector(s); return n ? n.getBBox() : null; };
+      const all = (s) => [...svg.querySelectorAll(s)];
+      const drain = bb('[data-part="wbg_sic_drain"] rect.part');
+      const sub = bb('[data-part="wbg_sic_sub"] rect.part');
+      const drift = bb('[data-part="wbg_sic_drift"] rect.part');
+      const srcAll = all('[data-part="wbg_sic_src"] rect.part').map(n => +n.getAttribute('y'));
+      const gox = all('[data-part="wbg_sic_gox"] rect.part').map(n => ({
+        y: +n.getAttribute('y'), h: +n.getAttribute('height')}));
+      // ⚠ 標註列（.lrow）也掛同一個 data-part（點列＝點零件），所以數「有幾組」時一定要排掉它，
+      //   不然平面閘那一格會被數成 2 組 JFET。
+      const nJfet = all('[data-part="wbg_sic_jfet"]:not(.lrow)').length;
+      const nTrench = all('[data-part="wbg_sic_trench"]:not(.lrow)').length;
+      const trench = bb('[data-part="wbg_sic_trench"] rect.part');
+      // GaN
+      const ch = all('[data-part="wbg_gan_ch"] rect.part').map(n => ({
+        y: +n.getAttribute('y'), h: +n.getAttribute('height')}));
+      const bar = all('[data-part="wbg_gan_bar"] rect.part').map(n => ({
+        y: +n.getAttribute('y'), h: +n.getAttribute('height')}));
+      const deg = all('[data-part="wbg_2deg"]:not(.lrow) path').map(n => {
+        const m = /M[-\\d.]+,([-\\d.]+)/.exec(n.getAttribute('d') || ''); return m ? +m[1] : null; });
+      const buf = all('[data-part="wbg_gan_buf"]:not(.lrow)').map(g => g.querySelectorAll('rect').length);
+      const elec = all('[data-part="wbg_gan_elec"] rect.part').map(n => +n.getAttribute('y'));
+      const ganSub = bb('[data-part="wbg_gan_sub"] rect.part');
+      // 兩支電流箭頭的方向（取直線段的 dx / dy）
+      const dirs = all('[data-part="wbg_sic_i"] path,[data-part="wbg_gan_i"] path')
+        .map(n => n.getAttribute('d') || '')
+        .map(d2 => { const m = /^M([-\\d.]+),([-\\d.]+) L([-\\d.]+),([-\\d.]+)$/.exec(d2);
+          return m ? [+m[3] - +m[1], +m[4] - +m[2]] : null; }).filter(Boolean);
+      // 帶狀圖的三條帶（x 區間要互相重疊）
+      const bands = all('[data-part="wbg_band"] rect.part').slice(1).map(n => [
+        +n.getAttribute('x'), +n.getAttribute('x') + +n.getAttribute('width')]);
+      const steps = all('[data-part="wbg_flow"] text.lbl').map(n => n.textContent);
+      return {drain: drain && [drain.y, drain.y + drain.height],
+              sub: sub && [sub.y, sub.y + sub.height, sub.height],
+              drift: drift && [drift.y, drift.y + drift.height, drift.height],
+              srcTop: srcAll.length ? Math.min(...srcAll) : null,
+              gox: gox, nJfet: nJfet, nTrench: nTrench,
+              trench: trench && [trench.y, trench.y + trench.height],
+              ch: ch, bar: bar, deg: deg, buf: buf, elec: elec,
+              ganSub: ganSub && [ganSub.y, ganSub.y + ganSub.height],
+              dirs: dirs, bands: bands, steps: steps};
+    }""")
+    ok("第三代・W1：SiC 的汲極在**背面**（在基板之下），源極與閘極在正面",
+       st["drain"] and st["sub"] and st["drain"][0] >= st["sub"][1] - 0.5
+       and st["srcTop"] is not None and st["srcTop"] < st["sub"][0],
+       f"汲極 {st['drain']} ／ 基板 {st['sub']} ／ 源極最上緣 {st['srcTop']}")
+    ok("第三代・W2／W3：n⁺ 基板在 n⁻ 漂移層之下，而且**畫得比漂移層厚**",
+       st["sub"] and st["drift"] and st["sub"][0] >= st["drift"][1] - 0.5
+       and st["sub"][2] > st["drift"][2] * 1.3,
+       f"基板 {st['sub'][2]}px ／ 漂移層 {st['drift'][2]}px")
+    ok("第三代・W4：閘極與半導體之間有一條**明顯比閘極薄**的氧化層（沒有它就不叫 MOSFET）",
+       len(st["gox"]) == 2 and min(g["h"] for g in st["gox"]) <= 4
+       and max(g["h"] for g in st["gox"]) >= 8, st["gox"])
+    ok("第三代・W7／W8：★ 平面閘那一格有 JFET 區、**溝槽閘那一格沒有**，而且溝槽真的挖進半導體裡",
+       st["nJfet"] == 1 and st["nTrench"] == 1 and st["trench"] and st["drift"]
+       and st["trench"][1] > st["drift"][0] + 10,
+       f"JFET {st['nJfet']} 組、溝槽 {st['nTrench']} 組；溝底 {st['trench']} ／ 漂移層 {st['drift']}")
+    ok("第三代・W9：★ 2DEG 畫在 AlGaN／GaN 界面的 **GaN 那一側**（在阻障層之下、通道層之內）",
+       len(st["deg"]) == 2 and len(st["bar"]) == 2 and len(st["ch"]) == 2
+       and all(st["deg"][i] > st["bar"][i]["y"] + st["bar"][i]["h"] - 0.5
+               and st["deg"][i] < st["ch"][i]["y"] + st["ch"][i]["h"] for i in (0, 1)),
+       f"2DEG {st['deg']} ／ 阻障 {st['bar']} ／ 通道 {st['ch']}")
+    ok("第三代・W10：GaN 的三個電極**全部在上表面**，背面（基板底下）一個電極都沒有",
+       len(st["elec"]) == 3 and st["ganSub"] and max(st["elec"]) < st["ganSub"][0],
+       f"電極 y={st['elec']} ／ 基板 {st['ganSub']}")
+    ok("第三代・W11：★★ 兩支電流箭頭**方向差 90 度**（SiC 垂直、GaN 橫向）—— 缺了這組整張圖就只是兩疊方塊",
+       len(st["dirs"]) == 3 and sum(1 for d2 in st["dirs"] if abs(d2[0]) < 0.5 and abs(d2[1]) > 10) == 2
+       and sum(1 for d2 in st["dirs"] if abs(d2[1]) < 0.5 and abs(d2[0]) > 10) == 1, st["dirs"])
+    ok("第三代・W12：AlGaN 阻障層**比** GaN 通道層**薄**",
+       len(st["bar"]) == 2 and len(st["ch"]) == 2 and all(st["bar"][i]["h"] < st["ch"][i]["h"] for i in (0, 1)),
+       f"阻障 {[b['h'] for b in st['bar']]} ／ 通道 {[c['h'] for c in st['ch']]}")
+    ok("第三代・W13：★ GaN-on-Si 的緩衝層**明顯比** GaN-on-SiC **厚**（層數差好幾倍）",
+       len(st["buf"]) == 2 and max(st["buf"]) >= 3 * min(st["buf"]), f"兩組緩衝層的層數 {st['buf']}")
+    ok("第三代・W16：★ 帶狀圖的三條帶**互相重疊**，不是三個互不相交的方塊（650V 那一段兩者都在打）",
+       len(st["bands"]) == 3
+       and all(min(st["bands"][i][1], st["bands"][j][1]) - max(st["bands"][i][0], st["bands"][j][0]) > 10
+               for i, j in ((0, 1), (1, 2), (0, 2))), st["bands"])
+    ok("第三代・W17：帶狀圖上**沒有「一定要選 X」這種絕對句**，寫的是「大致的範圍」",
+       "一定要選" not in txt and "大致" in txt, "")
+    ok("第三代・W19／W20：流程順序是 長晶 → 切片 → 研磨拋光 → **磊晶** → 元件製造（磊晶在拋光之後）",
+       len(st["steps"]) == 6 and "長晶" in st["steps"][0] and "切片" in st["steps"][1]
+       and "研磨" in st["steps"][2] and "磊晶" in st["steps"][3] and "元件製造" in st["steps"][4]
+       and "封裝" in st["steps"][5], st["steps"])
+    ok("第三代・M3：畫面上有一行明講「本圖講功率元件；射頻 GaN 與 LED 不在此圖」",
+       "射頻 GaN 與 LED 不在此圖" in txt, "")
+    ok("第三代・N1：畫面上**沒有任何良率、成本、市占率與產能數字**",
+       "良率" not in txt.replace("沒有任何良率", "") and "市占" not in txt.replace("市占率與產能數字", "")
+       and "月產" not in txt, "")
+    ok("第三代・N2：帶年份的東西都附了時效標示（讓它自己會過期）",
+       "來源：產業媒體，2026" in txt and "來源：媒體報導，2025–2026" in txt, "")
+    # 兩大框的溝：480–500，三段兩欄的高度各驗一次
+    #（上半 SiC|GaN、中段 帶狀圖|長晶、下面兩個說明框；流程列與最底下那幾行是整張寬的）。
+    _b14b_gutter(pg, "第三代", [[480, 500, 16, 62, 548], [480, 500, 16, 564, 774],
+                                [480, 500, 16, 924, 1064]])
+    ok("第三代・N3：三行誠實性標示都在（非實物比例／只講功率元件／沒有對應環節）",
+       "示意圖，非實物比例" in txt and "射頻 GaN 與 LED 不在此圖" in txt and "還沒有對應環節" in txt, "")
+
+    # ---------------- 5/6
+    _b14b_anim(pg, "第三代", 3)
+    _b14b_typo(pg, DGH, "第三代")
 
 
 if __name__ == "__main__":
