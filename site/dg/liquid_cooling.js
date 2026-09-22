@@ -11,7 +11,8 @@
        其餘（兩相元件剖面、三種做法對照、誰做哪一塊、流程列）收進三段章節（`D.fold()`）。
      · 每張卡片帶 `data-dgcolor`＝那個零件的材質色（銅／TIM／冷側藍／不鏽鋼／液冷青綠／設施灰），
        編號圓點、色條、引線端點一起換色。
-     · 材質走 `D.fx`（玻璃板／管子／光束，diagrams.js 檔尾）：feGaussianBlur 只掛在兩條主幹的**靜態**暈光底線上（#239 的 ≤3）。
+     · 材質走 `D.fx`（`glass`／`beam`／`shadows`／`glowDefs`，diagrams.js 檔尾，波 1b 定的介面）：
+       濾鏡元素剛好三個 —— 兩條主幹的光暈 ＋ 拆解那一疊的柔陰影群組（#239 的 ≤3），其餘 beam 一律 glow:false。
 
    ★ 型式：2D 剖面爆炸圖 ＋ 2D 迴路示意（**不做真 3D**，規格書 §0 已寫死，`scene: null`）：
      冷板流道、毛細層、蒸氣腔全部「只存在於剖面」，轉一圈看到的都是一塊實心銅盒。
@@ -92,10 +93,11 @@
     // ================================================================ ① 爆炸拆解：冷板連同晶片一層一層拆開
     /* 2.5D 的斜投影厚度（DX 往右、DY 往上），每一層都是「前面一塊 ＋ 上面一片 ＋ 右邊一片」。
        TIM 的總視覺厚度（6 ＋ 8）仍然比任何金屬層（16 ＋ 8 起跳）薄 —— §6-H2 是用相對厚度驗的。*/
-    const DX = fx.DX, DY = fx.DY;
-    /* 玻璃板材質走共用的 D.fx.glass（參考圖 docs/diagram_refs/2d_panel_dark_light.webp）：
-       半透明前面 ＋ 共用的白→黑 sheen ＋ 頂緣高光 ＋ 上面／右邊兩片厚度 ＋ 底下一條淡陰影。*/
-    const slab = (x, y, w, h, front, top, side, o) => fx.glass(x, y, w, h, Object.assign({ c: front, top, side }, o || {}));
+    const DX = 14, DY = 8;
+    /* 玻璃板材質走共用的 D.fx.glass（diagrams.js 檔尾，波 1b 定的介面；參考圖 docs/diagram_refs/2d_panel_dark_light.webp）：
+       `iso:{dx,dy}` 就是等角玻璃板（頂面 ＋ 前面 ＋ 右側面 ＋ sheen ＋ 邊光 ＋ 頂緣高光），顏色走 `fill` 一律 token。*/
+    const ISO = { dx: DX, dy: -DY };
+    const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h, { fill, cls: 'part', rx: (o && o.r) || 2, iso: ISO });
     const AX = 170;                                  // 中軸（爆炸拆解的組裝軸）
     const SX = 45, SW = 250;                         // 冷板三層（上蓋／流道／底板）的左緣與寬
     // 每一層的 y（由上往下＝由外到內）。間距不是等距：蓋板那一列上面要放「IHS｜VC 二選一」的標籤
@@ -103,7 +105,7 @@
     const H = { port: 24, lid: 16, fin: 40, base: 16, tim2: 6, cap: 26, tim1: 6, die: 20 };
 
     // 進出水口：兩根立管（冷色＝進、暖色＝出，§6-H5），箭頭一進一出
-    const tube = (cx, col, col2) => fx.tube(cx - 12, Y.port + 4, 24, H.port - 4, { c: col2, r: 2, vertical: true })
+    const tube = (cx, col, col2) => fx.glass(cx - 12, Y.port + 4, 24, H.port - 4, { fill: col2, cls: 'part', rx: 2 })
       + `<ellipse class="part" cx="${cx}" cy="${Y.port + 4}" rx="12" ry="5" fill="${col}"/>`;
     const ports = tube(100, 'var(--dg-cold)', 'var(--dg-cold-2)') + tube(240, 'var(--dg-hot)', 'var(--dg-hot-2)')
       + `<path class="flow fast" d="M100,48V66" stroke="var(--dg-cold)" stroke-width="2.4" fill="none"/><path d="M95,60l5,9l5,-9Z" fill="var(--dg-cold)"/>`
@@ -112,45 +114,47 @@
       + `<text class="fine" x="240" y="42" text-anchor="middle" style="fill:var(--dg-hot)">出水（熱）</text>`;
     /* 拆開之後仍然看得出「怎麼接回去」：進水口 → 流道左端、流道右端 → 出水口，兩條虛線畫在上蓋後面
        （進出水口本來就是穿過上蓋的）。流道裡從左到右由冷變熱 —— 「進水冷、出水熱」從流道本身讀出來。*/
-    const links = fx.beam(`M100,${Y.port + H.port}V${Y.fin}`, { c: 'var(--dg-cold)', w: 2 })
-      + fx.beam(`M240,${Y.fin}V${Y.port + H.port}`, { c: 'var(--dg-hot)', w: 2 });
+    const links = fx.beam(`M100,${Y.port + H.port}V${Y.fin}`, { color: 'var(--dg-cold)', w: 2, glow: false, flow: true })
+      + fx.beam(`M240,${Y.fin}V${Y.port + H.port}`, { color: 'var(--dg-hot)', w: 2, glow: false, flow: true });
     /* 流道：一個 for 迴圈排等距薄鰭（§6-H4 要求 ≥8 條，這裡 12 條）。
        鰭與鰭之間是冷卻液 —— 底下先鋪一層「冷→熱」的水平漸層再把銅鰭疊上去。*/
     const fins = [];
     for (let i = 0; i < 12; i++) fins.push(`<rect x="${SX + 10 + i * 20}" y="${Y.fin}" width="6" height="${H.fin}" fill="var(--dg-cu)"/>`);
-    const finLayer = fx.pad(SX + 4, Y.fin + H.fin + 3, SW + DX - 6, 6)
+    const finLayer = `<g class="fxg" style="--fxc:var(--dg-cu)">`
       + `<path fill="var(--dg-cu-dim)" d="M${SX + SW},${Y.fin}L${SX + SW + DX},${Y.fin - DY}L${SX + SW + DX},${Y.fin + H.fin - DY}L${SX + SW},${Y.fin + H.fin}Z"/>`
       + `<rect class="part" x="${SX}" y="${Y.fin}" width="${SW}" height="${H.fin}" fill="url(#lcFlow)" fill-opacity=".9"/>` + fins.join('')
-      + `<rect class="fxsheen" x="${SX}" y="${Y.fin}" width="${SW}" height="${H.fin}"/>`
-      + fx.beam(`M${SX + 4},${Y.fin + H.fin / 2}H${SX + SW - 4}`, { c: 'var(--dg-cool)', core: 'url(#lcFlow)', w: 2 });
+      + `<rect class="fxs" x="${SX}" y="${Y.fin}" width="${SW}" height="${H.fin}"/><rect class="fxe" x="${SX}" y="${Y.fin}" width="${SW}" height="${H.fin}"/></g>`
+      + fx.beam(`M${SX + 4},${Y.fin + H.fin / 2}H${SX + SW - 4}`, { color: 'url(#lcFlow)', w: 2, glow: false, flow: true });
     /* 蓋板那一層：左半 ＝ 均熱片／蓋板（IHS，**實心銅**，斜線填滿）、右半 ＝ 均熱板 VC（**真空腔**）。
        ★ 這一列就是名詞陷阱唯一的畫面解藥（§6-P2）：一個實心、一個空的，並排。
        VC 由下到上：下蓋板 → 毛細層 → 蒸氣腔（有支撐柱撐住）→ 毛細層 → 上蓋板（§3-B）。*/
     const IHS = { x: 62, w: 104 }, VC = { x: 174, w: 104 };
-    const ihsLayer = slab(IHS.x, Y.cap, IHS.w, H.cap, 'url(#lcSolid)', 'var(--dg-cu-lit)', 'var(--dg-cu-dim)', { alpha: 1 });
+    const ihsLayer = slab(IHS.x, Y.cap, IHS.w, H.cap, 'var(--dg-cu)')
+      + `<rect x="${IHS.x}" y="${Y.cap}" width="${IHS.w}" height="${H.cap}" rx="2" fill="url(#lcSolid)" opacity=".9" pointer-events="none"/>`;
     const vcLayer = (() => {
       const x = VC.x, w = VC.w, y = Y.cap;
       const posts = [0, 1, 2, 3, 4].map(i => `<rect x="${x + 14 + i * 20}" y="${y + 8}" width="4" height="10" fill="var(--dg-cu)" opacity=".85"/>`).join('');
-      return fx.glass(x, y, w, H.cap, { c: 'var(--dg-cu)', top: 'var(--dg-cu-lit)', side: 'var(--dg-cu-dim)', alpha: 0.95, hi: false })
+      return fx.glass(x, y, w, H.cap, { fill: 'var(--dg-cu)', cls: 'part', rx: 2, iso: ISO })
         + `<rect x="${x}" y="${y + 5}" width="${w}" height="3" fill="url(#lcWick)"/>`
         + `<rect x="${x}" y="${y + 8}" width="${w}" height="10" fill="var(--dg-vap)"/>${posts}`
-        + `<rect x="${x}" y="${y + 18}" width="${w}" height="3" fill="url(#lcWick)"/>`
-        + `<path class="fxhi" d="M${x + 1.5},${y + 0.6}H${x + w - 1.5}"/>`;
+        + `<rect x="${x}" y="${y + 18}" width="${w}" height="3" fill="url(#lcWick)"/>`;
     })();
     // 中軸與每個間隙裡往上走的小熱箭頭（§6-H6：熱全程單向由內往外，沒有往回指的）
     const heatArrows = [Y.die - 8, Y.tim1 - 7, Y.cap - 30, Y.tim2 - 8, Y.base - 8].map((y, i) =>
       `<path class="heat" d="M${AX},${y - 8}l-4.5,8h9Z" fill="var(--dg-hot)" style="animation-delay:${(i * 0.35).toFixed(2)}s"/>`).join('');
-    const stack = shadow(`<path class="axis2" d="M${AX},${Y.port - 6}V${Y.die + H.die + 6}"/>${heatArrows}${links}
+    const soft = fx.shadows([['lid', SX, SW], ['fin', SX, SW], ['base', SX, SW], ['cap', IHS.x, VC.x + VC.w - IHS.x], ['die', 110, 120]]
+      .map(([k, x, w]) => `<rect x="${x + 6}" y="${Y[k] + H[k] + 2}" width="${w}" height="5" rx="2.5"/>`).join(''));
+    const stack = shadow(`<path class="axis2" d="M${AX},${Y.port - 6}V${Y.die + H.die + 6}"/>${soft}${heatArrows}${links}
       ${P('cp_port', ports)}
-      ${P('cold_plate', slab(SX, Y.lid, SW, H.lid, 'var(--dg-cu)', 'var(--dg-cu-lit)', 'var(--dg-cu-dim)'))}
+      ${P('cold_plate', slab(SX, Y.lid, SW, H.lid, 'var(--dg-cu)'))}
       ${P('cp_fin', finLayer)}
-      ${P('cold_plate', slab(SX, Y.base, SW, H.base, 'var(--dg-cu)', 'var(--dg-cu-lit)', 'var(--dg-cu-dim)'))}
-      ${P('tim2', slab(70, Y.tim2, 200, H.tim2, 'var(--dg-tim)', null, null, { r: 2, alpha: 0.8 }))}
+      ${P('cold_plate', slab(SX, Y.base, SW, H.base, 'var(--dg-cu)'))}
+      ${P('tim2', slab(70, Y.tim2, 200, H.tim2, 'var(--dg-tim)', { r: 2 }))}
       <text class="fine" x="${IHS.x + IHS.w / 2}" y="${Y.cap - 12}" text-anchor="middle">IHS（實心）</text>
       <text class="fine" x="${VC.x + VC.w / 2}" y="${Y.cap - 12}" text-anchor="middle">VC（真空腔）</text>
       ${P('ihs', ihsLayer)}${P('vc', vcLayer)}
-      ${P('tim1', slab(95, Y.tim1, 150, H.tim1, 'var(--dg-tim)', null, null, { r: 2, alpha: 0.8 }))}
-      ${P('die', slab(110, Y.die, 120, H.die, 'var(--dg-die)', 'var(--dg-si)', null)
+      ${P('tim1', slab(95, Y.tim1, 150, H.tim1, 'var(--dg-tim)', { r: 2 }))}
+      ${P('die', slab(110, Y.die, 120, H.die, 'var(--dg-die)')
       + `<text class="fine" x="${AX}" y="${Y.die + H.die + 20}" text-anchor="middle">裸晶 die（襯景，熱從這裡出發）</text>`)}`);
 
     // ================================================================ ② 迴路：兩個封閉環，只交換熱、不交換液體
@@ -172,9 +176,9 @@
     // 並聯支路：每一個冷板各自接到供水與回水分歧管（§6-L3，串聯＝不過）；每個冷板一對 QD
     const branches = CP.ys.map((y) => {
       const cy = y + CP.h / 2;
-      return fx.beam(`M${MS_X + 5},${cy}H${CP.x}`, { c: 'var(--dg-cold)', w: 2.6 })
-        + fx.beam(`M${CP.x + CP.w},${cy}H${MR_X - 5}`, { c: 'var(--dg-hot)', w: 2.6 })
-        + fx.glass(CP.x, y, CP.w, CP.h, { c: 'var(--dg-cu)', r: 3, depth: { dx: 6, dy: 4 }, shadow: false, hi: false })
+      return fx.beam(`M${MS_X + 5},${cy}H${CP.x}`, { color: 'var(--dg-cold)', w: 2.6, glow: false, flow: true })
+        + fx.beam(`M${CP.x + CP.w},${cy}H${MR_X - 5}`, { color: 'var(--dg-hot)', w: 2.6, glow: false, flow: true })
+        + fx.glass(CP.x, y, CP.w, CP.h, { fill: 'var(--dg-cu)', cls: 'part', rx: 3, iso: { dx: 6, dy: -4 } })
         + `<rect x="${CP.x + 5}" y="${y + 4}" width="${CP.w - 10}" height="${CP.h - 8}" rx="1.5" fill="url(#lcFlow)"/>`
         + [0, 1, 2, 3, 4].map(k => `<rect x="${CP.x + 9 + k * 12}" y="${y + 4}" width="4" height="${CP.h - 8}" fill="var(--dg-cu)"/>`).join('')
         + qd(CP.x - 12, cy, 'var(--dg-cold)') + qd(CP.x + CP.w + 12, cy, 'var(--dg-hot)');
@@ -190,7 +194,7 @@
     /* 泵：畫在二次側（CDU 內），不是一次側（§6-L6）。
        ⚠ `.dg .spin` 已經是 transform-box:fill-box / origin:center，**不准再寫 transform-origin 像素值**；
          補一個透明同心圓把邊界框撐成正圓，中心才精準落在軸上。*/
-    const pump = `<circle class="part" cx="${PUMP.x}" cy="${PUMP.y}" r="${PUMP.r}" fill="var(--dg-steel-2)" fill-opacity=".55" stroke="var(--dg-steel-2)"/><circle class="fxsheen" cx="${PUMP.x}" cy="${PUMP.y}" r="${PUMP.r}"/>`
+    const pump = `<g class="fxg" style="--fxc:var(--dg-steel-2)"><circle class="fxb part" cx="${PUMP.x}" cy="${PUMP.y}" r="${PUMP.r}"/><circle class="fxs" cx="${PUMP.x}" cy="${PUMP.y}" r="${PUMP.r}"/><circle class="fxe" cx="${PUMP.x}" cy="${PUMP.y}" r="${PUMP.r}"/></g>`
       + `<g class="spin" style="animation-duration:2.4s"><circle cx="${PUMP.x}" cy="${PUMP.y}" r="10" fill="none"/>`
       + [0, 1, 2, 3, 4].map(i => `<path d="M${PUMP.x},${PUMP.y} L${(PUMP.x + 10 * Math.cos(i * 1.2566 - 0.5)).toFixed(1)},${(PUMP.y + 10 * Math.sin(i * 1.2566 - 0.5)).toFixed(1)} L${(PUMP.x + 10 * Math.cos(i * 1.2566 + 0.2)).toFixed(1)},${(PUMP.y + 10 * Math.sin(i * 1.2566 + 0.2)).toFixed(1)}Z" fill="var(--dg-cold)"/>`).join('')
       + `</g>`;
@@ -202,24 +206,24 @@
     const PHE2PUMP = `M${PHE.x + PHE.w - 8},${PHE.y + PHE.h}V${PUMP.y - PUMP.r - 10}H${PUMP.x}V${PUMP.y - PUMP.r}`;
     /* 一次側（設施側 FWS）：**比二次側粗**、第三種顏色、只碰到板式熱交換器（§6-L8／L4）。
        它穿過 x=676 那條虛線 —— 虛線右邊就是機房基礎設施，不在這條產業鏈上（§6-M6）。*/
-    const primary = fx.beam(`M${CW},150H${PHE.x + PHE.w}`, { c: 'var(--dg-fws)', w: 6, speed: 'slow' })
+    const primary = fx.beam(`M${CW},150H${PHE.x + PHE.w}`, { color: 'var(--dg-fws)', w: 6, glow: false, flow: true })
       + `<path d="M${PHE.x + PHE.w + 10},145l-8,5l8,5Z" fill="var(--dg-fws)"/>`
-      + fx.beam(`M${PHE.x + PHE.w},198H${CW}`, { c: 'var(--dg-fws-2)', w: 6, speed: 'slow' })
+      + fx.beam(`M${PHE.x + PHE.w},198H${CW}`, { color: 'var(--dg-fws-2)', w: 6, glow: false, flow: true })
       + `<path d="M${CW - 8},193l8,5l-8,5Z" fill="var(--dg-fws-2)"/>`;
     const loop = `<text class="fine" x="${MS_X - 14}" y="80" style="fill:var(--dg-cold)">供水</text>`
       + `<text class="fine" x="${MR_X - 16}" y="80" style="fill:var(--dg-hot)">回水</text>`
       + P('rack', `<rect class="part" x="${RK.x}" y="${RK.y}" width="${RK.w}" height="${RK.h}" rx="8" fill="none" opacity=".55"/>`
         + `<text class="fine" x="${RK.x + 8}" y="${RK.y + RK.h - 4}" style="fill:var(--dg-ink-3)">機櫃／托盤（襯景）</text>`, SEG_A)
-      /* 兩條主幹是全圖**唯二**掛 feGaussianBlur 的元素（靜態暈光底線；#239 的 ≤3 上限） */
-      + P('manifold', fx.beam(SEC_OUT, { c: 'var(--dg-cold)', w: 4, glow: true })
-        + fx.beam(SEC_IN, { c: 'var(--dg-hot)', w: 4, glow: true })
-        + fx.tube(MS_X - 5, MY0, 10, MY1 - MY0, { c: 'var(--dg-cold-2)', r: 5, vertical: true })
-        + fx.tube(MR_X - 5, MY0, 10, MY1 - MY0, { c: 'var(--dg-hot-2)', r: 5, vertical: true }))
+      /* 兩條主幹的光暈 ＋ 拆解那一疊的柔陰影群組 ＝ 全圖三個濾鏡元素（#239 的 ≤3 上限），其餘 beam 一律 glow:false */
+      + P('manifold', fx.beam(SEC_OUT, { color: 'var(--dg-cold)', w: 4, glow: true, flow: true })
+        + fx.beam(SEC_IN, { color: 'var(--dg-hot)', w: 4, glow: true, flow: true })
+        + fx.glass(MS_X - 5, MY0, 10, MY1 - MY0, { fill: 'var(--dg-cold-2)', cls: 'part', rx: 5 })
+        + fx.glass(MR_X - 5, MY0, 10, MY1 - MY0, { fill: 'var(--dg-hot-2)', cls: 'part', rx: 5 }))
       + P('cp_rack', branches)
       + P('qd', qd(596, 262, 'var(--dg-cold)', true) + qd(612, 262, 'var(--dg-hot)', true))
-      + P('cdu', fx.glass(CDU.x, CDU.y, CDU.w, CDU.h, { c: 'var(--dg-frame)', r: 8, alpha: 0.9, depth: { dx: 10, dy: 6 } })
+      + P('cdu', fx.glass(CDU.x, CDU.y, CDU.w, CDU.h, { fill: 'var(--dg-frame)', cls: 'part', rx: 8, iso: { dx: 10, dy: -6 } })
         + `<text class="lbl" x="${CDU.x + 8}" y="${CDU.y + 16}">CDU</text>` + pump
-        + fx.beam(PHE2PUMP, { c: 'var(--dg-cold)', w: 2.6 })
+        + fx.beam(PHE2PUMP, { color: 'var(--dg-cold)', w: 2.6, glow: false, flow: true })
         + `<text class="fine" x="${PUMP.x - 34}" y="${PUMP.y + 4}">泵</text>`)
       + P('phe', phe + `<text class="fine" x="${PHE.x - 6}" y="${PHE.y - 6}">板式熱交換器</text>`)
       + primary
@@ -227,8 +231,8 @@
       + `<text class="fine" x="618" y="288" style="fill:var(--dg-mute)">機房側 →</text>`
       /* 動畫只做一件事（規格書 §9）：一顆冷卻液粒子沿迴路跑 —— 冷的那一顆從泵跑到冷板、
          熱的那一顆從冷板跑回熱交換器；零件本身不准跑來跑去。SMIL 由 industry.js 的 pauseAnimations 管。*/
-      + `<g transform="translate(${PUMP.x - PUMP.r},${PUMP.y})"><circle class="fxdot" r="4" fill="var(--dg-cold)" style="--fx-c:var(--dg-cold)"><animateMotion dur="5s" repeatCount="indefinite" path="M0,0H${596 - PUMP.x + PUMP.r}V${276 - PUMP.y}H${MS_X - PUMP.x + PUMP.r}V${156 - PUMP.y}H${CP.x - PUMP.x + PUMP.r}"/></circle></g>`
-      + `<g transform="translate(${CP.x + CP.w},156)"><circle class="fxdot" r="4" fill="var(--dg-hot)" style="--fx-c:var(--dg-hot)"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M0,0H${MR_X - CP.x - CP.w}V${292 - 156}H${612 - CP.x - CP.w}V${PHE.y + PHE.h - 156}"/></circle></g>`;
+      + `<g transform="translate(${PUMP.x - PUMP.r},${PUMP.y})"><circle r="4" fill="var(--dg-cold)" opacity=".95"><animateMotion dur="5s" repeatCount="indefinite" path="M0,0H${596 - PUMP.x + PUMP.r}V${276 - PUMP.y}H${MS_X - PUMP.x + PUMP.r}V${156 - PUMP.y}H${CP.x - PUMP.x + PUMP.r}"/></circle></g>`
+      + `<g transform="translate(${CP.x + CP.w},156)"><circle r="4" fill="var(--dg-hot)" opacity=".95"><animateMotion dur="5s" begin="2.5s" repeatCount="indefinite" path="M0,0H${MR_X - CP.x - CP.w}V${292 - 156}H${612 - CP.x - CP.w}V${PHE.y + PHE.h - 156}"/></circle></g>`;
 
     // ================================================================ 章節 ②：兩相元件剖面（四格，2×2）
     const CELL = { w: 324, h: 164, y0: 484 };
@@ -326,7 +330,7 @@
        `rs`：已改造成風格系統（閱讀模式字級升一階、卡片外掛）。
        viewBox 的高度是「全部展開」的靜態版面；收合與章節位置由 wireFolds() 在執行期算。*/
     return `<svg class="dg dgm dgcool dg1 rs" viewBox="0 0 ${CW} 1620" width="100%" style="display:block">${STYLE}${VARS}
-      <defs>${fx.defs()}
+      <defs>${fx.glowDefs({ r: 3.5, soft: 3 })}
         <linearGradient id="lcFlow" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-cold)"/><stop offset="1" stop-color="var(--dg-hot)"/></linearGradient>
         <pattern id="lcSolid" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">

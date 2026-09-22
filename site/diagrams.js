@@ -164,6 +164,27 @@
     .dg .dgfold .fsign{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-hd);font-weight:700;fill:var(--dg-accent)}
     .dg .dgfold .fhint{fill:var(--dg-ink-3)}
     .dg .dgfold:hover .fhint,.dg .dgfold:hover .hd{fill:var(--dg-accent)}
+    /* ---- 2.5D 材質（D.fx：玻璃板／發光／光束；參考圖 docs/diagram_refs/2d_panel_dark_light.webp）----
+       兩種模式共用同一支函式，差別只在這幾個 --fx-* 旋鈕：科技＝深底、玻璃較透、光束發光；
+       閱讀＝米白底、玻璃較白（sheen 拉高）、光束只留約四成的柔光（diagram_refs/README.md 蓋掉了「閱讀不發光」）。
+       sheen 用 --dg-sn（錫，兩種模式都是近白）、暗面用 --dg-sh0，所以一個色值都不寫死。*/
+    .dg{--fx-body:.6;--fx-sheen:.3;--fx-shade:.36;--fx-edge:.55;--fx-hl:.5;--fx-glow-a:.85;--fx-shadow-a:.9}
+    :root[data-dgpal="read"] .dg{--fx-body:.7;--fx-sheen:.58;--fx-shade:.16;--fx-edge:.5;--fx-hl:.75;--fx-glow-a:.38;--fx-shadow-a:.6}
+    /* 裝飾面（sheen／邊線／高光／暗面）不吃滑鼠：真滑鼠點在方塊正中央要落到 .part 那一塊上，不是落到疊在上面的 sheen
+       （Playwright 的 click 打的是元素外框中心，2026-09-22 就是這樣點不到 ABF 膜的） */
+    .dg .fxg .fxs,.dg .fxg .fxst,.dg .fxg .fxe,.dg .fxg .fxh,.dg .fxg .fxr{pointer-events:none}
+    .dg .fxg .fxb{fill:var(--fxc,var(--dg-steel));fill-opacity:var(--fx-body)}
+    .dg .fxg .fxt{fill:var(--fxc,var(--dg-steel));fill-opacity:calc(var(--fx-body) * .8)}
+    .dg .fxg .fxs{fill:url(#fxSheen)} .dg .fxg .fxst{fill:url(#fxSheenT)}
+    .dg .fxg .fxr{fill:var(--dg-sh0);fill-opacity:var(--fx-shade)}
+    .dg .fxg .fxe{fill:none;stroke:color-mix(in srgb,var(--fxc,var(--dg-steel)) 55%,var(--dg-sn));stroke-opacity:var(--fx-edge);stroke-width:1;stroke-linejoin:round}
+    .dg .fxg .fxh{fill:none;stroke:var(--dg-sn);stroke-opacity:var(--fx-hl);stroke-width:1;stroke-linecap:round}
+    .dg .fxsh{fill:var(--dg-drop);opacity:var(--fx-shadow-a)}
+    .dg .fxbeam .fxb-glow{fill:none;stroke:var(--fxc,var(--dg-accent-2d));stroke-width:calc(var(--fxw,2.2) * 3);opacity:var(--fx-glow-a);stroke-linecap:round;stroke-linejoin:round}
+    .dg .fxbeam .fxb-core{fill:none;stroke:var(--fxc,var(--dg-accent-2d));stroke-width:var(--fxw,2.2);opacity:.95;stroke-linecap:round;stroke-linejoin:round}
+    .dg .fxbeam .fxb-flow{fill:none;stroke:var(--dg-sn);stroke-width:calc(var(--fxw,2.2) * .55);stroke-dasharray:5 11;opacity:.9;stroke-linecap:round;animation:dgdash 1.6s linear infinite}
+    .dg .fxbeam .fxdh{fill:var(--fxc,var(--dg-accent-2d));fill-opacity:calc(var(--fx-glow-a) * .35)}
+    .dg .fxbeam .fxd{fill:var(--fxc,var(--dg-accent-2d));stroke:var(--dg-sn);stroke-width:.8;stroke-opacity:var(--fx-hl)}
   </style>` + SHADOW_DEFS;
 
   /* ================================================================ 零件身分（兩層高亮用）
@@ -182,7 +203,13 @@
     host.querySelectorAll('svg').forEach((svg) => {
       /* v2：先把 .lrow.ext 變成 HTML 卡片（它們的零件身分搬到卡片上），再替 SVG 裡剩下的零件蓋 dgkey。
          縮圖（.xmini）與非 .dgwrap 的容器不外掛：那裡只要主角。*/
-      if (svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini')) externalize(host, svg);
+      /* ★ 2026-09-22（restyle-w1b）：同一個 #prodDiagram 會連續裝好幾張圖（AI 伺服器鏈的圖別切換列
+         在同一頁換圖，industry.js 只換 host.innerHTML）。v2 的判斷以前寫在 host.dataset.dgv2 上，
+         換第二張 v2 的圖時那個旗標還在 → externalize 直接 return → 第二張的卡片全部沒外掛。
+         改成「看這張 svg 自己有沒有被包進 .dgcanvas」；上一張留下的觀察器與 class 由 teardownV2 收掉。*/
+      const v2 = svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini');
+      if (v2) externalize(host, svg);
+      else if (host.dataset && host.dataset.dgv2 === '1') teardownV2(host);   // 上一張是 v2、這一張不是：殘留清掉
       const ns = [].slice.call(svg.querySelectorAll('[data-seg]'));
       ns.forEach((n, i) => { n.dataset.dgkey = n.getAttribute('data-part') || (n.getAttribute('data-seg') + ':' + i); });
       /* 單一環節的圖自己判定，不要求畫圖的人記得加 class ——
@@ -230,11 +257,24 @@
        5. 錨點群組 .anc 鏡射卡片的 sel／sel-part／dim 與 --c（MutationObserver），點錨點＝點卡片
      版面本身（幾欄、多寬）全在 index.html 的 .dgv2 容器查詢裡，這裡不量寬度。*/
   const SVGNS = 'http://www.w3.org/2000/svg';
+  /* 把上一張 v2 圖留在容器上的東西收掉：觀察器（不收的話每次 resize 都會對著已經被丟掉的 DOM 重算）、
+     tw:dgpal 監聽器、容器上的 class 與旗標。externalize 開頭與「換成非 v2 的圖」都會呼叫。*/
+  function teardownV2(host) {
+    const o = host.__dgv2;
+    if (o) {
+      try { if (o.ro) o.ro.disconnect(); } catch (e) { /* 忽略 */ }
+      try { if (o.mo) o.mo.disconnect(); } catch (e) { /* 忽略 */ }
+      window.removeEventListener('tw:dgpal', o.later); window.removeEventListener('resize', o.later);
+      host.__dgv2 = null;
+    }
+    delete host.dataset.dgv2; host.classList.remove('dgv2', 'dg1', 'haspart');
+  }
   function externalize(host, svg) {
-    if (host.dataset.dgv2 === '1') return;
+    if (svg.closest('.dgcanvas')) return;                 // 這一張已經外掛過（同一張圖被 stamp 兩次）
     const exts = [].slice.call(svg.querySelectorAll('g.lrow.ext'));
     const heads = [].slice.call(svg.querySelectorAll('text.ext'));
     if (!exts.length && !heads.length) return;
+    teardownV2(host);                                     // 上一張圖（同一個容器）的殘留先清掉
     host.dataset.dgv2 = '1'; host.classList.add('dgv2');
     const vb = svg.viewBox && svg.viewBox.baseVal;
     /* 容器查詢只對**後代**生效（元素不能查自己的寬），所以 .dgwrap 當容器、格線另外包一層 .dggrid */
@@ -313,14 +353,17 @@
     svg.__dgRelayout = relayout;
     let queued = false;
     const later = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; relayout(); }); };
-    if (window.ResizeObserver) new ResizeObserver(later).observe(host);
+    const obs = { later, ro: null, mo: null };
+    if (window.ResizeObserver) { obs.ro = new ResizeObserver(later); obs.ro.observe(host); }
     else window.addEventListener('resize', later);
     if (window.MutationObserver) {
-      new MutationObserver((recs) => {
+      obs.mo = new MutationObserver((recs) => {
         if (recs.some((r) => r.target === svg || (r.target.classList && r.target.classList.contains('dgc')))) later();
-      }).observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+      });
+      obs.mo.observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
     }
     window.addEventListener('tw:dgpal', later);
+    host.__dgv2 = obs;                                    // 換下一張圖時 teardownV2 靠這個把觀察器收掉
     relayout(); requestAnimationFrame(relayout); setTimeout(relayout, 300);
   }
 
@@ -365,6 +408,24 @@
   const FOLD_H = 42;
   const FOLD_PT = 14, FOLD_PB = 22;  // 自動量測時，內容上緣／下緣各留的空白
 
+  /* 章節內容的範圍，**跳過走 animateMotion 的元素**（restyle-w1b 2026-09-22 抓到的）。
+     processBar 那顆光點是 `circle r=3` 沒有 cx/cy、位置全靠 animateMotion；getBBox() 量的是元素自己的座標系，
+     不含動畫的位移，所以永遠回 (-3,-3)。一個章節裡只要有流程列，整段的 bbox.y 就變成 -3，
+     wireFolds 算出來的 off 跟著錯 —— 章節一打開，內容被推到下面一千多 px 的地方，中間一片空白
+     （MLCC 的 ③、伺服器電源的 ④、ABF 的 ③ 都中）。這裡改成遞迴取聯集、跳過帶 animateMotion 的元素。*/
+  function bodyBBox(el) {
+    /* 做法：把「直接帶 animateMotion 的元素」暫時 display:none（getBBox 不算 display:none 的東西），
+       量整個群組的 getBBox()（它會把子孫的 transform 算進去 —— 章節裡的 translate 群組很多，自己遞迴會漏掉），
+       量完再還原。*/
+    const moving = [].slice.call(el.querySelectorAll('animateMotion')).map((a) => a.parentNode).filter(Boolean);
+    const saved = moving.map((n) => n.getAttribute('display'));
+    moving.forEach((n) => n.setAttribute('display', 'none'));
+    let b = null;
+    try { b = el.getBBox(); } catch (e) { b = null; }
+    moving.forEach((n, i) => { if (saved[i] == null) n.removeAttribute('display'); else n.setAttribute('display', saved[i]); });
+    return b;
+  }
+
   function wireFolds(svg) {
     if (svg.dataset.dgFold === '1') { fitTexts(svg); return; }   // 同一張圖被 stamp 兩次不要重複綁，但字要重量
     const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
@@ -384,7 +445,7 @@
       if (g.getAttribute('data-auto') === '1') {
         if (body) {
           let b = null;
-          try { b = g.getBBox(); } catch (e) { b = null; }
+          try { b = bodyBBox(g); } catch (e) { b = null; }
           if (!b || !(b.height > 0)) { fitTexts(svg); return; }   // 量不到 → 放棄，維持全部展開
           off = b.y - FOLD_PT; h = b.height + FOLD_PT + FOLD_PB;
         } else {
@@ -416,12 +477,10 @@
       let b = null; try { b = c.getBBox(); } catch (e) { b = null; }
       if (b && b.height >= 0 && Number.isFinite(b.y)) solidBottom = Math.max(solidBottom, b.y + b.height);
     });
-    /* ★ 候選 ① 只看**手寫 y0/y1** 的段落（tech-illustrator 2026-09-22）。
-       `D.fold()` 的自動段落本來就會被整段 translate，作者把內容畫在 y=573 還是 y=453 沒有意義 ——
-       拿它的自然位置當候選，等於讓「原始碼裡剛好寫在哪裡」決定章節列離 §1 多遠。
-       以前沒發作是因為流程列那顆 SMIL 光點把每個 body 的 bbox 拉到 y＝−3（見 processBar 的註解），
-       候選 ① 永遠是負的；光點修好之後 MLCC 的章節列立刻往下掉 80px（574 → 653）。
-       沒有手寫段落、§1 又量不到時才退回舊算法，不留 −Infinity。*/
+    /* ★ 候選 ① 只對**手寫 y0/y1** 的段落有意義（內容畫在自己的自然位置）。自動量測的段落會被整段重新平移，
+       它的靜態 y 只是「JS 沒跑到時的保險版面」—— 拿來決定章節列的位置，等於讓保險版面的留白變成正式版面的空白。
+       （restyle-w1b 2026-09-22：修掉 bodyBBox 的 animateMotion 假 bbox 之後才看出來 —— MLCC 的 574 是靠那個假 bbox
+       把候選 ① 壓到負數才成立的；改成只看手寫段落，MLCC／PSU／ABF 三張的章節列都回到 §1 底部 ＋ 8。）*/
     const manual = bodies.filter((r) => r.el.getAttribute('data-auto') !== '1');
     let base = Math.max(manual.length ? Math.min.apply(null, manual.map((r) => r.off)) - FOLD_H : -Infinity,
       solidBottom > -Infinity ? solidBottom + 8 : -Infinity);
@@ -627,15 +686,7 @@
       return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${PB_H}" rx="7"/>${no}<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text></g>`
         + (link ? `<path class="flow fast" d="${link}" fill="none" stroke="var(--dg-accent)" stroke-width="var(--dg-flow-w,2)"/>` : '');
     }).join('');
-    /* ★ 光點放在一個 translate 到起點的群組裡、路徑改成相對座標（tech-illustrator 2026-09-22）。
-       以前 circle 沒有 cx/cy、路徑是絕對座標：SMIL 還沒跑（或被 pauseAnimations 停住）時那顆圓待在原點 (0,0)，
-       章節 body 的 getBBox 就從 y＝−3 起算 —— wireFolds 量到的高度多出一千多 px，
-       MLCC 的 ③、液冷的 ④ 一展開就是一大片空白（實測 MLCC 全開 2917、應該是 1800 左右）。
-       animateMotion 的位移是疊在元素自己的座標系上的，所以不能直接給 cx/cy（會偏移一整段），
-       改成外面包一層 translate、路徑相對起點 —— 靜態時圓就在流程列上，量出來的框才是對的。*/
-    const x0 = pos[0].bx, y0 = pos[0].by + PB_MID;
-    const rel = dot.replace(/(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/g, (m, a, b) => `${+a - x0},${+b - y0}`);
-    return `<g>${boxes}<g transform="translate(${x0},${y0})"><circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${rel}"/></circle></g></g>`;
+    return `<g>${boxes}<circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${dot}"/></circle></g>`;
   }
   const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
   /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
@@ -1302,6 +1353,74 @@
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
   window.DG = { STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
+  // ===== 2.5D 材質（玻璃／發光／光束）=====
+  /* Andy 2026-09-22 晚的參考圖（docs/diagram_refs/2d_panel_dark_light.webp）翻成三支可重用的 helper。
+     視覺語言：**帶厚度、圓角、半透明漸層的玻璃板**；發光只給流動與光束；亮＝米白底＋柔陰影、暗＝深藍底＋發光；
+     兩版構圖相同、只換材質與光 —— 所以這三支不吃模式參數，模式差異全在 STYLE 的 --fx-* 旋鈕與 --dg-* token。
+
+     效能（#239）：feGaussianBlur 一張圖最多 3 個「元素」。beam() 的光暈是一條路徑、shadows() 的柔陰影是**一個群組**
+     （群組套一次濾鏡算一個元素），所以「一條主光束 ＋ 一組陰影 ＋ 一個靜態光點」剛好用完預算。
+     `glowDefs()` 一張圖只放一次（<defs> 裡），濾鏡 id 固定 fxGlow／fxSoft，漸層 fxSheen／fxSheenT；
+     縮圖那條 uniqIds 會連 url(#…) 一起加後綴，所以同一頁兩張圖不會撞。
+
+       fx.glowDefs({r, soft})         → <defs> 內容：光暈濾鏡、柔陰影濾鏡、兩個共用漸層（白光 sheen）
+       fx.glass(x, y, w, h, o)        → 2D 玻璃方塊；o.iso={dx,dy} 就變成**等角玻璃板**（頂面 ＋ 前面 ＋ 右側面）
+                                        o：fill（css 顏色，一律 token）、t（2D 的厚度，往右下擠出）、rx、cls（加在前面那塊上，例如 'part'）、
+                                           attrs（加在群組上）、top（頂面上要疊的內容，畫在頂面座標系：原點＝前緣左端）
+       fx.beam(d, o)                  → 光束：blur 光暈（o.glow≠false）＋ 實線 ＋ 流動虛線（o.flow）＋ 端點光點（o.dots=[[x,y],…]）
+                                        o.color 一律 token（電力 --dg-pwr、訊號 --dg-sig、液冷 --dg-cool），o.w 線寬
+       fx.shadows(shapes)             → 把一串形狀（已含 x/y 位移）包成一個柔陰影群組（一次濾鏡）*/
+  const fx = {
+    glowDefs(o) {
+      o = o || {};
+      const r = o.r != null ? o.r : 4, s = o.soft != null ? o.soft : 3;
+      return `<filter id="fxGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="${r}"/></filter>`
+        + `<filter id="fxSoft" x="-30%" y="-40%" width="160%" height="200%"><feGaussianBlur stdDeviation="${s}"/></filter>`
+        + `<linearGradient id="fxSheen" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-sn)" style="stop-opacity:var(--fx-sheen)"/><stop offset=".55" stop-color="var(--dg-sn)" stop-opacity="0"/></linearGradient>`
+        + `<linearGradient id="fxSheenT" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--dg-sn)" style="stop-opacity:var(--fx-sheen)"/><stop offset=".7" stop-color="var(--dg-sn)" stop-opacity="0"/></linearGradient>`;
+    },
+    glass(x, y, w, h, o) {
+      o = o || {};
+      const rx = o.rx != null ? o.rx : 6, cls = o.cls ? ' ' + o.cls : '';
+      const st = o.fill ? ` style="--fxc:${o.fill}"` : '';
+      const at = o.attrs ? ' ' + o.attrs : '';
+      if (o.iso) {
+        const dx = o.iso.dx, dy = o.iso.dy;                  // 頂面往右後上擠出去的位移（dy 是負的）
+        const top = `M${x},${y} L${x + w},${y} L${x + w + dx},${y + dy} L${x + dx},${y + dy}Z`;
+        const right = `M${x + w},${y} L${x + w + dx},${y + dy} L${x + w + dx},${y + h + dy} L${x + w},${y + h}Z`;
+        return `<g class="fxg"${st}${at}>`
+          + `<path class="fxb" d="${right}"/><path class="fxr" d="${right}"/>`
+          + `<path class="fxt" d="${top}"/><path class="fxst" d="${top}"/>`
+          + (o.top ? `<g transform="translate(${x},${y})">${o.top}</g>` : '')
+          + `<rect class="fxb${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(rx, h / 2)}"/>`
+          + `<rect class="fxs" x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(rx, h / 2)}"/>`
+          + `<path class="fxe" d="${top}"/><path class="fxe" d="${right}"/>`
+          + `<rect class="fxe" x="${x}" y="${y}" width="${w}" height="${h}" rx="${Math.min(rx, h / 2)}"/>`
+          + `<path class="fxh" d="M${x + 2},${y} L${x + w - 2},${y}"/></g>`;
+      }
+      const t = o.t || 0;
+      return `<g class="fxg"${st}${at}>`
+        + (t ? `<rect class="fxb" x="${x + t}" y="${y + t}" width="${w}" height="${h}" rx="${rx}"/><rect class="fxr" x="${x + t}" y="${y + t}" width="${w}" height="${h}" rx="${rx}"/>` : '')
+        + `<rect class="fxb${cls}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`
+        + `<rect class="fxs" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`
+        + `<rect class="fxe" x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}"/>`
+        + `<path class="fxh" d="M${x + rx},${y + 1.5} L${x + w - rx},${y + 1.5}"/></g>`;
+    },
+    beam(d, o) {
+      o = o || {};
+      const st = `style="${o.color ? `--fxc:${o.color};` : ''}${o.w ? `--fxw:${o.w}` : ''}"`;
+      const dots = (o.dots || []).map(([px_, py_]) =>
+        `<circle class="fxdh" cx="${px_}" cy="${py_}" r="${(o.dotR || 3) * 2.4}"/><circle class="fxd" cx="${px_}" cy="${py_}" r="${o.dotR || 3}"/>`).join('');
+      return `<g class="fxbeam${o.cls ? ' ' + o.cls : ''}" ${st}${o.attrs ? ' ' + o.attrs : ''}>`
+        + (o.glow === false ? '' : `<path class="fxb-glow" d="${d}" filter="url(#fxGlow)"/>`)
+        + `<path class="fxb-core" d="${d}"/>`
+        + (o.flow ? `<path class="fxb-flow" d="${d}"/>` : '')
+        + dots + `</g>`;
+    },
+    shadows(inner) { return `<g class="fxsh" filter="url(#fxSoft)" pointer-events="none">${inner}</g>`; },
+  };
+  window.DG.fx = fx;
+
   /* ★ 2026-09-21：一張圖一個檔（`site/dg/<slot>.js`）。
      `docs/diagram_plan.md` 排了 14 張，全部塞進這個檔會變成兩千多行，
      而且**多個人同時畫不同的圖就會一直撞在同一個檔上** ——
@@ -1327,89 +1446,4 @@
     SLOTS[id] = def;
     window.Diagrams[id] = def.draw;     // 舊介面同步（題材圖與驗收腳本還在用）
   };
-
-  // ===== 2.5D 材質（玻璃／發光／光束）=====
-  /* tech-illustrator 2026-09-22。參考圖：docs/diagram_refs/2d_panel_dark_light.webp（規格 docs/diagram_refs/README.md）。
-     每一個元件畫成「帶厚度、圓角、半透明漸層的玻璃板」：前面一塊（元件色 ＋ 一層共用的白→黑漸層 sheen）、
-     上面一片（元件色往 --dg-fx-hi 混）、右邊一片（往 --dg-fx-lo 混）、頂緣一條高光、底下一條淡陰影。
-     顏色全部由呼叫端用 --dg-* token 傳進來，這裡沒有色值；sheen 漸層與濾鏡的 id 是全站共用的，
-     每一張圖在自己的 <defs> 裡放一份 `fx.defs()`（同一頁只會有一張量產圖，id 不會撞）。
-     ★ 效能（DECISIONS #239）：`feGaussianBlur` 只給 **靜態** 元素，而且一張圖 ≤ 3 個 ——
-       `beam()` 的暈光底線是靜態的，動態虛線核心永遠不掛濾鏡；`glow:true` 的呼叫端自己數。
-     波 1b（PSU／ABF）用同一個區塊名；誰先合併誰的為準，後合併的照對方的介面改。*/
-  const FX_HI = 'var(--dg-fx-hi,#fff)', FX_LO = 'var(--dg-fx-lo,#000)';
-  const fx = {
-    DX: 14, DY: 8,                                   // 斜投影的厚度方向（右上）
-    /* 共用的漸層與濾鏡。sheen：白 38% → 透明 → 黑 18%（直向）；sheenH 是橫向版（給直立的管子）。
-       dgFxGlow：科技模式的柔光；dgFxGlowLite：閱讀模式的柔光（半徑小、強度 45%）。*/
-    defs() {
-      return `<linearGradient id="dgFxSheen" x1="0" y1="0" x2="0" y2="1">`
-        + `<stop offset="0" stop-color="${FX_HI}" stop-opacity=".38"/><stop offset=".45" stop-color="${FX_HI}" stop-opacity=".05"/><stop offset="1" stop-color="${FX_LO}" stop-opacity=".18"/></linearGradient>`
-        + `<linearGradient id="dgFxSheenH" x1="0" y1="0" x2="1" y2="0">`
-        + `<stop offset="0" stop-color="${FX_HI}" stop-opacity=".34"/><stop offset=".5" stop-color="${FX_HI}" stop-opacity=".04"/><stop offset="1" stop-color="${FX_LO}" stop-opacity=".2"/></linearGradient>`
-        + `<filter id="dgFxGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
-        + `<filter id="dgFxGlowLite" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feComponentTransfer in="b" result="b2"><feFuncA type="linear" slope=".45"/></feComponentTransfer><feMerge><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
-    },
-    /* 玻璃板：glass(x, y, w, h, {c, r, depth:{dx,dy}, top, side, alpha, cls, shadow, hi})
-         c＝元件色（--dg-* token）；top／side 沒給就由 c 混出來；alpha＝前面那塊的不透明度（半透明才像玻璃）；
-         shadow:false＝不畫底下那條淡陰影（疊得很密時用）；hi:false＝不畫頂緣高光。*/
-    glass(x, y, w, h, o) {
-      o = o || {};
-      const c = o.c || 'var(--dg-alu)', r = o.r != null ? o.r : 2;
-      const dx = o.depth && o.depth.dx != null ? o.depth.dx : fx.DX, dy = o.depth && o.depth.dy != null ? o.depth.dy : fx.DY;
-      const top = o.top || `color-mix(in srgb,${c} 62%,${FX_HI})`, side = o.side || `color-mix(in srgb,${c} 68%,${FX_LO})`;
-      const a = o.alpha != null ? o.alpha : 0.86;
-      return (o.shadow === false ? '' : fx.pad(x + 4, y + h + 3, w + dx - 6, 6))
-        + `<path fill="${side}" d="M${x + w},${y}L${x + w + dx},${y - dy}L${x + w + dx},${y + h - dy}L${x + w},${y + h}Z"/>`
-        + `<path fill="${top}" d="M${x},${y}L${x + dx},${y - dy}L${x + w + dx},${y - dy}L${x + w},${y}Z"/>`
-        + `<rect class="${o.cls != null ? o.cls : 'part'}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${c}" fill-opacity="${a}"/>`
-        + `<rect class="fxsheen" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`
-        + (o.hi === false ? '' : `<path class="fxhi" d="M${x + 1.5},${y + 0.6}H${x + w - 1.5}"/>`);
-    },
-    // 管子／圓柱狀的板：跟 glass 一樣的一塊，但 sheen 是橫向的（vertical:true）或直向的，沒有厚度面
-    tube(x, y, w, h, o) {
-      o = o || {};
-      const c = o.c || 'var(--dg-steel)', r = o.r != null ? o.r : Math.min(w, h) / 2;
-      return `<rect class="${o.cls != null ? o.cls : 'part'}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${c}" fill-opacity="${o.alpha != null ? o.alpha : 0.92}"/>`
-        + `<rect class="fxsheen${o.vertical ? ' h' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`;
-    },
-    /* 斜投影的圓盤（沿一根軸拆開的東西：風扇、軸承、電容）。k＝壓扁比例；inner 畫在頂面座標（未壓扁）裡。
-       回傳的是一個 translate＋scale 的群組，所以 inner 裡的 .spin 照樣轉、轉出來是橢圓 —— 那正是 2.5D 要的。*/
-    disc(cx, cy, r, T, o) {
-      o = o || {};
-      const c = o.c || 'var(--dg-alu)', k = o.k != null ? o.k : 0.42;
-      const side = o.side || `color-mix(in srgb,${c} 68%,${FX_LO})`;
-      return `<g transform="translate(${cx},${cy}) scale(1,${k})">`
-        + (o.shadow === false ? '' : `<ellipse class="fxsh" cy="${T + 10}" rx="${r * 0.92}" ry="${r * 0.5}"/>`)
-        + `<path fill="${side}" d="M${-r},0V${T}A${r},${r} 0 0 0 ${r},${T}V0Z"/>`
-        + `<circle class="${o.cls != null ? o.cls : 'part'}" r="${r}" fill="${c}" fill-opacity="${o.alpha != null ? o.alpha : 0.9}"/>`
-        + `<circle class="fxsheen" r="${r}"/>${o.inner || ''}</g>`;
-    },
-    // 底下那條淡陰影（科技模式的 --dg-ink 是亮的，所以在深底上變成一抹淡光 —— 兩種模式各得其所）
-    pad: (x, y, w, h) => `<rect class="fxsh" x="${x}" y="${y}" width="${w}" height="${h || 6}" rx="${(h || 6) / 2}"/>`,
-    /* 光束／流動：beam(d, {c, w, core, glow, speed, rev, style})
-         一條寬的**靜態**暈光底線（opacity --dg-fx-halo；glow:true 才加 feGaussianBlur）＋ 一條細的動態虛線核心。
-         core 可以是漸層 url（例如冷→熱）；halo 一定要是實色，所以 c 傳 token。*/
-    beam(d, o) {
-      o = o || {};
-      const c = o.c || 'var(--dg-accent-2d)', w = o.w || 2.4;
-      return `<path class="fxhalo${o.glow ? ' fxglow' : ''}" d="${d}" stroke="${c}" stroke-width="${(w * 2.8).toFixed(1)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
-        + `<path class="flow${o.speed ? ' ' + o.speed : ''}${o.rev ? ' rev' : ''}" d="${d}" stroke="${o.core || c}" stroke-width="${w}" fill="none" stroke-linejoin="round"${o.style ? ` style="${o.style}"` : ''}/>`;
-    },
-    // 端點光點（科技帶光暈、閱讀只留實心點 —— 走 --dg-glow，跟引線端點同一條規矩）
-    dot: (x, y, o) => { o = o || {}; const c = o.c || 'var(--dg-flow-dot)'; return `<circle class="fxdot" cx="${x}" cy="${y}" r="${o.r || 3.2}" fill="${c}" style="--fx-c:${c}"/>`; },
-    // 這一組材質的樣式（接在共用 STYLE 後面；只有掛 .rs 的新圖會用到這些 class）
-    STYLE: `<style>
-      .dg .fxsheen{fill:url(#dgFxSheen);pointer-events:none}
-      .dg .fxsheen.h{fill:url(#dgFxSheenH)}
-      .dg .fxhi{stroke:var(--dg-fx-hi,#fff);stroke-opacity:.55;stroke-width:1;fill:none;pointer-events:none}
-      .dg .fxsh{fill:var(--dg-ink);opacity:.10;pointer-events:none}
-      .dg .fxhalo{opacity:var(--dg-fx-halo,.22)}
-      .dg .fxglow{filter:url(#dgFxGlow)}
-      :root[data-dgpal="read"] .dg .fxglow{filter:url(#dgFxGlowLite)}
-      .dg .fxdot{filter:var(--dg-glow,drop-shadow(0 0 var(--dg-node-glow,3px) var(--fx-c,var(--dg-flow-dot))))}
-    </style>`,
-  };
-  window.DG.fx = fx;
-  window.DG.STYLE = STYLE + fx.STYLE;   // 新圖 destructure 到的 STYLE 就含材質樣式；MLCC 用的是檔內的 const，不受影響
 })();
