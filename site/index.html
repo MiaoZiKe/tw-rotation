@@ -971,7 +971,15 @@ a.lk.sm{font-size:12px;font-weight:500}
    ★ 上限用 vh 推算（21vh），不寫死 px —— 900px 高的視窗給 189px（約 5 列半，
      看得出「下面還有」），1080p 給 226px。下限 120px 保證至少露出 3 列，
      不然使用者會以為這裡只有一格。*/
-.seglistpick{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:5px;
+/* ★ 2026-09-22 第二輪：單欄改成 auto-fill 的 grid。
+   單欄在桌機是浪費 —— 1366px 量到這一塊固定佔 196px（撞到 21vh 的上限、而且在捲），
+   但那一整排右邊有 800px 的空白。改成 grid 之後 14 個環節在 1366px 排成 5 欄 3 列，
+   高度直接掉到約 105px，而且**還是沒有撞到上限**（＝連捲都不用捲，一眼看得完）。
+   390px 的內寬只有 314px，minmax(190px,1fr) 自動變回一欄，手機的行為完全不變。
+   ★ 「一列一格」這件事沒有被推翻：**每一格仍然是一列**（名稱不換行、列高固定），
+     改的只是「一列裡放幾格」。Andy 要的是「高度可預測」，不是「一定要排成一直條」。*/
+.seglistpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:4px;margin-top:10px;padding:5px;align-content:start;
   max-height:clamp(120px,21vh,196px);overflow-y:auto;overflow-x:hidden;
   border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
 .seglistpick .segchip{width:100%;border-radius:8px;padding:5px 10px;gap:8px;
@@ -1274,6 +1282,18 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 /* .dgshint ＝「↕ 框內可上下捲」那顆提示。2026-09-22 從 id 換成 class：
    個股頁最下面那張產業鏈圖也吃了 .dgcap，卻沒有提示 —— 使用者會以為那張圖被裁掉了。
    不一致比沒有更糟，所以兩個地方掛同一個 class，由 markDgScroll() 一起管。*/
+/* ★ 2026-09-22 第二輪：圖別選單也要有天花板。
+   它是**唯一還會隨著「畫了幾張圖」無限長高的區塊** —— 這一批之後
+   一般電子鏈有 3 張（MLCC／面板／電感電阻石英），計畫裡還有 PCB 硬板、交換器板卡，
+   半導體鏈規劃了 15 張。1366px 量到 3 張卡已經是 366px（欄窄，排成 2 列），
+   6 張就會是 730px 左右 —— **每畫一張新圖、每一條鏈的頁面就長高一次**，
+   那正是這一輪要根治的模式，不是等它撞到棘輪再來調門檻。
+   上限 clamp(220px, 36vh, 380px)：1000px 高的視窗給 360px，
+   剛好讓現在的 2 列一格都不用捲；第 3 列開始才進到框內捲。*/
+.dgmenu{max-height:clamp(220px,36vh,380px);overflow-y:auto;overflow-x:hidden}
+.dgmenu::-webkit-scrollbar{width:10px}
+.dgmenu::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.dgmenu::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel)}
 .dgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
 .dgcard{display:block;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);
   border-left:4px solid var(--c,var(--cyan));background:var(--panel-3);color:var(--ink-2);transition:.15s}

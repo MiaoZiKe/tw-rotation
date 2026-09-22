@@ -10630,14 +10630,21 @@ _DGL_M = """() => {
   const dr = dg.getBoundingClientRect(), sr = sc.getBoundingClientRect();
   const chips = [...sc.querySelectorAll('.segchip')];
   const cs = getComputedStyle(dg);
-  // 「一列一格」＝ 每一格的左緣都對齊（清單），不是排成一排再換行（晶片）
+  /* 「一列一格」量的是**每一格自己是不是一列**（列高一致、名稱不換行），
+     不是「全部擠成一直條」—— 2026-09-22 第二輪把它改成 auto-fill 的 grid 之後，
+     桌機會排成好幾欄，但每一格仍然是固定列高的一列。
+     lefts 用來數欄數：390px 必須是 1 欄（手機沒有橫向空間），桌機必須 ≥ 2 欄
+     （不然就是在浪費那 800px 的空白，那正是這一輪要修掉的）。*/
   const lefts = new Set(chips.map(c => Math.round(c.getBoundingClientRect().left)));
+  const chipHs = chips.map(c => Math.round(c.getBoundingClientRect().height)).sort((a, b) => a - b);
   return {
     dgTop: Math.round(dr.top), dgH: Math.round(dr.height),
     dgSh: dg.scrollHeight, dgCh: dg.clientHeight,
     dgOy: cs.overflowY, dgOx: cs.overflowX,
     segH: Math.round(sr.height), segSh: sc.scrollHeight, segCh: sc.clientHeight,
     nChip: chips.length, nCol: lefts.size,
+    chipH: chipHs.length ? chipHs[Math.floor(chipHs.length / 2)] : 0,
+    chipHMax: chipHs.length ? chipHs[chipHs.length - 1] : 0,
     // 色標跑出自己的容器（左右）＝ 版面壞了
     chipOut: chips.filter(c => { const b = c.getBoundingClientRect();
       return b.right > sr.right + 2 || b.left < sr.left - 2; }).length,
@@ -10771,8 +10778,15 @@ def t_dglayout(pg, base):
     m = pg.evaluate(_DGL_M)
     if not ok("① 半導體鏈量得到剖析圖與環節色標", bool(m), m):
         return
-    ok(f"① 環節色標是「一列一格」的清單（{m['nChip']} 格全部靠同一條左緣）",
-       m["nChip"] >= 8 and m["nCol"] == 1, m)
+    # ★ 2026-09-22 第二輪改掉這條的寫法（不是放寬，是原本的寫法量錯了東西）。
+    #   原本寫 `nCol == 1`（全部靠同一條左緣）。那在單欄清單下成立，但單欄在 1366px
+    #   量到「這一塊固定 196px、而且在捲，右邊卻有 800px 空白」—— 那是浪費，不是清單。
+    #   改成 auto-fill 的 grid 之後，**「一列一格」真正該量的是「每一格自己是一列」**：
+    #   列高一致、不超過 40px（名稱沒有換行）。欄數另外一條管。
+    ok(f"① 環節色標每一格都是「一列」（列高中位數 {m['chipH']}px、最高 {m['chipHMax']}px ≤ 40）",
+       m["nChip"] >= 8 and 0 < m["chipH"] <= 40 and m["chipHMax"] <= 40, m)
+    ok(f"① 桌機寬度真的排成多欄，沒有把 800px 的橫向空白浪費掉（量到 {m['nCol']} 欄）",
+       m["nCol"] >= 2, m)
     # 上限＝ CSS 的 clamp(120px, 21vh, 196px) ＋ 上下內距 10 ＋ 框線 2 ＝ 208。
     # 留 4px 給次像素，所以判 212。改之前這裡是 flex-wrap，高度是「環節有幾個」的函數，
     # 沒有上限可言 —— 這一條就是在擋「多一個環節就把頁面往下推一次」。
@@ -10868,6 +10882,10 @@ def t_dglayout(pg, base):
             ok(f"④ [{w}px] {lab} 色標清單高度 {m['segH']}px（仍有上限）", 0 < m["segH"] <= 212, m)
             ok(f"④ [{w}px] {lab} 沒有橫向捲軸", m["docW"] <= m["winW"] + 1, m)
             ok(f"④ [{w}px] {lab} 色標的字都 ≥ 12px（量到 {m['minFs']}px）", m["minFs"] >= 12, m)
+            # auto-fill 的欄數要跟著寬度走：390px 只有 314px 的內寬，一定是單欄；
+            # 桌機一定要 ≥ 2 欄。這一條同時擋住「手機被排成兩欄擠成一團」與「桌機浪費橫向空間」。
+            ok(f"④ [{w}px] {lab} 環節色標的欄數合理（量到 {m['nCol']} 欄）",
+               (m["nCol"] == 1) if w <= 480 else (m["nCol"] >= 2), m)
 
     # ---------------- ⑥ MLCC 三段全開之後，仍然在框內捲、說明欄沒有被推出畫面
     land(pg, MLCC, 1440, 900)
@@ -11054,6 +11072,61 @@ def t_dglayout(pg, base):
             # 把 3D 關掉，不要把狀態留給後面的段落（#dg3d 記在 localStorage）
             if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
                 click(pg, "#dg3d", 1500)
+
+    # =======================================================================
+    # ⑩ 圖別選單（#dgMenu）也要有天花板 —— 這是「每畫一張新圖、頁面就長高一次」的最後一個缺口
+    #
+    #    2026-09-22 第二輪量到的事實：一般電子鏈 3 張圖，在 1366px（右側事件欄開著、
+    #    欄位窄、卡片排成 2 列）佔 366px。計畫裡這條鏈還要加 PCB 硬板與交換器板卡、
+    #    半導體鏈規劃了 15 張 —— 6 張就是 730px 左右。
+    #    所以這一段驗的不是「現在多高」，是**「它有沒有天花板」**：
+    #    高度上限（clamp(220px,36vh,380px)＋內距）、超過真的在框內捲、卡片一張都沒有藏。
+    # =======================================================================
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    for w in (1366, 1440, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#industry/electronics", wait_until="networkidle")
+        pg.wait_for_timeout(2000)
+        dm = pg.evaluate("""() => { const m = document.getElementById('dgMenu');
+            if (!m || m.hidden || getComputedStyle(m).display === 'none') return null;
+            const cards = [...m.querySelectorAll('.dgcard')];
+            const r = m.getBoundingClientRect();
+            return {h: Math.round(r.height), sh: m.scrollHeight, ch: m.clientHeight,
+                    oy: getComputedStyle(m).overflowY, n: cards.length,
+                    named: cards.filter(c => c.textContent.trim().length > 4
+                             && c.getBoundingClientRect().height > 8).length,
+                    out: cards.filter(c => { const b = c.getBoundingClientRect();
+                             return b.right > r.right + 1 || b.left < r.left - 1; }).length}; }""")
+        if not ok(f"⑩ [{w}px] 一般電子鏈量得到圖別選單（這條鏈沒有鏈層級架構圖，預設就是選單）",
+                  bool(dm) and dm["n"] >= 2, dm):
+            continue
+        # 上限＝clamp(220px,36vh,380px)（1000px 高的視窗＝360）＋ 內距／框線，留 20px 餘裕
+        ok(f"⑩ [{w}px] 圖別選單的高度有天花板（量到 {dm['h']}px ≤ 400px）", 0 < dm["h"] <= 400, dm)
+        ok(f"⑩ [{w}px] 天花板是靠「框內捲」做到的，不是把卡片藏起來（overflow-y = {dm['oy']}）",
+           dm["oy"] == "auto", dm)
+        ok(f"⑩ [{w}px] {dm['n']} 張圖卡一張都沒有少，而且每一張都寫得出字",
+           dm["named"] == dm["n"], dm)
+        ok(f"⑩ [{w}px] 圖卡沒有跑出容器", dm["out"] == 0, dm)
+        # 真的捲得動（只有內容超過框才驗，不然是假條件）
+        if dm["sh"] > dm["ch"] + 4:
+            pg.evaluate("() => { document.getElementById('dgMenu').scrollTop = 9999; }")
+            pg.wait_for_timeout(250)
+            changed(f"⑩ [{w}px] 圖別選單撞到天花板之後真的捲得動（scrollTop）", 0,
+                    pg.evaluate("() => document.getElementById('dgMenu').scrollTop"),
+                    f"內容 {dm['sh']} / 框 {dm['ch']}")
+            pg.evaluate("() => { document.getElementById('dgMenu').scrollTop = 0; }")
+        else:
+            notes.append(f"⑩ [{w}px] 圖別選單目前還沒撞到天花板（{dm['sh']} ≤ {dm['ch']}），"
+                         "捲動那一條這次沒驗到 —— 等這條鏈再多兩張圖就會驗到")
+        # 捲下去才看得到的那一張也要點得到（跟族群清單同一個坑）
+        last = pg.evaluate("() => { const c = [...document.querySelectorAll('#dgMenu .dgcard')].pop();"
+                           " return c ? c.getAttribute('href') : null; }")
+        if last:
+            click(pg, "#dgMenu .dgcard:last-child", 1600)
+            ok(f"⑩ [{w}px] 選單最後一張圖卡真的點得進去（網址變成 {last}）",
+               pg.evaluate("() => location.hash").endswith(last.split("#")[-1]),
+               {"想去": last, "實際": pg.evaluate("() => location.hash")})
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 def _selected(args, name: str) -> bool:
