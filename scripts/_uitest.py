@@ -488,7 +488,9 @@ def check_3d(pg):
             "(s) => { const e = document.querySelector('.lbl3d.sel'); return !!e && e.dataset.seg === s; }", lp["seg"]),
            lp["seg"])
     # 切回平面再切回來：不可以留下第二張 canvas（WebGL context 有上限）
-    click(pg, "#dg3d", 900)
+    # ★ #246：上面剛用滑鼠點過 3D 標籤，游標還停在畫布上（圖是展開的、還在補間）——
+    #   直接按工具列會 6 秒點不到，見 _dg3d_toolbar_click 的說明。
+    _dg3d_toolbar_click(pg, "#dg3d", 900)
     off = pg.evaluate("""() => ({ svg: !(document.getElementById('prodDiagram')||{}).hidden,
         canvas: document.querySelectorAll('#prod3d canvas').length })""")
     ok("切回平面圖，3D 收乾淨", off["svg"] and off["canvas"] == 0, off)
@@ -6646,7 +6648,7 @@ def t_batch6_n1(pg, base):
     #   **SECTIONS 的宣告順序**跑的 —— 這裡不關的話，後面任何一段驗 2D 剖析圖的
     #   都會看到 #prodDiagram 被 3D 蓋住，整段紅。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -6894,7 +6896,7 @@ def t_batch6_n9(pg, base):
     # ★ 2026-09-22 收尾：同 N1 —— 3D 開關記在 localStorage，開著離開會讓同一個 worker
     #   後面那些驗 2D 剖析圖的段落看到「圖被藏起來」。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -12562,7 +12564,7 @@ def t_dg3d_parts(pg, base):
     #   —— 例如「批次19-剖析圖版面」驗的是 2D 那張 SVG —— 會看到 #prodDiagram 被藏起來，整段紅。
     #   2026-09-22 實測過：單獨跑批次19 是 0 個問題，跟這一段排在同一個 worker 就變 7 個。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -15055,7 +15057,14 @@ def t_dg3d_style(pg, base):
                pg.evaluate("() => document.querySelectorAll('.dgstage-l .lbl3d').length === 0 && document.querySelectorAll('.dgstage-r .lbl3d').length > 0"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # 收尾：3D 關回平面圖、動畫偏好與模式還原（跟其他 3D 段落同一條規矩）
+    # ★ #246：按工具列的鈕之前先把游標移出 3D，再等展開補間停下來。
+    #   理由不是「讓測試好過」，是**真人本來就做不到「游標停在畫布上同時去按工具列」**——
+    #   工具列在 #prod3d 外面，手移過去的那一刻圖就收攏了。
+    #   測試把游標留在畫布裡按鈕，等於要求瀏覽器一邊用 3fps（容器是軟體渲染）畫爆炸補間、
+    #   一邊在 6 秒內回應 Playwright 的可點擊性輪詢 —— 實測就是這樣紅的，而且紅在收尾。
+    pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
         click(pg, "#dg3d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
@@ -16579,7 +16588,14 @@ def t_dg3d_pbr(pg, base):
             ok(f"[{nice} {w}px] 3D 畫布真的吃到欄寬（不是縮成一小塊）：{z['hostW']}px",
                z["hostW"] >= min(300, w - 90), z["hostW"])
     pg.set_viewport_size({"width": 1500, "height": 1000})
+    # ★ #246：按工具列的鈕之前先把游標移出 3D，再等展開補間停下來。
+    #   理由不是「讓測試好過」，是**真人本來就做不到「游標停在畫布上同時去按工具列」**——
+    #   工具列在 #prod3d 外面，手移過去的那一刻圖就收攏了。
+    #   測試把游標留在畫布裡按鈕，等於要求瀏覽器一邊用 3fps（容器是軟體渲染）畫爆炸補間、
+    #   一邊在 6 秒內回應 Playwright 的可點擊性輪詢 —— 實測就是這樣紅的，而且紅在收尾。
+    pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
         click(pg, "#dg3d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
@@ -16643,6 +16659,21 @@ def _dg3d_wait_t(pg, lo, hi, ms=4000):
             return v
         pg.wait_for_timeout(40)
     return pg.evaluate("() => window.Rack3D.current.explode()")
+
+
+def _dg3d_toolbar_click(pg, sel, wait=900):
+    """按 3D 工具列的鈕（#dg3d／#dgPal／#dgReset…）之前，先把游標移出 #prod3d 再等它靜下來。
+
+    ★ #246 之後這件事變成必要：游標停在畫布上時圖是展開的、而且補間期間每一幀都要重畫，
+      容器又是 swiftshader 軟體渲染（3~8 fps）—— Playwright 的可點擊性輪詢就被主執行緒餓死，
+      6 秒點不到，紅在收尾而且會連鎖（3D 沒關掉 → 後面驗 2D 的段落看到圖被藏起來，整段紅）。
+      而**真人根本做不到「游標停在畫布上同時按工具列」**：工具列在 #prod3d 外面，
+      手移過去的那一刻圖就收攏了。所以這不是放寬，是把測試改成真人做得到的順序。
+    """
+    pg.mouse.move(4, 4)
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_settle(pg, 0, 3000)
+    click(pg, sel, wait)
 
 
 def _dg3d_settle(pg, want, ms=6000):
