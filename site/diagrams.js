@@ -365,81 +365,23 @@
       <text class="lbl" x="${x + 16}" y="${y + 2}">${o.label}</text><text class="sub" x="${x + 16}" y="${y + 18}">${o.sub || ''}</text></g>`;
   }
 
-  // ================================================================ 半導體：CoWoS 2.5D 剖面
-  function hbmStack(x, y, delay) {
-    const layers = [];
-    for (let i = 0; i < 8; i++) layers.push(`<rect class="pulse" x="${x}" y="${y + i * 12}" width="70" height="10" rx="1.5" fill="#3a2a5c" stroke="#8b7bff" stroke-width=".7" style="animation-delay:${delay + i * .12}s"/>`);
-    const tsv = [x + 18, x + 35, x + 52].map(tx => `<line class="flow slow" x1="${tx}" y1="${y - 2}" x2="${tx}" y2="${y + 108}" stroke="rgba(139,123,255,.7)" stroke-width="1.2"/>`).join('');
-    return `<g>${layers.join('')}<rect x="${x}" y="${y + 96}" width="70" height="12" rx="1.5" fill="#1f2f5c" stroke="#3ee0ff" stroke-width=".7"/>${tsv}</g>`;
-  }
-  function semiconductor() {
-    const dieCells = []; for (let r = 0; r < 4; r++) for (let c = 0; c < 6; c++) dieCells.push(`<rect class="pulse" x="${522 + c * 27}" y="${150 + r * 22}" width="22" height="17" rx="2" fill="rgba(62,224,255,.22)" style="animation-delay:${((r * 6 + c) % 7) * .28}s"/>`);
-    const bumps = (y, r, step, x0, x1, col) => { const a = []; for (let x = x0; x <= x1; x += step) a.push(`<circle cx="${x}" cy="${y}" r="${r}" fill="${col}"/>`); return a.join(''); };
-    const tsv = []; for (let x = 340; x <= 860; x += 26) tsv.push(`<line x1="${x}" y1="262" x2="${x}" y2="296" stroke="rgba(62,224,255,.35)" stroke-width="1"/>`);
-    const vias = []; for (let x = 330; x <= 870; x += 36) vias.push(`<line x1="${x}" y1="314" x2="${x}" y2="356" stroke="rgba(255,180,84,.45)" stroke-width="1.2"/>`);
-    const wafer = (() => { const cx = 126, cy = 300, R = 66; const lines = []; for (let d = -54; d <= 54; d += 18) { const h = Math.sqrt(R * R - d * d) - 2; lines.push(`<line x1="${cx - h}" y1="${cy + d}" x2="${cx + h}" y2="${cy + d}" stroke="#0b1224" stroke-width=".9"/><line x1="${cx + d}" y1="${cy - h}" x2="${cx + d}" y2="${cy + h}" stroke="#0b1224" stroke-width=".9"/>`); } return lines.join(''); })();
-    return `<svg class="dg dgm" viewBox="0 0 1220 545" width="100%" style="display:block">${STYLE}
-      <defs>
-        <linearGradient id="sgSi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b3f7a"/><stop offset="1" stop-color="#1a2856"/></linearGradient>
-        <linearGradient id="sgLid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6b7aa8"/><stop offset=".5" stop-color="#3d4a74"/><stop offset="1" stop-color="#2a3560"/></linearGradient>
-        <linearGradient id="sgAbf" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1d4d38"/><stop offset="1" stop-color="#12331f"/></linearGradient>
-        <linearGradient id="sgPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#173a2a"/><stop offset="1" stop-color="#0f2a1e"/></linearGradient>
-        <linearGradient id="sgInter" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1a2542"/><stop offset=".5" stop-color="#25335f"/><stop offset="1" stop-color="#1a2542"/></linearGradient>
-        <linearGradient id="sgWafer" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3b4f8c"/><stop offset="1" stop-color="#1c2a55"/></linearGradient>
-        <clipPath id="sgWaferClip"><circle cx="126" cy="300" r="66"/></clipPath>
-      </defs>
-      <text class="ttl" x="16" y="26">CoWoS 2.5D 先進封裝剖面</text>
-      <text class="cap" x="16" y="44">由下往上：主機板 → 載板 → 矽中介層 → 邏輯晶片與 HBM → 上蓋。左側是晶片的來路，右側說明對應的供應鏈環節。</text>
+  /* ================================================================ 半導體鏈的 2D CoWoS 剖面：**已退場**（DECISIONS #234，2026-09-22）
+     Andy：「圖二 圖三 是否重疊題材，是的話幫我刪除一個」。查證屬實 ——
+     這裡原本的 `semiconductor()` 與 `site/dg/ai_adv_packaging.js` 畫的是**同一顆 CoWoS 封裝的剖面**，
+     兩張自己宣告的問題也幾乎一樣（「一顆 AI 晶片是怎麼被封在一起的」vs「被包起來時裡面多了哪幾層」）。
+     分工只存在於設計文件裡，不存在於使用者的螢幕上。
 
-      <!-- 左：晶片誕生流程 -->
-      <g data-seg="ip_eda" data-part="sc_ipeda"><rect class="part" x="16" y="70" width="220" height="50" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="90">IP / EDA / 設計服務</text><text class="sub" x="28" y="106">矽智財授權、ASIC 設計服務（NRE）</text></g>
-      <path class="flow" d="M126,120 L126,144" stroke="#3ee0ff" stroke-width="2"/>
-      <g data-seg="ic_design" data-part="sc_icdesign"><rect class="part" x="16" y="146" width="220" height="66" rx="8" fill="#0f172b"/><text class="lbl" x="28" y="166">IC 設計</text><text class="sub" x="28" y="184">GPU / ASIC / 網通晶片</text><text class="sub" x="28" y="202">交付 GDS 光罩資料</text></g>
-      <path class="flow" d="M126,212 L126,228" stroke="#3ee0ff" stroke-width="2"/>
-      <g data-seg="foundry" data-part="sc_wafer">
-        <circle class="part" cx="126" cy="300" r="66" fill="url(#sgWafer)"/>
-        <g clip-path="url(#sgWaferClip)">${wafer}<rect class="scan" x="60" y="292" width="132" height="4" fill="rgba(62,224,255,.55)"/></g>
-        <rect x="118" y="292" width="16" height="16" rx="2" fill="#3ee0ff" opacity=".9"/>
-        <text class="lbl" x="56" y="392">晶圓代工 3nm / 2nm</text><text class="sub" x="42" y="408">300mm 晶圓 → 切割成邏輯晶片</text><text class="sub" x="42" y="426">HBM 的基底晶片也在這裡做</text>
-      </g>
-      <path class="flow" d="M196,300 L300,300" stroke="#3ee0ff" stroke-width="2"/><text class="cap" x="206" y="292">切割 → 封裝</text>
-      ${chainLink('ai_server', 16, 444, '→ 下游：組裝進 AI 伺服器')}
-      <text class="cap" x="16" y="500">示意圖，非實物比例</text><text class="cap" x="16" y="516">零件顏色＝環節色；點零件看供應商</text>
+     退場 ≠ 刪內容。三塊東西全部搬到 `ai_adv_packaging`，一塊都沒有丟：
+       · 右側「每一層對應到哪個供應鏈環節」→ 每一列右端的環節標籤
+       · 底下「設計 → 晶圓製造 → CoWoS 堆疊 → 上蓋測試 → 上板」→ 那張圖的整鏈流程列
+       · 3D 場景 `SCENES.semiconductor` → `ai_adv_packaging` 的 `scene`
+         （Andy 這一輪要的是把 3D 畫得更細緻，不是拿掉）
+     順帶解決兩筆技術債：那張是唯一還沒收到 980 的 `native: 1220`，而且有 95 個寫死的色值。
 
-      <!-- 中：剖面（由下往上） -->
-      <g data-seg="abf_pcb" data-part="sc_pcb"><rect class="part" x="300" y="384" width="600" height="32" rx="4" fill="url(#sgPcb)"/>
-        <path class="flow slow" d="M316,394 H560 M316,406 H420 M640,394 H884 M700,406 H884" stroke="rgba(255,180,84,.55)" stroke-width="1.4"/>
-        <text class="sub" x="312" y="404" style="fill:#c7f2d6">主機板 PCB</text></g>
-      <g data-seg="abf_pcb" data-part="sc_bga">${bumps(372, 7, 30, 330, 870, '#d9a648')}<text class="sub" x="898" y="368">BGA</text></g>
-      <g data-seg="abf_pcb" data-part="sc_abf"><rect class="part" x="310" y="310" width="580" height="50" rx="4" fill="url(#sgAbf)"/>
-        <path d="M318,322 H882 M318,334 H882 M318,346 H882" stroke="rgba(255,255,255,.08)"/>${vias.join('')}
-        <text class="sub" x="322" y="329" style="fill:#c7f2d6">ABF 載板（多層增層基板）</text></g>
-      <g data-seg="adv_pkg" data-part="sc_c4">${bumps(304, 4, 20, 330, 870, '#ffb454')}</g>
-      <g data-seg="adv_pkg" data-part="sc_interposer"><rect class="part" x="320" y="258" width="560" height="42" rx="3" fill="url(#sgInter)"/>
-        ${tsv.join('')}<path d="M330,270 H870 M330,280 H870 M330,290 H870" stroke="rgba(62,224,255,.22)"/>
-        <path class="flow fast" d="M375,272 H600" stroke="#3ee0ff" stroke-width="2"/><path class="flow fast rev" d="M600,286 H815" stroke="#3ee0ff" stroke-width="2"/>
-        <text class="sub" x="332" y="294" style="fill:#9fd8ff">矽中介層 Interposer</text></g>
-      <g data-seg="adv_pkg" data-part="sc_ubump">${bumps(254, 2.5, 10, 340, 870, 'rgba(255,180,84,.85)')}</g>
-      <g data-seg="hbm" data-part="sc_hbm">${hbmStack(340, 142, 0)}${hbmStack(420, 142, .3)}${hbmStack(700, 142, .6)}${hbmStack(780, 142, .9)}<rect class="part" x="336" y="138" width="158" height="116" rx="3" fill="none"/><rect class="part" x="696" y="138" width="158" height="116" rx="3" fill="none"/></g>
-      <g data-seg="foundry" data-part="sc_die"><rect class="part" x="510" y="142" width="180" height="108" rx="3" fill="url(#sgSi)"/>${dieCells.join('')}<text class="mono" x="522" y="243" style="fill:#9fd8ff">GPU / ASIC DIE</text></g>
-      <g data-seg="osat_test" data-part="sc_lid"><rect x="330" y="134" width="540" height="6" fill="#0b1224"/><rect class="part" x="330" y="110" width="540" height="26" rx="5" fill="url(#sgLid)"/>
-        ${[380, 460, 540, 620, 700, 780].map((x, i) => `<path class="heat" d="M${x},104 c4,-6 -4,-10 0,-16" stroke="#ff8fab" stroke-width="1.6" fill="none" style="animation-delay:${i * .4}s"/>`).join('')}
-        <text class="sub" x="596" y="128" style="fill:#e8eeff" text-anchor="middle">散熱上蓋（Lid）</text></g>
-
-      <!-- 右：說明欄（引線接到零件） -->
-      ${labelRow('osat_test', 934, 120, '封裝上蓋 / 最終測試', '封測廠：上蓋、燒機、分選出貨', 870, 122)}
-      ${labelRow('hbm', 934, 172, 'HBM3E 記憶體堆疊', '8–12 層 DRAM + 基底晶片，TSV 貫穿', 854, 196)}
-      ${labelRow('foundry', 934, 224, 'GPU / ASIC 邏輯晶片', '3nm / 2nm 先進製程晶粒', 690, 230)}
-      ${labelRow('adv_pkg', 934, 276, '矽中介層 Interposer', 'CoWoS-S/L：微凸塊、TSV、RDL 佈線', 880, 279)}
-      ${labelRow('abf_pcb', 934, 328, 'ABF 載板', '多層增層基板，C4 凸塊接中介層', 890, 335)}
-      ${labelRow('abf_pcb', 934, 380, 'BGA → 主機板 PCB', '錫球接到伺服器／加速卡主機板', 900, 400)}
-
-      <!-- 下：製程流程 -->
-      <text class="cap" x="300" y="462">製造流程</text>
-      ${processBar(300, 470, [{ seg: 'ip_eda', t: '設計', s: 'IP / EDA' }, { seg: 'foundry', t: '晶圓製造', s: '前段製程' }, { seg: 'adv_pkg', t: 'CoWoS 堆疊', s: '中介層 + 晶片 + HBM' }, { seg: 'osat_test', t: '上蓋 / 測試', s: '封測廠' }, { seg: 'abf_pcb', t: '上板', s: '載板 → PCB' }], 152)}
-    </svg>`;
-  }
-
+     半導體鏈的入口因此變成**圖別選單**（跟 AI 伺服器鏈同一個模式）。
+     ⚠ 跨鏈面板（E6「ABF 這種跨類別環節要同時出現兩張架構圖」）仍然要兩張縮圖，
+       所以 `chains()` 改成「有**代表圖**的鏈」—— 半導體的代表圖就是 `ai_adv_packaging`
+       （它在 register 裡宣告 `rep: true`）。 */
   // ================================================================ AI 伺服器：機櫃 + 運算托盤爆炸圖
   function gpuModule(x, y, i) {
     return `<g transform="translate(${x},${y})">
@@ -911,8 +853,9 @@
        它不是裝飾文案 —— 圖別選單就是靠它讓人在「還沒點進去」的時候就知道
        自己要不要點；沒有 `q` 的圖等於在叫人先點進去再猜。
        寫法：一句話、問句、講到「所以我該怎麼用」，不要只描述圖上有什麼。*/
-    semiconductor: { level: 'chain', chain: 'semiconductor', name: '半導體：CoWoS 2.5D 封裝剖面', draw: semiconductor, scene: 'semiconductor', native: 1220,
-      q: '一顆 AI 晶片是怎麼被封在一起的？從晶圓、中介層到載板，每一層是誰在做、台廠吃到哪幾層？' },
+    /* ⚠ `semiconductor` 這個鏈層級的檔位在 2026-09-22 退場了（DECISIONS #234）——
+       它跟 `ai_adv_packaging` 畫的是同一顆 CoWoS 封裝的剖面。理由與「內容搬到哪裡」
+       寫在本檔上方那段註解。半導體鏈現在走圖別選單，跟 AI 伺服器鏈同一個模式。*/
     ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
       q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
     mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980,
@@ -971,8 +914,21 @@
     level(id) { return SLOTS[id] ? SLOTS[id].level : null; },
     // 這張圖回答哪一個問題（圖別選單與標題都讀它）
     q(id) { return SLOTS[id] ? (SLOTS[id].q || '') : ''; },
-    // 目前有鏈層級圖的鏈（跨鏈面板的縮圖用；以前寫死成 DG_CHAINS）
-    chains() { return Object.keys(SLOTS).filter(isChainSlot); },
+    /* 這條鏈拿哪一張圖當「代表圖」（跨鏈面板 E6 的縮圖用）。
+       ★ 2026-09-22：以前這裡直接等於「鏈層級的架構圖」。半導體鏈那張退場之後
+       （DECISIONS #234），如果還是綁在鏈層級，跨鏈面板就只剩一張縮圖 ——
+       而那個面板的整個意義就是「同一個環節在**兩條**鏈上的位置不一樣」。
+       所以改成：鏈層級的圖優先，沒有就找這條鏈上宣告 `rep: true` 的族群圖。*/
+    rep(chainId) {
+      if (isChainSlot(chainId)) return chainId;
+      return Object.keys(SLOTS).find(k => isGroupSlot(k) && SLOTS[k].chain === chainId && SLOTS[k].rep) || null;
+    },
+    // 目前有代表圖的鏈（跨鏈面板的縮圖用；以前寫死成 DG_CHAINS）
+    chains() {
+      const seen = new Set();
+      Object.keys(SLOTS).forEach(k => { const c = SLOTS[k].chain; if (c && this.rep(c)) seen.add(c); });
+      return [...seen];
+    },
     draw(id) { return SLOTS[id] ? SLOTS[id].draw() : ''; },
     name(id) { return SLOTS[id] ? SLOTS[id].name : ''; },
     scene(id) { return SLOTS[id] ? (SLOTS[id].scene || null) : null; },

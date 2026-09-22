@@ -102,37 +102,70 @@
           box: [26, 4, 18], at: [0, 90, 0], ghost: true },
       ],
     },
+    /* CoWoS-L 先進封裝：這個場景 2026-09-22 起是 `ai_adv_packaging` 那張圖的 3D
+       （DECISIONS #234 —— 鏈層級的 2D CoWoS 剖面退場，3D 跟著搬過來、而且要更細緻）。
+
+       兩件事跟著改：
+       ① **`part` 全部從 `sc_*` 改成 `icp_*`**，跟 2D 用同一組身分 ——
+          `sc_*` 的另一個主人（鏈層級那張圖）沒了，對齊之後
+          「2D 點完一個零件再切到 3D，還是同一個零件被選著」才成立。
+       ② **接點自己要是一層**：以前載板直接貼著中介層、中介層直接貼著晶粒，
+          中間那兩層接點（C4 與微凸塊）在 3D 上完全不存在 ——
+          但整張 2D 的靈魂就是「接點由下往上一路變小」。
+          現在用 `bump` 字彙補上，而且兩層的 box 高度刻意差一倍，轉過去看得出大小差。
+       ③ Andy「他是電路圖就是要有電路圖的樣貌」→ 載板上補了**去耦電容**
+          （`mlccchip`，端電極包住端部五個面），正面一排、背面一排。
+
+       堆疊由下往上（y 是**中心**，不是底面）：
+         BGA -0.4 ｜ 載板 0–3 ｜ C4 3.0–3.9 ｜ 中介層 3.9–5.5（矽橋埋在裡面）
+         ｜ 微凸塊 5.5–6.2 ｜ 晶粒 6.2–8.6 ｜ SoIC 上層 8.6–10.4 ｜ HBM 6.2–11.6 ｜ 上蓋 11.5–13.7
+       改任何一個 y 之前先回來對這一排，不然層會互相穿過去。*/
     semiconductor: {
-      title: 'CoWoS-L 先進封裝剖面',
-      sub: '由下往上：載板 → RDL 有機重佈線 ＋ LSI 矽橋 → 晶粒與 HBM → 上蓋；灰色是台廠切不進去的部分',
-      camera: [50, 34, 52], target: [0, 8, 0], fit: 1, hk: 0.46,
+      title: 'CoWoS-L 先進封裝（立體剖面）',
+      sub: '由下往上：BGA → ABF 載板 → C4 → 有機重佈線＋LSI 矽橋 → 微凸塊 → 晶粒與 HBM → 上蓋；載板正反面都有去耦電容',
+      camera: [50, 34, 52], target: [0, 7, 0], fit: 1, hk: 0.46,
       parts: [
-        { seg: 'abf_pcb', part: 'sc_abf', name: 'ABF 載板', note: 'core + 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板',
+        { seg: 'abf_pcb', part: 'icp_sub', name: 'ABF 載板', note: 'core ＋ 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板。表面看得到蛇行等長的走線',
           kind: 'substrate', box: [44, 3, 34], at: [0, 1.5, 0] },
-        { seg: 'abf_pcb', part: 'sc_bga', name: 'BGA 錫球', note: '載板連到主機板',
+        { seg: 'abf_pcb', part: 'icp_bga', name: 'BGA 錫球', note: '載板背面那一整片球，接到主機板；全圖最大的接點',
           kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x' },
-        { seg: 'adv_pkg', part: 'sc_interposer', name: 'RDL 重佈線層（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
-          kind: 'rdl', box: [36, 1.6, 26], at: [0, 3.8, 0] },
-        { seg: 'adv_pkg', part: 'sc_bridge', name: 'LSI 局部矽橋', note: '只埋在晶粒交界處，負責 die-to-die 的高密度連線',
-          kind: 'bridge', box: [6, 1, 10], at: [0, 5.2, 0], n: 2, gap: 12, axis: 'x' },
-        { seg: 'foundry', part: 'sc_die', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅無凸塊），再進 CoWoS-L',
-          kind: 'die', box: [14, 2.4, 14], at: [0, 6.6, 0] },
-        { seg: 'foundry', part: 'sc_die2', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，台積電差異化的核心',
-          kind: 'die', box: [12, 1.8, 12], at: [0, 8.8, 0] },
-        { seg: 'hbm', part: 'sc_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）',
-          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8, 0], n: 2, gap: 26, axis: 'x' },
-        { seg: 'adv_pkg', part: 'sc_underfill', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；日商為主',
-          box: [34, 0.8, 24], at: [0, 5.6, 0], ghost: true },
-        { seg: 'adv_pkg', part: 'sc_stiffener', name: 'Stiffener 補強環', note: '大尺寸封裝防翹曲',
-          box: [42, 2, 3], at: [0, 6, 0], n: 2, gap: 30, axis: 'z' },
+        /* ★ 2026-09-22 新增：正面去耦電容。晶粒瞬間抽電時來不及等主機板，
+           就近由載板上的電容頂著 —— 這是「板子上真的有被動元件」最基本的一件事。
+           `mlccchip` 的識別特徵是端電極包住端部五個面，轉到背面看得到。*/
+        { seg: 'passive_comp', part: 'icp_decap', name: '載板正面的去耦電容', note: '晶粒一瞬間抽大電流，等主機板送電來不及，由這排電容就近補；端電極包住端部五個面',
+          kind: 'mlccchip', box: [2.6, 1.1, 1.5], at: [0, 3.55, 14.5], n: 6, gap: 4.4, axis: 'x',
+          codes: ['2327', '2492', '3026', '6173'], chipnote: '做 MLCC 的那幾家（不在半導體鏈的環節名單上）' },
+        { seg: 'passive_comp', part: 'icp_lsc', name: '背面去耦電容 LSC', note: '正面擺不下就往背面擺，夾在 BGA 球陣列中間；代價是那一塊的錫球要讓位',
+          kind: 'mlccchip', box: [2.6, 1.0, 1.5], at: [0, -0.5, 6], n: 3, gap: 5.2, axis: 'x',
+          codes: ['2327', '2492', '3026', '6173'], chipnote: '做 MLCC 的那幾家（不在半導體鏈的環節名單上）' },
+        /* ★ 2026-09-22 新增：兩層接點。box 的高度 0.9 vs 0.55 刻意差一倍 ——
+           2D 整張圖的靈魂就是「接點由下往上一路變小」，3D 不表達出來就等於少了一半。*/
+        { seg: 'adv_pkg', part: 'icp_c4', name: 'C4 凸塊', note: '接「載板 ↔ 中介層」，節距 150–200 µm 級；迴焊之後塌成鼓形',
+          kind: 'bump', box: [36, 0.9, 26], at: [0, 3.45, 0], codes: ['2330', '3711'] },
+        { seg: 'adv_pkg', part: 'icp_interposer', alias: ['icp_rdl'], name: '中介層：有機重佈線（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
+          kind: 'rdl', box: [36, 1.6, 26], at: [0, 4.7, 0], codes: ['2330', '3711'] },
+        { seg: 'adv_pkg', part: 'icp_cowos_l', name: 'LSI 局部矽橋', note: '只埋在兩顆晶粒的交界正下方，負責 die-to-die 的高密度連線 —— 要高密度的地方才用到矽',
+          kind: 'bridge', box: [6, 1, 10], at: [0, 5.1, 0], n: 2, gap: 12, axis: 'x', codes: ['2330', '3711'] },
+        { seg: 'adv_pkg', part: 'icp_ubump', name: '微凸塊 µbump', note: '接「中介層 ↔ 晶粒」，銅柱＋錫帽，節距 30–60 µm 級 —— 比下面的 C4 小一個數量級',
+          kind: 'bump', box: [30, 0.55, 22], at: [0, 5.85, 0], codes: ['2330', '3711'] },
+        { seg: 'foundry', part: 'icp_die', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅、無凸塊），再進 CoWoS-L；四周那一圈空白是切割道',
+          kind: 'die', box: [14, 2.4, 14], at: [0, 7.4, 0] },
+        { seg: 'adv_pkg', part: 'icp_soic', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，銅墊直接對銅墊，中間沒有任何凸塊',
+          kind: 'die', box: [12, 1.8, 12], at: [0, 9.5, 0], codes: ['2330', '3711'] },
+        { seg: 'hbm', part: 'icp_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）；貼著晶粒放，線越短越省電',
+          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x' },
+        { seg: 'adv_pkg', part: 'icp_uf', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；側面會爬出一圈圓角。膠的材料以日商為主',
+          box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, codes: ['2330', '3711'] },
+        { seg: 'adv_pkg', part: 'icp_stiff', name: 'Stiffener 補強環', note: '圍在載板邊緣的一圈金屬框，大尺寸封裝防翹曲',
+          box: [44, 3.4, 3], at: [0, 4.7, 0], n: 2, gap: 31, axis: 'z', codes: ['2330', '3711'] },
         /* ★ 2026-09-21 更正：以前掛 `osat_test`，那是**封測服務廠**（日月光、力成、京元電、矽格…）。
            做探針卡與測試座的是 `test_interface`（6515 穎崴、6223 旺矽、6510 中華精測、6683 雍智）——
            **設備耗材 ≠ 封測服務**，這正是 AGENTS 半導體鏈那節第 3 條點名的錯。
            掛錯的後果不是「少列幾家」，是**點下去列出一批不做這個東西的公司**。 */
-        { seg: 'test_interface', part: 'sc_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
-          kind: 'probe', box: [10, 1.2, 10], at: [24, 3, 16] },
-        { seg: 'adv_pkg', part: 'sc_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板',
-          box: [40, 2.2, 30], at: [0, 12.4, 0], ghost: true },
+        { seg: 'test_interface', part: 'icp_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
+          kind: 'probe', box: [10, 1.2, 10], at: [26, 2, 18] },
+        { seg: 'osat_test', part: 'icp_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板；上蓋的腳踩在載板邊緣',
+          box: [40, 2.2, 30], at: [0, 12.6, 0], ghost: true },
       ],
     },
     /* 被動元件：MLCC 疊層（規格書 docs/diagram_specs/mlcc_stack.md）。

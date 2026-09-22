@@ -996,7 +996,12 @@
     inner.style.transform = 'none';
     const r = svg.getBoundingClientRect();
     if (!r.width) return;
-    const k = Math.min(1, box / r.width);
+    /* ★ 2026-09-22：除了寬度，也要吃**高度上限**。
+       半導體鏈的代表圖換成先進封裝那張之後，它比原本的鏈圖（1220×545，長寬比 2.24）方得多，
+       只照寬度縮的話同樣的框寬會長出兩倍高，兩張疊起來就把整個跨鏈面板撐開。
+       縮圖的工作只有一個：讓人看到「這個環節在圖上的哪個位置」，所以照兩者取小。*/
+    const maxH = 260;
+    const k = Math.min(1, box / r.width, r.height ? maxH / r.height : 1);
     inner.style.transformOrigin = '0 0';
     inner.style.transform = 'scale(' + k.toFixed(4) + ')';
     wrap.style.height = Math.round(r.height * k) + 'px';
@@ -1014,7 +1019,10 @@
       const dn = segs.filter(x => x.layer === me.layer + 1).map(x => x.name);
       const gs = (A.L.sgroups[seg] || []).filter(g => A.L.gchain[g] === cid);
       const nm = A.L.chains[cid] || CHAIN_NAME[cid] || cid;
-      const dgSlot = DS ? DS.chainDefault(cid) : null;
+      /* ★ 2026-09-22：從 chainDefault 改成 rep —— 半導體鏈的鏈層級剖面退場之後
+         （DECISIONS #234），chainDefault('semiconductor') 是 null，這塊縮圖會整個空掉。
+         rep() 會退回這條鏈宣告 `rep: true` 的族群圖（半導體＝先進封裝那張）。*/
+      const dgSlot = DS ? DS.rep(cid) : null;
       const dg = dgSlot ? uniqIds(DS.draw(dgSlot), '__x' + cid) : '';
       return `<div class="xchain${cid === cur ? ' cur' : ''}" data-c="${cid}">
         <div class="row spread"><b>${A.fmt.esc(nm)}${cid === cur ? ' <span class="muted">（現在這條）</span>' : ''}</b>
@@ -1030,6 +1038,13 @@
   // 縮圖插進 DOM 之後才上色：跟大圖同一套環節色，這個環節亮起來、其餘壓暗
   function paintCross(box, seg) {
     const wrap = $('#xChains', box); if (!wrap) return;
+    /* ★ 2026-09-22：縮圖也要吃「章節收合」。
+       半導體鏈的代表圖（先進封裝）把四塊內容收進章節列，收合後 690px、全展開 2105px ——
+       而**靜態的 SVG 本身是全展開的那一份**（wireFolds 的設計，見 diagrams.js）。
+       縮圖不跑 stampParts 的話就會拿到 2105px 那一份，照高度縮之後整張只剩一指寬。
+       這裡補上 stampParts：縮圖跟大圖看到的是同一個收合狀態，而且它的工作
+       （讓人看到「這個環節在圖上的哪個位置」）本來就只需要主畫面那一塊。*/
+    if (window.DG && window.DG.stampParts) window.DG.stampParts(wrap);
     $$('.xmini [data-seg]', wrap).forEach(n => {
       n.style.setProperty('--c', segColor(n.dataset.seg));
       n.classList.toggle('sel', n.dataset.seg === seg);
@@ -2003,7 +2018,13 @@
     /* 個股頁的剖析圖：先看**這一檔所屬的族群**有沒有專屬圖，沒有才退回鏈層級的總圖。
        strict＝true，不准退回「這條鏈成交值最大的那張族群圖」——
        一檔面板股掉到 MLCC 那張圖上，等於在網站上說「它做 MLCC」。*/
-    const dgId = dgPick(ch, m.group_id);
+    /* ★ 2026-09-22（DECISIONS #234）：半導體鏈的鏈層級剖面退場之後，`dgPick` 對
+       「所屬族群沒有專屬圖」的半導體個股（例如 2330）會回 null ——
+       那一頁的產業鏈圖就整塊不見了。退回這條鏈的**代表圖**，行為跟退場前一致
+       （退場前退回的就是鏈層級那張總圖）。
+       ⚠ 只在個股頁這樣退，**產業鏈頁不准**：那邊「選到沒有專屬圖的族群 → 收起圖、
+         換回圖別選單」是刻意的（見 resolveDg 上面那段），所以 `DS.pick` 本身沒有動。*/
+    const dgId = dgPick(ch, m.group_id) || (DS ? DS.rep(cid) : null);
     const hasDiagram = !!dgId;
     const g = ch.groups.find(x => x.id === m.group_id) || (im.industries || []).find(x => x.id === m.group_id);
     const sibs = g ? (g.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : [];

@@ -6587,7 +6587,11 @@ def t_batch6_n1(pg, base):
     """批次6 的 N1（Andy 2026-09-19：「3D圖需要可以游標抓取移動，
     並且可以 360 都觀測 我發現下面看不到」）。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    # ★ 2026-09-22（DECISIONS #234）：鏈層級那張 CoWoS 剖面退場，3D 場景搬到
+    #   族群層級的「先進封裝」那張圖上。`#industry/semiconductor` 現在是**圖別選單**，
+    #   上面沒有 3D 鈕 —— 照舊網址走的話這一段會安靜地整段跳過（假綠）。
+    pg.goto(f"{base}#industry/semiconductor/dg/ai_adv_packaging", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
     if not pg.evaluate("() => !!document.getElementById('dg3d')"):
         return                                   # 這條鏈沒有 3D 場景
     if pg.evaluate("() => document.getElementById('dg3d').hidden"):
@@ -6613,6 +6617,13 @@ def t_batch6_n1(pg, base):
     ok("說明有講「可轉到底下」與「平移」（N1）",
        "底下" in text(pg, "#dg3dNote") and "平移" in text(pg, "#dg3dNote"),
        text(pg, "#dg3dNote")[:90])
+    # ★ 2026-09-22 收尾：把 3D 關回平面圖（跟「3D零件字彙」那一段同一條規矩）。
+    #   `#dg3d` 的開關記在 localStorage（tw.dg3d），而同一個 worker 是照
+    #   **SECTIONS 的宣告順序**跑的 —— 這裡不關的話，後面任何一段驗 2D 剖析圖的
+    #   都會看到 #prodDiagram 被 3D 蓋住，整段紅。
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
 def t_relpanel(pg, base):
@@ -6854,6 +6865,11 @@ def t_batch6_n9(pg, base):
     ok("800px 下 3D 文字框沒有出框（圖九）", not nar["out"], nar["out"][:4])
     ok("800px 下個股晶片還在（圖九 2-3）", nar["chips"] > 0, nar)
     pg.set_viewport_size({"width": 1500, "height": 1000})
+    # ★ 2026-09-22 收尾：同 N1 —— 3D 開關記在 localStorage，開著離開會讓同一個 worker
+    #   後面那些驗 2D 剖析圖的段落看到「圖被藏起來」。
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
 SC_GEOM = """() => {
@@ -8617,7 +8633,10 @@ def t_mlcc(pg, base):
       9. 800px 窄畫面重跑一次，並且量**實際字級 ≥ 12px**（Andy 從 2026-09-15 一直在講「文字太小」）
     """
     FEAT = "積層陶瓷電容"          # MLCC 那張圖上的特徵字串
-    FEAT_SEMI = "CoWoS 2.5D"
+    # ★ 2026-09-22：鏈層級的「CoWoS 2.5D 封裝剖面」退場（DECISIONS #234），
+    #   半導體鏈的代表圖換成族群層級的「先進封裝」那張，特徵字串跟著換。
+    FEAT_SEMI = "IC 封裝剖析"
+    R_SEMI = "semiconductor/dg/ai_adv_packaging"
     FEAT_AI = "AI 伺服器機櫃"
 
     def dg(pg_):
@@ -8787,8 +8806,14 @@ def t_mlcc(pg, base):
     # ---------------- 1e. 手打別條鏈的圖網址，不可以在這條鏈上畫出別人的圖
     pg.goto(f"{base}#industry/semiconductor/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2500)
     dbad = dg(pg)
-    ok("手打 #industry/semiconductor/dg/mlcc 不會在半導體鏈上畫出 MLCC（安全退回鏈層級圖）",
-       FEAT not in dbad.get("full", "") and FEAT_SEMI in dbad.get("full", ""), dbad.get("title", "")[:60])
+    # ★ 2026-09-22：半導體鏈沒有鏈層級的圖了（DECISIONS #234），所以「安全退回」的
+    #   結果從「退回鏈層級圖」變成「退回圖別選單」。兩種都對 —— 要守的那件事沒變：
+    #   **不准在半導體鏈上畫出一張 MLCC**。
+    ok("手打 #industry/semiconductor/dg/mlcc 不會在半導體鏈上畫出 MLCC（安全退回圖別選單）",
+       FEAT not in dbad.get("full", "")
+       and pg.evaluate("""() => { const m = document.getElementById('dgMenu');
+           return !!m && m.offsetParent !== null; }"""),
+       dbad.get("title", "")[:60])
 
     # ---------------- 2. 點族群卡片 → 成分股筆數真的變少，而且有專屬圖的族群圖會跟著出現
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -9025,7 +9050,7 @@ def t_mlcc(pg, base):
         notes.append("MLCC 3D：這個環境沒有 WebGL，3D 那幾條跳過（與圖九 / N1 同一條規矩）")
 
     # ---------------- 7. 回歸：既有兩張圖沒被換掉
-    for cid, feat, least in (("semiconductor", FEAT_SEMI, 15), ("ai_server", FEAT_AI, 15)):
+    for cid, feat, least in ((R_SEMI, FEAT_SEMI, 15), ("ai_server", FEAT_AI, 15)):
         pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(2400)
         d = dg(pg)
         ok(f"回歸：{cid} 鏈還是畫自己那張圖", d.get("present") and feat in d["full"], d.get("title", "")[:60])
@@ -9052,7 +9077,7 @@ def t_mlcc(pg, base):
 
     # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
     for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),
-                             ("2330", FEAT_SEMI, "半導體鏈 → 鏈層級的 CoWoS 那張")):
+                             ("2330", FEAT_SEMI, "半導體鏈 → 代表圖「先進封裝」那張")):
         pg.goto(f"{base}#stock/{code_}", wait_until="networkidle"); pg.wait_for_timeout(3000)
         pg.evaluate("() => { const t = document.querySelector('#chainToggle');"
                     " if (t && t.textContent.includes('展開')) t.click(); }")
@@ -9096,7 +9121,7 @@ def t_mlcc(pg, base):
     TYPO = DG_TYPO
     #  ★ 路由：剖析圖改成獨立分頁之後，族群層級的 MLCC 有自己的網址，
     #    鏈層級的兩張仍然是點進鏈就直接看到（見本函式第 1~2 段）。
-    for route, what in (("electronics/dg/mlcc", "MLCC"), ("semiconductor", "半導體"),
+    for route, what in (("electronics/dg/mlcc", "MLCC"), (R_SEMI, "先進封裝"),
                         ("ai_server", "AI 伺服器")):
         for w in (1440, 800, 390):
             pg.set_viewport_size({"width": w, "height": 1000})
@@ -10015,6 +10040,7 @@ SECTIONS = {
     "批次14b-第三代半導體": lambda pg, b, base, code: t_b14b_wbg(pg, base),
     "3D零件字彙":          lambda pg, b, base, code: t_dg3d_parts(pg, base),
     "點背景恢復":          lambda pg, b, base, code: t_clickbg(pg, base),
+    "批次21-CoWoS去重":    lambda pg, b, base, code: t_b21_cowos(pg, base),
     "手機":                lambda pg, b, base, code: t_mobile(b, base, code),
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
@@ -12331,8 +12357,23 @@ def t_dg3d_parts(pg, base):
 
         # ② 真的用滑鼠點一顆零件（動畫已經關掉，座標不會在點下去之前飄走）
         scroll_to(pg, "prod3d")
-        seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
-        pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
+        # ★ 2026-09-22：挑零件的條件從「算得出座標」改成「**座標真的點得到**」。
+        #   `screen(seg)` 回的是視窗座標，而 3D 畫布很高 —— 捲進畫面之後，
+        #   排在下半部的零件算出來可能是 y=1223（視窗只有 1000 高）。
+        #   `pg.mouse.click` 對著視窗外的座標點下去等於沒點，
+        #   而「sel > 0、dim > 0」在族群層級的網址上本來就成立（那個族群的環節本來就亮著），
+        #   於是**點空了也照樣綠**，只有 matSig 那一條會紅 —— 看起來像材質沒更新，
+        #   其實是滑鼠根本沒打到東西。這是 DECISIONS #206 同一類的錯：
+        #   選指標之前要先問「這個數字在正常情況下會不會變」。
+        seg = pg.evaluate("""() => { const v = window.Rack3D.current;
+            const cv = document.querySelector('#prod3d canvas'); if (!cv) return null;
+            const r = cv.getBoundingClientRect();
+            // 座標要同時落在**畫布內**與**視窗內**：畫布比視窗高的時候，
+            // 只看視窗還是會選到「在視窗裡、但已經掉出畫布下緣」的點。
+            return v.segs().find(s => { const p = v.screen(s);
+              return p && p.x > r.left + 8 && p.x < r.right - 8
+                       && p.y > Math.max(r.top, 0) + 8 && p.y < Math.min(r.bottom, innerHeight) - 8; }); }""")
+        pt = pg.evaluate("(s) => s ? window.Rack3D.current.screen(s) : null", seg)
         # 整張圖只有一個環節時（MLCC），「其餘變暗」不成立 —— 同環節的零件不會互相壓暗，
         # 走的是另一條路：被點的那一顆掛 .sel-part、同環節的其餘退到 --dg-sib-o。
         # 所以判定要分兩種，不能一律驗 dim（DECISIONS #73 的兩層高亮就是這樣設計的）。
@@ -12354,8 +12395,13 @@ def t_dg3d_parts(pg, base):
                    " return e.classList.contains('dg1') && e.classList.contains('haspart'); }"),
                {"點之前": h0, "點之後": h1, "座標": pt})
         else:
+            # ★ 2026-09-22：加上 `selPart == 1`。以前只驗「sel > 0 且 dim > 0」——
+            #   但族群層級的網址（`/dg/<族群>`）本來就會把那個族群的環節點亮，
+            #   所以**滑鼠點空了**也照樣滿足那兩個條件，這一條會安靜地放過去。
+            #   真正證明「點到一顆零件」的是主角剛好一個。
             ok(f"[{nice}] 真的用滑鼠點一顆零件 → 它亮起來、其餘真的被壓暗",
-               h1["sel"] > 0 and h1["dim"] > 0, {"點之前": h0, "點之後": h1, "座標": pt})
+               h1["selPart"] == 1 and h1["sel"] > 0 and h1["dim"] > 0,
+               {"點之前": h0, "點之後": h1, "座標": pt})
         # 材質那一側也要真的變（只看 DOM 的 class 會漏掉「class 有換但材質沒換」）
         ok(f"[{nice}] 點完之後材質狀態的指紋也變了（不是只有 class 換）",
            sig0 != sig1, f"{sig0} -> {sig1}")
@@ -12369,10 +12415,14 @@ def t_dg3d_parts(pg, base):
             pg.wait_for_timeout(900)
             h2 = pg.evaluate(_L1_HI)
             back = pg.evaluate("() => !document.getElementById('prod3d').classList.contains('haspart')")
-            ok(f"[{nice}] 真的點背景 → 全部恢復全亮"
+            # ★ 2026-09-22：基準從「0」改成「回到點零件之前（h0）」。
+            #   族群層級的網址（`/dg/<族群>`）本來就會把那個族群的環節點亮 ——
+            #   在那種頁面上「點背景 ＝ 全部歸零」從一開始就是錯的期待，
+            #   要守的是「零件那一層真的被清掉、而且回到點之前的樣子」。
+            ok(f"[{nice}] 真的點背景 → 零件的選取真的清掉、回到點之前的樣子"
                f"（dim {h1['dim']} → {h2['dim']}、主角 {h1['selPart']} → {h2['selPart']}）",
-               h2["dim"] == 0 and h2["selPart"] == 0 and back,
-               {"點之前": h1, "點之後": h2, "座標": bg})
+               h2["selPart"] == 0 and h2["dim"] == h0["dim"] and h2["sel"] == h0["sel"] and back,
+               {"點零件之前": h0, "點零件之後": h1, "點背景之後": h2, "座標": bg})
 
         # ③ 四個配色各切一次：材質色的指紋真的要變
         sigs = {}
@@ -13558,6 +13608,327 @@ def t_b21_hbm(pg, base):
 
 
 
+DG_ADV = "semiconductor/dg/ai_adv_packaging"
+
+def _b21_expand(pg):
+    """把四條章節列全部展開（章節列上有 SMIL 的鄰居，用合成事件就好）。"""
+    pg.eval_on_selector_all("#prodDiagram g.dgfold[data-fold]",
+                            "gs => gs.forEach(g => g.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+    pg.wait_for_timeout(700)
+
+def _b21_open(pg, base, w=1500):
+    """打開先進封裝那張圖，並確保「圖是展開的」「動畫是開的」。
+
+    ★ 動畫那一行不是多餘的：`#dgAnim` 的狀態記在 localStorage（`tw.dganim`），
+      而同一個 worker 先跑過的段落（批次11-MLCC 的 B4、圖九的 2-1）會把它關掉。
+      不還原的話這一段第一次取樣就量到「兩次都是 0px」——
+      看起來像「動畫沒在動」，其實是上一段留下來的偏好。
+      這正是 `_uitest` 平行化之後最常見的假紅來源：**跨段落的 localStorage 汙染**。
+    """
+    pg.set_viewport_size({"width": w, "height": 1000})
+    pg.evaluate("() => { try { localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    pg.goto(f"{base}#industry/{DG_ADV}", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    pg.evaluate("""() => { const b = document.getElementById('dgAnim');
+      if (b && b.textContent.includes('\u95dc')) b.click(); }""")
+    pg.wait_for_timeout(500)
+    # ★ 章節列一律還原成「全部收合」（＝使用者第一眼看到的狀態）。
+    #   `pg.goto` 到**同一個 hash** 不會觸發 hashchange、router 不會重畫，
+    #   所以上一段展開過的章節會一路留著 —— 量高度那一條就會量到全展開的 2133px，
+    #   看起來像「根本沒收」。這是 2026-09-22 第二輪實測到的假紅。
+    pg.eval_on_selector_all("#prodDiagram g.dgfold[data-fold].open",
+                            "gs => gs.forEach(g => g.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+    pg.wait_for_timeout(500)
+    pg.evaluate("""() => {
+      const b = document.getElementById('dgFold');
+      const body = document.getElementById('dgBody');
+      const hidden = body && (getComputedStyle(body).display === 'none' || !body.offsetParent);
+      if (b && hidden) b.click();
+    }""")
+    pg.wait_for_timeout(500)
+
+def t_b21_cowos(pg, base):
+    """批次21：CoWoS 去重、電路圖樣貌、動畫拉滿。"""
+    # ---------------- ① 半導體鏈的入口：退掉 2D 剖面之後仍然正常
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    ent = pg.evaluate("""() => {
+      const m = document.getElementById('dgMenu');
+      const cards = [...document.querySelectorAll('#dgMenu .dgcard')];
+      const svg = document.querySelector('#prodDiagram svg');
+      return { menu: !!m && m.offsetParent !== null, n: cards.length,
+               ids: cards.map(c => c.dataset.dgid),
+               hrefs: cards.map(c => c.getAttribute('href')),
+               qs: cards.map(c => (c.querySelector('.q') || {}).textContent || ''),
+               svg: !!svg }; }""")
+    ok("半導體鏈的入口變成圖別選單（鏈層級那張 CoWoS 剖面已退場）",
+       ent["menu"] and not ent["svg"], ent)
+    ok("選單上每一張卡都有它自己的網址與「這張圖回答什麼問題」",
+       ent["n"] >= 2 and all(h and "/dg/" in h for h in ent["hrefs"]) and all(q.strip() for q in ent["qs"]),
+       ent)
+    ok("先進封裝那張圖在選單上（半導體鏈的代表圖）", "ai_adv_packaging" in ent["ids"], ent["ids"])
+    # 真的一張一張點進去 —— 「顯示得出來」不算，要「點得進去而且真的畫出圖」
+    for cid in ent["ids"]:
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.wait_for_timeout(1600)
+        pg.click(f'#dgMenu .dgcard[data-dgid="{cid}"]', timeout=6000)
+        pg.wait_for_timeout(2200)
+        got = pg.evaluate("""() => ({ hash: location.hash,
+            svg: !!document.querySelector('#prodDiagram svg'),
+            menu: (() => { const m = document.getElementById('dgMenu'); return !!m && m.offsetParent !== null; })() })""")
+        ok(f"選單卡「{cid}」點下去真的換頁、真的畫出圖",
+           got["hash"].endswith("/dg/" + cid) and got["svg"] and not got["menu"], f"{cid} → {got}")
+        # 「← 全部剖析圖」按得回選單
+        if cid == ent["ids"][0]:
+            click(pg, "#dgBack", 1800)
+            ok("按「← 全部剖析圖」真的回得到選單",
+               pg.evaluate("""() => { const m = document.getElementById('dgMenu');
+                   return !!m && m.offsetParent !== null && !document.querySelector('#prodDiagram svg'); }"""))
+
+    # ---------------- ② 併進來的兩塊內容真的在新圖上
+    #   ⚠ 整鏈流程列（⑦）2026-09-22 第二輪收進章節④ 了，所以要先把章節全部展開再量。
+    #     「收納 ≠ 刪除」這件事本身在 ⑨ 另外驗。
+    _b21_open(pg, base)
+    _b21_expand(pg)
+    got = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      if (!svg) return null;
+      const tags = [...svg.querySelectorAll('g.lrow text.tag')].map(t => t.textContent.trim());
+      const txt = svg.textContent;
+      return { tags, nTag: tags.length, txt,
+               segsOfTagRows: [...svg.querySelectorAll('g.lrow')].filter(g => g.querySelector('text.tag'))
+                 .map(g => g.dataset.seg) }; }""")
+    if not ok("先進封裝那張圖畫得出來", bool(got), got):
+        return
+    ok("併入①：右欄每一列都掛了「這一層屬於哪個環節」的標籤（退場那張圖的獨門內容）",
+       got["nTag"] >= 9, got["nTag"])
+    ok("併入①：標籤蓋得到封測／先進封裝／晶圓代工／載板四種環節（不是同一個標籤印九次）",
+       len(set(got["tags"])) >= 5 and "先進封裝" in got["tags"] and "晶圓代工" in got["tags"],
+       sorted(set(got["tags"])))
+    ok("併入①：掛標籤的每一列都有真的 data-seg（點得下去，不是純文字裝飾）",
+       all(bool(x) for x in got["segsOfTagRows"]), got["segsOfTagRows"])
+    for step in ("設計", "晶圓製造", "CoWoS 堆疊", "上蓋測試", "上板"):
+        ok(f"併入②：整鏈製造流程列上有「{step}」這一站", step in got["txt"], step)
+
+    # ---------------- ③ 電路圖樣貌：走線、焊墊、被動元件、IC 都真的在圖上
+    #   （載板俯視收在章節② 裡，上面那一步已經全部展開了）
+    circ = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const pk = (k) => svg.querySelector('[data-part="' + k + '"]');
+      // ★ 同一個零件在這張圖上會出現兩次（主剖面一次、⑤ 俯視一次），
+      //   querySelector 只抓得到第一個 —— 要把所有同名的群組加起來才是「這個零件畫了幾筆」。
+      const cnt = (k) => [...svg.querySelectorAll('[data-part="' + k + '"]')]
+        .reduce((n, g) => n + g.querySelectorAll('rect,circle,path,ellipse').length, 0);
+      return { fanout: cnt('icp_fanout'), decap: cnt('icp_decap'), lsc: cnt('icp_lsc'),
+               bga: cnt('icp_bga'), die: cnt('icp_die'), hbm: cnt('icp_hbm'),
+               segDecap: pk('icp_decap') ? pk('icp_decap').dataset.seg : null }; }""")
+    ok("電路圖樣貌：載板上真的有扇出走線與焊墊（不是一塊綠方塊）", circ["fanout"] >= 30, circ)
+    # 正面兩排各 9 顆，每顆＝絲印框 1 ＋ 焊墊 2 ＋ 本體與兩端電極 3 ＝ 6 筆；剖面上還有 2 顆
+    ok("電路圖樣貌：板子上真的有被動元件（正面兩排去耦電容，每顆都畫了兩端端電極）",
+       circ["decap"] >= 100, circ)
+    ok("電路圖樣貌：背面也畫了 BGA 球陣列與背面去耦電容 LSC",
+       circ["bga"] >= 150 and circ["lsc"] >= 20, circ)
+    ok("電路圖樣貌：IC 真的在板子上（俯視圖上的晶粒與 HBM）",
+       circ["die"] >= 10 and circ["hbm"] >= 12, circ)
+    ok("去耦電容掛的是「被動元件」那一格（不是隨便掛一個半導體環節）",
+       circ["segDecap"] == "passive_comp", circ["segDecap"])
+
+    # ---------------- ④ 點零件 → 小卡真的列出台積電／日月光（改之前是 0 家）
+    for key, want in (("icp_interposer", ["2330", "3711"]),
+                      ("icp_ubump", ["2330", "3711"]),
+                      ("icp_decap", ["2327"])):
+        # 章節展開著也不影響：這三個零件在主剖面上本來就看得到
+        pg.evaluate("""(k) => { const n = document.querySelector('#prodDiagram [data-part="' + k + '"] .part')
+            || document.querySelector('#prodDiagram [data-part="' + k + '"]');
+            n.dispatchEvent(new MouseEvent('click', {bubbles: true})); }""", key)
+        pg.wait_for_timeout(900)
+        card = pg.evaluate("""() => { const c = document.getElementById('partCard');
+          if (!c || c.hidden) return {on: false, codes: [], text: ''};
+          return { on: true, text: c.innerText,
+                   codes: [...c.querySelectorAll('.pc-co a')].map(a => (a.getAttribute('href') || '').replace('#stock/', '')) }; }""")
+        ok(f"點「{key}」小卡真的開了", card["on"], card)
+        miss = [c for c in want if c not in card["codes"]]
+        ok(f"點「{key}」小卡真的列得出 {('／'.join(want))}（改之前這一格是 0 家）",
+           not miss, f"列到的是 {card['codes']}")
+    # 再點一次同一個零件 → 取消（既有行為不准被弄壞）
+    pg.evaluate("""() => { const n = document.querySelector('#prodDiagram [data-part="icp_decap"] .part');
+        n.dispatchEvent(new MouseEvent('click', {bubbles: true})); }""")
+    pg.wait_for_timeout(700)
+    ok("再點一次同一個零件，小卡真的收掉（既有行為沒被弄壞）",
+       pg.evaluate("() => { const c = document.getElementById('partCard'); return !c || c.hidden; }"))
+
+    # ---------------- ⑤ 動畫：CSS 與 SMIL 都真的停
+    _b21_open(pg, base)
+    SAMPLE = """() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      // CSS：量真的被畫出來的 stroke-dashoffset（.flow 靠它在動）
+      const css = [...svg.querySelectorAll('path.flow')].slice(0, 8)
+        .map(n => getComputedStyle(n).strokeDashoffset).join('|');
+      // SMIL：量 animateMotion 帶著跑的那幾顆點的實際位置
+      const smil = [...svg.querySelectorAll('circle')].filter(c => c.querySelector('animateMotion'))
+        .map(c => { const m = c.getCTM(); return m ? (m.e.toFixed(2) + ',' + m.f.toFixed(2)) : 'x'; }).join('|');
+      return { css, smil, nCss: svg.querySelectorAll('path.flow').length,
+               nSmil: svg.querySelectorAll('animateMotion').length }; }"""
+    a0 = pg.evaluate(SAMPLE)
+    ok("這張圖上真的有 CSS 動線（.flow）", a0["nCss"] >= 8, a0["nCss"])
+    ok("這張圖上真的有 SMIL 動畫（animateMotion —— .noanim 管不到它，所以一定要驗）",
+       a0["nSmil"] >= 3, a0["nSmil"])
+    pg.wait_for_timeout(900)
+    a1 = pg.evaluate(SAMPLE)
+    ok("動畫：開　→　CSS 動線真的在動", a0["css"] != a1["css"], f"{a0['css'][:60]} → {a1['css'][:60]}")
+    ok("動畫：開　→　SMIL 的點真的在動", a0["smil"] != a1["smil"], f"{a0['smil'][:60]} → {a1['smil'][:60]}")
+    # 真的按下去
+    before_btn = text(pg, "#dgAnim")
+    click(pg, "#dgAnim", 900)
+    ok("按下去鈕上的字真的換了", text(pg, "#dgAnim") != before_btn,
+       f"{before_btn} → {text(pg, '#dgAnim')}")
+    b0 = pg.evaluate(SAMPLE)
+    pg.wait_for_timeout(1100)
+    b1 = pg.evaluate(SAMPLE)
+    ok("按「動畫：關」→ CSS 動線真的停住（連續兩次取樣完全一樣）",
+       b0["css"] == b1["css"], f"{b0['css'][:60]} → {b1['css'][:60]}")
+    ok("按「動畫：關」→ SMIL 也真的停住（pauseAnimations）",
+       b0["smil"] == b1["smil"], f"{b0['smil'][:60]} → {b1['smil'][:60]}")
+    click(pg, "#dgAnim", 900)
+    c0 = pg.evaluate(SAMPLE)
+    pg.wait_for_timeout(900)
+    c1 = pg.evaluate(SAMPLE)
+    ok("再按一次「動畫：開」，兩種動畫都真的動回來",
+       c0["css"] != c1["css"] and c0["smil"] != c1["smil"], f"{c0['smil'][:40]} → {c1['smil'][:40]}")
+    ok("動線圖例：五條線各配一句「這在講什麼」（動畫要說明原理，不是裝飾）",
+       all(t in pg.evaluate("() => document.querySelector('#prodDiagram svg').textContent")
+           for t in ("隔壁的 HBM", "要離開封裝的訊號", "方向跟訊號相反", "去耦電容補瞬間電流", "熱往上出去")))
+
+    # ---------------- ⑥ 3D：場景真的搬過來了而且 render 得出來
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            click(pg, "#dg3d", 3000)
+            pg.wait_for_timeout(3200)
+        if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            st = pg.evaluate("() => window.Rack3D.current.stats()")
+            ok("3D 場景搬到先進封裝這張圖上，而且真的 render 得出來",
+               st["drawCalls"] > 0 and st["triangles"] > 0, st)
+            # 效能棘輪：跟圖九／MLCC 同一個上限，只准往下
+            ok("3D 的 mesh 數沒有失控（效能棘輪，上限同圖九）", st["meshes"] <= 900, st["meshes"])
+            parts3d = pg.evaluate("""() => [...document.querySelectorAll('#prod3d .lbl3d b')].map(b => b.textContent)""")
+            ok("3D 零件比搬過來之前多（補了 C4、微凸塊、正反面去耦電容）",
+               len(parts3d) >= 14, parts3d)
+            for want in ("C4 凸塊", "微凸塊 µbump", "載板正面的去耦電容", "背面去耦電容 LSC"):
+                ok(f"3D 上真的有「{want}」這個零件（接點與被動元件不再是看不到的東西）",
+                   any(want in t for t in parts3d), parts3d)
+            # 四個配色各切一次，材質色真的變
+            pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+            pg.wait_for_timeout(600)
+            seen, chg = [], []
+            for _ in range(4):
+                h0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+                click(pg, "#dgPal", 1100)
+                p1 = pg.evaluate("() => window.Rack3D.current.pal()")
+                h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
+                seen.append(p1); chg.append(h0 != h1)
+            ok("四個配色都輪得到（科技／柔和／沉穩／休閒）",
+               sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
+            ok("每切一次配色，零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
+            pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+            click(pg, "#dg3d", 1200)          # 切回平面圖，不要汙染後面的段落
+            pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+        else:
+            notes.append("批次21：3D 掛不起來（WebGL？），⑥ 那幾條跳過")
+    else:
+        notes.append("批次21：這個環境沒有 WebGL，3D 那幾條跳過")
+
+    # ---------------- ⑦ 2D 的四個配色：材質色真的跟著換（2D 也要成立）
+    _b21_open(pg, base)
+    MAT = """() => { const g = document.querySelector('#prodDiagram svg [data-part="icp_sub"] .part');
+        const cs = getComputedStyle(document.documentElement);
+        return [getComputedStyle(g).fill, cs.getPropertyValue('--dg-si').trim(),
+                cs.getPropertyValue('--dg-bg').trim()].join('|'); }"""
+    sigs = {}
+    for pal in ("tech", "soft", "calm", "casual"):
+        pg.evaluate("(p) => { document.documentElement.dataset.dgpal = p; }", pal)
+        pg.wait_for_timeout(350)
+        sigs[pal] = pg.evaluate(MAT)
+    ok("2D 的四個配色各自量到不同的材質色（休閒不是把科技再印一次）",
+       len(set(sigs.values())) == 4, sigs)
+    pg.evaluate("() => { document.documentElement.dataset.dgpal = 'tech'; }")
+
+    # ---------------- ⑨ 高度：收合狀態 ≤ 700px（Andy 2026-09-22：「希望能一次看到完整資訊」）
+    #   ★ 這一條是這一輪的主要目標。第一版做完是 980×1750 —— 正好撞在他抱怨
+    #     「圖片及文字縮小一半…是大小問題導致版面塞太滿」的那一刻。
+    #     壓的手段是「拿掉重複 → 收納 → 重排 → 縮幾何」，**沒有刪任何一行內容**，
+    #     所以這裡除了量高度，也要驗「收起來的真的打得開」。
+    _b21_open(pg, base)
+    h0 = pg.evaluate("""() => { const s = document.querySelector('#prodDiagram svg');
+        if (!s) return null; const v = s.viewBox.baseVal;
+        const bars = [...s.querySelectorAll('g.dgfold[data-fold]')];
+        return { h: v.height, w: v.width, bars: bars.length,
+                 hints: bars.map(b => (b.querySelector('.fhint') || {}).textContent || ''),
+                 bodies: s.querySelectorAll('g.dgbody[data-fold]').length,
+                 shown: [...s.querySelectorAll('g.dgbody[data-fold]')]
+                   .filter(g => g.getAttribute('display') !== 'none').length,
+                 // ★ 要數「真的畫在畫面上」的文字。收合是 display:none，
+                 //   元素**還在 DOM 裡** —— 數 querySelectorAll('text').length 的話
+                 //   收合與全開都是同一個數字，那條斷言等於什麼都沒驗（2026-09-22 實測 163 → 163）。
+                 texts: [...s.querySelectorAll('text')].filter(t => t.getClientRects().length).length }; }""")
+    if ok("⑨ 量得到剖析圖的畫布尺寸", bool(h0), h0):
+        ok(f"⑨ 收合狀態下這張圖的高度 ≤ 700px（量到 {h0['h']}px；第一版是 1750px）",
+           h0["h"] <= 700, h0)
+        ok(f"⑨ 寬度仍然是 980（native，字級才守得住）", h0["w"] == 980, h0["w"])
+        ok(f"⑨ 四塊內容真的收進章節列了（{h0['bars']} 條，預設一條都沒展開）",
+           h0["bars"] == 4 and h0["bodies"] == 4 and h0["shown"] == 0, h0)
+        ok("⑨ 每一條章節列都寫清楚「按了會看到什麼」（不是只寫「更多」）",
+           all(len(t.strip()) > 12 and "更多" not in t for t in h0["hints"]), h0["hints"])
+        # 收納 ≠ 刪除：真的按下去要打得開、內容真的多出來
+        pg.eval_on_selector_all("#prodDiagram g.dgfold[data-fold]",
+                                "gs => gs.forEach(g => g.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+        pg.wait_for_timeout(700)
+        h1 = pg.evaluate("""() => { const s = document.querySelector('#prodDiagram svg');
+            return { h: s.viewBox.baseVal.height,
+                     shown: [...s.querySelectorAll('g.dgbody[data-fold]')]
+                       .filter(g => g.getAttribute('display') !== 'none').length,
+                     texts: [...s.querySelectorAll('text')].filter(t => t.getClientRects().length).length }; }""")
+        ok(f"⑨ 四條章節列真的打得開（{h0['shown']} → {h1['shown']} 段展開）",
+           h1["shown"] == 4, h1)
+        changed("⑨ 展開之後畫布真的變高了（收納不是把內容刪掉）", h0["h"], h1["h"])
+        ok(f"⑨ 展開之後圖上的文字真的多出來（{h0['texts']} → {h1['texts']} 段）",
+           h1["texts"] > h0["texts"] + 40, {"收合": h0["texts"], "全開": h1["texts"]})
+        notes.append(f"⑨ 這張圖收合 {h0['h']}px、全部展開 {h1['h']}px；"
+                     f"文字 {h0['texts']} → {h1['texts']} 段（收納沒有刪掉任何一塊）")
+        # 再按一次要收得回去
+        pg.eval_on_selector_all("#prodDiagram g.dgfold[data-fold]",
+                                "gs => gs.forEach(g => g.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+        pg.wait_for_timeout(700)
+        h2 = pg.evaluate("() => document.querySelector('#prodDiagram svg').viewBox.baseVal.height")
+        ok(f"⑨ 再按一次真的收得回去（{h1['h']} → {h2}px）", h2 == h0["h"], f"{h1['h']} → {h2}")
+
+    # ---------------- ⑧ 窄畫面：800 與 390 都不溢出、字都 ≥ 12px
+    for w in (800, 390):
+        _b21_open(pg, base, w)          # 章節維持預設（收合）—— 那才是第一眼看到的狀態
+        ty = pg.evaluate(DG_TYPO)
+        ok(f"[{w}px] 先進封裝那張圖畫得出來", ty.get("present"), ty)
+        if ty.get("present"):
+            ok(f"[{w}px] 圖上最小的字真的 ≥ 12px", ty["min"] >= 11.9,
+               f"最小 {ty['min']}px：{ty['small'][:3]}")
+            ok(f"[{w}px] 圖上沒有兩段文字疊在一起", ty["nOv"] == 0, ty["ov"][:4])
+            ok(f"[{w}px] 圖以原尺寸顯示（欄寬不夠就左右滑，字級才守得住）",
+               ty["svgW"] >= 960, ty["svgW"])
+        ok(f"[{w}px] 整頁沒有橫向捲軸",
+           pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+           pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+        # SVG 自己的內容也不准畫到 viewBox 外面（980 是這張圖的畫布寬）
+        out = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg');
+            if (!svg) return []; const vb = svg.viewBox.baseVal;
+            const bad = [];
+            svg.querySelectorAll('text').forEach(n => { const b = n.getBBox();
+              if (b.x + b.width > vb.width + 1 || b.x < -1) bad.push((n.textContent || '').slice(0, 24)); });
+            return bad; }""")
+        ok(f"[{w}px] 圖上沒有任何一段文字畫出畫布（viewBox 980）", not out, out[:3])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
-
