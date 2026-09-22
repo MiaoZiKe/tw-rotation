@@ -1285,6 +1285,18 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lead3d .ld.sel{stroke-width:1.5}
 .lead3d .ld-dot{fill:var(--c,var(--dg3-ink-3));stroke:var(--dg-2);stroke-width:1.2;opacity:.95}
 .lead3d .ld-halo{fill:var(--c,var(--dg3-ink-3));opacity:var(--dg3-halo,0);filter:blur(3px);pointer-events:none}
+/* ★ 響應式的卡片欄（Andy 2026-09-22「版面需要左右對齊…會依據螢幕大小變化」）。
+   模式由 three3d.js 依**視窗寬度**判斷並掛 class（跟 style-system 共用這組名字，見 docs/diagram_restyle_plan.md）：
+     .dgstage--lr     視窗 ≥1280：左右兩欄（.dgstage-l／.dgstage-r 疊在畫布兩側，寬度＝ grid 的 minmax(220px,1fr) 解出來的值）
+     .dgstage--r      960～1279：只留右欄
+     .dgstage--below  <960：卡片搬進 .dgstage-b（畫布底下、文件流、一欄），畫布上改用編號圓點（.ld-no） */
+.dg3d .dgstage-l,.dg3d .dgstage-r{position:absolute;top:0;bottom:0;width:220px;pointer-events:none}
+.dg3d .dgstage-l{left:0} .dg3d .dgstage-r{right:0}
+.dg3d .dgstage-b{display:grid;grid-template-columns:1fr;gap:6px;padding:8px}
+.dg3d .dgstage-b[hidden]{display:none}
+.dg3d .lbl3d.below{position:relative;left:auto;top:auto;width:auto}
+.lead3d .ld-no circle{fill:var(--c,var(--dg3-ink-3));stroke:var(--dg-2);stroke-width:1.5}
+.lead3d .ld-no text{fill:var(--dg3-badge-ink);font-family:var(--mono);font-weight:700;font-size:12px}
 .dgwrap svg{display:block;width:100%;height:auto}
 /* ★★ 2026-09-22：`native`（DECISIONS #227）只設了 **min-width** ——
    它擋的是「欄位太窄把圖壓小、字跟著縮」，**另一邊完全沒擋**：

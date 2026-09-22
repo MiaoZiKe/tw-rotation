@@ -1037,12 +1037,14 @@
       g.add(box(w, h, d, K.mat(0, { rough: 0.9, metal: 0.05, color: K.css('--dg-pcb', '#1a4230') })));
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.44 });
       const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.35, rough: 0.36 });
-      [-1, 1].forEach(s => {
-        g.add(put(box(w * 0.3, h * 0.6, d * 0.55, cu), s * w * 0.3, h * 0.7, 0));
-        // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
-        const f = ball(w * 0.018, sn); f.scale.set(1.6, 1.8, 9);
-        g.add(put(f, s * w * 0.375, h * 0.98, 0));
-      });
+      /* ★ 2026-09-22：兩塊銅墊併成一個 mesh、兩個焊錫圓角收成一個 InstancedMesh ——
+         省下的 2 個 draw call是給模型底下那片接觸陰影用的（#238「柔和環境陰影」），
+         MLCC 場景的棘輪（93）才守得住。畫出來的東西一個像素都沒變。*/
+      g.add(mboxes([[w * 0.3, h * 0.6, d * 0.55, -w * 0.3, h * 0.7, 0], [w * 0.3, h * 0.6, d * 0.55, w * 0.3, h * 0.7, 0]], cu));
+      // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
+      const r = w * 0.018;
+      g.add(instOf(new T.SphereGeometry(r, 12, 9), sn,
+        [[-w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9], [w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9]]));
       return g;
     }
 
@@ -1572,9 +1574,21 @@
     // hk：畫面高度佔寬度的比例。機櫃是直立的要高（0.62）；封裝剖面又寬又扁，
     // 給它一樣高只會上下留一大片空白，所以那個場景自己指定 0.46。
     const H = () => Math.max(340, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
-    // E1：標籤欄佔掉畫面左右各一塊，模型要縮進中間那段才不會被文字框壓到
-    const narrow = () => W() < 560;
-    const colW = () => (narrow() ? Math.min(158, Math.round(W() * 0.40)) : Math.max(112, Math.min(212, Math.round(W() * 0.23))));
+    /* ★ 2026-09-22 響應式的卡片欄（Andy：「版面需要左右對齊，適當分配左右間隔，讓版面更滿…
+       並且會依據螢幕大小變化」）。斷點看**視窗寬度**（跟 style-system 的 media query 同一組數字），
+       欄寬看**容器寬度**（側欄開著時容器比較窄，欄就照 grid 的解縮到下限 220）：
+         lr     視窗 ≥ 1280：左右兩欄卡片夾著 3D（等於 grid：minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr)）
+         r      960～1279：只留右欄，卡片全部靠右（minmax(0,984px) minmax(220px,1fr)）
+         below  < 960：卡片移到 3D 底下排成一欄；3D 上改用**編號圓點**標位置（引線只給被選的那一顆）
+       欄寬＝那條 grid 的解：1fr 分剩下的、但不少於 220。class 名跟 style-system 共用
+       （dgstage / dgstage-l / dgstage-r / dgstage-b，寫在 docs/diagram_restyle_plan.md）。*/
+    const COL_MIN = 220, STAGE_MAX = 984;
+    const vw = () => (window.innerWidth || W());
+    const mode = () => (vw() >= 1280 ? 'lr' : (vw() >= 960 ? 'r' : 'below'));
+    const colW = () => { const m = mode(); if (m === 'below') return 0;
+      return Math.max(COL_MIN, Math.round((W() - STAGE_MAX) / (m === 'lr' ? 2 : 1))); };
+    const cols = () => (mode() === 'lr' ? 2 : (mode() === 'r' ? 1 : 0));
+    const narrow = () => mode() !== 'lr';
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, W() / H(), 1, 2000);
@@ -1603,7 +1617,14 @@
     lead.setAttribute('class', 'lead3d');
     lead.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
     layer.appendChild(lead);
+    // 兩欄（疊在畫布左右）＋ 一個「底下那一排」（窄畫面時卡片搬到這裡，走正常的文件流）
+    const colL = document.createElement('div'); colL.className = 'dgstage-l';
+    const colR = document.createElement('div'); colR.className = 'dgstage-r';
+    layer.appendChild(colL); layer.appendChild(colR);
     el.appendChild(layer);
+    const below = document.createElement('div'); below.className = 'dgstage-b'; below.hidden = true;
+    el.appendChild(below);
+    el.classList.add('dgstage');
 
     /* E2：打光改成「棚拍」而不是「霓虹」。
        原本有一盞青色 rim light（0x3ee0ff）＋ 每顆材質都帶 emissive，
@@ -1620,6 +1641,11 @@
 
     const root = new THREE.Group(); scene.add(root);
     const picks = [];            // 可以點的 group
+    /* frames：機櫃框那種「透過它點裡面的東西」的零件（frame:true）。
+       ★ 2026-09-22：以前完全不參與 raycast，於是從側面看、射線從托盤縫隙穿過去、
+         只碰到玻璃側板的時候，點下去等於點到背景 —— 驗收就會偶爾紅（跟相機轉到哪有關）。
+         現在它排在**最後一順位**：射線先找非框的零件，都沒有才算點到框（＝選到「機櫃與機構件」）。*/
+    const frames = [];
     const byIdx = [];            // 每個零件的所有 mesh + 材質，highlight 時用
     const spinners = [];         // E4：會自己轉的東西（風扇葉輪）
     const leds = [];             // E4：會呼吸的指示燈材質
@@ -1660,7 +1686,7 @@
           p.at[1] + (axis === 'y' ? off : 0),
           p.at[2] + (axis === 'z' ? off : 0));
         g.userData = { seg: p.seg, part: pkey, idx, name: p.name, note: p.note,
-          base: g.position.clone(), ex: p.ex || [0, 0, 0] };
+          base: g.position.clone(), ex: p.ex || [0, 0, 0], frame: !!p.frame };
         if (p.ex) explodable.push(g);
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
@@ -1673,7 +1699,7 @@
           if (x.isPoints && x.userData && x.userData.flow) flowAll.push(x);
         });
         root.add(g); groups.push(g);
-        if (!p.frame) picks.push(g);
+        if (!p.frame) picks.push(g); else frames.push(g);
       }
       /* 場景層級的流線（水路／光路／氣流）掛在指定的零件上：跟它共用材質工具箱，
          點別的環節時它會跟著零件一起淡出；粒子跟走線的電流走同一套 stepFlows。*/
@@ -1723,7 +1749,7 @@
       d.querySelector('i').textContent = p.note || '';
       d.dataset.seg = p.seg;
       d.dataset.dgcolor = elColor; d.dataset.dgseg = hex; d.dataset.dgno = String(idx + 1).padStart(2, '0');
-      d.dataset.dgrole = p.role || '';
+      d.dataset.dgrole = p.role || ''; d.dataset.dgpart = pkey;
       d.style.setProperty('--seg', hex);
       /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
          說明底下掛一排「這個環節的台股」，點了直接進個股頁。
@@ -1774,6 +1800,9 @@
       d.title = p.note || p.name;
       d.addEventListener('pointerdown', (e) => {
         labelDown = { seg: p.seg, data: { seg: p.seg, part: pkey, idx, name: p.name, note: p.note } };
+        /* 窄畫面時卡片在畫布底下、走文件流：按卡片就只是選它，**不要**轉給畫布 ——
+           轉過去等於「手指一碰清單就開始轉機櫃」，頁面也捲不動。*/
+        if (lastMode === 'below') { downAt = { x: e.clientX, y: e.clientY }; return; }
         /* 標籤蓋在畫布上，按在它上面畫布收不到 pointerdown，整台機櫃就轉不動了
            （驗收 1 就是這樣掛的）。把這個 pointerdown 原樣轉給畫布，OrbitControls
            會接手並 setPointerCapture，之後的移動與放開都走畫布那條路。 */
@@ -1784,7 +1813,7 @@
         }));
         e.preventDefault();
       });
-      layer.appendChild(d);
+      colR.appendChild(d);                 // 先放右欄，layoutLabels 會依模式搬
       byIdx[idx].el = d;
       // 引線：一條折線 ＋ 零件端的小圓點（科技模式外面再套一圈發光暈，用 CSS 的 filter 做）
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
@@ -1793,8 +1822,15 @@
       halo.setAttribute('class', 'ld-halo'); halo.setAttribute('r', '6');
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('class', 'ld-dot'); dot.setAttribute('r', '2.6');
-      [path, halo, dot].forEach(x => { x.style.setProperty('--c', elColor); lead.appendChild(x); });
-      byIdx[idx].path = path; byIdx[idx].dot = dot; byIdx[idx].halo = halo;
+      // 窄畫面用的編號圓點（畫在零件的投影點上；卡片在底下用同一個編號對得起來）
+      const no = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      no.setAttribute('class', 'ld-no');
+      const noC = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); noC.setAttribute('r', '9');
+      const noT = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      noT.setAttribute('text-anchor', 'middle'); noT.setAttribute('dy', '4.2'); noT.textContent = String(idx + 1).padStart(2, '0');
+      no.appendChild(noC); no.appendChild(noT); no.style.display = 'none';
+      [path, halo, dot, no].forEach(x => { x.style.setProperty('--c', elColor); lead.appendChild(x); });
+      byIdx[idx].path = path; byIdx[idx].dot = dot; byIdx[idx].halo = halo; byIdx[idx].no = no;
     });
 
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
@@ -1846,7 +1882,7 @@
       /* 用「外接盒」而不是「外接球」算距離：球對又扁又寬的封裝剖面會多退 30%，
          畫面中間只剩一小塊。半個深度是留給轉動時最靠近相機的那一角。
          E1 之後左右各被標籤欄吃掉一塊，所以水平方向要照「還剩多寬」再退一點。 */
-      const usable = Math.max(140, W() - colW() * (narrow() ? 1 : 2));
+      const usable = Math.max(140, W() - colW() * cols());
       const shrink = W() / usable;
       const halfW = Math.max(size.x, size.z) / 2 * shrink, halfH = size.y / 2, halfD = Math.max(size.x, size.z) / 2;
       const dist = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) + halfD) * 1.06 * (spec.fit || 1);
@@ -1868,7 +1904,14 @@
     // 零件現在是 Group（E3 之後一個零件好幾顆 mesh），所以 raycast 要遞迴，
     // 打到的是某顆小零件 —— 往上走到帶 seg 的那一層才知道它屬於誰
     const owner = (obj) => { let x = obj; while (x && !(x.userData && x.userData.seg)) x = x.parent; return x; };
-    const hit = () => { ray.setFromCamera(ptr, camera); const xs = ray.intersectObjects(picks, true); return xs[0] && owner(xs[0].object); };
+    const hit = () => {
+      ray.setFromCamera(ptr, camera);
+      const xs = ray.intersectObjects(picks.concat(frames), true);
+      // 先找非框的零件（透過玻璃點得到裡面的托盤），一個都沒有才算點到框本身
+      const inner = xs.find(x => { const g = owner(x.object); return g && !g.userData.frame; });
+      const pick = inner || xs[0];
+      return pick && owner(pick.object);
+    };
     renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; hold(); });
     const onUp = (e) => {
       const from = labelDown; labelDown = null;
@@ -1889,6 +1932,7 @@
     // 沒抓到 pointer capture 時（少數瀏覽器）放開會落在標籤上，補一條同樣的路；
     // onUp 第一次跑完就把 downAt 清掉，所以兩邊都收到也只會處理一次。
     layer.addEventListener('pointerup', onUp);
+    below.addEventListener('pointerup', onUp);      // 窄畫面時卡片在底下那一排，放開也要收得到
     renderer.domElement.addEventListener('pointermove', (e) => {
       toNdc(e); renderer.domElement.style.cursor = hit() ? 'pointer' : 'grab';
     });
@@ -2056,11 +2100,12 @@
           const ud = m.userData || {};
           if (m.emissive && !ud.glow) m.emissiveIntensity = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
           if (ud.glow) m.emissiveIntensity = fade ? 0 : palNum('--dg-flow-em', 0);
-          /* ★ 2026-09-22：環節色**只**給「被點的那一顆」（或是從環節色標整段選起來、沒有主角的時候）。
-             以前同環節的全部一起染色，等於一次把七八顆零件變成同一個色相 —— 那正是「一張圖一個主色」的反面。
+          /* ★ 2026-09-22：環節色**只**給「被點的那一顆」。
+             以前同環節的全部一起染色，等於一次把七八顆零件變成同一個色相 —— 那正是「一張圖一個主色」的反面；
+             從環節色標整段選起來（沒有主角）也不染：那時候「其餘淡出 ＋ 卡片亮框」已經說明了誰被選到，
+             族群層級的網址一進來就是整段選著的，染下去等於預設畫面就是多色相。
              拉 0.45 而不是整顆換色：保留零件本身的材質與明暗。*/
-          const tintIt = tint && (selPart || (sel && !hasPart));
-          if (tintIt) m.color.copy(bc).lerp(tint, 0.45); else m.color.copy(bc);
+          if (tint && selPart) m.color.copy(bc).lerp(tint, 0.45); else m.color.copy(bc);
         });
         if (p.el) {
           p.el.classList.toggle('sel', sel);
@@ -2092,8 +2137,42 @@
       for (let i = list.length - 1; i >= 0; i--) { const it = list[i]; it.ty = Math.min(it.ty, yb - it.hh); yb = it.ty - GAP; }
       return !list.length || list[0].ty >= 2;
     }
+    let lastMode = '';
+    /* 換模式時把卡片搬到對的容器：lr／r 是疊在畫布上的絕對定位欄，below 是畫布底下的文件流。
+       只在模式真的變了才搬（搬 DOM 會重算版面，每幀搬會卡）。*/
+    function applyMode(m) {
+      if (m === lastMode) return false;
+      lastMode = m;
+      el.classList.toggle('dgstage--lr', m === 'lr');
+      el.classList.toggle('dgstage--r', m === 'r');
+      el.classList.toggle('dgstage--below', m === 'below');
+      lastCw = -1;
+      return true;
+    }
+    /* 把一張卡片放進某個容器（欄或底下那一排）。放進底下那一排時清掉絕對定位的座標。
+       ★ 兩欄／右欄模式下**塞不下的卡片也往底下排**，不再直接藏起來 ——
+         藏起來＝那個零件的說明與台股整個消失；排到底下＋畫布上一個編號圓點，資訊一個都不少。*/
+    function placeIn(p, host) {
+      if (p.el.parentNode !== host) host.appendChild(p.el);
+      if (host === below) { p.el.style.left = ''; p.el.style.top = ''; p.el.style.width = ''; p.el.classList.add('below'); }
+      else { p.el.classList.remove('below'); p.el.style.width = (colW() - 12) + 'px'; }
+    }
+    // 底下那一排：照編號排，不然卡片的順序會跟著相機角度跳來跳去。順序已經對了就不動 DOM。
+    function sortBelow() {
+      const cur = [...below.children].map(k => k.dataset.dgno);
+      const want = cur.slice().sort((a, b) => (+a) - (+b));
+      if (cur.join(',') === want.join(',')) return;
+      const kids = [...below.children].sort((a, b) => (+a.dataset.dgno) - (+b.dataset.dgno));
+      kids.forEach(k => below.appendChild(k));
+    }
     function layoutLabels() {
-      const w = W(), h = H(), cw = colW(), one = narrow();
+      const w = W(), h = H(), cw = colW(), m = mode();
+      const modeChanged = applyMode(m);
+      // 引線那張 SVG 要蓋住整個容器（below 模式時容器比畫布高）
+      const hostH = Math.max(h, el.clientHeight || h);
+      if (lead.__w !== w || lead.__h !== hostH) {
+        lead.setAttribute('viewBox', `0 0 ${w} ${hostH}`); lead.__w = w; lead.__h = hostH;
+      }
       const items = [];
       byIdx.forEach(p => {
         if (!p || !p.el) return;
@@ -2102,34 +2181,70 @@
         items.push({ p, sx: (v.x + 1) / 2 * w, sy: (-v.y + 1) / 2 * h, front: v.z < 1,
           d: camera.position.distanceTo(vtmp), sel: p.el.classList.contains('sel') });
       });
+      /* 底下那一排的卡片：畫布上用編號圓點標位置；引線只畫給「被選的那一顆」——
+         十幾條線全部拉到底下會把模型蓋成一團。窄畫面（below 模式）全部卡片都走這裡，
+         兩欄／右欄模式下只有塞不下的那幾張走這裡。*/
+      const belowOnes = [];
+      function layoutBelow(list) {
+        if (!list.length) { below.hidden = true; return; }
+        below.hidden = false;
+        list.forEach(it => placeIn(it.p, below));
+        sortBelow();
+        const hostR = el.getBoundingClientRect();
+        list.forEach(it => {
+          const p = it.p;
+          p.el.classList.remove('hid');
+          p.no.style.display = it.front ? '' : 'none';
+          p.no.setAttribute('transform', `translate(${it.sx.toFixed(1)},${it.sy.toFixed(1)})`);
+          p.dot.style.display = 'none'; p.halo.style.display = 'none';
+          if (it.front && p.el.classList.contains('sel-part')) {
+            const r = p.el.getBoundingClientRect();
+            const cx = r.left - hostR.left + 14, cy = r.top - hostR.top;
+            p.path.setAttribute('d', `M${it.sx.toFixed(1)},${it.sy.toFixed(1)} L${it.sx.toFixed(1)},${(h - 8).toFixed(1)} L${cx.toFixed(1)},${cy.toFixed(1)}`);
+            p.path.style.display = '';
+          } else p.path.style.display = 'none';
+        });
+      }
+      if (m === 'below') { layoutBelow(items); return; }
+      byIdx.forEach(p => { if (p && p.no) p.no.style.display = 'none'; });
       // 重要度：選起來的最優先，其次是離相機近的（看得最清楚的那個）；塞不下時從最後面開始讓位
       items.slice().sort((a, b) => (b.sel - a.sel) || (a.d - b.d)).forEach((it, i) => { it.rank = i; });
-      // 寬度只在版面真的變了才重設並重量高度：每幀量一次 offsetHeight 會一直逼瀏覽器重算版面
-      if (cw !== lastCw) { byIdx.forEach(p => { if (p && p.el) p.el.style.width = (cw - 12) + 'px'; }); lastCw = cw; }
-      items.forEach(it => { it.p.el.classList.remove('hid'); it.hh = it.p.el.offsetHeight || 42; });
+      /* 卡片高度只在欄寬真的變了才重量（每幀量一次 offsetHeight 會一直逼瀏覽器重算版面）：
+         量的時候先把全部卡片放進欄裡（欄寬決定折行）、量完存進 p.hh。
+         之後每一幀只用快取，卡片留在原來的容器裡，決定變了才搬 —— 每 4 幀把 16 張卡片搬來搬去
+         就是第一版 800px 截圖「等字型載入」卡住 30 秒的原因。*/
+      if (cw !== lastCw || modeChanged) {
+        colL.style.width = colR.style.width = cw + 'px';
+        items.forEach(it => placeIn(it.p, colR));
+        items.forEach(it => { it.p.el.classList.remove('hid'); it.p.hh = it.p.el.offsetHeight || 42; });
+        lastCw = cw;
+      }
+      items.forEach(it => { it.p.el.classList.remove('hid'); it.hh = it.p.hh || 42; });
 
       const hidden = items.filter(it => !it.front);       // 轉到背面去的零件，標籤跟著收起來
-      const cols = { L: [], R: [] };
+      const colsBy = { L: [], R: [] };
       /* 分左右欄：明顯偏一邊的就放那一邊，卡在中間的（機櫃是直立的，大部分零件都在正中央）
          放到目前比較空的那一欄 —— 只照 sx < w/2 分的話，整排零件會全部擠到左欄去。*/
       items.filter(it => it.front).sort((a, b) => a.sy - b.sy).forEach(it => {
         let side;
-        if (one) side = 'R';
+        if (m === 'r') side = 'R';
         else if (it.sx < w / 2 - w * 0.10) side = 'L';
         else if (it.sx > w / 2 + w * 0.10) side = 'R';
-        else side = cols.L.length <= cols.R.length ? 'L' : 'R';
-        cols[side].push(it);
+        else side = colsBy.L.length <= colsBy.R.length ? 'L' : 'R';
+        colsBy[side].push(it);
       });
       ['L', 'R'].forEach(side => {
-        const list = cols[side];
+        const list = colsBy[side];
         while (list.length && !pack(list, h)) {
           let worst = 0; list.forEach((it, i) => { if (it.rank > list[worst].rank) worst = i; });
-          hidden.push(list.splice(worst, 1)[0]);
+          belowOnes.push(list.splice(worst, 1)[0]);       // 塞不下的往底下排，不藏
         }
-        const lx = side === 'L' ? 6 : w - cw - 6;
-        const inner = side === 'L' ? lx + cw - 12 : lx;      // 文字框朝著模型的那一邊
+        const lx = side === 'L' ? 6 : w - cw + 6;           // 卡片在自己那一欄裡的 x（欄是 absolute 的，left 相對於欄）
+        const inner = side === 'L' ? lx + cw - 12 : lx;      // 文字框朝著模型的那一邊（整個容器的座標）
+        const host = side === 'L' ? colL : colR;
         list.forEach(it => {
-          it.p.el.style.left = lx + 'px';
+          placeIn(it.p, host);
+          it.p.el.style.left = '6px';
           it.p.el.style.top = it.ty + 'px';
           const cy = it.ty + it.hh / 2;
           const bend = side === 'L' ? inner + 14 : inner - 14;
@@ -2144,6 +2259,7 @@
         it.p.el.classList.add('hid');
         it.p.path.style.display = 'none'; it.p.dot.style.display = 'none'; it.p.halo.style.display = 'none';
       });
+      layoutBelow(belowOnes);
     }
 
     /* 圖九 2-1：把電流粒子往前推一格。
@@ -2203,11 +2319,12 @@
     const onResize = () => {
       camera.aspect = W() / H(); camera.updateProjectionMatrix();
       renderer.setSize(W(), H());
-      lead.setAttribute('viewBox', `0 0 ${W()} ${H()}`);
+      // 卡片欄的模式變了（例如從兩欄變成底下一欄），模型能用的寬度也變了 → 重新取景
+      const before = lastMode;
       layoutLabels();
+      if (before !== lastMode) { fitCamera(); layoutLabels(); }
     };
     window.addEventListener('resize', onResize);
-    lead.setAttribute('viewBox', `0 0 ${W()} ${H()}`);
     tick();
     layoutLabels();
 
@@ -2227,6 +2344,8 @@
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       if (layer.parentNode) layer.parentNode.removeChild(layer);
+      if (below.parentNode) below.parentNode.removeChild(below);
+      el.classList.remove('dgstage', 'dgstage--lr', 'dgstage--r', 'dgstage--below');
     }
 
     // cam()／screen() 是給驗收腳本用的：驗「視角真的轉了」要比對相機座標

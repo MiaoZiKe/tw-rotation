@@ -63,6 +63,42 @@
 
 一句要留下來的：**「同一個畫面有兩種寬度，就要兩種都量」**（抽屜開／關）—— 1.366 倍那個 bug 是這樣逼出來的，不是看出來的。
 
+## 3D ↔ style-system 的介面（`claude/style-3d`，2026-09-22）
+
+3D（`site/three3d.js`）已經照 #238 ＋ 三個推薦改完；下面是兩邊約好的名字，**style-system 改共用 CSS 時照這組來，不要各寫一套**。
+
+### 卡片（`.lbl3d`，DOM，three3d.js 產生）
+| 介面 | 意思 | 誰寫 |
+|---|---|---|
+| `--c`（行內樣式） | 這張卡片指到的**元件顏色**：有角色就是角色色（訊號藍／電力橘／液冷青綠／光青），沒有就是材質族的底色；太暗的會先往 `--dg-lit` 提亮到編號圓點看得見 | 3D 餵、CSS 吃（邊框、編號圓點、引線、端點） |
+| `data-dgcolor` | 同 `--c`（給量測與不吃 CSS 變數的地方） | 3D |
+| `--seg`／`data-dgseg` | 環節色（segColor）。只用在 `.sel-part` 的外圈與零件本體的提亮，**不再當底色** | 3D |
+| `data-dgno` ＋ `em.no3d` | 編號（01、02…） | 3D 餵、CSS 畫圓點 |
+| `data-dgrole` | `sig`／`pwr`／`cool`／`opt`／空字串 | 3D |
+| `data-dgpart` | 零件身分（跟 2D 的 `data-part` 同一組 key） | 3D |
+| 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
+| 文字顏色 | 一律吃 `--dg3-ink`／`-2`／`-3`，**不吃 `--ink`**（卡片底跟模式走、不跟全站主題走） | CSS |
+
+### 卡片欄（響應式，Andy 2026-09-22「版面需要左右對齊…會依據螢幕大小變化」）
+容器 `#prod3d.dg3d` 掛 `.dgstage` ＋ 模式 class；**斷點看視窗寬度**（跟 style-system 的 media query 同一組數字），**欄寬看容器寬度**（側欄開著時容器比較窄，欄就縮到下限 220）：
+
+| 模式 class | 視窗寬 | 版面 | 等價的 grid |
+|---|---|---|---|
+| `.dgstage--lr` | ≥ 1280 | `.dgstage-l` ＋ 畫布 ＋ `.dgstage-r` | `minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr)` |
+| `.dgstage--r` | 960～1279 | 畫布 ＋ `.dgstage-r`，卡片全部靠右 | `minmax(0,984px) minmax(220px,1fr)` |
+| `.dgstage--below` | < 960（390 也是） | 畫布，卡片搬進 `.dgstage-b`（一欄、文件流），畫布上用編號圓點 `.ld-no` 標位置 | `1fr` |
+
+欄寬＝那條 grid 解出來的值（`max(220, (容器寬 − 984) / 欄數)`）。塞不下的卡片**不藏**，往 `.dgstage-b` 排（畫布上補一個編號圓點）。
+引線 `.lead3d` 每 4 幀重算一次，resize 時模式一變就重新取景（`fitCamera`）。
+
+### 模式與 token
+- `Rack3D.current.setPal('tech' | 'read')`；舊名字 `soft`／`casual` → `read`、`calm` → `tech`；沒指定就跟全站主題（淺色 → 閱讀）。
+- 3D 專用 token 全部在 `index.html` 的 `.dg3d{}` 與 `.dg3d[data-pal="read"]{}`（打光、材質手感、玻璃、流線、角色色、陰影、卡片）。
+- **材質色仍讀 `:root` 的 `--dg-*`**（#230：2D／3D 同一份）。閱讀模式下 3D 會讀這些 token，style-system 定義 `:root[data-dgpal="read"]` 時請一併給粉彩值，3D 就會自動跟上：
+  `--dg-cer --dg-cover --dg-cu --dg-pcb --dg-si --dg-sn --dg-ni --dg-el --dg-organic --dg-emc --dg-alu --dg-steel --dg-frame --dg-au --dg-edge --dg-abf --dg-vap --dg-wick --dg-mute`
+  （建議：板子鼠尾草綠 `#7fa08a`、矽霧藍 `#7f93b8`、銅赤陶 `#c98b63`、模封暖灰 `#8a847c`、金屬銀 `#b9bfc6`）。
+  這批**沒有**在 3D 那一側另外寫第二份材質色 —— 那正是 #230 要防的事；所以在 root 的 read token 出來之前，閱讀模式的板子與矽是「去飽和的深色」而不是粉彩。
+
 ## 不做的事
 - 不生點陣圖、不引入字型或 CDN
 - 不動 `industry.js` 版面結構（已退回原本格式）

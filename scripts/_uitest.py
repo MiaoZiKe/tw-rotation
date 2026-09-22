@@ -513,13 +513,16 @@ def check_3d_e1(pg):
           notes: vis.filter(e => (e.querySelector('i')||{}).textContent).length,
           leads: document.querySelectorAll('.lead3d path.ld').length,
           shown: [...document.querySelectorAll('.lead3d path.ld')].filter(x => x.style.display !== 'none').length,
+          // 2026-09-22（#238 響應式卡片欄）：兩欄塞不下的卡片排到畫布底下，畫布上用編號圓點代替引線
+          nos: [...document.querySelectorAll('.lead3d .ld-no')].filter(x => x.style.display !== 'none').length,
           d0: (document.querySelector('.lead3d path.ld')||{}).getAttribute
               ? document.querySelector('.lead3d path.ld').getAttribute('d') : null }; }""")
     ok("E1 3D 標籤的字真的變大了（≥ 12px）", st["fs"] >= 12, st)
     ok("E1 3D 標籤是文字框（名稱之外還有一行說明）", st["notes"] >= st["n"] - 1, st)
     ok("E1 3D 標籤排到兩側、不壓在模型中央", st["middle"] == 0, st)
     ok("E1 看得到的標籤彼此不重疊", st["overlap"] == 0, st)
-    ok("E1 每個標籤都有一條引線", st["leads"] >= st["n"] and st["shown"] >= st["n"], st)
+    # 2026-09-22：塞不下兩欄的卡片排到畫布底下、畫布上用編號圓點指位置 —— 引線 ＋ 編號圓點合起來要涵蓋每一張卡片
+    ok("E1 每個標籤都有一條引線（或是底下那一排的編號圓點）", st["leads"] >= st["n"] and st["shown"] + st["nos"] >= st["n"], st)
     # 轉一下視角：引線的起點必須跟著零件跑，否則那條線只是畫上去好看的
     # ★ 2026-09-22：先把畫布捲進畫面，而且 `behavior:'instant'` 不可省。
     #   這裡是用**絕對座標**拖滑鼠的，畫布只要有一部分在視窗外，算出來的中心點就可能
@@ -6858,14 +6861,16 @@ def t_batch6_n9(pg, base):
         h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
         ok(f"換成 {p1} 之後零件顏色真的變了（圖九 2-2）", h0 != h1, f"{h0} → {h1}")
         ok(f"鈕上的字跟著換（{p1}）", "配色：" in text(pg, "#dgPal"), text(pg, "#dgPal"))
-    ok("四種色票都輪得到（tech / soft / calm / casual）（圖九 2-2 ＋ 2026-09-21 深夜的休閒）",
-       sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
-    ok("「休閒」色票零件也不發光（跟柔和一樣印得出來；平易近人跟電競 RGB 是相反的兩件事）",
-       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('casual');
-           return v.stats().maxEmissive === 0; }"""))
-    ok("「柔和」色票零件不發光（印得出來）（圖九 2-2）",
-       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('soft');
-           return v.stats().maxEmissive === 0; }"""))
+    # ★ 2026-09-22 DECISIONS #238：3D 只剩兩種模式（科技／閱讀）。鈕還在輪舊的四個名字也沒關係 ——
+    #   three3d.js 會把 soft／casual 映成 read、calm 映成 tech，所以按四次一定兩種都輪得到。
+    ok("兩種模式都輪得到（tech ／ read）（圖九 2-2 → DECISIONS #238 兩種模式）",
+       sorted(set(seen)) == ["read", "tech"], seen)
+    ok("「閱讀」模式零件不發光（淺底上發光會刺眼；印得出來）",
+       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('read');
+           return v.pal() === 'read' && v.stats().idleEmissive === 0; }"""))
+    ok("舊的色票名字（休閒／柔和／沉穩）送進來不會掛，會被映到兩種模式之一",
+       pg.evaluate("""() => { const v = window.Rack3D.current;
+           return v.setPal('casual') === 'read' && v.setPal('soft') === 'read' && v.setPal('calm') === 'tech'; }"""))
     pg.evaluate("() => window.Rack3D.current.setPal('tech')")
 
     # ---- 窄畫面：800px 也要看得到晶片，而且文字框不出框
@@ -10074,6 +10079,8 @@ SECTIONS = {
     "批次22-傳動件":       lambda pg, b, base, code: t_e1_motion(pg, base),
     "批次22-鋁電容":       lambda pg, b, base, code: t_e2_alumcap(pg, base),
     "批次22-保護元件":     lambda pg, b, base, code: t_e3_protect(pg, base),
+    # DECISIONS #238：3D 的兩種模式（科技／閱讀）、材質不走環節色、玻璃機櫃、流線、爆炸拆解、響應式卡片欄
+    "3D風格兩模式":        lambda pg, b, base, code: t_dg3d_style(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -12261,7 +12268,10 @@ def t_b14b_wbg(pg, base):
 L1_BUDGET = {
     # 路由,                              (draw call 上限, 三角形上限, 三角形下限)
     "industry/ai_server":                (680, 40000, 15000),
-    "industry/semiconductor":            (129, 30000, 14400),
+    # ★ 2026-09-22：鏈層級的 `industry/semiconductor` 已經是圖別選單（DECISIONS #234），沒有 3D 鈕，
+    #   照舊網址走這一段會安靜地整段跳過（假綠）。改成場景真正掛著的那張圖；
+    #   上限照兩種模式之後量到的 165 個 draw call 放一點餘裕。
+    "industry/semiconductor/dg/ai_adv_packaging": (200, 40000, 14400),
     "industry/electronics/dg/mlcc":      (93,   6000,  1400),
 }
 
@@ -12459,7 +12469,8 @@ def t_dg3d_parts(pg, base):
         sigs = {}
         # ★ 從 soft 開始輪、tech 放最後：目前就停在 tech，第一輪照 tech 切等於沒切，
         #   那一條會永遠紅（2026-09-22 第一次跑就是這樣紅的）。
-        for name in ["soft", "calm", "casual", "tech"]:
+        # ★ 2026-09-22 DECISIONS #238：只剩 read／tech 兩種模式（read 先切，目前停在 tech）
+        for name in ["read", "tech"]:
             s0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
             got = pg.evaluate("(n) => window.Rack3D.current.setPal(n)", name)
             pg.wait_for_timeout(700)
@@ -12467,12 +12478,12 @@ def t_dg3d_parts(pg, base):
             ok(f"[{nice}] 切到「{name}」配色，材質色真的變了（{s0} → {s1}）",
                got == name and s0 != s1, f"{s0} → {s1}")
             sigs[name] = s1
-        ok(f"[{nice}] 四個配色互不相同（不是換了 class 但畫面一樣）",
-           len(set(sigs.values())) == 4, sigs)
-        # 新零件的材質色是從 --dg-* 讀來的：換配色時「休閒」一定要把冷色轉暖，
+        ok(f"[{nice}] 兩種模式互不相同（不是換了 class 但畫面一樣）",
+           len(set(sigs.values())) == 2, sigs)
+        # 材質色是從 --dg-* 讀來的：「閱讀」要把整組往暖奶油收、金屬度壓低，
         # 所以它跟「科技」的指紋差距不可以只有零頭
-        ok(f"[{nice}] 「休閒」跟「科技」的差距是看得出來的（不是四捨五入的誤差）",
-           abs(sigs["casual"] - sigs["tech"]) > 1.0, sigs)
+        ok(f"[{nice}] 「閱讀」跟「科技」的差距是看得出來的（不是四捨五入的誤差）",
+           abs(sigs["read"] - sigs["tech"]) > 1.0, sigs)
         pg.evaluate("() => window.Rack3D.current.setPal('tech')")
 
         # ⑤ 動畫開回來：要真的又動起來（關得掉但開不回來也是壞的）
@@ -13862,8 +13873,9 @@ def t_b21_cowos(pg, base):
                 p1 = pg.evaluate("() => window.Rack3D.current.pal()")
                 h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
                 seen.append(p1); chg.append(h0 != h1)
-            ok("四個配色都輪得到（科技／柔和／沉穩／休閒）",
-               sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
+            # 2026-09-22 DECISIONS #238：3D 只剩兩種模式，按四次會在 tech／read 之間輪
+            ok("兩種模式都輪得到（科技／閱讀）",
+               sorted(set(seen)) == ["read", "tech"], seen)
             ok("每切一次配色，零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
             click(pg, "#dg3d", 1200)          # 切回平面圖，不要汙染後面的段落
@@ -14821,6 +14833,174 @@ def t_e3_protect(pg, base):
     _e_noanim(pg, "保護元件")
     _b14b_typo(pg, DGH, "保護元件")
 
+
+# ================================================================ 3D 兩種模式（DECISIONS #238，2026-09-22）
+#  Andy 拍板的最終風格：暗色「科技」／亮色「閱讀」＋ 三個推薦（玻璃機櫃、三色托盤、發光流線、卡片與元件同色）。
+#  這一段驗的是**畫面真的因此改變**：
+#    ① 材質底色不再來自環節色（量每個零件的 base vs segColor，一個都不准撞）
+#    ② 兩種模式各切一次：底、卡片底、字色、材質指紋四樣都真的變；舊名字（casual…）不會讓 3D 掛
+#    ③ 點零件 → **只有那一顆**被拉向環節色；點背景 → 一顆都不剩
+#    ④ 爆炸拆解真的動（進場 0 → 1）；「動畫：關」直接停在拆開的狀態
+#    ⑤ draw call／三角形在上限內；玻璃與流線材質真的有
+#    ⑥ 卡片：編號圓點、--c ＝ data-dgcolor、字級 ≥ 12px
+#    ⑦ 響應式：1500 兩欄、1100 只有右欄、800 卡片搬到底下＋畫布上編號圓點；沒有卡片出框
+L3_ROUTES = {
+    "ai_server":     ("industry/ai_server", 680, 40000),
+    "semiconductor": ("industry/semiconductor/dg/ai_adv_packaging", 200, 40000),
+    "mlcc":          ("industry/electronics/dg/mlcc", 120, 6000),
+}
+
+_L3_PROBE = """() => { const v = window.Rack3D.current, st = v.stats();
+  const host = document.getElementById('prod3d'), cs = getComputedStyle(host);
+  const cards = [...host.querySelectorAll('.lbl3d')];
+  let minFs = 1e9;
+  cards.forEach(c => c.querySelectorAll('b,i,em,.chip3d,s').forEach(t => { if (!t.textContent.trim()) return;
+    const r = t.getBoundingClientRect(); if (r.width < .5) return;
+    minFs = Math.min(minFs, parseFloat(getComputedStyle(t).fontSize)); }));
+  const hr = host.getBoundingClientRect();
+  const out = cards.filter(c => !c.classList.contains('hid')).filter(c => { const b = c.getBoundingClientRect();
+    return b.left < hr.left - 1 || b.right > hr.right + 1; }).map(c => c.dataset.dgno);
+  return { pal: v.pal(), pals: v.pals(),
+    bg: cs.backgroundImage, cardBg: cards.length ? getComputedStyle(cards[0]).backgroundColor : '',
+    ink: cards.length ? getComputedStyle(cards[0].querySelector('b')).color : '',
+    colorSig: st.colorSig, idleEm: st.idleEmissive, glass: st.glass, flowLines: st.flowLines,
+    calls: st.drawCalls, tris: st.triangles, explode: st.explode, exploding: st.exploding,
+    minFs: minFs === 1e9 ? null : minFs, nCards: cards.length,
+    nNo: cards.filter(c => c.querySelector('em.no3d') && c.querySelector('em.no3d').textContent.trim()).length,
+    cOk: cards.filter(c => c.dataset.dgcolor && c.style.getPropertyValue('--c').trim() === c.dataset.dgcolor).length,
+    mode: [...host.classList].find(c => c.startsWith('dgstage--')) || '',
+    inBelow: host.querySelectorAll('.dgstage-b .lbl3d').length,
+    belowShown: !!host.querySelector('.dgstage-b') && !host.querySelector('.dgstage-b').hidden,
+    noDots: [...host.querySelectorAll('.lead3d .ld-no')].filter(g => g.style.display !== 'none').length,
+    out, mats: v.mats() }; }"""
+
+
+def t_dg3d_style(pg, base):
+    """DECISIONS #238：3D 兩種模式、材質不走環節色、爆炸拆解、卡片、響應式卡片欄。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(base, wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    if not pg.evaluate("() => !!window.Rack3D"):
+        notes.append("這個環境載不到 Rack3D（WebGL？），3D 兩種模式整段跳過")
+        return
+    for nice, (route, cmax, tmax) in L3_ROUTES.items():
+        if not _l1_open(pg, base, route):
+            notes.append(f"{nice}：3D 掛不起來（WebGL？），這一張跳過")
+            continue
+        pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+        pg.wait_for_timeout(300)
+        a = pg.evaluate(_L3_PROBE)
+
+        # ---------------- ① 材質底色 ≠ 環節色
+        near = [(m["part"], m["base"], m["segHex"], _dist(m["base"], m["segHex"])) for m in a["mats"]
+                if _dist(m["base"], m["segHex"]) < 20]
+        ok(f"[{nice}] ★ 沒有任何一個零件的材質底色是環節色（一張圖一個主色，#238 那一刀）",
+           not near, near[:4])
+        fams = sorted(set(m["fam"] for m in a["mats"]))
+        ok(f"[{nice}] 零件的底色來自材質族 token（{'／'.join(fams)}），不是 segColor",
+           all(m["base"] and m["base"].startswith("#") for m in a["mats"]) and len(fams) >= 2, fams)
+        ok(f"[{nice}] 還沒點任何零件時，沒有一顆被拉向環節色", not any(m["tinted"] for m in a["mats"]),
+           [m["part"] for m in a["mats"] if m["tinted"]][:4])
+
+        # ---------------- ② 兩種模式
+        ok(f"[{nice}] 只有兩種模式：tech／read", a["pals"] == ["tech", "read"], a["pals"])
+        pg.evaluate("() => window.Rack3D.current.setPal('read')")
+        pg.wait_for_timeout(500)
+        r = pg.evaluate(_L3_PROBE)
+        ok(f"[{nice}] 切到「閱讀」→ 畫布底真的變了", r["pal"] == "read" and r["bg"] != a["bg"], f"{a['bg'][:60]} → {r['bg'][:60]}")
+        ok(f"[{nice}] 切到「閱讀」→ 卡片的底色與字色真的變了（白卡＋深灰字）",
+           r["cardBg"] != a["cardBg"] and r["ink"] != a["ink"], {"科技": (a["cardBg"], a["ink"]), "閱讀": (r["cardBg"], r["ink"])})
+        ok(f"[{nice}] 切到「閱讀」→ 材質色的指紋真的變了（{a['colorSig']} → {r['colorSig']}）",
+           abs(r["colorSig"] - a["colorSig"]) > 1.0)
+        ok(f"[{nice}] 「閱讀」模式零件完全不自體發光（淺底上發光會刺眼）", r["idleEm"] == 0, r["idleEm"])
+        ok(f"[{nice}] 舊名字（casual／soft／calm）送進來會被映到兩種模式之一，不會掛",
+           pg.evaluate("""() => { const v = window.Rack3D.current;
+               return v.setPal('casual') === 'read' && v.setPal('soft') === 'read' && v.setPal('calm') === 'tech'; }"""))
+        pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+        pg.wait_for_timeout(300)
+
+        # ---------------- ⑤ 效能與材質種類
+        ok(f"[{nice}] draw call 在上限內（{a['calls']} ≤ {cmax}）", 0 < a["calls"] <= cmax, a["calls"])
+        ok(f"[{nice}] 三角形在上限內（{a['tris']} ≤ {tmax}）", 0 < a["tris"] <= tmax, a["tris"])
+        if nice == "ai_server":
+            ok("[ai_server] 真的有玻璃材質（機櫃外框、側板）", a["glass"] >= 1, a["glass"])
+            ok("[ai_server] 真的有流線（液冷水路／光路／氣流／進出水管）", a["flowLines"] >= 4, a["flowLines"])
+
+        # ---------------- ⑥ 卡片
+        ok(f"[{nice}] 每張卡片都有編號圓點", a["nNo"] == a["nCards"] and a["nCards"] > 0, f"{a['nNo']}/{a['nCards']}")
+        ok(f"[{nice}] 每張卡片的 --c 就是它指到的元件顏色（data-dgcolor，給 style-system 的介面）",
+           a["cOk"] == a["nCards"], f"{a['cOk']}/{a['nCards']}")
+        ok(f"[{nice}] 卡片上最小的字 ≥ 12px", a["minFs"] is not None and a["minFs"] >= 11.9, a["minFs"])
+
+        # ---------------- ④ 爆炸拆解：動畫開 → 從原位拉開；關 → 直接停在拆開的狀態
+        anim_on = pg.evaluate("() => window.Rack3D.current.isAnim()")
+        if not anim_on:
+            pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(300)
+        rep = pg.evaluate("() => window.Rack3D.current.replay()")
+        pg.wait_for_timeout(350)
+        e0 = pg.evaluate("() => window.Rack3D.current.stats().explode")
+        pg.wait_for_timeout(2200)
+        e1 = pg.evaluate("() => window.Rack3D.current.stats().explode")
+        ok(f"[{nice}] 爆炸拆解真的在動：重播後先在中途（{e0}），2 秒後拉到底（{e1}）",
+           rep and 0 < e0 < 1 and e1 == 1, f"{rep} {e0} → {e1}")
+        pg.eval_on_selector("#dgAnim", "b => b.click()")          # 關掉
+        pg.wait_for_timeout(300)
+        rep2 = pg.evaluate("() => window.Rack3D.current.replay()")
+        e2 = pg.evaluate("() => window.Rack3D.current.stats().explode")
+        pg.wait_for_timeout(600)
+        e3 = pg.evaluate("() => window.Rack3D.current.stats().explode")
+        ok(f"[{nice}] 「動畫：關」時直接停在拆開的狀態（不重播、不動）", (not rep2) and e2 == 1 and e3 == 1, f"{rep2} {e2} {e3}")
+
+        # ---------------- ③ 點零件 → 只有那一顆吃環節色；點背景 → 全部恢復
+        scroll_to(pg, "prod3d")
+        seg = pg.evaluate("""() => { const v = window.Rack3D.current;
+            const cv = document.querySelector('#prod3d canvas'); if (!cv) return null;
+            const r = cv.getBoundingClientRect();
+            return v.segs().find(s => { const p = v.screen(s);
+              return p && p.x > r.left + 8 && p.x < r.right - 8
+                       && p.y > Math.max(r.top, 0) + 8 && p.y < Math.min(r.bottom, innerHeight) - 8; }); }""")
+        pt = pg.evaluate("(s) => s ? window.Rack3D.current.screen(s) : null", seg)
+        if pt:
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(800)
+            c = pg.evaluate(_L3_PROBE)
+            tinted = [m["part"] for m in c["mats"] if m["tinted"]]
+            selp = pg.evaluate("() => { const e = document.querySelector('.lbl3d.sel-part'); return e ? e.dataset.dgpart : null; }")
+            ok(f"[{nice}] ★ 真的用滑鼠點一顆零件 → **只有那一顆**被拉向環節色（{tinted}）",
+               len(tinted) == 1 and selp is not None and tinted[0] == selp, {"tinted": tinted, "sel-part": selp})
+            bg = pg.evaluate(_L1_BG)
+            if ok(f"[{nice}] 畫布上找得到一個真的空白點（點背景要用真的座標）", bool(bg), bg):
+                pg.mouse.click(bg["x"], bg["y"]); pg.wait_for_timeout(800)
+                d = pg.evaluate(_L3_PROBE)
+                ok(f"[{nice}] 真的點背景 → 沒有任何一顆還被拉向環節色",
+                   not any(m["tinted"] for m in d["mats"]), [m["part"] for m in d["mats"] if m["tinted"]][:4])
+        else:
+            fails.append(f"[{nice}] 找不到一顆在畫面裡、點得到的零件")
+
+    # ---------------- ⑦ 響應式卡片欄（拿機櫃當範本）
+    for w, want in ((1500, "dgstage--lr"), (1100, "dgstage--r"), (800, "dgstage--below")):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        if not _l1_open(pg, base, L3_ROUTES["ai_server"][0]):
+            notes.append(f"[{w}px] 3D 掛不起來，響應式那一條跳過")
+            continue
+        pg.wait_for_timeout(800)
+        z = pg.evaluate(_L3_PROBE)
+        ok(f"[{w}px] 卡片欄的模式是 {want}", z["mode"] == want, z["mode"])
+        ok(f"[{w}px] 沒有任何一張卡片畫出容器外", not z["out"], z["out"][:4])
+        ok(f"[{w}px] 卡片上最小的字 ≥ 12px", z["minFs"] is not None and z["minFs"] >= 11.9, z["minFs"])
+        if want == "dgstage--below":
+            ok(f"[{w}px] 卡片全部搬到 3D 底下那一排", z["belowShown"] and z["inBelow"] == z["nCards"], f"{z['inBelow']}/{z['nCards']}")
+            ok(f"[{w}px] 畫布上改用編號圓點標零件位置", z["noDots"] >= 8, z["noDots"])
+        elif want == "dgstage--lr":
+            ok(f"[{w}px] 兩欄都有卡片（左右對齊、版面填滿）",
+               pg.evaluate("() => document.querySelectorAll('.dgstage-l .lbl3d').length > 0 && document.querySelectorAll('.dgstage-r .lbl3d').length > 0"))
+        else:
+            ok(f"[{w}px] 左欄是空的、卡片全部靠右（塞不下的在底下那一排）",
+               pg.evaluate("() => document.querySelectorAll('.dgstage-l .lbl3d').length === 0 && document.querySelectorAll('.dgstage-r .lbl3d').length > 0"))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # 收尾：3D 關回平面圖、動畫偏好與模式還原（跟其他 3D 段落同一條規矩）
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        click(pg, "#dg3d", 900)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
 if __name__ == "__main__":
