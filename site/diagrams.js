@@ -3,58 +3,97 @@
    版面規則：零件畫在中間、說明文字排在右側欄位用引線接過去，文字絕不疊在零件上。 */
 (function () {
   'use strict';
+  /* 畫面上真正用的環節色。--c 是 industry.js 用 inline style 寫在零件上的環節色（inline 贏過任何樣式表，
+     所以不能直接覆寫它）；--cc 是消費端的換算結果：深色＋科技 ＝ 原色，其餘組合往 --dg-seg-mix 混
+     （螢光組印在紙底會刺眼、壓深組印在深底會消失）。--ce 是等角零件沒有環節色時的預設色。*/
+  const CC = 'var(--cc,var(--c,var(--ce,var(--dg-iso-c))))';
+  /* 主角零件的環境光落影（閱讀模式才有值）：畫圖的人把主角包進 D.shadow(inner) 就好；
+     這個 filter 用 feDropShadow 而不是 CSS drop-shadow，是因為它可以指定 dy（光從上面來）。*/
+  const SHADOW_DEFS = '<defs><filter id="dgSoftShadow" x="-12%" y="-12%" width="124%" height="130%">'
+    + '<feDropShadow dx="0" dy="5" stdDeviation="5" flood-color="var(--dg-drop)"/></filter></defs>';
   const STYLE = `<style>
-    /* 強調色改讀 :root 的 --dg-accent-2d（預設值就是 #3ee0ff，所以科技配色下外觀零變化）。
-       寫死在這裡的話，配色切換（html 的 data-dgpal）換不掉它 —— 那是 DECISIONS #198 同一個病。
-       ⚠ 這段註解裡**不准出現角括號**：這個 style 是 SVG 裡的 style，
-         瀏覽器會把它當標記解析，寫一個像標籤的東西進去會把整張樣式表吃掉
-         （2026-09-21 深夜實測：寫了「角括號 html」四個字，整個 cssRules 變成 0 條）。*/
-    .dg{font-family:"Noto Sans TC",sans-serif;--dg-accent:var(--dg-accent-2d,#3ee0ff)}
-    /* 零件群組裡的強調色＝那個環節的顏色；群組外（流程箭頭、良率曲線、比例尺）就是固定的青色。
-       這兩行是 --dg-accent 唯一的定義處 —— 寫在 :root 的話 var(--c) 會在 :root 就被解析掉，
-       每個零件自己的環節色永遠吃不到。 */
-    .dg [data-seg],.dg .p3{--dg-accent:var(--c,var(--dg-accent-2d,#3ee0ff))}
-    /* 字級一律走 :root 的 --dg-fs-*（art-director 擁有，見 index.html 的說明）。
-       這裡不准再出現第二套數字 —— 以前 .sub 10.5／.cap 11.5／.tag 10 三個值散在這裡，
-       每畫一張新圖就得決定一次「這張要不要跟舊的一樣」，所以永遠有一張是舊的。 */
-    .dg text{fill:var(--dg-ink-2,#a9b6d6);font-size:var(--dg-fs-min,12px)}
-    .dg .ttl{font-size:var(--dg-fs-ttl,16px);font-weight:700;fill:var(--dg-ink,#e8eeff);letter-spacing:.02em}
-    .dg .cap{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
-    .dg .lbl{font-size:var(--dg-fs-lbl,12.5px);fill:var(--dg-ink,#e8eeff);font-weight:600}
-    .dg .sub{font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-3,#8ea0c4)}
-    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);fill:var(--c,var(--dg-ink-3,#8ea0c4));letter-spacing:.04em}
+    /* ================ 風格系統（art-director 2026-09-22，規格 docs/diagram_specs/_STYLE.md）================
+       這段是每一張剖析圖共用的樣式表，**全部吃 :root 的 --dg-* token**，
+       兩種模式（科技／閱讀）靠 html 的 data-dgpal 切換 —— 這裡一個色值都不寫。
+       ⚠ 這段註解裡不准出現角括號：這個 style 是 SVG 裡的 style，
+         瀏覽器會把它當標記解析，寫一個像標籤的東西進去會把整張樣式表吃掉（DECISIONS #231）。*/
+    .dg{font-family:"Noto Sans TC",sans-serif;--dg-accent:var(--dg-accent-2d)}
+    /* --cc 的定義處。零件群組裡的強調色＝那個環節的顏色；群組外（流程箭頭、良率曲線）就是 --dg-accent-2d。
+       寫在 :root 的話 var(--c) 會在 :root 就被解析掉，每個零件自己的環節色永遠吃不到。*/
+    .dg [data-seg]{--cc:var(--c,var(--dg-accent-2d))}
+    .dg .p3,.dg .stn,.dg .scode{--cc:var(--c,var(--ce,var(--dg-accent-2d)))}
+    :root[data-dgpal="read"] .dg [data-seg],:root[data-theme="light"] .dg [data-seg]{
+      --cc:color-mix(in srgb,var(--c,var(--dg-accent-2d)) var(--dg-seg-k,100%),var(--dg-seg-mix,#000))}
+    :root[data-dgpal="read"] .dg .p3,:root[data-dgpal="read"] .dg .stn,:root[data-dgpal="read"] .dg .scode,
+    :root[data-theme="light"] .dg .p3,:root[data-theme="light"] .dg .stn,:root[data-theme="light"] .dg .scode{
+      --cc:color-mix(in srgb,var(--c,var(--ce,var(--dg-accent-2d))) var(--dg-seg-k,100%),var(--dg-seg-mix,#000))}
+    .dg [data-seg],.dg .p3{--dg-accent:var(--cc)}
+    /* 字級一律走 :root 的 --dg-fs-*（art-director 擁有）：科技 12px 起、閱讀 13px 起，這裡不准出現第二套數字。*/
+    .dg text{fill:var(--dg-ink-2);font-size:var(--dg-fs-min)}
+    .dg .ttl{font-size:var(--dg-fs-ttl);font-weight:700;fill:var(--dg-ink);letter-spacing:.02em}
+    .dg .cap{font-size:var(--dg-fs-min);fill:var(--dg-ink-3)}
+    .dg .lbl{font-size:var(--dg-fs-lbl);fill:var(--dg-ink);font-weight:600}
+    .dg .sub{font-size:var(--dg-fs-min);fill:var(--dg-ink-3)}
+    .dg .tag{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);fill:var(--cc,var(--dg-ink-3));letter-spacing:.04em}
     .dg .mono{font-family:"JetBrains Mono",monospace}
+    /* ---- 零件 ---- */
     .dg [data-seg]{cursor:pointer;transition:opacity .2s}
-    .dg [data-seg] .part{transition:stroke .15s,filter .15s;stroke:color-mix(in srgb,var(--c,var(--dg-accent-2d,#3ee0ff)) 55%,var(--dg-part-mix,#2a3860))}
-    /* B1（art-director 2026-09-21）：發光半徑收成變數。
-       一張圖只有一個環節時（MLCC 那種單一族群的量產圖），點任何零件都會讓**全部**零件
-       同時加上 .sel —— 14 個群組、11 個元素一起 drop-shadow，那就是 Andy 講的「螢光感太重」，
-       而且 0 個被 dim ＝ 這個狀態沒有傳達任何資訊。那種圖掛 .dg1，--dg-glow:none 直接關掉發光。 */
-    .dg [data-seg]:hover .part,.dg [data-seg].sel .part{stroke:var(--c,#3ee0ff);stroke-width:2.2;filter:var(--dg-glow,drop-shadow(0 0 7px var(--c,#3ee0ff)))}
+    .dg [data-seg] .part{transition:stroke .15s,filter .15s;stroke:color-mix(in srgb,${CC} 55%,var(--dg-part-mix))}
+    /* B1（art-director 2026-09-21）：發光半徑收成變數。單一環節的圖（.dg1）與閱讀模式 --dg-glow:none 直接關掉。*/
+    .dg [data-seg]:hover .part,.dg [data-seg].sel .part{stroke:${CC};stroke-width:2.2;filter:var(--dg-glow,drop-shadow(0 0 7px ${CC}))}
     .dg.dg1{--dg-glow:none}
-    /* ---- 兩層高亮（2026-09-21 晚間）----
-       .sel-part ＝**你剛剛點的那一個零件**（最強）；.sel ＝同一個 data-seg 的其餘（次強，值沒動）。
-       為什麼要多這一層：以前高亮只綁環節，單一環節的圖（MLCC 14 個零件全是 passive_comp，
-       後面 13 張多數也是）點下去就是「14 個全部 .sel、0 個 dim」—— 畫面沒有任何事情發生。
-       多環節的圖完全不受影響：.sel 那一層一個值都沒改，只是被點的那一個再往上一階。
-       描邊寬與暈開半徑都走 --dg-*（art-director 擁有），JS 與這裡都不准寫死。 */
-    .dg [data-seg].sel-part .part{stroke:var(--c,#3ee0ff);stroke-width:var(--dg-part-w,3.6);
-      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-part-r,11px) var(--c,#3ee0ff)))}
+    /* 兩層高亮（2026-09-21 晚間）：.sel-part ＝ 你剛剛點的那一個（最強）；.sel ＝ 同環節其餘（次強）。*/
+    .dg [data-seg].sel-part .part{stroke:${CC};stroke-width:var(--dg-part-w,3.6);
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-part-r,11px) ${CC}))}
     .dg [data-seg].sel-part .lbl,.dg [data-seg].sel-part .hd{font-weight:700}
-    /* 單一環節的圖：次強那一層等於「除了主角以外的全部」，跟主角擺在一起看不出差別，
-       所以在這種圖上讓它退一階。.haspart 是 highlightSegments 掛的 ——
-       沒有人被點著的時候（例如從環節色標選這一格）不准壓暗，那時候根本沒有主角。*/
     .dg.dg1.haspart [data-seg].sel:not(.sel-part){opacity:var(--dg-sib-o,.4)}
-    .dg [data-seg].sel .lbl,.dg [data-seg]:hover .lbl{fill:var(--c,#3ee0ff)}
-    .dg [data-seg] .dot{fill:var(--c,var(--dg-ink-3,#8ea0c4))}
-    .dg [data-seg] .leader{stroke:color-mix(in srgb,var(--c,var(--dg-ink-3,#8ea0c4)) 55%,var(--dg-line-mix,#1e2a48));stroke-width:1;fill:none}
-    .dg [data-seg].sel .leader,.dg [data-seg]:hover .leader{stroke:var(--c);stroke-width:1.6}
+    .dg [data-seg].sel .lbl,.dg [data-seg]:hover .lbl{fill:${CC}}
+    .dg [data-seg] .dot{fill:${CC}}
     .dg [data-seg].dim{opacity:.3}
-    .dg .lrow{cursor:pointer} .dg .lrow rect.bg{fill:transparent} .dg .lrow:hover rect.bg,.dg .lrow.sel rect.bg{fill:color-mix(in srgb,var(--c,#3ee0ff) 12%,transparent)}
-    /* 說明列當主角時底色再深一階（12% → 26%）。這條一定要排在上面那條之後：
-       兩者特異性一樣，先寫的會被後寫的蓋掉 —— 排錯順序主角就跟次強一樣淡。*/
-    .dg [data-seg].sel-part rect.bg{fill:color-mix(in srgb,var(--c,#3ee0ff) 26%,transparent)}
-    .dg [data-chain]{cursor:pointer} .dg [data-chain]:hover rect{stroke:var(--dg-accent-2d,#3ee0ff)}
+    .dg .hero{filter:var(--dg-hero-sh,none)}
+    /* ---- 引線：細線 ＋ 端點小圓（D.pointer）。科技的端點帶光暈（--dg-node-glow），閱讀只留實心圓點 ---- */
+    .dg .leader{stroke:var(--dg-lead,color-mix(in srgb,${CC} 55%,var(--dg-line-mix)));stroke-width:var(--dg-lead-w,1);fill:none}
+    .dg [data-seg].sel .leader,.dg [data-seg]:hover .leader,.dg .p3.sel .leader,.dg .p3:hover .leader{stroke:${CC};stroke-width:var(--dg-lead-sel-w,1.6)}
+    .dg .anchor{fill:var(--card-c,${CC});stroke:var(--dg-bg);stroke-width:1;r:var(--dg-node-r,2.8px);
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-node-glow,3px) var(--card-c,${CC})))}
+    :root[data-dgpal="read"] .dg .anchor{filter:none}
+    /* v2 版面（Andy 2026-09-22「左右對齊、版面更滿、依螢幕大小變化」）：卡片離開 SVG 變成 HTML（index.html 的 .dgc），
+       SVG 裡只留「資料來源」的 .lrow.ext（永遠不畫）與畫布上的錨點群組 .anc（編號圓點／小圓）。
+       .anc 沒有零件身分：它的 sel／sel-part／dim 是 diagrams.js 從對應的卡片鏡射過來的，點它＝點卡片。*/
+    .dg .ext{display:none}
+    .dg .anc{--cc:var(--c,var(--dg-accent-2d));--card-c:var(--dg-card-c,var(--cc,var(--dg-ink)));cursor:pointer;transition:opacity .2s}
+    :root[data-dgpal="read"] .dg .anc,:root[data-theme="light"] .dg .anc{--cc:color-mix(in srgb,var(--c,var(--dg-accent-2d)) var(--dg-seg-k,100%),var(--dg-seg-mix,#000))}
+    .dg .anc .anchor.no{r:9.5px;stroke-width:1.2}
+    .dg .anc .non{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);font-weight:700;fill:var(--dg-no-ink);dominant-baseline:central;text-anchor:middle;pointer-events:none}
+    .dg .anc.dim{opacity:.3}
+    .dg .anc.sel-part .anchor{stroke:var(--dg-ink);stroke-width:2}
+    :root[data-dgpal="read"] .dg .anc .anchor.no{fill:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));stroke:var(--card-c)}
+    :root[data-dgpal="read"] .dg .anc.sel-part .anchor.no{fill:color-mix(in srgb,var(--card-c) 34%,var(--dg-bg));stroke:var(--dg-ink)}
+    /* ---- 說明卡片（labelRow／lrow3／processBar／chainLink 共用）：圓角矩形、細邊、左側色條、編號圓點 ----
+       --card-c ＝ 這張卡的元件色。畫圖的人用 inline style 的 --dg-card-c 或 data-dgcolor 指定，
+       沒指定就落回環節色 --cc，再沒有就 --dg-ink。3D 的 DOM 標籤（index.html 的 .lbl3d）吃同一個介面。
+       SVG 的 rect 吃不到 backdrop-filter，所以這裡的「磨砂玻璃」＝半透明實色（--dg-card-f）。*/
+    .dg .lrow{cursor:pointer;--card-c:var(--dg-card-c,var(--cc,var(--dg-ink)))}
+    .dg .p3:not(.lrow) rect.bg{fill:transparent}
+    .dg .p3:not(.lrow):hover rect.bg,.dg .p3:not(.lrow).sel rect.bg{fill:color-mix(in srgb,${CC} 13%,transparent)}
+    .dg .p3:not(.lrow).sel-part rect.bg{fill:color-mix(in srgb,${CC} 28%,transparent)}
+    .dg .lrow rect.bg,.dg rect.card{fill:var(--dg-card-f);stroke:color-mix(in srgb,var(--card-c,var(--dg-ink)) 40%,var(--dg-card-s));stroke-width:1;
+      rx:var(--dg-card-r,8px);filter:var(--dg-card-sh,none);transition:fill .15s,stroke .15s}
+    .dg .lrow .cbar{fill:var(--card-c)}
+    .dg .lrow .no{fill:var(--card-c);r:var(--dg-no-r,9.5px)}
+    .dg .lrow .non{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);font-weight:700;fill:var(--dg-no-ink);dominant-baseline:central;text-anchor:middle}
+    .dg .lrow:hover rect.bg,.dg .lrow.sel rect.bg{stroke:var(--card-c);fill:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
+    /* 主角那一張卡：底再深一階 ＋ 光暈（科技）／落影（閱讀）。要排在上面那條之後，不然特異性一樣會被蓋掉。*/
+    .dg .lrow.sel-part rect.bg{stroke:var(--card-c);stroke-width:1.6;fill:color-mix(in srgb,var(--card-c) 26%,var(--dg-card-f));
+      filter:var(--dg-glow,drop-shadow(0 0 var(--dg-card-glow-r,6px) color-mix(in srgb,var(--card-c) 60%,transparent)))}
+    :root[data-dgpal="read"] .dg .lrow.sel-part rect.bg{filter:var(--dg-card-sh,none)}
+    /* 閱讀模式的卡片：標題不換成元件色（深灰字才讀得到，色相由色條／圓點／邊框扛），
+       編號圓點改成「粉彩底 ＋ 元件色的環 ＋ 深灰數字」—— 白字印在壓深過的粉彩上量出來只有 4.05:1。*/
+    :root[data-dgpal="read"] .dg [data-seg].sel .lbl,:root[data-dgpal="read"] .dg [data-seg]:hover .lbl,
+    :root[data-dgpal="read"] .dg .p3.sel .lbl,:root[data-dgpal="read"] .dg .p3:hover .lbl{fill:var(--dg-ink)}
+    :root[data-dgpal="read"] .dg .lrow .no{fill:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));stroke:var(--card-c);stroke-width:1.2}
+    .dg [data-chain]{cursor:pointer} .dg [data-chain]:hover rect{stroke:var(--dg-accent-2d)}
+    /* ---- 流動（光／液／訊號）：虛線在跑。閱讀模式不發光，科技模式也只讓端點與主角發光，線本身不發光 ---- */
     .dg .flow{stroke-dasharray:7 7;animation:dgdash 1.4s linear infinite}
     .dg .flow.slow{animation-duration:2.4s} .dg .flow.fast{animation-duration:.9s}
     .dg .flow.rev{animation-direction:reverse}
@@ -73,76 +112,59 @@
     .dg .drop{animation:dgdrop 2.2s linear infinite}
     .dg .drop.d2{animation-delay:.7s}.dg .drop.d3{animation-delay:1.4s}
     @keyframes dgdrop{0%{opacity:0;transform:translateY(0)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translateY(46px)}}
-    /* ---- 等角 3D：每個零件永遠帶自己的環節色（--c），選到就整塊變亮，顏色與族群一致 ---- */
-    .dg .p3{--m1:66%;--m2:42%;--m3:26%;--ce:var(--dg-iso-c,#4a6ea8);cursor:pointer;transition:opacity .2s}
+    /* ---- 等角 3D：每個零件永遠帶自己的環節色，三個面往 --dg-sh1/2/3 混（閱讀模式這三個是亮灰、中灰、深灰 ＝ 粉彩） ---- */
+    .dg .p3{--m1:66%;--m2:42%;--m3:26%;--ce:var(--dg-iso-c);cursor:pointer;transition:opacity .2s}
     .dg .p3:hover,.dg .p3.sel{--m1:94%;--m2:66%;--m3:46%}
     .dg .p3.sel-part{--m1:100%;--m2:78%;--m3:58%}
     .dg .p3.dim{opacity:.2}
-    .dg .f1{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m1,66%),var(--dg-sh1,#0c1428))}
-    .dg .f2{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m2,42%),var(--dg-sh2,#080e1c))}
-    .dg .f3{fill:color-mix(in srgb,var(--c,var(--ce)) var(--m3,26%),var(--dg-sh3,#050a14))}
-    .dg .p3 .part{stroke:color-mix(in srgb,var(--c,var(--ce)) 40%,var(--dg-sh0,#0a1024));stroke-width:.8;stroke-linejoin:round;transition:stroke .15s,filter .15s}
-    .dg .p3:hover .part,.dg .p3.sel .part{stroke:var(--c,var(--ce));stroke-width:1.5;filter:drop-shadow(0 0 6px var(--c,var(--ce)))}
-    /* 等角零件不動描邊寬（它的線本來就只有 .8，拉到 3.6 會變成一團黑）——
-       .sel-part 靠 --m1/--m2/--m3 再亮一階 ＋ 暈開半徑加大來當最強那一層。*/
-    .dg .p3.sel-part .part{filter:drop-shadow(0 0 var(--dg-part-r,11px) var(--c,var(--ce)))}
-    .dg .p3 .etch{stroke:color-mix(in srgb,var(--c,var(--ce)) 60%,transparent);fill:none;stroke-width:.9}
-    .dg .p3 .lit{fill:color-mix(in srgb,var(--c,var(--ce)) 78%,transparent)}
-    .dg .p3 .lbl{fill:var(--dg-ink,#e8eeff)} .dg .p3:hover .lbl,.dg .p3.sel .lbl{fill:var(--c,var(--ce))}
-    .dg .p3 .dot{fill:var(--c,var(--ce))}
-    .dg .p3 .leader{stroke:color-mix(in srgb,var(--c,var(--ce)) 50%,var(--dg-line-mix,#1e2a48));stroke-width:1;fill:none}
-    .dg .p3:hover .leader,.dg .p3.sel .leader{stroke:var(--c,var(--ce));stroke-width:1.6}
-    .dg .p3 rect.bg{fill:transparent} .dg .p3:hover rect.bg,.dg .p3.sel rect.bg{fill:color-mix(in srgb,var(--c,var(--ce)) 13%,transparent)}
-    .dg .p3.sel-part rect.bg{fill:color-mix(in srgb,var(--c,var(--ce)) 28%,transparent)}   /* 順序同上：一定要排在 .sel 之後 */
-    .dg .grd{stroke:var(--dg-grd,rgba(120,150,210,.14));fill:none;stroke-width:.7}
-    .dg .axis{stroke:var(--dg-axis,rgba(120,150,210,.3));stroke-width:1;fill:none;stroke-dasharray:3 4}
-    /* ---- 題材供應鏈圖：上游／中游／下游三段 + 站點 + 流動彩帶 + 個股標籤 ---- */
-    .dg3 .band rect{fill:rgba(30,42,72,.5);stroke:rgba(120,150,210,.18)}
-    .dg3 .band text{font-size:var(--dg-fs-min,12px);font-weight:600;fill:var(--dg-ink-2,#a9b6d6);letter-spacing:.03em}
-    .dg3 .band.b0 rect{fill:rgba(62,224,255,.10);stroke:rgba(62,224,255,.28)} .dg3 .band.b0 text{fill:#9fe6ff}
-    .dg3 .band.b1 rect{fill:rgba(139,123,255,.10);stroke:rgba(139,123,255,.3)} .dg3 .band.b1 text{fill:#c3baff}
-    .dg3 .band.b2 rect{fill:rgba(255,180,84,.10);stroke:rgba(255,180,84,.28)} .dg3 .band.b2 text{fill:#ffd79a}
-    .dg3 .stn .slot{fill:rgba(18,26,46,.55);stroke:rgba(120,150,210,.12)}
-    .dg3 .stn:hover .slot,.dg3 .stn.sel .slot{fill:color-mix(in srgb,var(--c,var(--ce)) 10%,rgba(18,26,46,.7));stroke:var(--c,var(--ce))}
+    .dg .f1{fill:color-mix(in srgb,${CC} var(--m1,66%),var(--dg-sh1))}
+    .dg .f2{fill:color-mix(in srgb,${CC} var(--m2,42%),var(--dg-sh2))}
+    .dg .f3{fill:color-mix(in srgb,${CC} var(--m3,26%),var(--dg-sh3))}
+    .dg .p3 .part{stroke:color-mix(in srgb,${CC} 40%,var(--dg-sh0));stroke-width:.8;stroke-linejoin:round;transition:stroke .15s,filter .15s}
+    .dg .p3:hover .part,.dg .p3.sel .part{stroke:${CC};stroke-width:1.5;filter:var(--dg-glow,drop-shadow(0 0 6px ${CC}))}
+    /* 等角零件不動描邊寬（它的線本來就只有 .8，拉到 3.6 會變成一團黑）—— .sel-part 靠 --m1/2/3 再亮一階 ＋ 暈開半徑加大 */
+    .dg .p3.sel-part .part{filter:var(--dg-glow,drop-shadow(0 0 var(--dg-part-r,11px) ${CC}))}
+    .dg .p3 .etch{stroke:color-mix(in srgb,${CC} 60%,transparent);fill:none;stroke-width:.9}
+    .dg .p3 .lit{fill:color-mix(in srgb,${CC} 78%,transparent)}
+    .dg .p3 .lbl{fill:var(--dg-ink)} .dg .p3:hover .lbl,.dg .p3.sel .lbl{fill:${CC}}
+    .dg .p3 .dot{fill:${CC}}
+    .dg .grd{stroke:var(--dg-grd);fill:none;stroke-width:.7}
+    .dg .axis{stroke:var(--dg-axis);stroke-width:1;fill:none;stroke-dasharray:3 4}
+    /* ---- 題材供應鏈圖：上游／中游／下游三段 + 站點 + 流動彩帶 + 個股標籤（全部改吃 --dg-band-*／slot／rib／chip） ---- */
+    .dg3 .band rect{fill:var(--dg-band-f);stroke:var(--dg-band-s)}
+    .dg3 .band text{font-size:var(--dg-fs-min);font-weight:600;fill:var(--dg-ink-2);letter-spacing:.03em}
+    .dg3 .band.b0 rect{fill:var(--dg-b0-f);stroke:var(--dg-b0-s)} .dg3 .band.b0 text{fill:var(--dg-b0-ink)}
+    .dg3 .band.b1 rect{fill:var(--dg-b1-f);stroke:var(--dg-b1-s)} .dg3 .band.b1 text{fill:var(--dg-b1-ink)}
+    .dg3 .band.b2 rect{fill:var(--dg-b2-f);stroke:var(--dg-b2-s)} .dg3 .band.b2 text{fill:var(--dg-b2-ink)}
+    .dg3 .stn .slot{fill:var(--dg-slot-f);stroke:var(--dg-slot-s)}
+    .dg3 .stn:hover .slot,.dg3 .stn.sel .slot{fill:color-mix(in srgb,${CC} 10%,var(--dg-slot-f2));stroke:${CC}}
     .dg3 .stn.dim{opacity:.26}
-    .dg3 .shadow{fill:rgba(0,0,0,.34)}
+    .dg3 .shadow{fill:var(--dg-drop)}
     .dg3 .rib{stroke-width:9;stroke-linecap:round}
-    .dg3 .rib.bg{stroke:rgba(120,150,210,.13)}
-    .dg3 .rib.flow{stroke:rgba(62,224,255,.5);stroke-dasharray:10 16;animation:dgdash 2.2s linear infinite}
+    .dg3 .rib.bg{stroke:var(--dg-rib-bg)}
+    .dg3 .rib.flow{stroke:var(--dg-rib-flow);stroke-dasharray:10 16;animation:dgdash 2.2s linear infinite}
     .dg3 .scode{cursor:pointer}
-    .dg3 .scode rect{fill:color-mix(in srgb,var(--c,var(--ce)) 14%,rgba(15,23,43,.9));stroke:color-mix(in srgb,var(--c,var(--ce)) 42%,transparent)}
-    .dg3 .scode text{font-size:var(--dg-fs-min,12px);fill:#d6e2ff;font-weight:600}
-    .dg3 .scode:hover rect{fill:color-mix(in srgb,var(--c,var(--ce)) 34%,rgba(15,23,43,.9));stroke:var(--c,var(--ce))}
-    .dg3 .scode:hover text{fill:#fff}
-    .dg3 .step .num{fill:color-mix(in srgb,var(--c,var(--ce)) 55%,#0b1226);stroke:color-mix(in srgb,var(--c,var(--ce)) 70%,transparent)}
-    .dg3 .step .nn{font-size:var(--dg-fs-min,12px);font-weight:700;fill:var(--dg-ink,#e8eeff);font-family:"JetBrains Mono",monospace}
-    /* ---- 量產圖專屬的兩個類別。
-       ★ 2026-09-21 art-director：.dgm 以前的工作是「把這一張的最小字級拉到 12px」，
-       所以只有掛了 .dgm 的新圖合格，半導體與 AI 伺服器兩張舊圖永遠是 10.5px。
-       現在 12px 變成 .dg 的基準（上面那一段），.dgm 不再負責字級，
-       只剩下量產圖自己才有的 .hd（區塊小標）與 .num（數字）。*/
-    .dgm .hd{font-size:var(--dg-fs-hd,13.5px);font-weight:700;fill:var(--dg-ink,#e8eeff)}
-    .dgm .num{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min,12px);fill:var(--dg-ink-2,#9fb0d0)}
-    /* 底框的底與線也收成 token（值跟搬家之前一樣），配色才換得掉「框」這一層 */
-    .dgm .frame{fill:var(--dg-frame-f,rgba(18,26,46,.5));stroke:var(--dg-frame-s,rgba(120,150,210,.2))}
-    .dgm .warn{fill:var(--dg-warn,#ff8fab)}
-    /* B2（art-director 2026-09-21）：電荷疊色的透明度從 .26 降到 .12。
-       量過：.26 的青色鋪滿整個有效層區，把陶瓷從暖米白 42° 推成偏綠 102°，
-       而不鋪的保護層還是 42° —— 讀者會以為兩者是不同材質，但它們是同一種陶瓷。*/
+    .dg3 .scode rect{fill:color-mix(in srgb,${CC} 14%,var(--dg-chip-f));stroke:color-mix(in srgb,${CC} 42%,transparent)}
+    .dg3 .scode text{font-size:var(--dg-fs-min);fill:var(--dg-chip-ink);font-weight:600}
+    .dg3 .scode:hover rect{fill:color-mix(in srgb,${CC} 34%,var(--dg-chip-f));stroke:${CC}}
+    .dg3 .scode:hover text{fill:var(--dg-ink)}
+    .dg3 .step .num{fill:color-mix(in srgb,${CC} 55%,var(--dg-num-mix));stroke:color-mix(in srgb,${CC} 70%,transparent)}
+    .dg3 .step .nn{font-size:var(--dg-fs-min);font-weight:700;fill:var(--dg-ink);font-family:"JetBrains Mono",monospace}
+    /* ---- 量產圖專屬：.hd（區塊小標）與 .num（數字）。12px 是 .dg 的基準，.dgm 不再負責字級 ---- */
+    .dgm .hd{font-size:var(--dg-fs-hd);font-weight:700;fill:var(--dg-ink)}
+    .dgm .num{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);fill:var(--dg-ink-2)}
+    .dgm .frame{fill:var(--dg-frame-f);stroke:var(--dg-frame-s)}
+    .dgm .warn{fill:var(--dg-warn)}
+    /* B2（art-director 2026-09-21）：電荷疊色的透明度 .12（.26 會把陶瓷的色相整個推掉）*/
     .dgm .chg{fill:var(--dg-accent);fill-opacity:var(--dg-chg-a,.12)}
-    /* ---- 漸進揭露：章節列（art-director 2026-09-21 深夜）----
-       Andy：「MLCC 圖片排版我覺得有點奇怪…需要更直觀且看起來更舒服，可以收納就收納」。
-       這一組樣式是**共用的**（後面 13 張量產圖都會用到）：一張圖只留讀者第一眼需要的，
-       其餘收進章節裡。收合 ≠ 刪除 —— 每一條列上都寫著裡面有什麼、按了就打得開。*/
+    /* ---- 漸進揭露：章節列（收合 ≠ 刪除，每一條列上都寫著裡面有什麼） ---- */
     .dg .dgfold{cursor:pointer}
-    .dg .dgfold .fbar{fill:var(--dg-frame-f,rgba(18,26,46,.5));stroke:var(--dg-frame-s,rgba(120,150,210,.2));
-      transition:fill .15s,stroke .15s}
+    .dg .dgfold .fbar{fill:var(--dg-frame-f);stroke:var(--dg-frame-s);transition:fill .15s,stroke .15s}
     .dg .dgfold:hover .fbar{stroke:var(--dg-accent);fill:color-mix(in srgb,var(--dg-accent) 10%,transparent)}
-    .dg .dgfold .fsign{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-hd,13.5px);
-      font-weight:700;fill:var(--dg-accent)}
-    .dg .dgfold .fhint{fill:var(--dg-ink-3,#8ea0c4)}
+    .dg .dgfold .fsign{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-hd);font-weight:700;fill:var(--dg-accent)}
+    .dg .dgfold .fhint{fill:var(--dg-ink-3)}
     .dg .dgfold:hover .fhint,.dg .dgfold:hover .hd{fill:var(--dg-accent)}
-  </style>`;
+  </style>` + SHADOW_DEFS;
 
   /* ================================================================ 零件身分（兩層高亮用）
      問題：高亮以前只綁 `data-seg`，所以「點一個零件」在程式裡等於「選一個環節」。
@@ -158,11 +180,20 @@
   function stampParts(host) {
     if (!host) return;
     host.querySelectorAll('svg').forEach((svg) => {
+      /* v2：先把 .lrow.ext 變成 HTML 卡片（它們的零件身分搬到卡片上），再替 SVG 裡剩下的零件蓋 dgkey。
+         縮圖（.xmini）與非 .dgwrap 的容器不外掛：那裡只要主角。*/
+      if (svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini')) externalize(host, svg);
       const ns = [].slice.call(svg.querySelectorAll('[data-seg]'));
       ns.forEach((n, i) => { n.dataset.dgkey = n.getAttribute('data-part') || (n.getAttribute('data-seg') + ':' + i); });
       /* 單一環節的圖自己判定，不要求畫圖的人記得加 class ——
          「忘了加」正是這個缺陷會被複製 13 次的原因。*/
       if (ns.length && new Set(ns.map(n => n.getAttribute('data-seg'))).size === 1) svg.classList.add('dg1');
+      /* 卡片的元件色介面（docs/diagram_restyle_plan.md）：畫圖的人可以寫 data-dgcolor="#xxxxxx"，
+         CSS 讀不到 data 屬性，這裡搬成 inline 的 --dg-card-c，STYLE 的 .lrow 就吃得到。*/
+      svg.querySelectorAll('[data-dgcolor]').forEach((n) => { n.style.setProperty('--dg-card-c', n.getAttribute('data-dgcolor')); });
+      /* v2 的 HTML 卡片不在 svg 裡，上面那圈蓋不到它：這裡補零件身分（有 data-part 就用它，沒有就用錨點 id）。
+         同一個 key 只有這張卡片有 —— 錨點群組沒有身分，所以「主角剛好一個」仍然成立。*/
+      host.querySelectorAll('.dgc[data-seg]').forEach((c) => { if (!c.dataset.dgkey) c.dataset.dgkey = c.getAttribute('data-part') || ('card:' + c.dataset.anc); });
       wireFolds(svg);
     });
   }
@@ -188,6 +219,146 @@
 
      ⚠ 章節列刻意**不掛 data-seg** —— 掛了的話 wireDiagram 會把它接成「點零件」，
        按一下展開就順便把成分股篩掉了。*/
+  /* ================================================================ v2 版面：卡片離開 SVG（Andy 2026-09-22）
+     externalize(host, svg)：
+       1. 把 svg 包進 .dgcanvas；svg 寬度＝viewBox 寬（原尺寸，不放大 —— 放大會讓高度破 700）
+       2. text.ext（標題／說明）→ .dghead
+       3. g.lrow.ext → .dgc（HTML 卡片），放進 .dgcol.l／.dgcol.r；零件身分（data-seg／part／codes／alias）搬到卡片上，
+          SVG 群組拿掉身分 —— highlight 與點擊都只認卡片，主角永遠剛好一個
+       4. .dglead（絕對定位的 svg）畫引線：卡片邊緣 → 畫布欄外側 → 錨點。ResizeObserver 一動就重算，
+          章節開合（viewBox 變高）、切模式也重算。卡片在畫布下面（單欄）時不畫引線，靠編號對照
+       5. 錨點群組 .anc 鏡射卡片的 sel／sel-part／dim 與 --c（MutationObserver），點錨點＝點卡片
+     版面本身（幾欄、多寬）全在 index.html 的 .dgv2 容器查詢裡，這裡不量寬度。*/
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  function externalize(host, svg) {
+    if (host.dataset.dgv2 === '1') return;
+    const exts = [].slice.call(svg.querySelectorAll('g.lrow.ext'));
+    const heads = [].slice.call(svg.querySelectorAll('text.ext'));
+    if (!exts.length && !heads.length) return;
+    host.dataset.dgv2 = '1'; host.classList.add('dgv2');
+    const vb = svg.viewBox && svg.viewBox.baseVal;
+    /* 容器查詢只對**後代**生效（元素不能查自己的寬），所以 .dgwrap 當容器、格線另外包一層 .dggrid */
+    const grid = document.createElement('div'); grid.className = 'dggrid';
+    svg.parentNode.insertBefore(grid, svg);
+    const canvas = document.createElement('div'); canvas.className = 'dgcanvas';
+    grid.appendChild(canvas); canvas.appendChild(svg);
+    if (vb && vb.width) { svg.style.width = vb.width + 'px'; svg.style.minWidth = vb.width + 'px'; svg.style.maxWidth = 'none'; }
+    host.style.overflowX = ''; host.style.overflowY = '';        // 捲動交給 .dgcanvas，不是整個容器
+    if (heads.length) {
+      const hd = document.createElement('div'); hd.className = 'dghead';
+      heads.forEach((t) => { const e = document.createElement(t.classList.contains('ttl') ? 'b' : 'span'); e.textContent = t.textContent; hd.appendChild(e); });
+      grid.insertBefore(hd, canvas);
+    }
+    /* 卡片全部住在一個 .dgcards 裡，左右欄（.dgcol.l／.r）只是分組：
+       三欄時 .dgcards 是 display:contents，兩個 .dgcol 各自站到格線的 l／r；
+       併成一欄（兩欄堆疊、單欄）時反過來 —— .dgcol 變 display:contents，卡片直接排進 .dgcards，
+       並照 data-order（＝編號；公式 0、警語 99）排，讀者才對得到圖上圓點的順序。*/
+    const cards = document.createElement('div'); cards.className = 'dgcards'; grid.appendChild(cards);
+    const cols = {};
+    const col = (side) => {
+      const k = side === 'l' ? 'l' : 'r';
+      if (!cols[k]) { const c = document.createElement('div'); c.className = 'dgcol ' + k; cols[k] = c; if (k === 'l') cards.insertBefore(c, cards.firstChild); else cards.appendChild(c); }
+      return cols[k];
+    };
+    const pairs = [];
+    exts.forEach((g) => {
+      const card = document.createElement('div');
+      card.className = 'dgc' + (g.dataset.note ? ' note' : '') + (g.dataset.warn ? ' warn' : '');
+      ['seg', 'part', 'codes', 'alias', 'dgcolor'].forEach((k) => { if (g.dataset[k] != null) card.dataset[k] = g.dataset[k]; });
+      card.dataset.anc = g.dataset.anc;
+      if (g.dataset.order != null) card.style.order = g.dataset.order;
+      if (g.dataset.dgcolor) card.style.setProperty('--dg-card-c', g.dataset.dgcolor);
+      const c0 = g.style.getPropertyValue('--c'); if (c0) card.style.setProperty('--c', c0);
+      if (g.dataset.no != null) { const n = document.createElement('span'); n.className = 'no'; n.textContent = String(g.dataset.no).padStart(2, '0'); card.appendChild(n); }
+      const bd = document.createElement('div'); bd.className = 'bd';
+      const t = g.querySelector('text.lbl'); if (t) { const b = document.createElement('b'); b.textContent = t.textContent; bd.appendChild(b); }
+      g.querySelectorAll('text.sub').forEach((x) => { const i = document.createElement('i'); i.textContent = x.textContent; bd.appendChild(i); });
+      card.appendChild(bd);
+      col(g.dataset.side).appendChild(card);
+      ['seg', 'part', 'codes', 'alias'].forEach((k) => { delete g.dataset[k]; });   // 身分搬走，SVG 那份只剩資料來源
+      const anc = svg.querySelector(`g.anc[data-for="${g.dataset.anc}"]`);
+      if (anc) {
+        if (c0) anc.style.setProperty('--c', c0);
+        anc.addEventListener('click', (e) => { e.stopPropagation(); card.click(); });
+        pairs.push({ card, anc });
+      }
+    });
+    const lead = document.createElementNS(SVGNS, 'svg'); lead.setAttribute('class', 'dglead'); grid.appendChild(lead);
+    const relayout = () => {
+      const hr = grid.getBoundingClientRect();
+      const ox = hr.left, oy = hr.top;
+      lead.setAttribute('width', grid.clientWidth); lead.setAttribute('height', grid.clientHeight);
+      const cr = canvas.getBoundingClientRect();
+      let out = '';
+      pairs.forEach(({ card, anc }) => {
+        ['sel', 'sel-part', 'dim'].forEach((k) => anc.classList.toggle(k, card.classList.contains(k)));
+        const cc = card.style.getPropertyValue('--c'); if (cc) anc.style.setProperty('--c', cc);
+        const dot = anc.querySelector('.anchor'); if (!dot) return;
+        const a = dot.getBoundingClientRect(), c = card.getBoundingClientRect();
+        if (!a.width || !c.width) return;
+        const nb = card.querySelector('.no'); const nr = nb ? nb.getBoundingClientRect() : null;
+        const cy = (nr ? nr.top + nr.height / 2 : c.top + c.height / 2) - oy;
+        const acx = a.left + a.width / 2 - ox, acy = a.top + a.height / 2 - oy, ar = a.width / 2 + 1;
+        let d = null;
+        if (c.right <= cr.left + 2) d = `M${(c.right - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.left - ox - 8).toFixed(1)} V${acy.toFixed(1)} H${(acx - ar).toFixed(1)}`;
+        else if (c.left >= cr.right - 2) d = `M${(c.left - ox).toFixed(1)},${cy.toFixed(1)} H${(cr.right - ox + 8).toFixed(1)} V${acy.toFixed(1)} H${(acx + ar).toFixed(1)}`;
+        if (!d) return;                                   // 卡片在畫布下面（單欄）：靠編號對照，不畫引線
+        const cls = (card.classList.contains('sel-part') ? 'sel-part' : card.classList.contains('sel') ? 'sel' : '') + (card.classList.contains('dim') ? ' dim' : '');
+        out += `<path d="${d}" class="${cls}"${cc ? ` style="--c:${cc}"` : ''}/>`;
+      });
+      lead.innerHTML = out;
+      host.classList.toggle('dg1', svg.classList.contains('dg1'));
+      host.classList.toggle('haspart', svg.classList.contains('haspart'));
+    };
+    svg.__dgRelayout = relayout;
+    let queued = false;
+    const later = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; relayout(); }); };
+    if (window.ResizeObserver) new ResizeObserver(later).observe(host);
+    else window.addEventListener('resize', later);
+    if (window.MutationObserver) {
+      new MutationObserver((recs) => {
+        if (recs.some((r) => r.target === svg || (r.target.classList && r.target.classList.contains('dgc')))) later();
+      }).observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+    }
+    window.addEventListener('tw:dgpal', later);
+    relayout(); requestAnimationFrame(relayout); setTimeout(relayout, 300);
+  }
+
+  /* ================================================================ 量完再縮（風格系統 2026-09-22）
+     閱讀模式把字級整組升一階（12 → 13px），為 12px 排的整行說明會多出 5～8%，
+     原本剛好貼著畫布右緣的那幾行就頂出去、被 overflow:hidden 切掉。
+     這裡對每一個「右緣超出 viewBox」的 text 設 textLength（spacingAndGlyphs），
+     只准壓 ≤ 12% —— 再多字會變形，那是版面要改的事，不是這裡該硬撐的。
+     切模式（tw:dgpal 事件）、開章節（wireFolds 的 paint）之後都會重算。
+     這是共用機制，沒有動任何一張圖的幾何；科技模式下量出來 0 行需要壓。*/
+  function fitTexts(svg) {
+    const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0; if (!vb) return;
+    const lim = vb - 4;
+    svg.querySelectorAll('text').forEach((t) => {
+      if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); }
+      let b, m; try { b = t.getBBox(); m = t.getCTM(); } catch (e) { return; }
+      if (!b || !b.width || !m) return;
+      let want;
+      const row = t.parentNode && t.parentNode.closest ? t.parentNode.closest('.lrow') : null;
+      const card = row ? row.querySelector('rect.bg') : null;
+      if (card && !t.classList.contains('non')) {
+        // 卡片裡的字：不准超出卡片右緣（同一個群組、同一個座標系，直接比）
+        const cr = parseFloat(card.getAttribute('x')) + parseFloat(card.getAttribute('width')) - 6;
+        if (b.x + b.width <= cr) return;
+        want = cr - b.x;
+      } else {
+        const sx = m.a || 1;                                 // 局部座標到畫布座標的縮放（只有 translate 時是 1）
+        const left = m.a * b.x + m.c * b.y + m.e, right = left + b.width * sx;
+        if (right <= lim) return;
+        want = (lim - left) / sx;
+      }
+      if (want / b.width < 0.88) return;
+      t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
+      t.setAttribute('textLength', want.toFixed(1));
+    });
+  }
+  window.addEventListener('tw:dgpal', () => { document.querySelectorAll('svg.dg').forEach(fitTexts); });
+
   /* 一條章節列佔掉的垂直空間（框 36 ＋ 列距 6）。
      2026-09-22 從 46 收到 42：一張圖最多四條，省下來的 16px 直接變成畫布高度的餘裕，
      而 36px 的框裝 13.5px 的標題還有 11px 的上下留白，點擊區也還夠大。*/
@@ -195,9 +366,9 @@
   const FOLD_PT = 14, FOLD_PB = 22;  // 自動量測時，內容上緣／下緣各留的空白
 
   function wireFolds(svg) {
-    if (svg.dataset.dgFold === '1') return;          // 同一張圖被 stamp 兩次不要重複綁
+    if (svg.dataset.dgFold === '1') { fitTexts(svg); return; }   // 同一張圖被 stamp 兩次不要重複綁，但字要重量
     const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
-    if (!all.length) return;
+    if (!all.length) { fitTexts(svg); return; }
     /* ★ 自動量測（art-director 2026-09-22）：掛 `data-auto="1"` 的段落**不在原始碼裡宣告 y0/y1**，
        由這裡量 getBBox() 得到。為什麼要這樣做：十三張量產圖的段落大量用 transform 疊出來
        （`<g transform="translate(0,D)">` 套好幾層），手算 y0/y1 等於把同一份座標抄第二遍 ——
@@ -214,7 +385,7 @@
         if (body) {
           let b = null;
           try { b = g.getBBox(); } catch (e) { b = null; }
-          if (!b || !(b.height > 0)) return;          // 量不到 → 放棄，維持全部展開
+          if (!b || !(b.height > 0)) { fitTexts(svg); return; }   // 量不到 → 放棄，維持全部展開
           off = b.y - FOLD_PT; h = b.height + FOLD_PT + FOLD_PB;
         } else {
           // 章節列畫在自己的區域座標 0～36，位置整個交給下面的重新堆疊
@@ -228,7 +399,7 @@
       rows.push({ el: g, id: g.getAttribute('data-fold'), body, off, h });
     }
     const bodies = rows.filter((r) => r.body);
-    if (!rows.length || !bodies.length) return;
+    if (!rows.length || !bodies.length) { fitTexts(svg); return; }
     svg.dataset.dgFold = '1';
     const bars = rows.filter((r) => !r.body);
     /* 第一條章節列擺在哪裡 —— 兩個候選取**大**的那一個：
@@ -261,6 +432,9 @@
       bars.forEach((r) => {
         const on = open.has(r.id);
         r.el.classList.toggle('open', on);
+        // 章節列寬度跟著畫布寬（v2 的畫布可以是 660 而不是 980；fold()／foldBar() 畫的是 948）
+        const fb = r.el.querySelector('.fbar'); if (fb) fb.setAttribute('width', W - 32);
+        const hx = r.el.querySelector('.fhint'); if (hx) hx.setAttribute('x', W - 32);
         const sg = r.el.querySelector('.fsign'), hi = r.el.querySelector('.fhint');
         if (sg) sg.textContent = on ? '－' : '＋';
         // 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼
@@ -280,10 +454,16 @@
             const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
             while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
             hi.setAttribute('display', hit() ? 'none' : 'inline');
+            // 砍短了就把全文掛成 tooltip（v2 的 660 寬畫布幾乎每一條都會砍）
+            let tt2 = r.el.querySelector(':scope > title');
+            if (!tt2) { tt2 = document.createElementNS('http://www.w3.org/2000/svg', 'title'); r.el.appendChild(tt2); }
+            tt2.textContent = full;
           }
         }
       });
       svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Math.round(cur + PAD));
+      fitTexts(svg);                                  // 剛展開的段落也要量一次
+      if (svg.__dgRelayout) svg.__dgRelayout();       // v2：錨點位置變了，引線要重畫
     }
     bars.forEach((r) => {
       r.el.addEventListener('click', (e) => {
@@ -347,46 +527,110 @@
     return !!al && al.split(',').indexOf(key) >= 0;
   }
 
-  /* 右側說明列：圓點 + 標題 + 副標 + 引線到零件上的 (tx,ty)。**共用函式，三張圖都在用。**
+  /* ================================================================ 共用元件（風格系統 2026-09-22）
+     規格：docs/diagram_specs/_STYLE.md §3～§5。API 跟改造之前一模一樣，只多了可選的編號 `no`：
+       labelRow(seg, x, y, title, sub, tx, ty, w, dropY, no)
+       lrow3(o, x, y, w, i, no)
+       processBar(x, y, steps, w)   steps[i].no 可選
+     視覺全部在 STYLE 的 .lrow／.card／.leader／.anchor 那幾條，兩種模式靠 token 換。*/
 
-     ★ 行距（art-director 2026-09-21）：標題基線 y+2、副標基線以前是 y+15 ＝ 行距只有 13px。
-     `.dg .sub` 從 10.5px 升到 12px 之後，13px 行距配 12px 中文字 —— 量到 MLCC 那張
-     **六對標題／副標的 bbox 互相重疊 1.00px**（1440／800／390 都一樣，深淺主題也一樣）。
-     這跟 processBar 的 B3 是同一個病：行距沒有跟著字級長。
-     改成 y+18（行距 16px，與 processBar 對齊），底框 34 → 40 撐得下。
-     列距是 52～54px，底框 40 之後兩列之間還留 12～14px。
+  /* 引線（D.pointer）：從零件上的錨點 (ax,ay) 走到卡片邊緣 (bx,by)，細線 ＋ 端點小圓。
+     預設「先水平到轉折點、再垂直、再水平進卡片邊緣」；傳 drop 就改成「先垂直走到 drop、再水平過去」
+     （繞過主角而不是穿過它 —— MLCC 的「側邊餘白」就是這樣）。
+     opts：{elbow: 轉折點的 x（預設 bx−6）, drop: 先垂直走到的 y, node:false ＝ 不畫端點}
+     端點的樣式全在 STYLE 的 .anchor：科技帶光暈、閱讀只留實心圓點。*/
+  function pointer(ax, ay, bx, by, opts) {
+    opts = opts || {};
+    const elbow = opts.elbow != null ? opts.elbow : bx - 6;
+    const d = opts.drop != null
+      ? `M${ax},${ay} L${ax},${opts.drop} L${elbow},${opts.drop} L${elbow},${by} L${bx},${by}`
+      : `M${ax},${ay} L${elbow},${ay} L${elbow},${by} L${bx},${by}`;
+    return `<path class="leader" d="${d}"/>` + (opts.node === false ? '' : `<circle class="anchor" cx="${ax}" cy="${ay}" r="2.8"/>`);
+  }
+  /* 卡片左側：色條 ＋（編號圓點｜原本的小圓點）。沒給編號時小圓點的位置跟改造前一樣，文字也不動；
+     給了編號才把文字往右挪 3px 讓出圓點（編號卡是新東西，沒有既有版面要守）。*/
+  function cardHead(x, y, no) {
+    const bar = `<rect class="cbar" x="${x - 8}" y="${y - 6}" width="3" height="22" rx="1.5"/>`;
+    if (no == null) return bar + `<circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>`;
+    const n = String(no).padStart(2, '0');
+    return bar + `<circle class="no" cx="${x + 6.5}" cy="${y + 5}" r="9.5"/><text class="non" x="${x + 6.5}" y="${y + 5}">${n}</text>`;
+  }
+  /* 右側說明卡：卡片 ＋ 標題 ＋ 副標 ＋ 引線到零件上的 (tx,ty)。**共用函式，每一張圖都在用。**
+     行距 16px、底框 40（art-director 2026-09-21 量過的，字級升到 12 之後 13px 行距會相貼）。
+     `dropY`（P4-a）：錨點在主體另一側時傳它，引線先垂直走到 dropY 再水平過去，繞過主角。
+     引線停在卡片左緣（x−8），不再伸進卡片裡 —— 卡片現在是有底色的，線進去會看起來像畫錯。*/
+  /* ================================================================ v2：卡片離開 SVG（Andy 2026-09-22）
+     「這邊的版面需要左右對齊，可以適當分配左右間隔，讓版面更滿，看起來舒適，並且會依據螢幕大小變化」。
+     做法：畫圖的人照舊呼叫 labelRow／lrow3，只多傳 `side`（'l'／'r'）——
+     那一列就不再畫在 SVG 裡，而是留下一個「資料來源」群組（.lrow.ext，永遠不顯示）
+     ＋ 畫布上的錨點（.anc：有編號就是編號圓點、沒有就是小圓）。
+     stampParts() 之後由 externalize() 把它變成 HTML 卡片（index.html 的 .dgc），
+     放進畫布左右兩欄，並用一層 svg（.dglead）畫引線 —— 寬度變了引線跟著重算，沒有寫死座標。
+     卡片是 HTML，所以文字自己換行、欄寬多寬都不會擠；SVG 只剩畫布本身（MLCC 從 980 縮到 660 寬）。
+     互動一個都沒少：卡片本身就是 `[data-seg]`／`[data-part]` 節點，industry.js 的
+     wireDiagram／highlightSegments 把它當零件對待（點卡片亮零件、點零件亮卡片、點背景恢復）。*/
+  let ANC = 0;
+  function extRow(o) {
+    const id = 'anc' + (++ANC);
+    const subs = Array.isArray(o.sub) ? o.sub : (o.sub ? [o.sub] : []);
+    const attrs = `data-anc="${id}" data-side="${o.side === 'l' ? 'l' : 'r'}"`
+      + (o.seg ? ` data-seg="${o.seg}"` : '') + (o.part ? ` data-part="${o.part}"` : '')
+      + (o.codes && o.codes.length ? ` data-codes="${o.codes.join(',')}"` : '') + (o.alias ? ` data-alias="${o.alias}"` : '')
+      + (o.color ? ` data-dgcolor="${o.color}"` : '') + (o.no != null ? ` data-no="${o.no}"` : '')
+      + (o.warn ? ' data-warn="1"' : '') + (o.note ? ' data-note="1"' : '')
+      + ` data-order="${o.order != null ? o.order : (o.no != null ? o.no : (o.warn ? 99 : 50))}"`;
+    const row = `<g class="lrow ext" ${attrs}><text class="lbl" x="0" y="0">${o.title}</text>${subs.map(t => `<text class="sub" x="0" y="0">${t}</text>`).join('')}</g>`;
+    if (o.ax == null) return row;
+    const n = o.no != null ? String(o.no).padStart(2, '0') : '';
+    return row + `<g class="anc" data-for="${id}">` + (n
+      ? `<circle class="anchor no" cx="${o.ax}" cy="${o.ay}" r="9.5"/><text class="non" x="${o.ax}" y="${o.ay}">${n}</text>`
+      : `<circle class="anchor" cx="${o.ax}" cy="${o.ay}" r="2.8"/>`) + `</g>`;
+  }
+  /* 沒有錨點的說明卡（公式、結論、警語）。lines 可以是字串或陣列；warn＝警語樣式 */
+  const note = (o) => extRow({ side: o.side, title: o.title, sub: o.lines, no: o.no, warn: o.warn, note: true, color: o.color, order: o.order });
 
-     ★ `dropY`（art-director 2026-09-21，P4-a）：引線預設是「從零件水平走到轉折點再垂直上去」。
-     當零件的錨點落在**主體的另一側**時，那條水平線會**橫跨整個主角**——
-     MLCC 的「側邊餘白」就是這樣：錨點在本體最左 x≈360、標註框在最右 x=654，
-     中間那條線從主角身上穿過去。傳 dropY 就改成「先垂直走到 dropY（主體下方）再水平過去」，
-     繞過主角而不是穿過它。沒傳的呼叫端一行都不用改。*/
-  function labelRow(seg, x, y, title, sub, tx, ty, w, dropY) {
+  function labelRow(seg, x, y, title, sub, tx, ty, w, dropY, no, side) {
+    if (side) return extRow({ seg, title, sub, no, side, ax: tx, ay: ty });
     w = w || 250;
-    const elbow = x - 14;
-    const lead = dropY != null
-      ? `M${tx},${ty} L${tx},${dropY} L${elbow},${dropY} L${elbow},${y - 2} L${x - 2},${y - 2}`
-      : `M${tx},${ty} L${elbow},${ty} L${elbow},${y - 2} L${x - 2},${y - 2}`;
-    return `<g class="lrow" data-seg="${seg}"><rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="40" rx="6"/>
-      ${tx != null ? `<path class="leader" d="${lead}"/>` : ''}
-      <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
-      <text class="lbl" x="${x + 16}" y="${y + 2}">${title}</text><text class="sub" x="${x + 16}" y="${y + 18}">${sub}</text></g>`;
+    const L = x - 8, T = x + (no != null ? 19 : 16);
+    return `<g class="lrow" data-seg="${seg}"><rect class="bg" x="${L}" y="${y - 15}" width="${w}" height="40" rx="8"/>
+      ${tx != null ? pointer(tx, ty, L, y - 2, { elbow: x - 14, drop: dropY }) : ''}${cardHead(x, y, no)}
+      <text class="lbl" x="${T}" y="${y + 2}">${title}</text><text class="sub" x="${T}" y="${y + 18}">${sub}</text></g>`;
   }
-  /* 底部流程列：一串步驟方塊，帶移動的光點。**共用函式，三張圖都在用。**
-     B3（art-director 2026-09-21）：方塊本來高 34、標題基線 y+16、副標基線 y+28 ＝ 行距只有 12px。
-     `.dgm .sub` 從 10.5px 升到 12px 之後，12px 的中文字配 12px 行距 ——
-     量到 5 對文字的 bbox 互相重疊 1.7～2.0px（800px 與 1100px 都是），副標下緣也頂到框線。
-     改成高 40、標題 y+16、副標 y+32（行距 16px）：上緣留 6.6px、下緣留 5.2px。
-     光點與箭頭跟著移到新的垂直中線 y+20。 */
-  const PB_H = 40, PB_MID = 20;
-  function processBar(x, y, steps, w) {
-    w = w || 150; const gap = 12;
-    const boxes = steps.map((s, i) => { const bx = x + i * (w + gap); return `<g data-seg="${s.seg}"><rect class="part" x="${bx}" y="${y}" width="${w}" height="${PB_H}" rx="7" fill="var(--dg-step-f,#0f172b)"/><text class="lbl" x="${bx + 12}" y="${y + 16}">${s.t}</text><text class="sub" x="${bx + 12}" y="${y + 32}">${s.s}</text></g>`
-      + (i < steps.length - 1 ? `<path class="flow fast" d="M${bx + w},${y + PB_MID} L${bx + w + gap},${y + PB_MID}" stroke="var(--dg-accent)" stroke-width="2"/>` : ''); }).join('');
-    const total = steps.length * (w + gap) - gap;
-    return `<g>${boxes}<circle r="3" fill="#fff" opacity=".9"><animateMotion dur="6s" repeatCount="indefinite" path="M${x},${y + PB_MID} L${x + total},${y + PB_MID}"/></circle></g>`;
+  /* 底部流程列：一串步驟卡片，帶移動的光點。步驟可以給 no（編號圓點）。
+     B3（art-director 2026-09-21）：卡片高 40、標題 y+16、副標 y+32（行距 16px）。*/
+  const PB_H = 40, PB_MID = 20, PB_ROW = 58;
+  /* opts.cols：一列放幾格。窄畫布（660）放不下五格 184 寬的步驟，分成 3＋2 兩列，
+     列與列之間用一條往下折的流動線接起來，光點沿著同一條折線跑。*/
+  function processBar(x, y, steps, w, opts) {
+    w = w || 150; const gap = 12, cols = (opts && opts.cols) || steps.length;
+    const pos = steps.map((s, i) => ({ bx: x + (i % cols) * (w + gap), by: y + Math.floor(i / cols) * PB_ROW }));
+    let dot = '';
+    const boxes = steps.map((s, i) => {
+      const { bx, by } = pos[i], num = s.no != null, tx = bx + (num ? 30 : 12);
+      const no = num ? `<circle class="no" cx="${bx + 15}" cy="${by + PB_MID}" r="9.5"/><text class="non" x="${bx + 15}" y="${by + PB_MID}">${String(s.no).padStart(2, '0')}</text>` : '';
+      let link = '';
+      dot += (i ? ' L' : 'M') + `${bx},${by + PB_MID} L${bx + w},${by + PB_MID}`;
+      if (i < steps.length - 1) {
+        const nx = pos[i + 1];
+        if (nx.by === by) link = `M${bx + w},${by + PB_MID} L${nx.bx},${by + PB_MID}`;
+        else { link = `M${bx + w},${by + PB_MID} h6 V${by + PB_H + 9} H${nx.bx - 6} V${nx.by + PB_MID} h6`; dot += ` L${bx + w + 6},${by + PB_MID} L${bx + w + 6},${by + PB_H + 9} L${nx.bx - 6},${by + PB_H + 9} L${nx.bx - 6},${nx.by + PB_MID}`; }
+      }
+      return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${PB_H}" rx="7"/>${no}<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text></g>`
+        + (link ? `<path class="flow fast" d="${link}" fill="none" stroke="var(--dg-accent)" stroke-width="var(--dg-flow-w,2)"/>` : '');
+    }).join('');
+    return `<g>${boxes}<circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${dot}"/></circle></g>`;
   }
-  const chainLink = (chain, x, y, text) => `<g data-chain="${chain}"><rect x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8" fill="var(--dg-step-f,#0f172b)" stroke="var(--dg-part-mix,#2a3860)"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d,#3ee0ff);font-weight:600">${text}</text></g>`;
+  const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
+  /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
+       explode(n, {y0, h, gap}) → 2D 垂直拆解：回第 i 層的 y（由上往下），h 是每層高、gap 是呼吸空間
+       explodeZ(heights, gap)  → 2.5D 垂直拆解：回每一層底面的 z（由下往上），heights 是每層厚度
+     預設 gap 18：小於 12 看起來像疊在一起、大於 30 引線會拉太長（_STYLE.md §4）。*/
+  const EXPLODE_GAP = 18;
+  function explode(n, o) { o = o || {}; const y0 = o.y0 || 0, h = o.h || 24, gap = o.gap != null ? o.gap : EXPLODE_GAP; return Array.from({ length: n }, (_, i) => y0 + i * (h + gap)); }
+  function explodeZ(hs, gap) { gap = gap != null ? gap : EXPLODE_GAP; let z = 0; return hs.map((h) => { const z0 = z; z += h + gap; return z0; }); }
+  /* 主角的環境光落影：把主角包進去就好。閱讀模式吃 --dg-hero-sh（柔和落影），科技是 none。*/
+  const shadow = (inner, cls) => `<g class="hero${cls ? ' ' + cls : ''}">${inner}</g>`;
 
   /* ================================================================ 等角 3D 工具箱
      投影：模型 x 往畫面右下、y 往畫面左下、z 往上。所有題材產品圖共用這一套，
@@ -432,7 +676,7 @@
       + (inner ? `<g transform="translate(${px(x, y).toFixed(1)},${py(x, y, z).toFixed(1)}) matrix(${IX},${IY},0,-1,0,0)">${inner}</g>` : '');
   }
   // 沿 3D 折線走的管路／訊號（傳入 [x,y,z] 陣列）
-  const wire = (pts, cls, col, w) => `<path class="${cls || ''}" d="M${pts.map(p => P3(p[0], p[1], p[2])).join('L')}" fill="none" stroke="${col || '#3ee0ff'}" stroke-width="${w || 2}" stroke-linecap="round"/>`;
+  const wire = (pts, cls, col, w) => `<path class="${cls || ''}" d="M${pts.map(p => P3(p[0], p[1], p[2])).join('L')}" fill="none" stroke="${col || 'var(--dg-accent-2d)'}" stroke-width="${w || 2}" stroke-linecap="round"/>`;
   // 地板格線（放在 onTop(0) 裡，讓場景站得住）
   function floor(w, d, step, x0, y0) {
     const a = []; x0 = x0 || 0; y0 = y0 || 0;
@@ -450,16 +694,17 @@
   }
   // 零件外框：把幾何、data-part（點了看個股）、data-seg（跟環節同色）綁在一起
   const p3 = (o, inner) => `<g class="p3" data-part="${o.id}"${o.codes && o.codes.length ? ` data-codes="${o.codes.join(',')}"` : ''}${o.seg ? ` data-seg="${o.seg}"` : ''}${o.chain ? ` data-chain="${o.chain}"` : ''}>${inner}</g>`;
-  // 右側說明列（3D 版：綁 data-part，不是 data-seg）
-  function lrow3(o, x, y, w, i) {
+  // 右側說明卡（3D 版：綁 data-part，不是 data-seg）。跟 labelRow 同一個卡片，只差身分是零件。
+  function lrow3(o, x, y, w, i, no, side) {
+    if (side) return extRow({ seg: o.seg, part: o.id, codes: o.codes, alias: o.alias, title: o.label, sub: o.sub, no, side, ax: o.ax != null ? o.ax.toFixed(1) : null, ay: o.ay != null ? o.ay.toFixed(1) : null });
     w = w || 262;
     // 每一列的轉折點錯開，不然七條引線的垂直段會疊成一條粗線，看起來像畫錯
     const elbow = x - 14 - (i || 0) * 8;
+    const L = x - 8, T = x + (no != null ? 19 : 16);
     return `<g class="p3 lrow" data-part="${o.id}"${o.codes && o.codes.length ? ` data-codes="${o.codes.join(',')}"` : ''}${o.seg ? ` data-seg="${o.seg}"` : ''}>
-      <rect class="bg" x="${x - 8}" y="${y - 15}" width="${w}" height="40" rx="6"/>
-      ${o.ax != null ? `<path class="leader" d="M${o.ax.toFixed(1)},${o.ay.toFixed(1)} L${elbow},${o.ay.toFixed(1)} L${elbow},${y - 2} L${x - 2},${y - 2}"/>` : ''}
-      <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
-      <text class="lbl" x="${x + 16}" y="${y + 2}">${o.label}</text><text class="sub" x="${x + 16}" y="${y + 18}">${o.sub || ''}</text></g>`;
+      <rect class="bg" x="${L}" y="${y - 15}" width="${w}" height="40" rx="8"/>
+      ${o.ax != null ? pointer(o.ax.toFixed(1), o.ay.toFixed(1), L, y - 2, { elbow }) : ''}${cardHead(x, y, no)}
+      <text class="lbl" x="${T}" y="${y + 2}">${o.label}</text><text class="sub" x="${T}" y="${y + 18}">${o.sub || ''}</text></g>`;
   }
 
   /* ================================================================ 半導體鏈的 2D CoWoS 剖面：**已退場**（DECISIONS #234，2026-09-22）
@@ -614,7 +859,9 @@
        再大就得往下長，而往下長會把右欄六條說明列一起推下去，讀起來反而更散。
        幾何一行都沒動：S 是純等比縮放，mechanical-engineer 簽過的層序、餘白、
        切法、端子順序完全不受影響。*/
-    const CX = 217.5, CY = 322;                          // 等角本體在畫面上的原點
+    /* ★ 2026-09-22 v2：標題與說明搬到 HTML 的 .dghead、六條說明與公式／警語搬到左右欄的 HTML 卡片，
+       SVG 只剩主角 —— 畫布從 980 縮到 660 寬，主角往上移 72px（標題原本佔的位置），幾何一行沒動。*/
+    const CX = 217.5, CY = 250;                          // 等角本體在畫面上的原點
     const S = 1.48;
     const ax = (x, y) => (CX + S * (x - y) * IX).toFixed(1);
     const ay = (x, y, z) => (CY + S * ((x + y) * IY - z)).toFixed(1);
@@ -777,26 +1024,28 @@
          跟底下六條逐層說明講的是同一件事（哪一層在做什麼）。
          放在左上角時它跟主角互相搶第一眼；放在同一欄的最上面，閱讀順序就只有一條線：
          公式（為什麼要疊）→ 六條（疊了什麼）→ 警語（疊錯會怎樣）。 */
-    const R = 656, RW = 284;              // 右側說明欄：文字起點 x 與底框寬
-    const S1 = 580;                       // 主畫面（§1）結束的位置
-    /* 三個章節的自然位置（＝全部展開時的版面）。收合是 wireFolds() 在執行期重新堆的，
-       所以這幾個數字只要「展開時看起來對」就好，不必去算收合後的位置。*/
-    const Y2 = 638, Y3 = 1136, Y4 = 1470; // 三段內容區的起點
-    const D2 = 176;                       // ② 段裡「端電極放大剖面 ＋ 四層圖例」的整體位移
-    const D3 = 24, D4 = 32;               // ③／④ 段內容的微調位移（讓每段的上緣留白一致）
-    // 四層圖例（順序＝正上方那句「由內到外 Cu →〔樹脂〕→ Ni → Sn」，A4 修過的，不准倒回去）
+    /* ================= 版面（v2，art-director 2026-09-22）=================
+       Andy：「這邊的版面需要左右對齊，可以適當分配左右間隔，讓版面更滿，看起來舒適，並且會依據螢幕大小變化」。
+       §1 ＝ 主角本體（660 寬畫布）；六條說明、公式、警語全是 HTML 卡片（labelRow 多傳 side）：
+         左欄：① 公式、01 保護層、05 側邊餘白（錨點在主角左半邊）
+         右欄：02 介電、03 內部電極、04 有效層、06 端電極、警語
+       欄數與寬度由 index.html 的 .dgv2 容器查詢決定（≥1280 三欄、960～1279 畫布＋右欄、更窄單欄卡片在下面）。
+       三段章節用 D.fold()（座標由 wireFolds 量），內容重排到 660 寬：一個字都沒刪，只有斷行與位置變了。*/
+    const CW = 660;
+    // 四層圖例（順序＝正上方那句「由內到外 Cu →〔樹脂〕→ Ni → Sn」，A4 修過的，不准倒回去）；2×2 排
     const legend = [['var(--dg-cu)', 'Cu 基底層（最內）', '最厚的一層，銅膏沾附後約 800–900 °C 燒附上去'],
       ['var(--dg-resin)', '導電樹脂（軟端子）', '只有車規／高可靠度品才有；抗板彎，ESR 變高'],
       ['var(--dg-ni)', 'Ni 鎳鍍層', '阻障層，擋焊料把底下的銅吃掉'],
       ['var(--dg-sn)', 'Sn 錫鍍層（最外）', '最外一層，讓焊錫吃得上去']]
-      .map(([c, t, sb], i) => `<g><rect x="640" y="${548 + i * 44}" width="15" height="15" rx="3" fill="${c}"/>`
-        + `<text class="lbl" x="664" y="${560 + i * 44}">${t}</text><text class="sub" x="664" y="${578 + i * 44}">${sb}</text></g>`).join('');
+      .map(([c, t, sb], i) => { const x = 16 + (i % 2) * 324, y = 846 + Math.floor(i / 2) * 48;
+        return `<g><rect x="${x}" y="${y - 12}" width="15" height="15" rx="3" fill="${c}"/>`
+          + `<text class="lbl" x="${x + 24}" y="${y}">${t}</text><text class="sub" x="${x + 24}" y="${y + 18}">${sb}</text></g>`; }).join('');
 
-    /* class 多一個 `dg1`：**這張圖只有一個環節**（整張 14 個 [data-seg] 全是 passive_comp），
-       所以點任何零件都會讓全部零件一起 .sel。發光留著就是「整張圖發青光、0 個被 dim」，
-       那個狀態不傳達任何資訊，只剩螢光感。`.dg.dg1{--dg-glow:none}` 把它關掉（B1）。
-       viewBox 的高度寫的是「全部展開」的高度；收合是 wireFolds() 在執行期改的。*/
-    return `<svg class="dg dgm dg1" viewBox="0 0 980 1732" width="100%" style="display:block">${STYLE}
+    /* class 多一個 `dg1`：**這張圖只有一個環節**（整張 [data-seg] 全是 passive_comp），
+       點任何零件都會讓全部零件一起 .sel。發光留著就是「整張圖發青光、0 個被 dim」，
+       `.dg.dg1{--dg-glow:none}` 把它關掉（B1）。`rs` ＝ 已改造成風格系統（閱讀模式字級升一階、卡片外掛）。
+       viewBox 的高度是「全部展開」的靜態版面；收合與章節位置由 wireFolds() 在執行期算。*/
+    return `<svg class="dg dgm dg1 rs" viewBox="0 0 ${CW} 1760" width="100%" style="display:block">${STYLE}
       <defs>
         <linearGradient id="mcT" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer)"/><stop offset="1" stop-color="var(--dg-cer-2)"/></linearGradient>
         <linearGradient id="mcL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-cer-sh)"/><stop offset="1" stop-color="var(--dg-cer-sh-2)"/></linearGradient>
@@ -808,10 +1057,11 @@
         <linearGradient id="mcMetR" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-met-r)"/><stop offset="1" stop-color="var(--dg-met-r-2)"/></linearGradient>
         <linearGradient id="mcMetL" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-met-l)"/><stop offset="1" stop-color="var(--dg-met-l-2)"/></linearGradient>
       </defs>
-      <text class="ttl" x="16" y="26">MLCC 積層陶瓷電容：層數怎麼變成容值，也怎麼變成成本</text>
-      <text class="cap" x="16" y="46">中間是切開近角的本體 —— 右下切面看「交錯指狀電極」，左下切面看「側邊餘白」。右邊逐層說明；端電極、製程、尺寸代號收在下面三段裡。</text>
+      <!-- 標題與說明：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
+      <text class="ttl ext" x="0" y="0">MLCC 積層陶瓷電容：層數怎麼變成容值，也怎麼變成成本</text>
+      <text class="cap ext" x="0" y="0">中間是切開近角的本體 —— 右下切面看「交錯指狀電極」，左下切面看「側邊餘白」。兩側逐層說明；端電極、製程、尺寸代號收在下面三段裡。</text>
 
-      <!-- ================= §1 主畫面：主角 ＋ 右側說明欄（永遠看得到） ================= -->
+      <!-- ================= §1 主畫面：主角（永遠看得到） ================= -->
       ${iso}
       <!-- A6（規格書 §6-C）：省略記號要畫在條紋區**中間**，不是只寫在最底下的文字裡。 -->
       <g pointer-events="none">
@@ -820,32 +1070,25 @@
         <text class="num" x="${NX}" y="${NY + 15}" text-anchor="middle" style="fill:var(--dg-el);font-weight:700">×N</text>
       </g>
 
-      <!-- 右欄 ① 容值公式（命題本身，所以排在這一欄的最上面） -->
-      <rect class="frame" x="${R - 8}" y="66" width="300" height="94" rx="8"/>
-      <text class="hd" x="${R + 6}" y="88">① 容值是層數堆出來的</text>
-      <text class="num" x="${R + 6}" y="110">C ＝ ε₀ · εr × n × A ÷ d</text>
-      <text class="sub" x="${R + 6}" y="128">n＝層數、A＝重疊面積、d＝單層厚度</text>
-      <text class="sub" x="${R + 6}" y="146">n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑</text>
+      <!-- 左欄：① 容值公式（命題本身，所以排在最上面）、01、05 -->
+      ${note({ side: 'l', order: 0, title: '① 容值是層數堆出來的', lines: ['C ＝ ε₀ · εr × n × A ÷ d', 'n＝層數、A＝重疊面積、d＝單層厚度', 'n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑'] })}
+      ${labelRow(SEG, 0, 0, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 0, null, 1, 'l')}
+      ${labelRow(SEG, 0, 0, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 0, null, 5, 'l')}
+      <!-- 右欄：02、03、04、06、警語 -->
+      ${labelRow(SEG, 0, 0, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 0, null, 2, 'r')}
+      ${labelRow(SEG, 0, 0, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 0, null, 3, 'r')}
+      ${labelRow(SEG, 0, 0, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), 0, null, 4, 'r')}
+      ${labelRow(SEG, 0, 0, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), 0, null, 6, 'r')}
+      ${note({ side: 'r', warn: true, title: '★ 相鄰兩層電極必定來自相反的兩端', lines: ['而且都不碰到對面的端電極 —— 碰到就是短路。'] })}
 
-      <!-- 右欄：六條逐層說明（引線接回零件） -->
-      ${labelRow(SEG, R, 196, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), RW)}
-      ${labelRow(SEG, R, 250, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), RW)}
-      ${labelRow(SEG, R, 304, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), RW)}
-      ${labelRow(SEG, R, 358, '有效層＝容值的來源', '相鄰兩層重疊的那一塊才算數', ax(150, 58), ay(150, 58, 45), RW)}
-      ${labelRow(SEG, R, 412, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), RW, BOT + 16)}
-      ${labelRow(SEG, R, 466, '端電極（包住端部五個面）', '由內到外 Cu → Ni → Sn，兩端對稱', ax(252, 58), ay(252, 58, 40), RW)}
-      <text class="sub" x="${R + 8}" y="512" style="fill:var(--dg-warn)">★ 相鄰兩層電極必定來自相反的兩端，</text>
-      <text class="sub" x="${R + 8}" y="530" style="fill:var(--dg-warn)">　 而且都不碰到對面的端電極 —— 碰到就是短路。</text>
-
-      <!-- ================= ② 端電極四層 ＋ 板彎裂（預設收合） ================= -->
-      ${foldBar('mc2', Y2 - 46, '② 端電極四層 ＋ 板彎裂：為什麼車規賣得比消費級貴', '消費級／車規兩張放大剖面、四層各自在幹嘛、板彎裂示意')}
-      <g class="dgbody" data-fold="mc2" data-y0="${Y2}" data-y1="1090">
-        <text class="hd" x="16" y="666">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
-        <g transform="translate(0,${D2})">${endCut(16, false)}${endCut(324, true)}
-          <text class="hd" x="640" y="526">四層各自在幹嘛（由內到外）</text>${legend}</g>
-        <text class="sub" x="16" y="914" style="fill:var(--dg-warn)">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
+      <!-- ================= ② 端電極四層 ＋ 板彎裂（預設收合；座標由 wireFolds 量） ================= -->
+      ${fold('mc2', '② 端電極四層 ＋ 板彎裂：為什麼車規賣得比消費級貴', '消費級／車規兩張放大剖面、四層各自在幹嘛、板彎裂示意', `
+        <text class="hd" x="16" y="586">端電極：由內到外 Cu →〔導電樹脂〕→ Ni → Sn，順序不准對調</text>
+        <g transform="translate(0,86)">${endCut(16, false)}${endCut(324, true)}</g>
+        <text class="hd" x="16" y="824">四層各自在幹嘛（由內到外）</text>${legend}
+        <text class="sub" x="16" y="940" style="fill:var(--dg-warn)">★ 把 Ni 畫在 Sn 外面是最常見的錯；樹脂層是夾在 Cu 與 Ni 之間，不是最外層。</text>
         <!-- 板彎裂：整塊沿用原本的座標，只把它往下搬（translate），內容一個字都沒改 -->
-        <g transform="translate(0,764)">
+        <g transform="translate(0,790)">
           <rect class="frame" x="16" y="170" width="270" height="128" rx="8"/>
           <text class="hd" x="30" y="192">② 板彎裂（flex crack）</text>
           <path d="M32,236 Q151,212 270,236" stroke="var(--dg-pcb)" stroke-width="9" fill="none" stroke-linecap="round"/>
@@ -854,75 +1097,70 @@
           <rect x="123" y="198" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/><rect x="172" y="198" width="11" height="16" rx="1.5" fill="var(--dg-sn)"/>
           <!-- A2：45° 裂。起點在安裝面（底面）的端電極內緣 x=134，往「外」上方 45° 走到端電極 x=123 -->
           <path d="M134,214 L129,209 L127,208 L123,203" stroke="var(--dg-err)" stroke-width="1.8" fill="none"/>
-          <!-- A1：三點彎。板子中間上凸（元件在凸面＝受拉面，陶瓷怕拉不怕壓），
-               所以受力一定是「兩端往下、中央往上」。 -->
+          <!-- A1：三點彎。板子中間上凸（元件在凸面＝受拉面，陶瓷怕拉不怕壓），所以受力一定是「兩端往下、中央往上」。 -->
           <path d="M40,241 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5M262,241 l0,9 m-3.5,-3.5 l3.5,3.5 l3.5,-3.5" stroke="var(--dg-ink-3)" stroke-width="1.2" fill="none"/>
           <path d="M151,250 l0,-14 m-4,4.5 l4,-4.5 l4,4.5" stroke="var(--dg-ink-3)" stroke-width="1.4" fill="none"/>
           <text class="sub" x="30" y="266">板子受力 → 應力傳到陶瓷本體 → 裂</text>
           <text class="sub" x="30" y="282">車規靠軟端子（導電樹脂）擋這一刀</text>
         </g>
-        <!-- 「車規為什麼難做」搬到板彎裂旁邊：它就是那張小圖的結論，兩個擺在一起才讀得順。
-             欄位從 458 加寬到 662，所以原本被硬斷成六行的三句話現在各自一行 ——
-             **一個字都沒改**，只是不再中途斷行。 -->
-        <g transform="translate(-206,116)">
-          <rect class="frame" x="508" y="818" width="662" height="104" rx="8"/>
-          <text class="hd" x="522" y="840">車規為什麼難做</text>
-          <text class="sub" x="522" y="862">溫度等級（例如 X8R 到 150 °C）要換一套配方，不是同一顆貼個標籤。</text>
-          <text class="sub" x="522" y="880">車子的板子會彎 → 要加導電樹脂層（軟端子），多一道製程，而且 ESR 變高。</text>
-          <text class="sub" x="522" y="898">AEC-Q200 全項（含基板彎曲）＋ 零缺陷框架；認證與換料時程長，產能一綁就難轉。</text>
-        </g>
-      </g>
+        <!-- 「車規為什麼難做」在板彎裂旁邊：它就是那張小圖的結論。660 寬放不下一行一句，三句各斷成兩行，一個字都沒改。 -->
+        <rect class="frame" x="300" y="960" width="344" height="146" rx="8"/>
+        <text class="hd" x="314" y="982">車規為什麼難做</text>
+        <text class="sub" x="314" y="1004">溫度等級（例如 X8R 到 150 °C）要換一套配方，</text>
+        <text class="sub" x="314" y="1022">不是同一顆貼個標籤。</text>
+        <text class="sub" x="314" y="1044">車子的板子會彎 → 要加導電樹脂層（軟端子），</text>
+        <text class="sub" x="314" y="1062">多一道製程，而且 ESR 變高。</text>
+        <text class="sub" x="314" y="1084">AEC-Q200 全項（含基板彎曲）＋ 零缺陷框架；</text>
+        <text class="sub" x="314" y="1102">認證與換料時程長，產能一綁就難轉。</text>`)}
 
       <!-- ================= ③ 製造流程 ＋ 為什麼越貴（預設收合） ================= -->
-      ${foldBar('mc3', Y3 - 46, '③ 怎麼做出來的：十道製程併成五格，以及為什麼疊越多層越貴', '五格製程流程、整顆良率隨層數下滑的曲線')}
-      <g class="dgbody" data-fold="mc3" data-y0="${Y3}" data-y1="1424"><g transform="translate(0,${D3})">
-        <text class="cap" x="16" y="1152">製造流程（十道併成五格）　★ 燒結一定在端電極之前 —— 反過來端電極會先被燒掉</text>
-        ${processBar(16, 1162, [{ seg: SEG, t: '流延成膜', s: '陶瓷漿料刮成生胚膜' },
+      ${fold('mc3', '③ 怎麼做出來的：十道製程併成五格，以及為什麼疊越多層越貴', '五格製程流程、整顆良率隨層數下滑的曲線', `
+        <text class="cap" x="16" y="1112">製造流程（十道併成五格）　★ 燒結一定在端電極之前 —— 反過來端電極會先被燒掉</text>
+        ${processBar(16, 1122, [{ seg: SEG, t: '流延成膜', s: '陶瓷漿料刮成生胚膜' },
     { seg: SEG, t: '網印 ＋ 疊層', s: '交替方向印 Ni 電極' },
     { seg: SEG, t: '加壓 ＋ 切割', s: '壓實後切成單顆' },
     { seg: SEG, t: '排膠 ＋ 燒結', s: '還原氣氛高溫燒結' },
-    { seg: SEG, t: '端電極 ＋ 電鍍', s: '800–900 °C 燒附 ＋ 電鍍' }], 184)}
-        <rect class="frame" x="16" y="1222" width="948" height="150" rx="8"/>
-        <text class="hd" x="30" y="1244">為什麼疊越多層越貴</text>
-        <text class="sub" x="30" y="1266">容值 ∝ 層數 ÷ 單層厚度 → 要大容值只有</text>
-        <text class="sub" x="30" y="1284">兩條路：疊更多層，或把每層做更薄。</text>
-        <text class="sub" x="30" y="1302">每多一層就多一次網印與疊層，而整顆良率</text>
-        <text class="sub" x="30" y="1320">是每層良率的連乘 —— 層數越多越陡。</text>
-        <text class="sub" x="30" y="1338">層變薄 → 粉體要更細、絕緣裕度變小；燒結</text>
-        <text class="sub" x="30" y="1356">時電極與陶瓷收縮不匹配，容易分層與裂。</text>
-        <g transform="translate(400,398)">
+    { seg: SEG, t: '端電極 ＋ 電鍍', s: '800–900 °C 燒附 ＋ 電鍍' }], 200, { cols: 3 })}
+        <rect class="frame" x="16" y="1236" width="628" height="150" rx="8"/>
+        <text class="hd" x="30" y="1258">為什麼疊越多層越貴</text>
+        <text class="sub" x="30" y="1280">容值 ∝ 層數 ÷ 單層厚度 → 要大容值只有</text>
+        <text class="sub" x="30" y="1298">兩條路：疊更多層，或把每層做更薄。</text>
+        <text class="sub" x="30" y="1316">每多一層就多一次網印與疊層，而整顆良率</text>
+        <text class="sub" x="30" y="1334">是每層良率的連乘 —— 層數越多越陡。</text>
+        <text class="sub" x="30" y="1352">層變薄 → 粉體要更細、絕緣裕度變小；燒結</text>
+        <text class="sub" x="30" y="1370">時電極與陶瓷收縮不匹配，容易分層與裂。</text>
+        <g transform="translate(130,412)">
           <path class="axis" d="M330,852V936H474"/>
           <path d="M330,858 C362,861 388,872 408,890 S446,924 472,933" stroke="var(--dg-accent)" stroke-width="2" fill="none" opacity=".85"/>
           <text class="sub" x="330" y="850">整顆良率</text><text class="sub" x="404" y="950">層數 →</text>
-        </g>
-      </g></g>
+        </g>`)}
 
       <!-- ================= ④ 尺寸代號、這一格有誰、資料來源（預設收合） ================= -->
-      ${foldBar('mc4', Y4 - 46, '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數')}
-      <g class="dgbody" data-fold="mc4" data-y0="${Y4}" data-y1="1716"><g transform="translate(0,${D4})">
-        <text class="hd" x="16" y="1468">③ 尺寸代號有兩套，別記混</text>
+      ${fold('mc4', '④ 尺寸代號有兩套、這一格是哪幾家、資料來源與免責', '三種尺寸的實體比例尺、EIA 與公制對照、成分名單與 2026 產業變數', `
+        <text class="hd" x="16" y="1432">③ 尺寸代號有兩套，別記混</text>
         <!-- 尺寸尺是附註級：單色 --dg-mute、不穿主角的陶瓷材質（上一輪降權的結論，維持） -->
-        <g transform="translate(0,1130)">
+        <g transform="translate(0,1074)">
           ${chip(22, 79, 40, 396)}${chip(114, 48, 24, 396)}${chip(174, 32, 16, 396)}
           <path d="M22,410V422M101,410V422M22,416H101" stroke="var(--dg-mute)" stroke-width="1" opacity=".7" fill="none"/>
           <text class="num" x="109" y="421" style="fill:var(--dg-mute)">1 mm</text>
         </g>
-        <text class="sub" x="250" y="1496">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
-        <text class="sub" x="250" y="1514">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
-        <text class="sub" x="250" y="1532">EIA 01005 ＝ 公制 0402 ＝ 0.4 × 0.2 mm</text>
+        <text class="sub" x="250" y="1460">EIA 0402 ＝ 公制 1005 ＝ 1.0 × 0.5 mm</text>
+        <text class="sub" x="250" y="1478">EIA 0201 ＝ 公制 0603 ＝ 0.6 × 0.3 mm</text>
+        <text class="sub" x="250" y="1496">EIA 01005 ＝ 公制 0402 ＝ 0.4 × 0.2 mm</text>
         <!-- A5-a（mechanical-engineer 複驗）：把「這張圖對應到誰」講清楚。
              零件掛的是 supply_chain.yaml 的 passive_comp 環節，但那一格的名字是
              「被動元件 MLCC／**電阻**」—— 成分跟「被動元件 MLCC」族群不是同一份名單。 -->
-        <rect class="frame" x="560" y="1478" width="404" height="132" rx="8"/>
-        <text class="cap" x="574" y="1502">零件顏色＝環節色。點零件篩的是「被動元件</text>
-        <text class="cap" x="574" y="1520">MLCC／電阻」這一格：2327 國巨／2492 華新科／</text>
-        <text class="cap" x="574" y="1538">2375 凱美／3026 禾伸堂／6173 信昌電。</text>
-        <text class="cap" x="574" y="1556">這一格含晶片電阻 —— 凱美是以電阻進到這一格、</text>
-        <text class="cap" x="574" y="1574">不做 MLCC；做 MLCC 的是 2327／2492／3026／6173。</text>
-        <text class="cap" x="574" y="1592">資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
-        <text class="cap" x="16" y="1638">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
-        <text class="cap" x="16" y="1656">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），實際高容量品 400～1000 層以上；介電 0.5–2 µm、內電極約 0.5 µm。</text>
-      </g></g>
+        <rect class="frame" x="16" y="1516" width="404" height="132" rx="8"/>
+        <text class="cap" x="30" y="1540">零件顏色＝環節色。點零件篩的是「被動元件</text>
+        <text class="cap" x="30" y="1558">MLCC／電阻」這一格：2327 國巨／2492 華新科／</text>
+        <text class="cap" x="30" y="1576">2375 凱美／3026 禾伸堂／6173 信昌電。</text>
+        <text class="cap" x="30" y="1594">這一格含晶片電阻 —— 凱美是以電阻進到這一格、</text>
+        <text class="cap" x="30" y="1612">不做 MLCC；做 MLCC 的是 2327／2492／3026／6173。</text>
+        <text class="cap" x="30" y="1630">資料來源與信心度見 docs/diagram_specs/mlcc_stack.md。</text>
+        <text class="cap" x="16" y="1672">2026 產業變數：村田對部分消費級 GRM／GRJ 與車規 GCM／GCJ／GCG 料號發出 EOL</text>
+        <text class="cap" x="16" y="1690">（最後下單 2028/3、最後出貨 2029/3），規格替代與轉單是這一格現在的故事。</text>
+        <text class="cap" x="16" y="1712">示意圖，非實物比例｜層數與各層厚度均為示意：圖上畫 16 層電極（⋮ ×N），</text>
+        <text class="cap" x="16" y="1730">實際高容量品 400～1000 層以上；介電 0.5–2 µm、內電極約 0.5 µm。</text>`)}
     </svg>`;
   }
 
@@ -955,7 +1193,7 @@
        寫在本檔上方那段註解。半導體鏈現在走圖別選單，跟 AI 伺服器鏈同一個模式。*/
     ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
       q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
-    mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 980,
+    mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 660,
       q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？',
       /* ★ 2026-09-21：`parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
          為什麼 MLCC 這張特別需要精修：**整張圖只有一個環節**（14 個 [data-seg] 全是 passive_comp），
@@ -1046,7 +1284,7 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { STYLE, labelRow, lrow3, processBar, foldBar, fold, chainLink, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   /* ★ 2026-09-21：一張圖一個檔（`site/dg/<slot>.js`）。
      `docs/diagram_plan.md` 排了 14 張，全部塞進這個檔會變成兩千多行，

@@ -43,6 +43,44 @@
 4. 12px 下限（閱讀 13px）；對比度正文 ≥ 4.5、次要 ≥ 3
 5. 800／390 不溢出
 
+## 卡片介面（2D／3D 共用；art-director 2026-09-22 訂，style-3d 照這個餵）
+
+規格全文在 `docs/diagram_specs/_STYLE.md` §3～§5。這裡只寫「兩邊怎麼接」。
+
+### 卡片的元件色 `--dg-card-c`
+
+| 誰 | 怎麼餵 | 讀到的地方 |
+|---|---|---|
+| 2D（`diagrams.js`） | `labelRow`／`lrow3`／`note` 的群組上寫 `data-dgcolor="#xxxxxx"`，或 inline style `--dg-card-c:#xxxxxx`；`stampParts()` 會把 `data-dgcolor` 搬成 inline 的 `--dg-card-c` | `STYLE` 的 `.lrow{--card-c:var(--dg-card-c,var(--cc,var(--dg-ink)))}`；HTML 卡片 `.dgc` 同一條 |
+| 3D（`three3d.js`） | 在 `.lbl3d` 那個 div 上 `style.setProperty('--dg-card-c', hex)`；引線端點 `.ld-dot` 也給同一個 `--dg-card-c`（或 inline stroke） | `index.html` 的 `.lbl3d{--card-c:var(--dg-card-c,var(--c,var(--dg-ink)))}`、`.lead3d .ld-dot` 的光暈色 |
+| 沒餵 | 落回環節色（2D 是 `--cc`，3D 是 `--c`），再沒有就 `--dg-ink` | |
+
+用到 `--card-c` 的地方（兩邊一樣）：左側 3px 色條、編號圓點（科技實心／閱讀粉彩底＋色環）、
+邊框（跟 `--dg-card-s` 混 40%，選到時 100%）、選到時的底染（12%／主角 26%）、引線選到時的線色、引線端點的光暈。
+
+### 磨砂玻璃
+
+- HTML 卡片（`.lbl3d`、`.dgc`、零件小卡）：`background:var(--dg-card-f)` ＋ `backdrop-filter:var(--dg-card-blur)`。
+  不支援 backdrop-filter 的瀏覽器自然退回半透明實色。
+- SVG 卡片（`.lrow rect.bg`）：只有半透明實色（`--dg-card-f`）—— backdrop-filter 對 SVG 元素無效。
+- 科技：`rgba(14,20,36,.66)` ＋ `blur(8px) saturate(1.15)`（偏冷）；閱讀：`rgba(255,255,255,.80)` ＋ `blur(10px)`（霧面白）。
+
+### 引線與端點
+
+- 2D：`D.pointer(ax, ay, bx, by, {elbow, drop, node})`；v2 版面由 `externalize()` 在 `.dglead` 疊層上畫，resize 重算。
+- 3D：`.lead3d .ld`（線）吃 `--dg-lead`／`--dg-lead-w`；`.lead3d .ld-dot`（端點）科技帶 `--dg-node-glow` 的光暈、閱讀 `filter:none`。
+- 端點顏色＝元件色；有編號時端點就是編號圓點。
+
+### 語意色三組（3D 托盤分區也用這三個）
+
+`--dg-sig`（訊號藍）、`--dg-pwr`（電力橘）、`--dg-cool`（液冷青綠），兩種模式各一套（`_STYLE.md` §1-B 有對比度表）。
+`--dg-sw-sig`／`--dg-sw-pwr` 是別名，值就是前兩個。
+
+### 3D 打光 token（`index.html` 的 `.dg3d[data-pal]`）
+
+`tech`＝`.dg3d` 的預設值（沒動）；`read`＝`--dg-1:#f7f6f2 --dg-2:#e2dfd6 --dg-mix:#f2ede3 --dg-mix-k:.14 --dg-sat:.72 --dg-led:0 --dg-sel-em:0 --dg-hemi:.95 --dg-key:1.25 --dg-fill:.5`
+是一組能跑的起始值，細調是 style-3d 的事。`three3d.js` 的 `PALS` 只認 `tech`／`read`。
+
 ## 逐張改造時的起點：§1 高度與建議切法（dg-scale 量的，2026-09-22）
 `§1` ＝ 永遠看得到那一段的底部（viewBox 單位，上限 560）。標 ★ 的超過 560，**收納收不到，改風格時要順手把主圖壓矮**。
 切點就是各檔原始碼裡 `<!-- ===== -->` 的分區註解。機制（`D.fold()`、`wireFolds` 自動量 `getBBox`）已在 main；

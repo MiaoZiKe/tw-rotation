@@ -6841,9 +6841,9 @@ def t_batch6_n9(pg, base):
     ok("有看得見的配色切換鈕（圖九 2-2）",
        pg.evaluate("() => { const b = document.getElementById('dgPal'); return !!b && !b.hidden; }"))
     seen, changed_n = [], 0
-    # ★ 2026-09-21 深夜：色票從三個變**四個**（多了「休閒」，Andy：「2D3D 都需要新增那樣的風格」）。
-    #   這個迴圈按幾次就得跟著改 —— 按 3 次只走得到前三個，第四個永遠驗不到。
-    for _ in range(4):
+    # ★ 2026-09-22：四個配色收斂成**兩種模式**（科技／閱讀，DECISIONS #238）。
+    #   這個迴圈按幾次就得跟著改 —— 按兩次剛好各走到一次。
+    for _ in range(2):
         p0 = pg.evaluate("() => window.Rack3D.current.pal()")
         # WebGL 的畫布拿不到 2d context，canvas_hash 對它一律回同一個值 ——
         # 改量真正被畫出去的東西：所有材質顏色的指紋（colorSig）
@@ -6858,13 +6858,10 @@ def t_batch6_n9(pg, base):
         h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
         ok(f"換成 {p1} 之後零件顏色真的變了（圖九 2-2）", h0 != h1, f"{h0} → {h1}")
         ok(f"鈕上的字跟著換（{p1}）", "配色：" in text(pg, "#dgPal"), text(pg, "#dgPal"))
-    ok("四種色票都輪得到（tech / soft / calm / casual）（圖九 2-2 ＋ 2026-09-21 深夜的休閒）",
-       sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
-    ok("「休閒」色票零件也不發光（跟柔和一樣印得出來；平易近人跟電競 RGB 是相反的兩件事）",
-       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('casual');
-           return v.stats().maxEmissive === 0; }"""))
-    ok("「柔和」色票零件不發光（印得出來）（圖九 2-2）",
-       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('soft');
+    ok("兩種模式都輪得到（tech / read）（圖九 2-2；2026-09-22 收斂成兩種）",
+       sorted(set(seen)) == ["read", "tech"], seen)
+    ok("「閱讀」模式零件不發光（紙底印得出來；閱讀舒服跟電競 RGB 是相反的兩件事）",
+       pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('read');
            return v.stats().maxEmissive === 0; }"""))
     pg.evaluate("() => window.Rack3D.current.setPal('tech')")
 
@@ -9119,7 +9116,10 @@ def t_mlcc(pg, base):
     force_open(pg)
     d8 = dg(pg)
     ok("[800px] MLCC 剖析圖還在", d8.get("present") and FEAT in d8.get("full", ""), d8.get("svgW"))
-    ok("[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮）", d8.get("svgW", 0) >= 960, d8.get("svgW"))
+    # ★ 2026-09-22 風格系統 v2：MLCC 的卡片搬到 HTML 的左右欄，畫布只剩主角，native 從 980 縮成 660。
+    #   「原尺寸」一律拿圖自己宣告的 native 來比，不再寫死 960。
+    nat8 = pg.evaluate("() => (window.DiagramSlots && window.DiagramSlots.native('mlcc')) || 980")
+    ok(f"[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮；宣告 native {nat8}）", d8.get("svgW", 0) >= nat8 - 4, d8.get("svgW"))
     ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
        d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
     r8a = rows(pg)
@@ -10074,6 +10074,8 @@ SECTIONS = {
     "批次22-傳動件":       lambda pg, b, base, code: t_e1_motion(pg, base),
     "批次22-鋁電容":       lambda pg, b, base, code: t_e2_alumcap(pg, base),
     "批次22-保護元件":     lambda pg, b, base, code: t_e3_protect(pg, base),
+    # 批次22：剖析圖風格系統（兩種模式跟主題走、卡片／引線共用元件、對比度與字級逐元素量、v2 版面三個寬度）
+    "批次22-風格系統":     lambda pg, b, base, code: t_style22(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -10125,6 +10127,30 @@ def _dist(a, b):
     return round(sum((x - y) ** 2 for x, y in zip(ra, rb)) ** 0.5, 1)
 
 
+def _dhue(a, b):
+    """兩個顏色的色相差（0～180°）。閱讀模式准改語意色的明度，不准改色相 —— 就是量這個。"""
+    import colorsys
+    ra, rb = _hex2rgb(a), _hex2rgb(b)
+    if not ra or not rb:
+        return 999
+    ha = colorsys.rgb_to_hls(*(v / 255 for v in ra))[0] * 360
+    hb = colorsys.rgb_to_hls(*(v / 255 for v in rb))[0] * 360
+    d = abs(ha - hb) % 360
+    return round(min(d, 360 - d), 1)
+
+
+def _cr(a, b):
+    """WCAG 對比度（hex 或 rgb 字串都吃）。"""
+    ra, rb = _hex2rgb(a), _hex2rgb(b)
+    if not ra or not rb:
+        return 0
+    def lum(c):
+        f = lambda v: (v / 255) / 12.92 if v / 255 <= 0.03928 else ((v / 255 + 0.055) / 1.055) ** 2.4
+        return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2])
+    la, lb = lum(ra), lum(rb)
+    return round((max(la, lb) + 0.05) / (min(la, lb) + 0.05), 2)
+
+
 def t_batch13(pg, base):
     """批次13：剖析圖的**配色切換**與 MLCC 的**收納**（art-director 2026-09-21 深夜）。
 
@@ -10135,14 +10161,17 @@ def t_batch13(pg, base):
     這一段驗的全部是**畫面真的因此改變了**，不是「元素存在」：
       1  配色鈕在 **2D** 也看得見（改之前它只在 3D 模式才出現 ＝ 9 張 2D 圖只有一種配色）
       2  按下去**圖上的實際色值真的變了**（量 computed style 的 fill／background，不是看 class）
-      3  四個配色都走得到，而且**科技＝現況**（預設不覆寫任何一個 token）
-      4  --dg-err / --dg-warn 在每一個配色下都跟背景、強調色**量得出色差**（不是看有沒有定義）
+      3  兩種模式都走得到，而且**科技＝現況**（預設不覆寫任何一個 token）
+         ★ 2026-09-22（DECISIONS #238）：四個配色收斂成兩種模式（科技／閱讀），
+           這一段的「四個」全部改成「兩個」—— 不是放寬，是選項真的只剩兩個。
+      4  --dg-err / --dg-warn 在每一種模式下都跟背景、強調色**量得出色差**（不是看有沒有定義）；
+         值可以隨模式重算明度（亮底上 #ff4d6d 只有 3.0:1），但**色相不准動**、對底對比要過 4.5
       5  重新整理之後配色**真的被記住**
       6  MLCC 收納：收起來的東西**真的打得開**（text 數真的變多、viewBox 真的變高）
       7  收合狀態下畫面上**看得到「還有什麼可以展開」**（每一條章節列都寫著裡面有什麼）
       8  章節列**不會順手把成分股篩掉**（它不是零件，不准掛 data-seg）
       9  11 張圖 × 三個寬度：每一個字的畫面真實字級 ≥ 12px、文字兩兩不重疊
-     10  3D 也切得到休閒配色（場景真的掛起來，而且 data-pal 真的是 casual）
+     10  3D 也切得到閱讀模式（場景真的掛起來，而且 data-pal 真的是 read）
     """
     PROBE = """() => {
       const wrap = document.querySelector('#prodDiagram');
@@ -10188,15 +10217,15 @@ def t_batch13(pg, base):
     ok("預設是「科技」，而且科技配色**不覆寫任何 token**（＝跟這批改動之前一模一樣）",
        a0["pal"] in ("", "tech") and a0["accent"] == "#3ee0ff", f"pal={a0['pal']} accent={a0['accent']}")
 
-    # ---------------- 2~4. 按四次，逐個量顏色真的變了、語意色沒被蓋掉
+    # ---------------- 2~4. 按兩次，逐個量顏色真的變了、語意色守得住
     seen = [a0]
-    for _ in range(3):
+    for _ in range(2):
         pg.click("#dgPal")
         pg.wait_for_timeout(500)
         seen.append(pg.evaluate(PROBE))
     names = [x["pal"] or "tech" for x in seen]
-    ok("一顆鈕輪流切得到四個配色：科技 → 柔和 → 沉穩 → 休閒",
-       names == ["tech", "soft", "calm", "casual"], names)
+    ok("一顆鈕輪流切得到兩種模式：科技 → 閱讀 → 科技（2026-09-22 起只有這兩套）",
+       names == ["tech", "read", "tech"], names)
     for i in range(1, len(seen)):
         prev, cur = seen[i - 1], seen[i]
         dbg = _dist(prev["bg"], cur["bg"])
@@ -10215,29 +10244,34 @@ def t_batch13(pg, base):
            d_eb > 120 and d_ea > 90, f"err={x['err']} bg={x['bg']} accent={x['accent']}")
         ok(f"★ [{lab}] --dg-warn 跟強調色（{d_wa}）與說明文字（{d_wi}）都分得開",
            d_wa > 80 and d_wi > 80, f"warn={x['warn']} accent={x['accent']} ink3={x['ink3']}")
-        ok(f"[{lab}] 語意色**沒有被風格蓋掉**（四個配色下 err／warn 的值完全一樣）",
-           x["err"] == "#ff4d6d" and x["warn"] == "#ff8fab", f"{x['err']} / {x['warn']}")
+        # 2026-09-22：閱讀模式會把語意色的**明度**壓到亮底讀得到，但色相不准動 —— 量的是這兩件事
+        ok(f"[{lab}] 語意色的色相沒有被模式改掉（err／warn 跟科技的同一個 token 色相差 < 15°）",
+           _dhue(x["err"], "#ff4d6d") < 15 and _dhue(x["warn"], "#ff8fab") < 15, f"{x['err']} / {x['warn']}")
+        ok(f"[{lab}] 語意色當文字用時對底色的對比 ≥ 4.5（err {_cr(x['err'], x['bg'])}、warn {_cr(x['warn'], x['bg'])}）",
+           _cr(x["err"], x["bg"]) >= 4.5 and _cr(x["warn"], x["bg"]) >= 4.5, f"bg={x['bg']}")
 
-    # ---------------- 5. 重新整理之後真的記得
+    # ---------------- 5. 重新整理之後真的記得（切到閱讀再重整）
+    pg.click("#dgPal")
+    pg.wait_for_timeout(400)
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(2600)
     a1 = pg.evaluate(PROBE)
-    ok("★ 重新整理之後配色**真的被記住**（休閒還是休閒，不是跳回科技）",
-       a1["pal"] == "casual" and "休閒" in (a1["btnTx"] or ""), f"{a1['pal']} / {a1['btnTx']}")
+    ok("★ 重新整理之後模式**真的被記住**（閱讀還是閱讀，不是跳回科技）",
+       a1["pal"] == "read" and "閱讀" in (a1["btnTx"] or ""), f"{a1['pal']} / {a1['btnTx']}")
     ok("而且記住的是**畫面上的顏色**，不只是 localStorage（量背景色）",
        _dist(a1["bg"], a0["bg"]) > 6, f"{a0['bg']} → {a1['bg']}")
 
-    # 切回科技，後面的收納驗收不要被配色影響
-    for _ in range(3):
-        pg.click("#dgPal")
-        pg.wait_for_timeout(350)
-    pg.wait_for_timeout(400)
+    # 切回科技，後面的收納驗收不要被模式影響
+    pg.click("#dgPal")
+    pg.wait_for_timeout(750)
 
     # ---------------- 6~8. MLCC 的收納
     b0 = pg.evaluate(PROBE)
     ok("MLCC 預設是**收合**的（三條章節列都在，內容收起來）", b0["folds"] == 3, b0["folds"])
+    # ★ 2026-09-22：v2 畫布 660 寬，wireFolds 會把提示砍短讓標題有位置（全文掛在列的 title 上）。
+    #   所以門檻從 14 字放到 8 字 —— 要守的仍然是「寫了裡面有什麼、不是只寫更多」，不是字數。
     ok("★ 收合狀態下畫面上**看得到還有什麼可以展開**（每一條都寫了裡面有什麼，不是只寫「更多」）",
-       len(b0["hints"]) == 3 and all(h.startswith("＋ 展開：") and len(h) > 14 for h in b0["hints"]),
+       len(b0["hints"]) == 3 and all(h.startswith("＋ 展開：") and len(h) > 8 and "更多" not in h for h in b0["hints"]),
        b0["hints"])
     ok("章節列**沒有掛 data-seg**（掛了的話按一下展開就順便把成分股篩掉了）",
        b0["foldSeg"] == 0, b0["foldSeg"])
@@ -10286,12 +10320,12 @@ def t_batch13(pg, base):
                 bad.append(f"{lab}：小字 {z['small']} 重疊 {z['ov']}")
         ok(f"★ [{w}px] 每一張剖析圖（章節全部展開）每一個字都 ≥ 12px、文字兩兩不重疊", not bad, bad[:4])
 
-    # ---------------- 10. 3D 也切得到休閒
+    # ---------------- 10. 3D 也切得到閱讀
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
     pg.wait_for_timeout(2400)
-    for _ in range(4):
-        if (pg.evaluate("() => document.documentElement.dataset.dgpal") or "tech") == "casual":
+    for _ in range(2):
+        if (pg.evaluate("() => document.documentElement.dataset.dgpal") or "tech") == "read":
             break
         pg.click("#dgPal")
         pg.wait_for_timeout(350)
@@ -10304,8 +10338,8 @@ def t_batch13(pg, base):
     }""")
     ok("★ 切到 3D，場景真的掛得起來（不是退回平面圖）",
        d3["canvas"] and "起不來" not in d3["note"], d3["note"][:70])
-    ok("★ 3D 也吃同一個「休閒」配色（data-pal 真的是 casual —— 2D 暖、3D 就不會是冷的）",
-       d3["pal"] == "casual", d3["pal"])
+    ok("★ 3D 也吃同一個「閱讀」模式（data-pal 真的是 read —— 2D 紙底、3D 就不會是深底）",
+       d3["pal"] == "read", d3["pal"])
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -12455,11 +12489,10 @@ def t_dg3d_parts(pg, base):
                h2["selPart"] == 0 and h2["dim"] == h0["dim"] and h2["sel"] == h0["sel"] and back,
                {"點零件之前": h0, "點零件之後": h1, "點背景之後": h2, "座標": bg})
 
-        # ③ 四個配色各切一次：材質色的指紋真的要變
+        # ③ 兩種模式各切一次：材質色的指紋真的要變（2026-09-22 四個配色收斂成兩種）
         sigs = {}
-        # ★ 從 soft 開始輪、tech 放最後：目前就停在 tech，第一輪照 tech 切等於沒切，
-        #   那一條會永遠紅（2026-09-22 第一次跑就是這樣紅的）。
-        for name in ["soft", "calm", "casual", "tech"]:
+        # ★ 從 read 開始、tech 放最後：目前就停在 tech，第一輪照 tech 切等於沒切。
+        for name in ["read", "tech"]:
             s0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
             got = pg.evaluate("(n) => window.Rack3D.current.setPal(n)", name)
             pg.wait_for_timeout(700)
@@ -12467,12 +12500,12 @@ def t_dg3d_parts(pg, base):
             ok(f"[{nice}] 切到「{name}」配色，材質色真的變了（{s0} → {s1}）",
                got == name and s0 != s1, f"{s0} → {s1}")
             sigs[name] = s1
-        ok(f"[{nice}] 四個配色互不相同（不是換了 class 但畫面一樣）",
-           len(set(sigs.values())) == 4, sigs)
-        # 新零件的材質色是從 --dg-* 讀來的：換配色時「休閒」一定要把冷色轉暖，
+        ok(f"[{nice}] 兩種模式互不相同（不是換了 class 但畫面一樣）",
+           len(set(sigs.values())) == 2, sigs)
+        # 新零件的材質色是從 --dg-* 讀來的：換模式時「閱讀」整組材質換成紙底粉彩，
         # 所以它跟「科技」的指紋差距不可以只有零頭
-        ok(f"[{nice}] 「休閒」跟「科技」的差距是看得出來的（不是四捨五入的誤差）",
-           abs(sigs["casual"] - sigs["tech"]) > 1.0, sigs)
+        ok(f"[{nice}] 「閱讀」跟「科技」的差距是看得出來的（不是四捨五入的誤差）",
+           abs(sigs["read"] - sigs["tech"]) > 1.0, sigs)
         pg.evaluate("() => window.Rack3D.current.setPal('tech')")
 
         # ⑤ 動畫開回來：要真的又動起來（關得掉但開不回來也是壞的）
@@ -13852,18 +13885,18 @@ def t_b21_cowos(pg, base):
             for want in ("C4 凸塊", "微凸塊 µbump", "載板正面的去耦電容", "背面去耦電容 LSC"):
                 ok(f"3D 上真的有「{want}」這個零件（接點與被動元件不再是看不到的東西）",
                    any(want in t for t in parts3d), parts3d)
-            # 四個配色各切一次，材質色真的變
+            # 兩種模式各切一次，材質色真的變（2026-09-22 四個配色收斂成兩種）
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
             pg.wait_for_timeout(600)
             seen, chg = [], []
-            for _ in range(4):
+            for _ in range(2):
                 h0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
                 click(pg, "#dgPal", 1100)
                 p1 = pg.evaluate("() => window.Rack3D.current.pal()")
                 h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
                 seen.append(p1); chg.append(h0 != h1)
-            ok("四個配色都輪得到（科技／柔和／沉穩／休閒）",
-               sorted(set(seen)) == ["calm", "casual", "soft", "tech"], seen)
+            ok("兩種模式都輪得到（科技／閱讀）",
+               sorted(set(seen)) == ["read", "tech"], seen)
             ok("每切一次配色，零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
             click(pg, "#dg3d", 1200)          # 切回平面圖，不要汙染後面的段落
@@ -13873,19 +13906,19 @@ def t_b21_cowos(pg, base):
     else:
         notes.append("批次21：這個環境沒有 WebGL，3D 那幾條跳過")
 
-    # ---------------- ⑦ 2D 的四個配色：材質色真的跟著換（2D 也要成立）
+    # ---------------- ⑦ 2D 的兩種模式：材質色真的跟著換（2D 也要成立）
     _b21_open(pg, base)
     MAT = """() => { const g = document.querySelector('#prodDiagram svg [data-part="icp_sub"] .part');
         const cs = getComputedStyle(document.documentElement);
         return [getComputedStyle(g).fill, cs.getPropertyValue('--dg-si').trim(),
                 cs.getPropertyValue('--dg-bg').trim()].join('|'); }"""
     sigs = {}
-    for pal in ("tech", "soft", "calm", "casual"):
+    for pal in ("tech", "read"):
         pg.evaluate("(p) => { document.documentElement.dataset.dgpal = p; }", pal)
         pg.wait_for_timeout(350)
         sigs[pal] = pg.evaluate(MAT)
-    ok("2D 的四個配色各自量到不同的材質色（休閒不是把科技再印一次）",
-       len(set(sigs.values())) == 4, sigs)
+    ok("2D 的兩種模式各自量到不同的材質色（閱讀不是把科技再印一次）",
+       len(set(sigs.values())) == 2, sigs)
     pg.evaluate("() => { document.documentElement.dataset.dgpal = 'tech'; }")
 
     # ---------------- ⑨ 高度：收合狀態 ≤ 700px（Andy 2026-09-22：「希望能一次看到完整資訊」）
@@ -14821,6 +14854,256 @@ def t_e3_protect(pg, base):
     _e_noanim(pg, "保護元件")
     _b14b_typo(pg, DGH, "保護元件")
 
+
+
+
+
+
+# ================================================================ 批次 22：剖析圖風格系統（art-director 2026-09-22，DECISIONS #238）
+# 這一段驗的全部是「畫面真的因此改變」：
+#   ① 深色主題預設科技、淺色主題預設閱讀（沒存過偏好時）—— 量畫布底色的亮度，不是看 data 屬性
+#   ② 兩種模式各切一次 → 畫布底、卡片底、引線色真的變；閱讀模式（.rs 的圖）字級 13px 起
+#   ③ 手動切了會記住；舊的 localStorage 值（soft／calm／casual）當成沒設定，深色→科技、淺色→閱讀
+#   ④ 對比度逐元素量：正文（lbl／hd／ttl／卡片標題）≥ 4.5、次要（sub／cap／num）≥ 3，兩種模式都量
+#   ⑤ 語意色三組 ＋ err／warn：兩種模式對卡片文字 ≥ 4.5、對畫布 ≥ 3，色相跨模式差 < 15°
+#   ⑥ 12px 下限（兩種模式 × 1440／800／390）
+#   ⑦ v2 版面（MLCC）：≥1280 三欄、960～1279 畫布＋右欄、<960 卡片在畫布下面；引線隨寬度重畫；收合 ≤ 700
+#   ⑧ 既有互動一個都沒少：點卡片亮零件（主角剛好一個、錨點跟著亮、引線跟著粗）、點錨點＝點卡片、
+#      點背景恢復、只亮不篩、動畫開關、章節開得起來
+#   ⑨ 面板（卡片還在 SVG 裡的舊版面）：共用元件換掉之後兩種模式都畫得出來、不重疊
+
+
+STYLE22 = """() => {
+  const wrap = document.querySelector('#prodDiagram'), svg = wrap && wrap.querySelector('svg');
+  if (!svg) return {present:false};
+  const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d');
+  const rgba = (c) => { cx.clearRect(0,0,1,1); cx.fillStyle = '#000'; cx.fillStyle = c; cx.fillRect(0,0,1,1);
+    const d = cx.getImageData(0,0,1,1).data; return [d[0], d[1], d[2], d[3]/255]; };
+  const over = (fg, bg) => { const a = fg[3]; return [0,1,2].map(i => Math.round(fg[i]*a + bg[i]*(1-a))); };
+  const lum = (c) => { const f = v => { v/=255; return v <= .03928 ? v/12.92 : Math.pow((v+.055)/1.055, 2.4); };
+    return .2126*f(c[0]) + .7152*f(c[1]) + .0722*f(c[2]); };
+  const ratio = (a, b) => { const la = lum(a), lb = lum(b); return +(((Math.max(la,lb)+.05)/(Math.min(la,lb)+.05)).toFixed(2)); };
+  const bg = rgba(getComputedStyle(wrap).backgroundColor);
+  const root = getComputedStyle(document.documentElement), tok = (n) => root.getPropertyValue(n).trim();
+  // ---- SVG 裡的字：卡片裡的字對卡片底、其餘對畫布底
+  const low = [], all = [];
+  svg.querySelectorAll('text').forEach(n => {
+    if (!(n.textContent || '').trim() || !n.getClientRects().length) return;
+    if (n.closest('g[pointer-events="none"]')) return;          // 主角上的省略記號（畫在陶瓷框裡，不是對畫布）
+    const cs = getComputedStyle(n); if (cs.display === 'none' || +cs.opacity <= 0.05) return;
+    let under = bg, where = 'canvas';
+    const row = n.closest('.lrow'), anc = n.closest('.anc');
+    if (n.classList.contains('non')) { const c = (row || anc) && (row || anc).querySelector('.no'); if (c) { under = over(rgba(getComputedStyle(c).fill), bg); where = 'badge'; } }
+    else if (row) { const rb = row.querySelector('rect.bg'); if (rb) { under = over(rgba(getComputedStyle(rb).fill), bg); where = 'card'; } }
+    const cls = n.getAttribute('class') || '';
+    const primary = /(^|\s)(lbl|hd|ttl|non)(\s|$)/.test(cls) || !cls;
+    const cr = ratio(over(rgba(cs.fill), under), under);
+    all.push(cr);
+    if (cr < (primary ? 4.5 : 3)) low.push(`${cls}|${where}|${cr}|${(n.textContent||'').trim().slice(0,14)}`);
+  });
+  // ---- HTML 卡片裡的字：對卡片底（卡片底疊在畫布上）
+  wrap.querySelectorAll('.dgc').forEach(card => {
+    const cb = over(rgba(getComputedStyle(card).backgroundColor), bg);
+    card.querySelectorAll('b,i,.no').forEach(el => {
+      const cs = getComputedStyle(el);
+      const under = el.classList.contains('no') ? over(rgba(cs.backgroundColor), cb) : cb;
+      const cr = ratio(over(rgba(cs.color), under), under);
+      all.push(cr);
+      const need = el.tagName === 'I' ? 3 : 4.5;
+      if (cr < need) low.push(`dgc ${el.tagName}|${cr}|${(el.textContent||'').trim().slice(0,14)}`);
+    });
+  });
+  const cardBg = (() => { const c = wrap.querySelector('.dgc'); return c ? over(rgba(getComputedStyle(c).backgroundColor), bg) : bg; })();
+  const sem = {};
+  ['--dg-err','--dg-warn','--dg-sig','--dg-pwr','--dg-cool','--dg-accent-2d'].forEach(k => {
+    const v = tok(k); sem[k] = {v, bg: ratio(over(rgba(v), bg), bg), card: ratio(over(rgba(v), cardBg), cardBg)}; });
+  const lead = wrap.querySelector('.dglead path');
+  const canvas = wrap.querySelector('.dgcanvas');
+  const R = (e) => { if (!e) return null; const r = e.getBoundingClientRect(); return {l: Math.round(r.left), r: Math.round(r.right), t: Math.round(r.top), b: Math.round(r.bottom), w: Math.round(r.width)}; };
+  // 欄的位置＝那一欄卡片的聯集（併成一欄時 .dgcol 是 display:contents，本身沒有 rect）
+  const U = (sel) => { const cs = [...wrap.querySelectorAll(sel)]; if (!cs.length) return null; const rs = cs.map(c => c.getBoundingClientRect());
+    return {l: Math.round(Math.min(...rs.map(r => r.left))), r: Math.round(Math.max(...rs.map(r => r.right))), t: Math.round(Math.min(...rs.map(r => r.top))), b: Math.round(Math.max(...rs.map(r => r.bottom)))}; };
+  const colL = U('.dgcol.l .dgc'), colR = U('.dgcol.r .dgc');
+  const order = [...wrap.querySelectorAll('.dgc')].map(c => ({o: +(c.style.order || 0), y: c.getBoundingClientRect().top, x: c.getBoundingClientRect().left})).sort((a, b) => a.y - b.y || a.x - b.x).map(c => c.o);
+  return {present:true, pal: document.documentElement.dataset.dgpal || '', theme: document.documentElement.getAttribute('data-theme') || 'dark',
+    btn: (document.querySelector('#dgPal') || {}).textContent || '',
+    bg: getComputedStyle(wrap).backgroundColor, bgLum: +lum(bg).toFixed(3),
+    cardFill: (() => { const c = wrap.querySelector('.dgc') || svg.querySelector('.lrow rect.bg'); return c ? (c.tagName === 'rect' ? getComputedStyle(c).fill : getComputedStyle(c).backgroundColor) : null; })(),
+    lead: lead ? getComputedStyle(lead).stroke : ((s => s ? getComputedStyle(s).stroke : null)(svg.querySelector('.leader'))),
+    fsMin: getComputedStyle(svg).getPropertyValue('--dg-fs-min').trim(),
+    stored: (() => { try { return localStorage.getItem('tw.dg3d.pal'); } catch (e) { return null; } })(),
+    low, minCr: all.length ? Math.min(...all) : null, n: all.length, sem,
+    v2: wrap.classList.contains('dgv2'), cards: wrap.querySelectorAll('.dgc').length, leads: wrap.querySelectorAll('.dglead path').length,
+    anchors: svg.querySelectorAll('.anchor').length, svgW: Math.round(svg.getBoundingClientRect().width), vbH: Math.round(svg.viewBox.baseVal.height),
+    wrapW: Math.round(wrap.getBoundingClientRect().width), canvas: R(canvas), colL, colR, order,
+    selPart: wrap.querySelectorAll('[data-seg].sel-part').length, ancSel: svg.querySelectorAll('.anc.sel-part').length,
+    leadSel: wrap.querySelectorAll('.dglead path.sel-part').length, haspart: svg.classList.contains('haspart'),
+    noanim: wrap.classList.contains('noanim')};
+}"""
+
+
+def t_style22(pg, base):
+    MLCC = f"{base}#industry/electronics/dg/mlcc"
+    PANEL = f"{base}#industry/electronics/dg/panel"
+
+    def land(url, theme, w=1440, side="0", pal=None):
+        """換主題一定要 reload：同一頁換 hash 不會重新載入 JS（#235 抓過這個假結果）。"""
+        # ⚠ 不用 add_init_script：它會跟著 page 活到後面每一次導覽，連「重新整理之後偏好還在不在」那一條
+        #   都會被它偷偷清掉（第一版就是這樣假紅的）。改成：先到那一頁、寫 localStorage、再 reload。
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(url, wait_until="networkidle")
+        pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme','{theme}'); localStorage.setItem('tw.side','{side}');"
+                    "localStorage.setItem('tw.dg3d','0');"
+                    + (f"localStorage.setItem('tw.dg3d.pal','{pal}');" if pal else "localStorage.removeItem('tw.dg3d.pal');")
+                    + " } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        pg.wait_for_timeout(2600)
+        force = dg_force_open
+        force(pg)
+        return pg.evaluate(STYLE22)
+
+    def rows():
+        return pg.evaluate("() => document.querySelectorAll('#stockTable tbody tr,#memberTable tbody tr').length")
+
+    # ---------------- ① 預設跟著主題走
+    d = land(MLCC, "dark")
+    if not ok("批次22：MLCC 畫得出來（後面每一條都靠它）", d.get("present"), d):
+        return
+    ok("★ 深色主題、沒存偏好 → 預設科技（畫布是深底：亮度量出來 < 0.2）",
+       d["pal"] == "tech" and d["bgLum"] < 0.2 and "科技" in d["btn"], f"pal={d['pal']} lum={d['bgLum']} btn={d['btn']}")
+    ok("科技＝現況：強調色仍是 #3ee0ff、字級下限仍是 12px（預設一個 token 都不覆寫）",
+       d["sem"]["--dg-accent-2d"]["v"] == "#3ee0ff" and d["fsMin"] == "12px", f"{d['sem']['--dg-accent-2d']['v']} / {d['fsMin']}")
+    l = land(MLCC, "light")
+    ok("★ 淺色主題、沒存偏好 → 預設閱讀（畫布是暖白紙底：亮度量出來 > 0.8）",
+       l["pal"] == "read" and l["bgLum"] > 0.8 and "閱讀" in l["btn"], f"pal={l['pal']} lum={l['bgLum']} btn={l['btn']}")
+    ok("★ 切到閱讀 → 畫布底、卡片底、引線色三樣都真的變了（量 computed style）",
+       l["bg"] != d["bg"] and l["cardFill"] != d["cardFill"] and l["lead"] != d["lead"],
+       f"bg {d['bg']}→{l['bg']} card {d['cardFill']}→{l['cardFill']} lead {d['lead']}→{l['lead']}")
+    ok("閱讀模式（已改造的 .rs 圖）字級整組升一階：--dg-fs-min 13px", l["fsMin"] == "13px", l["fsMin"])
+
+    # ---------------- ③ 手動切、記住、舊值 fallback
+    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    m1 = pg.evaluate(STYLE22)
+    ok("淺色主題下手動切一次 → 科技（深底畫布印在淺色頁面上，這是使用者自己選的）",
+       m1["pal"] == "tech" and m1["bgLum"] < 0.2 and m1["stored"] == "tech", f"pal={m1['pal']} lum={m1['bgLum']} stored={m1['stored']}")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    m2 = pg.evaluate(STYLE22)
+    ok("★ 重新整理之後手動選的模式還在（不是又跳回跟主題走）", m2["pal"] == "tech" and m2["bgLum"] < 0.2, f"pal={m2['pal']} lum={m2['bgLum']}")
+    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    m3 = pg.evaluate(STYLE22)
+    ok("再按一次回到閱讀", m3["pal"] == "read" and m3["bgLum"] > 0.8, f"pal={m3['pal']} lum={m3['bgLum']}")
+    o1 = land(MLCC, "dark", pal="casual")
+    ok("★ 舊值 casual ＋ 深色主題 → 退回科技（＝那些人以前的預設），而且舊值被清掉",
+       o1["pal"] == "tech" and o1["bgLum"] < 0.2 and o1["stored"] is None, f"pal={o1['pal']} stored={o1['stored']}")
+    o2 = land(MLCC, "light", pal="soft")
+    ok("舊值 soft ＋ 淺色主題 → 跟主題走＝閱讀（不會看到深底配淺頁的破圖）",
+       o2["pal"] == "read" and o2["bgLum"] > 0.8 and o2["stored"] is None, f"pal={o2['pal']} stored={o2['stored']}")
+
+    # ---------------- ④⑤ 對比度逐元素量、語意色（兩種模式）
+    for theme, lab in (("dark", "科技"), ("light", "閱讀")):
+        x = land(MLCC, theme)
+        ok(f"★ [{lab}] MLCC 圖上與卡片裡每一個字的對比都過（正文 ≥ 4.5、次要 ≥ 3；量了 {x['n']} 段，最低 {x['minCr']}）",
+           not x["low"], x["low"][:6])
+        for k in ("--dg-err", "--dg-warn", "--dg-sig", "--dg-pwr", "--dg-cool"):
+            v = x["sem"][k]
+            ok(f"[{lab}] 語意色 {k}={v['v']}：對卡片文字 ≥ 4.5（{v['card']}）、對畫布 ≥ 3（{v['bg']}）",
+               v["card"] >= 4.5 and v["bg"] >= 3, v)
+        if theme == "dark":
+            semD = x["sem"]
+        else:
+            for k in ("--dg-err", "--dg-warn", "--dg-sig", "--dg-pwr", "--dg-cool", "--dg-accent-2d"):
+                ok(f"語意色 {k} 兩種模式色相差 < 15°（{semD[k]['v']} vs {x['sem'][k]['v']}）",
+                   _dhue(semD[k]["v"], x["sem"][k]["v"]) < 15, _dhue(semD[k]["v"], x["sem"][k]["v"]))
+        y = land(PANEL, theme)
+        ok(f"[{lab}] 面板（卡片還在 SVG 裡的舊版面）共用元件換掉之後畫得出來、每一個字的對比都過（最低 {y['minCr']}）",
+           y.get("present") and not y["low"], y.get("low", [])[:6])
+        ok(f"[{lab}] 面板八條說明卡都有引線端點（anchors {y['anchors']}）", y["anchors"] == 8, y["anchors"])
+
+    # ---------------- ⑥ 12px 下限與不重疊：兩種模式 × 三個寬度（MLCC 與面板）
+    for theme, lab, floor in (("dark", "科技", 11.9), ("light", "閱讀", 12.9)):
+        for w in (1440, 800, 390):
+            for name, url in (("MLCC", MLCC), ("面板", PANEL)):
+                land(url, theme, w)
+                pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold').forEach(n => n.dispatchEvent(new MouseEvent('click', {bubbles: true})))")
+                pg.wait_for_timeout(500)
+                z = pg.evaluate(DG_TYPO)
+                fl = floor if name == "MLCC" else 11.9          # 面板還沒掛 .rs，維持 12px
+                ok(f"[{lab} {w}px] {name}（章節全開）每一個字 ≥ {fl + 0.1:.0f}px、文字兩兩不重疊",
+                   z.get("present") and z["min"] >= fl and z["nOv"] == 0, f"min={z.get('min')} small={z.get('small', [])[:3]} ov={z.get('ov', [])[:3]}")
+                out = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg'); const vb = svg.viewBox.baseVal.width; const bad = [];
+                    svg.querySelectorAll('text').forEach(n => { if (!n.getClientRects().length) return; const b = n.getBBox(), m = n.getCTM();
+                      const l = m ? m.a*b.x + m.c*b.y + m.e : b.x; if (l + b.width*(m ? m.a : 1) > vb + 1) bad.push((n.textContent||'').slice(0,16)); }); return bad; }""")
+                ok(f"[{lab} {w}px] {name} 沒有任何一段字畫出畫布右緣（量完再縮 fitTexts 有生效）", not out, out[:3])
+
+    # ---------------- ⑦ v2 版面：三個寬度（抽屜關＝容器最寬）
+    v = land(MLCC, "light", 1440, side="0")
+    ok("★ [1440 抽屜關] 三欄：左欄在畫布左邊、右欄在畫布右邊，畫布維持原尺寸 660（不是放大去填）",
+       v["v2"] and v["colL"] and v["colR"] and v["colL"]["r"] <= v["canvas"]["l"] and v["colR"]["l"] >= v["canvas"]["r"] and v["svgW"] == 660,
+       {"canvas": v["canvas"], "L": v["colL"], "R": v["colR"], "svgW": v["svgW"]})
+    ok("[1440 抽屜關] 引線畫了 6 條（每張有錨點的卡片一條），而且是 6 個錨點", v["leads"] == 6 and v["anchors"] == 6, f"leads={v['leads']} anchors={v['anchors']}")
+    ok(f"[1440] 收合狀態畫布高度 ≤ 700（量到 {v['vbH']}）", v["vbH"] <= 700, v["vbH"])
+    ok("[1440] 版面填滿容器：左欄左緣貼著容器、右欄右緣貼著容器（各留 ≤ 20px 內距）",
+       v["colL"]["l"] - pg.evaluate("() => document.querySelector('#prodDiagram').getBoundingClientRect().left") <= 20
+       and pg.evaluate("() => document.querySelector('#prodDiagram').getBoundingClientRect().right") - v["colR"]["r"] <= 20,
+       {"wrapW": v["wrapW"], "L": v["colL"], "R": v["colR"]})
+    v2 = land(MLCC, "light", 1440, side="1")
+    ok("★ [1440 抽屜開＝容器約 970] 兩欄：卡片全部在畫布右邊（左欄的卡片也排進右欄）",
+       v2["v2"] and v2["colL"] and v2["colR"] and v2["colL"]["l"] >= v2["canvas"]["r"] and v2["colR"]["l"] >= v2["canvas"]["r"],
+       {"canvas": v2["canvas"], "L": v2["colL"], "R": v2["colR"]})
+    ok("[1440 抽屜開] 引線也是 6 條（寬度變了引線跟著重算，不是寫死座標）", v2["leads"] == 6, v2["leads"])
+    ok("★ [1440 抽屜開] 併成一欄時卡片照編號排：①、01…06、★（不是左欄的先、右欄的後）",
+       v2["order"] == sorted(v2["order"]), v2["order"])
+    v3 = land(MLCC, "light", 800, side="0")
+    ok("★ [800] 單欄：卡片在畫布下面、不畫引線（靠編號對照）",
+       v3["v2"] and v3["colL"] and v3["colL"]["t"] >= v3["canvas"]["b"] - 2 and v3["leads"] == 0, {"canvas": v3["canvas"], "L": v3["colL"], "leads": v3["leads"]})
+    ok("★ [800] 卡片照編號排（由上到下、由左到右），而且兩張一列沒有落單的格子（8 張＝4 列）",
+       v3["order"] == sorted(v3["order"]) and pg.evaluate("() => { const ys = new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top))); return ys.size === 4; }"),
+       {"order": v3["order"], "rows": pg.evaluate("() => [...new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top)))]")})
+    ok("[800] 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    v4 = land(MLCC, "light", 390, side="0")
+    ok("[390] 卡片一欄一張、整頁沒有橫向捲軸（畫布自己在欄裡左右滑）",
+       v4["v2"] and pg.evaluate("() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')]; const xs = new Set(cs.map(c => Math.round(c.getBoundingClientRect().left))); return xs.size === 1; }")
+       and pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    # 寬度改變 → 引線真的重畫：同一頁把視窗從 1440 縮到 1100（抽屜關＝容器約 1050 → 兩欄）
+    land(MLCC, "light", 1440, side="0")
+    a = pg.evaluate("() => (document.querySelector('#prodDiagram .dglead path') || {}).getAttribute ? document.querySelector('#prodDiagram .dglead path').getAttribute('d') : null")
+    pg.set_viewport_size({"width": 1100, "height": 1000}); pg.wait_for_timeout(900)
+    b = pg.evaluate(STYLE22)
+    a2 = pg.evaluate("() => (document.querySelector('#prodDiagram .dglead path') || {}).getAttribute ? document.querySelector('#prodDiagram .dglead path').getAttribute('d') : null")
+    ok("★ 視窗 1440 → 1100（不重載）：版面自己變成畫布＋右欄，引線座標真的重算了",
+       b["colL"] and b["colL"]["l"] >= b["canvas"]["r"] and b["leads"] == 6 and a and a2 and a != a2, {"L": b["colL"], "canvas": b["canvas"], "d": (a or "")[:40], "d2": (a2 or "")[:40]})
+
+    # ---------------- ⑧ 既有互動一個都沒少（1440 抽屜關、閱讀）
+    s0 = land(MLCC, "light", 1440, side="0")
+    r0 = rows()
+    pg.click("#prodDiagram .dgc[data-seg]"); pg.wait_for_timeout(600)
+    s1 = pg.evaluate(STYLE22)
+    ok("★ 點卡片 → 主角剛好 1 個（卡片本身就是零件節點），畫布上的錨點跟著亮、引線跟著變粗",
+       s1["selPart"] == 1 and s1["ancSel"] == 1 and s1["leadSel"] == 1 and s1["haspart"],
+       {"selPart": s1["selPart"], "anc": s1["ancSel"], "lead": s1["leadSel"], "haspart": s1["haspart"]})
+    ok("DECISIONS #73：點卡片只亮不篩（成分股筆數一動都不動）", rows() == r0, f"{r0} → {rows()}")
+    pg.evaluate("() => document.querySelectorAll('#prodDiagram .anc')[3].dispatchEvent(new MouseEvent('click', {bubbles: true}))"); pg.wait_for_timeout(600)
+    s2 = pg.evaluate(STYLE22)
+    who = pg.evaluate("() => { const c = document.querySelector('#prodDiagram .dgc.sel-part'); return c ? c.dataset.anc : null; }")
+    ok("★ 點畫布上的編號圓點 ＝ 點那張卡片（主角換人、還是剛好 1 個）",
+       s2["selPart"] == 1 and who == pg.evaluate("() => document.querySelectorAll('#prodDiagram .anc')[3].dataset.for"), {"selPart": s2["selPart"], "who": who})
+    bgpt = pg.evaluate(_DGL_BG)
+    if ok("圖上找得到一塊空白可以點（點背景恢復的前提）", bool(bgpt), bgpt):
+        pg.mouse.click(bgpt["x"], bgpt["y"]); pg.wait_for_timeout(600)
+        s3 = pg.evaluate(STYLE22)
+        ok("★ 點背景 → 主角清掉、錨點與引線回到平常（點背景恢復沒壞）",
+           s3["selPart"] == 0 and s3["ancSel"] == 0 and s3["leadSel"] == 0 and not s3["haspart"], {"selPart": s3["selPart"], "anc": s3["ancSel"]})
+    pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(400)
+    s4 = pg.evaluate(STYLE22)
+    ok("E4 動畫開關還在：按一下 noanim 真的切換", s4["noanim"] != s0["noanim"], f"{s0['noanim']} → {s4['noanim']}")
+    pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(300)
+    pg.click('#prodDiagram g.dgfold[data-fold="mc2"]'); pg.wait_for_timeout(700)
+    s5 = pg.evaluate(STYLE22)
+    ok("章節 ② 打得開：畫布真的變高、引線跟著重畫（還是 6 條）", s5["vbH"] > s0["vbH"] + 100 and s5["leads"] == 6, f"{s0['vbH']} → {s5['vbH']} leads={s5['leads']}")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
 
 if __name__ == "__main__":
