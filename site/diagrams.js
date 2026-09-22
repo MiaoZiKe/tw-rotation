@@ -172,36 +172,91 @@
      「圖插進 DOM 之後會被呼叫一次」的那個掛點（wireDiagram 會呼叫它），
      所以收合機制可以完全住在 diagrams.js 裡，不必去動 industry.js。
 
-     版面怎麼算
-     ----------
-     每一段在原始碼裡都畫在**自己的自然位置**（＝全部展開時的版面），
-     並且用 data-y0／data-y1 宣告它佔掉的垂直範圍。
-     這裡只做一件事：由上往下重新堆一次，收合的段落就跳過，最後把 viewBox 的高度改掉。
-     ★ 這樣設計的好處是「JS 沒跑到」也不會壞 —— 靜態的 SVG 本身就是一份完整、
-       全部展開、座標正確的版面（縮圖那種不呼叫 stampParts 的路徑就是吃這一份）。
+     版面怎麼算（兩種宣告法，這裡都吃）
+     ----------------------------------
+     不論哪一種，這裡只做一件事：**由上往下重新堆一次**，收合的段落跳過，
+     最後把 viewBox 的高度改掉。差別只在「每一段佔掉的垂直範圍」從哪裡來：
+
+       ① 手寫（`data-y0` / `data-y1`）：段落畫在自己的自然位置，範圍寫在屬性上。
+          好處是 JS 沒跑到也不會壞 —— 靜態 SVG 本身就是一份全部展開、座標正確的版面。
+       ② 自動（`data-auto="1"`，`D.fold()` 產出的就是這種）：範圍由 `getBBox()` 量出來。
+          ⚠ 代價要講清楚：自動模式的**章節列畫在區域座標 y=0**，位置完全靠 transform，
+            所以「JS 沒跑到」時那幾條列會疊在圖的最上面。目前沒有這種路徑
+            （`wireDiagram()` 一定會呼叫 `stampParts()`），但哪天有人要做不跑 JS 的縮圖，
+            這就是要先處理的那一件事。換到的是：十三張量產圖的段落大量用 transform 疊出來，
+            手算 y0/y1 等於把同一份座標抄第二遍，抄錯不會報錯、只會歪掉。
 
      ⚠ 章節列刻意**不掛 data-seg** —— 掛了的話 wireDiagram 會把它接成「點零件」，
        按一下展開就順便把成分股篩掉了。*/
+  /* 一條章節列佔掉的垂直空間（框 36 ＋ 列距 6）。
+     2026-09-22 從 46 收到 42：一張圖最多四條，省下來的 16px 直接變成畫布高度的餘裕，
+     而 36px 的框裝 13.5px 的標題還有 11px 的上下留白，點擊區也還夠大。*/
+  const FOLD_H = 42;
+  const FOLD_PT = 14, FOLD_PB = 22;  // 自動量測時，內容上緣／下緣各留的空白
+
   function wireFolds(svg) {
     if (svg.dataset.dgFold === '1') return;          // 同一張圖被 stamp 兩次不要重複綁
-    const rows = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'))
-      .map((g) => ({ el: g, id: g.getAttribute('data-fold'), body: g.classList.contains('dgbody'),
-        y0: parseFloat(g.getAttribute('data-y0')), y1: parseFloat(g.getAttribute('data-y1')) }))
-      .filter((r) => Number.isFinite(r.y0) && Number.isFinite(r.y1));
-    if (!rows.length) return;
+    const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
+    if (!all.length) return;
+    /* ★ 自動量測（art-director 2026-09-22）：掛 `data-auto="1"` 的段落**不在原始碼裡宣告 y0/y1**，
+       由這裡量 getBBox() 得到。為什麼要這樣做：十三張量產圖的段落大量用 transform 疊出來
+       （`<g transform="translate(0,D)">` 套好幾層），手算 y0/y1 等於把同一份座標抄第二遍 ——
+       抄錯了不會報錯，只會版面歪掉，而且以後別人動一行內容就得回來重抄一次。
+       量不到（圖還沒可見、瀏覽器還沒排版）就**整支放棄，不留半套狀態**：
+       沒有標記 dgFold，下一次 stampParts 會再試一次，在那之前畫面維持
+       「全部展開、座標正確」的原始版面 —— 這正是 DECISIONS #232 要的那個保險。
+       MLCC 那張手寫 y0/y1 的版本完全不受影響（沒有 data-auto，走下面的 else）。*/
+    const rows = [];
+    for (let i = 0; i < all.length; i++) {
+      const g = all[i], body = g.classList.contains('dgbody');
+      let off, h;
+      if (g.getAttribute('data-auto') === '1') {
+        if (body) {
+          let b = null;
+          try { b = g.getBBox(); } catch (e) { b = null; }
+          if (!b || !(b.height > 0)) return;          // 量不到 → 放棄，維持全部展開
+          off = b.y - FOLD_PT; h = b.height + FOLD_PT + FOLD_PB;
+        } else {
+          // 章節列畫在自己的區域座標 0～36，位置整個交給下面的重新堆疊
+          off = 0; h = FOLD_H;
+        }
+      } else {
+        const y0 = parseFloat(g.getAttribute('data-y0')), y1 = parseFloat(g.getAttribute('data-y1'));
+        if (!Number.isFinite(y0) || !Number.isFinite(y1)) continue;
+        off = y0; h = y1 - y0;
+      }
+      rows.push({ el: g, id: g.getAttribute('data-fold'), body, off, h });
+    }
+    const bodies = rows.filter((r) => r.body);
+    if (!rows.length || !bodies.length) return;
     svg.dataset.dgFold = '1';
     const bars = rows.filter((r) => !r.body);
-    const base = Math.min.apply(null, rows.map((r) => r.y0));
+    /* 第一條章節列擺在哪裡 —— 兩個候選取**大**的那一個：
+         ① 第一段內容的上緣往上退一列（手寫 y0/y1 的版本沿用舊算法，
+            MLCC 算出來跟以前一模一樣：638 − 46 ＝ 592，所以這條改寫沒有動到既有版面）
+         ② **永遠看得到那一段（§1）的底部**再往下 8px
+       只取 ① 會踩到一個很難看的錯：原始碼裡 §1 與第一段內容之間如果不到 46px，
+       章節列就會壓在 §1 的最後幾行字上面。取 max 之後，「原始碼留多少空隙」不再是
+       畫圖的人要記得的事 —— 這正是這一版要拿掉的那種隱形規矩。*/
+    let solidBottom = -Infinity;
+    const inFold = (n) => { for (let p = n; p && p !== svg; p = p.parentNode) { if (p.hasAttribute && p.hasAttribute('data-fold')) return true; } return false; };
+    [].slice.call(svg.children).forEach((c) => {
+      if (c.tagName === 'defs' || c.tagName === 'style' || inFold(c)) return;
+      let b = null; try { b = c.getBBox(); } catch (e) { b = null; }
+      if (b && b.height >= 0 && Number.isFinite(b.y)) solidBottom = Math.max(solidBottom, b.y + b.height);
+    });
+    const base = Math.max(Math.min.apply(null, bodies.map((r) => r.off)) - FOLD_H,
+      solidBottom > -Infinity ? solidBottom + 8 : -Infinity);
     const W = (svg.viewBox && svg.viewBox.baseVal && svg.viewBox.baseVal.width) || 980;
-    const PAD = 16;
+    const PAD = 10;               // 最後一條章節列底下留的空白
     const open = new Set();                           // 預設全部收合
     function paint() {
       let cur = base;
       rows.forEach((r) => {
         if (r.body && !open.has(r.id)) { r.el.setAttribute('display', 'none'); return; }
         r.el.removeAttribute('display');
-        r.el.setAttribute('transform', 'translate(0,' + (cur - r.y0).toFixed(1) + ')');
-        cur += r.y1 - r.y0;
+        r.el.setAttribute('transform', 'translate(0,' + (cur - r.off).toFixed(1) + ')');
+        cur += r.h;
       });
       bars.forEach((r) => {
         const on = open.has(r.id);
@@ -209,7 +264,24 @@
         const sg = r.el.querySelector('.fsign'), hi = r.el.querySelector('.fhint');
         if (sg) sg.textContent = on ? '－' : '＋';
         // 收合時寫「裡面有什麼」，展開時寫「怎麼收回去」—— 兩種狀態都看得出還能做什麼
-        if (hi) hi.textContent = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
+        if (hi) {
+          const full = on ? '－ 收合這一段' : ('＋ 展開：' + (r.el.getAttribute('data-hint') || ''));
+          hi.textContent = full;
+          /* ★ 提示文字自己讓路（art-director 2026-09-22）。
+             標題靠左、提示靠右，兩邊都是變動長度的中文 —— 只要有人把標題寫長一點
+             就會撞在一起，而且是**畫面上兩行字疊在一起**那種最難看的錯。
+             2026-09-22 第一版就撞了兩張（載板 27px、伺服器電源 452px）。
+             與其訂一條「標題不准超過幾個字」的隱形規矩（沒有人會記得，也沒有東西會擋），
+             不如讓它在執行期自己量：撞到就把提示從尾巴砍掉、補上刪節號，
+             砍到剩六個字還是撞就整個藏起來（標題本來就講得完整）。*/
+          const tt = r.el.querySelector('.hd');
+          if (tt) {
+            let txt = full, guard = 0;
+            const hit = () => { try { const a = tt.getBBox(), b = hi.getBBox(); return a.x + a.width + 12 > b.x; } catch (e) { return false; } };
+            while (hit() && txt.length > 6 && guard++ < 60) { txt = txt.slice(0, -3) + '…'; hi.textContent = txt; }
+            hi.setAttribute('display', hit() ? 'none' : 'inline');
+          }
+        }
       });
       svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Math.round(cur + PAD));
     }
@@ -223,8 +295,9 @@
     paint();
   }
 
-  /* 章節列：一條可以按的橫列。`hint` 要寫**裡面有什麼**，不是「更多」——
-     「更多」等於叫人先點開再猜，那就不是收納，是把東西藏起來。*/
+  /* 章節列（**舊寫法，新圖請用下面的 `fold()`**）：自己算好 y、自己配一個
+     `<g class="dgbody" data-fold data-y0 data-y1>`。2026-09-22 之後沒有人再用它 ——
+     留著只是因為它還掛在 `window.DG` 上，外面的圖檔可能有人接。*/
   function foldBar(id, y, title, hint, h) {
     h = h || 46;
     return `<g class="dgfold" data-fold="${id}" data-hint="${hint}" data-y0="${y}" data-y1="${y + h}">
@@ -234,6 +307,30 @@
       <text class="sub fhint" x="948" y="${y + 24}" text-anchor="end">＋ 展開：${hint}</text>
     </g>`;
   }
+  /* ★ 章節（章節列 ＋ 內容）一次寫完，y 座標交給 wireFolds() 在執行期量（art-director 2026-09-22）。
+
+     為什麼要有這一支，而不是照 MLCC 那樣手寫 y0/y1
+     ------------------------------------------------
+     Andy 2026-09-22：「所有 2D 3D 圖的圖片及文字縮小一半…希望能一次看到完整資訊」。
+     「文字縮小一半」跟 12px 下限（DECISIONS #227）在物理上衝突 —— 12 → 6px 沒人讀得懂，
+     所以**縮的是版面不是字級**：把一張 1800px 高的圖收成 700px 以內，其餘收進章節。
+     十三張量產圖要一起改，手寫 y0/y1 就是把每張圖的座標抄第二遍（而且是抄在別的地方），
+     抄錯不會報錯、只會歪掉。改成量 bbox：**畫圖的人只要決定「哪一段收起來、收起來要寫什麼」**。
+
+     用法（inner 就是原本那一段的原始碼，一個字都不用改）：
+       ${D.fold('psu2', '② BBU 與四層防線', 'BBU 接的位置、四層防線各管多久', `...原本那一段...`)}
+
+     `hint` 要寫**裡面有什麼**，不是「更多」——「更多」等於叫人先點開再猜，
+     那就不是收納，是把東西藏起來（DECISIONS #232 紅線 2）。*/
+  function fold(id, title, hint, inner) {
+    return `<g class="dgfold" data-fold="${id}" data-hint="${hint}" data-auto="1">
+      <rect class="fbar" x="16" y="0" width="948" height="36" rx="9"/>
+      <text class="fsign" x="38" y="23" text-anchor="middle">＋</text>
+      <text class="hd" x="58" y="23">${title}</text>
+      <text class="sub fhint" x="948" y="23" text-anchor="end">＋ 展開：${hint}</text>
+    </g><g class="dgbody" data-fold="${id}" data-auto="1">${inner}</g>`;
+  }
+
   /* 這個零件是不是「被點的那一個」。`data-alias` 是給「2D 拆成兩塊、3D 只有一塊」那種
      對不齊的情況用的（例如 MLCC 的端電極：2D 有消費級與車規兩張放大剖面，3D 只有一圈端電極）。*/
   function partHit(node, key) {
@@ -949,7 +1046,7 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { STYLE, labelRow, lrow3, processBar, foldBar, chainLink, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { STYLE, labelRow, lrow3, processBar, foldBar, fold, chainLink, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   /* ★ 2026-09-21：一張圖一個檔（`site/dg/<slot>.js`）。
      `docs/diagram_plan.md` 排了 14 張，全部塞進這個檔會變成兩千多行，
