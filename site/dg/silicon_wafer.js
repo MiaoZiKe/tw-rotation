@@ -422,7 +422,8 @@
   window.DG.register('silicon_wafer', {
     level: 'group', chain: 'semiconductor',
     name: '矽晶圓：從熔湯到一片鏡面',
-    draw: siliconWafer, native: 980, scene: null,
+    draw: siliconWafer, native: 980, scene: 'silicon_wafer',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+                       那個判斷被推翻的理由寫在 site/three3d.js 的 SCENES.silicon_wafer 檔頭（一句話：這張圖最重要的那件事本來就是三維的）。2D 的 data-part 與 3D 的 part 是同一組，所以切過去還是選著同一個零件。*/
     q: '一片 12 吋晶圓是怎麼長出來的？為什麼晶圓越大越划算？台股這五家各自做到哪一段？',
     /* ⚠ 這張圖**沒有 data-seg**，所以 `renderPartCard()` 目前不會顯示小卡（`if (!seg)` 就藏起來）。
        照樣逐件寫齊，理由跟 `wide_bandgap.js` 一樣：① 這是這份對應該住的地方；
