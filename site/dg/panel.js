@@ -420,7 +420,7 @@
     const oledMini = mini(846, [[7, 'var(--dg-pn-pol)'], [9, 'var(--dg-pn-glass)'],
       [11, 'var(--dg-pn-org)'], [13, 'var(--dg-pn-glass)']], 552);
 
-    return `<svg class="dg dgm dgpn" viewBox="0 0 980 1164" width="100%" style="display:block">${STYLE}${PN_STYLE}
+    return `<svg class="dg dgm dgpn rs" viewBox="0 0 980 1164" width="100%" style="display:block">${STYLE}${PN_STYLE}
       <text class="ttl" x="16" y="26">面板疊層：一片 TFT-LCD 從背光到偏光板，疊了十三層</text>
       <text class="cap" x="16" y="46">中間是等角「階梯式剖切」：右邊那面牆是剖面（層序與材質），左前方每退一階就露出那一層的表面。左欄講原理、右欄逐層說明，下面是放大圖、OLED 對照與製程。</text>
 

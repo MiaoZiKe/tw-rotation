@@ -2830,7 +2830,22 @@ def t_new_industry(pg, base):
             #   那兩條跟資料量、跟圖的張數都無關。
             #   如果哪天這個數字又要往上調，先問「是不是清單又炸開了」，
             #   而不是直接加 500。
-            ("electronics",   1300,  836, 1000, 3944, 5800)]
+            # ★ 2026-09-22：electronics 的整頁門檻 5800 -> 6500。
+            #   這一條照上面那段註解的判準先問過「是不是清單又炸開了」—— **不是**：
+            #   390px 實測 `#chainList` 866px（門檻 1000，沒動）、`#groupCards` 1197px、
+            #   `#memberTable` 1300px 三個都跟改之前一樣。
+            #   高度的來源是**圖別選單多了 4 張卡**：一般電子鏈的族群層級剖析圖
+            #   從 3 張（MLCC／面板／電感·電阻·石英）變成 7 張
+            #   （＋工業自動化／CNC 工具機／電容器／被動保護）。
+            #   390px 下 `#dgMenu` 一張卡約 154px、7 張＝1079px，
+            #   跟改之前（3 張、約 462px）差 617px —— 整頁 5440 → 6057，對得起來。
+            #   門檻取 6500 ＝ 實測 ＋ 約 7% 餘裕（跟另外兩條同一個算法）。
+            #   ⚠ 已知問題（留給下一個人）：390px 下光是圖別選單就佔掉 1079px，
+            #     使用者要捲過一整頁的卡片才看得到圖。那是 `#dgMenu` 這個**共用元件**
+            #     在手機上的版面問題，不是任何一張圖的問題 —— 要修就是改
+            #     `site/industry.js` 的 `#dgMenu` 與它的 CSS，而且得連三條鏈一起驗。
+            #     這一批刻意不動它（動到全站共用的東西，風險不該混進「新增三張圖」裡）。
+            ("electronics",   1300,  836, 1000, 3944, 6500)]
     pg.set_viewport_size({"width": 390, "height": 1000})
     for cid, was_list, got, cap, was_page, cap_page in M390:
         pg.evaluate(KEY)
@@ -10055,6 +10070,10 @@ SECTIONS = {
     "批次21-晶圓代工":     lambda pg, b, base, code: t_b21_foundry(pg, base),
     "批次21-矽晶圓":       lambda pg, b, base, code: t_b21_silicon_wafer(pg, base),
     "批次21-HBM":          lambda pg, b, base, code: t_b21_hbm(pg, base),
+    # 批次22：一般電子鏈三張剖析圖（E1 傳動件／E2 鋁電容／E3 保護元件）
+    "批次22-傳動件":       lambda pg, b, base, code: t_e1_motion(pg, base),
+    "批次22-鋁電容":       lambda pg, b, base, code: t_e2_alumcap(pg, base),
+    "批次22-保護元件":     lambda pg, b, base, code: t_e3_protect(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -13943,6 +13962,864 @@ def t_b21_cowos(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+
+
+
+# ================================================================ 批次 22：一般電子鏈三張剖析圖
+# E1 工業自動化（site/dg/motion_control.js，族群 factory_automation ＋ machine_tool）
+# E2 電容器（site/dg/alum_cap.js，族群 capacitor）
+# E3 被動保護（site/dg/circuit_protection.js，族群 resistor_protect）
+#
+# ★ 三張的規格書分別是 docs/diagram_specs/{motion_control,alum_cap,circuit_protection}.md，
+#   合計 91 條硬規則、19 條紅線。下面每一條斷言都寫清楚它對應規格書的哪一條。
+# ⚠ 這三段只用自己的 helper 與 _b14b_* 那一組**既有**共用工具，
+#   沒有改動檔案裡任何別人的函式（這個檔多人共用）。
+
+
+def _e_parts_def(pg, dgid):
+    """讀繪圖端宣告的 `parts`（誰做的小卡的資料來源）。
+    這是驗「每一個零件都覆寫了 cos」用的 —— 那是 E2／E3 的紅線。"""
+    return pg.evaluate("""(id) => {
+      const DS = window.DiagramSlots; if (!DS || !DS.parts) return null;
+      const p = DS.parts(id) || {};
+      const out = {};
+      Object.keys(p).forEach(k => { out[k] = {hasCos: Object.prototype.hasOwnProperty.call(p[k], 'cos'),
+        cosLen: (p[k].cos || []).length, cos: p[k].cos || [], none: !!p[k].none}; });
+      return out; }""", dgid)
+
+
+def _e_noanim(pg, label):
+    """★ 三張圖規格書都寫死「不做動畫」。
+    所以這裡驗的是兩件事，而且兩件都是「畫面真的因此改變」：
+      ① 按「動畫」鈕，`#prodDiagram` 的 noanim class 真的被切換（按了有反應）；
+      ② 開與關**兩種狀態下**，圖上都沒有任何會動的東西（SMIL 或 CSS 動畫）——
+         這正是規格書 §8「效能：這張圖沒有動畫」的機器驗法。"""
+    probe = """() => { const h = document.querySelector('#prodDiagram');
+      if (!h) return null;
+      const svg = h.querySelector('svg');
+      const moving = [...svg.querySelectorAll('*')].filter(n => {
+        if (n.tagName === 'animate' || n.tagName === 'animateMotion'
+            || n.tagName === 'animateTransform') return true;
+        const a = getComputedStyle(n).animationName;
+        return a && a !== 'none'; }).length;
+      return {noanim: h.classList.contains('noanim'), moving: moving,
+              label: (document.querySelector('#dgAnim') || {}).textContent || '',
+              parts: h.querySelectorAll('[data-part]').length,
+              texts: h.querySelectorAll('text').length}; }"""
+    a = pg.evaluate(probe)
+    if not ok(f"{label}：動畫鈕與圖都在（前提）", bool(a) and a["parts"] > 10, a):
+        return
+    pg.eval_on_selector("#dgAnim", "b => b.click()")
+    pg.wait_for_timeout(500)
+    b = pg.evaluate(probe)
+    ok(f"{label}：★ 按動畫鈕 → 狀態真的換了（class 與鈕上的字兩個都變）",
+       b["noanim"] != a["noanim"] and b["label"] != a["label"],
+       f"{a['noanim']}／{a['label']} → {b['noanim']}／{b['label']}")
+    ok(f"{label}：★ 按下去之後結構與標註還在（不是把東西藏起來才「停住」）",
+       b["parts"] == a["parts"] and b["texts"] == a["texts"],
+       f"零件 {a['parts']}→{b['parts']}／文字 {a['texts']}→{b['texts']}")
+    ok(f"{label}：規格書 §8「這張圖沒有動畫」—— 開與關兩種狀態下都量不到任何會動的元素",
+       a["moving"] == 0 and b["moving"] == 0, f"開 {a['moving']} 個／關 {b['moving']} 個")
+    pg.eval_on_selector("#dgAnim", "b => b.click()")     # 還原偏好，不汙染後面的段落
+    pg.wait_for_timeout(350)
+
+
+MC_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s, root) => [...(root || svg).querySelectorAll(s)];
+  const bb = (e) => { const b = e.getBBox();
+    return {x: +b.x.toFixed(1), y: +b.y.toFixed(1), w: +b.width.toFixed(1), h: +b.height.toFixed(1)}; };
+  const zoom = svg.querySelector('.mczoom');
+  const balls = A('.mczoom .mcball').map(e => ({cx: +e.getAttribute('cx'), cy: +e.getAttribute('cy'),
+                                                r: +e.getAttribute('r')}));
+  const ret = svg.querySelector('.mczoom .mcret');
+  const zgs = A('.mczoom .mcgs').map(bb), zgn = A('.mczoom .mcgn').map(bb);
+  const rails = A('.mcrail').map(bb), blocks = A('.mcblock').map(bb);
+  const rballs = A('.mcrball').map(e => ({cx: +e.getAttribute('cx'), cy: +e.getAttribute('cy')}));
+  const sx = svg.querySelector('.mcscrewx');
+  const cs = svg.querySelector('.mccs'), fs = svg.querySelector('.mcfs'),
+        fsi = svg.querySelector('.mcfsi'), wg = svg.querySelector('.mcwg');
+  const tri = (e) => { const m = (e.getAttribute('d') || '')
+      .match(/-?[\\d.]+/g).map(Number); return [[m[0], m[1]], [m[2], m[3]], [m[4], m[5]]]; };
+  const cyc = A('.mccyclo');
+  return {present: true,
+    // 螺帽放大格（S2／S3／S4）
+    zoom: !!zoom, balls: balls, nRet: A('.mczoom .mcret').length,
+    retD: ret ? ret.getAttribute('d') : '',
+    retBB: ret ? bb(ret) : null,
+    gsD: (A('.mcgs')[0] || {getAttribute: () => ''}).getAttribute('d'),
+    zGsBottom: zgs.length ? Math.max(...zgs.map(b => b.y + b.h)) : null,
+    zGnTop: zgn.length ? Math.min(...zgn.map(b => b.y)) : null,
+    nZgs: zgs.length, nZgn: zgn.length,
+    // 橫剖（S5／S6／S7／S13）
+    rails: rails, blocks: blocks, rballs: rballs,
+    screwX: sx ? {cx: +sx.getAttribute('cx'), r: +sx.getAttribute('r')} : null,
+    // 縱剖（S1／S8／S9／S11／S12）
+    motor: (A('[data-part="mc_motor"] rect.part')[0] || null)
+      ? bb(A('[data-part="mc_motor"] rect.part')[0]) : null,
+    enc: A('[data-part="mc_enc"] rect.part').map(bb),
+    coup: A('[data-part="mc_coupling"] rect.part').map(bb),
+    brg: A('[data-part="mc_bearing"] rect.part').map(bb),
+    shaft: A('[data-part="mc_screw"] rect.part').map(bb),
+    // ⚠ 螺帽在主圖與放大格各畫一次，S11 量的是**主圖**那一顆（放大格是另一個比例尺）
+    nut: A('[data-part="mc_nut"] rect.part').map(bb).filter(b => b.x < 380),
+    ties: A('.mctie').length,
+    tieBB: A('.mctie').map(bb),
+    // 諧波（H1～H5）
+    cs: cs ? bb(cs) : null, fs: fs ? bb(fs) : null, fsi: fsi ? bb(fsi) : null,
+    wg: wg ? bb(wg) : null,
+    csT: A('.mccst').length, fsT: A('.mcfst').length,
+    fsOutInFs: A('[data-part="mc_fs"] .mcfsout').length,
+    fsOutInCs: A('[data-part="mc_cs"] .mcfsout').length,
+    csInner: A('.mccst').length ? Math.min(...A('.mccst').map(e => {
+      const b = e.getBBox(); return Math.hypot(b.x + b.width / 2 - (cs.getBBox().x + cs.getBBox().width / 2),
+        b.y + b.height / 2 - (cs.getBBox().y + cs.getBBox().height / 2)); })) : null,
+    // RV（R1～R4）
+    planet: svg.querySelector('.mcplanet') ? bb(svg.querySelector('.mcplanet')) : null,
+    house: svg.querySelector('.mcrvhouse') ? bb(svg.querySelector('.mcrvhouse')) : null,
+    cyclo: cyc.map(bb), cycloPts: cyc.map(e => (e.getAttribute('d') || '').split('L').length),
+    pins: A('.mcpin').length,
+    // 控制鏈（C1～C3）
+    cells: A('.mccell').map(bb),
+    arrR: A('.mcarrh').map(tri),
+    fb: svg.querySelector('.mcfb') ? (svg.querySelector('.mcfb').getAttribute('d') || '') : '',
+    fbBB: svg.querySelector('.mcfb') ? bb(svg.querySelector('.mcfb')) : null,
+    fbArr: A('.mcfbarr').map(tri),
+    // 掛法
+    nSeg: A('[data-seg]').length, nPart: A('[data-part]').length,
+    full: A('text').map(n => n.textContent).join('。')};
+}"""
+
+
+def t_e1_motion(pg, base):
+    """E1 工業自動化：一個會動的軸拆開看（`site/dg/motion_control.js`）。
+
+    合約＝`docs/diagram_specs/motion_control.md` §6（37 條）。這一段用機器量的：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   S1／S8／S9  縱剖由左到右、馬達與螺桿之間有聯軸器、編碼器在馬達尾端
+      3   S2／M4  ★ 螺桿溝槽的 path 是**圓弧指令**，不是折線（V 形＝一般螺絲）
+      4   S3  ★★★ **鋼珠的回流通道畫得出來**，而且通道兩端接到受力段的兩端；
+          回流段上真的有鋼珠（紅線，不過就退回）
+      5   S4  鋼珠 ≥ 8 顆，而且**同時碰到螺桿溝與螺帽溝**（上緣＝螺帽溝頂、下緣＝螺桿溝底）
+      6   S5  ★★ **滑塊 ㄇ 形包住軌道兩側**（左腳在軌道左邊、右腳在右邊、腳伸到軌道半高以下）
+      7   S6  兩條平行軌，**螺桿在兩軌之間**
+      8   S7  滾珠在軌道側面的溝裡、而且在滑塊的兩腳之間
+      9   S10 工作台同時鎖在螺帽與滑塊上（兩邊都有連接件）
+      10  S11／S12 螺桿是最長的零件、螺帽長度約螺桿的 1/6、軸承座兩端各一
+      11  S13 縱剖與橫剖同比例尺（橫剖的螺桿直徑＝縱剖的軸徑）
+      12  H1  ★★★ 諧波由外到內是 **剛輪 → 柔輪 → 波產生器**（三件同心、外徑遞減）
+      13  H2  柔輪是**橢圓**（長短軸差 ≥ 8%）；H3 柔輪齒數 < 剛輪齒數且畫面上寫「少幾齒」
+      14  H4  輸出法蘭掛在**柔輪**的群組裡、不在剛輪的群組裡；H5 柔輪壁比剛輪壁薄
+      15  R1／R2 RV 是兩級，**行星級在靠馬達那一端**（在擺線級左邊）
+      16  R3  擺線盤 **2 片、中心錯開**、外緣是連續波浪（取樣點 > 180），**針銷數＝波浪數＋1**
+      17  R4  ★ 同比例尺下 **RV 外徑 > 諧波外徑 × 1.2**
+      18  C1  ★★ 控制鏈**閉合**：回授線接得回控制器；C2 起點在馬達那一格
+      19  C3  主鏈箭頭一律向右、回授箭頭向左（方向不同）
+      20  X3  ★★ 6603 富強鑫標的是「射出成型機」，而且**不在加工機三軸那一格**
+      21  X5／X6 畫面上沒有法人用語、沒有任何規格與市占率數字
+      22  D1  ★ 零件**一個 data-seg 都不掛**，但每一個都有 data-part
+      23  零件小卡：點螺桿 → 出現上銀；點射出成型機那一列 → 出現富強鑫（文字真的換人）
+      24  收合高度 ≤ 700；兩條章節列按了真的開、再按真的關；全開後文字真的變多
+      25  動畫鈕按了狀態真的換，而且這張圖兩種狀態下都量不到會動的元素
+      26  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+      27  machine_tool 走的是同一張圖，但標題不同
+    """
+    FEAT = "循環器"
+    drawn, DGH = _b14b_entry(pg, base, "electronics", "factory_automation", FEAT, "傳動件")
+    if not drawn:
+        return
+    d0 = pg.evaluate(B14B_DG)
+    ok("傳動件・D1：★ 這張圖**一個 data-seg 都沒掛**（工業自動化與 CNC 工具機在供應鏈資料裡沒有對應環節，"
+       "硬掛 passive_comp 或 metal_casing 會列出一群做 MLCC 或做機殼的公司 —— 那是錯的答案）",
+       d0["nSeg"] == 0, d0["segs"])
+    ok("傳動件・D1 反面：每一個零件都有 data-part（不掛環節也要點得動、也要開得了小卡）",
+       len(d0["parts"]) >= 25, len(d0["parts"]))
+
+    # ---------------- 收合高度與章節列（先展開，後面的 getBBox 才量得到收在章節裡的零件）
+    full_h = _b21_folds(pg, "傳動件", 2)
+    g = pg.evaluate(MC_GEOM)
+    txt = g.get("full", "")
+    if not ok("傳動件：結構量測拿得到資料", g.get("present") and g.get("zoom"), g.get("present")):
+        return
+
+    # ---------------- S 組・單軸模組
+    mo, en, cp = g["motor"], g["enc"], g["coup"]
+    sh = sorted(g["shaft"], key=lambda b: -b["w"])
+    nut = sorted(g["nut"], key=lambda b: -b["w"])
+    ok("傳動件・S1：縱剖由左到右是 馬達 → 聯軸器 → 軸承座 → 螺桿＋螺帽（x 座標真的照這個順序）",
+       bool(mo) and bool(cp) and bool(sh) and mo["x"] < cp[0]["x"] < sh[0]["x"],
+       f"馬達 {mo} ／ 聯軸器 {cp[:1]} ／ 螺桿 {sh[:1]}")
+    ok("傳動件・S8：馬達與螺桿之間**有聯軸器**（直接畫成一根連續的軸就是錯 —— 同心度做不到、也沒有犧牲件）",
+       bool(cp) and mo["x"] + mo["w"] <= cp[0]["x"] + 1 and cp[0]["x"] + cp[0]["w"] <= sh[0]["x"] + 1,
+       f"馬達右緣 {mo['x'] + mo['w'] if mo else None} ／ 聯軸器 {cp[:1]} ／ 螺桿左緣 {sh[0]['x'] if sh else None}")
+    ok("傳動件・S9：編碼器在馬達的**尾端**（遠離螺桿那一側，也就是馬達的左邊）",
+       bool(en) and min(b["x"] for b in en) < mo["x"], f"編碼器 {en} ／ 馬達 {mo}")
+    ok("傳動件・S11：螺桿是全圖最長的零件，而且螺帽長度約螺桿的 1/6（量得出來）",
+       bool(sh) and bool(nut) and 0.12 <= nut[0]["w"] / sh[0]["w"] <= 0.25,
+       f"螺桿 {sh[0]['w'] if sh else None} ／ 螺帽 {nut[0]['w'] if nut else None}")
+    ok("傳動件・S12：軸承座**兩端各一個**（一端固定吃軸向力、一端支撐讓螺桿受熱可以伸長）",
+       len(g["brg"]) == 2, g["brg"])
+    ok("傳動件・S10：工作台同時鎖在**螺帽**與**滑塊**上 —— 兩邊都有連接件",
+       g["ties"] >= 4, f"連接件 {g['ties']} 條")
+
+    # ---------------- S2／M4（溝槽是圓弧）
+    ok("傳動件・S2／M4：★ 螺桿溝槽的 path 用的是**圓弧指令**、不是折線 —— V 形三角那是鎖緊用的螺絲",
+       "A" in (g["gsD"] or "") and "L" not in (g["gsD"] or ""), (g["gsD"] or "")[:60])
+
+    # ---------------- S3（★★★ 紅線：鋼珠的回流通道）
+    balls = g["balls"]
+    # 受力段＝迴圈最下面那一排（在溝槽裡）；回流段＝最上面那一排（在循環器裡）。
+    # ⚠ 不可以用「大於某個 y」來切：迴圈的兩段斜邊上也有鋼珠，會被誤算進受力段。
+    ymax = max((b["cy"] for b in balls), default=0)
+    ymin = min((b["cy"] for b in balls), default=0)
+    load = [b for b in balls if abs(b["cy"] - ymax) < 0.6]
+    back = [b for b in balls if abs(b["cy"] - ymin) < 0.6]
+    rb = g["retBB"]
+    ok("傳動件・S3：★★★ **鋼珠的回流通道畫得出來**，而且它橫跨整個受力段（兩端接得回去）—— "
+       "沒有這條通道的螺桿是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿【紅線】",
+       g["nRet"] == 1 and rb is not None and bool(load)
+       and rb["x"] <= min(b["cx"] for b in load) + 1
+       and rb["x"] + rb["w"] >= max(b["cx"] for b in load) - 1,
+       f"通道 {rb} ／ 受力段 x {min((b['cx'] for b in load), default=None)}～{max((b['cx'] for b in load), default=None)}")
+    ok("傳動件・S3 附帶：★ 回流段上**真的有鋼珠**（畫在迴圈外＝最容易漏掉的那一半）",
+       len(back) >= 2, f"回流段 {len(back)} 顆 ／ 受力段 {len(load)} 顆")
+    ok("傳動件・S4：鋼珠至少 8 顆，而且受力段那幾顆在同一條線上",
+       len(balls) >= 8 and len(set(round(b["cy"], 1) for b in load)) == 1,
+       f"共 {len(balls)} 顆；受力段 y {sorted(set(round(b['cy'], 1) for b in load))}")
+    ok("傳動件・S4 本體：★ 每一顆受力的鋼珠**同時碰到螺桿溝與螺帽溝**（兩點接觸）—— 浮在中間就不傳力",
+       bool(load) and g["zGsBottom"] is not None and g["zGnTop"] is not None
+       and all(abs(b["cy"] + b["r"] - g["zGsBottom"]) < 0.8 for b in load)
+       and all(abs(b["cy"] - b["r"] - g["zGnTop"]) < 0.8 for b in load),
+       f"鋼珠上下緣 {[(round(b['cy'] - b['r'], 1), round(b['cy'] + b['r'], 1)) for b in load][:3]}"
+       f" ／ 螺帽溝頂 {g['zGnTop']} ／ 螺桿溝底 {g['zGsBottom']}")
+
+    # ---------------- S5／S6／S7／S13（橫剖）
+    rails = sorted(g["rails"], key=lambda b: b["x"])
+    blocks = sorted(g["blocks"], key=lambda b: b["x"])
+    pairs = list(zip(blocks, rails))
+    ok("傳動件・S5：★★ 滑塊是 **ㄇ 形、包住軌道兩側** —— 左腳在軌道左邊、右腳在軌道右邊，"
+       "而且腳伸到軌道半高以下。畫成「一個方塊放在軌道上面」就吃不了側向力與拉拔力【紅線】",
+       len(pairs) == 2 and all(b["x"] < r["x"] and b["x"] + b["w"] > r["x"] + r["w"]
+                               and b["y"] + b["h"] > r["y"] + r["h"] / 2 for b, r in pairs),
+       f"滑塊 {blocks} ／ 軌道 {rails}")
+    sx = g["screwX"]
+    ok("傳動件・S6：★ 橫剖是 **2 條平行軌，螺桿在兩軌之間** —— 螺桿畫在旁邊的話推力不在滑座形心上，工作台會被扭起來",
+       len(rails) == 2 and bool(sx)
+       and rails[0]["x"] + rails[0]["w"] < sx["cx"] - sx["r"]
+       and sx["cx"] + sx["r"] < rails[1]["x"],
+       f"軌道 {rails} ／ 螺桿 {sx}")
+    ok("傳動件・S7：滾珠在**軌道側面的溝**裡，而且夾在滑塊的兩腳之間（不在滑塊外面）",
+       len(g["rballs"]) >= 8
+       and all(any(abs(p["cx"] - r["x"]) < 5 or abs(p["cx"] - (r["x"] + r["w"])) < 5 for r in rails)
+               for p in g["rballs"])
+       and all(any(b["x"] < p["cx"] < b["x"] + b["w"] for b in blocks) for p in g["rballs"]),
+       f"{len(g['rballs'])} 顆 {g['rballs'][:4]}")
+    ok("傳動件・S13：縱剖與橫剖**同一個比例尺** —— 橫剖的螺桿直徑跟縱剖的軸徑一樣",
+       bool(sx) and bool(sh) and abs(sx["r"] * 2 - sh[0]["h"]) < 1.2,
+       f"橫剖直徑 {sx['r'] * 2 if sx else None} ／ 縱剖軸徑 {sh[0]['h'] if sh else None}")
+
+    # ---------------- H 組・諧波減速機
+    cs, fs, fsi, wg = g["cs"], g["fs"], g["fsi"], g["wg"]
+    cen = lambda b: (b["x"] + b["w"] / 2, b["y"] + b["h"] / 2)   # noqa: E731
+    ok("傳動件・H1：★★★ 諧波由外到內是 **剛輪 → 柔輪 → 波產生器**（三件同心、外徑一層比一層小）—— "
+       "順序反了機構就不成立：柔輪要被波產生器從裡面撐開、去咬外面的剛輪【紅線】",
+       all([cs, fs, wg]) and cs["w"] > fs["w"] > wg["w"]
+       and abs(cen(cs)[0] - cen(fs)[0]) < 1.5 and abs(cen(fs)[0] - cen(wg)[0]) < 1.5
+       and abs(cen(cs)[1] - cen(fs)[1]) < 1.5 and abs(cen(fs)[1] - cen(wg)[1]) < 1.5,
+       f"剛輪 {cs} ／ 柔輪 {fs} ／ 波產生器 {wg}")
+    ok("傳動件・H2：柔輪是**橢圓**（長短軸差 ≥ 8%）—— 正圓的話全周都咬住，不會有相對轉動",
+       bool(fs) and fs["w"] / fs["h"] >= 1.08,
+       f"柔輪 {fs['w'] if fs else None} × {fs['h'] if fs else None}"
+       f" ＝ {round(fs['w'] / fs['h'], 3) if fs else None}")
+    ok("傳動件・H3：柔輪的齒數畫得比剛輪少，而且畫面上寫「少幾齒（常見是 2 齒）」—— 不寫成定值（那是常見設計、不是物理必然）",
+       0 < g["fsT"] < g["csT"] and "少幾齒" in txt and "常見是 2 齒" in txt,
+       f"剛輪 {g['csT']} 齒 ／ 柔輪 {g['fsT']} 齒")
+    ok("傳動件・H4：★ 輸出法蘭掛在**柔輪**的群組裡、剛輪的群組裡一個都沒有 —— 輸出是從柔輪的杯底出去",
+       g["fsOutInFs"] == 1 and g["fsOutInCs"] == 0,
+       f"柔輪群組內 {g['fsOutInFs']} 個 ／ 剛輪群組內 {g['fsOutInCs']} 個")
+    ok("傳動件・H5：柔輪的壁比剛輪的壁薄（薄壁才彈得動）",
+       all([cs, fs, fsi]) and (fs["w"] - fsi["w"]) / 2 < (cs["w"] - fs["w"]) / 2,
+       f"柔輪壁 {round((fs['w'] - fsi['w']) / 2, 1) if fs and fsi else None}"
+       f" ／ 剛輪壁 {round((cs['w'] - fs['w']) / 2, 1) if cs and fs else None}")
+
+    # ---------------- R 組・RV 減速機
+    pl, hs, cy = g["planet"], g["house"], g["cyclo"]
+    ok("傳動件・R1／R2：★ RV 是**兩級**，而且**行星級在靠馬達那一端**（在擺線級的左邊）—— 反過來畫就不是 RV",
+       bool(pl) and bool(hs) and len(cy) == 2 and cen(pl)[0] < cen(hs)[0],
+       f"行星 {pl} ／ 擺線殼體 {hs}")
+    ok("傳動件・R3：擺線盤 **2 片、中心錯開**（相位差 180 度；單片會有不平衡力）",
+       len(cy) == 2 and abs(cen(cy[0])[0] - cen(cy[1])[0]) > 4,
+       f"兩片中心 x {round(cen(cy[0])[0], 1) if len(cy) == 2 else None} ／ "
+       f"{round(cen(cy[1])[0], 1) if len(cy) == 2 else None}")
+    ok("傳動件・R3 附帶：擺線盤的外緣是**連續波浪**（取樣點 > 180，不是手刻的尖齒）",
+       len(g["cycloPts"]) == 2 and all(n > 180 for n in g["cycloPts"]), g["cycloPts"])
+    ok("傳動件・R3 本體：針銷數 ＝ 波浪數 ＋ 1（擺線機構本來的關係）—— 圖上 16 根針銷對 15 個波浪",
+       g["pins"] == 16, g["pins"])
+    ok("傳動件・R4：★ 兩格同一個比例尺，而且 **RV 外徑明顯大於諧波外徑**（> 1.2 倍）—— "
+       "畫成一樣大就把這格對照唯一要講的事（小輕 vs 大重）畫掉了",
+       bool(hs) and bool(cs) and hs["w"] > cs["w"] * 1.2,
+       f"RV 外徑 {hs['w'] if hs else None} ／ 諧波外徑 {cs['w'] if cs else None}")
+
+    # ---------------- C 組・控制鏈
+    cells = sorted(g["cells"], key=lambda b: b["x"])
+    fbb = g["fbBB"]
+    ok("傳動件・C1：★★ 控制鏈五格都在，而且**回授線真的畫出來、接得回控制器那一格** —— "
+       "只畫單向五格＝畫成了開迴路，那不是伺服【紅線】",
+       len(cells) == 5 and fbb is not None
+       and fbb["x"] <= cells[0]["x"] + cells[0]["w"] and fbb["x"] + fbb["w"] >= cells[2]["x"],
+       f"五格 {[c['x'] for c in cells]} ／ 回授線 {fbb}")
+    ok("傳動件・C2：回授的起點在**馬達那一格**（第 3 格），不是在負載",
+       len(cells) == 5 and fbb is not None
+       and cells[2]["x"] <= fbb["x"] + fbb["w"] <= cells[2]["x"] + cells[2]["w"] + 1,
+       f"回授線右緣 {fbb['x'] + fbb['w'] if fbb else None} ／ 第 3 格 "
+       f"{cells[2]['x'] if len(cells) == 5 else None}～"
+       f"{cells[2]['x'] + cells[2]['w'] if len(cells) == 5 else None}")
+    rights = [t for t in g["arrR"] if t[0][0] > max(t[1][0], t[2][0])]
+    lefts = [t for t in g["fbArr"] if t[0][0] < min(t[1][0], t[2][0])]
+    ok("傳動件・C3：主鏈箭頭**一律向右**（4 支），回授箭頭有向左的 —— 兩條線不准同方向",
+       len(g["arrR"]) == 4 and len(rights) == 4 and len(lefts) >= 1,
+       f"主鏈 {len(g['arrR'])} 支（向右 {len(rights)}）／ 回授向左 {len(lefts)}")
+
+    # ---------------- X 組・辨識與範圍
+    ok("傳動件・X3：★★ 6603 富強鑫標的是「**射出成型機**」，而且**不在「加工機三軸」那一格**（把族群名當事實照抄會踩到的坑）【紅線】",
+       "6603 富強鑫（射出成型機）" in txt and "不在本圖「加工機三軸」那一格" in txt
+       and "加工機三軸（X／Y／Z）｜4526 東台" in txt and "6603" not in txt.split("加工機三軸（X／Y／Z）｜")[1].split("｜")[0],
+       "")
+    for bad in ("龍頭", "全球第", "全球前", "唯一", "獨家"):
+        ok(f"傳動件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
+           bad not in txt, "")
+    ok("傳動件・X6：畫面上沒有任何導程、精度等級、減速比、額定扭矩與市占率數字",
+       "不寫任何導程、精度等級、減速比、額定扭矩與市占率數字" in txt
+       and "市占" not in txt.replace("與市占率數字", ""), "")
+    for bad in ("潔淨室", "FFU", "矽鋼片", "繞組"):
+        ok(f"傳動件・X1／X2：圖上沒有「{bad}」—— 那是晶圓廠廠務／變壓器那兩張的範圍",
+           bad not in txt.replace("不畫繞組", ""), "")
+    ok("傳動件・D2：§5-A 那五行誠實性標示全部在畫面上（尤其「環節色標篩不到它們」與富強鑫那兩行）",
+       "示意圖，非實物比例" in txt and "環節色標" in txt and "篩不到它們" in txt
+       and "板塊成分股證據表" in txt and "沒有畫在主圖上" in txt, "")
+
+    # ---------------- 零件小卡（真的點下去，卡片的字真的換人）
+    _b14b_click_part(pg, "mc_screw")
+    c1 = _b14b_card(pg) or ""
+    _b14b_click_part(pg, "mc_inject")
+    c2 = _b14b_card(pg) or ""
+    ok("傳動件：★ 點「螺桿軸」→ 小卡真的出現，而且講的是滾珠螺桿與上銀（沒有 data-seg 也開得了卡）",
+       "滾珠螺桿" in c1 and "上銀" in c1 and "4540" in c1, c1[:80])
+    ok("傳動件：★ 再點「射出成型機」那一列 → **小卡的字真的換人**，而且寫的是富強鑫與射出成型機",
+       c2 != c1 and "富強鑫" in c2 and "射出成型機" in c2 and "切削工具機" in c2, c2[:80])
+    ok("傳動件：小卡有明講這些公司不在供應鏈資料裡（我們沒有把落差藏起來）",
+       "不在 supply_chain.yaml" in c1 or "不在供應鏈資料" in c1, c1[:80])
+    rows_before = _b14b_rows(pg)
+    _b14b_click_part(pg, "mc_rail")
+    ok("傳動件：點零件**不會**動到下方成分股（DECISIONS #73）",
+       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+
+    # ---------------- 收合高度（已在 _b21_folds 量過）＋ 動畫 ＋ 排版
+    ok("傳動件：備註 —— 兩段全開之後圖真的變高（收納 ≠ 刪除）", full_h > 700, full_h)
+    _e_noanim(pg, "傳動件")
+
+    # ---------------- machine_tool 走同一張圖
+    pg.goto(f"{base}#industry/electronics/dg/machine_tool", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    _b14b_open(pg)
+    d2 = pg.evaluate(B14B_DG)
+    nm = pg.evaluate("""() => { const a = document.querySelector('#dgPick .segchip.sel');
+      return a ? a.textContent.trim() : ''; }""")
+    ok("傳動件：★ `machine_tool` 走的是**同一張圖**（特徵字串一樣），但入口的標題不同",
+       FEAT in d2.get("full", "") and "CNC 工具機" in nm, f"{nm}")
+
+    _b14b_typo(pg, DGH, "傳動件")
+
+
+AC_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s) => [...svg.querySelectorAll(s)];
+  const bb = (e) => { const b = e.getBBox();
+    return {x: +b.x.toFixed(1), y: +b.y.toFixed(1), w: +b.width.toFixed(1), h: +b.height.toFixed(1)}; };
+  const fl = (e) => getComputedStyle(e).fill;
+  const hit = (a, b) => a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+  // 區 ① 的四層帶（x 小於 330、y 小於 300 的那一組 —— 區 ④ 也有同名的層，要用 y 切開）
+  const band = (s) => A(s).map(bb).filter(b => b.x < 330 && b.y < 300);
+  const an = band('.acanode'), ca = band('.accathode'), pa = band('.acpaper');
+  const oxAll = A('.acoxflat').map(bb);
+  const oxBand = oxAll.filter(b => b.x < 330 && b.y < 300);
+  // 區 ② 放大格（x 介於 440 與 740、y 小於 300）
+  const zoomOx = A('.acox').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
+  const zoomEl = A('.acel').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300 && b.h > 10);
+  const core = A('.accore').map(bb);
+  const foil = A('[data-part="ac_anode"] rect.part').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
+  const oxZoomFlat = oxAll.filter(b => b.x > 440 && b.x < 740);
+  // 區 ③ 整顆
+  const can = A('.accan').map(bb), seal = A('.acseal').map(bb),
+        pin = A('.acpin').map(bb), vent = A('.acvent').map(bb),
+        sleeve = A('.acsleeve').map(bb);
+  // 區 ④ 兩格
+  const cell = (s) => A(s).map(e => ({b: bb(e), f: fl(e)})).sort((p, q) => p.b.x - q.b.x);
+  const solidFill = A('.acsolidfill').map(bb);
+  // 文字有沒有壓在外套膠膜上（C4）
+  let onSleeve = 0;
+  if (sleeve.length) A('text').forEach(n => { if (hit(bb(n), sleeve[0])) onSleeve++; });
+  return {present: true,
+    anode: an, cathode: ca, paper: pa, oxBand: oxBand,
+    oxOnCathode: oxAll.filter(o => ca.some(c => hit(o, c))).length,
+    oxOnAnode: oxAll.filter(o => an.some(c => hit(o, c))).length,
+    elyteInPaper: A('.acel').map(bb).filter(b => pa.some(p => hit(b, p))).length,
+    elyteInAnode: A('.acel').map(bb).filter(b => an.some(p => hit(b, p))).length,
+    leads: A('.aclead').map(bb),
+    spiral: A('.acspiral').map(bb),
+    zoomOx: zoomOx, zoomEl: zoomEl, core: core, foil: foil, oxZoomFlat: oxZoomFlat,
+    // 區 ② 的「孔」就是那些被膜包住的 path（.acox）—— .acpore 是區 ① 與區 ④ 的小凹槽，不能混用
+    nZoomPore: zoomOx.length,
+    can: can, seal: seal, pin: pin, vent: vent, sleeve: sleeve, onSleeve: onSleeve,
+    cCat: cell('.accell_cat'), cMid: cell('.accell_mid'), cAn: cell('.accell_an'),
+    cOx: cell('.accell_ox'), solidFill: solidFill,
+    nSeg: A('[data-seg]').length, segs: [...new Set(A('[data-seg]').map(n => n.dataset.seg))],
+    nPart: A('[data-part]').length,
+    full: A('text').map(n => n.textContent).join('。')};
+}"""
+
+
+def t_e2_alumcap(pg, base):
+    """E2 電容器：鋁電解與固態電容剖面（`site/dg/alum_cap.js`）。
+
+    合約＝`docs/diagram_specs/alum_cap.md` §6（28 條）。這一段用機器量的：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   K1  ★★★ 捲芯**四層一個週期**、由下到上是 陽極箔 → 紙 → 陰極箔 → 紙
+          （三層捲起來，上一圈的陽極會碰到下一圈的陰極 —— 短路）【紅線】
+      3   K2  ★★ 氧化膜**只在陽極箔上**，陰極箔上一條都沒有【紅線】
+      4   K3  兩張箔在長度方向**錯開**；K4 電解液**同時**出現在紙裡與陽極箔的孔裡
+      5   K5  ★★ 圖上明寫「陰極箔不是陰極，真正的陰極是電解液」【紅線】
+      6   K6  厚度關係 氧化膜 < 電解紙 < 陰極箔 ≤ 陽極箔（量得出來）
+      7   K7  兩根導針，一根接陽極箔、一根接陰極箔
+      8   E1  ★★ 氧化膜**貼著孔壁的曲面走**：每一個孔的膜都往箔裡面伸進去（bbox 高 ≥ 20、寬 ≤ 16），
+          不是一條橫躺的平直線【紅線】
+      9   E1 本體：膜的厚度在每一個孔上都一樣（等厚，最大與最小差 < 0.6）
+      10  E2  ★ 氧化膜厚度 ≤ 箔厚的 1/20（真的除出來）
+      11  E3  蝕刻孔 ≥ 12 個、兩面都有，而且中間留的實心芯 ＝ 箔厚 − 2×孔深（真的減出來）
+      12  C1  ★ 兩根導針**從同一端**穿出（一端一根那是軸向型）
+      13  C2  渦旋 4 條交錯的螺線、每一條都跑得完 3 圈以上
+      14  C3  防爆閥在**與封口相反**的那一端，而且旁邊標「示意」
+      15  C4  外套膠膜上**一個字都沒有**（那是產品外觀，不是結構）
+      16  D1  ★ 液態與固態兩格**只有中間那一層不同**：陽極箔、氧化膜、陰極側三者的幾何與材質色完全一樣
+      17  D2  固態那一層是**實心**的，而且一樣鑽進陽極箔的孔裡
+      18  X1  ★ 圖上沒有陶瓷介電層、鎳內電極、端電極三層、導電樹脂、板彎裂【紅線】
+      19  X3／X5 沒有容值、耐壓、ESR、壽命、市占率數字，也沒有法人用語
+      20  Y1  掛的 data-seg 只有 passive_comp 一種
+      21  Y2  ★★ **每一個零件都覆寫了 cos**（走預設會列出做 MLCC 的那幾家 —— 錯的答案）【紅線】
+      22  Y3  ★★ 點陽極箔 → 小卡裡有「立敦」與「電蝕箔」，而且寫的不是「做電容」【紅線】
+      23  點電解紙 → 小卡走 none，畫面上看得到「查不到」
+      24  點 passive_comp 環節色標 → 成分股筆數真的變了
+      25  收合高度 ≤ 700；兩條章節列開得開也收得回
+      26  動畫鈕按了狀態真的換，而且兩種狀態下都量不到會動的元素
+      27  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+    """
+    FEAT = "陰極箔不是陰極"
+    drawn, DGH = _b14b_entry(pg, base, "electronics", "capacitor", FEAT, "鋁電容")
+    if not drawn:
+        return
+    full_h = _b21_folds(pg, "鋁電容", 2)
+    g = pg.evaluate(AC_GEOM)
+    txt = g.get("full", "")
+    if not ok("鋁電容：結構量測拿得到資料", g.get("present") and g["anode"], g.get("present")):
+        return
+
+    # ---------------- K 組・捲芯四層
+    an, ca, pa = g["anode"], g["cathode"], g["paper"]
+    layers = sorted([(b["y"], "陽極箔") for b in an] + [(b["y"], "陰極箔") for b in ca]
+                    + [(b["y"], "電解紙") for b in pa])
+    order = [n for _, n in layers]
+    ok("鋁電容・K1：★★★ 捲芯是**四層一個週期**，由上到下 紙 → 陰極箔 → 紙 → 陽極箔"
+       "（也就是由下到上 陽極箔 → 紙 → 陰極箔 → 紙）。三層捲起來，上一圈的陽極會直接碰到下一圈的陰極 —— 短路【紅線】",
+       order == ["電解紙", "陰極箔", "電解紙", "陽極箔"], order)
+    ok("鋁電容・K2：★★ 氧化膜**只長在陽極箔上**，陰極箔上一條都沒有 —— 兩面都畫＝畫成了雙極性電容，"
+       "而且把「為什麼有極性」這件事畫掉了【紅線】",
+       g["oxOnAnode"] >= 1 and g["oxOnCathode"] == 0,
+       f"陽極箔上 {g['oxOnAnode']} 條 ／ 陰極箔上 {g['oxOnCathode']} 條")
+    ok("鋁電容・K3：兩張箔在長度方向**錯開**（捲繞時避免邊緣接觸的做法）",
+       bool(an) and bool(ca) and abs(an[0]["x"] - ca[0]["x"]) > 6,
+       f"陽極箔 x {an[0]['x'] if an else None} ／ 陰極箔 x {ca[0]['x'] if ca else None}")
+    ok("鋁電容・K4：★ 電解液**同時**出現在紙裡與陽極箔的孔裡 —— 只畫在紙裡＝沒有接觸到介電質，電容不成立",
+       g["elyteInPaper"] >= 1 and g["elyteInAnode"] >= 10,
+       f"紙裡 {g['elyteInPaper']} 塊 ／ 陽極箔的孔裡 {g['elyteInAnode']} 塊")
+    ok("鋁電容・K5：★★ 圖上明寫「**陰極箔不是陰極 —— 真正的陰極是電解液**」（這是本圖的第三句話）【紅線】",
+       "陰極箔不是陰極" in txt and "真正的陰極是電解液" in txt
+       and "集電體" in txt, "")
+    oxTh = g["oxBand"][0]["h"] if g["oxBand"] else None
+    ok("鋁電容・K6：四層的厚度關係是 氧化膜 < 電解紙 < 陰極箔 ≤ 陽極箔（量得出來）",
+       oxTh is not None and bool(pa) and bool(ca) and bool(an)
+       and oxTh < pa[0]["h"] < ca[0]["h"] <= an[0]["h"],
+       f"氧化膜 {oxTh} ／ 紙 {pa[0]['h'] if pa else None} ／ 陰極箔 {ca[0]['h'] if ca else None}"
+       f" ／ 陽極箔 {an[0]['h'] if an else None}")
+    lead = sorted(g["leads"], key=lambda b: b["y"])
+    ok("鋁電容・K7：兩根導針，一根接陽極箔、一根接陰極箔（連接點看得見）",
+       len(lead) == 2 and bool(an) and bool(ca)
+       and any(abs(b["y"] + b["h"] / 2 - (ca[0]["y"] + ca[0]["h"] / 2)) < ca[0]["h"] for b in lead)
+       and any(abs(b["y"] + b["h"] / 2 - (an[0]["y"] + an[0]["h"] / 2)) < an[0]["h"] for b in lead),
+       f"導針 {lead}")
+
+    # ---------------- E 組・陽極箔放大（★ E1 是紅線）
+    zox, zel, foil, core = g["zoomOx"], g["zoomEl"], g["foil"], g["core"]
+    ok("鋁電容・E1：★★ 氧化膜**貼著孔壁的曲面往箔裡面走**（每一個孔的膜 bbox 高 ≥ 20、寬 ≤ 16）—— "
+       "畫成一條橫躺的平直線就把「表面積被放大」這個命題畫掉了【紅線】",
+       len(zox) >= 12 and all(b["h"] >= 20 and b["w"] <= 16 for b in zox),
+       f"{len(zox)} 個孔；尺寸 {[(b['w'], b['h']) for b in zox][:4]}")
+    ths = sorted(round((o["w"] - e["w"]) / 2, 2)
+                 for o, e in zip(sorted(zox, key=lambda b: (b["y"], b["x"])),
+                                 sorted(zel, key=lambda b: (b["y"], b["x"]))))
+    ok("鋁電容・E1 本體：膜是**等厚**的 —— 每一個孔量出來的膜厚都一樣（最大與最小差 < 0.6）",
+       len(ths) >= 12 and ths[-1] - ths[0] < 0.6, f"膜厚 {ths[0]}～{ths[-1]}")
+    ok("鋁電容・E2：★ 氧化膜是全圖最薄的層 —— 厚度 ≤ 箔厚的 1/20（真的除出來）",
+       bool(ths) and bool(foil) and ths[0] * 20 <= foil[0]["h"] + 0.01,
+       f"膜厚 {ths[0] if ths else None} × 20 ＝ {round(ths[0] * 20, 1) if ths else None}"
+       f" ／ 箔厚 {foil[0]['h'] if foil else None}")
+    top = [b for b in zox if b["y"] < (foil[0]["y"] + foil[0]["h"] / 2)] if foil else []
+    bot = [b for b in zox if b["y"] >= (foil[0]["y"] + foil[0]["h"] / 2)] if foil else []
+    ok("鋁電容・E3：蝕刻孔 ≥ 12 個、**兩面都有**，而且中間留的實心芯 ＝ 箔厚 − 2×孔深（真的減出來，不是目測）",
+       g["nZoomPore"] >= 12 and len(top) >= 6 and len(bot) >= 6 and bool(core) and bool(foil)
+       and abs(core[0]["h"] - (foil[0]["h"] - 2 * top[0]["h"])) < 1.2,
+       f"孔 {g['nZoomPore']} 個（上 {len(top)}／下 {len(bot)}）；"
+       f"芯 {core[0]['h'] if core else None} ／ 箔 {foil[0]['h'] if foil else None}"
+       f" − 2×{top[0]['h'] if top else None}")
+    ok("鋁電容・E4：電解液填滿孔裡剩下的空間（貼住氧化膜）",
+       len(zel) >= 12, len(zel))
+
+    # ---------------- C 組・整顆縱剖
+    can, seal, pin, vent = g["can"], g["seal"], g["pin"], g["vent"]
+    ok("鋁電容・C1：★ 兩根導針**從同一端**穿出（都在橡膠封口那一側）—— 一端一根那是軸向型，跟捲芯畫法對不起來",
+       len(pin) == 2 and bool(seal)
+       and all(p["y"] + p["h"] > seal[0]["y"] for p in pin),
+       f"導針 {pin} ／ 封口 {seal}")
+    ok("鋁電容・C2：捲成渦旋之後看得出四層交替 —— **4 條交錯的螺線**，每一條都跑得完 3 圈以上",
+       len(g["spiral"]) == 4 and all(b["w"] >= 74 for b in g["spiral"]),
+       f"{len(g['spiral'])} 條，外徑 {[b['w'] for b in g['spiral']]}")
+    ok("鋁電容・C3：★ 防爆閥刻痕在**與封口相反的那一端**，而且旁邊標「示意」"
+       "（這一點本次查不到來源，各家做法不同）",
+       bool(vent) and bool(seal) and vent[0]["y"] < seal[0]["y"] and "刻痕（另一端，示意）" in txt,
+       f"刻痕 y {vent[0]['y'] if vent else None} ／ 封口 y {seal[0]['y'] if seal else None}")
+    ok("鋁電容・C4：外套膠膜上**一個字都沒有**（那是產品外觀與色碼，不是結構）",
+       g["onSleeve"] == 0, f"壓在膠膜上的文字 {g['onSleeve']} 段")
+
+    # ---------------- D 組・液態 vs 固態
+    cc, cm, cn, co = g["cCat"], g["cMid"], g["cAn"], g["cOx"]
+    ok("鋁電容・D1：★ 兩格**只有中間那一層不同** —— 陰極側、陽極箔、氧化膜三者的厚度與材質色完全一樣",
+       len(cc) == 2 and len(cn) == 2 and len(co) == 2
+       and cc[0]["b"]["h"] == cc[1]["b"]["h"] and cc[0]["f"] == cc[1]["f"]
+       and cn[0]["b"]["h"] == cn[1]["b"]["h"] and cn[0]["f"] == cn[1]["f"]
+       and co[0]["b"]["h"] == co[1]["b"]["h"] and co[0]["f"] == co[1]["f"],
+       f"陰極 {[(c['b']['h'], c['f']) for c in cc]} ／ 陽極 {[(c['b']['h'], c['f']) for c in cn]}")
+    ok("鋁電容・D1 反面：中間那一層**真的換了材質**（兩格的填色不同），厚度與位置則一樣",
+       len(cm) == 2 and cm[0]["f"] != cm[1]["f"]
+       and cm[0]["b"]["h"] == cm[1]["b"]["h"] and cm[0]["b"]["y"] == cm[1]["b"]["y"],
+       f"{[(c['b']['h'], c['f']) for c in cm]}")
+    ok("鋁電容・D2：固態那一層是**實心**的，而且**一樣鑽進陽極箔的孔裡**",
+       len(g["solidFill"]) >= 12 and len(cn) == 2
+       and all(b["y"] >= cn[1]["b"]["y"] - 1 for b in g["solidFill"]),
+       f"固態填進孔裡 {len(g['solidFill'])} 塊")
+
+    # ---------------- X 組・不准出現 MLCC 那張的東西
+    for bad in ("陶瓷介電", "鎳內電極", "端電極", "導電樹脂", "板彎裂", "軟端子"):
+        ok(f"鋁電容・X1：圖上沒有「{bad}」—— 那是 MLCC 那張的內容【紅線】", bad not in txt, "")
+    ok("鋁電容・X2：畫面上有一行指向 MLCC 那張（讀者知道另一半在哪裡）",
+       "MLCC 疊層剖析" in txt, "")
+    ok("鋁電容・X3：畫面上沒有容值、耐壓、ESR、壽命小時、市占率與營收數字",
+       "不寫容值、耐壓、ESR、壽命、市占率與營收數字" in txt and "µF" not in txt and "mΩ" not in txt, "")
+    for bad in ("龍頭", "全球第", "唯一", "獨家"):
+        ok(f"鋁電容・X5：畫面上沒有「{bad}」這種法人用語", bad not in txt, "")
+
+    # ---------------- Y 組・公司對應（★ Y2／Y3 是紅線）
+    ok("鋁電容・Y1：掛的環節只有 passive_comp 一種", g["segs"] == ["passive_comp"], g["segs"])
+    pdef = _e_parts_def(pg, "capacitor") or {}
+    nocos = [k for k, v in pdef.items() if not v["hasCos"]]
+    ok("鋁電容・Y2：★★ **每一個零件都覆寫了 `cos`**，一個都沒有走環節預設 —— "
+       "`passive_comp` 的預設成員是做 MLCC 與晶片電阻的那幾家，列出來就是**錯的答案**【紅線】",
+       bool(pdef) and not nocos, f"沒寫 cos 的：{nocos}")
+    badcos = [k for k, v in pdef.items() if any(c not in
+              ("2375", "2327", "2492", "3026", "6173") for c in v["cos"])]
+    ok("鋁電容・Y2 附帶：`cos` 裡只放真的在 supply_chain.yaml 裡的代號 —— "
+       "查不到的代號會被靜靜丟掉，寫進去只會得到一張少了人卻沒有提示的卡片",
+       not badcos, badcos)
+    _b14b_click_part(pg, "ac_anode")
+    ca1 = _b14b_card(pg) or ""
+    ok("鋁電容・Y3：★★ 點「陽極箔」→ 小卡裡有「**立敦**」與「**電蝕箔**」，而且明講它**不做電容成品**【紅線】",
+       "立敦" in ca1 and "電蝕箔" in ca1 and "不做電容成品" in ca1, ca1[:100])
+    _b14b_click_part(pg, "ac_paper")
+    ca2 = _b14b_card(pg) or ""
+    ok("鋁電容：★ 再點「電解紙」→ **小卡的字真的換人**，而且誠實寫「查不到台股對應」",
+       ca2 != ca1 and "查不到" in ca2, ca2[:100])
+    _b14b_click_part(pg, "ac_solid")
+    ca3 = _b14b_card(pg) or ""
+    ok("鋁電容：點「導電高分子」→ 小卡講的是固態電容與 6449 鈺邦（而且明講它不在供應鏈資料裡）",
+       ca3 != ca2 and "鈺邦" in ca3 and "不在 supply_chain.yaml" in ca3, ca3[:100])
+
+    # ---------------- 環節色標真的篩得動（這張圖有真的 seg）
+    rows0 = _b14b_rows(pg)
+    if _b14b_seg_chip(pg, "passive_comp"):
+        pg.wait_for_timeout(900)
+        ok("鋁電容：點「被動元件」環節色標 → **成分股筆數真的變了**（環節篩選沒有被這張圖弄壞）",
+           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        pg.goto(DGH, wait_until="networkidle")
+        pg.wait_for_timeout(2000)
+        _b14b_open(pg)
+
+    ok("鋁電容：備註 —— 兩段全開之後圖真的變高（收納 ≠ 刪除）", full_h > 700, full_h)
+    _e_noanim(pg, "鋁電容")
+    _b14b_typo(pg, DGH, "鋁電容")
+
+
+CP_GEOM = """() => {
+  const svg = document.querySelector('#prodDiagram svg');
+  if (!svg) return {present: false};
+  const A = (s, r) => [...(r || svg).querySelectorAll(s)];
+  const bb = (e) => { const b = e.getBBox();
+    return {x: +b.x.toFixed(1), y: +b.y.toFixed(1), w: +b.width.toFixed(1), h: +b.height.toFixed(1)}; };
+  const G = (id) => svg.querySelector('[data-part="' + id + '"]');
+  const one = (id) => { const g = G(id); if (!g) return null;
+    const body = g.querySelector('.cpbody');
+    return {legs: A('.cpleg', g).map(bb), thru: A('.cpthru', g).map(bb),
+            body: body ? bb(body) : null, t: A('text', g).map(n => n.textContent).join('｜')}; };
+  const gnd = svg.querySelector('.cpgnd');
+  const grains = A('.cpgrain').map(bb);
+  const pathEl = svg.querySelector('.cppath');
+  const pts = pathEl ? (pathEl.getAttribute('d') || '').match(/-?[\\d.]+/g).map(Number) : [];
+  const via = [];
+  for (let i = 0; i + 1 < pts.length; i += 2) via.push([pts[i], pts[i + 1]]);
+  const inG = new Set();
+  via.forEach(p => grains.forEach((b, i) => {
+    if (p[0] >= b.x && p[0] <= b.x + b.w && p[1] >= b.y && p[1] <= b.y + b.h) inG.add(i); }));
+  const area = grains.map(b => +(b.w * b.h).toFixed(1));
+  // 主圖那一格 PPTC（x 小於 260）與第 ① 段那兩格對照（y 大於 560）
+  const poly = A('.cppoly').map(bb);
+  const chains = A('.cpchain').map(bb);
+  const tri = (e) => { const m = (e.getAttribute('d') || '')
+      .match(/-?[\\d.]+/g).map(Number); return [[m[0], m[1]], [m[2], m[3]], [m[4], m[5]]]; };
+  const ntcG = G('cp_ntc');
+  return {present: true,
+    mov: one('cp_mov'), gdt: one('cp_gdt'), tvs: one('cp_tvs'),
+    ntc: one('cp_ntc'), pptc: one('cp_pptc'),
+    ic: G('cp_ic') ? bb(G('cp_ic')) : null,
+    term: G('cp_term') ? bb(G('cp_term')) : null,
+    gndY: gnd ? +gnd.getBBox().y.toFixed(1) : null,
+    nGnd: A('.cpgnd').length, nGndSym: A('.cpgndsym').length,
+    lineY: (() => { const l = svg.querySelector('.cpline');
+      return l ? +(l.getBBox().y + l.getBBox().height / 2).toFixed(1) : null; })(),
+    arr: A('.cparrh').map(tri),
+    grains: grains.length, areaMin: Math.min(...area), areaMax: Math.max(...area),
+    grainStroke: grains.length ? getComputedStyle(A('.cpgrain')[0]).stroke : '',
+    crossed: inG.size, nVia: via.length,
+    movEl: A('.cpmovel').map(bb),
+    poly: poly, chains: chains,
+    ni: A('.cpni').map(bb),
+    p: A('.cpp').map(bb), depl: A('.cpdepl').map(bb), n: A('.cpn').map(bb),
+    ntcGrain: ntcG ? A('.cpgrain', ntcG).length + A('.cpp', ntcG).length : -1,
+    ntcBody: A('.cpntcbody').map(bb), ntcEl: A('.cpntcel').map(bb),
+    nSeg: A('[data-seg]').length, segs: [...new Set(A('[data-seg]').map(n => n.dataset.seg))],
+    nPart: A('[data-part]').length,
+    full: A('text').map(n => n.textContent).join('。')};
+}"""
+
+
+def t_e3_protect(pg, base):
+    """E3 被動保護：過流與過壓元件（`site/dg/circuit_protection.js`）。
+
+    合約＝`docs/diagram_specs/circuit_protection.md` §6（26 條）。這一段用機器量的：
+
+      1   圖別入口 → 點進去 → 網址真的變 → 貼網址重新整理一樣打得開
+      2   A1  ★★★ MOV／GDT／TVS **並聯**：各有兩條腿，一條碰主線、一條碰接地線【紅線】
+      3   A2  ★★★ NTC／PPTC **串聯**：主線從中間穿過，而且**一條接地腿都沒有**【紅線】
+      4   A3  ★★ MOV 比 TVS **更靠外部端子**（分層防護的全部意義）【紅線】
+      5   A4  TVS 與 IC 之間沒有別的元件；A6 接地線只有一條、所有並聯元件都掛在上面
+      6   A5  NTC 的標註寫的是「開機瞬間的湧浪電流」，**不是**「突波電壓」
+      7   A7  主線箭頭**一律向右**（外 → 內）
+      8   M1  ★★ MOV 畫得出**晶粒與晶界**：≥ 20 顆、大小不一、彼此之間有晶界線【紅線】
+      9   M2  電流折線**穿過 ≥ 5 道晶界**（路徑真的經過 6 顆以上不同的晶粒）
+      10  M3  電極在**兩個相對的面**（上下），不是同一面的兩端
+      11  P1  常溫格：碳黑鏈**貫穿上下電極**；P4 主圖 PPTC 是鎳箔／高分子／鎳箔三層
+      12  P2  ★★ 跳脫格：鏈**斷開**，而且高分子層厚度 **> 常溫格 × 1.15**（真的乘出來）【紅線】
+      13  P3  兩格同一個比例尺（寬度一樣）
+      14  V1  ★ TVS 看得出 **P 區／空乏區／N 區**，而且空乏區寬 ≥ 3px（800px 下不會消失）
+      15  V2  NTC 是陶瓷本體＋兩相對面電極，**沒有 PN 接面、沒有晶界網**
+      16  X1  ★ 圖上沒有雷射修整溝、磁粉、繞線、石英密封腔【紅線】
+      17  X3／X5 沒有鉗位電壓、通流容量、壽命次數、市占率數字，也沒有法人用語
+      18  D1／D2 ★★ 每個零件都掛 passive_comp，而且 **`cos` 一律是空陣列**【紅線】
+      19  點 MOV → 小卡有「興勤」與「不在 supply_chain.yaml」
+      20  點 PPTC → 小卡**同時**有「聚鼎」與「富致」（而且文字真的換人）
+      21  點 passive_comp 環節色標 → 成分股筆數真的變了
+      22  收合高度 ≤ 700；兩條章節列開得開也收得回
+      23  動畫鈕按了狀態真的換，而且兩種狀態下都量不到會動的元素
+      24  1440 / 800 / 390 × 深淺兩主題：字級 ≥ 12px、不重疊、不溢出
+    """
+    FEAT = "擋電壓的並聯"
+    drawn, DGH = _b14b_entry(pg, base, "electronics", "resistor_protect", FEAT, "保護元件")
+    if not drawn:
+        return
+    full_h = _b21_folds(pg, "保護元件", 2)
+    g = pg.evaluate(CP_GEOM)
+    txt = g.get("full", "")
+    if not ok("保護元件：結構量測拿得到資料", g.get("present") and g.get("mov"), g.get("present")):
+        return
+
+    LY, GY = g["lineY"], g["gndY"]
+    # ---------------- A 組・拓樸（★ A1／A2／A3 是紅線）
+    for key, nm in (("mov", "壓敏電阻 MOV"), ("gdt", "氣體放電管 GDT"), ("tvs", "TVS／ESD")):
+        e = g[key]
+        ok(f"保護元件・A1：★★★ {nm} 是**並聯**：兩條腿 —— 一條碰主線、一條碰接地線，"
+           "而且主線從它旁邊繼續往右走。串聯的話平常就把線斷掉了，電路不會動【紅線】",
+           bool(e) and len(e["legs"]) == 2 and LY is not None and GY is not None
+           and any(abs(b["y"] - LY) < 2 for b in e["legs"])
+           and any(abs(b["y"] + b["h"] - GY) < 2 for b in e["legs"])
+           and not e["thru"],
+           f"腿 {e['legs'] if e else None} ／ 主線 y {LY} ／ 接地 y {GY}")
+    for key, nm in (("ntc", "熱敏電阻 NTC"), ("pptc", "自恢復保險絲 PPTC")):
+        e = g[key]
+        ok(f"保護元件・A2：★★★ {nm} 是**串聯**：主線從它中間穿過（左進右出），"
+           "而且**一條接地腿都沒有**。並聯的話平常就把線短路到地了【紅線】",
+           bool(e) and not e["legs"] and len(e["thru"]) == 1 and e["body"] is not None
+           and abs(e["thru"][0]["w"] - e["body"]["w"]) < 2
+           and abs(e["thru"][0]["y"] - LY) < 2,
+           f"腿 {e['legs'] if e else None} ／ 穿過 {e['thru'] if e else None} ／ 本體 {e['body'] if e else None}")
+    mov, tvs, ic, ntc, pptc = g["mov"], g["tvs"], g["ic"], g["ntc"], g["pptc"]
+    ok("保護元件・A3：★★ **MOV 比 TVS 更靠外部端子** —— 反過來畫就是把大能量放給只能擋小能量的元件吃，"
+       "而且「分層」這句話沒了【紅線】",
+       mov["body"]["x"] < tvs["body"]["x"], f"MOV x {mov['body']['x']} ／ TVS x {tvs['body']['x']}")
+    ok("保護元件・A3 附帶：兩個串聯的過流元件都排在 MOV 之後、TVS 之前",
+       mov["body"]["x"] < ntc["body"]["x"] < tvs["body"]["x"]
+       and mov["body"]["x"] < pptc["body"]["x"] < tvs["body"]["x"],
+       f"MOV {mov['body']['x']} ／ NTC {ntc['body']['x']} ／ PPTC {pptc['body']['x']} ／ TVS {tvs['body']['x']}")
+    between = [e["body"]["x"] for e in (mov, g["gdt"], ntc, pptc)
+               if e["body"]["x"] > tvs["body"]["x"]]
+    ok("保護元件・A4：TVS／ESD 與 IC 之間**沒有其他元件**（它必須是最靠近晶片的那一個）",
+       bool(ic) and tvs["body"]["x"] < ic["x"] and not between, between)
+    ok("保護元件・A5：NTC 的標註寫的是「**開機瞬間的湧浪電流**」，不是「突波電壓」—— 那是兩件事",
+       "開機瞬間的湧浪電流" in txt and "不是突波電壓" in txt, "")
+    ok("保護元件・A6：接地線只有**一條**，而且畫了接地符號",
+       g["nGnd"] == 1 and g["nGndSym"] >= 2, f"接地線 {g['nGnd']} 條 ／ 符號 {g['nGndSym']} 段")
+    rights = [t for t in g["arr"] if t[0][0] > max(t[1][0], t[2][0])]
+    ok("保護元件・A7：主線箭頭**一律向右**（外 → 內），方向不准反",
+       len(g["arr"]) >= 4 and len(rights) == len(g["arr"]),
+       f"共 {len(g['arr'])} 支，向右 {len(rights)}")
+
+    # ---------------- M 組・MOV 晶粒（★ M1 是紅線）
+    ok("保護元件・M1：★★ MOV 畫得出**晶粒**：≥ 20 顆、而且**大小不一**（最大是最小的 1.2 倍以上）—— "
+       "畫成一塊均質陶瓷方塊就不是 MOV，它的非線性完全來自晶界【紅線】",
+       g["grains"] >= 20 and g["areaMax"] > g["areaMin"] * 1.2,
+       f"{g['grains']} 顆；面積 {g['areaMin']}～{g['areaMax']}")
+    ok("保護元件・M1 本體：**晶界真的是線**（晶粒有描邊）—— 靠兩塊顏色的交界的話，休閒配色把色差壓掉就看不見了",
+       bool(g["grainStroke"]) and g["grainStroke"] not in ("none", ""), g["grainStroke"])
+    ok("保護元件・M2：電流折線**穿過 ≥ 5 道晶界** —— 路徑上的點落在 6 顆以上不同的晶粒裡（真的數出來）",
+       g["crossed"] >= 6, f"經過 {g['crossed']} 顆晶粒／路徑 {g['nVia']} 個點")
+    mel = sorted(g["movEl"], key=lambda b: b["y"])
+    ok("保護元件・M3：電極在**兩個相對的面**（上下各一片，晶粒夾在中間）—— 不是同一面的兩端",
+       len(mel) == 2 and mel[0]["y"] < mel[1]["y"] and abs(mel[0]["w"] - mel[1]["w"]) < 1, mel)
+
+    # ---------------- P 組・PPTC（★ P2 是紅線）
+    # 主圖那一格在區 ②（y 小於 500）；第 ① 段的兩格對照在章節裡（y 大於 500）。
+    # ⚠ 不可以用 x 切 —— 兩格對照的左邊那一格 x 只有 60，跟主圖那一格重疊。
+    poly = g["poly"]
+    main = [b for b in poly if b["y"] < 500]
+    comp = sorted([b for b in poly if b["y"] >= 500], key=lambda b: b["x"])
+    ok("保護元件・P4：主圖那一格 PPTC 是「鎳箔／高分子／鎳箔」三層 ＋ 外包絕緣",
+       len(main) == 1 and len([b for b in g["ni"] if b["y"] < 500]) == 2,
+       f"高分子 {main} ／ 鎳箔 {[b for b in g['ni'] if b['y'] < 500]}")
+    span = [b for b in g["chains"] if main and b["y"] < 500 and b["h"] >= main[0]["h"] * 0.9]
+    ok("保護元件・P1：常溫時碳黑粒子**連成貫穿上下電極的通路**（至少一條鏈跨滿整層高分子）",
+       len(span) >= 1, f"貫穿的鏈 {len(span)} 條")
+    ok("保護元件・P2：★★ 跳脫格的高分子層**明顯變厚**（> 常溫格 × 1.15，真的乘出來的，不是目測）【紅線】",
+       len(comp) == 2 and comp[1]["h"] > comp[0]["h"] * 1.15,
+       f"常溫 {comp[0]['h'] if len(comp) == 2 else None} ／ 跳脫 {comp[1]['h'] if len(comp) == 2 else None}")
+    if len(comp) == 2:
+        spanA = [b for b in g["chains"] if b["y"] >= 500
+                 and comp[0]["x"] <= b["x"] <= comp[0]["x"] + comp[0]["w"] and b["h"] >= comp[0]["h"] * 0.9]
+        spanB = [b for b in g["chains"] if b["y"] >= 500
+                 and comp[1]["x"] <= b["x"] <= comp[1]["x"] + comp[1]["w"] and b["h"] >= comp[1]["h"] * 0.9]
+        ok("保護元件・P2 本體：★★ 跳脫格的碳黑鏈**真的斷開**（常溫格有貫穿的鏈、跳脫格一條都沒有）—— "
+           "只畫「變紅」不畫「變厚＋斷鏈」＝沒有解釋機制【紅線】",
+           len(spanA) >= 1 and len(spanB) == 0,
+           f"常溫格貫穿 {len(spanA)} 條 ／ 跳脫格貫穿 {len(spanB)} 條")
+        ok("保護元件・P3：兩格**同一個比例尺**（寬度一樣），只有上面那兩件事不同",
+           abs(comp[0]["w"] - comp[1]["w"]) < 1, f"{comp[0]['w']} ／ {comp[1]['w']}")
+
+    # ---------------- V 組・TVS 與 NTC
+    p, dp, n = g["p"], g["depl"], g["n"]
+    ok("保護元件・V1：★ TVS 看得出 **P 區 → 空乏區 → N 區**（由上到下三層），"
+       "而且空乏區寬 ≥ 3px（800px 下不會消失）—— 畫成陶瓷晶粒就是畫成了 MOV",
+       len(p) == 1 and len(dp) == 1 and len(n) == 1
+       and p[0]["y"] + p[0]["h"] <= dp[0]["y"] + 0.6
+       and dp[0]["y"] + dp[0]["h"] <= n[0]["y"] + 0.6 and dp[0]["h"] >= 3,
+       f"P {p} ／ 空乏區 {dp} ／ N {n}")
+    ok("保護元件・V2：NTC 是**陶瓷本體 ＋ 兩個相對面電極**，裡面**沒有 PN 接面、也沒有晶界網**",
+       g["ntcGrain"] == 0 and len(g["ntcBody"]) == 1 and len(g["ntcEl"]) == 2,
+       f"晶粒與 PN {g['ntcGrain']} 個 ／ 本體 {len(g['ntcBody'])} ／ 電極 {len(g['ntcEl'])}")
+
+    # ---------------- X 組
+    # 第 ② 段有一句「指路用的一格」，它的工作就是**明講這張圖不畫哪些東西**，
+    # 所以那一句裡本來就會出現那些詞。比對之前先扣掉它，才不會把「誠實聲明」當成「畫了」。
+    guide = [t for t in txt.split("。") if t.startswith("指路用的一格")
+             or t.startswith("　全部在")]
+    clean = txt
+    for t in guide:
+        clean = clean.replace(t, "")
+    clean = clean.replace("本圖一格都不畫它們的結構", "")
+    ok("保護元件・X1 前提：那一句「指路用的一格」真的在畫面上（不然下面的扣除就變成放水）",
+       len(guide) >= 1, guide[:1])
+    for bad in ("修整溝", "磁粉", "繞線", "密封腔", "端電極"):
+        ok(f"保護元件・X1：圖上沒有畫「{bad}」—— 那是「被動元件：電感・電阻・石英」那張的內容"
+           "（指路那一句明講「不畫」，不算）【紅線】",
+           bad not in clean, "")
+    ok("保護元件・X2：畫面上有一行指向電阻那張（3624 光頡與 2478 大毅做的是電阻，不是保護元件）",
+       "3624 光頡" in txt and "2478 大毅" in txt and "電感・電阻・石英" in txt, "")
+    ok("保護元件・X3：畫面上沒有鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字",
+       "不寫鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字" in txt
+       and "pF" not in txt and "kA" not in txt, "")
+    for bad in ("龍頭", "全球前", "全球第", "唯一", "獨家"):
+        ok(f"保護元件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
+           bad not in txt, "")
+    ok("保護元件・D3：§5-A 那幾行誠實性標示在畫面上（尤其「環節色標篩不到它們」）",
+       "示意圖，非實物比例" in txt and "環節色標" in txt and "篩不到它們" in txt, "")
+
+    # ---------------- D 組・掛法（★ D2 是紅線）
+    ok("保護元件・D1：掛的環節只有 passive_comp 一種，而且每個元件都有 data-part",
+       g["segs"] == ["passive_comp"] and g["nPart"] >= 20, f"{g['segs']} ／ {g['nPart']} 個零件")
+    pdef = _e_parts_def(pg, "resistor_protect") or {}
+    nocos = [k for k, v in pdef.items() if not v["hasCos"]]
+    notempty = [k for k, v in pdef.items() if v["cosLen"] != 0]
+    ok("保護元件・D2：★★ 每一個零件都寫了 `cos`，而且**一律是空陣列** —— "
+       "`passive_comp` 的預設成員是做 MLCC 與晶片電阻的，列出來就是**錯的答案，不是不完整的答案**【紅線】",
+       bool(pdef) and not nocos and not notempty,
+       f"沒寫 cos 的 {nocos} ／ cos 不是空陣列的 {notempty}")
+    nonone = [k for k, v in pdef.items() if not v["none"]]
+    ok("保護元件・D2 反面：每一個零件都有 `none:` 的整句話 —— 空陣列會走這一支，那是唯一會被印出來的答案",
+       not nonone, nonone)
+
+    # ---------------- 零件小卡
+    _b14b_click_part(pg, "cp_mov")
+    c1 = _b14b_card(pg) or ""
+    ok("保護元件：★ 點 MOV → 小卡裡有「**興勤**」，而且明講它「**不在 supply_chain.yaml 裡**」",
+       "興勤" in c1 and "不在 supply_chain.yaml" in c1, c1[:100])
+    _b14b_click_part(pg, "cp_pptc")
+    c2 = _b14b_card(pg) or ""
+    ok("保護元件：★ 再點 PPTC → **小卡的字真的換人**，而且**同時**有「聚鼎」與「富致」",
+       c2 != c1 and "聚鼎" in c2 and "富致" in c2 and "不區分兩家" in c2, c2[:110])
+    _b14b_click_part(pg, "cp_gdt")
+    c3 = _b14b_card(pg) or ""
+    ok("保護元件：點 GDT → 小卡誠實寫「本圖查不到台股對應」（查不到就寫查不到）",
+       c3 != c2 and "查不到台股對應" in c3, c3[:100])
+    rows0 = _b14b_rows(pg)
+    if _b14b_seg_chip(pg, "passive_comp"):
+        pg.wait_for_timeout(900)
+        ok("保護元件：點「被動元件」環節色標 → **成分股筆數真的變了**",
+           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        pg.goto(DGH, wait_until="networkidle")
+        pg.wait_for_timeout(2000)
+        _b14b_open(pg)
+
+    ok("保護元件：備註 —— 兩段全開之後圖真的變高（收納 ≠ 刪除）", full_h > 700, full_h)
+    _e_noanim(pg, "保護元件")
+    _b14b_typo(pg, DGH, "保護元件")
 
 
 
