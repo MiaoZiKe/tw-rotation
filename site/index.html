@@ -142,6 +142,9 @@
   --dg-node-r:2.8px;                    /* 引線端點的小圓半徑 */
   --dg-node-glow:3px;                   /* 端點光暈半徑（科技）；閱讀 0 ＝ 只留實心圓點 */
   --dg-flow-dot:#ffffff;                /* 流程列上跑的那顆光點 */
+  /* 2.5D 玻璃材質（D.fx，tech-illustrator 2026-09-22；參考圖 docs/diagram_refs/2d_panel_dark_light.webp）：
+     頂面往 --dg-fx-hi 混、側面往 --dg-fx-lo 混、頂緣一條高光；暈光底線的不透明度 --dg-fx-halo。兩種模式共用同一組。*/
+  --dg-fx-hi:#ffffff; --dg-fx-lo:#000000; --dg-fx-halo:.22;
   --dg-flow-w:2;                        /* 流動虛線的粗細 */
   --dg-hero-sh:none;                    /* 主角零件的環境光落影（閱讀才有） */
   /* 元件語意色三組（Andy 2026-09-22 補的 3D 指示；2D 用同一組）：
@@ -333,6 +336,7 @@
   --dg-no-ink:#1f1d19;                  /* 編號數字：閱讀模式的圓點是粉彩底＋色環，數字用深灰（白字印在壓深過的粉彩上只有 4.05:1） */
   --dg-lead:#6b665d; --dg-lead-w:.9; --dg-lead-sel-w:1.5;   /* 深灰細引線 */
   --dg-flow-dot:#1d6f79; --dg-flow-w:1.6;
+  --dg-fx-halo:.16;                     /* 亮底上的暈光底線淡一階（參考圖：亮色版柔光約科技的 40%） */
   --dg-hero-sh:drop-shadow(0 6px 10px rgba(40,35,25,.18));
   --dg-frame-f:rgba(255,255,255,.55); --dg-frame-s:rgba(58,53,45,.18);
   --dg-step-f:rgba(255,255,255,.80);

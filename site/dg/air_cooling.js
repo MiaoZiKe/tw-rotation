@@ -10,7 +10,8 @@
      · 右下是 **P-Q 曲線**（這張圖的命題：靜壓比風量重要）—— 座標軸刻意不標數值（§6-Q3）。
      · 十二張說明卡片全部外掛成 HTML（`extRow` 傳 `side`），畫布收到 680 寬；
        軸承四型、軸流 vs 離心、噪音、混合散熱、結論框與流程列收進三段章節（`D.fold()`）。
-     · 每張卡片帶 `data-dgcolor`＝那個零件的材質色（鋁／不鏽鋼／銅／磁鐵紫／冷側藍），沒有任何發光濾鏡。
+     · 每張卡片帶 `data-dgcolor`＝那個零件的材質色（鋁／不鏽鋼／銅／磁鐵紫／冷側藍）。
+     · 材質走 `D.fx`（玻璃板／圓盤／光束，diagrams.js 檔尾）：feGaussianBlur 只掛在穿過導風罩的三條**靜態**暈光底線上（#239 的 ≤3）。
 
    ★ 型式：2D／2.5D，**不做真 3D**（規格書 §0 已寫死，`scene: null`）。
      ⚠ 規格書 §0 特別點名一種**假的 3D 理由**：「風扇會轉，所以做 3D 比較生動」——
@@ -32,7 +33,7 @@
   'use strict';
   const DG = window.DG;
   if (!DG || !DG.register) return;
-  const { STYLE, processBar, extRow, fold, shadow } = DG;
+  const { STYLE, processBar, extRow, fold, shadow, fx } = DG;
 
   const SEG = 'thermal';        // 散熱（均熱片 / 液冷）—— ai_server 鏈，YAML 裡查證過存在
   const SEG_A = 'assembly';     // 系統組裝 / 機櫃 —— 只有機殼襯景與流程列的進氣／排氣掛它
@@ -65,7 +66,7 @@
     return processBar(x, y, steps, w, opts)
       .replace(/<g class="step lrow" data-seg="/g, () => `<g class="step lrow" data-part="flow${i++}" data-seg="`);
   };
-  const C = { alu: 'var(--dg-alu)', steel: 'var(--dg-steel)', cu: 'var(--dg-cu)', mag: 'var(--dg-mag)', cold: 'var(--dg-cold)', hot: 'var(--dg-hot)', culit: 'var(--dg-cu-lit)' };
+  const C = { alu: 'var(--dg-alu)', steel: 'var(--dg-steel)', cu: 'var(--dg-cu-lit)', mag: 'var(--dg-mag)', cold: 'var(--dg-cold)', hot: 'var(--dg-hot)', culit: 'var(--dg-cu-lit)' };
 
   const RAD = Math.PI / 180;
   const pt = (cx, cy, r, a) => `${(cx + r * Math.cos(a * RAD)).toFixed(1)},${(cy + r * Math.sin(a * RAD)).toFixed(1)}`;
@@ -97,9 +98,8 @@
     const K = 0.42, AX = 170;                        // 圓盤壓扁的比例、中軸的 x
     const Y = { frame: 100, rot1: 180, motor: 250, brg: 302, rot2: 360 };
     // 一片有厚度的圓盤：先畫側壁（下半圈往下拉 T），再畫頂面；inner 畫在頂面座標（未壓扁）裡
-    const disc = (cy, r, T, top, side, inner, cls) => `<g transform="translate(${AX},${cy}) scale(1,${K})">`
-      + `<path fill="${side}" d="M${-r},0V${T}A${r},${r} 0 0 0 ${r},${T}V0Z"/>`
-      + `<circle class="${cls || 'part'}" r="${r}" fill="${top}"/>${inner || ''}</g>`;
+    /* 玻璃材質走共用的 D.fx（參考圖 docs/diagram_refs/2d_panel_dark_light.webp）：圓盤＝fx.disc、板＝fx.glass、流動＝fx.beam */
+    const disc = (cy, r, T, top, side, inner) => fx.disc(AX, cy, r, T, { c: top, side, inner, k: K });
     /* 前扇框：方形外框、圓形風道、四角鎖孔 —— 「這是鎖在機殼上的工業件」的第一個記號，
        家用電風扇的網罩、立柱、擺頭一律不畫（§6-M1）。*/
     const frame = (() => {
@@ -108,8 +108,11 @@
       const hole = `M${H},0A${H},${H} 0 1 0 ${-H},0A${H},${H} 0 1 0 ${H},0Z`;
       const holes = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sy]) => `<circle cx="${sx * (S - 13)}" cy="${sy * (S - 13)}" r="5" fill="var(--dg-void)"/>`).join('');
       return `<g transform="translate(${AX},${Y.frame}) scale(1,${K})">`
+        + `<ellipse class="fxsh" cy="${S + T + 12}" rx="${S - 6}" ry="10"/>`
         + `<path fill="var(--dg-alu-3)" d="${sq(T)}"/>`
-        + `<path class="part" fill="var(--dg-alu)" fill-rule="evenodd" d="${sq(0)} ${hole}"/>${holes}</g>`;
+        + `<path class="part" fill="var(--dg-alu)" fill-opacity=".9" fill-rule="evenodd" d="${sq(0)} ${hole}"/>`
+        + `<path class="fxsheen" fill-rule="evenodd" d="${sq(0)} ${hole}"/>`
+        + `<path class="fxhi" d="M${-S + 16},${-S + 1}H${S - 16}"/>${holes}</g>`;
     })();
     /* 轉子：輪轂是一個短圓柱、七片有傾角的扇葉從它長出來；整組真的在轉（CSS spin，動畫鈕關掉就停）。
        後面那組 dir 取 −1：葉片鏡射、轉向相反（§6-F4）。旋向另外用一個弧形箭頭標出來。*/
@@ -119,9 +122,10 @@
         ? `<path d="M${pt(0, 0, 76, arcA)}A76,76 0 0 1 ${pt(0, 0, 76, arcB)}" stroke="var(--dg-cold)" stroke-width="1.8" fill="none"/><path d="M${pt(0, 0, 76, arcB)}l-9,-6l-2,10Z" fill="var(--dg-cold)"/>`
         : `<path d="M${pt(0, 0, 76, arcA)}A76,76 0 0 0 ${pt(0, 0, 76, arcB)}" stroke="var(--dg-hot)" stroke-width="1.8" fill="none"/><path d="M${pt(0, 0, 76, arcB)}l9,-6l2,10Z" fill="var(--dg-hot)"/>`;
       return P(part, `<g transform="translate(${AX},${cy}) scale(1,${K})">`
+        + `<ellipse class="fxsh" cy="34" rx="58" ry="12"/>`
         + `<path fill="var(--dg-hub-dim)" d="M-28,0V22A28,28 0 0 0 28,22V0Z"/>`
         + rotor(0, 0, 28, 64, 7, dir, true, dir > 0 ? 2.2 : 2.4)
-        + `<g data-seg="${SEG}" data-part="hub"><circle class="part" r="28" fill="url(#acHub)"/><circle r="7" fill="var(--dg-steel-2)"/></g>`
+        + `<g data-seg="${SEG}" data-part="hub"><circle class="part" r="28" fill="url(#acHub)"/><circle class="fxsheen" r="28"/><circle r="7" fill="var(--dg-steel-2)"/></g>`
         + arrow + `</g>`);
     };
     // 馬達：轉子磁鐵環（外圈）＋ 定子線圈（內，六個銅繞組）＋ 鐵芯 —— 藏在輪轂裡（§6-F3）
@@ -151,40 +155,41 @@
     const RK = { x: 344, y: 52, w: 328, h: 200 };
     const FANS = { x: 392, ys: [60, 104, 148, 192], r: 18 };
     /* 風扇牆：一排 ≥3 顆、其中一顆標成備援（§6-W1），一定畫在鰭片**之前**（§6-A1）。*/
-    const wall = FANS.ys.map((cy, i) => `<circle class="part" cx="${FANS.x}" cy="${cy}" r="${FANS.r}" fill="var(--dg-frame)"/>`
+    const wall = FANS.ys.map((cy, i) => `<circle class="part" cx="${FANS.x}" cy="${cy}" r="${FANS.r}" fill="var(--dg-frame)"/><circle class="fxsheen" cx="${FANS.x}" cy="${cy}" r="${FANS.r}"/>`
       + rotor(FANS.x, cy, 5, 15, 7, 1, true, 2 + i * 0.25)).join('')
-      + `<text class="fine" x="${FANS.x - 34}" y="${RK.y + RK.h - 6}" style="fill:var(--dg-warn)">備援（N+1）</text>`;
-    const finStack = (x, n, gap, y0, h) => { const a = []; for (let i = 0; i < n; i++) a.push(`<rect x="${x + i * gap}" y="${y0}" width="${Math.max(3, gap - 4)}" height="${h}" rx="1" fill="var(--dg-alu)"/>`); return a.join(''); };
+      + `<text class="fine" x="${FANS.x - 34}" y="${FANS.ys[3] + FANS.r + 8}" style="fill:var(--dg-warn)">備援（N+1）</text>`;
+    const finStack = (x, n, gap, y0, h) => { const a = []; for (let i = 0; i < n; i++) a.push(fx.glass(x + i * gap, y0, Math.max(3, gap - 4), h, { c: 'var(--dg-alu)', r: 1, depth: { dx: 3, dy: 2 }, shadow: false, hi: false, cls: '' })); return a.join(''); };
     const FIN = { y: 88, h: 90 };
     const air = P('rack', `<rect class="part" x="${RK.x}" y="${RK.y}" width="${RK.w}" height="${RK.h}" rx="8" fill="none" opacity=".5"/>`
       + [0, 1, 2, 3, 4, 5, 6].map(i => `<circle cx="${RK.x + 6}" cy="${RK.y + 26 + i * 26}" r="3" fill="var(--dg-void)"/>`).join('')
       + `<text class="fine" x="${RK.x + 8}" y="${RK.y - 6}" style="fill:var(--dg-cold)">進氣（前面板）</text>`
       + `<text class="fine" x="${RK.x + RK.w - 60}" y="${RK.y - 6}" style="fill:var(--dg-hot)">排氣（後）</text>`
-      + `<text class="fine" x="${RK.x + RK.w - 120}" y="${RK.y + RK.h - 6}" style="fill:var(--dg-ink-3)">機殼／托盤（襯景）</text>`, SEG_A)
+      + `<text class="fine" x="${RK.x + 8}" y="${RK.y + RK.h - 6}" style="fill:var(--dg-ink-3)">機殼／托盤（襯景）</text>`, SEG_A)
       + P('fan_wall', wall)
       /* 導風罩：把氣流「圍」成一條路的薄殼（§6-W2），不是一塊擋板 —— 所以畫成收口的漏斗輪廓 */
       + P('shroud', `<path class="part" fill="none" stroke="var(--dg-alu-2)" stroke-width="2.2" stroke-dasharray="6 4" d="M420,80H470l30,16v94l-30,16H420"/>`)
-      + P('fin', finStack(510, 6, 9, FIN.y, FIN.h) + finStack(572, 12, 5, FIN.y, FIN.h)
-        + `<text class="fine" x="510" y="234">鰭距疏</text><text class="fine" x="566" y="234">鰭距密（面積大、阻力也大）</text>`)
-      + P('heatpipe', `<rect class="part" x="506" y="184" width="134" height="10" rx="5" fill="var(--dg-cu)"/>`
+      + P('fin', `<rect class="part" x="507" y="${FIN.y - 3}" width="129" height="${FIN.h + 6}" rx="3" fill="none"/>` + finStack(510, 6, 9, FIN.y, FIN.h) + finStack(572, 12, 5, FIN.y, FIN.h)
+        + `<text class="fine" x="510" y="234">鰭距疏</text><text class="fine" x="580" y="234">鰭距密</text>`)
+      + P('heatpipe', fx.tube(506, 184, 134, 10, { c: 'var(--dg-cu)' })
         + `<rect x="510" y="187" width="126" height="4" rx="2" fill="var(--dg-vap)"/>`)
-      + P('vc', `<rect class="part" x="540" y="198" width="70" height="10" rx="2" fill="var(--dg-cu)"/>`
+      + P('vc', fx.glass(540, 198, 70, 10, { c: 'var(--dg-cu)', r: 2, depth: { dx: 6, dy: 4 }, shadow: false })
         + `<rect x="544" y="201" width="62" height="4" fill="var(--dg-vap)"/>`
-        + `<rect x="560" y="208" width="30" height="10" rx="2" fill="var(--dg-die)"/>`)
+        + fx.glass(560, 208, 30, 10, { c: 'var(--dg-die)', top: 'var(--dg-si)', r: 2, depth: { dx: 6, dy: 4 }, shadow: false, hi: false }))
       // 熱由下往上（晶片 → VC → 熱管 → 鰭片），氣流由左往右 —— 兩條路徑在鰭片處垂直交會（§6-A5）
       + [556, 575, 594].map((x, i) => `<path class="heat" d="M${x},196l-4,7h8Z" fill="var(--dg-hot)" style="animation-delay:${(i * 0.3).toFixed(1)}s"/>`
         + `<path class="heat" d="M${x},180l-4,7h8Z" fill="var(--dg-hot)" style="animation-delay:${(i * 0.3 + 0.9).toFixed(1)}s"/>`).join('')
       // 氣流：進氣端冷、排氣端暖，同一條線是漸變不是跳色（§6-A6）；全程單向由前到後（§6-A2）
-      + [96, 128, 160].map((y, i) => `<path class="flow fast" d="M${RK.x + 12},${y}H${FANS.x - 22}" stroke="var(--dg-cold)" stroke-width="2.6" fill="none" style="animation-delay:${(i * 0.2).toFixed(1)}s"/>`
-        + `<path class="flow fast" d="M${FANS.x + 22},${y}H506" stroke="url(#acAir)" stroke-width="2.6" fill="none" style="animation-delay:${(i * 0.2).toFixed(1)}s"/>`
-        + `<path class="flow fast" d="M634,${y}H${RK.x + RK.w - 6}" stroke="var(--dg-hot)" stroke-width="2.6" fill="none" style="animation-delay:${(i * 0.2).toFixed(1)}s"/>`
+      /* 穿過導風罩的三條氣流是全圖**唯三**掛 feGaussianBlur 的元素（靜態暈光底線；#239 的 ≤3 上限） */
+      + [96, 128, 160].map((y, i) => fx.beam(`M${RK.x + 12},${y}H${FANS.x - 22}`, { c: 'var(--dg-cold)', w: 2.4, speed: 'fast', style: `animation-delay:${(i * 0.2).toFixed(1)}s` })
+        + fx.beam(`M${FANS.x + 22},${y}H506`, { c: 'var(--dg-cool)', core: 'url(#acAir)', w: 2.4, speed: 'fast', glow: true, style: `animation-delay:${(i * 0.2).toFixed(1)}s` })
+        + fx.beam(`M634,${y}H${RK.x + RK.w - 6}`, { c: 'var(--dg-hot)', w: 2.4, speed: 'fast', style: `animation-delay:${(i * 0.2).toFixed(1)}s` })
         + `<path d="M${RK.x + RK.w - 10},${y - 5}l10,5l-10,5Z" fill="var(--dg-hot)"/>`).join('')
-      // 一顆空氣粒子跑完全程（SMIL，動畫鈕關掉就凍住）
-      + `<circle r="3.5" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="4.5s" repeatCount="indefinite" path="M${RK.x + 12},128H${RK.x + RK.w - 8}"/></circle>`
-      + `<text class="fine" x="${RK.x}" y="270">離開鰭片後還會掃過記憶體、VRM、電源，再從後方排出</text>`;
+      // 一顆空氣粒子跑完全程（SMIL，動畫鈕關掉就凍住；路徑相對起點，靜態時就待在流線上）
+      + `<g transform="translate(${RK.x + 12},128)"><circle class="fxdot" r="3.5" fill="var(--dg-flow-dot)" style="--fx-c:var(--dg-flow-dot)"><animateMotion dur="4.5s" repeatCount="indefinite" path="M0,0H${RK.w - 20}"/></circle></g>`
+      + `<text class="fine" x="${RK.x}" y="266">離開鰭片後還會掃過記憶體、VRM、電源，再從後方排出</text>`;
 
     // ================================================================ ③ P-Q 曲線（座標軸不標數值，§6-Q3）
-    const QX = 372, QY0 = 296, QY1 = 410, QX1 = 660;
+    const QX = 372, QY0 = 310, QY1 = 422, QX1 = 660;
     const pq = P('pq_curve', `<path class="axis" d="M${QX},${QY0 - 6}V${QY1}H${QX1}" style="stroke-dasharray:none;stroke:var(--dg-axis)"/>`
       + `<text class="fine" x="${QX + 8}" y="${QY0 - 2}">靜壓 ↑</text>`
       + `<text class="fine" x="${QX1 - 44}" y="${QY1 + 16}">風量 →</text>`
@@ -192,7 +197,7 @@
       + `<path d="M${QX},${QY0} C${QX + 60},${QY0 + 10} ${QX + 100},${QY0 + 44} ${QX + 128},${QY1}" stroke="var(--dg-hot)" stroke-width="2.4" fill="none"/>`
       + `<path d="M${QX},${QY0 + 28} C${QX + 70},${QY0 + 30} ${QX + 130},${QY0 + 36} ${QX + 168},${QY0 + 44} S${QX + 240},${QY0 + 90} ${QX + 268},${QY1}" stroke="var(--dg-cold)" stroke-width="2.4" fill="none"/>`
       // 系統阻抗曲線：從原點往右上（阻力越大、同樣風量要的靜壓越高）；跟風扇曲線的交點才是工作點（§6-Q1）
-      + `<path class="flow slow" d="M${QX},${QY1} Q${QX + 138},${QY1 - 12} ${QX + 184},${QY0 + 4}" stroke="var(--dg-ink-2)" stroke-width="2.2" fill="none"/>`
+      + fx.beam(`M${QX},${QY1} Q${QX + 138},${QY1 - 12} ${QX + 184},${QY0 + 4}`, { c: 'var(--dg-ink-2)', w: 2.2, speed: 'slow' })
       + `<circle cx="${QX + 164}" cy="${QY0 + 41}" r="6" fill="none" stroke="var(--dg-warn)" stroke-width="2.4"/>`
       + `<text class="fine" x="${QX + 178}" y="${QY0 + 26}" style="fill:var(--dg-warn)">工作點</text>`
       + `<text class="fine" x="${QX + 60}" y="${QY0 + 8}" style="fill:var(--dg-hot)">離心</text>`
@@ -301,8 +306,8 @@
     /* ================================================================ 組裝
        `dg1`：這張圖有兩個 seg（thermal ＋ assembly），`stampParts` 不會自動掛，所以自己掛 —— 作用是 `--dg-glow:none`。
        `rs`：已改造成風格系統（閱讀模式字級升一階、卡片外掛）。*/
-    return `<svg class="dg dgm dgair dg1 rs" viewBox="0 0 ${CW} 1720" width="100%" style="display:block">${STYLE}${VARS}
-      <defs>
+    return `<svg class="dg dgm dgair dg1 rs" viewBox="0 0 ${CW} 1830" width="100%" style="display:block">${STYLE}${VARS}
+      <defs>${fx.defs()}
         <linearGradient id="acAir" x1="0" y1="0" x2="1" y2="0">
           <stop offset="0" stop-color="var(--dg-cold)"/><stop offset="1" stop-color="var(--dg-hot)"/></linearGradient>
         <radialGradient id="acHub" cx="38%" cy="32%" r="72%">
@@ -318,7 +323,7 @@
       <!-- ================= §1 主畫面（永遠看得到）：爆炸拆解 ＋ 氣流路徑 ＋ P-Q ================= -->
       <text class="hd" x="30" y="24">① 一顆風扇沿轉軸拆開</text>
       <text class="hd" x="${RK.x}" y="24">② 一股氣流走完全程</text>
-      <text class="hd" x="${RK.x}" y="284">③ 風壓—風量（P-Q）：交點才是工作點</text>
+      <text class="hd" x="${RK.x}" y="292">③ 風壓—風量（P-Q）：交點才是工作點</text>
       ${fan}
       ${air}
       ${pq}
@@ -326,7 +331,7 @@
       <!-- 左欄：拆開的那五層 ＋ 四線（錨點在每一層的左端）；右欄：氣流路徑 ＋ P-Q（錨點在右端） -->
       ${card({ part: 'fan_frame', no: 1, side: 'l', ax: 101, ay: Y.frame, color: C.alu, title: '扇框（四角鎖孔）', sub: '鎖在機殼上的工業件 —— 沒有網罩、立柱與擺頭，那是家用電風扇的事' })}
       ${card({ part: 'blade', no: 2, side: 'l', ax: 112, ay: Y.rot1, color: C.alu, title: '扇葉有傾角（片數為示意）', sub: '靠斜面把空氣往後推；葉片數與角度決定同一顆馬達能推出多少風、產生多少噪音' })}
-      ${card({ part: 'motor', no: 3, side: 'l', ax: 146, ay: Y.motor, color: C.mag, title: '馬達藏在輪轂裡', sub: '定子線圈在內、轉子磁鐵在輪轂內壁；伺服器風扇長時間高速運轉，馬達要撐得住' })}
+      ${card({ part: 'motor', no: 3, side: 'l', ax: 146, ay: Y.motor, color: C.cu, title: '馬達藏在輪轂裡', sub: '定子線圈在內、轉子磁鐵在輪轂內壁；伺服器風扇長時間高速運轉，馬達要撐得住' })}
       ${card({ part: 'bearing', no: 4, side: 'l', ax: 160, ay: Y.brg, color: C.steel, title: '軸承：在軸與輪轂之間', sub: '含油／滾珠／流體動壓／磁浮四型決定壽命與噪音 —— 機房裡一顆風扇壞掉要有人去換，壽命是錢（四型見 ②）' })}
       ${card({ part: 'counter_rot', no: 5, side: 'l', ax: 112, ay: Y.rot2, color: C.alu, title: '反轉雙轉子（counter-rotating）', sub: '前後兩組葉片旋向相反，後面那組把前面甩出來的旋轉氣流「扶正」，同樣厚度下拉高靜壓' })}
       ${card({ part: 'wire4', no: 6, side: 'l', ax: 60, ay: Y.frame + 35, color: C.hot, title: '四線：電源／地／轉速回授／PWM', sub: '轉速回授讓主機知道這顆有沒有在轉（壞了會報警），PWM 讓主機依溫度調速' })}
@@ -375,21 +380,22 @@
           '　 離心扇、熱管、均溫板）、元山 6275（風扇馬',
           '　 達與模組）不在散熱環節裡，點零件列不出。',
         ], 'who')}
-        ${noteBox(16, 1508, 648, 134, '這張圖沒有回答的事', [
+        ${noteBox(16, 1508, 648, 152, '這張圖沒有回答的事', [
           '任何一顆風扇的轉速、風量、靜壓、噪音值：那是型號層級的東西，而且查到的來源',
           '多半是風扇廠與 PC 零件站的部落格 —— 一個都不寫。',
           '軸承壽命的小時數：查到的數字散得很開，而且 FDB 竟然低於滾珠，與同一批來源的',
           '定性結論互相矛盾 —— 只寫排序，不寫小時數。',
-          '各家市占率、良率、單價：查不到可引用的公開數字，不編。鰭距的具體數值：查不到通用值，只畫疏／密對照。',
+          '各家市占率、良率、單價：查不到可引用的公開數字，不編。',
+          '鰭距的具體數值：查不到通用值，只畫疏／密對照。',
         ], 'unknown')}
-        <text class="cap" x="16" y="1668">一條氣流走完全程（五格）　★ 風扇（格 2）一定在鰭片（格 4）之前；格 4 才是熱真正交給空氣的地方，風扇只是把空氣推過來</text>
-        ${pbar(16, 1676, [
+        <text class="cap" x="16" y="1686">一條氣流走完全程（五格）　★ 風扇（格 2）一定在鰭片（格 4）之前；格 4 才是熱真正交給空氣的地方，風扇只是把空氣推過來</text>
+        ${pbar(16, 1694, [
           { seg: SEG_A, t: '進氣', s: '前面板濾網／開孔' },
           { seg: SEG, t: '推動', s: '風扇牆（N+1）' },
           { seg: SEG, t: '導引', s: '導風罩／風道' },
           { seg: SEG, t: '交換', s: '鰭片 ＋ 熱管／VC' },
           { seg: SEG_A, t: '排氣', s: '後方出風' }], 200, { cols: 3 })}
-        <text class="cap" x="16" y="1794">資料來源與信心度見 docs/diagram_specs/air_cooling.md。</text>`)}
+        <text class="cap" x="16" y="1812">資料來源與信心度見 docs/diagram_specs/air_cooling.md。</text>`)}
     </svg>`;
   }
 

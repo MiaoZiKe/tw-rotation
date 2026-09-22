@@ -1327,4 +1327,89 @@
     SLOTS[id] = def;
     window.Diagrams[id] = def.draw;     // 舊介面同步（題材圖與驗收腳本還在用）
   };
+
+  // ===== 2.5D 材質（玻璃／發光／光束）=====
+  /* tech-illustrator 2026-09-22。參考圖：docs/diagram_refs/2d_panel_dark_light.webp（規格 docs/diagram_refs/README.md）。
+     每一個元件畫成「帶厚度、圓角、半透明漸層的玻璃板」：前面一塊（元件色 ＋ 一層共用的白→黑漸層 sheen）、
+     上面一片（元件色往 --dg-fx-hi 混）、右邊一片（往 --dg-fx-lo 混）、頂緣一條高光、底下一條淡陰影。
+     顏色全部由呼叫端用 --dg-* token 傳進來，這裡沒有色值；sheen 漸層與濾鏡的 id 是全站共用的，
+     每一張圖在自己的 <defs> 裡放一份 `fx.defs()`（同一頁只會有一張量產圖，id 不會撞）。
+     ★ 效能（DECISIONS #239）：`feGaussianBlur` 只給 **靜態** 元素，而且一張圖 ≤ 3 個 ——
+       `beam()` 的暈光底線是靜態的，動態虛線核心永遠不掛濾鏡；`glow:true` 的呼叫端自己數。
+     波 1b（PSU／ABF）用同一個區塊名；誰先合併誰的為準，後合併的照對方的介面改。*/
+  const FX_HI = 'var(--dg-fx-hi,#fff)', FX_LO = 'var(--dg-fx-lo,#000)';
+  const fx = {
+    DX: 14, DY: 8,                                   // 斜投影的厚度方向（右上）
+    /* 共用的漸層與濾鏡。sheen：白 38% → 透明 → 黑 18%（直向）；sheenH 是橫向版（給直立的管子）。
+       dgFxGlow：科技模式的柔光；dgFxGlowLite：閱讀模式的柔光（半徑小、強度 45%）。*/
+    defs() {
+      return `<linearGradient id="dgFxSheen" x1="0" y1="0" x2="0" y2="1">`
+        + `<stop offset="0" stop-color="${FX_HI}" stop-opacity=".38"/><stop offset=".45" stop-color="${FX_HI}" stop-opacity=".05"/><stop offset="1" stop-color="${FX_LO}" stop-opacity=".18"/></linearGradient>`
+        + `<linearGradient id="dgFxSheenH" x1="0" y1="0" x2="1" y2="0">`
+        + `<stop offset="0" stop-color="${FX_HI}" stop-opacity=".34"/><stop offset=".5" stop-color="${FX_HI}" stop-opacity=".04"/><stop offset="1" stop-color="${FX_LO}" stop-opacity=".2"/></linearGradient>`
+        + `<filter id="dgFxGlow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="3.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`
+        + `<filter id="dgFxGlowLite" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="2.2" result="b"/><feComponentTransfer in="b" result="b2"><feFuncA type="linear" slope=".45"/></feComponentTransfer><feMerge><feMergeNode in="b2"/><feMergeNode in="SourceGraphic"/></feMerge></filter>`;
+    },
+    /* 玻璃板：glass(x, y, w, h, {c, r, depth:{dx,dy}, top, side, alpha, cls, shadow, hi})
+         c＝元件色（--dg-* token）；top／side 沒給就由 c 混出來；alpha＝前面那塊的不透明度（半透明才像玻璃）；
+         shadow:false＝不畫底下那條淡陰影（疊得很密時用）；hi:false＝不畫頂緣高光。*/
+    glass(x, y, w, h, o) {
+      o = o || {};
+      const c = o.c || 'var(--dg-alu)', r = o.r != null ? o.r : 2;
+      const dx = o.depth && o.depth.dx != null ? o.depth.dx : fx.DX, dy = o.depth && o.depth.dy != null ? o.depth.dy : fx.DY;
+      const top = o.top || `color-mix(in srgb,${c} 62%,${FX_HI})`, side = o.side || `color-mix(in srgb,${c} 68%,${FX_LO})`;
+      const a = o.alpha != null ? o.alpha : 0.86;
+      return (o.shadow === false ? '' : fx.pad(x + 4, y + h + 3, w + dx - 6, 6))
+        + `<path fill="${side}" d="M${x + w},${y}L${x + w + dx},${y - dy}L${x + w + dx},${y + h - dy}L${x + w},${y + h}Z"/>`
+        + `<path fill="${top}" d="M${x},${y}L${x + dx},${y - dy}L${x + w + dx},${y - dy}L${x + w},${y}Z"/>`
+        + `<rect class="${o.cls != null ? o.cls : 'part'}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${c}" fill-opacity="${a}"/>`
+        + `<rect class="fxsheen" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`
+        + (o.hi === false ? '' : `<path class="fxhi" d="M${x + 1.5},${y + 0.6}H${x + w - 1.5}"/>`);
+    },
+    // 管子／圓柱狀的板：跟 glass 一樣的一塊，但 sheen 是橫向的（vertical:true）或直向的，沒有厚度面
+    tube(x, y, w, h, o) {
+      o = o || {};
+      const c = o.c || 'var(--dg-steel)', r = o.r != null ? o.r : Math.min(w, h) / 2;
+      return `<rect class="${o.cls != null ? o.cls : 'part'}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" fill="${c}" fill-opacity="${o.alpha != null ? o.alpha : 0.92}"/>`
+        + `<rect class="fxsheen${o.vertical ? ' h' : ''}" x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}"/>`;
+    },
+    /* 斜投影的圓盤（沿一根軸拆開的東西：風扇、軸承、電容）。k＝壓扁比例；inner 畫在頂面座標（未壓扁）裡。
+       回傳的是一個 translate＋scale 的群組，所以 inner 裡的 .spin 照樣轉、轉出來是橢圓 —— 那正是 2.5D 要的。*/
+    disc(cx, cy, r, T, o) {
+      o = o || {};
+      const c = o.c || 'var(--dg-alu)', k = o.k != null ? o.k : 0.42;
+      const side = o.side || `color-mix(in srgb,${c} 68%,${FX_LO})`;
+      return `<g transform="translate(${cx},${cy}) scale(1,${k})">`
+        + (o.shadow === false ? '' : `<ellipse class="fxsh" cy="${T + 10}" rx="${r * 0.92}" ry="${r * 0.5}"/>`)
+        + `<path fill="${side}" d="M${-r},0V${T}A${r},${r} 0 0 0 ${r},${T}V0Z"/>`
+        + `<circle class="${o.cls != null ? o.cls : 'part'}" r="${r}" fill="${c}" fill-opacity="${o.alpha != null ? o.alpha : 0.9}"/>`
+        + `<circle class="fxsheen" r="${r}"/>${o.inner || ''}</g>`;
+    },
+    // 底下那條淡陰影（科技模式的 --dg-ink 是亮的，所以在深底上變成一抹淡光 —— 兩種模式各得其所）
+    pad: (x, y, w, h) => `<rect class="fxsh" x="${x}" y="${y}" width="${w}" height="${h || 6}" rx="${(h || 6) / 2}"/>`,
+    /* 光束／流動：beam(d, {c, w, core, glow, speed, rev, style})
+         一條寬的**靜態**暈光底線（opacity --dg-fx-halo；glow:true 才加 feGaussianBlur）＋ 一條細的動態虛線核心。
+         core 可以是漸層 url（例如冷→熱）；halo 一定要是實色，所以 c 傳 token。*/
+    beam(d, o) {
+      o = o || {};
+      const c = o.c || 'var(--dg-accent-2d)', w = o.w || 2.4;
+      return `<path class="fxhalo${o.glow ? ' fxglow' : ''}" d="${d}" stroke="${c}" stroke-width="${(w * 2.8).toFixed(1)}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`
+        + `<path class="flow${o.speed ? ' ' + o.speed : ''}${o.rev ? ' rev' : ''}" d="${d}" stroke="${o.core || c}" stroke-width="${w}" fill="none" stroke-linejoin="round"${o.style ? ` style="${o.style}"` : ''}/>`;
+    },
+    // 端點光點（科技帶光暈、閱讀只留實心點 —— 走 --dg-glow，跟引線端點同一條規矩）
+    dot: (x, y, o) => { o = o || {}; const c = o.c || 'var(--dg-flow-dot)'; return `<circle class="fxdot" cx="${x}" cy="${y}" r="${o.r || 3.2}" fill="${c}" style="--fx-c:${c}"/>`; },
+    // 這一組材質的樣式（接在共用 STYLE 後面；只有掛 .rs 的新圖會用到這些 class）
+    STYLE: `<style>
+      .dg .fxsheen{fill:url(#dgFxSheen);pointer-events:none}
+      .dg .fxsheen.h{fill:url(#dgFxSheenH)}
+      .dg .fxhi{stroke:var(--dg-fx-hi,#fff);stroke-opacity:.55;stroke-width:1;fill:none;pointer-events:none}
+      .dg .fxsh{fill:var(--dg-ink);opacity:.10;pointer-events:none}
+      .dg .fxhalo{opacity:var(--dg-fx-halo,.22)}
+      .dg .fxglow{filter:url(#dgFxGlow)}
+      :root[data-dgpal="read"] .dg .fxglow{filter:url(#dgFxGlowLite)}
+      .dg .fxdot{filter:var(--dg-glow,drop-shadow(0 0 var(--dg-node-glow,3px) var(--fx-c,var(--dg-flow-dot))))}
+    </style>`,
+  };
+  window.DG.fx = fx;
+  window.DG.STYLE = STYLE + fx.STYLE;   // 新圖 destructure 到的 STYLE 就含材質樣式；MLCC 用的是檔內的 const，不受影響
 })();
