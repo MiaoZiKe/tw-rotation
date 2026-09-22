@@ -1812,6 +1812,13 @@
        小螢幕看不出差別卻要付這個錢。*/
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    /* ★ 陰影貼圖**不要每幀重畫**。這個場景會動的只有「相機」與「爆炸拆解的那 1.6 秒」——
+       而陰影貼圖只跟**光源與物體的位置**有關，相機怎麼轉它都不會變。
+       每幀重畫一次等於把 44 顆投影件多畫一遍：實測（容器的軟體渲染）
+       8.1 fps → 2.7 fps，直接砍成三分之一。關掉自動更新、只在「東西真的移動了」
+       （爆炸拆解、換模式、改寬度）那幾幀補一次，fps 就回到跟改之前同一個量級。*/
+    renderer.shadowMap.autoUpdate = false;
+    const bumpShadow = () => { renderer.shadowMap.needsUpdate = true; };
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(W(), H());
     renderer.domElement.style.display = 'block';
@@ -1896,7 +1903,15 @@
         panel(14, 20, '--dg-env-r', '#C08A52', 9, 1, 0, 0, Math.PI / 2);    // 右：暖色補光（冷暖對比就是從這裡來的）
         panel(18, 10, '--dg-env-back', '#121A2A', 0, 5, -9, 0, 0);          // 後上方：勾邊緣的那一道
         panel(26, 26, '--dg-env-bot', '#0A0F18', 0, -9, 0, Math.PI / 2, 0); // 下方暗板：底面要暗，不然整台會浮起來
-        const t = pmrem.fromScene(es, 0.04).texture;
+        /* 用「先拍成一張小的 cubemap、再交給 PMREM」而不是 fromScene()：
+           fromScene 內部固定用 256 的立方體，產生的 cubeUV 貼圖很大；
+           我們的棚只有五片純色板，64 就夠了（模糊之後看不出差別），
+           而 envMap 的成本在 fragment shader 的取樣 —— 貼圖小很多才有機會省下來。*/
+        const rt = new THREE.WebGLCubeRenderTarget(64);
+        const cc = new THREE.CubeCamera(0.5, 60, rt);
+        cc.update(renderer, es);
+        const t = pmrem.fromCubemap(rt.texture).texture;
+        rt.dispose();
         geos.forEach(g => g.dispose());
         es.traverse(x => { if (x.material) x.material.dispose(); });
         envByPal[key] = t;
@@ -1966,6 +1981,7 @@
         const b = g.userData.base, e = g.userData.ex;
         g.position.set(b.x + e[0] * expT, b.y + e[1] * expT, b.z + e[2] * expT);
       });
+      bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
     };
 
     spec.parts.forEach((p, idx) => {
@@ -2221,18 +2237,24 @@
       cam.left = -r; cam.right = r; cam.top = r; cam.bottom = -r;
       cam.near = Math.max(0.5, r * 0.4); cam.far = r * 4.4;
       cam.updateProjectionMatrix();
+      bumpShadow();
     };
     /* 真陰影的開關（規格書一-2 的效能備案）：窄畫面關掉 —— 陰影 pass 等於把投影件再畫一次，
        小螢幕看不出差別卻要付這個錢。`--dg-shadow` 已經被「底下那片軟接觸陰影的**顏色**」佔用了，
        所以開關用 `--dg-shadow-on`。*/
     const applyShadowMode = () => {
-      const want = (parseFloat(cssRead0('--dg-shadow-on')) || 1) > 0.5 && (window.innerWidth || W()) >= 960;
+      /* ⚠ 不可以寫成 `parseFloat(x) || 1`：token 是 "0" 的時候 parseFloat 回 0，
+         `0 || 1` 會變成 1 —— 開關寫了等於沒寫（2026-09-22 實測踩到）。*/
+      const raw = parseFloat(cssRead0('--dg-shadow-on'));
+      const on = Number.isFinite(raw) ? raw : 1;
+      const want = on > 0.5 && (window.innerWidth || W()) >= 960;
       if (renderer.shadowMap.enabled !== want) {
         renderer.shadowMap.enabled = want;
         // shader 會因為「有沒有陰影」而不同，不重編的話開關等於沒按
         scene.traverse(x => { if (x.isMesh && x.material) x.material.needsUpdate = true; });
       }
       key.castShadow = want;
+      bumpShadow();
       return want;
     };
     const SHADOW_MAX = 60;          // 投影件的硬上限（驗收也用這個數字：太多＝效能會爆）
@@ -2438,8 +2460,17 @@
          只在**模式真的換了**的時候生 —— PMREM 要畫六個面再做多階模糊，每次都生會很貴。
          envMapIntensity 走 --dg-env（科技 .9、閱讀 1.15）：閱讀模式的棚比較亮，
          金屬要反射得多一點才不會在白底上變成一塊灰。*/
-      if (envPal !== pal || !scene.environment) { buildEnv(pal); envPal = pal; }
-      const envK = palNum('--dg-env', 1);
+      /* --dg-env 設成 0 ＝ **完全不掛 envMap**（不是只把強度歸零）：
+         envMap 的成本在 fragment shader 的 textureCubeUV 取樣，強度歸零一樣要付。
+         慢的裝置／要省電的情境靠這個 token 整個關掉。*/
+      /* 手機（< 700）連 envMap 一起關掉。實測（容器的軟體渲染）envMap 是這一批最貴的一件事：
+         8.8 fps → 2.9 fps，而陰影只吃掉 0.2。成本在 fragment shader 的 textureCubeUV 取樣
+         （依粗糙度在多階之間混合），貼圖改小沒有用 —— 已經實測過 256 換 64 一樣是 2.9。
+         真的 GPU 上這是 three.js 每個 PBR 場景都在走的標準路徑，成本是個位數百分比；
+         但小螢幕多半也是弱裝置，而且那個尺寸下反射根本看不到，所以直接不付這個錢。*/
+      const envK = (window.innerWidth || W()) >= 700 ? palNum('--dg-env', 1) : 0;
+      if (envK <= 0) { scene.environment = null; envPal = ''; }
+      else if (envPal !== pal || !scene.environment) { buildEnv(pal); envPal = pal; }
       byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => { if (m.envMapIntensity != null) m.envMapIntensity = envK; }); });
       applyShadowMode();
       hemi.intensity = palNum('--dg-hemi', 0.62);
@@ -2460,6 +2491,7 @@
         if (p.dot) p.dot.setAttribute('stroke', c);
       });
       highlight(lastHi.on, lastHi.color, lastHi.part);     // 重新套用目前的選取狀態，顏色才會真的換掉
+      bumpShadow();        // 換模式會換掉材質與燈光，陰影貼圖也要重畫一次
       return pal;
     }
     applyPal(o.pal || palByTheme());   // 一掛上去就照使用者選的模式（沒選就跟主題），不要先畫成預設再閃一下
@@ -2745,6 +2777,7 @@
       // 陰影跟著寬度開關（≥960 才開）：窄畫面關掉是效能的備案，不是「壞了」
       applyShadowMode();
       fitShadow();
+      applyPal(pal);      // envMap 的 <700 開關也在 applyPal 裡，寬度變了要重判一次
     };
     window.addEventListener('resize', onResize);
     tick();
