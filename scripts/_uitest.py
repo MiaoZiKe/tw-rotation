@@ -17083,8 +17083,11 @@ def t_b25_tools(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0');"
                 " localStorage.setItem('tw.side','0'); } catch (e) {} }")
+    # ⚠ 挑 ai_server：它有**鏈層級**的架構圖，一進去就是圖。
+    #   semiconductor 現在一進去是**圖別選單**（5 張各自獨立的圖），
+    #   選單模式下本來就沒有工具列可言（既有行為，paintDgMode 會把它收起來）。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3200)
 
     # ⑰ 四個寬度都要在右下 1/4、而且完整在容器內
     for vw in (1440, 1100, 800, 390):
@@ -17140,7 +17143,7 @@ def t_b25_tools(pg, base):
     pg.evaluate("() => window.scrollTo({ top: 600 })"); pg.wait_for_timeout(400)
     ok("先把頁面捲下去（不然下面的『捲回頁首』不算數）",
        pg.evaluate("() => Math.round(scrollY)") > 200, pg.evaluate("() => Math.round(scrollY)"))
-    pg.evaluate("() => { location.hash = '#industry/ai_server'; }")
+    pg.evaluate("() => { location.hash = '#industry/electronics'; }")
     pg.wait_for_timeout(2400)
     ok("換一條鏈仍然捲回頁首（證明不是把捲動關掉）",
        pg.evaluate("() => Math.round(scrollY)") <= 8, pg.evaluate("() => Math.round(scrollY)"))

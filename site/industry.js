@@ -548,7 +548,10 @@
       partHi = partSel = segHi = null;      // partSel 是小卡的狀態，忘了清小卡就收不掉
       syncHighlight({ quiet: true, noscroll: true });
     };
-    // 環節色標搬到關聯圖上方（#cgSegs）—— 行為跟 #segChips 完全一樣：點一下篩、再點一下取消
+    /* 環節色標搬進圖上「篩選」那顆鈕的面板裡（`#cgSegs`）——
+       行為跟舊的 `#segChips` 完全一樣：點一下篩、再點一下取消。
+       ⚠ 這一行一定要排在建圖之後：色標的 DOM 是 drawGroupGraph 建的空殼，
+       內容是上面那個區塊填的，太早掛就掛在空的容器上。*/
     $$('#cgSegs .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
     /* Andy：「下方成分股清單可以暫時覆蓋旁邊事件頁面」。
        ★ 事件面板是**被蓋住**不是被刪掉：按第二次就回到他自己設定的狀態
@@ -573,7 +576,7 @@
     /* ★ 環節清單 `#chainList` ＋「看關聯圖 →」`#chainView` ＋ 舊的 `#chainMap` 已移除
        （DECISIONS #248；規格書第 0 節的結論是「同一份資料兩種畫法，留一個就好」）。
        它們承載的事情各自的新家：
-         「這條鏈分成哪幾格、每格幾檔」→ 關聯圖上方的環節色標 `#cgSegs`（檔數就寫在色標上）
+         「這條鏈分成哪幾格、每格幾檔」→ 圖上「篩選」面板裡的環節色標 `#cgSegs`（檔數就寫在色標上）
          「每一格有誰、誰供給誰」      → 點色標 → `#cgSide` 的環節詳情（台股／外商／相關族群／跨鏈）
          「點個股小卡開產業關係面板」  → 點節點展開出來的個股子節點（走同一支 showCompany）
        `drawChainMap` 本身**沒有刪**：個股頁下方那張產業鏈位置圖還在用它。*/
@@ -1118,7 +1121,8 @@
   /* 選到某一格環節之後，把那一格帶進視野。
      ★ 2026-09-22 改寫（DECISIONS #248）：以前是把 `#chainMap` 這個 SVG 捲到那一欄。
      產業鏈頁的關聯圖換成族群力導向圖之後，「那一欄」不存在了 ——
-     環節在新圖上是**色標**（`#cgSegs`）與「被選起來的族群節點」，所以改成把色標帶進視野。
+     環節在新圖上是**色標**（`#cgSegs`，住在「篩選」面板裡）與「被選起來的族群大圓點」，
+     所以改成把色標帶進視野；面板沒開的時候它量不到位置，`scrollIntoView` 自己會忽略。
      block:'nearest' —— 色標本來就看得到時完全不動，不會把整頁拉走
      （個股頁被 scrollIntoView 拉到底那個坑，2026-09-20 記過一次）。
      個股頁仍然有 `#chainMap`，所以那一條路留著。*/
@@ -2100,7 +2104,9 @@
     }
 
     /* ---- 互動：拖曳節點、拖背景平移、滾輪縮放、雙擊置中、點背景取消 */
-    let drag = null, swallow = false, lastPointerAt = 0;
+    let drag = null, swallowAt = 0, lastPointerAt = 0;
+    // 拖曳結束後瀏覽器補的那一個 click 要吞掉，但**只吞緊接著的那一個**（400ms 內）
+    const swallowOn = () => (Date.now() - swallowAt) < 400;
     const gidAt = (t) => { const g = t.closest ? t.closest('.cgnode') : null; return g ? g.dataset.gid : null; };
     const dotAt = (t) => (t && t.classList && t.classList.contains('cgdot')) ? t : null;
     function pickGroup(gid) {
@@ -2114,7 +2120,7 @@
       if (ctx.onStock) ctx.onStock(code, gid);
     }
     host.addEventListener('click', (e) => {
-      if (swallow) { swallow = false; e.preventDefault(); e.stopPropagation(); return; }
+      if (swallowOn()) { swallowAt = 0; e.preventDefault(); e.stopPropagation(); return; }
       if (Date.now() - lastPointerAt < 400) return;      // 滑鼠那一路已經處理過了
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const dot = dotAt(e.target);
@@ -2127,7 +2133,7 @@
       /* ★ 新手勢開始，先把上一次拖曳留下的「吞掉下一個 click」清掉。
          不清的話：拖過一顆節點之後，右下角的「＋」、篩選面板裡的風格與環節色標
          全部會變成「按了沒反應」—— 因為那一下被當成拖曳的尾巴吞掉了。*/
-      swallow = false;
+      swallowAt = 0;
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
       const dot0 = dotAt(e.target);
@@ -2153,7 +2159,7 @@
       lastPointerAt = Date.now();
       try { host.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
       if (!d) return;
-      if (d.moved) { swallow = true; return; }
+      if (d.moved) { swallowAt = Date.now(); return; }
       if (d.code) { pickStock(d.dotGid || d.gid, d.code); return; }
       if (d.gid) { pickGroup(d.gid); return; }
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;

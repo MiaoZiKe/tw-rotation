@@ -2119,6 +2119,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   #dgTools .pill{flex:none}
 }
 
+/* ★ 2026-09-23：版號徽章在 **1100px** 也放不下 —— 量到 topbar 需要 1117px，
+   整頁因此多出 17px 的橫向捲軸（`A.verbadge#buildver` 的右緣 1117）。
+   徽章本來就有「放不下就藏起來」這條既有規則（原本只做到 820px 以下），
+   這裡只是把門檻拉到真正放不下的那個寬度。版號在資料橫幅那一行照樣寫得到，
+   DECISIONS #148「要看得到版號」沒有被動到。 */
+@media (max-width:1140px){ .verbadge{display:none} }
+
 </style>
 </head>
 <body>
