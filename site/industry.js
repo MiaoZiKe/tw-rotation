@@ -320,15 +320,12 @@
           ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
-        <div class="cgsec" id="cgSec"><div class="row spread"><h4 style="margin:0">族群關聯圖</h4>
-          <div class="row cgtools" id="cgTools"><span class="pill cyan" id="cgStyleBtn" style="cursor:pointer" title="換一種視覺風格：科技／電路／星際／泡泡">風格：科技</span><span class="pill" id="cgExpandBtn" style="cursor:pointer" title="點節點時，個股要長在圖上還是列在旁邊">展開：原地</span><span class="pill" id="cgFitBtn" style="cursor:pointer" title="回到置中（雙擊圖上空白處也可以）">置中</span></div></div>
-          <div class="sub" id="cgHint" style="margin:2px 0 6px"></div>
-          ${segs.length ? `<div class="segchips" id="cgSegs">${segs.map(s => { const tw = twOf(sc, s.id), fo = foreignOf(sc, s.id); return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`; }).join('')}</div>` : ''}
-          <div class="chainrow"><div class="chainpane">
+        <div class="cgsec" id="cgSec">
+          <div class="chainrow cgwrap"><div class="chainpane cgpane">
             <div class="cgraph" id="cgGraph"></div>
-            <div id="cgList"></div>
-            <div id="cgSide"></div>
-          </div></div></div>
+            <div class="sub" id="cgHint" style="margin:8px 0 0"></div>
+            <div id="cgSegBox"></div>
+          </div><div class="cgpanel" id="cgSide" hidden></div></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>
       <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="row" style="gap:8px"><button class="btn small" id="memWide" type="button" title="把成分股表拉寬，暫時蓋住右側「今日事件」；再按一次還原">放寬 ⤢</button><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div></div>
@@ -336,62 +333,35 @@
         <div class="morebar" id="memberMore" hidden></div></div>`;
     /* ★ 族群卡片 `#groupCards` 已移除（DECISIONS #248）。
        它承載的兩件事都搬到關聯圖上，一件都沒有消失：
-         「檔數／占比／漲跌／族群頁連結」→ 節點本體與它的小卡
-         「點卡片篩選成分股」           → 點節點（onGroup → state.group，同一條路）*/
-    /* 族群關聯圖（DECISIONS #248）。四種風格共用同一份佈局與互動，只換視覺。 */
+         「檔數／占比／漲跌／族群頁連結」→ 大圓點本身與右側資訊欄
+         「點卡片篩選成分股」           → 點大圓點（onGroup → state.group，同一條路）*/
+    /* 產業關聯圖（第二版，照 Andy 的參考圖）。四種風格共用同一份佈局與互動，只換視覺。 */
     let cg = null;
     {
-      /* 「側欄清單」模式的成分股清單。刻意跟環節詳情 `#cgSide` 分開兩個容器：
-         renderSegBox 每次 syncHighlight 都會重寫 `#cgSide`，共用一個的話
-         「選了環節」就會把剛剛展開的成分股清單洗掉。*/
-      const renderCgList = (node, mode) => {
-        const box = $('#cgList', el); if (!box) return;
-        if (!node || mode !== 'side') { box.innerHTML = ''; return; }
-        const ms = ((node.g && node.g.members) || []).slice()
-          .sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-        box.innerHTML = `<div class="cglist"><div class="row spread"><b>${A.fmt.esc(node.name)} 成分股 <span class="muted">${ms.length} 檔</span></b>
-            ${A.L.group(node.id, '族群頁 →', { dot: false, cls: 'sm' })}</div>
-          <div class="cgls">${ms.map(m => `<a class="lk lk-stock" data-code="${m.code}" href="#stock/${m.code}" title="看 ${A.fmt.esc(m.name)} 個股頁">${A.fmt.esc(m.name)}<span class="code">${m.code}</span><em class="${A.fmt.cls(m.chg_pct)}">${A.fmt.pct(m.chg_pct)}</em></a>`).join('')
-            || '<span class="muted">這個族群還沒有成分股</span>'}</div></div>`;
-      };
       const gh = $('#cgGraph', el);
       if (gh && groups.length) {
-        cg = drawGroupGraph(gh, { sc: sc, chainId: ch.id, groups: groups,
-          style: cgPref('tw.cgStyle', CG_STYLES, 'tech'), expand: cgPref('tw.cgExpand', CG_EXPANDS, 'inline'),
-          onGroup: (gid) => { state.group = gid; segFilter = null; segHi = null; partHi = partSel = null; syncDgHash(); syncHighlight({ noscroll: true }); },
+        cg = drawGroupGraph(gh, {
+          sc: sc, chainId: ch.id, chainName: ch.name, groups: groups,
+          panel: $('#cgSide', el), asOf: (im && im.date) || '',
+          style: cgPref('tw.cgStyle', CG_STYLES, 'space'),
+          onGroup: (gid) => { state.group = gid; segFilter = null; segHi = null; partHi = partSel = null; syncDgHash(); syncHighlight({ noscroll: true, quiet: false }); },
           onBg: () => { if (state.group) { state.group = null; syncDgHash(); syncHighlight({ noscroll: true }); } },
-          onZoom: (k) => { const b = $('#cgFitBtn', el); if (b) b.textContent = '置中 ' + Math.round(k * 100) + '%'; },
-          /* 點個股子節點＝開「產業關係」面板（`#coBox.relside`），跟舊版點關聯圖上的公司
-             走的是同一支 showCompany —— 那一段的驗收（產業關係面板）因此一條都沒有失效。
-             順手把族群與代號寫進面板的 dataset：面板裡那顆「在圖上highlight」要靠它
-             才知道該亮關聯圖上的哪一顆節點（新圖的節點是族群，不是公司）。*/
-          onStock: (code) => {
-            const co = ((sc && sc.companies) || []).filter(c => c.tw_code === code)[0];
-            if (!co) return;                 // supply_chain.yaml 沒有這家的節點：小卡本身已經有個股頁連結
-            showCompany(co, sc, $('#cgGraph', el));
-            const box = document.getElementById('coBox');
-            if (box) { box.dataset.code = code; box.dataset.gid = A.L.cgroup[code] || ''; }
-          },
-          // 「側欄清單」模式：個股不長在圖上，改列在圖下面（兩種做法讓 Andy 挑，見 DECISIONS #248）
-          onExpand: (node, mode) => renderCgList(node, mode) });
+        });
+        /* 環節色標住在圖上「篩選」那顆鈕的面板裡（參考圖右上角就是這顆）。
+           它是舊 `#segChips` 的新家 —— class、data-seg、.sel、.nomem 全部沿用，行為一模一樣。*/
+        const segBox = cg && cg.segHost && cg.segHost();
+        if (segBox) segBox.innerHTML = segs.map(s2 => {
+          const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
+          return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s2.id}" style="--c:${segColor(s2.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s2.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`;
+        }).join('');
         const hint = $('#cgHint', el);
-        if (hint) hint.innerHTML = '<b>這張圖回答：</b>這條鏈由哪幾個族群組成、誰跟誰有上下游關係、今天錢往哪一顆跑。'
-          + '<b>怎麼用：</b>先看哪顆最大（占成交值最多）而且是紅的 —— 那是今天在漲的主流；'
-          + '再沿著連線往上游看是誰在供貨，那幾檔通常慢一兩天才反應。點一顆節點會把下方成分股篩成它、'
-          + '旁邊同時列出「它連到誰、為什麼」；族群名與個股名都是連結，點下去直接進那一頁。'
-          + '<br><span class="muted">圖例：節點大小＝占本鏈成交值　連線粗細＝依存度　'
-          + '虛線＝同環節、還沒查到具名的上下游　拖曳節點可以搬位置、滾輪縮放、雙擊或按「置中」回到原狀</span>';
-        const sb = $('#cgStyleBtn', el), eb = $('#cgExpandBtn', el), fb = $('#cgFitBtn', el);
-        const paintTools = () => {
-          if (sb) sb.textContent = '風格：' + CG_STYLE_NAME[cg.style()];
-          if (eb) eb.textContent = '展開：' + CG_EXPAND_NAME[cg.expand()];
-        };
-        if (sb) sb.onclick = () => { const i = CG_STYLES.indexOf(cg.style());
-          const nx = CG_STYLES[(i + 1) % CG_STYLES.length]; cg.setStyle(nx); cgSave('tw.cgStyle', nx); paintTools(); };
-        if (eb) eb.onclick = () => { const nx = cg.expand() === 'inline' ? 'side' : 'inline';
-          cg.setExpand(nx); cgSave('tw.cgExpand', nx); paintTools(); };
-        if (fb) fb.onclick = () => cg.fit();
-        paintTools();
+        if (hint) hint.innerHTML = '<b>這張圖回答：</b>這條鏈由哪幾個族群組成、每個族群有幾檔、誰跟誰有上下游關係、今天錢往哪一顆跑。'
+          + '<b>怎麼用：</b>先看哪顆大圓點最大（占成交值最多）而且是紅的 —— 那是今天在漲的主流；'
+          + '再沿著連線往上游看是誰在供貨，那幾檔通常慢一兩天才反應。'
+          + '滑鼠移到大圓點上會浮出它每一檔成分股的名稱、漲跌與占比；點大圓點把下方成分股篩成它、'
+          + '點周圍的小點看那一檔的產業關係。<br><span class="muted">'
+          + '圖例：大圓點＝族群（大小＝占本鏈成交值、顏色＝分類）　小點＝成分股，<b>有幾檔就有幾顆</b>　'
+          + '連線粗細＝依存度　拖曳節點可以搬位置、滾輪縮放、右下角 ◎ 或雙擊空白處回到置中</span>';
       }
     }
     let segFilter = opts.seg || null, mkt = 'ALL';
@@ -515,7 +485,9 @@
       /* 關聯圖吃同一份選取狀態：選了族群 → 那顆節點 `.sel`；選了環節 → 不屬於那一格的節點 `.dim`。
          「由環節反推族群」這條規則沒有變（A.L.sgroups），只是以前亮的是卡片、現在亮的是節點。*/
       if (cg) cg.sync({ group: state.group, seg: shown });
-      renderSegBox($('#cgSide', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
+      /* 環節詳情住在圖**下面**（`#cgSegBox`），不跟右側資訊欄（`#cgSide`）搶同一個容器 ——
+         資訊欄是「選到的節點」的說明，環節詳情是「選到的那一格」的說明，兩件事各有自己的地方。*/
+      renderSegBox($('#cgSegBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
         segFilter = shown; segHi = null; partHi = partSel = null; state.group = null; syncHighlight();
       } });
       if (!o.quiet) renderMembers();
@@ -1425,93 +1397,120 @@
      `matchMedia('change')` 監聽器，留下來會對著已經不存在的 DOM 做事。
      `tw.chainView` 這個 localStorage 鍵也一起不再讀寫：舊的人留著它不會有任何影響。*/
 
-  /* ==================================================================== 族群關聯圖
-     （Obsidian 式力導向，DECISIONS #248）
+  /* ==================================================================== 產業關聯圖
+     （力導向，DECISIONS #248；**第二版**依 Andy 2026-09-23 的兩張參考圖重畫，
+       規格書 `docs/chain_page_graph_spec.md`「第二版」那一節）
+
+     Andy 原話：「大圓點為族群、周遭的小點為個股，預設狀態只顯示大族群，
+     並且周圍依據個股數量顯示對應數量的小點，當游標移動過去該族群大點上，
+     才會顯示對應個股的名稱、漲幅、占比等資訊，點擊該個股一樣保留旁邊會出現資訊欄位，
+     資訊欄內容有相關連結請附上。版面需置中，且依據當前螢幕調整適當大小及範圍，不可留太多空白。」
 
      這張圖取代了原本的四塊：環節色標 `#segChips`、環節詳情 `#segBox`、
-     環節清單 `#chainList`、族群卡片 `#groupCards`。那四塊講的是同一件事的四個切面，
-     使用者要自己把四個畫面對起來才看得懂「錢在這條鏈的哪一段」。
+     環節清單 `#chainList`、族群卡片 `#groupCards`。那四塊講的是同一件事的四個切面。
 
-     它回答的問題（寫在圖旁邊那一句）：
-       **這條鏈今天由哪幾個族群組成、誰跟誰有上下游關係、錢正在往哪一顆跑。**
+     它回答的問題（寫在圖的標題旁邊）：
+       **這條鏈由哪幾個族群組成、每個族群有幾檔、誰跟誰有上下游關係、錢正在往哪一顆跑。**
 
-     為什麼自己寫力導向，不用既有的 ECharts graph（兩條路都可以，這是選擇的理由）
-     ----------------------------------------------------------------------------
-     1. 規格書第三節要求「**所有介紹資訊都要附連結**」：族群名要連族群頁、個股代號要連個股頁。
-        ECharts 的 graph 畫在 **canvas** 上，做不出真的 `<a href>` ——
-        使用者沒辦法中鍵開新分頁、沒辦法複製連結，驗收第 6 條（逐條檢查 href）也量不到。
-     2. 節點內容是「族群名＋漲跌＋占比＋標籤式個股」四層，還要省略號與換行 ——
-        那是 HTML 版面，不是一顆散點的 label。
-     3. 四種風格裡「電路」要走直角折線、「星際」要發光星球，
-        ECharts 的邊只有直線與曲線兩種，換不出這四套語言。
-     4. 節點只有十幾～二十幾顆，斥力＋彈簧一輪是 O(n²)＝幾百次運算，
-        自己寫幾十行就夠，而且**不必新增任何 vendor 檔**（Andy 公司網路擋 CDN）。
+     為什麼自己寫力導向，不用既有的 ECharts graph
+     ----------------------------------------------
+     1. 「小點數量＝成分股檔數」「hover 才浮出個股名稱／漲幅／占比」「右側資訊欄裡每一段
+        都要是真的 `<a href>`」—— ECharts 的 graph 畫在 canvas 上，做不出真的連結，
+        也沒辦法讓每顆散點各自帶一張 HTML 小卡。
+     2. 四種風格裡「電子電路」要走直角走線＋PCB 紋路、「星際」要星空底與發光星球，
+        ECharts 的邊只有直線與曲線兩種。
+     3. 節點只有十幾～二十幾顆族群（外加幾百顆不參與模擬的小點），
+        斥力＋彈簧一輪是 O(n²) 幾百次運算，**不必新增任何 vendor 檔**（公司網路擋 CDN）。
 
-     效能（AGENTS 對繪圖的硬規定，也見 DECISIONS #245 的 rAF 空轉）
-     ----------------------------------------------------------------
-     佈局是**一次算完**（進頁面時同步跑 420 迭代，24 顆節點實測 3ms 以內），算完就不再動。
-     拖曳時只搬被拖的那一顆、即時重畫連線；放開時再跑 60 迭代把重疊推開。
-     **全程沒有 requestAnimationFrame 迴圈**，靜止時 CPU 是 0。*/
-  const CG_STYLES = ['tech', 'circuit', 'space', 'bubble'];
-  const CG_STYLE_NAME = { tech: '科技', circuit: '電路', space: '星際', bubble: '泡泡' };
-  const CG_EXPANDS = ['inline', 'side'];
-  const CG_EXPAND_NAME = { inline: '原地展開', side: '側欄清單' };
+     效能
+     ----
+     佈局一次同步算完（420 迭代），算完就不再動；拖曳時只搬被拖的那一顆。
+     **全程沒有 requestAnimationFrame 迴圈**，靜止時 CPU 是 0（#245 那個坑的正面回答）。*/
+  const CG_STYLES = ['space', 'tech', 'bubble', 'circuit'];
+  const CG_STYLE_NAME = { space: '星際', tech: '科技', bubble: '泡泡', circuit: '電子電路' };
+  // 標語照參考圖 `graph_ref_4styles.webp` 每一格的標題列逐字抄
+  const CG_STYLE_SLOGAN = {
+    space: '深邃宇宙・星辰連結・探索無限產業可能',
+    tech: '精準科技・網格秩序・數據驅動產業洞察',
+    bubble: '輕盈柔和・繽紛氣泡・親切易讀的產業地圖',
+    circuit: '晶片脈絡・電路連結・驅動產業未來',
+  };
+  const CG_RELS = ['supply', 'peer', 'equip'];
+  const CG_REL_NAME = { supply: '上下游', peer: '同環節', equip: '設備與材料' };
   const cgPref = (k, list, dft) => { try { const v = localStorage.getItem(k); return list.indexOf(v) >= 0 ? v : dft; } catch (e) { return dft; } };
   const cgSave = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 忽略 */ } };
-  /* 縮放下限。節點上最小的字是 12px，12 × 0.92 ＝ 11.04px —— 剛好守住
-     「手機上任何字不得小於 11px」。這個數字同時決定版面要算多大
-     （版面 ＝ 容器 ÷ 0.92），兩邊用同一個常數，不然一定會有人只改一邊。
-     ⚠ transform:scale 會**真的**把字縮小；`getComputedStyle().fontSize` 量不到這件事，
-       驗收要量 `fontSize × scale` 才是螢幕上的真實大小。*/
-  const CG_MIN_SCALE = 0.92;
-  const CG_MAX_TAGS = 3;           // 節點上預設列幾個成分股，多的收成「+N」（3 個剛好兩列，再多節點就變高、整張圖就塞不進容器）
-  const CG_MAX_SUB = 14;           // 原地展開時最多長幾顆個股子節點（再多就請他看側欄清單）
+
+  /* 分類（參考圖左下的圖例）。用環節的 layer 與 role 推，**不寫死每一條鏈** ——
+     寫死的話新增一條鏈就會全部掉進「其他」，而且 YAML 是 Andy 在維護的。
+     判斷順序有意義：記憶體 → 封裝測試 → 材料設備 → 製造 → 設計，先中先贏。*/
+  const CG_CATS = [
+    { id: 'mem', name: '記憶體', color: '#f2c14b',
+      hit: (s) => /dram|nand|nor|hbm|flash|storage|memory/i.test(s.id) },
+    { id: 'pkg', name: '封裝測試', color: '#3fcf95',
+      hit: (s) => /osat|pkg|abf|substrate|test|assembly|packag/i.test(s.id) },
+    { id: 'matq', name: '材料設備', color: '#a58bf5',
+      hit: (s) => s.role === 'material' || s.role === 'equipment' },
+    { id: 'mfg', name: '製造', color: '#4f9ff5',
+      hit: (s) => (s.layer != null && s.layer >= 2) },
+    { id: 'design', name: '設計', color: '#f0708a',
+      hit: () => true },
+  ];
+  const cgCatOf = (seg) => {
+    if (!seg) return CG_CATS[CG_CATS.length - 1];
+    for (let i = 0; i < CG_CATS.length; i++) if (CG_CATS[i].hit(seg)) return CG_CATS[i];
+    return CG_CATS[CG_CATS.length - 1];
+  };
 
   /* 把 supply_chain 的「公司對公司」140 條邊，收斂成「族群對族群」。
-     為什麼要收斂：圖上的節點是族群，直接畫公司邊的話同一對族群之間會有十幾條平行線，
-     看起來像一團毛球 —— 而使用者要問的是「這兩個族群有沒有關係、多強」。
-     權重取 strength 的總和；原始的那幾條邊留在 items 裡，選起來時小卡逐條列出（含可信度與佐證）。*/
+     為什麼要收斂：圖上的大圓點是族群，直接畫公司邊的話同一對族群之間會有十幾條平行線，
+     看起來是一團毛球 —— 而使用者要問的是「這兩個族群有沒有關係、多強」。
+     rel 分三類，對應參考圖右側那三個勾選框：supply 上下游／peer 同環節／equip 設備與材料。*/
   function cgBuild(sc, chainId, groups) {
     const idx = {}; groups.forEach((g, i) => (idx[g.id] = i));
-    const segLayer = {}, segNm = {};
-    ((sc && sc.segments) || []).forEach(s => { segLayer[s.id] = s.layer; segNm[s.id] = s.name; });
+    const segById = {};
+    ((sc && sc.segments) || []).forEach(s => (segById[s.id] = s));
     const maxShare = Math.max.apply(null, [1].concat(groups.map(g => g.turnover_share || 0)));
     const nodes = groups.map((g, i) => {
-      const segs = (A.L.gsegs[g.id] || []).filter(s => segLayer[s] != null);
-      const lys = segs.map(s => segLayer[s]);
+      const segs = (A.L.gsegs[g.id] || []).filter(s => segById[s]);
+      const lys = segs.map(s => segById[s].layer).filter(v => v != null);
+      const cat = cgCatOf(segById[segs[0]]);
+      const ms = ((g.members) || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
       return {
-        id: g.id, kind: 'group', g: g, name: g.name, segs: segs,
+        id: g.id, kind: 'group', g: g, name: g.name, segs: segs, cat: cat,
         layer: lys.length ? Math.min.apply(null, lys) : 99,
-        share: g.turnover_share || 0, chg: g.chg_pct, n: g.n || 0,
-        color: A.L.gcolor[g.id] || '#8ea0c4',
-        k: 0.86 + 0.46 * Math.sqrt(Math.max(g.turnover_share || 0, 0) / maxShare),
+        share: g.turnover_share || 0, chg: g.chg_pct, n: g.n || 0, members: ms,
+        color: cat.color,
+        k: Math.sqrt(Math.max(g.turnover_share || 0, 0.01) / maxShare),
         seed: i,
       };
     });
-    // 公司 → 它在這條鏈上所屬的族群（一家公司可能掛在好幾個族群，所以是陣列）
     const gidOf = {};
     ((sc && sc.companies) || []).forEach(c => {
       const set = [];
       (c.groups || []).forEach(nm => { const gid = A.L.gid[nm]; if (gid != null && idx[gid] != null && set.indexOf(gid) < 0) set.push(gid); });
-      // YAML 沒寫 groups 的公司，退回用台股代號查它落在哪個族群
       if (!set.length && c.tw_code) { const gid = A.L.cgroup[c.tw_code]; if (gid && idx[gid] != null) set.push(gid); }
       gidOf[c.id] = set;
     });
     const coOf = {}; ((sc && sc.companies) || []).forEach(c => (coOf[c.id] = c));
+    const segOf = {}; ((sc && sc.companies) || []).forEach(c => (segOf[c.id] = segById[c.segment]));
     const agg = {};
     ((sc && sc.edges) || []).forEach(e => {
       if (e.rel === 'competes') return;
+      const sa = segOf[e.from], sb = segOf[e.to];
+      const isEquip = (sa && (sa.role === 'equipment' || sa.role === 'material'))
+                   || (sb && (sb.role === 'equipment' || sb.role === 'material'));
       (gidOf[e.from] || []).forEach(a => (gidOf[e.to] || []).forEach(b => {
         if (a === b) return;
         const key = a + '\u0001' + b;
-        const o = (agg[key] = agg[key] || { a: a, b: b, w: 0, items: [] });
+        const o = (agg[key] = agg[key] || { a: a, b: b, w: 0, items: [], rel: isEquip ? 'equip' : 'supply' });
         o.w += (e.strength || 1);
+        if (!isEquip) o.rel = 'supply';        // 只要有一條是真的上下游，整條就算上下游
         if (o.items.length < 8) o.items.push({ e: e, from: coOf[e.from], to: coOf[e.to] });
       }));
     });
     const links = Object.keys(agg).map(k => agg[k]).sort((x, y) => y.w - x.w).slice(0, 70);
     /* 一條邊都沒有的族群不要變成漂在角落的孤兒：接到「跟它同一格環節、占比最大」的那一個，
-       畫成虛線並明講是「同環節」而不是上下游 —— 寧可說清楚，也不要湊一條假的供應關係出來。*/
+       標成 peer（同環節）並明講，**不畫一條假的供應關係**。*/
     const has = {}; links.forEach(l => { has[l.a] = 1; has[l.b] = 1; });
     nodes.forEach(n => {
       if (has[n.id] || !n.segs.length) return;
@@ -1522,16 +1521,17 @@
       });
       if (!best) return;
       const shared = n.segs.filter(s => best.segs.indexOf(s) >= 0)[0];
-      links.push({ a: n.id, b: best.id, w: 1, items: [], weak: true,
-        why: '同一個環節（' + (segNm[shared] || shared || '—') + '）；還沒查到具名的上下游關係' });
+      links.push({ a: n.id, b: best.id, w: 1, items: [], rel: 'peer',
+        why: '同一個環節（' + ((segById[shared] || {}).name || shared || '—') + '）；還沒查到具名的上下游關係' });
     });
-    return { nodes: nodes, links: links, segNm: segNm };
+    return { nodes: nodes, links: links, segById: segById };
   }
 
   /* 力導向：矩形碰撞 ＋ 遠距斥力 ＋ 彈簧 ＋ 弱 x 偏好（上游在左）＋ 往中心收。
-     一次同步跑完、不掛 rAF。alpha 由 1 線性降到 0 等於模擬退火：
-     前期大步調整拓樸、後期只微調。起始位置由 index 決定（黃金角螺旋）而**不是亂數** ——
-     同一條鏈每次進來畫出來的位置要一樣，不然使用者每次重新整理都要重新找他那一顆。*/
+     一次同步跑完、不掛 rAF。起始位置由 index 決定（黃金角螺旋）而**不是亂數** ——
+     同一條鏈每次進來畫出來的位置要一樣，不然使用者每次重新整理都要重新找他那一顆。
+     節點的碰撞框不是圓：大圓點右邊還有一行族群名，名字也不能疊到別人身上，
+     所以 `n.x` 是**碰撞框的中心**，圓心在 `n.x - n.ox`。*/
   function cgLayout(nodes, links, W, H, opt) {
     const o = opt || {}, iters = o.iters || 420, pin = o.pin || null;
     const by = {}; nodes.forEach(n => (by[n.id] = n));
@@ -1539,34 +1539,21 @@
     const lo = lys.length ? Math.min.apply(null, lys) : 0;
     const hi = lys.length ? Math.max.apply(null, lys) : 1;
     const cx = W / 2, cy = H / 2;
-    /* `keep` ＝沿用現有座標（改變寬度、拖曳之後的微調）。
-       ⚠ 但**新長出來的節點沒有座標** —— 原地展開的個股子節點就是這種。
-       第一版寫成 `if (!o.keep)` 整批跳過，於是 7 顆子節點的 x/y 全是 undefined，
-       算出來是 NaN、全部疊在同一點（自測量到 465 組重疊）。
-       所以條件要是「要嘛全部重來，要嘛只初始化還沒有座標的那幾顆」。*/
-    nodes.forEach(n => {
-      if (o.keep && n.x != null && isFinite(n.x)) return;
-      // 子節點就生在母節點旁邊（它本來就屬於那一顆），不要丟到版面中央再讓彈簧拉回來
-      if (n.sub && n.parent && n.parent.x != null) {
-        const a2 = n.seed * 2.399963;
-        n.x = n.parent.x + Math.cos(a2) * (n.parent.w / 2 + 90);
-        n.y = n.parent.y + Math.sin(a2) * (n.parent.h / 2 + 70);
-        return;
-      }
+    if (!o.keep) nodes.forEach(n => {
       const t = (n.layer < 99 ? (n.layer - lo) / (hi - lo || 1) : 0.5);
       const a = n.seed * 2.399963;                  // 黃金角：同一層也鋪得開
-      n.x = 70 + t * (W - 140) + Math.cos(a) * 62;
-      n.y = cy + Math.sin(a) * Math.sqrt(n.seed + 1) * 36;
+      n.x = W * 0.18 + t * W * 0.64 + Math.cos(a) * W * 0.12;
+      n.y = cy + Math.sin(a) * Math.sqrt(n.seed + 1) * H * 0.075;
     });
-    const GAP = 18;
+    const GAP = 14;
     for (let t = 0; t < iters; t++) {
       const alpha = 1 - t / iters;
       links.forEach(l => {
         const a = by[l.a], b = by[l.b]; if (!a || !b) return;
         const dx = b.x - a.x, dy = b.y - a.y;
         const d = Math.sqrt(dx * dx + dy * dy) || 0.01;
-        const want = (a.w + b.w) / 2 + 74;
-        const f = (d - want) / d * 0.055 * alpha * (l.weak ? 0.45 : 1);
+        const want = (a.w + b.w) / 2 + 40;
+        const f = (d - want) / d * 0.05 * alpha * (l.rel === 'peer' ? 0.45 : 1);
         const mx = dx * f, my = dy * f;
         if (a !== pin) { a.x += mx; a.y += my; }
         if (b !== pin) { b.x -= mx; b.y -= my; }
@@ -1577,48 +1564,35 @@
           const dx = b.x - a.x, dy = b.y - a.y;
           const ox = (a.w + b.w) / 2 + GAP - Math.abs(dx);
           const oy = (a.h + b.h) / 2 + GAP - Math.abs(dy);
-          if (ox > 0 && oy > 0) {                   // 真的疊到了：往「比較好推開」的那一軸推
+          if (ox > 0 && oy > 0) {
             if (ox < oy) { const p = ox / 2 * (dx < 0 ? -1 : 1);
               if (a !== pin) a.x -= p; if (b !== pin) b.x += p; }
             else { const p = oy / 2 * (dy < 0 ? -1 : 1);
               if (a !== pin) a.y -= p; if (b !== pin) b.y += p; }
-          } else {                                  // 沒疊到：遠距斥力，讓密度平均一點
+          } else {
             const d2 = dx * dx + dy * dy + 900, d1 = Math.sqrt(d2);
-            const f = 5200 * alpha / d2;
-            const ux = dx / d1, uy = dy / d1;
-            if (a !== pin) { a.x -= ux * f; a.y -= uy * f; }
-            if (b !== pin) { b.x += ux * f; b.y += uy * f; }
+            const f = 4200 * alpha / d2;
+            if (a !== pin) { a.x -= dx / d1 * f; a.y -= dy / d1 * f; }
+            if (b !== pin) { b.x += dx / d1 * f; b.y += dy / d1 * f; }
           }
         }
       }
       nodes.forEach(n => {
         if (n === pin) return;
-        if (n.layer < 99 && hi > lo) {              // 弱偏好：上游在左、下游在右（不強制成欄）
-          const tx = 80 + (n.layer - lo) / (hi - lo) * (W - 160);
-          n.x += (tx - n.x) * 0.026 * alpha;
+        if (n.layer < 99 && hi > lo) {
+          const tx = W * 0.16 + (n.layer - lo) / (hi - lo) * W * 0.68;
+          n.x += (tx - n.x) * 0.022 * alpha;
         }
-        /* 橫向引力刻意比縱向弱（0.004 vs 0.016）：容器是 1358×589 這種很扁的框，
-           兩軸一樣強的話節點會擠成一坨圓形，**寬度用不到、高度卻爆掉**，
-           推開重疊時就只能往上下推，結果不是超出版面就是留著重疊。
-           弱橫向引力＝讓節點先往兩邊鋪開，高度自然就夠用。*/
         n.x += (cx - n.x) * 0.004 * alpha;
-        n.y += (cy - n.y) * 0.016 * alpha;
-        /* 夾在版面裡。少了這一行，外接盒會比版面大，`fit()` 算出來的縮放就不夠，
-           左右兩排節點會被容器切掉 —— 第一版截圖就是這個樣子。*/
-        n.x = Math.max(n.w / 2 + 6, Math.min(W - n.w / 2 - 6, n.x));
-        n.y = Math.max(n.h / 2 + 6, Math.min(H - n.h / 2 - 6, n.y));
+        n.y += (cy - n.y) * 0.014 * alpha;
+        n.x = Math.max(n.w / 2 + 4, Math.min(W - n.w / 2 - 4, n.x));
+        n.y = Math.max(n.h / 2 + 4, Math.min(H - n.h / 2 - 4, n.y));
       });
     }
-    /* 最後一輪**只推開重疊**，不再拉彈簧也不再往中心收。
-       為什麼要單獨一輪：主迴圈每一圈的順序是「碰撞 → 引力」，所以**最後動的是引力** ——
-       它會把剛剛推開的兩顆再拉回去疊在一起。星際風格（膠囊、留白大）第一版截圖
-       就有「光感測與元件」整顆被「封裝製程機台」蓋住。
-       純碰撞會收斂（每一步都嚴格減少重疊量），所以 30 圈就夠，不必判斷收斂。*/
-    /* 版面比容器扁（寬高比 > 1.6）時，推開重疊一律優先往**左右**推：
-       往上下推會馬上撞到版面的上下緣，夾回去之後等於沒推，重疊就留在那裡。
-       這是實測出來的 —— 星際風格在 1358×589 上留了 7 組重疊，全部是上下推被夾回去造成的。*/
-    const wideBox = (W / Math.max(1, H)) > 1.6;
-    for (let t = 0; t < 120; t++) {
+    /* 最後一輪只推開重疊，不再拉彈簧也不再往中心收 ——
+       主迴圈每一圈的順序是「碰撞 → 引力」，最後動的是引力，
+       它會把剛剛推開的兩顆再拉回去疊在一起。*/
+    for (let t = 0; t < 140; t++) {
       for (let i = 0; i < nodes.length; i++) {
         for (let j = i + 1; j < nodes.length; j++) {
           const a = nodes[i], b = nodes[j];
@@ -1626,36 +1600,20 @@
           const ox = (a.w + b.w) / 2 + GAP - Math.abs(dx);
           const oy = (a.h + b.h) / 2 + GAP - Math.abs(dy);
           if (ox <= 0 || oy <= 0) continue;
-          if (ox < oy || (wideBox && ox < oy * 3)) { const p = ox / 2 * (dx < 0 ? -1 : 1);
+          if (ox < oy) { const p = ox / 2 * (dx < 0 ? -1 : 1);
             if (a !== pin) a.x -= p; if (b !== pin) b.x += p; }
           else { const p = oy / 2 * (dy < 0 ? -1 : 1);
             if (a !== pin) a.y -= p; if (b !== pin) b.y += p; }
         }
       }
-      /* ⚠ 這一輪也要夾邊界。第一版忘了夾，推開重疊時就把節點推到版面外面 ——
-         外接盒（1358 寬的容器上量到 690 高）比版面（648）還大，`fit()` 只好縮到下限 0.85，
-         於是上下各被切掉 54px。**邊界是在每一次搬動之後才成立的，不是算一次就算數。**/
       nodes.forEach(n => {
         if (n === pin) return;
-        n.x = Math.max(n.w / 2 + 6, Math.min(W - n.w / 2 - 6, n.x));
-        n.y = Math.max(n.h / 2 + 6, Math.min(H - n.h / 2 - 6, n.y));
+        n.x = Math.max(n.w / 2 + 4, Math.min(W - n.w / 2 - 4, n.x));
+        n.y = Math.max(n.h / 2 + 4, Math.min(H - n.h / 2 - 4, n.y));
       });
     }
   }
-
-  /* 從 a 的中心往 b 射一條線，回它穿出 a 邊框的那個點。
-     用矩形而不是圓：節點本身就是矩形（星際／泡泡是膠囊，差幾 px 看不出來）；
-     用圓去算的話，寬節點的線會從卡片內部冒出來。*/
-  function cgEdgePt(a, b, pad) {
-    const dx = b.x - a.x, dy = b.y - a.y;
-    if (!dx && !dy) return { x: a.x, y: a.y };
-    const hw = a.w / 2 + (pad || 0), hh = a.h / 2 + (pad || 0);
-    const sx = dx ? hw / Math.abs(dx) : Infinity;
-    const sy = dy ? hh / Math.abs(dy) : Infinity;
-    const s = Math.min(sx, sy);
-    return { x: a.x + dx * s, y: a.y + dy * s };
-  }
-  // 還有幾組節點疊在一起（矩形相交）。給 relayout 判斷要不要再放大版面重算
+  // 還有幾組節點疊在一起（矩形相交）
   function cgOverlaps(nodes) {
     let n = 0;
     for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
@@ -1664,478 +1622,668 @@
     }
     return n;
   }
-  // 正交折線（電路風格用），轉角切圓角
+  // 正交折線（電子電路風格用），轉角切圓角
   function cgCorner(pts, r0) {
-    let d = 'M' + pts[0][0] + ',' + pts[0][1];
+    let d = 'M' + pts[0][0].toFixed(1) + ',' + pts[0][1].toFixed(1);
     for (let i = 1; i < pts.length - 1; i++) {
       const p = pts[i - 1], c = pts[i], n = pts[i + 1];
-      const r = Math.min(r0 || 7, Math.hypot(c[0] - p[0], c[1] - p[1]) / 2, Math.hypot(n[0] - c[0], n[1] - c[1]) / 2);
-      d += 'L' + (c[0] - Math.sign(c[0] - p[0]) * r) + ',' + (c[1] - Math.sign(c[1] - p[1]) * r);
-      d += 'Q' + c[0] + ',' + c[1] + ' ' + (c[0] + Math.sign(n[0] - c[0]) * r) + ',' + (c[1] + Math.sign(n[1] - c[1]) * r);
+      const r = Math.min(r0 || 8, Math.hypot(c[0] - p[0], c[1] - p[1]) / 2, Math.hypot(n[0] - c[0], n[1] - c[1]) / 2);
+      d += 'L' + (c[0] - Math.sign(c[0] - p[0]) * r).toFixed(1) + ',' + (c[1] - Math.sign(c[1] - p[1]) * r).toFixed(1);
+      d += 'Q' + c[0].toFixed(1) + ',' + c[1].toFixed(1) + ' '
+         + (c[0] + Math.sign(n[0] - c[0]) * r).toFixed(1) + ',' + (c[1] + Math.sign(n[1] - c[1]) * r).toFixed(1);
     }
     const e = pts[pts.length - 1];
-    return d + 'L' + e[0] + ',' + e[1];
+    return d + 'L' + e[0].toFixed(1) + ',' + e[1].toFixed(1);
   }
-  /* 一條邊要畫成什麼形狀，由風格決定（四種風格「只換視覺」，佈局與互動是同一份）：
-       科技 —— 直線，兩端各一顆發光端點
-       電路 —— 直角折線（像 PCB 走線），轉角圓角、中段一顆焊點
-       星際 —— 弧度很小的曲線，像星塵
-       泡泡 —— 柔和的三次貝茲曲線 */
+  /* 一條邊的路徑。從兩顆大圓點的邊緣出發（不是圓心），不然線會從圓底下鑽出來。
+     形狀由風格決定（四種風格「只換視覺」，佈局與互動是同一份）。*/
   function cgPath(a, b, style) {
-    const p1 = cgEdgePt(a, b, 2), p2 = cgEdgePt(b, a, 2);
+    const ax = a.x - a.ox, ay = a.y, bx = b.x - b.ox, by = b.y;
+    const dx = bx - ax, dy = by - ay;
+    const d = Math.sqrt(dx * dx + dy * dy) || 1;
+    const p1 = { x: ax + dx / d * (a.R + 2), y: ay + dy / d * (a.R + 2) };
+    const p2 = { x: bx - dx / d * (b.R + 2), y: by - dy / d * (b.R + 2) };
     if (style === 'circuit') {
       const mx = (p1.x + p2.x) / 2;
-      return { d: cgCorner([[p1.x, p1.y], [mx, p1.y], [mx, p2.y], [p2.x, p2.y]], 8), mid: { x: mx, y: (p1.y + p2.y) / 2 }, p1: p1, p2: p2 };
+      return { d: cgCorner([[p1.x, p1.y], [mx, p1.y], [mx, p2.y], [p2.x, p2.y]], 9),
+               mid: { x: mx, y: (p1.y + p2.y) / 2 }, p1: p1, p2: p2 };
     }
-    const dx = p2.x - p1.x, dy = p2.y - p1.y;
     const mx = (p1.x + p2.x) / 2, my = (p1.y + p2.y) / 2;
-    if (style === 'tech') return { d: 'M' + p1.x + ',' + p1.y + 'L' + p2.x + ',' + p2.y, mid: { x: mx, y: my }, p1: p1, p2: p2 };
-    const bow = (style === 'bubble' ? 0.22 : 0.11);
-    const nx = -dy * bow, ny = dx * bow;            // 法線方向的彎曲量
-    return { d: 'M' + p1.x + ',' + p1.y + 'Q' + (mx + nx) + ',' + (my + ny) + ' ' + p2.x + ',' + p2.y,
+    const bow = (style === 'bubble' ? 0.16 : style === 'space' ? 0.09 : 0.05);
+    const nx = -(p2.y - p1.y) * bow, ny = (p2.x - p1.x) * bow;
+    return { d: 'M' + p1.x.toFixed(1) + ',' + p1.y.toFixed(1)
+                + 'Q' + (mx + nx).toFixed(1) + ',' + (my + ny).toFixed(1)
+                + ' ' + p2.x.toFixed(1) + ',' + p2.y.toFixed(1),
              mid: { x: mx + nx / 2, y: my + ny / 2 }, p1: p1, p2: p2 };
   }
-
-  /* 節點上的個股標籤。**每一顆都是真的 `<a href="#stock/xxxx">`**（規格書第三節）——
-     所以中鍵開新分頁、複製連結、鍵盤 Tab 都成立，不是「看起來可以點」的假連結。*/
-  function cgTag(m) {
-    return '<a class="lk lk-stock" data-code="' + m.code + '" href="#stock/' + m.code + '" title="'
-      + A.fmt.esc(m.name + ' ' + m.code) + '　看個股頁"><span class="nm">' + A.fmt.esc(m.name) + '</span></a>';
-  }
-  /* 節點的 HTML。族群名走 `A.L.group()`（跟全站同一支產生器，href 永遠一致），
-     漲跌走 fmt.cls（紅漲綠跌），占比與檔數是 Andy 要求從族群卡片搬上來的那兩個數字。*/
-  function cgNodeHtml(n) {
-    const ms = ((n.g && n.g.members) || []).slice();
-    ms.sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-    const shown = ms.slice(0, CG_MAX_TAGS), rest = ms.length - shown.length;
-    /* 節點上只留 Andy 指名的兩個數字（今日漲跌幅、占比）。
-       檔數不放上去：節點寬度只有 128px，三個數字排一行一定被切掉（第四版截圖踩到「占 0.6% ·」）；
-       檔數改寫在 title 與選起來之後的小卡裡，一個資訊都沒有少。*/
-    return '<div class="cgt">' + A.L.group(n.id, n.name) + '</div>'
-      + '<div class="cgm" title="' + A.fmt.esc(n.name + '：今日 ' + A.fmt.pct(n.chg) + '，占本鏈成交值 '
-        + A.fmt.n(n.share, 1) + '%，' + n.n + ' 檔') + '"><span class="chg ' + A.fmt.cls(n.chg) + '">'
-      + A.fmt.pct(n.chg) + '</span><span class="sh">占 ' + A.fmt.n(n.share, 1) + '%</span></div>'
-      + (shown.length ? '<div class="cgtags">' + shown.map(cgTag).join('')
-          + (rest > 0 ? '<span class="cgmore" title="點節點看全部 ' + ms.length + ' 檔">+' + rest + '</span>' : '')
-          + '</div>' : '');
-  }
-  function cgSubHtml(n) {
-    return '<div class="cgt">' + A.L.stock(n.code, n.name) + '</div>'
-      + '<div class="cgm"><span class="chg ' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</span></div>';
-  }
-
-  /* 「它連到誰、為什麼」小卡。沿用 `REL_TEXT`／`CONF_TEXT`／`srcLink` ——
-     圖上的 tooltip、這張小卡、環節詳情三處**同一套措辭**，同一條邊不會出現兩種講法。
-     ⚠ 誠實：可信度（官方揭露／媒體報導／產業推論）一定標出來；
-       沒有佐證網址的就不放連結，不放死連結（規格書第三節末尾）。*/
-  function cgNoteHtml(n, links, byId, chainId) {
-    if (n.kind === 'stock') {
-      return '<div class="nh"><b>' + A.fmt.esc(n.name) + '</b><span class="muted">' + n.code + '</span>'
-        + '<button class="x" type="button" title="收起來">×</button></div>'
-        + '<div class="rl"><span class="lb">今日</span> <span class="' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</span>'
-        + '　<span class="lb">所屬族群</span> ' + A.L.group(n.gid) + '</div>'
-        + '<div class="rl">' + A.L.stock(n.code, n.name) + ' <span class="lb">← 點進去看 K 線、籌碼與營收</span></div>';
-    }
+  /* ---------------------------------------------------------------- 右側資訊欄
+     照參考圖 `graph_ref_layout.webp`：彩色圓點＋族群名、一行說明、
+     「族群漲跌／成交占比」兩個大數字、代表公司清單、顯示範圍、關係類型、以此節點為中心。
+     ★ 規格書第三節：**資訊欄裡所有講得到的東西都要是連結**
+       （族群→族群頁、個股→個股頁、環節→剖析圖、產業鏈→鏈頁；外部來源附原始網址）。
+       查不到的照舊明講，不放死連結。*/
+  function cgPanelGroup(n, links, byId, chainId, chainName, state2) {
+    const segLinks = n.segs.map(s => '<a class="lk lk-chain" href="#industry/' + chainId + '/' + s
+      + '" title="看這一格在剖析圖上的位置">' + A.fmt.esc(cgSegName(s)) + '</a>').join('');
     const ups = [], downs = [];
-    links.forEach(l => {
-      if (l.a === n.id) downs.push(l);
-      else if (l.b === n.id) ups.push(l);
-    });
-    const line = (l, dir) => {
+    links.forEach(l => { if (l.a === n.id) downs.push(l); else if (l.b === n.id) ups.push(l); });
+    const relLine = (l, dir) => {
       const other = byId[dir === 'up' ? l.a : l.b]; if (!other) return '';
-      const items = l.items.slice(0, 3).map(it => A.fmt.esc(it.e.item || (REL_TEXT[it.e.rel] || {}).label || '關聯')
+      const items = l.items.slice(0, 2).map(it => A.fmt.esc(it.e.item || (REL_TEXT[it.e.rel] || {}).label || '關聯')
         + (it.e.confidence ? '<em class="cf cf-' + it.e.confidence + '">' + (CONF_TEXT[it.e.confidence] || it.e.confidence) + '</em>' : ''));
       const src = l.items.map(it => srcLink(it.e.source)).filter(Boolean)[0] || '';
-      return '<div class="rl"><span class="lb">' + (dir === 'up' ? '上游（供給它）' : '下游（它供給）') + '</span> '
+      return '<div class="cgp-rel"><span class="lb">' + (dir === 'up' ? '上游' : '下游') + '</span>'
         + A.L.group(other.id, other.name)
-        + (l.weak ? '<span class="lb">　' + A.fmt.esc(l.why || '同環節') + '</span>'
-                  : '<span class="lb">　依存度 ' + l.w.toFixed(0) + '</span>')
+        + (l.rel === 'peer' ? '<span class="lb">' + A.fmt.esc(l.why || '同環節') + '</span>'
+                            : '<span class="lb">依存度 ' + l.w.toFixed(0) + '</span>')
         + (items.length ? '<div class="lb">' + items.join('、') + '</div>' : '')
         + (src ? '<div class="src">' + src + '</div>' : '') + '</div>';
     };
-    const segs = n.segs.map(s => '<a class="lk lk-chain" href="#industry/' + chainId + '/' + s
-      + '" title="看這一格在剖析圖上的位置">' + A.fmt.esc(segNameOf(s)) + '</a>').join('');
-    return '<div class="nh"><b>' + A.fmt.esc(n.name) + '</b>'
-      + '<span class="' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</span>'
-      + '<button class="x" type="button" title="收起來">×</button></div>'
-      + '<div class="rl"><span class="lb">占本鏈成交值</span> ' + A.fmt.n(n.share, 1) + '%'
-      + '　<span class="lb">成分股</span> ' + n.n + ' 檔　' + A.L.group(n.id, '族群頁 →', { dot: false }) + '</div>'
-      + (segs ? '<div class="rl"><span class="lb">落在這幾格</span> ' + segs + '</div>' : '')
-      + (ups.length ? ups.map(l => line(l, 'up')).join('') : '')
-      + (downs.length ? downs.map(l => line(l, 'down')).join('') : '')
-      + (!ups.length && !downs.length ? '<div class="rl empty">supply_chain.yaml 還沒有建立這個族群的上下游關係 —— 查不到就是查不到，不放假連結。</div>' : '');
+    return '<div class="cgp-h"><i style="--c:' + n.color + '"></i><b>' + A.fmt.esc(n.name) + '</b>'
+      + '<button class="x" id="cgPanelX" type="button" title="關掉資訊欄">×</button></div>'
+      + '<div class="cgp-sub">' + A.fmt.esc(cgGroupDesc(n)) + '</div>'
+      + '<div class="cgp-box"><div><b class="' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</b><span>族群漲跌</span></div>'
+      + '<div><b>' + A.fmt.n(n.share, 1) + '%</b><span>成交占比</span></div></div>'
+      + '<div class="cgp-asof">' + A.fmt.esc(cgAsOf()) + '</div>'
+      + '<h5>代表公司 <small>' + n.n + ' 檔</small></h5>'
+      + '<div class="cgp-co">' + (n.members.slice(0, 6).map(m =>
+          '<a class="lk lk-stock" data-code="' + m.code + '" href="#stock/' + m.code + '" title="看 '
+          + A.fmt.esc(m.name) + ' 個股頁"><span class="nm">' + A.fmt.esc(m.name) + '</span>'
+          + '<span class="code">' + m.code + '</span><span class="chv">›</span></a>').join('')
+          || '<span class="muted">這個族群還沒有成分股</span>')
+      + '</div>'
+      + '<div class="cgp-lks"><span class="lb">族群頁</span>' + A.L.group(n.id, '看全部成分股 →', { dot: false })
+      + (segLinks ? '<span class="lb">環節</span>' + segLinks : '')
+      + '<span class="lb">產業鏈</span>' + A.L.chain(chainId, chainName) + '</div>'
+      + '<h5>顯示範圍</h5>'
+      + '<div class="seg cgp-range" id="cgRange">'
+      + '<button data-hop="1" class="' + (state2.hop === 1 ? 'on' : '') + '" type="button">直接關聯</button>'
+      + '<button data-hop="2" class="' + (state2.hop === 2 ? 'on' : '') + '" type="button">兩層關聯</button></div>'
+      + '<h5>關係類型</h5><div class="cgp-rels" id="cgRels">'
+      + CG_RELS.map(r => '<label><input type="checkbox" data-rel="' + r + '"'
+          + (state2.rel[r] ? ' checked' : '') + '>' + CG_REL_NAME[r] + '</label>').join('')
+      + '</div>'
+      + '<button class="btn cgp-center" id="cgCenter" type="button">以此節點為中心</button>'
+      + (ups.length || downs.length
+          ? '<h5>它連到誰</h5>' + ups.map(l => relLine(l, 'up')).join('') + downs.map(l => relLine(l, 'down')).join('')
+          : '<div class="cgp-rel empty">supply_chain.yaml 還沒有建立這個族群的上下游關係 —— 查不到就是查不到，不放假連結。</div>');
   }
-  // segName 需要 sc，但小卡只拿得到 id；畫圖時把對照表存在這裡（同一頁只有一張圖）
-  let CG_SEGNM = {};
-  const segNameOf = (id) => CG_SEGNM[id] || id;
-
+  /* 個股模式。**刻意沿用 `relBlock()`** —— 那是既有的「產業關係」區塊
+     （品項、依存度長條、官方揭露／媒體報導／產業推論的標記、推論的「為什麼這樣推」與佐證連結、
+     以及「在圖上 highlight」那顆鈕）。重寫一份的話同一條關係會出現兩種講法，
+     而且 `產業關係面板` 那一整段驗收會全部失效。這裡只換「它長在哪裡」：
+     以前掛在 `#coBox` 浮出來，現在就住在右側資訊欄裡。*/
+  function cgPanelStock(m, sc, chainId, chainName) {
+    const co = ((sc && sc.companies) || []).filter(c => c.tw_code === m.code)[0];
+    const seg = co ? co.segment : null;
+    return '<div class="cgp-h"><i style="--c:' + (m.color || 'var(--cyan)') + '"></i><b>' + A.fmt.esc(m.name) + '</b>'
+      + '<button class="x" id="cgPanelX" type="button" title="關掉資訊欄">\u00d7</button></div>'
+      + '<div class="cgp-sub">' + m.code + (co && (co.tech || []).length ? '\u3000' + A.fmt.esc(co.tech.slice(0, 2).join('\u30fb')) : '') + '</div>'
+      + '<div class="cgp-box"><div><b class="' + A.fmt.cls(m.chg_pct) + '">' + A.fmt.pct(m.chg_pct) + '</b><span>今日漲跌</span></div>'
+      + '<div><b>' + (m.close != null ? A.fmt.n(m.close) : '\u2014') + '</b><span>收盤</span></div></div>'
+      + '<div class="cgp-asof">' + A.fmt.esc(cgAsOf()) + '</div>'
+      + '<div class="cgp-lks"><span class="lb">個股頁</span>' + A.L.stock(m.code, m.name)
+      + '<span class="lb">所屬族群</span>' + A.L.group(m.gid)
+      + (seg ? '<span class="lb">所屬環節</span><a class="lk lk-chain" href="#industry/' + chainId + '/' + seg
+          + '" title="看這一格在剖析圖上的位置">' + A.fmt.esc(cgSegName(seg)) + '</a>' : '')
+      + '<span class="lb">產業鏈</span>' + A.L.chain(chainId, chainName) + '</div>'
+      + (co ? relBlock(co, sc)
+            : '<div class="cgp-rel empty">supply_chain.yaml 裡還沒有這一檔的節點，所以講不出它的上下游 —— '
+              + '查不到就是查不到，不放假連結。上面的個股頁連結仍然點得進去。</div>');
+  }
+  // 環節名與資料日期：小卡與資訊欄只拿得到 id，畫圖時把對照表存在這裡（同一頁只有一張圖）
+  let CG_SEG = {}, CG_ASOF = '';
+  const cgSegName = (id) => ((CG_SEG[id] || {}).name) || id;
+  const cgAsOf = () => (CG_ASOF ? CG_ASOF + '　盤中為暫定值' : '盤後資料');
+  const cgGroupDesc = (n) => {
+    const s = CG_SEG[n.segs[0]];
+    if (s && s.desc) return s.desc;
+    if (n.segs.length) return '這個族群落在「' + n.segs.map(cgSegName).join('、') + '」這幾格';
+    return '這條鏈上的一個族群';
+  };
   /* ---------------------------------------------------------------- 主體 */
   function drawGroupGraph(host, ctx) {
     if (!host) return null;
-    const sc = ctx.sc, groups = ctx.groups || [], chainId = ctx.chainId;
+    const sc = ctx.sc, groups = ctx.groups || [], chainId = ctx.chainId, chainName = ctx.chainName || chainId;
     const built = cgBuild(sc, chainId, groups);
-    CG_SEGNM = built.segNm;
-    const gnodes = built.nodes, glinks = built.links;
-    if (!gnodes.length) { host.innerHTML = ''; return null; }
-    let style = ctx.style || 'tech', expand = ctx.expand || 'inline';
-    let nodes = gnodes.slice(), links = glinks.slice();
+    CG_SEG = built.segById; CG_ASOF = ctx.asOf || '';
+    const nodes = built.nodes, links = built.links;
+    if (!nodes.length) { host.innerHTML = ''; return null; }
+    const byId = {}; nodes.forEach(n => (byId[n.id] = n));
+    let style = ctx.style || 'space';
     let scale = 1, tx = 0, ty = 0, LW = 0, LH = 0;
-    let selId = null, openId = null;
+    let selKind = null, selId = null, selCode = null, hoverId = null, centerId = null;
+    const view = { hop: 1, rel: { supply: true, peer: true, equip: true } };
+    let query = '';
+
     host.dataset.cgstyle = style;
-    /* 圖例**不放在畫布裡**：釘在左下角的版本會壓到最底下那一排節點的個股標籤
-       （第三版截圖踩到，而且 _preview 的文字重疊掃描也會判紅）。
-       改成寫在圖下面那一行說明裡，縮放倍率寫在「置中」鈕上。*/
-    host.innerHTML = '<div class="cgstage"><svg class="cgedges"></svg></div>'
-      + '<div class="cgnote" id="cgNote" hidden></div>';
-    const stage = $('.cgstage', host), svg = $('.cgedges', host), note = $('.cgnote', host);
-    const byId = {}; gnodes.forEach(n => (byId[n.id] = n));
-    const els = {};
+    host.innerHTML =
+      '<div class="cgstage"><svg class="cgsvg"></svg><div class="cglabels"></div></div>'
+      + '<div class="cghd"><div class="cgt1">產業關聯圖<small>探索產業之間的連結</small></div>'
+      + '<div class="cgt2">拖曳節點・滾輪縮放・點選查看關聯</div>'
+      + '<div class="cgscope"><span class="chip" id="cgScope">' + A.fmt.esc(chainName)
+      + '<button type="button" id="cgScopeX" title="回到產業地圖">×</button></span></div></div>'
+      + '<div class="cgtop"><label class="cgsearch"><span>⌕</span>'
+      + '<input id="cgSearch" type="search" placeholder="搜尋產業或公司" autocomplete="off"></label>'
+      + '<button class="cgbtn" id="cgFilterBtn" type="button">篩選</button>'
+      + '<button class="cgbtn" id="cgResetBtn" type="button">重設視角</button></div>'
+      + '<div class="cgpop" id="cgFilterPop" hidden>'
+      + '<h6>風格</h6><div class="cgstyles" id="cgStyles">'
+      + CG_STYLES.map((s, i) => '<button type="button" data-style="' + s + '"><b>0' + (i + 1) + ' '
+          + CG_STYLE_NAME[s] + '</b><span>' + CG_STYLE_SLOGAN[s] + '</span></button>').join('')
+      + '</div><h6>依環節篩選 <small>點一下只看那一格的成分股，再點一次取消</small></h6>'
+      + '<div class="segchips" id="cgSegs"></div></div>'
+      + '<div class="cglegend" id="cgLegend"></div>'
+      + '<div class="cgzoom"><button type="button" id="cgZoomOut" title="縮小">−</button>'
+      + '<button type="button" id="cgZoomIn" title="放大">＋</button>'
+      + '<button type="button" id="cgFitBtn" title="置中（雙擊圖上空白處也可以）">◎</button></div>'
+      + '<div class="cgtip" id="cgTip" hidden></div>';
+    const stage = $('.cgstage', host), svg = $('.cgsvg', host), labs = $('.cglabels', host);
+    const tip = $('.cgtip', host);
+    const panel = ctx.panel || null;
 
-    const mobile = () => window.innerWidth <= 560;
-    const nodeW = (n) => {
-      /* 星際／泡泡是膠囊（border-radius 999px），左右兩端的圓角會吃掉字的空間 ——
-         第一版截圖上「+3.2%」的加號被切成「-3.2%」，整個看成跌的，那是會讓人做錯決定的錯。
-         所以這兩種風格的節點一律再寬 30px（它們的左右內距本來就多 12px）。*/
-      const base = (mobile() ? 112 : 128) + (style === 'space' || style === 'bubble' ? 30 : 0);
-      // 星際風格刻意把「星球」的大小差距拉大（規格書：大小差距拉大）
-      const k = style === 'space' ? (0.74 + 0.78 * (n.k - 0.86) / 0.46) : n.k;
-      return Math.max(96, Math.min(232, Math.round(base * k)));
-    };
+    const mobile = () => host.clientWidth < 560;
 
-    function buildNodes() {
-      nodes = gnodes.slice(); links = glinks.slice();
-      if (expand === 'inline' && openId && byId[openId]) {
-        const p = byId[openId];
-        const ms = ((p.g && p.g.members) || []).slice()
-          .sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, CG_MAX_SUB);
-        ms.forEach((m, i) => {
-          const sn = { id: 'stk:' + m.code, kind: 'stock', code: m.code, name: m.name, chg: m.chg_pct,
-            gid: p.id, color: p.color, layer: p.layer, seed: i + 1, k: 0.72, sub: true, parent: p };
-          nodes.push(sn); byId[sn.id] = sn;
-          links.push({ a: p.id, b: sn.id, w: 1, items: [], sub: true });
-        });
-      }
-      stage.querySelectorAll('.cgnode').forEach(e => e.remove());
+    /* ---- 尺寸：大圓點依成交占比、小點數量＝成分股檔數（規格書第二版第一節，不准用「+N」省略） */
+    function sizes() {
+      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
+      // 節點總面積不准超過畫布的三分之一，不然 390px 上會糊成一片
+      let area = 0;
+      nodes.forEach(n => { const R = 8 + 18 * n.k; area += Math.PI * Math.pow(R + 26, 2); });
+      const k = Math.min(1, Math.sqrt(cw * chh * 0.34 / Math.max(1, area)));
       nodes.forEach(n => {
-        const el = document.createElement('div');
-        el.className = 'cgnode' + (n.kind === 'stock' ? ' cgsub' : '');
-        el.dataset.nid = n.id;
-        if (n.kind === 'group') el.dataset.gid = n.id; else el.dataset.code = n.code;
-        el.style.setProperty('--c', n.color);
-        el.style.width = (n.kind === 'stock' ? Math.max(78, Math.round(nodeW(n) * 0.62)) : nodeW(n)) + 'px';
-        el.innerHTML = n.kind === 'stock' ? cgSubHtml(n) : cgNodeHtml(n);
-        stage.appendChild(el);
-        els[n.id] = el;
-        n.w = el.offsetWidth; n.h = el.offsetHeight;
+        n.R = Math.max(5, (8 + 18 * n.k) * k);
+        const cnt = n.members.length;
+        n.dotR = Math.max(1.8, (cnt > 14 ? 2.7 : 3.4) * k);
+        n.ring1 = n.R + 13 * k + n.dotR * 2;
+        n.ring2 = n.ring1 + 10 * k + n.dotR * 2;
+        n.halo = (cnt > 14 ? n.ring2 : n.ring1) + n.dotR + 2;
+        // 小點座標：黃金角鋪開，14 顆以上排兩圈（一顆都不省略）
+        n.dots = [];
+        const inner = cnt > 14 ? Math.ceil(cnt * 0.42) : cnt;
+        n.members.forEach((m, i) => {
+          const onOuter = i >= inner;
+          const idxIn = onOuter ? i - inner : i;
+          const total = onOuter ? (cnt - inner) : inner;
+          const a = (idxIn + 0.5) / Math.max(1, total) * Math.PI * 2 + n.seed * 0.7 + (onOuter ? 0.4 : 0);
+          const r = onOuter ? n.ring2 : n.ring1;
+          n.dots.push({ m: m, dx: Math.cos(a) * r, dy: Math.sin(a) * r });
+        });
       });
-      Object.keys(els).forEach(k => { if (!byId[k] || nodes.indexOf(byId[k]) < 0) delete els[k]; });
+    }
+    /* ---- 族群名（HTML，才有省略號與精準字級）。先量寬度，佈局的碰撞框才含得進去 */
+    function paintLabels() {
+      labs.innerHTML = nodes.map(n => '<span class="cglab" data-gid="' + n.id + '" style="--c:'
+        + n.color + '">' + A.fmt.esc(n.name) + '</span>').join('');
+      nodes.forEach(n => {
+        const el = labs.querySelector('.cglab[data-gid="' + n.id + '"]');
+        n.lw = el ? el.offsetWidth : 60;
+        n.lh = el ? el.offsetHeight : 16;
+        const right = Math.max(n.halo, n.R + 7 + n.lw);
+        n.w = n.halo + right; n.h = Math.max(n.halo * 2, n.lh + 4);
+        n.ox = (right - n.halo) / 2;          // 碰撞框中心相對圓心的位移
+        n.el = el;
+      });
+    }
+    function placeLabels() {
+      nodes.forEach(n => { if (!n.el) return;
+        n.el.style.left = Math.round(n.x - n.ox + n.R + 7) + 'px';
+        n.el.style.top = Math.round(n.y - n.lh / 2) + 'px'; });
     }
 
+    /* ---- 「不可留太多空白」：把節點之間的距離整體放大，讓外接盒撐到畫布的 ~90%。
+       只動座標、不動節點大小 —— 放大只會把間距拉開，不可能製造出新的重疊。
+       迭代三次是因為外接盒含節點半徑，不是線性關係，一次乘不到位。*/
+    function fill() {
+      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
+      /* ★ 兩軸**各自**放大，不是等比例。等比例的話短邊一撐滿就停手，長邊永遠留一大片空白 ——
+         實測 998×627 的畫布上，等比例只撐到 464×560（寬度 46%），左右各空掉四分之一。
+         只放大、不縮小：把節點之間的距離拉開只會讓間距變大，不可能製造出新的重疊。*/
+      for (let t = 0; t < 4; t++) {
+        const bb = bbox();
+        if (bb.w < 1 || bb.h < 1) return;
+        const kx = Math.max(1, 0.92 * cw / bb.w), ky = Math.max(1, 0.92 * chh / bb.h);
+        if (kx < 1.005 && ky < 1.005) return;
+        const cx0 = bb.x + bb.w / 2, cy0 = bb.y + bb.h / 2;
+        nodes.forEach(n => { n.x = cx0 + (n.x - cx0) * kx; n.y = cy0 + (n.y - cy0) * ky; });
+      }
+    }
+    function bbox() {
+      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+      nodes.forEach(n => {
+        x0 = Math.min(x0, n.x - n.w / 2); y0 = Math.min(y0, n.y - n.h / 2);
+        x1 = Math.max(x1, n.x + n.w / 2); y1 = Math.max(y1, n.y + n.h / 2);
+      });
+      if (!isFinite(x0)) return { x: 0, y: 0, w: 1, h: 1 };
+      return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+    }
     function relayout(keep) {
-      host.style.height = '';                 // 先回到 CSS 給的高度再量（不然會愈長愈高）
-      const cw = host.clientWidth || 800;
-      let chh = host.clientHeight || 520;
-      /* ★ 塞不下的時候**把框加高，不要把字縮小**。
-         縮放下限是 0.92（字不得小於 11px），所以「塞不下」的唯一出路本來是讓使用者自己拖 ——
-         但 800px／1100px（事件抽屜開著時容器只有 698）這種很常見的寬度上，
-         24 顆節點有三分之一在畫面外，使用者根本不知道還有東西。
-         解法：依「要多高才放得下」把框加高，上限 920px（再高就一頁看不完，
-         那正是 Andy 抱怨過兩次的「上下框度太長」）。真的還是塞不下（390px）才交給拖曳。 */
-      {
-        let a0 = 0; nodes.forEach(n => (a0 += (n.w + 18) * (n.h + 18)));
-        const need = Math.ceil(a0 * 1.3 * CG_MIN_SCALE * CG_MIN_SCALE / Math.max(1, cw - 32)) + 32;
-        const grow = Math.min(920, Math.max(chh, need));
-        if (grow > chh + 8) { host.style.height = grow + 'px'; chh = host.clientHeight || grow; }
-      }
-      /* 版面要多大 —— 這段改過三次，把踩到的坑寫下來免得又繞回去：
-         ① 一開始是「總節點面積 × 2.8，比例跟容器一樣」。半導體鏈 24 顆節點算出 1414×736，
-            容器只有 1000×589，要縮到 0.66 才看得完 —— 但縮放下限是 0.85
-            （節點字 13.5px × 0.85 ＝ 11.5px，再縮就破了「任何字不得小於 11px」），
-            於是左右兩排節點**直接被容器切掉**。
-         ② 改成 × 1.7 之後科技風格剛好放得下，但星際／泡泡的節點寬了 30px、
-            總面積大了三成，又被切掉 —— 係數是跟著節點大小走的，**寫死就一定會再破一次**。
-         ③ 現在的做法：**先把容器用滿**（版面就是「縮放 0.86 時剛好等於容器」的大小），
-            這樣縮放天生落在 0.86～1.0，不可能被切掉；只有在容器真的塞不下
-            （手機 390px）才退回依面積算，讓使用者自己拖曳與縮放。
-         packK＝1.3 是「節點之間還留得下連線」的最低密度，低於它就別硬塞。*/
-      let area = 0; nodes.forEach(n => (area += (n.w + 18) * (n.h + 18)));
-      const packK = 1.3, floorS = CG_MIN_SCALE;
-      const boxW = (cw - 32) / floorS, boxH = (chh - 32) / floorS;
-      if (boxW * boxH >= area * packK) { LW = boxW; LH = boxH; }
-      else {
-        /* 真的塞不下（手機 390px）：**只准往下長，不准往兩邊長**。
-           以前是「版面比例跟容器一樣」，390×920 的容器算出 466×1199 的版面 ——
-           左右各溢出 50px，那幾顆節點是**橫向**跑到框外面的，而手機上最不直覺的就是橫向拖。
-           改成把寬度釘在「縮放剛好等於下限」的寬度，剩下的全部往高度長：
-           橫向永遠不溢出，看不完的部分往下拖就有（垂直拖是手機最自然的手勢）。*/
-        LW = Math.max(cw, (cw - 32) / floorS);
-        LH = Math.max(chh, area * packK / LW);
-      }
-      cgLayout(nodes, links, LW, LH, { keep: !!keep });
-      /* 量一次不夠：第一次量到的高度是「字型還沒換完、換行還沒定案」時的高度，
-         比真正的矮幾 px。外接盒因此算小，fit() 給的縮放就偏大，
-         最底下那一排節點會被容器下緣切掉（第二版截圖踩到）。
-         所以重新量一次，真的變了就用真高度再跑一輪。*/
-      let moved = false;
-      nodes.forEach(n => { const el = els[n.id]; if (!el) return;
-        const h = el.offsetHeight, w = el.offsetWidth;
-        if (Math.abs(h - n.h) > 1 || Math.abs(w - n.w) > 1) { n.h = h; n.w = w; moved = true; } });
-      if (moved) cgLayout(nodes, links, LW, LH, { keep: true, iters: 90 });
-      /* 還有節點疊在一起就把版面放大一點再算一次（最多兩次）。
-         為什麼需要：膠囊造型（星際／泡泡）的節點比方塊高，24 顆在同一個框裡
-         偶爾會剩下三五組推不開 —— 純碰撞在「上下都頂到邊界」時會卡住。
-         放大版面就等於多給它空間，比調係數可靠（係數是猜的，這個是量出來才動）。*/
-      /* ⚠ 只准把**高度**放大，寬度動不得：LW 是由「縮放剛好等於下限」推回來的寬度，
-         動了它就等於允許橫向溢出（實測 800px 把 LW 乘 1.06 之後有 3 顆節點被容器切掉）。
-         高度不夠就往下長，框跟著補高（上限 920px）—— 那是這張圖唯一可以讓步的方向。*/
-      for (let tryN = 0; tryN < 3 && cgOverlaps(nodes) > 0; tryN++) {
-        LH *= 1.16;
+      host.style.height = '';                     // 先回到 CSS 的高度再量（不然會愈長愈高）
+      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
+      sizes(); paintLabels();
+      LW = cw; LH = chh;
+      cgLayout(nodes, links, LW, LH, { keep: !!keep, pin: keep && centerId ? byId[centerId] : null });
+      /* 還有節點疊在一起就把**版面高度**放大再算一次（寬度動不得 —— 動了就會橫向溢出，
+         而橫向拖是最不直覺的手勢）。*/
+      for (let t = 0; t < 3 && cgOverlaps(nodes) > 0; t++) {
+        LH *= 1.12;
         cgLayout(nodes, links, LW, LH, { keep: true, iters: 120 });
       }
-      /* 版面被放大之後，框也要跟著補高 —— 不然剛剛推開的節點是被推到框外面去，
-         看起來就是「上下各被切掉一排」（實測星際／泡泡各溢出 32px）。
-         上限仍然是 920px：那是「一頁看得完」的天花板。*/
+      /* 版面被放高之後，**框也要跟著補高** —— 不然多出來的那一截是在框外面，
+         等於下面一整排節點被裁掉（實測 800px 有 29 顆看不到）。
+         上限 1000px：再高就真的變成「上下框度太長」。*/
       {
         const bb0 = bbox();
-        const needH = Math.ceil(bb0.h * CG_MIN_SCALE) + 34;
-        if (needH > host.clientHeight + 8) host.style.height = Math.min(920, needH) + 'px';
+        const need = Math.ceil(bb0.h) + 26;
+        if (need > host.clientHeight + 8) host.style.height = Math.min(1000, need) + 'px';
       }
-      place(); fit();
+      fill(); paint(); fit();
     }
 
-    function place() {
-      nodes.forEach(n => { const el = els[n.id]; if (!el) return;
-        el.style.left = Math.round(n.x - n.w / 2) + 'px';
-        el.style.top = Math.round(n.y - n.h / 2) + 'px'; });
-      drawEdges();
+    /* ---- 畫。整張 SVG 重畫（24 顆大點＋約 150 顆小點＋70 條邊，實測 2ms 以內），
+       所以拖曳時直接重畫就好，不必為了省幾個 DOM 操作寫一套增量更新。*/
+    function edgeOn(l) {
+      if (!view.rel[l.rel]) return false;
+      if (!selId || selKind !== 'group') return true;
+      if (view.hop >= 2) return hop2.has(l.a) && hop2.has(l.b);
+      return l.a === selId || l.b === selId;
     }
+    let hop2 = new Set();
+    function calcHop2() {
+      hop2 = new Set();
+      if (!selId) return;
+      hop2.add(selId);
+      const one = [];
+      links.forEach(l => { if (l.a === selId) one.push(l.b); else if (l.b === selId) one.push(l.a); });
+      one.forEach(x => hop2.add(x));
+      links.forEach(l => { if (one.indexOf(l.a) >= 0) hop2.add(l.b); if (one.indexOf(l.b) >= 0) hop2.add(l.a); });
+    }
+    const matches = (n) => !query || n.name.toLowerCase().indexOf(query) >= 0
+      || n.members.some(m => (m.name || '').toLowerCase().indexOf(query) >= 0 || String(m.code).indexOf(query) >= 0);
 
-    function drawEdges() {
-      let minX = 0, minY = 0, maxX = LW, maxY = LH;
-      nodes.forEach(n => { minX = Math.min(minX, n.x - n.w); minY = Math.min(minY, n.y - n.h);
-        maxX = Math.max(maxX, n.x + n.w); maxY = Math.max(maxY, n.y + n.h); });
-      svg.setAttribute('width', Math.round(maxX - minX));
-      svg.setAttribute('height', Math.round(maxY - minY));
-      svg.style.left = Math.round(minX) + 'px'; svg.style.top = Math.round(minY) + 'px';
-      svg.setAttribute('viewBox', minX + ' ' + minY + ' ' + (maxX - minX) + ' ' + (maxY - minY));
-      let s = '';
+    function paint() {
+      const bb = bbox();
+      const pad = 40;
+      const vx = bb.x - pad, vy = bb.y - pad, vw = bb.w + pad * 2, vh = bb.h + pad * 2;
+      svg.setAttribute('viewBox', vx.toFixed(1) + ' ' + vy.toFixed(1) + ' ' + vw.toFixed(1) + ' ' + vh.toFixed(1));
+      svg.setAttribute('width', Math.round(vw)); svg.setAttribute('height', Math.round(vh));
+      svg.style.left = Math.round(vx) + 'px'; svg.style.top = Math.round(vy) + 'px';
+      calcHop2();
+      let s = cgDefs(style) + cgBackdrop(style, vx, vy, vw, vh);
+      // 邊
+      s += '<g class="celayer">';
       links.forEach(l => {
-        const a = byId[l.a], b = byId[l.b]; if (!a || !b || a.x == null || b.x == null) return;
+        const a = byId[l.a], b = byId[l.b]; if (!a || !b || a.x == null) return;
+        if (!edgeOn(l)) return;
         const p = cgPath(a, b, style);
-        const w = l.sub ? 1 : Math.max(1, Math.min(4.2, 0.9 + l.w * 0.35));
-        s += '<path class="edge' + (l.weak ? ' weak' : '') + (l.sub ? ' weak' : '')
-          + '" data-a="' + l.a + '" data-b="' + l.b + '" style="--w:' + w.toFixed(2) + '"'
-          + ' d="' + p.d + '"><title>' + A.fmt.esc(cgEdgeTip(l, a, b)) + '</title></path>';
-        // 端點／焊點：科技與電路才有（--cg-end-op 在其他風格是 0，所以畫了也看不到，但不必多畫）
-        if (style === 'tech') s += '<circle cx="' + p.p1.x.toFixed(1) + '" cy="' + p.p1.y.toFixed(1) + '" r="2.6"/>'
-          + '<circle cx="' + p.p2.x.toFixed(1) + '" cy="' + p.p2.y.toFixed(1) + '" r="2.6"/>';
-        if (style === 'circuit') s += '<circle cx="' + p.mid.x.toFixed(1) + '" cy="' + p.mid.y.toFixed(1) + '" r="3"/>';
+        const w = Math.max(1, Math.min(3.4, 0.8 + l.w * 0.3));
+        const hi = !!selId && selKind === 'group' && (l.a === selId || l.b === selId);
+        /* class 同時掛 `edge`：資訊欄裡那顆「在圖上 highlight」（wireRelBlock）是既有程式，
+           它找的是 `.edge`。多掛一個 class 比改那支共用函式安全 —— 個股頁的 #chainMap 也在用它。*/
+        s += '<path class="cge edge cge-' + l.rel + (hi ? ' hi' : '') + '" data-a="' + l.a + '" data-b="' + l.b
+          + '" data-rel="' + l.rel + '" style="--w:' + w.toFixed(2) + '" d="' + p.d + '"'
+          + (hi ? ' marker-end="url(#cgArrow)"' : '') + '><title>' + A.fmt.esc(cgEdgeTip(l, a, b)) + '</title></path>';
+        if (style === 'circuit') s += '<circle class="cgvia" cx="' + p.mid.x.toFixed(1) + '" cy="' + p.mid.y.toFixed(1) + '" r="2.6"/>';
       });
+      s += '</g>';
+      // 小點（個股）。數量＝成分股檔數，一顆都不省略
+      s += '<g class="cdots">';
+      nodes.forEach(n => {
+        const dim = !matches(n);
+        n.dots.forEach(d => {
+          const cxp = (n.x - n.ox + d.dx).toFixed(1), cyp = (n.y + d.dy).toFixed(1);
+          s += '<circle class="cgdot' + (dim ? ' dim' : '') + (selCode === d.m.code ? ' sel' : '')
+            + (hoverId === n.id ? ' up' : '') + '" data-code="' + d.m.code + '" data-gid="' + n.id
+            + '" cx="' + cxp + '" cy="' + cyp + '" r="' + (hoverId === n.id ? n.dotR * 1.5 : n.dotR).toFixed(2)
+            + '" style="--c:' + n.color + '"><title>' + A.fmt.esc(d.m.name + ' ' + d.m.code + '　'
+            + A.fmt.pct(d.m.chg_pct)) + '</title></circle>';
+        });
+      });
+      s += '</g>';
+      // 大圓點（族群）
+      s += '<g class="cnodes">';
+      nodes.forEach(n => {
+        const cxp = n.x - n.ox, cyp = n.y;
+        const on = selId === n.id && selKind === 'group';
+        s += '<g class="cgnode' + (on ? ' sel' : '') + (matches(n) ? '' : ' dim') + '" data-gid="' + n.id
+          + '" style="--c:' + n.color + '" transform="translate(' + cxp.toFixed(1) + ',' + cyp.toFixed(1) + ')">'
+          + cgNodeShape(n, style, on)
+          + '<title>' + A.fmt.esc(n.name + '　' + A.fmt.pct(n.chg) + '　占 ' + A.fmt.n(n.share, 1) + '%　' + n.n + ' 檔') + '</title></g>';
+      });
+      s += '</g>';
       svg.innerHTML = s;
+      placeLabels();
+      nodes.forEach(n => { if (n.el) {
+        n.el.classList.toggle('sel', selId === n.id && selKind === 'group');
+        n.el.classList.toggle('dim', !matches(n));
+      } });
+      paintLegend();
     }
     function cgEdgeTip(l, a, b) {
-      if (l.sub) return a.name + ' 的成分股 ' + b.name;
-      if (l.weak) return a.name + ' ↔ ' + b.name + '：' + (l.why || '同環節');
+      if (l.rel === 'peer') return a.name + ' ↔ ' + b.name + '：' + (l.why || '同環節');
       const items = l.items.slice(0, 3).map(it => (it.from ? it.from.name : '') + ' → ' + (it.to ? it.to.name : '')
         + '：' + relLabel(it.e) + (it.e.confidence ? '（' + (CONF_TEXT[it.e.confidence] || it.e.confidence) + '）' : ''));
       return a.name + ' → ' + b.name + '（依存度 ' + l.w.toFixed(0) + '）\n' + items.join('\n');
+    }
+    function paintLegend() {
+      const lg = $('.cglegend', host); if (!lg) return;
+      const used = [];
+      nodes.forEach(n => { if (used.indexOf(n.cat) < 0) used.push(n.cat); });
+      // 照參考圖左下角的順序排：設計 → 材料設備 → 製造 → 封裝測試 → 記憶體（由上游到下游）
+      const order = ['design', 'matq', 'mfg', 'pkg', 'mem'];
+      used.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      lg.innerHTML = used.map(c => '<span class="cglg"><i style="background:' + c.color + '"></i>'
+        + A.fmt.esc(c.name) + '</span>').join('');
     }
 
     function apply() {
       stage.style.transform = 'translate(' + tx.toFixed(1) + 'px,' + ty.toFixed(1) + 'px) scale(' + scale.toFixed(3) + ')';
       if (ctx.onZoom) ctx.onZoom(scale);
     }
-    function bbox() {
-      let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-      nodes.forEach(n => { x0 = Math.min(x0, n.x - n.w / 2); y0 = Math.min(y0, n.y - n.h / 2);
-        x1 = Math.max(x1, n.x + n.w / 2); y1 = Math.max(y1, n.y + n.h / 2); });
-      if (!isFinite(x0)) return { x: 0, y: 0, w: 1, h: 1 };
-      return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
-    }
-    /* 置中：把外接盒的中心對到容器中心。
-       ★ 縮放下限 0.85 是硬的 —— 節點的字是 13.5px，×0.85 ＝ 11.5px，
-         再縮下去就破了「手機任何字不得小於 11px」。塞不下就讓使用者拖曳／縮放，
-         不准用「全部縮到看不清楚」換一個假的「一眼看完」。*/
     function fit() {
-      const cw = host.clientWidth || 800, chh = host.clientHeight || 520, PAD = 16;
+      const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       const bb = bbox();
-      const s = Math.min((cw - PAD * 2) / Math.max(1, bb.w), (chh - PAD * 2) / Math.max(1, bb.h));
-      scale = Math.max(CG_MIN_SCALE, Math.min(1, s));
-      tx = cw / 2 - (bb.x + bb.w / 2) * scale;
-      ty = chh / 2 - (bb.y + bb.h / 2) * scale;
-      apply(); placeNote();
+      scale = 1;
+      tx = cw / 2 - (bb.x + bb.w / 2); ty = chh / 2 - (bb.y + bb.h / 2);
+      apply(); placeTip();
     }
-
-    /* ---- 選取與高亮 ---- */
-    function paintSel(o) {
-      const seg = (o && o.seg) || null, gid = (o && o.group) || null;
-      selId = gid;
-      nodes.forEach(n => {
-        const el = els[n.id]; if (!el) return;
-        const mine = n.kind === 'stock' ? n.gid : n.id;
-        const inSeg = !seg || (byId[mine] && (byId[mine].segs || []).indexOf(seg) >= 0);
-        el.classList.toggle('sel', !!gid && n.kind === 'group' && n.id === gid);
-        el.classList.toggle('dim', !!seg && !inSeg);
-      });
-      paintNote();
-    }
-    function paintNote() {
-      const n = selId ? byId[selId] : (openId ? byId[openId] : null);
-      if (!n) { note.hidden = true; note.innerHTML = ''; return; }
-      note.hidden = false;
-      note.innerHTML = cgNoteHtml(n, links, byId, chainId);
-      const x = $('.x', note); if (x) x.onclick = () => { note.hidden = true; };
-      placeNote();
-    }
-    /* 小卡**不跟著縮放**（它是要讀的字，縮到 60% 就等於沒寫），而且靠在
-       「選起來那顆節點的另一邊」的框緣：節點在左半邊就貼右緣，在右半邊就貼左緣。
-       ★ 為什麼不是「緊貼節點旁邊」（第一版就是那樣）：展開之後個股子節點是**圍著母節點**長的，
-         緊貼母節點的小卡一定會壓到其中一兩顆 —— 驗收裡點那幾顆子節點直接逾時，
-         真人也一樣點不到。靠框緣放，離那一圈子節點最遠，而且位置固定、好找。
-       垂直方向仍然對齊節點，所以「這張卡在講哪一顆」看得出來。*/
-    function placeNote() {
-      if (note.hidden) return;
-      const n = selId ? byId[selId] : (openId ? byId[openId] : null); if (!n || n.x == null) return;
+    function zoomBy(k) {
       const cw = host.clientWidth, chh = host.clientHeight;
-      const sx = n.x * scale + tx, sy = n.y * scale + ty;
-      const nw = note.offsetWidth || 300, nh = note.offsetHeight || 160;
-      const L = (sx < cw / 2) ? (cw - nw - 8) : 8;
-      note.style.left = Math.max(8, Math.min(Math.max(8, cw - nw - 8), L)) + 'px';
-      note.style.top = Math.max(8, Math.min(Math.max(8, chh - nh - 8), sy - nh / 2)) + 'px';
-    }
-    function hover(nid) {
-      /* 面板裡那顆「在圖上 highlight」按下去之後，圖上會被釘住一組高亮（.cghold）。
-         這裡不讓滑鼠經過把它洗掉 —— 不然使用者按完 highlight、手一動，線就全部恢復，
-         看起來像按鈕壞了。（第一次驗收就是量到 before 已經有 hi=1、dim=30 的污染狀態。）*/
-      if (host.classList.contains('cghold')) return;
-      $$('.cgedges path', host).forEach(p => {
-        const on = !nid || p.dataset.a === nid || p.dataset.b === nid;
-        p.classList.toggle('hi', !!nid && on);
-        p.classList.toggle('dim', !!nid && !on);
-      });
+      const ns = Math.max(0.45, Math.min(2.6, scale * k));
+      tx = cw / 2 - (cw / 2 - tx) * (ns / scale); ty = chh / 2 - (chh / 2 - ty) * (ns / scale);
+      scale = ns; apply(); placeTip();
     }
 
-    /* ---- 互動：拖曳節點、拖背景平移、滾輪縮放、雙擊置中、點背景取消 ---- */
-    let drag = null, swallowClick = false, lastPointerAt = 0;
-    /* 除了滑鼠的 pointer 流程，**純粹的 `click` 事件也要能選到節點**。
-       兩個真實的理由，不是為了測試方便：
-         ① 鍵盤：節點裡的族群名是 `<a>`，Tab 過去按 Enter 只會發 click，不會發 pointerup。
-         ② 程式觸發：驗收腳本與別的模組用 `el.click()` 叫得動它。
-       用時間戳擋重複 —— 滑鼠點一下會先發 pointerup（那裡已經選過了）再發 click，
-       兩邊都選就等於連點兩次＝選了又取消，畫面看起來完全沒反應。*/
+    /* ---- hover 族群大點才浮出個股資訊（Andy：hover 是唯一的展開條件） */
+    function showTip(gid) {
+      const n = byId[gid]; if (!n) { tip.hidden = true; return; }
+      hoverId = gid;
+      tip.hidden = false;
+      tip.innerHTML = '<div class="th"><i style="--c:' + n.color + '"></i><b>' + A.fmt.esc(n.name) + '</b>'
+        + '<span class="' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</span>'
+        + '<span class="muted">占 ' + A.fmt.n(n.share, 1) + '%</span></div>'
+        + '<div class="tl">' + n.members.map(m => '<span class="ti" data-code="' + m.code + '">'
+            + '<span class="nm">' + A.fmt.esc(m.name) + '</span><span class="code">' + m.code + '</span>'
+            + '<em class="' + A.fmt.cls(m.chg_pct) + '">' + A.fmt.pct(m.chg_pct) + '</em>'
+            + '<em class="sh">' + (m.turnover && n.g.turnover ? A.fmt.n(m.turnover / n.g.turnover * 100, 1) + '%' : '—') + '</em>'
+            + '</span>').join('') + '</div>'
+        + '<div class="tf">點小點看個股詳情　占比＝占這個族群的成交值</div>';
+      placeTip(); paint();
+    }
+    function hideTip() { if (tip.hidden) return; tip.hidden = true; hoverId = null; paint(); }
+    function placeTip() {
+      if (tip.hidden || !hoverId) return;
+      const n = byId[hoverId]; if (!n) return;
+      const cw = host.clientWidth, chh = host.clientHeight;
+      const sx = (n.x - n.ox) * scale + tx, sy = n.y * scale + ty;
+      const tw = tip.offsetWidth || 230, th = tip.offsetHeight || 140;
+      /* 靠「節點的另一半邊」的框緣，不是緊貼節點旁邊。
+         緊貼的版本在節點靠邊時會被夾回來壓到節點本身 —— 那顆節點就**點不下去了**
+         （Playwright 直接回「.cgtip subtree intercepts pointer events」，真人也一樣點到小卡）。
+         靠框緣放：離那顆節點最遠，位置固定、好找，而且永遠不會擋住它。*/
+      const L = (sx < cw / 2) ? (cw - tw - 8) : 8;
+      tip.style.left = Math.max(8, Math.min(Math.max(8, cw - tw - 8), L)) + 'px';
+      tip.style.top = Math.max(8, Math.min(Math.max(8, chh - th - 8), sy - th / 2)) + 'px';
+    }
+
+    /* ---- 右側資訊欄 */
+    function paintPanel() {
+      if (!panel) return;
+      if (selKind === 'group' && byId[selId]) {
+        panel.hidden = false;
+        panel.innerHTML = cgPanelGroup(byId[selId], links, byId, chainId, chainName, view);
+        wirePanel();
+      } else if (selKind === 'stock' && selCode) {
+        const n = byId[selId] || null;
+        const m = n ? n.members.filter(x => x.code === selCode)[0] : null;
+        if (!m) { panel.hidden = true; panel.innerHTML = ''; return; }
+        panel.hidden = false;
+        panel.innerHTML = cgPanelStock({ ...m, gid: n.id, color: n.color }, sc, chainId, chainName);
+        const co = ((sc && sc.companies) || []).filter(c => c.tw_code === m.code)[0];
+        panel.dataset.co = co ? co.id : ''; panel.dataset.code = m.code; panel.dataset.gid = n.id;
+        wirePanel();
+        wireRelBlock(panel, sc, host);      // 「在圖上 highlight」那顆鈕（既有行為，一個字沒改）
+      } else { panel.hidden = true; panel.innerHTML = ''; }
+    }
+    function wirePanel() {
+      const x = $('#cgPanelX', panel);
+      if (x) x.onclick = () => { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onGroup) ctx.onGroup(null); };
+      $$('#cgRange button', panel).forEach(b => b.onclick = () => {
+        view.hop = +b.dataset.hop; paint(); paintPanel();
+      });
+      $$('#cgRels input', panel).forEach(c => c.onchange = () => {
+        view.rel[c.dataset.rel] = c.checked; paint();
+      });
+      const ctr = $('#cgCenter', panel);
+      if (ctr) ctr.onclick = () => {
+        centerId = selId;
+        const n = byId[centerId];
+        if (n) { n.x = LW / 2; n.y = LH / 2; }
+        cgLayout(nodes, links, LW, LH, { keep: true, iters: 300, pin: n });
+        fill(); paint(); fit();
+      };
+      $$('#cgSide .cgp-co a.lk', panel).forEach(a => a.addEventListener('click', () => { /* 走全站路由 */ }));
+    }
+
+    /* ---- 互動：拖曳節點、拖背景平移、滾輪縮放、雙擊置中、點背景取消 */
+    let drag = null, swallow = false, lastPointerAt = 0;
+    const gidAt = (t) => { const g = t.closest ? t.closest('.cgnode') : null; return g ? g.dataset.gid : null; };
+    const dotAt = (t) => (t && t.classList && t.classList.contains('cgdot')) ? t : null;
+    function pickGroup(gid) {
+      if (selKind === 'group' && selId === gid) { selKind = selId = selCode = null; if (ctx.onGroup) ctx.onGroup(null); }
+      else { selKind = 'group'; selId = gid; selCode = null; if (ctx.onGroup) ctx.onGroup(gid); }
+      paint(); paintPanel();
+    }
+    function pickStock(gid, code) {
+      selKind = 'stock'; selId = gid; selCode = code;
+      paint(); paintPanel();
+      if (ctx.onStock) ctx.onStock(code, gid);
+    }
     host.addEventListener('click', (e) => {
-      if (swallowClick) { swallowClick = false; e.preventDefault(); e.stopPropagation(); return; }
-      if (Date.now() - lastPointerAt < 400) return;        // 剛剛已經用滑鼠處理過這一下了
-      if (e.target.closest('a.lk') || e.target.closest('.cgnote')) return;
-      const nd = e.target.closest('.cgnode');
-      if (nd) { pick(nd.dataset.nid); return; }
-      openId = null; buildNodes(); relayout(true);
-      if (ctx.onBg) ctx.onBg();
-      if (ctx.onExpand) ctx.onExpand(null, expand);
+      if (swallow) { swallow = false; e.preventDefault(); e.stopPropagation(); return; }
+      if (Date.now() - lastPointerAt < 400) return;      // 滑鼠那一路已經處理過了
+      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      const dot = dotAt(e.target);
+      if (dot) { pickStock(dot.dataset.gid, dot.dataset.code); return; }
+      const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
+      if (gid) { pickGroup(gid); return; }
+      if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     }, true);
     host.addEventListener('pointerdown', (e) => {
-      if (e.target.closest('.cgnote')) return;
-      const nd = e.target.closest('.cgnode');
-      drag = { id: nd ? nd.dataset.nid : null, x0: e.clientX, y0: e.clientY, tx0: tx, ty0: ty, moved: false,
-               // 點在連結上就讓連結自己走（app.js 有全站的 a.lk 路由），這一下不算選取也不算拖曳
-               onLink: !!e.target.closest('a.lk') };
-      if (!nd) host.classList.add('panning');
-      host.setPointerCapture(e.pointerId);
+      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
+      const dot0 = dotAt(e.target);
+      drag = { gid: gid, code: dot0 ? dot0.dataset.code : null, dotGid: dot0 ? dot0.dataset.gid : null,
+               x0: e.clientX, y0: e.clientY, tx0: tx, ty0: ty, moved: false };
+      if (!gid) host.classList.add('panning');
+      try { host.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
     });
     host.addEventListener('pointermove', (e) => {
       if (!drag) return;
       const dx = e.clientX - drag.x0, dy = e.clientY - drag.y0;
       if (!drag.moved && Math.abs(dx) + Math.abs(dy) < 4) return;
       drag.moved = true;
-      if (drag.onLink) drag.onLink = false;   // 從連結上拖出去＝這一下是拖曳，不是點連結
-      if (drag.id) {
-        const n = byId[drag.id]; if (!n) return;
+      if (drag.gid) {
+        const n = byId[drag.gid]; if (!n) return;
         if (drag.nx0 == null) { drag.nx0 = n.x; drag.ny0 = n.y; }
         n.x = drag.nx0 + dx / scale; n.y = drag.ny0 + dy / scale;
-        const el = els[n.id];
-        el.style.left = Math.round(n.x - n.w / 2) + 'px'; el.style.top = Math.round(n.y - n.h / 2) + 'px';
-        drawEdges(); placeNote();
-      } else { tx = drag.tx0 + dx; ty = drag.ty0 + dy; apply(); placeNote(); }
+        paint(); placeTip();
+      } else { tx = drag.tx0 + dx; ty = drag.ty0 + dy; apply(); placeTip(); }
     });
     host.addEventListener('pointerup', (e) => {
       const d = drag; drag = null; host.classList.remove('panning');
       lastPointerAt = Date.now();
       try { host.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
       if (!d) return;
-      if (d.moved) {
-        // 放開之後把重疊推開，被拖的那一顆釘住不動（不然它會自己彈回去，等於拖不動）
-        if (d.id && byId[d.id]) cgLayout(nodes, links, LW, LH, { keep: true, iters: 60, pin: byId[d.id] });
-        place(); placeNote();
-        /* 從連結上開始拖的話，瀏覽器在 pointerup 之後還是會補一個 click ——
-           不吞掉的話「拖完節點就跳去族群頁」。只吞這一下。*/
-        swallowClick = true;
-        return;
-      }
-      /* ⚠ 這裡**不可以**用 `e.target.closest('.cgnode')` 判斷點到誰。
-         pointerdown 那邊呼叫了 `setPointerCapture(host)`，之後所有 pointer 事件都會被
-         **重新指向 host**，所以 pointerup 的 e.target 永遠是 `#cgGraph` ——
-         點在節點上會被判成「點背景」，節點根本選不起來（第一次自測就整段沒反應）。
-         正解是用 pointerdown 當下記下來的那個 id。*/
-      if (d.onLink) return;
-      if (d.id) { pick(d.id); return; }
-      openId = null; buildNodes(); relayout(true);
-      if (ctx.onBg) ctx.onBg();
-      if (ctx.onExpand) ctx.onExpand(null, expand);
+      if (d.moved) { swallow = true; return; }
+      if (d.code) { pickStock(d.dotGid || d.gid, d.code); return; }
+      if (d.gid) { pickGroup(d.gid); return; }
+      if (e.target.closest('.cgtop, .cgpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     });
     host.addEventListener('wheel', (e) => {
       e.preventDefault();
       const r = host.getBoundingClientRect();
       const px = e.clientX - r.left, py = e.clientY - r.top;
       const k = Math.exp(-e.deltaY * 0.0016);
-      const ns = Math.max(0.4, Math.min(2.6, scale * k));
+      const ns = Math.max(0.45, Math.min(2.6, scale * k));
       tx = px - (px - tx) * (ns / scale); ty = py - (py - ty) * (ns / scale);
-      scale = ns; apply(); placeNote();
+      scale = ns; apply(); placeTip();
     }, { passive: false });
-    host.addEventListener('dblclick', (e) => { if (e.target.closest('a.lk')) return; fit(); });
-    host.addEventListener('mouseover', (e) => { const nd = e.target.closest('.cgnode'); if (nd) hover(nd.dataset.nid); });
-    host.addEventListener('mouseout', (e) => { if (!e.relatedTarget || !host.contains(e.relatedTarget)) hover(null); });
+    host.addEventListener('dblclick', () => fit());
+    host.addEventListener('mouseover', (e) => {
+      const gid = gidAt(e.target) || (dotAt(e.target) ? dotAt(e.target).dataset.gid : null)
+        || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
+      if (gid && gid !== hoverId) showTip(gid);
+    });
+    host.addEventListener('mouseout', (e) => {
+      if (!e.relatedTarget || !host.contains(e.relatedTarget)) { hideTip(); return; }
+      if (e.relatedTarget.closest && e.relatedTarget.closest('.cgtip')) return;
+      const gid = gidAt(e.relatedTarget) || (dotAt(e.relatedTarget) ? dotAt(e.relatedTarget).dataset.gid : null)
+        || (e.relatedTarget.closest('.cglab') ? e.relatedTarget.closest('.cglab').dataset.gid : null);
+      if (!gid) hideTip();
+    });
+    // 小卡不吃滑鼠（見 index.html 的 .cgtip 註解），所以不掛點擊 —— 要點個股請點圖上的小點。
 
-    /* 點節點 ＝ 選這個族群（成分股真的被篩、剖析圖真的換張）＋ 展開成個股。
-       這正是原本「族群卡片」那顆 tile 在做的事 —— 功能沒有消失，只是搬到圖上。*/
-    function pick(nid) {
-      const n = byId[nid]; if (!n) return;
-      // 個股子節點：開「產業關係」面板（跟舊版點關聯圖上的公司完全同一條路，不跳頁）
-      if (n.kind === 'stock') { selId = nid; paintNote(); if (ctx.onStock) ctx.onStock(n.code); return; }
-      const same = openId === nid;
-      openId = same ? null : nid;
-      if (expand === 'inline') { buildNodes(); relayout(true); }
-      selId = openId;
-      if (ctx.onGroup) ctx.onGroup(same ? null : nid);
-      if (ctx.onExpand) ctx.onExpand(openId ? byId[openId] : null, expand);
-      paintNote();
+    /* ---- 疊在圖上的那幾顆控制項 */
+    const sx = $('#cgScopeX', host);
+    if (sx) sx.onclick = () => { location.hash = '#industry'; };
+    const fbtn = $('#cgFilterBtn', host), pop = $('#cgFilterPop', host);
+    if (fbtn) fbtn.onclick = () => { pop.hidden = !pop.hidden; fbtn.classList.toggle('on', !pop.hidden); };
+    $$('#cgStyles button', host).forEach(b => b.onclick = () => {
+      setStyle(b.dataset.style); cgSave('tw.cgStyle', b.dataset.style);
+    });
+    const rbtn = $('#cgResetBtn', host);
+    if (rbtn) rbtn.onclick = () => {
+      centerId = null; view.hop = 1; CG_RELS.forEach(r => (view.rel[r] = true));
+      query = ''; const sf = $('#cgSearch', host); if (sf) sf.value = '';
+      selKind = selId = selCode = null;
+      relayout(false); paintPanel();
+    };
+    const zi = $('#cgZoomIn', host), zo = $('#cgZoomOut', host), fb = $('#cgFitBtn', host);
+    if (zi) zi.onclick = () => zoomBy(1.25);
+    if (zo) zo.onclick = () => zoomBy(1 / 1.25);
+    if (fb) fb.onclick = () => fit();
+    const sfi = $('#cgSearch', host);
+    if (sfi) sfi.oninput = () => { query = (sfi.value || '').trim().toLowerCase(); paint(); };
+
+    function setStyle(s) {
+      if (CG_STYLES.indexOf(s) < 0) return;
+      style = s; host.dataset.cgstyle = s;
+      $$('#cgStyles button', host).forEach(b => b.classList.toggle('on', b.dataset.style === s));
+      relayout(true);
     }
+    $$('#cgStyles button', host).forEach(b => b.classList.toggle('on', b.dataset.style === style));
 
-    buildNodes(); relayout(false);
+    relayout(false);
     /* 依容器寬度重算：ResizeObserver 而不是 window.resize ——
-       產業鏈頁的 main 旁邊有 360px 的事件抽屜，開關抽屜視窗寬沒變、容器寬差 360px
-       （DECISIONS #238 的版面補充就是踩到這件事）。*/
-    let ro = null, rw = 0;
+       產業鏈頁的 main 旁邊有 360px 的事件抽屜，開關抽屜視窗寬沒變、容器寬差 360px。*/
+    let ro = null, rw = 0, rh = 0;
     try {
+      /* ⚠ 只看**寬度**。高度是 relayout 自己改的（塞不下就補高），
+         把高度也算進來的話會變成「改高度 → RO 觸發 → 再改高度」的無窮迴圈。*/
       ro = new ResizeObserver(() => {
         const w = host.clientWidth;
-        if (!w || Math.abs(w - rw) < 24) return;     // 只有真的變寬變窄才重算，不然捲動也會觸發
-        rw = w; relayout(true);
+        if (!w || Math.abs(w - rw) < 24) return;
+        rw = w; relayout(false);
       });
-      ro.observe(host); rw = host.clientWidth;
+      ro.observe(host); rw = host.clientWidth; rh = host.clientHeight;
     } catch (e) { /* 舊瀏覽器沒有就算了，反正還有「置中」鈕 */ }
 
     return {
       style: () => style,
-      expand: () => expand,
-      setStyle(s) { if (CG_STYLES.indexOf(s) < 0) return; style = s; host.dataset.cgstyle = s;
-        buildNodes(); relayout(false); },
-      setExpand(v) { if (CG_EXPANDS.indexOf(v) < 0) return; expand = v; buildNodes(); relayout(true); paintNote();
-        if (ctx.onExpand) ctx.onExpand(openId ? byId[openId] : null, expand); },
-      openGroup: () => openId,
-      sync(o) { paintSel(o); },
+      setStyle: setStyle,
+      segHost: () => $('#cgSegs', host),
+      sync(o) {
+        const seg = (o && o.seg) || null;
+        nodes.forEach(n => { n.dimSeg = !!seg && n.segs.indexOf(seg) < 0; });
+        $$('.cgnode', host).forEach(g => { const n = byId[g.dataset.gid];
+          g.classList.toggle('dim', !!n && (n.dimSeg || !matches(n))); });
+        $$('.cglab', host).forEach(g => { const n = byId[g.dataset.gid];
+          g.classList.toggle('dim', !!n && (n.dimSeg || !matches(n))); });
+        $$('.cgdot', host).forEach(c => { const n = byId[c.dataset.gid];
+          c.classList.toggle('dim', !!n && (n.dimSeg || !matches(n))); });
+      },
       fit: fit,
       dispose() { try { if (ro) ro.disconnect(); } catch (e) { /* 忽略 */ } },
     };
+  }
+
+  /* ---- 四種風格的 SVG 素材（defs 與背景紋路）。
+     只換視覺，佈局與互動是同一份 —— 規格書第二版第四節。*/
+  function cgDefs(style) {
+    let d = '<defs><marker id="cgArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7"'
+      + ' markerUnits="userSpaceOnUse" orient="auto"><path d="M0.5,0.8 L7.5,4 L0.5,7.2 z" fill="context-stroke"/></marker>';
+    if (style === 'tech') {
+      d += '<pattern id="cgGrid" width="34" height="34" patternUnits="userSpaceOnUse">'
+        + '<path d="M34,0 L0,0 0,34" fill="none" stroke="var(--cg-grid)" stroke-width="1"/></pattern>';
+    }
+    if (style === 'circuit') {
+      d += '<pattern id="cgPcb" width="64" height="64" patternUnits="userSpaceOnUse">'
+        + '<path d="M0,16 H22 L32,26 H64 M0,48 H14 L24,38 M40,64 V44 L52,32 H64" fill="none"'
+        + ' stroke="var(--cg-grid)" stroke-width="1.2"/>'
+        + '<circle cx="22" cy="16" r="2" fill="var(--cg-grid)"/><circle cx="24" cy="38" r="2" fill="var(--cg-grid)"/>'
+        + '</pattern>';
+    }
+    return d + '</defs>';
+  }
+  function cgBackdrop(style, vx, vy, vw, vh) {
+    if (style === 'tech') return '<rect class="cgbg" x="' + vx + '" y="' + vy + '" width="' + vw + '" height="' + vh + '" fill="url(#cgGrid)"/>';
+    if (style === 'circuit') return '<rect class="cgbg" x="' + vx + '" y="' + vy + '" width="' + vw + '" height="' + vh + '" fill="url(#cgPcb)"/>';
+    if (style === 'space') {
+      // 星點：位置用等差亂數（seed 固定），每次畫出來一樣，不會閃
+      let s = '<g class="cgstars">';
+      let r = 1234.5678;
+      for (let i = 0; i < 120; i++) {
+        r = (r * 9301 + 49297) % 233280;
+        const a = r / 233280;
+        r = (r * 9301 + 49297) % 233280;
+        const b = r / 233280;
+        r = (r * 9301 + 49297) % 233280;
+        s += '<circle cx="' + (vx + a * vw).toFixed(1) + '" cy="' + (vy + b * vh).toFixed(1)
+          + '" r="' + (0.6 + (r / 233280) * 1.3).toFixed(2) + '"/>';
+      }
+      return s + '</g>';
+    }
+    return '';
+  }
+  /* 大圓點的造型：電子電路是帶接腳的方形晶片，其餘是圓（星際多一圈光暈）。 */
+  function cgNodeShape(n, style, on) {
+    const R = n.R;
+    /* 每一種造型都先放一顆看不見的命中圈：
+       ① 小圓點（占比小的族群只有 5px）用滑鼠很難點到，圈大一點好點；
+       ② 四種風格的造型不一樣（電子電路是方形晶片，沒有 .cgball），
+          有這一顆之後「怎麼點一顆族群」永遠是同一個選擇器，驗收與腳本不必分風格寫。
+       fill 要用 transparent 不可以用 none —— none 不吃滑鼠事件。
+       ⚠ 它一定要排在**最後**（畫在最上面）。排在前面的話上層的圓會先吃到滑鼠，
+         Playwright 會直接拒絕點擊（「.cgball intercepts pointer events」）—— 真人也一樣點在圓上而不是命中圈。*/
+    const hit = '<circle class="cghit" r="' + (R + 6).toFixed(1) + '"/>';
+    if (style === 'circuit') {
+      const a = R * 0.95, pin = Math.max(2.5, R * 0.3);
+      let s = '';
+      for (let i = 0; i < 3; i++) {
+        const t = (i - 1) * a * 0.55;
+        s += '<line class="cgpin" x1="' + (-a) + '" y1="' + t + '" x2="' + (-a - pin) + '" y2="' + t + '"/>'
+          + '<line class="cgpin" x1="' + a + '" y1="' + t + '" x2="' + (a + pin) + '" y2="' + t + '"/>'
+          + '<line class="cgpin" x1="' + t + '" y1="' + (-a) + '" x2="' + t + '" y2="' + (-a - pin) + '"/>'
+          + '<line class="cgpin" x1="' + t + '" y1="' + a + '" x2="' + t + '" y2="' + (a + pin) + '"/>';
+      }
+      return s + '<rect class="cgchip" x="' + (-a) + '" y="' + (-a) + '" width="' + (a * 2)
+        + '" height="' + (a * 2) + '" rx="' + (a * 0.22).toFixed(1) + '"/>'
+        + '<rect class="cgchip2" x="' + (-a * 0.45) + '" y="' + (-a * 0.45) + '" width="' + (a * 0.9)
+        + '" height="' + (a * 0.9) + '" rx="' + (a * 0.14).toFixed(1) + '"/>' + hit;
+    }
+    let s = '';
+    if (style === 'space') s += '<circle class="cgaura" r="' + (R * 2.2).toFixed(1) + '"/>';
+    if (style === 'tech') s += '<circle class="cgring" r="' + (R * 1.5).toFixed(1) + '"/>';
+    if (style === 'bubble') s += '<circle class="cgshadow" cx="0" cy="' + (R * 0.22).toFixed(1) + '" r="' + R.toFixed(1) + '"/>';
+    s += '<circle class="cgball" r="' + R.toFixed(1) + '"/>';
+    if (style === 'bubble' || style === 'space') {
+      s += '<circle class="cggloss" cx="' + (-R * 0.32).toFixed(1) + '" cy="' + (-R * 0.34).toFixed(1)
+        + '" r="' + (R * 0.34).toFixed(1) + '"/>';
+    }
+    if (on) s += '<circle class="cgsel" r="' + (R + 5).toFixed(1) + '"/>';
+    return s + hit;
   }
 
   function drawChainMap(host, sc, chainId, im, handlers) {

@@ -467,12 +467,12 @@ def check_3d(pg):
     # 驗收 2：點零件要亮起來，而且帶出這個環節的台股
     seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
     pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
-    b4 = pg.evaluate("() => ({ box: (document.getElementById('cgSide')||{}).innerText || '' })")
+    b4 = pg.evaluate("() => ({ box: (document.getElementById('cgSegBox')||{}).innerText || '' })")
     pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
-    af = pg.evaluate("""() => ({ box: (document.getElementById('cgSide')||{}).innerText || '',
+    af = pg.evaluate("""() => ({ box: (document.getElementById('cgSegBox')||{}).innerText || '',
         sel: document.querySelectorAll('.lbl3d.sel').length,
         dim: document.querySelectorAll('.lbl3d.dim').length,
-        links: document.querySelectorAll('#cgSide a.lk').length })""")
+        links: document.querySelectorAll('#cgSegBox a.lk').length })""")
     ok("點 3D 零件會亮起來、其餘變暗", af["sel"] > 0 and af["dim"] > 0, af)
     # 不能比長度：這頁前面的驗收可能已經選過別的環節，說明框本來就有字
     ok("點 3D 零件會帶出這個環節的台股",
@@ -1486,10 +1486,10 @@ def t_industry(pg, base):
         pg.evaluate("document.querySelector('#prodDiagram [data-seg]').scrollIntoView({block:'center'})")
         settle_scroll(pg)
         before = pg.evaluate("""() => ({ rows: document.querySelectorAll('#memberTable tbody tr').length,
-            y: Math.round(scrollY), seg: (document.querySelector('#cgSide .segbox b.t')||{}).textContent })""")
+            y: Math.round(scrollY), seg: (document.querySelector('#cgSegBox .segbox b.t')||{}).textContent })""")
         click(pg, "#prodDiagram [data-seg]", 800)
         after = pg.evaluate("""() => ({ rows: document.querySelectorAll('#memberTable tbody tr').length,
-            y: Math.round(scrollY), seg: (document.querySelector('#cgSide .segbox b.t')||{}).textContent,
+            y: Math.round(scrollY), seg: (document.querySelector('#cgSegBox .segbox b.t')||{}).textContent,
             sel: document.querySelectorAll('#prodDiagram [data-seg].sel').length,
             btn: !!document.getElementById('segOnly') })""")
         ok("點零件會亮起來", after["sel"] > 0, after)
@@ -1615,7 +1615,7 @@ def t_chainnav(pg, base):
     ok("E6 有切到另一條鏈的入口", x["go"] == 1, x)
     click(pg, "#cgXChains .xgo", 2000)
     to = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
-        seg: (document.querySelector('#cgSide .segbox b.t')||{}).textContent,
+        seg: (document.querySelector('#cgSegBox .segbox b.t')||{}).textContent,
         chips: document.querySelectorAll('#cgSegs .segchip.sel').length,
         selSeg: (document.querySelector('#cgSegs .segchip.sel')||{dataset:{}}).dataset.seg })""")
     ok("E6 按了真的切到另一條鏈", to["hash"] == "#industry/ai_server/abf_pcb", to)
@@ -1696,7 +1696,7 @@ def t_electronics(pg, base):
         if not pg.evaluate(f"() => !!document.querySelector({chip!r})"):
             continue
         click(pg, chip, 900)
-        side = pg.evaluate("() => [...document.querySelectorAll('#cgSide a.lk')].map(a => a.getAttribute('href') || '')")
+        side = pg.evaluate("() => [...document.querySelectorAll('#cgSegBox a.lk')].map(a => a.getAttribute('href') || '')")
         who += [h.replace("#stock/", "") for h in side if h.startswith("#stock/")]
         click(pg, chip, 700)
     ok("鴻海 2317 在一般電子鏈上看得到（節點在 assembly，靠 CHAIN_EXTRA 拉進來）", "2317" in who, who[:12])
@@ -1729,7 +1729,7 @@ def t_electronics(pg, base):
         ok(f"「{seg}」這一格在 FALLBACK 裡真的接到了台股族群（不是接到一個已經不存在的 id）",
            bool(fb) and len(fb["names"]) > 0 and len(fb["names"]) == len(fb["gids"]), fb)
         click(pg, f"#cgSegs .segchip[data-seg='{seg}']", 900)
-        box = pg.evaluate("() => (document.getElementById('cgSide')||{}).innerText || ''")
+        box = pg.evaluate("() => (document.getElementById('cgSegBox')||{}).innerText || ''")
         ok(f"點只有外商的「{seg}」，說明框不是空白", len(box.strip()) > 10, box[:80])
         want = (fb or {}).get("names") or []
         ok(f"而且接到了對應族群「{'／'.join(want)}」（app.js 的 FALLBACK）",
@@ -2726,18 +2726,25 @@ def t_new_industry(pg, base):
         # --- 點個股子節點：面板真的開、不跳頁
         sub = f'#cgGraph .cgnode.cgsub[data-code="{code}"]'
         if pg.evaluate(f"() => !!document.querySelector({sub!r})"):
+            # ⚠ 基準要取「點完族群之後」的 hash，不是最一開始的 ——
+            #   選族群本來就會把網址對到它的剖析圖（syncDgHash，既有行為，#groupCards 時代就是這樣）。
+            #   這一條要守的是「**點個股**不跳頁」，所以比的是點子節點前後。
+            h_mid = pg.evaluate("() => location.hash")
             click(pg, sub + " .cgm", 1300)
             c = pg.evaluate(SNAP2)
             ok(f"{cid} 點個股子節點 {cname} 開了右側產業關係面板、而且沒有跳頁",
-               c["side"] and cname in c["box"] and c["hash"] == b["hash"], {"hash": c["hash"], "box": c["box"][:40]})
+               c["side"] and cname in c["box"] and c["hash"] == h_mid,
+               {"hash": f"{h_mid} → {c['hash']}", "box": c["box"][:40]})
         else:
             notes.append(f"{cid} 的 {cname} 不在前 {14} 檔子節點裡（依成交值取），這一條略過")
         # --- 點環節色標：同一個 segFilter，再點一次取消
         if pg.evaluate(f"() => !!document.querySelector('#cgSegs .segchip[data-seg=\"{seg_click}\"]')"):
             click(pg, f'#cgSegs .segchip[data-seg="{seg_click}"]', 1100)
             d = pg.evaluate(SNAP2)
+            # 跟**沒有任何篩選**的那一次比（b），不要跟「已經篩成某個族群」的那一次比（a）——
+            # 環節與族群是兩種切法，環節篩出來的可能比族群多（實測 thermal 6 檔 vs 液冷 5 檔）
             ok(f"{cid} 點環節色標 {seg_click}：成分股真的被篩成那一格",
-               d["chipSeg"] == [seg_click] and d["rows"] <= a["rows"], d)
+               d["chipSeg"] == [seg_click] and 0 < d["rows"] < b["rows"], {"全部": b["rows"], **d})
             dim = count(pg, "#cgGraph .cgnode[data-gid].dim")
             ok(f"{cid} 而且不屬於那一格的族群節點真的被壓暗（篩選在圖上看得到）",
                0 < dim < n_node, f"{dim}/{n_node}")
@@ -16722,7 +16729,7 @@ def t_b25_graph(pg, base):
     # 而它們承載的功能在新圖上找得到對應操作
     homes = pg.evaluate("""() => ({
         seg: document.querySelectorAll('#cgSegs .segchip').length,        // 環節篩選的新家
-        side: !!document.getElementById('cgSide'),                        // 環節詳情（含跨鏈對照）的新家
+        side: !!document.getElementById('cgSegBox'),                        // 環節詳情（含跨鏈對照）的新家
         node: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,  // 族群篩選的新家
         tools: !!document.getElementById('cgStyleBtn') && !!document.getElementById('cgExpandBtn')
                && !!document.getElementById('cgFitBtn') })""")

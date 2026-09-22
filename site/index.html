@@ -1880,183 +1880,213 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media(prefers-reduced-motion:reduce){.m3-pulse.on .m3-ring{animation-duration:3.6s}}
 @media(max-width:900px){.m3-chart .m3-night{right:52px;max-height:52%}}
 
-/* ================= 族群關聯圖（Obsidian 式力導向，#cgGraph）=================
-   DECISIONS #248。取代原本的「環節色標 #segChips ＋ 環節詳情 #segBox ＋
-   環節清單 #chainList ＋ 族群卡片 #groupCards」四塊 —— 它們回答的是同一個問題
-   （這條鏈有誰、誰連誰、今天誰在漲），拆成四塊之後使用者要自己把四個畫面對起來。
+/* ================= 產業關聯圖（力導向，DECISIONS #248 第二版）=================
+   照 Andy 的參考圖 `docs/diagram_refs/graph_ref_layout.webp` 與 `graph_ref_4styles.webp`：
+   大圓點＝族群、周遭小點＝個股（**有幾檔就有幾顆**）、左上標題、右上搜尋／篩選／重設視角、
+   左下分類圖例、右下 −／＋／置中、右側資訊欄。
 
-   為什麼節點是 HTML 不是 SVG：規格書第三節要求**每一段介紹資訊都要是連結**
-   （族群名 → 族群頁、個股代號 → 個股頁）。SVG 裡的 <a> 沒有 CSS 省略號、
-   沒有 flex 換行，而 ECharts 的 graph 是畫在 canvas 上，根本做不出真的 <a href>。
-   所以節點用 HTML 絕對定位，連線用同一個 stage 底下的 SVG —— 兩層吃同一個
-   transform，縮放拖曳永遠對得齊。
+   為什麼節點畫在 SVG、族群名卻是 HTML：
+   圓點、光暈、晶片接腳、PCB 紋路這些只有 SVG 畫得出來；而族群名要省略號、要精準字級
+   （SVG 的 text 不吃 text-overflow，而且被 transform 縮放之後 getComputedStyle 量不到真實字級）。
+   兩層都住在同一個 `.cgstage` 底下、吃同一個 transform，所以縮放拖曳永遠對得齊。
 
-   四種風格只換視覺（--cg-* token），佈局與互動完全同一份，
-   深／淺兩個主題各自成立（淺色在 :root[data-theme="light"] 那一段覆寫）。*/
+   ★ 自訂屬性裡寫 `var(--c)` 是在**宣告它的那個元素**上求值，不是在用它的地方。
+     所以凡是要吃族群色的，一律寫成 `.cgraph[data-cgstyle=…] .cgnode{…}` 這種掛在節點上的規則，
+     不可以塞進 `.cgraph` 的 token（第一版踩過：泡泡風格的節點整片變白，顏色一顆都沒出現）。*/
 .cgsec{margin-top:14px}
-.cgtools{gap:6px;flex-wrap:wrap}
-.cgraph{position:relative;border-radius:10px;border:1px solid var(--line);overflow:hidden;
-  margin-top:8px;touch-action:none;-webkit-user-select:none;user-select:none;
-  height:clamp(430px,62vh,660px);background:var(--cg-bg,var(--illus));cursor:grab}
+.cgwrap{align-items:stretch}
+.cgpane{flex:1 1 620px;min-width:0}
+.cgpanel{flex:0 0 288px;min-width:0;background:var(--panel-2);border:1px solid var(--line-2);
+  border-radius:12px;padding:12px 13px 14px;align-self:flex-start;max-height:760px;overflow:auto}
+.cgpanel[hidden]{display:none}
+@media(max-width:1100px){.cgpanel{flex:1 1 100%;max-height:none}}
+.cgraph{position:relative;border-radius:12px;border:1px solid var(--line);overflow:hidden;
+  touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;
+  height:clamp(460px,66vh,720px);background:var(--cg-bg,var(--illus))}
 .cgraph.panning{cursor:grabbing}
 .cgstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
-.cgedges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
-/* 節點。left/top/width 由 JS 寫成行內樣式（力導向算出來的座標），
-   其餘全部走 token —— 換風格時一個 JS 值都不必重算。*/
-.cgnode{position:absolute;box-sizing:border-box;padding:6px 8px 7px;cursor:pointer;
-  background:var(--cg-node);border:1px solid var(--cg-nline);border-radius:var(--cg-r,12px);
-  box-shadow:var(--cg-nshadow,none);backdrop-filter:var(--cg-blur,none);
-  transition:box-shadow .16s,border-color .16s,opacity .16s,background .16s}
-.cgnode:hover{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
-.cgnode.sel{border-color:var(--c);box-shadow:0 0 0 2px var(--c)}
-.cgnode.dim{opacity:.3}
-.cgnode .cgt{display:flex;align-items:baseline;gap:5px;min-width:0}
-/* 族群名是真的連結（族群頁）。dot 用 --c，跟剖析圖零件／環節同一套顏色 */
-.cgnode .cgt{display:block}
-/* ★ display:block 不可改回 inline-flex：`a.lk` 全站預設是 inline-flex，
-   而 **text-overflow:ellipsis 對 flex 容器自己的文字節點不生效** ——
-   族群名會被硬切成「HBM 高頻寬記憶」而且沒有省略號（第一版截圖就是這樣）。
-   改成 block 之後省略號才會出現，圓點用 inline-block 排在前面。*/
-.cgnode .cgt a.lk{display:block;font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;min-width:0;border:0;padding:0;background:none}
-.cgnode .cgt a.lk i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);
-  margin-right:5px;vertical-align:middle}
-/* 字級下限：節點會被 fit() 縮到最小 0.92 倍，所以**基準不得小於 12px**
-   （12 × 0.92 ＝ 11.04px）。11.5px 會變成 10.6px，在手機上讀不出來。*/
-.cgnode .cgm{display:flex;align-items:baseline;gap:6px;margin-top:2px;font-family:var(--mono);font-size:12px;
-  white-space:nowrap;overflow:hidden}
-.cgnode .cgm .chg{font-weight:700;font-size:13px}
-.cgnode .cgm .sh{color:var(--ink-3)}
-/* 標籤式個股：Default 只列代號，點節點才展開成完整清單 */
-.cgnode .cgtags{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
-.cgnode .cgtags a.lk,.cgnode .cgtags .cgmore{font-family:var(--mono);font-size:12px;line-height:1.5;
-  padding:0 4px;border-radius:5px;background:var(--cg-tag);border:1px solid var(--cg-tagline);
-  color:var(--ink-2);white-space:nowrap}
-.cgnode .cgtags a.lk .code{font-size:12px;color:inherit}
-/* `a.lk .code` 全站是 .82em，掛在 13px 的子節點標題上就變成 10.66px ——
-   乘上最小縮放 0.92 之後只剩 9.8px，破了「任何字不得小於 11px」。
-   關聯圖裡的代號一律釘成 12px（12 × 0.92 ＝ 11.04px）。*/
-.cgnode .code{font-size:12px}
-.cgnode .cgtags a.lk .nm{display:inline-block;max-width:66px;overflow:hidden;text-overflow:ellipsis;
-  white-space:nowrap;vertical-align:bottom}
-.cgnode .cgtags a.lk:hover{color:var(--ink);border-color:var(--c)}
-.cgnode .cgtags .cgmore{cursor:pointer;color:var(--ink-3)}
-/* 展開之後長出來的個股子節點（「原地展開」模式） */
-.cgnode.cgsub{padding:3px 7px 4px;border-radius:var(--cg-subr,9px)}
-.cgnode.cgsub .cgt a.lk{font-size:13px;font-weight:600}
-.cgnode.cgsub .cgm{font-size:12px;margin-top:1px}
+.cgsvg{position:absolute;left:0;top:0;overflow:visible;display:block}
+.cglabels{position:absolute;left:0;top:0}
+/* 族群名：HTML，所以有省略號、字級精準 */
+.cglab{position:absolute;white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--cg-ink);
+  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);max-width:150px;
+  overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}
+.cglab.sel{color:var(--cg-ink-hi);font-weight:700}
+.cglab.dim{opacity:.22}
 /* 連線 */
-.cgedges path{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.5);
+.cgsvg .cge{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.45);
   stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
-.cgedges path.weak{stroke-dasharray:3 5;stroke-opacity:calc(var(--cg-edge-op,.5) * .55)}
-.cgedges path.hi{stroke:var(--c,var(--cyan));stroke-opacity:.95;stroke-width:calc(var(--w,1.2) + 1.2)}
-.cgedges path.dim{stroke-opacity:.07}
-.cgedges circle{fill:var(--cg-end,var(--cg-edge));opacity:var(--cg-end-op,0)}
-.cgedges .tip{fill:var(--cg-edge);opacity:var(--cg-edge-op,.5)}
-/* 選起來的節點旁邊那張「它連到誰、為什麼」的小卡。
-   position:absolute 掛在 .cgraph（不是 stage）上 —— 縮放時卡片的字不跟著縮，
-   永遠是可讀的 13px；它只要「停在節點旁邊」，不必跟著一起放大。*/
-.cgnote{position:absolute;z-index:6;width:min(300px,calc(100% - 20px));max-height:calc(100% - 20px);
+.cgsvg .cge-peer{stroke-dasharray:3 5;stroke-opacity:calc(var(--cg-edge-op,.45) * .6)}
+.cgsvg .cge-equip{stroke:var(--cg-edge-2,var(--cg-edge));stroke-opacity:calc(var(--cg-edge-op,.45) * .7)}
+.cgsvg .cge.hi{stroke:var(--cg-edge-hi);stroke-opacity:.95;stroke-width:calc(var(--w,1.2) + 1)}
+.cgsvg .cge.dim{stroke-opacity:.06}
+.cgsvg .cgvia{fill:var(--cg-edge);opacity:.9}
+.cgsvg .cgstars circle{fill:#fff;opacity:.55}
+.cgsvg .cgbg{opacity:.5}
+/* 個股小點 */
+.cgsvg .cgdot{fill:var(--c);opacity:.72;cursor:pointer;transition:r .14s,opacity .14s}
+.cgsvg .cgdot.up{opacity:1}
+.cgsvg .cgdot.sel{stroke:var(--cg-ink-hi);stroke-width:2;opacity:1}
+.cgsvg .cgdot.dim{opacity:.12}
+/* 族群大圓點 */
+.cgsvg .cgnode{cursor:pointer}
+.cgsvg .cghit{fill:transparent}   /* 看不見但吃得到滑鼠：小族群才點得準，四種風格共用同一個選擇器 */
+.cgsvg .cgnode.dim{opacity:.22}
+.cgsvg .cgball{fill:var(--c)}
+.cgsvg .cgaura{fill:var(--c);opacity:.14}
+.cgsvg .cgring{fill:none;stroke:var(--c);stroke-opacity:.35;stroke-width:1.2}
+.cgsvg .cgshadow{fill:rgba(15,24,48,.22)}
+.cgsvg .cggloss{fill:#fff;opacity:.38}
+.cgsvg .cgsel{fill:none;stroke:var(--cg-ink-hi);stroke-width:2}
+.cgsvg .cgchip{fill:var(--c);stroke:var(--cg-chip-line);stroke-width:1.2}
+.cgsvg .cgchip2{fill:var(--cg-chip-core);opacity:.55}
+.cgsvg .cgpin{stroke:var(--cg-edge);stroke-width:1.6;stroke-linecap:round}
+/* ---- 疊在畫布上的 UI（照參考圖的四個角）---- */
+.cghd{position:absolute;left:14px;top:12px;z-index:4;pointer-events:none}
+.cghd .cgt1{font-size:19px;font-weight:800;color:var(--cg-ink-hi);letter-spacing:.02em}
+.cghd .cgt1 small{font-size:12.5px;font-weight:500;color:var(--cg-ink-2);margin-left:9px}
+.cghd .cgt2{font-size:11.5px;color:var(--cg-ink-3);margin-top:3px}
+.cghd .cgscope{margin-top:9px;pointer-events:auto}
+.cghd .cgscope .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cg-ink);
+  background:var(--cg-hud);border:1px solid var(--cg-hud-line);border-radius:999px;padding:3px 9px}
+.cghd .cgscope .chip button{border:0;background:none;color:var(--cg-ink-3);cursor:pointer;font-size:14px;
+  line-height:1;padding:0}
+.cgtop{position:absolute;right:12px;top:12px;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  justify-content:flex-end;max-width:calc(100% - 24px)}
+.cgsearch{display:inline-flex;align-items:center;gap:6px;background:var(--cg-hud);
+  border:1px solid var(--cg-hud-line);border-radius:9px;padding:5px 10px}
+.cgsearch span{color:var(--cg-ink-3);font-size:14px}
+.cgsearch input{border:0;background:none;color:var(--cg-ink);font:inherit;font-size:12.5px;width:150px;outline:none}
+.cgbtn{display:inline-flex;align-items:center;gap:5px;background:var(--cg-hud);color:var(--cg-ink);
+  border:1px solid var(--cg-hud-line);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer}
+.cgbtn:hover,.cgbtn.on{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
+.cgpop{position:absolute;right:12px;top:52px;z-index:6;width:min(340px,calc(100% - 24px));
+  max-height:calc(100% - 70px);overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);
+  border-radius:11px;padding:10px 12px 12px;box-shadow:0 18px 40px -20px var(--drop)}
+.cgpop[hidden]{display:none}
+.cgpop h6{font-size:12px;color:var(--ink-3);margin:8px 0 6px;font-weight:600}
+.cgpop h6 small{font-weight:400}
+.cgstyles{display:grid;gap:6px}
+.cgstyles button{text-align:left;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;
+  padding:6px 9px;cursor:pointer;color:var(--ink-2)}
+.cgstyles button b{display:block;font-size:13px;color:var(--ink)}
+.cgstyles button span{font-size:11.5px;color:var(--ink-3)}
+.cgstyles button.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
+.cglegend{position:absolute;left:14px;bottom:12px;z-index:4;display:flex;gap:10px;flex-wrap:wrap;
+  pointer-events:none;max-width:calc(100% - 120px)}
+.cglg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--cg-ink-2)}
+.cglg i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.cgzoom{position:absolute;right:12px;bottom:12px;z-index:5;display:flex;gap:6px}
+.cgzoom button{width:32px;height:32px;border-radius:9px;background:var(--cg-hud);color:var(--cg-ink);
+  border:1px solid var(--cg-hud-line);cursor:pointer;font-size:15px;line-height:1}
+.cgzoom button:hover{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
+/* hover 族群大點才浮出來的個股小卡（Andy：hover 是唯一的展開條件） */
+/* ★ pointer-events:none 不可拿掉。小卡是 hover 才浮出來的，而「把滑鼠移到族群大點上」
+   跟「點那顆族群」是同一個動作 —— 小卡只要吃滑鼠，就會擋在它自己說明的那顆節點前面，
+   那顆節點當場變成點不下去（Playwright 直接回 "cgtip subtree intercepts pointer events"，
+   真人也一樣點到小卡）。要點個股請點圖上的小點，那是規格書指定的入口，本來就一直在。*/
+.cgtip{pointer-events:none;position:absolute;z-index:7;width:min(260px,calc(100% - 20px));max-height:calc(100% - 20px);
   overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
-  padding:9px 11px 10px;box-shadow:0 14px 34px -18px var(--drop);font-size:12.5px;line-height:1.6}
-.cgnote[hidden]{display:none}
-.cgnote .nh{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
-.cgnote .nh b{font-size:14px;color:var(--ink)}
-.cgnote .nh .x{margin-left:auto;cursor:pointer;color:var(--ink-3);border:0;background:none;font-size:15px;line-height:1}
-.cgnote .rl{margin-top:5px;color:var(--ink-2)}
-.cgnote .rl .lb{color:var(--ink-3);font-size:11.5px}
-.cgnote .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
-.cgnote .src{font-size:11.5px;color:var(--ink-3);margin-top:6px}
-.cgnote .empty{color:var(--ink-3)}
-.cgsec .chainrow>.chainpane{flex:1 1 560px;min-width:0}
-/* 「側欄清單」展開模式：個股不長在圖上，改列在圖下面（跟「原地展開」二選一，DECISIONS #248） */
-.cglist{margin-top:10px;background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:9px 11px}
-.cgls{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.cgls a.lk{display:inline-flex;align-items:baseline;gap:5px;font-size:13px;background:var(--panel);
-  border:1px solid var(--line);border-radius:8px;padding:3px 8px}
-.cgls a.lk .code{font-family:var(--mono);font-size:11.5px;color:var(--cyan)}
-.cgls a.lk em{font-style:normal;font-family:var(--mono);font-size:11.5px}
+  padding:8px 10px 9px;box-shadow:0 14px 34px -18px var(--drop);font-size:12px;line-height:1.55}
+.cgtip[hidden]{display:none}
+.cgtip .th{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.cgtip .th i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
+.cgtip .th b{font-size:13.5px;color:var(--ink)}
+.cgtip .tl{margin-top:6px;display:grid;gap:2px}
+.cgtip .ti{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:baseline;
+  cursor:pointer;border-radius:5px;padding:1px 3px}
+.cgtip .ti:hover{background:var(--panel-3)}
+.cgtip .ti .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.cgtip .ti .code,.cgtip .ti em{font-family:var(--mono);font-size:11.5px;font-style:normal}
+.cgtip .ti .code{color:var(--ink-3)}
+.cgtip .ti .sh{color:var(--ink-3)}
+.cgtip .tf{margin-top:6px;font-size:11.5px;color:var(--ink-3)}
+/* ---- 右側資訊欄（照參考圖）---- */
+.cgpanel .cgp-h{display:flex;align-items:center;gap:8px}
+.cgpanel .cgp-h i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
+.cgpanel .cgp-h b{font-size:17px;color:var(--ink)}
+.cgpanel .cgp-h .x{margin-left:auto;border:0;background:none;color:var(--ink-3);font-size:17px;
+  line-height:1;cursor:pointer}
+.cgpanel .cgp-sub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
+.cgpanel .cgp-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;
+  background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:10px 8px}
+.cgpanel .cgp-box div{text-align:center;min-width:0}
+.cgpanel .cgp-box b{display:block;font-size:20px;font-family:var(--mono)}
+.cgpanel .cgp-box span{font-size:11.5px;color:var(--ink-3)}
+.cgpanel .cgp-asof{text-align:right;font-size:11px;color:var(--ink-3);margin-top:4px}
+.cgpanel h5{font-size:13px;color:var(--ink-2);margin:13px 0 7px}
+.cgpanel h5 small{color:var(--ink-3);font-weight:400}
+.cgpanel .cgp-co{display:grid;gap:5px}
+.cgpanel .cgp-co a.lk{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
+  background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;padding:6px 9px;font-size:13px}
+.cgpanel .cgp-co a.lk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
+.cgpanel .cgp-co a.lk .code{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.cgpanel .cgp-co a.lk .chv{color:var(--ink-3)}
+.cgpanel .cgp-co a.lk:hover{border-color:var(--cyan)}
+.cgpanel .cgp-lks{display:flex;flex-wrap:wrap;gap:4px 7px;align-items:baseline;margin-top:9px;font-size:12.5px}
+.cgpanel .cgp-lks .lb{color:var(--ink-3);font-size:11.5px}
+.cgpanel .cgp-range{width:100%}
+.cgpanel .cgp-rels{display:grid;gap:6px}
+.cgpanel .cgp-rels label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
+.cgpanel .cgp-center{width:100%;margin-top:12px}
+.cgpanel .cgp-rel{margin-top:7px;font-size:12.5px;color:var(--ink-2);line-height:1.55}
+.cgpanel .cgp-rel .lb{color:var(--ink-3);font-size:11.5px;margin-right:5px}
+.cgpanel .cgp-rel.empty{color:var(--ink-3)}
+.cgpanel .relbox{margin-top:10px}
+/* 環節詳情（原 #segBox）住在圖下面，不跟右側資訊欄搶容器 */
+#cgSegBox{margin-top:10px}
 
-/* ---------------- 四種風格 ----------------
-   ⚠ 這裡有一條 CSS 的規則一定要記住，不記住就會重踩：
-     **自訂屬性的值裡寫 `var(--c)`，是在「宣告它的那個元素」上求值，不是在用它的地方。**
-     原本把 `--cg-node:color-mix(in srgb,var(--c) 42%,#fff)` 宣告在 `.cgraph` 上，
-     而 `--c`（族群色）是寫在 `.cgnode` 的行內樣式 —— `.cgraph` 上根本沒有 `--c`，
-     整個值變成 guaranteed-invalid，`background` 退回透明：
-     泡泡風格的節點於是全部是白的，**顏色一顆都沒有出現**（第五版截圖踩到，
-     而且它「看起來只是淡了一點」，很容易被當成設計而放過去）。
-   所以凡是要吃 `--c` 的，一律寫成 `.cgraph[data-cgstyle=…] .cgnode{…}` 這種
-   直接掛在節點上的規則；`.cgraph` 上只放「跟族群色無關」的 token。*/
-/* ① 科技：深底、圓角方塊、細直線、發光端點、等寬字 */
-.cgraph[data-cgstyle="tech"]{
-  --cg-bg:radial-gradient(120% 90% at 50% 0%,#132038 0%,#0a1020 62%,#070b16 100%);
-  --cg-node:rgba(20,30,54,.88); --cg-nline:var(--line-2); --cg-r:11px; --cg-subr:8px;
-  --cg-tag:rgba(62,224,255,.08); --cg-tagline:rgba(62,224,255,.22);
-  --cg-edge:#3ee0ff; --cg-edge-op:.34; --cg-end:#3ee0ff; --cg-end-op:.85;}
-.cgraph[data-cgstyle="tech"] .cgnode .cgt a.lk i{box-shadow:0 0 7px var(--c)}
-.cgraph[data-cgstyle="tech"] .cgnode:hover{box-shadow:0 0 0 1px var(--c),0 0 18px -4px var(--c)}
-.cgraph[data-cgstyle="tech"] .cgnode.sel{box-shadow:0 0 0 1.5px var(--c),0 0 26px -4px var(--c)}
-/* ② 電路：直角走線（像 PCB）、方形焊盤、轉角圓點、金屬色 */
-.cgraph[data-cgstyle="circuit"]{
-  --cg-bg:linear-gradient(0deg,#08130f 0%,#0b1a14 100%);
-  --cg-node:rgba(12,32,24,.92); --cg-nline:#2f6b4e; --cg-r:3px; --cg-subr:2px;
-  --cg-tag:rgba(212,175,95,.09); --cg-tagline:rgba(212,175,95,.3);
-  --cg-edge:#d4af5f; --cg-edge-op:.58; --cg-end:#d4af5f; --cg-end-op:1;}
-.cgraph[data-cgstyle="circuit"] .cgnode{border-width:1.5px}
-.cgraph[data-cgstyle="circuit"] .cgnode .cgt a.lk i{border-radius:1px}
-.cgraph[data-cgstyle="circuit"] .cgnode:hover{box-shadow:0 0 0 1px var(--c)}
-.cgraph[data-cgstyle="circuit"] .cgnode.sel{box-shadow:0 0 0 2px var(--c)}
-/* ③ 星際：深藍黑底、發光「星球」（大小差距刻意拉大）、星塵般的淡連線 */
+/* ---------------- 四種風格（照 graph_ref_4styles.webp）---------------- */
+/* 01 星際：深邃宇宙・星辰連結・探索無限產業可能 */
 .cgraph[data-cgstyle="space"]{
-  --cg-bg:radial-gradient(90% 70% at 30% 18%,#1a2350 0%,#0a0f28 55%,#05060f 100%);
-  --cg-node:rgba(18,24,58,.72); --cg-nline:rgba(150,170,255,.3); --cg-r:999px; --cg-subr:999px;
-  --cg-tag:rgba(160,180,255,.1); --cg-tagline:rgba(160,180,255,.22);
-  --cg-edge:#a9b6d6; --cg-edge-op:.2; --cg-end:#e8eeff; --cg-end-op:.5;}
-.cgraph[data-cgstyle="space"] .cgnode{padding:10px 18px 11px;text-align:center;
-  background:radial-gradient(120% 120% at 32% 22%,color-mix(in srgb,var(--c) 34%,transparent) 0%,rgba(18,24,58,.86) 62%)}
-.cgraph[data-cgstyle="space"] .cgnode .cgt a.lk i{box-shadow:0 0 12px var(--c),0 0 26px var(--c)}
-.cgraph[data-cgstyle="space"] .cgnode:hover{box-shadow:0 0 26px -2px var(--c)}
-.cgraph[data-cgstyle="space"] .cgnode.sel{box-shadow:0 0 0 1px var(--c),0 0 40px -4px var(--c)}
-.cgraph[data-cgstyle="space"] .cgnode .cgt,
-.cgraph[data-cgstyle="space"] .cgnode .cgm,
-.cgraph[data-cgstyle="space"] .cgnode .cgtags{justify-content:center}
-/* ④ 泡泡：淺底、半透明彩色泡泡、柔和陰影與高光、細柔曲線 */
+  --cg-bg:radial-gradient(120% 90% at 22% 12%,#2a2350 0%,#161a3d 42%,#080a1c 100%);
+  --cg-ink:#dfe6ff; --cg-ink-hi:#ffffff; --cg-ink-2:#aab4e0; --cg-ink-3:#8089b8;
+  --cg-edge:#aab6ee; --cg-edge-2:#8f9ad0; --cg-edge-op:.34; --cg-edge-hi:#ffffff;
+  --cg-grid:rgba(180,190,255,.16); --cg-hud:rgba(14,16,38,.72); --cg-hud-line:rgba(160,175,255,.25);
+  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);}
+.cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 7px var(--c))}
+/* 02 科技：精準科技・網格秩序・數據驅動產業洞察 */
+.cgraph[data-cgstyle="tech"]{
+  --cg-bg:linear-gradient(160deg,#0b1730 0%,#0a1224 60%,#070c18 100%);
+  --cg-ink:#dbe7ff; --cg-ink-hi:#ffffff; --cg-ink-2:#9fb2d6; --cg-ink-3:#7285a8;
+  --cg-edge:#4f9ff5; --cg-edge-2:#6b7fa5; --cg-edge-op:.42; --cg-edge-hi:#7fd4ff;
+  --cg-grid:rgba(110,160,230,.16); --cg-hud:rgba(10,18,36,.78); --cg-hud-line:rgba(120,170,240,.26);
+  --cg-lab-sh:0 1px 3px rgba(0,0,0,.6);}
+.cgraph[data-cgstyle="tech"] .cgball{filter:drop-shadow(0 0 6px var(--c))}
+/* 03 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（四種裡唯一的亮底） */
 .cgraph[data-cgstyle="bubble"]{
-  --cg-bg:radial-gradient(110% 85% at 50% 0%,#f7fbff 0%,#e7eefb 60%,#dbe5f6 100%);
-  --cg-node:#ffffff; --cg-nline:#c8d4e8; --cg-r:999px; --cg-subr:999px;
-  --cg-tag:rgba(255,255,255,.72); --cg-tagline:rgba(255,255,255,.9);
-  --cg-edge:#7d8aa8; --cg-edge-op:.34; --cg-end:#ffffff; --cg-end-op:0;}
-.cgraph[data-cgstyle="bubble"] .cgnode{padding:8px 16px 9px;
-  background:radial-gradient(130% 120% at 30% 18%,#ffffff 0%,color-mix(in srgb,var(--c) 30%,#ffffff) 56%,color-mix(in srgb,var(--c) 50%,#ffffff) 100%);
-  border-color:color-mix(in srgb,var(--c) 64%,#ffffff);
-  box-shadow:0 8px 20px -9px rgba(15,24,48,.5),inset 0 2px 6px rgba(255,255,255,.95),inset 0 -8px 16px -10px rgba(15,24,48,.3)}
-.cgraph[data-cgstyle="bubble"] .cgnode:hover{box-shadow:0 10px 24px -9px rgba(15,24,48,.55)}
-.cgraph[data-cgstyle="bubble"] .cgnode.sel{box-shadow:0 0 0 2px var(--c),0 10px 24px -9px rgba(15,24,48,.5)}
-.cgraph[data-cgstyle="bubble"] .cgnode .cgtags a.lk,
-.cgraph[data-cgstyle="bubble"] .cgnode .cgtags .cgmore{border-color:rgba(255,255,255,.9)}
-/* 泡泡是**固定的淺底**（四種風格裡唯一一個亮底），所以深色主題下要把字改成深色，
-   否則 --ink 是接近白的，泡泡上等於看不見。這不是「寫死顏色」——
-   底色是這個風格自己定義的，字色就得跟著它的底走，不能跟著全站主題走。*/
-.cgraph[data-cgstyle="bubble"] .cgnode,
-.cgraph[data-cgstyle="bubble"] .cgnode .cgt a.lk{color:#16203a}
-.cgraph[data-cgstyle="bubble"] .cgnode .cgm .sh,
-.cgraph[data-cgstyle="bubble"] .cgnode .cgtags a.lk,
-.cgraph[data-cgstyle="bubble"] .cgnode .cgtags .cgmore{color:#3f4e6d}
-.cgraph[data-cgstyle="bubble"] .cgnode .cgm .chg.up{color:#dc2440}
-.cgraph[data-cgstyle="bubble"] .cgnode .cgm .chg.down{color:#0a9b6a}
-/* 淺色主題：科技／電路／星際三個深底風格**刻意維持深底**（它們的名字就是深底的意思，
+  --cg-bg:radial-gradient(110% 90% at 40% 8%,#ffffff 0%,#eef4fd 55%,#e2eaf7 100%);
+  --cg-ink:#1d2742; --cg-ink-hi:#0f1830; --cg-ink-2:#465577; --cg-ink-3:#6b7994;
+  --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.45; --cg-edge-hi:#2b6cb0;
+  --cg-grid:rgba(120,140,180,.12); --cg-hud:rgba(255,255,255,.86); --cg-hud-line:#cfd9ea;
+  --cg-lab-sh:none;}
+.cgraph[data-cgstyle="bubble"] .cgball{opacity:.85}
+.cgraph[data-cgstyle="bubble"] .cgdot{opacity:.85}
+/* 04 電子電路：晶片脈絡・電路連結・驅動產業未來 */
+.cgraph[data-cgstyle="circuit"]{
+  --cg-bg:linear-gradient(170deg,#0c2018 0%,#08170f 55%,#050d08 100%);
+  --cg-ink:#d6e9d8; --cg-ink-hi:#f2e2a8; --cg-ink-2:#9ec2a4; --cg-ink-3:#7fa286;
+  --cg-edge:#d4af5f; --cg-edge-2:#9aa06a; --cg-edge-op:.6; --cg-edge-hi:#ffe08a;
+  --cg-grid:rgba(212,175,95,.2); --cg-hud:rgba(8,22,14,.8); --cg-hud-line:rgba(212,175,95,.3);
+  --cg-chip-line:#e3c479; --cg-chip-core:#07140c; --cg-lab-sh:0 1px 3px rgba(0,0,0,.7);}
+/* 淺色主題：星際／科技／電子電路**刻意維持深底**（它們的名字就是深底的意思，
    而且 .chainmap 本來就是兩個主題都深底 —— DECISIONS #239 第一節末尾），
-   只有邊框與連線的不透明度往上調，讓它在明亮環境下仍然分得出層次。*/
-:root[data-theme="light"] .cgraph[data-cgstyle="tech"]{--cg-edge-op:.44}
-:root[data-theme="light"] .cgraph[data-cgstyle="circuit"]{--cg-edge-op:.66}
-:root[data-theme="light"] .cgraph[data-cgstyle="space"]{--cg-edge-op:.28}
-:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#5b6880;--cg-edge-op:.42}
-/* 手機：節點窄一點但字**不得小於 11px**；圖高一點，因為一欄只排得下兩顆 */
-@media (max-width:560px){
-  .cgraph{height:clamp(420px,72vh,600px)}
-  .cgnode .cgt a.lk{font-size:13px}
-  .cgnode .cgm{font-size:12px} .cgnode .cgm .chg{font-size:12.5px}
-  .cgnote{width:min(260px,calc(100% - 16px));font-size:12.5px}
+   只把連線與圖例的不透明度往上調，讓它在明亮環境下仍然分得出層次。
+   泡泡本來就是亮底，深色主題下字色由它自己的 token 決定，不跟著全站主題走。*/
+:root[data-theme="light"] .cgraph[data-cgstyle="space"]{--cg-edge-op:.44}
+:root[data-theme="light"] .cgraph[data-cgstyle="tech"]{--cg-edge-op:.52}
+:root[data-theme="light"] .cgraph[data-cgstyle="circuit"]{--cg-edge-op:.68}
+:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#6b7a95;--cg-edge-op:.5}
+/* 手機：控制項換行、圖高一點；字一律 ≥ 11px */
+@media (max-width:640px){
+  .cgraph{height:clamp(470px,78vh,680px)}
+  .cghd .cgt1{font-size:16px} .cghd .cgt1 small{display:block;margin:2px 0 0}
+  .cgtop{left:12px;right:12px;top:auto;bottom:52px;justify-content:flex-start}
+  .cgsearch input{width:96px}
+  .cglegend{bottom:12px;max-width:calc(100% - 92px);gap:6px 8px}
+  .cglab{font-size:12px;max-width:110px}
+  .cgtip{width:min(230px,calc(100% - 16px))}
+  .cgpanel{padding:10px 11px 12px}
 }
 </style>
 </head>
