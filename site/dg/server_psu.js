@@ -523,7 +523,8 @@
   window.DG.register('server_psu', {
     level: 'group', chain: 'ai_server',
     name: '電源：PSU、匯流排、板上降壓與 BBU',
-    draw: serverPsu, native: CW, scene: null,
+    draw: serverPsu, native: CW, scene: 'server_psu',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: '牆上的電進來，到 GPU 核心的零點幾伏特，中間降壓幾次、每一級是誰做的？BBU 跟機房 UPS 又差在哪？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        `cos` 只放代號，「這家在這裡負責什麼」一律讀 supply_chain.json 的 companies[].tech（R3）。

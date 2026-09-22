@@ -426,7 +426,8 @@
   window.DG.register('liquid_cooling', {
     level: 'group', chain: 'ai_server',
     name: '液冷：冷板、均熱板 VC 與熱管',
-    draw: liquidCooling, native: 680, scene: null,
+    draw: liquidCooling, native: 680, scene: 'liquid_cooling',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: '熱從 GPU 晶片走到機房外面，中間經過哪幾關？冷板、快接頭、分歧管、CDU 各是誰做的？',
     /* ★ `parts` ＝ 點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        cos 只放代號，而且**只放 supply_chain.yaml 的 companies[].tech 欄自己寫了這個品項的公司**，

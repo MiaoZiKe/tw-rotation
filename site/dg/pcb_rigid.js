@@ -496,7 +496,8 @@
   window.DG.register('pcb_rigid', {
     level: 'group', chain: 'ai_server',
     name: 'PCB 硬板：多層板剖面與走線',
-    draw: pcbStackup, native: CW, scene: null,
+    draw: pcbStackup, native: CW, scene: 'pcb_rigid',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+        推翻它的是那個理由**漏掉的另一半**（逐張寫在 DECISIONS #250），不是那個理由本身。*/
     q: '一塊 AI 伺服器用的多層板為什麼要疊到幾十層？訊號在裡面被誰磨掉，瓶頸又為什麼卡在板材與銅箔、而不是 PCB 廠？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        這張圖跨三個環節（銅箔／玻纖布／樹脂 → CCL → 高階 PCB），所以預設那條路
