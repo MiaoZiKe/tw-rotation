@@ -1369,7 +1369,9 @@
                                            attrs（加在群組上）、top（頂面上要疊的內容，畫在頂面座標系：原點＝前緣左端）
        fx.beam(d, o)                  → 光束：blur 光暈（o.glow≠false）＋ 實線 ＋ 流動虛線（o.flow）＋ 端點光點（o.dots=[[x,y],…]）
                                         o.color 一律 token（電力 --dg-pwr、訊號 --dg-sig、液冷 --dg-cool），o.w 線寬
-       fx.shadows(shapes)             → 把一串形狀（已含 x/y 位移）包成一個柔陰影群組（一次濾鏡）*/
+       fx.shadows(shapes)             → 把一串形狀（已含 x/y 位移）包成一個柔陰影群組（一次濾鏡）
+       fx.beams([{d,color,w,dots}], o)→ 多條光束共用**一個**光暈濾鏡（面板的 R／G／B 三道穿層光束＝一個元素）
+       fx.molecule(cx,cy,rx,ry,ang)   → 液晶分子小橢球（帶高光；角度 0 躺平、−70 立起來）*/
   const fx = {
     glowDefs(o) {
       o = o || {};
@@ -1418,6 +1420,26 @@
         + dots + `</g>`;
     },
     shadows(inner) { return `<g class="fxsh" filter="url(#fxSoft)" pointer-events="none">${inner}</g>`; },
+    /* ---- restyle-w2b 2026-09-22：面板那張要 R／G／B 三道光束穿層，三條各自套 beam() 就吃掉三個 feGaussianBlur 元素。
+       beams(list, o)：**多條光束共用一個光暈濾鏡**（光暈那一層是一個帶 filter 的群組＝算一個元素）。
+         list＝[{d, color, w, dots}]，o 同 beam()（flow／glow／dotR／cls／attrs）。顏色一律 token。
+       單條光束仍然走 beam()，介面沒動。*/
+    beams(list, o) {
+      o = o || {};
+      const one = (b, cls) => `<path class="${cls}" d="${b.d}" style="${b.color ? `--fxc:${b.color};` : ''}${b.w ? `--fxw:${b.w}` : ''}"/>`;
+      const dots = list.map((b) => (b.dots || []).map(([px_, py_]) =>
+        `<circle class="fxdh" cx="${px_}" cy="${py_}" r="${(o.dotR || 3) * 2.4}" style="--fxc:${b.color}"/><circle class="fxd" cx="${px_}" cy="${py_}" r="${o.dotR || 3}" style="--fxc:${b.color}"/>`).join('')).join('');
+      return `<g class="fxbeam${o.cls ? ' ' + o.cls : ''}"${o.attrs ? ' ' + o.attrs : ''}>`
+        + (o.glow === false ? '' : `<g filter="url(#fxGlow)">${list.map((b) => one(b, 'fxb-glow')).join('')}</g>`)
+        + list.map((b) => one(b, 'fxb-core')).join('')
+        + (o.flow ? list.map((b) => one(b, 'fxb-flow')).join('') : '')
+        + dots + `</g>`;
+    },
+    /* 液晶分子：一顆帶高光的小橢球（cx, cy, rx, ry, 旋轉角度, 顏色 token）。躺平＝角度 0、立起來＝角度 −70。*/
+    molecule(cx, cy, rx, ry, ang, fill) {
+      return `<g transform="translate(${cx},${cy}) rotate(${ang || 0})"><ellipse rx="${rx}" ry="${ry}" fill="${fill || 'var(--dg-pn-rod)'}" opacity=".92"/>`
+        + `<ellipse cx="${(-rx * .3).toFixed(1)}" cy="${(-ry * .35).toFixed(1)}" rx="${(rx * .42).toFixed(1)}" ry="${(ry * .3).toFixed(1)}" fill="var(--dg-sn)" style="fill-opacity:var(--fx-hl)"/></g>`;
+    },
   };
   window.DG.fx = fx;
 
