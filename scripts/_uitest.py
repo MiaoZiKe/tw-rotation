@@ -16365,6 +16365,27 @@ def t_switch_v2(pg, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
 
+DG3D_DE_MIN = 25.0
+
+# 七類模組各挑一個**代表零件**（機櫃場景裡都有）。挑的原則：
+# 那個零件「體積最大的那顆 mesh」就是這一類的材質本體 —— mats() 的 now 量的就是它。
+#   ag_rack  機架（銀灰金屬橫樑；側板是玻璃但體積小）
+#   ag_pcb   主機板（墨綠板材）
+#   ag_gpu   運算模組（深藍載板）
+#   ag_uqd   快接頭（暖銅本體）
+#   ag_cdu   液冷立柱（青綠半透明外殼；掛在它身上的水路不算，見 three3d.js 的 mats()）
+#   ag_fan   風扇（藍灰外框）
+#   ag_psu   電源櫃（暖橘機殼）
+DG3D_MODULES = {
+    "機架": "ag_rack", "PCB": "ag_pcb", "晶片": "ag_gpu", "銅件": "ag_uqd",
+    "液冷": "ag_cdu", "風扇框": "ag_fan", "電源": "ag_psu",
+}
+
+# 三個場景的效能上限（三角形／draw call）。L3_ROUTES 已經有一份，這裡只是把 draw call 也寫成表，
+# 讓「改前／改後」的對照表有一個固定的欄位。
+DG3D_PERF = {"ai_server": (40000, 680), "semiconductor": (40000, 240), "mlcc": (6000, 120)}
+
+
 def _lab(rgb):
     """sRGB(0~255) → CIE L*a*b*（D65）。只給 _de76 用。"""
     def inv(c):
