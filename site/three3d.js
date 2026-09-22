@@ -801,7 +801,7 @@
   async function mount(el, sceneId, opts) {
     const spec = SCENES[sceneId];
     if (!el || !spec || !supported()) return null;
-    const o = Object.assign({ color: () => '#8ea0c4', onSeg: null, anim: true, members: null, onStock: null }, opts || {});
+    const o = Object.assign({ color: () => '#8ea0c4', onSeg: null, onBg: null, anim: true, members: null, onStock: null }, opts || {});
     const { THREE, OrbitControls } = await load();
     const B = mkBuilders(THREE);
 
@@ -1036,7 +1036,11 @@
       if (moved > 5) return;                       // 那是在轉視角，不是點零件
       if (from) { if (o.onSeg) o.onSeg(from.seg, from.data); return; }   // 從標籤按下去的，選那個標籤
       toNdc(e); const m = hit();
-      if (m && o.onSeg) o.onSeg(m.userData.seg, m.userData);
+      if (m && o.onSeg) { o.onSeg(m.userData.seg, m.userData); return; }
+      /* ★ 2026-09-22：打空＝點到場景背景 → 回到 Default（全部零件恢復全亮、小卡收掉）。
+         Andy：「當點擊背景時會恢復到原來的 Default」。上面已經擋掉「拖超過 5px＝在轉視角」，
+         所以走到這裡的一定是「原地按一下、而且沒打到任何零件」。*/
+      if (!m && o.onBg) o.onBg();
     };
     renderer.domElement.addEventListener('pointerup', onUp);
     // 沒抓到 pointer capture 時（少數瀏覽器）放開會落在標籤上，補一條同樣的路；
