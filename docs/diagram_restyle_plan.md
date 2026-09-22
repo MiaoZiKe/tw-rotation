@@ -106,6 +106,55 @@
 
 一句要留下來的：**「同一個畫面有兩種寬度，就要兩種都量」**（抽屜開／關）—— 1.366 倍那個 bug 是這樣逼出來的，不是看出來的。
 
+## 3D ↔ style-system 的介面（`claude/style-3d`，2026-09-22）
+
+3D（`site/three3d.js`）已經照 #238 ＋ 三個推薦改完；下面是兩邊約好的名字，**style-system 改共用 CSS 時照這組來，不要各寫一套**。
+
+### 卡片（`.lbl3d`，DOM，three3d.js 產生）
+| 介面 | 意思 | 誰寫 |
+|---|---|---|
+| `--c` ＝ `--dg-card-c`（行內樣式，兩個名字同值） | 這張卡片指到的**元件顏色**：有角色就是角色色（v3 五色系，見下），沒有就是材質族的底色；太暗的會先往 `--dg-lit` 提亮到編號圓點看得見 | 3D 餵、CSS 吃（邊框、編號圓點、引線、端點） |
+| `data-dgcolor` | 同 `--c`（給量測與不吃 CSS 變數的地方） | 3D |
+| `--seg`／`data-dgseg` | 環節色（segColor）。只用在 `.sel-part` 的外圈與零件本體的提亮，**不再當底色** | 3D |
+| `data-dgno` ＋ `em.no3d` | 編號（01、02…） | 3D 餵、CSS 畫圓點 |
+| `data-dgrole` | `sig`（訊號／網通）`opt`（光）`pwr`（電力／快接頭）`gpu`（運算晶粒）`ind`（NVSwitch）`cool`（CDU／manifold）`hot`（排熱）`cu`（紅銅／銅箔）或空字串 | 3D |
+| `b small.en` | 英文標題（v3 §4 中英雙語），字級 12px、顏色 `--dg-ink-3` | 3D 餵、CSS 排 |
+| `data-dgpart` | 零件身分（跟 2D 的 `data-part` 同一組 key） | 3D |
+| 狀態 class | `.sel`（同環節）`.sel-part`（被點的那一顆）`.dim`（別的環節）`.hid`（轉到背面）`.below`（在底下那一排） | 3D |
+| 文字顏色 | 合併 main 之後照 style-system：`--dg-ink`／`-2`／`-3`（跟 `html[data-dgpal]` 走；`setPal` 會把 html 的 data-dgpal 一起對齊） | CSS |
+
+角色色的 token 在 `.dg3d{}`：`--dg-fl-sig/opt/pwr/gpu/ind/cool/cold/hot/cu/cu-2/trace/air`；
+其中 `--dg-fl-sig/opt/pwr/cool` 寫成 `var(--dg-sig, …)` 那種形式，**style-system 若在 `:root` 定義 `--dg-sig`／`--dg-opt`／`--dg-pwr`／`--dg-cool`，3D 會直接吃它們**。
+
+### 族群晶片列 ↔ 機櫃內元件的連線（v3 §5，style-system 畫線、3D 出端點）
+`Rack3D.current` 上的三支：
+- `pointOf(id)` → `{x, y, front, part, color}`：`id` 是零件 id（`ag_cdu`）或環節 id（`thermal`），回**視窗座標**（引線的終點）與那個零件的元件色；轉到背面 `front=false` 就不要畫線。
+- `colorOf(id)` → 元件色（跟卡片的 `data-dgcolor` 同一個值，晶片上的發光小點用這個）。
+- `partsOf(seg)` → 這個環節在場景裡的零件 id 清單（一個環節可能有好幾顆，例如 thermal → cdu／uqd／fan）。
+每一幀零件在動（自轉、爆炸拆解），所以連線要在 rAF 裡重取 `pointOf`，不能存一次。
+
+### 卡片欄（響應式，Andy 2026-09-22「版面需要左右對齊…會依據螢幕大小變化」）
+容器 `#prod3d.dg3d` 掛 `.dgstage` ＋ 模式 class；**斷點看視窗寬度**（跟 style-system 的 media query 同一組數字），**欄寬看容器寬度**（側欄開著時容器比較窄，欄就縮到下限 220）：
+
+| 模式 class | 視窗寬 | 版面 | 等價的 grid |
+|---|---|---|---|
+| `.dgstage--lr` | ≥ 1280 | `.dgstage-l` ＋ 畫布 ＋ `.dgstage-r` | `minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr)` |
+| `.dgstage--r` | 960～1279 | 畫布 ＋ `.dgstage-r`，卡片全部靠右 | `minmax(0,984px) minmax(220px,1fr)` |
+| `.dgstage--below` | < 960（390 也是） | 畫布，卡片搬進 `.dgstage-b`（一欄、文件流），畫布上用編號圓點 `.ld-no` 標位置 | `1fr` |
+
+欄寬＝那條 grid 解出來的值（`max(220, (容器寬 − 984) / 欄數)`）。
+欄位塞不下時的順序（Andy 2026-09-22：「不准掉到下面」）：① 那一欄的卡片**收成一行**（`.compact`：標題＋英文＋前兩顆晶片；被點的那一張維持全開、滑過暫時展開）→ ② 收了還塞不下才往 `.dgstage-b` 排（畫布上補一個編號圓點）。
+收起來／排到底下的狀態是**黏的**（自轉時投影點每幀都在動，不黏就會閃），欄寬、模式、選取變了才重算。
+引線 `.lead3d` 每 4 幀重算一次，resize 時模式一變就重新取景（`fitCamera`）；模型吃畫布高度的 ~94%（v3 第二輪「畫布要把中欄填滿」）。
+
+### 模式與 token
+- `Rack3D.current.setPal('tech' | 'read')`；舊名字 `soft`／`casual` → `read`、`calm` → `tech`；沒指定就跟全站主題（淺色 → 閱讀）。
+- 3D 專用 token 全部在 `index.html` 的 `.dg3d{}` 與 `.dg3d[data-pal="read"]{}`（打光、材質手感、玻璃、流線、角色色、陰影、卡片）。
+- **材質色仍讀 `:root` 的 `--dg-*`**（#230：2D／3D 同一份）。閱讀模式下 3D 會讀這些 token，style-system 定義 `:root[data-dgpal="read"]` 時請一併給粉彩值，3D 就會自動跟上：
+  `--dg-cer --dg-cover --dg-cu --dg-pcb --dg-si --dg-sn --dg-ni --dg-el --dg-organic --dg-emc --dg-alu --dg-steel --dg-frame --dg-au --dg-edge --dg-abf --dg-vap --dg-wick --dg-mute`
+  （建議：板子鼠尾草綠 `#7fa08a`、矽霧藍 `#7f93b8`、銅赤陶 `#c98b63`、模封暖灰 `#8a847c`、金屬銀 `#b9bfc6`）。
+  這批**沒有**在 3D 那一側另外寫第二份材質色 —— 那正是 #230 要防的事；所以在 root 的 read token 出來之前，閱讀模式的板子與矽是「去飽和的深色」而不是粉彩。
+
 ## 不做的事
 - 不生點陣圖、不引入字型或 CDN
 - 不動 `industry.js` 版面結構（已退回原本格式）

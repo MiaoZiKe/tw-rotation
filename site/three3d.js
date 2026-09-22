@@ -60,6 +60,17 @@
        寫成第一個的位置，整排就會整個偏出機櫃外面（第一版就是這樣，GPU 模組跑到機櫃左邊去了）。
      kind 決定用哪支建造函式（見下面的 PARTS）；沒寫就是一顆方塊。
      seg 對得上 supply_chain.yaml 的環節 id —— 點下去就能帶出該環節的台股。*/
+  /* ★ 2026-09-22 兩種模式（DECISIONS #238，Andy 的三個推薦）之後，每個零件多了三個可選欄位：
+       role  ＝ 這一塊在機器裡扮演的角色，決定它**外殼的半透明色**與卡片的顏色：
+               'sig' 訊號（藍）／'pwr' 電力（橘）／'cool' 液冷與散熱（青綠）／'opt' 光（青）。
+               沒寫的零件外殼走材質色（板子是板子色、金屬是金屬色）。
+       mat   ＝ 材質族（'metal' | 'cer' | 'pcb' | 'cu' | 'glass' | 'plastic' | 'si' | 'sn' | 'organic'），
+               沒寫就照 kind 的預設（FAMILY）。★ 零件的底色**只**來自這裡，不再來自環節色。
+       ex    ＝ 爆炸拆解的位移 [dx, dy, dz]：進場時從原位慢慢拉到這裡（動畫關掉就直接停在這裡）。
+               機櫃是「托盤像抽屜一樣半拉出來」，不是全散開；封裝是層與層垂直懸浮。
+     場景層級：
+       flows ＝ 不屬於某顆零件本身、但掛在它身上的流線（液冷水路、光訊號、風扇氣流），
+               kind 決定顏色 token（--dg-fl-cool／opt／air／sig／pwr）；靜止模式時粒子停、線還在。*/
   const SCENES = {
     ai_server: {
       title: 'AI 伺服器機櫃（NVL72 式）',
@@ -67,39 +78,63 @@
       camera: [86, 62, 96], target: [0, 34, 0], fit: 1,
       parts: [
         { seg: 'assembly', part: 'ag_rack', name: '機櫃與機構件', note: '19吋機櫃、滑軌、鈑金；整櫃出貨前做燒機與水路壓測',
-          kind: 'rack', box: [52, 84, 40], at: [0, 42, 0], frame: true },
+          kind: 'rack', box: [52, 84, 40], at: [0, 42, 0], frame: true, mat: 'glass' },
         { seg: 'switch', part: 'ag_backplane', name: 'NVLink 銅背板', note: '機櫃內把 72 顆 GPU 連成一台（scale-up）；走銅不走光',
-          kind: 'backplane', box: [46, 52, 3], at: [0, 44, -17] },
+          kind: 'backplane', box: [46, 52, 3], at: [0, 44, -17], role: 'sig', ex: [0, 0, -7] },
         { seg: 'switch', part: 'ag_nvswitch', name: 'NVSwitch 托盤', note: 'NVLink 交換晶片，9 台夾在運算托盤之間',
-          kind: 'tray', box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y' },
+          kind: 'tray', box: [44, 2.2, 30], at: [0, 62, 1], n: 3, gap: 6, axis: 'y', role: 'ind', ex: [0, 0, 7] },
         { seg: 'adv_pkg', part: 'ag_gpu', name: '運算托盤 · GPU 模組', note: 'CoWoS-L 封裝：邏輯晶粒（SoIC 堆疊）＋ HBM 放在中介層上',
-          kind: 'gpu', box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x' },
+          kind: 'gpu', box: [9, 2.6, 9], at: [0, 34, 2], n: 4, gap: 10, axis: 'x', role: 'gpu', ex: [0, 0, 11] },
         { seg: 'foundry', part: 'ag_cpu', name: 'CPU（Grace / x86）', note: '與 GPU 同板 C2C 連接，負責排程與資料搬運',
-          kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x' },
+          kind: 'chip', box: [7, 2, 7], at: [0, 34, -11], n: 2, gap: 34, axis: 'x', ex: [0, 0, 11] },
         { seg: 'hbm', part: 'ag_hbm', name: 'HBM4 記憶體', note: '12–16 層 DRAM 用 TSV 打通；base die 改用邏輯製程、由晶圓代工做',
-          kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x' },
+          kind: 'hbm', box: [3, 3.2, 3], at: [0, 34.4, 9], n: 4, gap: 10, axis: 'x', ex: [0, 0, 11] },
+        /* 運算托盤：六塊板子整排像抽屜一樣**半拉出**（+z 11，托盤深 32 的三分之一），
+           板上的 GPU／CPU／HBM／CCL 跟著同一個位移走，拉出來之後晶片才看得見。*/
         { seg: 'hdi_pcb', part: 'ag_pcb', name: '主機板 高階 PCB', note: '托盤底板，50 層以上 MLB／30 層以上 UBB（金像電）；IC 載板是另一個環節（欣興/南電/景碩），供應商完全不同',
-          kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y' },
+          kind: 'pcb', box: [46, 1.2, 32], at: [0, 31, 0], n: 6, gap: 8, axis: 'y', ex: [0, 0, 11] },
+        /* CCL 的卡片色走紅銅（v3 badge 08 橙）：它就是「銅箔」貼在基板上；剖面本身照舊是銅／介電交疊。*/
         { seg: 'ccl', part: 'ag_ccl', name: 'CCL 銅箔基板', note: 'M8/M9 以上超低損耗板材，Df ≤ 0.002 @10GHz；PCB 的原料',
-          kind: 'laminate', box: [46, 0.5, 32], at: [0, 30.2, 0] },
+          kind: 'laminate', box: [46, 0.9, 32], at: [0, 29.9, 0], role: 'cu', ex: [0, 0, 11] },
         { seg: 'thermal', part: 'ag_cdu', alias: ['ag_coldplate'], name: '液冷冷板 / CDU', note: '冷板貼晶片 → UQD 快接頭 → manifold 分歧管 → CDU → 機房一次側',
-          kind: 'cdu', box: [4.5, 64, 4.5], at: [31, 38, 0] },
+          kind: 'cdu', box: [4.5, 64, 4.5], at: [31, 38, 0], role: 'cool', ex: [6, 0, 0] },
+        /* 快接頭走亮橙（v3 §2：亮橙＝電力／快接頭） */
         { seg: 'thermal', part: 'ag_uqd', name: 'UQD 快接頭 / manifold', note: '漏液是 2026 年最被盯的品質風險；OCP 有規格',
-          kind: 'uqd', box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y' },
+          kind: 'uqd', box: [4, 3, 4], at: [24, 20, 12], n: 3, gap: 14, axis: 'y', role: 'pwr', ex: [5, 0, 0] },
         /* 2026-09-18 新增：Andy 舉的例子就是「風扇有扇片」。真的機櫃後門本來就有風扇牆，
-           原本的場景整個漏掉這一段，等於把散熱只畫了液冷那一半。*/
+           原本的場景整個漏掉這一段，等於把散熱只畫了液冷那一半。
+           v3：風扇排的是熱風 → 角色 hot（卡片 11 紅），氣流線本身仍是淡藍白（air）。*/
         { seg: 'thermal', part: 'ag_fan', name: '後門風扇模組', note: '液冷之外仍要帶走記憶體與電源的熱；風扇牆掛在後門',
-          kind: 'fan', box: [13, 13, 5], at: [0, 24, 19], n: 3, gap: 15, axis: 'x' },
+          kind: 'fan', box: [13, 13, 5], at: [0, 24, 19], n: 3, gap: 15, axis: 'x', role: 'hot', ex: [0, 0, 9] },
         { seg: 'power', part: 'ag_psu', name: '電源櫃 PSU', note: '今天是 415V AC 進 PSU → 機櫃內 DC busbar；800V HVDC 是下一世代',
-          kind: 'psu', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y' },
+          kind: 'psu', box: [22, 5, 30], at: [0, 13, 0], n: 3, gap: 6, axis: 'y', role: 'pwr', ex: [0, -2, 9] },
         { seg: 'power', part: 'ag_bbu', name: 'BBU 電池 / 超級電容', note: '掉電到柴發接手之間撐住；超電處理 GPU 毫秒級功率突波',
-          kind: 'battery', box: [18, 4, 26], at: [0, 4, 0] },
+          kind: 'battery', box: [18, 4, 26], at: [0, 4, 0], role: 'pwr', ex: [0, -7, 0] },
         { seg: 'optical', part: 'ag_optic', name: '光模組 / CPO', note: '800G–1.6T 前面板可插拔；CPO 把光引擎搬到交換 ASIC 旁',
-          kind: 'optic', box: [2.4, 1.4, 8], at: [0, 72, 15], n: 8, gap: 4.4, axis: 'x' },
+          kind: 'optic', box: [2.4, 1.4, 8], at: [0, 72, 15], n: 8, gap: 4.4, axis: 'x', role: 'opt', ex: [0, 3, 7] },
         { seg: 'switch', part: 'ag_tor', name: 'ToR 交換器', note: '跨機櫃那張網（scale-out）：InfiniBand 或 Ethernet',
-          kind: 'switch', box: [46, 4, 30], at: [0, 76, 0] },
+          kind: 'switch', box: [46, 4, 30], at: [0, 76, 0], role: 'sig', ex: [0, 3, 0] },
         { seg: 'hyperscaler', part: 'ag_csp', name: '雲端業者 / Neocloud', note: '終端需求：CSP、主權 AI、Neocloud',
-          box: [26, 4, 18], at: [0, 90, 0], ghost: true },
+          box: [26, 4, 18], at: [0, 88, 0], ghost: true, mat: 'glass', ex: [0, 4, 0] },
+      ],
+      /* 流線（Andy 2026-09-22 推薦一：發光流線）。座標是**爆炸之後**的位置。
+         cool：CDU → 頂部 manifold → 沿機櫃後方往下 → 回到 CDU 底部（一個迴路）
+         opt ：光模組往前面板外送出去
+         air ：三顆風扇各一條往後吹的氣流細線 */
+      flows: [
+        /* 冷水去程（螢光藍）從 CDU 頂端沿機櫃後方往下送；熱水回程（發光紅）從底部沿另一側回到 CDU（v3 §3-09）*/
+        { kind: 'cold', part: 'ag_cdu', r: 0.7, per: 14, speed: 0.16,
+          pts: [[37, 70, 0], [30, 74, -8], [0, 72, -13], [-16, 60, -13], [-16, 24, -13], [0, 12, -12], [30, 8, -6], [37, 8, 0]] },
+        { kind: 'hot', part: 'ag_cdu', r: 0.6, per: 12, speed: 0.14,
+          pts: [[37, 12, 4], [30, 10, 10], [-20, 12, -6], [-20, 56, -9], [0, 68, -9], [30, 66, -4], [37, 62, 2]] },
+        { kind: 'opt', part: 'ag_optic', r: 0.35, per: 10, speed: 0.4,
+          pts: [[0, 75, 23], [6, 80, 34], [22, 88, 44]] },
+        { kind: 'air', part: 'ag_fan', line: true, per: 8, speed: 0.3,
+          pts: [[-15, 24, 30], [-16, 27, 40], [-19, 31, 50]] },
+        { kind: 'air', part: 'ag_fan', line: true, per: 8, speed: 0.3,
+          pts: [[0, 24, 30], [0, 28, 40], [0, 33, 50]] },
+        { kind: 'air', part: 'ag_fan', line: true, per: 8, speed: 0.3,
+          pts: [[15, 24, 30], [16, 27, 40], [19, 31, 50]] },
       ],
     },
     /* CoWoS-L 先進封裝：這個場景 2026-09-22 起是 `ai_adv_packaging` 那張圖的 3D
@@ -124,11 +159,13 @@
       title: 'CoWoS-L 先進封裝（立體剖面）',
       sub: '由下往上：BGA → ABF 載板 → C4 → 有機重佈線＋LSI 矽橋 → 微凸塊 → 晶粒與 HBM → 上蓋；載板正反面都有去耦電容',
       camera: [50, 34, 52], target: [0, 7, 0], fit: 1, hk: 0.46,
+      /* 爆炸拆解（ex）：層與層**垂直懸浮**。同一層的東西（矽橋埋在中介層裡、HBM 站在微凸塊上）
+         給同一個位移，拆開之後仍看得出誰跟誰是一組。*/
       parts: [
         { seg: 'abf_pcb', part: 'icp_sub', name: 'ABF 載板', note: 'core ＋ 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板。表面看得到蛇行等長的走線',
           kind: 'substrate', box: [44, 3, 34], at: [0, 1.5, 0] },
         { seg: 'abf_pcb', part: 'icp_bga', name: 'BGA 錫球', note: '載板背面那一整片球，接到主機板；全圖最大的接點',
-          kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x' },
+          kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x', ex: [0, -3, 0] },
         /* ★ 2026-09-22 新增：正面去耦電容。晶粒瞬間抽電時來不及等主機板，
            就近由載板上的電容頂著 —— 這是「板子上真的有被動元件」最基本的一件事。
            `mlccchip` 的識別特徵是端電極包住端部五個面，轉到背面看得到。*/
@@ -136,36 +173,36 @@
           kind: 'mlccchip', box: [2.6, 1.1, 1.5], at: [0, 3.55, 14.5], n: 6, gap: 4.4, axis: 'x',
           codes: ['2327', '2492', '3026', '6173'], chipnote: '做 MLCC 的那幾家（不在半導體鏈的環節名單上）' },
         { seg: 'passive_comp', part: 'icp_lsc', name: '背面去耦電容 LSC', note: '正面擺不下就往背面擺，夾在 BGA 球陣列中間；代價是那一塊的錫球要讓位',
-          kind: 'mlccchip', box: [2.6, 1.0, 1.5], at: [0, -0.5, 6], n: 3, gap: 5.2, axis: 'x',
+          kind: 'mlccchip', box: [2.6, 1.0, 1.5], at: [0, -0.5, 6], n: 3, gap: 5.2, axis: 'x', ex: [0, -3, 0],
           codes: ['2327', '2492', '3026', '6173'], chipnote: '做 MLCC 的那幾家（不在半導體鏈的環節名單上）' },
         /* ★ 2026-09-22 新增：兩層接點。box 的高度 0.9 vs 0.55 刻意差一倍 ——
            2D 整張圖的靈魂就是「接點由下往上一路變小」，3D 不表達出來就等於少了一半。*/
         { seg: 'adv_pkg', part: 'icp_c4', name: 'C4 凸塊', note: '接「載板 ↔ 中介層」，節距 150–200 µm 級；迴焊之後塌成鼓形',
-          kind: 'bump', box: [36, 0.9, 26], at: [0, 3.45, 0], codes: ['2330', '3711'] },
+          kind: 'bump', box: [36, 0.9, 26], at: [0, 3.45, 0], codes: ['2330', '3711'], ex: [0, 3, 0] },
         { seg: 'adv_pkg', part: 'icp_interposer', alias: ['icp_rdl'], name: '中介層：有機重佈線（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
-          kind: 'rdl', box: [36, 1.6, 26], at: [0, 4.7, 0], codes: ['2330', '3711'] },
+          kind: 'rdl', box: [36, 1.6, 26], at: [0, 4.7, 0], codes: ['2330', '3711'], mat: 'organic', ex: [0, 6, 0] },
         { seg: 'adv_pkg', part: 'icp_cowos_l', name: 'LSI 局部矽橋', note: '只埋在兩顆晶粒的交界正下方，負責 die-to-die 的高密度連線 —— 要高密度的地方才用到矽',
-          kind: 'bridge', box: [6, 1, 10], at: [0, 5.1, 0], n: 2, gap: 12, axis: 'x', codes: ['2330', '3711'] },
+          kind: 'bridge', box: [6, 1, 10], at: [0, 5.1, 0], n: 2, gap: 12, axis: 'x', codes: ['2330', '3711'], mat: 'si', ex: [0, 6, 0] },
         { seg: 'adv_pkg', part: 'icp_ubump', name: '微凸塊 µbump', note: '接「中介層 ↔ 晶粒」，銅柱＋錫帽，節距 30–60 µm 級 —— 比下面的 C4 小一個數量級',
-          kind: 'bump', box: [30, 0.55, 22], at: [0, 5.85, 0], codes: ['2330', '3711'] },
+          kind: 'bump', box: [30, 0.55, 22], at: [0, 5.85, 0], codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'foundry', part: 'icp_die', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅、無凸塊），再進 CoWoS-L；四周那一圈空白是切割道',
-          kind: 'die', box: [14, 2.4, 14], at: [0, 7.4, 0] },
+          kind: 'die', box: [14, 2.4, 14], at: [0, 7.4, 0], ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_soic', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，銅墊直接對銅墊，中間沒有任何凸塊',
-          kind: 'die', box: [12, 1.8, 12], at: [0, 9.5, 0], codes: ['2330', '3711'] },
+          kind: 'die', box: [12, 1.8, 12], at: [0, 9.5, 0], codes: ['2330', '3711'], ex: [0, 15, 0] },
         { seg: 'hbm', part: 'icp_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）；貼著晶粒放，線越短越省電',
-          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x' },
+          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_uf', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；側面會爬出一圈圓角。膠的材料以日商為主',
-          box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, codes: ['2330', '3711'] },
+          box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, mat: 'glass', codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'adv_pkg', part: 'icp_stiff', name: 'Stiffener 補強環', note: '圍在載板邊緣的一圈金屬框，大尺寸封裝防翹曲',
-          box: [44, 3.4, 3], at: [0, 4.7, 0], n: 2, gap: 31, axis: 'z', codes: ['2330', '3711'] },
+          box: [44, 3.4, 3], at: [0, 4.7, 0], n: 2, gap: 31, axis: 'z', codes: ['2330', '3711'], mat: 'metal' },
         /* ★ 2026-09-21 更正：以前掛 `osat_test`，那是**封測服務廠**（日月光、力成、京元電、矽格…）。
            做探針卡與測試座的是 `test_interface`（6515 穎崴、6223 旺矽、6510 中華精測、6683 雍智）——
            **設備耗材 ≠ 封測服務**，這正是 AGENTS 半導體鏈那節第 3 條點名的錯。
            掛錯的後果不是「少列幾家」，是**點下去列出一批不做這個東西的公司**。 */
         { seg: 'test_interface', part: 'icp_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
-          kind: 'probe', box: [10, 1.2, 10], at: [26, 2, 18] },
+          kind: 'probe', box: [10, 1.2, 10], at: [26, 2, 18], mat: 'cer' },
         { seg: 'osat_test', part: 'icp_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板；上蓋的腳踩在載板邊緣',
-          box: [40, 2.2, 30], at: [0, 12.6, 0], ghost: true },
+          kind: 'lid', box: [40, 2.2, 30], at: [0, 12.6, 0], ghost: true, mat: 'glass', ex: [0, 20, 0] },
       ],
     },
     /* 被動元件：MLCC 疊層（規格書 docs/diagram_specs/mlcc_stack.md）。
@@ -191,15 +228,16 @@
          `data-seg` 一律保留 passive_comp（顏色連動、環節色標、篩選全靠它），YAML 一行都沒動。
          `chipnote` 是晶片上方那行小字，把「這排是哪一群」講白。
          第三個零件（PCB 焊墊）沒有 codes —— 它不是 MLCC 專屬的結構，照舊走環節名單。 */
+      /* 爆炸拆解：陶瓷本體往上抬出端電極、焊墊往下沉 —— 拆開才看得出「端電極是包住端部的一段」。*/
       parts: [
         { seg: 'passive_comp', part: 'mlcc_body', name: '陶瓷本體與交錯電極', note: '介電層 0.5–2 µm、內電極鎳 Ni 約 0.5 µm；一端進、另一端留餘白，兩把梳子互插但不相碰',
-          kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0],
+          kind: 'mlcc', box: [62, 30, 30], at: [0, 22, 0], ex: [0, 9, 0],
           codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
         { seg: 'passive_comp', part: 'mlcc_term', alias: ['mlcc_term_cons', 'mlcc_term_auto'], name: '端電極（Cu → Ni → Sn）', note: '銅膏約 800–900 °C 燒附 → 鍍 Ni 阻障 → 鍍 Sn 助焊；車規在 Cu 與 Ni 之間多一層導電樹脂（軟端子）',
-          kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0],
+          kind: 'mlccterm', box: [62, 30, 30], at: [0, 22, 0], anchor: [-34, 19, 0],
           codes: ['2327', '2492', '3026', '6173'], chipnote: '「被動元件 MLCC」族群的台股' },
         { seg: 'passive_comp', part: 'mlcc_pad', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
-          kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0] },
+          kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0], ex: [0, -8, 0] },
       ],
     },
   };
@@ -211,41 +249,61 @@
      一律「畫在自己的局部座標、以 box 的中心為原點」，擺位交給外面統一處理。
      K.mat(明暗, 選項) 回傳材質：明暗 > 0 偏亮、< 0 偏暗，同一組參數會共用同一顆材質，
      highlight() 才有辦法一次把整個零件變透明。led:true 的是指示燈（E2 唯一准發光的東西）。 */
-  function kit(THREE, hex, ghost, css) {
-    const base = new THREE.Color(hex);
-    const white = new THREE.Color(0xffffff), dark = new THREE.Color(0x070b14);
+  /* ★★ 2026-09-22 根治「零件底色來自環節色」（DECISIONS #238）。
+       以前 kit(THREE, hex) 的 hex 就是 segColor(seg)：一個場景有幾個環節就有幾個色相，
+       整台機櫃紫粉綠褐混在一起 —— 那正是「一張圖一個主色」的反面。
+       現在：**大塊幾何讀材質族的 token**（板子是板子色、金屬是金屬色），
+       環節色只留給「被點的那一顆」的提亮與卡片上的小圓點（segHex 存在 byIdx，不進材質）。
+     材質族 → token（讀不到就退到後面那個，最後才用 dflt；dflt 跟 :root 的值一樣，只是保險）。*/
+  const FAMILY_TOKENS = {
+    metal:   [['--dg-metal', '--dg-steel'], '#9aa6b4'],
+    cer:     [['--dg-cer'], '#d3cbb7'],
+    pcb:     [['--dg-pcb-3d', '--dg-pcb'], '#1a4230'],   // 科技模式先讀 3D 的板子色（v3 #0F3D3A），閱讀模式交回 root
+    cu:      [['--dg-cu'], '#b0743a'],
+    glass:   [['--dg-glass'], '#8fb6c9'],
+    plastic: [['--dg-plastic', '--dg-frame'], '#1a2540'],
+    si:      [['--dg-si'], '#33488a'],
+    sn:      [['--dg-sn'], '#e2e7ec'],
+    organic: [['--dg-organic'], '#8a6636'],
+    alu:     [['--dg-alu'], '#a3b2c4'],
+    emc:     [['--dg-emc'], '#2f3039'],
+  };
+  // kind 的預設材質族（場景可以用 `mat:` 蓋掉）
+  const FAMILY = {
+    rack: 'glass', backplane: 'pcb', tray: 'metal', gpu: 'cer', chip: 'cer', hbm: 'si', pcb: 'pcb', laminate: 'pcb',
+    cdu: 'metal', uqd: 'metal', fan: 'plastic', psu: 'metal', battery: 'plastic', optic: 'metal', switch: 'metal',
+    substrate: 'organic', balls: 'sn', rdl: 'organic', bridge: 'si', die: 'si', probe: 'cer', lid: 'glass',
+    mlcc: 'cer', mlccterm: 'sn', mlccpad: 'pcb', plain: 'metal',
+    interposer: 'si', bump: 'cu', bga: 'emc', mlccchip: 'cer', inductor: 'emc', resistor: 'cer', ecap: 'alu',
+    heatsink: 'alu', vc: 'cu', heatpipe: 'cu', coldplate: 'cu', connector: 'metal', cable: 'emc', busbar: 'cu',
+    rail: 'metal', screw: 'metal', bracket: 'metal', chassis: 'metal',
+  };
+  /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；閱讀模式是同名 token 的粉彩值）
+       sig 訊號／網通  opt 光  pwr 電力／快接頭  gpu 運算晶粒  ind NVSwitch  cool CDU／manifold
+       cold 冷水  hot 熱水／排熱  cu 紅銅  trace 金色走線  air 氣流 */
+  const ROLE_TOKENS = { sig: '--dg-fl-sig', pwr: '--dg-fl-pwr', cool: '--dg-fl-cool', opt: '--dg-fl-opt', air: '--dg-fl-air',
+    gpu: '--dg-fl-gpu', ind: '--dg-fl-ind', cold: '--dg-fl-cold', hot: '--dg-fl-hot', cu: '--dg-fl-cu', trace: '--dg-fl-trace' };
+  /* 卡片的英文標題（v3 §4 中英雙語）。用零件身分當 key，三個場景共用一張表。*/
+  const EN = {
+    ag_rack: 'Rack & mechanicals', ag_backplane: 'NVLink copper backplane', ag_nvswitch: 'NVSwitch tray',
+    ag_gpu: 'Compute tray · GPU module', ag_cpu: 'CPU (Grace / x86)', ag_hbm: 'HBM4 memory', ag_pcb: 'High-layer-count PCB',
+    ag_ccl: 'CCL copper-clad laminate', ag_cdu: 'Liquid cold plate / CDU', ag_uqd: 'UQD couplings / manifold',
+    ag_fan: 'Rear-door fan module', ag_psu: 'Power shelf PSU', ag_bbu: 'BBU battery / supercap', ag_optic: 'Optical module / CPO',
+    ag_tor: 'ToR switch', ag_csp: 'Cloud / Neocloud',
+    icp_sub: 'ABF substrate', icp_bga: 'BGA solder balls', icp_decap: 'Decoupling MLCCs (top)', icp_lsc: 'Land-side capacitors',
+    icp_c4: 'C4 bumps', icp_interposer: 'Interposer: organic RDL (CoWoS-L)', icp_cowos_l: 'LSI silicon bridge', icp_ubump: 'Micro-bumps',
+    icp_die: 'GPU die (SoIC stack)', icp_soic: 'SoIC top die', icp_hbm: 'HBM4 stack', icp_uf: 'Underfill / MUF',
+    icp_stiff: 'Stiffener ring', icp_probe: 'Probe card / test socket', icp_lid: 'Heat-spreader lid + TIM',
+    mlcc_body: 'Ceramic body & interleaved electrodes', mlcc_term: 'Terminations (Cu → Ni → Sn)', mlcc_pad: 'PCB pads & solder',
+  };
+
+  function kit(THREE, fam, ghost, css, role) {
     const cache = {}, all = [];
     /* 這顆顏色字串是從哪一個 `--dg-*` 讀來的（cssv 登記、mat 取用）。
        為什麼需要：配色切換（applyPal）以前只改飽和與混色，材質的**原色**是建場景那一刻
-       從 CSS 讀進來就固定了。休閒配色會換掉材質 token 本身（陶瓷、鋁、鋼、錫…），
-       沒有這張對照表的話，「3D 開著的時候切到休閒」只會套到混色、原色還是冷的 ——
-       使用者看到的就是「2D 暖、3D 冷」，正好是「不准兩份硬編碼」要防的那件事。*/
+       從 CSS 讀進來就固定了。換模式會換掉材質 token 本身（陶瓷、鋁、鋼、錫…），
+       沒有這張對照表的話，「3D 開著的時候切模式」只會套到混色、原色還是舊的。*/
     const varOf = new Map();
-    const col = (k) => { const c = base.clone(); return k > 0 ? c.lerp(white, k) : (k < 0 ? c.lerp(dark, -k) : c); };
-    function mat(k, o) {
-      o = o || {};
-      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}`;
-      if (cache[key]) return cache[key];
-      const m = new THREE.MeshStandardMaterial({
-        color: o.color ? new THREE.Color(o.color) : col(k || 0),
-        // E2：金屬度與粗糙度改成「實體塑膠／陽極鋁」的手感，不是會反青光的鏡面
-        roughness: o.rough != null ? o.rough : (ghost ? 0.92 : 0.55),
-        metalness: o.metal != null ? o.metal : (ghost ? 0.02 : 0.22),
-        transparent: !!(ghost || o.op != null),
-        opacity: ghost ? 0.14 : (o.op != null ? o.op : 1),
-      });
-      if (o.led) { m.emissive = new THREE.Color(o.color || 0x86f3b4); m.emissiveIntensity = 0.55; m.userData = { led: true }; }
-      if (o.color && varOf.has(o.color)) m.userData = Object.assign(m.userData || {}, { dgvar: varOf.get(o.color) });
-      cache[key] = m; all.push(m);
-      return m;
-    }
-    // 邊線用的 LineBasicMaterial 不是從 mat() 來的，要自己登記，highlight 才吃得到它
-    const reg = (m) => { all.push(m); return m; };
-    /* B5／B6（art-director 2026-09-21）：**材質色一律讀 CSS 變數 `--dg-*`，JS 不寫死 #xxxxxx。**
-       這一支讓零件建造函式拿得到那組變數 —— 以前 3D 的陶瓷是「把環節色 --c 調淡」，
-       所以同一顆電容切到 3D 就從暖米白（42°）變成冷灰白，跟 2D 對不上，
-       而且陶瓷與 Ni／Sn 全是灰白、畫面上分不出哪塊是陶瓷哪塊是金屬。
-       讀不到（沒掛上 DOM、舊瀏覽器）就回 dflt，不要讓整個 3D 掛掉。*/
     const cssv = (name, dflt) => {
       let v = '';
       try { v = css ? css(name) : ''; } catch (e) { v = ''; }
@@ -253,7 +311,46 @@
       if (out) varOf.set(out, name);       // 記下「這個色值來自哪一個 token」，換配色時才回得去重讀
       return out;
     };
-    return { mat, col, reg, css: cssv, mats: all };
+    // 材質族的底色：依序試 token，第一個讀得到的就用
+    const famSpec = FAMILY_TOKENS[fam] || FAMILY_TOKENS.metal;
+    let baseHex = '';
+    for (const n of famSpec[0]) { let v = ''; try { v = css ? css(n) : ''; } catch (e) { v = ''; } if (v) { baseHex = v; varOf.set(v, n); break; } }
+    if (!baseHex) { baseHex = famSpec[1]; varOf.set(baseHex, famSpec[0][0]); }
+    const base = new THREE.Color(baseHex);
+    // col(k) 的兩端也是 token（閱讀模式的暗端不是黑，是暖灰 —— 黏土感就從這裡來）
+    const lit = new THREE.Color(cssv('--dg-lit', '#ffffff')), dim = new THREE.Color(cssv('--dg-dim', '#070b14'));
+    const col = (k) => { const c = base.clone(); return k > 0 ? c.lerp(lit, k) : (k < 0 ? c.lerp(dim, -k) : c); };
+    const roleHex = role && ROLE_TOKENS[role] ? cssv(ROLE_TOKENS[role], '') : '';
+    function mat(k, o) {
+      o = o || {};
+      const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}`;
+      if (cache[key]) return cache[key];
+      /* shell:true ＝ 這是零件的**外殼**：有角色（訊號／電力／液冷）的零件外殼改成該角色的半透明色
+         （Andy 推薦一：「各托盤用溫和但有區隔度的半透明彩色區分」）；沒角色的照材質族。*/
+      const isGlass = !!(o.glass || (o.shell && roleHex));
+      const colorHex = o.color || (o.shell && roleHex ? roleHex : null);
+      const m = new THREE.MeshStandardMaterial({
+        color: colorHex ? new THREE.Color(colorHex) : col(k || 0),
+        // E2：金屬度與粗糙度改成「實體塑膠／陽極鋁」的手感，不是會反青光的鏡面
+        roughness: o.rough != null ? o.rough : (isGlass ? 0.26 : (ghost ? 0.92 : 0.55)),
+        metalness: o.metal != null ? o.metal : (isGlass ? 0.04 : (ghost ? 0.02 : 0.22)),
+        transparent: !!(ghost || isGlass || o.op != null),
+        opacity: isGlass ? 0.3 : (ghost ? 0.14 : (o.op != null ? o.op : 1)),
+      });
+      m.userData = { rough0: m.roughness, metal0: m.metalness };
+      if (isGlass) { m.userData.glass = true; m.depthWrite = false; if (o.shell && roleHex) m.userData.shell = true; }
+      if (o.led) { m.emissive = new THREE.Color(o.color || cssv('--dg-led-c', '#86f3b4')); m.emissiveIntensity = 0.55; m.userData.led = true; }
+      /* glow ＝ 流線（水路、光路、氣流、金色走線、接口燈）：科技模式微發光（--dg-flow-em × glowK），
+         閱讀模式不發光只留顏色。glow 給數字就是那個倍率（走線用 .35，不然一片金光）。*/
+      if (o.glow) { m.emissive = new THREE.Color(colorHex || baseHex); m.userData.glow = true; m.userData.glowK = typeof o.glow === 'number' ? o.glow : 1; }
+      const cv = colorHex || '';
+      if (cv && varOf.has(cv)) m.userData.dgvar = varOf.get(cv);
+      cache[key] = m; all.push(m);
+      return m;
+    }
+    // 邊線用的 LineBasicMaterial 不是從 mat() 來的，要自己登記，highlight 才吃得到它
+    const reg = (m) => { all.push(m); return m; };
+    return { mat, col, reg, css: cssv, mats: all, base: baseHex, role: roleHex, fam };
   }
 
   function mkBuilders(T) {
@@ -262,11 +359,88 @@
     const ball = (r, m) => new T.Mesh(new T.SphereGeometry(r, 12, 9), m);
     const put = (o, x, y, z) => { o.position.set(x || 0, y || 0, z || 0); return o; };
     const edge = (mesh, K, op) => {
-      const e = new T.EdgesGeometry(mesh.geometry);
+      // 倒角過的幾何用 14° 的門檻，不然圓角上每一小段都會被畫成一條線（看起來像毛邊）
+      const e = new T.EdgesGeometry(mesh.geometry, 14);
       mesh.add(new T.LineSegments(e, K.reg(new T.LineBasicMaterial({
         color: K.col(0.3), transparent: true, opacity: op == null ? 0.5 : op }))));
       return mesh;
     };
+
+    /* ================================================================ 圓潤（DECISIONS #238）
+       皮克斯樣張做不到「圓潤」是因為零件全是 BoxGeometry。這裡用 ExtrudeGeometry 的 bevel
+       做倒角方塊：shape 是 (w-2r)×(h-2r) 的圓角矩形、往 z 擠 (d-2r)、兩端各倒 r ——
+       加起來剛好 w×h×d，跟 BoxGeometry 可以直接對調。
+       ★ 只給**大塊機構件**（機櫃柱、托盤、外殼、冷板、風扇框、上蓋）；陣列小件一律不准用
+         （一顆約 300 個三角形，錫球 25 顆就 7,500）。*/
+    function rshape(w, h, r) {
+      const s = new T.Shape(), x = -w / 2, y = -h / 2;
+      s.moveTo(x + r, y);
+      s.lineTo(x + w - r, y); s.absarc(x + w - r, y + r, r, -Math.PI / 2, 0, false);
+      s.lineTo(x + w, y + h - r); s.absarc(x + w - r, y + h - r, r, 0, Math.PI / 2, false);
+      s.lineTo(x + r, y + h); s.absarc(x + r, y + h - r, r, Math.PI / 2, Math.PI, false);
+      s.lineTo(x, y + r); s.absarc(x + r, y + r, r, Math.PI, Math.PI * 1.5, false);
+      return s;
+    }
+    function rboxGeo(w, h, d, r, hole) {
+      r = Math.max(0.02, Math.min(r, w * 0.45, h * 0.45, d * 0.45));
+      const s = rshape(w - 2 * r, h - 2 * r, r);
+      if (hole) {                       // 風扇框：中間挖一個圓，孔的邊也一起倒角
+        const p = new T.Path(); p.absarc(0, 0, hole, 0, Math.PI * 2, true); s.holes.push(p);
+      }
+      const g = new T.ExtrudeGeometry(s, { depth: Math.max(0.02, d - 2 * r), bevelEnabled: true,
+        bevelThickness: r, bevelSize: r, bevelOffset: 0, bevelSegments: 2, steps: 1, curveSegments: 4 });
+      g.center();
+      return g;
+    }
+    const rbox = (w, h, d, r, m, hole) => new T.Mesh(rboxGeo(w, h, d, r, hole), m);
+
+    /* ================================================================ 流線（Andy 2026-09-22 推薦一）
+       粒子改用一張 radial gradient 的 sprite（一張 CanvasTexture，全場共用）：
+       科技模式用加法混色＝微發光的光點；閱讀模式改普通混色＋降不透明度＝柔和半透明的點。
+       沒有 canvas（極舊環境）就退回實心方點。*/
+    let _spriteTex = null;
+    function spriteTex() {
+      if (_spriteTex) return _spriteTex;
+      try {
+        const c = document.createElement('canvas'); c.width = c.height = 64;
+        const x = c.getContext('2d');
+        const g = x.createRadialGradient(32, 32, 2, 32, 32, 30);
+        g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.35, 'rgba(255,255,255,.85)');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        x.fillStyle = g; x.fillRect(0, 0, 64, 64);
+        _spriteTex = new T.CanvasTexture(c);
+      } catch (e) { _spriteTex = null; }
+      return _spriteTex;
+    }
+    /* 一條流線：管（或細線）＋ 沿著它跑的粒子。pts 是世界座標的折點，用 CatmullRom 抹順。
+       回傳的 group 上掛 userData.flow（給 stepFlows 用，跟走線的電流同一套機制）。*/
+    function flowPath(K, spec) {
+      const g = new T.Group();
+      const curve = new T.CatmullRomCurve3(spec.pts.map(a => new T.Vector3(a[0], a[1], a[2])));
+      const colHex = K.css(ROLE_TOKENS[spec.kind] || '--dg-fl-sig', '#4fa3ff');
+      const paths = [curve.getPoints(40)];
+      if (spec.line) {
+        const lg = new T.BufferGeometry().setFromPoints(paths[0]);
+        const lm = K.reg(new T.LineBasicMaterial({ color: new T.Color(colHex), transparent: true, opacity: 0.75 }));
+        lm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowLine: true };
+        g.add(new T.Line(lg, lm));
+      } else {
+        const tm = K.mat(0, { color: colHex, glow: true, rough: 0.35, metal: 0.05, op: 0.9 });
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 48, spec.r || 0.5, 7, false), tm));
+      }
+      const per = spec.per || 10;
+      const arr = new Float32Array(per * 3);
+      const geo = new T.BufferGeometry();
+      geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+      const pm = K.reg(new T.PointsMaterial({
+        size: (spec.r || 0.5) * 4.2 + (spec.line ? 2.2 : 1.2), color: new T.Color(colHex), transparent: true, opacity: 0.9,
+        depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
+      pm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowPts: true };
+      const pt = new T.Points(geo, pm);
+      pt.userData.flow = { paths, per, t: 0, dir: 1, speed: spec.speed || 0.25 };
+      g.add(pt);
+      return g;
+    }
 
     /* ================================================================ 圖九 2-1
        走線 ／ PIN 腳 ／ 電流
@@ -328,9 +502,10 @@
     function traceLayer(K, w, d, y, opt) {
       const o = opt || {};
       const g = new T.Group();
-      const wdt = o.wdt || Math.min(w, d) * 0.012;
+      const wdt = (o.wdt || Math.min(w, d) * 0.012) * 1.3;   // v3 第二輪：線寬加三成，金線才看得見
       const thk = o.thk || wdt * 0.6;
-      const cu = K.mat(0.5, { metal: 0.72, rough: 0.28 });     // 銅
+      // v3 §3：板上的走線是**金色、發光**（--dg-fl-trace；閱讀模式是不發光的淡金）
+      const cu = K.mat(0, { color: K.css('--dg-fl-trace', '#FFD37A'), metal: 0.72, rough: 0.28, glow: 0.7 });
       const pairs = o.pairs || 4, cycles = o.cycles || 5;
       const flows = [];
       const x0 = -w * 0.44, x1 = w * 0.44;
@@ -386,11 +561,12 @@
     }
 
     /* BGA 球陣列：n×n 顆真的球。三顆三顆的看起來像腳墊，不像 BGA。*/
-    function ballGrid(K, pitch, r, n, y) {
+    function ballGrid(K, pitch, r, n, y, segs) {
       // n×n 顆球用 InstancedMesh：25 顆球一個 draw call。
       // 一顆一個 Mesh 的話，六塊板 ×25 顆就是 150 個 draw call，只為了畫錫球。
+      // segs：球的細分（預設 8×6）。板上那種小到只有幾個像素的錫球給 [6,4] 就夠了 —— 三角形數差一倍。
       const m = K.mat(0.35, { metal: 0.6, rough: 0.35 });
-      const im = new T.InstancedMesh(new T.SphereGeometry(r, 8, 6), m, n * n);
+      const im = new T.InstancedMesh(new T.SphereGeometry(r, (segs || [8, 6])[0], (segs || [8, 6])[1]), m, n * n);
       const mx = new T.Matrix4();
       let k = 0;
       for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -405,28 +581,47 @@
        不然半透明色塊會糊成一片、把底下的晶粒洗掉。*/
     function plain(p, K) {
       const g = new T.Group();
-      const m = box(p.box[0], p.box[1], p.box[2], K.mat(0));
+      const m = box(p.box[0], p.box[1], p.box[2], K.mat(0, p.mat === 'glass' ? { glass: true } : null));
       if (p.ghost) edge(m, K, 0.5);
       g.add(m);
       return g;
     }
 
-    // 機櫃：只畫框（實心會把裡面全擋住），再補四根立柱與 U 位安裝孔
+    /* 散熱上蓋：圓角的玻璃罩（拆解圖裡它是最上面那一片，做成霧面玻璃才看得到底下的晶粒），
+       四隻腳踩在載板邊緣 —— 上蓋是靠腳黏在載板上的，不是浮著。*/
+    function lid(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m = rbox(w, h, d, h * 0.35, K.mat(0, { glass: true }));
+      edge(m, K, 0.45); g.add(m);
+      const foot = K.mat(-0.1, { metal: 0.5, rough: 0.4 });
+      const at = [];
+      [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => at.push([sx * (w / 2 - 2), -h * 0.5 - h * 0.6, sz * (d / 2 - 2)]));
+      g.add(instOf(new T.BoxGeometry(4, h * 1.2, 4), foot, at));
+      return g;
+    }
+
+    /* 機櫃（Andy 2026-09-22 推薦一：「機櫃的外框與不重要的金屬板改成半透明或霧面玻璃材質，
+       讓內部托盤看得到」）：四根圓角立柱 ＋ 兩片側板 ＋ 一片後板全部是玻璃，
+       外框線留著（玻璃太透的時候還看得出機櫃的輪廓）。U 位安裝孔改成柱子上的一排小凹點。*/
     function rack(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const gm = new T.BoxGeometry(w, h, d);
       g.add(new T.LineSegments(new T.EdgesGeometry(gm), K.reg(new T.LineBasicMaterial({
-        color: K.col(0.1), transparent: true, opacity: 0.6 }))));
+        color: K.col(0.35), transparent: true, opacity: 0.45 }))));
       gm.dispose();
-      const post = K.mat(-0.25, { metal: 0.45, rough: 0.5 });
+      const glass = K.mat(0, { glass: true });
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) =>
-        g.add(put(box(1.6, h, 1.6, post), sx * (w / 2 - 1), 0, sz * (d / 2 - 1))));
+        g.add(put(rbox(2.2, h, 2.2, 0.7, glass), sx * (w / 2 - 1.1), 0, sz * (d / 2 - 1.1))));
+      // 側板與後板：霧面玻璃（前面留空，托盤才抽得出來）
+      [-1, 1].forEach(sx => g.add(put(box(0.3, h * 0.96, d * 0.9, glass), sx * (w / 2 - 0.15), 0, 0)));
+      g.add(put(box(w * 0.9, h * 0.96, 0.3, glass), 0, 0, -(d / 2 - 0.15)));
       // 機櫃前柱上的 U 位安裝孔：一眼看得出是 19 吋機櫃而不是一個箱子
       const holeM = K.mat(-0.5, { rough: 0.8, metal: 0.1 });
-      for (let i = -6; i <= 6; i += 2) {
-        [-1, 1].forEach(sx => g.add(put(box(0.5, 0.9, 0.5, holeM), sx * (w / 2 - 1), i * (h / 16), d / 2 - 1)));
-      }
+      const holes = [];
+      for (let i = -6; i <= 6; i += 2) [-1, 1].forEach(sx => holes.push([sx * (w / 2 - 1.1), i * (h / 16), d / 2 - 1.1 + 1.0]));
+      g.add(instOf(new T.BoxGeometry(0.5, 0.9, 0.5), holeM, holes));
       return g;
     }
 
@@ -454,26 +649,38 @@
       return g;
     }
 
-    // 托盤／NVSwitch：底板 ＋ 中間一顆晶片 ＋ 散熱鰭片
+    // 托盤／NVSwitch：圓角底板（有角色就是那個角色的半透明色）＋ 中間一顆晶片 ＋ 散熱鰭片
     function tray(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h * 0.5, d, K.mat(-0.2, { metal: 0.4 })));
+      g.add(rbox(w, h * 0.5, d, h * 0.2, K.mat(-0.2, { metal: 0.4, shell: true })));
       g.add(put(box(w * 0.26, h * 0.7, d * 0.4, K.mat(0.1)), 0, h * 0.5, 0));
       const fin = K.mat(0.3, { metal: 0.5, rough: 0.4 });
-      for (let i = -5; i <= 5; i++) g.add(put(box(w * 0.012, h * 1.1, d * 0.38, fin), i * w * 0.028, h * 0.8, 0));
+      const at = [];
+      for (let i = -5; i <= 5; i++) at.push([i * w * 0.028, h * 0.8, 0]);
+      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 1.1, d * 0.38), fin, at));
       return g;
     }
 
-    // GPU 模組：載板 ＋ 中介層 ＋ 晶粒 ＋ 兩側 HBM ＋ 上蓋開口
+    /* GPU 模組：載板 ＋ 中介層 ＋ CoWoS 晶粒（紫，v3）＋ 兩側各 3 顆 HBM 堆疊（每顆 4 層、層縫看得見）＋ 銅質冷板壓在晶粒上
+       ★ v3 §3-04：「處理器上蓋 CoWoS／SoIC 晶粒（紫）＋ HBM4 多層堆疊 6～8 顆（層與層有細縫）」；
+         「銅質水冷頭壓在晶片上」（§3-09）。6 顆 × 4 層 ＝ 24 塊併成一個 mesh，一個 draw call。*/
     function gpu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       g.add(put(box(w, h * 0.3, d, K.mat(-0.3)), 0, -h * 0.35, 0));
       g.add(put(box(w * 0.8, h * 0.18, d * 0.8, K.mat(-0.05, { metal: 0.35 })), 0, -h * 0.11, 0));
-      g.add(put(box(w * 0.4, h * 0.42, d * 0.5, K.mat(0.28, { metal: 0.4, rough: 0.4 })), 0, h * 0.2, 0));
-      const hb = K.mat(0.05, { rough: 0.6 });
-      [-1, 1].forEach(s => { for (let i = -1; i <= 1; i++) g.add(put(box(w * 0.11, h * 0.36, d * 0.2, hb), s * w * 0.3, h * 0.17, i * d * 0.24)); });
+      // CoWoS 晶粒：紫（角色色），emissive 0.6（v3 第二輪：一眼要看得出這一層是運算）
+      g.add(put(box(w * 0.4, h * 0.3, d * 0.5, K.mat(0, { color: K.css('--dg-fl-gpu', '#9B6DFF'), metal: 0.3, rough: 0.35, glow: 0.55 })), 0, h * 0.14, 0));
+      // 銅質冷板：壓在晶粒上的一小片紅銅，金屬度拉高才有高光
+      g.add(put(box(w * 0.46, h * 0.16, d * 0.56, K.mat(0, { color: K.css('--dg-fl-cu', '#E8A97E'), metal: 0.88, rough: 0.22 })), 0, h * 0.37, 0));
+      // HBM 堆疊：兩側各 3 顆、每顆 4 層 DRAM（層縫＝每層之間留 0.2h 的空隙）；層是淡紫（跟運算同一族但退一階）
+      const hb = K.mat(0, { color: K.css('--dg-fl-gpu', '#9B6DFF'), rough: 0.55, metal: 0.15, glow: 0.18 });
+      const layers = [], lay = h * 0.36 / 4;
+      [-1, 1].forEach(s => { for (let i = -1; i <= 1; i++) for (let L = 0; L < 4; L++) {
+        layers.push([w * 0.11, lay * 0.72, d * 0.2, s * w * 0.3, h * 0.0 + L * lay + lay * 0.36, i * d * 0.24]);
+      } });
+      g.add(mboxes(layers, hb));
       return g;
     }
 
@@ -532,6 +739,9 @@
       g.add(tl.group); g.userData.flows = tl.flows;
       // 焊墊：每顆 IC 底下一整片（表面處理鍍金）
       g.add(padField(K, w * 0.22, d * 0.3, h * 0.52, 6, 5));
+      // v3 §3-04：板上的 BGA 錫球陣列（instanced 低細分球）—— 一組 3×3 放在第三顆 IC 旁邊
+      //（六塊板共用同一份幾何；4×4 的 8×6 球一塊板就 1,500 個三角形，六塊板會把場景推破 40,000 的上限）
+      g.add(put(ballGrid(K, w * 0.02, w * 0.007, 3, 0, [6, 4]), w * 0.06, h * 0.56, -d * 0.3));
       // 絲印：三顆 IC 的外框 ＋ 第 1 腳記號
       g.add(silk(K, w, d, h * 0.53, [[-0.3 * w, -0.2 * d, w * 0.13, d * 0.18],
         [0.18 * w, 0.24 * d, w * 0.13, d * 0.18], [0.34 * w, -0.3 * d, w * 0.13, d * 0.18]]));
@@ -543,26 +753,44 @@
       return g;
     }
 
-    // CCL：銅箔 / 玻纖 / 銅箔 三層壓合，一眼看得出它是「板材」不是一塊板子
+    /* CCL／多層板剖面（v3 §3-08）：「50 層以上的層疊剖面（金／銅／綠交疊），層間有微小導通孔」。
+       畫 12 對「銅箔＋介電」交疊（示意，不是真的 50 層 —— 太薄畫不出來），兩個 InstancedMesh；
+       再補一排鍍通孔（pthRow）與表面幾條髮絲走線。*/
     function laminate(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(put(box(w, h * 0.28, d, K.mat(0.42, { metal: 0.6, rough: 0.34 })), 0, h * 0.36, 0));
-      g.add(box(w, h * 0.44, d, K.mat(-0.3, { rough: 0.85, metal: 0.05 })));
-      g.add(put(box(w, h * 0.28, d, K.mat(0.42, { metal: 0.6, rough: 0.34 })), 0, -h * 0.36, 0));
+      const n = 12, pit = h / n;
+      const cu = K.mat(0, { color: K.css('--dg-fl-cu', '#E8A97E'), metal: 0.72, rough: 0.3 });
+      const die = K.mat(-0.3, { rough: 0.85, metal: 0.05 });
+      const cuAt = [], dieAt = [];
+      for (let i = 0; i < n; i++) {
+        const y = -h / 2 + pit * (i + 0.5);
+        cuAt.push([0, y + pit * 0.25, 0]); dieAt.push([0, y - pit * 0.2, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w, pit * 0.28, d), cu, cuAt));
+      g.add(instOf(new T.BoxGeometry(w * 0.995, pit * 0.6, d * 0.995), die, dieAt));
+      g.add(pthRow(K, w, h, d, 12, -d * 0.3));
+      g.add(pthRow(K, w, h, d, 9, d * 0.28));
+      // 表面髮絲走線（金色、微發光）
+      const tl = traceLayer(K, w * 0.9, d * 0.9, h * 0.52, { pairs: 3, cycles: 5, wdt: Math.min(w, d) * 0.006, dir: -1 });
+      g.add(tl.group); g.userData.flows = tl.flows;
       return g;
     }
 
-    // CDU 立柱：機箱 ＋ 幫浦 ＋ 上下進出水管
+    /* CDU 立柱：圓角機箱（液冷角色＝青綠半透明）＋ 幫浦 ＋ 上下進出水管。
+       ★ 進水冷（--dg-cold）、出水熱（--dg-hot）是語意色，任何模式都不准蓋；
+         兩根管子掛 glow —— 科技模式微發光，閱讀模式只留顏色。*/
     function cdu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.1, { metal: 0.35 })));
+      g.add(rbox(w, h, d, w * 0.22, K.mat(-0.1, { metal: 0.35, shell: true })));
       const pump = K.mat(0.2, { metal: 0.5, rough: 0.4 });
       [-0.3, 0.1].forEach(fy => g.add(put(cyl(w * 0.42, h * 0.1, pump), 0, fy * h, 0)));
-      const pipe = K.mat(0.3, { metal: 0.55, rough: 0.35 });
-      [[0.42, 1], [-0.42, -1]].forEach(([fy, sx]) => {
-        const t = put(cyl(w * 0.22, d * 2.4, pipe, 10), sx * w * 0.2, fy * h, -d * 1.0);
+      // v3：冷水管螢光藍、熱水管發光紅（3D 自己的 token，閱讀模式是粉彩版，不發光）
+      const cold = K.mat(0, { color: K.css('--dg-fl-cold', '#58C4FF'), glow: true, metal: 0.2, rough: 0.4 });
+      const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), glow: true, metal: 0.2, rough: 0.4 });
+      [[0.42, 1, cold], [-0.42, -1, hot]].forEach(([fy, sx, m]) => {
+        const t = put(cyl(w * 0.22, d * 2.4, m, 10), sx * w * 0.2, fy * h, -d * 1.0);
         t.rotation.x = Math.PI / 2; g.add(t);
       });
       g.add(put(box(w * 0.5, h * 0.03, d * 0.5, K.mat(0, { led: true })), 0, h * 0.46, d * 0.52));
@@ -588,13 +816,9 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const r = Math.min(w, h) / 2, open = r * 1.64;
-      const fm = K.mat(-0.2, { rough: 0.7 });
-      // 外框：四條邊，中間留空才看得到扇片
-      const tb = (h - open) / 2, lr = (w - open) / 2;
-      g.add(put(box(w, tb, d, fm), 0, (h - tb) / 2, 0));
-      g.add(put(box(w, tb, d, fm), 0, -(h - tb) / 2, 0));
-      g.add(put(box(lr, open, d, fm), -(w - lr) / 2, 0, 0));
-      g.add(put(box(lr, open, d, fm), (w - lr) / 2, 0, 0));
+      const fm = K.mat(-0.2, { rough: 0.7, shell: true });
+      // 外框：一塊圓角方框、中間挖一個圓（ExtrudeGeometry 的 hole）—— 這才是風扇框的樣子
+      g.add(rbox(w, h, d, Math.min(w, h) * 0.08, fm, open / 2));
       const rotor = new T.Group();
       const hub = cyl(r * 0.26, d * 0.8, K.mat(0.1, { metal: 0.45, rough: 0.4 }));
       hub.rotation.x = Math.PI / 2; rotor.add(hub);
@@ -608,6 +832,11 @@
       }
       rotor.userData.spin = { axis: 'z', speed: 2.4 };
       g.add(rotor);
+      /* v3 §3-11：向外旋轉出淡藍白的氣流波紋 —— 兩圈越往外越大、越淡的環（一個 InstancedMesh）。
+         波紋本身是靜的（氣流的「動」由場景層級的 airflow 粒子負責，靜止模式一起停）。*/
+      const airM = K.mat(0, { color: K.css('--dg-fl-air', '#BFE9FF'), glow: 0.6, rough: 0.6, metal: 0, op: 0.36 });
+      g.add(instOf(new T.TorusGeometry(r * 0.7, r * 0.03, 5, 20), airM,
+        [[0, 0, d * 0.9, 0, 0, 0, 1, 1, 1], [0, 0, d * 1.7, 0, 0, 0, 1.25, 1.25, 1]]));
       return g;
     }
 
@@ -615,7 +844,7 @@
     function psu(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15, { metal: 0.35 })));
+      g.add(rbox(w, h, d, h * 0.18, K.mat(-0.15, { metal: 0.35, shell: true })));
       const hole = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
       // ★ 2026-09-22：18 個進氣孔收成一個 InstancedMesh（圓柱預設立著，要放倒才是面對前面板的孔）
       const holes = [];
@@ -627,7 +856,7 @@
       g.add(put(box(w * 0.05, h * 0.16, d * 0.03, K.mat(0, { led: true })), w * 0.38, 0, d / 2 + d * 0.02));
       /* 圖九 2-1：PSU 後端的**直流匯流排端子**。這是電源件最好認的特徵 ——
          一整片厚銅排加上鎖螺絲的孔，跟訊號端子完全不是同一個量級。*/
-      const busM = K.mat(0.5, { color: '#c98a3c', metal: 0.8, rough: 0.3 });
+      const busM = K.mat(0.5, { color: K.css('--dg-cu', '#b0743a'), metal: 0.8, rough: 0.3 });
       const scr = [];
       [-1, 1].forEach(sy => {
         g.add(put(box(w * 0.3, h * 0.13, d * 0.05, busM), sy * w * 0.22, sy * h * 0.22, -d / 2 - d * 0.02));
@@ -643,8 +872,8 @@
     function battery(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const shell = K.mat(-0.3, { rough: 0.75, metal: 0.12 });
-      g.add(put(box(w, h * 0.2, d, shell), 0, -h * 0.4, 0));                                  // 底盤
+      const shell = K.mat(-0.3, { rough: 0.75, metal: 0.12, shell: true });
+      g.add(put(rbox(w, h * 0.2, d, h * 0.08, shell), 0, -h * 0.4, 0));                       // 底盤（圓角托盤）
       [-1, 1].forEach(s => g.add(put(box(w * 0.04, h * 0.62, d, shell), s * (w / 2 - w * 0.02), -h * 0.06, 0)));
       [-1, 1].forEach(s => g.add(put(box(w, h * 0.62, d * 0.03, shell), 0, -h * 0.06, s * (d / 2 - d * 0.015))));
       const cellM = K.mat(0.15, { metal: 0.45, rough: 0.42 });
@@ -654,8 +883,8 @@
       }
       g.add(instOf(new T.CylinderGeometry(w * 0.055, w * 0.055, h * 0.8, 10), cellM, cells3));
       // 端子：一正一負，正極用銅色、負極壓深，遠看就知道哪邊是哪邊
-      g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: '#c98a3a', metal: 0.75, rough: 0.3 })), w * 0.4, h * 0.5, -d * 0.32));
-      g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: '#2b3240', metal: 0.55, rough: 0.5 })), w * 0.4, h * 0.5, d * 0.32));
+      g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.75, rough: 0.3 })), w * 0.4, h * 0.5, -d * 0.32));
+      g.add(put(box(w * 0.1, h * 0.5, d * 0.1, K.mat(0, { color: K.css('--dg-el', '#4e5866'), metal: 0.55, rough: 0.5 })), w * 0.4, h * 0.5, d * 0.32));
       // 電量燈條：四格，這是 E2 之後整個場景唯一准發光的東西
       for (let i = 0; i < 4; i++) {
         g.add(put(box(w * 0.055, h * 0.16, d * 0.02, K.mat(0, { led: true })), (-0.2 + i * 0.075) * w, h * 0.06, d / 2 + 0.06));
@@ -667,7 +896,7 @@
     function optic(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.45, rough: 0.4 })));
+      g.add(box(w, h, d * 0.86, K.mat(0.05, { metal: 0.45, rough: 0.4, shell: true })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
       [-1, 1].forEach(s => g.add(put(box(w * 0.3, h * 0.45, d * 0.1, port), s * w * 0.22, 0, d * 0.44)));
       g.add(put(box(w * 0.7, h * 0.16, d * 0.2, K.mat(0.35, { metal: 0.3, rough: 0.55 })), 0, -h * 0.5, d * 0.52));
@@ -678,16 +907,34 @@
     }
 
     // 交換器：機殼 ＋ 前面板整排埠 ＋ 埠燈
+    /* 交換器（v3 §3-15）：前面板**兩排**微光接口（上排 800G／CPO 光纖接口＝松石綠微光、下排 RJ45／訊號＝藍微光），
+       全部 instanced；再接出三條細彩色線纜到外面（光路青、訊號藍）。*/
     function switchBox(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15, { metal: 0.35 })));
+      g.add(rbox(w, h, d, h * 0.2, K.mat(-0.15, { metal: 0.35, shell: true })));
       const port = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
-      const led = K.mat(0, { led: true });
-      for (let i = -7; i <= 7; i++) {
-        g.add(put(box(w * 0.038, h * 0.32, d * 0.04, port), i * w * 0.06, -h * 0.12, d / 2));
-        if (i % 2 === 0) g.add(put(box(w * 0.016, h * 0.07, d * 0.02, led), i * w * 0.06, h * 0.2, d / 2 + 0.02));
+      const optHex = K.css('--dg-fl-opt', '#22E5C8'), sigHex = K.css('--dg-fl-sig', '#58C4FF');
+      const ledO = K.mat(0, { color: optHex, glow: 1.1, rough: 0.5, metal: 0.1 });
+      const ledS = K.mat(0, { color: sigHex, glow: 0.9, rough: 0.5, metal: 0.1 });
+      const ports = [], lo = [], ls = [];
+      for (let i = -8; i <= 7; i++) {
+        const x = (i + 0.5) * w * 0.055;
+        ports.push([x, h * 0.18, d / 2]); ports.push([x, -h * 0.2, d / 2]);
+        lo.push([x, h * 0.18, d / 2 + 0.03]); ls.push([x, -h * 0.2, d / 2 + 0.03]);
       }
+      g.add(instOf(new T.BoxGeometry(w * 0.04, h * 0.26, d * 0.04), port, ports));
+      // 發光面要夠大（接口面的一大半），不然在 1440 只剩幾個像素、看不出是亮的
+      g.add(instOf(new T.BoxGeometry(w * 0.034, h * 0.2, d * 0.02), ledO, lo));
+      g.add(instOf(new T.BoxGeometry(w * 0.034, h * 0.2, d * 0.02), ledS, ls));
+      // 三條細線纜：從前面板接口垂下去、往外拉（青＝光纖、藍＝銅纜）
+      [[-0.3, optHex], [0.05, optHex], [0.32, sigHex]].forEach(([fx, hex]) => {
+        const curve = new T.CatmullRomCurve3([
+          new T.Vector3(fx * w, h * 0.18, d / 2 + 0.2), new T.Vector3(fx * w + w * 0.04, -h * 0.4, d / 2 + 2.5),
+          new T.Vector3(fx * w + w * 0.1, -h * 1.6, d / 2 + 5), new T.Vector3(fx * w + w * 0.14, -h * 3.4, d / 2 + 6)]);
+        g.add(new T.Mesh(new T.TubeGeometry(curve, 12, h * 0.05, 5, false),
+          K.mat(0, { color: hex, glow: 0.3, rough: 0.6, metal: 0.05 })));
+      });
       return g;
     }
 
@@ -862,12 +1109,14 @@
       g.add(box(w, h, d, K.mat(0, { rough: 0.9, metal: 0.05, color: K.css('--dg-pcb', '#1a4230') })));
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.42, rough: 0.44 });
       const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.35, rough: 0.36 });
-      [-1, 1].forEach(s => {
-        g.add(put(box(w * 0.3, h * 0.6, d * 0.55, cu), s * w * 0.3, h * 0.7, 0));
-        // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
-        const f = ball(w * 0.018, sn); f.scale.set(1.6, 1.8, 9);
-        g.add(put(f, s * w * 0.375, h * 0.98, 0));
-      });
+      /* ★ 2026-09-22：兩塊銅墊併成一個 mesh、兩個焊錫圓角收成一個 InstancedMesh ——
+         省下的 2 個 draw call是給模型底下那片接觸陰影用的（#238「柔和環境陰影」），
+         MLCC 場景的棘輪（93）才守得住。畫出來的東西一個像素都沒變。*/
+      g.add(mboxes([[w * 0.3, h * 0.6, d * 0.55, -w * 0.3, h * 0.7, 0], [w * 0.3, h * 0.6, d * 0.55, w * 0.3, h * 0.7, 0]], cu));
+      // 焊錫圓角：壓扁的球，看得出是「爬上端子側面」的那一圈，不是一顆大球
+      const r = w * 0.018;
+      g.add(instOf(new T.SphereGeometry(r, 12, 9), sn,
+        [[-w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9], [w * 0.375, h * 0.98, 0, 0, 0, 0, 1.6, 1.8, 9]]));
       return g;
     }
 
@@ -1366,7 +1615,9 @@
     }
 
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
-      optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe,
+      optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
+      // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
+      _rbox: rbox, _flowPath: flowPath, _spriteTex: spriteTex,
       mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
       /* ---- 第一層零件字彙（2026-09-22）。舊的 kind 一個都沒有拿掉：
          21 張既有場景照舊走原本那幾支，新的是**多出來的詞**，不是換掉。*/
@@ -1395,15 +1646,31 @@
     // hk：畫面高度佔寬度的比例。機櫃是直立的要高（0.62）；封裝剖面又寬又扁，
     // 給它一樣高只會上下留一大片空白，所以那個場景自己指定 0.46。
     const H = () => Math.max(340, Math.round(Math.min(700, el.clientWidth * (spec.hk || 0.62))));
-    // E1：標籤欄佔掉畫面左右各一塊，模型要縮進中間那段才不會被文字框壓到
-    const narrow = () => W() < 560;
-    const colW = () => (narrow() ? Math.min(158, Math.round(W() * 0.40)) : Math.max(112, Math.min(212, Math.round(W() * 0.23))));
+    /* ★ 2026-09-22 響應式的卡片欄（Andy：「版面需要左右對齊，適當分配左右間隔，讓版面更滿…
+       並且會依據螢幕大小變化」）。斷點看**視窗寬度**（跟 style-system 的 media query 同一組數字），
+       欄寬看**容器寬度**（側欄開著時容器比較窄，欄就照 grid 的解縮到下限 220）：
+         lr     視窗 ≥ 1280：左右兩欄卡片夾著 3D（等於 grid：minmax(220px,1fr) minmax(0,984px) minmax(220px,1fr)）
+         r      960～1279：只留右欄，卡片全部靠右（minmax(0,984px) minmax(220px,1fr)）
+         below  < 960：卡片移到 3D 底下排成一欄；3D 上改用**編號圓點**標位置（引線只給被選的那一顆）
+       欄寬＝那條 grid 的解：1fr 分剩下的、但不少於 220。class 名跟 style-system 共用
+       （dgstage / dgstage-l / dgstage-r / dgstage-b，寫在 docs/diagram_restyle_plan.md）。*/
+    const COL_MIN = 220, STAGE_MAX = 984;
+    const vw = () => (window.innerWidth || W());
+    const mode = () => (vw() >= 1280 ? 'lr' : (vw() >= 960 ? 'r' : 'below'));
+    const colW = () => { const m = mode(); if (m === 'below') return 0;
+      return Math.max(COL_MIN, Math.round((W() - STAGE_MAX) / (m === 'lr' ? 2 : 1))); };
+    const cols = () => (mode() === 'lr' ? 2 : (mode() === 'r' ? 1 : 0));
+    const narrow = () => mode() !== 'lr';
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(38, W() / H(), 1, 2000);
     camera.position.set(spec.camera[0], spec.camera[1], spec.camera[2]);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    /* 電影感打光（DECISIONS #238）：ACES 色調映射讓亮部柔和收斂，主光可以開大而不會整片爆白；
+       曝光量走 token（--dg-expo），兩種模式各自調。*/
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(W(), H());
     renderer.domElement.style.display = 'block';
@@ -1422,32 +1689,67 @@
     lead.setAttribute('class', 'lead3d');
     lead.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;pointer-events:none';
     layer.appendChild(lead);
+    // 兩欄（疊在畫布左右）＋ 一個「底下那一排」（窄畫面時卡片搬到這裡，走正常的文件流）
+    const colL = document.createElement('div'); colL.className = 'dgstage-l';
+    const colR = document.createElement('div'); colR.className = 'dgstage-r';
+    layer.appendChild(colL); layer.appendChild(colR);
     el.appendChild(layer);
+    const below = document.createElement('div'); below.className = 'dgstage-b'; below.hidden = true;
+    el.appendChild(below);
+    el.classList.add('dgstage');
 
     /* E2：打光改成「棚拍」而不是「霓虹」。
        原本有一盞青色 rim light（0x3ee0ff）＋ 每顆材質都帶 emissive，
        所以不管什麼零件都像在發光 —— Andy 說的螢光感就是這兩件事加起來。
        現在：天空光壓低、主光白、補光是中性冷白、底下一點回彈，rim 拿掉。*/
-    const hemi = new THREE.HemisphereLight(0x99a7c2, 0x0b1120, 0.62); scene.add(hemi);
+    /* 2026-09-22 兩種模式：燈的**顏色與強度全部是 token**（--dg-l-*／--dg-key…），applyPal 會重讀。
+       閱讀模式＝大半球光 ＋ 低主光（柔和環境光遮蔽感、沒有強高光）；
+       科技模式＝主光偏強 ＋ 一盞從後方來的冷白輪廓光（電影感）。這裡先給一個中性的起始值。*/
+    const hemi = new THREE.HemisphereLight(0xffffff, 0x000000, 0.62); scene.add(hemi);
     const key = new THREE.DirectionalLight(0xffffff, 1.0); key.position.set(60, 90, 70); scene.add(key);
-    const fill = new THREE.DirectionalLight(0xc7d2e6, 0.34); fill.position.set(-70, 40, -60); scene.add(fill);
-    const bounce = new THREE.DirectionalLight(0x8fa0bd, 0.16); bounce.position.set(0, -60, 20); scene.add(bounce);
+    const fill = new THREE.DirectionalLight(0xffffff, 0.34); fill.position.set(-70, 40, -60); scene.add(fill);
+    const bounce = new THREE.DirectionalLight(0xffffff, 0.16); bounce.position.set(0, -60, 20); scene.add(bounce);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.0); rim.position.set(-40, 50, -90); scene.add(rim);
 
     const root = new THREE.Group(); scene.add(root);
     const picks = [];            // 可以點的 group
+    /* frames：機櫃框那種「透過它點裡面的東西」的零件（frame:true）。
+       ★ 2026-09-22：以前完全不參與 raycast，於是從側面看、射線從托盤縫隙穿過去、
+         只碰到玻璃側板的時候，點下去等於點到背景 —— 驗收就會偶爾紅（跟相機轉到哪有關）。
+         現在它排在**最後一順位**：射線先找非框的零件，都沒有才算點到框（＝選到「機櫃與機構件」）。*/
+    const frames = [];
     const byIdx = [];            // 每個零件的所有 mesh + 材質，highlight 時用
     const spinners = [];         // E4：會自己轉的東西（風扇葉輪）
     const leds = [];             // E4：會呼吸的指示燈材質
     const flowPts = [], flowAll = [], flowSeen = new Set();   // 圖九 2-1：電流粒子
     let labelDown = null;        // 這次按下去是從某個標籤開始的（可能只是想轉視角）
+    let stickyBelow = new Set(); // 被排到底下那一排的卡片（黏住，直到欄寬／模式／選取變了才重排）；宣告在這裡是為了避開 TDZ
+    let compactSide = { L: false, R: false };   // 這一欄的卡片有沒有收成一行（同樣黏住，同樣在欄寬／模式／選取變了才重算）
+
+    const cssRead = (n) => getComputedStyle(el).getPropertyValue(n).trim();
+    /* 爆炸拆解（DECISIONS #238）：每個 group 記住「原位」與「拆開的位移」，
+       expT 0→1 之間插值。進場時動畫拉開；動畫關掉就直接停在拆開的狀態。*/
+    let expT = 0;
+    const explodable = [];
+    const applyExplode = (t) => {
+      expT = Math.max(0, Math.min(1, t));
+      explodable.forEach(g => {
+        const b = g.userData.base, e = g.userData.ex;
+        g.position.set(b.x + e[0] * expT, b.y + e[1] * expT, b.z + e[2] * expT);
+      });
+    };
 
     spec.parts.forEach((p, idx) => {
-      const hex = o.color(p.seg) || '#8ea0c4';
+      const hex = o.color(p.seg) || '#8ea0c4';       // 環節色：只給卡片的小圓點與「被點的那一顆」
       // 零件身分：沒宣告就自動補一個（同場景內唯一，但跟 2D 的 data-part 對不起來）
       const pkey = p.part || (p.seg + '#3d' + idx);
-      const K = kit(THREE, hex, p.ghost, (n) => getComputedStyle(el).getPropertyValue(n).trim());
+      const fam = p.mat || FAMILY[p.kind] || 'metal';
+      const K = kit(THREE, fam, p.ghost, cssRead, p.role);
       const build = B[p.kind] || B.plain;
       const proto = build(p, K);
+      // 引線的錨點用**真的**外接盒頂端：kind 畫出來的東西常常比 box 高（鰭片、上蓋、扇框）
+      const bb = new THREE.Box3().setFromObject(proto);
+      const topY = Number.isFinite(bb.max.y) ? bb.max.y : p.box[1] / 2;
       const n = p.n || 1, gap = p.gap || 0, axis = p.axis || 'x';
       const groups = [], meshes = [];
       for (let i = 0; i < n; i++) {
@@ -1457,7 +1759,9 @@
         g.position.set(p.at[0] + (axis === 'x' ? off : 0),
           p.at[1] + (axis === 'y' ? off : 0),
           p.at[2] + (axis === 'z' ? off : 0));
-        g.userData = { seg: p.seg, part: pkey, idx, name: p.name, note: p.note };
+        g.userData = { seg: p.seg, part: pkey, idx, name: p.name, note: p.note,
+          base: g.position.clone(), ex: p.ex || [0, 0, 0], frame: !!p.frame };
+        if (p.ex) explodable.push(g);
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.userData && x.userData.spin) spinners.push(x);
@@ -1469,25 +1773,60 @@
           if (x.isPoints && x.userData && x.userData.flow) flowAll.push(x);
         });
         root.add(g); groups.push(g);
-        if (!p.frame) picks.push(g);
+        if (!p.frame) picks.push(g); else frames.push(g);
       }
+      /* 場景層級的流線（水路／光路／氣流）掛在指定的零件上：跟它共用材質工具箱，
+         點別的環節時它會跟著零件一起淡出；粒子跟走線的電流走同一套 stepFlows。*/
+      (spec.flows || []).filter(f => f.part === pkey).forEach(f => {
+        const fg = B._flowPath(K, f);
+        fg.userData = { seg: p.seg, part: pkey, idx, flowOf: pkey };
+        fg.traverse(x => {
+          if (x.isMesh) meshes.push(x);
+          if (x.isPoints && x.userData && x.userData.flow) { flowPts.push(x); flowAll.push(x); flowSeen.add(x.geometry); }
+        });
+        root.add(fg); groups.push(fg);
+      });
       K.mats.forEach(m => { if (m.userData && m.userData.led) leds.push(m); });
+      /* 卡片跟到的「元件顏色」：有角色就是角色色（訊號藍／電力橘／液冷青綠），沒有就是材質族的底色。
+         ★ 太暗的底色（板子的墨綠、矽的深藍、模封的黑）拿去當編號圓點會變成「黑底黑字」，
+           所以亮度不夠的往 --dg-lit 拉到看得見為止 —— 圓點上的字是深色的，圓點一定要亮。*/
+      const elColor = (() => {
+        const c = new THREE.Color(K.role || K.base);
+        const hsl = {}; c.getHSL(hsl);
+        if (hsl.l < 0.48) c.lerp(new THREE.Color(cssRead('--dg-lit') || '#ffffff'), (0.48 - hsl.l) / (1 - hsl.l) * 1.15);
+        return '#' + c.getHexString();
+      })();
       byIdx[idx] = {
         seg: p.seg, part: pkey, alias: p.alias || [], groups, meshes, hex, ghost: !!p.ghost, name: p.name, note: p.note,
+        fam, role: p.role || '', elColor, kit: K,
         mats: K.mats.slice(),
         baseOp: new Map(K.mats.map(m => [m, m.opacity])),
         baseCol: new Map(K.mats.map(m => [m, m.color.clone()])),
-        // 引線接在零件頂端中央：接在中心的話線會插進零件裡看不到
-        anchor: new THREE.Vector3(0, p.box[1] / 2, 0),
+        // 引線接在零件頂端中央：接在中心的話線會插進零件裡看不到。
+        // 零件可以自己指定 anchor（例如 MLCC 的端電極是兩端各一塊，中間是空的，頂端中央會指到空氣）
+        anchor: p.anchor ? new THREE.Vector3(p.anchor[0], p.anchor[1], p.anchor[2]) : new THREE.Vector3(0, topY, 0),
       };
 
-      // 標籤：DOM 疊上去，不是畫進畫布，所以選得起來、也還驗得到文字重疊
+      /* 標籤：DOM 疊上去，不是畫進畫布，所以選得起來、也還驗得到文字重疊。
+         2026-09-22 卡片語言（DECISIONS #238 ＋ Andy 推薦一）：編號圓點 ＋ 名稱 ＋ 說明 ＋ 台股晶片。
+         給 style-system 那邊的介面（寫在 docs/diagram_restyle_plan.md）：
+           --c             ＝ 這張卡片指到的元件顏色（邊框、編號圓點、引線、端點都用它）
+           data-dgcolor    ＝ 同上（給不吃 CSS 變數的量測用）
+           data-dgseg      ＝ 環節色（小圓點 .segdot 用；點零件時零件本體只提亮到這個顏色）
+           data-dgno       ＝ 編號（01、02…，畫在 em.no3d 裡）
+           data-dgrole     ＝ sig|pwr|cool|opt|''（角色，style-system 想依角色配色可以用）*/
       const d = document.createElement('div');
       d.className = 'lbl3d';
-      d.innerHTML = `<b></b><i></i><u class="chips3d"></u>`;
+      d.innerHTML = `<em class="no3d"></em><b></b><i></i><u class="chips3d"></u>`;
+      d.querySelector('em').textContent = String(idx + 1).padStart(2, '0');
       d.querySelector('b').textContent = p.name;
+      // v3 §4 中英雙語標題：英文一行排在中文底下
+      if (EN[pkey]) { const en = document.createElement('small'); en.className = 'en'; en.textContent = EN[pkey]; d.querySelector('b').appendChild(en); }
       d.querySelector('i').textContent = p.note || '';
       d.dataset.seg = p.seg;
+      d.dataset.dgcolor = elColor; d.dataset.dgseg = hex; d.dataset.dgno = String(idx + 1).padStart(2, '0');
+      d.dataset.dgrole = p.role || ''; d.dataset.dgpart = pkey;
+      d.style.setProperty('--seg', hex);
       /* 圖九 2-3（規格書 docs/diagram_specs/dg3d_standard.md）：
          說明底下掛一排「這個環節的台股」，點了直接進個股頁。
          以前標籤只是死的文字 —— 使用者看得到「ABF 載板」，卻要自己回去翻是誰做的。
@@ -1529,7 +1868,8 @@
           chipBox.appendChild(more);
         }
       }
-      d.style.setProperty('--c', hex);     // 文字框左邊那條色帶＝環節色，一眼對得上零件
+      d.style.setProperty('--c', elColor);   // 卡片的顏色＝它指到的元件的顏色（同色系串聯）
+      d.style.setProperty('--dg-card-c', elColor);   // style-system 的卡片 CSS 吃這個名字（docs/diagram_restyle_plan.md）
       // 標籤本身也要可以點：機櫃裡的小零件（UQD、光模組）用滑鼠很難精準打到，
       // 點名字是最直覺的路。父層 pointerEvents 是 none，這裡個別開回來。
       d.style.pointerEvents = 'auto';
@@ -1537,6 +1877,9 @@
       d.title = p.note || p.name;
       d.addEventListener('pointerdown', (e) => {
         labelDown = { seg: p.seg, data: { seg: p.seg, part: pkey, idx, name: p.name, note: p.note } };
+        /* 窄畫面時卡片在畫布底下、走文件流：按卡片就只是選它，**不要**轉給畫布 ——
+           轉過去等於「手指一碰清單就開始轉機櫃」，頁面也捲不動。*/
+        if (lastMode === 'below') { downAt = { x: e.clientX, y: e.clientY }; return; }
         /* 標籤蓋在畫布上，按在它上面畫布收不到 pointerdown，整台機櫃就轉不動了
            （驗收 1 就是這樣掛的）。把這個 pointerdown 原樣轉給畫布，OrbitControls
            會接手並 setPointerCapture，之後的移動與放開都走畫布那條路。 */
@@ -1547,16 +1890,45 @@
         }));
         e.preventDefault();
       });
-      layer.appendChild(d);
+      colR.appendChild(d);                 // 先放右欄，layoutLabels 會依模式搬
       byIdx[idx].el = d;
-      // 引線：一條折線 ＋ 零件端的小圓點
+      // 引線：一條折線 ＋ 零件端的小圓點（科技模式外面再套一圈發光暈，用 CSS 的 filter 做）
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('class', 'ld');
+      const halo = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      halo.setAttribute('class', 'ld-halo'); halo.setAttribute('r', '6');
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('class', 'ld-dot'); dot.setAttribute('r', '2.6');
-      lead.appendChild(path); lead.appendChild(dot);
-      byIdx[idx].path = path; byIdx[idx].dot = dot;
+      // 窄畫面用的編號圓點（畫在零件的投影點上；卡片在底下用同一個編號對得起來）
+      const no = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      no.setAttribute('class', 'ld-no');
+      const noC = document.createElementNS('http://www.w3.org/2000/svg', 'circle'); noC.setAttribute('r', '9');
+      const noT = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      noT.setAttribute('text-anchor', 'middle'); noT.setAttribute('dy', '4.2'); noT.textContent = String(idx + 1).padStart(2, '0');
+      no.appendChild(noC); no.appendChild(noT); no.style.display = 'none';
+      [path, halo, dot, no].forEach(x => { x.style.setProperty('--c', elColor); x.style.setProperty('--dg-card-c', elColor); lead.appendChild(x); });
+      dot.setAttribute('stroke', elColor);        // main 的 .ld-dot 是「底色填滿 ＋ 元件色描邊 ＋ 元件色光暈」，描邊由這裡餵
+      byIdx[idx].path = path; byIdx[idx].dot = dot; byIdx[idx].halo = halo; byIdx[idx].no = no;
     });
+
+    /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
+       太貴；改用一片 radial gradient 的圓盤墊在模型底下 —— 1 個 draw call、40 個三角形。
+       大小照**拆開之後**的外接盒算，顏色與不透明度走 token（--dg-shadow／--dg-shadow-a）。*/
+    applyExplode(1);
+    const shadowMat = new THREE.MeshBasicMaterial({ map: B._spriteTex ? B._spriteTex() : null, transparent: true,
+      opacity: 0.4, depthWrite: false, color: new THREE.Color('#000000') });
+    shadowMat.userData = { shadow: true };
+    const shadowMesh = (() => {
+      const bb = new THREE.Box3().setFromObject(root);
+      const sz = bb.getSize(new THREE.Vector3());
+      const m = new THREE.Mesh(new THREE.CircleGeometry(1, 40), shadowMat);
+      m.rotation.x = -Math.PI / 2;
+      m.scale.set(Math.max(sz.x, 1) * 0.72, Math.max(sz.z, 1) * 0.72, 1);
+      m.position.set((bb.min.x + bb.max.x) / 2, bb.min.y - 0.4, (bb.min.z + bb.max.z) / 2);
+      m.renderOrder = -1;
+      return m;
+    })();
+    scene.add(shadowMesh);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.08;
@@ -1588,10 +1960,13 @@
       /* 用「外接盒」而不是「外接球」算距離：球對又扁又寬的封裝剖面會多退 30%，
          畫面中間只剩一小塊。半個深度是留給轉動時最靠近相機的那一角。
          E1 之後左右各被標籤欄吃掉一塊，所以水平方向要照「還剩多寬」再退一點。 */
-      const usable = Math.max(140, W() - colW() * (narrow() ? 1 : 2));
+      const usable = Math.max(140, W() - colW() * cols());
       const shrink = W() / usable;
       const halfW = Math.max(size.x, size.z) / 2 * shrink, halfH = size.y / 2, halfD = Math.max(size.x, size.z) / 2;
-      const dist = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) + halfD) * 1.06 * (spec.fit || 1);
+      /* 2026-09-22 第二輪（Andy：「畫布要把中欄填滿」）：模型要吃到畫布高度的 ~90%。
+         以前是「外接盒 ＋ 整個半深度 ＋ 6% 邊」，機櫃只佔六成、四周一大片黑。
+         現在外接盒佔 94%、轉動的深度餘量只留三分之一（最靠近相機的那一角偶爾會貼邊，接受）。*/
+      const dist = (Math.max(halfH / Math.tan(vfov / 2), halfW / Math.tan(hfov / 2)) / 0.94 + halfD * 0.33) * (spec.fit || 1);
       const dir = new THREE.Vector3(spec.camera[0], spec.camera[1], spec.camera[2])
         .sub(new THREE.Vector3(spec.target[0], spec.target[1], spec.target[2])).normalize();
       controls.target.copy(sph.center);
@@ -1610,7 +1985,14 @@
     // 零件現在是 Group（E3 之後一個零件好幾顆 mesh），所以 raycast 要遞迴，
     // 打到的是某顆小零件 —— 往上走到帶 seg 的那一層才知道它屬於誰
     const owner = (obj) => { let x = obj; while (x && !(x.userData && x.userData.seg)) x = x.parent; return x; };
-    const hit = () => { ray.setFromCamera(ptr, camera); const xs = ray.intersectObjects(picks, true); return xs[0] && owner(xs[0].object); };
+    const hit = () => {
+      ray.setFromCamera(ptr, camera);
+      const xs = ray.intersectObjects(picks.concat(frames), true);
+      // 先找非框的零件（透過玻璃點得到裡面的托盤），一個都沒有才算點到框本身
+      const inner = xs.find(x => { const g = owner(x.object); return g && !g.userData.frame; });
+      const pick = inner || xs[0];
+      return pick && owner(pick.object);
+    };
     renderer.domElement.addEventListener('pointerdown', (e) => { downAt = { x: e.clientX, y: e.clientY }; hold(); });
     const onUp = (e) => {
       const from = labelDown; labelDown = null;
@@ -1631,6 +2013,7 @@
     // 沒抓到 pointer capture 時（少數瀏覽器）放開會落在標籤上，補一條同樣的路；
     // onUp 第一次跑完就把 downAt 清掉，所以兩邊都收到也只會處理一次。
     layer.addEventListener('pointerup', onUp);
+    below.addEventListener('pointerup', onUp);      // 窄畫面時卡片在底下那一排，放開也要收得到
     renderer.domElement.addEventListener('pointermove', (e) => {
       toNdc(e); renderer.domElement.style.cursor = hit() ? 'pointer' : 'grab';
     });
@@ -1639,6 +2022,12 @@
        動態＝場景緩慢自轉 ＋ 風扇轉 ＋ 指示燈呼吸；靜止＝一律不動。
        使用者一動手就先把自轉停掉（不然會跟他搶方向），放開兩秒半再接回去。*/
     let anim = o.anim !== false, userHold = false, holdT = null;
+    /* 爆炸拆解的進場動畫：從原位（0）慢慢拉開到拆開（1），1.6 秒 ease-out。
+       系統設定「減少動態效果」或動畫關掉 → 直接停在拆開的狀態。*/
+    let expAnim = null;
+    const reduced = (() => { try { return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch (e) { return false; } })();
+    if (anim && !reduced) { applyExplode(0); expAnim = { t0: performance.now(), dur: 1600 }; }
+    else applyExplode(1);
     const applyAuto = () => { controls.autoRotate = anim && !userHold; };
     function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
@@ -1651,6 +2040,8 @@
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
       flowAll.forEach(x => { x.visible = anim; });
       if (!anim) {
+        // 動畫關掉：爆炸拆解直接停在拆開的狀態（DECISIONS #238），不留一半
+        if (expT < 1) { applyExplode(1); expAnim = null; }
         // 靜止時燈定在中間亮度；亮度基準由色票決定（soft 是 0，完全不發光）
         const lb = palNum('--dg-led', 0.55);
         leds.forEach(m => { m.emissiveIntensity = lb; });
@@ -1685,10 +2076,14 @@
        ★ 3D 這一側**沒有第二份色值** —— 零件的材質色是從 :root[data-dgpal="casual"] 的
        `--dg-*` 讀進來的（K.css），跟 2D 剖析圖同一份定義；這裡只有背景／混色／打光，
        那些本來就是 3D 才有的東西。原本三個配色一個值都沒動。*/
-    /* 2026-09-22（art-director）：四個配色收斂成兩種模式 —— 科技／閱讀（docs/diagram_specs/_STYLE.md）。
-       這裡只認名字；背景、混色、打光、發光的值在 index.html 的 .dg3d[data-pal="read"]，材質色在 :root[data-dgpal="read"]。*/
+    /* ★ 2026-09-22 DECISIONS #238：只剩兩種模式 —— 暗色「科技」／亮色「閱讀」。
+       舊的 soft／calm／casual 不再是模式，但舊的 localStorage 與還沒改版的鈕會送這些名字進來，
+       一律映射（柔和、休閒 → 閱讀；沉穩 → 科技），不要讓 3D 因為一個舊名字掛掉。
+       沒指定就跟著全站主題：淺色主題 → 閱讀、深色主題 → 科技。*/
     const PALS = ['tech', 'read'];
     const PAL_NAME = { tech: '科技', read: '閱讀' };
+    const PAL_LEGACY = { soft: 'read', casual: 'read', calm: 'tech' };
+    const palByTheme = () => { try { return document.documentElement.dataset.theme === 'light' ? 'read' : 'tech'; } catch (e) { return 'tech'; } };
     const origCol = new Map();          // 零件的「原色」，換色票一律從這裡重算，不要疊加
     let pal = 'tech';
     /* 這兩支刻意寫成 function 宣告（會被提升）—— setAnim() 在色票區塊「之前」就會被呼叫一次，
@@ -1709,15 +2104,22 @@
       try { return new THREE.Color(v); } catch (e) { return null; }
     }
     function applyPal(name) {
-      if (name) { pal = PALS.includes(name) ? name : 'tech'; }
+      if (name) { pal = PALS.includes(name) ? name : (PAL_LEGACY[name] || 'tech'); }
       el.dataset.pal = pal;
+      /* 材質色與卡片 token 讀的是 :root[data-dgpal] 那一份（2D／3D 同一份，#230）。
+         industry.js 的鈕會先掛 html 的 data-dgpal 再叫 setPal；直接叫 setPal 的（驗收、console）也要對得起來，
+         不然 3D 說自己是閱讀、root 還是科技 —— 板子是深色的、卡片是白的、字卻是淺色。*/
+      try { if (document.documentElement.dataset.dgpal !== pal) document.documentElement.dataset.dgpal = pal; } catch (e) { /* 忽略 */ }
       const mix = palCol('--dg-mix', '#ffffff'), k = palNum('--dg-mix-k', 0), sat = palNum('--dg-sat', 1);
+      // 材質手感：閱讀模式把粗糙度整組拉高、金屬度整組壓低（霧面塑膠、陶瓷、黏土）；科技模式維持原值
+      const roughK = palNum('--dg-rough-k', 1), metalK = palNum('--dg-metal-k', 1);
+      const glassA = palNum('--dg-glass-a', 0.3), shellA = palNum('--dg-shell-a', 0.5), flowEm = palNum('--dg-flow-em', 0), flowA = palNum('--dg-flow-a', 0.9);
       const hsl = {};
       byIdx.forEach(p => {
         if (!p) return;
         p.mats.forEach(m => {
-          /* 這顆材質的顏色是某個 --dg-* 來的 → 每次換配色都回去重讀。
-             休閒配色會換掉材質 token 本身，只靠 origCol 的快照會停在上一個配色的原色。*/
+          /* 這顆材質的顏色是某個 --dg-* 來的 → 每次換模式都回去重讀。
+             閱讀模式會換掉材質 token 本身，只靠 origCol 的快照會停在上一個模式的原色。*/
           const vn = m.userData && m.userData.dgvar;
           if (vn) { const c0 = palColOpt(vn); if (c0) origCol.set(m, c0); }
           if (!origCol.has(m)) origCol.set(m, m.color.clone());
@@ -1725,15 +2127,31 @@
           c.getHSL(hsl); c.setHSL(hsl.h, hsl.s * sat, hsl.l);
           if (k > 0) c.lerp(mix, k);
           p.baseCol.set(m, c.clone());
+          const ud = m.userData || {};
+          if (ud.rough0 != null && m.roughness != null) m.roughness = Math.min(1, ud.rough0 * roughK);
+          if (ud.metal0 != null && m.metalness != null) m.metalness = Math.min(1, ud.metal0 * metalK);
+          if (ud.glass) { p.baseOp.set(m, ud.shell ? shellA : glassA); }   // 角色外殼比純玻璃實（托盤要看得出是哪一色）
+          if (ud.glow && m.emissive) { m.emissive.copy(c); m.emissiveIntensity = flowEm * (ud.glowK || 1); }
+          /* 流線的粒子：科技模式加法混色（微發光的光點）；閱讀模式普通混色＋半透明（不刺眼）*/
+          if (ud.flowPts) {
+            m.blending = flowEm > 0 ? THREE.AdditiveBlending : THREE.NormalBlending;
+            p.baseOp.set(m, flowA); m.needsUpdate = true;
+          }
+          if (ud.flowLine) p.baseOp.set(m, Math.min(0.85, flowA));
         });
       });
       hemi.intensity = palNum('--dg-hemi', 0.62);
-      key.intensity = palNum('--dg-key', 1.0);
-      fill.intensity = palNum('--dg-fill', 0.34);
+      hemi.color.copy(palCol('--dg-l-sky', '#ffffff')); hemi.groundColor.copy(palCol('--dg-l-gnd', '#000000'));
+      key.intensity = palNum('--dg-key', 1.0); key.color.copy(palCol('--dg-l-key', '#ffffff'));
+      fill.intensity = palNum('--dg-fill', 0.34); fill.color.copy(palCol('--dg-l-fill', '#ffffff'));
+      bounce.intensity = palNum('--dg-bounce', 0.16); bounce.color.copy(palCol('--dg-l-fill', '#ffffff'));
+      rim.intensity = palNum('--dg-rim', 0); rim.color.copy(palCol('--dg-l-rim', '#ffffff'));
+      renderer.toneMappingExposure = palNum('--dg-expo', 1.0);
+      shadowMat.color.copy(palCol('--dg-shadow', '#000000')); shadowMat.opacity = palNum('--dg-shadow-a', 0.4);
       highlight(lastHi.on, lastHi.color, lastHi.part);     // 重新套用目前的選取狀態，顏色才會真的換掉
       return pal;
     }
-    applyPal(o.pal || 'tech');     // 圖九 2-2：一掛上去就照使用者選的色票，不要先畫成預設再閃一下
+    applyPal(o.pal || palByTheme());   // 一掛上去就照使用者選的模式（沒選就跟主題），不要先畫成預設再閃一下
 
     /* 兩層高亮（2026-09-21 晚間）：`part` 是**被點的那一個零件**的身分，
        跟 2D 剖析圖共用同一個 key（見 SCENES 檔頭的 `part`）。
@@ -1743,6 +2161,7 @@
        單一環節的場景多一條：次強那一層要退到 --dg-sib-o，不然三顆長得一模一樣。*/
     function highlight(on, color, part) {
       lastHi = { on, color, part: part || null };
+      stickyBelow = new Set(); compactSide = { L: false, R: false };   // 選取變了：讓被點的那一顆有機會回到欄裡、全開（重新排一次）
       const has = on && on.size > 0;
       const tint = color ? new THREE.Color(color) : null;
       const hasPart = !!part && byIdx.some(p => p && isPart(p, part));
@@ -1764,9 +2183,15 @@
             const lb = palNum('--dg-led', 0.55);
             m.emissiveIntensity = fade ? lb * 0.07 : (sel ? lb * 1.55 : lb); return;
           }
-          if (m.emissive) m.emissiveIntensity = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
-          // 套族群色時只把原色往那個方向拉一半，保留零件本身的明暗結構
-          if (sel && tint) m.color.copy(bc).lerp(tint, 0.55); else m.color.copy(bc);
+          const ud = m.userData || {};
+          if (m.emissive && !ud.glow) m.emissiveIntensity = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
+          if (ud.glow) m.emissiveIntensity = fade ? 0 : palNum('--dg-flow-em', 0) * (ud.glowK || 1);
+          /* ★ 2026-09-22：環節色**只**給「被點的那一顆」。
+             以前同環節的全部一起染色，等於一次把七八顆零件變成同一個色相 —— 那正是「一張圖一個主色」的反面；
+             從環節色標整段選起來（沒有主角）也不染：那時候「其餘淡出 ＋ 卡片亮框」已經說明了誰被選到，
+             族群層級的網址一進來就是整段選著的，染下去等於預設畫面就是多色相。
+             拉 0.45 而不是整顆換色：保留零件本身的材質與明暗。*/
+          if (tint && selPart) m.color.copy(bc).lerp(tint, 0.45); else m.color.copy(bc);
         });
         if (p.el) {
           p.el.classList.toggle('sel', sel);
@@ -1774,8 +2199,9 @@
           p.el.classList.toggle('dim', fade);
         }
         // 引線跟著標籤一起淡出／亮起來，不然選了一個環節，畫面上還有一堆別人的線
-        if (p.path) { p.path.style.opacity = fade ? 0.1 : (sel ? 1 : 0.72); p.path.style.stroke = sel ? p.hex : ''; }
+        if (p.path) { p.path.style.opacity = fade ? 0.1 : (sel ? 1 : 0.72); p.path.classList.toggle('sel', !!sel); }
         if (p.dot) p.dot.style.opacity = fade ? 0.1 : 0.9;
+        if (p.halo) p.halo.style.opacity = fade ? 0 : '';
       });
     }
 
@@ -1797,8 +2223,48 @@
       for (let i = list.length - 1; i >= 0; i--) { const it = list[i]; it.ty = Math.min(it.ty, yb - it.hh); yb = it.ty - GAP; }
       return !list.length || list[0].ty >= 2;
     }
+    let lastMode = '';
+    /* 塞不下兩欄、被排到底下那一排的卡片是**黏的**（stickyBelow）：
+       自轉時零件的投影點每幀都在動，塞得下／塞不下的判定會跟著翻來覆去，
+       卡片就在欄位與底下那一排之間跳（畫面閃、頁面高度抖，驗收點鈕也會因為元素不穩定而逾時）。
+       所以一旦被排到底下就留在底下，直到欄寬／模式變了或選取變了（被點的那一顆要回到欄裡）才重算。*/
+    // （stickyBelow 本身宣告在 mount 最前面：highlight() 會在這一段之前就被 applyPal 叫到，宣告在這裡會踩 TDZ）
+    /* 換模式時把卡片搬到對的容器：lr／r 是疊在畫布上的絕對定位欄，below 是畫布底下的文件流。
+       只在模式真的變了才搬（搬 DOM 會重算版面，每幀搬會卡）。*/
+    function applyMode(m) {
+      if (m === lastMode) return false;
+      lastMode = m;
+      el.classList.toggle('dgstage--lr', m === 'lr');
+      el.classList.toggle('dgstage--r', m === 'r');
+      el.classList.toggle('dgstage--below', m === 'below');
+      lastCw = -1;
+      stickyBelow = new Set(); compactSide = { L: false, R: false };
+      return true;
+    }
+    /* 把一張卡片放進某個容器（欄或底下那一排）。放進底下那一排時清掉絕對定位的座標。
+       ★ 兩欄／右欄模式下**塞不下的卡片也往底下排**，不再直接藏起來 ——
+         藏起來＝那個零件的說明與台股整個消失；排到底下＋畫布上一個編號圓點，資訊一個都不少。*/
+    function placeIn(p, host) {
+      if (p.el.parentNode !== host) host.appendChild(p.el);
+      if (host === below) { p.el.style.left = ''; p.el.style.top = ''; p.el.style.width = ''; p.el.classList.add('below'); p.el.classList.remove('compact'); }
+      else { p.el.classList.remove('below'); p.el.style.width = (colW() - 12) + 'px'; }
+    }
+    // 底下那一排：照編號排，不然卡片的順序會跟著相機角度跳來跳去。順序已經對了就不動 DOM。
+    function sortBelow() {
+      const cur = [...below.children].map(k => k.dataset.dgno);
+      const want = cur.slice().sort((a, b) => (+a) - (+b));
+      if (cur.join(',') === want.join(',')) return;
+      const kids = [...below.children].sort((a, b) => (+a.dataset.dgno) - (+b.dataset.dgno));
+      kids.forEach(k => below.appendChild(k));
+    }
     function layoutLabels() {
-      const w = W(), h = H(), cw = colW(), one = narrow();
+      const w = W(), h = H(), cw = colW(), m = mode();
+      const modeChanged = applyMode(m);
+      // 引線那張 SVG 要蓋住整個容器（below 模式時容器比畫布高）
+      const hostH = Math.max(h, el.clientHeight || h);
+      if (lead.__w !== w || lead.__h !== hostH) {
+        lead.setAttribute('viewBox', `0 0 ${w} ${hostH}`); lead.__w = w; lead.__h = hostH;
+      }
       const items = [];
       byIdx.forEach(p => {
         if (!p || !p.el) return;
@@ -1807,48 +2273,101 @@
         items.push({ p, sx: (v.x + 1) / 2 * w, sy: (-v.y + 1) / 2 * h, front: v.z < 1,
           d: camera.position.distanceTo(vtmp), sel: p.el.classList.contains('sel') });
       });
+      /* 底下那一排的卡片：畫布上用編號圓點標位置；引線只畫給「被選的那一顆」——
+         十幾條線全部拉到底下會把模型蓋成一團。窄畫面（below 模式）全部卡片都走這裡，
+         兩欄／右欄模式下只有塞不下的那幾張走這裡。*/
+      const belowOnes = [];
+      function layoutBelow(list) {
+        if (!list.length) { below.hidden = true; return; }
+        below.hidden = false;
+        list.forEach(it => placeIn(it.p, below));
+        sortBelow();
+        const hostR = el.getBoundingClientRect();
+        list.forEach(it => {
+          const p = it.p;
+          p.el.classList.remove('hid');
+          p.no.style.display = it.front ? '' : 'none';
+          p.no.setAttribute('transform', `translate(${it.sx.toFixed(1)},${it.sy.toFixed(1)})`);
+          p.dot.style.display = 'none'; p.halo.style.display = 'none';
+          if (it.front && p.el.classList.contains('sel-part')) {
+            const r = p.el.getBoundingClientRect();
+            const cx = r.left - hostR.left + 14, cy = r.top - hostR.top;
+            p.path.setAttribute('d', `M${it.sx.toFixed(1)},${it.sy.toFixed(1)} L${it.sx.toFixed(1)},${(h - 8).toFixed(1)} L${cx.toFixed(1)},${cy.toFixed(1)}`);
+            p.path.style.display = '';
+          } else p.path.style.display = 'none';
+        });
+      }
+      if (m === 'below') { layoutBelow(items); return; }
+      byIdx.forEach(p => { if (p && p.no) p.no.style.display = 'none'; });
       // 重要度：選起來的最優先，其次是離相機近的（看得最清楚的那個）；塞不下時從最後面開始讓位
       items.slice().sort((a, b) => (b.sel - a.sel) || (a.d - b.d)).forEach((it, i) => { it.rank = i; });
-      // 寬度只在版面真的變了才重設並重量高度：每幀量一次 offsetHeight 會一直逼瀏覽器重算版面
-      if (cw !== lastCw) { byIdx.forEach(p => { if (p && p.el) p.el.style.width = (cw - 12) + 'px'; }); lastCw = cw; }
-      items.forEach(it => { it.p.el.classList.remove('hid'); it.hh = it.p.el.offsetHeight || 42; });
+      /* 卡片高度只在欄寬真的變了才重量（每幀量一次 offsetHeight 會一直逼瀏覽器重算版面）：
+         量的時候先把全部卡片放進欄裡（欄寬決定折行）、量完存進 p.hh。
+         之後每一幀只用快取，卡片留在原來的容器裡，決定變了才搬 —— 每 4 幀把 16 張卡片搬來搬去
+         就是第一版 800px 截圖「等字型載入」卡住 30 秒的原因。*/
+      if (cw !== lastCw || modeChanged) {
+        colL.style.width = colR.style.width = cw + 'px';
+        items.forEach(it => placeIn(it.p, colR));
+        // 兩種高度都量：全開（hh）與收成一行（hhC）。之後每一幀只用快取，不碰 DOM。
+        items.forEach(it => { it.p.el.classList.remove('hid', 'compact'); it.p.hh = it.p.el.offsetHeight || 42; });
+        items.forEach(it => { it.p.el.classList.add('compact'); it.p.hhC = it.p.el.offsetHeight || 30; it.p.el.classList.remove('compact'); });
+        lastCw = cw;
+        stickyBelow = new Set(); compactSide = { L: false, R: false };
+      }
+      items.forEach(it => { it.p.el.classList.remove('hid'); it.hh = it.p.hh || 42; });
 
       const hidden = items.filter(it => !it.front);       // 轉到背面去的零件，標籤跟著收起來
-      const cols = { L: [], R: [] };
+      const colsBy = { L: [], R: [] };
+      // 已經黏在底下那一排的，直接留在底下（正面的才畫編號圓點）
+      items.filter(it => it.front && stickyBelow.has(it.p)).forEach(it => belowOnes.push(it));
       /* 分左右欄：明顯偏一邊的就放那一邊，卡在中間的（機櫃是直立的，大部分零件都在正中央）
          放到目前比較空的那一欄 —— 只照 sx < w/2 分的話，整排零件會全部擠到左欄去。*/
-      items.filter(it => it.front).sort((a, b) => a.sy - b.sy).forEach(it => {
+      items.filter(it => it.front && !stickyBelow.has(it.p)).sort((a, b) => a.sy - b.sy).forEach(it => {
         let side;
-        if (one) side = 'R';
+        if (m === 'r') side = 'R';
         else if (it.sx < w / 2 - w * 0.10) side = 'L';
         else if (it.sx > w / 2 + w * 0.10) side = 'R';
-        else side = cols.L.length <= cols.R.length ? 'L' : 'R';
-        cols[side].push(it);
+        else side = colsBy.L.length <= colsBy.R.length ? 'L' : 'R';
+        colsBy[side].push(it);
       });
       ['L', 'R'].forEach(side => {
-        const list = cols[side];
+        const list = colsBy[side];
+        /* 塞不下的第一步不是往底下丟，是把這一欄的卡片**收成一行**（標題＋英文＋兩顆晶片；被點的那一張維持全開）。
+           Andy 2026-09-22：「不准掉到下面」。收了還是塞不下才往底下排（16 張以內實測不會走到那一步）。*/
+        const useCompact = (on) => list.forEach(it => {
+          const keep = it.p.el.classList.contains('sel-part');
+          it.p.el.classList.toggle('compact', on && !keep);
+          it.hh = (on && !keep) ? (it.p.hhC || it.hh) : (it.p.hh || 42);
+        });
+        if (!compactSide[side] && !pack(list, h)) compactSide[side] = true;   // 一旦收起來就維持（黏住），跟 stickyBelow 同一個理由
+        useCompact(compactSide[side]);
         while (list.length && !pack(list, h)) {
           let worst = 0; list.forEach((it, i) => { if (it.rank > list[worst].rank) worst = i; });
-          hidden.push(list.splice(worst, 1)[0]);
+          const ev = list.splice(worst, 1)[0];
+          ev.p.el.classList.remove('compact');
+          stickyBelow.add(ev.p); belowOnes.push(ev);       // 收了還塞不下才往底下排（而且黏住），不藏
         }
-        const lx = side === 'L' ? 6 : w - cw - 6;
-        const inner = side === 'L' ? lx + cw - 12 : lx;      // 文字框朝著模型的那一邊
+        const lx = side === 'L' ? 6 : w - cw + 6;           // 卡片在自己那一欄裡的 x（欄是 absolute 的，left 相對於欄）
+        const inner = side === 'L' ? lx + cw - 12 : lx;      // 文字框朝著模型的那一邊（整個容器的座標）
+        const host = side === 'L' ? colL : colR;
         list.forEach(it => {
-          it.p.el.style.left = lx + 'px';
+          placeIn(it.p, host);
+          it.p.el.style.left = '6px';
           it.p.el.style.top = it.ty + 'px';
           const cy = it.ty + it.hh / 2;
           const bend = side === 'L' ? inner + 14 : inner - 14;
           it.p.path.setAttribute('d', `M${it.sx.toFixed(1)},${it.sy.toFixed(1)} L${bend.toFixed(1)},${cy.toFixed(1)} L${inner.toFixed(1)},${cy.toFixed(1)}`);
           it.p.path.style.display = '';
           it.p.dot.setAttribute('cx', it.sx.toFixed(1)); it.p.dot.setAttribute('cy', it.sy.toFixed(1));
-          it.p.dot.setAttribute('stroke', it.p.hex);
-          it.p.dot.style.display = '';
+          it.p.halo.setAttribute('cx', it.sx.toFixed(1)); it.p.halo.setAttribute('cy', it.sy.toFixed(1));
+          it.p.dot.style.display = ''; it.p.halo.style.display = '';
         });
       });
       hidden.forEach(it => {
         it.p.el.classList.add('hid');
-        it.p.path.style.display = 'none'; it.p.dot.style.display = 'none';
+        it.p.path.style.display = 'none'; it.p.dot.style.display = 'none'; it.p.halo.style.display = 'none';
       });
+      layoutBelow(belowOnes);
     }
 
     /* 圖九 2-1：把電流粒子往前推一格。
@@ -1889,6 +2408,11 @@
         const k = lb + lb * 0.55 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
         leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
         stepFlows(dt);
+        if (expAnim) {
+          const u = Math.min(1, (performance.now() - expAnim.t0) / expAnim.dur);
+          applyExplode(1 - Math.pow(1 - u, 3));          // ease-out cubic：一開始快、最後慢慢停
+          if (u >= 1) expAnim = null;
+        }
       }
       controls.update();
       renderer.render(scene, camera);
@@ -1903,11 +2427,12 @@
     const onResize = () => {
       camera.aspect = W() / H(); camera.updateProjectionMatrix();
       renderer.setSize(W(), H());
-      lead.setAttribute('viewBox', `0 0 ${W()} ${H()}`);
+      // 卡片欄的模式變了（例如從兩欄變成底下一欄），模型能用的寬度也變了 → 重新取景
+      const before = lastMode;
       layoutLabels();
+      if (before !== lastMode) { fitCamera(); layoutLabels(); }
     };
     window.addEventListener('resize', onResize);
-    lead.setAttribute('viewBox', `0 0 ${W()} ${H()}`);
     tick();
     layoutLabels();
 
@@ -1923,9 +2448,12 @@
         if (x.geometry) x.geometry.dispose();
         if (x.material) (Array.isArray(x.material) ? x.material : [x.material]).forEach(m => m.dispose());
       });
+      if (shadowMat.map) shadowMat.map.dispose();      // 粒子與陰影共用的那張 sprite 貼圖
       renderer.dispose();
       if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
       if (layer.parentNode) layer.parentNode.removeChild(layer);
+      if (below.parentNode) below.parentNode.removeChild(below);
+      el.classList.remove('dgstage', 'dgstage--lr', 'dgstage--r', 'dgstage--below');
     }
 
     // cam()／screen() 是給驗收腳本用的：驗「視角真的轉了」要比對相機座標
@@ -1937,7 +2465,30 @@
       if (!p) return null;
       const v = new THREE.Vector3(); p.groups[0].getWorldPosition(v); v.project(camera);
       const r = renderer.domElement.getBoundingClientRect();
-      return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height, front: v.z < 1 };
+      const base = { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height, front: v.z < 1 };
+      /* ★ 回的是「真的點得到這個環節」的座標，不是幾何中心的投影。
+         MLCC 切開近角那一顆的中心正好落在兩個切面的交線上（x=0、z=0），
+         射線打在稜線上會因為浮點誤差什麼都沒碰到 —— 驗收就會隨相機角度偶爾紅。
+         所以以中心為起點，往外試幾個像素，找到第一個 raycast 真的打到同環節零件的點。*/
+      const tries = [[0, 0]];
+      for (let rr = 6; rr <= 48; rr += 6) for (let a = 0; a < 8; a++) tries.push([Math.round(Math.cos(a * Math.PI / 4) * rr), Math.round(Math.sin(a * Math.PI / 4) * rr)]);
+      // 中心找不到就從錨點（零件頂端）再找一圈
+      const av = new THREE.Vector3(); p.groups[0].getWorldPosition(av); av.add(p.anchor); av.project(camera);
+      const anc = { x: r.left + (av.x + 1) / 2 * r.width, y: r.top + (-av.y + 1) / 2 * r.height };
+      /* 機櫃框（frame）那種零件：它的中心就是機櫃內部，射線一定先打到裡面的托盤 ——
+         硬要找「只打到框」的點會找到玻璃側板的邊緣，相機一動就打空。
+         所以框類零件只要求「打得到東西」（點下去會選到裡面某一顆，驗收要的就是「點了有反應」）。*/
+      const isFrame = !!(p.groups[0].userData && p.groups[0].userData.frame);
+      for (const o0 of [base, anc]) {
+        for (const [dx, dy] of tries) {
+          const x = o0.x + dx, y = o0.y + dy;
+          if (x < r.left + 2 || x > r.right - 2 || y < r.top + 2 || y > r.bottom - 2) continue;
+          toNdc({ clientX: x, clientY: y });
+          const m = hit();
+          if (m && (isFrame || m.userData.seg === seg)) return { x, y, front: base.front };
+        }
+      }
+      return base;
     };
     /* stats() 也是給驗收腳本用的：E2「去螢光」與 E3「零件細膩」要驗得到，
        不然只能用眼睛看 —— 那正是這個專案一直踩的坑。 */
@@ -1968,6 +2519,8 @@
         const sel = p.el && p.el.classList.contains('sel');
         p.mats.forEach(m => {
           if (m.userData && m.userData.led) { ledN++; return; }
+          // 流線（水路／光路）在科技模式本來就准微發光（#238：發光只給流動線與被選零件），不算進零件的自體發光
+          if (m.userData && m.userData.glow) return;
           maxEm = Math.max(maxEm, m.emissiveIntensity || 0);
           // idleEmissive＝「沒被選起來的零件」的自體發光。E2 要驗的是這個：
           // 選起來的那一個本來就會提亮一點（0.22）當提示，拿它來驗會永遠是紅的。
@@ -2000,14 +2553,39 @@
          autoReset 預設是開的，所以讀到的是**上一幀**的數字（呼叫 stats() 時已經畫過很多幀了）。
          驗收用它訂上限；只看 mesh 數不夠 —— InstancedMesh 是 1 個 mesh、卻可能是 5 萬個三角形。*/
       const ri = renderer.info.render;
+      // glass／flowLines：兩種模式的驗收要知道「玻璃材質真的有、流線真的有」
+      let glassN = 0, glowN = 0;
+      byIdx.forEach(p => { if (!p) return; p.mats.forEach(m => { const u = m.userData || {}; if (u.glass) glassN++; if (u.glow || u.flowLine) glowN++; }); });
       return { drawCalls: ri.calls, triangles: ri.triangles,
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
         flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
+        explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
+    /* 給驗收用：每個零件「材質底色 vs 環節色 vs 現在畫出來的顏色」。
+       DECISIONS #238 那一刀（零件底色不再來自環節色）要量得到：
+         base    ＝ 材質族 token 讀到的底色（K.base）
+         seg     ＝ 環節色（segColor）
+         now     ＝ 這個零件**最大那顆 mesh** 的材質現在的顏色（#rrggbb）
+         tinted  ＝ 現在有沒有被拉向環節色（點零件之後只有主角會是 true）*/
+    const mats = () => byIdx.filter(Boolean).map(p => {
+      let big = null, bigV = -1;
+      p.meshes.forEach(x => {
+        if (!x.geometry || !x.material || !x.material.color || x.material.userData.led) return;
+        if (!x.geometry.boundingBox) x.geometry.computeBoundingBox();
+        const s = x.geometry.boundingBox.getSize(new THREE.Vector3());
+        const v = s.x * s.y * s.z * (x.isInstancedMesh ? x.count : 1) * (x.scale.x * x.scale.y * x.scale.z || 1);
+        if (v > bigV) { bigV = v; big = x; }
+      });
+      const m = big && big.material;
+      const bc = m && p.baseCol.get(m);
+      return { part: p.part, seg: p.seg, fam: p.fam, role: p.role, base: p.kit.base, el: p.elColor, segHex: p.hex,
+        now: m ? '#' + m.color.getHexString() : null,
+        tinted: !!(m && bc && !m.color.equals(bc)) };
+    });
     /* 給驗收腳本用：「這個畫面座標打得到零件嗎」。
        驗「點背景要全部恢復全亮」一定要先找到一個**真的是背景**的點 ——
        用猜的（例如畫布左上角）會踩到標籤或剛好打到零件，那一條就變成隨機紅燈。 */
@@ -2016,10 +2594,26 @@
       const m = hit();
       return m ? (m.userData.part || m.userData.seg || '?') : null;
     };
+    /* 給族群晶片列（v3 §5，style-system 那一側）用的介面：
+         pointOf(id)  → 零件（part id 或 seg id）現在在**視窗**上的座標與是否在正面（畫連線的端點）
+         colorOf(id)  → 那個零件的元件色（跟卡片的 data-dgcolor 同一個值）
+         partsOf(seg) → 這個環節在場景裡有哪些零件 id */
+    const findP = (id) => byIdx.find(x => x && (x.part === id || x.alias.indexOf(id) >= 0)) || byIdx.find(x => x && x.seg === id);
+    const pointOf = (id) => {
+      const p = findP(id); if (!p || !p.groups.length) return null;
+      const v = new THREE.Vector3(); p.groups[0].getWorldPosition(v); v.add(p.anchor); v.project(camera);
+      const r = renderer.domElement.getBoundingClientRect();
+      return { x: r.left + (v.x + 1) / 2 * r.width, y: r.top + (-v.y + 1) / 2 * r.height, front: v.z < 1, part: p.part, color: p.elColor };
+    };
+    const colorOf = (id) => { const p = findP(id); return p ? p.elColor : null; };
+    const partsOf = (seg) => byIdx.filter(x => x && x.seg === seg).map(x => x.part);
     const view = {
-      highlight, cam, screen, stats, setAnim, hitAt,
-      // 圖九 2-2：色票
+      highlight, cam, screen, stats, setAnim, hitAt, mats, pointOf, colorOf, partsOf,
+      // 兩種模式（DECISIONS #238）：tech／read；舊名字會被映射
       setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
+      // 爆炸拆解：讀／設 0～1（設了就把進場動畫停掉，給驗收與「重看一次拆解」用）
+      explode: (t) => { if (t != null) { expAnim = null; applyExplode(+t); } return expT; },
+      replay: () => { if (reduced || !anim) { applyExplode(1); return false; } applyExplode(0); expAnim = { t0: performance.now(), dur: 1600 }; return true; },
       isAnim: () => anim,
       /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
          右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/
@@ -2072,7 +2666,7 @@
     const css = (n) => {
       try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); } catch (e) { return ''; }
     };
-    const K = kit(THREE, '#8ea0c4', false, css);
+    const K = kit(THREE, FAMILY[kind] || 'metal', false, css);
     let grp;
     try { grp = build({ box: boxArr || [14, 7, 12], at: [0, 0, 0] }, K); } catch (e) {
       return { kind, error: String((e && e.message) || e) };
