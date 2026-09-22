@@ -688,6 +688,23 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .livenote .live{color:var(--rise)}
 .livenote .warn{color:var(--amber)}
 .livenote .bad{color:var(--rise)}
+/* 盤中即時輪動時鐘的狀態列（Andy 2026-09-22）。
+   跟資金去向那條同一個外觀（.livenote），只是它住在時間軸底下、圖的上面，
+   所以自己留一點下邊距，免得整段字黏在時鐘的圓盤上。 */
+.rotlivenote{margin:6px 0 8px}
+/* 「走得最多的族群」那一排。一天的位移在圖上只有幾個像素，**數字才是可讀的那一半** ——
+   所以這一排不是裝飾，是那條箭頭的讀數。每一顆都點得進成分股（能點的東西要能點到底）。 */
+.rlvmov{display:flex;flex-wrap:wrap;align-items:center;gap:5px 6px;margin:6px 0 0}
+.rlvmov .t{font-size:12px;color:var(--ink-3);margin-right:2px}
+.rlvchip{display:inline-flex;align-items:center;gap:6px;padding:3px 8px;border-radius:8px;
+  border:1px solid var(--line-2);background:color-mix(in srgb,var(--c,#888) 10%,var(--panel));
+  color:var(--ink-2);font-size:12px;font-family:inherit;cursor:pointer;line-height:1.5}
+.rlvchip:hover{border-color:var(--c,#888)}
+.rlvchip .g{font-weight:600;color:var(--ink-1)}
+.rlvchip .d{font-family:var(--mono);font-size:12px;color:var(--c,#888)}
+/* 盤中跨過象限的那幾個要一眼看得出來 —— 那是這張圖最有資訊量的事件 */
+.rlvchip.jump{border-color:var(--c,#888);box-shadow:var(--glow)}
+.rlvchip .j{font-size:12px;color:var(--c,#888);font-weight:600}
 @media (prefers-reduced-motion:reduce){ .rbar .pb{transition:none} }
 .zwrap{position:relative;min-width:0;overflow:hidden}
 .zwrap>.zpane{overflow:auto;scrollbar-width:thin;max-width:100%}

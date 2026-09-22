@@ -1261,6 +1261,349 @@
       <span class="m">強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}　佔比 ${fmt.n(r.share, 1)}%</span></li>`;
   }
 
+  /* ================================================================ 盤中即時輪動時鐘（RLV）
+     Andy 2026-09-22：「輪動時鐘理論上也有辦法與資金去向做到即時對吧？
+     **有成交價以及數量，就可以透過這方式計算每個族群的方向**，幫我也做一個即時功能像是圖一那樣。」
+     「圖一」＝資金去向（桑基圖）那顆「即時」鈕，所以這裡刻意**照抄那一套操作習慣**：
+     同一顆 `.pb.livebtn`、按下去切換、再按退回盤後、每分鐘一輪、拖時間軸就自動退出（互斥）。
+
+     ── 這張圖在即時模式下回答的問題（一句話，畫面上也寫著）──
+       **「今天盤中到現在，錢正在把哪個族群往前推、哪個往後拉？」**
+       答案是那條「上一個收盤 → 現在」的線，而它**刻意畫成兩段**（見下面「持平基準」那一段）：
+         灰虛線＝慣性（就算平盤也會走到那裡）　／　亮色箭頭＝今天的錢真正推出來的。
+
+     ── 續算公式（後端 `pipeline/compute/rrg.py` 已經把 `live_state` 備好了）──
+       ① rs_new   = rs_last × (1 + 族群今日報酬) ÷ (1 + 大盤今日報酬)
+          rs 的定義就是「族群指數 ÷ 大盤指數」，多一天只是再乘一天的相對報酬，
+          所以這一步**是精確的，不是近似**。
+       ② α = 2 / (rs_smooth + 1)；rs_s_new = α×rs_new + (1−α)×rs_s_last     ← EMA 的遞迴式
+       ③ x_new = 100 + 100 × ( rs_s_new ÷ mean(rs_s_tail 末 rs_base−1 筆 ＋ rs_s_new) − 1 )
+          y_new = 100 + 100 × ( x_new ÷ x_{−mom_roc} − 1 )                  ← x_{−mom_roc} 取自 trail
+     ★ 三個參數一律從 `live_params` 讀，**不准在這支 JS 裡寫死** ——
+       `KInd` 與 `indicators.py` 就踩過「兩邊各寫一套、之後悄悄分岔」那個坑。
+
+     ── 位移很小是事實，不准放大；而且位移裡有一半不是「今天的錢」 ──
+       三組實測（2026-09-22，拿這一份 `live_state` 餵不同的假報價量的）：
+         · 每一檔都 0%（族群報酬＝大盤報酬）→ 點**照樣會走**：中位 0.59 點、最大 1.42 點（18px）
+         · 只有晶圓代工 +2%、其餘 0% → 總位移 0.50 點（6.3px），其中**今天真正貢獻的只有 0.35 點**（≈4.5px）
+         · 同一張盤的 x 分布是 90.05 ～ 106.29（**16.2 點**）
+       第一組是關鍵：**開盤什麼都還沒發生，箭頭就已經比「贏大盤 2%」還長。**
+       所以只畫一條「收盤 → 現在」＝畫一張看起來有在動、但動的其實是指標自己的圖。
+       （位移之所以這麼小，根因是 2026-09-20 為了「一天不該把點甩到盤緣」加的 EMA 平滑。
+         那個修正是對的，代價就是即時位移很小 —— 不可以為了補償它而把位移放大。）
+
+       所以處理方式是把真實的小位移**拆清楚、畫清楚**，不是誇大它：
+         · 圖上：灰虛線（慣性）＋ 亮色箭頭（今天推的，針身用 `CH.ink`、外圈用階段色）
+                 ＋ 端點漣漪（會動）＋ 跨象限就發光
+         · 圖下：「今天被推得最多的族群」那一排，直接把**亮色那一段**的數字印出來，
+                 而且每一顆都點得進成分股
+       **不准為了讓它看起來有動而把位移乘上任何倍數。** 那是造假，不是設計。
+
+     ── 兩條誠實界線（`rlvStamp()` 會把它們印在畫面上，不准省略）──
+       1. **權重是估的、報酬是真的。** 成交值用「最新價 × 累積張數」估（即時端點沒有每檔的
+          累積成交金額），但漲跌幅是真的（現價 vs 昨收）。所以**族群方向可信**，
+          只有「誰的權重大一點」是估的。
+       2. **即時的大盤是代理值。** 時鐘原本的大盤是「全市場成交值加權」，盤中只抓得到
+          族群成分股那一批，所以要算出並顯示「這批涵蓋台股總成交值的百分之幾」
+          （分母用 `window.Market3.marketAmt`，那是證交所的真實總額），不可以假裝它是全市場。
+
+     ── 範圍（和資金去向那顆鈕同一個理由）──
+       只算**人工族群**（43 個、291 檔 ＝ 3 個請求／分鐘）。
+       `ind_*` 自動桶（ETF、〇〇・其他）光成分股就 1367 檔 ＝ 14 個請求／分鐘，做不到；
+       所以它們一律留在盤後位置、不畫箭頭，並在狀態列講明。*/
+  const RLV = {
+    on: false, busy: false, at: 0, err: '',
+    pt: {},              // gid → {x, y, x0, y0, dx, dy, ret, stage, stage0, n}
+    mkt: null,           // 大盤今日報酬（小數；成交值加權，套在抓得到的全部個股上）
+    uniAmt: 0,           // 這批個股的估算成交值加總（涵蓋率的分子）
+    marketAmt: null,     // 證交所公布的台股總成交值（涵蓋率的分母，真實值）
+    cover: null,         // 涵蓋率 %
+    codes: 0, hit: 0, reqs: 0, skipped: 0, quoteAt: '',
+    intraday: true, timer: null,
+  };
+  const RLV_BATCH = 100;               // 一個請求塞幾檔（沿用 live.js 實測的批次大小）
+  const RLV_MS = 60 * 1000;            // 每分鐘一輪（和資金去向的即時同節奏）
+  let rlvRedraw = () => {};            // renderFlow 會換成「卡片＋放大視窗一起重畫」
+
+  /* 這一輪要抓哪些股票：所有**有 live_state 的人工族群**的成分股（去重）。
+     自動桶（ind_*）直接跳過 —— 見上面「範圍」那一段。*/
+  function rlvCodes(rrg) {
+    const det = D.groups_detail || {};
+    const codes = [], seen = new Set();
+    const gids = [];
+    ((rrg && rrg.points) || []).forEach(p => {
+      if (isAutoBucket(p.group_id) || !p.live_state) return;
+      gids.push(p.group_id);
+      ((det[p.group_id] || {}).members || []).forEach(m => {
+        const c = String(m.code); if (c && !seen.has(c)) { seen.add(c); codes.push(c); }
+      });
+    });
+    return { codes, gids };
+  }
+
+  /* 把報價續算成「現在這一刻」的時鐘座標。
+     ★ 族群報酬用**成交值加權、而且做 1/n 拆分** —— 後端 `compute/flow.py` 的族群 chg_pct
+       就是這樣算的（`_chgw / _wsum`，權重是 turnover × 1/n）。兩邊口徑一定要一樣，
+       不然盤中畫的點和收盤後重算出來的點會對不起來。
+     ★ 大盤報酬**不做 1/n 拆分**：`rrg.market_index()` 是逐檔成交值加權，
+       那張表裡一檔股票就是一列，沒有「掛在幾個族群」這回事。*/
+  function rlvCompute(rrg, q) {
+    const P = rrg && rrg.live_params;
+    if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
+      throw new Error('這份資料還沒有即時續算參數（rrg.live_params），請等下一輪盤後管線');
+    }
+    const det = D.groups_detail || {};
+    const w = sklWeights();                        // 和資金去向共用同一份 1/n 權重
+    const stv = {}, chg = {};
+    let uni = 0, at = '', hit = 0;
+    Object.keys(q).forEach(c => {
+      const x = q[c];
+      if (!x || x.price == null || x.volume == null) return;
+      const v = x.price * x.volume * 1000;         // ★ 估算：端點沒有每檔的累積成交金額
+      if (!(v > 0)) return;
+      stv[c] = v; uni += v; hit++;
+      if (x.chgPct != null) chg[c] = x.chgPct / 100;
+      if (x.time && x.time > at) at = x.time;
+    });
+    let mw = 0, mc = 0;
+    Object.keys(stv).forEach(c => { if (chg[c] == null) return; mw += stv[c]; mc += chg[c] * stv[c]; });
+    if (!(mw > 0)) throw new Error('報價回來了，但沒有一檔同時有價、量、漲跌幅，算不出大盤報酬');
+    const mkt = mc / mw;                           // 大盤今日報酬（代理值，見誠實界線 2）
+    const alpha = 2 / (P.rs_smooth + 1);
+    const pt = {};
+    let skipped = 0;
+    ((rrg && rrg.points) || []).forEach(p => {
+      const ls = p.live_state;
+      if (!ls || ls.rs == null || ls.rs_s == null || !(ls.rs_s_tail || []).length) { skipped++; return; }
+      if (isAutoBucket(p.group_id)) { skipped++; return; }
+      const t = p.trail || [];
+      if (t.length <= P.mom_roc) { skipped++; return; }   // 軌跡不夠長就算不出 y（ROC 的分母）
+      let gw = 0, gc = 0, n = 0;
+      ((det[p.group_id] || {}).members || []).forEach(m => {
+        const c = String(m.code);
+        if (stv[c] == null || chg[c] == null) return;
+        const ww = stv[c] / Math.max(1, w[c] || 1);
+        gw += ww; gc += chg[c] * ww; n++;
+      });
+      if (!(gw > 0)) { skipped++; return; }              // 這個族群一檔都沒抓到 → 維持盤後位置
+      const gr = gc / gw;                                 // 族群今日報酬（成交值加權）
+      const xPrev = t[t.length - 1 - P.mom_roc][1];
+      if (!(xPrev > 0)) { skipped++; return; }
+      /* 續算一步。`ret` 帶進來的相對報酬只影響第 ① 步，其餘完全一樣，
+         所以把 ①②③ 包成一支，等一下拿它算兩次（真實報酬、以及「持平」）。*/
+      const step = (ret) => {
+        const rsNew = ls.rs * (1 + ret) / (1 + mkt);        // ①（精確）
+        const rsS = alpha * rsNew + (1 - alpha) * ls.rs_s;  // ②
+        const tail = ls.rs_s_tail.slice(-(P.rs_base - 1)).concat([rsS]);
+        let s = 0; tail.forEach(v => { s += v; });
+        const base = s / tail.length;
+        if (!(base > 0)) return null;
+        const xx = 100 + 100 * (rsS / base - 1);            // ③
+        return { x: xx, y: 100 + 100 * (xx / xPrev - 1) };
+      };
+      const now = step(gr);
+      /* ★★ 「持平基準」——**這一段是這張圖能不能被讀懂的關鍵，不要拿掉。**
+         實測（2026-09-22，每一檔都餵 0% 的一輪）：就算族群報酬完全等於大盤，
+         續算出來的點還是會離收盤那一點 **中位數 0.59 點、最大 1.42 點（18px）**，
+         而「贏大盤 2%」貢獻的只有 **0.35 點（4.5px）**。
+         也就是說：如果只畫一條「收盤 → 現在」的箭頭，**箭頭裡有一大半是指標自己的慣性**
+         （EMA 只讓當天的相對報酬進來 α=2/11≈18%，而 40 日基準線的窗口每天會往前滾一格），
+         盤一開、什麼都還沒發生，箭頭就已經很長了 —— 那會讓人以為「錢在動」，
+         但那不是錢在動，是指標在動。那就是一張騙人的圖。
+         所以把它拆成兩段：
+           收盤 → 持平基準　＝ 慣性（就算今天平盤也會走到那裡）→ 畫成灰色虛線
+           持平基準 → 現在　＝ **今天的成交價與成交量真正推出來的那一段** → 畫成亮色實線＋箭頭
+         「走得最多的族群」那一排排序與數字用的也是**後面那一段**。*/
+      const flat = step(mkt);
+      if (!now || !flat || !isFinite(now.x) || !isFinite(now.y)) { skipped++; return; }
+      const x = now.x, y = now.y, x0 = p.x, y0 = p.y;
+      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y,
+        dx: x - x0, dy: y - y0,                 // 總位移（收盤 → 現在）
+        tdx: x - flat.x, tdy: y - flat.y,       // 今天真正推出來的那一段（持平基準 → 現在）
+        ret: gr, n, stage: stageOf(x, y), stage0: p.quadrant || stageOf(x0, y0) };
+    });
+    if (!Object.keys(pt).length) throw new Error('報價回來了，但沒有一個族群算得出即時座標');
+    return { pt, mkt, uni, at, hit, skipped };
+  }
+
+  async function rlvFetch() {
+    if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+    const rrg = rotF3 && rotF3.rrg;
+    if (!rrg || !(rrg.points || []).length) throw new Error('輪動資料還沒載入');
+    const codes = rlvCodes(rrg).codes;
+    if (!codes.length) throw new Error('這張圖上的族群還沒有成分股資料，抓不了即時');
+    const q = {};
+    let reqs = 0;
+    for (let i = 0; i < codes.length; i += RLV_BATCH) {
+      Object.assign(q, await window.Live.fetchQuotes(codes.slice(i, i + RLV_BATCH)));
+      reqs++;
+    }
+    const r = rlvCompute(rrg, q);
+    /* 涵蓋率的分母：Market3 有多久沒更新就自己叫它一次（和資金去向那邊同一套理由 ——
+       使用者開過「總覽」的話它本來就每分鐘在跑，零額外請求）。
+       抓不到就把涵蓋率留成 null，狀態列會誠實寫「這一輪沒取到」，
+       **不要**拿估算值去湊一個看起來像真的百分比。*/
+    try {
+      const M = window.Market3;
+      if (M) {
+        if (!M.lastAt || Date.now() - M.lastAt > 90 * 1000) await M.refresh(true);
+        RLV.marketAmt = M.marketAmt;
+      }
+    } catch (e) { RLV.marketAmt = null; }
+    RLV.pt = r.pt; RLV.mkt = r.mkt; RLV.uniAmt = r.uni;
+    RLV.cover = RLV.marketAmt ? r.uni / RLV.marketAmt * 100 : null;
+    RLV.codes = codes.length; RLV.hit = r.hit; RLV.reqs = reqs; RLV.skipped = r.skipped;
+    RLV.quoteAt = r.at; RLV.at = Date.now(); RLV.err = '';
+  }
+
+  /* 走得最多的前 n 個族群。排序用「位移長度」而不是 Δ強弱 ——
+     往「動能」那個方向走一樣是在走，只看單軸會漏掉剛轉向的那幾個。
+
+     ★ 只列**現在真的畫在盤上**的那幾個（`rlvShown` 由 renderRotClock 填）。
+       時鐘最多畫 16 顆點（還可能被篩選再砍），但 `RLV.pt` 有 43 個族群 ——
+       列一個盤上根本找不到箭頭的名字，使用者會去圖上找那條線、然後找不到。
+       這一排是那些箭頭的**讀數**，不是另一份排行榜。*/
+  let rlvShown = null;                 // Set(gid)：這一輪畫在盤上的族群
+  function rlvTop(n) {
+    const keys = Object.keys(RLV.pt).filter(g => !rlvShown || !rlvShown.size || rlvShown.has(g));
+    return keys.map(gid => {
+      const v = RLV.pt[gid];
+      return { gid, name: (rotGroupMeta[gid] || {}).name || L.gname[gid] || gid,
+        // ★ 排序與顯示都用「今天推出來的那一段」（tdx/tdy），不是總位移 —— 理由見 rlvCompute 的註解
+        tdx: +v.tdx.toFixed(3), tdy: +v.tdy.toFixed(3),
+        dx: +v.dx.toFixed(3), dy: +v.dy.toFixed(3), ret: +(v.ret * 100).toFixed(2),
+        jump: v.stage0 !== v.stage, stage: v.stage, stage0: v.stage0,
+        d: +Math.hypot(v.tdx, v.tdy).toFixed(4) };
+    }).sort((a, b) => b.d - a.d).slice(0, n || 6);
+  }
+
+  /* 狀態列。★ 誠實標示全部寫在這裡、不散在圖上 —— 圖上塞不下，
+     而這幾句話少一句整張圖就會被讀錯。*/
+  function rlvStamp() {
+    const btn = $('#rotLiveBtn');
+    if (btn) { btn.classList.toggle('on', RLV.on); btn.setAttribute('aria-pressed', RLV.on ? 'true' : 'false'); }
+    const el = $('#rotLive');
+    if (!el) return;
+    if (!RLV.on) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    if (RLV.busy && !RLV.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
+    if (RLV.err) {
+      el.innerHTML = `<b class="bad">即時抓不到報價</b>　${fmt.esc(RLV.err)}`
+        + '　·　時鐘上畫的仍然是<b>盤後</b>那一份資料（圖沒有變空白）'
+        + '　<button type="button" class="btn small" id="rotLiveBack">一鍵退回盤後</button>';
+      const b = $('#rotLiveBack'); if (b) b.onclick = () => rlvOff();
+      return;
+    }
+    /* 涵蓋率：算式細節放進 `title`，畫面上只留百分比。
+       2026-09-22 在 390px 量過：整段狀態列寫滿會吃掉 330px（Andy 2026-09-21 才剛把
+       圖下方那段 622 字的常駐說明砍掉，理由就是它在手機上比半個螢幕還長）——
+       所以這裡的原則是「不看到就會把圖讀錯的留在畫面上，其餘進 title 或『怎麼看 ?』」。*/
+    const cov = RLV.cover != null
+      ? `<b>涵蓋率 ${fmt.n(RLV.cover, 1)}%</b>`
+        /* 分子是估的、分母只有上市，所以**真的有可能超過 100%**。
+           與其把它夾在 100% 讓人以為「剛好全涵蓋」，不如照實印出來並講清楚為什麼。*/
+        + (RLV.cover > 100 ? '<b class="warn">（⚠ 超過 100%：估的分子已經大於上市總額 ——'
+          + '這批含上櫃，分母只有上市）</b>' : '')
+      : '<b>涵蓋率：這一輪沒取到</b>';
+    const covTip = RLV.cover != null
+      ? `這批 ${RLV.hit} 檔的估算成交值 ${fmt.yi(RLV.uniAmt)} ÷ 證交所公布的台股總成交值 ${fmt.yi(RLV.marketAmt)}`
+      : '證交所的總成交值這一輪抓不到，所以算不出涵蓋率';
+    const chips = rlvTop(6).map(r => `<button type="button" class="rlvchip${r.jump ? ' jump' : ''}" data-g="${r.gid}" style="--c:${STAGE[r.stage].color}" title="族群報酬 ${fmt.pct(r.ret, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）；含慣性的總位移 強弱 ${fmt.n(r.dx, 2)} / 動能 ${fmt.n(r.dy, 2)}。點一下在下面展開這個族群的成分股"><span class="g">${fmt.esc(r.name)}</span><span class="d">強弱 ${r.tdx >= 0 ? '+' : ''}${fmt.n(r.tdx, 2)}　動能 ${r.tdy >= 0 ? '+' : ''}${fmt.n(r.tdy, 2)}</span>${r.jump ? `<span class="j">${STAGE[r.stage0].name}→${STAGE[r.stage].name}</span>` : ''}</button>`).join('');
+    el.innerHTML = (RLV.intraday
+      ? `<b class="live">即時</b>　報價 ${fmt.esc(RLV.quoteAt || '—')}　每分鐘更新`
+      : '<b class="warn">現在不是盤中</b>（現貨 09:00–13:30）　下面畫的是<b>最後一次報價的快照</b>，不是盤中變化')
+      + `　·　大盤（代理值）${fmt.pct(RLV.mkt * 100, 2)}　·　<span title="${fmt.esc(covTip)}">${cov}</span>`
+      /* 底下兩句是**不准省略**的誠實標示，第三句是「怎麼讀這條線」。
+         長版（含實測數字與原理）在「怎麼看 ?」裡。這裡只留「不看到就會把圖讀錯」的那幾句。*/
+      + '<br>· <b>線分兩段</b>：<span class="muted">灰虛線＝<b>慣性</b>（40 日基準線的窗口每天往前滾一格，'
+      + '<b>平盤也會走</b>，實測中位 0.59 點）</span>；<b>亮色箭頭＝今天真正推出來的</b>'
+      + '（贏大盤 2% 只有 0.35 點、4~5 px，<b>我們沒有放大它</b>）。下面那排數字就是亮色那一段。'
+      + '<br>· <b>權重是估的、報酬是真的</b>：成交值用「價 × 量」<b>估算</b>（端點沒有每檔的累積成交金額），'
+      + '漲跌幅是<b>真的</b>（現價 vs 昨收）。'
+      + '<b>即時的大盤是代理值</b>：原本是<b>全市場</b>成交值加權，盤中只抓得到這批，'
+      + `所以 x 軸的「相對大盤」是拿這批算的。　·　${RLV.skipped} 個族群與個股點維持盤後`
+      + `　·　${RLV.reqs} 個請求 / ${RLV.codes} 檔`
+      + (chips ? '<div class="rlvmov"><span class="t">今天被推得最多的族群'
+        + `（盤上這 ${rlvShown ? rlvShown.size : 0} 個；數字＝<b>亮色箭頭那一段</b>，不含慣性）</span>${chips}</div>` : '');
+    $$('.rlvchip', el).forEach(b => b.onclick = () => {
+      const gid = b.dataset.g;
+      drillOpen(gid, (rotGroupMeta[gid] || {}).name || L.gname[gid] || gid, '', 'rankPanel');
+    });
+  }
+
+  async function rlvTick() {
+    if (!RLV.on || RLV.busy) return;
+    /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
+       這時候不要打報價 —— 使用者根本沒在看這張圖，每分鐘 3 個請求純浪費。*/
+    { const el = $('#rotClock'); if (el && el.offsetParent === null) return; }
+    RLV.busy = true; RLV.intraday = !window.Live || window.Live.isIntraday();
+    rlvStamp();
+    try { await rlvFetch(); }
+    catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; }
+    finally {
+      RLV.busy = false;
+      if (RLV.on) rlvRedraw();
+      rlvStamp();
+    }
+  }
+
+  /* 退出即時。`redraw=false` 給「使用者自己拖時間軸」用 ——
+     那一路本來就會接著重畫一次，這裡再畫一次等於同一幀畫兩張圖。*/
+  function rlvOff(redraw) {
+    if (RLV.timer) { clearInterval(RLV.timer); RLV.timer = null; }
+    RLV.on = false; RLV.pt = {}; RLV.err = ''; RLV.cover = null; RLV.mkt = null;
+    rlvStamp();
+    if (redraw !== false) rlvRedraw();
+  }
+
+  function rlvToggle() {
+    if (RLV.on) return rlvOff();
+    if (RLV.timer) { clearInterval(RLV.timer); RLV.timer = null; }
+    RLV.on = true;
+    stopAllPlay();                     // 即時和「往回播」是互斥的兩件事，同時跑只會互相蓋
+    /* 即時只在「看最新那一天」成立（續算是接在**最後一個收盤**後面的）。
+       所以切進來時先把時間軸推回 0；不推的話使用者會看到「我按了即時但點沒動」——
+       因為畫的是 20 天前那一天，而那一天沒有即時可言。*/
+    if (rotFrame !== 0) {
+      rotFrame = 0; flowState.back = 0;
+      if (rotBackBar) { try { rotBackBar.set(0); } catch (e) { /* 忽略 */ } }
+    }
+    RLV.err = ''; RLV.at = 0; RLV.pt = {};
+    RLV.intraday = !window.Live || window.Live.isIntraday();
+    rlvStamp();
+    rlvTick();
+    RLV.timer = setInterval(() => { if (!document.hidden) rlvTick(); }, RLV_MS);
+  }
+
+  /* 「即時」鈕掛在時鐘那排時間軸上（`#rotBack`＝playBar 的容器，`rangeBar` 會給它 `.rbar`），
+     和資金去向那顆**同一顆樣式、同一套行為**。每次 playBar 重建都會把容器的 innerHTML
+     換掉，所以這支要在 playBar 之後再叫一次，而且要把「亮起來」的樣子補回去 ——
+     不然畫的明明是即時資料、鈕看起來卻是關的。*/
+  function rlvMountBtn() {
+    const box = $('#rotBack'); if (!box) return;
+    if (!$('#rotLiveBtn')) {
+      box.classList.add('rbar');
+      const b = document.createElement('button');
+      b.type = 'button'; b.id = 'rotLiveBtn'; b.className = 'pb livebtn';
+      b.textContent = '即時';
+      b.title = '切到盤中即時：用當下的成交價與成交量續算每個族群的位置，每分鐘更新；拖時間軸會自動退出';
+      b.setAttribute('aria-pressed', 'false');
+      b.onclick = rlvToggle;
+      box.appendChild(b);
+    }
+    /* 狀態列本體（`#rotLive`）也在這裡補 —— 它跟著時間軸走，
+       不寫死在 index.html 是因為它只有資金流向頁的那張卡用得到。*/
+    if (!$('#rotLive')) {
+      const row = box.closest('.rottime');
+      if (row && row.parentNode) {
+        const n = document.createElement('div');
+        n.id = 'rotLive'; n.className = 'note livenote rotlivenote'; n.hidden = true;
+        row.parentNode.insertBefore(n, row.nextSibling);
+      }
+    }
+    rlvStamp();
+  }
+
   /* 資金輪動時鐘：Andy 看不懂 RRG 的 XY 散布圖（「完全看不懂這張圖」），
      但「時鐘」人人都懂 —— 圓盤切成四段，資金照順時針一段一段跑：
        落後 → 改善 → 領先 → 轉弱 → 回到落後。
@@ -1411,6 +1754,29 @@
         return { ...r, rs: w[1], mo: w[2], stage: stageOf(w[1], w[2]), was: null, moved: false };
       });
     }
+    /* 盤中即時（RLV）：把族群的位置換成「用當下報價續算出來的那一點」。
+       ★ 只在 frame === 0（看最新那一天）成立 —— 續算是接在最後一個收盤後面的，
+         而拖時間軸本來就會自動退出即時，所以這裡只是再擋一次。
+       ★ `scope`（正規化的那把尺）**刻意仍然是收盤那一份**：
+         尺一起跟著動的話，切到即時會看到「整盤東西全部縮放了一下」——
+         那正是 Andy 2026-09-20 講的「一天的差距在圖上卻是各種歪曲」。
+         尺不動，使用者看到的就只有「點往某個方向挪了一小段」，那才是事實。
+       ★ 個股點（isStock）不套用：後端沒有給個股 live_state，
+         硬用族群的參數去續算個股等於自己編一個數字。狀態列會講明它們停在盤後位置。*/
+    /* `!compact`：總覽頁那張小時鐘**不套用即時**。它旁邊沒有狀態列、沒有那排數字，
+       也沒有「即時」鈕 —— 點默默跑到另一個位置，使用者無從得知那是即時還是盤後。
+       誠實標示和圖是一組的，標示放不下就不要畫那張圖。*/
+    const liveOn = !!(RLV.on && !RLV.err && !compact && frame === 0 && Object.keys(RLV.pt).length);
+    if (liveOn) {
+      top0 = top0.map(r => {
+        const v = RLV.pt[r.gid];
+        if (!v || r.isStock) return r;
+        /* `moved` 沿用既有那條「換段就發光」的路（shadowBlur）——
+           即時模式下「換段」的意思換成「盤中跨過象限」，語意一致，不必再長一套樣式。*/
+        return { ...r, rs: v.x, mo: v.y, stage: stageOf(v.x, v.y), live: v,
+          was: null, moved: v.stage0 !== stageOf(v.x, v.y) };
+      });
+    }
     if (!top0.length) return empty(id, '輪動時鐘需要至少 20 個交易日');
     /* 兩個軸的尺度差很多：相對強弱常常差好幾點，動能只差零點幾。
        直接拿原始值算角度，所有族群會擠在水平線上（＝兩段的交界），根本看不出在哪一段。
@@ -1471,7 +1837,12 @@
       const k = u <= 1 ? u : 1 + CLOCK_TAIL * (u - 1) / tailSpan;
       return [Math.min(CLOCK_MAXR * (1 + CLOCK_TAIL), k * CLOCK_MAXR), a];
     };
-    const pts = top0.map(r => ({ ...r, p: pos(r.rs, r.mo) }));
+    /* 即時模式下一個族群有**三個**位置（見 rlvCompute 的註解）：
+         p0 上一個收盤　→　pf 持平基準（今天完全平盤也會走到的地方）　→　p 現在。
+       p0→pf 是慣性、pf→p 才是今天的錢推出來的。*/
+    const pts = top0.map(r => ({ ...r, p: pos(r.rs, r.mo),
+      p0: r.live ? pos(r.live.x0, r.live.y0) : null,
+      pf: r.live ? pos(r.live.fx, r.live.fy) : null }));
     /* 順序固定成「族群在前、個股在後」：兩個 scatter series 共用同一張標籤位置表
        （rotLbl[id]），族群的 dataIndex 就是 i、個股的是 nG + j。
        順序一亂，名字就會掛到別人頭上。*/
@@ -1606,6 +1977,10 @@
     const sectorColor = {};
     CLOCK_SECTOR.forEach(s => { sectorColor[s.k] = STAGE[s.k].color; });
     const areaColors = CLOCK_SECTOR.flatMap(s => [hexA(STAGE[s.k].color, .13), hexA(STAGE[s.k].color, .13)]);
+    /* 即時模式要畫的那幾條「上一個收盤 → 現在」。
+       只收**真的有續算結果**的族群 —— 沒抓到報價的那幾個就維持盤後位置、不畫箭頭，
+       畫一條長度 0 的線只會讓人以為「它今天沒動」，而事實是「我們沒拿到它的報價」。*/
+    const liveArr = liveOn ? top.filter(r => r.p0 && r.live) : [];
     const o = {
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => {
@@ -1625,6 +2000,16 @@
             + `<br>相對大盤強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
             + `<br>動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 2)}`
             + (r.was ? `<br>${back} 天前在「${STAGE[r.was].name}」${r.moved ? '　<b>已經換段</b>' : ''}` : '')
+            /* 即時模式：把「上一個收盤在哪、現在在哪、走了多遠」三件事一次講完。
+               只寫「現在在哪」的話，使用者看到一顆幾乎沒動的點會以為功能壞了。*/
+            + (r.live ? `<br><span style="color:${s.color}">⚡ 盤中即時</span>`
+              + `　族群報酬 ${fmt.pct(r.live.ret * 100, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）`
+              + `<br>上一個收盤 強弱 ${fmt.n(r.live.x0 - 100, 2)} / 動能 ${fmt.n(r.live.y0 - 100, 2)}`
+              + `<br><span class="muted">慣性（平盤也會走）強弱 ${r.live.fx - r.live.x0 >= 0 ? '+' : ''}${fmt.n(r.live.fx - r.live.x0, 2)}　動能 ${r.live.fy - r.live.y0 >= 0 ? '+' : ''}${fmt.n(r.live.fy - r.live.y0, 2)}</span>`
+              + `<br><b>今天推的</b> 強弱 ${r.live.tdx >= 0 ? '+' : ''}${fmt.n(r.live.tdx, 2)}　動能 ${r.live.tdy >= 0 ? '+' : ''}${fmt.n(r.live.tdy, 2)}`
+              + (r.live.stage0 !== r.live.stage
+                ? `　<b>跨過象限：${STAGE[r.live.stage0].name} → ${STAGE[r.live.stage].name}</b>` : '')
+              + `<br><span class="muted">權重是「價 × 量」估的，漲跌幅是真的</span>` : '')
             + `<br>成交值佔比 ${fmt.n(r.share, 1)}%<br><small>點一下看成分股</small>`;
         },
       },
@@ -1666,6 +2051,86 @@
           lineStyle: { color: hexA(STAGE[r.stage].color, r.isStock ? .34 : .42),
             width: r.isStock ? 1 : 1.6, type: r.isStock ? 'dashed' : 'solid' },
         })),
+        /* ★ 盤中即時的主角：那條「上一個收盤 → 現在」的箭頭。
+
+           為什麼用 `custom` 而不是 line＋`symbol:'arrow'`：
+           ECharts 的 line series 不會把箭頭**轉到線的方向**（symbolRotate 是固定值），
+           在極座標上每條線的方向都不一樣，所以那條路走不通。
+           `custom` 的 `renderItem` 拿得到 `api.coord()`（極座標 → 像素），
+           於是箭頭可以在**像素空間**算得精準，粗細也不會被半徑縮放影響。
+
+           ★★ 箭頭大小跟著「真實位移的長度」縮放（`L * 0.45`，上限 9px）。
+              固定大小的箭頭會讓 4px 的位移看起來像 12px —— 那就是變相放大位移。
+              位移小，箭頭就小；位移大，箭頭才大。**位置本身一個像素都沒有被動過。** */
+        /* ★★ 這兩個 series **永遠都在**（關掉即時時 data 是空陣列），不要寫成
+           `...(liveArr.length ? [...] : [])`。
+           2026-09-22 第一次跑驗收就被「那條線也真的不見了」抓到：
+           重畫時大多數情況走的是 `notMerge: false`（點才會平滑滑過去），
+           而 **merge 是照索引對的 —— 新的 series 陣列變短，ECharts 不會把多出來的舊 series 移掉**，
+           於是按「退回盤後」之後箭頭還留在圖上。
+           固定 series 數是最省事也最不容易再犯的解法：數量不變，merge 就只是把資料換成空的。*/
+        {
+          /* z 要**比族群點（5）與個股點（6）都高**。
+             2026-09-22 第一版寫 z:4，截圖之後發現「彩色那一段只有 4px，而族群點的直徑最大 26px」——
+             箭頭整段藏在圓圈底下，等於沒畫。畫在上面之後它像一根指針貼在圓圈上，
+             走得多的那幾個（8～20px）則會明顯戳出圓圈外。*/
+          type: 'custom', coordinateSystem: 'polar', z: 7, silent: true, name: '即時位移',
+          data: liveArr.map(r => ({ value: [r.p[0], r.p[1]], row: r })),
+          renderItem: (params, api) => {
+            const r = liveArr[params.dataIndex]; if (!r) return null;
+            const a = api.coord([r.p0[0], r.p0[1]]);      // 上一個收盤
+            const f = api.coord([r.pf[0], r.pf[1]]);      // 持平基準（慣性走到的地方）
+            const b = api.coord([r.p[0], r.p[1]]);        // 現在
+            if (!a || !f || !b) return null;
+            const col = STAGE[r.stage].color;
+            const kids = [];
+            // ① 慣性那一段：灰色虛線、細。它**不是**今天的錢做的，所以不可以搶眼。
+            const iL = Math.hypot(f[0] - a[0], f[1] - a[1]);
+            if (iL > 0.4) {
+              kids.push({ type: 'line', shape: { x1: a[0], y1: a[1], x2: f[0], y2: f[1] },
+                style: { stroke: hexA(CH.ink2, .8), lineWidth: 1.8, lineDash: [3, 3] } });
+              // 起點（上一個收盤）留一顆空心小圈，才看得出「從這裡走到那裡」
+              kids.push({ type: 'circle', shape: { cx: a[0], cy: a[1], r: 2.6 },
+                style: { fill: CH.panel, stroke: hexA(CH.ink3, .9), lineWidth: 1.2 } });
+            }
+            /* ② 今天的錢推出來的那一段：粗、亮色、有箭頭。這才是使用者要看的東西。
+               ★★ 箭頭大小跟著**真實長度**縮放（L × 0.45，上限 9px）。
+                  固定大小的箭頭會讓 4px 的位移看起來像 12px —— 那就是變相放大位移。*/
+            const dx = b[0] - f[0], dy = b[1] - f[1];
+            const L = Math.hypot(dx, dy);
+            if (L > 0.4) {
+              const ux = dx / L, uy = dy / L;
+              const head = Math.min(9, Math.max(2, L * 0.45));
+              const hw = head * 0.45;
+              const bx = b[0] - ux * head, by = b[1] - uy * head;
+              /* ★ 針身用 `CH.ink`（深色主題近白、淺色主題近黑），外圈才用族群的階段色。
+                 2026-09-22 截圖之後改的：本來針身是階段色、外圈描面板底色，
+                 而這根針**就站在同一個階段色的圓圈上** —— 同色疊同色，等於看不見。
+                 亮色針 ＋ 彩色光暈在深淺兩種主題下都跳得出來，
+                 而且顏色的語意沒有被搶走（階段仍然由那顆圓圈的顏色講）。*/
+              kids.push({ type: 'line', shape: { x1: f[0], y1: f[1], x2: bx, y2: by },
+                style: { stroke: col, lineWidth: 5.6, lineCap: 'round', opacity: .95 } });
+              kids.push({ type: 'line', shape: { x1: f[0], y1: f[1], x2: bx, y2: by },
+                style: { stroke: CH.ink, lineWidth: 2.6, lineCap: 'round' } });
+              kids.push({ type: 'polygon', shape: { points: [[b[0], b[1]],
+                [bx - uy * hw, by + ux * hw], [bx + uy * hw, by - ux * hw]] },
+                style: { fill: CH.ink, stroke: col, lineWidth: 1.4 } });
+            }
+            // 兩段都小於一個像素就整個不畫（畫出來只是一顆看不出方向的髒點）
+            if (!kids.length) return null;
+            return { type: 'group', children: kids };
+          },
+        },
+        /* 端點的漣漪：Andy 要「會動」。這一圈純粹是「這顆點是即時的」的標記，
+           它**不代表任何數值**，所以不會讓人把它讀成「走了這麼遠」。
+           （和上面那個 custom 一樣：永遠存在，關掉即時時 data 是空的。）*/
+        {
+          type: 'effectScatter', coordinateSystem: 'polar', z: 3, silent: true, name: '即時',
+          showEffectOn: 'render', rippleEffect: { brushType: 'stroke', scale: 3.2, period: 3.4 },
+          symbolSize: 6,
+          data: liveArr.map(r => ({ value: [r.p[0], r.p[1]],
+            itemStyle: { color: STAGE[r.stage].color, opacity: .9 } })),
+        },
         // 現在的位置（族群：實心圓）
         {
           type: 'scatter', coordinateSystem: 'polar', z: 5, name: '族群',
@@ -1743,6 +2208,9 @@
             會自己換行，任何寬度都不可能溢出。圖裡只留「回放日期」與一行最短的比例說明。*/
         { type: 'text', right: 12, bottom: 8, silent: true,
           style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
+              /* 即時模式時多一行講箭頭是什麼。只有一行、而且刻意不寫數字 ——
+                 數字全部在圖下方那條狀態列裡，圖上塞數字一定會撞到族群名。*/
+              + (liveArr.length ? '⚡ 即時：灰虛線＝慣性　亮色箭頭＝今天推的\n' : '')
               + '圈圈大＝佔比高　·　離圓心遠＝差大盤多',
             fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
         }],
@@ -1774,7 +2242,19 @@
       window.App._rotPts = top.map(r => ({ gid: r.gid, name: r.name,
         // 下鑽之後盤上會同時有族群與個股，驗收要分得出來（點數變多的是哪一種）
         code: r.code || null, stock: !!r.isStock,
+        /* 驗收「即時模式下座標真的變了／退出後真的變回來」量的是這兩個值 ——
+           它們就是畫上去的那一點，不是我心裡想的那一點。*/
+        x: +(+r.rs).toFixed(4), y: +(+r.mo).toFixed(4), live: !!r.live,
         r: +(r.p[0] / maxR).toFixed(4), color: depthColor(r), base: STAGE[r.stage].color }));
+      /* 那條「上一個收盤 → 現在」的線：把兩端的**極座標**攤出來，
+         驗收再用 `App.rotLiveSeg()` 換成像素長度（那才是「使用者真的看到一條線」）。*/
+      // 這一輪盤上真的有箭頭的族群 —— 圖下方那排讀數只列這幾個（見 rlvTop 的註解）
+      rlvShown = new Set(liveArr.map(r => r.gid));
+      window.App._rotLiveAt = liveArr.map(r => ({ gid: r.gid, name: r.name,
+        p0: r.p0, pf: r.pf, p1: r.p,
+        dx: +r.live.dx.toFixed(4), dy: +r.live.dy.toFixed(4),
+        tdx: +r.live.tdx.toFixed(4), tdy: +r.live.tdy.toFixed(4),
+        jump: r.live.stage0 !== r.live.stage }));
       window.App._rotFrame = { frame, date: frameDate, span, trail: trailOn,
         /* ★ 2026-09-20（E1）：軌跡改成固定 48 點之後，「畫了幾個點」變成常數、
            再也量不出任何東西。驗收改量**軌跡實際走過幾天**（所有族群加總）——
@@ -2410,6 +2890,20 @@
         可多選、再點一次取消，<em>時鐘與右邊的資金流向排行會一起跟著篩</em>。</li>
       <li><b>回放</b>：「看哪一天」拖到幾天前，按 <em>▶</em> 就會一天 0.42 秒等速播回今天，
         軌跡是「走到哪畫到哪」；右上角「⤢ 放大」可以整張放大來看，控制項完全一樣。</li>
+      <li><b>按「即時」就換一種讀法</b>：時間軸旁邊那顆「即時」會用<em>當下的成交價與成交量</em>
+        把每個族群往前續算一步，每分鐘更新一次。圖上每個族群多出一條線，而它<b>刻意分成兩段</b>：
+        <em>灰色虛線</em>（從空心小圈出發）＝<b>慣性</b> —— 這張圖的 x 是「10 日 EMA 相對 40 日均線」，
+        就算今天完全平盤，那條均線的窗口也會往前滾一天，所以點本來就會走
+        （實測中位 0.59 點，比「贏大盤 2%」還多）；<em>亮色粗箭頭</em>
+        （針身是亮色、外圈是族群的階段色，終點有一圈漣漪在動）
+        ＝<b>今天的成交價與成交量真正推出來的那一段</b>。
+        所以<b>怎麼用</b>：<em>只看亮色那一段</em> —— 它朝「改善／領先」那半邊指，就是盤中有人在買；
+        朝「轉弱／落後」指，就是在被賣。<em>跨過象限的那幾個會發光</em>，那是今天最值得看的事件。
+        <b>亮色那段很短是正常的</b>（贏大盤 2% 也只有 0.35 點、畫面上 4～5 個像素，而整盤分布有 16 點）——
+        我們<em>沒有把位移放大</em>，要比較誰被推得多就看圖下方那一排數字（每一顆都點得進成分股）。
+        ⚠ 兩件事一定要知道：族群成交值是用「價 × 量」<em>估</em>的（漲跌幅是真的），
+        而且盤中只抓得到人工族群那批股票，所以<em>「大盤」是代理值</em> ——
+        涵蓋台股總成交值的百分之幾就寫在狀態列上。拖時間軸就會自動退出即時（兩者互斥）。</li>
       <li>族群跟著大盤轉，順序幾乎都是 <em>改善 → 領先 → 轉弱 → 落後 → 再回改善</em>。</li>
       <li><em>改善</em>：還比大盤弱，但動能已經轉強 —— 資金剛進場，這是最早可以布局的一段。</li>
       <li><em>領先</em>：現在的主流。回檔找買點，別追高，因為下一站是轉弱。</li>
@@ -2692,6 +3186,10 @@
        手放開（或播放停下來）之後 160ms，排行一次補到對的那一段。*/
     const rankVal = () => (rankDays ? Math.max(1, +rankDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
     const rotSeek = (v) => {
+      /* ★ 拖時間軸（或按 ▶ 播放）就自動退出即時 —— 兩者互斥，和資金去向那顆鈕同一條規矩。
+         即時是「接在最後一個收盤後面續算出來的那一點」，往回看某一天時它沒有意義。
+         `false`＝不要在這裡再重畫一次，下一行本來就會畫。*/
+      if (RLV.on) rlvOff(false);
       flowState.back = v; rotFrame = v;
       drawRot(v, 'clock');
       clearTimeout(rotBoardT);
@@ -2701,6 +3199,10 @@
        放大視窗開著時它也要跟著重畫 —— 兩邊吃的是同一份 ROT 狀態，
        只更新其中一邊的話，使用者關掉放大就會看到「剛剛按的東西不見了」。*/
     rotRedraw = () => { drawRot(rotFrame); drawPeriod(); if (rotZoomDraw) rotZoomDraw(); };
+    /* 即時那一輪只要重畫「時鐘」（卡片＋放大視窗）。
+       刻意**不叫 `rotRedraw`** —— 它連排行與期間卡一起重畫，那兩張和即時完全無關，
+       每分鐘白重建一次只會讓畫面閃一下。*/
+    rlvRedraw = () => { drawRot(rotFrame); if (rotZoomDraw) rotZoomDraw(); };
     /* 放大視窗關掉時把卡片補回來：天數（rotFrame）與篩選都是在放大視窗裡改的，
        卡片那張圖在那段期間刻意沒有跟著重畫（每 420ms 重畫兩張會掉幀）。*/
     rotSyncCard = () => {
@@ -2750,6 +3252,9 @@
       onChange: (v) => rotSeek(v) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
     flowState.back = rotFrame;
+    /* 「即時」鈕要等 playBar 建好才掛得上去（playBar 會把 `#rotBack` 的 innerHTML 換掉）。
+       換主題／換頁回來時這裡會再跑一次，`rlvMountBtn()` 內部會把「亮起來」的樣子補回去。*/
+    rlvMountBtn();
     wireRotTrailToggle(() => drawRot(rotFrame));
     drawRot(rotFrame);
 
@@ -3001,7 +3506,8 @@
       bar = playBar('rotZoomBack', { min: ROT_MIN_BACK, max: 30, value: rotFrame, key: 'tw.rot.back3',
         dir: -1, frame: ROT_ANIM_MS, group: 'rot.back', label: '看哪一天',
         fmt: (v) => (+v === 0 ? '最新' : v + ' 天前'),   // 和卡片那支同一套口徑
-        onChange: (v) => { rotFrame = v; draw(); } });
+        // 拖時間軸就退出即時（和卡片那支同一條規矩；`false`＝下一行本來就會重畫）
+        onChange: (v) => { if (RLV.on) rlvOff(false); rotFrame = v; draw(); } });
       wireRotTrailToggle(draw, 'rotZoomTools');
     }, () => {
       // 關閉：停掉播放（拉Bar 的 DOM 已經被清掉了，再跑下去只是空轉）、把卡片同步回來
@@ -5525,6 +6031,38 @@
       },
       // 手動催一輪即時（驗收用；平常是 setInterval 每分鐘一次，等不了）
       sankeyLiveTick: () => sklTick(),
+      /* ── 盤中即時輪動時鐘（RLV）的量測窗口 ──
+         `cover` 就是畫面上那個涵蓋率、`top` 就是「走得最多的族群」那一排的數字，
+         驗收量的是**真的畫出去的那一份**，不是另外算一次。*/
+      rotLive: () => ({ on: RLV.on, busy: RLV.busy, err: RLV.err, at: RLV.at,
+        intraday: RLV.intraday, groups: Object.keys(RLV.pt).length,
+        codes: RLV.codes, hit: RLV.hit, reqs: RLV.reqs, skipped: RLV.skipped,
+        mkt: RLV.mkt, cover: RLV.cover, uniAmt: RLV.uniAmt, marketAmt: RLV.marketAmt,
+        quoteAt: RLV.quoteAt, top: rlvTop(6) }),
+      rotLiveToggle: () => rlvToggle(),
+      rotLiveTick: () => rlvTick(),
+      /* 那條「上一個收盤 → 現在」在**畫面上**有多長（像素）。
+         驗「線真的畫出來了」只能量像素 —— 陣列裡有兩個點不代表使用者看得到一條線
+         （極座標兩點可能落在同一個像素上）。*/
+      rotLiveSeg: () => {
+        const el = document.getElementById('rotClock');
+        const c = el && window.echarts && echarts.getInstanceByDom(el);
+        const at = (window.App && window.App._rotLiveAt) || [];
+        if (!c || !at.length) return [];
+        const si = ((c.getOption() || {}).series || []).findIndex(x => x.type === 'scatter');
+        if (si < 0) return [];
+        const at2px = (v) => { try { return c.convertToPixel({ seriesIndex: si }, v); }
+          catch (e) { return null; } };
+        return at.map(r => {
+          const a = at2px(r.p0), f = at2px(r.pf), b = at2px(r.p1);
+          const len = (u, v) => ((u && v) ? +Math.hypot(v[0] - u[0], v[1] - u[1]).toFixed(2) : null);
+          return { gid: r.gid, name: r.name, dx: r.dx, dy: r.dy,
+            tdx: r.tdx, tdy: r.tdy, jump: r.jump, a, f, b,
+            px: len(a, b),               // 整條（上一個收盤 → 現在）
+            pxInertia: len(a, f),        // 灰虛線那段（慣性）
+            pxToday: len(f, b) };        // 亮色箭頭那段（今天的錢推的）
+        });
+      },
       // 下鑽狀態（驗收「點背景回復預設」用）
       drillState: () => ({ gid: DRILL.gid, chain: DRILL.chain, open: [...DRILL.open],
         stocks: [...DRILL.stocks], sel: sankeySel }) };
