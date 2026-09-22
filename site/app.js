@@ -5327,17 +5327,44 @@
     /* 事件側欄要真的關得掉。手機用 .open 滑出來，桌機要靠 .layout.noside 把那一欄收掉 ——
        以前只 toggle .open，桌機按了完全沒反應，而且側欄佔掉 360px 讓候選表的六個欄位躲進捲軸。 */
     const SIDE_KEY = 'tw.side';
-    const setSide = (open) => {
+    /* ★ 820px 以下這個側欄不是「一欄」，是**蓋在內容上的浮層**
+       （index.html 的 `@media (max-width:820px)` 把 aside 改成 position:fixed）。
+       2026-09-22 量到的事實：800px 時浮層從 x=440 蓋到 800，
+       而圖別選單裡「MLCC」那張卡的中心在 x=586 —— **真人點下去點到的是浮層，不是那張卡**。
+       （1100px 時卡片右緣 699、浮層左緣 740，只差 41px；1440px 以上才真的不重疊。）
+       這不是測試環境的怪象：任何人把瀏覽器縮成半邊，右半頁就是點不動的。
+
+       兩個修法一起下：
+         ① 窄畫面一進站**一律先關著**。存起來的偏好是「桌機要不要留那一欄」，
+            不該拿來決定「手機要不要彈出一個蓋住半頁的浮層」。
+         ② 浮層狀態下**點外面就關掉**（浮層本來就該這樣）。
+       ⚠ 自動關的時候**不准覆寫存起來的偏好** —— 不然使用者在手機上開一次，
+         回到桌機那一欄就莫名其妙不見了。 */
+    const SIDE_OVERLAY_MAX = 820;                      // 跟 index.html 的 media query 同一個數字
+    const sideIsOverlay = () => window.innerWidth <= SIDE_OVERLAY_MAX;
+    const setSide = (open, remember = true) => {
       $('#side').classList.toggle('open', open);
       $('#layout').classList.toggle('noside', !open);
-      try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ }
+      if (remember) { try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ } }
       window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
     };
     let sideOpen = true;
     try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
-    setSide(sideOpen);
+    setSide(sideIsOverlay() ? false : sideOpen, false);
     $('#evToggle').onclick = () => setSide($('#layout').classList.contains('noside'));
     $('#evClose').onclick = () => setSide(false);
+    // 點浮層外面就收掉。用 capture 才攔得到那些自己 stopPropagation 的元件（剖析圖的零件就是）。
+    document.addEventListener('pointerdown', (e) => {
+      if (!sideIsOverlay()) return;
+      const a = $('#side');
+      if (!a || !a.classList.contains('open')) return;
+      if (e.target.closest('#side') || e.target.closest('#evToggle')) return;
+      setSide(false, false);                           // 不覆寫桌機的偏好
+    }, true);
+    // 從寬拖窄：那一欄變成浮層的瞬間要收掉，不然一樣蓋住內容
+    window.addEventListener('resize', () => {
+      if (sideIsOverlay() && $('#side').classList.contains('open')) setSide(false, false);
+    });
   }
 
   // ---------------------------------------------------------------- 搜尋
