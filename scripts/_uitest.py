@@ -2840,13 +2840,23 @@ def t_new_industry(pg, base):
            == s["cards"] - s["open"], s)
         ok(f"390px {cid} 手機上真的有出現「全部展開」工具列與收合鈕", s["toolsShown"] and s["sxShown"] > 0, s)
         ok(f"390px {cid} 沒有小於 11px 的字（含新加的收合鈕與工具列）", s["small"] == 0, s["small"])
-        # ---- 板塊（族群）卡：110 個板塊上線之後，手機上一張卡就佔掉 120px、一排只塞得下一張。
-        #      改成「一行一個板塊」之後要同時守住兩件事：**一個板塊都沒有藏**、而且**真的變矮了**。
+        # ---- 板塊（族群）清單：110 個板塊上線之後，手機上一張卡就佔掉 120px、一排只塞得下一張。
+        #      2026-09-22 起桌機也一起改成清單（Andy：「版面的族群改成用清單式好了，
+        #      因為卡會一直延伸導致影響版面」），所以這裡要守住三件事：
+        #        ① 一個板塊都沒有刪掉　② 每一列真的是「一列」的高度　③ 容器高度有上限、超過在框內捲
         gc = pg.evaluate("""() => { const box = document.getElementById('groupCards');
             if (!box) return null; const tiles = [...box.querySelectorAll('.tile')];
             const br = box.getBoundingClientRect();
+            const hs = tiles.map(t => t.getBoundingClientRect().height).sort((a, b) => a - b);
             return { n: tiles.length, h: Math.round(br.height),
-                     per: tiles.length ? Math.round(br.height / tiles.length) : 0,
+                     /* ★ 2026-09-22 改掉了這個數字的算法。
+                        以前是 `容器高 / 張數` —— 那在「容器高度沒有上限」的年代等於平均列高，
+                        但容器改成 max-height + 框內捲之後，容器高是固定的 228，
+                        除以 24 得到 9.5，**這條斷言就永遠是綠的，等於沒在驗**。
+                        改成量每一列**自己**的高度取中位數，那才是「一列有多高」。*/
+                     per: hs.length ? Math.round(hs[Math.floor(hs.length / 2)]) : 0,
+                     sh: box.scrollHeight, ch: box.clientHeight,
+                     oy: getComputedStyle(box).overflowY,
                      named: tiles.filter(t => { const e = t.querySelector('.t');
                          return e && e.textContent.trim() && e.getBoundingClientRect().height > 8; }).length,
                      pct: tiles.filter(t => { const e = t.querySelector('.v');
@@ -2854,12 +2864,23 @@ def t_new_industry(pg, base):
                      link: tiles.filter(t => t.querySelector('a[href^="#industry/group/"]')).length,
                      out: tiles.filter(t => { const r = t.getBoundingClientRect();
                          return r.right > br.right + 1 || r.left < br.left - 1; }).length }; }""")
-        ok(f"390px {cid} 板塊卡一個都沒有藏（{gc and gc['n']} 個板塊、每一個的名稱都看得到）",
+        ok(f"390px {cid} 板塊一個都沒有刪掉（{gc and gc['n']} 個板塊、每一個的名稱都在 DOM 裡、量得到高度）",
            bool(gc) and gc["n"] > 3 and gc["named"] == gc["n"], gc)
         ok(f"390px {cid} 每個板塊都還看得到漲跌、也都點得進族群頁",
            bool(gc) and gc["pct"] == gc["n"] and gc["link"] == gc["n"], gc)
-        ok(f"390px {cid} 板塊卡平均不超過 75px（手機上一行一個，不是一張 120px 的大卡）",
+        ok(f"390px {cid} 每一列不超過 75px（一列一個板塊，不是一張 120px 的大卡）",
            bool(gc) and 0 < gc["per"] <= 75, gc)
+        # ★ 新增（2026-09-22）：上面那條只管「列」，這條管「框」——
+        #   清單的容器高度必須有上限，不然板塊再多一倍又會把整頁撐高，
+        #   那正是 Andy 說的「卡會一直延伸導致影響版面」。
+        #   上限＝CSS 的 clamp(150px, 27vh, 252px) ＋ 內距 10 ＋ 框線 2，留 6px 給次像素。
+        ok(f"390px {cid} 族群清單的容器高度有上限（量到 {gc and gc['h']}px ≤ 270px）",
+           bool(gc) and 0 < gc["h"] <= 270, gc)
+        # 這三條鏈在 390px 都有 18 個以上的板塊，一定裝不下 228px 的框 ——
+        # 所以「內容真的比框高」＋「框真的是 auto」兩件事都必須成立，
+        # 缺一就代表要嘛板塊被砍掉了、要嘛框又變成會撐高的了。
+        ok(f"390px {cid} 板塊裝不下時真的在框內捲（內容 {gc and gc['sh']} / 框 {gc and gc['ch']}、overflow-y = auto）",
+           bool(gc) and gc["oy"] == "auto" and gc["sh"] > gc["ch"] + 4, gc)
         ok(f"390px {cid} 板塊卡沒有跑出容器", bool(gc) and gc["out"] == 0, gc)
         ok(f"390px {cid} 成分股預設只列前 30 檔（真實筆數寫在標題上）",
            s["rows"] <= 30 and s["rows"] > 0, s["rows"])
@@ -10656,6 +10677,60 @@ _DGL_BG = """() => {
 }"""
 
 
+# 族群清單（#groupCards）的尺。跟 _DGL_M 分開，因為它量的是「另一份清單」，
+# 而且兩者的上限不一樣（環節色標 21vh、族群 27vh —— 族群的格數多很多）。
+_DGL_G = """() => {
+  const box = document.getElementById('groupCards');
+  if (!box) return null;
+  const tiles = [...box.querySelectorAll('.tile')];
+  const br = box.getBoundingClientRect();
+  const hs = tiles.map(t => t.getBoundingClientRect().height).sort((a, b) => a - b);
+  return {
+    n: tiles.length,
+    boxH: Math.round(br.height), sh: box.scrollHeight, ch: box.clientHeight,
+    oy: getComputedStyle(box).overflowY,
+    // 每一列自己的高度取中位數 —— 不要用「容器高 / 張數」，容器被 max-height 夾住之後那個數字沒有意義
+    rowH: hs.length ? Math.round(hs[Math.floor(hs.length / 2)]) : 0,
+    named: tiles.filter(t => { const e = t.querySelector('.t');
+      return e && e.textContent.trim() && e.getBoundingClientRect().height > 8; }).length,
+    pct: tiles.filter(t => { const e = t.querySelector('.v');
+      return e && e.getBoundingClientRect().height > 8; }).length,
+    link: tiles.filter(t => t.querySelector('a[href^="#industry/group/"]')).length,
+    out: tiles.filter(t => { const r = t.getBoundingClientRect();
+      return r.right > br.right + 1 || r.left < br.left - 1; }).length,
+    minFs: tiles.length ? Math.min(...tiles.flatMap(t => [t, ...t.querySelectorAll('*')]
+      .map(n => parseFloat(getComputedStyle(n).fontSize) || 99))) : 0,
+    docW: document.documentElement.scrollWidth, winW: window.innerWidth,
+  };
+}"""
+
+# 點族群那一列之後，「畫面真的因此改變」的四個證據：網址、圖的標題、成分股筆數、選取狀態
+_DGL_S2 = """() => ({
+  hash: location.hash,
+  rows: document.querySelectorAll('#memberTable tbody tr').length,
+  selN: document.querySelectorAll('#groupCards .tile.sel').length,
+  selGid: [...document.querySelectorAll('#groupCards .tile.sel')].map(t => t.dataset.gid),
+  dgTitle: (document.getElementById('dgTitle') || {}).textContent || '',
+})"""
+
+# 個股頁那張產業鏈圖的捲動提示
+_DGL_H = """() => {
+  const h = document.querySelector('#prodDiagram');
+  const hints = [...document.querySelectorAll('.dgshint')];
+  return {nHint: hints.length, shown: hints.filter(n => !n.hidden).length,
+          sh: h ? h.scrollHeight : -1, ch: h ? h.clientHeight : -1};
+}"""
+
+# 3D 場景的高亮與小卡狀態（.lbl3d 是 DOM，所以量得到）
+_DGL_D = """() => ({
+  selPart: document.querySelectorAll('.lbl3d.sel-part').length,
+  sel: document.querySelectorAll('.lbl3d.sel').length,
+  dim: document.querySelectorAll('.lbl3d.dim').length,
+  card: !!document.querySelector('#partCard') && !document.querySelector('#partCard').hidden,
+  rows: document.querySelectorAll('#memberTable tbody tr').length,
+})"""
+
+
 def t_dglayout(pg, base):
     """批次19：環節色標清單化、圖框固定高度＋拉 Bar、點背景回 Default、一個畫面看得完。"""
 
@@ -10825,6 +10900,154 @@ def t_dglayout(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
+    # =======================================================================
+    # ⑦ 族群改成清單（Andy 2026-09-22 原話：「版面的**族群**改成用清單式好了，
+    #    因為**卡**會一直延伸導致影響版面」—— 「族群」＋「卡」兩個詞指的就是 #groupCards）
+    #
+    #    改之前量到的（半導體 24 個族群）：1440px 468px、800px 948px、390px **1598px**，
+    #    而且**沒有天花板** —— tide 的 110 個板塊還在長，多一個族群就把整頁往下推一次。
+    #    改之後跟環節色標同一套：一列一格、高度有上限、撞到就在框內捲。
+    # =======================================================================
+    for w, h in ((1440, 900), (800, 900), (390, 844)):
+        land(pg, SEMI, w, h)
+        g = pg.evaluate(_DGL_G)
+        if not ok(f"⑦ [{w}px] 半導體鏈量得到族群清單", bool(g), g):
+            continue
+        ok(f"⑦ [{w}px] 24 個族群一個都沒有刪掉（量到 {g['n']} 個，名稱全部量得到高度）",
+           g["n"] >= 20 and g["named"] == g["n"], g)
+        # 上限＝CSS 的 clamp(150px, 27vh, 252px) ＋ 內距 10 ＋ 框線 2，留 6px 給次像素。
+        # 改之前這裡是 468／948／1598，而且是「族群有幾個」的函數。
+        ok(f"⑦ [{w}px] 族群清單的高度有上限（量到 {g['boxH']}px ≤ 270px）", 0 < g["boxH"] <= 270, g)
+        ok(f"⑦ [{w}px] 每一列是「一列」的高度（中位數 {g['rowH']}px ≤ 75px）", 0 < g["rowH"] <= 75, g)
+        ok(f"⑦ [{w}px] 漲跌與「族群頁 →」一個都沒掉（{g['pct']}／{g['link']} of {g['n']}）",
+           g["pct"] == g["n"] and g["link"] == g["n"], g)
+        ok(f"⑦ [{w}px] 沒有一列跑出容器", g["out"] == 0, g)
+        ok(f"⑦ [{w}px] 族群清單的字都 ≥ 12px（量到 {g['minFs']}px）", g["minFs"] >= 12, g)
+        ok(f"⑦ [{w}px] 裝不下時真的在框內捲（內容 {g['sh']} / 框 {g['ch']}、overflow-y = auto）",
+           g["oy"] == "auto" and g["sh"] > g["ch"] + 4, g)
+        # 真的捲：scrollTop 真的從 0 變成非 0
+        pg.evaluate("() => { const b = document.getElementById('groupCards'); b.scrollTop = b.scrollHeight; }")
+        pg.wait_for_timeout(250)
+        st = pg.evaluate("() => document.getElementById('groupCards').scrollTop")
+        changed(f"⑦ [{w}px] 族群清單真的捲得動（scrollTop）", 0, st, f"內容 {g['sh']} / 框 {g['ch']}")
+        pg.evaluate("() => { document.getElementById('groupCards').scrollTop = 0; }")
+        ok(f"⑦ [{w}px] 沒有橫向捲軸", g["docW"] <= g["winW"] + 1, g)
+
+    # ---------------- ⑦b 互動一行都不准改：真的用滑鼠點一列 → 網址變、圖換、筆數變
+    #   挑一般電子鏈的「被動元件 MLCC」：它有專屬剖析圖，所以「圖真的換了」量得到
+    #   （這條鏈預設是圖別選單，點下去才會變成 MLCC 那張）。
+    land(pg, f"{base}#industry/electronics", 1440, 900)
+    b0 = pg.evaluate(_DGL_S2)
+    hit = pg.evaluate("() => !!document.querySelector('#groupCards .tile[data-gid=\"mlcc\"]')")
+    if ok("⑦b 一般電子鏈的族群清單裡找得到「被動元件 MLCC」那一列", hit):
+        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1600)
+        b1 = pg.evaluate(_DGL_S2)
+        changed("⑦b 真的用滑鼠點一列 → 網址真的變了", b0["hash"], b1["hash"])
+        changed("⑦b 真的用滑鼠點一列 → 剖析圖真的換了（標題從圖別選單變成那張圖）",
+                b0["dgTitle"][:24], b1["dgTitle"][:24])
+        changed("⑦b 真的用滑鼠點一列 → 成分股筆數真的變了", b0["rows"], b1["rows"])
+        ok("⑦b 而且那一列真的亮起來（剛好 1 列）", b1["selN"] == 1 and b1["selGid"] == ["mlcc"], b1)
+        click(pg, '#groupCards .tile[data-gid="mlcc"]', 1400)
+        b2 = pg.evaluate(_DGL_S2)
+        ok("⑦b 再點一次真的取消（選取歸零、筆數回到原本）",
+           b2["selN"] == 0 and b2["rows"] == b0["rows"], {"原本": b0, "取消後": b2})
+
+    # ---------------- ⑦c 捲下去才看得到的那一列，**照樣點得到**
+    #   這是清單化最容易踩的坑：框內捲之後最後幾列在可視範圍外，
+    #   如果哪天誰把 overflow 改成 hidden，這一條會立刻紅。
+    land(pg, SEMI, 1440, 900)
+    last = pg.evaluate("() => { const t = [...document.querySelectorAll('#groupCards .tile')].pop();"
+                       " return t ? t.dataset.gid : null; }")
+    if ok("⑦c 半導體鏈的族群清單有最後一列", bool(last), last):
+        r0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+        click(pg, f'#groupCards .tile[data-gid="{last}"]', 1500)
+        r1 = pg.evaluate("""() => ({rows: document.querySelectorAll('#memberTable tbody tr').length,
+            sel: [...document.querySelectorAll('#groupCards .tile.sel')].map(t => t.dataset.gid)})""")
+        ok(f"⑦c 要捲下去才看得到的最後一列（{last}）真的點得到，而且成分股真的被篩了",
+           r1["sel"] == [last] and r1["rows"] != r0, {"原本": r0, "點完": r1})
+        click(pg, f'#groupCards .tile[data-gid="{last}"]', 1200)
+
+    # ---------------- ⑧ 個股頁那張產業鏈圖也有捲動提示（不一致比沒有更糟）
+    #   2327 國巨屬於被動元件 MLCC 族群 → 它在個股頁吃到的是 MLCC 那張（比框高，會捲）。
+    pg.evaluate("() => { try { localStorage.setItem('tw.chainOpen', '0'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 900})
+    pg.goto(f"{base}#stock/2327", wait_until="networkidle")
+    pg.wait_for_timeout(3000)
+    s0 = pg.evaluate(_DGL_H)
+    ok("⑧ 個股頁的產業鏈圖預設是收起來的，這時候**不該**說「可以捲」（框是 0 高）",
+       bool(s0) and s0["nHint"] == 1 and s0["shown"] == 0, s0)
+    click(pg, "#chainToggle", 1500)
+    s1 = pg.evaluate(_DGL_H)
+    ok("⑧ 真的按下「展開產業鏈圖」→ 圖真的出現（框高不再是 0）",
+       bool(s1) and s1["ch"] > 100, {"展開前": s0, "展開後": s1})
+    ok(f"⑧ 展開之後「↕ 框內可上下捲」真的出現（內容 {s1 and s1['sh']} / 框 {s1 and s1['ch']}）",
+       bool(s1) and s1["sh"] > s1["ch"] + 4 and s1["shown"] == 1, s1)
+    pg.evaluate("() => { document.querySelector('#prodDiagram').scrollTop = 150; }")
+    pg.wait_for_timeout(250)
+    changed("⑧ 個股頁的圖框也真的捲得動（scrollTop）", 0,
+            pg.evaluate("() => document.querySelector('#prodDiagram').scrollTop"))
+    click(pg, "#chainToggle", 1200)
+    s2 = pg.evaluate(_DGL_H)
+    ok("⑧ 再收起來 → 提示真的跟著收掉（不要指著一張看不見的圖）",
+       bool(s2) and s2["shown"] == 0, s2)
+
+    # ---------------- ⑨ 3D 場景：**真的用滑鼠**點空白處 → 回到 Default
+    #   上一批只靠讀碼確認 onBg 接上了，沒有真的在 WebGL 場景裡點過 —— 這一條把它補起來。
+    #   ★ 怎麼確定點到的真的是「空白」：three3d.js 的 pointermove 會依 raycast 結果
+    #     把 canvas 的游標設成 'pointer'（打到零件）或 'grab'（打空）。
+    #     所以先把滑鼠移過去、讀游標，**只有 'grab' 的點才算背景** —— 這比「猜一個角落」硬。
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle")
+    pg.wait_for_timeout(2400)
+    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        notes.append("⑨ 這台機器沒有 WebGL，3D 點背景那一條跳過（與 批次6-圖九 同一條規矩）")
+    else:
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            click(pg, "#dg3d", 3500)
+            pg.wait_for_timeout(3000)
+        if not ok("⑨ 3D 場景真的掛得起來", pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"),
+                  text(pg, "#dg3dNote")[:160]):
+            pass
+        else:
+            d0 = pg.evaluate(_DGL_D)
+            click(pg, ".lbl3d", 1200)                    # 真的用滑鼠點一個 3D 文字框
+            d1 = pg.evaluate(_DGL_D)
+            ok("⑨ 3D 點一個零件 → 只亮那個（主角 1 個、其餘被壓暗）",
+               d1["selPart"] == 1 and d1["dim"] > 0, {"點之前": d0, "點之後": d1})
+            ok("⑨ 3D 點零件 → 零件小卡真的出現", d1["card"], d1)
+            pt = None
+            box = pg.evaluate("""() => { const c = document.querySelector('#prod3d canvas');
+                if (!c) return null; const r = c.getBoundingClientRect();
+                return {l: r.left, t: r.top, w: r.width, h: r.height}; }""")
+            for fy in (0.06, 0.1, 0.9, 0.94, 0.5):
+                if pt or not box:
+                    break
+                for fx in (0.5, 0.42, 0.58, 0.34, 0.66, 0.26):
+                    x = round(box["l"] + box["w"] * fx)
+                    y = round(box["t"] + box["h"] * fy)
+                    if y < 4 or y > 996:
+                        continue
+                    over = pg.evaluate("([x, y]) => { const e = document.elementFromPoint(x, y);"
+                                       " return e ? e.tagName : 'none'; }", [x, y])
+                    if over != "CANVAS":
+                        continue                          # 被文字框蓋住，那不是背景
+                    pg.mouse.move(x, y)
+                    pg.wait_for_timeout(140)
+                    if pg.evaluate("() => document.querySelector('#prod3d canvas').style.cursor") == "grab":
+                        pt = (x, y)                       # 游標是 grab ＝ raycast 真的打空了
+                        break
+            if ok("⑨ 在 3D 畫布上找得到一個真的空白點（游標是 grab，代表 raycast 打空）", bool(pt), pt):
+                pg.mouse.click(pt[0], pt[1])
+                pg.wait_for_timeout(900)
+                d2 = pg.evaluate(_DGL_D)
+                ok(f"⑨ 3D 真的用滑鼠點背景 → 全部恢復全亮（dim {d1['dim']} → {d2['dim']}、主角歸零）",
+                   d2["dim"] == 0 and d2["selPart"] == 0, {"點之前": d1, "點之後": d2})
+                ok("⑨ 3D 點背景 → 零件小卡真的收掉", not d2["card"], d2)
+                ok("⑨ 3D 點背景**不准**動到成分股筆數", d2["rows"] == d0["rows"],
+                   {"原本": d0["rows"], "現在": d2["rows"]})
+            # 把 3D 關掉，不要把狀態留給後面的段落（#dg3d 記在 localStorage）
+            if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+                click(pg, "#dg3d", 1500)
 
 
 def _selected(args, name: str) -> bool:
