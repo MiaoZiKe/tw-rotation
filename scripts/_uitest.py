@@ -9077,7 +9077,11 @@ def t_mlcc(pg, base):
 
     # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
     for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),
-                             ("2330", FEAT_SEMI, "半導體鏈 → 代表圖「先進封裝」那張")):
+                             # ★ 2026-09-22：2330 現在有**自己族群**的圖了（晶圓代工，class 是 dgfd）。
+                             #   `dgPick` 第一條就是「使用者／個股所屬族群有自己的圖 → 就是那一張」，
+                             #   所以它不再退回代表圖 —— 那是更好的答案（2330 本來就是晶圓代工廠）。
+                             #   斷言改成「掛得到一張圖，而且是它自己族群那張」。
+                             ("2330", 'class="dg dgm dgfd', "自己的族群 → 晶圓代工那張")):
         pg.goto(f"{base}#stock/{code_}", wait_until="networkidle"); pg.wait_for_timeout(3000)
         pg.evaluate("() => { const t = document.querySelector('#chainToggle');"
                     " if (t && t.textContent.includes('展開')) t.click(); }")
@@ -10063,7 +10067,15 @@ counts: dict[str, int] = {}
 
 # ===================================================================== 批次13：配色與收納
 DG_ROUTES_13 = [
-    ("半導體", "semiconductor"), ("AI 伺服器", "ai_server"),
+    # ★ 2026-09-22：「半導體」這條鏈層級的網址拿掉了 —— DECISIONS #234 把那張 CoWoS 剖面退場
+    #   （它跟族群層級的「先進封裝」是同一題，畫面上就是同一張圖畫了兩次），
+    #   現在那條鏈的入口是圖別選單、沒有自己的圖。留著這一條會永遠報「沒有圖」。
+    #   換成那條鏈實際存在的四張族群圖 —— 掃描範圍因此變大，不是變小。
+    ("AI 伺服器", "ai_server"),
+    ("晶圓代工", "semiconductor/dg/foundry"),
+    ("矽晶圓", "semiconductor/dg/silicon_wafer"),
+    ("HBM", "semiconductor/dg/hbm"),
+    ("第三代半導體", "semiconductor/dg/wide_bandgap"),
     ("MLCC", "electronics/dg/mlcc"), ("面板", "electronics/dg/panel"),
     ("先進封裝", "semiconductor/dg/ai_adv_packaging"), ("ABF 載板", "ai_server/dg/ic_substrate"),
     ("硬板", "ai_server/dg/pcb_rigid"), ("液冷", "ai_server/dg/liquid_cooling"),
@@ -10253,7 +10265,7 @@ def t_batch13(pg, base):
             novs = z["nOv"] - (1 if route.endswith("ai_adv_packaging") else 0)
             if z["nSmall"] or novs > 0:
                 bad.append(f"{lab}：小字 {z['small']} 重疊 {z['ov']}")
-        ok(f"★ [{w}px] 11 張剖析圖（章節全部展開）每一個字都 ≥ 12px、文字兩兩不重疊", not bad, bad[:4])
+        ok(f"★ [{w}px] 每一張剖析圖（章節全部展開）每一個字都 ≥ 12px、文字兩兩不重疊", not bad, bad[:4])
 
     # ---------------- 10. 3D 也切得到休閒
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -13384,9 +13396,13 @@ def t_b21_silicon_wafer(pg, base):
     st2 = pg.evaluate(B14B_DG)
     ok("矽晶圓：每個零件都點得到，而且每個都有自己寫死的 data-part（熔湯、磊晶各一）",
        k1 == "sw_melt" and k2 == "sw_epi", f"{k1} ／ {k2}")
-    ok("矽晶圓：★ 反向驗收 —— 點零件之後**沒有任何東西被選起來**（因為一個 data-seg 都沒掛），"
-       "而這正是「不掛錯環節」的代價",
-       st1["selpart"] == 0 and st2["selpart"] == 0 and st1["nSeg"] == 0,
+    # ★ 2026-09-22 翻成正向：原本寫的是「點了**不會**有任何反應」——
+    #   那不是期望行為，是當時 industry.js 的限制被寫進斷言。
+    #   現在「沒有 seg 但有 parts[key]」也點得動、也開得了小卡，
+    #   所以這張圖不必為了「不掛錯環節」而變成死的。兩件事同時成立才是對的：
+    #   **零件真的被選起來（sel-part > 0），而且一個 data-seg 都沒掛。**
+    ok("矽晶圓：★ 一個 data-seg 都沒掛（不宣稱錯的環節），但零件仍然點得動、選得起來",
+       st1["selpart"] > 0 and st1["nSeg"] == 0,
        f"sel-part {st1['selpart']}／{st2['selpart']}；data-seg {st1['nSeg']}")
     ok("矽晶圓：★ 代價已經補起來 —— 「誰做的」直接印在畫面上（台股標示線列得出五檔與各自做到哪一段）",
        "6488 環球晶" in txt and "6182 合晶" in txt and "3532 台勝科" in txt

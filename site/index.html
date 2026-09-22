@@ -1225,10 +1225,21 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dgcard .go{font-size:12.5px;font-weight:700;color:var(--c,var(--cyan));margin-top:8px}
 @media (max-width:640px){
   /* 手機一欄；問題那一行是這張卡真正的內容，字級不准跟著縮 */
-  .dgcards{grid-template-columns:1fr}
-  .dgcard{padding:11px 12px}
+  .dgcards{grid-template-columns:1fr;gap:8px}
+  .dgcard{padding:9px 12px}
   .dgcard .q{font-size:13.5px}
-  .dgcard .m{font-size:12px}
+  .dgcard .m{font-size:12px;margin-top:4px}
+  /* ★ 2026-09-22：圖別選單是**唯一會隨著「畫了幾張圖」無限長高**的區塊。
+     390px 量到：半導體鏈 5 張卡 × 176px ＝ 989px，整頁因此比退回版面之前多 163px。
+     Andy 這一批要的是「縮小、一次看到完整資訊」，所以這裡收的是**尺寸**不是結構 ——
+     卡片還是一張一張排開（沒有加捲動框、沒有改版面），只是：
+       · 問題那行最多兩行（`line-clamp`），第三行以後點進去就看得到，不必在選單上讀完
+       · 行距 1.7 → 1.45、上下留白各收 1～2px
+     **字級一個都沒動**（13.5px ＞ 12px 下限）。實測單張 176 → 約 132px。*/
+  .dgcard .q{line-height:1.45;margin-top:4px;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .dgcard .m{margin-top:3px}
+  .dgcard .go{margin-top:5px}
 }
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
