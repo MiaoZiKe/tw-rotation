@@ -182,7 +182,13 @@
     host.querySelectorAll('svg').forEach((svg) => {
       /* v2：先把 .lrow.ext 變成 HTML 卡片（它們的零件身分搬到卡片上），再替 SVG 裡剩下的零件蓋 dgkey。
          縮圖（.xmini）與非 .dgwrap 的容器不外掛：那裡只要主角。*/
-      if (svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini')) externalize(host, svg);
+      /* ★ 2026-09-22（restyle-w1b）：同一個 #prodDiagram 會連續裝好幾張圖（AI 伺服器鏈的圖別切換列
+         在同一頁換圖，industry.js 只換 host.innerHTML）。v2 的判斷以前寫在 host.dataset.dgv2 上，
+         換第二張 v2 的圖時那個旗標還在 → externalize 直接 return → 第二張的卡片全部沒外掛。
+         改成「看這張 svg 自己有沒有被包進 .dgcanvas」；上一張留下的觀察器與 class 由 teardownV2 收掉。*/
+      const v2 = svg.classList.contains('rs') && host.classList && host.classList.contains('dgwrap') && !host.closest('.xmini');
+      if (v2) externalize(host, svg);
+      else if (host.dataset && host.dataset.dgv2 === '1') teardownV2(host);   // 上一張是 v2、這一張不是：殘留清掉
       const ns = [].slice.call(svg.querySelectorAll('[data-seg]'));
       ns.forEach((n, i) => { n.dataset.dgkey = n.getAttribute('data-part') || (n.getAttribute('data-seg') + ':' + i); });
       /* 單一環節的圖自己判定，不要求畫圖的人記得加 class ——
@@ -230,11 +236,24 @@
        5. 錨點群組 .anc 鏡射卡片的 sel／sel-part／dim 與 --c（MutationObserver），點錨點＝點卡片
      版面本身（幾欄、多寬）全在 index.html 的 .dgv2 容器查詢裡，這裡不量寬度。*/
   const SVGNS = 'http://www.w3.org/2000/svg';
+  /* 把上一張 v2 圖留在容器上的東西收掉：觀察器（不收的話每次 resize 都會對著已經被丟掉的 DOM 重算）、
+     tw:dgpal 監聽器、容器上的 class 與旗標。externalize 開頭與「換成非 v2 的圖」都會呼叫。*/
+  function teardownV2(host) {
+    const o = host.__dgv2;
+    if (o) {
+      try { if (o.ro) o.ro.disconnect(); } catch (e) { /* 忽略 */ }
+      try { if (o.mo) o.mo.disconnect(); } catch (e) { /* 忽略 */ }
+      window.removeEventListener('tw:dgpal', o.later); window.removeEventListener('resize', o.later);
+      host.__dgv2 = null;
+    }
+    delete host.dataset.dgv2; host.classList.remove('dgv2', 'dg1', 'haspart');
+  }
   function externalize(host, svg) {
-    if (host.dataset.dgv2 === '1') return;
+    if (svg.closest('.dgcanvas')) return;                 // 這一張已經外掛過（同一張圖被 stamp 兩次）
     const exts = [].slice.call(svg.querySelectorAll('g.lrow.ext'));
     const heads = [].slice.call(svg.querySelectorAll('text.ext'));
     if (!exts.length && !heads.length) return;
+    teardownV2(host);                                     // 上一張圖（同一個容器）的殘留先清掉
     host.dataset.dgv2 = '1'; host.classList.add('dgv2');
     const vb = svg.viewBox && svg.viewBox.baseVal;
     /* 容器查詢只對**後代**生效（元素不能查自己的寬），所以 .dgwrap 當容器、格線另外包一層 .dggrid */
@@ -313,14 +332,17 @@
     svg.__dgRelayout = relayout;
     let queued = false;
     const later = () => { if (queued) return; queued = true; requestAnimationFrame(() => { queued = false; relayout(); }); };
-    if (window.ResizeObserver) new ResizeObserver(later).observe(host);
+    const obs = { later, ro: null, mo: null };
+    if (window.ResizeObserver) { obs.ro = new ResizeObserver(later); obs.ro.observe(host); }
     else window.addEventListener('resize', later);
     if (window.MutationObserver) {
-      new MutationObserver((recs) => {
+      obs.mo = new MutationObserver((recs) => {
         if (recs.some((r) => r.target === svg || (r.target.classList && r.target.classList.contains('dgc')))) later();
-      }).observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
+      });
+      obs.mo.observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
     }
     window.addEventListener('tw:dgpal', later);
+    host.__dgv2 = obs;                                    // 換下一張圖時 teardownV2 靠這個把觀察器收掉
     relayout(); requestAnimationFrame(relayout); setTimeout(relayout, 300);
   }
 
