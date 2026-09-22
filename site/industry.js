@@ -326,8 +326,9 @@
       <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div>
         <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div>
         <div class="morebar" id="memberMore" hidden></div></div>`;
-    // 族群卡片（顏色跟環節一致）
-    // 尺寸搬到 CSS（#groupCards .tile）—— 寫成行內樣式的話手機那條「窄畫面改排成列」蓋不掉它
+    // 族群清單的一列（顏色跟環節一致）
+    // 尺寸全部寫在 CSS 的 #groupCards.glist —— 行內樣式蓋得過 class 規則，
+    // 寫在這裡的話「一列一格＋高度上限」那組規則就會被它吃掉（2026-09-22 改清單時踩過）
     /* ★ 2026-09-22：族群從「卡片」改成「一列一格的清單」（Andy：「版面的族群改成用清單式好了，
        因為卡會一直延伸導致影響版面」）。名稱前面加一顆色點 ——
        跟下面環節色標那份清單用同一種語彙（色點＋名稱＋數字），兩份清單看起來才是同一套東西。
