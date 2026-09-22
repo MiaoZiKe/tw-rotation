@@ -10050,7 +10050,7 @@ SECTIONS = {
     # 圖9 伺服器電源 PSU ＋ BBU（site/dg/server_psu.js）。三個真 seg，所以
     # 「三次篩出來的筆數彼此不同」這一條在這張圖驗得動（另外兩張散熱圖只有兩個 seg）。
     "批次12-電源PSU":      lambda pg, b, base, code: t_psu_v2(pg, base),   # 2026-09-22 v2 版面（舊的 t_psu 留著當對照，不再跑）
-    "批次12-散熱":         lambda pg, b, base, code: t_cooling(pg, base),
+    "批次12-散熱":         lambda pg, b, base, code: t_cooling_v2(pg, base),   # v2 版面（檔尾），舊 t_cooling 留著不接
     "批次12-ABF載板":      lambda pg, b, base, code: t_abf_v2(pg, base),   # 2026-09-22 v2 版面（舊的 t_abf 留著當對照，不再跑）
     # 批次13：剖析圖配色（2D 也能切、四個配色、語意色守得住）＋ MLCC 的漸進揭露
     "批次13-配色與收納":   lambda pg, b, base, code: t_batch13(pg, base),
@@ -15626,6 +15626,324 @@ def t_abf_v2(pg, base):
     ok(f"[{FEAT}] 點灰色剪影（沒掛環節）→ 小卡開得起來，把讀者導去 CoWoS 那張", bool(c3) and "CoWoS" in c3["text"], c3 and c3["text"][:60])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
+
+# ================================================================ 批次12-散熱（v2 版面，tech-illustrator 2026-09-22）
+# 液冷／氣冷兩張改成 DECISIONS #238／#239 的最終風格之後，舊的 t_cooling 有幾條斷言量的是舊版面
+# （native 980、卡片在 SVG 裡、沒有章節列）。這一支取代它接進 SECTIONS；舊函式留在原位不動（別人也在改這個檔）。
+# 改掉／新增的斷言逐條寫在 docstring 裡，一條都沒有放寬既有的紅線。
+COOL_DGS = [("liquid_cooling", "液冷：熱從晶片走到機房外面"),
+            ("air_cooling", "氣冷：風扇賣的是")]
+COOL_FOOT = "點零件篩到的是「供應鏈環節」，不是整個族群"
+
+# 一張 v2 剖析圖的版面量測（跟 STYLE22 分開：這裡多量章節列、柔光濾鏡數、卡片與零件的對應）
+COOL_V2 = """() => {
+  const wrap = document.querySelector('#prodDiagram'), svg = wrap && wrap.querySelector('svg');
+  if (!svg) return {present:false};
+  const vb = svg.viewBox.baseVal, r = svg.getBoundingClientRect();
+  const bars = [...svg.querySelectorAll('g.dgfold')];
+  const vis = (n) => { const b = n.getBoundingClientRect(); const cs = getComputedStyle(n); return b.width > 0 && b.height > 0 && cs.display !== 'none'; };
+  const texts = [...svg.querySelectorAll('text')].filter(n => (n.textContent||'').trim() && vis(n));
+  const glow = [...svg.querySelectorAll('[filter]')];   // 波 1b 的 D.fx：beam 的 fxb-glow 與 shadows 群組各帶一個 filter 屬性
+  const cards = [...wrap.querySelectorAll('.dgc')];
+  const R = (e) => { const b = e.getBoundingClientRect(); return {l: Math.round(b.left), r: Math.round(b.right), t: Math.round(b.top), b: Math.round(b.bottom)}; };
+  const canvas = wrap.querySelector('.dgcanvas');
+  return {present:true, native: (window.DiagramSlots && window.DiagramSlots.native(location.hash.split('/dg/')[1] || '')) || 0,
+    svgW: Math.round(r.width), vbH: Math.round(vb.height), vbW: vb.width, drawn: r.width > 0 && r.height > 0,
+    v2: wrap.classList.contains('dgv2'), rs: svg.classList.contains('rs'),
+    bars: bars.length, open: bars.filter(b => b.classList.contains('open')).length,
+    barW: bars.length ? +bars[0].querySelector('.fbar').getAttribute('width') : 0,
+    hints: bars.map(b => (b.querySelector('.fhint') || {}).textContent || ''),
+    nText: texts.length, glow: glow.length, glowAnimated: glow.filter(n => n.classList.contains('flow') || n.querySelector('animateMotion,animate')).length,
+    cards: cards.length, numbered: cards.filter(c => c.querySelector('.no')).length,
+    leads: wrap.querySelectorAll('.dglead path').length, anchors: svg.querySelectorAll('.anchor').length,
+    cardParts: cards.map(c => c.dataset.part || '').filter(Boolean),
+    svgParts: [...new Set([...svg.querySelectorAll('[data-part]')].map(n => n.dataset.part))],
+    order: cards.map(c => ({o: +(c.style.order || 0), y: c.getBoundingClientRect().top, x: c.getBoundingClientRect().left})).sort((a, b) => a.y - b.y || a.x - b.x).map(c => c.o),
+    canvas: canvas ? R(canvas) : null,
+    colL: (() => { const cs = [...wrap.querySelectorAll('.dgcol.l .dgc')]; if (!cs.length) return null; const rs = cs.map(c => c.getBoundingClientRect()); return {l: Math.round(Math.min(...rs.map(x => x.left))), r: Math.round(Math.max(...rs.map(x => x.right))), t: Math.round(Math.min(...rs.map(x => x.top)))}; })(),
+    colR: (() => { const cs = [...wrap.querySelectorAll('.dgcol.r .dgc')]; if (!cs.length) return null; const rs = cs.map(c => c.getBoundingClientRect()); return {l: Math.round(Math.min(...rs.map(x => x.left))), r: Math.round(Math.max(...rs.map(x => x.right))), t: Math.round(Math.min(...rs.map(x => x.top)))}; })(),
+    selCards: cards.filter(c => c.classList.contains('sel-part')).map(c => c.dataset.part || c.dataset.anc),
+    selSvg: [...svg.querySelectorAll('[data-part].sel-part')].map(n => n.dataset.part),
+    selLeads: wrap.querySelectorAll('.dglead path.sel-part').length,
+    partCard: (() => { const p = document.getElementById('partCard'); return p && !p.hidden ? (p.innerText || '').replace(/\\s+/g, ' ').slice(0, 400) : ''; })(),
+    dotPos: (() => { const mo = svg.querySelector('animateMotion'); const c = mo && mo.parentNode; if (!c) return null; const b = c.getBoundingClientRect(); return [+b.x.toFixed(1), +b.y.toFixed(1)]; })(),
+    spinName: (() => { const s = svg.querySelector('.spin'); return s ? getComputedStyle(s).animationName : ''; })(),
+    noanim: wrap.classList.contains('noanim'),
+    scrollW: [document.documentElement.scrollWidth, window.innerWidth],
+    allText: [...svg.querySelectorAll('text')].map(n => n.textContent).join('\\n'),
+    share: [...svg.querySelectorAll('[data-share]')].map(n => n.textContent.trim()).join(''),
+    segs: [...new Set([...wrap.querySelectorAll('[data-seg]')].map(n => n.getAttribute('data-seg')))].sort(),
+    noPart: [...wrap.querySelectorAll('[data-seg]')].filter(n => !n.getAttribute('data-part')).length,
+    nParts: wrap.querySelectorAll('[data-seg]').length};
+}"""
+
+
+def t_cooling_v2(pg, base):
+    """批次12-散熱（v2）：`liquid_cooling`（液冷）與 `air_cooling`（氣冷）兩張，DECISIONS #238／#239 的最終風格。
+
+    每一項驗的都是「畫面真的因此改變了」，不是「元素存在」：
+      1. 圖別入口真的多出兩個（選單卡片 ＋ 切換晶片 ＋ 自己的網址）—— 沿用舊的
+      2. 點進去 → 圖畫出來、網址變、重新整理打得開 —— 沿用舊的
+      3. ★ v2 版面：畫布 svg 掛 .rs、容器掛 .dgv2、畫布寬 ＝ 圖自己宣告的 native（不是 980 也不是欄寬），
+         **而且真的畫出來了（寬高 > 0）** —— #237 那個「0 ≤ 上限會過」的洞先塞住
+      4. ★ 收合高度 ≤ 656（ai_server 鏈的額度，_TEMPLATE.md §0-B；比任務單的 700 嚴）、章節列 2～4 條、
+         提示寫「裡面有什麼」（> 8 字、不含「更多」）、章節列寬跟畫布寬；
+         **逐條點開 → 畫布真的變高、看得見的字真的變多；全開 → 再逐條收回 → 高度回到原值**
+      5. ★ 兩種模式：深色主題 → 科技（畫布深底）、淺色主題 → 閱讀（暖白紙底），
+         底色／卡片底／引線色三樣都真的變；閱讀模式 .rs 圖字級 13px；
+         兩種模式每一個字（SVG 與 HTML 卡片）的對比都過（正文 ≥ 4.5、次要 ≥ 3，STYLE22 的量法）
+      6. ★ 卡片：每張有編號的卡片都有一個畫布上的錨點與一條引線（三欄時）；
+         卡片的 data-part 都對得到 SVG 裡的零件；1440 抽屜關＝三欄（左欄在畫布左、右欄在畫布右）、
+         1100＝畫布＋右欄且卡片照編號排、800＝單欄（卡片在畫布下面、不畫引線）、390 整頁沒有橫向捲軸
+      7. ★ 既有互動一個不少：點 SVG 零件 → 那個零件與它的卡片一起變主角（卡片與零件共用 data-part）；
+         點卡片 → SVG 零件亮；兩次快照不同；點零件成分股筆數一動都不動（#73）；點環節色標真的篩；
+         點背景 → 全部恢復；「誰做的」小卡開了而且寫的是**那個零件**的答案（含「台股沒人做／不在環節裡」那一種）
+      8. ★ 氣冷：四格軸承在章節 ② 裡 —— **先點開章節**再點兩格，主角真的換人（不是對著 display:none 派事件）
+      9. 動畫開關：按「關」→ .spin 的 animation-name 變 none、SMIL 光點兩次取樣座標相同；按「開」→ 又轉起來
+     10. 效能（#239）：每張圖掛 feGaussianBlur 的元素 ≤ 3 個，而且沒有一個是動態虛線
+     11. 紅線照舊：兩張的 SHARE_LINES 一字不差且寫成區間；§6-N1／N2／N6；「均熱片」vs「均熱板 VC」並排；
+         「散熱這一格收錄 N 家」「族群有 N 檔」跟實際筆數一致
+     12. 兩種模式 × 1440／800／390：每一個字 ≥ 12px（閱讀 ≥ 13px）、文字兩兩不重疊、沒有字畫出畫布右緣
+
+    改掉的既有斷言（逐條，都不是放寬）：
+      · 「圖以原尺寸顯示 ≥ 960」→ 「＝ 圖自己宣告的 native（680）而且 > 0」：畫布收到主角寬是 #238 的要求，
+        980 那個數字本來就是舊圖的 native，不是規格；改成讀宣告值比寫死更嚴。
+      · 「點兩個 data-part 快照不同」保留，但氣冷那兩格改成**先展開章節 ②**再點：舊寫法對 display:none 的元素派事件，
+        使用者根本點不到，那不是真人操作。
+      · 「12px 下限」在閱讀模式改成 13px（.rs 的圖字級升一階，DECISIONS #239 六）。
+    """
+    import re as _re
+
+    def land(url, theme, w=1440, side="0"):
+        """換主題一定要 reload：同一頁換 hash 不會重新載入 JS（#235 抓過這個假結果）。"""
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(url, wait_until="networkidle")
+        pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme','{theme}'); localStorage.setItem('tw.side','{side}');"
+                    "localStorage.setItem('tw.dg3d','0'); localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.dgOpen','1');"
+                    "localStorage.setItem('tw.dganim','1'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        pg.wait_for_timeout(2400)
+        dg_force_open(pg)
+        return pg.evaluate(COOL_V2)
+
+    def rows():
+        return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+
+    def bars_open(want):
+        """把章節列開到 want 這個狀態（冪等：已經是那個狀態就不動，#237 的「toggle 一律 if」）。"""
+        pg.evaluate("(want) => document.querySelectorAll('#prodDiagram g.dgfold').forEach(n => { if (n.classList.contains('open') !== want) n.dispatchEvent(new MouseEvent('click', {bubbles: true})); })", want)
+        pg.wait_for_timeout(600)
+
+    def click_part(key):
+        """真的用滑鼠點圖上那個 data-part（SVG 那一份），重疊時補一次事件派送。"""
+        n = pg.query_selector('#prodDiagram svg [data-part="%s"]' % key)
+        if not n:
+            return None
+        try:
+            n.scroll_into_view_if_needed(timeout=3000)
+            n.click(timeout=4000, force=True)
+        except Exception:
+            pass
+        pg.wait_for_timeout(450)
+        d = pg.evaluate(COOL_V2)
+        if key not in d["selSvg"]:
+            pg.evaluate("(n) => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))", n)
+            pg.wait_for_timeout(450)
+            d = pg.evaluate(COOL_V2)
+        return d
+
+    # ---------------- 1. 圖別入口真的多出兩個（沿用舊的）
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    ent = pg.evaluate("""() => ({
+      cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
+      chips: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
+      chipHref: Object.fromEntries([...document.querySelectorAll('#dgPick .segchip')].map(n => [n.dataset.dgid, n.getAttribute('href')])),
+    })""")
+    for did, _feat in COOL_DGS:
+        ok("AI 伺服器鏈的圖別入口有「%s」（選單卡片 ＋ 切換晶片）" % did, did in ent["cards"] and did in ent["chips"], ent["cards"])
+        ok("「%s」的入口有自己的網址" % did, (ent["chipHref"].get(did) or "").endswith("/dg/" + did), ent["chipHref"].get(did))
+
+    snap = {}
+    for did, feat in COOL_DGS:
+        url = base + "#industry/ai_server/dg/" + did
+        # ---------------- 2. 點進去 → 圖畫出來、網址真的變了、重新整理打得開
+        pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        pg.click('#dgPick .segchip[data-dgid="%s"]' % did, timeout=5000); pg.wait_for_timeout(2000)
+        h1 = pg.evaluate("() => location.hash")
+        ok("[%s] 真的用滑鼠點入口 → 網址變成 /dg/%s" % (did, did), h1.endswith("/dg/" + did), h1)
+        d = land(url, "dark")
+        if not ok("[%s] 圖真的畫出來（重新整理之後也在）" % did, d.get("present") and d["drawn"], d.get("present")):
+            continue
+        ok("[%s] 畫出來的就是這一張（比對特徵字串）" % did, feat in d["allText"], d["allText"][:60])
+        snap[did] = d
+
+        # ---------------- 3. v2 版面：畫布寬 ＝ native 而且 > 0
+        ok("[%s] ★ 走 v2 版面：svg 掛 .rs、容器掛 .dgv2" % did, d["rs"] and d["v2"], {"rs": d["rs"], "v2": d["v2"]})
+        ok("[%s] ★ 畫布寬 ＝ 圖自己宣告的 native（%s），不是被欄寬壓縮、也不是放大去填；而且 > 0" % (did, d["native"]),
+           d["native"] > 0 and abs(d["svgW"] - d["native"]) <= 2 and d["vbW"] == d["native"], {"svgW": d["svgW"], "native": d["native"], "vbW": d["vbW"]})
+        ok("[%s] 每一個零件（含 HTML 卡片、流程列）都有 data-part" % did, d["noPart"] == 0, "%s 個沒標／共 %s 個" % (d["noPart"], d["nParts"]))
+        ok("[%s] 零件掛到這條鏈上真的存在的環節（thermal ＋ assembly）" % did, d["segs"] == ["assembly", "thermal"], d["segs"])
+
+        # ---------------- 4. 收合高度、章節列開合
+        ok("[%s] ★ 收合狀態畫布高度 ≤ 656（ai_server 鏈額度）而且 > 0（量到 %s）" % (did, d["vbH"]), 0 < d["vbH"] <= 656, d["vbH"])
+        ok("[%s] 章節列 2～4 條、預設全收（%s 條、開 %s）" % (did, d["bars"], d["open"]), 2 <= d["bars"] <= 4 and d["open"] == 0, d["hints"])
+        ok("[%s] 章節列寬度跟著畫布寬（native − 32）" % did, d["barW"] == d["native"] - 32, {"barW": d["barW"], "native": d["native"]})
+        ok("[%s] 每條章節列的提示寫「裡面有什麼」（> 8 字、不含「更多」）" % did,
+           all(len(h) > 8 and "更多" not in h for h in d["hints"]), d["hints"])
+        h0, n0 = d["vbH"], d["nText"]
+        grew = []
+        for i in range(d["bars"]):
+            pg.evaluate("(i) => document.querySelectorAll('#prodDiagram g.dgfold')[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", i)
+            pg.wait_for_timeout(500)
+            z = pg.evaluate(COOL_V2)
+            grew.append((z["vbH"], z["nText"], z["open"]))
+        ok("[%s] ★ 逐條點開章節 → 畫布每次都真的變高、看得見的字真的變多（沒刪內容，只是收起來）" % did,
+           all(grew[i][0] > (h0 if i == 0 else grew[i - 1][0]) + 60 and grew[i][1] > (n0 if i == 0 else grew[i - 1][1]) and grew[i][2] == i + 1 for i in range(len(grew))),
+           {"collapsed": (h0, n0), "steps": grew})
+        full = pg.evaluate(COOL_V2)
+        ok("[%s] 全開之後引線還是每張卡一條（畫布變高、錨點位置變了，引線跟著重算）" % did,
+           full["leads"] == full["anchors"] and full["leads"] >= 10, {"leads": full["leads"], "anchors": full["anchors"]})
+        bars_open(False)
+        back = pg.evaluate(COOL_V2)
+        ok("[%s] 全部收回 → 高度回到收合值（%s → %s）、一頁看完" % (did, h0, back["vbH"]), back["vbH"] == h0 and back["open"] == 0, back["vbH"])
+        # 章節列的 title tooltip：砍短的提示要把全文掛成 title（wireFolds 的保險）
+        tt = pg.evaluate("() => [...document.querySelectorAll('#prodDiagram g.dgfold')].map(b => (b.querySelector('title') || {}).textContent || '')")
+        ok("[%s] 每條章節列都掛了全文 title（提示被砍短時滑鼠移上去看得到全文）" % did, all(len(t) > 8 for t in tt), tt)
+
+        # ---------------- 6. 卡片與錨點、三個寬度
+        ok("[%s] ★ 卡片 ≥ 12 張、有編號的每一張都有錨點與引線（三欄）" % did,
+           d["cards"] >= 12 and d["numbered"] == d["anchors"] == d["leads"], {"cards": d["cards"], "numbered": d["numbered"], "anchors": d["anchors"], "leads": d["leads"]})
+        missing = [p for p in d["cardParts"] if p not in d["svgParts"]]
+        ok("[%s] ★ 每張卡片的 data-part 都對得到 SVG 裡的零件（點卡片才亮得到零件）" % did, not missing, missing)
+        ok("[%s] [1440 抽屜關] 三欄：左欄在畫布左邊、右欄在畫布右邊" % did,
+           d["colL"] and d["colR"] and d["colL"]["r"] <= d["canvas"]["l"] and d["colR"]["l"] >= d["canvas"]["r"], {"L": d["colL"], "R": d["colR"], "canvas": d["canvas"]})
+        v2 = land(url, "dark", 1100)
+        ok("[%s] ★ [1100] 兩欄：卡片全部在畫布右邊、照編號排（01…12、警語最後）、引線照畫" % did,
+           v2["colL"] and v2["colL"]["l"] >= v2["canvas"]["r"] and v2["order"] == sorted(v2["order"]) and v2["leads"] == v2["anchors"],
+           {"L": v2["colL"], "canvas": v2["canvas"], "order": v2["order"], "leads": v2["leads"]})
+        v3 = land(url, "dark", 800)
+        ok("[%s] ★ [800] 單欄：卡片在畫布下面、不畫引線（靠編號）、照編號排、整頁沒有橫向捲軸" % did,
+           v3["colL"] and v3["colL"]["t"] >= v3["canvas"]["b"] - 2 and v3["leads"] == 0 and v3["order"] == sorted(v3["order"]) and v3["scrollW"][0] <= v3["scrollW"][1] + 1,
+           {"L": v3["colL"], "canvas": v3["canvas"], "leads": v3["leads"], "scroll": v3["scrollW"]})
+        v4 = land(url, "dark", 390)
+        ok("[%s] [390] 整頁沒有橫向捲軸（畫布自己在欄裡左右滑）" % did, v4["scrollW"][0] <= v4["scrollW"][1] + 1, v4["scrollW"])
+
+        # ---------------- 5. 兩種模式：底色／卡片／引線真的變，對比逐元素量
+        sd = land(url, "dark"); s_dark = pg.evaluate(STYLE22)
+        ok("[%s] 深色主題 → 科技：畫布深底（亮度 < .2）、字級下限 12px" % did, s_dark["pal"] == "tech" and s_dark["bgLum"] < 0.2 and s_dark["fsMin"] == "12px", {"pal": s_dark["pal"], "lum": s_dark["bgLum"], "fs": s_dark["fsMin"]})
+        ok("[%s] ★ [科技] 每一個字（SVG 與 HTML 卡片）的對比都過（正文 ≥ 4.5、次要 ≥ 3；量了 %s 段，最低 %s）" % (did, s_dark["n"], s_dark["minCr"]), not s_dark["low"], s_dark["low"][:6])
+        ok("[%s] 效能 #239：掛柔光濾鏡的元素 ≤ 3 個、而且沒有一個是動態虛線（量到 %s／動態 %s）" % (did, sd["glow"], sd["glowAnimated"]), 0 < sd["glow"] <= 3 and sd["glowAnimated"] == 0, {"glow": sd["glow"], "animated": sd["glowAnimated"]})
+        sl = land(url, "light"); s_light = pg.evaluate(STYLE22)
+        ok("[%s] ★ 淺色主題 → 閱讀：暖白紙底（亮度 > .8）、.rs 圖字級升到 13px" % did, s_light["pal"] == "read" and s_light["bgLum"] > 0.8 and s_light["fsMin"] == "13px", {"pal": s_light["pal"], "lum": s_light["bgLum"], "fs": s_light["fsMin"]})
+        ok("[%s] ★ 切到閱讀 → 畫布底、卡片底、引線色三樣都真的變了" % did,
+           s_light["bg"] != s_dark["bg"] and s_light["cardFill"] != s_dark["cardFill"] and s_light["lead"] != s_dark["lead"],
+           {"bg": (s_dark["bg"], s_light["bg"]), "card": (s_dark["cardFill"], s_light["cardFill"]), "lead": (s_dark["lead"], s_light["lead"])})
+        ok("[%s] ★ [閱讀] 每一個字的對比都過（量了 %s 段，最低 %s）" % (did, s_light["n"], s_light["minCr"]), not s_light["low"], s_light["low"][:6])
+        ok("[%s] 閱讀模式版面沒有因為字變大而擠壞：收合高度不變（%s）、引線數不變" % (did, sl["vbH"]), sl["vbH"] == h0 and sl["leads"] == d["leads"], {"vbH": sl["vbH"], "leads": sl["leads"]})
+
+        # ---------------- 7. 既有互動一個不少（1440 科技）
+        land(url, "dark")
+        r0 = rows()
+        keys = ["cold_plate", "vc"] if did == "liquid_cooling" else ["blade", "fan_wall"]
+        a = click_part(keys[0])
+        ok("[%s] ★ 點 SVG 零件「%s」→ 它跟它的卡片一起變主角（卡片與零件共用 data-part）、引線變粗" % (did, keys[0]),
+           a and keys[0] in a["selSvg"] and keys[0] in a["selCards"] and a["selLeads"] >= 1, a and {"svg": a["selSvg"], "cards": a["selCards"], "leads": a["selLeads"]})
+        ok("[%s] 點零件之後成分股筆數一動都不動（#73 只亮不篩）" % did, rows() == r0, "%s → %s" % (r0, rows()))
+        ok("[%s] ★「誰做的」小卡開了，而且寫的是這個零件（含台股名字）" % did,
+           a and a["partCard"] and ("奇鋐" in a["partCard"] if did == "liquid_cooling" else "建準" in a["partCard"]), (a or {}).get("partCard", "")[:120])
+        pg.click('#prodDiagram .dgc[data-part="%s"]' % keys[1], timeout=5000); pg.wait_for_timeout(500)
+        b = pg.evaluate(COOL_V2)
+        ok("[%s] ★ 點卡片「%s」→ SVG 裡那個零件亮起來、主角換人（不是點誰都一樣）" % (did, keys[1]),
+           keys[1] in b["selSvg"] and keys[1] in b["selCards"] and keys[0] not in b["selSvg"], {"svg": b["selSvg"], "cards": b["selCards"]})
+        # 「台股沒人做／不在環節裡」那一種也要老實寫出來（R4）
+        nk = "qd" if did == "liquid_cooling" else "heatpipe"
+        c = click_part(nk)
+        ok("[%s] ★ 點「%s」→ 小卡老實寫出「不在環節裡」是哪一家（%s）" % (did, nk, "富世達" if nk == "qd" else "尼得科超眾"),
+           c and c["partCard"] and ("富世達" in c["partCard"] if nk == "qd" else "尼得科超眾" in c["partCard"]), (c or {}).get("partCard", "")[:160])
+        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(900)
+        r2 = rows()
+        ok("[%s] 點「散熱」環節色標 → 成分股真的換了一批" % did, r2 != r0 and r2 > 0, "%s → %s" % (r0, r2))
+        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(700)
+        click_part(keys[0])
+        bgpt = pg.evaluate(_DGL_BG)
+        if ok("[%s] 圖上找得到一塊空白可以點" % did, bool(bgpt), bgpt):
+            pg.mouse.click(bgpt["x"], bgpt["y"]); pg.wait_for_timeout(600)
+            e = pg.evaluate(COOL_V2)
+            ok("[%s] ★ 點背景 → 主角清掉、卡片與引線回到平常、小卡收掉" % did, not e["selSvg"] and not e["selCards"] and e["selLeads"] == 0 and not e["partCard"], {"svg": e["selSvg"], "cards": e["selCards"], "pc": e["partCard"][:40]})
+        # 8. 氣冷：四格軸承在章節 ② 裡 —— 先點開再點
+        if did == "air_cooling":
+            pg.evaluate("() => document.querySelectorAll('#prodDiagram g.dgfold')[0].dispatchEvent(new MouseEvent('click', {bubbles: true}))"); pg.wait_for_timeout(600)
+            k1 = click_part("brg_ball"); k2 = click_part("brg_mag")
+            ok("[air_cooling] ★ 點開章節 ② 之後點「滾珠」再點「磁浮」→ 主角真的換了一格（四格長得很像，最容易做成點誰都一樣）",
+               k1 and "brg_ball" in k1["selSvg"] and k2 and "brg_mag" in k2["selSvg"] and "brg_ball" not in k2["selSvg"], {"k1": k1 and k1["selSvg"], "k2": k2 and k2["selSvg"]})
+            bars_open(False)
+
+        # ---------------- 9. 動畫：開／關真的停得下來
+        land(url, "dark")
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.includes('關')) b.click(); }"); pg.wait_for_timeout(400)
+        pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(800)
+        off = pg.evaluate(COOL_V2)
+        ok("[%s] 按「動畫：關」→ CSS 動畫真的停（.spin 的 animation-name 變成 none）" % did, off["noanim"] and off["spinName"] in ("none", ""), off["spinName"])
+        p1 = off["dotPos"]; pg.wait_for_timeout(1100); p2 = pg.evaluate(COOL_V2)["dotPos"]
+        ok("[%s] 按「動畫：關」→ 流動的 SMIL 光點兩次取樣座標相同（真的凍住）" % did, p1 and p1 == p2, "%s → %s" % (p1, p2))
+        pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(800)
+        on = pg.evaluate(COOL_V2)
+        q1 = on["dotPos"]; pg.wait_for_timeout(900); q2 = pg.evaluate(COOL_V2)["dotPos"]
+        ok("[%s] 切回「動畫：開」→ 扇葉／葉輪又轉起來、光點又在動" % did, on["spinName"] not in ("none", "") and q1 != q2, {"spin": on["spinName"], "dot": (q1, q2)})
+
+    # ---------------- 11. 紅線（沿用舊的）：跨圖字串、名詞陷阱、不准出現的數字
+    if len(snap) == 2:
+        sa, sb = snap["liquid_cooling"]["share"], snap["air_cooling"]["share"]
+        ok("★ 兩張圖對「液冷帶走多少比例的熱」的寫法完全一致", bool(sa) and sa == sb, "液冷「%s」／氣冷「%s」" % (sa, sb))
+        ok("★ 而且寫成區間、講明各來源分母不一致", "7～8 成" in sa and "分母不同" in sa, sa)
+        lt, at = snap["liquid_cooling"]["allText"], snap["air_cooling"]["allText"]
+        for k in ("70%", "80%", "70-80", "70–80"):
+            ok("★ 沒有把它寫成單一數字「%s」" % k, k not in lt and k not in at)
+        ok("★ 名詞陷阱 §6-P2：液冷同時有「均熱片／蓋板（IHS，實心銅）」與「均熱板 VC（vapor chamber）」",
+           "均熱片／蓋板（IHS，實心銅）" in lt and "均熱板 VC（vapor chamber）" in lt, [x for x in lt.split("\n") if "均熱" in x][:4])
+        bad_ln = [ln for ln in lt.split("\n") if "均熱片" in ln and ("VC" in ln or "vapor" in ln) and "兩種東西" not in ln]
+        ok("★ 名詞陷阱 §6-N6：沒有任何一處只寫「均熱片」就指向 VC", not bad_ln, bad_ln)
+        ok("★ 畫面上明講它們是兩種東西", "「均熱片」與「均熱板 VC」是兩種東西" in lt)
+        ok("★「均熱片 VC」這個踩到陷阱的寫法不准出現", "均熱片 VC" not in lt and "均熱片 VC" not in at)
+        ok("★ VC 那一格講明真空腔 ＋ 毛細層 ＋ 支撐柱（熱管不准有）", "真空腔" in lt and "支撐柱" in lt and "圓管不用支撐柱" in lt)
+        for did, txt in (("liquid_cooling", lt), ("air_cooling", at)):
+            pct = _re.findall(r"(?:良率|成本|市占率?)[^\n]{0,12}\d", txt)
+            ok("[%s] 紅線 §6-N1：沒有良率／成本／市占率的數字" % did, not pct, pct[:4])
+            ok("[%s] 畫面上有「示意圖，非實物比例」與「%s」" % (did, COOL_FOOT), "示意圖，非實物比例" in txt and COOL_FOOT in txt)
+            CN = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+            m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", txt)
+            land(base + "#industry/ai_server/dg/" + did, "dark")
+            r0 = rows(); pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(900); r2 = rows()
+            ok("[%s] 畫面寫的「散熱這一格收錄 N 家」跟實際篩出來的筆數一致" % did, bool(m) and CN.get(m.group(1)) == r2, "畫面寫 %s ／ 實際 %s" % (m.group(1) if m else "（沒寫）", r2))
+            if did == "air_cooling":
+                m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", txt)
+                ok("[air_cooling] 畫面寫的「族群有 N 檔」跟族群實際的成分股筆數一致", bool(m2) and CN.get(m2.group(1)) == r0, "畫面寫 %s ／ 實際 %s" % (m2.group(1) if m2 else "（沒寫）", r0))
+        bad = _re.findall(r"\d[\d,\.]*\s*(?:rpm|RPM|CFM|cfm|mmH|dBA|dBa|dB)\b", at)
+        ok("★ 紅線 §6-N2：氣冷畫面上一個風扇規格數字都沒有", not bad, bad[:5])
+        ok("★ §7-B3：軸承壽命一個小時數都沒寫", not _re.search(r"\d[\d,]*\s*(?:小時|hours)", at))
+        ok("★ §7-B4：一櫃的風扇顆數只寫「數百顆」，沒有 257", "數百顆" in at and "257" not in at)
+        ok("★ §7-C：「不要拿 U 數當散熱規格」正面寫進畫面", "U 數當散熱規格" in at)
+        ok("★ §6-Q1：P-Q 圖上同時有系統阻抗曲線與工作點", "系統阻抗曲線" in at and "工作點" in at)
+
+    # ---------------- 12. 兩種模式 × 三個寬度：字級下限、不重疊、不出畫布（章節全開）
+    for did, _feat in COOL_DGS:
+        for theme, lab, floor in (("dark", "科技", 11.9), ("light", "閱讀", 12.9)):
+            for w in (1440, 800, 390):
+                land(base + "#industry/ai_server/dg/" + did, theme, w)
+                bars_open(True)
+                z = pg.evaluate(DG_TYPO)
+                if not ok("[%s %spx][%s] 剖析圖畫得出來" % (lab, w, did), z.get("present"), z):
+                    continue
+                ok("[%s %spx][%s] 每一個字 ≥ %spx、文字兩兩不重疊（共 %s 個）" % (lab, w, did, floor + 0.1, z["n"]),
+                   z["min"] >= floor and z["nOv"] == 0, "min=%s small=%s ov=%s" % (z["min"], z["small"][:3], z["ov"][:4]))
+                out = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg'); const vb = svg.viewBox.baseVal.width; const bad = [];
+                    svg.querySelectorAll('text').forEach(n => { if (!n.getClientRects().length) return; const b = n.getBBox(), m = n.getCTM();
+                      const l = m ? m.a*b.x + m.c*b.y + m.e : b.x; if (l + b.width*(m ? m.a : 1) > vb + 1) bad.push((n.textContent||'').slice(0,16)); }); return bad; }""")
+                ok("[%s %spx][%s] 沒有任何一段字畫出畫布右緣" % (lab, w, did), not out, out[:3])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
 
 if __name__ == "__main__":
