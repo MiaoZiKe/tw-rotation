@@ -612,8 +612,12 @@
         if (!img || img.hidden || !img.clientHeight) { tools.style.bottom = ''; return; }
         const gap = sec.getBoundingClientRect().bottom - img.getBoundingClientRect().bottom;
         const want = Math.max(12, Math.round(gap) + 12);
-        // 差不到 8px 就不動：3D 掛載的那幾幀高度會一直微調，每幀都搬會變成一顆在抖的鈕
-        if (Math.abs(want - (parseFloat(tools.style.bottom) || 12)) >= 8) tools.style.bottom = want + 'px';
+        /* 差不到 8px 就不動：3D 掛載的那幾幀高度會一直微調，每幀都搬會變成一顆在抖的鈕。
+           ★ 2026-09-23：這個死區只准用在**往下搬**。往上搬（want 變大＝圖變矮了）一律照做 ——
+           不然差 6px 就被死區吃掉，工具列會停在畫布底緣**外面** 6px，剛好違反
+           「完整在圖內」那條驗收（實測 3D 開著時就是這樣紅的）。 */
+        const now = parseFloat(tools.style.bottom) || 12;
+        if (want > now || now - want >= 8) tools.style.bottom = want + 'px';
       };
       try {
         // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
@@ -623,10 +627,19 @@
           roT = setTimeout(placeDgTools, 90);   // 緩衝一下，等高度真的停下來再搬
         });
         if (dgSecEl) { ro2.observe(dgSecEl); const bd = $('#dgBody', el); if (bd) ro2.observe(bd); }
+        /* ★ 2026-09-23：**兩張圖本身也要觀察**。只觀察 #dgSec 與 #dgBody 的話，
+           「區塊總高沒變、但圖自己變高／變矮」那一種就收不到通知 —— 實測開 3D 之後
+           工具列停在畫布底緣下方 25px（掉到圖外面），正是這個漏洞。 */
+        ['prod3d', 'prodDiagram'].forEach(id => { const n = document.getElementById(id); if (n) ro2.observe(n); });
       } catch (e) { /* 舊瀏覽器沒有就算了，位置只是會停在區塊底部 */ }
       // 3D 場景是分好幾幀長出來的（WebGL 掛載 → 量尺寸 → 補說明行），補幾個時間點確保有對到
-      [300, 1200, 3000].forEach(ms => setTimeout(placeDgTools, ms));
+      [300, 1200, 3000, 5000].forEach(ms => setTimeout(placeDgTools, ms));
       window.addEventListener('resize', placeDgTools);
+      /* ★ 2026-09-23：切 3D／切圖別是**非同步長出來的**（WebGL 掛載 → 量尺寸 → 補說明行 → 零件卡），
+         只在按下去的那一刻算一次，量到的是「還沒長完」的高度，工具列就會停在圖外面
+         （實測開 3D 之後掉到畫布底緣下方 25px）。`#dgSec` 與 `#dgBody` 的 ResizeObserver
+         收不到「區塊總高沒變、圖自己變高」那一種，所以這裡補一串延遲重算。*/
+      const replaceDgTools = () => [0, 120, 400, 900, 1800, 3200].forEach(ms => setTimeout(placeDgTools, ms));
       const paintFold = () => {
         if (dgBody) dgBody.style.display = dgOpen ? '' : 'none';
         /* 收起來之後 `#dgSec` 只剩一列標題，工具列再絕對定位在右下角就會飄到標題外面。
@@ -636,7 +649,7 @@
         if (foldBtn) { foldBtn.textContent = dgOpen ? '收合圖 ▴' : '展開剖析圖 ▾'; foldBtn.classList.toggle('cyan', !dgOpen); }
         // 收起來的時候不要掛 3D：背景多一個 WebGL context 在空轉，手機最吃不消
         if (dgOpen && !did3d && dgId) { did3d = true; wireDg(); }
-        placeDgTools();
+        replaceDgTools();
       };
       // 選單模式（dgId 為 null）沒有圖可以接線，wireDg 會對著空的 #prodDiagram 做事
       if (dgId) { wireDg(!dgOpen); did3d = dgOpen; }
@@ -654,7 +667,7 @@
       const back = $('#dgBack', el);
       if (back) back.onclick = () => { location.hash = '#industry/' + ch.id; };
       paintDgMode();
-      placeDgTools();
+      replaceDgTools();
     }
     // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
     function wireDg(skip3d) {
