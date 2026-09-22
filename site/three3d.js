@@ -2738,12 +2738,25 @@
       });
     }
 
-    // ---- 只在看得到的時候畫
+    /* ---- 只在看得到、而且真的有東西變了的時候畫
+       ★ 2026-09-23（DECISIONS #245）：以前是「每一幀都無條件 renderer.render()」——
+         連「動畫：關、沒有人在拖曳」的狀態都在燒 CPU。加上環境貼圖之後每一幀貴了 3 倍，
+         就變成整條主執行緒被佔住、工具列的鈕在 6 秒內點不下去（驗收實際紅給我看的）。
+         改成三條規則：
+           ① 動畫開著 → 照畫，但**最多 30fps**（把 60Hz 螢幕的成本砍一半；慢的機器本來就不到 30，不受影響）
+           ② 動畫關著 → 只有「有人動過相機／狀態變了」才畫
+           ③ 靜止時每 400ms 補畫一次當安全網 —— 萬一有哪個狀態變更忘了標記 dirty，
+              畫面最多晚 0.4 秒跟上，不會出現「改了卻不更新」的死畫面。 */
     let raf = null, alive = true, visible = true, relayout = 0, t0 = performance.now();
+    let dirty = true, lastDraw = 0;
+    const markDirty = () => { dirty = true; };
+    controls.addEventListener('change', markDirty);
     const tick = () => {
       if (!alive) return;
       raf = requestAnimationFrame(tick);
       if (!visible) return;
+      const now0 = performance.now();
+      if (anim && now0 - lastDraw < 32) return;                  // ① 動畫上限 30fps
       const dt = Math.min(0.05, (performance.now() - t0) / 1000); t0 = performance.now();
       if (anim) {
         spinners.forEach(s => { s.rotation[s.userData.spin.axis] += s.userData.spin.speed * dt; });
@@ -2758,9 +2771,11 @@
         }
       }
       controls.update();
+      if (!anim && !dirty && now0 - lastDraw < 400) return;      // ②③ 靜止：沒變就不畫，400ms 補一張
       renderer.render(scene, camera);
-      // 每 4 幀重排一次標籤：自轉時引線要跟得上零件，停著的時候幾乎不花錢
-      if (++relayout % 4 === 0) layoutLabels();
+      lastDraw = now0; dirty = false;
+      // 自轉時每 4 幀重排一次標籤（引線要跟得上零件）；靜止時畫一次就排一次，才不會晚半秒才對齊
+      if (anim) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
     };
     const io = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }, { threshold: 0.02 }) : null;
