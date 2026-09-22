@@ -486,7 +486,8 @@
   window.DG.register('foundry', {
     level: 'group', chain: 'semiconductor',
     name: '晶圓代工：一顆電晶體與一個製程迴圈',
-    draw: foundryProcess, native: 980, scene: null,
+    draw: foundryProcess, native: 980, scene: 'foundry',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+                       那個判斷被推翻的理由寫在 site/three3d.js 的 SCENES.foundry 檔頭（一句話：這張圖最重要的那件事本來就是三維的）。2D 的 data-part 與 3D 的 part 是同一組，所以切過去還是選著同一個零件。*/
     q: '一顆電晶體從平面變成 FinFET 再變成 GAA，到底改了什麼？為什麼一片晶圓要繞同一個迴圈幾百次？N3 跟 N2 差在哪？',
     /* `parts` ＝點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        規則（§7-E）：`cos` **只准放真的在 supply_chain.yaml 裡的代號**（查不到就靜靜消失，
