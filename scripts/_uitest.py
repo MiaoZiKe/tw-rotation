@@ -206,6 +206,15 @@ def click(pg, sel: str, wait: int = 300):
                 pg.wait_for_timeout(260)
         except Exception:  # noqa: BLE001
             pass
+        # ★ 2026-09-23：剖析圖工具列（#dg…）**直接走滑鼠座標**，不要先試 locator.click。
+        #   理由是量出來的：3D 開著時容器是軟體渲染、一幀約 330ms，
+        #   Playwright 的「位置連續兩幀一樣」那一關過不了，`locator.click` 會卡滿 6 秒才逾時；
+        #   而同一顆鈕用 `mouse.click` 點座標 **0.5 秒就成功**（實測 `#dgAnim`：
+        #   dispatch_event 立刻成功、mouse.click 0.5s 成功、locator.click 8s 逾時）。
+        #   真人按鈕就是「移到那個座標按下去」，所以座標點擊才是對的模擬；
+        #   有東西蓋在上面照樣會點到那個東西，蓋不掉真的 bug。 
+        if sel.startswith("#dg") and _dg_mouse_click(pg, sel, wait):
+            return True
         loc = pg.locator(sel).first
         loc.click(timeout=6000)          # locator.click 自己會捲進畫面並重試
         pg.wait_for_timeout(wait)

@@ -617,7 +617,11 @@
            不然差 6px 就被死區吃掉，工具列會停在畫布底緣**外面** 6px，剛好違反
            「完整在圖內」那條驗收（實測 3D 開著時就是這樣紅的）。 */
         const now = parseFloat(tools.style.bottom) || 12;
-        if (want > now || now - want >= 8) tools.style.bottom = want + 'px';
+        /* ★ 往上搬（圖變矮了）的死區收到 2px、往下搬維持 8px。
+           兩邊都要有死區 —— 完全不設的話，3D 掛載那幾秒每次重算都差 1px，
+           鈕就一直在抖，Playwright 的「元素穩定了嗎」永遠不成立、點擊直接逾時
+           （實測：3D 開著時 `#dgAnim` 點不下去，8 秒卡在 performing click action）。*/
+        if (want - now > 2 || now - want >= 8) tools.style.bottom = want + 'px';
       };
       try {
         // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
