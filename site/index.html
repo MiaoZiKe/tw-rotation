@@ -971,7 +971,15 @@ a.lk.sm{font-size:12px;font-weight:500}
    ★ 上限用 vh 推算（21vh），不寫死 px —— 900px 高的視窗給 189px（約 5 列半，
      看得出「下面還有」），1080p 給 226px。下限 120px 保證至少露出 3 列，
      不然使用者會以為這裡只有一格。*/
-.seglistpick{display:flex;flex-direction:column;gap:4px;margin-top:10px;padding:5px;
+/* ★ 2026-09-22 第二輪：單欄改成 auto-fill 的 grid。
+   單欄在桌機是浪費 —— 1366px 量到這一塊固定佔 196px（撞到 21vh 的上限、而且在捲），
+   但那一整排右邊有 800px 的空白。改成 grid 之後 14 個環節在 1366px 排成 5 欄 3 列，
+   高度直接掉到約 105px，而且**還是沒有撞到上限**（＝連捲都不用捲，一眼看得完）。
+   390px 的內寬只有 314px，minmax(190px,1fr) 自動變回一欄，手機的行為完全不變。
+   ★ 「一列一格」這件事沒有被推翻：**每一格仍然是一列**（名稱不換行、列高固定），
+     改的只是「一列裡放幾格」。Andy 要的是「高度可預測」，不是「一定要排成一直條」。*/
+.seglistpick{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));
+  gap:4px;margin-top:10px;padding:5px;align-content:start;
   max-height:clamp(120px,21vh,196px);overflow-y:auto;overflow-x:hidden;
   border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
 .seglistpick .segchip{width:100%;border-radius:8px;padding:5px 10px;gap:8px;
@@ -1270,7 +1278,22 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    ★ 這三條 [hidden] 是必要的收尾：.row（flex）與 .pill（inline-flex）這些
      有 display 規則的類別會**蓋掉** UA 預設的 [hidden]{display:none}，
      不補的話「選單模式」下那幾顆工具鈕照樣看得到，按下去卻沒有圖可以動。*/
-.dgmenu[hidden],#dgBody[hidden],#dgTools[hidden],#dgBack[hidden],#dgScrollHint[hidden]{display:none}
+.dgmenu[hidden],#dgBody[hidden],#dgTools[hidden],#dgBack[hidden],.dgshint[hidden]{display:none}
+/* .dgshint ＝「↕ 框內可上下捲」那顆提示。2026-09-22 從 id 換成 class：
+   個股頁最下面那張產業鏈圖也吃了 .dgcap，卻沒有提示 —— 使用者會以為那張圖被裁掉了。
+   不一致比沒有更糟，所以兩個地方掛同一個 class，由 markDgScroll() 一起管。*/
+/* ★ 2026-09-22 第二輪：圖別選單也要有天花板。
+   它是**唯一還會隨著「畫了幾張圖」無限長高的區塊** —— 這一批之後
+   一般電子鏈有 3 張（MLCC／面板／電感電阻石英），計畫裡還有 PCB 硬板、交換器板卡，
+   半導體鏈規劃了 15 張。1366px 量到 3 張卡已經是 366px（欄窄，排成 2 列），
+   6 張就會是 730px 左右 —— **每畫一張新圖、每一條鏈的頁面就長高一次**，
+   那正是這一輪要根治的模式，不是等它撞到棘輪再來調門檻。
+   上限 clamp(220px, 36vh, 380px)：1000px 高的視窗給 360px，
+   剛好讓現在的 2 列一格都不用捲；第 3 列開始才進到框內捲。*/
+.dgmenu{max-height:clamp(220px,36vh,380px);overflow-y:auto;overflow-x:hidden}
+.dgmenu::-webkit-scrollbar{width:10px}
+.dgmenu::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+.dgmenu::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel)}
 .dgcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
 .dgcard{display:block;padding:12px 14px;border-radius:10px;border:1px solid var(--line-2);
   border-left:4px solid var(--c,var(--cyan));background:var(--panel-3);color:var(--ink-2);transition:.15s}
@@ -1423,27 +1446,49 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    Andy 抱怨過兩次的「上下框度太長」又回來了，但這次的大戶不是關聯圖 ——
    關聯圖那一塊（#chainList）現在是 1076px，還在 D0 訂的門檻 1250 以內。
 
-   桌機的尺寸跟以前完全一樣（原本寫在行內樣式，只是搬到這裡好讓手機蓋得掉）。*/
-#groupCards .tile{min-width:180px;flex:1 1 200px;max-width:360px}
+   ★★ 2026-09-22 再改一次：桌機也換成清單（Andy：「版面的**族群**改成用清單式好了，
+      因為**卡**會一直延伸導致影響版面」）。上一版只把手機改成一行一個，桌機仍然是會換行的卡片牆 ——
+      量出來半導體 24 個族群在 1440px 佔 468px、800px 佔 948px、390px 佔 1598px，
+      **高度是「有幾個族群」的函數，沒有天花板**。tide 的 110 個板塊還在長，這條只會越來越糟。
+
+      改成跟環節色標同一套機制（見 .seglistpick）：一列一格、**高度有上限、撞到就在框內捲**。
+      桌機不浪費寬度的做法是 auto-fill 的 grid —— 1440 排 5 欄、800 排 2 欄、390 排 1 欄，
+      每一格都是同一種「一列」的長相，所以三個寬度的列高一致（約 52px），可以事先算得出來。
+
+      ★ 原本的 `#groupCards .tile{min-width:180px;flex:1 1 200px;max-width:360px}` 整條拿掉：
+        它是 ID 選擇器，特異度贏過任何 class 規則，留著會跟下面的 grid 打架（max-width:360px
+        會讓 1440px 的格子撐不滿一欄）。
+      ★ 原本 @media (max-width:560px) 那一整塊也拿掉：那是「手機專用的一行一個」，
+        現在所有寬度都是一行一個，留著等於同一件事寫兩遍，而且它的 `display:block`
+        會把 grid 蓋掉。*/
+#groupCards.glist{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
+  gap:5px;padding:5px;align-content:start;
+  max-height:clamp(150px,27vh,252px);overflow-y:auto;overflow-x:hidden;
+  border:1px solid var(--line);border-radius:10px;background:var(--panel-2)}
+/* 一列的長相：名稱在左、漲跌與「族群頁 →」在右，第二行放檔數／佔比／本益比。
+   ★ 三樣東西一個都不准掉（既有驗收在數）：.t 名稱、.v 漲跌、a[href^="#industry/group/"]。*/
+#groupCards.glist .tile{min-width:0;max-width:none;margin:0;border-radius:8px;
+  display:grid;grid-template-columns:1fr auto;align-items:center;column-gap:10px;row-gap:1px;
+  padding:6px 10px}
+#groupCards.glist .tile .t{grid-column:1;grid-row:1;font-size:14px;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#groupCards.glist .tile .row{grid-column:2;grid-row:1;margin:0!important;gap:8px;flex-wrap:nowrap}
+#groupCards.glist .tile .row .v{font-size:15px;margin:0!important}
+/* 第二行是 12px —— 全站字級下限，不准再往下調（2026-09-15 起 Andy 講過三次「文字太小」）*/
+#groupCards.glist .tile .m{grid-column:1/-1;grid-row:2;font-size:12px;margin:0;min-width:0;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 捲軸要看得出來。⚠ 跟 .seglistpick 一樣**不寫** scrollbar-width／scrollbar-color ——
+   新版 Chromium 看到那兩個標準屬性就會整組忽略 ::-webkit-scrollbar，換成隱形的覆蓋式捲軸。*/
+#groupCards.glist::-webkit-scrollbar{width:10px}
+#groupCards.glist::-webkit-scrollbar-track{background:var(--panel-3);border-radius:8px}
+#groupCards.glist::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:8px;border:2px solid var(--panel-2)}
 /* 成分股表下面那一排：一顆鈕 ＋ 一句「所以我該怎麼用」 */
 .morebar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-top:8px}
 .morebar[hidden]{display:none}
 .morebar .muted{font-size:12px;line-height:1.6;flex:1 1 220px;min-width:0}
-@media (max-width:560px){
-  /* 手機上 24 張 120px 的卡片＝2868px，而且一排只塞得下一張 —— 那是在浪費整個螢幕寬。
-     改成「一行一個板塊」：名稱在左、漲跌在右，第二行放檔數／佔比／本益比與「族群頁 →」。
-     ★ 一個板塊都沒有藏：24 個板塊還是 24 列，只是不再各自佔掉一個卡片的高度。*/
-  #groupCards{display:block}
-  #groupCards .tile{min-width:0;max-width:none;display:grid;grid-template-columns:1fr auto;
-    align-items:center;column-gap:10px;row-gap:1px;padding:7px 10px;margin:0 0 5px}
-  #groupCards .tile .t{grid-column:1;grid-row:1;font-size:15px;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  /* 漲跌與「族群頁 →」本來就包在同一個 .row 裡，整個搬到右欄第一行就好 */
-  #groupCards .tile .row{grid-column:2;grid-row:1;margin:0!important;gap:8px;flex-wrap:nowrap}
-  #groupCards .tile .row .v{font-size:16px;margin:0!important}
-  #groupCards .tile .m{grid-column:1/-1;grid-row:2;font-size:12px;margin:0;min-width:0;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-}
+/* （原本這裡有一塊 @media (max-width:560px) 的「手機專用一行一個板塊」，
+    2026-09-22 整塊拿掉 —— 現在所有寬度都是一行一個，規則統一寫在上面的 #groupCards.glist。
+    留著的話它的 `#groupCards{display:block}` 會把 grid 蓋掉，手機就變回沒有上限的長清單。）*/
 
 /* ---- C4 ＋ A4（2026-09-20）：輪動時鐘／資金流向排行的篩選列與軌跡開關。
    樣式刻意和圖15 漲跌分佈的 #distFilter 同一套（Andy 附的「圖一」就是那個），
