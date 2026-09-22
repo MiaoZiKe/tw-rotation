@@ -53,3 +53,7 @@ docs/_dgtypo/
 # Agent 用的暫時 worktree（每個 agent 一份 repo 副本），不進版控
 .claude/worktrees/
 docs/_dgpages/
+
+# 風格樣張（scripts/_style_samples.py 的產物）。跟 docs/_show/ 同一條規矩：
+# 截圖是本機產物，不進 public repo。
+docs/_style/
