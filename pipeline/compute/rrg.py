@@ -161,9 +161,15 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
     # 只畫今天成交值佔比 ≥ min_share% 的族群，太小的族群在圖上只是雜訊
     keep = set(today[today["turnover_share"] >= min_share]["group_id"])
     points = []
-    for gid, sub in g[g["group_id"].isin(keep)].groupby("group_id"):
-        sub = sub.dropna(subset=["rs_ratio", "rs_mom"]).tail(trail)
-        if sub.empty:
+    for gid, sub_all in g[g["group_id"].isin(keep)].groupby("group_id"):
+        # sub      ＝畫在圖上的軌跡（rs_ratio/rs_mom 都算得出來的那幾天）
+        # sub_full ＝同一個族群**沒有 dropna 過**的完整序列。
+        #            即時續算要的 rs_s 在 RS_BASE 窗口還沒滿的日子就已經算得出來了
+        #            （被 dropna 掉的是 rs_ratio 與 rs_mom，不是 rs_s），
+        #            拿 dropna 之後的來取 tail 會少掉最前面那幾天、SMA 窗口就湊不滿。
+        sub_full = sub_all.dropna(subset=["rs_s"])
+        sub = sub_all.dropna(subset=["rs_ratio", "rs_mom"]).tail(trail)
+        if sub.empty or len(sub_full) < RS_BASE:
             continue
         last = sub.iloc[-1]
         x, y = float(last["rs_ratio"]), float(last["rs_mom"])
@@ -173,9 +179,29 @@ def rrg(group_hist: pd.DataFrame, price: pd.DataFrame, trail: int = 31,
             "x": _v(x), "y": _v(y), "quadrant": quadrant,
             "share": _v(last["turnover_share"]), "turnover": _v(last["turnover"], 0),
             "trail": [[str(d), _v(a), _v(b)] for d, a, b in zip(sub["date"], sub["rs_ratio"], sub["rs_mom"])],
+            # ── 盤中即時用的續算狀態（Andy 2026-09-22：「輪動時鐘…幫我也做一個即時功能」）
+            #    前端拿到當下的族群報酬 g 與大盤報酬 m 之後，只要三步就能接出今天那一點：
+            #      ① rs_new  = rs_last × (1+g) ÷ (1+m)        ← rs 的定義就是「族群指數 ÷ 大盤指數」，
+            #                                                    所以多一天只是乘一天的相對報酬，這一步是**精確的**
+            #      ② rs_s_new = α×rs_new + (1-α)×rs_s_last     α = 2/(RS_SMOOTH+1)，EMA 的遞迴式
+            #      ③ x_new   = 100 + 100 × (rs_s_new ÷ mean(rs_s_tail[-(RS_BASE-1):] + [rs_s_new]) − 1)
+            #         y_new   = 100 + 100 × (x_new ÷ x_{-MOM_ROC} − 1)     x_{-MOM_ROC} 直接從上面的 trail 取
+            #    ★ 只送 rs_s_tail（RS_BASE-1 筆）而不是整條原始 rs：
+            #      EMA 只要最後一個值就能往前遞迴，SMA 只需要窗口內那幾筆。
+            #      36 個族群 × 39 筆 ≈ 1400 個數字；送整條 rs 要 80 筆／族群，白白多一倍。
+            #    ⚠ 這幾個值**只在盤中有意義**。收盤之後 pipeline 會重算，
+            #      前端算出來的即時點會被隔天的真值取代 —— 不要把它存起來當歷史。
+            "live_state": {
+                "rs": _v(last["rs"], 6),
+                "rs_s": _v(last["rs_s"], 6),
+                "rs_s_tail": [_v(v, 6) for v in sub_full["rs_s"].tail(RS_BASE - 1)],
+            },
         })
     points.sort(key=lambda p: -(p["turnover"] or 0))
     return {"date": latest, "points": points, "trail_days": trail,
+            # 前端要用同一組參數續算，寫死在 JS 裡遲早會跟 Python 這邊分岔
+            # （`KInd` 與 indicators.py 就踩過這個坑），所以一律從 payload 讀。
+            "live_params": {"rs_smooth": RS_SMOOTH, "rs_base": RS_BASE, "mom_roc": MOM_ROC},
             "note": f"x＝相對強度（族群指數/大盤，EMA{RS_SMOOTH} 平滑後相對近 {RS_BASE} 日均值，中心 100）；"
                     f"y＝相對強度的 {MOM_ROC} 日變動率（中心 100）。近似 JdK RS-Ratio / RS-Momentum。"}
 
