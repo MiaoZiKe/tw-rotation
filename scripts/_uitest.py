@@ -15946,7 +15946,7 @@ def t_cooling_v2(pg, base):
     pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.removeItem('tw.theme'); localStorage.removeItem('tw.side'); } catch (e) {} }")
 
 
-# ================================================================ 3D PBR 精緻化（DECISIONS #243）
+# ================================================================ 3D PBR 精緻化（DECISIONS #244）
 # docs/diagram_3d_pbr_spec.md 的兩條硬指標要**量得到**，不是用眼睛看：
 #   ① 關掉文字標籤，七類模組（機架／PCB／晶片／銅件／液冷／風扇框／電源）
 #      光靠顏色還分得開 —— 兩兩色差 ≥ DG3D_DE_MIN。
@@ -16035,7 +16035,7 @@ DG3D_AUDIT = """() => { const v = window.Rack3D.current;
 
 
 def t_dg3d_pbr(pg, base):
-    """DECISIONS #243：環境貼圖、真陰影、收透明、七類模組配色、效能、3D 不橫向捲動。
+    """DECISIONS #244：環境貼圖、真陰影、收透明、七類模組配色、效能、3D 不橫向捲動。
 
     這一段驗的全部是「畫面真的因此改變」：
       ① 關掉 .lbl3d 之後，七類模組的代表色兩兩 ΔE76 ≥ 25（關掉標籤仍然認得出來）

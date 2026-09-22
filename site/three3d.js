@@ -255,7 +255,7 @@
        現在：**大塊幾何讀材質族的 token**（板子是板子色、金屬是金屬色），
        環節色只留給「被點的那一顆」的提亮與卡片上的小圓點（segHex 存在 byIdx，不進材質）。
      材質族 → token（讀不到就退到後面那個，最後才用 dflt；dflt 跟 :root 的值一樣，只是保險）。*/
-  /* ★ 2026-09-22（DECISIONS #243，規格書一-4）：每一族先讀「模組色」token（`--dg-m-*`）。
+  /* ★ 2026-09-22（DECISIONS #244，規格書一-4）：每一族先讀「模組色」token（`--dg-m-*`）。
      以前的根因是**顏色依角色（訊號／電力／液冷）整片上色**，整台被青藍洗掉，
      關掉標籤就認不出哪塊是電源、哪塊是運算。現在顏色由「這是什麼模組、什麼材質」決定：
        機架銀灰金屬 ／ PCB 墨綠 ／ 晶片深藍與石墨灰 ／ 銅件暖銅 ／ 液冷青綠 ／ 風扇框藍灰 ／ 電源暖橘。
@@ -353,7 +353,7 @@
       o = o || {};
       const key = `${k}|${o.color || ''}|${o.rough || ''}|${o.metal || ''}|${o.op || ''}|${o.led ? 1 : 0}|${o.glass ? 1 : 0}|${o.glow || 0}|${o.shell ? 1 : 0}|${o.cool ? 1 : 0}`;
       if (cache[key]) return cache[key];
-      /* ★ 2026-09-22（DECISIONS #243，規格書一-3「收透明」＋ 一-4「依模組配色」）：
+      /* ★ 2026-09-22（DECISIONS #244，規格書一-3「收透明」＋ 一-4「依模組配色」）：
          `shell:true` **不再等於半透明的角色色**。
          以前外殼一律染成角色色（訊號藍／電力橘／液冷青）而且半透明，兩件事一起造成
          「整台被青藍洗掉」與「五六層半透明疊在一起」—— 根因 3 與根因 5。
@@ -1345,7 +1345,7 @@
       const r = Math.min(w, d) * 0.009;
       const at = [];
       for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w * 0.7 / n), 0, z]);
-      /* ★ 2026-09-22 減面（DECISIONS #243）：孔壁與孔本身都是**管**，兩端的圓盤蓋
+      /* ★ 2026-09-22 減面（DECISIONS #244）：孔壁與孔本身都是**管**，兩端的圓盤蓋
          不是被板子夾住就是被對方擋住，一個像素都看不到 —— openEnded 砍掉它們。
          細分同時從 8／6 降到 6／5：一個孔從 48 個三角形變成 22 個，
          一塊主機板 14 個孔省 364、六塊板省 2,184，剛好是「加陰影」要的預算。*/
@@ -1803,7 +1803,7 @@
        曝光量走 token（--dg-expo），兩種模式各自調。*/
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
-    /* ★ 2026-09-22（DECISIONS #243，規格書一-2）：開真的陰影。
+    /* ★ 2026-09-22（DECISIONS #244，規格書一-2）：開真的陰影。
        以前「扁」的第二個根因就是這裡 —— 托盤與托盤之間、晶片與板子之間完全沒有投影，
        只有一片貼在模型底下的 radial sprite（那片留著當軟接觸陰影，兩者疊加）。
        只有 key 投影、只有大件 castShadow、shadow camera 貼著外接盒收緊 ——
@@ -2881,7 +2881,7 @@
         explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
         chips: el.querySelectorAll('.lbl3d .chip3d').length };
     };
-    /* ★ 2026-09-22 PBR 精緻化（DECISIONS #243）的量測介面。
+    /* ★ 2026-09-22 PBR 精緻化（DECISIONS #244）的量測介面。
        stats() 量的是「畫了幾個三角形、發光多強」，量不到這一批真正要驗的四件事：
          env        ＝ scene.environment 有沒有真的掛上去（沒有 envMap 的 PBR 金屬只會變暗灰）
          shadowMap  ＝ 真陰影開了沒、有幾顆 mesh 在投影（太多會爆效能、太少等於沒做）
