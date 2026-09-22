@@ -869,9 +869,18 @@
   function renderPartCard(box, root, sc, dgId, seg, key, opt) {
     if (!box) return;
     ensurePartCss();
-    if (!seg || !sc) { box.hidden = true; box.innerHTML = ''; return; }
     const o = opt || {};
     const def = (key && DS && DS.parts && (DS.parts(dgId) || {})[key]) || null;
+    /* ★ 沒有 `data-seg` 也要能開小卡（2026-09-22）。
+       起因：矽晶圓那張**一個 data-seg 都不掛是對的** —— 半導體鏈 14 個環節裡沒有一格是矽晶圓，
+       掛 `semi_material` 等於宣稱「光洋科做矽晶圓」、掛 `foundry` 等於宣稱「台積電自己長晶圓」。
+       但舊的第一行是 `if (!seg) 收起來`，於是整張圖點下去完全沒反應 ——
+       **誠實地不掛環節，代價卻是整張圖變成死的**，那不是誠實該付的代價。
+       第三代半導體那張也是同一條路。
+       現在的判準改成：**有 seg，或這個零件自己有 `parts[key]`，就開卡。**
+       沒有 seg 時環節那顆鈕自然不會畫（下面 `s` 會是空物件、`segNm` 拿不到名字），
+       小卡就只講「這是什麼、誰做的、料號」—— 那正是使用者要的答案。*/
+    if (!sc || (!seg && !def)) { box.hidden = true; box.innerHTML = ''; return; }
     const onFig = partTextOf(root, key);
     const s = (sc.segments || []).find(x => x.id === seg) || {};
     const segNm = s.name || seg;
@@ -1101,16 +1110,32 @@
   function highlightSegments(root, segs, color, part) {
     const on = new Set(segs || []);
     const DG = window.DG || {};
-    const hit = (n) => on.has(n.dataset.seg) && !!DG.partHit && DG.partHit(n, part);
+    /* ★ 沒有環節的零件也要亮得起來（2026-09-22）。
+       `on` 空的時候（點的是一個沒有 data-seg 的零件）第一個條件永遠 false ——
+       所以矽晶圓、第三代半導體那種「刻意不掛環節」的圖，點下去一片死寂。
+       改成：**有環節就照舊比環節，沒有環節就只比零件身分。**
+       兩條路的 `dim` 行為也因此自然分開：`on` 是空的就沒有人被壓暗，
+       只有主角被提亮 —— 那正是單一主體的圖該有的樣子。*/
+    const hit = (n) => (on.size ? on.has(n.dataset.seg) : !n.dataset.seg)
+      && !!DG.partHit && DG.partHit(n, part);
     if (view3d) view3d.highlight(on, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
     const nodes = $$('#prodDiagram [data-seg]', root);
+    /* ★ 只有 `data-part`、沒有 `data-seg` 的零件**另外處理**，不可以併進上面那一份。
+       2026-09-22 踩到：我第一版把它們併進 `nodes`，結果
+       `dim` 的條件 `on.size > 0 && !on.has(n.dataset.seg)` 對它們永遠成立
+       （`on.has(undefined)` 是 false）—— 於是只要選了任何一個環節，
+       這些本來不該被影響的裝飾零件全部被壓暗。實測 AI 伺服器鏈那張
+       `dim` 從 0 變 15，連帶讓既有的 3D 驗收整段紅。
+       它們只該做一件事：**自己被點到的時候提亮**。不參與 sel，也不參與 dim。*/
+    const bare = $$('#prodDiagram [data-part]:not([data-seg])', root);
     /* `.haspart` ＝「這張圖上真的有一個主角」。一定要先數過才掛：
        2D 與 3D 的零件不是一一對應（3D 的 MLCC 焊墊在 2D 是畫在端電極剖面裡的），
        從 3D 點完再切回 2D 時可能一個都對不上 —— 那時候掛了 .haspart 就會變成
        「同環節全部退一階、卻沒有任何主角」，比改之前還糟。*/
-    const anyPart = nodes.some(hit);
+    const anyPart = nodes.some(hit) || bare.some(n => !!DG.partHit && DG.partHit(n, part));
     $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
     nodes.forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
+    bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
     /* 環節卡清單跟關聯圖是同一份資料的兩種畫法，所以高亮規則也要同一套 ——
@@ -1272,6 +1297,13 @@
     const host = $('#prodDiagram', root);
     if (window.DG && window.DG.stampParts) window.DG.stampParts(host);
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg, n.dataset.dgkey || null); }; });
+    /* ★ 只有 `data-part`、沒有 `data-seg` 的零件也要點得動（2026-09-22，同上）。
+       `:not([data-seg])` 是為了不要跟上面那一圈重複綁 —— 有 seg 的走上面那條，行為完全不變。
+       傳 `null` 當環節：`pickPart` 會把 segHi 設成 null，所以**不會篩成分股**（DECISIONS #73），
+       但 partHi／partSel 會寫進去，小卡就開得起來。*/
+    $$('#prodDiagram [data-part]:not([data-seg])', root).forEach(n => {
+      n.onclick = (e) => { e.stopPropagation(); onSeg(null, n.dataset.dgkey || n.dataset.part || null); };
+    });
     /* ★ 點空白背景 → 取消選取、全部恢復全亮（Andy 2026-09-22）。
        改之前只有「再點同一個零件」才取消 —— 使用者要先記得剛剛點的是哪一個才退得出來，
        而單一環節的圖上十幾個零件長得很像，等於退不出來。

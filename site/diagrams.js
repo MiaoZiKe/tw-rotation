@@ -239,6 +239,13 @@
   function partHit(node, key) {
     if (!key || !node) return false;
     if (node.dataset.dgkey === key) return true;
+    /* ★ 2026-09-22：也比 `data-part`。
+       `stampParts()` 只替**掛了 `data-seg`** 的節點蓋 `dgkey`，
+       所以「刻意不掛環節」的圖（矽晶圓、第三代半導體 —— 那兩條鏈在
+       supply_chain.yaml 裡根本沒有對應的環節，硬掛就是宣稱錯的公司）
+       上面的零件永遠拿不到 dgkey，比對必然落空 → 點了小卡開得起來、主角卻不會亮。
+       dgkey 本來就是從 data-part 推出來的，所以直接比它是同一件事，不是放寬。*/
+    if (node.dataset.part === key) return true;
     const al = node.getAttribute('data-alias');
     return !!al && al.split(',').indexOf(key) >= 0;
   }

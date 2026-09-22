@@ -11930,9 +11930,17 @@ def t_b14b_rlc(pg, base):
         _b14b_open(pg)
         n0 = _b14b_rows(pg)
         _b14b_click_part(pg, key)
-        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 成分股筆數**一動都不動**，也沒有冒出別人的小卡",
-           _b14b_rows(pg) == n0 and not _b14b_card(pg),
-           f"{n0} → {_b14b_rows(pg)}；小卡＝{(_b14b_card(pg) or '沒有')[:36]}")
+        # ★ 2026-09-22 改過：原本這一條寫的是「點了**不會**出小卡」——
+        #   那不是期望行為，那是當時的限制被寫進斷言裡。
+        #   industry.js 原本只對 [data-seg] 綁點擊、renderPartCard 第一行就 if (!seg) 收起來，
+        #   所以「刻意不掛環節」的欄位（電感、石英 —— 一般電子鏈在 supply_chain.yaml 裡
+        #   沒有對應環節，硬掛就是宣稱錯的公司）整欄是死的。那是洞，不是設計。
+        #   現在「沒有 seg 但有 parts[key]」也開得了小卡，所以這一條翻成正向：
+        #   **小卡要出現**，但**成分股筆數仍然一動都不動**（DECISIONS #73：零件只亮不篩）。
+        card = _b14b_card(pg)
+        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 小卡真的出現、而且成分股筆數一動都不動",
+           _b14b_rows(pg) == n0 and bool(card),
+           f"{n0} → {_b14b_rows(pg)}；小卡＝{(card or '沒有')[:36]}")
 
     # ---------------- 5. 點環節色標 → 筆數真的變
     pg.goto(DGH, wait_until="networkidle")
@@ -12714,7 +12722,12 @@ def t_clickbg(pg, base):
     """
     DGH = f"{base}#industry/ai_server/dg/ic_substrate"
     pg.set_viewport_size({"width": 1440, "height": 900})
-    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2200)
+    pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(1200)
+    # ★ 一定要 reload：「零件誰做的」跟這一段用**同一個網址**，
+    #   而 goto 到同一個 hash 是 same-document navigation、不會重畫 ——
+    #   量到的「基準」會沾到上一段留下的選取（實測 sel 2／dim 17／小卡開著），
+    #   於是點背景回到真正的基準反而被判成失敗。
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
     _shut_side(pg)
     pg.evaluate("() => { const b = document.getElementById('dgAnim'); if (b) b.click(); }")
     pg.wait_for_timeout(300)
