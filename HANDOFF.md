@@ -2343,9 +2343,22 @@ Andy 2026-09-22：「當前產業鏈這分頁 全面需要排版優化…重新�
 ＋ `_preview.py` 全綠。**跳過 pytest**（`git diff --name-only` 只有 `site/diagrams.js`、`docs/**`、`DECISIONS.md`）。
 **沒驗的**：其他所有段落。`wireFolds` 改成執行期量高度，手寫 `data-y0/y1` 的舊路相容，四張有章節的圖高度一個數字都沒變。
 
+### 一般電子三張已合併上線（`claude/dg-elec-1` → main，2026-09-22 晚）
+| 圖 | 族群 | 收合高度 | `parts` | 備註 |
+|---|---|---|---|---|
+| 傳動件 `site/dg/motion_control.js` | `factory_automation` ＋ `machine_tool` | 686px | 40 | **0 個 `data-seg`**：那兩個族群 19 檔全部不在 `supply_chain.yaml`，畫面上明講「環節色標篩不到它們」 |
+| 鋁電容 `site/dg/alum_cap.js` | `capacitor` | 652px | 26 | 6 檔只有 2375 凱美在 YAML；立敦那句「做電蝕箔不做電容成品」用 `note:`（`none:` 只在一家都列不出時才印） |
+| 保護元件 `site/dg/circuit_protection.js` | `resistor_protect` | 660px | 24 | 6 檔全部不在 YAML；GDT 查不到台股對應 |
+
+- 規格書 91 條硬規則機器驗到 81 條、**19 條紅線全部用幾何量**；驗不動的 10 條（廠商外觀、證據表逐字比對與 X5「不准法人用語」衝突改驗 X5、低信心全稱否定、章節列 seg）理由在各檔檔頭。
+- 查不到的一律標在圖上（台灣精銳做諧波還是 RV、防爆閥刻痕位置、電解紙／電解液／陰極箔誰做的）。
+- ⚠ **動了一個棘輪**：`_uitest.py` electronics 390px 整頁門檻 **5800 → 6500**。來源是圖別選單 3 → 7 張卡（`#chainList` 866／`#groupCards` 1197／`#memberTable` 1300 都沒變），實測 +7%。
+- ⚠ **已知、刻意沒修**：390px 下 `#dgMenu` 佔 1079px，使用者要捲過一整頁卡片才看得到圖。三條鏈共用元件的手機版面問題，要改 `industry.js` 並三條鏈一起驗，不混進這批。
+- **這批只驗了**：`批次22-傳動件`、`批次22-鋁電容`、`批次22-保護元件`、`一般電子鏈`、`產業鏈導覽`、`零件誰做的`、`點背景恢復`、`手機` ＋ `_preview.py` 全綠（agent 自己那輪另外跑過 `產業` 展開的四段也綠）。**跳過 pytest**（只有 `site/**` 與 `scripts/_uitest.py`）。
+
 ### 下一步
 1. 等 `style-system`／`style-3d` 回來 → 各自合併到 main → 跑它們登記的段落 → 推 → 部署 → 截 1440 深／淺各一張給 Andy。
-2. 等 `dg-elec-1` 回來 → 合併三張 → 驗 → 推。
+2. ~~等 `dg-elec-1` 回來~~ 已合併上線（上面那節）。
 3. 地基上線後開始波 1（AI 伺服器鏈：液冷、氣冷、PSU＋BBU），照 `docs/diagram_restyle_plan.md`。
 4. 已知的小 bug 未修：MLCC 右欄在 800px 被裁到（早就有，跟這批無關）。
 
