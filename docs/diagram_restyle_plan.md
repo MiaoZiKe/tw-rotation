@@ -128,6 +128,10 @@
 其中 `--dg-fl-sig/opt/pwr/cool` 寫成 `var(--dg-sig, …)` 那種形式，**style-system 若在 `:root` 定義 `--dg-sig`／`--dg-opt`／`--dg-pwr`／`--dg-cool`，3D 會直接吃它們**。
 v9（參考圖 `docs/diagram_refs/3d_rack_*`）之後**閱讀模式也有顏色有柔光**：托盤藍／綠／橙中等飽和、流線發光是科技的 40%（`--dg-flow-em` .45 vs 1.15）、
 玻璃有厚度＋白邊高光（`--dg-glass-edge`）、托盤底下 AO（`--dg-ao`／`--dg-ao-a`）、板子 `--dg-pcb-3d` 閱讀＝綠板 `#5E9A63`。
+卡片的元件色（`--c`／`--dg-card-c`／`data-dgcolor`）依模式夾明度（`--dg-card-lmin`／`--dg-card-lmax`，sRGB 明度）：
+科技 `.48／1`（深底上太暗的拉亮、不壓暗，圓點字 `--dg3-badge-ink` 是深色）；閱讀 `.30／.40`（白卡上太亮的玻璃／陶瓷壓暗，
+`.sel` 卡片的標題字、圓點底、引線才讀得到；圓點字改白）。**切模式時 `applyPal()` 會重算並同步寫回卡片、引線、端點、`data-dgcolor`**，
+所以 style-system 從 `colorOf()`／`data-dgcolor` 讀到的永遠是當下模式的值。
 
 ### 族群晶片列 ↔ 機櫃內元件的連線（v3 §5，style-system 畫線、3D 出端點）
 `Rack3D.current` 上的三支：

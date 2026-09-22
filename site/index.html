@@ -1289,6 +1289,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   --dg-shadow:#000000; --dg-shadow-a:.5;
   --dg3-card:rgba(13,19,38,.6); --dg3-card-line:rgba(160,190,240,.26); --dg3-card-sh:0 8px 24px -12px rgba(0,0,0,.6);
   --dg3-ink:#eef3ff; --dg3-ink-2:#b5c2de; --dg3-ink-3:#8ea0c4; --dg3-badge-ink:#0b132b;
+  --dg-card-lmin:.48; --dg-card-lmax:1;          /* 卡片元件色的明度夾限：深底上太暗的拉亮到 .48，不壓暗 */
   --dg3-lead-w:1; --dg3-halo:.55; --dg3-blur:10px;
 }
 .dg3d[data-pal="read"]{
@@ -1311,7 +1312,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   --dg-ao:#3A342C; --dg-ao-a:.2;
   --dg-shadow:#5a4f40; --dg-shadow-a:.22;
   --dg3-card:rgba(255,255,255,.84); --dg3-card-line:rgba(60,55,48,.16); --dg3-card-sh:0 8px 22px -14px rgba(60,50,40,.45);
-  --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#262320;
+  --dg3-ink:#262320; --dg3-ink-2:#4d4740; --dg3-ink-3:#716a61; --dg3-badge-ink:#ffffff;   /* 閱讀模式圓點底是中深的元件色，字改白 */
+  --dg-card-lmin:.30; --dg-card-lmax:.40;        /* 白卡上的標題字／圓點底／引線：太亮的（玻璃、陶瓷）壓到 .40 以下 */
   --dg3-lead-w:.9; --dg3-halo:0; --dg3-blur:8px;
   --dg3-lead:rgba(70,64,56,.72);        /* 閱讀模式的引線是深灰細線（#238）；科技模式不定義＝跟元件同色 */
 }

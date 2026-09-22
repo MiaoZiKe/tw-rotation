@@ -370,7 +370,7 @@
       all.push(aoM);
       return aoM;
     };
-    return { mat, col, reg, css: cssv, mats: all, base: baseHex, role: roleHex, fam, ao };
+    return { mat, col, reg, css: cssv, mats: all, base: baseHex, baseVar, role: roleHex, fam, ao };
   }
 
   function mkBuilders(T) {
@@ -1785,6 +1785,26 @@
     const pal0 = (() => { const n = o.pal || palByTheme(); return PALS.includes(n) ? n : (PAL_LEGACY[n] || 'tech'); })();
     el.dataset.pal = pal0;
     const cssRead = (n) => getComputedStyle(el).getPropertyValue(n).trim();
+    /* 卡片跟到的「元件顏色」：有角色就是角色色（訊號藍／電力橘／液冷青綠），沒有就是材質族的底色。
+       明度依模式夾住（token：--dg-card-lmin／--dg-card-lmax）：
+         · 科技（深底、圓點字是深色）→ 太暗的底色（板子的墨綠、矽的深藍、模封的黑）往 --dg-lit 拉亮到看得見為止；
+         · 閱讀（白卡、圓點字是白色）→ 太亮的（玻璃、陶瓷、淺灰）壓到 lmax 以下，不然 .sel 卡片的標題字與圓點底
+           會變成「白卡上的淡藍字」（v9 半導體場景的「散熱上蓋」就是這樣看不見的）。
+       token 是跟 data-pal 走的，所以 applyPal() 每次切模式都要用當下的 token 重算一次，不能只在掛場景時算。*/
+    const calcElColor = (K, role) => {
+      const roleHex = role && ROLE_TOKENS[role] ? cssRead(ROLE_TOKENS[role]) : '';
+      const baseHex = (K.baseVar && cssRead(K.baseVar)) || K.base;
+      const c = new THREE.Color(roleHex || baseHex || '#888888');
+      const hsl = {}; c.getHSL(hsl);
+      const lmin = parseFloat(cssRead('--dg-card-lmin')) || 0.48;
+      const lmax = parseFloat(cssRead('--dg-card-lmax')) || 1;
+      if (hsl.l < lmin) c.lerp(new THREE.Color(cssRead('--dg-lit') || '#ffffff'), (lmin - hsl.l) / (1 - hsl.l) * 1.15);
+      /* 上限用 sRGB 的明度夾（眼睛看到的那個）：getHSL 預設回的是線性工作空間的明度，
+         線性 .40 換成 sRGB 大約是 .66 —— 用它夾出來的顏色在白卡上還是淡的。*/
+      const srgb = {}; c.getHSL(srgb, THREE.SRGBColorSpace);
+      if (srgb.l > lmax) c.setHSL(srgb.h, Math.max(srgb.s, 0.35), lmax, THREE.SRGBColorSpace);
+      return '#' + c.getHexString();
+    };
     /* 爆炸拆解（DECISIONS #238）：每個 group 記住「原位」與「拆開的位移」，
        expT 0→1 之間插值。進場時動畫拉開；動畫關掉就直接停在拆開的狀態。*/
     let expT = 0;
@@ -1845,15 +1865,7 @@
         root.add(fg); groups.push(fg);
       });
       K.mats.forEach(m => { if (m.userData && m.userData.led) leds.push(m); });
-      /* 卡片跟到的「元件顏色」：有角色就是角色色（訊號藍／電力橘／液冷青綠），沒有就是材質族的底色。
-         ★ 太暗的底色（板子的墨綠、矽的深藍、模封的黑）拿去當編號圓點會變成「黑底黑字」，
-           所以亮度不夠的往 --dg-lit 拉到看得見為止 —— 圓點上的字是深色的，圓點一定要亮。*/
-      const elColor = (() => {
-        const c = new THREE.Color(K.role || K.base);
-        const hsl = {}; c.getHSL(hsl);
-        if (hsl.l < 0.48) c.lerp(new THREE.Color(cssRead('--dg-lit') || '#ffffff'), (0.48 - hsl.l) / (1 - hsl.l) * 1.15);
-        return '#' + c.getHexString();
-      })();
+      const elColor = calcElColor(K, p.role);   // 卡片／引線／圓點的顏色（依模式夾明度，切模式時 applyPal 會重算）
       byIdx[idx] = {
         seg: p.seg, part: pkey, alias: p.alias || [], groups, meshes, hex, ghost: !!p.ghost, name: p.name, note: p.note,
         fam, role: p.role || '', elColor, kit: K,
@@ -2211,6 +2223,15 @@
       rim.intensity = palNum('--dg-rim', 0); rim.color.copy(palCol('--dg-l-rim', '#ffffff'));
       renderer.toneMappingExposure = palNum('--dg-expo', 1.0);
       shadowMat.color.copy(palCol('--dg-shadow', '#000000')); shadowMat.opacity = palNum('--dg-shadow-a', 0.4);
+      /* 卡片、引線、端點、編號圓點的元件色跟著模式重算（科技拉亮、閱讀壓暗，見 calcElColor）；
+         data-dgcolor 與 --c／--dg-card-c 一起換，style-system 那邊讀到的才是同一個值。*/
+      byIdx.forEach(p => {
+        if (!p || !p.el) return;
+        const c = calcElColor(p.kit, p.role);
+        p.elColor = c; p.el.dataset.dgcolor = c;
+        [p.el, p.path, p.halo, p.dot, p.no].forEach(x => { if (x) { x.style.setProperty('--c', c); x.style.setProperty('--dg-card-c', c); } });
+        if (p.dot) p.dot.setAttribute('stroke', c);
+      });
       highlight(lastHi.on, lastHi.color, lastHi.part);     // 重新套用目前的選取狀態，顏色才會真的換掉
       return pal;
     }
