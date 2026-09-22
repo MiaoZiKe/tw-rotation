@@ -1655,6 +1655,15 @@
     const s = Math.min(sx, sy);
     return { x: a.x + dx * s, y: a.y + dy * s };
   }
+  // 還有幾組節點疊在一起（矩形相交）。給 relayout 判斷要不要再放大版面重算
+  function cgOverlaps(nodes) {
+    let n = 0;
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i], b = nodes[j];
+      if (Math.abs(b.x - a.x) < (a.w + b.w) / 2 - 1 && Math.abs(b.y - a.y) < (a.h + b.h) / 2 - 1) n++;
+    }
+    return n;
+  }
   // 正交折線（電路風格用），轉角切圓角
   function cgCorner(pts, r0) {
     let d = 'M' + pts[0][0] + ',' + pts[0][1];
@@ -1854,8 +1863,13 @@
       const boxW = (cw - 32) / floorS, boxH = (chh - 32) / floorS;
       if (boxW * boxH >= area * packK) { LW = boxW; LH = boxH; }
       else {
-        const ar = Math.max(0.6, cw / Math.max(1, chh));
-        LH = Math.max(chh, Math.sqrt(area * packK / ar)); LW = Math.max(cw, LH * ar);
+        /* 真的塞不下（手機 390px）：**只准往下長，不准往兩邊長**。
+           以前是「版面比例跟容器一樣」，390×920 的容器算出 466×1199 的版面 ——
+           左右各溢出 50px，那幾顆節點是**橫向**跑到框外面的，而手機上最不直覺的就是橫向拖。
+           改成把寬度釘在「縮放剛好等於下限」的寬度，剩下的全部往高度長：
+           橫向永遠不溢出，看不完的部分往下拖就有（垂直拖是手機最自然的手勢）。*/
+        LW = Math.max(cw, (cw - 32) / floorS);
+        LH = Math.max(chh, area * packK / LW);
       }
       cgLayout(nodes, links, LW, LH, { keep: !!keep });
       /* 量一次不夠：第一次量到的高度是「字型還沒換完、換行還沒定案」時的高度，
@@ -1867,6 +1881,25 @@
         const h = el.offsetHeight, w = el.offsetWidth;
         if (Math.abs(h - n.h) > 1 || Math.abs(w - n.w) > 1) { n.h = h; n.w = w; moved = true; } });
       if (moved) cgLayout(nodes, links, LW, LH, { keep: true, iters: 90 });
+      /* 還有節點疊在一起就把版面放大一點再算一次（最多兩次）。
+         為什麼需要：膠囊造型（星際／泡泡）的節點比方塊高，24 顆在同一個框裡
+         偶爾會剩下三五組推不開 —— 純碰撞在「上下都頂到邊界」時會卡住。
+         放大版面就等於多給它空間，比調係數可靠（係數是猜的，這個是量出來才動）。*/
+      /* ⚠ 只准把**高度**放大，寬度動不得：LW 是由「縮放剛好等於下限」推回來的寬度，
+         動了它就等於允許橫向溢出（實測 800px 把 LW 乘 1.06 之後有 3 顆節點被容器切掉）。
+         高度不夠就往下長，框跟著補高（上限 920px）—— 那是這張圖唯一可以讓步的方向。*/
+      for (let tryN = 0; tryN < 3 && cgOverlaps(nodes) > 0; tryN++) {
+        LH *= 1.16;
+        cgLayout(nodes, links, LW, LH, { keep: true, iters: 120 });
+      }
+      /* 版面被放大之後，框也要跟著補高 —— 不然剛剛推開的節點是被推到框外面去，
+         看起來就是「上下各被切掉一排」（實測星際／泡泡各溢出 32px）。
+         上限仍然是 920px：那是「一頁看得完」的天花板。*/
+      {
+        const bb0 = bbox();
+        const needH = Math.ceil(bb0.h * CG_MIN_SCALE) + 34;
+        if (needH > host.clientHeight + 8) host.style.height = Math.min(920, needH) + 'px';
+      }
       place(); fit();
     }
 
