@@ -10071,6 +10071,8 @@ SECTIONS = {
     "批次14b-被動RLC":     lambda pg, b, base, code: t_b14b_rlc(pg, base),
     "批次14b-高速互連":     lambda pg, b, base, code: t_hsio_v2(pg, base),      # restyle-w2b：v2（舊的 t_b14b_hsio 留在檔裡當對照）
     "批次23-面板":          lambda pg, b, base, code: t_panel_v2(pg, base),      # restyle-w2b：面板疊層 v2（Andy 參考圖的示範品）
+    "批次23-硬板PCB":      lambda pg, b, base, code: t_pcb_v2(pg, base),
+    "批次23-交換器板卡":   lambda pg, b, base, code: t_switch_v2(pg, base),
     "批次14b-第三代半導體": lambda pg, b, base, code: t_b14b_wbg(pg, base),
     "3D零件字彙":          lambda pg, b, base, code: t_dg3d_parts(pg, base),
     "點背景恢復":          lambda pg, b, base, code: t_clickbg(pg, base),
@@ -16138,6 +16140,230 @@ def t_hsio_v2(pg, base):
 
 def svg_count(pg, sel):
     return pg.evaluate("(s) => document.querySelectorAll('#prodDiagram svg ' + s).length", sel)
+
+def _seg_rows_distinct(pg, base, feat, segs):
+    """依序點幾個環節色標，回每一次篩出來的筆數（點色標要 reload，同 hash 的 goto 不會重置）。"""
+    got = {}
+    for seg in segs:
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+        b0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        hit = pg.evaluate("(s) => { const c = document.querySelector('#segChips .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
+        pg.wait_for_timeout(800)
+        n = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length") if hit else None
+        got[seg] = n
+        ok(f"[{feat}] 點「{seg}」環節色標 → 成分股筆數真的變少", hit and n is not None and 0 < n < b0, f"{b0} → {n}")
+    vals = [v for v in got.values() if v is not None]
+    ok(f"[{feat}] ★ {'／'.join(segs)} 各自篩出來的筆數**彼此不同**（證明 seg 真的分開掛對）", len(vals) == len(segs) and len(set(vals)) == len(segs), got)
+    return got
+
+
+def t_pcb_v2(pg, base):
+    """圖2 硬板 PCB（v2，等角爆炸玻璃層疊）：共用驗收 ＋ 規格書 pcb_stackup.md §6 的 S／V／T／M／P／N 六組硬規則，全部從畫面量。"""
+    ROUTE = "industry/ai_server/dg/pcb_rigid"
+    FEAT = "多層 PCB"
+    s0 = _v2_common(pg, base, ROUTE, FEAT, 560, ("pcb_blind", "pcb_pth"), (3, 3))
+    if not s0:
+        return
+    url = f"{base}#{ROUTE}"
+    _seg_rows_distinct(pg, base, FEAT, ("ccl_material", "ccl", "hdi_pcb"))
+    # ---- 非講不可的話（§6-N2／N3／N5）：在整張圖的文字裡（警語卡 ＋ svg）
+    _v2_land(pg, url, "dark", 1440, "0")
+    s = pg.evaluate(_V2)
+    for kw in ("不是整個族群", "示意圖，非實物比例", "20～50 層以上", "收錄六家", "一個數字都不寫"):
+        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上（警語卡永遠看得到）", kw in s["all"], "")
+    # ---- 結構硬規則（章節全開之後 ②③④ 的東西才量得到；主視圖的座標全部從 DOM 量，不寫死）
+    _v2_open_all(pg)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (n) => { const r = n.getBBox(); return {x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), y1: +(r.y + r.height).toFixed(1)}; };
+      const plates = (part) => [...svg.querySelectorAll('[data-part="' + part + '"] rect.fxb.part')].map(bb).sort((a, b) => a.y - b.y);
+      const cores = plates('pcb_core'), pps = plates('pcb_pp'), foils = plates('pcb_foil'), masks = plates('pcb_mask');
+      const bands = (part) => [...svg.querySelectorAll('[data-part="' + part + '"] rect')].map(bb);
+      const trace = bands('pcb_trace'), plane = bands('pcb_plane');
+      const cu = trace.concat(plane);
+      const near = (a, b) => Math.abs(a - b) < 0.6;
+      // S1：每一片 core 的上緣與下緣都有一條銅（來自 trace 或 plane 群組）
+      const s1 = cores.every(c => cu.some(r => near(r.y, c.y)) && cu.some(r => near(r.y1, c.y1)));
+      // S2：prepreg 的 y 範圍裡沒有任何一條銅
+      const s2 = pps.every(p => !cu.some(r => r.y + r.h / 2 > p.y && r.y + r.h / 2 < p.y1));
+      // S3：銅層數＝兩張銅箔 ＋ core 上的銅帶（同一個 y 算一層）
+      const ys = new Set(cu.map(r => r.y)); const nCu = foils.length + ys.size;
+      // S4：十三片板由上到下的厚度序列要等於它的倒序
+      const all = cores.concat(pps, foils, masks).sort((a, b) => a.y - b.y).map(p => p.h);
+      const s4 = all.length === 13 && all.join() === all.slice().reverse().join();
+      // S5：銅帶比 core 的介電、比 prepreg 都薄
+      const cuH = Math.max(...cu.map(r => r.h)), dieH = Math.min(...cores.map(c => c.h)) - 2 * cuH, ppH = Math.min(...pps.map(p => p.h));
+      // S6：兩片防焊都有開窗（畫布底色的缺口）；S7／S8：鎳在內、金在外，而且只在開窗的 x 範圍裡
+      const wins = [...svg.querySelectorAll('[data-part="pcb_mask"] rect')].filter(r => (r.getAttribute('fill') || '').includes('--dg-bg')).map(bb);
+      const ni = [...svg.querySelectorAll('[data-part="pcb_enig"] rect')].filter(r => (r.getAttribute('fill') || '').includes('--dg-ni')).map(bb);
+      const au = [...svg.querySelectorAll('[data-part="pcb_enig"] rect')].filter(r => (r.getAttribute('fill') || '').includes('--dg-au')).map(bb);
+      const enigIn = ni.every(n => wins.some(w => n.x >= w.x - 1 && n.x + n.w <= w.x + w.w + 1));
+      const topOK = ni.length === 2 && au.length === 2 && au[0].y < ni[0].y && au[1].y > ni[1].y;   // 上面：金在鎳上；下面：金在鎳下
+      // V 組：四種孔的跨距從群組的 bbox 量
+      const via = (part) => bb(svg.querySelector('[data-part="' + part + '"]'));
+      const pth = via('pcb_pth'), bd = via('pcb_backdrill'), bl = via('pcb_blind'), bu = via('pcb_buried');
+      const top = masks[0].y, bot = masks[1].y1;
+      const stub = svg.querySelectorAll('[data-part="pcb_pth"] rect[fill*="--dg-err"]').length;
+      const bdWide = [...svg.querySelectorAll('[data-part="pcb_backdrill"] rect[fill*="--dg-edge"]')].map(bb).filter(r => r.w > 12);   // 只算孔洞，不算那塊接滑鼠的透明 rect
+      const bdWarn = svg.querySelectorAll('[data-part="pcb_backdrill"] rect[fill*="--dg-warn"]').length;
+      const bdWideTop = bdWide.length ? Math.min(...bdWide.map(r => r.y)) : null, bdWideBot = bdWide.length ? Math.max(...bdWide.map(r => r.y1)) : null;
+      const blPath = svg.querySelector('[data-part="pcb_blind"] path.part'); const bd_ = blPath ? blPath.getAttribute('d') : '';
+      const m = /M([-\d.]+),([-\d.]+) L([-\d.]+),([-\d.]+) L([-\d.]+),([-\d.]+) L([-\d.]+),([-\d.]+)Z/.exec(bd_ || '');
+      const blCone = m ? {wTop: Math.abs(+m[3] - +m[1]), wBot: Math.abs(+m[5] - +m[7])} : null;
+      const l1 = foils[0], l10 = foils[1];
+      const spans = [pth, bd, bl, bu].map(v => Math.round(v.h));
+      // T 組：頂層走線成對；每一層訊號的上或下一定是整片銅
+      const pairs = {}; svg.querySelectorAll('[data-part="pcb_top_trace"] path[data-pair]').forEach(p => { const k = p.getAttribute('data-pair'); (pairs[k] = pairs[k] || []).push((p.getAttribute('d') || '').split('L').length); });
+      const layers = [{y: l1.y, t: 's'}].concat([...ys].map(y => ({y, t: plane.some(r => near(r.y, y)) ? 'p' : 's'})), [{y: l10.y, t: 's'}]).sort((a, b) => a.y - b.y);
+      const t3 = layers.every((l, i) => l.t === 'p' || (layers[i - 1] && layers[i - 1].t === 'p') || (layers[i + 1] && layers[i + 1].t === 'p'));
+      // M 組：織紋只在 core／prepreg；載板對照格沒有織紋也沒掛環節；三格稜面順序
+      const weaveCore = svg.querySelectorAll('[data-part="pcb_core"] path[stroke*="--dg-yarn"]').length, weavePp = svg.querySelectorAll('[data-part="pcb_pp"] path[stroke*="--dg-yarn"]').length;
+      const abfT = [...svg.querySelectorAll('text')].find(t => (t.textContent || '').includes('這不是 PCB'));
+      const abfG = abfT ? abfT.parentNode : null;
+      const abfNoSeg = !!abfG && !abfG.closest('[data-seg]') && abfG.querySelectorAll('path[stroke*="--dg-yarn"]').length === 0;
+      const tags = [...svg.querySelectorAll('[data-part="foil_rough"] text.tag')].sort((a, b) => +a.getAttribute('x') - +b.getAttribute('x')).map(t => t.textContent.trim());
+      // P 組：流程列順序與分界線
+      const steps = [...svg.querySelectorAll('.step')].map(g => g.textContent.replace(/\s+/g, ''));
+      const hair = [...svg.querySelectorAll('path.hair[stroke*="--dg-warn"]')].map(bb);
+      const stepX = [...new Set([...svg.querySelectorAll('.step rect.card')].map(r => +r.getAttribute('x')))].sort((a, b) => a - b);   // 分兩列時第 1、4 格同一個 x
+      const texts = [...svg.querySelectorAll('text')].map(n => n.textContent).join('。') + [...document.querySelectorAll('#prodDiagram .dgc')].map(c => c.innerText).join('。') + ((document.querySelector('#prodDiagram .dghead') || {}).innerText || '');
+      return {nCore: cores.length, nPp: pps.length, nFoil: foils.length, nMask: masks.length, s1, s2, nCu, s4, cuH, dieH, ppH, wins: wins.length, enigIn, topOK,
+        pth: [pth.y, pth.y1], bd: [bd.y, bd.y1], bl: [bl.y, bl.y1], bu: [bu.y, bu.y1], top, bot, l1: [l1.y, l1.y1], l10: [l10.y, l10.y1],
+        c1top: cores[0].y, c2top: cores[1].y, c3bot: cores[2].y1, stub, bdWide: bdWide.length, bdWarn, bdWideTop, bdWideBot, blCone, spans, pairs, t3, layers: layers.map(l => l.t).join(''),
+        weaveCore, weavePp, abfNoSeg, tags, steps, hair, stepX, texts};
+    }""")
+    ok(f"[{FEAT}] 十三片玻璃板都在：4 core、5 prepreg、2 銅箔、2 防焊", (st["nCore"], st["nPp"], st["nFoil"], st["nMask"]) == (4, 5, 2, 2), [st["nCore"], st["nPp"], st["nFoil"], st["nMask"]])
+    ok(f"[{FEAT}] S1：每一片 core 都是「銅－介電－銅」（上緣與下緣各一條銅）", st["s1"], "")
+    ok(f"[{FEAT}] S2：每一片 prepreg 都沒有銅", st["s2"], "")
+    ok(f"[{FEAT}] S3：銅層總數 10（偶數）", st["nCu"] == 10, st["nCu"])
+    ok(f"[{FEAT}] S4：十三片由上到下的厚度序列＝它的倒序（上下鏡像對稱）", st["s4"], "")
+    ok(f"[{FEAT}] S5：銅（{st['cuH']}）比 core 介電（{st['dieH']}）與 prepreg（{st['ppH']}）都薄", st["cuH"] < st["dieH"] and st["cuH"] < st["ppH"], "")
+    ok(f"[{FEAT}] S6：兩片防焊各有一處開窗", st["wins"] == 2, st["wins"])
+    ok(f"[{FEAT}] S7／S8：表面處理只在開窗的銅上，順序銅 → 鎳 → 金（金在外）", st["enigIn"] and st["topOK"], {"in": st["enigIn"], "order": st["topOK"]})
+    ok(f"[{FEAT}] V1：PTH 上下都貫穿（從上防焊頂到下防焊底）", abs(st["pth"][0] - st["top"]) < 1 and abs(st["pth"][1] - st["bot"]) < 1, {"pth": st["pth"], "top": st["top"], "bot": st["bot"]})
+    ok(f"[{FEAT}] V2：PTH 的殘端單獨用紅色（--dg-err）標出來", st["stub"] >= 2, st["stub"])
+    ok(f"[{FEAT}] V3：背鑽從背面進（大孔徑那一段貼著下防焊底）、鑽頭比原孔大、而且留了沒鑽乾淨的殘餘（--dg-warn）",
+       st["bdWide"] >= 1 and abs(st["bdWideBot"] - st["bot"]) < 1 and st["bdWideTop"] > st["c2top"] and st["bdWarn"] >= 2, {"wide": st["bdWide"], "warn": st["bdWarn"], "top": st["bdWideTop"], "c2": st["c2top"]})
+    ok(f"[{FEAT}] V4：雷射盲孔只在 L1 與第一片 core 之間、上寬下窄", st["bl"][0] >= st["l1"][1] - 0.6 and st["bl"][1] <= st["c1top"] + 5 and bool(st["blCone"]) and st["blCone"]["wTop"] > st["blCone"]["wBot"], {"bl": st["bl"], "cone": st["blCone"]})
+    ok(f"[{FEAT}] V5：埋孔兩端都不碰外層（在第二片 core 上緣到第三片 core 下緣之間）", st["bu"][0] >= st["c2top"] - 0.6 and st["bu"][1] <= st["c3bot"] + 0.6 and st["bu"][0] > st["l1"][1] and st["bu"][1] < st["l10"][0], st["bu"])
+    ok(f"[{FEAT}] V6：四種孔的跨距互不相同", len(set(st["spans"])) == 4, st["spans"])
+    ok(f"[{FEAT}] T1／T2／T4：頂層走線三組（差動／蛇行／轉角）每一組剛好兩條、蛇行那組每條 ≥ 8 段", set(st["pairs"]) == {"diff", "serp", "corner"} and all(len(v) == 2 for v in st["pairs"].values()) and min(st["pairs"]["serp"]) >= 8, st["pairs"])
+    ok(f"[{FEAT}] T3：每一層訊號的上一層或下一層一定是整片銅（{st['layers']}）", st["t3"], st["layers"])
+    ok(f"[{FEAT}] M1：core 與 prepreg 都看得出玻纖織紋", st["weaveCore"] > 0 and st["weavePp"] > 0, [st["weaveCore"], st["weavePp"]])
+    ok(f"[{FEAT}] M2：銅箔稜面三格由左到右是 HTE → RTF → HVLP", st["tags"] == ["HTE", "RTF", "HVLP"], st["tags"])
+    ok(f"[{FEAT}] M3／M4：IC 載板對照格沒有織紋、也沒掛任何環節", st["abfNoSeg"], "")
+    ok(f"[{FEAT}] M5：圖上沒有軟板彎折、散熱器、風扇", not [w for w in ("軟板", "散熱器", "風扇") if w in st["texts"]], "")
+    joined = "".join(st["steps"])
+    ok(f"[{FEAT}] P1／P2：流程列裡壓合在鑽孔之前、防焊在表面處理之前", 0 <= joined.find("壓合") < joined.find("鑽孔") and 0 <= joined.find("防焊") < joined.find("表面處理"), st["steps"])
+    ok(f"[{FEAT}] P3：第 1 格（CCL 廠）與第 2 格（PCB 廠）之間有一條分界線", len(st["hair"]) >= 1 and len(st["stepX"]) >= 2 and st["stepX"][0] < st["hair"][0]["x"] < st["stepX"][1], {"hair": st["hair"], "x": st["stepX"][:2]})
+    pct = [ln for ln in st["texts"].split("。") if re.search(r"\d\s*%", ln)]
+    ok(f"[{FEAT}] ★ N1：整張圖（svg ＋ 卡片）一個百分比都沒有", not pct, pct[:2])
+    ok(f"[{FEAT}] N2：層數量級附了「來源：媒體報導，2026」", "來源：媒體報導，2026" in st["texts"], "")
+    ok(f"[{FEAT}] N4：90° 轉角沒有寫成絕對句（寫的是「45° 是好習慣，不是鐵律」）", "45° 是好習慣，不是鐵律" in st["texts"] and "一定會造成反射" not in st["texts"], "")
+    # ---- 誰做的：同一個環節裡面還要再分（銅箔廠 vs 玻纖布廠），而且零件在章節裡收著也點得到
+    _v2_land(pg, url, "dark", 1440, "0")
+    _v2_click_part(pg, "foil_rough"); c1 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] ★ 點「銅箔稜面」只列做銅箔的那幾家（8358／4989／1303），不是整格全列", bool(c1) and set(c1["codes"]) == {"8358", "4989", "1303"}, c1 and c1["codes"])
+    _v2_click_part(pg, "fiber_weave"); c2 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點「玻纖織紋」→ 小卡換成做玻纖布／紗的那幾家（5340／1815／5475）", bool(c2) and {"5340", "1815", "5475"} <= set(c2["codes"]) and set(c2["codes"]) != set(c1["codes"]), c2 and c2["codes"])
+    _v2_click_part(pg, "pcb_pp"); c3 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點 prepreg → 小卡列的是 CCL 廠（2383 台光電在裡面），不是 PCB 廠", bool(c3) and "2383" in c3["codes"] and "2368" not in c3["codes"], c3 and c3["codes"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
+
+def t_switch_v2(pg, base):
+    """圖8 交換器板卡（v2，半層疊）：共用驗收 ＋ 規格書 switch_board.md §3／§4／§6 的硬規則，全部從畫面量。"""
+    ROUTE = "industry/ai_server/dg/switch_wireless"
+    FEAT = "交換器板卡"
+    s0 = _v2_common(pg, base, ROUTE, FEAT, 600, ("sw_cage", "sw_fan"), (3, 3))
+    if not s0:
+        return
+    url = f"{base}#{ROUTE}"
+    _seg_rows_distinct(pg, base, FEAT, ("optical", "thermal", "connector"))
+    _v2_land(pg, url, "dark", 1440, "0")
+    s = pg.evaluate(_V2)
+    for kw in ("示意圖，非實物比例", "埠側進風", "16 個籠架", "台股沒有直接對應", "資料中心交換器", "一個都不寫"):
+        ok(f"[{FEAT}] ★「{kw}」真的印在畫面上", kw in s["all"], "")
+    _v2_open_all(pg)
+    st = pg.evaluate("""() => {
+      const svg = document.querySelector('#prodDiagram svg');
+      const bb = (n) => { const r = n.getBBox(); return {x: +r.x.toFixed(1), y: +r.y.toFixed(1), w: +r.width.toFixed(1), h: +r.height.toFixed(1), y1: +(r.y + r.height).toFixed(1), x1: +(r.x + r.width).toFixed(1)}; };
+      const g = (part) => svg.querySelector('[data-part="' + part + '"]');
+      // §3-A 疊構節律（章節 ②）：由上到下的層別序列
+      const rows = []; svg.querySelectorAll('[data-part^="sw_ly_"] rect.part').forEach(r => rows.push({k: r.closest('[data-part]').dataset.part.slice(6), y: +r.getAttribute('y')}));
+      rows.sort((a, b) => a.y - b.y); const seq = rows.map(r => r.k);
+      // 「上一層／下一層」講的是**銅層**（core／pp／⋮ 是介電，不算層）
+      const cuSeq = seq.filter(k => ['out', 'gnd', 'sig', 'pwr'].indexOf(k) >= 0);
+      const sigOK = cuSeq.every((k, i) => k !== 'sig' || (cuSeq[i - 1] === 'gnd' && cuSeq[i + 1] === 'gnd'));
+      const sym = seq.join() === seq.slice().reverse().join();
+      const outer = seq.filter(k => k !== 'sm')[0];
+      // §3-B 走線：每一條 .dp 從 ASIC（畫面上方）走到前面板（畫面下方），近的埠繞得多（總長接近）
+      const panel = bb(g('sw_cage')), asic = bb(g('sw_asic'));
+      const dps = [...svg.querySelectorAll('path.dp')].map(p => { const d = p.getAttribute('d'); const pts = d.replace(/^M/, '').split(' L').map(s => s.split(',').map(Number));
+        return {n: pts.length, len: +p.getTotalLength().toFixed(1), y0: pts[0][1], y1: pts[pts.length - 1][1], x1: pts[pts.length - 1][0]}; });
+      const cageXs = [...svg.querySelectorAll('[data-part="sw_cage"] rect.cage')].map(bb).map(r => r.x + r.w / 2);
+      const dpOK = dps.every(t => t.y0 < t.y1 && t.y1 <= panel.y1 && t.y1 >= panel.y - 20 && t.y0 <= asic.y1 + 4);
+      const lens = dps.map(t => t.len); const ratio = Math.max(...lens) / Math.min(...lens);
+      const flys = svg.querySelectorAll('[data-part="sw_fly"] path.fly').length;
+      // 走飛越纜線的那兩個籠架（最左邊兩個）板子上沒有走線
+      const leftTwo = cageXs.slice().sort((a, b) => a - b).slice(0, 2);
+      const noDup = !dps.some(t => leftTwo.some(cx => Math.abs(t.x1 - cx) < 8));
+      const beams = [...svg.querySelectorAll('.fxbeam')].map(b => ({rev: b.classList.contains('rev'), c: (b.getAttribute('style') || '')}));
+      // §3-C 供電：VRM 緊貼 ASIC、供電線比訊號線粗
+      const vrm = bb(g('sw_vrm'));
+      const gap = Math.max(0, asic.x - vrm.x1);
+      const pw = svg.querySelector('path.pw'), dp = svg.querySelector('path.dp');
+      const pwW = pw ? parseFloat(getComputedStyle(pw).strokeWidth) : 0, dpW = dp ? parseFloat(getComputedStyle(dp).strokeWidth) : 0;
+      // §3-D 氣流：風扇在後（畫面上方，比前面板高）、鰭片沿前後方向拉長（每一片的深度 > 厚度）
+      const fan = bb(g('sw_fan'));
+      const fins = [...svg.querySelectorAll('[data-part="sw_hs"] path.fin')].map(bb), fine = [...svg.querySelectorAll('[data-part="sw_hs"] rect.fine')].map(bb);
+      const finOK = fins.length >= 8 && fins.every(f => f.w >= 10) && fine.every(f => f.w <= 4);
+      const cages = [...svg.querySelectorAll('[data-part="sw_cage"] rect.cage')].map(bb);
+      const cageSame = cages.length === 16 && new Set(cages.map(c => c.w + 'x' + c.h)).size === 1;
+      const spins = svg.querySelectorAll('[data-part="sw_fan"] .spin').length;
+      // 背鑽特寫：下半段孔徑較大
+      const bdr = [...svg.querySelectorAll('[data-part="sw_backdrill"] rect')].map(bb).filter(r => r.w === 24 || r.w === 16);
+      const wide = bdr.filter(r => r.w === 24), narrow = bdr.filter(r => r.w === 16);
+      const bdOK = wide.length >= 1 && narrow.length >= 2 && wide[0].y > Math.min(...narrow.map(r => r.y));
+      // 流程列順序
+      const steps = [...svg.querySelectorAll('.step')].map(g => g.textContent.replace(/\s+/g, ''));
+      const asicSeg = !!g('sw_asic').closest('[data-seg]') || g('sw_asic').hasAttribute('data-seg');
+      const texts = [...svg.querySelectorAll('text')].map(n => n.textContent).join('。') + [...document.querySelectorAll('#prodDiagram .dgc')].map(c => c.innerText).join('。') + ((document.querySelector('#prodDiagram .dghead') || {}).innerText || '');
+      return {seq: seq.join(','), sigOK, sym, outer, nDp: dps.length, dpOK, ratio: +ratio.toFixed(2), folds: dps.map(t => t.n), flys, noDup, beams, gap, pwW, dpW,
+        fanAbove: fan.y1 <= panel.y, finOK, nFins: fins.length, cageSame, nCage: cages.length, spins, bdOK, steps, asicSeg, texts};
+    }""")
+    ok(f"[{FEAT}] §3-A：每一層高速訊號層的正上方與正下方都是接地層（{st['seq'][:60]}…）", st["sigOK"] and "sig" in st["seq"], st["seq"])
+    ok(f"[{FEAT}] §3-A：疊構上下鏡像對稱", st["sym"], st["seq"])
+    ok(f"[{FEAT}] §3-A：外層是線路層不是接地層", st["outer"] == "out", st["outer"])
+    ok(f"[{FEAT}] §3-B：6 條差動對每一條都從 ASIC 走到前面板的籠架（沒有籠架直連籠架）", st["nDp"] == 6 and st["dpOK"], {"n": st["nDp"], "ok": st["dpOK"]})
+    ok(f"[{FEAT}] §3-B：等長 —— 近的埠繞路、遠的直走（最長／最短 ≤ 1.35，折數 {st['folds']}）", st["ratio"] <= 1.35 and max(st["folds"]) > min(st["folds"]), st["ratio"])
+    ok(f"[{FEAT}] §3-B：飛越纜線兩條，走纜線的那兩個埠板子上沒有再畫走線", st["flys"] == 2 and st["noDup"], {"flys": st["flys"], "noDup": st["noDup"]})
+    ok(f"[{FEAT}] §3-B：訊號雙向 —— 電訊號光束一條進（正向）一條出（反向），光纖光束也是", sum(1 for b in st["beams"] if b["rev"]) == 2 and sum(1 for b in st["beams"] if not b["rev"]) == 2, st["beams"])
+    ok(f"[{FEAT}] §3-C：VRM 緊貼 ASIC（間距 {st['gap']}px ≤ 24）、供電線（{st['pwW']}）比差動對（{st['dpW']}）粗", st["gap"] <= 24 and st["pwW"] > st["dpW"], "")
+    ok(f"[{FEAT}] §3-D：風扇在後方（畫面上比前面板高）、看得到扇葉（{st['spins']} 組）", st["fanAbove"] and st["spins"] == 3, "")
+    ok(f"[{FEAT}] §3-D：散熱片鰭片 ≥ 8 片、每一片沿前後方向拉長（深度 ≥ 10、厚度 ≤ 4）", st["finOK"], st["nFins"])
+    ok(f"[{FEAT}] §4：前面板 16 個同規格籠架", st["cageSame"], st["nCage"])
+    ok(f"[{FEAT}] §4：背鑽特寫「上半段有銅、下半段孔徑較大且沒有銅」", st["bdOK"], "")
+    joined = "".join(st["steps"])
+    idx = [joined.find(k) for k in ("CCL", "多層板", "光模組", "連接", "整機")]
+    ok(f"[{FEAT}] §3-E：價值鏈五格由左到右 CCL → 多層板 → 光模組 → 連接 → 整機", min(idx) >= 0 and idx == sorted(idx), st["steps"])
+    ok(f"[{FEAT}] ★ §6-D：交換器 ASIC 沒有掛任何 data-seg", not st["asicSeg"], "")
+    bad = [ln for ln in st["texts"].split("。") if re.search(r"\d\s*%|\d\s*W\b|\d\s*mm", ln)]
+    ok(f"[{FEAT}] ★ §6-C：整張圖沒有市占百分比、瓦數、板厚 mm", not bad, bad[:3])
+    for kw in ("20 dB 以上", "個位數 dB", "不挑一個當定論", "40 層以上"):
+        ok(f"[{FEAT}] 「{kw}」在章節裡", kw in st["texts"], "")
+    # ---- 誰做的：ASIC 明說外商、籠架列光通訊廠、飛越纜線列連接器廠
+    _v2_land(pg, url, "dark", 1440, "0")
+    _v2_click_part(pg, "sw_asic"); c1 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] ★ 點 ASIC → 小卡明說外商供應、台股沒有直接對應，而且不列任何公司", bool(c1) and "外商" in c1["none"] and not c1["codes"], c1 and (c1["none"][:50], c1["codes"]))
+    _v2_click_part(pg, "sw_cage"); c2 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點籠架 → 小卡列光通訊那一格（4979 華星光在裡面）", bool(c2) and "4979" in c2["codes"], c2 and c2["codes"])
+    _v2_click_part(pg, "sw_fly"); c3 = pg.evaluate(_V2)["card"]
+    ok(f"[{FEAT}] 點飛越纜線 → 小卡列連接器廠 3665，不是光通訊廠", bool(c3) and "3665" in c3["codes"] and "4979" not in c3["codes"], c3 and c3["codes"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.dg3d.pal'); localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
