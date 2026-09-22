@@ -1879,6 +1879,171 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 會暈車的人把動畫放慢，但**不關掉** —— 這盞燈本身是資訊（還在不在更新），關掉等於少一格資料 */
 @media(prefers-reduced-motion:reduce){.m3-pulse.on .m3-ring{animation-duration:3.6s}}
 @media(max-width:900px){.m3-chart .m3-night{right:52px;max-height:52%}}
+
+/* ================= 族群關聯圖（Obsidian 式力導向，#cgGraph）=================
+   DECISIONS #248。取代原本的「環節色標 #segChips ＋ 環節詳情 #segBox ＋
+   環節清單 #chainList ＋ 族群卡片 #groupCards」四塊 —— 它們回答的是同一個問題
+   （這條鏈有誰、誰連誰、今天誰在漲），拆成四塊之後使用者要自己把四個畫面對起來。
+
+   為什麼節點是 HTML 不是 SVG：規格書第三節要求**每一段介紹資訊都要是連結**
+   （族群名 → 族群頁、個股代號 → 個股頁）。SVG 裡的 <a> 沒有 CSS 省略號、
+   沒有 flex 換行，而 ECharts 的 graph 是畫在 canvas 上，根本做不出真的 <a href>。
+   所以節點用 HTML 絕對定位，連線用同一個 stage 底下的 SVG —— 兩層吃同一個
+   transform，縮放拖曳永遠對得齊。
+
+   四種風格只換視覺（--cg-* token），佈局與互動完全同一份，
+   深／淺兩個主題各自成立（淺色在 :root[data-theme="light"] 那一段覆寫）。*/
+.cgsec{margin-top:14px}
+.cgtools{gap:6px;flex-wrap:wrap}
+.cgraph{position:relative;border-radius:10px;border:1px solid var(--line);overflow:hidden;
+  margin-top:8px;touch-action:none;-webkit-user-select:none;user-select:none;
+  height:clamp(430px,62vh,660px);background:var(--cg-bg,var(--illus));cursor:grab}
+.cgraph.panning{cursor:grabbing}
+.cgstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+.cgedges{position:absolute;left:0;top:0;overflow:visible;pointer-events:none}
+/* 節點。left/top/width 由 JS 寫成行內樣式（力導向算出來的座標），
+   其餘全部走 token —— 換風格時一個 JS 值都不必重算。*/
+.cgnode{position:absolute;box-sizing:border-box;padding:6px 8px 7px;cursor:pointer;
+  background:var(--cg-node);border:1px solid var(--cg-nline);border-radius:var(--cg-r,12px);
+  box-shadow:var(--cg-nshadow,none);backdrop-filter:var(--cg-blur,none);
+  transition:box-shadow .16s,border-color .16s,opacity .16s,background .16s}
+.cgnode:hover{border-color:var(--c);box-shadow:0 0 0 1px var(--c)}
+.cgnode.sel{border-color:var(--c);box-shadow:0 0 0 2px var(--c)}
+.cgnode.dim{opacity:.3}
+.cgnode .cgt{display:flex;align-items:baseline;gap:5px;min-width:0}
+/* 族群名是真的連結（族群頁）。dot 用 --c，跟剖析圖零件／環節同一套顏色 */
+.cgnode .cgt{display:block}
+/* ★ display:block 不可改回 inline-flex：`a.lk` 全站預設是 inline-flex，
+   而 **text-overflow:ellipsis 對 flex 容器自己的文字節點不生效** ——
+   族群名會被硬切成「HBM 高頻寬記憶」而且沒有省略號（第一版截圖就是這樣）。
+   改成 block 之後省略號才會出現，圓點用 inline-block 排在前面。*/
+.cgnode .cgt a.lk{display:block;font-size:13.5px;font-weight:700;color:var(--ink);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;min-width:0;border:0;padding:0;background:none}
+.cgnode .cgt a.lk i{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--c);
+  margin-right:5px;vertical-align:middle}
+.cgnode .cgm{display:flex;align-items:baseline;gap:6px;margin-top:2px;font-family:var(--mono);font-size:11.5px;
+  white-space:nowrap;overflow:hidden}
+.cgnode .cgm .chg{font-weight:700;font-size:12.5px}
+.cgnode .cgm .sh{color:var(--ink-3)}
+/* 標籤式個股：Default 只列代號，點節點才展開成完整清單 */
+.cgnode .cgtags{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px}
+.cgnode .cgtags a.lk,.cgnode .cgtags .cgmore{font-family:var(--mono);font-size:11px;line-height:1.5;
+  padding:0 4px;border-radius:5px;background:var(--cg-tag);border:1px solid var(--cg-tagline);
+  color:var(--ink-2);white-space:nowrap}
+.cgnode .cgtags a.lk .code{font-size:11px;color:inherit}
+.cgnode .cgtags a.lk .nm{display:inline-block;max-width:66px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;vertical-align:bottom}
+.cgnode .cgtags a.lk:hover{color:var(--ink);border-color:var(--c)}
+.cgnode .cgtags .cgmore{cursor:pointer;color:var(--ink-3)}
+/* 展開之後長出來的個股子節點（「原地展開」模式） */
+.cgnode.cgsub{padding:3px 7px 4px;border-radius:var(--cg-subr,9px)}
+.cgnode.cgsub .cgt a.lk{font-size:12px;font-weight:600}
+.cgnode.cgsub .cgm{font-size:11px;margin-top:1px}
+/* 連線 */
+.cgedges path{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.5);
+  stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
+.cgedges path.weak{stroke-dasharray:3 5;stroke-opacity:calc(var(--cg-edge-op,.5) * .55)}
+.cgedges path.hi{stroke:var(--c,var(--cyan));stroke-opacity:.95;stroke-width:calc(var(--w,1.2) + 1.2)}
+.cgedges path.dim{stroke-opacity:.07}
+.cgedges circle{fill:var(--cg-end,var(--cg-edge));opacity:var(--cg-end-op,0)}
+.cgedges .tip{fill:var(--cg-edge);opacity:var(--cg-edge-op,.5)}
+/* 選起來的節點旁邊那張「它連到誰、為什麼」的小卡。
+   position:absolute 掛在 .cgraph（不是 stage）上 —— 縮放時卡片的字不跟著縮，
+   永遠是可讀的 13px；它只要「停在節點旁邊」，不必跟著一起放大。*/
+.cgnote{position:absolute;z-index:6;width:min(300px,calc(100% - 20px));max-height:calc(100% - 20px);
+  overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
+  padding:9px 11px 10px;box-shadow:0 14px 34px -18px var(--drop);font-size:12.5px;line-height:1.6}
+.cgnote[hidden]{display:none}
+.cgnote .nh{display:flex;align-items:baseline;gap:6px;margin-bottom:4px}
+.cgnote .nh b{font-size:14px;color:var(--ink)}
+.cgnote .nh .x{margin-left:auto;cursor:pointer;color:var(--ink-3);border:0;background:none;font-size:15px;line-height:1}
+.cgnote .rl{margin-top:5px;color:var(--ink-2)}
+.cgnote .rl .lb{color:var(--ink-3);font-size:11.5px}
+.cgnote .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.cgnote .src{font-size:11.5px;color:var(--ink-3);margin-top:6px}
+.cgnote .empty{color:var(--ink-3)}
+
+/* ---------------- 四種風格 ----------------
+   ⚠ 這裡有一條 CSS 的規則一定要記住，不記住就會重踩：
+     **自訂屬性的值裡寫 `var(--c)`，是在「宣告它的那個元素」上求值，不是在用它的地方。**
+     原本把 `--cg-node:color-mix(in srgb,var(--c) 42%,#fff)` 宣告在 `.cgraph` 上，
+     而 `--c`（族群色）是寫在 `.cgnode` 的行內樣式 —— `.cgraph` 上根本沒有 `--c`，
+     整個值變成 guaranteed-invalid，`background` 退回透明：
+     泡泡風格的節點於是全部是白的，**顏色一顆都沒有出現**（第五版截圖踩到，
+     而且它「看起來只是淡了一點」，很容易被當成設計而放過去）。
+   所以凡是要吃 `--c` 的，一律寫成 `.cgraph[data-cgstyle=…] .cgnode{…}` 這種
+   直接掛在節點上的規則；`.cgraph` 上只放「跟族群色無關」的 token。*/
+/* ① 科技：深底、圓角方塊、細直線、發光端點、等寬字 */
+.cgraph[data-cgstyle="tech"]{
+  --cg-bg:radial-gradient(120% 90% at 50% 0%,#132038 0%,#0a1020 62%,#070b16 100%);
+  --cg-node:rgba(20,30,54,.88); --cg-nline:var(--line-2); --cg-r:11px; --cg-subr:8px;
+  --cg-tag:rgba(62,224,255,.08); --cg-tagline:rgba(62,224,255,.22);
+  --cg-edge:#3ee0ff; --cg-edge-op:.34; --cg-end:#3ee0ff; --cg-end-op:.85;}
+.cgraph[data-cgstyle="tech"] .cgnode .cgt a.lk i{box-shadow:0 0 7px var(--c)}
+.cgraph[data-cgstyle="tech"] .cgnode:hover{box-shadow:0 0 0 1px var(--c),0 0 18px -4px var(--c)}
+.cgraph[data-cgstyle="tech"] .cgnode.sel{box-shadow:0 0 0 1.5px var(--c),0 0 26px -4px var(--c)}
+/* ② 電路：直角走線（像 PCB）、方形焊盤、轉角圓點、金屬色 */
+.cgraph[data-cgstyle="circuit"]{
+  --cg-bg:linear-gradient(0deg,#08130f 0%,#0b1a14 100%);
+  --cg-node:rgba(12,32,24,.92); --cg-nline:#2f6b4e; --cg-r:3px; --cg-subr:2px;
+  --cg-tag:rgba(212,175,95,.09); --cg-tagline:rgba(212,175,95,.3);
+  --cg-edge:#d4af5f; --cg-edge-op:.58; --cg-end:#d4af5f; --cg-end-op:1;}
+.cgraph[data-cgstyle="circuit"] .cgnode{border-width:1.5px}
+.cgraph[data-cgstyle="circuit"] .cgnode .cgt a.lk i{border-radius:1px}
+.cgraph[data-cgstyle="circuit"] .cgnode:hover{box-shadow:0 0 0 1px var(--c)}
+.cgraph[data-cgstyle="circuit"] .cgnode.sel{box-shadow:0 0 0 2px var(--c)}
+/* ③ 星際：深藍黑底、發光「星球」（大小差距刻意拉大）、星塵般的淡連線 */
+.cgraph[data-cgstyle="space"]{
+  --cg-bg:radial-gradient(90% 70% at 30% 18%,#1a2350 0%,#0a0f28 55%,#05060f 100%);
+  --cg-node:rgba(18,24,58,.72); --cg-nline:rgba(150,170,255,.3); --cg-r:999px; --cg-subr:999px;
+  --cg-tag:rgba(160,180,255,.1); --cg-tagline:rgba(160,180,255,.22);
+  --cg-edge:#a9b6d6; --cg-edge-op:.2; --cg-end:#e8eeff; --cg-end-op:.5;}
+.cgraph[data-cgstyle="space"] .cgnode{padding:10px 18px 11px;text-align:center;
+  background:radial-gradient(120% 120% at 32% 22%,color-mix(in srgb,var(--c) 34%,transparent) 0%,rgba(18,24,58,.86) 62%)}
+.cgraph[data-cgstyle="space"] .cgnode .cgt a.lk i{box-shadow:0 0 12px var(--c),0 0 26px var(--c)}
+.cgraph[data-cgstyle="space"] .cgnode:hover{box-shadow:0 0 26px -2px var(--c)}
+.cgraph[data-cgstyle="space"] .cgnode.sel{box-shadow:0 0 0 1px var(--c),0 0 40px -4px var(--c)}
+.cgraph[data-cgstyle="space"] .cgnode .cgt,
+.cgraph[data-cgstyle="space"] .cgnode .cgm,
+.cgraph[data-cgstyle="space"] .cgnode .cgtags{justify-content:center}
+/* ④ 泡泡：淺底、半透明彩色泡泡、柔和陰影與高光、細柔曲線 */
+.cgraph[data-cgstyle="bubble"]{
+  --cg-bg:radial-gradient(110% 85% at 50% 0%,#f7fbff 0%,#e7eefb 60%,#dbe5f6 100%);
+  --cg-node:#ffffff; --cg-nline:#c8d4e8; --cg-r:999px; --cg-subr:999px;
+  --cg-tag:rgba(255,255,255,.72); --cg-tagline:rgba(255,255,255,.9);
+  --cg-edge:#7d8aa8; --cg-edge-op:.34; --cg-end:#ffffff; --cg-end-op:0;}
+.cgraph[data-cgstyle="bubble"] .cgnode{padding:8px 16px 9px;
+  background:radial-gradient(130% 120% at 30% 18%,#ffffff 0%,color-mix(in srgb,var(--c) 30%,#ffffff) 56%,color-mix(in srgb,var(--c) 50%,#ffffff) 100%);
+  border-color:color-mix(in srgb,var(--c) 64%,#ffffff);
+  box-shadow:0 8px 20px -9px rgba(15,24,48,.5),inset 0 2px 6px rgba(255,255,255,.95),inset 0 -8px 16px -10px rgba(15,24,48,.3)}
+.cgraph[data-cgstyle="bubble"] .cgnode:hover{box-shadow:0 10px 24px -9px rgba(15,24,48,.55)}
+.cgraph[data-cgstyle="bubble"] .cgnode.sel{box-shadow:0 0 0 2px var(--c),0 10px 24px -9px rgba(15,24,48,.5)}
+.cgraph[data-cgstyle="bubble"] .cgnode .cgtags a.lk,
+.cgraph[data-cgstyle="bubble"] .cgnode .cgtags .cgmore{border-color:rgba(255,255,255,.9)}
+/* 泡泡是**固定的淺底**（四種風格裡唯一一個亮底），所以深色主題下要把字改成深色，
+   否則 --ink 是接近白的，泡泡上等於看不見。這不是「寫死顏色」——
+   底色是這個風格自己定義的，字色就得跟著它的底走，不能跟著全站主題走。*/
+.cgraph[data-cgstyle="bubble"] .cgnode,
+.cgraph[data-cgstyle="bubble"] .cgnode .cgt a.lk{color:#16203a}
+.cgraph[data-cgstyle="bubble"] .cgnode .cgm .sh,
+.cgraph[data-cgstyle="bubble"] .cgnode .cgtags a.lk,
+.cgraph[data-cgstyle="bubble"] .cgnode .cgtags .cgmore{color:#3f4e6d}
+.cgraph[data-cgstyle="bubble"] .cgnode .cgm .chg.up{color:#dc2440}
+.cgraph[data-cgstyle="bubble"] .cgnode .cgm .chg.down{color:#0a9b6a}
+/* 淺色主題：科技／電路／星際三個深底風格**刻意維持深底**（它們的名字就是深底的意思，
+   而且 .chainmap 本來就是兩個主題都深底 —— DECISIONS #239 第一節末尾），
+   只有邊框與連線的不透明度往上調，讓它在明亮環境下仍然分得出層次。*/
+:root[data-theme="light"] .cgraph[data-cgstyle="tech"]{--cg-edge-op:.44}
+:root[data-theme="light"] .cgraph[data-cgstyle="circuit"]{--cg-edge-op:.66}
+:root[data-theme="light"] .cgraph[data-cgstyle="space"]{--cg-edge-op:.28}
+:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#5b6880;--cg-edge-op:.42}
+/* 手機：節點窄一點但字**不得小於 11px**；圖高一點，因為一欄只排得下兩顆 */
+@media (max-width:560px){
+  .cgraph{height:clamp(420px,72vh,600px)}
+  .cgnode .cgt a.lk{font-size:13px}
+  .cgnode .cgm{font-size:11.5px} .cgnode .cgm .chg{font-size:12px}
+  .cgnote{width:min(260px,calc(100% - 16px));font-size:12.5px}
+}
 </style>
 </head>
 <body>
