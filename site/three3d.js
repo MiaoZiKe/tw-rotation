@@ -1685,8 +1685,10 @@
        ★ 3D 這一側**沒有第二份色值** —— 零件的材質色是從 :root[data-dgpal="casual"] 的
        `--dg-*` 讀進來的（K.css），跟 2D 剖析圖同一份定義；這裡只有背景／混色／打光，
        那些本來就是 3D 才有的東西。原本三個配色一個值都沒動。*/
-    const PALS = ['tech', 'soft', 'calm', 'casual'];
-    const PAL_NAME = { tech: '科技', soft: '柔和', calm: '沉穩', casual: '休閒' };
+    /* 2026-09-22（art-director）：四個配色收斂成兩種模式 —— 科技／閱讀（docs/diagram_specs/_STYLE.md）。
+       這裡只認名字；背景、混色、打光、發光的值在 index.html 的 .dg3d[data-pal="read"]，材質色在 :root[data-dgpal="read"]。*/
+    const PALS = ['tech', 'read'];
+    const PAL_NAME = { tech: '科技', read: '閱讀' };
     const origCol = new Map();          // 零件的「原色」，換色票一律從這裡重算，不要疊加
     let pal = 'tech';
     /* 這兩支刻意寫成 function 宣告（會被提升）—— setAnim() 在色票區塊「之前」就會被呼叫一次，

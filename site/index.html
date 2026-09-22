@@ -53,8 +53,8 @@
      art-director 2026-09-21 裁定的名單（AGENTS §15：這一組由它擁有，
      **JS 不准再寫死 #xxxxxx**）。先做「同值搬家」—— 值跟搬家之前一模一樣，
      只是換了來源，所以外觀零變化，但之後 14 張圖只要改這裡一處。
-     兩種主題共用同一組：--illus 在深色與淺色下都是深底（既有決策），
-     所以剖析圖的對比在兩個主題下本來就一樣。*/
+     ★ 2026-09-22 起這一組是「科技」模式的值；「閱讀」模式（淺色主題的預設）在下面
+     :root[data-dgpal="read"] 整組覆寫 —— 剖析圖的畫布不再恆為深底。*/
     /* ★ 2026-09-22：`site/diagrams.js` 的六條漸層原本把 18 個色值**寫死在 stop-color 上**，
        所以換配色時它們一個都不會變 —— 淺底配色上會留下三塊深底時代的冷灰端子面。
        那是 DECISIONS #198 那個病，只是這次發生在漸層的 <stop> 上。
@@ -123,6 +123,45 @@
   --dg-accent-2d:#3ee0ff;               /* 「不屬於任何零件」的強調色（流程箭頭、良率曲線、電荷） */
   --dg-frame-f:rgba(18,26,46,.5);       /* 說明框的底 */
   --dg-frame-s:rgba(120,150,210,.2);    /* 說明框的線 */
+  /* ================ 風格系統的共用元件 token（art-director 2026-09-22，Andy 拍板兩種模式：科技／閱讀）================
+     規格在 docs/diagram_specs/_STYLE.md、介面在 docs/diagram_restyle_plan.md。
+     這裡只放「共用元件」要吃的：卡片、編號圓點、引線與端點、流動線、元件語意色三組、環節色降飽和、題材圖。
+     科技（tech）＝ 這裡的值；閱讀（read）在下面 :root[data-dgpal="read"] 整組覆寫。 */
+  --dg-card-f:rgba(14,20,36,.66);       /* 說明卡片的底：半透明深色 HUD（HTML 卡片再加 --dg-card-blur 就是磨砂玻璃） */
+  --dg-card-s:rgba(120,150,210,.28);    /* 卡片邊框那條細線 */
+  --dg-card-r:8px;                      /* 卡片圓角 */
+  --dg-card-sh:none;                    /* 卡片落影：閱讀模式才有（環境光遮蔽感），科技不用 */
+  --dg-card-blur:blur(8px) saturate(1.15); /* 磨砂玻璃。只有 HTML 卡片（.lbl3d、零件小卡）吃得到：
+                                              backdrop-filter 對 SVG 元素無效，SVG 卡片退回半透明實色 */
+  --dg-card-box-sh:0 2px 10px rgba(0,0,0,.22);   /* HTML 卡片的 box-shadow */
+  --dg-card-glow-r:6px;                 /* 被點的那一張卡的光暈半徑（科技）；閱讀模式改用 --dg-card-sh */
+  --dg-no-r:9.5px;                      /* 編號圓點半徑（要放得下兩位數的 12px 數字） */
+  --dg-no-ink:#061018;                  /* 編號圓點裡的數字：印在元件色上，深色才讀得到 */
+  --dg-lead-w:1;                        /* 引線粗細（科技 1px；閱讀 .9px 深灰，見 --dg-lead） */
+  --dg-lead-sel-w:1.6;                  /* 被選到時的引線粗細 */
+  --dg-node-r:2.8px;                    /* 引線端點的小圓半徑 */
+  --dg-node-glow:3px;                   /* 端點光暈半徑（科技）；閱讀 0 ＝ 只留實心圓點 */
+  --dg-flow-dot:#ffffff;                /* 流程列上跑的那顆光點 */
+  --dg-flow-w:2;                        /* 流動虛線的粗細 */
+  --dg-hero-sh:none;                    /* 主角零件的環境光落影（閱讀才有） */
+  /* 元件語意色三組（Andy 2026-09-22 補的 3D 指示；2D 用同一組）：
+     訊號＝藍（電）、電力＝橘（功率）、液冷＝青綠（水）。跟台股紅漲綠跌刻意錯開：
+     青綠 175° vs 跌的綠 #2ee59d 156°；橘 28° vs 漲的紅 #ff4d6d 349°。
+     對比要求：當卡片文字 ≥ 4.5、當圖形 ≥ 3（_uitest 批次22 逐個量）。*/
+  --dg-sig:#3ee0ff;  --dg-pwr:#ff9d4d;  --dg-cool:#35d9c9;
+  /* 環節色降飽和：diagrams.js 的 STYLE 用 --cc（＝ --c 往 --dg-seg-mix 混 (100%－k)）當畫面上的環節色。
+     深色＋科技 ＝ 原色（k 100%）；其餘三種組合的 k／mix 在下面的 [data-dgpal] 區塊。*/
+  --dg-seg-k:100%; --dg-seg-mix:#000000;
+  /* 題材圖（.dg3）的帶、站點、晶片、彩帶：以前寫死在 diagrams.js 的 STYLE 裡，值逐字搬過來 */
+  --dg-band-f:rgba(30,42,72,.5);  --dg-band-s:rgba(120,150,210,.18);
+  --dg-b0-f:rgba(62,224,255,.10); --dg-b0-s:rgba(62,224,255,.28); --dg-b0-ink:#9fe6ff;
+  --dg-b1-f:rgba(139,123,255,.10); --dg-b1-s:rgba(139,123,255,.3); --dg-b1-ink:#c3baff;
+  --dg-b2-f:rgba(255,180,84,.10); --dg-b2-s:rgba(255,180,84,.28); --dg-b2-ink:#ffd79a;
+  --dg-slot-f:rgba(18,26,46,.55); --dg-slot-f2:rgba(18,26,46,.7); --dg-slot-s:rgba(120,150,210,.12);
+  --dg-drop:rgba(0,0,0,.34);
+  --dg-rib-bg:rgba(120,150,210,.13); --dg-rib-flow:rgba(62,224,255,.5);
+  --dg-chip-f:rgba(15,23,43,.9); --dg-chip-ink:#d6e2ff;
+  --dg-num-mix:#0b1226;
   /* ================ 各張剖析圖的材質色（2026-09-21 深夜：從九個檔的 scoped <style> 收進來）================
      搬家之前這些 token 住在 `site/dg/*.js` 各自的 `<style>` 裡（`.dgabf` / `.dgcool` /
      `.dgair` / `.dg.psu` / `.dgpcb` / `.dgpn` / `.dgsw`）。當時不准動 index.html，
@@ -195,9 +234,9 @@
   --dg-pn-line:rgba(255,255,255,.34);                 /* 表面紋理（稜線、偏光紋、格柵） */
   --dg-pn-line2:rgba(10,16,32,.42);                   /* 深色分層線 */
   /* 交換器／無線 .dgsw ★ 四個全是語意色（電／光／電源／接點），配色不准蓋 */
-  --dg-sw-sig:#3ee0ff;     /* 高速電訊號（差動對、SerDes 通道）—— 冷色＝電 */
+  --dg-sw-sig:var(--dg-sig);   /* 高速電訊號（差動對、SerDes 通道）—— 冷色＝電。別名：值就是 --dg-sig */
   --dg-sw-fiber:#f2c14e;   /* 光纖與光訊號 —— 暖黃，一眼跟「電」分得開 */
-  --dg-sw-pwr:#ff9d4d;     /* 供電（PSU → VRM → ASIC）—— 橘，而且線一定畫得比訊號粗 */
+  --dg-sw-pwr:var(--dg-pwr);   /* 供電（PSU → VRM → ASIC）—— 橘，而且線一定畫得比訊號粗。別名：值就是 --dg-pwr */
   --dg-sw-gold:#d9a441;    /* 金手指／電接點 —— 比 --dg-cu 的銅更黃，不會跟銅層混 */
   /* 伺服器電源 .dg.psu —— 全部是既有 token 的 color-mix，所以配色一換它們自己會跟著換 */
   --dg-psu-ac:color-mix(in srgb,var(--dg-cu) 82%,var(--dg-cover));      /* 交流側 */
@@ -230,90 +269,110 @@
   --drop:rgba(15,24,48,.18);
   --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
 }
-/* ================ 剖析圖的四個配色（art-director 2026-09-21 深夜）================
-   Andy：「幫我圖片色系色調多個休閒風格，更平易近人」＋「2D3D 都需要新增那樣的風格」。
+/* ================ 剖析圖的兩種模式（art-director 2026-09-22，Andy 拍板）================
+   Andy 給了兩張參考圖：亮色系「閱讀」（暖白紙底、低飽和粉彩、深灰細引線、白色圓角卡片）
+   與暗色系「科技」（深藍炭底、霓虹點綴、半透明 HUD 卡片、細引線＋發光小節點）。
+   完整規格在 docs/diagram_specs/_STYLE.md；這裡是它的落地。
 
-   掛在 `<html data-dgpal="…">`，所以 **2D 與 3D 讀的是同一份定義**：
-     · 2D 剖析圖（SVG）直接用 `var(--dg-*)` 上色
-     · 3D（`site/three3d.js`）的 `K.css('--dg-cer')`／`palNum('--dg-sat')` 也是讀同一組變數
-   —— 這就是「不准兩份硬編碼」那條的實作：休閒在 2D 偏暖，3D 一定也偏暖。
+   掛在 `<html data-dgpal="tech|read">`，**2D 的 SVG 與 3D 的 three3d.js 讀的是同一份定義**
+   （`K.css('--dg-cer')`／`palNum('--dg-sat')` 讀的就是這組變數）。
+   預設跟著全站主題走：深色主題 → 科技、淺色主題 → 閱讀；`#dgPal` 那顆鈕可以手動切、切了會記住。
+   ⚠ 這改掉了「剖析圖畫布恆為深底」的既有決策（DECISIONS #124／#230）：淺色主題下畫布是暖白。
+     `--illus` 本身沒動（產業關聯圖 .chainmap 仍是深底，它有自己的一組對比校準）。
 
-   四個配色：科技（預設）／柔和／沉穩／休閒。
-     tech   ＝ **一個值都不覆寫**。這是刻意的：預設配色必須跟這批改動之前一模一樣，
-              不然「新增一個配色」會變成「順手把大家看習慣的那張圖改掉」。
-     soft   ＝ 柔和：底亮一階、零發光、青色去飽和。
-     calm   ＝ 沉穩：中性暗灰底、琥珀強調（跟 3D 的 --dg-mix #c9973f 同一個琥珀）。
-     casual ＝ 休閒：暖炭底、暖灰材質、琥珀強調、零發光。
+   2026-09-21 的柔和／沉穩／休閒三個配色**已移除**（Andy 2026-09-22 改口只要這兩套）。
+   localStorage 裡留著舊值的人：industry.js 的 palPref() 會把它清掉、退回「跟主題走」——
+   深色主題下就是科技（＝他們以前的預設），不會看到破圖。
 
-   ★ 為什麼休閒不是「換成白底」
-     「平易近人」直覺上會想到淺底，但 11 張剖析圖的材質色（陶瓷 #d3cbb7、錫 #e2e7ec、
-     反射片 #eef1f7…）全部是**為深底調的亮色**，換白底會整片消失 ——
-     那正是 DECISIONS #198 記的「淺色主題一堆白字白線」同一個坑。
-     所以休閒走的是**色相轉暖 ＋ 降低螢光感 ＋ 圓潤的中明度**，不是換底色明暗。
-
-   ★ 語意色在任何配色下都不覆寫（AGENTS 的紅線）
-     `--dg-err`（裂紋）／`--dg-warn`（警語）／`--dg-cold`／`--dg-hot`（冷熱側）／
-     `--dg-sw-sig`／`--dg-sw-fiber`／`--dg-sw-pwr`（電／光／電源）／`--dg-pn-r|g|b`（色阻）
-     —— 下面四個區塊裡一個都沒有出現，就是這個意思。
-     它們也刻意避開台股的紅漲綠跌：三個配色的強調色分別是青、琥珀、琥珀，沒有紅也沒有綠。 */
-:root[data-dgpal="soft"]{
-  --dg-bg:#141a28;                      /* 比 #0a1020 亮一階，仍是深底（材質對比守得住） */
-  --dg-accent-2d:#7fc7dd;               /* 去飽和的青：從 S100 降到 S42 */
-  --dg-ink-2:#b6c2dd; --dg-ink-3:#9fb0cf;  /* 底變亮 → 文字跟著提亮一階，對比不掉 */
-  --dg-frame-f:rgba(255,255,255,.05); --dg-frame-s:rgba(180,200,235,.22);
-  --dg-glow:none;                       /* 柔和＝不發光（跟 3D 的 --dg-led:0 同一個意思） */
-  --dg-mute:#8794ab;
-  --dg-sh0:#141a28; --dg-sh1:#161d2e; --dg-sh2:#121826; --dg-sh3:#0e1320;
-  --dg-step-f:#192134; --dg-part-mix:#36435f; --dg-line-mix:#2b364d;
+   ★ tech ＝ **:root 的預設值，一個都不覆寫** —— 科技模式必須跟改動之前的畫面同一張。
+   ★ 語意色的規矩改成：**色相不准動，明度可以依底色重算**。
+     以前那條「任何配色下都不覆寫」是在四個配色全部深底時寫的；
+     #ff4d6d 印在 #f4f3ef 上只有 3.0:1、#ff8fab 只有 2.0:1，「這是警告」在亮底上根本讀不出來。
+     驗收改成量對比（_uitest 批次22）：語意色對底 ≥ 3、當文字用時 ≥ 4.5，而且色相跟科技的同一個 token 差 < 15°。
+   ★ 紅漲綠跌不撞：閱讀的主色是霧青 #1d6f79（色相 186°），跌的綠是 #077a51（157°）、漲的紅 #cf1f3a（350°）。 */
+:root[data-dgpal="read"]{
+  /* ---- 底與三階文字 ---- */
+  --dg-bg:#f4f3ef;                      /* 暖白紙底（Andy 給的 #F4F3EF）；淺色主題的面板是 #fff，畫布比面板暖一階才看得出是一張圖 */
+  --dg-ink:#1f1d19; --dg-ink-2:#3e3a33; --dg-ink-3:#5f5a51;   /* 對 #f4f3ef：15.6／10.0／6.5:1 */
+  --dg-mute:#8f897e;                    /* 附註級圖形（3.2:1，只給圖形不給字） */
+  --dg-accent-2d:#1d6f79;               /* 一張圖唯一的主色：霧青。對底 5.3:1 */
+  --dg-glow:none; --dg-part-r:0px; --dg-card-glow-r:0px; --dg-node-glow:0px;   /* 閱讀＝完全不發光 */
+  --dg-hair-w:1.4;                      /* 深灰細虛線在亮底上 1.4 就看得見（科技要 2） */
+  --dg-fs-ttl:19px; --dg-fs-hd:15px; --dg-fs-lbl:14px; --dg-fs-min:13px;   /* 字級整組升一階：正文 13px 起 */
+  /* ---- 卡片／引線／流動（共用元件吃的） ---- */
+  --dg-card-f:rgba(255,255,255,.80); --dg-card-s:rgba(58,53,45,.22); --dg-card-r:10px;
+  --dg-card-sh:drop-shadow(0 1px 2px rgba(40,35,25,.16));   /* 柔和的環境光遮蔽感 */
+  --dg-card-blur:blur(10px);            /* HTML 卡片的磨砂玻璃：霧面白 */
+  --dg-card-box-sh:0 1px 3px rgba(40,35,25,.14);
+  --dg-no-ink:#1f1d19;                  /* 編號數字：閱讀模式的圓點是粉彩底＋色環，數字用深灰（白字印在壓深過的粉彩上只有 4.05:1） */
+  --dg-lead:#6b665d; --dg-lead-w:.9; --dg-lead-sel-w:1.5;   /* 深灰細引線 */
+  --dg-flow-dot:#1d6f79; --dg-flow-w:1.6;
+  --dg-hero-sh:drop-shadow(0 6px 10px rgba(40,35,25,.18));
+  --dg-frame-f:rgba(255,255,255,.55); --dg-frame-s:rgba(58,53,45,.18);
+  --dg-step-f:rgba(255,255,255,.80);
+  /* ---- 語意色：色相不動、明度壓到亮底讀得到（數字見 _STYLE.md 的對比表） ---- */
+  --dg-err:#b3122a; --dg-warn:#a5334c;
+  --dg-sig:#1f5fa6; --dg-pwr:#b4550e; --dg-cool:#0f7d74;
+  --dg-cold:#2b73a8; --dg-cold-2:#1c4f75; --dg-hot:#c1531c; --dg-hot-2:#8a3a12;
+  --dg-sw-fiber:#9a7300; --dg-sw-gold:#a87f2a;
+  --dg-pn-r:#c9353f; --dg-pn-g:#2e8f52; --dg-pn-b:#3a67c4;
+  --dg-ag-cool:#2b73a8; --dg-ag-cool-2:#c1531c;
+  /* ---- 環節色降飽和：--c 往深暖灰混 42%，螢光組才不會在紙底上刺眼（淺色主題下另有一組，見下面） ---- */
+  --dg-seg-k:58%; --dg-seg-mix:#4a463f;
+  /* ---- 等角零件的三個面往哪裡混：頂面往亮、右面往中灰、左面往深灰 ＝ 粉彩但仍看得出立體 ---- */
+  --dg-sh0:#6d685f; --dg-sh1:#e9e6df; --dg-sh2:#b9b4aa; --dg-sh3:#8f8a80;
+  --dg-part-mix:#3d3934;                /* 零件描邊往深灰混：亮底上沒有描邊的色塊會糊成一片 */
+  --dg-line-mix:#6b665d; --dg-iso-c:#6b86a8;
+  --dg-grd:rgba(58,53,45,.10); --dg-axis:rgba(58,53,45,.28);
+  --dg-chg-a:.10;
+  /* ---- 材質族（低飽和粉彩；名字與科技那組一一對應，值全部為亮底重調） ----
+     陶瓷＝暖米、金屬＝冷灰、銅＝赤陶、PCB＝鼠尾草綠、玻璃＝霧藍、塑膠＝暖灰、液體＝霧藍。 */
+  --dg-cer:#d8cfb6; --dg-cer-2:#c6bca1; --dg-cer-cut:#bfb59c; --dg-cer-cut-2:#a89e85;
+  --dg-cover:#e6dfcb; --dg-cover-2:#d6cdb6;
+  --dg-cer-sh:#a89f8c; --dg-cer-sh-2:#8f8674; --dg-cer-cutb:#b3a992; --dg-cer-cutb-2:#9d9279;
+  --dg-cover-b:#d2cab4; --dg-cover-b-2:#c1b8a2;
+  --dg-el:#5b5852;                      /* 內電極：深暖灰，在陶瓷上一眼分得出 */
+  --dg-sn:#cdd3d8; --dg-ni:#a2aab2;
+  --dg-met-t:#c4cbd1; --dg-met-t-2:#a6aeb5; --dg-met-r:#a8b0b7; --dg-met-r-2:#868e96; --dg-met-l:#a3abb2; --dg-met-l-2:#7f878e;
+  --dg-steel:#a9b3bd; --dg-steel-2:#7d8791; --dg-alu:#b5c0cc; --dg-alu-2:#8c98a6; --dg-alu-3:#717d8a;
+  --dg-metal-2:#8f979f; --dg-hub-lit:#98a4b5; --dg-hub-dim:#6a7688;
+  --dg-cu:#b5764a; --dg-cu-lit:#c98d5f; --dg-cu-dim:#9a5f34; --dg-cu-cut:#8a5525;
+  --dg-au:#d1a24a; --dg-oil:#c19a3e; --dg-uf:#c99a5d;
+  --dg-resin:#7d7568; --dg-emc:#5a5960; --dg-plug:#8a7d64; --dg-wick:#9a7550;
+  --dg-pcb:#4f7a5c; --dg-pcb-2:#416a4e; --dg-sub-2:#416a4e; --dg-pcb-core:#5f7359; --dg-core:#66754f; --dg-core-2:#536242;
+  --dg-pp:#a09a72; --dg-yarn:#c9c19c; --dg-weave:#8d9b6e; --dg-abf:#cfc6b1; --dg-abf-2:#aba28d;
+  --dg-sr:#3f8aa3; --dg-sr-2:#2f6e84; --dg-glass:#9fc3d6;
+  --dg-ag-pcb:#5b8468; --dg-ag-pcb-2:#4a7057; --dg-ag-ccl:#52785b; --dg-ag-ccl-2:#43654b;
+  --dg-si:#6b7fb5; --dg-si-2:#4f62a0; --dg-die:#5f6c8f;
+  --dg-organic:#a07a49; --dg-organic-2:#7f5f34;
+  --dg-tim:#b59fb0; --dg-mag:#7a6a99;
+  --dg-fws:#7f8a9c; --dg-fws-2:#5d6679; --dg-vap:#dfe4ea;
+  --dg-void:#e8e5dd; --dg-frame:#e6e2d9; --dg-edge:#4a463f;
+  /* 面板疊層那一組（--dg-pn-*）：反射片不能是純白（跟紙底同色就消失了） */
+  --dg-pn-bezel:#6b6f76; --dg-pn-bezel-d:#555960; --dg-pn-refl:#e6e8ec; --dg-pn-refl-d:#c2c7d0;
+  --dg-pn-lgp:#b7d3e4; --dg-pn-lgp-d:#8db0c8; --dg-pn-led:#f0cf74; --dg-pn-led-d:#c9aa4f;
+  --dg-pn-diff:#dbe1e8; --dg-pn-diff-d:#adb7c3; --dg-pn-bef:#c3d1df; --dg-pn-bef-d:#97a7ba;
+  --dg-pn-pol:#6e7789; --dg-pn-pol-d:#525a6b; --dg-pn-glass:#a7cfe2; --dg-pn-glass-d:#74a2ba;
+  --dg-pn-tft:#98a4b6; --dg-pn-tft-d:#6d798c; --dg-pn-lc:#7581ae; --dg-pn-lc-d:#5a6592; --dg-pn-rod:#7d67c7;
+  --dg-pn-cf:#4a5060; --dg-pn-cf-d:#383d4a; --dg-pn-bm:#2a2e38; --dg-pn-ic:#3a3f4a; --dg-pn-ic-d:#2b2f38;
+  --dg-pn-cof:#b98c2c; --dg-pn-cof-d:#8f6a1f; --dg-pn-pad:#c8a44e; --dg-pn-org:#7d67c7;
+  --dg-pn-line:rgba(58,53,45,.26); --dg-pn-line2:rgba(10,16,32,.36);
+  /* ---- 題材圖（.dg3）的帶、站點、晶片、彩帶 ---- */
+  --dg-band-f:rgba(255,255,255,.5); --dg-band-s:rgba(58,53,45,.18);
+  --dg-b0-f:rgba(29,111,121,.08); --dg-b0-s:rgba(29,111,121,.3); --dg-b0-ink:#1d6f79;
+  --dg-b1-f:rgba(95,77,219,.07); --dg-b1-s:rgba(95,77,219,.28); --dg-b1-ink:#4b3fb3;
+  --dg-b2-f:rgba(176,106,0,.08); --dg-b2-s:rgba(176,106,0,.3); --dg-b2-ink:#8a5300;
+  --dg-slot-f:rgba(255,255,255,.6); --dg-slot-f2:rgba(255,255,255,.82); --dg-slot-s:rgba(58,53,45,.15);
+  --dg-drop:rgba(40,35,25,.18);
+  --dg-rib-bg:rgba(58,53,45,.12); --dg-rib-flow:rgba(29,111,121,.55);
+  --dg-chip-f:rgba(255,255,255,.85); --dg-chip-ink:#1f1d19;
+  --dg-num-mix:#ffffff;
 }
-:root[data-dgpal="calm"]{
-  --dg-bg:#16181c;                      /* 中性暗灰，不帶藍 */
-  --dg-accent-2d:#c9973f;               /* 跟 3D calm 的 --dg-mix 同一個琥珀 */
-  --dg-ink:#e9e6df; --dg-ink-2:#b3afa6; --dg-ink-3:#8d8a83;
-  --dg-frame-f:rgba(255,255,255,.04); --dg-frame-s:rgba(200,195,185,.2);
-  --dg-glow:none;
-  --dg-mute:#77736c;
-  --dg-el:#4a4d52; --dg-fws:#94918a; --dg-fws-2:#65635d;
-  --dg-alu:#a8a49c; --dg-alu-2:#7d7a73; --dg-alu-3:#64615b;
-  --dg-steel:#a09c94; --dg-steel-2:#726f69; --dg-void:#101114; --dg-frame:#1f2125;
-  --dg-sh0:#17191d; --dg-sh1:#191b20; --dg-sh2:#131519; --dg-sh3:#0e1013;
-  --dg-step-f:#1e2126; --dg-part-mix:#3a3d43; --dg-line-mix:#2e3137;
-  --dg-iso-c:#8a7a5e; --dg-grd:rgba(200,195,185,.12); --dg-axis:rgba(200,195,185,.26);
-}
-:root[data-dgpal="casual"]{
-  --dg-bg:#2b2622;                      /* 暖炭：色相 30°（現況 #0a1020 是 225°），一眼就不是深夜實驗室 */
-  --dg-accent-2d:#e0a24a;               /* 琥珀。飽和度 67% ／ 亮度 88%，對照 #3ee0ff 的 100%／100% */
-  /* 暖白三階。★ ink-3 是 2026-09-21 深夜量出來改的：本來是 #bfae99，
-     跟 --dg-warn（#ff8fab）的色差只有 73 —— 警語跟一般說明文字在暖底上太接近，
-     「這一句是警告」就讀不出來了。改成 #a99f92 之後色差 95，對背景仍有 5.7:1。*/
-  --dg-ink:#fdf7ee; --dg-ink-2:#e2d5c4; --dg-ink-3:#a99f92;
-  --dg-frame-f:rgba(255,246,235,.05); --dg-frame-s:rgba(225,200,165,.28);
-  --dg-glow:none;                       /* 休閒＝完全不發光。「平易近人」跟「電競 RGB」是相反的兩件事 */
-  --dg-part-r:8px;                      /* 主角的暈開半徑收一階（發光關掉之後它只影響 3D 那邊的一致感） */
-  --dg-mute:#9b8d7c;
-  /* 材質：只把**冷藍**的那幾個轉暖，本來就暖的（陶瓷 #d3cbb7、保護層、銅、金）一個都不動 */
-  --dg-el:#5d5348;                      /* 內電極：冷鋼灰 → 暖炭灰 */
-  --dg-void:#1c1814; --dg-frame:#332c26; --dg-edge:#1a1511;
-  --dg-fws:#a4988a; --dg-fws-2:#6f6559;
-  --dg-alu:#bdb2a4; --dg-alu-2:#8e8478; --dg-alu-3:#736a5f;
-  --dg-steel:#b0a79b; --dg-steel-2:#7d7468;
-  --dg-hub-lit:#a3978a; --dg-hub-dim:#5a5147;
-  --dg-die:#5c5142; --dg-si:#5a5570; --dg-si-2:#3a3548;
-  --dg-sn:#ece4d8; --dg-ni:#bdb3a5;     /* 錫／鎳：冷灰白 → 暖灰白（兩者的明度差維持不變） */
-  --dg-emc:#3a352f; --dg-metal-2:#8f877d; --dg-vap:#332c26;
-  --dg-pcb:#2f4a2a; --dg-pcb-2:#20351c; --dg-sub-2:#1d3020;   /* 板子還是綠的（那是事實），只是暖一階 */
-  --dg-pn-bezel:#4a443c; --dg-pn-bezel-d:#332e28;
-  --dg-pn-pol:#7d746a; --dg-pn-pol-d:#57504a;
-  --dg-pn-tft:#a8a094; --dg-pn-tft-d:#7b746a;
-  --dg-pn-lc:#4f4560; --dg-pn-lc-d:#3a3247;
-  --dg-pn-cf:#332e28; --dg-pn-cf-d:#241f1b; --dg-pn-bm:#17130f;
-  --dg-pn-ic:#2a251f; --dg-pn-ic-d:#1c1814;
-  --dg-pn-line2:rgba(43,38,34,.46);
-  /* 等角零件的暗面也要跟著轉暖，不然「亮面暖、暗面藍」會看起來像上錯色 */
-  --dg-sh0:#241f1b; --dg-sh1:#2b2622; --dg-sh2:#221d1a; --dg-sh3:#191512;
-  --dg-step-f:#332c26; --dg-part-mix:#5a4d40; --dg-line-mix:#473c32;
-  --dg-iso-c:#9a7f55; --dg-grd:rgba(226,213,197,.13); --dg-axis:rgba(226,213,197,.28);
-}
+/* 環節色在另外兩種組合的混法（tech＋深色是原色，不寫）：
+   淺色主題本來就換成壓深組的環節色（app.js refreshPalette），閱讀模式只要再降一點飽和；
+   淺色主題硬切回科技（深底）時壓深組會消失，往白混回來。*/
+:root[data-theme="light"][data-dgpal="read"]{--dg-seg-k:86%;--dg-seg-mix:#6b665d}
+:root[data-theme="light"][data-dgpal="tech"]{--dg-seg-k:74%;--dg-seg-mix:#ffffff}
 *{box-sizing:border-box}
 html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
 body{margin:0;background:
@@ -1154,57 +1213,57 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dgwrap{border-radius:10px;background:var(--dg-bg,var(--illus));border:1px solid var(--line);padding:6px;overflow:hidden;
   transition:background .2s}
 /* 3D 剖析圖：畫布 + 疊在上面的 DOM 標籤（用 DOM 才選得起來，文字重疊驗收也還跑得動） */
-/* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）：三種配色。
+/* 圖九 2-2（規格書 docs/diagram_specs/dg3d_standard.md）→ 2026-09-22 收斂成兩種模式：科技／閱讀。
    這一組 --dg-* 由 art-director 擁有，**JS 不准寫死任何 #xxxxxx** ——
    three3d.js 的 applyPal() 是讀這些變數去算零件顏色與打光的。
-     tech 深色科技風（預設）｜soft 淺底、印得出來（拿去給客戶看）｜calm 低飽和、久看不累
    mix/mix-k＝零件原色往哪個顏色拉多少；sat＝飽和度倍率；
-   led＝指示燈亮度基準（soft 是 0，完全不發光才印得出來）；hemi/key/fill＝打光強度。 */
+   led＝指示燈亮度基準（閱讀是 0，完全不發光才印得出來）；hemi/key/fill＝打光強度。
+   **零件的材質色不在這裡**：它們讀的是 :root[data-dgpal="read"] 那一組 --dg-*，跟 2D 同一份，
+   所以 2D 切到閱讀是紙底粉彩，3D 切到閱讀一定也是。
+   ⚠ 打光與材質的細調另一支（style-3d）在做；這裡只給 token 與一組能跑的起始值。 */
 .dg3d{--dg-mix:#ffffff;--dg-mix-k:0;--dg-sat:1;--dg-led:.55;--dg-sel-em:.22;--dg-hemi:.62;--dg-key:1;--dg-fill:.34}
-.dg3d[data-pal="soft"]{--dg-1:#f3f6fb;--dg-2:#d7e0ee;--dg-mix:#ffffff;--dg-mix-k:.16;--dg-sat:.70;
+.dg3d[data-pal="read"]{--dg-1:#f7f6f2;--dg-2:#e2dfd6;--dg-mix:#f2ede3;--dg-mix-k:.14;--dg-sat:.72;
   --dg-led:0;--dg-sel-em:0;--dg-hemi:.95;--dg-key:1.25;--dg-fill:.5}
-.dg3d[data-pal="calm"]{--dg-1:#23262d;--dg-2:#131519;--dg-mix:#c9973f;--dg-mix-k:.20;--dg-sat:.34;
-  --dg-led:.16;--dg-sel-em:.1;--dg-hemi:.5;--dg-key:.88;--dg-fill:.3}
-/* 休閒（2026-09-21 深夜新增，Andy：「2D3D 都需要新增那樣的風格」）。
-   這裡只放「3D 才有的東西」—— 背景漸層、混色、飽和倍率、打光、發光。
-   **零件的材質色不在這裡**：它們讀的是 :root[data-dgpal="casual"] 那一組 --dg-*，
-   跟 2D 同一份。所以 2D 切到休閒是暖的，3D 切到休閒一定也是暖的。
-   --dg-led:0 ＋ --dg-sel-em:0 ＝ 完全不發光（跟 soft 一樣印得出來）；
-   --dg-mix 是暖奶油色，把所有零件往同一個暖調拉 22%，這就是「平易近人」的來源。*/
-.dg3d[data-pal="casual"]{--dg-1:#3a322b;--dg-2:#1e1a16;--dg-mix:#e8d5b5;--dg-mix-k:.22;--dg-sat:.62;
-  --dg-led:0;--dg-sel-em:0;--dg-hemi:.9;--dg-key:1.1;--dg-fill:.45}
 .dg3d{position:relative;border-radius:10px;background:radial-gradient(120% 90% at 50% 0%,var(--dg-1),var(--dg-2));
   border:1px solid var(--line);overflow:hidden;min-height:360px}
 .dg3d[hidden]{display:none}
 /* E1（Andy 2026-09-18「3D 圖文字太小 → 改成引線＋外部文字框」）：
    標籤不再貼在零件頭上，改成排在畫布左右兩欄的文字框 —— 字放大到 12.5px、
    多一行說明、左邊一條環節色的粗邊把它跟零件綁在一起，再用引線接回去。 */
-.lbl3d{position:absolute;font-size:12.5px;line-height:1.35;color:var(--ink-2);
-  background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line-2);
-  border-left:3px solid var(--c,var(--line-2));border-radius:7px;padding:4px 8px;
-  white-space:normal;transition:opacity .15s,border-color .15s;box-shadow:0 2px 10px rgba(0,0,0,.22);z-index:2}
-.lbl3d b{display:block;font-weight:700;color:var(--ink)}
+/* ★ 2026-09-22 風格系統：3D 的 DOM 標籤是「卡片」共用元件的 HTML 版，跟 2D 的 labelRow 吃同一組 token。
+   磨砂玻璃 ＝ 半透明底（--dg-card-f）＋ backdrop-filter（--dg-card-blur）；不支援 backdrop-filter 的瀏覽器
+   自然退回半透明實色。卡片的元件色走 --dg-card-c（three3d.js 用 inline style 餵；沒餵就落回環節色 --c，
+   再沒有就 --dg-ink）—— 左側色條、邊框、選取態都用它。
+   ⚠ 尺寸一個都沒動（字級 12.5、內距、左邊框 3px、圓角 7px）：標籤排版算法量的是這些。
+   文字改吃 --dg-ink*（不是全站的 --ink*）：卡片跟著剖析圖的模式走，淺色主題硬切回科技時字才不會是深色印在深色上。*/
+.lbl3d{position:absolute;font-size:12.5px;line-height:1.35;color:var(--dg-ink-2);
+  --card-c:var(--dg-card-c,var(--c,var(--dg-ink)));
+  background:var(--dg-card-f);-webkit-backdrop-filter:var(--dg-card-blur);backdrop-filter:var(--dg-card-blur);
+  border:1px solid color-mix(in srgb,var(--card-c) 40%,var(--dg-card-s));
+  border-left:3px solid var(--card-c);border-radius:7px;padding:4px 8px;
+  white-space:normal;transition:opacity .15s,border-color .15s;box-shadow:var(--dg-card-box-sh);z-index:2}
+.lbl3d b{display:block;font-weight:700;color:var(--dg-ink)}
 /* P4-d（art-director 2026-09-21）：這一行的說明以前是 11px、而且 line-clamp:2 把它截斷。
    11px 低於字級下限（--dg-fs-min 12px），截斷又讓「這一層變薄會怎樣」講到一半就沒了 ——
    那正是規格書 §1 定義的成敗條件。改成 12px、放寬到三行。*/
 .lbl3d i{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
-  font-style:normal;font-size:var(--dg-fs-min,12px);color:var(--ink-3);margin-top:2px}
+  font-style:normal;font-size:var(--dg-fs-min,12px);color:var(--dg-ink-3);margin-top:2px}
 /* 圖九 2-3：文字框底下那排可點的台股晶片（規格書 docs/diagram_specs/dg3d_standard.md）。
    晶片是 DOM 不是畫進畫布 —— 這樣文字重疊驗得到、也真的選得起來。 */
 .lbl3d u.chips3d{display:flex;flex-wrap:wrap;gap:3px;margin-top:4px;text-decoration:none}
 .lbl3d .chip3d{font-size:var(--dg-fs-min,12px);line-height:1.45;padding:0 5px;border-radius:5px;text-decoration:none;
-  color:var(--ink-2);background:color-mix(in srgb,var(--c,var(--cyan)) 16%,transparent);
-  border:1px solid color-mix(in srgb,var(--c,var(--cyan)) 38%,transparent);cursor:pointer;white-space:nowrap}
-.lbl3d .chip3d:hover{color:var(--ink);background:color-mix(in srgb,var(--c,var(--cyan)) 32%,transparent)}
-.lbl3d u.chips3d s{font-size:var(--dg-fs-min,12px);color:var(--ink-3);text-decoration:none;align-self:center}
+  color:var(--dg-ink-2);background:color-mix(in srgb,var(--card-c) 16%,transparent);
+  border:1px solid color-mix(in srgb,var(--card-c) 38%,transparent);cursor:pointer;white-space:nowrap}
+.lbl3d .chip3d:hover{color:var(--dg-ink);background:color-mix(in srgb,var(--card-c) 32%,transparent)}
+.lbl3d u.chips3d s{font-size:var(--dg-fs-min,12px);color:var(--dg-ink-3);text-decoration:none;align-self:center}
 /* A5-b：晶片上方那行「這排台股是哪一群」的小字，要自己占一整行，不要跟晶片擠在同一列 */
 .lbl3d u.chips3d s.chipnote{flex:0 0 100%;margin-bottom:1px}
-.lbl3d.sel{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel))}
-.lbl3d.sel b{color:var(--cyan)}
+.lbl3d.sel{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 12%,var(--dg-card-f))}
+.lbl3d.sel b{color:var(--card-c)}
 /* 主角用「底色再深一階 ＋ 外圈光暈」，刻意不動 border-width ——
    .lbl3d 的左邊框是 3px、其餘 1px，一改寬度整個文字框就位移，標籤排版會連帶重算。*/
-.lbl3d.sel-part{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 24%,var(--panel));
-  box-shadow:0 0 0 2px color-mix(in srgb,var(--cyan) 42%,transparent),0 2px 10px rgba(0,0,0,.22)}
+.lbl3d.sel-part{border-color:var(--card-c);background:color-mix(in srgb,var(--card-c) 24%,var(--dg-card-f));
+  box-shadow:0 0 0 2px color-mix(in srgb,var(--card-c) 42%,transparent),var(--dg-card-box-sh)}
 /* 單一環節的 3D 場景（MLCC 那種）：同環節但不是被點的那一顆，標籤也要退一階，
    不然三個標籤長得一模一樣，使用者仍然看不出剛剛點到誰。
    兩個 class 都要在才生效：.dg1＝整個場景只有一個環節、.haspart＝現在真的有人被點著。
@@ -1213,9 +1272,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .lbl3d.dim{opacity:.26}
 /* 轉到背面、或兩欄都排滿了，離相機最遠的那幾個先讓位 */
 .lbl3d.hid{opacity:0;pointer-events:none}
-.lbl3d:hover{border-color:var(--cyan);color:var(--ink);z-index:3}
-.lead3d .ld{fill:none;stroke:var(--line-2);stroke-width:1.1;opacity:.72}
-.lead3d .ld-dot{fill:none;stroke-width:1.4;opacity:.9}
+.lbl3d:hover{border-color:var(--card-c);color:var(--dg-ink);z-index:3}
+/* 3D 的引線與端點：跟 2D 的 .leader／.anchor 同一套 token。端點的顏色由 three3d.js 用 inline stroke 餵；
+   科技模式帶光暈（--dg-node-glow），閱讀模式只留實心圓點。*/
+.lead3d .ld{fill:none;stroke:var(--dg-lead,var(--line-2));stroke-width:var(--dg-lead-w,1.1);opacity:.72}
+.lead3d .ld-dot{fill:var(--dg-bg);stroke-width:1.4;opacity:.95;filter:drop-shadow(0 0 var(--dg-node-glow,3px) var(--dg-card-c,var(--c,var(--cyan))))}
+:root[data-dgpal="read"] .lead3d .ld-dot{filter:none}
 .dgwrap svg{display:block;width:100%;height:auto}
 /* ★★ 2026-09-22：`native`（DECISIONS #227）只設了 **min-width** ——
    它擋的是「欄位太窄把圖壓小、字跟著縮」，**另一邊完全沒擋**：
