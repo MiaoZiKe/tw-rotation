@@ -240,6 +240,158 @@
           kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0], ex: [0, -8, 0] },
       ],
     },
+    /* ===== 半導體鏈：晶圓代工 ===== */
+    /* 2D 是 `site/dg/foundry.js`，`part` 沿用它的 `data-part`（fd_*）——
+       2D 點完一個零件再切到 3D，還是同一個零件被選著。
+       構圖：三顆電晶體並排在同一塊基板上（左：平面、中：FinFET、右：GAA），右邊一片 12 吋晶圓。
+       三顆刻意用同一個畫法，因為這三格的意義就在「可以互相比較」。
+       ⚠ 從晶圓到晶粒再到電晶體差七個數量級（300 mm 對 nm），所以這張一律是誇張放大的示意圖。*/
+    foundry: {
+      title: '晶圓代工：一顆電晶體與一個製程迴圈（立體）',
+      sub: '左到右＝閘極管得到 1 面（平面）→ 3 面（FinFET）→ 4 面（GAA）；金色薄片就是「被閘極管到的那一面」，數得出來。右邊是 12 吋晶圓與晶粒陣列。示意圖，非實物比例',
+      camera: [56, 58, 96], target: [10, 8, 4], fit: 0.88, hk: 0.58,
+      parts: [
+        { seg: 'foundry', part: 'fd_sub', name: '矽基板', note: '三顆共用同一塊基板、同一個位置、同一個顏色 —— 三格要能互相比較，用不同畫法讀者就比不了',
+          kind: 'wbglay', box: [100, 3, 30], at: [-4, 1.5, -10], k: -0.4, ex: [0, -12, 0],
+          codes: ['6488', '5483', '6182', '3532', '8028'], chipnote: '做 12 吋矽晶圓的台股（不在半導體鏈的環節名單上，見「矽晶圓」那張）' },
+        { seg: 'foundry', part: 'fd_planar', name: '平面電晶體（閘極管 1 面）', note: '通道是基板表面下一條水平薄層，閘極只從正上方蓋下來 —— 只管得到一面，其餘三面關不住',
+          kind: 'fetp', box: [30, 17, 24], at: [-38, 11.5, -10], ex: [-14, 9, 0] },
+        { seg: 'foundry', part: 'fd_fin', name: 'FinFET 鰭式（閘極管 3 面）', note: '把通道立起來變成一片直立的鰭，閘極就罩得住頂面與兩個側面；鰭底埋在 STI 裡的那一段管不到',
+          kind: 'fetf', box: [30, 17, 24], at: [-4, 11.5, -10], ex: [0, 11, 0],
+          codes: ['2330'], chipnote: 'FinFET 先進節點在台股由台積電承擔（2D 那張圖的同一句話）' },
+        { seg: 'foundry', part: 'fd_sheet', name: '奈米片通道（GAA）', note: '2～4 片水平堆疊、彼此不相連；片寬遠大於片厚 —— 正方形斷面那是奈米線，不是奈米片。源汲磊晶把所有片的端部一起接起來',
+          kind: 'nsheet', box: [30, 17, 24], at: [30, 11.5, -10], ex: [12, 9, 0],
+          codes: ['2330'], chipnote: 'GAA 奈米片節點（N2）目前在台股只有台積電做得到' },
+        { seg: 'foundry', part: 'fd_gaa', name: '閘極金屬（全包覆，4 面）', note: '★「Gate-All-Around」的全部意義：金屬填進每一對相鄰奈米片之間的縫，最下面那片的下方也有。只畫在最上面＝畫的是 FinFET。拆開看得到那幾片梳齒',
+          kind: 'gaagate', box: [30, 17, 24], at: [30, 11.5, -10], ex: [12, 26, 0],
+          codes: ['2330'], chipnote: 'GAA 奈米片節點（N2）目前在台股只有台積電做得到' },
+        { seg: 'foundry', part: 'fd_wafer', name: '12 吋晶圓與晶粒陣列', note: '圓片＋一個方位缺口（notch）＋規則排列的晶粒。邊緣那一圈暗的是切不出完整晶粒的格子 —— 晶圓越大，浪費掉的邊緣比例越小。格數為示意',
+          kind: 'wafer', box: [38, 2.4, 38], at: [58, 1.2, 28], dies: 10, ex: [14, -6, 12],
+          codes: ['6488', '5483', '6182', '3532', '8028'], chipnote: '做 12 吋矽晶圓的台股（不在半導體鏈的環節名單上）' },
+        { seg: 'foundry', part: 'fd_die', name: '一顆晶粒', note: '晶圓上被切線分開的一格；四周那一圈空白是切割道。同一個缺陷密度下，晶粒越大、報廢的比例越高（本圖不寫任何良率數字）',
+          kind: 'die', box: [9, 2.8, 9], at: [58, 9, 28], ex: [14, 14, 12] },
+      ],
+    },
+    /* ===== 半導體鏈：矽晶圓 ===== */
+    /* 2D 是 `site/dg/silicon_wafer.js`。那張圖的 §0-A 寫「不做真 3D，長晶爐是旋轉對稱體」——
+       這裡做的是**切開的**長晶爐（開口約 117° 朝向預設相機），轉一圈看得到的兩件事
+       剛好就是那張圖最重要的兩件事：坩堝裡有液面、晶碇正從液面往上長。
+       ⚠ 爐內的氣氛與熱屏配置本圖沒有查證，所以只畫外殼與加熱器，不畫配置。
+       ⚠ 這張圖**沒有對應的供應鏈環節**（半導體鏈 14 格裡沒有一格是矽晶圓），
+          所以台股一律用零件自己的 `codes` 列，不走環節名單。*/
+    silicon_wafer: {
+      title: '矽晶圓：從熔湯到一片鏡面（切開的長晶爐）',
+      sub: '柴氏（CZ）提拉法：石英坩堝裡的熔湯 → 籽晶沾上去 → 一邊轉一邊往上拉 → 頸縮、肩、等徑段。右邊是線鋸切好的一疊與最上面那片拋光鏡面片。示意圖，非實物比例',
+      camera: [66, 62, 96], target: [2, 26, 0], fit: 1.05, hk: 0.68,
+      parts: [
+        { seg: 'silicon_wafer', part: 'sw_chamber', name: '爐體（切開）', note: '長晶要在受控氣氛與受控熱場裡進行。爐內的氣氛與熱屏配置本圖沒有查證，所以只畫外殼、不寫配置；朝鏡頭那一段切掉才看得見裡面',
+          kind: 'czshell', box: [38, 56, 38], at: [-18, 28, 0], ex: [0, 32, 0] },
+        { seg: 'silicon_wafer', part: 'sw_heater', name: '加熱器', note: '環繞在坩堝的側面（不是裝在爐子頂上）。熱場決定長晶速度與缺陷密度；石墨加熱器是一整條折來折去的帶子，所以上下各有一道連接環',
+          kind: 'heater', box: [32, 24, 32], at: [-18, 15, 0], ex: [-26, 4, -14] },
+        { seg: 'silicon_wafer', part: 'sw_susceptor', name: '石墨承座（示意）', note: '包在石英坩堝外面撐住它，底下是會自己轉的軸。⚠ 這一件本圖沒有查證到可引用的來源，只畫成示意、不寫規格',
+          kind: 'susceptor', box: [30, 16, 30], at: [-18, 12, 0], ex: [0, -16, 0] },
+        { seg: 'silicon_wafer', part: 'sw_crucible', name: '石英坩堝', note: '裝熔湯的那個碗。它是消耗品 —— 一次長晶就報廢一個',
+          kind: 'crucible', box: [27, 13, 27], at: [-18, 12.5, 0], ex: [0, -6, 0] },
+        { seg: 'silicon_wafer', part: 'sw_melt', name: '熔湯（melt）', note: '多晶矽熔成的一鍋湯。★ 看得到液面才是 CZ 提拉爐 —— 碳化矽與氮化鎵用的是昇華法（PVT），爐子裡沒有液面。中央被晶碇拉起來的是彎液面',
+          kind: 'melt', box: [23, 6, 23], at: [-18, 14, 0], ex: [0, 9, 0],
+          codes: ['6488', '3532', '6182'], chipnote: '做長晶這一段的台股（信心：中，來源為媒體與公司網站整理；不在供應鏈資料裡）' },
+        { seg: 'silicon_wafer', part: 'sw_ingot', name: '晶碇（ingot／boule）', note: '先拉細（頸縮）把差排甩掉，再放大到目標直徑（肩），中間是等徑段。畫成一根上下等粗的圓柱就少了 CZ 的識別特徵。側面那條溝是刻在整根上的 notch',
+          kind: 'ingot', box: [15, 34, 15], at: [-18, 34, 0], ex: [0, 16, 0],
+          codes: ['6488', '3532', '6182'], chipnote: '做長晶這一段的台股（信心：中，來源為媒體與公司網站整理）' },
+        { seg: 'silicon_wafer', part: 'sw_seed', name: '籽晶與籽晶桿', note: '一顆籽晶沾上熔湯，熔湯就照著它的晶格重新排列 —— 整根柱子因此是一顆單晶。★ 方向是往上拉（畫成往下就是把柱子推進湯裡，物理上不成立）',
+          kind: 'seedrod', box: [4, 17, 4], at: [-18, 58.5, 0], ex: [0, 24, 0] },
+        { seg: 'silicon_wafer', part: 'sw_saw', name: '線鋸切好的一疊晶圓', note: '一組平行的鋼線同時切過去（多線鋸），一根晶碇切出上百片。整疊的 notch 在同一個方位 —— 因為缺口是切片之前就刻在晶碇上的',
+          kind: 'wstack', box: [26, 13, 26], at: [34, 6.5, 0], layers: 9, ex: [16, 0, 10],
+          codes: ['6488', '3532', '6182'], chipnote: '做矽晶圓的台股（信心：中，來源為媒體與公司網站整理）' },
+        { seg: 'silicon_wafer', part: 'sw_polish', name: '拋光鏡面片', note: '磨到鏡面，表面在剖面上是一條直線。拋光一定是最後一道表面加工 —— 拋完再畫一段研磨就是順序錯了',
+          kind: 'wafer', box: [26, 1.2, 26], at: [34, 13.8, 0], mirror: true, ex: [16, 11, 10],
+          codes: ['6488', '3532', '6182'], chipnote: '做矽晶圓的台股（信心：中，來源為媒體與公司網站整理）' },
+      ],
+    },
+    /* ===== 半導體鏈：HBM ===== */
+    /* 2D 是 `site/dg/hbm.js`。切掉「x > 0 且 z > 0」那一角（切法跟 MLCC 一致），
+       因為這張圖唯一的主角是**一根貫穿的柱子**：不切開就只能相信它在裡面。
+       由下往上（y 是中心，不是底面）：
+         載板 0–3.2 ｜ 中介層 3.4–5.2 ｜ 對外凸塊 5.2–6.2 ｜ base die 6.2–8.0
+         ｜ 微凸塊與 core die 8.0–18.1（6 層，層間 6 排凸塊）｜ TSV 6.2–18.1 貫穿
+         ｜ GPU 晶粒 5.2–8.1（站在中介層上，**不是**疊在 HBM 上）
+       改任何一個 y 之前先回來對這一排。*/
+    hbm: {
+      title: 'HBM：堆疊起來的記憶體與底下那顆邏輯晶粒（切開一角）',
+      sub: 'HBM 站在 GPU 旁邊、不是疊在 GPU 上面；最底下那顆不是記憶體，是邏輯晶粒（base die）。切開的那一角看得到 TSV 真的貫穿每一層，而且跟層間的微凸塊上下對齊。示意圖，非實物比例',
+      camera: [58, 40, 66], target: [0, 9, 0], fit: 1.0, hk: 0.52,
+      parts: [
+        { seg: 'abf_pcb', part: 'hb_sub', name: '載板（package substrate）', note: '整包封裝最底下那一層。載板的內部層數、補強環與模封是「IC 載板」與「先進封裝」那兩張的範圍，這裡刻意畫得簡單',
+          kind: 'substrate', box: [58, 3.2, 42], at: [0, 1.6, 0], ex: [0, -10, 0] },
+        { seg: 'adv_pkg', part: 'hb_interposer', name: '中介層（interposer）', note: '提供極密的金屬繞線、垂直連接與細間距微凸塊，把每一疊 HBM 接到運算晶粒的記憶體控制器。畫成一塊空白的板子就少了它存在的理由',
+          kind: 'interposer', box: [46, 1.8, 32], at: [0, 4.3, 0], ex: [0, 2, 0],
+          codes: ['2330', '3711'], chipnote: '「先進封裝 CoWoS/SoIC」這一格在供應鏈資料裡沒有公司，依既有 tech 欄直接指名這兩家' },
+        { seg: 'hbm', part: 'hb_outbump', name: '對外凸塊', note: 'base die 底面的一排凸塊，接到中介層。整疊 HBM 對外就是從這裡出去',
+          kind: 'bump', box: [11, 1.0, 14], at: [0, 5.7, 0], n: 2, gap: 30, axis: 'x', ex: [0, 6, 0] },
+        { seg: 'foundry', part: 'hb_base', name: 'base die（邏輯晶粒）', note: '★ 最底下這顆不是記憶體，是邏輯晶粒：負責對外介面與控制，上面每一層都透過 TSV 跟它交換資料。它比 core die 厚、而且不同色',
+          kind: 'hbmbase', box: [11, 1.8, 14], at: [0, 7.1, 0], n: 2, gap: 30, axis: 'x', ex: [0, 10, 0],
+          codes: ['2330'], chipnote: 'SK hynix 的 HBM4 base die 採台積電 12 奈米邏輯製程（來源：產業媒體 2026）。是做那顆邏輯晶粒，不是做 HBM 顆粒' },
+        { seg: 'hbm', part: 'hb_ubump', name: '微凸塊（層間 6 排）', note: '夾在每兩層之間。N 層晶粒就有 N−1 排（本圖 base die ＋ 6 層 core die ＝ 7 層、6 排）。★ 它跟 TSV 上下對齊成一條連續的導通柱 —— 對不齊就電氣上接不起來',
+          kind: 'ubumprows', box: [11, 9.6, 14], at: [0, 13.3, 0], layers: 6, baseRow: true, n: 2, gap: 30, axis: 'x', ex: [0, 15, 0] },
+        { seg: 'hbm', part: 'hb_core', name: 'HBM 記憶體晶粒（core die）', note: '一層一層疊上去的 DRAM。本圖畫 6 層示意；實際層數依世代而定 —— 查不到可引用的層數說明，所以不寫 8-high／12-high 這種規格',
+          kind: 'hbmcore', box: [11, 9.6, 14], at: [0, 13.3, 0], layers: 6, n: 2, gap: 30, axis: 'x', ex: [0, 19, 0] },
+        { seg: 'hbm', part: 'hb_tsv', name: '穿矽孔（TSV）', note: '一根根垂直貫穿每一層，把上面的記憶體跟底下的邏輯晶粒接起來。只有最上面那一層可以不用 —— 但不可以只有最上層有，那把整個結構畫反了。直徑與間距查不到可引用的數字，所以不標數字',
+          kind: 'tsvcol', box: [11, 11.9, 14], at: [0, 12.15, 0], n: 2, gap: 30, axis: 'x', ex: [0, 26, 0] },
+        { seg: 'foundry', part: 'hb_gpu', name: '運算晶粒（GPU／ASIC）', note: '★ HBM 是站在它旁邊，不是疊在它上面 —— 兩者一起放在中介層上。疊上去是完全不同的封裝架構',
+          kind: 'die', box: [17, 2.9, 17], at: [0, 6.65, 0], ex: [0, 8, 0],
+          codes: ['2330'], chipnote: '先進節點晶圓代工（這一格講的是「誰代工」，不是「誰設計這顆 GPU」）' },
+      ],
+    },
+    /* ===== 半導體鏈：第三代半導體 ===== */
+    /* 2D 是 `site/dg/wide_bandgap.js`。兩顆元件並排、切掉同一個角：
+       左邊 SiC MOSFET 是**垂直**元件（汲極在背面），右邊 GaN HEMT 是**橫向**元件
+       （源／閘／汲三個電極全在上表面、背面一個都沒有）。
+       這一組對比是整張圖最重要的視覺事實，而它只有「兩顆擺在一起、正反面都看得到」才成立。
+       ⚠ 這張圖**沒有對應的供應鏈環節**，台股一律用零件自己的 `codes` 列。
+       ⚠ 基板（長晶／切片／研磨拋光）那三段本圖查不到台股的具名對應，所以那兩個零件刻意留空。*/
+    wide_bandgap: {
+      title: '第三代半導體：SiC 與 GaN 功率元件（立體剖面）',
+      sub: '左：SiC MOSFET —— 電流垂直穿過整片晶片，汲極在背面，耐壓靠漂移層的厚度。右：GaN HEMT —— 電流橫著在表面下跑，三個電極全在上表面。示意圖，非實物比例',
+      camera: [58, 44, 96], target: [0, 11, 0], fit: 1.02, hk: 0.46,
+      parts: [
+        { seg: 'wide_bandgap', part: 'wbg_sic_drain', name: 'SiC：汲極金屬（背面）', note: '在背面。電流從正面的源極穿過整片晶片到這裡 —— 三個電極畫在同一面就是 GaN HEMT，不是 SiC MOSFET',
+          kind: 'wbglay', box: [40, 2.4, 32], at: [-32, 1.2, 0], tint: '--dg-m-rack', metal: 0.86, rough: 0.3, ex: [0, -9, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（背面金屬跟正面金屬是同一段製程，信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_sic_sub', name: 'SiC：n⁺ 基板', note: '機械支撐＋導電。這一片的品質決定上面能不能長出好磊晶 —— 微管與基面差排這類缺陷在長晶那一步就決定了，後面救不回來。它比漂移層厚得多',
+          kind: 'wbglay', box: [40, 7, 32], at: [-32, 6.2, 0], k: -0.32, ex: [0, -4, 0] },
+        { seg: 'wide_bandgap', part: 'wbg_sic_drift', name: 'SiC：n⁻ 漂移層（磊晶）', note: '這一層的厚度就是耐壓。寬能隙 → 崩潰電場高 → 同樣耐壓只要更薄的一層 → 電阻低、損耗小。它比底下的基板薄得多，因為它是長上去的、不是切出來的',
+          kind: 'wbglay', box: [40, 5, 32], at: [-32, 12.2, 0], k: 0.08, ex: [0, 3, 0],
+          codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中，來源為投資研究平台整理；不在供應鏈資料裡）' },
+        { seg: 'wide_bandgap', part: 'wbg_sic_body', name: 'SiC：p-body 與 n⁺ 源極區', note: '通道就在 p-body 的表面；兩個 p-body 之間被夾成的那條窄路就是 JFET 區（只有平面閘才有）。★ n⁺ 源極區一定被 p-body 包住，碰到 n⁻ 漂移層就等於把元件短路掉了',
+          kind: 'wbgbody', box: [40, 3.4, 32], at: [-32, 16.4, 0], ex: [0, 8, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（SiC／GaN 功率半導體晶圓代工，信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_sic_gox', name: 'SiC：閘極氧化層 ＋ 閘極', note: '氧化層夾在閘極與半導體之間，是全圖最薄的一層之一 —— ★ 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。它同時是 SiC 的長期可靠度課題之一',
+          kind: 'wbggate', box: [16, 2.6, 32], at: [-32, 19.4, 0], ex: [0, 13, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_sic_src', name: 'SiC：源極金屬（正面）', note: '蓋住正面大部分，靠接觸窗下去接到 n⁺ 源極與 p-body。它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義',
+          kind: 'wbgtop', box: [40, 2.6, 32], at: [-32, 21.9, 0], ex: [0, 16.5, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_gan_sub', name: 'GaN：基板（Si 或 SiC）', note: 'GaN 功率元件多半長在 Si 或 SiC 基板上。Si 便宜且相容既有 CMOS 廠，但晶格失配大、緩衝層要厚；SiC 導熱好、失配小，但貴',
+          kind: 'wbglay', box: [40, 7, 32], at: [32, 3.5, 0], k: -0.32, ex: [0, -8, 0] },
+        { seg: 'wide_bandgap', part: 'wbg_gan_buf', name: 'GaN：緩衝層（AlN／AlGaN）', note: '厚薄由基板決定：長在 Si 上晶格差約 17%，要厚過渡；長在 SiC 上只差約 3.5%，可以薄很多。兩者畫成一樣厚就是把這件事抹掉了',
+          kind: 'wbglay', box: [40, 3.6, 32], at: [32, 8.8, 0], k: -0.06, ex: [0, -3, 0],
+          codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中，來源為投資研究平台整理）' },
+        { seg: 'wide_bandgap', part: 'wbg_gan_ch', name: 'GaN：通道層', note: '2DEG 就長在它的上表面。它比上面的 AlGaN 阻障層厚',
+          kind: 'wbglay', box: [40, 2.2, 32], at: [32, 11.7, 0], k: 0.22, ex: [0, 3, 0],
+          codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_2deg', name: 'GaN：二維電子氣（2DEG）', note: 'AlGaN 與 GaN 貼在一起，界面自己長出一層電子（極化誘發）。★ 它在界面的 GaN 那一側，不是在 AlGaN 裡、也不是在兩層正中央。電子跑得快，所以切換可以到 MHz 級',
+          kind: 'wbglay', box: [40, 0.6, 32], at: [32, 13.1, 0], tint: '--dg-m-trace', metal: 0.9, rough: 0.26, ex: [0, 7, 0] },
+        { seg: 'wide_bandgap', part: 'wbg_gan_bar', name: 'GaN：AlGaN 阻障層', note: '比底下的 GaN 通道層薄。它和 GaN 的界面就是 2DEG 的所在，三個電極都做在它的上表面',
+          kind: 'wbglay', box: [40, 1.3, 32], at: [32, 14.05, 0], k: 0.5, ex: [0, 11, 0],
+          codes: ['3016'], chipnote: '做磊晶這一段的台股（信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_pgan', name: 'GaN：p-GaN 閘（常關做法之一）', note: 'GaN 原生是「常開」的（零偏壓下 2DEG 就導通）。在 AlGaN 上長一層 p 型 GaN，內建電位把閘極底下的 2DEG 耗盡，零偏壓時就不導通。★ p-GaN 一定在閘極金屬與 AlGaN 之間',
+          kind: 'wbgpgan', box: [8, 1.2, 24], at: [32, 15.3, 0], ex: [0, 16, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
+        { seg: 'wide_bandgap', part: 'wbg_gan_elec', name: 'GaN：源極／閘極／汲極（都在上表面）', note: '★ 三個電極全部做在同一個上表面、背面一個都沒有 —— 這就是「橫向元件」。也正因為是橫向，它受表面崩潰限制，主流停在 650V 級。中間那顆閘極站在 p-GaN 上，比兩側高一階',
+          kind: 'wbgelec', box: [40, 2.6, 32], at: [32, 16.0, 0], ex: [0, 19, 0],
+          codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -300,6 +452,15 @@
     interposer: 'si', bump: 'cu', bga: 'emc', mlccchip: 'cer', inductor: 'emc', resistor: 'cer', ecap: 'alu',
     heatsink: 'alu', vc: 'cu', heatpipe: 'cu', coldplate: 'cu', connector: 'metal', cable: 'emc', busbar: 'cu',
     rail: 'metal', screw: 'metal', bracket: 'metal', chassis: 'metal',
+    /* 半導體鏈四張（2026-09-23）。材質族決定底色：矽（晶粒、晶圓、磊晶層）一律 si＝深藍，
+       金屬機構件（爐體、提拉桿）走 metal＝銀灰，石墨件走 emc＝石墨灰，銅柱走 cu＝暖銅。
+       ⚠ 這四張刻意**都只有一個主色**（矽），層與層之間靠明暗（K.mat 的 k）分，
+          不是一層一個色相 —— 那正是 #244 要收掉的「整張被洗成調色盤」。*/
+    fetp: 'si', fetf: 'si', nsheet: 'si', gaagate: 'metal', wafer: 'si', wstack: 'si',
+    czshell: 'metal', crucible: 'cer', susceptor: 'emc', melt: 'si', ingot: 'si',
+    seedrod: 'metal', heater: 'emc',
+    hbmcore: 'si', hbmbase: 'si', tsvcol: 'cu', ubumprows: 'cu',
+    wbglay: 'si', wbgbody: 'si', wbggate: 'si', wbgtop: 'metal', wbgpgan: 'organic', wbgelec: 'metal',
   };
   /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；
      閱讀模式（v9，docs/diagram_refs/README.md）是同名 token 的中飽和值＋約 40% 柔光，不是灰粉彩）
@@ -323,6 +484,22 @@
     icp_die: 'GPU die (SoIC stack)', icp_soic: 'SoIC top die', icp_hbm: 'HBM4 stack', icp_uf: 'Underfill / MUF',
     icp_stiff: 'Stiffener ring', icp_probe: 'Probe card / test socket', icp_lid: 'Heat-spreader lid + TIM',
     mlcc_body: 'Ceramic body & interleaved electrodes', mlcc_term: 'Terminations (Cu → Ni → Sn)', mlcc_pad: 'PCB pads & solder',
+    /* 半導體鏈四張（2026-09-23）。key 用的是**2D 那張圖同一組 data-part**，
+       所以 2D 點完一個零件再切到 3D，還是同一個零件被選著。*/
+    fd_sub: 'Silicon substrate', fd_planar: 'Planar transistor (1-side gate)', fd_fin: 'FinFET (3-side gate)',
+    fd_sheet: 'GAA nanosheet channels', fd_gaa: 'Gate-all-around metal (4 sides)',
+    fd_wafer: '300 mm wafer & die array', fd_die: 'A single die',
+    sw_chamber: 'CZ puller chamber', sw_heater: 'Graphite heater', sw_susceptor: 'Graphite susceptor (schematic)',
+    sw_crucible: 'Quartz crucible', sw_melt: 'Silicon melt', sw_seed: 'Seed crystal & pull rod',
+    sw_ingot: 'Single-crystal ingot (boule)', sw_saw: 'Wire-sawn wafers', sw_polish: 'Polished mirror wafer',
+    hb_sub: 'Package substrate', hb_interposer: 'Interposer', hb_outbump: 'Bumps to interposer',
+    hb_base: 'Base die (logic)', hb_core: 'HBM core dies (DRAM)', hb_ubump: 'Micro-bumps between dies',
+    hb_tsv: 'Through-silicon vias', hb_gpu: 'Compute die (GPU / ASIC)',
+    wbg_sic_drain: 'SiC drain metal (backside)', wbg_sic_sub: 'n+ SiC substrate', wbg_sic_drift: 'n- drift layer',
+    wbg_sic_body: 'p-body & n+ source', wbg_sic_gox: 'Gate oxide & gate', wbg_sic_src: 'Source metal (front)',
+    wbg_gan_sub: 'GaN substrate (Si / SiC)', wbg_gan_buf: 'Buffer layer (AlN / AlGaN)', wbg_gan_ch: 'GaN channel layer',
+    wbg_2deg: 'Two-dimensional electron gas', wbg_gan_bar: 'AlGaN barrier', wbg_pgan: 'p-GaN gate',
+    wbg_gan_elec: 'Source / gate / drain (all on top)',
   };
 
   function kit(THREE, fam, ghost, css, role) {
@@ -1738,6 +1915,503 @@
       return g;
     }
 
+    /* ================================================================ 半導體鏈的零件字彙（2026-09-23）
+       Andy 2026-09-23：「確保這邊都有 3D 圖」。晶圓代工／矽晶圓／HBM／第三代半導體
+       四張原本都是 `scene: null`，各自的規格書 §0 寫的理由是「剖面／平面就講得完」。
+       這一批推翻的不是那個理由，是它漏掉的那一半 —— 四件**只有立體才成立**的事：
+         · 電晶體的成敗是「閘極包得到幾個面」，那本來就是三維的事，一個切面只看得到其中一面
+         · 長晶爐確實是旋轉對稱體，但**切開**之後「坩堝裡有液面、晶碇正從液面往上長」要立體才看得懂
+         · TSV 是一根貫穿的柱子，切掉一角轉過去，才看得到它真的穿過每一層而不是畫在表面
+         · SiC 是垂直元件、GaN 是橫向元件 —— 兩顆並排轉一圈，電極在哪一面是一眼的事
+       所以四張走的都是**切開／並排**的立體，不是把 2D 拉厚。
+       共同規矩：顏色一律走 FAMILY_TOKENS 與 `--dg-*`（不寫死色值）、陣列類一律 InstancedMesh、
+       不加任何自體發光（Andy：「不是電競 RGB」）。*/
+
+    /* 切開的殼（爐體、坩堝）要看得到內壁，但 mat() 的快取 key 不含 side，
+       直接改會把共用同一組參數的別人也一起變成雙面。所以複製一顆、登記進 K.mats ——
+       登記過 highlight()（點零件時的淡出）與 applyPal()（換模式重讀顏色）才吃得到它。*/
+    function twoSided(K, m) {
+      const c = m.clone();
+      c.side = T.DoubleSide;
+      c.userData = Object.assign({}, m.userData || {});
+      K.reg(c);
+      return c;
+    }
+    /* 切掉「x > 0 且 z > 0」那一角之後剩下的兩塊（給 mboxes 用，一層＝一次 draw call）。
+       切法跟 MLCC 那張的 lslab 完全一致 —— 同一個專案裡「剖面」只能有一種切法，
+       不然使用者在兩張圖之間要重新學一次「哪一面是切面」。*/
+    function cutSlab(w, h, d, y) {
+      return [[w, h, d / 2, 0, y || 0, -d / 4], [w / 2, h, d / 2, -w / 4, y || 0, d / 4]];
+    }
+    /* 剖面上的切面要比外表面暗一階，不然「被切開的面」跟「原本就有的面」長得一模一樣。
+       兩片薄板貼在 x = 0 與 z = 0 的切口上，一次 draw call。*/
+    function cutFace(K, w, h, d, y, k) {
+      const t = Math.max(0.03, Math.min(w, d) * 0.006);
+      return mboxes([[t, h * 0.98, d / 2, t / 2, y || 0, d / 4], [w / 2, h * 0.98, t, -w / 4, y || 0, t / 2]],
+        K.mat((k == null ? 0 : k) - 0.3, { rough: 0.72, metal: 0.08 }));
+    }
+    /* 半剖（把 z > 0 整個切掉）。給「一整疊薄層」用的切法。
+       為什麼不跟 HBM 用同一種切角：切角在**厚**的東西上很好讀（看得到裡面的柱子），
+       在一疊**薄**片上只會變成一疊 L 形的板子 —— 那不是剖面，那是缺了一角的板子。
+       半剖留下一個乾淨的 z = 0 剖面，內部構造（n⁺ 源極區、接觸窗）一律做到這個面上才看得到。*/
+    function halfSlab(w, h, d, y) { return [[w, h, d / 2, 0, y || 0, -d / 4]]; }
+    function halfFace(K, w, h, d, y, k) {
+      const t = Math.max(0.03, Math.min(w, d) * 0.006);
+      return mboxes([[w * 0.995, h * 0.98, t, 0, y || 0, t / 2]],
+        K.mat((k == null ? 0 : k) - 0.3, { rough: 0.72, metal: 0.08 }));
+    }
+
+    /* ---------------------------------------------------------------- 晶圓代工：三種電晶體
+       三顆的畫法刻意完全一致（同一塊基板、同一個通道方向、同一種金色面標），
+       因為這三格的意義就在「可以互相比較」—— 用不同畫法讀者就無法比較。
+       通道一律沿 x 走（源極在 −x、汲極在 +x），閘極一律橫跨 z 方向，
+       金色薄片 ＝「閘極管得到的那一面」，數金片就是數 1／3／4。*/
+    const FET_LG = 0.22;        // 閘極長度佔零件寬的比例（三顆共用，才比得出來）
+
+    function fetFaces(K, list) {
+      // 金色面標：閘極管得到的面。用 instOf 收成一次 draw call
+      const au = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 });
+      const g = new T.Group();
+      list.forEach(([geo, at]) => g.add(instOf(geo, au, at)));
+      return g;
+    }
+
+    /* 平面電晶體：閘極只從正上方蓋下來，管得到的只有**上面這一面**。*/
+    function fetPlanar(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const si = K.mat(-0.32, { rough: 0.46 });
+      const ch = K.mat(0.44, { rough: 0.34 });
+      const ox = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.4, metal: 0.04 });
+      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
+      const sp = K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.7, metal: 0.05 });
+      const sd = K.mat(0.16, { rough: 0.5 });
+      g.add(put(box(w, h * 0.52, d, si), 0, -h * 0.24, 0));                                   // 基板
+      g.add(put(box(w * 0.54, h * 0.07, d * 0.62, ch), 0, h * 0.06, 0));                      // 通道：表面下一條水平薄層
+      g.add(put(box(w * FET_LG, h * 0.05, d * 0.5, ox), 0, h * 0.125, 0));                    // 閘極介電層（只在閘極底下）
+      g.add(put(box(w * FET_LG, h * 0.26, d * 0.5, mt), 0, h * 0.28, 0));                     // 閘極：一塊蓋子，連ㄇ字都談不上
+      [-1, 1].forEach(s => {
+        g.add(put(box(w * 0.04, h * 0.22, d * 0.5, sp), s * (w * FET_LG / 2 + w * 0.02), h * 0.26, 0));   // 間隙壁
+        g.add(put(box(w * 0.2, h * 0.2, d * 0.66, sd), s * w * 0.37, h * 0.12, 0));                       // 源極／汲極
+      });
+      // 金色面標放在閘極**前後**（閘極本身不透明，壓在底下就看不到了）
+      g.add(fetFaces(K, [[new T.BoxGeometry(w * FET_LG, h * 0.02, d * 0.05),
+        [[0, h * 0.1, d * 0.28], [0, h * 0.1, -d * 0.28]]]]));
+      return g;
+    }
+
+    /* FinFET：通道立起來變成一片直立的鰭，閘極罩住鰭的**頂面與兩個側面**＝三面。
+       鰭底那一段埋在 STI 裡，閘極包不到 —— 那就是 FinFET 走到盡頭的地方。*/
+    function fetFin(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const si = K.mat(-0.32, { rough: 0.46 });
+      const fin = K.mat(0.44, { rough: 0.34 });
+      const sti = K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.6, metal: 0.04 });
+      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
+      const sd = K.mat(0.16, { rough: 0.5 });
+      g.add(put(box(w, h * 0.4, d, si), 0, -h * 0.3, 0));
+      // 三片直立的鰭：鰭高刻意是鰭寬的數倍（畫面可辨識性的下限，不是實物比例的宣稱）
+      const fw = d * 0.09, fh = h * 0.56, fz = [-d * 0.2, 0, d * 0.2];
+      g.add(instOf(new T.BoxGeometry(w * 0.72, fh, fw), fin, fz.map(z => [0, h * 0.18, z])));
+      // STI：填在鰭與鰭之間的**下半段**，只淹到鰭的下部
+      g.add(put(box(w * 0.74, h * 0.2, d * 0.62, sti), 0, 0, 0));
+      /* ㄇ 字形閘極：一條橫樑橫跨過三片鰭，四支腳插進鰭與鰭之間（以及最外側兩邊）。
+         橫樑＋四支腳併成一顆 mesh —— 它是一體成型的一塊金屬，不是五根棒子。*/
+      const legs = [[w * FET_LG, h * 0.14, d * 0.86, 0, h * 0.46, 0]];
+      [-0.3, -0.1, 0.1, 0.3].forEach(fz2 => legs.push([w * FET_LG, h * 0.3, d * 0.09, 0, h * 0.24, fz2 * d]));
+      g.add(mboxes(legs, mt));
+      [-1, 1].forEach(s => g.add(put(box(w * 0.2, h * 0.34, d * 0.6, sd), s * w * 0.38, h * 0.13, 0)));
+      /* 金色面標：中間那片鰭的頂面 ＋ 兩個側面，放在閘極前方看得到的地方。
+         頂面一片、側面兩片 ＝ 三片，數得出來。*/
+      g.add(fetFaces(K, [
+        [new T.BoxGeometry(w * 0.05, h * 0.02, fw), [[w * 0.2, h * 0.46, 0]]],
+        [new T.BoxGeometry(w * 0.05, fh * 0.6, h * 0.02), [[w * 0.2, h * 0.28, fw * 0.55], [w * 0.2, h * 0.28, -fw * 0.55]]],
+      ]));
+      return g;
+    }
+
+    /* GAA 的奈米片通道：2～4 片水平堆疊、彼此不相連；片寬遠大於片厚
+       （正方形斷面那是奈米線 nanowire，不是奈米片）。
+       ★ 這一支只畫「片」，閘極金屬是另一個零件（gaagate）—— 拆解時閘極抬起來，
+         才看得到金屬原本是**填進每一對片之間的縫**，而不是只蓋在最上面那片上方。*/
+    function nanoSheet(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const si = K.mat(-0.32, { rough: 0.46 });
+      const sh = K.mat(0.46, { rough: 0.32 });
+      const sd = K.mat(0.16, { rough: 0.5 });
+      const sp = K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.7, metal: 0.05 });
+      g.add(put(box(w, h * 0.34, d, si), 0, -h * 0.33, 0));
+      const st = h * 0.055, pit = h * 0.19, y0 = -h * 0.04;
+      const at = [];
+      for (let i = 0; i < 3; i++) at.push([0, y0 + i * pit, 0]);
+      g.add(instOf(new T.BoxGeometry(w * 0.62, st, d * 0.5), sh, at));
+      // 源／汲磊晶：把三片的端部**一起**接起來，不是一片接一個
+      [-1, 1].forEach(s => g.add(put(box(w * 0.18, pit * 2 + st * 2.6, d * 0.58, sd), s * w * 0.39, y0 + pit, 0)));
+      // 內間隙壁：每一片的兩端，夾在閘極金屬與源汲磊晶之間（沒有它，閘極會跟源汲短路）
+      const isp = [];
+      for (let i = 0; i < 3; i++) [-1, 1].forEach(s => isp.push([s * w * 0.28, y0 + i * pit, 0]));
+      g.add(instOf(new T.BoxGeometry(w * 0.035, pit - st * 0.2, d * 0.5), sp, isp));
+      return g;
+    }
+
+    /* GAA 的閘極金屬：★ 這是「Gate-All-Around」這個名字的全部意義 ——
+       金屬不只在最上面那片的上方，而是**填進每一對相鄰奈米片之間的縫**，最下面那片的下方也有。
+       只畫在最上面＝畫的是 FinFET。幾何刻意跟 nanoSheet 用同一組 pit／y0：
+       合攏時剛好咬合、拆開時抬起來就看得到那幾片梳齒。*/
+    function gaaGate(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 });
+      const st = h * 0.055, pit = h * 0.19, y0 = -h * 0.04;
+      const gw = w * FET_LG;
+      const slabs = [];
+      // 四層水平金屬：最下面那片的**下方**也有一層（少了它就退回 FinFET）
+      for (let i = 0; i < 4; i++) slabs.push([gw, pit - st, d * 0.72, 0, y0 - pit / 2 + i * pit, 0]);
+      // 兩側的立牆把四層接起來：金屬是一塊，不是四片
+      [-1, 1].forEach(s => slabs.push([gw, pit * 3 + st, d * 0.1, 0, y0 + pit, s * d * 0.31]));
+      g.add(mboxes(slabs, mt));
+      /* 金色面標：中間那片的**四面**（上、下、左、右），放在閘極前方看得到的位置。
+         四片 —— 跟平面的 1 片、FinFET 的 3 片數得出來。*/
+      g.add(fetFaces(K, [
+        [new T.BoxGeometry(w * 0.05, h * 0.018, d * 0.5), [[w * 0.2, y0 + pit + st * 0.6, 0], [w * 0.2, y0 + pit - st * 0.6, 0]]],
+        [new T.BoxGeometry(w * 0.05, st, h * 0.018), [[w * 0.2, y0 + pit, d * 0.26], [w * 0.2, y0 + pit, -d * 0.26]]],
+      ]));
+      return g;
+    }
+
+    /* 12 吋晶圓：圓片 ＋ notch ＋ 規則排列的晶粒。
+       識別特徵有兩個，缺一個就不是晶圓：① 邊緣那一個方位缺口（notch）
+       ② 邊緣那一圈**切不出完整晶粒**的格子（圖上顏色較暗的那些）。
+       p.mirror：拋光片（鏡面，沒有晶粒）。p.dies：一邊幾格（示意，實際數量視晶粒大小而定）。*/
+    function waferDisc(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(cyl(R, h, K.mat(p.mirror ? 0.3 : 0.18, { rough: p.mirror ? 0.08 : 0.3, metal: p.mirror ? 0.55 : 0.34 }), 48));
+      // notch：整根晶碇上刻一條軸向的溝，切完每一片自然都在同一個方位
+      g.add(put(box(R * 0.11, h * 1.3, R * 0.11, K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 })),
+        0, 0, -R + R * 0.02));
+      const n = p.dies || 0;
+      if (n > 0) {
+        const px = (R * 2) / n, full = [], rim = [];
+        for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
+          const x = (-(n - 1) / 2 + i) * px, z = (-(n - 1) / 2 + j) * px;
+          const corner = Math.hypot(Math.abs(x) + px / 2, Math.abs(z) + px / 2);
+          if (corner <= R * 0.97) full.push([x, h * 0.55, z]);
+          else if (Math.hypot(x, z) <= R * 0.9) rim.push([x, h * 0.55, z]);
+        }
+        const gd = px * 0.82, gh = h * 0.42;
+        g.add(instOf(new T.BoxGeometry(gd, gh, gd), K.mat(0.5, { rough: 0.3, metal: 0.4 }), full));
+        // 邊緣那一圈：切不出完整晶粒，所以暗一階（晶圓越大，浪費掉的邊緣比例越小）
+        if (rim.length) g.add(instOf(new T.BoxGeometry(gd, gh, gd), K.mat(-0.32, { rough: 0.6, metal: 0.16 }), rim));
+      }
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 矽晶圓：柴氏（CZ）長晶爐
+       爐體、坩堝、承座三件一律**切掉朝向鏡頭的一段**。理由就是規格書說「不做 3D」的那一句：
+       長晶爐是旋轉對稱體，不切開的話轉一圈看到的每一面都一樣 ——
+       而真正要給人看的（液面、晶碇從湯裡長出來）全部在裡面。*/
+    const CZ_T0 = Math.PI * 0.575, CZ_TL = Math.PI * 1.35;      // 開口約 117°，朝向預設相機那一側
+
+    function czShell(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const st = twoSided(K, K.mat(-0.08, { metal: 0.5, rough: 0.52 }));
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R, R, h * 0.62, 28, 1, true, CZ_T0, CZ_TL), st), 0, -h * 0.12, 0));      // 爐壁
+      // 上方收口：往上收成提拉室（晶碇就是從這裡被拉出去的）
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.22, R, h * 0.2, 28, 1, true, CZ_T0, CZ_TL), st), 0, h * 0.29, 0));
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.22, R * 0.22, h * 0.2, 20, 1, true, CZ_T0, CZ_TL), st), 0, h * 0.45, 0));
+      g.add(put(cyl(R * 1.04, h * 0.06, K.mat(0.06, { metal: 0.82, rough: 0.34 }), 28), 0, -h * 0.46, 0));                 // 底座
+      return g;
+    }
+
+    /* 石英坩堝：裝熔湯的那個碗，一次長晶就報廢一個（消耗品）。
+       ★ 看得到**液面**才是 CZ 提拉爐 —— 碳化矽與氮化鎵用的是昇華法（PVT），爐子裡沒有液面。*/
+    function czCrucible(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2, t = R * 0.07;
+      const m = twoSided(K, K.mat(0.28, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.3, metal: 0.05 }));
+      // 封閉的剖面（內壁 → 越過碗口 → 外壁 → 碗底），繞一圈就是一個有厚度的碗
+      const prof = [[R * 0.02, t], [R * 0.58, t * 0.5], [R * 0.93, h * 0.42], [R * 0.93, h],
+        [R, h], [R, h * 0.4], [R * 0.6, 0], [R * 0.02, 0], [R * 0.02, t]];
+      g.add(new T.Mesh(new T.LatheGeometry(prof.map(a => new T.Vector2(a[0], a[1] - h / 2)), 26, CZ_T0, CZ_TL), m));
+      return g;
+    }
+
+    /* 石墨承座（示意）：包在石英坩堝外面撐住它，底下是會自己轉的軸。
+       ⚠ 這一件本圖沒有查證到可引用的來源，只畫成示意、不寫規格。*/
+    function czSusceptor(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const gm = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.74, metal: 0.12 });
+      const m = twoSided(K, gm);
+      const prof = [[R * 0.04, 0], [R * 0.64, 0], [R, h * 0.44], [R, h], [R * 0.9, h],
+        [R * 0.9, h * 0.48], [R * 0.58, h * 0.1], [R * 0.04, h * 0.1], [R * 0.04, 0]];
+      g.add(new T.Mesh(new T.LatheGeometry(prof.map(a => new T.Vector2(a[0], a[1] - h / 2)), 24, CZ_T0, CZ_TL), m));
+      g.add(put(cyl(R * 0.13, h * 0.7, gm, 12), 0, -h * 0.8, 0));      // 轉軸：坩堝不轉就長不出等徑的單晶
+      return g;
+    }
+
+    /* 熔湯：多晶矽熔成的一鍋湯。畫的是**液面**與中央被晶碇拉起來的那一圈彎液面。
+       顏色走 --dg-m-pwr（暖橘＝高溫），刻意**不加自體發光** —— Andy：「不是電競 RGB」。*/
+    function czMelt(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const hot = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.22, metal: 0.42 });
+      g.add(new T.Mesh(new T.CylinderGeometry(R, R * 0.9, h, 26, 1, false, CZ_T0, CZ_TL), hot));
+      // 彎液面：晶碇把湯拉起來的那一圈（有它才看得出「晶碇是從液面長出來的」）
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.44, R * 0.3, h * 0.42, 22, 1, true, CZ_T0, CZ_TL),
+        twoSided(K, K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), rough: 0.18, metal: 0.5 }))), 0, h * 0.5, 0));
+      return g;
+    }
+
+    /* 晶碇（ingot／boule）：由籽晶往下長成一根圓柱。
+       ★ 識別特徵是那條輪廓線：頸縮（把差排甩掉）→ 肩（放大到目標直徑）→ 等徑段 → 生長界面。
+         畫成一根上下等粗的圓柱就少了 CZ 的識別特徵。
+       另外沿著整根刻一條軸向的溝（notch）—— 切完每一片自然都有同一個方位記號。*/
+    function czIngot(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const si = K.mat(0.16, { rough: 0.22, metal: 0.42 });
+      // profile 由下（生長界面，泡在湯裡）往上（籽晶端）
+      const prof = [[0, 0], [R * 0.86, h * 0.02], [R, h * 0.1], [R, h * 0.58],
+        [R * 0.42, h * 0.74], [R * 0.16, h * 0.82], [R * 0.15, h * 0.97], [0, h]];
+      g.add(new T.Mesh(new T.LatheGeometry(prof.map(a => new T.Vector2(a[0], a[1] - h / 2)), 30), si));
+      g.add(put(box(R * 0.16, h * 0.46, R * 0.16, K.mat(-0.4, { rough: 0.5, metal: 0.2 })), 0, -h * 0.17, -R * 0.96));
+      return g;
+    }
+
+    /* 籽晶與籽晶桿：一顆籽晶沾上熔湯，熔湯就照著它的晶格重新排列 ——
+       整根柱子因此是一顆單晶，不是一堆晶粒。桿子一邊轉一邊**往上**拉
+       （畫成往下就是在把柱子推進湯裡，物理上不成立）。*/
+    function czSeed(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const st = K.mat(0.1, { metal: 0.85, rough: 0.3 });
+      g.add(put(cyl(R * 0.3, h * 0.66, st, 12), 0, h * 0.17, 0));                                                // 提拉桿
+      g.add(put(cyl(R, h * 0.12, st, 14), 0, -h * 0.2, 0));                                                      // 夾頭
+      g.add(put(box(R * 0.9, h * 0.2, R * 0.9, K.mat(0.3, { rough: 0.24, metal: 0.42 })), 0, -h * 0.38, 0));      // 籽晶本體
+      return g;
+    }
+
+    /* 加熱器：環繞在坩堝的**側面**（不是裝在爐子頂上）。
+       真的石墨加熱器是一整條折來折去的帶子，所以上下各一道連接環把立柱接起來。*/
+    function czHeater(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const gm = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.72, metal: 0.12 });
+      const n = 16, at = [];
+      for (let i = 0; i < n; i++) {
+        const a = CZ_T0 + CZ_TL * (i + 0.5) / n;
+        at.push([Math.sin(a) * R, 0, Math.cos(a) * R, 0, a, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(R * 0.22, h * 0.82, R * 0.08), gm, at));
+      const ring = twoSided(K, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.16 }));
+      [-1, 1].forEach(s => g.add(put(new T.Mesh(new T.CylinderGeometry(R, R, h * 0.09, 26, 1, true, CZ_T0, CZ_TL), ring), 0, s * h * 0.45, 0)));
+      return g;
+    }
+
+    /* 一疊切好的晶圓：多線鋸一次切出上百片，所以它是**一疊**不是一片。
+       每一片的 notch 都在同一個方位（切片之前就刻在晶碇上）—— 整疊對齊就是這件事的證據。*/
+    function waferStack(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const n = p.layers || 9;
+      const t = h / (n * 1.9), pit = (h - t) / (n - 1);
+      const m = K.mat(0.24, { rough: 0.2, metal: 0.46 });
+      const nm = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
+      const at = [], nt = [];
+      for (let i = 0; i < n; i++) {
+        const y = -h / 2 + t / 2 + i * pit;
+        at.push([0, y, 0]); nt.push([0, y, -R + R * 0.02]);
+      }
+      g.add(instOf(new T.CylinderGeometry(R, R, t, 34), m, at));
+      g.add(instOf(new T.BoxGeometry(R * 0.1, t * 1.2, R * 0.1), nm, nt));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- HBM：切掉一角的堆疊
+       切法跟 MLCC 一致（x > 0 且 z > 0 那一角挖掉）。切開的理由只有一個：
+       **TSV 是一根貫穿的柱子，不切開就永遠只能相信它在裡面**。
+       hbmLayout 由 hbmCore 與 ubumpRows 共用 —— 凸塊要跟每一層的縫**對得齊**，
+       各自算一套一定會錯開，而「對不齊就電氣上接不起來」正是這張圖要講的事。*/
+    function hbmLayout(h, n) {
+      const t = h / (n * 1.45), pit = t * 1.45;
+      const gaps = [];
+      for (let i = 0; i < n - 1; i++) gaps.push(-h / 2 + i * pit + t + (pit - t) / 2);
+      return { t: t, pit: pit, gap: pit - t, gaps: gaps, y0: -h / 2 };
+    }
+
+    /* HBM 的記憶體晶粒（core die）堆：一層一層疊上去的 DRAM。
+       本圖畫 6 層示意；實際層數依世代而定（查不到可引用的層數說明，所以不寫 8-high／12-high）。*/
+    function hbmCore(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = p.layers || 6;
+      const L = hbmLayout(h, n);
+      const slabs = [];
+      for (let i = 0; i < n; i++) cutSlab(w, L.t, d, L.y0 + i * L.pit + L.t / 2).forEach(b => slabs.push(b));
+      g.add(mboxes(slabs, K.mat(0.1, { rough: 0.36, metal: 0.32 })));
+      for (let i = 0; i < n; i++) g.add(cutFace(K, w, L.t, d, L.y0 + i * L.pit + L.t / 2, 0.1));
+      /* 最上面那一層的 TSV 可以不用（它沒有東西要往上接），所以頂面留一片沒有柱子的區 ——
+         不是裝飾，是「頂層跟其他層不一樣」這件事在畫面上唯一的線索。*/
+      const top = L.y0 + (n - 1) * L.pit + L.t;
+      g.add(mboxes(cutSlab(w * 0.72, L.t * 0.16, d * 0.72, top), K.mat(0.38, { rough: 0.3, metal: 0.4 })));
+      return g;
+    }
+
+    /* base die（邏輯晶粒）：★ 最底下這顆**不是記憶體**，是邏輯晶粒（base die／buffer die）。
+       它比 core die 厚、而且不同色；上面每一層記憶體都透過 TSV 跟它交換資料與控制訊號。*/
+    function hbmBase(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(cutSlab(w, h, d), K.mat(-0.22, { rough: 0.34, metal: 0.36 })));
+      g.add(cutFace(K, w, h, d, 0, -0.22));
+      // 上表面的邏輯區塊：它是一顆**跑邏輯製程**的晶片，不是一片空白的矽
+      const at = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 2; j++) {
+        const x = (-1 + i) * w * 0.28, z = (-0.5 + j) * d * 0.4;
+        if (x > 0 && z > 0) continue;                 // 被切掉的那一角不畫
+        at.push([x, h * 0.53, z]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.2, h * 0.1, d * 0.28), K.mat(0.34, { rough: 0.4, metal: 0.34 }), at));
+      return g;
+    }
+
+    /* 穿矽孔（TSV）：一根根**垂直貫穿**每一層，把上面的記憶體跟底下的邏輯晶粒接起來。
+       ⚠ 柱子畫在被切掉的那一角裡 —— 剖視圖的慣例就是「切開是為了看見裡面那些柱子」。
+       直徑、間距與每一疊的數量查不到可引用的數字，所以只畫關係、不標數字。*/
+    function tsvCols(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.9, rough: 0.3 });
+      const r = Math.min(w, d) * 0.028, at = [];
+      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) at.push([w * (0.12 + i * 0.14), 0, d * (0.12 + j * 0.14)]);
+      g.add(instOf(new T.CylinderGeometry(r, r, h, 8), cu, at));
+      return g;
+    }
+
+    /* 微凸塊（microbump）：夾在每兩層之間。N 層晶粒就有 N−1 排。
+       ★ 它跟 TSV **上下對齊成一條連續的導通柱**，所以 x／z 的排法跟 tsvCols 一模一樣。
+       p.baseRow：多算一排 ＝ base die 與最底下那層 core die 之間那一排。*/
+    function ubumpRows(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = p.layers || 6;
+      const L = hbmLayout(h, n);
+      const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.88, rough: 0.32 });
+      const ys = L.gaps.slice();
+      if (p.baseRow) ys.unshift(-h / 2 - L.gap / 2);
+      const r = Math.min(w, d) * 0.042, at = [];
+      ys.forEach(y => { for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) at.push([w * (0.12 + i * 0.14), y, d * (0.12 + j * 0.14)]); });
+      g.add(instOf(new T.CylinderGeometry(r, r, L.gap * 0.92, 10), cu, at));
+      // 層間填充（示意）：填在每兩層之間、微凸塊周圍。⚠ 沒有查證，不寫材料名稱、不寫製程名稱
+      const fill = [];
+      ys.forEach(y => cutSlab(w * 0.98, L.gap * 0.6, d * 0.98, y).forEach(b => fill.push(b)));
+      g.add(mboxes(fill, K.mat(0, { color: K.css('--dg-abf', '#c3b9a4'), rough: 0.72, metal: 0.05, op: 0.55 })));
+      return g;
+    }
+
+    /* ---------------------------------------------------------------- 第三代半導體：兩顆並排的剖面
+       兩顆元件都切掉同一個角。SiC 是**垂直**元件（汲極在背面）、GaN 是**橫向**元件
+       （三個電極全在上表面）—— 這一組對比是這張圖最重要的視覺事實，
+       而它只有把兩顆擺在一起、而且正反面都看得到，才成立。
+       p.k 給明暗（同一顆元件內靠明暗分層，一張圖一個主色）、p.tint 給 token 名。*/
+    function wbgLayer(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const k = p.k == null ? 0 : p.k;
+      const m = p.tint ? K.mat(0, { color: K.css(p.tint, ''), rough: p.rough, metal: p.metal })
+        : K.mat(k, { rough: p.rough, metal: p.metal });
+      g.add(mboxes(halfSlab(w, h, d), m));
+      g.add(halfFace(K, w, h, d, 0, k));
+      return g;
+    }
+
+    /* p-body 與 n⁺ 源極區：兩個 p-body 把電流夾成一條窄路（JFET 區，只有平面閘才有）。
+       ★ n⁺ 源極區一定被 p-body 包住，不能直接碰到 n⁻ 漂移層 —— 碰到就等於把元件短路掉了。
+       兩個 n⁺ 做到 z = 0 的剖面上（不然它埋在 p-body 裡，從外面一個像素都看不到）。*/
+    function wbgBody(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const blocks = [], nblocks = [];
+      [-1, 1].forEach(s => {
+        const cx = s * w * 0.3;
+        blocks.push([w * 0.34, h, d / 2, cx, 0, -d / 4]);
+        nblocks.push([w * 0.16, h * 0.4, d * 0.44, cx, h * 0.22, -d / 4 + d * 0.03]);
+      });
+      g.add(mboxes(blocks, K.mat(0.34, { rough: 0.44 })));
+      g.add(mboxes(nblocks, K.mat(0.66, { rough: 0.38 })));
+      g.add(halfFace(K, w, h, d, 0, 0.34));
+      return g;
+    }
+
+    /* 閘極氧化層 ＋ 閘極：氧化層夾在閘極與半導體之間，是全圖最薄的一層之一 ——
+       ★ 沒有這一層就不叫 MOSFET（閘極直接碰到半導體那是 JFET 或 HEMT）。*/
+    function wbgGate(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h * 0.3, d, -h * 0.35),
+        K.mat(0, { color: K.css('--dg-cer', '#d3cbb7'), rough: 0.36, metal: 0.04 })));
+      g.add(mboxes(halfSlab(w * 0.96, h * 0.6, d * 0.96, h * 0.2),
+        K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.32 })));
+      return g;
+    }
+
+    /* 正面金屬（源極）：蓋住正面大部分，靠接觸窗下去接到 n⁺ 源極與 p-body。
+       它和閘極在同一面、和背面的汲極分屬兩側 —— 這就是「垂直元件」的定義。*/
+    function wbgTop(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const mt = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.86, rough: 0.3 });
+      g.add(mboxes(halfSlab(w, h * 0.5, d, h * 0.25), mt));
+      const plugs = [];
+      [-1, 1].forEach(s => plugs.push([w * 0.14, h * 0.7, d * 0.4, s * w * 0.3, -h * 0.3, -d * 0.22]));
+      g.add(mboxes(plugs, mt));                        // 接觸窗：金屬不是浮在上面的一片板子
+      g.add(halfFace(K, w, h * 0.5, d, h * 0.25, 0));
+      return g;
+    }
+
+    /* p-GaN 閘（常關做法之一）：在 AlGaN 上長一層 p 型 GaN，
+       內建電位把閘極底下的 2DEG 耗盡，零偏壓時就不導通。
+       ★ p-GaN 一定在**閘極金屬與 AlGaN 之間**。*/
+    function wbgPgan(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(mboxes(halfSlab(w, h, d), K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.5, metal: 0.1 })));
+      g.add(halfFace(K, w, h, d, 0, 0));
+      return g;
+    }
+
+    /* 源極／閘極／汲極：★ 三個電極**全部做在同一個上表面**、背面一個都沒有 ——
+       這就是「橫向元件」。也正因為是橫向，它受表面崩潰限制，主流停在 650V 級。*/
+    function wbgElec(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pads = [];
+      /* 每一筆是 [中心 x, 高, 寬, 底面離零件底面多高]。
+         源極與汲極直接坐在 AlGaN 阻障層上（底面 0）；閘極**站在 p-GaN 上**，
+         所以它的底面要抬高一層 p-GaN 的厚度 —— 閘極金屬直接碰到 AlGaN 就不是 p-GaN 閘了。*/
+      [[-w * 0.33, h * 0.46, w * 0.2, 0], [0, h * 0.54, w * 0.13, h * 0.46],
+        [w * 0.33, h * 0.46, w * 0.2, 0]].forEach(a => {
+        const cx = a[0], hh = a[1], ww = a[2], cy = a[3] + hh / 2 - h / 2;
+        pads.push([ww, hh, d / 2, cx, cy, -d / 4]);
+      });
+      g.add(mboxes(pads, K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.86, rough: 0.3 })));
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -1754,7 +2428,15 @@
       _traceLayer: traceLayer, _fingers: fingers, _ballGrid: ballGrid, _meander: meander, _traceMesh: traceMesh,
       // 第一層的共用件：陣列類一律走這三支收成一個 draw call
       _instOf: instOf, _mboxes: mboxes, _gridXZ: gridXZ, _padField: padField, _pthRow: pthRow,
-      _silk: silk, _microvias: microvias };
+      _silk: silk, _microvias: microvias,
+      /* ---- 半導體鏈四張的字彙（2026-09-23）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      fetp: fetPlanar, fetf: fetFin, nsheet: nanoSheet, gaagate: gaaGate, wafer: waferDisc,
+      czshell: czShell, crucible: czCrucible, susceptor: czSusceptor, melt: czMelt,
+      ingot: czIngot, seedrod: czSeed, heater: czHeater, wstack: waferStack,
+      hbmcore: hbmCore, hbmbase: hbmBase, tsvcol: tsvCols, ubumprows: ubumpRows,
+      wbglay: wbgLayer, wbgbody: wbgBody, wbggate: wbgGate, wbgtop: wbgTop,
+      wbgpgan: wbgPgan, wbgelec: wbgElec,
+      _cutSlab: cutSlab, _cutFace: cutFace, _twoSided: twoSided, _hbmLayout: hbmLayout };
   }
 
   /* ---------------------------------------------------------------- 建場景 */
