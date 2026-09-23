@@ -2054,10 +2054,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      寬度釘在 168px：再寬的話 24 顆族群的碰撞框橫向就排不下，力導向只好整片縮小。
      標籤數量由 industry.js 的收斂策略決定（節點越多每顆掛越少），CSS 這邊只負責排版。*/
 .cglab{position:absolute;font-size:12.5px;font-weight:600;color:var(--cg-ink);
-  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:230px;
+  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:250px;
   display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:5px;overflow:hidden;
   transition:opacity .15s}
-.cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+/* 族群名可以被截短，**個股標籤不准被截短**（`flex:none`）——
+   兩邊都可收縮的話會變成「台…／聯…／全…」那種一個字都讀不出來的東西，
+   那比少列一檔還糟。名字截短還看得懂（而且完整名在下拉清單與右側資訊欄裡）。*/
+.cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:48px}
 /* 檔數跟族群名同一行（C5）：獨立一顆「還有 N 檔」膠囊會自己佔掉整整一行，
    24 顆族群就憑空多 24 行，個股標籤全部被擠掉 —— 實測過，所以擠在這裡。*/
 .cglab .cgcnt{font-style:normal;font-weight:500;font-size:11.5px;color:var(--cg-ink-3);margin-left:5px}
@@ -2068,9 +2071,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    12 × 0.92 ＝ 11.04px 才剛好守得住「手機不得小於 11px」那條線（12.5 → 11.5 也可以，
    但標籤要排得下，所以取剛好守得住的那一個）。
    底色用半透明的族群色，一眼看得出這幾檔屬於哪一顆球。*/
-.cgtags{display:flex;flex-wrap:nowrap;gap:4px;min-width:0}
+.cgtags{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
 .cgtag{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
-  white-space:nowrap;max-width:146px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;flex:none;
   background:var(--cg-tag-bg,rgba(255,255,255,.08));border:1px solid var(--c);
   border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--cg-ink);cursor:pointer}
 .cgtag:hover{border-color:var(--c);color:var(--cg-ink-hi)}

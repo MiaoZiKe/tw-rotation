@@ -712,10 +712,14 @@
     let timer = null;
     let api = null;
     const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); };
+    /* ★ 順序不能反：**先把使用者拖到的值讀出來，再 `stop()`**。
+       `stop()` 會呼叫 `paint()`，而 `paint()` 會把 `<input>` 的值寫回目前的 `pHi`／`days` ——
+       先 stop 的話這一行就把使用者剛拖出來的值蓋掉了，讀回來永遠是舊值，
+       於是「拖了完全沒反應」（實測：拖到 24，讀回來還是 30）。*/
     // 右把手：拖它＝換截止日，**長度不變**（除非撞到軸的左端，那時只好把長度縮短）
-    hi.oninput = () => { stop(); pHi = +hi.value; if (pHi < days) days = Math.max(1, pHi); paint(); fire(); };
+    hi.oninput = () => { const v = +hi.value; stop(); pHi = v; if (pHi < days) days = Math.max(1, pHi); paint(); fire(); };
     // 左把手：拖它＝換這一段有多長（截止日不動）
-    lo.oninput = () => { stop(); days = Math.max(1, pHi - +lo.value); paint(); fire(); };
+    lo.oninput = () => { const v = +lo.value; stop(); days = Math.max(1, pHi - v); paint(); fire(); };
     hi.onchange = lo.onchange = save;
     const slide = (d) => {
       const nx = Math.max(days, Math.min(PMAX, pHi + d));
@@ -1192,7 +1196,9 @@
     const el = $('#mktLive'); if (!el) return;
     if (!MUD.on) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    if (MUD.busy && !MUD.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
+    /* ⚠ 順序：**錯誤要排在「抓取中」前面**。抓失敗時 `MUD.at` 永遠是 0，
+       先判 `!MUD.at` 的話畫面會一直停在「抓取中…」，使用者完全看不到失敗原因，
+       也按不到「一鍵退回盤後」。*/
     if (MUD.err) {
       el.innerHTML = `<b class="bad">即時抓不到報價</b>　${fmt.esc(MUD.err)}`
         + '　·　下面畫的仍然是<b>盤後</b>那一份（圖沒有變空白）'
@@ -1200,6 +1206,10 @@
       const b = $('#mktLiveBack'); if (b) b.onclick = () => mudOff();
       return;
     }
+    /* 還沒有任何一輪成功過（`at` 是 0）＝第一輪還在路上。
+       ★ 不可以用 `MUD.busy` 當條件：`mudToggle()` 會先畫一次狀態列、再去跑第一輪，
+         那一瞬間 `busy` 還是 false，畫面就會先閃一格「涵蓋率 —%」的假資訊。*/
+    if (!MUD.at) { el.innerHTML = '<b>即時</b>　抓取中…'; return; }
     const uni = (D.stocks || []).length || 0;
     el.innerHTML = (MUD.intraday
       ? `<b class="live">即時</b>　報價 ${fmt.esc(MUD.quoteAt || '—')}　每分鐘更新`
@@ -1234,7 +1244,10 @@
   }
   function mudToggle() {
     if (MUD.on) return mudOff();
-    MUD.on = true; MUD.err = ''; MUD.busy = true;
+    /* ⚠ 這裡**不可以**先把 `MUD.busy` 設成 true —— `mudTick()` 開頭就是
+       `if (!MUD.on || MUD.busy) return;`，設了它第一輪會直接被自己擋掉，
+       畫面永遠停在「抓取中…」（實測踩過）。*/
+    MUD.on = true; MUD.err = '';
     MUD.intraday = !window.Live || window.Live.isIntraday();
     drawMarket('updown');                      // 先把「抓取中…」畫出來，不要讓人按了沒反應
     mudTick();
