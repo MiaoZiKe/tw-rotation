@@ -2346,12 +2346,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 /* ---- G4：手機字級下限 12px（`docs/mobile_audit.md` 量到 8 頁共 400+ 處破線）----
    根因是 CSS 裡有 60 餘處寫死 11px／11.5px —— 桌機勉強可讀，390px 的手上讀不到。
-   ⚠ 這裡**只抬手機**，桌機維持原樣：11.5px 的次要標籤在 1440px 上是刻意的層次，
-     一起抬上去會把桌機的資訊密度弄壞（那不是他要修的東西）。
+   ★★ 2026-09-24 改成**桌機也一起抬**（`docs/ui_polish_spec.md` 第一階段第 8 項，
+     CEO 2026-09-24 指派）。原本這裡寫「只抬手機、桌機是刻意的層次」——
+     量出來的事實推翻了那句話：1440px 上仍有 **132 個節點**小於 12px、16 種選擇器，
+     最密的是 `em`(11.5px×26)、`.lb`／`.sg`(11.5px×20)、`.cnt`(11.5px×13)。
+     11.5px 在 1440px 的螢幕上一樣是可讀性下限以下，而且 Andy 自己講過「文字太小」。
+     ⚠ 代價：桌機的像素會變（字變大 4%），那是**刻意的改動**不是退化 ——
+       所以桌機像素比對的報告要把這一項單獨列出來，不可以混進「零差異」裡。
    ⚠ 刻意不含 `.chainmap .co .sub` 與 `.chainmap .fct` —— 那兩個是 SVG 文字，
      位置由 industry.js 依字級算好，抬字級會直接壓到隔壁的節點。留到下一版連同排版一起改。*/
-@media (max-width:820px){
-  .evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
+.evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
   .rotdd .ddbar .muted,.rotdd .ddpanel>.ddopt em,.rotdd .ddbtn,
   .m3-tag,.m3-night .note,.m3-chart .m3-night .note,[id^='m3c-'][data-fallback]::before,
   .zwrap>.zbadge,.chainchips button em,.rotquads .rq em,
@@ -2366,8 +2370,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .rotfilter .muted,.rottools .muted,h4.subh small,
   .tk-st,.tk-f code,.tk-sp,
   .dlv-tag,.dlv-w b,.dlv-ver,.dlv-none,.dlv-b,
-  .segtools .muted,.relsw button{font-size:12px}
-}
+.segtools .muted,.relsw button{font-size:12px}
 
 /* ---- G1／G9：頂欄右半邊在手機被整個裁掉 ----
    量到的事實（390px）：`.topbar` 需要 528px 卻只有 390px，而它是 `overflow:hidden` ——
@@ -2716,7 +2719,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   /* 季節性的月份熱力圖：桌機 640px，390px 上它會把下面那行結論（`#seasonNote`）
      推出畫面（量到圖 132～772、結論 780～874，可視只到 742）。
      收到 500px 之後兩個一起進得來 —— 「看圖不用再滑下去找結論」。*/
-  body.miaon #seasonHeat{min-height:500px}
+  /* `!important` 是必要的：`#seasonHeat` 的 640px 寫在 index.html 的 inline style 上，
+     沒有 `!important` 的 class 規則權重壓不過 inline。*/
+  body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
   body.miaon #skHead{flex-wrap:wrap}
   body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
   body.miaon #skPx{max-width:100%;position:sticky;top:58px;z-index:20;margin:0 -12px;padding:8px 12px;

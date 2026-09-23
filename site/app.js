@@ -1200,8 +1200,17 @@
     const old = document.getElementById('ovRotKpi');
     if (!head || !mIsM()) { if (old) old.remove(); return; }
     let cnt = null;
-    try { cnt = rotStageCounts(); } catch (e) { return; }
-    if (!cnt || !Object.keys(cnt).length) return;
+    try { cnt = rotStageCounts(); } catch (e) { cnt = null; }
+    /* ⚠ `rotStageCounts()` 讀的是 `rotF3` —— 那是**資金流向頁**渲染時才會被設起來的。
+       只開總覽就不會有值（實測：四顆晶片整排不出現）。
+       所以退回到已經載進來的 `D.flow_v3`，**同一個算法**（`rotRows` ＋ `ROT_BOARD_WIN`），
+       不是另外寫一套統計。*/
+    if (!cnt || !Object.keys(cnt).length) {
+      const f3 = D.flow_v3;
+      const rows = (f3 && f3.rrg) ? rotRows(f3.rrg, ROT_BOARD_WIN) : [];
+      if (!rows.length) { if (old) old.remove(); return; }
+      cnt = {}; rows.forEach(r => { cnt[r.stage] = (cnt[r.stage] || 0) + 1; });
+    }
     let box = old;
     if (!box) { box = document.createElement('div'); box.className = 'rotkpi'; box.id = 'ovRotKpi'; head.after(box); }
     const html = STAGE_ORDER.map(k => `<span class="rk" style="--c:${STAGE[k].color}" title="${fmt.esc(STAGE[k].sub)}">`
