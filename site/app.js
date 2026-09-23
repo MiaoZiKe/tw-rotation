@@ -1366,8 +1366,9 @@
       if (!view) return;
       // 桌機：把手機留下的痕跡全部清掉（`.mpager`／`.mmore`／`.mfold` 都是真的節點）
       if (!mIsM()) {
-        document.querySelectorAll('.mpager').forEach(el => el.remove());
+        document.querySelectorAll('.mpager,.mspine,.mnext,#ovRotKpi,#ovEvents').forEach(el => el.remove());
         document.querySelectorAll('.mmore,.mfold').forEach(el => el.remove());
+        miaStock();                                  // 把搬過去的 #skPx 搬回桌機的原位
         document.querySelectorAll('.mp-off,.mm-off,.mf-off').forEach(el =>
           el.classList.remove('mp-off', 'mm-off', 'mf-off'));
         document.body.classList.remove('miaon');
@@ -1377,6 +1378,7 @@
       if (key === 'stock') miaStock();
       if (key === 'industry') miaChain();
       if (key === 'flow') miaFlow();
+      if (key === 'overview') { miaRotKpi(); miaEvents(); }
       miaPager(key, prefer);
       miaMore();
     } catch (e) { /* 資訊架構壞掉不該讓整頁掛掉 */ }
@@ -7310,6 +7312,11 @@
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
     $('#evCount').textContent = items.length;
+    /* 手機第④步「有沒有理由不進場」用的是**同一份**清單（見 miaEvents）——
+       抽屜是 position:fixed 的浮層，沒辦法同時當一屏的內容，所以那裡另外長一張卡片，
+       但資料只有這一份，不會出現「抽屜寫 43 則、卡片寫別的數字」。*/
+    window.twEventItems = items;
+    if (window.twMobileIA) { try { window.twMobileIA(location.hash.replace('#', '').split('/')[0] || 'overview'); } catch (e) { /* 忽略 */ } }
     /* 手機版「⋯」清單裡的今日事件也要同一個數字（G1／G9）——
        事件鈕在手機上是被藏起來的，數字只寫在它身上等於手機看不到。*/
     { const mc = $('#mmEvCount'), mb = $('#moreCount');

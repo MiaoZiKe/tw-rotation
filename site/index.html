@@ -2631,6 +2631,51 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     font-size:13px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
   .mpager>button.on{background:var(--panel-3);color:var(--ink);
     border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
+  /* ---- ①-b 主軸動線（`.mspine`）：四個問題排成一條線 ------------------------
+     ★ CEO 2026-09-24 拍板：首頁＝一條決策動線
+     （① 錢往哪跑 → ② 貴不貴 → ③ 何時進場 → ④ 別進的理由），
+     那正是 `CLAUDE.md` 第一段寫的 M1→M2→M3→M4，只是以前沒有在介面上講出來。
+     視覺上要有**順序感**（序號 ＋ 一句話 ＋ 最下面的「下一步」），
+     不是四個並排的分頁讓人自己猜。*/
+  .mspine{position:sticky;top:0;z-index:31;display:flex;gap:6px;margin:0 0 6px;padding:8px 2px 6px;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    background:var(--bg);box-shadow:0 8px 12px -10px rgba(0,0,0,.6)}
+  .mspine::-webkit-scrollbar{display:none}
+  .mspine>button{flex:0 0 auto;min-height:52px;max-width:200px;padding:6px 13px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
+    text-align:left;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+  .mspine>button b{font-size:13.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+  .mspine>button em{font-size:12px;font-style:normal;color:var(--ink-3);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:176px}
+  .mspine>button.on{background:var(--panel-3);color:var(--ink);border-color:var(--focus);
+    box-shadow:inset 0 0 0 1px var(--focus)}
+  .mspine>button.on em{color:var(--ink-2)}
+  /* 有主軸時，下層分段列不再自己釘在 0（會蓋住主軸），改釘在主軸下面 */
+  .mspine+.mpager{top:66px;z-index:30}
+  /* 「下一步」：動線的方向感靠它 —— 看完一屏就有一顆鈕帶去下一屏，不必回頭找分頁 */
+  .mnext{display:block;width:100%;min-height:48px;margin:14px 0 4px;padding:12px;
+    border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
+    color:var(--ink);font-size:14px;font-weight:700;letter-spacing:.02em}
+  .mnext:active{background:var(--panel-3)}
+
+  /* ---- ①-c 第①步的關鍵數字：四個象限各有幾個族群 ---------------------------
+     判準是「圖的關鍵數字要緊鄰圖」。總覽那張小時鐘（compact）**刻意不畫象限卡**
+     （桌機的設計，不准動），所以手機在標題下面補這一列。
+     顏色吃 `--c`（由 JS 帶入 `STAGE[k].color`），紅漲綠跌那一套沒有動。*/
+  .rotkpi{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .rotkpi .rk{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:4px 10px;
+    border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+    background:color-mix(in srgb,var(--c) 12%,transparent);
+    color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .rotkpi .rk b{color:var(--c);font-size:15px;font-variant-numeric:tabular-nums}
+
+  /* ---- ④ 今日事件卡（手機專屬，資料與抽屜同一份）---------------------------- */
+  .ovev{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .ovev .ev{display:block;padding:9px 2px;border-bottom:1px solid var(--line);min-height:44px}
+  .ovev .ev .t{display:block;color:var(--ink);font-size:13.5px;line-height:1.45}
+  .ovev .ev .m{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:var(--ink-3);font-size:12px}
+  .ovev .ev .m .cat{color:var(--ink-2)}
+
   /* 被分段導覽收起來的那幾塊。`!important` 是必要的：這些元素裡有好幾個
      自己帶 inline style 或 `display:grid` 的既有規則，權重壓不過就會藏不掉。*/
   .mp-off{display:none!important}
