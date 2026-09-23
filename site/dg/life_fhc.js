@@ -86,7 +86,8 @@
        左塔的刻度線是實線、等距、貼著塔邊 —— 表示簽約當下就鎖死，不會動；
        右塔的刻度線是虛線、而且畫一條「今天的市價」游標橫在上面 —— 表示每天都在動。
      這就是整張圖的命題，用兩種線型講完，不必寫一段文字。*/
-  const LX = 20, LW = 238, RX = 402, RW = 238, TY = 92, TH = 196;
+  const LX = 20;                                             // 全寬那幾排（匯率、落點、註解）的左緣
+  const TWX = 44, LW = 214, RX = 402, RW = 214, TY = 92, TH = 196;   // 兩座塔：左緣退到 44、右緣收到 616
   const MX = 274, MW = 112;                                  // 中間的利差柱
 
   const LIAB = [                                             // 左塔由下往上：最舊、成本最高的保單在最底下
@@ -123,18 +124,18 @@
   function balance() {
     const g = [];
     g.push(T(LX, TY - 42, '負債端：保單責任準備金', 'hd'));
-    g.push(T(LX, TY - 24, '成本在簽約當下就鎖死（預定利率／宣告利率），之後市場怎麼變都不會改', 'sub'));
+    g.push(T(LX, TY - 24, '成本在簽約當下就鎖死，之後不會改', 'sub'));
     g.push(T(RX + RW, TY - 42, '資產端：投資部位', 'hd', 'end'));
-    g.push(T(RX + RW, TY - 24, '每天按市價評價：利率、股價、匯率全部照進來', 'sub', 'end'));
-    g.push(tower(LIAB, LX, LW, 'fix'));
+    g.push(T(RX + RW, TY - 24, '每天按市價評價：利率、股價、匯率全照進來', 'sub', 'end'));
+    g.push(tower(LIAB, TWX, LW, 'fix'));
     g.push(tower(ASSET, RX, RW, 'float'));
     // 左塔的「鎖」標記：一條實線的固定尺 ＋ 鎖頭圖示（兩條線 ＋ 半圓）
-    g.push(part('lf_lock', LN(`M${LX - 12},${TY} V${TY + TH}`, C.fix, 2)
-      + R(LX - 24, TY + TH / 2 - 9, 18, 15, 'var(--dg-step-f)', 'part', 3)
-      + LN(`M${LX - 19},${TY + TH / 2 - 9} v-5 a4.5,4.5 0 0 1 9,0 v5`, C.fix, 1.6)));
+    g.push(part('lf_lock', LN(`M${TWX - 12},${TY} V${TY + TH}`, C.fix, 2)
+      + R(TWX - 26, TY + TH / 2 - 9, 19, 15, 'var(--dg-step-f)', 'part', 3)
+      + LN(`M${TWX - 21},${TY + TH / 2 - 9} v-5 a4.9,4.9 0 0 1 9.8,0 v5`, C.fix, 1.6)));
     // 右塔的「今天的市價」游標：一條會走的橫線
     g.push(part('lf_mark', LN(`M${RX - 6},${TY + 74} H${RX + RW + 16}`, C.eq, 1.8, ' class="flow" stroke-dasharray="6 5"')
-      + T(RX + RW + 18, TY + 78, '今天', 'sub', null, `fill:${C.eq}`)));
+      + T(RX + 6, TY - 6, '今天的市價', 'sub', null, `fill:${C.eq}`)));
     // 中間：利差柱
     const my0 = TY + 24, my1 = TY + TH - 18;
     g.push(part('lf_spread', frame(MX, my0, MW, my1 - my0)
@@ -142,12 +143,12 @@
       + LN(`M${MX + 12},${my0 + 34} H${MX + MW - 12}`, C.bondF, 2.4)
       + LN(`M${MX + 12},${my1 - 36} H${MX + MW - 12}`, C.fix, 2.4)
       + T(MX + MW / 2, my0 + 20, '利差', 'lbl', 'middle', `fill:${C.nv}`)
-      + T(MX + MW / 2, my0 + 60, '投資報酬率', 'sub', 'middle', `fill:${C.bondF}`)
+      + T(MX + MW / 2, my0 + 60, '投資報酬率', 'lbl', 'middle', `fill:${C.bondF}`)
       + T(MX + MW / 2, my0 + 76, '減', 'sub', 'middle')
-      + T(MX + MW / 2, my0 + 92, '保單成本率', 'sub', 'middle', `fill:${C.fix}`)
+      + T(MX + MW / 2, my0 + 92, '保單成本率', 'lbl', 'middle', `fill:${C.fix}`)
       + T(MX + MW / 2, my1 - 18, '利差益／利差損', 'sub', 'middle', `fill:${C.nv}`)));
     // 兩側往中間的光束
-    g.push(fx.beams([{ d: `M${LX + LW},${TY + TH / 2} H${MX}`, color: C.fix, w: 1.6 },
+    g.push(fx.beams([{ d: `M${TWX + LW},${TY + TH / 2} H${MX}`, color: C.fix, w: 1.6 },
       { d: `M${RX},${TY + TH / 2} H${MX + MW}`, color: C.bondF, w: 1.6 }], { flow: true }));
     return g.join('');
   }
@@ -305,29 +306,30 @@
       <text class="cap ext" x="0" y="0">這是一座刻意畫歪的天平。左邊是負債端：保單的成本在簽約當下就被預定利率鎖死，之後市場怎麼變都不會改，所以它的刻度是實線、等距、掛著一把鎖。右邊是資產端：投資部位每天按市價評價，利率、股價、匯率全部照進來，所以它的刻度是虛線，而且有一條「今天」的游標在上面移動。★ 壽險的錢之所以跟利率與匯率綁這麼緊，答案就在「兩端的刻度不同步」這件事上 —— 中間那根柱子是利差（投資報酬率減保單成本率），長期低於零就是利差損。中段是匯率：資產在國外、帳在台灣，避險要成本、外匯價格變動準備金有上限、不避險就全吃。下面那一排最實用：同樣一件市場波動，有的走損益表（EPS 會動）、有的只走淨值（EPS 不動但資本適足會動）。</text>
 
       <!-- ================= §1 主畫面（永遠看得到） ================= -->
-      ${fx.shadows(`<rect x="${LX + 4}" y="${TY + 4}" width="${LW}" height="${TH}" rx="6"/><rect x="${RX + 4}" y="${TY + 4}" width="${RW}" height="${TH}" rx="6"/>`)}
+      ${fx.shadows(`<rect x="${TWX + 4}" y="${TY + 4}" width="${LW}" height="${TH}" rx="6"/><rect x="${RX + 4}" y="${TY + 4}" width="${RW}" height="${TH}" rx="6"/>`)}
       ${balance()}
       ${currency()}
       ${dest()}
-      ${T(LX, 566, '示意圖，非實物比例｜兩座塔的分層與高度不代表任何一家的實際部位比重，只表示「哪一類比較大」的相對關係。國外投資 45% 是保險法第 146 條之 4 的法定上限（另有經核准不計入限額的項目），不是任何一家的實際比重。', 'cap')}
+      ${T(LX, 566, '示意圖，非實物比例｜兩座塔的分層與高度不代表任何一家的實際部位比重，只表示「哪一類比較大」的相對關係。', 'cap')}
+      ${T(LX, 584, '國外投資 45% 是保險法第 146 條之 4 的法定上限（另有經核准不計入限額的項目），不是任何一家的實際比重。', 'cap')}
 
       <!-- ================= 說明卡片（HTML；左欄＝負債與匯率，右欄＝資產與落點） ================= -->
-      ${card({ part: 'lf_old', no: 1, side: 'l', color: C.risk, ax: LX + 10, ay: TY + TH - 30, title: '★ 早年高預定利率保單：解不掉的包袱', sub: ['預定利率是簽約當下就寫進契約的，之後市場利率再低也改不了，壽險公司也不能片面解約。', '這就是「利差損」的來源：投資收益率如果長期低於這些舊保單的成本，差額要自己補。'] })}
-      ${card({ part: 'lf_mid', no: 2, side: 'l', color: C.fix, ax: LX + 10, ay: TY + TH - 84, title: '中期傳統保單：成本仍然是固定的', sub: ['成本比早年低，但一樣鎖死。負債端整體的成本率是這幾層加權出來的，而且只會隨著舊保單到期慢慢往下。'] })}
-      ${card({ part: 'lf_new', no: 3, side: 'l', color: C.prem, ax: LX + 10, ay: TY + TH - 134, title: '近年保障型與分紅型：成本較低', sub: ['接軌新制之後主推的方向 —— 保障成分高、長期保證成分低，對資本的壓力比較小。'] })}
-      ${card({ part: 'lf_inv', no: 4, side: 'l', color: C.mute, ax: LX + 10, ay: TY + TH - 176, title: '投資型保單：風險由保戶承擔', sub: ['帳戶價值隨投資標的走，壽險公司賺的是管理與通路費用，不吃利差 —— 所以它不在「錯配」這個故事裡。'] })}
-      ${card({ part: 'lf_lock', no: 5, side: 'l', order: 5, color: C.fix, ax: LX - 15, ay: TY + TH / 2, title: '★ 這把鎖就是整張圖的命題', sub: ['負債端的刻度是鎖死的：簽下去那一刻成本就定了，市場怎麼晃都不會跟著動。', '右邊的刻度卻每天在動。兩端不同步，就是壽險帳面波動的全部來源。'] })}
-      ${card({ part: 'lf_spread', no: 6, side: 'l', order: 6, color: C.nv, ax: MX + 8, ay: TY + TH / 2, title: '利差：投資報酬率減保單成本率', sub: ['正的叫利差益、負的叫利差損。壽險的獲利引擎就是這一段，但它是「長期平均」的概念，不是單季數字。'] })}
-      ${card({ part: 'lf_fbond', no: 7, side: 'r', color: C.bondF, ax: RX + RW - 10, ay: TY + TH - 42, title: '★ 國外債券：為什麼部位這麼大', sub: ['國內的債券規模與收益率撐不起壽險的資金量，所以大量配置到海外。保險法第 146 條之 4 訂的法定上限是保險業資金的 45%，另有經核准不計入限額的項目。', '★ 這一塊同時承擔利率風險與匯率風險 —— 兩個變數綁在同一個部位上。'] })}
-      ${card({ part: 'lf_dbond', no: 8, side: 'r', color: C.dom, ax: RX + RW - 10, ay: TY + TH - 98, title: '國內債券與放款：沒有匯率風險', sub: ['收益率較低，但不必承擔匯率與避險成本。國內外的配置比例，本質上是在「收益率」與「匯率風險」之間選。'] })}
-      ${card({ part: 'lf_eq', no: 9, side: 'r', color: C.eq, ax: RX + RW - 10, ay: TY + TH - 142, title: '股票與基金：評價每天跟著盤勢走', sub: ['這一塊讓壽險股在大盤大漲大跌時特別敏感 —— 台股一好，壽險金控的帳面就跟著漂亮。'] })}
-      ${card({ part: 'lf_mark', no: 10, side: 'r', order: 10, color: C.eq, ax: RX + RW + 14, ay: TY + 74, title: '★ 這條線每天在動', sub: ['右邊整座塔的價值是按今天的市價算出來的。左邊那座塔今天跟十年前是同一個數字 —— 兩張尺不同步，帳面就會晃。'] })}
-      ${card({ part: 'lf_hedge', no: 11, side: 'l', order: 11, color: C.buf, ax: LX + 110, ay: FY + 106, title: '避險：把風險換掉，但要付錢', sub: ['用換匯或遠期契約把匯率風險換掉。★ 避險成本會直接從投資收益裡扣，台美利差擴大時成本會變貴。'] })}
-      ${card({ part: 'lf_reserve', no: 12, side: 'l', order: 12, color: C.fx_, ax: LX + 313, ay: FY + 106, title: '外匯價格變動準備金：法定的水庫', sub: ['依金管會〈人身保險業外匯價格變動準備金應注意事項〉提存：匯損時可以沖抵、有匯兌利益時回沖回去。', '★ 它有累積上限，不是無限大的緩衝 —— 水庫見底的時候，匯損就會直接見骨。'] })}
-      ${card({ part: 'lf_naked', no: 13, side: 'r', order: 13, color: C.risk, ax: LX + 516, ay: FY + 106, title: '不避險的部位：沒成本，但全吃', sub: ['台幣貶值時是帳面利益，升值時就是實打實的匯損。所以台幣的方向本身就是壽險股的一個變數。'] })}
-      ${card({ part: 'lf_d_pl', no: 14, side: 'l', order: 14, color: C.nv, ax: LX + 100, ay: DY + 90, title: '走損益表的那些', sub: ['利差益、已實現的資本利得、避險成本、匯兌損益 —— 這些會動到每股盈餘，所以單季 EPS 可以被幾筆處分或匯率一口氣推高或壓低。'] })}
-      ${card({ part: 'lf_d_oci', no: 15, side: 'r', order: 15, color: C.bondF, ax: LX + 310, ay: DY + 90, title: '★ 只走淨值、不走損益表的那些', sub: ['分類在「透過其他綜合損益按公允價值衡量」的債券，評價變動直接打進淨值，EPS 看不出來。', '這就是為什麼看壽險股要看淨值與股價淨值比，不能只看本益比。'] })}
-      ${card({ part: 'lf_d_rbc', no: 16, side: 'r', order: 16, color: C.buf, ax: LX + 520, ay: DY + 90, title: '淨值變薄之後會發生什麼', sub: ['資本適足吃緊 → 可能要增資、發次順位債或調整部位，也會影響金控能配出多少股利。所以淨值不是只有帳面意義。'] })}
+      ${card({ part: 'lf_old', no: 1, side: 'l', color: C.risk, ax: TWX + LW - 18, ay: TY + TH - 30, title: '★ 早年高預定利率保單：解不掉的包袱', sub: ['預定利率是簽約當下就寫進契約的，之後市場利率再低也改不了，壽險公司也不能片面解約。', '這就是「利差損」的來源：投資收益率如果長期低於這些舊保單的成本，差額要自己補。'] })}
+      ${card({ part: 'lf_mid', no: 2, side: 'l', color: C.fix, ax: TWX + LW - 18, ay: TY + TH - 84, title: '中期傳統保單：成本仍然是固定的', sub: ['成本比早年低，但一樣鎖死。負債端整體的成本率是這幾層加權出來的，而且只會隨著舊保單到期慢慢往下。'] })}
+      ${card({ part: 'lf_new', no: 3, side: 'l', color: C.prem, ax: TWX + LW - 18, ay: TY + TH - 134, title: '近年保障型與分紅型：成本較低', sub: ['接軌新制之後主推的方向 —— 保障成分高、長期保證成分低，對資本的壓力比較小。'] })}
+      ${card({ part: 'lf_inv', no: 4, side: 'l', color: C.mute, ax: TWX + LW - 18, ay: TY + TH - 176, title: '投資型保單：風險由保戶承擔', sub: ['帳戶價值隨投資標的走，壽險公司賺的是管理與通路費用，不吃利差 —— 所以它不在「錯配」這個故事裡。'] })}
+      ${card({ part: 'lf_lock', no: 5, side: 'l', order: 5, color: C.fix, ax: TWX - 17, ay: TY + 14, title: '★ 這把鎖就是整張圖的命題', sub: ['負債端的刻度是鎖死的：簽下去那一刻成本就定了，市場怎麼晃都不會跟著動。', '右邊的刻度卻每天在動。兩端不同步，就是壽險帳面波動的全部來源。'] })}
+      ${card({ part: 'lf_spread', no: 6, side: 'l', order: 6, color: C.nv, ax: MX + MW - 14, ay: TY + 38, title: '利差：投資報酬率減保單成本率', sub: ['正的叫利差益、負的叫利差損。壽險的獲利引擎就是這一段，但它是「長期平均」的概念，不是單季數字。'] })}
+      ${card({ part: 'lf_fbond', no: 7, side: 'r', color: C.bondF, ax: RX + RW + 24, ay: TY + TH - 42, title: '★ 國外債券：為什麼部位這麼大', sub: ['國內的債券規模與收益率撐不起壽險的資金量，所以大量配置到海外。保險法第 146 條之 4 訂的法定上限是保險業資金的 45%，另有經核准不計入限額的項目。', '★ 這一塊同時承擔利率風險與匯率風險 —— 兩個變數綁在同一個部位上。'] })}
+      ${card({ part: 'lf_dbond', no: 8, side: 'r', color: C.dom, ax: RX + RW + 24, ay: TY + TH - 98, title: '國內債券與放款：沒有匯率風險', sub: ['收益率較低，但不必承擔匯率與避險成本。國內外的配置比例，本質上是在「收益率」與「匯率風險」之間選。'] })}
+      ${card({ part: 'lf_eq', no: 9, side: 'r', color: C.eq, ax: RX + RW + 24, ay: TY + TH - 142, title: '股票與基金：評價每天跟著盤勢走', sub: ['這一塊讓壽險股在大盤大漲大跌時特別敏感 —— 台股一好，壽險金控的帳面就跟著漂亮。'] })}
+      ${card({ part: 'lf_mark', no: 10, side: 'r', order: 10, color: C.eq, ax: RX - 6, ay: TY + 74, title: '★ 這條線每天在動', sub: ['右邊整座塔的價值是按今天的市價算出來的。左邊那座塔今天跟十年前是同一個數字 —— 兩張尺不同步，帳面就會晃。'] })}
+      ${card({ part: 'lf_hedge', no: 11, side: 'l', order: 11, color: C.buf, ax: LX + 192, ay: FY + 58, title: '避險：把風險換掉，但要付錢', sub: ['用換匯或遠期契約把匯率風險換掉。★ 避險成本會直接從投資收益裡扣，台美利差擴大時成本會變貴。'] })}
+      ${card({ part: 'lf_reserve', no: 12, side: 'l', order: 12, color: C.fx_, ax: LX + 395, ay: FY + 58, title: '外匯價格變動準備金：法定的水庫', sub: ['依金管會〈人身保險業外匯價格變動準備金應注意事項〉提存：匯損時可以沖抵、有匯兌利益時回沖回去。', '★ 它有累積上限，不是無限大的緩衝 —— 水庫見底的時候，匯損就會直接見骨。'] })}
+      ${card({ part: 'lf_naked', no: 13, side: 'r', order: 13, color: C.risk, ax: LX + 598, ay: FY + 58, title: '不避險的部位：沒成本，但全吃', sub: ['台幣貶值時是帳面利益，升值時就是實打實的匯損。所以台幣的方向本身就是壽險股的一個變數。'] })}
+      ${card({ part: 'lf_d_pl', no: 14, side: 'l', order: 14, color: C.nv, ax: LX + 186, ay: DY + 14, title: '走損益表的那些', sub: ['利差益、已實現的資本利得、避險成本、匯兌損益 —— 這些會動到每股盈餘，所以單季 EPS 可以被幾筆處分或匯率一口氣推高或壓低。'] })}
+      ${card({ part: 'lf_d_oci', no: 15, side: 'r', order: 15, color: C.bondF, ax: LX + 396, ay: DY + 14, title: '★ 只走淨值、不走損益表的那些', sub: ['分類在「透過其他綜合損益按公允價值衡量」的債券，評價變動直接打進淨值，EPS 看不出來。', '這就是為什麼看壽險股要看淨值與股價淨值比，不能只看本益比。'] })}
+      ${card({ part: 'lf_d_rbc', no: 16, side: 'r', order: 16, color: C.buf, ax: LX + 606, ay: DY + 14, title: '淨值變薄之後會發生什麼', sub: ['資本適足吃緊 → 可能要增資、發次順位債或調整部位，也會影響金控能配出多少股利。所以淨值不是只有帳面意義。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['兩座塔的分層與高度不代表任何一家的實際部位比重，只表示「哪一類比較大」的相對關係；刻度線與游標是示意，不對應任何數值。'] })}
       ${note({ side: 'l', order: 97, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「金融」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
       ${note({ side: 'r', order: 98, title: '一句話記住這一格', lines: ['壽險賣的是「幾十年後才要付的承諾」，卻要用「今天的市價」記帳。承諾的價格鎖死、市價每天在動 —— 利率與匯率之所以是主變數，就是因為它們同時決定了這兩張尺。'] })}

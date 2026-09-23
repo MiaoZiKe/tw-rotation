@@ -2331,7 +2331,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
-    <button class="tab" data-view="tasks">任務板</button>
+    <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
+         `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
+         直接貼 `…/#tasks` 仍然打得開，工作流產出的 `tasks.json` 也照舊。
+         全站沒有別的地方連到 `#tasks`（已 grep 過），所以收掉入口不會產生死連結。 -->
   </nav>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
   <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分，另外要一顆手動更新）。
@@ -2384,13 +2387,23 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="chainchips" id="heatChips"></div>
         <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
         <div class="hpanel" id="heatPanel" hidden></div></div>
+      <!-- ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點，
+             下方的紅框處改成昨日的資金去向分流圖」）。這張卡片現在回答**兩個不同的問題**：
+             上半「誰在轉強」（時鐘）、下半「昨天的錢分給了誰」（分流圖）。
+             以前下半是同樣四段的清單（`#rotMini`），和時鐘講的是同一件事，等於把版面用掉兩次。
+             · 「⤢ 放大」整顆移除：完整版（拉Bar／篩選／播放）就在「資金流向」那一頁。
+             · 圓圈變大：容器 300 → 360px，`renderRotClock` 的 compact 半徑 66% → 82%。 -->
       <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
-        <div class="row" style="gap:8px">
-          <button class="btn small" id="rotMiniZoomBtn" title="放大這張圖">⤢ 放大</button>
-          <button class="howbtn" data-how="rotm">怎麼看 ?</button></div></div>
+        <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rotm" hidden></div>
-        <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
-        <div class="stageboard compact" id="rotMini"></div></div>
+        <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
+        <h4 class="subh ovflowh">昨日資金去向 <small id="ovFlowSub">昨天收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群</small></h4>
+        <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div>
+        <!-- 口徑說明不可以因為「圖變簡單」就拿掉（和資金流向頁那張桑基圖是同一份資料）：
+             族群成交值對同時掛兩個板塊的股票做過 1/n 拆分，所以族群加總會略小於逐檔加總。 -->
+        <div class="note" style="margin-top:6px">線越粗＝流過的成交值越大（這張圖<b>只用粗細</b>表示流量，沒有動畫）。
+          只畫到族群那一層，個股請點族群名。族群成交值對同時掛兩個板塊的股票已照 <b>1/n 拆分</b>，
+          所以族群加總會略小於逐檔加總。</div></div>
     </div>
     <div class="grid g12 eqpair" style="margin-top:16px">
       <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
@@ -2462,25 +2475,30 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
       <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
            data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
       <div class="rotfilter" data-rf="flow"></div>
-      <!-- 共用時間列：#rotBack「看哪一天」決定**兩張圖的截止日**，#rankDays 決定排行往回看幾天。
+      <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
+           原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
+           合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
+             右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
+           容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
            窄畫面自動換行（見 .rottime）。 -->
       <div class="rottime">
-        <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去；排行也會以這一天當結尾"></div>
-        <div id="rankDays" title="排行往回看幾天（結尾就是左邊「看哪一天」指到的那一天）"></div>
+        <div id="rotBack" title="一條桿講完一段時間：右把手＝看哪一天（時鐘大圈停的那一天，也是排行的截止日），左把手＝這一段的起點（排行往回看幾天）"></div>
         <div class="rottools" id="rotTools"></div>
       </div>
       <div class="grid g21">
         <div class="rotpane">
           <h4 class="subh">輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h4>
-          <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
-          <!-- ★ 2026-09-23（Andy：「下方的輪動階段需要與上方的輪動時鐘合併…做完後下方的輪動階段即可移除」）
-               「最近 N 個交易日換階段的族群」那一排從被移除的那張卡搬到這裡。
-               它講的是「誰剛跨過象限」——是一句跨象限的話，塞進任何單一象限的展開面板都會漏掉另一半，
-               所以留在時鐘正下方當常駐的一行。 -->
-          <div class="rotmove" id="rotMove"></div>
-          <!-- 點時鐘四周的象限卡就在這裡展開那一段有哪些族群（強弱／動能／佔比）。
-               放在時鐘下面而不是浮在圖上：浮層會蓋住點與軌跡，蓋到右邊就把「資金流向排行」弄不見。 -->
-          <div class="hpanel stagepanel" id="stagePanel" hidden></div>
+          <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
+               象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
+               盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。
+               它仍然只佔「時鐘那一欄」，右邊的「資金流向排行」是 `.g21` 的另一格，沒有被蓋到。
+               ≤1100px 時 `.rotstagerow` 退回單欄，面板掉到時鐘下面（CSS）。
+               ★ 同一批把「最近 5 個交易日換階段的族群」（`#rotMove`）整排移除（Andy 指定）—— 
+                 換段資訊改由展開面板每一列的「改善→領先」徽章承擔。 -->
+          <div class="rotstagerow">
+            <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+            <div class="hpanel stagepanel" id="stagePanel" hidden></div>
+          </div>
         </div>
         <div class="rotpane">
           <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
@@ -2539,28 +2557,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div id="conc" class="chart tall"></div>
         <div class="hpanel" id="concSide" hidden></div></div>
     </div>
-    <!-- 估值篩選：Andy 要「本益比需要多可篩選功能 全部在一起」 -->
-    <div class="card" style="margin-top:16px">
-      <div class="row spread"><h3>估值篩選 <small id="valSub">本益比／股價淨值比／ROE 一起篩</small></h3>
-        <button class="howbtn" data-how="val">怎麼看 ?</button></div>
-      <div class="howtxt" id="how-val" hidden></div>
-      <div class="vfilters" id="valFilters">
-        <label>族群<select id="vGroup"><option value="">全部</option></select></label>
-        <label>市場<select id="vMarket"><option value="">全部</option><option value="TWSE">上市</option><option value="TPEX">上櫃</option></select></label>
-        <label>本益比<input id="vPeLo" type="number" placeholder="最低" step="1"><span>～</span><input id="vPeHi" type="number" placeholder="最高" step="1"></label>
-        <label>股價淨值比 ≤<input id="vPb" type="number" placeholder="不限" step="0.1"></label>
-        <label>ROE ≥<input id="vRoe" type="number" placeholder="不限" step="1"><span>%</span></label>
-        <label>市值 ≥<input id="vCap" type="number" placeholder="不限" step="10"><span>億</span></label>
-        <label class="chk"><input id="vBelow" type="checkbox">只看低於族群中位</label>
-        <label class="chk"><input id="vProfit" type="checkbox" checked>排除虧損</label>
-        <button class="btn small" id="vReset">清除條件</button>
-        <span class="vcount" id="vCount"></span>
-      </div>
-      <div class="grid g2" style="margin-top:12px">
-        <div id="valScatter" class="chart tall"></div>
-        <div class="tw cap-lg"><table id="valTable"><thead></thead><tbody id="valBody"></tbody></table></div>
-      </div>
-    </div>
+    <!-- ★ 2026-09-23（Andy：「估值篩選 拿掉」）：「估值篩選」整張卡片已移除
+         （本益比／股價淨值比／ROE／市值／族群一起篩 ＋ 散點圖 ＋ 右側表格 ＋ 清除條件）。
+         app.js 的 `renderVal()`／`VF`／`HOW.val` 與 `.vfilters` 的 CSS 一起清掉，
+         這一頁也不再載入 `fundamental.json`（只有它在讀）。
+         ⚠ 總覽頁的「族群估值」（`#gval`）是**另一張圖**，Andy 沒有要求移除，留著。 -->
   </section>
 
   <!-- ================= 產業熱力圖 =================

@@ -1610,9 +1610,57 @@
         if (cw && cw < w * 0.62) box.scrollLeft = Math.max(0, (w - cw) / 2);
         if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
       };
+      fitCanvas(svg, box, w);
       center();
-      requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
+      requestAnimationFrame(() => { fitCanvas(svg, box, w); center(); });   // 剛換過 innerHTML 時 clientWidth 可能還是 0
+      /* 視窗寬度在 410～659 這一段變動時要重算（Andy 常常把瀏覽器縮成半邊）。
+         只觀察裝畫布的那一層：它的寬度就是唯一的輸入。*/
+      if (box._dgRO) { try { box._dgRO.disconnect(); } catch (e) { /* 忽略 */ } }
+      try {
+        box._dgRO = new ResizeObserver(() => { fitCanvas(svg, box, w); center(); });
+        box._dgRO.observe(box);
+      } catch (e) { /* 舊瀏覽器沒有 RO 就算了，換圖／換分頁時仍會重算 */ }
     }
+  }
+  /* ★ 2026-09-23：修「容器寬 410～659px 時剖析圖右半邊被切掉」。
+
+     怎麼發生的：`externalize()`（diagrams.js）把 svg 的 `width` 與 `min-width` 釘成 viewBox 寬
+     （這一批 v2 圖是 660），`.dgcanvas` 是 `overflow-x:auto`；
+     而上面那段「捲到正中央」的止血只在 `clientWidth < native × 0.62`（＝409px）才啟動。
+     **410～659 這一整段兩邊都沒接到**：不縮、不置中、scrollLeft 是 0，
+     畫面上就是主剖面的右半邊不見了、右側章節列被切在框緣。
+     實測（ai_adv_packaging，事件抽屜開著）：視窗 980px → 畫布欄寬 486px、被切掉 174px；
+     1050px → 切 104px；1150px → 切 4px。23 張 v2 圖全中，因為這是框架層的行為。
+
+     為什麼不是「直接把 svg 縮到欄寬」：縮了字會跟著等比例變小，
+     12px 是硬下限（DECISIONS #226，Andy 抱怨過三次「文字太小」），縮到 0.74 倍就破線。
+     所以**縮畫布的同時把 `--dg-fs-*` 反向放大**：畫布縮 k 倍、字級 token 除以 k，
+     兩者相乘之後畫面上的實際字級**一點都沒變**。
+
+     只動 0.62～1.0 這一段（就是那道裂縫本身）：
+       · k ≥ 1（1440px、以及任何塞得下的欄寬）→ 一行都不動，維持原尺寸。
+       · k < 0.62（390px 手機）→ 交給既有的「捲到正中央」，行為完全不變。
+     這樣「修這件事最大的風險是把 1440 與 390 弄壞」在結構上就不可能發生。*/
+  const DG_FS_VARS = ['--dg-fs-ttl', '--dg-fs-hd', '--dg-fs-lbl', '--dg-fs-min'];
+  function fitCanvas(svg, box, w) {
+    if (!svg || !box || !w) return;
+    const cw = box.clientWidth;
+    if (!cw) return;
+    const k = cw / w;
+    if (k >= 0.995 || k < 0.62) {          // 塞得下，或窄到交給置中止血 —— 兩種都退回原尺寸
+      svg.style.width = w + 'px'; svg.style.minWidth = w + 'px';
+      DG_FS_VARS.forEach(v => svg.style.removeProperty(v));
+      return;
+    }
+    /* 字級的基準值要在**覆寫之前**從 :root 讀（科技 12px 起、閱讀 13px 起，
+       切主題時會換一組）—— 讀 svg 自己的話第二次就會讀到上一輪放大過的值，愈放愈大。*/
+    const rs = getComputedStyle(document.documentElement);
+    DG_FS_VARS.forEach(v => {
+      const base = parseFloat(rs.getPropertyValue(v));
+      if (base) svg.style.setProperty(v, (base / k).toFixed(2) + 'px');
+    });
+    svg.style.minWidth = '0';
+    svg.style.width = Math.floor(cw) + 'px';
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -2355,7 +2403,12 @@
       // 節點總面積不准超過畫布的三分之一，不然 390px 上會糊成一片
       let area = 0;
       nodes.forEach(n => { const R = CG_RMIN + (CG_RMAX - CG_RMIN) * n.k; area += Math.PI * Math.pow(R + 26, 2); });
-      const k = Math.min(1, Math.sqrt(cw * chh * 0.34 / Math.max(1, area))) * SK;
+      /* ★ C5：掛了個股標籤之後，球旁邊要留得下那一排字 —— 所以**球本身先讓一點**：
+         節點總面積上限從畫布的 34% 降到 26%。這是「先犧牲節點大小，最後才犧牲資訊量」
+         那條順序的第一步，而且面積比例（半徑開根號那條硬規則）一點都沒有被破壞：
+         每一顆都乘同一個數，排序與相對大小完全不變。*/
+      const cap = tagBudget ? 0.26 : 0.34;
+      const k = Math.min(1, Math.sqrt(cw * chh * cap / Math.max(1, area))) * SK;
       nodes.forEach(n => {
         n.R = Math.max(4, (CG_RMIN + (CG_RMAX - CG_RMIN) * n.k) * k);
         // 泡泡的呼吸浮動：每顆週期不一樣才不會變成整齊劃一的「一起跳」
@@ -2532,7 +2585,12 @@
            那也正好是 `_preview.py` 判紅用的同一份東西 —— 量它就不會再有「模型說沒事、畫面在疊」。
          代價：每一級都要真的畫一次、量一次（3 級 ≈ 3 次 reflow，實測 20ms 以內），
          只在 relayout 時發生（進頁面、改視窗寬、換風格），拖曳與點選都不會走到。*/
-      const BUDGETS = mobile() ? [16, 8, 0] : [40, 20, 0];
+      /* 級距切細一點（桌機 6 級）：級距越細，越有機會找到「掛得上標籤而且完全不重疊」的那一級。
+         實測 390px 是唯一撐不住的寬度 —— 24 顆族群在 390 寬的畫布上，
+         **一個標籤都不掛**本來就已經有 6 組族群名互相疊（既有狀態，不是這批造成的），
+         掛了會變成 21 組。所以最後一級保留 0：手機上退回只有族群名，
+         個股名改從「點族群 → 下拉清單」拿（那條路在手機上本來就比標籤好按）。*/
+      const BUDGETS = mobile() ? [16, 10, 5, 0] : [40, 28, 18, 10, 5, 0];
       let need = 0, best = null;
       for (let bi = 0; bi < BUDGETS.length; bi++) {
         tagBudget = BUDGETS[bi]; tagPlan();
