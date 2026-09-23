@@ -128,3 +128,53 @@ Andy 要的是「點擊 AI 伺服器進去就直接看到第一個族群的 2D �
 - `_preview.py` 照跑（2 分鐘，抓文字重疊與多寬度溢出）。
 - 只動 `site/**` 就可以跳過 pytest；`scripts/_uitest.py` 也在例外名單裡。
   用 `git diff --name-only` 判定，不准靠記憶。
+
+---
+
+# 追加（Andy 同一輪第二則訊息）
+
+> 幫我更新一般電子(工業自動化：一個會動的軸拆開看、被動保護：過流與過壓元件、電容器：鋁電解與固態電容剖面、電感·電阻·石英：板子上另外三種一塊錢的零件，各自有一個最容易選錯的規格)以及半導體(晶圓代工：一顆電晶體與一個製程迴圈、矽晶圓：從熔湯到一片鏡面、HBM：堆疊起來的記憶體與底下那顆邏輯晶粒、IC 封裝剖析：晶粒 → 凸塊 → 中介層 → 封裝體、第三代半導體：SiC 守高壓、GaN 搶高頻 —— 台股卡在哪一段)內，所有族群2D圖 呈現風格都需要Follow AI Server 族群內2D圖，並且需要適當的調整及填充版面間隔，不許有空白
+>
+> 圖一這邊的標籤只需要顯示:以前族群名稱即可後面說明在文章內有就好
+
+## W4 — 一般電子鏈六張 2D 圖改成 AI 伺服器族群圖的風格
+
+| 檔位 | 檔案 |
+|---|---|
+| `motion_control` ＋ `machine_tool` | `site/dg/motion_control.js` |
+| `resistor_protect` | `site/dg/circuit_protection.js` |
+| `capacitor` | `site/dg/alum_cap.js` |
+| `power_inductor` | `site/dg/power_inductor.js` |
+| `panel` | `site/dg/panel.js` |
+| `mlcc` | `site/diagrams.js`（跟 `aiServer` 同檔，併入 W2 做） |
+
+## W5 — 半導體鏈五張 2D 圖改成同一套風格
+
+`foundry` / `silicon_wafer` / `hbm` / `ai_adv_packaging` / `wide_bandgap`
+（各自在 `site/dg/` 的同名檔，`ai_adv_packaging` 的 3D 場景是 `semiconductor`）
+
+## W4／W5 共同規格
+
+**風格基準 ＝ AI 伺服器鏈的族群圖**：`site/dg/server_psu.js`、`site/dg/liquid_cooling.js`、
+`site/dg/switch_wireless.js`。共用材質介面 `D.fx.glass / beam / beams / shadows /
+glowDefs / molecule`、`--dg-*` token、`--dg-fs-min`（12px）與 16px 行距。
+
+1. **不准寫死色碼**：動手前後各跑一次 `grep -nE '#[0-9a-fA-F]{3,6}'` 盤點，對照寫進註解。
+2. 深淺兩模式都要保留色彩。
+3. **版面不許有空白**（Andy 這次特別講）：左右填滿，1440／800／390 三個寬度都要看過。
+4. **既有互動一個都不准掉**：`data-seg` / `data-part` / 點零件亮同色 / 連 3D 的 `data-alias`。
+   改之前先抄下每張圖的 `data-part` 清單，改完逐一比對，一個都不能少或改名 ——
+   這十一張裡有十張有對應 3D 場景，alias 斷掉就是「3D 點零件對不上」。
+5. 註解保留原脈絡，改成「原本…，2026-09-23 Andy 要求改成…」的形式。
+
+## W3-4 — 剖析圖分頁標籤只顯示族群名稱
+
+分頁現在印的是完整的 `DS.name(id)`（「晶圓代工：一顆電晶體與一個製程迴圈」），
+一排分頁被說明撐爆。改成只取全形「：」或半形 `:` 前面那一段（「晶圓代工」）。
+
+- **只改分頁列的顯示**，`SLOTS` 裡的 `name` 本身不動 —— `#dgTitle`、`title=` 提示、
+  圖別選單 `dgMenuHtml()` 的卡片標題都還在用完整名稱。
+- 分頁的 `title=` 維持現況（滑過去看得到完整說明與 `DS.q(id)`）。
+  Andy 說的是「說明在文章內有就好」，不是要把說明刪掉。
+- 「族群總覽」分頁不受影響。
+- 分頁變短之後，`.nbsw` 那排的換行與間距要在 1440／800／390 看一眼，不要留一整排空白。
