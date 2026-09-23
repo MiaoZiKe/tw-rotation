@@ -827,7 +827,13 @@
           + 'background:rgba(10,16,32,.78);color:#a9b6d6;border:1px solid rgba(62,224,255,.35)';
         this.el.appendChild(el);
       }
-      el.style.color = C.text; el.style.background = hexa(C.bg.indexOf('#') === 0 ? C.bg : '#0a1020', 82);
+      /* 顏色跟著主題走。不要用 hexa(C.bg) 去算 —— `--chartbg` 在淺色主題有可能是
+         rgb()/rgba() 字串而不是 #hex，算出來會退回深色底，配上淺色主題的深色文字
+         就是深底深字（＝看不見）。直接依主題給兩組固定值，最不會出事。*/
+      const lightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+      el.style.color = C.text;
+      el.style.background = lightTheme ? 'rgba(255,255,255,.94)' : 'rgba(10,16,32,.82)';
+      el.style.borderColor = C.line;
       el.textContent = msg || '';
       el.style.display = msg ? '' : 'none';
       clearTimeout(this._noteT);
