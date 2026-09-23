@@ -681,30 +681,61 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
    以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
 .linkrow.gchips{display:flex;flex-wrap:wrap;gap:5px 6px}
-/* ★ 2026-09-20（E3＋F3）：族群晶片列是**唯一**的族群選擇器，所以全部族群都要列出來；
-   但排行卡在 2:1 的版面裡只剩三分之一寬，整排會排成十幾列、把卡片撐得比時鐘還高
-   （實測 1440px：右卡 1180px vs 左卡 980px，左邊下面空一大塊）。
-   照全站同一套作法處理「列不完」：固定高度＋自己的捲軸（DECISIONS #182）。
-   ★ 2026-09-21 起這兩排都住在 `.rotfilter` 裡，實際生效的高度是下面那條 96px；
-     這裡留著的是 overflow 與 align-content（下面那條靠它們）。*/
-.linkrow.gchips[data-sync="n2"]{max-height:150px;overflow-y:auto;align-content:flex-start}
-/* ★ 2026-09-21（Andy：「族群篩選幫我改到 全部、半導體、… 下方…並且需要縮小一點
-   我只是需要篩選選取」）：晶片列搬進 .rotfilter、掛在產業鏈 seg 的正下方。
-   · `flex-basis:100%` 逼它自己佔一整行 —— .rotfilter 是 flex-wrap，
-     不這樣做的話晶片會和「只看前 10 大」擠在同一行、順序看起來就亂了。
-   · 尺寸整體縮一級（12px → 11px、內距減半、圓角縮小）：這是功能鈕不是閱讀內容。
-   · 高度上限 150 → 96px（約 4 列）：它現在在圖的**上面**，太高會把圖整個推下去。 */
-.rotfilter .linkrow.gchips{flex:0 0 100%;max-height:96px;margin:1px 0 2px;gap:4px 5px}
-/* ★ 產業鏈那一排：`.seg` 預設是 inline-flex **不換行**，7 顆鈕塞進「資金流向排行」那張
-   只有三分之一寬的卡片時，flex 會把每一顆壓到剩一個字寬 ——「其他產業別」變成
-   直排的五個字（量到：右卡 seg 高 129px，左卡只有 27px）。
-   這一排是功能鈕，寧可折成兩行也不要把字壓成直的。 */
-.rotfilter .seg.rotchain{display:flex;flex-wrap:wrap;max-width:100%;row-gap:3px}
-.rotfilter .seg.rotchain button{white-space:nowrap;flex:0 0 auto}
-.rotfilter .gchip{font-size:11px;border-radius:7px}
-.rotfilter .gchip .pick{font-size:11px;padding:1px 3px 1px 6px}
-.rotfilter .gchip .go{padding:1px 5px 1px 3px}
-@media (max-width:900px){ .rotfilter .linkrow.gchips{max-height:84px} }
+/* ★ 2026-09-23：`.rotfilter` 裡的族群晶片列與產業鏈 seg 已換成兩層下拉（見下面的 .rotdd），
+   原本那五條專屬樣式（`.rotfilter .linkrow.gchips` / `.rotfilter .seg.rotchain` /
+   `.rotfilter .gchip*` 與 `[data-sync="n2"]` 的高度上限）全部刪掉，不留死樣式。
+   ⚠ 下面那組**通用** `.gchip` 不能刪 —— 全站其他圖表的篩選晶片（`filterChips()`）還在用。*/
+
+/* ★ 2026-09-23（Andy：「圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材…
+   並非所有族群都在同一個下拉清單，而是對應族群出現對應個股」）：
+   `.rotfilter` 裡那一排晶片換成**兩層下拉**（第一層產業鏈、第二層該鏈底下的族群）。
+
+   · 為什麼不用原生 `<select multiple>`：它在手機上是系統的全螢幕選單、吃不到站上的主題色，
+     也放不下族群的顏色點。所以自己做 checkbox 面板。
+   · `position:relative` + 絕對定位的面板 → 面板**浮在圖上面**，不會把時鐘推下去。
+   · 390px 的防溢出是三件事一起：`max-width:calc(100vw - 32px)`（左右各留 16px 的邊）、
+     `left:0;right:auto`（永遠往右展開，不會伸出螢幕左邊）、以及面板自己的捲軸。*/
+.rotdd{position:relative;display:inline-flex}
+.rotdd .ddbtn{appearance:none;display:inline-flex;align-items:center;gap:6px;max-width:min(340px,100%);
+  padding:4px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
+  color:var(--ink-2);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
+.rotdd .ddbtn b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:10px}
+.rotdd .ddbtn:hover{border-color:var(--cyan);color:var(--ink)}
+.rotdd.open .ddbtn{border-color:var(--cyan);color:var(--ink);background:var(--panel)}
+.rotdd .ddpanel{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:210px;
+  max-width:calc(100vw - 32px);max-height:290px;overflow:hidden;display:flex;flex-direction:column;
+  padding:6px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel);
+  box-shadow:0 10px 26px rgba(0,0,0,.35)}
+.rotdd .ddpanel[hidden]{display:none}
+.rotdd .ddbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:2px 4px 6px;
+  border-bottom:1px solid var(--line-2);margin-bottom:4px}
+.rotdd .ddbar .muted{font-size:11px}
+.rotdd .ddbar .btn{margin-left:auto}
+.rotdd .ddbar .btn+.btn{margin-left:0}
+.rotdd .ddlist{overflow-y:auto;scrollbar-width:thin;padding-right:2px}
+.rotdd .ddlist::-webkit-scrollbar{width:6px}
+.rotdd .ddlist::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
+/* 第一層（產業鏈）的選項：整列可點，右邊寫這條鏈底下有幾個族群 —— 選之前就知道會篩掉多少 */
+.rotdd .ddpanel>.ddopt{display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
+  background:transparent;color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;
+  padding:6px 9px;border-radius:7px;cursor:pointer}
+.rotdd .ddpanel>.ddopt em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
+.rotdd .ddpanel>.ddopt:hover{background:var(--panel-2);color:var(--ink)}
+.rotdd .ddpanel>.ddopt.on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
+/* 第二層（族群）：checkbox ＋ 族群顏色點 ＋ 「→ 進族群頁」。
+   `→` 刻意放在 <label> 外面，不然點它會連帶把勾選也切掉（瀏覽器原生行為）。*/
+.rotdd .ddopt.chk{display:flex;align-items:center;gap:6px;border-radius:7px;padding:0 6px 0 0}
+.rotdd .ddopt.chk:hover{background:var(--panel-2)}
+.rotdd .ddopt.chk label{display:flex;align-items:center;gap:7px;flex:1 1 auto;min-width:0;
+  padding:5px 4px 5px 8px;cursor:pointer;font-size:12.5px;color:var(--ink-2)}
+.rotdd .ddopt.chk input{accent-color:var(--c,var(--cyan));flex:none;margin:0}
+.rotdd .ddopt.chk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  border-left:3px solid var(--c,var(--cyan));padding-left:6px}
+.rotdd .ddopt.chk label:hover .nm{color:var(--ink)}
+.rotdd .ddopt.chk .go{flex:none;color:var(--ink-3);text-decoration:none;padding:3px 4px;font-size:12px}
+.rotdd .ddopt.chk .go:hover{color:var(--ink)}
+@media (max-width:420px){ .rotdd .ddbtn{font-size:11.5px;max-width:calc(100vw - 40px)} }
 .gchip{display:inline-flex;align-items:center;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
   border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}
 .gchip .pick{appearance:none;border:0;background:transparent;color:var(--ink-2);
@@ -799,6 +830,45 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    改成「四段軌道」：底下一條圓角的漸層軌，四段依序坐在上面、彼此用箭頭接起來，
    每一段是圓角玻璃面板（顏色取自該階段），成員是圓角膠囊。
    形狀本身就在說「錢是照這個順序繞圈」，不用讀文字才懂。 */
+/* ★ 2026-09-23：時鐘四周的四顆象限卡（＝原本下方那塊「輪動階段」）。
+   位置由 app.js 依極座標算成像素（和 ECharts 原本畫象限標籤的位置一樣），
+   所以這裡只負責長相。`.rotquads` 本身 pointer-events:none —— 蓋在圖上但不擋滑鼠，
+   只有四顆卡片自己吃得到點擊，圖上的點與軌跡照樣 hover 得到。
+   顏色一律 `--c`（app.js 傳 STAGE[k].color 進來），不在 CSS 裡另寫一套色碼，
+   切淺色主題時跟著 STAGE 的 getter 一起換。*/
+#rotClock{position:relative}
+.rotquads{position:absolute;inset:0;pointer-events:none;z-index:3}
+.rotquads .rq{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;
+  display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
+  appearance:none;font-family:inherit;font-size:13px;font-weight:700;padding:3px 9px;border-radius:999px;
+  color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel));
+  border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
+.rotquads .rq em{font-style:normal;font-weight:600;font-size:11px;font-family:var(--mono);color:var(--ink-2)}
+.rotquads .rq:hover{background:color-mix(in srgb,var(--c) 26%,var(--panel));border-color:var(--c)}
+.rotquads .rq.on{background:color-mix(in srgb,var(--c) 34%,var(--panel));border-color:var(--c);
+  color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent)}
+.rotquads .rq.on em{color:var(--ink)}
+@media (max-width:900px){ .rotquads .rq{font-size:12px;padding:2px 7px} }
+/* 展開面板：沿用全站的 .hpanel（固定高度＋自己的捲軸），不另開第三種清單樣式 */
+.stagepanel .ph{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
+.stagepanel .ph i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.stagepanel .ph b{font-size:15px}
+.stagepanel .ph .n{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.stagepanel .ph .sp{flex:1}
+.stagepanel .sd{font-size:11.5px;margin:6px 0 2px;line-height:1.55}
+/* 清單本體：一列一個族群，和原本看板那四格的 li 用同一套（.stage ul li 的樣式在下面） */
+.stagepanel ul.ms{display:block;max-height:250px;overflow-y:auto;margin-top:8px;padding-right:4px}
+.stagepanel ul.ms li{display:flex;align-items:baseline;gap:7px;padding:5px 8px;border-radius:7px;
+  cursor:pointer;font-size:12.5px;color:var(--ink-2)}
+.stagepanel ul.ms li:hover{background:var(--panel-2);color:var(--ink)}
+.stagepanel ul.ms li.none{cursor:default;color:var(--ink-3)}
+.stagepanel ul.ms li .g{font-weight:600}
+.stagepanel ul.ms li .m{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.stagepanel ul.ms li .ar.up{color:var(--up)} .stagepanel ul.ms li .ar.dn{color:var(--down)}
+.stagepanel ul.ms li .ar.fl{color:var(--ink-3)}
+.stagepanel ul.ms li .jmp{font-size:10.5px;padding:1px 6px;border-radius:999px;color:var(--c);
+  border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 12%,transparent)}
+@media (max-width:420px){ .stagepanel ul.ms li{flex-wrap:wrap} .stagepanel ul.ms li .m{margin-left:0;width:100%} }
 .stageboard{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:20px;padding-top:16px}
 .stageboard::before{content:"";position:absolute;left:2%;right:2%;top:4px;height:6px;border-radius:999px;
   background:linear-gradient(90deg,var(--fall),var(--cyan),var(--rise),var(--amber),var(--fall));opacity:.5}
@@ -2168,12 +2238,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
-/* ---- 剖析圖工具列浮在畫布內右下角（Andy 2026-09-23：「這邊的功能都需要在圖內右下角」）----
+/* ---- 剖析圖工具列浮在畫布內**右上角**（Andy 2026-09-23 第二批：「設定列改到右上角」）----
    為什麼掛在 `#dgSec` 而不是 `#dgBody`：按「收合圖」時 `#dgBody` 是 display:none，
    工具列住在裡面會一起消失 —— 連「展開剖析圖」那顆鈕都不見，圖就再也開不回來。
-   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。*/
+   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。
+   ★ 由 bottom 改成 top 的只有「往哪一邊量」這件事：placeDgTools 的死區與補算一個都沒有拿掉，
+     那是量到工具列掉到圖外 25px 之後才補的（見 site/industry.js 的註解）。*/
 #dgSec{position:relative}
-#dgTools{position:absolute;right:12px;bottom:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
+#dgTools{position:absolute;right:12px;top:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
   justify-content:flex-end;max-width:calc(100% - 24px);
   background:var(--dg-card-f,rgba(14,20,36,.66));backdrop-filter:var(--dg-card-blur,blur(8px));
   border:1px solid var(--line-2);border-radius:11px;padding:5px 7px;
@@ -2182,9 +2254,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #dgTools[hidden]{display:none}
 #dgSec.dgfold #dgTools{position:static;opacity:1;background:none;backdrop-filter:none;border:0;
   padding:0;margin-top:8px;max-width:none}
-/* 窄畫面：貼底緣排成一列，可左右捲，不准溢出容器 */
+/* 窄畫面：排成可左右捲的一列，不准溢出容器。
+   ★ top 不在這裡寫死 —— 位置一律由 placeDgTools 量「圖的上緣離區塊上緣多遠」算出來，
+     寫死一個數字會壓到「產品剖析圖」那一行標題（標題列高度會隨字級與換行變動）。*/
 @media (max-width:800px){
-  #dgTools{left:12px;right:12px;bottom:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+  #dgTools{left:12px;right:12px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
     -webkit-overflow-scrolling:touch}
   #dgTools .pill{flex:none}
 }
@@ -2351,6 +2425,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="rotpane">
           <h4 class="subh">輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h4>
           <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+          <!-- ★ 2026-09-23（Andy：「下方的輪動階段需要與上方的輪動時鐘合併…做完後下方的輪動階段即可移除」）
+               「最近 N 個交易日換階段的族群」那一排從被移除的那張卡搬到這裡。
+               它講的是「誰剛跨過象限」——是一句跨象限的話，塞進任何單一象限的展開面板都會漏掉另一半，
+               所以留在時鐘正下方當常駐的一行。 -->
+          <div class="rotmove" id="rotMove"></div>
+          <!-- 點時鐘四周的象限卡就在這裡展開那一段有哪些族群（強弱／動能／佔比）。
+               放在時鐘下面而不是浮在圖上：浮層會蓋住點與軌跡，蓋到右邊就把「資金流向排行」弄不見。 -->
+          <div class="hpanel stagepanel" id="stagePanel" hidden></div>
         </div>
         <div class="rotpane">
           <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
@@ -2359,10 +2441,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         </div>
       </div>
     </div>
-    <div class="card" style="margin-top:16px"><div class="row spread"><h3>輪動階段 <small>四段循環與換段的族群</small></h3></div>
-      <div class="cyclebar" id="rotCycle"></div>
-      <div class="rotmove" id="rotMove"></div>
-      <div class="stageboard" id="rotBoard"></div></div>
+    <!-- ★ 2026-09-23：「輪動階段」整張卡片已移除（Andy 指定）。
+         那四顆階段卡和時鐘的四個象限本來就是同一件事的兩種畫法 ——
+         卡片是「這一段裡有誰」，象限是「這一段在盤面上的哪個方向」；
+         分成上下兩塊，使用者得自己把「左上角那片藍」和「下面第一張藍卡」對起來。
+         現在象限標籤本身就是那四顆卡（見 app.js 的 rotQuadChips / renderStagePanel）。
+         · `#rotCycle`（改善→領先→轉弱→落後 ↩ 那一列）跟著移除：時鐘順時針轉一圈就是同一件事，
+           而「怎麼看 ?」裡已經把順序寫清楚了。
+         · `#rotMove` 保留，搬到時鐘正下方。
+         · 總覽頁的 `#rotMini`（.stageboard.compact）與 N10 那組四段卡**不受影響**，
+           所以 .stageboard / .cyclebar 的樣式都留著。 -->
     <!-- ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
          「族群佔比河流」整張卡片（圖 ＋『最近 N 天』時間週期拉Bar ＋ 截止日回放）已移除。
          它回答的問題（這 60 天主流換過幾次）和下面的「資金集中度」重疊，

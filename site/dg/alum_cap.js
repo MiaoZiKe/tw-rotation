@@ -1,6 +1,21 @@
 /* 電容器：鋁電解與固態電容剖面 —— docs/diagram_plan_electronics.md 的 E2
    （族群 `capacitor`，electronics 鏈）
 
+   ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
+        並且需要適當的調整及填充版面間隔，不許有空白」）----
+   原本這張是 980 寬、說明文字全部畫在 SVG 裡的舊版式；在 1440 的欄寬底下 12px 的字
+   會被縮成 8px（真實字級 ＝ CSS 字級 × svg 實寬 ÷ viewBox 寬），而且畫布右邊一大片空白。
+   改成跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套：
+     · 畫布 980 → **660**（`native: 660`），svg 根掛 `.rs`（閱讀模式字級升一階）；
+     · 標題與導言變成 `text.ext` → HTML 的 `.dghead`；說明文字變成 `extRow(side)` 外掛卡片
+       → 由 `externalize()` 排進畫布左右兩欄，**版面因此被卡片填滿、不再留空白**；
+     · 材質改走共用的 `D.fx`（`glass`／`beam`／`shadows`／`glowDefs`）——
+       鋁殼、外套膜、四層帶與液態／固態兩格都是帶厚度與邊光的玻璃板；
+     · 顏色一律 `--dg-*` token（本來就沒有寫死色碼，改完再 grep 一次確認）；
+     · **既有互動一個都沒動**：`data-part` 清單與 `data-seg` 逐字不變，
+       卡片跟它指的零件共用同一個 `data-part`（點卡片亮零件、點零件亮卡片）。
+   ⚠ 舊註解一律保留在下面，不刪 —— 規格脈絡（K1／K2／E1／E2／D1 那幾條紅線）還是合約。
+
    合約＝`docs/diagram_specs/alum_cap.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的幾件事：
 
@@ -41,9 +56,12 @@
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function') return;
+  if (!D || typeof D.register !== 'function' || !D.fx) return;
+  const { extRow, note, fx } = D;
 
-  const W = 980, SEG = 'passive_comp';
+  /* 畫布寬：2026-09-23 從 980 收到 660（主角寬）。說明文字改成 HTML 卡片之後，
+     SVG 裡只剩「畫」的部分，660 就放得下，而 12px 的字也才不會被縮小。*/
+  const CW = 660, SEG = 'passive_comp';
 
   /* ================================================================ 小工具 */
   const f1 = (v) => (+v).toFixed(1);
@@ -58,6 +76,40 @@
   /* 零件外框。這張圖每一個零件都掛 `data-seg="passive_comp"`（§7-D1 第 1 點：
      掛了才點得動、才有小卡、`var(--c)` 才有色），但**每一個都覆寫 `cos`**。*/
   const part = (id, inner) => `<g data-part="${id}" data-seg="${SEG}">${inner}</g>`;
+
+  /* ---- 2026-09-23 v2 新增的三支（寫法逐字照 `site/dg/liquid_cooling.js`）----
+     card()：說明卡片離開 SVG 變成 HTML（diagrams.js 的 externalize），畫布上只留編號圓點。
+       卡片跟它指的零件**共用同一個 data-part** —— 點卡片零件亮、點零件卡片亮。
+       `color` ＝元件色（data-dgcolor），順手也寫到 .anc 上，圓點／色條／引線端點才會同色。*/
+  const card = (o) => {
+    const s = extRow({ seg: o.seg === null ? undefined : (o.seg || SEG), part: o.part, title: o.title, sub: o.sub,
+      no: o.no, side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
+  };
+  /* wrapCJK()：中文長句斷行。畫布收到 660 之後，一行 12px 的中文最多約 50 個字，
+     章節裡那幾行 80 字的說明**一個字都不能刪**（規格脈絡），所以改成自動斷行。*/
+  const wrapCJK = (s, n) => {
+    const out = [];
+    for (let i = 0; i < s.length; i += n) out.push(s.slice(i, i + n));
+    return out.length ? out : [''];
+  };
+  /* 玻璃材質：跟 AI 伺服器三張同一支 `D.fx.glass`（帶厚度、sheen、邊光、頂緣高光）。
+     `iso` 給了就是等角玻璃板；這張圖是正剖面，所以多數只要 2D 版。*/
+  const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
+    { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
+
+  /* 元件色（卡片、編號圓點、引線端點共用）—— 全部是 index.html 的 token，沒有寫死色碼。
+     ⚠ 卡片上的標題字是印在**元件色**上的，所以這裡挑的不一定是零件本身的填色，
+       而是「同一族但亮一階」的那個 token —— 這是 liquid_cooling.js 已經走過的同一條
+       （它的銅用 --dg-cu-lit 而不是 --dg-cu，理由是 4.24:1 不過 4.5）。
+       實際換掉的三個：電解液 --dg-ac-elyte（暗藍）→ --dg-glass（霧藍）、
+       橡膠封口 --dg-ac-rubber（近黑）→ --dg-tim、外套膠膜 --dg-si（暗藍）→ --dg-steel。
+       畫布上的填色一個都沒動，換的只是卡片色條與編號圓點。*/
+  const C = {
+    foil: 'var(--dg-ac-foil)', oxide: 'var(--dg-ac-oxide)', paper: 'var(--dg-ac-paper)',
+    elyte: 'var(--dg-glass)', poly: 'var(--dg-ac-poly)', can: 'var(--dg-alu)',
+    rubber: 'var(--dg-tim)', steel: 'var(--dg-steel)', sleeve: 'var(--dg-steel)',
+  };
 
   /* ================================================================ 材質厚度（K6 的量測基準）
      氧化膜 < 電解紙 < 陰極箔 ≤ 陽極箔。這四個數字是唯一的來源，改一個就全圖跟著改。
@@ -97,7 +149,9 @@
     CORE.forEach((L) => { box.push({ L: L, y0: y, y1: y + L.th }); y += L.th; });
     box.forEach((b) => {
       const L = b.L, x0 = BX0 + L.off, x1 = BX1 + L.off, inner = [];
-      inner.push(R(x0, b.y0, x1 - x0, L.th, L.fill, 'part ac' + (L.id === 'ac_anode' ? 'anode' : L.id === 'ac_cathode' ? 'cathode' : 'paper')));
+      // 2026-09-23：每一層改用 D.fx.glass（帶厚度感的玻璃板），跟 AI 伺服器那三張同一套材質
+      inner.push(slab(x0, b.y0, x1 - x0, L.th, L.fill,
+        { cls: 'ac' + (L.id === 'ac_anode' ? 'anode' : L.id === 'ac_cathode' ? 'cathode' : 'paper'), r: 1 }));
       if (L.id === 'ac_anode' || L.id === 'ac_cathode') {
         // 兩張箔都有蝕刻孔（F1／F2）—— 差別在「有沒有那層膜」，不在有沒有孔
         inner.push(pores(x0 + 8, x1 - 8, b.y0, 6, 5, 14, true, 'acpore'));
@@ -158,7 +212,9 @@
      §3-B（E1，紅線）由外到內：電解液 → 氧化膜（貼孔壁、等厚）→ 鋁基體。
      ★ 同一條孔的 path 畫兩次：外層填氧化膜色、內層往內縮 OX_W 填電解液色。
        膜的厚度就是兩條 path 的差 —— 天生貼曲面、天生等厚，改不壞。 */
-  const ZFX0 = 470, ZFX1 = 716, ZFY0 = 120, ZFY1 = 200, ZPD = 30, ZPW = 10, ZPN = 10, OX_W = 3;
+  /* ⚠ 2026-09-23：畫布收到 660，這一格從「第一排右邊」搬到「第二排左邊」——
+     只換 x／y 的起點，孔深、孔寬、膜厚（ZPD／ZPW／OX_W）一個都沒動，§6-E2 的 1/20 仍然成立。*/
+  const ZFX0 = 40, ZFX1 = 600, ZFY0 = 290, ZFY1 = 370, ZPD = 30, ZPW = 10, ZPN = 22, OX_W = 3;
 
   function zoomFoil() {
     const g = [], th = ZFY1 - ZFY0;
@@ -184,9 +240,9 @@
     g.push(part('ac_pore', ox.map((d) => PA(d, 'var(--dg-ac-oxide)', 'part acox')).join('')));
     g.push(part('ac_elyte', el.map((d) => PA(d, 'var(--dg-ac-elyte)', 'part acel')).join('')));
     // 厚度尺：只標「這是誇張放大的」，不寫任何 µm 數字（§7-C1）
-    g.push(LN(`M460,${ZFY0} L460,${ZFY1}`, 'var(--dg-ink-3)', 1)
-      + LN(`M456,${ZFY0} L464,${ZFY0}`, 'var(--dg-ink-3)', 1)
-      + LN(`M456,${ZFY1} L464,${ZFY1}`, 'var(--dg-ink-3)', 1));
+    g.push(LN(`M30,${ZFY0} L30,${ZFY1}`, 'var(--dg-ink-3)', 1)
+      + LN(`M26,${ZFY0} L34,${ZFY0}`, 'var(--dg-ink-3)', 1)
+      + LN(`M26,${ZFY1} L34,${ZFY1}`, 'var(--dg-ink-3)', 1));
     return g.join('');
   }
 
@@ -202,15 +258,17 @@
      C3：防爆閥刻痕在**與封口相反的那一端**，而且旁邊標「示意」（§7-B1 查不到來源）。*/
   /* ⚠ 整顆的下緣（含穿出封口的兩根導針）要停在 248 —— 底下 262／278／294 是三行標註，
      排版體檢只比「字跟字」有沒有重疊，**字壓在零件上它抓不到**，所以這裡自己算清楚。 */
-  const CAN_X0 = 790, CAN_X1 = 890, CAN_Y0 = 86, CAN_Y1 = 226, SEAL_Y = 206;
+  /* ⚠ 2026-09-23：搬到第二排右邊（原本在第一排最右）。上下留白自己算過：
+     外套膠膜上緣 264（格子小標的 bbox 到 258）、導針下緣 422（格子下緣 440）。*/
+  const CAN_X0 = 512, CAN_X1 = 612, CAN_Y0 = 60, CAN_Y1 = 192, SEAL_Y = 172;
 
   function wholeCan() {
     const g = [];
     // 外套膠膜（★ 上面一個字、一個色碼、一個廠商標示都不准有 —— C4）
-    g.push(part('ac_sleeve', R(CAN_X0 - 4, CAN_Y0 - 4, CAN_X1 - CAN_X0 + 8, CAN_Y1 - CAN_Y0 + 8,
-      'var(--dg-ac-sleeve)', 'part acsleeve', 6)));
-    // 鋁殼
-    g.push(part('ac_can', R(CAN_X0, CAN_Y0, CAN_X1 - CAN_X0, CAN_Y1 - CAN_Y0, 'var(--dg-alu-2)', 'part accan', 4)));
+    g.push(part('ac_sleeve', slab(CAN_X0 - 4, CAN_Y0 - 4, CAN_X1 - CAN_X0 + 8, CAN_Y1 - CAN_Y0 + 8,
+      'var(--dg-ac-sleeve)', { cls: 'acsleeve', r: 6 })));
+    // 鋁殼（2026-09-23：改用 D.fx.glass，看得出是一個有厚度的金屬罐，不是一塊平面色塊）
+    g.push(part('ac_can', slab(CAN_X0, CAN_Y0, CAN_X1 - CAN_X0, CAN_Y1 - CAN_Y0, 'var(--dg-alu-2)', { cls: 'accan', r: 4 })));
     // 捲芯：縱剖上看到的是一圈一圈交替的同心圓柱 → 一組一組交替的縱帶（四層一個週期）
     const bands = [], bx0 = CAN_X0 + 6, bw = (CAN_X1 - CAN_X0 - 12) / 12;
     for (let i = 0; i < 12; i++) {
@@ -241,10 +299,16 @@
      理由是版面：區 ④ 只有 146 高，照區 ① 的厚度畫會把底下兩行標註壓到零件上
      （排版體檢只比「字跟字」，字壓在零件上它抓不到，所以這裡自己算）。
      §6-K6 的厚度順序是在區 ① 的四層帶上判定的；這一格判的是 D1／D2／D3。 */
-  const CD_CAT = 14, CD_MID = 20, CD_AN = 24, CD_OX = 1.2;
+  /* ⚠ 2026-09-23：整組 ×1.4（畫布收窄之後第 3 排的高度用不完，兩格太扁）。
+     氧化膜 1.7 ／ 陽極箔 34 ＝ 1/20，**這一條仍然成立**（§6-E2 是用比例判的，不是用絕對厚度）。*/
+  const CD_CAT = 20, CD_MID = 28, CD_AN = 34, CD_OX = 1.7;
 
-  function capCell(x0, solid) {
-    const g = [], w = 440, yC0 = 336, yM0 = yC0 + CD_CAT, yA0 = yM0 + CD_MID;
+  /* ⚠ 2026-09-23：多收兩個參數（`yC0` 上緣、`w` 寬）—— 畫布從 980 收到 660 之後
+     兩格各只剩 288 寬。**兩格仍然共用這一支**，所以 D1／D3（「只有中間那一層不同」）照樣自動成立。*/
+  function capCell(x0, solid, yC0, w) {
+    const g = [];
+    yC0 = yC0 == null ? 474 : yC0; w = w || 288;
+    const yM0 = yC0 + CD_CAT, yA0 = yM0 + CD_MID;
     // 陰極側（兩格完全一樣）
     g.push(part('ac_cathode', R(x0, yC0, w, CD_CAT, 'var(--dg-ac-foil)', 'part accell_cat')
       + pores(x0 + 10, x0 + w - 10, yC0 + CD_CAT, 4.5, 4.5, 20, false, 'acpore')));
@@ -276,22 +340,39 @@
     ['⑥ 封口與老化', '裝進鋁殼、橡膠封口，再通電把化成時的缺陷修補回去'],
   ];
 
+  /* ⚠ 2026-09-23：畫布從 980 收到 660 之後，章節裡原本一行 80 字的句子放不下。
+     **一個字都沒刪**，改成 `wrapCJK` 自動斷行、每一列一個標題 ＋ N 行說明。
+     列寬 628（畫布 660 減左右各 16）、一行 44 個中文字 ＝ 528px，右邊還留得下餘白。*/
+  const FW = 628, LH = 17;
+  // 章節裡可點的一列：粗體標題 ＋ 自動斷行的說明。回傳 {svg, h}
+  function txtRow(id, y, title, body, warn) {
+    const lines = wrapCJK(body, 44);
+    const h = 18 + lines.length * LH;
+    const inner = [T(24, y + 13, title, 'lbl', null, warn ? 'fill:var(--dg-warn)' : '')]
+      .concat(lines.map((s, i) => T(24, y + 13 + LH * (i + 1), s, 'sub')));
+    return { svg: part(id, R(16, y, FW, h, 'transparent', 'part')
+      + `<g pointer-events="none">${inner.join('')}</g>`), h: h + 4 };
+  }
+  // 章節裡不可點的一段文字（自動斷行）。回傳 {svg, h}
+  function txtPara(y, body, warn) {
+    const lines = wrapCJK(body, 46);
+    return { svg: lines.map((s, i) => T(24, y + 13 + LH * i, s, 'sub', null,
+      warn ? 'fill:var(--dg-warn)' : '')).join(''), h: 13 + lines.length * LH };
+  }
+
   function foldProc(y0) {
     const g = [];
-    let y = y0 + 22;
-    g.push(T(28, y, '從一片素箔到一顆電容：6 站（順序不准對調 —— 先化成再蝕刻的話，膜會被咬掉）', 'hd'));
-    PROC.forEach((r, i) => {
-      y += 20;
-      g.push(part('ac_proc' + i, R(24, y - 14, 932, 19, 'transparent', 'part')
-        + `<g pointer-events="none">${T(30, y, r[0] + '｜' + r[1], 'sub')}</g>`));
-    });
-    y += 24;
-    g.push(T(28, y, '★ 蝕刻（腐蝕箔）與化成（化成箔）這兩道，在台股是 6175 立敦在做的事 —— 它做的是「電容用鋁箔」，不是電容成品。', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 17;
-    g.push(T(28, y, '　 ③～⑥（裁切、捲繞、含浸、封口老化）是電容廠自己的產線。電解紙與電解液這一段，本圖查不到台股對應，先標為未知。', 'sub'));
-    y += 17;
-    g.push(T(28, y, '　 本圖不寫任何蝕刻孔徑、孔密度、表面積放大倍數、容值、耐壓、ESR 與壽命小時數 —— 查不到共通值就不寫（R5）。', 'sub'));
-    return { svg: g.join(''), h: y - y0 + 16 };
+    let y = y0 + 8;
+    g.push(T(24, y + 14, '從一片素箔到一顆電容：6 站', 'hd'));
+    g.push(T(24, y + 31, '（順序不准對調 —— 先化成再蝕刻的話，膜會被咬掉）', 'sub'));
+    y += 40;
+    PROC.forEach((r, i) => { const b = txtRow('ac_proc' + i, y, r[0], r[1]); g.push(b.svg); y += b.h; });
+    y += 8;
+    [['★ 蝕刻（腐蝕箔）與化成（化成箔）這兩道，在台股是 6175 立敦在做的事 —— 它做的是「電容用鋁箔」，不是電容成品。', 1],
+      ['③～⑥（裁切、捲繞、含浸、封口老化）是電容廠自己的產線。電解紙與電解液這一段，本圖查不到台股對應，先標為未知。', 0],
+      ['本圖不寫任何蝕刻孔徑、孔密度、表面積放大倍數、容值、耐壓、ESR 與壽命小時數 —— 查不到共通值就不寫（R5）。', 0],
+    ].forEach(([s, w]) => { const b = txtPara(y, s, w); g.push(b.svg); y += b.h + 4; });
+    return { svg: g.join(''), h: y - y0 + 10 };
   }
 
   /* 第 ② 段：這一格的台股站在哪一層 */
@@ -305,105 +386,132 @@
 
   function foldWho(y0) {
     const g = [];
-    let y = y0 + 22;
-    g.push(T(28, y, '這一格的台股站在哪一層（6 家：1 家在箔、4 家在成品、1 家只查到「電容」兩個字）', 'hd'));
+    let y = y0 + 8;
+    g.push(T(24, y + 14, '這一格的台股站在哪一層（6 家）', 'hd'));
+    g.push(T(24, y + 31, '1 家在箔、4 家在成品、1 家只查到「電容」兩個字', 'sub'));
+    y += 40;
     const ids = ['ac_who0', 'ac_who1', 'ac_who2', 'ac_who3', 'ac_who4'];
-    WHO.forEach((r, i) => {
-      y += 20;
-      g.push(part(ids[i], R(24, y - 14, 932, 19, 'transparent', 'part')
-        + `<g pointer-events="none">${T(30, y, r[0] + '｜' + r[1], 'sub',
-          null, i === 0 ? 'fill:var(--dg-warn)' : '')}</g>`));
-    });
-    y += 26;
-    g.push(T(28, y, '★ 供應鏈資料的「被動元件」環節底下有 5 家（國巨、華新科、凱美、禾伸堂、信昌電），', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 17;
-    g.push(T(28, y, '　 但其中只有 2375 凱美同時在「電容器」這個族群裡 —— 其餘 4 家做的是 MLCC 與晶片電阻，跟這張圖畫的東西無關。', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 17;
-    g.push(T(28, y, '　 所以這張圖的每一個零件都指定了自己的公司清單，沒有一個走環節預設 —— 走預設會給出錯的答案，不是不完整的答案。', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 24;
-    g.push(part('ac_mlcc_ref', R(24, y - 15, 932, 21, 'transparent', 'part')
-      + `<g pointer-events="none">${T(30, y, '指路用的一格：陶瓷電容（MLCC）的疊層與端子結構在另一張圖 —— 做 MLCC 的是 2327 國巨、2492 華新科、3026 禾伸堂、6173 信昌電，跟這一格一家都不重疊。', 'sub')}</g>`));
-    return { svg: g.join(''), h: y - y0 + 16 };
+    WHO.forEach((r, i) => { const b = txtRow(ids[i], y, r[0], r[1], i === 0); g.push(b.svg); y += b.h; });
+    y += 8;
+    [['★ 供應鏈資料的「被動元件」環節底下有 5 家（國巨、華新科、凱美、禾伸堂、信昌電），但其中只有 2375 凱美同時在「電容器」這個族群裡 —— 其餘 4 家做的是 MLCC 與晶片電阻，跟這張圖畫的東西無關。', 1],
+      ['所以這張圖的每一個零件都指定了自己的公司清單，沒有一個走環節預設 —— 走預設會給出錯的答案，不是不完整的答案。', 1],
+    ].forEach(([s, w]) => { const b = txtPara(y, s, w); g.push(b.svg); y += b.h + 4; });
+    y += 4;
+    const ref = txtRow('ac_mlcc_ref', y, '指路用的一格：陶瓷電容（MLCC）在另一張圖',
+      '疊層與端子結構見「被動元件：MLCC 疊層剖析」。做 MLCC 的是 2327 國巨、2492 華新科、3026 禾伸堂、6173 信昌電，跟這一格一家都不重疊。');
+    g.push(ref.svg); y += ref.h;
+    return { svg: g.join(''), h: y - y0 + 10 };
   }
 
   /* ================================================================ 版面
-     收合時：標題 ＋ 兩排圖 ＋ 五行誠實性標示 ＋ 兩條章節列 ＝ **652px**（上限 700）。*/
+     ---- 2026-09-23 v2（Andy：Follow AI 伺服器那三張、版面不許有空白）----
+     舊版是 980 寬 ＋ 三個並排的格子 ＋ 十七行畫在 SVG 裡的說明；新版改成 660 寬的畫布，
+     說明全部外掛成 HTML 卡片（左右兩欄），畫布本身重新排成三排：
+       第 1 排　左：① 捲芯四層帶 ＋ 渦旋斷面　　右：③ 整顆縱剖（窄，剛好補滿右邊那塊）
+       第 2 排　② 陽極箔放大（拉成整排寬，孔數 10 → 22，把整條填滿）
+       第 3 排　④ 液態 ｜ ⑤ 固態（兩格等寬對切，中間一條分隔線）
+     ⚠ 「不許有空白」是這一版的硬規則：每一個格子的寬度都是照它裡面畫的東西訂的，
+       不是先切版面再把圖塞進去 —— 所以第 1 排才會是 452 ＋ 168 而不是對半分。
+     收合時：HTML 標題列 ＋ 三排圖（16～568）＋ 兩條章節列 ＝ 約 660px（上限 700）。*/
   function alumCap() {
-    const S1 = 544;
+    const S1 = 580;
     const p1 = foldProc(S1 + 46);
     const S2 = S1 + 46 + p1.h;
     const p2 = foldWho(S2 + 46);
     const H = S2 + 46 + p2.h + 16;
-    return `<svg class="dg dgm dgac dg1" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${D.STYLE}
+    return `<svg class="dg dgm rs dgac dg1" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${D.STYLE}
+      <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（DECISIONS #231）。
            這裡只補兩件 diagrams.js 沒有的：孔的描邊，以及渦旋線的線帽。
-           顏色一律走 --dg-*，沒有寫死色票。*/
+           顏色一律走 --dg-*，沒有寫死色票。
+           2026-09-23 多一條：每一層都改用 D.fx.glass 之後，玻璃板自己有細邊（.fxe），
+           共用的 2.2px 描邊再疊上去整疊會變成一團線框 —— 那正是 Andy 講過三次的
+           「螢光感太重」。所以跟 panel／psu 那幾張一樣把描邊與發光各降一階。*/
         svg.dgac .acpore{stroke:none}
         svg.dgac .acspiral{stroke-linecap:round}
         svg.dgac .acvent{stroke-linecap:round}
+        svg.dgac [data-seg] .part{stroke-width:0}
+        svg.dgac [data-seg].sel .part{stroke-width:0;filter:none}
+        svg.dgac [data-seg]:hover .part{stroke-width:1.4;filter:none}
+        svg.dgac [data-seg].sel-part .part{stroke-width:2.4;filter:var(--dg-glow,drop-shadow(0 0 5px var(--cc)))}
+        /* 這張圖每一個零件都是同一個環節，所以「點一個」不能變成「全部一起亮」：
+           有人被點著時，同環節其餘退一階（跟 panel 那張同一條）。*/
+        svg.dgac.haspart [data-seg].sel:not(.sel-part){opacity:.55}
       </style>
-      ${T(16, 22, '電容器：鋁電解與固態電容剖面', 'ttl')}
-      ${T(16, 40, '容量是「把箔咬出洞」咬出來的，介電質是「通電長出來」的 —— 跟 MLCC 的疊層＋燒結陶瓷完全是兩種東西。底下兩段預設收起來，按標題列就打得開。', 'cap')}
+      <!-- 標題與導言：v2 搬到 HTML 的 .dghead，SVG 裡不畫（字才不會跟著畫布縮小） -->
+      <text class="ttl ext" x="0" y="0">電容器：鋁電解與固態電容剖面</text>
+      <text class="cap ext" x="0" y="0">容量是「把箔咬出洞」咬出來的，介電質是「通電長出來」的 —— 跟 MLCC 的疊層＋燒結陶瓷完全是兩種東西。左右兩欄的卡片逐件說明，點卡片零件會亮、點零件卡片會亮；下面兩段（製程 6 站、台股站在哪一層）預設收起來，按標題列就打得開。</text>
 
-      <!-- ================= ① 捲芯四層帶 ／ ② 陽極箔放大 ／ ③ 整顆縱剖 ================= -->
-      ${frame(16, 48, 424, 252)}
-      ${T(28, 66, '① 捲芯：四層一個週期（由下到上：陽極箔 → 紙 → 陰極箔 → 紙）', 'hd')}
+      <!-- ================= 第 1 排 左：① 捲芯四層帶 ＋ 渦旋　右：③ 整顆縱剖 ================= -->
+      ${frame(16, 16, 452, 214)}
+      ${T(28, 36, '① 捲芯：四層一個週期（下→上：陽極箔→紙→陰極箔→紙）', 'hd')}
       ${coreBand()}
       ${spiralRoll()}
-      ${T(24, 202, '① 陽極箔（蝕刻成蜂窩狀＋氧化膜）　② 電解紙（含浸電解液）', 'sub')}
-      ${T(24, 218, '③ 陰極箔（一樣有孔，但沒有氧化膜）　④ 電解紙 → 回到 ①', 'sub')}
-      ${T(24, 234, '★ 四層一個週期；三層捲起來，陽極會碰到陰極 → 短路。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(24, 250, '★ 陰極箔不是陰極 —— 真正的陰極是電解液。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(24, 266, '　 陰極箔只是把電解液的電引出來的集電體。', 'sub')}
-      ${T(24, 282, '兩張箔長度方向錯開；右邊的渦旋斷面數得出 3 圈以上。', 'sub')}
 
-      ${frame(448, 48, 280, 252)}
-      ${T(460, 66, '② 陽極箔放大：孔是咬出來的，膜是長出來的', 'hd')}
-      ${zoomFoil()}
-      ${T(460, 218, '★ 氧化膜貼著孔壁的曲面走、而且等厚。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(460, 234, '　 畫成一條平直線，就把「表面積被', 'sub')}
-      ${T(460, 250, '　 放大」這個命題畫掉了。', 'sub')}
-      ${T(460, 266, '氧化膜是全圖最薄的層（不到箔厚的 1/20）。', 'sub')}
-      ${T(460, 282, '★ 電解液鑽進孔裡、貼住氧化膜。', 'sub', null, 'fill:var(--dg-warn)')}
-
-      ${frame(736, 48, 228, 252)}
-      ${T(748, 66, '③ 整顆縱剖', 'hd')}
+      ${frame(476, 16, 168, 214)}
+      ${T(488, 36, '③ 整顆縱剖', 'hd')}
       ${wholeCan()}
-      ${T(748, 262, '④ 鋁殼　⑤ 捲芯　⑥ 橡膠封口（一端）', 'sub')}
-      ${T(748, 278, '⑦ 導針 ×2（從同一端出來）', 'sub')}
-      ${T(748, 294, '⑧ 防爆閥刻痕（另一端，示意）', 'sub')}
 
-      <!-- ================= ④ 液態 vs 固態（同一支函式畫兩次，只換一個參數） ================= -->
-      ${frame(16, 306, 948, 146)}
-      <path d="M490,316 L490,444" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
-      ${T(28, 324, '④ 液態電解電容：中間是電解紙＋電解液', 'hd')}
+      <!-- ================= 第 2 排：② 陽極箔放大（拉成整排寬，22 個孔把整條填滿） ================= -->
+      ${frame(16, 238, 628, 170)}
+      ${T(28, 260, '② 陽極箔放大：孔是咬出來的，膜是長出來的', 'hd')}
+      ${zoomFoil()}
+      ${T(40, 398, '左邊那把尺只說明「這是誇張放大的」，不代表任何 µm 數字。', 'cap')}
+
+      <!-- ================= 第 3 排：④ 液態 ｜ ⑤ 固態（同一支函式畫兩次，只換一個參數） ================= -->
+      ${frame(16, 416, 628, 152)}
+      <path d="M332,426 L332,558" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
+      ${T(28, 438, '④ 液態電解電容', 'hd')}
+      ${T(28, 458, '中間是電解紙＋電解液', 'sub')}
       ${capCell(30, false)}
-      ${T(502, 324, '⑤ 固態電容：只把電解液換成導電高分子，其餘完全一樣', 'hd')}
-      ${capCell(504, true)}
-      ${T(30, 414, '真正的陰極是電解液（紙只是把它含住、順便隔開兩張箔）', 'sub')}
-      ${T(30, 430, '★ 兩格除了中間那一層以外完全一樣 —— 固態只換了一樣東西。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(30, 446, '下面那一層是陽極箔（有孔、有膜），上面那一層是陰極箔（有孔、沒有膜）。', 'sub')}
-      ${T(504, 414, '導電高分子是實心的，沒有液體可以汽化 → 不會鼓脹爆漿', 'sub')}
-      ${T(504, 430, '等效串聯電阻大幅下降（本圖不寫倍數與數量級）', 'sub')}
-      ${T(504, 446, '★ 固態的那一層一樣要鑽進陽極箔的孔裡，才碰得到氧化膜。', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(346, 438, '⑤ 固態電容', 'hd')}
+      ${T(346, 458, '只把電解液換成導電高分子，其餘完全一樣', 'sub')}
+      ${capCell(346, true)}
 
-      ${T(16, 468, '★ 誰做的：鋁電解 2375 凱美／2472 立隆電／4939 亞電；固態 6449 鈺邦；★ 6175 立敦做的是電容用鋁箔，不是電容成品。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(16, 484, '本圖只有 2375 凱美 在供應鏈資料裡（被動元件環節）；另外五檔不在資料裡，所以寫在零件小卡與第 ② 段。', 'sub', null, 'fill:var(--dg-warn)')}
-      ${T(16, 500, '示意圖，非實物比例。孔洞與氧化膜厚度為了看得見而誇張放大；本圖不寫容值、耐壓、ESR、壽命、市占率與營收數字。', 'cap')}
-      ${T(16, 516, '陶瓷電容（MLCC）的疊層與端子結構見「被動元件：MLCC 疊層剖析」那張 —— 那是疊層＋燒結陶瓷，跟這張的捲繞完全是兩種東西。', 'cap')}
-      ${T(16, 532, '公司角色取自板塊成分股證據表，信心標示見該表；電解紙、電解液與陰極箔是誰做的，本圖查不到台股對應。', 'cap')}
+      <!-- ================= 說明卡片（HTML）：左欄七張、右欄八張 =================
+           每一張卡片的 data-part 都跟畫布上的零件**同一個字串**（改造前後逐字比對過），
+           所以既有互動一個都沒掉：點卡片亮零件、點零件亮卡片、連 3D 場景的 alias 也不變。-->
+      ${card({ side: 'l', no: 1, part: 'ac_anode', color: C.foil, ax: 170, ay: 170, title: '① 陽極箔（容量就是從這裡來的）', sub: '電化學蝕刻咬成蜂窩狀，有效表面積放大很多倍' })}
+      ${card({ side: 'l', no: 2, part: 'ac_oxide', color: C.oxide, ax: 250, ay: 153.5, title: '陽極氧化膜（Al₂O₃，介電質）', sub: ['★ 介電質不是買來的，是通電長出來的', '★ 只長在陽極箔上 —— 這就是「為什麼有極性」'] })}
+      ${card({ side: 'l', no: 3, part: 'ac_paper', color: C.paper, ax: 100, ay: 146, title: '② ④ 電解紙（隔離紙）', sub: '含浸電解液，同時把兩張箔隔開；它本身不是電極' })}
+      ${card({ side: 'l', no: 4, part: 'ac_elyte', color: C.elyte, ax: 210, ay: 146, title: '電解液（★ 它才是真正的陰極）', sub: '鑽進陽極箔的孔裡、貼住氧化膜；只畫在紙裡＝電容不成立' })}
+      ${card({ side: 'l', no: 5, part: 'ac_cathode', color: C.foil, ax: 150, ay: 130, title: '③ 陰極箔（不是陰極，是集電體）', sub: '一樣有孔，但沒有氧化膜 —— 它只是把電解液的電引出來' })}
+      ${card({ side: 'l', no: 6, part: 'ac_lead', color: C.steel, ax: 24, ay: 170, title: '導針（引線）×2', sub: '一根接陽極箔、一根接陰極箔；整顆從同一端穿出' })}
+      ${card({ side: 'r', no: 7, part: 'ac_winding', color: C.foil, ax: 372, ay: 145, title: '捲芯（捲起來就是一圈一圈）', sub: ['四層同捲，斷面數得出 3 圈以上', '★ 三層捲起來陽極會碰到陰極 → 短路'] })}
+      ${card({ side: 'r', no: 8, part: 'ac_pore', color: C.foil, ax: 70, ay: 300, title: '蝕刻孔（隧道／海綿狀）', sub: ['孔越多越深，同一片箔的表面積越大', '★ 氧化膜貼著孔壁的曲面走、而且等厚'] })}
+      ${card({ side: 'r', no: 9, part: 'ac_core', color: C.foil, ax: 300, ay: 330, title: '箔的基體（未蝕刻的芯部）', sub: '兩面被咬之後中間留下來的實心鋁：箔厚 − 2×孔深' })}
+      ${card({ side: 'r', no: 10, part: 'ac_can', color: C.can, ax: 516, ay: 80, title: '④ 鋁殼', sub: '把捲芯與電解液關在裡面；外面再包一層膠膜' })}
+      ${card({ side: 'r', no: 11, part: 'ac_seal', color: C.rubber, ax: 562, ay: 181, title: '⑥ 橡膠封口（一端）', sub: '兩根導針從同一端穿出去 —— 一端一根那是軸向型' })}
+      ${card({ side: 'r', no: 12, part: 'ac_vent', color: C.can, ax: 562, ay: 70, title: '⑧ 防爆閥刻痕（另一端）', sub: '壓力太高時先從這裡裂開；刻痕形狀為示意' })}
+      ${card({ side: 'r', no: 13, part: 'ac_sleeve', color: C.sleeve, ax: 510, ay: 120, title: '外套膠膜', sub: '★ 上面一個字、一個廠商標示都不畫' })}
+      ${card({ side: 'r', no: 14, part: 'ac_solid', color: C.poly, ax: 490, ay: 508, title: '⑤ 導電高分子（固態那一層）', sub: ['實心、沒有液體可以汽化 → 不會鼓脹爆漿', '★ 一樣要鑽進陽極箔的孔裡，才碰得到氧化膜'] })}
+      ${note({ side: 'l', warn: true, order: 96, title: '★ 三句最容易畫錯的話',
+      lines: ['四層才是一個週期；三層捲起來，陽極會碰到陰極 → 短路。',
+        '陰極箔不是陰極 —— 真正的陰極是電解液，陰極箔只是集電體。',
+        '氧化膜畫成一條平直線，就把「表面積被放大」這個命題畫掉了。'] })}
+      ${note({ side: 'l', warn: true, order: 97, title: '★ 誰做的（逐家見下面第 ② 段）',
+      lines: ['鋁電解 2375 凱美／2472 立隆電／4939 亞電；固態 6449 鈺邦。',
+        '★ 6175 立敦做的是電容用鋁箔，不是電容成品。',
+        '本圖只有 2375 凱美在供應鏈資料裡（被動元件環節），另外五檔不在。'] })}
+      ${note({ side: 'r', order: 98, title: '這張圖沒有回答的事',
+      lines: ['示意圖，非實物比例：孔洞與氧化膜厚度為了看得見而誇張放大。',
+        '容值、耐壓、ESR、壽命、市占率與營收數字一個都不寫。',
+        '電解紙、電解液與陰極箔是誰做的，本圖查不到台股對應。'] })}
+      ${note({ side: 'r', order: 99, title: '陶瓷電容（MLCC）不在這張',
+      lines: ['疊層與端子結構見「被動元件：MLCC 疊層剖析」那張。',
+        '那是疊層＋燒結陶瓷，跟這張的捲繞完全是兩種東西。'] })}
 
       <!-- ================= ① 製程 6 站（預設收合） ================= -->
       ${D.foldBar('ac1', S1, '① 從一片素箔到一顆電容：製程 6 站',
-      '蝕刻 → 化成 → 裁切 → 捲繞 → 含浸 → 封口老化，以及哪兩站是立敦在做的')}
+    '蝕刻 → 化成 → 裁切 → 捲繞 → 含浸 → 封口老化，以及哪兩站是立敦在做的')}
       <g class="dgbody" data-fold="ac1" data-y0="${S1 + 46}" data-y1="${S1 + 46 + p1.h}">
         ${p1.svg}
       </g>
 
       <!-- ================= ② 台股站在哪一層（預設收合） ================= -->
       ${D.foldBar('ac2', S2, '② 這一格的台股站在哪一層（6 家）',
-      '1 家在箔、3 家在鋁電解成品、1 家在固態、1 家只查到「電容」兩個字，以及為什麼不能走環節預設')}
+    '1 家在箔、3 家在鋁電解成品、1 家在固態、1 家只查到「電容」兩個字，以及為什麼不能走環節預設')}
       <g class="dgbody" data-fold="ac2" data-y0="${S2 + 46}" data-y1="${S2 + 46 + p2.h}">
         ${p2.svg}
       </g>
@@ -520,7 +628,7 @@
        原本的理由是「四個資訊點全部是剖面關係」—— 成立，但它假設了只能看一個剖面。
        漏掉的那一半是：鋁電解是一顆**捲**出來的東西（MLCC 是疊出來的），
        而「捲」這件事要整顆縱剖 ＋ 看得到頂面那幾圈同心弧才成立，一個平面剖面看不到。*/
-    draw: alumCap, native: 980, scene: 'capacitor',
+    draw: alumCap, native: CW, scene: 'capacitor',
     q: '鋁電容的容量是怎麼來的？為什麼要把箔咬出洞？固態電容把什麼換掉了，所以不會爆？',
     parts: PARTS,
   });
