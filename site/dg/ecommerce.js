@@ -65,8 +65,8 @@
   const FX0 = 24, FCX = 24 + 140;                    // 漏斗左緣與中軸
   const FUN = [
     { id: 'ec_traffic', y: 78, h: 44, w0: 280, w1: 216, t: '造訪（流量）', s: '廣告、搜尋、App 推播、回訪', col: C.traf },
-    { id: 'ec_cart', y: 140, h: 44, w0: 216, w1: 148, t: '加入購物車（轉換）', s: '商品頁、價格、評價、到貨速度', col: C.cart },
-    { id: 'ec_order', y: 202, h: 44, w0: 148, w1: 96, t: '成交訂單', s: '付款完成的那一筆', col: C.order },
+    { id: 'ec_cart', y: 140, h: 44, w0: 216, w1: 148, t: '加入購物車（轉換）', s: '商品頁、價格、到貨速度', col: C.cart },
+    { id: 'ec_order', y: 202, h: 44, w0: 148, w1: 120, t: '成交訂單', s: '付款完成的那一筆', col: C.order },
   ];
   function funnel() {
     const g = [T(16, 60, '① 漏斗：這一段的成本會被攤薄', 'hd')];
@@ -104,21 +104,21 @@
       if (i < FUL.length - 1) g.push(LN(`M${HX + HW / 2},${y + 76} v14`, C.ful, 2, ' class="flow"'));
     });
     // 訂單從左邊漏斗流進履約
-    g.push(fx.beam(`M${FCX + 48},224 H${HX}`, { color: C.order, w: 3, flow: true }));
-    g.push(T(FCX + 54, 216, '成交的訂單流進來', 'sub', null, `fill:${C.order}`));
+    g.push(fx.beam(`M${FCX + 82},226 H${HX}`, { color: C.order, w: 3, flow: true }));
+    g.push(T(FCX + 86, 218, '訂單流進來', 'sub', null, `fill:${C.order}`));
     return g.join('');
   }
 
   /* ================================================================ ③ 兩條線疊在一起（永遠看得到）
      訂單數往上、履約成本幾乎平行跟上；固定成本那一條才是被攤薄的。*/
-  const GB = { x: 44, y0: 500, h: 96, w: 556 };
+  const GB = { x: 44, y0: 504, h: 78, w: 556 };
   const ORD = [20, 30, 42, 52, 66, 78, 88, 100];
   function scaleChart() {
     const sx = (i) => GB.x + i * (GB.w / (ORD.length - 1));
     const sy = (v) => GB.y0 - (v / 100) * GB.h;
     const path = (vals) => 'M' + vals.map((v, i) => `${sx(i).toFixed(1)},${sy(v).toFixed(1)}`).join(' L');
-    const FULC = ORD.map(v => v * 0.92);                 // 履約成本：幾乎跟著訂單走
-    const FIX = ORD.map((_, i) => 34 - i * 1.6);          // 每單分攤到的固定成本：被攤薄
+    const FULC = ORD.map(v => v * 0.80);                 // 履約成本：幾乎跟著訂單走（畫成 0.8 倍只是為了兩條線分得開）
+    const FIX = ORD.map((_, i) => 40 - i * 2.4);          // 每單分攤到的固定成本：被攤薄
     return T(16, 400, '③ 規模長大，成本裡只有一部分會被攤薄', 'hd')
       + part('ec_scale', LN(`M${GB.x - 12},${GB.y0} H${GB.x + GB.w + 12}`, 'var(--dg-axis)', 1)
         + fx.beams([
@@ -126,9 +126,9 @@
           { d: path(FULC), color: C.ful, w: 2.8 },
         ], { flow: true })
         + LN(path(FIX), C.mute, 2.4, ' stroke-dasharray="6 5"')
-        + T(GB.x, 424, '訂單數（示意）', 'sub', null, `fill:${C.order}`)
-        + T(GB.x + 130, 424, '履約成本：幾乎平行跟上', 'sub', null, `fill:${C.ful}`)
-        + T(GB.x + 330, 424, '每單分攤到的固定成本：被攤薄', 'sub', null, `fill:${C.mute}`)
+        + T(GB.x, 418, '訂單數（示意）', 'sub', null, `fill:${C.order}`)
+        + T(GB.x + 130, 418, '履約成本：幾乎平行跟上', 'sub', null, `fill:${C.ful}`)
+        + T(GB.x + 330, 418, '每單分攤到的固定成本：被攤薄', 'sub', null, `fill:${C.mute}`)
         + T(GB.x, GB.y0 + 22, '★ 所以電商長大，獲利不一定跟著長 —— 要看履約那一段有沒有被壓下來。', 'sub', null, `fill:${C.warn}`));
   }
 
@@ -225,7 +225,7 @@
       ${card({ part: 'ec_wh', no: 6, side: 'r', color: C.ful, ax: HX + HW - 12, ay: 120, title: '倉儲：貨要先擺在某個地方', sub: ['倉租、盤點、呆滯都是固定要付的。★ 租來的衛星倉約期短、面積小，難導入自動化 —— 這就是為什麼會想自建。'] })}
       ${card({ part: 'ec_pick', no: 7, side: 'r', color: C.ful, ax: HX + HW - 12, ay: 210, title: '揀貨與包裝：每一單都要一份', sub: ['有人走過去、拿下來、裝箱。箱子、緩衝材、人力 —— 訂單多一倍，這裡就要多一倍。'] })}
       ${card({ part: 'ec_ship', no: 8, side: 'r', color: C.ful, ax: HX + HW - 12, ay: 300, title: '最後一哩：速度是賣點，也是成本', sub: ['越快到貨，一趟車能送的件數越少。★ 一張單如果在同一個倉湊不齊，還要分開出貨 —— 一張單變成好幾筆配送成本。'] })}
-      ${card({ part: 'ec_scale', no: 9, side: 'r', order: 9, color: C.warn, ax: GB.x + GB.w, ay: 500 - 0.92 * 96, title: '兩條線幾乎平行', sub: ['訂單數往上，履約成本跟著往上；被攤薄的只有每單分攤到的固定成本（虛線那條）。', '所以看這一格不要只看營收年增率，要看履約那一段有沒有被壓下來。折線為示意。'] })}
+      ${card({ part: 'ec_scale', no: 9, side: 'r', order: 9, color: C.warn, ax: GB.x + GB.w + 8, ay: 504 - 0.80 * 78, title: '兩條線幾乎平行', sub: ['訂單數往上，履約成本跟著往上；被攤薄的只有每單分攤到的固定成本（虛線那條）。', '所以看這一格不要只看營收年增率，要看履約那一段有沒有被壓下來。折線為示意。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['漏斗三段的寬度只代表「一段比一段少」，不代表任何轉換率；下面折線的高度也是示意。畫面上不畫任何商標、包裝或產品外觀。'] })}
       ${note({ side: 'r', order: 97, warn: true, title: '★ 這一格跟軟體那三格不一樣', lines: ['資安、雲端、SaaS 賣的是人與授權，多一個客戶不必多搬一次貨；電商每成交一單就要真的把一個箱子送到一個人手上。', '所以同樣放在「軟體與資訊服務」這條鏈底下，這一格的成本結構其實比較接近零售與物流。'] })}
       ${note({ side: 'r', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛 —— 硬掛一個別條鏈的環節，等於宣稱錯誤的公司對應。'] })}

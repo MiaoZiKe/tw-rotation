@@ -758,10 +758,10 @@
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec"></div>
-        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span></div></div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dghead"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><span class="row" id="dgTools" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。跟著全站主題走，也可以手動切">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div id="dgBody">
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
-          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。預設跟著全站主題走">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>` : ''}
+          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
         <div class="cgsec" id="cgSec">
           <div class="chainrow cgwrap"><div class="chainpane cgpane">
@@ -970,36 +970,25 @@
       if (dgExplicit) dgOpen = true;
       let did3d = false;
       const dgSecEl = $('#dgSec', el);
-      /* ★ 2026-09-23 第二批（Andy：「設定列改到右上角」）：工具列要停在**圖的右上角**，
-         不是整個區塊的右上角。它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，
-         住在裡面會一起消失），而 `#dgSec` 的上緣之上還有「產品剖析圖」標題列與
-         「這張圖回答」那一行 —— 直接 top:12px 會壓在標題上。
-         所以量一次「圖的上緣離區塊上緣多遠」，把那段距離補進 top。
-         ⚠ 換方向不等於可以拿掉防抖動：死區、補算時間點、ResizeObserver 全部照留
-         （那是量到工具列跑到圖外 25px 之後才補的）。
-         ★ 窄畫面（≤800px）現在也走這支：那邊的 CSS 只管「排成可左右捲的一列」，
-           top 一樣要量 —— 寫死一個數字會壓到標題列。*/
-      const placeDgTools = () => {
-        /* 一律用 document 問「現在畫面上的那一個」：這一頁會整段重畫（換鏈、換圖別、
-           視窗變寬都會），舊 closure 手上的 el 早就脫離 DOM 了，對它設 style 沒有人看得到。*/
-        const sec = document.getElementById('dgSec'), tools = document.getElementById('dgTools');
-        if (!tools || !sec) return;
-        if (sec.classList.contains('dgfold')) { tools.style.top = ''; return; }
-        const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
-        const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
-        if (!img || img.hidden || !img.clientHeight) { tools.style.top = ''; return; }
-        const gap = img.getBoundingClientRect().top - sec.getBoundingClientRect().top;
-        const want = Math.max(12, Math.round(gap) + 12);
-        /* 死區的方向判準跟改成 top 之前**完全一樣**，只是講法要換成 top 的語言：
-           `want` 變大 ＝ 圖的上緣往下跑了（標題列長高、換行、3D 說明補上來），
-           這時候還停在舊的小 top，工具列就落在圖的**上緣外面** —— 這一邊一律照做（死區 2px）。
-           `want` 變小 ＝ 工具列只是比需要的位置更深入圖內一點，不會跑到圖外，可以慢慢收（死區 8px）。
-           兩邊都要有死區 —— 完全不設的話，3D 掛載那幾秒每次重算都差 1px，
-           鈕就一直在抖，Playwright 的「元素穩定了嗎」永遠不成立、點擊直接逾時
-           （實測：3D 開著時 `#dgAnim` 點不下去，8 秒卡在 performing click action）。*/
-        const now = parseFloat(tools.style.top) || 12;
-        if (want - now > 2 || now - want >= 8) tools.style.top = want + 'px';
-      };
+      /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，
+         而且是**跟標題同一列、靠右**（不是浮在圖上面）。
+
+         第一版把它絕對定位在 `#dgSec` 的上緣內側，結果 `_preview.py` 當場量到
+         `industry_chain` 頁文字重疊 —— 圖的右上角本來就有東西：
+         「產品剖析圖 <圖名>」那一行標題。浮上去就是跟它搶同一塊。
+
+         改成並排之後，三件事一起解決：
+           ① 不可能再跟標題重疊（它們是同一列的兩個 flex 子元素，由版面決定位置）
+           ② 也不可能蓋住圖的內容（它根本不在畫布上）
+           ③ **`placeDgTools()` 與它那一整套防抖動機制可以整個拿掉** ——
+              那套東西（8px／2px 死區、[300,1200,3000,5000] 的補算、對 #prod3d 與
+              #prodDiagram 的 ResizeObserver、replaceDgTools 的多次重算）存在的唯一理由
+              是「工具列浮在一個會非同步長高的畫布上，量到的高度隨時在變」。
+              現在它在一般排版裡，瀏覽器自己會排好，沒有東西需要量、也沒有東西會抖。
+              留著它就是留一套對著 `tools.style.top` 寫值、卻再也沒有人讀的死碼。
+         ⚠ `#dgBack`（← 族群總覽）也收進同一排，所以這一列右邊只有一組東西，不會兩組互相擠。
+         ⚠ 收合狀態（`.dgfold`）下工具列仍然在、仍然點得到 —— 它本來就在標題那一列，
+           跟 `#dgBody` 的顯示與否無關，這比舊版的「絕對定位 ＋ .dgfold 退回一般排版」更穩。*/
       try {
         // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
         let roT = 0;
