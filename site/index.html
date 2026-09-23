@@ -681,30 +681,10 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    點名字＝只看那個族群（兩張圖同步），點箭頭才是進族群頁 ——
    以前整顆是連結，所以「點了就跳走」，根本沒辦法拿來篩選。*/
 .linkrow.gchips{display:flex;flex-wrap:wrap;gap:5px 6px}
-/* ★ 2026-09-20（E3＋F3）：族群晶片列是**唯一**的族群選擇器，所以全部族群都要列出來；
-   但排行卡在 2:1 的版面裡只剩三分之一寬，整排會排成十幾列、把卡片撐得比時鐘還高
-   （實測 1440px：右卡 1180px vs 左卡 980px，左邊下面空一大塊）。
-   照全站同一套作法處理「列不完」：固定高度＋自己的捲軸（DECISIONS #182）。
-   ★ 2026-09-21 起這兩排都住在 `.rotfilter` 裡，實際生效的高度是下面那條 96px；
-     這裡留著的是 overflow 與 align-content（下面那條靠它們）。*/
-.linkrow.gchips[data-sync="n2"]{max-height:150px;overflow-y:auto;align-content:flex-start}
-/* ★ 2026-09-21（Andy：「族群篩選幫我改到 全部、半導體、… 下方…並且需要縮小一點
-   我只是需要篩選選取」）：晶片列搬進 .rotfilter、掛在產業鏈 seg 的正下方。
-   · `flex-basis:100%` 逼它自己佔一整行 —— .rotfilter 是 flex-wrap，
-     不這樣做的話晶片會和「只看前 10 大」擠在同一行、順序看起來就亂了。
-   · 尺寸整體縮一級（12px → 11px、內距減半、圓角縮小）：這是功能鈕不是閱讀內容。
-   · 高度上限 150 → 96px（約 4 列）：它現在在圖的**上面**，太高會把圖整個推下去。 */
-.rotfilter .linkrow.gchips{flex:0 0 100%;max-height:96px;margin:1px 0 2px;gap:4px 5px}
-/* ★ 產業鏈那一排：`.seg` 預設是 inline-flex **不換行**，7 顆鈕塞進「資金流向排行」那張
-   只有三分之一寬的卡片時，flex 會把每一顆壓到剩一個字寬 ——「其他產業別」變成
-   直排的五個字（量到：右卡 seg 高 129px，左卡只有 27px）。
-   這一排是功能鈕，寧可折成兩行也不要把字壓成直的。 */
-.rotfilter .seg.rotchain{display:flex;flex-wrap:wrap;max-width:100%;row-gap:3px}
-.rotfilter .seg.rotchain button{white-space:nowrap;flex:0 0 auto}
-.rotfilter .gchip{font-size:11px;border-radius:7px}
-.rotfilter .gchip .pick{font-size:11px;padding:1px 3px 1px 6px}
-.rotfilter .gchip .go{padding:1px 5px 1px 3px}
-@media (max-width:900px){ .rotfilter .linkrow.gchips{max-height:84px} }
+/* ★ 2026-09-23：`.rotfilter` 裡的族群晶片列與產業鏈 seg 已換成兩層下拉（見下面的 .rotdd），
+   原本那五條專屬樣式（`.rotfilter .linkrow.gchips` / `.rotfilter .seg.rotchain` /
+   `.rotfilter .gchip*` 與 `[data-sync="n2"]` 的高度上限）全部刪掉，不留死樣式。
+   ⚠ 下面那組**通用** `.gchip` 不能刪 —— 全站其他圖表的篩選晶片（`filterChips()`）還在用。*/
 
 /* ★ 2026-09-23（Andy：「圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材…
    並非所有族群都在同一個下拉清單，而是對應族群出現對應個股」）：
