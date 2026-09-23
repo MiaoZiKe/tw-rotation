@@ -807,7 +807,151 @@
     const r = on.getBoundingClientRect(), sr = strip.getBoundingClientRect();
     strip.scrollLeft += (r.left - sr.left) - (sr.width - r.width) / 2;
   }
+  /* ★ 2026-09-23 UI 精修 #4：分頁列溢出的提示（遮罩 ＋ 左右箭頭）。
+     `centerActiveTab()` 只保證「現在這一頁看得到」，它沒有回答另一個問題：
+     **右邊（或左邊）還有沒有東西？** 實測 1440px 的 `#tabs`
+     scrollWidth 比 clientWidth 多 163～358px，而 `.tabs` 是
+     `overflow-x:auto` ＋ `scrollbar-width:none` —— 連捲軸都沒有，
+     於是「總覽」或「季節性」整顆分頁被吃掉，而且毫無提示。
+
+     這裡把「還捲得動嗎」量出來，掛成兩個 class 給 CSS 用：
+       .ovf-l → 左邊還有（顯示 ‹ ＋ 左緣淡出）
+       .ovf-r → 右邊還有（顯示 › ＋ 右緣淡出）
+     捲到底那一側的 class 會被拿掉，箭頭與淡出跟著消失 ——
+     留著一顆按了沒反應的箭頭比沒有箭頭更糟。
+     ⚠ 2px 的容差是給 subpixel 用的：非整數縮放之下 scrollWidth 會比 clientWidth
+       多出 0.x px，沒有容差的話會永遠顯示一顆捲不動的箭頭。
+     ⚠ 手機（≤820px）`.tabs` 是固定在底部、兩列四顆、完全不捲的，
+       量出來 scrollWidth === clientWidth，所以這段在手機自然不會掛上任何 class；
+       CSS 那邊另外還有 `@media (min-width:821px)` 守門，兩層都擋。 */
+  function syncTabOverflow() {
+    const strip = document.getElementById('tabs'), wrap = document.getElementById('tabsWrap');
+    if (!strip || !wrap) return;
+    const max = strip.scrollWidth - strip.clientWidth;
+    wrap.classList.toggle('ovf-l', strip.scrollLeft > 2);
+    wrap.classList.toggle('ovf-r', strip.scrollLeft < max - 2);
+  }
+  window.twSyncTabOverflow = syncTabOverflow;     // 驗收腳本要直接叫它
+  function initTabNav() {
+    const strip = document.getElementById('tabs'); if (!strip) return;
+    // 一次捲「看得見的寬度的 ⅔」—— 整頁捲會跳過中間那幾顆，捲太少又要按很多下
+    const step = (dir) => strip.scrollBy({ left: dir * Math.max(120, strip.clientWidth * 0.66), behavior: 'smooth' });
+    const prev = document.getElementById('tabPrev'), next = document.getElementById('tabNext');
+    if (prev) prev.onclick = () => step(-1);
+    if (next) next.onclick = () => step(1);
+    strip.addEventListener('scroll', syncTabOverflow, { passive: true });
+    syncTabOverflow();
+  }
   window.addEventListener('resize', centerActiveTab);
+  window.addEventListener('resize', syncTabOverflow);
+  /* ★ 2026-09-23 手機優先改版 G1／G9（依據 `docs/mobile_audit.md`）：
+     390px 量到頂欄需要 528px、而它是 overflow:hidden，於是
+     「明亮／深色」只露出 6px、「事件」整顆在畫面外 ——
+     今日事件抽屜在手機上**沒有入口**，等於那個功能不存在。
+
+     這裡把那四件事收成一張清單，但**一行邏輯都不重寫**：每一列去按桌機原來那顆鈕。
+     理由是這四顆鈕的行為散在三個檔（live.js 的更新與齒輪、app.js 的主題與事件），
+     複製一份等於開了四個會各自長歪的分身；以後改一邊，另一邊一定漏。
+     代價：桌機那四顆鈕在手機是 display:none，而 `.click()` 對 display:none 的元素
+     照樣會派發事件（不是 pointer 事件，不受可見性影響），所以這條路走得通。*/
+  function initMore() {
+    const btn = document.getElementById('moreBtn'), pop = document.getElementById('morePop');
+    if (!btn || !pop) return;
+    const close = () => { pop.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+    btn.onclick = (e) => {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+      btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
+    };
+    // 代按：id 對 id，看得出哪一列對應桌機的哪一顆
+    const proxy = { mmEvents: 'evToggle', mmLive: 'liveBtn', mmGear: 'liveGear', mmTheme: 'themeBtn' };
+    Object.entries(proxy).forEach(([mine, theirs]) => {
+      const a = document.getElementById(mine);
+      if (!a) return;
+      a.onclick = (e) => {
+        e.stopPropagation();
+        const t = document.getElementById(theirs);
+        if (t) t.click();
+        /* 「即時來源設定」按下去會開 `#livePop`，那顆浮層掛在被藏起來的 `.livebox` 裡面 ——
+           手機上打不開。所以齒輪這一列改成把浮層搬到清單下面顯示。
+           其餘三列按完就收起清單（動作已經完成，留著會擋住畫面）。*/
+        if (mine === 'mmGear') { const lp = document.getElementById('livePop'); if (lp) lp.hidden = false; }
+        close();
+      };
+    });
+    document.addEventListener('pointerdown', (ev) => {
+      if (pop.hidden) return;
+      if (ev.target.closest('#morePop') || ev.target.closest('#moreBtn')) return;
+      close();
+    }, true);
+    window.addEventListener('hashchange', close);
+  }
+
+  /* ★ 2026-09-23 手機優先改版 G6：橫向可捲的容器要看得出「這裡可以左右滑」。
+     量到（390px）：#chainSwitch 362→1151（8 條產業鏈只看得到 3 條）、#dgPick 324→507、
+     #dgTools 306→416、#stockTabs 362→510、市場明細表 322→543、總覽的大盤三張圖（G3 改成卡片）。
+     這些用 overflow-x:auto 是對的（整頁不准橫向捲），缺的只是提示 —— 缺提示＝內容找不到。
+
+     兩層提示：① `.hsc` 的右緣淡出（純 CSS mask，內容被切掉看得出來）
+               ② 容器下面補一行「← 左右滑 →」（`.swipetip`），寫死給看不懂淡出的人。
+     ⚠ 只在真的捲得動的時候才掛；捲到頭／捲到底會換成只淡另一邊，
+       不然「已經到最右邊了還在淡」會變成假提示。
+     ⚠ 用固定的選擇器清單、不用全域掃描：掃 `main *` 在產業鏈頁是上萬個節點，
+       而這幾個容器就是量到的全部，寫死才可預期。*/
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram';
+  /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
+     這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
+     在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
+     守門寫在這裡**而不是只寫在 CSS**：`.swipetip` 是真的插進 DOM 的節點，
+     只靠 CSS 藏起來仍然會改變桌機的 DOM 與後續選擇器（例如 `+`、`:last-child`）。 */
+  const SWIPE_MAX = 820;                 // 跟 index.html 的手機斷點同一個數字
+  function paintSwipe(el) {
+    if (window.innerWidth > SWIPE_MAX) {            // 桌機：把手機留下的痕跡清乾淨，然後什麼都不做
+      el.classList.remove('hsc', 'at-start', 'at-both');
+      const n = el.nextElementSibling;
+      if (n && n.classList && n.classList.contains('swipetip')) n.remove();
+      return;
+    }
+    const can = el.scrollWidth > el.clientWidth + 4;
+    el.classList.toggle('hsc', can);
+    if (!can) { el.classList.remove('at-start', 'at-both'); }
+    else {
+      const l = el.scrollLeft > 4, r = el.scrollLeft + el.clientWidth < el.scrollWidth - 4;
+      el.classList.toggle('at-both', l && r);
+      el.classList.toggle('at-start', l && !r);
+    }
+    /* 文字提示只補給「自己獨佔一列」的容器。
+       `#dgTools` 是 `.dgsechead`（flex，寬畫面 nowrap）裡的一個子元素 ——
+       在它後面插一個 div 會多一個 flex 子項，把標題那一列擠掉，
+       所以它只吃淡出、不吃文字提示。*/
+    if (el.id === 'dgTools') return;
+    const nx = el.nextElementSibling;
+    const has = nx && nx.classList && nx.classList.contains('swipetip');
+    if (can && !has) {
+      const t = document.createElement('div');
+      t.className = 'swipetip'; t.textContent = '左右滑看更多';
+      el.after(t);
+    } else if (!can && has) { nx.remove(); }
+  }
+  function initSwipeHints() {
+    const scan = () => {
+      document.querySelectorAll(SWIPE_SEL).forEach(el => {
+        if (!el._swipeWired) {
+          el._swipeWired = true;
+          el.addEventListener('scroll', () => paintSwipe(el), { passive: true });
+        }
+        paintSwipe(el);
+      });
+    };
+    window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
+    let t = null;
+    const mo = new MutationObserver(() => { clearTimeout(t); t = setTimeout(scan, 200); });
+    const m = document.querySelector('main');
+    if (m) mo.observe(m, { childList: true, subtree: true });
+    window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(scan, 200); });
+    scan();
+  }
+
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
@@ -847,6 +991,8 @@
        （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
        只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
     setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
+    // 分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算
+    syncTabOverflow(); setTimeout(syncTabOverflow, 0); setTimeout(syncTabOverflow, 420);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -871,9 +1017,12 @@
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, themes: renderThemes, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
     setTimeout(() => Object.values(charts).forEach(c => c && c.resize && c.resize()), 30);
+    // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）
+    if (window.twSwipeScan) { setTimeout(window.twSwipeScan, 60); setTimeout(window.twSwipeScan, 600); }
   }
   window.addEventListener('hashchange', route);
   $$('.tab').forEach(t => t.addEventListener('click', () => { location.hash = '#' + t.dataset.view; }));
+  initTabNav();
 
 
   /* 總覽上方那排數字只是摘要，點下去到「市場明細」分頁看完整名單。
@@ -3318,9 +3467,12 @@
           detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: 'JetBrains Mono',
             fontWeight: 700, color: theme() === 'light' ? CH.ink : '#e8eeff', formatter: v => v.toFixed(1) + '%' },
           data: [{ value: p20, name: '站上 20 日均線' }] },
-        segLabel('上漲', up, '#ff4d6d'),
-        segLabel('平盤', fl, '#6f7ea3'),
-        segLabel('下跌', dn, '#2ee59d'),
+        /* ★ 2026-09-23：這三個色本來是寫死的深色主題值（#ff4d6d／#6f7ea3／#2ee59d），
+           切到明亮主題時整排不會換色 —— 那正是「CSS 改了、圖表沒跟著改」那個病。
+           改讀 CH（refreshPalette() 會在切主題時就地換掉它），順便吃到新的 --ink-3。*/
+        segLabel('上漲', up, CH.up),
+        segLabel('平盤', fl, CH.ink3),
+        segLabel('下跌', dn, CH.down),
       ],
     }, { notMerge: true });
     // 圖下面一行把「還有什麼可以看」補上，不用再畫兩根 0% 的長條。
@@ -6620,11 +6772,17 @@
        季節性沒有「循環」，所以四段改成**強弱四級**：
        強勢／偏強／偏弱／弱勢，依「超額報酬勝率 × 0.6 ＋ 平均超額」分。
        樣本少於 3 年的不列（跟熱力圖同一條門檻）。*/
+    /* ★ 2026-09-23：這四個色本來是寫死的**深色主題**值（#ff4d6d／#ffb454／#8b7bff／#2ee59d）。
+       那些是螢光色，印在明亮主題的白底上實測只有 2.94／1.61／3.02／**1.50** ——
+       「強勢／偏強／偏弱／弱勢」這四個標題在淺色主題下根本讀不出來，
+       而它們是這張卡唯一的分級依據。改讀 CH（切主題時 refreshPalette() 會就地換掉），
+       淺色主題因此吃到新的 --rise／--amber／--violet／--fall，四個都 ≥5.2。
+       ⚠ 紅＝強、綠＝弱 是刻意的（台股紅漲綠跌），配色語意一個字都沒改。*/
     const SEASON_TIER = [
-      { k: 'strong', name: '強勢', color: '#ff4d6d', sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
-      { k: 'good', name: '偏強', color: '#ffb454', sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
-      { k: 'soft', name: '偏弱', color: '#8b7bff', sub: '這個月表現平平', act: '沒有季節性優勢' },
-      { k: 'weak', name: '弱勢', color: '#2ee59d', sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
+      { k: 'strong', name: '強勢', color: CH.up, sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
+      { k: 'good', name: '偏強', color: CH.amber, sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
+      { k: 'soft', name: '偏弱', color: CH.violet, sub: '這個月表現平平', act: '沒有季節性優勢' },
+      { k: 'weak', name: '弱勢', color: CH.down, sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
     ];
     const topThisMonth = (P) => {
       const m = new Date().getMonth() + 1;
@@ -6687,6 +6845,11 @@
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
     $('#evCount').textContent = items.length;
+    /* 手機版「⋯」清單裡的今日事件也要同一個數字（G1／G9）——
+       事件鈕在手機上是被藏起來的，數字只寫在它身上等於手機看不到。*/
+    { const mc = $('#mmEvCount'), mb = $('#moreCount');
+      if (mc) mc.textContent = items.length;
+      if (mb) { mb.textContent = items.length; mb.hidden = !items.length; } }
     const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });   // 'YYYY-MM-DD'
     /* 日期改成下拉選單（Andy 2026-09-15：「日期那邊可以變成清單選項選擇日期」，
        而且「保留前 1 個禮拜資訊」）。選項只列最近七天，每個後面帶那一天的筆數 ——
@@ -6760,8 +6923,19 @@
       if (e.target.closest('#side') || e.target.closest('#evToggle')) return;
       setSide(false, false);                           // 不覆寫桌機的偏好
     }, true);
-    // 從寬拖窄：那一欄變成浮層的瞬間要收掉，不然一樣蓋住內容
+    /* 從寬拖窄：那一欄變成浮層的瞬間要收掉，不然一樣蓋住內容。
+       ★ 2026-09-23 手機優先改版時抓到的既有 bug：`setSide()` 自己會
+         `dispatchEvent(new Event('resize'))`（為了讓圖表重算寬度），
+         於是「在手機上打開事件抽屜」變成：setSide(true) → 派發 resize →
+         這支處理器看到「是浮層而且是開的」→ 立刻 setSide(false) —— **開不起來**。
+         以前看不到這個 bug，是因為唯一的入口（事件鈕）在手機上被頂欄裁掉、根本按不到（G1）。
+         修法：記住上一次的視窗寬度，**寬度真的變了**才收 —— 那才是「從寬拖窄」的定義；
+         setSide 自己派的 resize 寬度沒變，不該被當成使用者在拖視窗。*/
+    let _lastW = window.innerWidth;
     window.addEventListener('resize', () => {
+      const w = window.innerWidth;
+      if (w === _lastW) return;
+      _lastW = w;
       if (sideIsOverlay() && $('#side').classList.contains('open')) setSide(false, false);
     });
   }
@@ -6864,14 +7038,21 @@
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
     tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
+    /* ★ 2026-09-23：Andy「上面黃底那串說明刪掉」。
+       以前這段把資料狀態畫成頁面最上方的常駐橫幅，佔三行。現在改成：
+       **文字照算、但不畫在版面上**，整串掛到左上「YYYY-MM-DD 盤後」那顆的滑鼠提示裡。
+       為什麼不是整段刪掉：那串字是唯一講得出「今天的數字為什麼長這樣」的地方
+       （暫定值、哪個來源沒回、這輪只更新價量…）。刪掉版面是他要的，刪掉資訊不是。
+       `#banner` 保留但恆為 hidden，之後若要把「壞掉」等級放回畫面，改這裡一個判斷即可。 */
+    const plain = (html) => String(html).replace(/<[^>]*>/g, '');
+    const lines = [`資料更新到 ${D_} 盤後`];
+    if (!bits.length) lines.push('所有來源正常。');
+    else bits.forEach(x => lines.push('· ' + plain(x)));
+    if (tail.length) lines.push(tail.map(plain).join('、') + '（台北時間）');
+    const asof = $('#asof');
+    if (asof) asof.title = lines.join('\n');
     const b = $('#banner');
-    if (!bits.length) {                                  // 一切正常也要講一句，讓人知道系統是活的
-      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>，所有來源正常。${tail.length ? '<span class="muted">（' + tail.join('、') + '，台北時間）</span>' : ''}`;
-      b.className = 'banner on ok';
-    } else {
-      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>　·　${bits.join('　·　')}${tail.length ? '<br><span class="muted">' + tail.join('、') + '（台北時間）</span>' : ''}`;
-      b.className = 'banner on ' + (level === 'bad' ? 'bad' : 'warn');
-    }
+    if (b) { b.hidden = true; b.className = 'banner'; b.innerHTML = ''; }
   }
 
   // ---------------------------------------------------------------- 啟動
@@ -6885,6 +7066,8 @@
     document.addEventListener('visibilitychange', () => { if (document.hidden) stopAllPlay(); });
     const tb = document.getElementById('themeBtn');
     if (tb) tb.onclick = () => applyTheme(theme() === 'light' ? 'dark' : 'light', true);
+    initMore();                 // 手機頂欄的「⋯ 更多工具」（G1／G9）
+    initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,

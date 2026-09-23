@@ -31,13 +31,35 @@
 :root{
   --bg:#070b16; --bg-2:#0b1224; --panel:#0f172b; --panel-2:#141e36; --panel-3:#1a2542;
   --line:#1e2a48; --line-2:#2a3860;
-  --ink:#e8eeff; --ink-2:#a9b6d6; --ink-3:#6f7ea3;
+  --ink:#e8eeff; --ink-2:#a9b6d6;
+  /* ★ 2026-09-23 UI 精修 #2：--ink-3 從 #6f7ea3 調亮到 #8493b8。
+     為什麼：這是全站量最大的一階文字（單頁約 960 個 .cat 之類的元素都吃它），
+     舊值對 --panel 只有 4.41、對 --panel-2 只有 4.09，兩個都不到 WCAG AA 的 4.5 ——
+     也就是「說明文字、時間戳、次要指標幾乎全站都差一點看不清楚」。
+     新值色相一模一樣（222.7° → 222.7°），只提明度，所以配色的調性零改變。
+     實測：panel 5.81 / panel-2 5.40 / panel-3 4.94 / bg 6.41。
+     退版就把這一行換回 #6f7ea3。 */
+  --ink-3:#8493b8;
   --cyan:#3ee0ff; --violet:#8b7bff; --amber:#ffb454; --lime:#c3ff5b;
   --rise:#ff4d6d; --fall:#2ee59d; --flat:#8ea0c4;
   --glow:0 0 0 1px rgba(62,224,255,.25), 0 0 24px -6px rgba(62,224,255,.45);
   --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(0,0,0,.9);
   --r:12px; --side-w:360px;
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
+  /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
+     為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
+     70 個 `:hover` 裡 57 個（81%）的基底選擇器連 `transition` 都沒有 ——
+     也就是「滑過去是硬跳、按下去沒反應」。散著寫一定會又冒出第四種時間，
+     所以只留三階，任何新寫的過場都只准從這三個裡面挑。
+     120／180／240 是「微互動 100～200ms、中型轉場 200～300ms」那個區間偏快的一端：
+     這是看盤工具，任何讓人等的動畫都是扣分。**超過 240ms 一律不准。** */
+  --dur-fast:120ms;   /* hover、顏色變化 */
+  --dur:180ms;        /* 展開、切換、淡入 */
+  --dur-slow:240ms;   /* 面板滑入（上限，不准再往上） */
+  --ease:cubic-bezier(.2,0,0,1);        /* 標準：進場快、收尾慢 */
+  --ease-out:cubic-bezier(0,0,.2,1);
+  --focus:#3ee0ff;    /* 鍵盤焦點環。對 --panel 11.30，遠高於非文字元素要求的 3.0 */
+  --row-hover:#17213c;/* 表格列 hover 底色。對 --panel 實測 1.12 —— 看得出來，但不會蓋掉文字 */
   /* 主題會換掉的幾個「寫死過」的值。以前直接寫 #061018 / #0a1020 / rgba(7,11,22,.78)，
      改主題就改不動 —— 全部收成變數，明亮主題只要覆蓋這裡。 */
   --ontop:#061018;            /* 疊在 cyan 按鈕上的字色 */
@@ -280,9 +302,27 @@
 :root[data-theme="light"]{
   --bg:#f2f5fb; --bg-2:#e9edf7; --panel:#ffffff; --panel-2:#f7f9fd; --panel-3:#eef2fa;
   --line:#dde4f1; --line-2:#c2cde1;
-  --ink:#0f1830; --ink-2:#3f4e6d; --ink-3:#6a7896;
-  --cyan:#0b7fa6; --violet:#5f4ddb; --amber:#b06a00; --lime:#4a8a15;
-  --rise:#dc2440; --fall:#0a9b6a; --flat:#7a879f;
+  --ink:#0f1830; --ink-2:#3f4e6d;
+  /* ★ 2026-09-23 UI 精修 #2／#3：淺色主題七個色一起往下壓明度。
+     為什麼：淺色主題底色是白與近白，舊值有七個對背景不到 4.5（最差的 --fall 只有 3.17），
+     所以「切成明亮主題之後一堆字看不清楚」不是錯覺，是量得出來的。
+     ⚠ 紅漲綠跌是台股慣例，這裡**只動明度、不動色相**（實測色相差 0.0～2.1°），
+        --rise 仍然是紅（漲）、--fall 仍然是綠（跌），語意零改變。
+     舊值 → 新值（括號內＝對 panel / panel-2 / panel-3 / bg 的實測對比）：
+       --ink-3 #6a7896 → #5b6884（5.59 / 5.30 / 4.98 / 5.12）
+       --cyan  #0b7fa6 → #0a6b8a（6.03 / 5.72 / 5.37 / 5.52）
+       --amber #b06a00 → #8f5600（6.00 / 5.69 / 5.35 / 5.50）
+       --lime  #4a8a15 → #3f7512（5.58 / 5.29 / 4.97 / 5.11）
+       --rise  #dc2440 → #c81234（5.85 / 5.55 / 5.21 / 5.35）
+       --fall  #0a9b6a → #07794f（5.44 / 5.17 / 4.85 / 4.99）
+       --flat  #7a879f → #5f6c85（5.29 / 5.02 / 4.71 / 4.84）
+     --violet 沒動（舊值本來就 5.88 / 5.24，已達標）。
+     ⚠ app.js 的 PALETTE_LIGHT[0/2/3] 仍然是 #0b7fa6 / #b06a00 / #4a8a15 ——
+        那是「分類色盤」的鎖定區（DECISIONS #48：動一個值就把全站板塊顏色洗牌），
+        跟這裡的語意色是兩套東西，**刻意不同步**。 */
+  --ink-3:#5b6884;
+  --cyan:#0a6b8a; --violet:#5f4ddb; --amber:#8f5600; --lime:#3f7512;
+  --rise:#c81234; --fall:#07794f; --flat:#5f6c85;
   --glow:0 0 0 1px rgba(11,127,166,.22), 0 4px 16px -8px rgba(11,127,166,.4);
   --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(15,24,48,.35);
   --ontop:#ffffff; --chartbg:#ffffff;
@@ -291,6 +331,8 @@
   --grid:rgba(15,24,48,.07);
   --drop:rgba(15,24,48,.18);
   --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
+  --focus:#0a5f7d;    /* 淺色的焦點環：對白底 7.13、對 --bg 6.53 */
+  --row-hover:#eef2fa;/* 對白底實測 1.12，跟深色那組同一個強度 */
 }
 /* ================ 剖析圖的兩種模式（art-director 2026-09-22，Andy 拍板）================
    Andy 給了兩張參考圖：亮色系「閱讀」（暖白紙底、低飽和粉彩、深灰細引線、白色圓角卡片）
@@ -407,7 +449,15 @@ body{margin:0;background:
   radial-gradient(900px 500px at 100% 0%, var(--body-2), transparent 55%),
   var(--bg);
   color:var(--ink);font-family:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
-  font-size:15.5px;line-height:1.6;min-height:100vh}
+  font-size:15.5px;line-height:1.6;min-height:100vh;
+  /* ★ 2026-09-23 UI 精修 #1：全站數字改等寬（tabular figures）。
+     為什麼掛在 body 而不是逐個欄位掛：全站原本只有 2 處有 tabular-nums，
+     而「數字」到處都是（KPI、漲跌幅、占比、表格、膠囊、圖說），逐個掛一定會漏。
+     掛在最上面一層，繼承下去全部都吃得到；等寬字族（--mono）本來就等寬，掛了也沒差。
+     效果：同一欄相鄰兩列的數字右緣對得齊（實測差值 0.00px，改之前會差好幾 px），
+     而且盤中報價每秒跳動時位數不會左右抽動。
+     這一項**不改字級也不改版面**，只是把每個阿拉伯數字的前進寬度統一。 */
+  font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
 a{color:var(--cyan);text-decoration:none}
 button{font-family:inherit;color:inherit}
 input,select{font-family:inherit}
@@ -428,8 +478,37 @@ small{font-size:12.5px}
   box-shadow:var(--glow);display:grid;place-items:center;font-family:var(--mono);font-weight:700;color:var(--ontop);font-size:13px}
 .brand b{font-size:16px;letter-spacing:.02em}
 .brand small{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;color:var(--ink-3);line-height:1;margin-top:3px}
+/* ★ 2026-09-23 UI 精修 #4：分頁列的包裝層。它唯一的工作是當左右箭頭的定位基準 ——
+   `.tabs` 自己是捲動容器，絕對定位的東西掛在它裡面會跟著內容一起捲走。 */
+.tabswrap{position:relative;flex:1;min-width:0;display:flex;align-items:center}
 .tabs{display:flex;gap:4px;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none;padding:0 4px}
 .tabs::-webkit-scrollbar{display:none}
+/* 左右箭頭：純文字的 ‹ ›，**不引入任何圖示庫**（Andy 公司網路擋 CDN）。
+   `tabindex=-1` 是刻意的 —— 八顆分頁在 DOM 裡本來就全部 Tab 得到（捲不捲得到不影響焦點），
+   箭頭只是滑鼠使用者的捷徑，讓它們也吃掉兩次 Tab 反而是噪音。 */
+.tabnav{display:none;position:absolute;top:50%;transform:translateY(-50%);z-index:3;
+  width:24px;height:24px;place-items:center;padding:0;line-height:1;
+  border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink-2);
+  font-size:15px;cursor:pointer;
+  transition:background var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease)}
+.tabnav:hover{color:var(--ink);border-color:var(--cyan);background:var(--panel-2)}
+.tabnav.l{left:-2px} .tabnav.r{right:-2px}
+@media (min-width:821px){
+  /* 只在真的捲得動的那一側才出現箭頭與遮罩 —— 捲到底了還留著箭頭是騙人的。
+     class 由 app.js 的 `syncTabOverflow()` 掛（scroll／resize／換頁都會重算）。*/
+  .tabswrap.ovf-l .tabnav.l,.tabswrap.ovf-r .tabnav.r{display:grid}
+  /* 遮罩掛在捲動容器自己身上：mask 作用在 border box，不會跟著內容捲，
+     所以淡出永遠停在邊緣（用 ::after 就會跟著捲，這是刻意不用它的理由）。*/
+  .tabswrap.ovf-r .tabs{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 34px),transparent 100%);
+    mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 34px),transparent 100%)}
+  .tabswrap.ovf-l .tabs{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 100%)}
+  .tabswrap.ovf-l.ovf-r .tabs{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 34px),transparent 100%);
+    mask-image:linear-gradient(90deg,transparent 0,#000 34px,#000 calc(100% - 34px),transparent 100%)}
+}
+/* 手機：整個包裝層從版面消失，`.tabs` 回到 `.topbar` 的直接子項，
+   底部固定兩列四顆那一套（下面 @media max-width:820px）因此一個字都不用改。*/
+@media (max-width:820px){ .tabswrap{display:contents} .tabnav{display:none!important} }
 .tab{padding:8px 14px;border:0;background:transparent;color:var(--ink-2);font-size:15px;border-radius:9px;
   cursor:pointer;white-space:nowrap;transition:.15s}
 .tab:hover{color:var(--ink);background:var(--panel-2)}
@@ -458,11 +537,19 @@ small{font-size:12.5px}
 .livebox{position:relative;display:flex;align-items:center;gap:6px}
 .livebox .gear{padding:7px 9px}
 .livebox button:disabled{opacity:.55;cursor:progress}
+/* ★ 2026-09-23 UI 精修 #4（A14）：即時徽章**不准因為錯誤訊息變長就把導覽分頁擠掉**。
+   量到的事實：#flow 的分頁溢出 352px，比其他頁多 190px，差的就是這顆吐出
+   `Failed to fetch` 的徽章。一個次要的抓取失敗不該有比整個導覽更大的視覺權重。
+   兩件事一起做：① 固定最大寬 ＋ 截斷（全文留在 title，滑上去看得到，是藏不是刪）
+   ② `.bad` 從「紅框紅字」改成「琥珀左條 ＋ 面板底」—— 紅色在台股是「漲」，
+      拿來表示錯誤會直接跟漲跌混淆（狀態一律顏色＋文字雙編碼）。*/
 .livestate{font-size:12px;font-family:var(--mono);white-space:nowrap;color:var(--ink-3);
-  padding:3px 8px;border-radius:7px;border:1px solid transparent}
+  padding:3px 8px;border-radius:7px;border:1px solid transparent;
+  flex:none;max-width:150px;overflow:hidden;text-overflow:ellipsis}
 .livestate.live{color:var(--ontop);background:var(--cyan);font-weight:600}
 .livestate.ok{color:var(--ink-2);border-color:var(--line-2)}
-.livestate.bad{color:#ff8fae;border-color:#5a2338;background:rgba(255,92,138,.1)}
+.livestate.bad{color:var(--amber);border-color:var(--line-2);background:var(--panel-2);
+  border-left:3px solid var(--amber);border-radius:4px 7px 7px 4px}
 .livepop{position:absolute;top:42px;right:0;width:min(420px,92vw);z-index:60;
   background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r);
   box-shadow:var(--shadow);padding:14px 16px}
@@ -483,7 +570,11 @@ small{font-size:12.5px}
   .livebox .livestate{display:none}
   .livepop{right:-40px}
 }
-.evbtn .n{background:var(--violet);color:#fff;font-size:11px;padding:1px 7px;border-radius:9px;margin-left:6px;font-family:var(--mono)}
+/* ★ 2026-09-23 UI 精修 #3：事件顆數徽章的字色從寫死的 #fff 改成 var(--ontop)。
+   實測白字印在深色主題的 --violet(#8b7bff) 上只有 **3.29:1**，讀不出來；
+   --ontop 在深色是 #061018 → 5.82，在淺色是 #ffffff 印在 #5f4ddb 上 → 5.88，
+   一個 token 同時把兩個主題都修好。字級 11 → 12px（本專案的下限）。*/
+.evbtn .n{background:var(--violet);color:var(--ontop);font-size:12px;padding:1px 7px;border-radius:9px;margin-left:6px;font-family:var(--mono)}
 
 /* ---------------- 版面 ---------------- */
 .layout{display:grid;grid-template-columns:1fr var(--side-w);min-height:calc(100vh - 58px)}
@@ -876,7 +967,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stagepanel ul.ms li:hover{background:var(--panel-2);color:var(--ink)}
 .stagepanel ul.ms li.none{cursor:default;color:var(--ink-3)}
 .stagepanel ul.ms li .g{font-weight:600}
-.stagepanel ul.ms li .m{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.stagepanel ul.ms li .m{margin-left:auto;font-family:var(--mono);font-size:12px;/* 精修 #8 */color:var(--ink-3);white-space:nowrap}
 .stagepanel ul.ms li .ar.up{color:var(--up)} .stagepanel ul.ms li .ar.dn{color:var(--down)}
 .stagepanel ul.ms li .ar.fl{color:var(--ink-3)}
 .stagepanel ul.ms li .jmp{font-size:10.5px;padding:1px 6px;border-radius:999px;color:var(--c);
@@ -928,11 +1019,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stage li.mem .go{margin-left:auto}
 .stage li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--panel-2);
   cursor:pointer;transition:.15s;flex-wrap:wrap;border:1px solid transparent}
-.stage li:hover{background:var(--panel);border-color:var(--c);transform:translateX(2px)}
+/* ★ 2026-09-23 UI 精修 #5：拿掉 translateX(2px)。密集清單裡整列往右跳，
+   滑鼠往下掃過去就是一連串連鎖抖動，看起來像畫面在壞掉而不是回饋。
+   回饋改由底色與邊框色負責（而且現在有 120ms 的過場，不再是硬跳）。*/
+.stage li:hover{background:var(--panel);border-color:var(--c)}
 .stage li.none{color:var(--ink-3);font-size:12.5px;cursor:default;background:transparent;padding:4px 0}
 .stage li.none:hover{outline:0}
 .stage li .g{font-weight:600;font-size:13.5px}
-.stage li .m{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-left:auto}
+.stage li .m{font-family:var(--mono);font-size:12px;/* 精修 #8 */color:var(--ink-3);margin-left:auto}
 .stage li .ar{font-family:var(--mono);font-size:13px}
 .stage li .ar.up{color:var(--rise)} .stage li .ar.dn{color:var(--fall)} .stage li .ar.fl{color:var(--ink-3)}
 /* 總覽上方數字的明細面板 */
@@ -1093,7 +1187,11 @@ tr.whyrow>td{padding:2px 10px 10px;border-top:0}
 a.lk{display:inline-flex;align-items:center;gap:5px;cursor:pointer;color:var(--ink);border-bottom:1px dotted transparent;line-height:1.3;white-space:nowrap}
 a.lk:hover{color:var(--cyan);border-bottom-color:var(--cyan)}
 a.lk-stock{font-weight:600}
-a.lk .code{font-family:var(--mono);font-size:.82em;color:var(--cyan);font-weight:500;opacity:.9}
+/* ★ 2026-09-23 UI 精修 #8：股票代號從相對字級 .82em 改成固定 12px。
+   為什麼不是「把 .82 調大」：.82em 是**跟著父層縮**的，父層 12.5px 時實測只剩 10.25px，
+   而代號正是全站最常被掃描的欄位 —— 誰在漲、要點進去哪一檔，都是先讀代號。
+   改成固定值它就不會再被父層拖下去。12px 是本專案的字級硬下限（--dg-fs-min 同值）。*/
+a.lk .code{font-family:var(--mono);font-size:12px;color:var(--cyan);font-weight:500;opacity:.9}
 a.lk-group{color:var(--ink-2);font-weight:500}
 a.lk-group i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--ink-3));box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--ink-3)) 25%,transparent);flex:none}
 a.lk-group:hover{color:var(--c,var(--cyan));border-bottom-color:var(--c,var(--cyan))}
@@ -1222,11 +1320,30 @@ a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
 .tw::-webkit-scrollbar-thumb:hover{background:var(--ink-3)}
 tr.ghead td{background:var(--panel-3);color:var(--ink-2);font-size:12.5px;font-weight:600;position:sticky;top:33px;z-index:1}
 .mapnote{font-size:11.5px;color:var(--ink-3)}
+/* ★ 2026-09-23 UI 精修 #9：表格。四件事一起做，都是「資料很多時不要糊掉」。
+   ① 列高固定：`td` 給定 line-height，每列高度不再因為內容長短上下抽動。
+   ② 列 hover 換成 --row-hover（深 #17213c／淺 #eef2fa，兩個主題都實測 1.12:1）——
+      舊值是寫死的 rgba(62,224,255,.06)，在淺色主題上是一層幾乎看不見的青霧。
+      1.12 是刻意的：看得出「游標在這一列」，但不會把整列的文字壓掉。
+   ③ 每 5 列一條較明顯的分隔（--line-2）：給眼睛一個定位點。
+      選細分隔線而不是斑馬紋，是因為**本站每一列都可以點**（點進個股頁），
+      斑馬紋會跟 hover／選取狀態打架，而量測研究顯示它對正確率沒有顯著改善。
+   ④ 表頭吸頂的那條線改用 box-shadow：`border-collapse:collapse` 之下，
+      sticky 表頭的 border 會跟著內容捲走（表頭底下會裂開一條縫），box-shadow 不會。
+   數字欄本來就靠右（`th,td` 預設 text-align:right，文字欄才加 `.l`），這一版維持。*/
 table{border-collapse:collapse;width:100%;font-size:14px}
 th,td{padding:9px 11px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
-th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);font-weight:600;font-size:12.5px;letter-spacing:.04em;z-index:1;cursor:pointer}
+td{line-height:1.45}
+th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);font-weight:600;font-size:12.5px;letter-spacing:.04em;z-index:1;cursor:pointer;
+  box-shadow:0 1px 0 var(--line-2)}
 th.l,td.l{text-align:left} td.num{font-family:var(--mono)}
-tbody tr{cursor:pointer;transition:.1s} tbody tr:hover{background:rgba(62,224,255,.06)}
+tbody tr{cursor:pointer;transition:background var(--dur-fast) var(--ease)}
+tbody tr:hover{background:var(--row-hover)}
+/* 列按下去的回饋用底色壓一階，**不用 scale** —— 整列縮放會讓 12px 的字糊掉一幀，
+   而且相鄰的列會跟著看起來在動（§7.3 的但書）。*/
+tbody tr:active{background:var(--panel-3)}
+tbody tr:nth-child(5n) td{border-bottom-color:var(--line-2)}
+tbody tr:last-child td{border-bottom:0}
 .grade{display:inline-block;padding:2px 9px;border-radius:6px;font-weight:700;font-size:12.5px;font-family:var(--mono)}
 .grade.A{background:rgba(255,77,109,.18);color:var(--rise)} .grade.B{background:rgba(255,180,84,.16);color:var(--amber)}
 .grade.W{background:var(--panel-3);color:var(--ink-3)}
@@ -1684,7 +1801,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .ev a{color:var(--ink);font-size:14px;line-height:1.45;display:block}
 .ev a:hover{color:var(--cyan)}
 .ev .m{font-size:12px;color:var(--ink-3);margin-top:4px;display:flex;gap:8px;align-items:center}
-.ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:11px}
+.ev .cat{padding:0 7px;border-radius:999px;background:var(--panel-3);font-size:12px}/* 精修 #8：11 → 12px */
 .close{border:0;background:transparent;color:var(--ink-3);font-size:20px;cursor:pointer}
 
 /* ---------------- 手機 ---------------- */
@@ -1788,7 +1905,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .segcard .sco:hover{border-color:var(--cyan)}
 .segcard .sco .nm{font-size:12.5px;font-weight:600;color:var(--ink);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1 1 auto}
-.segcard .sco .code{font-family:var(--mono);font-size:11px;color:var(--cyan);opacity:.9;flex:none}
+.segcard .sco .code{font-family:var(--mono);font-size:12px;/* 精修 #8：11 → 12px 下限 */color:var(--cyan);opacity:.9;flex:none}
 .segcard .sco .code.fo{color:var(--ink-3)}
 .segcard .sco.foreign{border-style:dashed}
 /* 關係條數；0 沿用關聯圖那個橘色「?」（還沒查到具名客戶／供應商，寧可留白也不猜） */
@@ -1941,21 +2058,21 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   padding-left:22px;word-break:break-word}
 .dlv-q::before{content:'\201C';position:absolute;left:0;top:-4px;font-size:26px;line-height:1;
   color:var(--ink-3);font-family:Georgia,serif}
-.dlv-tag{display:block;font-size:11px;color:var(--ink-3);font-weight:400;letter-spacing:.05em;margin-bottom:2px}
+.dlv-tag{display:block;font-size:12px;/* 精修 #8 */color:var(--ink-3);font-weight:400;letter-spacing:.05em;margin-bottom:2px}
 .dlv-w{font-size:13px;line-height:1.65;color:var(--ink-2);word-break:break-word}
-.dlv-w b{color:var(--ink-3);font-weight:600;font-size:11.5px;display:block;margin-bottom:2px}
+.dlv-w b{color:var(--ink-3);font-weight:600;font-size:12px;/* 精修 #8 */display:block;margin-bottom:2px}
 .dlv-n{font-size:12px;line-height:1.65;color:var(--ink-3);border-left:2px dashed var(--line-2);
   padding-left:9px;word-break:break-word}
 .dlv-n b{color:var(--amber);font-weight:600}
 .dlv-f{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:auto;
   padding-top:8px;border-top:1px dashed var(--line);font-size:12px}
-.dlv-ver{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.dlv-ver{font-family:var(--mono);font-size:12px;/* 精修 #8 */color:var(--ink-3)}
 .dlv-go{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;
   border:1px solid var(--line-2);background:var(--panel);color:var(--cyan);cursor:pointer}
 .dlv-go:hover{border-color:var(--cyan);box-shadow:var(--glow)}
-.dlv-none{font-size:11.5px;color:var(--ink-3)}
-.dlv-b{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;
-  font-size:11.5px;font-weight:600;border:1px solid currentColor}
+.dlv-none{font-size:12px;/* 精修 #8 */color:var(--ink-3)}
+.dlv-b{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;/* 精修 #8：11.5 → 12px 下限 */
+  font-size:12px;font-weight:600;border:1px solid currentColor}
 /* 一筆的狀態同時決定左邊色條與徽章顏色 —— 只有一個地方定義 */
 .dlv.s-done{border-left-color:var(--dlv-done)} .dlv-b.s-done{color:var(--dlv-done)}
 .dlv.s-wip{border-left-color:var(--dlv-wip)}   .dlv-b.s-wip{color:var(--dlv-wip)}
@@ -2166,15 +2283,307 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    DECISIONS #148「要看得到版號」沒有被動到。 */
 @media (max-width:1140px){ .verbadge{display:none} }
 
+/* ==========================================================================
+   ★★★ 2026-09-23 手機優先改版 第一版（Andy：「電腦看跟手機看完全不同，
+   幫我依據手機改版頁面，後續還會在更新 先改一版吧」）
+
+   依據 = `docs/mobile_audit.md` 那份量出來的落差清單（16 項），不是印象。
+   原則（他講得很清楚）：**桌機遷就手機**，手機是基準；桌機是它的放大／展開版。
+   規矩：同一個功能兩邊要叫同一個名字、放在對應得起來的位置；
+   收進抽屜可以，**整個消失不行**。
+
+   這一段刻意集中寫在檔尾、而不是散進上面各自的區塊：
+   ① 它們全部是「同一件事」的一部分，散開來下一版的人找不到；
+   ② 排在最後才蓋得掉上面既有的 820px 區塊（同特異度、後者勝），
+      不必替每一條加 !important。
+   ========================================================================== */
+
+/* ---- G4：手機字級下限 12px（`docs/mobile_audit.md` 量到 8 頁共 400+ 處破線）----
+   根因是 CSS 裡有 60 餘處寫死 11px／11.5px —— 桌機勉強可讀，390px 的手上讀不到。
+   ⚠ 這裡**只抬手機**，桌機維持原樣：11.5px 的次要標籤在 1440px 上是刻意的層次，
+     一起抬上去會把桌機的資訊密度弄壞（那不是他要修的東西）。
+   ⚠ 刻意不含 `.chainmap .co .sub` 與 `.chainmap .fct` —— 那兩個是 SVG 文字，
+     位置由 industry.js 依字級算好，抬字級會直接壓到隔壁的節點。留到下一版連同排版一起改。*/
+@media (max-width:820px){
+  .evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
+  .rotdd .ddbar .muted,.rotdd .ddpanel>.ddopt em,.rotdd .ddbtn,
+  .m3-tag,.m3-night .note,.m3-chart .m3-night .note,[id^='m3c-'][data-fallback]::before,
+  .zwrap>.zbadge,.chainchips button em,.rotquads .rq em,
+  .stagepanel .sd,.stagepanel ul.ms li .m,.stage li .m,.kpi .l .more,
+  #mktTabs button em,.magrid .ma .n em,.magrid .ma .v,.cglist label em,.facets button em,
+  .m3-sub,.chainsw button em,.chainsw button[data-dg]::before,
+  .nbsw>button em,.nbsw>a em,.nbsw>button[data-dg]::before,
+  .qtag,.segchip .n,.xchain .xrow>.muted,.xchain .xrow .pill,.mapnote,
+  #lwc .ohlcbox,#lwc .ohlcbox th,#lwc .ohlcbox td,#lwc .pane-labels div,
+  .relbox .it,.relbox .nt,.relbox .why,.relbox .why b,.ev .cat,
+  .segcard .sh .rl,.segcard .sh .cnt,.segcard .sf,.segcard .sco .code,.segcard .sco .rel,.segcard .nt,
+  .rotfilter .muted,.rottools .muted,h4.subh small,
+  .tk-st,.tk-f code,.tk-sp,
+  .dlv-tag,.dlv-w b,.dlv-ver,.dlv-none,.dlv-b,
+  .segtools .muted,.relsw button{font-size:12px}
+}
+
+/* ---- G1／G9：頂欄右半邊在手機被整個裁掉 ----
+   量到的事實（390px）：`.topbar` 需要 528px 卻只有 390px，而它是 `overflow:hidden` ——
+   `#themeBtn` 只露出 6px、`#evToggle`（今日事件的**唯一入口**）整顆在畫面外。
+   結果是「明亮／深色」與「今日事件」這兩個功能在手機上不存在。
+
+   修法：手機把「更新／即時設定／主題／今日事件」四件事收進一顆「⋯」——
+   收進抽屜是允許的，消失不行。抽屜裡每一列都寫**跟桌機同一個名字**，
+   而且是 44px 高的整列，比桌機的圖示鈕更好認、更好點。
+   ⚠ `overflow` 一定要改回 `visible`：`#morePop` 與搜尋建議 `#sugg` 都是絕對定位的浮層，
+     留著 hidden 會把它們裁掉（等於修了一個問題製造另一個）。
+     改 visible 之後不會產生橫向捲軸，因為四顆鈕已經收掉、搜尋框改成可收縮。*/
+.morebtn{display:none;position:relative}
+.morepop{position:absolute;top:calc(100% + 6px);right:8px;z-index:60;width:min(260px,calc(100vw - 24px));
+  background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:6px;
+  box-shadow:0 18px 46px var(--drop)}
+.morepop[hidden]{display:none}
+.morepop button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;
+  border:0;background:transparent;color:var(--ink);font-size:14.5px;text-align:left;border-radius:9px;cursor:pointer}
+.morepop button:hover,.morepop button:focus-visible{background:var(--panel-2)}
+.morepop button .ic{width:22px;text-align:center;color:var(--cyan);font-size:15px;flex:none}
+.morepop button .n{margin-left:auto;background:var(--violet);color:var(--ontop);font-size:12px;/* 同上：白字對 --violet 只有 3.29 */
+  padding:1px 8px;border-radius:9px;font-family:var(--mono)}
+.morepop .hint{font-size:12px;color:var(--ink-3);padding:4px 12px 6px;line-height:1.5}
+@media (max-width:820px){
+  .topbar{overflow:visible}
+  .livebox,#themeBtn,#evToggle{display:none}
+  .morebtn{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin-left:auto}
+  /* 搜尋改成「把剩下的寬度都吃掉」：手機上搜尋是最常用的入口，
+     而且可收縮才不會把頂欄撐出橫向捲軸（這是 overflow:visible 的前提）。*/
+  .search{flex:1 1 auto;min-width:0}
+  .search input{width:100%}
+}
+
+/* ---- G2：底部分頁列 8 顆放不下，「季節性」「交付清單」整個在畫面外 ----
+   量到（390px）：`#tabs` 需要 549px。市場明細被切一半，最後兩顆完全看不到。
+   它雖然有 `overflow-x:auto` 滑得到，但手機不顯示捲軸、`space-around` 又讓它
+   看起來「剛好排滿」—— 等於沒有任何提示，那兩頁對手機使用者就是不存在。
+
+   修法：**排成兩列四顆，八顆全部看得見**，不靠左右滑。
+   為什麼不選「一列可捲 ＋ 淡出提示」：那樣最後兩頁仍然要先滑才看得到，
+   而他的抱怨正是「找不到」。多出來的 ~50px 高度換「零隱藏」，這筆划算。
+   同時把每顆的觸控高度補到 44px（G5，原本只有 32px）。*/
+@media (max-width:820px){
+  .tabs{flex-wrap:wrap;justify-content:flex-start;gap:4px;overflow:visible;
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom))}
+  .tab{flex:1 0 calc(25% - 3px);min-height:44px;display:flex;align-items:center;justify-content:center;
+    padding:4px 2px;font-size:12.5px;line-height:1.2}
+  /* 兩列分頁列約 102px 高，內容的下緣要讓開，不然最後一張卡片被蓋住 */
+  main{padding-bottom:150px}
+}
+
+/* ---- G3：總覽的大盤三張圖 ----
+   量到：390px 時三張卡直立堆疊共 1331px（433／433／437），
+   使用者要滑過三個整頁畫面才看得到第一個 KPI 數字；1440px 是一列三張、可以互相對照。
+   整頁高度因此是 9832 vs 3306（2.97 倍）。
+
+   修法：手機改成**左右滑的卡片**（一次一張、露出下一張的邊）——
+   「三個指數並排、可以互相比」這件事在手機上用滑的達成，語意跟桌機一樣，
+   而高度從 1331px 收回一張的高度。
+   露出 12% 的下一張 ＋ 右緣淡出（`.hsc` 那一段）就是「可以滑」的提示。*/
+@media (max-width:820px){
+  .m3-grid{display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .m3-grid::-webkit-scrollbar{display:none}
+  .m3-grid>*{flex:0 0 88%;min-width:0;scroll-snap-align:start}
+}
+
+/* ---- G6：橫向可捲的容器要看得出「這裡可以左右滑」----
+   ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
+   這一整段**只在 ≤820px 生效**。桌機有捲軸、有滑鼠滾輪、有 hover，本來就看得出來可以捲，
+   加淡出與提示列反而是替桌機加東西 —— 那就是「桌機遷就手機」。
+   `.hsc`／`.swipetip` 的樣式與 app.js 掛 class 的那段**兩邊都有手機守門**，
+   少一邊都會讓桌機被動到。
+   量到（390px，clientWidth → scrollWidth）：#chainSwitch 362→1151（8 條產業鏈只看得到 3 條）、
+   #dgPick 324→507、#dgTools 306→416、#stockTabs 362→510、市場明細表 322→543。
+   這些用 overflow-x:auto 是對的（整頁不准橫向捲），缺的只是提示。
+
+   兩層提示：① 右緣淡出（mask，內容被切掉看得出來）② app.js 在下面補一行「← 左右滑 →」。
+   mask 掛在捲動容器自己身上 —— mask 作用在元素的 border box，**不會跟著內容捲走**，
+   所以淡出永遠停在右緣（用 ::after 就會跟著捲，這是刻意不用它的理由）。*/
+@media (max-width:820px){
+.hsc{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%)}
+.hsc.at-start{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 100%)}
+.hsc.at-both{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 calc(100% - 30px),transparent 100%)}
+.swipetip{font-size:12px;color:var(--ink-3);letter-spacing:.04em;margin:4px 0 2px;user-select:none}
+.swipetip::before{content:'← ';opacity:.7} .swipetip::after{content:' →';opacity:.7}
+}
+
+/* ---- G5：觸控目標 ----
+   量到（390px）：`.btn.small`／`.pill`／`.seg>button` 高只有 23～29px，
+   表格與卡片裡的個股連結只有 18～22px，勾選框 13×13。手機上很容易點到隔壁那一顆。
+   ⚠ 我沒有把**全部**可點元素拉到 44px：族群晶片一頁有 56 顆，全部 44px 會讓整頁再長一截，
+     那會把剛剛在 G3 省下來的高度又還回去。取捨是：
+     **導覽與主要動作（分頁、頂欄、抽屜列、卡片上的動作鈕）給滿 44px；
+     密集的篩選晶片給 36px；純文字的個股連結給 32px 的可點高度。**
+     這一條是我自己判斷的，Andy 可能不同意 —— 寫在回報裡讓他一次否決。*/
+@media (max-width:820px){
+  .btn,.evbtn,.iconbtn,.howbtn,.seg>button,.seg button,.nbsw>button,.nbsw>a,
+  .chainsw button,.relsw button{min-height:36px}
+  .card .row .btn.small,.card .row .howbtn{min-height:40px;padding-left:12px;padding-right:12px}
+  .segchip,.chainchips button,.facets button,.rotquads .rq,.pill{min-height:36px;display:inline-flex;
+    align-items:center}
+  /* 個股連結：不動字級（動了會把表格撐爛），改用 padding 把可點範圍撐到 32px */
+  .tw a.lk,.cards a.lk,.ms a,.seglist a.lk,.sibs a.lk{display:inline-flex;align-items:center;min-height:32px}
+  input[type=checkbox]{width:20px;height:20px}
+  .dtool{width:40px;height:40px} .dtool svg{width:20px;height:20px}
+  .dcol{width:30px;height:30px}
+}
+
+/* ---- G7：剖析圖收合時，它的設定列要跟著收 ----
+   量到（390px）：`#dgFold` 寫著「展開剖析圖 ▾」（圖是收的），
+   但「3D 立體／拖曳：轉動／重設視角／動畫：開」四顆照樣在、照樣點得到 ——
+   點了畫面什麼都不會變，因為圖根本沒展開。控制項在、被控制的東西不在。
+   ⚠ 手機預設收合本身是刻意的（DECISIONS：不收的話一進產業鏈就吃到 1000px 高的圖），
+     要修的是設定列，不是把收合拿掉。
+   ⚠ `#dgFold` 自己一定要留著（它是把圖開回來的唯一入口），所以用 `:not(#dgFold)`。
+   ⚠⚠ 2026-09-23 需求翻轉後改成**只在 ≤820px 生效**。桌機收合時同樣是「控制項在、圖不在」，
+     但桌機預設是展開的、而且那是 Andy 現在正在用的版面 —— 動它就是改了桌機行為。
+     留到下一版，由他決定桌機要不要也跟著收。*/
+@media (max-width:820px){ #dgSec.dgfold #dgTools>.pill:not(#dgFold){display:none} }
+
+/* ---- G8：個股頁的繪圖工具列 ----
+   量到（390px）：`.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕
+   （游標／線／箭頭／水平線／框／文字／垃圾桶 ＋ 6 色 ＋ 4 線型 ＋ 還原／關閉）。
+   桌機是圖表左側的直排工具列 —— 位置與方向都對不起來，而且手指點不準。
+   修法：手機**預設收起來**，工具列那排給一顆「✎ 畫線」開關（名字跟功能一致）。
+   收起來不是拿掉：開關就在同一排工具列上，按一下就出來，而且會記住（localStorage）。*/
+#drawTgl{display:none}
+@media (max-width:820px){
+  #drawTgl{display:inline-flex;align-items:center;min-height:36px}
+  .chartwrap>.drawbar{display:none}
+  .chartwrap.drawon>.drawbar{display:flex}
+}
+
+/* ==================================================================================
+   ★ 2026-09-23 桌面版介面精修 #5／#6／#7（規格：docs/ui_polish_spec.md §7、§8）
+   放在樣式表**最後面**是刻意的：下面三組都要能蓋掉前面既有的規則
+   （尤其是五處 `outline:0`），所以順序本身就是這一段能生效的條件。
+   ================================================================================== */
+
+/* ---- #5-1 hover 的過場 ----------------------------------------------------------
+   量到的事實：全站 70 個 `:hover` 選擇器，其中 57 個（81%）的基底選擇器連
+   `transition` 都沒有 —— 滑鼠掃過去顏色是「瞬間切換」，看起來像閃爍不像回饋。
+   這裡不去逐條改那 57 個，而是用 `:where()` 一次補齊：
+   `:where()` 的權重是 **0**，所以任何既有規則自己寫的 `transition` 都蓋得掉它，
+   等於「有寫的照舊、沒寫的補上」，不會把任何既有行為改掉。
+   只過場**顏色類**的屬性（底色／邊框／文字／陰影／透明度）——
+   尺寸與位置不過場，那會讓旁邊的東西跟著動。 */
+:where(a,button,summary,label,
+  .tab,.tabnav,.pill,.chip,.tile,.card,.evbtn,.btn,.iconbtn,.howbtn,.segchip,.grade,
+  .seg>button,.seg button,.nbsw>button,.nbsw>a,.chainsw button,.chainchips button,
+  .relsw button,.facets button,.morepop button,.sugg div,.dlv-go,.dtool,.dcol,
+  .stage li,.hpanel .ms a,th,tbody tr,.ev,.rq){
+  transition:background-color var(--dur-fast) var(--ease),
+             border-color var(--dur-fast) var(--ease),
+             color var(--dur-fast) var(--ease),
+             box-shadow var(--dur-fast) var(--ease),
+             opacity var(--dur-fast) var(--ease);
+}
+/* `.tile` 的浮起（translateY(-1px)）**刻意留著**：它是卡片、不是密集列表的一列，
+   浮起來不會造成連鎖位移，而且那正是 Andy 點名的「滑動移動回饋」。
+   原本它是硬跳的，這裡補上過場讓它變成「浮」而不是「跳」。
+   ⚠ 對照組：`.stage li` 的 translateX 已經拿掉（上面），因為那是一列接一列的清單。*/
+.tile{transition:background-color var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),
+  color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),
+  transform var(--dur-fast) var(--ease)}
+
+/* ---- #5-2 按下去的回饋 ----------------------------------------------------------
+   改之前整份樣式表的 `:active` 規則是 **0 條** —— 每一顆按鈕按下去都沒有任何反應，
+   要等畫面重畫才知道自己按到了。這是 Andy 講的「滑動移動回饋」最大的缺口。
+   0.985 的縮放：小到不會讓文字模糊，大到眼睛／手指感覺得到；60ms 是「按下即到」。
+   ⚠ **只對「整顆按鈕」用，不對表格列用** —— 整列縮放會讓 12px 的字糊掉一幀，
+     表格列的按下回饋改用底色壓一階（上面 `tbody tr:active`）。
+   ⚠ `.tabnav` 自己帶著 translateY(-50%) 定位，所以要把那一段一起寫回去，
+     不然按下去整顆會往下跳半個身高。*/
+:where(button,.tab,.evbtn,.pill,.btn,.chip,.iconbtn,.howbtn,.segchip,.dlv-go,
+  .seg>button,.seg button,.nbsw>button,.nbsw>a,.chainsw button,.chainchips button,
+  .relsw button,.facets button,.morepop button,a.card,.tile):active{
+  transform:scale(.985);transition:transform 60ms var(--ease);
+}
+.tabnav:active{transform:translateY(-50%) scale(.985);transition:transform 60ms var(--ease)}
+
+/* ---- #7 鍵盤焦點 ----------------------------------------------------------------
+   量到的事實：`.tab` 聚焦之後 `outline-width` 是 **0px**，全站 `:focus-visible` 只有 2 條、
+   `outline:0`／`none` 有 5 處 —— 只用鍵盤的人完全不知道游標在哪一顆上面。
+   `:focus-visible`（不是 `:focus`）表示「滑鼠點一下不會冒出焦點框，用鍵盤才會」。
+   `outline-offset:2px` 是為了不被元素自己的邊框吃掉。
+   焦點環用 --focus：深色 #3ee0ff 對 panel 11.30、淺色 #0a5f7d 對白底 7.13，
+   都遠高於非文字元素要求的 3.0。*/
+:where(a,button,input,select,textarea,summary,[tabindex]):focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px;
+}
+/* ⚠ 這一條看起來像廢話（`:focus-visible:focus-visible`），但它解的是一個真的踩到的坑：
+   全站有 16 條規則寫 `transition:.15s` —— 那是**簡寫**，等於 `transition-property:all`，
+   於是「焦點環」也被當成可過場的屬性，按 Tab 之後 outline 會從 0px 花 150ms 長到 2px。
+   實測按下 Tab 的當下量到 `outline-width:1px`、顏色是插值中的 rgb(12,39,50)——
+   對用鍵盤快速跳的人來說，那就是「焦點框慢半拍、跟不上游標」。
+   重複一次 `:focus-visible` 只是為了把權重提到 (0,2,0)，蓋得過那些 `.tab`／`.tile`
+   之類 (0,1,0) 的簡寫；同時把過場屬性收成明確的顏色清單，焦點環因此**一步到位**。
+   （更下面那條 `.search input:focus-visible` 權重 (0,2,1)，仍然蓋得過這一條，順序正確。）*/
+:focus-visible:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px;
+  transition-property:background-color,border-color,color,box-shadow,opacity;
+}
+/* 五處寫過 `outline:0` 的輸入框：那一行本身是對的（預設焦點框會被 --glow 蓋得很醜），
+   錯在**沒有補回替代品**。這裡把焦點框加回去，權重跟原規則相同、靠「寫在後面」取勝。*/
+.search input:focus-visible,.livepop input[type=text]:focus-visible,
+.cgpop #cgSearch:focus-visible,.chip input:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px;
+}
+
+/* ---- #6 prefers-reduced-motion 全站兜底 -----------------------------------------
+   改之前 CSS 只有 2 條（`.rbar .pb`、`.m3-pulse`）接了這個查詢，
+   也就是「使用者在系統裡關掉動效」對這個網站幾乎沒有作用。
+   WCAG 2.3.3 要求互動觸發的動態效果要能關掉，標準技術就是這個查詢（W3C C39）。
+   ⚠ **關掉動效不等於沒有回饋** —— 下面第二條把按下去的回饋換成「底色壓一階」，
+     動的表達沒了，但「我按到了」這件事還在。這一點比關掉動畫本身更重要。*/
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important;
+  }
+  /* ⚠ 這一組**故意不用 `:where()`**：`:where()` 的權重是 0，蓋不過
+     `.evbtn{background:var(--panel)}` 這種 (0,1,0) 的既有規則，
+     於是「關掉動效之後按下去完全沒反應」—— 第一版就是這樣紅的。
+     寫成一般選擇器，權重變成 (0,2,0)，底色才真的壓得下去。*/
+  button:active,.tab:active,.evbtn:active,.pill:active,.btn:active,.chip:active,
+  .iconbtn:active,.howbtn:active,.segchip:active,.dlv-go:active,
+  .seg>button:active,.seg button:active,.nbsw>button:active,.nbsw>a:active,
+  .chainsw button:active,.chainchips button:active,.relsw button:active,
+  .facets button:active,.morepop button:active,a.card:active,.tile:active{
+    transform:none;background-color:var(--panel-3);
+  }
+  .tabnav:active{transform:translateY(-50%);background-color:var(--panel-3)}
+  .tile:hover{transform:none}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
   <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof">—</small></div></div>
+  <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
+       這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
+       多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
+       而 `.tabs` 是 `overflow-x:auto` ＋ `scrollbar-width:none` —— 連捲軸都沒有，
+       使用者完全不知道右邊還有東西。#flow 更慘：即時徽章吐出 `Failed to fetch`
+       之後溢出變成 352px，一個次要的抓取失敗把整個導覽吃掉。
+       這裡加一層 `.tabswrap` 純粹是為了「箭頭要有定位基準」——
+       `#tabs` 自己是捲動容器，絕對定位的箭頭掛在它裡面會跟著內容捲走。
+       ⚠ 手機（≤820px）`.tabswrap` 設成 `display:contents`，整個包裝層從版面消失，
+         `.tabs` 回到 `.topbar` 的直接 flex 子項 —— 手機那套「固定在底部、兩列四顆」
+         的規則因此一個字都不用改。 -->
+  <div class="tabswrap" id="tabsWrap">
+  <button class="tabnav l" id="tabPrev" type="button" aria-label="往左看更多分頁" tabindex="-1">‹</button>
   <nav class="tabs" id="tabs">
     <button class="tab" data-view="overview">總覽</button>
     <button class="tab" data-view="flow">資金流向</button>
-    <button class="tab" data-view="industry">產業與個股</button>
+    <button class="tab" data-view="industry">產業地圖</button>
     <button class="tab" data-view="heatmap">熱力圖</button>
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
@@ -2188,6 +2597,8 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          直接貼 `…/#tasks` 仍然打得開，工作流產出的 `tasks.json` 也照舊。
          全站沒有別的地方連到 `#tasks`（已 grep 過），所以收掉入口不會產生死連結。 -->
   </nav>
+  <button class="tabnav r" id="tabNext" type="button" aria-label="往右看更多分頁" tabindex="-1">›</button>
+  </div>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
   <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分，另外要一顆手動更新）。
        DECISIONS #37「Andy 只重新整理網頁、不點按鈕」在這裡被他自己推翻 —— 見 DECISIONS #113。 -->
@@ -2216,6 +2627,22 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
   <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
+       390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
+       「明亮／深色」只露出 6px、「事件」整顆在畫面外，
+       今日事件抽屜在手機上等於**沒有入口**。
+       這顆「⋯」只在 ≤820px 出現，把那四件事收成一張清單。
+       ⚠ 清單裡的每一列**不重寫邏輯**，一律去按桌機那顆原來的鈕（見 app.js initMore）——
+         兩邊行為保證一樣，以後改一邊不會漏掉另一邊。 -->
+  <button class="evbtn morebtn" id="moreBtn" aria-haspopup="true" aria-expanded="false"
+          title="更多工具：更新、即時來源、主題、今日事件">⋯<span class="n" id="moreCount" hidden>0</span></button>
+  <div class="morepop" id="morePop" hidden>
+    <button type="button" id="mmEvents"><span class="ic">▤</span>今日事件<span class="n" id="mmEvCount">0</span></button>
+    <button type="button" id="mmLive"><span class="ic">⟳</span>更新（即時報價）</button>
+    <button type="button" id="mmGear"><span class="ic">⚙</span>即時來源設定</button>
+    <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
+    <div class="hint">這幾項在電腦版是頂欄右邊的四顆鈕，名字一樣。</div>
+  </div>
   <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
        但橫幅那一行也會寫，所以手機還是看得到。 -->
   <a class="verbadge" id="buildver" href="https://github.com/MiaoZiKe/tw-rotation/commits/main"
@@ -2224,7 +2651,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 <div class="layout" id="layout">
 <main>
-  <div class="banner" id="banner"></div>
+  <!-- ★ 2026-09-23：Andy「上面黃底那串說明刪掉」。
+       這條橫幅原本常駐在每一頁最上面，佔掉三行，而且大部分時間講的是同一件事。
+       **不是把資料狀態刪掉** —— 它的完整內容改成掛在左上「YYYY-MM-DD 盤後」那顆的滑鼠提示上
+       （見 app.js renderFreshness），資料真的有問題時那行字仍然拿得到，只是不再佔版面。
+       元素本身留著、預設 hidden：萬一之後要把某一類警告放回畫面，改一個旗標就好。 -->
+  <div class="banner" id="banner" hidden></div>
 
   <!-- ================= 總覽 ================= -->
   <section class="view" id="v-overview">

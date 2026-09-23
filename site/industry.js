@@ -169,7 +169,11 @@
 
   // ================================================================ Level 0：產業地圖（族群總覽）
   function renderMap(im) {
-    show(true, false, false); crumbs([{ label: '產業地圖' }]);
+    /* ★ 2026-09-23：Andy「將產業地圖移到分頁名稱上」。
+       分頁本身已經叫「產業地圖」了，底下再寫一次同樣四個字是重複的，
+       而且它佔掉一整列。所以**第 0 層不畫麵包屑**。
+       ⚠ 更深的層級照舊要畫（產業地圖 › 半導體 › 台積電），那是導覽不是標題。 */
+    show(true, false, false); crumbs([]);
     /* 產業鏈頁的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 這些 id 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個 ——
        畫面上按的是後面那個，程式改的卻是前面那個。所以換層級一定要把另一邊清掉。*/
@@ -2490,8 +2494,11 @@
         const words = noteWrap(msg);
         const shown = words.slice(0, NOTE_MAX);
         if (words.length > NOTE_MAX) shown[NOTE_MAX - 1] = shown[NOTE_MAX - 1].slice(0, -1) + '…';
+        /* ★ 2026-09-23：這裡的 fill 本來寫死 #6f7ea3（深色主題的舊 --ink-3），
+           切到明亮主題不會換色，而且吃不到這次把 --ink-3 提亮的修正。
+           SVG 的 fill 讀得到 CSS 變數，所以直接指到 token 就好。*/
         nodes += `<g><title>${A.fmt.esc(msg)}</title>` + shown.map((w, i) =>
-          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="#6f7ea3">${A.fmt.esc(w)}</text>`).join('') + '</g>';
+          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
       }
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
         nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
@@ -2897,11 +2904,12 @@
           <button class="btn small" id="cfgBtn" title="圖表設定：線寬、均線、顏色">⚙ 設定</button>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
           <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
+          <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
           <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
             <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
         <div class="note livenote" id="liveNote" hidden></div>
-        <div class="chartwrap">
+        <div class="chartwrap" id="chartWrap">
           <div class="drawbar" id="drawBar"></div>
           <div id="chartHost"></div>
         </div>
@@ -3386,6 +3394,28 @@
       setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
     };
     paintWide();
+    /* ★ 2026-09-23 手機優先改版 G8（依據 `docs/mobile_audit.md`）：
+       390px 量到 `.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕，
+       而桌機是圖表左側的直排工具列 —— 位置對不起來，手指也點不準。
+       手機預設收起來，這顆開關就在同一排工具列上（桌機 display:none，因為那裡本來就常駐）。
+       ⚠ 收起來不是拿掉：畫過的線照樣在圖上，只是工具列收著；狀態會記住。 */
+    const drawTgl = $('#drawTgl'), wrap = $('#chartWrap');
+    if (drawTgl && wrap) {
+      let on = false;
+      try { on = localStorage.getItem('tw.drawbar') === '1'; } catch (e) { /* 忽略 */ }
+      const paintDraw = () => {
+        wrap.classList.toggle('drawon', on);
+        drawTgl.classList.toggle('on', on);
+        drawTgl.textContent = on ? '✎ 畫線 ✓' : '✎ 畫線';
+        drawTgl.title = on ? '收起畫線工具列（畫過的線不會消失）' : '打開畫線工具列';
+      };
+      drawTgl.onclick = () => {
+        on = !on;
+        try { localStorage.setItem('tw.drawbar', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
+        paintDraw();
+      };
+      paintDraw();
+    }
     drawChips(); drawBar(); build();
   }
 
