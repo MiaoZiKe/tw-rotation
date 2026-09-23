@@ -18714,6 +18714,43 @@ def t_b29_tabs(pg, base):
            bool(t2) and t2["qx"] > 0.5 and t2["qy"] < 0.5 and t2["inside"],
            {"qx": round(t2["qx"], 2), "qy": round(t2["qy"], 2), "inside": t2["inside"]})
 
+    # ---- W3-5：390／800 載入時，說明卡片不准被「原尺寸置中」推出畫面
+    #      （量到的事實：置中本來套在整個 #prodDiagram 上，390px 一載入就把 .dggrid
+    #       左移 143px —— 左欄的說明卡片直接被切掉半邊，19 張圖全中）
+    for w5, route5 in ((390, "ai_server/dg/ai_server"), (390, "electronics/dg/mlcc"),
+                       (800, "electronics/dg/mlcc")):
+        pg.set_viewport_size({"width": w5, "height": 1000})
+        pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); } catch (e) {} }")
+        pg.goto(f"{base}#industry/{route5}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        m5 = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
+            if (!h) return null;
+            const hr = h.getBoundingClientRect();
+            const grid = h.querySelector('.dggrid');
+            const cards = [...h.querySelectorAll('.dgc')];
+            return { host: Math.round(h.scrollLeft),
+                     gridLeft: grid ? Math.round(grid.getBoundingClientRect().left - hr.left) : null,
+                     cutCards: cards.filter(c => c.getBoundingClientRect().left < hr.left - 2).length,
+                     cards: cards.length }; }""")
+        if ok(f"W3-5 [{w5}px {route5}] 找得到剖析圖", bool(m5), m5):
+            ok(f"W3-5 [{w5}px {route5}] `#prodDiagram` 一載入沒有被推走（scrollLeft ＝ 0）",
+               m5["host"] == 0, m5)
+            ok(f"W3-5 [{w5}px {route5}] 沒有任何一張說明卡片被切掉左半邊",
+               m5["cutCards"] == 0, m5)
+    # 1440：置中**不准被改壞** —— 畫布比欄寬大的時候，裝畫布的那個框仍然要捲到中間
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    m6 = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
+        const svg = h && h.querySelector('svg'); if (!svg) return null;
+        const box = svg.closest('.dgcanvas') || h;
+        return { host: Math.round(h.scrollLeft), boxScroll: Math.round(box.scrollLeft),
+                 over: Math.round(box.scrollWidth - box.clientWidth) }; }""")
+    if ok("W3-5 [1440px] 找得到剖析圖", bool(m6), m6):
+        ok("W3-5 [1440px] `#prodDiagram` 本身沒有被推走", m6["host"] == 0, m6)
+        ok("W3-5 [1440px] 畫布放得下就不必捲；放不下時捲的是裝畫布的那個框（置中沒被改壞）",
+           m6["over"] <= 2 or m6["boxScroll"] > 0, m6)
+
     # ---- W3-2：成分股卡片整組移除，而且「換頁還原事件面板」那段收尾還活著
     gone2 = pg.evaluate("() => ['memberTable','memWide','mktSeg','memberMore','memberTitle']"
                         ".filter(id => !!document.getElementById(id))")

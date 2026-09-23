@@ -1545,8 +1545,13 @@
     if (id) host.dataset.dgid = id; else id = host.dataset.dgid || '';
     const w = (!on3d && DS && DS.native) ? DS.native(id) : 0;
     const svg = host.querySelector('svg');
-    host.style.overflowX = w ? 'auto' : '';
-    host.style.overflowY = w ? 'hidden' : '';
+    /* ★ 2026-09-23（W3-5）：v2 版面的 svg 已經被 `externalize()` 包進 `.dgcanvas`
+       （diagrams.js:286 當場就把 host 的 overflow 清掉，捲動交給那一層）。
+       這一支在切 2D／3D、換圖時會再跑一次 —— 如果照舊把 `overflow-x:auto` 設回 host，
+       整個 `.dggrid`（單欄時連說明卡片一起）就又變成可捲的，下面那段置中一推就走。*/
+    const inCanvas = !!(svg && svg.closest && svg.closest('.dgcanvas'));
+    host.style.overflowX = (w && !inCanvas) ? 'auto' : '';
+    host.style.overflowY = (w && !inCanvas) ? 'hidden' : '';
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
     // 3D 畫布永遠不准比容器寬（它自己會依 clientWidth 取景，撐寬只會產生橫向捲動）
     if (host3) { host3.style.maxWidth = '100%'; host3.style.overflowX = 'hidden'; }
@@ -1555,10 +1560,22 @@
        欄寬窄到一定程度（不到原尺寸的 62%）就先把捲軸捲到圖的正中央，
        主角先進畫面，要看左右兩欄再自己滑。**沒有動幾何、沒有動字級**。
        ⚠ 這只是止血。規格書 §7 要求的「窄畫面把右側說明欄改成圖下方堆疊」還沒做。*/
+    /* ★ 2026-09-23 第二批（W3-5）：**要捲的是「裝著畫布的那一個框」，不是整個 `#prodDiagram`。**
+       量到的事實：390px 載入 AI 伺服器機櫃圖時，這行置中把整個 `.dggrid` 左移 143px
+       （MLCC 123px）—— 窄畫面的 `.dggrid` 是單欄、裡面還有 HTML 說明卡片，
+       那些卡片本來就該貼著左邊，一進來就被切掉半邊。19 張圖全中，因為這是框架層的行為。
+       v2 版面本來就有 `.dgcanvas` 這一層（CSS 給了它自己的 overflow-x:auto），
+       畫布超出欄寬是它在捲 —— 置中套在它身上才是原本那條規則要的意思
+       （「圖以原尺寸顯示、放不下時左右滑」講的是**圖**，不是整個版面）。
+       舊版面沒有這一層（`#prodDiagram` 底下就是 svg），才退回 host 自己，行為不變。
+       ⚠ 另外一定要把 host 自己的 scrollLeft 壓回 0：它的 overflow-x 是 auto，
+         不壓回去的話下一次重算（換圖、轉向、ResizeObserver）又會把 grid 推走。*/
     if (w && svg) {
+      const box = (svg.closest && svg.closest('.dgcanvas')) || host;
       const center = () => {
-        const cw = host.clientWidth;
-        if (cw && cw < w * 0.62) host.scrollLeft = Math.max(0, (w - cw) / 2);
+        const cw = box.clientWidth;
+        if (cw && cw < w * 0.62) box.scrollLeft = Math.max(0, (w - cw) / 2);
+        if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
       };
       center();
       requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0

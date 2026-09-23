@@ -908,7 +908,7 @@
         { seg: 'hdi_pcb', part: 'st_board', alias: ['pcb_route'], name: '板子（只畫輪廓與走線）', note: '這張圖的主題是**接點**不是板子 —— 所以板子只畫一片薄板與表面走線，層數、疊構與背鑽是「PCB 硬板剖面」那張的事。訊號從晶片出來之後就分兩條路：走板子（會被板材吃掉），或走右邊那束架空的線纜',
           kind: 'swboard', box: [88, 3, 58], at: [0, 0, 0], ex: [0, -16, 0] },
         { seg: 'connector', part: 'st_asic', name: 'ASIC／GPU（訊號的起點）', note: '★ 這一顆是**訊號的起點，不是連接器零件** —— 它由晶圓代工與封裝廠做，所以底下不列連接器台股。畫它只是為了交代「飛越纜線是從晶片旁邊拉出去的」這件事',
-          kind: 'swasic', box: [20, 6, 20], at: [-26, 4.5, -4], ex: [0, 12, -8],
+          kind: 'hsasic', box: [20, 7, 20], at: [-26, 5, -4], ex: [0, 12, -8],
           codes: [], chipnote: '晶片不是這張圖的主題，也不掛連接器環節（它在半導體鏈那幾張圖裡）' },
         { seg: 'connector', part: 'cage_body', alias: ['st_cage', 'emi_finger', 'cage_hs', 'belly'], name: '屏蔽金屬籠（cage）', note: '★ **籠子就是高速連接器的識別特徵** —— 它是為了擋電磁干擾才存在的，順便把模組的熱帶出去（所以籠背有鰭片、側壁有通風孔）。籠口那一圈被壓住的薄片是 EMI 指片：模組插進來時接地才連續。沒有籠子，它跟一個電源端子在外形上分不開',
           kind: 'hscage', box: [30, 16, 28], at: [22, 9.5, 4], ex: [0, 12, 12] },
@@ -1125,7 +1125,7 @@
        同樣是**多出來的詞**，舊的一個都沒有動。
        ⚠ 這三張的建造函式幾乎每一塊都自己明講模組色 token，所以這裡的材質族主要是在決定
           PBR 手感（金屬度／粗糙度）與沒寫顏色那幾塊的底色，不是在決定主色。*/
-    hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
+    hsasic: 'si', hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
     hvtank: 'metal', hvcore: 'si', hvwind: 'cu', hvbush: 'organic', hvrad: 'metal',
     hvcons: 'metal', hvgis: 'metal', hvswgr: 'metal',
     pctank: 'metal', pcfurn: 'metal', pctle: 'metal', pctower: 'metal', pctowers: 'metal',
@@ -5257,6 +5257,22 @@
        ★ 硬規則（規格書 W1-1）：籠、舌片＋**成對**的金手指、背面壓接針、飛越纜線，四件缺一不可。
        ★ 顏色一律走模組色 token，一個色碼都不寫死；兩兩 CIE76 ΔE ≥ 27.4（深淺兩模式都量過）。*/
 
+    /* 這張圖上的 ASIC／GPU：有機基板 ＋ **覆晶的矽晶粒** ＋ 底下一整片球柵陣列。
+       ★ 刻意**不沿用** `swasic`（交換器板卡那張的同名零件）：那一支體積最大的一塊是綠色基板，
+         在這張圖上會跟板子同色（實測 ΔE76 只有 3.6，關掉標籤完全分不開 ——
+         那正是 #244 要收掉的毛病）。這一支把晶粒做成最大的一塊，所以它讀到的是晶片深藍。
+       ⚠ 它在這張圖上只是「訊號的起點」，沒有內部細節 —— 晶片本身是半導體鏈那幾張的主題。*/
+    function hsAsic(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.18, d, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 })), 0, -h * 0.34, 0));
+      g.add(put(box(w * 0.82, h * 0.5, d * 0.82, K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.42, rough: 0.4 })), 0, h * 0.02, 0));
+      // 邊緣那一圈補強膠：覆晶封裝一定有，它也是「這顆是覆晶不是打線」的證據
+      g.add(put(box(w * 0.9, h * 0.1, d * 0.9, K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.7, metal: 0.06 })), 0, -h * 0.2, 0));
+      g.add(put(ballGrid(K, w * 0.088, w * 0.03, 8, 0, [6, 4]), 0, -h * 0.46, 0));
+      return g;
+    }
+
     /* 屏蔽金屬籠（cage）：五片鈑金圍成、開口朝前（+z）；側壁通風孔、籠口一圈 EMI 指片、籠背鰭片。
        為什麼值得畫：**籠子就是高速連接器的識別特徵** —— 它不是外觀件，是為了擋電磁干擾
        與把模組的熱帶出去才存在的。沒有籠子，它跟一個電源端子在外形上分不開。*/
@@ -5879,7 +5895,7 @@
       reslay: resLay, resfilm: resFilm, restrim: resTrim, resglass: resGlass, resterm: resTerm, resback: resBack,
       xtalbase: xtalBase, xtalmount: xtalMount, xtalblank: xtalBlank, xtalelec: xtalElec, xtallid: xtalLid,
       /* ---- 2026-09-23 第二批補的三張（規格書 W1）。同樣是**多出來的詞**，舊的一個都沒有動。*/
-      hscage: hsCage, hstongue: hsTongue, hspin: hsPin, hsfly: hsFly, hsslot: hsSlot,
+      hsasic: hsAsic, hscage: hsCage, hstongue: hsTongue, hspin: hsPin, hsfly: hsFly, hsslot: hsSlot,
       hvtank: hvTank, hvcore: hvCore, hvwind: hvWind, hvbush: hvBush, hvrad: hvRad,
       hvcons: hvCons, hvgis: hvGis, hvswgr: hvSwgr,
       pctank: pcTank, pcfurn: pcFurn, pctle: pcTle, pctower: pcTower, pctowers: pcTowers,
