@@ -648,18 +648,16 @@
       if (!elx.isConnected) { try { pp.stop(); } catch (e) { /* 忽略 */ } _players.delete(elx); }
     });
     const PMAX = o.max != null ? o.max : 30;          // 軸長＝最多看到幾個交易日前
-    /* ★ 2026-09-23 修「最舊只到 29 天前」：左把手的可用範圍要比右把手**多一格**。
-       原本兩支 `<input type=range>` 都落在 0～PMAX，而區間長度 = hi − lo ≥ 1，
-       所以右把手最低只能停在位置 1（＝29 天前），永遠碰不到規格要求的「30 天前」。
-       解法是把軌道往左延伸一格（PMIN = −1）：右把手仍然只走 0～PMAX
-       （拉到底 = 位置 PMAX = 最新，讀數行為完全沒變，`input.hi` 的 max 也還是 30），
-       左把手則可以退到 −1，讓「截止 30 天前、區間 1 天」成立。
-       兩支 input 共用同一組 min/max，是為了讓它們的滑塊在**同一個像素刻度**上 ——
-       只改其中一支的 min 會讓兩顆滑塊錯開約一格寬，看起來就是壞掉的。
-       位置 −1 在語意上是「區間起點」的外側端點（lo 本來就是不含的那一端），
-       不是多出來一天資料。*/
-    const PMIN = -1;
-    const PSPAN = PMAX - PMIN;                        // 軌道的總格數（畫 .sel 用）
+    /* ★ 2026-09-23 修「最舊只到 29 天前」：右把手的 `min` 原本是 **1**，
+       而「幾天前」＝ PMAX − 位置，所以最舊只到 29 天前，碰不到規格要的「最新一天～前三十天」。
+       改成 `min=0`，位置 0 就是第 30 個交易日前。
+       代價寫清楚：位置 0 時左把手已經沒有空間（軸的左端就是 0），
+       所以那一格的區間長度只能是 1 天，兩顆滑塊會疊在同一點 ——
+       這是「軸只有 30 格」的必然結果，不是壞掉。`.sel` 因此給一個最小寬度，
+       免得整條選取帶在最左端憑空消失、看起來像沒選到東西。
+       另外把左把手的 `max` 從 PMAX−1 拉齊成 PMAX：兩支 `<input type=range>`
+       的 min/max 一致，滑塊才落在**同一個像素刻度**上（原本差一格，兩顆手把會錯開）。
+       `min` 仍然是 0 —— 驗收就是照「右把手 max 30、左把手 min 0」在守這條軸。*/
     const readLS = (key, lo, hi, dft) => {
       if (!key) return dft;
       try {
@@ -675,8 +673,8 @@
     const clamp = () => {
       days = Math.max(1, Math.min(PMAX, Math.round(days)));
       pHi = Math.max(0, Math.min(PMAX, Math.round(pHi)));
-      // 起點不可以掉到軌道的左邊外面；撞到就縮短區間，不要默默改掉截止日
-      if (pHi - days < PMIN) days = pHi - PMIN;
+      // 起點不可以掉到軸的左邊外面；撞到就縮短區間，不要默默改掉截止日
+      if (days > pHi) days = Math.max(1, pHi);
     };
     clamp();
     box.classList.add('rbar');
@@ -684,20 +682,21 @@
       // ★ 「看哪一天」那支**寫在前面**：外面有程式碼用 `box.querySelector('input')` 抓這支拉Bar
       //   的主值（例如驗收腳本），抓到的必須是主角，不是區間起點。視覺上下的疊法由 CSS 決定。
       + '<div class="dual"><span class="track"></span><span class="sel"></span>'
-      + `<input class="hi" type="range" min="${PMIN}" max="${PMAX}" step="1" value="${pHi}"`
+      + `<input class="hi" type="range" min="0" max="${PMAX}" step="1" value="${pHi}"`
       + ' aria-label="看哪一天（這一段的截止日）">'
-      + `<input class="lo" type="range" min="${PMIN}" max="${PMAX}" step="1" value="${pHi - days}"`
+      + `<input class="lo" type="range" min="0" max="${PMAX}" step="1" value="${Math.max(0, pHi - days)}"`
       + ' aria-label="這一段的起點（往回幾個交易日）"></div>'
       + '<span class="val"></span>';
     const hi = box.querySelector('input.hi'), lo = box.querySelector('input.lo');
     const sel = box.querySelector('.sel'), out = box.querySelector('.val');
     const toDays = () => PMAX - pHi;                  // 截止日是「幾天前」
     const paint = () => {
-      hi.value = pHi; lo.value = pHi - days;
-      const a = ((pHi - days) - PMIN) / PSPAN * 100, b = (pHi - PMIN) / PSPAN * 100;
-      sel.style.left = a + '%'; sel.style.width = Math.max(0, b - a) + '%';
+      hi.value = pHi; lo.value = Math.max(0, pHi - days);
+      const a = Math.max(0, pHi - days) / PMAX * 100, b = pHi / PMAX * 100;
+      // 最左端那一格兩顆手把會疊在一起，選取帶給 3px 保底，不要整條消失
+      sel.style.left = a + '%'; sel.style.width = `max(3px, ${Math.max(0, b - a)}%)`;
       out.textContent = `最近 ${days} 天 · 截止 ${toDays() === 0 ? '最新' : toDays() + ' 天前'}`;
-      bMinus.disabled = pHi - days <= PMIN; bPlus.disabled = pHi >= PMAX;
+      bMinus.disabled = pHi <= days; bPlus.disabled = pHi >= PMAX;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停' : '播放（整段往「最新」滑）';
       bPlay.setAttribute('aria-label', bPlay.title);
@@ -733,16 +732,16 @@
     // 右把手：拖它＝換截止日，**長度不變**（除非撞到軸的左端，那時只好把長度縮短）
     hi.oninput = () => {
       const v = Math.max(0, Math.min(PMAX, +hi.value));   // 右把手不准跑進左邊那一格
-      stop(); pHi = v; if (pHi - days < PMIN) days = pHi - PMIN; paint(); fire();
+      stop(); pHi = v; if (days > pHi) days = Math.max(1, pHi); paint(); fire();
     };
     // 左把手：拖它＝換這一段有多長（截止日不動）
     lo.oninput = () => {
-      const v = Math.max(PMIN, Math.min(PMAX, +lo.value));
+      const v = Math.max(0, Math.min(PMAX, +lo.value));
       stop(); days = Math.max(1, Math.min(PMAX, pHi - v)); paint(); fire();
     };
     hi.onchange = lo.onchange = save;
     const slide = (d) => {
-      const nx = Math.max(days + PMIN, Math.min(PMAX, pHi + d));
+      const nx = Math.max(days, Math.min(PMAX, pHi + d));
       if (nx === pHi) return false;
       pHi = nx; paint(); fire(); save(); return true;
     };
@@ -751,8 +750,8 @@
     const start = () => {
       if (timer) return;
       stopPlayGroup(o.group, api);                    // 同一個值一次只准一支在播
-      if (pHi >= PMAX) { pHi = days + PMIN; paint(); fire(); }   // 已經在最新了就從最舊重播
-      timer = setInterval(() => { if (!slide(1)) { pHi = days + PMIN; paint(); fire(); } }, o.frame || 600);
+      if (pHi >= PMAX) { pHi = days; paint(); fire(); }   // 已經在最新了就從最舊重播
+      timer = setInterval(() => { if (!slide(1)) { pHi = days; paint(); fire(); } }, o.frame || 600);
       paint();
     };
     bPlay.onclick = () => { if (timer) { stop(); stopPlayGroup(o.group, null); } else start(); };
@@ -764,12 +763,12 @@
          撞到軌道左端時**優先保住他要的那一天**，把區間長度縮短，不要默默改掉截止日。*/
       set(x) {
         const np = PMAX - Math.max(0, Math.min(PMAX, +x || 0));
-        if (np - days < PMIN) days = np - PMIN;
+        if (days > np) days = Math.max(1, np);
         pHi = np; paint();
       },
       setDays(k) {
         days = Math.max(1, Math.min(PMAX, +k || 1));
-        if (pHi - days < PMIN) pHi = days + PMIN;
+        if (pHi < days) pHi = days;
         paint();
       },
       stop, start, playing: () => !!timer, el: box, group: o.group || '',
