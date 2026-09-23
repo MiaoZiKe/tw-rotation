@@ -18,9 +18,13 @@
      ③ 為什麼營收跟著客戶的用量走：轉售那一段是照用量結算的，客戶多開幾台機器，
         MSP 的營收當月就跟著長 —— 這也是它成長快但毛利率被稀釋的原因。
 
-   ★ `data-seg`：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡完全沒有 software 這條鏈
-     （機器查的：`grep -c software` ＝ 0）。硬掛一個別條鏈的環節就是宣稱錯誤的公司對應。
-     代價與 `silicon_wafer.js` 相同：點零件不會篩成分股，所以「誰做的」直接印在畫面上。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了，而且是兩個環節**。
+     這張圖剛做出來時 `supply_chain.yaml` 完全沒有 software 這條鏈，所以一個都不敢掛；
+     Andy 2026-09-23 授權補資料之後補上了環節，這裡跟著掛：
+       MSP 那一側 → `sw_msp`（伊雲谷 6689／宏碁資訊 6811／精誠 6214）
+       公有雲原廠 → `sw_vendor`（外商匯總節點，沒有台股）
+     兩邊分成兩格，正是因為這張圖要講的就是「錢大部分流去原廠」——
+     同色會讓這件事在視覺上消失。終端客戶那一顆不掛（供應鏈資料裡沒有客戶那一格）。
 
    ★ 事實與出處
      · 伊雲谷 6689 是通過 AWS MSP 評鑑的雲端代管業者，營收分雲端服務與儲存產品銷售兩塊，
@@ -45,7 +49,23 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：software 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了。**這張圖有兩個環節，不是一個**：
+       `sw_msp`（雲端代管與轉售 MSP）＝ 伊雲谷 6689、宏碁資訊 6811、精誠 6214，
+       `sw_vendor`（公有雲與軟體原廠）＝ 公有雲原廠那個匯總節點（外商，沒有台股）。
+     公有雲原廠那一格刻意掛 `sw_vendor` 而不是跟 MSP 同一格 —— 圖的主命題就是
+     「錢大部分流去原廠」，兩邊同色會讓這件事在視覺上消失。
+     ⚠ 不掛的兩個：`cm_cust`（終端客戶）與 `cm_unknown`（沒有回答的事）——
+       客戶那一側在這個 schema 裡沒有環節（開一格沒有台股代號的『客戶』，
+       前端會把它印成「外商：政府與企業」，那是錯的字）。*/
+  const SEG_OF = {
+    cm_msp: 'sw_msp', cm_resale: 'sw_msp', cm_value: 'sw_msp', cm_gm: 'sw_msp',
+    cm_usage: 'sw_msp', cm_gross: 'sw_msp', cm_netm: 'sw_msp',
+    cm_co_6689: 'sw_msp', cm_co_6811: 'sw_msp', cm_co_6214: 'sw_msp',
+    cm_cloud: 'sw_vendor',
+  };
+  const segOf = (id) => SEG_OF[id] || null;
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   const C = {
     cust: 'var(--dg-si)', msp: 'var(--dg-accent-2d)', cloud: 'var(--dg-cold)',
@@ -53,7 +73,9 @@
     warn: 'var(--dg-warn)', use: 'var(--dg-cool)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話「點圖上的零件」會篩、
+    // 「點旁邊那張卡」卻不會，同一件事出現兩種行為。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -211,11 +233,13 @@
     return `<svg class="dg dgm rs dgcm" viewBox="0 0 ${CW} 1250" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，描邊與高亮規則要自己給；顏色一律走 --dg-* token。*/
-        svg.dgcm [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgcm [data-part]{cursor:default}
-        svg.dgcm [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgcm [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 的「.dg [data-seg] …」（環節色與高亮），
+           所以這裡的規則全部縮到 :not([data-seg])，只服務沒有環節的那幾個零件。
+           不縮的話這裡的選擇器比較強，會把環節色蓋掉，等於白掛。*/
+        svg.dgcm [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgcm [data-part]:not([data-seg]){cursor:default}
+        svg.dgcm [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgcm [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgcm .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgcm .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -242,7 +266,7 @@
       ${card({ part: 'cm_usage', no: 7, side: 'l', order: 7, color: C.use, ax: BB.x + 6 * (BB.w + BB.gap) - 10, ay: BB.y0 - 80, title: '用量長，轉售營收當月就跟著長', sub: ['柱子是客戶的雲端用量（示意）、實線是轉售營收 —— 兩條同步，因為轉售本來就是照用量結算的。', '虛線是加值服務：它跟著專案走，不會當月跟上。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['金流的線寬、柱狀圖的高度都是示意，不是任何一家公司的實際數字；圖上只寫服務名稱，不畫任何商標、包裝或產品外觀。'] })}
       ${note({ side: 'r', order: 97, warn: true, title: '★ 看這一格最容易誤讀的一件事', lines: ['轉售占比高的時候，營收年增率會很漂亮，但毛利率同時被稀釋 —— 營收成長快不等於賺得多。', '所以要看「毛利金額」有沒有跟著營收一起長；只長營收不長毛利，多半是轉售的比重變大了。'] })}
-      ${note({ side: 'r', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛 —— 硬掛一個別條鏈的環節，等於宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'r', order: 98, title: '點零件會篩到哪些股票', lines: ['MSP 那一側（中間那顆、轉售、加值服務、留下來的、用量連動與三張公司卡）掛在「雲端代管與轉售 MSP」環節上，點下去篩出伊雲谷 6689、宏碁資訊 6811、精誠 6214。', '右邊的「公有雲原廠」掛的是另一個環節「公有雲與軟體原廠」—— 那一格**沒有台股**，只有外商匯總節點。兩邊不同色就是要讓「錢流去哪裡」看得出來。', '★ 左邊的「終端客戶」刻意不掛環節：客戶那一側在供應鏈資料裡沒有對應的格子。'] })}
 
       <!-- ================= ① 總額法 vs 淨額法（預設收合） ================= -->
       ${fold('cm2', '① 同一筆生意，帳上可以長得完全不一樣 —— 總額法與淨額法',

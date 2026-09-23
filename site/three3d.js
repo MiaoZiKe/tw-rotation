@@ -204,6 +204,29 @@
         { seg: 'osat_test', part: 'icp_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板；上蓋的腳踩在載板邊緣',
           kind: 'lid', box: [40, 2.2, 30], at: [0, 12.6, 0], ghost: true, mat: 'glass', ex: [0, 20, 0] },
       ],
+      /* ---- C6 運轉動畫：**訊號往下、供電往上**。
+         這是先進封裝真正在做的兩件事，而且方向**相反**：
+           訊號 晶粒 → 微凸塊 → 中介層（重佈線／矽橋）→ C4 → 載板 → BGA → 主機板
+           供電 主機板 → BGA → 載板 → C4 → 中介層 → 微凸塊 → 晶粒（幾百安培往上灌）
+         所以兩條流線走**同一疊結構但反向**（供電那條用 dir: -1），
+         而且左右錯開（x = ∓14）才不會疊在一起看不清楚。
+         HBM 與邏輯晶粒之間那一條是橫向的 —— CoWoS 的重點就是「橫著走的超寬匯流排」。
+         去耦電容旁邊那條是交流（bidir）：它的工作就是把瞬間電流來回吞吐。*/
+      flows: [
+        { kind: 'sig', part: 'icp_die', r: 0.22, per: 12, speed: 0.55,
+          pts: [[-4, 8.6, 0], [-4, 6.1, 0], [-14, 5.4, 0], [-14, 3.9, 0], [-14, 1.5, 0], [-14, -0.4, -12]] },
+        { kind: 'pwr', part: 'icp_sub', r: 0.22, per: 12, speed: 0.4, dir: -1,
+          pts: [[4, 8.6, 0], [4, 6.1, 0], [14, 5.4, 0], [14, 3.9, 0], [14, 1.5, 0], [14, -0.4, -12]] },
+        /* HBM ↔ 邏輯晶粒：橫向、寬、短 —— 這是中介層存在的理由 */
+        { kind: 'sig', part: 'icp_interposer', r: 0.2, per: 10, speed: 0.75, pts: [[-6, 6.1, 0], [0, 5.9, 0], [8, 6.1, 0]] },
+        { kind: 'sig', part: 'icp_cowos_l', r: 0.18, per: 8, speed: 0.8, pts: [[-3, 5.4, 0], [0, 5.4, 0], [3, 5.4, 0]] },
+        /* 去耦電容：交流吞吐，每 1.8 秒換一次方向 */
+        { kind: 'pwr', part: 'icp_decap', r: 0.16, per: 7, speed: 0.6, bidir: 1.8, pts: [[0, 3.6, 12], [0, 3.6, 6], [0, 3.6, 0]] },
+      ],
+      pulses: [
+        { parts: ['icp_die', 'icp_ubump', 'icp_interposer', 'icp_c4', 'icp_sub', 'icp_bga'], period: 2.6, kind: 'sig' },
+        { parts: ['icp_hbm', 'icp_soic'], period: 1.9, kind: 'gpu', phase: 0.4 },
+      ],
     },
     /* 被動元件：MLCC 疊層（規格書 docs/diagram_specs/mlcc_stack.md）。
        規格書原本寫「不用真 3D，轉一圈只會看到一顆不透明的陶瓷方塊」——
@@ -239,6 +262,19 @@
         { seg: 'passive_comp', part: 'mlcc_pad', name: 'PCB 焊墊與焊錫', note: '板子受力 → 應力從焊點傳進陶瓷 → 板彎裂（flex crack）；車規靠軟端子擋這一刀',
           kind: 'mlccpad', box: [86, 4, 44], at: [0, 2, 0], ex: [0, -8, 0] },
       ],
+      /* ---- C6 運轉動畫：**被動元件本身不動，動的是電**。
+         MLCC 在電路上做的事只有一件：充電、放電、再充電。
+         所以電流**必須會反向** —— 用 bidir 每 1.3 秒換一次方向，
+         看到的就是「電荷灌進端電極 → 內電極 → 再吐回去」。
+         一直往同一個方向跑是錯的：那是電阻，不是電容。
+         本體跟著同一個 2.6 秒週期明暗一次（充飽最亮），相位對齊電流的方向切換。*/
+      flows: [
+        { kind: 'pwr', part: 'mlcc_pad', r: 0.9, per: 14, speed: 0.4, bidir: 2.6,
+          pts: [[-40, 4, 0], [-31, 12, 0], [-31, 22, 0], [0, 22, 0], [31, 22, 0], [31, 12, 0], [40, 4, 0]] },
+        { kind: 'pwr', part: 'mlcc_term', r: 0.55, per: 10, speed: 0.5, bidir: 2.6,
+          pts: [[-26, 22, 10], [0, 22, 10], [26, 22, 10]] },
+      ],
+      pulses: [{ parts: ['mlcc_body'], period: 2.6, kind: 'pwr', sharp: 3, amp: 0.8 }],
     },
     /* ===== 半導體鏈：晶圓代工 ===== */
     /* 2D 是 `site/dg/foundry.js`，`part` 沿用它的 `data-part`（fd_*）——
@@ -271,6 +307,19 @@
         { seg: 'foundry', part: 'fd_die', name: '一顆晶粒', note: '晶圓上被切線分開的一格；四周那一圈空白是切割道。同一個缺陷密度下，晶粒越大、報廢的比例越高（本圖不寫任何良率數字）',
           kind: 'die', box: [9, 2.8, 9], at: [58, 9, 28], ex: [14, 14, 12] },
       ],
+      /* ---- C6 運轉動畫：**製程一站一站往前走**。
+         這張圖的內容本來就是「電晶體結構的演進」：平面 → FinFET → 奈米片（GAA）＋ 環繞閘極，
+         最後做成晶圓、切成晶粒。所以依序點亮的順序就是**世代與流程的順序**，
+         不是隨便挑的 —— 使用者看到的是「一條產線由左往右推進」。
+         另外一條 sig 流線沿著矽基板往右跑，代表晶圓在站與站之間被搬運。
+         晶粒那一顆會小幅上下（move）：那是取放（pick and place）的動作。*/
+      flows: [
+        { kind: 'sig', part: 'fd_sub', r: 0.5, per: 14, speed: 0.22,
+          pts: [[-56, 4, -10], [-38, 4, -10], [-4, 4, -10], [30, 4, -10], [48, 3, 4], [58, 2.4, 24]] },
+      ],
+      pulses: [{ parts: ['fd_planar', 'fd_fin', 'fd_sheet', 'fd_gaa', 'fd_wafer', 'fd_die'], period: 4.2, kind: 'sig' }],
+      /* 取放晶粒：小幅、慢、有停頓感（-cos 在兩端會減速）。振幅只有 2.2，不會跟旁邊的零件打架。*/
+      moves: [{ name: 'pick', parts: ['fd_die'], axis: 'y', amp: 2.2, period: 3.2 }],
     },
     /* ===== 半導體鏈：矽晶圓 ===== */
     /* 2D 是 `site/dg/silicon_wafer.js`。那張圖的 §0-A 寫「不做真 3D，長晶爐是旋轉對稱體」——
@@ -307,6 +356,25 @@
           kind: 'wafer', box: [26, 1.2, 26], at: [34, 13.8, 0], mirror: true, ex: [16, 11, 10],
           codes: ['6488', '3532', '6182'], chipnote: '做矽晶圓的台股（信心：中，來源為媒體與公司網站整理）' },
       ],
+      /* ---- C6 運轉動畫：**長晶爐在拉晶**。
+         柴可拉斯基法（CZ）的三件事同時發生：籽晶桿**一邊旋轉一邊往上提**、
+         熔湯在坩堝裡被加熱器維持在熔點附近、晶碇就在液面上方慢慢長出來。
+         所以這裡：籽晶桿與晶碇同軸同速旋轉（真的長晶時兩者是同一根），
+         並且緩慢上下 —— ⚠ **上下是示意**：真的拉晶只會往上，
+         但動畫要能循環播放，所以用很慢的往復代替（振幅只有 2，看起來像「慢慢在長」）。
+         切片與拋光那一區靠依序點亮表示「長完之後送去線鋸、研磨、拋光」。*/
+      spins: [
+        { part: 'sw_ingot', axis: 'y', speed: 0.45 },
+        { part: 'sw_seed', axis: 'y', speed: 0.45 },
+        { part: 'sw_melt', axis: 'y', speed: -0.22 },      // 坩堝與晶碇反向轉，是為了讓熔湯溫度均勻（真的機台就是這樣）
+      ],
+      moves: [{ name: 'pull', parts: ['sw_ingot', 'sw_seed'], axis: 'y', amp: 2, period: 9 }],
+      flows: [
+        /* 熱從加熱器進到坩堝、熔湯往上結晶到晶碇 */
+        { kind: 'hot', part: 'sw_heater', r: 0.4, per: 10, speed: 0.25, pts: [[-34, 15, 0], [-26, 14, 0], [-20, 14, 0]] },
+        { kind: 'hot', part: 'sw_melt', r: 0.35, per: 9, speed: 0.3, pts: [[-18, 14, 0], [-18, 18, 0], [-18, 24, 0]] },
+      ],
+      pulses: [{ parts: ['sw_heater', 'sw_melt', 'sw_ingot', 'sw_saw', 'sw_polish'], period: 4.4, kind: 'hot' }],
     },
     /* ===== 半導體鏈：HBM ===== */
     /* 2D 是 `site/dg/hbm.js`。切掉「x > 0 且 z > 0」那一角（切法跟 MLCC 一致），
@@ -341,6 +409,25 @@
           kind: 'die', box: [17, 2.9, 17], at: [0, 6.65, 0], ex: [0, 8, 0],
           codes: ['2330'], chipnote: '先進節點晶圓代工（這一格講的是「誰代工」，不是「誰設計這顆 GPU」）' },
       ],
+      /* ---- C6 運轉動畫：**訊號沿 TSV 由上而下貫穿**。
+         為什麼是由上而下：HBM 的核心晶粒堆在最上面，資料要送出去一定得穿過整疊的穿矽孔（TSV）
+         落到最底下的 base die（邏輯晶粒），由它做序列化之後再經中介層橫向送給 GPU。
+         所以動畫是兩段：先是兩疊 HBM 的 TSV 由上往下（sig），
+         再從 base die 橫著走中介層進到運算晶粒 —— 這正是 HBM 比 GDDR 快的原因（路徑短、位元寬）。
+         兩疊記憶體分別在 x = ±15（n: 2、gap: 30）。*/
+      flows: [
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[-15, 19, -4], [-15, 12, -4], [-15, 7.4, -4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[-15, 19, 4], [-15, 12, 4], [-15, 7.4, 4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[15, 19, -4], [15, 12, -4], [15, 7.4, -4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[15, 19, 4], [15, 12, 4], [15, 7.4, 4]] },
+        /* base die → 中介層 → 運算晶粒（橫向，這一段才是「1024 bit 寬匯流排」）*/
+        { kind: 'sig', part: 'hb_interposer', r: 0.3, per: 12, speed: 0.5, pts: [[-15, 6.2, 0], [-9, 5.2, 0], [0, 6.4, 0]] },
+        { kind: 'sig', part: 'hb_interposer', r: 0.3, per: 12, speed: 0.5, pts: [[15, 6.2, 0], [9, 5.2, 0], [0, 6.4, 0]] },
+        /* 供電是**反向**的：從載板往上餵給核心晶粒（dir: -1 讓同一條路反著跑）*/
+        { kind: 'pwr', part: 'hb_sub', r: 0.26, per: 8, speed: 0.3, dir: -1, pts: [[-24, 3.4, 12], [-20, 5.6, 12], [-15, 8, 12], [-15, 16, 12]] },
+      ],
+      /* 訊號穿層：核心晶粒 → 微凸塊 → TSV → base die → 中介層 → 運算晶粒，一顆一顆接力點亮 */
+      pulses: [{ parts: ['hb_core', 'hb_ubump', 'hb_tsv', 'hb_base', 'hb_interposer', 'hb_gpu'], period: 2.6, kind: 'sig' }],
     },
     /* ===== 半導體鏈：第三代半導體 ===== */
     /* 2D 是 `site/dg/wide_bandgap.js`。兩顆元件並排、切掉同一個角：
@@ -391,6 +478,30 @@
           kind: 'wbgelec', box: [40, 2.6, 32], at: [32, 16.0, 0], ex: [0, 19, 0],
           codes: ['3707'], chipnote: '做元件製造這一段的台股（信心：中）' },
       ],
+      /* ---- C6 運轉動畫：**閘極開關，通道導通與截止**。
+         這是這張圖唯一該動的東西 —— 功率元件就是一顆開關，它的工作就是「開、關、開、關」。
+         做法是 `gate`：閘極一亮（pulse），電流那條流線才跑而且才看得見；
+         閘極一暗，粒子**整組消失**。電流是 0 的時候畫面上不該還有東西在跑，
+         這比「一直跑但變淡」誠實得多。兩顆元件用同一個 1.8 秒週期、相位錯開 0.5，
+         看起來就像推挽（push-pull）橋臂：一顆開的時候另一顆關。
+
+         電流走的路徑也不一樣，這正是兩種元件的差別：
+           SiC MOSFET 是**垂直**元件 —— 電流從上面的源極穿過本體、漂移層、基板，到底下的汲極
+           GaN HEMT   是**橫向**元件 —— 電流沿著 2DEG 那一層薄薄的二維電子氣在表面跑 */
+      flows: [
+        { kind: 'pwr', part: 'wbg_sic_drift', r: 0.5, per: 12, speed: 0.55, gate: [1.8, 0.45],
+          pts: [[-32, 23, 8], [-32, 18, 8], [-32, 13, 3], [-32, 7, 0], [-32, 1.2, 0]] },
+        { kind: 'pwr', part: 'wbg_sic_drift', r: 0.5, per: 12, speed: 0.55, gate: [1.8, 0.45],
+          pts: [[-32, 23, -8], [-32, 18, -8], [-32, 13, -3], [-32, 7, 0], [-32, 1.2, 0]] },
+        { kind: 'pwr', part: 'wbg_2deg', r: 0.42, per: 14, speed: 0.75, gate: [1.8, 0.45],
+          pts: [[14, 13.1, 0], [24, 13.1, 0], [40, 13.1, 0], [50, 13.1, 0]] },
+      ],
+      /* 閘極：sharp 低（2）＝方波一點，看起來像「被驅動訊號打開」而不是慢慢亮起來。
+         兩顆的相位差 0.5 個週期 —— 橋臂上下臂不會同時導通（同時導通就是短路）。*/
+      pulses: [
+        { parts: ['wbg_sic_gox'], period: 1.8, kind: 'sig', sharp: 2 },
+        { parts: ['wbg_pgan'], period: 1.8, kind: 'sig', sharp: 2, phase: 0.5 },
+      ],
     },
     /* ===== AI 伺服器鏈：IC 載板 ===== */
     /* 2D 是 `site/dg/ic_substrate.js`，`part` 沿用它的 `data-part`（abf_*）——
@@ -431,6 +542,22 @@
         { seg: 'hdi_pcb', part: 'abf_motherboard', name: '主機板（只畫一小段）', note: '載板的下游。★ 它跟載板**不是同一批廠**：主機板走機械鑽的通孔、走一般減成線路（金像電、健鼎那一群），載板走雷射微孔與半加成細線（欣興、南電、景碩）。設備不同、廠不同、毛利也不同',
           kind: 'pcb', box: [66, 4, 48], at: [0, -16, -2], ex: [0, -30, 0] },
       ],
+      /* ---- C6 運轉動畫：**訊號沿層間走線與盲孔穿層**。
+         ABF 載板存在的理由就是「把晶粒上幾十微米間距的訊號，一層一層扇出到主機板上的球」。
+         所以動畫是一條**由上往下、每穿一層就橫移一段**的路徑：
+           凸塊墊 → 增層的細線 → 微盲孔（uvia）往下一層 → 再細線 → 核心層的鍍通孔 → BGA 球。
+         每一段橫移就是那一層在做扇出（fan-out），每一次往下就是一個孔。
+         供電那條是反向的、而且走比較粗的路徑（電源層是整片銅，不是細線）。*/
+      flows: [
+        { kind: 'sig', part: 'abf_trace', r: 0.26, per: 16, speed: 0.4,
+          pts: [[-8, 10.4, -11], [-8, 7.4, -7], [3, 7.4, -7], [3, 3.6, -3], [-5, 3.6, -3], [-5, 0, 2],
+                [6, -3.6, 2], [6, -7.4, -6], [-2, -9.8, -11], [-2, -12, -11]] },
+        { kind: 'pwr', part: 'abf_core_via', r: 0.34, per: 10, speed: 0.3, dir: -1,
+          pts: [[12, 10.4, -11], [12, 3, -11], [12, -3, -11], [12, -9.8, -11], [12, -12, -11]] },
+        { kind: 'sig', part: 'abf_motherboard', r: 0.3, per: 12, speed: 0.35,
+          pts: [[-2, -14, -11], [-2, -16, -4], [-20, -16, 6], [-30, -16, 14]] },
+      ],
+      pulses: [{ parts: ['abf_bump_pad', 'abf_trace', 'abf_uvia', 'abf_core_via', 'abf_bga', 'abf_motherboard'], period: 3.2, kind: 'sig' }],
     },
     /* ===== AI 伺服器鏈：PCB 硬板 ===== */
     /* 2D 是 `site/dg/pcb_rigid.js`。同樣半剖，剖面是唯一的主角。
@@ -471,6 +598,24 @@
         { seg: 'hdi_pcb', part: 'pcb_buried', name: '埋孔（buried via）', note: '從 L4 到 L7，**兩端都不准碰到任何外層** —— 上下都要看得到介電把它蓋住。它是在壓合之前就先鑽好、鍍好的，所以壓完之後外面完全看不到',
           kind: 'pcbvia', via: 'buried', box: [64, 21, 46], at: [21, 0, 0], ex: [10, 26, 0] },
       ],
+      /* ---- C6 運轉動畫：**訊號在層與層之間穿孔換層**。
+         硬板的四種孔各有各的走法，這正是這張圖要區分的東西：
+           鍍通孔（PTH）  從最上面一路貫穿到最下面
+           背鑽           貫穿之後把用不到的殘段鑽掉，所以訊號只走到中段就停
+           盲孔           只從表層下到第一層內層
+           埋孔           完全在板子內部，兩端都不露出來
+         所以四條流線的**起訖點刻意不同**，長度就是它們的定義。
+         表層那條沿著走線走，走到 PTH 才往下 —— 訊號本來就是先走平面再換層。*/
+      flows: [
+        { kind: 'sig', part: 'pcb_top_trace', r: 0.3, per: 14, speed: 0.45, pts: [[-30, 10.8, 12], [-21, 10.8, 6], [-21, 10.8, 0]] },
+        { kind: 'sig', part: 'pcb_pth', r: 0.3, per: 12, speed: 0.5, pts: [[-21, 10.8, 0], [-21, 0, 0], [-21, -10.8, 0]] },
+        { kind: 'sig', part: 'pcb_backdrill', r: 0.3, per: 10, speed: 0.5, pts: [[-7, 10.8, 0], [-7, 3, 0], [-7, -1.5, 0]] },
+        { kind: 'sig', part: 'pcb_blind', r: 0.28, per: 8, speed: 0.55, pts: [[7, 10.8, 0], [7, 7, 0], [7, 4.5, 0]] },
+        { kind: 'sig', part: 'pcb_buried', r: 0.28, per: 8, speed: 0.55, pts: [[21, 4.5, 0], [21, 0, 0], [21, -4.5, 0]] },
+        /* 電源／接地層：整片銅，所以電是**橫著鋪開**的，不是走一條細線 */
+        { kind: 'pwr', part: 'pcb_plane', r: 0.34, per: 14, speed: 0.28, pts: [[-30, -4, -14], [0, -4, -14], [30, -4, -14]] },
+      ],
+      pulses: [{ parts: ['pcb_top_trace', 'pcb_pth', 'pcb_plane', 'pcb_blind', 'pcb_buried'], period: 3, kind: 'sig' }],
     },
     /* ===== AI 伺服器鏈：電源 ===== */
     /* 2D 是 `site/dg/server_psu.js`。3D 這張的主角是**一顆 PSU 被拆開**：
@@ -505,6 +650,28 @@
         { seg: 'power', part: 'psu_scap', name: '超級電容／鋰離子電容（LIC）', note: '比 BBU 小，跟 BBU 掛在**同一個直流節點**上，但管的是**毫秒級**的功率突波（一整櫃 GPU 同時起算那一下），不是秒到分鐘的斷電。頂面的防爆刻痕是它的識別特徵',
           kind: 'pscap', box: [22, 13, 22], at: [-12, -32, 0], ex: [0, -16, 0] },
       ],
+      /* ---- C6 運轉動畫：**電從市電一路走到晶片**。
+         這個場景沒有風扇零件（機櫃的風扇在 ai_server 那張），所以動的是電本身：
+           AC 進線（whip）→ PSU 板（整流＋PFC＋DC-DC）→ 機櫃 DC 匯流排（busbar）
+           → 主機板上的 VRM（多相降壓）→ 晶片（0.7V、幾百安培）。
+         電壓一路往下、電流一路往上，所以越靠近晶片粒子越密（per 越大）。
+         電池櫃是**反向**的一條：市電正常時充電、掉電時放電回匯流排接手 ——
+         用 bidir 讓它每 6 秒換一次方向，那正是 BBU 在做的事。
+         狀態燈由 `led` 材質自己呼吸（既有機制）。*/
+      flows: [
+        { kind: 'pwr', part: 'psu_whip', r: 0.7, per: 10, speed: 0.34, pts: [[62, -8, 0], [48, -6, 0], [30, -2, 0], [14, -2, 0]] },
+        { kind: 'pwr', part: 'psu_board', r: 0.6, per: 12, speed: 0.4, pts: [[-13, -2, 0], [0, -1, 0], [13, -2, 0], [22, 2, 0]] },
+        { kind: 'pwr', part: 'psu_busbar', r: 0.75, per: 14, speed: 0.3, pts: [[34, -14, 0], [34, 0, 0], [34, 14, 0], [34, 26, 0]] },
+        { kind: 'pwr', part: 'psu_vrm', r: 0.5, per: 14, speed: 0.5, pts: [[34, 20, 0], [50, 12, 8], [64, 5, 12], [68, 4, 12]] },
+        { kind: 'pwr', part: 'psu_die', r: 0.4, per: 16, speed: 0.6, pts: [[68, 3, 4], [68, 4, -4], [68, 4, -13]] },
+        /* BBU：平時充電、掉電放電 —— 同一條線每 6 秒換一次方向 */
+        { kind: 'pwr', part: 'psu_bbu', r: 0.5, per: 10, speed: 0.22, bidir: 6,
+          pts: [[-54, -22, 0], [-30, -16, 0], [0, -10, 0], [22, -4, 0], [34, -12, 0]] },
+        /* 超級電容處理毫秒級突波：短、快、而且方向會反覆 */
+        { kind: 'pwr', part: 'psu_scap', r: 0.4, per: 8, speed: 0.75, bidir: 1.4,
+          pts: [[-12, -24, 0], [4, -16, 0], [22, -8, 0], [34, -10, 0]] },
+      ],
+      pulses: [{ parts: ['psu_whip', 'psu_board', 'psu_busbar', 'psu_vrm', 'psu_die'], period: 3, kind: 'pwr' }],
     },
     /* ===== AI 伺服器鏈：液冷 ===== */
     /* 2D 是 `site/dg/liquid_cooling.js`。3D 這張是**熱的路徑**由內到外攤開：
@@ -545,6 +712,33 @@
         { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '跟 VC 同樣是兩相流，但形狀不同：**熱管是管、VC 是扁腔**，兩者不准互換。切開那一端看得到三層：外銅管 → 毛細 → 中央蒸氣道。★ 熱管**不准有支撐柱**（圓管靠管壁本身撐），而且它一定是彎的（要繞過零件）',
           kind: 'heatpipe', box: [36, 7, 18], at: [30, -34, 26], ex: [10, -16, 10] },
       ],
+      /* ---- C6 運轉動畫：**冷卻液真的在跑一圈**。
+         為什麼這樣動是對的 —— 液冷是一個封閉迴路，水一定回得來：
+           CDU 打出冷水 → 分歧管 → 快接頭（z = -9 那一側）→ 冷板進水口 → 微鰭片吸熱
+           → 冷板出水口 → 快接頭（z = +9 那一側）→ 分歧管 → CDU → 板式熱交換器 → 再出發。
+         去程走 `cold`（青綠）、回程走 `hot`（紅），顏色分開才看得出哪一邊已經吸了熱。
+         快接頭本身**不動**（它是機構件，會動的只有裡面的液體）—— 這是 Andy 指定的。
+         熱管與均熱板另外兩組：蒸氣往熱端外跑、冷凝液沿毛細結構回來，
+         所以它們各有一去一回、而且回程走比較低的一條路徑（液體靠重力與毛細回流）。
+         座標用**收攏態**（零件的 at），因為預設畫面就是收攏的。*/
+      flows: [
+        { kind: 'cold', part: 'manifold', r: 0.8, per: 16, speed: 0.15,
+          pts: [[44, 18, 0], [30, 20, -6], [10, 20, -9], [-6, 16, -9], [-14, 12, -9], [-36, 9, -9], [-52, 7, -9], [-54, 2, -6]] },
+        { kind: 'hot', part: 'manifold', r: 0.7, per: 16, speed: 0.13,
+          pts: [[-54, 2, 6], [-52, 7, 9], [-36, 9, 9], [-14, 12, 9], [-6, 16, 9], [10, 14, 9], [30, 8, 4], [44, 0, 0], [44, -14, 0]] },
+        /* 冷板內部：水從進水口下來、在微鰭片之間繞一個 U 再回到出水口（流道就是這樣設計的）*/
+        { kind: 'cold', part: 'cp_fin', r: 0.45, per: 12, speed: 0.3,
+          pts: [[-54, 1, -13], [-64, -2, -8], [-64, -2, 2], [-44, -2, 2], [-44, -2, 8], [-54, 1, 13]] },
+        /* 熱管：蒸氣從熱端往冷端（上半），冷凝液沿管壁毛細回熱端（下半）*/
+        { kind: 'hot', part: 'heatpipe', r: 0.4, per: 10, speed: 0.34, pts: [[14, -32, 26], [30, -31, 26], [46, -32, 26]] },
+        { kind: 'cold', part: 'heatpipe', r: 0.3, per: 10, speed: 0.22, pts: [[46, -36, 26], [30, -37, 26], [14, -36, 26]] },
+        /* 均熱板：中央（貼晶片）蒸發往外擴散，邊緣冷凝後回到中央 */
+        { kind: 'hot', part: 'vc', r: 0.35, per: 9, speed: 0.3, pts: [[-10, -31, 26], [-2, -31, 31], [2, -31, 37]] },
+        { kind: 'cold', part: 'vc', r: 0.28, per: 9, speed: 0.2, pts: [[2, -37, 37], [-2, -37, 31], [-10, -37, 26]] },
+      ],
+      /* 熱從晶片一路交棒出去：裸晶 → TIM1 → 蓋板 → TIM2 → 冷板 → 流道。
+         依序點亮＝熱阻是一串串聯的，前一段沒導出去後一段就不會熱。*/
+      pulses: [{ parts: ['die', 'tim1', 'ihs', 'tim2', 'cold_plate', 'cp_fin'], period: 3.4, kind: 'hot' }],
     },
     /* ===== AI 伺服器鏈：氣冷 ===== */
     /* 2D 是 `site/dg/air_cooling.js`。3D 這張把**一顆風扇沿轉軸拆開** ——
@@ -582,6 +776,25 @@
         { seg: 'thermal', part: 'vc', name: '均熱板 VC（當底座）', note: '晶片越大，熱越不可能只靠一塊銅底板攤開。VC 用兩相流把熱先**攤成一個面**再交給熱管與鰭片 —— 熱管是線、VC 是面，這就是兩者的分工',
           kind: 'vc', box: [34, 7, 30], at: [36, -34, 0], ex: [0, -30, 0] },
       ],
+      /* ---- C6 運轉動畫：**風扇在轉、空氣在走**。
+         扇葉與後轉子本來就會轉（frotor 自己掛了 userData.spin，反轉雙轉子第二組是負轉速）；
+         這一批補的是風扇牆（InstancedMesh，28 片葉片，見 fanWall 的 ispin）與**氣流**。
+         氣流為什麼是這樣：軸流風扇沿**軸向**（這裡是 z）吸進來、吹出去，
+         吹出來的風被導風罩圍住、逼著穿過鰭片之間的縫隙（不然會從旁邊溜掉），
+         最後帶著熱離開。所以氣流線是「先沿 z 穿過扇框」「再沿 z 穿過鰭片組」，
+         而且出風端的 y 略高 —— 熱空氣會往上走。*/
+      flows: [
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-58, 6, -34], [-56, 4, -12], [-56, 3, 12], [-57, 6, 34]] },
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-48, 2, -34], [-48, 2, -12], [-48, 2, 12], [-48, 4, 34]] },
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-38, -2, -34], [-40, 0, -12], [-40, 1, 12], [-39, 4, 34]] },
+        /* 風扇牆 → 導風罩 → 鰭片：三條穿過鰭片組的縫隙（x 分開，看得出是一整面的風） */
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[24, -12, -30], [24, -14, -8], [24, -14, 10], [24, -10, 30]] },
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[36, -12, -30], [36, -14, -8], [36, -14, 10], [36, -10, 30]] },
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[48, -12, -30], [48, -14, -8], [48, -14, 10], [48, -10, 30]] },
+        { kind: 'airline', part: 'fan_wall', line: true, per: 8, speed: 0.44, pts: [[36, 28, -26], [36, 27, 0], [36, 30, 26]] },
+      ],
+      /* 熱從底下往上交棒：均熱板 → 熱管 → 鰭片，最後被風帶走。*/
+      pulses: [{ parts: ['vc', 'heatpipe', 'fin'], period: 2.8, kind: 'hot' }],
     },
     /* ===== AI 伺服器鏈：網通 ===== */
     /* 2D 是 `site/dg/switch_wireless.js`。3D 這張是一張交換器板卡：
@@ -624,6 +837,30 @@
           chipnote: '散熱這一格的台股（★ 族群裡做風扇與熱管的尼得科超眾 6230、泰碩 3338、力致 3483、元山 6275 不在這個環節名單上）' },
         { seg: 'power', part: 'sw_psu', name: '電源供應器 PSU（後方、1+1 冗餘）', note: '兩顆並排、可熱抽換：一顆壞掉另一顆撐住。交流進來、轉成板上要的直流，再由板上的 VRM 降到晶片核心電壓',
           kind: 'psu', box: [26, 11, 18], at: [-32, 7, -36], ex: [0, 0, -24] },
+      ],
+      /* ---- C6 運轉動畫：**光進來、電出去、風扇在轉**。
+         風扇（kind: 'fan'）本來就會轉。這一批補的是訊號的路：
+           光纖 → 光模組（做光電轉換）→ 金手指 → 板上走線 → 交換 ASIC
+           → 另一邊再轉回光送出去。所以光路（opt）與電路（sig）是**兩種顏色**，
+           而且交界就在光模組上 —— 那正是這張圖要講的事。
+         `dir: -1` 那一條是**收**的方向：交換器一定是雙向的，只畫單向會看起來像單行道。
+         飛越纜線（fly-over）走 sig：它就是為了避開板材損耗才把高速訊號「飛」過去的。*/
+      flows: [
+        { kind: 'opt', part: 'sw_mod_fiber', r: 0.32, per: 10, speed: 0.6, pts: [[-24, 9, 64], [-24, 10, 78], [-24, 12, 92]] },
+        { kind: 'opt', part: 'sw_mod_fiber', r: 0.32, per: 10, speed: 0.6, dir: -1, pts: [[-24, 6, 64], [-24, 6, 78], [-24, 7, 92]] },
+        { kind: 'sig', part: 'sw_mod_gold', r: 0.3, per: 12, speed: 0.55, pts: [[-24, 9, 38], [-24, 7, 30], [-20, 5, 20]] },
+        { kind: 'sig', part: 'sw_pcb', r: 0.3, per: 14, speed: 0.5, pts: [[-24, 4, 20], [-14, 3, 8], [-4, 3, -2], [0, 5, -8]] },
+        { kind: 'sig', part: 'sw_pcb', r: 0.3, per: 14, speed: 0.5, dir: -1, pts: [[20, 4, 20], [12, 3, 8], [4, 3, -2], [0, 5, -8]] },
+        /* 飛越纜線：高速訊號不走板材，從空中拉過去 */
+        { kind: 'sig', part: 'sw_fly', r: 0.28, per: 10, speed: 0.7, pts: [[3, 10, 12], [18, 12, 12], [33, 10, 12]] },
+        /* 共同封裝光學：光引擎搬到 ASIC 旁邊，光直接進到封裝裡 */
+        { kind: 'opt', part: 'sw_cmp_cpo', r: 0.28, per: 10, speed: 0.65, pts: [[-22, 3, -8], [-10, 3, -8], [-2, 4, -8]] },
+        { kind: 'pwr', part: 'sw_vrm', r: 0.35, per: 10, speed: 0.4, pts: [[-14, 4, -26], [0, 4, -26], [0, 4.4, -14]] },
+      ],
+      /* 光模組收發閃爍：金手指 → 板 → ASIC 一路接力（光模組那一顆亮的頻率最高） */
+      pulses: [
+        { parts: ['sw_mod_fiber', 'sw_mod_gold', 'sw_pcb', 'sw_asic'], period: 2.2, kind: 'opt' },
+        { parts: ['sw_cmp_cpo', 'sw_asic'], period: 1.5, kind: 'sig', phase: 0.35 },
       ],
     },
     /* ===== 一般電子鏈：面板 TFT-LCD 疊層 ===== */
@@ -675,6 +912,26 @@
         { seg: 'panel_mfg', part: 'pn_driver', name: '端子區：驅動 IC ＋ COF 軟板', note: '★ 貼在下玻璃外露的那一條端子區上 —— 兩片玻璃錯開就是為了留這條邊。COF 是壓在軟性電路板上再接過來，軟板往背面折。晶片本身屬半導體鏈的「顯示驅動 IC」（3034 聯詠等），這裡只畫它貼在哪裡，不宣稱晶片是面板廠做的',
           kind: 'pndriver', box: [16, 3.4, 50], at: [38, 15, 0], ex: [26, 10, 0] },
       ],
+      /* ---- C6 運轉動畫：**背光亮起 → 穿過一層層膜 → 畫素出光**。
+         側入式背光的光路是固定的，順序不能換：
+           LED 燈條（側邊）→ 導光板把側光轉成面光 → 下擴散片打散
+           → 兩張稜鏡片把光聚回正面 → 下偏光片（只剩一個偏振方向）
+           → TFT 陣列開關電壓 → 液晶層扭轉偏振 → 彩色濾光片上色 → 上偏光片放行
+         所以依序點亮就是**由下往上**一層一層，而且 LED 那一顆最先亮。
+         導光板裡那條橫向流線是「光從側邊往中間傳」，這是側入式跟直下式最大的差別。
+         驅動 IC 那條是訊號：它沿著面板邊緣把資料送進 TFT 陣列。*/
+      flows: [
+        { kind: 'opt', part: 'pn_lgp', r: 0.4, per: 16, speed: 0.55, pts: [[-40, 7, -18], [-16, 7, -8], [12, 7, 2], [36, 7, 14]] },
+        { kind: 'opt', part: 'pn_lgp', r: 0.4, per: 16, speed: 0.55, pts: [[-40, 7, 18], [-16, 7, 8], [12, 7, -2], [36, 7, -14]] },
+        /* 出光：三束往上穿過整疊（x 分開，看得出是一整面在發光，不是一個點） */
+        { kind: 'opt', part: 'pn_lc', r: 0.3, per: 10, speed: 0.6, pts: [[-26, 9, 0], [-26, 16, 0], [-26, 25, 0]] },
+        { kind: 'opt', part: 'pn_lc', r: 0.3, per: 10, speed: 0.6, pts: [[0, 9, 14], [0, 16, 14], [0, 25, 14]] },
+        { kind: 'opt', part: 'pn_lc', r: 0.3, per: 10, speed: 0.6, pts: [[24, 9, -14], [24, 16, -14], [24, 25, -14]] },
+        { kind: 'sig', part: 'pn_driver', r: 0.28, per: 12, speed: 0.6, pts: [[38, 15, -26], [38, 15, 0], [38, 15, 26]] },
+        { kind: 'sig', part: 'pn_tft', r: 0.24, per: 14, speed: 0.5, pts: [[34, 15.4, 0], [10, 15.4, 0], [-30, 15.4, 0]] },
+      ],
+      pulses: [{ parts: ['pn_led', 'pn_lgp', 'pn_bl_diff', 'pn_bl_prism', 'pn_pol_lo', 'pn_tft', 'pn_lc', 'pn_cf', 'pn_pol_up'],
+        period: 3.6, kind: 'opt' }],
     },
     /* ===== 一般電子鏈：工業自動化／CNC 工具機 —— 一個會動的軸 ===== */
     /* 2D 是 `site/dg/motion_control.js`（一張圖掛兩個族群：`factory_automation` 與 `machine_tool`），
@@ -724,6 +981,34 @@
         { seg: 'motion_axis', part: 'mc_table', name: '工作台（滑座）', note: '★ 同時鎖在螺帽與滑塊上：螺帽推它走、滑塊撐住它不歪 —— 兩個連接都要有，少一個這根軸就不成立。上面的 T 型槽是工件鎖上去的地方',
           kind: 'mctable', box: [52, 9, 44], at: [22, 14, 0], ex: [22, 30, 0], codes: [] },
       ],
+      /* ---- C6 運轉動畫：**螺桿轉，螺帽就走**。
+         這是整張圖的機構原理，而且兩件事必須**綁在一起**才算對：
+         螺桿轉一圈，螺帽沿軸前進一個導程；螺桿反轉，螺帽就往回走。
+         所以這裡不是「螺桿自己轉、螺帽自己走」兩個各跑各的動畫 ——
+         螺桿的轉速是用**螺帽這一幀真正的速度**算出來的（spins 的 `sync: 'feed'`），
+         折返的那一瞬間螺桿也真的跟著反轉。馬達、聯軸器、編碼器都接在同一根軸上，
+         所以它們的轉速完全相同（同一個 sync）。
+         滾珠與回流通道跟著螺帽一起走（它們本來就在螺帽裡面），
+         並且同時繞著螺桿轉 —— 那就是「滾珠在回流通道裡循環」。
+         工作台與滑塊是被螺帽推著走的，所以跟螺帽同一個位移。
+         ⚠ 位移 ±18 是照螺桿的可用行程抓的（螺桿 x 從 -43 到 43，螺帽在 16），
+           再大就會撞到軸承座。*/
+      moves: [{ name: 'feed', parts: ['mc_nut', 'mc_ball', 'mc_return', 'mc_block', 'mc_table'],
+        axis: 'x', amp: 18, period: 6.5 }],
+      spins: [
+        { part: 'mc_screw', axis: 'x', speed: 0.26, sync: 'feed' },
+        { part: 'mc_coupling', axis: 'x', speed: 0.26, sync: 'feed' },
+        { part: 'mc_ball', axis: 'x', speed: 0.34, sync: 'feed' },
+        /* ⚠ 馬達與編碼器**刻意不轉**：會轉的是它們裡面的轉子與碼盤，
+           外殼是鎖在底座上的。把整顆馬達轉起來在物理上是錯的
+           （而且這兩顆的幾何是外殼，轉起來只會看起來像鬆脫了）。*/
+      ],
+      /* 控制訊號的方向：編碼器把位置回授給控制器、控制器驅動馬達（所以這條是反向的）*/
+      flows: [
+        { kind: 'sig', part: 'mc_enc', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[-78, 9, 12], [-70, 12, 12], [-52, 14, 12]] },
+        { kind: 'pwr', part: 'mc_motor', r: 0.34, per: 10, speed: 0.45, pts: [[-44, 22, 12], [-44, 14, 6], [-44, 9, 0]] },
+      ],
+      pulses: [{ parts: ['mc_enc', 'mc_motor', 'mc_coupling', 'mc_screw', 'mc_nut', 'mc_table'], period: 3.2, kind: 'sig' }],
     },
     /* ===== 一般電子鏈：被動保護 —— 過流與過壓元件 ===== */
     /* 2D 是 `site/dg/circuit_protection.js`，`part` 沿用它的 `data-part`（cp_*）。
@@ -770,6 +1055,30 @@
         { seg: 'passive_comp', part: 'cp_tvsel', name: 'TVS：金屬電極 ×2（並聯到地，最靠近 IC）', note: '上下各一片，把 PN 接面夾在中間。★ 它與 IC 之間不准再插別的元件：把電壓壓得比壓敏電阻更低、漂移更小 —— 這就是「分層」，靠外的第一道擋大能量、靠近 IC 的第二道把電壓壓下來。順序反過來就沒有意義',
           kind: 'cpelec', box: [22, 17, 18], at: [42, 7, 0], ex: [0, 11, 0],
           codes: ['6284'], chipnote: '6284 佳邦（ESD／TVS 過電壓保護元件，不在 supply_chain.yaml 裡）' },
+      ],
+      /* ---- C6 運轉動畫：**保護元件平常不作用，出事才動作**。
+         這是這一類零件最重要、也最容易畫錯的一件事 —— 它們不是一直在工作的：
+         ① 自恢復保險絲（PPTC）：平常低阻、電流照過；過流發熱到居禮點就**跳脫**，
+            電流幾乎歸零。所以那條流線用 gate [5, 0.62]：跑一段時間就斷掉一段時間。
+         ② 負溫度係數熱敏電阻（NTC）：開機瞬間高阻擋突波，熱起來變低阻 ——
+            之後電流就**一直通**，所以它那條沒有 gate，而且速度比較穩。
+         ③ 壓敏電阻（MOV）：平常是絕緣體，突波來才導通洩流。
+            所以 gate 的佔空比只有 0.12 —— 絕大多數時間它是**不導通**的。
+         ④ 暫態抑制二極體（TVS）：反應更快、動作時間更短，佔空比 0.08。
+         把佔空比畫成一樣就等於說「這四顆一樣」，那正好是最該避免的誤解。*/
+      flows: [
+        { kind: 'pwr', part: 'cp_poly', r: 0.45, per: 10, speed: 0.45, gate: [5, 0.62], pts: [[-58, 8, 0], [-42, 9, 0], [-26, 8, 0]] },
+        { kind: 'pwr', part: 'cp_ntc', r: 0.45, per: 10, speed: 0.4, pts: [[-28, 7, 0], [-14, 8, 0], [0, 7, 0]] },
+        { kind: 'pwr', part: 'cp_grain', r: 0.5, per: 8, speed: 0.9, gate: [5, 0.12], pts: [[14, 17, 0], [14, 8, 0], [14, -2, 0]] },
+        { kind: 'pwr', part: 'cp_pn', r: 0.5, per: 8, speed: 1.0, gate: [5, 0.08], pts: [[42, 16, 0], [42, 7, 0], [42, -3, 0]] },
+      ],
+      /* 動作的瞬間才亮：PPTC 跳脫時自己發熱（hot），MOV 與 TVS 是把突波導掉（pwr）。
+         四顆的週期都是 5 秒、相位錯開，看起來就像同一次突波依序被擋下來。*/
+      pulses: [
+        { parts: ['cp_poly', 'cp_carbon'], period: 5, kind: 'hot', sharp: 3, phase: 0.62 },
+        { parts: ['cp_ntc'], period: 5, kind: 'hot', sharp: 4, phase: 0.05, amp: 0.7 },
+        { parts: ['cp_gb', 'cp_movel'], period: 5, kind: 'pwr', sharp: 14, phase: 0.02 },
+        { parts: ['cp_pn', 'cp_tvsel'], period: 5, kind: 'pwr', sharp: 18, phase: 0.98 },
       ],
     },
     /* ===== 一般電子鏈：電容器 —— 鋁電解與固態電容剖面 ===== */
@@ -826,6 +1135,25 @@
         { seg: 'passive_comp', part: 'ac_solid', name: '固態電容（對照組）', note: '★ 固態電容只換了一樣東西：把電解液換成固態的導電高分子。它一樣要鑽進陽極箔的孔裡。等效串聯電阻大幅下降，而且沒有液體可以汽化，所以不會鼓脹爆漿（來源只講材料導電度，不是成品的 ESR 改善倍數，所以不寫倍數）',
           kind: 'acsolid', box: [24, 26, 24], at: [66, 13, 0], ex: [30, 0, 0],
           codes: ['6449'], chipnote: '6449 鈺邦（固態電容）。鈺邦不在 supply_chain.yaml 裡，所以直接指名' },
+      ],
+      /* ---- C6 運轉動畫：**充放電，而且離子真的在動**。
+         鋁電解電容跟 MLCC 一樣是充放電（電流反向，bidir），但它多了一件事：
+         電解液裡的**離子**要在陽極箔與陰極箔之間移動，
+         而這正是它「容量大但 ESR 高、壽命跟溫度有關」的物理原因 ——
+         離子跑不快，所以高頻時跟不上。
+         所以這裡分兩層：外面那條是接腳與卷繞體的充放電電流（快），
+         裡面那條是氧化膜 ↔ 電解紙 ↔ 陰極箔之間的離子移動（慢，速度只有三分之一）。
+         固態電容那一顆用導電高分子取代電解液，離子不必跑那麼遠 ——
+         所以它那條的速度刻意比液態快一倍，兩顆擺在一起就看得出差別。*/
+      flows: [
+        { kind: 'pwr', part: 'ac_lead', r: 0.7, per: 12, speed: 0.45, bidir: 3.2, pts: [[-30, 72, 0], [-30, 58, 0], [-30, 40, 0], [-30, 16, 0], [-30, 2, 0]] },
+        { kind: 'ind', part: 'ac_elyte', r: 0.45, per: 12, speed: 0.15, bidir: 3.2, pts: [[26, 42, 8], [26, 34, 8], [26, 26, 8]] },
+        { kind: 'ind', part: 'ac_elyte', r: 0.45, per: 12, speed: 0.15, bidir: 3.2, pts: [[26, 42, -8], [26, 34, -8], [26, 26, -8]] },
+        { kind: 'pwr', part: 'ac_solid', r: 0.5, per: 10, speed: 0.3, bidir: 3.2, pts: [[66, 27, 0], [66, 13, 0], [66, 1, 0]] },
+      ],
+      pulses: [
+        { parts: ['ac_winding'], period: 3.2, kind: 'pwr', sharp: 3, amp: 0.8 },
+        { parts: ['ac_oxide', 'ac_paper', 'ac_cathode'], period: 3.2, kind: 'ind' },
       ],
     },
     /* ===== 一般電子鏈：被動元件 —— 電感・電阻・石英 ===== */
@@ -885,6 +1213,27 @@
           kind: 'xtallid', box: [28, 5, 20], at: [38, 13, 0], ex: [0, 28, 0],
           codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
       ],
+      /* ---- C6 運轉動畫：三種不相干的零件，各自照**自己的物理**動。
+         ① 電感：電流沿繞線流過，繞線周圍就產生磁通 —— 兩者是同一件事的兩面，
+            所以磁通那一顆的明暗跟電流同一個 1.6 秒週期。
+            DC-DC 的電感電流是「直流 ＋ 三角波紋」，不會反向，所以**不用 bidir**。
+         ② 厚膜電阻：電流從一端進、穿過電阻膜、從另一端出，路上把電變成熱 ——
+            所以亮的是電阻膜本身（發熱），不是兩端的電極。雷射修整的溝槽會逼電流繞路，
+            流線刻意在中段偏一下，那就是修整溝的效果。
+         ③ 石英振盪子：石英片在電場下**機械性地來回形變**（壓電效應）。
+            ⚠ 真的頻率是 MHz 級，肉眼絕對看不到 —— 這裡是**示意**，刻意放慢到 0.9 秒一次，
+              振幅也只有 0.5，看得出「它在振」就夠了。*/
+      flows: [
+        { kind: 'pwr', part: 'ind_wind', r: 0.55, per: 12, speed: 0.4, pts: [[-54, 1, 0], [-46, 8, 6], [-36, 11, 0], [-26, 8, -6], [-18, 1, 0]] },
+        { kind: 'pwr', part: 'res_film', r: 0.4, per: 12, speed: 0.5, pts: [[-16, 3.5, 0], [-6, 4.4, 5], [6, 4.4, -5], [16, 3.5, 0]] },
+        { kind: 'sig', part: 'xtal_elec', r: 0.3, per: 8, speed: 0.6, bidir: 0.9, pts: [[26, 9, 0], [38, 9.6, 0], [50, 9, 0]] },
+      ],
+      pulses: [
+        { parts: ['ind_flux'], period: 1.6, kind: 'ind', sharp: 3, amp: 0.85 },
+        { parts: ['res_film', 'res_trim'], period: 1.6, kind: 'hot', phase: 0.3 },
+        { parts: ['xtal_blank', 'xtal_elec'], period: 0.9, kind: 'sig', sharp: 3 },
+      ],
+      moves: [{ name: 'osc', parts: ['xtal_blank'], axis: 'y', amp: 0.5, period: 0.9 }],
     },
     /* ===== AI 伺服器鏈：高速連接器與互連 ===== */
     /* 2D 是 `site/dg/ai_interconnect.js`，`part` 沿用它的 `data-part`（st_*／cage_*／gold_finger…）。
@@ -923,6 +1272,25 @@
         { seg: 'optical', part: 'optic_module', name: '插進籠子的光模組（只有外殼與拉環）', note: '這張圖只畫模組的外殼、拉環與前端的光纖接口 —— 它自己的內部（DSP、驅動 IC、雷射、TIA）是「交換器板卡」那張的主題。模組唯一的電接點在**後端**（插進籠子的那一頭），不是光纖那一頭',
           kind: 'swmod', box: [9, 7, 26], at: [22, 9.5, 22], ex: [0, 10, 42] },
       ],
+      /* ---- C6 運轉動畫：**差動訊號成對地跑**。
+         高速 SerDes 走的一定是**差動對**：兩條線載著相反極性的同一個訊號，
+         共模雜訊會在接收端被減掉。所以這裡每一條路徑都畫**兩條**、
+         彼此只差 2.2 的橫向間距（就是走線的對間距），而且同速同相位 ——
+         一條單線在物理上是錯的，那是低速單端訊號才有的樣子。
+         路徑：模組金手指 → 連接器壓接針 → 板上走線 → 交換／運算 ASIC；
+         twinax 纜線是「板上損耗太大時改用同軸線飛過去」的那一段，走在板子上方。
+         收發是雙向的，所以 twinax 一去一回（dir: -1）。*/
+      flows: [
+        { kind: 'sig', part: 'gold_finger', r: 0.26, per: 12, speed: 0.62, pts: [[22, 8, 13], [12, 6.4, 8], [-4, 5, 2], [-18, 4.6, -2], [-26, 6, -4]] },
+        { kind: 'sig', part: 'gold_finger', r: 0.26, per: 12, speed: 0.62, pts: [[22, 8, 15.2], [12, 6.4, 10.2], [-4, 5, 4.2], [-18, 4.6, 0.2], [-26, 6, -1.8]] },
+        { kind: 'sig', part: 'twinax', r: 0.24, per: 10, speed: 0.7, pts: [[-24, 15, -18], [-2, 17, -18], [20, 15, -18]] },
+        { kind: 'sig', part: 'twinax', r: 0.24, per: 10, speed: 0.7, pts: [[-24, 15, -20.2], [-2, 17, -20.2], [20, 15, -20.2]] },
+        { kind: 'sig', part: 'twinax', r: 0.24, per: 10, speed: 0.7, dir: -1, pts: [[-24, 13, -15.8], [-2, 15, -15.8], [20, 13, -15.8]] },
+        { kind: 'sig', part: 'slot_housing', r: 0.26, per: 10, speed: 0.55, pts: [[-6, 6, 31], [-6, 4, 18], [-12, 3.4, 6], [-22, 4.4, -2]] },
+        { kind: 'opt', part: 'optic_module', r: 0.26, per: 10, speed: 0.66, pts: [[22, 9.5, 36], [22, 10, 48], [22, 11, 60]] },
+        { kind: 'pwr', part: 'cage_pressfit', r: 0.3, per: 9, speed: 0.34, dir: -1, pts: [[22, -4, 4], [10, -1, 4], [-10, 1.6, 0], [-26, 3, -4]] },
+      ],
+      pulses: [{ parts: ['gold_finger', 'cage_pressfit', 'st_board', 'st_asic'], period: 2.4, kind: 'sig' }],
     },
   };
 
@@ -1305,7 +1673,14 @@
         depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
       pm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowPts: true };
       const pt = new T.Points(geo, pm);
-      pt.userData.flow = { paths, per, t: 0, dir: 1, speed: spec.speed || 0.25 };
+      /* C6：流線多三個旋鈕（幾何完全不變，只是同一條路徑上的粒子怎麼走）
+           dir   -1 ＝ 逆著路徑跑（供電與訊號常常是反向的同一條路）
+           bidir  秒數 ＝ 每半個週期換一次方向（交流／充放電：電流真的會反向，不是在轉圈）
+           gate  [週期, 佔空比] ＝ 只有「導通」的那一段時間才跑而且看得見
+                 （MOSFET 閘極關掉、PPTC 跳脫、壓敏電阻沒突波時，電流本來就是 0） */
+      pt.userData.flow = { paths, per, t: 0, dir: spec.dir === -1 ? -1 : 1, speed: spec.speed || 0.25,
+        bidir: spec.bidir ? (spec.bidir === true ? 2.6 : +spec.bidir) : 0,
+        gate: spec.gate ? { per: spec.gate[0] || 2, duty: spec.gate[1] == null ? 0.5 : spec.gate[1] } : null, age: 0 };
       g.add(pt);
       return g;
     }
@@ -3907,7 +4282,16 @@
       }
       g.add(instOf(new T.TorusGeometry(r, r * 0.09, 6, 16), fm, rings));                 // 每一顆的框
       g.add(instOf(new T.CylinderGeometry(r * 0.28, r * 0.28, d * 0.5, 12), hub, hubs));
-      g.add(instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades));
+      /* C6：風扇牆的葉片**真的在轉**。
+         它是一個 InstancedMesh（4 顆風扇 × 7 片 ＝ 28 個實例、1 個 draw call），
+         所以不能像單顆風扇那樣「轉一個 Group」—— 改成每幀重算 instanceMatrix。
+         28 次矩陣組合 × 30fps ＝ 840 次／秒，可以忽略；
+         換成 4 個 Group 會多 3 個 draw call，而且葉片的幾何要複製 4 份。*/
+      const bi = instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades);
+      bi.userData.ispin = { speed: 2.1, t: 0, items: blades.map((b, i) => ({
+        cx: (-(n - 1) / 2 + Math.floor(i / 7)) * cw, cz: 0, r: r * 0.58,
+        a0: (i % 7) * Math.PI * 2 / 7, ry: 0.44 })) };
+      g.add(bi);
       return g;
     }
 
@@ -5541,6 +5925,18 @@
     const spinners = [];         // E4：會自己轉的東西（風扇葉輪）
     const leds = [];             // E4：會呼吸的指示燈材質
     const flowPts = [], flowAll = [], flowSeen = new Set();   // 圖九 2-1：電流粒子
+    /* ★ C6（Andy 2026-09-23：「3D 圖 幫我都做成會有動畫像是這儀器再運作」）。
+       四種動法，全部是**零件自己在動或能量在流動**，不是鏡頭在繞：
+         ① flow    沿路徑跑的粒子   —— 冷卻液、氣流、光、電流、差動訊號（既有機制，這次補 dir／bidir／gate）
+         ② spin    零件繞自己的軸轉 —— 扇葉、螺桿、晶碇（既有機制，這次讓場景可以直接宣告）
+         ③ ispin   陣列零件各自轉   —— 風扇牆（InstancedMesh，1 個 draw call 也要會轉）
+         ④ pulse   一組零件依序點亮 —— 製程一站一站、訊號穿層、充放電（新增）
+         ⑤ move    零件沿一軸位移   —— 螺帽沿軸走、晶碇上提、晶粒被取放（新增）
+       全部不重建幾何：pulse 只改材質的 uniform（顏色／emissive），move 只改 position，
+       ispin 只改 instanceMatrix。每幀的預算都花在「看得出來的變化」上，不是花在重建 buffer。*/
+    const ispinners = [];        // C6 ③：陣列零件（InstancedMesh）各自繞自己的中心轉
+    const pulses = [];           // C6 ④：一組零件依序點亮
+    const movers = [];           // C6 ⑤：沿一軸位移的零件
     let labelDown = null;        // 這次按下去是從某個標籤開始的（可能只是想轉視角）
     let stickyBelow = new Set(); // 被排到底下那一排的卡片（黏住，直到欄寬／模式／選取變了才重排）；宣告在這裡是為了避開 TDZ
     let compactSide = { L: false, R: false };   // 這一欄的卡片有沒有收成一行（同樣黏住，同樣在欄寬／模式／選取變了才重算）
@@ -5589,12 +5985,17 @@
        留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
     let dirty = true, lastDraw = 0;
     const markDirty = () => { dirty = true; };
+    /* 一個 group 的最終位置 ＝ 原位 ＋ 爆炸位移 × expT ＋ 運轉位移（C6 ⑤ move）。
+       兩件事必須疊加而不是互相覆寫：螺帽沿軸走的時候，使用者可能同時把圖拆開。*/
+    const place = (g) => {
+      const b = g.userData.base, e = g.userData.ex || [0, 0, 0], v = g.userData.mv;
+      g.position.set(b.x + e[0] * expT + (v ? v.x : 0),
+        b.y + e[1] * expT + (v ? v.y : 0),
+        b.z + e[2] * expT + (v ? v.z : 0));
+    };
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
-      explodable.forEach(g => {
-        const b = g.userData.base, e = g.userData.ex;
-        g.position.set(b.x + e[0] * expT, b.y + e[1] * expT, b.z + e[2] * expT);
-      });
+      explodable.forEach(place);
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
       markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
     };
@@ -5635,6 +6036,7 @@
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.userData && x.userData.spin) spinners.push(x);
+          if (x.isInstancedMesh && x.userData && x.userData.ispin) ispinners.push(x);
           // 圖九 2-1：電流粒子。clone 出來的重複件共用同一份 geometry，
           // 所以同一份只能推一次，不然一幀會被推 n 次、速度變 n 倍。
           if (x.isPoints && x.userData && x.userData.flow && !flowSeen.has(x.geometry)) {
@@ -5777,6 +6179,45 @@
       [path, halo, dot, no].forEach(x => { x.style.setProperty('--c', elColor); x.style.setProperty('--dg-card-c', elColor); lead.appendChild(x); });
       dot.setAttribute('stroke', elColor);        // main 的 .ld-dot 是「底色填滿 ＋ 元件色描邊 ＋ 元件色光暈」，描邊由這裡餵
       byIdx[idx].path = path; byIdx[idx].dot = dot; byIdx[idx].halo = halo; byIdx[idx].no = no;
+    });
+
+    /* ================================================================ C6：把場景宣告的動畫接到零件上
+       SCENES 裡只寫「哪個零件、怎麼動」（宣告），真正的幾何與材質完全不知道自己會動 ——
+       這樣同一套工具可以給 19 個場景用，而不是 19 份各寫一套。
+       三件事都靠零件身分（part key）去找，找不到就靜靜跳過，不讓一個打錯的 key 把整張圖弄掛。*/
+    /* ⚠ 不能借用下面那支 isPart：它宣告在高亮那一段（const 箭頭函式），
+       這裡跑得比它早，用它會踩到 TDZ、整個 3D 退回平面圖（#246 踩過同一個坑）。*/
+    const isPartKey = (p, key) => !!key && (p.part === key || (p.alias || []).indexOf(key) >= 0);
+    const findPart = (key) => byIdx.filter(Boolean).find(p => isPartKey(p, key)) || null;
+    /* ② spin：讓某個零件的整個 group 繞自己的軸轉（螺桿、晶碇、聯軸器）。
+       零件的幾何本來就是以自己的中心為原點建的，所以繞 group 的軸轉 ＝ 繞零件自己的軸轉。*/
+    (spec.spins || []).forEach(sp => {
+      const p = findPart(sp.part); if (!p) return;
+      p.groups.forEach(g => {
+        g.userData.spin = { axis: sp.axis || 'y', speed: sp.speed || 1, base: sp.speed || 1, sync: sp.sync || '' };
+        spinners.push(g);
+      });
+    });
+    /* ④ pulse：一組零件**依序**點亮。用在「能量或訊號在一連串零件之間傳遞」——
+       製程一站一站、訊號穿層、背光一層一層往上。
+       被動元件本身不動，動的是電，所以只改顏色與 emissive，幾何一個頂點都不碰。*/
+    (spec.pulses || []).forEach(pg => {
+      const items = (pg.parts || []).map(findPart).filter(Boolean).map(p => ({ p, k: 0 }));
+      if (!items.length) return;
+      pulses.push({ items, period: pg.period || 3, sharp: pg.sharp || 8, phase: pg.phase || 0,
+        amp: pg.amp == null ? 1 : pg.amp, token: ROLE_TOKENS[pg.kind] || '--dg-fl-sig' });
+    });
+    /* ⑤ move：零件沿一軸位移。pingpong ＝ 往復（螺帽沿軸走、晶圓在站之間往返），
+       saw ＝ 單向循環（滾珠回流）。位移是疊在爆炸位移上的（見 place）。*/
+    (spec.moves || []).forEach(mo => {
+      const groups = [];
+      (mo.parts || [mo.part]).forEach(key => {
+        const p = findPart(key); if (!p) return;
+        p.groups.forEach(g => { g.userData.mv = { x: 0, y: 0, z: 0 }; groups.push(g); });
+      });
+      if (!groups.length) return;
+      movers.push({ name: mo.name || '', groups, axis: mo.axis || 'x', amp: mo.amp || 1,
+        period: mo.period || 4, mode: mo.mode || 'pingpong', phase: mo.phase || 0, off: 0, vel: 0 });
     });
 
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
@@ -6030,7 +6471,14 @@
       el.addEventListener('pointerenter', onEnter);
       el.addEventListener('pointerleave', onLeave);
     }
-    const applyAuto = () => { controls.autoRotate = anim && !userHold; };
+    /* ★ C6：系統層級的「減少動態效果」（prefers-reduced-motion: reduce）一律**當成動畫關掉**。
+       以前 reduced 只擋住爆炸補間，零件還是在轉、粒子還是在跑 —— 那不叫尊重。
+       注意鈕上的字仍然照 `anim`（使用者自己的選擇），只是實際上一格都不動。*/
+    const motionOn = () => anim && !reduced;
+    /* setAnim() 在色票區塊「之前」就會被呼叫一次，那時候 lastHi 還在 TDZ 裡 ——
+       所以「關動畫要把顏色還原」這件事只在場景真的建好之後才做。*/
+    let hiReady = false;
+    const applyAuto = () => { controls.autoRotate = motionOn() && !userHold; };
     function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
       if (holdT) clearTimeout(holdT);
@@ -6040,8 +6488,17 @@
       anim = !!on;
       applyAuto();
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
-      flowAll.forEach(x => { x.visible = anim; });
-      if (!anim) {
+      flowAll.forEach(x => { x.visible = motionOn(); });
+      if (!motionOn()) {
+        /* C6：**真的完全停下來**。旗標改掉不算 ——
+           要把 pulse 改過的顏色與 emissive 收回去、把位移歸零，
+           否則畫面會停在「某顆零件剛好亮著、螺帽卡在半路」的那一幀。*/
+        resetPulses();
+        /* 位移件**停在原地**，不彈回起點：真的機器按下停止就是停在那裡，
+           而且彈回去在畫面上是一個很醜的瞬跳。停 ＝ 速度歸零、相位不再前進，
+           驗收比 `moveOff` 有沒有繼續變就量得到（凍住的值不會變）。*/
+        movers.forEach(mv => { mv.vel = 0; mv.warm = false; });
+        spinners.forEach(sp => { if (sp.userData.spin.sync) sp.userData.spin.speed = 0; });
         /* 動畫關掉：爆炸展開**不做過場**，直接跳到目前的目標狀態（#246）。
            以前（#238）是「一律停在拆開的狀態」—— 那是因為當時展開是進場動畫、沒有目標可言；
            現在展開與否是使用者用游標決定的，關動畫只該關掉「過場」，不該替他決定要不要展開。*/
@@ -6054,6 +6511,9 @@
            把殘量一次吃光並歸零（reset() 用的是同一招）。*/
         const df = controls.dampingFactor;
         controls.dampingFactor = 1; controls.update(); controls.dampingFactor = df;
+        // 顏色要回到「目前選取狀態該有的樣子」（pulse 改過 color，highlight 才是權威）
+        if (hiReady) highlight(lastHi.on, lastHi.color, lastHi.part);
+        markDirty();
       }
     }
     setAnim(anim);
@@ -6190,6 +6650,8 @@
       return pal;
     }
     applyPal(o.pal || palByTheme());   // 一掛上去就照使用者選的模式（沒選就跟主題），不要先畫成預設再閃一下
+    hiReady = true;                    // 之後「關動畫」才可以回頭叫 highlight() 把 pulse 改過的顏色收回去
+    if (!motionOn()) setAnim(anim);    // 進場就是靜止（動畫關或系統要求減少動態）：把位移與 pulse 一次歸零
 
     /* 兩層高亮（2026-09-21 晚間）：`part` 是**被點的那一個零件**的身分，
        跟 2D 剖析圖共用同一個 key（見 SCENES 檔頭的 `part`）。
@@ -6212,6 +6674,12 @@
         // 單一環節的場景才壓暗「同環節但不是主角」的那幾顆；多環節場景維持原樣（零回歸）
         const sib = sel && hasPart && !selPart && singleSeg;
         const fade = has && !sel;
+        /* C6 ④：pulse 每幀都會改這些材質的顏色與 emissive，所以它得知道
+           「不算 pulse 的話，這顆零件現在應該長什麼樣」——
+           淡出的零件不准被硬點亮，被點的那一顆的染色也不能被 pulse 蓋掉。*/
+        p.hiFade = fade;
+        p.hiTint = (tint && selPart) ? tint.clone() : null;
+        p.hiEm = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
         p.mats.forEach(m => {
           const b = p.baseOp.get(m), bc = p.baseCol.get(m);
           m.opacity = fade ? Math.min(b, 0.12) : (sib ? Math.min(b, sibO) : b);
@@ -6414,6 +6882,17 @@
     function stepFlows(dt) {
       flowPts.forEach(o2 => {
         const f = o2.userData.flow;
+        f.age += dt;
+        /* 交流／充放電：電流真的會**反向**，不是一直往同一邊跑。
+           每半個週期換一次方向，看到的就是「充進去 → 放出來」。*/
+        if (f.bidir) f.dir = (f.age % f.bidir) < f.bidir / 2 ? 1 : -1;
+        /* 閘控：截止的時候電流是 0，所以粒子**整組藏起來而且不前進**。
+           （MOSFET 閘極關、PPTC 跳脫、壓敏電阻沒突波，都是這個狀態。）*/
+        if (f.gate) {
+          const on = (f.age % f.gate.per) < f.gate.per * f.gate.duty;
+          if (o2.visible !== on) o2.visible = on;
+          if (!on) return;
+        }
         f.t = (f.t + dt * f.speed) % 1;
         const arr = o2.geometry.attributes.position.array;
         let k = 0;
@@ -6433,6 +6912,130 @@
       });
     }
 
+    /* ================================================================ C6 ③：陣列零件各自旋轉
+       風扇牆是一個 InstancedMesh（28 片葉片、1 個 draw call）。要讓它真的在轉就得重算
+       instanceMatrix —— 但只重算矩陣，幾何完全沒動，所以成本是 28 次 compose，不是 28 次重建 buffer。*/
+    const _ip = new THREE.Vector3(), _iq = new THREE.Quaternion(), _ie = new THREE.Euler(),
+      _is = new THREE.Vector3(1, 1, 1), _im = new THREE.Matrix4();
+    function stepISpins(dt) {
+      for (let n = 0; n < ispinners.length; n++) {
+        const im = ispinners[n], sp = im.userData.ispin;
+        sp.t += sp.speed * dt;
+        const items = sp.items;
+        for (let i = 0; i < items.length; i++) {
+          const o2 = items[i], a = o2.a0 + sp.t;
+          _ie.set(0, o2.ry || 0, a + Math.PI / 2); _iq.setFromEuler(_ie);
+          _ip.set(o2.cx + Math.cos(a) * o2.r, Math.sin(a) * o2.r, o2.cz || 0);
+          _im.compose(_ip, _iq, _is);
+          im.setMatrixAt(i, _im);
+        }
+        im.instanceMatrix.needsUpdate = true;
+      }
+    }
+
+    /* ================================================================ C6 ④：一組零件依序點亮
+       為什麼這樣動是對的：這幾個場景裡「會動的」本來就不是零件本身，是**能量或訊號**——
+       晶圓在製程站之間往前走、訊號沿 TSV 由上往下貫穿、背光由下往上穿過一層層膜、
+       電容充放電。所以動的是顏色與發光，零件一動不動。
+
+       波形刻意用窄脈衝（cos 抬到 8 次方，半高寬只有週期的 1/8）：
+       同一時間只有一顆在亮，看起來像「有東西跑過去」；
+       用正弦的話會變成整排一起呼吸 —— 那就是 Andy 講過三次的「螢光感太重」。
+
+       兩個通道一起動，深淺兩個主題才都看得見：
+         · emissive  —— 科技模式的主角（深底上看得到光）
+         · 顏色往角色色靠 —— 閱讀模式的主角（--dg-sel-em 是 0，白紙上看得到的是變色不是發光）*/
+    const _pc = new THREE.Color(), _pt = new THREE.Color(), _pb = new THREE.Color();
+    let pulseAt = 0;
+    function stepPulses(dt) {
+      if (!pulses.length) return;
+      pulseAt += dt;
+      /* ★ 閱讀（淺色）模式**完全不用 emissive**。
+         那是既有的硬規則（「閱讀模式零件不發光：淺底上發光會刺眼、印得出來」，
+         `--dg-sel-em` 在那個模式就是 0），而且在白紙底上發光本來就看不出來 ——
+         淺色模式看得到的是**變色**，所以那邊把顏色的混合比例拉高補回去。
+         判斷用 `--dg-sel-em` 有沒有大於 0，不要寫死模式名字（色票是 CSS 那邊定義的）。*/
+      const emOn = palNum('--dg-sel-em', 0.22) > 0;
+      const em = emOn ? palNum('--dg-part-em', 0.45) : 0;
+      const mixK = emOn ? 0.4 : 0.55;
+      for (let n = 0; n < pulses.length; n++) {
+        const pg = pulses[n], items = pg.items, cnt = items.length;
+        _pc.set(palColOpt(pg.token) || new THREE.Color('#58C4FF'));
+        for (let i = 0; i < cnt; i++) {
+          const it = items[i], p = it.p;
+          let u = (pulseAt / pg.period) - i / cnt + pg.phase;
+          u -= Math.floor(u);
+          const k = Math.pow(Math.max(0, Math.cos(u * Math.PI * 2)), pg.sharp) * pg.amp;
+          it.k = k;
+          if (p.hiFade) continue;      // 別的環節被選起來：這一顆本來就該淡出，不要硬把它點亮
+          const mats = p.mats;
+          for (let j = 0; j < mats.length; j++) {
+            const m = mats[j], ud = m.userData || {};
+            // 指示燈、流線、AO 墊片有自己的節奏，疊上去只會變成一團亮
+            if (ud.led || ud.glow || ud.ao) continue;
+            if (m.emissive && emOn) { m.emissive.copy(_pc); m.emissiveIntensity = (p.hiEm || 0) + k * em * 1.15; }
+            const b = p.baseCol.get(m);
+            if (!b || !m.color) continue;
+            _pb.copy(b); if (p.hiTint) _pb.lerp(p.hiTint, 0.45);
+            m.color.copy(_pb).lerp(_pc, k * mixK);
+          }
+        }
+      }
+    }
+    /* pulse 關掉時要把零件還原 —— 「關掉動畫」必須是**畫面真的停下來而且回到常態**，
+       不是停在某一顆剛好亮著的那一幀。emissive 的顏色是 pulse 自己改的，highlight() 只管強度，
+       所以顏色要在這裡自己收回去（一般材質的 emissive 本來就是黑的）。*/
+    function resetPulses() {
+      pulses.forEach(pg => pg.items.forEach(it => {
+        it.k = 0;
+        it.p.mats.forEach(m => {
+          const ud = m.userData || {};
+          if (ud.led || ud.glow || ud.ao) return;
+          if (m.emissive) m.emissive.setRGB(0, 0, 0);
+        });
+      }));
+    }
+
+    /* ================================================================ C6 ⑤：零件沿一軸位移
+       用在「這個零件在機器運轉時真的會走」的地方：螺帽沿著螺桿前後、工作台跟著走、
+       晶粒被取放、晶碇被往上提。
+       ⚠ 位移**不**觸發陰影貼圖重畫（bumpShadow）：接觸陰影是一片圓盤，
+         而且既有的扇葉旋轉也是這樣處理的 —— 每幀重畫陰影會把 30fps 的預算吃光。*/
+    let moveAt = 0;
+    function stepMoves(dt) {
+      if (!movers.length) return;
+      moveAt += dt;
+      for (let n = 0; n < movers.length; n++) {
+        const mv = movers[n];
+        let u = moveAt / mv.period + mv.phase;
+        u -= Math.floor(u);
+        const prev = mv.off;
+        // pingpong 用 -cos：兩端**減速再折返**，跟真的伺服軸一樣（線性往復會在端點硬生生彈回去）
+        const sgn = mv.mode === 'saw' ? (u * 2 - 1) : -Math.cos(u * Math.PI * 2);
+        mv.off = sgn * mv.amp;
+        /* 第一幀（以及剛從靜止接回來的那一幀）不算速度：
+           那一幀的「位移差」是從 0 跳到起始位置，算出來會是一個假的巨大速度，
+           跟它連動的螺桿就會在開頭轉一大圈。*/
+        mv.vel = mv.warm ? (mv.off - prev) / Math.max(1e-4, dt) : 0;
+        mv.warm = true;
+        for (let i = 0; i < mv.groups.length; i++) {
+          const g = mv.groups[i];
+          g.userData.mv[mv.axis] = mv.off;
+          place(g);
+        }
+      }
+      /* 螺桿轉多快，決定螺帽走多快 —— 反過來也一樣。
+         所以「跟著某個位移」的旋轉件，轉速直接由那個位移的速度算出來：
+         螺帽往右走時螺桿順時針，折返時螺桿也真的跟著反轉。
+         這是「動得符合物理」的關鍵：兩個各轉各的就會看起來像兩台機器。*/
+      for (let i = 0; i < spinners.length; i++) {
+        const sp = spinners[i].userData.spin;
+        if (!sp.sync) continue;
+        const mv = movers.find(x => x.name === sp.sync);
+        if (mv) sp.speed = mv.vel * (sp.base || 1);
+      }
+    }
+
     /* ---- 只在看得到、而且真的有東西變了的時候畫
        ★ 2026-09-23（DECISIONS #245）：以前是「每一幀都無條件 renderer.render()」——
          連「動畫：關、沒有人在拖曳」的狀態都在燒 CPU。加上環境貼圖之後每一幀貴了 3 倍，
@@ -6450,14 +7053,20 @@
       raf = requestAnimationFrame(tick);
       if (!visible) return;
       const now0 = performance.now();
-      if (anim && now0 - lastDraw < 32) return;                  // ① 動畫上限 30fps
+      const run = motionOn();
+      if (run && now0 - lastDraw < 32) return;                   // ① 動畫上限 30fps
       const dt = Math.min(0.05, (performance.now() - t0) / 1000); t0 = performance.now();
-      if (anim) {
+      if (run) {
+        /* C6：位移要排在旋轉**前面** —— 跟著位移走的旋轉件（螺桿）的轉速
+           是這一幀的位移速度算出來的，反過來排會慢一幀，折返的瞬間看得出來。*/
+        stepMoves(dt);
         spinners.forEach(s => { s.rotation[s.userData.spin.axis] += s.userData.spin.speed * dt; });
+        stepISpins(dt);
         const lb = palNum('--dg-led', 0.55);
         const k = lb + lb * 0.55 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
         leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
         stepFlows(dt);
+        stepPulses(dt);
       }
       /* ★ #246 的爆炸補間刻意放在 `if (anim)` **外面**：
          展開／收攏是使用者用游標控制的狀態，不是「動態效果」的一部分。
@@ -6471,11 +7080,11 @@
         if (u >= 1) expAnim = null;
       }
       controls.update();
-      if (!anim && !dirty && now0 - lastDraw < 400) return;      // ②③ 靜止：沒變就不畫，400ms 補一張
+      if (!run && !dirty && now0 - lastDraw < 400) return;       // ②③ 靜止：沒變就不畫，400ms 補一張
       renderer.render(scene, camera);
       lastDraw = now0; dirty = false;
       // 自轉時每 4 幀重排一次標籤（引線要跟得上零件）；靜止時畫一次就排一次，才不會晚半秒才對齊
-      if (anim) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
+      if (run) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
     };
     const io = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }, { threshold: 0.02 }) : null;
@@ -6626,6 +7235,20 @@
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
+        /* ★ C6 的量測介面。驗「這台機器在運作」一律比**這些數字有沒有變**，
+           不是比「有沒有 pulses 這個陣列」——「元素存在」從來不算驗收。
+             ispinAt  ＝ 陣列風扇（風扇牆）轉到哪（弧度和）
+             pulseAt  ＝ pulse 的相位時鐘，只要在跑就單調前進
+             pulseK   ＝ 這一刻所有 pulse 的亮度總和（窄脈衝，所以它會上上下下）
+             moveAt   ＝ 位移的相位時鐘
+             moveOff  ＝ **零件真的位移了多少**（螺帽現在在哪），關掉動畫一定回到 0
+             reduced  ＝ 系統要求減少動態效果（此時一格都不會動，鈕上的字仍照使用者的選擇）*/
+        ispinners: ispinners.length, ispinAt: +ispinners.reduce((a, x) => a + x.userData.ispin.t, 0).toFixed(3),
+        pulses: pulses.reduce((a, g) => a + g.items.length, 0), pulseAt: +pulseAt.toFixed(3),
+        pulseK: +pulses.reduce((a, g) => a + g.items.reduce((b, it) => b + it.k, 0), 0).toFixed(4),
+        movers: movers.length, moveAt: +moveAt.toFixed(3),
+        moveOff: +movers.reduce((a, m) => a + Math.abs(m.off), 0).toFixed(3),
+        reduced, motion: motionOn(),
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
         flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
         explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
@@ -6769,6 +7392,8 @@
         expAnim = null; applyExplode(0); setExplode(true); return true;
       },
       isAnim: () => anim,
+      // C6：「使用者關掉動畫時畫面真的停了嗎」——比 motion() 與 stats() 裡的那幾個時鐘
+      motion: () => motionOn(),
       /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
          右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/
       setDrag: (mode) => {

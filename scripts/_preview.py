@@ -255,7 +255,12 @@ def main() -> int:
         state["industry_etf"]["members"] = pg.evaluate("() => { const g = window.Industry && window.Industry._gp ? window.Industry._gp() : null; return g ? g.rows : 0; }")
         visit("themes", "themes")
         # 每個題材都要有產品圖，而且圖上每個零件都要點得到個股（Andy 2026-09-12 的要求）
-        tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams) : [])")
+        # ★ 2026-09-23 修：`window.ThemeDiagrams.fit` 是版面用的工具函式（themes3d.js:1554 掛上去的），
+        #   不是一個題材。直接掃 Object.keys 會把它當成題材去開 `#themes/fit`，
+        #   然後回報「題材 fit 沒有產品圖」—— 那是掃描器自己的誤判，不是產品缺圖。
+        #   判準用「值是不是可呼叫的題材建構式」不夠（fit 也是 function），所以照名字排除工具。
+        tids = pg.evaluate(
+            "(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
         tstat = {}
         for tid in tids:
             pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(900)

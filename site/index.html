@@ -542,6 +542,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    小圓點傳輸動畫是一層絕對定位的 canvas，疊在 ECharts 自己的 canvas 上面。*/
 #sankey{position:relative;min-height:560px}
 #sankey.isempty{min-height:0}   /* 空狀態要把高度收掉，不然留一個 560px 的黑方塊 */
+/* ★ D7：總覽的分流圖高度是 JS 依族群數量算出來的（寫成 inline style），
+   空狀態時 `renderOvFlow` 會把 inline 高度清掉，這一條負責把 CSS 的 min-height 也收掉。*/
+#ovFlow{min-height:300px} #ovFlow.isempty{min-height:0}
 #sankey canvas.dotfx{position:absolute;left:0;top:0;pointer-events:none}
 @media (max-width:900px){ #sankey{min-height:520px} }
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
@@ -834,15 +837,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .cyclebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
 .cyclebar .st{padding:5px 13px;border-radius:999px;font-weight:700;font-size:13.5px}
 .cyclebar .ar{color:var(--ink-3);font-size:13px}
-.rotmove{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:10px 12px;
-  border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2);font-size:13px}
-.rotmove>b{color:var(--ink-2);font-size:13px;margin-right:2px}
-.rotmove .mv{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;
-  background:var(--panel-2);border:1px solid var(--line-2);cursor:pointer;transition:.15s}
-.rotmove .mv:hover{border-color:var(--cyan)}
-.rotmove .mv i{width:8px;height:8px;border-radius:2px;display:inline-block}
-.rotmove .mv em{font-style:normal;color:var(--ink-3);margin:0 1px}
-.rotmove .mv b{color:var(--ink);font-weight:600}
+/* ★ 2026-09-23：`.rotmove` 一整組已移除 —— 它只服務「最近 5 個交易日換階段的族群」那一排（Andy 指定拿掉）。 */
 /* 輪動階段（F1，Andy 2026-09-18：「我覺得很醜，幫我想其他方式呈現，不夠直觀，不要那麼方方角角」）。
    原本是四個直角方塊並排 —— 看起來像四張沒有關係的表格，看不出「這是一個循環」。
    改成「四段軌道」：底下一條圓角的漸層軌，四段依序坐在上面、彼此用箭頭接起來，
@@ -890,8 +885,8 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stageboard{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:20px;padding-top:16px}
 .stageboard::before{content:"";position:absolute;left:2%;right:2%;top:4px;height:6px;border-radius:999px;
   background:linear-gradient(90deg,var(--fall),var(--cyan),var(--rise),var(--amber),var(--fall));opacity:.5}
-.stageboard.compact{grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;padding-top:12px}
-.stageboard.compact::before{display:none}
+/* ★ 2026-09-23：`.stageboard.compact` 的專屬規則已移除 —— 它只服務總覽的 `#rotMini`，
+   那一塊換成了「昨日資金去向分流圖」。`.stageboard` / `.stage` 本體**不要刪**：季節性的 `#seasonBoard` 還在用。 */
 .stage{position:relative;border:1px solid color-mix(in srgb,var(--c) 34%,transparent);border-radius:20px;
   padding:14px 15px 13px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 11%,var(--panel-3)),var(--panel-3));
   box-shadow:0 10px 26px -22px var(--c)}
@@ -902,7 +897,6 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stage::after{content:"→";position:absolute;right:-15px;top:50%;transform:translateY(-50%);
   color:var(--ink-3);font-size:15px;font-weight:700}
 .stage:last-child::after{content:"↩";color:var(--ink-3)}
-.stageboard.compact .stage::before,.stageboard.compact .stage::after{display:none}
 @media (max-width:900px){ .stage::after{display:none} .stageboard::before{display:none} }
 .stage .sh{display:flex;align-items:baseline;gap:8px}
 .stage .sh b{font-size:15.5px}
@@ -924,7 +918,6 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
    「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
 #seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
-.stageboard.compact .stage ul{max-height:190px}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -978,15 +971,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
 .qlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-3)}
 .qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
-.vfilters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px;
-  padding:12px;border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
-.vfilters label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px;white-space:nowrap}
-.vfilters input[type=number]{width:72px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);
-  border-radius:7px;padding:5px 8px;font-family:var(--mono);font-size:13px}
-.vfilters select{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);border-radius:7px;
-  padding:5px 8px;font-size:13px;max-width:190px}
-.vfilters .chk input{accent-color:var(--cyan);width:15px;height:15px}
-.vfilters .vcount{margin-left:auto;color:var(--cyan);font-family:var(--mono);font-size:13px}
+/* ★ 2026-09-23：`.vfilters` 一整組已移除 —— 它只服務「估值篩選」那張卡（Andy 指定拿掉）。 */
 .seg button:hover:not(.on){background:var(--panel-2);color:var(--ink)}
 /* K 線工具：重設縮放的小方框圖示、繪圖工具列、設定浮層 */
 .iconbtn{width:30px;height:30px;display:inline-grid;place-items:center;border:1px solid var(--line-2);
@@ -1205,7 +1190,6 @@ a.lk.sm{font-size:12px;font-weight:500}
 .segbox{margin-top:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--c,var(--line-2));background:color-mix(in srgb,var(--c,#8ea0c4) 8%,var(--panel));font-size:13.5px}
 .segbox b.t{color:var(--c)}
 a.lk.out{opacity:.55} a.lk.out .code{opacity:.6}
-#themeMembers tr.sel{background:color-mix(in srgb,var(--cyan) 14%,transparent);box-shadow:inset 3px 0 0 var(--cyan)}
 .segbox .row{gap:6px 14px;margin-top:6px}
 /* E6：跨產業鏈的環節（ABF 載板等）—— 兩條鏈各一張架構圖縮圖，加上各自的上下游與族群 */
 .xchains{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-2);
@@ -1672,7 +1656,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    ★ 這三條 [hidden] 是必要的收尾：.row（flex）與 .pill（inline-flex）這些
      有 display 規則的類別會**蓋掉** UA 預設的 [hidden]{display:none}，
      不補的話「族群總覽」那一頁那幾顆工具鈕照樣看得到，按下去卻沒有圖可以動。*/
-#dgBody[hidden],#dgTools[hidden],#dgBack[hidden]{display:none}
+#dgBody[hidden],#dgTools[hidden]{display:none}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
@@ -1725,9 +1709,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   /* 窄畫面排成 2×2。★ grid-auto-rows:1fr 不可拿掉：兩列的高度預設各自算，
      上下兩張卡就會差幾 px（2026-09-20 新增「機構件」族群之後量到 487 / 467，
      _uitest 的「[800px] 四格等高」就是在擋這件事）。四格輪動板四格必須等高。 */
-  .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr} .stageboard.compact{grid-template-columns:1fr}
+  .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
   .cyclebar{font-size:12px} .cyclebar .st{padding:4px 10px;font-size:12.5px}
-  .vfilters{gap:8px 10px;padding:10px} .vfilters .vcount{margin-left:0;width:100%}
   .magrid{grid-template-columns:1fr} .top5grid{grid-template-columns:1fr}
   #mktSeg2,#mktTabs{flex-wrap:wrap}
   /* 剖析圖不要壓成手機寬（viewBox 1200 壓到 360 的話標籤只剩 3px，等於看不到）；改成可以左右滑 */
@@ -1850,15 +1833,49 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 @media (max-width:900px){ .rotfilter{gap:5px 6px} }
 
 /* ★ 2026-09-21 合併卡（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）。
-   `.rottime` 是「看哪一天 ＋ 最近幾天 ＋ 軌跡開關」那一列。兩支拉Bar 並排是刻意的：
-   它們回答的是同一個問題的兩半（截止日在哪、往回看幾天），分兩行看不出關係。
-   flex-wrap 是硬需求 —— 800px／390px 下兩支拉Bar ＋ 軌跡開關一定擠不下同一行，
+   ★ 2026-09-23 D1：那兩支拉Bar 本身也合併成**一條雙把手的區間桿**（見下面 `.rbar .dual`），
+     所以 `.rottime` 現在只有「區間桿 ＋ 軌跡開關」兩塊。
+   flex-wrap 是硬需求 —— 800px／390px 下區間桿 ＋ 軌跡開關一定擠不下同一行，
    不換行就會凸出卡片（2026-09-18 E6 那次就是只驗寬螢幕放過去的）。
-   軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行，
-   而不是把兩支拉Bar 擠成細條。*/
+   軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行。*/
 .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:2px 0 4px}
-.rottime>#rotBack,.rottime>#rankDays{flex:0 1 auto}
+.rottime>#rotBack{flex:0 1 auto}
 .rottime>.rottools{flex:1 1 320px;margin:0}
+
+/* ★ D1：雙把手區間桿。兩支 `<input type=range>` 疊在同一條軌道上 ——
+   軌道本身 `pointer-events:none`，只有**滑塊**吃得到滑鼠，所以兩支互不搶事件。
+   `.lo`（區間起點）寫在後面＝疊在上層，兩個滑塊剛好碰在一起時先抓到的是它；
+   「看哪一天」那支（`.hi`）寫在前面，是為了讓 `box.querySelector('input')` 抓到主角。*/
+.rbar .dual{position:relative;width:168px;height:18px;flex:0 0 auto}
+.rbar .dual .track{position:absolute;left:0;right:0;top:7px;height:4px;border-radius:999px;background:var(--line-2)}
+.rbar .dual .sel{position:absolute;top:7px;height:4px;border-radius:999px;background:var(--cyan);opacity:.5}
+.rbar .dual input[type=range]{position:absolute;left:0;top:0;width:100%;height:18px;margin:0;
+  -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none}
+.rbar .dual input[type=range]::-webkit-slider-runnable-track{height:4px;background:transparent;border:none}
+.rbar .dual input[type=range]::-moz-range-track{height:4px;background:transparent;border:none}
+.rbar .dual input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+  width:13px;height:13px;margin-top:-4.5px;border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
+.rbar .dual input[type=range]::-moz-range-thumb{pointer-events:auto;
+  width:13px;height:13px;border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
+/* 起點那顆用灰色：兩顆同色的話讀不出「哪一顆是我在看的那一天」 */
+.rbar .dual input.lo::-webkit-slider-thumb{background:var(--ink-3)}
+.rbar .dual input.lo::-moz-range-thumb{background:var(--ink-3)}
+.rbar .dual input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 40%,transparent)}
+.rbar .val{min-width:150px}
+@media (max-width:900px){ .rbar .dual{width:128px} .rbar .val{min-width:0} }
+
+/* ★ D2：象限展開面板搬到時鐘右邊那塊空白。時鐘吃剩下的寬（min-width:0 才縮得下去），
+   面板固定 300px。≤1100px 退回單欄（300px 面板 ＋ 讀得出來的時鐘在 800px 裡放不下）。*/
+.rotstagerow{display:flex;align-items:flex-start;gap:12px}
+.rotstagerow>#rotClockWrap{flex:1 1 auto;min-width:0}
+.rotstagerow>.stagepanel{flex:0 0 300px;max-width:300px;margin-top:0}
+@media (max-width:1100px){
+  .rotstagerow{display:block}
+  .rotstagerow>.stagepanel{max-width:none;margin-top:10px}
+}
+
+/* ★ D7：總覽「輪動階段」卡片下半的「昨日資金去向」小標與圖 */
+h4.ovflowh{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2)}
 /* 合併之後兩張圖各自需要一行小標（卡片標題已經被「資金輪動」佔走）。
    用 h4 而不是 h3：同一張卡裡的層級要看得出來，而且 h3 的字級會把圖往下推。*/
 .rotpane{display:flex;flex-direction:column;min-width:0}
@@ -2030,12 +2047,36 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .cgsvg{position:absolute;left:0;top:0;overflow:visible;display:block}
 .cglabels{position:absolute;left:0;top:0}
-/* 族群名：HTML，所以有省略號、字級精準 */
-.cglab{position:absolute;white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--cg-ink);
-  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);max-width:150px;
-  overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}
-.cglab.sel{color:var(--cg-ink-hi);font-weight:700}
+/* 族群名 ＋ 標籤式個股：HTML，所以有省略號、字級精準，也才點得到每一顆標籤。
+   ★ 2026-09-23 第十批 C5（Andy：「Default 顯示族群相連標籤個股」）——
+     以前這裡只有一行族群名（nowrap、單行），現在是一張小卡：上面族群名、下面個股標籤。
+     寬度釘在 168px：再寬的話 24 顆族群的碰撞框橫向就排不下，力導向只好整片縮小。
+     標籤數量由 industry.js 的收斂策略決定（節點越多每顆掛越少），CSS 這邊只負責排版。*/
+.cglab{position:absolute;font-size:12.5px;font-weight:600;color:var(--cg-ink);
+  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:250px;
+  display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:5px;overflow:hidden;
+  transition:opacity .15s}
+/* 族群名可以被截短，**個股標籤不准被截短**（`flex:none`）——
+   兩邊都可收縮的話會變成「台…／聯…／全…」那種一個字都讀不出來的東西，
+   那比少列一檔還糟。名字截短還看得懂（而且完整名在下拉清單與右側資訊欄裡）。*/
+.cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:48px}
+/* 檔數跟族群名同一行（C5）：獨立一顆「還有 N 檔」膠囊會自己佔掉整整一行，
+   24 顆族群就憑空多 24 行，個股標籤全部被擠掉 —— 實測過，所以擠在這裡。*/
+.cglab .cgcnt{font-style:normal;font-weight:500;font-size:11.5px;color:var(--cg-ink-3);margin-left:5px}
+.cglab.sel{color:var(--cg-ink-hi)}
+.cglab.sel .cgnm{font-weight:700}
 .cglab.dim{opacity:.22}
+/* 個股標籤。字級**下限是 12px**，不是 11px —— 關聯圖整張會被 fit() 縮到最小 0.92 倍，
+   12 × 0.92 ＝ 11.04px 才剛好守得住「手機不得小於 11px」那條線（12.5 → 11.5 也可以，
+   但標籤要排得下，所以取剛好守得住的那一個）。
+   底色用半透明的族群色，一眼看得出這幾檔屬於哪一顆球。*/
+.cgtags{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
+.cgtag{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
+  white-space:nowrap;flex:none;
+  background:var(--cg-tag-bg,rgba(255,255,255,.08));border:1px solid var(--c);
+  border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--cg-ink);cursor:pointer}
+.cgtag:hover{border-color:var(--c);color:var(--cg-ink-hi)}
+.cgtag.sel{background:var(--c);border-color:var(--c);color:var(--cg-tag-on,#0b1220);font-weight:700}
 /* 連線 */
 .cgsvg .cge{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.45);
   stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
@@ -2148,11 +2189,18 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgzoom button{width:32px;height:32px;border-radius:9px;background:var(--cg-hud);color:var(--cg-ink);
   border:1px solid var(--cg-hud-line);cursor:pointer;font-size:15px;line-height:1}
 .cgzoom button:hover{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
-/* hover 族群大點才浮出來的個股小卡（Andy：hover 是唯一的展開條件） */
-/* ★ pointer-events:none 不可拿掉。小卡是 hover 才浮出來的，而「把滑鼠移到族群大點上」
-   跟「點那顆族群」是同一個動作 —— 小卡只要吃滑鼠，就會擋在它自己說明的那顆節點前面，
-   那顆節點當場變成點不下去（Playwright 直接回 "cgtip subtree intercepts pointer events"，
-   真人也一樣點到小卡）。要點個股請點圖上的小點，那是規格書指定的入口，本來就一直在。*/
+/* 點族群才跳出來的個股下拉清單（★ 2026-09-23 第十批 C5：「點擊後才會跳出下拉清單」）。
+   ★ 舊版寫死 pointer-events:none，理由是「hover 浮出的小卡會擋住它自己說明的那顆節點」。
+     那個前提在 C5 之後沒有了：現在它是**點出來的**、位置固定在框的另一側（placeTip），
+     而且有 × 可以關、點圖上空白處也會關。清單裡每一列都要點得進個股頁，
+     所以 `.open` 的時候一定要吃滑鼠 —— 不吃的話清單就只是一張看得到摸不到的圖。
+   沒有 .open 的狀態仍然不吃滑鼠，當作安全網（例如將來有人又拿它來做 hover 預覽）。*/
+.cgtip .tx{position:absolute;right:6px;top:5px;width:22px;height:22px;border-radius:7px;
+  background:transparent;border:1px solid var(--line-2);color:var(--ink-3);cursor:pointer;line-height:1}
+.cgtip .tx:hover{color:var(--ink);border-color:var(--ink-3)}
+.cgtip .th{padding-right:24px}
+.cgtip .ti.sel{background:var(--panel-3);outline:1px solid var(--line-2)}
+.cgtip.open{pointer-events:auto}
 .cgtip{pointer-events:none;position:absolute;z-index:7;width:min(260px,calc(100% - 20px));max-height:calc(100% - 20px);
   overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
   padding:8px 10px 9px;box-shadow:0 14px 34px -18px var(--drop);font-size:12px;line-height:1.55}
@@ -2211,13 +2259,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   --cg-ink:#dfe6ff; --cg-ink-hi:#ffffff; --cg-ink-2:#aab4e0; --cg-ink-3:#8089b8;
   --cg-edge:#aab6ee; --cg-edge-2:#8f9ad0; --cg-edge-op:.34; --cg-edge-hi:#ffffff;
   --cg-grid:rgba(180,190,255,.16); --cg-hud:rgba(14,16,38,.72); --cg-hud-line:rgba(160,175,255,.25);
-  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);}
+  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);
+  /* 個股標籤（C5）：深底 → 標籤用很淡的白霧，選起來才整顆填成族群色 */
+  --cg-tag-bg:rgba(18,22,48,.72); --cg-tag-on:#0b1220;}
 .cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 9px var(--c))}
 /* 02 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（唯一的亮底） */
 .cgraph[data-cgstyle="bubble"]{
   --cg-bg:radial-gradient(110% 90% at 40% 8%,#ffffff 0%,#eef4fd 55%,#e2eaf7 100%);
   --cg-ink:#1d2742; --cg-ink-hi:#0f1830; --cg-ink-2:#465577; --cg-ink-3:#6b7994;
   --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.5; --cg-edge-hi:#2b6cb0;
+  /* 亮底 → 標籤要用不透明的白，不然半透明白疊在淺藍底上等於沒有底、字會糊在背景裡 */
+  --cg-tag-bg:rgba(255,255,255,.88); --cg-tag-on:#101a2e;
   --cg-grid:rgba(120,140,180,.12); --cg-hud:rgba(255,255,255,.86); --cg-hud-line:#cfd9ea;
   --cg-deco:rgba(120,160,225,.055); --cg-lab-sh:none;}
 .cgraph[data-cgstyle="bubble"] .cgball{opacity:.8}
@@ -2235,7 +2287,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtop{left:12px;right:12px;top:auto;bottom:52px;justify-content:flex-start}
   .cggsearch input{width:96px}
   .cglegend{bottom:12px;max-width:calc(100% - 92px);gap:6px 8px}
-  .cglab{font-size:12px;max-width:110px}
+  /* 手機：卡片收窄，但**字級一個都不往下調** —— 12px 已經是 fit() 縮到 0.92 倍之後
+     還守得住 11px 的最低值，再調就破線了（見上面 .cgtag 的註解）。*/
+  .cglab{font-size:12px;max-width:124px}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
@@ -2256,7 +2310,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    修法兩件事配成一組：標題可收縮（`flex:1 1 auto` ＋ 既有的 `min-width:0`，文字自己換行），
    設定列不收縮並用 `margin-left:auto` 頂到右緣 —— 這樣不論標題多長都留在同一列的最右邊。 */
 .dgsechead{flex-wrap:nowrap}      /* 寬畫面不准換行：換行＝設定列掉到第二列，就不是「標題右邊」了 */
-.dgsechead h4{min-width:0;flex:1 1 auto}
+/* ★ 2026-09-23 第十批 C1：「產品剖析圖」那個 h4 拿掉了，左邊剩下 .dgsectitle
+   （裡面只有圖名 #dgTitle）。兩個選擇器都留著：h4 那一條給還沒改到的地方，
+   不留的話萬一有別頁還在用 h4，設定列會整條掉到第二列。 */
+.dgsechead h4,.dgsechead .dgsectitle{min-width:0;flex:1 1 auto}
+/* 標題沒了之後這一行只剩灰色小字，行高要補回來，不然它跟右邊那排 pill 的頂端對不齊 */
+.dgsectitle{font-size:12.5px;line-height:1.5;padding-top:3px}
 /* `flex:0 1 auto` 而不是 `0 0 auto`：中等寬度（實測 1100px）容器只剩約 700px，
    設定列自然寬 587px ＋ 標題最小寬就放不下，硬不收縮就會整條掉到第二列。
    允許它自己把 pill 折成兩排，配上 `align-items:flex-start` 讓兩邊的頂端對齊，
@@ -2292,7 +2351,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
-    <button class="tab" data-view="tasks">任務板</button>
+    <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
+         `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
+         直接貼 `…/#tasks` 仍然打得開，工作流產出的 `tasks.json` 也照舊。
+         全站沒有別的地方連到 `#tasks`（已 grep 過），所以收掉入口不會產生死連結。 -->
   </nav>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
   <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分，另外要一顆手動更新）。
@@ -2345,13 +2407,23 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="chainchips" id="heatChips"></div>
         <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
         <div class="hpanel" id="heatPanel" hidden></div></div>
+      <!-- ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點，
+             下方的紅框處改成昨日的資金去向分流圖」）。這張卡片現在回答**兩個不同的問題**：
+             上半「誰在轉強」（時鐘）、下半「昨天的錢分給了誰」（分流圖）。
+             以前下半是同樣四段的清單（`#rotMini`），和時鐘講的是同一件事，等於把版面用掉兩次。
+             · 「⤢ 放大」整顆移除：完整版（拉Bar／篩選／播放）就在「資金流向」那一頁。
+             · 圓圈變大：容器 300 → 360px，`renderRotClock` 的 compact 半徑 66% → 82%。 -->
       <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
-        <div class="row" style="gap:8px">
-          <button class="btn small" id="rotMiniZoomBtn" title="放大這張圖">⤢ 放大</button>
-          <button class="howbtn" data-how="rotm">怎麼看 ?</button></div></div>
+        <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rotm" hidden></div>
-        <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:300px"></div></div>
-        <div class="stageboard compact" id="rotMini"></div></div>
+        <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
+        <h4 class="subh ovflowh">昨日資金去向 <small id="ovFlowSub">昨天收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群</small></h4>
+        <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div>
+        <!-- 口徑說明不可以因為「圖變簡單」就拿掉（和資金流向頁那張桑基圖是同一份資料）：
+             族群成交值對同時掛兩個板塊的股票做過 1/n 拆分，所以族群加總會略小於逐檔加總。 -->
+        <div class="note" style="margin-top:6px">線越粗＝流過的成交值越大（這張圖<b>只用粗細</b>表示流量，沒有動畫）。
+          只畫到族群那一層，個股請點族群名。族群成交值對同時掛兩個板塊的股票已照 <b>1/n 拆分</b>，
+          所以族群加總會略小於逐檔加總。</div></div>
     </div>
     <div class="grid g12 eqpair" style="margin-top:16px">
       <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
@@ -2362,7 +2434,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
         <div class="cards" id="candCards"></div></div>
     </div>
-    <div class="grid g3" style="margin-top:16px">
+    <!-- ★ 2026-09-23（Andy：「估值篩選拿掉」，追問後回覆「OK」＝連總覽這張也一起砍）：
+         這一列原本是三張卡（市場寬度／法人連續買超／族群估值），「族群估值」整張移除後只剩兩張，
+         所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
+         g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
+    <div class="grid g2" style="margin-top:16px">
       <div class="card"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
@@ -2374,8 +2450,6 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         </div></div>
         <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div>
         <div class="note" style="margin-top:6px">滾輪放大、放大後拖曳移動、雙擊還原；點泡泡進個股頁。</div></div>
-      <div class="card"><h3>族群估值 <small>橫軸＝族群本益比中位（左便宜、右貴），縱軸＝資金流入；找左上角那一格</small></h3>
-        <div id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
   </section>
 
@@ -2423,25 +2497,30 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
       <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
            data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
       <div class="rotfilter" data-rf="flow"></div>
-      <!-- 共用時間列：#rotBack「看哪一天」決定**兩張圖的截止日**，#rankDays 決定排行往回看幾天。
+      <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
+           原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
+           合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
+             右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
+           容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
            窄畫面自動換行（見 .rottime）。 -->
       <div class="rottime">
-        <div id="rotBack" title="看哪一天：拖曳把時間軸往回刷，大圈會慢慢移過去；排行也會以這一天當結尾"></div>
-        <div id="rankDays" title="排行往回看幾天（結尾就是左邊「看哪一天」指到的那一天）"></div>
+        <div id="rotBack" title="一條桿講完一段時間：右把手＝看哪一天（時鐘大圈停的那一天，也是排行的截止日），左把手＝這一段的起點（排行往回看幾天）"></div>
         <div class="rottools" id="rotTools"></div>
       </div>
       <div class="grid g21">
         <div class="rotpane">
           <h4 class="subh">輪動時鐘 <small>族群相對大盤跑到強弱循環的哪一段</small></h4>
-          <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
-          <!-- ★ 2026-09-23（Andy：「下方的輪動階段需要與上方的輪動時鐘合併…做完後下方的輪動階段即可移除」）
-               「最近 N 個交易日換階段的族群」那一排從被移除的那張卡搬到這裡。
-               它講的是「誰剛跨過象限」——是一句跨象限的話，塞進任何單一象限的展開面板都會漏掉另一半，
-               所以留在時鐘正下方當常駐的一行。 -->
-          <div class="rotmove" id="rotMove"></div>
-          <!-- 點時鐘四周的象限卡就在這裡展開那一段有哪些族群（強弱／動能／佔比）。
-               放在時鐘下面而不是浮在圖上：浮層會蓋住點與軌跡，蓋到右邊就把「資金流向排行」弄不見。 -->
-          <div class="hpanel stagepanel" id="stagePanel" hidden></div>
+          <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
+               象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
+               盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。
+               它仍然只佔「時鐘那一欄」，右邊的「資金流向排行」是 `.g21` 的另一格，沒有被蓋到。
+               ≤1100px 時 `.rotstagerow` 退回單欄，面板掉到時鐘下面（CSS）。
+               ★ 同一批把「最近 5 個交易日換階段的族群」（`#rotMove`）整排移除（Andy 指定）—— 
+                 換段資訊改由展開面板每一列的「改善→領先」徽章承擔。 -->
+          <div class="rotstagerow">
+            <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
+            <div class="hpanel stagepanel" id="stagePanel" hidden></div>
+          </div>
         </div>
         <div class="rotpane">
           <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
@@ -2457,9 +2536,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          現在象限標籤本身就是那四顆卡（見 app.js 的 rotQuadChips / renderStagePanel）。
          · `#rotCycle`（改善→領先→轉弱→落後 ↩ 那一列）跟著移除：時鐘順時針轉一圈就是同一件事，
            而「怎麼看 ?」裡已經把順序寫清楚了。
-         · `#rotMove` 保留，搬到時鐘正下方。
-         · 總覽頁的 `#rotMini`（.stageboard.compact）與 N10 那組四段卡**不受影響**，
-           所以 .stageboard / .cyclebar 的樣式都留著。 -->
+         · ★ 2026-09-23 追加：`#rotMove` 也已經移除（Andy 親口要求），
+           所以 `.rotmove` 的樣式跟著清掉了。
+         · 總覽頁的 `#rotMini` 這一批換成「昨日資金去向分流圖」（D7），
+           `.stageboard.compact` 的專屬規則跟著清掉；
+           `.stageboard` / `.stage` 本體**留著**，季節性的 `#seasonBoard` 還在用。 -->
     <!-- ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
          「族群佔比河流」整張卡片（圖 ＋『最近 N 天』時間週期拉Bar ＋ 截止日回放）已移除。
          它回答的問題（這 60 天主流換過幾次）和下面的「資金集中度」重疊，
@@ -2500,28 +2581,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div id="conc" class="chart tall"></div>
         <div class="hpanel" id="concSide" hidden></div></div>
     </div>
-    <!-- 估值篩選：Andy 要「本益比需要多可篩選功能 全部在一起」 -->
-    <div class="card" style="margin-top:16px">
-      <div class="row spread"><h3>估值篩選 <small id="valSub">本益比／股價淨值比／ROE 一起篩</small></h3>
-        <button class="howbtn" data-how="val">怎麼看 ?</button></div>
-      <div class="howtxt" id="how-val" hidden></div>
-      <div class="vfilters" id="valFilters">
-        <label>族群<select id="vGroup"><option value="">全部</option></select></label>
-        <label>市場<select id="vMarket"><option value="">全部</option><option value="TWSE">上市</option><option value="TPEX">上櫃</option></select></label>
-        <label>本益比<input id="vPeLo" type="number" placeholder="最低" step="1"><span>～</span><input id="vPeHi" type="number" placeholder="最高" step="1"></label>
-        <label>股價淨值比 ≤<input id="vPb" type="number" placeholder="不限" step="0.1"></label>
-        <label>ROE ≥<input id="vRoe" type="number" placeholder="不限" step="1"><span>%</span></label>
-        <label>市值 ≥<input id="vCap" type="number" placeholder="不限" step="10"><span>億</span></label>
-        <label class="chk"><input id="vBelow" type="checkbox">只看低於族群中位</label>
-        <label class="chk"><input id="vProfit" type="checkbox" checked>排除虧損</label>
-        <button class="btn small" id="vReset">清除條件</button>
-        <span class="vcount" id="vCount"></span>
-      </div>
-      <div class="grid g2" style="margin-top:12px">
-        <div id="valScatter" class="chart tall"></div>
-        <div class="tw cap-lg"><table id="valTable"><thead></thead><tbody id="valBody"></tbody></table></div>
-      </div>
-    </div>
+    <!-- ★ 2026-09-23（Andy：「估值篩選 拿掉」）：「估值篩選」整張卡片已移除
+         （本益比／股價淨值比／ROE／市值／族群一起篩 ＋ 散點圖 ＋ 右側表格 ＋ 清除條件）。
+         app.js 的 `renderVal()`／`VF`／`HOW.val` 與 `.vfilters` 的 CSS 一起清掉，
+         這一頁也不再載入 `fundamental.json`（只有它在讀）。
+         ⚠ 總覽頁的「族群估值」（`#gval`）原本判斷是另一張圖、先留著，但 2026-09-23 向 Andy
+         確認後他回「OK」＝ 一起砍，所以總覽那張卡與 `renderGval()` 也已移除，
+         `group_valuation.json` 隨之沒有任何前端讀者（資料端照舊產出，停產是另一件事）。 -->
   </section>
 
   <!-- ================= 產業熱力圖 =================
@@ -2621,6 +2687,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 <script src="dg/cloud_msp.js"></script>
 <script src="dg/saas.js"></script>
 <script src="dg/ecommerce.js"></script>
+<!-- ★ 2026-09-23 C3：金融（financial 鏈）三張族群 2D 圖。
+     Andy 明講「金融麻煩也生成 2D 圖」，格式跟軟體鏈那四張一樣，所以三支的 scene 都是 null。
+     supply_chain.yaml 裡沒有 financial 這條鏈，所以這三張一個 data-seg 都沒掛（各自的檔頭有寫）。 -->
+<script src="dg/bank.js"></script>
+<script src="dg/life_fhc.js"></script>
+<script src="dg/securities_fhc.js"></script>
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>

@@ -14,9 +14,12 @@
        下：訂閱制 —— 每個月認一小格；第二年續約的疊在下面、當年新增的疊在上面，變成一道階梯。
      只要把兩張圖的縱軸畫成同一個刻度，「慢」與「穩」就自己看得出來，不必寫任何形容詞。
 
-   ★ `data-seg`：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡完全沒有 software 這條鏈
-     （機器查的：`grep -c software` ＝ 0），沒有任何環節 id 對得上，硬掛就是宣稱錯誤的公司對應。
-     代價與 `silicon_wafer.js` 相同：點零件不會篩成分股，所以「誰做的」直接印在畫面上。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**。
+     這張圖剛做出來時 `supply_chain.yaml` 完全沒有 software 這條鏈，所以一個都不敢掛；
+     Andy 2026-09-23 授權補資料之後補上了環節 `sw_saas`（自有軟體與訂閱平台），這裡跟著掛。
+     ⚠ 這一格的四檔**不是同一種生意**（叡揚是企業軟體、訊連是消費端創作軟體、
+       智通還有一塊傳統製造），YAML 的 note 逐家寫明了 —— 掛同一個環節是照 groups.yaml 的族群走，
+       不是在宣稱它們做的是同一件事。
 
    ★ 事實與出處
      · 收入認列的節奏差異（一次性 vs 逐期、合約負債／遞延收入）是 IFRS 15 的通則，
@@ -42,14 +45,23 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：software 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了 —— 環節 ＝ `sw_saas`（自有軟體與訂閱平台），
+     成分 ＝ groups.yaml 的 saas 族群（叡揚 6752、騰雲 6870、訊連 5203、智通 8932）。
+     ⚠ 兩個零件刻意不掛：`sa_scale`（「兩張圖是同一個刻度」）是**看圖的說明**不是生意，
+       `sa_unknown`（沒有回答的事）同理。掛上去等於在說「刻度」也是一門生意。*/
+  const SEG = 'sw_saas';
+  const NO_SEG = new Set(['sa_scale', 'sa_unknown']);
+  const segOf = (id) => (NO_SEG.has(id) ? null : SEG);
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   const C = {
     proj: 'var(--dg-hot)', cost: 'var(--dg-mute)', sub1: 'var(--dg-accent-2d)',
     sub2: 'var(--dg-au)', defer: 'var(--dg-si)', warn: 'var(--dg-warn)', ok: 'var(--dg-organic)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話點圖會篩、點卡片不會。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -179,7 +191,7 @@
         + ['各家的訂閱占比、續約率、客單價、市占率 —— 沒有可引用的公司自述來源，一個數字都不寫。',
           '圖上的柱高、合約長度、十二個月的形狀全部是示意，不是任何一家的實際數字。',
           '「訂閱一定比專案好」這種結論本圖不下：訂閱前期先付出、要好幾年才收回來，這也是它的代價。',
-          '點零件不會篩成分股：供應鏈資料裡沒有 software 這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+          '這四檔各自的產品線與客戶結構：它們掛在同一個環節底下是照族群歸類，不是在說它們做的是同一種生意。'].map((s, i) =>
             T(30, y0 + 328 + i * 18, s, 'sub')).join(''));
   }
 
@@ -187,11 +199,12 @@
     return `<svg class="dg dgm rs dgsa" viewBox="0 0 ${CW} 1480" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，描邊與高亮規則要自己給；顏色一律走 --dg-* token。*/
-        svg.dgsa [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgsa [data-part]{cursor:default}
-        svg.dgsa [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgsa [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 的「.dg [data-seg] …」，
+           所以這裡的規則縮到 :not([data-seg])，只服務沒有環節的那兩個零件。*/
+        svg.dgsa [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgsa [data-part]:not([data-seg]){cursor:default}
+        svg.dgsa [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgsa [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgsa .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgsa .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -220,7 +233,7 @@
       ${card({ part: 'sa_c3', no: 8, side: 'r', order: 8, color: C.cost, ax: 434, ay: 542, title: '代價：前期先付出', sub: ['開發與獲客的錢先花掉，收入要好幾年才收回來。★ 所以本圖不下「訂閱一定比專案好」這種結論。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['柱高、合約長度、十二個月的形狀全部是示意，不是任何一家公司的實際數字；合約期間也不一定是十二個月。'] })}
       ${note({ side: 'r', order: 97, warn: true, title: '★ 看這一格要看的三個東西', lines: ['① 訂閱（或稱經常性）收入的占比有沒有在往上；② 合約負債（遞延收入）有沒有跟著長 —— 那是已經收到錢、還沒認列的未來營收；③ 毛利率在轉型期會先被前期投入壓住，要看它有沒有回來。', '這三句是依公開會計準則與訂閱商業模式的通則寫的，不是任何一家公司的說法。'] })}
-      ${note({ side: 'r', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛 —— 硬掛一個別條鏈的環節，等於宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'r', order: 98, title: '點零件會篩到哪些股票', lines: ['兩種收入模型的每一塊（人力成本、驗收柱、逐月小格、續約階梯、毛利結構、合約負債）與四張公司卡，都掛在「自有軟體與訂閱平台」這個環節上，點下去會篩出這一格的成分股。', '★ 「兩張圖是同一個刻度」那一塊不掛環節 —— 它是看圖的說明，不是一門生意。'] })}
 
       <!-- ================= ① 毛利結構與遞延收入（預設收合） ================= -->
       ${fold('sa2', '① 毛利結構，以及「收到錢」跟「認列營收」不是同一件事',

@@ -17,9 +17,11 @@
        ③ 下面把兩條線疊在一起：訂單數往上、履約成本幾乎平行跟上，所以規模長大不等於獲利長大。
      換句話說，這張圖的主角不是漏斗，是**漏斗右邊那一段**。
 
-   ★ `data-seg`：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡完全沒有 software 這條鏈
-     （機器查的：`grep -c software` ＝ 0），硬掛就是宣稱錯誤的公司對應。
-     代價與 `silicon_wafer.js` 相同：點零件不會篩成分股，所以「誰做的」直接印在畫面上。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**，環節 ＝ `sw_ecommerce`。
+     這張圖剛做出來時 `supply_chain.yaml` 完全沒有 software 這條鏈，所以一個都不敢掛；
+     Andy 2026-09-23 授權補資料之後補上了環節，這裡跟著掛。
+     ⚠ 那個環節在 YAML 裡特別註明：電商**不在前面三格（原廠→MSP→SaaS）的那條鏈上** ——
+       它的上游是商品供應商與物流，不是公有雲原廠。放同一條鏈只是因為 groups.yaml 這樣歸。
 
    ★ 事實與出處
      · 履約為什麼是成本卡點：富邦媒（momo）在高峰期曾租下超過 50 座衛星倉，這類倉租約短、面積小、
@@ -46,7 +48,14 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：software 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了 —— 環節 ＝ `sw_ecommerce`（線上零售與網路通路），
+     成分 ＝ groups.yaml 的 ecommerce 族群（富邦媒 8454、美而快 5321）。
+     ⚠ `ec_unknown`（沒有回答的事）不掛：那是後設說明，不是生意。*/
+  const SEG = 'sw_ecommerce';
+  const NO_SEG = new Set(['ec_unknown']);
+  const segOf = (id) => (NO_SEG.has(id) ? null : SEG);
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   const C = {
     traf: 'var(--dg-cold)', cart: 'var(--dg-cool)', order: 'var(--dg-accent-2d)',
@@ -54,7 +63,8 @@
     warn: 'var(--dg-warn)', mute: 'var(--dg-mute)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話點圖會篩、點卡片不會。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -188,7 +198,7 @@
           '漏斗三段的寬度、下面折線的高度全部是示意，不代表任何一家的實際數字。',
           '各家是自營、平台還是混合：公開資料能看到大方向，但比例看不出來，所以圖上只講兩種模式的差別，不替任何一家歸類。',
           '媒體報導過的資本支出金額（例如自建倉儲投入多少億）本圖不引用：那是單一來源，而且跟「每一單的成本」不是同一件事。',
-          '點零件不會篩成分股：供應鏈資料裡沒有 software 這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+          '通路型與品牌型的差別有多大：這張圖講的履約成本結構主要是通路型的，不代表同環節每一檔都長這樣。'].map((s, i) =>
             T(30, y0 + 202 + i * 18, s, 'sub')).join(''));
   }
 
@@ -196,11 +206,12 @@
     return `<svg class="dg dgm rs dgec" viewBox="0 0 ${CW} 1400" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，描邊與高亮規則要自己給；顏色一律走 --dg-* token。*/
-        svg.dgec [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgec [data-part]{cursor:default}
-        svg.dgec [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgec [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 的「.dg [data-seg] …」，
+           所以這裡的規則縮到 :not([data-seg])，只服務沒有環節的那一個零件。*/
+        svg.dgec [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgec [data-part]:not([data-seg]){cursor:default}
+        svg.dgec [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgec [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgec .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgec .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -228,7 +239,7 @@
       ${card({ part: 'ec_scale', no: 9, side: 'r', order: 9, color: C.warn, ax: GB.x + GB.w + 8, ay: 504 - 0.80 * 78, title: '兩條線幾乎平行', sub: ['訂單數往上，履約成本跟著往上；被攤薄的只有每單分攤到的固定成本（虛線那條）。', '所以看這一格不要只看營收年增率，要看履約那一段有沒有被壓下來。折線為示意。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['漏斗三段的寬度只代表「一段比一段少」，不代表任何轉換率；下面折線的高度也是示意。畫面上不畫任何商標、包裝或產品外觀。'] })}
       ${note({ side: 'r', order: 97, warn: true, title: '★ 這一格跟軟體那三格不一樣', lines: ['資安、雲端、SaaS 賣的是人與授權，多一個客戶不必多搬一次貨；電商每成交一單就要真的把一個箱子送到一個人手上。', '所以同樣放在「軟體與資訊服務」這條鏈底下，這一格的成本結構其實比較接近零售與物流。'] })}
-      ${note({ side: 'r', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛 —— 硬掛一個別條鏈的環節，等於宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'r', order: 98, title: '點零件會篩到哪些股票', lines: ['漏斗、履約三段、規模那條折線、兩種模式與三個槓桿，都掛在「線上零售與網路通路」這個環節上，點下去會篩出富邦媒 8454 與美而快 5321。', '★ 但這兩檔**不是同一種生意**：富邦媒是通路平台、美而快是品牌商。這張圖講的履約成本故事主要是通路型的，成分股清單不要直接當成「兩家都長這樣」。'] })}
 
       <!-- ================= ① GMV 與營收、履約的三個槓桿（預設收合） ================= -->
       ${fold('ec2', '① GMV 不等於營收，以及履約成本的三個槓桿',

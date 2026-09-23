@@ -821,7 +821,18 @@
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec"></div>
-        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dgsechead"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><span class="row" id="dgTools" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。跟著全站主題走，也可以手動切">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dgsechead">
+          <!-- ★ 2026-09-23 第十批 C1（Andy：「幫我將 產品剖析圖、族群總覽、配色拿掉、另外收合圖 移動到上方同一排」）
+               ⚠ 這段註解住在樣板字串裡，所以**不能出現反引號**（會把字串提早結束掉）。
+               三件一起拿掉，各自的功能都沒有消失：
+                 ·「產品剖析圖」那個 h4：上方二層分頁列本來就寫著現在在看哪一張，標題只是把同一句話再講一次。
+                   圖名 #dgTitle 留著（改成獨立的一行小字），它還寫了「原創示意圖、點零件看供應商」這些真的資訊。
+                 ·「← 族群總覽」#dgBack：分頁列第一格就是族群總覽，同一個目的地兩顆鈕。
+                 ·「配色：科技」#dgPal：上一批（W3-10）做好「切全站主題 → 剖析圖配色自動跟著切」之後，
+                   手動那顆就是多餘的；他要的是跟著主題，不是自己按。
+                   自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
+               「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div id="dgBody">
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
@@ -954,15 +965,14 @@
          進到圖裡之後 `#dgQ` 那一行也會把問題寫出來。*/
     function paintDgMode() {
       const on = !!dgId;
-      const body = $('#dgBody', el), tools = $('#dgTools', el), back = $('#dgBack', el);
+      const body = $('#dgBody', el), tools = $('#dgTools', el);
       if (body) body.hidden = !on;
       if (tools) tools.hidden = !on;
       // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
-      /* 「← 族群總覽」＝回到這條鏈的第一個分頁。選單沒了之後它就只有這一個意思，
-         文案也跟著改掉 —— 不要留一顆按了會展開一個不存在的東西的鈕。*/
-      if (back) back.hidden = !on;
+      /* ★ C1：「← 族群總覽」`#dgBack` 已移除 —— 分頁列第一格就是族群總覽，
+         同一個目的地留一顆鈕就好（跟上一批移除「← 返回」同一個理由）。*/
       paintTabs();
       paintDgTitle();
     }
@@ -1049,7 +1059,8 @@
               是「工具列浮在一個會非同步長高的畫布上，量到的高度隨時在變」。
               現在它在一般排版裡，瀏覽器自己會排好，沒有東西需要量、也沒有東西會抖。
               留著它就是留一套對著 `tools.style.top` 寫值、卻再也沒有人讀的死碼。
-         ⚠ `#dgBack`（← 族群總覽）也收進同一排，所以這一列右邊只有一組東西，不會兩組互相擠。
+         ⚠ 2026-09-23 第十批 C1 之後這一排只剩「3D 立體／拖曳／重設視角／動畫／收合圖」五顆，
+           `#dgBack`、`#dgPal` 已移除，所以「收合圖」不會再被擠到第二行。
          ⚠ 收合狀態（`.dgfold`）下工具列仍然在、仍然點得到 —— 它本來就在標題那一列，
            跟 `#dgBody` 的顯示與否無關，這比舊版的「絕對定位 ＋ .dgfold 退回一般排版」更穩。*/
       const paintFold = () => {
@@ -1075,8 +1086,6 @@
       /* 圖別切換晶片現在是**真的連結**（href＝那張圖自己的網址），所以不用再自己
          改 state —— 讓它走 hash 路由，跟圖別選單、跟直接貼網址完全同一條路。
          這樣「換一張圖」才會留下瀏覽紀錄（上一頁回得去）。*/
-      const back = $('#dgBack', el);
-      if (back) back.onclick = () => { location.hash = '#industry/' + ch.id + '/overview'; };
       paintDgMode();
     }
     // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
@@ -1146,7 +1155,7 @@
         const host3 = $('#prod3d', el), note3 = $('#dg3dNote', el);
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note3) note3.hidden = true;
-        // ★ dgPal 不在這裡：配色是 2D 也要能切的（見 wirePal），收掉 3D 不等於收掉配色
+        // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
         ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false; host.innerHTML = ''; host.style.opacity = '1';
         paintDgMode();
@@ -1162,7 +1171,7 @@
         const host3 = $('#prod3d', el), note = $('#dg3dNote', el);
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note) note.hidden = true;
-        // ★ dgPal 不在這裡：配色是 2D 也要能切的（見 wirePal），收掉 3D 不等於收掉配色
+        // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
         ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false;
         host.innerHTML = DS.draw(next);
@@ -1594,16 +1603,85 @@
        舊版面沒有這一層（`#prodDiagram` 底下就是 svg），才退回 host 自己，行為不變。
        ⚠ 另外一定要把 host 自己的 scrollLeft 壓回 0：它的 overflow-x 是 auto，
          不壓回去的話下一次重算（換圖、轉向、ResizeObserver）又會把 grid 推走。*/
+    /* ★ 2026-09-23 修「390px 時整個 `.dggrid` 被推走 178px、左欄說明卡片被切掉」。
+
+       ⚠ 這是既有缺陷（`saas`、`cloud_msp` 早就這樣），不是哪一批改出來的。
+       我照轉來的推測自己重驗過一次，**結論一致**：
+         舊版把 `box`（要捲的那一層）**在外面算一次就固定住**。
+         這一支是在 `externalize()` 把 svg 包進 `.dgcanvas` **之前**跑的，
+         所以那一刻 `svg.closest('.dgcanvas')` 是 null，`box` 就落回 `host` 自己 ——
+         於是「捲到正中央」捲的是整個 `#prodDiagram`（連 `.dghead` 與左欄卡片一起推走），
+         而且 `if (box !== host) host.scrollLeft = 0` 那條保險因為 `box === host` 永遠不會執行。
+         連 `requestAnimationFrame` 那一次補算也救不回來 —— 它用的是同一個被鎖死的 `box`。
+       為什麼只有 `scene: null` 的圖看得到：有 3D 場景的圖之後還會再跑一次 `applyDgNative()`，
+         那一次 `.dgcanvas` 已經存在，等於順手被修掉了。純 2D 的圖沒有第二次機會。
+
+       修法兩件事（跟上面那個「410～659 切右邊」是同一支函式、同一類問題，所以合併處理）：
+         1. **`box` 每次都重新找**，不要在外面鎖死。
+         2. **同步那一次只做 fitCanvas，不捲**。捲動一律等到 rAF 之後 ——
+            那時候 `externalize()` 已經跑完，`.dgcanvas` 找得到，捲的才是「圖」而不是「整個版面」。
+            差一幀，肉眼看不出來；捲錯元素則是整片內容被切掉。*/
     if (w && svg) {
-      const box = (svg.closest && svg.closest('.dgcanvas')) || host;
-      const center = () => {
+      const boxOf = () => (svg.closest && svg.closest('.dgcanvas')) || host;
+      const settle = () => {
+        const box = boxOf();
+        fitCanvas(svg, box, w);
         const cw = box.clientWidth;
+        // 窄到連 0.62 都不到（手機）→ 先把圖的正中央帶進畫面，要看左右再自己滑
         if (cw && cw < w * 0.62) box.scrollLeft = Math.max(0, (w - cw) / 2);
         if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
+        return box;
       };
-      center();
-      requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
+      fitCanvas(svg, boxOf(), w);       // 同步這一次只縮畫布，不捲（`.dgcanvas` 可能還沒建出來）
+      requestAnimationFrame(() => {
+        const box = settle();
+        /* 視窗寬度在 410～659 這一段變動時要重算（Andy 常常把瀏覽器縮成半邊）。
+           掛在 rAF 之後才掛得到真正的 `.dgcanvas`；掛在 host 上的話寬度永遠是欄寬，量不到重點。*/
+        if (box._dgRO) { try { box._dgRO.disconnect(); } catch (e) { /* 忽略 */ } }
+        try { box._dgRO = new ResizeObserver(() => settle()); box._dgRO.observe(box); }
+        catch (e) { /* 舊瀏覽器沒有 RO 就算了，換圖／換分頁時仍會重算 */ }
+      });
     }
+  }
+  /* ★ 2026-09-23：修「容器寬 410～659px 時剖析圖右半邊被切掉」。
+
+     怎麼發生的：`externalize()`（diagrams.js）把 svg 的 `width` 與 `min-width` 釘成 viewBox 寬
+     （這一批 v2 圖是 660），`.dgcanvas` 是 `overflow-x:auto`；
+     而上面那段「捲到正中央」的止血只在 `clientWidth < native × 0.62`（＝409px）才啟動。
+     **410～659 這一整段兩邊都沒接到**：不縮、不置中、scrollLeft 是 0，
+     畫面上就是主剖面的右半邊不見了、右側章節列被切在框緣。
+     實測（ai_adv_packaging，事件抽屜開著）：視窗 980px → 畫布欄寬 486px、被切掉 174px；
+     1050px → 切 104px；1150px → 切 4px。23 張 v2 圖全中，因為這是框架層的行為。
+
+     為什麼不是「直接把 svg 縮到欄寬」：縮了字會跟著等比例變小，
+     12px 是硬下限（DECISIONS #226，Andy 抱怨過三次「文字太小」），縮到 0.74 倍就破線。
+     所以**縮畫布的同時把 `--dg-fs-*` 反向放大**：畫布縮 k 倍、字級 token 除以 k，
+     兩者相乘之後畫面上的實際字級**一點都沒變**。
+
+     只動 0.62～1.0 這一段（就是那道裂縫本身）：
+       · k ≥ 1（1440px、以及任何塞得下的欄寬）→ 一行都不動，維持原尺寸。
+       · k < 0.62（390px 手機）→ 交給既有的「捲到正中央」，行為完全不變。
+     這樣「修這件事最大的風險是把 1440 與 390 弄壞」在結構上就不可能發生。*/
+  const DG_FS_VARS = ['--dg-fs-ttl', '--dg-fs-hd', '--dg-fs-lbl', '--dg-fs-min'];
+  function fitCanvas(svg, box, w) {
+    if (!svg || !box || !w) return;
+    const cw = box.clientWidth;
+    if (!cw) return;
+    const k = cw / w;
+    if (k >= 0.995 || k < 0.62) {          // 塞得下，或窄到交給置中止血 —— 兩種都退回原尺寸
+      svg.style.width = w + 'px'; svg.style.minWidth = w + 'px';
+      DG_FS_VARS.forEach(v => svg.style.removeProperty(v));
+      return;
+    }
+    /* 字級的基準值要在**覆寫之前**從 :root 讀（科技 12px 起、閱讀 13px 起，
+       切主題時會換一組）—— 讀 svg 自己的話第二次就會讀到上一輪放大過的值，愈放愈大。*/
+    const rs = getComputedStyle(document.documentElement);
+    DG_FS_VARS.forEach(v => {
+      const base = parseFloat(rs.getPropertyValue(v));
+      if (base) svg.style.setProperty(v, (base / k).toFixed(2) + 'px');
+    });
+    svg.style.minWidth = '0';
+    svg.style.width = Math.floor(cw) + 'px';
   }
   // 讓剖析圖每個零件帶上環節色（CSS 用 var(--c)）
   function paintDiagram(root) {
@@ -1756,8 +1834,16 @@
     if (palBtnPaint) palBtnPaint();
   });
 
-  /* 配色鈕。跟 3D 完全解耦：有沒有 3D 都能用，切了之後如果 3D 正開著就順手同步過去。*/
+  /* 配色。★ 2026-09-23 第十批 C1：手動切換鈕 `#dgPal` 已經整顆移除
+     （Andy：「配色拿掉」）—— 上一批做好「切全站主題 → 剖析圖配色自動跟著切」之後，
+     手動那顆就是多餘的。**自動那條路一行都沒動**，這支仍然要被呼叫，理由是它負責
+     把 `palView` 接起來：`tw:theme` 事件要靠它才拿得到 3D 的 view，才叫得到 `view.setPal()`。
+     所以 `palView = getView` 移到「找不到鈕就 return」**之前** ——
+     鈕沒了，但 3D 正開著時切主題仍然要跟著換材質。
+     ⚠ 下面那段鈕的程式碼刻意留著：`#dgPal` 是這一頁拿掉，
+       將來若有別的地方要一顆手動鈕，掛上同一個 id 就能用，不必重寫一次配色邏輯。*/
   function wirePal(el, getView) {
+    palView = getView;
     const plb = $('#dgPal', el); if (!plb) return;
     const paint = () => {
       const cur = palPref();
@@ -1766,7 +1852,7 @@
       plb.title = '換一種模式（2D 與 3D 共用）：科技（深底）／閱讀（紙底）。'
         + '跟著全站主題走：深色→科技、淺色→閱讀；手動切過的選擇會保留到下一次切主題為止';
     };
-    palBtnPaint = paint; palView = getView;
+    palBtnPaint = paint;
     plb.hidden = false;
     paint();
     plb.onclick = () => {
@@ -1785,7 +1871,7 @@
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
     const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
-    const drg = $('#dgDrag', el);     // 配色鈕 #dgPal 已經不歸 wire3D 管（見 wirePal）
+    const drg = $('#dgDrag', el);     // 配色已經不是一顆鈕了（跟著全站主題走，見 wirePal）
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
     const R = window.Rack3D;
@@ -1802,7 +1888,7 @@
       btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
-      svg.hidden = on; host.hidden = !on;     // dgPal 不跟著 3D 開關（2D 也要能換配色）
+      svg.hidden = on; host.hidden = !on;     // 配色不跟著 3D 開關（2D 也吃同一組 --dg-*）
       /* 切換 2D／3D 之後重套一次「原尺寸」規則：native 的橫向捲動只給 2D，
          3D 一律不捲（見 applyDgNative 的註解）。不重套的話切回 2D 會少掉捲動、
          切到 3D 又會留著上一輪的 overflow 設定。*/
@@ -2282,6 +2368,8 @@
     const animOn = () => anim === 'on' && !reduceMo;
     let scale = 1, tx = 0, ty = 0, LW = 0, LH = 0;
     let selKind = null, selId = null, selCode = null, hoverId = null, centerId = null;
+    let tipGid = null;        // 現在被點開、正在顯示個股下拉清單的那一顆族群（C5：點擊才開）
+    let tagBudget = 0;        // 整張圖總共掛幾個個股標籤（C5 的收斂策略，見 paintLabels）
     const view = { hop: 1, rel: { supply: true, peer: true, equip: true } };
     let query = '';
 
@@ -2336,7 +2424,12 @@
       // 節點總面積不准超過畫布的三分之一，不然 390px 上會糊成一片
       let area = 0;
       nodes.forEach(n => { const R = CG_RMIN + (CG_RMAX - CG_RMIN) * n.k; area += Math.PI * Math.pow(R + 26, 2); });
-      const k = Math.min(1, Math.sqrt(cw * chh * 0.34 / Math.max(1, area))) * SK;
+      /* ★ C5：掛了個股標籤之後，球旁邊要留得下那一排字 —— 所以**球本身先讓一點**：
+         節點總面積上限從畫布的 34% 降到 26%。這是「先犧牲節點大小，最後才犧牲資訊量」
+         那條順序的第一步，而且面積比例（半徑開根號那條硬規則）一點都沒有被破壞：
+         每一顆都乘同一個數，排序與相對大小完全不變。*/
+      const cap = tagBudget ? 0.26 : 0.34;
+      const k = Math.min(1, Math.sqrt(cw * chh * cap / Math.max(1, area))) * SK;
       nodes.forEach(n => {
         n.R = Math.max(4, (CG_RMIN + (CG_RMAX - CG_RMIN) * n.k) * k);
         // 泡泡的呼吸浮動：每顆週期不一樣才不會變成整齊劃一的「一起跳」
@@ -2360,10 +2453,73 @@
         });
       });
     }
-    /* ---- 族群名（HTML，才有省略號與精準字級）。先量寬度，佈局的碰撞框才含得進去 */
+    /* ---- 族群名 ＋ 標籤式個股（HTML，才有省略號與精準字級）。先量寬度，佈局的碰撞框才含得進去。
+
+       ★ 2026-09-23 第十批 C5（Andy：「退版回到之前的格式…Default 顯示族群相連標籤個股，
+         點擊後才會跳出下拉清單」）：**Default 就要看得到個股的名字**。
+         改之前族群旁邊只有一圈匿名小圓點，要把滑鼠移上去才知道那幾顆是誰 ——
+         那等於逼使用者先做一次互動才拿得到最基本的資訊，而且手機沒有 hover。
+         現在族群名底下直接掛一排個股標籤，點標籤就直接展開那一檔（不跳頁）。
+
+       ⚠ 小圓點 `.cgdot` **沒有拿掉**：它回答的是另一個問題「這個族群有幾檔」
+         （一檔一顆、不准用「+N」省略，DECISIONS #248）。標籤回答的是「是誰」。
+         兩件事不衝突，拿掉任何一邊都會少回答一個問題。
+
+       ---- 標籤的收斂策略（為什麼不是全部列出來）----
+       一顆族群平均 6～7 檔、最多 20 幾檔，全部列出來的話卡片會長到 300px 高，
+       24 顆族群塞不進 720px 的框（CG_HMAX，Andy 抱怨過「上下框度太長」），
+       力導向再怎麼排都會讓卡片互相重疊 —— **字疊字比少看幾個名字嚴重得多**
+       （那是 `_preview.py` 會當場判紅的那一種錯）。所以分三層收：
+         1. **全域預算，依占比分配**：整張圖總共掛 `tagBudget` 個標籤，
+            每顆族群分到 `round(預算 × 它的占比 ÷ 總占比)`，夾在 1～5 之間。
+            大族群多掛幾檔、小族群至少掛一檔 —— 不會有哪一顆是完全沒有名字的。
+            每顆族群列的是**成交值前 N 大**（`n.members` 在 cgBuild 已排好序）。
+         2. **排不下就退一級**：relayout 算完之後如果還有卡片重疊，
+            預算從 40 → 26 → 14 → 0 一級一級砍再重算（手機 20 → 12 → 6 → 0）。
+            0 ＝ 退回「只有族群名」，那是最後的安全網，保證任何寬度都不會字疊字。
+         3. 沒列到的不另外開膠囊：檔數寫在族群名後面（「晶圓代工 9 檔 ▾」），
+            點族群名（或那顆球）就跳出完整的下拉清單。
+            一顆獨立的「還有 M 檔」膠囊在 150px 的卡片裡會自己佔掉整整一行，
+            24 顆族群＝憑空多 24 行，力導向就再也排不開 —— 實測就是它把標籤全部擠掉的。*/
+    /* 依占比把 `tagBudget` 分給每顆族群（策略第 1 層）。只寫 `n.tagN`，不碰 DOM。
+
+       ★ 第二個上限：**標籤不准把碰撞框撐高**（這是實測出來的關鍵）。
+         卡片是垂直排的（族群名一行、標籤往下折），而節點的碰撞框高度是
+         `max(球的外圈直徑, 卡片高度)` —— 只要卡片高度還在球的直徑以內，
+         掛標籤對佈局就是**完全免費**的；一旦超過，24 顆族群就再也排不開。
+         實測（半導體鏈 24 顆）：不設這個上限時 1440px 的標籤重疊從 0 組變成 4 組、
+         390px 從 6 組變成 18 組；設了之後重疊不增加。
+         所以大球（占比大的族群）掛得多、小球只掛一兩檔 ——
+         剛好也是「重要的族群多寫幾檔」這個我們本來就想要的排序。
+         一行放得下兩顆標籤（卡片 150px、標籤約 58px），所以
+         可用行數 × 2 就是這顆球掛得起的標籤數。*/
+    function tagPlan() {
+      const tot = nodes.reduce((a, n) => a + Math.max(n.share || 0, 0.01), 0) || 1;
+      const NAME_H = 22, ROW_H = 18;      // 族群名那一行、標籤每一行的高度（量出來的）
+      nodes.forEach(n => {
+        if (!tagBudget) { n.tagN = 0; return; }
+        const q = tagBudget * Math.max(n.share || 0, 0.01) / tot;
+        const byShare = Math.max(1, Math.min(5, Math.round(q)));
+        n.tagN = Math.min(n.members.length, byShare, 3);
+      });
+    }
     function paintLabels() {
-      labs.innerHTML = nodes.map(n => '<span class="cglab" data-gid="' + n.id + '" style="--c:'
-        + n.color + '">' + A.fmt.esc(n.name) + '</span>').join('');
+      labs.innerHTML = nodes.map(n => {
+        const show = n.members.slice(0, n.tagN || 0);
+        /* 標籤不帶漲跌顏色：這裡要回答的是「這個族群裡有誰」，
+           顏色留給族群本身的分類色與右側資訊欄的漲跌數字，不要在同一塊塞兩套語意。*/
+        const tags = show.map(m => '<span class="cgtag" data-code="' + m.code + '" data-gid="' + n.id
+          + '" title="' + A.fmt.esc(m.name + ' ' + m.code + '　' + A.fmt.pct(m.chg_pct) + '　點一下在右側展開它的產業關係')
+          + '">' + A.fmt.esc(m.name) + '</span>').join('');
+        /* 「共 N 檔 ▾」跟族群名**擠在同一行**，不另外開一顆「還有 M 檔」的膠囊。
+           這是排得下標籤的關鍵：一顆膠囊自己就要佔掉整整一行（卡片寬度只有 150px），
+           24 顆族群等於憑空多出 24 行，力導向就再也排不開 —— 實測就是這一行把標籤全部擠掉的。
+           資訊一個字都沒少：檔數照寫，點族群名（或球）一樣跳出完整的下拉清單。*/
+        return '<span class="cglab" data-gid="' + n.id + '" style="--c:' + n.color + '">'
+          + '<b class="cgnm">' + A.fmt.esc(n.name)
+          + '<em class="cgcnt">' + n.members.length + ' 檔 ▾</em></b>'
+          + (tags ? '<span class="cgtags">' + tags + '</span>' : '') + '</span>';
+      }).join('');
       nodes.forEach(n => {
         const el = labs.querySelector('.cglab[data-gid="' + n.id + '"]');
         n.lw = el ? el.offsetWidth : 60;
@@ -2438,14 +2594,61 @@
          第二版是「一直把框拉高」，配上第四版跟市占走的半徑（最大的球大了快一倍）
          會把框撐到 866px —— 那正是 Andy 抱怨過的「上下框度太長」。
          縮節點不會破壞面積比例：每一顆都乘同一個數，排序與相對大小完全不變。*/
-      SK = 1;
-      let need = layoutOnce(keep);
-      for (let pass = 0; pass < 2 && cgOverlaps(nodes) > 0 && SK > 0.74; pass++) {
-        SK = Math.max(0.72, SK * 0.88);
+      /* ★ C5：標籤預算分幾級試，**挑「字疊到字」最少的那一級；一樣少就選標籤多的那一級**
+         （收斂策略第 2 層）。
+         ⚠ 第一版寫成「只要還有重疊就一路砍到 0」，結果 24 顆族群的半導體鏈
+           在 800px 直接砍到「一個個股名都不掛」—— 而砍到 0 之後**照樣有重疊**，
+           也就是說重疊根本不是標籤造成的（節點多、框又不准長高，本來就擠）。
+           那是拿使用者真正要的資訊去換一個換不到的東西。
+         ⚠ 第二版拿「座標模型」去算重疊（cgLabOverlaps），量出來跟畫面上的**對不起來**
+           （1440px 模型說 1 組、畫面實際 4 組）。差在哪追了很久沒追出來，
+           照「追根因最多 10 分鐘」改走不依賴模型的做法：**直接量畫面上的 `.cglab` 外框**。
+           那也正好是 `_preview.py` 判紅用的同一份東西 —— 量它就不會再有「模型說沒事、畫面在疊」。
+         代價：每一級都要真的畫一次、量一次（3 級 ≈ 3 次 reflow，實測 20ms 以內），
+         只在 relayout 時發生（進頁面、改視窗寬、換風格），拖曳與點選都不會走到。*/
+      /* 級距切細一點（桌機 6 級）：級距越細，越有機會找到「掛得上標籤而且完全不重疊」的那一級。
+         實測 390px 是唯一撐不住的寬度 —— 24 顆族群在 390 寬的畫布上，
+         **一個標籤都不掛**本來就已經有 6 組族群名互相疊（既有狀態，不是這批造成的），
+         掛了會變成 21 組。所以最後一級保留 0：手機上退回只有族群名，
+         個股名改從「點族群 → 下拉清單」拿（那條路在手機上本來就比標籤好按）。*/
+      const BUDGETS = mobile() ? [16, 10, 5, 0] : [40, 28, 18, 10, 5, 0];
+      let need = 0, best = null;
+      for (let bi = 0; bi < BUDGETS.length; bi++) {
+        tagBudget = BUDGETS[bi]; tagPlan();
+        SK = 1;
         need = layoutOnce(keep);
+        for (let pass = 0; pass < 2 && cgOverlaps(nodes) > 0 && SK > 0.74; pass++) {
+          SK = Math.max(0.72, SK * 0.88);
+          need = layoutOnce(keep);
+        }
+        applyHeight(need); fill(); paint(); fit();
+        const ov = domLabOverlaps();
+        if (!best || ov < best.ov) best = { bi: bi, ov: ov, sk: SK, need: need };
+        if (ov === 0) break;
       }
+      // 勝出的不是最後試的那一級 → 整條重跑一次把它套回去（佈局狀態是共用的，不重跑會停在最後一級）
+      if (best && BUDGETS[best.bi] !== tagBudget) {
+        tagBudget = BUDGETS[best.bi]; tagPlan(); SK = best.sk;
+        need = layoutOnce(keep);
+        applyHeight(need); fill(); paint(); fit();
+      }
+    }
+    function applyHeight(need) {
       if (need > host.clientHeight + 8) host.style.height = Math.min(CG_HMAX, need) + 'px';
-      fill(); paint(); fit();
+    }
+    /* 畫面上真的有幾組族群卡片疊在一起。量的是 `.cglab` 的實際外框，
+       跟 `_preview.py` 的文字重疊掃描看的是同一份東西 —— 所以這裡說 0，那邊就不會紅。
+       容差 2px：描邊、字距這種純粹擦邊的不算（跟 _preview 同一個口徑）。*/
+    function domLabOverlaps() {
+      const rs = [];
+      $$('.cglab', labs).forEach(e => { const r = e.getBoundingClientRect();
+        if (r.width > 2 && r.height > 2) rs.push(r); });
+      let c = 0;
+      for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+        const a = rs[i], b = rs[j];
+        if (a.right - 2 > b.left && b.right - 2 > a.left && a.bottom - 2 > b.top && b.bottom - 2 > a.top) c++;
+      }
+      return c;
     }
     /* 算一輪佈局，回傳「這樣排下來框要多高」。不改框高、不畫 —— 那是 relayout 的事。*/
     function layoutOnce(keep) {
@@ -2595,6 +2798,8 @@
         n.el.classList.toggle('sel', selId === n.id && selKind === 'group');
         n.el.classList.toggle('dim', !matches(n));
       } });
+      // C5：被選起來的那一檔，標籤本身也要亮（使用者是從標籤點進去的，回頭要找得到自己點了誰）
+      $$('.cgtag', labs).forEach(t => t.classList.toggle('sel', !!selCode && t.dataset.code === selCode));
       paintLegend();
     }
     function cgEdgeTip(l, a, b) {
@@ -2630,13 +2835,24 @@
           + ',' + (ty * (dp - 1) / scale).toFixed(1) + ')');
       });
     }
+    /* ★ 2026-09-23 第十批 C5-2／C5-3（Andy：「需要將關聯圖置中」）。
+       改之前這裡一律 `scale = 1`：外接盒比可用區大就被框裁掉（下面一排節點看不到），
+       比可用區小就留一大片空白 —— 兩種都不是「置中」。
+       現在量出來再決定比例，而且**只准縮、不准放大**：
+         · 放大交給 `fill()`（它拉的是節點之間的距離，字不會跟著糊）；
+         · 縮小的下限釘在 0.92 —— 圖上最小的字是個股標籤 12px，12 × 0.92 ＝ 11.04px，
+           剛好守得住「手機不得小於 11px」那條線，再縮就破線了。
+       ⚠ 位移要乘上 scale：transform 是 `translate(tx,ty) scale(s)` 且原點在左上角，
+         螢幕座標＝座標 × scale ＋ 位移。舊版因為 scale 恆為 1 才看不出這個 bug，
+         一旦開始縮放，不乘的話整張圖會偏到左上角去。*/
     function fit() {
       const cw = host.clientWidth || 800, chh = host.clientHeight || 520;
       const bb = bbox();
-      scale = 1;
+      const aw = Math.max(80, cw - IN.l - IN.r), ah = Math.max(80, chh - IN.t - IN.b);
+      scale = Math.max(0.92, Math.min(1, Math.min(aw / Math.max(1, bb.w), ah / Math.max(1, bb.h))));
       // 對的是「中間那一塊」的中心，不是整個畫布的中心（上面被標題吃掉一截、下面被圖例吃掉一截）
-      tx = IN.l + (cw - IN.l - IN.r) / 2 - (bb.x + bb.w / 2);
-      ty = IN.t + (chh - IN.t - IN.b) / 2 - (bb.y + bb.h / 2);
+      tx = IN.l + aw / 2 - (bb.x + bb.w / 2) * scale;
+      ty = IN.t + ah / 2 - (bb.y + bb.h / 2) * scale;
       apply(); placeTip();
     }
     function zoomBy(k) {
@@ -2646,26 +2862,46 @@
       scale = ns; apply(); placeTip();
     }
 
-    /* ---- hover 族群大點才浮出個股資訊（Andy：hover 是唯一的展開條件） */
-    function showTip(gid) {
-      const n = byId[gid]; if (!n) { tip.hidden = true; return; }
-      hoverId = gid;
+    /* ---- 個股下拉清單。★ 2026-09-23 第十批 C5（Andy：「點擊後才會跳出下拉清單」）：
+       展開條件從 **hover 改成點擊**。
+       為什麼不是「hover 也開、點也開」：hover 展開的前提是「預設看不到個股是誰」，
+       而 C5 已經把個股名用標籤掛在族群旁邊了 —— 再留一個滑過就彈出來的大卡片，
+       只會在使用者只是想把滑鼠移過去點別的東西時擋路（而且手機根本沒有 hover）。
+       清單裡每一列都點得到（`.cgtip.open{pointer-events:auto}`），點下去＝展開右側那一檔，
+       這是「能點的東西就要能點到底」。
+       ⚠ 舊註解說 `.cgtip` 不准吃滑鼠，理由是「hover 開的小卡會擋住它自己說明的那顆節點」。
+         那個前提沒有了：現在它是**點出來的**、位置固定在框的另一側（見 placeTip），
+         而且有 × 可以關、點圖上空白處也會關。*/
+    function openList(gid) {
+      const n = byId[gid]; if (!n) { closeList(); return; }
+      tipGid = gid;
       tip.hidden = false;
-      tip.innerHTML = '<div class="th"><i style="--c:' + n.color + '"></i><b>' + A.fmt.esc(n.name) + '</b>'
+      tip.classList.add('open');
+      tip.innerHTML = '<button type="button" class="tx" id="cgTipX" title="關閉清單">×</button>'
+        + '<div class="th"><i style="--c:' + n.color + '"></i><b>' + A.fmt.esc(n.name) + '</b>'
         + '<span class="' + A.fmt.cls(n.chg) + '">' + A.fmt.pct(n.chg) + '</span>'
         + '<span class="muted">占 ' + A.fmt.n(n.share, 1) + '%</span></div>'
-        + '<div class="tl">' + n.members.map(m => '<span class="ti" data-code="' + m.code + '">'
+        + '<div class="tl">' + n.members.map(m => '<span class="ti' + (selCode === m.code ? ' sel' : '')
+            + '" data-code="' + m.code + '" data-gid="' + n.id + '">'
             + '<span class="nm">' + A.fmt.esc(m.name) + '</span><span class="code">' + m.code + '</span>'
             + '<em class="' + A.fmt.cls(m.chg_pct) + '">' + A.fmt.pct(m.chg_pct) + '</em>'
             + '<em class="sh">' + (m.turnover && n.g.turnover ? A.fmt.n(m.turnover / n.g.turnover * 100, 1) + '%' : '—') + '</em>'
             + '</span>').join('') + '</div>'
-        + '<div class="tf">點小點看個股詳情　占比＝占這個族群的成交值</div>';
-      placeTip(); paint();
+        + '<div class="tf">點任一檔 → 右側展開它的產業關係　占比＝占這個族群的成交值</div>';
+      placeTip();
+      const x = $('#cgTipX', tip);
+      if (x) x.onclick = () => { closeList(); };
     }
-    function hideTip() { if (tip.hidden) return; tip.hidden = true; hoverId = null; paint(); }
+    function closeList() {
+      if (tip.hidden) return;
+      tip.hidden = true; tip.classList.remove('open'); tipGid = null;
+    }
+    /* hover 只負責「小點往外散開一點」那個回饋，不再開清單（清單改成點出來的）。*/
+    function setHover(gid) { if (hoverId === gid) return; hoverId = gid; paint(); }
+    function clearHover() { if (!hoverId) return; hoverId = null; paint(); }
     function placeTip() {
-      if (tip.hidden || !hoverId) return;
-      const n = byId[hoverId]; if (!n) return;
+      if (tip.hidden || !tipGid) return;
+      const n = byId[tipGid]; if (!n) return;
       const cw = host.clientWidth, chh = host.clientHeight;
       const sx = (n.x - n.ox) * scale + tx, sy = n.y * scale + ty;
       const tw = tip.offsetWidth || 230, th = tip.offsetHeight || 140;
@@ -2699,7 +2935,7 @@
     }
     function wirePanel() {
       const x = $('#cgPanelX', panel);
-      if (x) x.onclick = () => { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onGroup) ctx.onGroup(null); };
+      if (x) x.onclick = () => { selKind = selId = selCode = null; closeList(); paint(); paintPanel(); if (ctx.onGroup) ctx.onGroup(null); };
       $$('#cgRange button', panel).forEach(b => b.onclick = () => {
         view.hop = +b.dataset.hop; paint(); paintPanel();
       });
@@ -2723,25 +2959,38 @@
     const swallowOn = () => (Date.now() - swallowAt) < 400;
     const gidAt = (t) => { const g = t.closest ? t.closest('.cgnode') : null; return g ? g.dataset.gid : null; };
     const dotAt = (t) => (t && t.classList && t.classList.contains('cgdot')) ? t : null;
+    /* 點族群 ＝ 選起來 ＋ 跳出它的完整個股下拉清單（C5-2）。再點一次同一顆＝取消，清單收掉。*/
     function pickGroup(gid) {
-      if (selKind === 'group' && selId === gid) { selKind = selId = selCode = null; if (ctx.onGroup) ctx.onGroup(null); }
-      else { selKind = 'group'; selId = gid; selCode = null; if (ctx.onGroup) ctx.onGroup(gid); }
+      if (selKind === 'group' && selId === gid) { selKind = selId = selCode = null; closeList(); if (ctx.onGroup) ctx.onGroup(null); }
+      else { selKind = 'group'; selId = gid; selCode = null; openList(gid); if (ctx.onGroup) ctx.onGroup(gid); }
       paint(); paintPanel();
     }
+    /* 點個股（標籤、小圓點、下拉清單裡的一列，三個入口走同一支）→ 右側資訊欄（C5-4，既有行為）。
+       清單如果開著而且就是這一檔所屬的族群，**留著不收** —— 使用者通常會一檔一檔比，
+       每點一下就把清單關掉等於逼他重新點開。換成別的族群才收。*/
     function pickStock(gid, code) {
       selKind = 'stock'; selId = gid; selCode = code;
+      if (tipGid && tipGid !== gid) closeList();
+      else if (tipGid === gid) openList(gid);      // 重畫一次，讓清單裡被選起來的那一列跟著標記
       paint(); paintPanel();
       if (ctx.onStock) ctx.onStock(code, gid);
     }
     host.addEventListener('click', (e) => {
       if (swallowOn()) { swallowAt = 0; e.preventDefault(); e.stopPropagation(); return; }
       if (Date.now() - lastPointerAt < 400) return;      // 滑鼠那一路已經處理過了
+      /* 下拉清單裡的一列（C5）。要排在下面那個「疊在圖上的 UI 一律不處理」之前，
+         不然點清單會被當成點浮層而整個被忽略。*/
+      const ti0 = e.target.closest ? e.target.closest('.cgtip .ti[data-code]') : null;
+      if (ti0) { pickStock(ti0.dataset.gid || tipGid, ti0.dataset.code); return; }
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
+      // 個股標籤（C5）。標籤住在 `.cglab` 裡面，所以要比「點到族群」那一路先判。
+      const tag0 = e.target.closest ? e.target.closest('.cgtag[data-code]') : null;
+      if (tag0) { pickStock(tag0.dataset.gid, tag0.dataset.code); return; }
       const dot = dotAt(e.target);
       if (dot) { pickStock(dot.dataset.gid, dot.dataset.code); return; }
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
       if (gid) { pickGroup(gid); return; }
-      if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
+      if (selKind || tipGid) { selKind = selId = selCode = null; closeList(); paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     }, true);
     host.addEventListener('pointerdown', (e) => {
       /* ★ 新手勢開始，先把上一次拖曳留下的「吞掉下一個 click」清掉。
@@ -2751,7 +3000,11 @@
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
       const dot0 = dotAt(e.target);
+      /* 個股標籤住在 `.cglab` 裡面，上面那一行會把它一併認成「點到族群」。
+         所以要另外記下來，pointerup 才分得出「他點的是這一檔」還是「他點的是整個族群」。*/
+      const tg0 = e.target.closest ? e.target.closest('.cgtag[data-code]') : null;
       drag = { gid: gid, code: dot0 ? dot0.dataset.code : null, dotGid: dot0 ? dot0.dataset.gid : null,
+               tagCode: tg0 ? tg0.dataset.code : null, tagGid: tg0 ? tg0.dataset.gid : null,
                x0: e.clientX, y0: e.clientY, tx0: tx, ty0: ty, moved: false };
       if (!gid) host.classList.add('panning');
       try { host.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
@@ -2772,12 +3025,19 @@
       const d = drag; drag = null; host.classList.remove('panning');
       lastPointerAt = Date.now();
       try { host.releasePointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
+      /* ⚠ 這一段一定要排在 `if (!d) return` **之前**：pointerdown 對浮層（含下拉清單）
+         是直接 return 的，所以 `drag` 是 null；而上面已經把 `lastPointerAt` 蓋掉了，
+         後面那個 click 監聽會因為「滑鼠那一路已經處理過」而整個跳過 ——
+         不在這裡處理的話，清單裡的個股就變成按了沒反應。*/
+      const ti1 = e.target.closest ? e.target.closest('.cgtip .ti[data-code]') : null;
+      if (ti1) { pickStock(ti1.dataset.gid || tipGid, ti1.dataset.code); return; }
       if (!d) return;
       if (d.moved) { swallowAt = Date.now(); return; }
+      if (d.tagCode) { pickStock(d.tagGid, d.tagCode); return; }     // 個股標籤（C5-1）
       if (d.code) { pickStock(d.dotGid || d.gid, d.code); return; }
       if (d.gid) { pickGroup(d.gid); return; }
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
-      if (selKind) { selKind = selId = selCode = null; paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
+      if (selKind || tipGid) { selKind = selId = selCode = null; closeList(); paint(); paintPanel(); if (ctx.onBg) ctx.onBg(); }
     });
     host.addEventListener('wheel', (e) => {
       e.preventDefault();
@@ -2792,16 +3052,18 @@
     host.addEventListener('mouseover', (e) => {
       const gid = gidAt(e.target) || (dotAt(e.target) ? dotAt(e.target).dataset.gid : null)
         || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
-      if (gid && gid !== hoverId) showTip(gid);
+      if (gid) setHover(gid);
     });
     host.addEventListener('mouseout', (e) => {
-      if (!e.relatedTarget || !host.contains(e.relatedTarget)) { hideTip(); return; }
+      if (!e.relatedTarget || !host.contains(e.relatedTarget)) { clearHover(); return; }
       if (e.relatedTarget.closest && e.relatedTarget.closest('.cgtip')) return;
       const gid = gidAt(e.relatedTarget) || (dotAt(e.relatedTarget) ? dotAt(e.relatedTarget).dataset.gid : null)
         || (e.relatedTarget.closest('.cglab') ? e.relatedTarget.closest('.cglab').dataset.gid : null);
-      if (!gid) hideTip();
+      if (!gid) clearHover();
     });
-    // 小卡不吃滑鼠（見 index.html 的 .cgtip 註解），所以不掛點擊 —— 要點個股請點圖上的小點。
+    /* C5：下拉清單改成點出來的之後就**吃滑鼠**了，點擊在上面的 pointerup／click 兩路都有接。
+       圖上進得去個股的入口現在有三個，走的都是同一支 pickStock：
+         族群旁邊的標籤 `.cgtag` ／ 小圓點 `.cgdot` ／ 下拉清單裡的一列 `.cgtip .ti`。*/
 
     /* ---- 疊在圖上的那幾顆控制項 */
     const sx = $('#cgScopeX', host);
@@ -2824,6 +3086,7 @@
       centerId = null; view.hop = 1; CG_RELS.forEach(r => (view.rel[r] = true));
       query = ''; const sf = $('#cggSearch', host); if (sf) sf.value = '';
       selKind = selId = selCode = null;
+      closeList();
       relayout(false); paintPanel();
     };
     const zi = $('#cgZoomIn', host), zo = $('#cgZoomOut', host), fb = $('#cgFitBtn', host);

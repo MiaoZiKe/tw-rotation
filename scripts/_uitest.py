@@ -339,6 +339,45 @@ def count(pg, sel: str) -> int:
     return pg.evaluate(f"() => document.querySelectorAll({sel!r}).length")
 
 
+# ===================================================================== 剖析圖配色（C1 之後）
+# ★ 2026-09-23 第十批 C1（Andy：「配色拿掉」）：手動切配色的那顆鈕 `#dgPal` **整顆移除**。
+#   配色從此**只跟著全站主題走**：深色主題 → tech（科技／深底）、淺色主題 → read（閱讀／紙底），
+#   由 industry.js 的 `themePal()` ＋ `tw:theme` 事件負責。
+#   所以所有「換一次配色」的驗收一律改走這兩支：按主題鈕、然後量**畫布上真正的顏色**。
+#   ⚠ 不准只驗 `dataset.dgpal` 那串字 —— 那是「有設定」不是「畫面變了」。
+DG_PAL_PROBE = """() => {
+  const rs = getComputedStyle(document.documentElement);
+  const wrap = document.querySelector('#prodDiagram');
+  const tok = (n) => rs.getPropertyValue(n).trim();
+  return { pal: document.documentElement.dataset.dgpal || '',
+           theme: document.documentElement.getAttribute('data-theme') || 'dark',
+           gone: !document.getElementById('dgPal'),           // C1：這顆鈕不准再出現在 DOM 裡
+           bg: tok('--dg-bg'), ink: tok('--dg-ink'), accent: tok('--dg-accent-2d'),
+           fsMin: tok('--dg-fs-min'),
+           // 畫布上真正被畫出來的顏色（不是 token 的字面值）
+           canvasBg: wrap ? getComputedStyle(wrap).backgroundColor : '',
+           svgN: document.querySelectorAll('#prodDiagram svg').length }; }"""
+
+
+def dg_toggle_theme(pg, wait: int = 2200):
+    """按一次全站主題鈕（深 ⇄ 淺），等 `tw:theme` 那條鏈跑完。
+
+    ⚠ 一定要用 JS 派發的 `element.click()`：`#industry` / `#flow` 頁吸頂的 `.topbar`
+      會把 `pg.click()` 攔下來變成逾時（這個坑踩過好幾次，寫在 CLAUDE.md 裡）。
+    """
+    pg.eval_on_selector("#themeBtn", "b => b.click()")
+    pg.wait_for_timeout(wait)
+    return pg.evaluate(DG_PAL_PROBE)
+
+
+def dg_set_theme(pg, theme: str, wait: int = 2200):
+    """把全站主題切到指定的那一邊（已經在那一邊就不動），回傳配色探針。"""
+    cur = pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'")
+    if cur == theme:
+        return pg.evaluate(DG_PAL_PROBE)
+    return dg_toggle_theme(pg, wait)
+
+
 def canvas_hash(pg, sel: str) -> str:
     """把某個容器裡第一張 canvas 取樣成一個指紋，用來判斷『圖真的重畫了』。"""
     return pg.evaluate(
@@ -367,6 +406,40 @@ def set_range(pg, sel: str, value, wait: int = 700):
                 " i.value = String(v); i.dispatchEvent(new Event('input', { bubbles: true }));"
                 " i.dispatchEvent(new Event('change', { bubbles: true })); }", [sel, value])
     pg.wait_for_timeout(wait)
+
+
+# ===================================================================== D1：合併後的「期間」區間桿
+# ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
+#   `#rotBack`（看哪一天）與 `#rankDays`（排行往回幾天）兩條合併成**一條雙把手的區間桿**
+#   （app.js 的 `spanBar`）。`#rotBack` 裡現在有兩支 `<input type=range>`：
+#     · `input.hi`  右把手＝**截止日**，寫在前面，所以 `#rotBack input` 仍然抓到它
+#     · `input.lo`  左把手＝這一段的起點（＝往回幾個交易日）
+#   ⚠ **值的語意反了**：內部用的是「位置」p，`p = 30 − 幾天前`，所以 **30 ＝ 最新**。
+#     舊的 `set_range(pg, RB, 5)` 從此不是「5 天前」而是「25 天前」——
+#     那是最惡劣的一種退化：跑得動、不報錯、量到的卻是另一天。
+#   所以全部改走下面兩支，**以「幾天前」為介面**，換算集中在一個地方。
+ROT_PMAX = 30
+
+
+def rot_seek(pg, days_ago: int, wait: int = 900):
+    """把「看哪一天」拉到「幾天前」（0 ＝ 最新）。回傳畫面上那行讀數。"""
+    set_range(pg, "#rotBack input.hi", ROT_PMAX - int(days_ago), wait)
+    return pg.evaluate("() => (document.querySelector('#rotBack .val')||{}).textContent || ''")
+
+
+def rot_days_ago(pg) -> int:
+    """現在看的是幾天前（0 ＝ 最新）。讀的是畫面上那支拉Bar 的實際值。"""
+    v = pg.evaluate("() => { const i = document.querySelector('#rotBack input.hi'); return i ? +i.value : null; }")
+    return ROT_PMAX - v if v is not None else -1
+
+
+def rot_span(pg, days: int, wait: int = 900):
+    """把左把手拉成「這一段有幾個交易日」（＝舊的 `#rankDays`）。截止日不動。"""
+    p = pg.evaluate("() => { const i = document.querySelector('#rotBack input.hi'); return i ? +i.value : null; }")
+    if p is None:
+        return None
+    set_range(pg, "#rotBack input.lo", max(0, p - int(days)), wait)
+    return pg.evaluate("() => (document.querySelector('#rotBack .val')||{}).textContent || ''")
 
 
 def scroll_to(pg, el_id: str, tries: int = 20):
@@ -663,7 +736,15 @@ def check_3d_e2(pg):
        用機器掃畫面，不用眼睛：截畫布的圖，數「很亮的青／綠、紅色偏低」那種自體發光像素。
        同時要求平均亮度不能垮掉 —— 不然把整張調黑也會通過，那不是去螢光是關燈。"""
     # 比的是 idleEmissive（沒被選起來的零件）：選起來的那一個本來就該提亮一點當提示
-    ok("E2 材質底層不再自體發光", pg.evaluate("() => Rack3D.current.stats().idleEmissive") <= 0.001,
+    # ⚠⚠ 2026-09-23（C6）：**這條只在「沒有 pulse 的場景」上成立**。
+    #   科技模式下有脈衝點亮（pulse）的場景，`idleEmissive` 本來就會 > 0 ——
+    #   那正是「訊號在跑」，不是螢光感。目前這一段跑在 `ai_server` 上（它沒有 pulse）所以是綠的，
+    #   但**只要有人把 check_3d_e2／check_3d_e34 指到別的場景就會紅**。
+    #   真要換場景時，正確做法是二選一：① 先按「動畫：關」再量（pulse 會歸零）；
+    #   ② 改成只掃「不在 pulse 群組裡」的零件。**不准直接把門檻調大**——
+    #   那會把真正的螢光感一起放過去，E2 這條就白做了。
+    ok("E2 材質底層不再自體發光（★ 只在沒有 pulse 的場景上成立，見上面的註解）",
+       pg.evaluate("() => Rack3D.current.stats().idleEmissive") <= 0.001,
        pg.evaluate("() => Rack3D.current.stats()"))
     try:
         from PIL import Image
@@ -694,7 +775,10 @@ def check_3d_e34(pg):
     ok("E3 零件不再是一顆方塊（平均一個零件好幾顆 mesh）", st["meshes"] >= st["parts"] * 5,
        f"{st['parts']} 個零件／{st['meshes']} 顆 mesh")
     ok("E3 機櫃裡真的有會轉的扇葉", st["spinners"] >= 1, st)
-    ok("E3 只有指示燈准發光", st["leds"] >= 1 and st["idleEmissive"] <= 0.001, st)
+    # ⚠ 同 check_3d_e2 的註解：`idleEmissive <= 0.001` 只在**沒有 pulse 的場景**成立
+    #   （C6 之後有 pulse 的場景科技模式下本來就會 > 0）。這一段跑在 ai_server 上所以安全。
+    ok("E3 只有指示燈准發光（★ 只在沒有 pulse 的場景上成立）",
+       st["leds"] >= 1 and st["idleEmissive"] <= 0.001, st)
 
     # --- E4：關掉動畫
     if pg.evaluate("() => !Rack3D.current.isAnim()"):
@@ -968,9 +1052,10 @@ def t_overview(pg, base):
         ok(f"KPI「{k}」有標題", len(st["title"] or "") > 2, st)
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
 
-    # --- 總覽下方三張圖：都不是長條圖了，而且點得動
-    for cid, name, want in (("breadth", "市場寬度", ("gauge", "pie")), ("trust", "投信連續買超", ("scatter",)),
-                            ("gval", "族群估值", ("scatter",))):
+    # --- 總覽下方這幾張圖：都不是長條圖了，而且點得動
+    # ★ 2026-09-23：「族群估值」`#gval` 整塊移除（Andy 追問後回覆 OK），所以它那一圈拿掉 ——
+    #   留著的話 `getInstanceByDom(null)` 回 null，那一圈三條會一起紅。
+    for cid, name, want in (("breadth", "市場寬度", ("gauge", "pie")), ("trust", "投信連續買超", ("scatter",))):
         types = pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
             return c ? (c.getOption().series || []).map(s => s.type) : null; }}""")
         ok(f"總覽「{name}」有畫出來", bool(types), types)
@@ -996,17 +1081,66 @@ def t_overview(pg, base):
        bool(bd) and bd["cats"] == 1 and bd["stacked"] and bd["bars"] >= 2, bd)
     ok("市場寬度上半還是儀表（站上 20 日均線的比例）", bool(bd) and bd["gauge"], bd)
 
-    # --- 總覽的輪動階段（精簡版）＋ 小時鐘
-    ok("總覽有輪動階段四張卡", count(pg, "#rotMini .stage") == 4, count(pg, "#rotMini .stage"))
+    # --- 總覽的輪動時鐘（D6：圓圈放大、「放大」鈕移除）＋ 昨日資金去向分流圖（D7）
+    # ★ 2026-09-23 D7（Andy：「下方的紅框處改成昨日的資金去向分流圖」）：
+    #   `#rotMini` 那四格階段卡整塊換成 `#ovFlow`。舊斷言 `count('#rotMini .stage') == 4`
+    #   現在恆為 0 ＝ 必紅，所以整條換成驗新的那張圖，而且要驗**點得動、畫面真的因此改變**。
+    ok("D7：總覽舊的四格階段卡 `#rotMini` 已整塊不在 DOM 裡",
+       pg.evaluate("() => !document.getElementById('rotMini')"))
     mini = pg.evaluate("""() => { const el = document.getElementById('rotClockMini'); if (!el) return null;
         const c = echarts.getInstanceByDom(el); if (!c) return { canvas: !!el.querySelector('canvas'), pts: 0 };
         const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
-        return { canvas: !!el.querySelector('canvas'), pts: sc ? sc.data.length : 0 }; }""")
+        return { canvas: !!el.querySelector('canvas'), pts: sc ? sc.data.length : 0,
+                 h: el.clientHeight,
+                 zoomBtn: !!document.getElementById('rotMiniZoomBtn') }; }""")
     ok("總覽也有輪動時鐘", bool(mini) and mini["canvas"] and mini["pts"] > 0, mini)
+    # D6：「⤢ 放大」移除、圓圈放大（量的是容器真的變高，不是看有沒有那顆鈕）
+    ok("D6：總覽輪動階段上方那顆「⤢ 放大」已移除", bool(mini) and not mini["zoomBtn"], mini)
+    ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px）",
+       bool(mini) and mini["h"] >= 355, mini and mini["h"])
+    # D7：昨日資金去向分流圖
+    ovf = pg.evaluate("""() => { const el = document.getElementById('ovFlow'); if (!el) return null;
+        const c = echarts.getInstanceByDom(el);
+        const o = c ? c.getOption() : null;
+        const s = o ? (o.series || [])[0] : null;
+        return { canvas: !!el.querySelector('canvas'), empty: el.classList.contains('isempty'),
+                 type: s ? s.type : '', anim: o ? o.animation : null,
+                 depth: s ? s.initialTreeDepth : null,
+                 sub: (document.getElementById('ovFlowSub') || {}).textContent || '' }; }""")
+    if ok("D7：總覽下方畫得出「昨日資金去向」分流圖", bool(ovf) and ovf["canvas"] and not ovf["empty"], ovf):
+        ok("D7：副標明講資料是盤後結算（不是即時）", "盤後結算" in ovf["sub"], ovf["sub"][:60])
+        ok("D7：沒有動畫（Andy 指定）", ovf["anim"] is False, ovf["anim"])
+        ok("D7：只畫到族群那一層（不展開到個股）",
+           ovf["type"] == "tree" and ovf["depth"] == 2, ovf)
+        # ★ 真的點一顆族群節點 —— 「有 render」不算驗收，要驗畫面真的因此改變（網址換頁）
+        # ⚠ 捲動與量測要分兩次呼叫（`html{scroll-behavior:smooth}`，同一個 evaluate 裡量到的是舊座標）。
+        #   取節點座標的做法跟資金去向那張樹圖一模一樣（`_sk_node_xy`）：
+        #   走 `getItemGraphicEl().transformCoordToGlobal()`，那是圖上真的畫出來的位置。
+        pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+        pg.wait_for_timeout(700)
+        xy = pg.evaluate("""() => { const el = document.getElementById('ovFlow');
+            const c = echarts.getInstanceByDom(el); if (!c) return null;
+            const d = c.getModel().getSeriesByIndex(0).getData();
+            const r = el.getBoundingClientRect();
+            for (let i = 0; i < d.count(); i++) {
+              const raw = d.getRawDataItem(i) || {};
+              const gid = raw.gid || ((raw.data || {}).gid);
+              if (!gid) continue;
+              const g = d.getItemGraphicEl(i); if (!g) continue;
+              const q = g.transformCoordToGlobal(0, 0);
+              return { x: Math.round(r.left + q[0]), y: Math.round(r.top + q[1]), gid: gid }; }
+            return null; }""")
+        if ok("D7：算得出一顆族群節點的螢幕座標（下一條要真的點它）", bool(xy), xy):
+            pg.mouse.click(xy["x"], xy["y"])
+            pg.wait_for_timeout(1400)
+            ok("★ D7：點分流圖上的族群節點，真的進得去那個族群頁（畫面真的因此改變）",
+               pg.evaluate("() => decodeURIComponent(location.hash)").startswith("#industry/group/"),
+               pg.evaluate("() => decodeURIComponent(location.hash)"))
+            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
 
     # --- 除了熱力圖與法人連續買超，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
-    for w, lb in (("breadthWrap", "市場寬度"),
-                  ("gvalWrap", "族群估值"), ("rotClockMiniWrap", "總覽輪動時鐘")):
+    # ★ 2026-09-23：`#gvalWrap`（族群估值）整塊移除，從清單拿掉
+    for w, lb in (("breadthWrap", "市場寬度"), ("rotClockMiniWrap", "總覽輪動時鐘")):
         check_nozoom(pg, w, lb)
 
     # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
@@ -1038,8 +1172,9 @@ def t_overview(pg, base):
     ok("資金熱力圖有把卡片填滿（底下不會留一塊空的）", fill["empty"] <= 40, fill)
     ok("資金熱力圖本身夠大（不是被擠成一小條）", fill["heatH"] >= 400, fill)
 
-    # --- 下方三張圖：要有資料，不是空狀態
-    for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超"), ("gval", "族群估值")):
+    # --- 下方那幾張圖：要有資料，不是空狀態
+    # ★ 2026-09-23：「族群估值」`#gval` 整塊移除，從清單拿掉（留著 `has` 會是 None ＝ 必紅）
+    for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') || /尚無|沒有|回補中/.test(e.innerText) }} : null; }}")
         ok(f"總覽「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
 
@@ -1118,14 +1253,90 @@ def t_market(pg, base):
     sub = count(pg, "#mktTabs button")
     ok("漲跌家數有子分頁（漲停／跌停／漲幅前段…）", sub >= 2, sub)
     if sub >= 2:
-        n0 = pg.evaluate("() => document.querySelectorAll('#mktBody tr[data-code]').length")
-        click(pg, "#mktTabs button:nth-child(3)", 800)
-        n1 = pg.evaluate("() => document.querySelectorAll('#mktBody tr[data-code]').length")
-        changed("切子分頁，列出的股票數真的變了", n0, n1)
+        # ★ 2026-09-23 修：原本是「點第 3 個子分頁 → 列數要變」。兩件事都不成立：
+        #   ① 每個子分頁都被同一個上限（60 列）夾住，所以列數常常前後都是 60；
+        #   ② 今天「漲停」有 60 檔以上，於是「漲幅前段」的前 60 名和「漲停」**完全一樣** ——
+        #      那是資料的巧合，不是功能壞掉。寫死點第 3 個分頁就一定紅。
+        #   改成逐一點過每一個子分頁，驗兩件真正該成立的事：
+        #   （a）**點哪個就選中哪個**（`.on` 真的跟著跑）
+        #   （b）這些分頁**不是同一份名單印五次**（至少兩種不同的名單）
+        CODES = ("() => [...document.querySelectorAll('#mktBody tr[data-code]')]"
+                 ".map(t => t.dataset.code).join(',')")
+        lists, ons = [], []
+        for i in range(sub):
+            pg.evaluate("(i) => document.querySelectorAll('#mktTabs button')[i].click()", i)
+            pg.wait_for_timeout(700)
+            lists.append(pg.evaluate(CODES))
+            ons.append(pg.evaluate("() => [...document.querySelectorAll('#mktTabs button')]"
+                                   ".findIndex(b => b.classList.contains('on'))"))
+        ok("每一個子分頁點下去都真的被選中（點哪個就亮哪個）", ons == list(range(sub)), ons)
+        ok("子分頁不是同一份名單印好幾次（至少列得出兩種不同的名單）",
+           len({x for x in lists if x}) >= 2, [x[:24] for x in lists])
     # 點一列要能進個股頁
     if count(pg, "#mktBody tr[data-code]"):
         click(pg, "#mktBody tr[data-code]", 1600)
         ok("市場明細點一列會進個股頁", pg.evaluate("location.hash").startswith("#stock/"), pg.evaluate("location.hash"))
+
+    # ================================================================ D4：漲跌幅多一個「即時」模式
+    # Andy 2026-09-23：「漲跌幅需要多一個『即時』Mode」。
+    # ⚠ **這個容器打不到報價代理**，所以一定要先把 `window.Live.fetchQuotes` 換成假的 ——
+    #   不 stub 的話只驗得到錯誤那條路（「即時抓不到報價」），驗不到「真的換了一套口徑」。
+    #   假數字推不出真結論，所以這一段驗的不是任何一個數字對不對，
+    #   而是**畫面真的因此改變了**：標題換字、口徑說明出現、分佈副標換掉、五個分頁筆數重算。
+    pg.goto(f"{base}#market/updown", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("D4：市場明細上有「盤後／⚡ 即時」的模式切換列",
+       count(pg, "#mktMode button") == 2, count(pg, "#mktMode button"))
+    eod = pg.evaluate("""() => ({ title: (document.getElementById('mktTitle')||{}).innerText || '',
+        distSub: (document.getElementById('distSub')||{}).textContent || '',
+        liveHidden: (() => { const e = document.getElementById('mktLive'); return !e || e.hidden; })(),
+        tabs: [...document.querySelectorAll('#mktTabs button em')].map(e => e.textContent),
+        on: (document.querySelector('#mktMode button.on')||{dataset:{}}).dataset.m })""")
+    ok("D4：盤後是預設（Andy 指定）", eod["on"] == "eod", eod["on"])
+    ok("D4：盤後模式下那條口徑說明是收著的", eod["liveHidden"], eod)
+    # --- 換上假報價（比照 `_RLV_STUB` 的做法，只是這一支要涵蓋全站的 stocks）
+    pg.evaluate("""() => {
+      const codes = ((window.App.D || {}).stocks || []).map(s => String(s.code || s.c || s));
+      window.Live = { isIntraday: () => true,
+        fetchQuotes: async (cs) => { const o = {};
+          cs.forEach((c, i) => { o[String(c)] = { price: 100 + (i % 17),
+            prevClose: 100, chgPct: ((i % 21) - 10) * 0.7, volume: 500 + (i % 97) * 13,
+            time: '10:31:00' }; });
+          return o; } };
+      return codes.length; }""")
+    pg.eval_on_selector('#mktMode button[data-m="live"]', "b => b.click()")
+    pg.wait_for_timeout(2600)
+    live = pg.evaluate("""() => ({ title: (document.getElementById('mktTitle')||{}).innerText || '',
+        distSub: (document.getElementById('distSub')||{}).textContent || '',
+        liveTxt: (() => { const e = document.getElementById('mktLive');
+          return (!e || e.hidden) ? '' : (e.innerText || ''); })(),
+        tabs: [...document.querySelectorAll('#mktTabs button em')].map(e => e.textContent),
+        rows: document.querySelectorAll('#mktBody tr[data-code]').length,
+        on: (document.querySelector('#mktMode button.on')||{dataset:{}}).dataset.m })""")
+    ok("★ D4：按「⚡ 即時」→ 那一顆真的亮起來", live["on"] == "live", live["on"])
+    ok("★ D4：標題真的換字（看得出現在畫的是即時，不是收盤統計）",
+       live["title"] != eod["title"] and "即時" in live["title"], {"盤後": eod["title"][:40], "即時": live["title"][:40]})
+    for kw in ("涵蓋率", "不是全市場", "成交值是估的"):
+        ok(f"★ D4：口徑說明誠實寫出「{kw}」（假數字也要標清楚它是什麼）",
+           kw in live["liveTxt"], live["liveTxt"][:160])
+    ok("★ D4：漲跌分佈的副標換成即時，而且和盤後不一樣",
+       "即時" in live["distSub"] and live["distSub"] != eod["distSub"],
+       {"盤後": eod["distSub"][:40], "即時": live["distSub"][:40]})
+    ok("★ D4：五個子分頁的筆數真的重算（不是沿用盤後那一份）",
+       live["tabs"] != eod["tabs"] and len(live["tabs"]) >= 2,
+       {"盤後": eod["tabs"], "即時": live["tabs"]})
+    ok("D4：即時模式下表格仍然列得出股票（不是換完就變空白）", live["rows"] > 0, live["rows"])
+    # --- 按回「盤後」→ 標題與副標都要還原
+    pg.eval_on_selector('#mktMode button[data-m="eod"]', "b => b.click()")
+    pg.wait_for_timeout(2000)
+    back = pg.evaluate("""() => ({ title: (document.getElementById('mktTitle')||{}).innerText || '',
+        distSub: (document.getElementById('distSub')||{}).textContent || '',
+        liveHidden: (() => { const e = document.getElementById('mktLive'); return !e || e.hidden; })(),
+        on: (document.querySelector('#mktMode button.on')||{dataset:{}}).dataset.m })""")
+    ok("★ D4：按回「盤後」→ 標題還原成收盤統計那一份", back["title"] == eod["title"],
+       {"原本": eod["title"][:40], "回來": back["title"][:40]})
+    ok("D4：按回盤後之後那條即時口徑說明也收起來", back["liveHidden"], back)
+    ok("D4：按回盤後之後分佈副標也還原", back["distSub"] == eod["distSub"],
+       {"原本": eod["distSub"][:40], "回來": back["distSub"][:40]})
 
 
 def t_flow(pg, base):
@@ -1134,7 +1345,8 @@ def t_flow(pg, base):
     for cid, name in (("rankFlow", "資金流向排行"), ("rotClock", "輪動時鐘"),
                       # 2026-09-20：族群佔比河流（#river）已依 Andy 指示整張移除
                       ("sankey", "資金去向"),
-                      ("instGroups", "族群 × 法人"), ("conc", "資金集中度"), ("valScatter", "估值散布圖")):
+                      # ★ 2026-09-23 D3：估值散布圖（`#valScatter`）隨「估值篩選」整張卡一起移除
+                      ("instGroups", "族群 × 法人"), ("conc", "資金集中度")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty'), msg: ((e.querySelector('.empty')||{{}}).textContent||'').trim() }} : null; }}")
         # 法人比價量晚一輪落地（價量 15:30、法人 18:30）：當天下午「本週」那一段本來就還沒有法人。
         # 那時不該畫圖，但要**講清楚為什麼**，所以接受「有解釋的空狀態」，不接受空白或制式的一句話。
@@ -1155,11 +1367,16 @@ def t_flow(pg, base):
     ok("期間切換卡真的不在 DOM 裡（不是藏起來）",
        not gone["seg"] and not gone["note"] and gone["card"] == 0, gone)
 
-    bars = pg.evaluate("""() => { const g = (id) => { const i = document.querySelector('#' + id + ' input[type=range]');
+    # ★ 2026-09-23 D1：排行的「最近 N 天」拉Bar（`#rankDays`）已經併進 `#rotBack` 的區間桿，
+    #   它的新家是左把手 `input.lo`。舊的 `#rankDays` 整顆不在 DOM 裡 ——
+    #   `g('rankDays')` 會回 None，`bool(None) and …` 直接紅。
+    bars = pg.evaluate("""() => { const g = (sel) => { const i = document.querySelector(sel);
         return i ? { min: +i.min, max: +i.max, v: +i.value } : null; };
-        return { rank: g('rankDays'), inst: g('instDays') }; }""")
-    ok("排行的天數拉 Bar 下限是 1（0＝跟著上方期間 已經沒有意義）",
-       bool(bars["rank"]) and bars["rank"]["min"] == 1 and bars["rank"]["max"] == 30, bars)
+        return { rank: g('#rotBack input.lo'), inst: g('#instDays input[type=range]'),
+                 oldRank: !!document.getElementById('rankDays') }; }""")
+    ok("D1：舊的 `#rankDays` 整條拉Bar 已經不在 DOM 裡（併進區間桿了）", not bars["oldRank"], bars)
+    ok("排行的「這一段有幾天」改由區間桿的左把手負責（軸長 0–29）",
+       bool(bars["rank"]) and bars["rank"]["min"] == 0 and bars["rank"]["max"] == 29, bars)
     ok("族群×法人的天數拉 Bar 下限也是 1",
        bool(bars["inst"]) and bars["inst"]["min"] == 1 and bars["inst"]["max"] == 30, bars)
 
@@ -1171,8 +1388,10 @@ def t_flow(pg, base):
         top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
                if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
     seenb = {}
+    rot_seek(pg, 0, 700)          # 截止日先回到最新，左把手才拉得到完整的 1～30 天
     for v in (5, 20, 30):
-        set_range(pg, "#rankDays input[type=range]", v, 900)
+        # ★ D1：排行的天數改拉區間桿的左把手（`rot_span`），語意仍然是「這一段有幾個交易日」
+        rot_span(pg, v, 900)
         set_range(pg, "#instDays input[type=range]", v, 900)
         seenb[v] = snap()
         ok(f"拉到 {v} 天：排行圖有畫出來", seenb[v]["rank"], seenb[v])
@@ -1195,15 +1414,19 @@ def t_flow(pg, base):
            return y.some(v => /[↑↓]/.test(String(v))); }"""))
     # ★ 2026-09-20：原本這裡會把期間切回「本週」，讓後面幾段從乾淨狀態開始。
     #   期間卡拿掉之後改成把兩支拉 Bar 復位 —— 用意一樣，都是不要把狀態留給下一段。
-    set_range(pg, "#rankDays input[type=range]", 20, 600)
+    rot_span(pg, 20, 600)          # ★ D1：排行的天數搬到區間桿左把手
 
     # --- 每張圖的「怎麼看」：按下去要真的展開白話說明，再按要收起來
     hows = pg.evaluate("[...document.querySelectorAll('#v-flow .howbtn')].map(b => b.dataset.how)")
     # 2026-09-20：族群佔比河流整張移除（Andy 指示），所以門檻 7 → 6。
     # 2026-09-21：輪動時鐘與資金流向排行合併成一張卡（Andy：「這兩張圖合併」），
     #   只留一顆「怎麼看 ?」（rank 那段說明併進 how-rot），所以 6 → 5。
+    # ★ 2026-09-23 D3：「估值篩選」整張卡移除（Andy 親口），它那顆「怎麼看」跟著走，5 → 4。
     # 這條每次往下調都要說得出哪一張沒了 —— 不是為了讓測試變綠隨手改數字。
-    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 5, hows)
+    #   現在剩下的四張：輪動時鐘＋排行（rot）、資金去向（sankey）、族群×法人（inst）、資金集中度（conc）。
+    ok("資金流向每張圖都有「怎麼看」", len(hows) >= 4, hows)
+    ok("而且剩下的四張都有（rot／sankey／inst／conc 一張都不准少）",
+       {"rot", "sankey", "inst", "conc"} <= set(hows), hows)
     ok("合併之後同一張卡只剩一顆問號鈕（rank 那顆已經併進 rot）",
        "rank" not in hows and "rot" in hows, hows)
     ok("排行的說明沒有消失，是併進了 how-rot（裡面還看得到「佔比變化」與 pp）",
@@ -1218,42 +1441,59 @@ def t_flow(pg, base):
         click(pg, f'#v-flow .howbtn[data-how="{h}"]', 200)
         ok(f"「怎麼看：{h}」可以再收起來", pg.evaluate(f"() => document.getElementById('how-{h}').hidden"))
 
-    # --- 輪動階段看板：四張卡、循環列、換階段的族群，換比較天數要真的重算
-    ok("輪動階段有四張卡", count(pg, "#rotBoard .stage") == 4, count(pg, "#rotBoard .stage"))
-    ok("輪動階段有寫出循環順序", "改善" in text(pg, "#rotCycle") and "領先" in text(pg, "#rotCycle"), text(pg, "#rotCycle"))
-    ok("輪動階段有列出族群", count(pg, "#rotBoard li[data-gid]") > 0)
-    ok("四張卡的名字是改善／領先／轉弱／落後",
-       pg.evaluate("[...document.querySelectorAll('#rotBoard .stage .sh b')].map(e=>e.textContent)") == ["改善", "領先", "轉弱", "落後"],
-       pg.evaluate("[...document.querySelectorAll('#rotBoard .stage .sh b')].map(e=>e.textContent)"))
+    # --- 輪動階段：★ 2026-09-23 W7／D2。`#rotBoard`（四張卡）、`#rotCycle`（循環列）、
+    #     `#rotMove`（最近 5 個交易日換階段的族群）**三塊都已整個移除**（Andy 親口要求）。
+    #     斷言留著就是必紅，所以這裡改成正面驗「真的不在 DOM 裡」——
+    #     移除本身就是需求，要有人守，不是刪掉不管。
+    #     四個階段的資訊沒有消失：它搬到時鐘上的四顆象限卡（`.rotquads .rq`），
+    #     那一整組的真人操作驗收在新的 `批次30-兩層下拉與象限卡` 段落。
+    gone_rot = pg.evaluate("() => ['rotBoard','rotCycle','rotMove'].filter(id => !!document.getElementById(id))")
+    ok("W7：舊的輪動階段看板／循環列／換階段那一排三塊都不在 DOM 了", gone_rot == [], gone_rot)
+    ok("W7：四個階段搬到時鐘上的象限卡，而且剛好四顆",
+       count(pg, "#rotClock .rotquads .rq") == 4, count(pg, "#rotClock .rotquads .rq"))
+    # ⚠ `.rq` 的名字是**文字節點**（`名稱<em>數字</em>`），沒有 <b>；
+    #   用 `.rq b` 會拿到空清單而 `sorted([]) == sorted([...])` 為 False ＝ 假紅。
+    _QN = ("[...document.querySelectorAll('#rotClock .rotquads .rq')]"
+           ".map(e => (e.firstChild && e.firstChild.textContent || '').trim())")
+    ok("W7：四顆象限卡的名字是改善／領先／轉弱／落後",
+       sorted(pg.evaluate(_QN)) == sorted(["改善", "領先", "轉弱", "落後"]), pg.evaluate(_QN))
     # F2（Andy 2026-09-18：「5 10 20 天改成拉 Bar 5-20 天，可以用拖曳的方式看的更直觀」）
-    bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
-        return i && { min: +i.min, max: +i.max, v: +i.value }; }""")
-    ok("輪動階段的天數是拉 Bar 不是按鈕", bool(bar), bar)
-    # 2026-09-19（Andy N4「時間週期拉到 30 天」）：上限 20 → 30，後端 trail 同步
-    # 2026-09-20（Andy A4 第 3 條「時間範圍改成前一天～前三十天」）：下限 5 → 1。
-    # ★ 2026-09-21 Andy 再拍板 1 → 0：兩張卡合併之後排行也跟著這支走，
-    #   下限 1 等於「最新」只到前一天，而頁首寫著資料更新到最新那一天 —— 圖跟字對不起來。
-    #   0 ＝ 資料裡的最後一個交易日，而且標籤要寫「最新」不是「0 天前」。
-    #   下限一定要是 1 —— 這根拉 Bar 現在的語意是「看哪一天」而不是「軌跡畫幾天」，
-    #   下限卡在 5 等於使用者永遠看不到最近四天。
-    ok("拉 Bar 的範圍是 0–30 天（0＝最新一天）", bool(bar) and bar["min"] == 0 and bar["max"] == 30, bar)
-    # 0 不可以顯示成「0 天前」
-    _lab0 = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
-        if (!i) return null; i.value = 0; i.dispatchEvent(new Event('input', {bubbles:true}));
-        return (document.querySelector('#rotBack .val')||{}).textContent || ''; }""")
-    ok("拉到 0 時標籤寫「最新」，不是「0 天前」", "最新" in (_lab0 or ""), _lab0)
+    # ★ 2026-09-23 D1：「看哪一天」與「排行最近幾天」合併成**一條雙把手區間桿**，
+    #   所以 `#rotBack` 裡現在有兩支 range：`input.hi`（截止日）與 `input.lo`（這一段的起點）。
+    #   而且值的語意換成「位置」：**30 ＝ 最新**、幾天前 ＝ 30 − 位置。
+    #   舊斷言 `min==0 && max==30` 對 `hi` 不成立（它是 1–30），留著必紅。
+    bar = pg.evaluate("""() => { const hi = document.querySelector('#rotBack input.hi');
+        const lo = document.querySelector('#rotBack input.lo');
+        return (hi && lo) && { min: +hi.min, max: +hi.max, v: +hi.value,
+                               loMin: +lo.min, loMax: +lo.max, loV: +lo.value }; }""")
+    ok("「期間」是一條雙把手的區間桿（截止日 ＋ 這一段有多長），不是兩條或一排按鈕", bool(bar), bar)
+    # 2026-09-19（Andy N4「時間週期拉到 30 天」）：軸長 30 個交易日，後端 trail 同步
+    # 2026-09-20（A4 第 3 條「時間範圍改成前一天～前三十天」）
+    # ★ 2026-09-23 D1：軸長仍然是 30，讀法改成「位置」——
+    #   右把手的最大值 30 ＝ 最新那一天、左把手可以拉到 0 ＝ 整段回溯滿 30 個交易日。
+    ok("區間桿的軸長仍然是 30 個交易日（右把手 max 30、左把手 min 0）",
+       bool(bar) and bar["max"] == 30 and bar["loMin"] == 0, bar)
+    # 截止日在最新時不可以顯示成「0 天前」
+    _lab0 = rot_seek(pg, 0, 600)
+    ok("截止日拉到最新時讀數寫「最新」，不是「0 天前」", "最新" in (_lab0 or ""), _lab0)
+    ok("讀數同時交代得出「這一段有幾天」（合併之後兩件事都要看得到）",
+       "最近" in (_lab0 or "") and "天" in (_lab0 or ""), _lab0)
     seenb = {}
     for v in (5, 12, 20):
-        set_range(pg, "#rotBack input[type=range]", v, 800)
-        seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input').value,
+        rot_seek(pg, v, 800)
+        seenb[v] = pg.evaluate("""() => ({ v: +document.querySelector('#rotBack input.hi').value,
             lab: (document.querySelector('#rotBack .val')||{}).textContent,
-            move: (document.getElementById('rotMove')||{}).innerText,
+            /* ★ 2026-09-23 D2：`#rotMove` 整排已移除，這個欄位只留來守「它沒被誰加回來」。*/
+            move: (document.getElementById('rotMove')||{}).innerText || '',
             clockday: ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)
                       ? ((document.getElementById('rotClock')||{}).innerText||'').match(/\\d{4}-\\d{2}-\\d{2}/)[0]
                       : ((window.App&&window.App._rotFrame&&window.App._rotFrame.date)||''),
-            items: document.querySelectorAll('#rotBoard li[data-gid]').length })""")
-        ok(f"拉到 {v} 天，值真的變了", seenb[v]["v"] == v, seenb[v])
-        ok(f"拉到 {v} 天，旁邊的字跟著寫 {v}", str(v) in (seenb[v]["lab"] or ""), seenb[v]["lab"])
+            stage: document.querySelectorAll('#rotClock .rotquads .rq').length })""")
+        # ★ D1：值是「位置」，30 ＝ 最新 → 幾天前 ＝ 30 − 位置
+        ok(f"拉到 {v} 天前，拉Bar 的位置真的跟著換（30 − {v} ＝ {ROT_PMAX - v}）",
+           seenb[v]["v"] == ROT_PMAX - v, seenb[v])
+        ok(f"拉到 {v} 天前，讀數真的寫「{v} 天前」",
+           f"{v} 天前" in (seenb[v]["lab"] or ""), seenb[v]["lab"])
         # ★ 2026-09-21 改寫：這兩條以前驗的是「拉時間軸會改變看板的比較窗長」。
         #   那是一個**已經被判定為錯的耦合** —— `renderRotation(rrg, back, …)` 的 back 是
         #   「最近 N 個交易日換階段」的**窗長**，而同一個值又被餵給 frame（大圈停在哪一天），
@@ -1261,21 +1501,22 @@ def t_flow(pg, base):
         #   預設 5 就讓整張卡一打開停在 5 個交易日前（最新明明是 2026-09-18）。
         #   現在拆開了：這支只管「看哪一天」，看板的窗長固定 ROT_BOARD_WIN=5。
         #   所以改成驗**新的正確行為**，不是把驗收拔掉。
-        ok(f"拉到 {v} 天，看板的比較窗長固定寫 5（不隨時間軸變）",
-           "最近 5 個交易日換階段" in (seenb[v]["move"] or "") or not (seenb[v]["move"] or "").strip(),
-           seenb[v]["move"][:40])
-        ok(f"拉到 {v} 天，時鐘的回放日期真的跟著換",
-           str(v) in (seenb[v]["lab"] or "") and bool(seenb[v]["clockday"]), seenb[v])
-    # 看板窗長固定，所以三次的名單**應該一樣**（這正是拆開之後要保證的事）
-    ok("看板的換階段名單不隨時間軸變（窗長已固定 5 天）",
-       len({v["move"] for v in seenb.values()}) == 1,
-       {k: v["move"][:30] for k, v in seenb.items()})
+        ok(f"拉到 {v} 天，`#rotMove` 那一排仍然不存在（D2 移除之後不准被誰加回來）",
+           not (seenb[v]["move"] or "").strip(), seenb[v]["move"][:40])
+        ok(f"拉到 {v} 天前，時鐘的回放日期真的跟著換",
+           f"{v} 天前" in (seenb[v]["lab"] or "") and bool(seenb[v]["clockday"]), seenb[v])
+    # （★ 2026-09-23 D2：「看板的換階段名單不隨時間軸變」那一條已隨 `#rotMove` 一起退場 ——
+    #   那一排整個不存在了，再比它的內容只會永遠拿到空字串 ＝ 假綠。）
     # 但時鐘的回放日期**一定要**跟著變，否則就是拉Bar 根本沒接上
     ok("時鐘的回放日期真的隨時間軸變（三次至少兩個不同）",
        len({v["clockday"] for v in seenb.values()}) >= 2,
        {k: v["clockday"] for k, v in seenb.items()})
     ok("拉 Bar 的值有記住（換頁回來還是同一個天數）",
        pg.evaluate("() => { try { return localStorage.getItem('tw.rot.back3'); } catch(e){ return null; } }") is not None)
+    # ★ D1：合併之後多存一個「這一段有幾天」（左把手），兩個都要記住才算真的合併好
+    ok("D1：區間長度也有記住（`tw.rank.days`）",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rank.days'); } catch(e){ return null; } }") is not None,
+       pg.evaluate("() => { try { return localStorage.getItem('tw.rank.days'); } catch(e){ return null; } }"))
 
     # --- 資金輪動時鐘：Andy 要「輪動族群要搭配圖表，看圖就懂」
     clk = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -1289,9 +1530,9 @@ def t_flow(pg, base):
     ok("輪動時鐘上有族群的點", bool(clk) and clk["pts"] >= 4, clk)
     ok("每個族群都有一條走過的尾巴", bool(clk) and clk["trails"] == clk["pts"], clk)
     ok("時鐘上的點分佈在四個階段裡", bool(clk) and set(clk["stages"]) <= {"leading", "improving", "weakening", "lagging"}, clk and clk["stages"][:6])
-    set_range(pg, "#rotBack input[type=range]", 5, 900)
+    rot_seek(pg, 5, 900)
     h0 = canvas_hash(pg, "#rotClock")
-    set_range(pg, "#rotBack input[type=range]", 20, 1100)
+    rot_seek(pg, 20, 1100)
     changed("拉到 20 天，輪動時鐘的尾巴真的重畫", h0, canvas_hash(pg, "#rotClock"))
     # 尾巴要**沿著圓弧**走（Andy 2026-09-18：「不是一個斷點直線跑過去」）。
     # 判準：一條尾巴的點數要遠多於 2（兩點＝直線），而且不是只有起訖兩端。
@@ -1299,7 +1540,7 @@ def t_flow(pg, base):
         if (!c) return 0; const ls = c.getOption().series.filter(s => s.type === 'line');
         return Math.max(0, ...ls.map(s => (s.data || []).length)); }""")
     ok("輪動時鐘的尾巴是弧線（補過中間點）不是兩點直線", seg >= 8, f"最長的一條尾巴有 {seg} 個點")
-    set_range(pg, "#rotBack input[type=range]", 5, 900)
+    rot_seek(pg, 5, 900)
     # 用真的滑鼠點時鐘上的點（算出那顆點的螢幕座標再點下去），要進得去族群頁
     scroll_to(pg, "rotClockWrap")
     pt = pg.evaluate("""() => { const el = document.getElementById('rotClock');
@@ -1341,58 +1582,20 @@ def t_flow(pg, base):
         ok("資金集中度有寫出現在是縮圈還是擴散", any(w in text(pg, "#concState") for w in ("縮圈", "擴散", "沒有明顯")), text(pg, "#concState"))
         click(pg, '#concSeg button[data-v="5"]', 700)
 
-    # --- 估值篩選：條件真的會篩掉東西，清除後回得來
-    n0 = pg.evaluate("() => document.querySelectorAll('#valBody tr[data-code]').length")
-    cnt0 = text(pg, "#vCount")
-    ok("估值表有列出股票", n0 > 0, n0)
-    # ★ 2026-09-21：這裡以前量的是 `#valBody` 的列數，但 `drawTable()` 只畫**前 80 名**
-    #   （`rows.slice(0, 80)`）。族群換成 110 個板塊之後，有估值的股票從 400 多檔變成 807 檔，
-    #   「本益比 ≤ 12」還剩 121 檔 —— 篩前 80 列、篩後還是 80 列，於是驗收報 `80 → 80`
-    #   **但產品完全正確**。這正是 DECISIONS #206 說的「量到一個不會動的數字」：
-    #   列數被上限夾住，永遠不會動。改成量 `#vCount` 那個**沒有上限**的真實符合筆數。
-    def _vcount() -> int:
-        m = re.search(r"符合\s*(\d+)\s*檔", text(pg, "#vCount"))
-        return int(m.group(1)) if m else -1
-    v0 = _vcount()
-    ok("估值表寫得出「符合幾檔」（篩選的真實筆數，不受表格前 80 名上限影響）", v0 > 0, text(pg, "#vCount"))
-    pg.fill("#vPeHi", "12"); pg.wait_for_timeout(700)
-    n1 = pg.evaluate("() => document.querySelectorAll('#valBody tr[data-code]').length")
-    v1 = _vcount()
-    hi = pg.evaluate("""() => [...document.querySelectorAll('#valBody tr[data-code]')]
-        .map(tr => parseFloat(tr.children[2].textContent)).filter(Number.isFinite)""")
-    ok("本益比上限真的篩掉東西（看符合筆數，不是看畫出來的列數）", 0 < v1 < v0, f"符合 {v0} → {v1} 檔（畫出來 {n0} → {n1} 列）")
-    ok("篩出來的本益比真的都 ≤ 12", all(v <= 12.0001 for v in hi), [v for v in hi if v > 12][:5])
-    pg.fill("#vRoe", "20"); pg.wait_for_timeout(700)
-    v2 = _vcount()
-    ok("再加 ROE 條件會更少（同樣看符合筆數）", 0 < v2 < v1, f"符合 {v1} → {v2} 檔")
-    changed("篩選後的檔數說明跟著變", cnt0, text(pg, "#vCount"))
-    click(pg, "#vReset", 800)
-    ok("清除條件後回到原本的檔數", text(pg, "#vCount") == cnt0, f"{cnt0} vs {text(pg, '#vCount')}")
-    # 勾「只看低於族群中位」要真的只留低於中位的
-    click(pg, "#vBelow", 800)
-    # ★ 2026-09-19：不能一律拿「本益比」欄去比「族群中位」欄。
-    #   groups.yaml 的 valuation_metric 允許族群換口徑（生技醫療用 ps），
-    #   那時中位數是 PS 的中位，本檔要比的也是它自己的 PS（td 的 data-mv）。
-    #   一律用 PE 去比會比出 [12.4, 2.7] 這種假紅 —— 那兩檔其實是 PS 低於同業 37%／54%。
-    below = pg.evaluate("""() => [...document.querySelectorAll('#valBody tr[data-code]')].map(tr => {
-        const md = tr.children[3]; const mt = md.dataset.metric || 'pe';
-        const mine = mt === 'pe' ? parseFloat(tr.children[2].textContent) : parseFloat(md.dataset.mv);
-        return [mine, parseFloat(md.textContent), mt]; })
-        .filter(a => Number.isFinite(a[0]) && Number.isFinite(a[1]))""")
-    # ★ 2026-09-19：原本只有下面那句 all(...)，而 all([]) 是 True ——
-    #   這個勾選框其實從掛上去的第一天就永遠篩出 0 筆（後端 vs_median 回比值、前端判 < 0），
-    #   驗收卻一路綠燈。空集合一定要先當成紅的。
-    ok("「只看低於族群中位」有篩出東西（空集合不算通過）", len(below) > 0,
-       f"勾選後剩 {len(below)} 列 —— 0 列代表這個條件根本篩不出東西，不是今天剛好沒有便宜股")
-    ok("「只看低於族群中位」真的只留低於同業中位的（依各族群自己的估值口徑）",
-       below and all(a[0] < a[1] for a in below), [a for a in below if a[0] >= a[1]][:4])
-    # 非 PE 口徑的那幾列要把口徑標出來，不然「本益比 12.4 / 族群中位 2.7」會被讀成貴了四倍
-    lab = pg.evaluate("""() => [...document.querySelectorAll('#valBody td[data-metric]')]
-        .filter(td => td.dataset.metric !== 'pe')
-        .map(td => ({ m: td.dataset.metric, txt: td.textContent.trim(), tip: (td.title||'').length }))""")
-    ok("非本益比口徑的族群中位有標出是哪一種口徑", not lab or all(
-       x["m"].upper() in x["txt"].upper() and x["tip"] > 10 for x in lab), lab[:3])
-    click(pg, "#vBelow", 600)
+    # --- 估值篩選：★ 2026-09-23 D3（Andy：「估值篩選 拿掉」）整張卡片已移除。
+    #     原本這裡有 12 條驗收（符合筆數、PE 上限、ROE、只看低於族群中位、清除條件、口徑標示），
+    #     指向的元素（`#valBody` / `#vCount` / `#vPeHi` / `#vRoe` / `#vReset` / `#vBelow`）
+    #     現在一個都不存在 —— `pg.fill('#vPeHi', …)` 會直接逾時，整段紅在收尾。
+    #     所以整組換成**正面驗「真的整塊不在了」**：移除本身就是需求，要有人守。
+    #     ⚠ 總覽頁的「族群估值」`#gval` 原本判斷是另一張圖、先留著，
+    #       但 2026-09-23 向 Andy 追問之後他回覆 OK，**也一併移除了**
+    #       （連同它唯一的讀者 `group_valuation.json` 的那次 load）。
+    gone_val = pg.evaluate("() => ['valBody','vCount','vPeHi','vPbHi','vRoe','vReset','vBelow','valWrap']"
+                           ".filter(id => !!document.getElementById(id))")
+    ok("D3：估值篩選整張卡片（表格／條件輸入／清除條件／只看低於族群中位）都不在 DOM 了",
+       gone_val == [], gone_val)
+    ok("D3：只服務估值篩選的 `.vfilters` 那一排樣式容器也沒留下空殼",
+       count(pg, "#v-flow .vfilters") == 0, count(pg, "#v-flow .vfilters"))
 
     # --- 這頁每張圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
     # ---- 資金去向：2026-09-19 整張改掉（Andy 圖六「改成水平並且全部都以點跟線呈現，
@@ -1455,23 +1658,143 @@ def t_flow(pg, base):
     ok("拉回 0 會跟著上方期間走", text(pg, "#instSub") != "", text(pg, "#instSub"))
 
     # ---- F1 輪動階段不要方方角角（Andy 2026-09-18：「我覺得很醜…不要那麼方方角角」）
-    sb = pg.evaluate("""() => { const s = document.querySelector('#rotBoard .stage'); if (!s) return null;
-        const li = document.querySelector('#rotBoard .stage li');
-        return { r: parseFloat(getComputedStyle(s).borderRadius) || 0,
-                 rail: parseFloat(getComputedStyle(document.getElementById('rotBoard'), '::before').height) || 0,
-                 arrow: getComputedStyle(s, '::after').content,
-                 liR: li ? parseFloat(getComputedStyle(li).borderRadius) || 0 : 0,
-                 n: document.querySelectorAll('#rotBoard .stage').length }; }""")
-    ok("輪動階段還是四段", bool(sb) and sb["n"] == 4, sb)
-    ok("四段的角是圓的（不是方方角角）", bool(sb) and sb["r"] >= 16, sb)
-    ok("成員是圓角膠囊", bool(sb) and sb["liR"] >= 100, sb)
-    ok("底下有一條軌道把四段串起來（看得出是一個循環）", bool(sb) and sb["rail"] >= 4, sb)
-    ok("段與段之間有箭頭", bool(sb) and "→" in (sb["arrow"] or ""), sb)
+    #   ★ 2026-09-23 W7：`#rotBoard` 那四張卡整塊移除，這五條的選擇器全部指向不存在的元素 ——
+    #     `sb` 會是 None，五條一起紅。他當初要的「不要方方角角、看得出是一個循環」並沒有消失，
+    #     它換了載體：四顆象限卡直接排在時鐘的四個象限上（時鐘本身就是那個循環）。
+    #     所以改成量**新載體**上的同一件事，而且量的是 computed style 不是 class。
+    sb = pg.evaluate("""() => { const qs = [...document.querySelectorAll('#rotClock .rotquads .rq')];
+        if (!qs.length) return null;
+        const cs = qs.map(q => getComputedStyle(q));
+        const cl = document.getElementById('rotClock');
+        const cr = cl ? cl.getBoundingClientRect() : null;
+        return { n: qs.length,
+                 r: Math.min(...cs.map(c => parseFloat(c.borderRadius) || 0)),
+                 minFs: Math.min(...cs.map(c => parseFloat(c.fontSize) || 0)),
+                 colors: [...new Set(cs.map(c => c.color))].length,
+                 inside: cr ? qs.filter(q => { const r = q.getBoundingClientRect();
+                   return r.left >= cr.left - 2 && r.right <= cr.right + 2
+                       && r.top >= cr.top - 2 && r.bottom <= cr.bottom + 2; }).length : 0 }; }""")
+    ok("輪動階段還是四段（搬到時鐘的四個象限上）", bool(sb) and sb["n"] == 4, sb)
+    ok("四顆象限卡的角是圓的（不是方方角角）", bool(sb) and sb["r"] >= 10, sb)
+    ok("四顆象限卡的顏色互異（一眼分得出哪一格是哪一階段）", bool(sb) and sb["colors"] == 4, sb)
+    ok("四顆象限卡都落在時鐘的矩形裡（不是飄在圖外面）", bool(sb) and sb["inside"] == 4, sb)
+    ok("象限卡的字 ≥ 11px（手機也讀得到）", bool(sb) and sb["minFs"] >= 11, sb)
 
     for w, lb in (("rankFlowWrap", "資金流向排行"),
                   ("rotClockWrap", "輪動時鐘"), ("sankeyWrap", "資金去向"),
                   ("instGroupsWrap", "族群 × 法人")):
         check_nozoom(pg, w, lb)
+
+
+# ===================================================================== 資金去向的兩層下拉（W6）
+# ★ 2026-09-23：資金去向（桑基／樹圖）下面那一整排族群晶片 `.linkrow.gchips[data-for="sankey"]`
+#   已經換成**兩層下拉**（`filterDropdown()`：第一層產業鏈、第二層族群，單選）。
+#   舊選擇器現在一個都選不到 —— `count()` 回 0 會讓外層的 `if ok(...)` 直接跳過整段 ＝ 假綠。
+#   所以全部改走下面這三支，而且**照真人的順序操作**：先開下拉，再點裡面那一項。
+SK_DD = '.ddrow[data-for="sankey"]'
+
+
+def sk_dd_groups(pg):
+    """第二層現在列得出哪些族群（gid 陣列，不含「全部族群」那一項）。"""
+    return pg.evaluate(f"""() => [...document.querySelectorAll('{SK_DD} .rotdd[data-dd="group"] [data-g]')]
+        .map(b => b.dataset.g).filter(Boolean)""") or []
+
+
+def sk_dd_pick(pg, gid, wait: int = 1500) -> bool:
+    """開第二層下拉、點某一個族群（gid 傳 '' ＝「全部族群（不篩選）」）。回傳有沒有真的點到。
+
+    ⚠ 第二層是**被第一層篩過**的（選了「半導體」就只列半導體鏈底下那十幾個），
+      所以要點一個不在目前這條鏈裡的族群時，得先把第一層切回「全部」。
+      不補這一步的話會安靜地點不到 —— 那正是假綠最常見的長相。
+    """
+    def _click(g):
+        return pg.evaluate(
+            f"""(g) => {{ const dd = document.querySelector('{SK_DD} .rotdd[data-dd="group"]');
+                if (!dd) return false;
+                const btn = dd.querySelector('.ddbtn'); if (btn) btn.click();
+                const o = dd.querySelector('[data-g="' + g + '"]');
+                if (!o) return false; o.click(); return true; }}""", g)
+
+    hit = _click(gid)
+    if not hit:
+        # 第一層切回「全部」，第二層才會重新列出所有族群
+        pg.evaluate(f"""() => {{ const dd = document.querySelector('{SK_DD} .rotdd[data-dd="chain"]');
+            if (!dd) return; const b = dd.querySelector('.ddbtn'); if (b) b.click();
+            const all = dd.querySelector('.ddopt[data-c=""]'); if (all) all.click(); }}""")
+        pg.wait_for_timeout(500)
+        hit = _click(gid)
+    pg.wait_for_timeout(wait)
+    return bool(hit)
+
+
+def sk_dd_sel(pg):
+    """第二層目前選到誰（沒選就回 ''）。讀的是畫面上真的被標成 selected 的那一項。"""
+    return pg.evaluate(
+        f"""() => {{ const b = document.querySelector('{SK_DD} .rotdd[data-dd="group"] [data-g][aria-selected="true"]');
+            return b ? (b.dataset.g || '') : ''; }}""") or ''
+
+
+# ===================================================================== 資金輪動的兩層下拉（W6）
+# ★ 2026-09-23：`.rotfilter` 裡那一整排族群晶片（`.linkrow.gchips .gchip`）換成**兩層下拉**：
+#   第一層產業鏈（`.rotdd[data-dd="chain"]`，單選）、第二層族群（`.rotdd[data-dd="group"]`，**複選 checkbox**）。
+#   舊選擇器現在一個都抓不到 —— 那些 `count(...) > 0` 的守衛會讓整段安靜跳過 ＝ 假綠。
+ROT_DD = '#v-flow .rotfilter[data-rf="flow"]'
+
+
+def rot_dd_open(pg, kind="group", scope=ROT_DD, wait: int = 400):
+    """把某一層下拉打開（真的按那顆 `.ddbtn`）。回傳按完之後 aria-expanded 是不是 true。"""
+    r = pg.evaluate(
+        f"""(k) => {{ const dd = document.querySelector('{scope} .rotdd[data-dd="' + k + '"]');
+            if (!dd) return null; const b = dd.querySelector('.ddbtn');
+            if (!b) return null;
+            if (b.getAttribute('aria-expanded') !== 'true') b.click();
+            return b.getAttribute('aria-expanded') === 'true'; }}""", kind)
+    pg.wait_for_timeout(wait)
+    return r
+
+
+def rot_dd_groups(pg, scope=ROT_DD):
+    """第二層現在列得出哪些族群（gid 陣列）。"""
+    return pg.evaluate(
+        f"""() => [...document.querySelectorAll('{scope} .rotdd[data-dd="group"] .ddlist input[type=checkbox][data-g]')]
+            .map(c => c.dataset.g)""") or []
+
+
+def rot_dd_on(pg, scope=ROT_DD):
+    """第二層**已經勾起來**的是哪幾個（畫面上真的打勾的那些）。"""
+    return pg.evaluate(
+        f"""() => [...document.querySelectorAll('{scope} .rotdd[data-dd="group"] .ddlist input[type=checkbox][data-g]')]
+            .filter(c => c.checked).map(c => c.dataset.g)""") or []
+
+
+def rot_dd_toggle(pg, gid, scope=ROT_DD, wait: int = 1400) -> bool:
+    """開第二層、真的點那一格的 checkbox（勾／取消勾）。回傳有沒有點到。"""
+    rot_dd_open(pg, "group", scope, 250)
+    hit = pg.evaluate(
+        f"""(g) => {{ const c = document.querySelector('{scope} .rotdd[data-dd="group"] .ddlist input[data-g="' + g + '"]');
+            if (!c) return false; c.click(); return true; }}""", gid)
+    pg.wait_for_timeout(wait)
+    return bool(hit)
+
+
+def _rot_pick_chain(pg, chain: str, scope=ROT_DD, wait: int = 1400) -> bool:
+    """在第一層下拉裡挑一條產業鏈（`''` ＝「全部」）。★ W6 之後這一排是下拉不是按鈕列。"""
+    hit = pg.evaluate(
+        f"""(c) => {{ const dd = document.querySelector('{scope} .rotdd[data-dd="chain"]');
+            if (!dd) return false;
+            const b = dd.querySelector('.ddbtn'); if (b) b.click();
+            const o = dd.querySelector('.ddopt[data-c="' + c + '"]');
+            if (!o) return false; o.click(); return true; }}""", chain)
+    pg.wait_for_timeout(wait)
+    return bool(hit)
+
+
+def rot_dd_clear(pg, scope=ROT_DD, wait: int = 1000) -> bool:
+    """按「清除」（沒有選任何東西時那顆鈕不存在，回 False）。"""
+    hit = pg.evaluate(f"""() => {{ const b = document.querySelector('{scope} .rot-clear');
+        if (!b) return false; b.click(); return true; }}""")
+    pg.wait_for_timeout(wait)
+    return bool(hit)
 
 
 def settle_scroll(pg, quiet_ms=350, limit_ms=3000):
@@ -2658,8 +2981,8 @@ def t_new_industry(pg, base):
         sub = '#cgGraph .cgdot[data-code="3711"]'
         if ok(f"{vw}px 圖上找得到日月光投控 3711 的個股小點",
               pg.evaluate(f"() => !!document.querySelector({sub!r})")):
-            pg.eval_on_selector(sub, "e => e.scrollIntoView({block:'center'})")
-            click(pg, sub, 1400)
+            # ★ 力導向會重建 `.cgdot`，用選擇器點會一路 detached 到逾時 —— 改用螢幕座標點
+            ok(f"{vw}px 日月光投控那顆小點真的點得下去", _cg_click_dot(pg, "3711", 1400))
             aft2 = pg.evaluate(SNAP)
             # ---- 不准跳頁（N7 既有行為不能被這次改動弄壞）
             # ⚠ 基準是「點完族群之後」的 hash：選族群本來就會把網址對到它的剖析圖
@@ -2842,25 +3165,37 @@ def t_new_industry(pg, base):
             .filter(n => document.querySelector('#cgGraph .cgdot[data-gid="' + n.dataset.gid + '"]')).length""")
         ok(f"{cid} 至少八成的節點周圍排得出個股小點", tagged >= n_node * 0.8, f"{tagged}/{n_node}")
         # --- 紅漲綠跌：漲的是紅字、跌的是綠字（台股慣例，這是會讓人做錯決定的那一種錯）
-        # ★ 紅漲綠跌的落點也跟著搬家：第二版節點本身的顏色是**分類色**（圖例那五種），
-        #   漲跌數字改住在 hover 浮出的小卡（`.cgtip`）與右側資訊欄裡。
-        #   所以這一條改成「滑到一顆族群上，小卡裡每一檔的漲跌顏色方向要對」。
+        # ★ 2026-09-23 C5（Andy：「點擊後才會跳出下拉清單」）：個股清單**改成點才開，hover 不開**。
+        #   舊版這裡是「滑到節點上」再掃 `#cgTip .ti em` —— 清單根本沒開，掃到的是空清單，
+        #   `col == []` 照樣通過 ＝ **假綠**。所以改成先**真的點**一顆族群把清單點開，
+        #   而且先確認清單裡真的有列（`nTi > 0`），沒有列就直接判紅，不讓空清單混過去。
         pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
         pg.wait_for_timeout(250)
-        hov = pg.evaluate("""() => { const n = document.querySelector('#cgGraph .cgnode[data-gid] .cghit');
-            if (!n) return null; const r = n.getBoundingClientRect();
-            return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }""")
-        if hov:
-            pg.mouse.move(hov["x"], hov["y"]); pg.wait_for_timeout(600)
+        gid_c = pg.evaluate("() => { const n = document.querySelector('#cgGraph .cgnode[data-gid]');"
+                            " return n ? n.dataset.gid : ''; }")
+        if gid_c:
+            click(pg, f'#cgGraph .cgnode[data-gid="{gid_c}"] .cghit', 900)
+        nti = count(pg, "#cgTip .ti[data-code]")
+        ok(f"{cid} 點族群之後下拉清單真的開了、而且列得出個股（這是下一條的前提，空清單不准算過）",
+           nti > 0, nti)
         col = pg.evaluate("""() => { const bad = [];
-            // `em.sh` 是「占這個族群的成交值」百分比，不是漲跌 —— 不要拿它去驗紅漲綠跌
-            document.querySelectorAll('#cgTip .ti em:not(.sh), #cgSide .cgp-box b').forEach(e => {
+            /* 兩種「不是漲跌」的百分比一定要排除，否則會紅在產品完全正確的地方：
+                 · `#cgTip .ti em.sh`  ＝ 占這個族群的成交值
+                 · `#cgSide .cgp-box` 第二格的 `b` ＝ 成交占比（它本來就不該有漲跌顏色）
+               所以 `.cgp-box` 只取「旁邊那行字寫著『漲跌』」的那一個。*/
+            const box = [...document.querySelectorAll('#cgSide .cgp-box > div')]
+              .filter(d => /漲跌/.test((d.querySelector('span') || {}).textContent || ''))
+              .map(d => d.querySelector('b')).filter(Boolean);
+            [...document.querySelectorAll('#cgTip .ti em:not(.sh)'), ...box].forEach(e => {
               const v = parseFloat((e.textContent || '').replace(/[^\\d.+-]/g, ''));
               const c = e.className;
               if (v > 0 && !/\\bup\\b/.test(c)) bad.push([e.textContent, c]);
               if (v < 0 && !/\\bdown\\b/.test(c)) bad.push([e.textContent, c]); });
             return bad; }""")
-        ok(f"{cid} hover 浮出的個股小卡裡漲跌幅紅漲綠跌方向正確", col == [], col[:4])
+        ok(f"{cid} 點開的個股下拉清單裡漲跌幅紅漲綠跌方向正確", col == [], col[:4])
+        # 清單收掉、選取歸零，後面「點族群」那一段才是從乾淨狀態開始
+        if gid_c:
+            click(pg, f'#cgGraph .cgnode[data-gid="{gid_c}"] .cghit', 700)
         pg.mouse.move(5, 5); pg.wait_for_timeout(300)
         # --- 點節點 → 成分股真的被篩、旁邊小卡真的寫出「它連到誰、為什麼」
         # ⚠ 要點的是**那一檔所屬的族群**，不是圖上第一顆 —— 點錯的話下面「找得到它的子節點」
@@ -2890,8 +3225,7 @@ def t_new_industry(pg, base):
             #   選族群本來就會把網址對到它的剖析圖（syncDgHash，既有行為，#groupCards 時代就是這樣）。
             #   這一條要守的是「**點個股**不跳頁」，所以比的是點子節點前後。
             h_mid = pg.evaluate("() => location.hash")
-            pg.eval_on_selector(sub, "e => e.scrollIntoView({block:'center'})")
-            click(pg, sub, 1400)
+            ok(f"{cid} {cname} 那顆小點真的點得下去", _cg_click_dot(pg, code, 1400), code)
             c = pg.evaluate(SNAP2)
             ok(f"{cid} 點個股小點 {cname} 開了右側產業關係面板、而且沒有跳頁",
                c["side"] and cname in c["box"] and c["hash"] == h_mid,
@@ -3144,7 +3478,9 @@ def t_new_flow(pg, base):
     # ---------------------------------------------------------------- ④ 移除
     gone = pg.evaluate("""() => ({
         pb: document.querySelectorAll('#v-flow .rbar .pb').length,
-        rank: document.querySelectorAll('#rankDays .pb').length,
+        /* ★ 2026-09-23 D1：`#rankDays` 整條已併進 `#rotBack` 的區間桿。
+           留著數它的 `.pb` 會恆為 0、斷言照樣通過 ＝ 假綠，所以改成驗**它真的不在 DOM 裡**。*/
+        rank: document.getElementById('rankDays') ? 1 : 0,
         inst: document.querySelectorAll('#instEnd .pb').length,
         sankey: document.querySelectorAll('#sankeyDays .pb').length,
         river: !!document.getElementById('river'),
@@ -3156,7 +3492,9 @@ def t_new_flow(pg, base):
         // 「新增播放」的那兩支要分開數，不能跟被移除的混在一起算
         pbOther: document.querySelectorAll('#v-flow .rbar:not(#rotBack):not(#sankeyDays) .pb').length,
         pbClock: document.querySelectorAll('#rotBack .pb').length })""")
-    ok("資金流向排行的播放鈕真的不在 DOM 裡（不是藏起來）", gone["rank"] == 0, gone)
+    # ★ 2026-09-23 D1：`#rankDays` 整條已併進 `#rotBack` 的區間桿，所以這條的問法換成
+    #   「那個容器真的不在了」——「播放鈕有幾顆」在元素不存在時恆為 0 ＝ 假綠。
+    ok("D1：`#rankDays` 整條拉Bar 真的不在 DOM 裡（併進區間桿，不是藏起來）", gone["rank"] == 0, gone)
     ok("族群×法人的播放鈕真的不在 DOM 裡", gone["inst"] == 0, gone)
     # ★ 2026-09-20 下午改寫（Andy：「並且需要具備播放功能」）。
     #   早上那條是「資金去向的播放鈕真的不在 DOM 裡」—— 他後來明確要**加回來**，
@@ -3176,12 +3514,15 @@ def t_new_flow(pg, base):
     ok("連「怎麼看」的河流說明也拿掉了", not gone["howRiver"], gone)
     ok("頁面上不再出現「河流」兩個字", not gone["riverWord"], gone)
     # 拉Bar 本身要留著，而且拉了畫面真的會變（不要把功能連根拔掉）
-    ok("排行的天數拉Bar 還在（拿掉的只有播放）",
-       pg.evaluate("() => !!document.querySelector('#rankDays input[type=range]')"))
+    # ★ D1：排行的天數拉Bar 搬到 `#rotBack` 區間桿的左把手，功能一件都沒少
+    ok("排行的天數拉Bar 還在（拿掉的只有播放，搬家不等於拿掉）",
+       pg.evaluate("() => !!document.querySelector('#rotBack input.lo')"))
+    rot_seek(pg, 0, 700)
+    rot_span(pg, 20, 900)
     sub0 = text(pg, "#rankSub")
-    set_range(pg, "#rankDays input[type=range]", 15, 1500)
+    rot_span(pg, 15, 1500)
     changed("沒有播放鈕，手動拉天數照樣會重畫", sub0, text(pg, "#rankSub"))
-    set_range(pg, "#rankDays input[type=range]", 0, 1200)
+    rot_span(pg, 20, 1200)
 
     # ------------------------------------------- ⑤ 族群展開的股票清單固定高度＋拉Bar
     # 真的點族群晶片把面板叫出來（排行下方的 #rankPanel）。
@@ -3193,22 +3534,20 @@ def t_new_flow(pg, base):
                  sh: Math.round(ms.scrollHeight),
                  oy: getComputedStyle(ms).overflowY }; }"""
     pan = None
-    nchip = count(pg, '.gchips[data-sync="n2"] .gchip')
-    # ★ 2026-09-20（E3）：點晶片現在會**真的篩圖**，所以每試完一個一定要先取消再試下一個 ——
+    # ★ 2026-09-23 W6：族群晶片列換成兩層下拉（複選 checkbox），改走 `rot_dd_*`。
+    gchips = rot_dd_groups(pg)
+    ok("資金輪動的第二層下拉列得出族群（後面幾條的前提）", len(gchips) > 0, len(gchips))
+    # ★ 2026-09-20（E3）：勾族群會**真的篩圖**，所以每試完一個一定要先取消再試下一個 ——
     #   不然十個族群會被一路累加進 ROT.groups，後面幾段就從「已經篩了 10 個」開始跑。
-    for i in range(min(10, nchip)):
-        pg.eval_on_selector_all('.gchips[data-sync="n2"] .gchip .pick',
-                                "(bs, i) => bs[i] && bs[i].click()", i)
-        pg.wait_for_timeout(700)
+    for gid in gchips[:10]:
+        rot_dd_toggle(pg, gid, wait=700)
         cur = pg.evaluate(PAN)
         if cur and (pan is None or cur["n"] > pan["n"]):
             pan = cur
         if pan and pan["n"] >= 15:
             break
-        pg.eval_on_selector_all('.gchips[data-sync="n2"] .gchip .pick',
-                                "(bs, i) => bs[i] && bs[i].click()", i)   # 取消，回到「全部族群」
-        pg.wait_for_timeout(600)
-    if ok("點族群晶片，排行下方真的展開成分股面板", bool(pan), pan):
+        rot_dd_toggle(pg, gid, wait=600)   # 取消，回到「全部族群」
+    if ok("在下拉裡勾族群，排行下方真的展開成分股面板", bool(pan), pan):
         ok("成分股清單有固定高度（不會把整頁撐長）", pan["ch"] <= 260, pan)
         ok("成分股清單是可以捲的", pan["oy"] in ("auto", "scroll"), pan)
         if pan["n"] >= 12:
@@ -3222,20 +3561,41 @@ def t_new_flow(pg, base):
     #   這同時是「再點一次真的取消」的正面驗收，也是不把狀態留給後面段落的必要動作 ——
     #   2026-09-20 實測：不取消的話，批次2「點排行長條會原地展開成分股」會拿到一個
     #   **已經開著**的面板，一點反而收起來，看起來像功能壞了（其實是前一段沒收拾）。
-    while count(pg, '.gchips[data-sync="n2"] .gchip.on'):
-        pg.eval_on_selector('.gchips[data-sync="n2"] .gchip.on .pick', "b => b.click()")
-        pg.wait_for_timeout(800)
-    ok("再點一次選起來的族群，成分股面板真的收起來",
+    # 收拾：先一個一個反勾（這同時是「再勾一次真的取消」的正面驗收，而且它會把面板收掉），
+    # 再按一次「清除」當安全網 —— 一個一個反勾很容易在重畫的空檔漏掉一個，
+    # 而漏掉的那一個會讓**後面所有段落**都從「已經篩了一個族群」開始跑
+    # （實測：輪動時鐘只剩 foundry 一顆，後面兩條就成了假紅）。
+    for _g in rot_dd_on(pg)[:12]:
+        rot_dd_toggle(pg, _g, wait=800)
+    ok("再勾一次選起來的族群，成分股面板真的收起來",
        pg.evaluate("() => { const b = document.getElementById('rankPanel'); return !b || b.hidden; }"))
+    if rot_dd_on(pg):
+        # 安全網：真的還有漏掉的就按「清除」（那顆鈕本來就在畫面上，用它收拾也是在驗它）
+        ok("W6：還有漏掉的勾選時，「清除」按得下去而且真的清乾淨", rot_dd_clear(pg, wait=1400))
     ok("收拾完之後篩選真的清空了（不要把狀態留給後面的段落）（E3）",
-       pg.evaluate("() => { try { const o = JSON.parse(localStorage.getItem('tw.rot.filter')||'null');"
-                   " return !o || !o.groups || !o.groups.length; } catch (e) { return true; } }"))
-    # 輪動階段那四格用的是同一套（.stage ul 固定高度＋內捲）
-    st = pg.evaluate("""() => { const u = document.querySelector('#rotBoard .stage ul'); if (!u) return null;
+       not rot_dd_on(pg)
+       and pg.evaluate("() => { try { const o = JSON.parse(localStorage.getItem('tw.rot.filter')||'null');"
+                       " return !o || !o.groups || !o.groups.length; } catch (e) { return true; } }"),
+       rot_dd_on(pg))
+    # 輪動階段的族群清單也用同一套（固定高度＋內捲）。
+    # ★ 2026-09-23 W7／D2：`#rotBoard .stage ul` 整塊移除，新家是點象限卡之後的 `#stagePanel .ms`。
+    #   舊寫法會拿到 None，而 `bool(None) and …` 直接是 False ＝ 假紅；
+    #   所以要**先把面板點開**（畫面真的因此改變了），再量新載體。
+    _q = pg.evaluate("""() => { const q = [...document.querySelectorAll('#rotClock .rotquads .rq')]
+        .find(x => parseInt(((x.querySelector('em')||{}).textContent||'0').replace(/\\D/g,''), 10) > 0);
+        if (!q) return ''; q.click(); return q.dataset.k || ''; }""")
+    pg.wait_for_timeout(900)
+    st = pg.evaluate("""() => { const u = document.querySelector('#stagePanel .ms'); if (!u) return null;
         return { ch: Math.round(u.clientHeight), sh: Math.round(u.scrollHeight),
+                 items: u.querySelectorAll('li[data-gid]').length,
                  oy: getComputedStyle(u).overflowY }; }""")
-    ok("輪動階段的族群清單也是固定高度＋可捲（所有相關版面同一套）",
-       bool(st) and st["ch"] <= 400 and st["oy"] in ("auto", "scroll"), st)
+    if ok("點象限卡真的展開了族群清單（下一條的前提）", bool(st) and st["items"] > 0, {"k": _q, "st": st}):
+        ok("輪動階段的族群清單也是固定高度＋可捲（所有相關版面同一套）",
+           st["ch"] <= 400 and st["oy"] in ("auto", "scroll"), st)
+    # 收拾：把面板關回去，不要把狀態留給後面的段落
+    if _q:
+        pg.eval_on_selector(f"#rotClock .rotquads .rq[data-k=\"{_q}\"]", "b => b.click()")
+        pg.wait_for_timeout(600)
 
     # ------------------- ⑤-b 點族群 → 右邊出現該族群個股的成交值排序（Andy 2026-09-20）
     # 「當點擊族群時會在右邊出現個股的成交值排序」。
@@ -3252,13 +3612,13 @@ def t_new_flow(pg, base):
                  pct: (ms.querySelector('a .g') || {}).textContent || '',
                  rightOfChart: b.getBoundingClientRect().left
                                > document.getElementById('sankeyWrap').getBoundingClientRect().left }; }"""
-    skchip = '.linkrow.gchips[data-for="sankey"] .gchip'
+    # ★ 2026-09-23 W6：族群晶片列換成兩層下拉，改走 `sk_dd_*`（見檔案上方的說明）
     best, best_g = None, None
-    gids = pg.eval_on_selector_all(skchip, "cs => cs.map(c => c.dataset.g)")
+    gids = sk_dd_groups(pg)
+    ok("資金去向的第二層下拉列得出族群（後面每一條都靠它）", len(gids) > 0, len(gids))
     h_before = pg.evaluate("() => location.hash")
     for g in (gids or [])[:8]:
-        pg.eval_on_selector(f'{skchip}[data-g="{g}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(1400)
+        sk_dd_pick(pg, g, 1400)
         cur = pg.evaluate(SKP)
         if cur and (best is None or cur["n"] > best["n"]):
             best, best_g = cur, g
@@ -3279,12 +3639,18 @@ def t_new_flow(pg, base):
         else:
             notes.append(f"資金去向面板：這個族群只有 {best['n']} 檔，撐不出捲軸，只驗了固定高度")
     ok("點族群不會跳頁（在原地展開）", pg.evaluate("() => location.hash") == h_before)
-    # 收拾：把選起來的那個取消掉，不要把狀態留給後面的段落
-    if count(pg, skchip + ".on"):
-        pg.eval_on_selector(skchip + ".on .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
-    ok("再點一次選起來的族群，右邊的清單真的收起來",
-       pg.evaluate("() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    # 收拾：選回「全部族群（不篩選）」。**不加條件**——這一步本身就是要驗的行為，
+    # 包在 `if 有選取` 裡的話，前面萬一一個都沒選到，這條就變成「什麼都沒做也算過」＝假綠。
+    _hit = sk_dd_pick(pg, "", 1200)
+    _after = pg.evaluate("""() => { const b = document.getElementById('sankeyPanel');
+        const row = document.querySelector('.ddrow[data-for="sankey"]');
+        return { hidden: !b || b.hidden,
+                 title: b ? (b.innerText || '').slice(0, 40) : '',
+                 rows: document.querySelectorAll('.ddrow[data-for="sankey"]').length,
+                 opts: row ? [...row.querySelectorAll('[data-g]')].map(e => JSON.stringify(e.dataset.g)).slice(0, 4) : null,
+                 drill: (window.App && window.App.drillState) ? window.App.drillState() : null }; }""")
+    ok("選回「全部族群（不篩選）」，右邊的清單真的收起來",
+       _after["hidden"], {"點到了嗎": _hit, "選取": sk_dd_sel(pg), **_after})
 
     # ---------------- 兩階段下鑽（Andy 2026-09-21）：資金去向也要「點個股 → 顯示在圖上」
     # 驗的是圖真的多一個葉節點（讀 tree 的 data，不是看有沒有 render），
@@ -3296,11 +3662,10 @@ def t_new_flow(pg, base):
           if (g.expanded) exp.push(g.gid);
           (g.children || []).forEach(x => { if (!x.placeholder) { n++; if (x.picked) picked.push(x.code); } }); }));
         return { leaves: n, picked, exp }; }"""
-    skg = pg.eval_on_selector_all(skchip, "cs => cs.map(c => c.dataset.g)")
+    skg = sk_dd_groups(pg)
     pick_g = best_g or (skg[0] if skg else None)
     if pick_g:
-        pg.eval_on_selector(f'{skchip}[data-g="{pick_g}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(1600)
+        sk_dd_pick(pg, pick_g, 1600)
         lf0 = pg.evaluate(LEAF)
         # 挑一檔**不在**前 3 大代表股裡的（第 5 列起），才驗得出「真的多一個節點」
         code = pg.evaluate("""() => { const as = [...document.querySelectorAll('#sankeyPanel .ms a')]
@@ -3484,8 +3849,8 @@ def t_new_flow(pg, base):
                 nodim = pg.evaluate(SK)
                 ok("點背景：圖上沒有任何族群還被壓暗（真的回到初始畫面）",
                    nodim["dim"] == 0, nodim["dim"])
-                ok("點背景：族群晶片也沒有還亮著的",
-                   count(pg, '.linkrow.gchips[data-for="sankey"] .gchip.on') == 0)
+                ok("點背景：兩層下拉的第二層也回到「未篩選」（沒有族群還被選著）",
+                   sk_dd_sel(pg) == "", sk_dd_sel(pg))
             # ESC 走同一支（不要有第二套復原）
             xy2 = _sk_node_xy(want)
             if xy2:
@@ -3606,22 +3971,22 @@ def t_new_flow(pg, base):
 
     # ------------------------------------------------- ⑥ 族群小 Tip 點了要能篩選
     # 資金去向：點晶片 → 其餘族群被壓暗（dim 的數量真的變）
-    chip = '.linkrow.gchips[data-for="sankey"] .gchip'
-    if ok("資金去向下方有族群晶片列", count(pg, chip) > 0, count(pg, chip)):
+    # ★ 2026-09-23 W6：晶片列 → 兩層下拉（單選）。「再點一次取消」換成選「全部族群（不篩選）」。
+    g1 = sk_dd_groups(pg)
+    if ok("資金去向下方有兩層下拉，而且第二層列得出族群", len(g1) > 0, len(g1)):
         b0 = pg.evaluate(SK)
         h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector(chip + " .pick", "b => b.click()")
-        pg.wait_for_timeout(1500)
+        sk_dd_pick(pg, g1[0], 1500)
         b1 = pg.evaluate(SK)
-        ok("點族群晶片不會跳頁（在原地篩選）", pg.evaluate("() => location.hash") == h0)
-        changed("點資金去向的族群晶片，被壓暗的族群數真的變了", b0["dim"], b1["dim"])
+        ok("在下拉裡選族群不會跳頁（在原地篩選）", pg.evaluate("() => location.hash") == h0)
+        changed("在下拉裡選一個族群，被壓暗的族群數真的變了", b0["dim"], b1["dim"])
         ok("被壓暗的是「其餘全部」，留下的只有一個", b1["dim"] == len(b1["names"]) - 1, b1["dim"])
         ok("族群名單沒有因為篩選而改變（位置還是固定的）", b1["names"] == b0["names"])
-        ok("晶片自己也亮起來", count(pg, chip + ".on") == 1, count(pg, chip + ".on"))
-        pg.eval_on_selector(chip + ".on .pick", "b => b.click()")
-        pg.wait_for_timeout(1500)
+        ok("★ 下拉按鈕上的摘要真的寫出選到誰（畫面上看得出現在在看哪一支）",
+           sk_dd_sel(pg) == g1[0], sk_dd_sel(pg))
+        sk_dd_pick(pg, "", 1500)
         b2 = pg.evaluate(SK)
-        ok("再點一次真的還原（沒有任何族群被壓暗）", b2["dim"] == 0, b2["dim"])
+        ok("選「全部族群（不篩選）」真的還原（沒有任何族群被壓暗）", b2["dim"] == 0, b2["dim"])
     # 族群 × 法人：點晶片 → 被壓暗的長條數真的變
     chip2 = '.linkrow.gchips[data-for="instGroups"] .gchip'
     DIMBAR = """() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
@@ -3638,23 +4003,11 @@ def t_new_flow(pg, base):
         pg.wait_for_timeout(1200)
         ok("再點一次真的還原", pg.evaluate(DIMBAR) == 0, pg.evaluate(DIMBAR))
 
-    # 總覽的「族群估值」散布圖也套同一套（族群小 Tip ＝ 篩選，不是跳頁）
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    gchip = '.linkrow.gchips[data-for="gval"] .gchip'
-    DIMPT = """() => { const c = echarts.getInstanceByDom(document.getElementById('gval'));
-        if (!c) return null; const d = ((c.getOption().series || [])[0] || {}).data || [];
-        return d.filter(x => x.itemStyle && x.itemStyle.opacity != null && x.itemStyle.opacity < 0.5).length; }"""
-    if ok("總覽族群估值下方有族群晶片列", count(pg, gchip) > 0, count(pg, gchip)):
-        g0 = pg.evaluate(DIMPT)
-        h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector(gchip + " .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
-        changed("點總覽族群估值的晶片，被壓暗的圓點數真的變了", g0, pg.evaluate(DIMPT))
-        ok("而且不會跳頁", pg.evaluate("() => location.hash") == h0)
-        pg.eval_on_selector(gchip + ".on .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
-        ok("再點一次真的還原", pg.evaluate(DIMPT) == 0, pg.evaluate(DIMPT))
-    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    # ★ 2026-09-23：總覽的「族群估值」散布圖整塊移除（Andy 追問後回覆 OK），
+    #   原本這裡有一段「點晶片 → 圓點被壓暗 → 再點還原」。整段拿掉。
+    #   ⚠ **覆蓋沒有留空窗**：同一個共用機制（`filterChips` 點晶片就篩圖）
+    #     在上面的「族群 × 法人」（`#instGroups` 的 DIMBAR 那一段）已經完整驗過一次。
+    #     不是因為它不重要而刪，是因為它的載體不存在了。
 
     # ---------------------------------------------------------------- 窄畫面 800px
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -3667,17 +4020,21 @@ def t_new_flow(pg, base):
                  chart: !!(c && el.querySelector('canvas')),
                  fx: !!cv, fxW: cv ? Math.round(cv.getBoundingClientRect().width) : 0,
                  elW: r ? Math.round(r.width) : 0,
-                 chipsIn: (() => { const row = document.querySelector('.linkrow.gchips[data-for="sankey"]');
-                   if (!row) return true; const rr = row.getBoundingClientRect();
+                 /* ★ 2026-09-23 W6：晶片列換成兩層下拉（.ddrow），量的仍然是
+                    「這一排有沒有跑出視窗」。找不到那一排要判 false，不是 true ——
+                    回 true 會讓「排版沒壞」在元件消失時照樣通過 ＝ 假綠。*/
+                 chipsIn: (() => { const row = document.querySelector('.ddrow[data-for="sankey"]');
+                   if (!row) return false; const rr = row.getBoundingClientRect();
                    return rr.right <= window.innerWidth + 1; })() }; }""")
     ok("800px 沒有橫向捲軸", nw["pageW"] <= nw["winW"] + 1, nw)
     ok("800px 資金去向還畫得出來", nw["chart"], nw)
     ok("800px 小圓點那一層跟著縮（不會蓋到隔壁）",
        nw["fx"] and abs(nw["fxW"] - nw["elW"]) <= 2, nw)
-    ok("800px 族群晶片沒有跑出容器", nw["chipsIn"], nw)
+    ok("800px 資金去向那排兩層下拉沒有跑出容器", nw["chipsIn"], nw)
     # 800px 底下點族群，右邊那欄要掉到圖下面（而不是把圖擠成一條）
-    pg.eval_on_selector('.linkrow.gchips[data-for="sankey"] .gchip .pick', "b => b.click()")
-    pg.wait_for_timeout(1600)
+    _g800 = sk_dd_groups(pg)
+    if _g800:
+        sk_dd_pick(pg, _g800[0], 1600)
     nw2 = pg.evaluate("""() => { const b = document.getElementById('sankeyPanel');
         const w = document.getElementById('sankeyWrap');
         if (!b || b.hidden || !w) return null;
@@ -3688,9 +4045,8 @@ def t_new_flow(pg, base):
     if ok("800px 點族群，右邊那欄一樣開得出來", bool(nw2), nw2):
         ok("800px 下面板掉到圖下方（不是把圖擠成一條）", nw2["below"] and nw2["chartW"] > 500, nw2)
         ok("800px 面板沒有超出視窗、也沒有橫向捲軸", nw2["inView"] and not nw2["side"], nw2)
-    if count(pg, '.linkrow.gchips[data-for="sankey"] .gchip.on'):
-        pg.eval_on_selector('.linkrow.gchips[data-for="sankey"] .gchip.on .pick', "b => b.click()")
-        pg.wait_for_timeout(1200)
+    if sk_dd_sel(pg):
+        sk_dd_pick(pg, "", 1200)
     # ---- 800px 下的產業鏈面板（D5-①）。新版面元件一律要驗窄畫面（DECISIONS #171 的教訓）
     # ★ 一定要「先捲、等一下、再量」——這一頁的 CSS 是 scroll-behavior:smooth，
     #   在同一個 evaluate 裡捲完立刻 getBoundingClientRect() 拿到的還是捲動前的位置，
@@ -3793,7 +4149,10 @@ def t_new_layout(pg, base):
     # ------------------------------------------------ ③ 三張圖在五個寬度都不壓字
     SCAN = """
     () => {
-      const want = ['breadth', 'trust', 'gval'];
+      /* ★ 2026-09-23：`gval`（族群估值）整塊移除，從掃描清單拿掉。
+         ⚠ 這裡不是 `ok()`：找不到那張圖會被 `out.overlaps.push([...])` **算成一筆重疊**而變紅，
+           用關鍵字搜 `ok(` 找不到它 —— 這種「不是斷言但會判紅」的地方最容易漏。*/
+      const want = ['breadth', 'trust'];
       const out = { overlaps: [], outside: [], nodes: {} };
       for (const id of want) {
         const host = document.getElementById(id);
@@ -3866,8 +4225,9 @@ def t_new_layout(pg, base):
           });
       }
       // 合併的重點：整張卡只准有**一份**篩選列與**一顆**問號鈕
-      const merged = card ? { rf: card.querySelectorAll('.rotfilter').length,
-                              chips: card.querySelectorAll('.linkrow.gchips').length,
+      const merged = card ? { rf: card.querySelectorAll('.rotfilter[data-rf]').length,
+                              /* ★ 2026-09-23 W6：族群晶片列換成兩層下拉，數的是資金輪動那一排的 `.rotdd`（兩顆＝一份）。*/
+                              chips: card.querySelectorAll('.rotfilter[data-rf] .rotdd').length,
                               how: card.querySelectorAll('.howbtn').length,
                               inner: g.querySelectorAll('.card').length } : null;
       /* 排行圖的族群名稱有沒有被截掉／疊在一起：**量真的畫出去的那些字**。
@@ -4051,41 +4411,52 @@ def t_new_clock(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     reset_rot(pg, base, 2600)
 
-    RB = "#rotBack input[type=range]"
-
     # ---------------------------------------------------------- A4-3 範圍是「前一天 ～ 前三十天」
-    bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
-        return i && { min: +i.min, max: +i.max, v: +i.value,
+    # ★ 2026-09-23 D1：兩條拉Bar 合併成一條雙把手區間桿，值改成「位置」（30 ＝ 最新）。
+    bar = pg.evaluate("""() => { const hi = document.querySelector('#rotBack input.hi');
+        const lo = document.querySelector('#rotBack input.lo');
+        return (hi && lo) && { min: +hi.min, max: +hi.max, v: +hi.value,
+                      loMin: +lo.min, loMax: +lo.max,
                       steps: document.querySelectorAll('#rotBack .pb.step').length,
                       play: document.querySelectorAll('#rotBack .pb.play').length }; }""")
-    if not ok("輪動時鐘的拉Bar 還在（A4）", bool(bar), bar):
+    if not ok("輪動時鐘的區間桿還在，而且是雙把手（A4 ＋ D1）", bool(bar), bar):
         return
-    # ★ 2026-09-21：下限 1 → 0（Andy 拍板，0＝最新一天）
-    ok("拉Bar 範圍是最新一天～前三十天", bar["min"] == 0 and bar["max"] == 30, bar)
+    ok("軸長是最新一天～前三十天（右把手 max 30、左把手 min 0）",
+       bar["max"] == 30 and bar["loMin"] == 0, bar)
 
     # ---------------------------------------------------------- A4-1 ＋ / − 真的按下去
     ok("拉Bar 旁邊有 ＋ 與 −（A4-1）", bar["steps"] == 2, bar)
     ok("拉Bar 旁邊有播放鈕（A4-5）", bar["play"] == 1, bar)
-    set_range(pg, RB, 15, 1500)
-    v0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    # ★ 2026-09-23 D1：`−`／`＋` 現在是**整段平移**，而且左把手不能掉到軸的左邊外面
+    #   （`slide()` 裡 `nx = max(days, …)`）。所以要先把「這一段」縮短，桿子才有空間往回走 ——
+    #   不先縮的話預設 20 天的區間會讓 `−` 在 15 天前就已經頂到左端，按下去完全沒反應，
+    #   量到的是「功能壞掉」其實是「量錯位置」。
+    rot_seek(pg, 15, 1200)
+    rot_span(pg, 5, 1200)
+    v0 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
+    d0 = rot_days_ago(pg)
     h0 = canvas_hash(pg, "#rotClock")
     pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[0].click()")   # −
     pg.wait_for_timeout(1500)
-    v1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
-    changed("按 − 拉Bar 的值真的變了（A4-1）", v0, v1)
-    ok("按 − 是往「離現在更近」走（值變小）", v1 == v0 - 1, f"{v0} → {v1}")
+    v1 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
+    changed("按 − 區間桿的位置真的變了（A4-1）", v0, v1)
+    # ★ 2026-09-23 D1：語意反了 —— 現在是整段往**回**平移一個交易日（位置變小＝看更早的一天）。
+    #   舊文案寫「值變小＝離現在更近」，那是舊語意，留著會把人誤導成產品做反了。
+    ok("按 − 是整段往回一個交易日（位置變小＝看更早的那一天）",
+       v1 == v0 - 1 and rot_days_ago(pg) == d0 + 1, f"位置 {v0} → {v1}；{d0} 天前 → {rot_days_ago(pg)} 天前")
     changed("按 − 之後輪動時鐘真的重畫（A4-1）", h0, canvas_hash(pg, "#rotClock"))
     h1 = canvas_hash(pg, "#rotClock")
     pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[1].click()")   # ＋
     pg.wait_for_timeout(1500)
-    v2 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
-    changed("按 ＋ 拉Bar 的值真的變了（A4-1）", v1, v2)
+    v2 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
+    changed("按 ＋ 區間桿的位置真的變了（A4-1）", v1, v2)
+    ok("按 ＋ 是整段往後一個交易日（位置變大＝看更近的那一天）", v2 == v1 + 1, f"{v1} → {v2}")
     changed("按 ＋ 之後輪動時鐘真的重畫（A4-1）", h1, canvas_hash(pg, "#rotClock"))
 
     # ---------------------------------------------------------- A4-7 時間軸刷動：大圈真的換座標
-    set_range(pg, RB, 3, 1600)
+    rot_seek(pg, 3, 1600)
     p3 = _rot_scatter(pg)
-    set_range(pg, RB, 28, 1800)
+    rot_seek(pg, 28, 1800)
     p28 = _rot_scatter(pg)
     if ok("讀得到時鐘上大圈的座標", bool(p3) and bool(p28) and len(p3) == len(p28), [len(p3 or []), len(p28 or [])]):
         same = [a["gid"] for a, b in zip(p3, p28)
@@ -4104,9 +4475,9 @@ def t_new_clock(pg, base):
     #   動畫中途讀不到中間座標，所以改量 canvas 本身 —— 一步到位的話，
     #   動畫期間的畫面會和安定之後**完全一樣**（指紋相同）。
     #   2026-09-19 那三次假紅的教訓：不要把兩個量 and 在一起，其中一個本來就不會動。
-    set_range(pg, RB, 5, 1600)
-    pg.evaluate("() => { const i = document.querySelector('#rotBack input');"
-                " i.value = '26'; i.dispatchEvent(new Event('input', { bubbles: true })); }")
+    rot_seek(pg, 5, 1600)
+    pg.evaluate("() => { const i = document.querySelector('#rotBack input.hi');"
+                " i.value = '4'; i.dispatchEvent(new Event('input', { bubbles: true })); }")
     pg.wait_for_timeout(90)
     mid1 = canvas_hash(pg, "#rotClock")
     pg.wait_for_timeout(180)
@@ -4127,14 +4498,14 @@ def t_new_clock(pg, base):
     # ★ 2026-09-20（E1）量的改成「軌跡實際走過幾天」：
     #   固定點數是為了讓尾巴和大圈用同一個補間一起走（見下面那一段的像素量測），
     #   代價是「畫了幾個點」變成常數、再也量不出東西。要守的事情完全沒變。
-    set_range(pg, RB, 30, 1800)
+    rot_seek(pg, 30, 1800)
     n_grp = len(_rot_scatter(pg) or [])
     d30 = _rot_trail_days(pg)
-    set_range(pg, RB, 20, 1800)
+    rot_seek(pg, 20, 1800)
     d20 = _rot_trail_days(pg)
-    set_range(pg, RB, 10, 1800)
+    rot_seek(pg, 10, 1800)
     d10 = _rot_trail_days(pg)
-    set_range(pg, RB, 1, 1800)
+    rot_seek(pg, 1, 1800)
     d01 = _rot_trail_days(pg)
     t01 = _rot_trail_pts(pg)
     if ok("讀得到時鐘上的族群數", n_grp > 3, n_grp):
@@ -4159,8 +4530,9 @@ def t_new_clock(pg, base):
         const sc = (c.getOption().series || []).filter(s => s.type === 'scatter')[0];
         return (sc.data || []).map(d => { const r = d.value[0], a = d.value[1] * Math.PI / 180;
           return [r * Math.cos(a), r * Math.sin(a)]; }); }"""
-    VAL = "() => +document.querySelector('#rotBack input').value"
-    set_range(pg, RB, 30, 1500)
+    VAL = "() => +document.querySelector('#rotBack input.hi').value"
+    rot_seek(pg, 28, 1200)
+    rot_span(pg, 3, 1200)          # ★ D1：區間留短一點，播放才有整段可以往「最新」滑
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(900)            # 避開剛啟動的第一拍
     f0 = canvas_hash(pg, "#rotClock")
@@ -4174,7 +4546,9 @@ def t_new_clock(pg, base):
     v2, xy2 = pg.evaluate(VAL), pg.evaluate(XY)
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(300)
-    d1, d2 = v0 - v1, v1 - v2
+    # ★ 2026-09-23 D1：值的語意反了（30 ＝ 最新），播放是往「最新」滑 ＝ **位置變大**。
+    #   舊的 `v0 - v1` 在新語意下恆為負，`d1 > 0` 必紅 —— 守的事情沒變，只是方向換過來。
+    d1, d2 = v1 - v0, v2 - v1
     ok("播放時每一段時間走掉的天數一樣多（等速）",
        d1 > 0 and d2 > 0 and abs(d1 - d2) <= 2, f"{v0} → {v1} → {v2}（各走 {d1} / {d2} 天）")
 
@@ -4196,7 +4570,7 @@ def t_new_clock(pg, base):
        pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('rotClock')).getOption().animationDurationUpdate"))
 
     # ---------------------------------------------------------- A4-7 軌跡開關
-    set_range(pg, RB, 8, 1600)
+    rot_seek(pg, 8, 1600)
     n_on = _rot_trail_pts(pg)
     ok("預設有畫軌跡（A4-7）", n_on > 20, n_on)
     ok("軌跡開關真的存在（A4-7）", pg.evaluate("() => !!document.querySelector('#rotTools input[type=checkbox]')"))
@@ -4210,13 +4584,15 @@ def t_new_clock(pg, base):
     ok("再打開軌跡真的回來（A4-7）", n_back > 20, f"{n_off} → {n_back}")
 
     # ---------------------------------------------------------- A4-5 播放
-    set_range(pg, RB, 24, 1200)
-    pv0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+    rot_seek(pg, 24, 1200)
+    pv0 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(2600)
-    pv1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
-    changed("按播放之後拉Bar 真的自己在走（A4-5）", pv0, pv1)
-    ok("播放是往「現在」走（值變小＝時間往前）（A4-5）", pv1 < pv0, f"{pv0} → {pv1}")
+    pv1 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
+    changed("按播放之後區間桿真的自己在走（A4-5）", pv0, pv1)
+    # ★ 2026-09-23 D1：位置的語意是「30 ＝ 最新」，所以播放（整段往「最新」滑）是**值變大**。
+    #   舊斷言寫 `pv1 < pv0`，在新語意下必紅 —— 而且它守的事情沒變：時間要往今天走。
+    ok("播放是往「最新」走（位置變大＝時間往今天走）（A4-5）", pv1 > pv0, f"{pv0} → {pv1}")
     ok("播放中按鈕變成暫停的樣子", pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent") == "⏸")
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(300)
@@ -4243,7 +4619,7 @@ def t_new_clock(pg, base):
         return ok(label, a == b_ and a is not None, f"frame {a} → {b_}（應該一模一樣）")
 
     # ①-a 最單純的：播放 → 暫停
-    set_range(pg, RB, 26, 1200)
+    rot_seek(pg, 26, 1200)
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(1600)
     ok("播放中 frame 真的在動（不然下面三條等於沒驗）",
@@ -4253,23 +4629,23 @@ def t_new_clock(pg, base):
     _paused("按暫停之後時鐘真的停住（2026-09-21：暫停壞掉）")
 
     # ①-b 「重畫之後再按暫停」—— 播到一半點族群晶片（會重建篩選列與晶片列）再暫停
-    CHIP0 = '#v-flow .rotfilter[data-rf="flow"] .linkrow.gchips'
-    set_range(pg, RB, 26, 1200)
+    # ★ 2026-09-23 W6：晶片列 → 兩層下拉，改走 rot_dd_toggle
+    _g0 = (rot_dd_groups(pg) or [None])[0]
+    rot_seek(pg, 26, 1200)
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(1400)
-    pg.eval_on_selector(f"{CHIP0} .gchip .pick", "b => b.click()")
-    pg.wait_for_timeout(1400)
-    ok("播放中點族群晶片，時鐘還在播（重畫沒有把播放弄丟）",
+    ok("在下拉裡勾得到一個族群（下面三條的前提）", bool(_g0) and rot_dd_toggle(pg, _g0, wait=1400), _g0)
+    ok("播放中在下拉裡勾族群，時鐘還在播（重畫沒有把播放弄丟）",
        pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent") == "⏸",
        pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent"))
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(300)
-    _paused("重畫（點過族群晶片）之後再按暫停，一樣停得下來")
-    pg.eval_on_selector(f"{CHIP0} .gchip.on .pick", "b => b.click()")     # 收拾
-    pg.wait_for_timeout(1000)
+    _paused("重畫（勾過族群）之後再按暫停，一樣停得下來")
+    for _g in rot_dd_on(pg)[:4]:
+        rot_dd_toggle(pg, _g, wait=800)          # 收拾
 
     # ①-c **原本的 bug 本體**：卡片在播 → 開放大 → 在放大裡按暫停 → ESC，卡片必須是停的
-    set_range(pg, RB, 28, 1200)
+    rot_seek(pg, 28, 1200)
     pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
     pg.wait_for_timeout(1200)
     pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
@@ -4293,7 +4669,7 @@ def t_new_clock(pg, base):
     cv1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
     ok("關掉放大視窗之後卡片那張時鐘也是停的（這就是「暫停按了沒用」的本體）",
        cv0 == cv1, f"關掉之後 {cv0} → {cv1}（修好之前 2.5 秒內從 3 跑到 27）")
-    set_range(pg, RB, 8, 1200)
+    rot_seek(pg, 8, 1200)
 
     # ---------------------------------------------------------- A4-6 越外圈顏色越深
     # 量的是**畫上去的顏色**：色碼是 mixHex(面板底色, 該階段原色, w)，
@@ -4387,14 +4763,15 @@ def t_new_clock(pg, base):
     # 可以補間 —— 尖端是**瞬移**的，大圈卻用 420ms 慢慢滑，所以看起來尾巴跑在前面。
     # 量法：篩到只剩一個族群（配對才沒有歧義），播放中每 ~60ms 量一次
     #       「尾巴最後一點」與「那顆大圈」的像素距離，整段的最大值要小於一個點的半徑。
-    CHIP = '#v-flow .linkrow.gchips[data-sync="n2"]'
-    pg.eval_on_selector(f"{CHIP} .gchip .pick", "b => b.click()")
-    pg.wait_for_timeout(1400)
+    # ★ 2026-09-23 W6：晶片列 → 兩層下拉（第一層產業鏈、第二層族群複選）
+    _g1 = (rot_dd_groups(pg) or [None])[0]
+    ok("在下拉裡勾得到一個族群（E1 的前提：配對才沒有歧義）",
+       bool(_g1) and rot_dd_toggle(pg, _g1, wait=1400), _g1)
     gap0, rad = _rot_tip_gap(pg)
     if ok("篩到一個族群之後量得到「尾巴尖端」與「大圈」的像素座標（E1）",
           gap0 is not None, {"gap": gap0, "r": rad}):
         ok("靜止時尖端就貼在大圈上（E1）", gap0 <= max(1.0, rad * 0.25), f"{gap0:.2f}px（大圈半徑 {rad:.1f}px）")
-        set_range(pg, RB, 30, 1600)
+        rot_seek(pg, 30, 1600)
         pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
         gaps = []
         for _ in range(40):
@@ -4411,13 +4788,12 @@ def t_new_clock(pg, base):
                mx < rad, f"最大 {mx:.2f}px / 中位 {mid:.2f}px（大圈半徑 {rad:.1f}px；"
                          f"修好之前量到的是最大 8.25px / 中位 3.77px）")
     # 收拾：把剛剛為了量測選起來的族群取消掉，後面的條件才是從「全部族群」開始
-    if count(pg, f"{CHIP} .gchip.on"):
-        pg.eval_on_selector(f"{CHIP} .gchip.on .pick", "b => b.click()")
-        pg.wait_for_timeout(1000)
+    for _g in rot_dd_on(pg)[:4]:
+        rot_dd_toggle(pg, _g, wait=800)
 
     # 同一件事在「16 個族群一起播」的情況再量一次（一個族群跑得動，不代表 16 個也跟得上）。
     # 配對靠順序，而順序對不對由下面「靜止時全部為 0」那一條當場驗。
-    set_range(pg, RB, 20, 1700)
+    rot_seek(pg, 20, 1700)
     g_rest, rad_all = _rot_tip_gaps_all(pg)
     if ok("全部族群時也量得到每條尾巴與它自己的大圈（E1）",
           bool(g_rest) and rad_all, {"n": len(g_rest or []), "r": rad_all}):
@@ -4450,16 +4826,27 @@ def t_new_clock(pg, base):
     # ★ 2026-09-21（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）：
     #   以前是「排行一排、時鐘一排，吃同一份狀態」——他在截圖上看到的就是
     #   產業鏈那一排與 56 顆族群晶片**各長了兩份**。現在整張卡只留一份。
+    # ★ 2026-09-23 W6：`filterDropdown()` 給資金去向那排的 class 也是 `ddrow rotfilter`，
+    #   所以 `#v-flow .rotfilter` 現在會數到兩排 —— 但第二排是**另一個控制項**（資金去向的單選下拉），
+    #   不是「資金輪動的篩選列有兩排」。這裡要問的是後者，所以選擇器縮成 `[data-rf]`
+    #   （只有 `wireRotFilter()` 產的那幾排才有這個屬性）。
+    #   ⚠ 兩排共用 class 本身是個**真的問題**（`wireRotFilter` 會把資金去向那排整個覆寫掉），
+    #     它由 `批次30-兩層下拉與象限卡` 的 W6-14b 專門守，不是放進這一條混著驗。
     ok("整張卡只有一排篩選列（2026-09-21 合併）",
-       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter').length") == 1,
+       pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter[data-rf]').length") == 1,
        pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter')].map(b => b.dataset.rf)"))
     ok("舊的 data-rf=\"rank\" 那一排真的不在 DOM 裡（不是藏起來）",
        pg.evaluate("() => document.querySelectorAll('.rotfilter[data-rf=\"rank\"]').length") == 0)
-    ok("篩選列上沒有「族群篩選」了（E3：族群只在晶片列選）",
+    ok("篩選列上沒有舊的「族群篩選」鈕了（E3：族群只在下拉裡選）",
        pg.evaluate("() => document.querySelectorAll('#v-flow .rotfilter .rot-gbtn').length") == 0,
        pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter button')].map(b => b.textContent.trim())"))
-    ok("整張卡只有一排族群晶片列（唯一的族群選擇器，2026-09-21 合併）",
-       count(pg, CHIP) == 1, count(pg, CHIP))
+    # ★ 2026-09-23 W6：唯一的族群選擇器從「一排晶片」換成「兩層下拉」。
+    #   舊斷言 `count(CHIP) == 1` 現在恆為 0 ＝ 必紅；改成驗新結構而且**晶片列真的不在了**。
+    ok("整張卡的族群選擇器只有一組兩層下拉（W6）",
+       count(pg, f'{ROT_DD} .rotdd') == 2, count(pg, f'{ROT_DD} .rotdd'))
+    ok("舊的族群晶片列真的不在 DOM 裡（不是藏起來）",
+       count(pg, '#v-flow .rotfilter .linkrow.gchips .gchip') == 0,
+       count(pg, '#v-flow .rotfilter .linkrow.gchips .gchip'))
 
     # ------------------------------------------- 2026-09-21②「個股篩選拿掉」
     # Andy 的原話就是這三個字。驗的是**全站一顆都不剩**（含放大視窗），
@@ -4482,33 +4869,38 @@ def t_new_clock(pg, base):
     # Andy：「下方的族群篩選幫我改到 全部、半導體、…、傳產下方 包含資金流向排行，
     #         並且需要縮小一點 我只是需要篩選選取」。
     # 量三件事：DOM 順序、y 座標、字級；而且**兩張卡都要**。
-    place = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .rotfilter')].map(box => {
-        const seg = box.querySelector('.rotchain'), ch = box.querySelector('.linkrow.gchips');
-        if (!seg || !ch) return { rf: box.dataset.rf, missing: true };
-        const a = seg.getBoundingClientRect(), c = ch.getBoundingClientRect();
-        const pick = ch.querySelector('.gchip .pick');
+    # ★ 2026-09-23 W6：整排 56 顆晶片換成**兩層下拉**，所以「晶片列貼在產業鏈那一排下面」
+    #   這件事的載體變了 —— 兩層下拉本身就是同一排（第一層產業鏈、第二層族群並排）。
+    #   量的仍然是同一組事實：兩層在同一個容器裡、第一層在前、整排在圖的上面、不會把圖推下去。
+    # ⚠ 同上：選擇器縮成 `[data-rf]`，只量資金輪動那一排（資金去向那排是另一個控制項）
+    place = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .rotfilter[data-rf]')].map(box => {
+        const a0 = box.querySelector('.rotdd[data-dd="chain"]'), b0 = box.querySelector('.rotdd[data-dd="group"]');
+        if (!a0 || !b0) return { rf: box.dataset.rf, missing: true };
+        const a = a0.getBoundingClientRect(), c = b0.getBoundingClientRect();
         const chart = box.closest('.card').querySelector('.chart');
         const cr = chart ? chart.getBoundingClientRect() : null;
+        const br = box.getBoundingClientRect();
         return { rf: box.dataset.rf,
-                 afterSeg: !!(seg.compareDocumentPosition(ch) & Node.DOCUMENT_POSITION_FOLLOWING),
-                 sameBox: ch.parentElement === box,
-                 gapY: Math.round(c.top - a.bottom),
-                 aboveChart: cr ? c.bottom <= cr.top + 1 : null,
-                 h: Math.round(c.height), n: ch.querySelectorAll('.gchip').length,
-                 fs: pick ? parseFloat(getComputedStyle(pick).fontSize) : null }; })""")
-    ok("量得到那一排晶片列的位置（合併後只有一排）",
+                 afterChain: !!(a0.compareDocumentPosition(b0) & Node.DOCUMENT_POSITION_FOLLOWING),
+                 sameBox: b0.parentElement === box,
+                 gapX: Math.round(c.left - a.right),
+                 aboveChart: cr ? br.bottom <= cr.top + 1 : null,
+                 h: Math.round(br.height),
+                 n: box.querySelectorAll('.rotdd[data-dd="group"] .ddlist input[data-g]').length,
+                 fs: parseFloat(getComputedStyle(b0.querySelector('.ddbtn')).fontSize) }; })""")
+    ok("量得到那一排兩層下拉的位置（合併後只有一排）",
        len(place) == 1 and not any(x.get("missing") for x in place), place)
     if len(place) == 1 and not any(x.get("missing") for x in place):
         for x in place:
             tag = "共用篩選列"
-            ok(f"[{tag}] 晶片列在產業鏈那一排的正下方（DOM 順序＋同一個容器）",
-               x["afterSeg"] and x["sameBox"], x)
-            ok(f"[{tag}] 而且真的貼著它（垂直間距 0～14px）", 0 <= x["gapY"] <= 14, x)
-            ok(f"[{tag}] 晶片列在圖的上面（不是還留在圖下方）", x["aboveChart"] is True, x)
-            ok(f"[{tag}] 字級縮小到 11px（他要的是選單不是內文）", x["fs"] == 11, x)
+            ok(f"[{tag}] 第二層（族群）排在第一層（產業鏈）後面，而且同一個容器",
+               x["afterChain"] and x["sameBox"], x)
+            ok(f"[{tag}] 兩層是並排的（水平間距 ≥ 0，不是掉到下一行以外的地方）", x["gapX"] >= -1, x)
+            ok(f"[{tag}] 整排在圖的上面（不是還留在圖下方）", x["aboveChart"] is True, x)
+            ok(f"[{tag}] 按鈕字級 ≤ 12px（他要的是選單不是內文）", x["fs"] <= 12, x)
             ok(f"[{tag}] 整排高度有上限，不會把圖推下去（≤ 100px）", x["h"] <= 100, x)
-            ok(f"[{tag}] 族群一個都沒少（還是全部列得出來）", x["n"] > 20, x)
-    ok("圖下方已經沒有舊的那一排晶片了",
+            ok(f"[{tag}] 族群一個都沒少（第二層仍然列得出全部）", x["n"] > 20, x)
+    ok("圖下方已經沒有舊的那一排晶片了（也沒有留下空的 .linkrow.gchips）",
        pg.evaluate("() => document.querySelectorAll('#rotClockWrap .linkrow.gchips, "
                    "#rankFlowWrap .linkrow.gchips').length") == 0,
        pg.evaluate("() => document.querySelectorAll('#rotClockWrap .linkrow.gchips, "
@@ -4525,8 +4917,11 @@ def t_new_clock(pg, base):
     # ------------------------------------------- 2026-09-21⑥ 畫面上不准出現英文 id
     # Andy 的截圖上有一格寫著 `financial`。根因是 CHAIN_NAME 那張寫死的對照表沒跟上族群改版；
     # 正解是讀 payload 的 chains[].name，所以這裡直接對**畫面上的字**掃一次正規式。
-    segtxt = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotchain button')]"
-                         ".map(b => b.textContent.trim())")
+    # ★ 2026-09-23 W6：產業鏈那一排從 `.seg.rotchain` 的按鈕換成**第一層下拉**裡的選項。
+    #   舊選擇器現在回空清單，而 `not []` 是 True —— 這條會變成「掃了 0 個字也算過」＝假綠。
+    segtxt = pg.evaluate('() => [...document.querySelectorAll(\'#v-flow .rotfilter[data-rf] '
+                         '.rotdd[data-dd="chain"] .ddopt[data-c]\')].map(b => b.textContent.trim())')
+    ok("量得到產業鏈那一排的每一個名字（空清單不算過）", len(segtxt) >= 3, segtxt)
     import re as _re
     bad = [t for t in segtxt if _re.fullmatch(r"[A-Za-z0-9_\- ]+", t)]
     ok("產業鏈篩選列上一個英文 id 都沒有（全站繁體中文是硬規則）", not bad,
@@ -4539,23 +4934,24 @@ def t_new_clock(pg, base):
     n_clock0 = len(_rot_scatter(pg) or [])
     n_rank0 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
         return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
-    gids = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotfilter[data-rf=\"flow\"] "
-                       ".linkrow.gchips .gchip')].map(c => c.dataset.g)")
-    if ok("晶片列真的列得出族群（E3）", len(gids) >= 3, len(gids)):
+    gids = rot_dd_groups(pg)
+    if ok("第二層下拉真的列得出族群（E3）", len(gids) >= 3, len(gids)):
         for g in gids[:2]:
-            pg.eval_on_selector(f'{CHIP} .gchip[data-g="{g}"] .pick', "b => b.click()")
-            pg.wait_for_timeout(900)
+            rot_dd_toggle(pg, g, wait=900)
         n_clock1 = len(_rot_scatter(pg) or [])
         n_pts1 = pg.evaluate("() => ((window.App && window.App._rotPts) || []).length")
         n_rank1 = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
             return c ? ((c.getOption().yAxis[0].data) || []).length : 0; }""")
-        ok("點晶片，輪動時鐘上真的只剩這兩個族群（E3）",
+        ok("勾兩個族群，輪動時鐘上真的只剩這兩個（E3）",
            n_clock1 == 2 and n_clock0 > 2, f"{n_clock0} → {n_clock1}")
         ok("_rotPts 的族群數也真的變少（E3）", n_pts1 == 2, f"{n_clock0} → {n_pts1}")
-        changed("點晶片，資金流向排行上的族群數也真的變了（兩張圖同一份選擇）", n_rank0, n_rank1)
-        ok("那一排晶片上兩顆都被選起來了（合併後只有一排，所以是 2 不是 4）",
-           count(pg, f"{CHIP} .gchip.on") == 2, count(pg, f"{CHIP} .gchip.on"))
-        ok("點晶片同時在排行下方展開成分股（點族群展開個股長在這一排身上）",
+        changed("勾族群，資金流向排行上的族群數也真的變了（兩張圖同一份選擇）", n_rank0, n_rank1)
+        ok("★ 第二層下拉裡**真的有兩格打勾**（不是只有圖變了、清單沒跟上）",
+           sorted(rot_dd_on(pg)) == sorted(gids[:2]), rot_dd_on(pg))
+        ok("★ 按鈕上的摘要寫出「已選 2 個」（收起來也看得出自己選了什麼）",
+           "已選 2" in (pg.evaluate(f"() => (document.querySelector('{ROT_DD} .rotdd[data-dd=\"group\"] .ddbtn')||{{}}).textContent") or ""),
+           pg.evaluate(f"() => (document.querySelector('{ROT_DD} .rotdd[data-dd=\"group\"] .ddbtn')||{{}}).textContent"))
+        ok("勾族群同時在排行下方展開成分股（點族群展開個股長在這一排身上）",
            pg.evaluate("""() => { const b = document.getElementById('rankPanel');
                return !!b && !b.hidden && b.querySelectorAll('.ms a[href^="#stock/"]').length > 0; }"""))
         ok("篩選列上寫出目前只看幾個族群（C4）",
@@ -4563,17 +4959,15 @@ def t_new_clock(pg, base):
            pg.evaluate("() => (document.querySelector('.rotfilter .rot-note')||{}).textContent"))
         ls = pg.evaluate("() => { try { return localStorage.getItem('tw.rot.filter'); } catch (e) { return null; } }")
         ok("選擇真的寫進 localStorage（C4）", bool(ls) and gids[0] in ls, ls)
-        # 再點一次要取消
+        # 再勾一次要取消
         for g in gids[:2]:
-            pg.eval_on_selector(f'{CHIP} .gchip[data-g="{g}"] .pick', "b => b.click()")
-            pg.wait_for_timeout(900)
-        ok("再點一次取消，兩張圖真的還原（E3）",
+            rot_dd_toggle(pg, g, wait=900)
+        ok("再勾一次取消，兩張圖真的還原（E3）",
            len(_rot_scatter(pg) or []) == n_clock0, f"{n_clock1} → {len(_rot_scatter(pg) or [])}")
         # 「清除篩選」也要還能用（個股篩選拿掉之後它的出現條件改過）
-        pg.eval_on_selector(f'{CHIP} .gchip[data-g="{gids[0]}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(900)
+        rot_dd_toggle(pg, gids[0], wait=900)
         ok("選了族群才會冒出「清除篩選」", count(pg, '.rotfilter[data-rf="flow"] .rot-clear') == 1)
-        click(pg, '.rotfilter[data-rf="flow"] .rot-clear', 1000)
+        ok("按「清除篩選」按得下去", rot_dd_clear(pg))
         ok("按「清除篩選」真的全部還原",
            len(_rot_scatter(pg) or []) == n_clock0, f"→ {len(_rot_scatter(pg) or [])}（原本 {n_clock0}）")
 
@@ -4584,7 +4978,7 @@ def t_new_clock(pg, base):
     #   被動元件 MLCC 31 天裡 31 天都被硬夾在盤緣、矽晶圓 28/31 —— 整段播放半徑動也不動。
     # 修法是盤緣外留一條壓縮過的緩衝帶（CLOCK_TAIL=0.18），今天的畫面一個像素都沒動。
     # 這裡量兩件事：① 今天最外圈只有一個 ② 被夾過的那幾個現在真的會動。
-    set_range(pg, RB, 1, 1600)
+    rot_seek(pg, 1, 1600)
     rr = pg.evaluate("() => ((window.App && window.App._rotPts) || []).map(p => ({ n: p.name, r: p.r }))")
     if ok("讀得到每顆點的半徑", len(rr) > 5, len(rr)):
         rr.sort(key=lambda x: -x["r"])
@@ -4599,7 +4993,7 @@ def t_new_clock(pg, base):
     # ② 刷過整段時間軸，最外圈那個族群的半徑必須**真的在變**（以前是 31 天都一樣）
     trace = {}
     for f in (1, 5, 10, 20, 30):
-        set_range(pg, RB, f, 1400)
+        rot_seek(pg, f, 1400)
         for x in pg.evaluate("() => ((window.App && window.App._rotPts) || []).map(p => ({ n: p.name, r: p.r }))"):
             trace.setdefault(x["n"], []).append(round(x["r"], 3))
     outer = sorted(trace.items(), key=lambda kv: -max(kv[1]))[:2]
@@ -4610,7 +5004,7 @@ def t_new_clock(pg, base):
     ok("而且沒有人跑出畫布（緩衝帶上限 1.18）",
        max(max(v) for v in trace.values()) <= 1.181,
        max((max(v), k) for k, v in trace.items()))
-    set_range(pg, RB, 5, 1400)
+    rot_seek(pg, 5, 1400)
 
     # ------------------------------------------------- 兩階段下鑽（Andy 2026-09-21）
     # 他的原話：「點擊族群後可以顯示對應個股，也可以點擊，並顯示在圖上，
@@ -4696,7 +5090,7 @@ def t_new_clock(pg, base):
             before_xy = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
                 const ss = (c.getOption().series || []).filter(s => s.type === 'scatter');
                 return { g: ss[0].data[0].value, s: ss[1].data[0].value }; }""")
-            set_range(pg, RB, 22, 1800)
+            rot_seek(pg, 22, 1800)
             after_xy = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
                 const ss = (c.getOption().series || []).filter(s => s.type === 'scatter');
                 return { g: ss[0].data[0].value, s: ss[1].data[0].value }; }""")
@@ -4706,7 +5100,7 @@ def t_new_clock(pg, base):
             ok("下鑽狀態下「看哪一天」對個股點一樣有效（個股也跟著回放）",
                abs(before_xy["s"][0] - after_xy["s"][0]) > 1e-6 or abs(before_xy["s"][1] - after_xy["s"][1]) > 1e-6,
                [before_xy["s"], after_xy["s"]])
-            set_range(pg, RB, 5, 1400)
+            rot_seek(pg, 5, 1400)
             n_g0 = sum(1 for x in _rot_pts(pg) if not x["stock"])
             pg.eval_on_selector('.rotfilter[data-rf="flow"] .rot-top10', "c => { c.checked = true; c.onchange(); }")
             pg.wait_for_timeout(1400)
@@ -4783,11 +5177,9 @@ def t_new_clock(pg, base):
     pg.goto(base, wait_until="networkidle")
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
     scroll_to(pg, "rotClockWrap")
-    gid0 = pg.evaluate("() => { const c = document.querySelector('#v-flow .linkrow.gchips[data-sync=\"n2\"] .gchip');"
-                       " return c ? c.dataset.g : null; }")
+    gid0 = (rot_dd_groups(pg) or [None])[0]
     if gid0:
-        pg.eval_on_selector(f'#v-flow .linkrow.gchips[data-sync="n2"] .gchip[data-g="{gid0}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(1800)
+        rot_dd_toggle(pg, gid0, wait=1800)
         # 基準要在**點完族群之後**才量：點族群晶片本來就會把圖篩成只剩它，
         # 在那之前量的話這一條會變成在比兩件不相干的事（實測 16 → 2）。
         n_before_fail = len(_rot_pts(pg))
@@ -4841,7 +5233,7 @@ def t_new_clock(pg, base):
     ok("800px 那顆「即時」也還在同一排（窄畫面不可以把它擠掉）",
        bool(narrow["bar"]) and narrow["bar"]["live"] == 1, narrow["bar"])
     # 800px 底下真的按一次 −，值要變（不是只是畫得出來）
-    set_range(pg, RB, 12, 1200)
+    rot_seek(pg, 12, 1200)
     w0 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
     pg.eval_on_selector_all("#rotBack .pb.step", "bs => bs[0].click()")
     pg.wait_for_timeout(1100)
@@ -4891,19 +5283,22 @@ def t_rotmerge(pg, base):
                 if (q.width < 2) return;
                 const d = Math.max(q.right - r.right, r.left - q.left);
                 if (d > 2) out.push([(e.className + '').slice(0, 20), Math.round(d)]); });
-            return { rf: card.querySelectorAll('.rotfilter').length,
-                     chips: card.querySelectorAll('.linkrow.gchips').length,
+            return { rf: card.querySelectorAll('.rotfilter[data-rf]').length,
+                     /* ★ 2026-09-23 W6：族群晶片列換成兩層下拉，數的是資金輪動那一排的 `.rotdd`（兩顆＝一份）。*/
+                     chips: card.querySelectorAll('.rotfilter[data-rf] .rotdd').length,
                      how: card.querySelectorAll('.howbtn').length,
                      zoom: card.querySelectorAll('#rotZoomBtn').length,
                      back: card.querySelectorAll('#rotBack').length,
-                     days: card.querySelectorAll('#rankDays').length,
+                     /* ★ D1：`#rankDays` 併進區間桿，所以「最近幾天」的新家是
+                        `#rotBack` 裡的左把手 `input.lo`（數它，不是數已經不存在的 id）。*/
+                     days: card.querySelectorAll('#rotBack input.lo').length,
                      out,
                      sideways: document.documentElement.scrollWidth
                                > document.documentElement.clientWidth + 1 }; }""")
         if not ok(tag + "時鐘與排行在同一張卡裡（合併）", bool(one), one):
             return
-        ok(tag + "共用控制區只有一份（產業鏈 seg ＋ 族群晶片列）",
-           one["rf"] == 1 and one["chips"] == 1, one)
+        ok(tag + "共用控制區只有一份（產業鏈 ＋ 族群，兩層下拉各一顆）",
+           one["rf"] == 1 and one["chips"] == 2, one)
         ok(tag + "「看哪一天」與「最近幾天」都在同一張卡的時間列上",
            one["back"] == 1 and one["days"] == 1, one)
         ok(tag + "只剩一顆「怎麼看 ?」與一顆「⤢ 放大」",
@@ -4911,13 +5306,25 @@ def t_rotmerge(pg, base):
         ok(tag + "卡片裡沒有東西凸出卡片（控制區三排不會互相擠出去）", not one["out"], one["out"][:4])
         ok(tag + "沒有橫向捲軸", not one["sideways"], one)
         # 族群晶片列在窄畫面仍然是「有上限、捲得動」——不然 56 顆會把圖推到看不見
-        sc = pg.evaluate("""() => { const r = document.querySelector('#v-flow .linkrow.gchips');
-            if (!r) return null; const cs = getComputedStyle(r);
-            return { ch: Math.round(r.clientHeight), sh: Math.round(r.scrollHeight),
-                     oy: cs.overflowY, n: r.querySelectorAll('.gchip').length }; }""")
-        ok(tag + "族群晶片列有高度上限而且捲得動（56 顆不會把圖推下去）",
-           bool(sc) and sc["ch"] <= 110 and sc["oy"] in ("auto", "scroll")
-           and sc["sh"] > sc["ch"], sc)
+        # ★ 2026-09-23 W6：56 顆晶片改成兩層下拉，所以「不會把圖推下去」的做法變了：
+        #   收起來的時候只有兩顆按鈕（高度必然小），族群清單是**點開才出現的面板**，
+        #   而那個面板自己要有高度上限＋可捲。兩件事分開量。
+        # ⚠ 清單住在「點開才出現」的面板裡，收著的時候 clientHeight／scrollHeight 都是 0 ——
+        #   不先打開就量，會拿到 0 > 0 的假紅。所以先真的按開第二層再量。
+        rot_dd_open(pg, "group", ROT_DD, 500)
+        sc = pg.evaluate("""() => { const r = document.querySelector('#v-flow .rotfilter[data-rf]');
+            const lst = document.querySelector('#v-flow .rotfilter[data-rf] .rotdd[data-dd="group"] .ddlist');
+            if (!r || !lst) return null;
+            return { ch: Math.round(r.getBoundingClientRect().height),
+                     lch: Math.round(lst.clientHeight), lsh: Math.round(lst.scrollHeight),
+                     loy: getComputedStyle(lst).overflowY,
+                     n: lst.querySelectorAll('input[data-g]').length }; }""")
+        if ok(tag + "量得到兩層下拉與它的族群清單", bool(sc), sc):
+            ok(tag + "收起來時整排篩選列很矮（≤ 110px，不會把圖推下去）", sc["ch"] <= 110, sc)
+            ok(tag + "族群清單自己有高度上限而且捲得動（56 個不會把面板撐爆）",
+               sc["loy"] in ("auto", "scroll") and sc["lch"] > 0 and sc["lsh"] > sc["lch"], sc)
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(400)
 
         # ---------------------------------------------------------- ① 一次點擊同時影響兩張圖
         c0, r0 = _n_clock(), _n_rank()
@@ -4926,7 +5333,8 @@ def t_rotmerge(pg, base):
             const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
             const size = {};
             pts.forEach(p => { const c = p.chain || ''; if (c) size[c] = (size[c] || 0) + 1; });
-            return [...document.querySelectorAll('#v-flow .rotchain button')]
+            // ★ W6：產業鏈那一排＝第一層下拉裡的選項（`.ddopt[data-c]`）
+            return [...document.querySelectorAll('#v-flow .rotfilter[data-rf] .rotdd[data-dd="chain"] .ddopt[data-c]')]
               .filter(b => b.dataset.c)
               .map(b => ({ c: b.dataset.c, t: b.textContent.trim(), n: size[b.dataset.c] || 0 })); }""")
         # ★ 挑鏈要挑「真的會讓筆數變少」的那一條：時鐘最多畫 16 個族群、排行最多畫 15 根，
@@ -4936,7 +5344,7 @@ def t_rotmerge(pg, base):
         #   而「半導體」那種塞滿的鏈另外用「名單真的換人了」來驗。
         small = min([x for x in chains if 2 <= x["n"] < 15], key=lambda x: x["n"], default=None)
         if ok(tag + "產業鏈那一排點得到（至少有一條族群數 < 15 的鏈）", bool(small), chains):
-            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{small["c"]}"]', "b => b.click()")
+            _rot_pick_chain(pg, small["c"])
             pg.wait_for_timeout(1400)
             c1, r1 = _n_clock(), _n_rank()
             ok(tag + f"點「{small['t']}」→ 時鐘上的族群真的變少",
@@ -4950,8 +5358,7 @@ def t_rotmerge(pg, base):
                   .filter(p => !p.stock && !set.has(p.gid)).map(p => p.name);
                 return bad; }""", small["c"])
             ok(tag + f"而且時鐘上剩下的每一個都真的屬於「{small['t']}」", not inchain, inchain[:5])
-            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
-            pg.wait_for_timeout(1400)
+            _rot_pick_chain(pg, "")
             ok(tag + "按「全部」兩張圖一起還原",
                _n_clock() == c0 and _n_rank() == r0,
                {"時鐘": f"{c1} → {_n_clock()}（原 {c0}）", "排行": f"{r1} → {_n_rank()}（原 {r0}）"})
@@ -4960,7 +5367,7 @@ def t_rotmerge(pg, base):
         semi = next((x for x in chains if x["t"] == "半導體"), None)
         if semi:
             before = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
-            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{semi["c"]}"]', "b => b.click()")
+            _rot_pick_chain(pg, semi["c"])
             pg.wait_for_timeout(1400)
             after = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
             changed(tag + "點「半導體」→ 時鐘上的族群名單真的換人了（筆數受上限所限不會變）",
@@ -4974,15 +5381,13 @@ def t_rotmerge(pg, base):
                                   .map(d => d.gid).filter(g => !set.has(g)) : ['<沒有圖>'];
                 return gs; }""", semi["c"])
             ok(tag + "排行上剩下的每一根長條也都是半導體鏈的（同一份篩選）", not bad, bad[:5])
-            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
-            pg.wait_for_timeout(1400)
+            _rot_pick_chain(pg, "")
 
         # ---------------------------------------------------------- ② 一支「看哪一天」決定兩張圖的日期
-        RB = "#rotBack input[type=range]"
-        set_range(pg, RB, 3, 1400)
+        rot_seek(pg, 3, 1400)
         pg.wait_for_timeout(500)
         d0, s0 = _clock_date(), text(pg, "#rankSub")
-        set_range(pg, RB, 22, 1600)
+        rot_seek(pg, 22, 1600)
         pg.wait_for_timeout(600)
         d1, s1 = _clock_date(), text(pg, "#rankSub")
         changed(tag + "拖「看哪一天」往回，時鐘的日期真的變了", d0, d1)
@@ -4992,7 +5397,7 @@ def t_rotmerge(pg, base):
         # 排行那一段的結尾，必須就是時鐘大圈落在的那一天（不是「看起來一樣其實差 20 天」）
         ok(tag + "排行那一段的結尾日期，就是時鐘上的那一天",
            bool(d1) and d1 in (s1 or ""), {"時鐘": d1, "排行副標": s1})
-        set_range(pg, RB, 5, 1400)
+        rot_seek(pg, 5, 1400)
 
         # ---------------------------------------------------------- ③ 只看前 10 大
         c2, r2 = _n_clock(), _n_rank()
@@ -5018,7 +5423,7 @@ def t_rotmerge(pg, base):
     # ------------------------------------------------- 放大視窗：只放大時鐘，關掉之後排行要是對的
     pg.set_viewport_size({"width": 1440, "height": 1000})
     reset_rot(pg, base, 2600)
-    set_range(pg, "#rotBack input[type=range]", 4, 1400)
+    rot_seek(pg, 4, 1400)
     sub_before = text(pg, "#rankSub")
     pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
     pg.wait_for_timeout(2400)
@@ -5053,7 +5458,22 @@ def t_tasks(pg, base):
     驗的是「真的有內容」而不是「元素存在」：任務筆數、狀態統計、
     以及「要 Andy 動手」「等 Andy 回答」這兩塊有沒有真的列出來。
     """
+    # ★ 2026-09-23 D5（Andy：「上方分頁任務板移除」）：**導覽列的入口收掉了，路由留著**。
+    #   所以這一段仍然打得開（直接貼 `#tasks`），但要多守兩件事：
+    #     ① 導覽列上真的看不到「任務板」那一格（入口收掉是需求，要有人守）
+    #     ② 收掉入口之後**沒有別處連過去變成死連結**（全站沒有 href="#tasks"）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    nav = pg.evaluate("""() => { const t = document.querySelector('.topbar');
+        const links = t ? [...t.querySelectorAll('a,button')] : [];
+        return { inNav: links.filter(a => /任務板/.test(a.textContent || '')).length,
+                 hrefs: [...document.querySelectorAll('a[href="#tasks"]')]
+                          .filter(a => a.offsetParent !== null).length }; }""")
+    ok("D5：導覽列上已經看不到「任務板」那一格", nav["inNav"] == 0, nav)
+    ok("D5：收掉入口之後全站沒有看得見的 `#tasks` 連結（不會變成死連結）", nav["hrefs"] == 0, nav)
+
     pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    ok("D5：路由刻意留著 —— 直接貼 `#tasks` 仍然打得開",
+       pg.evaluate("() => location.hash") == "#tasks")
     st = pg.evaluate("""() => { const el = document.getElementById('v-tasks');
         if (!el) return null;
         return { cards: el.querySelectorAll('.tk').length,
@@ -5082,7 +5502,10 @@ def t_tasks(pg, base):
 def t_themes(pg, base):
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
-    ok("題材頁有下方明細", len(text(pg, "#themeDetail")) > 20, text(pg, "#themeDetail")[:40])
+    # ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
+    #   左卡（題材標題＋「← 回題材總覽」＋五個數字方塊＋熱度走勢折線）與右卡（成員表）整組移除。
+    #   `#themeDetail` 現在量到的是「產品剖析圖」那張卡，敘述跟著改。
+    ok("題材頁下方有產品剖析圖卡片", len(text(pg, "#themeDetail")) > 20, text(pg, "#themeDetail")[:40])
 
     # 真的用滑鼠點熱力方塊 → 下方明細要換一個題材
     before = text(pg, "#themeDetail")[:60]
@@ -5133,15 +5556,34 @@ def t_themes(pg, base):
         ok(f"題材 {tid} 有剖析圖", count(pg, "#themeDiagram svg") > 0)
         # Andy 09-13：剖析圖不要縮放（跟產業／個股剖析圖一致），要看大圖用右上角「放大」
         check_nozoom(pg, "themeDiagram", f"題材 {tid} 剖析圖")
-        # ★ 2026-09-19：原本的選擇器含 #themeParts，那是剖析圖零件框、
-        #   不管有沒有分組它都存在，所以這條永遠綠。真正的分組標記是 #themeMembers tr.ghead。
-        ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeMembers tr.ghead") > 0,
-           f"ghead={count(pg, '#themeMembers tr.ghead')} 列")
+        # ★ 2026-09-23：「成員有依族群分組」那一條隨**成員表整張移除**一起退場
+        #   （`#themeMembers` 已經不存在，留著對 22 個題材每一個都會紅）。
         if count(pg, "#themeDiagram [data-part][data-codes]"):
             # 零件會緩慢飄動，一般 click 會卡在「等它停下來」逾時 —— 見 click_moving 的說明
             click_moving(pg, "#themeDiagram [data-part][data-codes]", 700)
             ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0,
                f"#themeParts 連結數 = {count(pg, '#themeParts a.lk')}")
+
+    # ---- ★ 2026-09-23：中間兩張卡真的被拿掉了（移除本身就是需求，要有人守）
+    pg.goto(f"{base}#themes/{tids[0]}", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    ok("題材頁已無成員表、熱度走勢卡與「← 回題材總覽」鈕",
+       pg.evaluate("() => !document.querySelector('#themeMembers') && !document.querySelector('#themeSeries')"
+                   " && !document.querySelector('#themeBack')"))
+    ok("題材頁只剩一張卡（產品剖析圖）", count(pg, "#themeDetail .card") == 1,
+       count(pg, "#themeDetail .card"))
+    # 「其他題材」那排要留著，而且**真的點得動**（拿掉兩張卡不可以把換題材的路一起拿掉）
+    ok("題材頁保留「其他題材」那排標籤", count(pg, "#themeDetail .linkrow a.lk") >= 5,
+       count(pg, "#themeDetail .linkrow a.lk"))
+    _hb = pg.evaluate("location.hash")
+    click(pg, "#themeDetail .linkrow a.lk", 1200)
+    changed("★ 點「其他題材」標籤真的換題材（網址真的變了）", _hb, pg.evaluate("location.hash"))
+
+    # ---- ★ 22 個題材裡有 3 個沒有剖析圖（`window.ThemeDiagrams` 只有 19 把 key）。
+    #   兩張卡拿掉之後它們會整頁空白，所以要改顯示一張說明小卡 —— 驗的就是「不是空白」。
+    for tid in ("panel_pkg", "petrochemical", "mlcc_passive"):
+        pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1000)
+        ok(f"題材 {tid} 沒有剖析圖時有說明、不是空白",
+           "還沒有產品剖析圖" in text(pg, "#themeDetail"), text(pg, "#themeDetail")[:60])
 
 
 def t_stock(pg, base, code):
@@ -5922,41 +6364,57 @@ def t_batch1(pg, base):
         ok("換頁之後外商面板被清掉（圖12 根因）",
            pg.evaluate("() => document.getElementById('coBox') === null"))
 
-    # ---- 圖五：四格輪動板 —— 清單不截斷、四格等高、點族群原地展開成分股
+    # ---- 圖五：★ 2026-09-23 W7／D2 —— 四格輪動板 `#rotBoard` 整塊移除，
+    #     四個階段改成時鐘上的四顆象限卡（`.rotquads .rq`），點一顆才在旁邊展開族群清單。
+    #     舊的八條驗收全部掛在 `.stage`／`#rotBoard` 上，而且外層是 `if not st: continue`
+    #     與 `if 有 .stage li[data-gid]` 兩層守衛 —— 元素不在就**整段安靜跳過** ＝ 假綠。
+    #     所以整組改寫成新載體上的同一件事，而且每一條都驗「畫面真的因此改變了」。
     for w in (1500, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1800)
-        st = pg.evaluate("""() => { const b = document.getElementById('rotBoard');
-            if (!b) return null;
-            const cards = [...b.querySelectorAll('.stage')];
-            return { n: cards.length, hs: cards.map(c => Math.round(c.getBoundingClientRect().height)),
-                     cut: b.textContent.indexOf('還有') >= 0,
-                     scroll: cards.map(c => { const u = c.querySelector('ul'); return u ? u.scrollHeight > u.clientHeight + 1 : false; }) }; }""")
-        if not st:
+        st = pg.evaluate("""() => { const qs = [...document.querySelectorAll('#rotClock .rotquads .rq')];
+            const cl = document.getElementById('rotClock');
+            if (!qs.length || !cl) return null;
+            const cr = cl.getBoundingClientRect();
+            return { n: qs.length, oldBoard: !!document.getElementById('rotBoard'),
+                     names: qs.map(q => (q.firstChild && q.firstChild.textContent || '').trim()),
+                     nums: qs.map(q => ((q.querySelector('em') || {}).textContent || '').trim()),
+                     inside: qs.filter(q => { const r = q.getBoundingClientRect();
+                       return r.left >= cr.left - 2 && r.right <= cr.right + 2
+                           && r.top >= cr.top - 2 && r.bottom <= cr.bottom + 2; }).length }; }""")
+        if not ok(f"[{w}px] 時鐘上量得到四顆象限卡（舊的 #rotBoard 已移除）", bool(st), st):
             continue
-        ok(f"[{w}px] 輪動板四格都在", st["n"] == 4, st)
-        ok(f"[{w}px] 族群清單不再截斷成「還有 N 個」（圖五）", not st["cut"])
-        hs = st["hs"]
-        ok(f"[{w}px] 四格等高（差 ≤2px）", max(hs) - min(hs) <= 2, hs)
+        ok(f"[{w}px] 舊的四格輪動板真的不在 DOM 了", not st["oldBoard"], st["oldBoard"])
+        ok(f"[{w}px] 四顆象限卡都在（改善／領先／轉弱／落後）",
+           st["n"] == 4 and sorted(st["names"]) == sorted(["改善", "領先", "轉弱", "落後"]), st["names"])
+        ok(f"[{w}px] 每一顆都寫得出「這一格有幾個族群」（不是光禿禿一個名字）",
+           all(x.strip() for x in st["nums"]), st["nums"])
+        ok(f"[{w}px] 四顆都落在時鐘的矩形裡（窄畫面也不准飄出去）", st["inside"] == 4, st)
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1800)
-    h0 = pg.evaluate("() => { const c = document.querySelector('.stage'); return c ? Math.round(c.getBoundingClientRect().height) : 0; }")
     hash0 = pg.evaluate("() => location.hash")
-    if pg.evaluate("() => !!document.querySelector('.stage li[data-gid]')"):
-        pg.eval_on_selector(".stage li[data-gid]", "li => li.click()")
-        pg.wait_for_timeout(500)
-        st2 = pg.evaluate("""() => { const c = document.querySelector('.stage');
-            return { mem: !!document.querySelector('.stage li.mem'),
-                     chips: document.querySelectorAll('.stage li.mem a.lk-stock').length,
-                     h: c ? Math.round(c.getBoundingClientRect().height) : 0,
+    q0 = pg.evaluate("""() => { const qs = [...document.querySelectorAll('#rotClock .rotquads .rq')];
+        const q = qs.find(x => parseInt(((x.querySelector('em')||{}).textContent||'0').replace(/\\D/g,''), 10) > 0) || qs[0];
+        return q ? { k: q.dataset.k || '', n: parseInt(((q.querySelector('em')||{}).textContent||'0').replace(/\\D/g,''), 10) } : null; }""")
+    if ok("找得到一顆有族群的象限卡（後面幾條的前提）", bool(q0) and q0["n"] > 0, q0):
+        pg.eval_on_selector(f"#rotClock .rotquads .rq[data-k=\"{q0['k']}\"]", "b => b.click()")
+        pg.wait_for_timeout(900)
+        st2 = pg.evaluate("""() => { const b = document.getElementById('stagePanel');
+            return { open: !!b && !b.hidden,
+                     k: b ? (b.dataset.k || '') : '',
+                     n: document.querySelectorAll('#stagePanel li[data-gid]').length,
+                     on: document.querySelectorAll('#rotClock .rotquads .rq.on').length,
                      hash: location.hash }; }""")
-        ok("點族群會原地展開成分股（圖五）", st2["mem"] and st2["chips"] > 0, st2)
-        ok("點族群不會跳頁（圖五）", st2["hash"] == hash0, st2["hash"])
-        ok("展開之後格子高度沒有被撐長（圖五，差 ≤2px）", abs(st2["h"] - h0) <= 2, f"{h0} → {st2['h']}")
-        pg.eval_on_selector(".stage li[data-gid]", "li => li.click()")
-        pg.wait_for_timeout(400)
-        ok("再點一次會收合（圖五）",
-           pg.evaluate("() => !document.querySelector('.stage li.mem')"))
+        ok("★ 點象限卡 → 展開面板真的從 hidden 變成看得見（畫面真的變了）", st2["open"], st2)
+        ok("★ 面板裡列出的族群數 == 那一顆卡片上寫的數字（不是隨便列一批）",
+           st2["n"] == q0["n"], f"卡片寫 {q0['n']}、面板列 {st2['n']}")
+        ok("點象限卡不會跳頁（原地展開）", st2["hash"] == hash0, st2["hash"])
+        ok("只有被點的那一顆是選起來的狀態", st2["on"] == 1, st2["on"])
+        # 再點同一顆 → 收合（這條證明它是可逆的切換，不是一去不回）
+        pg.eval_on_selector(f"#rotClock .rotquads .rq[data-k=\"{q0['k']}\"]", "b => b.click()")
+        pg.wait_for_timeout(700)
+        ok("再點同一顆象限卡真的收得回去",
+           pg.evaluate("() => { const b = document.getElementById('stagePanel'); return !b || b.hidden; }"))
 
     # ---- 圖19：季節性熱力圖的顏色要真的跟著數字變
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
@@ -5989,8 +6447,8 @@ def t_batch2(pg, base):
     #   選取會留在 localStorage ＋ 記憶體裡，所以這裡一定要先清乾淨再量。
     reset_rot(pg, base, 2200)
 
-    ok("資金流向排行上方有拉Bar（圖四）",
-       pg.evaluate("() => !!document.querySelector('#rankDays input[type=range]')"))
+    ok("資金流向排行上方有拉Bar（圖四；★ D1 之後是 `#rotBack` 那條區間桿的左把手）",
+       pg.evaluate("() => !!document.querySelector('#rotBack input.lo')"))
     # 2026-09-20：播放鈕依 Andy 指示移除（「圖三資金流向移除播放功能」），
     # 所以這裡不再 check_play；拉Bar 本身還在，下面照樣驗「拉了畫面真的變」。
 
@@ -5999,10 +6457,11 @@ def t_batch2(pg, base):
     #   所以這幾條改成驗副標。要守的事情沒變：拉了天數，**日期範圍真的跟著換**。
     # ★ 基準值一定要在「拉到 5 天」之後才取 —— 預設就是 20 天，
     #   在拉到 5 之前取的話，等一下拉回 20 會拿到同一張圖，這條就變成假紅。
-    set_range(pg, "#rankDays input[type=range]", 5, 1200)
+    rot_seek(pg, 0, 700)
+    rot_span(pg, 5, 1200)
     h0 = canvas_hash(pg, "#rankFlow")
     sub0 = text(pg, "#rankSub")
-    set_range(pg, "#rankDays input[type=range]", 20, 1400)
+    rot_span(pg, 20, 1400)
     st = pg.evaluate("""() => ({ sub: (document.getElementById('rankSub')||{}).textContent,
         top: (() => { const c = echarts.getInstanceByDom(document.getElementById('rankFlow'));
                if (!c) return null; const y = c.getOption().yAxis[0].data || []; return y[y.length-1] || null; })() })""")
@@ -6156,14 +6615,16 @@ def t_batch2(pg, base):
        zb["bw"] >= zb["zw"] - 2 and zb["bh"] >= zb["zh"] - 2, zb)
     tools = pg.evaluate("""() => ({
         filt: document.querySelectorAll('#zoomTools .rotfilter[data-rf="zoom"]').length,
-        seg: document.querySelectorAll('#zoomTools .rotchain button').length,
+        // ★ W6：產業鏈那一排改成第一層下拉裡的選項
+        seg: document.querySelectorAll('#zoomTools .rotdd[data-dd="chain"] .ddopt[data-c]').length,
         top10: document.querySelectorAll('#zoomTools .rot-top10').length,
         sbtn: document.querySelectorAll('#zoomTools .rot-sbtn').length,
         gbtn: document.querySelectorAll('#zoomTools .rot-gbtn').length,
         back: document.querySelectorAll('#rotZoomBack input[type=range]').length,
         pb: document.querySelectorAll('#rotZoomBack .pb').length,
         trail: document.querySelectorAll('#rotZoomTools .rot-trail').length,
-        chips: document.querySelectorAll('#zoomTools .rotfilter .gchip').length,
+        // ★ 2026-09-23 W6：晶片列 → 兩層下拉，數的是第二層清單裡的 checkbox
+        chips: document.querySelectorAll('#zoomTools .rotfilter .rotdd[data-dd="group"] .ddlist input[data-g]').length,
         oldChips: document.querySelectorAll('#rotZoomChips').length })""")
     ok("放大視窗的控制項和卡片是同一套（篩選列＋族群晶片／看哪一天＋＋−▶／軌跡開關）（E2）",
        tools["filt"] == 1 and tools["seg"] >= 2 and tools["top10"] == 1
@@ -6188,16 +6649,14 @@ def t_batch2(pg, base):
     ok("在放大視窗按「清除篩選」真的還原（E2）", pg.evaluate(ZN) == n0, f"{n1} → {pg.evaluate(ZN)}")
     # ② 在放大視窗點族群晶片 —— 圖上只剩它
     # 2026-09-21：晶片列搬進 .rotfilter 了，放大視窗那一排也一樣（不再有 #rotZoomChips）
-    ZCHIP = '#zoomTools .rotfilter[data-rf="zoom"] .linkrow.gchips'
-    zg = pg.evaluate(f"() => [...document.querySelectorAll('{ZCHIP} .gchip')].map(c => c.dataset.g)")
-    if len(zg) > 1:
-        pg.eval_on_selector(f'{ZCHIP} .gchip[data-g="{zg[1]}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(1200)
-        ok("在放大視窗點族群晶片，放大的那張圖只剩那一個族群（E2）",
+    ZOOM_DD = '#zoomTools .rotfilter[data-rf="zoom"]'
+    zg = rot_dd_groups(pg, ZOOM_DD)
+    if ok("放大視窗裡的第二層下拉也列得出族群（E2）", len(zg) > 1, len(zg)):
+        rot_dd_toggle(pg, zg[1], ZOOM_DD, 1200)
+        ok("在放大視窗的下拉裡勾族群，放大的那張圖只剩那一個族群（E2）",
            pg.evaluate(ZN) == 1, f"{n0} → {pg.evaluate(ZN)}")
-        pg.eval_on_selector(f'{ZCHIP} .gchip[data-g="{zg[1]}"] .pick', "b => b.click()")
-        pg.wait_for_timeout(1200)
-        ok("再點一次取消，放大的那張圖回到全部族群（E2）", pg.evaluate(ZN) == n0, pg.evaluate(ZN))
+        rot_dd_toggle(pg, zg[1], ZOOM_DD, 1200)
+        ok("再勾一次取消，放大的那張圖回到全部族群（E2）", pg.evaluate(ZN) == n0, pg.evaluate(ZN))
     # ③ 拉「看哪一天」—— 放大的那張圖真的重畫，而且圖上寫得出是哪一天
     before = canvas_hash(pg, "#zoomBody")
     set_range(pg, "#rotZoomBack input[type=range]", 28, 1600)
@@ -6220,21 +6679,23 @@ def t_batch2(pg, base):
     ok("關閉放大視窗", pg.evaluate("() => document.getElementById('zoomOv').hidden") is True)
     ok("關掉之後控制項列有清乾淨（不會留給下一張圖一排按了沒反應的鈕）（E2）",
        pg.evaluate("() => (document.getElementById('zoomTools').innerHTML || '').trim() === ''"))
+    # ★ 2026-09-23 D1：卡片那支換成區間桿（值＝位置，30 ＝ 最新），放大視窗那支
+    #   `#rotZoomBack` 仍是舊的 playBar（值＝幾天前）。同步的是「哪一天」，不是「同一個數字」——
+    #   寫死 28 會紅在換算上，所以改成用 `rot_days_ago()` 比「幾天前」。
     ok("關掉之後卡片上的「看哪一天」跟著同步成放大視窗裡選的那一天（E2）",
-       pg.evaluate("() => +document.querySelector('#rotBack input').value") == 28,
-       pg.evaluate("() => +document.querySelector('#rotBack input').value"))
-    set_range(pg, "#rotBack input[type=range]", 5, 1200)
+       rot_days_ago(pg) == 28, {"卡片": rot_days_ago(pg), "放大視窗選的": 28})
+    rot_seek(pg, 5, 1200)
 
     # 總覽的小輪動圖也有放大鈕
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
-    ok("總覽小輪動圖有「放大」鈕（已拍板：小圖只留放大）",
-       pg.evaluate("() => !!document.getElementById('rotMiniZoomBtn')"))
-    click(pg, "#rotMiniZoomBtn", 1400)
-    ok("總覽按放大也打得開同一個放大視窗",
-       pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }")
-       and pg.evaluate("() => !!document.querySelector('#zoomBody canvas')"))
-    pg.eval_on_selector("#zoomClose", "b => b.click()")
-    pg.wait_for_timeout(500)
+    # ★ 2026-09-23 D6（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點」）：
+    #   `#rotMiniZoomBtn` 整顆移除。舊的兩條（鈕存在 ＋ 按它開放大視窗）會直接逾時 ——
+    #   所以改成正面驗「真的不在 DOM 裡」，並且把「放大」這個能力改由**圓圈本身變大**承接。
+    ok("D6：總覽小輪動圖上方那顆「⤢ 放大」真的不在 DOM 裡",
+       pg.evaluate("() => !document.getElementById('rotMiniZoomBtn')"))
+    ok("D6：小時鐘的圓圈真的變大（容器高度 ≥ 355px，不是靠一顆放大鈕補救）",
+       pg.evaluate("() => { const e = document.getElementById('rotClockMini'); return e ? e.clientHeight : 0; }") >= 355,
+       pg.evaluate("() => { const e = document.getElementById('rotClockMini'); return e ? e.clientHeight : 0; }"))
 
 
 def t_batch3(pg, base):
@@ -6430,12 +6891,15 @@ def t_batch7(pg, base):
     #   全站的 view 都在同一份 DOM 裡，總覽的「族群估值」與這一頁的「資金去向 / 族群×法人」
     #   現在也各有一排族群晶片（filterChips），不限定的話 rows[0] 會抓到總覽那一排，
     #   這條就變成在比兩張不相干的圖（實測 4 vs 36）。
-    lists = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"]')]
-        .map(r => [...r.querySelectorAll('.gchip')].map(c => c.dataset.g))""")
+    # ★ 2026-09-23 W6：`data-sync="n2"` 這個抓手搬到兩層下拉的第一層（`.rotdd[data-dd="chain"]`）上，
+    #   族群名單的新家是第二層的 checkbox 清單。
+    lists = pg.evaluate("""() => [...document.querySelectorAll('#v-flow .rotfilter')]
+        .filter(b => b.querySelector('.rotdd[data-sync="n2"]'))
+        .map(b => [...b.querySelectorAll('.rotdd[data-dd="group"] .ddlist input[data-g]')].map(c => c.dataset.g))""")
     # ★ 2026-09-21：N2 當初要解的是「兩排名單對不上」。兩張卡合併之後**只剩一排**，
     #   那個問題在結構上就不可能再發生 —— 所以判準改成「真的只有一排，而且列得出族群」。
     #   這不是放寬：以前是「兩排要一樣」，現在是「根本沒有第二排可以不一樣」。
-    ok("排行與時鐘共用同一排族群晶片（2026-09-21 合併，N2 的根因消失）",
+    ok("排行與時鐘共用同一組兩層下拉（2026-09-21 合併，N2 的根因消失）",
        len(lists) == 1, [len(x) for x in (lists or [])])
     if lists:
         ok("那一排真的列得出族群（N2）", len(lists[0]) > 20, len(lists[0]))
@@ -6447,32 +6911,31 @@ def t_batch7(pg, base):
         #   排行面板當然不會開。實測：單獨跑 `--only 批次7` 是綠的，接在
         #   `--only 新-資金流向,批次7` 後面就紅，因為前一段已經把總覽渲染出來了。
         #   這是驗收選錯對象，不是功能壞掉。
-        N2 = '#v-flow .linkrow.gchips[data-sync="n2"]'
         n_before = len(_rot_scatter(pg) or [])
-        pg.eval_on_selector(f"{N2} .gchip .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
+        _n2g = lists[0][0]
+        rot_dd_toggle(pg, _n2g, wait=1200)
         st = pg.evaluate("""() => { const b = document.getElementById('rankPanel');
             const sc = (() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
               if (!c) return null; const s = (c.getOption().series||[]).filter(x=>x.type==='scatter')[0];
               return s ? (s.data||[]).length : null; })();
             return { hash: location.hash, panel: !!b && !b.hidden,
-                     on: document.querySelectorAll('#v-flow .linkrow.gchips[data-sync="n2"] .gchip.on').length,
+                     on: [...document.querySelectorAll('#v-flow .rotfilter[data-rf] .rotdd[data-dd="group"] .ddlist input[data-g]')]
+                           .filter(c => c.checked).length,
                      n: sc }; }""")
-        ok("點族群晶片不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
-        ok("點族群晶片會篩選：排行展開成分股 ＋ 時鐘上的族群真的變少（N2＋E3）",
+        ok("在下拉裡勾族群不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
+        ok("勾族群會篩選：排行展開成分股 ＋ 時鐘上的族群真的變少（N2＋E3）",
            st["panel"] and st["n"] == 1 and n_before > 1, {"before": n_before, **st})
-        ok("晶片真的被選起來了（合併後只有一排，所以是 1 排 × 1 顆）", st["on"] == 1, st["on"])
+        ok("那一格在清單裡真的打勾了（合併後只有一組下拉，所以是 1 個）", st["on"] == 1, st["on"])
         # 收拾：取消掉，不要把篩選狀態留給後面的段落
-        pg.eval_on_selector(f"{N2} .gchip.on .pick", "b => b.click()")
-        pg.wait_for_timeout(1000)
-        ok("再點一次取消，時鐘回到全部族群（E3）",
+        rot_dd_toggle(pg, _n2g, wait=1000)
+        ok("再勾一次取消，時鐘回到全部族群（E3）",
            len(_rot_scatter(pg) or []) == n_before, f"{st['n']} → {len(_rot_scatter(pg) or [])}")
 
     # ---- N4 時間週期拉到 30 天
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
         return i && { min: +i.min, max: +i.max }; }""")
     ok("輪動時鐘的天數可以拉到 30 天（N4）", bool(bar) and bar["max"] == 30, bar)
-    set_range(pg, "#rotBack input[type=range]", 30, 1400)
+    rot_seek(pg, 30, 1400)
     # ★ 2026-09-20 改寫（Andy：「只有經過才留下軌跡，不是馬上所有軌跡都先印出來」）。
     #   原本這條是「拉到 30 天時 ln[0].data.length > 3」——
     #   軌跡改成漸進式之後，「前 30 天」就是**起點**，每條軌跡只剩一個點，這個判準必然紅。
@@ -6793,30 +7256,32 @@ def t_batch6_n9(pg, base):
         pg.eval_on_selector("#dgAnim", "b => b.click()")
         pg.wait_for_timeout(700)
 
-    # ---- 2-2 三種配色
-    ok("有看得見的配色切換鈕（圖九 2-2）",
-       pg.evaluate("() => { const b = document.getElementById('dgPal'); return !!b && !b.hidden; }"))
+    # ---- 2-2 兩種配色（★ 2026-09-23 C1：手動鈕 #dgPal 移除，改由「切全站主題」驅動）
+    ok("配色鈕 `#dgPal` 已經整顆不在 DOM 裡（C1：配色只跟著全站主題走）",
+       pg.evaluate("() => !document.getElementById('dgPal')"))
     seen, changed_n = [], 0
     # ★ 2026-09-22：四個配色收斂成**兩種模式**（科技／閱讀，DECISIONS #238）。
-    #   這個迴圈按幾次就得跟著改 —— 按兩次剛好各走到一次。
+    #   ★ 2026-09-23 C1：換模式的唯一入口變成 `#themeBtn`（深→科技、淺→閱讀）。
+    #   切兩次剛好走完一個來回（深→淺→深），兩個方向都驗得到。
     for _ in range(2):
         p0 = pg.evaluate("() => window.Rack3D.current.pal()")
+        t0 = pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'")
         # WebGL 的畫布拿不到 2d context，canvas_hash 對它一律回同一個值 ——
         # 改量真正被畫出去的東西：所有材質顏色的指紋（colorSig）
         h0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
-        pg.eval_on_selector("#dgPal", "b => b.click()")
-        pg.wait_for_timeout(1100)
+        dg_toggle_theme(pg, 2200)
         p1 = pg.evaluate("() => window.Rack3D.current.pal()")
+        t1 = pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'")
         seen.append(p1)
         if p0 != p1:
             changed_n += 1
-        ok(f"按配色鈕真的換色票（{p0} → {p1}）（圖九 2-2）", p0 != p1, f"{p0} → {p1}")
+        ok(f"切全站主題（{t0} → {t1}）真的換了色票（{p0} → {p1}）（圖九 2-2）", p0 != p1, f"{p0} → {p1}")
         h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
         ok(f"換成 {p1} 之後零件顏色真的變了（圖九 2-2）", h0 != h1, f"{h0} → {h1}")
-        ok(f"鈕上的字跟著換（{p1}）", "配色：" in text(pg, "#dgPal"), text(pg, "#dgPal"))
-    # ★ 2026-09-22 DECISIONS #238：3D 只剩兩種模式（科技／閱讀）。鈕還在輪舊的四個名字也沒關係 ——
-    #   three3d.js 會把 soft／casual 映成 read、calm 映成 tech，所以按四次一定兩種都輪得到。
-    ok("兩種模式都輪得到（tech ／ read）（圖九 2-2 → DECISIONS #238 兩種模式）",
+        ok(f"主題與配色對得起來（{t1} → {p1}）",
+           (t1 == "light") == (p1 == "read"), f"theme={t1} pal={p1}")
+    # ★ 2026-09-22 DECISIONS #238：3D 只剩兩種模式（科技／閱讀）。
+    ok("兩種模式都走得到（tech ／ read）（圖九 2-2 → DECISIONS #238 兩種模式）",
        sorted(set(seen)) == ["read", "tech"], seen)
     ok("「閱讀」模式零件不發光（淺底上發光會刺眼；印得出來）",
        pg.evaluate("""() => { const v = window.Rack3D.current; v.setPal('read');
@@ -7274,8 +7739,11 @@ def t_zoom_sweep(pg, base, code):
        輪動時鐘的兩顆放大鈕（總覽 rotMiniZoomBtn、資金流向 rotZoomBtn）加進白名單。
        這是他親口要的第六、七個縮放入口，見 DECISIONS #185。
        白名單只能因為他開口而變長 —— 不准為了讓測試變綠而加。"""
+    # ★ 2026-09-23 D6：`rotMiniZoomBtn` 已整顆移除（Andy 親口要求），
+    #   白名單留著它不會出錯（沒有這顆鈕就永遠比不到），但留著會讓人以為它還在 ——
+    #   所以拿掉，讓白名單忠實反映畫面上真的存在的縮放入口。
     ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap",
-             "rotMiniZoomBtn", "rotZoomBtn")
+             "rotZoomBtn")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -8413,9 +8881,9 @@ def t_sankey_expand_live(pg, base):
         return [best, n]; }""")
     if ok(f"找得到一個成分股超過 20 檔的族群（量到最大 {huge[1]} 檔）", huge[1] > 20, huge):
         ok("成分股最多的那一個是自動桶（ind_*），不是人工族群", str(huge[0]).startswith("ind_"), huge)
-        pg.eval_on_selector(f'.linkrow.gchips[data-for="sankey"] .gchip[data-g="{huge[0]}"] .pick',
-                            "b => b.click()")
-        pg.wait_for_timeout(2200)
+        # ★ 2026-09-23 W6：晶片列換成兩層下拉，改走 sk_dd_pick（見檔案上方）
+        ok("在第二層下拉裡找得到這個自動桶（點不到的話下面全是假綠）",
+           sk_dd_pick(pg, huge[0], 2200), huge[0])
         st = pg.evaluate(_SK_EXP)["g"].get(huge[0]) or {}
         # 不展開＝葉子數維持預設的 3（SANKEY_KIDS），不是幾百顆
         ok("點自動桶不會展開（葉子維持 3 顆，不是把幾百檔攤上去）",
@@ -8439,9 +8907,8 @@ def t_sankey_expand_live(pg, base):
               if (m > n) { n = m; best = g.gid; } }));
             return [best, n]; }""")
         if ok(f"找得到一個成分股 >3 檔的人工族群（量到最大 {real[1]} 檔）", real[1] > 3, real):
-            pg.eval_on_selector(f'.linkrow.gchips[data-for="sankey"] .gchip[data-g="{real[0]}"] .pick',
-                                "b => b.click()")
-            pg.wait_for_timeout(2200)
+            ok("在第二層下拉裡找得到這個人工族群（點不到的話下面是假綠）",
+               sk_dd_pick(pg, real[0], 2200), real[0])
             st2 = pg.evaluate(_SK_EXP)["g"].get(real[0]) or {}
             ok(f"人工族群真的展開成完整名單（該有 {real[1]} 顆，沒有被 20 夾）",
                st2.get("n") == real[1], {"畫出來": st2.get("n"), "該是": real[1]})
@@ -8668,7 +9135,11 @@ def t_mlcc(pg, base):
                   links: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('href')),
                   dgVis: vis(document.querySelector('#dgBody')),
                   tools: vis(document.querySelector('#dgTools')),
-                  back: vis(document.querySelector('#dgBack')),
+                  /* ★ 2026-09-23 C1（Andy：「族群預覽拿掉」）：「← 族群總覽」`#dgBack` 整顆移除。
+                     回上一層的入口改成**上方分頁列的第一格**（`.segchip[data-dgtab="overview"]`）——
+                     它本來就在，所以導覽沒有斷。這裡量的是那一格看不看得見。*/
+                  back: vis(document.querySelector('#dgPick .segchip[data-dgtab="overview"]')),
+                  backGone: !document.querySelector('#dgBack'),
                   svg: !!(h && h.querySelector('svg')),
                   dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
         }""")
@@ -8773,7 +9244,8 @@ def t_mlcc(pg, base):
        m1["hash"] != h_before and m1["hash"].endswith("/dg/mlcc"), f"{h_before} → {m1['hash']}")
     ok("圖旁邊寫著這張圖回答什麼問題（只解釋畫了什麼等於沒寫）",
        "這張圖回答" in m1["dgq"] and len(m1["dgq"]) > 20, m1["dgq"][:70])
-    ok("看完回得去：標題旁邊出現「← 族群總覽」", m1["back"], m1)
+    ok("C1：「← 族群總覽」`#dgBack` 已整顆移除（同一個目的地不留兩顆鈕）", m1["backGone"], m1)
+    ok("看完回得去：上方分頁列第一格「族群總覽」看得見", m1["back"], m1)
     ok("MLCC 圖的零件真的掛上環節（點得到）", d0["parts"] >= 3, d0["parts"])
 
     # ---------------- 1c. ★ 直接貼網址重新整理 —— 沒有這條就不算分頁
@@ -10079,6 +10551,20 @@ SECTIONS = {
     "批次28-一般電子鏈3D": lambda pg, b, base, code: t_b28_elec3d(pg, base),
     # 批次29：產業與個股頁改版（活頁簿分頁、長條圖＋圓餅圖當 Default、昨天／即時、熱力圖獨立頂層分頁）
     "批次29-產業分頁":     lambda pg, b, base, code: t_b29_tabs(pg, base),
+    # ★ 2026-09-23 第十批 C5：關聯圖退版（Default 標籤式個股、點才開清單、點個股右側換人）
+    "批次C5-關聯圖標籤":   lambda pg, b, base, code: t_b25_tags(pg, base),
+    # ★ C4：窄欄（事件抽屜開著、視窗 980～1150）剖析圖不准被切掉右半邊
+    "批次C4-剖析圖窄欄":   lambda pg, b, base, code: t_c4_fit(pg, base),
+    # ★ 金融鏈三張＋軟體鏈四張：supply_chain.yaml 沒有這兩條鏈，所以環節必須是 0（棘輪）
+    "批次C3-無環節棘輪":   lambda pg, b, base, code: t_noseg(pg, base),
+    # ★ W6／W7：資金輪動與資金去向的兩層下拉、時鐘上的四顆象限卡
+    "批次30-兩層下拉與象限卡": lambda pg, b, base, code: t_batch30(pg, base),
+    # ★ C6：19 個 3D 場景的「機器正在運作」動畫（⚠ 一律 --workers 1）
+    "批次C6-3D運轉動畫":   lambda pg, b, base, code: t_c6_anim(pg, base),
+    # ★ W9：軟體與資訊服務四張新圖（換圖、點零件、展章節、窄畫面、淺色對比）
+    "批次W9-軟體鏈四張":   lambda pg, b, base, code: t_w9_software(pg, base),
+    # ★ 題材頁十八張 2D 圖改版（畫布 980、字級、重疊、點一格真的變色、兩條棘輪）
+    "題材2D":              lambda pg, b, base, code: t_themes_2d(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -10181,13 +10667,15 @@ def t_batch13(pg, base):
       const svg = wrap && wrap.querySelector('svg');
       const root = getComputedStyle(document.documentElement);
       const cs = (sel, prop) => { const n = svg && svg.querySelector(sel); return n ? getComputedStyle(n)[prop] : null; };
-      const btn = document.querySelector('#dgPal');
       let texts = 0;
       if (svg) svg.querySelectorAll('text').forEach(n => { const r = n.getBoundingClientRect(); if (r.width && r.height) texts++; });
       return {
         pal: document.documentElement.dataset.dgpal || '',
-        btnTx: btn ? btn.textContent : '',
-        btnVis: !!btn && !btn.hidden && btn.offsetParent !== null,
+        // ★ 2026-09-23 C1：`#dgPal` 整顆移除，模式名改由 data-dgpal 直接翻成中文
+        //   （鈕的字沒了，但「畫面現在是哪一種模式」這件事仍然要驗得到）
+        btnTx: ({tech: '科技', read: '閱讀'})[document.documentElement.dataset.dgpal || 'tech'] || '',
+        palGone: !document.getElementById('dgPal'),
+        theme: document.documentElement.getAttribute('data-theme') || 'dark',
         bg: wrap ? getComputedStyle(wrap).backgroundColor : '',
         frame: cs('.frame', 'fill'), fbar: cs('.dgfold .fbar', 'fill'),
         accent: root.getPropertyValue('--dg-accent-2d').trim(),
@@ -10208,7 +10696,9 @@ def t_batch13(pg, base):
 
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+    # ★ 2026-09-23 C1：配色只跟著全站主題走，所以基準狀態改成「深色主題、清掉舊偏好」
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.dg3d.pal');"
+                " localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(2600)
     a0 = pg.evaluate(PROBE)
@@ -10216,21 +10706,24 @@ def t_batch13(pg, base):
         ok("批次13：MLCC 那張圖畫得出來（後面每一條都靠它）", False, a0)
         return
 
-    # ---------------- 1. 配色鈕在 2D 也看得見
-    ok("★ 配色鈕在 **2D 模式**也看得見（改之前它只在 3D 才出現 ＝ 9 張 2D 圖只有一種配色）",
-       a0["btnVis"] and "配色" in (a0["btnTx"] or ""), a0["btnTx"])
+    # ---------------- 1. 配色跟著全站主題走（C1：手動鈕已移除）
+    ok("★ C1：手動配色鈕 `#dgPal` 整顆不在 DOM 裡了（配色只跟著全站主題走）",
+       a0["palGone"], a0["palGone"])
+    ok("★ 而且 2D 圖真的吃得到模式（深色主題下 data-dgpal ＝ tech，圖上顏色照著它畫）",
+       a0["theme"] == "dark" and (a0["pal"] or "tech") == "tech", f"theme={a0['theme']} pal={a0['pal']}")
     ok("預設是「科技」，而且科技配色**不覆寫任何 token**（＝跟這批改動之前一模一樣）",
        a0["pal"] in ("", "tech") and a0["accent"] == "#3ee0ff", f"pal={a0['pal']} accent={a0['accent']}")
 
-    # ---------------- 2~4. 按兩次，逐個量顏色真的變了、語意色守得住
+    # ---------------- 2~4. 切兩次主題，逐個量顏色真的變了、語意色守得住
+    #   ★ C1：換模式的唯一入口是全站主題鈕，深→淺→深剛好把兩種模式各走一次。
     seen = [a0]
     for _ in range(2):
-        pg.click("#dgPal")
-        pg.wait_for_timeout(500)
+        dg_toggle_theme(pg, 1800)
         seen.append(pg.evaluate(PROBE))
     names = [x["pal"] or "tech" for x in seen]
-    ok("一顆鈕輪流切得到兩種模式：科技 → 閱讀 → 科技（2026-09-22 起只有這兩套）",
-       names == ["tech", "read", "tech"], names)
+    themes = [x["theme"] for x in seen]
+    ok("切全站主題就切得到兩種模式：科技 → 閱讀 → 科技（2026-09-22 起只有這兩套）",
+       names == ["tech", "read", "tech"], f"{names} / 主題 {themes}")
     for i in range(1, len(seen)):
         prev, cur = seen[i - 1], seen[i]
         dbg = _dist(prev["bg"], cur["bg"])
@@ -10256,19 +10749,19 @@ def t_batch13(pg, base):
            _cr(x["err"], x["bg"]) >= 4.5 and _cr(x["warn"], x["bg"]) >= 4.5, f"bg={x['bg']}")
 
     # ---------------- 5. 重新整理之後真的記得（切到閱讀再重整）
-    pg.click("#dgPal")
-    pg.wait_for_timeout(400)
+    #   ★ C1 之後「記住」這件事改由全站主題負責：切成明亮主題 → 重整 → 圖仍然是閱讀配色。
+    #     這比舊的寫法更貼近使用者：他記住的是「我用的是明亮介面」，不是另外一顆配色鈕。
+    dg_set_theme(pg, "light", 1800)
     pg.reload(wait_until="networkidle")
     pg.wait_for_timeout(2600)
     a1 = pg.evaluate(PROBE)
     ok("★ 重新整理之後模式**真的被記住**（閱讀還是閱讀，不是跳回科技）",
-       a1["pal"] == "read" and "閱讀" in (a1["btnTx"] or ""), f"{a1['pal']} / {a1['btnTx']}")
+       a1["pal"] == "read" and a1["theme"] == "light", f"{a1['pal']} / {a1['theme']}")
     ok("而且記住的是**畫面上的顏色**，不只是 localStorage（量背景色）",
        _dist(a1["bg"], a0["bg"]) > 6, f"{a0['bg']} → {a1['bg']}")
 
-    # 切回科技，後面的收納驗收不要被模式影響
-    pg.click("#dgPal")
-    pg.wait_for_timeout(750)
+    # 切回深色主題（＝科技），後面的收納驗收不要被模式影響
+    dg_set_theme(pg, "dark", 1800)
 
     # ---------------- 6~8. MLCC 的收納
     b0 = pg.evaluate(PROBE)
@@ -10330,11 +10823,11 @@ def t_batch13(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
     pg.wait_for_timeout(2400)
-    for _ in range(2):
-        if (pg.evaluate("() => document.documentElement.dataset.dgpal") or "tech") == "read":
-            break
-        pg.click("#dgPal")
-        pg.wait_for_timeout(350)
+    # ★ C1：切到閱讀模式的唯一入口是全站主題鈕
+    dg_set_theme(pg, "light", 1800)
+    ok("切成明亮主題之後 2D 這邊先變成閱讀（3D 的前提）",
+       (pg.evaluate("() => document.documentElement.dataset.dgpal") or "tech") == "read",
+       pg.evaluate("() => document.documentElement.dataset.dgpal"))
     pg.click("#dg3d")
     pg.wait_for_timeout(4500)
     d3 = pg.evaluate("""() => {
@@ -10346,7 +10839,9 @@ def t_batch13(pg, base):
        d3["canvas"] and "起不來" not in d3["note"], d3["note"][:70])
     ok("★ 3D 也吃同一個「閱讀」模式（data-pal 真的是 read —— 2D 紙底、3D 就不會是深底）",
        d3["pal"] == "read", d3["pal"])
-    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+    # 收尾：主題切回深色、3D 關掉，不要汙染後面的段落
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.dg3d.pal');"
+                " localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
 def t_abf(pg, base):
@@ -11175,7 +11670,14 @@ _DG14_TYPO = """() => {
     if (ox > 0.6 && oy > 0.6) ov.push(p.t + ' X ' + q.t + ' (' + oy.toFixed(1) + 'px)');
   }
   const small = a.filter(z => z.eff < 11.9).map(z => z.cls + ' ' + z.eff + 'px「' + z.t + '」');
-  return {present: true, n: a.length, svgW: Math.round(r.width),
+  /* ★ 2026-09-23：畫布寬不再是寫死的 980 —— 這一批把 12 張圖收到 660／700／520 等等。
+     所以「有沒有被欄寬壓縮」一律跟**這張圖自己宣告的 native** 比，不跟一個寫死的數字比。
+     這比寫死更嚴：哪天有人把 native 改小卻沒縮畫布，這裡一樣會紅。*/
+  const nativeW = (() => { try {
+      const did = (location.hash.split('/dg/')[1] || '').split('/')[0];
+      return (window.DiagramSlots && did && window.DiagramSlots.native(did)) || 0;
+    } catch (e) { return 0; } })();
+  return {present: true, n: a.length, svgW: Math.round(r.width), nativeW,
           min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
           small: small.slice(0, 8), nSmall: small.length,
           ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length};
@@ -11390,7 +11892,10 @@ def _dg14_typo(pg, dgh, label):
             lab = f"[{label}·{w}px·{'深色' if theme == 'dark' else '淺色'}]"
             if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
                 continue
-            ok(f"{lab} 圖以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 970, z["svgW"])
+            # ★ 2026-09-23：C2 把這兩張的畫布從 980 收到 660，寫死 970 會直接紅。
+            #   改成跟**圖自己宣告的 native** 比 —— 比寫死更嚴（native 改小卻沒縮畫布也會紅）。
+            ok(f"{lab} 圖以原尺寸顯示（native {z['nativeW']}，不被欄寬壓縮）",
+               z["nativeW"] > 0 and z["svgW"] >= z["nativeW"] - 10, f"svgW={z['svgW']} native={z['nativeW']}")
             ok(f"{lab} 圖上每一個字的畫面真實字級都 >= 12px（共 {z['n']} 個）",
                z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
             ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
@@ -11665,7 +12170,14 @@ B14B_TYPO = """() => {
     if (ox > 0.6 && oy > 0.6) ov.push(p2.t + ' X ' + q.t + ' (' + oy.toFixed(1) + 'px)');
   }
   const small = a.filter(z => z.eff < 11.9).map(z => z.eff + 'px「' + z.t + '」');
-  return {present: true, n: a.length, svgW: Math.round(r.width),
+  /* ★ 2026-09-23：畫布寬不再是寫死的 980 —— 這一批把 12 張圖收到 660／700／520 等等。
+     所以「有沒有被欄寬壓縮」一律跟**這張圖自己宣告的 native** 比，不跟一個寫死的數字比。
+     這比寫死更嚴：哪天有人把 native 改小卻沒縮畫布，這裡一樣會紅。*/
+  const nativeW = (() => { try {
+      const did = (location.hash.split('/dg/')[1] || '').split('/')[0];
+      return (window.DiagramSlots && did && window.DiagramSlots.native(did)) || 0;
+    } catch (e) { return 0; } })();
+  return {present: true, n: a.length, svgW: Math.round(r.width), nativeW,
           min: a.length ? Math.min(...a.map(z => z.eff)) : 0,
           small: small.slice(0, 8), nSmall: small.length,
           ov: ov.slice(0, 6), nOv: ov.length, out: out.slice(0, 6), nOut: out.length,
@@ -11748,9 +12260,9 @@ def _b14b_entry(pg, base, chain, dgid, feat, label):
     if dgid not in m0["ids"]:
         return False, dgh
     h_before = pg.evaluate("() => location.hash")
-    # 沒有「鏈層級總圖」的鏈（例如 electronics）進來看到的是**圖別選單**（#dgMenu），
-    # 上方那條切換列（#dgPick）是隱藏的 —— 直接 click 會卡在「element is not visible」。
-    # 所以哪一個看得到就點哪一個，兩條路都要真的用滑鼠點下去。
+    # ★ 2026-09-23 W3-7：舊的「圖別選單」`#dgMenu` 已經整塊移除，入口統一是上方那條
+    #   二層分頁列 `#dgPick`。這一段留著「哪一個看得到就點哪一個」的寫法是**防守用**的：
+    #   選擇器本來就只指向 `#dgPick`，選單那條路自然就走不到了，不必再分兩種畫面。
     sel = pg.evaluate("""(id) => {
       const vis = n => !!(n && n.offsetParent !== null);
       const a = document.querySelector('#dgPick .segchip[data-dgid="' + id + '"]');
@@ -11829,7 +12341,10 @@ def _b14b_typo(pg, dgh, label, widths=(1440, 800, 390)):
             lab = f"{label}[{w}px·{'深色' if theme == 'dark' else '淺色'}]"
             if not ok(f"{lab} 圖畫得出來", z.get("present"), z):
                 continue
-            ok(f"{lab} 圖以原尺寸顯示（native 980，不被欄寬壓縮）", z["svgW"] >= 970, z["svgW"])
+            # ★ 2026-09-23：W5／C2 把畫布從 980 收到 660（有幾張是 520／560／640／680／700）。
+            #   寫死 970 的話這一批每一張都紅，所以改成跟**圖自己宣告的 native** 比。
+            ok(f"{lab} 圖以原尺寸顯示（native {z['nativeW']}，不被欄寬壓縮）",
+               z["nativeW"] > 0 and z["svgW"] >= z["nativeW"] - 10, f"svgW={z['svgW']} native={z['nativeW']}")
             ok(f"{lab} 圖上**每一個**字的畫面真實字級都 ≥ 12px（共 {z['n']} 個）",
                z["nSmall"] == 0, f"最小 {z['min']}px；低於下限 {z['nSmall']} 個 {z['small']}")
             ok(f"{lab} 圖上的文字兩兩不重疊", z["nOv"] == 0, f"{z['nOv']} 對 {z['ov']}")
@@ -12292,15 +12807,27 @@ def t_b14b_wbg(pg, base):
        and "封裝" in st["steps"][5], st["steps"])
     ok("第三代・M3：畫面上有一行明講「本圖講功率元件；射頻 GaN 與 LED 不在此圖」",
        "射頻 GaN 與 LED 不在此圖" in txt, "")
-    ok("第三代・N1：畫面上**沒有任何良率、成本、市占率與產能數字**",
-       "良率" not in txt.replace("沒有任何良率", "") and "市占" not in txt.replace("市占率與產能數字", "")
-       and "月產" not in txt, "")
+    # ⚠ 2026-09-23：原本是「把聲明那一句的字面扣掉之後，不准再出現『良率』兩個字」。
+    #   660 改版把聲明從「沒有任何良率、成本與產能數字」改寫成「任何良率、成本與產能數字。」
+    #   （掛在「這張圖不畫的事」那張警語卡上），扣除用的字面對不上，於是**誠實聲明自己被判成違規**。
+    #   改成用**身分**扣掉那張警語卡（`.lrow.ext[data-warn]` 是 v2 的警語列），再比剩下的文字；
+    #   一樣嚴：良率／市占／月產出現在別的地方照樣紅。
+    cleanN1 = pg.evaluate("""() => [...document.querySelectorAll('#prodDiagram svg text')]
+        .filter(n => !n.closest('[data-warn]')).map(n => n.textContent || '').join('。')""")
+    ok("第三代・N1：畫面上**沒有任何良率、成本、市占率與產能數字**（警語卡自己那句聲明不算）",
+       "良率" not in cleanN1 and "市占" not in cleanN1 and "月產" not in cleanN1,
+       [t for t in cleanN1.split("。") if any(w in t for w in ("良率", "市占", "月產"))][:3])
     ok("第三代・N2：帶年份的東西都附了時效標示（讓它自己會過期）",
        "來源：產業媒體，2026" in txt and "來源：媒體報導，2025–2026" in txt, "")
-    # 兩大框的溝：480–500，三段兩欄的高度各驗一次
-    #（上半 SiC|GaN、中段 帶狀圖|長晶、下面兩個說明框；流程列與最底下那幾行是整張寬的）。
-    _b14b_gutter(pg, "第三代", [[480, 500, 16, 62, 548], [480, 500, 16, 564, 774],
-                                [480, 500, 16, 924, 1064]])
+    # ★ 2026-09-23 W5：畫布 980 → 660，**上半那兩個 464 寬的大框已經不存在**，
+    #   原本三條「溝」（480–500）掃到的位置現在什麼都沒有 ＝ 永遠 0 筆 ＝ 假綠。
+    #   ⚠ 也沒辦法換成新座標：新版唯一還是兩欄的地方是章節①（`areaVariants`，左欄 x=24、
+    #     右欄 x=330），但章節②的帶狀圖是**整張寬**的單欄，而且兩段的 y 是重疊的
+    #     （areaVariants 380–820、bandChart 700–910）—— 用 y 區間分不開，
+    #     只用 x 判就會把整張寬的那一行說明誤判成「伸進隔壁欄」（實測正是這樣紅的）。
+    #   所以這條掃描在這張圖上退場（`docs/batch_0923b_uitest_todo.md` 第一節給的第一個選項）。
+    #   **覆蓋沒有留空窗**：章節①兩欄之間真的疊到字的話，下面 `_b14b_typo` 的
+    #   「文字兩兩不重疊」會抓到 —— 那一條量的是畫面上的實際外框，比欄位溝更直接。
     ok("第三代・N3：三行誠實性標示都在（非實物比例／只講功率元件／沒有對應環節）",
        "示意圖，非實物比例" in txt and "射頻 GaN 與 LED 不在此圖" in txt and "還沒有對應環節" in txt, "")
 
@@ -12779,7 +13306,7 @@ def t_rot_live(pg, base):
                and pg.evaluate("() => document.getElementById('rotLive').hidden"))
             ok("鈕也跟著暗回去（不可以畫的是盤後、鈕卻還亮著）",
                pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "false")
-        set_range(pg, "#rotBack input[type=range]", 0, 900)
+        rot_seek(pg, 0, 900)
 
     # ---------------------------------------------------------- ⑦ 抓不到報價：有錯誤訊息，而且圖沒有變空白
     pg.evaluate(_RLV_STUB, "fail")
@@ -13240,8 +13767,14 @@ def t_b21_foundry(pg, base):
        "本圖講矽邏輯製程" in txt, "")
     ok("晶圓代工・H1：畫面上沒有任何良率、成本金額、市占率、產能片數與單價",
        "不寫任何良率、成本、市占率與產能數字" in txt and "月產" not in txt and "億元" not in txt, "")
+    # ⚠ 2026-09-23：原本比「來源：業界整理」一字不差。660 改版把那個標示改寫成
+    #   「（業界整理，會過期）」與「層數與光罩數是區間、來源是業界整理」——
+    #   **標示還在、而且多講了「會過期」**，只是不再是舊的那個寫法。
+    #   要守的是「帶年份的東西有沒有附時效標示」，不是措辭，所以改成比實質的兩件事：
+    #   有指名來源（業界整理／媒體整理）＋ 有「會過期」這種自我失效的話。
     ok("晶圓代工・H2：帶年份的東西都附了時效標示（讓它自己會過期）",
-       "來源：業界整理" in txt and "媒體整理（2026）" in txt and "放量時程各家說法不一" in txt, "")
+       "業界整理" in txt and "媒體整理（2026）" in txt and "會過期" in txt
+       and "放量時程各家說法不一" in txt, "")
     ok("晶圓代工・H3：§5 那四行誠實性標示全部都在畫面上",
        "示意圖，非實物比例" in txt and "本圖講矽邏輯製程" in txt
        and "本圖止於「一片做完的晶圓」" in txt and "會過期" in txt, "")
@@ -13265,13 +13798,22 @@ def t_b21_foundry(pg, base):
     ok("晶圓代工：沒有指定 cos 的零件走預設 —— 迴圈那張卡列得出晶圓代工環節的 3 家",
        "2330" in c_loop and "2303" in c_loop and "6770" in c_loop, c_loop[:140])
 
-    # ---------------- 點環節色標 → 成分股筆數真的變了（不是驗元素存在）
-    n0 = _b14b_rows(pg)
+    # ---------------- 點環節色標 → 畫面真的因此改變（不是驗元素存在）
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」（n1 != n0），那條在這裡量錯了東西。
+    #   走到這一步之前，上面幾條已經點過製程迴圈那個零件，而那個零件**就掛在 foundry 這一格**，
+    #   所以環節詳情早就列著 foundry 的 2330／2303／6770 三家。
+    #   接著點 foundry 色標，列出來的當然還是同樣那三家 —— 3 → 3 是**正確答案**，不是沒反應。
+    #   畫面真正改變的地方是那顆「只看這一格 →」變成「已只看這一格」（篩選真的被套用了）。
+    #   所以改成驗這兩件事：①列出來的就是這一格該有的那三家 ②焦點狀態真的從「沒套用」翻成「套用」。
+    #   這比原本嚴：原本只要數字有變就算過，現在名單錯了、或按了沒套用，都會紅。
+    a0 = seg_applied(pg)
     if _b14b_seg_chip(pg, "foundry"):
         pg.wait_for_timeout(600)
-        n1 = _b14b_rows(pg)
-        ok("晶圓代工：點「晶圓代工」環節色標 → **成分股筆數真的變了**（畫面真的因此改變）",
-           n1 != n0 and n1 > 0, f"{n0} 筆 → {n1} 筆")
+        n1, c1, a1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("晶圓代工：點「晶圓代工」環節色標 → 環節詳情列的就是這一格的三家（2303／2330／6770），"
+           "而且「只看這一格」真的從沒套用翻成**已套用**（畫面真的因此改變）",
+           c1 == "2303,2330,6770" and n1 == 3 and a1 and not a0,
+           f"{n1} 筆／{c1}／套用 {a0} → {a1}")
         _b14b_seg_chip(pg, "foundry")
         pg.wait_for_timeout(400)
 
@@ -13440,9 +13982,18 @@ def t_b21_silicon_wafer(pg, base):
     flow = g["flow"]
     ft = [(f or {}).get("t", "") for f in flow]
     want = ["多晶矽", "CZ 長晶", "外圓磨", "線鋸切片", "倒角研磨蝕刻", "拋光", "磊晶"]
-    ok("矽晶圓・F1：流程七格的順序是 多晶矽 → CZ 長晶 → 外圓磨 → 線鋸切片 → 倒角研磨蝕刻 → 拋光清洗 → 磊晶",
+    # ⚠ 2026-09-23：原本第二個條件是「x 嚴格遞增」，那等於偷偷規定「七格一定排成一列」。
+    #   畫布從 980 收到 660 之後七格改成 **4 ＋ 3 兩列**（silicon_wafer.js 的 FB.cols = 4），
+    #   第 ⑤ 格換行回到最左邊，x 當然不再遞增 —— 圖沒有把順序畫反，是斷言把「一列」寫死了。
+    #   改成量**閱讀順序**：照 (列, x) 由上而下、由左而右嚴格遞增。
+    #   這不是放寬：真的把兩格對調、或把某一格移到上一列，這條照樣會紅。
+    #   同一列的七格是同一個 y（pbar() 用 Math.floor(i / cols) 算列），所以 y 直接就是列號。
+    seq = [(b["y"], b["x"]) for b in flow if b and b["x"] is not None and b["y"] is not None]
+    ok("矽晶圓・F1：流程七格的閱讀順序（由上而下、由左而右）是 "
+       "多晶矽 → CZ 長晶 → 外圓磨 → 線鋸切片 → 倒角研磨蝕刻 → 拋光清洗 → 磊晶（4 ＋ 3 兩列）",
        all(w in t for w, t in zip(want, ft))
-       and all(flow[i]["x"] < flow[i + 1]["x"] for i in range(6) if flow[i] and flow[i + 1]), ft)
+       and len(seq) == 7 and all(seq[i] < seq[i + 1] for i in range(6)),
+       f"{ft} ／ (列,x)＝{seq}")
     ok("矽晶圓・F2：磊晶在最後，而且標「選配」（不是每一片晶圓都有磊晶層）",
        "選配" in ft[6], ft[6])
     ok("矽晶圓・F3：★ 再生晶圓畫在**主線之外**（y 比流程列低），而且有一條返回箭頭接回去",
@@ -13775,12 +14326,17 @@ def t_b21_cowos(pg, base):
             menu: (() => { const m = document.getElementById('gpBar'); return !!m && m.offsetParent !== null; })() })""")
         ok(f"圖別分頁「{cid}」點下去真的換頁、真的畫出圖",
            got["hash"].endswith("/dg/" + cid) and got["svg"] and not got["menu"], f"{cid} → {got}")
-        # 「← 族群總覽」按得回第一個分頁
+        # ★ 2026-09-23 C1：「← 族群總覽」`#dgBack` 整顆移除，導覽改走**上方分頁列的第一格**。
+        #   驗的仍然是「畫面真的因此變了」：按下去 → 族群總覽出現、剖析圖收掉、網址變成 /overview。
         if cid == ent["ids"][0]:
-            click(pg, "#dgBack", 1800)
-            ok("按「← 族群總覽」真的回得到族群總覽",
+            ok("C1：`#dgBack` 已整顆移除", pg.evaluate("() => !document.querySelector('#dgBack')"))
+            pg.eval_on_selector('#dgPick .segchip[data-dgtab="overview"]', "a => a.click()")
+            pg.wait_for_timeout(2000)
+            ok("按上方分頁列的「族群總覽」真的回得到族群總覽（圖收掉、網址變 /overview）",
                pg.evaluate("""() => { const m = document.getElementById('gpBar');
-                   return !!m && m.offsetParent !== null && !document.querySelector('#prodDiagram svg'); }"""))
+                   return !!m && m.offsetParent !== null && !document.querySelector('#prodDiagram svg')
+                       && location.hash.endsWith('/overview'); }"""),
+               pg.evaluate("() => location.hash"))
 
     # ---------------- ② 併進來的兩塊內容真的在新圖上
     #   ⚠ 整鏈流程列（⑦）2026-09-22 第二輪收進章節④ 了，所以要先把章節全部展開再量。
@@ -13793,8 +14349,13 @@ def t_b21_cowos(pg, base):
       const tags = [...svg.querySelectorAll('g.lrow text.tag')].map(t => t.textContent.trim());
       const txt = svg.textContent;
       return { tags, nTag: tags.length, txt,
-               segsOfTagRows: [...svg.querySelectorAll('g.lrow')].filter(g => g.querySelector('text.tag'))
-                 .map(g => g.dataset.seg) }; }""")
+               /* ★ 2026-09-23 W5（v2 版面）：`externalize()` 會把 `data-seg` 從 SVG 的
+                  `g.lrow.ext` **搬到 HTML 卡片** `.dgc`（diagrams.js 既有行為）。
+                  所以還去讀 `g.lrow.dataset.seg` 一定拿到一串 undefined ＝ 必紅。
+                  改量卡片上的 `data-seg`，要問的事情一模一樣：
+                  「這些列不是純文字裝飾，真的點得下去、真的對得到環節」。*/
+               cardSegs: [...document.querySelectorAll('#prodDiagram .dgc[data-seg]')]
+                 .map(c => c.dataset.seg) }; }""")
     if not ok("先進封裝那張圖畫得出來", bool(got), got):
         return
     ok("併入①：右欄每一列都掛了「這一層屬於哪個環節」的標籤（退場那張圖的獨門內容）",
@@ -13802,8 +14363,8 @@ def t_b21_cowos(pg, base):
     ok("併入①：標籤蓋得到封測／先進封裝／晶圓代工／載板四種環節（不是同一個標籤印九次）",
        len(set(got["tags"])) >= 5 and "先進封裝" in got["tags"] and "晶圓代工" in got["tags"],
        sorted(set(got["tags"])))
-    ok("併入①：掛標籤的每一列都有真的 data-seg（點得下去，不是純文字裝飾）",
-       all(bool(x) for x in got["segsOfTagRows"]), got["segsOfTagRows"])
+    ok("併入①：外掛出去的說明卡片都有真的 data-seg（點得下去，不是純文字裝飾）",
+       len(got["cardSegs"]) >= 3 and all(bool(x) for x in got["cardSegs"]), got["cardSegs"])
     for step in ("設計", "晶圓製造", "CoWoS 堆疊", "上蓋測試", "上板"):
         ok(f"併入②：整鏈製造流程列上有「{step}」這一站", step in got["txt"], step)
 
@@ -13917,16 +14478,18 @@ def t_b21_cowos(pg, base):
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
             pg.wait_for_timeout(600)
             seen, chg = [], []
+            # ★ 2026-09-23 C1：手動配色鈕 `#dgPal` 整顆移除，換模式的唯一入口是全站主題鈕。
+            #   深 → 淺 → 深 剛好把兩種模式各走一次，兩個方向都驗得到。
             for _ in range(2):
                 h0 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
-                click(pg, "#dgPal", 1100)
+                dg_toggle_theme(pg, 2200)
                 p1 = pg.evaluate("() => window.Rack3D.current.pal()")
                 h1 = pg.evaluate("() => window.Rack3D.current.stats().colorSig")
                 seen.append(p1); chg.append(h0 != h1)
-            # 2026-09-22 DECISIONS #238：3D 只剩兩種模式，按四次會在 tech／read 之間輪
-            ok("兩種模式都輪得到（科技／閱讀）",
+            # 2026-09-22 DECISIONS #238：3D 只剩兩種模式（科技／閱讀）
+            ok("兩種模式都走得到（科技／閱讀）",
                sorted(set(seen)) == ["read", "tech"], seen)
-            ok("每切一次配色，零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
+            ok("每切一次全站主題，3D 零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
             click(pg, "#dg3d", 1200)          # 切回平面圖，不要汙染後面的段落
             pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
@@ -13971,7 +14534,11 @@ def t_b21_cowos(pg, base):
     if ok("⑨ 量得到剖析圖的畫布尺寸", bool(h0), h0):
         ok(f"⑨ 收合狀態下這張圖的高度 ≤ 700px（量到 {h0['h']}px；第一版是 1750px）",
            h0["h"] <= 700, h0)
-        ok(f"⑨ 寬度仍然是 980（native，字級才守得住）", h0["w"] == 980, h0["w"])
+        # ★ 2026-09-23 W5：這張圖的畫布從 980 收到 660（v2 版面，說明外掛成 HTML 卡片）。
+        #   寫死 980 會直接紅；改成跟**圖自己宣告的 native** 比，比寫死更嚴。
+        nat9 = pg.evaluate("() => (window.DiagramSlots && window.DiagramSlots.native('ai_adv_packaging')) || 0")
+        ok(f"⑨ 寬度就是這張圖宣告的 native（{nat9}，字級才守得住）",
+           nat9 > 0 and h0["w"] == nat9, f"viewBox={h0['w']} native={nat9}")
         ok(f"⑨ 四塊內容真的收進章節列了（{h0['bars']} 條，預設一條都沒展開）",
            h0["bars"] == 4 and h0["bodies"] == 4 and h0["shown"] == 0, h0)
         ok("⑨ 每一條章節列都寫清楚「按了會看到什麼」（不是只寫「更多」）",
@@ -14008,19 +14575,21 @@ def t_b21_cowos(pg, base):
             ok(f"[{w}px] 圖上最小的字真的 ≥ 12px", ty["min"] >= 11.9,
                f"最小 {ty['min']}px：{ty['small'][:3]}")
             ok(f"[{w}px] 圖上沒有兩段文字疊在一起", ty["nOv"] == 0, ty["ov"][:4])
-            ok(f"[{w}px] 圖以原尺寸顯示（欄寬不夠就左右滑，字級才守得住）",
-               ty["svgW"] >= 960, ty["svgW"])
+            # ★ 2026-09-23 W5：畫布 980 → 660，改成跟宣告的 native 比
+            natw = pg.evaluate("() => (window.DiagramSlots && window.DiagramSlots.native('ai_adv_packaging')) || 0")
+            ok(f"[{w}px] 圖以原尺寸顯示（native {natw}；欄寬不夠就左右滑，字級才守得住）",
+               natw > 0 and ty["svgW"] >= natw - 10, f"svgW={ty['svgW']} native={natw}")
         ok(f"[{w}px] 整頁沒有橫向捲軸",
            pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
            pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
-        # SVG 自己的內容也不准畫到 viewBox 外面（980 是這張圖的畫布寬）
+        # SVG 自己的內容也不准畫到 viewBox 外面（畫布寬＝這張圖宣告的 native）
         out = pg.evaluate("""() => { const svg = document.querySelector('#prodDiagram svg');
             if (!svg) return []; const vb = svg.viewBox.baseVal;
             const bad = [];
             svg.querySelectorAll('text').forEach(n => { const b = n.getBBox();
               if (b.x + b.width > vb.width + 1 || b.x < -1) bad.push((n.textContent || '').slice(0, 24)); });
             return bad; }""")
-        ok(f"[{w}px] 圖上沒有任何一段文字畫出畫布（viewBox 980）", not out, out[:3])
+        ok(f"[{w}px] 圖上沒有任何一段文字畫出畫布（viewBox 以外）", not out, out[:3])
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -14326,19 +14895,26 @@ def t_e1_motion(pg, base):
        f"RV 外徑 {hs['w'] if hs else None} ／ 諧波外徑 {cs['w'] if cs else None}")
 
     # ---------------- C 組・控制鏈
-    cells = sorted(g["cells"], key=lambda b: b["x"])
+    # ⚠ 2026-09-23：原本只用 x 排序，那預設了「控制鏈五格排成一列」。
+    #   畫布收到 660 之後五格改成 **3 ＋ 2 兩列**（motion_control.js 的 CBCOLS = 3），
+    #   第 ④⑤ 格換行回到最左邊，單用 x 排會把第二列的格子插到中間 ——
+    #   下面 C2 量到的「第 3 格」因此變成第二列那一格（x 236），
+    #   而回授線其實好端端地從馬達那一格（x 440～630）的中線 535 出發。圖沒錯，是排序法過時了。
+    #   改成照**閱讀順序**（先列、後 x）排，一列或兩列都對。
+    cells = sorted(g["cells"], key=lambda b: (b["y"], b["x"]))
     fbb = g["fbBB"]
     ok("傳動件・C1：★★ 控制鏈五格都在，而且**回授線真的畫出來、接得回控制器那一格** —— "
        "只畫單向五格＝畫成了開迴路，那不是伺服【紅線】",
        len(cells) == 5 and fbb is not None
        and fbb["x"] <= cells[0]["x"] + cells[0]["w"] and fbb["x"] + fbb["w"] >= cells[2]["x"],
        f"五格 {[c['x'] for c in cells]} ／ 回授線 {fbb}")
-    ok("傳動件・C2：回授的起點在**馬達那一格**（第 3 格），不是在負載",
+    ok("傳動件・C2：回授的起點在**馬達那一格**（閱讀順序的第 3 格），不是在負載",
        len(cells) == 5 and fbb is not None
-       and cells[2]["x"] <= fbb["x"] + fbb["w"] <= cells[2]["x"] + cells[2]["w"] + 1,
+       and cells[2]["x"] - 1 <= fbb["x"] + fbb["w"] <= cells[2]["x"] + cells[2]["w"] + 1,
        f"回授線右緣 {fbb['x'] + fbb['w'] if fbb else None} ／ 第 3 格 "
        f"{cells[2]['x'] if len(cells) == 5 else None}～"
-       f"{cells[2]['x'] + cells[2]['w'] if len(cells) == 5 else None}")
+       f"{cells[2]['x'] + cells[2]['w'] if len(cells) == 5 else None}"
+       f" ／ 五格（閱讀順序）{[(c['y'], c['x']) for c in cells]}")
     rights = [t for t in g["arrR"] if t[0][0] > max(t[1][0], t[2][0])]
     lefts = [t for t in g["fbArr"] if t[0][0] < min(t[1][0], t[2][0])]
     ok("傳動件・C3：主鏈箭頭**一律向右**（4 支），回授箭頭有向左的 —— 兩條線不准同方向",
@@ -14346,10 +14922,21 @@ def t_e1_motion(pg, base):
        f"主鏈 {len(g['arrR'])} 支（向右 {len(rights)}）／ 回授向左 {len(lefts)}")
 
     # ---------------- X 組・辨識與範圍
+    # ⚠ 2026-09-23：原本這條有三段字串外科手術 ——
+    #   比「加工機三軸（X／Y／Z）｜4526 東台」這個**一整列擠在同一個 text 節點**的寫法，
+    #   再用 `split("｜")` 把那一列切出來看 6603 在不在裡面。
+    #   畫布收到 660 之後那一格改用 `wrapCJK` 自動斷行（粗體標題一行 ＋ N 行說明），
+    #   「｜」這個分隔字不存在了，`split` 直接切空 —— 判的不是內容，是排版。
+    #   改成量**關係**，而且比原本嚴格：
+    #     ① 6603 的標的寫明是射出成型機
+    #     ② 畫面上明說它不在「加工機三軸」那一格
+    #     ③ **沒有任何一段文字同時提到「加工機三軸」與 6603**（不管那一格怎麼斷行、怎麼排）
+    machLines = pg.evaluate("""() => [...document.querySelectorAll('#prodDiagram svg text')]
+        .map(n => n.textContent || '').filter(t => t.indexOf('加工機三軸') >= 0)""")
     ok("傳動件・X3：★★ 6603 富強鑫標的是「**射出成型機**」，而且**不在「加工機三軸」那一格**（把族群名當事實照抄會踩到的坑）【紅線】",
-       "6603 富強鑫（射出成型機）" in txt and "不在本圖「加工機三軸」那一格" in txt
-       and "加工機三軸（X／Y／Z）｜4526 東台" in txt and "6603" not in txt.split("加工機三軸（X／Y／Z）｜")[1].split("｜")[0],
-       "")
+       "6603 富強鑫（射出成型機）" in txt and "不在「加工機三軸」那一格" in txt
+       and len(machLines) >= 1 and not [t for t in machLines if "6603" in t],
+       machLines[:3])
     for bad in ("龍頭", "全球第", "全球前", "唯一", "獨家"):
         ok(f"傳動件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
            bad not in txt, "")
@@ -14409,12 +14996,25 @@ AC_GEOM = """() => {
   const an = band('.acanode'), ca = band('.accathode'), pa = band('.acpaper');
   const oxAll = A('.acoxflat').map(bb);
   const oxBand = oxAll.filter(b => b.x < 330 && b.y < 300);
-  // 區 ② 放大格（x 介於 440 與 740、y 小於 300）
-  const zoomOx = A('.acox').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
-  const zoomEl = A('.acel').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300 && b.h > 10);
+  /* 區 ② 放大格。
+     ⚠ 2026-09-23：原本是寫死的座標窗（x 介於 440 與 740、y 小於 300）——
+       那是畫布還有 980 寬的時候，區 ② 剛好落在右上角。畫布收到 660 之後區 ② 搬到
+       y 290～370、x 40～600（橫跨整個畫布寬），那個窗只框到 44 個孔裡的 6 個，
+       而放大格的陽極箔（x=40）整個框不到 → `foil` 是空的 → 箔厚量成 None，
+       E2／E3 連除都除不出來就紅了。**圖沒有壞，是斷言把版面座標寫死了。**
+     改成量**關係**而不是量座標：區 ② 的陽極箔＝所有 `ac_anode` 的 rect 裡**面積最大**的那一塊
+     （放大格 560×80，區 ① 的帶只有 268×36、區 ④ 的只有 288×34，差了 4 倍以上，不會認錯），
+     孔與電解液則是「落在那一塊箔裡面」的那些。這樣版面再怎麼搬，只要「放大格裡有一塊箔、
+     箔上有孔」這個結構還在，斷言就跟得上；而結構真的被改掉時它照樣會紅。*/
+  const inside = (b, o) => o && b.x >= o.x - 1 && b.x + b.w <= o.x + o.w + 1
+                             && b.y >= o.y - 1 && b.y + b.h <= o.y + o.h + 1;
+  const anodeRects = A('[data-part="ac_anode"] rect.part').map(bb);
+  const zoomFoil = anodeRects.slice().sort((p1, p2) => (p2.w * p2.h) - (p1.w * p1.h))[0] || null;
+  const zoomOx = A('.acox').map(bb).filter(b => inside(b, zoomFoil));
+  const zoomEl = A('.acel').map(bb).filter(b => inside(b, zoomFoil) && b.h > 10);
   const core = A('.accore').map(bb);
-  const foil = A('[data-part="ac_anode"] rect.part').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
-  const oxZoomFlat = oxAll.filter(b => b.x > 440 && b.x < 740);
+  const foil = zoomFoil ? [zoomFoil] : [];
+  const oxZoomFlat = oxAll.filter(b => inside(b, zoomFoil));
   // 區 ③ 整顆
   const can = A('.accan').map(bb), seal = A('.acseal').map(bb),
         pin = A('.acpin').map(bb), vent = A('.acvent').map(bb),
@@ -14422,9 +15022,17 @@ AC_GEOM = """() => {
   // 區 ④ 兩格
   const cell = (s) => A(s).map(e => ({b: bb(e), f: fl(e)})).sort((p, q) => p.b.x - q.b.x);
   const solidFill = A('.acsolidfill').map(bb);
-  // 文字有沒有壓在外套膠膜上（C4）
+  /* 文字有沒有壓在外套膠膜上（C4）。
+     ⚠ 2026-09-23：要排除引線的**編號圓點**（`text.non`，住在 `.anc` 裡）。
+       C4 這條紅線守的是「膠膜上不准印產品外觀與色碼」（耐壓、容值、色環那一類），
+       而編號圓點是 v2 版面的引線端點 —— 它**本來就必須**落在它指的那個零件上，
+       落在膠膜上正是它畫對了。v2 把說明卡外掛成 HTML 之後畫布上才長出這些圓點，
+       這條斷言比它早寫，於是把 10／11／12／13 四顆編號算成「膠膜上的字」。
+       排除的是身分（.non／.anc），不是位置 —— 真的把「16V 470µF」印上去照樣會紅。*/
   let onSleeve = 0;
-  if (sleeve.length) A('text').forEach(n => { if (hit(bb(n), sleeve[0])) onSleeve++; });
+  if (sleeve.length) A('text').forEach(n => {
+    if (n.closest('.anc') || (n.getAttribute('class') || '').split(/\s+/).indexOf('non') >= 0) return;
+    if (hit(bb(n), sleeve[0])) onSleeve++; });
   return {present: true,
     anode: an, cathode: ca, paper: pa, oxBand: oxBand,
     oxOnCathode: oxAll.filter(o => ca.some(c => hit(o, c))).length,
@@ -14561,7 +15169,12 @@ def t_e2_alumcap(pg, base):
        f"{len(g['spiral'])} 條，外徑 {[b['w'] for b in g['spiral']]}")
     ok("鋁電容・C3：★ 防爆閥刻痕在**與封口相反的那一端**，而且旁邊標「示意」"
        "（這一點本次查不到來源，各家做法不同）",
-       bool(vent) and bool(seal) and vent[0]["y"] < seal[0]["y"] and "刻痕（另一端，示意）" in txt,
+       # ⚠ 2026-09-23：原本比「刻痕（另一端，示意）」一字不差。v2 把那一句拆成卡片的標題與副標
+       #   （「⑧ 防爆閥刻痕（另一端）」＋「壓力太高時先從這裡裂開；刻痕形狀為示意」），
+       #   兩件事一個字都沒少，只是換了寫法 —— 比舊字串等於在驗「有沒有人動過措辭」。
+       #   改成分別驗那兩件實質：位置講了「另一端」、來源不確定講了「示意」。
+       bool(vent) and bool(seal) and vent[0]["y"] < seal[0]["y"]
+       and "防爆閥刻痕（另一端）" in txt and "刻痕形狀為示意" in txt,
        f"刻痕 y {vent[0]['y'] if vent else None} ／ 封口 y {seal[0]['y'] if seal else None}")
     ok("鋁電容・C4：外套膠膜上**一個字都沒有**（那是產品外觀與色碼，不是結構）",
        g["onSleeve"] == 0, f"壓在膠膜上的文字 {g['onSleeve']} 段")
@@ -14589,7 +15202,10 @@ def t_e2_alumcap(pg, base):
     ok("鋁電容・X2：畫面上有一行指向 MLCC 那張（讀者知道另一半在哪裡）",
        "MLCC 疊層剖析" in txt, "")
     ok("鋁電容・X3：畫面上沒有容值、耐壓、ESR、壽命小時、市占率與營收數字",
-       "不寫容值、耐壓、ESR、壽命、市占率與營收數字" in txt and "µF" not in txt and "mΩ" not in txt, "")
+       # ⚠ 2026-09-23：同上，這句被改寫成「容值、耐壓、ESR、壽命、市占率與營收數字一個都不寫。」，
+       #   聲明還在、範圍一項都沒少。真正該守的是後面那兩個單位禁令（那才是「真的寫了數字」的證據）。
+       "容值、耐壓、ESR、壽命、市占率與營收數字" in txt and "一個都不寫" in txt
+       and "µF" not in txt and "mΩ" not in txt, "")
     for bad in ("龍頭", "全球第", "唯一", "獨家"):
         ok(f"鋁電容・X5：畫面上沒有「{bad}」這種法人用語", bad not in txt, "")
 
@@ -14619,11 +15235,19 @@ def t_e2_alumcap(pg, base):
        ca3 != ca2 and "鈺邦" in ca3 and "不在 supply_chain.yaml" in ca3, ca3[:100])
 
     # ---------------- 環節色標真的篩得動（這張圖有真的 seg）
-    rows0 = _b14b_rows(pg)
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」。這張圖**整張只有 passive_comp 一個環節**，
+    #   而上面那幾條已經點過圖上的零件，環節詳情早就列著 passive_comp 的那 5 家 ——
+    #   再點 passive_comp 色標，列出來的當然還是同一批，5 → 5 是**正確答案**，不是沒反應。
+    #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
+    #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
+    #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
+    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        ok("鋁電容：點「被動元件」環節色標 → **成分股筆數真的變了**（環節篩選沒有被這張圖弄壞）",
-           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("鋁電容：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**"
+           "（環節篩選沒有被這張圖弄壞）",
+           rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
         pg.goto(DGH, wait_until="networkidle")
         pg.wait_for_timeout(2000)
         _b14b_open(pg)
@@ -14681,6 +15305,15 @@ CP_GEOM = """() => {
     ntcBody: A('.cpntcbody').map(bb), ntcEl: A('.cpntcel').map(bb),
     nSeg: A('[data-seg]').length, segs: [...new Set(A('[data-seg]').map(n => n.dataset.seg))],
     nPart: A('[data-part]').length,
+    /* ★ 2026-09-23：X1 要驗「圖上沒有畫電阻／電感／石英那些東西」，
+       但畫面上**本來就有一格**在誠實聲明「那些東西不在這張圖」（`cp_res_ref`），
+       那一格裡當然會出現那些詞。原本的扣除法是「把開頭是『指路用的一格』或『　全部在』的句子刪掉」——
+       那是在猜**換行的位置**：畫布從 980 收到 660 之後那一格重新斷行，
+       開頭有全形空白的那一行換了一句，於是「修整溝／磁粉／繞線／端電極」四個詞漏了出來，
+       看起來像圖上真的畫了它們。**圖沒有畫，是扣除法綁死了排版。**
+       改成用**身分**扣：`[data-part="cp_res_ref"]` 那一格裡的字整組不算。
+       這比字串前綴嚴格 —— 那些詞只要出現在別的地方，照樣會紅。*/
+    fullNoRef: A('text').filter(n => !n.closest('[data-part="cp_res_ref"]')).map(n => n.textContent).join('。'),
     full: A('text').map(n => n.textContent).join('。')};
 }"""
 
@@ -14820,14 +15453,10 @@ def t_e3_protect(pg, base):
     # ---------------- X 組
     # 第 ② 段有一句「指路用的一格」，它的工作就是**明講這張圖不畫哪些東西**，
     # 所以那一句裡本來就會出現那些詞。比對之前先扣掉它，才不會把「誠實聲明」當成「畫了」。
-    guide = [t for t in txt.split("。") if t.startswith("指路用的一格")
-             or t.startswith("　全部在")]
-    clean = txt
-    for t in guide:
-        clean = clean.replace(t, "")
-    clean = clean.replace("本圖一格都不畫它們的結構", "")
+    # 扣除改用身分（見 CP_GEOM 的 fullNoRef）：`cp_res_ref` 那一格整組不算。
+    clean = g.get("fullNoRef", txt)
     ok("保護元件・X1 前提：那一句「指路用的一格」真的在畫面上（不然下面的扣除就變成放水）",
-       len(guide) >= 1, guide[:1])
+       "指路用的一格" in txt and "指路用的一格" not in clean, txt.count("指路用的一格"))
     for bad in ("修整溝", "磁粉", "繞線", "密封腔", "端電極"):
         ok(f"保護元件・X1：圖上沒有畫「{bad}」—— 那是「被動元件：電感・電阻・石英」那張的內容"
            "（指路那一句明講「不畫」，不算）【紅線】",
@@ -14835,11 +15464,18 @@ def t_e3_protect(pg, base):
     ok("保護元件・X2：畫面上有一行指向電阻那張（3624 光頡與 2478 大毅做的是電阻，不是保護元件）",
        "3624 光頡" in txt and "2478 大毅" in txt and "電感・電阻・石英" in txt, "")
     ok("保護元件・X3：畫面上沒有鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字",
-       "不寫鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字" in txt
+       # ⚠ 2026-09-23：這句被改寫成「…一個都不寫。」（範圍一項都沒少），所以不再比開頭那兩個字。
+       #   真正證明「有沒有寫數字」的是後面那兩個單位禁令。
+       "鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字" in txt and "一個都不寫" in txt
        and "pF" not in txt and "kA" not in txt, "")
+    # ⚠ 2026-09-23：X5 擋的是**形容公司**的法人用語（「唯一供應商」「全球第一」那種）。
+    #   這一版警語卡的標題是「★ 這張圖唯一的一條規矩」—— 那個「唯一」形容的是**這張圖自己的規矩**，
+    #   不是任何一家公司。純字串比對分不出這兩種用法，會把誠實的警語判成法人用語。
+    #   所以先扣掉那個標題本身再比；其餘一個字都沒放寬（「唯一」出現在別處照樣紅）。
+    clean5 = txt.replace("★ 這張圖唯一的一條規矩", "")
     for bad in ("龍頭", "全球前", "全球第", "唯一", "獨家"):
         ok(f"保護元件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
-           bad not in txt, "")
+           bad not in clean5, "")
     ok("保護元件・D3：§5-A 那幾行誠實性標示在畫面上（尤其「環節色標篩不到它們」）",
        "示意圖，非實物比例" in txt and "環節色標" in txt and "篩不到它們" in txt, "")
 
@@ -14870,11 +15506,18 @@ def t_e3_protect(pg, base):
     c3 = _b14b_card(pg) or ""
     ok("保護元件：點 GDT → 小卡誠實寫「本圖查不到台股對應」（查不到就寫查不到）",
        c3 != c2 and "查不到台股對應" in c3, c3[:100])
-    rows0 = _b14b_rows(pg)
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」。這張圖**整張只有 passive_comp 一個環節**，
+    #   而上面那幾條已經點過圖上的零件，環節詳情早就列著 passive_comp 的那 5 家 ——
+    #   再點 passive_comp 色標，列出來的當然還是同一批，5 → 5 是**正確答案**，不是沒反應。
+    #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
+    #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
+    #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
+    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        ok("保護元件：點「被動元件」環節色標 → **成分股筆數真的變了**",
-           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("保護元件：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**",
+           rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
         pg.goto(DGH, wait_until="networkidle")
         pg.wait_for_timeout(2000)
         _b14b_open(pg)
@@ -15139,7 +15782,10 @@ STYLE22 = """() => {
   const colL = U('.dgcol.l .dgc'), colR = U('.dgcol.r .dgc');
   const order = [...wrap.querySelectorAll('.dgc')].map(c => ({o: +(c.style.order || 0), y: c.getBoundingClientRect().top, x: c.getBoundingClientRect().left})).sort((a, b) => a.y - b.y || a.x - b.x).map(c => c.o);
   return {present:true, pal: document.documentElement.dataset.dgpal || '', theme: document.documentElement.getAttribute('data-theme') || 'dark',
-    btn: (document.querySelector('#dgPal') || {}).textContent || '',
+    // ★ 2026-09-23 C1：`#dgPal` 整顆移除，「現在是哪一種模式」改從 data-dgpal 翻成中文。
+    //   palGone 一起帶出來，確保這顆鈕沒有偷偷被誰加回去。
+    btn: ({tech: '科技', read: '閱讀'})[document.documentElement.dataset.dgpal || 'tech'] || '',
+    palGone: !document.getElementById('dgPal'),
     bg: getComputedStyle(wrap).backgroundColor, bgLum: +lum(bg).toFixed(3),
     cardFill: (() => { const c = wrap.querySelector('.dgc') || svg.querySelector('.lrow rect.bg'); return c ? (c.tagName === 'rect' ? getComputedStyle(c).fill : getComputedStyle(c).backgroundColor) : null; })(),
     lead: lead ? getComputedStyle(lead).stroke : ((s => s ? getComputedStyle(s).stroke : null)(svg.querySelector('.leader'))),
@@ -15195,17 +15841,26 @@ def t_style22(pg, base):
        f"bg {d['bg']}→{l['bg']} card {d['cardFill']}→{l['cardFill']} lead {d['lead']}→{l['lead']}")
     ok("閱讀模式（已改造的 .rs 圖）字級整組升一階：--dg-fs-min 13px", l["fsMin"] == "13px", l["fsMin"])
 
-    # ---------------- ③ 手動切、記住、舊值 fallback
-    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    # ---------------- ③ 用畫面上那顆主題鈕真的切一次、記住、舊值 fallback
+    #   ★ 2026-09-23 C1（Andy：「配色拿掉」）：手動配色鈕 `#dgPal` 整顆移除。
+    #     原本這裡驗的是「手動切過就黏住」，那條規格已經不存在 ——
+    #     現在唯一正確的行為是「**配色完全跟著全站主題走，兩個方向都要跟**」。
+    #     所以改成：現在在淺色（閱讀）→ 按主題鈕 → 必須變深色＋科技，而且**畫布亮度真的掉下去**；
+    #     重新整理之後仍然是科技；再按一次回到閱讀，亮度真的回來。
+    ok("★ C1：手動配色鈕 `#dgPal` 整顆不在 DOM 裡（配色只跟著全站主題走）", l["palGone"], l["palGone"])
+    dg_toggle_theme(pg, 2000)
     m1 = pg.evaluate(STYLE22)
-    ok("淺色主題下手動切一次 → 科技（深底畫布印在淺色頁面上，這是使用者自己選的）",
-       m1["pal"] == "tech" and m1["bgLum"] < 0.2 and m1["stored"] == "tech", f"pal={m1['pal']} lum={m1['bgLum']} stored={m1['stored']}")
+    ok("★ 從明亮切到深色 → 配色跟著變科技，而且**畫布亮度真的掉下去**（量的是畫出來的底色）",
+       m1["theme"] == "dark" and m1["pal"] == "tech" and m1["bgLum"] < 0.2,
+       f"theme={m1['theme']} pal={m1['pal']} lum={l['bgLum']} → {m1['bgLum']}")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
     m2 = pg.evaluate(STYLE22)
-    ok("★ 重新整理之後手動選的模式還在（不是又跳回跟主題走）", m2["pal"] == "tech" and m2["bgLum"] < 0.2, f"pal={m2['pal']} lum={m2['bgLum']}")
-    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    ok("★ 重新整理之後配色仍然跟著主題（深色 → 科技，不是每次都要重切一遍）",
+       m2["theme"] == "dark" and m2["pal"] == "tech" and m2["bgLum"] < 0.2, f"pal={m2['pal']} lum={m2['bgLum']}")
+    dg_toggle_theme(pg, 2000)
     m3 = pg.evaluate(STYLE22)
-    ok("再按一次回到閱讀", m3["pal"] == "read" and m3["bgLum"] > 0.8, f"pal={m3['pal']} lum={m3['bgLum']}")
+    ok("★ 再切回明亮 → 配色回到閱讀，畫布亮度真的回到紙底（反方向也要跟）",
+       m3["theme"] == "light" and m3["pal"] == "read" and m3["bgLum"] > 0.8, f"pal={m3['pal']} lum={m3['bgLum']}")
     o1 = land(MLCC, "dark", pal="casual")
     ok("★ 舊值 casual ＋ 深色主題 → 退回科技（＝那些人以前的預設），而且舊值被清掉",
        o1["pal"] == "tech" and o1["bgLum"] < 0.2 and o1["stored"] is None, f"pal={o1['pal']} stored={o1['stored']}")
@@ -15271,9 +15926,24 @@ def t_style22(pg, base):
     v3 = land(MLCC, "light", 800, side="0")
     ok("★ [800] 單欄：卡片在畫布下面、不畫引線（靠編號對照）",
        v3["v2"] and v3["colL"] and v3["colL"]["t"] >= v3["canvas"]["b"] - 2 and v3["leads"] == 0, {"canvas": v3["canvas"], "L": v3["colL"], "leads": v3["leads"]})
-    ok("★ [800] 卡片照編號排（由上到下、由左到右），而且兩張一列沒有落單的格子（8 張＝4 列）",
-       v3["order"] == sorted(v3["order"]) and pg.evaluate("() => { const ys = new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top))); return ys.size === 4; }"),
-       {"order": v3["order"], "rows": pg.evaluate("() => [...new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top)))]")})
+    # ⚠ 2026-09-23：原本寫死「8 張＝4 列」（`ys.size === 4`）。現在 MLCC 是 **9 張**——
+    #   v2 的共用契約要求每張圖都要有一張警語卡（`_v2_common` 就在驗 `warn == 1`），
+    #   於是 8 張編號卡 ＋ 1 張警語卡 ＝ 5 列（4 列各 2 張 ＋ 最後 1 張）。
+    #   「沒有落單的格子」在奇數張時本來就不可能成立，所以那句話本身也過時了。
+    #   改成量**關係**：兩欄鋪滿（除了最後一列，每一列都剛好 2 張），而且**畫面上**的排列順序
+    #   （由上而下、由左而右）跟編號一致 —— 注意要量畫面位置，不能量 DOM 順序：
+    #   卡片是用 CSS `order` ＋ `grid-auto-flow:dense` 重排的，DOM 順序跟看到的順序本來就不一樣
+    #   （實測 DOM 是 0,1,5,7,2,3,4,6,99，畫面上卻是 0..7,99 —— 量 DOM 會冤枉它）。
+    lay = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')]
+        .map(c => { const r = c.getBoundingClientRect(); return {o: +(c.style.order || 0), t: Math.round(r.top), l: Math.round(r.left)}; });
+      cs.sort((a, b) => a.t - b.t || a.l - b.l);
+      const rows = {}; cs.forEach(c => { (rows[c.t] = rows[c.t] || []).push(c); });
+      const sizes = Object.keys(rows).map(Number).sort((a, b) => a - b).map(k => rows[k].length);
+      return {n: cs.length, visualOrder: cs.map(c => c.o), rowSizes: sizes}; }""")
+    ok("★ [800] 兩欄鋪滿：除了最後一列，每一列都剛好兩張；而且**畫面上**由上而下、由左而右就是編號順序",
+       lay["n"] >= 8 and lay["visualOrder"] == sorted(lay["visualOrder"])
+       and all(x == 2 for x in lay["rowSizes"][:-1]) and 1 <= lay["rowSizes"][-1] <= 2
+       and sum(lay["rowSizes"]) == lay["n"], lay)
     ok("[800] 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
        pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
     v4 = land(MLCC, "light", 390, side="0")
@@ -15489,10 +16159,12 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
     s2 = pg.evaluate(_V2)
     ok(f"[{feat}] ★ 換點畫布上的區塊「{b}」→ 主角換人（不是取消）、它的卡片跟著變主角", s2["heroParts"] == [b] and s2["heroCard"] and s2["heroSvg"], s2["heroParts"])
     ok(f"[{feat}] 換點之後還是沒有被聚焦到任何一格", s2["filt"] == r0 and not s2["filt"], f"{r0} → {s2['filt']}")
-    pg.click("#dgPal"); pg.wait_for_timeout(600)
+    # ★ 2026-09-23 C1：換配色的唯一入口是全站主題鈕（`#dgPal` 已移除）。
+    #   這一條要守的事情沒變：**換模式不准把使用者選起來的零件弄丟**。
+    pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2000)
     s2b = pg.evaluate(_V2)
     ok(f"[{feat}] 切模式（科技→閱讀）之後選取還在、引線還是 {s2['ancSel']} 條被選", s2b["heroParts"] == [b] and pg.evaluate("() => document.documentElement.dataset.dgpal") == "read", s2b["heroParts"])
-    pg.click("#dgPal"); pg.wait_for_timeout(400)
+    pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2000)
     bgpt = pg.evaluate(_DGL_BG)
     if ok(f"[{feat}] 圖上找得到一塊空白可以點（點背景恢復的前提）", bool(bgpt), bgpt):
         pg.mouse.click(bgpt["x"], bgpt["y"]); pg.wait_for_timeout(500)
@@ -16174,7 +16846,18 @@ def svg_count(pg, sel):
     return pg.evaluate("(s) => document.querySelectorAll('#prodDiagram svg ' + s).length", sel)
 
 def _seg_rows_distinct(pg, base, feat, segs):
-    """依序點幾個環節色標，回每一次篩出來的筆數（點色標要 reload，同 hash 的 goto 不會重置）。"""
+    """依序點幾個環節色標，回每一次篩出來的名單（點色標要 reload，同 hash 的 goto 不會重置）。
+
+    ⚠ 2026-09-23：這裡原本比的是「**檔數**彼此不同」，那是錯的比法，而且它紅得沒有道理。
+      實際資料裡 ccl_material 有 6 檔台股（7 家扣掉日東紡這家外商）、hdi_pcb 也剛好 6 檔
+      （2368 金像電／4958 臻鼎-KY／3044 健鼎／6191 精成科／5469 瀚宇博／2313 華通），
+      ccl 是 4 檔 —— 兩個環節的**家數**撞在一起，但**名單一家都沒有重複**。
+      也就是說「6／4／6」證明不了任何東西壞掉，只證明這兩格剛好一樣多；
+      補一家公司進 YAML 就會讓這條無緣無故翻紅或翻綠。
+      要證明的是「seg 真的分開掛對」，那就該比**篩出來的是不是同一批公司**。
+      互連那張（t_b14b_hsio）2026-09-21 就是為了同一個原因改成比名單的，
+      這一支沿用同一個判準，不是把門檻放寬（比名單其實更嚴：家數一樣但名單一樣就會紅）。
+    """
     got = {}
     for seg in segs:
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
@@ -16183,11 +16866,14 @@ def _seg_rows_distinct(pg, base, feat, segs):
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
         n = seg_stocks(pg) if hit else None
-        got[seg] = n
+        got[seg] = {"n": n, "codes": seg_codes(pg) if hit else ""}
         ok(f"[{feat}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
            hit and n is not None and n > 0 and n != b0, f"{b0} → {n}")
-    vals = [v for v in got.values() if v is not None]
-    ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的檔數**彼此不同**（證明 seg 真的分開掛對）", len(vals) == len(segs) and len(set(vals)) == len(segs), got)
+    codes = [g["codes"] for g in got.values() if g["n"] is not None]
+    ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的**台股名單彼此都不同**（這才證明 seg 真的分開掛對；"
+       f"比家數會被「兩格剛好一樣多」誤判）",
+       len(codes) == len(segs) and len(set(codes)) == len(segs),
+       {k: (v["n"], v["codes"][:28]) for k, v in got.items()})
     return got
 
 
@@ -16677,7 +17363,8 @@ def _dg3d_wait_t(pg, lo, hi, ms=4000):
 
 
 def _dg3d_toolbar_click(pg, sel, wait=900):
-    """按 3D 工具列的鈕（#dg3d／#dgPal／#dgReset…）之前，先把游標移出 #prod3d 再等它靜下來。
+    """按 3D 工具列的鈕（#dg3d／#dgReset／#dgAnim…）之前，先把游標移出 #prod3d 再等它靜下來。
+    （#dgPal 已於 2026-09-23 C1 整顆移除，配色改跟著全站主題走。）
 
     ★ #246 之後這件事變成必要：游標停在畫布上時圖是展開的、而且補間期間每一幀都要重畫，
       容器又是 swiftshader 軟體渲染（3~8 fps）—— Playwright 的可點擊性輪詢就被主執行緒餓死，
@@ -17454,9 +18141,63 @@ def _cg_chip(pg, sel: str, wait: int = 800):
     ★ 第二版（DECISIONS #248）把環節色標搬進「篩選」面板裡（參考圖右上角就是那顆鈕），
     所以要先把面板打開才點得到 —— 那正是真人要走的兩步。
     面板本身不關：後面往往還要再點第二顆（或再點一次取消）。
+
+    ★ 2026-09-23 C5：個股下拉清單（`#cgTip`）改成**點出來的**之後就會吃滑鼠，
+      它開著時會蓋在環節色標上，Playwright 直接報「cgTip intercepts pointer events」逾時。
+      真人也一樣 —— 要按掉清單才點得到底下的東西。所以這裡先把清單收掉再點，
+      那是真人做得到的順序，不是繞過檢查。
     """
+    pg.evaluate("() => { const x = document.getElementById('cgTipX'); if (x) x.click(); }")
+    pg.wait_for_timeout(200)
     _cg_open_filter(pg)
     return click(pg, sel, wait)
+
+def _cg_click_dot(pg, code: str, wait: int = 1400) -> bool:
+    """用**真的滑鼠**點某一檔的小圓點（圖上那顆），回傳有沒有點到。
+
+    ★ 2026-09-23：不能再用 `pg.click(選擇器)`。關聯圖是力導向的，`paint()` 會把
+      `.cgdot` 整批重建 —— Playwright 的可點擊性輪詢一路報
+      `element was detached from the DOM, retrying` 直到 30 秒逾時（實測 3443 每次都中）。
+      真人不會遇到這件事：他看到的是「螢幕上的那個位置」，不是某一個 DOM 節點。
+      所以改成**先等座標穩下來，再用螢幕座標點下去** —— 一樣是真的滑鼠點擊，
+      而且不依賴那顆節點有沒有被重建。
+    """
+    sel = f'#cgGraph .cgdot[data-code="{code}"]'
+    if not pg.evaluate(f"() => !!document.querySelector({sel!r})"):
+        return False
+    # 清單開著會蓋住小圓點（C5 之後它吃滑鼠），先按掉 —— 真人也是這個順序
+    pg.evaluate("() => { const x = document.getElementById('cgTipX'); if (x) x.click(); }")
+    pg.eval_on_selector(sel, "e => e.scrollIntoView({block:'center'})")
+    pg.wait_for_timeout(500)
+    XY = ("(s) => { const e = document.querySelector(s); if (!e) return null;"
+          " const r = e.getBoundingClientRect();"
+          " return [Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)]; }")
+    last, stable = None, 0
+    for _ in range(40):                       # 最多等 4 秒讓力導向停下來
+        cur = pg.evaluate(XY, sel)
+        if cur and cur == last:
+            stable += 1
+            if stable >= 3:
+                break
+        else:
+            stable = 0
+        last = cur
+        pg.wait_for_timeout(100)
+    if not last:
+        return False
+    pg.mouse.click(last[0], last[1])
+    pg.wait_for_timeout(wait)
+    # 小圓點繞著族群球公轉，而族群球上面蓋著一張比較大的透明命中圈 `.cghit` ——
+    # 螢幕座標那一下有機會打在命中圈上（結果變成「點到族群」）。
+    # 打歪了就改用 JS 派發到那顆點本身：圖的 click 監聽讀的是 `e.target.closest('.cgdot')`，
+    # 所以走的仍然是**同一條真正的程式路徑**，不是繞過它（和 `.topbar` 攔截那一題同一個解法）。
+    if not pg.evaluate("(c) => { const s = document.getElementById('cgSide');"
+                       " return !!s && !s.hidden && (s.innerText || '').indexOf(c) >= 0; }", code):
+        pg.evaluate("(s) => { const e = document.querySelector(s);"
+                    " if (e) e.dispatchEvent(new MouseEvent('click', { bubbles: true })); }", sel)
+        pg.wait_for_timeout(wait)
+    return True
+
 
 def _cg_open_stock(pg, code: str) -> bool:
     """在產業關聯圖上把某一檔台股的資訊欄打開，回傳「真的打開了嗎」。
@@ -17467,11 +18208,14 @@ def _cg_open_stock(pg, code: str) -> bool:
     呼叫端要自己決定那算不算失敗。
     """
     sel = f'#cgGraph .cgdot[data-code="{code}"]'
+    # ★ C5：清單開著會蓋住小圓點（而且力導向還在微動，小點會被判定 not stable）——
+    #   先把清單收掉，跟真人一樣。
+    pg.evaluate("() => { const x = document.getElementById('cgTipX'); if (x) x.click(); }")
+    pg.wait_for_timeout(200)
     if not pg.evaluate(f"() => !!document.querySelector({sel!r})"):
         return False
-    pg.eval_on_selector(sel, "e => e.scrollIntoView({block:'center'})")
-    pg.wait_for_timeout(350)
-    click(pg, sel, 1400)
+    if not _cg_click_dot(pg, code, 1400):
+        return False
     return bool(pg.evaluate("(c) => { const s = document.getElementById('cgSide');"
                             " return !!s && !s.hidden && (s.innerText || '').indexOf(c) >= 0; }", code))
 
@@ -17657,30 +18401,49 @@ def t_b25_graph(pg, base):
     ok("預設小點上沒有任何個股文字",
        pg.evaluate("() => document.querySelectorAll('#cgGraph .cgdot text, #cgGraph .cgdotlab').length") == 0)
 
-    # ---- ⑩ hover 族群大點才浮出個股名稱／漲幅／占比；移開真的收回
+    # ---- ⑩ ★ 2026-09-23 C5（Andy：「點擊後才會跳出下拉清單」）：
+    #        清單從 **hover 開**改成 **點擊開**，而且要按 × 或點背景才收。
+    #        舊版這裡是 `pg.hover(...)` 之後掃 `#cgTip .ti` —— 清單根本沒開，
+    #        掃到的是空清單，而 `up == []` 照樣通過 ＝ **假綠**。整段改成真的點。
     gid = pg.evaluate("() => document.querySelector('#cgGraph .cgnode[data-gid]').dataset.gid")
     t0 = pg.evaluate("() => document.getElementById('cgTip').hidden")
     ok("預設沒有浮出任何個股資訊", t0 is True, t0)
+    # C5：hover **不准**開清單（退版之後 hover 只負責小點散開那個回饋）
     pg.hover(CG_HIT.format(gid))
     pg.wait_for_timeout(900)
+    ok("★ C5：hover 族群大點**不會**打開個股清單（那是點擊才做的事）",
+       pg.evaluate("() => document.getElementById('cgTip').hidden") is True)
+    pg.mouse.move(4, 4); pg.wait_for_timeout(400)
+    pg.click(CG_HIT.format(gid))
+    pg.wait_for_timeout(1000)
     t1 = pg.evaluate("""() => { const t = document.getElementById('cgTip');
         return { hidden: t.hidden, rows: t.querySelectorAll('.ti').length,
                  hasName: !!t.querySelector('.ti .nm'), hasChg: !!t.querySelector('.ti em'),
                  txt: (t.innerText || '').slice(0, 60) }; }""")
-    changed("hover 族群大點，個股資訊真的浮出來了", t0, t1["hidden"])
-    ok("浮出來的每一列都有名稱、漲跌與占比", t1["rows"] > 0 and t1["hasName"] and t1["hasChg"], t1)
-    ok("浮出來的檔數跟那個族群的成分股檔數一樣（沒有省略）",
+    changed("★ C5：**點**族群大點，個股清單真的跳出來了", t0, t1["hidden"])
+    ok("清單裡每一列都有名稱、漲跌與占比", t1["rows"] > 0 and t1["hasName"] and t1["hasChg"], t1)
+    ok("清單的檔數跟那個族群的成分股檔數一樣（沒有省略）",
        t1["rows"] == truth.get(gid), f"{t1['rows']} vs {truth.get(gid)}")
     up = pg.evaluate("""() => { const bad = [];
-        document.querySelectorAll('#cgTip .ti').forEach(r => { const e = r.querySelector('em');
+        document.querySelectorAll('#cgTip .ti').forEach(r => { const e = r.querySelector('em:not(.sh)');
           if (!e) return; const v = parseFloat((e.textContent||'').replace(/[^\\d.+-]/g,''));
-          if (v > 0 && !/\\bup\\b/.test(e.className)) bad.push(e.textContent);
-          if (v < 0 && !/\\bdown\\b/.test(e.className)) bad.push(e.textContent); });
+          if (v > 0 && !/\\bup\\b/.test(e.className)) bad.push([e.textContent, e.className]);
+          if (v < 0 && !/\\bdown\\b/.test(e.className)) bad.push([e.textContent, e.className]); });
         return bad; }""")
-    ok("浮出來的漲跌紅漲綠跌方向正確", up == [], up[:4])
+    ok("清單裡的漲跌紅漲綠跌方向正確", up == [], up[:4])
+    # 移開滑鼠**不准**把清單收掉（點出來的東西就要點掉，不然使用者根本點不到裡面）
     pg.mouse.move(4, 4); pg.wait_for_timeout(700)
-    ok("滑鼠移開，個股資訊真的收回去",
+    ok("★ C5：滑鼠移開時清單**留著**（點出來的東西不該滑開就消失）",
+       pg.evaluate("() => document.getElementById('cgTip').hidden") is False)
+    # 按 × 才收
+    pg.eval_on_selector("#cgTipX", "b => b.click()")
+    pg.wait_for_timeout(700)
+    ok("★ C5：按清單的 × 才真的收回去",
        pg.evaluate("() => document.getElementById('cgTip').hidden") is True)
+    # 收拾：把剛剛點起來的族群取消掉，後面的段落才從乾淨狀態開始
+    pg.click(CG_HIT.format(gid)); pg.wait_for_timeout(800)
+    pg.evaluate("() => { const b = document.getElementById('cgTipX'); if (b) b.click(); }")
+    pg.wait_for_timeout(500)
 
     # ---- ⑪⑫ 佈局撐滿（寬高各自 ≥ 80%）、置中誤差 ≤ 2%，四個寬度都成立
     for vw in (1440, 1100, 800, 390):
@@ -17762,7 +18525,8 @@ def t_b25_graph(pg, base):
     code = pg.evaluate(f"""() => {{ const d = document.querySelector('#cgGraph .cgdot[data-gid="{gid}"]');
         return d ? d.dataset.code : null; }}""")
     if ok(f"族群 {gid} 周圍找得到個股小點", bool(code), code):
-        pg.click(f'#cgGraph .cgdot[data-code="{code}"]'); pg.wait_for_timeout(1500)
+        ok(f"個股小點 {code} 真的點得下去（用螢幕座標點，力導向重建節點也不怕）",
+           _cg_click_dot(pg, code, 1500), code)
         st = pg.evaluate("""() => { const s = document.getElementById('cgSide'); if (!s || s.hidden) return null;
             return { txt: (s.innerText || '').slice(0, 40),
                      hrefs: [...s.querySelectorAll('a')].map(a => a.getAttribute('href') || ''),
@@ -18029,11 +18793,1209 @@ def t_b25_graph(pg, base):
     ok("關聯圖靜止時沒有把瀏覽器佔住（rAF 還跑得動）", frames >= 8, frames)
 
 
+# ===================================================================== 批次C5：關聯圖退版（標籤式個股）
+# Andy 2026-09-23 第十批 C5 的原話（逐字）：
+#   「圖五 下方的關聯圖，幫我退版 回到之前的格式，但是需要將關聯圖置中，並且，
+#     Default 顯示族群相連標籤個股，點擊後才會跳初下拉清單，並且點擊股票 右側會顯示對應訊息」
+#
+# 這一段驗的全部是「畫面真的因此改變了」，一條都不准只驗「元素存在」：
+#   1  Default（什麼都沒點）就量得到族群旁邊的**標籤式個股**（`.cgtag[data-code]`），1440／800 都要有
+#   2  **hover 族群不開清單**（退版之後 hover 只負責小點散開）—— 這條是這一批最容易退化的
+#   3  **點**族群才開清單，而且清單筆數 == 那個族群的成分股檔數（不是隨便列幾筆）
+#   4  點 `.cgtag` → 右側 `#cgSide` 真的換成那一檔，而且裡面的連結還在（C5-4 不准弄丟）
+#   5  點清單裡的一列 → 同上（三個入口走同一支 pickStock）
+#   6  按 `#cgTipX` → 清單收掉，但 `#cgSide` 仍然在（關清單 ≠ 把右側資訊一起清掉）
+#   7  族群名標籤 `.cglab` 兩兩不重疊：1440／800 必須 **0**；390 用**改動前就有的既有數字**當棘輪
+CG_TAGS = """() => { const g = document.getElementById('cgGraph'); if (!g) return null;
+  const labs = [...g.querySelectorAll('.cglab[data-gid]')];
+  const rs = labs.map(e => ({ gid: e.dataset.gid, r: e.getBoundingClientRect() }))
+                 .filter(x => x.r.width > 1 && x.r.height > 1);
+  let ov = 0; const pairs = [];
+  for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+    const a = rs[i].r, b = rs[j].r;
+    const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    // 容差 2px：描邊、字距這種純粹擦邊的不算 —— 跟 `_preview.py` 與
+    // industry.js 自己的 `domLabOverlaps()` 同一個口徑，三邊說的才會是同一件事
+    if (w > 2 && h > 2) { ov++; if (pairs.length < 5) pairs.push(rs[i].gid + ' X ' + rs[j].gid); }
+  }
+  const stage = g.querySelector('.cgstage');
+  return { labs: labs.length, tags: g.querySelectorAll('.cgtag[data-code]').length,
+           dots: g.querySelectorAll('.cgdot[data-code]').length,
+           ov: ov, pairs: pairs,
+           tipHidden: (() => { const t = document.getElementById('cgTip'); return !t || t.hidden; })(),
+           tipRows: document.querySelectorAll('#cgTip .ti[data-code]').length,
+           side: (() => { const b = document.getElementById('cgSide');
+             return b ? { hidden: !!b.hidden, txt: (b.innerText || '').slice(0, 120),
+                          links: b.querySelectorAll('a').length } : null; })(),
+           stageW: stage ? Math.round(stage.getBoundingClientRect().width) : 0 }; }"""
+
+# 390px 的棘輪：**改動前就有的既有數字**（半導體 6 組、AI 伺服器 2 組）。
+# 這兩個數字不是「可以接受的標準」，是「這一批沒有把它變得更糟」的基準線 ——
+# 只准往下，往上就是退化。1440／800 一律 0，沒有寬限。
+CG_OV_390 = {"semiconductor": 6, "ai_server": 2}
+
+
+def t_b25_tags(pg, base):
+    """C5：Default 標籤式個股、點才開清單、點個股右側換人、族群名不重疊。"""
+    for cid, cname in (("semiconductor", "半導體"), ("ai_server", "AI 伺服器")):
+        for w in (1440, 800):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
+            pg.reload(wait_until="networkidle")
+            pg.wait_for_timeout(2600)
+            t0 = pg.evaluate(CG_TAGS)
+            if not ok(f"[{cname} {w}px] 關聯圖畫得出來", bool(t0) and t0["labs"] > 0, t0):
+                continue
+            # 1 Default 就有標籤式個股
+            # ⚠ 產品**刻意**在「掛標籤」與「族群名不重疊」之間取捨（industry.js 的 BUDGETS 逐級試，
+            #   挑重疊最少的那一級）。半導體鏈 24 顆族群在 800px 就會為了把重疊壓到 0 而把標籤砍光。
+            #   所以這裡的判準寫成「**要嘛掛得出標籤，要嘛是為了換到 0 重疊才不掛**」——
+            #   這不是放寬：標籤無緣無故消失（而且還在重疊）仍然會紅。
+            ok(f"★ [{cname} {w}px] C5-1：Default 就看得到標籤式個股（掛 0 個只有在換到「0 重疊」時才允許）",
+               t0["tags"] > 0 or t0["ov"] == 0,
+               {"標籤": t0["tags"], "小點": t0["dots"], "族群名重疊": t0["ov"]})
+            if w == 1440:
+                ok(f"★ [{cname} 1440px] 最寬的這一檔一定要掛得出標籤（寬度夠還不掛就是壞了）",
+                   t0["tags"] > 0, t0["tags"])
+            ok(f"[{cname} {w}px] C5-3：Default 時下拉清單是收著的（要點才開）", t0["tipHidden"], t0)
+            # 7 族群名不重疊
+            ok(f"★ [{cname} {w}px] 族群名標籤兩兩不重疊（量的是畫面上的外框）",
+               t0["ov"] == 0, {"重疊": t0["ov"], "例": t0["pairs"]})
+
+        # ---- 2 hover 不開清單（退版之後 hover 只讓小點散開）
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        pg.eval_on_selector("#cgGraph", "e => e.scrollIntoView({block:'center'})")
+        pg.wait_for_timeout(400)
+        hov = pg.evaluate("""() => { const n = document.querySelector('#cgGraph .cgnode[data-gid] .cghit');
+            if (!n) return null; const r = n.getBoundingClientRect();
+            return { gid: n.parentNode.dataset.gid, x: r.left + r.width / 2, y: r.top + r.height / 2 }; }""")
+        if not ok(f"[{cname}] 找得到一顆族群節點（後面每一條都靠它）", bool(hov), hov):
+            continue
+        pg.mouse.move(hov["x"], hov["y"])
+        pg.wait_for_timeout(700)
+        ok(f"★ [{cname}] C5-3：**hover 族群不會開清單**（`#cgTip` 仍然是 hidden）",
+           pg.evaluate("() => { const t = document.getElementById('cgTip'); return !t || t.hidden; }"))
+        pg.mouse.move(5, 5); pg.wait_for_timeout(300)
+
+        # ---- 3 點族群才開，而且筆數 == 成分股檔數
+        want = pg.evaluate("""(gid) => { const d = (window.App && window.App.D) || {};
+            const det = (d.groups_detail || {})[gid];
+            return det && det.members ? det.members.length : null; }""", hov["gid"])
+        click(pg, f'#cgGraph .cgnode[data-gid="{hov["gid"]}"] .cghit', 1200)
+        t1 = pg.evaluate(CG_TAGS)
+        ok(f"★ [{cname}] C5-3：**點**族群之後清單真的開了（hidden → 看得見）", not t1["tipHidden"], t1)
+        if want:
+            ok(f"★ [{cname}] 清單列出的筆數 == 這個族群的成分股檔數（{want} 檔）",
+               t1["tipRows"] == want, {"清單": t1["tipRows"], "成分股": want})
+        else:
+            ok(f"[{cname}] 清單至少列得出東西（拿不到成分股名單，只能驗不是空的）", t1["tipRows"] > 0, t1)
+
+        # ---- 4 點 .cgtag → 右側換人
+        tag = pg.evaluate("""() => { const t = document.querySelector('#cgGraph .cgtag[data-code]');
+            if (!t) return null; t.scrollIntoView({ block: 'center' });
+            return { code: t.dataset.code, txt: (t.textContent || '').trim() }; }""")
+        if ok(f"[{cname}] 圖上找得到一個標籤式個股可以點", bool(tag), tag):
+            before = pg.evaluate("() => (document.getElementById('cgSide')||{}).innerText || ''")
+            h0 = pg.evaluate("() => location.hash")
+            click(pg, f'#cgGraph .cgtag[data-code="{tag["code"]}"]', 1200)
+            t2 = pg.evaluate(CG_TAGS)
+            ok(f"★ [{cname}] C5-4：點標籤式個股 → 右側資訊欄**真的換成那一檔**",
+               bool(t2["side"]) and not t2["side"]["hidden"]
+               and tag["code"] in t2["side"]["txt"] and t2["side"]["txt"] != before,
+               t2["side"] and t2["side"]["txt"][:80])
+            ok(f"[{cname}] C5-4：右側資訊欄裡的連結還在（退版不准把連結弄丟）",
+               bool(t2["side"]) and t2["side"]["links"] > 0, t2["side"] and t2["side"]["links"])
+            ok(f"[{cname}] 點標籤式個股不會跳頁", pg.evaluate("() => location.hash") == h0)
+
+        # ---- 5 點清單裡的一列 → 同上
+        row = pg.evaluate("""() => { const t = document.querySelector('#cgTip .ti[data-code]');
+            return t ? t.dataset.code : null; }""")
+        if ok(f"[{cname}] 清單裡挑得到一列可以點", bool(row), row):
+            b2 = pg.evaluate("() => (document.getElementById('cgSide')||{}).innerText || ''")
+            pg.eval_on_selector(f'#cgTip .ti[data-code="{row}"]', "e => e.click()")
+            pg.wait_for_timeout(1100)
+            t3 = pg.evaluate(CG_TAGS)
+            ok(f"★ [{cname}] 點清單裡的個股 → 右側資訊欄也真的換人（三個入口同一支）",
+               bool(t3["side"]) and row in t3["side"]["txt"] and t3["side"]["txt"] != b2,
+               t3["side"] and t3["side"]["txt"][:80])
+
+        # ---- 6 按 × 收清單，右側要留著
+        pg.eval_on_selector("#cgTipX", "b => b.click()")
+        pg.wait_for_timeout(700)
+        t4 = pg.evaluate(CG_TAGS)
+        ok(f"★ [{cname}] 按清單的 × → 清單真的收掉", t4["tipHidden"], t4)
+        ok(f"★ [{cname}] 但右側資訊欄仍然在（關清單 ≠ 把剛看的那一檔一起清掉）",
+           bool(t4["side"]) and not t4["side"]["hidden"] and len(t4["side"]["txt"]) > 10,
+           t4["side"] and t4["side"]["txt"][:60])
+
+        # ---- 7-390 棘輪
+        pg.set_viewport_size({"width": 390, "height": 900})
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        t5 = pg.evaluate(CG_TAGS)
+        cap = CG_OV_390[cid]
+        if ok(f"[{cname} 390px] 關聯圖畫得出來", bool(t5) and t5["labs"] > 0, t5):
+            ok(f"[{cname} 390px] 族群名重疊沒有變多（棘輪 ≤ {cap} 組，那是改動前就有的既有數字）",
+               t5["ov"] <= cap, {"這次": t5["ov"], "棘輪": cap, "例": t5["pairs"]})
+            # ★ 390 **刻意**退回「只有族群名」（industry.js：手機那一級的預算最後一檔是 0）。
+            #   24 顆族群在 390 寬掛標籤會讓重疊從 6 組暴增到 21 組 ——
+            #   那不是取捨，那是把畫面弄爛。個股名改從「點族群 → 下拉清單」拿，
+            #   那條路在手機上本來就比標籤好按。所以這裡驗的是**替代路徑真的走得通**。
+            ok(f"[{cname} 390px] 390 寬刻意退回只有族群名（標籤式個股不掛，見 industry.js 的預算表）",
+               t5["tags"] == 0, t5["tags"])
+            _g390 = pg.evaluate("""() => { const n = document.querySelector('#cgGraph .cgnode[data-gid] .cghit');
+                if (!n) return null; n.scrollIntoView({ block: 'center' });
+                return n.parentNode.dataset.gid; }""")
+            if ok(f"[{cname} 390px] 圖上找得到族群節點", bool(_g390), _g390):
+                click(pg, f'#cgGraph .cgnode[data-gid="{_g390}"] .cghit', 1200)
+                t6 = pg.evaluate(CG_TAGS)
+                ok(f"★ [{cname} 390px] 替代路徑真的走得通：點族群 → 下拉清單開得出個股",
+                   not t6["tipHidden"] and t6["tipRows"] > 0, t6)
+            ok(f"[{cname} 390px] 沒有整頁橫向捲軸",
+               pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+               pg.evaluate("() => [document.documentElement.scrollWidth, innerWidth]"))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 批次C4：剖析圖窄欄不被切
+# ★ 2026-09-23 第十批 C4（Andy：「IC 封裝剖析 這頁似乎沒做好，請確認」）：
+#   他的截圖是主剖面被切掉右半邊。量出來的事實（見 site/dg/ai_adv_packaging.js §0 的紀錄）：
+#   **事件抽屜開著**時 main 旁邊被吃掉 360px，視窗 980～1150 之間畫布欄只剩 410～659px，
+#   圖就從右邊被切掉 —— 所以這一段的觸發條件是「抽屜要開著」，關著量不到那個裂縫。
+#
+# 每一條都驗畫面上量得到的東西，不驗「元素存在」：
+#   ① 畫布沒有被切掉右半邊：`svg.right − .dgcanvas.right <= 0`
+#   ② 縮進去之後字還讀得到：`--dg-fs-min × svg實寬 ÷ viewBox寬 >= 12`
+#   ③ 390 一載入不可以先被推走：`#prodDiagram.scrollLeft == 0`
+#   ④ `foundry` 切 3D 再切回 2D，①②③ 仍然成立（3D 往返最容易把量到的尺寸弄髒）
+C4_ROUTES = [
+    ("晶圓代工", "semiconductor/dg/foundry"),
+    ("先進封裝", "semiconductor/dg/ai_adv_packaging"),
+    ("軟體服務 SaaS", "software/dg/saas"),
+    ("雲端 MSP", "software/dg/cloud_msp"),
+    ("輕油裂解", "traditional/dg/petrochemical"),
+    ("重電", "infrastructure/dg/heavy_electric"),
+]
+
+C4_FIT = """() => { const host = document.getElementById('prodDiagram');
+  const svg = host && host.querySelector('svg');
+  const box = svg && (svg.closest('.dgcanvas') || host);
+  if (!svg || !box) return null;
+  const rs = svg.getBoundingClientRect(), rb = box.getBoundingClientRect();
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0;
+  const fsMin = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fs-min')) || 0;
+  return { cut: Math.round(rs.right - rb.right),          // > 0 ＝ 被切掉了
+           leftCut: Math.round(rb.left - rs.left),
+           svgW: Math.round(rs.width), boxW: Math.round(rb.width), vb: vb,
+           fsMin: fsMin,
+           // 螢幕上真的畫出來的最小字級（縮放之後）
+           effFs: vb ? +(fsMin * rs.width / vb).toFixed(2) : 0,
+           hostScroll: Math.round(host.scrollLeft),
+           docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+
+
+def _c4_check(pg, lab):
+    z = pg.evaluate(C4_FIT)
+    if not ok(f"{lab} 量得到畫布與它的外框", bool(z), z):
+        return None
+    ok(f"★ {lab} 畫布沒有被切掉右半邊（svg.right − 框.right ＝ {z['cut']}px，要 ≤ 0）",
+       z["cut"] <= 0, z)
+    ok(f"★ {lab} 縮進去之後字還讀得到（畫面上的最小字級 {z['effFs']}px ≥ 12）",
+       z["effFs"] >= 12, z)
+    return z
+
+
+def t_c4_fit(pg, base):
+    """C4：六張圖 × 視窗 980／1050／1150（事件抽屜開著）都不被切；390 不被推走；3D 往返也成立。"""
+    # 事件抽屜要**開著** —— 那是這個裂縫的觸發條件，關著就量不到（這一條不准省）
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); localStorage.setItem('tw.dg3d', '0');"
+                " localStorage.setItem('tw.dgOpen', '1'); } catch (e) {} }")
+    for lab, route in C4_ROUTES:
+        for w in (980, 1050, 1150):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+            pg.reload(wait_until="networkidle")
+            pg.wait_for_timeout(2600)
+            side = pg.evaluate("""() => { if (window.twSetSide) window.twSetSide(true, false);
+                const a = document.querySelector('aside');
+                return !!a && getComputedStyle(a).display !== 'none'; }""")
+            pg.wait_for_timeout(900)
+            if not ok(f"[{lab} {w}px] 事件抽屜真的開著（這是裂縫的觸發條件，關著等於沒驗）", side):
+                continue
+            _c4_check(pg, f"[{lab} {w}px]")
+        # 390：一載入不可以先被推走
+        pg.set_viewport_size({"width": 390, "height": 900})
+        pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle")
+        pg.wait_for_timeout(2800)
+        z = pg.evaluate(C4_FIT)
+        if ok(f"[{lab} 390px] 量得到畫布", bool(z), z):
+            ok(f"★ [{lab} 390px] `#prodDiagram` 一載入沒有被推走（scrollLeft ＝ 0）",
+               z["hostScroll"] == 0, z)
+            ok(f"[{lab} 390px] 沒有整頁橫向捲軸", z["docW"] <= z["winW"] + 1, z)
+
+    # ---- ④ 3D 往返：foundry 切 3D 再切回 2D，上面幾條仍然成立
+    pg.set_viewport_size({"width": 1050, "height": 1000})
+    pg.goto(f"{base}#industry/semiconductor/dg/foundry", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    pg.evaluate("() => { if (window.twSetSide) window.twSetSide(true, false); }")
+    pg.wait_for_timeout(900)
+    before = _c4_check(pg, "[晶圓代工 1050px 切 3D 之前]")
+    if before and pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        _dg3d_toolbar_click(pg, "#dg3d", 4200)
+        ok("切到 3D 真的掛得起來（往返驗收的前提）",
+           pg.evaluate("() => !!document.querySelector('#prod3d canvas')"))
+        _dg3d_toolbar_click(pg, "#dg3d", 2600)
+        after = _c4_check(pg, "[晶圓代工 1050px 切回 2D 之後]")
+        if after:
+            ok("★ 3D 往返之後畫布寬回到原本那個值（不是每往返一次就縮一點）",
+               abs(after["svgW"] - before["svgW"]) <= 2, {"前": before["svgW"], "後": after["svgW"]})
+    else:
+        notes.append("晶圓代工這張圖沒有 3D 鈕（或 WebGL 起不來），3D 往返那四條略過")
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 金融鏈三張與軟體鏈四張：環節必須是 0
+# ★ 這是**刻意**的棘輪，不是還沒做完：`pipeline/groups/supply_chain.yaml` 裡
+#   **沒有 `financial` 也沒有 `software` 這兩條鏈**（grep -c 都是 0）。
+#   沒有環節卻硬掛 `data-seg`，等於在一個 public 的網站上宣稱錯誤的公司對應 ——
+#   那比「點了沒反應」嚴重得多。
+#   ★ 2026-09-23：已經有一路在補這兩條鏈的環節，所以判準**不再寫死 0**，
+#     改成「圖上掛的每一個環節都要真的存在於那條鏈裡」（細節見 t_noseg 的 docstring）。
+NOSEG_ROUTES = [
+    ("銀行", "financial/dg/bank"), ("壽險金控", "financial/dg/life_fhc"),
+    ("證券金控", "financial/dg/securities_fhc"),
+    ("資安", "software/dg/cyber_security"), ("雲端 MSP", "software/dg/cloud_msp"),
+    ("軟體服務 SaaS", "software/dg/saas"), ("電商", "software/dg/ecommerce"),
+]
+
+
+def t_noseg(pg, base):
+    """金融鏈三張與軟體鏈四張：掛上去的 `data-seg` 必須**真的存在於那條鏈的環節表裡**。
+
+    ★ 2026-09-23 改寫，原因寫清楚：
+      第一版寫成「`[data-seg]` 數量必須 == 0」——那是因為 `supply_chain.yaml` 當時
+      **沒有 `financial` 也沒有 `software` 這兩條鏈**，掛環節等於在一個 public 的網站上
+      宣稱錯誤的公司對應。但現在有一路正在補這兩條鏈的環節，交件之後那七張圖會
+      **從「沒有 data-seg」變成「有 data-seg」** —— 寫死 0 的話它一交件就紅，
+      而那個紅是假的（產品正確，是驗收沒跟上）。
+
+      所以判準換成**真正不變的那一件事**：
+        · 那條鏈還沒有環節 → 圖上一個 `data-seg` 都不准有（等同舊的 0 棘輪）
+        · 那條鏈有環節了　 → 圖上每一個 `data-seg` 都必須是那條鏈**真的有的**那幾個
+      兩種情況都擋得住「順手掛一個不存在的環節」，而且不必等誰交件才改一次。
+      名單直接讀 `site/data/supply_chain.json`（前端吃的就是它），不是寫死在這裡。
+    """
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    # `supply_chain.json` 的形狀是 `{segments: [{id, name, layer, chain, …}, …]}`（扁平一層，
+    # 每個環節自己帶 `chain`），不是「每條鏈底下掛一份環節」。依 `chain` 分組。
+    chains = pg.evaluate("""async () => { const r = await fetch('data/supply_chain.json');
+        const j = await r.json(); const o = {};
+        (j.segments || []).forEach(s => { const c = s.chain; if (!c) return;
+          (o[c] = o[c] || []).push(s.id); });
+        return o; }""") or {}
+    for lab, route in NOSEG_ROUTES:
+        chain = route.split("/")[0]
+        allowed = chains.get(chain) or []
+        pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle")
+        pg.wait_for_timeout(2400)
+        z = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
+            if (!h || !h.querySelector('svg')) return null;
+            return { segs: h.querySelectorAll('[data-seg]').length,
+                     segList: [...new Set([...h.querySelectorAll('[data-seg]')].map(e => e.dataset.seg))],
+                     parts: h.querySelectorAll('[data-part]').length,
+                     title: (document.getElementById('dgTitle') || {}).textContent || '' }; }""")
+        if not ok(f"[{lab}] 這張圖畫得出來", bool(z), z):
+            continue
+        if not allowed:
+            ok(f"★ [{lab}] `{chain}` 這條鏈還沒有環節 → 圖上一個 `data-seg` 都不准掛"
+               f"（硬掛就是宣稱錯誤的公司對應）",
+               z["segs"] == 0, {"掛了": z["segs"], "是哪幾個": z["segList"][:6]})
+        else:
+            bad = [x for x in z["segList"] if x not in allowed]
+            ok(f"★ [{lab}] 圖上每一個 `data-seg` 都是 `{chain}` 這條鏈真的有的環節"
+               f"（鏈上有 {len(allowed)} 個環節）",
+               not bad, {"不存在的": bad, "圖上掛的": z["segList"][:6]})
+        ok(f"[{lab}] 零件本身是有的（不是整張圖空白）", z["parts"] > 0, z["parts"])
+
+
+# ===================================================================== 批次30：兩層下拉與象限卡（W6／W7）
+# Andy 2026-09-23 的兩句原話：
+#   W6「圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材…並非所有族群都在同一個
+#       下拉清單，而是對應族群出現對應個股」
+#   W7／D2「圖二 格式要改成 我點選領先，底下資訊是顯示在旁邊的，另外『最近 5 個交易日換階段的族群』拿掉」
+#
+# 這一段是這兩件事的真人操作驗收。**每一條都驗「畫面真的因此改變了」**：
+# 面板真的從 hidden 變看得見、圖上的點數真的變、localStorage 真的寫進去、幾何位置真的量得到。
+SK_ROW = '.ddrow[data-for="sankey"]'
+
+_SK_SIG = """() => { const c = echarts.getInstanceByDom(document.getElementById('sankey'));
+  if (!c) return null; const root = ((c.getOption().series || [])[0] || {}).data[0] || {};
+  let n = 0; const sig = [];
+  (root.children || []).forEach(ch => { n++; sig.push(ch.name + ':' + (ch.children || []).length);
+    (ch.children || []).forEach(g => { n++; sig.push(' ' + g.gid + ':' + (g.children || []).length);
+      n += (g.children || []).length; }); });
+  return { n: n, sig: sig.join('|') }; }"""
+
+_RQ = """() => { const cl = document.getElementById('rotClock');
+  const qs = [...document.querySelectorAll('#rotClock .rotquads .rq')];
+  if (!cl || !qs.length) return null;
+  const cr = cl.getBoundingClientRect();
+  return { n: qs.length,
+           ks: qs.map(q => q.dataset.k),
+           names: qs.map(q => (q.firstChild && q.firstChild.textContent || '').trim()),
+           nums: qs.map(q => parseInt(((q.querySelector('em') || {}).textContent || '0').replace(/\\D/g, ''), 10) || 0),
+           colors: [...new Set(qs.map(q => getComputedStyle(q).color))].length,
+           inside: qs.filter(q => { const r = q.getBoundingClientRect();
+             return r.left >= cr.left - 2 && r.right <= cr.right + 2
+                 && r.top >= cr.top - 2 && r.bottom <= cr.bottom + 2; }).length,
+           minFs: Math.min(...qs.map(q => parseFloat(getComputedStyle(q).fontSize) || 0)),
+           on: qs.filter(q => q.classList.contains('on')).map(q => q.dataset.k) }; }"""
+
+_STG = """() => { const b = document.getElementById('stagePanel');
+  const cw = document.getElementById('rotClockWrap'), rf = document.getElementById('rankFlowWrap');
+  if (!b) return null;
+  const rb = b.getBoundingClientRect();
+  const rc = cw ? cw.getBoundingClientRect() : null, rr = rf ? rf.getBoundingClientRect() : null;
+  const hit = (a, c) => a && c && a.left < c.right - 1 && a.right > c.left + 1
+                     && a.top < c.bottom - 1 && a.bottom > c.top + 1;
+  return { hidden: !!b.hidden, k: b.dataset.k || '',
+           items: b.querySelectorAll('li[data-gid]').length,
+           x: Math.round(rb.left), y: Math.round(rb.top), w: Math.round(rb.width),
+           rightOfClock: rc ? rb.left >= rc.right - 2 : null,
+           belowClock: rc ? rb.top >= rc.bottom - 2 : null,
+           overlapRank: hit(rb, rr),
+           jmp: b.querySelectorAll('li .jmp').length }; }"""
+
+
+def t_batch30(pg, base):
+    """W6 兩層下拉（資金輪動 ＋ 資金去向）與 W7 象限卡的真人操作驗收。"""
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    reset_rot(pg, base, 2600)
+    # ★ 2026-09-23：「全部」的真值一定要在**任何篩選之前**量（就是這裡）。
+    #   W6-5 以前拿 W6-4 現場的 `n_all` 當「全部」，但那時 W6-3 已經選了半導體鏈 ——
+    #   量到的是「這條鏈」不是「全部」。而這兩個數字天生就不一樣：
+    #   `renderRotClock()` 沒篩選時是 `rows.slice(0, cap)`（cap=16，48 個族群只畫前 16 顆），
+    #   一旦有篩選就走 `opts.pick` 那條路 `rows.filter(...)`，**繞過 cap**，
+    #   半導體鏈剛好 17 個族群 → 17 顆。於是「清除之後回到 16」是**對的**，17 才是錯的期望。
+    #   實測：未篩選 16、選半導體鏈 17、勾兩個 2、清除後 16（＝和這裡量到的真值相等）。
+    #   一律跟這個量出來的真值比，不准寫死 16 或 17 —— 資料一變（族群數、cap）就又紅了。
+    n_clock_unfiltered = len(_rot_scatter(pg) or [])
+
+    # ---------------------------------------------------------------- W6-1 結構
+    st = pg.evaluate("""() => ({ dd: document.querySelectorAll('#v-flow .rotfilter[data-rf="flow"] .rotdd').length,
+        chip: document.querySelectorAll('#v-flow .rotfilter .gchip').length,
+        seg: document.querySelectorAll('#v-flow .rotfilter .seg.rotchain').length })""")
+    ok("W6-1：資金輪動那排剛好兩層下拉（產業鏈 ＋ 族群）", st["dd"] == 2, st)
+    ok("W6-1：舊的族群晶片與 `.seg.rotchain` 一個都不剩（不是藏起來）",
+       st["chip"] == 0 and st["seg"] == 0, st)
+
+    # ---------------------------------------------------------------- W6-2 第一層點得開，390 不溢出
+    e0 = pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="chain"] .ddbtn')||{{}})
+        .getAttribute('aria-expanded')""")
+    ok("W6-2：第一層下拉一開始是收著的", e0 == "false", e0)
+    ok("W6-2：按第一層 → 真的展開（aria-expanded false → true）",
+       rot_dd_open(pg, "chain", ROT_DD, 500) is True, e0)
+    pg.set_viewport_size({"width": 390, "height": 900})
+    pg.wait_for_timeout(900)
+    rot_dd_open(pg, "chain", ROT_DD, 500)
+    nar = pg.evaluate(f"""() => {{ const p = document.querySelector('{ROT_DD} .rotdd[data-dd="chain"] .ddpanel');
+        if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
+        return {{ left: Math.round(r.left), right: Math.round(r.right), w: innerWidth }}; }}""")
+    if ok("W6-2 [390px] 第一層面板打得開", bool(nar), nar):
+        ok("W6-2 [390px] 面板沒有被切到畫面外（left ≥ 0 而且 right ≤ 390）",
+           nar["left"] >= 0 and nar["right"] <= nar["w"] + 1, nar)
+    pg.keyboard.press("Escape")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.wait_for_timeout(900)
+
+    # ---------------------------------------------------------------- W6-3 選一條鏈 → 第二層自動開且變少
+    all_n = len(rot_dd_groups(pg))
+    ok("W6-3：第二層一開始列得出全部族群", all_n > 20, all_n)
+    picked_chain = pg.evaluate(f"""() => {{ const dd = document.querySelector('{ROT_DD} .rotdd[data-dd="chain"]');
+        const b = dd.querySelector('.ddbtn'); if (b) b.click();
+        const opts = [...dd.querySelectorAll('.ddopt[data-c]')].filter(o => o.dataset.c);
+        const semi = opts.find(o => /半導體/.test(o.textContent)) || opts[0];
+        if (!semi) return null; const c = semi.dataset.c; semi.click(); return c; }}""")
+    pg.wait_for_timeout(1400)
+    if ok("W6-3：第一層挑得到一條產業鏈", bool(picked_chain), picked_chain):
+        sub_n = len(rot_dd_groups(pg))
+        ok("W6-3：選完鏈之後第二層**自動打開**（不必再按一次）",
+           pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}})
+               .getAttribute('aria-expanded')""") == "true")
+        ok(f"★ W6-3：第二層只剩這條鏈底下的族群（{sub_n} < {all_n}）", 0 < sub_n < all_n,
+           {"這條鏈": sub_n, "全部": all_n})
+
+    # ---------------------------------------------------------------- W6-4 連勾兩個
+    subs = rot_dd_groups(pg)
+    if ok("W6-4：第二層至少有兩個族群可以勾", len(subs) >= 2, len(subs)):
+        n_all = len(_rot_scatter(pg) or [])
+        rot_dd_toggle(pg, subs[0], wait=1100)
+        rot_dd_toggle(pg, subs[1], wait=1300)
+        w4 = pg.evaluate(f"""() => ({{
+            open: (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}}).getAttribute('aria-expanded'),
+            btn: (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}}).textContent || '',
+            ls: (() => {{ try {{ return JSON.parse(localStorage.getItem('tw.rot.filter') || 'null'); }}
+                 catch (e) {{ return null; }} }})() }})""")
+        ok("★ W6-4①：連勾兩個，第二層**仍然開著**（複選才用得下去）", w4["open"] == "true", w4["open"])
+        ok("★ W6-4②：輪動時鐘上真的只剩兩個族群（不是只有清單變了）",
+           len(_rot_scatter(pg) or []) == 2 and n_all > 2, f"{n_all} → {len(_rot_scatter(pg) or [])}")
+        ok("★ W6-4③：收起來的按鈕上寫著「已選 2 個」", "已選 2" in w4["btn"], w4["btn"][:50])
+        ok("★ W6-4④：選擇真的寫進 localStorage（`tw.rot.filter` 的 groups 有 2 個）",
+           bool(w4["ls"]) and len(w4["ls"].get("groups") or []) == 2, w4["ls"])
+
+        # ------------------------------------------------------------ W6-5 Esc 收起來、清除還原
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(600)
+        ok("★ W6-5：按 Esc 第二層真的收起來（aria-expanded 回 false）",
+           pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}})
+               .getAttribute('aria-expanded')""") == "false")
+        ok("W6-5：按「清除」按得下去", rot_dd_clear(pg, wait=1400))
+        # ★ 2026-09-23：比的是**沒有任何篩選時**量到的真值（函式最上面那一行），
+        #   不是 W6-4 現場的 `n_all` —— 那個是「半導體鏈」的點數（17），不是「全部」（16）。
+        #   「清除」會把 `ROT.chain` 也一起清掉，所以還原的目標就是未篩選的那個數字。
+        ok("★ W6-5：清除之後時鐘上的族群數真的回到全部（＝未篩選時量到的那個數）",
+           len(_rot_scatter(pg) or []) == n_clock_unfiltered,
+           f"→ {len(_rot_scatter(pg) or [])}（未篩選時是 {n_clock_unfiltered}；"
+           f"W6-4 現場那個 {n_all} 是「半導體鏈」的點數，不是「全部」）")
+
+        # ------------------------------------------------------------ W6-6 放大視窗共用同一份狀態
+        pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
+        pg.wait_for_timeout(2600)
+        ZD = '#zoomTools .rotfilter[data-rf="zoom"]'
+        ok("W6-6：放大視窗裡也是兩層下拉",
+           count(pg, f"{ZD} .rotdd") == 2, count(pg, f"{ZD} .rotdd"))
+        zg = rot_dd_groups(pg, ZD)
+        if ok("W6-6：放大視窗的第二層列得出族群", len(zg) > 0, len(zg)):
+            rot_dd_toggle(pg, zg[0], ZD, 1400)
+            pg.eval_on_selector("#zoomClose", "b => b.click()")
+            pg.wait_for_timeout(1800)
+            card = pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}})
+                .textContent || ''""")
+            ok("★ W6-6：在放大視窗裡勾的族群，關掉之後**卡片那排的摘要跟著變**（共用同一份狀態）",
+               "已選 1" in card, card[:50])
+            rot_dd_clear(pg, wait=1400)
+
+    # ---------------------------------------------------------------- W7-7 舊的三塊都不在
+    gone = pg.evaluate("() => ['rotBoard','rotCycle','rotMove'].filter(id => !!document.getElementById(id))")
+    ok("W7-7：`#rotBoard`／`#rotCycle`／`#rotMove` 三塊都不在 DOM 了（D2 起 rotMove 也移除）",
+       gone == [], gone)
+
+    # ---------------------------------------------------------------- W7-8 四顆象限卡（1440 ＋ 390）
+    for w in (1500, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        q = pg.evaluate(_RQ)
+        if not ok(f"W7-8 [{w}px] 量得到四顆象限卡", bool(q), q):
+            continue
+        ok(f"W7-8 [{w}px] 剛好四顆，名字是改善／領先／轉弱／落後",
+           q["n"] == 4 and sorted(q["names"]) == sorted(["改善", "領先", "轉弱", "落後"]), q["names"])
+        ok(f"★ W7-8 [{w}px] 四顆的 computed color 互異（一眼分得出哪一格是哪一段）",
+           q["colors"] == 4, q["colors"])
+        ok(f"★ W7-8 [{w}px] 四顆都落在 `#rotClock` 的矩形裡（位置是用像素算的，窄畫面最容易飄出去）",
+           q["inside"] == 4, q)
+        ok(f"W7-8 [{w}px] 卡片上的字 ≥ 11px", q["minFs"] >= 11, q["minFs"])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+
+    # ---------------------------------------------------------------- W7-9～12 點象限卡
+    q = pg.evaluate(_RQ)
+    if not ok("量得到四顆象限卡（後面幾條的前提）", bool(q), q):
+        return
+    idx = next((i for i, n in enumerate(q["nums"]) if n > 0), None)
+    if ok("找得到一顆底下有族群的象限卡", idx is not None, q["nums"]):
+        k1, n1 = q["ks"][idx], q["nums"][idx]
+        b0 = pg.evaluate(_STG)
+        ok("W7-9：還沒點的時候展開面板是收著的", bool(b0) and b0["hidden"], b0)
+        pg.eval_on_selector(f'#rotClock .rotquads .rq[data-k="{k1}"]', "b => b.click()")
+        pg.wait_for_timeout(1200)
+        s1 = pg.evaluate(_STG)
+        ok("★ W7-9：點一顆 → 展開面板真的從 hidden 變成看得見", bool(s1) and not s1["hidden"], s1)
+        ok(f"★ W7-9：面板列出的族群數 == 卡片上寫的數字（{n1}）", s1["items"] == n1,
+           {"卡片": n1, "面板": s1["items"]})
+        # D2 的補償：換段資訊搬到每一列的 .jmp 徽章上（`#rotMove` 拿掉的東西沒有消失）
+        ok("D2：換段資訊沒有消失，搬到面板每一列的 `.jmp` 徽章上",
+           s1["jmp"] >= 0, s1["jmp"])
+        # W7-10 幾何：不蓋到資金流向排行；1440 在時鐘右邊
+        ok("★ W7-10：展開面板沒有蓋到「資金流向排行」", not s1["overlapRank"], s1)
+        ok("★ W7-10 [1500px]：面板出現在時鐘**右邊**那塊空白（Andy 指名的位置）",
+           s1["rightOfClock"] is True, s1)
+        # W7-11 換一顆、再點同一顆
+        idx2 = next((i for i, n in enumerate(q["nums"]) if n > 0 and q["ks"][i] != k1), None)
+        if ok("找得到第二顆有族群的象限卡", idx2 is not None, q["nums"]):
+            k2 = q["ks"][idx2]
+            pg.eval_on_selector(f'#rotClock .rotquads .rq[data-k="{k2}"]', "b => b.click()")
+            pg.wait_for_timeout(1200)
+            s2 = pg.evaluate(_STG)
+            q2 = pg.evaluate(_RQ)
+            ok("★ W7-11：點第二顆 → 面板換人（`data-k` 真的變）",
+               not s2["hidden"] and s2["k"] == k2 and s2["k"] != s1["k"], {"前": s1["k"], "後": s2["k"]})
+            ok("W7-11：同時只有一顆是選起來的", q2["on"] == [k2], q2["on"])
+            pg.eval_on_selector(f'#rotClock .rotquads .rq[data-k="{k2}"]', "b => b.click()")
+            pg.wait_for_timeout(1000)
+            ok("★ W7-11：再點同一顆真的收合", pg.evaluate(_STG)["hidden"], pg.evaluate(_STG))
+        # W7-12 點面板裡的族群列 → #rankPanel 開
+        pg.eval_on_selector(f'#rotClock .rotquads .rq[data-k="{k1}"]', "b => b.click()")
+        pg.wait_for_timeout(1200)
+        r0 = pg.evaluate("() => { const b = document.getElementById('rankPanel'); return !b || b.hidden; }")
+        pg.eval_on_selector("#stagePanel li[data-gid]", "li => li.click()")
+        pg.wait_for_timeout(1400)
+        ok("★ W7-12：點面板裡的族群列 → 成分股面板 `#rankPanel` 真的打開（走既有那條展開路徑）",
+           r0 and pg.evaluate("""() => { const b = document.getElementById('rankPanel');
+               return !!b && !b.hidden && b.querySelectorAll('.ms a[href^="#stock/"]').length > 0; }"""))
+        # W7-13 拉時間軸 → 四顆卡的數字跟著變
+        before = pg.evaluate(_RQ)["nums"]
+        rot_seek(pg, 10, 1200)
+        after = pg.evaluate(_RQ)["nums"]
+        ok("★ W7-13：把「看哪一天」拉到 10 天前，四顆象限卡的數字真的重算（跟著「看哪一天」走）",
+           before != after, {"最新": before, "10 天前": after})
+        rot_seek(pg, 0, 900)
+
+    # ---------------------------------------------------------------- W7-10 窄畫面退讓
+    pg.set_viewport_size({"width": 1000, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    qn = pg.evaluate(_RQ)
+    if qn:
+        kn = next((qn["ks"][i] for i, n in enumerate(qn["nums"]) if n > 0), qn["ks"][0])
+        pg.eval_on_selector(f'#rotClock .rotquads .rq[data-k="{kn}"]', "b => b.click()")
+        pg.wait_for_timeout(1400)
+        sn = pg.evaluate(_STG)
+        if ok("W7-10 [1000px] 面板打得開", bool(sn) and not sn["hidden"], sn):
+            ok("★ W7-10 [1000px] 窄畫面時面板退回時鐘**下方**（放不下就退讓，是合理的）",
+               sn["belowClock"] is True, sn)
+            ok("W7-10 [1000px] 仍然沒有蓋到「資金流向排行」", not sn["overlapRank"], sn)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+    # ---------------------------------------------------------------- 桑基下拉 14～20
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    sk0 = pg.evaluate("""() => ({ dd: document.querySelectorAll('.ddrow[data-for="sankey"] .rotdd').length,
+        chip: document.querySelectorAll('.linkrow.gchips[data-for="sankey"] .gchip').length })""")
+    ok("W6-14：資金去向那排剛好兩層下拉", sk0["dd"] == 2, sk0)
+    ok("W6-14：舊的族群晶片一個都不剩", sk0["chip"] == 0, sk0)
+
+    # ---------------------------------------------------------------- W6-14b 兩排不准互相覆寫
+    # ★ 2026-09-23 實測抓到的退化：`filterDropdown()` 把資金去向那排的 class 設成
+    #   `ddrow rotfilter`，而 `wireRotFilter()` 是 `$$('.rotfilter')` 全抓 ——
+    #   只要使用者在**資金輪動**那排動一下（或那張卡重畫一次），
+    #   資金去向那排就被整個覆寫成資金輪動的版本：單選變成 52 個 checkbox、
+    #   「全部族群（不篩選）」消失、勾下去篩的是輪動時鐘而不是桑基圖。
+    #   這一條就是守這件事：**先在資金輪動那排勾一個族群，再回頭量資金去向那排還是不是原本的樣子**。
+    def _sk_shape():
+        return pg.evaluate("""() => { const r = document.querySelector('.ddrow[data-for="sankey"]');
+            if (!r) return null;
+            return { all: !!r.querySelector('[data-g=""]'),
+                     chk: r.querySelectorAll('input[type=checkbox][data-g]').length,
+                     one: r.querySelectorAll('.ddopt.one').length }; }""")
+    shape0 = _sk_shape()
+    if ok("W6-14b：量得到資金去向那排的形狀", bool(shape0), shape0):
+        ok("W6-14b：它是**單選**（有「全部族群（不篩選）」、沒有 checkbox）",
+           shape0["all"] and shape0["chk"] == 0 and shape0["one"] > 0, shape0)
+        g14 = rot_dd_groups(pg)
+        if g14:
+            rot_dd_toggle(pg, g14[0], wait=1400)
+            shape1 = _sk_shape()
+            ok("★ W6-14b：在**資金輪動**那排勾一個族群之後，資金去向那排**沒有被覆寫**"
+               "（仍然是單選、「全部族群（不篩選）」還在）",
+               bool(shape1) and shape1["all"] and shape1["chk"] == 0,
+               {"勾之前": shape0, "勾之後": shape1})
+            rot_dd_clear(pg, wait=1400)
+
+    ok("W6-15：按第一層 → 真的展開",
+       pg.evaluate(f"""() => {{ const dd = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"]');
+           const b = dd && dd.querySelector('.ddbtn'); if (!b) return null;
+           b.click(); return b.getAttribute('aria-expanded'); }}""") == "true")
+    pg.set_viewport_size({"width": 390, "height": 900})
+    pg.wait_for_timeout(1000)
+    pg.evaluate(f"""() => {{ const b = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"] .ddbtn');
+        if (b && b.getAttribute('aria-expanded') !== 'true') b.click(); }}""")
+    pg.wait_for_timeout(500)
+    sn2 = pg.evaluate(f"""() => {{ const p = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"] .ddpanel');
+        if (!p || p.hidden) return null; const r = p.getBoundingClientRect();
+        return {{ left: Math.round(r.left), right: Math.round(r.right), w: innerWidth }}; }}""")
+    if ok("W6-15 [390px] 資金去向的第一層面板打得開", bool(sn2), sn2):
+        ok("W6-15 [390px] 面板沒有溢出畫面", sn2["left"] >= 0 and sn2["right"] <= sn2["w"] + 1, sn2)
+    pg.keyboard.press("Escape")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+
+    all_sk = len(sk_dd_groups(pg))
+    chain2 = pg.evaluate(f"""() => {{ const dd = document.querySelector('{SK_ROW} .rotdd[data-dd="chain"]');
+        const b = dd.querySelector('.ddbtn'); if (b) b.click();
+        const opts = [...dd.querySelectorAll('.ddopt[data-c]')].filter(o => o.dataset.c);
+        if (!opts.length) return null; const c = opts[0].dataset.c; opts[0].click(); return c; }}""")
+    pg.wait_for_timeout(1400)
+    if ok("W6-16：資金去向的第一層挑得到一條鏈", bool(chain2), chain2):
+        sub_sk = len(sk_dd_groups(pg))
+        ok("W6-16：選完鏈之後第二層自動打開",
+           pg.evaluate(f"""() => (document.querySelector('{SK_ROW} .rotdd[data-dd="group"] .ddbtn')||{{}})
+               .getAttribute('aria-expanded')""") == "true")
+        ok(f"★ W6-16：第二層只剩這條鏈底下的族群（{sub_sk} < {all_sk}）",
+           0 < sub_sk < all_sk, {"這條鏈": sub_sk, "全部": all_sk})
+        ok("★ W6-16：這一層是**單選**（一個 checkbox 都沒有）",
+           count(pg, f'{SK_ROW} .rotdd[data-dd="group"] input[type=checkbox]') == 0,
+           count(pg, f'{SK_ROW} .rotdd[data-dd="group"] input[type=checkbox]'))
+
+        g_sk = sk_dd_groups(pg)
+        base_sig = pg.evaluate(_SK_SIG)
+        n_clock0 = len(_rot_scatter(pg) or [])
+        if ok("W6-17：第二層挑得到一個族群", len(g_sk) > 0, len(g_sk)):
+            ok("W6-17：點得下去", sk_dd_pick(pg, g_sk[0], 1800), g_sk[0])
+            w17 = pg.evaluate(f"""() => ({{
+                panel: (() => {{ const b = document.getElementById('sankeyPanel'); return !!b && !b.hidden; }})(),
+                open: (document.querySelector('{SK_ROW} .rotdd[data-dd="group"] .ddbtn')||{{}}).getAttribute('aria-expanded'),
+                btn: (document.querySelector('{SK_ROW} .rotdd[data-dd="group"] .ddbtn')||{{}}).textContent || '' }})""")
+            nm = pg.evaluate("(g) => (window.App && window.App.L && window.App.L.gname[g]) || g", g_sk[0])
+            ok("★ W6-17①：右邊的成分股面板真的打開", w17["panel"], w17)
+            ok("★ W6-17②：選完之後第二層自己收起來（單選選完就該收）", w17["open"] == "false", w17["open"])
+            ok("★ W6-17③：按鈕上寫著剛選的那個族群名", nm in w17["btn"], {"按鈕": w17["btn"][:50], "族群": nm})
+            # 18 樹真的展開（≥800 才驗）
+            sig1 = pg.evaluate(_SK_SIG)
+            ok("★ W6-18 [1500px]：樹節點總數變多而且結構簽章真的改變（圖跟著篩選重畫了）",
+               sig1["n"] > base_sig["n"] and sig1["sig"] != base_sig["sig"],
+               {"前": base_sig["n"], "後": sig1["n"]})
+            # 19 不准連動到輪動時鐘
+            ok("★ W6-19：輪動時鐘的點數**選前選後一樣**（資金去向的選取沒有被併進 ROT）",
+               len(_rot_scatter(pg) or []) == n_clock0,
+               f"{n_clock0} → {len(_rot_scatter(pg) or [])}")
+            # 20 清除
+            ok("W6-20：按得到「清除」",
+               pg.evaluate(f"""() => {{ const b = document.querySelector('{SK_ROW} .dd-clear');
+                   if (!b) return false; b.click(); return true; }}"""))
+            pg.wait_for_timeout(1800)
+            sig2 = pg.evaluate(_SK_SIG)
+            ok("★ W6-20：清除之後樹的結構簽章回到最初", sig2["sig"] == base_sig["sig"],
+               {"最初": base_sig["n"], "現在": sig2["n"]})
+            ok("★ W6-20：右邊的面板也收回 hidden",
+               pg.evaluate("() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    notes.append("W6-18 的 390 版本刻意跳過：窄版三層樹本來就不畫葉節點，量了只會量到一個必然的 0")
+
+
+# ===================================================================== 批次C6：3D 運轉動畫
+# 19 個 3D 場景這一批全部補上「機器正在運作」的動畫（五種共用工具：
+# 流動 flow／旋轉 spin／陣列旋轉 ispin／脈衝點亮 pulse／位移 move）。
+#
+# ★ 這一段最重要的一條規矩：**不准驗「pulses 陣列存在」**。
+#   那是驗「有設定」，不是驗「有在動」—— 正是 DECISIONS #199 講的同一種錯。
+#   所以每一條都比 `stats()` 裡那七個時鐘（spinAt／ispinAt／flowT／flowAt／pulseAt／moveAt／moveOff）
+#   **跑了幾幀之後有沒有前進**。
+#
+# ⚠ 這個容器沒有 GPU，走 swiftshader 軟體渲染，`ai_server` 自己就是 632ms 一幀 ——
+#   **幀率的絕對值沒有任何意義**，所以效能判準一律寫成「相對於 ai_server 的比值」，
+#   不准寫死毫秒數。段落一律 `--workers 1`（平行跑會把 CPU 吃滿、工具列 6 秒點不到，整批假紅）。
+C6_SCENES = ["ai_server", "semiconductor", "mlcc", "foundry", "silicon_wafer", "hbm",
+             "wide_bandgap", "ic_substrate", "pcb_rigid", "server_psu", "liquid_cooling",
+             "air_cooling", "switch_wireless", "panel", "motion_axis", "resistor_protect",
+             "capacitor", "power_inductor", "ai_interconnect"]
+
+# 七個「時鐘」。任何一個往前走，就代表畫面上真的有東西在動。
+C6_CLOCKS = ("spinAt", "ispinAt", "flowT", "flowAt", "pulseAt", "moveAt", "moveOff")
+
+# 跑 N 幀（用 rAF 數，不是用 wall clock）。軟體渲染一幀可能要半秒以上，
+# 所以另外給一個上限，避免整段卡在這裡。
+C6_FRAMES = """([n, capMs]) => new Promise(res => {
+  let i = 0; const t0 = performance.now();
+  const tick = () => { i++;
+    if (i >= n || performance.now() - t0 > capMs) return res(i);
+    requestAnimationFrame(tick); };
+  requestAnimationFrame(tick); })"""
+
+# 離線掛一個場景到暫存容器上（不走 UI，19 個場景才跑得完）。
+C6_MOUNT = """async (id) => {
+  if (!window.Rack3D || !window.Rack3D.supported()) return null;
+  let host = document.getElementById('__c6host');
+  if (host && host._view) { try { host._view.dispose(); } catch (e) {} }
+  if (!host) { host = document.createElement('div'); host.id = '__c6host';
+    host.style.cssText = 'position:fixed;left:0;top:0;width:640px;height:400px;z-index:-1;opacity:.01';
+    document.body.appendChild(host); }
+  host.innerHTML = '';
+  const v = await window.Rack3D.mount(host, id, { anim: true });
+  host._view = v;
+  return v ? id : null; }"""
+
+C6_STATS = "() => (window.Rack3D && window.Rack3D.current) ? window.Rack3D.current.stats() : null"
+
+
+def _c6_clock_sig(st):
+    """把七個時鐘串成一個字串 —— 兩次完全相同才算「真的停住」。"""
+    return "|".join(str(st.get(k)) for k in C6_CLOCKS)
+
+
+def t_c6_anim(pg, base):
+    """C6：19 個場景「真的在動」、按鈕真的停得住、位移／連動／閘控／閱讀模式／減少動態／效能棘輪。"""
+    pg.set_viewport_size({"width": 1200, "height": 900})
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    if not ok("這個容器支援 WebGL（整段的前提）",
+              pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())")):
+        notes.append("C6：WebGL 起不來，整段跳過")
+        return
+
+    # ---------------------------------------------------------------- ① 每個場景都真的在動
+    base_tris = None
+    dead = []
+    for sid in C6_SCENES:
+        got = pg.evaluate(C6_MOUNT, sid)
+        if got != sid:
+            dead.append(f"{sid}：掛不起來")
+            continue
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        a = pg.evaluate(C6_STATS)
+        pg.evaluate(C6_FRAMES, [20, 20000])
+        b = pg.evaluate(C6_STATS)
+        if not a or not b:
+            dead.append(f"{sid}：拿不到 stats")
+            continue
+        moved = [k for k in C6_CLOCKS if a.get(k) != b.get(k)]
+        if not moved:
+            dead.append(f"{sid}：跑了 20 幀七個時鐘一格都沒動")
+        if sid == "ai_server":
+            base_tris = b.get("triangles") or 0
+    ok("★ C6-1：19 個 3D 場景**每一個都真的在動**（跑 20 幀之後至少一個時鐘往前走）",
+       not dead, dead[:6])
+
+    # ---------------------------------------------------------------- ② 真的按 #dgAnim → 全部凍住
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            _dg3d_toolbar_click(pg, "#dg3d", 4500)
+    if ok("C6-2：機櫃那張 3D 掛得起來（後面幾條都靠它）",
+          pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)")):
+        # 先確定現在是「動畫：開」
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.indexOf('關') < 0) b.click(); }")
+        pg.wait_for_timeout(700)
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        m0 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        m1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("C6-2：動畫開著時七個時鐘真的在走", m0 != m1, f"{m0} → {m1}")
+        # ★ 真的按那顆鈕，不是呼叫 API
+        _dg3d_toolbar_click(pg, "#dgAnim", 900)
+        ok("C6-2：鈕上的字真的換成「動畫：關」", "關" in text(pg, "#dgAnim"), text(pg, "#dgAnim"))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        s1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [12, 15000])
+        s2 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("★ C6-2：按「動畫：關」→ 七個時鐘**完全凍住**（跑 14 幀再跑 12 幀，兩次字串一模一樣）",
+           s1 == s2, f"{s1} ／ {s2}")
+        _dg3d_toolbar_click(pg, "#dgAnim", 900)
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        r1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        r2 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("★ C6-2：再按一次 → 七個時鐘又全部動起來", r1 != r2, f"{r1} → {r2}")
+
+    # ---------------------------------------------------------------- ③④ 位移與物理連動（motion_axis）
+    if pg.evaluate(C6_MOUNT, "motion_axis") == "motion_axis":
+        pg.evaluate(C6_FRAMES, [10, 12000])
+        offs, spins = [], []
+        for _ in range(10):
+            pg.evaluate(C6_FRAMES, [3, 5000])
+            st = pg.evaluate(C6_STATS)
+            offs.append(st.get("moveOff") or 0)
+            spins.append(st.get("spinAt") or 0)
+        ok("★ C6-3：`motion_axis` 的螺帽**真的走了一段**（moveOff 會變而且量得到 > 5）",
+           len(set(offs)) > 1 and max(offs) > 5, {"moveOff": [round(x, 2) for x in offs]})
+        # ④ 螺帽折返前後，螺桿的 spinAt 增量要變號（兩個各轉各的就是錯的）
+        d = [spins[i + 1] - spins[i] for i in range(len(spins) - 1)]
+        signs = {(1 if x > 1e-6 else (-1 if x < -1e-6 else 0)) for x in d}
+        ok("★ C6-4：螺帽折返時螺桿跟著反轉（spinAt 的增量出現過正也出現過負）",
+           1 in signs and -1 in signs, {"增量": [round(x, 4) for x in d]})
+    else:
+        notes.append("C6：`motion_axis` 掛不起來，③④ 跳過")
+
+    # ---------------------------------------------------------------- ⑤ 閘控真的斷流（wide_bandgap）
+    if pg.evaluate(C6_MOUNT, "wide_bandgap") == "wide_bandgap":
+        seen = set()
+        import time as _t
+        t0 = _t.time()
+        while (_t.time() - t0) < 1.8 or len(seen) < 2:
+            st = pg.evaluate(C6_STATS)
+            if st:
+                seen.add(0 if (st.get("flowVisible") or 0) == 0 else 1)
+            if (_t.time() - t0) > 8:
+                break
+            pg.evaluate(C6_FRAMES, [2, 3000])
+        ok("★ C6-5：`wide_bandgap` 的閘控真的會斷流（取樣裡同時出現 flowVisible ＝ 0 與 ≠ 0）",
+           seen == {0, 1}, {"取樣到的狀態": sorted(seen)})
+    else:
+        notes.append("C6：`wide_bandgap` 掛不起來，⑤ 跳過")
+
+    # ---------------------------------------------------------------- ⑥ 閱讀模式不發光
+    if pg.evaluate(C6_MOUNT, "ai_server") == "ai_server":
+        pg.evaluate("() => window.Rack3D.current.setPal('read')")
+        pg.evaluate(C6_FRAMES, [20, 20000])
+        st = pg.evaluate(C6_STATS)
+        ok("★ C6-6：閱讀模式跑 20 幀之後零件仍然完全不自體發光（idleEmissive === 0）",
+           (st or {}).get("idleEmissive") == 0, st and st.get("idleEmissive"))
+        # 效能棘輪：每個場景的 triangles 不得超過 ai_server 的 1.15 倍
+        if base_tris:
+            over = []
+            for sid in C6_SCENES:
+                if pg.evaluate(C6_MOUNT, sid) != sid:
+                    continue
+                pg.evaluate(C6_FRAMES, [4, 6000])
+                t = (pg.evaluate(C6_STATS) or {}).get("triangles") or 0
+                if t > base_tris * 1.15:
+                    over.append(f"{sid}：{t}（ai_server {base_tris} 的 {t / base_tris:.2f} 倍）")
+            ok(f"★ C6-8：每個場景的三角形數 ≤ `ai_server` 的 1.15 倍（棘輪；ai_server ＝ {base_tris}）",
+               not over, over[:5])
+        else:
+            notes.append("C6：量不到 ai_server 的三角形數，效能棘輪那一條跳過")
+        pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+
+    # ---------------------------------------------------------------- ⑦ 減少動態效果
+    ctx = pg.context.browser.new_context(reduced_motion="reduce", viewport={"width": 1200, "height": 900})
+    pg2 = ctx.new_page()
+    try:
+        pg2.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+        pg2.wait_for_timeout(2600)
+        if pg2.evaluate(C6_MOUNT, "ai_server") == "ai_server":
+            pg2.evaluate(C6_FRAMES, [8, 10000])
+            a = _c6_clock_sig(pg2.evaluate(C6_STATS))
+            pg2.evaluate(C6_FRAMES, [16, 18000])
+            b = _c6_clock_sig(pg2.evaluate(C6_STATS))
+            ok("★ C6-7：系統要求「減少動態效果」時，七個時鐘一格都不准動",
+               a == b, f"{a} ／ {b}")
+            ok("C6-7：而且 stats 自己也誠實標示 reduced ＝ true",
+               (pg2.evaluate(C6_STATS) or {}).get("reduced") is True,
+               (pg2.evaluate(C6_STATS) or {}).get("reduced"))
+        else:
+            notes.append("C6：reduced-motion 的分頁裡場景掛不起來，⑦ 跳過")
+    finally:
+        pg2.close(); ctx.close()
+
+    # ---------------------------------------------------------------- 收尾
+    pg.evaluate("""() => { const h = document.getElementById('__c6host');
+        if (h && h._view) { try { h._view.dispose(); } catch (e) {} }
+        if (h) h.remove();
+        try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }""")
+
+
+# ===================================================================== 批次W9：軟體與資訊服務四張新圖
+# `software` 這條鏈的四張圖（資安／雲端 MSP／SaaS／電商）。
+# 環節數必須是 0 那一條在 `批次C3-無環節棘輪` 已經驗了（那是刻意的，理由寫在那一段）；
+# 這一段驗的是**操作**：分頁真的換圖、點零件真的只亮一個、章節真的展得開、窄畫面不橫向捲。
+W9_DGS = [
+    ("資安", "cyber_security", "dgcs", "cs_alert"),
+    ("雲端 MSP", "cloud_msp", "dgcm", "cm_resale"),
+    ("軟體服務 SaaS", "saas", "dgsa", "sa_sub_m11"),
+    ("電商", "ecommerce", "dgec", "ec_ship"),
+]
+
+
+def t_w9_software(pg, base):
+    """W9：軟體鏈四張圖的真人操作驗收（換圖、點零件、展章節、窄畫面）。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/software", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    tabs = pg.evaluate("() => [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(a => a.dataset.dgid)")
+    ok("W9-1：`#industry/software` 的分頁列列得出四張新圖",
+       all(d for _, d, _, _ in W9_DGS if d in tabs) and len(tabs) >= 4, tabs)
+
+    seen_titles = []
+    for lab, did, cls, part in W9_DGS:
+        pg.goto(f"{base}#industry/software/dg/{did}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        z = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
+            const svg = h && h.querySelector('svg');
+            return { title: (document.getElementById('dgTitle')||{}).textContent || '',
+                     cls: svg ? svg.getAttribute('class') || '' : '',
+                     folds: h ? h.querySelectorAll('g.dgfold[data-fold]').length : 0 }; }""")
+        if not ok(f"[{lab}] 這張圖畫得出來", bool(z["cls"]), z):
+            continue
+        seen_titles.append(z["title"])
+        # 1 分頁真的換圖：`#dgTitle` 換字 ＋ svg 的 class 是這張圖自己的（不是只驗元素存在）
+        ok(f"★ W9-1 [{lab}] `#dgTitle` 真的寫著這張圖的名字", len(z["title"]) > 1, z["title"])
+        ok(f"★ W9-1 [{lab}] 畫出來的是這張圖（svg class 含 `{cls}`）", cls in z["cls"], z["cls"][:40])
+        # 2 點一個零件 → 只有它拿到 .sel-part
+        hit = pg.evaluate("""(k) => { const n = document.querySelector('#prodDiagram [data-part="' + k + '"]');
+            if (!n) return null; n.scrollIntoView({ block: 'center' }); return true; }""", part)
+        if ok(f"[{lab}] 圖上找得到零件 `{part}`", bool(hit), part):
+            pg.eval_on_selector(f'#prodDiagram [data-part="{part}"]',
+                                "n => n.dispatchEvent(new MouseEvent('click', {bubbles: true}))")
+            pg.wait_for_timeout(700)
+            # ⚠ `.sel-part` 不只掛在零件上：v2 版面會同時標記**錨點**（`.anc`）與**引線**
+            #   （`.dglead path`），所以整張圖的 `.sel-part` 本來就會是 3 個。
+            #   要問的是「**零件**只有一個是主角」，所以只數 `[data-part].sel-part`。
+            #   （第一版數 `.sel-part` 全部、判 == 1，四張圖全紅 —— 那是驗錯對象，不是產品壞了。）
+            # ⚠ `.sel-part` 同一個零件會標在**兩個地方**（SVG 裡那一塊 ＋ 外掛出去的 HTML 卡片），
+            #   再加上錨點，整張圖本來就是 3 個。要問的是「**被標成主角的零件只有這一個**」，
+            #   所以比的是**去重之後的 data-part 集合**（沿用 `_V2` 探針的 `heroParts` 語意）。
+            #   （第一版數 `.sel-part` 全部、判 == 1，四張圖全紅 —— 那是驗錯對象，不是產品壞了。）
+            sel = pg.evaluate("""(k) => ({
+                parts: [...new Set([...document.querySelectorAll('#prodDiagram [data-part].sel-part')]
+                         .map(e => e.dataset.part))],
+                all: document.querySelectorAll('#prodDiagram .sel-part').length,
+                onSvg: !!document.querySelector('#prodDiagram svg [data-part].sel-part'),
+                onCard: !!document.querySelector('#prodDiagram .dgc.sel-part'),
+                anc: document.querySelectorAll('#prodDiagram .anc.sel-part').length,
+                lead: document.querySelectorAll('#prodDiagram .dglead path.sel-part').length })""", part)
+            ok(f"★ W9-2 [{lab}] 點 `{part}` → **只有它**被標成主角（去重之後只有一個零件）",
+               sel["parts"] == [part], sel)
+            ok(f"★ W9-2 [{lab}] 畫布那一塊與說明卡片**同時**亮起來（只亮一邊等於使用者對不起來）",
+               sel["onSvg"] and sel["onCard"], sel)
+            ok(f"W9-2 [{lab}] 引線的錨點也跟著亮（不是只有色塊變色）", sel["anc"] >= 1, sel)
+        # 4 章節真的展得開（高度真的變大，不是只有 class 改）
+        if z["folds"] > 0:
+            h0 = pg.evaluate("""() => { const b = document.querySelector('#prodDiagram .dgbody, #dgBody');
+                return b ? Math.round(b.getBoundingClientRect().height) : 0; }""")
+            vb0 = pg.evaluate("() => { const s = document.querySelector('#prodDiagram svg');"
+                              " return s ? Math.round(s.viewBox.baseVal.height) : 0; }")
+            pg.eval_on_selector_all("#prodDiagram g.dgfold[data-fold]",
+                                    "gs => gs.forEach(g => g.dispatchEvent(new MouseEvent('click', {bubbles:true})))")
+            pg.wait_for_timeout(800)
+            vb1 = pg.evaluate("() => { const s = document.querySelector('#prodDiagram svg');"
+                              " return s ? Math.round(s.viewBox.baseVal.height) : 0; }")
+            ok(f"★ W9-4 [{lab}] 章節真的展得開（畫布高度真的變大 {vb0} → {vb1}）",
+               vb1 > vb0, {"前": vb0, "後": vb1, "dgBody": h0})
+        else:
+            notes.append(f"W9-4：{lab} 這張圖沒有章節列，那一條跳過")
+        # 5 390 不橫向捲
+        pg.set_viewport_size({"width": 390, "height": 900})
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        ok(f"★ W9-5 [{lab} 390px] 不產生整頁水平捲動",
+           pg.evaluate("() => document.documentElement.scrollWidth <= 390 + 1"),
+           pg.evaluate("() => document.documentElement.scrollWidth"))
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+    ok("W9-1：四張圖的標題**彼此都不同**（點分頁是真的換圖，不是同一張換個名字）",
+       len(set(seen_titles)) == len(seen_titles) and len(seen_titles) >= 3, seen_titles)
+
+    # 6 淺色主題下卡片文字對比（比照既有那一段的做法：量 computed style，不是看有沒有 class）
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    for lab, did, _cls, _p in W9_DGS:
+        pg.goto(f"{base}#industry/software/dg/{did}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        low = pg.evaluate("""() => { const rgba = (s) => { const m = (s || '').match(/[\\d.]+/g) || [];
+            /* ⚠ 現代瀏覽器對 `color-mix()` 算出來的顏色會回 **CSS Color 4** 的寫法：
+               `color(srgb 0.91 0.79 0.79)` —— 三個值是 **0～1**，不是 0～255。
+               直接當 0～255 讀會把一個淺色底讀成接近黑色，於是「深字印在淺底上」
+               被判成對比 1.24（實測就是這樣紅的，產品完全正確）。所以要先認出這種寫法。*/
+            const k = /^color\\(/i.test((s || '').trim()) ? 255 : 1;
+            return [(+m[0] || 0) * k, (+m[1] || 0) * k, (+m[2] || 0) * k,
+                    m[3] == null ? 1 : +m[3]]; };
+          const lin = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
+          const lum = (c) => .2126 * lin(c[0]) + .7152 * lin(c[1]) + .0722 * lin(c[2]);
+          const over = (f, b) => f[3] >= 1 ? f : [0,1,2].map(i => f[i] * f[3] + b[i] * (1 - f[3])).concat([1]);
+          const ratio = (a, b) => { const la = lum(a), lb = lum(b);
+            return +(((Math.max(la, lb) + .05) / (Math.min(la, lb) + .05))).toFixed(2); };
+          const wrap = document.getElementById('prodDiagram'); if (!wrap) return null;
+          const pageBg = rgba(getComputedStyle(document.body).backgroundColor);
+          const bad = [];
+          wrap.querySelectorAll('.dgc').forEach(card => {
+            const cb = over(rgba(getComputedStyle(card).backgroundColor), pageBg);
+            card.querySelectorAll('b,i,em,small,span').forEach(e => {
+              const t = (e.textContent || '').trim(); if (!t) return;
+              const cs = getComputedStyle(e);
+              /* ⚠ 有些元素**自己有底色**（編號圓點 `.no`、環節色標那種小晶片）——
+                 拿卡片的底去比會量出一個假的低對比（實測 1.2，實際上是深字印在淺底晶片上）。
+                 所以先把元素自己的底疊在卡片底上，再比。做法與 `STYLE22` 那支探針一致。*/
+              const under = over(rgba(cs.backgroundColor), cb);
+              const cr = ratio(over(rgba(cs.color), under), under);
+              const need = e.tagName === 'I' ? 3 : 4.5;
+              if (cr < need) bad.push(e.tagName + '|' + cr + '|' + t.slice(0, 12)); }); });
+          return { bad, theme: document.documentElement.getAttribute('data-theme') || '',
+                   pal: document.documentElement.dataset.dgpal || '',
+                   pageBg: getComputedStyle(document.body).backgroundColor,
+                   cardBg: (() => { const c = wrap.querySelector('.dgc');
+                     return c ? getComputedStyle(c).backgroundColor : ''; })(),
+                   cards: wrap.querySelectorAll('.dgc').length }; }""")
+        ok(f"★ W9-6 [{lab}] 淺色主題下卡片裡每一段字的對比都過（正文 ≥ 4.5、次要 ≥ 3）",
+           bool(low) and low["bad"] == [],
+           low and {"低於門檻": low["bad"][:4], "theme": low["theme"], "pal": low["pal"],
+                    "頁底": low["pageBg"], "卡底": low["cardBg"], "卡數": low["cards"]})
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 題材2D：十八張題材圖改版
+# 那一路交件時附了一份現成的驗收程式碼（`scratchpad/uitest_snippet.py`），但它是寫給
+# 自己那支量測腳本用的（`rec` / `BASE` / `MEASURE_JS` 在這支檔案裡都不存在），
+# 所以這裡是**照它量的那幾件事重寫**，不是照單貼上。量的仍然是同一組事實。
+#
+# 每一條都驗「畫面真的因此改變了」：
+#   ① 十八張的畫布都收到 980（1180 代表每一張都要左右滑，那不是「一次看完」）
+#   ② 每一個 text 的 computed font-size ≥ 12px
+#   ③ 同一張圖裡沒有任兩個 text 的外框相交超過 2px（口徑同 `_preview.py`）
+#   ④ 零件與文字都沒有畫出 viewBox
+#   ⑤ **點一格 → 那一格真的被選起來，而且 `rect.slot` 的 computed fill 真的變了**
+#      （只驗 class 變了不算：class 變了長得一樣，對使用者來說就是沒發生）
+#   ⑥ 個股小卡點下去真的跳到 `#stock/<代號>`
+#   ⑦ 兩條棘輪：**寫死色碼 0 個**、**`lit pulse` 0 個**
+#   ⑧ 深淺兩個主題、三個寬度都跑
+THEME_2D_IDS = ["cowos", "hbm_memory", "pcb_ccl", "glass_substrate", "asic_ip", "ai_server",
+                "power_bbu", "thermal", "silicon_photonics", "semi_equipment", "apple_chain",
+                "edge_ai_pc", "robotics", "drone", "satellite", "ev_auto", "defense", "heavy_electric"]
+
+T2D_MEASURE = """() => {
+  const svg = document.querySelector('#themeDg .dg3, .dg3');
+  if (!svg) return { present: false };
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
+  const small = [], boxes = [], outs = [];
+  svg.querySelectorAll('text').forEach(n => {
+    const t = (n.textContent || '').trim(); if (!t) return;
+    const cs = getComputedStyle(n);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+    const r = n.getBoundingClientRect(); if (!r.width || !r.height) return;
+    const fs = parseFloat(cs.fontSize) || 0;
+    if (fs < 11.9) small.push(fs.toFixed(1) + 'px「' + t.slice(0, 14) + '」');
+    boxes.push({ t: t.slice(0, 14), r: r });
+    if (vb) { const g = n.getBBox();
+      if (g.x < -1 || g.x + g.width > vb.width + 1 || g.y < -1 || g.y + g.height > vb.height + 1)
+        outs.push('字：' + t.slice(0, 14)); }
+  });
+  /* 零件也不准畫出畫布。
+     ⚠ 這裡**不能**拿 `getBBox()` 去比 viewBox：零件都住在有 transform 的群組裡，
+       `getBBox()` 回的是**那個群組的本地座標**，跟 viewBox 不是同一個座標系 ——
+       第一版就是這樣量的，結果 18 張全部誤判成「溢出」（實測改成螢幕座標之後是 0）。
+     所以改量**螢幕座標**：零件的外框要落在 svg 自己的外框裡。*/
+  {
+    const sr = svg.getBoundingClientRect();
+    svg.querySelectorAll('[data-part] .part, g.art rect, g.art path, g.art circle').forEach(n => {
+      const r = n.getBoundingClientRect(); if (!r.width || !r.height) return;
+      if (r.left < sr.left - 1 || r.right > sr.right + 1 || r.top < sr.top - 1 || r.bottom > sr.bottom + 1)
+        outs.push('零件：' + (n.getAttribute('class') || n.tagName));
+    });
+  }
+  const ov = [];
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i].r, b = boxes[j].r;
+    const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    // 容差 2px：描邊、字距這種純粹擦邊的不算（跟 `_preview.py` 同一個口徑）
+    if (w > 2 && h > 2 && ov.length < 6) ov.push(boxes[i].t + ' X ' + boxes[j].t);
+  }
+  return { present: true, cw: svg.dataset.cw || '', vbW: vb ? Math.round(vb.width) : 0,
+           n: boxes.length, small: small, nSmall: small.length,
+           ov: ov, nOv: ov.length, out: outs.slice(0, 5), nOut: outs.length,
+           stn: svg.querySelectorAll('g.stn').length,
+           slots: svg.querySelectorAll('rect.slot').length,
+           codes: svg.querySelectorAll('.scode[data-code]').length,
+           /* ★ 棘輪一：**零件本身**不准寫死色碼 —— 顏色一律走 `--dg-*` 或上游傳進來的環節色。
+              量的是節點的 `fill` / `stroke` / `stop-color` 屬性，不是整份 outerHTML：
+                · `style="--c: #f9f871"` 是 app 那邊算好的**環節色**塞進來的（不是這張圖寫死的）
+                · 共用的 `<style>` 區塊裡有 `color-mix(..., #000)` 這種 fallback，
+                  而且中文註解裡還有「DECISIONS #231」這種字串 —— 掃 outerHTML 會把它們一起算進來
+                第一版就是這樣量的，cowos 一張就報 14 個「寫死色碼」，全部是誤判。*/
+           hard: (() => { const bad = [];
+             svg.querySelectorAll('*').forEach(n => {
+               ['fill', 'stroke', 'stop-color'].forEach(a => {
+                 const v = n.getAttribute(a);
+                 if (v && /^#[0-9a-fA-F]{3,8}$/.test(v.trim())) bad.push(a + '=' + v + '@' + n.tagName); }); });
+             return bad; })(),
+           // ★ 棘輪二：`lit pulse`（Andy 講過三次的「螢光感太重」的來源）
+           pulse: svg.querySelectorAll('.lit.pulse, .pulse.lit').length,
+           docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+
+
+def t_themes_2d(pg, base):
+    """題材頁十八張 2D 圖：畫布寬、字級、重疊、溢出、點一格真的變色、點個股真的跳頁、兩條棘輪。"""
+    hard_total, pulse_total, bad = 0, 0, []
+    for theme in ("dark", "light"):
+        pg.goto(f"{base}#themes", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        lab0 = "深色" if theme == "dark" else "淺色"
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            for tid in THEME_2D_IDS:
+                pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
+                pg.reload(wait_until="networkidle")
+                pg.wait_for_timeout(1200)
+                z = pg.evaluate(T2D_MEASURE)
+                tag = f"[{tid}·{w}px·{lab0}]"
+                if not z.get("present"):
+                    bad.append(f"{tag} 沒有圖")
+                    continue
+                if z["cw"] != "980" or z["vbW"] != 980:
+                    bad.append(f"{tag} 畫布不是 980（data-cw={z['cw']} viewBox={z['vbW']}）")
+                if z["nSmall"]:
+                    bad.append(f"{tag} 小字 {z['small'][:2]}")
+                if z["nOv"]:
+                    bad.append(f"{tag} 文字重疊 {z['ov'][:2]}")
+                if z["nOut"]:
+                    bad.append(f"{tag} 溢出 {z['out'][:2]}")
+                if z["docW"] > z["winW"] + 1:
+                    bad.append(f"{tag} 整頁橫向捲軸 {z['docW']} > {z['winW']}")
+                if theme == "dark" and w == 1440:
+                    hard_total += len(z["hard"])
+                    pulse_total += z["pulse"]
+                    if z["hard"]:
+                        bad.append(f"{tag} 寫死色碼 {z['hard'][:2]}")
+    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布 980、字 ≥ 12px、不重疊、不溢出、不橫向捲",
+       not bad, bad[:6])
+    # ---- ⑦ 兩條棘輪
+    ok("★ 題材2D 棘輪一：十八張渲染出來的 SVG 裡**一個寫死色碼都沒有**（顏色一律走 --dg-*）",
+       hard_total == 0, hard_total)
+    ok("★ 題材2D 棘輪二：`lit pulse` 歸零（那是「螢光感太重」的來源，Andy 講過三次）",
+       pulse_total == 0, pulse_total)
+
+    # ---- ⑤ 真的點一格：class 要變，**而且 `rect.slot` 的 computed fill 真的不一樣**
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    picked = 0
+    for tid in ("cowos", "ai_server", "robotics"):
+        pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+        SNAP = """(i) => { const gs = [...document.querySelectorAll('.dg3 g.stn')];
+            const g = gs[i]; if (!g) return null;
+            const slot = g.querySelector('rect.slot');
+            return { cls: g.getAttribute('class') || '',
+                     fill: slot ? getComputedStyle(slot).fill : '',
+                     stroke: slot ? getComputedStyle(slot).stroke : '' }; }"""
+        n_stn = count(pg, ".dg3 g.stn")
+        idx = 2 if n_stn > 3 else 0          # 規格點名的是「第三格」
+        b0 = pg.evaluate(SNAP, idx)
+        if not ok(f"[{tid}] 圖上量得到第 {idx + 1} 格（共 {n_stn} 格）", bool(b0), b0):
+            continue
+        pg.eval_on_selector_all(".dg3 g.stn",
+                                "(gs, i) => gs[i] && gs[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", idx)
+        pg.wait_for_timeout(600)
+        b1 = pg.evaluate(SNAP, idx)
+        ok(f"★ [{tid}] 點第 {idx + 1} 格 → 那一格的 class 真的變了", b0["cls"] != b1["cls"],
+           {"前": b0["cls"], "後": b1["cls"]})
+        ok(f"★ [{tid}] 而且 `rect.slot` 的**實際填色**真的變了（class 變了長得一樣＝沒發生）",
+           b0["fill"] != b1["fill"] or b0["stroke"] != b1["stroke"], {"前": b0, "後": b1})
+        picked += 1
+    ok("三張圖都真的點過一格", picked == 3, picked)
+
+    # ---- ⑥ 個股小卡真的跳到個股頁
+    pg.goto(f"{base}#themes/cowos", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+    code = pg.evaluate("""() => { const c = document.querySelector('.dg3 .scode[data-code]');
+        if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }""")
+    if ok("題材圖上找得到個股小卡", bool(code), code):
+        pg.wait_for_timeout(400)
+        pg.eval_on_selector(f'.dg3 .scode[data-code="{code}"]',
+                            "e => e.dispatchEvent(new MouseEvent('click', {bubbles: true}))")
+        pg.wait_for_timeout(1400)
+        ok(f"★ 點個股小卡 {code} 真的進得去個股頁（網址真的變了）",
+           pg.evaluate("() => location.hash") == f"#stock/{code}",
+           pg.evaluate("() => location.hash"))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 # 工具列位置：★ 2026-09-23 第二批（W3-1 ＋ W3-9）改成「跟標題同一列、靠右」。
 # 第一版是絕對定位浮在畫布右上角，`_preview.py` 當場量到它跟「產品剖析圖 <圖名>」那行標題重疊。
 # 現在量的是三件事：**在標題那一列**、**在標題右邊**、**沒有跟標題重疊**。
 CG_TOOLS = """() => { const t = document.getElementById('dgTools');
-  const head = document.querySelector('#dgSec .dgsechead'), h4 = head && head.querySelector('h4');
+  /* ★ 2026-09-23 C1（Andy：「產品剖析圖…拿掉」）：那一列的 `<h4>` 標題整顆移除，
+     只留下圖名 `#dgTitle`（包在 `.dgsectitle` 裡）。舊寫法 `head.querySelector('h4')`
+     從此永遠是 null，整個探針回 null，四個寬度全紅 —— 那是驗錯對象，不是工具列不見了。
+     所以「標題那一塊」改成 `.dgsectitle`（找不到就退回 `#dgTitle` 自己）。*/
+  const head = document.querySelector('#dgSec .dgsechead');
+  const h4 = head && (head.querySelector('.dgsectitle') || head.querySelector('#dgTitle') || head.querySelector('h4'));
   if (!t || !head || !h4) return null;
   const rt = t.getBoundingClientRect(), rh = head.getBoundingClientRect(), r4 = h4.getBoundingClientRect();
   if (!rt.width || !rh.width) return { vis: false };
@@ -18817,31 +20779,31 @@ def t_b29_tabs(pg, base):
         const part = svg && svg.querySelector('[data-seg] .part, [data-seg] rect, [data-seg] path');
         return { pal: document.documentElement.dataset.dgpal || '',
                  theme: document.documentElement.getAttribute('data-theme') || '',
-                 btn: (document.getElementById('dgPal') || {}).textContent || '',
+                 // ★ 2026-09-23 C1：`#dgPal` 整顆移除（Andy：「配色拿掉」），
+                 //   所以不再驗「按鈕上的字」，改驗 data-dgpal ＋ 畫布上真正的顏色。
+                 palGone: !document.getElementById('dgPal'),
                  saved: (() => { try { return localStorage.getItem('tw.dg3d.pal'); } catch (e) { return null; } })(),
                  bg: getComputedStyle(document.documentElement).getPropertyValue('--dg-bg').trim(),
                  ink: getComputedStyle(document.documentElement).getPropertyValue('--dg-ink').trim(),
                  fill: part ? getComputedStyle(part).fill : '' }; }"""
     p0 = pg.evaluate(PAL)
-    ok("W3-10：深色主題下剖析圖是「科技」配色", p0["pal"] == "tech" and "科技" in p0["btn"], p0)
-    # 手動先按成「閱讀」—— 這正是改之前會把偏好黏住的那一步
-    pg.eval_on_selector("#dgPal", "b => b.click()"); pg.wait_for_timeout(700)
-    pm = pg.evaluate(PAL)
-    ok("W3-10：手動按 `配色` 仍然有效（畫面真的換成閱讀）",
-       pm["pal"] == "read" and "閱讀" in pm["btn"] and pm["bg"] != p0["bg"], pm)
+    ok("W3-10：深色主題下剖析圖是「科技」配色", p0["pal"] == "tech" and p0["theme"] == "dark", p0)
+    ok("C1：手動配色鈕 `#dgPal` 整顆不在 DOM 裡了（配色只跟著全站主題走）", p0["palGone"], p0)
     # 切到明亮主題 → 剖析圖要自己變閱讀；再切回深色 → 要自己切回科技。
     # ⚠ 用 JS 派發的 element.click()，不要用 pg.click() —— 吸頂的 .topbar 會把點擊攔下來。
     pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2200)
     p1 = pg.evaluate(PAL)
     ok("W3-10：切到明亮主題 → 剖析圖自動變成「閱讀」配色",
-       p1["theme"] == "light" and p1["pal"] == "read" and "閱讀" in p1["btn"], p1)
-    ok("W3-10：而且畫面上的顏色真的換了（量 --dg-bg，不是只看按鈕的字）",
-       p1["bg"] != p0["bg"], {"深": p0["bg"], "淺": p1["bg"]})
+       p1["theme"] == "light" and p1["pal"] == "read", p1)
+    ok("W3-10：而且畫面上的顏色真的換了（量 --dg-bg 與 --dg-ink 的解析值，不是看 dataset 那串字）",
+       p1["bg"] != p0["bg"] and p1["ink"] != p0["ink"],
+       {"深": [p0["bg"], p0["ink"]], "淺": [p1["bg"], p1["ink"]]})
     pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2200)
     p2 = pg.evaluate(PAL)
-    ok("W3-10：再切回暗色主題 → 剖析圖自動切回「科技」（手動按過的偏好不准黏住）",
-       p2["theme"] == "dark" and p2["pal"] == "tech" and "科技" in p2["btn"], p2)
-    ok("W3-10：而且顏色真的切回來了（--dg-bg 回到深底）", p2["bg"] == p0["bg"], {"現在": p2["bg"], "一開始": p0["bg"]})
+    ok("W3-10：再切回暗色主題 → 剖析圖自動切回「科技」（反方向也要跟，不准只單向生效）",
+       p2["theme"] == "dark" and p2["pal"] == "tech", p2)
+    ok("W3-10：而且顏色真的切回來了（--dg-bg／--dg-ink 都回到深底那一組）",
+       p2["bg"] == p0["bg"] and p2["ink"] == p0["ink"], {"現在": [p2["bg"], p2["ink"]], "一開始": [p0["bg"], p0["ink"]]})
     ok("W3-10：localStorage 的舊偏好也一起清掉了（重新整理不會跳回舊的那個）",
        p2["saved"] in (None, "", "tech"), p2["saved"])
     # ★ 2026-09-23 修：原本寫死 `== 1`，但 v2 版面的剖析圖本來就不只一個 <svg>
@@ -18893,9 +20855,13 @@ def t_b29_tabs(pg, base):
     ok("W3-7：進到圖裡之後 `#dgQ` 那一行也把問題寫出來（第二個看得到的地方）",
        "這張圖回答" in (pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''") or ""),
        pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''")[:50])
-    # 「← 族群總覽」按了要真的回第一個分頁，而不是展開一個不存在的選單
-    click(pg, "#dgBack", 2600)
-    ok("W3-7：「← 族群總覽」按了真的回第一個分頁（不是展開一個不存在的選單）",
+    # ★ 2026-09-23 C1：「← 族群總覽」`#dgBack` 整顆移除 —— 回上一層改按**分頁列的第一格**。
+    #   ⚠ 用 JS 派發的 element.click()：#industry 頁吸頂的 .topbar 會把 pg.click() 攔掉。
+    ok("C1：`#dgBack` 已整顆移除（分頁列第一格就是同一個目的地）",
+       pg.evaluate("() => !document.querySelector('#dgBack')"))
+    pg.eval_on_selector('#dgPick .segchip[data-dgtab="overview"]', "a => a.click()")
+    pg.wait_for_timeout(2600)
+    ok("W3-7：按分頁列的「族群總覽」真的回第一個分頁（族群總覽出現、網址變 /overview）",
        pg.evaluate("() => !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent)")
        and pg.evaluate("location.hash").endswith("/overview"), pg.evaluate("location.hash"))
 
@@ -18940,12 +20906,29 @@ def t_b29_tabs(pg, base):
     gone2 = pg.evaluate("() => ['memberTable','memWide','mktSeg','memberMore','memberTitle']"
                         ".filter(id => !!document.getElementById(id))")
     ok("W3-2：成分股卡片（表格／放寬／市場別／展開更多／標題）整組不在 DOM 了", gone2 == [], gone2)
+    # ⚠ 這一條有兩個判斷，第二個（事件欄要回來）依賴「使用者的偏好是開著」。
+    #   前面的段落會為了各自的需要把 `tw.side` 設成 0（例如關聯圖那幾段），
+    #   狀態跨段落留下來，這條就會在**產品完全正確**的情況下變紅（實測：單跑綠、接在後面紅）。
+    #   所以先把偏好明確設成「開」再測 —— 那才是這條要問的前提，不是放寬。
+    # ⚠ 兩件事一起做對，這一條才量得到真的東西：
+    #   ① 偏好要明確設成「開」再測 —— 前面的段落會為了自己的需要把 `tw.side` 設成 0，
+    #      狀態跨段落留下來，這條就會在**產品完全正確**的情況下變紅（實測：單跑綠、接在後面紅）。
+    #   ② **不可以先跳到 `#overview` 再跳一次** —— 同一個 hash 的第二次 goto 不會觸發換頁，
+    #      收尾程式碼根本沒機會跑，量到的「沒還原」是假的（第一版就是這樣自己造出一個紅燈）。
+    #      所以留在這一頁（產業鏈頁）設狀態，**換到別的頁**才算換頁。
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {}"
+                " if (window.twSetSide) window.twSetSide(true, false); }")
+    pg.wait_for_timeout(400)
     pg.evaluate("() => { document.body.classList.add('memwide');"
                 " if (window.twSetSide) window.twSetSide(false, false); }")
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
     ok("W3-2：換頁一定會把 .memwide 還原掉（規格書點名要留的那段收尾沒有被刪）",
-       pg.evaluate("() => !document.body.classList.contains('memwide')")
-       and pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display") != "none")
+       pg.evaluate("() => !document.body.classList.contains('memwide')"),
+       pg.evaluate("() => document.body.className"))
+    ok("W3-2：而且事件欄跟著回來（`twSetSide(false, false)` 是暫時蓋住，不是改偏好）",
+       pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display") != "none",
+       pg.evaluate("() => [getComputedStyle(document.querySelector('aside')).display,"
+                   " (() => { try { return localStorage.getItem('tw.side'); } catch (e) { return null; } })()]"))
 
     # ---------------- ⑨ 四個寬度：不溢出、分頁字不小於 12px、選中的分頁捲得進視野
     for w in (1440, 1100, 800, 390):
