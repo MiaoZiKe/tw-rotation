@@ -934,19 +934,24 @@
         nightNote(el, d);
         return;
       }
-      /* 連一筆夜盤報價都沒有 → 退回日盤那條線，並在圖上標出原因。
-         這是 N11 的規矩：「不該出現沒有數據」—— 畫面上要有東西，但要老實說它是什麼。*/
-      const dayD = state.data[x.id];
-      if (dayD && dayD.points && dayD.points.length) {
-        const had = el.querySelector('.m3-night'); if (had) had.remove();
-        el.dataset.fallback = '夜盤報價目前拿不到，先顯示日盤走勢';
-        if (state.mode === 'k') drawK(x, dayD, el); else drawLine(x, dayD, el);
-        return;
-      }
-      /* 連日盤的分時檔都沒有 → 問題不是「夜盤沒有序列」，是整個來源連不上
-         （例如還沒設定即時來源、Worker 是舊版）。那就照日盤那一套訊息講，
-         不要用夜盤的說明把真正的原因蓋掉。*/
-      d = dayD; err = state.err[x.id];
+      /* ★ 2026-09-23 Andy：「幫我修復 夜盤拿不到資訊的問題，並且若沒有資訊則空白」
+         ------------------------------------------------------------------
+         以前這裡的做法是**退回去畫日盤那條線**，只在圖上加一行
+         「夜盤報價目前拿不到，先顯示日盤走勢」。他明確不要這個，而且他是對的：
+         使用者按的是「夜盤」，看到的卻是日盤的線在動 —— 瞄一眼很容易當成夜盤正在跳。
+         **畫錯的線比空白更會誤導**，那一行小字擋不住第一眼的印象。
+         所以現在：拿不到夜盤資料就留白，只留一句極簡的狀態文字說明為什麼拿不到。
+         ⚠ 這條路徑只管夜盤；日盤那一邊一個字都沒動。*/
+      killK(x.id);
+      if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
+      el.classList.add('isempty');
+      el.dataset.kind = '';                     // 燈是靠這個判斷的，清掉才不會有燈浮在空白上
+      /* 先問「是不是根本不在夜盤時段」（那是最常見也最無害的原因），
+         再落回 nightWhy() 講真正的錯誤（Worker 舊版、期交所回空、還沒問到合約代號…）。
+         這段字是下一個人唯一的線索，所以寧可囉嗦也不要只寫「沒有資料」。*/
+      const why = sessionHint(x, true) || nightWhy();
+      el.innerHTML = `<div class="empty">夜盤資料未取得${why ? '：' + why : ''}</div>`;
+      return;
     }
     if (!d || !d.points.length) {
       killK(x.id);
