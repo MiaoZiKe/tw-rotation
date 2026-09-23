@@ -19631,7 +19631,13 @@ def t_w9_software(pg, base):
         pg.goto(f"{base}#industry/software/dg/{did}", wait_until="networkidle")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
         low = pg.evaluate("""() => { const rgba = (s) => { const m = (s || '').match(/[\\d.]+/g) || [];
-            return [+m[0] || 0, +m[1] || 0, +m[2] || 0, m[3] == null ? 1 : +m[3]]; };
+            /* ⚠ 現代瀏覽器對 `color-mix()` 算出來的顏色會回 **CSS Color 4** 的寫法：
+               `color(srgb 0.91 0.79 0.79)` —— 三個值是 **0～1**，不是 0～255。
+               直接當 0～255 讀會把一個淺色底讀成接近黑色，於是「深字印在淺底上」
+               被判成對比 1.24（實測就是這樣紅的，產品完全正確）。所以要先認出這種寫法。*/
+            const k = /^color\\(/i.test((s || '').trim()) ? 255 : 1;
+            return [(+m[0] || 0) * k, (+m[1] || 0) * k, (+m[2] || 0) * k,
+                    m[3] == null ? 1 : +m[3]]; };
           const lin = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
           const lum = (c) => .2126 * lin(c[0]) + .7152 * lin(c[1]) + .0722 * lin(c[2]);
           const over = (f, b) => f[3] >= 1 ? f : [0,1,2].map(i => f[i] * f[3] + b[i] * (1 - f[3])).concat([1]);
@@ -19644,12 +19650,24 @@ def t_w9_software(pg, base):
             const cb = over(rgba(getComputedStyle(card).backgroundColor), pageBg);
             card.querySelectorAll('b,i,em,small,span').forEach(e => {
               const t = (e.textContent || '').trim(); if (!t) return;
-              const cr = ratio(over(rgba(getComputedStyle(e).color), cb), cb);
+              const cs = getComputedStyle(e);
+              /* ⚠ 有些元素**自己有底色**（編號圓點 `.no`、環節色標那種小晶片）——
+                 拿卡片的底去比會量出一個假的低對比（實測 1.2，實際上是深字印在淺底晶片上）。
+                 所以先把元素自己的底疊在卡片底上，再比。做法與 `STYLE22` 那支探針一致。*/
+              const under = over(rgba(cs.backgroundColor), cb);
+              const cr = ratio(over(rgba(cs.color), under), under);
               const need = e.tagName === 'I' ? 3 : 4.5;
               if (cr < need) bad.push(e.tagName + '|' + cr + '|' + t.slice(0, 12)); }); });
-          return bad; }""")
+          return { bad, theme: document.documentElement.getAttribute('data-theme') || '',
+                   pal: document.documentElement.dataset.dgpal || '',
+                   pageBg: getComputedStyle(document.body).backgroundColor,
+                   cardBg: (() => { const c = wrap.querySelector('.dgc');
+                     return c ? getComputedStyle(c).backgroundColor : ''; })(),
+                   cards: wrap.querySelectorAll('.dgc').length }; }""")
         ok(f"★ W9-6 [{lab}] 淺色主題下卡片裡每一段字的對比都過（正文 ≥ 4.5、次要 ≥ 3）",
-           low == [], (low or [])[:5])
+           bool(low) and low["bad"] == [],
+           low and {"低於門檻": low["bad"][:4], "theme": low["theme"], "pal": low["pal"],
+                    "頁底": low["pageBg"], "卡底": low["cardBg"], "卡數": low["cards"]})
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
