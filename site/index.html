@@ -2351,7 +2351,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   <nav class="tabs" id="tabs">
     <button class="tab" data-view="overview">總覽</button>
     <button class="tab" data-view="flow">資金流向</button>
-    <button class="tab" data-view="industry">產業與個股</button>
+    <button class="tab" data-view="industry">產業地圖</button>
     <button class="tab" data-view="heatmap">熱力圖</button>
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
@@ -2417,7 +2417,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 <div class="layout" id="layout">
 <main>
-  <div class="banner" id="banner"></div>
+  <!-- ★ 2026-09-23：Andy「上面黃底那串說明刪掉」。
+       這條橫幅原本常駐在每一頁最上面，佔掉三行，而且大部分時間講的是同一件事。
+       **不是把資料狀態刪掉** —— 它的完整內容改成掛在左上「YYYY-MM-DD 盤後」那顆的滑鼠提示上
+       （見 app.js renderFreshness），資料真的有問題時那行字仍然拿得到，只是不再佔版面。
+       元素本身留著、預設 hidden：萬一之後要把某一類警告放回畫面，改一個旗標就好。 -->
+  <div class="banner" id="banner" hidden></div>
 
   <!-- ================= 總覽 ================= -->
   <section class="view" id="v-overview">

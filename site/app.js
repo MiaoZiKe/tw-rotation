@@ -6990,14 +6990,21 @@
     // 網頁版號也寫進來：手機上頂部那顆徽章是藏起來的，這一行是手機唯一看得到版本的地方
     const bd = renderBuild();
     tail.push(`網頁版本 ${fmt.esc(bd.ver)}${bd.at ? '（' + fmt.esc(bd.at) + ' 建置）' : ''}`);
+    /* ★ 2026-09-23：Andy「上面黃底那串說明刪掉」。
+       以前這段把資料狀態畫成頁面最上方的常駐橫幅，佔三行。現在改成：
+       **文字照算、但不畫在版面上**，整串掛到左上「YYYY-MM-DD 盤後」那顆的滑鼠提示裡。
+       為什麼不是整段刪掉：那串字是唯一講得出「今天的數字為什麼長這樣」的地方
+       （暫定值、哪個來源沒回、這輪只更新價量…）。刪掉版面是他要的，刪掉資訊不是。
+       `#banner` 保留但恆為 hidden，之後若要把「壞掉」等級放回畫面，改這裡一個判斷即可。 */
+    const plain = (html) => String(html).replace(/<[^>]*>/g, '');
+    const lines = [`資料更新到 ${D_} 盤後`];
+    if (!bits.length) lines.push('所有來源正常。');
+    else bits.forEach(x => lines.push('· ' + plain(x)));
+    if (tail.length) lines.push(tail.map(plain).join('、') + '（台北時間）');
+    const asof = $('#asof');
+    if (asof) asof.title = lines.join('\n');
     const b = $('#banner');
-    if (!bits.length) {                                  // 一切正常也要講一句，讓人知道系統是活的
-      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>，所有來源正常。${tail.length ? '<span class="muted">（' + tail.join('、') + '，台北時間）</span>' : ''}`;
-      b.className = 'banner on ok';
-    } else {
-      b.innerHTML = `<b>資料更新到 ${fmt.esc(D_)} 盤後</b>　·　${bits.join('　·　')}${tail.length ? '<br><span class="muted">' + tail.join('、') + '（台北時間）</span>' : ''}`;
-      b.className = 'banner on ' + (level === 'bad' ? 'bad' : 'warn');
-    }
+    if (b) { b.hidden = true; b.className = 'banner'; b.innerHTML = ''; }
   }
 
   // ---------------------------------------------------------------- 啟動

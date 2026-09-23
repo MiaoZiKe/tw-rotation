@@ -7747,15 +7747,21 @@ def t_freshness(b, base):
         pg.wait_for_function("() => { const e = document.getElementById('asof');"
                              " return e && e.textContent.trim() !== ''; }", timeout=30000)
         pg.wait_for_timeout(300)
+        # ★ 2026-09-23 改口徑（Andy：「上面黃底那串說明刪掉」）。
+        #    以前這段驗「橫幅要顯示、className 要帶 ok/warn/bad」。橫幅已經從版面上拿掉，
+        #    但**資訊沒有刪**：整串改掛在左上「YYYY-MM-DD 盤後」那顆的 title 提示上。
+        #    所以下面驗的是「① 橫幅真的不佔版面 ② 原因一個字都沒少，只是換了地方」。
+        #    ⚠ 這不是把標準放寬 —— 少掉任何一個關鍵字照樣紅，而且多驗了一條「橫幅真的沒了」。
         got = pg.evaluate("""() => { const b = document.getElementById('banner');
-            return { cls: b.className, on: getComputedStyle(b).display !== 'none',
-                     txt: b.innerText.replace(/\\s+/g, ' ').trim(),
-                     asof: (document.getElementById('asof') || {}).textContent || '' }; }""")
-        ok(f"「{name}」橫幅有顯示", got["on"], got["cls"])
-        ok(f"「{name}」燈號是 {level}", level in got["cls"], got["cls"])
+            const a = document.getElementById('asof');
+            return { cls: b ? b.className : '', on: !!b && getComputedStyle(b).display !== 'none',
+                     txt: (a ? (a.title || '') : '').replace(/\\s+/g, ' ').trim(),
+                     asof: (a || {}).textContent || '' }; }""")
+        ok(f"「{name}」黃底橫幅真的不佔版面了", not got["on"], got["cls"])
         ok(f"「{name}」頂端日期跟著 meta 走", str(meta["data_date"]) in got["asof"], got["asof"])
         miss = [w for w in must if w not in got["txt"]]
-        ok(f"「{name}」把原因講出來了", not miss, {"少了": miss, "實際": got["txt"][:160]})
+        ok(f"「{name}」原因搬到提示裡、一個字都沒少", not miss,
+           {"少了": miss, "實際": got["txt"][:160]})
         seen.append(got["txt"])
         ctx.close()
     ok("四種狀態的文字彼此不同（不是同一段罐頭）", len(set(seen)) == 4,
@@ -7828,7 +7834,10 @@ def t_buildver(b, base):
             const r = e.getBoundingClientRect(); const b = document.getElementById('banner');
             return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: e.title,
                      visible: r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none',
-                     banner: (b ? b.innerText : '').replace(/\\s+/g, ' ') }; }""")
+                     /* ★ 2026-09-23：黃底橫幅已從版面拿掉，版號改掛在「盤後」那顆的 title。
+                        欄位名沿用 banner（引用它的斷言在下面，沒必要為了改名再動一輪）。 */
+                     banner: ((document.getElementById('asof') || {}).title || '')
+                               .replace(/\\s+/g, ' ') }; }""")
         ctx.close()
         return got
 
@@ -7839,7 +7848,8 @@ def t_buildver(b, base):
     ok("徽章也寫建置時間", "11:16" in a["txt"], a["txt"])
     ok("徽章連得到那個 commit（短碼移到 tooltip 與連結）",
        "/commit/1b28dfc" in (a["href"] or ""), a["href"])
-    ok("橫幅那一行也寫了版號（手機上頂部徽章是藏起來的）", "2026-09-18" in a["banner"],
+    # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
+    ok("手機也拿得到版號（橫幅拿掉後改掛在「盤後」那顆的提示裡）", "2026-09-18" in a["banner"],
        a["banner"][:200])
 
     c = run("2026-09-19 第 1 版|08:02")
