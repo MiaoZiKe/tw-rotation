@@ -92,11 +92,29 @@ git add -A && git commit -m "<訊息>" && git push origin main
 - 要重算前端 JSON：**5 到 6 分鐘**
 - 失敗就用 `list_workflow_jobs` 看是哪一步，**回報，不要自己亂改工作流**。
 
-### ⑥ 開線上確認 ★ 這一步不准省
+### ⑥ 確認部署真的生效 ★ 這一步不准省，但**不要謊稱你打開了網頁**
 
-**只說「推上去了」不算交付。** 要真的確認線上版本換掉了：
-- 比對右上角的**版號徽章**（DECISIONS #148 就是為了這件事加的）
-- 部署成功但徽章沒換 → 回報，不要說「好了」
+⚠⚠ **這個容器打不開 `miaozike.github.io`。** 實測 2026-09-23：
+`curl` 回 `CONNECT tunnel failed, response 403`、HTTP 000；`WebFetch` 回 `EGRESS_BLOCKED`。
+CLAUDE.md 那條「只有 WebSearch 能用」也是同一件事。
+
+**所以「我開過線上確認版號徽章換掉了」這句話是假的，不准講。**
+（CEO 在 2026-09-23 對 Andy 講過很多次這句，那是錯的，已經更正。）
+
+你能做到的最強證據鏈是這三項，**三項都要拿到才算數**：
+1. Actions 那一輪**每一個步驟**都成功（用 `list_workflow_jobs` 看，不是只看 run 的結論）
+2. `deploy-pages` 這一步的紀錄有 `Created deployment for <sha>` → `Reported success!`
+3. GitHub Pages deployment 的 `sha` **等於你推的那個 commit**、`state` 是 `success`
+
+版號的「第 N 版」是工作流問 GitHub「今天跑了幾次部署」算出來的，
+**你可以用同一個 API 自己算一次**，推出徽章應該顯示什麼。那是**推算值**，不是你讀到的。
+
+回報時一律這樣寫：
+> 依部署紀錄推算，徽章應該顯示「2026-09-23 第 N 版」。
+> **這個容器打不開線上網頁，所以這是推算不是我親眼讀到的。**
+> 請你重新整理看一眼；如果還是舊版號，那是瀏覽器快取（按 Ctrl+F5），不是沒部署到。
+
+**部署紀錄顯示失敗或 sha 對不上 → 回報，不要說「好了」。**
 
 ### ⑦ 回報
 
