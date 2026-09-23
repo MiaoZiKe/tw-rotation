@@ -6352,7 +6352,7 @@
     const sel = location.hash.split('/')[1];
     renderThemeDetail(th, sel || th.themes[0].id);
   }
-  // 題材產品圖：零件 ↔ 個股雙向互通。點零件→列出該零件的個股；滑過成員→圖上對應零件同色亮起。
+  // 題材產品圖：點零件→列出該零件的個股（成員表已於 2026-09-23 移除，所以不再有「滑過成員列」那一端）。
   function wireThemeDiagram(host, t) {
     const root = $('#themeDiagram', host); if (!root) return;
     const box = $('#themeParts', host);
@@ -6378,7 +6378,6 @@
     $$('.scode', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); goStock(n.dataset.code); }; });
     const paint = (id) => {
       nodes.forEach(n => { n.classList.toggle('sel', !!id && n.dataset.part === id); n.classList.toggle('dim', !!id && n.dataset.part !== id); });
-      $$('#themeMembers tr', host).forEach(tr => tr.classList.toggle('sel', !!id && (codesOf[id] || []).includes(tr.dataset.code)));
       if (!box) return;
       if (!id || !(codesOf[id] || []).length) { box.innerHTML = ''; return; }
       const n = nodes.find(x => x.dataset.part === id && x.classList.contains('stn')) || nodes.find(x => x.dataset.part === id);
@@ -6393,35 +6392,30 @@
     };
     let cur = null;
     nodes.forEach(n => { n.onclick = (e) => { e.stopPropagation(); cur = (cur === n.dataset.part) ? null : n.dataset.part; paint(cur); }; });
-    $$('#themeMembers tr', host).forEach(tr => {
-      tr.onmouseenter = () => { if (cur) return; const hit = Object.keys(codesOf).find(k => codesOf[k].includes(tr.dataset.code)); nodes.forEach(n => n.classList.toggle('sel', !!hit && n.dataset.part === hit)); };
-      tr.onmouseleave = () => { if (!cur) nodes.forEach(n => n.classList.remove('sel')); };
-    });
   }
-  // 題材成員依族群分組：同族群的擺在一起，才看得出來誰跟誰在搶同一塊
-  function themeMembersByGroup(t) {
-    const by = new Map();
-    (t.members || []).forEach(m => {
-      const g = L.cgroup[m.code] || '_';
-      if (!by.has(g)) by.set(g, { gid: g, name: g === '_' ? '未分類' : (L.gname[g] || g), rows: [], turnover: 0 });
-      const e = by.get(g); e.rows.push(m); e.turnover += m.turnover || 0;
-    });
-    return [...by.values()].sort((a, b) => b.turnover - a.turnover);
-  }
+  /* ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
+     原本這裡有兩張卡片 —— 左邊「題材標題 ＋ 五個數字方塊 ＋ 熱度走勢折線」、
+     右邊「成員表（依族群分組）」—— 兩張整塊移除，只留下產品剖析圖與「其他題材」那排標籤。
+     連帶拆掉的東西（留著只會變成永遠收不到訊息的死碼）：
+       ① `themeMembersByGroup()`：只有成員表在用。
+       ② `#themeSeries` 那張折線圖：`themes.json` 的 `series` 仍在，只是前端不再畫。
+       ③ `wireThemeDiagram()` 裡「滑過成員列 → 剖析圖零件亮起」的兩端（發送端是成員列，
+          接收端是 `paint()` 對 `#themeMembers tr` 加 `.sel`）。
+       ④ 「← 回題材總覽」鈕：上方的題材熱力圖本來就一直在同一頁，點別塊就換題材，
+          所以回得去，不必另外補一顆鈕。
+     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖，兩張卡拿掉之後
+       它們會整塊空白，所以留一句說明，不要讓使用者以為網頁壞了。*/
   function renderThemeDetail(th, id) {
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const el = $('#themeDetail');
     const dg = (window.ThemeDiagrams || {})[t.id];
-    const groups = themeMembersByGroup(t);
-    el.innerHTML = `<div class="grid g12"><div class="card"><div class="row spread"><h3>${fmt.esc(t.name)} <small>${fmt.esc(t.desc || '')}</small></h3>
-      <button class="btn small" id="themeBack">← 回題材總覽</button></div>
-      <div class="kvs" style="margin:10px 0"><div class="k"><div class="l">熱度</div><div class="v" style="color:${t.heat >= 70 ? CH.up : CH.amber}">${t.heat}</div></div><div class="k"><div class="l">成交值佔比</div><div class="v">${fmt.n(t.share, 1)}%</div></div><div class="k"><div class="l">5 日 vs 60 日</div><div class="v ${fmt.cls(t.flow_z)}">${t.flow_z != null ? (t.flow_z > 0 ? '+' : '') + t.flow_z.toFixed(1) + 'σ' : '—'}</div></div><div class="k"><div class="l">法人 5 日</div><div class="v ${fmt.cls(t.inst5)}">${t.inst5 != null ? fmt.lot(t.inst5 / 1000) : '—'}</div></div><div class="k"><div class="l">新聞 7 天</div><div class="v">${t.news7}</div></div></div>
-      <div id="themeSeries" class="chart short"></div></div>
-      <div class="card"><h3>成員 <small>依族群分組、組內依漲幅；滑過任一列會亮出它在產品圖上的位置</small></h3><div class="tw cap-md"><table id="themeMembers"><thead><tr><th class="l">代號</th><th class="l">簡稱</th><th>漲跌</th><th>成交值</th><th>法人</th></tr></thead><tbody>${groups.map(g => `<tr class="ghead"><td class="l" colspan="5">${g.gid === '_' ? '<span class="muted">未分類</span>' : L.group(g.gid)} <span class="muted">${g.rows.length} 檔 · ${fmt.yi(g.turnover)}</span></td></tr>`
-      + g.rows.sort((a, b) => (b.chg_pct == null ? -Infinity : b.chg_pct) - (a.chg_pct == null ? -Infinity : a.chg_pct)).map(m => `<tr data-code="${m.code}" onclick="goStock('${m.code}')"><td class="l mono">${m.code}</td><td class="l">${L.stock(m.code, m.name)}</td><td class="num ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct, 2)}</td><td class="num">${fmt.yi(m.turnover)}</td><td class="num ${fmt.cls(m.inst_net)}">${m.inst_net != null ? fmt.lot(m.inst_net / 1000) : '—'}</td></tr>`).join('')).join('')}</tbody></table></div>
-      <div class="linkrow" style="margin-top:8px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div></div></div>
-      ${dg ? `<div class="card" style="margin-top:16px"><div class="row spread"><h3>產品剖析圖 <small>上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></h3></div>
-        <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div></div>` : ''}`;
+    // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材
+    const head = `<h3>產品剖析圖 <small>${fmt.esc(t.name)}${t.desc ? '　' + fmt.esc(t.desc) : ''}</small></h3>`;
+    const other = `<div class="linkrow" style="margin-top:12px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div>`;
+    el.innerHTML = dg
+      ? `<div class="card"><div class="row spread">${head}<small class="muted">上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></div>
+        <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
+      : `<div class="card">${head}<div class="note">這個題材還沒有產品剖析圖，先從上方熱力圖挑別的題材，或按下面的標籤切換。</div>${other}</div>`;
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
       if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el));
@@ -6429,15 +6423,6 @@
       // 要看大圖按右上角「放大」，那是明確的按鈕，不會搶走頁面捲動
       wireThemeDiagram(el, t);
     }
-    // 點進某個題材之後要回得去（不然只能按瀏覽器上一頁）
-    const back = $('#themeBack', el);
-    if (back) back.onclick = () => {
-      location.hash = '#themes';
-      const m = $('#themeMap'); if (m && m.scrollIntoView) m.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    };
-    const s = th.series[t.id] || [];
-    chart('themeSeries', { tooltip: { ...tip, trigger: 'axis' }, grid: { left: 44, right: 16, top: 16, bottom: 26 }, xAxis: { ...axisStyle, type: 'category', data: s.map(x => x[0]), axisLabel: { color: CH.ink3, formatter: v => v.slice(5) } }, yAxis: { ...axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
-      series: [{ name: '成交值佔比', type: 'line', data: s.map(x => x[1]), smooth: .3, showSymbol: false, lineStyle: { color: '#ff8fab', width: 2 }, areaStyle: { color: 'rgba(255,143,171,.15)' } }] });
   }
 
   // ---------------------------------------------------------------- 季節性
