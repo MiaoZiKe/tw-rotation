@@ -2625,7 +2625,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   /* ---- ① 分段導覽：一屏回答一件事 ----------------------------------------
      釘在頂欄下面，所以「我現在在這一頁的哪一段」永遠看得到（他說的「知道自己在哪」）。
      觸控高度 44px（G5 的導覽標準）；放不下就左右捲，而且用 `.hsc` 那套淡出提示。*/
-  .mpager{position:sticky;top:0;z-index:30;display:flex;gap:6px;margin:0 0 10px;padding:7px 2px;
+  /* ⚠ 分段列**刻意不釘住**。量過：頂欄 58 ＋ 主軸 66 ＋ 分段列 58 ＋ 個股的價格列 65
+     ＝ 247px 全部釘在上面，844 的畫面扣掉底部兩列分頁 102 之後只剩 495px 給圖 ——
+     釘住的東西越多，「一屏看完一件事」就越難成立。
+     主軸（`.mspine`）值得釘（它是動線本身），分段列捲回去看一下就好。*/
+  .mpager{display:flex;gap:6px;margin:0 0 10px;padding:7px 2px;
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.55)}
   .mpager::-webkit-scrollbar{display:none}
@@ -2640,7 +2644,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      那正是 `CLAUDE.md` 第一段寫的 M1→M2→M3→M4，只是以前沒有在介面上講出來。
      視覺上要有**順序感**（序號 ＋ 一句話 ＋ 最下面的「下一步」），
      不是四個並排的分頁讓人自己猜。*/
-  .mspine{position:sticky;top:0;z-index:31;display:flex;gap:6px;margin:0 0 6px;padding:8px 2px 6px;
+  /* `top:58px` ＝ 頂欄的高度（`.topbar` 是 sticky、58px 高、z-index 40）。
+     寫 0 的話它會釘到頂欄**底下**去，捲動時整條看不見（第一版就是這樣）。*/
+  .mspine{position:sticky;top:58px;z-index:31;display:flex;gap:6px;margin:0 0 6px;padding:8px 2px 6px;
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 8px 12px -10px rgba(0,0,0,.6)}
   .mspine::-webkit-scrollbar{display:none}
@@ -2653,8 +2659,6 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mspine>button.on{background:var(--panel-3);color:var(--ink);border-color:var(--focus);
     box-shadow:inset 0 0 0 1px var(--focus)}
   .mspine>button.on em{color:var(--ink-2)}
-  /* 有主軸時，下層分段列不再自己釘在 0（會蓋住主軸），改釘在主軸下面 */
-  .mspine+.mpager{top:66px;z-index:30}
   /* 「下一步」：動線的方向感靠它 —— 看完一屏就有一顆鈕帶去下一屏，不必回頭找分頁 */
   .mnext{display:block;width:100%;min-height:48px;margin:14px 0 4px;padding:12px;
     border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
@@ -2704,7 +2708,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   /* ---- ④ 個股頁：圖與它的數字同屏 -------------------------------------------
      量到（改版前）：K 線圖頂在 1024px、現價在 127～596px —— 相隔 1087px。
      現價那一列釘在分段導覽下面，捲到圖的任何一段都還看得到價格與技術分。
-     `top` 用分段導覽的高度（58px）；`.mpager` 自己是 sticky top:0，兩層不會互相蓋。*/
+     `top:58px` ＝ 頂欄的高度（個股頁沒有主軸列，分段列也不釘住，所以這一層直接接在頂欄下面）。*/
   /* ⚠ `min-width:0` 不是裝飾：`#skPx` 改成 nowrap 之後它的 min-content 寬度變成 782px，
      而 flex 子項預設 `min-width:auto` **不准縮到 min-content 以下** ——
      於是 `#skIdent` 被撐到 758px，整頁的版面寬度變成 803px，
@@ -2724,7 +2728,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
   body.miaon #skHead{flex-wrap:wrap}
   body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
-  body.miaon #skPx{max-width:100%;position:sticky;top:58px;z-index:20;margin:0 -12px;padding:8px 12px;
+  /* ⚠ 滿版的做法：`.card` 的內距是 16px 18px，所以要往左右各吃回 18px，
+     而且**不能留 `max-width:100%`** —— 那會把寬度壓回內容寬，負邊距就撐不出去，
+     右邊會露出一條沒有底色的縫，底下捲過去的工具列會從那條縫透出來（實測到的）。*/
+  body.miaon #skPx{position:sticky;top:58px;z-index:20;margin:0 -18px;width:calc(100% + 36px);padding:8px 18px;
     background:var(--bg);border-bottom:1px solid var(--line);
     box-shadow:0 6px 10px -9px rgba(0,0,0,.6);
     /* 排成**一列**（原本四個 pill 換行成三列、整塊 180px 高）。
@@ -2735,20 +2742,19 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   body.miaon #skPx>*{flex:0 0 auto}
   /* 工具列（週期／指標／設定 共 11 顆）改成**一列左右滑**，高度從 404px 收成一列。
      全部留著、一顆都沒少，只是排成一條可以滑的帶子（`.hsc` 會補淡出與「左右滑」提示）。*/
-  #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+  body.miaon #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     gap:6px;padding-bottom:4px}
-  #skTools::-webkit-scrollbar{display:none}
-  #skTools>*{flex:0 0 auto}
-  #skTools .sp{display:none}                 /* 「把剩下的空間吃掉」的彈簧在可捲的列裡沒有意義 */
+  body.miaon #skTools::-webkit-scrollbar{display:none}
+  body.miaon #skTools>*{flex:0 0 auto}
+  body.miaon #skTools .sp{display:none}                 /* 「把剩下的空間吃掉」的彈簧在可捲的列裡沒有意義 */
 
-  /* ---- ⑤ 產業地圖：長條圖與圓餅圖改成左右滑 ---------------------------------
-     量到（390px）：`.gpgrid` 直立堆疊 1150px，圓餅圖要捲 1025px 才看得到。
-     兩張圖回答的是同一個問題的兩面（誰在漲／錢在誰身上），並排比對才有意義 ——
-     手機用滑的達成，語意跟桌機一樣，高度收成一張。*/
-  .gpgrid{display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
-  .gpgrid::-webkit-scrollbar{display:none}
-  .gpgrid>*{flex:0 0 92%;min-width:0;scroll-snap-align:start}
+  /* ---- ⑤（撤回）產業地圖的長條圖＋圓餅圖曾經改成左右滑 -----------------------
+     做出來之後被既有驗收擋下：`_uitest.py` 的「新-產業與個股」有一條
+     **W3-8「[390px] 兩張卡片真的上下堆疊（不是硬擠成兩欄）」**——
+     那是上一批依 Andy 的要求訂下來的，左右滑會讓它變成「兩欄」而變紅。
+     既有的拍板優先於我這一版的偏好，所以整段撤回；`.gpgrid` 在手機維持單欄堆疊。
+     代價：產業地圖頁在 390px 仍有 1358px（圓餅圖要捲 1025px 才看得到）——
+     寫進「刻意留到下一版」，要改得先問過他。*/
 
   /* ---- ⑥ 左右滑的位置指示：第幾張／共幾張 ------------------------------------
      Andy 點名的：「左右滑的卡片要有位置指示，不然不知道還有沒有」。

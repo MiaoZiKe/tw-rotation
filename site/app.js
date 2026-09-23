@@ -898,9 +898,13 @@
        不然「已經到最右邊了還在淡」會變成假提示。
      ⚠ 用固定的選擇器清單、不用全域掃描：掃 `main *` 在產業鏈頁是上萬個節點，
        而這幾個容器就是量到的全部，寫死才可預期。*/
-  /* ★ 2026-09-24 加入 `.gpgrid`（產業地圖的長條圖＋圓餅圖）與 `#skTools`（個股工具列）——
-     這兩個在手機第二版改成左右滑，同樣需要淡出與提示。*/
-  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,.gpgrid,#skTools,#skPx';
+  /* ★ 2026-09-24 加入 `#skTools`（個股工具列，11 顆鈕改成一列可滑）。
+     ⚠ `#skPx`（個股那條釘住的現價列）**刻意不加**：`.hsc` 的淡出是 CSS `mask`，
+       它作用在元素的整個盒子 ——**連背景一起淡掉**。釘住的列一旦右緣半透明，
+       底下捲過去的工具列就會透出來（實測看到「技術分 88」後面疊著「4時」）。
+       釘住的東西必須不透明，所以它只吃 `overflow-x:auto`，不吃淡出與提示列。
+     ⚠ `.gpgrid` 曾經也加進來，後來撤回 —— 見 index.html 那段「⑤（撤回）」。*/
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools';
   /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
      這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
      在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
@@ -941,7 +945,7 @@
      只給「一張一張捲」的卡片列（有 scroll-snap 的那幾個），不給分頁列與表格 ——
      分頁列的「第 3 顆 / 共 8 顆」沒有意義，會變成雜訊。
      位置是量出來的（scrollLeft ÷ 一張的寬度），不是猜的；捲到哪一張就寫哪一張。*/
-  const SWIPE_POS = ['m3-grid', 'gpgrid'];
+  const SWIPE_POS = ['m3-grid'];
   function paintPos(el, tip) {
     if (!SWIPE_POS.some(c => el.classList.contains(c))) { tip.removeAttribute('data-pos'); tip.removeAttribute('data-of'); return; }
     const kids = [...el.children].filter(k => k.getBoundingClientRect().width > 1);
@@ -989,7 +993,15 @@
        ② `.mmore`  長清單限筆 —— 預設只給前幾筆，其餘按「看全部」展開（收起來，不是刪掉）
        ③ `.mfold`  長說明收合 ＋ 個股頁把「現價那一列」釘在圖的上方（圖與數字同屏）
      ============================================================================ */
-  const MIA_MAX = 820;                       // 跟 index.html 的手機斷點同一個數字
+  /* ★ 斷點刻意比手機的樣式斷點（820px）**窄**：640px。
+     理由是量出來的，不是偏好：既有的驗收有一整批段落是在 **800px** 跑的
+     （「800px 時面板掉到圖的下面」「800px／產業鏈圖收合 K 線圖排在產業鏈區塊上面」
+       「800px 窄畫面照樣點得到個股標籤」…），那是**把桌機視窗縮一半**的情境，
+     不是手機。在那個寬度把內容收進分段列會讓那些斷言全部變紅 —— 而且它們是對的：
+     800px 有足夠的寬度一次看完，不需要分段。
+     **分段／限筆／收合這一套只給真正的手機寬度（≤640px）**；
+     820px 那一批（左右滑提示、底部兩列分頁、字級）維持原樣不動。*/
+  const MIA_MAX = 640;
   const mIsM = () => window.innerWidth <= MIA_MAX;
 
   /* 分段表：key ＝ route() 算出來的 `pageKey`（見下面 applyMobileIA 的呼叫點）。
@@ -1039,16 +1051,14 @@
       { n: '逐年明細', sel: ['#seasonDrillCard'] },
       { n: '最強族群', sel: ['#seasonTopCard'] },
     ],
-    /* 單一產業鏈頁（`#industry/<chain>`）。量到 2561px：剖析圖 ＋ 關聯圖 ＋ 環節 ＋ 成分股
-       全部串在同一張卡裡，而關聯圖那一段自己就 1717px。
-       ⚠ 產業地圖頁（`#industry` 沒有鏈）走的是另一套 DOM（`#gpHost`），
-         這幾個選擇器一個都抓不到 → `found.length < 2` → 自動不掛分段導覽。*/
-    industry: [
-      // `#nbIntro`（頁首那段說明）**刻意不列進任何一段** —— 它講的是整頁怎麼看，
-      // 兩段都用得到。它自己被 miaChain 收成一顆「這一頁怎麼看 ▾」，只佔 40px。
-      { n: '剖析圖', sel: ['#dgPick', '.nbbody'] },
-      { n: '關聯圖', sel: ['#relSec'] },
-    ],
+    /* ⚠ 單一產業鏈頁（`#industry/<chain>`）**刻意不做分段導覽**（做過，撤回了）。
+       原本切成「剖析圖／關聯圖」兩段，390px 從 2561px 收到 844px，數字很漂亮 ——
+       但它把 `#relSec` 底下的 `#segChips`、`.seglist` 收到第二段去，於是既有的
+       「批次29-產業分頁」「產業關係面板」「新-產業與個股」三段當場變紅
+       （`element is not visible`）。那些斷言驗的是「窄畫面照樣點得到個股標籤」，
+       是上一批拍板的行為 —— **既有的拍板優先於我這一版的偏好**。
+       這一頁改成只收兩段長說明（見 miaChain），高度從 2561 收到約 2200。
+       要真的分段，得先把那三段驗收一起改，那是另一批的工作。*/
     themes: [
       { n: '題材熱力', sel: ['#themeMapCard'] },
       { n: '題材細節', sel: ['#themeDetail'] },
