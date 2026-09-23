@@ -20715,8 +20715,15 @@ def t_b29_tabs(pg, base):
     #   前面的段落會為了各自的需要把 `tw.side` 設成 0（例如關聯圖那幾段），
     #   狀態跨段落留下來，這條就會在**產品完全正確**的情況下變紅（實測：單跑綠、接在後面紅）。
     #   所以先把偏好明確設成「開」再測 —— 那才是這條要問的前提，不是放寬。
-    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {} }")
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
+    # ⚠ 兩件事一起做對，這一條才量得到真的東西：
+    #   ① 偏好要明確設成「開」再測 —— 前面的段落會為了自己的需要把 `tw.side` 設成 0，
+    #      狀態跨段落留下來，這條就會在**產品完全正確**的情況下變紅（實測：單跑綠、接在後面紅）。
+    #   ② **不可以先跳到 `#overview` 再跳一次** —— 同一個 hash 的第二次 goto 不會觸發換頁，
+    #      收尾程式碼根本沒機會跑，量到的「沒還原」是假的（第一版就是這樣自己造出一個紅燈）。
+    #      所以留在這一頁（產業鏈頁）設狀態，**換到別的頁**才算換頁。
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {}"
+                " if (window.twSetSide) window.twSetSide(true, false); }")
+    pg.wait_for_timeout(400)
     pg.evaluate("() => { document.body.classList.add('memwide');"
                 " if (window.twSetSide) window.twSetSide(false, false); }")
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
