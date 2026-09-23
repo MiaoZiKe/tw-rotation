@@ -18075,16 +18075,17 @@ def t_b25_tools(pg, base):
         # 那種型態的水平中心本來就在 0.5，用「右下 1/4」去要求它是錯的量尺；
         # 窄畫面要守的是「貼著底緣、完整在容器內、捲得到」。
         if vw > 800:
-            ok(f"{vw}px 工具列在畫布內的右上角（中心落在右上 1/4）",
-               t["qx"] > 0.5 and t["qy"] < 0.5, {"qx": round(t["qx"], 2), "qy": round(t["qy"], 2)})
+            ok(f"{vw}px 設定列跟標題同一列、而且在標題右邊（＝右上角）",
+               t["qx"] > 0.5 and t["rightOfTitle"] and t["sameRow"],
+               {"qx": round(t["qx"], 2), "right": t["rightOfTitle"], "sameRow": t["sameRow"]})
         else:
-            ok(f"{vw}px 工具列貼在畫布上緣（窄畫面改成一整列）",
-               t["qy"] < 0.25, {"qy": round(t["qy"], 2), "top": t["top"]})
-            ok(f"{vw}px 工具列放不下時捲得到（不是被切掉看不見）",
+            ok(f"{vw}px 設定列自己換到下一行，排成可左右捲的一列",
                pg.evaluate("""() => { const t = document.getElementById('dgTools'); if (!t) return false;
                    const cs = getComputedStyle(t);
                    return t.scrollWidth <= t.clientWidth + 2 || /auto|scroll/.test(cs.overflowX); }"""))
-        ok(f"{vw}px 工具列完整在容器內（沒有溢出）", t["inside"], t)
+        # ★ W3-9：這一條就是 `_preview.py` 抓到的那個問題 —— 設定列不准壓到標題
+        ok(f"{vw}px 設定列沒有跟「產品剖析圖」那行標題重疊", not t["overlapTitle"], t)
+        ok(f"{vw}px 設定列在標題那一列裡（沒有溢出到區塊外）", t["inHead"], t)
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1200)
 
     # ⑱ 切 3D 之後位置不跳（量離右下角的距離）
@@ -18092,9 +18093,10 @@ def t_b25_tools(pg, base):
     if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
         pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(3000)
         t3d = pg.evaluate(CG_TOOLS)
-        ok("切到 3D 之後工具列還在同一個角落（離圖的右上角距離差 ≤ 6px）",
-           bool(t3d) and abs(t3d["imgRight"] - t2d["imgRight"]) <= 6
-           and abs(t3d["imgTop"] - t2d["imgTop"]) <= 6, f"{t2d} → {t3d}")
+        # ★ W3-9：設定列住在標題那一列，跟畫布高度無關 —— 切 3D 之後它本來就不該動
+        ok("切到 3D 之後設定列還在同一個位置（離標題列右緣距離差 ≤ 6px，而且仍然不壓到標題）",
+           bool(t3d) and abs(t3d["right"] - t2d["right"]) <= 6 and not t3d["overlapTitle"],
+           f"{t2d} → {t3d}")
         pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(2000)
     else:
         notes.append("這個環境不支援 WebGL，「切 3D 工具列不跳位置」那一條跳過")
@@ -18719,10 +18721,10 @@ def t_b29_tabs(pg, base):
     pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3600)
     t1 = pg.evaluate(CG_TOOLS)
     if ok("W3-1：找得到剖析圖的設定列", bool(t1) and t1.get("vis"), t1):
-        ok("W3-1：設定列的中心落在圖的右**上** 1/4（不是右下角）",
-           t1["qx"] > 0.5 and t1["qy"] < 0.5, {"qx": round(t1["qx"], 2), "qy": round(t1["qy"], 2)})
-        ok("W3-1：而且完整在圖內（離圖的上緣 8～60px，沒有跑到圖外面）",
-           t1["inside"] and 8 <= t1["imgTop"] <= 60, {"inside": t1["inside"], "imgTop": t1["imgTop"]})
+        ok("W3-1：設定列跟標題同一列、靠右（＝右上角），不是右下角",
+           t1["qx"] > 0.5 and t1["rightOfTitle"] and t1["sameRow"], t1)
+        # ★ W3-9：_preview 抓到的那個問題 —— 浮在圖上時會壓到「產品剖析圖 <圖名>」那行標題
+        ok("W3-9：設定列沒有跟標題重疊（並排，不是疊上去）", not t1["overlapTitle"], t1)
         # 真的按一顆：位置換了之後仍然點得到（節流的死區如果寫反，這裡會逾時）
         pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(600)
         ok("W3-1：搬到右上角之後，設定列的鈕仍然真的按得下去（動畫鈕的字真的換了）",
@@ -18733,9 +18735,8 @@ def t_b29_tabs(pg, base):
         pg.eval_on_selector("#dgFold", "b => b.click()"); pg.wait_for_timeout(1000)
         pg.eval_on_selector("#dgFold", "b => b.click()"); pg.wait_for_timeout(2600)
         t2 = pg.evaluate(CG_TOOLS)
-        ok("W3-1：收合再展開一輪，設定列仍然停在圖的右上角（補算機制沒有被拿掉）",
-           bool(t2) and t2["qx"] > 0.5 and t2["qy"] < 0.5 and t2["inside"],
-           {"qx": round(t2["qx"], 2), "qy": round(t2["qy"], 2), "inside": t2["inside"]})
+        ok("W3-1：收合再展開一輪，設定列仍然在標題那一列的右邊、也仍然不壓到標題",
+           bool(t2) and t2["qx"] > 0.5 and t2["rightOfTitle"] and not t2["overlapTitle"], t2)
 
     # ---- W3-8：族群總覽的兩張圖優化（卡片、不截斷、圓角長條、零軸線、甜甜圈＋中心數字、連動不退化）
     pg.set_viewport_size({"width": 1440, "height": 1000})
