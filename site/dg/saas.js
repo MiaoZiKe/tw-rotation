@@ -64,28 +64,32 @@
   /* ---------------- 上：專案人天制 ---------------- */
   const PB = 206;                                    // 專案圖的基線
   function project() {
-    const g = [frame(16, 64, 628, 158), T(30, 88, '專案人天制：收入等驗收那一個月一次認列', 'lbl')];
+    const g = [frame(16, 64, 628, 166), T(30, 88, '專案人天制：收入等驗收那一個月一次認列', 'lbl')];
     // 人力成本：M1 到 M4 一直在燒（一條連續的淺色帶）
     g.push(part('sa_cost', R(mx(0), PB - 18, mx(3) + MW - mx(0), 18, C.cost, 'part', 3)
       + T(mx(0) + 4, PB - 5, '人力成本從第一個月就在燒', 'sub', null, 'fill:var(--dg-ink)')));
     // 收入：只有 M4 一根高柱
     const h = 12 * UNIT;
     g.push(part('sa_proj_rev', R(mx(3), PB - 18 - h, MW, h, C.proj, 'part', 3)
-      + T(mx(3) + MW / 2, PB - 24 - h, '驗收', 'sub', 'middle', `fill:${C.proj}`)));
+      + T(mx(3) - 6, 150, '驗收', 'sub', 'end', `fill:${C.proj}`)));
     // 軸與月份
+    g.push(T(mx(4) + 10, 128, '← 收入只有驗收那一個月，其餘十一個月是零。', 'sub', null, `fill:${C.warn}`));
+    g.push(T(mx(4) + 10, 146, '人卻是十二個月都在。', 'sub'));
     g.push(LN(`M${MX - 10},${PB} H${mx(11) + MW + 8}`, 'var(--dg-axis)', 1));
-    for (let i = 0; i < 12; i++) g.push(T(mx(i) + MW / 2, PB + 14, 'M' + (i + 1), 'sub', 'middle'));
+    for (let i = 0; i < 12; i++) g.push(T(mx(i) + MW / 2, PB + 16, 'M' + (i + 1), 'sub', 'middle'));
     return g.join('');
   }
 
   /* ---------------- 下：訂閱制 ---------------- */
-  const SB = 402;                                    // 訂閱圖的基線
+  const SB = 398;                                    // 訂閱圖的基線
   /* 每個月認一小格。下段＝去年就在的客戶續約，上段＝當年新增 ——
      兩段疊起來就是「階梯」：不是因為單月賣得多，是因為上個月的還在。*/
   const KEEP = [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4];
   const NEW = [0, 0.4, 0.8, 1.2, 1.6, 2, 2.4, 2.8, 3.2, 3.6, 4, 4.4];
   function subs() {
-    const g = [frame(16, 236, 628, 190), T(30, 260, '訂閱制：每個月認一小格，上個月的還在', 'lbl')];
+    const g = [frame(16, 252, 628, 170), T(30, 276, '訂閱制：每個月認一小格，上個月的還在', 'lbl'),
+      T(30, 298, '同樣一張合約，分成十二份逐月認列 —— 所以單月看起來很小。', 'sub'),
+      T(30, 316, '深色是上個月就在的客戶續約，淺色才是當月新增；階梯是續約疊出來的。', 'sub')];
     for (let i = 0; i < 12; i++) {
       const hk = KEEP[i] * UNIT, hn = NEW[i] * UNIT;
       g.push(part('sa_sub_m' + i, R(mx(i), SB - hk, MW, hk, C.sub1, 'part', 2)
@@ -94,26 +98,26 @@
     g.push(LN(`M${MX - 10},${SB} H${mx(11) + MW + 8}`, 'var(--dg-axis)', 1));
     for (let i = 0; i < 12; i++) g.push(T(mx(i) + MW / 2, SB + 14, 'M' + (i + 1), 'sub', 'middle'));
     // 圖例
-    g.push(R(mx(0), SB + 26, 12, 12, C.sub1, null, 2) + T(mx(0) + 18, SB + 36, '續約（上個月就在的客戶）', 'sub'));
-    g.push(R(mx(4), SB + 26, 12, 12, C.sub2, null, 2) + T(mx(4) + 18, SB + 36, '當月新增', 'sub'));
+    g.push(R(mx(0), SB + 40, 12, 12, C.sub1, null, 2) + T(mx(0) + 18, SB + 50, '續約（上個月就在的客戶）', 'sub'));
+    g.push(R(mx(4), SB + 40, 12, 12, C.sub2, null, 2) + T(mx(4) + 18, SB + 50, '當月新增', 'sub'));
     // 「同一個刻度」的提示線：專案那根高柱的高度拉一條虛線過來
-    g.push(part('sa_scale', LN(`M${mx(3) + MW},${PB - 18 - 12 * UNIT} H${mx(11) + MW + 8} V${SB - 18 * UNIT}`, C.warn, 1.4, ' stroke-dasharray="5 5"')
-      + T(mx(11) + MW + 12, SB - 18 * UNIT - 6, '同一個刻度', 'sub', 'end', `fill:${C.warn}`)));
+    g.push(part('sa_scale', LN(`M${mx(3) + MW},${PB - 18 - 12 * UNIT} H624 V252`, C.warn, 1.4, ' stroke-dasharray="5 5"')
+      + T(624, PB - 18 - 12 * UNIT - 8, '同一個刻度', 'sub', 'end', `fill:${C.warn}`)));
     return g.join('');
   }
 
   /* ================================================================ ③ 三句結論（永遠看得到） */
   const CONC = [
-    { id: 'sa_c1', t: '為什麼看起來成長慢', s: ['一張同樣金額的合約，專案一次認完，', '訂閱要分十二個月 —— 當年只認到一部分。'], col: C.warn },
-    { id: 'sa_c2', t: '為什麼比較穩', s: ['這個月的營收有一大半是上個月就決定的。', '要掉下來，得客戶真的不續約。'], col: C.ok },
+    { id: 'sa_c1', t: '為什麼看起來成長慢', s: ['同樣金額的一張合約，', '專案一次認完、訂閱分十二份，', '當年只認到一部分。'], col: C.warn },
+    { id: 'sa_c2', t: '為什麼比較穩', s: ['這個月的營收有一大半', '是上個月就決定的。', '要掉，得客戶真的不續約。'], col: C.ok },
     { id: 'sa_c3', t: '代價是什麼', s: ['前期先付出（開發、獲客），', '收入要好幾年才收回來。'], col: C.cost },
   ];
   function conclusion() {
-    return T(16, 476, '③ 所以「成長慢」與「比較穩」是同一件事的兩面', 'hd')
+    return T(16, 486, '③ 所以「成長慢」與「比較穩」是同一件事的兩面', 'hd')
       + CONC.map((c, i) => {
-        const x = 16 + i * 212, y = 486;
-        return part(c.id, R(x, y, 200, 92, 'var(--dg-frame-f)', 'part frame', 8)
-          + R(x, y, 4, 92, c.col)
+        const x = 16 + i * 212, y = 496;
+        return part(c.id, R(x, y, 200, 104, 'var(--dg-frame-f)', 'part frame', 8)
+          + R(x, y, 4, 104, c.col)
           + T(x + 14, y + 24, c.t, 'lbl')
           + c.s.map((s, k) => T(x + 14, y + 46 + k * 18, s, 'sub')).join(''));
       }).join('');
@@ -199,21 +203,21 @@
 
       <!-- ================= §1 主畫面（永遠看得到） ================= -->
       ${T(16, 52, '① 專案人天制：一根高柱 ＋ 一串零', 'hd')}
-      ${fx.shadows(`<rect x="20" y="68" width="628" height="158" rx="9"/><rect x="20" y="240" width="628" height="190" rx="9"/>`)}
+      ${fx.shadows(`<rect x="20" y="68" width="628" height="166" rx="9"/><rect x="20" y="256" width="628" height="170" rx="9"/>`)}
       ${project()}
-      ${T(16, 228, '② 訂閱制：每個月一小格，疊成一道階梯', 'hd')}
+      ${T(16, 244, '② 訂閱制：每個月一小格，疊成一道階梯', 'hd')}
       ${subs()}
       ${conclusion()}
 
       <!-- ================= 說明卡片（HTML；左欄＝專案，右欄＝訂閱） ================= -->
-      ${card({ part: 'sa_cost', no: 1, side: 'l', color: C.cost, ax: mx(0) + 20, ay: PB - 9, title: '人力成本從第一個月就在燒', sub: ['專案是先做後收：人先進場，錢在驗收那一刻才進來。所以案子拖越久，現金流越難看。'] })}
-      ${card({ part: 'sa_proj_rev', no: 2, side: 'l', color: C.proj, ax: mx(3), ay: PB - 18 - 12 * 7.5 + 10, title: '驗收那一個月一次認列', sub: ['單季營收會被幾個大案的驗收時點左右 —— 不是生意變好或變壞，是驗收落在哪一季。', '★ 這也是專案型公司的季度數字很跳的原因。'] })}
-      ${card({ part: 'sa_sub_m0', no: 3, side: 'r', color: C.sub1, ax: mx(0) + MW, ay: SB - 4 * 7.5, title: '訂閱：每個月只認一小格', sub: ['同樣金額的合約，分成十二份逐月認列。當年只認到一部分 —— 這就是「看起來成長慢」的全部原因。'] })}
-      ${card({ part: 'sa_sub_m11', no: 4, side: 'r', color: C.sub2, ax: mx(11) + MW, ay: SB - 8 * 7.5, title: '階梯不是因為單月賣得多', sub: ['深色那段是上個月就在的客戶續約，淺色那段才是當月新增。★ 階梯往上，是因為舊的沒有掉。'] })}
-      ${card({ part: 'sa_scale', no: 5, side: 'r', color: C.warn, ax: mx(11) + MW + 8, ay: SB - 18 * 7.5, title: '兩張圖是同一個刻度', sub: ['刻意把縱軸畫成一樣 —— 不然「一次認列」與「逐月認列」的對比只是視覺錯覺。'] })}
-      ${card({ part: 'sa_c1', no: 6, side: 'l', order: 6, color: C.warn, ax: 20, ay: 532, title: '成長慢：分母被時間拉長了', sub: ['一張同樣金額的合約，專案當年認完、訂閱當年只認一部分。所以轉型訂閱的那幾年，營收年增率會難看。'] })}
-      ${card({ part: 'sa_c2', no: 7, side: 'l', order: 7, color: C.ok, ax: 232, ay: 532, title: '穩：這個月的一大半是上個月決定的', sub: ['要掉下來，得客戶真的不續約 —— 而換掉一套已經在用的企業軟體，本身就很貴。'] })}
-      ${card({ part: 'sa_c3', no: 8, side: 'r', order: 8, color: C.cost, ax: 444, ay: 532, title: '代價：前期先付出', sub: ['開發與獲客的錢先花掉，收入要好幾年才收回來。★ 所以本圖不下「訂閱一定比專案好」這種結論。'] })}
+      ${card({ part: 'sa_cost', no: 1, side: 'l', color: C.cost, ax: mx(0) - 8, ay: PB - 9, title: '人力成本從第一個月就在燒', sub: ['專案是先做後收：人先進場，錢在驗收那一刻才進來。所以案子拖越久，現金流越難看。'] })}
+      ${card({ part: 'sa_proj_rev', no: 2, side: 'l', color: C.proj, ax: mx(3) + MW + 6, ay: PB - 18 - 12 * 7.5 + 12, title: '驗收那一個月一次認列', sub: ['單季營收會被幾個大案的驗收時點左右 —— 不是生意變好或變壞，是驗收落在哪一季。', '★ 這也是專案型公司的季度數字很跳的原因。'] })}
+      ${card({ part: 'sa_sub_m0', no: 3, side: 'r', color: C.sub1, ax: mx(0) - 8, ay: SB - 4 * 7.5, title: '訂閱：每個月只認一小格', sub: ['同樣金額的合約，分成十二份逐月認列。當年只認到一部分 —— 這就是「看起來成長慢」的全部原因。'] })}
+      ${card({ part: 'sa_sub_m11', no: 4, side: 'r', color: C.sub2, ax: mx(11) + MW + 8, ay: SB - 9 * 7.5, title: '階梯不是因為單月賣得多', sub: ['深色那段是上個月就在的客戶續約，淺色那段才是當月新增。★ 階梯往上，是因為舊的沒有掉。'] })}
+      ${card({ part: 'sa_scale', no: 5, side: 'r', color: C.warn, ax: 624, ay: PB - 18 - 12 * 7.5, title: '兩張圖是同一個刻度', sub: ['刻意把縱軸畫成一樣 —— 不然「一次認列」與「逐月認列」的對比只是視覺錯覺。'] })}
+      ${card({ part: 'sa_c1', no: 6, side: 'l', order: 6, color: C.warn, ax: 10, ay: 542, title: '成長慢：分母被時間拉長了', sub: ['一張同樣金額的合約，專案當年認完、訂閱當年只認一部分。所以轉型訂閱的那幾年，營收年增率會難看。'] })}
+      ${card({ part: 'sa_c2', no: 7, side: 'l', order: 7, color: C.ok, ax: 222, ay: 542, title: '穩：這個月的一大半是上個月決定的', sub: ['要掉下來，得客戶真的不續約 —— 而換掉一套已經在用的企業軟體，本身就很貴。'] })}
+      ${card({ part: 'sa_c3', no: 8, side: 'r', order: 8, color: C.cost, ax: 434, ay: 542, title: '代價：前期先付出', sub: ['開發與獲客的錢先花掉，收入要好幾年才收回來。★ 所以本圖不下「訂閱一定比專案好」這種結論。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['柱高、合約長度、十二個月的形狀全部是示意，不是任何一家公司的實際數字；合約期間也不一定是十二個月。'] })}
       ${note({ side: 'r', order: 97, warn: true, title: '★ 看這一格要看的三個東西', lines: ['① 訂閱（或稱經常性）收入的占比有沒有在往上；② 合約負債（遞延收入）有沒有跟著長 —— 那是已經收到錢、還沒認列的未來營收；③ 毛利率在轉型期會先被前期投入壓住，要看它有沒有回來。', '這三句是依公開會計準則與訂閱商業模式的通則寫的，不是任何一家公司的說法。'] })}
       ${note({ side: 'r', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛 —— 硬掛一個別條鏈的環節，等於宣稱錯誤的公司對應。'] })}

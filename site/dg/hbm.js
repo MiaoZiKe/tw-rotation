@@ -358,7 +358,7 @@
       ${card({ part: 'hb_gpu', no: 11, side: 'r', color: C.die, ax: BLK.gx + BLK.gw - 6, ay: SYS.dieB - 14, title: '運算晶粒（GPU／ASIC）', sub: ['HBM 站在它旁邊。它本身是 IC 設計與晶圓代工的產物，見「晶圓代工」那張。'] })}
       ${card({ part: 'hb_topview', no: 12, side: 'r', color: C.mute, ax: 610, ay: 95, title: '俯視小格', sub: ['從上往下看：中央是運算晶粒，兩側各一排 HBM，數量對稱 —— 這一格就是把「並排」講死。'] })}
       ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['台股沒有 HBM 顆粒廠（實際上是 SK hynix／Micron／Samsung）；唯一具名的位置是 base die —— SK hynix 的 HBM4 base die 採 2330 台積電 12 奈米邏輯製程（來源：產業媒體，2026）。逐段的章與名單見下面第 ③ 段。'] })}
-      ${note({ side: 'l', order: 98, title: '示意圖，非實物比例', lines: ['層厚、孔徑與凸塊尺寸均為誇張放大；堆疊層數為示意，實際層數依世代而定。', '本圖講「HBM 那一疊裡面是什麼」；HBM 被放進封裝的完整樣子見「IC 封裝剖析」那張。'] })}
+      ${note({ side: 'r', order: 98, title: '示意圖，非實物比例', lines: ['層厚、孔徑與凸塊尺寸均為誇張放大；堆疊層數為示意，實際層數依世代而定。', '本圖講「HBM 那一疊裡面是什麼」；HBM 被放進封裝的完整樣子見「IC 封裝剖析」那張。'] })}
       ${note({ side: 'l', order: 99, title: '為什麼點零件列出來的是外商', lines: ['供應鏈資料的「HBM」環節底下只有外商，所以點零件列出來的是外商，這是刻意的 —— 台股在那一層是空的，而那正是這張圖要講的事。'] })}
 
       <!-- ================= ② 兩層之間是怎麼接起來的（預設收合） ================= -->

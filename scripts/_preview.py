@@ -247,10 +247,12 @@ def main() -> int:
         visit("flow", "flow")
         visit("industry", "industry_map")
         visit("industry/ai_server", "industry_chain")
-        state["industry_chain"]["members"] = pg.evaluate("document.querySelectorAll('#memberTable tbody tr').length")
+        # ★ 2026-09-23（W3-2）：成分股表移除，這裡記的「這一頁有多少內容」改成量關聯圖的族群節點
+        state["industry_chain"]["members"] = pg.evaluate("document.querySelectorAll('#cgGraph .cgnode[data-gid]').length")
         state["industry_chain"]["diagram"] = pg.evaluate("!!document.querySelector('#prodDiagram svg') && document.querySelectorAll('#chainMap .co').length")
         visit("industry/group/ind_ETF", "industry_etf")
-        state["industry_etf"]["members"] = pg.evaluate("document.querySelectorAll('#memberTable tbody tr').length")
+        # ★ 2026-09-23（W3-2）：族群頁改用個股漲幅長條圖，量它畫了幾條
+        state["industry_etf"]["members"] = pg.evaluate("() => { const g = window.Industry && window.Industry._gp ? window.Industry._gp() : null; return g ? g.rows : 0; }")
         visit("themes", "themes")
         # 每個題材都要有產品圖，而且圖上每個零件都要點得到個股（Andy 2026-09-12 的要求）
         tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams) : [])")
