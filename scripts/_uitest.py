@@ -11072,7 +11072,7 @@ def main() -> int:
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", headless=not args.headed)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
-        pg.on("pageerror", lambda e: fails.append(f"pageerror: {e} || STACK: {(getattr(e, 'stack', '') or '')[:400]} || URL: {pg.url}"))
+        pg.on("pageerror", lambda e: fails.append("pageerror: " + str(e).replace(chr(10), " / ") + " || STACK: " + ((getattr(e, "stack", "") or "").replace(chr(10), " / ")[:600]) + " || URL: " + pg.url))
         # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題
         pg.on("console", lambda m: fails.append(f"console.error: {m.text}")
               if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text
@@ -18844,8 +18844,11 @@ def t_b29_tabs(pg, base):
     ok("W3-10：而且顏色真的切回來了（--dg-bg 回到深底）", p2["bg"] == p0["bg"], {"現在": p2["bg"], "一開始": p0["bg"]})
     ok("W3-10：localStorage 的舊偏好也一起清掉了（重新整理不會跳回舊的那個）",
        p2["saved"] in (None, "", "tech"), p2["saved"])
+    # ★ 2026-09-23 修：原本寫死 `== 1`，但 v2 版面的剖析圖本來就不只一個 <svg>
+    #   （主圖之外還有引線／圖例那層），實測是 2。這一條要問的是「圖還在、沒有變空白」，
+    #   所以正確的判準是 `>= 1`，不是恰好一個。寫死 1 是假紅。
     ok("W3-10：切主題沒有把圖重畫成初始狀態（剖析圖還在、沒有變空白）",
-       pg.evaluate("() => document.querySelectorAll('#prodDiagram svg').length") == 1)
+       pg.evaluate("() => document.querySelectorAll('#prodDiagram svg').length") >= 1)
 
     # ---- W3-6：產業鏈標題下方那排標籤整排拿掉（檔數／今日／本益比中位／← 返回）
     pg.set_viewport_size({"width": 1440, "height": 1000})

@@ -97,47 +97,67 @@
      station 的資料結構與 chainScene 完全一樣，所以點擊、顏色、成員連動都共用同一套。 */
   const EX = { X: 306, TOP: 150, ROW: 124, LX: 628, LW: 530, K: 1.5 };
 
+  /* ★ 2026-09-23：版面參數改成「每張圖可以自己覆寫」（o.ex）。
+     為什麼不直接改 EX：這一輪只做 AI 伺服器那一張，其餘七張爆炸圖（電源、散熱、AI PC、
+     機器人、無人機、衛星、車用）**必須維持原樣**，所以覆寫值只由 T.ai_server 傳進來，
+     沒傳的圖吃的還是原本那組數字，版面一個像素都不會動。
+       MW／MH   零件框的寬高（fit() 會把零件等比縮進這個框）。
+                等角投影下一個扁平物件的寬高比上限是 0.866/0.5＝1.73，
+                所以 MW/MH 設到 1.73 附近才不會「框很寬、零件只佔一半」。
+       SLOT_MIN 右側說明卡的最小高度。設了之後卡片等高、上下貼齊，
+                不會像改版前那樣每張卡之間留一條空白。*/
   function explodeScene(o) {
+    const E = Object.assign({}, EX, o.ex || {});
+    /* ★ 畫布寬度可以自己決定。量出來的事實（2026-09-23）：1440 螢幕上題材頁放圖的那一欄
+       只有 996px，而預設畫布是 1180px —— 也就是**這張圖在 Andy 的螢幕上永遠要左右滑**，
+       而 Andy 這一輪要的就是「只需要提供圖片給讀者閱讀」。所以 AI 伺服器這張把畫布收到 980，
+       1440 下一次看完、不必滑。其他圖沒傳 cw，吃的還是 1180，版面不動。*/
+    const W = o.cw || CW;
+    const MW = E.MW || 196, MH = E.MH || (E.ROW - 26);
+    const AX = Math.round(E.X + MW / 2 + 12);   // 引線起點：貼在零件框右緣，不是寫死的 +152
     const ly = o.layers, n = ly.length;
-    const rowY = (i) => EX.TOP + i * EX.ROW;
+    const rowY = (i) => E.TOP + i * E.ROW;
     let maxRows = 1;
     // 零件之間的虛線對位軸＋箭頭：爆炸圖的關鍵視覺提示「這些是同一台拆開的」
     const guides = ly.slice(0, -1).map((s, i) => {
-      const a = rowY(i) + 26, b = rowY(i + 1) - 44;
-      return `<path class="etch" d="M${EX.X},${a} V${b}" stroke-dasharray="4 7"/>`
-        + `<path class="etch" d="M${EX.X - 5},${b - 9} L${EX.X},${b} L${EX.X + 5},${b - 9}" fill="none"/>`;
+      const a = rowY(i) - 22 + MH / 2 + 6, b = rowY(i + 1) - 22 - MH / 2 - 10;
+      if (b - a < 12) return '';
+      return `<path class="etch" d="M${E.X},${a} V${b}" stroke-dasharray="4 7"/>`
+        + `<path class="etch" d="M${E.X - 5},${b - 9} L${E.X},${b} L${E.X + 5},${b - 9}" fill="none"/>`;
     }).join('');
     const rows = ly.map((s, i) => {
       const y = rowY(i);
-      const ch = chips(s.codes, EX.LX, y + 18, EX.LW - 10);
+      // 說明行數不一樣，標籤的起點就要跟著讓；沒覆寫的圖維持原本的 +18（其他七張爆炸圖不受影響）
+      const ch = chips(s.codes, E.LX, y + (E.CHIP_DY == null ? 18 : E.CHIP_DY), E.LW - 10);
       maxRows = Math.max(maxRows, ch.rows);
       const sub = (s.sub || []).map((t, j) =>
-        `<text class="sub" x="${EX.LX}" y="${y - 6 + j * 17}">${esc(t)}</text>`).join('');
+        `<text class="sub" x="${E.LX}" y="${y - 6 + j * 17}">${esc(t)}</text>`).join('');
       // 引線：從零件右緣往右拉一段、折一次、接到標註區
-      const d = `M${EX.X + 152},${y - 12} H${EX.LX - 66} L${EX.LX - 34},${y - 26} H${EX.LX - 8}`;
+      const d = `M${AX},${y - 12} H${E.LX - 66} L${E.LX - 34},${y - 26} H${E.LX - 8}`;
+      const slotH = Math.max(52 + (s.sub || []).length * 17 + ch.rows * CHIP_ROW, E.SLOT_MIN || 0);
       return `<g class="p3 stn ex" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${EX.LX - 14}" y="${y - 46}" width="${EX.LW + 14}" height="${52 + (s.sub || []).length * 17 + ch.rows * CHIP_ROW}" rx="9"/>
-        <g class="art" data-cx="${EX.X}" data-cy="${y - 22}" data-mh="${EX.ROW - 26}" data-mw="196"
-           transform="translate(${EX.X},${y}) scale(${(s.k || 1) * EX.K})">${s.art()}</g>
-        <path class="leader" d="${d}"/><circle class="lit" cx="${EX.X + 152}" cy="${y - 12}" r="3.2"/>
-        <text class="lbl" x="${EX.LX}" y="${y - 26}">${esc(s.label)}</text>
-        <text class="tag" x="${EX.LX + 10 + esc(s.label).length * 13}" y="${y - 26}">${BAND_TAG[s.band] || ''}</text>
+        <rect class="slot" x="${E.LX - 14}" y="${y - 46}" width="${E.LW + 14}" height="${slotH}" rx="9"/>
+        <g class="art" data-cx="${E.X}" data-cy="${y - 22}" data-mh="${MH}" data-mw="${MW}"
+           transform="translate(${E.X},${y}) scale(${(s.k || 1) * E.K})">${s.art()}</g>
+        <path class="leader" d="${d}"/><circle class="lit" cx="${AX}" cy="${y - 12}" r="3.2"/>
+        <text class="lbl" x="${E.LX}" y="${y - 26}">${esc(s.label)}</text>
+        <text class="tag" x="${E.LX + 10 + esc(s.label).length * 13}" y="${y - 26}">${BAND_TAG[s.band] || ''}</text>
         ${sub}${ch.svg}</g>`;
     }).join('');
-    const sy = rowY(n - 1) + 34 + maxRows * CHIP_ROW + 22;
+    const sy = rowY(n - 1) + Math.max(34 + maxRows * CHIP_ROW + 22, E.SLOT_MIN ? E.SLOT_MIN - 20 : 0);
     const H = sy + 82;
     const steps = (o.steps || []).length;
-    const sw = steps ? Math.floor((CW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
+    const sw = steps ? Math.floor((W - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
     const strip = (o.steps || []).map((s, i) => {
       const x = PADX + i * (sw + 10);
       return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
         <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
         <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
         <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="#3ee0ff" stroke-width="2"/>` : '');
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
     }).join('');
-    const axis = `<text class="cap" x="${PADX}" y="${EX.TOP - 58}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
-    return `<svg class="dg dg3" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${STYLE}
+    const axis = `<text class="cap" x="${PADX}" y="${E.UNIT_Y || (E.TOP - 58)}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
+    return `<svg class="dg dg3" data-cw="${W}" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${STYLE}${o.style || ''}
       <text class="ttl" x="${PADX}" y="26">${esc(o.title)}</text>
       <text class="cap" x="${PADX}" y="46">${esc(o.cap)}</text>
       ${axis}${rows}
@@ -324,15 +344,234 @@
     { p: 'client', t: '封測', s: '3711' }, { p: 'client', t: '客戶量產', s: 'CSP / 網通' }],
   });
 
+
+  /* ================================================================ AI 伺服器專用零件庫（2026-09-23）
+     Andy：「題材分頁 每個題材的圖都需要優化的更細緻點，只需要提供圖片給讀者閱讀即可」。
+     「只需要提供圖片給讀者閱讀」＝ 讀者不點、不滑、不轉，光看圖就要認得出每一層是什麼零件。
+     改版前的五層是同一塊格子板換五種顏色（藍／粉／灰／黃／紫），顏色一拿掉就全部一樣 ——
+     所以這一輪的判準是**形狀要帶出那個零件真正的識別特徵**，不是把面數畫多。
+
+     五層各自靠什麼被認出來（這就是每支函式存在的理由）：
+       1 vaPackage  中央一顆最大最厚的邏輯晶粒 ＋ 兩側各四疊 HBM（層與層之間看得到接縫）
+                    ＋ 底下薄薄一片矽中介層 ＋ 載板底面一排錫球 → 這是「一顆封裝」不是一塊板子
+       2 vaPcbStack 板材一層一層往內縮的階梯剖面（多層壓合）＋ 表面銅走線 ＋ 板緣一排金手指
+                    ＋ 右側屏蔽連接器籠 → 這是「一疊板材與連接」不是一塊單層 PCB
+       3 vaPowerCool 左：電源模組（一排直立散熱鰭片 ＋ 銅匯流排）
+                     右：液冷板（表面蛇行流道 ＋ 兩顆進出水快接頭，藍進橘出）→ 兩件事並置
+       4 vaTray      抽屜狀：前面板有把手與一整排散熱開孔，裡面看得到並排的 GPU 模組（帶鰭片）與風扇
+       5 vaRackPair  左：運算機櫃（一格一格托盤堆疊、每格有把手與狀態燈）
+                     右：網通機櫃（ToR 交換器一排埠 ＋ 垂下來的光纖束）
+
+     等角投影的兩條硬限制，寫在這裡免得下次有人重踩：
+       · 一個扁平物件的螢幕寬高比上限 ＝ 0.866/0.5 ＝ 1.73。框開到 2.6:1，零件只會佔一半寬。
+       · 想把兩個物件「並排」而不長高，要往 (+Δx, −Δy) 擺 —— 那等於純水平位移，
+         所以這裡直接用 aiShift() 做螢幕座標的水平平移，比算模型座標好讀也不會算錯。
+     色碼：一律 --dg-* token（AI_STYLE）。只有「材料本身就有顏色」的東西才脫離環節色
+     （金手指＝金、匯流排＝銅、錫球＝錫、冷卻水藍進橘出），其餘讓 f1/f2/f3 吃環節色，
+     右邊卡片與左邊零件的連動才不會斷。 */
+  const AI_STYLE = `<style>
+    .dg3 .ai-au{fill:var(--dg-au);stroke:color-mix(in srgb,var(--dg-au) 55%,var(--dg-sh0));stroke-width:.4}
+    .dg3 .ai-cu .f1{fill:color-mix(in srgb,var(--dg-cu) 80%,var(--dg-sn))}
+    .dg3 .ai-cu .f2{fill:var(--dg-cu)}
+    .dg3 .ai-cu .f3{fill:color-mix(in srgb,var(--dg-cu) 72%,var(--dg-sh0))}
+    .dg3 .ai-ball{fill:var(--dg-sn);fill-opacity:.85;stroke:none}
+    .dg3 .ai-port{fill:var(--dg-sh0);fill-opacity:.55;stroke:var(--dg-sn);stroke-opacity:.3;stroke-width:.6}
+    .dg3 .ai-vent{fill:none;stroke:var(--dg-sh0);stroke-opacity:.5;stroke-width:1.1}
+    .dg3 .ai-led{fill:var(--dg-cold);fill-opacity:.9;stroke:none}
+    .dg3 .ai-chan{fill:none;stroke:var(--dg-cold);stroke-opacity:.8;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+    .dg3 .ai-seam{fill:none;stroke:var(--dg-sh0);stroke-opacity:.45;stroke-width:.7}
+  </style>`;
+
+  // 純螢幕水平位移：等角裡把第二個物件擺到右邊又不讓整體長高，用這支最穩（理由見上面那段）
+  const aiShift = (dx, inner) => `<g transform="translate(${dx},0)">${inner}</g>`;
+  // 一排錫球（BGA）：封裝底下才有這一圈，是「這是封裝」的第一眼特徵
+  const aiBalls = (x0, y0, x1, y1, n) => {
+    const a = [];
+    for (let i = 0; i < n; i++) {
+      const t = n === 1 ? 0 : i / (n - 1), x = x0 + (x1 - x0) * t, y = y0 + (y1 - y0) * t;
+      a.push(`<ellipse class="ai-ball" cx="${px(x, y).toFixed(1)}" cy="${py(x, y, -3).toFixed(1)}" rx="4" ry="2.7"/>`);
+    }
+    return a.join('');
+  };
+  // 一疊薄片：HBM 就是靠「看得出是一疊」被認出來的，所以層與層之間一定要留得出接縫
+  const aiPile = (x, y, z, w, d, n, t, gap) => {
+    let s = ''; gap = gap == null ? 1.2 : gap;
+    for (let i = 0; i < n; i++) s += box(x, y, z + i * (t + gap), w, d, t, '');
+    return s;
+  };
+  // 散熱鰭片：一排立起來的薄板。看到鰭片就知道這是散熱件（電源模組、GPU 模組共用）
+  const aiFins = (x, y, z, w, d, h, n, th) => {
+    let s = ''; th = th || 2.4;
+    const step = (w - th) / Math.max(1, n - 1);
+    for (let i = 0; i < n; i++) s += box(x + i * step, y, z, th, d, h, '');
+    return s;
+  };
+  /* 金手指：板緣一排金色細條（畫在頂面，所以用模型座標）。
+     n 條沿著 x 排開、每條往 y 方向延伸 d —— 方向要跟板緣垂直，
+     排錯方向就變成「貼在板子中間的一塊黃斑」（2026-09-23 第一版踩過）。*/
+  const aiGold = (x, y, w, d, n) => {
+    const a = [], step = w / n;
+    for (let i = 0; i < n; i++)
+      a.push(`<rect class="ai-au" x="${(x + i * step + step * .22).toFixed(1)}" y="${y}" width="${(step * .56).toFixed(1)}" height="${d}" rx="1"/>`);
+    return a.join('');
+  };
+  // 蛇行流道：水冷板的識別特徵（進水 → 在板內繞一圈 → 出水）
+  const aiSerpent = (x, y, w, d, n) => {
+    const step = d / n, a = [];
+    for (let i = 0; i < n; i++) {
+      const yy = (y + step * (i + .5)).toFixed(1);
+      a.push(`M${x + 5},${yy} H${(x + w - 5).toFixed(1)}`);
+      if (i < n - 1) a.push(`M${(i % 2 ? x + 5 : x + w - 5).toFixed(1)},${yy} V${(y + step * (i + 1.5)).toFixed(1)}`);
+    }
+    return `<path class="ai-chan" d="${a.join(' ')}"/>`;
+  };
+  /* 垂直面上的開孔陣列（托盤前面板的散熱孔、交換器的埠、托盤把手旁的狀態燈）。
+     y=y0 的那個立面，局部座標 (u, v)：u 沿 +x、v 是從 z0 往上量的高度。
+     ⚠ z0 不能省：交換器裝在機櫃上段，從地面量的話埠會畫到櫃子底下（2026-09-23 第一版就是這樣）。
+     ⚠ 這個矩陣的行列式是負的（鏡射），所以不要把文字放進來。*/
+  const aiFace = (x0, y0, z0, inner) => `<g transform="translate(${px(x0, y0).toFixed(1)},${py(x0, y0, z0 || 0).toFixed(1)}) matrix(0.866,0.5,0,-1,0,0)">${inner}</g>`;
+
+  // ---- 第 1 層：GPU / ASIC 與封裝 ----------------------------------------
+  function vaPackage() {
+    // 載板：最底最大、表面走線，邊緣露出一圈 —— 晶片是「坐在」載板上，不是跟它同一塊
+    return pad(80, 48)
+      + box(-76, -48, 0, 152, 96, 6, trace(-76, -48, 152, 96, 5))
+      + aiBalls(-64, 46, 64, 46, 12) + aiBalls(74, -38, 74, 38, 8)   // 底面兩排錫球
+      // 矽中介層：比載板小一圈、薄很多；CoWoS 的關鍵就是這一片把晶粒和 HBM 接在一起
+      + box(-62, -39, 6, 124, 78, 4, '')
+      // 邏輯晶粒：正中央最大最厚的一塊，一眼過去的主角
+      + box(-19, -27, 10, 38, 54, 16, grid2(-19, -27, 38, 54, 3, 4))
+      // 左右各四疊 HBM（2 欄 × 2 列），每疊四片 → 看得出來是「一疊」而不是一塊方糖
+      + [[-57, -35], [-38, -35], [-57, 3], [-38, 3], [23, -35], [42, -35], [23, 3], [42, 3]]
+        .map(([x, y]) => aiPile(x, y, 10, 16, 32, 4, 3.2)).join('');
+  }
+
+  // ---- 第 2 層：板材、載板與連接 ------------------------------------------
+  function vaPcbStack() {
+    // 五片板材一層一層往內縮：階梯狀的邊緣就是「多層壓合」的剖面感（單層板畫不出這個）
+    let s = pad(74, 46);
+    for (let i = 0; i < 5; i++) {
+      const x = -68 + i * 5, y = -44 + i * 3.5, w = 136 - i * 10, d = 88 - i * 7, z = i * 4.6;
+      s += box(x, y, z, w, d, 3.4, i === 4 ? trace(x, y, w, d, 4) : '');
+    }
+    const tx = -48, ty = -30, tz = 4 * 4.6 + 3.4;   // 最上面那片的頂面
+    return s
+      // 板緣一排金手指：連接器插進去的地方，PCB 圖少了它就只是一塊板子
+      + onTop(tz, aiGold(tx + 40, ty + 44, 50, 14, 9))
+      // 屏蔽連接器籠：靠近觀者那一角的方盒 ＋ 三個往外凸的埠口（QSFP 籠就是長這樣）
+      + box(tx + 60, ty + 4, tz, 32, 32, 18, '')
+      + [4, 14, 24].map(dy => box(tx + 92, ty + dy, tz + 5, 5, 7, 10, '')).join('')
+      // 貫穿導通孔：三條穿過整疊的虛線，說明「層跟層之間是通的」
+      + [[-20, -8], [8, 6], [30, -18]].map(([x, y]) => wire([[x, y, 0], [x, y, tz + 2]], 'etch', 'var(--dg-cu)', 1.3)).join('');
+  }
+
+  // ---- 第 3 層：電源與散熱（兩件事並置，不是一塊板） -------------------------
+  function vaPowerCool() {
+    // 左：電源模組 —— 底下是模組本體，上面一排直立鰭片，左邊拉出一條銅匯流排
+    const psu = box(-56, -28, 0, 68, 56, 15, '')
+      + aiFins(-51, -23, 15, 58, 46, 24, 10)
+      + `<g class="ai-cu">${box(-82, -12, 4, 28, 22, 8, '')}</g>`
+      + box(-56, 22, 0, 68, 6, 15, holes(-56, 22, 68, 6, 6, 1, 1.8));
+    // 右：液冷板 —— 表面蛇行流道 ＋ 兩顆快接頭，藍色進水、橘色出水（語意色，兩個主題都固定）
+    const cold = box(-42, -34, 0, 88, 68, 6, '')
+      + box(-38, -30, 6, 80, 60, 11, aiSerpent(-38, -30, 80, 60, 5))
+      + cyl(-24, -34, 17, 8, 15, '') + cyl(26, -34, 17, 8, 15, '')
+      + cyl(-24, -34, 15, 10, 3, '') + cyl(26, -34, 15, 10, 3, '')   // 快接頭的套環，少了它只是兩根柱子
+      + wire([[-24, -34, 32], [-24, -76, 36]], 'flow', 'var(--dg-cold)', 2.8)
+      + wire([[26, -76, 36], [26, -34, 32]], 'flow rev', 'var(--dg-hot)', 2.8);
+    return pad(78, 46) + psu + aiShift(104, cold);
+  }
+
+  // ---- 第 4 層：GPU 運算托盤（抽屜） ----------------------------------------
+  function vaTray() {
+    const X0 = -94, Y0 = -38, W = 188, D = 78;
+    let s = pad(88, 46) + box(X0, Y0, 0, W, D, 5, '')                 // 托盤底板
+      + box(X0, Y0, 5, 5, D, 13, '') + box(X0 + W - 5, Y0, 5, 5, D, 13, '')   // 左右側牆
+      + box(X0, Y0, 5, W, 5, 13, '');                                  // 後牆
+    // 前面板：比側牆高，上面有兩支把手與一整排散熱開孔 —— 這是「抽屜」最強的識別特徵
+    const FY = Y0 + D - 6;
+    s += box(X0, FY, 0, W, 6, 26, '')
+      + box(X0 + 14, FY + 6, 8, 26, 4, 5, '') + box(X0 + W - 40, FY + 6, 8, 26, 4, 5, '')
+      + aiFace(X0, FY + 6, 0, (() => {
+        const a = [];
+        for (let i = 0; i < 22; i++) for (let j = 0; j < 3; j++)
+          a.push(`<circle class="ai-vent" cx="${(10 + i * 7.8).toFixed(1)}" cy="${(6 + j * 6).toFixed(1)}" r="2"/>`);
+        // 狀態燈：一顆就夠，不需要整排在閃
+        a.push(`<circle class="ai-led" cx="${(W - 12).toFixed(1)}" cy="20" r="2.6"/>`);
+        return a.join('');
+      })());
+    // 裡面：四塊並排的 GPU 模組（每塊底下是基板、上面是鰭片），前緣三顆風扇
+    for (let i = 0; i < 4; i++) {
+      const x = X0 + 12 + i * 42;
+      s += box(x, Y0 + 10, 5, 34, 40, 4, '') + aiFins(x + 3, Y0 + 13, 9, 28, 34, 15, 6);
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = X0 + 28 + i * 56;
+      s += cyl(x, Y0 + 60, 5, 13, 11, blades(11, 7)) ;
+    }
+    return s;
+  }
+
+  // ---- 第 5 層：整機櫃與網通 ----------------------------------------------
+  function vaRackPair() {
+    // 左：運算機櫃 —— 一格一格的托盤堆疊，每格前面有把手與一顆狀態燈（看得出是「很多台疊起來」）
+    const RX = -48, RY = -28, RW = 96, RD = 56;
+    let rack = box(RX, RY, 0, RW, RD, 7, '')                       // 底座
+      + box(RX, RY, 7, 7, RD, 96, '') + box(RX + RW - 7, RY, 7, 7, RD, 96, '')   // 兩側立柱
+      + box(RX, RY, 7, RW, 6, 96, '');                              // 背板
+    for (let i = 0; i < 6; i++) {
+      const z = 11 + i * 14, fy = RY + RD - 5;
+      rack += box(RX + 7, RY + 6, z, RW - 14, RD - 11, 10, '')
+        + box(RX + 18, fy, z + 3, 18, 4, 4, '') + box(RX + RW - 36, fy, z + 3, 18, 4, 4, '')
+        + aiFace(RX + 7, fy, z, `<circle class="ai-led" cx="${RW - 26}" cy="5" r="2.4"/>`);
+    }
+    rack += box(RX, RY, 103, RW, RD, 7, '');                        // 頂蓋
+    // 右：網通機櫃 —— ToR 交換器一整排埠，底下垂下來一束光纖（「網通」的識別特徵）
+    const SX = -34, SY = -24, SW = 70, SD = 48;
+    let net = box(SX, SY, 0, SW, SD, 7, '')
+      + box(SX, SY, 7, 6, SD, 82, '') + box(SX + SW - 6, SY, 7, 6, SD, 82, '')
+      + box(SX, SY, 7, SW, 5, 82, '');
+    // 交換器本體擺在上段：前面板一整排埠
+    const swz = 58, fy = SY + SD - 4;
+    net += box(SX + 6, SY + 5, swz, SW - 12, SD - 9, 13, '')
+      + aiFace(SX + 6, fy, swz, (() => {
+        const a = [];
+        // 兩排埠：ToR 交換器的前面板就是一整排 QSFP，這是「網通」而不是「又一台伺服器」的識別特徵
+        for (let r = 0; r < 2; r++) for (let i = 0; i < 9; i++)
+          a.push(`<rect class="ai-port" x="${(5 + i * 5.8).toFixed(1)}" y="${3 + r * 5}" width="4.2" height="3.6" rx=".8"/>`);
+        return a.join('');
+      })());
+    // 光纖束：從交換器前面板垂下來再繞到左邊的運算機櫃（兩櫃之間是連著的）
+    net += [0, 1, 2, 3].map(i => {
+      const sx = px(SX + 10 + i * 9, fy), sy0 = py(SX + 10 + i * 9, fy, swz + 2);
+      return `<path class="ai-fib" d="M${sx.toFixed(1)},${sy0.toFixed(1)} C${(sx - 14).toFixed(1)},${(sy0 + 26).toFixed(1)} ${(sx - 52 - i * 4).toFixed(1)},${(sy0 + 22).toFixed(1)} ${(sx - 74 - i * 5).toFixed(1)},${(sy0 + 54 + i * 4).toFixed(1)}" fill="none" stroke="var(--dg-opt,var(--dg-cold))" stroke-width="1.7" stroke-opacity=".75"/>`;
+    }).join('');
+    // 一格一格的托盤（網通櫃下半部是理線與配線）
+    for (let i = 0; i < 3; i++) net += box(SX + 6, SY + 5, 12 + i * 13, SW - 12, SD - 9, 8, '');
+    return pad(80, 46) + rack + aiShift(196, net);
+  }
+
+  /* AI 伺服器：2026-09-23 改版。零件全部換成上面那套專用件（識別特徵見 vaPackage 上方那段），
+     版面用 o.ex 自己覆寫（框更寬、卡片等高），其他七張爆炸圖一個像素都沒動。
+     每一層第三行 sub 是新加的「看圖看什麼」—— 圖是主角，那一行是圖的使用說明。*/
   T.ai_server = () => explodeScene({
     title: 'AI 伺服器：從一顆晶片到一座機櫃',
     cap: '晶片與封裝是成本主體，往下是板材與載板，再往下是電源與散熱，最後由 ODM 組成托盤與整機櫃交給雲端業者。',
+    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
+    style: AI_STYLE,
+    cw: 980,
+    ex: { X: 176, TOP: 178, UNIT_Y: 68, ROW: 134, MW: 200, MH: 116, LX: 376, LW: 582, CHIP_DY: 34, SLOT_MIN: 112 },
     layers: [
-      S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊'], ['2330', '3661', '3711'], 'foundry', vChip),
-      S('board', 0, '板材、載板與連接', ['高層數低損耗 PCB', 'CCL、載板與連接器'], ['2383', '3037', '2368', '3665'], 'abf_pcb', vBoard, .95),
-      S('power', 1, '電源與散熱', ['800V HVDC、BBU', '水冷板、CDU、風扇'], ['2308', '6409', '3017', '3324'], 'thermal', vCold, .95),
-      S('tray', 1, 'GPU 運算托盤', ['ODM 板卡與托盤組裝', '出貨量能見度最高'], ['2382', '6669', '3231', '2356'], 'assembly', vModule),
-      S('rack', 2, '整機櫃與網通', ['整櫃交付、ToR 交換器', '終端是雲端業者'], ['2317', '2345', '5388'], 'switch', vRack, .95),
+      S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊',
+        '圖上：中央大晶粒、兩側各四疊 HBM、底下矽中介層與一排錫球'], ['2330', '3661', '3711'], 'foundry', vaPackage),
+      S('board', 0, '板材、載板與連接', ['高層數低損耗 PCB', 'CCL、載板與連接器',
+        '圖上：板材一層層往內縮的壓合階梯、表面銅走線、板緣金手指與連接器籠'], ['2383', '3037', '2368', '3665'], 'abf_pcb', vaPcbStack),
+      S('power', 1, '電源與散熱', ['800V HVDC、BBU', '水冷板、CDU、風扇',
+        '圖上：左邊電源模組帶鰭片與銅匯流排，右邊水冷板走蛇行流道，藍進橘出'], ['2308', '6409', '3017', '3324'], 'thermal', vaPowerCool),
+      S('tray', 1, 'GPU 運算托盤', ['ODM 板卡與托盤組裝', '出貨量能見度最高',
+        '圖上：抽屜狀機構，前面板有把手與散熱開孔，裡面四塊 GPU 模組與三顆風扇'], ['2382', '6669', '3231', '2356'], 'assembly', vaTray),
+      S('rack', 2, '整機櫃與網通', ['整櫃交付、ToR 交換器', '終端是雲端業者',
+        '圖上：左櫃是一格格托盤堆疊，右櫃是 ToR 交換器的埠排與垂下來的光纖束'], ['2317', '2345', '5388'], 'switch', vaRackPair),
     ],
     steps: [{ p: 'chip', t: '晶片與封裝', s: '2330 / 3711' }, { p: 'board', t: '上板', s: '3037 / 2383' }, { p: 'power', t: '電源散熱', s: '2308 / 3017' },
     { p: 'tray', t: '托盤組裝', s: '2382 / 6669' }, { p: 'rack', t: '整櫃交付', s: '資料中心' }],
@@ -543,7 +782,8 @@
     if (!svg) return;
     root.style.overflowX = 'auto';
     root.style.overflowY = 'hidden';
-    svg.style.minWidth = CW + 'px';
+    // 每張圖的畫布寬可能不一樣（AI 伺服器收到 980），沒寫 data-cw 的就是預設 1180
+    svg.style.minWidth = ((+svg.dataset.cw || CW)) + 'px';
   }
 
   window.ThemeDiagrams = T;

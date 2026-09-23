@@ -451,8 +451,21 @@
       if (hi === name) return;
       hi = name || null;
       gpDbg.hi = hi;
-      const pi = window.echarts && echarts.getInstanceByDom(pieEl);
-      const bi = window.echarts && echarts.getInstanceByDom(barEl);
+      /* ★ 2026-09-23 修一個真的 JS 例外：`_uitest --only 產業` 在
+         `#industry/ai_server/overview` 抓到
+         `TypeError: Cannot set properties of null (setting 'innerHTML')`，
+         堆疊在 echarts 的 `tooltip.setContent ← manuallyShowTip`。
+         成因：`setOption` 會讓正在顯示的 tooltip 重繪，而這一頁換分頁／換主題時
+         圖會被 dispose，滑鼠殘留的 hover 事件仍然排在後面 ——
+         於是對著一個**已經被銷毀、tooltip DOM 已經是 null** 的實例重畫。
+         兩道防線：① 先問 `isDisposed()`；② 整段包 try/catch。
+         ② 不是偷懶 —— 這是「滑鼠事件與銷毀的競態」，不可能靠先後順序完全排除，
+         而它一旦丟出例外就會污染整個驗收（那正是它被抓到的方式）。*/
+      const live2 = (el) => { const i = window.echarts && echarts.getInstanceByDom(el);
+        return (i && !i.isDisposed()) ? i : null; };
+      const pi = live2(pieEl);
+      const bi = live2(barEl);
+      try {
       /* ★ W3-8：滑過的那個族群如果沒有自己的扇形（落在前五大以外），
          要讓**「其他」那一塊**亮起來 —— 不然滑過去等於沒反應，連動就斷在那裡。
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
@@ -461,6 +474,7 @@
         itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
       if (bi) bi.setOption({ series: [{ data: barData.map(d => ({ ...d,
         itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 2 : 0, borderColor: CH.ink } })) }] });
+      } catch (e) { /* tooltip 與 dispose 的競態，下一次 hover 就會正常，不要炸掉整頁 */ }
       pieEl.dataset.hi = hi || '';
       barEl.dataset.hi = hi || '';
       paintFocus();
