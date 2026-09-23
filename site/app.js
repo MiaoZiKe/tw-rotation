@@ -606,6 +606,152 @@
     return api;
   }
 
+  /* ---------------------------------------------------------------- 區間拉Bar（雙把手）
+     ★ D1（Andy 2026-09-23：「資金輪動已經有一個時間拉 Bar 幫我合併」）。
+
+     ── 合併前是哪兩條、為什麼該合併 ──
+       · `#rotBack`　「看哪一天　− ▬▬ ＋　最新　▶　即時」＝時鐘大圈停在哪一天（＝排行的截止日）
+       · `#rankDays`「最近 ▬▬ 20 天　☑ 顯示軌跡」＝排行往回看幾個交易日
+       兩條講的是**同一段時間的兩個端點**：一個是結尾、一個是長度。
+       分成兩條的代價是使用者得自己在腦袋裡把「截止 5 天前」加「最近 20 天」湊成
+       「25 天前～5 天前」—— 那正是「逼使用者自己做兩步推論」。
+
+     ── 合併後的做法 ──
+       一條**雙把手的區間桿**，軸是「幾個交易日前」（左邊舊、右邊＝最新）：
+         · 右把手（青色）＝**看哪一天**：時鐘大圈停的那一天，也是排行的截止日
+         · 左把手（灰色）＝**這一段的起點**：兩個把手中間的距離就是「排行往回看幾天」
+       所以一條桿同時把「哪一天」與「回溯幾天」寫在同一個刻度上，讀出來就是一段區間。
+       `−` `＋` `▶` 三顆鈕改成**整段一起平移**（長度不變、窗口往前滑），
+       那是「看時間怎麼走」最自然的動作，也是原本播放在做的事。
+
+     ── 這四個控制項一個都沒掉（Andy 指定）──
+       「最新」＝右把手拉到底時 `.val` 就寫「最新」；`▶ 播放`＝這支自己的播放鈕；
+       `即時` 由 `rlvMountBtn()` 照舊掛在同一個容器（`#rotBack`）上；
+       `☑ 顯示軌跡` 仍然在旁邊的 `#rotTools`（它是開關不是時間，硬併進來反而讀不懂）。
+
+     ── 刻意付出的代價（寫出來，不要讓下一個人以為是 bug）──
+       合併前「截止 30 天前 ＋ 最近 30 天」可以看到 60 天前；現在兩個把手在同一根 0～30 的軸上，
+       所以最遠只到 30 個交易日前。取捨的理由：時鐘的軌跡（`rrg.points[].trail`）本來就只有 31 天，
+       超過 30 天的那一段**只有排行看得到、時鐘看不到**，兩張並排的圖各講各的時間才是更糟的事。
+
+     ── `ROT_BOARD_WIN` 與這條桿無關（Andy 特別交代）──
+       象限卡的「和 5 個交易日前比」是固定窗長，不吃這裡的任何一個值。
+
+     onChange(to, days)：to＝截止日是「幾天前」（0＝最新）、days＝這一段有幾個交易日。*/
+  function spanBar(box, o) {
+    box = typeof box === 'string' ? document.getElementById(box) : box;
+    if (!box) return null;
+    // 這個容器上一支播放器先收乾淨（下面會換掉整個 innerHTML，留著就是幽靈計時器）
+    const prev = _players.get(box);
+    if (prev) { try { prev.stop(); } catch (e) { /* 忽略 */ } _players.delete(box); }
+    _players.forEach((pp, elx) => {
+      if (!elx.isConnected) { try { pp.stop(); } catch (e) { /* 忽略 */ } _players.delete(elx); }
+    });
+    const PMAX = o.max != null ? o.max : 30;          // 軸長＝最多看到幾個交易日前
+    const readLS = (key, lo, hi, dft) => {
+      if (!key) return dft;
+      try {
+        const raw = localStorage.getItem(key);
+        if (raw == null || raw === '') return dft;
+        const v = +raw;
+        return (isFinite(v) && v >= lo && v <= hi) ? v : dft;
+      } catch (e) { return dft; }
+    };
+    // 內部一律用「位置」p：p = PMAX − 幾天前，所以右邊＝最新，和時間軸的直覺一致
+    let days = readLS(o.keyDays, 1, PMAX, o.days != null ? o.days : 20);
+    let pHi = PMAX - readLS(o.keyTo, 0, PMAX - 1, o.to != null ? o.to : 0);
+    const clamp = () => {
+      days = Math.max(1, Math.min(PMAX, Math.round(days)));
+      pHi = Math.max(days, Math.min(PMAX, Math.round(pHi)));   // 起點不可以掉到軸的左邊外面
+    };
+    clamp();
+    box.classList.add('rbar');
+    box.innerHTML = `${o.label ? `<span class="t">${fmt.esc(o.label)}</span>` : ''}`
+      // ★ 「看哪一天」那支**寫在前面**：外面有程式碼用 `box.querySelector('input')` 抓這支拉Bar
+      //   的主值（例如驗收腳本），抓到的必須是主角，不是區間起點。視覺上下的疊法由 CSS 決定。
+      + '<div class="dual"><span class="track"></span><span class="sel"></span>'
+      + `<input class="hi" type="range" min="1" max="${PMAX}" step="1" value="${pHi}"`
+      + ' aria-label="看哪一天（這一段的截止日）">'
+      + `<input class="lo" type="range" min="0" max="${PMAX - 1}" step="1" value="${pHi - days}"`
+      + ' aria-label="這一段的起點（往回幾個交易日）"></div>'
+      + '<span class="val"></span>';
+    const hi = box.querySelector('input.hi'), lo = box.querySelector('input.lo');
+    const sel = box.querySelector('.sel'), out = box.querySelector('.val');
+    const toDays = () => PMAX - pHi;                  // 截止日是「幾天前」
+    const paint = () => {
+      hi.value = pHi; lo.value = pHi - days;
+      const a = (pHi - days) / PMAX * 100, b = pHi / PMAX * 100;
+      sel.style.left = a + '%'; sel.style.width = Math.max(0, b - a) + '%';
+      out.textContent = `最近 ${days} 天 · 截止 ${toDays() === 0 ? '最新' : toDays() + ' 天前'}`;
+      bMinus.disabled = pHi <= days; bPlus.disabled = pHi >= PMAX;
+      bPlay.textContent = timer ? '⏸' : '▶';
+      bPlay.title = timer ? '暫停' : '播放（整段往「最新」滑）';
+      bPlay.setAttribute('aria-label', bPlay.title);
+      box.classList.toggle('playing', !!timer);
+    };
+    const save = () => {
+      try {
+        if (o.keyTo) localStorage.setItem(o.keyTo, String(toDays()));
+        if (o.keyDays) localStorage.setItem(o.keyDays, String(days));
+      } catch (e) { /* 私密視窗 */ }
+    };
+    const fire = () => { if (o.onChange) o.onChange(toDays(), days); };
+    const mk = (cls, txt, title) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'pb ' + cls; b.textContent = txt; b.title = title;
+      b.setAttribute('aria-label', title);
+      return b;
+    };
+    const bMinus = mk('step', '−', '整段往回一個交易日');
+    const bPlus = mk('step', '＋', '整段往後一個交易日');
+    const bPlay = mk('play', '▶', '播放（整段往「最新」滑）');
+    const dual = box.querySelector('.dual');
+    box.insertBefore(bMinus, dual);
+    box.insertBefore(bPlus, dual.nextSibling);
+    box.appendChild(bPlay);
+    let timer = null;
+    let api = null;
+    const stop = () => { if (timer) { clearInterval(timer); timer = null; } paint(); };
+    // 右把手：拖它＝換截止日，**長度不變**（除非撞到軸的左端，那時只好把長度縮短）
+    hi.oninput = () => { stop(); pHi = +hi.value; if (pHi < days) days = Math.max(1, pHi); paint(); fire(); };
+    // 左把手：拖它＝換這一段有多長（截止日不動）
+    lo.oninput = () => { stop(); days = Math.max(1, pHi - +lo.value); paint(); fire(); };
+    hi.onchange = lo.onchange = save;
+    const slide = (d) => {
+      const nx = Math.max(days, Math.min(PMAX, pHi + d));
+      if (nx === pHi) return false;
+      pHi = nx; paint(); fire(); save(); return true;
+    };
+    bMinus.onclick = () => { stop(); slide(-1); };
+    bPlus.onclick = () => { stop(); slide(1); };
+    const start = () => {
+      if (timer) return;
+      stopPlayGroup(o.group, api);                    // 同一個值一次只准一支在播
+      if (pHi >= PMAX) { pHi = days; paint(); fire(); }   // 已經在最新了就從最舊重播
+      timer = setInterval(() => { if (!slide(1)) { pHi = days; paint(); fire(); } }, o.frame || 600);
+      paint();
+    };
+    bPlay.onclick = () => { if (timer) { stop(); stopPlayGroup(o.group, null); } else start(); };
+    paint();
+    api = {
+      get value() { return toDays(); },               // 對外沿用舊語彙：值＝「幾天前」
+      get days() { return days; },
+      /* set(x)＝「把截止日設成 x 天前」。放大視窗那支拉Bar 的上限還是 30，
+         而這裡的右把手最遠只到 `PMAX − 1` 天前（左把手至少要佔一格），
+         所以撞到軸的左端時**優先保住他要的那一天**，把區間長度縮短，不要默默改掉截止日。*/
+      set(x) {
+        let np = PMAX - Math.max(0, Math.min(PMAX, +x || 0));
+        if (np < 1) np = 1;
+        if (np < days) days = Math.max(1, np);
+        pHi = np; paint();
+      },
+      setDays(k) { days = Math.max(1, Math.min(PMAX, +k || 1)); if (pHi < days) pHi = days; paint(); },
+      stop, start, playing: () => !!timer, el: box, group: o.group || '',
+    };
+    _players.set(box, api);
+    return api;
+  }
+
   const _liveFns = new WeakMap();
   function onLive(el, fn) {
     if (!el) return;
@@ -1057,7 +1203,9 @@
     wireHowto($('#v-overview'));
     // 最上面三張大盤圖（加權 / 櫃買 / 台指期）。它自己去抓 mis 的當日分時，不等下面的 JSON。
     if (window.Market3) window.Market3.mount();
-    const [heat, gt, rot, cands, f3, th, trust, gval] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail'), load('inst_streak', { fallback: {} })]);
+    /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金去向分流圖」（D7）之後
+       總覽也要用到它。它和資金流向頁吃的是**同一份檔案**（同一個口徑，不另外算一份）。 */
+    const [heat, gt, rot, cands, f3, th, trust, gval, , , sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
     // hero
     const b = (heat && heat.breadth) || {};
     const mv = b.movers || {};
@@ -1079,16 +1227,17 @@
     ].join('');
     wireKpiDrill();
     renderHeat(gt, rot);
-    renderRotation(f3 && f3.rrg, 5, { board: 'rotMini', clock: 'rotClockMini', compact: true });
-    /* 總覽這張是縮圖，只給一顆「放大」；拉Bar／篩選／播放都在放大視窗裡（已拍板）。
-       ★ 2026-09-20（E2）：放大視窗吃的是整份 ROT 狀態（產業鏈、個股索引、全族群名單），
-         而從總覽直接按放大時，資金流向頁可能還沒渲染過、那些東西都還是空的 ——
-         不補的話放大視窗的篩選列會變成一排按了沒反應的鈕（正是這次要修的毛病）。*/
-    { const mz = $('#rotMiniZoomBtn'); if (mz) mz.onclick = () => {
-      if (f3) rotF3 = f3;
-      if (!rotAllGroups) rotAllGroups = rotRows(f3 && f3.rrg, 5).map(r => ({ gid: r.gid, name: r.name }));
-      openRotZoom(f3 && f3.rrg, 5);
-    }; }
+    /* ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點」）。
+       · `#rotMiniZoomBtn` 整顆移除（連同這裡的接線）——「放大」這個能力沒有消失：
+         點卡片標題旁邊的分頁「資金流向」就是同一張時鐘的完整版（有拉Bar、篩選、播放）。
+       · 圓圈放大的做法**不是**把卡片變高就好：`renderRotClock` 的 compact 半徑是
+         66%（`polar.radius`），那是還有族群名標籤時留的餘裕；compact 本來就不畫標籤
+         （`label.show: !compact`），只有四個象限名貼在盤外，所以 66% → 82% 純粹是把
+         一直空著的那一圈還給盤面。容器高度同步 300 → 360（見 index.html），
+         不然 82% 只是「在同樣小的框裡畫大一點」。
+       · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
+    renderOvFlow(sd);
     renderThemeStrip(th);
     renderCandidates(cands);
     renderBreadth(heat);
@@ -1290,7 +1439,9 @@
   function rotItem(r, full) {
     const arrow = r.dmo == null ? '' : r.dmo > 0.15 ? '<span class="ar up">↑</span>' : r.dmo < -0.15 ? '<span class="ar dn">↓</span>' : '<span class="ar fl">→</span>';
     const mo = full && r.mo != null ? `　動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 1)}` : '';
-    // 換段徽章：這是「最近 5 個交易日換階段的族群」那排的資訊，跟著族群本人走才讀得懂
+    /* 換段徽章：「這 5 個交易日從哪一段換到哪一段」。
+       2026-09-23 之前這件事另外有一整排常駐的 `#rotMove`，那一排已經移除，
+       所以這顆徽章現在是換段資訊**唯一**的出口 —— 不要順手拿掉。*/
     const jump = full && r.moved && r.was
       ? `<span class="jmp" style="--c:${STAGE[r.stage].color}">${STAGE[r.was].name}→${STAGE[r.stage].name}</span>` : '';
     return `<li data-gid="${r.gid}"><span class="g">${fmt.esc(r.name)}</span>${arrow}${jump}
@@ -2497,17 +2648,12 @@
         `<span class="st" style="background:${STAGE[k].color}1f;color:${STAGE[k].color};border:1px solid ${STAGE[k].color}55">${STAGE[k].name}</span>`
         + (i < 3 ? '<span class="ar">→</span>' : '<span class="ar">↩ 回到改善</span>')).join('');
     }
-    if (ids.move) {
-      const mv = $('#' + ids.move);
-      const moved = rows.filter(r => r.moved);
-      if (mv) mv.innerHTML = moved.length
-        ? `<b>最近 ${back} 個交易日換階段的族群</b>` + moved.slice(0, 10).map(r =>
-          `<span class="mv" data-gid="${r.gid}"><i style="background:${STAGE[r.was].color}"></i>${STAGE[r.was].name}
-             <em>→</em><i style="background:${STAGE[r.stage].color}"></i>${STAGE[r.stage].name}
-             <b>${fmt.esc(r.name)}</b></span>`).join('')
-        : `<b>最近 ${back} 個交易日沒有族群換階段</b><span class="muted">代表輪動很慢，主流還是同一批</span>`;
-      if (mv) $$('.mv', mv).forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
-    }
+    /* ★ 2026-09-23（Andy：「另外『最近 5 個交易日換階段的族群』拿掉」）：
+       那一排（`ids.move` / `#rotMove`）整塊移除。
+       ⚠ 2026-09-23 稍早我還在註解裡寫「`#rotMove` 保留，搬到時鐘正下方」——
+         他現在親口要求拿掉，**以他的為準**，不要再依上一版的註解把它加回來。
+       資訊沒有整個消失：換段這件事仍然寫在象限展開面板每一列的「改善→領先」徽章上
+       （`rotItem(r, true)` 的 `jump`），只是不再常駐佔一整排版面。*/
 
     /* 2026-09-18（Andy 圖五）：「當點擊族群會拉長清單，看到對應股票，
        若清單太長記得不要延伸原本格式，以拉Bar 方式呈現」。
@@ -2550,6 +2696,127 @@
       : `<span class="muted">成分股資料還在產出</span><a class="pill cyan go" href="#industry/group/${gid}">進族群頁 →</a>`;
     li.classList.add('open');
     li.parentNode.insertBefore(el, li.nextSibling);
+  }
+
+  /* ================================================================ 昨日資金去向分流圖（總覽右下）
+     Andy 2026-09-23：「下方的紅框處改成昨日的資金去向分流圖（**不需要動畫，只顯示線條粗細即可，
+     並且只顯示到族群即可。個股也不用**）」。紅框圈的是總覽「輪動階段」卡片下方
+     「改善／領先／轉弱／落後」那四格階段卡（`#rotMini`）。
+
+     ── 這張圖回答的問題（寫在卡片小標上）──
+       **「最近一個交易日收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群？」**
+     四格階段卡回答的是「誰在強弱循環的哪一段」，那件事上面那張時鐘已經完整回答了
+     （象限名 ＋ 顏色 ＋ 點的位置），四格卡只是把同一件事再用清單講一次 ——
+     換成分流圖之後這張卡才有兩個**不同**的問題：上面「誰在轉強」、下面「錢分給了誰」。
+
+     ── 資料來源與口徑（和資金流向頁那張桑基圖**同一份檔案、同一個口徑**）──
+       · `site/data/sankey_daily.json`，取 `dates` 的**最後一天**（＝最近一個交易日的盤後結算值）。
+         盤中不會動它 —— Andy 指定「資料是昨日（盤後結算）」，所以這張圖**刻意不接即時**。
+       · 族群成交值對「同時掛在兩個板塊」的股票做過 **1/n 拆分**（後端 `compute/flow.py` 的口徑），
+         所以族群加總會略小於逐檔加總。這句話和資金流向頁 tooltip 裡寫的是同一件事，
+         **圖變簡單不等於可以把口徑說明拿掉**，所以下面那行 note 一定要留著。
+       · 每一層的 % 都是「佔它上一層」的比重（和資金流向頁同一條規矩）。
+       · 「〇〇・其他」這種自動桶（`ind_*`）是「不屬於任何人工族群」的收容桶，**照樣畫**
+         （它真的有成交值，藏起來會讓 % 加不到 100），但名字本來就寫著「・其他」。
+
+     ── 刻意砍掉的東西（Andy 指定）──
+       · **不要動畫**：`animation: false`，換主題重畫也不補間。
+       · **只用線條粗細表示流量**：不做漸層、不做流動點、不發光。
+         節點只是很小的圓點，顏色沿用族群色（那是「這是誰」的識別，不是流量編碼）。
+       · **只畫到族群層**：`initialTreeDepth: 2`，不掛代表股、不展開個股。
+     ── 但是「能點的東西要能點到底」──
+       族群名可以點，直接進族群頁（那一頁就有成分股）。總覽這張卡片沒有可以就地展開的
+       側欄，硬塞一個面板會把卡片撐到比左邊的熱力圖高一倍，所以這裡是少數「跳頁」是對的地方。*/
+  function renderOvFlow(sd) {
+    const el = $('#ovFlow'); if (!el) return;
+    const sub = $('#ovFlowSub');
+    const bail = (msg) => { el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
+    if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
+      return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
+    }
+    const day = sd.dates[sd.dates.length - 1];
+    const k = sd.dates.length - 1;
+    const gs = sd.groups.map(g => ({ gid: g.gid, name: g.name, chain: g.chain || 'other',
+      chainName: g.chain_name || chainLabel(g.chain || 'other'), v: (g.tv || [])[k] || 0 }))
+      .filter(g => g.v > 0);
+    if (!gs.length) return bail(`${day} 這天沒有成交值資料`);
+    const total = gs.reduce((a, g) => a + g.v, 0) || 1;
+    const maxV = gs.reduce((a, g) => Math.max(a, g.v), 1);
+    const pct = (v, base) => fmt.n((v || 0) / (base || 1) * 100, 1);
+    /* 粗細是這張圖**唯一**的流量編碼，所以刻意用 sqrt：線性會讓最大的那條粗到 10px、
+       後面十幾條全部擠在 1px 分不出來（實測 maxV 是中位數的 9 倍）。
+       sqrt 把 1.2px～9px 分配得開，同時「粗的還是明顯比細的粗」。*/
+    const width = (v, scale) => 1.2 + 7.8 * Math.sqrt(Math.min(1, (v || 0) / (scale || maxV)));
+    const lt = theme() === 'light';
+    const lineCol = hexA(CH.ink3, lt ? .55 : .5);   // 單一顏色：粗細已經在講流量，顏色不要再講一次
+
+    // 產業鏈層：依成交值由大到小（這張圖是靜態的，不需要「位置固定」那條規矩）
+    const chains = {};
+    gs.forEach(g => {
+      (chains[g.chain] = chains[g.chain] || { cid: g.chain, name: g.chainName, v: 0, kids: [] });
+      chains[g.chain].v += g.v; chains[g.chain].kids.push(g);
+    });
+    const chainArr = Object.values(chains).sort((a, b) => b.v - a.v);
+    const maxC = chainArr.reduce((a, c) => Math.max(a, c.v), 1);
+    const narrow = (el.clientWidth || 9999) < 420;
+    const nodeOf = (name, v, base, col, wpx, extra) => ({
+      name, value: v, base,
+      symbolSize: 7,
+      itemStyle: { color: col, borderColor: 'transparent' },
+      lineStyle: { color: lineCol, width: wpx, curveness: .5 },
+      ...extra,
+    });
+    const data = [{
+      name: `台股成交值 ${fmt.yi(total)}`, value: total, symbolSize: 11,
+      itemStyle: { color: hexA(CH.cyan, lt ? .55 : .9), borderColor: 'transparent' },
+      label: { fontWeight: 700, fontSize: 11.5 },
+      children: chainArr.map(c => nodeOf(c.name, c.v, total, hexA(L.gcolor[c.kids[0].gid] || CH.cyan, lt ? .8 : .95),
+        width(c.v, maxC), {
+          label: { formatter: `${c.name} ${pct(c.v, total)}%`, fontWeight: 700, fontSize: 11.5 },
+          children: c.kids.slice().sort((a, b) => b.v - a.v).map(g => nodeOf(
+            g.name, g.v, c.v, hexA(L.gcolor[g.gid] || CH.cyan, lt ? .75 : .9), width(g.v), {
+              gid: g.gid,
+              label: { formatter: `${g.name} ${pct(g.v, c.v)}%`, fontSize: 11 },
+            })),
+        })),
+    }];
+
+    /* 高度自己算：ECharts 的 tree 把縱向空間平均分給葉子，族群數之後會變，
+       寫死在 CSS 就是埋一顆以後才會爆的雷（和資金去向那張同一條理由）。*/
+    el.style.height = Math.max(300, gs.length * 22 + 46) + 'px';
+    const c = chart('ovFlow', {
+      animation: false,                 // Andy 指定「不需要動畫」——連初次繪製的生長動畫也關掉
+      tooltip: { ...tip, trigger: 'item',
+        formatter: (p) => {
+          const d = p.data || {};
+          if (d.value == null) return p.name;
+          return `<b>${fmt.esc(d.gid ? d.name : p.name)}</b><br>成交值 ${fmt.yi(d.value)}`
+            + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
+            + `<br>佔全場 ${pct(d.value, total)}%`
+            + `<br><span class="muted">${fmt.esc(day)} 盤後結算值；族群成交值已照 1/n 拆分</span>`
+            + (d.gid ? '<br><small>點一下進族群頁看成分股</small>' : '');
+        } },
+      series: [{
+        type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
+        left: 8, right: narrow ? 104 : 124, top: 12, bottom: 12,
+        initialTreeDepth: 2,            // 只到族群那一層（Andy：個股不用）
+        expandAndCollapse: false, roam: false, symbol: 'circle',
+        label: { position: 'right', distance: 6, color: CH.ink2, fontSize: 11,
+          textBorderColor: CH.panel, textBorderWidth: 3, align: 'left',
+          ...(narrow ? { width: 96, overflow: 'truncate' } : {}) },
+        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3, align: 'left',
+          ...(narrow ? { width: 96, overflow: 'truncate' } : {}) } },
+        emphasis: { focus: 'relative', blurScope: 'series' },
+        blur: { itemStyle: { opacity: .2 }, lineStyle: { opacity: .12 }, label: { opacity: .3 } },
+        data,
+      }],
+    }, { notMerge: true });
+    if (c) c.off('click').on('click', p => {
+      const gid = (p.data || {}).gid;
+      if (gid) location.hash = '#industry/group/' + gid;
+    });
+    if (sub) sub.textContent = `${day} 盤後結算　·　台股 → 產業鏈 → 族群（只到族群層）`
+      + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
   }
 
   function renderThemeStrip(th) {
@@ -3173,11 +3440,6 @@
       <li><em>往上＝縮圈</em>，行情集中在少數主流，這時候買冷門股很容易不會動。</li>
       <li><em>往下＝擴散</em>，通常是輪動或補漲，這時候主流反而容易休息。</li>
       <li>前 5 大看「主流有多獨」，前 10 大看「主流圈子有多大」；兩條走勢分岔時是換主流。</li></ul>`,
-    val: `<b>這張表回答：這些族群現在貴不貴。</b>
-      <ul><li>本益比只有<em>同族群</em>比才有意義（IC 設計跟航運的合理倍數本來就差很多），所以有「只看低於族群中位」這個條件。</li>
-      <li>左圖橫軸本益比、縱軸 ROE，<em>右下＝貴又賺得少、左上＝便宜又賺得多</em>；圈圈大小是市值。</li>
-      <li>本益比用自算 TTM EPS（近四季），虧損的公司沒有本益比，預設已排除。</li>
-      <li>條件可以疊加，改任何一個右上角的檔數就會跟著變；點任一列進個股頁。</li></ul>`,
   };
   function wireHowto(root) {
     $$('.howbtn', root || document).forEach(b => b.onclick = () => {
@@ -3204,7 +3466,7 @@
   let flowState = { period: 'w0', back: 0, concTop: 5 };
   async function renderFlow() {
     // groups_detail：輪動板點族群要原地展開成分股（Andy 2026-09-18 圖五），這頁也要先載
-    const [f3, conc, fund] = await Promise.all([load('flow_v3'), load('concentration'), load('fundamental'), load('groups_detail')]);
+    const [f3, conc] = await Promise.all([load('flow_v3'), load('concentration'), load('groups_detail')]);
     wireHowto($('#v-flow'));
 
     /* ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）
@@ -3214,7 +3476,7 @@
        現在時間全部由每張圖自己的拉 Bar 決定，兩支拉 Bar 的下限也從 0 改成 1
        （0 已經沒有意義了）。日期範圍寫在各自的副標裡，資訊沒有消失。
        f3.periods 後端照樣產出，之後若要做「快速跳到本月／近三月」再接回來就好。 */
-    let instDays = null, rankDays = null;
+    let instDays = null;   // ★ D1：rankDays 已併進 rotBackBar（雙把手區間桿），不再是獨立的一支
     const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
       drawRankDays(rankVal());
@@ -3332,10 +3594,10 @@
     const drawRot = (frame, only) => {
       /* ★ 2026-09-23：`board`（輪動階段四格）與 `cycle`（四段循環列）不再傳 ——
          那一整塊已經併進時鐘的四個象限卡（`quads`）。
-         `move`（最近 5 個交易日換階段的族群）**留下來**，只是搬到時鐘正下方：
-         它回答的是「誰剛換段」，那是一句跨象限的話，塞進任何單一象限都會漏掉另一半。*/
+         ★ 2026-09-23 追加：`move`（最近 5 個交易日換階段的族群）也拿掉了（Andy 指定），
+           所以這裡只剩 `clock` 與 `quads`。*/
       renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
-        { move: 'rotMove', clock: 'rotClock', quads: true,
+        { clock: 'rotClock', quads: true,
           pick: rotPickSet(), frame: frame || 0, only,
           /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
              span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
@@ -3356,25 +3618,28 @@
          於是每一幀都沒跑完就被下一幀接手 —— 尾巴與大圈的脫節會一路累積。
          實測：播到第 5 天時「光電業」的尾巴尖端已經落後大圈 41px（大圈半徑只有 6.5px）。
          看板本來就不需要時鐘陪著重畫，分開之後脫節回到 3px 以內。*/
-    /* 原本的 `drawBoard`。看板拆掉之後它只剩兩件事：重畫「換階段的族群」那一排、
-       以及把展開中的象限面板換成新的那一天。
+    /* 原本的 `drawBoard`。看板與「換階段的族群」那一排都拆掉之後，
+       它只剩一件事：把展開中的象限面板換成新的那一天。
        ★ 去抖動**照舊留著**（不要順手刪）：面板一次要重建幾十個 `<li>`，
          播放是每 420ms 推進一天，跟著重建一樣會把時鐘的補間動畫拖到掉幀。*/
-    const drawBoard = () => {
-      renderRotation(f3 && f3.rrg, ROT_BOARD_WIN, { move: 'rotMove' });
-      renderStagePanel();
-    };
+    const drawBoard = () => { renderStagePanel(); };
     /* ★ 2026-09-21：刷「看哪一天」時，排行也要跟著換截止日。
        但**不要每一幀都重畫** —— 播放是每 420ms 推進一天，排行是整張 notMerge 重畫
        （量測：1500px 下 60~90ms），跟著跑會把時鐘的補間動畫拖到掉幀，
        那就又回到 Andy 說的「段點段點式移動」。所以和輪動階段看板共用同一個 160ms 去抖動：
        手放開（或播放停下來）之後 160ms，排行一次補到對的那一段。*/
-    const rankVal = () => (rankDays ? Math.max(1, +rankDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
-    const rotSeek = (v) => {
+    /* ★ D1：排行「往回看幾天」＝區間桿兩個把手之間的距離（`spanBar` 的 `days`）。
+       拉Bar 還沒建好時（第一次畫圖的那一瞬間）退回 DEFAULT_DAYS，行為和合併前一樣。*/
+    const rankVal = () => (rotBackBar && rotBackBar.days ? rotBackBar.days : DEFAULT_DAYS);
+    /* ★ D1：`exitLive` 是合併之後才需要的參數。
+       區間桿的**左把手**只改「這一段有多長」（排行往回看幾天），截止日沒有動 ——
+       那件事和「即時」不衝突，不該把使用者剛按下的即時模式踢掉。
+       只有右把手／＋ −／播放真的換了截止日時才退出即時。*/
+    const rotSeek = (v, exitLive) => {
       /* ★ 拖時間軸（或按 ▶ 播放）就自動退出即時 —— 兩者互斥，和資金去向那顆鈕同一條規矩。
          即時是「接在最後一個收盤後面續算出來的那一點」，往回看某一天時它沒有意義。
          `false`＝不要在這裡再重畫一次，下一行本來就會畫。*/
-      if (RLV.on) rlvOff(false);
+      if (exitLive !== false && RLV.on) rlvOff(false);
       flowState.back = v; rotFrame = v;
       drawRot(v, 'clock');
       clearTimeout(rotBoardT);
@@ -3430,11 +3695,16 @@
        那就是 Andy 說的「段點段點式移動」。相等之後首尾相接、等速。*/
     /* ★ group: 'rot.back' —— 卡片這支和放大視窗那支 `#rotZoomBack` 控制的是**同一個值**，
        所以歸成同一組：一次只准一支在播，按 ⏸ 兩支一起停（2026-09-21 的「暫停停不下來」）。*/
-    rotBackBar = playBar('rotBack', { min: ROT_MIN_BACK, max: 30, value: flowState.back,
-      key: 'tw.rot.back3', dir: -1, frame: ROT_ANIM_MS, group: 'rot.back',
-      // ★ 下限從 1 改成 0 之後，0 不可以寫成「0 天前」—— 它是「最新的那一個交易日」
-      label: '看哪一天', fmt: (v) => (+v === 0 ? '最新' : v + ' 天前'),
-      onChange: (v) => rotSeek(v) });
+    /* ★ D1（2026-09-23）：`playBar('rotBack')` ＋ `rangeBar('rankDays')` 兩條合併成
+       一條雙把手的 `spanBar`（做法與代價寫在 spanBar 的檔頭註解）。
+       容器沿用 `#rotBack` 是刻意的：`rlvMountBtn()`（「即時」鈕與狀態列）掛的就是這個容器，
+       換 id 等於同時改兩支程式、卻沒有換到任何好處。
+       `onChange` 一次收到兩個值：`to`＝截止日是幾天前（餵 `rotSeek` → 時鐘大圈 ＋ 排行截止日），
+       `days`＝這一段有幾個交易日（`rankVal()` 會讀回去餵排行）。*/
+    rotBackBar = spanBar('rotBack', { max: 30, to: flowState.back, days: DEFAULT_DAYS,
+      keyTo: 'tw.rot.back3', keyDays: 'tw.rank.days', frame: ROT_ANIM_MS, group: 'rot.back',
+      label: '期間',
+      onChange: (to) => rotSeek(to, to !== flowState.back) });
     rotFrame = rotBackBar ? rotBackBar.value : ROT_MIN_BACK;
     flowState.back = rotFrame;
     /* 「即時」鈕要等 playBar 建好才掛得上去（playBar 會把 `#rotBack` 的 innerHTML 換掉）。
@@ -3461,13 +3731,8 @@
           onChange: (v) => { instEnd = v; drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS); } });
       }
     }
-    /* 圖四：天數拉 Bar 現在就是這一頁唯一的時間控制。
-       ★ 2026-09-20（Andy：「圖三資金流向移除播放功能」）：playBar → rangeBar，
-         ＋ − ▶ 三顆鈕拿掉，天數還是可以拖。
-       ★ 2026-09-20（Andy 拍板「合併：只留拉 Bar」）：min 0 → 1、預設 20。*/
-    rankDays = rangeBar('rankDays', { min: 1, max: 30, value: DEFAULT_DAYS, key: 'tw.rank.days',
-      label: '最近', fmt: (v) => v + ' 天',
-      onChange: () => drawPeriod() });
+    /* ★ D1（2026-09-23）：排行的「最近 N 天」拉Bar（`#rankDays`）已經併進上面那條區間桿的
+       左把手，這裡不再單獨建一支。`drawPeriod()` 仍然要叫一次，把排行畫出來。*/
     drawPeriod();
 
     /* 圖六：改吃獨立檔 sankey_daily（60 天），配一支「看哪一天」的拉 Bar。
@@ -3505,7 +3770,6 @@
     $$('#concSeg button').forEach(b => b.onclick = () => {
       $$('#concSeg button').forEach(x => x.classList.toggle('on', x === b)); flowState.concTop = +b.dataset.v; drawConc();
     });
-    renderVal(fund);
     // 資金流向頁的六張圖不加滾輪縮放（Andy 09-13）；圖本身已經用足卡片寬度
   }
 
@@ -5829,90 +6093,12 @@
     const x = box.querySelector('[data-x]'); if (x) x.onclick = () => { box.hidden = true; };
   }
 
-  // ---- 估值篩選：本益比、股價淨值比、ROE、市值、族群，全部條件放在一起
-  const VF = { pe: [null, null], pb: null, roe: null, cap: null, group: '', market: '', below: false, profit: true };
-  function renderVal(fund) {
-    const all = (fund || []).filter(r => r.pe != null || r.pb != null);
-    if (!all.length) { $('#valCount') && ($('#valCount').textContent = ''); empty('valScatter', '估值資料還在回補'); $('#valBody').innerHTML = ''; return; }
-    const gsel = $('#vGroup');
-    if (gsel && gsel.options.length <= 1) {
-      const names = [...new Set(all.map(r => r.group_name).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'zh-TW'));
-      gsel.innerHTML = '<option value="">全部族群</option>' + names.map(n => `<option value="${fmt.esc(n)}">${fmt.esc(n)}</option>`).join('');
-    }
-    const num = (el) => { const v = parseFloat(($(el) || {}).value); return Number.isFinite(v) ? v : null; };
-    const apply = () => {
-      VF.pe = [num('#vPeLo'), num('#vPeHi')]; VF.pb = num('#vPb'); VF.roe = num('#vRoe'); VF.cap = num('#vCap');
-      VF.group = ($('#vGroup') || {}).value || ''; VF.market = ($('#vMarket') || {}).value || '';
-      VF.below = !!($('#vBelow') || {}).checked; VF.profit = !!($('#vProfit') || {}).checked;
-      const rows = all.filter(r => {
-        if (VF.profit && (r.is_loss || r.pe == null)) return false;
-        if (VF.group && r.group_name !== VF.group) return false;
-        if (VF.market && r.market !== VF.market) return false;
-        if (VF.pe[0] != null && !(r.pe != null && r.pe >= VF.pe[0])) return false;
-        if (VF.pe[1] != null && !(r.pe != null && r.pe <= VF.pe[1])) return false;
-        if (VF.pb != null && !(r.pb != null && r.pb <= VF.pb)) return false;
-        if (VF.roe != null && !(r.roe != null && r.roe >= VF.roe)) return false;
-        if (VF.cap != null && !(r.market_cap != null && r.market_cap >= VF.cap * 1e8)) return false;
-        if (VF.below && !(r.vs_median != null && r.vs_median < 0)) return false;
-        return true;
-      });
-      $('#vCount').textContent = `符合 ${rows.length} 檔（全市場有估值的 ${all.length} 檔）`;
-      drawScatter(rows); drawTable(rows);
-    };
-    const drawScatter = (rows) => {
-      const pts = rows.filter(r => r.pe != null && r.roe != null);
-      if (!pts.length) return empty('valScatter', '這組條件沒有同時有本益比與 ROE 的股票');
-      const caps = pts.map(r => r.market_cap || 0); const maxCap = Math.max(...caps, 1);
-      const c = chart('valScatter', {
-        tooltip: { ...tip, formatter: q => `<b>${q.data.name} ${q.data.code}</b><br>${fmt.esc(q.data.g || '')}<br>本益比 ${fmt.n(q.value[0], 1)}　ROE ${fmt.n(q.value[1], 1)}%<br>股價淨值比 ${fmt.n(q.data.pb)}　市值 ${fmt.yi(q.data.cap)}<br><small>點一下進個股頁</small>` },
-        // top 20→34：y 軸名稱「ROE ↑」預設畫在軸的上方 15px 處，20px 的上緣留不住它（量到 -7px）
-        grid: { left: 52, right: 20, top: 34, bottom: 40 },
-        xAxis: { ...axisStyle, name: '本益比 →', nameLocation: 'middle', nameGap: 24, nameTextStyle: { color: CH.ink3, fontSize: 11 }, scale: true, max: Math.min(80, Math.max(...pts.map(r => r.pe))) },
-        yAxis: { ...axisStyle, name: 'ROE ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 }, scale: true, axisLabel: { formatter: '{value}%' } },
-        series: [{ type: 'scatter', data: pts.map(r => ({ value: [r.pe, r.roe], code: r.code, name: r.name, g: r.group_name, pb: r.pb, cap: r.market_cap,
-          symbolSize: Math.max(8, Math.min(34, Math.sqrt((r.market_cap || 0) / maxCap) * 34)),
-          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .78, borderColor: CH.panel, borderWidth: 1 } })),
-          label: { show: pts.length <= 40, formatter: q => q.data.name, position: 'right', color: CH.ink2, fontSize: 11 }, labelLayout: { hideOverlap: true } }],
-      });
-      if (c) c.off('click').on('click', q => { if (q.data && q.data.code) goStock(q.data.code); });
-    };
-    const drawTable = (rows) => {
-      const top = rows.slice().sort((a, b) => (a.pe ?? 1e9) - (b.pe ?? 1e9)).slice(0, 80);
-      $('#valTable thead').innerHTML = '<tr><th class="l">股票</th><th class="l">族群</th><th>本益比</th><th>族群中位</th><th>淨值比</th><th>ROE</th><th>市值</th></tr>';
-      $('#valBody').innerHTML = top.map(r => `<tr data-code="${r.code}">
-        <td class="l">${L.stock(r.code, r.name)}</td>
-        <td class="l">${r.group_id ? L.group(r.group_id, r.group_name) : fmt.esc(r.group_name || '—')}</td>
-        <td class="num">${fmt.n(r.pe, 1)}</td>
-        ${(() => {
-          /* ★ 2026-09-19：這一欄不能只印 group_median 的數字。
-             groups.yaml 的 valuation_metric 允許族群改用別的口徑（生技醫療用 ps 股價營收比，
-             金融用 pb_roe），這時 group_median 是**那個口徑**的中位數，不是本益比的中位數。
-             原本的寫法把「本益比 12.4」跟「族群中位 2.7（那是 PS 中位）」並排印，
-             使用者只會讀成「這檔貴了四倍」—— 實際上它的 PS 比同業低 37%。
-             所以非 PE 口徑時要把口徑名稱與本檔的數值一起標出來。 */
-          const mt = r.metric || 'pe';
-          const col = r.vs_median != null ? upDown(-r.vs_median) : CH.ink3;
-          if (r.group_median == null) return `<td class="num" style="color:${CH.ink3}">—</td>`;
-          if (mt === 'pe') return `<td class="num" data-metric="pe" style="color:${col}">${fmt.n(r.group_median, 1)}</td>`;
-          const MN = { ps: '股價營收比', pb_roe: '股價淨值比', pb: '股價淨值比' }[mt] || mt;
-          return `<td class="num" data-metric="${fmt.esc(mt)}" data-mv="${r.metric_value ?? ''}" style="color:${col}"
-            title="${fmt.esc(r.group_name || '')}這個族群用${fmt.esc(MN)}比較，不是本益比：本檔 ${fmt.n(r.metric_value, 2)}、族群中位 ${fmt.n(r.group_median, 2)}">${fmt.n(r.group_median, 1)}<small class="muted"> ${fmt.esc(mt.toUpperCase())}</small></td>`;
-        })()}
-        <td class="num">${fmt.n(r.pb)}</td><td class="num">${r.roe != null ? fmt.n(r.roe, 1) + '%' : '—'}</td>
-        <td class="num">${fmt.yi(r.market_cap)}</td></tr>`).join('')
-        || '<tr><td colspan="7" class="l muted" style="padding:16px">沒有符合條件的股票，放寬一點試試</td></tr>';
-      $$('#valBody tr[data-code]').forEach(tr => tr.onclick = (e) => { if (e.target.closest('a')) return; goStock(tr.dataset.code); });
-    };
-    ['#vPeLo', '#vPeHi', '#vPb', '#vRoe', '#vCap'].forEach(s => { const el = $(s); if (el) el.oninput = apply; });
-    ['#vGroup', '#vMarket'].forEach(s => { const el = $(s); if (el) el.onchange = apply; });
-    ['#vBelow', '#vProfit'].forEach(s => { const el = $(s); if (el) el.onchange = apply; });
-    const rst = $('#vReset');
-    if (rst) rst.onclick = () => {
-      ['#vPeLo', '#vPeHi', '#vPb', '#vRoe', '#vCap'].forEach(s => { const el = $(s); if (el) el.value = ''; });
-      $('#vGroup').value = ''; $('#vMarket').value = ''; $('#vBelow').checked = false; $('#vProfit').checked = true; apply();
-    };
-    apply();
-  }
+  /* ★ 2026-09-23（Andy：「估值篩選 拿掉」）：
+     「估值篩選」整張卡片（本益比／股價淨值比／ROE／市值／族群一起篩 ＋ 散點圖 ＋ 右側表格）
+     已從 `#flow` 與這裡一起移除，連同它專用的 `VF` 狀態與 `renderVal()`。
+     它是這一頁唯一一個讀 `fundamental.json` 的東西，所以那一份也不再載入。
+     ⚠ 總覽頁的「族群估值」（`#gval` / `renderGval`）是**另一張圖**（族群層的本益比中位 vs 資金流入），
+       Andy 沒有要求移除，所以留著 —— 不要因為名字裡都有「估值」就順手一起刪掉。 */
 
   // ---------------------------------------------------------------- 題材
   async function renderThemes() {

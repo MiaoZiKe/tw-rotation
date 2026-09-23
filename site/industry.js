@@ -2167,31 +2167,6 @@
       });
     }
   }
-  /* ★ 2026-09-23 第十批 C5：**只量「字有沒有疊到字」**，不含族群球的光暈與小點。
-     `cgOverlaps()` 量的是整個碰撞框（含 halo），兩顆大球的光暈碰到就算一次 ——
-     那個數字拿來決定「標籤要不要砍」會得到完全錯誤的結論：
-     把標籤全部砍光之後它照樣是非零（節點多、框又不准長高，本來就擠），
-     於是演算法每次都選「一個個股名都不掛」，等於拿使用者真正要的資訊去換一個換不到的東西。
-     這一支量的才是 `_preview.py` 會判紅的那一種錯：標籤卡片互相疊、或是壓在別顆族群的球上。*/
-  function cgLabBox(n) {
-    const lx = n.x - n.ox + (n.lx != null ? n.lx : n.R + 7);
-    return { x0: lx, x1: lx + (n.lw || 0), y0: n.y - (n.lh || 0) / 2, y1: n.y + (n.lh || 0) / 2 };
-  }
-  function cgLabOverlaps(nodes) {
-    const bs = nodes.map(cgLabBox);
-    let c = 0;
-    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-      const a = bs[i], b = bs[j];
-      if (a.x1 - 1 > b.x0 && b.x1 - 1 > a.x0 && a.y1 - 1 > b.y0 && b.y1 - 1 > a.y0) c++;
-    }
-    // 標籤壓在別顆族群的球（含它的個股小點）上也算：那幾顆小點就真的點不下去了
-    for (let i = 0; i < nodes.length; i++) for (let j = 0; j < nodes.length; j++) {
-      if (i === j) continue;
-      const a = bs[i], n = nodes[j], cx = n.x - n.ox, r = n.halo || n.R;
-      if (a.x1 - 1 > cx - r && cx + r > a.x0 + 1 && a.y1 - 1 > n.y - r && n.y + r > a.y0 + 1) c++;
-    }
-    return c;
-  }
   // 還有幾組節點疊在一起（矩形相交）
   function cgOverlaps(nodes) {
     let n = 0;
@@ -2432,13 +2407,26 @@
             點族群名（或那顆球）就跳出完整的下拉清單。
             一顆獨立的「還有 M 檔」膠囊在 150px 的卡片裡會自己佔掉整整一行，
             24 顆族群＝憑空多 24 行，力導向就再也排不開 —— 實測就是它把標籤全部擠掉的。*/
-    /* 依占比把 `tagBudget` 分給每顆族群（策略第 1 層）。只寫 `n.tagN`，不碰 DOM。*/
+    /* 依占比把 `tagBudget` 分給每顆族群（策略第 1 層）。只寫 `n.tagN`，不碰 DOM。
+
+       ★ 第二個上限：**標籤不准把碰撞框撐高**（這是實測出來的關鍵）。
+         卡片是垂直排的（族群名一行、標籤往下折），而節點的碰撞框高度是
+         `max(球的外圈直徑, 卡片高度)` —— 只要卡片高度還在球的直徑以內，
+         掛標籤對佈局就是**完全免費**的；一旦超過，24 顆族群就再也排不開。
+         實測（半導體鏈 24 顆）：不設這個上限時 1440px 的標籤重疊從 0 組變成 4 組、
+         390px 從 6 組變成 18 組；設了之後重疊不增加。
+         所以大球（占比大的族群）掛得多、小球只掛一兩檔 ——
+         剛好也是「重要的族群多寫幾檔」這個我們本來就想要的排序。
+         一行放得下兩顆標籤（卡片 150px、標籤約 58px），所以
+         可用行數 × 2 就是這顆球掛得起的標籤數。*/
     function tagPlan() {
       const tot = nodes.reduce((a, n) => a + Math.max(n.share || 0, 0.01), 0) || 1;
+      const NAME_H = 22, ROW_H = 18;      // 族群名那一行、標籤每一行的高度（量出來的）
       nodes.forEach(n => {
         if (!tagBudget) { n.tagN = 0; return; }
         const q = tagBudget * Math.max(n.share || 0, 0.01) / tot;
-        n.tagN = Math.min(n.members.length, Math.max(1, Math.min(5, Math.round(q))));
+        const byShare = Math.max(1, Math.min(5, Math.round(q)));
+        n.tagN = Math.min(n.members.length, byShare, 3);
       });
     }
     function paintLabels() {
@@ -2532,14 +2520,18 @@
          第二版是「一直把框拉高」，配上第四版跟市占走的半徑（最大的球大了快一倍）
          會把框撐到 866px —— 那正是 Andy 抱怨過的「上下框度太長」。
          縮節點不會破壞面積比例：每一顆都乘同一個數，排序與相對大小完全不變。*/
-      /* ★ C5：標籤預算分三級試，**挑重疊最少的那一級**（收斂策略第 2 層）。
+      /* ★ C5：標籤預算分幾級試，**挑「字疊到字」最少的那一級；一樣少就選標籤多的那一級**
+         （收斂策略第 2 層）。
          ⚠ 第一版寫成「只要還有重疊就一路砍到 0」，結果 24 顆族群的半導體鏈
            在 800px 直接砍到「一個個股名都不掛」—— 而砍到 0 之後**照樣有重疊**，
            也就是說重疊根本不是標籤造成的（節點多、框又不准長高，本來就擠）。
            那是拿使用者真正要的資訊去換一個換不到的東西。
-         所以改成：每一級各算一次、量它的重疊數，**重疊最少的勝出；一樣少就選標籤多的那一級**。
-         這樣「標籤是元凶」時會自己退，「不是元凶」時就不會白白把名字砍掉。
-         每一級內部仍然照舊先縮節點再說（先犧牲大小，最後才犧牲資訊量）。*/
+         ⚠ 第二版拿「座標模型」去算重疊（cgLabOverlaps），量出來跟畫面上的**對不起來**
+           （1440px 模型說 1 組、畫面實際 4 組）。差在哪追了很久沒追出來，
+           照「追根因最多 10 分鐘」改走不依賴模型的做法：**直接量畫面上的 `.cglab` 外框**。
+           那也正好是 `_preview.py` 判紅用的同一份東西 —— 量它就不會再有「模型說沒事、畫面在疊」。
+         代價：每一級都要真的畫一次、量一次（3 級 ≈ 3 次 reflow，實測 20ms 以內），
+         只在 relayout 時發生（進頁面、改視窗寬、換風格），拖曳與點選都不會走到。*/
       const BUDGETS = mobile() ? [16, 8, 0] : [40, 20, 0];
       let need = 0, best = null;
       for (let bi = 0; bi < BUDGETS.length; bi++) {
@@ -2550,16 +2542,34 @@
           SK = Math.max(0.72, SK * 0.88);
           need = layoutOnce(keep);
         }
-        const ov = cgLabOverlaps(nodes);      // ★ 只看「字疊到字」，不看光暈碰光暈（見 cgLabOverlaps）
+        applyHeight(need); fill(); paint(); fit();
+        const ov = domLabOverlaps();
         if (!best || ov < best.ov) best = { bi: bi, ov: ov, sk: SK, need: need };
         if (ov === 0) break;
       }
-      // 勝出的不是最後試的那一級 → 重算一次把它套回去（佈局狀態是共用的，不重算會停在最後一級）
+      // 勝出的不是最後試的那一級 → 整條重跑一次把它套回去（佈局狀態是共用的，不重跑會停在最後一級）
       if (best && BUDGETS[best.bi] !== tagBudget) {
-        tagBudget = BUDGETS[best.bi]; tagPlan(); SK = best.sk; need = layoutOnce(keep);
+        tagBudget = BUDGETS[best.bi]; tagPlan(); SK = best.sk;
+        need = layoutOnce(keep);
+        applyHeight(need); fill(); paint(); fit();
       }
+    }
+    function applyHeight(need) {
       if (need > host.clientHeight + 8) host.style.height = Math.min(CG_HMAX, need) + 'px';
-      fill(); paint(); fit();
+    }
+    /* 畫面上真的有幾組族群卡片疊在一起。量的是 `.cglab` 的實際外框，
+       跟 `_preview.py` 的文字重疊掃描看的是同一份東西 —— 所以這裡說 0，那邊就不會紅。
+       容差 2px：描邊、字距這種純粹擦邊的不算（跟 _preview 同一個口徑）。*/
+    function domLabOverlaps() {
+      const rs = [];
+      $$('.cglab', labs).forEach(e => { const r = e.getBoundingClientRect();
+        if (r.width > 2 && r.height > 2) rs.push(r); });
+      let c = 0;
+      for (let i = 0; i < rs.length; i++) for (let j = i + 1; j < rs.length; j++) {
+        const a = rs[i], b = rs[j];
+        if (a.right - 2 > b.left && b.right - 2 > a.left && a.bottom - 2 > b.top && b.bottom - 2 > a.top) c++;
+      }
+      return c;
     }
     /* 算一輪佈局，回傳「這樣排下來框要多高」。不改框高、不畫 —— 那是 relayout 的事。*/
     function layoutOnce(keep) {

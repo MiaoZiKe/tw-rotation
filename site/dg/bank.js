@@ -80,22 +80,23 @@
   /* ================================================================ ① 負債端：錢從哪裡來（左欄）
      由上往下＝資金成本由低到高。**排序本身就是資訊**：活存最便宜、同業拆借最貴也最快跟著市場動。
      右端的「重訂價」標記是為了替章節①（升息時間差）先埋伏筆 —— 慢／快在這裡就看得到。*/
-  const LX = 20, LW = 186, BH = 38, BG = 8, BY0 = 86;
+  const LX = 20;                                    // 全寬那幾排（手續費、加減式、註解）的左緣
+  const BX = 34, LW = 176, BH = 38, BG = 8, BY0 = 86;  // 負債欄的長條：左緣退到 34，錨點才站得進 20 那一欄
   const SRC = [
     { id: 'bk_demand', t: '活期存款（活儲）', s: '成本最低，量也最大', k: '慢', col: C.cost },
     { id: 'bk_time', t: '定期存款', s: '成本較高，到期才換約', k: '慢', col: C.cost },
     { id: 'bk_wholesale', t: '同業拆借與金融債', s: '直接跟著市場利率走', k: '快', col: C.hot },
-    { id: 'bk_equity', t: '自有資本（股東的錢）', s: '不用付息，但要求 ROE', k: '—', col: C.cap },
+    { id: 'bk_equity', t: '自有資本', s: '不用付息，但要求 ROE', k: '—', col: C.cap },
   ];
 
   /* ================================================================ 資產端：錢往哪裡去（右欄）
      由上往下＝收益由低到高，同時風險也由低到高。企業放款與房貸多為浮動利率 → 重訂價「快」。*/
-  const RX = 454, RW = 186;
+  const RX = 450, RW = 176;
   const USE = [
     { id: 'bk_bond', t: '債券與票券投資', s: '收益低，但流動性好', k: '慢', col: C.cap },
     { id: 'bk_mortgage', t: '房貸', s: '跟指數利率連動', k: '快', col: C.yield_ },
-    { id: 'bk_corp', t: '企業放款', s: '多為浮動利率，定期重訂價', k: '快', col: C.yield_ },
-    { id: 'bk_consumer', t: '消金與信用卡', s: '利率最高，倒帳風險也最高', k: '快', col: C.risk },
+    { id: 'bk_corp', t: '企業放款', s: '多為浮動利率，會重訂價', k: '快', col: C.yield_ },
+    { id: 'bk_consumer', t: '消金與信用卡', s: '利率最高，風險也最高', k: '快', col: C.risk },
   ];
 
   const bar = (o, x, y, w) => part(o.id,
@@ -108,24 +109,25 @@
   /* ================================================================ 中間：利差引擎
      兩條橫線（上＝資產收益率、下＝資金成本率）＋ 中間填色的帶子＝淨利差。
      ★ 刻意不標任何百分比：NIM 是逐季變動的時點數字，印上去隔天就過期（檔頭 §事實 最後一條）。*/
-  const MX = 216, MW = 226, MY = 66, MH = 192;
+  const MX = 220, MW = 220, MY = 66, MH = 200;
 
   function engine() {
-    const yTop = MY + 52, yBot = MY + 132;          // 收益率線 / 成本率線
+    const yTop = MY + 92, yBot = MY + 162;          // 收益率線 / 成本率線
     const g = [frame(MX, MY, MW, MH), T(MX + 13, MY + 24, '銀行：利差引擎', 'hd'),
-      T(MX + 13, MY + 40, '把短天期、低成本的錢，換成長天期、較高收益的資產', 'sub')];
+      T(MX + 13, MY + 42, '把短天期、低成本的錢，', 'sub'),
+      T(MX + 13, MY + 58, '換成長天期、較高收益的資產', 'sub')];
     // 淨利差帶（上下兩線之間）
     g.push(part('bk_nim', R(MX + 16, yTop, MW - 32, yBot - yTop, 'var(--dg-frame-f)', 'part', 6)
       + LN(`M${MX + 16},${yTop} H${MX + MW - 16}`, C.yield_, 2.4)
       + LN(`M${MX + 16},${yBot} H${MX + MW - 16}`, C.cost, 2.4)
-      + T(MX + 24, yTop - 6, '資產收益率（放款＋投資）', 'sub', null, `fill:${C.yield_}`)
-      + T(MX + 24, yBot + 14, '資金成本率（存款＋拆借）', 'sub', null, `fill:${C.cost}`)
+      + T(MX + 18, yTop - 6, '資產收益率（放款＋投資）', 'sub', null, `fill:${C.yield_}`)
+      + T(MX + 18, yBot + 16, '資金成本率（存款＋拆借）', 'sub', null, `fill:${C.cost}`)
       + LN(`M${MX + MW / 2},${yTop + 4} V${yBot - 4}`, C.nim, 1.4, ' stroke-dasharray="4 4"')
-      + T(MX + MW / 2, yTop + 26, '淨利差', 'lbl', 'middle', `fill:${C.nim}`)
+      + T(MX + MW / 2, yTop + 24, '淨利差', 'lbl', 'middle', `fill:${C.nim}`)
       + T(MX + MW / 2, yTop + 42, '這一段乘上資產規模', 'sub', 'middle')
       + T(MX + MW / 2, yTop + 58, '＝ 利息淨收益', 'sub', 'middle', `fill:${C.nim}`)));
     // 左右進出的光束（左：資金流入；右：資金投出）
-    g.push(fx.beams(SRC.map((s, i) => ({ d: `M${LX + LW},${BY0 + i * (BH + BG) + BH / 2} H${MX}`, color: C.cost, w: 1.6 })), { flow: true }));
+    g.push(fx.beams(SRC.map((s, i) => ({ d: `M${BX + LW},${BY0 + i * (BH + BG) + BH / 2} H${MX}`, color: C.cost, w: 1.6 })), { flow: true }));
     g.push(fx.beams(USE.map((s, i) => ({ d: `M${MX + MW},${BY0 + i * (BH + BG) + BH / 2} H${RX}`, color: C.yield_, w: 1.6 })), { flow: true }));
     return g.join('');
   }
@@ -295,34 +297,34 @@
       <text class="cap ext" x="0" y="0">左邊是錢從哪裡來（存款與拆借，這是成本），右邊是錢往哪裡去（放款與投資，這是收益），中間那條帶子就是淨利差 —— 乘上資產規模就是利息淨收益，這是銀行的主體。★ 橫跨下方的那一條是第二條腿：手續費收入不佔資產負債表、不吃資本適足，跟利差是兩種生意，所以刻意畫成不經過中間引擎的獨立帶子。再往下是稅前獲利的加減式，信用成本被畫成減項 —— 它正是利差故事的反面。展開章節①可以看「升息時哪一段先動」：資產端跟著指數利率快速重訂價，負債端要等存款到期換約，中間那段就是淨利差擴張的窗口。</text>
 
       <!-- ================= §1 主畫面（永遠看得到） ================= -->
-      ${fx.shadows(`<rect x="${LX + 4}" y="${BY0 + 4}" width="${LW}" height="${4 * BH + 3 * BG}" rx="6"/><rect x="${MX + 4}" y="${MY + 4}" width="${MW}" height="${MH}" rx="9"/><rect x="${RX + 4}" y="${BY0 + 4}" width="${RW}" height="${4 * BH + 3 * BG}" rx="6"/>`)}
+      ${fx.shadows(`<rect x="${BX + 4}" y="${BY0 + 4}" width="${LW}" height="${4 * BH + 3 * BG}" rx="6"/><rect x="${MX + 4}" y="${MY + 4}" width="${MW}" height="${MH}" rx="9"/><rect x="${RX + 4}" y="${BY0 + 4}" width="${RW}" height="${4 * BH + 3 * BG}" rx="6"/>`)}
       ${T(LX, BY0 - 32, '資金來源（負債端）', 'hd')}
-      ${T(LX, BY0 - 14, '由上往下＝成本由低到高；右邊小格是「跟著市場利率重訂價的速度」', 'sub')}
-      ${SRC.map((s, i) => bar(s, LX, BY0 + i * (BH + BG), LW)).join('')}
+      ${T(LX, BY0 - 14, '由上往下＝成本由低到高', 'sub')}
+      ${SRC.map((s, i) => bar(s, BX, BY0 + i * (BH + BG), LW)).join('')}
       ${T(RX + RW, BY0 - 32, '資金運用（資產端）', 'hd', 'end')}
-      ${T(RX + RW, BY0 - 14, '由上往下＝收益由低到高，風險同時也由低到高', 'sub', 'end')}
+      ${T(RX + RW, BY0 - 14, '由上往下＝收益與風險同步升高', 'sub', 'end')}
       ${USE.map((s, i) => bar(s, RX, BY0 + i * (BH + BG), RW)).join('')}
       ${engine()}
       ${fees()}
       ${pnl()}
-      ${T(LX, 472, '示意圖，非實物比例｜方塊的大小不代表實際金額比重；利差帶的寬度是示意，不對應任何一家的淨利差數字。', 'cap')}
+      ${T(LX, 492, '示意圖，非實物比例｜方塊的大小不代表實際金額比重；利差帶的寬度是示意，不對應任何一家的淨利差數字。長條右側的小格（快／慢）＝跟著市場利率重訂價的速度。', 'cap')}
 
       <!-- ================= 說明卡片（HTML；左欄＝負債與手續費，右欄＝資產與利差） ================= -->
-      ${card({ part: 'bk_demand', no: 1, side: 'l', color: C.cost, ax: LX + 8, ay: BY0 + 19, title: '活期存款：最便宜的錢', sub: ['銀行最想要的一塊 —— 利率低、隨時可動用。分行據點與薪轉戶就是在搶這個。', '★ 升息時它的成本上得最慢，所以活存占比高的銀行，升息初期的利差擴張最明顯。'] })}
-      ${card({ part: 'bk_time', no: 2, side: 'l', color: C.cost, ax: LX + 8, ay: BY0 + BH + BG + 19, title: '定期存款：要到期才換約', sub: ['成本比活存高，但它落後的特性正是升息初期利差會擴張的原因 —— 舊約還在舊利率上。'] })}
-      ${card({ part: 'bk_wholesale', no: 3, side: 'l', color: C.hot, ax: LX + 8, ay: BY0 + 2 * (BH + BG) + 19, title: '同業拆借與金融債：最快反應', sub: ['直接跟市場利率走，升息當下就貴起來。靠這塊撐資金的銀行，升息初期反而先被壓到成本。'] })}
-      ${card({ part: 'bk_equity', no: 4, side: 'l', color: C.cap, ax: LX + 8, ay: BY0 + 3 * (BH + BG) + 19, title: '自有資本：不用付息，但有要求', sub: ['股東的錢不用付利息，可是要交出 ROE。資本適足率規定了「這些資本最多能撐起多少放款」——這就是銀行規模的天花板。'] })}
-      ${card({ part: 'bk_nim', no: 5, side: 'r', order: 5, color: C.nim, ax: MX + MW - 12, ay: MY + 96, title: '★ 淨利差：這張圖的主體', sub: ['資產收益率減掉資金成本率，再乘上生息資產的規模，就是利息淨收益 —— 多數銀行金控最大的一塊。', '所以銀行的獲利有兩個推力：利差（價）與放款成長（量），兩個要分開看。'] })}
-      ${card({ part: 'bk_bond', no: 6, side: 'r', color: C.cap, ax: RX + RW - 8, ay: BY0 + 19, title: '債券與票券：收益低，但賣得掉', sub: ['擺著等流動性用的部位。利率上升時它的市價會跌，會從淨值那一側先反映出來。'] })}
-      ${card({ part: 'bk_mortgage', no: 7, side: 'r', color: C.yield_, ax: RX + RW - 8, ay: BY0 + BH + BG + 19, title: '房貸：跟著指數利率走', sub: ['金額大、期限長、擔保品明確，是銀行資產裡最穩的一塊。利率連動，所以升息時收益端跟著上。'] })}
-      ${card({ part: 'bk_corp', no: 8, side: 'r', color: C.yield_, ax: RX + RW - 8, ay: BY0 + 2 * (BH + BG) + 19, title: '企業放款：浮動利率、定期重訂價', sub: ['多數按指數利率或基準利率定期重訂價 —— 這就是「資產端反應比較快」的來源。', '景氣好時放款成長帶量、景氣差時倒帳風險上升，量與風險同一件事的兩面。'] })}
-      ${card({ part: 'bk_consumer', no: 9, side: 'r', color: C.risk, ax: RX + RW - 8, ay: BY0 + 3 * (BH + BG) + 19, title: '消金與信用卡：利率最高、風險也最高', sub: ['收益率最好的一塊，代價是景氣轉差時呆帳先從這裡冒出來。所以它同時撐著加項（利息）與減項（信用成本）。'] })}
-      ${card({ part: 'bk_fee_wm', no: 10, side: 'l', order: 10, color: C.fee, ax: LX + 20, ay: FY + 64, title: '財富管理：跟市場情緒走', sub: ['賣基金與保險收的通路手續費。行情熱、申購多就好；行情冷的時候這一塊掉得比利差快。'] })}
-      ${card({ part: 'bk_fee_card', no: 11, side: 'l', order: 11, color: C.fee, ax: LX + 172, ay: FY + 64, title: '信用卡：跟消費力走', sub: ['刷卡手續費隨消費金額走，循環利息則是放款的一種。發卡與收單的規模效應很明顯。'] })}
-      ${card({ part: 'bk_fee_syn', no: 12, side: 'r', order: 12, color: C.fee, ax: LX + 324, ay: FY + 64, title: '聯貸與承銷：按案子走', sub: ['大型聯貸案的安排費，單季落差大 —— 有沒有大案子會直接反映在當季的手續費收入上。'] })}
-      ${card({ part: 'bk_fee_trust', no: 13, side: 'r', order: 13, color: C.fee, ax: LX + 476, ay: FY + 64, title: '信託與保管：最穩的一塊', sub: ['按受託資產規模收，不靠單筆交易，所以是手續費四塊裡波動最小的。'] })}
-      ${card({ part: 'bk_pl_credit', no: 14, side: 'l', order: 14, color: C.risk, ax: LX + 3 * 104.8 + 48, ay: PY + 82, title: '★ 信用成本：利差故事的反面', sub: ['升息讓銀行賺到利差，同時也推高借款人的還款壓力。景氣轉差時呆帳提存會一口氣吃掉好幾季的利差增量。', '所以看這一格不能只看利差往上，要同時看資產品質往哪裡走。'] })}
-      ${card({ part: 'bk_pl_pbt', no: 15, side: 'r', order: 15, color: C.yield_, ax: LX + 5 * 104.8 + 48, ay: PY + 82, title: '稅前淨利 ÷ 淨值 ＝ ROE', sub: ['ROE 就是銀行股估值的核心變數：市場願意給幾倍股價淨值比，主要看它能不能長期維持較高的 ROE。'] })}
+      ${card({ part: 'bk_demand', no: 1, side: 'l', color: C.cost, ax: BX - 14, ay: BY0 + 19, title: '活期存款：最便宜的錢', sub: ['銀行最想要的一塊 —— 利率低、隨時可動用。分行據點與薪轉戶就是在搶這個。', '★ 升息時它的成本上得最慢，所以活存占比高的銀行，升息初期的利差擴張最明顯。'] })}
+      ${card({ part: 'bk_time', no: 2, side: 'l', color: C.cost, ax: BX - 14, ay: BY0 + BH + BG + 19, title: '定期存款：要到期才換約', sub: ['成本比活存高，但它落後的特性正是升息初期利差會擴張的原因 —— 舊約還在舊利率上。'] })}
+      ${card({ part: 'bk_wholesale', no: 3, side: 'l', color: C.hot, ax: BX - 14, ay: BY0 + 2 * (BH + BG) + 19, title: '同業拆借與金融債：最快反應', sub: ['直接跟市場利率走，升息當下就貴起來。靠這塊撐資金的銀行，升息初期反而先被壓到成本。'] })}
+      ${card({ part: 'bk_equity', no: 4, side: 'l', color: C.cap, ax: BX - 14, ay: BY0 + 3 * (BH + BG) + 19, title: '自有資本：不用付息，但有要求', sub: ['股東的錢不用付利息，可是要交出 ROE。資本適足率規定了「這些資本最多能撐起多少放款」——這就是銀行規模的天花板。'] })}
+      ${card({ part: 'bk_nim', no: 5, side: 'r', order: 5, color: C.nim, ax: MX + MW - 14, ay: MY + 16, title: '★ 淨利差：這張圖的主體', sub: ['資產收益率減掉資金成本率，再乘上生息資產的規模，就是利息淨收益 —— 多數銀行金控最大的一塊。', '所以銀行的獲利有兩個推力：利差（價）與放款成長（量），兩個要分開看。'] })}
+      ${card({ part: 'bk_bond', no: 6, side: 'r', color: C.cap, ax: RX + RW + 14, ay: BY0 + 19, title: '債券與票券：收益低，但賣得掉', sub: ['擺著等流動性用的部位。利率上升時它的市價會跌，會從淨值那一側先反映出來。'] })}
+      ${card({ part: 'bk_mortgage', no: 7, side: 'r', color: C.yield_, ax: RX + RW + 14, ay: BY0 + BH + BG + 19, title: '房貸：跟著指數利率走', sub: ['金額大、期限長、擔保品明確，是銀行資產裡最穩的一塊。利率連動，所以升息時收益端跟著上。'] })}
+      ${card({ part: 'bk_corp', no: 8, side: 'r', color: C.yield_, ax: RX + RW + 14, ay: BY0 + 2 * (BH + BG) + 19, title: '企業放款：浮動利率、定期重訂價', sub: ['多數按指數利率或基準利率定期重訂價 —— 這就是「資產端反應比較快」的來源。', '景氣好時放款成長帶量、景氣差時倒帳風險上升，量與風險同一件事的兩面。'] })}
+      ${card({ part: 'bk_consumer', no: 9, side: 'r', color: C.risk, ax: RX + RW + 14, ay: BY0 + 3 * (BH + BG) + 19, title: '消金與信用卡：利率最高、風險也最高', sub: ['收益率最好的一塊，代價是景氣轉差時呆帳先從這裡冒出來。所以它同時撐著加項（利息）與減項（信用成本）。'] })}
+      ${card({ part: 'bk_fee_wm', no: 10, side: 'l', order: 10, color: C.fee, ax: LX + 141, ay: FY + 40, title: '財富管理：跟市場情緒走', sub: ['賣基金與保險收的通路手續費。行情熱、申購多就好；行情冷的時候這一塊掉得比利差快。'] })}
+      ${card({ part: 'bk_fee_card', no: 11, side: 'l', order: 11, color: C.fee, ax: LX + 292, ay: FY + 40, title: '信用卡：跟消費力走', sub: ['刷卡手續費隨消費金額走，循環利息則是放款的一種。發卡與收單的規模效應很明顯。'] })}
+      ${card({ part: 'bk_fee_syn', no: 12, side: 'r', order: 12, color: C.fee, ax: LX + 443, ay: FY + 40, title: '聯貸與承銷：按案子走', sub: ['大型聯貸案的安排費，單季落差大 —— 有沒有大案子會直接反映在當季的手續費收入上。'] })}
+      ${card({ part: 'bk_fee_trust', no: 13, side: 'r', order: 13, color: C.fee, ax: LX + 594, ay: FY + 40, title: '信託與保管：最穩的一塊', sub: ['按受託資產規模收，不靠單筆交易，所以是手續費四塊裡波動最小的。'] })}
+      ${card({ part: 'bk_pl_credit', no: 14, side: 'l', order: 14, color: C.risk, ax: LX + 3 * 104.8 + 48, ay: PY + 87, title: '★ 信用成本：利差故事的反面', sub: ['升息讓銀行賺到利差，同時也推高借款人的還款壓力。景氣轉差時呆帳提存會一口氣吃掉好幾季的利差增量。', '所以看這一格不能只看利差往上，要同時看資產品質往哪裡走。'] })}
+      ${card({ part: 'bk_pl_pbt', no: 15, side: 'r', order: 15, color: C.yield_, ax: LX + 5 * 104.8 + 48, ay: PY + 87, title: '稅前淨利 ÷ 淨值 ＝ ROE', sub: ['ROE 就是銀行股估值的核心變數：市場願意給幾倍股價淨值比，主要看它能不能長期維持較高的 ROE。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['方塊的大小不代表實際金額比重；利差帶的寬度是示意，不對應任何一家的淨利差數字。資金來源與運用只列常見的幾類，實際科目依各家財報分類而異。'] })}
       ${note({ side: 'l', order: 97, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「金融」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
       ${note({ side: 'r', order: 98, title: '這一格的兩個推力：價與量', lines: ['利息淨收益 ＝ 淨利差（價）× 生息資產規模（量）。利差看央行政策與資金行情，規模看放款需求與資本適足的空間 —— 兩個推力可以同時往上，也可能一個上一個下。'] })}

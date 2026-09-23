@@ -231,7 +231,7 @@
         + `<text class="sub" x="${o.x0 + 4}" y="${o.y + 16}">${o.s}</text>`;
     }).join('');
     // 另一條常見路徑（一次變電所 161→69、二次變電所 69→22.8／11.4）：虛線，不是主線
-    const alt = `<path d="M132,88 L180,98 H236 L290,110" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`;
+    const alt = `<path d="M190,88 L236,105 H300 L342,110" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`;
     const concl = `<text class="sub" x="30" y="182" style="fill:var(--dg-warn)">`
       + `★ 六格裡只有三格在動電壓：段 0 升、段 3 降、段 5 降。其餘兩格只切斷與導通，所以階梯必須是平的。</text>`;
     return P(GV, 'he_ladder', '--dg-accent-2d', `<rect class="frame part" x="16" y="30" width="628" height="160" rx="8"/>`)
@@ -437,9 +437,79 @@
       + `<path d="M827,${y0 + 24} h11 M827,${y0 + 48} h11 M827,${y0 + 72} h11" stroke="${V('--dg-cu-lit')}" stroke-width="2" fill="none"/>`);
   }
 
+  /* ================================================================ 章節 ③：第二排（廠內配電 → 機櫃）
+     幾何整組縮 0.66 放進 660 的畫布；標註一律在縮放群組外面，用編號圓點 ＋ 底下的圖例行。*/
+  function areaRoom() {
+    return `<g>
+      ${T(16, 18, '④⑤⑥ 資料中心這一側：中壓配電盤分路 → 廠內變壓器降到低壓 → 不斷電系統與 PDU → 機櫃', 'hd')}
+      ${T(16, 38, '★ 電池掛在不斷電系統的「直流側」，是一條往下的分支 —— 畫成「市電 → UPS → 電池 → PDU」就是畫錯了。', 'sub')}
+      ${T(16, 56, '這一排每一格出來是幾伏特（對到上面那張階梯的段 4～段 5）：配電盤 22.8 kV 不降壓 → 乾式變壓器 380／220 V（★ 只有這一格降壓）→ UPS 與 PDU 也不降壓。', 'cap')}
+      <g><g transform="translate(${K2X},${K2Y}) scale(${K2})">
+        <g pointer-events="none">
+          <path d="M16,${GB} H964" stroke="var(--dg-mute)" stroke-width="1.6" fill="none" opacity=".7"/>
+          <!-- 主路徑：一律由左指向右 -->
+          <path d="M262,${GB - 40} H306" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
+          <path d="M396,${GB - 40} H408" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
+          <path d="M474,${GB - 76} H566" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
+          <path d="M640,${GB - 94} H666" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
+          <!-- ★ 電池是從 UPS 直流側往下分出去的一條支線，不是串在輸出上（§3-A 硬規則 6） -->
+          <path d="M440,${GB} V${GB + 14} H518 V${GB - 4}" stroke="var(--dg-warn)" stroke-width="2.6" fill="none" stroke-dasharray="8 5"/>
+        </g>
+        ${seg4()}${seg5()}${seg6()}
+      </g></g>
+      ${ndot(f2x(148), f2y(690), 1)}
+      ${ndot(f2x(350), f2y(700), 2)}
+      ${ndot(f2x(440), f2y(700), 3)}
+      ${ndot(f2x(518), f2y(720), 4)}
+      ${ndot(f2x(594), f2y(700), 5)}
+      ${ndot(f2x(760), f2y(646), 6)}
+      ${ndot(f2x(700), f2y(720), 7)}
+      ${ndot(f2x(804), f2y(740), 8)}
+      ${ndot(f2x(930), f2y(700), 9)}
+      <rect class="frame" x="16" y="180" width="628" height="174" rx="8"/>
+      ${T(30, 204, '這一排每一格是什麼（對到圖上的編號）', 'hd')}
+      ${T(30, 226, '① 中壓配電盤（22.8 kV）：一排等高金屬櫃，每櫃一路饋線；第三櫃把抽出式斷路器拉出來一半，', 'sub')}
+      ${T(30, 244, '　 看得到導軌與一次接觸子。每櫃正面分三段：儀表／電驛室、斷路器室、電纜室。★ 同樣不降壓。', 'sub')}
+      ${T(30, 262, '② 乾式（模鑄）變壓器：降到 380／220 V —— 它沒有油箱、沒有散熱片、沒有儲油櫃，那三個「沒有」就是', 'sub')}
+      ${T(30, 280, '　 它的長相；罩子裡看得見三個直立樹脂線圈。', 'sub')}
+      ${T(30, 298, '③ UPS（撐到發電機起來那幾分鐘）　④ 電池櫃：一層一層的電池模組抽屜，看得出分層與極柱', 'sub')}
+      ${T(30, 316, '⑤ PDU　⑥ 匯流排槽（懸吊在機櫃上方，插接箱往下拉線）　⑦ 機櫃　⑧ 電源架（1U 裡並排可熱插拔模組）', 'sub')}
+      ${T(30, 334, '⑨ 直流匯流排。★ 這一站不列代號（屬「伺服器電源與 BBU」題材）。', 'sub')}
+    </g>`;
+  }
+
+  /* ================================================================ 章節 ④：工程統包與安裝帶（§5-B(b)） */
+  function areaEpc() {
+    return `<g>
+      ${P(GE, 'he_epc', '--dg-fws', '<rect class="frame part" x="16" y="8" width="628" height="120" rx="8"/>')}
+      <g pointer-events="none">
+        ${T(30, 32, '工程統包與安裝：把這些設備裝起來、接起來的人（橫跨段 3～段 6，不是一台設備）', 'hd')}
+        ${T(30, 54, '2404 漢唐｜機電（M&amp;E）統包與廠務系統整合 —— ★ 不製造重電設備。主戰場是半導體晶圓廠的無塵室', 'sub')}
+        ${T(30, 72, '　 與廠務機電（含電力系統、二次配、機台 hook-up）。它在本站屬於「廠務工程」族群。', 'sub')}
+        ${T(30, 94, '1513 中興電｜設備商兼變電所統包 —— 它同時出現在段 2（做 GIS）與這一帶（做統包），', 'sub')}
+        ${T(30, 112, '　 兩個角色不一樣。', 'sub')}
+      </g>
+    </g>`;
+  }
+
+  /* ================================================================ 章節 ⑤：電力路徑六格 */
+  function areaFlow() {
+    return `<g>
+      ${T(16, 18, '電力路徑（六格）　★ GIS 在主變壓器之前（進線側的開關）、中壓配電盤在主變壓器之後；兩者對調就是錯的', 'cap')}
+      ${D.processBar(16, 28, [
+    { seg: G0, t: '① 發電與升壓', s: '電廠／再生能源＋儲能' },
+    { seg: G1, t: '② 超高壓輸電', s: '鐵塔架空線／地下電纜' },
+    { seg: G2, t: '③ 變電所：開關與降壓', s: 'GIS 不降壓，變壓器才降壓' },
+    { seg: G4, t: '④ 中壓配電', s: '配電盤：同樣不降壓' },
+    { seg: G5, t: '⑤ 不斷電與低壓配電', s: '乾式變壓器·UPS·PDU' },
+    { seg: G6, t: '⑥ 機櫃取電', s: '匯流排槽·機櫃·電源架' },
+  ], 196, { cols: 3 })}
+    </g>`;
+  }
+
   /* ================================================================ 整張圖 */
   function transformerGis() {
-    return `<svg class="dg dgm dghe" viewBox="0 0 980 1300" width="100%" style="display:block">${D.STYLE}
+    return `<svg class="dg dgm rs dghe" viewBox="0 0 ${CW} 450" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ 這一段的註解裡一個角括號都不准出現 —— SVG 裡的 style 是被當標記解析的，
            寫一個長得像標籤的東西進去會讓整張樣式表變成 0 條規則（DECISIONS #231）。
@@ -461,143 +531,117 @@
         svg.dghe [data-seg]:hover .part{stroke-width:1.8;filter:none}
         svg.dghe [data-seg].sel-part .part{stroke-width:2.4;filter:none}
         svg.dghe [data-seg].sel-part .pw{filter:drop-shadow(0 0 5px var(--c))}
+        /* 章節裡的編號圓點（不是卡片錨點，所以 diagrams.js 的 .anc 規則吃不到，樣式在這裡自己給） */
+        svg.dghe .ndot{fill:var(--dg-accent-2d);opacity:.92}
+        svg.dghe .nnum{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);font-weight:700;
+          fill:var(--dg-no-ink);dominant-baseline:central;text-anchor:middle}
       </style>
       <defs>
         <marker id="heAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
           <path d="M0,1 L9,5 L0,9Z" fill="var(--dg-accent-2d)"/>
         </marker>
       </defs>
-      <text class="ttl" x="16" y="26">電力路徑：AI 資料中心的電從哪裡來</text>
-      <text class="cap" x="16" y="46">電廠 → 超高壓輸電 → 變電所開關（GIS）→ 主變壓器降壓 → 中壓配電盤 → 不斷電系統與 PDU → 機櫃電源。</text>
-      <text class="cap" x="16" y="64">★ 降壓的只有變壓器，開關設備不降壓 —— 這是這張圖唯一一條非記不可的規則。</text>
+      <!-- 標題與導讀：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
+      <text class="ttl ext" x="0" y="0">電力路徑：變壓器與 GIS</text>
+      <text class="cap ext" x="0" y="0">電廠 → 超高壓輸電 → 變電所開關（GIS）→ 主變壓器降壓 → 中壓配電盤 → 不斷電系統與 PDU → 機櫃電源。★ 降壓的只有變壓器，開關設備不降壓 —— 這是這張圖唯一一條非記不可的規則。灰色虛線＝另一條常見路徑：161 → 69 kV（一次變電所）→ 22.8／11.4 kV（二次變電所）；台灣兩條路徑都存在，一張圖只畫一條主線。資料中心實際受電電壓等級依容量與台電供電可行性而定，圖上為示意。資料中心這一側、工程統包帶與六格流程收在下面三段。</text>
 
-      <!-- ================= 電壓階梯帶（§3-B） ================= -->
+      <!-- ================= §1-a 電壓階梯（永遠看得到；這張圖的命題）================= -->
       ${ladder()}
-      <text class="sub" x="16" y="242" style="fill:var(--dg-warn)">★ 階梯在 GIS（段 2）與配電盤（段 4）必須是平的 —— 看到階梯在開關那一格往下掉，就是圖畫錯了。</text>
-      <text class="sub" x="16" y="260">灰色虛線＝另一條常見路徑：161 → 69 kV（一次變電所）→ 22.8／11.4 kV（二次變電所）。台灣兩條路徑都存在，一張圖只畫一條主線。</text>
-      <text class="cap" x="16" y="280">資料中心實際受電電壓等級依容量與台電供電可行性而定，圖上為示意；粉色豎線＝真的發生降壓的位置（只出現在變壓器那幾格）。</text>
 
-      <!-- ================= 第一排：電網 → 變電所 ================= -->
-      <text class="hd" x="16" y="308">① 電網這一側：電廠升壓 → 架空線與地下電纜 → 變電所的開關（GIS）→ 主變壓器把電壓拉下來</text>
-      ${seg0()}${seg1()}${seg2()}${seg3()}
-      <g pointer-events="none">
-        <path d="M16,${GA} H964" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".7"/>
-        ${person(628, GA)}
-        <text class="sub" x="606" y="${GA - 22}" style="fill:var(--dg-mute)">1.7 m</text>
-        <text class="sub" x="16" y="330" style="fill:var(--dg-mute)">段 0 分支：再生能源與電網級儲能併在「電網側」</text>
-        <text class="sub" x="330" y="330" style="fill:var(--dg-mute)">對照組：AIS（露天瓷瓶＋裸露刀閘）—— 同樣的功能要佔大得多的一塊地</text>
-        <text class="sub" x="336" y="${GA + 16}">GIS：只切斷與導通，不降壓</text>
-        <text class="sub" x="648" y="${GA + 16}">主變壓器：高壓側朝左、低壓側朝右</text>
-      </g>
+      <!-- ================= §1-b 第一排：電網 → 變電所（永遠看得到）=================
+           幾何整組縮 0.70 放進 660 的畫布；說明全部是 HTML 卡片，畫布上只有編號圓點與引線。-->
+      ${T(16, 208, '② 電網這一側：電廠升壓 → 架空線與地下電纜 → 變電所的開關（GIS）→ 主變壓器把電壓拉下來', 'hd')}
+      <!-- ⚠ 外面一定要再包一層 g：wireFolds() 的 solidBottom 量的是 svg 直屬子節點的 getBBox()，
+           而 getBBox() 不含元素自己的 transform —— 縮放群組直接當 svg 的子節點，量到的會是縮放前的高度，
+           於是第一條章節列被推下去、中間空出一大塊（silicon_wafer 那張實測過）。-->
+      <g><g transform="translate(${K1X},${K1Y}) scale(${K1})">
+        ${seg0()}${seg1()}${seg2()}${seg3()}
+        <g pointer-events="none">
+          <path d="M16,${GA} H900" stroke="var(--dg-mute)" stroke-width="1.4" fill="none" opacity=".7"/>
+          ${person(628, GA)}
+        </g>
+      </g></g>
+      ${T(444, 356, '↑ 1.7 m 比例小人', 'cap')}
 
-      <!-- 第一排的四段說明 -->
-      ${tblock(G0, 'he_gen', '--dg-mute', 16, 528, 225, '⓪ 發電與電網側（分支）', [
-    '電廠升壓後才進輸電線；再生能源與',
-    '電網級儲能併在「電網側」，不是併在',
-    '機房裡 —— 那是完全不同的一件事。'])}
-      ${tblock(G1, 'he_tower', '--dg-alu', 253, 528, 225, '① 超高壓輸電（345 kV）', [
-    '架空線走鐵塔（每相吊一串礙子、導',
-    '線是分裂的），市區走地下電纜。台',
-    '廠做的是「這條線本身」：XLPE 電纜。'])}
-      ${tblock(G2, 'he_gis', '--dg-alu', 490, 528, 225, '② 變電所：氣體絕緣開關設備', [
-    '把開關、隔離、接地全部封進充 SF6',
-    '的接地金屬圓筒裡。★ 只切斷與導通，',
-    '「不降壓」；省地，適合空間受限處。'])}
-      ${tblock(G3, 'he_tx', '--dg-el', 727, 528, 225, '③ 主變壓器：161 → 22.8 kV', [
-    '散熱片、儲油櫃、套管 —— 這一台才是',
-    '真正把電壓拉下來的。交期長、產能',
-    '有限，是這波最卡的一段。'])}
+      <!-- ================= 說明卡片（HTML，左右兩欄；引線由 externalize 畫，錨點在畫布上）=================
+           左欄錨點 x 小於 330、右欄大於 330 —— 引線只從自己那一側進來，不橫越整張圖。-->
+      ${card({ seg: GV, part: 'he_ladder', no: 1, side: 'r', color: CC.accent, ax: 636, ay: 110,
+    title: '① 電壓階梯：哪幾格降壓、哪幾格不降壓', sub: [
+    '★ 這是整張圖的命題：電壓只在變壓器那幾格往下掉（段 0 升、段 3 降、段 5 降）。',
+    'GIS（段 2）與中壓配電盤（段 4）只做切斷、導通、隔離、接地，電壓進去多少出來就多少，所以階梯在那兩格必須是平的。',
+    '圖例：粉色豎線＝真的降壓（只出現在變壓器）；圓點＝接上但不降壓（開關設備）；灰虛線＝另一條常見路徑。',
+    '階高與電壓不成比例（345 kV 到 220 V 差三個數量級，畫不出來）。'] })}
+      ${card({ seg: G0, part: 'he_gen', no: 2, side: 'l', color: CC.mute, ax: f1x(36), ay: f1y(460),
+    title: '⓪ 電廠與升壓變壓器（電網側）', sub: [
+    '電廠 → 升壓：發出來的電先升到超高壓，才進得了輸電線。',
+    '★ 唯一一次升壓發生在「進入輸電線之前」，不是之後。畫成灰色剪影，因為它是電網那一端。'] })}
+      ${card({ seg: G0, part: 'he_re', no: 3, side: 'l', color: CC.si, ax: f1x(68), ay: f1y(396),
+    title: '再生能源與電網級儲能（段 0 分支）', sub: [
+    '★ 太陽能與電網級儲能併在「電網側」（段 1 之前），不是併在機房裡。'] })}
+      ${card({ seg: G1, part: 'he_tower', no: 4, side: 'l', color: CC.alu, ax: f1x(186), ay: f1y(340),
+    title: '① 超高壓輸電（345 kV）：鐵塔架空線', sub: [
+    '每相吊一串礙子（一串多片傘裙盤，不是一顆）、導線是分裂的。',
+    '市區走地下電纜 —— 台廠做的是「這條線本身」。'] })}
+      ${card({ seg: G1, part: 'he_cable', no: 5, side: 'l', color: CC.cu, ax: f1x(252), ay: f1y(446),
+    title: '交連聚乙烯（XLPE）電纜剖面', sub: [
+    '由內到外六層，順序寫死：導體 → 內半導電層 → XLPE 絕緣 → 外半導電層 → 金屬遮蔽 → 外被。'] })}
+      ${card({ seg: G2, part: 'he_ais', no: 6, side: 'l', color: CC.mute, ax: f1x(346), ay: f1y(330),
+    title: '對照組：AIS（露天瓷瓶＋裸露刀閘）', sub: [
+    '同樣的功能要佔大得多的一塊地 —— 這就是 GIS 存在的理由。'] })}
+      ${card({ seg: G2, part: 'he_gis', no: 7, side: 'l', color: CC.alu, ax: f1x(432), ay: f1y(400),
+    title: '② 變電所：氣體絕緣開關設備（GIS）', sub: [
+    '★ 水平圓筒不是方箱：開關、隔離、接地全部封進充 SF6 的接地金屬圓筒裡。',
+    '法蘭接合（每一段之間就是一個氣室分界）、斷路器氣室明顯較粗、外殼上有密度錶、整體接地。',
+    '★ 只切斷與導通，「不降壓」；省地，適合空間受限處。'] })}
+      ${card({ seg: G3, part: 'he_bush', no: 8, side: 'r', color: CC.cer, ax: f1x(678), ay: f1y(382),
+    title: '套管（bushing）：高壓側朝左', sub: [
+    '★ 高壓側明顯比低壓側高、傘裙也多。只表達高低關係，不標尺寸。'] })}
+      ${card({ seg: G3, part: 'he_tx', no: 9, side: 'r', color: CC.el, ax: f1x(740), ay: f1y(430),
+    title: '③ 主變壓器：161 → 22.8 kV', sub: [
+    '這一台才是真正把電壓拉下來的。基礎滾輪、油箱、箱壁上的溫度計與油位計。',
+    '交期長、產能有限，是這波最卡的一段。★ 不畫繞組剖面（查不到可引用來源，寧可不畫也不編）。'] })}
+      ${card({ seg: G3, part: 'he_rad', no: 10, side: 'r', color: CC.alu, ax: f1x(858), ay: f1y(430),
+    title: '散熱片（垂直薄片）', sub: [
+    '★ 一眼認出油浸式變壓器的特徵：上下各一根集管接回油箱。畫成水平橫條就變成冷氣機了。'] })}
+      ${card({ seg: G3, part: 'he_cons', no: 11, side: 'r', color: CC.el, ax: f1x(700), ay: f1y(362),
+    title: '儲油櫃、瓦斯電驛與吸濕呼吸器', sub: [
+    '★ 儲油櫃是橫放的圓筒，架在油箱上方一側（畫成直立圓桶＝錯）。',
+    '呼吸器是一支裝彩色乾燥劑的小玻璃筒；瓦斯電驛在儲油櫃與油箱之間的那根管子上。'] })}
+      ${card({ seg: G3, part: 'he_oltc', no: 12, side: 'r', color: CC.el, ax: f1x(630), ay: f1y(430),
+    title: '有載分接開關（OLTC）機構箱', sub: [
+    '掛在油箱一側的獨立箱體 —— 不停電就能微調匝比。'] })}
 
-      <!-- ================= 第二排：廠內配電 → 機櫃 ================= -->
-      <text class="hd" x="16" y="600">④⑤⑥ 資料中心這一側：中壓配電盤分路 → 廠內變壓器降到低壓 → 不斷電系統與 PDU → 機櫃</text>
-      <text class="sub" x="16" y="616">★ 電池掛在不斷電系統的「直流側」，是一條往下的分支 —— 畫成「市電 → UPS → 電池 → PDU」就是畫錯了。</text>
-      ${seg4()}${seg5()}${seg6()}
-      <g pointer-events="none">
-        <path d="M16,${GB} H964" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".7"/>
-        <!-- 主路徑：一律由左指向右 -->
-        <path d="M262,${GB - 40} H306" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
-        <path d="M396,${GB - 40} H408" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
-        <path d="M474,${GB - 76} H566" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
-        <path d="M640,${GB - 94} H666" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" marker-end="url(#heAr)"/>
-        <!-- ★ 電池是從 UPS 直流側往下分出去的一條支線，不是串在輸出上（§3-A 硬規則 6） -->
-        <path d="M440,${GB} V${GB + 14} H518 V${GB - 4}" stroke="var(--dg-warn)" stroke-width="2" fill="none" stroke-dasharray="6 4"/>
-        <text class="sub" x="446" y="${GB + 30}" style="fill:var(--dg-warn)">直流側分支（不是串在輸出上）</text>
-        <text class="sub" x="16" y="${GB + 16}">中壓配電盤：第三櫃把斷路器抽出來一半</text>
-        <text class="sub" x="306" y="${GB + 16}">乾式變壓器</text>
-        <text class="sub" x="404" y="${GB + 16}">UPS</text>
-        <text class="sub" x="560" y="${GB + 16}">PDU</text>
-        <text class="sub" x="666" y="${GB + 16}">匯流排槽 → 機櫃 → 電源架 → 直流匯流排</text>
-        <text class="sub" x="666" y="${GB - 134}">匯流排槽懸吊在機櫃上方，插接箱往下拉線</text>
-      </g>
-      <!-- ★ 2026-09-23 版面（Andy：「下半部設備圖上方留白過多」）：
-           這一排的設備一台比一台矮，所以從章節標題到設備頂之間空了一大塊（左半尤其明顯）。
-           補的是**每一格出來是幾伏特**的對照帶 —— 它就是上面那張電壓階梯在這一排的落地，
-           本來只寫在框外的小字裡。純標註，pointer-events:none，data-part 一個都沒有動。 -->
-      <g pointer-events="none">
-        <path d="M16,${GB - 130} H640" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".4"/>
-        <text class="lbl" x="16" y="${GB - 110}">段 4　中壓配電盤　22.8 kV（不降壓）</text>
-        <text class="lbl" x="250" y="${GB - 110}" style="fill:var(--dg-warn)">段 5　乾式變壓器　380 / 220 V（★ 只有這一格降壓）</text>
-        <text class="cap" x="16" y="${GB - 140}" style="fill:var(--dg-mute)">這一排每一格出來是幾伏特（對到上面那張階梯的段 4～段 5）—— UPS 與 PDU 也不降壓</text>
-      </g>
+      <!-- 結論與警語卡片（沒有錨點，排在編號卡之後） -->
+      ${note({ side: 'l', order: 90, color: CC.accent, title: '降壓的只有變壓器', lines: [
+    '① 變壓器＝把電壓換掉（段 0 升、段 3 降、段 5 降）。',
+    '② 開關設備（GIS、配電盤）＝切斷、導通、隔離、接地，電壓進去多少出來就多少。',
+    '③ 所以階梯在段 2 與段 4 是平的。看到往下掉就是錯的。'] })}
+      ${note({ side: 'r', order: 91, color: CC.fws, title: '為什麼重電廠吃得到這波', lines: [
+    '① 資料中心是特高壓等級的大用戶，自己要一座受電站 —— 等於把圖上段 2 到段 5 全部買一套。',
+    '② 電網那一端也要跟著擴建：輸電線、變電所、主變壓器一起排隊。',
+    '③ 這條路徑上的東西台廠本來就在做，而且重資產、長交期、要認證。'] })}
+      ${note({ side: 'l', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: [
+    '這條產業鏈（基礎建設與能源）在供應鏈資料裡還沒有建環節，所以這一頁沒有環節色標；零件小卡上那顆「環節 →」按下去會是 0 筆 —— 那不是壞掉。',
+    '要篩成分股請用下面的族群卡片與成分股表。點零件只會亮起來，並在小卡上回答「這個零件是誰做的」，不會動到下方清單。'] })}
+      ${note({ side: 'r', order: 99, title: '原創等角示意圖，非實物比例', lines: [
+    '電壓階梯為示意，階高與電壓不成比例；★ 階梯在 GIS（段 2）與配電盤（段 4）必須是平的 —— 看到階梯在開關那一格往下掉，就是圖畫錯了。',
+    '資料中心實際受電電壓等級依容量與台電供電可行性而定，圖上為示意。',
+    '本圖不放任何在手訂單、市占率、營收占比或能見度年份（會過期）。'] })}
 
-      <!-- 第二排的三段說明 -->
-      ${tblock(G4, 'he_swgr', '--dg-alu', 16, 826, 308, '④ 中壓配電盤（22.8 kV）', [
-    '一排金屬櫃，每櫃一路饋線，斷路器可抽出檢修。',
-    '★ 同樣「不降壓」—— 電從這裡分岔去各個負載。',
-    '每櫃正面分三段：儀表／電驛室、斷路器室、電纜室。'])}
-      ${tblock(G5, 'he_ups', '--dg-alu', 336, 826, 308, '⑤ 廠內變壓器 → UPS → PDU', [
-    '乾式（模鑄）變壓器降到 380／220 V —— 它沒有油箱、',
-    '沒有散熱片、沒有儲油櫃，那三個「沒有」就是它的長相。',
-    'UPS 撐到發電機起來那幾分鐘；電池掛在它的直流側。'])}
-      ${tblock(G6, 'he_busway', '--dg-cu', 656, 826, 308, '⑥ 機櫃取電', [
-    '匯流排槽從機櫃上方走，插接箱往下拉到每一櫃。',
-    '電源架裡一排可熱插拔的電源供應器，供到直流匯流排。',
-    '★ 這一站不列代號（屬「伺服器電源與 BBU」題材）。'])}
+      <!-- ================= ③ 第二排：廠內配電 → 機櫃（預設收合）================= -->
+      ${fold('he2', '③ 資料中心這一側：配電盤 → 乾式變壓器 → UPS ＋ 電池 → PDU → 機櫃',
+    '抽出式斷路器拉出來一半、乾式變壓器的三個「沒有」、電池掛在直流側、匯流排槽與電源架', areaRoom())}
 
-      <!-- ================= 工程統包與安裝帶（§5-B(b)，橫跨段 3～段 6） ================= -->
-      ${P(GE, 'he_epc', '--dg-fws', '<rect class="frame part" x="16" y="900" width="948" height="88" rx="8"/>')}
-      <g pointer-events="none">
-        <text class="hd" x="30" y="924">工程統包與安裝：把這些設備裝起來、接起來的人（橫跨段 3～段 6，不是一台設備）</text>
-        <text class="sub" x="30" y="946">2404 漢唐｜機電（M&amp;E）統包與廠務系統整合 —— ★ 不製造重電設備。主戰場是半導體晶圓廠的</text>
-        <text class="sub" x="30" y="964">　 無塵室與廠務機電（含電力系統、二次配、機台 hook-up）。它在本站屬於「廠務工程」族群。</text>
-        <text class="sub" x="30" y="982">1513 中興電｜設備商兼變電所統包 —— 它同時出現在段 2（做 GIS）與這一帶（做統包），兩個角色不一樣。</text>
-      </g>
+      <!-- ================= ④ 工程統包與安裝帶（預設收合）================= -->
+      ${fold('he3', '④ 工程統包與安裝：把這些設備裝起來、接起來的人',
+    '橫跨段 3～段 6，不是一台設備；2404 漢唐與 1513 中興電各自的角色', areaEpc())}
 
-      <!-- ================= 兩塊固定說明框（§5-C，不可省略） ================= -->
-      <rect class="frame" x="16" y="1000" width="466" height="110" rx="8"/>
-      <text class="hd" x="30" y="1024">降壓的只有變壓器</text>
-      <text class="sub" x="30" y="1046">① 變壓器＝把電壓換掉（段 0 升、段 3 降、段 5 降）。</text>
-      <text class="sub" x="30" y="1064">② 開關設備（GIS、配電盤）＝切斷、導通、隔離、接地，</text>
-      <text class="sub" x="30" y="1082">　 電壓進去多少出來就多少。</text>
-      <text class="sub" x="30" y="1100" style="fill:var(--dg-warn)">③ 所以階梯在段 2 與段 4 是平的。看到往下掉就是錯的。</text>
-
-      <rect class="frame" x="498" y="1000" width="466" height="110" rx="8"/>
-      <text class="hd" x="512" y="1024">為什麼重電廠吃得到這波</text>
-      <text class="sub" x="512" y="1046">① 資料中心是特高壓等級的大用戶，自己要一座受電站 ——</text>
-      <text class="sub" x="512" y="1064">　 等於把圖上段 2 到段 5 全部買一套。</text>
-      <text class="sub" x="512" y="1082">② 電網那一端也要跟著擴建：輸電線、變電所、主變壓器一起排隊。</text>
-      <text class="sub" x="512" y="1100">③ 這條路徑上的東西台廠本來就在做，而且重資產、長交期、要認證。</text>
-
-      <!-- ================= 製程／流程列（六格＝§3-E） ================= -->
-      <text class="cap" x="16" y="1142">電力路徑（六格）　★ GIS 在主變壓器之前（進線側的開關）、中壓配電盤在主變壓器之後；兩者對調就是錯的</text>
-      ${D.processBar(16, 1150, [
-    { seg: G0, t: '① 發電與升壓', s: '電廠／再生能源＋儲能' },
-    { seg: G1, t: '② 超高壓輸電', s: '鐵塔架空線／地下電纜' },
-    { seg: G2, t: '③ 變電所：開關與降壓', s: 'GIS 不降壓，變壓器才降壓' },
-    { seg: G4, t: '④ 中壓配電', s: '配電盤：同樣不降壓' },
-    { seg: G5, t: '⑤ 不斷電與低壓配電', s: '乾式變壓器·UPS·PDU' },
-    { seg: G6, t: '⑥ 機櫃取電', s: '匯流排槽·機櫃·電源架' },
-  ], 146)}
-
-      <!-- ================= 誠實性標示（§5-D 的三行，缺一行就退回） ================= -->
-      <text class="sub" x="16" y="1228" style="fill:var(--dg-warn)">★ 這條產業鏈（基礎建設與能源）在供應鏈資料裡還沒有建環節，所以這一頁沒有環節色標；零件小卡上那顆「環節 →」按下去會是 0 筆 —— 那不是壞掉。</text>
-      <text class="sub" x="16" y="1246" style="fill:var(--dg-warn)">　 要篩成分股請用下面的族群卡片與成分股表。點零件只會亮起來，並在小卡上回答「這個零件是誰做的」，不會動到下方清單。</text>
-      <text class="cap" x="16" y="1268">原創等角示意圖，非實物比例</text>
-      <text class="cap" x="16" y="1286">電壓階梯為示意，階高與電壓不成比例</text>
-      <text class="cap" x="540" y="1268">資料中心實際受電電壓等級依容量與台電供電可行性而定，圖上為示意</text>
-      <text class="cap" x="540" y="1286">本圖不放任何在手訂單、市占率、營收占比或能見度年份（會過期）</text>
+      <!-- ================= ⑤ 電力路徑六格（預設收合）================= -->
+      ${fold('he4', '⑤ 電力路徑（六格）：GIS 在主變壓器之前、配電盤在之後',
+    '發電與升壓 → 超高壓輸電 → 變電所 → 中壓配電 → 不斷電與低壓配電 → 機櫃取電', areaFlow())}
     </svg>`;
   }
+
 
   /* ================================================================ 註冊
      `parts` ＝點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
@@ -623,7 +667,7 @@
   window.DG.register('heavy_electric', {
     level: 'group', chain: 'infrastructure',
     name: '電力路徑：變壓器與 GIS',
-    draw: transformerGis, native: 980, scene: null,
+    draw: transformerGis, native: CW, scene: null,   /* ★ 2026-09-23：980 → 660（v2 版面，說明外掛成 HTML 卡片）。scene 仍是 null —— 3D 是 Andy 親口否決的。*/
     q: 'AI 資料中心的電從哪裡來？從 345 kV 電網走到機櫃直流，哪幾格是降壓、哪幾格只是開關，台廠站在哪幾格？',
     parts: {
       he_ladder: {
