@@ -1972,7 +1972,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .dlvfil button:hover{border-color:var(--cyan);color:var(--ink)}
 .dlvfil button.on{color:var(--ontop);background:var(--cyan);font-weight:700;border-color:var(--cyan)}
 .dlvfil button b{font-family:var(--mono);font-size:12px}
-.dlvfil button.empty{opacity:.45}
+/* ★ 不要叫 `.empty`：全站已經有一個 `.empty{min-height:160px}`（空狀態容器），
+   撞名的話這一排篩選鈕會被撐成 160px 高的巨大膠囊。 */
+.dlvfil button.zero{opacity:.45}
 @media(max-width:860px){.dlvwrap{grid-template-columns:1fr}}
 @media(max-width:430px){.dlv-q{font-size:13.5px}.dlvfil button{font-size:12px;padding:5px 10px}}
 

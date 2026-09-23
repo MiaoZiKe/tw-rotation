@@ -796,6 +796,18 @@
      它跟 'industry' 共用 industry.js 的資料載入，所以路由也交給 window.Industry 處理。*/
   const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'themes', 'season', 'tasks', 'delivery'];
   const rendered = {};
+  /* ★ 2026-09-23：頂層分頁多了「熱力圖」「交付清單」之後，1440 以下這一排就放不下了。
+     放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
+     捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。
+     ⚠ 量的是兩個 rect 的差，不是 `on.offsetLeft` —— 後者是相對 offsetParent（頂欄）的座標，
+       會多算頂欄左側那一段，捲到底仍然只露出半個分頁（8 個分頁之後才看得出來）。 */
+  function centerActiveTab() {
+    const strip = document.getElementById('tabs'), on = strip && strip.querySelector('.tab.on');
+    if (!strip || !on || strip.scrollWidth <= strip.clientWidth + 2) return;
+    const r = on.getBoundingClientRect(), sr = strip.getBoundingClientRect();
+    strip.scrollLeft += (r.left - sr.left) - (sr.width - r.width) / 2;
+  }
+  window.addEventListener('resize', centerActiveTab);
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
@@ -830,10 +842,11 @@
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
        捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。*/
-    { const strip = document.getElementById('tabs'), on = strip && strip.querySelector('.tab.on');
-      if (strip && on && strip.scrollWidth > strip.clientWidth + 2) {
-        strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
-      } }
+    centerActiveTab();
+    /* 一開始就用網址直接開某一頁時，這裡量到的分頁列寬度還不是最後的寬度
+       （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
+       只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
+    setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -6421,9 +6434,10 @@
       ? `<button class="dlv-go" data-go="${fmt.esc(it.go)}">去看 →</button>`
       : (it.go_text ? `<span class="dlv-none">${fmt.esc(it.go_text)}</span>` : '');
     return `<div class="dlv s-${st}">
-      ${it.quote ? `<div class="dlv-q"><span class="dlv-tag">你說的</span>${fmt.esc(it.quote)}</div>`
-                 : '<div class="dlv-q"><span class="dlv-tag">還沒結束的</span>—</div>'}
-      <div class="dlv-w"><b>我做了什麼</b>${fmt.esc(it.what)}</div>
+      ${it.quote
+        ? `<div class="dlv-q"><span class="dlv-tag">你說的</span>${fmt.esc(it.quote)}</div>
+           <div class="dlv-w"><b>我做了什麼</b>${fmt.esc(it.what)}</div>`
+        : `<div class="dlv-q"><span class="dlv-tag">不是你交代的，是我這邊還沒結束的</span>${fmt.esc(it.what)}</div>`}
       ${it.note ? `<div class="dlv-n"><b>我自己判斷的：</b>${fmt.esc(it.note)}</div>` : ''}
       <div class="dlv-f"><span class="dlv-b s-${st}" title="${fmt.esc(S_.hint)}">${S_.label}</span>
         ${ver}${go}</div>
@@ -6445,7 +6459,7 @@
     const chips = ['all'].concat(DLV_ORDER).map(k => {
       const n = k === 'all' ? items.length : (c[k] || 0);
       const label = k === 'all' ? '全部' : DLV_S[k].label;
-      return `<button data-f="${k}" class="${k === 'all' ? 'on' : ''}${n ? '' : ' empty'}"
+      return `<button data-f="${k}" class="${k === 'all' ? 'on' : ''}${n ? '' : ' zero'}"
         title="${k === 'all' ? '不篩選' : fmt.esc(DLV_S[k].hint)}">${label} <b>${n}</b></button>`;
     }).join('');
 
