@@ -19325,8 +19325,11 @@ def t_c6_anim(pg, base):
     # 用 `motion_axis`（滾珠螺桿那張，退版後還在動的零件最多 —— 10 個），
     # 拿一張本來就不動的圖來驗這顆鈕等於什麼都沒驗。
     if _c6_open(pg, base, C6_ROUTES["motion_axis"]):
-        # 先確定現在是「動畫：開」
-        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.indexOf('關') < 0) b.click(); }")
+        # 先確定現在是「動畫：開」。
+        # ⚠ 鈕上的字是**目前的狀態**（`industry.js` 的 setAnimAll：on ? '動畫：開' : '動畫：關'），
+        #   不是「按下去會變成什麼」。舊版寫成「沒有『關』就按一下」—— 那是把它讀反了，
+        #   結果是**先把動畫關掉**，再宣稱「動畫開著時時鐘真的在走」。那一條從頭到尾驗錯了狀態。
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.indexOf('關') >= 0) b.click(); }")
         pg.wait_for_timeout(900)
         on_moved = _c6_moved(pg)
         ok("C6-7：動畫開著時，滾珠螺桿那張真的有東西在動", bool(on_moved), sorted(on_moved))
