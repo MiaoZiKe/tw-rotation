@@ -108,7 +108,7 @@
       + LAYERS.slice(0, 3).map(L => stop(L.y + LH / 2)).join('')
       + LN(`M${LX + LW - 96},${LAYERS[3].y + LH + 6} h26`, C.threat, 2, ' class="flow fast"')
       + `<path d="M${LX + LW - 66},${LAYERS[3].y + LH + 6} l-10,-5 v10Z" fill="${C.threat}"/>`
-      + T(LX + LW - 96, 110, '攻擊', 'sub', 'middle', `fill:${C.threat}`)));
+));
     return g.join('');
   }
 
@@ -131,7 +131,7 @@
       g.push(part(s.id, R(SX + 14, y, SW - 28, 52, 'var(--dg-step-f)', 'part', 7)
         + T(SX + 26, y + 20, s.t, 'lbl')
         + T(SX + 26, y + 38, s.s, 'sub')
-        + T(SX + SW - 26, y + 20, s.k, 'sub', 'end', `fill:${/人/.test(s.k) ? C.people : C.mute}`)));
+        + T(SX + SW - 52, y + 20, s.k, 'sub', 'end', `fill:${/人/.test(s.k) ? C.people : C.mute}`)));
       if (i < STEPS.length - 1) g.push(LN(`M${SX + SW / 2},${y + 52} v10`, C.soc, 2, ' class="flow"'));
     });
     return g.join('');
@@ -141,12 +141,12 @@
      ★ 刻意不畫比例：各家的收入結構查不到可引用的公開數字，畫成圓餅就是編一個比例出來。
        畫面上只講「錢怎麼進來、什麼時候認列、規模長大時成本跟著長多少」。*/
   const REV = [
-    { id: 'cs_rev_prod', t: '產品授權（自有／代理）', a: '一次性授權 ＋ 每年維護', b: '規模長大時人力不必等比例增加',
-      c: '代理國外產品的那一段是過手，毛利薄', col: C.net },
-    { id: 'cs_rev_svc', t: '委外服務（SOC 監控）', a: '按月／按年收，逐月認列', b: '最穩：合約到期才會不見',
-      c: '要養 7×24 的人，人力就是成本', col: C.people },
-    { id: 'cs_rev_proj', t: '專案建置與顧問', a: '按人天，驗收才認列', b: '看案子，年底與年初落差大',
-      c: '毛利看人，做不完就要外包', col: C.mute },
+    { id: 'cs_rev_prod', t: '產品授權（自有／代理）', a: '一次性授權 ＋ 每年維護', b: '人力不必等比例增加',
+      c: '代理的那一段是過手', col: C.net },
+    { id: 'cs_rev_svc', t: '委外服務（SOC 監控）', a: '按月／按年收，逐月認列', b: '最穩：到期才會不見',
+      c: '要養 7×24 的人', col: C.people },
+    { id: 'cs_rev_proj', t: '專案建置與顧問', a: '按人天，驗收才認列', b: '看案子，季度落差大',
+      c: '做不完就要外包', col: C.mute },
   ];
   function revenue() {
     return T(16, 386, '這一格的錢怎麼進來：三種型態，認列節奏完全不同', 'hd')
@@ -252,20 +252,20 @@
       ${revenue()}
 
       <!-- ================= 說明卡片（HTML；左欄＝縱深防禦，右欄＝SOC 與收入） ================= -->
-      ${card({ part: 'cs_surface', no: 1, side: 'l', color: C.threat, ax: LX + 82, ay: 82, title: '攻擊面：從哪裡進來', sub: ['釣魚信、對外服務的漏洞、以及委外與供應鏈 —— 三條都是示意，不對應任何真實事件。', '攻擊面越大，要守的層數越多；這就是資安預算長大的原因。'] })}
-      ${card({ part: 'cs_net', no: 2, side: 'l', color: C.net, ax: LX + 6, ay: LAYERS[0].y + 18, title: '網路邊界：賣的是盒子', sub: ['防火牆、WAF、DDoS 清洗。台廠這一層多半是代理國外原廠的產品 —— 代理是過手，毛利薄。'] })}
-      ${card({ part: 'cs_edr', no: 3, side: 'l', color: C.edr, ax: LX + 6, ay: LAYERS[1].y + 18, title: '端點：防毒與 EDR', sub: ['每一台電腦與伺服器上的那一支程式。授權按台數與年份收，續約是穩定收入。'] })}
-      ${card({ part: 'cs_idp', no: 4, side: 'l', color: C.idp, ax: LX + 6, ay: LAYERS[2].y + 18, title: '身分與存取：誰可以進來', sub: ['多因子驗證與特權帳號管理。近年攻擊多半不是「打破牆」，是「拿到鑰匙」。'] })}
-      ${card({ part: 'cs_data', no: 5, side: 'l', color: C.data, ax: LX + 6, ay: LAYERS[3].y + 18, title: '應用與資料：產品 ＋ 服務混著賣', sub: ['弱點掃描、加密、備份與還原。掃描報告要有人讀、修補要有人跟 —— 這一層開始出現人力服務。'] })}
-      ${card({ part: 'cs_asset', no: 6, side: 'l', color: C.asset, ax: LX + 46, ay: 334, title: '要守的東西：核心系統與個資', sub: ['政府守的是民眾資料與公共服務，金融守的是帳務與客戶資料 —— 兩者出事的代價都不是錢可以了結的，所以採購的理由是法遵不是效率。'] })}
-      ${card({ part: 'cs_path', no: 7, side: 'l', color: C.threat, ax: LX + LW - 96, ay: 150, title: '沒有一層擋得住全部', sub: ['前三層擋掉大部分，總有一條會漏過去。★ 承認這件事，才有 SOC 存在的理由 —— 資安的目標不是「零事件」，是「早點發現、快點收拾」。'] })}
+      ${card({ part: 'cs_surface', no: 1, side: 'l', color: C.threat, ax: 292, ay: 82, title: '攻擊面：從哪裡進來', sub: ['釣魚信、對外服務的漏洞、以及委外與供應鏈 —— 三條都是示意，不對應任何真實事件。', '攻擊面越大，要守的層數越多；這就是資安預算長大的原因。'] })}
+      ${card({ part: 'cs_net', no: 2, side: 'l', color: C.net, ax: 14, ay: LAYERS[0].y + 18, title: '網路邊界：賣的是盒子', sub: ['防火牆、WAF、DDoS 清洗。台廠這一層多半是代理國外原廠的產品 —— 代理是過手，毛利薄。'] })}
+      ${card({ part: 'cs_edr', no: 3, side: 'l', color: C.edr, ax: 14, ay: LAYERS[1].y + 18, title: '端點：防毒與 EDR', sub: ['每一台電腦與伺服器上的那一支程式。授權按台數與年份收，續約是穩定收入。'] })}
+      ${card({ part: 'cs_idp', no: 4, side: 'l', color: C.idp, ax: 14, ay: LAYERS[2].y + 18, title: '身分與存取：誰可以進來', sub: ['多因子驗證與特權帳號管理。近年攻擊多半不是「打破牆」，是「拿到鑰匙」。'] })}
+      ${card({ part: 'cs_data', no: 5, side: 'l', color: C.data, ax: 14, ay: LAYERS[3].y + 18, title: '應用與資料：產品 ＋ 服務混著賣', sub: ['弱點掃描、加密、備份與還原。掃描報告要有人讀、修補要有人跟 —— 這一層開始出現人力服務。'] })}
+      ${card({ part: 'cs_asset', no: 6, side: 'l', color: C.asset, ax: 60, ay: 334, title: '要守的東西：核心系統與個資', sub: ['政府守的是民眾資料與公共服務，金融守的是帳務與客戶資料 —— 兩者出事的代價都不是錢可以了結的，所以採購的理由是法遵不是效率。'] })}
+      ${card({ part: 'cs_path', no: 7, side: 'l', color: C.threat, ax: LX + LW - 96, ay: 107, title: '沒有一層擋得住全部', sub: ['前三層擋掉大部分，總有一條會漏過去。★ 承認這件事，才有 SOC 存在的理由 —— 資安的目標不是「零事件」，是「早點發現、快點收拾」。'] })}
       ${card({ part: 'cs_log', no: 8, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 120, title: '① 日誌收集：機器做的', sub: ['四層設備的事件全部送進來。這一段是設備與平台，不太吃人力。'] })}
       ${card({ part: 'cs_corr', no: 9, side: 'r', color: C.soc, ax: SX + SW - 14, ay: 182, title: '② 關聯分析：規則與經驗', sub: ['把分散在不同設備的事件串成一次攻擊。規則寫得好不好，就是各家 SOC 的差別。'] })}
       ${card({ part: 'cs_alert', no: 10, side: 'r', color: C.people, ax: SX + SW - 14, ay: 244, title: '③ 告警與研判：★ 這裡開始是人', sub: ['7×24 有人值班，判斷這是誤報還是真的。機器一天丟出幾千筆，要有人讀。', '這一格就是「委外」兩個字的實體 —— 客戶自己養不起三班制，所以交出去。'] })}
       ${card({ part: 'cs_ir', no: 11, side: 'r', color: C.people, ax: SX + SW - 14, ay: 306, title: '④ 通報與應變：★ 也是人', sub: ['通知客戶、協助隔離與復原、出事後報告。按月或按年收費、逐月認列，合約到期才會不見。'] })}
-      ${card({ part: 'cs_rev_prod', no: 12, side: 'l', order: 12, color: C.net, ax: 20, ay: 440, title: '產品授權：規模可以長，毛利看是不是自有', sub: ['自有產品的毛利高；代理國外原廠的那一段是過手，毛利薄 —— 同樣叫「產品收入」，兩者差很多。'] })}
-      ${card({ part: 'cs_rev_svc', no: 13, side: 'r', order: 13, color: C.people, ax: 232, ay: 440, title: '委外服務：最穩，但要養人', sub: ['按月／按年收、逐月認列，續約率就是它的護城河。代價是人力成本跟著客戶數走，不像軟體可以無限複製。'] })}
-      ${card({ part: 'cs_rev_proj', no: 14, side: 'r', order: 14, color: C.mute, ax: 444, ay: 440, title: '專案建置：看案子，季度落差大', sub: ['按人天報價、驗收才認列，所以單季營收會被幾個大案的驗收時點左右。'] })}
+      ${card({ part: 'cs_rev_prod', no: 12, side: 'l', order: 12, color: C.net, ax: 10, ay: 440, title: '產品授權：規模可以長，毛利看是不是自有', sub: ['自有產品的毛利高；代理國外原廠的那一段是過手，毛利薄 —— 同樣叫「產品收入」，兩者差很多。'] })}
+      ${card({ part: 'cs_rev_svc', no: 13, side: 'r', order: 13, color: C.people, ax: 222, ay: 440, title: '委外服務：最穩，但要養人', sub: ['按月／按年收、逐月認列，續約率就是它的護城河。代價是人力成本跟著客戶數走，不像軟體可以無限複製。'] })}
+      ${card({ part: 'cs_rev_proj', no: 14, side: 'r', order: 14, color: C.mute, ax: 434, ay: 440, title: '專案建置：看案子，季度落差大', sub: ['按人天報價、驗收才認列，所以單季營收會被幾個大案的驗收時點左右。'] })}
       ${note({ side: 'l', order: 97, title: '示意圖，非實物比例', lines: ['防護層只畫四層代表「縱深」這個概念，實際分層依各家架構而異；攻擊路徑與攻擊面為示意，不對應任何真實事件，也不指名任何產品或廠牌。'] })}
       ${note({ side: 'l', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
       ${note({ side: 'r', order: 99, warn: true, title: '★ 這一格的景氣跟誰連動', lines: ['政府採購跟著法規與年度預算編列走、金融跟著主管機關的要求走 —— 兩者都不是純粹的景氣循環。所以看這一格不要只看終端需求，要看法規與預算的時程。', '這一句是本圖的推論（依《資通安全管理法》的委外規定與金管會的聯防機制推出來的），不是任何一家公司的說法。'] })}
