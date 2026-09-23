@@ -26,6 +26,9 @@
     if (window.LiveK) window.LiveK.detach();
   }
 
+  /* 「使用者明確要看族群總覽」的哨兵（網址 `#industry/<chain>/overview`）。
+     放在 state.dg 裡，因為 state.dg 就是「這一頁要畫哪一張圖」的唯一來源。*/
+  const DG_OVERVIEW = '__overview__';
   // ================================================================ 路由
   async function route(head, rest) {
     A = window.App;
@@ -45,6 +48,13 @@
          supply_chain.yaml 裡的具名字串，例如 passive_comp／abf_pcb）。
          ⚠ 一定要驗「這張圖真的掛在這條鏈上」—— 有人手打 #industry/semiconductor/dg/mlcc
          就會在半導體鏈上畫出 MLCC，那正是這次要修掉的錯。驗不過就當作沒指定（回選單）。*/
+      /* ★ 2026-09-23 第二批（Andy：「點擊 AI 伺服器進去就直接看到第一個族群的 2D 圖 3D 圖」）
+         `#industry/<chain>` 的 Default 從「族群總覽」換成**這條鏈的第一張剖析圖**，
+         族群總覽本身沒有被刪，只是搬去自己的網址 `#industry/<chain>/overview`
+         （分頁列的位置不動，它仍然是第一個分頁）。
+         用一個哨兵值而不是 boolean：state.dg 本來就是「這一頁要畫哪一張圖」的唯一來源，
+         多開一個旗標會出現兩份真相。哨兵不可能撞到真的 slot id（DS.has 一定回 false）。*/
+      if (rest[1] === 'overview') { state.dg = DG_OVERVIEW; renderChain(im, sc, gd); return; }
       if (rest[1] === 'dg') {
         const want = rest[2] || '';
         if (DS && DS.has(want) && DS.chainOf(want) === rest[0]) {
@@ -519,6 +529,13 @@
      名單只有一份，在 site/diagrams.js 的 SLOTS；這裡不准再維護第二份。*/
   const DS = window.DiagramSlots || null;
   // 這條鏈上有專屬剖析圖的族群，照成交值由大到小（沒選族群時就用第一個當預設）
+  /* ★ 2026-09-23（Andy：「圖一這邊的標籤只需要顯示：以前族群名稱即可，後面說明在文章內有就好」）
+     分頁上只印冒號前面那一段。SLOTS 裡的 `name` 是「族群名：這張圖在講什麼」的完整句子
+     （例：「晶圓代工：一顆電晶體與一個製程迴圈」），整串印在分頁上會把一排分頁撐爆。
+     ⚠ 只切**顯示用的那一份**，`DS.name()` 本身一個字都沒有動 ——
+       完整名稱在「產品剖析圖」標題列、分頁的 title 提示、圖別選單的卡片標題都還要用。
+     全形「：」與半形「:」都切（SLOTS 兩種都有寫過），取第一刀的前段；沒有冒號就整串照用。*/
+  const dgShortName = (id) => String((DS && DS.name(id)) || id).split(/[：:]/)[0].trim() || id;
   const dgGroupsOf = (ch) => {
     if (!DS || !ch) return [];
     const has = new Set(DS.groupsOf(ch.id));
@@ -664,7 +681,9 @@
     const syncDgHash = () => {
       const want = resolveDg();
       state.dg = want;
-      const h = want ? dgHash(want) : '#industry/' + ch.id;
+      /* ★ 沒有圖＝族群總覽，它的網址是 `/overview`（不是光禿禿的 `#industry/<chain>`
+         —— 那個現在是「第一張剖析圖」的網址，寫回去會讓重新整理跳到圖上）。*/
+      const h = want ? dgHash(want) : '#industry/' + ch.id + '/overview';
       try { if (location.hash !== h) history.replaceState(null, '', h); } catch (e) { /* 舊瀏覽器沒這支就算了 */ }
     };
     /* 這一頁現在該畫哪一張剖析圖（或不畫）。順序是刻意的：
@@ -714,8 +733,8 @@
        class 沿用 `segchip` 並保留 `.sel`：既有的換圖邏輯與驗收都認這兩個，
        活頁簿的外觀由 `.nbsw` 負責（它的選擇器權重比 `.segchip` 高）。*/
     const dgTabsHtml = () => `<div class="chainsw nbsw lv2" id="dgPick" role="tablist">`
-      + `<a class="segchip${dgId ? '' : ' sel on'}" data-dgtab="overview" href="#industry/${ch.id}" role="tab" style="--c:var(--cyan)" title="這條鏈各族群的漲幅與占比（第一個分頁）"><i></i>族群總覽</a>`
-      + dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel on' : ''}" data-dgid="${id}" href="${dgHash(id)}" role="tab" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')
+      + `<a class="segchip${dgId ? '' : ' sel on'}" data-dgtab="overview" href="#industry/${ch.id}/overview" role="tab" style="--c:var(--cyan)" title="這條鏈各族群的漲幅與占比（第一個分頁）"><i></i>族群總覽</a>`
+      + dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel on' : ''}" data-dgid="${id}" href="${dgHash(id)}" role="tab" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.name(id))}${DS.q(id) ? '　·　' + A.fmt.esc(DS.q(id)) : ''}"><i></i>${A.fmt.esc(dgShortName(id))}</a>`).join('')
       + `</div>`;
     /* 產業地圖那一層的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個。*/
@@ -1024,33 +1043,35 @@
       if (state.dg) dgOpen = true;
       let did3d = false;
       const dgSecEl = $('#dgSec', el);
-      /* ★ 工具列要停在**圖的右下角**，不是整個區塊的右下角。
-         它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，住在裡面會一起消失），
-         但 `#dgSec` 底下還有 3D 說明與零件卡 —— 一開 3D，區塊長高 480px，
-         工具列就跟著掉到圖外面、掉出視窗（實測：按了 3D 之後「重設視角」整個點不到）。
-         所以量一次「圖的底緣離區塊底緣多遠」，把那段距離補進 bottom。
-         窄畫面不套：那邊的規則是「貼在畫布底緣的一整列」，由 CSS 自己管。*/
+      /* ★ 2026-09-23 第二批（Andy：「設定列改到右上角」）：工具列要停在**圖的右上角**，
+         不是整個區塊的右上角。它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，
+         住在裡面會一起消失），而 `#dgSec` 的上緣之上還有「產品剖析圖」標題列與
+         「這張圖回答」那一行 —— 直接 top:12px 會壓在標題上。
+         所以量一次「圖的上緣離區塊上緣多遠」，把那段距離補進 top。
+         ⚠ 換方向不等於可以拿掉防抖動：死區、補算時間點、ResizeObserver 全部照留
+         （那是量到工具列跑到圖外 25px 之後才補的）。
+         ★ 窄畫面（≤800px）現在也走這支：那邊的 CSS 只管「排成可左右捲的一列」，
+           top 一樣要量 —— 寫死一個數字會壓到標題列。*/
       const placeDgTools = () => {
         /* 一律用 document 問「現在畫面上的那一個」：這一頁會整段重畫（換鏈、換圖別、
            視窗變寬都會），舊 closure 手上的 el 早就脫離 DOM 了，對它設 style 沒有人看得到。*/
         const sec = document.getElementById('dgSec'), tools = document.getElementById('dgTools');
         if (!tools || !sec) return;
-        if (window.innerWidth <= 800 || sec.classList.contains('dgfold')) { tools.style.bottom = ''; return; }
+        if (sec.classList.contains('dgfold')) { tools.style.top = ''; return; }
         const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
         const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
-        if (!img || img.hidden || !img.clientHeight) { tools.style.bottom = ''; return; }
-        const gap = sec.getBoundingClientRect().bottom - img.getBoundingClientRect().bottom;
+        if (!img || img.hidden || !img.clientHeight) { tools.style.top = ''; return; }
+        const gap = img.getBoundingClientRect().top - sec.getBoundingClientRect().top;
         const want = Math.max(12, Math.round(gap) + 12);
-        /* 差不到 8px 就不動：3D 掛載的那幾幀高度會一直微調，每幀都搬會變成一顆在抖的鈕。
-           ★ 2026-09-23：這個死區只准用在**往下搬**。往上搬（want 變大＝圖變矮了）一律照做 ——
-           不然差 6px 就被死區吃掉，工具列會停在畫布底緣**外面** 6px，剛好違反
-           「完整在圖內」那條驗收（實測 3D 開著時就是這樣紅的）。 */
-        const now = parseFloat(tools.style.bottom) || 12;
-        /* ★ 往上搬（圖變矮了）的死區收到 2px、往下搬維持 8px。
+        /* 死區的方向判準跟改成 top 之前**完全一樣**，只是講法要換成 top 的語言：
+           `want` 變大 ＝ 圖的上緣往下跑了（標題列長高、換行、3D 說明補上來），
+           這時候還停在舊的小 top，工具列就落在圖的**上緣外面** —— 這一邊一律照做（死區 2px）。
+           `want` 變小 ＝ 工具列只是比需要的位置更深入圖內一點，不會跑到圖外，可以慢慢收（死區 8px）。
            兩邊都要有死區 —— 完全不設的話，3D 掛載那幾秒每次重算都差 1px，
            鈕就一直在抖，Playwright 的「元素穩定了嗎」永遠不成立、點擊直接逾時
            （實測：3D 開著時 `#dgAnim` 點不下去，8 秒卡在 performing click action）。*/
-        if (want - now > 2 || now - want >= 8) tools.style.bottom = want + 'px';
+        const now = parseFloat(tools.style.top) || 12;
+        if (want - now > 2 || now - want >= 8) tools.style.top = want + 'px';
       };
       try {
         // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
@@ -1098,7 +1119,7 @@
          改 state —— 讓它走 hash 路由，跟圖別選單、跟直接貼網址完全同一條路。
          這樣「換一張圖」才會留下瀏覽紀錄（上一頁回得去）。*/
       const back = $('#dgBack', el);
-      if (back) back.onclick = () => { location.hash = '#industry/' + ch.id; };
+      if (back) back.onclick = () => { location.hash = '#industry/' + ch.id + '/overview'; };
       paintDgMode();
       replaceDgTools();
     }

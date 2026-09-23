@@ -2168,12 +2168,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
-/* ---- 剖析圖工具列浮在畫布內右下角（Andy 2026-09-23：「這邊的功能都需要在圖內右下角」）----
+/* ---- 剖析圖工具列浮在畫布內**右上角**（Andy 2026-09-23 第二批：「設定列改到右上角」）----
    為什麼掛在 `#dgSec` 而不是 `#dgBody`：按「收合圖」時 `#dgBody` 是 display:none，
    工具列住在裡面會一起消失 —— 連「展開剖析圖」那顆鈕都不見，圖就再也開不回來。
-   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。*/
+   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。
+   ★ 由 bottom 改成 top 的只有「往哪一邊量」這件事：placeDgTools 的死區與補算一個都沒有拿掉，
+     那是量到工具列掉到圖外 25px 之後才補的（見 site/industry.js 的註解）。*/
 #dgSec{position:relative}
-#dgTools{position:absolute;right:12px;bottom:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
+#dgTools{position:absolute;right:12px;top:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
   justify-content:flex-end;max-width:calc(100% - 24px);
   background:var(--dg-card-f,rgba(14,20,36,.66));backdrop-filter:var(--dg-card-blur,blur(8px));
   border:1px solid var(--line-2);border-radius:11px;padding:5px 7px;
@@ -2182,9 +2184,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #dgTools[hidden]{display:none}
 #dgSec.dgfold #dgTools{position:static;opacity:1;background:none;backdrop-filter:none;border:0;
   padding:0;margin-top:8px;max-width:none}
-/* 窄畫面：貼底緣排成一列，可左右捲，不准溢出容器 */
+/* 窄畫面：排成可左右捲的一列，不准溢出容器。
+   ★ top 不在這裡寫死 —— 位置一律由 placeDgTools 量「圖的上緣離區塊上緣多遠」算出來，
+     寫死一個數字會壓到「產品剖析圖」那一行標題（標題列高度會隨字級與換行變動）。*/
 @media (max-width:800px){
-  #dgTools{left:12px;right:12px;bottom:8px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+  #dgTools{left:12px;right:12px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
     -webkit-overflow-scrolling:touch}
   #dgTools .pill{flex:none}
 }
