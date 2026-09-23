@@ -1305,7 +1305,14 @@
         depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
       pm.userData = { dgvar: ROLE_TOKENS[spec.kind], flowPts: true };
       const pt = new T.Points(geo, pm);
-      pt.userData.flow = { paths, per, t: 0, dir: 1, speed: spec.speed || 0.25 };
+      /* C6：流線多三個旋鈕（幾何完全不變，只是同一條路徑上的粒子怎麼走）
+           dir   -1 ＝ 逆著路徑跑（供電與訊號常常是反向的同一條路）
+           bidir  秒數 ＝ 每半個週期換一次方向（交流／充放電：電流真的會反向，不是在轉圈）
+           gate  [週期, 佔空比] ＝ 只有「導通」的那一段時間才跑而且看得見
+                 （MOSFET 閘極關掉、PPTC 跳脫、壓敏電阻沒突波時，電流本來就是 0） */
+      pt.userData.flow = { paths, per, t: 0, dir: spec.dir === -1 ? -1 : 1, speed: spec.speed || 0.25,
+        bidir: spec.bidir ? (spec.bidir === true ? 2.6 : +spec.bidir) : 0,
+        gate: spec.gate ? { per: spec.gate[0] || 2, duty: spec.gate[1] == null ? 0.5 : spec.gate[1] } : null, age: 0 };
       g.add(pt);
       return g;
     }
@@ -3907,7 +3914,16 @@
       }
       g.add(instOf(new T.TorusGeometry(r, r * 0.09, 6, 16), fm, rings));                 // 每一顆的框
       g.add(instOf(new T.CylinderGeometry(r * 0.28, r * 0.28, d * 0.5, 12), hub, hubs));
-      g.add(instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades));
+      /* C6：風扇牆的葉片**真的在轉**。
+         它是一個 InstancedMesh（4 顆風扇 × 7 片 ＝ 28 個實例、1 個 draw call），
+         所以不能像單顆風扇那樣「轉一個 Group」—— 改成每幀重算 instanceMatrix。
+         28 次矩陣組合 × 30fps ＝ 840 次／秒，可以忽略；
+         換成 4 個 Group 會多 3 個 draw call，而且葉片的幾何要複製 4 份。*/
+      const bi = instOf(new T.BoxGeometry(r * 0.66, r * 0.34, d * 0.14), bm, blades);
+      bi.userData.ispin = { speed: 2.1, t: 0, items: blades.map((b, i) => ({
+        cx: (-(n - 1) / 2 + Math.floor(i / 7)) * cw, cz: 0, r: r * 0.58,
+        a0: (i % 7) * Math.PI * 2 / 7, ry: 0.44 })) };
+      g.add(bi);
       return g;
     }
 
@@ -5541,6 +5557,18 @@
     const spinners = [];         // E4：會自己轉的東西（風扇葉輪）
     const leds = [];             // E4：會呼吸的指示燈材質
     const flowPts = [], flowAll = [], flowSeen = new Set();   // 圖九 2-1：電流粒子
+    /* ★ C6（Andy 2026-09-23：「3D 圖 幫我都做成會有動畫像是這儀器再運作」）。
+       四種動法，全部是**零件自己在動或能量在流動**，不是鏡頭在繞：
+         ① flow    沿路徑跑的粒子   —— 冷卻液、氣流、光、電流、差動訊號（既有機制，這次補 dir／bidir／gate）
+         ② spin    零件繞自己的軸轉 —— 扇葉、螺桿、晶碇（既有機制，這次讓場景可以直接宣告）
+         ③ ispin   陣列零件各自轉   —— 風扇牆（InstancedMesh，1 個 draw call 也要會轉）
+         ④ pulse   一組零件依序點亮 —— 製程一站一站、訊號穿層、充放電（新增）
+         ⑤ move    零件沿一軸位移   —— 螺帽沿軸走、晶碇上提、晶粒被取放（新增）
+       全部不重建幾何：pulse 只改材質的 uniform（顏色／emissive），move 只改 position，
+       ispin 只改 instanceMatrix。每幀的預算都花在「看得出來的變化」上，不是花在重建 buffer。*/
+    const ispinners = [];        // C6 ③：陣列零件（InstancedMesh）各自繞自己的中心轉
+    const pulses = [];           // C6 ④：一組零件依序點亮
+    const movers = [];           // C6 ⑤：沿一軸位移的零件
     let labelDown = null;        // 這次按下去是從某個標籤開始的（可能只是想轉視角）
     let stickyBelow = new Set(); // 被排到底下那一排的卡片（黏住，直到欄寬／模式／選取變了才重排）；宣告在這裡是為了避開 TDZ
     let compactSide = { L: false, R: false };   // 這一欄的卡片有沒有收成一行（同樣黏住，同樣在欄寬／模式／選取變了才重算）
@@ -5589,12 +5617,17 @@
        留在原本 tick() 上面那一段（const 宣告）會踩到 TDZ，3D 直接退回平面圖。*/
     let dirty = true, lastDraw = 0;
     const markDirty = () => { dirty = true; };
+    /* 一個 group 的最終位置 ＝ 原位 ＋ 爆炸位移 × expT ＋ 運轉位移（C6 ⑤ move）。
+       兩件事必須疊加而不是互相覆寫：螺帽沿軸走的時候，使用者可能同時把圖拆開。*/
+    const place = (g) => {
+      const b = g.userData.base, e = g.userData.ex || [0, 0, 0], v = g.userData.mv;
+      g.position.set(b.x + e[0] * expT + (v ? v.x : 0),
+        b.y + e[1] * expT + (v ? v.y : 0),
+        b.z + e[2] * expT + (v ? v.z : 0));
+    };
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
-      explodable.forEach(g => {
-        const b = g.userData.base, e = g.userData.ex;
-        g.position.set(b.x + e[0] * expT, b.y + e[1] * expT, b.z + e[2] * expT);
-      });
+      explodable.forEach(place);
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
       markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
     };
@@ -5635,6 +5668,7 @@
         g.traverse(x => {
           if (x.isMesh) meshes.push(x);
           if (x.userData && x.userData.spin) spinners.push(x);
+          if (x.isInstancedMesh && x.userData && x.userData.ispin) ispinners.push(x);
           // 圖九 2-1：電流粒子。clone 出來的重複件共用同一份 geometry，
           // 所以同一份只能推一次，不然一幀會被推 n 次、速度變 n 倍。
           if (x.isPoints && x.userData && x.userData.flow && !flowSeen.has(x.geometry)) {
@@ -5777,6 +5811,45 @@
       [path, halo, dot, no].forEach(x => { x.style.setProperty('--c', elColor); x.style.setProperty('--dg-card-c', elColor); lead.appendChild(x); });
       dot.setAttribute('stroke', elColor);        // main 的 .ld-dot 是「底色填滿 ＋ 元件色描邊 ＋ 元件色光暈」，描邊由這裡餵
       byIdx[idx].path = path; byIdx[idx].dot = dot; byIdx[idx].halo = halo; byIdx[idx].no = no;
+    });
+
+    /* ================================================================ C6：把場景宣告的動畫接到零件上
+       SCENES 裡只寫「哪個零件、怎麼動」（宣告），真正的幾何與材質完全不知道自己會動 ——
+       這樣同一套工具可以給 19 個場景用，而不是 19 份各寫一套。
+       三件事都靠零件身分（part key）去找，找不到就靜靜跳過，不讓一個打錯的 key 把整張圖弄掛。*/
+    /* ⚠ 不能借用下面那支 isPart：它宣告在高亮那一段（const 箭頭函式），
+       這裡跑得比它早，用它會踩到 TDZ、整個 3D 退回平面圖（#246 踩過同一個坑）。*/
+    const isPartKey = (p, key) => !!key && (p.part === key || (p.alias || []).indexOf(key) >= 0);
+    const findPart = (key) => byIdx.filter(Boolean).find(p => isPartKey(p, key)) || null;
+    /* ② spin：讓某個零件的整個 group 繞自己的軸轉（螺桿、晶碇、聯軸器）。
+       零件的幾何本來就是以自己的中心為原點建的，所以繞 group 的軸轉 ＝ 繞零件自己的軸轉。*/
+    (spec.spins || []).forEach(sp => {
+      const p = findPart(sp.part); if (!p) return;
+      p.groups.forEach(g => {
+        g.userData.spin = { axis: sp.axis || 'y', speed: sp.speed || 1, base: sp.speed || 1, sync: sp.sync || '' };
+        spinners.push(g);
+      });
+    });
+    /* ④ pulse：一組零件**依序**點亮。用在「能量或訊號在一連串零件之間傳遞」——
+       製程一站一站、訊號穿層、背光一層一層往上。
+       被動元件本身不動，動的是電，所以只改顏色與 emissive，幾何一個頂點都不碰。*/
+    (spec.pulses || []).forEach(pg => {
+      const items = (pg.parts || []).map(findPart).filter(Boolean).map(p => ({ p, k: 0 }));
+      if (!items.length) return;
+      pulses.push({ items, period: pg.period || 3, sharp: pg.sharp || 8, phase: pg.phase || 0,
+        amp: pg.amp == null ? 1 : pg.amp, token: ROLE_TOKENS[pg.kind] || '--dg-fl-sig' });
+    });
+    /* ⑤ move：零件沿一軸位移。pingpong ＝ 往復（螺帽沿軸走、晶圓在站之間往返），
+       saw ＝ 單向循環（滾珠回流）。位移是疊在爆炸位移上的（見 place）。*/
+    (spec.moves || []).forEach(mo => {
+      const groups = [];
+      (mo.parts || [mo.part]).forEach(key => {
+        const p = findPart(key); if (!p) return;
+        p.groups.forEach(g => { g.userData.mv = { x: 0, y: 0, z: 0 }; groups.push(g); });
+      });
+      if (!groups.length) return;
+      movers.push({ name: mo.name || '', groups, axis: mo.axis || 'x', amp: mo.amp || 1,
+        period: mo.period || 4, mode: mo.mode || 'pingpong', phase: mo.phase || 0, off: 0, vel: 0 });
     });
 
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
@@ -6030,7 +6103,11 @@
       el.addEventListener('pointerenter', onEnter);
       el.addEventListener('pointerleave', onLeave);
     }
-    const applyAuto = () => { controls.autoRotate = anim && !userHold; };
+    /* ★ C6：系統層級的「減少動態效果」（prefers-reduced-motion: reduce）一律**當成動畫關掉**。
+       以前 reduced 只擋住爆炸補間，零件還是在轉、粒子還是在跑 —— 那不叫尊重。
+       注意鈕上的字仍然照 `anim`（使用者自己的選擇），只是實際上一格都不動。*/
+    const motionOn = () => anim && !reduced;
+    const applyAuto = () => { controls.autoRotate = motionOn() && !userHold; };
     function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
       if (holdT) clearTimeout(holdT);
@@ -6040,8 +6117,17 @@
       anim = !!on;
       applyAuto();
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
-      flowAll.forEach(x => { x.visible = anim; });
-      if (!anim) {
+      flowAll.forEach(x => { x.visible = motionOn(); });
+      if (!motionOn()) {
+        /* C6：**真的完全停下來**。旗標改掉不算 ——
+           要把 pulse 改過的顏色與 emissive 收回去、把位移歸零，
+           否則畫面會停在「某顆零件剛好亮著、螺帽卡在半路」的那一幀。*/
+        resetPulses();
+        movers.forEach(mv => {
+          mv.off = 0; mv.vel = 0;
+          mv.groups.forEach(g => { g.userData.mv.x = g.userData.mv.y = g.userData.mv.z = 0; place(g); });
+        });
+        spinners.forEach(sp => { if (sp.userData.spin.sync) sp.userData.spin.speed = 0; });
         /* 動畫關掉：爆炸展開**不做過場**，直接跳到目前的目標狀態（#246）。
            以前（#238）是「一律停在拆開的狀態」—— 那是因為當時展開是進場動畫、沒有目標可言；
            現在展開與否是使用者用游標決定的，關動畫只該關掉「過場」，不該替他決定要不要展開。*/
@@ -6054,6 +6140,9 @@
            把殘量一次吃光並歸零（reset() 用的是同一招）。*/
         const df = controls.dampingFactor;
         controls.dampingFactor = 1; controls.update(); controls.dampingFactor = df;
+        // 顏色要回到「目前選取狀態該有的樣子」（pulse 改過 color，highlight 才是權威）
+        if (typeof highlight === 'function') highlight(lastHi.on, lastHi.color, lastHi.part);
+        markDirty();
       }
     }
     setAnim(anim);
@@ -6212,6 +6301,12 @@
         // 單一環節的場景才壓暗「同環節但不是主角」的那幾顆；多環節場景維持原樣（零回歸）
         const sib = sel && hasPart && !selPart && singleSeg;
         const fade = has && !sel;
+        /* C6 ④：pulse 每幀都會改這些材質的顏色與 emissive，所以它得知道
+           「不算 pulse 的話，這顆零件現在應該長什麼樣」——
+           淡出的零件不准被硬點亮，被點的那一顆的染色也不能被 pulse 蓋掉。*/
+        p.hiFade = fade;
+        p.hiTint = (tint && selPart) ? tint.clone() : null;
+        p.hiEm = selPart ? palNum('--dg-part-em', 0.5) : (sel ? palNum('--dg-sel-em', 0.22) : 0);
         p.mats.forEach(m => {
           const b = p.baseOp.get(m), bc = p.baseCol.get(m);
           m.opacity = fade ? Math.min(b, 0.12) : (sib ? Math.min(b, sibO) : b);
@@ -6414,6 +6509,17 @@
     function stepFlows(dt) {
       flowPts.forEach(o2 => {
         const f = o2.userData.flow;
+        f.age += dt;
+        /* 交流／充放電：電流真的會**反向**，不是一直往同一邊跑。
+           每半個週期換一次方向，看到的就是「充進去 → 放出來」。*/
+        if (f.bidir) f.dir = (f.age % f.bidir) < f.bidir / 2 ? 1 : -1;
+        /* 閘控：截止的時候電流是 0，所以粒子**整組藏起來而且不前進**。
+           （MOSFET 閘極關、PPTC 跳脫、壓敏電阻沒突波，都是這個狀態。）*/
+        if (f.gate) {
+          const on = (f.age % f.gate.per) < f.gate.per * f.gate.duty;
+          if (o2.visible !== on) o2.visible = on;
+          if (!on) return;
+        }
         f.t = (f.t + dt * f.speed) % 1;
         const arr = o2.geometry.attributes.position.array;
         let k = 0;
@@ -6433,6 +6539,119 @@
       });
     }
 
+    /* ================================================================ C6 ③：陣列零件各自旋轉
+       風扇牆是一個 InstancedMesh（28 片葉片、1 個 draw call）。要讓它真的在轉就得重算
+       instanceMatrix —— 但只重算矩陣，幾何完全沒動，所以成本是 28 次 compose，不是 28 次重建 buffer。*/
+    const _ip = new THREE.Vector3(), _iq = new THREE.Quaternion(), _ie = new THREE.Euler(),
+      _is = new THREE.Vector3(1, 1, 1), _im = new THREE.Matrix4();
+    function stepISpins(dt) {
+      for (let n = 0; n < ispinners.length; n++) {
+        const im = ispinners[n], sp = im.userData.ispin;
+        sp.t += sp.speed * dt;
+        const items = sp.items;
+        for (let i = 0; i < items.length; i++) {
+          const o2 = items[i], a = o2.a0 + sp.t;
+          _ie.set(0, o2.ry || 0, a + Math.PI / 2); _iq.setFromEuler(_ie);
+          _ip.set(o2.cx + Math.cos(a) * o2.r, Math.sin(a) * o2.r, o2.cz || 0);
+          _im.compose(_ip, _iq, _is);
+          im.setMatrixAt(i, _im);
+        }
+        im.instanceMatrix.needsUpdate = true;
+      }
+    }
+
+    /* ================================================================ C6 ④：一組零件依序點亮
+       為什麼這樣動是對的：這幾個場景裡「會動的」本來就不是零件本身，是**能量或訊號**——
+       晶圓在製程站之間往前走、訊號沿 TSV 由上往下貫穿、背光由下往上穿過一層層膜、
+       電容充放電。所以動的是顏色與發光，零件一動不動。
+
+       波形刻意用窄脈衝（cos 抬到 8 次方，半高寬只有週期的 1/8）：
+       同一時間只有一顆在亮，看起來像「有東西跑過去」；
+       用正弦的話會變成整排一起呼吸 —— 那就是 Andy 講過三次的「螢光感太重」。
+
+       兩個通道一起動，深淺兩個主題才都看得見：
+         · emissive  —— 科技模式的主角（深底上看得到光）
+         · 顏色往角色色靠 —— 閱讀模式的主角（--dg-sel-em 是 0，白紙上看得到的是變色不是發光）*/
+    const _pc = new THREE.Color(), _pt = new THREE.Color(), _pb = new THREE.Color();
+    let pulseAt = 0;
+    function stepPulses(dt) {
+      if (!pulses.length) return;
+      pulseAt += dt;
+      const em = palNum('--dg-part-em', 0.45);
+      for (let n = 0; n < pulses.length; n++) {
+        const pg = pulses[n], items = pg.items, cnt = items.length;
+        _pc.set(palColOpt(pg.token) || new THREE.Color('#58C4FF'));
+        for (let i = 0; i < cnt; i++) {
+          const it = items[i], p = it.p;
+          let u = (pulseAt / pg.period) - i / cnt + pg.phase;
+          u -= Math.floor(u);
+          const k = Math.pow(Math.max(0, Math.cos(u * Math.PI * 2)), pg.sharp) * pg.amp;
+          it.k = k;
+          if (p.hiFade) continue;      // 別的環節被選起來：這一顆本來就該淡出，不要硬把它點亮
+          const mats = p.mats;
+          for (let j = 0; j < mats.length; j++) {
+            const m = mats[j], ud = m.userData || {};
+            // 指示燈、流線、AO 墊片有自己的節奏，疊上去只會變成一團亮
+            if (ud.led || ud.glow || ud.ao) continue;
+            if (m.emissive) { m.emissive.copy(_pc); m.emissiveIntensity = p.hiEm + k * em * 1.15; }
+            const b = p.baseCol.get(m);
+            if (!b || !m.color) continue;
+            _pb.copy(b); if (p.hiTint) _pb.lerp(p.hiTint, 0.45);
+            m.color.copy(_pb).lerp(_pc, k * 0.4);
+          }
+        }
+      }
+    }
+    /* pulse 關掉時要把零件還原 —— 「關掉動畫」必須是**畫面真的停下來而且回到常態**，
+       不是停在某一顆剛好亮著的那一幀。emissive 的顏色是 pulse 自己改的，highlight() 只管強度，
+       所以顏色要在這裡自己收回去（一般材質的 emissive 本來就是黑的）。*/
+    function resetPulses() {
+      pulses.forEach(pg => pg.items.forEach(it => {
+        it.k = 0;
+        it.p.mats.forEach(m => {
+          const ud = m.userData || {};
+          if (ud.led || ud.glow || ud.ao) return;
+          if (m.emissive) m.emissive.setRGB(0, 0, 0);
+        });
+      }));
+    }
+
+    /* ================================================================ C6 ⑤：零件沿一軸位移
+       用在「這個零件在機器運轉時真的會走」的地方：螺帽沿著螺桿前後、工作台跟著走、
+       晶粒被取放、晶碇被往上提。
+       ⚠ 位移**不**觸發陰影貼圖重畫（bumpShadow）：接觸陰影是一片圓盤，
+         而且既有的扇葉旋轉也是這樣處理的 —— 每幀重畫陰影會把 30fps 的預算吃光。*/
+    let moveAt = 0;
+    function stepMoves(dt) {
+      if (!movers.length) return;
+      moveAt += dt;
+      for (let n = 0; n < movers.length; n++) {
+        const mv = movers[n];
+        let u = moveAt / mv.period + mv.phase;
+        u -= Math.floor(u);
+        const prev = mv.off;
+        // pingpong 用 -cos：兩端**減速再折返**，跟真的伺服軸一樣（線性往復會在端點硬生生彈回去）
+        const sgn = mv.mode === 'saw' ? (u * 2 - 1) : -Math.cos(u * Math.PI * 2);
+        mv.off = sgn * mv.amp;
+        mv.vel = (mv.off - prev) / Math.max(1e-4, dt);
+        for (let i = 0; i < mv.groups.length; i++) {
+          const g = mv.groups[i];
+          g.userData.mv[mv.axis] = mv.off;
+          place(g);
+        }
+      }
+      /* 螺桿轉多快，決定螺帽走多快 —— 反過來也一樣。
+         所以「跟著某個位移」的旋轉件，轉速直接由那個位移的速度算出來：
+         螺帽往右走時螺桿順時針，折返時螺桿也真的跟著反轉。
+         這是「動得符合物理」的關鍵：兩個各轉各的就會看起來像兩台機器。*/
+      for (let i = 0; i < spinners.length; i++) {
+        const sp = spinners[i].userData.spin;
+        if (!sp.sync) continue;
+        const mv = movers.find(x => x.name === sp.sync);
+        if (mv) sp.speed = mv.vel * (sp.base || 1);
+      }
+    }
+
     /* ---- 只在看得到、而且真的有東西變了的時候畫
        ★ 2026-09-23（DECISIONS #245）：以前是「每一幀都無條件 renderer.render()」——
          連「動畫：關、沒有人在拖曳」的狀態都在燒 CPU。加上環境貼圖之後每一幀貴了 3 倍，
@@ -6450,14 +6669,20 @@
       raf = requestAnimationFrame(tick);
       if (!visible) return;
       const now0 = performance.now();
-      if (anim && now0 - lastDraw < 32) return;                  // ① 動畫上限 30fps
+      const run = motionOn();
+      if (run && now0 - lastDraw < 32) return;                   // ① 動畫上限 30fps
       const dt = Math.min(0.05, (performance.now() - t0) / 1000); t0 = performance.now();
-      if (anim) {
+      if (run) {
+        /* C6：位移要排在旋轉**前面** —— 跟著位移走的旋轉件（螺桿）的轉速
+           是這一幀的位移速度算出來的，反過來排會慢一幀，折返的瞬間看得出來。*/
+        stepMoves(dt);
         spinners.forEach(s => { s.rotation[s.userData.spin.axis] += s.userData.spin.speed * dt; });
+        stepISpins(dt);
         const lb = palNum('--dg-led', 0.55);
         const k = lb + lb * 0.55 * (0.5 + 0.5 * Math.sin(performance.now() / 620));
         leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
         stepFlows(dt);
+        stepPulses(dt);
       }
       /* ★ #246 的爆炸補間刻意放在 `if (anim)` **外面**：
          展開／收攏是使用者用游標控制的狀態，不是「動態效果」的一部分。
@@ -6471,11 +6696,11 @@
         if (u >= 1) expAnim = null;
       }
       controls.update();
-      if (!anim && !dirty && now0 - lastDraw < 400) return;      // ②③ 靜止：沒變就不畫，400ms 補一張
+      if (!run && !dirty && now0 - lastDraw < 400) return;       // ②③ 靜止：沒變就不畫，400ms 補一張
       renderer.render(scene, camera);
       lastDraw = now0; dirty = false;
       // 自轉時每 4 幀重排一次標籤（引線要跟得上零件）；靜止時畫一次就排一次，才不會晚半秒才對齊
-      if (anim) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
+      if (run) { if (++relayout % 4 === 0) layoutLabels(); } else layoutLabels();
     };
     const io = typeof IntersectionObserver !== 'undefined'
       ? new IntersectionObserver(es => { visible = es.some(x => x.isIntersecting); }, { threshold: 0.02 }) : null;

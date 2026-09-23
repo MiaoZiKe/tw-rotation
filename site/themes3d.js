@@ -114,13 +114,17 @@
        1440 下一次看完、不必滑。其他圖沒傳 cw，吃的還是 1180，版面不動。*/
     const W = o.cw || CW;
     const MW = E.MW || 196, MH = E.MH || (E.ROW - 26);
-    const AX = Math.round(E.X + MW / 2 + 12);   // 引線起點：貼在零件框右緣，不是寫死的 +152
+    // 引線起點：有覆寫 MW 的圖貼著零件框右緣算；沒覆寫的維持原本寫死的 +152（其他圖的引線不能位移）
+    const AX = E.MW ? Math.round(E.X + MW / 2 + 12) : E.X + 152;
     const ly = o.layers, n = ly.length;
     const rowY = (i) => E.TOP + i * E.ROW;
     let maxRows = 1;
     // 零件之間的虛線對位軸＋箭頭：爆炸圖的關鍵視覺提示「這些是同一台拆開的」
     const guides = ly.slice(0, -1).map((s, i) => {
-      const a = rowY(i) - 22 + MH / 2 + 6, b = rowY(i + 1) - 22 - MH / 2 - 10;
+      /* 對位軸的起訖點：有覆寫 MH 的圖照零件實際佔的高度算（不然箭頭會插進下一個零件裡），
+         沒覆寫的圖維持原本寫死的 +26 / −44 —— 其他七張爆炸圖的虛線位置一格都不能動。*/
+      const a = E.MH ? rowY(i) - 22 + MH / 2 + 6 : rowY(i) + 26;
+      const b = E.MH ? rowY(i + 1) - 22 - MH / 2 - 10 : rowY(i + 1) - 44;
       if (b - a < 12) return '';
       return `<path class="etch" d="M${E.X},${a} V${b}" stroke-dasharray="4 7"/>`
         + `<path class="etch" d="M${E.X - 5},${b - 9} L${E.X},${b} L${E.X + 5},${b - 9}" fill="none"/>`;
@@ -154,7 +158,9 @@
         <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
         <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
         <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
+        // ⚠ 這個 #3ee0ff 是舊的寫死色碼（淺色主題下會過亮）。這一輪只做 AI 伺服器那一張，
+        // 動它會一起改到其他七張爆炸圖，所以留給「全部題材那一輪」跟零件庫裡另外 12 個一起換掉。
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="#3ee0ff" stroke-width="2"/>` : '');
     }).join('');
     const axis = `<text class="cap" x="${PADX}" y="${E.UNIT_Y || (E.TOP - 58)}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
     return `<svg class="dg dg3" data-cw="${W}" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${STYLE}${o.style || ''}
@@ -542,12 +548,23 @@
         return a.join('');
       })());
     // 光纖束：從交換器前面板垂下來再繞到左邊的運算機櫃（兩櫃之間是連著的）
+    // 光纖束：從交換器前面板垂下來、往左拉回運算機櫃。
+    // 終點要真的落在左櫃身上，停在半空中會看起來像「線斷掉」而不是「兩櫃之間連著」。
     net += [0, 1, 2, 3].map(i => {
       const sx = px(SX + 10 + i * 9, fy), sy0 = py(SX + 10 + i * 9, fy, swz + 2);
-      return `<path class="ai-fib" d="M${sx.toFixed(1)},${sy0.toFixed(1)} C${(sx - 14).toFixed(1)},${(sy0 + 26).toFixed(1)} ${(sx - 52 - i * 4).toFixed(1)},${(sy0 + 22).toFixed(1)} ${(sx - 74 - i * 5).toFixed(1)},${(sy0 + 54 + i * 4).toFixed(1)}" fill="none" stroke="var(--dg-opt,var(--dg-cold))" stroke-width="1.7" stroke-opacity=".75"/>`;
+      return `<path class="ai-fib" d="M${sx.toFixed(1)},${sy0.toFixed(1)} C${(sx - 20).toFixed(1)},${(sy0 + 30).toFixed(1)} ${(sx - 86 - i * 5).toFixed(1)},${(sy0 + 26).toFixed(1)} ${(sx - 128 - i * 6).toFixed(1)},${(sy0 + 66 + i * 5).toFixed(1)}" fill="none" stroke="var(--dg-opt,var(--dg-cold))" stroke-width="1.7" stroke-opacity=".75"/>`;
     }).join('');
-    // 一格一格的托盤（網通櫃下半部是理線與配線）
-    for (let i = 0; i < 3; i++) net += box(SX + 6, SY + 5, 12 + i * 13, SW - 12, SD - 9, 8, '');
+    // 下半部是配線盤：一格一格、每格前面板一排埠（空白層板看起來只是「架子」，不是網通設備）
+    for (let i = 0; i < 3; i++) {
+      const z = 12 + i * 13;
+      net += box(SX + 6, SY + 5, z, SW - 12, SD - 9, 8, '')
+        + aiFace(SX + 6, fy, z, (() => {
+          const a = [];
+          for (let k = 0; k < 10; k++) a.push(`<rect class="ai-port" x="${(4 + k * 5.4).toFixed(1)}" y="2.4" width="3.6" height="3.4" rx=".8"/>`);
+          return a.join('');
+        })());
+    }
+    net += box(SX, SY, 89, SW, SD, 6, '');   // 頂蓋：少了它上面是開口，看起來像半成品
     return pad(80, 46) + rack + aiShift(196, net);
   }
 
@@ -560,7 +577,7 @@
     unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
     style: AI_STYLE,
     cw: 980,
-    ex: { X: 176, TOP: 178, UNIT_Y: 68, ROW: 134, MW: 200, MH: 116, LX: 376, LW: 582, CHIP_DY: 34, SLOT_MIN: 112 },
+    ex: { X: 182, TOP: 182, UNIT_Y: 68, ROW: 140, MW: 212, MH: 122, LX: 376, LW: 582, CHIP_DY: 34, SLOT_MIN: 112 },
     layers: [
       S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊',
         '圖上：中央大晶粒、兩側各四疊 HBM、底下矽中介層與一排錫球'], ['2330', '3661', '3711'], 'foundry', vaPackage),

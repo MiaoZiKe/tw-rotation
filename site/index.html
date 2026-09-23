@@ -1672,7 +1672,7 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
    ★ 這三條 [hidden] 是必要的收尾：.row（flex）與 .pill（inline-flex）這些
      有 display 規則的類別會**蓋掉** UA 預設的 [hidden]{display:none}，
      不補的話「族群總覽」那一頁那幾顆工具鈕照樣看得到，按下去卻沒有圖可以動。*/
-#dgBody[hidden],#dgTools[hidden],#dgBack[hidden]{display:none}
+#dgBody[hidden],#dgTools[hidden]{display:none}
 
 .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
 .tile{background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.15s}
@@ -2030,12 +2030,30 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 .cgsvg{position:absolute;left:0;top:0;overflow:visible;display:block}
 .cglabels{position:absolute;left:0;top:0}
-/* 族群名：HTML，所以有省略號、字級精準 */
-.cglab{position:absolute;white-space:nowrap;font-size:12.5px;font-weight:600;color:var(--cg-ink);
-  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);max-width:150px;
-  overflow:hidden;text-overflow:ellipsis;transition:opacity .15s}
-.cglab.sel{color:var(--cg-ink-hi);font-weight:700}
+/* 族群名 ＋ 標籤式個股：HTML，所以有省略號、字級精準，也才點得到每一顆標籤。
+   ★ 2026-09-23 第十批 C5（Andy：「Default 顯示族群相連標籤個股」）——
+     以前這裡只有一行族群名（nowrap、單行），現在是一張小卡：上面族群名、下面個股標籤。
+     寬度釘在 168px：再寬的話 24 顆族群的碰撞框橫向就排不下，力導向只好整片縮小。
+     標籤數量由 industry.js 的收斂策略決定（節點越多每顆掛越少），CSS 這邊只負責排版。*/
+.cglab{position:absolute;font-size:12.5px;font-weight:600;color:var(--cg-ink);
+  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:168px;
+  display:flex;flex-direction:column;gap:3px;transition:opacity .15s}
+.cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.cglab.sel{color:var(--cg-ink-hi)}
+.cglab.sel .cgnm{font-weight:700}
 .cglab.dim{opacity:.22}
+/* 個股標籤。字級**下限是 12px**，不是 11px —— 關聯圖整張會被 fit() 縮到最小 0.92 倍，
+   12 × 0.92 ＝ 11.04px 才剛好守得住「手機不得小於 11px」那條線（12.5 → 11.5 也可以，
+   但標籤要排得下，所以取剛好守得住的那一個）。
+   底色用半透明的族群色，一眼看得出這幾檔屬於哪一顆球。*/
+.cgtags{display:flex;flex-wrap:wrap;gap:3px 4px}
+.cgtag,.cgmore{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
+  white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
+  background:var(--cg-tag-bg,rgba(255,255,255,.08));border:1px solid var(--c);
+  border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--cg-ink);cursor:pointer}
+.cgtag:hover,.cgmore:hover{border-color:var(--c);color:var(--cg-ink-hi)}
+.cgtag.sel{background:var(--c);border-color:var(--c);color:var(--cg-tag-on,#0b1220);font-weight:700}
+.cgmore{font-weight:600;opacity:.82;border-style:dashed}
 /* 連線 */
 .cgsvg .cge{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.45);
   stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
@@ -2148,11 +2166,18 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .cgzoom button{width:32px;height:32px;border-radius:9px;background:var(--cg-hud);color:var(--cg-ink);
   border:1px solid var(--cg-hud-line);cursor:pointer;font-size:15px;line-height:1}
 .cgzoom button:hover{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
-/* hover 族群大點才浮出來的個股小卡（Andy：hover 是唯一的展開條件） */
-/* ★ pointer-events:none 不可拿掉。小卡是 hover 才浮出來的，而「把滑鼠移到族群大點上」
-   跟「點那顆族群」是同一個動作 —— 小卡只要吃滑鼠，就會擋在它自己說明的那顆節點前面，
-   那顆節點當場變成點不下去（Playwright 直接回 "cgtip subtree intercepts pointer events"，
-   真人也一樣點到小卡）。要點個股請點圖上的小點，那是規格書指定的入口，本來就一直在。*/
+/* 點族群才跳出來的個股下拉清單（★ 2026-09-23 第十批 C5：「點擊後才會跳出下拉清單」）。
+   ★ 舊版寫死 pointer-events:none，理由是「hover 浮出的小卡會擋住它自己說明的那顆節點」。
+     那個前提在 C5 之後沒有了：現在它是**點出來的**、位置固定在框的另一側（placeTip），
+     而且有 × 可以關、點圖上空白處也會關。清單裡每一列都要點得進個股頁，
+     所以 `.open` 的時候一定要吃滑鼠 —— 不吃的話清單就只是一張看得到摸不到的圖。
+   沒有 .open 的狀態仍然不吃滑鼠，當作安全網（例如將來有人又拿它來做 hover 預覽）。*/
+.cgtip .tx{position:absolute;right:6px;top:5px;width:22px;height:22px;border-radius:7px;
+  background:transparent;border:1px solid var(--line-2);color:var(--ink-3);cursor:pointer;line-height:1}
+.cgtip .tx:hover{color:var(--ink);border-color:var(--ink-3)}
+.cgtip .th{padding-right:24px}
+.cgtip .ti.sel{background:var(--panel-3);outline:1px solid var(--line-2)}
+.cgtip.open{pointer-events:auto}
 .cgtip{pointer-events:none;position:absolute;z-index:7;width:min(260px,calc(100% - 20px));max-height:calc(100% - 20px);
   overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
   padding:8px 10px 9px;box-shadow:0 14px 34px -18px var(--drop);font-size:12px;line-height:1.55}
@@ -2211,13 +2236,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   --cg-ink:#dfe6ff; --cg-ink-hi:#ffffff; --cg-ink-2:#aab4e0; --cg-ink-3:#8089b8;
   --cg-edge:#aab6ee; --cg-edge-2:#8f9ad0; --cg-edge-op:.34; --cg-edge-hi:#ffffff;
   --cg-grid:rgba(180,190,255,.16); --cg-hud:rgba(14,16,38,.72); --cg-hud-line:rgba(160,175,255,.25);
-  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);}
+  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);
+  /* 個股標籤（C5）：深底 → 標籤用很淡的白霧，選起來才整顆填成族群色 */
+  --cg-tag-bg:rgba(18,22,48,.72); --cg-tag-on:#0b1220;}
 .cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 9px var(--c))}
 /* 02 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（唯一的亮底） */
 .cgraph[data-cgstyle="bubble"]{
   --cg-bg:radial-gradient(110% 90% at 40% 8%,#ffffff 0%,#eef4fd 55%,#e2eaf7 100%);
   --cg-ink:#1d2742; --cg-ink-hi:#0f1830; --cg-ink-2:#465577; --cg-ink-3:#6b7994;
   --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.5; --cg-edge-hi:#2b6cb0;
+  /* 亮底 → 標籤要用不透明的白，不然半透明白疊在淺藍底上等於沒有底、字會糊在背景裡 */
+  --cg-tag-bg:rgba(255,255,255,.88); --cg-tag-on:#101a2e;
   --cg-grid:rgba(120,140,180,.12); --cg-hud:rgba(255,255,255,.86); --cg-hud-line:#cfd9ea;
   --cg-deco:rgba(120,160,225,.055); --cg-lab-sh:none;}
 .cgraph[data-cgstyle="bubble"] .cgball{opacity:.8}
@@ -2235,7 +2264,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtop{left:12px;right:12px;top:auto;bottom:52px;justify-content:flex-start}
   .cggsearch input{width:96px}
   .cglegend{bottom:12px;max-width:calc(100% - 92px);gap:6px 8px}
-  .cglab{font-size:12px;max-width:110px}
+  /* 手機：卡片收窄，但**字級一個都不往下調** —— 12px 已經是 fit() 縮到 0.92 倍之後
+     還守得住 11px 的最低值，再調就破線了（見上面 .cgtag 的註解）。*/
+  .cglab{font-size:12px;max-width:124px}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
@@ -2256,7 +2287,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    修法兩件事配成一組：標題可收縮（`flex:1 1 auto` ＋ 既有的 `min-width:0`，文字自己換行），
    設定列不收縮並用 `margin-left:auto` 頂到右緣 —— 這樣不論標題多長都留在同一列的最右邊。 */
 .dgsechead{flex-wrap:nowrap}      /* 寬畫面不准換行：換行＝設定列掉到第二列，就不是「標題右邊」了 */
-.dgsechead h4{min-width:0;flex:1 1 auto}
+/* ★ 2026-09-23 第十批 C1：「產品剖析圖」那個 h4 拿掉了，左邊剩下 .dgsectitle
+   （裡面只有圖名 #dgTitle）。兩個選擇器都留著：h4 那一條給還沒改到的地方，
+   不留的話萬一有別頁還在用 h4，設定列會整條掉到第二列。 */
+.dgsechead h4,.dgsechead .dgsectitle{min-width:0;flex:1 1 auto}
+/* 標題沒了之後這一行只剩灰色小字，行高要補回來，不然它跟右邊那排 pill 的頂端對不齊 */
+.dgsectitle{font-size:12.5px;line-height:1.5;padding-top:3px}
 /* `flex:0 1 auto` 而不是 `0 0 auto`：中等寬度（實測 1100px）容器只剩約 700px，
    設定列自然寬 587px ＋ 標題最小寬就放不下，硬不收縮就會整條掉到第二列。
    允許它自己把 pill 折成兩排，配上 `align-items:flex-start` 讓兩邊的頂端對齊，

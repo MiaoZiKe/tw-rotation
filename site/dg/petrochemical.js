@@ -58,6 +58,60 @@
   'use strict';
   const D = window.DG;
   if (!D || typeof D.register !== 'function') return;   // diagrams.js 沒載到就安靜退出
+  const { extRow, note, fold } = D;
+
+  /* ================================================================ v2 版面（2026-09-23）
+     Andy：「傳產與內需 & 基礎建設與能源 2D 圖並沒有調整適當大小，請去調整，調整適當範圍，別浪費空白」。
+     ----------------------------------------------------------------
+     上一批的做法是「在 980 的框裡補小圖填空白」，他看過之後說**還是沒調好** —— 以他的為準，換做法。
+     真正的問題不是「框裡有沒有東西」，是**整張圖的尺度**：這一批其餘 12 張已經收到 660／700，
+     只有這張與重電那張還是 980，於是在同樣的欄寬下被縮得比別人小、四周留白比別人多。
+     所以改成跟那 12 張（`server_psu`／`foundry`／`silicon_wafer`）完全一致的 v2 版面：
+       · svg 根掛 `rs` → `externalize()` 把說明搬成 HTML 卡片（`.dgc`），
+         欄寬由 index.html 的 `.dgv2` 容器查詢決定（1440 三欄／800 兩欄／390 單欄），
+         **圖檔裡不寫死「右邊留多少 px」**。
+       · 畫布 980 → **660**（`native` 同步改）；畫布上只留「畫」的部分，
+         說明文字、圖例、結論行全部變卡片。
+       · 章節改用 `D.fold()`（範圍由 `getBBox()` 量），不再手寫 y0／y1 與 translate。
+     ⚠ 上一批為了填空白補進去的兩塊（三格裂解價差小卡、芳香烴車道的 B／T／PX 分支標註）：
+       前者留著（收窄成三格 196 寬，它本來就是這張圖的命題），
+       後者在 660 的尺度下會變成硬塞 —— 改成章節 ② 裡的編號 ④ ＋ 圖例行，
+       **它講的事一個字都沒有消失**，只是換了位置。
+     沒有放寬的事：`data-part` 23 個一個不改名、一個不減少；六站 `data-seg` 照舊；
+     JS 裡一個十六進位色碼都沒有。*/
+  const CW = 660;
+
+  /* 兩排主體都是「幾何整組縮小放進 660 的畫布」。★ 文字一律留在縮放群組**外面**：
+     字級縮下去就破了 12px 硬下限（DECISIONS #227），所以縮的永遠只有圖形。*/
+  const K1 = 0.65, K1X = 5.6, K1Y = -90.5;      // 第一排（裂解廠本體）：原圖 x[16,975] y[210,444]
+  const f1x = (x) => +(x * K1 + K1X).toFixed(1);
+  const f1y = (y) => +(y * K1 + K1Y).toFixed(1);
+  const K2 = 0.66, K2X = 5.44, K2Y = -349.2;    // 第二排（基本原料與下游）：原圖 x[16,960] y[620,800]
+  const f2x = (x) => +(x * K2 + K2X).toFixed(1);
+  const f2y = (y) => +(y * K2 + K2Y).toFixed(1);
+
+  const T = (x, y, t, cls, anchor, style) =>
+    `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${t}</text>`;
+  /* 章節裡的編號圓點。★ 章節內**不能**用 `extRow` —— `externalize()` 會把卡片抽到左右欄，
+     錨點卻留在收合起來的章節裡，於是出現一張指不到任何東西的孤兒卡片。
+     所以章節裡的標註一律是畫布上的編號圓點 ＋ 底下一段圖例行。*/
+  const ndot = (x, y, n) =>
+    `<g pointer-events="none"><circle class="ndot" cx="${x}" cy="${y}" r="9.5"/>`
+    + `<text class="nnum" x="${x}" y="${y}">${String(n).padStart(2, '0')}</text></g>`;
+
+  /* 卡片的元件色（`data-dgcolor`），跟畫面上那個零件的材質色同一個 token */
+  const CC = {
+    mute: 'var(--dg-mute)', steel: 'var(--dg-steel)', cold: 'var(--dg-cold)', el: 'var(--dg-el)',
+    alu: 'var(--dg-alu)', cer: 'var(--dg-cer)', cover: 'var(--dg-cover)', fws: 'var(--dg-fws)',
+    accent: 'var(--dg-accent-2d)',
+  };
+  /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點與引線。
+     ★ `seg` 與 `part` 照舊掛上去 —— externalize 會把身分搬到卡片上，
+     點卡片＝點那個零件（互動一個都沒少）。*/
+  const card = (o) => extRow({
+    seg: o.seg, part: o.part, title: o.title, sub: o.sub, no: o.no,
+    side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order,
+  });
 
   /* ================================================================ 環節（站）與零件身分
      六站＝§3-E 的六格流程，data-seg 用中文站名（理由見檔頭）。*/
@@ -158,23 +212,21 @@
     </g></g>`;
 
   /* 裂解價差的三個情境小卡（§3-D：靜態、不標任何數值）。
-     ★ 2026-09-23：原本右半只有「價差還在／價差倒掛」兩個 152×34 的小色塊，
-       右邊將近三分之一的框是空的（Andy 的截圖就是指這一塊）。
-       現在補成**三個等寬小卡**（還在／變薄／倒掛）由左排到框的右緣，
-       而且中間補上「變薄」這個真正常見的狀態 —— 它本來就是這張圖要講的事，不是為了填空白硬加的。
+     ★ 2026-09-23 v2：寬度與 y 改成參數 —— 660 的畫布放不下原本 140 寬 ×3 靠右排的版面，
+       現在三格各 196 寬、從 x=16 排到 x=628（＝畫布左右各留 16），中間不留空白。
      k：0＝產品線在上（賺）、1＝兩條線靠近（薄）、2＝產品線在下（倒掛）。*/
-  function spreadCase(x, title, col, k, lines) {
-    const w = 140, yT = 116, yB = 150;                 // 小卡裡那兩條線的上下界
+  function spreadCase(x, y0, w, title, col, k, lines) {
+    const yT = y0 + 20, yB = y0 + 54;                  // 小卡裡那兩條線的上下界
     const prod = k === 2 ? yB : (k === 1 ? yT + 22 : yT);   // 產品線
     const cost = k === 2 ? yT : (k === 1 ? yT + 30 : yB);   // 成本線（石油腦）
-    const y0 = Math.min(prod, cost), y1 = Math.max(prod, cost);
+    const a = Math.min(prod, cost), b = Math.max(prod, cost);
     return `<g>`
-      + `<rect x="${x}" y="${96}" width="${w}" height="${98}" rx="6" fill="none" stroke="${V(col)}" stroke-opacity=".38"/>`
-      + `<text class="lbl" x="${x + 10}" y="${112}" style="fill:${V(col)}">${title}</text>`
-      + `<rect x="${x + 10}" y="${y0}" width="${w - 20}" height="${Math.max(3, y1 - y0)}" fill="${V(col)}" opacity=".18"/>`
+      + `<rect x="${x}" y="${y0}" width="${w}" height="98" rx="6" fill="none" stroke="${V(col)}" stroke-opacity=".38"/>`
+      + `<text class="lbl" x="${x + 10}" y="${y0 + 16}" style="fill:${V(col)}">${title}</text>`
+      + `<rect x="${x + 10}" y="${a}" width="${w - 20}" height="${Math.max(3, b - a)}" fill="${V(col)}" opacity=".18"/>`
       + `<path d="M${x + 10},${prod} H${x + w - 10}" stroke="${V('--dg-accent-2d')}" stroke-width="2" fill="none"/>`
       + `<path d="M${x + 10},${cost} H${x + w - 10}" stroke="${V('--dg-mute')}" stroke-width="2" fill="none" stroke-dasharray="6 4"/>`
-      + lines.map((t, i) => `<text class="sub" x="${x + 10}" y="${166 + i * 16}"${k === 2 ? ` style="fill:${V(col)}"` : ''}>${t}</text>`).join('')
+      + lines.map((t, i) => `<text class="sub" x="${x + 10}" y="${y0 + 70 + i * 16}"${k === 2 ? ` style="fill:${V(col)}"` : ''}>${t}</text>`).join('')
       + `</g>`;
   }
 
@@ -338,9 +390,79 @@
       + `<circle cx="950" cy="${GC - 5}" r="1.4" fill="${V('--dg-cer')}"/>`);
   }
 
+  /* ================================================================ 第二排的四條產品線
+     §3-C 的五條線：**起點一律是產出它的那一座槽／那一組塔**。
+     2026-09-23 v2：從主體抽成一支函式，因為它跟第二排的設備一起被縮放進章節 ②。*/
+  function laneLines() {
+    return `<g pointer-events="none">
+      <path d="M84,${GB - 40} H352" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <path d="M482,${GB - 40} H500" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <path d="M578,${GB - 40} H598" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <path d="M634,${GB - 34} H644" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <!-- 乙烯 → 乙苯 → SM：第一條匯進 SM 的線 -->
+      <path d="M700,${GB - 40} H772 V712 H786" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <!-- 苯（來自芳香烴抽取）→ SM：第二條匯進 SM 的線。★ §3-A 硬規則 9：只畫一條＝錯 -->
+      <path d="M158,${GC - 40} H752 V726 H786" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <!-- PX（同樣來自芳香烴抽取）→ PTA。★ §3-A 硬規則 8：不准接在乙烯下面 -->
+      <path d="M158,${GC - 14} H884" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <!-- 丙烯 → PP、丁二烯 → 抽取 → 合成橡膠與 ABS -->
+      <path d="M164,${GB - 6} H300 V${GB - 34} H356" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <path d="M219,${GB - 6} H234" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
+      <!-- 芳香烴那條車道：抽取出來的三支各往哪裡去（上一批補的那一段敘事，v2 保留，標註改走編號 ④） -->
+      <path d="M168,${GC - 26} H780" stroke="var(--dg-alu-2)" stroke-width="1.6" fill="none" opacity=".55" marker-end="url(#ncAr)"/>
+      <path d="M228,${GC - 26} v-10 M400,${GC - 26} v-10 M572,${GC - 26} v-10" stroke="var(--dg-alu-2)" stroke-width="1.4" fill="none" opacity=".7"/>
+    </g>`;
+  }
+
+  /* ================================================================ 章節 ②：第二排（基本原料與下游）
+     幾何整組縮 0.66 放進 660 的畫布；標註一律在縮放群組外面，用編號圓點 ＋ 底下的圖例行。*/
+  function areaLanes() {
+    return `<g>
+      ${T(16, 18, '⑤⑥ 四支基本原料與它們的下游：四支的景氣各自獨立，一支好不代表整廠的帳好看', 'hd')}
+      ${T(16, 38, '★ 丁二烯從混合碳四抽出來；芳香烴從裂解汽油加氫後抽出來；PTA 的原料是對二甲苯（PX）不是乙烯。', 'sub')}
+      <g><g transform="translate(${K2X},${K2Y}) scale(${K2})">
+        <path d="M16,${GB} H700" stroke="var(--dg-mute)" stroke-width="1.6" fill="none" opacity=".6"/>
+        <path d="M16,${GC} H960" stroke="var(--dg-mute)" stroke-width="1.6" fill="none" opacity=".6"/>
+        ${laneLines()}${laneProducts()}${laneDown()}
+      </g></g>
+      ${ndot(f2x(58), f2y(660), 1)}
+      ${ndot(f2x(170), f2y(676), 2)}
+      ${ndot(f2x(272), f2y(668), 3)}
+      ${ndot(f2x(105), f2y(762), 4)}
+      ${ndot(f2x(420), f2y(672), 5)}
+      ${ndot(f2x(542), f2y(676), 6)}
+      ${ndot(f2x(650), f2y(660), 7)}
+      ${ndot(f2x(816), f2y(700), 8)}
+      ${ndot(f2x(930), f2y(762), 9)}
+      <rect class="frame" x="16" y="196" width="628" height="156" rx="8"/>
+      ${T(30, 220, '這一排每一格是什麼（對到圖上的編號）', 'hd')}
+      ${T(30, 242, '① 乙烯低溫儲槽（包厚保冷）　② 丙烯與丁二烯球槽　③ 丁二烯抽取單元（萃取蒸餾）', 'sub')}
+      ${T(30, 260, '④ 裂解汽油加氫 ＋ 芳香烴（BTX）抽取：苯（B）→ 苯乙烯 SM；甲苯（T）多半再轉成苯與二甲苯；', 'sub')}
+      ${T(30, 278, '　 二甲苯／對二甲苯（PX）→ 純對苯二甲酸 PTA。', 'sub')}
+      ${T(30, 296, '⑤ PE／PP 造粒與粒料倉　⑥ EG／可塑劑　⑦ EDC → VCM → PVC 聚合釜', 'sub')}
+      ${T(30, 314, '⑧ 苯乙烯 SM：★ 兩條線匯進來（乙烯＋苯）　⑨ PTA 氧化反應器（成品是白色粉體，不是粒）', 'sub')}
+      ${T(30, 332, '烯烴線＝PE·PP·PVC·EG（日用塑膠與化工品）；芳香烴線＝SM·PTA（ABS 與聚酯的原料）。', 'sub')}
+    </g>`;
+  }
+
+  /* ================================================================ 章節 ③：製造流程六格 */
+  function areaFlow() {
+    return `<g>
+      ${T(16, 18, '製造流程（六格）　★ 急冷一定在壓縮之前、壓縮一定在分離之前；分離塔組依碳數由小到大脫出', 'cap')}
+      ${D.processBar(16, 28, [
+    { seg: S1, t: '① 原料進料', s: '石油腦儲槽（可摻乙烷）' },
+    { seg: S2, t: '② 裂解與急冷', s: '爐管裂解 → 急冷' },
+    { seg: S3, t: '③ 壓縮與淨化', s: '壓縮 → 鹼洗 → 乾燥' },
+    { seg: S4, t: '④ 深冷分離', s: '冷箱 → 六支塔' },
+    { seg: S5, t: '⑤ 四支基本原料', s: '乙烯·丙烯·丁二烯·芳香烴' },
+    { seg: S6, t: '⑥ 下游衍生物', s: 'PE·PP·PVC·EG·SM·PTA' },
+  ], 196, { cols: 3 })}
+    </g>`;
+  }
+
   /* ================================================================ 整張圖 */
   function naphthaCracker() {
-    return `<svg class="dg dgm dgnc" viewBox="0 0 980 1286" width="100%" style="display:block">${D.STYLE}
+    return `<svg class="dg dgm rs dgnc" viewBox="0 0 ${CW} 440" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ 這一段的註解裡一個角括號都不准出現 —— SVG 裡的 style 是被當標記解析的，
            寫一個長得像標籤的東西進去會讓整張樣式表變成 0 條規則（DECISIONS #231）。
@@ -350,12 +472,11 @@
            進到這一頁時，industry.js 會把「這個族群對應到哪些環節」當成選起來的那一組。
            石化族群在供應鏈資料裡唯一對得到的是 1303 南亞，而南亞的節點掛在
            「銅箔／玻纖布／樹脂」那一格 —— 也就是說，選起來的那一格**不在這張圖上**，
-           於是 27 個零件全部被判成 dim、整張圖用 opacity .3 畫出來（實測：預設狀態 27/27 dim）。
+           於是全部零件被判成 dim、整張圖用 opacity .3 畫出來。
            那不是「有東西被選起來」，那是「一張看不清楚的圖」。
 
            修法：壓暗只在**真的有主角的時候**才作用。
-           haspart 是 highlightSegments 在「這張圖上真的有一個被點的零件」時掛上去的 class，
-           所以沒有人被點著的時候（＝剛進頁面）一律不壓暗，點了零件之後才壓暗其餘的。
+           haspart 是 highlightSegments 在「這張圖上真的有一個被點的零件」時掛上去的 class。
            前面那個 svg 型別選擇器是必要的：不加的話特異性跟 diagrams.js 的那一條一樣，
            會被後載入的蓋掉（同 ic_substrate 的 dgabf 那一段）。*/
         svg.dgnc:not(.haspart) [data-seg].dim{opacity:1}
@@ -373,6 +494,10 @@
         svg.dgnc [data-seg]:hover .part{stroke-width:1.8;filter:none}
         svg.dgnc [data-seg].sel-part .part{stroke-width:2.4;filter:none}
         svg.dgnc [data-seg].sel-part .pw{filter:drop-shadow(0 0 5px var(--c))}
+        /* 章節裡的編號圓點（不是卡片錨點，所以 diagrams.js 的 .anc 規則吃不到，樣式在這裡自己給） */
+        svg.dgnc .ndot{fill:var(--dg-accent-2d);opacity:.92}
+        svg.dgnc .nnum{font-family:"JetBrains Mono",monospace;font-size:var(--dg-fs-min);font-weight:700;
+          fill:var(--dg-no-ink);dominant-baseline:central;text-anchor:middle}
       </style>
       <defs>
         <marker id="ncAr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
@@ -382,164 +507,104 @@
           <path d="M0,1 L9,5 L0,9Z" fill="var(--dg-mute)"/>
         </marker>
       </defs>
-      <text class="ttl" x="16" y="26">輕油裂解廠：石化這一格的錢在看什麼</text>
-      <text class="cap" x="16" y="46">石油腦 → 裂解爐 → 急冷 → 壓縮 → 分離塔組 → 乙烯／丙烯／丁二烯／芳香烴 → 下游。賺的是產品價格減掉進料成本的那一段，不是產品價格本身。</text>
-      <text class="cap" x="16" y="64">一種原料進去、四支基本原料一次全部出來 ——「一進多出」是這座廠的本質，也是「石化景氣」其實是四條線各自景氣的原因。</text>
+      <!-- 標題與導讀：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
+      <text class="ttl ext" x="0" y="0">輕油裂解廠：一進多出與裂解價差</text>
+      <text class="cap ext" x="0" y="0">石油腦 → 裂解爐 → 急冷 → 壓縮 → 分離塔組 → 乙烯／丙烯／丁二烯／芳香烴 → 下游。賺的是產品價格減掉進料成本的那一段，不是產品價格本身。一種原料進去、四支基本原料一次全部出來 ——「一進多出」是這座廠的本質，也是「石化景氣」其實是四條線各自景氣的原因。左邊界外是煉油廠：它跟裂解廠是兩個廠。四支基本原料與下游、製造流程六格收在下面兩段。</text>
 
-      <!-- ================= 裂解價差帶（§3-D）：靜態，不標任何數值 ================= -->
-      ${P('裂解價差', 'nc_spread', '--dg-accent-2d', '<rect class="frame part" x="16" y="78" width="948" height="118" rx="8"/>')}
+      <!-- ================= §1-a 裂解廠本體（永遠看得到）=================
+           幾何整組縮 0.65 放進 660 的畫布；說明全部是 HTML 卡片，畫布上只有編號圓點與引線。-->
+      ${T(16, 18, '① 裂解廠本體：石油腦進去，一次全部斷成小分子', 'hd')}
+      ${T(16, 36, '左邊界外是煉油廠 —— 它跟裂解廠是兩個廠；灰虛線＝氫氣／甲烷回爐當燃料（副產，不是第五支產品）。', 'cap')}
+      <!-- ⚠ 外面一定要再包一層 g：wireFolds() 的 solidBottom 量的是 svg 直屬子節點的 getBBox()，
+           而 getBBox() 不含元素自己的 transform —— 縮放群組直接當 svg 的子節點，量到的會是縮放前的高度，
+           於是第一條章節列被推下去、中間空出一大塊（silicon_wafer 那張實測過）。-->
+      <g><g transform="translate(${K1X},${K1Y}) scale(${K1})">
+        <!-- 氫氣與甲烷：從冷箱／脫甲烷塔頂分出去，回頭當燃料（§3-A 硬規則 12） -->
+        <path d="M740,240 H262 V${GA - 158}" stroke="var(--dg-mute)" stroke-width="2.2" fill="none" stroke-dasharray="9 7" marker-end="url(#ncArM)"/>
+        ${seg1()}${seg2()}${seg3()}${seg4()}
+        <g pointer-events="none">
+          <path d="M16,${GA} H975" stroke="var(--dg-mute)" stroke-width="1.6" fill="none" opacity=".7"/>
+          ${person(690, GA)}
+        </g>
+        <!-- 管廊：石化廠最好認的特徵，架高、貫穿全廠（§4 全廠） -->
+        ${P('全廠', 'nc_piperack', '--dg-fws', `<g>
+          <rect class="part" x="16" y="${GA + 8}" width="684" height="16" rx="3" fill="var(--dg-fws-2)"/>
+          <path d="M16,${GA + 11} H700 M16,${GA + 16} H700 M16,${GA + 21} H700" stroke="var(--dg-fws)" stroke-width="2" fill="none"/>
+          <path d="M60,${GA + 24} v10 M180,${GA + 24} v10 M300,${GA + 24} v10 M420,${GA + 24} v10 M540,${GA + 24} v10 M660,${GA + 24} v10" stroke="var(--dg-fws-2)" stroke-width="2.4" fill="none"/>
+        </g>`)}
+      </g></g>
+      ${T(462, 192, '↑ 1.7 m 比例小人', 'cap')}
+
+      <!-- ================= §1-b 裂解價差（永遠看得到；這張圖的命題）================= -->
+      ${T(16, 222, '② 裂解價差：賺的是這一段的厚度（圖上不寫任何數值）', 'hd')}
+      ${P('裂解價差', 'nc_spread', '--dg-accent-2d', '<rect class="frame part" x="16" y="234" width="628" height="114" rx="8"/>')}
       <g pointer-events="none">
-        <text class="hd" x="32" y="102">裂解價差：賺的是這一段的厚度（圖上不寫任何數值）</text>
-        <text class="sub" x="32" y="126">上面那條線＝產品（乙烯／丙烯）賣得掉的價，下面那條線＝石油腦的成本。</text>
-        <text class="sub" x="32" y="144">兩條線的絕對高度沒有意義，有意義的只有中間那一段的厚度。</text>
-        <text class="sub" x="32" y="162" style="fill:var(--dg-warn)">石油腦漲、乙烯沒跟上 → 這一段變薄；薄到倒掛 → 開越多賠越多。</text>
-        <text class="cap" x="32" y="184">示意，不代表任何時點的實際價差。這條帶只跨裂解廠自己那一段（段 1～段 5）。</text>
-        ${spreadCase(520, '價差還在', '--dg-accent-2d', 0, ['產品線在上、成本線在下，', '中間這一段就是賺的厚度。'])}
-        ${spreadCase(664, '價差變薄', '--dg-warn', 1, ['石油腦漲、乙烯沒跟上 →', '兩條線靠近，厚度變薄。'])}
-        ${spreadCase(808, '價差倒掛', '--dg-err', 2, ['產品線掉到成本線下 →', '開越多賠越多，只能減產。'])}
+        ${spreadCase(16, 242, 196, '價差還在', '--dg-accent-2d', 0, ['產品線在上、成本線在下，', '中間這一段就是賺的厚度。'])}
+        ${spreadCase(224, 242, 196, '價差變薄', '--dg-warn', 1, ['石油腦漲、乙烯沒跟上 →', '兩條線靠近，厚度變薄。'])}
+        ${spreadCase(432, 242, 196, '價差倒掛', '--dg-err', 2, ['產品線掉到成本線下 →', '開越多賠越多，只能減產。'])}
       </g>
 
-      <!-- ================= 第一排：裂解廠本體（段 1～段 4） ================= -->
-      <text class="hd" x="16" y="212">① 裂解廠本體：石油腦進去，一次全部斷成小分子（左邊界外是煉油廠 —— 它跟裂解廠是兩個廠）</text>
-      <!-- 氫氣與甲烷：從冷箱／脫甲烷塔頂分出去，回頭當燃料（§3-A 硬規則 12：分支，不是第五支產品） -->
-      <g pointer-events="none">
-        <path d="M740,240 H262 V${GA - 158}" stroke="var(--dg-mute)" stroke-width="1.6" fill="none" stroke-dasharray="7 5" marker-end="url(#ncArM)"/>
-        <text class="sub" x="462" y="232" style="fill:var(--dg-mute)">氫氣／甲烷 → 回爐當燃料（副產）</text>
-      </g>
-      ${seg1()}${seg2()}${seg3()}${seg4()}
-      <g pointer-events="none">
-        <path d="M16,${GA} H964" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".7"/>
-        ${person(690, GA)}
-        <text class="sub" x="672" y="${GA - 20}" style="fill:var(--dg-mute)">1.7 m</text>
-        <!-- 兩支精餾塔的塔頂產物：標題直接站在自己那一支塔的正上方（不必拉線，也不會壓在塔身上） -->
-        <text class="sub" x="840" y="290" text-anchor="middle">乙烯</text>
-        <text class="sub" x="916" y="296" text-anchor="middle">丙烯</text>
-        <!-- 脫丁烷塔的兩支產物：塔頂＝混合碳四（丁二烯的來源）、塔底＝裂解汽油（芳香烴的來源）。
-             引線一律從**產出它的那一支塔**出發（§3-C 硬規則），並且繞過塔頂再水平拉到文字。 -->
-        <path d="M952,${GA - 56} V252 H848" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none"/>
-        <path d="M961,${GA - 8} H970 V270 H848" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none"/>
-        <text class="sub" x="700" y="256">混合碳四 → 丁二烯</text>
-        <text class="sub" x="700" y="274">塔底：裂解汽油 → 芳香烴</text>
-      </g>
+      <!-- ================= 說明卡片（HTML，左右兩欄；引線由 externalize 畫，錨點在畫布上）=================
+           左欄錨點 x 小於 330、右欄大於 330 —— 引線只從自己那一側進來，不橫越整張圖。-->
+      ${card({ seg: S1, part: 'nc_refinery', no: 1, side: 'l', color: CC.mute, ax: f1x(35), ay: f1y(388),
+    title: '煉油廠（界外，不是這座廠的一部分）', sub: ['石油腦是煉油廠的產品、裂解廠的原料 —— 兩者是不同的廠。'] })}
+      ${card({ seg: S1, part: 'nc_naphtha_tank', no: 2, side: 'l', color: CC.steel, ax: f1x(112), ay: f1y(390),
+    title: '① 原料進料：石油腦浮頂儲槽', sub: ['矮而寬、頂蓋浮在液面上（頂面低一截，看得出一圈環狀走道）。', '成本就從這一槽開始算 —— 裂解價差下面那條線指的就是它。'] })}
+      ${card({ seg: S1, part: 'nc_ethane', no: 3, side: 'l', color: CC.cold, ax: f1x(58), ay: f1y(314),
+    title: '乙烷進料分支（另一種吃法）', sub: ['改吃乙烷，乙烯收率高，但丙烯、丁二烯、芳香烴會變少。', '方向有來源、比例沒有，所以圖上只寫方向、不寫百分比。'] })}
+      ${card({ seg: S2, part: 'nc_furnace', no: 4, side: 'l', color: CC.el, ax: f1x(225), ay: f1y(330),
+    title: '② 裂解爐：直立蛇行爐管站在爐膛裡', sub: ['石油腦在爐管裡以約 750–900 °C 裂成小分子，停留不到一秒。', '爐子不是「挑出乙烯」，是把大分子打斷 —— 斷出來的一次全都有。'] })}
+      ${card({ seg: S2, part: 'nc_tle', no: 5, side: 'l', color: CC.alu, ax: f1x(284), ay: f1y(328),
+    title: '急冷換熱器（TLE）', sub: ['短粗、兩端法蘭。一出爐就要急冷，不然剛裂好的會反應掉。'] })}
+      ${card({ seg: S2, part: 'nc_quench', no: 6, side: 'l', color: CC.steel, ax: f1x(336), ay: f1y(330),
+    title: '急冷油塔與急冷水塔（兩支）', sub: ['塔底那條明顯大管徑的循環回流管接回塔中段，就是「洗」的證據。', '★ 急冷一定在壓縮之前。'] })}
+      ${card({ seg: '全廠', part: 'nc_piperack', no: 7, side: 'l', color: CC.fws, ax: f1x(300), ay: f1y(428),
+    title: '管廊（pipe rack）', sub: ['一排架高的平行管束貫穿全廠 —— 石化廠一眼認得出的特徵。'] })}
+      ${card({ seg: S3, part: 'nc_compressor', no: 8, side: 'r', color: CC.alu, ax: f1x(522), ay: f1y(372),
+    title: '③ 壓縮與淨化：裂解氣壓縮機組', sub: ['★ 一根軸串起多個機殼、一端接一台大型驅動機，不是一顆小方塊。', '每段之間各有一組段間冷卻器與分液罐。'] })}
+      ${card({ seg: S3, part: 'nc_caustic', no: 9, side: 'r', color: CC.steel, ax: f1x(614), ay: f1y(340),
+    title: '鹼洗塔（脫酸性氣體）', sub: ['明顯比分離塔細的一支高塔，夾在壓縮機的段與段之間。'] })}
+      ${card({ seg: S3, part: 'nc_dryer', no: 10, side: 'r', color: CC.steel, ax: f1x(650), ay: f1y(370),
+    title: '乾燥器（一開一備的兩支吸附塔）', sub: ['水沒除乾淨，後面的深冷會結冰堵塔 —— 這一格是深冷分離的門票。'] })}
+      ${card({ seg: S4, part: 'nc_coldbox', no: 11, side: 'r', color: CC.cold, ax: f1x(725), ay: f1y(350),
+    title: '④ 深冷分離：冷箱（方箱，不是塔）', sub: ['★ 包厚保冷、表面結霜的方箱。先把氫氣分出來，剩下的才進脫甲烷塔。', '氫氣與甲烷回頭當燃料（圖上那條灰虛線），不是並排的第五支產品。'] })}
+      ${card({ seg: S4, part: 'nc_towers', no: 12, side: 'r', color: CC.steel, ax: f1x(840), ay: f1y(320),
+    title: '分離塔組：六支塔，高度明顯不一樣', sub: ['脫甲烷（最高最粗、包保冷）→ 脫乙烷 → 乙烯精餾 → 脫丙烷 → 丙烯精餾 → 脫丁烷。', '塔頂出乙烯與丙烯；脫丁烷塔頂＝混合碳四（丁二烯的來源）、塔底＝裂解汽油（芳香烴的來源）。'] })}
+      ${card({ seg: S4, part: 'nc_hydro', no: 13, side: 'r', color: CC.alu, ax: f1x(820), ay: f1y(390),
+    title: '碳二／碳三加氫反應器', sub: ['成對出現，除掉乙炔與丙炔，乙烯與丙烯才到得了聚合級。', '位置固定在「脫某某塔之後、精餾塔之前」。'] })}
+      ${card({ seg: '裂解價差', part: 'nc_spread', no: 14, side: 'r', color: CC.accent, ax: 640, ay: 290,
+    title: '裂解價差（crack spread）', sub: ['上面那條線＝產品（乙烯／丙烯）賣得掉的價，下面那條＝石油腦的成本。', '兩條線的絕對高度沒有意義，有意義的只有中間那一段的厚度。', '石油腦漲、乙烯沒跟上 → 變薄；薄到倒掛 → 開越多賠越多。', '示意，不代表任何時點的實際價差；這條帶只跨裂解廠自己那一段。'] })}
 
-      <!-- 管廊：石化廠最好認的特徵，架高、貫穿全廠（§4 全廠） -->
-      ${P('全廠', 'nc_piperack', '--dg-fws', `<g>
-        <rect class="part" x="16" y="${GA + 8}" width="684" height="16" rx="3" fill="var(--dg-fws-2)"/>
-        <path d="M16,${GA + 11} H700 M16,${GA + 16} H700 M16,${GA + 21} H700" stroke="var(--dg-fws)" stroke-width="2" fill="none"/>
-        <path d="M60,${GA + 24} v10 M180,${GA + 24} v10 M300,${GA + 24} v10 M420,${GA + 24} v10 M540,${GA + 24} v10 M660,${GA + 24} v10" stroke="var(--dg-fws-2)" stroke-width="2.4" fill="none"/>
-      </g>`)}
-      <text class="sub" x="712" y="${GA + 22}">管廊：全廠的管子都架在這上面，貫穿每一站</text>
+      <!-- 結論與警語卡片（沒有錨點，排在編號卡之後） -->
+      ${note({ side: 'l', order: 90, color: CC.accent, title: '為什麼是「一進多出」', lines: [
+    '① 裂解爐不是「挑出乙烯」，是把大分子打斷，斷出來的東西一次全部都有。',
+    '② 所以一座廠同時在賣四種東西，各自有各自的行情 —— 乙烯好、丁二烯爛，整廠的帳不見得好看。',
+    '③ 進料換了（石油腦 → 乙烷），乙烯收率高，但丙烯、丁二烯、芳香烴會變少。',
+    '④ 方向有來源、比例沒有 —— 所以這裡只寫方向，不寫任何百分比。'] })}
+      ${note({ side: 'r', order: 91, color: CC.cover, title: '四寶站在不同段，看的價差不是同一個', lines: [
+    '6505 台塑化：最上游（進料與裂解），烯烴事業生產乙烯、丙烯、丁二烯。',
+    '1301 台塑：烯烴衍生物 —— PVC 與 PP 為主，另有 PE、EVA。',
+    '1326 台化：芳香烴與聚酯原料線 —— PX、苯、SM、PTA、ABS。',
+    '1303 南亞：化工品（EG、可塑劑）與塑膠加工，但電子材料（玻纖布、銅箔、CCL）與聚酯同為其主要事業 —— 它早就不只是石化股。'] })}
+      ${note({ side: 'l', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: [
+    '這條產業鏈（傳產與內需）在供應鏈資料裡還沒有建環節，所以這一頁沒有環節色標；零件小卡上那顆「環節 →」按下去會是 0 筆 —— 那不是壞掉。',
+    '要篩成分股請用下面的族群卡片與成分股表。點零件只會亮起來，並在小卡上回答「這個零件是誰做的」，不會動到下方清單。'] })}
+      ${note({ side: 'r', order: 99, title: '原創等角示意圖，非實物比例', lines: [
+    '分離塔組以「順序分離流程」為例，不同專利商的流程不同；裂解價差為示意，不代表任何時點的實際價差。',
+    '不描繪任何真實廠區；火炬、冷卻水塔等公用與安全設施未畫（不在製程主路徑上）。',
+    '資料來源與信心度見 docs/diagram_specs/naphtha_cracker.md §6；本圖不放任何價差數字、產能噸數、市占率、營收占比或 EPS（會過期）。',
+    '族群成分：1301 台塑／1303 南亞／1326 台化／6505 台塑化／1314 中石化／1312 國喬／1304 台聚。'] })}
 
-      <!-- 第一排的四段說明（說明列自己有圓點與底框，文字不壓在零件上） -->
-      ${tblock(S1, 'nc_naphtha_tank', '--dg-steel', 16, 466, 225, '① 原料進料：石油腦（輕油）', [
-    '石油腦是煉油廠的產品、裂解廠的',
-    '原料 —— 成本就從這裡開始算。也',
-    '可以改吃乙烷，四支產品比例就變。'])}
-      ${tblock(S2, 'nc_furnace', '--dg-el', 253, 466, 225, '② 裂解爐與急冷', [
-    '石油腦在爐管裡以約 750–900 °C 裂',
-    '成小分子，停留不到一秒；一出爐就',
-    '要急冷，不然剛裂好的會反應掉。'])}
-      ${tblock(S3, 'nc_compressor', '--dg-alu', 490, 466, 225, '③ 壓縮與淨化', [
-    '多段壓縮把裂解氣升壓，中間鹼洗除',
-    '酸氣、乾燥除水。水沒除乾淨，後面',
-    '的深冷會結冰堵塔。'])}
-      ${tblock(S4, 'nc_towers', '--dg-steel', 727, 466, 225, '④ 深冷分離塔組', [
-    '冷箱先分出氫氣，再依碳數由小到大',
-    '一支一支脫出來；乙烯與丙烯要再經',
-    '精餾塔才到得了聚合級。'])}
+      <!-- ================= ② 第二排：四支基本原料 → 下游衍生物（預設收合）================= -->
+      ${fold('nc2', '③ 四支基本原料與它們的下游：烯烴線與芳香烴線',
+    '乙烯／丙烯／丁二烯／芳香烴各往哪裡去、PVC 中間的 VCM、SM 兩條線匯進來、PTA 走 PX 不走乙烯', areaLanes())}
 
-      <!-- ================= 第二排：四支基本原料 → 下游衍生物 ================= -->
-      <text class="hd" x="16" y="566">⑤⑥ 四支基本原料與它們的下游：四支的景氣各自獨立，一支好不代表整廠的帳好看</text>
-      <text class="sub" x="16" y="586">★ 丁二烯從混合碳四抽出來；芳香烴從裂解汽油加氫後抽出來；PTA 的原料是對二甲苯（PX）不是乙烯；苯乙烯（SM）同時吃乙烯與苯。</text>
-
-      <!-- 四條產品線（起點一律是產出它的那一座槽／那一組塔） -->
-      <g pointer-events="none">
-        <path d="M84,${GB - 40} H352" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <path d="M482,${GB - 40} H500" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <path d="M578,${GB - 40} H598" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <path d="M634,${GB - 34} H644" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <!-- 乙烯 → 乙苯 → SM：第一條匯進 SM 的線 -->
-        <path d="M700,${GB - 40} H772 V712 H786" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <!-- 苯（來自芳香烴抽取）→ SM：第二條匯進 SM 的線。★ §3-A 硬規則 9：只畫一條＝錯 -->
-        <path d="M158,${GC - 40} H752 V726 H786" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <!-- PX（同樣來自芳香烴抽取）→ PTA。★ §3-A 硬規則 8：不准接在乙烯下面 -->
-        <path d="M158,${GC - 14} H884" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <!-- 丙烯 → PP、丁二烯 → 抽取 → 合成橡膠與 ABS -->
-        <path d="M164,${GB - 6} H300 V${GB - 34} H356" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <path d="M219,${GB - 6} H234" stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none" marker-end="url(#ncAr)"/>
-        <text class="sub" x="92" y="${GB - 84}">乙烯（低溫儲槽）</text>
-        <text class="sub" x="160" y="${GB + 30}">丙烯／丁二烯球槽</text>
-        <text class="sub" x="248" y="${GB - 76}">丁二烯抽取</text>
-        <text class="sub" x="16" y="${GC + 22}">芳香烴：裂解汽油加氫 → 抽出苯與 PX</text>
-        <text class="sub" x="362" y="${GB + 22}">PE／PP 造粒與粒料倉</text>
-        <text class="sub" x="510" y="${GB + 22}">EG／可塑劑</text>
-        <text class="sub" x="600" y="${GB + 22}">EDC → VCM → PVC 聚合釜</text>
-        <text class="sub" x="786" y="686">苯乙烯 SM（兩條線匯進來）</text>
-        <text class="sub" x="964" y="${GC + 22}" text-anchor="end">PTA 氧化反應器（成品是白色粉體，不是粒）</text>
-      </g>
-      ${laneProducts()}${laneDown()}
-      <!-- ★ 2026-09-23 版面：芳香烴那條車道原本從「抽取」(x≈150) 到「SM／PTA」(x≈800) 中間整段是空的。
-           補的是**本來就缺的那一段敘事**（抽取出來的是哪三支、各自往哪裡去），不是為了填空白硬加的圖案。
-           純標註，pointer-events:none —— 一個 data-part 都沒有動。 -->
-      <g pointer-events="none">
-        <path d="M168,${GC - 26} H780" stroke="var(--dg-alu-2)" stroke-width="1.6" fill="none" opacity=".55" marker-end="url(#ncAr)"/>
-        ${[['苯（B）', 228, '→ 苯乙烯 SM'], ['甲苯（T）', 400, '多半再轉成苯與二甲苯'], ['二甲苯／對二甲苯（PX）', 572, '→ 純對苯二甲酸 PTA']]
-    .map(([t, x, s2]) => `<path d="M${x - 10},${GC - 26} v-10" stroke="var(--dg-alu-2)" stroke-width="1.4" fill="none" opacity=".7"/>`
-      + `<text class="lbl" x="${x}" y="${GC - 40}">${t}</text>`
-      + `<text class="sub" x="${x}" y="${GC - 22}" style="fill:var(--dg-mute)">${s2}</text>`).join('')}
-      </g>
-
-      <!-- 第二排的兩段說明 -->
-      ${tblock(S5, 'nc_c2_tank', '--dg-cold', 16, 852, 466, '⑤ 四支基本原料：一進多出', [
-    '乙烯、丙烯、丁二烯、芳香烴 —— 四支的去處完全不同，',
-    '所以「石化景氣好不好」其實是四條線各自的景氣。',
-    '乙烯低溫儲槽包厚保冷，丙烯與丁二烯放在球槽裡。'])}
-      ${tblock(S6, 'nc_pe_pp', '--dg-cover', 498, 852, 466, '⑥ 下游衍生物：兩條線', [
-    '烯烴線：PE、PP、PVC、EG —— 日用塑膠與化工品。',
-    '芳香烴線：SM、PTA —— ABS 與聚酯的原料。',
-    'PVC 不是乙烯直接聚合，中間要先走 EDC 與 VCM 兩格。'])}
-
-      <!-- ================= 兩塊固定說明框（§5-C，不可省略） ================= -->
-      <rect class="frame" x="16" y="928" width="466" height="128" rx="8"/>
-      <text class="hd" x="30" y="952">為什麼是「一進多出」</text>
-      <text class="sub" x="30" y="974">① 裂解爐不是「挑出乙烯」，是把大分子打斷，斷出來的東西一次全部都有。</text>
-      <text class="sub" x="30" y="992">② 所以一座廠同時在賣四種東西，各自有各自的行情 —— 乙烯好、丁二烯爛，</text>
-      <text class="sub" x="30" y="1010">　 整廠的帳不見得好看。</text>
-      <text class="sub" x="30" y="1028">③ 進料換了（石油腦 → 乙烷），乙烯收率高，但丙烯、丁二烯、芳香烴會變少。</text>
-      <text class="cap" x="30" y="1048">④ 方向有來源、比例沒有 —— 所以這裡只寫方向，不寫任何百分比。</text>
-
-      <rect class="frame" x="498" y="928" width="466" height="128" rx="8"/>
-      <text class="hd" x="512" y="952">四寶站在不同段，看的價差不是同一個</text>
-      <text class="sub" x="512" y="974">6505 台塑化：最上游（進料與裂解），烯烴事業生產乙烯、丙烯、丁二烯。</text>
-      <text class="sub" x="512" y="992">1301 台塑：烯烴衍生物 —— PVC 與 PP 為主，另有 PE、EVA。</text>
-      <text class="sub" x="512" y="1010">1326 台化：芳香烴與聚酯原料線 —— PX、苯、SM、PTA、ABS。</text>
-      <text class="sub" x="512" y="1028">1303 南亞：化工品（EG、可塑劑）與塑膠加工，但電子材料（玻纖布、</text>
-      <text class="sub" x="512" y="1046">　 銅箔、CCL）與聚酯同為其主要事業 —— 它早就不只是石化股。</text>
-
-      <!-- ================= 製程列（六格＝§3-E） ================= -->
-      <text class="cap" x="16" y="1088">製造流程（六格）　★ 急冷一定在壓縮之前、壓縮一定在分離之前；分離塔組依碳數由小到大脫出，順序不准混著畫</text>
-      ${D.processBar(16, 1096, [
-    { seg: S1, t: '① 原料進料', s: '石油腦儲槽（可摻乙烷）' },
-    { seg: S2, t: '② 裂解與急冷', s: '爐管裂解 → 急冷' },
-    { seg: S3, t: '③ 壓縮與淨化', s: '壓縮 → 鹼洗 → 乾燥' },
-    { seg: S4, t: '④ 深冷分離', s: '冷箱 → 六支塔' },
-    { seg: S5, t: '⑤ 四支基本原料', s: '乙烯·丙烯·丁二烯·芳香烴' },
-    { seg: S6, t: '⑥ 下游衍生物', s: 'PE·PP·PVC·EG·SM·PTA' },
-  ], 146)}
-
-      <!-- ================= 誠實性標示（§5-D 的四行，缺一行就退回） ================= -->
-      <text class="sub" x="16" y="1174" style="fill:var(--dg-warn)">★ 這條產業鏈（傳產與內需）在供應鏈資料裡還沒有建環節，所以這一頁沒有環節色標；零件小卡上那顆「環節 →」按下去會是 0 筆 —— 那不是壞掉。</text>
-      <text class="sub" x="16" y="1192" style="fill:var(--dg-warn)">　 要篩成分股請用下面的族群卡片與成分股表。點零件只會亮起來，並在小卡上回答「這個零件是誰做的」，不會動到下方清單。</text>
-      <text class="cap" x="16" y="1214">原創等角示意圖，非實物比例</text>
-      <text class="cap" x="16" y="1232">分離塔組以「順序分離流程」為例，不同專利商的流程不同</text>
-      <text class="cap" x="16" y="1250">裂解價差為示意，不代表任何時點的實際價差</text>
-      <text class="cap" x="16" y="1268">不描繪任何真實廠區；火炬、冷卻水塔等公用與安全設施未畫（不在製程主路徑上）</text>
-      <text class="cap" x="540" y="1214">資料來源與信心度見 docs/diagram_specs/naphtha_cracker.md §6</text>
-      <text class="cap" x="540" y="1232">本圖不放任何價差數字、產能噸數、市占率、營收占比或 EPS（會過期）</text>
-      <text class="cap" x="540" y="1250">族群成分：1301 台塑／1303 南亞／1326 台化／6505 台塑化／</text>
-      <text class="cap" x="540" y="1268">1314 中石化／1312 國喬／1304 台聚</text>
+      <!-- ================= ③ 製造流程六格（預設收合）================= -->
+      ${fold('nc4', '④ 製造流程（六格）：順序不准對調',
+    '原料進料 → 裂解與急冷 → 壓縮與淨化 → 深冷分離 → 四支基本原料 → 下游衍生物', areaFlow())}
     </svg>`;
   }
+
 
   /* ================================================================ 註冊
      `parts` ＝點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
@@ -562,7 +627,7 @@
   window.DG.register('petrochemical', {
     level: 'group', chain: 'traditional',
     name: '輕油裂解廠：一進多出與裂解價差',
-    draw: naphthaCracker, native: 980, scene: null,
+    draw: naphthaCracker, native: CW, scene: null,   /* ★ 2026-09-23：980 → 660（v2 版面，說明外掛成 HTML 卡片）。scene 仍是 null —— 3D 是 Andy 親口否決的。*/
     q: '一座輕油裂解廠裡有哪些設備、石油腦進去之後為什麼是四支產品一次全部出來？台塑四寶各站在哪一段、看的是哪一種價差？',
     parts: {
       nc_refinery: {
