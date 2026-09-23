@@ -19045,6 +19045,15 @@ def t_batch30(pg, base):
     """W6 兩層下拉（資金輪動 ＋ 資金去向）與 W7 象限卡的真人操作驗收。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
     reset_rot(pg, base, 2600)
+    # ★ 2026-09-23：「全部」的真值一定要在**任何篩選之前**量（就是這裡）。
+    #   W6-5 以前拿 W6-4 現場的 `n_all` 當「全部」，但那時 W6-3 已經選了半導體鏈 ——
+    #   量到的是「這條鏈」不是「全部」。而這兩個數字天生就不一樣：
+    #   `renderRotClock()` 沒篩選時是 `rows.slice(0, cap)`（cap=16，48 個族群只畫前 16 顆），
+    #   一旦有篩選就走 `opts.pick` 那條路 `rows.filter(...)`，**繞過 cap**，
+    #   半導體鏈剛好 17 個族群 → 17 顆。於是「清除之後回到 16」是**對的**，17 才是錯的期望。
+    #   實測：未篩選 16、選半導體鏈 17、勾兩個 2、清除後 16（＝和這裡量到的真值相等）。
+    #   一律跟這個量出來的真值比，不准寫死 16 或 17 —— 資料一變（族群數、cap）就又紅了。
+    n_clock_unfiltered = len(_rot_scatter(pg) or [])
 
     # ---------------------------------------------------------------- W6-1 結構
     st = pg.evaluate("""() => ({ dd: document.querySelectorAll('#v-flow .rotfilter[data-rf="flow"] .rotdd').length,
@@ -19115,8 +19124,13 @@ def t_batch30(pg, base):
            pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}})
                .getAttribute('aria-expanded')""") == "false")
         ok("W6-5：按「清除」按得下去", rot_dd_clear(pg, wait=1400))
-        ok("★ W6-5：清除之後時鐘上的族群數真的回到全部", len(_rot_scatter(pg) or []) == n_all,
-           f"→ {len(_rot_scatter(pg) or [])}（原本 {n_all}）")
+        # ★ 2026-09-23：比的是**沒有任何篩選時**量到的真值（函式最上面那一行），
+        #   不是 W6-4 現場的 `n_all` —— 那個是「半導體鏈」的點數（17），不是「全部」（16）。
+        #   「清除」會把 `ROT.chain` 也一起清掉，所以還原的目標就是未篩選的那個數字。
+        ok("★ W6-5：清除之後時鐘上的族群數真的回到全部（＝未篩選時量到的那個數）",
+           len(_rot_scatter(pg) or []) == n_clock_unfiltered,
+           f"→ {len(_rot_scatter(pg) or [])}（未篩選時是 {n_clock_unfiltered}；"
+           f"W6-4 現場那個 {n_all} 是「半導體鏈」的點數，不是「全部」）")
 
         # ------------------------------------------------------------ W6-6 放大視窗共用同一份狀態
         pg.eval_on_selector("#rotZoomBtn", "b => b.click()")

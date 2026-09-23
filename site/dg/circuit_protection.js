@@ -134,9 +134,15 @@
     const g = [];
     /* 主線：2026-09-23 改用 D.fx.beam（光暈 ＋ 實線 ＋ 流動虛線），跟 AI 伺服器那三張同一套。
        ⚠ 全圖的 feGaussianBlur 元素維持 ≤ 3（DECISIONS #239）：只有主線這一條開 glow。*/
-    g.push(fx.beam(`M${LX0},${LY} L${LX1},${LY}`, { color: 'var(--dg-accent-2d)', w: 2.6, glow: true, flow: true }));
+    /* ★ cls:'cpline' 不是裝飾 —— 主線與接地線是這張圖的**拓樸基準**：
+       「MOV／GDT／TVS 並聯」與「NTC／PPTC 串聯」這兩條紅線，量的都是
+       「元件的腿有沒有碰到主線 / 接地線」，而那要先找得到這兩條線在哪一條 y 上。
+       2026-09-23 這兩條線從 LN(...,'cpline'/'cpgnd') 改成 fx.beam() 之後類別被吃掉了，
+       結果是**拓樸斷言全部量到 None**（連 .cpgnd 自己那條 stroke-linecap 的樣式也失效）。
+       線的畫法可以換，身分不能丟 —— 換算繪圖基元時把 cls 一起帶過去。*/
+    g.push(fx.beam(`M${LX0},${LY} L${LX1},${LY}`, { color: 'var(--dg-accent-2d)', w: 2.6, glow: true, flow: true, cls: 'cpline' }));
     g.push(part('cp_line', R(LX0, LY - 3, LX1 - LX0, 6, 'transparent', 'part')));
-    g.push(part('cp_gnd', fx.beam(`M${LX0 + 30},${GY} L${LX1 - 40},${GY}`, { color: 'var(--dg-steel)', w: 2.6, glow: false })
+    g.push(part('cp_gnd', fx.beam(`M${LX0 + 30},${GY} L${LX1 - 40},${GY}`, { color: 'var(--dg-steel)', w: 2.6, glow: false, cls: 'cpgnd' })
       + LN(`M${LX0 + 40},${GY + 6} L${LX0 + 64},${GY + 6}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
       + LN(`M${LX0 + 46},${GY + 11} L${LX0 + 58},${GY + 11}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
       + `<g pointer-events="none">${T(LX0 + 74, GY + 13, '接地：所有並聯元件都掛在同一條上', 'sub')}</g>`));

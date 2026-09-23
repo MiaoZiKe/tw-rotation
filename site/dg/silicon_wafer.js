@@ -360,7 +360,20 @@
     const f = {
       seed: fpt(FUR.rodX, 175), ingot: fpt(FUR.rodX, 280), melt: fpt(FUR.rodX, 352),
       cru: fpt(FUR.cruL + 4, 386), heat: fpt(FUR.cruL - 25, 370), sus: fpt(FUR.cruL + 2, 428),
-      cham: fpt(FUR.wallL + 5, 120), pull: fpt(FUR.rodX + 74, 150), spin: fpt(FUR.rodX, 196),
+      cham: fpt(FUR.wallL + 5, 120), pull: fpt(FUR.rodX + 74, 150),
+      /* ★ 2026-09-23：③ 旋轉的錨點從「晶碇上那支旋轉箭頭」(rodX, 196) 換到
+         「坩堝底下那支旋轉箭頭」((cruL+cruR)/2, cruB+22) —— 同一個零件 sw_spin 的另一支箭頭，
+         語意一樣正確（§「晶碇與坩堝各轉」講的就是這兩支）。
+         為什麼要換：爐子縮到 SC=0.62 之後**只縮圖形、不縮字**，
+         而編號圓點（r=9.5，直徑 19px）是「字」那一邊 —— 它不跟著縮。
+         ① 籽晶在爐內 y=175、③ 旋轉在 y=196，相距 21 個爐內單位，
+         換算到畫布只剩 21 × 0.62 ＝ 13px，比編號文字的高度（14px）還小，
+         於是「01」與「03」兩顆編號直接相貼（深色 1px、淺色 2px，六個寬度全中）。
+         換到坩堝那支之後畫布上相距 168px，離最近的 ⑧ 石墨承座也有 53px。
+         ⚠ 這一類「錨點跟著幾何縮、編號不跟著縮」的碰撞，只有逐張打開剖析圖才量得到
+            （`_preview.py` 不會逐張打開），所以新增錨點時要自己算一次間距：
+            兩個編號錨點的畫布距離至少要 20px，也就是爐內座標至少差 32 個單位。*/
+      spin: fpt((FUR.cruL + FUR.cruR) / 2, FUR.cruB + 22),
     };
     return `<svg class="dg dgm rs dgsw2" viewBox="0 0 ${CW} 1500" width="100%" style="display:block">${D.STYLE}
       <style>
