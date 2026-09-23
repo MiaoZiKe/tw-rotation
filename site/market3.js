@@ -177,6 +177,24 @@
     futSession: 'day', futNight: null, futNightErr: '', nightPts: [], nightDate: '',
     // 期交所 getChartData1M 回來的**真正的分時序列**（2026-09-20 接上）
     futChart: null, futChartErr: '',
+    /* 「這兩份資料各自是什麼時候拿到的」。用途只有一個：`nightSeries()` 要決定
+       官方分時的最後一根（＝還沒收的那一分鐘）該不該被更新的報價改寫。
+       只有「報價比分時新」才准改 —— 不然會把線往回拉，那比慢一分鐘更糟。*/
+    futChartAt: 0, nightQuoteAt: 0,
+    /* ---- 夜盤 SSE 推送（Andy 2026-09-23：「夜盤要即時推送」）
+       欄位的意義跟 live.js 那一組一模一樣，刻意用同一套命名，
+       兩邊出問題時要查的東西才會長得一樣。 */
+    fsMode: 'poll',      // 現在真的走哪條路：'sse' 推送／'poll' 輪詢
+    fsEs: null,          // EventSource
+    fsKey: '',           // 這條連線訂的是哪一段＋哪一支合約（換了就要重開）
+    fsFails: 0,          // 連續失敗次數（連上就歸零）
+    fsEverOk: false,     // 這次開頁有沒有成功過
+    fsGaveUp: false,     // 放棄推送（多半是 Worker 還是舊版，沒有 /futstream）
+    fsTimer: null,       // 重連計時器
+    fsWatch: null,       // 看門狗（連著卻沒聲音）
+    fsAt: 0,             // 最後一次收到推送的時間
+    fsPushes: 0,         // 驗收用：總共真的收到幾筆推送
+    fsWhy: '',           // 上一次退回輪詢的原因（只給除錯與驗收看）
     lakeDaily: {},     // 資料湖原始日線（用來講「歷史只有幾年」，需求二）
     // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
     noSrc: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
@@ -203,29 +221,37 @@
       state.tickMs = ms;
       state.timer = setInterval(() => refresh(), ms);
     }
+    /* 夜盤那組 60 秒的輪詢**一直開著**，推送活著時它就是保底對帳 ——
+       「連著但不推」是 SSE 最難查的壞法，看門狗與這組計時器各擋一半。
+       （2026-09-23：夜盤這條路一天壞三次，新做法不准比舊做法更容易全白。）*/
     if (!state.nTimer) state.nTimer = setInterval(tickNight, MS_NIGHT);
+    // 夜盤推送：時段翻頁／切日夜盤／分頁回前景時，這裡負責把連線開起來或收掉
+    syncFutStream();
     /* 呼吸燈要能「自己熄」：資料停了之後沒有任何一輪會再呼叫 draw()，
        所以另外一組輕量的計時器負責重算亮不亮（只改 class 與位置，不重畫圖）。*/
     if (!state.pTimer) state.pTimer = setInterval(pulseTick, PULSE_PAINT);
   }
   /** 夜盤那一輪：只補一筆報價、只在真的是夜盤而且使用者也選在夜盤時才跑。 */
   async function tickNight() {
-    if (document.hidden) return;
-    if (!document.getElementById('m3')) return;
-    if (state.futSession !== 'night' || futSession() !== 'night') return;
+    /* ★ 這三個早退分支都要先 `syncFutStream()` 再 return：
+       它們正好是「該把夜盤那條推送連線收掉」的三種情況
+       （分頁切到背景、離開總覽頁、時段翻回日盤）。
+       不收的話，離開這一頁之後那條連線會一直開著 —— 使用者看不到，但它還在耗
+       Worker 的 CPU 額度，而且 4 分鐘輪替時還會自己重連一次。*/
+    if (document.hidden) { syncFutStream(); return; }
+    if (!document.getElementById('m3')) { syncFutStream(); return; }
+    if (state.futSession !== 'night' || futSession() !== 'night') { syncFutStream(); return; }
     // 走到這裡代表時鐘與畫面都在夜盤，不用再同步
     await pullNight();
     draw();
+    syncFutStream();
   }
 
   /** 夜盤要抓的兩樣東西：① 報價快照（未平倉只有這裡有）② 分時序列（走勢與 K 線的主體）。
    *  兩者互不依賴地失敗：序列掛了還有自己收的點，報價掛了序列自己也帶著開高低收。 */
   async function pullNight() {
     try {
-      state.futNight = await fetchFut('night');
-      state.futNightErr = '';
-      pushNight(state.futNight);
-      if (state.futNight && state.futNight.symbol) rememberSym(state.futNight.symbol);
+      applyFutQuote(await fetchFut('night'));
     } catch (e) { state.futNightErr = String(e.message || e); }
     /* ★ 2026-09-23（夜盤空白的根因）：以前這裡是
          `const sym = futNight.symbol || futChart.symbol; if (!sym) return;`
@@ -243,8 +269,218 @@
     const sym = (state.futNight && state.futNight.symbol)
       || (state.futChart && state.futChart.symbol) || futSymbol();
     if (!sym) { state.futChartErr = state.futChartErr || 'NOSYMBOL'; return; }
-    try { state.futChart = await fetchFutChart(sym); state.futChartErr = ''; rememberSym(sym); }
+    try { applyFutChart(await fetchFutChart(sym)); rememberSym(sym); }
     catch (e) { state.futChartErr = String(e.message || e); }
+  }
+
+  /* ---- 收下一筆夜盤報價／一份夜盤分時序列 ---------------------------------------
+     輪詢（`pullNight()`）與推送（`/futstream` 的 fut／futchart 事件）都走這兩支，
+     所以「推送進來的」跟「輪詢抓到的」在 state 裡是同一個形狀、同一套副作用。
+     退回輪詢時不會有任何一條沒人走過的路 —— 這是整個推送設計的底線。 */
+  function applyFutQuote(q) {
+    state.futNight = q;
+    state.futNightErr = '';
+    state.nightQuoteAt = Date.now();
+    pushNight(q);
+    if (q && q.symbol) rememberSym(q.symbol);
+  }
+  function applyFutChart(fc) {
+    state.futChart = fc;
+    state.futChartErr = '';
+    state.futChartAt = Date.now();
+  }
+
+  /* ================================================================ 夜盤的 SSE 推送
+   *
+   * Andy 2026-09-23：「夜盤要即時推送」。
+   * 在這之前夜盤是**每 60 秒輪詢一次 `/fut`**（`MS_NIGHT`），
+   * 現貨那邊 live.js 早上已經換成一條 SSE 連線，夜盤這張卡還停在輪詢。
+   *
+   * ★★ 這一段只有一條紅線：**推送是加分，輪詢是底線。**
+   * 連不上、斷掉、看門狗逾時、Worker 是舊版 —— 任何一種情況都**立刻**回到
+   * 本來就在跑的那條 60 秒輪詢，而且馬上補抓一次，畫面不准出現缺口。
+   * 這條紅線不是保守，是**今天才付過學費**：2026-09-23 一天之內夜盤壞了三次
+   * （DECISIONS #255），三個根因完全不同，共通點是「這條路很脆弱」。
+   * 新做法不准讓它比現在更容易全白，所以：
+   *   · 60 秒那組輪詢計時器**一直開著**，推送活著的時候它就是保底對帳
+   *     （推送安靜地壞掉 ——「連著但不推」—— 是最難查的一種，看門狗 ＋ 保底輪詢各擋一半）
+   *   · 推送收到的東西走的是 `applyFutQuote()` / `applyFutChart()`，
+   *     跟輪詢**完全同一支**，所以退回輪詢時不會走到任何沒人驗過的路
+   *   · 連續四次從來沒連上過就安靜放棄（多半是 Worker 還沒更新到有 `/futstream` 的版本），
+   *     不要一直重試洗 console
+   *
+   * ★ 為什麼另外開一條 EventSource，而不是共用 live.js 那條
+   * 那條訂的是現貨代號、由 live.js 自己管生命週期，而且**夜盤時段現貨本來就該停**。
+   * 兩條各自斷線、各自退回，一邊壞掉不會連累另一邊（DECISIONS #255 教訓 2）。
+   * 而且這個檔案不准動 live.js。
+   */
+  const FS_BACKOFF = [1000, 2000, 4000, 8000, 15000, 30000];   // 斷線後隔多久再試
+  const FS_GIVEUP = 4;                 // **從來沒連上過**就失敗這麼多次 → 這次開頁不再試
+  const FS_WATCHDOG_MS = 90 * 1000;    // 連著卻這麼久沒收到任何東西（含心跳）就當成斷了
+  const FS_PUSH_HINT_MS = 10 * 1000;   // 只拿來寫在提示文字裡：Worker 那側問報價的節奏
+
+  /** 這條連線訂的是哪一段＋哪一支合約。合約代號換月就要重開，不然會一直推上個月的。 */
+  function fsKeyNow() {
+    const sym = (state.futNight && state.futNight.symbol)
+      || (state.futChart && state.futChart.symbol) || futSymbol();
+    return 'night|' + String(sym || '');
+  }
+
+  /** 現在畫面上「應該」要有一條夜盤推送連線嗎（只看時段與畫面，不看退避狀態）。 */
+  function fsWanted() {
+    if (!document.getElementById('m3')) return false;       // 不在總覽頁
+    if (document.hidden) return false;                      // 分頁在背景：不佔連線
+    return state.futSession === 'night' && futSession() === 'night';
+  }
+  /** 現在可以「開」一條嗎。
+   *  ★ `state.fsTimer` 那一條是 2026-09-23 踩到的：`dropFutStream()` 會順手補抓一次
+   *  （`tickNight()`），而 `tickNight()` 收尾時又會呼叫 `syncFutStream()` ——
+   *  如果這裡不把「正在退避等重連」擋掉，就會變成
+   *  斷線 → 重開 → 又斷 → 重開 的**熱迴圈**，退避完全沒有作用，
+   *  而且瀏覽器會被打到永遠到不了 networkidle（驗收就是這樣先卡住才發現的）。 */
+  function fsCanOpen() {
+    if (typeof EventSource === 'undefined') return false;   // 很舊的瀏覽器：安靜地用輪詢
+    if (state.fsGaveUp) return false;
+    if (state.fsTimer) return false;                        // 正在退避等重連，不要插隊
+    if (!fsWanted()) return false;
+    return !!proxy();
+  }
+
+  function clearFsWatch() { if (state.fsWatch) { clearTimeout(state.fsWatch); state.fsWatch = null; } }
+  /** 看門狗：連著卻沒聲音就當成斷了。
+   *  SSE 最難查的壞法是「TCP 還在、資料不來」—— 那時 onerror 永遠不會觸發，
+   *  畫面會安靜地停住。Worker 心跳最慢 10 秒一次，90 秒等於連漏九次。 */
+  function armFsWatch() {
+    clearFsWatch();
+    state.fsWatch = setTimeout(() => dropFutStream('太久沒收到推送'), FS_WATCHDOG_MS);
+  }
+
+  /** 主動收掉連線（離開夜盤、切到背景、Worker 說 idle）。這不算失敗。 */
+  function closeFutStream() {
+    clearFsWatch();
+    if (state.fsTimer) { clearTimeout(state.fsTimer); state.fsTimer = null; }
+    if (state.fsEs) { try { state.fsEs.close(); } catch (e) { /* 已經關了 */ } state.fsEs = null; }
+    state.fsKey = '';
+    state.fsMode = 'poll';
+  }
+
+  /** ★ 連線掉了：**立刻退回輪詢** → 馬上補抓一次 → 排一次重連。
+   *  「馬上補抓」這一步就是「畫面不准出現缺口」的實作 —— 不要等下一個 60 秒。 */
+  function dropFutStream(why) {
+    /* ★ 只有「本來真的在收推送」才需要補抓。
+       連都沒連上過的時候（Worker 還是舊版、公司網路擋掉），
+       那條 60 秒的輪詢**從頭到尾沒有停過**，根本沒有缺口要補；
+       這時候還跟著補一次，只會在每一次重試退避時多敲一次期交所
+       （驗收就是這樣抓到的：夜盤點數從 1 變成 5，因為多打了四次 /fut）。*/
+    const wasLive = state.fsMode === 'sse';
+    clearFsWatch();
+    if (state.fsTimer) { clearTimeout(state.fsTimer); state.fsTimer = null; }
+    if (state.fsEs) { try { state.fsEs.close(); } catch (e) { /* 已經關了 */ } state.fsEs = null; }
+    state.fsMode = 'poll';
+    state.fsKey = '';
+    state.fsWhy = String(why || '');
+    state.fsFails++;
+    /* ★ 順序很要緊：**先**把「接下來要怎麼辦」決定好（放棄／排退避），**最後**才補抓。
+       `tickNight()` 收尾會呼叫 `syncFutStream()`，如果那時候退避計時器還沒排好，
+       它會立刻再開一條 —— 斷線就變成熱迴圈（見 `fsCanOpen()` 的說明）。*/
+    if (!state.fsEverOk && state.fsFails >= FS_GIVEUP) {
+      /* 從頭到尾沒連上過 → 多半是 Worker 還是舊版（沒有 /futstream）。
+         安靜地用輪詢就好，狀態列會寫「輪詢」，滑鼠移上去說得出原因。 */
+      state.fsGaveUp = true;
+    } else {
+      const wait = FS_BACKOFF[Math.min(state.fsFails - 1, FS_BACKOFF.length - 1)];
+      state.fsTimer = setTimeout(() => { state.fsTimer = null; openFutStream(); }, wait);
+    }
+    paintNight();
+    // ← 退回輪詢的同時就抓一次（走的就是原本那條路），不等下一個 60 秒
+    if (wasLive) tickNight();
+  }
+
+  /** 開一條夜盤推送連線。開不起來就當成一次失敗，交給 dropFutStream 處理。 */
+  function openFutStream() {
+    if (!fsCanOpen()) return;
+    const key = fsKeyNow();
+    if (state.fsEs && state.fsKey === key) return;     // 同一支合約已經在推了
+    if (state.fsEs) { try { state.fsEs.close(); } catch (e) { /* 已經關了 */ } state.fsEs = null; }
+    state.fsKey = key;
+    const sym = key.split('|')[1];
+    let es;
+    try {
+      es = new EventSource(proxy() + '/futstream?session=night'
+        + (sym ? '&symbol=' + encodeURIComponent(sym) : ''));
+    } catch (e) { dropFutStream('開不起來：' + e); return; }
+    state.fsEs = es;
+
+    const alive = () => {
+      state.fsAt = Date.now();
+      state.fsEverOk = true;
+      state.fsFails = 0;
+      state.fsMode = 'sse';
+      armFsWatch();
+    };
+    es.addEventListener('hello', () => { alive(); paintNight(); });
+    /* 報價：跟輪詢拿到的是同一份上游 JSON，所以解讀它的是同一支 parseFutQuote()。
+       壞掉的一筆不值得把整條連線收掉 —— 記下原因、等下一筆。 */
+    es.addEventListener('fut', (ev) => {
+      alive();
+      try { applyFutQuote(parseFutQuote(JSON.parse(ev.data), 'night')); state.fsPushes++; }
+      catch (e) { state.futNightErr = String(e.message || e); }
+      paintNight();
+    });
+    es.addEventListener('futchart', (ev) => {
+      alive();
+      try {
+        const out = parseFutChart(JSON.parse(ev.data));
+        if (out.points.length) { applyFutChart(out); state.fsPushes++; }
+        else state.futChartErr = 'NOFUTTICKS';
+      } catch (e) { state.futChartErr = String(e.message || e); }
+      paintNight();
+    });
+    // 上游某一支這一輪失敗：連線本身還活著，而且另一支通常還是好的（失敗要獨立）
+    es.addEventListener('warn', () => { alive(); });
+    // 非夜盤時段：Worker 一個上游請求都不打就收線。這不是失敗，安靜地回到輪詢。
+    es.addEventListener('idle', () => { closeFutStream(); state.fsFails = 0; paintNight(); });
+    // 4 分鐘輪替（Worker 為了不撞免費方案的 CPU 上限）。正常結束 → 不退避、直接重連，
+    // 重連的第一筆一定是完整快照，所以中間那 120ms 不會漏值。
+    es.addEventListener('bye', () => {
+      clearFsWatch();
+      if (state.fsEs) { try { state.fsEs.close(); } catch (e) { /* 已經關了 */ } state.fsEs = null; }
+      state.fsFails = 0; state.fsKey = '';
+      setTimeout(() => openFutStream(), 120);
+    });
+    /* EventSource 自己也會重連，但它分不出「404（Worker 是舊版）」跟「網路抖一下」，
+       而且重連期間畫面是停的。所以一律由我們接手：先退回輪詢再自己排重連。 */
+    es.onerror = () => { state.fsKey = ''; dropFutStream('連線錯誤'); };
+  }
+
+  /** 時段翻頁／切日盤夜盤／分頁切回前景時，把連線的狀態跟畫面對齊。 */
+  function syncFutStream() {
+    // 離開夜盤（時段翻頁、切回日盤、換頁、分頁切到背景）：連線與還沒到期的重連一起收掉，
+    // 不然切回日盤之後還會有一條在背景重連。
+    if (!fsWanted()) { if (state.fsEs || state.fsTimer) closeFutStream(); return; }
+    if (!fsCanOpen()) return;                         // 已經放棄、或正在退避等重連
+    if (!state.fsEs) { openFutStream(); return; }
+    if (fsKeyNow() !== state.fsKey) { state.fsKey = ''; openFutStream(); }
+  }
+
+  /** 收到一筆推送之後**只動台指期那張卡**：那排數字換掉、走勢圖只補最後一根。
+   *  不重畫另外兩張圖、不重建整個 option —— 不然十秒閃一次，比不推還糟。 */
+  function paintNight() {
+    const grid = document.getElementById('m3Grid');
+    if (!grid) return;
+    const x = IDX.filter(v => v.id === 'FUT')[0];
+    if (!x || !isNight(x)) return;
+    const card = grid.querySelector('.m3-card[data-id="FUT"]');
+    if (!card) return;
+    const head = card.querySelector('.m3-nums');
+    if (head) head.outerHTML = cardHead(x);
+    const el = document.getElementById('m3c-' + x.id);
+    const d = seriesOf(x);
+    /* 走勢圖：能只補最後一根就只補（`patchLine`）。補不了的情況
+       （剛從空狀態長出來、切到 K 線、日夜換邊）才整張畫一次；
+       K 線那邊 `drawK()` 本來就會沿用同一個實例，縮放不會被彈回去。*/
+    if (!(state.mode === 'line' && d && d.night && el && patchLine(x, d, el))) drawOne(x);
+    paintPulses();
   }
 
   const ls = {
@@ -339,7 +575,16 @@
     const r = await fetch(`${base}/fut?session=${session}&t=${Date.now()}`, { cache: 'no-store' });
     if (r.status === 404 || r.status === 400) throw new Error('NOFUT');
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
-    const j = await r.json();
+    return parseFutQuote(await r.json(), session);
+  }
+
+  /** 期交所報價清單的原始 JSON → 這一頁要用的那一筆（近月）。
+   *
+   *  ★ 為什麼要獨立成一支（2026-09-23 夜盤推送）：
+   *  推送（`/futstream` 的 `fut` 事件）與輪詢（`/fut`）拿到的是**同一份**上游 JSON，
+   *  所以解讀它的程式碼也必須是同一份。兩邊各寫一次，就等於「退回輪詢」時
+   *  走的是一條沒人驗過的路 —— 那退路等於沒有。 */
+  function parseFutQuote(j, session) {
     const list = ((j.RtData || {}).QuoteList || [])
       .filter(q => q.SymbolID && q.SymbolID.indexOf('-') > 0
         && !/-[SP]$/.test(q.SymbolID));      // 跳過 TXF-S / TXF-P（臺指現貨參考列）
@@ -543,7 +788,27 @@
     let pts, src;
     if (fc && fc.points.length && (!q || !q.symbol || fc.symbol === q.symbol)) {
       const lastMin = fc.points[fc.points.length - 1].min;
-      pts = fc.points.concat(mine.filter(p => p.min > lastMin));
+      pts = fc.points.slice();
+      /* ★ 2026-09-23（夜盤推送）：官方分時是 60 秒問一次，報價是 10 秒推一次。
+         官方序列的**最後一根就是「還沒收的那一分鐘」**（fixture 證實：相隔 6 秒的兩次探測，
+         "001600" 那一根的收盤從 48009 被就地改寫成 48013）。
+         所以報價比它新的時候，就用新的成交價把那一根的收盤改掉、高低跟著撐開 ——
+         這正是個股 K 線 `KChart.applyQuote()` 在做的事（那支不歸這一輪改，做法照抄）。
+         沒有這一段，畫面會變成「上面的數字每 10 秒在跳，線卻要等滿一分鐘才動」。
+
+         ⚠ 只有「報價真的比較新」才准改（比的是兩份資料各自**拿到手的時間**）。
+         反過來拿舊報價去蓋新分時，會讓線往回跳 —— 那比慢一分鐘更糟。
+         成交量一律留官方那一份：我們手上的是「累計量的差」，會跟官方的分鐘量重複計算。*/
+      const cur = mine.filter(p => p.min === lastMin).pop();
+      if (cur && cur.c != null && state.nightQuoteAt > state.futChartAt) {
+        const b = pts[pts.length - 1];
+        pts[pts.length - 1] = {
+          ms: b.ms, min: b.min, o: b.o, s: b.s, c: cur.c,
+          h: b.h != null ? Math.max(b.h, cur.c) : cur.c,
+          l: b.l != null ? Math.min(b.l, cur.c) : cur.c,
+        };
+      }
+      pts = pts.concat(mine.filter(p => p.min > lastMin));
       src = 'taifex';
     } else {
       pts = mine;
@@ -792,6 +1057,22 @@
     return state.data[x.id];
   }
 
+  /** 夜盤現在走「推送」還是「輪詢」——**沿用現貨那條狀態列的講法**（live.js 的 stamp()），
+   *  掛在既有那排字後面，不另外做一塊。
+   *  平常沒人在意它；只有「數字為什麼跳得比較慢」的時候才需要一眼看得出走的是哪條路。
+   *  ⚠ 只有夜盤那張卡才有 —— 日盤與加權／櫃買走的是原本的輪詢，狀態沒有變，不該多一個字。 */
+  function futWayTag() {
+    if (state.futSession !== 'night') return '';
+    const push = state.fsMode === 'sse';
+    const tip = push
+      ? `推送（SSE）：跟代理保持一條連線，值一變就送過來（約 ${Math.round(FS_PUSH_HINT_MS / 1000)} 秒）。`
+      : state.fsGaveUp
+        ? '輪詢：代理沒有夜盤推送功能（可能還沒更新到新版），已退回每分鐘抓一次。'
+        : '輪詢：目前用固定間隔去抓；推送連上之後會自動切過去。';
+    return `<span class="m3-tag" data-way="${push ? 'sse' : 'poll'}" title="${tip}">`
+      + `${push ? '推送' : '輪詢'}</span>`;
+  }
+
   function cardHead(x) {
     const d = seriesOf(x);
     const f = F();
@@ -806,7 +1087,7 @@
         <span class="m3-px">—</span>
         <span class="m3-chg">—</span>
         <span class="m3-sub">開 —　高 —　低 —　參考價 —</span>
-        <span class="m3-sub">總量 —　<span class="m3-tag warn">夜盤報價未取得</span></span>
+        <span class="m3-sub">總量 —　<span class="m3-tag warn">夜盤報價未取得</span>${futWayTag()}</span>
       </div>`;
     }
     const chg = (d.last != null && d.prev) ? d.last - d.prev : null;
@@ -819,7 +1100,7 @@
     // 夜盤沒有「昨收」的概念，期交所給的是「參考價」（日盤收盤價）
     const base = d.prevLabel || '昨收';
     // 「夜盤報價未取得」那個徽章移到上面的早退分支去了（走到這裡一定有資料）
-    const tag = d.night ? `<span class="m3-tag">夜盤 ${f.esc(d.symbol || '')}</span>` : '';
+    const tag = d.night ? `<span class="m3-tag">夜盤 ${f.esc(d.symbol || '')}</span>` + futWayTag() : '';
     return `<div class="m3-nums">
       <span class="m3-px ${f.cls(chg)}">${f.n(d.last, dp)}</span>
       <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>
@@ -880,6 +1161,7 @@
       try { ls.set(KEY_FUTS, JSON.stringify({ sess: state.futSession, base: futSession() })); }
       catch (e) { /* 私密視窗 */ }
       draw(); refresh(true);
+      syncFutStream();       // 切到夜盤就把推送開起來，切回日盤就收掉（不留著空佔一條連線）
     });
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
       state.big = state.big === b.dataset.id ? '' : b.dataset.id;
@@ -1116,11 +1398,10 @@
   }
 
   // ---------------------------------------------------------------- 走勢圖（ECharts）
-  function drawLine(x, d, el) {
-    killK(x.id);
-    // 從 K 線切回來時容器裡還留著 Lightweight Charts 的 DOM，不清掉 ECharts 會疊在上面
-    if (el.dataset.kind !== 'line') { el.innerHTML = ''; el.dataset.kind = 'line'; }
-    const f = F(); if (!f) return;
+  /** 走勢圖要用的三組陣列與兩個軸的範圍。
+   *  `drawLine()`（整張畫）與 `patchLine()`（只換最後一根）**一定要共用這一支** ——
+   *  兩邊各算一次，推一筆進來就會出現「線動了、軸沒動」這種對不上的畫面。 */
+  function lineData(x, d) {
     // 夜盤走的是 15:00~翌日 05:00 的軸（凌晨那段的分鐘數是 24*60+）
     const [s0, s1] = d.night ? SESSION_NIGHT : SESSION[x.id];
     const cats = []; for (let m = s0; m <= s1; m++) cats.push(hhmm(m));
@@ -1129,14 +1410,79 @@
     d.points.forEach(p => { const i = p.min - s0; if (i >= 0 && i < cats.length) { price[i] = p.c; vol[i] = p.s; } });
     const up = d.last != null && d.prev ? d.last >= d.prev : true;
     const col = up ? '#ff4d6d' : '#2ee59d';
-    const dp = x.id === 'FUT' ? 0 : 2;
-    const unit = x.id === 'FUT' ? '口' : '張';
-    const A = window.App;
     // 價格軸以昨收為中心對稱，漲跌幅一眼看得出來（跟官方走勢圖同一個習慣）
     const vals = price.filter(v => v != null);
     const span = Math.max.apply(null, vals.map(v => Math.abs(v - (d.prev || v))).concat([(d.prev || 1) * 0.001]));
     const lo = (d.prev || vals[0]) - span * 1.08, hi = (d.prev || vals[0]) + span * 1.08;
     const vmax = Math.max.apply(null, vol.filter(v => v != null).concat([1]));
+    return { s0, s1, cats, price, vol, col, lo, hi, vmax };
+  }
+
+  /** 走勢圖那顆呼吸燈要標在哪一點。畫完（或補完）都要重算一次。 */
+  function setLinePulse(x, d, L) {
+    markMove(x, d);
+    let idx = -1;
+    for (let i = L.price.length - 1; i >= 0; i--) if (L.price[i] != null) { idx = i; break; }
+    let i0 = -1;
+    for (let i = 0; i < L.price.length; i++) if (L.price[i] != null) { i0 = i; break; }
+    state.pulses[x.id] = {
+      idx, i0, val: idx >= 0 ? L.price[idx] : null, col: L.col,
+      label: idx >= 0 ? L.cats[idx] : '', night: !!d.night, live: isPulsing(x, d),
+    };
+    paintPulse(x.id);
+  }
+
+  /* ★ 只換最後一根，不整張重畫（2026-09-23 夜盤推送）。
+     推送進來的頻率比輪詢高很多。如果每一筆都走 `drawLine()`：
+     ECharts 會把整個 option 重建一次（軸、tooltip、markLine、漸層），
+     補間動畫從頭跑，視覺上就是「整張圖每十秒閃一下」，而且 tooltip 會被關掉。
+     所以這裡只送 series 的資料與價／量軸的範圍，其餘設定原封不動 ——
+     跟個股 K 線那邊 `KChart.applyQuote()` 是同一個想法（那支不歸這一輪改，做法照抄）。
+
+     ⚠ 只要「軸的前提」變了就回 false，交給 `drawLine()` 整張畫：
+       · 容器現在畫的不是走勢圖（切到 K 線、或被清成空狀態）
+       · 日盤／夜盤換邊（時間軸整條不一樣）
+       · 參考價變了（markLine 的位置與標籤要跟著換）
+     寧可閃一下，也不要讓線和軸對不上。*/
+  function patchLine(x, d, el) {
+    if (!el || el.dataset.kind !== 'line') return false;
+    if (typeof echarts === 'undefined') return false;
+    const inst = echarts.getInstanceByDom(el);
+    const H = el._m3line;
+    if (!inst || !H || H.night !== !!d.night || H.prev !== d.prev) return false;
+    const L = lineData(x, d);
+    if (L.cats.length !== H.cats.length) return false;
+    // tooltip 與量柱顏色的 callback 讀的是這個盒子（不是閉包裡那份陣列）——
+    // 就地換掉，滑鼠移上去看到的才是最新的值，而不是上一輪的殘影。
+    H.price = L.price; H.vol = L.vol; H.d = d;
+    inst.setOption({
+      yAxis: [{ min: L.lo, max: L.hi }, { max: L.vmax, interval: L.vmax || 1 }],
+      series: [
+        { data: L.price, lineStyle: { color: L.col },
+          areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexa(L.col, .30) }, { offset: 1, color: hexa(L.col, 0) }]) } },
+        { data: L.vol },
+      ],
+    }, { lazyUpdate: false });
+    setLinePulse(x, d, L);
+    return true;
+  }
+
+  function drawLine(x, d, el) {
+    killK(x.id);
+    // 從 K 線切回來時容器裡還留著 Lightweight Charts 的 DOM，不清掉 ECharts 會疊在上面
+    if (el.dataset.kind !== 'line') { el.innerHTML = ''; el.dataset.kind = 'line'; }
+    const f = F(); if (!f) return;
+    const L = lineData(x, d);
+    const s0 = L.s0, cats = L.cats, price = L.price, vol = L.vol;
+    const col = L.col, lo = L.lo, hi = L.hi, vmax = L.vmax;
+    const dp = x.id === 'FUT' ? 0 : 2;
+    const unit = x.id === 'FUT' ? '口' : '張';
+    const A = window.App;
+    /* tooltip 的 formatter 與量柱的顏色 callback 是**留在圖上一直被呼叫**的，
+       如果它們直接抓上面那幾個 const，`patchLine()` 換完資料之後它們讀到的還是舊陣列。
+       所以統一從這個掛在容器上的盒子裡讀 —— 補資料時就地換掉它的欄位就好。*/
+    const H = el._m3line = { cats, price, vol, d, night: !!d.night, prev: d.prev, s0 };
     A.chart(el, {
       grid: [{ left: 14, right: 58, top: 10, bottom: 74, containLabel: true },
         { left: 14, right: 58, height: 44, bottom: 24, containLabel: true }],
@@ -1144,11 +1490,13 @@
         trigger: 'axis', axisPointer: { type: 'cross' },
         formatter: (ps) => {
           const i = ps[0].dataIndex;
-          if (price[i] == null) return cats[i] + '<br>尚未成交';
-          const c = price[i], ch = d.prev ? c - d.prev : null;
+          // ★ 一律從 H 讀（不是上面那幾個 const）—— 推送補完資料之後，
+          //   閉包抓到的舊陣列會讓 tooltip 顯示上一輪的值。
+          if (H.price[i] == null) return cats[i] + '<br>尚未成交';
+          const c = H.price[i], ch = d.prev ? c - d.prev : null;
           return `<b>${cats[i]}</b><br>指數 <b class="mono">${f.n(c, dp)}</b>`
             + (ch != null ? ` <span style="color:${ch >= 0 ? '#ff4d6d' : '#2ee59d'}">${(ch > 0 ? '+' : '') + f.n(ch, dp)}（${f.pct(ch / d.prev * 100, 2)}）</span>` : '')
-            + `<br>該分量 ${f.lot(vol[i] || 0)}`;
+            + `<br>該分量 ${f.lot(H.vol[i] || 0)}`;
         },
       }),
       axisPointer: { link: [{ xAxisIndex: 'all' }] },
@@ -1184,25 +1532,17 @@
             data: [{ yAxis: d.prev }] } },
         { type: 'bar', data: vol, xAxisIndex: 1, yAxisIndex: 1, barWidth: '70%',
           itemStyle: { color: (p) => {
-            const i = p.dataIndex; const prev = i > 0 ? price[i - 1] : d.prev;
-            return (price[i] != null && prev != null && price[i] >= prev) ? hexa('#ff4d6d', .7) : hexa('#2ee59d', .7);
+            const i = p.dataIndex; const prev = i > 0 ? H.price[i - 1] : d.prev;   // 同上：讀 H
+            return (H.price[i] != null && prev != null && H.price[i] >= prev) ? hexa('#ff4d6d', .7) : hexa('#2ee59d', .7);
           } } },
       ],
     }, { notMerge: true });
 
     /* ---- 呼吸燈：標出「最新的那一點」，而且只在真的還在更新時才呼吸。
        位置不是算出來寫死的，是每次跟 ECharts 要（`convertToPixel`），
-       所以展開／收合、縮放視窗、換主題之後都不會飄掉。 */
-    let idx = -1;
-    for (let i = price.length - 1; i >= 0; i--) if (price[i] != null) { idx = i; break; }
-    markMove(x, d);
-    let i0 = -1;
-    for (let i = 0; i < price.length; i++) if (price[i] != null) { i0 = i; break; }
-    state.pulses[x.id] = {
-      idx, i0, val: idx >= 0 ? price[idx] : null, col,
-      label: idx >= 0 ? cats[idx] : '', night: !!d.night, live: isPulsing(x, d),
-    };
-    paintPulse(x.id);
+       所以展開／收合、縮放視窗、換主題之後都不會飄掉。
+       （`patchLine()` 補完資料之後也會呼叫同一支，燈才會跟著最後一根走。） */
+    setLinePulse(x, d, L);
   }
 
   /* ================================================================ 呼吸燈
@@ -1449,6 +1789,9 @@
      （全站的 visibilitychange 慣例寫在 app.js，但那個檔這一輪不歸我改，所以自己掛一個。）*/
   document.addEventListener('visibilitychange', () => {
     pulseTick();
+    // 切到背景就把夜盤那條連線收掉（不佔連線也不耗 Worker 的 CPU 額度），
+    // 切回來再開一條 —— 重連的第一筆是完整快照，所以背景那段時間的值補得回來。
+    syncFutStream();
     if (!document.hidden) refresh();
   });
   // 視窗一縮，ECharts 的座標就換了一組 —— 燈的位置要跟著重新跟它要一次
@@ -1456,8 +1799,12 @@
     clearTimeout(state._rzT);
     state._rzT = setTimeout(paintPulses, 120);
   });
-  // 跨越開盤／收盤時要換節奏（10 秒 ↔ 5 分鐘），每分鐘檢查一次就夠
-  setInterval(() => { if (document.getElementById('m3')) schedule(); }, 60 * 1000);
+  // 跨越開盤／收盤時要換節奏（10 秒 ↔ 5 分鐘），每分鐘檢查一次就夠。
+  // 不在總覽頁時 `schedule()` 不會跑，所以夜盤那條推送連線要在這裡另外收掉。
+  setInterval(() => {
+    if (document.getElementById('m3')) schedule();
+    else syncFutStream();
+  }, 60 * 1000);
 
   window.Market3 = {
     mount, refresh, draw, schedule,
@@ -1483,6 +1830,13 @@
       return o;
     },
     get futChart() { return state.futChart; },   // 驗收用：期交所分時序列接到了沒
+    /* 驗收用：夜盤現在走推送還是輪詢、收了幾筆、退回過幾次、為什麼退回。
+       `mode` 就是畫面上那個「推送／輪詢」小標籤讀的同一個值 —— 驗的是同一件事。*/
+    get futStream() {
+      return { mode: state.fsMode, pushes: state.fsPushes, fails: state.fsFails,
+               everOk: state.fsEverOk, gaveUp: state.fsGaveUp, key: state.fsKey,
+               at: state.fsAt, why: state.fsWhy };
+    },
     parseFutChart, tickMin,                      // 驗收用：時間欄位的坑（046000）有沒有處理對
     futSymbol,                               // 驗收用：/fut 掛掉時推算出來的近月合約代號
     isIntraday,

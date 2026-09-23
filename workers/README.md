@@ -45,8 +45,13 @@ Cloudflare Workers 免費方案：每天 10 萬次請求。盤中每分鐘一次
 
 ### ★ 2026-09-23：Worker 改版了（新增 SSE 推送），**要重新貼一次程式碼**
 
-新增了 `/stream` 端點，網站會優先用它（一條連線、值一變就推，約 5 秒），
-連不上就自動退回原本的每分鐘輪詢。**所以不貼也不會壞，只是數字跳得比較鈍。**
+新增了兩個端點，網站會優先用它們，連不上就自動退回原本的輪詢。
+**所以不貼也不會壞，只是數字跳得比較鈍。**
+
+| 端點 | 服務誰 | 不貼的話 |
+|---|---|---|
+| `/stream` | 加權／櫃買／個股的**現貨**報價（mis.twse） | 退回每分鐘輪詢 |
+| `/futstream` | **台指期夜盤**（期交所，Andy：「夜盤要即時推送」） | 退回每 60 秒輪詢 |
 
 正常情況下 `.github/workflows/deploy-worker.yml` 會自動部署，你什麼都不用做。
 如果自動部署沒跑成功（或你想自己確認一次），在 Cloudflare 後台這樣點：
@@ -66,11 +71,15 @@ Cloudflare Workers 免費方案：每天 10 萬次請求。盤中每分鐘一次
 https://tw-quote.<你的帳號名>.workers.dev/health
 ```
 
-回應裡要看得到 `"features"` 而且裡面有 `"stream"`：
+回應裡要看得到 `"features"` 而且裡面有 `"stream"` **和 `"futstream"`**：
 
 ```json
-{"ok":true,"service":"tw-rotation quote-proxy","features":["quote","chart","y","fut","futchart","stream"],"session":"trade"}
+{"ok":true,"service":"tw-rotation quote-proxy","features":["quote","chart","y","fut","futchart","stream","futstream"],"session":"trade","futSession":"night"}
 ```
+
+`session` 講的是**現貨盤**（09:00–13:35），`futSession` 講的是**台指期夜盤**
+（15:00–翌日 05:00）。夜間 `session` 是 `closed` 而 `futSession` 是 `night`，這是對的 ——
+兩個欄位本來就在講兩件事。
 
 **沒有 `features` 這個欄位 ＝ 還是舊版**，再貼一次。
 
@@ -119,6 +128,9 @@ https://tw-quote.<你的帳號名>.workers.dev/quote?ex_ch=tse_2330.tw
 | `/stream` 只有值真的變了才推 | 沒變就一個 byte 都不送，省流量也省 CPU |
 | `/stream` 一條連線最多活 4 分鐘就自己收掉 | 免費方案**每次調用只有 10ms CPU**，長連線的 CPU 是累加的。壓短＋讓前端立刻重連比較安全；重連會拿到完整快照，畫面不會有缺口 |
 | 非交易時段 `/stream` 給一份快照就收線 | 不要讓幾十條連線在夜裡空轉 |
+| `/futstream` 問期交所報價 **10 秒**一次、分時序列 **60 秒**一次 | 分時序列（`getChartData1M`）的 `Ticks` 是**一分鐘一根**（fixture 實證），問得比 60 秒密在物理上拿不到新的一根，只會把 34KB 重抓一遍；報價只有 4.4KB 而且是秒級在動，所以值得問得密一點。10 秒也是網站日盤那三張圖既有的節奏 |
+| `/futstream` 用**模組層記憶體**共用上游，不是邊緣快取 | 期交所那兩支是 **POST**。`cf: { cacheTtl, cacheEverything }` **只對 GET 有效**，帶在 POST 上會讓子請求出錯、Cloudflare 對外回 **520** —— 那就是 2026-09-23 夜盤三次空白的斷點（DECISIONS #255 ③）。**任何 POST 的 fetch 都不准帶 cf 快取選項** |
+| 非夜盤時段 `/futstream` 一個上游請求都不打 | 夜盤時段外打 `MarketType=1`，期交所回的是**日盤最後一筆**。把它推出去就是「拿日盤冒充夜盤」，那是 Andy 明講不要的 |
 
 ### `/stream` 怎麼用（除錯時才需要看）
 
@@ -136,6 +148,28 @@ GET /stream?ids=tse_2330.tw|otc_3105.tw
 | `bye` | 連線輪替（滿 4 分鐘），請立刻重連 |
 | `warn` | 這一輪問上游失敗，但連線還活著 |
 | `: hb …` | 心跳（註解行），讓中間的代理不要把連線當成死的 |
+
+### `/futstream` 怎麼用（除錯時才需要看）
+
+```
+GET /futstream?session=night&symbol=TXFJ6-M
+```
+
+`symbol` 是近月合約代號（夜盤是 `-M` 結尾）。**不給也沒關係** ——
+那樣只會推報價、不推分時序列；網站自己算得出代號，所以正常情況下都會帶。
+
+| 事件 | 意思 |
+|---|---|
+| `hello` | 剛接上。附 `futSession`、兩個輪詢間隔、訂的是哪一支合約 |
+| `fut` | 一包台指期報價，格式**跟 `/fut` 的回應一模一樣** |
+| `futchart` | 一份分時序列，格式**跟 `/futchart` 的回應一模一樣** |
+| `idle` | 現在不是夜盤時段，接下來會收線，請改用輪詢 |
+| `bye` | 連線輪替（滿 4 分鐘），請立刻重連 |
+| `warn` | 這一輪問上游失敗（`which` 說是哪一支），但連線還活著、另一支通常還是好的 |
+| `: hb …` | 心跳 |
+
+`fut` 與 `futchart` 的格式跟輪詢那兩支**一模一樣**是刻意的：前端兩條路共用同一套解析，
+「退回輪詢」才不會變成「走一條沒人驗過的路」。
 
 要多一個網域能呼叫，改 `worker.js` 最上面的 `ALLOW_ORIGINS`。
 

@@ -124,6 +124,55 @@ const POLL_EDGE_MS = 30000;            // 盤前／盤後緩衝：30 秒（值�
 const POLL_MIN_MS = 3000;              // 節流硬下限，不准再調快
 const SSE_RETRY_MS = 3000;             // 告訴瀏覽器斷線後隔多久自己重連
 
+/* ---------------------------------------------------------------- /futstream（台指期夜盤的 SSE 推送）
+ *
+ * Andy 2026-09-23：「夜盤要即時推送」。
+ * 現貨那條 `/stream` 只服務加權／櫃買／個股（mis.twse），台指期夜盤走的是期交所的
+ * `/fut` 與 `/futchart`，在這之前一直是**瀏覽器每 60 秒輪詢一次**。
+ *
+ * ★ 為什麼另開一條，而不是併進 /stream
+ * ------------------------------------
+ * 兩邊**沒有一樣東西是共用的**：上游不同（mis vs 期交所）、方法不同（GET vs POST）、
+ * 時段不同（現貨 09:00–13:35 vs 夜盤 15:00–翌日 05:00）、節奏不同、去重的切法不同、
+ * 連讀它的人都不同（site/live.js vs site/market3.js）。
+ * 併進去就等於要在同一條連線、同一個迴圈裡同時養兩套時鐘 ——
+ * 而夜盤時段**現貨本來就該停**，那會逼 `/stream` 在夜間繼續活著，
+ * 正好踩到「不准影響現貨那條 SSE 的行為」這條紅線。
+ * 分開之後，現貨那條除了 features 清單多一個字串以外**一行都沒動**；
+ * 兩邊各自斷線、各自退回輪詢，一邊壞掉不會連累另一邊（DECISIONS #255 教訓 2）。
+ * 代價是夜盤時段每個分頁多一條連線 —— 只在夜盤開，可以接受。
+ *
+ * ★★ 為什麼這裡**不能**用邊緣快取共用上游（DECISIONS #255 ③）
+ * -----------------------------------------------------------
+ * 期交所那兩支是 **POST**。`cf: { cacheTtl, cacheEverything: true }` **只對 GET 有效**，
+ * 帶在 POST 的子請求上會讓它出錯、Cloudflare 對外回 **520** ——
+ * 那就是 2026-09-23 那天 Andy 三次看到「夜盤沒有數值」真正的斷點。
+ * 所以共用上游改用**模組作用域（isolate 層）的記憶體**，見 `futMemoFetch()`，
+ * 那裡也寫清楚了它保證什麼、不保證什麼。
+ *
+ * ★★ 輪詢間隔是怎麼訂的（不是隨便挑的數字）
+ * -----------------------------------------
+ * 現貨那邊有 `userDelay: 5000` 可以照抄，期交所**沒有這個欄位**，所以去 fixture 找證據：
+ * `docs/fixtures/taifex_night_probe.json` 的 `getChartData1M` 回應裡，
+ * `Ticks` 是 **1 分鐘一筆**（"150100" / "150200" / "150300" …）。於是：
+ *
+ *   · `/futchart`（分時序列，實測 34KB）→ **60 秒**一次。
+ *     一分鐘一根，問得比 60 秒密**在物理上不可能拿到新的一根**，
+ *     只會把 34KB 重抓一遍。這是 fixture 直接證明的，不是推測。
+ *   · `/fut`（報價快照，實測 4.4KB）→ **10 秒**一次。
+ *     同一份 fixture 裡，相隔 6 秒的兩次探測成交價從 48009 變成 48013、
+ *     累計量 22616 變成 22622 —— 報價本身是秒級在動的，所以這支值得問得比較密。
+ *     10 秒不是新挑的數字：`site/market3.js` 的日盤那三張圖本來就是 10 秒一輪
+ *     （`MS_LIVE`），夜盤用同一個節奏，畫面各處的「即時」才是同一個意思。
+ *     它比現在的 60 秒快 6 倍，而對期交所的負擔是 4.4KB／10 秒／isolate
+ *     ≈ 1.6MB 一小時 —— 大約等於一個人開著期交所行情看板不關。
+ *   · `FUT_POLL_MIN_MS` 是硬下限，之後有人想調快也擋在這裡。
+ */
+const FUT_STREAM_MAX_MS = 4 * 60 * 1000;   // 跟現貨一樣 4 分鐘輪替（免費方案 10ms CPU 會累加）
+const FUT_POLL_QUOTE_MS = 10000;           // /fut：10 秒（見上面）
+const FUT_POLL_CHART_MS = 60000;           // /futchart：60 秒（Ticks 一分鐘一根，快也沒用）
+const FUT_POLL_MIN_MS = 5000;              // 節流硬下限，不准再調快
+
 function cors(origin) {
   const h = {
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
@@ -160,18 +209,21 @@ export default {
       // 有 'stream' 才代表已經部署到支援 SSE 的版本；舊版不會有這個欄位，
       // 前端看得出來就不會傻傻地一直重試（但它本來也有退回輪詢的路）。
       /* ★ `session` 只講**現貨盤**（09:00–13:35），因為它唯一的用途是決定
-         `/stream` 要用多快的節奏去問 mis 的現貨報價。夜盤（期交所）不走 SSE，
-         `/fut` 與 `/futchart` 也完全不看這個欄位，所以夜盤時 `session: "closed"`
+         `/stream` 要用多快的節奏去問 mis 的現貨報價。夜盤（期交所）走的是另一條
+         `/futstream`，它看的是下面那個 `futSession`，所以夜盤時 `session: "closed"`
          是對的、而且對夜盤那張卡沒有任何影響 —— 2026-09-23 查夜盤空白時
          這個欄位被當成嫌犯查過一輪，寫在這裡讓下一個人不用再查一次。
          不過「closed」看起來像整台 Worker 收攤了，所以另外補一個 `futSession`
-         把期交所夜盤的狀態講出來，除錯時一眼就分得開這兩件事。*/
+         把期交所夜盤的狀態講出來，除錯時一眼就分得開這兩件事。
+         ⚠ `futSession` 從 2026-09-23 起**不再只是給人看的** —— `/futstream`
+         用它決定要不要開迴圈，改它會真的改到行為。*/
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw',
-                    features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream'],
+                    features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream', 'futstream'],
                     session: sessionNow(), futSession: futSessionNow() }, 200, origin);
     }
     if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y'
-        && url.pathname !== '/fut' && url.pathname !== '/futchart' && url.pathname !== '/stream') {
+        && url.pathname !== '/fut' && url.pathname !== '/futchart'
+        && url.pathname !== '/stream' && url.pathname !== '/futstream') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
@@ -186,20 +238,22 @@ export default {
       return openStream(ids.tokens, origin, request, ctx);
     }
 
+    // ---- /futstream：台指期夜盤的 SSE 推送（取代「瀏覽器每 60 秒輪詢 /fut」）
+    //      symbol 是近月合約代號，前端自己算得出來（site/market3.js 的 futSymbol()），
+    //      所以**不給也照樣會推報價**，只是沒有分時序列可推。
+    if (url.pathname === '/futstream') {
+      const want = (url.searchParams.get('session') || 'night') === 'day' ? 'day' : 'night';
+      const raw = (url.searchParams.get('symbol') || '').toUpperCase();
+      // 格式不對就當成沒給（不 400）—— 夜盤那張卡的底線是「報價還在」，
+      // 不該因為代號拼錯就連報價都收不到。
+      const sym = FUT_SYMBOL.test(raw) ? raw : '';
+      return openFutStream(want, sym, origin, request, ctx);
+    }
+
     // ---- /fut：台指期報價（session=day|night）。夜盤是 MarketType=1。
     if (url.pathname === '/fut') {
       const night = (url.searchParams.get('session') || 'day') === 'night';
-      const upstream = new Request(TAIFEX_QUOTE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Referer': 'https://mis.taifex.com.tw/futures/',
-          'Origin': 'https://mis.taifex.com.tw',
-          'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
-        },
-        body: TAIFEX_BODY(night),
-      });
+      const upstream = futQuoteRequest(night);
       try {
         /* ★ 2026-09-23：這裡原本帶 cf: { cacheTtl, cacheEverything: true }。
            **那組選項只對 GET 有效** —— 這是 POST，POST 的回應本來就不可快取，
@@ -223,18 +277,7 @@ export default {
     if (url.pathname === '/futchart') {
       const sym = (url.searchParams.get('symbol') || '').toUpperCase();
       if (!FUT_SYMBOL.test(sym)) return json({ error: 'bad symbol', got: sym }, 400, origin);
-      const upstream = new Request(TAIFEX_CHART, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'Referer': 'https://mis.taifex.com.tw/futures/',
-          'Origin': 'https://mis.taifex.com.tw',
-          'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
-        },
-        // ★ 一定要是字串。送陣列會被回 400（2026-09-19 就是這樣白等了一輪）。
-        body: JSON.stringify({ SymbolID: sym }),
-      });
+      const upstream = futChartRequest(sym);
       try {
         const r = await fetchRetry(upstream);   // 同上：POST 不可帶 cf 快取選項，會回 520
         const txt = await r.text();
@@ -528,6 +571,235 @@ function openStream(tokens, origin, request, ctx) {
       'cache-control': 'no-cache, no-transform',
       'connection': 'keep-alive',
       'x-accel-buffering': 'no',        // 叫中間層不要緩衝，不然推送會卡住
+    }, cors(origin)),
+  });
+}
+
+/* ================================================================ /futstream 用的東西
+ *
+ * 這一整段只服務台指期夜盤的 SSE。上面的 `/stream`、`relay()`、`misText()`、
+ * `meaningful()`、`sessionNow()` 一個字都沒動 —— 現貨那條推送的行為完全維持原樣，
+ * 夜盤壞掉不會連累現貨，反過來也一樣（DECISIONS #255 教訓 2：失敗要獨立）。
+ */
+
+/** 期交所報價清單（getQuoteList）的上游請求。`/fut` 與 `/futstream` 共用同一份，
+ *  兩條路不可以長得不一樣 —— 不然「退回輪詢」就會變成「換一條路就拿到不同的東西」。
+ *  ★ 這是 POST，所以**絕對不准**帶 `cf: { cacheTtl / cacheEverything }`（DECISIONS #255 ③）。 */
+function futQuoteRequest(night) {
+  return new Request(TAIFEX_QUOTE, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Referer': 'https://mis.taifex.com.tw/futures/',
+      'Origin': 'https://mis.taifex.com.tw',
+      'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
+    },
+    body: TAIFEX_BODY(night),
+  });
+}
+
+/** 期交所分時序列（getChartData1M）的上游請求。同上，`/futchart` 與 `/futstream` 共用。
+ *  ★ SymbolID 一定要是**字串**，送陣列會被回 400（2026-09-19 就是這樣白等了一輪）。 */
+function futChartRequest(sym) {
+  return new Request(TAIFEX_CHART, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'Referer': 'https://mis.taifex.com.tw/futures/',
+      'Origin': 'https://mis.taifex.com.tw',
+      'User-Agent': 'Mozilla/5.0 (compatible; tw-rotation/1.0)',
+    },
+    body: JSON.stringify({ SymbolID: sym }),
+  });
+}
+
+/* ---- 共用上游：模組作用域（isolate 層）的小記憶體 -----------------------------
+ *
+ * ★ 它保證什麼
+ *   **同一個 isolate 裡**同時開著的多條 `/futstream` 連線，在 ttl 內只會真的打期交所一次。
+ *   而且「同時抵達的第二條」不會另外開一次連線 —— 它會等第一條那個還沒回來的
+ *   Promise（`futInflight`），所以尖峰時刻也不會變成 N 條連線 ＝ N 次上游請求。
+ *
+ * ★ 它**不**保證什麼
+ *   Cloudflare 隨時可以起一個新的 isolate、也隨時可以把舊的收掉，
+ *   跨 isolate、跨機房一律不共用。所以它是**節流**，不是**正確性**：
+ *   任何邏輯都不准假設「別人已經幫我抓過了」，拿不到就自己抓、抓不到就往下報錯。
+ *   最壞的情況（每條連線都在自己的 isolate）＝ 退化成「每條連線各打各的」，
+ *   那正是這個方案的下限，而下限本來就是可以接受的（見上面間隔的算法）。
+ *
+ * ★ 為什麼不用 `caches.default`
+ *   期交所那兩支是 POST。技術上可以自己捏一個 GET 當 cache key 把結果塞進去，
+ *   但那是在**今天才剛壞過三次**的那條路徑上再加一個新的失敗點（put 失敗、
+ *   快取回舊值、Vary 打架…），而它換到的只是「跨 isolate 也能共用」。
+ *   節流的目標是「不要打爆期交所」，isolate 層已經達到了，不值得為此再冒一次險。
+ *   ⚠ 更不准做的是把 `cf: { cacheTtl, cacheEverything }` 掛回 POST 上 —— 那會回 520。
+ */
+const futMemo = new Map();       // key -> { text, at }
+const futInflight = new Map();   // key -> Promise<string>（正在飛的那一次）
+const FUT_MEMO_MAX = 8;          // 日盤/夜盤各一把 ＋ 幾支近月合約，夠用了
+
+async function futMemoFetch(key, ttlMs, make) {
+  const fresh = futMemo.get(key);
+  // 乘 0.9 是為了「自己的下一輪不要吃到自己上一輪的快取」：
+  // 迴圈每 ttlMs 問一次，計時器早個幾毫秒觸發就會剛好踩在邊界上，白白少推一輪。
+  if (fresh && Date.now() - fresh.at < ttlMs * 0.9) return { text: fresh.text, cached: true };
+  let p = futInflight.get(key);
+  if (!p) {
+    p = (async () => {
+      const r = await fetchRetry(make());          // ★ POST：不帶任何 cf 快取選項
+      if (!r.ok) throw new Error('upstream ' + r.status);
+      const text = await r.text();
+      if (futMemo.size >= FUT_MEMO_MAX) futMemo.clear();
+      futMemo.set(key, { text, at: Date.now() });
+      return text;
+    })();
+    futInflight.set(key, p);
+    // 成功或失敗都要把「正在飛」清掉，不然一次失敗會把這把鑰匙永久卡死
+    p.then(() => {}, () => {}).then(() => {
+      if (futInflight.get(key) === p) futInflight.delete(key);
+    });
+  }
+  return { text: await p, cached: false };
+}
+
+/* ---- 去重：期交所回應裡「真的代表行情變了」的那幾段 ---------------------------
+ *
+ * 目的跟現貨那支 `meaningful()` 一樣，但**切法完全不同**。
+ * 現貨是把尾巴的 `queryTime` 切掉就好（會變的東西集中在尾巴）；
+ * 期交所沒有那種欄位，它每一次都在動的是**委買賣五檔**
+ * （CBidPrice1~5 / CAskSize1~5 / CBidCount / CAskUnit / CBest* / CExt*），
+ * 而那些欄位我們**一格都沒有顯示**。拿整串去比等於每一輪都推，去重形同虛設。
+ *
+ * 所以改成反過來做：**只留我們真的會畫到畫面上的那一段**。
+ *   · 報價清單（getQuoteList）：每一檔從 `"CTotalVolume"` 到 `"CTestTime"` 那一段，
+ *     剛好涵蓋 量／開／高／低／成交／參考價／漲跌停／結算價／未平倉／日期／時間。
+ *   · 分時序列（getChartData1M）：`Quote` 裡從 `"COpenPrice"` 到 `"CBidCount"` 那一段，
+ *     再加上 `Ticks` 陣列**最後那 220 個字**（最新的一根一定在尾巴；
+ *     fixture 證實同一分鐘的那一根會被就地改寫，所以尾巴會跟著動）。
+ *
+ * ★ 這個切法是拿 fixture 驗過的（docs/fixtures/taifex_night_probe.json）：
+ *     `taifex_chartdata_1m_night_full` 與 `our_worker_futchart_night` 相隔 4 秒，
+ *     成交價 48013、累計量 22622、最後一根 Tick 完全一樣，只有五檔在動
+ *     → 切完必須**相等**（不推）。
+ *     `taifex_chartdata_1m_night` 是再早 6 秒那一份（48009／22616／最後一根不同）
+ *     → 切完必須**不等**（要推）。
+ *   兩條都寫成斷言了，見 scripts/_uitest.py 的「夜盤推送」段落與離線驗收腳本。
+ *
+ * ★ 刻意不 `JSON.parse`：免費方案每次調用只有 10ms CPU，一條連線要跑幾十輪，
+ *   把 34KB 的 JSON 解析幾十次一定超時。這裡只做 1 個 regex ＋ 1 個 slice。
+ * ★ 認不出形狀（期交所改了欄位順序）就回整串 —— 退化成「每一輪都推」，
+ *   **絕不會**退化成「該推卻不推」。寧可多送，不可以漏送。
+ */
+/* ⚠ 這兩個是模組層的常數，所以**旗標不可以亂改**：
+   `FUT_SIG_QUOTE` 帶 `g` 是因為報價清單有好幾檔合約、要全部撈出來，
+   而且它只能配 `String.prototype.match`（match 會自己把 lastIndex 歸零）。
+   換成 `.exec()` 或 `.test()` 就會變成有狀態的，第二次呼叫從上次的位置接著找 ——
+   那會讓去重「有時候有效有時候沒效」，是最難查的一種壞法。
+   `FUT_SIG_CHART` 不帶 `g`，所以配 `.exec()` 是安全的。
+   上限 500／600 是從 fixture 量出來的（實際約 330／250 個字），
+   超出就當作認不出形狀 → 回整串 → 退化成「每輪都推」，不會漏送。 */
+const FUT_SIG_QUOTE = /"CTotalVolume"[^\n]{0,500}?"CTestTime"/g;
+const FUT_SIG_CHART = /"COpenPrice"[^\n]{0,600}?"CBidCount"/;
+
+function futMeaningful(text, kind) {
+  if (kind === 'chart') {
+    const m = FUT_SIG_CHART.exec(text);
+    // Ticks 是整份回應裡唯一的「陣列裡面裝陣列」，所以最後一個 ']]' 就是它的結尾。
+    // 用它定位而不是直接 slice(-220)，是為了不去假設 RtData 底下欄位誰排最後。
+    const e = text.lastIndexOf(']]');
+    if (!m || e <= 0) return text;
+    return m[0] + '|' + text.slice(Math.max(0, e - 220), e);
+  }
+  const m = text.match(FUT_SIG_QUOTE);
+  return m ? m.join('|') : text;
+}
+
+/** 開一條夜盤的 SSE 連線。 */
+function openFutStream(want, symbol, origin, request, ctx) {
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  const send = s => writer.write(enc.encode(s));
+  const sess = futSessionNow();
+
+  const pump = (async () => {
+    let lastQ = '', lastC = '';
+    try {
+      await send(`retry: ${SSE_RETRY_MS}\n\n`);
+      await send(sse('hello', {
+        session: sess, want, symbol, pollMs: FUT_POLL_QUOTE_MS, chartMs: FUT_POLL_CHART_MS,
+        maxMs: FUT_STREAM_MAX_MS, at: Date.now(),
+      }));
+
+      /* ★ 非夜盤時段：**一個上游請求都不打**，直接說明原因收線。
+         這裡刻意跟現貨那條不一樣（現貨會先給一份快照才收）——
+         夜盤時段外打 MarketType=1，期交所回的是**日盤最後一筆**，
+         把它推給前端就是 DECISIONS #255 ① 那個「拿日盤冒充夜盤」，
+         而那正是 Andy 明講不要的東西。沒有東西可推的時候，最好的推送是不推。 */
+      if (sess !== 'night' || want !== 'night') {
+        await send(sse('idle', {
+          reason: '非夜盤時段（台北 15:00～翌日 05:00），改由前端慢速輪詢',
+          futSession: sess,
+        }));
+        return;
+      }
+
+      const started = Date.now();
+      let first = true;
+      let chartAt = 0;
+      while (true) {
+        if (request.signal && request.signal.aborted) break;   // 使用者關了分頁
+
+        // ---- 報價：10 秒一次（見上面間隔的算法）
+        try {
+          const got = await futMemoFetch('q|' + want, FUT_POLL_QUOTE_MS, () => futQuoteRequest(want === 'night'));
+          const sig = futMeaningful(got.text, 'quote');
+          /* first 例外：剛連上（含斷線重連、4 分鐘輪替）一定要先給一份完整快照，
+             不然斷線期間漏掉的值永遠補不回來 —— 跟現貨那條同一個理由。 */
+          if (first || sig !== lastQ) { lastQ = sig; await send(sse('fut', got.text)); }
+        } catch (e) {
+          await send(sse('warn', { which: 'fut', error: String(e).slice(0, 120) }));
+        }
+
+        // ---- 分時序列：60 秒一次。Ticks 一分鐘一根，問得更密在物理上拿不到新的一根。
+        //      ★ 它跟報價**互不依賴地失敗**：這一支掛掉不准影響上面那一支，反之亦然。
+        if (symbol && (first || Date.now() - chartAt >= FUT_POLL_CHART_MS)) {
+          chartAt = Date.now();
+          try {
+            const got = await futMemoFetch('c|' + symbol, FUT_POLL_CHART_MS, () => futChartRequest(symbol));
+            const sig = futMeaningful(got.text, 'chart');
+            if (first || sig !== lastC) { lastC = sig; await send(sse('futchart', got.text)); }
+          } catch (e) {
+            await send(sse('warn', { which: 'futchart', error: String(e).slice(0, 120) }));
+          }
+        }
+        first = false;
+
+        if (Date.now() - started + FUT_POLL_QUOTE_MS > FUT_STREAM_MAX_MS) {
+          await send(sse('bye', { reason: 'rotate', hint: '連線輪替，請立刻重連' }));
+          break;
+        }
+        await send(`: hb ${Date.now()}\n\n`);       // 心跳，讓中間的代理不要把連線當成死的
+        await sleep(Math.max(FUT_POLL_MIN_MS, FUT_POLL_QUOTE_MS));
+      }
+    } catch (e) {
+      /* writer.write 失敗＝對面已經走了，這是正常結束，不是錯誤 */
+    } finally {
+      try { await writer.close(); } catch (e) { /* 已經關了 */ }
+    }
+  })();
+
+  if (ctx && ctx.waitUntil) ctx.waitUntil(pump);
+
+  return new Response(readable, {
+    status: 200,
+    headers: Object.assign({
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      'connection': 'keep-alive',
+      'x-accel-buffering': 'no',
     }, cors(origin)),
   });
 }
