@@ -247,8 +247,13 @@ def main() -> int:
         visit("flow", "flow")
         visit("industry", "industry_map")
         visit("industry/ai_server", "industry_chain")
-        # ★ 2026-09-23（W3-2）：成分股表移除，這裡記的「這一頁有多少內容」改成量關聯圖的族群節點
-        state["industry_chain"]["members"] = pg.evaluate("document.querySelectorAll('#cgGraph .cgnode[data-gid]').length")
+        # ★ 2026-09-23（W3-2）：成分股表移除，這裡記的「這一頁有多少內容」改成量關聯圖的族群節點。
+        # ★ 2026-09-23（技術債清理）：`#cgGraph .cgnode` 是**力導向星際圖**的節點，
+        #   而那張圖已經在 `49d98a2`（批次 0923-I，關聯圖退版回分層圖）從產業鏈頁移除了 ——
+        #   這一行從那天起永遠記成 0。它沒有斷言、不會變紅，所以壞了一週也沒人看得出來，
+        #   但「永遠是 0 的狀態紀錄」比沒有紀錄更糟：它會讓下次看報告的人以為這一頁是空的。
+        #   改量分層圖真正畫出來的族群節點 `#chainMap .co`（跟下一行的 diagram 同一個來源）。
+        state["industry_chain"]["members"] = pg.evaluate("document.querySelectorAll('#chainMap .co').length")
         state["industry_chain"]["diagram"] = pg.evaluate("!!document.querySelector('#prodDiagram svg') && document.querySelectorAll('#chainMap .co').length")
         visit("industry/group/ind_ETF", "industry_etf")
         # ★ 2026-09-23（W3-2）：族群頁改用個股漲幅長條圖，量它畫了幾條
