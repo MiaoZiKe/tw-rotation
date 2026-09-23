@@ -9058,7 +9058,10 @@ def t_mlcc(pg, base):
         notes.append("MLCC 3D：這個環境沒有 WebGL，3D 那幾條跳過（與圖九 / N1 同一條規矩）")
 
     # ---------------- 7. 回歸：既有兩張圖沒被換掉
-    for cid, feat, least in ((R_SEMI, FEAT_SEMI, 15), ("ai_server", FEAT_AI, 15)):
+    # ★ 2026-09-23（#252）：`#industry/ai_server` 讓給「族群總覽」那一個分頁，
+    #   鏈層級的機櫃架構圖改成有自己的網址 `/dg/ai_server`。不換的話這兩條會量到
+    #   族群總覽的標題（「共 8 張，各自是獨立的產品」）而紅 —— 要驗的事沒變。
+    for cid, feat, least in ((R_SEMI, FEAT_SEMI, 15), ("ai_server/dg/ai_server", FEAT_AI, 15)):
         pg.goto(f"{base}#industry/{cid}", wait_until="networkidle"); pg.wait_for_timeout(2400)
         d = dg(pg)
         ok(f"回歸：{cid} 鏈還是畫自己那張圖", d.get("present") and feat in d["full"], d.get("title", "")[:60])
@@ -9134,10 +9137,10 @@ def t_mlcc(pg, base):
     #  順便把「文字兩兩重疊」一起驗掉（字級一升、行距沒跟著長就會相貼，
     #  labelRow／lrow3 在改之前就已經六對重疊 1.00px）。
     TYPO = DG_TYPO
-    #  ★ 路由：剖析圖改成獨立分頁之後，族群層級的 MLCC 有自己的網址，
-    #    鏈層級的兩張仍然是點進鏈就直接看到（見本函式第 1~2 段）。
+    #  ★ 路由：剖析圖改成獨立分頁之後**每一張圖都有自己的網址** —— 包含鏈層級那兩張。
+    #    `#industry/<chain>` 現在是「族群總覽」那一個分頁（#252），所以這裡一律帶 /dg/。
     for route, what in (("electronics/dg/mlcc", "MLCC"), (R_SEMI, "先進封裝"),
-                        ("ai_server", "AI 伺服器")):
+                        ("ai_server/dg/ai_server", "AI 伺服器")):
         for w in (1440, 800, 390):
             pg.set_viewport_size({"width": w, "height": 1000})
             pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
