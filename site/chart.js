@@ -372,6 +372,33 @@
     destroy() { try { this.kc.candle.detachPrimitive(this.prim); } catch (e) { /* 圖已銷毀 */ } }
   }
 
+  // ---------------------------------------------------------------- ③ 歷史無限回溯
+  /* 往左拖到頭就自動載入更舊的 K 棒。
+     - 資料來自 `data/hist/<代號>/p<N>.json`，由 `pipeline/build_payload.py` 從資料湖產出：
+       p0 是「個股頁那 1,250～1,500 根再往前的第一段」，p1 更舊，依此類推。
+       每一份自己帶 `prev`：prev 是 null 就代表**這已經是資料湖裡最早的一段**，
+       前端看到 null 就收手，不會再往下打請求（Andy 要的「拖到最早一筆要停下來」）。
+     - 快取放在模組層，key 是代號：換週期、離開再回到同一檔都不會重抓。
+       `fetches` / `hits` 是驗收用的 —— 「有沒有重抓」這件事一樣不能用眼睛猜。
+     - 為什麼存的是「日線」而不是各週期各存一份：週線月線本來就由日線在前端合成
+       （`KUtil.resampleDaily`），存日線一份，三個週期共用。*/
+  const HIST = Object.create(null);
+  function histState(code) {
+    return HIST[code] || (HIST[code] = { pages: {}, daily: [], next: 0, done: false, fetches: 0, hits: 0 });
+  }
+  async function histFetch(code, n) {
+    const st = histState(code);
+    if (st.pages[n] !== undefined) { st.hits++; return st.pages[n]; }
+    st.fetches++;
+    let j = null;
+    try {
+      const r = await fetch(`data/hist/${code}/p${n}.json`, { cache: 'force-cache' });
+      j = r.ok ? await r.json() : null;
+    } catch (e) { j = null; }
+    st.pages[n] = j;      // 連「沒有這一段」都要記下來，不然每拖一次就再打一次 404
+    return j;
+  }
+
   // ---------------------------------------------------------------- 圖表
   /* 主題：色票 C 的預設值是深色，切到明亮主題時由 refreshTheme() 就地改寫。
      Lightweight Charts 的顏色是建圖當下寫進去的，所以換主題一定要把圖重建（app.js 會重跑 route()）。 */
@@ -498,6 +525,7 @@
         if (d >= 0) { this._applyTail(bars, d); return; }
       }
       this._histAdded = 0;      // 整條重灌＝回補的那些也沒了，重新算起
+      this._lastCum = null;     // 換股／換週期，即時量的基準也要跟著歸零
       this.stats.setData++;
       const keep = keepView ? ts.getVisibleLogicalRange() : null;
       const grew = keep && this.data ? bars.length - this.data.length : 0;
@@ -636,6 +664,121 @@
     }
     setZones(z, style) { this.zones.setZones(z, style); }
     setZoneStyle(style) { this.zones.setStyle(style); }
+    /* ③ 掛上「拖到左邊界就補」的監聽。只有日／週／月線做得到 ——
+       分 K 的資料湖只留 60 分（730 天）與當天，往前補不到東西。*/
+    _initHistory() {
+      if (this.opts.mini) return;
+      this._onRange = (r) => {
+        if (!r || this._dead) return;
+        // 左邊界還剩不到 12 根就先去要下一段，等使用者拖到底才要就會看到一段空白
+        if (r.from > 12) return;
+        this.loadOlder();
+      };
+      this.chart.timeScale().subscribeVisibleLogicalRangeChange(this._onRange);
+    }
+    /** 這張圖現在畫的是哪一檔。優先吃呼叫端給的，其次是 industry.js 寫在圖上的
+     *  `_liveKey`（'代號|週期'），最後才從網址推 —— 個股頁的網址就是 #stock/<代號>。*/
+    histCode() {
+      if (this.opts.code) return String(this.opts.code);
+      if (this._liveKey) return String(this._liveKey).split('|')[0];
+      const m = /#stock\/([A-Za-z0-9]+)/.exec(global.location ? global.location.hash || '' : '');
+      return m ? m[1] : null;
+    }
+    histReady() { return ['1d', '1w', '1M'].indexOf(this.tf) >= 0 && !!this.histCode(); }
+    /** 載入更舊的一段。回傳「這一次真的多了幾根」。 */
+    async loadOlder() {
+      if (this.opts.mini || this._dead || !this.histReady()) return 0;
+      const code = this.histCode();
+      const st = histState(code);
+      if (st.done && st.next > 0 && !st.pages[st.next]) { /* 已經到底 */ }
+      if (this._loading || (st.done && this._histAdded >= st.daily.length)) return 0;
+      if (st.done) return 0;
+      this._loading = true;
+      this._histNote('載入更早的 K 棒…');
+      try {
+        const j = await histFetch(code, st.next);
+        if (!j || !j.bars || !j.bars.length) {
+          st.done = true;
+          this._histNote('已經到最早一筆了', 2600);
+          return 0;
+        }
+        st.next += 1;
+        if (j.prev === null || j.prev === undefined) st.done = true;
+        st.daily = j.bars.concat(st.daily);      // 由舊到新
+        const n = this._prependHistory(st.daily);
+        this._histNote(n ? `已回補到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
+          : '已經到最早一筆了', 2600);
+        return n;
+      } catch (e) {
+        this._histNote('更早的資料載入失敗', 3000);
+        histState(code).done = true;
+        return 0;
+      } finally {
+        this._loading = false;
+      }
+    }
+    /** 把「目前累積到的所有更舊日線」接到現有 K 棒前面。
+     *  每次都從頭接一次（而不是「這次只接新的那一段」）是刻意的：
+     *  週線／月線要跨段合成，一段一段接會在接縫處切出半根假的週 K。 */
+    _prependHistory(olderDaily) {
+      if (!olderDaily || !olderDaily.length || !this.data.length) return 0;
+      const base = this.bars.slice(this._histAdded || 0);   // 原本呼叫端給的那一份
+      if (!base.length) return 0;
+      let older = olderDaily;
+      if (this.tf === '1w') older = resampleDaily(olderDaily, 'W');
+      else if (this.tf === '1M') older = resampleDaily(olderDaily, 'M');
+      /* 邊界那一根可能跟現有第一根落在同一週／同一月 —— 那會變成兩根半截的週 K。
+         寧可丟掉我們自己合的那一根（現有第一根本來就在圖上），也不要多畫一根假的。*/
+      const anchor = String(base[0][0]);
+      const keepBar = (b) => (this.tf === '1d'
+        ? String(b[0]) < anchor
+        : !this._sameBucket(anchor, String(b[0])) && String(b[0]) < anchor);
+      const add = older.filter(keepBar);
+      if (add.length <= (this._histAdded || 0)) return 0;
+      const ts = this.chart.timeScale();
+      const keep = ts.getVisibleLogicalRange();
+      const grew = add.length - (this._histAdded || 0);
+      this.bars = add.concat(base);
+      this.data = this.bars.map(b => ({ time: toTime(b[0]), open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] || 0 }));
+      this.candle.setData(this.data);
+      this.stats.setData++; this.stats.backfill++;
+      this._histAdded = add.length;
+      /* 左邊多了資料，MA／KD／RSI 的起頭全部要重算（這正是回補的價值：
+         以前畫面最左邊那 60 根的均線是「沒有前文」的，現在才是對的），所以整組重建。*/
+      this._tailFrom = null; this._feeds = [];
+      if (this.cfg) this.applyIndicators(this.cfg);
+      // 視野往右平移 grew 根，使用者眼前的那一段不能因為左邊長出東西就跳掉
+      if (keep) ts.setVisibleLogicalRange({ from: keep.from + grew, to: keep.to + grew });
+      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+      return grew;
+    }
+    /* 「載入中」「已經到最早一筆」那一小塊字。
+       樣式寫在 JS 裡是刻意的 —— CSS 在 index.html，那支檔案這批不准動。*/
+    _histNote(msg, ms) {
+      if (this.opts.mini || !this.el) return;
+      let el = this._noteEl;
+      if (!el) {
+        el = this._noteEl = document.createElement('div');
+        el.className = 'k-histnote';
+        el.style.cssText = 'position:absolute;left:10px;top:8px;z-index:4;pointer-events:none;'
+          + 'font:600 11.5px/1.5 "Noto Sans TC",sans-serif;padding:3px 9px;border-radius:999px;'
+          + 'background:rgba(10,16,32,.78);color:#a9b6d6;border:1px solid rgba(62,224,255,.35)';
+        this.el.appendChild(el);
+      }
+      el.style.color = C.text; el.style.background = hexa(C.bg.indexOf('#') === 0 ? C.bg : '#0a1020', 82);
+      el.textContent = msg || '';
+      el.style.display = msg ? '' : 'none';
+      clearTimeout(this._noteT);
+      if (ms) this._noteT = setTimeout(() => { if (this._noteEl) this._noteEl.style.display = 'none'; }, ms);
+    }
+    /* 驗收用：這一檔的回溯狀態（抓了幾次、命中快取幾次、到底了沒）。*/
+    histStats() {
+      const code = this.histCode();
+      const st = code ? HIST[code] : null;
+      return { code, added: this._histAdded || 0, bars: this.data ? this.data.length : 0,
+        fetches: st ? st.fetches : 0, hits: st ? st.hits : 0, done: st ? !!st.done : false,
+        pages: st ? Object.keys(st.pages).length : 0 };
+    }
     clearOverlays() {
       // MACD 面板被移掉時，掛在它上面的背離線也跟著沒了（不清會留著指向已刪除的 series）
       this.divPane = null;

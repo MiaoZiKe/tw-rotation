@@ -1091,11 +1091,21 @@
          8px 的死區：捲軸出現／消失那種一兩個 pixel 的抖動不值得重畫一整張圖。
          換頁時 `el` 已經不在文件裡，用它當存活判斷把 observer 自己收掉。*/
       let rt = null;
+      /* ★ 存活判斷一定要看 `mapHost`，**不可以看 `el`**。
+         `el` ＝ `#indChain`，它是**常駐的容器**：換一條鏈只是換它的 innerHTML，
+         元素本身永遠 isConnected。第一版寫成 `el.isConnected` 的下場是：
+         上一條鏈的 observer 永遠拆不掉，換頁時舊 mapHost 被移除觸發它，
+         它就用**上一條鏈的閉包**呼叫 syncHighlight → swapDiagram，
+         把**新那一頁**的剖析圖整張換掉（實測：從半導體切到
+         `#industry/ai_server/dg/ai_server`，機櫃圖整張不見，要重新整理才回來）。
+         `mapHost` 是這一次 render 產生的節點，innerHTML 一換它就 isConnected=false，
+         所以它才是「這一輪還算不算數」的正確判準。*/
+      const alive = () => !!(mapHost && mapHost.isConnected);
       const reflow = () => {
-        if (!el.isConnected) { if (ro) ro.disconnect(); window.removeEventListener('resize', reflow); return; }
-        if (!relOpen || !mapHost || Math.abs(mapHost.clientWidth - lastW) < 8) return;
+        if (!alive()) { if (ro) ro.disconnect(); window.removeEventListener('resize', reflow); return; }
+        if (!relOpen || Math.abs(mapHost.clientWidth - lastW) < 8) return;
         clearTimeout(rt); rt = setTimeout(() => {
-          if (!el.isConnected || !relOpen) return;
+          if (!alive() || !relOpen) return;
           drawMap(); syncHighlight({ quiet: true, noscroll: true });
         }, 120);
       };
