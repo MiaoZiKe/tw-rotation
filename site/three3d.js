@@ -6271,7 +6271,14 @@
     /* 一個 group 的最終位置 ＝ 原位 ＋ 爆炸位移 × expT ＋ 運轉位移（C6 ⑤ move）。
        兩件事必須疊加而不是互相覆寫：螺帽沿軸走的時候，使用者可能同時把圖拆開。*/
     const place = (g) => {
-      const b = g.userData.base, e = g.userData.ex || [0, 0, 0], v = g.userData.mv, w = g.userData.gw;
+      const b = g.userData.base;
+      /* 沒有 base 的 group ＝ 掛在零件上的**流線**（水路／光路／氣流），它不是零件本人，
+         座標是絕對寫死的路徑，不該被位移／脹縮搬走。
+         ⚠ 2026-09-23 踩到：findPart().groups 會**連流線的 group 一起回傳**，
+           所以只要動到一個「身上有流線」的零件（光模組、熔湯、2DEG…），
+           place() 就會讀到 undefined.base 而整張 3D 退回平面圖。下面四個動法都改成只吃真零件。*/
+      if (!b) return;
+      const e = g.userData.ex || [0, 0, 0], v = g.userData.mv, w = g.userData.gw;
       /* gw ＝ C7 ⑦ grow 的**錨點補償**：group 的原點在零件中心，直接縮放會兩頭一起長，
          但真實世界裡膨脹的東西大多有一端是固定的（PPTC 貼在電極上、熔湯的底在坩堝裡），
          所以縮放之後要把它推回去，讓那一端待在原位。*/
@@ -6475,6 +6482,9 @@
        這裡跑得比它早，用它會踩到 TDZ、整個 3D 退回平面圖（#246 踩過同一個坑）。*/
     const isPartKey = (p, key) => !!key && (p.part === key || (p.alias || []).indexOf(key) >= 0);
     const findPart = (key) => byIdx.filter(Boolean).find(p => isPartKey(p, key)) || null;
+    /* 只要「零件本人」的 group：`p.groups` 裡還混著掛在它身上的流線（見 place() 的說明）。
+       會動的四種動法（move／swing／grow／carry）一律先過這一層。*/
+    const realG = (p) => p.groups.filter(g => g.userData && g.userData.base);
     /* ② spin：讓某個零件的整個 group 繞自己的軸轉（螺桿、晶碇、聯軸器）。
        零件的幾何本來就是以自己的中心為原點建的，所以繞 group 的軸轉 ＝ 繞零件自己的軸轉。*/
     (spec.spins || []).forEach(sp => {
@@ -6506,7 +6516,7 @@
       const groups = [];
       (mo.parts || [mo.part]).forEach(key => {
         const p = findPart(key); if (!p) return;
-        p.groups.forEach(g => { g.userData.mv = { x: 0, y: 0, z: 0 }; groups.push(g); });
+        realG(p).forEach(g => { g.userData.mv = { x: 0, y: 0, z: 0 }; groups.push(g); });
       });
       if (!groups.length) return;
       movers.push({ name: mo.name || '', groups, axis: mo.axis || 'x', amp: mo.amp || 1,
@@ -6525,7 +6535,7 @@
       const groups = [];
       (sw.parts || [sw.part]).forEach(key => {
         const p = findPart(key); if (!p) return;
-        p.groups.forEach((g, i) => {
+        realG(p).forEach((g, i) => {
           const ax = sw.axis || 'y';
           g.userData.sw0 = g.rotation[ax];
           // alt：整排零件**交錯反向**擺（兩片正交的稜鏡、上下兩列彈片），看起來才不像整排一起晃
@@ -6546,7 +6556,7 @@
       const groups = [];
       (gr.parts || [gr.part]).forEach(key => {
         const p = findPart(key); if (!p) return;
-        p.groups.forEach(g => {
+        realG(p).forEach(g => {
           g.userData.gw = g.userData.gw || { x: 0, y: 0, z: 0 };
           // 半徑：用建好的外接盒量（此時 scale 還是 1、rotation 還是 0，量到的就是本尊的尺寸）
           const bb = new THREE.Box3().setFromObject(g), sz = bb.getSize(new THREE.Vector3());
@@ -6574,7 +6584,7 @@
       const groups = [];
       if (ca.part) {
         const p = findPart(ca.part); if (!p) return;
-        p.groups.forEach((g, i) => { g.userData.mv = g.userData.mv || { x: 0, y: 0, z: 0 }; groups.push({ g, base: g.userData.base, ph: (ca.spread || 0) * i }); });
+        realG(p).forEach((g, i) => { g.userData.mv = g.userData.mv || { x: 0, y: 0, z: 0 }; groups.push({ g, base: g.userData.base, ph: (ca.spread || 0) * i }); });
       } else {
         const n = Math.max(1, ca.n || 1);
         const K2 = kit(THREE, 'metal', false, cssRead, ca.kind || 'sig');
@@ -7912,6 +7922,11 @@
               if (x.isInstancedMesh && x.userData && x.userData.ispin) out.push(p.part + '#i|' + q(x.userData.ispin.t));
             });
           });
+        });
+        // C7 ⑧：現生的載具（資料封包、電荷包、冷卻液團）也算「形狀」——
+        // 它們是很多場景裡**唯一**在移動的東西，不放進來就量不到這一批的主要成果
+        carryMarks.forEach((m, i) => {
+          out.push('carry' + i + '|' + q(m.position.x) + ',' + q(m.position.y) + ',' + q(m.position.z) + '|' + (m.visible ? 1 : 0));
         });
         return out;
       },
