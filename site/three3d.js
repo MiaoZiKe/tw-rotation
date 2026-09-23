@@ -972,16 +972,16 @@
           kind: 'mcbase', box: [122, 11, 46], at: [0, -6, 0], ex: [0, -14, 0], codes: [] },
         { seg: 'motion_axis', part: 'mc_enc', name: '編碼器（回授的起點）', note: '★ 裡面那片刻了一圈等距刻線的碼盤就是它的全部意義 ——「會轉」跟「知道自己轉到哪」是兩件事。它裝在馬達的尾端（遠離螺桿那一側），把位置送回驅動器與控制器',
           kind: 'mcenc', box: [13, 17, 17], at: [-70, 9, 0], ex: [-42, 4, 0],
-          codes: [], chipnote: '編碼器這一件，查不到台股的具名對應 —— 查不到就寫查不到，不編一個對應' },
+          codes: ['4576'], chipnote: '4576 大銀微系統的產品線含「位置量測系統」（官網分絕對式與增量式兩種，走磁性原理），那就是編碼器這一類（信心：中，來源為公司官網 hiwinmikro.tw/zh/product/positioning-measurement-system）。⚠ 兩個保留寫在這裡不藏起來：① 官網具名的是**線性**位置量測系統，本圖畫的是裝在馬達尾端的**旋轉**編碼器，不是同一支型號；② 「編碼器自有技術」各家講法對不起來（有的說自主技術、有的說磁化技術來自德國／與以色列 Mega-Fabs 合作），所以這裡只主張「產品線有這一類」，不主張「全自研」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_motor', name: '伺服馬達', note: '方殼、外殼有散熱肋、前面一片法蘭鎖到機構上、軸從法蘭伸出去。★ 沒有尾端那顆編碼器就只是一般感應馬達。本圖只畫外殼，不畫繞組剖面（那會跟變壓器那張撞題）',
           kind: 'mcmotor', box: [40, 20, 20], at: [-44, 9, 0], ex: [-24, 4, 0],
           codes: ['4576'], chipnote: '4576 大銀微系統（線性馬達與傳動，信心：verified）。★ 本圖畫的是旋轉馬達＋螺桿，直接驅動的線性馬達是另一種架構、本圖未畫。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_coupling', name: '聯軸器', note: '★ 馬達與螺桿之間一定要有它。直接畫成一根連續的軸就是錯 —— 那表示兩根軸完全同心且剛性連接，實務上做不到，也沒有可更換的犧牲件。中間那一段撓性溝就是它的識別特徵',
           kind: 'mccoup', box: [20, 13, 13], at: [-21, 9, 0], ex: [-12, 4, 0],
-          codes: [], chipnote: '聯軸器這一件，查不到台股的具名對應' },
+          codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含聯軸器：官網有「聯軸器」產品分類頁，底下就是撓性聯軸器 SRJ（信心：高，來源為公司官網 tbimotion.com.tw/en/category/coupling 與 /en/product/flexible-coupling-srj，另有台灣智慧機械官方網站的供應商頁列出同一批產品）。★ 本圖畫的正是撓性聯軸器 —— 中間那段撓性溝。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_bearing', name: '軸承座（固定端／支撐端）', note: '螺桿兩端各一個：★ 一端固定（吃軸向力）、一端支撐（只導引，讓螺桿受熱可以伸長）—— 兩端都畫成固定端，螺桿熱起來就被自己頂彎。剖面看得到內外環與夾在中間的一圈滾珠',
           kind: 'mcbrg', box: [12, 20, 20], at: [0, 9, 0], n: 2, gap: 76, axis: 'x', ex: [0, 17, 0],
-          codes: [], chipnote: '軸承座這一件，查不到台股的具名對應' },
+          codes: ['4540'], chipnote: '4540 全球傳動（TBI MOTION）的產品線含螺桿支撐座：官網拆成 Fixed Side（固定座 BK／EK）與 Floated Side（支撐座 BF／EF）兩個分類，另有「SUPPORT UNIT of BALL SCREW」的型錄（信心：高，來源為公司官網 tbimotion.com.tw 的產品分類與目錄下載頁）。★ 那正是本圖講的「一端固定吃軸向力、一端支撐讓螺桿伸長」。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
         { seg: 'motion_axis', part: 'mc_screw', name: '滾珠螺桿・螺桿軸', note: '把馬達的「轉」變成工作台的「直線走」。★ 表面的溝槽剖面是圓弧（哥德弧或單圓弧），不是 V 形三角 —— V 形那是鎖緊用的螺絲，走的是滑動摩擦、裡面沒有鋼珠。兩端的軸頸比較細且有階級，那是要裝軸承的地方',
           kind: 'mcscrew', box: [86, 13, 13], at: [0, 9, 0], ex: [0, 3, 0],
           codes: ['2049', '4540'], chipnote: '2049 上銀（滾珠螺桿與線性滑軌）、4540 全球傳動（線性傳動）。終端不同：上銀多在工具機、全球傳動在產業機械（信心：中，來源為產業媒體整理）。兩檔都不在 supply_chain.yaml 裡，所以直接指名' },
@@ -1585,6 +1585,22 @@
     mc_bearing: 'Bearing housings (fixed / supported)', mc_screw: 'Ball screw shaft', mc_nut: 'Ball nut with flange',
     mc_ball: 'Steel balls (two-point contact)', mc_return: 'Ball return circuit', mc_rail: 'Linear guide rails x2',
     mc_block: 'Guide blocks x2', mc_table: 'Moving table',
+    /* CNC 工具機那一張（machine_tool，0923-E 新增場景時漏掉、2026-09-23 補齊）。
+       key 用的是 2D 那張圖同一組 data-part（mt_*）。
+       ★ 英文一律採工具機業界的標準講法，不是中文直譯：
+         床身 machine bed（重鑄件）、立柱 column、鞍座 saddle、滾珠螺桿 ball screw、
+         線性滑軌 linear guideway、主軸 spindle、主軸錐孔 spindle taper bore、
+         刀柄 tool holder、刀庫 tool magazine（圓盤式＝disc-type / carousel）、
+         換刀機械手 automatic tool changer（ATC，雙臂＝double-arm）、排屑機 chip conveyor（鏈板式＝hinged-belt）。*/
+    mt_bed: 'Machine bed (ribbed casting)', mt_col: 'Column (cast integral with the bed)',
+    mt_rail: 'Linear guideways on the column x2', mt_z: 'Z-axis ball screw',
+    mt_saddle: 'Saddle (Y-axis slide)', mt_x: 'X-axis ball screw',
+    mt_table: 'Worktable with T-slots', mt_work: 'Workpiece',
+    mt_head: 'Spindle head (Z axis)', mt_spmot: 'Spindle motor',
+    mt_spindle: 'Spindle & tool taper bore', mt_bear: 'Spindle bearings (front / rear)',
+    mt_tool: 'Tool holder & end mill', mt_mag: 'Disc-type tool magazine',
+    mt_atc: 'Double-arm automatic tool changer (ATC)', mt_cnc: 'CNC controller & servo drives',
+    mt_conv: 'Hinged-belt chip conveyor',
     cp_ins: 'PPTC outer insulation', cp_ni: 'PPTC nickel foil electrodes', cp_poly: 'PPTC polymer matrix',
     cp_carbon: 'PPTC carbon-black chains', cp_ntc: 'NTC thermistor', cp_grain: 'MOV zinc-oxide grains',
     cp_gb: 'MOV grain boundaries', cp_movel: 'MOV electrodes', cp_pn: 'TVS p-n junction', cp_tvsel: 'TVS electrodes',
