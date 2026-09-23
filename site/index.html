@@ -2111,7 +2111,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .chainmap .fseg.dim{opacity:.34}
 /* 12px 是全站圖表字級的下限（手機不得小於 11px，這裡留一格餘裕）*/
 .chainmap .fnm{font-size:12.5px;font-weight:700;pointer-events:none}
-.chainmap .fct{font-size:11px;fill:var(--ink-3);font-family:var(--mono);pointer-events:none}
+/* ★ 檔數那一行**不能**吃 var(--ink-3)：`.chainmap` 的底在淺色主題下仍然是深色
+   （`--illus`，見上面 .chainmap 那一節），而淺色主題的 --ink-3 是給白底用的中灰 ——
+   套上去會變成「深底配中灰」，實測幾乎看不到。這裡鎖一個對深底成立的灰。*/
+.chainmap .fct{font-size:11px;fill:#9fb0cc;font-family:var(--mono);pointer-events:none}
 /* 環節詳情：Default 是空的（高度 0），點色標或環節卡才展開 —— 這就是 Andy 說的「點擊後才會跳出下拉清單」 */
 #segBox:empty{display:none}
 #segBox{margin-top:10px}
