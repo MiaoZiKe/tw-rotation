@@ -157,6 +157,27 @@
       ${subs.map((s, i) => `<text class="sub" x="${x + 14}" y="${y + 18 + i * 18}">${s}</text>`).join('')}
     </g></g>`;
 
+  /* 裂解價差的三個情境小卡（§3-D：靜態、不標任何數值）。
+     ★ 2026-09-23：原本右半只有「價差還在／價差倒掛」兩個 152×34 的小色塊，
+       右邊將近三分之一的框是空的（Andy 的截圖就是指這一塊）。
+       現在補成**三個等寬小卡**（還在／變薄／倒掛）由左排到框的右緣，
+       而且中間補上「變薄」這個真正常見的狀態 —— 它本來就是這張圖要講的事，不是為了填空白硬加的。
+     k：0＝產品線在上（賺）、1＝兩條線靠近（薄）、2＝產品線在下（倒掛）。*/
+  function spreadCase(x, title, col, k, lines) {
+    const w = 140, yT = 116, yB = 150;                 // 小卡裡那兩條線的上下界
+    const prod = k === 2 ? yB : (k === 1 ? yT + 22 : yT);   // 產品線
+    const cost = k === 2 ? yT : (k === 1 ? yT + 30 : yB);   // 成本線（石油腦）
+    const y0 = Math.min(prod, cost), y1 = Math.max(prod, cost);
+    return `<g>`
+      + `<rect x="${x}" y="${96}" width="${w}" height="${98}" rx="6" fill="none" stroke="${V(col)}" stroke-opacity=".38"/>`
+      + `<text class="lbl" x="${x + 10}" y="${112}" style="fill:${V(col)}">${title}</text>`
+      + `<rect x="${x + 10}" y="${y0}" width="${w - 20}" height="${Math.max(3, y1 - y0)}" fill="${V(col)}" opacity=".18"/>`
+      + `<path d="M${x + 10},${prod} H${x + w - 10}" stroke="${V('--dg-accent-2d')}" stroke-width="2" fill="none"/>`
+      + `<path d="M${x + 10},${cost} H${x + w - 10}" stroke="${V('--dg-mute')}" stroke-width="2" fill="none" stroke-dasharray="6 4"/>`
+      + lines.map((t, i) => `<text class="sub" x="${x + 10}" y="${166 + i * 16}"${k === 2 ? ` style="fill:${V(col)}"` : ''}>${t}</text>`).join('')
+      + `</g>`;
+  }
+
   /* ================================================================ 版面常數 */
   const GA = 410;          // 第一排（裂解廠本體）的地面線
   const GB = 700;          // 第二排：烯烴車道的基線
@@ -373,16 +394,9 @@
         <text class="sub" x="32" y="144">兩條線的絕對高度沒有意義，有意義的只有中間那一段的厚度。</text>
         <text class="sub" x="32" y="162" style="fill:var(--dg-warn)">石油腦漲、乙烯沒跟上 → 這一段變薄；薄到倒掛 → 開越多賠越多。</text>
         <text class="cap" x="32" y="184">示意，不代表任何時點的實際價差。這條帶只跨裂解廠自己那一段（段 1～段 5）。</text>
-        <text class="lbl" x="566" y="102">價差還在</text>
-        <rect x="566" y="116" width="152" height="34" fill="var(--dg-accent-2d)" opacity=".18"/>
-        <path d="M566,116 H718" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none"/>
-        <path d="M566,150 H718" stroke="var(--dg-mute)" stroke-width="2" fill="none" stroke-dasharray="6 4"/>
-        <text class="sub" x="566" y="170">產品線在上 → 中間這一段是賺的</text>
-        <text class="lbl" x="776" y="102" style="fill:var(--dg-err)">價差倒掛</text>
-        <rect x="776" y="116" width="152" height="34" fill="var(--dg-err)" opacity=".18"/>
-        <path d="M776,150 H928" stroke="var(--dg-accent-2d)" stroke-width="2" fill="none"/>
-        <path d="M776,116 H928" stroke="var(--dg-mute)" stroke-width="2" fill="none" stroke-dasharray="6 4"/>
-        <text class="sub" x="776" y="170" style="fill:var(--dg-err)">產品線掉到成本線下 → 賠</text>
+        ${spreadCase(520, '價差還在', '--dg-accent-2d', 0, ['產品線在上、成本線在下，', '中間這一段就是賺的厚度。'])}
+        ${spreadCase(664, '價差變薄', '--dg-warn', 1, ['石油腦漲、乙烯沒跟上 →', '兩條線靠近，厚度變薄。'])}
+        ${spreadCase(808, '價差倒掛', '--dg-err', 2, ['產品線掉到成本線下 →', '開越多賠越多，只能減產。'])}
       </g>
 
       <!-- ================= 第一排：裂解廠本體（段 1～段 4） ================= -->
@@ -464,6 +478,16 @@
         <text class="sub" x="964" y="${GC + 22}" text-anchor="end">PTA 氧化反應器（成品是白色粉體，不是粒）</text>
       </g>
       ${laneProducts()}${laneDown()}
+      <!-- ★ 2026-09-23 版面：芳香烴那條車道原本從「抽取」(x≈150) 到「SM／PTA」(x≈800) 中間整段是空的。
+           補的是**本來就缺的那一段敘事**（抽取出來的是哪三支、各自往哪裡去），不是為了填空白硬加的圖案。
+           純標註，pointer-events:none —— 一個 data-part 都沒有動。 -->
+      <g pointer-events="none">
+        <path d="M168,${GC - 26} H780" stroke="var(--dg-alu-2)" stroke-width="1.6" fill="none" opacity=".55" marker-end="url(#ncAr)"/>
+        ${[['苯（B）', 228, '→ 苯乙烯 SM'], ['甲苯（T）', 400, '多半再轉成苯與二甲苯'], ['二甲苯／對二甲苯（PX）', 572, '→ 純對苯二甲酸 PTA']]
+    .map(([t, x, s2]) => `<path d="M${x - 10},${GC - 26} v-10" stroke="var(--dg-alu-2)" stroke-width="1.4" fill="none" opacity=".7"/>`
+      + `<text class="lbl" x="${x}" y="${GC - 40}">${t}</text>`
+      + `<text class="sub" x="${x}" y="${GC - 22}" style="fill:var(--dg-mute)">${s2}</text>`).join('')}
+      </g>
 
       <!-- 第二排的兩段說明 -->
       ${tblock(S5, 'nc_c2_tank', '--dg-cold', 16, 852, 466, '⑤ 四支基本原料：一進多出', [

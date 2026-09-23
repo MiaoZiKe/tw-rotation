@@ -64,20 +64,51 @@
   'use strict';
   const DG = window.DG;
   if (!DG || !DG.register) { console.warn('[ai_adv_packaging] window.DG 還沒就緒，這張圖不註冊'); return; }
-  const { STYLE, processBar, foldBar } = DG;
+  const { STYLE, processBar, extRow, note, fold, fx } = DG;
+
+  /* ★ 2026-09-23（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
+     並且需要適當的調整及填充版面間隔，不許有空白」）
+     -------------------------------------------------------------------------
+     原本：980 寬，左欄（x 16–300）是動線圖例、中欄是主剖面、右欄（x 696–960）是九列環節說明，
+           三欄之間與右欄下方留著大片空白；四個章節用 `foldBar()` ＋ 手算的 data-y0／y1 ＋ translate。
+     現在：跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套
+           （DECISIONS #238／#239 的 v2 風格）：
+             · svg 根掛 `rs` → `externalize()` 把說明卡片搬成 HTML（.dgc）排進畫布左右兩欄，
+               欄寬由 index.html 的 .dgv2 容器查詢決定 —— 版面自己填滿，這個檔不再寫死三欄。
+               左欄的動線圖例 → 五張 note 卡片（畫布上只留會動的樣本線）；
+               右欄的九列環節說明 → 九張帶編號的卡片（`segCard`），環節標籤仍然是 `text.tag`。
+             · 畫布從 980 收到 **660**（主角寬）：主剖面整組往左平移 175（`translate(-175,0)`），
+               幾何一個數字都沒改 —— 所以規格書 §4-A 的 R1／R2／R8 全部照舊成立。
+             · 章節改用 `D.fold()`（範圍由 getBBox 量），B1～D4 那一組手算位移整組退場。
+             · 材質走共用介面 `D.fx`（`glowDefs`／`shadows`）。
+     互動一個都沒少：24 個 `data-part` 一個不改名、`data-seg` 照舊，卡片與畫布共用同一個身分。*/
+  const CW = 660;
+  const DX = -175;                 // 主剖面整組往左平移的量（980 → 660 的差）
+
+  /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點 ＋ 引線。*/
+  const card = (o) => {
+    const s2 = extRow({ seg: o.seg, part: o.part, title: o.title, sub: o.sub, no: o.no,
+      side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
+    return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
+  };
 
   /* 材質色。★ 一處定義，其餘地方只准引用 C.xxx（AGENTS §15：JS 不准散落 #xxxxxx）。
      七個新 token 都給了 fallback，所以在 index.html 補進 :root 之前畫面就是對的，
      補進去之後 :root 的值會接手 —— 兩種主題共用同一組（剖析圖的底 --illus 深淺主題都是深底）。*/
   const C = {
-    si: 'var(--dg-si,#33488a)',            // 矽：晶粒、矽中介層、矽橋
-    si2: 'var(--dg-si-2,#1d2b57)',         // 矽的暗階（剖面下緣、HBM 外形）
-    org: 'var(--dg-organic,#8a6636)',      // 有機介電：RDL 中介層、ABF 增層膜（琥珀）
-    org2: 'var(--dg-organic-2,#6a4c27)',
-    emc: 'var(--dg-emc,#2f3039)',          // 模封 EMC（含填料的深色樹脂）
-    uf: 'var(--dg-uf,#c08f4e)',            // 底部填充（半透明琥珀）
-    met2: 'var(--dg-metal-2,#7d868f)',     // 補強環（比上蓋暗一階的金屬灰）
-    sub2: 'var(--dg-sub-2,#10291d)',       // 載板的暗階（核心層）
+    /* ★ 2026-09-23：這八個原本寫成 `var(--dg-xxx, #色碼)`（2026-09-22 時 index.html 的 :root
+       還沒有它們，fallback 是暫時的接力棒）。八個 token 現在都已經收進 :root 了，
+       fallback 變成死碼 —— 而且它是這個檔裡**唯一**的寫死色碼來源，所以一起拿掉。
+       盤點依據：grep '--dg-si|--dg-si-2|--dg-organic|--dg-organic-2|--dg-emc|--dg-uf|
+       --dg-metal-2|--dg-sub-2' site/index.html，八個全部命中。*/
+    si: 'var(--dg-si)',                    // 矽：晶粒、矽中介層、矽橋
+    si2: 'var(--dg-si-2)',                 // 矽的暗階（剖面下緣、HBM 外形）
+    org: 'var(--dg-organic)',              // 有機介電：RDL 中介層、ABF 增層膜（琥珀）
+    org2: 'var(--dg-organic-2)',
+    emc: 'var(--dg-emc)',                  // 模封 EMC（含填料的深色樹脂）
+    uf: 'var(--dg-uf)',                    // 底部填充（半透明琥珀）
+    met2: 'var(--dg-metal-2)',             // 補強環（比上蓋暗一階的金屬灰）
+    sub2: 'var(--dg-sub-2)',               // 載板的暗階（核心層）
     // 以下全部是 index.html 已經有的既有 token，直接用
     cu: 'var(--dg-cu)', sn: 'var(--dg-sn)', ni: 'var(--dg-ni)', pcb: 'var(--dg-pcb)',
     mute: 'var(--dg-mute)', warn: 'var(--dg-warn)', ink3: 'var(--dg-ink-3)',
@@ -331,21 +362,19 @@
        原本橫排在主剖面下面，一列要 38px、五列吃掉 230px 的高度 ——
        Andy 這一輪的問題正是「圖太大、一個畫面看不完」，所以往左欄擠，高度就省下來了。
        ⚠ 說明從 x=16 起、寬度只到 300，最長不准超過 23 個中文字。*/
-    const animRow = (y, cls, col, w, t, sub) => `<g pointer-events="none">
-      <path class="flow ${cls}" d="M16,${y} H58" stroke="${col}" stroke-width="${w}" fill="none"/>
-      <text class="lbl" x="66" y="${y + 4}">${t}</text>
-      <text class="sub" x="16" y="${y + 21}">${sub}</text></g>`;
+    /* ★ 2026-09-23：樣本線留在畫布上（它要**真的在動**，「動畫：關」時要跟圖上那條一起停），
+       標題與說明搬到左欄的 HTML 卡片（`note()`）。編號把兩邊對起來。*/
+    const animRow = (y, cls, col, w, no) => `<g pointer-events="none">
+      <path class="flow ${cls}" d="M8,${y} H50" stroke="${col}" stroke-width="${w}" fill="none"/>
+      <text class="cap" x="58" y="${y + 4}" style="fill:${col}">${String(no).padStart(2, '0')}</text></g>`;
 
     /* 「沒有對應環節」的那兩個：★ 2026-09-22 第二輪從兩個框併成一個。
        原本兩框各佔 44px，而且各自的副標（「日系材料廠為主」「跨到 AI 伺服器鏈」）
        在最底下的註腳裡又寫了一次 —— 同一件事講兩遍就是重複，留一次。
        不掛 data-seg（點不動、也不會篩出別人的成分股）。*/
-    const noneBox = (y) => `<g pointer-events="none">
-      <rect x="696" y="${y}" width="264" height="38" rx="6" fill="none" stroke="${C.mute}" stroke-width=".8" stroke-dasharray="4 4"/>
-      <circle cx="${709}" cy="${y + 17}" r="4" fill="none" stroke="${C.mute}" stroke-width="1.2"/>
-      <text class="lbl" x="720" y="${y + 17}" style="fill:${C.mute}">模封 EMC 與 TIM2</text>
-      <text class="sub" x="720" y="${y + 33}">這兩個沒有對應的環節</text></g>`;
-
+    /* 「沒有對應環節」的那兩個（模封 EMC 與 TIM2）：★ 2026-09-23 從畫布上的虛線框
+       改成右欄的一張 note 卡片 —— 它本來就只是一段文字，畫成框只是在佔位置。
+       不掛 data-seg（點不動、也不會篩出別人的成分股）。*/
     /* ---------------- 右欄的說明列：**多一個環節標籤**（DECISIONS #234 要併進來的第一塊）
        退場的那張鏈層級剖面，它的獨門價值就是右側那一欄「每一層對應到哪個供應鏈環節」。
        這裡不是照抄一欄文字，而是把它做成**每一列右端的標籤** ——
@@ -355,15 +384,16 @@
     /* ★ 2026-09-22 第二輪：底框從 40 收到 36、列距從 44 收到 38。
        **字級一個都沒動**（標題 12.5px、副標 12px、行距仍然 16px）——
        收的是框與框之間的留白，不是字。九列省下 54px。*/
-    const segRow = (seg, tag, y, title, sub, tx, ty) => {
-      const x = 704, w = 264, elbow = x - 14;
-      const lead = tx != null ? `M${tx},${ty} L${elbow},${ty} L${elbow},${y - 2} L${x - 2},${y - 2}` : '';
-      return `<g class="lrow" data-seg="${seg}"><rect class="bg" x="${x - 8}" y="${y - 13}" width="${w}" height="36" rx="6"/>
-        ${lead ? `<path class="leader" d="${lead}"/>` : ''}
-        <circle class="dot" cx="${x + 5}" cy="${y - 2}" r="4"/>
-        <text class="lbl" x="${x + 16}" y="${y + 2}">${title}</text>
-        <text class="tag" x="${x + w - 12}" y="${y + 2}" text-anchor="end">${tag}</text>
-        <text class="sub" x="${x + 16}" y="${y + 18}">${sub}</text></g>`;
+    /* ★ 2026-09-23：`segRow()`（右欄 x=704 的 264 寬說明列）退場，改成 `segCard()` ——
+       同樣的「標題 ＋ 環節標籤 ＋ 副標」，但它是 `extRow` 產生的卡片，
+       由 `externalize()` 搬到畫布右欄的 HTML 裡，欄寬跟著容器走，不再寫死 264。
+       環節標籤照舊放在 `text.tag` 裡（`.tag` 的 fill 本來就是 var(--c)＝環節色），
+       而且也併進卡片標題，所以卡片上看得到「這一層屬於哪一格」。*/
+    const segCard = (seg, tag, no, title, sub, ax, ay) => {
+      const row = extRow({ seg: seg, title: tag + ' ｜ ' + title, sub: sub, no: no,
+        side: 'r', ax: ax, ay: ay, order: no });
+      // 第一個 </text> 是 .lbl 的結尾 —— 標籤插在它後面，仍然在同一個 g.lrow 裡
+      return row.replace('</text>', `</text><text class="tag" x="0" y="0">${tag}</text>`);
     };
 
     /* ================================================================ 5 載板俯視
@@ -516,33 +546,48 @@
        ⚠ body 的 y1 要**量過內容真正的下緣**再寫，不要憑印象。
          2026-09-22 第一次寫 body3 的 y1 少算了 ④ 那兩行圖說（y=1038），
          於是 800／390 兩個寬度當場量到「圓晶圓：邊角是殘片」壓在第四條章節列上。*/
-    const B1 = 542, B2 = 887, B3 = 1267, B4 = 1734;
-    // 每一段內容「從原本的自然位置搬到它章節裡」的位移量（內容的座標一個都沒改）
-    const D1 = B1 + 12 - 87, D2 = B2 + 12 - 1047, D3 = B3 + 12 - 643, D4 = B4 + 12 - 1385;
+    /* ★ 2026-09-23：B1～D4 那一組手算的章節位移整組退場，改用 `D.fold()` ——
+       範圍由 `getBBox()` 量，內容放在自己的自然座標就好，不會再有「少算了兩行、
+       800／390 當場疊在章節列上」那種錯（上面那段註解記的就是那次）。*/
 
-    return `<svg class="dg dgm" viewBox="0 0 980 2133" width="100%" style="display:block">${STYLE}
-      <defs>
+    /* 這張圖自己的樣式（★ 2026-09-23 新增，理由是 Andy 講過「螢光感太重」）：
+       進來的預設狀態就是 adv_pkg 這一格被選著，主剖面上十幾個零件會一起 .sel 發光。
+       發光只留給**剛剛點的那一個**（.sel-part）。全部吃 --dg-* token，一個色碼都沒有。
+       ⚠ 要排在共用 STYLE 之後、特異性也要比它高（多一個 svg 型別選擇器），不然蓋不掉。*/
+    const VARS = `<style>
+      svg.dg.icp [data-seg].sel .part{filter:none;stroke-width:1.5}
+      svg.dg.icp [data-seg].sel-part .part{stroke-width:2.6;filter:var(--dg-glow,drop-shadow(0 0 6px var(--cc)))}
+      .dgwrap:has(svg.dg.icp) .dgc.dim{opacity:.55}
+    </style>`;
+    return `<svg class="dg dgm rs icp" viewBox="0 0 ${CW} 2133" width="100%" style="display:block">${STYLE}${VARS}
+      <defs>${fx.glowDefs({ r: 4, soft: 4 })}
         <linearGradient id="igSi" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.si}"/><stop offset="1" stop-color="${C.si2}"/></linearGradient>
         <linearGradient id="igOrg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.org}"/><stop offset="1" stop-color="${C.org2}"/></linearGradient>
         <linearGradient id="igSub" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.pcb}"/><stop offset="1" stop-color="${C.sub2}"/></linearGradient>
         <linearGradient id="igLid" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${C.sn}"/><stop offset=".55" stop-color="${C.ni}"/><stop offset="1" stop-color="${C.met2}"/></linearGradient>
         <clipPath id="igWafer"><circle cx="80" cy="960" r="56"/></clipPath>
       </defs>
-      <text class="ttl" x="16" y="26">IC 封裝剖析：晶粒 → 凸塊 → 中介層 → 封裝體</text>
-      <text class="cap" x="16" y="46">中間是一顆 2.5D AI 加速器封裝的剖面（由下到上）；右邊逐層講它屬於哪個供應鏈環節，左邊講圖上五條動線各在說什麼原理。</text>
-      <text class="cap" x="16" y="64">另外四塊（接點放大、載板俯視、CoWoS 三種、誰在做）收在下面四條章節列裡，按一下就展開 —— 收起來不是刪掉。</text>
+      <!-- 標題與說明：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
+      <text class="ttl ext" x="0" y="0">IC 封裝剖析：晶粒 → 凸塊 → 中介層 → 封裝體</text>
+      <text class="cap ext" x="0" y="0">畫布上是一顆 2.5D AI 加速器封裝的剖面（由下到上）；右欄的卡片逐層講它屬於哪個供應鏈環節，左欄的五張卡片講圖上五條動線各在說什麼原理（畫布左緣那五條會動的樣本線就是它們，編號對得起來）。另外四塊（接點放大、載板俯視、CoWoS 三種、誰在做）收在下面四條章節列裡，按一下就展開 —— 收起來不是刪掉。</text>
 
-      <!-- ================= 左欄：動線圖例（五條線各在講什麼原理） ================= -->
-      <text class="hd" x="16" y="88">動線圖例：每一條線都在講一件事</text>
-      ${animRow(108, 'fast', C.sig, 2.6, '晶粒 ↔ 隔壁的 HBM', '橫著走中介層的重佈線就到了，不必繞到載板')}
-      ${animRow(150, 'slow', C.sig, 2.6, '要離開封裝的訊號', 'µbump → TSV → C4 → 載板 → BGA → 主機板')}
-      ${animRow(192, 'slow rev', C.pwr, 2.8, '供電：方向跟訊號相反', '從主機板往上灌 BGA → 載板 → C4 → 晶粒')}
-      ${animRow(234, 'fast', C.pwr, 2.2, '去耦電容補瞬間電流', '晶粒一瞬間抽電來不及等主機板，就近由電容補')}
-      ${animRow(276, '', C.hot, 2.2, '熱往上出去', '晶粒 → TIM1 → 上蓋 → TIM2 → 外部散熱器')}
-      <text class="sub" x="16" y="320" style="fill:${C.ink3}">冷色＝電訊號、橘＝供電、暖＝熱。</text>
-      <text class="sub" x="16" y="338" style="fill:${C.ink3}">按上面的「動畫：關」五條一起停。</text>
+      <!-- ================= 畫布左緣：動線樣本（說明在左欄卡片上） ================= -->
+      ${animRow(108, 'fast', C.sig, 2.6, 1)}
+      ${animRow(150, 'slow', C.sig, 2.6, 2)}
+      ${animRow(192, 'slow rev', C.pwr, 2.8, 3)}
+      ${animRow(234, 'fast', C.pwr, 2.2, 4)}
+      ${animRow(276, '', C.hot, 2.2, 5)}
+      ${note({ side: 'l', no: 1, order: 1, color: C.sig, title: '晶粒 ↔ 隔壁的 HBM', lines: ['橫著走中介層的重佈線就到了，不必繞到載板 —— 這就是 2.5D 的意義。'] })}
+      ${note({ side: 'l', no: 2, order: 2, color: C.sig, title: '要離開封裝的訊號', lines: ['µbump → TSV → C4 → 載板 → BGA → 主機板。要離開封裝的才往下走。'] })}
+      ${note({ side: 'l', no: 3, order: 3, color: C.pwr, title: '供電：方向跟訊號相反', lines: ['從主機板往上灌 BGA → 載板 → C4 → 晶粒。'] })}
+      ${note({ side: 'l', no: 4, order: 4, color: C.pwr, title: '去耦電容補瞬間電流', lines: ['晶粒一瞬間抽電來不及等主機板，就近由電容補 —— 所以這條路徑特別短。'] })}
+      ${note({ side: 'l', no: 5, order: 5, color: C.hot, title: '熱往上出去', lines: ['晶粒 → TIM1 → 上蓋 → TIM2 → 外部散熱器。'] })}
+      ${note({ side: 'l', order: 6, title: '動線圖例：每一條線都在講一件事', lines: ['冷色＝電訊號、橘＝供電、暖＝熱。按上面的「動畫：關」五條一起停（畫布左緣的樣本線也會一起停）。'] })}
 
-      <!-- ================= 中欄：主剖面（由下到上）＝ 這張圖的命題，永遠不收 ================= -->
+      <!-- ================= 主剖面（由下到上）＝ 這張圖的命題，永遠不收 =================
+           ★ 2026-09-23：整組往左平移 175（980 → 660 的畫布差），**內部座標一個都沒改** ——
+             規格書 §4-A 的 R1／R2／R8 全部靠那些數字，改它們等於重新簽一次規格。-->
+      <g transform="translate(${DX},0)">
       <text class="hd" x="322" y="88">主剖面：接點由下往上一路變小</text>
 
       <!-- 上蓋之上的 TIM2：不掛環節（它通往的散熱器屬 AI 伺服器鏈） -->
@@ -614,112 +659,126 @@
         <text class="sub" x="322" y="384" style="fill:${C.ink3}">↓ 往下接主機板（本圖不畫板子，那是 AI 伺服器鏈的事）</text>
       </g>
       ${sig}
+      </g>
 
-      <!-- ================= 右欄：每一層對應到哪個供應鏈環節（從退場的鏈層級剖面併進來的第一塊） ================= -->
-      <text class="hd" x="704" y="88">每一層對應到哪個供應鏈環節</text>
-      ${segRow('osat_test', '封測', 108, '散熱上蓋 ＋ TIM1', '上蓋、燒機、分選；TIM1 只壓在晶粒頂面', 688, 123)}
-      ${segRow('adv_pkg', '先進封裝', 146, 'SoIC 混合鍵合', '銅墊對銅墊，中間沒有任何凸塊', 547, 172)}
-      ${segRow('hbm', 'HBM', 184, 'HBM 堆疊（只畫外形）', '內部與層數不畫；台股無直接對應', 638, 190)}
-      ${segRow('foundry', '晶圓代工', 222, '邏輯晶粒 GPU／ASIC', '覆晶朝下，接點全在下表面', 561, 206)}
-      ${segRow('adv_pkg', '先進封裝', 260, '中介層 TSV ＋ RDL', '比晶粒寬，同時接住晶粒與 HBM', 650, 258)}
-      ${segRow('adv_pkg', '先進封裝', 298, 'µbump／C4／底填', '接點逐級放大；底填有圓角、補強環防翹曲', 644, 282)}
-      ${segRow('passive_comp', '被動元件', 336, '載板上的去耦電容', '兩端有端電極；擺得離晶粒越近越好', 659, 286)}
-      ${segRow('abf_pcb', 'IC 載板', 374, 'ABF 載板 ＋ BGA', '最厚的一層；錫球是全圖最大的接點', 688, 317)}
-      ${segRow('substrate_material', '載板材料', 412, 'ABF 增層膜', '琥珀色、沒有玻纖織紋；台股無對應', 686, 336)}
-      ${noneBox(444)}
+      <!-- ================= 右欄卡片：每一層對應到哪個供應鏈環節（從退場的鏈層級剖面併進來的第一塊）
+           錨點 ＝ 主剖面上的座標 ＋ DX（整組平移量），所以剖面一搬，引線自己跟著走。-->
+      ${segCard('osat_test', '封測', 6, '散熱上蓋 ＋ TIM1', '上蓋、燒機、分選；TIM1 只壓在晶粒頂面', 688 + DX, 123)}
+      ${segCard('adv_pkg', '先進封裝', 7, 'SoIC 混合鍵合', '銅墊對銅墊，中間沒有任何凸塊', 547 + DX, 172)}
+      ${segCard('hbm', 'HBM', 8, 'HBM 堆疊（只畫外形）', '內部與層數不畫；台股無直接對應', 638 + DX, 190)}
+      ${segCard('foundry', '晶圓代工', 9, '邏輯晶粒 GPU／ASIC', '覆晶朝下，接點全在下表面', 561 + DX, 206)}
+      ${segCard('adv_pkg', '先進封裝', 10, '中介層 TSV ＋ RDL', '比晶粒寬，同時接住晶粒與 HBM', 650 + DX, 258)}
+      ${segCard('adv_pkg', '先進封裝', 11, 'µbump／C4／底填', '接點逐級放大；底填有圓角、補強環防翹曲', 644 + DX, 282)}
+      ${segCard('passive_comp', '被動元件', 12, '載板上的去耦電容', '兩端有端電極；擺得離晶粒越近越好', 659 + DX, 286)}
+      ${segCard('abf_pcb', 'IC 載板', 13, 'ABF 載板 ＋ BGA', '最厚的一層；錫球是全圖最大的接點', 688 + DX, 317)}
+      ${segCard('substrate_material', '載板材料', 14, 'ABF 增層膜', '琥珀色、沒有玻纖織紋；台股無對應', 686 + DX, 336)}
+      ${note({ side: 'r', order: 15, title: '模封 EMC 與 TIM2', lines: ['這兩個沒有對應的環節：模封在本站沒有對應的一格（日系材料廠為主，查不到具名台股）、TIM2 通往的散熱器屬 AI 伺服器鏈。'] })}
 
       <!-- ================= 章節① 接點怎麼接（預設收合） ================= -->
-      ${foldBar('ap1', 498, '① 接點怎麼接：凸塊裡疊了五層',
-      '凸塊內部五層的放大剖面，加上 C4／微凸塊／混合鍵合的同比例尺度尺', 44)}
-      <g class="dgbody" data-fold="ap1" data-y0="${B1}" data-y1="843"><g transform="translate(0,${D1})">
+      ${fold('ap1', '① 接點怎麼接：凸塊裡疊了五層',
+      '凸塊內部五層的放大剖面，加上 C4／微凸塊／混合鍵合的同比例尺度尺', `
         <text class="hd" x="16" y="100">① 一顆凸塊裡疊了五層</text>
         ${bumpZoom}
         <text class="sub" x="16" y="342" style="fill:${C.warn}">★ Ni 一定夾在銅柱與焊錫之間 ——</text>
         <text class="sub" x="16" y="360" style="fill:${C.warn}">　 畫到焊錫外面是最常見的錯。</text>
         <!-- 尺度尺整塊往右搬到 ① 旁邊（座標一個都沒改，只有 translate）：
-             展開之後是橫的兩欄，比原本直的一長條省一半高度 -->
-        <g transform="translate(330,-282)">
+             展開之後是橫的兩欄，比原本直的一長條省一半高度。
+             ★ 2026-09-23：畫布收到 660，translate 從 330 改成 352（尺度尺自身 16～300 寬）。-->
+        <g transform="translate(352,-282)">
           <text class="hd" x="16" y="382">② 三種接法，同一個比例</text>
           ${scaleRuler}
-          <text class="sub" x="16" y="610">三排畫在同一個比例上：接點越小，單位面積能接的線越多，</text>
-          <text class="sub" x="16" y="628">但對平整度與潔淨度的要求也越兇。量級為示意，各世代不同。</text>
-        </g>
-      </g></g>
+          <text class="sub" x="16" y="610">三排畫在同一個比例上：接點越小，</text>
+          <text class="sub" x="16" y="628">單位面積能接的線越多，但對平整度</text>
+          <text class="sub" x="16" y="646">與潔淨度的要求也越兇。</text>
+          <text class="sub" x="16" y="664">量級為示意，各世代不同。</text>
+        </g>`)}
 
       <!-- ================= 章節② 載板長什麼樣（預設收合） ================= -->
-      ${foldBar('ap2', 843, '② 載板長什麼樣：走線、焊墊、被動元件與 IC',
-      '正面俯視（扇出走線、金焊墊、去耦電容、絲印、補強環）與背面 BGA 球陣列', 44)}
-      <g class="dgbody" data-fold="ap2" data-y0="${B2}" data-y1="1223"><g transform="translate(0,${D2})">
+      ${fold('ap2', '② 載板長什麼樣：走線、焊墊、被動元件與 IC',
+      '正面俯視（扇出走線、金焊墊、去耦電容、絲印、補強環）與背面 BGA 球陣列', `
         <text class="hd" x="16" y="1060">把封裝翻過來看：載板上有什麼</text>
-        <text class="cap" x="16" y="1080">板子不是一塊綠方塊：扇出線 45 度轉角、差動對成雙、每顆電容兩端各一塊金焊墊、外面一圈白漆絲印與第 1 腳記號。</text>
+        <text class="cap" x="16" y="1080">板子不是一塊綠方塊：扇出線 45 度轉角、差動對成雙、每顆電容兩端各一塊金焊墊、</text>
+        <text class="cap" x="16" y="1098">外面一圈白漆絲印與第 1 腳記號。</text>
         ${boardTop()}
-        ${segRow('abf_pcb', 'IC 載板', 1116, '扇出走線與焊墊', '45 度轉角、成對走線、末端接金焊墊', 434, 1187)}
-        ${segRow('passive_comp', '被動元件', 1154, '去耦電容（正面兩排）', '兩端端電極；愈靠近晶粒愈有效', 374, 1135)}
-        ${segRow('foundry', '晶圓代工', 1192, 'IC 就在板子上面', '中間是 GPU 晶粒，看得到切割道與頂層金屬', 275, 1207)}
-        ${segRow('hbm', 'HBM', 1230, 'HBM 四顆貼著晶粒', '長邊朝內，愈短的線愈省電', 354, 1214)}
-        ${segRow('adv_pkg', '先進封裝', 1268, '補強環與中介層', '一圈金屬框防翹曲；中介層架在正中央', 444, 1240)}
-        ${segRow('abf_pcb', 'IC 載板', 1306, '背面：BGA 球陣列', '中央留一塊窗，擺背面去耦電容 LSC', 654, 1204)}
-      </g></g>
+        ${segCard('abf_pcb', 'IC 載板', 16, '扇出走線與焊墊', '45 度轉角、成對走線、末端接金焊墊', 434, 1187)}
+        ${segCard('passive_comp', '被動元件', 17, '去耦電容（正面兩排）', '兩端端電極；愈靠近晶粒愈有效', 374, 1135)}
+        ${segCard('foundry', '晶圓代工', 18, 'IC 就在板子上面', '中間是 GPU 晶粒，看得到切割道與頂層金屬', 275, 1207)}
+        ${segCard('hbm', 'HBM', 19, 'HBM 四顆貼著晶粒', '長邊朝內，愈短的線愈省電', 354, 1214)}
+        ${segCard('adv_pkg', '先進封裝', 20, '補強環與中介層', '一圈金屬框防翹曲；中介層架在正中央', 444, 1240)}
+        ${segCard('abf_pcb', 'IC 載板', 21, '背面：BGA 球陣列', '中央留一塊窗，擺背面去耦電容 LSC', 648, 1204)}`)}
 
-      <!-- ================= 章節③ CoWoS 三種 ＋ 圓晶圓換方板（預設收合） ================= -->
-      ${foldBar('ap3', 1223, '③ CoWoS 有三種，換的是中介層那一層',
-      'S／R／L 三格並排對照，加上圓晶圓與方板的同比例格子', 44)}
-      <g class="dgbody" data-fold="ap3" data-y0="${B3}" data-y1="1690"><g transform="translate(0,${D3})">
+      <!-- ================= 章節③ CoWoS 三種 ＋ 圓晶圓換方板（預設收合） =================
+           ★ 2026-09-23：三格從「橫排 980 寬」改成**直排三列**（660 畫布），
+             每一格仍然是同一支 interCell() 產生的，所以 V4／R16「只有中介層那一層不同」
+             照舊是結構性的，不是靠眼睛對。-->
+      ${fold('ap3', '③ CoWoS 有三種，換的是中介層那一層',
+      'S／R／L 三格同畫法對照，加上圓晶圓與方板的同比例格子', `
         <text class="hd" x="16" y="656">CoWoS 有三種：換掉的是「中介層那一層用什麼做」</text>
-        ${interCell(16, 's')}${interCell(340, 'r')}${interCell(664, 'l')}
-        <text class="hd" x="16" y="810">CoWoS-S：整片矽中介層</text>
-        <text class="sub" x="16" y="828">有 TSV 垂直貫穿，線最密。</text>
-        <text class="sub" x="16" y="846">受光罩尺寸與成本限制。</text>
-        <text class="hd" x="340" y="810">CoWoS-R：有機 RDL 中介層</text>
-        <text class="sub" x="340" y="828">沒有矽、沒有 TSV。</text>
-        <text class="sub" x="340" y="846">高分子介電當應力緩衝，可做大。</text>
-        <text class="hd" x="664" y="810">CoWoS-L：RDL ＋ 局部矽橋</text>
-        <text class="sub" x="664" y="828">只在兩顆晶粒交界鑲一小塊矽。</text>
-        <text class="sub" x="664" y="846">要高密度的地方才用到矽。</text>
-        <text class="sub" x="16" y="872" style="fill:${C.warn}">★ 上面那張主剖面畫的是 S、3D 場景畫的是 L —— 它們是同一族的三個變體，不是互相矛盾。三格用同一個畫法，只有中介層不同。</text>
-        <text class="hd" x="16" y="896">為什麼要從圓晶圓換成方板</text>
-        ${panelCmp}
-        <text class="sub" x="330" y="920">同一個比例、同一種格子：一格代表一顆封裝。</text>
-        <text class="sub" x="330" y="938">圓的邊角切不出完整的一格（畫成虛線殘片），方的邊角是滿的。</text>
-        <text class="sub" x="330" y="956">這就是面板級封裝（FOPLP）被提出來的理由：面積利用率較高、材料效率較好。</text>
-        <text class="sub" x="330" y="974">業界在發展的面板規格從 310×310 mm 起，另有更大的規格。</text>
-        <text class="sub" x="330" y="992">方向明確：載板越做越大、圓晶圓換成方板。</text>
-        <text class="sub" x="330" y="1010" style="fill:${C.warn}">★ 時程不寫：台積電的面板級 CoPoS，三家報導的試產與量產年份互相矛盾，本圖只寫方向。</text>
-      </g></g>
+        ${interCell(16, 's')}
+        <text class="hd" x="330" y="700">CoWoS-S：整片矽中介層</text>
+        <text class="sub" x="330" y="720">有 TSV 垂直貫穿，線最密。</text>
+        <text class="sub" x="330" y="738">受光罩尺寸與成本限制。</text>
+        <g transform="translate(0,152)">${interCell(16, 'r')}</g>
+        <text class="hd" x="330" y="852">CoWoS-R：有機 RDL 中介層</text>
+        <text class="sub" x="330" y="872">沒有矽、沒有 TSV。</text>
+        <text class="sub" x="330" y="890">高分子介電當應力緩衝，可做大。</text>
+        <g transform="translate(0,304)">${interCell(16, 'l')}</g>
+        <text class="hd" x="330" y="1004">CoWoS-L：RDL ＋ 局部矽橋</text>
+        <text class="sub" x="330" y="1024">只在兩顆晶粒交界鑲一小塊矽。</text>
+        <text class="sub" x="330" y="1042">要高密度的地方才用到矽。</text>
+        <text class="sub" x="16" y="1110" style="fill:${C.warn}">★ 上面那張主剖面畫的是 S、3D 場景畫的是 L —— 它們是同一族的三個變體，不是互相矛盾。</text>
+        <text class="sub" x="16" y="1128" style="fill:${C.warn}">　 三格用同一個畫法，只有中介層不同。</text>
+        <text class="hd" x="16" y="1162">為什麼要從圓晶圓換成方板</text>
+        <g transform="translate(0,222)">${panelCmp}</g>
+        <text class="sub" x="330" y="1196">同一個比例、同一種格子：一格代表一顆封裝。</text>
+        <text class="sub" x="330" y="1214">圓的邊角切不出完整的一格（畫成虛線殘片），</text>
+        <text class="sub" x="330" y="1232">方的邊角是滿的。這就是面板級封裝（FOPLP）</text>
+        <text class="sub" x="330" y="1250">被提出來的理由：面積利用率較高、材料效率較好。</text>
+        <text class="sub" x="330" y="1268">業界在發展的面板規格從 310×310 mm 起，</text>
+        <text class="sub" x="330" y="1286">另有更大的規格。方向明確：載板越做越大、</text>
+        <text class="sub" x="330" y="1304">圓晶圓換成方板。</text>
+        <text class="sub" x="16" y="1290" style="fill:${C.warn}">★ 時程不寫：台積電的面板級</text>
+        <text class="sub" x="16" y="1308" style="fill:${C.warn}">　 CoPoS，三家報導的試產與量產</text>
+        <text class="sub" x="16" y="1326" style="fill:${C.warn}">　 年份互相矛盾，本圖只寫方向。</text>`)}
 
-      <!-- ================= 章節④ 誰在做 ＋ 註腳（預設收合） ================= -->
-      ${foldBar('ap4', 1690, '④ 誰在做：封裝廠五站 ＋ 整條鏈五站',
-      '兩排流程列，加上註腳、資料來源與「查不到的七件事」', 44)}
-      <g class="dgbody" data-fold="ap4" data-y0="${B4}" data-y1="2117"><g transform="translate(0,${D4})">
-        <text class="cap" x="16" y="1396">封裝廠內部這五站（★ 晶圓凸塊與 CP 測試都在「接合」之前 —— 反過來就沒有凸塊可以接、也挑不出好晶粒）</text>
-        ${processBar(16, 1404, [{ seg: 'pkg_equipment', t: '晶圓凸塊', s: '鍍 UBM → 電鍍銅柱 → 錫帽' },
+      <!-- ================= 章節④ 誰在做 ＋ 註腳（預設收合） =================
+           ★ 2026-09-23：兩排流程列從「五格橫排 178 寬」改成 3＋2 兩列（cols: 3），
+             共用 processBar 的折行機制（光點沿著同一條折線跑），字級一個都沒縮。-->
+      ${fold('ap4', '④ 誰在做：封裝廠五站 ＋ 整條鏈五站',
+      '兩排流程列，加上註腳、資料來源與「查不到的七件事」', `
+        <text class="cap" x="16" y="1396">封裝廠內部這五站（★ 晶圓凸塊與 CP 測試都在「接合」之前 ——</text>
+        <text class="cap" x="16" y="1414">反過來就沒有凸塊可以接、也挑不出好晶粒）</text>
+        ${processBar(16, 1424, [{ seg: 'pkg_equipment', t: '晶圓凸塊', s: '鍍 UBM → 電鍍銅柱 → 錫帽' },
       { seg: 'test_interface', t: '晶圓測試 CP', s: '探針卡扎下去，先挑出好晶粒' },
       { seg: 'pkg_equipment', t: '接合', s: '熱壓／迴焊／混合鍵合' },
       { seg: 'pkg_equipment', t: '底填與模封', s: '點膠、填充、模封、補強環' },
-      { seg: 'osat_test', t: '上蓋與成品測試', s: 'TIM1、上蓋、燒機、分選出貨' }], 178)}
-        <path d="M390,1396 V1454" stroke="${C.warn}" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
-        <text class="sub" x="16" y="1470" style="fill:${C.ink3}">← 這兩站還在整片晶圓上（晶圓廠／凸塊廠）</text>
-        <text class="sub" x="396" y="1470" style="fill:${C.ink3}">切開之後一顆一顆組起來（封裝廠／封測廠）→</text>
+      { seg: 'osat_test', t: '上蓋與成品測試', s: 'TIM1、上蓋、燒機、分選出貨' }], 196, { cols: 3 })}
+        <path d="M424,1416 V1474" stroke="${C.warn}" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+        <text class="sub" x="16" y="1560" style="fill:${C.ink3}">← 前兩站還在整片晶圓上（晶圓廠／凸塊廠）；切開之後一顆一顆組起來（封裝廠／封測廠）→</text>
 
-        <text class="cap" x="16" y="1504">再往外看一層：整條鏈由左到右的五站（上面那一排就是這裡第三格「CoWoS 堆疊」拆開來的內部）。</text>
-        ${processBar(16, 1512, [{ seg: 'ip_eda', t: '設計', s: '矽智財授權、ASIC 設計服務' },
+        <text class="cap" x="16" y="1596">再往外看一層：整條鏈由左到右的五站（上面那一排就是這裡第三格「CoWoS 堆疊」拆開來的內部）。</text>
+        ${processBar(16, 1606, [{ seg: 'ip_eda', t: '設計', s: '矽智財授權、ASIC 設計服務' },
       { seg: 'foundry', t: '晶圓製造', s: '前段製程，切出邏輯晶粒' },
       { seg: 'adv_pkg', t: 'CoWoS 堆疊', s: '中介層 ＋ 晶粒 ＋ HBM' },
       { seg: 'osat_test', t: '上蓋測試', s: '封測廠：上蓋、燒機、分選' },
-      { seg: 'abf_pcb', t: '上板', s: '載板 → 主機板' }], 178)}
-        <path d="M394,1504 V1562" stroke="${C.warn}" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
-        <text class="sub" x="16" y="1578" style="fill:${C.ink3}">← 這兩站是「晶片從哪裡來」</text>
-        <text class="sub" x="400" y="1578" style="fill:${C.ink3}">這三站才是本圖畫的「被包起來、再裝上板」→</text>
+      { seg: 'abf_pcb', t: '上板', s: '載板 → 主機板' }], 196, { cols: 3 })}
+        <path d="M424,1598 V1656" stroke="${C.warn}" stroke-width="1.6" stroke-dasharray="5 4" fill="none"/>
+        <text class="sub" x="16" y="1742" style="fill:${C.ink3}">← 前兩站是「晶片從哪裡來」；後三站才是本圖畫的「被包起來、再裝上板」→</text>
 
-        <text class="cap" x="16" y="1614">示意圖，非實物比例｜各層厚度與接點大小都是誇張過的，但「誰比誰大、誰在誰上面」不准倒過來。</text>
-        <text class="cap" x="16" y="1632">畫面上沒有任何良率、產能、成本與市占數字 —— 那些查不到可引用的公開來源（見規格書 §7-C）。</text>
-        <text class="cap" x="16" y="1650" style="fill:${C.warn}">★ 右欄右端的灰字＝這一層屬於哪個環節。「先進封裝 CoWoS/SoIC」這一格在 supply_chain 裡一家公司都沒有，所以按小卡上的「環節」鈕會篩到 0 筆。</text>
-        <text class="cap" x="16" y="1668" style="fill:${C.warn}">　 但點零件本身列得出公司：中介層、TSV、凸塊、SoIC 直接指名台積電 2330 與日月光 3711，依據是那一格自己的註記（由台積電自己做、日月光承接外溢）。</text>
-        <text class="cap" x="16" y="1686">點零件篩的是「環節」，不是整個族群。AI 先進封裝族群五檔（3711／3374／6271／6451／6789）裡，只有 3711 與 3374 在本圖用到的環節名單上。</text>
-        <text class="cap" x="16" y="1704">模封 EMC 與 TIM2 兩個零件沒有掛環節：前者在本站沒有對應的一格（日系材料廠為主，查不到具名台股）、後者通往的散熱器屬 AI 伺服器鏈。</text>
-        <text class="cap" x="16" y="1722">去耦電容掛的是「被動元件」，它不在半導體鏈的環節名單上，所以按那顆「環節」鈕會答「這個環節的台股不在本鏈成分股裡」—— 那是正確答案，不是錯誤。</text>
-        <text class="cap" x="16" y="1740">本圖畫「有上蓋」的型式，模封只包晶粒側面、頂面露出來接 TIM1。資料來源與信心度全部列在 docs/diagram_specs/ic_package.md。</text>
-      </g></g>
+        <text class="cap" x="16" y="1778">示意圖，非實物比例｜各層厚度與接點大小都是誇張過的，但「誰比誰大、誰在誰上面」不准倒過來。</text>
+        <text class="cap" x="16" y="1796">畫面上沒有任何良率、產能、成本與市占數字 —— 那些查不到可引用的公開來源（見規格書 §7-C）。</text>
+        <text class="cap" x="16" y="1814" style="fill:${C.warn}">★ 右欄卡片上的灰字標籤＝這一層屬於哪個環節。「先進封裝 CoWoS/SoIC」這一格在 supply_chain</text>
+        <text class="cap" x="16" y="1832" style="fill:${C.warn}">　 裡一家公司都沒有，所以按小卡上的「環節」鈕會篩到 0 筆。</text>
+        <text class="cap" x="16" y="1850" style="fill:${C.warn}">　 但點零件本身列得出公司：中介層、TSV、凸塊、SoIC 直接指名台積電 2330 與日月光 3711，</text>
+        <text class="cap" x="16" y="1868" style="fill:${C.warn}">　 依據是那一格自己的註記（由台積電自己做、日月光承接外溢）。</text>
+        <text class="cap" x="16" y="1890">點零件篩的是「環節」，不是整個族群。AI 先進封裝族群五檔（3711／3374／6271／6451／6789）裡，</text>
+        <text class="cap" x="16" y="1908">只有 3711 與 3374 在本圖用到的環節名單上。</text>
+        <text class="cap" x="16" y="1926">模封 EMC 與 TIM2 兩個零件沒有掛環節：前者在本站沒有對應的一格（日系材料廠為主，查不到具名台股）、</text>
+        <text class="cap" x="16" y="1944">後者通往的散熱器屬 AI 伺服器鏈。</text>
+        <text class="cap" x="16" y="1962">去耦電容掛的是「被動元件」，它不在半導體鏈的環節名單上，所以按那顆「環節」鈕會答</text>
+        <text class="cap" x="16" y="1980">「這個環節的台股不在本鏈成分股裡」—— 那是正確答案，不是錯誤。</text>
+        <text class="cap" x="16" y="1998">本圖畫「有上蓋」的型式，模封只包晶粒側面、頂面露出來接 TIM1。</text>
+        <text class="cap" x="16" y="2016">資料來源與信心度全部列在 docs/diagram_specs/ic_package.md。</text>`)}
     </svg>`;
   }
 
@@ -853,7 +912,7 @@
   window.DG.register('ai_adv_packaging', {
     level: 'group', chain: 'semiconductor',
     name: '先進封裝：晶粒 → 凸塊 → 中介層 → 封裝體',
-    draw: icPackage, native: 980,
+    draw: icPackage, native: CW,
     /* ★ 2026-09-22（DECISIONS #234）：鏈層級那張 CoWoS 剖面退場，它的 3D 場景搬到這裡。
        規格書 §1 原本寫死 `scene: null`，理由是「這條鏈已經有一個 3D 場景」—— 那個前提沒了。*/
     scene: 'semiconductor',

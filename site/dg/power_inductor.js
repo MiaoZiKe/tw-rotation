@@ -1,6 +1,21 @@
 /* 被動元件：電感·電阻·石英 —— docs/diagram_plan.md 的第 11 張
    （族群 `power_inductor`、electronics 鏈）
 
+   ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
+        並且需要適當的調整及填充版面間隔，不許有空白」）----
+   原本是 980 寬 ＋ **三欄並排**，每一欄底下再排六列畫在 SVG 裡的標註列（`crow()`）；
+   欄寬一窄，12px 的字就被縮成 8px —— 那正是 Andy 從 2026-09-15 講到現在的那件事。
+   改成跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套：
+     · 畫布 980 → **660**（`native: 660`），svg 根掛 `.rs`；
+     · 三欄並排 → **2×2 的格子**：共同舞台（整排寬）／欄 A ｜ 欄 B ／ 欄 C ｜ 尺＋兩個電流；
+     · 十八列標註（`crow()`）與結論框 → `extRow(side)` 外掛成 HTML 卡片，
+       畫布上只留編號圓點，引線由 `externalize()` 依實際寬度重算 ——
+       因此 `crow()`／`col()` 這兩支**退場**，但它們負責的每一個字都還在（搬到卡片）；
+     · 材質走共用的 `D.fx`（`glass` 當本體／基板／底座、`beam` 當供電與時脈路徑、`glowDefs`）；
+     · 顏色一律 `--dg-*` token（本來就沒有寫死色碼，改完再 grep 一次確認）；
+     · **既有互動一個都沒動**：`data-part` 清單逐字不變，只有電阻欄掛 `data-seg`（§7-D2）。
+   ⚠ 舊註解全部保留 —— L1／L3／L5／R1～R5／Q1～Q6／X2／X3 那幾條紅線還是合約。
+
    合約＝`docs/diagram_specs/passive_rlc.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的五件事：
 
@@ -35,20 +50,20 @@
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function') return;   // diagrams.js 沒載到就安靜退出
+  if (!D || typeof D.register !== 'function' || !D.fx) return;   // diagrams.js 沒載到就安靜退出
+  const { extRow, note, fx } = D;
 
   /* ================================================================ 版面常數
 
      三欄用同一組常數產生（§9：手刻三個框是最容易出現不等高的地方）——
      `COLX` 只決定左右，其餘每一個 y 都是「COLY ＋ 固定偏移」，
      所以 X1（三欄等高等寬，誤差 2px 內）在程式上就不可能不成立。*/
-  const W = 980;
-  const COLX = [16, 338, 660], COLW = 306, COLY = 292, COLH = 656;
-  const DRAW_T = COLY + 30;            // 剖面區上緣 322
-  const BUS = COLY + 236;              // 引線橫向匯流的第一條線 528（每列再錯開 3.5px）
-  const ONE1 = COLY + 262, ONE2 = COLY + 280;      // 「一句話」兩行 554 / 572
-  const ROW0 = COLY + 316, ROWP = 50;  // 標註列：608 起、間距 50、共 6 列
-  const FOOT1 = COLY + 620, FOOT2 = COLY + 638;    // 每欄底下那兩行（族群說明）948 為欄底
+  /* ⚠ 2026-09-23：三欄並排（COLX 16／338／660、COLW 306、每欄底下六列標註）整組退場。
+     畫布 660 放不下三欄 306；而且標註列改成 HTML 卡片之後，SVG 裡也不再需要那一套座標。
+     新版是 2×2 的格子（舞台整排寬），每一格的內容用 `<g transform>` 搬過去，
+     **格子裡的畫法一行都沒動** —— 這樣 R1～R5、Q1～Q6 那些用絕對座標寫死的紅線才不會被改壞。*/
+  const CW = 660;
+  const COLW = 306;                    // 一格的寬（兩格 ＋ 間隙 ＝ 628）
   const SEG_R = 'passive_comp';        // ★ 整張圖唯一的 data-seg，只掛在電阻欄
 
   /* ================================================================ 小工具 */
@@ -65,6 +80,25 @@
   const part = (id, seg, inner) =>
     `<g data-part="${id}"${seg ? ` data-seg="${seg}"` : ''}>${inner}</g>`;
 
+  /* ---- 2026-09-23 v2 新增（寫法照 `site/dg/liquid_cooling.js`）----
+     card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
+     卡片與它指的零件**共用同一個 data-part**。`seg` 只有電阻欄有（§7-D2）。*/
+  const card = (o) => {
+    const s2 = extRow({ seg: o.seg, part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
+      ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
+  };
+  // 玻璃材質：跟 AI 伺服器那三張同一支 D.fx.glass
+  const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
+    { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
+  /* 元件色（卡片色條、編號圓點、引線端點共用）—— 一律 token、沒有寫死色碼。
+     ⚠ 挑的是亮一階的那個：卡片標題印在元件色上要讀得到（liquid_cooling 的銅走過同一條）。*/
+  const COL = {
+    cu: 'var(--dg-cu-lit)', core: 'var(--dg-hub-lit)', sn: 'var(--dg-sn)', sig: 'var(--dg-accent-2d)',
+    cer: 'var(--dg-cer)', film: 'var(--dg-resin)', glass: 'var(--dg-glass)', ni: 'var(--dg-ni)',
+    au: 'var(--dg-au)', steel: 'var(--dg-steel)', warn: 'var(--dg-warn)', pwr: 'var(--dg-pwr)',
+  };
+
   /* 焊點：兩個梯形的焊錫爬坡。三欄都用同一支，「三顆都是表面黏著件」這句話
      才有畫面上的證據（§4-A）。*/
   const solder = (x, y, w2, h) =>
@@ -74,8 +108,10 @@
      一小塊主板的 2.5D 微斜頂視。`bx`／`by` 把 (u, v) 兩個 0–1 的參數壓成畫面座標：
      u 往右、v 往畫面深處（右上）。零件就是一個頂面平行四邊形 ＋ 一個正面厚度。
      GPU 只准是一個輪廓（X6），所以它用 stroke 不用 fill。*/
-  const bx = (u, v) => 70 + u * 672 + v * 76;
-  const by = (u, v) => 246 - v * 130;
+  /* ⚠ 2026-09-23：投影從 672 寬收到 520 寬（畫布 660）。u／v 的語意沒變，
+     所以底下每一顆零件的 (u, v) 一個都不用改 —— 只有這兩行換了係數。*/
+  const bx = (u, v) => 34 + u * 520 + v * 72;
+  const by = (u, v) => 236 - v * 116;
   function chip(u, v, du, dv, h, top, side) {
     const A = [bx(u, v), by(u, v) - h], B = [bx(u + du, v), by(u + du, v) - h];
     const Cc = [bx(u + du, v + dv), by(u + du, v + dv) - h], Dd = [bx(u, v + dv), by(u, v + dv) - h];
@@ -112,37 +148,12 @@
     </g>`;
   }
 
-  /* ================================================================ 引線：零件 → 外側文字框
-     走法固定：**從零件水平往左出去 → 垂直落到那一列 → 進入圓點**。
-     每一列的垂直段錯開 3.5px，六條線才不會疊成一條粗線。
-     文字從 x+41 開始，垂直段落在 x+8 ～ x+25.5，所以**引線一次都沒有壓到字**。*/
-  function crow(ci, j, o) {
-    const x = COLX[ci], y = ROW0 + j * ROWP;
-    const elbow = x + 8 + j * 3.5;
-    const lead = o.ax != null
-      ? `<path class="leader" d="M${o.ax},${o.ay} L${elbow},${o.ay} L${elbow},${y - 2} L${x + 26},${y - 2}"/>` : '';
-    const seg = o.seg ? ` data-seg="${o.seg}"` : '';
-    return `<g class="lrow"${o.id ? ` data-part="${o.id}"` : ''}${seg}>
-      <rect class="bg" x="${x + 22}" y="${y - 15}" width="${COLW - 34}" height="48" rx="6"/>
-      ${lead}<circle class="dot" cx="${x + 30}" cy="${y - 2}" r="4"/>
-      <text class="lbl" x="${x + 41}" y="${y + 2}">${o.t}</text>
-      <text class="sub" x="${x + 41}" y="${y + 18}">${o.s1 || ''}</text>
-      <text class="sub" x="${x + 41}" y="${y + 34}">${o.s2 || ''}</text></g>`;
-  }
-
-  /* 一欄。剖面 → 一句話 → 六列標註 → 兩行族群說明，**三欄同一支函式**（X2 自動成立）。*/
-  function col(ci, no, title, draw, one, rows, foot) {
-    const x = COLX[ci];
-    return `<g>
-      <rect class="frame" x="${x}" y="${COLY}" width="${COLW}" height="${COLH}" rx="9"/>
-      <text class="hd" x="${x + 14}" y="${COLY + 22}">${no}　${title}</text>
-      ${draw}
-      <text class="lbl" x="${x + 40}" y="${ONE1}">${one[0]}</text>
-      <text class="lbl" x="${x + 40}" y="${ONE2}">${one[1]}</text>
-      ${rows.map((r, j) => crow(ci, j, r)).join('')}
-      <text class="sub" x="${x + 14}" y="${FOOT1}">${foot[0]}</text>
-      <text class="sub" x="${x + 14}" y="${FOOT2}">${foot[1]}</text></g>`;
-  }
+  /* ================================================================ 引線與標註列 —— **2026-09-23 退場**
+     舊版的 `crow()`（零件 → 外側文字框，六列一欄）與 `col()`（一欄 ＝ 框 ＋ 剖面 ＋ 一句話 ＋ 六列 ＋ 兩行族群說明）
+     在這一版整組拿掉：十八列標註與每欄底下那兩行，全部改由 `card()` 產出的 **HTML 卡片**負責
+     （編號圓點是畫布上的 .anc、引線由 `externalize()` 依實際寬度重算，所以縮放時字不會跟著變小）。
+     ⚠ 一個字都沒有刪 —— rowsA／rowsB／rowsC 這三個陣列原封不動，只是餵給 card() 而不是 crow()。
+     ⚠ 不要「順手把 crow() 加回來」：加回來就會變成同一個零件有兩顆編號圓點、兩份名字。*/
 
   /* ================================================================ 欄 A：功率電感（一體成型／模壓）
 
@@ -157,7 +168,7 @@
     const w6 = [[96, 481], [96, 495], [110, 488], [188, 481], [188, 495], [174, 488]]
       .map(p => C(p[0], p[1], 6.5, 'var(--dg-cu)', 'part')).join('');
     return `<g>
-      ${part('ind_body', '', R(66, 330, 150, 84, 'var(--dg-el)', 'part', 3))}
+      ${part('ind_body', '', slab(66, 330, 150, 84, 'var(--dg-el)', { r: 3 }))}
       ${part('ind_wind', '', turns.join(''))}
       ${part('ind_flux', '',
     `<path class="leader flow" d="${FLUX}" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none" opacity=".85"/>`
@@ -189,7 +200,7 @@
       ${part('res_trim', SEG_R, R(500, 326, 7, 10, 'var(--dg-bg)', 'part')
     + line('M500,326 v10 h7 v-10', 'var(--dg-warn)', 1.6))}
       ${part('res_inner_term', SEG_R, R(392, 332, 44, 10, 'var(--dg-ni)', 'part') + R(544, 332, 44, 10, 'var(--dg-ni)', 'part'))}
-      ${part('res_substrate', SEG_R, R(390, 342, 200, 48, 'var(--dg-cer)', 'part'))}
+      ${part('res_substrate', SEG_R, slab(390, 342, 200, 48, 'var(--dg-cer)', { r: 1 }))}
       ${part('res_bottom', SEG_R, R(394, 390, 44, 9, 'var(--dg-ni)', 'part') + R(542, 390, 44, 9, 'var(--dg-ni)', 'part'))}
       ${part('res_term3', SEG_R, term(376, 370, 364) + term(590, 604, 610))}
       <g pointer-events="none">${R(356, 407, 268, 9, 'var(--dg-pcb)')}
@@ -220,7 +231,7 @@
       ${part('xtal_blank', '', R(736, 378, 156, 9, 'var(--dg-glass)', 'part'))}
       ${part('xtal_elec', '', R(774, 374.5, 80, 3.5, 'var(--dg-au)', 'part') + R(774, 387, 80, 3.5, 'var(--dg-au)', 'part'))}
       ${part('xtal_mount', '', C(740, 389.5, 5, 'var(--dg-resin)', 'part') + C(758, 389.5, 5, 'var(--dg-resin)', 'part'))}
-      ${part('xtal_lid', '', R(698, 336, 244, 14, 'var(--dg-steel)', 'part', 1)
+      ${part('xtal_lid', '', slab(698, 336, 244, 14, 'var(--dg-steel)', { r: 1 })
     + line('M698,350 L942,350', 'var(--dg-cu-lit)', 3)
     + line('M698,336 L698,350 M942,336 L942,350', 'var(--dg-cu-lit)', 2.4))}
       ${part('xtal_pad', '', [704, 752, 850, 898].map(px => R(px, 430, 38, 9, 'var(--dg-au)', 'part', 1)).join(''))}
@@ -239,21 +250,20 @@
      §7-C：三種零件的**實際外形尺寸（mm）這次查不到可引用的通用尺寸表**，
      所以這把尺只宣稱「同一個比例」，**一個 mm 數字都不寫**。
      MLCC 那張有 EIA／公制雙標的案號表，但那是**電容**的案號，不准套到電感與石英上。*/
+  /* ⚠ 2026-09-23：尺從 484 寬收到 290 寬（畫布 660 的右下那一格），
+     三顆的相對比例（74／54／62 寬、46／26／32 高）一個都沒動 —— 那才是這把尺唯一宣稱的事。*/
   function ruler(x, y) {
-    const base = y + 96;
+    const base = y + 92;
     const box = (bxx, w2, h) => line(`M${bxx},${base} v${-h} h${w2} v${h}`, 'var(--dg-ink-3)', 1.5);
     return `<g data-part="size_ruler">
-      <rect class="frame part" x="${x}" y="${y}" width="484" height="130" rx="9"/>
-      <text class="hd" x="${x + 14}" y="${y + 24}">底部共同的尺：三顆用同一個比例並排（示意）</text>
-      ${line(`M${x + 24},${base} H${x + 300}`, 'var(--dg-ink-3)', 1)}
-      ${box(x + 34, 74, 46)}${box(x + 146, 54, 26)}${box(x + 224, 62, 32)}
-      <text class="sub" x="${x + 34}" y="${base + 16}">功率電感</text>
+      <rect class="frame part" x="${x}" y="${y}" width="306" height="120" rx="9"/>
+      <text class="hd" x="${x + 14}" y="${y + 24}">底部共同的尺（示意）</text>
+      <text class="sub" x="${x + 14}" y="${y + 42}">三顆用同一個比例並排，不標 mm</text>
+      ${line(`M${x + 20},${base} H${x + 288}`, 'var(--dg-ink-3)', 1)}
+      ${box(x + 30, 74, 46)}${box(x + 146, 54, 26)}${box(x + 228, 62, 32)}
+      <text class="sub" x="${x + 30}" y="${base + 16}">功率電感</text>
       <text class="sub" x="${x + 146}" y="${base + 16}">晶片電阻</text>
-      <text class="sub" x="${x + 224}" y="${base + 16}">石英元件</text>
-      <text class="sub" x="${x + 320}" y="${y + 48}">三顆都是指甲蓋等級的</text>
-      <text class="sub" x="${x + 320}" y="${y + 66}">小零件。實際外形依料</text>
-      <text class="sub" x="${x + 320}" y="${y + 84}">號而異，本圖查不到可</text>
-      <text class="sub" x="${x + 320}" y="${y + 102}">引用的尺寸表，不標 mm。</text></g>`;
+      <text class="sub" x="${x + 228}" y="${base + 16}">石英</text></g>`;
   }
 
   /* ================================================================ 整張圖 */
@@ -283,8 +293,30 @@
       { id: 'xtal_osc', ax: 712, ay: 490, t: '同一個封裝多一顆 IC＝振盪器', s1: '只有石英片的叫晶體 XTAL，多一顆', s2: '振盪電路叫 XO，再加溫補叫 TCXO' },
     ];
 
-    return `<svg class="dg dgm dgrlc" viewBox="0 0 ${W} 1300" width="100%" style="display:block">${D.STYLE}
-      <style>
+    /* ---- 2026-09-23 v2 的版面：2×2 的格子（畫布 660）----
+         第 1 排　共同舞台（整排寬 628）：這三種零件真的同時出現在同一塊板子的同一區
+         第 2 排　欄 A 功率電感 ｜ 欄 B 晶片電阻（兩格各 306／314 寬）
+         第 3 排　欄 C 石英頻率元件 ｜ 右下：共同的尺 ＋ 電感的兩個電流
+       每一格的畫法（drawA／drawB／drawC）**一行都沒改**，只是被 `<g transform>` 搬過去 ——
+       R1～R5、Q1～Q6 那些用絕對座標寫死的紅線因此不可能被改壞。
+       ⚠ 三欄之間仍然**一條箭頭、一條流程線都沒有**（X3：這三種零件沒有上下游關係）。*/
+    /* ⚠ 每一格的三行小標（標題 ＋ 一句話 ＋ 警語）佔到 y0+64，所以格子裡的畫從 y0+70 才開始。
+       字壓在零件上排版體檢抓不到（它只比「字跟字」），所以這幾個位移是自己算的，不是目測。*/
+    const DXA = 0, DYA = 14;             // 欄 A：往下 14（讓開三行小標）
+    const DXB = -26, DYB = 30;           // 欄 B：往左 26、往下 30
+    const DXC = -668, DYC = 310;         // 欄 C：搬到第 3 排左邊
+    const cA = (o) => ({ ...o, ax: o.ax + DXA, ay: o.ay + DYA });
+    const cB = (o) => ({ ...o, ax: o.ax + DXB, ay: o.ay + DYB });
+    const cC = (o) => ({ ...o, ax: o.ax + DXC, ay: o.ay + DYC });
+    // 三個陣列 → 卡片（欄 A、欄 C 走左欄，欄 B 走右欄；一個字都沒改，只是換了容器）
+    const cardsOf = (rows, side, map, no0, color) => rows.map((r, i) => {
+      const o = r.ax != null ? map(r) : r;
+      return card({ side, no: no0 + i, part: r.id, seg: r.seg, color: color[i] || color[0],
+        ax: o.ax, ay: o.ay, title: r.t, sub: [r.s1, r.s2].filter(Boolean) });
+    }).join('');
+
+    return `<svg class="dg dgm rs dgrlc" viewBox="0 0 ${CW} 878" width="100%" style="display:block">${D.STYLE}
+      <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>      <style>
         /* ⚠ 這一段是 SVG 裡的 style，瀏覽器把它當標記解析 —— 連註解裡都不准出現角括號
            （DECISIONS #231：寫一個像標籤的東西進去，整張樣式表會變成 0 條規則）。
 
@@ -308,65 +340,70 @@
            仍然是環節色，只有沒有 seg 的那兩欄吃這裡的中性色。*/
         svg.dgrlc .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
       </style>
-      <text class="ttl" x="16" y="26">電感·電阻·石英：板子上另外三種一塊錢的零件，各自有一個最容易選錯的規格</text>
-      <text class="cap" x="16" y="46">上面是它們同時出現的那一小塊主板（供電與時脈區），下面三欄各切開一顆。三者之間沒有上下游關係，所以這張圖刻意不畫任何流程箭頭。</text>
+      <!-- 標題與導言：v2 搬到 HTML 的 .dghead，SVG 裡不畫（字才不會跟著畫布縮小） -->
+      <text class="ttl ext" x="0" y="0">電感·電阻·石英：板子上另外三種一塊錢的零件，各自有一個最容易選錯的規格</text>
+      <text class="cap ext" x="0" y="0">上面是它們同時出現的那一小塊主板（供電與時脈區），下面三格各切開一顆。三者之間沒有上下游關係，所以這張圖刻意不畫任何流程箭頭。左右兩欄的卡片逐件說明，點卡片零件會亮、點零件卡片會亮 —— 只有電阻那一格對得到供應鏈環節，電感與石英目前在供應鏈圖上還沒有自己的一格。</text>
 
-      <!-- ================= 共同舞台：一小塊主板的 2.5D 微斜頂視（高度 216，不到全圖的 1/3） ================= -->
-      <rect class="frame" x="16" y="60" width="948" height="216" rx="9"/>
+      <!-- ================= 第 1 排：共同舞台（一小塊主板的 2.5D 微斜頂視） ================= -->
+      <rect class="frame" x="16" y="16" width="628" height="246" rx="9"/>
+      <text class="hd" x="28" y="40">這三種零件真的同時出現在同一塊板子的同一區（供電與時脈）</text>
+      <text class="sub" x="28" y="58" style="fill:var(--dg-ink-3)">橘線＝供電　青線＝時脈　三者之間沒有流程箭頭</text>
       ${stage()}
-      <!-- 標註全部排到板子上方那條空白帶，用引線指下去 —— 字一個都不壓在板子或零件上。
-           ⚠ ② 與 ③ 的位置有一次寫反過（② 指到晶振、③ 指到電阻）：
-           v 越大＝越往畫面深處＝**越高**，所以 v=0.80 的晶振在上、v=0.16 的電阻在下。 -->
-      <g pointer-events="none">
-        <path class="leader" d="M106,118 L186,128"/>
-        <path class="leader" d="M252,118 L212,210"/>
-        <path class="leader" d="M706,118 L648,172"/>
-        <text class="lbl" x="24" y="94">③ 一顆晶振</text>
-        <text class="sub" x="24" y="112">板子的時間從這裡來</text>
-        <text class="lbl" x="216" y="94">② 一顆檢流電阻</text>
-        <text class="sub" x="216" y="112">串在供電路徑上</text>
-        <text class="lbl" x="430" y="94">GPU／ASIC（只畫輪廓）</text>
-        <text class="sub" x="430" y="112">這張圖不畫晶片內部</text>
-        <text class="lbl" x="700" y="94">① 一排電感</text>
-        <text class="sub" x="700" y="112">多相供電，一相一顆</text>
-        <text class="sub" x="660" y="270">橘線＝供電　青線＝時脈　三者之間沒有流程箭頭</text>
-      </g>
 
-      <!-- ================= 下方三欄（等高等寬，同一支 col() 產生） ================= -->
-      ${col(0, '欄 A', '功率電感（一體成型／模壓）', drawA(),
-      ['它把脈衝電流變成平順的電流', '選錯會飽和，或是燒燙'], rowsA,
-      ['台股在「功率電感」族群：3357 臺慶科／',
-        '3236 千如／6155 鈞寶。這一欄不掛環節。'])}
-      ${col(1, '欄 B', '晶片電阻（厚膜）', drawB(),
-      ['它把電流變成看得懂的電壓', '選錯會不準，或是發燙'], rowsB,
-      ['點這一欄的零件會對到「被動元件 MLCC /',
-        '電阻」環節（2327 國巨／2492 華新科 等）。'])}
-      ${col(2, '欄 C', '石英頻率元件（AT 切 SMD）', drawC(),
-      ['它決定整塊板子的時間', '封不住，時間就跟著走鐘'], rowsC,
-      ['台股在「石英頻率控制」族群：3042 晶技／',
-        '2484 希華／3221 台嘉碩。這一欄不掛環節。'])}
+      <!-- ================= 第 2 排：欄 A 功率電感 ｜ 欄 B 晶片電阻 ================= -->
+      <rect class="frame" x="16" y="274" width="${COLW}" height="290" rx="9"/>
+      <text class="hd" x="30" y="296">欄 A　功率電感（一體成型／模壓）</text>
+      <text class="lbl" x="30" y="314">它把脈衝電流變成平順的電流</text>
+      <text class="sub" x="30" y="330" style="fill:var(--dg-warn)">選錯會飽和，或是燒燙</text>
+      <g transform="translate(${DXA},${DYA})">${drawA()}</g>
 
-      <!-- ================= 底部：共同的尺 ＋ 電感的兩個電流 ================= -->
-      ${ruler(16, 964)}
-      <rect class="frame" x="516" y="964" width="448" height="130" rx="9"/>
-      <text class="hd" x="530" y="988">電感的規格要看兩個電流，不是一個</text>
-      <text class="sub" x="530" y="1010">飽和電流 Isat ＝ 電感值掉到規定幅度（常見 10%／20%／30%）</text>
-      <text class="sub" x="530" y="1028">時的電流；溫升電流 Irms ＝ 讓零件溫度升高一個規定值（功率</text>
-      <text class="sub" x="530" y="1046">電感常用 40°C，常見值）的直流電流。</text>
-      <text class="sub" x="530" y="1066" style="fill:var(--dg-warn)">★ 兩個數字通常不一樣，小的那一個才是天花板。</text>
-      <text class="cap" x="530" y="1084">來源：磁性元件原廠應用手冊（門檻與溫升基準各家不同，不寫成標準）</text>
+      <rect class="frame" x="330" y="274" width="314" height="290" rx="9"/>
+      <text class="hd" x="344" y="296">欄 B　晶片電阻（厚膜）</text>
+      <text class="lbl" x="344" y="314">它把電流變成看得懂的電壓</text>
+      <text class="sub" x="344" y="330" style="fill:var(--dg-warn)">選錯會不準，或是發燙</text>
+      <g transform="translate(${DXB},${DYB})">${drawB()}</g>
 
-      <!-- ================= 結論框：這張圖的答案 ================= -->
-      <rect class="frame" x="16" y="1110" width="948" height="114" rx="9"/>
-      <text class="hd" x="30" y="1134">三顆都只值一塊錢，但三顆都會讓整塊板子壞掉</text>
-      <text class="sub" x="30" y="1158">① 電感選錯 → 磁芯飽和、電感值急降，或零件過熱 —— 而且 Isat 與 Irms 是兩個不同的天花板</text>
-      <text class="sub" x="30" y="1178">② 電阻選錯 → 量到的電流不準，或本身發燙讓阻值漂掉 —— 要量電流就得用合金檢流那一種</text>
-      <text class="sub" x="30" y="1198">③ 石英封不住 → 時脈漂掉，整塊板子的時間就錯了 —— 密封腔是這一類零件的生死線</text>
-      <text class="sub" x="30" y="1216" style="fill:var(--dg-warn)">★ 這三種零件之間沒有上下游關係，所以這張圖沒有任何流程箭頭；放在一起是因為它們真的在同一塊板子的同一區。</text>
+      <!-- ================= 第 3 排：欄 C 石英 ｜ 共同的尺 ＋ 電感的兩個電流 ================= -->
+      <rect class="frame" x="16" y="576" width="${COLW}" height="286" rx="9"/>
+      <text class="hd" x="30" y="598">欄 C　石英頻率元件（AT 切 SMD）</text>
+      <text class="lbl" x="30" y="616">它決定整塊板子的時間</text>
+      <text class="sub" x="30" y="632" style="fill:var(--dg-warn)">封不住，時間就跟著走鐘</text>
+      <g transform="translate(${DXC},${DYC})">${drawC()}</g>
 
-      <text class="cap" x="16" y="1246">示意圖，非實物比例｜各層厚度與繞組圈數均為示意；三種零件的 mm 尺寸、良率、單價、市占一律不寫（查不到可引用的來源）。</text>
-      <text class="cap" x="16" y="1264">點零件篩到的是「環節」不是整個族群：這張圖只有「電阻」那一欄對得到供應鏈環節，電感與石英目前在供應鏈圖上還沒有自己的一格。</text>
-      <text class="cap" x="16" y="1282">這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）—— 那是「被動元件：MLCC 疊層剖析」那一張的主題，端電極的原理也在那張講完了。</text>
+      ${ruler(338, 576)}
+      <rect class="frame" x="338" y="708" width="306" height="154" rx="9"/>
+      <text class="hd" x="352" y="732">電感的規格要看兩個電流，不是一個</text>
+      <text class="sub" x="352" y="752">飽和電流 Isat ＝ 電感值掉到規定幅度</text>
+      <text class="sub" x="352" y="769">（常見 10%／20%／30%）時的電流。</text>
+      <text class="sub" x="352" y="786">溫升電流 Irms ＝ 讓零件溫度升高一個</text>
+      <text class="sub" x="352" y="803">規定值（功率電感常用 40°C，常見值）</text>
+      <text class="sub" x="352" y="820">的直流電流。</text>
+      <text class="sub" x="352" y="838" style="fill:var(--dg-warn)">★ 兩個數字通常不一樣，小的那一個才是天花板。</text>
+      <text class="cap" x="352" y="854">來源：磁性元件原廠應用手冊（門檻與溫升基準各家不同）</text>
+
+      <!-- ================= 說明卡片（HTML）：左欄＝舞台＋欄 A＋欄 C，右欄＝欄 B ＋ 結論 =================
+           每一張卡片的 data-part 都跟畫布上的零件**同一個字串**（改造前後逐字比對過），
+           所以既有互動一個都沒掉；seg 仍然只有電阻欄有（§7-D2）。-->
+      ${card({ side: 'l', no: 1, part: 'stage_board', color: COL.core, ax: 291, ay: 148, title: '共同舞台：主板的供電與時脈區', sub: ['GPU／ASIC 只畫輪廓 —— 晶片內部不是這張圖的主題', '① 一排電感（多相供電，一相一顆）② 一顆檢流電阻 ③ 一顆晶振'] })}
+      ${cardsOf(rowsA, 'l', cA, 2, [COL.core, COL.cu, COL.sig, COL.sn, COL.core, COL.core])}
+      ${cardsOf(rowsC, 'l', cC, 14, [COL.glass, COL.au, COL.film, COL.sig, COL.steel, COL.cer])}
+      ${cardsOf(rowsB, 'r', cB, 8, [COL.cer, COL.film, COL.warn, COL.glass, COL.cu, COL.steel])}
+      ${card({ side: 'r', no: 20, part: 'size_ruler', color: COL.sn, ax: 480, ay: 656, title: '共同的尺：三顆並排比大小', sub: ['三顆都是指甲蓋等級的小零件；實際外形依料號而異', '本圖查不到可引用的尺寸表，所以一個 mm 數字都不標'] })}
+      ${note({ side: 'r', order: 96, title: '三顆都只值一塊錢，但三顆都會讓整塊板子壞掉',
+    lines: ['① 電感選錯 → 磁芯飽和、電感值急降，或零件過熱 —— 而且 Isat 與 Irms 是兩個不同的天花板。',
+      '② 電阻選錯 → 量到的電流不準，或本身發燙讓阻值漂掉 —— 要量電流就得用合金檢流那一種。',
+      '③ 石英封不住 → 時脈漂掉，整塊板子的時間就錯了 —— 密封腔是這一類零件的生死線。'] })}
+      ${note({ side: 'r', warn: true, order: 97, title: '★ 為什麼這張圖沒有流程箭頭',
+    lines: ['這三種零件之間沒有上下游關係；放在一起是因為它們真的在同一塊板子的同一區。',
+      '排成一條流程列會暗示一個不存在的因果順序 —— 那是規格書 §0-B 否決過的畫法。'] })}
+      ${note({ side: 'r', order: 98, title: '誰做的（點零件篩到的是「環節」不是族群）',
+    lines: ['功率電感：3357 臺慶科／3236 千如／6155 鈞寶（族群「功率電感」，這一格不掛環節）。',
+      '晶片電阻：點這一格會對到「被動元件 MLCC／電阻」環節（2327 國巨／2492 華新科 等）。',
+      '石英：3042 晶技／2484 希華／3221 台嘉碩（族群「石英頻率控制」，這一格不掛環節）。'] })}
+      ${note({ side: 'r', order: 99, title: '這張圖沒有回答的事',
+    lines: ['示意圖，非實物比例｜各層厚度與繞組圈數均為示意。',
+      '三種零件的 mm 尺寸、良率、單價、市占一律不寫（查不到可引用的來源）。',
+      '這張圖不畫任何電容（MLCC／鋁質電解／固態／鉭質）—— 那是另外兩張的主題，端電極的原理也在 MLCC 那張講完了。'] })}
     </svg>`;
   }
 
@@ -378,7 +415,7 @@
        原本的理由是「三種零件的識別特徵全部在剖面裡」—— 成立，
        漏掉的是那三個特徵**都被蓋住了**：繞組埋在磁粉裡、雷射修整溝壓在玻璃層底下、
        石英片封在密封腔裡。半剖是唯一看得到它們的方式，而半剖就是 3D。*/
-    draw: passiveRLC, native: 980, scene: 'power_inductor',
+    draw: passiveRLC, native: CW, scene: 'power_inductor',
     q: '電感、電阻、石英這三種零件各自長什麼樣？為什麼電感要看兩種電流、電阻要雷射刻一刀、石英要抽真空？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        ⚠ 只有 **seg 為 `passive_comp` 的電阻欄**現在真的點得出小卡（見檔頭那段說明）。
