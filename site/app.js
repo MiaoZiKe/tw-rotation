@@ -2894,8 +2894,9 @@
        Andy 的標準是「每張圖都要能回答一個具體問題，而且說明要寫到『所以我該怎麼用』」。*/
     rot: `<b>這張卡回答兩件事：<em>錢這幾天往哪個族群跑</em>（右邊的排行），
         以及<em>那個族群跑到強弱循環的哪一段</em>（左邊的時鐘）。</b>
-      <ul><li><b>兩張圖吃同一份設定</b>：上面那排產業鏈／族群晶片／「只看前 10 大」是**共用**的，
-        點一次兩張圖一起篩；「看哪一天」也是共用的 ——
+      <ul><li><b>兩張圖吃同一份設定</b>：上面那兩個下拉清單（先挑<em>產業鏈</em>，
+        再從第二個清單勾<em>族群</em>，可複選）與「只看前 10 大」是**共用**的，
+        改一次兩張圖一起篩；「看哪一天」也是共用的 ——
         <em>它同時決定時鐘大圈落在哪一天、以及排行那一段的結尾是哪一天</em>，
         所以兩張圖永遠在講同一天的事。「最近 N 天」只管排行要從那一天往回看多久。</li>
       <li><b>怎麼一起用</b>：先看右邊排行最上面那幾個（錢正在進去），
@@ -3564,13 +3565,9 @@
      兩排長得幾乎一樣、行為卻不同，上面那排就把這一排的意義吃掉了。
 
      決議：**族群選取只留這一處**（它離圖最近，而且「點族群展開個股」本來就長在它身上），
-     上面那顆「族群篩選」鈕與它展開的族群清單移除，這一排改成**真的改 ROT.groups**。*/
-  function rotChipsHTML(list) {
-    return list.map(g =>
-      `<span class="gchip${ROT.groups && ROT.groups.has(g.gid) ? ' on' : ''}" data-g="${g.gid}" style="--c:${L.gcolor[g.gid] || CH.cyan}">
-         <button class="pick" title="只看這個族群，再點一次取消">${fmt.esc(g.name)}</button>
-         <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></span>`).join('');
-  }
+     上面那顆「族群篩選」鈕與它展開的族群清單移除，這一排改成**真的改 ROT.groups**。
+     ★ 2026-09-23：這一排晶片本身也退場了（改成兩層下拉，見 `wireRotFilter`），
+       原本產 HTML 的 `rotChipsHTML()` 一併刪掉 —— 留著就是沒人叫的死碼。*/
   /* ★ 2026-09-20（Andy）：「所有圖表的族群小Tip都需要具備點擊後就會在對應圖表上被篩選出去，
      以此達到篩選功能」。
 
@@ -3666,6 +3663,11 @@
   let rotGroupMeta = {};           // gid → {name, chain}
   let rotF3 = null;                // 最後一次拿到的 flow_v3（晶片列／放大視窗要重建篩選列時用）
   let rotZoomDraw = null;          // 放大視窗開著時＝重畫它的函式；關掉就設回 null
+  /* 兩層下拉的開合狀態。勾一個族群就把整排重建一次，所以「剛才開著哪一個」必須記在
+     模組層才還原得回來 —— 不記的話複選等於不能用（每勾一次面板就關一次）。
+     `rf` 分得出是卡片那排還是放大視窗那排，兩排同時存在時才不會一起彈開。*/
+  let rotMenu = null;              // {rf:'flow'|'zoom', kind:'chain'|'group'}；null＝全部收起來
+  let rotMenuTop = 0;              // 第二層清單的捲動位置
   let rotSyncCard = () => {};      // 關掉放大視窗時把卡片那張圖同步回來（天數／篩選都共用）
 
   /* 目前生效的族群集合（null／空＝全部）。
@@ -3702,10 +3704,29 @@
           它和產業鏈 seg 是同一件事的粗細兩層（先挑鏈、再挑族群），
           放在一起才看得出是同一組控制項；而且以前那一排夾在圖與說明之間，
           在窄畫面上會把圖推得很遠。字級與 padding 一起縮小（見 index.html 的
-          `.rotfilter .gchips`），因為它是選單不是內文。 */
+          `.rotfilter .gchips`），因為它是選單不是內文。
+
+     ★★ 2026-09-23（Andy：「圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材，
+        例如 半導體，下面就會有圖三那些，所以並非所有族群都在同一個下拉清單，
+        而是對應族群出現對應個股」）—— 晶片列整排換成**兩層連動的下拉清單**：
+
+          第一層　產業鏈（全部／半導體／一般電子／AI 伺服器／傳產與內需／金融／其他產業別）
+          第二層　**被第一層篩過**的族群，checkbox 複選
+
+        為什麼換：48 個族群平鋪成一片要佔三四行，而且那是一個「沒有層次的清單」——
+        使用者要先自己知道「矽晶圓屬於半導體」才找得到它。兩層之後，
+        第一層先把 48 個收斂成十幾個，第二層的每一項都跟第一層有明確的從屬關係。
+        收起來時按鈕上直接寫「半導體 · 已選 3 個」，不必點開才知道自己選了什麼。
+
+        為什麼不用原生 `<select multiple>`：它在手機上是系統的全螢幕選單、吃不到站上的主題色，
+        而且看不到族群的顏色點。所以自己做 checkbox 面板。
+
+        沒有退化的東西：複選、「只看前 10 大」、「排行與時鐘顯示全部 N 個族群」那句說明、
+        以及**兩排（卡片／放大視窗）共用同一份 ROT 狀態** —— 這支仍然是「對每個 box 各產一份」，
+        任何一邊改了都重建兩邊。 */
   function wireRotFilter(f3) {
-    /* f3 只有第一次（renderFlow）會傳進來；之後晶片列、放大視窗、清除篩選都會再呼叫一次，
-       那些地方手上沒有 f3，所以記在模組層。沒有它就沒有產業鏈 seg。*/
+    /* f3 只有第一次（renderFlow）會傳進來；之後下拉清單、放大視窗、清除篩選都會再呼叫一次，
+       那些地方手上沒有 f3，所以記在模組層。沒有它就沒有第一層（產業鏈）的選項。*/
     if (f3) rotF3 = f3; else f3 = rotF3;
     const boxes = $$('.rotfilter');
     if (!boxes.length) return;
@@ -3717,53 +3738,146 @@
     const nG = ROT.groups ? ROT.groups.size : 0;
     const picked = rotPickSet().size;
     const list = rotAllGroups || [];
+    /* 第二層的清單＝被第一層篩過的族群。Andy 的原話：「並非所有族群都在同一個下拉清單，
+       而是對應族群出現對應個股」—— 所以選了半導體，第二層就只列半導體鏈底下那十幾個。*/
+    const sub = ROT.chain ? list.filter(r => (rotGroupMeta[r.gid] || {}).chain === ROT.chain) : list;
+    const chainName = ROT.chain ? chainLabel(ROT.chain) : '全部';
+    /* 收起來的時候按鈕上要看得到自己選了什麼，不必點開才知道（Andy 要的「半導體 · 已選 3 個」）。*/
+    const gSummary = nG ? `${chainName} · 已選 ${nG} 個` : `${chainName} · 全部族群`;
     /* ★ 2026-09-21 合併之後，卡片上只剩**一排**（`data-rf="flow"`）；
        放大視窗打開時會多一排（`data-rf="zoom"`），所以這裡仍然是「對每個 box 各產一份」。
        裡面的控制項一律用 class 不用 id —— 同一個 id 出現兩次的話
        `document.getElementById` 只會抓到第一個，另一排就變成按了沒反應。*/
     boxes.forEach(box => {
       const zoom = box.dataset.rf === 'zoom';
-      /* 晶片列有 50 幾顆、框高只有 96px，所以是捲得動的。
-         這一排每點一次晶片就整個 innerHTML 重建一次，不記捲動位置的話
-         使用者每選一個族群就被彈回最上面 —— 選第 30 個族群等於要重捲 30 次。*/
-      /* `data-sync="n2"` 留著當 CSS 與驗收的抓手。這個名字是 N2 那次「兩排族群對不上」
-         留下來的，2026-09-21 合併之後卡片上只剩一排，已經沒有「兩排要同步」這件事；
-         改名會連動樣式與一整批驗收選擇器，代價大於收益，所以只在這裡把語意講清楚。*/
-      const oldRow = box.querySelector('.linkrow.gchips');
-      const keepTop = oldRow ? oldRow.scrollTop : 0;
-      box.innerHTML = `<div class="seg tiny rotchain">
-          <button data-c="" class="${ROT.chain ? '' : 'on'}">全部</button>
-          ${chains.map(c => `<button data-c="${fmt.esc(c)}" class="${ROT.chain === c ? 'on' : ''}">${fmt.esc(chainLabel(c))}</button>`).join('')}
+      const rf = box.dataset.rf || 'flow';
+      /* `data-sync="n2"` 留著當 CSS 與驗收的抓手（沿用晶片列時代的名字，改名要連動一整批選擇器）。*/
+      box.innerHTML = `<div class="rotdd" data-dd="chain" data-sync="n2">
+          <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
+            title="第一層：先挑產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
+          <div class="ddpanel" role="listbox" aria-label="產業鏈" hidden>
+            <button type="button" role="option" class="ddopt${ROT.chain ? '' : ' on'}" data-c=""
+              aria-selected="${ROT.chain ? 'false' : 'true'}">全部（${list.length} 個族群）</button>
+            ${chains.map(c => {
+              const n = list.filter(r => (rotGroupMeta[r.gid] || {}).chain === c).length;
+              return `<button type="button" role="option" class="ddopt${ROT.chain === c ? ' on' : ''}" data-c="${fmt.esc(c)}"
+                aria-selected="${ROT.chain === c ? 'true' : 'false'}">${fmt.esc(chainLabel(c))}<em>${n}</em></button>`;
+            }).join('')}
+          </div>
         </div>
-        <div class="linkrow gchips" data-sync="n2">${rotChipsHTML(list)}</div>
+        <div class="rotdd wide" data-dd="group">
+          <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false"
+            title="第二層：這條鏈底下的族群，可以複選">族群：<b>${fmt.esc(gSummary)}</b><i aria-hidden="true">▾</i></button>
+          <div class="ddpanel" aria-label="族群（可複選）" hidden>
+            <div class="ddbar"><span class="muted">${fmt.esc(chainName)}底下 ${sub.length} 個族群，可複選</span>
+              <button type="button" class="btn small dd-all">全選</button>
+              <button type="button" class="btn small dd-none">全不選</button></div>
+            <div class="ddlist">${sub.map(g => `<div class="ddopt chk" style="--c:${L.gcolor[g.gid] || CH.cyan}">
+                <label><input type="checkbox" data-g="${g.gid}"${ROT.groups && ROT.groups.has(g.gid) ? ' checked' : ''}>
+                  <span class="nm">${fmt.esc(g.name)}</span></label>
+                <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></div>`).join('')
+              || '<div class="muted" style="padding:8px">這條鏈目前沒有族群資料</div>'}</div>
+          </div>
+        </div>
         <label class="rotchk"><input type="checkbox" class="rot-top10" ${ROT.topOnly ? 'checked' : ''}>只看前 10 大</label>
-        ${(nG || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除篩選</button>' : ''}
+        ${(nG || ROT.chain || ROT.topOnly) ? '<button class="btn small rot-clear">清除</button>' : ''}
         <span class="muted rot-note">${picked ? `排行與時鐘都只看這 ${picked} 個族群`
-          : `排行與時鐘顯示全部 ${list.length} 個族群`}${nG ? `（其中 ${nG} 個是你自己點的，再點一次取消）`
-          /* ★ 一定要寫「往下捲」：那一排只看得到四列，56 個族群有一大半在框外面，
-             不講的話使用者會以為「我要的族群不在清單裡」。*/
-          : '　·　點上面那排族群名稱就只看它（可多選，那一排往下捲還有）'}</span>`;
-      const row = box.querySelector('.linkrow.gchips');
-      if (row && keepTop) row.scrollTop = keepTop;
-      $$('.rotchain button', box).forEach(b => b.onclick = () => {
-        ROT.chain = b.dataset.c; wireRotFilter(f3); rotRedraw();
+          : `排行與時鐘顯示全部 ${list.length} 個族群`}${nG ? `（其中 ${nG} 個是你自己勾的，再勾一次取消）`
+          : '　·　先挑產業鏈，再從第二個清單勾族群（可複選）'}</span>`;
+
+      /* 重建之後要把「剛才打開的那個下拉」原樣還原 —— 勾一個族群就整排重建，
+         不還原的話使用者每勾一個就被關掉一次，複選等於不能用。*/
+      $$('.rotdd', box).forEach(dd => {
+        const kind = dd.dataset.dd;
+        const btn = dd.querySelector('.ddbtn');
+        const pan = dd.querySelector('.ddpanel');
+        const lst = dd.querySelector('.ddlist');
+        if (rotMenu && rotMenu.rf === rf && rotMenu.kind === kind) {
+          pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+          if (lst) lst.scrollTop = rotMenuTop;      // 捲動位置也要留，不然勾一個彈回最上面
+        }
+        if (lst) lst.onscroll = () => { rotMenuTop = lst.scrollTop; };
+        btn.onclick = (ev) => {
+          ev.stopPropagation();
+          const willOpen = pan.hidden;
+          rotCloseMenus();
+          if (willOpen) {
+            rotMenu = { rf, kind }; if (kind === 'group') rotMenuTop = 0;
+            pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+          }
+        };
+        // Esc 關掉並把焦點還給按鈕（鍵盤使用者不能被關在面板裡）
+        dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
       });
-      /* 族群晶片：點名字＝真的改 `ROT.groups`（兩張圖一起篩），右邊的 → 才是進族群頁。
+
+      // 第一層：挑產業鏈。挑完直接把第二層打開 —— 這就是「族群 → 題材」兩層連動要的動作。
+      $$('.rotdd[data-dd="chain"] .ddopt', box).forEach(b => b.onclick = () => {
+        ROT.chain = b.dataset.c;
+        rotPruneGroups();                       // 第二層換了一批，留著別鏈的勾選只會讓摘要對不上畫面
+        rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
+        wireRotFilter(f3); rotRedraw();
+      });
+      /* 第二層：勾族群＝真的改 `ROT.groups`（兩張圖一起篩），右邊的 → 才是進族群頁。
          放大視窗那一排只做「切換＋重畫」—— `pickGroup` 還會去展開排行卡下方的成分股面板，
          而那張面板整個被遮罩蓋住，使用者看不到，等於按了沒反應。*/
-      $$('.gchip .pick', box).forEach(b => b.onclick = () => {
-        const gid = b.parentNode.dataset.g;
+      $$('.rotdd[data-dd="group"] .ddlist input[type="checkbox"]', box).forEach(c => c.onchange = () => {
+        rotMenu = { rf, kind: 'group' };         // 複選：勾完不收起來
+        const gid = c.dataset.g;
         if (zoom) { rotToggleGroup(gid); wireRotFilter(f3); rotRedraw(); } else pickGroup(gid);
       });
+      /* 「→ 進族群頁」刻意放在 `<label>` 外面：放在裡面的話點它會連帶觸發 label
+         把 checkbox 也勾掉（瀏覽器的原生行為，不是靠監聽器擋得掉的）。*/
+      $$('.rotdd[data-dd="group"] .ddopt .go', box).forEach(a => a.onclick = () => { rotCloseMenus(); });
+      const all = box.querySelector('.dd-all');
+      if (all) all.onclick = () => {
+        ROT.groups = ROT.groups || new Set();
+        sub.forEach(g => ROT.groups.add(g.gid));
+        saveRotSel(); rotMenu = { rf, kind: 'group' }; wireRotFilter(f3); rotRedraw();
+      };
+      const none = box.querySelector('.dd-none');
+      if (none) none.onclick = () => {
+        if (ROT.groups) { sub.forEach(g => ROT.groups.delete(g.gid)); if (!ROT.groups.size) ROT.groups = null; }
+        saveRotSel(); rotMenu = { rf, kind: 'group' }; wireRotFilter(f3); rotRedraw();
+      };
       const t10 = box.querySelector('.rot-top10');
       if (t10) t10.onchange = () => { ROT.topOnly = t10.checked; wireRotFilter(f3); rotRedraw(); };
       const clr = box.querySelector('.rot-clear');
       if (clr) clr.onclick = () => {
         ROT.chain = ''; ROT.groups = null; ROT.topOnly = false;
+        rotMenu = null;
         saveRotSel(); wireRotFilter(f3); rotRedraw();
       };
     });
   }
+
+  /* 換了產業鏈就把不屬於這條鏈的勾選丟掉。
+     理由是「按鈕上的摘要要跟畫面一致」：留著別鏈的族群，`rotPickSet()` 取交集之後會變成空集合
+     （＝退回全部），但按鈕上還寫著「已選 3 個」—— 使用者會以為圖壞了。*/
+  function rotPruneGroups() {
+    if (!ROT.chain || !ROT.groups) return;
+    [...ROT.groups].forEach(g => { if ((rotGroupMeta[g] || {}).chain !== ROT.chain) ROT.groups.delete(g); });
+    if (!ROT.groups.size) ROT.groups = null;
+    saveRotSel();
+  }
+
+  /* 收掉所有打開的下拉（點別處、Esc、換頁都會走這裡）。
+     ★ 一定要對「全站所有 .rotdd」下手，不是只對某一個 box ——
+       放大視窗開著時卡片那排也在 DOM 裡，只收一邊會留下一個關不掉的浮層。*/
+  function rotCloseMenus() {
+    rotMenu = null;
+    $$('.rotdd').forEach(dd => {
+      dd.classList.remove('open');
+      const p = dd.querySelector('.ddpanel'); if (p) p.hidden = true;
+      const b = dd.querySelector('.ddbtn'); if (b) b.setAttribute('aria-expanded', 'false');
+    });
+  }
+  // 點面板以外的地方就收起來；Esc 不管焦點在哪都收得掉（面板裡的 Esc 由 dd.onkeydown 先接走）
+  document.addEventListener('click', (e) => {
+    if (!rotMenu) return;
+    if (e.target && e.target.closest && e.target.closest('.rotdd')) return;
+    rotCloseMenus();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && rotMenu) rotCloseMenus(); });
 
   /* 選擇要記住（Andy 的驗收會檢查 localStorage 真的寫進去）。
      只存「使用者自己勾的」兩組，seg 與前 10 大是一眼就看得出來的狀態，不必記。*/

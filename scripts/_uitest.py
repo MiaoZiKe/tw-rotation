@@ -8650,8 +8650,10 @@ def t_mlcc(pg, base):
                   svgW: r ? Math.round(r.width) : 0, minFs: Math.min(fs('.sub'), fs('.cap')) || 0};
         }""")
 
+    # ★ 2026-09-23 第二批（W3-2）：成分股表移除。原本這支數的是表格列數，
+    #   改成數「環節詳情 #cgSegBox 目前列出哪幾檔」——「畫面真的換了一批股票」量得一樣準。
     def rows(pg_):
-        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+        return seg_codes(pg_)
 
     def menu(pg_):
         """圖別選單 vs 剖析圖，現在是哪一種？（量的是「看不看得見」，不是「在不在 DOM 裡」）"""
@@ -8796,12 +8798,12 @@ def t_mlcc(pg, base):
 
     # ---------------- 2. 點族群卡片 → 成分股筆數真的變少，而且有專屬圖的族群圖會跟著出現
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    r0 = rows(pg)
     ok("找得到「被動元件 MLCC」族群卡片", pick_group(pg, "mlcc"))
     pg.wait_for_timeout(1000)
     force_open(pg)
-    d1 = dg(pg); r1 = rows(pg)
-    ok("點「被動元件 MLCC」→ 下方成分股筆數真的變少", r1 < r0, f"{r0} → {r1}")
+    d1 = dg(pg)
+    # ★ W3-2：「點族群 → 下方成分股筆數變少」那一條沒有對象了（表移除）。
+    #   它守的事（點族群真的有反應）由下面那一條接手：**圖真的換成那個族群的圖**。
     ok("點「被動元件 MLCC」→ 它有專屬圖，所以圖真的從選單換成 MLCC 那張",
        FEAT in d1["full"] and menu(pg)["svg"], d1["title"][:60])
 
@@ -8820,8 +8822,7 @@ def t_mlcc(pg, base):
        not pg.evaluate("(g) => !!(window.DiagramSlots && window.DiagramSlots.has(g))", NO_DG))
     ok(f"找得到「{NO_DG}」族群卡片", pick_group(pg, NO_DG))
     pg.wait_for_timeout(1000)
-    m4 = menu(pg); r2 = rows(pg)
-    ok("點沒有專屬圖的族群 → 成分股換成另一批（筆數或內容真的變了）", r2 != r1, f"{r1} → {r2}")
+    m4 = menu(pg)
     ok("點沒有專屬圖的族群 → 圖真的收起來、換回圖別選單，不會借別人那張",
        m4["menuVis"] and not m4["dgVis"] and not m4["svg"], m4)
     ok("那句道歉文案整句消失（整頁找不到「還沒有專屬剖析圖」）",
@@ -8924,7 +8925,7 @@ def t_mlcc(pg, base):
     t0 = pg.evaluate(TIER)
     ok("MLCC 是單一環節的圖（整張只有一個 data-seg，所以才需要兩層高亮）",
        t0["nseg"] == 1 and t0["dg1"], f"nseg={t0['nseg']} dg1={t0['dg1']} {t0['segs']}")
-    rows_before = rows(pg)
+    filt_before = seg_applied(pg)
     k1 = click_part(pg, 0)
     t1 = pg.evaluate(TIER)
     ok("點 MLCC 的零件 → 主角（.sel-part）剛好 1 個",
@@ -8940,14 +8941,16 @@ def t_mlcc(pg, base):
        not hsw or not ssw or min(hsw) > max(ssw),
        f"主角 stroke-width={hsw} ／ 其餘={sorted(set(ssw))}")
     ok("dim 仍然是 0（單一環節的圖本來就沒有「別的環節」可以壓暗）", t1["dim"] == 0, t1["dim"])
-    ok("DECISIONS #73：點零件**不會**改成分股筆數（只亮不篩）",
-       rows(pg) == rows_before, f"{rows_before} → {rows(pg)}")
+    # ★ W3-2：「只亮不篩」改量那顆按鈕的字（還沒套用寫「只看這一格 →」）——
+    #   畫面上真的看得到的差別，不是內部旗標
+    ok("DECISIONS #73：點零件**不會**把整張圖聚焦到那一格（只亮不篩）",
+       seg_applied(pg) == filt_before and not seg_applied(pg), filt_before)
     # 換點另一個零件：主角要真的換人（改之前這一步會把整個選取取消掉）
     k2 = click_part(pg, 4)
     t2 = pg.evaluate(TIER)
     ok("換點另一個零件，主角真的換人（不是整個取消掉）",
        t2["selpart"] == 1 and k2 is not None and k2 != k1, f"{k1} → {k2} selpart={t2['selpart']}")
-    ok("換點之後成分股筆數還是一動都不動", rows(pg) == rows_before, f"{rows_before} → {rows(pg)}")
+    ok("換點之後還是沒有被聚焦（只亮不篩）", not seg_applied(pg))
     # 再點一次同一個＝取消（把狀態還原，不要汙染後面的段落）
     click_part(pg, 4, want_sel=False)
     t3 = pg.evaluate(TIER)
@@ -8963,7 +8966,8 @@ def t_mlcc(pg, base):
                       " if (!c) return false; c.click(); return true; }")
     pg.wait_for_timeout(900)
     r3 = rows(pg)
-    ok("點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數真的變少", hit and r3 < base_rows, f"{base_rows} → {r3}")
+    ok("點「被動元件 MLCC / 電阻」環節色標 → 圖下方真的列出那一格的台股（而且是套用，不是只亮）",
+       hit and r3 and r3 != base_rows and seg_applied(pg), f"{base_rows!r} → {r3!r}")
 
     # ---------------- 6. 3D：真的進 WebGL，不是退回平面圖
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -9039,7 +9043,7 @@ def t_mlcc(pg, base):
         ok(f"回歸：{cid} 鏈的圖零件數沒有變少", d.get("parts", 0) >= least, d.get("parts"))
         # 多環節的圖：兩層高亮只是「多一層最強」，dim 的規則一個字都沒改。
         # dim 的數量＝不同環節的零件數 —— 這個數字在兩層高亮之前是多少、之後就得是多少。
-        rows_b = rows(pg)
+        filt_b = seg_applied(pg)
         # 挑一個「同環節還有別人」的零件來點，不然驗不到次強那一層
         idx = pg.evaluate("""() => { const ns = [...document.querySelectorAll('#prodDiagram [data-seg]')];
           const c = {}; ns.forEach(n => { c[n.dataset.seg] = (c[n.dataset.seg] || 0) + 1; });
@@ -9055,7 +9059,8 @@ def t_mlcc(pg, base):
         ok(f"回歸：{cid} 的 dim 數量跟兩層高亮之前一模一樣（＝不同環節的零件數）",
            t_after["dim"] == t_after["parts"] - same and t_after["sel"] == same,
            f"零件 {t_after['parts']}、同環節 {same}、sel {t_after['sel']}、dim {t_after['dim']}")
-        ok(f"回歸：{cid} 點零件不會改成分股筆數（DECISIONS #73）", rows(pg) == rows_b, f"{rows_b} → {rows(pg)}")
+        ok(f"回歸：{cid} 點零件不會把整張圖聚焦到那一格（DECISIONS #73）",
+           seg_applied(pg) == filt_b and not seg_applied(pg), filt_b)
 
     # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
     for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),
@@ -9092,12 +9097,11 @@ def t_mlcc(pg, base):
     ok(f"[800px] 剖析圖以原尺寸顯示（不被欄寬壓縮；宣告 native {nat8}）", d8.get("svgW", 0) >= nat8 - 4, d8.get("svgW"))
     ok("[800px] 圖上最小的字真的 ≥ 12px（Andy 講了三次的「文字太小」）",
        d8.get("minFs", 0) >= 11.9, d8.get("minFs"))
-    r8a = rows(pg)
     ok("[800px] 找得到沒有專屬圖的族群卡片", pick_group(pg, NO_DG))   # 面板現在有圖了，見上面 NO_DG
     pg.wait_for_timeout(1000)
-    m8c = menu(pg); r8b = rows(pg)
-    ok("[800px] 點沒有專屬圖的族群 → 成分股換掉，而且圖真的收起來換回選單",
-       r8b != r8a and m8c["menuVis"] and not m8c["svg"], f"{r8a} → {r8b}；{m8c}")
+    m8c = menu(pg)
+    ok("[800px] 點沒有專屬圖的族群 → 圖真的收起來換回選單",
+       m8c["menuVis"] and not m8c["svg"], m8c)
 
     # ---------------- 10. 字級標準（art-director 2026-09-21，分支 claude/dg-typo）
     #  以前只驗 MLCC 一張、只驗 800px、只看 .sub 與 .cap 兩個 class ——
@@ -9814,9 +9818,10 @@ def t_whomakes(pg, base):
         pg_.wait_for_timeout(420)
         return got
 
+    # ★ 2026-09-23 第二批（W3-2）：成分股表移除。「目前畫面上列出哪一批台股」
+    #   改讀環節詳情 `#cgSegBox` —— 那是這件事的新家。
     def rows(pg_):
-        """成分股真的有資料的那幾列（0 筆時 tbody 裡有一列說明用的 colspan，不能一起數）。"""
-        return pg_.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        return seg_codes(pg_)
 
     # ---------------- 1. 一開始沒有小卡；點一個零件 → 小卡出現，而且是那個零件的答案
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -9825,6 +9830,7 @@ def t_whomakes(pg, base):
     c0 = card(pg)
     ok("還沒點任何零件時，小卡是收著的（不預先佔一塊空白）", not c0["on"], c0)
     n_all = rows(pg)
+    filt0 = seg_applied(pg)
 
     y0 = pg.evaluate("() => Math.round(scrollY)")
     k1 = click_part(pg, "abf_trace")
@@ -9854,10 +9860,10 @@ def t_whomakes(pg, base):
     ok("再點一次同一個零件 → 取消選取，小卡跟著收掉", not c3["on"] and hero(pg) is None,
        {"card": c3["on"], "hero": hero(pg)})
 
-    # ---------------- 4. 點零件的前後，成分股筆數一動都不動（DECISIONS #73）
+    # ---------------- 4. 點零件的前後，都不會把整張圖聚焦到那一格（DECISIONS #73）
     click_part(pg, "abf_trace")
-    ok("點零件**不會**動到下方成分股（DECISIONS #73：只亮不篩）", rows(pg) == n_all,
-       {"點之前": n_all, "點之後": rows(pg)})
+    ok("點零件**不會**把整張圖聚焦到那一格（DECISIONS #73：只亮不篩）",
+       seg_applied(pg) == filt0 and not seg_applied(pg), filt0)
 
     # ---------------- 5. 點環節色標 → 成分股真的被篩了（既有行為不准被弄壞）
     #   ★ 刻意挑 substrate_material 而不是 abf_pcb：這個網址已經把族群選成「PCB 載板」（3 檔），
@@ -9867,8 +9873,8 @@ def t_whomakes(pg, base):
       if (!c) return false; c.click(); return true; }""")
     pg.wait_for_timeout(700)
     n_seg = rows(pg)
-    ok("點環節色標（載板材料）→ 成分股真的篩了（這一格台股掛零，所以筆數從 %s 變成 0）" % n_all,
-       hit and n_seg != n_all and n_seg == 0, {"全部": n_all, "篩完": n_seg})
+    ok("點環節色標（載板材料）→ 真的套用了，而且這一格台股掛零（列不出任何一檔）",
+       hit and seg_applied(pg) and n_seg == "", {"點之前": n_all, "篩完": n_seg})
     pg.evaluate("""() => { const c = document.querySelector('#cgSegs .segchip[data-seg="substrate_material"]');
       if (c) c.click(); }""")
     pg.wait_for_timeout(600)
@@ -9878,8 +9884,9 @@ def t_whomakes(pg, base):
     pg.evaluate("() => { const b = document.getElementById('pcSeg'); if (b) b.click(); }")
     pg.wait_for_timeout(700)
     n_pc = rows(pg)
-    ok("小卡上的「環節 →」按下去，成分股真的被篩到那一格", n_pc != n_all and n_pc == n_seg,
-       {"全部": n_all, "按環節之後": n_pc, "點色標時": n_seg})
+    ok("小卡上的「環節 →」按下去，真的聚焦到那一格（跟點色標同一個結果）",
+       seg_applied(pg) and n_pc == n_seg,
+       {"按環節之後": n_pc, "點色標時": n_seg, "套用": seg_applied(pg)})
 
     # ---------------- 7. 收合鈕真的收得掉，而且記得住
     #   ★ 先繞一次 #industry/ai_server 再回來：`page.goto` 到**完全一樣的網址**（含 hash）
@@ -10184,8 +10191,10 @@ def t_batch13(pg, base):
       };
     }"""
 
+    # ★ 2026-09-23 第二批（W3-2）：成分股表移除，「按章節列有沒有順手篩掉」
+    #   改量「只看這一格」到底有沒有被套用（畫面上那顆按鈕的字）。
     def rows():
-        return pg.evaluate("() => document.querySelectorAll('#stockTable tbody tr,#memberTable tbody tr').length")
+        return seg_applied(pg)
 
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
@@ -10272,7 +10281,8 @@ def t_batch13(pg, base):
     ok("展開之後那一條改寫成「收合這一段」（兩種狀態都看得出還能做什麼）",
        bool(b1["hints"]) and b1["hints"][0].startswith("－ 收合"), b1["hints"][:1])
     r1 = rows()
-    ok("★ 按章節列**不會順手把成分股篩掉**（它不是零件）", r1 == r0, f"{r0} → {r1}")
+    ok("★ 按章節列**不會順手把整張圖聚焦到某一格**（它不是零件）",
+       r1 == r0 and not r1, f"{r0} → {r1}")
     pg.click('#prodDiagram g.dgfold[data-fold="mc3"]')
     pg.wait_for_timeout(400)
     pg.click('#prodDiagram g.dgfold[data-fold="mc4"]')
@@ -11176,8 +11186,13 @@ def _dg14_open(pg):
 
 
 def _dg14_rows(pg):
-    """成分股「真的有資料的那幾列」。不能數 tbody tr —— 0 筆時裡面有一列說明用的 colspan。"""
-    return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+    """★ 2026-09-23 第二批（W3-2）：成分股表整塊移除。
+    「目前畫面上列出這一格的哪幾檔台股」的新家是圖下方的環節詳情 `#cgSegBox`。
+    語意跟舊的相反：沒有選環節時是 0，選了才長出來 —— 所以呼叫端的斷言
+    一律從「筆數變少」改寫成「筆數真的變了 / 名單真的換了一批」。
+    ⚠ 「點零件只亮不篩」（DECISIONS #73）不可以再用這支驗：點零件會把那一格**亮**起來，
+      環節詳情本來就會跟著換。那一條一律改用 `seg_applied()`（按鈕的字）。"""
+    return seg_stocks(pg)
 
 
 def _dg14_state(pg):
@@ -11277,7 +11292,7 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
        feat in d0b.get("full", ""), pg.evaluate("() => location.hash"))
 
     # ---- 4. 點兩個不同零件 → 主角真的換人、小卡的字真的換成那個零件的
-    rows_before = _dg14_rows(pg)
+    rows_before = seg_applied(pg)
     k1 = _dg14_click(pg, first_part)
     t1 = _dg14_state(pg)
     c1 = _dg14_card(pg)
@@ -11303,8 +11318,10 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
        bool(t2["heroSW"]) and min(t2["heroSW"]) >= 2.3, t2["heroSW"])
 
     # ---- 5. DECISIONS #73：點零件只亮不篩
-    ok(f"[{slot}] DECISIONS #73：點零件不會改成分股筆數（只亮不篩）",
-       _dg14_rows(pg) == rows_before, f"{rows_before} → {_dg14_rows(pg)}")
+    #    ★ W3-2：改量那顆「只看這一格」按鈕的字 —— 點零件只會把那一格**亮**起來，
+    #      不會把它**套用**成篩選。環節詳情會跟著亮而變，所以不能再拿它當這一條的尺。
+    ok(f"[{slot}] DECISIONS #73：點零件不會把整張圖聚焦到那一格（只亮不篩）",
+       seg_applied(pg) == rows_before and not seg_applied(pg), rows_before)
 
     # ---- 6. 這條鏈沒有環節資料：色標不存在，而且圖上有把這件事講出來
     ok(f"[{slot}] 這條鏈在供應鏈資料裡沒有環節 → 環節色標真的不存在（不是畫壞）",
@@ -11447,13 +11464,14 @@ def t_naphtha(pg, base):
 
     # ---- 沒有環節色標 → 改用族群卡片驗「成分股筆數真的變了」
     pg.goto(f"{base}#industry/traditional", wait_until="networkidle"); pg.wait_for_timeout(2300)
-    n_all = _dg14_rows(pg)
+    # ★ W3-2：成分股表移除，「點族群真的有反應」改量關聯圖上那一顆真的被選起來
     hit = pg.evaluate("""() => { const t = document.querySelector('#cgGraph .cgnode[data-gid="petrochemical"]');
       if (!t) return false; t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""")
     pg.wait_for_timeout(900)
-    n_one = _dg14_rows(pg)
-    ok("★ 真的點「石化與塑膠產業」族群卡片 → 成分股筆數真的變少了",
-       hit and 0 < n_one < n_all, f"{n_all} → {n_one}")
+    sel = pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid].sel')]
+      .map(n => n.dataset.gid)""")
+    ok("★ 真的點「石化與塑膠產業」族群 → 那一顆真的被選起來了",
+       hit and sel == ["petrochemical"], sel)
 
     _dg14_typo(pg, dgh, "輕油裂解")
 
@@ -11549,13 +11567,13 @@ def t_transformer(pg, base):
 
     # ---- 沒有環節色標 → 改用族群卡片驗「成分股筆數真的變了」
     pg.goto(f"{base}#industry/infrastructure", wait_until="networkidle"); pg.wait_for_timeout(2300)
-    n_all = _dg14_rows(pg)
     hit = pg.evaluate("""() => { const t = document.querySelector('#cgGraph .cgnode[data-gid="heavy_electric"]');
       if (!t) return false; t.dispatchEvent(new MouseEvent('click', {bubbles: true})); return true; }""")
     pg.wait_for_timeout(900)
-    n_one = _dg14_rows(pg)
-    ok("★ 真的點「重電設備」族群卡片 → 成分股筆數真的變少了",
-       hit and 0 < n_one < n_all, f"{n_all} → {n_one}")
+    sel = pg.evaluate("""() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid].sel')]
+      .map(n => n.dataset.gid)""")
+    ok("★ 真的點「重電設備」族群 → 那一顆真的被選起來了",
+       hit and sel == ["heavy_electric"], sel)
 
     _dg14_typo(pg, dgh, "變壓器GIS")
 
@@ -11775,9 +11793,10 @@ def _b14b_open(pg):
 
 
 def _b14b_rows(pg):
-    """成分股「真的有資料的那幾列」。不能數 tbody tr —— 0 筆的時候裡面有一列說明用的
-    colspan，數進去會把 0 筆讀成 1 筆。"""
-    return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+    """★ 2026-09-23 第二批（W3-2）：同 `_dg14_rows` —— 成分股表移除，改數環節詳情
+    `#cgSegBox` 列出的台股。沒選環節時是 0，選了才長出來。
+    ⚠ DECISIONS #73（點零件只亮不篩）一律改用 `seg_applied()`，不可以再用這支。"""
+    return seg_stocks(pg)
 
 
 def _b14b_seg_chip(pg, seg):
@@ -11837,8 +11856,8 @@ def t_b14b_hsio(pg, base):
     ok("互連：四個環節真的都掛上去了（connector / hdi_pcb / optical / thermal）",
        set(d0["segs"]) == {"connector", "hdi_pcb", "optical", "thermal"}, d0["segs"])
 
-    # ---------------- 2/4/5. 點零件：主角換人、小卡換人、成分股不動
-    rows_before = _b14b_rows(pg)
+    # ---------------- 2/4/5. 點零件：主角換人、小卡換人、不會把整張圖聚焦到那一格
+    rows_before = seg_applied(pg)
     seen_keys, seen_cards = [], []
     for key in ("gold_finger", "slot_beam", "cage_hs", "optic_module"):
         _b14b_click_part(pg, key)
@@ -11851,8 +11870,8 @@ def t_b14b_hsio(pg, base):
        len(set(seen_cards)) == 4 and all(seen_cards), [c[:24] for c in seen_cards])
     ok("互連：小卡真的講到「騎在籠子上的散熱片」那一件事（第三次點的是 cage_hs）",
        "散熱片" in seen_cards[2], seen_cards[2][:60])
-    ok("互連：DECISIONS #73 —— 點零件**不會**改成分股筆數（只亮不篩）",
-       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+    ok("互連：DECISIONS #73 —— 點零件**不會**把整張圖聚焦到那一格（只亮不篩）",
+       seg_applied(pg) == rows_before and not seg_applied(pg), rows_before)
 
     # ---------------- 3. 四個環節色標篩出來的筆數彼此不同
     got = {}
@@ -11863,16 +11882,15 @@ def t_b14b_hsio(pg, base):
         b0 = _b14b_rows(pg)
         hit = _b14b_seg_chip(pg, seg)
         pg.wait_for_timeout(900)
-        codes = pg.evaluate("""() => [...document.querySelectorAll('#memberTable tbody tr[data-code]')]
-          .map(r => r.dataset.code).sort().join(',')""")
+        codes = seg_codes(pg)
         got[seg] = {"n": _b14b_rows(pg), "base": b0, "hit": hit, "codes": codes}
     # ⚠ 這裡**不能**比「筆數彼此不同」（規格書 §8 原本是這樣寫的）——
     #   實際資料裡 hdi_pcb 與 thermal 剛好都是 6 家，比筆數會永遠紅，而且它紅得沒有道理：
     #   要證明的是「四個 seg 真的分開掛對」，那就該比**篩出來的是不是同一批公司**。
-    ok("互連：★ 四個環節色標篩出來的**成分股名單彼此都不同**（這才證明四個 seg 真的分開掛對）",
+    ok("互連：★ 四個環節色標列出來的**台股名單彼此都不同**（這才證明四個 seg 真的分開掛對）",
        all(g["hit"] for g in got.values()) and len({g["codes"] for g in got.values()}) == 4,
        {s: (got[s]["n"], got[s]["codes"][:24]) for s in got})
-    ok("互連：★「連接器 / 線材」那一格真的只篩出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）",
+    ok("互連：★「連接器 / 線材」那一格真的只列出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）",
        got["connector"]["n"] == 1, got["connector"])
 
     # ---------------- 6. 結構審查
@@ -11974,7 +11992,7 @@ def t_b14b_rlc(pg, base):
         return
 
     # ---------------- 2/3. 兩層高亮 ＋ data-part：主角真的換人，小卡的字也真的換
-    rows_before = _b14b_rows(pg)
+    rows_before = seg_applied(pg)
     _b14b_click_part(pg, "res_substrate")
     d1 = pg.evaluate(B14B_DG)
     c1 = _b14b_card(pg)
@@ -12000,8 +12018,8 @@ def t_b14b_rlc(pg, base):
        [d1["heroKey"], d2["heroKey"], d3["heroKey"]])
 
     # ---------------- 4. DECISIONS #73：點零件只亮不篩
-    ok("RLC：DECISIONS #73 —— 點零件**不會**改成分股筆數（只亮不篩）",
-       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+    ok("RLC：DECISIONS #73 —— 點零件**不會**把整張圖聚焦到那一格（只亮不篩）",
+       seg_applied(pg) == rows_before and not seg_applied(pg), rows_before)
 
     # ---------------- 6. ★ 電感欄與石英欄：不掛 seg，所以點了不該冒出任何小卡
     for key, nm in (("ind_body", "電感本體"), ("xtal_blank", "石英晶片")):
@@ -12010,6 +12028,7 @@ def t_b14b_rlc(pg, base):
         pg.wait_for_timeout(2400)
         _b14b_open(pg)
         n0 = _b14b_rows(pg)
+        f0 = seg_applied(pg)
         _b14b_click_part(pg, key)
         # ★ 2026-09-22 改過：原本這一條寫的是「點了**不會**出小卡」——
         #   那不是期望行為，那是當時的限制被寫進斷言裡。
@@ -12019,8 +12038,8 @@ def t_b14b_rlc(pg, base):
         #   現在「沒有 seg 但有 parts[key]」也開得了小卡，所以這一條翻成正向：
         #   **小卡要出現**，但**成分股筆數仍然一動都不動**（DECISIONS #73：零件只亮不篩）。
         card = _b14b_card(pg)
-        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 小卡真的出現、而且成分股筆數一動都不動",
-           _b14b_rows(pg) == n0 and bool(card),
+        ok(f"RLC：★ 點{nm}（不掛環節那一欄）→ 小卡真的出現、而且畫面沒有被聚焦到任何一格",
+           _b14b_rows(pg) == n0 and seg_applied(pg) == f0 and bool(card),
            f"{n0} → {_b14b_rows(pg)}；小卡＝{(card or '沒有')[:36]}")
 
     # ---------------- 5. 點環節色標 → 筆數真的變
@@ -12031,10 +12050,12 @@ def t_b14b_rlc(pg, base):
     hit = _b14b_seg_chip(pg, "passive_comp")
     pg.wait_for_timeout(900)
     after = _b14b_rows(pg)
-    title = pg.evaluate("() => document.querySelector('#memberTitle').textContent.replace(/\\s+/g,' ')")
-    ok("RLC：★ 點「被動元件 MLCC / 電阻」環節色標 → 成分股筆數**真的變了**，標題也換了",
+    # ★ W3-2：標題改讀環節詳情的那一格名稱（成分股表的標題沒有了）
+    title = pg.evaluate("() => ((document.querySelector('#cgSegBox .segbox b.t')||{}).textContent || '')"
+                        ".replace(/\\s+/g,' ')")
+    ok("RLC：★ 點「被動元件 MLCC / 電阻」環節色標 → 圖下方真的換成那一格，名稱也對",
        hit and after != base_rows and ("被動元件" in title or "電阻" in title),
-       f"{base_rows} → {after}；標題 {title[:34]}")
+       f"{base_rows} → {after}；那一格 {title[:34]}")
 
     # ---------------- 7. 結構審查（§6 裡看圖就判得出來的那幾條）
     pg.goto(DGH, wait_until="networkidle")
@@ -12849,7 +12870,8 @@ def t_clickbg(pg, base):
             sel: document.querySelectorAll('#prodDiagram .sel-part').length,
             dim: document.querySelectorAll('#prodDiagram .dim').length,
             card: !!(document.getElementById('partCard') && !document.getElementById('partCard').hidden),
-            rows: document.querySelectorAll('#memberTable tbody tr').length })""")
+            // ★ W3-2：成分股表移除，「有沒有被聚焦到某一格」改讀那顆按鈕的字
+            filt: /已/.test((document.getElementById('segOnly') || {}).textContent || '') })""")
 
     # ★ 先量「還沒點任何零件」的基準：這個網址本身就選了一個族群，
     #   所以 dim 本來就不是 0（不屬於這個族群的環節本來就該壓暗）。
@@ -12881,8 +12903,8 @@ def t_clickbg(pg, base):
         ok("真的用滑鼠點背景 → 零件高亮清掉、小卡收掉、回到點之前的基準",
            b["sel"] == 0 and not b["card"] and b["dim"] == base0["dim"],
            {"點之前": base0, "點背景之後": b})
-        ok("點背景不准動到成分股（那是環節色標的篩選，兩件事）", b["rows"] == a["rows"],
-           {"點之前": a["rows"], "點之後": b["rows"]})
+        ok("點背景不准把「只看這一格」取消掉（那是環節色標的篩選，兩件事）",
+           b["filt"] == a["filt"], {"點之前": a["filt"], "點之後": b["filt"]})
 # ================================================================ 批次21：半導體三張剖析圖
 #  S1 晶圓代工（site/dg/foundry.js）／S2 矽晶圓（site/dg/silicon_wafer.js）／
 #  S3 HBM（site/dg/hbm.js）。規格書分別是 docs/diagram_specs/ 底下的
@@ -14340,10 +14362,10 @@ def t_e1_motion(pg, base):
        c2 != c1 and "富強鑫" in c2 and "射出成型機" in c2 and "切削工具機" in c2, c2[:80])
     ok("傳動件：小卡有明講這些公司不在供應鏈資料裡（我們沒有把落差藏起來）",
        "不在 supply_chain.yaml" in c1 or "不在供應鏈資料" in c1, c1[:80])
-    rows_before = _b14b_rows(pg)
+    rows_before = seg_applied(pg)
     _b14b_click_part(pg, "mc_rail")
-    ok("傳動件：點零件**不會**動到下方成分股（DECISIONS #73）",
-       _b14b_rows(pg) == rows_before, f"{rows_before} → {_b14b_rows(pg)}")
+    ok("傳動件：點零件**不會**把整張圖聚焦到那一格（DECISIONS #73）",
+       seg_applied(pg) == rows_before and not seg_applied(pg), rows_before)
 
     # ---------------- 收合高度（已在 _b21_folds 量過）＋ 動畫 ＋ 排版
     ok("傳動件：備註 —— 兩段全開之後圖真的變高（收納 ≠ 刪除）", full_h > 700, full_h)
@@ -15141,8 +15163,9 @@ def t_style22(pg, base):
         force(pg)
         return pg.evaluate(STYLE22)
 
+    # ★ 2026-09-23 第二批（W3-2）：成分股表移除，#73「只亮不篩」改量那顆按鈕的字
     def rows():
-        return pg.evaluate("() => document.querySelectorAll('#stockTable tbody tr,#memberTable tbody tr').length")
+        return seg_applied(pg)
 
     # ---------------- ① 預設跟著主題走
     d = land(MLCC, "dark")
@@ -15263,7 +15286,8 @@ def t_style22(pg, base):
     ok("★ 點卡片 → 主角剛好 1 個（卡片本身就是零件節點），畫布上的錨點跟著亮、引線跟著變粗",
        s1["selPart"] == 1 and s1["ancSel"] == 1 and s1["leadSel"] == 1 and s1["haspart"],
        {"selPart": s1["selPart"], "anc": s1["ancSel"], "lead": s1["leadSel"], "haspart": s1["haspart"]})
-    ok("DECISIONS #73：點卡片只亮不篩（成分股筆數一動都不動）", rows() == r0, f"{r0} → {rows()}")
+    ok("DECISIONS #73：點卡片只亮不篩（沒有把整張圖聚焦到那一格）",
+       rows() == r0 and not rows(), f"{r0} → {rows()}")
     pg.evaluate("() => document.querySelectorAll('#prodDiagram .anc')[3].dispatchEvent(new MouseEvent('click', {bubbles: true}))"); pg.wait_for_timeout(600)
     s2 = pg.evaluate(STYLE22)
     who = pg.evaluate("() => { const c = document.querySelector('#prodDiagram .dgc.sel-part'); return c ? c.dataset.anc : null; }")
@@ -15336,7 +15360,8 @@ _V2 = """() => {
     warn: cards.filter(c => c.classList.contains('warn')).length, fxg: svg.querySelectorAll('.fxg').length, beams: svg.querySelectorAll('.fxbeam').length,
     blur, glowNonHero, heroParts: [...heroParts], heroCard: !!wrap.querySelector('.dgc.sel-part'), heroSvg: !!svg.querySelector('[data-part].sel-part'),
     ancSel: svg.querySelectorAll('.anc.sel-part').length, leadSel: wrap.querySelectorAll('.dglead path.sel-part').length,
-    rows: document.querySelectorAll('#memberTable tbody tr[data-code]').length,
+    // ★ W3-2：成分股表移除，「有沒有被聚焦到某一格」改讀那顆按鈕的字（只亮不篩用它驗）
+    filt: /已/.test((document.getElementById('segOnly') || {}).textContent || ''),
     card: (() => { const c = document.getElementById('partCard'); if (!c || c.hidden) return null;
       return {title: ((c.querySelector('.pc-t') || {}).textContent || '').trim(), none: ((c.querySelector('.pc-none') || {}).textContent || '').trim(),
               codes: [...c.querySelectorAll('.pc-co a.lk-stock')].map(a => (a.getAttribute('href') || '').split('/').pop()), text: (c.innerText || '').replace(/\\s+/g, ' ')}; })(),
@@ -15437,7 +15462,7 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
     ok(f"[{feat}][390] 卡片一欄一張", pg.evaluate("() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')]; return new Set(cs.map(c => Math.round(c.getBoundingClientRect().left))).size === 1; }"), "")
     # ---- 互動：點卡片亮區塊、點區塊亮卡片、只亮不篩、點背景恢復、換模式後選取還在
     _v2_land(pg, url, "dark", 1440, "0")
-    r0 = pg.evaluate(_V2)["rows"]
+    r0 = pg.evaluate(_V2)["filt"]
     a, b = parts_click
     pg.click(f'#prodDiagram .dgc[data-part="{a}"]'); pg.wait_for_timeout(500)
     s1 = pg.evaluate(_V2)
@@ -15445,12 +15470,13 @@ def _v2_common(pg, base, route, feat, native, parts_click, secs):
        s1["heroParts"] == [a] and s1["heroCard"] and s1["heroSvg"] and s1["ancSel"] == 1 and s1["leadSel"] == 1,
        {"parts": s1["heroParts"], "card": s1["heroCard"], "svg": s1["heroSvg"], "anc": s1["ancSel"], "lead": s1["leadSel"]})
     ok(f"[{feat}] 主角亮的時候，其餘 .part 一個都不發光（發光只給被選的那一個）", s1["glowNonHero"] == 0, s1["glowNonHero"])
-    ok(f"[{feat}] DECISIONS #73：點卡片只亮不篩（成分股筆數一動都不動）", s1["rows"] == r0, f"{r0} → {s1['rows']}")
+    ok(f"[{feat}] DECISIONS #73：點卡片只亮不篩（沒有把整張圖聚焦到那一格）",
+       s1["filt"] == r0 and not s1["filt"], f"{r0} → {s1['filt']}")
     ok(f"[{feat}] 點卡片之後「誰做的」小卡開了，而且講的是這個零件", bool(s1["card"]) and len(s1["card"]["title"]) > 2, s1["card"] and s1["card"]["title"])
     _v2_click_part(pg, b)
     s2 = pg.evaluate(_V2)
     ok(f"[{feat}] ★ 換點畫布上的區塊「{b}」→ 主角換人（不是取消）、它的卡片跟著變主角", s2["heroParts"] == [b] and s2["heroCard"] and s2["heroSvg"], s2["heroParts"])
-    ok(f"[{feat}] 換點之後筆數還是一動都不動", s2["rows"] == r0, f"{r0} → {s2['rows']}")
+    ok(f"[{feat}] 換點之後還是沒有被聚焦到任何一格", s2["filt"] == r0 and not s2["filt"], f"{r0} → {s2['filt']}")
     pg.click("#dgPal"); pg.wait_for_timeout(600)
     s2b = pg.evaluate(_V2)
     ok(f"[{feat}] 切模式（科技→閱讀）之後選取還在、引線還是 {s2['ancSel']} 條被選", s2b["heroParts"] == [b] and pg.evaluate("() => document.documentElement.dataset.dgpal") == "read", s2b["heroParts"])
@@ -16053,14 +16079,15 @@ def t_hsio_v2(pg, base):
     ok(f"[{FEAT}] ★「連接器 / 線材」那一格真的只篩出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）", got["connector"]["n"] == 1, got["connector"])
     # ---- 四格裡依序點四個掛在不同環節的零件（章節全開之後）→ 主角換人、小卡換人、成分股不動
     _v2_land(pg, url, "dark", 1440, "0"); _v2_open_all(pg)
-    r0 = pg.evaluate(_V2)["rows"]
+    r0 = pg.evaluate(_V2)["filt"]
     heroes, cards = [], []
     for key in ("gold_finger", "slot_beam", "cage_hs", "optic_module"):
         _v2_click_part(pg, key); z = pg.evaluate(_V2)
         heroes.append(tuple(z["heroParts"])); cards.append((z["card"] or {}).get("text", "")[:80])
     ok(f"[{FEAT}] ★ 依序點四格裡四個掛在不同環節的零件 → 四次的主角都不一樣", len(set(heroes)) == 4 and all(len(h) == 1 for h in heroes), heroes)
     ok(f"[{FEAT}] ★ 四次的零件小卡內容彼此都不同，第三次（cage_hs）真的講到「散熱片」", len(set(cards)) == 4 and all(cards) and "散熱片" in cards[2], [c[:24] for c in cards])
-    ok(f"[{FEAT}] DECISIONS #73：點四格裡的零件也只亮不篩（筆數一動都不動）", pg.evaluate(_V2)["rows"] == r0, r0)
+    ok(f"[{FEAT}] DECISIONS #73：點四格裡的零件也只亮不篩（沒有被聚焦到任何一格）",
+       pg.evaluate(_V2)["filt"] == r0 and not pg.evaluate(_V2)["filt"], r0)
     _v2_click_part(pg, "st_cage"); z = pg.evaluate(_V2)
     ok(f"[{FEAT}] 場景上的籠（st_cage）與格子裡的籠（cage_body）是不同的身分：點場景亮場景，不連動格子", z["heroParts"] == ["st_cage"], z["heroParts"])
     # ---- 結構（全開之後量；四格裡的零件在各自平移過的群組裡，同一組內比相對位置）

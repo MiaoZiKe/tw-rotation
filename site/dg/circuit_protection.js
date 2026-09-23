@@ -1,6 +1,20 @@
 /* 被動保護：過流與過壓元件 —— docs/diagram_plan_electronics.md 的 E3
    （族群 `resistor_protect`，electronics 鏈）
 
+   ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
+        並且需要適當的調整及填充版面間隔，不許有空白」）----
+   原本是 980 寬 ＋ 二十餘行說明畫在 SVG 裡的舊版式；欄寬一窄 12px 的字就被縮成 8px，
+   而且五個元件的中文名直接壓在元件方塊上（AI 伺服器那三張早就改掉的畫法）。
+   改成跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套：
+     · 畫布 980 → **660**（`native: 660`），svg 根掛 `.rs`；
+     · 標題與導言 → `text.ext`（HTML 的 .dghead）；元件名與每一段說明 → `extRow(side)` 外掛卡片，
+       畫布上只留**編號圓點**（引線由 externalize 依實際寬度重算）——
+       字因此不再壓在零件上，左右兩欄也被卡片填滿、不留空白；
+     · 材質走共用的 `D.fx`（`glass` 當元件本體、`beam` 當主線與接地線、`glowDefs`）；
+     · 顏色一律 `--dg-*` token（本來就沒有寫死色碼，改完再 grep 一次確認）；
+     · **既有互動一個都沒動**：`data-part` 與 `data-seg` 逐字不變（改前改後比對過）。
+   ⚠ 舊註解全部保留 —— T1／T2／T3／T6／T10 那幾條紅線還是合約。
+
    合約＝`docs/diagram_specs/circuit_protection.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的幾件事：
 
@@ -36,9 +50,11 @@
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function') return;
+  if (!D || typeof D.register !== 'function' || !D.fx) return;
+  const { extRow, note, fx } = D;
 
-  const W = 980, SEG = 'passive_comp';
+  /* 畫布寬：2026-09-23 從 980 收到 660。說明文字外掛成 HTML 卡片之後，SVG 只剩「畫」的部分。*/
+  const CW = 660, SEG = 'passive_comp';
 
   /* ================================================================ 小工具 */
   const f1 = (v) => (+v).toFixed(1);
@@ -53,6 +69,28 @@
     `<text class="${cls || 'sub'}" x="${f1(x)}" y="${f1(y)}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
   const part = (id, inner) => `<g data-part="${id}" data-seg="${SEG}">${inner}</g>`;
+
+  /* ---- 2026-09-23 v2 新增（寫法照 `site/dg/liquid_cooling.js`）----
+     card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
+     卡片與它指的零件**共用同一個 data-part** —— 點卡片零件亮、點零件卡片亮。*/
+  const card = (o) => {
+    const s2 = extRow({ seg: o.seg === null ? undefined : (o.seg || SEG), part: o.part, title: o.title, sub: o.sub,
+      no: o.no, side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
+  };
+  // 中文長句斷行（畫布收窄之後章節裡的長句一個字都不刪，改成自動斷行）
+  const wrapCJK = (s2, n) => { const out = []; for (let i = 0; i < s2.length; i += n) out.push(s2.slice(i, i + n)); return out.length ? out : ['']; };
+  // 玻璃材質：跟 AI 伺服器那三張同一支 D.fx.glass
+  const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
+    { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
+  /* 元件色（卡片色條、編號圓點、引線端點共用）—— 一律 token。
+     ⚠ 挑的是「同族但亮一階」的 token：卡片標題印在元件色上要 ≥ 4.5，
+       --dg-cp-carbon／--dg-cp-n 這種暗色直接當卡片色會讀不到（liquid_cooling 的銅走過同一條）。*/
+  const CC = {
+    mov: 'var(--dg-cp-grain)', gdt: 'var(--dg-steel)', ntc: 'var(--dg-cer)',
+    pptc: 'var(--dg-cp-poly)', tvs: 'var(--dg-cp-depl)', line: 'var(--dg-accent-2d)',
+    gnd: 'var(--dg-steel)', ni: 'var(--dg-ni)', gb: 'var(--dg-cp-gb)', ins: 'var(--dg-resin)',
+  };
   // 向右的箭頭（主線）：頂點一定在右邊，所以「箭頭方向」量得出來
   const arrR = (x, y) => PA(`M${f1(x + 7)},${f1(y)} L${f1(x)},${f1(y - 4)} L${f1(x)},${f1(y + 4)} Z`,
     'var(--dg-accent-2d)', 'cparrh');
@@ -60,78 +98,81 @@
   /* ================================================================ 區 ① 防護路徑帶
      §3-A／§3-B：由左到右 外部端子 → MOV／GDT（第一道，並聯）→ NTC → PPTC（串聯）
      → TVS／ESD（第二道，並聯，最靠近 IC）→ IC。 */
-  const LY = 130, GY = 200, LX0 = 84, LX1 = 876;    // 主線 y ／ 接地線 y ／ 主線左右端
+  /* ⚠ 2026-09-23：座標整組重排到 660 寬。元件名從「寫在方塊上」改成「卡片 ＋ 編號圓點」，
+     所以方塊不必再放得下中文字，寬度改由**拓樸**決定（並聯要放得下兩條腿、串聯要放得下主線穿過）。*/
+  const LY = 104, GY = 182, LX0 = 64, LX1 = 596;    // 主線 y ／ 接地線 y ／ 主線左右端
 
   /* 並聯元件：★ 一定有兩條腿 —— 一條接主線、一條接地，主線從它旁邊繼續往右走。 */
   function shunt(id, cx, w, title, fill, inner) {
-    const x0 = cx - w / 2, y0 = 148, h = 34;
-    return part(id, R(x0, y0, w, h, fill, 'part cpbody', 4)
+    const x0 = cx - w / 2, y0 = 126, h = 34;
+    // 2026-09-23：本體改用 D.fx.glass（有厚度與邊光），中文名搬到卡片，方塊上不再寫字
+    return part(id, slab(x0, y0, w, h, fill, { cls: 'cpbody', r: 4 })
       + (inner || '')
       + LN(`M${cx},${LY} L${cx},${y0}`, 'var(--dg-steel)', 2.2, 'cpleg')
       + LN(`M${cx},${y0 + h} L${cx},${GY}`, 'var(--dg-steel)', 2.2, 'cpleg')
-      + C(cx, LY, 3.2, 'var(--dg-accent-2d)', 'cpnode')
-      + `<g pointer-events="none">${T(cx, y0 + 21, title, 'lbl', 'middle')}</g>`);
+      + C(cx, LY, 3.2, 'var(--dg-accent-2d)', 'cpnode'));
   }
 
   /* 串聯元件：★ 主線從中間穿過（左進右出），而且**沒有接地腿**。 */
   function series(id, cx, w, title, fill, inner) {
     const x0 = cx - w / 2, y0 = LY - 17, h = 34;
-    return part(id, R(x0, y0, w, h, fill, 'part cpbody', 4)
+    return part(id, slab(x0, y0, w, h, fill, { cls: 'cpbody', r: 4 })
       + (inner || '')
-      + LN(`M${x0},${LY} L${x0 + w},${LY}`, 'var(--dg-accent-2d)', 2.2, 'cpthru')
-      + `<g pointer-events="none">${T(cx, y0 - 6, title, 'lbl', 'middle')}</g>`);
+      + LN(`M${x0},${LY} L${x0 + w},${LY}`, 'var(--dg-accent-2d)', 2.2, 'cpthru'));
   }
 
   /* 元件位置寫在陣列裡、照順序排 —— T3（MOV 比 TVS 更靠外）因此自動成立。 */
   const PATH = [
-    { id: 'cp_mov', kind: 'shunt', cx: 200, w: 84, t: '壓敏電阻 MOV' },
-    { id: 'cp_gdt', kind: 'shunt', cx: 306, w: 84, t: '氣體放電管 GDT' },
-    { id: 'cp_ntc', kind: 'series', cx: 442, w: 92, t: '熱敏電阻 NTC' },
-    { id: 'cp_pptc', kind: 'series', cx: 576, w: 108, t: '自恢復保險絲 PPTC' },
-    { id: 'cp_tvs', kind: 'shunt', cx: 736, w: 96, t: 'TVS／ESD 陣列' },
+    { id: 'cp_mov', kind: 'shunt', cx: 120, w: 76, t: '壓敏電阻 MOV' },
+    { id: 'cp_gdt', kind: 'shunt', cx: 214, w: 76, t: '氣體放電管 GDT' },
+    { id: 'cp_ntc', kind: 'series', cx: 316, w: 84, t: '熱敏電阻 NTC' },
+    { id: 'cp_pptc', kind: 'series', cx: 420, w: 96, t: '自恢復保險絲 PPTC' },
+    { id: 'cp_tvs', kind: 'shunt', cx: 520, w: 84, t: 'TVS／ESD 陣列' },
   ];
 
   function pathBand() {
     const g = [];
-    // 主線（一條貫穿全帶，由左到右）＋ 接地線（一條，所有並聯元件都掛在同一條上）
-    g.push(LN(`M${LX0},${LY} L${LX1},${LY}`, 'var(--dg-accent-2d)', 2.6, 'cpline'));
+    /* 主線：2026-09-23 改用 D.fx.beam（光暈 ＋ 實線 ＋ 流動虛線），跟 AI 伺服器那三張同一套。
+       ⚠ 全圖的 feGaussianBlur 元素維持 ≤ 3（DECISIONS #239）：只有主線這一條開 glow。*/
+    g.push(fx.beam(`M${LX0},${LY} L${LX1},${LY}`, { color: 'var(--dg-accent-2d)', w: 2.6, glow: true, flow: true }));
     g.push(part('cp_line', R(LX0, LY - 3, LX1 - LX0, 6, 'transparent', 'part')));
-    g.push(part('cp_gnd', LN(`M${LX0 + 40},${GY} L${LX1 - 60},${GY}`, 'var(--dg-steel)', 2.6, 'cpgnd')
-      + LN(`M${LX0 + 52},${GY + 6} L${LX0 + 76},${GY + 6}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
-      + LN(`M${LX0 + 58},${GY + 11} L${LX0 + 70},${GY + 11}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
-      + `<g pointer-events="none">${T(LX0 + 84, GY + 12, '接地（所有並聯元件都掛在同一條上）', 'sub')}</g>`));
+    g.push(part('cp_gnd', fx.beam(`M${LX0 + 30},${GY} L${LX1 - 40},${GY}`, { color: 'var(--dg-steel)', w: 2.6, glow: false })
+      + LN(`M${LX0 + 40},${GY + 6} L${LX0 + 64},${GY + 6}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
+      + LN(`M${LX0 + 46},${GY + 11} L${LX0 + 58},${GY + 11}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
+      + `<g pointer-events="none">${T(LX0 + 74, GY + 13, '接地：所有並聯元件都掛在同一條上', 'sub')}</g>`));
     // 主線上的方向箭頭：一律向右（外 → 內）
-    [140, 372, 512, 664, 820].forEach((x) => { g.push(arrR(x, LY)); });
+    [92, 170, 262, 370, 470, 566].forEach((x) => { g.push(arrR(x, LY)); });
     // 外部端子（不是任何真實接頭的外觀 —— 只是兩個接點符號）
-    g.push(part('cp_term', R(40, LY - 20, 44, 40, 'var(--dg-mc-case)', 'part', 4)
-      + C(58, LY - 9, 4, 'var(--dg-cp-gb)', 'part') + C(58, LY + 9, 4, 'var(--dg-cp-gb)', 'part')
-      + LN(`M62,${LY - 9} L84,${LY - 9}`, 'var(--dg-steel)', 1.6)
-      + LN(`M62,${LY + 9} L84,${LY + 9}`, 'var(--dg-steel)', 1.6)
-      + `<g pointer-events="none">${T(40, LY - 28, '外部端子', 'sub')}</g>`));
-    // 五個元件
+    g.push(part('cp_term', slab(20, LY - 20, 44, 40, 'var(--dg-mc-case)', { r: 4 })
+      + C(38, LY - 9, 4, 'var(--dg-cp-gb)', 'part') + C(38, LY + 9, 4, 'var(--dg-cp-gb)', 'part')
+      + LN(`M42,${LY - 9} L64,${LY - 9}`, 'var(--dg-steel)', 1.6)
+      + LN(`M42,${LY + 9} L64,${LY + 9}`, 'var(--dg-steel)', 1.6)));
+    // 五個元件（名字在卡片上，方塊上不寫字）
     PATH.forEach((p) => {
       g.push(p.kind === 'shunt'
         ? shunt(p.id, p.cx, p.w, p.t, 'var(--dg-mc-case)')
         : series(p.id, p.cx, p.w, p.t, 'var(--dg-mc-case)'));
     });
     // IC（被保護的對象；不是任何真實晶片的外觀）
-    g.push(part('cp_ic', R(876, LY - 22, 64, 44, 'var(--dg-cp-n)', 'part', 4)
-      + [0, 1, 2].map((i) => R(870, LY - 12 + i * 12, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
-      + [0, 1, 2].map((i) => R(940, LY - 12 + i * 12, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
-      + `<g pointer-events="none">${T(908, LY + 4, 'IC', 'lbl', 'middle')}</g>`));
-    // 兩道防護的分界說明
-    g.push(LN('M362,96 L362,214', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
-    g.push(T(92, 92, '第一道（靠外，擋大能量）：並聯到地', 'sub', null, 'fill:var(--dg-accent-2d)'));
-    g.push(T(374, 92, '過流那一側：串在線上', 'sub', null, 'fill:var(--dg-accent-2d)'));
-    g.push(LN('M644,96 L644,214', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
-    g.push(T(656, 92, '第二道（靠近 IC，把電壓壓得更低）：並聯到地', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(part('cp_ic', slab(596, LY - 22, 48, 44, 'var(--dg-cp-n)', { r: 4 })
+      + [0, 1, 2].map((i) => R(590, LY - 12 + i * 12, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
+      + `<g pointer-events="none">${T(620, LY + 4, 'IC', 'lbl', 'middle')}</g>`));
+    /* 兩道防護的分界：2026-09-23 畫布收窄之後，分界上的整句話搬到左右兩欄的卡片裡，
+       畫布上只留短標（字不准壓到別的字，也不准超出格子）—— 一個字都沒刪，只是換位置。*/
+    g.push(LN('M268,70 L268,196', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
+    g.push(LN('M476,70 L476,196', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
+    g.push(T(70, 66, '第一道：擋大能量（並聯到地）', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(T(278, 66, '過流那一側：串在線上', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(T(486, 66, '第二道：壓更低（並聯）', 'sub', null, 'fill:var(--dg-accent-2d)'));
     return g.join('');
   }
 
   /* ================================================================ 區 ② ① PPTC 剖面
      §2-B：鎳電極箔 ×2 夾住高分子基體，裡面是串成鏈的導電碳黑粒子，外面包一層絕緣。
      兩格對照（常溫／跳脫）共用這一支，只換 `polyH` 與 `breaks` 兩個參數 —— T11 自動成立。 */
-  const PP_BASE = 40;
+  /* ⚠ 2026-09-23：40 → 52。畫布收窄之後第 ② 排的高度用不完，高分子層太扁看不出「變厚」。
+     跳脫格仍然是 `PP_BASE * 1.4` 真的乘出來的（T11），比例關係一個都沒動。*/
+  const PP_BASE = 52;
 
   function pptcCell(x0, yTop, polyH, breaks, wid) {
     const g = [], w = wid || 190, NI = 8, INS = 8;
@@ -205,34 +246,36 @@
   }
 
   /* ================================================================ 區 ② 四格剖面 */
+  /* ⚠ 2026-09-23：四格整組重排到 660 寬（分隔線在 178／336／494）。
+     每一格的內容一件都沒少，只是寬度從 ~237 收到 ~135、垂直方向放大一點把格子填滿。*/
   function cells() {
     const g = [];
     // ① PPTC
-    const p = pptcCell(46, 292, PP_BASE, 0);
+    const p = pptcCell(26, 288, PP_BASE, 0, 140);
     g.push(p.svg);
-    g.push(part('cp_pptc', R(40, 286, 202, p.y1 - 280, 'transparent', 'part')));
+    g.push(part('cp_pptc', R(20, 282, 152, p.y1 - 276, 'transparent', 'part')));
     // ② NTC：陶瓷本體 ＋ 兩個相對面電極 ＋ 引線 —— 沒有 PN 接面、沒有晶界網（V2）
-    g.push(part('cp_ntc', R(300, 300, 130, 56, 'var(--dg-cer-cut)', 'part cpntcbody', 3)
-      + R(300, 292, 130, 8, 'var(--dg-ni)', 'part cpntcel')
-      + R(300, 356, 130, 8, 'var(--dg-ni)', 'part cpntcel')
-      // 引線兩根：★ 上緣停在 284、下緣停在 368 —— 上面是格子標題（bbox 到 277）、
-      //   下面是說明文字（bbox 從 370 開始）。字壓在零件上排版體檢抓不到，所以這裡自己算。
-      + R(358, 284, 14, 16, 'var(--dg-steel)', 'part')
-      + R(358, 356, 14, 12, 'var(--dg-steel)', 'part')));
+    g.push(part('cp_ntc', slab(196, 300, 120, 72, 'var(--dg-cer-cut)', { cls: 'cpntcbody', r: 3 })
+      + R(196, 290, 120, 10, 'var(--dg-ni)', 'part cpntcel')
+      + R(196, 372, 120, 10, 'var(--dg-ni)', 'part cpntcel')
+      // 引線兩根：★ 上緣停在 276、下緣停在 400 —— 上面是格子小標（bbox 到 278）、
+      //   下面是格子底下的說明（bbox 從 404 起）。字壓在零件上排版體檢抓不到，所以這裡自己算。
+      + R(248, 276, 16, 18, 'var(--dg-steel)', 'part')
+      + R(248, 382, 16, 18, 'var(--dg-steel)', 'part')));
     // ③ MOV：晶粒 ＋ 晶界 ＋ 電流折線 ＋ 兩個相對面電極
-    const mv = movGrains(512, 706, 302, 350);
-    g.push(part('cp_movel', R(512, 292, 194, 10, 'var(--dg-ni)', 'part cpmovel')
-      + R(512, 350, 194, 10, 'var(--dg-ni)', 'part cpmovel')));
+    const mv = movGrains(350, 484, 302, 370);
+    g.push(part('cp_movel', R(350, 290, 134, 12, 'var(--dg-ni)', 'part cpmovel')
+      + R(350, 370, 134, 12, 'var(--dg-ni)', 'part cpmovel')));
     g.push(mv.svg);
     // ④ TVS：P 區 ／ 空乏區 ／ N 區 ＋ 上下金屬電極
     // ⚠ 上下金屬電極自己一個群組（`cp_tvsel`），不要併進 `cp_tvs` ——
     //   併進去的話 `parts.cp_tvsel` 那張小卡永遠開不起來，
     //   變成「定義在那裡、但點不到」的死條目。
-    g.push(part('cp_tvsel', R(750, 288, 190, 8, 'var(--dg-ni)', 'part cptvsel')
-      + R(750, 354, 190, 8, 'var(--dg-ni)', 'part cptvsel')));
-    g.push(part('cp_pn', R(750, 296, 190, 26, 'var(--dg-cp-p)', 'part cpp')
-      + R(750, 322, 190, 6, 'var(--dg-cp-depl)', 'part cpdepl')
-      + R(750, 328, 190, 26, 'var(--dg-cp-n)', 'part cpn')));
+    g.push(part('cp_tvsel', R(508, 286, 130, 10, 'var(--dg-ni)', 'part cptvsel')
+      + R(508, 372, 130, 10, 'var(--dg-ni)', 'part cptvsel')));
+    g.push(part('cp_pn', R(508, 296, 130, 32, 'var(--dg-cp-p)', 'part cpp')
+      + R(508, 328, 130, 8, 'var(--dg-cp-depl)', 'part cpdepl')
+      + R(508, 336, 130, 36, 'var(--dg-cp-n)', 'part cpn')));
     return g.join('');
   }
 

@@ -1144,7 +1144,7 @@
       + `<rect x="0" y="0" width="${uB}" height="${H}" fill="url(#mcCut)"/>`
       + `<rect x="0" y="0" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
       + `<rect x="0" y="${H - COV}" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
-      + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="rgba(30,36,50,.5)" stroke-width=".9" fill="none"/>`
+      + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="var(--dg-edge)" stroke-opacity=".55" stroke-width=".9" fill="none"/>`
       + chg.join('') + els.join('')
       + termBand(0, 'var(--dg-sn)') + termBand(3, 'var(--dg-ni)') + termBand(6.5, 'var(--dg-cu)')
       + `</g>`;
@@ -1169,7 +1169,7 @@
     const leftCer = poly('part', 'url(#mcL)', [P3(XC, W, H), P3(TW, W, H), P3(TW, W, 0), P3(XC, W, 0)]);
     const leftTerm = poly('part', 'url(#mcMetL)', [P3(TW, W, H), P3(0, W, H), P3(0, W, 0), P3(TW, W, 0)]);
     // 端電極分層提示：兩條細線，遠看就知道那條金屬帶不是一塊實心
-    const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="rgba(255,255,255,.35)" stroke-width=".9" fill="none"/>`;
+    const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="var(--dg-sn)" stroke-opacity=".38" stroke-width=".9" fill="none"/>`;
 
     const iso = `<g data-seg="${SEG}" data-part="mlcc_body" data-hero="mlcc_body" transform="translate(${CX},${CY}) scale(${S})">
       ${topFace}${topTermL}${topTermR}${leftCer}${leftTerm}${rightFace}${hint}${faceA}${faceB}</g>`;
@@ -1316,6 +1316,7 @@
       ${note({ side: 'l', order: 0, title: '① 容值是層數堆出來的', lines: ['C ＝ ε₀ · εr × n × A ÷ d', 'n＝層數、A＝重疊面積、d＝單層厚度', 'n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑'] })}
       ${labelRow(SEG, 0, 0, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 0, null, 1, 'l')}
       ${labelRow(SEG, 0, 0, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 0, null, 5, 'l')}
+      ${note({ side: 'l', order: 7, title: '⋮ ×N ＝ 中間省略掉的層', lines: ['畫面上只畫 16 層電極，看得出交錯的規律就夠；', '實際高容量品 400～1000 層以上（示意圖，非實物比例）。'] })}
       <!-- 右欄：02、03、04、06、警語 -->
       ${labelRow(SEG, 0, 0, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 0, null, 2, 'r')}
       ${labelRow(SEG, 0, 0, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 0, null, 3, 'r')}
