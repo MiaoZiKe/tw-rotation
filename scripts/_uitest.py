@@ -15145,7 +15145,12 @@ def t_e2_alumcap(pg, base):
        f"{len(g['spiral'])} 條，外徑 {[b['w'] for b in g['spiral']]}")
     ok("鋁電容・C3：★ 防爆閥刻痕在**與封口相反的那一端**，而且旁邊標「示意」"
        "（這一點本次查不到來源，各家做法不同）",
-       bool(vent) and bool(seal) and vent[0]["y"] < seal[0]["y"] and "刻痕（另一端，示意）" in txt,
+       # ⚠ 2026-09-23：原本比「刻痕（另一端，示意）」一字不差。v2 把那一句拆成卡片的標題與副標
+       #   （「⑧ 防爆閥刻痕（另一端）」＋「壓力太高時先從這裡裂開；刻痕形狀為示意」），
+       #   兩件事一個字都沒少，只是換了寫法 —— 比舊字串等於在驗「有沒有人動過措辭」。
+       #   改成分別驗那兩件實質：位置講了「另一端」、來源不確定講了「示意」。
+       bool(vent) and bool(seal) and vent[0]["y"] < seal[0]["y"]
+       and "防爆閥刻痕（另一端）" in txt and "刻痕形狀為示意" in txt,
        f"刻痕 y {vent[0]['y'] if vent else None} ／ 封口 y {seal[0]['y'] if seal else None}")
     ok("鋁電容・C4：外套膠膜上**一個字都沒有**（那是產品外觀與色碼，不是結構）",
        g["onSleeve"] == 0, f"壓在膠膜上的文字 {g['onSleeve']} 段")
@@ -15173,7 +15178,10 @@ def t_e2_alumcap(pg, base):
     ok("鋁電容・X2：畫面上有一行指向 MLCC 那張（讀者知道另一半在哪裡）",
        "MLCC 疊層剖析" in txt, "")
     ok("鋁電容・X3：畫面上沒有容值、耐壓、ESR、壽命小時、市占率與營收數字",
-       "不寫容值、耐壓、ESR、壽命、市占率與營收數字" in txt and "µF" not in txt and "mΩ" not in txt, "")
+       # ⚠ 2026-09-23：同上，這句被改寫成「容值、耐壓、ESR、壽命、市占率與營收數字一個都不寫。」，
+       #   聲明還在、範圍一項都沒少。真正該守的是後面那兩個單位禁令（那才是「真的寫了數字」的證據）。
+       "容值、耐壓、ESR、壽命、市占率與營收數字" in txt and "一個都不寫" in txt
+       and "µF" not in txt and "mΩ" not in txt, "")
     for bad in ("龍頭", "全球第", "唯一", "獨家"):
         ok(f"鋁電容・X5：畫面上沒有「{bad}」這種法人用語", bad not in txt, "")
 
@@ -15203,11 +15211,19 @@ def t_e2_alumcap(pg, base):
        ca3 != ca2 and "鈺邦" in ca3 and "不在 supply_chain.yaml" in ca3, ca3[:100])
 
     # ---------------- 環節色標真的篩得動（這張圖有真的 seg）
-    rows0 = _b14b_rows(pg)
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」。這張圖**整張只有 passive_comp 一個環節**，
+    #   而上面那幾條已經點過圖上的零件，環節詳情早就列著 passive_comp 的那 5 家 ——
+    #   再點 passive_comp 色標，列出來的當然還是同一批，5 → 5 是**正確答案**，不是沒反應。
+    #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
+    #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
+    #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
+    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        ok("鋁電容：點「被動元件」環節色標 → **成分股筆數真的變了**（環節篩選沒有被這張圖弄壞）",
-           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("鋁電容：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**"
+           "（環節篩選沒有被這張圖弄壞）",
+           rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
         pg.goto(DGH, wait_until="networkidle")
         pg.wait_for_timeout(2000)
         _b14b_open(pg)
@@ -15265,6 +15281,15 @@ CP_GEOM = """() => {
     ntcBody: A('.cpntcbody').map(bb), ntcEl: A('.cpntcel').map(bb),
     nSeg: A('[data-seg]').length, segs: [...new Set(A('[data-seg]').map(n => n.dataset.seg))],
     nPart: A('[data-part]').length,
+    /* ★ 2026-09-23：X1 要驗「圖上沒有畫電阻／電感／石英那些東西」，
+       但畫面上**本來就有一格**在誠實聲明「那些東西不在這張圖」（`cp_res_ref`），
+       那一格裡當然會出現那些詞。原本的扣除法是「把開頭是『指路用的一格』或『　全部在』的句子刪掉」——
+       那是在猜**換行的位置**：畫布從 980 收到 660 之後那一格重新斷行，
+       開頭有全形空白的那一行換了一句，於是「修整溝／磁粉／繞線／端電極」四個詞漏了出來，
+       看起來像圖上真的畫了它們。**圖沒有畫，是扣除法綁死了排版。**
+       改成用**身分**扣：`[data-part="cp_res_ref"]` 那一格裡的字整組不算。
+       這比字串前綴嚴格 —— 那些詞只要出現在別的地方，照樣會紅。*/
+    fullNoRef: A('text').filter(n => !n.closest('[data-part="cp_res_ref"]')).map(n => n.textContent).join('。'),
     full: A('text').map(n => n.textContent).join('。')};
 }"""
 
@@ -15404,14 +15429,10 @@ def t_e3_protect(pg, base):
     # ---------------- X 組
     # 第 ② 段有一句「指路用的一格」，它的工作就是**明講這張圖不畫哪些東西**，
     # 所以那一句裡本來就會出現那些詞。比對之前先扣掉它，才不會把「誠實聲明」當成「畫了」。
-    guide = [t for t in txt.split("。") if t.startswith("指路用的一格")
-             or t.startswith("　全部在")]
-    clean = txt
-    for t in guide:
-        clean = clean.replace(t, "")
-    clean = clean.replace("本圖一格都不畫它們的結構", "")
+    # 扣除改用身分（見 CP_GEOM 的 fullNoRef）：`cp_res_ref` 那一格整組不算。
+    clean = g.get("fullNoRef", txt)
     ok("保護元件・X1 前提：那一句「指路用的一格」真的在畫面上（不然下面的扣除就變成放水）",
-       len(guide) >= 1, guide[:1])
+       "指路用的一格" in txt and "指路用的一格" not in clean, txt.count("指路用的一格"))
     for bad in ("修整溝", "磁粉", "繞線", "密封腔", "端電極"):
         ok(f"保護元件・X1：圖上沒有畫「{bad}」—— 那是「被動元件：電感・電阻・石英」那張的內容"
            "（指路那一句明講「不畫」，不算）【紅線】",
@@ -15419,11 +15440,18 @@ def t_e3_protect(pg, base):
     ok("保護元件・X2：畫面上有一行指向電阻那張（3624 光頡與 2478 大毅做的是電阻，不是保護元件）",
        "3624 光頡" in txt and "2478 大毅" in txt and "電感・電阻・石英" in txt, "")
     ok("保護元件・X3：畫面上沒有鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字",
-       "不寫鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字" in txt
+       # ⚠ 2026-09-23：這句被改寫成「…一個都不寫。」（範圍一項都沒少），所以不再比開頭那兩個字。
+       #   真正證明「有沒有寫數字」的是後面那兩個單位禁令。
+       "鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字" in txt and "一個都不寫" in txt
        and "pF" not in txt and "kA" not in txt, "")
+    # ⚠ 2026-09-23：X5 擋的是**形容公司**的法人用語（「唯一供應商」「全球第一」那種）。
+    #   這一版警語卡的標題是「★ 這張圖唯一的一條規矩」—— 那個「唯一」形容的是**這張圖自己的規矩**，
+    #   不是任何一家公司。純字串比對分不出這兩種用法，會把誠實的警語判成法人用語。
+    #   所以先扣掉那個標題本身再比；其餘一個字都沒放寬（「唯一」出現在別處照樣紅）。
+    clean5 = txt.replace("★ 這張圖唯一的一條規矩", "")
     for bad in ("龍頭", "全球前", "全球第", "唯一", "獨家"):
         ok(f"保護元件・X5：畫面上沒有「{bad}」這種法人用語（證據表裡有，抄過來的時候要拿掉）",
-           bad not in txt, "")
+           bad not in clean5, "")
     ok("保護元件・D3：§5-A 那幾行誠實性標示在畫面上（尤其「環節色標篩不到它們」）",
        "示意圖，非實物比例" in txt and "環節色標" in txt and "篩不到它們" in txt, "")
 
@@ -15454,11 +15482,18 @@ def t_e3_protect(pg, base):
     c3 = _b14b_card(pg) or ""
     ok("保護元件：點 GDT → 小卡誠實寫「本圖查不到台股對應」（查不到就寫查不到）",
        c3 != c2 and "查不到台股對應" in c3, c3[:100])
-    rows0 = _b14b_rows(pg)
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」。這張圖**整張只有 passive_comp 一個環節**，
+    #   而上面那幾條已經點過圖上的零件，環節詳情早就列著 passive_comp 的那 5 家 ——
+    #   再點 passive_comp 色標，列出來的當然還是同一批，5 → 5 是**正確答案**，不是沒反應。
+    #   畫面真正改變的是那顆「只看這一格 →」翻成「已只看這一格」（篩選真的被套用）。
+    #   改成驗「名單沒變空、而且焦點狀態真的翻過去」——
+    #   這比原本嚴：按了沒反應、或名單被清掉，兩種都會紅。
+    rows0, ap0 = _b14b_rows(pg), seg_applied(pg)
     if _b14b_seg_chip(pg, "passive_comp"):
         pg.wait_for_timeout(900)
-        ok("保護元件：點「被動元件」環節色標 → **成分股筆數真的變了**",
-           _b14b_rows(pg) != rows0, f"{rows0} → {_b14b_rows(pg)}")
+        rows1, cod1, ap1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("保護元件：點「被動元件」環節色標 → 環節詳情列得出這一格的台股，而且「只看這一格」真的從沒套用翻成**已套用**",
+           rows1 > 0 and bool(cod1) and ap1 and not ap0, f"{rows0} → {rows1}／{cod1}／套用 {ap0} → {ap1}")
         pg.goto(DGH, wait_until="networkidle")
         pg.wait_for_timeout(2000)
         _b14b_open(pg)
