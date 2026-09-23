@@ -1033,7 +1033,7 @@
       ${card({ seg: 'abf_pcb', no: 11, side: 'r', ax: SX + SW - 6, ay: 248, color: C.gold, title: '主機板 高階 PCB ／ ABF 載板', sub: '高層數主機板、連接器插槽、模組載板' })}
       ${card({ seg: 'ccl', no: 12, side: 'r', ax: SX + SW - 6, ay: 306, color: 'var(--dg-weave)', title: 'CCL 銅箔基板', sub: '低損耗板材，PCB 的原料；織紋那一層就是玻纖布' })}
       ${card({ seg: 'hyperscaler', no: 13, side: 'r', ax: SX + 272, ay: 424, color: C.sig, title: '雲端業者（終端需求）', sub: '超大規模雲端業者、主權 AI、Neocloud —— 整櫃整櫃地買' })}
-      ${card({ seg: 'assembly', warn: true, note: true, order: 99, side: 'r', title: '點零件篩到的是「供應鏈環節」，不是整個族群', sub: '同一個環節可能同時收了好幾個族群的公司；族群與環節的落差在關聯圖上看得比較清楚。' })}
+      ${card({ seg: 'assembly', warn: true, note: true, order: 99, side: 'l', title: '點零件篩到的是「供應鏈環節」，不是整個族群', sub: '同一個環節可能同時收了好幾個族群的公司；族群與環節的落差在關聯圖上看得比較清楚。' })}
 
       <!-- ===================== ④ 從晶片到交付 ===================== -->
       <text class="hd" x="${RX}" y="512">④ 從晶片到交付</text>

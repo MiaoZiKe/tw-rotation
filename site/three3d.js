@@ -886,6 +886,138 @@
           codes: ['3042', '2484', '3221'], chipnote: '台股在「石英頻率控制」族群：3042 晶技、2484 希華、3221 台嘉碩' },
       ],
     },
+    /* ===== AI 伺服器鏈：高速連接器與互連 ===== */
+    /* 2D 是 `site/dg/ai_interconnect.js`，`part` 沿用它的 `data-part`（st_*／cage_*／gold_finger…）。
+       ★ 2026-09-23 Andy 親自點名「連接器少了 3D 圖 請補上」，所以這張從 `scene: null` 補成真 3D。
+         2D 檔頭原本寫「不做真 3D」，理由是「這四類連接器在機櫃裡的位置，ai_server 鏈層級的場景已經在做」——
+         那個理由只對「位置」成立，對「一個接點本身長什麼樣」不成立：
+         籠子是一個五面包起來的盒子、金手指鋪在舌片的**上下兩面**、壓接針從底下穿進板子、
+         飛越纜線從晶片旁邊**架空**拉到籠背 —— 這四件都是遮蔽關係，剖面畫不出來，轉一圈才看得到。
+       ★ 硬規則（規格書 W1-1 的四件事，缺一不可）：
+         ① 屏蔽金屬籠（cage） ② 塑膠舌片 ＋ 舌片上**成對**排列的金手指
+         ③ 背面壓接針（連到 PCB 的那一端） ④ 飛越纜線（繞開 PCB 損耗）。
+       ★ 顏色（兩種模式都量過，兩兩 CIE76 ΔE ≥ 27.4）：
+         籠與模組殼銀灰 --dg-m-rack ／ 板材墨綠 --dg-m-pcb ／ 金手指金 --dg-m-trace ／
+         塑膠件藍灰 --dg-m-fanf ／ 壓接針青銅 --dg-organic ／ 線纜外被訊號藍 --dg-fl-sig ／
+         光纖接口青 --dg-fl-opt。*/
+    ai_interconnect: {
+      title: '高速連接器：一個接點拆開（立體）',
+      sub: '中間那個金屬盒子就是屏蔽籠 —— 高速連接器之所以長這樣，是為了擋電磁干擾、順便把模組的熱帶走。籠子裡是塑膠舌片，舌片的上下兩面鋪著金手指，而且是★成對排的（一對＝一組差動訊號），不是一根一根等距。籠子底下一整排壓接針壓進板子的孔裡 —— 壓接不是焊接，所以它拔得下來重工。右邊那束飛越纜線從晶片旁邊架空拉到籠背，繞開板子：同樣的距離，細同軸纜線的損耗比板上銅走線小得多。示意圖，非實物比例',
+      camera: [70, 52, 120], target: [0, 6, 0], fit: 1.06, hk: 0.6,
+      parts: [
+        { seg: 'hdi_pcb', part: 'st_board', alias: ['pcb_route'], name: '板子（只畫輪廓與走線）', note: '這張圖的主題是**接點**不是板子 —— 所以板子只畫一片薄板與表面走線，層數、疊構與背鑽是「PCB 硬板剖面」那張的事。訊號從晶片出來之後就分兩條路：走板子（會被板材吃掉），或走右邊那束架空的線纜',
+          kind: 'swboard', box: [88, 3, 58], at: [0, 0, 0], ex: [0, -16, 0] },
+        { seg: 'connector', part: 'st_asic', name: 'ASIC／GPU（訊號的起點）', note: '★ 這一顆是**訊號的起點，不是連接器零件** —— 它由晶圓代工與封裝廠做，所以底下不列連接器台股。畫它只是為了交代「飛越纜線是從晶片旁邊拉出去的」這件事',
+          kind: 'swasic', box: [20, 6, 20], at: [-26, 4.5, -4], ex: [0, 12, -8],
+          codes: [], chipnote: '晶片不是這張圖的主題，也不掛連接器環節（它在半導體鏈那幾張圖裡）' },
+        { seg: 'connector', part: 'cage_body', alias: ['st_cage', 'emi_finger', 'cage_hs', 'belly'], name: '屏蔽金屬籠（cage）', note: '★ **籠子就是高速連接器的識別特徵** —— 它是為了擋電磁干擾才存在的，順便把模組的熱帶出去（所以籠背有鰭片、側壁有通風孔）。籠口那一圈被壓住的薄片是 EMI 指片：模組插進來時接地才連續。沒有籠子，它跟一個電源端子在外形上分不開',
+          kind: 'hscage', box: [30, 16, 28], at: [22, 9.5, 4], ex: [0, 12, 12] },
+        { seg: 'hdi_pcb', part: 'gold_finger', alias: ['st_finger', 'card_edge', 'chamfer'], name: '塑膠舌片 ＋ 舌片上下兩面的金手指', note: '★ 金手指**成對**排列（一對＝一組差動訊號），每兩對之間夾一根比較寬的接地腳 —— 一根一根等距的那是低速端子。由內到外是銅 → 鎳阻障 → 硬金，前緣倒角才插得進去。收攏時它被籠子蓋住，游標移過去拆開才看得到',
+          kind: 'hstongue', box: [23, 7, 21], at: [22, 8, 4], ex: [0, 30, 26] },
+        { seg: 'connector', part: 'cage_pressfit', name: '背面壓接針（press-fit）', note: '★ 壓接針**不是焊上去的**：針腰那個「針眼」被孔壁夾扁、靠彈性維持接觸，所以整顆連接器拔得下來重工 —— 焊上去的拔不下來。材質是磷青銅，所以顏色偏青銅不是錫白。這一整排就是「它怎麼裝到板子上」的答案',
+          kind: 'hspin', box: [26, 8, 22], at: [22, -3, 4], ex: [0, -20, 0] },
+        { seg: 'connector', part: 'slot_housing', alias: ['slot_beam', 'slot_leg', 'beam_zoom'], name: '母端插槽：塑膠殼 ＋ 上下兩列懸臂彈片', note: '★ 導通靠的是**彈片被金手指撐開**的那個法向力，不是「插到底就通」。插入時接點擦過金手指表面（擦拭），把氧化層刮掉 —— 這兩件事就是連接器真正在賣的東西。畫成一條溝就全看不到了',
+          kind: 'hsslot', box: [26, 10, 11], at: [-6, 6, 25], ex: [-6, 8, 22] },
+        { seg: 'connector', part: 'twinax', alias: ['st_twinax', 'st_cable', 'cable_body', 'cable_plug', 'cable_recept'], name: '飛越纜線（flyover，twinax 雙軸線）', note: '★ 它存在的理由只有一個：同樣的距離，細同軸纜線的損耗比板子上的銅走線小得多。所以它一定是**架空**的（不貼板），而且走了纜線的那幾個埠，板子內層就不該再有同一條訊號的走線。剖開的那一端看得到遮蔽層裡是**兩根等徑導體**（差動對），不是一根',
+          kind: 'hsfly', box: [46, 16, 9], at: [-2, 16, -18], ex: [0, 18, -12] },
+        { seg: 'optical', part: 'optic_module', name: '插進籠子的光模組（只有外殼與拉環）', note: '這張圖只畫模組的外殼、拉環與前端的光纖接口 —— 它自己的內部（DSP、驅動 IC、雷射、TIA）是「交換器板卡」那張的主題。模組唯一的電接點在**後端**（插進籠子的那一頭），不是光纖那一頭',
+          kind: 'swmod', box: [9, 7, 26], at: [22, 9.5, 32], ex: [0, 8, 30] },
+      ],
+    },
+    /* ===== 基礎建設鏈：重電（變壓器與 GIS） ===== */
+    /* 2D 是 `site/dg/heavy_electric.js`，`data-seg` 用的是中文站名（那張圖的環節不在 supply_chain.yaml 裡），
+       所以這裡的 `seg` 也照抄同一組字串，點 3D 與點 2D 才會選到同一個環節。
+       ★ 2026-09-23 這張從 `scene: null` 補成真 3D（Andy：所有 2D 圖都要補 3D 圖且風格一樣）。
+         2D 那張的強項是**電壓階梯**（哪幾格降壓、哪幾格只是開關），那是流程圖，3D 幫不上忙；
+         3D 補的是另一件 2D 做不到的事 —— **油箱裡面**：鐵心是三柱、繞組是套在柱子上的同心圓筒、
+         內圈低壓外圈高壓。剖面只能切一刀，看不到「套」這個關係。
+       ★ 顏色（兩種模式都量過，兩兩 CIE76 ΔE ≥ 27.6）：鈑金銀灰 --dg-m-rack ／ 鐵心深藍 --dg-m-die ／
+         繞組與帶電導體暖橘 --dg-m-pwr ／ 套管棕釉瓷 --dg-organic ／ 熱油紅 --dg-fl-hot ／
+         絕緣氣體青 --dg-fl-cold。
+         ⚠ 繞組刻意**不用** --dg-m-cu（銅色）：銅色跟棕釉瓷在 Lab 上只差 ΔE76 20.1，
+           關掉標籤會分不開「套管」與「繞組」。改用電力暖橘之後最小 ΔE76 ＝ 27.6。
+       ⚠ 這條鏈在 supply_chain.yaml 裡沒有建環節，所以每個零件的台股一律用自己的 `codes` 列，
+         而且跟 2D 那張同一份名單（`site/dg/heavy_electric.js` 的 `cos`）—— 兩張圖不准講不一樣的話。*/
+    heavy_electric: {
+      title: '重電：變壓器剖開 ＋ GIS 管狀匯流排（立體）',
+      sub: '左邊是油浸式電力變壓器，油箱前牆剖開：裡面是三柱疊片鐵心（三柱＝三相），每一柱套著兩層同心圓筒繞組 —— ★ 內圈低壓、外圈高壓，因為高壓需要更大的絕緣距離。箱壁外那一疊薄片是散熱器（上下各一根集油管，熱油自然對流），箱頂伸出來的是套管，電就是從套管進出油箱的。右邊那串金屬管是 GIS：導體封在充氣的接地金屬管裡，剖開一段看得到中心導體與撐住它的盤式絕緣子 —— ★ GIS 只切斷與導通，不降壓。示意圖，非實物比例',
+      camera: [104, 66, 132], target: [-4, 18, 0], fit: 1.0, hk: 0.54,
+      parts: [
+        { seg: '主變壓器降壓', part: 'he_tx', name: '油浸式電力變壓器：油箱（前牆剖開）', note: '★ 箱壁本身就是散熱面，所以它是**一排褶**不是一片平板 —— 銅損與鐵損要靠這些面積散掉。箱裡灌滿絕緣油：油同時做絕緣與導熱兩件事。前牆刻意不畫，裡面的鐵心與繞組才看得到',
+          kind: 'hvtank', box: [46, 34, 30], at: [-40, 19, 0], ex: [-16, 0, 0],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單；重電這條鏈在供應鏈資料裡還沒有建環節）' },
+        { seg: '主變壓器降壓', part: 'he_core', alias: ['he_tx'], name: '鐵心：三柱 ＋ 上下軛（矽鋼疊片）', note: '★ **三柱對到的就是三相** —— 兩柱或四柱都不是三相變壓器。柱子不是一塊實心鐵，是一片一片矽鋼片疊起來的（側面那些縫），為的是切斷渦流；畫成實心鐵塊就把「為什麼要疊片」整個抹掉了',
+          kind: 'hvcore', box: [34, 26, 9], at: [-40, 19, -2], ex: [0, 16, 0],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '主變壓器降壓', part: 'he_wind', alias: ['he_tx'], name: '繞組：每一柱兩層同心圓筒', note: '★ **內圈低壓、外圈高壓**：高壓側需要更大的絕緣距離，所以一定在外面。圓筒表面看得到一匝一匝的線 —— 它是繞出來的，不是一根實心銅管。匝數比就是電壓比，這才是「變壓」兩個字的來源',
+          kind: 'hvwind', box: [34, 22, 16], at: [-40, 19, -2], ex: [0, 0, 20],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '主變壓器降壓', part: 'he_bush', name: '套管（bushing）：高壓側三支', note: '★ 那一疊由下往上變小的瓷裙不是裝飾 —— 它把「沿著表面爬過去」的距離拉長，下雨或積塵時才不會沿表面閃絡。裙的片數跟電壓等級成正比。畫成一根光滑的柱子，等於把絕緣這件事整個拿掉',
+          kind: 'hvbush', box: [9, 20, 9], at: [-40, 46, -2], n: 3, gap: 13, axis: 'x', ex: [0, 20, 0],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '主變壓器降壓', part: 'he_rad', name: '散熱器（垂直散熱薄片）', note: '★ 上下各一根集油管，薄片夾在中間：熱油從**上面**進、放完熱之後從**下面**回油箱，靠的是自然對流。只畫薄片不畫上下集油管，油就沒有路徑可走 —— 那是一眼就能驗的結構錯誤',
+          kind: 'hvrad', box: [11, 27, 28], at: [-70, 19, 0], ex: [-18, 0, 0],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '主變壓器降壓', part: 'he_cons', name: '儲油櫃（油枕）＋ 吸濕呼吸器', note: '油會熱脹冷縮。沒有這個橫臥的小圓筒，油箱不是被撐破就是把濕空氣吸進去 —— 而**水是絕緣油最怕的東西**。旁邊那根直立的小筒就是吸濕呼吸器，空氣要先過它才進得了油櫃',
+          kind: 'hvcons', box: [30, 10, 10], at: [-40, 41, 16], ex: [0, 16, 12],
+          codes: ['1519', '1503'], chipnote: '做電力變壓器這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '變電所開關 GIS', part: 'he_gis', name: '氣體絕緣開關設備（GIS）', note: '★ 導體被封在**接地的**金屬管裡，導體與外管之間充絕緣氣體 —— 所以人可以站在旁邊，整座設備的佔地只有氣中絕緣開關場的零頭。圖上剖開一段：看得到中心導體、撐住它的盤式絕緣子，以及中間那一圈氣體。直立的那一截是斷路器，底下的箱子是操作機構。★ 它**不降壓**：進去多少伏特出來就是多少',
+          kind: 'hvgis', box: [58, 32, 18], at: [34, 18, 0], ex: [18, 0, 0],
+          codes: ['1513', '1514'], chipnote: '做 GIS 這一段的台股（跟 2D 那張同一份名單）' },
+        { seg: '中壓配電', part: 'he_swgr', name: '中壓配電盤（metal-clad 開關櫃）', note: '一排金屬櫃，每一櫃分三室：上面母線室、中間是**拉得出來的**斷路器抽屜、下面電纜室。抽得出來才能不停電維修，這也是 metal-clad 這個名字的由來。★ 它跟 GIS 一樣**不降壓**，只做切斷、導通、隔離、接地',
+          kind: 'hvswgr', box: [42, 24, 15], at: [4, 12, 36], ex: [0, 0, 18],
+          codes: ['1503', '1514', '1504'], chipnote: '做中壓配電盤這一段的台股（跟 2D 那張同一份名單）' },
+      ],
+    },
+    /* ===== 傳統產業鏈：石化（輕油裂解） ===== */
+    /* 2D 是 `site/dg/petrochemical.js`，`data-seg` 一樣是中文站名，`part` 沿用它的 `data-part`（nc_*）。
+       ★ 2026-09-23 這張從 `scene: null` 補成真 3D。2D 那張的強項是「一進多出」的物料流向與裂解價差，
+         3D 補的是另一件 2D 做不到的事：**一座裂解廠的東西為什麼長得高高低低**。
+         這裡的設備幾乎全是旋轉對稱體（塔、槽、球、爐），彼此靠**高度差與管線走向**分層次 ——
+         分離塔一定比急冷塔高（要分的東西沸點越接近、塔越高），球槽一定矮而圓（它要承壓），
+         浮頂槽一定矮而寬（它只是常壓儲料）。把它們壓成平面，這層次就沒了。
+       ★ 顏色（兩種模式都量過，兩兩 CIE76 ΔE ≥ 34.2）：設備鈑金與保溫銀灰 --dg-m-rack ／
+         高溫爐管紅 --dg-fl-hot ／ 深冷（冷箱）青 --dg-fl-cold ／ 機組深藍 --dg-m-die ／
+         石油腦料液琥珀 --dg-organic ／ 製程管線藍 --dg-fl-sig。
+       ⚠ 這條鏈在 supply_chain.yaml 裡也沒有建環節，台股一律用零件自己的 `codes`，
+         名單跟 2D 那張的 `cos` 一致。*/
+    petrochemical: {
+      title: '輕油裂解廠：一進多出的那條線（立體）',
+      sub: '石油腦從左邊那座矮而寬的浮頂儲槽出發，進裂解爐 —— 爐膛裡那些蛇形管就是整座廠最熱的地方（紅色那一段）。出爐的氣必須★在毫秒內被急冷，不然剛裂好的東西會繼續裂掉，所以爐子旁邊緊接著急冷換熱器與兩支急冷塔。接著壓縮、乾燥，再進右邊的冷箱做深冷分離 —— 分離塔比急冷塔明顯高，因為要分開的東西沸點越接近，塔就得越高。最後四支基本原料分別進球槽（承壓所以是球）。示意圖，非實物比例',
+      camera: [120, 74, 142], target: [6, 20, 0], fit: 0.96, hk: 0.46,
+      parts: [
+        { seg: '原料進料', part: 'nc_naphtha_tank', name: '石油腦浮頂儲槽', note: '★ **矮而寬**，而且頂蓋是浮在液面上的（頂面比槽壁低一截，邊緣一圈環狀走道）—— 浮頂是為了讓液面上沒有空氣層，揮發損失與火災風險都跟著降下來。成本就從這一槽開始算：裂解價差的「原料」那一端指的就是它',
+          kind: 'pctank', box: [28, 15, 28], at: [-74, 7.5, 16], ex: [-20, 0, 6],
+          codes: ['6505'], chipnote: '做這一段（進料與裂解）的台股（跟 2D 那張同一份名單；石化鏈在供應鏈資料裡還沒有建環節）' },
+        { seg: '裂解與急冷', part: 'nc_furnace', name: '裂解爐：輻射段爐管、對流段與煙囪', note: '★ 整座廠最熱的地方。爐膛兩側牆是燒嘴，中間吊著一排**蛇形爐管**，石油腦在管裡被加熱到裂開 —— 管在火裡、料在管裡，火與料不相混。上面那一段是對流段（先用煙道的餘熱把料預熱），最上面才是煙囪',
+          kind: 'pcfurn', box: [30, 56, 24], at: [-38, 28, 0], ex: [0, 0, -18],
+          codes: ['6505'], chipnote: '做這一段（進料與裂解）的台股（跟 2D 那張同一份名單）' },
+        { seg: '裂解與急冷', part: 'nc_tle', name: '急冷換熱器（TLE）', note: '★ 它必須**緊接在爐子出口**：裂好的氣如果不在毫秒等級內降溫，剛裂出來的乙烯會繼續反應掉。順便把那些熱回收成高壓蒸汽 —— 所以它是一支臥式的管殼式換熱器，兩端各一個管箱',
+          kind: 'pctle', box: [24, 11, 11], at: [-12, 42, 0], ex: [0, 18, 0],
+          codes: ['6505'], chipnote: '做這一段（進料與裂解）的台股（跟 2D 那張同一份名單）' },
+        { seg: '裂解與急冷', part: 'nc_quench', name: '急冷油塔與急冷水塔（兩支，不是一支）', note: '★ **兩支**：先用油洗掉重組分（急冷油塔），再用水把氣降到常溫（急冷水塔）。畫成一支就把「重的先落下、輕的才往前走」這件事弄丟了。兩支都比後面的分離塔矮 —— 它們只是洗與降溫，不是精餾',
+          kind: 'pctower', box: [14, 42, 14], at: [6, 21, 0], n: 2, gap: 20, axis: 'x', ex: [0, 0, 20],
+          codes: ['6505'], chipnote: '做這一段（進料與裂解）的台股（跟 2D 那張同一份名單）' },
+        { seg: '壓縮與淨化', part: 'nc_compressor', name: '裂解氣壓縮機組（多段）', note: '★ 分離要在**低溫高壓**下做，所以先把氣壓上去。一次壓不到位（壓縮比太高溫度會失控），所以是**多段**：一段一個缸體，段與段之間還要中間冷卻。整組裝在同一個撬座上，一端是驅動的汽輪機或馬達',
+          kind: 'pccomp', box: [32, 15, 17], at: [34, 7.5, 28], ex: [0, 0, 22],
+          codes: ['6505'], chipnote: '做這一段（壓縮與淨化）的台股（跟 2D 那張同一份名單）' },
+        { seg: '壓縮與淨化', part: 'nc_dryer', name: '乾燥器（一開一備的兩支吸附塔）', note: '★ **一開一備**：一支在吸水、另一支在再生，所以永遠是兩支同樣高的小塔並排。水在深冷段會結冰堵管，所以進冷箱之前一滴水都不能留',
+          kind: 'pcdrum', box: [9, 22, 9], at: [34, 11, 2], n: 2, gap: 13, axis: 'x', ex: [0, 0, -16],
+          codes: ['6505'], chipnote: '做這一段（壓縮與淨化）的台股（跟 2D 那張同一份名單）' },
+        { seg: '深冷分離', part: 'nc_coldbox', name: '冷箱（cold box）', note: '★ 一個灌滿珍珠岩保冷的方箱，裡面是鋁製板翅式換熱器 —— 深冷分離要在零下一百度以下做，所以它整個包起來、外面看不到管。青色代表的就是「這一格是冷的」，跟左邊紅色的爐管是同一條敘事的兩端',
+          kind: 'pccold', box: [20, 34, 20], at: [62, 17, 2], ex: [16, 0, 0],
+          codes: ['6505'], chipnote: '做這一段（深冷分離）的台股（跟 2D 那張同一份名單）' },
+        { seg: '深冷分離', part: 'nc_towers', name: '分離塔組：六支塔，高度明顯不一樣', note: '★ 塔的高度對到的是「要分的兩個東西沸點差多少」—— 差越小越難分，塔盤就要越多、塔就越高。所以六支一定高矮不一，畫成一樣高就等於說它們一樣難分。每一支都有側線出料口、回流管與繞著塔身的平台爬梯',
+          kind: 'pctowers', box: [58, 60, 18], at: [96, 30, -4], ex: [22, 0, 0],
+          codes: ['6505'], chipnote: '做這一段（深冷分離）的台股（跟 2D 那張同一份名單）' },
+        { seg: '四支基本原料', part: 'nc_sphere', name: '丙烯與丁二烯球槽（sphere）', note: '★ 圓球不是造型：這些東西要**加壓**才存得住液態，而球在同樣壁厚下承壓最好、受力也最均勻。六根支柱撐在赤道以下，赤道上一圈走道 —— 看到球就知道「這一格是帶壓的」，看到浮頂槽就知道「那一格是常壓的」',
+          kind: 'pcsphere', box: [20, 24, 20], at: [66, 12, 44], n: 3, gap: 26, axis: 'x', ex: [0, 0, 26],
+          codes: ['6505'], chipnote: '做這一段（四支基本原料）的台股（跟 2D 那張同一份名單）' },
+        { seg: '四支基本原料', part: 'nc_piperack', name: '管廊（pipe rack）', note: '★ 一座裂解廠看起來像一團管線，其實是**有骨架的**：所有跨區的管線都架在同一排門形架上，順便把電纜與蒸汽管一起帶過去。管線不會貼著地走 —— 地面要留給維修通道與消防車',
+          kind: 'pcrack', box: [150, 18, 12], at: [8, 26, -36], ex: [0, 14, -14],
+          codes: ['6505'], chipnote: '做這一段的台股（跟 2D 那張同一份名單）' },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -989,6 +1121,15 @@
     indbody: 'emc', indwind: 'cu', indflux: 'si', indterm: 'sn',
     reslay: 'cer', resfilm: 'emc', restrim: 'cer', resglass: 'glass', resterm: 'sn', resback: 'sn',
     xtalbase: 'cer', xtalmount: 'cu', xtalblank: 'glass', xtalelec: 'metal', xtallid: 'metal',
+    /* 2026-09-23 第二批補的三張（規格書 docs/batch_0923b_spec.md W1：高速連接器、重電、石化）。
+       同樣是**多出來的詞**，舊的一個都沒有動。
+       ⚠ 這三張的建造函式幾乎每一塊都自己明講模組色 token，所以這裡的材質族主要是在決定
+          PBR 手感（金屬度／粗糙度）與沒寫顏色那幾塊的底色，不是在決定主色。*/
+    hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
+    hvtank: 'metal', hvcore: 'si', hvwind: 'cu', hvbush: 'organic', hvrad: 'metal',
+    hvcons: 'metal', hvgis: 'metal', hvswgr: 'metal',
+    pctank: 'metal', pcfurn: 'metal', pctle: 'metal', pctower: 'metal', pctowers: 'metal',
+    pccomp: 'metal', pcdrum: 'metal', pccold: 'metal', pcsphere: 'metal', pcrack: 'metal',
   };
   /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；
      閱讀模式（v9，docs/diagram_refs/README.md）是同名 token 的中飽和值＋約 40% 柔光，不是灰粉彩）
@@ -1085,6 +1226,20 @@
     res_term3: 'Three-layer terminations', xtal_base: 'Ceramic base with cavity', xtal_mount: 'Two-point mounts',
     xtal_blank: 'AT-cut quartz blank', xtal_elec: 'Electrodes (both faces)', xtal_cavity: 'Sealed cavity',
     xtal_lid: 'Metal lid & seam weld',
+    /* 2026-09-23 第二批補的三張。key 一樣用 2D 那張圖的同一組 data-part。*/
+    st_board: 'Board (outline & routing)', st_asic: 'ASIC / GPU (signal source)',
+    cage_body: 'EMI shielding cage', gold_finger: 'Paddle card & gold fingers (differential pairs)',
+    cage_pressfit: 'Press-fit pins', slot_housing: 'Receptacle housing & cantilever beams',
+    twinax: 'Flyover twinax cable', optic_module: 'Pluggable optical module',
+    he_tx: 'Oil-immersed power transformer tank', he_core: 'Three-limb laminated core',
+    he_wind: 'Concentric windings (LV inner / HV outer)', he_bush: 'HV bushings',
+    he_rad: 'Radiator (oil, natural convection)', he_cons: 'Conservator & breather',
+    he_gis: 'Gas-insulated switchgear', he_swgr: 'Metal-clad MV switchgear',
+    nc_naphtha_tank: 'Naphtha floating-roof tank', nc_furnace: 'Cracking furnace (radiant coils)',
+    nc_tle: 'Transfer line exchanger (quench)', nc_quench: 'Quench oil & quench water towers',
+    nc_compressor: 'Cracked-gas compressor train', nc_dryer: 'Dryers (one duty, one regenerating)',
+    nc_coldbox: 'Cold box (cryogenic separation)', nc_towers: 'Fractionation towers',
+    nc_sphere: 'Pressurised spheres', nc_piperack: 'Pipe rack',
   };
 
   function kit(THREE, fam, ghost, css, role) {
@@ -5095,6 +5250,583 @@
       return g;
     }
 
+    /* ================================================================ 高速連接器與互連的零件字彙（2026-09-23）
+       2D 是 `site/dg/ai_interconnect.js`。Andy 2026-09-23 親自點名「連接器少了 3D 圖 請補上」，
+       所以那張的 `scene: null` 在這一輪補成真 3D（原本寫「不做真 3D」的理由與現在為什麼推翻，
+       都留在 2D 檔頭與 SCENES.ai_interconnect 的註解裡，不要把舊理由直接刪掉）。
+       ★ 硬規則（規格書 W1-1）：籠、舌片＋**成對**的金手指、背面壓接針、飛越纜線，四件缺一不可。
+       ★ 顏色一律走模組色 token，一個色碼都不寫死；兩兩 CIE76 ΔE ≥ 27.4（深淺兩模式都量過）。*/
+
+    /* 屏蔽金屬籠（cage）：五片鈑金圍成、開口朝前（+z）；側壁通風孔、籠口一圈 EMI 指片、籠背鰭片。
+       為什麼值得畫：**籠子就是高速連接器的識別特徵** —— 它不是外觀件，是為了擋電磁干擾
+       與把模組的熱帶出去才存在的。沒有籠子，它跟一個電源端子在外形上分不開。*/
+    function hsCage(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.84, rough: 0.34 });
+      const t = Math.min(w, h) * 0.07;
+      // 五片鈑金：上、下、左、右、後檔板 —— 開口朝 +z（模組從那一面插進來）
+      g.add(mboxes([[w, t, d, 0, h / 2 - t / 2, 0], [w, t, d, 0, -h / 2 + t / 2, 0],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2]], st));
+      // 側壁通風孔：800G 模組的熱要從籠子帶走，所以鈑金上一定打了孔
+      const vd = K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.95, metal: 0.02 });
+      const hr = Math.min(h, d) * 0.055, hs = [];
+      for (let i = 0; i < 4; i++) for (let j = 0; j < 3; j++) {
+        const z = (-1.5 + i) * d * 0.19, y = (-1 + j) * h * 0.26;
+        [-1, 1].forEach(s => hs.push([s * (w / 2 - t / 2), y, z, 0, 0, Math.PI / 2]));
+      }
+      g.add(instOf(new T.CylinderGeometry(hr, hr, t * 1.4, 8, 1, true), vd, hs));
+      // 籠口一圈 EMI 指片：模組插進來時被壓住，接地才連續 —— 這一圈就是「屏蔽」兩個字的實體
+      const fn = 9, fg = [];
+      for (let i = 0; i < fn; i++) {
+        const u = (-(fn - 1) / 2 + i) * (w * 0.86 / fn);
+        fg.push([u, h / 2 + t * 0.35, d / 2 - t * 1.2, 0.5, 0, 0]);
+        fg.push([u, -h / 2 - t * 0.35, d / 2 - t * 1.2, -0.5, 0, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.86 / fn * 0.58, t * 0.6, d * 0.18), st, fg));
+      // 籠背鰭片：熱從模組經籠頂交給空氣（所以它在籠子外面、不在模組裡）
+      const fc = 10, fin = [];
+      for (let i = 0; i < fc; i++) fin.push([(-(fc - 1) / 2 + i) * (w * 0.9 / fc), h / 2 + h * 0.15, -d * 0.12]);
+      g.add(instOf(new T.BoxGeometry(w * 0.9 / fc * 0.32, h * 0.28, d * 0.66), st, fin));
+      return g;
+    }
+
+    /* 塑膠舌片 ＋ 舌片上下兩面的金手指。
+       為什麼值得畫：★ 金手指**成對**排列（一對＝一組差動訊號），每兩對之間夾一根比較寬的接地腳。
+       一根一根等距的是低速端子 —— 這是這張圖最容易畫錯、也最容易被一眼看穿的地方。*/
+    function hsTongue(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pl = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.62, metal: 0.1 });
+      g.add(put(box(w, h * 0.34, d, pl), 0, 0, 0));                       // 舌片本體
+      g.add(put(box(w * 1.04, h * 0.9, d * 0.16, pl), 0, 0, -d * 0.48));  // 舌片根部那一塊絕緣體
+      const au = K.mat(0.18, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.24 });
+      const pairs = 5, unit = w * 0.92 / (pairs * 3), sig = [], gnd = [];
+      for (let i = 0; i < pairs; i++) {
+        const x0 = -w * 0.46 + unit * (i * 3 + 1.5);
+        sig.push(x0 - unit * 0.5); sig.push(x0 + unit * 0.5);   // 一對兩根（差動）
+        gnd.push(x0 + unit * 1.5);                              // 對與對之間的接地腳（比較寬）
+      }
+      [1, -1].forEach(s => {
+        const y = s * h * 0.2;
+        g.add(instOf(new T.BoxGeometry(unit * 0.5, h * 0.06, d * 0.8), au, sig.map(x => [x, y, 0])));
+        g.add(instOf(new T.BoxGeometry(unit * 0.92, h * 0.06, d * 0.8), au, gnd.map(x => [x, y, 0])));
+        // 前緣倒角：插得進去靠的就是這一小片斜邊
+        g.add(instOf(new T.BoxGeometry(unit * 0.5, h * 0.04, d * 0.16), au,
+          sig.map(x => [x, y - s * h * 0.03, d * 0.46])));
+      });
+      return g;
+    }
+
+    /* 背面壓接針（press-fit，針腰是「針眼」形）：一整排壓進板子的孔裡。
+       為什麼值得畫：★ 壓接針**不是焊上去的** —— 針腰被孔壁夾扁、靠彈性維持接觸，
+       所以整顆連接器拔得下來重工。針眼那個開口就是它跟焊接腳最好認的差別。
+       材質是磷青銅，所以顏色走 --dg-organic（青銅）而不是錫白。*/
+    function hsPin(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const br = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), metal: 0.78, rough: 0.34 });
+      const at = gridXZ(10, 3, w * 0.09, d * 0.3, 0);
+      const t = Math.max(0.05, w * 0.018);
+      g.add(instOf(new T.BoxGeometry(t, h, t), br, at));                       // 針身
+      // 針眼：兩片薄壁夾出一個開口（壓進孔裡被壓扁的就是這一段）
+      [-1, 1].forEach(s => g.add(instOf(new T.BoxGeometry(t * 0.55, h * 0.3, t), br,
+        at.map(a => [a[0] + s * t * 0.85, h * 0.08, a[2]]))));
+      // 針尖：導入斜角，不然插不進孔
+      g.add(instOf(new T.ConeGeometry(t * 0.62, h * 0.16, 6), br,
+        at.map(a => [a[0], -h * 0.5 - h * 0.06, a[2], Math.PI, 0, 0])));
+      return g;
+    }
+
+    /* 飛越纜線（flyover）：晶片旁的小連接器座 ＋ 幾條架空拉出去的雙軸線纜（twinax）。
+       為什麼值得畫：★ 它存在的理由只有一個 —— 同樣的距離，細同軸纜線的損耗比板上銅走線小得多。
+       所以它一定是**架空**的（不貼板）。剖開的那一端看得到遮蔽層裡是**兩根等徑導體**，不是一根。*/
+    function hsFly(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const jk = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), rough: 0.7, metal: 0.08 });
+      const sh = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.34 });
+      const cd = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.26 });
+      const hz = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.62, metal: 0.1 });
+      const r = Math.max(0.2, h * 0.11);
+      for (let i = 0; i < 4; i++) {
+        const o = (-1.5 + i) * r * 2.3;
+        const c = new T.CatmullRomCurve3([
+          new T.Vector3(-w * 0.44, -h * 0.34, o), new T.Vector3(-w * 0.18, h * 0.36, o * 0.6),
+          new T.Vector3(w * 0.18, h * 0.3, o * 0.6), new T.Vector3(w * 0.44, -h * 0.3, o)]);
+        g.add(new T.Mesh(new T.TubeGeometry(c, 20, r, 8, false), jk));
+      }
+      // 剖開的那一端：遮蔽層（管）＋ 兩根等徑導體（差動對）
+      const zc = r * 3.45;
+      const e = put(cyl(r * 0.76, r * 1.0, sh, 12), -w * 0.44, -h * 0.34, zc);
+      e.rotation.x = Math.PI / 2; g.add(e);
+      [-1, 1].forEach(s => {
+        const c2 = put(cyl(r * 0.22, r * 1.15, cd, 8), -w * 0.44 + s * r * 0.33, -h * 0.34, zc);
+        c2.rotation.x = Math.PI / 2; g.add(c2);
+      });
+      // 兩端的小連接器座（一端在晶片旁、一端在籠背）
+      [-1, 1].forEach(s => g.add(put(box(w * 0.09, h * 0.34, d * 0.95, hz), s * w * 0.47, -h * 0.38, 0)));
+      return g;
+    }
+
+    /* 母端插槽（受端）：塑膠殼 ＋ 上下兩列懸臂彈片，彈片前端有接觸凸點。
+       為什麼值得畫：★ 導通靠的是**彈片被金手指撐開**的那個法向力，不是「插到底就通」；
+       插入時接點擦過金手指表面（擦拭）把氧化層刮掉。這兩件事就是連接器真正在賣的東西，
+       畫成一條溝就全看不到了。*/
+    function hsSlot(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pl = K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.62, metal: 0.1 });
+      const au = K.mat(0.18, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.24 });
+      const t = h * 0.16;
+      // 殼：一條開口朝上的溝（上面那一道縫就是卡片插進去的地方）
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0],
+        [w, h, t, 0, 0, -d / 2 + t / 2], [w, h, t, 0, 0, d / 2 - t / 2],
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0]], pl));
+      // 上下兩列懸臂彈片：斜著伸進溝裡，前端一顆接觸凸點
+      const n = 14, at = [], dot = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.86 / n);
+        [-1, 1].forEach(s => {
+          at.push([x, s * h * 0.06, s * d * 0.16, s * 0.42, 0, 0]);
+          dot.push([x, s * h * 0.14, 0]);
+        });
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.86 / n * 0.46, h * 0.05, d * 0.5), au, at));
+      g.add(instOf(new T.SphereGeometry(Math.min(w * 0.86 / n, h) * 0.16, 7, 5), au, dot));
+      return g;
+    }
+
+    /* ================================================================ 重電（變壓器與 GIS）的零件字彙（2026-09-23）
+       2D 是 `site/dg/heavy_electric.js`。★ 顏色：鈑金銀灰 --dg-m-rack ／ 鐵心深藍 --dg-m-die ／
+       繞組與帶電導體暖橘 --dg-m-pwr ／ 套管棕釉瓷 --dg-organic ／ 熱油紅 --dg-fl-hot ／
+       絕緣氣體青 --dg-fl-cold。兩兩 CIE76 ΔE ≥ 27.6（深淺兩模式都量過）。
+       ⚠ 繞組刻意**不用** --dg-m-cu（銅色）：銅色與棕釉瓷在 Lab 上只差 ΔE76 20.1，
+          關掉標籤會分不開「套管」與「繞組」—— 那正是 #244 要收掉的毛病。*/
+
+    /* 油浸式變壓器的油箱：波紋箱壁 ＋ 上蓋 ＋ 底座。**前牆刻意不畫**（剖開），裡面才看得到。*/
+    function hvTank(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.72, rough: 0.46 });
+      const t = Math.min(w, d) * 0.05;
+      g.add(mboxes([[w, h, t, 0, 0, -d / 2 + t / 2],                       // 背牆
+        [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0],   // 左右牆
+        [w, t * 1.6, d, 0, h / 2 - t * 0.8, 0],                            // 上蓋
+        [w * 1.06, t * 2.2, d * 1.06, 0, -h / 2 - t, 0]], st));            // 底座
+      /* 波紋箱壁：箱壁本身就是散熱面，所以它是**一排褶**不是一片平板 ——
+         銅損與鐵損要靠這些面積散掉。平板箱壁在物理上撐不住一台主變的損耗。*/
+      const n = 12, cr = [];
+      for (let i = 0; i < n; i++) {
+        const z = (-(n - 1) / 2 + i) * (d * 0.9 / n);
+        [-1, 1].forEach(s => cr.push([s * (w / 2 + t * 0.7), 0, z]));
+      }
+      g.add(instOf(new T.BoxGeometry(t * 2.6, h * 0.82, d * 0.9 / n * 0.4), st, cr));
+      return g;
+    }
+
+    /* 鐵心：三柱 ＋ 上下軛，矽鋼疊片。
+       為什麼值得畫：★ **三柱對到的就是三相** —— 兩柱或四柱都不是三相變壓器。
+       而柱子不是一塊實心鐵，是一片一片矽鋼片疊起來的（側面那些縫），為的是切斷渦流。*/
+    function hvCore(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const fe = K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.62, rough: 0.42 });
+      const lw = w * 0.13;
+      [-1, 0, 1].forEach(s => g.add(put(box(lw, h * 0.76, d, fe), s * w * 0.33, 0, 0)));   // 三柱
+      [-1, 1].forEach(s => g.add(put(box(w * 0.86, h * 0.12, d, fe), 0, s * h * 0.44, 0)));  // 上下軛
+      // 疊片的縫：一片一片疊起來的證據
+      const n = 7, lam = [];
+      for (let i = 0; i < n; i++) [-1, 0, 1].forEach(s => lam.push([s * w * 0.33, 0, (-(n - 1) / 2 + i) * (d / n)]));
+      g.add(instOf(new T.BoxGeometry(lw * 1.08, h * 0.74, d / n * 0.1),
+        K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.9, metal: 0.05 }), lam));
+      return g;
+    }
+
+    /* 繞組：每一柱套兩層同心圓筒。
+       為什麼值得畫：★ **內圈低壓、外圈高壓** —— 高壓側需要更大的絕緣距離，所以一定在外面。
+       圓筒表面看得到一匝一匝的線（它是繞出來的，不是一根實心銅管），匝數比就是電壓比。*/
+    function hvWind(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cu = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.68, rough: 0.4 });
+      // 外圈（高壓）用同一族的另一個電力色 token，才分得出「兩層」；不寫死色碼
+      const cu2 = K.mat(0, { color: K.css('--dg-fl-pwr', '#FF8A3D'), metal: 0.6, rough: 0.46 });
+      const rin = Math.min(d, w * 0.2) * 0.3, rout = Math.min(d, w * 0.26) * 0.46;
+      [-1, 0, 1].forEach(s => {
+        const x = s * w * 0.33;
+        // 內圈（低壓）與外圈（高壓）：兩層同心圓筒，中間留絕緣間隙
+        const a = put(new T.Mesh(new T.CylinderGeometry(rin, rin, h * 0.62, 18, 1, true), cu), x, 0, 0);
+        const b = put(new T.Mesh(new T.CylinderGeometry(rout, rout, h * 0.7, 20, 1, true), cu2), x, 0, 0);
+        g.add(a); g.add(b);
+        // 匝：外圈上一圈一圈的線 —— 沒有它，這就只是兩支套在一起的銅管
+        const tn = 9, tr = [];
+        for (let i = 0; i < tn; i++) tr.push([x, (-(tn - 1) / 2 + i) * (h * 0.7 / tn), 0, Math.PI / 2, 0, 0]);
+        g.add(instOf(new T.TorusGeometry(rout * 1.03, h * 0.7 / tn * 0.16, 5, 16), cu, tr));
+      });
+      return g;
+    }
+
+    /* 套管（bushing）：金屬法蘭 ＋ 一疊由下往上變小的瓷裙 ＋ 頂端接線端子。
+       為什麼值得畫：★ 瓷裙不是裝飾 —— 它把「沿著表面爬過去」的距離拉長，
+       下雨或積塵時才不會沿表面閃絡。裙的片數跟電壓等級成正比。
+       畫成一根光滑的柱子，等於把絕緣這件事整個拿掉。*/
+    function hvBush(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const po = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), metal: 0.06, rough: 0.52 });
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.8, rough: 0.38 });
+      const pw = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.7, rough: 0.36 });
+      g.add(put(cyl(Math.min(w, d) * 0.42, h * 0.1, st, 16), 0, -h * 0.45, 0));   // 法蘭（鎖在箱蓋上）
+      g.add(put(cyl(Math.min(w, d) * 0.15, h * 0.88, po, 14), 0, 0, 0));          // 瓷套本體
+      // 瓷裙：由下往上一片一片變小（越上面電場越弱，需要的爬電距離越短）
+      const n = 7, sk = [];
+      for (let i = 0; i < n; i++) sk.push([0, -h * 0.32 + i * (h * 0.72 / n), 0, 0, 0, 0,
+        1 - i * 0.07, 1, 1 - i * 0.07]);
+      g.add(instOf(new T.CylinderGeometry(Math.min(w, d) * 0.45, Math.min(w, d) * 0.28, h * 0.05, 16), po, sk));
+      g.add(put(cyl(Math.min(w, d) * 0.1, h * 0.12, pw, 12), 0, h * 0.5, 0));     // 頂端接線端子（帶電）
+      return g;
+    }
+
+    /* 散熱器（radiator）：一排垂直薄片 ＋ 上下兩根集油管。
+       為什麼值得畫：★ 熱油從**上面**進、放完熱之後從**下面**回油箱，靠的是自然對流。
+       只畫薄片不畫上下集油管，油就沒有路徑可走 —— 那是一眼就能驗的結構錯誤。*/
+    function hvRad(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0.08, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.74, rough: 0.46 });
+      const oil = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.5, rough: 0.42 });
+      const n = 14, fin = [];
+      for (let i = 0; i < n; i++) fin.push([0, 0, (-(n - 1) / 2 + i) * (d * 0.92 / n)]);
+      g.add(instOf(new T.BoxGeometry(w * 0.9, h * 0.76, d * 0.92 / n * 0.34), st, fin));
+      // 上下集油管（熱油上進下出）：管徑明顯比薄片厚，才看得出「油走這裡」
+      [1, -1].forEach(s => {
+        const t = put(cyl(Math.min(w, d) * 0.1, d * 0.96, oil, 12), 0, s * h * 0.42, 0);
+        t.rotation.x = Math.PI / 2; g.add(t);
+      });
+      return g;
+    }
+
+    /* 儲油櫃（油枕）＋ 吸濕呼吸器：橫臥的小圓筒 ＋ 一根直立的小筒。
+       為什麼值得畫：油會熱脹冷縮。沒有這個櫃子，油箱不是被撐破就是把濕空氣吸進去 ——
+       而**水是絕緣油最怕的東西**。空氣要先過吸濕呼吸器才進得了油櫃。*/
+    function hvCons(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.76, rough: 0.42 });
+      const oil = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.45, rough: 0.44 });
+      const c = put(cyl(h * 0.42, w * 0.86, st, 18), 0, 0, 0); c.rotation.z = Math.PI / 2; g.add(c);
+      [-1, 1].forEach(s => g.add(put(box(w * 0.06, h * 0.8, d * 0.5, st), s * w * 0.3, -h * 0.5, 0)));  // 支架
+      g.add(put(cyl(h * 0.16, h * 0.9, oil, 12), w * 0.46, -h * 0.35, 0));                              // 吸濕呼吸器
+      g.add(put(cyl(h * 0.22, h * 0.16, st, 12), w * 0.46, -h * 0.82, 0));                              // 底部油杯
+      // 連到油箱的那一根管：沒有它，油櫃就是一個掛在旁邊的裝飾
+      const pipe = put(cyl(h * 0.1, w * 0.4, st, 10), -w * 0.34, -h * 0.5, 0);
+      pipe.rotation.z = Math.PI / 3; g.add(pipe);
+      return g;
+    }
+
+    /* GIS：導體封在**接地的**金屬管裡，導體與外管之間充絕緣氣體。
+       為什麼值得畫：★ 人可以站在旁邊、整座設備佔地只有氣中絕緣開關場的零頭，
+       原因就在這個「導體在裡面、接地殼在外面」的同軸結構。
+       圖上剖開一段：中心導體、撐住它的盤式絕緣子，以及中間那一圈氣體。
+       直立的那一截是斷路器，底下的箱子是操作機構。★ 它**不降壓**。*/
+    function hvGis(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.34 });
+      const gas = K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), metal: 0.04, rough: 0.3, op: 0.34 });
+      const cd = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.72, rough: 0.34 });
+      const R = Math.min(h, d) * 0.22;
+      // 水平封閉管（匯流排）：剖開的那一段只畫上半圈，下半圈留空才看得到裡面
+      // 剖開的殼要雙面，不然從開口看進去，內壁是背面會被剔掉（等於整段變透明）
+      const st2 = twoSided(K, st);
+      const run = put(new T.Mesh(new T.CylinderGeometry(R, R, w * 0.62, 20, 1, true, 0, Math.PI), st2), -w * 0.12, h * 0.1, 0);
+      run.rotation.z = Math.PI / 2; g.add(run);
+      const full = put(new T.Mesh(new T.CylinderGeometry(R, R, w * 0.3, 20, 1, true), st2), w * 0.34, h * 0.1, 0);
+      full.rotation.z = Math.PI / 2; g.add(full);
+      const gs = put(cyl(R * 0.82, w * 0.6, gas, 18), -w * 0.12, h * 0.1, 0); gs.rotation.z = Math.PI / 2; g.add(gs);
+      const core = put(cyl(R * 0.3, w * 0.9, cd, 14), 0, h * 0.1, 0); core.rotation.z = Math.PI / 2; g.add(core);
+      // 盤式絕緣子：一片一片撐住中心導體，同時把管子分成幾個獨立的氣室
+      const n = 4, ds = [];
+      for (let i = 0; i < n; i++) ds.push([(-(n - 1) / 2 + i) * w * 0.2, h * 0.1, 0, 0, 0, Math.PI / 2]);
+      g.add(instOf(new T.CylinderGeometry(R * 0.8, R * 0.8, w * 0.012, 18),
+        K.mat(0, { color: K.css('--dg-organic', '#8a6636'), metal: 0.06, rough: 0.5 }), ds));
+      // 直立的斷路器槽 ＋ 底下的操作機構箱
+      g.add(put(cyl(R * 1.1, h * 0.5, st, 18), -w * 0.26, -h * 0.16, 0));
+      g.add(put(box(w * 0.2, h * 0.28, d * 0.7, st), -w * 0.26, -h * 0.44, 0));
+      // 氣體密度計：GIS 真正在監的是「氣還在不在」
+      g.add(put(cyl(R * 0.3, R * 0.2, cd, 10), -w * 0.26, -h * 0.3, d * 0.36).rotateX(Math.PI / 2));
+      return g;
+    }
+
+    /* 中壓配電盤（metal-clad 開關櫃）：一排金屬櫃，每一櫃分三室 ——
+       上面母線室、中間是**拉得出來的**斷路器抽屜、下面電纜室。
+       為什麼值得畫：抽得出來才能不停電維修，那正是 metal-clad 這個名字的由來。
+       ★ 它跟 GIS 一樣**不降壓**，只做切斷、導通、隔離、接地。*/
+    function hvSwgr(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.76, rough: 0.42 });
+      const st2 = K.mat(-0.25, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.7, rough: 0.5 });
+      const bus = K.mat(0, { color: K.css('--dg-m-pwr', '#E08A3C'), metal: 0.72, rough: 0.34 });
+      const n = 3, cw = w / n;
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * cw;
+        g.add(put(box(cw * 0.94, h, d, st), x, 0, 0));
+        // 中間那一格：斷路器抽屜（中間那一台刻意拉出來一截 —— 它是抽得出來的）
+        const out = i === 1 ? d * 0.34 : d * 0.06;
+        g.add(put(box(cw * 0.78, h * 0.3, d * 0.5, st2), x, -h * 0.08, d * 0.25 + out));
+        g.add(put(box(cw * 0.2, h * 0.16, d * 0.08, st), x, -h * 0.08, d * 0.5 + out));   // 抽屜把手
+        g.add(put(box(cw * 0.84, h * 0.02, d * 0.98, st2), x, h * 0.2, 0));               // 母線室的隔板
+      }
+      // 母線：三相三條，橫著穿過整排櫃子的上方 —— 這是「一排櫃子共用同一組母線」的證據
+      const br = [];
+      for (let i = 0; i < 3; i++) br.push([0, h * 0.34, (-1 + i) * d * 0.2]);
+      g.add(instOf(new T.BoxGeometry(w * 0.96, h * 0.05, d * 0.08), bus, br));
+      return g;
+    }
+
+    /* ================================================================ 石化（輕油裂解）的零件字彙（2026-09-23）
+       2D 是 `site/dg/petrochemical.js`。這裡的設備幾乎全是旋轉對稱體，
+       所以層次一律靠**高度差與管線走向**做（規格書 W1-3）：
+         分離塔 > 急冷塔 > 乾燥器；球槽矮而圓（承壓）；浮頂槽矮而寬（常壓）。
+       ★ 顏色：設備鈑金與保溫銀灰 --dg-m-rack ／ 高溫爐管紅 --dg-fl-hot ／ 深冷青 --dg-fl-cold ／
+         機組深藍 --dg-m-die ／ 料液琥珀 --dg-organic ／ 製程管線藍 --dg-fl-sig。
+         兩兩 CIE76 ΔE ≥ 34.2（深淺兩模式都量過）。*/
+
+    /* 塔的共用件：塔身 ＋ 上下封頭 ＋ 側線出料口 ＋ 繞著塔身的平台與爬梯。
+       裙座（skirt）是塔一定有的東西 —— 塔不是直接坐在地上的。*/
+    function pcTowerBody(K, w, h, d, trays) {
+      const g = new T.Group();
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.7, rough: 0.46 });
+      const st2 = K.mat(-0.22, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.66, rough: 0.54 });
+      const r = Math.min(w, d) * 0.5;
+      g.add(put(cyl(r, h * 0.84, st, 20), 0, h * 0.02, 0));                       // 塔身
+      [1, -1].forEach(s => g.add(put(new T.Mesh(new T.SphereGeometry(r, 14, 6, 0, Math.PI * 2, 0, Math.PI / 2), st),
+        0, s * h * 0.44 + h * 0.02, 0).rotateX(s > 0 ? 0 : Math.PI)));            // 上下封頭
+      g.add(put(cyl(r * 0.92, h * 0.12, st2, 16), 0, -h * 0.46, 0));              // 裙座
+      // 塔盤：塔的本事就在盤數 —— 要分的兩個東西沸點越接近，盤就越多、塔就越高
+      /* ⚠ 段數刻意壓低（塔盤 10 段、平台 4×14）：六支塔一起畫的時候，
+         塔盤那一圈是三角形數的大宗 —— 細一點沒有人看得出來，但會直接把場景推破上限。*/
+      if (trays) {
+        const at = [];
+        for (let i = 0; i < trays; i++) at.push([0, -h * 0.34 + i * (h * 0.68 / trays), 0]);
+        g.add(instOf(new T.CylinderGeometry(r * 0.88, r * 0.88, h * 0.006, 10), st2, at));
+      }
+      // 平台與爬梯：塔一定要爬得上去（人孔、取樣口都在上面）
+      const pf = [[0, h * 0.28, 0], [0, -h * 0.06, 0]];
+      g.add(instOf(new T.TorusGeometry(r * 1.24, r * 0.06, 4, 14), st2, pf.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
+      g.add(put(box(r * 0.2, h * 0.8, r * 0.2, st2), r * 1.2, 0, 0));
+      return g;
+    }
+
+    /* 分餾／急冷塔（單支）。n > 1 時外面會複製成兩支（急冷油塔與急冷水塔）。*/
+    function pcTower(p, K) {
+      const [w, h, d] = p.box;
+      const g = pcTowerBody(K, w, h, d, 9);
+      const r = Math.min(w, d) * 0.5;
+      // 側線出料口：塔身側面那幾根短管 —— 沒有它就看不出「這一支在分東西」
+      const pipe = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), metal: 0.55, rough: 0.4 });
+      const at = [];
+      for (let i = 0; i < 3; i++) at.push([0, -h * 0.2 + i * h * 0.26, r * 1.2, Math.PI / 2, 0, 0]);
+      g.add(instOf(new T.CylinderGeometry(r * 0.12, r * 0.12, r * 0.9, 10), pipe, at));
+      return g;
+    }
+
+    /* 分離塔組：六支塔，**高度明顯不一樣**。
+       為什麼值得畫：★ 塔高對到的是「要分的兩個東西沸點差多少」—— 差越小越難分、塔越高。
+       畫成一樣高就等於說它們一樣難分，那是這張圖最容易犯的錯。*/
+    function pcTowers(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const ks = [1, 0.62, 0.84, 0.48, 0.72, 0.56];         // 六支的相對高度
+      ks.forEach((k, i) => {
+        const x = (-(ks.length - 1) / 2 + i) * (w / ks.length);
+        const tw = Math.min(w / ks.length * 0.6, d * 0.5);
+        const t = pcTowerBody(K, tw, h * k, tw, Math.round(4 + k * 5));
+        t.position.set(x, -h / 2 + h * k / 2, (i % 2 ? -1 : 1) * d * 0.16);
+        g.add(t);
+      });
+      return g;
+    }
+
+    /* 裂解爐：爐膛 ＋ 吊在中間的蛇形輻射段爐管 ＋ 對流段 ＋ 煙囪。
+       為什麼值得畫：★ **管在火裡、料在管裡，火與料不相混** —— 這是裂解爐唯一要看懂的事。
+       爐管畫成紅的不是裝飾：那一段是整座廠最熱的地方，也是這張圖敘事的起點。*/
+    function pcFurn(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.68, rough: 0.5 });
+      const st2 = K.mat(-0.2, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.62, rough: 0.56 });
+      const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.5, rough: 0.4 });
+      const t = Math.min(w, d) * 0.06;
+      // 爐膛：前牆不畫（剖開），裡面的爐管才看得到
+      g.add(mboxes([[w, h * 0.6, t, 0, -h * 0.17, -d / 2 + t / 2],
+        [t, h * 0.6, d, -w / 2 + t / 2, -h * 0.17, 0], [t, h * 0.6, d, w / 2 - t / 2, -h * 0.17, 0],
+        [w, t, d, 0, -h * 0.47, 0]], st));
+      // 輻射段爐管：一排 U 形蛇管吊在爐膛中央
+      const n = 6, pit = w * 0.74 / n, up = [], bend = [];
+      for (let i = 0; i < n; i++) up.push([(-(n - 1) / 2 + i) * pit, -h * 0.17, 0]);
+      // U 形彎：兩兩接成一條來回的蛇管（rz = PI 才是**下半圈**，不轉就會彎到上面去）
+      for (let i = 0; i + 1 < n; i += 2) bend.push([(-(n - 1) / 2 + i + 0.5) * pit, -h * 0.43, 0, 0, 0, Math.PI]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.022, w * 0.022, h * 0.52, 10), hot, up));
+      g.add(instOf(new T.TorusGeometry(pit * 0.5, w * 0.022, 5, 12, Math.PI), hot, bend));
+      // 兩側牆的燒嘴：火是從牆上來的，不是從地上燒一堆柴
+      const bn = [];
+      for (let i = 0; i < 4; i++) [-1, 1].forEach(s => bn.push([s * (w / 2 - t * 1.6), -h * 0.36 + i * h * 0.13, 0, 0, 0, Math.PI / 2]));
+      g.add(instOf(new T.CylinderGeometry(t * 0.5, t * 0.5, t * 1.2, 8), hot, bn));
+      // 對流段（用煙道餘熱先把料預熱）＋ 煙囪
+      g.add(put(box(w * 0.66, h * 0.2, d * 0.7, st2), 0, h * 0.24, 0));
+      g.add(put(cyl(Math.min(w, d) * 0.12, h * 0.3, st2, 14), 0, h * 0.44, 0));
+      return g;
+    }
+
+    /* 急冷換熱器（TLE）：臥式管殼式換熱器 ＋ 兩端管箱 ＋ 鞍座。
+       為什麼值得畫：★ 它必須**緊接在爐子出口** —— 裂好的氣不在毫秒等級內降溫，
+       剛裂出來的乙烯會繼續反應掉。它同時把那些熱回收成高壓蒸汽。*/
+    function pcTle(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.74, rough: 0.42 });
+      const hot = K.mat(0, { color: K.css('--dg-fl-hot', '#FF4D5E'), metal: 0.5, rough: 0.4 });
+      const r = Math.min(h, d) * 0.42;
+      const c = put(cyl(r, w * 0.74, st, 18), 0, 0, 0); c.rotation.z = Math.PI / 2; g.add(c);
+      [-1, 1].forEach(s => {                                        // 兩端管箱（比殼粗一圈）
+        const b = put(cyl(r * 1.16, w * 0.1, st, 16), s * w * 0.42, 0, 0); b.rotation.z = Math.PI / 2; g.add(b);
+      });
+      g.add(put(cyl(r * 0.28, h * 0.8, hot, 10), -w * 0.42, h * 0.5, 0));   // 熱氣進
+      g.add(put(cyl(r * 0.28, h * 0.8, hot, 10), w * 0.42, h * 0.5, 0));    // 降溫後出
+      [-1, 1].forEach(s => g.add(put(box(w * 0.08, h * 0.4, d * 0.9, st), s * w * 0.24, -h * 0.55, 0)));  // 鞍座
+      return g;
+    }
+
+    /* 壓縮機組（多段）：撬座 ＋ 多個缸體 ＋ 段間冷卻器 ＋ 驅動端。
+       為什麼值得畫：★ 分離要在**低溫高壓**下做，所以先把氣壓上去；
+       一次壓不到位（壓縮比太高溫度會失控），所以是**多段**、段間還要冷卻。
+       畫成一顆方塊就看不出「多段」這件事。*/
+    function pcComp(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const sk = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.72, rough: 0.46 });
+      const bd = K.mat(0, { color: K.css('--dg-m-die', '#1E2E52'), metal: 0.55, rough: 0.44 });
+      const pipe = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), metal: 0.55, rough: 0.4 });
+      g.add(put(box(w, h * 0.16, d, sk), 0, -h * 0.42, 0));                 // 撬座
+      // 三段缸體：一段比一段小（氣被壓縮之後體積變小，缸自然跟著小）
+      [[-0.3, 1], [0.04, 0.82], [0.32, 0.66]].forEach(([x, k]) => {
+        const c = put(cyl(h * 0.3 * k, w * 0.2, bd, 16), x * w, h * 0.02, 0); c.rotation.z = Math.PI / 2; g.add(c);
+      });
+      g.add(put(cyl(h * 0.26, w * 0.22, sk, 16), -w * 0.44, h * 0.02, 0).rotateZ(Math.PI / 2));  // 驅動端
+      // 段間冷卻器：兩段之間一定有一支，不然下一段的進氣溫度會失控
+      [-0.13, 0.18].forEach(x => {
+        const c = put(cyl(h * 0.12, d * 0.8, pipe, 10), x * w, -h * 0.24, 0); c.rotation.x = Math.PI / 2; g.add(c);
+      });
+      return g;
+    }
+
+    /* 乾燥器／吸附塔（一開一備的其中一支）：立式小塔 ＋ 上下封頭 ＋ 再生管線。
+       為什麼值得畫：★ **一開一備** —— 一支在吸水、另一支在再生，所以永遠是兩支同樣高的小塔並排。
+       水在深冷段會結冰堵管，所以進冷箱之前一滴水都不能留。*/
+    function pcDrum(p, K) {
+      const [w, h, d] = p.box;
+      const g = pcTowerBody(K, w, h, d, 0);
+      const r = Math.min(w, d) * 0.5;
+      const pipe = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), metal: 0.55, rough: 0.4 });
+      // 吸附劑床層：塔裡裝的是一床顆粒，不是塔盤
+      g.add(put(cyl(r * 0.84, h * 0.4, K.mat(-0.3, { color: K.css('--dg-organic', '#8a6636'), metal: 0.05, rough: 0.8 }), 16), 0, -h * 0.08, 0));
+      [1, -1].forEach(s => g.add(put(cyl(r * 0.16, r * 1.4, pipe, 8), 0, s * h * 0.44, r * 0.7).rotateX(Math.PI / 2)));
+      return g;
+    }
+
+    /* 冷箱（cold box）：灌滿保冷材的方箱 ＋ 頂部進出管束 ＋ 角鋼骨架。
+       為什麼值得畫：★ 深冷分離要在零下一百度以下做，所以整座設備**包起來、外面看不到管** ——
+       看到一個什麼細節都沒有的大方箱，那就是冷箱。青色代表「這一格是冷的」，
+       跟左邊紅色的爐管是同一條敘事的兩端。*/
+    function pcCold(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const cd = K.mat(0, { color: K.css('--dg-fl-cold', '#2FD9C4'), metal: 0.35, rough: 0.5 });
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.78, rough: 0.4 });
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.06, cd));
+      // 角鋼骨架：冷箱是一個吊裝上去的整體模組，骨架是它的識別特徵
+      const ed = [];
+      [-1, 1].forEach(sx => [-1, 1].forEach(sz => ed.push([sx * w * 0.47, 0, sz * d * 0.47])));
+      g.add(instOf(new T.BoxGeometry(w * 0.05, h * 1.02, d * 0.05), st, ed));
+      // 頂部管束：進出都在頂上（管路越短，漏進來的熱越少）
+      const tb = [];
+      for (let i = 0; i < 5; i++) tb.push([(-2 + i) * w * 0.16, h * 0.56, 0]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, h * 0.16, 10), st, tb));
+      return g;
+    }
+
+    /* 球槽（sphere）：球體 ＋ 六根支柱 ＋ 赤道走道 ＋ 頂部人孔。
+       為什麼值得畫：★ 圓球不是造型 —— 這些東西要**加壓**才存得住液態，
+       而球在同樣壁厚下承壓最好、受力也最均勻。看到球就知道這一格是帶壓的，
+       看到浮頂槽就知道那一格是常壓的。*/
+    function pcSphere(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0.06, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.76, rough: 0.4 });
+      const st2 = K.mat(-0.24, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.7, rough: 0.5 });
+      const r = Math.min(w, d) * 0.5;
+      g.add(put(ball(r, st), 0, h * 0.12, 0));
+      // 六根支柱撐在赤道以下（不是撐在球底 —— 那樣球會被戳破）
+      const leg = [];
+      for (let i = 0; i < 6; i++) {
+        const a = i / 6 * Math.PI * 2;
+        leg.push([Math.cos(a) * r * 0.72, -h * 0.26, Math.sin(a) * r * 0.72]);
+      }
+      g.add(instOf(new T.CylinderGeometry(r * 0.07, r * 0.07, h * 0.62, 8), st2, leg));
+      g.add(put(new T.Mesh(new T.TorusGeometry(r * 1.02, r * 0.035, 5, 22), st2), 0, h * 0.12, 0).rotateX(Math.PI / 2));
+      g.add(put(cyl(r * 0.14, h * 0.1, st2, 10), 0, h * 0.12 + r, 0));      // 頂部人孔
+      return g;
+    }
+
+    /* 浮頂儲槽：矮而寬的立式圓筒 ＋ **浮在液面上的頂蓋**（比槽壁低一截）＋ 一圈環狀走道。
+       為什麼值得畫：★ 浮頂是為了讓液面上沒有空氣層 —— 揮發損失與火災風險都跟著降下來。
+       頂蓋畫成跟槽壁齊平（固定頂）就是另一種槽了，那是一眼可驗的結構錯誤。*/
+    function pcTank(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.74, rough: 0.44 });
+      const st2 = K.mat(-0.2, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.68, rough: 0.52 });
+      const oilM = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), metal: 0.1, rough: 0.42 });
+      const r = Math.min(w, d) * 0.5;
+      // 槽壁是開口朝上的一圈鈑金：要雙面，不然從上面看進去內壁會被剔掉
+      g.add(put(new T.Mesh(new T.CylinderGeometry(r, r, h * 0.9, 24, 1, true), twoSided(K, st)), 0, 0, 0));
+      g.add(put(cyl(r * 0.99, h * 0.05, st2, 20), 0, -h * 0.44, 0));                            // 槽底
+      // 浮頂：比槽壁低一截（它是**浮在液面上**的），頂面一圈環狀走道
+      g.add(put(cyl(r * 0.94, h * 0.06, oilM, 22), 0, h * 0.12, 0));
+      g.add(put(new T.Mesh(new T.TorusGeometry(r * 0.94, r * 0.03, 5, 24), st2), 0, h * 0.16, 0).rotateX(Math.PI / 2));
+      // 旋轉梯：浮頂會上下跑，所以上去的梯子一端是掛在浮頂上、會跟著轉的
+      g.add(put(box(r * 0.12, h * 0.9, r * 0.12, st2), r * 1.02, 0, 0));
+      return g;
+    }
+
+    /* 管廊（pipe rack）：一排門形架 ＋ 架在上面的多根平行管線。
+       為什麼值得畫：★ 一座裂解廠看起來像一團管線，其實是**有骨架的** ——
+       所有跨區的管線都架在同一排門形架上，地面要留給維修通道與消防車。*/
+    function pcRack(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.74, rough: 0.46 });
+      const pipe = K.mat(0, { color: K.css('--dg-fl-sig', '#58C4FF'), metal: 0.55, rough: 0.4 });
+      const n = 7, col = [], beam = [];
+      for (let i = 0; i < n; i++) {
+        const x = (-(n - 1) / 2 + i) * (w * 0.94 / n);
+        [-1, 1].forEach(s => col.push([x, -h * 0.1, s * d * 0.35]));
+        beam.push([x, h * 0.32, 0]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 0.84, d * 0.1), st, col));   // 立柱
+      g.add(instOf(new T.BoxGeometry(w * 0.012, h * 0.1, d * 0.84), st, beam));  // 橫樑
+      // 管線：粗細不同的幾根平行走 —— 管徑對到的就是流量
+      [[0.34, 0.11], [0.1, 0.08], [-0.12, 0.13], [-0.34, 0.07]].forEach(([z, r]) => {
+        const c = put(cyl(h * r, w * 0.98, pipe, 12), 0, h * 0.42, z * d);
+        c.rotation.z = Math.PI / 2; g.add(c);
+      });
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -5146,6 +5878,13 @@
       indbody: indBody, indwind: indWind, indflux: indFlux, indterm: indTerm,
       reslay: resLay, resfilm: resFilm, restrim: resTrim, resglass: resGlass, resterm: resTerm, resback: resBack,
       xtalbase: xtalBase, xtalmount: xtalMount, xtalblank: xtalBlank, xtalelec: xtalElec, xtallid: xtalLid,
+      /* ---- 2026-09-23 第二批補的三張（規格書 W1）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      hscage: hsCage, hstongue: hsTongue, hspin: hsPin, hsfly: hsFly, hsslot: hsSlot,
+      hvtank: hvTank, hvcore: hvCore, hvwind: hvWind, hvbush: hvBush, hvrad: hvRad,
+      hvcons: hvCons, hvgis: hvGis, hvswgr: hvSwgr,
+      pctank: pcTank, pcfurn: pcFurn, pctle: pcTle, pctower: pcTower, pctowers: pcTowers,
+      pccomp: pcComp, pcdrum: pcDrum, pccold: pcCold, pcsphere: pcSphere, pcrack: pcRack,
+      _pcTowerBody: pcTowerBody,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 

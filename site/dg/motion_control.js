@@ -1,6 +1,23 @@
 /* 工業自動化：一個會動的軸拆開看 —— docs/diagram_plan_electronics.md 的 E1
    （族群 `factory_automation` 主掛、`machine_tool` 掛同一張，electronics 鏈）
 
+   ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
+        並且需要適當的調整及填充版面間隔，不許有空白」）----
+   原本是 980 寬、右邊一整格「這張圖要講的四件事」＋ 十幾行圖例與誠實性標示全部畫在 SVG 裡，
+   而且靠 `badge()` 在畫布上寫編號、旁邊再排一行圖例文字 —— 欄寬一窄字就跟著縮小。
+   改成跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套：
+     · 畫布 980 → **660**（`native: 660`），svg 根掛 `.rs`；
+     · 標題與導言 → `text.ext`（HTML 的 .dghead）；零件名、四件事與誠實性標示 → `extRow(side)`
+       外掛卡片，畫布上只留編號圓點（引線由 externalize 依實際寬度重算）；
+     · 因此 `badge()` 與它配套的那幾行圖例**退場**（編號圓點與名字改由卡片提供，
+       一個字都沒少，只是從畫布搬到卡片）；
+     · 四個區塊重排成三排：① 縱剖 ＋ 螺帽放大 ／ ② 橫剖 ｜ ③ 諧波 ｜ ④ RV ／ ⑤ 控制鏈（3＋2 折行）；
+     · 材質走共用的 `D.fx`（`glass` 當機殼／底座／工作台、`beam` 當控制鏈主線、`glowDefs`）；
+     · 顏色一律 `--dg-*` token（本來就沒有寫死色碼，改完再 grep 一次確認）；
+     · **既有互動一個都沒動**：`data-part` 清單逐字不變（改前改後比對過），
+       這張圖仍然一個 `data-seg` 都不掛（§0-D 第 2 點）。
+   ⚠ 舊註解全部保留 —— M1／M3／M6／H1／R3／C1／X3 那幾條紅線還是合約。
+
    合約＝`docs/diagram_specs/motion_control.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的幾件事：
 
@@ -49,9 +66,11 @@
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function') return;   // diagrams.js 沒載到就安靜退出
+  if (!D || typeof D.register !== 'function' || !D.fx) return;   // diagrams.js 沒載到就安靜退出
+  const { extRow, note, fx } = D;
 
-  const W = 980;
+  /* 畫布寬：2026-09-23 從 980 收到 660。說明文字外掛成 HTML 卡片之後，SVG 只剩「畫」的部分。*/
+  const CW = 660;
 
   /* ================================================================ 小工具 */
   const f1 = (v) => (+v).toFixed(1);
@@ -70,6 +89,27 @@
   /* 零件外框。★ 這張圖**一個 data-seg 都不掛**（§0-D 第 2 點），
      所以 `data-part` 一律要自己寫 —— `stampParts()` 只替掛了環節的節點蓋 dgkey。*/
   const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+
+  /* ---- 2026-09-23 v2 新增（寫法照 `site/dg/liquid_cooling.js`）----
+     card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
+     卡片與它指的零件**共用同一個 data-part**（這張圖沒有 data-seg，所以只傳 part）。*/
+  const card = (o) => {
+    const s2 = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no, side: o.side,
+      ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
+    return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
+  };
+  const wrapCJK = (s2, n) => { const out = []; for (let i = 0; i < s2.length; i += n) out.push(s2.slice(i, i + n)); return out.length ? out : ['']; };
+  // 玻璃材質：跟 AI 伺服器那三張同一支 D.fx.glass（機殼、底座、工作台這種「大塊面」才用）
+  const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
+    { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
+  /* 元件色（卡片色條、編號圓點、引線端點共用）—— 一律 token、沒有寫死色碼。
+     ⚠ 挑的是亮一階的那個：卡片標題印在元件色上要讀得到（liquid_cooling 的銅走過同一條）。*/
+  const COL = {
+    steel: 'var(--dg-steel)', ball: 'var(--dg-mc-ball)', alu: 'var(--dg-alu)',
+    case: 'var(--dg-hub-lit)', flex: 'var(--dg-mc-flex)', cam: 'var(--dg-steel-2)',
+    disc: 'var(--dg-mc-disc)', sig: 'var(--dg-accent-2d)', warn: 'var(--dg-warn)',
+    oil: 'var(--dg-oil)',
+  };
 
   /* 編號徽章：一顆圓 ＋ 一個數字 ＋ 一條拉到零件上的引線。
      ★ 數字畫在**空白處**、不壓在零件上；零件的全名與「誰做的」由圖例列、
@@ -93,7 +133,7 @@
   function axisLong() {
     const g = [];
     // 工作台：同時鎖在螺帽（這一格）與滑塊（橫剖那一格）上 —— S10 兩邊都要有連接線
-    g.push(part('mc_table', R(200, 88, 130, 12, 'var(--dg-alu)', 'part', 2)));
+    g.push(part('mc_table', slab(200, 88, 130, 12, 'var(--dg-alu)', { r: 2 })));
     g.push('<g class="mctiewrap">'
       + LN(`M250,100 L250,${SY - RN}`, 'var(--dg-steel-2)', 2.4, 'mctie')
       + LN(`M292,100 L292,${SY - RN}`, 'var(--dg-steel-2)', 2.4, 'mctie') + '</g>');
@@ -102,7 +142,7 @@
       + C(33, SY, 6, 'var(--dg-el)', 'part')
       + LN(`M26,${SY - 8} L14,${SY - 8}`, 'var(--dg-accent-2d)', 1.4)));
     // 伺服馬達（外殼而已 —— §0-B 不准畫繞組剖面，那會跟重電那張撞題）
-    g.push(part('mc_motor', R(40, SY - 24, 48, 48, 'var(--dg-mc-case)', 'part', 4)
+    g.push(part('mc_motor', slab(40, SY - 24, 48, 48, 'var(--dg-mc-case)', { r: 4 })
       + LN(`M48,${SY - 16} L48,${SY + 16}`, 'var(--dg-steel-2)', 1)
       + LN(`M80,${SY - 16} L80,${SY + 16}`, 'var(--dg-steel-2)', 1)));
     // 聯軸器（中間一段撓性溝 —— F6 的識別特徵）
@@ -139,7 +179,10 @@
      這一格是這張圖的紅線所在：**鋼珠的回流通道**（S3）。
      鋼珠沿著一條**閉合的迴圈**灑：受力段（在溝槽裡）→ 進入循環器 → 回到另一端。
      回流段跟受力段在同一個迴圈裡產生，所以漏不掉。 */
-  const ZY_S = 152, ZY_NI = 146, ZBX0 = 404, ZBX1 = 500, ZRY = 124, ZRB = 7;
+  /* ⚠ 2026-09-23：放大格從 96 寬拉到 184 寬（ZBX1 500 → 588）——
+     畫布收到 660 之後第 1 排右半原本會空掉一塊，而這一格正是本圖的紅線（回流通道）。
+     鋼珠顆數 N、迴圈的拓樸一個都沒改，只是同一條閉合迴圈被拉長。*/
+  const ZY_S = 152, ZY_NI = 146, ZBX0 = 404, ZBX1 = 588, ZRY = 124, ZRB = 7;
 
   function ballLoop() {
     // 閉合迴圈：受力段（左→右）→ 上升 → 回流段（右→左）→ 下降。y 小的那一段就是回流。
@@ -172,13 +215,13 @@
     const d = `M${lp.pts[0][0]},${lp.pts[0][1]} L${lp.pts[1][0]},${lp.pts[1][1]} `
       + `L${lp.pts[2][0]},${lp.pts[2][1]} L${lp.pts[3][0]},${lp.pts[3][1]} Z`;
     // 螺帽本體（剖開）：外壁 ＋ 內壁；內壁上有對應的圓弧溝槽
-    g.push(part('mc_nut', R(388, 112, 128, 34, 'var(--dg-mc-case)', 'part', 3)
-      + R(388, ZY_NI - 2, 128, 4, 'var(--dg-steel-2)', 'part')));
+    g.push(part('mc_nut', slab(388, 112, 216, 34, 'var(--dg-mc-case)', { r: 3 })
+      + R(388, ZY_NI - 2, 216, 4, 'var(--dg-steel-2)', 'part')));
     // 螺桿（放大）：上表面 ＋ 圓弧溝槽
-    g.push(part('mc_screw', R(388, ZY_S, 128, 20, 'var(--dg-steel)', 'part', 1)
-      + grooveRow(396, 508, ZY_S, 4, false, 'mcgs')));
+    g.push(part('mc_screw', slab(388, ZY_S, 216, 20, 'var(--dg-steel)', { r: 1 })
+      + grooveRow(396, 596, ZY_S, 4, false, 'mcgs')));
     // 螺帽內壁的溝槽（往上挖）
-    g.push(part('mc_nut', grooveRow(396, 508, ZY_NI, 4, true, 'mcgn')));
+    g.push(part('mc_nut', grooveRow(396, 596, ZY_NI, 4, true, 'mcgn')));
     // ★ 循環器（回流通道）—— 沒有這一條，這支就是鎖緊用的梯形螺桿，不是傳動用的滾珠螺桿
     g.push(part('mc_return', LN(d, 'var(--dg-void)', 18, 'mcret', ' stroke-linejoin="round"')
       + LN(d, 'var(--dg-accent-2d)', 1.2, 'mcretln', ' stroke-dasharray="4 4" stroke-linejoin="round"')));
@@ -207,12 +250,12 @@
   function axisCross() {
     const g = [];
     // 工作台（鎖在兩個滑塊上 —— S10 的另一半）
-    g.push(part('mc_table', R(48, 262, 236, 12, 'var(--dg-alu)', 'part', 2)));
+    g.push(part('mc_table', slab(48, 262, 236, 12, 'var(--dg-alu)', { r: 2 })));
     g.push('<g class="mctiewrap">'
       + LN(`M86,274 L86,${BK_Y0}`, 'var(--dg-steel-2)', 2.4, 'mctie')
       + LN(`M246,274 L246,${BK_Y0}`, 'var(--dg-steel-2)', 2.4, 'mctie') + '</g>');
     // 底座（鋁擠型，斷面有空腔）
-    g.push(part('mc_base', R(40, BASE_Y, 252, 28, 'var(--dg-alu-2)', 'part', 3)
+    g.push(part('mc_base', slab(40, BASE_Y, 252, 28, 'var(--dg-alu-2)', { r: 3 })
       + R(56, BASE_Y + 7, 60, 14, 'var(--dg-void)', 'part', 2)
       + R(136, BASE_Y + 7, 60, 14, 'var(--dg-void)', 'part', 2)
       + R(216, BASE_Y + 7, 60, 14, 'var(--dg-void)', 'part', 2)));
@@ -346,30 +389,45 @@
   /* ★ 框高 32、標題基線 y+13、副標基線 y+28 ＝ 行距 15px。
      這是 `diagrams.js` 的 processBar B3 踩過的同一個病：`.sub` 升到 12px 之後，
      13px 的行距配 12px 的中文字會讓標題與副標的 bbox 互相重疊 1px。 */
-  const CBX = 40, CBW = 160, CBG = 22, CBY = 428, CBH = 32;
+  /* ★ 框高 34、標題基線 y+14、副標基線 y+30 ＝ 行距 16px。
+     這是 `diagrams.js` 的 processBar B3 踩過的同一個病：`.sub` 升到 12px 之後，
+     13px 的行距配 12px 的中文字會讓標題與副標的 bbox 互相重疊 1px。
+     ⚠ 2026-09-23：畫布收到 660，五格一列放不下（5×182−22 ＝ 888），改成 **3 ＋ 2 兩列**
+       （跟 `diagrams.js` 的 processBar 在窄畫布上的做法同一套）。
+       主鏈箭頭一律向右、換列時走一條往下折的連接線；C1／C3 兩條紅線因此仍然成立。*/
+  const CBX = 32, CBW = 190, CBG = 14, CBY = 436, CBH = 34, CBCOLS = 3, CBROW = 48;
 
   function ctrlLoop() {
     const g = [];
+    const pos = CC.map((c, i) => ({ x: CBX + (i % CBCOLS) * (CBW + CBG), y: CBY + Math.floor(i / CBCOLS) * CBROW }));
     CC.forEach((c, i) => {
-      const x = CBX + i * (CBW + CBG);
-      g.push(part(c.id, R(x, CBY, CBW, CBH, 'var(--dg-step-f)', 'part mccell', 7)
-        + `<g pointer-events="none">${T(x + 9, CBY + 13, c.t, 'lbl')}${T(x + 9, CBY + 28, c.s, 'sub')}</g>`));
+      const { x, y } = pos[i];
+      g.push(part(c.id, R(x, y, CBW, CBH, 'var(--dg-step-f)', 'part mccell', 7)
+        + `<g pointer-events="none">${T(x + 9, y + 14, c.t, 'lbl')}${T(x + 9, y + 30, c.s, 'sub')}</g>`));
       if (i < CC.length - 1) {
-        const ax = x + CBW, ay = CBY + CBH / 2;
-        g.push(LN(`M${ax + 2},${ay} L${ax + CBG - 6},${ay}`, 'var(--dg-accent-2d)', 2, 'mcarr')
-          + PA(`M${ax + CBG - 1},${ay} L${ax + CBG - 8},${ay - 4} L${ax + CBG - 8},${ay + 4} Z`,
-            'var(--dg-accent-2d)', 'mcarrh'));
+        const n = pos[i + 1], ay = y + CBH / 2;
+        if (n.y === y) {
+          // 同一列：直接往右
+          g.push(LN(`M${x + CBW + 2},${ay} L${n.x - 6},${ay}`, 'var(--dg-accent-2d)', 2, 'mcarr')
+            + PA(`M${n.x - 1},${ay} L${n.x - 8},${ay - 4} L${n.x - 8},${ay + 4} Z`, 'var(--dg-accent-2d)', 'mcarrh'));
+        } else {
+          // 換列：往右一小段 → 往下 → 往左走到下一列的起點 → 進格子（箭頭仍然向右）
+          const my = y + CBH + 7;
+          g.push(LN(`M${x + CBW + 2},${ay} h6 V${my} H${n.x - 14} V${n.y + CBH / 2} h6`, 'var(--dg-accent-2d)', 2, 'mcarr')
+            + PA(`M${n.x - 1},${n.y + CBH / 2} L${n.x - 8},${n.y + CBH / 2 - 4} L${n.x - 8},${n.y + CBH / 2 + 4} Z`, 'var(--dg-accent-2d)', 'mcarrh'));
+        }
       }
     });
-    // ★ 回授：起點在馬達（第 3 格）的編碼器，往左接回驅動器與控制器 —— 這個環必須是閉的
-    const mx = CBX + 2 * (CBW + CBG) + CBW / 2, dx = CBX + (CBW + CBG) + CBW / 2, cx = CBX + CBW / 2;
+    /* ★ 回授：起點在馬達（第 3 格，第一列最右）的編碼器，往左接回驅動器與控制器。
+       這個環必須是閉的 —— 只畫單向五格＝畫成了開迴路，那不是伺服。
+       兩列版的回授線走在**第一列底下 8px** 的那條空隙，不會壓到第二列（第二列從 CBY+48 起）。*/
+    const fy = CBY + CBH + 8;
+    const mx = pos[2].x + CBW / 2, dx = pos[1].x + CBW / 2, cx = pos[0].x + CBW / 2;
     g.push(part('mc_fb',
-      LN(`M${mx},${CBY + CBH} L${mx},474 L${cx},474 L${cx},${CBY + CBH + 2}`, 'var(--dg-warn)', 2, 'mcfb')
-      + LN(`M${dx},474 L${dx},${CBY + CBH + 2}`, 'var(--dg-warn)', 1.6, 'mcfbtap')
-      + PA(`M${cx},${CBY + CBH + 1} L${cx - 4},${CBY + CBH + 9} L${cx + 4},${CBY + CBH + 9} Z`, 'var(--dg-warn)', 'mcfbarr')
-      + PA(`M${cx + 60},474 L${cx + 68},470 L${cx + 68},478 Z`, 'var(--dg-warn)', 'mcfbarr')));
-    // 標籤放在回授線的右端外側（y 478）—— 五格方塊的下緣在 CBY+CBH=460，不會重疊
-    g.push(`<g pointer-events="none">${T(mx + 16, 478, '編碼器回授：起點在馬達，方向向左，跟主鏈相反 —— 有這條線才叫伺服', 'sub', null, 'fill:var(--dg-warn)')}</g>`);
+      LN(`M${mx},${CBY + CBH} L${mx},${fy} L${cx},${fy} L${cx},${CBY + CBH + 2}`, 'var(--dg-warn)', 2, 'mcfb')
+      + LN(`M${dx},${fy} L${dx},${CBY + CBH + 2}`, 'var(--dg-warn)', 1.6, 'mcfbtap')
+      + PA(`M${cx},${CBY + CBH + 1} L${cx - 4},${CBY + CBH + 8} L${cx + 4},${CBY + CBH + 8} Z`, 'var(--dg-warn)', 'mcfbarr')
+      + PA(`M${cx + 60},${fy} L${cx + 68},${fy - 4} L${cx + 68},${fy + 4} Z`, 'var(--dg-warn)', 'mcfbarr')));
     return g.join('');
   }
 
@@ -392,64 +450,77 @@
     ['射出成型機', '★ 6603 富強鑫（射出成型機）—— 它在「CNC 工具機」族群裡，但做的不是切削工具機，所以不在上面那一格'],
   ];
 
+  /* ⚠ 2026-09-23：兩個章節收到 660 寬。長句一個字都沒刪，改成 `wrapCJK` 自動斷行、
+     每一列一個粗體標題 ＋ N 行說明（列寬 628 ＝ 畫布 660 減左右各 16）。*/
+  const FW = 628, LH = 17;
+  function txtRow(id, y, title, body, warn) {
+    const lines = wrapCJK(body, 44);
+    const h = 18 + lines.length * LH;
+    const inner = [T(24, y + 13, title, 'lbl', null, warn ? 'fill:var(--dg-warn)' : '')]
+      .concat(lines.map((t, i) => T(24, y + 13 + LH * (i + 1), t, 'sub')));
+    return { svg: part(id, R(16, y, FW, h, 'transparent', 'part')
+      + `<g pointer-events="none">${inner.join('')}</g>`), h: h + 4 };
+  }
+  function txtPara(y, body, warn) {
+    const lines = wrapCJK(body, 46);
+    return { svg: lines.map((t, i) => T(24, y + 13 + LH * i, t, 'sub', null,
+      warn ? 'fill:var(--dg-warn)' : '')).join(''), h: 13 + lines.length * LH };
+  }
+
   function foldWho(y0) {
     const g = [];
-    let y = y0 + 22;
-    g.push(T(28, y, '這張圖上每一個零件，台股是誰做的（公司角色取自板塊成分股證據表；一個規格數字都不寫）', 'hd'));
-    WHO.forEach((r, i) => {
-      y += 19;
-      g.push(part('mc_who' + i, R(24, y - 13, 932, 18, 'transparent', 'part')
-        + `<g pointer-events="none">${T(30, y, r[0] + '｜' + r[1], 'sub')}</g>`));
-    });
-    y += 26;
-    g.push(T(28, y, '這些傳動件最後裝到哪裡去（4 種機器）', 'hd'));
-    const ids = ['mc_machine', 'mc_robot', 'mc_amhs', 'mc_inject'];
-    MACH.forEach((r, i) => {
-      y += 19;
-      g.push(part(ids[i], R(24, y - 13, 932, 18, 'transparent', 'part')
-        + `<g pointer-events="none">${T(30, y, r[0] + '｜' + r[1], 'sub',
-          null, i === 3 ? 'fill:var(--dg-warn)' : '')}</g>`));
-    });
+    let y = y0 + 8;
+    g.push(T(24, y + 14, '這張圖上每一個零件，台股是誰做的', 'hd'));
+    g.push(T(24, y + 31, '公司角色取自板塊成分股證據表；一個規格數字都不寫', 'sub'));
+    y += 40;
+    WHO.forEach((r, i) => { const b2 = txtRow('mc_who' + i, y, r[0], r[1]); g.push(b2.svg); y += b2.h; });
+    y += 10;
+    g.push(T(24, y + 14, '這些傳動件最後裝到哪裡去（4 種機器）', 'hd'));
     y += 24;
-    g.push(T(28, y, '★ 2359 所羅門（AI 3D 視覺與機器人整合）沒有畫在控制鏈上 —— 視覺是另一個迴路（感測→辨識→路徑），塞進來會讓這張圖變成兩個環。', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 17;
-    g.push(T(28, y, '★ 3162 精確（精密加工件）與 8027 鈦昇（自動化與雷射設備）查不到具體做的是哪一種零件與雷射用途，所以只列名、不指到主圖任何一格。', 'sub', null, 'fill:var(--dg-warn)'));
-    y += 17;
-    g.push(T(28, y, '　 6215 和椿（自動化設備與系統）、3167 大量（自動化設備）、6739 竹陞科技（半導體自動化軟體與設備）同理，屬於系統整合那一類，不對應本圖的單一零件。', 'sub'));
-    return { svg: g.join(''), h: y - y0 + 16 };
+    const ids = ['mc_machine', 'mc_robot', 'mc_amhs', 'mc_inject'];
+    MACH.forEach((r, i) => { const b2 = txtRow(ids[i], y, r[0], r[1], i === 3); g.push(b2.svg); y += b2.h; });
+    y += 8;
+    [['★ 2359 所羅門（AI 3D 視覺與機器人整合）沒有畫在控制鏈上 —— 視覺是另一個迴路（感測→辨識→路徑），塞進來會讓這張圖變成兩個環。', 1],
+      ['★ 3162 精確（精密加工件）與 8027 鈦昇（自動化與雷射設備）查不到具體做的是哪一種零件與雷射用途，所以只列名、不指到主圖任何一格。', 1],
+      ['6215 和椿（自動化設備與系統）、3167 大量（自動化設備）、6739 竹陞科技（半導體自動化軟體與設備）同理，屬於系統整合那一類，不對應本圖的單一零件。', 0],
+    ].forEach(([t, w]) => { const r = txtPara(y, t, w); g.push(r.svg); y += r.h + 4; });
+    return { svg: g.join(''), h: y - y0 + 10 };
   }
 
   /* 第 ② 段：氣動那一路（三個零件，跟上面的伺服電動路徑是兩條不同的路） */
   function foldAir(y0) {
     const g = [];
-    let y = y0 + 22;
-    g.push(T(28, y, '氣動那一路：同樣是「讓東西動」，但走的是壓縮空氣，不是伺服馬達', 'hd'));
-    y += 20;
-    g.push(T(28, y, '三點組（過濾＋調壓＋給油）→ 電磁閥（決定氣往哪一腔走）→ 氣缸（活塞被推出去）。沒有編碼器回授，所以停不到任意位置 —— 這就是它跟伺服電動軸的分界。', 'sub'));
-    const AY = y + 26;
-    g.push(part('mc_air_frl', R(40, AY, 120, 44, 'var(--dg-mc-case)', 'part', 4)
-      + C(66, AY + 22, 9, 'var(--dg-steel)', 'part') + C(98, AY + 22, 9, 'var(--dg-steel)', 'part')
-      + C(130, AY + 22, 9, 'var(--dg-oil)', 'part')
-      + `<g pointer-events="none">${T(40, AY + 58, '三點組：過濾／調壓／給油', 'sub')}</g>`));
-    g.push(LN(`M166,${AY + 22} L204,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
-      + PA(`M210,${AY + 22} L202,${AY + 18} L202,${AY + 26} Z`, 'var(--dg-accent-2d)'));
-    g.push(part('mc_air_valve', R(214, AY, 110, 44, 'var(--dg-mc-case)', 'part', 4)
-      + R(226, AY + 10, 40, 24, 'var(--dg-steel)', 'part', 2) + R(272, AY + 10, 40, 24, 'var(--dg-steel-2)', 'part', 2)
-      + LN(`M230,${AY + 22} L262,${AY + 22}`, 'var(--dg-accent-2d)', 1.4)
-      + LN(`M276,${AY + 14} L308,${AY + 30}`, 'var(--dg-accent-2d)', 1.4)
-      + `<g pointer-events="none">${T(214, AY + 58, '電磁閥：切換氣要進哪一腔', 'sub')}</g>`));
-    g.push(LN(`M330,${AY + 22} L368,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
-      + PA(`M374,${AY + 22} L366,${AY + 18} L366,${AY + 26} Z`, 'var(--dg-accent-2d)'));
-    g.push(part('mc_air_cyl', R(378, AY + 4, 210, 36, 'var(--dg-mc-case)', 'part', 4)
-      + R(384, AY + 10, 198, 24, 'var(--dg-void)', 'part', 2)
-      + R(452, AY + 8, 16, 28, 'var(--dg-steel)', 'part', 2)
-      + R(468, AY + 18, 120, 8, 'var(--dg-steel-2)', 'part', 2)
-      + `<g pointer-events="none">${T(378, AY + 58, '氣缸：活塞被壓縮空氣推出去', 'sub')}</g>`));
-    g.push(part('mc_air', R(620, AY, 336, 46, 'transparent', 'part')
-      + `<g pointer-events="none">${T(620, AY + 16, '台股：1590 亞德客-KY（氣動元件）', 'lbl')}`
-      + T(620, AY + 34, '★ 沒有畫在主圖上：它跟伺服電動軸是兩條並行的路。', 'sub', null, 'fill:var(--dg-warn)')
-      + T(620, AY + 52, '　 本圖不寫任何氣壓、缸徑與行程數字（查不到共通值）。', 'sub') + '</g>'));
-    return { svg: g.join(''), h: AY + 72 - y0 };
+    let y = y0 + 8;
+    g.push(T(24, y + 14, '氣動那一路：走的是壓縮空氣，不是伺服馬達', 'hd'));
+    g.push(T(24, y + 32, '三點組（過濾＋調壓＋給油）→ 電磁閥（決定氣往哪一腔走）→ 氣缸（活塞被推出去）。', 'sub'));
+    g.push(T(24, y + 49, '沒有編碼器回授，所以停不到任意位置 —— 這就是它跟伺服電動軸的分界。', 'sub'));
+    const AY = y + 66;
+    // 三點組
+    g.push(part('mc_air_frl', slab(28, AY, 120, 44, 'var(--dg-mc-case)', { r: 4 })
+      + C(54, AY + 22, 9, 'var(--dg-steel)', 'part') + C(86, AY + 22, 9, 'var(--dg-steel)', 'part')
+      + C(118, AY + 22, 9, 'var(--dg-oil)', 'part')
+      + `<g pointer-events="none">${T(28, AY + 60, '三點組：過濾／調壓／給油', 'sub')}</g>`));
+    g.push(LN(`M154,${AY + 22} L184,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
+      + PA(`M190,${AY + 22} L182,${AY + 18} L182,${AY + 26} Z`, 'var(--dg-accent-2d)'));
+    // 電磁閥
+    g.push(part('mc_air_valve', slab(194, AY, 110, 44, 'var(--dg-mc-case)', { r: 4 })
+      + R(206, AY + 10, 40, 24, 'var(--dg-steel)', 'part', 2) + R(252, AY + 10, 40, 24, 'var(--dg-steel-2)', 'part', 2)
+      + LN(`M210,${AY + 22} L242,${AY + 22}`, 'var(--dg-accent-2d)', 1.4)
+      + LN(`M256,${AY + 14} L288,${AY + 30}`, 'var(--dg-accent-2d)', 1.4)
+      + `<g pointer-events="none">${T(194, AY + 60, '電磁閥：切換氣要進哪一腔', 'sub')}</g>`));
+    g.push(LN(`M310,${AY + 22} L340,${AY + 22}`, 'var(--dg-accent-2d)', 2, 'mcairarr')
+      + PA(`M346,${AY + 22} L338,${AY + 18} L338,${AY + 26} Z`, 'var(--dg-accent-2d)'));
+    // 氣缸
+    g.push(part('mc_air_cyl', slab(350, AY + 4, 280, 36, 'var(--dg-mc-case)', { r: 4 })
+      + R(356, AY + 10, 268, 24, 'var(--dg-void)', 'part', 2)
+      + R(444, AY + 8, 16, 28, 'var(--dg-steel)', 'part', 2)
+      + R(460, AY + 18, 164, 8, 'var(--dg-steel-2)', 'part', 2)
+      + `<g pointer-events="none">${T(350, AY + 60, '氣缸：活塞被壓縮空氣推出去', 'sub')}</g>`));
+    let yb = AY + 72;
+    const one = txtRow('mc_air', yb, '台股：1590 亞德客-KY（氣動元件）',
+      '★ 沒有畫在主圖上：它跟伺服電動軸是兩條並行的路。本圖不寫任何氣壓、缸徑與行程數字（查不到共通值）。');
+    g.push(one.svg); yb += one.h;
+    return { svg: g.join(''), h: yb - y0 + 10 };
   }
 
   /* ================================================================ 版面

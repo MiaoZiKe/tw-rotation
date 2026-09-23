@@ -1283,11 +1283,133 @@
     }).sort((a, b) => b.share - a.share);
   }
 
-  // 一列族群：名稱、相對大盤強弱、動能方向、成交值佔比
-  function rotItem(r) {
+  /* 一列族群：名稱、相對大盤強弱、動能方向、成交值佔比。
+     `full`＝連**動能的數值**一起寫出來。只有象限展開面板用 full：
+     總覽那塊 compact 看板的格子只有 12px 字、寬度不到 160px，多一段字就會換行疊起來
+     （`_preview.py` 抓的正是這種重疊），而那裡本來就只需要「往上還是往下」。*/
+  function rotItem(r, full) {
     const arrow = r.dmo == null ? '' : r.dmo > 0.15 ? '<span class="ar up">↑</span>' : r.dmo < -0.15 ? '<span class="ar dn">↓</span>' : '<span class="ar fl">→</span>';
-    return `<li data-gid="${r.gid}"><span class="g">${fmt.esc(r.name)}</span>${arrow}
-      <span class="m">強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}　佔比 ${fmt.n(r.share, 1)}%</span></li>`;
+    const mo = full && r.mo != null ? `　動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 1)}` : '';
+    // 換段徽章：這是「最近 5 個交易日換階段的族群」那排的資訊，跟著族群本人走才讀得懂
+    const jump = full && r.moved && r.was
+      ? `<span class="jmp" style="--c:${STAGE[r.stage].color}">${STAGE[r.was].name}→${STAGE[r.stage].name}</span>` : '';
+    return `<li data-gid="${r.gid}"><span class="g">${fmt.esc(r.name)}</span>${arrow}${jump}
+      <span class="m">強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}${mo}　佔比 ${fmt.n(r.share, 1)}%</span></li>`;
+  }
+
+  /* ================================================================ 輪動階段併進輪動時鐘（Andy 2026-09-23）
+     他的原話：「**下方的輪動階段需要與上方的輪動時鐘合併，如圖所示，輪動時鐘四周的四段
+     需要有對應顏色 並且點擊後會出現目前該項線的股票強弱 占比，做完後下方的輪動階段即可移除**」，
+     截圖用紅線把下方那四顆階段卡一顆一顆連到時鐘的四個象限標籤上。
+
+     為什麼這樣併得起來：那四顆卡片和時鐘的四個象限**本來就是同一件事的兩種畫法** ——
+     卡片是「這一段裡有誰」的清單，象限是「這一段在盤面上的哪個方向」。
+     分成上下兩塊的代價是使用者要自己把「左上角那一片藍」和「下面第一張藍色卡片」對起來，
+     那正是 Andy 說的「逼使用者自己做兩步推論」。
+
+     做法：象限標籤改成**可以點的卡片**（吃 STAGE 的顏色，和卡片、排行、即時晶片同一份色），
+     點下去在時鐘正下方展開那一段的族群清單（強弱／動能／佔比），再點一次收起來。
+     顏色一律讀 `STAGE[k].color`（那是 getter，切淺色主題會自己換），**不在這裡另寫一套色碼**。*/
+  let rotStageOpen = '';           // 目前展開哪一段（''＝都沒開）；同時只開一段
+
+  /* 象限卡與展開面板共用的**同一份**名單。三件事一次套齊，順序不能換：
+       ① 共用篩選（rotPickSet）—— 時鐘上只剩 3 個族群時，象限卡不可以還寫 12
+       ② 「看哪一天」（rotFrame）—— 刷回 10 天前，階段要用那一天的座標重算
+       ③ 盤中即時（RLV）—— 開著即時就用續算出來的那一點，和時鐘上的點同一個口徑
+     ②③ 互斥（拖時間軸本來就會退出即時），所以這裡也只會套到其中一個。*/
+  function rotStageAll() {
+    const rows = rotRows(rotF3 && rotF3.rrg, ROT_BOARD_WIN);
+    const pick = rotPickSet();
+    const frame = Math.max(0, +rotFrame || 0);
+    const liveOn = !!(RLV.on && !RLV.err && frame === 0 && Object.keys(RLV.pt).length);
+    return rows.filter(r => !pick.size || pick.has(r.gid)).map(r => {
+      if (liveOn) {
+        const v = RLV.pt[r.gid];
+        // 沒抓到報價的族群維持盤後位置（和時鐘上那些「沒有箭頭的點」一致，不要自己編一個數字）
+        if (v) return { ...r, stage: v.stage, rs: v.fx, mo: v.fy, was: STAGE[v.stage0] ? v.stage0 : null, moved: v.stage0 !== v.stage, isLive: true };
+        return r;
+      }
+      if (frame > 0) {
+        const w = rotAtFrame(r.trail || [], frame);
+        if (w) return { ...r, rs: w[1], mo: w[2], stage: stageOf(w[1], w[2]), was: null, moved: false };
+      }
+      return r;
+    });
+  }
+  const rotStageCounts = () => {
+    const c = {};
+    rotStageAll().forEach(r => { c[r.stage] = (c[r.stage] || 0) + 1; });
+    return c;
+  };
+
+  /* 四顆象限卡。位置用「極座標算回像素」而不是貼在容器四角 ——
+     貼四角的話它們會撞到左右兩欄的族群名標籤（layoutRotLabels 把名字排在容器兩側），
+     而象限中線（45°/135°/225°/315°）上的那個位置，本來就是 ECharts 原本畫象限標籤的地方，
+     所以換成卡片之後**版面的佔用完全沒變**，`_preview.py` 的重疊風險也沒變大。
+     ★ ECharts 原本那組 axisLabel 會被關掉（見 axisLabel.show），不然同一個名字會出現兩次。*/
+  function rotQuadChips(el) {
+    if (!el) return;
+    let host = el.querySelector('.rotquads');
+    if (!host) { host = document.createElement('div'); host.className = 'rotquads'; el.appendChild(host); }
+    const W = el.clientWidth, H = el.clientHeight;
+    if (!W || !H) { host.innerHTML = ''; return; }
+    // 和 polar 的設定一致：center 50%/50%、radius 84%（百分比的基準是 min(寬,高)/2）
+    const R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+    const ANG = { leading: 45, improving: 135, lagging: 225, weakening: 315 };
+    const cnt = rotStageCounts();
+    host.innerHTML = STAGE_ORDER.map(k => {
+      const a = ANG[k] * Math.PI / 180;
+      const x = cx + Math.cos(a) * R * 1.02, y = cy - Math.sin(a) * R * 1.02;
+      const on = rotStageOpen === k;
+      return `<button type="button" class="rq${on ? ' on' : ''}" data-k="${k}" aria-expanded="${on ? 'true' : 'false'}"
+        style="--c:${STAGE[k].color};left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"
+        title="${fmt.esc(STAGE[k].sub)}；${fmt.esc(STAGE[k].act)}。點一下在時鐘下面展開這一段有哪些族群"
+        >${STAGE[k].name}<em>${cnt[k] || 0}</em></button>`;
+    }).join('');
+    $$('.rq', host).forEach(b => b.onclick = (ev) => { ev.stopPropagation(); rotStageToggle(b.dataset.k); });
+  }
+
+  /* 點象限：同時只展開一段（點另一段就換過去、點自己就收起來）。
+     只改卡片的 class，**不重畫整張時鐘** —— 重畫會把還在跑的補間動畫從頭開始。*/
+  function rotStageToggle(k) {
+    rotStageOpen = rotStageOpen === k ? '' : k;
+    $$('#rotClock .rotquads .rq').forEach(b => {
+      const on = b.dataset.k === rotStageOpen;
+      b.classList.toggle('on', on); b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    });
+    renderStagePanel();
+  }
+
+  /* 展開面板。刻意放在**時鐘正下方**（`#stagePanel`）而不是浮在圖上：
+     浮層會蓋住點與軌跡，而右邊那一欄是「資金流向排行」，蓋過去等於把另一張圖弄不見。
+     放在下面只會讓這一欄長高，時鐘本身（min-height 440）完全不變形。*/
+  function renderStagePanel() {
+    const box = $('#stagePanel'); if (!box) return;
+    const k = rotStageOpen;
+    if (!k || !STAGE[k]) { box.hidden = true; box.innerHTML = ''; return; }
+    const s = STAGE[k];
+    const list = rotStageAll().filter(r => r.stage === k);
+    const live = list.some(r => r.isLive);
+    box.hidden = false;
+    box.dataset.k = k;
+    box.innerHTML = `<div class="ph"><i style="background:${s.color}"></i>
+        <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群</span>
+        <span class="muted">${s.sub}　·　<em>${s.act}</em></span>
+        <span class="sp"></span><button type="button" class="btn small" data-x="1">收起 ✕</button></div>
+      <div class="sd muted">依成交值佔比排序${live ? '　·　<b>⚡ 盤中即時</b>（沒抓到報價的族群維持盤後位置）' : ''}
+        　·　點族群名稱會在右邊「資金流向排行」下面展開它的成分股，再點成分股就畫到時鐘上。</div>
+      <ul class="ms">${list.map(r => rotItem(r, true)).join('')
+        || '<li class="none">這一段目前沒有族群（可能是上面的篩選只留了別段的族群）</li>'}</ul>`;
+    const x = box.querySelector('[data-x]'); if (x) x.onclick = () => rotStageToggle(k);
+    /* 展開成分股走**既有**那條路（`drillOpen` → `#rankPanel`），和即時那排 `rlvchip`、
+       排行長條、族群下拉完全一樣 —— 全站只有一套「點族群展開成分股」的邏輯。*/
+    $$('li[data-gid]', box).forEach(li => li.onclick = () => {
+      const gid = li.dataset.gid;
+      const r = list.find(z => z.gid === gid);
+      drillOpen(gid, (r && r.name) || L.gname[gid] || gid,
+        r ? `${s.name}　·　強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}　動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 1)}　佔比 ${fmt.n(r.share, 1)}%` : '',
+        'rankPanel');
+    });
   }
 
   /* ================================================================ 盤中即時輪動時鐘（RLV）
@@ -1740,6 +1862,24 @@
        使用者看到的是「我只是往前拉一天，整盤東西全部跳了一下」，
        那正是 Andy 講的「一天的差距在圖上卻是各種歪曲」的另一半。
        所以尺度改成用**整段軌跡的最大偏離量**算一次，刷動期間完全不動。*/
+  /* 回放：把每個族群的位置換成 trail 裡「frame 天前」那一筆。
+     trail 是 [日期, rs_ratio, rs_mom] 由舊到新，所以第 k 天前＝倒數第 k+1 筆。
+
+     ★ 2026-09-20：frame 允許**小數**。拖曳與播放時 ECharts 會自己在相鄰兩天之間補間，
+       但「軌跡要畫到哪裡」必須跟大圈站在同一個位置上，所以兩邊共用這一支取值，
+       小數就在相鄰兩筆之間線性內插。回傳的第 4 個值是「由舊到新的索引」，
+       軌跡那一段要用它決定畫到哪裡為止。
+     ★ 2026-09-23 從 renderRotClock 裡提到模組層：輪動階段看板併進時鐘之後，
+       象限卡的計數與展開面板也要跟著「看哪一天」走 —— 兩邊各寫一份取值公式，
+       刷時間軸時就會出現「點已經走到領先、象限卡還寫著落後」。*/
+  const rotAtFrame = (t, f) => {
+    const n = t.length; if (!n) return null;
+    const idx = Math.max(0, Math.min(n - 1, n - 1 - f));
+    const i0 = Math.floor(idx), i1 = Math.min(n - 1, i0 + 1), u = idx - i0;
+    const a = t[i0], b = t[i1];
+    return [a[0], a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, idx];
+  };
+
   function renderRotClock(rows, back, id, compact, opts) {
     opts = opts || {};
     const el = $('#' + id); if (!el) return;
@@ -1757,20 +1897,7 @@
          會被夾在盤緣（clamp），看起來每一檔都「跟大盤差最多」，那是假的。*/
     const stkRows = compact ? [] : drillRotRows();
     if (stkRows.length) top0 = top0.concat(stkRows);
-    /* 回放：把每個族群的位置換成 trail 裡「frame 天前」那一筆。
-       trail 是 [日期, rs_ratio, rs_mom] 由舊到新，所以第 k 天前＝倒數第 k+1 筆。
-
-       ★ 2026-09-20：frame 允許**小數**。拖曳與播放時 ECharts 會自己在相鄰兩天之間補間，
-         但「軌跡要畫到哪裡」必須跟大圈站在同一個位置上，所以兩邊共用這一支取值，
-         小數就在相鄰兩筆之間線性內插。回傳的第 4 個值是「由舊到新的索引」，
-         軌跡那一段要用它決定畫到哪裡為止。*/
-    const atFrame = (t, f) => {
-      const n = t.length; if (!n) return null;
-      const idx = Math.max(0, Math.min(n - 1, n - 1 - f));
-      const i0 = Math.floor(idx), i1 = Math.min(n - 1, i0 + 1), u = idx - i0;
-      const a = t[i0], b = t[i1];
-      return [a[0], a[1] + (b[1] - a[1]) * u, a[2] + (b[2] - a[2]) * u, idx];
-    };
+    const atFrame = rotAtFrame;      // 模組層那一支（象限卡與展開面板也吃同一條公式）
     const scope = top0;                       // 尺度與軌跡都用「還沒被 frame 換掉」的原始資料
     const frame = Math.max(0, +opts.frame || 0);
     let frameDate = null;
@@ -2051,6 +2178,9 @@
         splitLine: { lineStyle: { color: CH.grid } },
         splitArea: { show: true, areaStyle: { color: areaColors } },
         axisLabel: {
+          /* opts.quads＝這張圖的象限標籤改由 HTML 卡片畫（可點、可展開），
+             ECharts 這一組就要關掉，不然「領先」會在同一個位置疊出兩份。*/
+          show: !opts.quads,
           margin: compact ? 6 : 10, fontSize: compact ? 12 : 14, fontWeight: 700,
           formatter: (v) => { const s = CLOCK_SECTOR.find(z => Math.abs((z.from + z.to) / 2 - v) < 1); return s ? STAGE[s.k].name : ''; },
           color: (v) => { const s = CLOCK_SECTOR.find(z => Math.abs((z.from + z.to) / 2 - v) < 1); return s ? STAGE[s.k].color : 'transparent'; },
@@ -2307,6 +2437,8 @@
         rotLbl[id] = layoutRotLabels(c, el, top);
         // 驗收用：量兩兩不重疊、全在畫布內（只有卡片那張圖要攤出來，不然放大時會互相蓋掉）
         if (opts.expose) window.App._rotLabels = Object.keys(rotLbl[id]).map(k => rotLbl[id][k].rect);
+        // 象限卡的位置是從容器尺寸算出來的，所以和族群名標籤走同一個重排時機（含 120ms 去抖動）
+        if (opts.quads) rotQuadChips(el);
         try { c.setOption({ series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
       relayout();
@@ -2349,6 +2481,8 @@
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
       { pick: ids.pick, frame: ids.frame, span: ids.span, trail: ids.trail,
+        // 象限卡只長在資金流向頁那張時鐘上（總覽小圖太小、放大視窗是另一份 DOM）
+        quads: !!ids.quads,
         // 量測值只屬於「卡片上那張時鐘」（E2）：總覽小圖與放大視窗都不要
         expose: !!ids.expose });
     /* ★ 2026-09-20：`only: 'clock'` ＝只更新時鐘那一張圖。
@@ -2382,6 +2516,9 @@
           四格因此永遠一樣高，也不會把版面撐長。
        ② 點族群不再跳頁，改成在那一列底下原地插一列成分股膠囊，再點一次收合；
           真的要進族群頁的話，展開的那一列右邊有「進族群頁 →」。*/
+    /* ★ 2026-09-23：資金流向頁的輪動階段看板已併進時鐘的四個象限卡，那一塊 DOM 不存在了，
+       所以這裡一定要擋 null —— 總覽頁的 `#rotMini`（compact）還在用同一支。*/
+    if (!board) return;
     board.innerHTML = STAGE_ORDER.map(k => {
       const list = rows.filter(r => r.stage === k);
       const s = STAGE[k];
@@ -2907,6 +3044,10 @@
         只看金額會被大盤量能帶著走，所以看佔比。名字後面的 <em>3 ↑</em> 是成交值排名進步了 3 名；
         長條右邊那個百分比是這段期間的族群報酬。<b>點長條</b>會在下面列出它的成分股，
         同時左邊的時鐘只亮這一個族群。</li>
+      <li><b>四周那四顆卡片（改善／領先／轉弱／落後）就是以前圖下方的「輪動階段」</b>：
+        卡片上的數字＝現在落在那一段的族群有幾個，<em>點一下就在時鐘下面列出是哪幾個</em>
+        （附強弱、動能、佔比），再點族群名稱會在右邊排行下面展開它的成分股。再點卡片一次收起來。
+        盤中開著「即時」時，這四顆卡片算的是<b>續算後</b>的位置，和盤上的點同一個口徑。</li>
       <li><b>先看那個圓盤（資金輪動時鐘）</b>：圓盤切成四塊，就是循環的四段。
         一顆點是一個族群，<em>點落在哪一塊＝現在在哪一段</em>；點越大＝成交值佔比越高。</li>
       <li>資金照<em>順時針</em>一塊一塊跑：落後（左下）→ 改善（左上）→ 領先（右上）→ 轉弱（右下）→ 回落後。
@@ -3185,8 +3326,12 @@
        也可以篩選想要的股票」）—— 圖一指的是漲跌分佈那張卡的篩選列。
        這裡把同一套語彙搬過來，`rotFilter` 是排行與時鐘**共用**的那一份選擇。*/
     const drawRot = (frame, only) => {
+      /* ★ 2026-09-23：`board`（輪動階段四格）與 `cycle`（四段循環列）不再傳 ——
+         那一整塊已經併進時鐘的四個象限卡（`quads`）。
+         `move`（最近 5 個交易日換階段的族群）**留下來**，只是搬到時鐘正下方：
+         它回答的是「誰剛換段」，那是一句跨象限的話，塞進任何單一象限都會漏掉另一半。*/
       renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
-        { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove', clock: 'rotClock',
+        { move: 'rotMove', clock: 'rotClock', quads: true,
           pick: rotPickSet(), frame: frame || 0, only,
           /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
              span＝30 而後端只存 31 天，所以軌跡的起點永遠是最舊那一天 ——
@@ -3207,8 +3352,14 @@
          於是每一幀都沒跑完就被下一幀接手 —— 尾巴與大圈的脫節會一路累積。
          實測：播到第 5 天時「光電業」的尾巴尖端已經落後大圈 41px（大圈半徑只有 6.5px）。
          看板本來就不需要時鐘陪著重畫，分開之後脫節回到 3px 以內。*/
-    const drawBoard = () => renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
-      { board: 'rotBoard', cycle: 'rotCycle', move: 'rotMove' });
+    /* 原本的 `drawBoard`。看板拆掉之後它只剩兩件事：重畫「換階段的族群」那一排、
+       以及把展開中的象限面板換成新的那一天。
+       ★ 去抖動**照舊留著**（不要順手刪）：面板一次要重建幾十個 `<li>`，
+         播放是每 420ms 推進一天，跟著重建一樣會把時鐘的補間動畫拖到掉幀。*/
+    const drawBoard = () => {
+      renderRotation(f3 && f3.rrg, ROT_BOARD_WIN, { move: 'rotMove' });
+      renderStagePanel();
+    };
     /* ★ 2026-09-21：刷「看哪一天」時，排行也要跟著換截止日。
        但**不要每一幀都重畫** —— 播放是每 420ms 推進一天，排行是整張 notMerge 重畫
        （量測：1500px 下 60~90ms），跟著跑會把時鐘的補間動畫拖到掉幀，
@@ -3228,11 +3379,11 @@
     /* 篩選（產業鏈／前 10 大／個股／族群晶片）變了就重畫。
        放大視窗開著時它也要跟著重畫 —— 兩邊吃的是同一份 ROT 狀態，
        只更新其中一邊的話，使用者關掉放大就會看到「剛剛按的東西不見了」。*/
-    rotRedraw = () => { drawRot(rotFrame); drawPeriod(); if (rotZoomDraw) rotZoomDraw(); };
+    rotRedraw = () => { drawRot(rotFrame); drawPeriod(); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); };
     /* 即時那一輪只要重畫「時鐘」（卡片＋放大視窗）。
        刻意**不叫 `rotRedraw`** —— 它連排行與期間卡一起重畫，那兩張和即時完全無關，
        每分鐘白重建一次只會讓畫面閃一下。*/
-    rlvRedraw = () => { drawRot(rotFrame); if (rotZoomDraw) rotZoomDraw(); };
+    rlvRedraw = () => { drawRot(rotFrame); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); };
     /* 放大視窗關掉時把卡片補回來：天數（rotFrame）與篩選都是在放大視窗裡改的，
        卡片那張圖在那段期間刻意沒有跟著重畫（每 420ms 重畫兩張會掉幀）。*/
     rotSyncCard = () => {

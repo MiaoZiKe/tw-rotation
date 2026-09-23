@@ -15512,13 +15512,16 @@ def t_psu_v2(pg, base):
     seg_rows = {}
     for seg in ("power", "connector", "assembly"):
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-        base_rows = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        # ★ W3-2：成分股表移除，改量環節詳情 `#cgSegBox`（沒選環節時是 0，選了才長出來）
+        base_rows = seg_stocks(pg)
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"'+s+'\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        seg_rows[seg] = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length") if hit else None
-        ok(f"[{FEAT}] 點「{seg}」環節色標 → 成分股筆數真的變少", hit and seg_rows[seg] is not None and 0 < seg_rows[seg] < base_rows, f"{base_rows} → {seg_rows[seg]}")
+        seg_rows[seg] = seg_stocks(pg) if hit else None
+        ok(f"[{FEAT}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
+           hit and seg_rows[seg] is not None and seg_rows[seg] > 0 and seg_rows[seg] != base_rows,
+           f"{base_rows} → {seg_rows[seg]}")
     vals = [v for v in seg_rows.values() if v is not None]
-    ok(f"[{FEAT}] ★ power／connector／assembly 三次篩出來的筆數**彼此不同**", len(vals) == 3 and len(set(vals)) == 3, seg_rows)
+    ok(f"[{FEAT}] ★ power／connector／assembly 三次列出來的檔數**彼此不同**", len(vals) == 3 and len(set(vals)) == 3, seg_rows)
     # ---- 非講不可的話（§6-N5／N6）：在整張圖的文字裡（警語卡 ＋ svg）
     _v2_land(pg, url, "dark", 1440, "0")
     s = pg.evaluate(_V2)
@@ -15582,15 +15585,16 @@ def t_abf_v2(pg, base):
     got = {}
     for seg in ("substrate_material", "abf_pcb", "hdi_pcb"):
         pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-        b0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        # ★ W3-2：成分股表移除，改量環節詳情 `#cgSegBox`
+        b0 = seg_stocks(pg)
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        got[seg] = {"n": pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length"), "base": b0, "hit": hit,
-                    "body": pg.evaluate("() => { const t = document.querySelector('#memberTable tbody'); return t ? t.textContent.trim() : ''; }")}
-    ok(f"[{FEAT}] 三個環節色標篩出來的筆數彼此不同", len({got[s]["n"] for s in got}) == 3 and all(got[s]["hit"] for s in got), {s: got[s]["n"] for s in got})
-    ok(f"[{FEAT}] ★「載板材料」那一次真的是 0 筆、而且畫面說「沒有台股直接對應」＋ 味之素（台股掛零不是 bug）",
-       got["substrate_material"]["n"] == 0 and "沒有台股直接對應" in got["substrate_material"]["body"] and "味之素" in got["substrate_material"]["body"], got["substrate_material"]["body"][:60])
-    ok(f"[{FEAT}] 「IC 載板」那一格 3 筆、「高階 PCB」那一格比基準多", got["abf_pcb"]["n"] == 3 and got["hdi_pcb"]["n"] > got["hdi_pcb"]["base"], {s: got[s]["n"] for s in got})
+        got[seg] = {"n": seg_stocks(pg), "base": b0, "hit": hit,
+                    "body": pg.evaluate("() => (document.getElementById('cgSegBox') || {}).innerText || ''")}
+    ok(f"[{FEAT}] 三個環節色標列出來的檔數彼此不同", len({got[s]["n"] for s in got}) == 3 and all(got[s]["hit"] for s in got), {s: got[s]["n"] for s in got})
+    ok(f"[{FEAT}] ★「載板材料」那一次真的一檔台股都沒有、而且畫面說「沒有直接對應的台股」＋ 味之素（台股掛零不是 bug）",
+       got["substrate_material"]["n"] == 0 and "沒有直接對應的台股" in got["substrate_material"]["body"] and "味之素" in got["substrate_material"]["body"], got["substrate_material"]["body"][:60])
+    ok(f"[{FEAT}] 「IC 載板」那一格 3 檔、「高階 PCB」那一格比它多", got["abf_pcb"]["n"] == 3 and got["hdi_pcb"]["n"] > got["abf_pcb"]["n"], {s: got[s]["n"] for s in got})
     # ---- 非講不可的話 ＋ N1（整張圖唯一的百分比是 ABF 膜市占，連來源一起）
     _v2_land(pg, url, "dark", 1440, "0")
     s = pg.evaluate(_V2)
@@ -15742,8 +15746,9 @@ def t_cooling_v2(pg, base):
         dg_force_open(pg)
         return pg.evaluate(COOL_V2)
 
+    # ★ 2026-09-23 第二批（W3-2）：成分股表移除，改數環節詳情 `#cgSegBox`
     def rows():
-        return pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr').length")
+        return seg_stocks(pg)
 
     def bars_open(want):
         """把章節列開到 want 這個狀態（冪等：已經是那個狀態就不動，#237 的「toggle 一律 if」）。"""
@@ -15860,12 +15865,13 @@ def t_cooling_v2(pg, base):
 
         # ---------------- 7. 既有互動一個不少（1440 科技）
         land(url, "dark")
-        r0 = rows()
+        r0 = rows(); f0 = seg_applied(pg)
         keys = ["cold_plate", "vc"] if did == "liquid_cooling" else ["blade", "fan_wall"]
         a = click_part(keys[0])
         ok("[%s] ★ 點 SVG 零件「%s」→ 它跟它的卡片一起變主角（卡片與零件共用 data-part）、引線變粗" % (did, keys[0]),
            a and keys[0] in a["selSvg"] and keys[0] in a["selCards"] and a["selLeads"] >= 1, a and {"svg": a["selSvg"], "cards": a["selCards"], "leads": a["selLeads"]})
-        ok("[%s] 點零件之後成分股筆數一動都不動（#73 只亮不篩）" % did, rows() == r0, "%s → %s" % (r0, rows()))
+        ok("[%s] 點零件之後畫面沒有被聚焦到那一格（#73 只亮不篩）" % did,
+           seg_applied(pg) == f0 and not seg_applied(pg), f0)
         ok("[%s] ★「誰做的」小卡開了，而且寫的是這個零件（含台股名字）" % did,
            a and a["partCard"] and ("奇鋐" in a["partCard"] if did == "liquid_cooling" else "建準" in a["partCard"]), (a or {}).get("partCard", "")[:120])
         pg.click('#prodDiagram .dgc[data-part="%s"]' % keys[1], timeout=5000); pg.wait_for_timeout(500)
@@ -15879,7 +15885,8 @@ def t_cooling_v2(pg, base):
            c and c["partCard"] and ("富世達" in c["partCard"] if nk == "qd" else "尼得科超眾" in c["partCard"]), (c or {}).get("partCard", "")[:160])
         pg.click('#cgSegs .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(900)
         r2 = rows()
-        ok("[%s] 點「散熱」環節色標 → 成分股真的換了一批" % did, r2 != r0 and r2 > 0, "%s → %s" % (r0, r2))
+        ok("[%s] 點「散熱」環節色標 → 圖下方真的列出那一格的台股" % did,
+           r2 != r0 and r2 > 0 and seg_applied(pg), "%s → %s" % (r0, r2))
         pg.click('#cgSegs .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(700)
         click_part(keys[0])
         bgpt = pg.evaluate(_DGL_BG)
@@ -15974,11 +15981,12 @@ def t_panel_v2(pg, base):
     for seg in ("panel_mfg", "display_material"):
         pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         hit = _b14b_seg_chip(pg, seg); pg.wait_for_timeout(800)
-        got[seg] = {"hit": hit, "n": _b14b_rows(pg), "codes": pg.evaluate("() => [...document.querySelectorAll('#memberTable tbody tr[data-code]')].map(r => r.dataset.code).sort().join(',')"),
-                    "body": pg.evaluate("() => { const t = document.querySelector('#memberTable tbody'); return t ? t.textContent.trim() : ''; }")}
+        # ★ W3-2：成分股表移除，名單與說明都改讀環節詳情 `#cgSegBox`
+        got[seg] = {"hit": hit, "n": _b14b_rows(pg), "codes": seg_codes(pg),
+                    "body": pg.evaluate("() => (document.getElementById('cgSegBox') || {}).innerText || ''")}
     ok(f"[{FEAT}] 點「面板 TFT-LCD」色標 → 剛好三家（2409／3481／6116）", got["panel_mfg"]["hit"] and got["panel_mfg"]["codes"] == "2409,3481,6116", got["panel_mfg"]["codes"])
-    ok(f"[{FEAT}] ★ 點「玻璃基板」色標 → 0 筆，而且畫面說「沒有台股直接對應」＋ 康寧（台股掛零不是 bug）",
-       got["display_material"]["hit"] and got["display_material"]["n"] == 0 and "沒有台股直接對應" in got["display_material"]["body"] and "康寧" in got["display_material"]["body"], got["display_material"]["body"][:60])
+    ok(f"[{FEAT}] ★ 點「玻璃基板」色標 → 一檔台股都沒有，而且畫面說「沒有直接對應的台股」＋ 康寧（台股掛零不是 bug）",
+       got["display_material"]["hit"] and got["display_material"]["n"] == 0 and "沒有直接對應的台股" in got["display_material"]["body"] and "康寧" in got["display_material"]["body"], got["display_material"]["body"][:60])
     # ---- 非講不可的話（§5-D 四行、§5-E 九檔、§6-C 紅線）：收合狀態 ＋ 全開
     _v2_land(pg, url, "dark", 1440, "0")
     s = pg.evaluate(_V2)
@@ -16074,8 +16082,8 @@ def t_hsio_v2(pg, base):
     for seg in ("connector", "hdi_pcb", "optical", "thermal"):
         pg.goto(url, wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         hit = _b14b_seg_chip(pg, seg); pg.wait_for_timeout(800)
-        got[seg] = {"hit": hit, "n": _b14b_rows(pg), "codes": pg.evaluate("() => [...document.querySelectorAll('#memberTable tbody tr[data-code]')].map(r => r.dataset.code).sort().join(',')")}
-    ok(f"[{FEAT}] ★ 四個環節色標篩出來的成分股名單彼此都不同（四個 seg 真的分開掛對）", all(g["hit"] for g in got.values()) and len({g["codes"] for g in got.values()}) == 4, {s: (got[s]["n"], got[s]["codes"][:24]) for s in got})
+        got[seg] = {"hit": hit, "n": _b14b_rows(pg), "codes": seg_codes(pg)}   # ★ W3-2：改讀環節詳情
+    ok(f"[{FEAT}] ★ 四個環節色標列出來的台股名單彼此都不同（四個 seg 真的分開掛對）", all(g["hit"] for g in got.values()) and len({g["codes"] for g in got.values()}) == 4, {s: (got[s]["n"], got[s]["codes"][:24]) for s in got})
     ok(f"[{FEAT}] ★「連接器 / 線材」那一格真的只篩出一家（族群有四家，環節只收錄一家 —— 那不是壞掉）", got["connector"]["n"] == 1, got["connector"])
     # ---- 四格裡依序點四個掛在不同環節的零件（章節全開之後）→ 主角換人、小卡換人、成分股不動
     _v2_land(pg, url, "dark", 1440, "0"); _v2_open_all(pg)
@@ -16158,14 +16166,16 @@ def _seg_rows_distinct(pg, base, feat, segs):
     got = {}
     for seg in segs:
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
-        b0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
+        # ★ W3-2：成分股表移除，改數環節詳情 `#cgSegBox`（沒選環節是 0，選了才長出來）
+        b0 = seg_stocks(pg)
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
-        n = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length") if hit else None
+        n = seg_stocks(pg) if hit else None
         got[seg] = n
-        ok(f"[{feat}] 點「{seg}」環節色標 → 成分股筆數真的變少", hit and n is not None and 0 < n < b0, f"{b0} → {n}")
+        ok(f"[{feat}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
+           hit and n is not None and n > 0 and n != b0, f"{b0} → {n}")
     vals = [v for v in got.values() if v is not None]
-    ok(f"[{feat}] ★ {'／'.join(segs)} 各自篩出來的筆數**彼此不同**（證明 seg 真的分開掛對）", len(vals) == len(segs) and len(set(vals)) == len(segs), got)
+    ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的檔數**彼此不同**（證明 seg 真的分開掛對）", len(vals) == len(segs) and len(set(vals)) == len(segs), got)
     return got
 
 
@@ -17677,7 +17687,7 @@ def t_b25_graph(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(1500)
 
     # ---- ⑬⑭ 點大圓點 → 右側資訊欄；欄裡每一個該有連結的都有
-    rows0 = count(pg, "#memberTable tbody tr")
+    # ★ W3-2：成分股表移除。「點大圓點真的有反應」改量右側資訊欄與 `.sel`
     pg.click(CG_HIT.format(gid)); pg.wait_for_timeout(1600)
     pane = pg.evaluate("""() => { const s = document.getElementById('cgSide'); if (!s || s.hidden) return null;
         const t = s.innerText || '';
@@ -17702,8 +17712,9 @@ def t_b25_graph(pg, base):
            any(h.startswith("#industry/group/") for h in pane["hrefs"])
            and any(h.startswith("#industry/semiconductor/") for h in pane["hrefs"])
            and "#industry/semiconductor" in pane["hrefs"], pane["hrefs"][-6:])
-    ok("點大圓點之後下方成分股真的被篩成那個族群",
-       count(pg, "#memberTable tbody tr") < rows0, f"{rows0} → {count(pg, '#memberTable tbody tr')}")
+    ok("點大圓點之後那一顆真的被選起來（選取狀態換過去了）",
+       pg.evaluate("() => [...document.querySelectorAll('#cgGraph .cgnode[data-gid].sel')]"
+                   ".map(n => n.dataset.gid)") == [gid])
 
     # ---- ⑯ 關係類型三個勾選框：取消勾選，那一類的線真的消失
     for rel in ("supply", "peer", "equip"):
@@ -17786,11 +17797,11 @@ def t_b25_graph(pg, base):
     pt = pg.evaluate(CG_EMPTY_PT)
     if ok("圖上找得到一塊空白可以點", bool(pt), pt):
         pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1300)
-        ok("點背景真的取消選取（資訊欄收掉、成分股回到全部）",
+        ok("點背景真的取消選取（資訊欄收掉、圖上沒有任何一顆還選著）",
            pg.evaluate("() => document.getElementById('cgSide').hidden") is True
-           and count(pg, "#memberTable tbody tr") == rows0,
+           and count(pg, "#cgGraph .cgnode[data-gid].sel") == 0,
            {"hidden": pg.evaluate("() => document.getElementById('cgSide').hidden"),
-            "rows": count(pg, "#memberTable tbody tr"), "before": rows0})
+            "sel": count(pg, "#cgGraph .cgnode[data-gid].sel")})
 
     # ---- 搜尋框真的篩（不是擺著好看）
     pg.fill("#cggSearch", "台積電"); pg.wait_for_timeout(900)
@@ -17855,14 +17866,15 @@ def t_b25_graph(pg, base):
     # 環節色標（舊 #segChips 的新家）在面板裡照樣篩得動
     chip = pg.query_selector("#cgSegs .segchip:not(.nomem)")
     if chip:
-        r0 = count(pg, "#memberTable tbody tr")
+        r0 = seg_stocks(pg)
         chip.click(); pg.wait_for_timeout(1100)
-        r1 = count(pg, "#memberTable tbody tr")
-        ok("在篩選面板裡點環節色標，成分股真的被篩", r1 < r0, f"{r0} → {r1}")
+        r1 = seg_stocks(pg)
+        # ★ W3-2：成分股表移除，改量環節詳情 `#cgSegBox`（沒選環節是 0，選了才長出來）
+        ok("在篩選面板裡點環節色標，圖下方真的列出那一格的台股", r1 > r0, f"{r0} → {r1}")
         ok("而且圖上不屬於那一格的族群真的被壓暗",
            pg.evaluate("() => document.querySelectorAll('#cgGraph .cgnode.dim').length") > 0)
         pg.click("#cgSegs .segchip.sel"); pg.wait_for_timeout(900)
-        ok("再點一次真的取消", count(pg, "#memberTable tbody tr") == r0)
+        ok("再點一次真的取消（環節詳情收回去）", seg_stocks(pg) == r0, seg_stocks(pg))
     pg.evaluate("() => { try { localStorage.setItem('tw.cgStyle','space'); } catch (e) {} }")
 
     # ================= 第四版（Andy：保留星際與泡泡、效果加強、圓圈大小看市占）=================
@@ -18528,9 +18540,10 @@ def t_b29_tabs(pg, base):
                 pg.evaluate("() => (window.Industry._gp()||{}).mode"))
 
     # ---------------- ⑥ 昨天／即時
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    # ★ 2026-09-23 第二批（W3-3）：族群總覽搬到 `/overview`，`#industry/<chain>` 改成直接開第一張剖析圖。
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
     g3 = pg.evaluate(B29_GP)
-    ok("進一條鏈，第一個分頁一樣是長條圖＋右邊圓餅圖",
+    ok("進一條鏈的族群總覽，一樣是長條圖＋右邊圓餅圖",
        g3["barCanvas"] and g3["pieCanvas"] and g3["rightOfBar"] and g3["barVis"], g3)
     seltab = pg.evaluate("""() => { const a = document.querySelector('#dgPick .segchip.on');
         return a ? { tab: a.dataset.dgtab || a.dataset.dgid, i: [...a.parentNode.children].indexOf(a) } : null; }""")
@@ -18578,8 +18591,8 @@ def t_b29_tabs(pg, base):
        st["on"]["bg"] != st["off"]["bg"] and st["on"]["mt"] != st["off"]["mt"], st)
     ok("選中的那一頁沒有下邊界（和內容連成一片）", st["on"]["bb"] == 0, st["on"])
     click(pg, "#chainSwitch button[data-c='ai_server']", 2600)
-    g7 = pg.evaluate(B29_GP)
-    changed("按一層分頁，內容真的換一條鏈", t0, g7["title"])
+    changed("按一層分頁，內容真的換一條鏈",
+            t0, pg.evaluate("() => (document.querySelector('#indChain h2')||{}).innerText || ''"))
     ok("而且網址跟著換（分頁是真的頁，不是只換畫面）",
        pg.evaluate("location.hash") == "#industry/ai_server", pg.evaluate("location.hash"))
     # 二層分頁：換到剖析圖那一頁
@@ -18594,8 +18607,9 @@ def t_b29_tabs(pg, base):
         ok("被選起來的換成那一頁", after["on"] == dg, after)
         click(pg, "#dgPick .segchip[data-dgtab='overview']", 2600)
         g9 = pg.evaluate(B29_GP)
-        ok("按回「族群總覽」→ 長條圖與圓餅圖真的回來、網址回到這條鏈",
-           g9["barVis"] and g9["pieVis"] and pg.evaluate("location.hash") == "#industry/ai_server",
+        ok("按回「族群總覽」→ 長條圖與圓餅圖真的回來、網址是這條鏈的 /overview",
+           g9["barVis"] and g9["pieVis"]
+           and pg.evaluate("location.hash") == "#industry/ai_server/overview",
            pg.evaluate("location.hash"))
 
     # 法定產業別那一頁（35 個法定產業別唯一的入口，卡片移除之後更不能壞）
@@ -18619,10 +18633,97 @@ def t_b29_tabs(pg, base):
     box = pg.evaluate("() => { const r = document.getElementById('indTree').getBoundingClientRect();"
                       " return { x: Math.round(r.left + r.width * 0.25), y: Math.round(r.top + r.height * 0.45) }; }")
     pg.mouse.click(box["x"], box["y"]); pg.wait_for_timeout(2400)
-    h2 = pg.evaluate("""() => ({ hash: location.hash, rows: document.querySelectorAll('#memberTable tbody tr').length,
+    h2 = pg.evaluate("""() => ({ hash: location.hash,
+        nodes: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,
+        svg: document.querySelectorAll('#prodDiagram svg').length,
         title: (document.getElementById('gpTitle') || {}).innerText || '' })""")
     ok("從熱力圖點下去，仍然跳得到對應的族群／產業鏈頁",
-       h2["hash"].startswith("#industry/") and (h2["rows"] > 0 or len(h2["title"]) > 2), h2)
+       h2["hash"].startswith("#industry/") and (h2["nodes"] > 0 or h2["svg"] > 0 or len(h2["title"]) > 2), h2)
+
+    # ================================================================================
+    # ★ 2026-09-23 第二批（W3-1／W3-2／W3-3／W3-4）：Andy 點名的四件事，每一件都真的操作一次
+    # ================================================================================
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ---- W3-3：點進產業鏈直接看到第一張剖析圖（族群總覽不刪，搬去 /overview）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
+    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    w3 = pg.evaluate("""() => { const vis = (n) => !!(n && n.offsetParent !== null);
+        const on = document.querySelector('#dgPick .segchip.on');
+        const tabs = [...document.querySelectorAll('#dgPick .segchip')];
+        return { svg: document.querySelectorAll('#prodDiagram svg').length,
+                 gpVis: vis(document.getElementById('gpBar')),
+                 onTab: on ? (on.dataset.dgtab || on.dataset.dgid) : null,
+                 first: tabs[0] ? (tabs[0].dataset.dgtab || tabs[0].dataset.dgid) : null,
+                 firstText: tabs[0] ? tabs[0].textContent.trim() : '',
+                 labels: tabs.slice(1).map(a => a.textContent.trim()),
+                 titles: tabs.slice(1).map(a => a.getAttribute('title') || '') }; }""")
+    ok("W3-3：點進 AI 伺服器鏈，第一眼就是剖析圖（不是族群總覽）",
+       w3["svg"] > 0 and not w3["gpVis"], w3)
+    ok("W3-3：而且被選起來的是那張圖的分頁，不是「族群總覽」",
+       w3["onTab"] not in (None, "overview"), w3["onTab"])
+    ok("W3-3：族群總覽**沒有被刪**，而且仍然是分頁列的第一個",
+       w3["first"] == "overview" and w3["firstText"] == "族群總覽", w3)
+    click(pg, "#dgPick .segchip[data-dgtab='overview']", 2600)
+    ok("W3-3：按第一個分頁 → 族群總覽真的回來，網址是 /overview",
+       pg.evaluate("() => !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent)")
+       and pg.evaluate("location.hash") == "#industry/ai_server/overview", pg.evaluate("location.hash"))
+    # 直接貼 /overview 的網址重新整理，一樣要停在族群總覽（不是被 Default 搶回剖析圖）
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    ok("W3-3：直接貼 /overview 重新整理，停在族群總覽（Default 不准把它搶走）",
+       pg.evaluate("() => !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent)")
+       and pg.evaluate("() => document.querySelectorAll('#prodDiagram svg').length") == 0)
+
+    # ---- W3-4：分頁標籤只留族群名稱（冒號後面的說明收進 title）
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    w4 = pg.evaluate("""() => [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(a => ({
+        id: a.dataset.dgid, text: a.textContent.trim(), title: a.getAttribute('title') || '',
+        full: (window.DiagramSlots && window.DiagramSlots.name(a.dataset.dgid)) || '' }))""")
+    if ok("W3-4：半導體鏈列得出剖析圖分頁", len(w4) >= 2, w4):
+        ok("W3-4：分頁上一個冒號都沒有（說明被切掉了）",
+           all("：" not in t["text"] and ":" not in t["text"] for t in w4), [t["text"] for t in w4])
+        ok("W3-4：而且分頁的字就是完整名稱冒號前面那一段（不是被截斷成亂碼）",
+           all(t["text"] == t["full"].split("：")[0].split(":")[0].strip() for t in w4),
+           [(t["text"], t["full"][:24]) for t in w4])
+        ok("W3-4：完整說明沒有不見 —— 滑過去的 title 仍然帶著整串名稱",
+           all(t["full"] and t["full"] in t["title"] for t in w4), [t["title"][:40] for t in w4])
+        ok("W3-4：至少有一張圖的完整名稱真的比分頁長（證明這一刀有在做事）",
+           any(len(t["full"]) > len(t["text"]) + 2 for t in w4),
+           [(t["text"], len(t["full"])) for t in w4])
+
+    # ---- W3-1：剖析圖的設定列在圖的右**上**角（節流機制照留，所以要等它收斂）
+    pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); } catch (e) {} }")
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3600)
+    t1 = pg.evaluate(CG_TOOLS)
+    if ok("W3-1：找得到剖析圖的設定列", bool(t1) and t1.get("vis"), t1):
+        ok("W3-1：設定列的中心落在圖的右**上** 1/4（不是右下角）",
+           t1["qx"] > 0.5 and t1["qy"] < 0.5, {"qx": round(t1["qx"], 2), "qy": round(t1["qy"], 2)})
+        ok("W3-1：而且完整在圖內（離圖的上緣 8～60px，沒有跑到圖外面）",
+           t1["inside"] and 8 <= t1["imgTop"] <= 60, {"inside": t1["inside"], "imgTop": t1["imgTop"]})
+        # 真的按一顆：位置換了之後仍然點得到（節流的死區如果寫反，這裡會逾時）
+        pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(600)
+        ok("W3-1：搬到右上角之後，設定列的鈕仍然真的按得下去（動畫鈕的字真的換了）",
+           "關" in pg.evaluate("() => (document.getElementById('dgAnim')||{}).textContent || ''"),
+           pg.evaluate("() => (document.getElementById('dgAnim')||{}).textContent || ''"))
+        pg.eval_on_selector("#dgAnim", "b => b.click()"); pg.wait_for_timeout(500)
+        # 收合／展開一輪之後位置要回得來（補算與 ResizeObserver 都還在）
+        pg.eval_on_selector("#dgFold", "b => b.click()"); pg.wait_for_timeout(1000)
+        pg.eval_on_selector("#dgFold", "b => b.click()"); pg.wait_for_timeout(2600)
+        t2 = pg.evaluate(CG_TOOLS)
+        ok("W3-1：收合再展開一輪，設定列仍然停在圖的右上角（補算機制沒有被拿掉）",
+           bool(t2) and t2["qx"] > 0.5 and t2["qy"] < 0.5 and t2["inside"],
+           {"qx": round(t2["qx"], 2), "qy": round(t2["qy"], 2), "inside": t2["inside"]})
+
+    # ---- W3-2：成分股卡片整組移除，而且「換頁還原事件面板」那段收尾還活著
+    gone2 = pg.evaluate("() => ['memberTable','memWide','mktSeg','memberMore','memberTitle']"
+                        ".filter(id => !!document.getElementById(id))")
+    ok("W3-2：成分股卡片（表格／放寬／市場別／展開更多／標題）整組不在 DOM 了", gone2 == [], gone2)
+    pg.evaluate("() => { document.body.classList.add('memwide');"
+                " if (window.twSetSide) window.twSetSide(false, false); }")
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
+    ok("W3-2：換頁一定會把 .memwide 還原掉（規格書點名要留的那段收尾沒有被刪）",
+       pg.evaluate("() => !document.body.classList.contains('memwide')")
+       and pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display") != "none")
 
     # ---------------- ⑨ 四個寬度：不溢出、分頁字不小於 12px、選中的分頁捲得進視野
     for w in (1440, 1100, 800, 390):

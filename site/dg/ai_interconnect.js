@@ -3,9 +3,18 @@
    合約＝`docs/diagram_specs/connector_hsio.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的四件事：
 
-     · §0-A **不做真 3D**（`scene: null`）。接觸物理、遮蔽關係、鍍層順序全部在剖面裡；
-       最強的 3D 候選（這四類連接器在機櫃裡的位置）**既有的 `ai_server` 鏈層級 3D 場景
-       已經在做**，再做一個就是重複，還多一組 WebGL context 與 rAF 要管。
+     · §0-A **原本寫「不做真 3D」（`scene: null`），2026-09-23 這一輪 Andy 要求補上**，
+       所以現在是 `scene: 'ai_interconnect'`。舊理由留在這裡，因為它有一半仍然成立：
+         舊理由：接觸物理、遮蔽關係、鍍層順序全部在剖面裡；最強的 3D 候選
+         （這四類連接器在機櫃裡的**位置**）既有的 `ai_server` 鏈層級 3D 場景已經在做，
+         再做一個就是重複，還多一組 WebGL context 與 rAF 要管。
+       為什麼這一輪推翻它：Andy 2026-09-23 原話「連接器少了 3D 圖 請補上」。
+       而且那個理由只對「位置」成立，對「一個接點本身長什麼樣」不成立 ——
+       籠子是一個五面包起來的盒子、金手指鋪在舌片的**上下兩面**、壓接針從底下穿進板子、
+       飛越纜線從晶片旁邊**架空**拉到籠背：這四件都是遮蔽關係，剖面畫不出來，轉一圈才看得到。
+       3D 場景定義在 `site/three3d.js` 的 `SCENES.ai_interconnect`，
+       零件的 `part` 沿用這個檔的 `data-part`（st_*／cage_*／gold_finger…），
+       所以「2D 點完一個零件再切到 3D」還是同一個零件被選著。
      · §0-B 佈局：上方一條**編號的訊號路徑帶** ＋ 下方 **2×2 四格**（不是 1×4）。
        980 拆成四欄之後單欄只剩約 245px，剖面加三行標註一定會逼人把字縮到 12px 以下 ——
        這是版面決策，不是美感偏好。路徑帶的編號與格子的編號一致（X2）。
@@ -418,7 +427,7 @@
   window.DG.register('ai_interconnect', {
     level: 'group', chain: 'ai_server',
     name: '連接器：高速互連四個站',
-    draw: connectorHsio, native: W, scene: null,
+    draw: connectorHsio, native: W, scene: 'ai_interconnect',
     q: '訊號為什麼寧可用線纜也不走板子？機櫃裡的光模組籠、金手指、內部線纜、背板匣各接在哪一段？',
     /* ★ `parts` ＝點這個零件時，「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。
        這張圖四個 seg 全部在 `ai_server` 鏈本籍，所以**每一個零件都點得出小卡**。
