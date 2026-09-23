@@ -604,7 +604,12 @@
       ${card({ side: 'r', no: 10, part: 'mc_block', color: COL.case, ax: 66, ay: 310, title: '線性滑軌・滑塊（ㄇ 形）', sub: '★ 從上方罩下來、包住軌道兩側；放在軌道上面的方塊吃不了側向力與拉拔力' })}
       ${card({ side: 'r', no: 11, part: 'mc_base', color: COL.alu, ax: 60, ay: 350, title: '底座（鋁擠型）', sub: '斷面有空腔：同樣重量下拿到比較高的斷面剛性' })}
       ${card({ side: 'r', no: 12, part: 'mc_cs', color: COL.case, ax: 343, ay: 310, title: '諧波①：剛輪（最外，內齒）', sub: '固定不動。三件由外到內是 剛輪 → 柔輪 → 波產生器，順序反了機構不成立' })}
-      ${card({ side: 'r', no: 13, part: 'mc_fs', color: COL.flex, ax: 372, ay: 291, title: '諧波②：柔輪（薄壁・被壓成橢圓）', sub: '★ 輸出是從柔輪的杯底法蘭出去，不是從剛輪出去' })}
+      <!-- ★ 2026-09-23：把「齒數比剛輪少幾齒（常見是 2 齒）」這句補回**永遠看得到**的卡片上。
+           660 版改版時這句只剩在點零件才開的小卡（mc_fs.desc）裡，
+           可是「柔輪的齒比剛輪少」這個主張是**畫在圖上**的（H3 量得到 14 齒 vs 12 齒）——
+           主張畫在哪裡，「那是常見設計、不是物理必然」的但書就要放在哪裡，
+           不能讓但書躲在一次點擊後面。 -->
+      ${card({ side: 'r', no: 13, part: 'mc_fs', color: COL.flex, ax: 372, ay: 291, title: '諧波②：柔輪（薄壁・被壓成橢圓）', sub: '齒數比剛輪少幾齒（常見是 2 齒，但那是常見設計、不是物理必然）。★ 輸出是從柔輪的杯底法蘭出去，不是從剛輪出去' })}
       ${card({ side: 'r', no: 14, part: 'mc_wg', color: COL.cam, ax: 372, ay: 310, title: '諧波③：波產生器（橢圓凸輪＋薄軸承）', sub: '從裡面把柔輪撐成橢圓；轉一圈柔輪只退幾齒，減速比就是這樣來的' })}
       ${card({ side: 'r', no: 15, part: 'mc_planet', color: COL.steel, ax: 450, ay: 306, title: 'RV①：前級行星齒輪組', sub: '★ 一定在靠馬達那一端；只有一級的不是 RV' })}
       ${card({ side: 'r', no: 16, part: 'mc_cyclo', color: COL.disc, ax: 582, ay: 306, title: 'RV②：擺線盤 ×2（相位差 180°）', sub: '外緣是連續波浪、不是尖齒；針銷數 ＝ 波浪數 ＋ 1' })}
