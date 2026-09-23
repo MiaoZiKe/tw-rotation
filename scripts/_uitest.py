@@ -1492,6 +1492,39 @@ def t_flow(pg, base):
         check_nozoom(pg, w, lb)
 
 
+# ===================================================================== 資金去向的兩層下拉（W6）
+# ★ 2026-09-23：資金去向（桑基／樹圖）下面那一整排族群晶片 `.linkrow.gchips[data-for="sankey"]`
+#   已經換成**兩層下拉**（`filterDropdown()`：第一層產業鏈、第二層族群，單選）。
+#   舊選擇器現在一個都選不到 —— `count()` 回 0 會讓外層的 `if ok(...)` 直接跳過整段 ＝ 假綠。
+#   所以全部改走下面這三支，而且**照真人的順序操作**：先開下拉，再點裡面那一項。
+SK_DD = '.ddrow[data-for="sankey"]'
+
+
+def sk_dd_groups(pg):
+    """第二層現在列得出哪些族群（gid 陣列，不含「全部族群」那一項）。"""
+    return pg.evaluate(f"""() => [...document.querySelectorAll('{SK_DD} .rotdd[data-dd="group"] [data-g]')]
+        .map(b => b.dataset.g).filter(Boolean)""") or []
+
+
+def sk_dd_pick(pg, gid, wait: int = 1500) -> bool:
+    """開第二層下拉、點某一個族群（gid 傳 '' ＝「全部族群（不篩選）」）。回傳有沒有真的點到。"""
+    hit = pg.evaluate(
+        f"""(g) => {{ const dd = document.querySelector('{SK_DD} .rotdd[data-dd="group"]');
+            if (!dd) return false;
+            const btn = dd.querySelector('.ddbtn'); if (btn) btn.click();
+            const o = dd.querySelector('[data-g="' + g + '"]');
+            if (!o) return false; o.click(); return true; }}""", gid)
+    pg.wait_for_timeout(wait)
+    return bool(hit)
+
+
+def sk_dd_sel(pg):
+    """第二層目前選到誰（沒選就回 ''）。讀的是畫面上真的被標成 selected 的那一項。"""
+    return pg.evaluate(
+        f"""() => {{ const b = document.querySelector('{SK_DD} .rotdd[data-dd="group"] [data-g][aria-selected="true"]');
+            return b ? (b.dataset.g || '') : ''; }}""") or ''
+
+
 def settle_scroll(pg, quiet_ms=350, limit_ms=3000):
     """等到 scrollY 連續 quiet_ms 沒有變動才回來。
 
