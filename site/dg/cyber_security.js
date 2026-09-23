@@ -69,9 +69,9 @@
   const LX = 24, LW = 262;                      // 左欄的左緣與寬
   const LAYERS = [
     { id: 'cs_net', y: 118, t: '網路邊界', s: '防火牆／WAF／DDoS 清洗', k: '產品', col: C.net },
-    { id: 'cs_edr', y: 166, t: '端點', s: '防毒／EDR 端點偵測與回應', k: '產品', col: C.edr },
+    { id: 'cs_edr', y: 166, t: '端點', s: '防毒／EDR 端點偵測', k: '產品', col: C.edr },
     { id: 'cs_idp', y: 214, t: '身分與存取', s: '多因子驗證／特權帳號管理', k: '產品', col: C.idp },
-    { id: 'cs_data', y: 262, t: '應用與資料', s: '弱點掃描／加密／備份與還原', k: '產品＋服務', col: C.data },
+    { id: 'cs_data', y: 262, t: '應用與資料', s: '弱點掃描／加密／備份', k: '產品＋服務', col: C.data },
   ];
   const LH = 36;
 
@@ -89,7 +89,7 @@
     LAYERS.forEach((L) => {
       g.push(part(L.id, fx.glass(LX, L.y, LW, LH, { fill: L.col, cls: 'part', rx: 5 })
         + T(LX + 12, L.y + 16, L.t, 'lbl')
-        + T(LX + 12, L.y + 30, L.s, 'sub')
+        + T(LX + 12, L.y + 30, L.s, 'sub', null, 'fill:var(--dg-ink)')
         + R(LX + LW - 68, L.y + 8, 60, 20, 'var(--dg-step-f)', 'part', 4)
         + T(LX + LW - 38, L.y + 22, L.k, 'sub', 'middle', `fill:${L.col}`)));
     });
@@ -97,7 +97,7 @@
     // 核心資產（要守的東西）
     g.push(part('cs_asset', fx.glass(LX + 46, 314, 170, 40, { fill: C.asset, cls: 'part', rx: 6 })
       + T(LX + 131, 331, '核心系統與個資', 'lbl', 'middle')
-      + T(LX + 131, 347, '政府：民眾資料｜金融：帳務', 'sub', 'middle')));
+      + T(LX + 131, 347, '政府：民眾資料｜金融：帳務', 'sub', 'middle', 'fill:var(--dg-ink)')));
 
     /* 攻擊路徑：一條往下的紅虛線，在前三層各被擋掉一次（小叉），
        第四層旁邊留一條「漏過去」的細線接到右邊的 SOC —— 沒有一層擋得住全部，

@@ -46,7 +46,7 @@
 
   const C = {
     proj: 'var(--dg-hot)', cost: 'var(--dg-mute)', sub1: 'var(--dg-accent-2d)',
-    sub2: 'var(--dg-cool)', defer: 'var(--dg-si)', warn: 'var(--dg-warn)', ok: 'var(--dg-organic)',
+    sub2: 'var(--dg-au)', defer: 'var(--dg-si)', warn: 'var(--dg-warn)', ok: 'var(--dg-organic)',
   };
   const card = (o) => {
     const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,

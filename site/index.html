@@ -1168,12 +1168,20 @@ a.lk.sm{font-size:12px;font-weight:500}
    整頁因此長出橫向捲軸，而且**永遠好不了**（容器不縮 → ResizeObserver 不發 → 畫布不縮）。
    給一個 0 的最小值就把這個死結打開：容器先縮、RO 再把畫布縮回來。*/
 .gpgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;align-items:stretch}
-.gpgrid>.chart{min-height:360px;min-width:0;overflow:hidden}
+/* ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
+   底色比頁面底亮一階、有邊框有圓角 —— 兩張圖之間終於有分界，而且各自講什麼寫在標題上。
+   ⚠ `min-width:0` 一個都不能省（理由同上面那段：ECharts 的畫布寬度是寫死的像素）。*/
+.gpcard{min-width:0;background:var(--panel-3);border:1px solid var(--line-2);border-radius:12px;
+  padding:10px 12px 8px;display:flex;flex-direction:column}
+.gpcard>h5{margin:0 0 4px;font-size:14px;font-weight:700;color:var(--ink);line-height:1.5}
+.gpcard>h5>small{font-weight:400;font-size:12px;color:var(--ink-3);margin-left:6px}
+.gpgrid .chart{min-height:360px;min-width:0;overflow:hidden;flex:1 1 auto}
 .gphead{gap:10px;flex-wrap:wrap;align-items:flex-start}
 .gphead h4{font-size:15px}
 .gplive{display:inline-flex;gap:6px;align-items:center}
 .gpnote{margin-top:8px}
-@media (max-width:820px){ .gpgrid{grid-template-columns:minmax(0,1fr)} .gpgrid>.chart{min-height:320px} }
+/* 窄畫面：兩張卡片上下堆疊，不要硬擠成兩欄（390 擠成兩欄的話圓餅只剩指甲大小） */
+@media (max-width:820px){ .gpgrid{grid-template-columns:minmax(0,1fr)} .gpgrid .chart{min-height:320px} }
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px}
 .qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
@@ -2231,27 +2239,23 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .cgtip{width:min(230px,calc(100% - 16px))}
   .cgpanel{padding:10px 11px 12px}
 }
-/* ---- 剖析圖工具列浮在畫布內**右上角**（Andy 2026-09-23 第二批：「設定列改到右上角」）----
-   為什麼掛在 `#dgSec` 而不是 `#dgBody`：按「收合圖」時 `#dgBody` 是 display:none，
-   工具列住在裡面會一起消失 —— 連「展開剖析圖」那顆鈕都不見，圖就再也開不回來。
-   `.dgfold`（收合中）讓它退回一般排版，位置變但**仍然在、仍然點得到**。
-   ★ 由 bottom 改成 top 的只有「往哪一邊量」這件事：placeDgTools 的死區與補算一個都沒有拿掉，
-     那是量到工具列掉到圖外 25px 之後才補的（見 site/industry.js 的註解）。*/
+/* ---- 剖析圖設定列：跟標題**同一列、靠右**（Andy 2026-09-23：「設定列改到右上角」）----
+   ★ 第一版是絕對定位浮在畫布的右上角內緣，`_preview.py` 當場量到文字重疊：
+     圖的右上角本來就有「產品剖析圖 <圖名>」那一行標題，浮上去就是跟它搶同一塊。
+     改成同一列並排之後，位置由版面決定 —— 不可能再疊到標題，也不可能蓋住圖的內容，
+     而且 `placeDgTools()` 那一整套防抖動機制（死區、補算、ResizeObserver）整個不需要了
+     （它存在的唯一理由是「浮在一個會非同步長高的畫布上」）。
+   ★ 收合（`.dgfold`）時它仍然在、仍然點得到 —— 它住在標題那一列，跟 `#dgBody` 無關，
+     所以「展開剖析圖」那顆鈕不可能跟著消失。*/
 #dgSec{position:relative}
-#dgTools{position:absolute;right:12px;top:12px;z-index:7;display:flex;gap:6px;flex-wrap:wrap;
-  justify-content:flex-end;max-width:calc(100% - 24px);
-  background:var(--dg-card-f,rgba(14,20,36,.66));backdrop-filter:var(--dg-card-blur,blur(8px));
-  border:1px solid var(--line-2);border-radius:11px;padding:5px 7px;
-  opacity:.75;transition:opacity .15s}
-#dgTools:hover,#dgTools:focus-within{opacity:1}
+.dgsechead{gap:8px 10px;align-items:center}
+.dgsechead h4{min-width:0}
+#dgTools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;min-width:0}
 #dgTools[hidden]{display:none}
-#dgSec.dgfold #dgTools{position:static;opacity:1;background:none;backdrop-filter:none;border:0;
-  padding:0;margin-top:8px;max-width:none}
-/* 窄畫面：排成可左右捲的一列，不准溢出容器。
-   ★ top 不在這裡寫死 —— 位置一律由 placeDgTools 量「圖的上緣離區塊上緣多遠」算出來，
-     寫死一個數字會壓到「產品剖析圖」那一行標題（標題列高度會隨字級與換行變動）。*/
+/* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
-  #dgTools{left:12px;right:12px;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
+  .dgsechead{flex-wrap:wrap}
+  #dgTools{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
     -webkit-overflow-scrolling:touch}
   #dgTools .pill{flex:none}
 }

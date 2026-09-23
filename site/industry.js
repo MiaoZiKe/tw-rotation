@@ -228,6 +228,12 @@
     let live = false, q = null, liveErr = '', liveAt = '', busy = false, cov = [0, 0];
     let hi = null;                    // 兩圖連動：滑鼠現在停在哪一條／哪一塊
     let barData = [], pieData = [], items = [];
+    /* ★ W3-8：圓餅只標前五大，其餘併成一塊灰色的「其他」。
+       `pieTopNames` 是「哪幾個族群有自己的扇形」——兩圖連動要靠它把落在「其他」裡的
+       那些族群對應回灰色那一塊（不然滑過去會變成沒反應）。*/
+    const PIE_TOP = 5;
+    const PIE_OTHER = '其他';
+    let pieTopNames = [], pieTopShare = 0, pieOtherN = 0;
 
     /* 標題列只放「標題 ＋ 兩顆鈕」，說明另起一行 ——
        說明擺在同一列的話，長文字會把左邊那一格撐滿，右邊的「即時」被擠到下一行去，
@@ -242,7 +248,13 @@
       </div>
       <div class="sub" id="gpHint" style="margin-top:2px"></div>
       <div class="note livenote gpnote" id="gpNote"></div>
-      <div class="gpgrid"><div id="gpBar" class="chart"></div><div id="gpPie" class="chart"></div></div>
+      <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
+           以前兩張圖裸放在同一片背景上、中間沒有分界 —— 沒有容器，圖就像貼在牆上，
+           而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
+      <div class="gpgrid">
+        <div class="gpcard"><h5>族群漲跌幅 <small>紅漲綠跌，由高到低</small></h5><div id="gpBar" class="chart"></div></div>
+        <div class="gpcard"><h5>成交值占比 <small>只標前五大，其餘併成「其他」</small></h5><div id="gpPie" class="chart"></div></div>
+      </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
       ${ctx.tail ? `<div class="linkrow">${ctx.tail}</div>` : ''}`;
 
@@ -365,18 +377,33 @@
       // 長條由高到低（ECharts 的類別軸是由下往上長，所以資料要由低到高餵進去）
       const asc = items.slice().sort((a, b) => (a.chg == null ? -1e9 : a.chg) - (b.chg == null ? -1e9 : b.chg));
       barData = asc.map(d => ({ name: d.name, value: d.chg == null ? 0 : +(+d.chg).toFixed(2), key: d.key,
-        itemStyle: { color: A.upDown(d.chg), borderRadius: (d.chg || 0) >= 0 ? [0, 3, 3, 0] : [3, 0, 0, 3], borderWidth: 0, borderColor: CH.ink },
+        /* ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」＋目標圖）：長條**兩端都做圓角**。
+           以前只有末端那一端圓、貼著零軸那一端是直角，目標圖兩端都是圓的。*/
+        itemStyle: { color: A.upDown(d.chg), borderRadius: 5, borderWidth: 0, borderColor: CH.ink },
         /* 色票（CH.*）在切主題時由 applyTheme 就地換掉，所以這裡不必自己分深／淺兩套 */
         label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 11.5,
           color: CH.ink2, formatter: A.fmt.pct(d.chg) } }));
-      pieData = items.slice().sort((a, b) => (b.val || 0) - (a.val || 0)).map(d => ({ name: d.name, value: Math.max(0, d.val || 0), key: d.key,
+      /* ★ 2026-09-23（W3-8）：圓餅只標**前五大**，其餘全部併成一塊中性灰的「其他」。
+         以前是把十幾塊小碎片全部畫出來、標籤貼在旁邊互相干擾 —— 那張圖回答不了
+         「錢集中在誰身上」，因為前三名跟第十三名長得一樣重要。
+         併起來之後：五個有名字的區塊各自回答「誰」，灰色那一塊回答「剩下的加起來多少」。*/
+      const bySize = items.slice().sort((a, b) => (b.val || 0) - (a.val || 0));
+      const top = bySize.slice(0, PIE_TOP);
+      // 「其他」＝第六名以後 ＋ 連長條都沒有列出來的那一批（restVal）
+      const otherVal = bySize.slice(PIE_TOP).reduce((s2, d) => s2 + Math.max(0, d.val || 0), 0) + restVal;
+      const otherN = Math.max(0, bySize.length - top.length) + restN;
+      pieTopNames = top.map(d => d.name);
+      pieData = top.map(d => ({ name: d.name, value: Math.max(0, d.val || 0), key: d.key,
         itemStyle: { color: d.color, borderColor: CH.panel, borderWidth: 1 },
-        label: { show: d.share >= 3.2 } }));
-      if (restVal > 0 && restN > 0) {
-        pieData.push({ name: `其餘 ${restN} ${drill ? '檔' : '個族群'}`, value: restVal, key: '_rest',
-          itemStyle: { color: A.hexA(CH.ink3, .45), borderColor: CH.panel, borderWidth: 1 },
-          label: { show: restVal / (total || 1) >= 0.032 } });
+        label: { show: true } }));
+      if (otherVal > 0) {
+        pieData.push({ name: PIE_OTHER, value: otherVal, key: '_rest',
+          itemStyle: { color: A.hexA(CH.ink3, .38), borderColor: CH.panel, borderWidth: 1 },
+          label: { show: true } });
       }
+      /* 中心那個數字一定要**真的算**（前五大的占比相加），不准寫死、不准用估的 */
+      pieTopShare = total > 0 ? top.reduce((s2, d) => s2 + (d.val || 0), 0) / total * 100 : 0;
+      pieOtherN = otherN;
       return { asc, total, restN, restVal };
     }
 
@@ -426,8 +453,12 @@
       gpDbg.hi = hi;
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
+      /* ★ W3-8：滑過的那個族群如果沒有自己的扇形（落在前五大以外），
+         要讓**「其他」那一塊**亮起來 —— 不然滑過去等於沒反應，連動就斷在那裡。
+         反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
+      const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) pi.setOption({ series: [{ data: pieData.map(d => ({ ...d,
-        itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 3 : 1, borderColor: d.name === hi ? CH.ink : CH.panel } })) }] });
+        itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
       if (bi) bi.setOption({ series: [{ data: barData.map(d => ({ ...d,
         itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 2 : 0, borderColor: CH.ink } })) }] });
       pieEl.dataset.hi = hi || '';
@@ -457,11 +488,11 @@
         : `${A.fmt.esc(ctx.scope)}族群漲幅與占比　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
       $('#gpHint', host).innerHTML = drill
         ? `<b>這張圖回答：</b>這個族群裡面今天是誰在漲、量能集中在哪幾檔。`
-          + `<b>怎麼用：</b>左邊長條由高到低（紅漲綠跌），右邊圓餅是它在族群裡的成交值比重；`
+          + `<b>怎麼用：</b>左邊長條由高到低（紅漲綠跌），右邊甜甜圈只標成交值前五大、其餘併成「其他」，中心寫的是前五大合計；`
           + `<b>漲得多、量也大</b>的那幾檔才是主流，只有漲幅、成交值卻小的通常是跟風。`
           + `點任一條長條直接進那一檔的個股頁看 K 線與籌碼；按「← 回到族群」回上一層。`
         : `<b>這張圖回答：</b>${A.fmt.esc(ctx.scope)}今天哪一個族群在漲、錢集中在誰身上。`
-          + `<b>怎麼用：</b>左邊長條看方向（紅漲綠跌、由高到低），右邊圓餅看份量（占成交值比重）；`
+          + `<b>怎麼用：</b>左邊長條看方向（紅漲綠跌、由高到低），右邊甜甜圈看份量（只標前五大，其餘併成「其他」，中心是前五大合計）；`
           + `<b>兩邊都靠前</b>才是今天真正的主流——長條很長但圓餅很小，多半是小族群在噴、量還沒跟上，追之前先看成交值。`
           + `點任一條長條就在原地換成<b>該族群所有個股</b>的漲幅長條圖，再點一次進個股頁。`;
       paintNote();
@@ -473,12 +504,17 @@
           return `<b>${A.fmt.esc(p.name)}</b><br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>`
             + `<br>成交值 ${A.fmt.yi(d.val)}（${A.fmt.n(d.share, 1)}%）${d.n != null ? ' · ' + d.n + ' 檔' : ''}`
             + `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>`; } },
+        /* ★ W3-8：格線收到極淡（有格線會跟長條搶注意力），改由**零軸那一條**負責分正負 */
         xAxis: { type: 'value', axisLabel: { ...axl, formatter: v => A.fmt.n(v, 1) + '%' },
-          splitLine: A.axisStyle.splitLine, axisLine: { show: false }, axisTick: { show: false } },
+          splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
+        /* ★ W3-8：族群名**不准再被截斷**（以前超過 8 個字就加省略號，
+           使用者看到的是「被動元件 MLC…」「AI PC 筆電…」—— 那等於沒寫名字）。
+           `containLabel: true` 會自己把左邊留夠寬，所以拿掉 formatter 就好。
+           ★ 零軸線：類別軸預設就畫在 x=0 上（onZero），只是以前用的是很淡的 line 色，
+             正負分不開。改成用 ink3 ＋ 1.5px，讓它真的看得出來是一條分界。*/
         yAxis: { type: 'category', data: barData.map(d => d.name), axisTick: { show: false },
-          axisLine: { lineStyle: { color: A.CH.line } },
-          axisLabel: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2,
-            formatter: s => (String(s).length > 8 ? String(s).slice(0, 8) + '…' : s) } },
+          axisLine: { show: true, onZero: true, lineStyle: { color: CH.ink3, width: 1.5 } },
+          axisLabel: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2 } },
         series: [{ type: 'bar', barMaxWidth: 17, data: barData, cursor: 'pointer' }],
       }, { notMerge: true });
       A.chart(pieEl, {
@@ -487,11 +523,24 @@
           return `<b>${A.fmt.esc(p.name)}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.percent, 1)}%）`
             + (d ? `<br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>` : '')
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
-        series: [{ type: 'pie', radius: ['38%', '70%'], center: ['50%', '52%'], minAngle: 2,
+        /* ★ W3-8：中心寫「前五大」與它們的合計占比。那個數字是 build() 算出來的
+           （前五大的成交值 ÷ 這一頁的總成交值），不是寫死、也不是估的。*/
+        title: [
+          { text: '前五大', left: '50%', top: '44%', textAlign: 'center',
+            textStyle: { color: CH.ink3, fontSize: 12, fontWeight: 400, fontFamily: 'Noto Sans TC, sans-serif' } },
+          { text: A.fmt.n(pieTopShare, 1) + '%', left: '50%', top: '51%', textAlign: 'center',
+            textStyle: { color: CH.ink, fontSize: 22, fontWeight: 700, fontFamily: 'Noto Sans TC, sans-serif' } },
+        ],
+        series: [{ type: 'pie', radius: ['46%', '66%'], center: ['50%', '52%'], minAngle: 2,
           avoidLabelOverlap: true, cursor: 'pointer',
-          label: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2,
-            formatter: p => `${String(p.name).length > 7 ? String(p.name).slice(0, 7) + '…' : p.name}\n${A.fmt.n(p.percent, 1)}%` },
-          labelLine: { length: 8, length2: 8, lineStyle: { color: A.CH.line } },
+          /* 標籤用引線拉出去：名稱在上、百分比在下。只有六塊（前五大＋其他），
+             拉得開，不會再出現「十幾個標籤擠在一起互相干擾」那種畫面。*/
+          label: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2, show: true,
+            position: 'outside', lineHeight: 15,
+            formatter: p => `{n|${p.name}}\n{v|${A.fmt.n(p.percent, 1)}%}`,
+            rich: { n: { fontSize: 11.5, color: CH.ink2, fontFamily: 'Noto Sans TC, sans-serif' },
+              v: { fontSize: 12.5, fontWeight: 700, color: CH.ink, fontFamily: 'Noto Sans TC, sans-serif' } } },
+          labelLine: { show: true, length: 10, length2: 14, smooth: true, lineStyle: { color: CH.ink3 } },
           data: pieData }],
       }, { notMerge: true });
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
@@ -758,7 +807,7 @@
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec"></div>
-        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dghead"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><span class="row" id="dgTools" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。跟著全站主題走，也可以手動切">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dgsechead"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><span class="row" id="dgTools" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。跟著全站主題走，也可以手動切">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div id="dgBody">
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
@@ -989,27 +1038,6 @@
          ⚠ `#dgBack`（← 族群總覽）也收進同一排，所以這一列右邊只有一組東西，不會兩組互相擠。
          ⚠ 收合狀態（`.dgfold`）下工具列仍然在、仍然點得到 —— 它本來就在標題那一列，
            跟 `#dgBody` 的顯示與否無關，這比舊版的「絕對定位 ＋ .dgfold 退回一般排版」更穩。*/
-      try {
-        // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
-        let roT = 0;
-        const ro2 = new ResizeObserver(() => {
-          clearTimeout(roT);
-          roT = setTimeout(placeDgTools, 90);   // 緩衝一下，等高度真的停下來再搬
-        });
-        if (dgSecEl) { ro2.observe(dgSecEl); const bd = $('#dgBody', el); if (bd) ro2.observe(bd); }
-        /* ★ 2026-09-23：**兩張圖本身也要觀察**。只觀察 #dgSec 與 #dgBody 的話，
-           「區塊總高沒變、但圖自己變高／變矮」那一種就收不到通知 —— 實測開 3D 之後
-           工具列停在畫布底緣下方 25px（掉到圖外面），正是這個漏洞。 */
-        ['prod3d', 'prodDiagram'].forEach(id => { const n = document.getElementById(id); if (n) ro2.observe(n); });
-      } catch (e) { /* 舊瀏覽器沒有就算了，位置只是會停在區塊底部 */ }
-      // 3D 場景是分好幾幀長出來的（WebGL 掛載 → 量尺寸 → 補說明行），補幾個時間點確保有對到
-      [300, 1200, 3000, 5000].forEach(ms => setTimeout(placeDgTools, ms));
-      window.addEventListener('resize', placeDgTools);
-      /* ★ 2026-09-23：切 3D／切圖別是**非同步長出來的**（WebGL 掛載 → 量尺寸 → 補說明行 → 零件卡），
-         只在按下去的那一刻算一次，量到的是「還沒長完」的高度，工具列就會停在圖外面
-         （實測開 3D 之後掉到畫布底緣下方 25px）。`#dgSec` 與 `#dgBody` 的 ResizeObserver
-         收不到「區塊總高沒變、圖自己變高」那一種，所以這裡補一串延遲重算。*/
-      const replaceDgTools = () => [0, 120, 400, 900, 1800, 3200].forEach(ms => setTimeout(placeDgTools, ms));
       const paintFold = () => {
         if (dgBody) dgBody.style.display = dgOpen ? '' : 'none';
         /* 收起來之後 `#dgSec` 只剩一列標題，工具列再絕對定位在右下角就會飄到標題外面。
@@ -1019,7 +1047,6 @@
         if (foldBtn) { foldBtn.textContent = dgOpen ? '收合圖 ▴' : '展開剖析圖 ▾'; foldBtn.classList.toggle('cyan', !dgOpen); }
         // 收起來的時候不要掛 3D：背景多一個 WebGL context 在空轉，手機最吃不消
         if (dgOpen && !did3d && dgId) { did3d = true; wireDg(); }
-        replaceDgTools();
       };
       // 選單模式（dgId 為 null）沒有圖可以接線，wireDg 會對著空的 #prodDiagram 做事
       if (dgId) { wireDg(!dgOpen); did3d = dgOpen; }
@@ -1037,7 +1064,6 @@
       const back = $('#dgBack', el);
       if (back) back.onclick = () => { location.hash = '#industry/' + ch.id + '/overview'; };
       paintDgMode();
-      replaceDgTools();
     }
     // 換族群 → 換圖。放在 syncHighlight 之外自己判斷，沒換就什麼都不做（不會閃）
     function wireDg(skip3d) {
@@ -1694,12 +1720,23 @@
     return v;
   }
   applyDgPal(palPref());      // 一載入就套用，不要等使用者走到產業頁才變色
-  /* 切主題 → 沒有手動偏好的人跟著換模式；鈕的字與開著的 3D 也要同步。
-     app.js 的 applyTheme() 會 dispatch 這個事件（而且會整頁重畫，所以鈕多半會重新 wire 一次，
-     這裡的 paint 只是保險）。*/
+  /* ★ 2026-09-23 第二批（W3-10，Andy：「當切換明亮介面時，所有圖片會自動切換閱讀模式；
+     同理切暗色介面時，也會切回來」）：**切主題一律重新對齊配色，不管先前有沒有手動按過。**
+
+     改之前是「沒有手動偏好的人才跟著換」—— 手動按過一次之後那個選擇就黏住，
+     之後再切主題圖都不動，那正是 Andy 看到的行為。
+     做法是把存起來的偏好**清掉**再套主題對應的那一個：
+       · 清掉而不是覆寫，是因為 `palPref()` 的語意就是「沒存過就跟主題走」——
+         清掉之後那條路自己就對了，重新整理也不會跳回舊的（不清的話 localStorage 還留著舊值）。
+       · 手動按 `#dgPal` 仍然有效（它會重新寫進 localStorage），
+         那個選擇維持到**下一次切主題**為止。
+     ⚠ 這裡**不重畫任何一張圖**：2D 吃的是 `:root` 上的 `--dg-*`（換 data-dgpal 就變色），
+       3D 走 `view.setPal()` 就地換材質 —— 所以使用者選起來的零件、3D 的鏡頭角度、
+       爆炸拆解的進度全部留著。整張重畫是最省事但最錯的解法。*/
   let palBtnPaint = null, palView = null;
   window.addEventListener('tw:theme', () => {
-    const v = applyDgPal(palPref());
+    try { localStorage.removeItem('tw.dg3d.pal'); } catch (e) { /* 私密視窗 */ }
+    const v = applyDgPal(themePal());
     const view = palView && palView();
     if (view && view.setPal) view.setPal(v);
     if (palBtnPaint) palBtnPaint();
@@ -1712,7 +1749,8 @@
       const cur = palPref();
       plb.textContent = '配色：' + (DG_PAL_NAME[cur] || cur);
       plb.classList.toggle('cyan', cur !== themePal());   // 跟主題預設不一樣的時候才亮，表示「你手動切過」
-      plb.title = '換一種模式（2D 與 3D 共用）：科技（深底）／閱讀（紙底）。預設跟著全站主題走：深色→科技、淺色→閱讀';
+      plb.title = '換一種模式（2D 與 3D 共用）：科技（深底）／閱讀（紙底）。'
+        + '跟著全站主題走：深色→科技、淺色→閱讀；手動切過的選擇會保留到下一次切主題為止';
     };
     palBtnPaint = paint; palView = getView;
     plb.hidden = false;

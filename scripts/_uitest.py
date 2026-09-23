@@ -18029,29 +18029,24 @@ def t_b25_graph(pg, base):
     ok("關聯圖靜止時沒有把瀏覽器佔住（rAF 還跑得動）", frames >= 8, frames)
 
 
-# 工具列位置：量的是「離畫布右**上**角多遠」，不是絕對座標
-# （★ 2026-09-23 第二批 W3-1：Andy 要求設定列從右下角改到右上角）——
-# 2D 與 3D 的畫布高度本來就不一樣（SVG 是固定高、WebGL 吃剩餘欄寬），
-# 拿絕對座標比等於在比兩張不同大小的圖，那不是 Andy 要的「位置不准跳」。
-CG_TOOLS = """() => { const t = document.getElementById('dgTools'), b = document.getElementById('dgBody');
-  if (!t || !b) return null;
-  const rt = t.getBoundingClientRect(), rb = b.getBoundingClientRect();
-  if (!rt.width || !rb.width) return { vis: false };
-  /* 「離右下角多遠」要量**看得見的那張圖**（2D 是 #prodDiagram、3D 是 #prod3d），
-     不是量整個 #dgBody —— 3D 會多出一行說明（#dg3dNote），拿 #dgBody 當基準的話
-     那 19px 會被誤判成「切 3D 之後工具列跳位置」。Andy 要的是「停在**圖**的右下角」。*/
-  const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
-  const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
-  const ri = img ? img.getBoundingClientRect() : rb;
+# 工具列位置：★ 2026-09-23 第二批（W3-1 ＋ W3-9）改成「跟標題同一列、靠右」。
+# 第一版是絕對定位浮在畫布右上角，`_preview.py` 當場量到它跟「產品剖析圖 <圖名>」那行標題重疊。
+# 現在量的是三件事：**在標題那一列**、**在標題右邊**、**沒有跟標題重疊**。
+CG_TOOLS = """() => { const t = document.getElementById('dgTools');
+  const head = document.querySelector('#dgSec .dgsechead'), h4 = head && head.querySelector('h4');
+  if (!t || !head || !h4) return null;
+  const rt = t.getBoundingClientRect(), rh = head.getBoundingClientRect(), r4 = h4.getBoundingClientRect();
+  if (!rt.width || !rh.width) return { vis: false };
+  const overlap = rt.left < r4.right - 1 && rt.right > r4.left + 1
+               && rt.top < r4.bottom - 1 && rt.bottom > r4.top + 1;
   return { vis: getComputedStyle(t).display !== 'none' && !t.hidden,
-           imgRight: Math.round(ri.right - rt.right), imgBottom: Math.round(ri.bottom - rt.bottom),
-           imgTop: Math.round(rt.top - ri.top),
-           right: Math.round(rb.right - rt.right), bottom: Math.round(rb.bottom - rt.bottom),
-           top: Math.round(rt.top - rb.top),
-           qx: ((rt.left + rt.right) / 2 - rb.left) / rb.width,
-           qy: ((rt.top + rt.bottom) / 2 - rb.top) / rb.height,
-           inside: rt.left >= rb.left - 1 && rt.right <= rb.right + 1
-                && rt.top >= rb.top - 1 && rt.bottom <= rb.bottom + 1 }; }"""
+           // 「靠右」＝工具列的中心在標題列的右半邊（窄畫面它自己換行，這時只要求不重疊）
+           qx: ((rt.left + rt.right) / 2 - rh.left) / rh.width,
+           rightOfTitle: rt.left >= r4.right - 2,
+           sameRow: Math.abs(rt.top - r4.top) < 40,
+           overlapTitle: overlap,
+           inHead: rt.top >= rh.top - 2 && rt.bottom <= rh.bottom + 2,
+           right: Math.round(rh.right - rt.right) }; }"""
 
 
 def t_b25_tools(pg, base):
@@ -18443,6 +18438,15 @@ B29_GP = """() => { const q = (s) => document.querySelector(s);
            names: bo.map(d => d.name), vals: bo.map(d => d.value),
            colors: bo.map(d => d.itemStyle && d.itemStyle.color),
            pieNames: po.map(d => d.name), pieBorder: po.map(d => d.itemStyle && d.itemStyle.borderWidth),
+           // ★ W3-8：兩張圖各自的卡片、卡片標題、甜甜圈中心的數字、y 軸有沒有被截斷
+           cards: document.querySelectorAll('#v-industry .gpcard').length,
+           cardTitles: [...document.querySelectorAll('#v-industry .gpcard > h5')].map(h => h.innerText.trim()),
+           yLabels: bi ? (bi.getOption().yAxis[0].data || []) : [],
+           pieRadius: pi ? pi.getOption().series[0].radius : null,
+           pieTitles: pi ? (pi.getOption().title || []).map(t => t.text) : [],
+           pieLabelLine: pi ? !!(pi.getOption().series[0].labelLine || {}).show : false,
+           barRadius: bo.length ? (bo[0].itemStyle || {}).borderRadius : null,
+           zeroAxis: bi ? (bi.getOption().yAxis[0].axisLine || {}) : null,
            title: (q('#gpTitle') || {}).innerText || '', hint: (q('#gpHint') || {}).innerText || '',
            note: (q('#gpNote') || {}).innerText || '', focus: (q('#gpFocus') || {}).innerText || '',
            back: vis(q('#gpBack')), liveOn: !!(q('#gpLiveBtn') && q('#gpLiveBtn').classList.contains('on')),
@@ -18512,8 +18516,15 @@ def t_b29_tabs(pg, base):
 
     # ---------------- ⑤ 兩圖連動：滑過長條，圓餅對應扇形的樣式真的變
     n = len(g0["names"])
-    top = pg.evaluate(B29_BARPOS, n - 1)
-    if not ok("量得到最上面那一條長條的位置", bool(top), top):
+    # ★ W3-8：圓餅只標前五大，所以連動要挑一條「在圓餅上真的有自己那一塊」的長條來驗；
+    #   落在「其他」裡的那一種另外有一條專門在驗（見下面）。
+    top = None
+    for _i in range(n - 1, -1, -1):
+        cand = pg.evaluate(B29_BARPOS, _i)
+        if cand and cand["name"] in g0["pieNames"]:
+            top = cand
+            break
+    if not ok("量得到一條在圓餅上有自己扇形的長條", bool(top), top):
         return
     b_pie0 = g0["pieBorder"]
     pg.mouse.move(top["x"], top["y"]); pg.wait_for_timeout(800)
@@ -18725,6 +18736,115 @@ def t_b29_tabs(pg, base):
         ok("W3-1：收合再展開一輪，設定列仍然停在圖的右上角（補算機制沒有被拿掉）",
            bool(t2) and t2["qx"] > 0.5 and t2["qy"] < 0.5 and t2["inside"],
            {"qx": round(t2["qx"], 2), "qy": round(t2["qy"], 2), "inside": t2["inside"]})
+
+    # ---- W3-8：族群總覽的兩張圖優化（卡片、不截斷、圓角長條、零軸線、甜甜圈＋中心數字、連動不退化）
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    g8 = pg.evaluate(B29_GP)
+    ok("W3-8：兩張圖各自裝進一張卡片，而且標題寫著它在講什麼",
+       g8["cards"] == 2 and any("族群漲跌幅" in t for t in g8["cardTitles"])
+       and any("成交值占比" in t for t in g8["cardTitles"]), g8["cardTitles"])
+    box8 = pg.evaluate("""() => [...document.querySelectorAll('#v-industry .gpcard')].map(c => {
+        const cs = getComputedStyle(c);
+        return { r: parseFloat(cs.borderTopLeftRadius) || 0,
+                 bw: parseFloat(cs.borderTopWidth) || 0, bg: cs.backgroundColor }; })""")
+    ok("W3-8：卡片真的有圓角與邊框（不是把標題貼在同一片背景上）",
+       len(box8) == 2 and all(b["r"] >= 8 and b["bw"] >= 1 for b in box8), box8)
+    ok("W3-8：族群名稱一個都沒有被截斷（畫面上不准出現「…」）",
+       all("…" not in str(y) for y in g8["yLabels"]), [y for y in g8["yLabels"] if "…" in str(y)][:4])
+    ok("W3-8：長條兩端是圓角（不是直角）", (g8["barRadius"] or 0) >= 3, g8["barRadius"])
+    ok("W3-8：零軸那一條真的畫出來而且加粗了（正負分得開）",
+       bool(g8["zeroAxis"]) and g8["zeroAxis"].get("show") is not False
+       and (g8["zeroAxis"].get("lineStyle") or {}).get("width", 0) >= 1.5, g8["zeroAxis"])
+    ok("W3-8：圓餅改成甜甜圈（有內半徑）",
+       isinstance(g8["pieRadius"], list) and len(g8["pieRadius"]) == 2, g8["pieRadius"])
+    ok("W3-8：標籤用引線拉出去（不是直接貼在扇形旁邊）", g8["pieLabelLine"], g8["pieLabelLine"])
+    ok("W3-8：只標前五大＋「其他」，最多六塊（不再是十幾塊碎片擠在一起）",
+       len(g8["pieNames"]) <= 6 and "其他" in g8["pieNames"], g8["pieNames"])
+    # 中心那個數字一定要**真的是前五大相加**，不准寫死
+    want8 = pg.evaluate("""() => { const pi = echarts.getInstanceByDom(document.getElementById('gpPie'));
+        const d = pi.getOption().series[0].data;
+        const tot = d.reduce((s, x) => s + (x.value || 0), 0);
+        const five = d.filter(x => x.name !== '其他').reduce((s, x) => s + (x.value || 0), 0);
+        return tot > 0 ? Math.round(five / tot * 1000) / 10 : -1; }""")
+    got8 = [t for t in g8["pieTitles"] if "%" in t]
+    ok("W3-8：甜甜圈中心寫著「前五大」與它們的合計占比", "前五大" in g8["pieTitles"] and bool(got8), g8["pieTitles"])
+    ok("W3-8：而且那個數字是**真的算出來的**（跟前五大相加對得上，誤差 ≤ 0.2%）",
+       bool(got8) and abs(float(got8[0].replace("%", "")) - want8) <= 0.2, {"畫面": got8, "算出來": want8})
+    # 連動不准退化：滑過一條落在「其他」裡的長條，灰色那一塊要亮起來
+    other_i = pg.evaluate("""(names) => { const bi = echarts.getInstanceByDom(document.getElementById('gpBar'));
+        const d = bi.getOption().series[0].data;
+        for (let i = d.length - 1; i >= 0; i--) if (names.indexOf(d[i].name) < 0) return i;
+        return -1; }""", [x for x in g8["pieNames"] if x != "其他"])
+    if other_i >= 0:
+        pos8 = pg.evaluate(B29_BARPOS, other_i)
+        oi = g8["pieNames"].index("其他")
+        b_before = g8["pieBorder"][oi]
+        pg.mouse.move(pos8["x"], pos8["y"]); pg.wait_for_timeout(800)
+        g8b = pg.evaluate(B29_GP)
+        changed("W3-8：滑過落在「其他」裡的族群長條，灰色那一塊真的亮起來（連動沒有斷）",
+                b_before, g8b["pieBorder"][oi], pos8["name"])
+        pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+    else:
+        notes.append("這一頁的族群不到六個，「滑過落在其他裡的長條」那一條略過")
+    # 三個寬度：390 要上下堆疊
+    for w8 in (1440, 800, 390):
+        pg.set_viewport_size({"width": w8, "height": 1000})
+        pg.goto(f"{base}#industry", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        r8 = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#v-industry .gpcard')];
+            if (cs.length < 2) return null; const a = cs[0].getBoundingClientRect(), b = cs[1].getBoundingClientRect();
+            const fs = [...document.querySelectorAll('#v-industry .gpcard > h5')]
+                .map(h => parseFloat(getComputedStyle(h).fontSize));
+            return { side: b.left >= a.right - 6, stacked: b.top >= a.bottom - 6, minFs: Math.min(...fs),
+                     docW: document.documentElement.scrollWidth, winW: innerWidth,
+                     wA: Math.round(a.width), wB: Math.round(b.width) }; }""")
+        if ok(f"W3-8 [{w8}px] 找得到兩張卡片", bool(r8), r8):
+            ok(f"W3-8 [{w8}px] 兩張卡片不是並排就是上下堆疊（不會互相壓到）",
+               r8["side"] or r8["stacked"], r8)
+            if w8 == 390:
+                ok("W3-8 [390px] 兩張卡片真的上下堆疊（不是硬擠成兩欄）", r8["stacked"], r8)
+            ok(f"W3-8 [{w8}px] 卡片標題字級 ≥ 12px", r8["minFs"] >= 12, r8["minFs"])
+            ok(f"W3-8 [{w8}px] 沒有橫向捲軸", r8["docW"] <= r8["winW"] + 1, r8)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ---- W3-10：切全站主題，剖析圖的配色自動跟著切（深→淺、淺→深兩個方向都要）
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.dg3d.pal'); } catch (e) {} }")
+    pg.goto(f"{base}#industry/electronics/dg/mlcc", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    PAL = """() => { const svg = document.querySelector('#prodDiagram svg');
+        const part = svg && svg.querySelector('[data-seg] .part, [data-seg] rect, [data-seg] path');
+        return { pal: document.documentElement.dataset.dgpal || '',
+                 theme: document.documentElement.getAttribute('data-theme') || '',
+                 btn: (document.getElementById('dgPal') || {}).textContent || '',
+                 saved: (() => { try { return localStorage.getItem('tw.dg3d.pal'); } catch (e) { return null; } })(),
+                 bg: getComputedStyle(document.documentElement).getPropertyValue('--dg-bg').trim(),
+                 ink: getComputedStyle(document.documentElement).getPropertyValue('--dg-ink').trim(),
+                 fill: part ? getComputedStyle(part).fill : '' }; }"""
+    p0 = pg.evaluate(PAL)
+    ok("W3-10：深色主題下剖析圖是「科技」配色", p0["pal"] == "tech" and "科技" in p0["btn"], p0)
+    # 手動先按成「閱讀」—— 這正是改之前會把偏好黏住的那一步
+    pg.eval_on_selector("#dgPal", "b => b.click()"); pg.wait_for_timeout(700)
+    pm = pg.evaluate(PAL)
+    ok("W3-10：手動按 `配色` 仍然有效（畫面真的換成閱讀）",
+       pm["pal"] == "read" and "閱讀" in pm["btn"] and pm["bg"] != p0["bg"], pm)
+    # 切到明亮主題 → 剖析圖要自己變閱讀；再切回深色 → 要自己切回科技。
+    # ⚠ 用 JS 派發的 element.click()，不要用 pg.click() —— 吸頂的 .topbar 會把點擊攔下來。
+    pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2200)
+    p1 = pg.evaluate(PAL)
+    ok("W3-10：切到明亮主題 → 剖析圖自動變成「閱讀」配色",
+       p1["theme"] == "light" and p1["pal"] == "read" and "閱讀" in p1["btn"], p1)
+    ok("W3-10：而且畫面上的顏色真的換了（量 --dg-bg，不是只看按鈕的字）",
+       p1["bg"] != p0["bg"], {"深": p0["bg"], "淺": p1["bg"]})
+    pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2200)
+    p2 = pg.evaluate(PAL)
+    ok("W3-10：再切回暗色主題 → 剖析圖自動切回「科技」（手動按過的偏好不准黏住）",
+       p2["theme"] == "dark" and p2["pal"] == "tech" and "科技" in p2["btn"], p2)
+    ok("W3-10：而且顏色真的切回來了（--dg-bg 回到深底）", p2["bg"] == p0["bg"], {"現在": p2["bg"], "一開始": p0["bg"]})
+    ok("W3-10：localStorage 的舊偏好也一起清掉了（重新整理不會跳回舊的那個）",
+       p2["saved"] in (None, "", "tech"), p2["saved"])
+    ok("W3-10：切主題沒有把圖重畫成初始狀態（剖析圖還在、沒有變空白）",
+       pg.evaluate("() => document.querySelectorAll('#prodDiagram svg').length") == 1)
 
     # ---- W3-6：產業鏈標題下方那排標籤整排拿掉（檔數／今日／本益比中位／← 返回）
     pg.set_viewport_size({"width": 1440, "height": 1000})

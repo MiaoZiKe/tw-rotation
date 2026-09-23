@@ -94,3 +94,27 @@ W7 象限卡（7～13）
   （同類問題的另一種解法是 HANDOFF 裡「3D 容器改走滑鼠座標」。）
 - **3D 相關段落一律 `--workers 1`** —— 平行跑會把 CPU 吃滿、工具列 6 秒點不到，整批假紅。
 - `scripts/_show.py` 每次跑會先清空 `docs/_show/`，多個 agent 同時跑會互相洗掉截圖。
+
+## 六、W9 軟體與資訊服務四張新圖（新增四段）
+
+只碰 `site/dg/*`（新檔）＋ `site/index.html`，pytest 可跳過。建議跑：
+`產業`、`族群頁`、`產業鏈導覽`、`新-產業與個股`、`縮放掃描`、`手機`、`淺色主題` ＋ `_preview.py`。
+
+1. `#industry/software` 分頁列出現四個新分頁，逐一點進去 → `#dgTitle` **真的換字**、
+   `#prodDiagram svg` 的 class 依序是 `dgcs` / `dgcm` / `dgsa` / `dgec`（不是只驗元素存在）
+2. 四張各點一個 `[data-part]`（`cs_alert` / `cm_resale` / `sa_sub_m11` / `ec_ship`）→
+   該節點拿到 `.sel-part`，且同一張圖裡 `.sel-part` **只有一個**
+   （這條會抓到 `partHit` 走 `data-part` 分支有沒有斷）
+3. 四張 `#prodDiagram [data-seg]` 數量 **== 0** —— 做成棘輪。
+   ★ 這是刻意的：`supply_chain.yaml` 裡**沒有 software 這條鏈**
+   （`grep -c software` ＝ 0），掛別條鏈的環節等於在 public 網站上宣稱錯誤的公司對應。
+   哪天有人「順手補上環節」這條會立刻紅，是對的。
+4. 兩個 `D.fold()` 章節各點開一次 → `.dgbody` 高度**真的變大**（不是只有 class 改）
+5. 390 寬下四張都不產生水平捲動（`documentElement.scrollWidth <= 390`）
+6. 淺色主題下四張的 `.dgc` 卡片文字對比度掃描，比照既有那段
+
+### 要請 Andy 裁決的一件（不是程式問題）
+`supply_chain.yaml` 沒有 software 這條鏈，所以這四張**點零件不會篩成分股、拿不到環節色**。
+補救是把「誰做的」直接印在畫面上，每張都有公司卡，並放一張警語卡說明為什麼點了沒反應。
+要有篩選的唯一正解是**請 Andy 在 `supply_chain.yaml` 補 software 的環節**，
+繪圖端不准自己加（CLAUDE.md：groups/themes/supply_chain 三份 YAML 由 Andy 校訂）。
