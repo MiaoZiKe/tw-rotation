@@ -48,11 +48,19 @@ def test_續行併回同一個欄位():
     assert "贏大盤 2%" in it["what"]
 
 
+# 筆數原本寫死 34，結果每補一批需求就紅一次（2026-09-23 補到 43 時把
+# daily.yml 的「跑指標庫測試」擋掉了 —— 那一步排在抓取前面，紅了整條每日
+# 管線就停擺）。這個測試真正要守的是「三個數字對得起來、而且清單不會變短」，
+# 不是「剛好幾筆」。所以改成：三邊一致 ＋ 不得少於下面這個地板。
+# 補了新需求就把地板往上調，永遠只准往上。
+_FLOOR = 43
+
+
 def test_狀態只有五種_而且沒有筆數掉了():
     d = _data()
-    assert d["meta"]["total"] == len(d["items"]) == 34
+    assert d["meta"]["total"] == len(d["items"]) >= _FLOOR
     assert set(i["state"] for i in d["items"]) <= set(delivery_log.STATES)
-    assert sum(d["meta"]["counts"].values()) == 34
+    assert sum(d["meta"]["counts"].values()) == d["meta"]["total"]
 
 
 def test_檔案不在時回空的_不要讓管線死掉(tmp_path):
