@@ -303,7 +303,30 @@
   }
 
   /** 開一條 SSE 連線。開不起來就當作一次失敗，交給 dropStream 處理。 */
+
+  /* ★★ 2026-09-24：SSE 推送預設關閉（DECISIONS #256）。
+     為什麼：Andy 一天之內四次回報「夜盤沒有數值」。時間軸攤開來看——
+       19:43 SSE 上線 → 20:39 探測全 200 → 23:33 探測 POST 全 520
+       → 23:5x 修掉「POST 帶了 GET 的快取選項」 → 00:15 探測全 200 → 02:00 他又看到 520
+     同一版 Worker，200 → 520 → 200 → 520。**恆定的錯誤已經修掉了，剩下的是時好時壞**，
+     而「時好時壞」指向的是額度／CPU 被吃掉，不是程式邏輯。
+     免費方案的 Worker 每次調用只有 10ms CPU，而 SSE 是**長連線**：
+     只要他把網頁開著，那條連線就一直在累加 CPU 與請求數，
+     吃掉的是**同一個 Worker 上其他端點**（/fut、/futchart）的額度。
+
+     取捨很清楚：**他抱怨「夜盤看不到數字」四次，要求「即時推送」一次。**
+     可靠度優先於延遲。所以推送改成預設關閉、程式碼全部留著：
+       localStorage['tw.sse'] === '1'  → 開推送
+       其他（含沒設定）              → 走輪詢（跟 2026-09-23 之前一模一樣）
+     要重新開啟只要在瀏覽器主控台打 `localStorage['tw.sse']='1'` 再重新整理。
+     ⚠ 這不是「SSE 做壞了」——離線驗收 49 條全過。是這個免費方案養不起長連線。
+     真要長期用推送，得先確認 Cloudflare 那邊的用量（只有 Andy 看得到後台）。*/
+  function sseAllowed() {
+    try { return localStorage.getItem('tw.sse') === '1'; } catch (e) { return false; }
+  }
+
   function openStream() {
+    if (!sseAllowed()) { state.sseGaveUp = true; return; }   // 預設關閉，見上面那段
     if (!autoOn() || state.sseGaveUp || state.ssePaused) return;
     if (typeof EventSource === 'undefined') { state.sseGaveUp = true; return; }
     const base = proxy();

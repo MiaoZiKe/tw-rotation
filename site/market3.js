@@ -338,7 +338,17 @@
    *  如果這裡不把「正在退避等重連」擋掉，就會變成
    *  斷線 → 重開 → 又斷 → 重開 的**熱迴圈**，退避完全沒有作用，
    *  而且瀏覽器會被打到永遠到不了 networkidle（驗收就是這樣先卡住才發現的）。 */
+  /* ★★ 2026-09-24：夜盤推送也預設關閉，理由同 site/live.js 裡那一段（DECISIONS #256）。
+     兩條 SSE 共用同一個 Cloudflare Worker，額度也是同一份 —— 只留一條沒有意義。
+     開關同一個：localStorage['tw.sse'] === '1'。
+     關著的時候走的是 2026-09-23 之前那條輪詢，而且今天修好的兩件事都還在：
+     拿不到就真的空白（不冒充日盤）、/futchart 不被 /fut 綁死。 */
+  function sseAllowed() {
+    try { return localStorage.getItem('tw.sse') === '1'; } catch (e) { return false; }
+  }
+
   function fsCanOpen() {
+    if (!sseAllowed()) return false;                        // 預設關閉，見上面那段
     if (typeof EventSource === 'undefined') return false;   // 很舊的瀏覽器：安靜地用輪詢
     if (state.fsGaveUp) return false;
     if (state.fsTimer) return false;                        // 正在退避等重連，不要插隊

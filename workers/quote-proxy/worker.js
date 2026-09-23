@@ -415,11 +415,35 @@ function sessionNow() {
  *  所以每一次都是真的連出去，偶發的連線重置就會直接變成使用者眼前的空白。
  *  只重試一次、間隔 250ms —— 再多就會拖長使用者等待，而且 Worker 的 CPU 額度也有限。
  *  ★ 重試要重建 Request：Request 的 body 是 stream，用過就不能再用。 */
-async function fetchRetry(req, tries = 2) {
+async function fetchRetry(req, tries = 1) {
+  /* ★★ 2026-09-24 改寫（DECISIONS #256）。這一支原本會「瞬斷就再試一次」，
+     而且每次都 `req.clone()`。實測證明那個設計自己變成了兇手：
+
+       同一輪端點探測（台北 02:04，夜盤交易中）
+         期交所直連 ............ 200，**271ms**
+         經我們的 Worker ....... **520**，**3859ms / 4204ms**
+
+     期交所本身又快又好；Worker 花了快四秒才死掉 —— 那是「卡住然後被平台砍」。
+     4 秒 ≈ 兩次嘗試 ＋ 250ms 間隔，也就是重試把**卡住的時間乘以二**，
+     把一次可以快速失敗的請求，變成一次超時致死的請求。
+     免費方案的 Worker 撐不住這種等待，對外就是 520（而 520 我們接不到，
+     所以連「回 502 講原因」的機會都沒有）。
+
+     改成三件事：
+       ① **預設只打一次**（tries = 1）。上游 271ms 就回得來，會卡住的是網路不是上游，
+          重試救不了、只會把死亡時間拉長。
+       ② **加上 8 秒的硬性逾時**（AbortSignal.timeout）。寧可快速失敗、讓前端退回輪詢，
+          也不要慢慢卡到被平台砍 —— 前者畫面上會寫「代理逾時」，後者是 520 什麼都查不到。
+       ③ **不再 clone**。clone 是為了重試才需要的；不重試就不需要，
+          而它本身會把 body 這個 stream 分流、多一份記憶體與一個失敗點。
+     ⚠ 呼叫端只要照舊 `await fetchRetry(req)` 就好；真的想要重試就明確傳 tries=2，
+       但在免費方案上**不建議**，理由如上。 */
+  const TIMEOUT_MS = 8000;
   let last;
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await fetch(req.clone());
+      const r = await fetch(tries === 1 ? req : req.clone(),
+        { signal: AbortSignal.timeout(TIMEOUT_MS) });
       if (r.status < 500 || i === tries - 1) return r;
       last = r;
     } catch (e) {

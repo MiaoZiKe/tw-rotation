@@ -8016,7 +8016,15 @@ def t_live_sse(pg, base):
                                                 body='{"error":"not found"}'))
     pg.evaluate("() => { try{ localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                 "localStorage.setItem('tw.live.on','1'); }catch(e){} }")
+    # ★ 2026-09-24：SSE 推送在產品上**預設關閉**（DECISIONS #256：免費方案的 Worker
+    #   養不起長連線，額度被吃掉會害 /fut、/futchart 回 520 —— Andy 為此抱怨四次）。
+    #   程式碼全部留著，所以這一段照樣要守住它。驗之前先把開關打開。
+    #   ⚠ 不准改成「不驗推送」—— 那等於把一個能用的功能悄悄變成死碼。
+    #   ⚠ add_init_script 對「只改 hash」的導航不會生效（那不會重新執行頁面腳本），
+    #      所以先進站、明確寫進 localStorage、再真的 reload 一次。
     pg.goto(base + "#overview", wait_until="load")
+    pg.evaluate("() => { try { localStorage.setItem('tw.sse', '1'); } catch (e) {} }")
+    pg.reload(wait_until="load")
     pg.wait_for_timeout(2500)
     px = text(pg, SEL_PX)
     ok("SSE 連不上時畫面照樣拿到即時價（999）", "999" in px, px)
@@ -21192,6 +21200,8 @@ def t_night_push(b, base):
         """開一個乾淨的分頁：時鐘釘在夜盤、fixture 餵那兩支端點、可選真假 EventSource。"""
         ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
         pg = ctx.new_page()
+        # ★ 2026-09-24：同上，夜盤推送也預設關閉，驗之前先打開開關（DECISIONS #256）。
+        pg.add_init_script("try{localStorage.setItem('tw.sse','1')}catch(e){}")
         boom: list[str] = []
         pg.on("pageerror", lambda e: boom.append(str(e)[:200]))
         pg.clock.install(time=FIXED)
