@@ -10547,6 +10547,8 @@ SECTIONS = {
     "批次C6-3D運轉動畫":   lambda pg, b, base, code: t_c6_anim(pg, base),
     # ★ W9：軟體與資訊服務四張新圖（換圖、點零件、展章節、窄畫面、淺色對比）
     "批次W9-軟體鏈四張":   lambda pg, b, base, code: t_w9_software(pg, base),
+    # ★ 題材頁十八張 2D 圖改版（畫布 980、字級、重疊、點一格真的變色、兩條棘輪）
+    "題材2D":              lambda pg, b, base, code: t_themes_2d(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -19598,6 +19600,155 @@ def t_w9_software(pg, base):
         ok(f"★ W9-6 [{lab}] 淺色主題下卡片裡每一段字的對比都過（正文 ≥ 4.5、次要 ≥ 3）",
            low == [], (low or [])[:5])
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 題材2D：十八張題材圖改版
+# 那一路交件時附了一份現成的驗收程式碼（`scratchpad/uitest_snippet.py`），但它是寫給
+# 自己那支量測腳本用的（`rec` / `BASE` / `MEASURE_JS` 在這支檔案裡都不存在），
+# 所以這裡是**照它量的那幾件事重寫**，不是照單貼上。量的仍然是同一組事實。
+#
+# 每一條都驗「畫面真的因此改變了」：
+#   ① 十八張的畫布都收到 980（1180 代表每一張都要左右滑，那不是「一次看完」）
+#   ② 每一個 text 的 computed font-size ≥ 12px
+#   ③ 同一張圖裡沒有任兩個 text 的外框相交超過 2px（口徑同 `_preview.py`）
+#   ④ 零件與文字都沒有畫出 viewBox
+#   ⑤ **點一格 → 那一格真的被選起來，而且 `rect.slot` 的 computed fill 真的變了**
+#      （只驗 class 變了不算：class 變了長得一樣，對使用者來說就是沒發生）
+#   ⑥ 個股小卡點下去真的跳到 `#stock/<代號>`
+#   ⑦ 兩條棘輪：**寫死色碼 0 個**、**`lit pulse` 0 個**
+#   ⑧ 深淺兩個主題、三個寬度都跑
+THEME_2D_IDS = ["cowos", "hbm_memory", "pcb_ccl", "glass_substrate", "asic_ip", "ai_server",
+                "power_bbu", "thermal", "silicon_photonics", "semi_equipment", "apple_chain",
+                "edge_ai_pc", "robotics", "drone", "satellite", "ev_auto", "defense", "heavy_electric"]
+
+T2D_MEASURE = """() => {
+  const svg = document.querySelector('#themeDg .dg3, .dg3');
+  if (!svg) return { present: false };
+  const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal : null;
+  const small = [], boxes = [], outs = [];
+  svg.querySelectorAll('text').forEach(n => {
+    const t = (n.textContent || '').trim(); if (!t) return;
+    const cs = getComputedStyle(n);
+    if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity <= 0.05) return;
+    const r = n.getBoundingClientRect(); if (!r.width || !r.height) return;
+    const fs = parseFloat(cs.fontSize) || 0;
+    if (fs < 11.9) small.push(fs.toFixed(1) + 'px「' + t.slice(0, 14) + '」');
+    boxes.push({ t: t.slice(0, 14), r: r });
+    if (vb) { const g = n.getBBox();
+      if (g.x < -1 || g.x + g.width > vb.width + 1 || g.y < -1 || g.y + g.height > vb.height + 1)
+        outs.push('字：' + t.slice(0, 14)); }
+  });
+  // 零件也不准畫出 viewBox
+  if (vb) svg.querySelectorAll('[data-part] .part, g.art rect, g.art path').forEach(n => {
+    let g; try { g = n.getBBox(); } catch (e) { return; }
+    if (!g || !g.width) return;
+    if (g.x < -1 || g.x + g.width > vb.width + 1 || g.y < -1 || g.y + g.height > vb.height + 1)
+      outs.push('零件：' + (n.getAttribute('class') || n.tagName));
+  });
+  const ov = [];
+  for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+    const a = boxes[i].r, b = boxes[j].r;
+    const w = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+    const h = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+    // 容差 2px：描邊、字距這種純粹擦邊的不算（跟 `_preview.py` 同一個口徑）
+    if (w > 2 && h > 2 && ov.length < 6) ov.push(boxes[i].t + ' X ' + boxes[j].t);
+  }
+  return { present: true, cw: svg.dataset.cw || '', vbW: vb ? Math.round(vb.width) : 0,
+           n: boxes.length, small: small, nSmall: small.length,
+           ov: ov, nOv: ov.length, out: outs.slice(0, 5), nOut: outs.length,
+           stn: svg.querySelectorAll('g.stn').length,
+           slots: svg.querySelectorAll('rect.slot').length,
+           codes: svg.querySelectorAll('.scode[data-code]').length,
+           // ★ 棘輪一：寫死色碼（`#rgb` / `#rrggbb`）一個都不准有 —— 顏色一律走 --dg-*
+           hard: (svg.outerHTML.match(/#[0-9a-fA-F]{3,8}\\b/g) || [])
+                   .filter(x => !/^#[0-9a-fA-F]{0,2}$/.test(x)).length,
+           // ★ 棘輪二：`lit pulse`（Andy 講過三次的「螢光感太重」的來源）
+           pulse: svg.querySelectorAll('.lit.pulse, .pulse.lit').length,
+           docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+
+
+def t_themes_2d(pg, base):
+    """題材頁十八張 2D 圖：畫布寬、字級、重疊、溢出、點一格真的變色、點個股真的跳頁、兩條棘輪。"""
+    hard_total, pulse_total, bad = 0, 0, []
+    for theme in ("dark", "light"):
+        pg.goto(f"{base}#themes", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", theme)
+        lab0 = "深色" if theme == "dark" else "淺色"
+        for w in (1440, 800, 390):
+            pg.set_viewport_size({"width": w, "height": 1000})
+            for tid in THEME_2D_IDS:
+                pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
+                pg.reload(wait_until="networkidle")
+                pg.wait_for_timeout(1200)
+                z = pg.evaluate(T2D_MEASURE)
+                tag = f"[{tid}·{w}px·{lab0}]"
+                if not z.get("present"):
+                    bad.append(f"{tag} 沒有圖")
+                    continue
+                if z["cw"] != "980" or z["vbW"] != 980:
+                    bad.append(f"{tag} 畫布不是 980（data-cw={z['cw']} viewBox={z['vbW']}）")
+                if z["nSmall"]:
+                    bad.append(f"{tag} 小字 {z['small'][:2]}")
+                if z["nOv"]:
+                    bad.append(f"{tag} 文字重疊 {z['ov'][:2]}")
+                if z["nOut"]:
+                    bad.append(f"{tag} 溢出 {z['out'][:2]}")
+                if z["docW"] > z["winW"] + 1:
+                    bad.append(f"{tag} 整頁橫向捲軸 {z['docW']} > {z['winW']}")
+                if theme == "dark" and w == 1440:
+                    hard_total += z["hard"]
+                    pulse_total += z["pulse"]
+    ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布 980、字 ≥ 12px、不重疊、不溢出、不橫向捲",
+       not bad, bad[:6])
+    # ---- ⑦ 兩條棘輪
+    ok("★ 題材2D 棘輪一：十八張渲染出來的 SVG 裡**一個寫死色碼都沒有**（顏色一律走 --dg-*）",
+       hard_total == 0, hard_total)
+    ok("★ 題材2D 棘輪二：`lit pulse` 歸零（那是「螢光感太重」的來源，Andy 講過三次）",
+       pulse_total == 0, pulse_total)
+
+    # ---- ⑤ 真的點一格：class 要變，**而且 `rect.slot` 的 computed fill 真的不一樣**
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    picked = 0
+    for tid in ("cowos", "ai_server", "robotics"):
+        pg.goto(f"{base}#themes/{tid}", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+        SNAP = """(i) => { const gs = [...document.querySelectorAll('.dg3 g.stn')];
+            const g = gs[i]; if (!g) return null;
+            const slot = g.querySelector('rect.slot');
+            return { cls: g.getAttribute('class') || '',
+                     fill: slot ? getComputedStyle(slot).fill : '',
+                     stroke: slot ? getComputedStyle(slot).stroke : '' }; }"""
+        n_stn = count(pg, ".dg3 g.stn")
+        idx = 2 if n_stn > 3 else 0          # 規格點名的是「第三格」
+        b0 = pg.evaluate(SNAP, idx)
+        if not ok(f"[{tid}] 圖上量得到第 {idx + 1} 格（共 {n_stn} 格）", bool(b0), b0):
+            continue
+        pg.eval_on_selector_all(".dg3 g.stn",
+                                "(gs, i) => gs[i] && gs[i].dispatchEvent(new MouseEvent('click', {bubbles: true}))", idx)
+        pg.wait_for_timeout(600)
+        b1 = pg.evaluate(SNAP, idx)
+        ok(f"★ [{tid}] 點第 {idx + 1} 格 → 那一格的 class 真的變了", b0["cls"] != b1["cls"],
+           {"前": b0["cls"], "後": b1["cls"]})
+        ok(f"★ [{tid}] 而且 `rect.slot` 的**實際填色**真的變了（class 變了長得一樣＝沒發生）",
+           b0["fill"] != b1["fill"] or b0["stroke"] != b1["stroke"], {"前": b0, "後": b1})
+        picked += 1
+    ok("三張圖都真的點過一格", picked == 3, picked)
+
+    # ---- ⑥ 個股小卡真的跳到個股頁
+    pg.goto(f"{base}#themes/cowos", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1400)
+    code = pg.evaluate("""() => { const c = document.querySelector('.dg3 .scode[data-code]');
+        if (!c) return null; c.scrollIntoView({ block: 'center' }); return c.dataset.code; }""")
+    if ok("題材圖上找得到個股小卡", bool(code), code):
+        pg.wait_for_timeout(400)
+        pg.eval_on_selector(f'.dg3 .scode[data-code="{code}"]',
+                            "e => e.dispatchEvent(new MouseEvent('click', {bubbles: true}))")
+        pg.wait_for_timeout(1400)
+        ok(f"★ 點個股小卡 {code} 真的進得去個股頁（網址真的變了）",
+           pg.evaluate("() => location.hash") == f"#stock/{code}",
+           pg.evaluate("() => location.hash"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
