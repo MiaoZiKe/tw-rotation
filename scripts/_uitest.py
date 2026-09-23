@@ -8016,7 +8016,15 @@ def t_live_sse(pg, base):
                                                 body='{"error":"not found"}'))
     pg.evaluate("() => { try{ localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
                 "localStorage.setItem('tw.live.on','1'); }catch(e){} }")
+    # ★ 2026-09-24：SSE 推送在產品上**預設關閉**（DECISIONS #256：免費方案的 Worker
+    #   養不起長連線，額度被吃掉會害 /fut、/futchart 回 520 —— Andy 為此抱怨四次）。
+    #   程式碼全部留著，所以這一段照樣要守住它。驗之前先把開關打開。
+    #   ⚠ 不准改成「不驗推送」—— 那等於把一個能用的功能悄悄變成死碼。
+    #   ⚠ add_init_script 對「只改 hash」的導航不會生效（那不會重新執行頁面腳本），
+    #      所以先進站、明確寫進 localStorage、再真的 reload 一次。
     pg.goto(base + "#overview", wait_until="load")
+    pg.evaluate("() => { try { localStorage.setItem('tw.sse', '1'); } catch (e) {} }")
+    pg.reload(wait_until="load")
     pg.wait_for_timeout(2500)
     px = text(pg, SEL_PX)
     ok("SSE 連不上時畫面照樣拿到即時價（999）", "999" in px, px)
@@ -10672,10 +10680,14 @@ SECTIONS = {
     "題材2D":              lambda pg, b, base, code: t_themes_2d(pg, base),
     # ★ 夜盤：用 docs/fixtures/taifex_night_probe.json 的真實回應 ＋ 時鐘平移 ＋ 非台北時區
     "夜盤真實fixture":     lambda pg, b, base, code: t_night_fixture(b, base),
+    # ★ 夜盤 SSE 推送：推一筆進來數字與線真的變、斷線真的退回輪詢、POST 不准帶 cf 快取選項
+    "夜盤推送":            lambda pg, b, base, code: t_night_push(b, base),
     # ★ 2026-09-23 桌面版介面精修第一階段九項（tabular-nums／token 對比／分頁溢出／
     #   動效與按下回饋／關動效兜底／鍵盤焦點／小字下限／表格）。
     #   最後一段同時證明「手機那一套沒有被這一批動到」。
     "UI精修0923":          lambda pg, b, base, code: t_ui_polish(pg, b, base, code),
+    # ★ 2026-09-23：輪動時鐘四個象限展開面板的排版（Andy 回報「裡面的內容跑掉」）。
+    "輪動象限面板":        lambda pg, b, base, code: t_rot_stage_panel(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -21083,6 +21095,364 @@ def t_night_fixture(b, base):
     ok("兩支都掛：徽章寫「夜盤報價未取得」", "夜盤報價未取得" in r["nums"], r["nums"][:120])
 
 
+# ===================================================================== 夜盤推送
+def t_night_push(b, base):
+    """台指期夜盤的 SSE 推送（Andy 2026-09-23：「夜盤要即時推送」）。
+
+    為什麼要多這一段
+    ----------------
+    今晚剛把**現貨**報價從輪詢換成 SSE，但那條 `/stream` 只服務 mis.twse 的現貨；
+    台指期夜盤走的是自己的 `/fut` 與 `/futchart`（期交所），還是每 60 秒輪詢一次。
+    這一段驗的是新加的 `/futstream`，以及前端接它的那一層。
+
+    ★ 這一段最重要的不是「推送會動」，是「**推送壞掉的時候輪詢會接住**」。
+    DECISIONS #255：2026-09-23 一天之內夜盤壞了三次，三個根因完全不同，
+    共通點是這條路很脆弱。所以每一條斷線的路徑都要驗到「畫面照樣會更新」。
+
+    六件事：
+      ① 真的開了一條 `/futstream`，而且帶對了時段與近月合約代號
+      ② 推一筆新報價 → **那張卡的數字真的變了、線的最後一點也真的變了**
+      ③ 而且是「只補最後一根」，不是整張重畫（用 `el._m3line` 的物件同一性驗）
+      ④ 送 bye（4 分鐘輪替）→ 前端立刻重連，而且重連那一份快照補得回來
+      ⑤ ★ 連線錯誤 → **自動退回輪詢，而且馬上補抓一次，畫面照樣更新**
+      ⑥ 用**真的 EventSource** 再走一次（證明 URL、事件名、解析都是對的，不是只有假物件會動）
+    另外掃一次 worker.js 的原始碼：任何 POST 的請求物件都不准帶 cf 快取選項。
+    """
+    import copy
+    import json as _json
+    fx = _json.loads((ROOT / "docs/fixtures/taifex_night_probe.json").read_text(encoding="utf-8"))
+    S = {r["id"]: r for r in fx["results"]}
+    FUT_NIGHT = S["taifex_quotelist_night"]["sample"]
+    CHART_NIGHT = S["taifex_chartdata_1m_night"]["sample"]
+    _ticks = ((CHART_NIGHT.get("RtData") or {}).get("Ticks") or [])
+    assert _ticks, "fixture 裡沒有 Ticks，這一段的前提不成立"
+    BASE_LAST = int(float(_ticks[-1][4]))          # 官方分時最後一根的收盤（48009）
+    LAST_T = str(_ticks[-1][0])                    # 最後一根的時間 "001600"
+    FIXED = "2026-09-23T12:39:00Z"                 # ＝台北 2026-09-23 20:39（夜盤時段內）
+
+    def quote_with(price, hhmmss):
+        """把 fixture 的夜盤報價清單改成「近月成交在 price、時間 hhmmss」的那一份。"""
+        j = copy.deepcopy(FUT_NIGHT)
+        for q in j["RtData"]["QuoteList"]:
+            if q.get("SymbolID") == "TXFJ6-M":
+                q["CLastPrice"] = f"{price}.00"
+                q["CTime"] = hhmmss
+                # 累計量也一起往上加，才像真的成交過（前端會拿它算「該段量」）
+                q["CTotalVolume"] = str(int(float(q["CTotalVolume"])) + 40)
+        return j
+
+    # 推送進來的那一筆：時間落在**官方分時最後一根的同一分鐘**（001600 → 00:16），
+    # 所以它要就地改寫那一根的收盤 —— 那正是「線的最後一點真的變了」要驗的東西。
+    PUSH_PRICE = 48123
+    PUSH_Q = quote_with(PUSH_PRICE, LAST_T[:4] + "40")      # 00:16:40
+    # 退回輪詢之後才換上去的那一筆（用來證明「退路是活的」）
+    POLL_PRICE = 48456
+    POLL_Q = quote_with(POLL_PRICE, "001700")
+
+    PROBE = """() => { const el = document.getElementById('m3c-FUT');
+        const card = document.querySelector("#m3Grid .m3-card[data-id='FUT']");
+        let last = null, series = null;
+        try { const i = echarts.getInstanceByDom(el);
+          if (i) { const d = (i.getOption().series || [])[0];
+            if (d) { const v = (d.data || []).filter(x => x != null);
+              series = v.length; last = v.length ? v[v.length - 1] : null; } } } catch (e) {}
+        const way = card && card.querySelector('.m3-tag[data-way]');
+        return { last, series,
+          px: (card && card.querySelector('.m3-px') || {}).textContent || '',
+          way: way ? way.textContent : '', wayAttr: way ? way.dataset.way : '',
+          tag: el && el._m3line ? (el._m3line.__tag || '') : '(no _m3line)',
+          kind: el ? el.dataset.kind : '',
+          fs: window.Market3.futStream,
+          esUrls: (window.__esUrls || []).filter(u => u.indexOf('futstream') >= 0) }; }"""
+
+    # 假的 EventSource：讓這一段可以**精準控制連線的生命週期**（開著、推一筆、輪替、斷線）。
+    # 為什麼要假的：route.fulfill 沒辦法送一條「一直開著的」串流，一 fulfill 完連線就結束了，
+    # 那就永遠驗不到「連著的時候推一筆進來會怎樣」。Worker 那一側是另外用 Node 跑真的
+    # worker.js ＋ 假 fetch 驗的（scratchpad/futstream_check.mjs），兩邊各自驗自己那一半。
+    # ⚠ 這會一併換掉 live.js 用的那個 EventSource —— 所以下面一律**用網址挑**要操作哪一條。
+    FAKE_ES = """
+      (() => {
+        const all = [];
+        window.__esUrls = [];
+        class FakeES {
+          constructor(url) {
+            this.url = String(url); this.readyState = 1; this._h = {}; this.onerror = null;
+            all.push(this); window.__esUrls.push(this.url);
+          }
+          addEventListener(t, f) { (this._h[t] = this._h[t] || []).push(f); }
+          removeEventListener() {}
+          close() { this.readyState = 2; }
+        }
+        window.EventSource = FakeES;
+        // 找「網址含 match 而且還開著」的最後一條，對它送一個事件
+        window.__esFire = (match, type, data) => {
+          const es = all.filter(e => e.url.indexOf(match) >= 0 && e.readyState !== 2).pop();
+          if (!es) return 'no-open-es';
+          if (type === 'error') { if (es.onerror) es.onerror({}); return 'ok'; }
+          (es._h[type] || []).forEach(f => f({ data: typeof data === 'string' ? data : JSON.stringify(data) }));
+          return 'ok';
+        };
+        window.__esCount = (match) => all.filter(e => e.url.indexOf(match) >= 0).length;
+      })();
+    """
+
+    def open_page(fake_es, stream_bodies=None, fut_fail=False):
+        """開一個乾淨的分頁：時鐘釘在夜盤、fixture 餵那兩支端點、可選真假 EventSource。"""
+        ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
+        pg = ctx.new_page()
+        # ★ 2026-09-24：同上，夜盤推送也預設關閉，驗之前先打開開關（DECISIONS #256）。
+        pg.add_init_script("try{localStorage.setItem('tw.sse','1')}catch(e){}")
+        boom: list[str] = []
+        pg.on("pageerror", lambda e: boom.append(str(e)[:200]))
+        pg.clock.install(time=FIXED)
+        if fake_es:
+            pg.add_init_script(FAKE_ES)
+        cur = {"fut": FUT_NIGHT}
+        hits = {"fut": 0, "chart": 0, "stream": 0}
+
+        def on_fut(route):
+            hits["fut"] += 1
+            if fut_fail:
+                route.abort("failed")
+                return
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=_json.dumps(cur["fut"]))
+
+        def on_chart(route):
+            hits["chart"] += 1
+            route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                          body=_json.dumps(CHART_NIGHT))
+
+        def on_stream(route):
+            hits["stream"] += 1
+            n = hits["stream"]
+            bodies = stream_bodies or []
+            if n <= len(bodies) and bodies[n - 1] is not None:
+                route.fulfill(status=200, content_type="text/event-stream; charset=utf-8",
+                              body=bodies[n - 1])
+            else:
+                route.abort("failed")
+
+        pg.route("**/futstream?*", on_stream)
+        pg.route("**/futchart?*", on_chart)
+        pg.route("**/fut?*", on_fut)
+        pg.route("**/chart?*", lambda r: r.fulfill(
+            status=200, content_type="application/json", body='{"RtCode":"0","RtData":{"QuoteList":[]}}'))
+        pg.route("**/quote?*", lambda r: r.fulfill(
+            status=200, content_type="application/json", body='{"msgArray":[],"rtcode":"0000"}'))
+        pg.route("**/stream?*", lambda r: r.abort("failed"))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+
+        pg.goto(base + "#overview", wait_until="domcontentloaded")
+        pg.evaluate("""() => { try {
+            ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.m3.fut','tw.m3.nightpts','tw.m3.futsym']
+              .forEach(k => localStorage.removeItem(k));
+            localStorage.setItem('tw.live.proxy','https://fake-worker.test');
+          } catch (e) {} }""")
+        pg.goto("about:blank")
+        pg.goto(base + "#overview", wait_until="networkidle")
+        pg.wait_for_timeout(2600)
+        return ctx, pg, cur, hits, boom
+
+    # ================================================== A. 假 EventSource：完整走一遍推送的生命週期
+    ctx, pg, cur, hits, boom = open_page(fake_es=True)
+
+    r0 = pg.evaluate(PROBE)
+    # ---------- ① 真的開了一條 /futstream，而且帶對了參數
+    ok("夜盤推送：真的開了一條 /futstream", len(r0["esUrls"]) >= 1, r0["esUrls"])
+    url0 = r0["esUrls"][0] if r0["esUrls"] else ""
+    ok("夜盤推送：網址帶了 session=night", "session=night" in url0, url0)
+    ok("夜盤推送：網址帶了近月合約代號 TXFJ6-M（/fut 掛掉也算得出來）",
+       "symbol=TXFJ6-M" in url0, url0)
+    ok("夜盤推送：還沒連上之前，狀態列寫的是「輪詢」",
+       r0["way"] == "輪詢" and r0["wayAttr"] == "poll", r0)
+    ok("夜盤推送：底圖先由輪詢畫出來了（線在，不是空白）", (r0["series"] or 0) >= 2, r0)
+    ok(f"夜盤推送：輪詢畫出來的最後一點就是 fixture 的 {BASE_LAST}",
+       r0["last"] is not None and abs(float(r0["last"]) - BASE_LAST) < 0.5, r0["last"])
+
+    # ---------- ② 連上了 → 狀態列要改口
+    pg.evaluate("() => window.__esFire('futstream','hello',{session:'night'})")
+    pg.wait_for_timeout(200)
+    r1 = pg.evaluate(PROBE)
+    ok("★ 夜盤推送：連上之後狀態列真的變成「推送」",
+       r1["way"] == "推送" and r1["wayAttr"] == "sse", r1)
+    ok("夜盤推送：內部狀態也是 sse", r1["fs"]["mode"] == "sse", r1["fs"])
+
+    # ---------- ③ 推一筆新報價 → 數字變、線的最後一點也變、而且是「只補最後一根」
+    pg.evaluate("() => { const el = document.getElementById('m3c-FUT');"
+                " if (el && el._m3line) el._m3line.__tag = 'KEEP'; }")
+    fut_before = hits["fut"]
+    pg.evaluate("(j) => window.__esFire('futstream','fut',j)", PUSH_Q)
+    pg.wait_for_timeout(400)
+    r2 = pg.evaluate(PROBE)
+    ok(f"★★ 推一筆進來：卡片上的數字真的變成 {PUSH_PRICE}", f"{PUSH_PRICE:,}" in r2["px"],
+       {"before": r0["px"], "after": r2["px"]})
+    ok(f"★★ 推一筆進來：線的最後一點也真的從 {BASE_LAST} 變成 {PUSH_PRICE}",
+       r2["last"] is not None and abs(float(r2["last"]) - PUSH_PRICE) < 0.5,
+       {"before": r0["last"], "after": r2["last"]})
+    ok("★ 推一筆進來：走的是「只補最後一根」（ECharts 的 option 沒有被整個重建）",
+       r2["tag"] == "KEEP", r2["tag"])
+    ok("推一筆進來：軸沒有被換掉，點數不變（不是多畫了一條線）",
+       r2["series"] == r0["series"], {"before": r0["series"], "after": r2["series"]})
+    ok("推一筆進來：沒有順手多打一次 /fut（推送就是為了不要再輪詢）",
+       hits["fut"] == fut_before, {"before": fut_before, "after": hits["fut"]})
+    ok("推一筆進來：推送計數真的加上去了", r2["fs"]["pushes"] >= 1, r2["fs"])
+
+    # ---------- ④ bye（4 分鐘輪替）→ 立刻重連
+    n_before = pg.evaluate("() => window.__esCount('futstream')")
+    pg.evaluate("() => window.__esFire('futstream','bye',{reason:'rotate'})")
+    pg.wait_for_timeout(600)
+    n_after = pg.evaluate("() => window.__esCount('futstream')")
+    ok("★ 夜盤推送：收到 bye（連線輪替）會立刻重連，不是靜靜地停掉",
+       n_after == n_before + 1, {"before": n_before, "after": n_after})
+    # 重連那一條再推一筆完整快照 → 補得回來
+    pg.evaluate("() => window.__esFire('futstream','hello',{session:'night'})")
+    pg.evaluate("(j) => window.__esFire('futstream','fut',j)", quote_with(48222, LAST_T[:4] + "50"))
+    pg.wait_for_timeout(400)
+    r3 = pg.evaluate(PROBE)
+    ok("★ 夜盤推送：重連之後那一份完整快照補得回來（數字跟著走）", "48,222" in r3["px"], r3["px"])
+    ok("夜盤推送：重連之後狀態列回到「推送」", r3["way"] == "推送", r3)
+
+    # ---------- ⑤ ★★ 連線錯誤 → 自動退回輪詢，而且馬上補抓一次
+    cur["fut"] = POLL_Q                       # 換一份新的，證明退回去的那條路真的有在抓
+    fut_before = hits["fut"]
+    pg.evaluate("() => window.__esFire('futstream','error')")
+    pg.wait_for_timeout(1200)
+    r4 = pg.evaluate(PROBE)
+    ok("★★ 斷線之後真的退回輪詢（狀態列改口）",
+       r4["way"] == "輪詢" and r4["wayAttr"] == "poll" and r4["fs"]["mode"] == "poll", r4)
+    ok("★★ 斷線之後**馬上**補抓一次，不等下一個 60 秒",
+       hits["fut"] > fut_before, {"before": fut_before, "after": hits["fut"]})
+    ok(f"★★ 退回輪詢之後畫面照樣會更新（數字變成輪詢抓到的 {POLL_PRICE}）",
+       f"{POLL_PRICE:,}" in r4["px"], {"before": r3["px"], "after": r4["px"]})
+    ok("斷線之後有記下原因（除錯時才知道是哪一種壞法）", bool(r4["fs"]["why"]), r4["fs"])
+    ok("斷線之後圖還在（不准因為推送壞掉就把線清掉）", (r4["series"] or 0) >= 2, r4)
+    ok("整段沒有頁面錯誤", not boom, boom[:3])
+    ctx.close()
+
+    # ================================================== B. 真的 EventSource：URL／事件名／解析都要對
+    # 用 route.fulfill 送一段**完整的 SSE 文字**（送完連線就結束，所以只驗得到「第一份快照」）。
+    # 它補的正是 A 段補不到的那一半：A 段用的是假物件，這裡用的是瀏覽器內建的 EventSource。
+    #
+    # ★ 這一段刻意讓 `/fut`（輪詢那條路）整支掛掉。
+    #   理由：不這樣做的話，串流結束 → 退回輪詢 → 馬上補抓一次，
+    #   輪詢抓到的那份會立刻把推送的值蓋掉，於是「48,321 出現在畫面上」就分不出
+    #   是推送的功勞還是輪詢的功勞 —— 那條斷言等於沒驗到東西。
+    #   現在只有推送這條路能生出 48,321，斷言才是真的。
+    body1 = ("retry: 3000\n\n"
+             "event: hello\ndata: " + _json.dumps({"session": "night"}) + "\n\n"
+             "event: fut\ndata: " + _json.dumps(quote_with(48321, LAST_T[:4] + "45")) + "\n\n")
+    ctx, pg, cur, hits, boom = open_page(fake_es=False, stream_bodies=[body1], fut_fail=True)
+    pg.wait_for_timeout(1500)
+    r5 = pg.evaluate(PROBE.replace("(window.__esUrls || [])", "[]"))
+    ok("★ 真的 EventSource：/futstream 真的被請求了", hits["stream"] >= 1, hits)
+    ok("★ 真的 EventSource：`event: fut` 真的被解析了，數字變成 48,321（只有推送給得出這個數字）",
+       "48,321" in r5["px"], {"px": r5["px"], "fs": r5["fs"]})
+    ok("真的 EventSource：推送的那一筆有被算進去", r5["fs"]["pushes"] >= 1, r5["fs"])
+    ok("真的 EventSource：`/fut` 全掛，但 `/futchart` 的線還在（失敗要獨立）",
+       (r5["series"] or 0) >= 2, r5)
+    ok("真的 EventSource：串流結束之後自己退回輪詢（沒有卡在 sse）",
+       r5["fs"]["mode"] == "poll" and r5["fs"]["everOk"], r5["fs"])
+    ok("真的 EventSource：整段沒有頁面錯誤", not boom, boom[:3])
+    ctx.close()
+
+    # ================================================== C. ★ 永久守住：POST 的請求不准帶 cf 快取選項
+    # DECISIONS #255 ③：`cf: { cacheTtl, cacheEverything }` **只對 GET 有效**，
+    # 帶在 POST 的子請求上會讓它出錯、Cloudflare 對外回 520 ——
+    # 那就是 2026-09-23 那天 Andy 三次看到「夜盤沒有數值」真正的斷點。
+    # 這條斷言是留給未來的人的：誰想「順手加個快取」，這裡就會紅。
+    src = _code_only((ROOT / "workers/quote-proxy/worker.js").read_text(encoding="utf-8"))
+    ok("worker.js 抹掉註解與字串之後還是有程式碼（不是被吃光才掃不到問題）",
+       "cacheTtl" in src and "futMemoFetch" in src and len(src) > 6000, len(src))
+    posts = [m.start() for m in re.finditer(r"method:\s*''", src)]
+    ok("worker.js 裡真的有 POST 的上游請求（這條斷言不是空轉）", len(posts) >= 2, len(posts))
+    bad = [i for i in posts if re.search(r"\bcf\s*:", _enclosing_object(src, i))]
+    ok("★★ worker.js：每一個帶 method 的請求物件裡都沒有 cf 快取選項（POST 帶了會回 520）",
+       not bad, [src[max(0, i - 90):i + 90] for i in bad])
+    cfs = [m.start() for m in re.finditer(r"\bcf\s*:\s*\{", src)]
+    bad2 = [i for i in cfs if re.search(r"method:\s*''", _enclosing_object(src, i))]
+    ok("★★ worker.js：反過來掃一次，每一個帶 cf 的請求物件都沒有 method（＝都是 GET）",
+       not bad2, [src[max(0, i - 120):i + 120] for i in bad2])
+    ok("worker.js：cf 快取選項只剩兩處（relay() 與 misText()，兩支都是 GET）",
+       len(cfs) == 2, len(cfs))
+    # ⚠ 路徑與 features 是**字串**，而 src 已經把字串內容抹掉了，所以這一條要看原檔
+    raw = _raw_worker()
+    ok("worker.js：/futstream 已經掛進路由與 features 清單",
+       "'/futstream'" in raw and "'futstream'" in raw, None)
+    ok("worker.js：現貨那條 /stream 的節奏常數一個字都沒動（不准影響現貨推送）",
+       "const POLL_TRADE_MS = 5000;" in raw and "const STREAM_MAX_MS = 4 * 60 * 1000;" in raw, None)
+
+
+def _raw_worker() -> str:
+    return (ROOT / "workers/quote-proxy/worker.js").read_text(encoding="utf-8")
+
+
+def _code_only(text: str) -> str:
+    """把 JS 的註解與字串內容抹掉，只留程式碼骨架。
+
+    ⚠ 不可以用 `/\\*...\\*/` 這種偷懶的正規表達式：worker.js 裡有
+    `'Accept': 'application/json, text/plain, */*'`（媒體型別的萬用字元），
+    那個 `/*` 會被當成註解開頭，一路吃掉後面 1.2KB 的**真程式碼** ——
+    於是「掃不到任何 cf」看起來像通過，其實是假綠。第一版就是這樣紅的。
+    所以老老實實走一遍字元，自己記住現在在字串裡還是註解裡。
+    """
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        c, d = text[i], (text[i + 1] if i + 1 < n else "")
+        if c == "/" and d == "*":
+            e = text.find("*/", i + 2)
+            i = n if e < 0 else e + 2
+            out.append(" ")
+            continue
+        if c == "/" and d == "/":
+            e = text.find("\n", i)
+            i = n if e < 0 else e
+            out.append(" ")
+            continue
+        if c in "\"'`":
+            q = c
+            i += 1
+            while i < n and text[i] != q:
+                if text[i] == "\\":
+                    i += 1
+                i += 1
+            i += 1
+            out.append(q + q)          # 字串換成空字串（內容不重要，形狀要留著）
+            continue
+        out.append(c)
+        i += 1
+    return "".join(out)
+
+
+def _enclosing_object(text: str, at: int) -> str:
+    """從 at 往左找到包住它的那個 `{`（括號要配對），再往右找到對應的 `}`。"""
+    depth, i = 0, at
+    while i >= 0:
+        c = text[i]
+        if c == "}":
+            depth += 1
+        elif c == "{":
+            if depth == 0:
+                break
+            depth -= 1
+        i -= 1
+    if i < 0:
+        return ""
+    j, d2 = i, 0
+    while j < len(text):
+        c = text[j]
+        if c == "{":
+            d2 += 1
+        elif c == "}":
+            d2 -= 1
+            if d2 == 0:
+                j += 1
+                break
+        j += 1
+    return text[i:j]
+
+
 # ===================================================================== UI精修0923
 # ★ 2026-09-23 桌面版介面精修第一階段（規格：docs/ui_polish_spec.md §9 第 1～9 項）。
 #   Andy 的原話：「整體介面頁面UI 圖表 表格等等，優化的更好更平易近人
@@ -21355,11 +21725,15 @@ def t_ui_polish(pg, b, base, code):
        tb and tb["n"] >= 3 and tb["spread"] <= 1.0, tb)
     ok("[#9] 表頭仍然吸頂，而且底線改用 box-shadow（border-collapse 下 border 會跟著捲走）",
        tb and tb["sticky"] == "sticky" and "rgb" in (tb["shadow"] or ""), tb)
-    hv = pg.evaluate("""() => { const r = [...document.querySelectorAll('tbody tr')].find(x => x.offsetParent);
-        const b = r.getBoundingClientRect(); return { x: b.x + 40, y: b.y + b.height / 2,
-          bg: getComputedStyle(r).backgroundColor }; }""")
-    pg.mouse.move(hv["x"], hv["y"]); pg.wait_for_timeout(350)
-    hv2 = pg.evaluate("() => getComputedStyle([...document.querySelectorAll('tbody tr')].find(x => x.offsetParent)).backgroundColor")
+    # ⚠ 用 Playwright 的 hover()（它會自己捲進視窗、自己算中心點），
+    #   不要自己 mouse.move 到 getBoundingClientRect 算出來的座標 ——
+    #   那一列可能在摺線下面或在 `.tw` 的內捲容器裡，座標對不上就完全沒有 hover（第一版就是這樣假紅的）。
+    #   受測對象一律指名「現在這一頁、看得見的第一列」，不是 document 裡的第一列。
+    row = pg.locator("table tbody tr:visible").first
+    hv = pg.evaluate("""() => ({ bg: getComputedStyle(
+        [...document.querySelectorAll('table tbody tr')].find(x => x.offsetParent)).backgroundColor })""")
+    row.hover(); pg.wait_for_timeout(350)
+    hv2 = pg.evaluate("() => getComputedStyle([...document.querySelectorAll('table tbody tr')].find(x => x.offsetParent)).backgroundColor")
     ok("[#9] 滑鼠移到表格列上，底色真的變了（不是驗 CSS 有寫）", hv2 != hv["bg"], {"idle": hv["bg"], "hover": hv2})
 
     # ---------- 手機那一套有沒有被影響（這一批只動桌機，390px 必須零差異）----------
@@ -21388,6 +21762,68 @@ def t_ui_polish(pg, b, base, code):
         ok(f"[手機零影響 #{rt}] 「⋯ 更多工具」還在，而且沒有橫向捲軸",
            m["more"] != "none" and m["docW"] <= m["winW"] + 1, m)
     mpg.close(); mb.close()
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 輪動象限面板排版
+def t_rot_stage_panel(pg, base):
+    """★ 2026-09-23（Andy 逐字：「資金輪動領先 改善 落後 轉若 裡面的內容跑掉需要重新排版」）。
+
+    壞掉的長相與量測值（修之前，1440px，四個象限都一樣）：
+      · 名稱欄 `.g` 寬 13～32px、**高 60～150px** ← 中文被壓成一個字一行、直排
+      · 數字欄 `.m` 右緣 748.3px vs 那一列右緣 676.7px ← **佔比那一欄被裁掉**
+      · `ul.ms` scrollWidth 342 vs clientWidth 270 ← 多出一條橫向捲軸
+    修完之後同一組量測：`.g` 高 20px（＝一行）、`.m` 不裁、scrollWidth == clientWidth。
+
+    這一段把那三個數字**逐項量出來**，四個象限 × 四個寬度全跑，
+    所以以後只要有人再把這塊面板塞進固定寬度的欄位，這裡就會紅。
+    """
+    QUADS = (("leading", "領先"), ("improving", "改善"), ("lagging", "落後"), ("weakening", "轉弱"))
+    MEASURE = """() => { const box = document.getElementById('stagePanel');
+        if (!box || box.hidden) return { open: false };
+        const ul = box.querySelector('ul.ms');
+        const lis = [...box.querySelectorAll('ul.ms li')].filter(l => !l.classList.contains('none'));
+        const rows = lis.map(l => { const g = l.querySelector('.g'), m = l.querySelector('.m');
+          const gr = g && g.getBoundingClientRect(), mr = m && m.getBoundingClientRect();
+          const lr = l.getBoundingClientRect();
+          return { name: g ? g.textContent.trim() : '',
+                   gH: gr ? +gr.height.toFixed(1) : 0,          // > 24 ＝ 名稱換行了（直排）
+                   mClipped: mr ? mr.right > lr.right + 0.5 : false,
+                   over: l.scrollWidth - l.clientWidth,
+                   parts: m ? m.querySelectorAll('span').length : 0,
+                   hasTitle: !!(g && g.getAttribute('title')) }; });
+        return { open: true, n: rows.length, rows,
+                 ulOver: ul.scrollWidth - ul.clientWidth,
+                 ulOverflowX: getComputedStyle(ul).overflowX,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+    for w in (1440, 1280, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3600)
+        for k, zh in QUADS:
+            sel = f'.rq[data-k="{k}"]'
+            if not pg.query_selector(sel):
+                ok(f"[輪動面板 {w}px] 四顆象限徽章都在（找不到「{zh}」）", False, sel); continue
+            pg.click(sel); pg.wait_for_timeout(800)
+            r = pg.evaluate(MEASURE)
+            if not r.get("open"):
+                ok(f"[輪動面板 {w}px {zh}] 點下去面板真的展開了", False, r); continue
+            bad_name = [x for x in r["rows"] if x["gH"] > 24]
+            clipped = [x for x in r["rows"] if x["mClipped"]]
+            overs = [x for x in r["rows"] if x["over"] > 0]
+            ok(f"[輪動面板 {w}px {zh}] 族群名稱一行寫得完，沒有一個被壓成直排（{r['n']} 列）",
+               not bad_name, bad_name[:3])
+            ok(f"[輪動面板 {w}px {zh}] 強弱／動能／佔比三個數字一個都沒被裁掉",
+               not clipped, clipped[:3])
+            ok(f"[輪動面板 {w}px {zh}] 面板裡沒有任何一列溢出、也沒有橫向捲軸",
+               not overs and r["ulOver"] <= 0 and r["ulOverflowX"] == "hidden", 
+               {"overs": overs[:3], "ulOver": r["ulOver"], "overflowX": r["ulOverflowX"]})
+            ok(f"[輪動面板 {w}px {zh}] 整頁沒有因此長出橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+            ok(f"[輪動面板 {w}px {zh}] 名稱掛了 title（截斷時全名還看得到，是藏不是刪）",
+               all(x["hasTitle"] for x in r["rows"]), r["rows"][:2])
+            # 三個數字必須是三塊（動能只有 full 模式才有，所以至少 2、通常 3）
+            ok(f"[輪動面板 {w}px {zh}] 三個數字各自是一塊、可以各自換行（不是一整串硬塊）",
+               all(x["parts"] >= 2 for x in r["rows"]), r["rows"][:2])
+            pg.click(sel); pg.wait_for_timeout(300)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
