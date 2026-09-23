@@ -2166,6 +2166,183 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    DECISIONS #148「要看得到版號」沒有被動到。 */
 @media (max-width:1140px){ .verbadge{display:none} }
 
+/* ==========================================================================
+   ★★★ 2026-09-23 手機優先改版 第一版（Andy：「電腦看跟手機看完全不同，
+   幫我依據手機改版頁面，後續還會在更新 先改一版吧」）
+
+   依據 = `docs/mobile_audit.md` 那份量出來的落差清單（16 項），不是印象。
+   原則（他講得很清楚）：**桌機遷就手機**，手機是基準；桌機是它的放大／展開版。
+   規矩：同一個功能兩邊要叫同一個名字、放在對應得起來的位置；
+   收進抽屜可以，**整個消失不行**。
+
+   這一段刻意集中寫在檔尾、而不是散進上面各自的區塊：
+   ① 它們全部是「同一件事」的一部分，散開來下一版的人找不到；
+   ② 排在最後才蓋得掉上面既有的 820px 區塊（同特異度、後者勝），
+      不必替每一條加 !important。
+   ========================================================================== */
+
+/* ---- G4：手機字級下限 12px（`docs/mobile_audit.md` 量到 8 頁共 400+ 處破線）----
+   根因是 CSS 裡有 60 餘處寫死 11px／11.5px —— 桌機勉強可讀，390px 的手上讀不到。
+   ⚠ 這裡**只抬手機**，桌機維持原樣：11.5px 的次要標籤在 1440px 上是刻意的層次，
+     一起抬上去會把桌機的資訊密度弄壞（那不是他要修的東西）。
+   ⚠ 刻意不含 `.chainmap .co .sub` 與 `.chainmap .fct` —— 那兩個是 SVG 文字，
+     位置由 industry.js 依字級算好，抬字級會直接壓到隔壁的節點。留到下一版連同排版一起改。*/
+@media (max-width:820px){
+  .evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
+  .rotdd .ddbar .muted,.rotdd .ddpanel>.ddopt em,.rotdd .ddbtn,
+  .m3-tag,.m3-night .note,.m3-chart .m3-night .note,[id^='m3c-'][data-fallback]::before,
+  .zwrap>.zbadge,.chainchips button em,.rotquads .rq em,
+  .stagepanel .sd,.stagepanel ul.ms li .m,.stage li .m,.kpi .l .more,
+  #mktTabs button em,.magrid .ma .n em,.magrid .ma .v,.cglist label em,.facets button em,
+  .m3-sub,.chainsw button em,.chainsw button[data-dg]::before,
+  .nbsw>button em,.nbsw>a em,.nbsw>button[data-dg]::before,
+  .qtag,.segchip .n,.xchain .xrow>.muted,.xchain .xrow .pill,.mapnote,
+  #lwc .ohlcbox,#lwc .ohlcbox th,#lwc .ohlcbox td,#lwc .pane-labels div,
+  .relbox .it,.relbox .nt,.relbox .why,.relbox .why b,.ev .cat,
+  .segcard .sh .rl,.segcard .sh .cnt,.segcard .sf,.segcard .sco .code,.segcard .sco .rel,.segcard .nt,
+  .rotfilter .muted,.rottools .muted,h4.subh small,
+  .tk-st,.tk-f code,.tk-sp,
+  .dlv-tag,.dlv-w b,.dlv-ver,.dlv-none,.dlv-b,
+  .segtools .muted,.relsw button{font-size:12px}
+}
+
+/* ---- G1／G9：頂欄右半邊在手機被整個裁掉 ----
+   量到的事實（390px）：`.topbar` 需要 528px 卻只有 390px，而它是 `overflow:hidden` ——
+   `#themeBtn` 只露出 6px、`#evToggle`（今日事件的**唯一入口**）整顆在畫面外。
+   結果是「明亮／深色」與「今日事件」這兩個功能在手機上不存在。
+
+   修法：手機把「更新／即時設定／主題／今日事件」四件事收進一顆「⋯」——
+   收進抽屜是允許的，消失不行。抽屜裡每一列都寫**跟桌機同一個名字**，
+   而且是 44px 高的整列，比桌機的圖示鈕更好認、更好點。
+   ⚠ `overflow` 一定要改回 `visible`：`#morePop` 與搜尋建議 `#sugg` 都是絕對定位的浮層，
+     留著 hidden 會把它們裁掉（等於修了一個問題製造另一個）。
+     改 visible 之後不會產生橫向捲軸，因為四顆鈕已經收掉、搜尋框改成可收縮。*/
+.morebtn{display:none;position:relative}
+.morepop{position:absolute;top:calc(100% + 6px);right:8px;z-index:60;width:min(260px,calc(100vw - 24px));
+  background:var(--panel);border:1px solid var(--line-2);border-radius:12px;padding:6px;
+  box-shadow:0 18px 46px var(--drop)}
+.morepop[hidden]{display:none}
+.morepop button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:8px 12px;
+  border:0;background:transparent;color:var(--ink);font-size:14.5px;text-align:left;border-radius:9px;cursor:pointer}
+.morepop button:hover,.morepop button:focus-visible{background:var(--panel-2)}
+.morepop button .ic{width:22px;text-align:center;color:var(--cyan);font-size:15px;flex:none}
+.morepop button .n{margin-left:auto;background:var(--violet);color:#fff;font-size:12px;
+  padding:1px 8px;border-radius:9px;font-family:var(--mono)}
+.morepop .hint{font-size:12px;color:var(--ink-3);padding:4px 12px 6px;line-height:1.5}
+@media (max-width:820px){
+  .topbar{overflow:visible}
+  .livebox,#themeBtn,#evToggle{display:none}
+  .morebtn{display:inline-flex;align-items:center;gap:4px;min-height:40px;margin-left:auto}
+  /* 搜尋改成「把剩下的寬度都吃掉」：手機上搜尋是最常用的入口，
+     而且可收縮才不會把頂欄撐出橫向捲軸（這是 overflow:visible 的前提）。*/
+  .search{flex:1 1 auto;min-width:0}
+  .search input{width:100%}
+}
+
+/* ---- G2：底部分頁列 8 顆放不下，「季節性」「交付清單」整個在畫面外 ----
+   量到（390px）：`#tabs` 需要 549px。市場明細被切一半，最後兩顆完全看不到。
+   它雖然有 `overflow-x:auto` 滑得到，但手機不顯示捲軸、`space-around` 又讓它
+   看起來「剛好排滿」—— 等於沒有任何提示，那兩頁對手機使用者就是不存在。
+
+   修法：**排成兩列四顆，八顆全部看得見**，不靠左右滑。
+   為什麼不選「一列可捲 ＋ 淡出提示」：那樣最後兩頁仍然要先滑才看得到，
+   而他的抱怨正是「找不到」。多出來的 ~50px 高度換「零隱藏」，這筆划算。
+   同時把每顆的觸控高度補到 44px（G5，原本只有 32px）。*/
+@media (max-width:820px){
+  .tabs{flex-wrap:wrap;justify-content:flex-start;gap:4px;overflow:visible;
+    padding:5px 6px calc(5px + env(safe-area-inset-bottom))}
+  .tab{flex:1 0 calc(25% - 3px);min-height:44px;display:flex;align-items:center;justify-content:center;
+    padding:4px 2px;font-size:12.5px;line-height:1.2}
+  /* 兩列分頁列約 102px 高，內容的下緣要讓開，不然最後一張卡片被蓋住 */
+  main{padding-bottom:150px}
+}
+
+/* ---- G3：總覽的大盤三張圖 ----
+   量到：390px 時三張卡直立堆疊共 1331px（433／433／437），
+   使用者要滑過三個整頁畫面才看得到第一個 KPI 數字；1440px 是一列三張、可以互相對照。
+   整頁高度因此是 9832 vs 3306（2.97 倍）。
+
+   修法：手機改成**左右滑的卡片**（一次一張、露出下一張的邊）——
+   「三個指數並排、可以互相比」這件事在手機上用滑的達成，語意跟桌機一樣，
+   而高度從 1331px 收回一張的高度。
+   露出 12% 的下一張 ＋ 右緣淡出（`.hsc` 那一段）就是「可以滑」的提示。*/
+@media (max-width:820px){
+  .m3-grid{display:flex!important;gap:10px;overflow-x:auto;scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}
+  .m3-grid::-webkit-scrollbar{display:none}
+  .m3-grid>*{flex:0 0 88%;min-width:0;scroll-snap-align:start}
+}
+
+/* ---- G6：橫向可捲的容器要看得出「這裡可以左右滑」----
+   ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
+   這一整段**只在 ≤820px 生效**。桌機有捲軸、有滑鼠滾輪、有 hover，本來就看得出來可以捲，
+   加淡出與提示列反而是替桌機加東西 —— 那就是「桌機遷就手機」。
+   `.hsc`／`.swipetip` 的樣式與 app.js 掛 class 的那段**兩邊都有手機守門**，
+   少一邊都會讓桌機被動到。
+   量到（390px，clientWidth → scrollWidth）：#chainSwitch 362→1151（8 條產業鏈只看得到 3 條）、
+   #dgPick 324→507、#dgTools 306→416、#stockTabs 362→510、市場明細表 322→543。
+   這些用 overflow-x:auto 是對的（整頁不准橫向捲），缺的只是提示。
+
+   兩層提示：① 右緣淡出（mask，內容被切掉看得出來）② app.js 在下面補一行「← 左右滑 →」。
+   mask 掛在捲動容器自己身上 —— mask 作用在元素的 border box，**不會跟著內容捲走**，
+   所以淡出永遠停在右緣（用 ::after 就會跟著捲，這是刻意不用它的理由）。*/
+@media (max-width:820px){
+.hsc{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%)}
+.hsc.at-start{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 100%)}
+.hsc.at-both{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 calc(100% - 30px),transparent 100%);
+  mask-image:linear-gradient(90deg,transparent 0,#000 30px,#000 calc(100% - 30px),transparent 100%)}
+.swipetip{font-size:12px;color:var(--ink-3);letter-spacing:.04em;margin:4px 0 2px;user-select:none}
+.swipetip::before{content:'← ';opacity:.7} .swipetip::after{content:' →';opacity:.7}
+}
+
+/* ---- G5：觸控目標 ----
+   量到（390px）：`.btn.small`／`.pill`／`.seg>button` 高只有 23～29px，
+   表格與卡片裡的個股連結只有 18～22px，勾選框 13×13。手機上很容易點到隔壁那一顆。
+   ⚠ 我沒有把**全部**可點元素拉到 44px：族群晶片一頁有 56 顆，全部 44px 會讓整頁再長一截，
+     那會把剛剛在 G3 省下來的高度又還回去。取捨是：
+     **導覽與主要動作（分頁、頂欄、抽屜列、卡片上的動作鈕）給滿 44px；
+     密集的篩選晶片給 36px；純文字的個股連結給 32px 的可點高度。**
+     這一條是我自己判斷的，Andy 可能不同意 —— 寫在回報裡讓他一次否決。*/
+@media (max-width:820px){
+  .btn,.evbtn,.iconbtn,.howbtn,.seg>button,.seg button,.nbsw>button,.nbsw>a,
+  .chainsw button,.relsw button{min-height:36px}
+  .card .row .btn.small,.card .row .howbtn{min-height:40px;padding-left:12px;padding-right:12px}
+  .segchip,.chainchips button,.facets button,.rotquads .rq,.pill{min-height:36px;display:inline-flex;
+    align-items:center}
+  /* 個股連結：不動字級（動了會把表格撐爛），改用 padding 把可點範圍撐到 32px */
+  .tw a.lk,.cards a.lk,.ms a,.seglist a.lk,.sibs a.lk{display:inline-flex;align-items:center;min-height:32px}
+  input[type=checkbox]{width:20px;height:20px}
+  .dtool{width:40px;height:40px} .dtool svg{width:20px;height:20px}
+  .dcol{width:30px;height:30px}
+}
+
+/* ---- G7：剖析圖收合時，它的設定列要跟著收 ----
+   量到（390px）：`#dgFold` 寫著「展開剖析圖 ▾」（圖是收的），
+   但「3D 立體／拖曳：轉動／重設視角／動畫：開」四顆照樣在、照樣點得到 ——
+   點了畫面什麼都不會變，因為圖根本沒展開。控制項在、被控制的東西不在。
+   ⚠ 手機預設收合本身是刻意的（DECISIONS：不收的話一進產業鏈就吃到 1000px 高的圖），
+     要修的是設定列，不是把收合拿掉。
+   ⚠ `#dgFold` 自己一定要留著（它是把圖開回來的唯一入口），所以用 `:not(#dgFold)`。
+   ⚠⚠ 2026-09-23 需求翻轉後改成**只在 ≤820px 生效**。桌機收合時同樣是「控制項在、圖不在」，
+     但桌機預設是展開的、而且那是 Andy 現在正在用的版面 —— 動它就是改了桌機行為。
+     留到下一版，由他決定桌機要不要也跟著收。*/
+@media (max-width:820px){ #dgSec.dgfold #dgTools>.pill:not(#dgFold){display:none} }
+
+/* ---- G8：個股頁的繪圖工具列 ----
+   量到（390px）：`.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕
+   （游標／線／箭頭／水平線／框／文字／垃圾桶 ＋ 6 色 ＋ 4 線型 ＋ 還原／關閉）。
+   桌機是圖表左側的直排工具列 —— 位置與方向都對不起來，而且手指點不準。
+   修法：手機**預設收起來**，工具列那排給一顆「✎ 畫線」開關（名字跟功能一致）。
+   收起來不是拿掉：開關就在同一排工具列上，按一下就出來，而且會記住（localStorage）。*/
+#drawTgl{display:none}
+@media (max-width:820px){
+  #drawTgl{display:inline-flex;align-items:center;min-height:36px}
+  .chartwrap>.drawbar{display:none}
+  .chartwrap.drawon>.drawbar{display:flex}
+}
+
 </style>
 </head>
 <body>
@@ -2216,6 +2393,22 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
   <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
+       390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
+       「明亮／深色」只露出 6px、「事件」整顆在畫面外，
+       今日事件抽屜在手機上等於**沒有入口**。
+       這顆「⋯」只在 ≤820px 出現，把那四件事收成一張清單。
+       ⚠ 清單裡的每一列**不重寫邏輯**，一律去按桌機那顆原來的鈕（見 app.js initMore）——
+         兩邊行為保證一樣，以後改一邊不會漏掉另一邊。 -->
+  <button class="evbtn morebtn" id="moreBtn" aria-haspopup="true" aria-expanded="false"
+          title="更多工具：更新、即時來源、主題、今日事件">⋯<span class="n" id="moreCount" hidden>0</span></button>
+  <div class="morepop" id="morePop" hidden>
+    <button type="button" id="mmEvents"><span class="ic">▤</span>今日事件<span class="n" id="mmEvCount">0</span></button>
+    <button type="button" id="mmLive"><span class="ic">⟳</span>更新（即時報價）</button>
+    <button type="button" id="mmGear"><span class="ic">⚙</span>即時來源設定</button>
+    <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
+    <div class="hint">這幾項在電腦版是頂欄右邊的四顆鈕，名字一樣。</div>
+  </div>
   <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
        但橫幅那一行也會寫，所以手機還是看得到。 -->
   <a class="verbadge" id="buildver" href="https://github.com/MiaoZiKe/tw-rotation/commits/main"
