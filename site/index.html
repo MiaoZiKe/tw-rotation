@@ -1042,6 +1042,50 @@ a.lk.sm{font-size:12px;font-weight:500}
 .chainsw button.on{background:rgba(62,224,255,.12);border-color:var(--cyan);color:var(--cyan);font-weight:600}
 .chainsw button.on em{color:var(--cyan)}
 .chainsw button[data-dg]::before{content:'◧';margin-right:5px;font-size:11px;opacity:.75}
+
+/* ---------------- 活頁簿分頁（Andy 2026-09-23：「像是 EXCEL 活頁簿那樣，但是位置在上方」）
+   為什麼不是既有的膠囊（.chainsw 原本那種）：膠囊看起來像「篩選鈕」，
+   活頁簿要看起來像「這一頁就是下面那塊內容的封面」——
+   所以選中的那一頁**與內容同底色、沒有下邊界**（兩者連成一片），未選的往下縮一點。
+   一層（產業鏈）與二層（剖析圖）共用同一套視覺，只差字級與高度。
+   ⚠ 橫向可捲時 overflow-y 必須是 visible 以外的值才不會多長出捲軸，
+     但 `overflow:auto hidden` 會把往下疊的那 1px 裁掉 —— 所以
+     「疊在內容上緣」是靠容器的 margin-bottom:-1px + z-index，不是靠子元素外溢。*/
+.nbsw{display:flex;gap:3px;align-items:flex-end;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;
+  padding:4px 2px 0;margin:0 0 -1px;position:relative;z-index:2;border:0}
+.nbsw::-webkit-scrollbar{display:none}
+.nbsw>button,.nbsw>a{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;cursor:pointer;white-space:nowrap;
+  margin-top:6px;padding:6px 13px 7px;border:1px solid var(--line-2);border-bottom:0;border-radius:9px 9px 0 0;
+  background:var(--panel-3);color:var(--ink-2);font-size:13.5px;transition:background .15s,color .15s,margin-top .15s}
+.nbsw>button:hover,.nbsw>a:hover{background:var(--panel-2);color:var(--ink);border-color:var(--cyan)}
+.nbsw>button.on,.nbsw>a.on{margin-top:0;padding:8px 15px 9px;background:var(--panel);color:var(--cyan);font-weight:700;
+  border-color:var(--line);border-bottom:0;box-shadow:inset 0 3px 0 var(--cyan)}
+.nbsw>button em,.nbsw>a em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.nbsw>button.on em,.nbsw>a.on em{color:var(--cyan)}
+.nbsw>button[data-dg]::before{content:'◧';font-size:11px;opacity:.75}
+.nbsw>a i{width:8px;height:8px;border-radius:2px;background:var(--c,var(--cyan));flex:0 0 auto}
+/* 一層的內容就是下面那張卡（.nbcard）；二層的內容是卡裡面的 .nbbody。
+   兩者的左上角都不能有圓角 —— 有圓角就看得出分頁跟內容是兩塊，活頁簿的錯覺就破了。*/
+.nbcard{border-radius:0 var(--r) var(--r) var(--r)}
+.nbbody{border:1px solid var(--line);border-radius:0 10px 10px 10px;background:var(--panel-2);padding:10px 12px 14px;position:relative;z-index:1;margin-bottom:12px}
+.nbsw.lv2>a.on,.nbsw.lv2>button.on{background:var(--panel-2)}
+/* 二層（剖析圖）比一層小一號，視覺上才看得出是子分頁 */
+.nbsw.lv2>button,.nbsw.lv2>a{font-size:12.5px;padding:5px 11px 6px}
+.nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:7px 13px 8px}
+
+/* ---------------- 族群總覽：左長條（漲跌幅）＋右圓餅（占比） ---------------- */
+/* ⚠ 兩個 minmax(0,…) 與 min-width:0 一個都不能省：ECharts 的畫布是**絕對定位在容器裡、
+   寬度寫死成像素**的，`1fr` 的自動最小尺寸會被那個舊寬度撐住 —— 於是使用者把視窗從
+   800 拉窄到 390 時，格線的欄位仍然停在 716px（實測 grid 的框 306px、欄卻是 716px），
+   整頁因此長出橫向捲軸，而且**永遠好不了**（容器不縮 → ResizeObserver 不發 → 畫布不縮）。
+   給一個 0 的最小值就把這個死結打開：容器先縮、RO 再把畫布縮回來。*/
+.gpgrid{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.gpgrid>.chart{min-height:360px;min-width:0;overflow:hidden}
+.gphead{gap:10px;flex-wrap:wrap;align-items:flex-start}
+.gphead h4{font-size:15px}
+.gplive{display:inline-flex;gap:6px;align-items:center}
+.gpnote{margin-top:8px}
+@media (max-width:820px){ .gpgrid{grid-template-columns:minmax(0,1fr)} .gpgrid>.chart{min-height:320px} }
 .qtag{font-size:11.5px;padding:2px 8px;border-radius:6px;font-weight:700;margin-left:6px}
 .qtag.leading{background:rgba(255,77,109,.16);color:var(--rise)} .qtag.improving{background:rgba(62,224,255,.14);color:var(--cyan)}
 .qtag.weakening{background:rgba(255,180,84,.14);color:var(--amber)} .qtag.lagging{background:rgba(46,229,157,.14);color:var(--fall)}
@@ -1601,6 +1645,10 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   main{padding-bottom:120px}
   .sibs a.lk{font-size:12.5px}
   .segchip{font-size:12px;padding:4px 9px}
+  /* 活頁簿分頁在 390px 也不准小於 12px（規格書第一節）；放不下就左右捲 */
+  .nbsw>button,.nbsw>a{font-size:12.5px;padding:5px 10px 6px} .nbsw>button.on,.nbsw>a.on{padding:7px 12px 8px}
+  .nbsw.lv2>button,.nbsw.lv2>a{font-size:12px;padding:4px 9px 5px} .nbsw.lv2>button.on,.nbsw.lv2>a.on{padding:6px 11px 7px}
+  .nbbody{padding:10px 8px 12px}
   /* 手機上沒有一個字可以小於 12px（代號用 .82em 算出來只有 10.25px，手上看不清楚） */
   .tile .lks{font-size:13px} a.lk .code{font-size:12px} .brand small{font-size:11px}
   /* 窄畫面排成 2×2。★ grid-auto-rows:1fr 不可拿掉：兩列的高度預設各自算，
@@ -2157,6 +2205,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button class="tab" data-view="overview">總覽</button>
     <button class="tab" data-view="flow">資金流向</button>
     <button class="tab" data-view="industry">產業與個股</button>
+    <button class="tab" data-view="heatmap">熱力圖</button>
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
@@ -2376,6 +2425,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="tw cap-lg"><table id="valTable"><thead></thead><tbody id="valBody"></tbody></table></div>
       </div>
     </div>
+  </section>
+
+  <!-- ================= 產業熱力圖 =================
+       Andy 2026-09-23：「產業熱力圖需要獨立一個大分頁，而當前分頁改成產業地圖就是放他所點進去後的畫面」。
+       所以整個台股一次看的 treemap 從 #industry 搬到這裡（自己的頂層分頁），
+       #industry 改成「族群漲幅長條圖＋占比圓餅圖」。內容由 industry.js 的 renderHeat 畫。 -->
+  <section class="view" id="v-heatmap">
+    <div id="indHeat"></div>
   </section>
 
   <!-- ================= 產業與個股 ================= -->

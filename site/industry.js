@@ -30,6 +30,7 @@
   async function route(head, rest) {
     A = window.App;
     dispose3D();   // 換頁一定要收掉 WebGL context（瀏覽器最多只給十幾個，不收會整個掛掉）
+    gpStopLive();  // 族群總覽的即時輪詢同理：不收的話背景會一直打報價端點、對著離開 DOM 的容器畫圖
     if (head !== 'stock') stopLive();   // 離開個股頁就不要再每 5 秒抓報價了
     const [im, sc, gd] = await Promise.all([A.load('industry_map'), A.load('supply_chain'), A.load('groups_detail')]);
     if (head === 'stock') { state.level = 2; state.code = rest[0]; state.dg = null; await renderStock(rest[0], im, sc, gd); return; }
@@ -93,14 +94,23 @@
     else { if (!chainBeforeStock) par.insertBefore(cn, st); cn.style.marginTop = ''; }
   }
 
-  // ================================================================ Level 0：產業地圖
-  function renderMap(im) {
-    show(true, false, false); crumbs([{ label: '產業地圖' }]);
-    if (!im || !im.chains) { $('#indMap').innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
-    const el = $('#indMap');
-    el.innerHTML = `<div class="card"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）；點產業鏈進入單一鏈，點族群直接看成分股</small></h3><div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:520px"></div></div></div>
-      <div class="grid g2" style="margin-top:16px"><div class="card"><h3>產業鏈總覽 <small>本益比為族群中位數（同族群才比）</small></h3><div class="tiles" id="chainTiles"></div></div>
-      <div class="card"><h3>法定產業別 <small>沒被歸入題材族群的公司依證交所產業別歸戶</small></h3><div class="tiles" id="indTiles"></div></div></div>`;
+  // ================================================================ 產業熱力圖（自己的頂層分頁）
+  /* Andy 2026-09-23：「圖五 產業熱力圖需要獨立一個大分頁，而當前分頁改成產業地圖
+     就是放他所點進去後的畫面」。所以這張 treemap 從 #industry 搬到 #heatmap 這個頂層分頁，
+     #industry 改成「族群漲幅長條圖＋占比圓餅圖」（見 renderMap）。
+     ⚠ treemap 仍然叫 #indTree（縮放白名單、淺色主題掃描都認這個 id），但它現在只住在
+       #indHeat 裡 —— #indMap 那邊不准再畫第二份，不然同一個 id 出現兩次，
+       getElementById 只拿得到前面那一個，縮放與主題掃描就會量到看不見的那一張。*/
+  function renderHeat(im) {
+    const el = document.getElementById('indHeat');
+    if (!el) return;
+    if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
+    el.innerHTML = `<div class="card"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）</small></h3>
+      <div class="sub"><b>這張圖回答：</b>今天全市場的錢分佈在哪幾塊、哪一塊在漲。<b>怎麼用：</b>先找又大又紅的方塊
+      —— 那是今天「錢多而且在漲」的地方；大而綠的是資金正在退潮的權值區。
+      <b>點產業鏈的標題進那條鏈、點族群方塊直接看它的成分股。</b>要比較同一條鏈裡誰漲誰跌，用
+      <a class="lk" href="#industry">產業地圖</a> 那邊的長條圖比較快。</div>
+      <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
     const data = im.chains.map(c => ({ name: c.name, cid: c.id, children: c.groups.map(g => ({ name: g.name, value: g.turnover || 1, gid: g.id, chg: g.chg_pct, share: g.turnover_share, pe: g.valuation && g.valuation.median, n: g.n, itemStyle: { color: A.chgColor(g.chg_pct, 3) } })) }));
     const SK = A.treeSkin();
     const c = A.chart('indTree', { tooltip: { ...A.tip, formatter: p => p.data.gid ? `<b>${p.name}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.data.share, 1)}%）· ${p.data.n} 檔<br>漲跌 <span style="color:${A.upDown(p.data.chg)}">${A.fmt.pct(p.data.chg)}</span> · 本益比中位 ${p.data.pe != null ? A.fmt.n(p.data.pe, 1) : '—'}` : `<b>${p.name}</b>（點進入產業鏈）` },
@@ -108,14 +118,389 @@
         label: { formatter: p => `${p.name}\n${A.fmt.pct(p.data.chg)}`, fontSize: 13, ...SK.label },
         upperLabel: { show: true, height: 26, fontSize: 13, fontWeight: 700, ...SK.upper },
         itemStyle: { borderColor: SK.border, borderWidth: 2, gapWidth: 2 }, levels: [{ itemStyle: { borderWidth: 4, gapWidth: 4 }, upperLabel: { show: true } }, { itemStyle: { gapWidth: 1 } }], data }] });
-    A.wheelZoom($('#indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom($('#indTree')); if (i) i.resize(); } });
+    A.wheelZoom(document.getElementById('indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } });
-    $('#chainTiles').innerHTML = im.chains.map(ch => { const pes = ch.groups.map(g => g.valuation && g.valuation.median).filter(Boolean); const chg = wavg(ch.groups); return `<div class="tile" onclick="location.hash='#industry/${ch.id}'"><div class="t">${ch.name}</div><div class="m">${ch.groups.length} 個族群 · ${ch.groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</div><div class="v"><span class="${A.fmt.cls(chg)}">${A.fmt.pct(chg)}</span> <small style="font-size:12px;color:var(--ink-3)">PE 中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</small></div></div>`; }).join('');
-    /* ★ 2026-09-19：拿掉 slice(0, 18)。資料裡有 35 個法定產業別，這裡只列前 18 個，
-       剩下 17 個（造紙、農業科技、玻璃陶瓷…）在產業地圖上**點不到**，
-       只能從 #industry/industry 那一頁進去。
-       今天剛修好中文 id 的族群頁（hash 沒解碼那條），這 17 個才真的有地方可去。 */
-    $('#indTiles').innerHTML = im.industries.map(g => `<div class="tile" onclick="location.hash='#industry/group/${g.id}'"><div class="t">${g.name}</div><div class="m">${g.n} 檔 · 佔比 ${A.fmt.n(g.turnover_share, 1)}%</div><div class="v ${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</div></div>`).join('');
+  }
+
+  // ================================================================ 活頁簿分頁（第一層：產業鏈）
+  /* Andy 2026-09-23：「上面的族群都改成分頁式可作切換，像是 EXCEL 活頁簿那樣，但是位置在上方」。
+     第一個分頁是「全市場」（＝#industry 本身），後面每一條鏈一頁，最後是法定產業別。
+     ⚠ 法定產業別這一頁**不准拿掉** —— 35 個法定產業別只有從這裡進得去
+       （2026-09-19 修過一次的舊 bug，那時卡片還在，現在卡片移除了，這一頁就是唯一入口）。
+     id 沿用 `chainSwitch`：產業地圖與產業鏈頁各畫一份，但兩者互斥
+     （renderMap 會清掉 #indChain、renderChain 會清掉 #indMap），所以同一時間只有一個。*/
+  function chainTabsHtml(im, cur) {
+    const tabs = [{ id: '_all', name: '全市場', n: (im.chains || []).reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.n || 0), 0), 0) }]
+      .concat((im.chains || []).map(c => ({ id: c.id, name: c.name, n: c.groups.reduce((s, g) => s + (g.n || 0), 0) })))
+      .concat([{ id: 'industry', name: '法定產業別', n: (im.industries || []).reduce((s, g) => s + (g.n || 0), 0) }]);
+    return `<div class="chainsw nbsw" id="chainSwitch" role="tablist">${tabs.map(t => `<button data-c="${t.id}" role="tab" aria-selected="${t.id === cur}" class="${t.id === cur ? 'on' : ''}"${t.id !== '_all' && HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>`;
+  }
+  /* 分頁列放不下時左右捲，但**選中的那一頁一定要在視野裡** ——
+     捲的是分頁列自己（不是 scrollIntoView，那會連整頁一起捲，使用者的位置就跑掉了）。*/
+  function scrollTabIntoView(strip) {
+    if (!strip) return;
+    const on = strip.querySelector('.on');
+    if (!on || strip.scrollWidth <= strip.clientWidth + 2) return;
+    strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
+  }
+  function wireChainTabs(root, cur) {
+    const strip = $('#chainSwitch', root);
+    if (!strip) return;
+    $$('#chainSwitch button', root).forEach(b => b.onclick = () => {
+      const id = b.dataset.c;
+      if (id === cur) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      location.hash = id === '_all' ? '#industry' : '#industry/' + id;
+    });
+    scrollTabIntoView(strip);
+  }
+
+  // ================================================================ Level 0：產業地圖（族群總覽）
+  function renderMap(im) {
+    show(true, false, false); crumbs([{ label: '產業地圖' }]);
+    /* 產業鏈頁的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 這些 id 會同時出現兩份
+       （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個 ——
+       畫面上按的是後面那個，程式改的卻是前面那個。所以換層級一定要把另一邊清掉。*/
+    const cn = $('#indChain'); if (cn) cn.innerHTML = '';
+    const el = $('#indMap');
+    if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
+    const groups = [];
+    (im.chains || []).forEach(c => (c.groups || []).forEach(g => groups.push(g)));
+    /* 活頁簿：分頁列在**卡片外面**、卡片就是那一頁的內容 ——
+       分頁列放在卡片裡面的話，上面還壓著一層卡片的內距與邊框，看起來就只是「卡片裡的一排鈕」，
+       不是 Excel 那種「分頁貼著內容上緣、連成一片」。產業鏈頁用的是同一套（見 renderChain）。*/
+    el.innerHTML = `${chainTabsHtml(im, '_all')}<div class="card nbcard" id="gpHost"></div>`;
+    wireChainTabs(el, '_all');
+    renderGroupPanel($('#gpHost', el), {
+      scope: '全市場', groups: groups, asOf: (im && im.date) || '',
+      tail: '<span class="muted">想一次看完整張版圖（方塊大小＝成交值、一眼看出錢集中在哪）：</span><a class="lk" href="#heatmap">產業熱力圖 →</a>',
+    });
+  }
+  /* ================================================================ 族群總覽：長條圖 ＋ 圓餅圖
+     Andy 2026-09-23：「產業地圖 以及 產業地圖裡面的族群如半導體，Default 是各族群漲幅的長條圖
+     以及占比圓餅圖（圓餅圖在右邊顯示），並且就顯示第一分頁，
+     長條圖內的族群點進去後 會再出現族群對應所有個股漲幅長條圖」。
+
+     **這張圖回答**：這一塊（全市場或這一條鏈）今天誰在漲、錢集中在誰身上。
+     兩張圖是一組的，缺一張都答不完：長條只講方向（誰漲）、圓餅只講份量（誰的量大），
+     真正要找的是**兩邊都在前面**的那一個。所以兩張圖連動、共用一行讀數（#gpFocus）——
+     滑到哪一條，另一邊就標起來，讀數列同時把「漲多少、占多少、幾檔」講完。
+
+     為什麼點長條是「原地換內容」不是跳頁：使用者的問題是「這個族群裡面是誰在漲」，
+     那是同一個問題的下一層，跳頁會把他剛剛比較出來的上下文丟掉（也回不去原來的捲動位置）。 */
+  const GP_TOP = 18;             // 族群層級最多列幾條（超過的併進圓餅的「其餘」，長條不列）
+  const GP_TOP_STOCK = 24;       // 個股層級最多列幾條
+  const GP_LIVE_MS = 60 * 1000;  // 即時每分鐘重算（和輪動時鐘、資金去向同節奏）
+  const GP_LIVE_MAX = 300;       // 即時一輪最多問幾檔（live.js 一批 110，這裡切 100 × 3 個請求）
+  const GP_LIVE_BATCH = 100;
+  /* gpTimer／gpGen 是模組層級的：同一時間畫面上只會有一個族群總覽，
+     換頁或重畫一定要先把上一個的計時器停掉，不然背景會一直打即時端點
+     （而且舊 panel 的 paint 會對著已經離開 DOM 的容器畫圖）。
+     gpGen 是「世代」：非同步的報價回來時先比對世代，過期的就整輪丟掉。*/
+  let gpTimer = null, gpGen = 0;
+  function gpStopLive() { gpGen++; if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } }
+  // 驗收用：現在的族群總覽是什麼狀態（真人操作驗收要量「畫面真的變了」）
+  let gpDbg = { mode: 'group', rows: 0, live: false, hi: null, liveCalls: 0, drill: null };
+
+  function renderGroupPanel(host, ctx) {
+    if (!host) return null;
+    gpStopLive();
+    const gen = gpGen;
+    const all = (ctx.groups || []).filter(g => g && (g.turnover || 0) > 0);
+    const byTurn = (a, b) => (b.turnover || 0) - (a.turnover || 0);
+    if (!all.length) { host.innerHTML = '<div class="empty">這一塊今天沒有成交資料</div>'; return null; }
+
+    /* 從網址（#industry/group/<gid>）或關聯圖帶進來的族群，一進來就展開它的個股長條圖 ——
+       使用者明確指定了一個族群，先給他看「這個族群裡面誰在漲」才是他要的那一步。*/
+    let drill = ctx.drillGid ? (all.find(g => g.id === ctx.drillGid) || null) : null;
+    let live = false, q = null, liveErr = '', liveAt = '', busy = false, cov = [0, 0];
+    let hi = null;                    // 兩圖連動：滑鼠現在停在哪一條／哪一塊
+    let barData = [], pieData = [], items = [];
+
+    /* 標題列只放「標題 ＋ 兩顆鈕」，說明另起一行 ——
+       說明擺在同一列的話，長文字會把左邊那一格撐滿，右邊的「即時」被擠到下一行去，
+       看起來像一顆浮在半空中、不知道在管什麼的鈕（1440／390 都量到）。*/
+    host.innerHTML = `<div class="row spread gphead">
+        <h4 id="gpTitle" style="min-width:0"></h4>
+        <div class="row gplive">
+          <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
+          <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
+            title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每分鐘更新（盤中暫定值）">即時</button></span>
+        </div>
+      </div>
+      <div class="sub" id="gpHint" style="margin-top:2px"></div>
+      <div class="note livenote gpnote" id="gpNote"></div>
+      <div class="gpgrid"><div id="gpBar" class="chart"></div><div id="gpPie" class="chart"></div></div>
+      <div class="sub" id="gpFocus" style="margin-top:8px"></div>
+      ${ctx.tail ? `<div class="linkrow">${ctx.tail}</div>` : ''}`;
+
+    const barEl = $('#gpBar', host), pieEl = $('#gpPie', host), noteEl = $('#gpNote', host);
+    const backBtn = $('#gpBack', host), liveBtn = $('#gpLiveBtn', host);
+    const CH = A.CH;
+
+    // ---------------------------------------------------------------- 即時
+    /* 即時的成交值是**估**的：mis 那支端點沒有每檔的累積成交金額，只有最新價與累積張數，
+       所以用「最新價 × 累積張數 × 1000」當成交值（和輪動時鐘的即時同一個口徑，
+       見 app.js rlvCompute 的誠實界線 ①）。這件事一定要寫在畫面上。*/
+    const liveAgg = (members) => {
+      if (!q || !members) return null;
+      let v = 0, c = 0, n = 0;
+      members.forEach(m => {
+        const x = q[String(m.code)];
+        if (!x || x.price == null || x.volume == null || x.chgPct == null) return;
+        const amt = x.price * x.volume * 1000;
+        if (!(amt > 0)) return;
+        v += amt; c += x.chgPct * amt; n++;
+      });
+      return n ? { val: v, chg: c / v, n } : null;
+    };
+    const shownGroups = () => all.slice().sort(byTurn).slice(0, GP_TOP);
+    const liveCodes = () => {
+      const out = [], seen = new Set();
+      const push = (c) => { c = String(c || ''); if (c && !seen.has(c) && out.length < GP_LIVE_MAX) { seen.add(c); out.push(c); } };
+      if (drill) (drill.members || []).slice().sort(byTurn).forEach(m => push(m.code));
+      else {
+        const gs = shownGroups();
+        // 平均分配額度：不分配的話前面幾個大族群就把 300 檔吃光，後面整排都沒有即時值
+        const per = Math.max(3, Math.floor(GP_LIVE_MAX / Math.max(1, gs.length)));
+        gs.forEach(g => (g.members || []).slice().sort(byTurn).slice(0, per).forEach(m => push(m.code)));
+      }
+      return out;
+    };
+    async function liveTick() {
+      if (busy) return;
+      busy = true; paintNote();
+      try {
+        if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價層還沒載入（live.js）');
+        const codes = liveCodes();
+        if (!codes.length) throw new Error('這一塊沒有成分股名單，抓不了即時');
+        const got = {};
+        for (let i = 0; i < codes.length; i += GP_LIVE_BATCH) {
+          Object.assign(got, await window.Live.fetchQuotes(codes.slice(i, i + GP_LIVE_BATCH)));
+        }
+        if (gen !== gpGen) return;          // 回來的時候使用者已經換頁了，這一輪整個丟掉
+        q = got; liveErr = '';
+        liveAt = Object.keys(got).map(k => got[k] && got[k].time).filter(Boolean).sort().pop() || '';
+        const ks = Object.keys(got).filter(k => got[k] && got[k].price != null);
+        cov = [ks.length, codes.length];
+      } catch (e) {
+        if (gen !== gpGen) return;
+        liveErr = String((e && e.message) || e).slice(0, 80); q = null; cov = [0, 0];
+      } finally {
+        busy = false;
+        if (gen === gpGen) paint();
+      }
+    }
+    /* ★ 「綁之前先解綁」（規格書第三節，坑在 app.js 第 445 行）：
+       A.onLive 對同一個元素只會真的掛一次事件（旗標 + WeakMap 覆蓋 closure），
+       所以這裡**只在建立面板時掛一次**，切換即時開關不再掛第二次 ——
+       每按一次就掛一個的話，監聽器會 1→2→4→8 指數成長。
+       計時器同理：開之前一律先 clearInterval。*/
+    A.onLive(host, () => {
+      gpDbg.liveCalls++;
+      if (!live || !host.isConnected) return;
+      // live.js 自己那一輪（畫面上看得到的代號）也會更新報價，順手併進來一起用
+      const got = (window.Live && window.Live.quotes) || null;
+      if (!got) return;
+      q = Object.assign({}, q || {}, got);
+      paint();
+    });
+    const stopTimer = () => { if (gpTimer) { clearInterval(gpTimer); gpTimer = null; } };
+    liveBtn.onclick = () => {
+      live = !live;
+      liveBtn.classList.toggle('on', live);
+      liveBtn.setAttribute('aria-pressed', live ? 'true' : 'false');
+      stopTimer();                      // 先停再開，計時器永遠只有一個
+      if (!live) { q = null; liveErr = ''; cov = [0, 0]; paint(); return; }
+      paint();                          // 先把「抓取中」寫上去，不要讓畫面看起來沒反應
+      liveTick();
+      gpTimer = setInterval(() => { if (!document.hidden && live) liveTick(); }, GP_LIVE_MS);
+    };
+    backBtn.onclick = () => {
+      drill = null; hi = null;
+      if (live) { q = null; liveTick(); }
+      paint();
+      if (ctx.onBack) ctx.onBack();
+    };
+
+    // ---------------------------------------------------------------- 資料 → 兩張圖
+    function build() {
+      if (drill) {
+        const ms = (drill.members || []).slice().sort(byTurn).slice(0, GP_TOP_STOCK);
+        items = ms.map((m, i) => {
+          const x = live && q ? q[String(m.code)] : null;
+          const okq = x && x.price != null && x.volume != null && x.chgPct != null && x.price * x.volume > 0;
+          return { key: m.code, code: m.code, name: m.name || m.code,
+            chg: okq ? x.chgPct : m.chg_pct, val: okq ? x.price * x.volume * 1000 : (m.turnover || 0),
+            live: !!okq, color: A.PALETTE[i % A.PALETTE.length], n: null };
+        });
+      } else {
+        const gs = shownGroups();
+        items = gs.map(g => {
+          const lv = live ? liveAgg(g.members) : null;
+          return { key: g.id, gid: g.id, name: g.name,
+            chg: lv ? lv.chg : g.chg_pct, val: lv ? lv.val : (g.turnover || 0),
+            live: !!lv, color: A.L.gcolor[g.id] || A.PALETTE[0], n: g.n, group: g };
+        });
+      }
+      const restN = drill ? Math.max(0, (drill.members || []).length - items.length)
+                          : Math.max(0, all.length - items.length);
+      const restVal = drill
+        ? (drill.members || []).slice().sort(byTurn).slice(items.length).reduce((s, m) => s + (m.turnover || 0), 0)
+        : all.slice().sort(byTurn).slice(items.length).reduce((s, g) => s + (g.turnover || 0), 0);
+      const total = items.reduce((s, d) => s + (d.val || 0), 0) + restVal;
+      items.forEach(d => { d.share = total > 0 ? d.val / total * 100 : 0; });
+      // 長條由高到低（ECharts 的類別軸是由下往上長，所以資料要由低到高餵進去）
+      const asc = items.slice().sort((a, b) => (a.chg == null ? -1e9 : a.chg) - (b.chg == null ? -1e9 : b.chg));
+      barData = asc.map(d => ({ name: d.name, value: d.chg == null ? 0 : +(+d.chg).toFixed(2), key: d.key,
+        itemStyle: { color: A.upDown(d.chg), borderRadius: (d.chg || 0) >= 0 ? [0, 3, 3, 0] : [3, 0, 0, 3], borderWidth: 0, borderColor: CH.ink },
+        /* 色票（CH.*）在切主題時由 applyTheme 就地換掉，所以這裡不必自己分深／淺兩套 */
+        label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 11.5,
+          color: CH.ink2, formatter: A.fmt.pct(d.chg) } }));
+      pieData = items.slice().sort((a, b) => (b.val || 0) - (a.val || 0)).map(d => ({ name: d.name, value: Math.max(0, d.val || 0), key: d.key,
+        itemStyle: { color: d.color, borderColor: CH.panel, borderWidth: 1 },
+        label: { show: d.share >= 3.2 } }));
+      if (restVal > 0 && restN > 0) {
+        pieData.push({ name: `其餘 ${restN} ${drill ? '檔' : '個族群'}`, value: restVal, key: '_rest',
+          itemStyle: { color: A.hexA(CH.ink3, .45), borderColor: CH.panel, borderWidth: 1 },
+          label: { show: restVal / (total || 1) >= 0.032 } });
+      }
+      return { asc, total, restN, restVal };
+    }
+
+    function paintNote() {
+      const day = ctx.asOf ? `資料日期 ${ctx.asOf}` : '最新一個交易日';
+      if (!live) {
+        noteEl.innerHTML = `<b>昨天（盤後收盤）</b>　${day}　—— 漲跌與占比都是收盤結算值。`
+          + `要看盤中就按右邊那顆<b>「即時」</b>（每分鐘更新，數字會標成盤中暫定值）。`;
+        return;
+      }
+      if (busy && !q) { noteEl.innerHTML = '<b class="live">即時</b>　抓取中…'; return; }
+      if (liveErr) {
+        noteEl.innerHTML = `<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
+          + `　<span class="muted">目前畫的仍然是 ${day} 的收盤值；公司網路擋掉代理時會這樣，按一次「即時」關掉即可。</span>`;
+        return;
+      }
+      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　報價 ${A.fmt.esc(liveAt || '—')}　每分鐘更新`
+        + `　<span class="warn">這不是收盤值</span>`
+        + `<br><span class="muted">成交值是<b>估算</b>的：即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算`
+        + `（和輪動時鐘的即時同一個口徑）；漲跌幅是這批個股的成交值加權。`
+        + `這一輪涵蓋 ${cov[0]} / ${cov[1]} 檔，抓不到報價的仍然用 ${day} 的收盤值，所以占比只能當「相對大小」看。</span>`;
+    }
+
+    function paintFocus() {
+      const el = $('#gpFocus', host);
+      if (!el) return;
+      const d = items.find(x => x.name === hi);
+      if (!d) {
+        el.innerHTML = `<span class="muted">滑過左邊任一條長條，右邊圓餅對應的那一塊會一起標起來（反過來也一樣），這一行會寫出它的數字。</span>`;
+        return;
+      }
+      el.innerHTML = `<b style="color:${d.color}">${A.fmt.esc(d.name)}</b>`
+        + `　漲跌 <b class="${A.fmt.cls(d.chg)}">${A.fmt.pct(d.chg)}</b>`
+        + `　占${drill ? '本族群' : '本頁'}成交值 <b>${A.fmt.n(d.share, 1)}%</b>`
+        + `　成交值 ${A.fmt.yi(d.val)}`
+        + (d.n != null ? `　${d.n} 檔` : '')
+        + (d.live ? '　<span class="live">⚡ 盤中</span>' : (live ? '　<span class="muted">（這一個抓不到即時，是收盤值）</span>' : ''))
+        + `　<span class="muted">${drill ? '點一下進個股頁' : '點一下看它的個股'}</span>`;
+    }
+
+    /* 兩圖連動。**刻意用 setOption 改真的樣式**，而不是只送 highlight 事件：
+       只送事件的話「扇形的樣式到底有沒有變」在畫面之外量不到，驗收就只能驗「我有呼叫」，
+       那不是「畫面真的因此改變了」。這裡改的是描邊寬度與顏色，是真的畫上去的樣式。*/
+    function setHi(name) {
+      if (hi === name) return;
+      hi = name || null;
+      gpDbg.hi = hi;
+      const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+      const bi = window.echarts && echarts.getInstanceByDom(barEl);
+      if (pi) pi.setOption({ series: [{ data: pieData.map(d => ({ ...d,
+        itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 3 : 1, borderColor: d.name === hi ? CH.ink : CH.panel } })) }] });
+      if (bi) bi.setOption({ series: [{ data: barData.map(d => ({ ...d,
+        itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 2 : 0, borderColor: CH.ink } })) }] });
+      pieEl.dataset.hi = hi || '';
+      barEl.dataset.hi = hi || '';
+      paintFocus();
+    }
+
+    function onPick(name) {
+      const d = items.find(x => x.name === name);
+      if (!d) return;
+      if (drill) { if (d.code) A.goStock(d.code); return; }
+      drill = d.group; hi = null;
+      if (live) { q = null; liveTick(); }
+      paint();
+      if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把下方成分股篩成這個族群
+    }
+
+    function paint() {
+      if (!host.isConnected) return;
+      const b = build();
+      const n = Math.max(barData.length, 6);
+      const h = Math.max(320, Math.min(660, n * 26 + 56));
+      barEl.style.height = h + 'px'; pieEl.style.height = h + 'px';
+      backBtn.hidden = !drill;
+      $('#gpTitle', host).innerHTML = drill
+        ? `${A.fmt.esc(drill.name)}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
+        : `${A.fmt.esc(ctx.scope)}族群漲幅與占比　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+      $('#gpHint', host).innerHTML = drill
+        ? `<b>這張圖回答：</b>這個族群裡面今天是誰在漲、量能集中在哪幾檔。`
+          + `<b>怎麼用：</b>左邊長條由高到低（紅漲綠跌），右邊圓餅是它在族群裡的成交值比重；`
+          + `<b>漲得多、量也大</b>的那幾檔才是主流，只有漲幅、成交值卻小的通常是跟風。`
+          + `點任一條長條直接進那一檔的個股頁看 K 線與籌碼；按「← 回到族群」回上一層。`
+        : `<b>這張圖回答：</b>${A.fmt.esc(ctx.scope)}今天哪一個族群在漲、錢集中在誰身上。`
+          + `<b>怎麼用：</b>左邊長條看方向（紅漲綠跌、由高到低），右邊圓餅看份量（占成交值比重）；`
+          + `<b>兩邊都靠前</b>才是今天真正的主流——長條很長但圓餅很小，多半是小族群在噴、量還沒跟上，追之前先看成交值。`
+          + `點任一條長條就在原地換成<b>該族群所有個股</b>的漲幅長條圖，再點一次進個股頁。`;
+      paintNote();
+      const axl = { ...A.axisStyle.axisLabel, fontSize: 11.5 };
+      A.chart(barEl, {
+        grid: { left: 4, right: 52, top: 8, bottom: 4, containLabel: true },
+        tooltip: { ...A.tip, trigger: 'item', formatter: p => {
+          const d = items.find(x => x.name === p.name) || {};
+          return `<b>${A.fmt.esc(p.name)}</b><br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>`
+            + `<br>成交值 ${A.fmt.yi(d.val)}（${A.fmt.n(d.share, 1)}%）${d.n != null ? ' · ' + d.n + ' 檔' : ''}`
+            + `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>`; } },
+        xAxis: { type: 'value', axisLabel: { ...axl, formatter: v => A.fmt.n(v, 1) + '%' },
+          splitLine: A.axisStyle.splitLine, axisLine: { show: false }, axisTick: { show: false } },
+        yAxis: { type: 'category', data: barData.map(d => d.name), axisTick: { show: false },
+          axisLine: { lineStyle: { color: A.CH.line } },
+          axisLabel: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2,
+            formatter: s => (String(s).length > 8 ? String(s).slice(0, 8) + '…' : s) } },
+        series: [{ type: 'bar', barMaxWidth: 17, data: barData, cursor: 'pointer' }],
+      }, { notMerge: true });
+      A.chart(pieEl, {
+        tooltip: { ...A.tip, trigger: 'item', formatter: p => {
+          const d = items.find(x => x.name === p.name);
+          return `<b>${A.fmt.esc(p.name)}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.percent, 1)}%）`
+            + (d ? `<br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>` : '')
+            + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
+        series: [{ type: 'pie', radius: ['38%', '70%'], center: ['50%', '52%'], minAngle: 2,
+          avoidLabelOverlap: true, cursor: 'pointer',
+          label: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2,
+            formatter: p => `${String(p.name).length > 7 ? String(p.name).slice(0, 7) + '…' : p.name}\n${A.fmt.n(p.percent, 1)}%` },
+          labelLine: { length: 8, length2: 8, lineStyle: { color: A.CH.line } },
+          data: pieData }],
+      }, { notMerge: true });
+      const bi = window.echarts && echarts.getInstanceByDom(barEl);
+      const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+      /* ⚠ 滑鼠**整個離開圖表**時 ECharts 發的是 `globalout`，不是 `mouseout`
+         —— 只接 mouseout 的話，把滑鼠移到圖外面高亮會卡住不收（實測：描邊一直停在 3）。*/
+      [[bi, 'bar'], [pi, 'pie']].forEach(([c]) => {
+        if (!c) return;
+        c.off('mouseover'); c.off('mouseout'); c.off('globalout'); c.off('click');
+        c.on('mouseover', p => setHi(p.name));
+        c.on('mouseout', () => setHi(null));
+        c.on('globalout', () => setHi(null));
+        c.on('click', p => onPick(p.name));
+      });
+      hi = null; pieEl.dataset.hi = ''; barEl.dataset.hi = '';
+      paintFocus();
+      gpDbg = { mode: drill ? 'stock' : 'group', rows: barData.length, live: live,
+        hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null };
+    }
+
+    paint();
+    return { paint, stop: () => { stopTimer(); }, dbg: () => gpDbg };
   }
   const median = (a) => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
   const wavg = (gs) => { let w = 0, s = 0; gs.forEach(g => { if (g.chg_pct != null && g.turnover) { w += g.turnover; s += g.chg_pct * g.turnover; } }); return w ? s / w : null; };
@@ -254,10 +639,17 @@
     dispose3D();
     /* 這一頁要畫哪一張剖析圖（族群優先、鏈為預設）。dgId 會隨「點族群卡片」換，
        所以它是 let；換圖走 swapDiagram()（有淡出淡入，不會閃一下）。*/
+    /* 「使用者正在族群總覽裡看某個族群的個股長條圖」。它不是網址的一部分
+       （原地展開不是一次導覽），但 resolveDg 要看得到它，所以宣告在這一層。*/
+    let gpDrilled = false;
     const dgGroups = dgGroupsOf(ch);
     // 這條鏈總共有哪幾張圖（鏈層級的排前面）。圖別選單與切換晶片都讀這一份
     const dgOpts = (DS && DS.chainDefault(ch.id) ? [DS.chainDefault(ch.id)] : []).concat(dgGroups);
-    const dgHash = (id) => '#industry/' + ch.id + ((DS && DS.chainDefault(ch.id) === id) ? '' : '/dg/' + id);
+    /* ★ 2026-09-23：**鏈層級的架構圖也要帶 /dg/**（以前它的網址就是 `#industry/<chain>`）。
+       因為 `#industry/<chain>` 現在是「族群總覽」那一個分頁（Andy：每一條鏈的 Default
+       都是族群漲幅長條圖＋占比圓餅圖），鏈層級的圖不能再跟它共用同一個網址 ——
+       共用的話那條鏈就永遠打不開族群總覽。*/
+    const dgHash = (id) => '#industry/' + ch.id + '/dg/' + id;
     /* ★ 2026-09-21：**畫面換了，網址就一定要跟著換。**
        踩到的情形：在 `#industry/electronics/dg/mlcc` 上點「面板」族群（它沒有專屬圖），
        畫面正確地換回圖別選單了，**網址卻還停在 /dg/mlcc** ——
@@ -270,22 +662,32 @@
        而點族群卡片是**頁內篩選**，不是一次導覽 —— 不該在歷史紀錄裡多留一筆。
        （從圖別選單點進某一張圖那條路徑仍然是真的導覽，用的還是 hash，上一頁回得去。）*/
     const syncDgHash = () => {
-      const want = state.group ? dgPick(ch, state.group)
-                               : (state.dg || (DS ? DS.chainDefault(ch.id) : null));
-      // 只有族群層級的圖要記進網址；鏈層級的圖本來就是那條鏈的預設，不必帶 /dg/
-      state.dg = (want && DS && DS.level(want) === 'group') ? want : null;
+      const want = resolveDg();
+      state.dg = want;
       const h = want ? dgHash(want) : '#industry/' + ch.id;
       try { if (location.hash !== h) history.replaceState(null, '', h); } catch (e) { /* 舊瀏覽器沒這支就算了 */ }
     };
-    /* 這一頁現在該畫哪一張（或不畫）。三層，順序是刻意的：
-         ① 使用者選到的族群有自己的圖 → 就是那一張（strict，不借別人的）
-         ② 網址指定了 /dg/<slot> → 那一張
-         ③ 這條鏈有鏈層級的架構圖（半導體 CoWoS、AI 伺服器機櫃）→ 那一張
-       三層都不成立就回 null ＝**不畫圖，改顯示圖別選單**。*/
+    /* 這一頁現在該畫哪一張剖析圖（或不畫）。順序是刻意的：
+         ① 在族群總覽上「點長條鑽進某個族群」→ 一律不畫圖（使用者正在看個股長條圖，
+            把它換成一張剖析圖等於把他剛剛點開的東西搶走）
+         ② 使用者選到的族群有**自己的**圖 → 就是那一張（strict，不借別人的）
+         ③ 網址指定了 /dg/<slot> 而且那張圖真的掛在這條鏈上 → 那一張
+       都不成立就回 null ＝ **族群總覽分頁**（第一個分頁，Andy 2026-09-23 指定的 Default）。
+       ★ 這裡**刻意不再退回 `DS.chainDefault`**：退回去的話 AI 伺服器鏈永遠打不開族群總覽，
+         因為它有一張鏈層級的機櫃圖，會把第一個分頁吃掉。*/
     const resolveDg = () => {
-      if (state.group) return dgPick(ch, state.group);
-      if (state.dg && DS && DS.has(state.dg) && DS.chainOf(state.dg) === ch.id) return state.dg;
-      return DS ? DS.chainDefault(ch.id) : null;
+      if (gpDrilled) return null;
+      const cur = (state.dg && DS && DS.has(state.dg) && DS.chainOf(state.dg) === ch.id) ? state.dg : null;
+      if (state.group) {
+        const own = (DS && DS.level(state.group) === 'group' && DS.chainOf(state.group) === ch.id) ? state.group : null;
+        if (own) return own;
+        /* 選到一個沒有自己的圖的族群：
+             正在看的是**整條鏈的架構圖** → 留著（它本來就涵蓋整條鏈，不是在替某個族群說話）
+             正在看的是別的族群的產品圖   → 收起來，回族群總覽
+           （後者就是 DECISIONS #225「不准跨族群退回」那一條，一個字都沒有放寬。）*/
+        return (cur && DS.level(cur) === 'chain') ? cur : null;
+      }
+      return cur;
     };
     let dgId = resolveDg();
     const hasSlots = dgOpts.length > 0;     // 這條鏈有圖可看（可能是選單狀態）
@@ -306,20 +708,34 @@
     /* E5：頁面最上方的類別切換列（Andy 2026-09-18：「產業鏈頁上方要有類別切換列，不用退回去」）。
        以前只有卡片最下面那排「其他產業鏈」連結 —— 看完剖析圖要換一條鏈，得先捲到最底或退回產業地圖。
        這一列固定在標題上方，按了直接換鏈（換 hash，router 會重畫），現在這條標成 on。*/
-    const swTabs = (im.chains || []).map(c => ({ id: c.id, name: c.name, n: c.groups.reduce((s, g) => s + (g.n || 0), 0) }))
-      .concat([{ id: 'industry', name: '法定產業別', n: (im.industries || []).reduce((s, g) => s + (g.n || 0), 0) }]);
+    /* 二層分頁（這條鏈的產品剖析圖）。**第一個分頁固定是「族群總覽」**
+       —— 那是 Andy 指定的 Default 畫面（族群漲幅長條圖＋占比圓餅圖）。
+       每一頁都是真的 <a href>（有自己的網址，可分享、可回上一頁、重新整理打得開），
+       class 沿用 `segchip` 並保留 `.sel`：既有的換圖邏輯與驗收都認這兩個，
+       活頁簿的外觀由 `.nbsw` 負責（它的選擇器權重比 `.segchip` 高）。*/
+    const dgTabsHtml = () => `<div class="chainsw nbsw lv2" id="dgPick" role="tablist">`
+      + `<a class="segchip${dgId ? '' : ' sel on'}" data-dgtab="overview" href="#industry/${ch.id}" role="tab" style="--c:var(--cyan)" title="這條鏈各族群的漲幅與占比（第一個分頁）"><i></i>族群總覽</a>`
+      + dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel on' : ''}" data-dgid="${id}" href="${dgHash(id)}" role="tab" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')
+      + `</div>`;
+    /* 產業地圖那一層的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 會同時出現兩份
+       （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個。*/
+    { const mp = $('#indMap'); if (mp) mp.innerHTML = ''; }
+    gpStopLive();
     el.innerHTML = `
-      <div class="card">
-        <div class="chainsw" id="chainSwitch">${swTabs.map(t => `<button data-c="${t.id}" class="${t.id === ch.id ? 'on' : ''}"${HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>
+      ${chainTabsHtml(im, ch.id)}
+      <div class="card nbcard">
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
-        ${hasSlots ? `<div style="margin-top:14px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的圖別選單">← 全部剖析圖</span></div></div>
+        ${dgTabsHtml()}
+        <div class="nbbody">
+        <div id="gpSec"></div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁（族群總覽），下面同時列出全部剖析圖">← 全部剖析圖</span></div></div>
           <div class="dgmenu" id="dgMenu" hidden>${dgMenuHtml(ch, dgOpts, dgHash)}</div>
           <div id="dgBody">
-          ${dgOpts.length > 1 ? `<div class="segchips" id="dgPick" style="margin:6px 0 2px">${dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel' : ''}" data-dgid="${id}" href="${dgHash(id)}" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')}</div>` : ''}
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。預設跟著全站主題走">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>` : ''}
+        </div>
         <div class="cgsec" id="cgSec">
           <div class="chainrow cgwrap"><div class="chainpane cgpane">
             <div class="cgraph" id="cgGraph"></div>
@@ -519,10 +935,26 @@
       if (menu) menu.hidden = on;
       if (body) body.hidden = !on;
       if (tools) tools.hidden = !on;
-      /* 「← 全部剖析圖」只在「這條鏈的家就是選單」時才出現。
-         半導體／AI 伺服器有鏈層級架構圖，回去看到的還是同一張，那顆鈕按了等於沒事發生。*/
-      if (back) back.hidden = !(on && DS && !DS.chainDefault(ch.id));
+      /* 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它。
+         圖別選單（`#dgMenu` 那排卡片）留在它下面 —— 分頁列只放得下圖名，
+         「這張圖回答什麼問題」那一句得有地方寫，不然使用者得點進去才知道要不要點。*/
+      const gp = $('#gpSec', el);
+      if (gp) gp.hidden = on;
+      /* 「← 全部剖析圖」＝回到這條鏈的第一個分頁（族群總覽）。
+         以前只有「沒有鏈層級架構圖」的鏈才顯示，因為那時回去看到的是同一張圖；
+         現在回去的是族群總覽，每一條鏈都回得去，所以只要正在看圖就該有這顆鈕。*/
+      if (back) back.hidden = !on;
+      paintTabs();
       paintDgTitle();
+    }
+    /* 二層分頁的選取狀態。`.sel` 是既有的（換圖邏輯與驗收都認它），
+       `.on` 是活頁簿外觀用的；兩個一起切，不要只切一個。*/
+    function paintTabs() {
+      $$('#dgPick .segchip', el).forEach(c => {
+        const sel = c.dataset.dgtab === 'overview' ? !dgId : c.dataset.dgid === dgId;
+        c.classList.toggle('sel', sel); c.classList.toggle('on', sel);
+      });
+      scrollTabIntoView($('#dgPick', el));
     }
     /* 點零件（2D 剖析圖與 3D 場景共用這一支）。
        ★ 跟舊版的差別：以前是「再點同一個 **環節** 就取消」，所以在單一環節的圖上
@@ -568,11 +1000,8 @@
       };
     }
     $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
-    // E5：上方切換列 —— 按了直接換一條鏈，不用退回產業地圖（按自己就捲回頁首，不重畫）
-    $$('#chainSwitch button', el).forEach(b => b.onclick = () => {
-      if (b.dataset.c === ch.id) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
-      location.hash = '#industry/' + b.dataset.c;
-    });
+    // E5：上方切換列（2026-09-23 改成活頁簿分頁）—— 按了直接換一條鏈，不用退回產業地圖
+    wireChainTabs(el, ch.id);
     /* ★ 環節清單 `#chainList` ＋「看關聯圖 →」`#chainView` ＋ 舊的 `#chainMap` 已移除
        （DECISIONS #248；規格書第 0 節的結論是「同一份資料兩種畫法，留一個就好」）。
        它們承載的事情各自的新家：
@@ -730,7 +1159,7 @@
       swapping = true;
       dgId = next;
       partHi = partSel = null;          // 換一張圖，上一張的零件身分在新圖上不存在
-      $$('#dgPick .segchip', el).forEach(c => c.classList.toggle('sel', c.dataset.dgid === next));
+      paintTabs();
       /* ★ 2026-09-21 新增的狀態：換成「沒有圖」。
          選到一個還沒有專屬剖析圖的族群（例：面板）時，以前會退回 MLCC 那張再加一句道歉；
          現在是**真的把圖收掉、換回圖別選單** —— 畫面上不會再出現一張不屬於這個族群的圖。
@@ -767,9 +1196,29 @@
         syncHighlight({ quiet: true, noscroll: true });
       }, 180);
     }
+    /* 第一個分頁：這條鏈的族群漲幅長條圖 ＋ 占比圓餅圖（Andy 2026-09-23）。
+       掛在這裡而不是版面那一段，是因為它的 callback 要用到 syncHighlight／segFilter ——
+       那兩個宣告在後面，太早掛會踩到 TDZ。
+       · drillGid：從 `#industry/group/<gid>` 或關聯圖進來時，直接展開那個族群的個股長條圖
+       · onGroup：點長條＝原地展開，同時把下方成分股篩成這個族群（跟點關聯圖的大圓點同一條路）
+       · onBack：回到族群層級，篩選一起還原 */
+    renderGroupPanel($('#gpSec', el), {
+      scope: ch.name, groups: groups, asOf: (im && im.date) || '',
+      drillGid: state.group || null,
+      onGroup: (gid) => {
+        gpDrilled = true;
+        state.group = gid; segFilter = null; segHi = null; partHi = partSel = null;
+        syncDgHash(); syncHighlight({ noscroll: true });
+      },
+      onBack: () => {
+        gpDrilled = false;
+        if (state.group) { state.group = null; syncDgHash(); syncHighlight({ noscroll: true }); }
+      },
+    });
     // sc（supply_chain）還沒產出時上面那個 if 進不去，選單／圖的顯示狀態會沒人設過，
     // 所以在這裡統一再畫一次（重複呼叫是冪等的）
     if (hasSlots) paintDgMode();
+    else { const gp = $('#gpSec', el); if (gp) gp.hidden = false; }
     syncHighlight();
   }
   // 環節說明盒：這個環節的台股（可點）、外商、相關族群（可點）
@@ -4175,7 +4624,18 @@
   }
 
   // _dbg 只給 scripts/_preview.py 驗證用（檢查圖表與繪圖狀態），正式頁面不會呼叫
-  window.Industry = { route,
+  /* 產業熱力圖（頂層分頁 #heatmap）。它跟產業地圖吃同一份 industry_map，
+     所以路由也走這裡，不用在 app.js 再開一份載入邏輯。*/
+  async function routeHeat() {
+    A = window.App;
+    gpStopLive();
+    const im = await A.load('industry_map');
+    renderHeat(im);
+  }
+
+  window.Industry = { route, routeHeat,
+    // 驗收用：族群總覽現在是什麼狀態（族群／個股、幾條、即時開沒開、滑到誰、onLive 被呼叫幾次）
+    _gp: () => Object.assign({}, gpDbg, { timer: !!gpTimer }),
     // 驗收用：盤中每幾秒就會走一次這條路，用它驗「重畫不會把使用者的縮放彈回去」
     _apply: () => { if (state._apply) state._apply(); },
     _dbg: () => ({ tf: state.tf, mtf: state.mtfMode, tool: drawTool,
