@@ -17,7 +17,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-<link rel="apple-touch-icon" href="icon.png">
+<!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
+     留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
+     ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
+     定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -3180,5 +3186,22 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   <div id="zoomTools" class="ztools"></div>
   <div class="zb"><div id="zoomBody" class="chart"></div></div>
 </div>
+<!-- ★ 2026-09-24：Service Worker 註冊（PWA 第一步，docs/mobile_release_plan.md）。
+     用途是「加到主畫面」與離線仍打得開，**不是**為了快取資料。
+     ⚠⚠ sw.js 對 `data/**` 與任何 .json **完全不介入** —— 那是每天會變的數字，
+        快取住會讓人看到昨天的價格，**那比沒有 PWA 還糟**。這條有驗收釘著。
+     版本化靠 `?v=<tw:build 版號>`：每次部署版號會變 → 瀏覽器視為新的 SW →
+     activate 時刪掉舊快取。**不需要有人記得手動改常數。**
+     只在 http(s) 下註冊：本機用 file:// 打開時不跑，免得在開發時留下一個幽靈快取。 -->
+<script>
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  addEventListener('load', function () {
+    var m = document.querySelector('meta[name="tw:build"]');
+    var v = (m && m.content) || 'dev';
+    navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(v))
+      .catch(function (e) { console.warn('Service Worker 註冊失敗：', e); });
+  });
+}
+</script>
 </body>
 </html>

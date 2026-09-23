@@ -1,15 +1,29 @@
 {
+  "_註解_": "★ 命名還沒定案：name／short_name 目前沿用網站現有名稱。docs/product_strategy.md ⑤ 列了 8 個候選（最推薦〈剖面〉），Andy 挑定之後要改這裡的 name、short_name、description，並整組換掉 icons/。⚠ 商店上架後 App 名稱還能改，但 Bundle ID／package name 不能改 —— 所以命名要在第一次送審前決定。（JSON 沒有註解語法，所以用一個瀏覽器會忽略的欄位來放這段話。）",
+  "id": "./",
   "name": "台股資金輪動儀表板",
   "short_name": "台股輪動",
-  "description": "每日盤後的台股資金流向、族群輪動與候選股",
+  "description": "每天盤後回答四個問題：錢往哪個族群跑、那個族群貴不貴、什麼時候進場、有沒有理由不進場。資料僅供研究參考，不構成投資建議。",
+  "lang": "zh-Hant-TW",
+  "dir": "ltr",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0e1014",
-  "theme_color": "#0e1014",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "background_color": "#070b16",
+  "theme_color": "#070b16",
+  "categories": ["finance", "business"],
   "icons": [
-    {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
-    {"src": "icon.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+    {"src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable"},
+    {"src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"},
+    {"src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any"}
+  ],
+  "shortcuts": [
+    {"name": "資金流向", "short_name": "資金", "url": "./index.html#flow"},
+    {"name": "產業地圖", "short_name": "產業", "url": "./index.html#industry"},
+    {"name": "題材熱度", "short_name": "題材", "url": "./index.html#themes"}
   ]
 }
