@@ -898,7 +898,13 @@
        不然「已經到最右邊了還在淡」會變成假提示。
      ⚠ 用固定的選擇器清單、不用全域掃描：掃 `main *` 在產業鏈頁是上萬個節點，
        而這幾個容器就是量到的全部，寫死才可預期。*/
-  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram';
+  /* ★ 2026-09-24 加入 `#skTools`（個股工具列，11 顆鈕改成一列可滑）。
+     ⚠ `#skPx`（個股那條釘住的現價列）**刻意不加**：`.hsc` 的淡出是 CSS `mask`，
+       它作用在元素的整個盒子 ——**連背景一起淡掉**。釘住的列一旦右緣半透明，
+       底下捲過去的工具列就會透出來（實測看到「技術分 88」後面疊著「4時」）。
+       釘住的東西必須不透明，所以它只吃 `overflow-x:auto`，不吃淡出與提示列。
+     ⚠ `.gpgrid` 曾經也加進來，後來撤回 —— 見 index.html 那段「⑤（撤回）」。*/
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools';
   /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
      這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
      在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
@@ -931,7 +937,24 @@
       const t = document.createElement('div');
       t.className = 'swipetip'; t.textContent = '左右滑看更多';
       el.after(t);
+      paintPos(el, t);
     } else if (!can && has) { nx.remove(); }
+    else if (can && has) paintPos(el, nx);
+  }
+  /* ★ 2026-09-24（Andy：「左右滑的卡片要有位置指示，不然不知道還有沒有」）。
+     只給「一張一張捲」的卡片列（有 scroll-snap 的那幾個），不給分頁列與表格 ——
+     分頁列的「第 3 顆 / 共 8 顆」沒有意義，會變成雜訊。
+     位置是量出來的（scrollLeft ÷ 一張的寬度），不是猜的；捲到哪一張就寫哪一張。*/
+  const SWIPE_POS = ['m3-grid'];
+  function paintPos(el, tip) {
+    if (!SWIPE_POS.some(c => el.classList.contains(c))) { tip.removeAttribute('data-pos'); tip.removeAttribute('data-of'); return; }
+    const kids = [...el.children].filter(k => k.getBoundingClientRect().width > 1);
+    const n = kids.length;
+    if (n < 2) { tip.removeAttribute('data-pos'); tip.removeAttribute('data-of'); return; }
+    const step = kids[0].getBoundingClientRect().width + 10;      // 卡寬 ＋ gap
+    const i = Math.min(n - 1, Math.max(0, Math.round(el.scrollLeft / Math.max(1, step))));
+    if (tip.getAttribute('data-pos') !== String(i + 1)) tip.setAttribute('data-pos', String(i + 1));
+    if (tip.getAttribute('data-of') !== String(n)) tip.setAttribute('data-of', String(n));
   }
   function initSwipeHints() {
     const scan = () => {
@@ -951,6 +974,449 @@
     window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(scan, 200); });
     scan();
   }
+
+  /* ============================================================================
+     ★ 2026-09-24 手機第二版：資訊架構（量測與依據寫在 `docs/mobile_ia.md`）
+     ----------------------------------------------------------------------------
+     Andy 的原話：「幫我將手機頁面整理得更直觀順暢，功能分清楚，可以多點頁面沒關係，
+     但不要太多文字，整體要看起來舒服 不要發生我看圖 結果用資訊我要一直滑下去來回看，
+     會很困擾，可以留下重要資訊就好 ，以圖為主」。
+
+     量到的落差（390×844，可視畫布扣掉頂欄 72 ＋ 底部兩列分頁 ~102 只剩約 670px）：
+       · 總覽整頁 9233px：一張卡看完要捲過 4335px 的候選清單才到「市場寬度」
+       · 個股整頁 4245px：K 線圖頂在 1024px —— **進頁要先捲 950px 才看得到圖**，
+         而現價與技術分在 127～596px，**圖與它的數字相隔 1087px**（他抱怨的那件事）
+       · 資金流向 4129px、季節性 6131px、交付清單 11299px
+
+     這一版的三個機制（全部只在 ≤820px 生效，桌機那條路徑一個字都不動）：
+       ① `.mpager` 分段導覽 —— 一屏回答一件事，換段用點的（他說「可以多點頁面沒關係」）
+       ② `.mmore`  長清單限筆 —— 預設只給前幾筆，其餘按「看全部」展開（收起來，不是刪掉）
+       ③ `.mfold`  長說明收合 ＋ 個股頁把「現價那一列」釘在圖的上方（圖與數字同屏）
+     ============================================================================ */
+  /* ★ 斷點刻意比手機的樣式斷點（820px）**窄**：640px。
+     理由是量出來的，不是偏好：既有的驗收有一整批段落是在 **800px** 跑的
+     （「800px 時面板掉到圖的下面」「800px／產業鏈圖收合 K 線圖排在產業鏈區塊上面」
+       「800px 窄畫面照樣點得到個股標籤」…），那是**把桌機視窗縮一半**的情境，
+     不是手機。在那個寬度把內容收進分段列會讓那些斷言全部變紅 —— 而且它們是對的：
+     800px 有足夠的寬度一次看完，不需要分段。
+     **分段／限筆／收合這一套只給真正的手機寬度（≤640px）**；
+     820px 那一批（左右滑提示、底部兩列分頁、字級）維持原樣不動。*/
+  const MIA_MAX = 640;
+  const mIsM = () => window.innerWidth <= MIA_MAX;
+
+  /* 分段表：key ＝ route() 算出來的 `pageKey`（見下面 applyMobileIA 的呼叫點）。
+     `sel` 裡的每一個選擇器都是**要一起顯示的元素**；沒有被任何一段列到的東西
+     （麵包屑、頁首說明）一律**永遠顯示**，所以漏寫只會多顯示、不會讓東西消失。
+     ⚠ 這是刻意的失敗方向：資訊架構改錯最貴的後果是「使用者找不到」，
+       所以預設一律偏向「留著」。 */
+  /* ★★ 主軸動線（2026-09-24，CEO 拍板）：**首頁＝一條決策動線**，四個問題各自一步。
+     ① 錢往哪個族群跑 → ② 那個族群現在貴不貴 → ③ 什麼時候進場 → ④ 有沒有理由不進場
+     這不是新發明的東西 —— `CLAUDE.md` 第一段本來就是這樣寫的
+     （M1 資金面 ＋ M2 基本面決定方向 → M3 技術面決定時機 → M4 事件面否決），
+     以前只是沒有在介面上講出來，所有圖表平鋪在同一頁讓人自己猜順序。
+     ⚠ 一個功能都不准消失，只是換一個進得去的位置（對照表寫在 `docs/mobile_ia.md`）。*/
+  const MIA_STEPS = ['① 錢往哪跑', '② 貴不貴', '③ 何時進場', '④ 別進的理由'];
+  const MIA_STEP_SUB = [
+    '錢流進哪個族群、流出哪個族群',
+    '大盤與族群的體質：漲的是不是只有權值股，法人在不在裡面',
+    '技術面找時機：回檔承接還是突破追進',
+    '新聞、法說、目標價 —— 有沒有理由今天不要進場',
+  ];
+  const MIA_PAGER = {
+    overview: [
+      /* 第①步的主圖是**輪動時鐘**（RRG 四象限）。升格的理由：
+         它就是「錢往哪個族群跑」這個問題最直接的一張圖，
+         而它原本只是總覽中段的一張卡，要捲 1911px 才看得到。*/
+      { s: 1, n: '輪動時鐘', sel: ['#ovRotCard', '#ovRotHead', '#ovRotKpi', '#how-rotm', '#rotClockMiniWrap'] },
+      // 「輪動階段」那張卡在桌機是**一張卡兩件事**（上半時鐘、下半昨日資金去向，量到 1059px）——
+      // 一屏放不下兩件事，手機拆成兩段；`#ovRotCard` 是兩段共用的外殼，
+      // 不同時列的話另一段會留下一個 34px 高的空卡片（實測到的）。
+      { s: 1, n: '資金去向', sel: ['#ovRotCard', '#ovFlowHead', '#ovFlowWrap', '#ovFlowNote'] },
+      { s: 1, n: '熱力圖', sel: ['#ovHeatCard'] },
+      { s: 1, n: '熱門題材', sel: ['#ovThemeCard'] },
+      { s: 2, n: '大盤', sel: ['#m3', '#hero'] },
+      { s: 2, n: '市場寬度', sel: ['#ovBreadthCard'] },
+      { s: 2, n: '法人買超', sel: ['#ovTrustCard'] },
+      { s: 3, n: '今日候選', sel: ['#ovCandCard'] },
+      { s: 4, n: '今日事件', sel: ['#ovEvents'] },
+    ],
+    flow: [
+      { n: '輪動', sel: ['#flowRotCard'] },
+      { n: '資金去向', sel: ['#flowSankeyCard'] },
+      { n: '法人', sel: ['#flowInstCard'] },
+      { n: '集中度', sel: ['#flowConcCard'] },
+    ],
+    season: [
+      { n: '月份熱力', sel: ['#seasonHeatCard'] },
+      { n: '逐年明細', sel: ['#seasonDrillCard'] },
+      { n: '最強族群', sel: ['#seasonTopCard'] },
+    ],
+    /* ⚠ 單一產業鏈頁（`#industry/<chain>`）**刻意不做分段導覽**（做過，撤回了）。
+       原本切成「剖析圖／關聯圖」兩段，390px 從 2561px 收到 844px，數字很漂亮 ——
+       但它把 `#relSec` 底下的 `#segChips`、`.seglist` 收到第二段去，於是既有的
+       「批次29-產業分頁」「產業關係面板」「新-產業與個股」三段當場變紅
+       （`element is not visible`）。那些斷言驗的是「窄畫面照樣點得到個股標籤」，
+       是上一批拍板的行為 —— **既有的拍板優先於我這一版的偏好**。
+       這一頁改成只收兩段長說明（見 miaChain），高度從 2561 收到約 2200。
+       要真的分段，得先把那三段驗收一起改，那是另一批的工作。*/
+    themes: [
+      { n: '題材熱力', sel: ['#themeMapCard'] },
+      { n: '題材細節', sel: ['#themeDetail'] },
+    ],
+    // 個股頁：#stockPage 裡的四塊 ＋ 被 industry.js 搬到它後面的 #indChain
+    stock: [
+      { n: 'K 線', sel: ['#skChartCard'] },
+      { n: '判讀', sel: ['#mtfCard'] },
+      { n: '財報籌碼', sel: ['#stockTabs', '#stockTab'] },
+      { n: '產業鏈', sel: ['#indChain'] },
+    ],
+  };
+
+  /* 目前選到第幾段（每一頁各自記，寫進 localStorage —— 他回到同一頁時停在原地）。*/
+  function miaPick(key) {
+    try { const v = localStorage.getItem('tw.mia.' + key); if (v != null) return +v || 0; } catch (e) { /* 忽略 */ }
+    return 0;
+  }
+  function miaSave(key, i) { try { localStorage.setItem('tw.mia.' + key, String(i)); } catch (e) { /* 忽略 */ } }
+
+  /* 換段之後圖表要重新量寬度：ECharts／lightweight-charts 在 `display:none` 的容器裡
+     量到的寬度是 0，顯示回來不重算就是一張空白圖（2026-09-18 K 線那個 bug 的同一個形態）。
+     所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
+  function miaResize() {
+    try { Object.values(charts).forEach(c => c && c.resize && c.resize()); } catch (e) { /* 忽略 */ }
+    try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
+  }
+
+  function miaClearPager(host) {
+    host.querySelectorAll(':scope > .mspine, :scope > .mpager, :scope > .mnext').forEach(el => el.remove());
+    host.querySelectorAll('.mp-off').forEach(el => el.classList.remove('mp-off'));
+  }
+
+  /* 建（或更新）一頁的導覽。桌機一律拆掉，連 DOM 節點都不留 ——
+     `.mspine`／`.mpager` 是真的插進去的元素，只用 CSS 藏起來仍然會改變桌機的 DOM
+     （後續的 `+`、`:first-child` 之類選擇器會被它影響）。
+
+     兩層：**上層是主軸動線的四步（`.mspine`）**，下層是那一步底下的分段（`.mpager`）。
+     沒有標 `s` 的分段表（資金流向／個股／產業鏈／題材／季節性）只會畫下層那一條。*/
+  function miaPager(key, prefer) {
+    const view = document.querySelector('main .view.on');
+    if (!view) return;
+    const groups = MIA_PAGER[key];
+    if (!groups || !mIsM()) { miaClearPager(view); return; }
+    // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #mtfCard）
+    const found = groups.map(g => ({ s: g.s || 0, n: g.n,
+        els: g.sel.map(x => view.querySelector(x) || document.querySelector(x)).filter(Boolean) }))
+      .filter(g => g.els.length);
+    if (found.length < 2) { miaClearPager(view); return; }   // 只剩一段就沒有分段的意義
+
+    const steps = [...new Set(found.map(g => g.s).filter(Boolean))].sort((a, b) => a - b);
+    let step = steps.length ? Math.min(Math.max(miaPick(key + '.step') || steps[0], steps[0]), steps[steps.length - 1]) : 0;
+    if (steps.length && !steps.includes(step)) step = steps[0];
+    const subsOf = (st) => st ? found.filter(g => g.s === st) : found;
+    let subs = subsOf(step);
+    let i = Math.min(miaPick(key + '.' + step), subs.length - 1);
+    if (i < 0) i = 0;
+    /* `prefer`＝「這一次是被連結帶進來的，應該直接看那一段」。
+       例：從題材熱力圖點一格會換 hash 成 `#themes/<id>`，
+       那當然是要看細節，不是停在剛剛那張熱力圖上。*/
+    if (prefer) { const k = subs.findIndex(g => g.n === prefer); if (k >= 0) { i = k; miaSave(key + '.' + step, k); } }
+
+    const mk = (cls, tag) => {
+      let e = view.querySelector(':scope > .' + cls);
+      if (!e) { e = document.createElement(tag || 'nav'); e.className = cls; }
+      return e;
+    };
+    const spine = steps.length ? mk('mspine') : null;
+    const bar = mk('mpager');
+    const next = mk('mnext', 'button');
+    // 順序：主軸 → 分段 → （內容）→ 下一步
+    if (spine && spine.parentElement !== view) view.insertBefore(spine, view.firstChild);
+    if (bar.parentElement !== view) view.insertBefore(bar, spine ? spine.nextSibling : view.firstChild);
+    if (steps.length) { next.type = 'button'; if (next.parentElement !== view) view.appendChild(next); }
+    else next.remove();
+
+    const centre = (host, el) => { if (!host || !el) return;
+      const l = el.offsetLeft - (host.clientWidth - el.offsetWidth) / 2; host.scrollLeft = Math.max(0, l); };
+
+    const paint = () => {
+      subs = subsOf(step);
+      if (i > subs.length - 1) i = 0;
+      /* ⚠ 先算「這一段要顯示哪些元素」的聯集，再一次套用。
+         逐段 toggle 會出錯：同一個元素如果同時屬於兩段（例如 `#ovRotCard` 是
+         「輪動時鐘」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
+      const on = new Set((subs[i] || { els: [] }).els);
+      found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
+      /* 「收合」那顆鈕要跟著它負責的那一塊一起藏：鈕是插在那一塊後面的獨立節點，
+         不跟著藏的話會出現「一顆孤零零的鈕，按了畫面什麼都不會變」—— 就是 G7 那個毛病。*/
+      document.querySelectorAll('.mfold').forEach(b2 => {
+        const prev = b2.previousElementSibling;
+        b2.classList.toggle('mp-off', !!(prev && prev.classList.contains('mp-off')));
+      });
+      // 下層分段列：只有一段就不畫（一顆孤單的晶片是雜訊）
+      bar.hidden = subs.length < 2;
+      if (bar.dataset.k !== key + ':' + step || bar.children.length !== subs.length) {
+        bar.dataset.k = key + ':' + step; bar.innerHTML = '';
+        subs.forEach((g, k) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = g.n; b.setAttribute('role', 'tab');
+          b.onclick = () => { i = k; miaSave(key + '.' + step, k); paint(); after(); };
+          bar.appendChild(b);
+        });
+      }
+      [...bar.children].forEach((b, k) => { b.classList.toggle('on', k === i);
+        b.setAttribute('aria-selected', k === i ? 'true' : 'false'); });
+      centre(bar, bar.children[i]);
+      if (spine) {
+        [...spine.children].forEach((b, k) => { const st = steps[k];
+          b.classList.toggle('on', st === step);
+          b.setAttribute('aria-selected', st === step ? 'true' : 'false'); });
+        centre(spine, spine.children[steps.indexOf(step)]);
+        const j = steps.indexOf(step), nx = steps[(j + 1) % steps.length];
+        next.textContent = (j === steps.length - 1 ? '回到 ' : '下一步：') + MIA_STEPS[nx - 1] + ' ›';
+        next.onclick = () => { step = nx; i = 0; miaSave(key + '.step', nx); paint(); after(); };
+      }
+    };
+    const after = () => {
+      // 換段＝換一件事，回到這一段的最上面（不然會停在上一段捲到的位置）
+      window.scrollTo({ top: 0 });
+      setTimeout(miaResize, 30); setTimeout(miaResize, 260);
+      if (window.twSwipeScan) setTimeout(window.twSwipeScan, 80);
+      miaMore();
+    };
+    if (spine && (spine.dataset.k !== key || spine.children.length !== steps.length)) {
+      spine.dataset.k = key; spine.setAttribute('role', 'tablist');
+      spine.setAttribute('aria-label', '決策動線：錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由');
+      spine.innerHTML = '';
+      steps.forEach(st => {
+        const b = document.createElement('button');
+        b.type = 'button'; b.setAttribute('role', 'tab');
+        b.title = MIA_STEP_SUB[st - 1] || '';
+        b.innerHTML = '<b>' + MIA_STEPS[st - 1] + '</b><em>' + (MIA_STEP_SUB[st - 1] || '') + '</em>';
+        b.onclick = () => { step = st; i = 0; miaSave(key + '.step', st); paint(); after(); };
+        spine.appendChild(b);
+      });
+    }
+    bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', '這一步底下的分段');
+    paint();
+    setTimeout(miaResize, 30); setTimeout(miaResize, 300);
+  }
+
+  /* ★ 第①步的關鍵數字：四個象限現在各有幾個族群。
+     這是「圖的關鍵數字要緊鄰圖」那條判準的具體落實 —— 總覽那張小時鐘
+     （`compact`）刻意不畫象限卡（桌機的設計，不准動），所以手機在標題下面補一列。
+     數字來自 `rotStageCounts()`，跟資金流向頁那張大圖**同一個來源**，不另外算一套。*/
+  function miaRotKpi() {
+    const head = document.getElementById('ovRotHead');
+    const old = document.getElementById('ovRotKpi');
+    if (!head || !mIsM()) { if (old) old.remove(); return; }
+    let cnt = null;
+    try { cnt = rotStageCounts(); } catch (e) { cnt = null; }
+    /* ⚠ `rotStageCounts()` 讀的是 `rotF3` —— 那是**資金流向頁**渲染時才會被設起來的。
+       只開總覽就不會有值（實測：四顆晶片整排不出現）。
+       所以退回到已經載進來的 `D.flow_v3`，**同一個算法**（`rotRows` ＋ `ROT_BOARD_WIN`），
+       不是另外寫一套統計。*/
+    if (!cnt || !Object.keys(cnt).length) {
+      const f3 = D.flow_v3;
+      const rows = (f3 && f3.rrg) ? rotRows(f3.rrg, ROT_BOARD_WIN) : [];
+      if (!rows.length) { if (old) old.remove(); return; }
+      cnt = {}; rows.forEach(r => { cnt[r.stage] = (cnt[r.stage] || 0) + 1; });
+    }
+    let box = old;
+    if (!box) { box = document.createElement('div'); box.className = 'rotkpi'; box.id = 'ovRotKpi'; head.after(box); }
+    const html = STAGE_ORDER.map(k => `<span class="rk" style="--c:${STAGE[k].color}" title="${fmt.esc(STAGE[k].sub)}">`
+      + `${STAGE[k].name}<b>${cnt[k] || 0}</b></span>`).join('');
+    if (box.innerHTML !== html) box.innerHTML = html;
+  }
+
+  /* ★ 第④步「有沒有理由不進場」的內容。
+     今日事件在手機上是抽屜（`aside`，`position:fixed`）—— 抽屜不能同時當一屏的內容，
+     所以這裡用**同一份資料**（`window.twEventItems`，renderEvents 產的那一份）
+     在總覽裡長一張手機專屬的卡片。⚠ 只在手機建立、回桌機整個移除。*/
+  function miaEvents() {
+    const view = document.getElementById('v-overview');
+    const old = document.getElementById('ovEvents');
+    if (!view || !mIsM()) { if (old) old.remove(); return; }
+    const items = window.twEventItems || [];
+    let box = old;
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'card'; box.id = 'ovEvents'; box.style.marginTop = '16px';
+      view.appendChild(box);
+    }
+    const rows = items.slice(0, 8).map(i => `<a class="ev" href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">`
+      + `<span class="t">${fmt.esc(i.title || '')}</span>`
+      + `<span class="m"><span class="mono">${fmt.esc(i._d || '')}</span><span class="cat">${fmt.esc(i.cat || '')}</span>`
+      + `<span>${fmt.esc(i.source || '')}</span></span></a>`).join('');
+    const html = `<h3>今日事件 <small>新聞、法說、券商目標價 —— 進場前最後一關</small></h3>`
+      + `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
+      + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`;
+    if (box.innerHTML !== html) {
+      box.innerHTML = html;
+      const b = box.querySelector('#ovEvAll');
+      // 不重寫一套邏輯：去按手機「⋯」清單裡那顆「今日事件」（它負責把抽屜打開）
+      if (b) b.onclick = () => { const m = document.getElementById('mmEvents'); if (m) m.click(); };
+    }
+  }
+
+  /* ---- ② 長清單限筆 --------------------------------------------------------
+     量到（390px）：今日候選 30 張卡共 4335px、季節性「本月歷史最強族群」4586px、
+     交付清單 43 筆 10754px。這些都是「同一種東西的一長串」——
+     他要的是「留下重要資訊」，不是看完 43 筆。
+     做法：預設只留前 N 筆，後面按一顆「還有 N 筆 · 看全部 ›」展開。
+     ⚠ **收起來不是刪掉**：按鈕就在原地，按一下全部回來；展開狀態不記住（換頁回到精簡）。*/
+  const MIA_MORE = [
+    ['#candCards', 6, '候選'],
+    ['#seasonTop', 6, '族群'],
+    ['#dlvWrap', 5, '筆'],
+    ['#chainList', 4, '格'],
+  ];
+  function miaMore() {
+    MIA_MORE.forEach(([sel, keep, unit]) => {
+      const box = document.querySelector(sel);
+      if (!box) return;
+      const kids = [...box.children].filter(el => !el.classList.contains('mmore'));
+      const btn = box.querySelector(':scope > .mmore');
+      if (!mIsM() || kids.length <= keep) {                 // 桌機／本來就不長：清乾淨
+        kids.forEach(el => el.classList.remove('mm-off'));
+        if (btn) btn.remove();
+        return;
+      }
+      if (box.dataset.mmOpen === '1') {                     // 使用者按過「看全部」
+        kids.forEach(el => el.classList.remove('mm-off'));
+        if (btn) btn.remove();
+        return;
+      }
+      kids.forEach((el, k) => el.classList.toggle('mm-off', k >= keep));
+      const rest = kids.length - keep;
+      let b = btn;
+      if (!b) { b = document.createElement('button'); b.type = 'button'; b.className = 'mmore'; box.appendChild(b); }
+      else if (b !== box.lastElementChild) box.appendChild(b);
+      const want = `還有 ${rest} ${unit} · 看全部 ›`;
+      if (b.textContent !== want) b.textContent = want;   // 冪等：同樣的字不要再寫一次（會觸發 MutationObserver）
+      b.onclick = () => { box.dataset.mmOpen = '1'; miaMore(); };
+    });
+  }
+  /* 重畫（換篩選、換族群）之後清單會整個換掉，展開狀態要跟著歸零 —— 
+     不歸零的話「按過一次看全部」會讓之後每一次重畫都是完整清單。*/
+  function miaMoreReset() { MIA_MORE.forEach(([sel]) => { const b = document.querySelector(sel); if (b) delete b.dataset.mmOpen; }); }
+
+  /* ---- ③ 個股頁：圖與它的數字同屏 ------------------------------------------
+     量到（390px）：`#skHead` 468px ＋ `#skTools` 404px 全部排在 K 線之前，
+     所以 K 線頂在 1024px、而現價在 127～596px —— 看圖就看不到價，這是他點名的那件事。
+     手機做三件事：
+       · `#skPx`（現價／漲跌／技術分／本益比…）**釘在頂欄下面**，捲到哪裡都看得到
+       · `#skMeta`（產業鏈／族群／題材連結）與 `#skVerdict`（評級與理由）收進「詳細 ▾」
+       · 兩段操作說明（`.skhelp`）收進「怎麼操作 ▾」
+     ⚠ 三樣都是**收起來**，入口就在原地，一點就回來。*/
+  function miaFold(afterSel, label, targets, key) {
+    const anchor = document.querySelector(afterSel);
+    if (!anchor) return;
+    const els = targets.map(s => document.querySelector(s)).filter(Boolean);
+    if (!els.length) return;
+    const old = document.getElementById(key);
+    if (!mIsM()) { if (old) old.remove(); els.forEach(el => el.classList.remove('mf-off')); return; }
+    let b = old;
+    if (!b) {
+      b = document.createElement('button');
+      b.type = 'button'; b.className = 'mfold'; b.id = key;
+      anchor.after(b);
+      b.dataset.open = '0';
+      b.onclick = () => {
+        const open = b.dataset.open === '1' ? '0' : '1';
+        b.dataset.open = open;
+        els.forEach(el => el.classList.toggle('mf-off', open !== '1'));
+        b.textContent = (open === '1' ? label + ' ▴' : label + ' ▾');
+        setTimeout(miaResize, 40);
+      };
+    }
+    const open = b.dataset.open === '1';
+    els.forEach(el => el.classList.toggle('mf-off', !open));
+    b.textContent = open ? label + ' ▴' : label + ' ▾';
+  }
+
+  /* 產業鏈頁的兩段長說明：`#nbIntro` 量到 146px、`#relHint` 208px，
+     加起來 354px ＝ 半個手機畫面在講「怎麼看」。收起來，入口留在原地。
+     （Andy：「不要太多文字…以圖為主」；判準：收起來可以，刪掉不行。）*/
+  function miaChain() {
+    miaFold('#nbIntro', '這一頁怎麼看', ['#nbIntro'], 'mfChainIntro');
+    miaFold('#relHead', '關聯圖怎麼看', ['#relHint'], 'mfRelHint');
+  }
+
+  /* 資金流向「資金輪動」那張卡：量到 1368px，其中篩選列 101px ＋ 時間列 132px
+     ＝ 233px 的**控制項**排在兩張圖之前。手機上先看圖、要調才展開控制項，
+     所以收成一顆「篩選與期間 ▾」。⚠ 一樣是收起來，不是拿掉。*/
+  function miaFlow() {
+    miaFold('#how-rot', '篩選與期間', ['#flowRotFilter', '#flowRotTime'], 'mfFlowCtl');
+  }
+
+  function miaStock() {
+    /* ★ 把「現價那一列」搬成 K 線卡的直接子項。
+       這一步是 `position:sticky` 能不能成立的關鍵：**sticky 只在它父元素的盒子裡有效**。
+       `#skPx` 原本住在 `#skIdent` 裡，而 `#skIdent` 的盒子在價格那一列就結束了 ——
+       實測釘不到 40px 就跟著捲走（量到 top -26）。搬到卡片底下之後，
+       它的釘住範圍才涵蓋整張 K 線圖，也就是「捲到圖的任何一段都還看得到價格」。
+       ⚠ 搬的是**同一個節點**（不是複製）：`#pxNow` 帶著 `data-live`，
+         複製一份會變成兩個都被即時層更新、或更糟：更新到藏起來的那一份。
+       ⚠ 記住原來的位置，回桌機時原封不動搬回去（桌機不准被動到）。*/
+    const px = document.getElementById('skPx'), card = document.getElementById('skChartCard');
+    if (px && card) {
+      if (mIsM()) {
+        if (px.parentElement !== card) {
+          px._miaHome = px.parentElement; px._miaNext = px.nextElementSibling;
+          card.insertBefore(px, document.getElementById('skTools') || card.children[1]);
+        }
+      } else if (px._miaHome) {
+        px._miaHome.insertBefore(px, px._miaNext); px._miaHome = null; px._miaNext = null;
+      }
+    }
+    miaFold('#skIdent h2', '詳細（產業鏈 / 族群 / 評級）', ['#skMeta', '#skVerdict'], 'mfStockMeta');
+    miaFold('#chartWrap', '怎麼操作這張圖 / 資料到哪一天', ['#skChartCard .skhelp'], 'mfStockHelp');
+    // `.skhelp` 是兩個節點，querySelector 只抓得到第一個 —— 補第二個
+    if (mIsM()) { document.querySelectorAll('#skChartCard .skhelp').forEach(el => {
+      const b = document.getElementById('mfStockHelp');
+      el.classList.toggle('mf-off', !(b && b.dataset.open === '1')); }); }
+    else document.querySelectorAll('#skChartCard .skhelp').forEach(el => el.classList.remove('mf-off'));
+  }
+
+  /* 對外的單一入口。route() 每次換頁叫一次，視窗寬度變了也叫一次。*/
+  function applyMobileIA(key, prefer) {
+    try {
+      const view = document.querySelector('main .view.on');
+      if (!view) return;
+      // 桌機：把手機留下的痕跡全部清掉（`.mpager`／`.mmore`／`.mfold` 都是真的節點）
+      if (!mIsM()) {
+        document.querySelectorAll('.mpager,.mspine,.mnext,#ovRotKpi,#ovEvents').forEach(el => el.remove());
+        document.querySelectorAll('.mmore,.mfold').forEach(el => el.remove());
+        miaStock();                                  // 把搬過去的 #skPx 搬回桌機的原位
+        document.querySelectorAll('.mp-off,.mm-off,.mf-off').forEach(el =>
+          el.classList.remove('mp-off', 'mm-off', 'mf-off'));
+        document.body.classList.remove('miaon');
+        return;
+      }
+      document.body.classList.add('miaon');
+      if (key === 'stock') miaStock();
+      if (key === 'industry') miaChain();
+      if (key === 'flow') miaFlow();
+      if (key === 'overview') { miaRotKpi(); miaEvents(); }
+      miaPager(key, prefer);
+      miaMore();
+    } catch (e) { /* 資訊架構壞掉不該讓整頁掛掉 */ }
+  }
+  window.twMobileIA = applyMobileIA;
+  window.twMobileMoreReset = () => { miaMoreReset(); if (mIsM()) miaMore(); };
+  /* 清單會因為換篩選、換族群、換分頁而整個重畫（`innerHTML = …`），
+     重畫之後「看全部」那顆鈕就沒了 —— 補一個防抖的觀察者，跟 initSwipeHints 同一套做法。
+     ⚠ 只補「限筆」這一件事，**不重建分段導覽**：分段導覽自己也會改 DOM，
+       在同一個觀察者裡重建會變成無限迴圈。
+     ⚠ `miaMore()` 寫成冪等的（鈕已經在就不重插、字一樣就不重寫），
+       所以第二次跑產生 0 個 mutation，迴圈自己會停。*/
+  { let mt = null;
+    const mo = new MutationObserver(() => { if (!mIsM()) return; clearTimeout(mt); mt = setTimeout(miaMore, 250); });
+    const mroot = document.querySelector('main');
+    if (mroot) mo.observe(mroot, { childList: true, subtree: true }); }
+  { let rt = null;
+    window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => applyMobileIA(_miaKey), 220); }); }
+  let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
@@ -1011,11 +1477,22 @@
     const key = pageKey(head, rest);
     if (key !== _lastPageKey) window.scrollTo({ top: 0 });
     _lastPageKey = key;
-    if (view === 'heatmap') { await window.Industry.routeHeat(); return; }
-    if (view === 'industry') { await window.Industry.route(head, rest); return; }
-    if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
-    if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }
+    /* ★ 2026-09-24 手機第二版：這一頁在手機上要用哪一份分段表（見 applyMobileIA）。
+       用的是「路由的頁面種類」而不是 view id —— 個股與產業地圖共用 `#v-industry`，
+       但它們是完全不同的兩頁，分段表當然也不一樣。*/
+    const mk = head === 'stock' ? 'stock' : view;
+    _miaKey = mk;
+    /* 換頁時「看全部」的展開狀態要歸零：他點進另一頁再回來，應該回到精簡版。*/
+    if (typeof miaMoreReset === 'function') miaMoreReset();
+    /* 題材頁：網址帶了題材 id（從熱力圖點一格進來的）就直接翻到「題材細節」那一段。*/
+    const prefer = (mk === 'themes' && rest[0]) ? '題材細節' : null;
+    const mia = () => { try { applyMobileIA(mk, prefer); } catch (e) { /* 忽略 */ } };
+    if (view === 'heatmap') { await window.Industry.routeHeat(); mia(); setTimeout(mia, 500); return; }
+    if (view === 'industry') { await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
+    if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); mia(); return; }
+    if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, themes: renderThemes, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
+    mia(); setTimeout(mia, 500);
     setTimeout(() => Object.values(charts).forEach(c => c && c.resize && c.resize()), 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）
     if (window.twSwipeScan) { setTimeout(window.twSwipeScan, 60); setTimeout(window.twSwipeScan, 600); }
@@ -6854,6 +7331,11 @@
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
     $('#evCount').textContent = items.length;
+    /* 手機第④步「有沒有理由不進場」用的是**同一份**清單（見 miaEvents）——
+       抽屜是 position:fixed 的浮層，沒辦法同時當一屏的內容，所以那裡另外長一張卡片，
+       但資料只有這一份，不會出現「抽屜寫 43 則、卡片寫別的數字」。*/
+    window.twEventItems = items;
+    if (window.twMobileIA) { try { window.twMobileIA(location.hash.replace('#', '').split('/')[0] || 'overview'); } catch (e) { /* 忽略 */ } }
     /* 手機版「⋯」清單裡的今日事件也要同一個數字（G1／G9）——
        事件鈕在手機上是被藏起來的，數字只寫在它身上等於手機看不到。*/
     { const mc = $('#mmEvCount'), mb = $('#moreCount');

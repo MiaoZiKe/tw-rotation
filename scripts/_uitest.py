@@ -10636,6 +10636,10 @@ SECTIONS = {
     #   「手機改版」證明手機變好用了，「桌機零差異」證明沒有為此把桌機弄差。
     "手機改版":            lambda pg, b, base, code: t_mobile_v2(b, base, code),
     "桌機零差異":          lambda pg, b, base, code: t_desktop_untouched(pg, base, code),
+    # ★ 2026-09-24 手機第二版：主軸動線（四步）＋「圖與它的關鍵數字同屏」的量化驗收。
+    #   這一段驗的是**座標**（bottom ≤ 可視高），不是「元素存在」——
+    #   Andy 抱怨的正是「看圖要一直滑下去來回看」，那件事只有量座標才驗得到。
+    "手機一屏":            lambda pg, b, base, code: t_mobile_oneview(b, base, code),
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
     "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
@@ -20825,7 +20829,13 @@ def t_mobile_v2(b, base, code):
            st["hash"].startswith(want) and st["on"] == "v-" + v and st["txt"] > 60, st)
 
     # ---------- G3：總覽大盤三張圖改成左右滑 ----------
+    # ★ 2026-09-24：總覽在手機上改成四步動線，大盤三張圖掛在第②步「貴不貴」底下，
+    #   所以要先走到那一步才量得到（停在第①步量只會拿到 null —— 那是假紅）。
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
+    spine = m.evaluate("() => [...document.querySelectorAll('.mspine>button')].map(b => b.innerText.split(String.fromCharCode(10))[0])")
+    ok("[390px] 首頁是一條四步決策動線（錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由）",
+       len(spine) == 4 and spine[0].startswith('①') and spine[3].startswith('④'), spine)
+    m.evaluate("() => document.querySelectorAll('.mspine>button')[1].click()"); m.wait_for_timeout(1400)
     g = m.evaluate("""() => { const g = document.querySelector('.m3-grid'); if (!g) return null;
         const tip = g.nextElementSibling;
         return { h: Math.round(g.getBoundingClientRect().height), sw: g.scrollWidth, cw: g.clientWidth,
@@ -20956,6 +20966,160 @@ def t_desktop_untouched(pg, base, code):
     ok("[1440px] 桌機的 3D 設定列五顆全在",
        all(t[i] != "none" for i in ("dg3d", "dgDrag", "dgReset", "dgAnim", "dgFold")), t)
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+
+# ===================================================================== 手機一屏
+def t_mobile_oneview(b, base, code):
+    """★ 2026-09-24 手機第二版：**圖與它的關鍵數字必須在同一屏**（量出來，不是看起來像）。
+
+    Andy 的原話：「不要發生我看圖 結果用資訊我要一直滑下去來回看，會很困擾」。
+    改版前量到的最糟一筆：個股頁 K 線圖在 1024～1683px，而現價與技術分在 127～596px ——
+    **相隔 1087px**。要看數字就得滑上去，看完再滑回來。
+
+    這一段的驗法：把主圖捲到畫面頂端，然後量
+      ① 主圖整張進得了可視範圍（844 − 頂欄 72 − 底部兩列分頁 102 ＝ 670～742px）
+      ② 它的關鍵數字**同時**在可視範圍內（`bottom` ≤ 可視高、`bottom` > 0）
+    每一個主要路由各一條。⚠ 驗的是量到的座標，不是「元素存在」。
+    """
+    m = b.new_page(**MOBILE_VP)
+    m.on("pageerror", lambda e: fails.append(f"手機一屏 pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base, wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+
+    RECT = """(a) => { const c = document.querySelector(a[0]), k = document.querySelector(a[1]);
+        if (!c) return { err: '找不到主圖 ' + a[0] };
+        const r = c.getBoundingClientRect(), kr = k ? k.getBoundingClientRect() : null;
+        return { vh: innerHeight, c: { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height) },
+                 k: kr ? { t: Math.round(kr.top), b: Math.round(kr.bottom), pos: getComputedStyle(k).position } : null,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+    # （路由, 名字, 主圖, 關鍵數字, 要不要先點某一步）
+    CASES = [
+        ("overview", "總覽 輪動時鐘（第①步）", "#rotClockMini", "#ovRotKpi", None),
+        ("flow", "資金流向 輪動時鐘", "#rotClock", "#flowRotCard .rotquads", None),
+        ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
+        (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
+        ("themes", "題材 資金熱力", "#themeMap", "#themeNote", None),
+        ("season", "季節性 月份熱力", "#seasonHeat", "#seasonNote", None),
+    ]
+    for route, name, cs, ks, step in CASES:
+        m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(3000)
+        if step is not None:
+            m.evaluate("(i) => { const b = document.querySelectorAll('.mspine>button')[i]; if (b) b.click(); }", step)
+            m.wait_for_timeout(1200)
+        r0 = m.evaluate(RECT, [cs, ks])
+        if r0.get("err"): ok(f"[390px 一屏] {name}", False, r0); continue
+        # 捲到主圖的頂端（留 132px 給頂欄與分段列）
+        m.evaluate("(sel) => { const e = document.querySelector(sel); if (e) window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 132 }); }", cs)
+        m.wait_for_timeout(500)
+        r = m.evaluate(RECT, [cs, ks])
+        vis = r["vh"] - 102                       # 扣掉底部固定的兩列分頁
+        ok(f"[390px 一屏] {name}：主圖整張在可視範圍內（{vis}px）",
+           r["c"]["t"] >= -4 and r["c"]["b"] <= vis + 4, r)
+        ok(f"[390px 一屏] {name}：關鍵數字**同時**看得到（改版前個股頁相隔 1087px）",
+           bool(r["k"]) and 0 < r["k"]["b"] <= vis, r)
+        ok(f"[390px 一屏] {name}：沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+
+    # 個股頁的價格列是「釘住」的：捲到圖的最底下，它還要在畫面上
+    m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
+    m.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight })")
+    m.wait_for_timeout(500)
+    st = m.evaluate("""() => { const e = document.getElementById('skPx');
+        if (!e) return null; const r = e.getBoundingClientRect();
+        return { t: Math.round(r.top), b: Math.round(r.bottom), pos: getComputedStyle(e).position,
+                 parent: e.parentElement.id, txt: e.innerText.replace(/\s+/g, ' ').slice(0, 40),
+                 vh: innerHeight }; }""")
+    ok("[390px 一屏] 個股：現價那一列真的釘住了（捲到整頁最底下還看得到）",
+       st and st["pos"] == "sticky" and 0 <= st["t"] <= 140, st)
+    ok("[390px 一屏] 個股：它被搬成 K 線卡的直接子項（sticky 只在父元素的盒子裡有效）",
+       st and st["parent"] == "skChartCard", st)
+    ok("[390px 一屏] 個股：價格那一列寫的是真的數字，不是佔位符",
+       st and any(ch.isdigit() for ch in st["txt"]), st)
+
+    # 主軸動線：按「下一步」真的換一步，而且畫面真的因此換了內容
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
+    def _state():
+        return m.evaluate("""() => ({
+            on: [...document.querySelectorAll('.mspine>button')].findIndex(b => b.classList.contains('on')),
+            rot: !!document.querySelector('#rotClockMiniWrap:not(.mp-off)'),
+            m3: !!document.querySelector('#m3:not(.mp-off)'),
+            cand: !!document.querySelector('#ovCandCard:not(.mp-off)'),
+            ev: !!document.querySelector('#ovEvents:not(.mp-off)'),
+            next: (document.querySelector('.mnext') || {}).textContent || '' })""")
+    s0 = _state()
+    ok("[390px 動線] 一進首頁停在第①步，主圖是輪動時鐘", s0["on"] == 0 and s0["rot"] and not s0["m3"], s0)
+    ok("[390px 動線] 最下面有「下一步」帶去第②步", "下一步" in s0["next"] and "貴不貴" in s0["next"], s0)
+    m.click(".mnext"); m.wait_for_timeout(1300)
+    s1 = _state()
+    changed("[390px 動線] 按「下一步」畫面真的換到第②步（大盤三張圖出現、時鐘收起來）",
+            (s0["on"], s0["m3"], s0["rot"]), (s1["on"], s1["m3"], s1["rot"]), str(s1))
+    ok("[390px 動線] 第②步顯示的是大盤與體質，不是輪動時鐘", s1["on"] == 1 and s1["m3"] and not s1["rot"], s1)
+    m.click(".mnext"); m.wait_for_timeout(1300); s2 = _state()
+    ok("[390px 動線] 第③步是今日候選（何時進場）", s2["on"] == 2 and s2["cand"], s2)
+    m.click(".mnext"); m.wait_for_timeout(1300); s3 = _state()
+    ok("[390px 動線] 第④步是今日事件（有沒有理由不進場）", s3["on"] == 3 and s3["ev"], s3)
+    ev = m.evaluate("""() => { const b = document.getElementById('ovEvents'); if (!b) return null;
+        return { n: b.querySelectorAll('.ovev .ev').length,
+                 all: (b.querySelector('#ovEvAll') || {}).textContent || '',
+                 side: (document.getElementById('evCount') || {}).textContent || '' }; }""")
+    ok("[390px 動線] 第④步真的列出事件，而且筆數跟抽屜是同一份資料",
+       ev and ev["n"] > 0 and ev["side"] and ev["side"] in ev["all"], ev)
+    ok("[390px 動線] 走到最後一步時「下一步」變成回到第①步", "回到" in s3["next"], s3)
+    m.click(".mnext"); m.wait_for_timeout(1300)
+    ok("[390px 動線] 按下去真的回到第①步", _state()["on"] == 0)
+
+    # 第①步的關鍵數字：四個象限的族群數，而且跟資金流向頁那張大圖同一個來源
+    kpi = m.evaluate("""() => { const e = document.getElementById('ovRotKpi'); if (!e) return null;
+        return { n: e.querySelectorAll('.rk').length,
+                 txt: e.innerText.replace(/\s+/g, ' ').trim(),
+                 nums: [...e.querySelectorAll('.rk b')].map(x => +x.textContent) }; }""")
+    ok("[390px 動線] 第①步的圖旁邊就有四個象限的族群數（不必滑到別的地方找）",
+       kpi and kpi["n"] == 4 and sum(kpi["nums"]) > 0
+       and all(w in kpi["txt"] for w in ("改善", "領先", "轉弱", "落後")), kpi)
+
+    # 長清單限筆：今日候選預設只給 6 張，按「看全部」真的全部回來
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
+    m.evaluate("() => { const b = document.querySelectorAll('.mspine>button')[2]; if (b) b.click(); }")
+    m.wait_for_timeout(1300)
+    C = """() => { const c = document.getElementById('candCards'); if (!c) return null;
+        const kids = [...c.children].filter(x => !x.classList.contains('mmore'));
+        return { total: kids.length, shown: kids.filter(x => getComputedStyle(x).display !== 'none').length,
+                 btn: (c.querySelector('.mmore') || {}).textContent || '' }; }"""
+    c0 = m.evaluate(C)
+    ok("[390px 限筆] 今日候選預設只給前 6 張（改版前 30 張共 4335px）",
+       c0 and c0["shown"] == 6 and c0["total"] > 6 and "看全部" in c0["btn"], c0)
+    m.click("#candCards .mmore"); m.wait_for_timeout(700)
+    c1 = m.evaluate(C)
+    changed("[390px 限筆] 按「看全部」筆數真的變多（收起來不是刪掉）", c0["shown"], c1["shown"], str(c1))
+    ok("[390px 限筆] 展開之後全部都在、鈕也收掉了",
+       c1 and c1["shown"] == c1["total"] and not c1["btn"], c1)
+
+    # 左右滑的位置指示（Andy 點名）
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
+    m.evaluate("() => { const b = document.querySelectorAll('.mspine>button')[1]; if (b) b.click(); }")
+    m.wait_for_timeout(1400)
+    P = """() => { const g = document.querySelector('.m3-grid'); if (!g) return null;
+        const t = g.nextElementSibling;
+        return { pos: t && t.getAttribute ? t.getAttribute('data-pos') : null,
+                 of: t && t.getAttribute ? t.getAttribute('data-of') : null,
+                 sl: Math.round(g.scrollLeft) }; }"""
+    p0 = m.evaluate(P)
+    ok("[390px] 左右滑的卡片有「第幾張／共幾張」（他點名的：不然不知道還有沒有）",
+       p0 and p0["pos"] == "1" and p0["of"] == "3", p0)
+    m.evaluate("() => { const g = document.querySelector('.m3-grid'); g.scrollLeft = g.clientWidth; g.dispatchEvent(new Event('scroll')); }")
+    m.wait_for_timeout(500)
+    p1 = m.evaluate(P)
+    changed("[390px] 真的滑過去之後指示跟著變（量的是 scrollLeft，不是寫死的）", p0["pos"], p1["pos"], str(p1))
+
+    # 整頁高度：不准回到改版前那種「一頁滑十屏」
+    HEIGHT_MAX = {"overview": 2200, "flow": 2400, "season": 2400, "delivery": 3200,
+                  f"stock/{code}": 2200, "industry/semiconductor": 1800}
+    for route, cap in HEIGHT_MAX.items():
+        m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
+        h = m.evaluate("() => document.documentElement.scrollHeight")
+        ok(f"[390px] {route} 的整頁高度 {h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
+    m.close()
 
 
 # ===================================================================== 夜盤真實fixture

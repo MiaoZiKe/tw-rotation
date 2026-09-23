@@ -821,7 +821,7 @@
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
         <div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格（有哪幾檔台股、哪幾家外商、對應哪些族群）；點關聯圖上的個股小點會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來。要看「這一格裡面誰在漲」，回第一個分頁的族群漲幅長條圖，點一個族群就攤開它每一檔。' : (hasMap ? '環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格；點個股小點會在右側展開它的產業關係（不跳頁）。（這條鏈還沒有產品剖析圖）' : '點第一個分頁的族群長條圖挑一個族群，原地攤開它每一檔的漲幅；點個股那一條進入個股頁。')}</div></div>
+          <div class="sub" id="nbIntro">${hasSlots ? '剖析圖的零件、環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格（有哪幾檔台股、哪幾家外商、對應哪些族群）；點關聯圖上的個股小點會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來。要看「這一格裡面誰在漲」，回第一個分頁的族群漲幅長條圖，點一個族群就攤開它每一檔。' : (hasMap ? '環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格；點個股小點會在右側展開它的產業關係（不跳頁）。（這條鏈還沒有產品剖析圖）' : '點第一個分頁的族群長條圖挑一個族群，原地攤開它每一檔的漲幅；點個股那一條進入個股頁。')}</div></div>
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec"></div>
@@ -842,12 +842,12 @@
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
         ${hasMap ? `<div class="relsec" id="relSec">
-          <div class="row spread"><h4 style="margin:0">供應鏈關聯圖</h4>
+          <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
             <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <div class="sub" id="relHint" style="margin:4px 0 8px"></div>
           <div class="segchips" id="segChips"></div>
           <div id="segBox"></div>
-          <div class="chainrow"><div class="chainpane">
+          <div class="chainrow" id="relRow"><div class="chainpane">
             <div class="chainmap" id="chainMap"></div>
             <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
@@ -2889,14 +2889,14 @@
                    thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     el.innerHTML = `
-      <div class="card" style="margin-top:16px">
-        <div class="row spread">
-          <div><h2>${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
-            <div class="row" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
-            <div class="row" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
-          <div class="verdict" style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
+      <div class="card" id="skChartCard" style="margin-top:16px">
+        <div class="row spread" id="skHead">
+          <div id="skIdent"><h2>${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
+            <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
+            <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
+          <div class="verdict" id="skVerdict" style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
         </div>
-        <div class="toolbar" style="margin-top:14px">
+        <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
           <button class="btn small" id="tfAdd" title="自訂時間週期">＋</button>
           <div id="indChips" class="row" style="gap:6px"></div>
@@ -2915,10 +2915,10 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。
+        <div class="note skhelp" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。
           <b>成交量／KD／MACD／RSI 之間的分隔線可以上下拖，把哪一格拉大都行，拉完會記住；按右上角「重設縮放」還原。</b>分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。
           <b>週期鈕上被劃掉的＝這檔沒有那個週期的資料</b>，滑鼠移上去會說原因。</div>
-        <div class="note" style="margin-top:4px">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞）。</div>
+        <div class="note skhelp" style="margin-top:4px">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞）。</div>
       </div>
       <div class="card" style="margin-top:16px" id="mtfCard"></div>
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>

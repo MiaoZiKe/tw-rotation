@@ -2346,12 +2346,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
 /* ---- G4：手機字級下限 12px（`docs/mobile_audit.md` 量到 8 頁共 400+ 處破線）----
    根因是 CSS 裡有 60 餘處寫死 11px／11.5px —— 桌機勉強可讀，390px 的手上讀不到。
-   ⚠ 這裡**只抬手機**，桌機維持原樣：11.5px 的次要標籤在 1440px 上是刻意的層次，
-     一起抬上去會把桌機的資訊密度弄壞（那不是他要修的東西）。
+   ★★ 2026-09-24 改成**桌機也一起抬**（`docs/ui_polish_spec.md` 第一階段第 8 項，
+     CEO 2026-09-24 指派）。原本這裡寫「只抬手機、桌機是刻意的層次」——
+     量出來的事實推翻了那句話：1440px 上仍有 **132 個節點**小於 12px、16 種選擇器，
+     最密的是 `em`(11.5px×26)、`.lb`／`.sg`(11.5px×20)、`.cnt`(11.5px×13)。
+     11.5px 在 1440px 的螢幕上一樣是可讀性下限以下，而且 Andy 自己講過「文字太小」。
+     ⚠ 代價：桌機的像素會變（字變大 4%），那是**刻意的改動**不是退化 ——
+       所以桌機像素比對的報告要把這一項單獨列出來，不可以混進「零差異」裡。
    ⚠ 刻意不含 `.chainmap .co .sub` 與 `.chainmap .fct` —— 那兩個是 SVG 文字，
      位置由 industry.js 依字級算好，抬字級會直接壓到隔壁的節點。留到下一版連同排版一起改。*/
-@media (max-width:820px){
-  .evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
+.evbtn .n,.hpanel .ms a .c,.hpanel .ms a.grow .tw2,.opabox .val,
   .rotdd .ddbar .muted,.rotdd .ddpanel>.ddopt em,.rotdd .ddbtn,
   .m3-tag,.m3-night .note,.m3-chart .m3-night .note,[id^='m3c-'][data-fallback]::before,
   .zwrap>.zbadge,.chainchips button em,.rotquads .rq em,
@@ -2366,8 +2370,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .rotfilter .muted,.rottools .muted,h4.subh small,
   .tk-st,.tk-f code,.tk-sp,
   .dlv-tag,.dlv-w b,.dlv-ver,.dlv-none,.dlv-b,
-  .segtools .muted,.relsw button{font-size:12px}
-}
+.segtools .muted,.relsw button{font-size:12px}
 
 /* ---- G1／G9：頂欄右半邊在手機被整個裁掉 ----
    量到的事實（390px）：`.topbar` 需要 528px 卻只有 390px，而它是 `overflow:hidden` ——
@@ -2608,6 +2611,157 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .tabnav:active{transform:translateY(-50%);background-color:var(--panel-3)}
   .tile:hover{transform:none}
 }
+/* ==================================================================================
+   ★ 2026-09-24 手機第二版：資訊架構（量測與依據 `docs/mobile_ia.md`）
+   Andy：「幫我將手機頁面整理得更直觀順暢，功能分清楚，可以多點頁面沒關係，
+   但不要太多文字…不要發生我看圖 結果用資訊我要一直滑下去來回看…以圖為主」。
+
+   ⚠⚠ 下面每一條都包在 `@media (max-width:820px)` 裡，而且 app.js 那一側**也有守門**
+   （`.mpager`／`.mmore`／`.mfold` 是真的插進 DOM 的節點，桌機一律不插、插過的要移除）。
+   兩邊都守是刻意的：只靠 CSS 藏起來，桌機的 DOM 仍然多了節點，
+   `+`／`:first-child`／`:last-child` 這類選擇器就會被它影響 —— 那就是桌機被降級。
+   ================================================================================== */
+@media (max-width:820px){
+  /* ---- ① 分段導覽：一屏回答一件事 ----------------------------------------
+     釘在頂欄下面，所以「我現在在這一頁的哪一段」永遠看得到（他說的「知道自己在哪」）。
+     觸控高度 44px（G5 的導覽標準）；放不下就左右捲，而且用 `.hsc` 那套淡出提示。*/
+  /* ⚠ 分段列**刻意不釘住**。量過：頂欄 58 ＋ 主軸 66 ＋ 分段列 58 ＋ 個股的價格列 65
+     ＝ 247px 全部釘在上面，844 的畫面扣掉底部兩列分頁 102 之後只剩 495px 給圖 ——
+     釘住的東西越多，「一屏看完一件事」就越難成立。
+     主軸（`.mspine`）值得釘（它是動線本身），分段列捲回去看一下就好。*/
+  .mpager{display:flex;gap:6px;margin:0 0 10px;padding:7px 2px;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.55)}
+  .mpager::-webkit-scrollbar{display:none}
+  .mpager>button{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:999px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
+    font-size:13px;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+  .mpager>button.on{background:var(--panel-3);color:var(--ink);
+    border-color:var(--focus);box-shadow:inset 0 0 0 1px var(--focus)}
+  /* ---- ①-b 主軸動線（`.mspine`）：四個問題排成一條線 ------------------------
+     ★ CEO 2026-09-24 拍板：首頁＝一條決策動線
+     （① 錢往哪跑 → ② 貴不貴 → ③ 何時進場 → ④ 別進的理由），
+     那正是 `CLAUDE.md` 第一段寫的 M1→M2→M3→M4，只是以前沒有在介面上講出來。
+     視覺上要有**順序感**（序號 ＋ 一句話 ＋ 最下面的「下一步」），
+     不是四個並排的分頁讓人自己猜。*/
+  /* `top:58px` ＝ 頂欄的高度（`.topbar` 是 sticky、58px 高、z-index 40）。
+     寫 0 的話它會釘到頂欄**底下**去，捲動時整條看不見（第一版就是這樣）。*/
+  .mspine{position:sticky;top:58px;z-index:31;display:flex;gap:6px;margin:0 0 6px;padding:8px 2px 6px;
+    overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    background:var(--bg);box-shadow:0 8px 12px -10px rgba(0,0,0,.6)}
+  .mspine::-webkit-scrollbar{display:none}
+  .mspine>button{flex:0 0 auto;min-height:52px;max-width:200px;padding:6px 13px;border-radius:12px;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
+    text-align:left;display:flex;flex-direction:column;gap:1px;line-height:1.25}
+  .mspine>button b{font-size:13.5px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+  .mspine>button em{font-size:12px;font-style:normal;color:var(--ink-3);white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:176px}
+  .mspine>button.on{background:var(--panel-3);color:var(--ink);border-color:var(--focus);
+    box-shadow:inset 0 0 0 1px var(--focus)}
+  .mspine>button.on em{color:var(--ink-2)}
+  /* 「下一步」：動線的方向感靠它 —— 看完一屏就有一顆鈕帶去下一屏，不必回頭找分頁 */
+  .mnext{display:block;width:100%;min-height:48px;margin:14px 0 4px;padding:12px;
+    border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
+    color:var(--ink);font-size:14px;font-weight:700;letter-spacing:.02em}
+  .mnext:active{background:var(--panel-3)}
+
+  /* ---- ①-c 第①步的關鍵數字：四個象限各有幾個族群 ---------------------------
+     判準是「圖的關鍵數字要緊鄰圖」。總覽那張小時鐘（compact）**刻意不畫象限卡**
+     （桌機的設計，不准動），所以手機在標題下面補這一列。
+     顏色吃 `--c`（由 JS 帶入 `STAGE[k].color`），紅漲綠跌那一套沒有動。*/
+  .rotkpi{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px}
+  .rotkpi .rk{display:inline-flex;align-items:center;gap:5px;min-height:32px;padding:4px 10px;
+    border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);
+    background:color-mix(in srgb,var(--c) 12%,transparent);
+    color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .rotkpi .rk b{color:var(--c);font-size:15px;font-variant-numeric:tabular-nums}
+
+  /* ---- ④ 今日事件卡（手機專屬，資料與抽屜同一份）---------------------------- */
+  .ovev{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .ovev .ev{display:block;padding:9px 2px;border-bottom:1px solid var(--line);min-height:44px}
+  .ovev .ev .t{display:block;color:var(--ink);font-size:13.5px;line-height:1.45}
+  .ovev .ev .m{display:flex;gap:8px;flex-wrap:wrap;margin-top:3px;color:var(--ink-3);font-size:12px}
+  .ovev .ev .m .cat{color:var(--ink-2)}
+
+  /* 被分段導覽收起來的那幾塊。`!important` 是必要的：這些元素裡有好幾個
+     自己帶 inline style 或 `display:grid` 的既有規則，權重壓不過就會藏不掉。*/
+  .mp-off{display:none!important}
+  /* 分段導覽把版面切短了，頁尾的留白可以還一點回來給內容 */
+  body.miaon main{padding-bottom:132px}
+
+  /* ---- ② 長清單限筆：「看全部」---------------------------------------------
+     量到：今日候選 30 張卡 4335px、季節性最強族群 4586px、交付清單 43 筆 10754px。
+     收起來不是刪掉 —— 鈕就在清單的最後一列，按一下全部回來。*/
+  .mm-off{display:none!important}
+  .mmore{display:block;width:100%;min-height:44px;margin:8px 0 2px;padding:10px 12px;
+    border:1px dashed var(--line);border-radius:10px;background:var(--panel-2);
+    color:var(--ink-2);font-size:13px;font-weight:600}
+  .mmore:active{background:var(--panel-3)}
+
+  /* ---- ③ 長說明收合 -------------------------------------------------------- */
+  .mf-off{display:none!important}
+  .mfold{display:block;width:100%;min-height:40px;margin:8px 0 2px;padding:8px 12px;text-align:left;
+    border:1px solid var(--line);border-radius:10px;background:var(--panel-2);
+    color:var(--ink-2);font-size:12.5px;font-weight:600}
+  .mfold:active{background:var(--panel-3)}
+
+  /* ---- ④ 個股頁：圖與它的數字同屏 -------------------------------------------
+     量到（改版前）：K 線圖頂在 1024px、現價在 127～596px —— 相隔 1087px。
+     現價那一列釘在分段導覽下面，捲到圖的任何一段都還看得到價格與技術分。
+     `top:58px` ＝ 頂欄的高度（個股頁沒有主軸列，分段列也不釘住，所以這一層直接接在頂欄下面）。*/
+  /* ⚠ `min-width:0` 不是裝飾：`#skPx` 改成 nowrap 之後它的 min-content 寬度變成 782px，
+     而 flex 子項預設 `min-width:auto` **不准縮到 min-content 以下** ——
+     於是 `#skIdent` 被撐到 758px，整頁的版面寬度變成 803px，
+     手機瀏覽器會把整頁**縮小到 48%** 來塞進 390px（實測 innerWidth 803／initial-scale 失效）。
+     那等於全站字在手機上只剩一半大，比原本的問題更嚴重。這兩行就是擋住它的。*/
+  /* K 線的高度：桌機是 `clamp(600px, 100vh - 250px, 1280px)`（`.kwide` 再高一點）。
+     390×844 的手機上那等於 640px，加上釘住的價格列 65px、分段列 58px、工具列 40px，
+     整張圖放不進一屏（量到 782 > 742）。手機收成「一屏剛好放得下」的高度：
+     100vh 扣掉 頂欄72 ＋ 分段列58 ＋ 價格列65 ＋ 工具列46 ＋ 底部分頁102 ≈ 343。
+     ⚠ 只在 ≤820px 生效，桌機那兩條一個字都沒動。*/
+  body.miaon #lwc{height:clamp(380px,calc(100vh - 343px),620px)}
+  /* 季節性的月份熱力圖：桌機 640px，390px 上它會把下面那行結論（`#seasonNote`）
+     推出畫面（量到圖 132～772、結論 780～874，可視只到 742）。
+     收到 500px 之後兩個一起進得來 —— 「看圖不用再滑下去找結論」。*/
+  /* `!important` 是必要的：`#seasonHeat` 的 640px 寫在 index.html 的 inline style 上，
+     沒有 `!important` 的 class 規則權重壓不過 inline。*/
+  body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
+  body.miaon #skHead{flex-wrap:wrap}
+  body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
+  /* ⚠ 滿版的做法：`.card` 的內距是 16px 18px，所以要往左右各吃回 18px，
+     而且**不能留 `max-width:100%`** —— 那會把寬度壓回內容寬，負邊距就撐不出去，
+     右邊會露出一條沒有底色的縫，底下捲過去的工具列會從那條縫透出來（實測到的）。*/
+  body.miaon #skPx{position:sticky;top:58px;z-index:20;margin:0 -18px;width:calc(100% + 36px);padding:8px 18px;
+    background:var(--bg);border-bottom:1px solid var(--line);
+    box-shadow:0 6px 10px -9px rgba(0,0,0,.6);
+    /* 排成**一列**（原本四個 pill 換行成三列、整塊 180px 高）。
+       釘住的東西越高，留給圖的畫布就越少 —— 一列 ~48px 是「價格永遠看得到」的成本上限。
+       本益比／同業分位／營收 YoY 沒有不見，往右滑就在（`.hsc` 會補淡出）。*/
+    flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  body.miaon #skPx::-webkit-scrollbar{display:none}
+  body.miaon #skPx>*{flex:0 0 auto}
+  /* 工具列（週期／指標／設定 共 11 顆）改成**一列左右滑**，高度從 404px 收成一列。
+     全部留著、一顆都沒少，只是排成一條可以滑的帶子（`.hsc` 會補淡出與「左右滑」提示）。*/
+  body.miaon #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    gap:6px;padding-bottom:4px}
+  body.miaon #skTools::-webkit-scrollbar{display:none}
+  body.miaon #skTools>*{flex:0 0 auto}
+  body.miaon #skTools .sp{display:none}                 /* 「把剩下的空間吃掉」的彈簧在可捲的列裡沒有意義 */
+
+  /* ---- ⑤（撤回）產業地圖的長條圖＋圓餅圖曾經改成左右滑 -----------------------
+     做出來之後被既有驗收擋下：`_uitest.py` 的「新-產業與個股」有一條
+     **W3-8「[390px] 兩張卡片真的上下堆疊（不是硬擠成兩欄）」**——
+     那是上一批依 Andy 的要求訂下來的，左右滑會讓它變成「兩欄」而變紅。
+     既有的拍板優先於我這一版的偏好，所以整段撤回；`.gpgrid` 在手機維持單欄堆疊。
+     代價：產業地圖頁在 390px 仍有 1358px（圓餅圖要捲 1025px 才看得到）——
+     寫進「刻意留到下一版」，要改得先問過他。*/
+
+  /* ---- ⑥ 左右滑的位置指示：第幾張／共幾張 ------------------------------------
+     Andy 點名的：「左右滑的卡片要有位置指示，不然不知道還有沒有」。
+     由 app.js 的 paintSwipe 寫進 `.swipetip` 的 data-pos。*/
+  .swipetip[data-pos]::after{content:' → 第 ' attr(data-pos) ' 張 / 共 ' attr(data-of) ' 張';opacity:.85}
+}
+
 </style>
 </head>
 <body>
@@ -2710,7 +2864,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <div id="m3"></div>
     <div class="hero" id="hero"></div>
     <div class="grid g21" style="margin-top:16px">
-      <div class="card fillchart"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
+      <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
         <div class="row" style="gap:8px"><button class="btn small" id="heatZoom">放大 ⤢</button>
         <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-heat" hidden></div>
@@ -2723,21 +2877,21 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
              以前下半是同樣四段的清單（`#rotMini`），和時鐘講的是同一件事，等於把版面用掉兩次。
              · 「⤢ 放大」整顆移除：完整版（拉Bar／篩選／播放）就在「資金流向」那一頁。
              · 圓圈變大：容器 300 → 360px，`renderRotClock` 的 compact 半徑 66% → 82%。 -->
-      <div class="card"><div class="row spread"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>輪動階段 <small>族群跑到強弱循環的哪一段</small></h3>
         <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
-        <h4 class="subh ovflowh">昨日資金去向 <small id="ovFlowSub">昨天收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群</small></h4>
+        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <small id="ovFlowSub">昨天收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群</small></h4>
         <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div>
         <!-- 口徑說明不可以因為「圖變簡單」就拿掉（和資金流向頁那張桑基圖是同一份資料）：
              族群成交值對同時掛兩個板塊的股票做過 1/n 拆分，所以族群加總會略小於逐檔加總。 -->
-        <div class="note" style="margin-top:6px">線越粗＝流過的成交值越大（這張圖<b>只用粗細</b>表示流量，沒有動畫）。
+        <div class="note" id="ovFlowNote" style="margin-top:6px">線越粗＝流過的成交值越大（這張圖<b>只用粗細</b>表示流量，沒有動畫）。
           只畫到族群那一層，個股請點族群名。族群成交值對同時掛兩個板塊的股票已照 <b>1/n 拆分</b>，
           所以族群加總會略小於逐檔加總。</div></div>
     </div>
     <div class="grid g12 eqpair" style="margin-top:16px">
-      <div class="card"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
-      <div class="card"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
+      <div class="card" id="ovThemeCard"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
+      <div class="card" id="ovCandCard"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
         <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div></div></div>
         <div class="facets" id="candFacets"></div>
         <p class="hint" id="candHint"></p>
@@ -2749,9 +2903,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
          g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
     <div class="grid g2" style="margin-top:16px">
-      <div class="card"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
+      <div class="card" id="ovBreadthCard"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
-      <div class="card"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
+      <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
         <div class="row" style="gap:6px">
           <div class="seg tiny" id="streakWho"><button data-w="trust" class="on">投信</button><button data-w="foreign">外資</button><button data-w="total">合計</button></div>
           <select class="minisel" id="streakDays" title="連續買超天數門檻">
@@ -2798,7 +2952,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          現在由上到下是：標題列 → 共用篩選區（產業鏈 seg／族群晶片／只看前 10 大／清除）
          → 共用時間列（看哪一天 ＋ 最近幾天 ＋ 軌跡開關）→ 圖區（2fr 時鐘 : 1fr 排行）。
          「怎麼看 ?」也只留一顆（原本 rank 那段說明併進 how-rot）—— 同一張卡不該有兩個問號鈕。 -->
-    <div class="card rotcard" style="margin-top:16px">
+    <div class="card rotcard" id="flowRotCard" style="margin-top:16px">
       <div class="row spread"><h3>資金輪動 <small>錢跑到哪個族群，那個族群在強弱循環的哪一段</small></h3>
         <div class="row" style="gap:8px">
           <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
@@ -2806,14 +2960,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
       <div class="howtxt" id="how-rot" hidden></div>
       <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
            data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
-      <div class="rotfilter" data-rf="flow"></div>
+      <div class="rotfilter" id="flowRotFilter" data-rf="flow"></div>
       <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
            原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
            合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
              右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
            容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
            窄畫面自動換行（見 .rottime）。 -->
-      <div class="rottime">
+      <div class="rottime" id="flowRotTime">
         <div id="rotBack" title="一條桿講完一段時間：右把手＝看哪一天（時鐘大圈停的那一天，也是排行的截止日），左把手＝這一段的起點（排行往回看幾天）"></div>
         <div class="rottools" id="rotTools"></div>
       </div>
@@ -2860,7 +3014,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <!-- #sankeySub 的字是 renderSankey() 每次重畫都會換掉的（會依「歷史回放／即時」換說法）。
          這裡只是圖還沒畫出來前的預設值，所以也不可以寫死成「位置固定」——
          切到即時的時候圖真的會換位，字說不會動就是在騙人。 -->
-    <div class="card" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
+    <div class="card" id="flowSankeyCard" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
@@ -2876,14 +3030,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="hpanel" id="sankeyPanel" hidden></div>
       </div></div>
     <div class="grid g2" style="margin-top:16px">
-      <div class="card"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
+      <div class="card" id="flowInstCard"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">
           <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
           <div id="instEnd" title="截止日：往回拉看以前的樣子"></div>
           <button class="howbtn" data-how="inst">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
-      <div class="card"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
+      <div class="card" id="flowConcCard"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
         <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div>
         <button class="howbtn" data-how="conc">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-conc" hidden></div>
@@ -2918,7 +3072,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
   <!-- ================= 題材 ================= -->
   <section class="view" id="v-themes">
-    <div class="card"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
+    <div class="card" id="themeMapCard"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
       <div class="row" style="gap:8px"><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
@@ -2939,7 +3093,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 
   <!-- ================= 季節性 ================= -->
   <section class="view" id="v-season">
-    <div class="card">
+    <div class="card" id="seasonHeatCard">
       <div class="row spread">
         <h3>族群 × 月份 <small id="seasonRange"></small></h3>
         <div class="row">
@@ -2955,8 +3109,8 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
     </div>
     <div class="grid g2" style="margin-top:16px">
-      <div class="card"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
-      <div class="card"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
+      <div class="card" id="seasonDrillCard"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
+      <div class="card" id="seasonTopCard"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
     </div>
   </section>
 </main>
