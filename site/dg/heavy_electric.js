@@ -175,8 +175,22 @@
     }).join('');
     // 另一條常見路徑（一次變電所 161→69、二次變電所 69→22.8／11.4）：虛線，不是主線
     const alt = `<path d="M196,142 L262,152 H354 L420,162" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`;
+    /* ★ 2026-09-23 版面（Andy：「電壓階梯圖右側整片空白」）：
+       階梯本身只用到框的中段，**右上角**與**左下角**是空的。
+       補的兩塊都是這張圖本來就該講、卻被塞到框外小字裡的事：
+         右上＝圖例（粉色豎線＝真的降壓／圓點＝平的），左下＝六格裡只有三格在降壓的那句結論。
+       兩塊都是 pointer-events:none 的標註，`data-seg` / `data-part` 一個都沒有動。*/
+    const legend = `<g transform="translate(724,110)">`
+      + `<path d="M0,0 v-9 M0,0 v9" stroke="${V('--dg-warn')}" stroke-width="2.2" fill="none"/>`
+      + `<text class="sub" x="12" y="4">粉色豎線＝真的降壓（只出現在變壓器）</text>`
+      + `<circle cx="0" cy="24" r="2.6" fill="${V('--dg-accent-2d')}"/>`
+      + `<text class="sub" x="12" y="28">圓點＝接上但不降壓（開關設備）</text>`
+      + `<path d="M-6,48 H6" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`
+      + `<text class="sub" x="12" y="52">灰虛線＝另一條常見路徑（見框外說明）</text></g>`;
+    const concl = `<text class="sub" x="40" y="206" style="fill:var(--dg-warn)">`
+      + `★ 六格裡只有三格在動電壓：段 0 升、段 3 降、段 5 降。其餘兩格（GIS、配電盤）只切斷與導通，所以階梯必須是平的。</text>`;
     return P(GV, 'he_ladder', '--dg-accent-2d', `<rect class="frame part" x="16" y="78" width="948" height="142" rx="8"/>`)
-      + `<g pointer-events="none"><text class="hd" x="30" y="98">電壓階梯（示意，階高與電壓不成比例）　★ 降壓的只有變壓器，開關設備不降壓</text>${alt}${seg}</g>`;
+      + `<g pointer-events="none"><text class="hd" x="30" y="98">電壓階梯（示意，階高與電壓不成比例）　★ 降壓的只有變壓器，開關設備不降壓</text>${legend}${alt}${seg}${concl}</g>`;
   }
 
   /* ================================================================ 版面常數 */
@@ -467,6 +481,20 @@
         <text class="sub" x="560" y="${GB + 16}">PDU</text>
         <text class="sub" x="666" y="${GB + 16}">匯流排槽 → 機櫃 → 電源架 → 直流匯流排</text>
         <text class="sub" x="666" y="${GB - 134}">匯流排槽懸吊在機櫃上方，插接箱往下拉線</text>
+      </g>
+      <!-- ★ 2026-09-23 版面（Andy：「下半部設備圖上方留白過多」）：
+           這一排的設備一台比一台矮，所以左半邊從標題到設備頂之間空了一大塊。
+           補的是**每一格出來是幾伏特**的對照帶 —— 它就是上面那張電壓階梯在這一排的落地，
+           本來只寫在框外的小字裡。純標註，pointer-events:none，data-part 一個都沒有動。 -->
+      <g pointer-events="none">
+        <text class="sub" x="16" y="${GB - 156}" style="fill:var(--dg-mute)">這一排出來的電壓（對到上面那張階梯的段 4～段 6）：</text>
+        ${[['22.8 kV', 16, '中壓配電盤．不降壓'], ['22.8 kV', 172, '分路出去給每一台變壓器'],
+    ['380 / 220 V', 306, '乾式變壓器．這一格才降壓'], ['380 / 220 V', 448, 'UPS 與 PDU．不降壓'],
+    ['機櫃直流', 666, '電源架把交流轉成直流匯流排']]
+    .map(([v, x, s2], i) => `<text class="lbl" x="${x}" y="${GB - 136}"${i === 2 ? ` style="fill:${V('--dg-warn')}"` : ''}>${v}</text>`
+      + `<text class="cap" x="${x}" y="${GB - 120}" style="fill:var(--dg-mute)">${s2}</text>`
+      + `<path d="M${x},${GB - 132} v-8" stroke="${V(i === 2 ? '--dg-warn' : '--dg-mute')}" stroke-width="1.4" fill="none" opacity=".8"/>`).join('')}
+        <path d="M16,${GB - 144} H640" stroke="${V('--dg-mute')}" stroke-width="1" fill="none" opacity=".45"/>
       </g>
 
       <!-- 第二排的三段說明 -->

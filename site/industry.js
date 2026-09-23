@@ -515,8 +515,7 @@
     paint();
     return { paint, stop: () => { stopTimer(); }, dbg: () => gpDbg };
   }
-  const median = (a) => { const s = a.slice().sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null; };
-  const wavg = (gs) => { let w = 0, s = 0; gs.forEach(g => { if (g.chg_pct != null && g.turnover) { w += g.turnover; s += g.chg_pct * g.turnover; } }); return w ? s / w : null; };
+  // （`median` / `wavg` 已移除：它們只服務標題下那排標籤，W3-6 把那排整排拿掉了）
 
   // ================================================================ Level 1：單一產業鏈
   function chainData(im, cid) {
@@ -554,32 +553,21 @@
      個股頁本來就走這一條（一檔面板股掉到 MLCC 圖上等於宣稱它做 MLCC），行為不變。*/
   const dgPick = (ch, gid) => (DS && ch) ? DS.pick(ch.id, gid) : null;
   const HAS_DIAGRAM = (cid) => !!(DS && DS.anyIn(cid));
-  /* ---------------------------------------------------------------- 圖別選單
+  /* ---------------------------------------------------------------- 圖別入口
      Andy 2026-09-21：「不能一般電子點進去後就是 MLCC，因為他不代表全部…
      若像是 IC 設計、晶圓代工、封裝等等，那就可以放同一頁，形成一個架構，
      但若是其他同個族群、為不同產品，則需要獨立分頁」。
-     所以：**有上下游關聯、構成一條架構的**（半導體鏈的 CoWoS 剖面、AI 伺服器鏈的機櫃）
-     維持「點進鏈就直接看到那一張」；**同一條鏈但彼此不相干的產品**
-     （一般電子底下的 MLCC／面板／交換器板卡）各自獨立分頁，鏈層級改成這一排入口。
-     每個入口要寫清楚三件事：①哪個族群的什麼產品 ②**這張圖回答什麼問題** ③這個族群現在多大。
-     ② 是最重要的：不寫的話使用者得先點進去才知道要不要點。
-     入口是真的 <a href>，所以每張圖都有自己的網址（可分享、可回上一頁、重新整理打得開）——
-     那才叫分頁；純 JS 的 onclick 換內容只是換畫面。
-     ⚠ 這一區要撐得住一條鏈 3～5 張（electronics 之後還會有 PCB 硬板、面板、交換器板卡），
-     所以卡片用 auto-fit 的 grid，不是寫死幾欄。*/
-  function dgMenuHtml(ch, ids, dgHash) {
-    if (!DS || !ids || !ids.length) return '';
-    const cards = ids.map(id => {
-      const g = (ch.groups || []).find(x => x.id === id);
-      const col = A.L.gcolor[id] || 'var(--cyan)';
-      const meta = DS.level(id) === 'chain'
-        ? '整條產業鏈的架構圖（上下游每一個環節都在裡面）'
-        : (g ? `${g.n} 檔 · 佔本鏈成交值 ${A.fmt.n(g.turnover_share, 1)}% · 今日 <span class="${A.fmt.cls(g.chg_pct)}">${A.fmt.pct(g.chg_pct)}</span>`
-             : '這個族群今天沒有成交資料');
-      return `<a class="dgcard" href="${dgHash(id)}" data-dgid="${id}" style="--c:${col}"><div class="t">${A.fmt.esc(DS.name(id))}</div><div class="q">${A.fmt.esc(DS.q(id))}</div><div class="m">${meta}</div><div class="go">看這張圖 →</div></a>`;
-    }).join('');
-    return `<div class="sub" style="margin:2px 0 8px">這條鏈有 <b>${ids.length}</b> 張產品剖析圖，<b>各自是完全不同的產品，誰都不代表整條鏈</b>，所以各有各的頁面與網址。<b>先看哪一張的問題正好是你現在要問的，再點進去</b>；看完按「← 全部剖析圖」或瀏覽器上一頁就回到這裡。</div><div class="dgcards">${cards}</div>`;
-  }
+     那條規則沒有變：**同一條鏈但彼此不相干的產品各自獨立分頁、各有各的網址**。
+
+     ★ 2026-09-23 第二批（W3-7，Andy：「下方的字卡也拿掉 因為上方分頁就有同樣功能了」）：
+       承載它的 `dgMenuHtml()`（下方那排大卡片）整支移除 ——
+       它跟二層分頁列 `dgTabsHtml()` 是**同一份東西畫兩次**：同樣的 `dgOpts`、
+       同樣的 `dgHash(id)`、連網址都一模一樣。
+       原本寫在卡片上的三件事現在的位置：
+         ①圖名的完整版 → 分頁的 `title=`（分頁上只印冒號前那一段，見 W3-4）
+         ②這張圖回答什麼問題 → 分頁的 `title=` ＋ 進到圖裡之後的 `#dgQ` 那一行
+         ③這個族群現在多大 → 第一個分頁（族群總覽）的長條圖與圓餅圖
+       —— 一件都沒有消失，只是不再畫兩次。*/
   // 哪些環節屬於這條鏈（半導體鏈把載板／封測也畫進來；AI 伺服器鏈把代工／封裝／HBM 畫進來）
   /* 一條鏈要畫哪些環節。
      ★ 2026-09-19（Andy 圖十「連線根本都沒對齊 確實連線」）查出來的第一個根因：
@@ -731,7 +719,13 @@
     // 剖析圖是展開還是收起來（手機預設收）。swapDiagram 也要看得到它，所以放在這一層
     let dgOpen = true;
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
-    const chg = wavg(groups); const pes = groups.map(g => g.valuation && g.valuation.median).filter(Boolean);
+    /* ★ 2026-09-23 第二批（W3-6，Andy：「分頁的這紅框處標籤都拿掉」）：
+       標題底下那排 `N 檔 ／ 今日 +x% ／ 本益比中位 ／ ← 返回` 整排移除。
+       三個數字**不搬家**（他說的是拿掉，不是換位置）—— 檔數、今日漲跌、本益比
+       在族群總覽那一頁的長條圖與圓餅圖上本來就看得到。
+       `A.L.back()` 這支工具**沒有刪**，個股頁與題材頁還在用，只是這一頁不再呼叫它；
+       換鏈走上方的分頁列、回上一頁走瀏覽器，導覽沒有任何一條路徑只靠它。
+       `chg` / `pes` 跟著沒人用了（`wavg` / `median` 也只有這裡呼叫），一起清掉。*/
     const segs = chainSegments(sc, ch.id);
     /* ★ 2026-09-19：關聯圖跟剖析圖拆開判定。
        以前兩者共用 hasDiagram（只有 semiconductor / ai_server 有剖析圖），
@@ -759,14 +753,12 @@
     el.innerHTML = `
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
-        <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
+        <div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格（有哪幾檔台股、哪幾家外商、對應哪些族群）；點關聯圖上的個股小點會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來。要看「這一格裡面誰在漲」，回第一個分頁的族群漲幅長條圖，點一個族群就攤開它每一檔。' : (hasMap ? '環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格；點個股小點會在右側展開它的產業關係（不跳頁）。（這條鏈還沒有產品剖析圖）' : '點第一個分頁的族群長條圖挑一個族群，原地攤開它每一檔的漲幅；點個股那一條進入個股頁。')}</div></div>
-          <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec"></div>
-        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁（族群總覽），下面同時列出全部剖析圖">← 全部剖析圖</span></div></div>
-          <div class="dgmenu" id="dgMenu" hidden>${dgMenuHtml(ch, dgOpts, dgHash)}</div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread"><h4>產品剖析圖 <small class="muted" id="dgTitle"></small></h4><div class="row" style="gap:6px"><span class="pill cyan" id="dgBack" style="cursor:pointer" hidden title="回到這條鏈的第一個分頁：各族群的漲幅長條圖與占比圓餅圖">← 族群總覽</span></div></div>
           <div id="dgBody">
           <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgPal" style="cursor:pointer" hidden title="換一種模式：科技（深底）／閱讀（紙底）。預設跟著全站主題走">配色：科技</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>` : ''}
@@ -883,27 +875,30 @@
         t.textContent = dgId
           ? `${DS.name(dgId)}　·　原創示意圖，非實物比例；點零件看供應商`
             + (DS.native(dgId) ? '　·　圖以原尺寸顯示（字不縮小），欄位放不下時可左右滑' : '')
-          : `共 ${dgOpts.length} 張，各自是獨立的產品 · 在下面選一張`;
+          /* 沒有選圖＝正在看族群總覽。以前這裡寫「在下面選一張」是指圖別選單，
+             選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/
+          : `這條鏈有 ${dgOpts.length} 張，各自是獨立的產品 · 在上方分頁列選一張`;
       }
       if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b>這張圖回答：</b>${A.fmt.esc(DS.q(dgId))}` : '';
     }
-    /* 「選單」與「圖」兩種模式的顯示切換。
-       用的是 hidden 屬性，但 .dgmenu／.row 這幾個有 display 規則的類別會蓋掉
-       UA 預設的 [hidden]{display:none}，所以 index.html 裡補了對應的收尾規則。*/
+    /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
+       用的是 hidden 屬性，但 .row 這幾個有 display 規則的類別會蓋掉
+       UA 預設的 [hidden]{display:none}，所以 index.html 裡補了對應的收尾規則。
+       ★ 2026-09-23 第二批（W3-7，Andy：「下方的字卡也拿掉 因為上方分頁就有同樣功能了」）：
+         圖別選單 `#dgMenu` 整塊移除。它跟二層分頁列是**同一份東西畫兩次** ——
+         兩邊都是拿 `dgOpts` 與 `dgHash(id)` 產生的，連網址都一模一樣。
+         資訊沒有消失：圖名的完整版與「這張圖回答什麼問題」掛在分頁的 `title=` 上（見 W3-4），
+         進到圖裡之後 `#dgQ` 那一行也會把問題寫出來。*/
     function paintDgMode() {
       const on = !!dgId;
-      const menu = $('#dgMenu', el), body = $('#dgBody', el), tools = $('#dgTools', el), back = $('#dgBack', el);
-      if (menu) menu.hidden = on;
+      const body = $('#dgBody', el), tools = $('#dgTools', el), back = $('#dgBack', el);
       if (body) body.hidden = !on;
       if (tools) tools.hidden = !on;
-      /* 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它。
-         圖別選單（`#dgMenu` 那排卡片）留在它下面 —— 分頁列只放得下圖名，
-         「這張圖回答什麼問題」那一句得有地方寫，不然使用者得點進去才知道要不要點。*/
+      // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
-      /* 「← 全部剖析圖」＝回到這條鏈的第一個分頁（族群總覽）。
-         以前只有「沒有鏈層級架構圖」的鏈才顯示，因為那時回去看到的是同一張圖；
-         現在回去的是族群總覽，每一條鏈都回得去，所以只要正在看圖就該有這顆鈕。*/
+      /* 「← 族群總覽」＝回到這條鏈的第一個分頁。選單沒了之後它就只有這一個意思，
+         文案也跟著改掉 —— 不要留一顆按了會展開一個不存在的東西的鈕。*/
       if (back) back.hidden = !on;
       paintTabs();
       paintDgTitle();

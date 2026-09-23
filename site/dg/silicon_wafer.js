@@ -384,7 +384,12 @@
       ${T(16, 52, 'CZ 提拉法長晶爐（剖面）', 'hd')}
       ${T(372, 52, '為什麼晶圓越大越划算', 'hd')}
       ${fx.shadows(`<rect x="44" y="${(FUR.wallT * SC + SDY + 6).toFixed(1)}" width="${((FUR.wallR - FUR.wallL) * SC).toFixed(1)}" height="${((FUR.wallB - FUR.wallT) * SC).toFixed(1)}" rx="8"/>`)}
-      <g transform="translate(0,${SDY}) scale(${SC})">${furnace()}</g>
+      <!-- ⚠ 外面一定要再包一層 g：wireFolds() 的 solidBottom 量的是 **svg 直屬子節點**的 getBBox()，
+           而 getBBox() **不含元素自己的 transform** —— 縮放群組直接當 svg 的子節點，量到的會是
+           縮放前的 460 而不是縮放後的 305，於是第一條章節列被推到下面，中間空出一大塊
+           （2026-09-23 實測：收合高度 604px，其中 120px 是這個假的底部撐出來的）。
+           多包一層之後量的是「子孫含 transform 的聯集」，數字就對了。-->
+      <g><g transform="translate(0,${SDY}) scale(${SC})">${furnace()}</g></g>
       ${part('sw_size', sizeCompare())}
       ${T(16, 322, '一邊轉、一邊往上拉，凝固成一根單晶柱。', 'cap')}
       ${T(16, 340, '★ 看得到液面，才是 CZ 提拉爐。', 'cap', null, `fill:${C.warn}`)}

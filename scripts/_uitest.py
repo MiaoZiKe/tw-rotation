@@ -8534,7 +8534,7 @@ def dg_force_open(pg_):
       抄第二份的下場是「改了一邊、另一邊還在用舊的判準」。
     """
     pg_.evaluate("""() => {
-      const menu = document.getElementById('dgMenu');
+      const menu = document.getElementById('gpBar');
       if (menu && menu.offsetParent !== null) return;     // 選單模式：沒有圖可以展開
       const b = document.getElementById('dgFold');
       const body = document.getElementById('dgBody');
@@ -8661,10 +8661,11 @@ def t_mlcc(pg, base):
           const vis = (n) => !!(n && n.offsetParent !== null);
           const h = document.querySelector('#prodDiagram');
           return {hash: location.hash,
-                  menuVis: vis(document.querySelector('#dgMenu')),
-                  cards: document.querySelectorAll('#dgMenu .dgcard').length,
-                  cardq: [...document.querySelectorAll('#dgMenu .dgcard .q')].map(n => n.textContent.trim()),
-                  links: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('href')),
+                  // ★ W3-7：圖別選單移除，「沒有圖的那一種畫面」＝族群總覽（#gpBar 看得見）
+                  menuVis: vis(document.querySelector('#gpBar')),
+                  cards: document.querySelectorAll('#dgPick .segchip[data-dgid]').length,
+                  cardq: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('title') || ''),
+                  links: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('href')),
                   dgVis: vis(document.querySelector('#dgBody')),
                   tools: vis(document.querySelector('#dgTools')),
                   back: vis(document.querySelector('#dgBack')),
@@ -8741,14 +8742,18 @@ def t_mlcc(pg, base):
     # ---------------- 1. 一般電子鏈：預設**不畫任何一張圖**，改成圖別選單
     #  Andy 2026-09-21：「不能一般電子點進去後就是 MLCC，因為他不代表全部」。
     #  MLCC 是被動元件，它代表不了面板、交換器板卡、PCB —— 那是三種完全不同的產品。
+    # ★ 2026-09-23 第二批（W3-3／W3-7）：`#industry/<chain>` 的 Default 換成「第一張剖析圖」，
+    #   族群總覽搬到 `/overview`；下方的圖別選單卡片整塊移除（跟分頁列重複）。
+    #   所以這裡量的「沒有圖的那一種畫面」換成 `/overview`，而入口改數**二層分頁**。
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
     m0 = menu(pg)
-    ok("一般電子鏈預設**不畫任何一張剖析圖**（不再拿 MLCC 那張充數）",
+    ok("一般電子鏈的第一個分頁（族群總覽）**不畫任何一張剖析圖**（不再拿 MLCC 那張充數）",
        not m0["dgVis"] and not m0["svg"], m0)
-    ok("改成顯示圖別選單，而且真的數得出入口（現在 1 張，之後會有 PCB／面板／交換器板卡）",
-       m0["menuVis"] and m0["cards"] >= 1, f"入口 {m0['cards']} 個 {m0['links']}")
-    ok("選單模式下 3D／動畫／收合那排工具鈕跟著收起來（沒有圖可動的鈕不要留在畫面上）",
+    ok("入口改成上方的二層分頁，而且真的數得出來（每一個都有自己的 /dg/ 網址）",
+       m0["menuVis"] and m0["cards"] >= 1 and all(h and "/dg/" in h for h in m0["links"]),
+       f"入口 {m0['cards']} 個 {m0['links']}")
+    ok("總覽這一頁 3D／動畫／收合那排工具鈕跟著收起來（沒有圖可動的鈕不要留在畫面上）",
        not m0["tools"], m0)
     ok("每個入口都寫清楚「這張圖回答什麼問題」（不寫的話得先點進去才知道要不要點）",
        bool(m0["cardq"]) and all(len(x) > 10 for x in m0["cardq"]), m0["cardq"])
@@ -8757,7 +8762,7 @@ def t_mlcc(pg, base):
 
     # ---------------- 1b. 點入口 → 圖真的畫出來，而且**網址真的變了**（這才叫獨立分頁）
     h_before = pg.evaluate("() => location.hash")
-    pg.click('#dgMenu .dgcard[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
+    pg.click('#dgPick .segchip[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
     m1 = menu(pg); d0 = dg(pg)
     ok("點 MLCC 那個入口 → 剖析圖真的畫出來、選單真的收起來",
        d0.get("present") and m1["svg"] and not m1["menuVis"], m1)
@@ -8768,7 +8773,7 @@ def t_mlcc(pg, base):
        m1["hash"] != h_before and m1["hash"].endswith("/dg/mlcc"), f"{h_before} → {m1['hash']}")
     ok("圖旁邊寫著這張圖回答什麼問題（只解釋畫了什麼等於沒寫）",
        "這張圖回答" in m1["dgq"] and len(m1["dgq"]) > 20, m1["dgq"][:70])
-    ok("看完回得去：標題旁邊出現「← 全部剖析圖」", m1["back"], m1)
+    ok("看完回得去：標題旁邊出現「← 族群總覽」", m1["back"], m1)
     ok("MLCC 圖的零件真的掛上環節（點得到）", d0["parts"] >= 3, d0["parts"])
 
     # ---------------- 1c. ★ 直接貼網址重新整理 —— 沒有這條就不算分頁
@@ -8781,8 +8786,8 @@ def t_mlcc(pg, base):
     # ---------------- 1d. 瀏覽器上一頁 → 回到鏈頁的選單
     pg.go_back(); pg.wait_for_timeout(2500)
     m3 = menu(pg)
-    ok("瀏覽器上一頁 → 回到鏈頁的圖別選單（圖收起來、選單回來）",
-       m3["hash"].endswith("electronics") and m3["menuVis"] and not m3["svg"], m3)
+    ok("瀏覽器上一頁 → 回到族群總覽那一頁（圖收起來、長條圖回來）",
+       m3["hash"].endswith("/overview") and m3["menuVis"] and not m3["svg"], m3)
 
     # ---------------- 1e. 手打別條鏈的圖網址，不可以在這條鏈上畫出別人的圖
     pg.goto(f"{base}#industry/semiconductor/dg/mlcc", wait_until="networkidle"); pg.wait_for_timeout(2500)
@@ -8790,11 +8795,16 @@ def t_mlcc(pg, base):
     # ★ 2026-09-22：半導體鏈沒有鏈層級的圖了（DECISIONS #234），所以「安全退回」的
     #   結果從「退回鏈層級圖」變成「退回圖別選單」。兩種都對 —— 要守的那件事沒變：
     #   **不准在半導體鏈上畫出一張 MLCC**。
-    ok("手打 #industry/semiconductor/dg/mlcc 不會在半導體鏈上畫出 MLCC（安全退回圖別選單）",
-       FEAT not in dbad.get("full", "")
-       and pg.evaluate("""() => { const m = document.getElementById('dgMenu');
-           return !!m && m.offsetParent !== null; }"""),
-       dbad.get("title", "")[:60])
+    # ★ W3-3：手打不合法的 /dg/ 之後 state.dg 會被丟掉，Default 補上「這條鏈自己的第一張圖」——
+    #   要守的那件事一個字都沒有放寬：**不准在半導體鏈上畫出一張 MLCC**，
+    #   而且畫出來的那一張一定要真的掛在這條鏈上。
+    ok("手打 #industry/semiconductor/dg/mlcc 不會在半導體鏈上畫出 MLCC",
+       FEAT not in dbad.get("full", ""), dbad.get("title", "")[:60])
+    ok("而且退回去畫的那一張真的屬於半導體鏈（不是借別條鏈的）",
+       pg.evaluate("""() => { const on = document.querySelector('#dgPick .segchip.on[data-dgid]');
+           if (!on) return true;   // 落在族群總覽也算安全
+           return window.DiagramSlots.chainOf(on.dataset.dgid) === 'semiconductor'; }"""),
+       pg.evaluate("() => (document.querySelector('#dgPick .segchip.on')||{dataset:{}}).dataset.dgid"))
 
     # ---------------- 2. 點族群卡片 → 成分股筆數真的變少，而且有專屬圖的族群圖會跟著出現
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -8823,7 +8833,7 @@ def t_mlcc(pg, base):
     ok(f"找得到「{NO_DG}」族群卡片", pick_group(pg, NO_DG))
     pg.wait_for_timeout(1000)
     m4 = menu(pg)
-    ok("點沒有專屬圖的族群 → 圖真的收起來、換回圖別選單，不會借別人那張",
+    ok("點沒有專屬圖的族群 → 圖真的收起來、換回族群總覽，不會借別人那張",
        m4["menuVis"] and not m4["dgVis"] and not m4["svg"], m4)
     ok("那句道歉文案整句消失（整頁找不到「還沒有專屬剖析圖」）",
        "還沒有專屬剖析圖" not in pg.content(), "整頁掃過，找不到那句話")
@@ -9080,11 +9090,11 @@ def t_mlcc(pg, base):
     # ---------------- 9. 800px 窄畫面：選單、點入口、字級真的 ≥ 12px、切回選單
     #  （開發過程就要驗窄畫面 —— 2026-09-18 的 E6 就是只驗寬螢幕放過去的）
     pg.set_viewport_size({"width": 800, "height": 1000})
-    pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(f"{base}#industry/electronics/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
     m8 = menu(pg)
-    ok("[800px] 一般電子鏈一樣是圖別選單，不是直接塞一張 MLCC",
+    ok("[800px] 一般電子鏈的族群總覽一樣不塞任何一張剖析圖",
        m8["menuVis"] and not m8["svg"], m8)
-    pg.click('#dgMenu .dgcard[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
+    pg.click('#dgPick .segchip[data-dgid="mlcc"]', timeout=5000); pg.wait_for_timeout(2500)
     m8b = menu(pg)
     ok("[800px] 真的用滑鼠點入口 → 網址真的變了、圖真的畫出來",
        m8b["hash"].endswith("/dg/mlcc") and m8b["svg"] and not m8b["menuVis"], m8b)
@@ -9100,7 +9110,7 @@ def t_mlcc(pg, base):
     ok("[800px] 找得到沒有專屬圖的族群卡片", pick_group(pg, NO_DG))   # 面板現在有圖了，見上面 NO_DG
     pg.wait_for_timeout(1000)
     m8c = menu(pg)
-    ok("[800px] 點沒有專屬圖的族群 → 圖真的收起來換回選單",
+    ok("[800px] 點沒有專屬圖的族群 → 圖真的收起來換回族群總覽",
        m8c["menuVis"] and not m8c["svg"], m8c)
 
     # ---------------- 10. 字級標準（art-director 2026-09-21，分支 claude/dg-typo）
@@ -9204,9 +9214,9 @@ def t_psu(pg, base):
                   full: h ? h.innerHTML : '',
                   txt: svg ? [...svg.querySelectorAll('text')].map(n => n.textContent).join('｜') : '',
                   parts: h ? h.querySelectorAll('[data-seg]').length : 0,
-                  menuVis: vis(document.querySelector('#dgMenu')),
+                  menuVis: vis(document.querySelector('#gpBar')),
                   picks: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
-                  cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
+                  cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.dataset.dgid),
                   dgq: (document.querySelector('#dgQ') || {}).textContent || ''};
         }""")
 
@@ -9576,15 +9586,15 @@ def t_cooling(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
     ent = pg.evaluate("""() => ({
-      cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
-      cardq: Object.fromEntries([...document.querySelectorAll('#dgMenu .dgcard')]
-              .map(n => [n.dataset.dgid, (n.querySelector('.q') || {}).textContent || ''])),
+      cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.dataset.dgid),
+      cardq: Object.fromEntries([...document.querySelectorAll('#dgPick .segchip[data-dgid]')]
+              .map(n => [n.dataset.dgid, n.getAttribute('title') || ''])),   // ★ W3-7：選單卡片移除，說明改掛在分頁的 title
       chips: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
       chipHref: Object.fromEntries([...document.querySelectorAll('#dgPick .segchip')]
                  .map(n => [n.dataset.dgid, n.getAttribute('href')])),
     })""")
     for did, _feat in DGS:
-        ok("AI 伺服器鏈的圖別入口真的多出「%s」（選單卡片）" % did, did in ent["cards"], ent["cards"])
+        ok("AI 伺服器鏈的圖別入口真的多出「%s」（二層分頁）" % did, did in ent["cards"], ent["cards"])
         ok("上方的圖別切換晶片也真的多出「%s」（那是這條鏈上看得見的那一排）" % did,
            did in ent["chips"], ent["chips"])
         ok("「%s」的入口有自己的網址（可分享、可回上一頁）" % did,
@@ -9767,7 +9777,7 @@ def t_whomakes(pg, base):
     def force_open(pg_):
         """<640px 預設收合，收起來就點不到零件。只有「現在真的有一張圖」時才動它。"""
         pg_.evaluate("""() => {
-          const menu = document.getElementById('dgMenu');
+          const menu = document.getElementById('gpBar');
           if (menu && menu.offsetParent !== null) return;
           const b = document.getElementById('dgFold');
           const body = document.getElementById('dgBody');
@@ -10375,7 +10385,7 @@ def t_abf(pg, base):
         而選單模式下按收合鈕只會把偏好反過來設 —— 所以只有「現在真的有一張圖」時才動它。
         """
         pg_.evaluate("""() => {
-          const menu = document.getElementById('dgMenu');
+          const menu = document.getElementById('gpBar');
           if (menu && menu.offsetParent !== null) return;
           const b = document.getElementById('dgFold');
           const body = document.getElementById('dgBody');
@@ -10440,7 +10450,7 @@ def t_abf(pg, base):
       return {hash: location.hash, pickVis: vis(document.querySelector('#dgPick')),
               ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
               titles: pick.map(n => n.getAttribute('title') || ''),
-              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid'))};
+              cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('data-dgid'))};
     }""")
     ok("ai_server 鏈的圖別選單裡真的多了「IC 載板」這個入口（選單卡與上方切換列都要有）",
        "ic_substrate" in m0["cards"] and "ic_substrate" in m0["ids"] and m0["pickVis"], m0)
@@ -11175,7 +11185,7 @@ _DG14_TYPO = """() => {
 def _dg14_open(pg):
     """把剖析圖確實展開（窄畫面預設收合，而且會記進 localStorage）。"""
     pg.evaluate("""() => {
-      const menu = document.getElementById('dgMenu');
+      const menu = document.getElementById('gpBar');
       if (menu && menu.offsetParent !== null) return;
       const b = document.getElementById('dgFold');
       const body = document.getElementById('dgBody');
@@ -11251,13 +11261,13 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
       const pick = [...document.querySelectorAll('#dgPick .segchip')];
       return {ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
               titles: pick.map(n => n.getAttribute('title') || ''),
-              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid')),
-              menuVis: !!(document.querySelector('#dgMenu') || {}).offsetParent};
+              cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('data-dgid')),
+              menuVis: !!(document.querySelector('#gpBar') || {}).offsetParent};
     }""")
     inmenu = slot in m0["cards"] or slot in m0["ids"]
     ok(f"[{slot}] {chain} 鏈的圖別入口裡真的多了這一張", inmenu, m0)
     _q = [t for i, t in zip(m0["ids"], m0["titles"]) if i == slot] \
-        or pg.evaluate("""(s) => [...document.querySelectorAll('#dgMenu .dgcard')]
+        or pg.evaluate("""(s) => [...document.querySelectorAll('#dgPick .segchip[data-dgid]')]
              .filter(n => n.getAttribute('data-dgid') === s)
              .map(n => (n.querySelector('.q') || {}).textContent || '')""", slot)
     ok(f"[{slot}] 那個入口寫清楚它回答什麼問題（不寫就得先點進去才知道要不要點）",
@@ -11267,7 +11277,7 @@ def _dg14_common(pg, base, chain, slot, feat, first_part, second_part, first_wor
     h_before = pg.evaluate("() => location.hash")
     clicked = pg.evaluate("""(s) => {
       const a = document.querySelector('#dgPick .segchip[data-dgid="' + s + '"]')
-             || document.querySelector('#dgMenu .dgcard[data-dgid="' + s + '"]');
+             || document.querySelector('#dgPick .segchip[data-dgid="' + s + '"]');
       if (!a) return false; a.click(); return true;
     }""", slot)
     pg.wait_for_timeout(2400)
@@ -11726,7 +11736,7 @@ def _b14b_entry(pg, base, chain, dgid, feat, label):
       const pick = [...document.querySelectorAll('#dgPick .segchip')];
       return {ids: pick.map(n => n.dataset.dgid), hrefs: pick.map(n => n.getAttribute('href')),
               titles: pick.map(n => n.getAttribute('title') || ''),
-              cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.getAttribute('data-dgid'))};
+              cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.getAttribute('data-dgid'))};
     }""")
     ok(f"{label}：{chain} 鏈的圖別選單裡真的多了這個入口（選單卡與上方切換列都要有）",
        dgid in m0["cards"] and dgid in m0["ids"], m0["ids"])
@@ -11745,8 +11755,8 @@ def _b14b_entry(pg, base, chain, dgid, feat, label):
       const vis = n => !!(n && n.offsetParent !== null);
       const a = document.querySelector('#dgPick .segchip[data-dgid="' + id + '"]');
       if (vis(a)) return '#dgPick .segchip[data-dgid="' + id + '"]';
-      const b = document.querySelector('#dgMenu .dgcard[data-dgid="' + id + '"]');
-      if (vis(b)) return '#dgMenu .dgcard[data-dgid="' + id + '"]';
+      const b = document.querySelector('#dgPick .segchip[data-dgid="' + id + '"]');
+      if (vis(b)) return '#dgPick .segchip[data-dgid="' + id + '"]';
       return null;
     }""", dgid)
     if not ok(f"{label}：那個入口在畫面上真的看得到（切換列或圖別選單至少一個）", bool(sel), sel):
@@ -11782,7 +11792,7 @@ def _b14b_open(pg):
     """把剖析圖確實展開（窄畫面預設收合，而且會寫進 localStorage）。
     只有「現在真的有一張圖」時才動它 —— 選單模式下按收合鈕只會把偏好反過來設。"""
     pg.evaluate("""() => {
-      const menu = document.getElementById('dgMenu');
+      const menu = document.getElementById('gpBar');
       if (menu && menu.offsetParent !== null) return;
       const b = document.getElementById('dgFold');
       const body = document.getElementById('dgBody');
@@ -13735,39 +13745,41 @@ def t_b21_cowos(pg, base):
     """批次21：CoWoS 去重、電路圖樣貌、動畫拉滿。"""
     # ---------------- ① 半導體鏈的入口：退掉 2D 剖面之後仍然正常
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    # ★ 2026-09-23 第二批（W3-3／W3-7）：`#industry/<chain>` 的 Default 換成第一張剖析圖，
+    #   族群總覽搬到 `/overview`，下方的圖別選單卡片整塊移除（入口改成上方的二層分頁）。
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
     pg.wait_for_timeout(2400)
     ent = pg.evaluate("""() => {
-      const m = document.getElementById('dgMenu');
-      const cards = [...document.querySelectorAll('#dgMenu .dgcard')];
+      const m = document.getElementById('gpBar');
+      const cards = [...document.querySelectorAll('#dgPick .segchip[data-dgid]')];
       const svg = document.querySelector('#prodDiagram svg');
       return { menu: !!m && m.offsetParent !== null, n: cards.length,
                ids: cards.map(c => c.dataset.dgid),
                hrefs: cards.map(c => c.getAttribute('href')),
-               qs: cards.map(c => (c.querySelector('.q') || {}).textContent || ''),
+               qs: cards.map(c => c.getAttribute('title') || ''),
                svg: !!svg }; }""")
-    ok("半導體鏈的入口變成圖別選單（鏈層級那張 CoWoS 剖面已退場）",
+    ok("半導體鏈的族群總覽那一頁不塞任何剖析圖（鏈層級那張 CoWoS 剖面已退場）",
        ent["menu"] and not ent["svg"], ent)
-    ok("選單上每一張卡都有它自己的網址與「這張圖回答什麼問題」",
+    ok("每一個圖別分頁都有它自己的網址與「這張圖回答什麼問題」（掛在 title 上）",
        ent["n"] >= 2 and all(h and "/dg/" in h for h in ent["hrefs"]) and all(q.strip() for q in ent["qs"]),
        ent)
-    ok("先進封裝那張圖在選單上（半導體鏈的代表圖）", "ai_adv_packaging" in ent["ids"], ent["ids"])
+    ok("先進封裝那張圖在分頁列上（半導體鏈的代表圖）", "ai_adv_packaging" in ent["ids"], ent["ids"])
     # 真的一張一張點進去 —— 「顯示得出來」不算，要「點得進去而且真的畫出圖」
     for cid in ent["ids"]:
-        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
         pg.wait_for_timeout(1600)
-        pg.click(f'#dgMenu .dgcard[data-dgid="{cid}"]', timeout=6000)
+        pg.click(f'#dgPick .segchip[data-dgid="{cid}"]', timeout=6000)
         pg.wait_for_timeout(2200)
         got = pg.evaluate("""() => ({ hash: location.hash,
             svg: !!document.querySelector('#prodDiagram svg'),
-            menu: (() => { const m = document.getElementById('dgMenu'); return !!m && m.offsetParent !== null; })() })""")
-        ok(f"選單卡「{cid}」點下去真的換頁、真的畫出圖",
+            menu: (() => { const m = document.getElementById('gpBar'); return !!m && m.offsetParent !== null; })() })""")
+        ok(f"圖別分頁「{cid}」點下去真的換頁、真的畫出圖",
            got["hash"].endswith("/dg/" + cid) and got["svg"] and not got["menu"], f"{cid} → {got}")
-        # 「← 全部剖析圖」按得回選單
+        # 「← 族群總覽」按得回第一個分頁
         if cid == ent["ids"][0]:
             click(pg, "#dgBack", 1800)
-            ok("按「← 全部剖析圖」真的回得到選單",
-               pg.evaluate("""() => { const m = document.getElementById('dgMenu');
+            ok("按「← 族群總覽」真的回得到族群總覽",
+               pg.evaluate("""() => { const m = document.getElementById('gpBar');
                    return !!m && m.offsetParent !== null && !document.querySelector('#prodDiagram svg'); }"""))
 
     # ---------------- ② 併進來的兩塊內容真的在新圖上
@@ -15777,12 +15789,12 @@ def t_cooling_v2(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
     ent = pg.evaluate("""() => ({
-      cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
+      cards: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(n => n.dataset.dgid),
       chips: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
       chipHref: Object.fromEntries([...document.querySelectorAll('#dgPick .segchip')].map(n => [n.dataset.dgid, n.getAttribute('href')])),
     })""")
     for did, _feat in COOL_DGS:
-        ok("AI 伺服器鏈的圖別入口有「%s」（選單卡片 ＋ 切換晶片）" % did, did in ent["cards"] and did in ent["chips"], ent["cards"])
+        ok("AI 伺服器鏈的圖別入口有「%s」（二層分頁）" % did, did in ent["cards"] and did in ent["chips"], ent["cards"])
         ok("「%s」的入口有自己的網址" % did, (ent["chipHref"].get(did) or "").endswith("/dg/" + did), ent["chipHref"].get(did))
 
     snap = {}
@@ -18713,6 +18725,55 @@ def t_b29_tabs(pg, base):
         ok("W3-1：收合再展開一輪，設定列仍然停在圖的右上角（補算機制沒有被拿掉）",
            bool(t2) and t2["qx"] > 0.5 and t2["qy"] < 0.5 and t2["inside"],
            {"qx": round(t2["qx"], 2), "qy": round(t2["qy"], 2), "inside": t2["inside"]})
+
+    # ---- W3-6：產業鏈標題下方那排標籤整排拿掉（檔數／今日／本益比中位／← 返回）
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    for w6 in (1440, 800, 390):
+        pg.set_viewport_size({"width": w6, "height": 1000}); pg.wait_for_timeout(900)
+        h6 = pg.evaluate("""() => { const card = document.querySelector('#indChain .nbcard');
+            const h2 = card && card.querySelector('h2'); if (!h2) return null;
+            const head = h2.parentNode;
+            const txt = head.innerText || '';
+            return { pills: head.querySelectorAll('.pill').length,
+                     back: head.querySelectorAll('a,button').length,
+                     hasCount: /\d+\s*檔/.test(txt), hasChg: txt.indexOf('今日') >= 0,
+                     hasPe: txt.indexOf('本益比中位') >= 0, hasBack: txt.indexOf('返回') >= 0,
+                     h2Left: Math.round(h2.getBoundingClientRect().left - card.getBoundingClientRect().left),
+                     docW: document.documentElement.scrollWidth, winW: innerWidth }; }""")
+        if ok(f"W3-6 [{w6}px] 找得到產業鏈頁的標題區", bool(h6), h6):
+            ok(f"W3-6 [{w6}px] 標題下方那排標籤整排不見了（檔數／今日／本益比中位／← 返回）",
+               h6["pills"] == 0 and not h6["hasCount"] and not h6["hasChg"]
+               and not h6["hasPe"] and not h6["hasBack"], h6)
+            # spread 拿掉之後標題不准被推到奇怪的位置：它要貼著卡片左緣
+            ok(f"W3-6 [{w6}px] 標題仍然貼著卡片左緣（沒有被 space-between 推歪）",
+               0 <= h6["h2Left"] <= 24, h6["h2Left"])
+            ok(f"W3-6 [{w6}px] 沒有橫向捲軸", h6["docW"] <= h6["winW"] + 1, h6)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ---- W3-7：下方的圖別選單卡片區整塊拿掉（上方分頁就有同樣功能）
+    pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    m7 = pg.evaluate("""() => ({ menu: !!document.getElementById('dgMenu'),
+        cards: document.querySelectorAll('.dgmenu, #prodDiagram ~ .dgcards, a.dgcard').length,
+        tabs: [...document.querySelectorAll('#dgPick .segchip[data-dgid]')].map(a => ({
+            id: a.dataset.dgid, href: a.getAttribute('href'), title: a.getAttribute('title') || '' })),
+        body: (document.getElementById('prodDiagram') || {}).innerHTML ? 1 : 0 })""")
+    ok("W3-7：`#dgMenu` 與那排 `.dgcard` 卡片整塊不在 DOM 了", not m7["menu"] and m7["cards"] == 0, m7)
+    ok("W3-7：入口沒有消失 —— 上方二層分頁仍然列得出每一張圖，而且各有自己的 /dg/ 網址",
+       len(m7["tabs"]) >= 2 and all(t["href"] and "/dg/" in t["href"] for t in m7["tabs"]),
+       [t["href"] for t in m7["tabs"]])
+    ok("W3-7：「這張圖回答什麼問題」也沒有消失（掛在分頁的 title 上）",
+       all("？" in t["title"] for t in m7["tabs"]), [t["title"][:40] for t in m7["tabs"]])
+    # 進到圖裡之後 #dgQ 那一行也要把問題寫出來（第二個看得到的地方）
+    click(pg, f"#dgPick .segchip[data-dgid='{m7['tabs'][0]['id']}']", 2600)
+    ok("W3-7：進到圖裡之後 `#dgQ` 那一行也把問題寫出來（第二個看得到的地方）",
+       "這張圖回答" in (pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''") or ""),
+       pg.evaluate("() => (document.getElementById('dgQ')||{}).textContent || ''")[:50])
+    # 「← 族群總覽」按了要真的回第一個分頁，而不是展開一個不存在的選單
+    click(pg, "#dgBack", 2600)
+    ok("W3-7：「← 族群總覽」按了真的回第一個分頁（不是展開一個不存在的選單）",
+       pg.evaluate("() => !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent)")
+       and pg.evaluate("location.hash").endswith("/overview"), pg.evaluate("location.hash"))
 
     # ---- W3-5：390／800 載入時，說明卡片不准被「原尺寸置中」推出畫面
     #      （量到的事實：置中本來套在整個 #prodDiagram 上，390px 一載入就把 .dggrid
