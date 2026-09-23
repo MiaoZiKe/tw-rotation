@@ -2437,15 +2437,24 @@ def t_new_market3(pg, base):
                                              body='{"error":"not found"}'))
     fresh(sess="night")
     ok("還是沒有那塊獨立方框", count(pg, "#futNight") == 0)
-    # N11 的規矩：畫面上不能沒有東西，但要老實說它是什麼 —— 退回日盤並標在圖上
+    # 2026-09-23 改口徑（Andy：「幫我修復 夜盤拿不到資訊的問題，並且若沒有資訊則空白」）：
+    # 舊行為是「退回去畫日盤那條線、旁邊標一句先顯示日盤」。那是**拿日盤冒充夜盤** ——
+    # 分頁寫著夜盤、線卻是日盤的，讀者不會每次都去看那行小字。新行為：空白 ＋ 講原因。
+    # 所以下面三條驗的是「一條線都沒有」，不是「有線但標註過了」。
     fb = pg.evaluate("() => document.getElementById('m3c-FUT').dataset.fallback || ''")
-    ok("夜盤報價拿不到時，圖上直接標明「先顯示日盤」", "日盤" in fb and "夜盤" in fb, fb)
-    ok("退回去的是真的日盤走勢（不是一塊空白）",
-       pg.evaluate(axis_of, "FUT") and pg.evaluate(axis_of, "FUT")[0] == "08:45", pg.evaluate(axis_of, "FUT"))
-    ok("抓不到夜盤時，數字退回日盤而且明講",
-       "45,780" in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
+    ok("不准再用日盤冒充夜盤（fallback 那行字要消失）", fb == "", fb)
+    ok("夜盤拿不到就是真的空白：一張 canvas 都沒有",
+       pg.evaluate("() => document.querySelectorAll('#m3c-FUT canvas').length") == 0,
+       pg.evaluate("() => document.querySelectorAll('#m3c-FUT canvas').length"))
+    why = text(pg, "#m3c-FUT")
+    ok("空白要講原因，而且整段文字不准出現「日盤」", "夜盤資料未取得" in why and "日盤" not in why, why)
+    ok("空白不是塌掉的黑方塊（高度還在）",
+       pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height") > 200,
+       pg.evaluate("() => document.getElementById('m3c-FUT').getBoundingClientRect().height"))
+    ok("上排數字也不准留日盤的價，要變成 —",
+       "45,780" not in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px")
        and "夜盤報價未取得" in text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-tag"),
-       text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-nums"))
+       text(pg, "#m3Grid .m3-card[data-id='FUT'] .m3-px"))
 
     # --- 把來源換回正常的，從乾淨狀態重新累積
     pg.unroute("**/fut?*")
