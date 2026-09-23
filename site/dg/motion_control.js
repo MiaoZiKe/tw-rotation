@@ -1,5 +1,5 @@
 /* 工業自動化：一個會動的軸拆開看 —— docs/diagram_plan_electronics.md 的 E1
-   （族群 `factory_automation` 主掛、`machine_tool` 掛同一張，electronics 鏈）
+   （族群 `factory_automation`，electronics 鏈。★ 2026-09-23 起 `machine_tool` 不再共用這張，改用 `site/dg/machine_tool.js`）
 
    ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
         並且需要適當的調整及填充版面間隔，不許有空白」）----
@@ -775,21 +775,17 @@
        原本的理由是「五個資訊點裡沒有一個靠轉一圈才看得懂」——
        漏掉的是第六件事：一根軸是一**串**零件（馬達→聯軸器→軸承座→螺桿＋螺帽→滑軌＋滑塊），
        而「誰接誰」只有沿著軸拆開才看得出來；螺帽剖開才看得到鋼珠是一個閉合的迴圈。
-       ⚠ 3D 場景跟 `machine_tool` 共用同一個（兩個族群本來就共用同一張 2D）。*/
+       ⚠ 3D 場景 `motion_axis` 現在只給 `factory_automation`（`machine_tool` 另有自己的 `machine_tool` 場景）。*/
     draw: motionControl, native: CW, scene: 'motion_axis',
     q: '工廠裡一次直線移動、一次關節轉動，各自靠哪幾個零件？滾珠螺桿跟線性滑軌差在哪？諧波減速機跟 RV 減速機為什麼不能互換？',
     parts: PARTS,
   });
-  /* ⚠ 一張圖掛兩個族群：兩列各自宣告、`draw` 指向同一支函式就好。
-     **不要**為了這件事去改 `DiagramSlots.pick()` 的查找邏輯（那是全站共用的）——
-     `passive_rlc` 已經走過這條路。*/
-  window.DG.register('machine_tool', {
-    level: 'group', chain: 'electronics',
-    name: 'CNC 工具機：它身上的傳動件是誰做的',
-    /* 3D 跟 `factory_automation` 指向**同一個場景**（`motion_axis`）——
-       兩個族群本來就共用同一張 2D，3D 再開第二份只會變成兩份要一起改的東西。*/
-    draw: motionControl, native: CW, scene: 'motion_axis',
-    q: '一台加工機的三個軸裡面裝的是什麼？台股做整機的跟做傳動件的是不同的兩群人，各是誰？',
-    parts: PARTS,
-  });
+  /* ★ 2026-09-23：`machine_tool`（CNC 工具機）的註冊從這裡**移除**。
+     Andy 抓到「工業自動化 & CNC 工具機 2D 3D 內容完全相同」——
+     查證之後是**兩個不同的族群共用了同一張圖**，不是同一件事：
+       · `factory_automation`＝工廠自動化與它的核心傳動元件（就是這張圖畫的：一根軸拆開）
+       · `machine_tool`＝綜合加工機與車床等**工具機整機**
+     所以不合併，改成各畫各的：整機那張在 `site/dg/machine_tool.js`
+     （2D ＋ 3D 場景 `machine_tool`）。這個檔只留 `factory_automation`。
+     ⚠ 不要「順手加回來」：加回來就會變成兩個族群又共用同一張圖。*/
 })();

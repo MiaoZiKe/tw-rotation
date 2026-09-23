@@ -6367,8 +6367,11 @@
           接收端是 `paint()` 對 `#themeMembers tr` 加 `.sel`）。
        ④ 「← 回題材總覽」鈕：上方的題材熱力圖本來就一直在同一頁，點別塊就換題材，
           所以回得去，不必另外補一顆鈕。
-     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖，兩張卡拿掉之後
-       它們會整塊空白，所以留一句說明，不要讓使用者以為網頁壞了。*/
+     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖。
+     ★ 2026-09-23 批次 0923-D：原本那三個會顯示一張「這個題材還沒有產品剖析圖…」的替代卡片，
+       **Andy 看過之後要求拿掉**（原話：「題材頁面 下方處可以移除」）。
+       所以沒有剖析圖時這一區就是空的 —— **那是他要的**，不要再補別的東西回去。
+       有剖析圖的題材完全不受影響。*/
   function renderThemeDetail(th, id) {
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const el = $('#themeDetail');
@@ -6379,7 +6382,7 @@
     el.innerHTML = dg
       ? `<div class="card"><div class="row spread">${head}<small class="muted">上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
-      : `<div class="card">${head}<div class="note">這個題材還沒有產品剖析圖，先從上方熱力圖挑別的題材，或按下面的標籤切換。</div>${other}</div>`;
+      : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
       if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el));

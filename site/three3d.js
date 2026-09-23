@@ -5937,6 +5937,21 @@
     const ispinners = [];        // C6 ③：陣列零件（InstancedMesh）各自繞自己的中心轉
     const pulses = [];           // C6 ④：一組零件依序點亮
     const movers = [];           // C6 ⑤：沿一軸位移的零件
+    /* ★ C7（2026-09-23，Andy：「其他的圖片怎麼都沒有動畫特效，只有閃來閃去…
+       我需要的事項風扇他的運作就是旋轉，所以像是馬達就會旋轉，有電路板就會有電子流動，
+       有被動元件就會儲存電荷 或是 放電…」）。
+       上一批（C6）交出去的 19 個場景裡有 12 個**只有 pulse**——
+       pulse 改的是顏色與 emissive，零件一個頂點都沒動，畫面上就是「一格一格輪流亮」＝「閃來閃去」。
+       這一批補的是**形狀真的會動**的三種動法，配比整個反過來（旋轉／位移／擺動為主，pulse 降到配角）：
+         ⑥ swing  零件繞一軸**來回擺動**（不是整圈轉）—— 液晶分子轉向、石英片剪切振動、彈片受壓
+         ⑦ grow   零件沿一軸**脹縮**（錨在一端）—— PPTC 受熱膨脹把碳黑鏈拉斷、熔湯液面下降、空乏區變寬
+         ⑧ carry  東西沿一條路徑**被搬運**—— 鋼珠在螺帽裡循環、雷射頭沿修整溝走、資料封包穿過 TSV
+       三種都不重建幾何：swing 只改 rotation，grow 只改 scale＋一個補償位移，
+       carry 只改 position（或一顆 12 個三角形的小方塊）。*/
+    const swings = [];           // C7 ⑥：來回擺動
+    const grows = [];            // C7 ⑦：沿一軸脹縮
+    const carries = [];          // C7 ⑧：沿路徑被搬運
+    const carryMarks = [];       // carry 自己生出來的小方塊（沒有現成零件可搬時用）
     let labelDown = null;        // 這次按下去是從某個標籤開始的（可能只是想轉視角）
     let stickyBelow = new Set(); // 被排到底下那一排的卡片（黏住，直到欄寬／模式／選取變了才重排）；宣告在這裡是為了避開 TDZ
     let compactSide = { L: false, R: false };   // 這一欄的卡片有沒有收成一行（同樣黏住，同樣在欄寬／模式／選取變了才重算）
@@ -5988,10 +6003,13 @@
     /* 一個 group 的最終位置 ＝ 原位 ＋ 爆炸位移 × expT ＋ 運轉位移（C6 ⑤ move）。
        兩件事必須疊加而不是互相覆寫：螺帽沿軸走的時候，使用者可能同時把圖拆開。*/
     const place = (g) => {
-      const b = g.userData.base, e = g.userData.ex || [0, 0, 0], v = g.userData.mv;
-      g.position.set(b.x + e[0] * expT + (v ? v.x : 0),
-        b.y + e[1] * expT + (v ? v.y : 0),
-        b.z + e[2] * expT + (v ? v.z : 0));
+      const b = g.userData.base, e = g.userData.ex || [0, 0, 0], v = g.userData.mv, w = g.userData.gw;
+      /* gw ＝ C7 ⑦ grow 的**錨點補償**：group 的原點在零件中心，直接縮放會兩頭一起長，
+         但真實世界裡膨脹的東西大多有一端是固定的（PPTC 貼在電極上、熔湯的底在坩堝裡），
+         所以縮放之後要把它推回去，讓那一端待在原位。*/
+      g.position.set(b.x + e[0] * expT + (v ? v.x : 0) + (w ? w.x : 0),
+        b.y + e[1] * expT + (v ? v.y : 0) + (w ? w.y : 0),
+        b.z + e[2] * expT + (v ? v.z : 0) + (w ? w.z : 0));
     };
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
@@ -6218,6 +6236,85 @@
       if (!groups.length) return;
       movers.push({ name: mo.name || '', groups, axis: mo.axis || 'x', amp: mo.amp || 1,
         period: mo.period || 4, mode: mo.mode || 'pingpong', phase: mo.phase || 0, off: 0, vel: 0 });
+    });
+
+    /* ================================================================ C7：三種「形狀真的在動」的動法
+       宣告一律寫在 SCENES 裡（哪個零件、繞哪一軸、動多少、多久一圈），
+       幾何本身完全不知道自己會動 —— 跟 C6 同一個原則，19 個場景共用同一套工具。*/
+
+    /* ⑥ swing：繞一軸**來回擺動** ±amp 弧度。
+       跟 spin 的差別是「不會轉整圈」—— 現實裡很多東西就是在一個角度範圍內來回：
+       液晶分子被電場扭轉再放鬆、石英片的厚度剪切振動、連接器彈片被插入時壓下去再彈回來。
+       用 sin 而不是三角波：真實的彈性／扭轉回復本來就是兩端減速的。*/
+    (spec.swings || []).forEach(sw => {
+      const groups = [];
+      (sw.parts || [sw.part]).forEach(key => {
+        const p = findPart(key); if (!p) return;
+        p.groups.forEach((g, i) => {
+          const ax = sw.axis || 'y';
+          g.userData.sw0 = g.rotation[ax];
+          // alt：整排零件**交錯反向**擺（兩片正交的稜鏡、上下兩列彈片），看起來才不像整排一起晃
+          groups.push({ g, ax, sgn: sw.alt && (i % 2) ? -1 : 1 });
+        });
+      });
+      if (!groups.length) return;
+      swings.push({ groups, amp: sw.amp == null ? 0.3 : sw.amp,
+        period: sw.period || 2.4, phase: sw.phase || 0, at: 0, rot: 0 });
+    });
+
+    /* ⑦ grow：沿一軸脹縮，而且**錨在指定的那一端**。
+       這是「被動元件在做事」最誠實的畫法：PPTC 受熱時高分子真的會膨脹（體積增加幾個百分點），
+       把串起來的碳黑鏈拉斷、電流因此被切掉；熔湯被拉成晶碇時液面真的一路下降；
+       閘壓變化時空乏區真的會變寬變窄。
+       anchor：'min' 固定小的那一端（底部／左端）、'max' 固定大的那一端、'mid' 兩頭一起長。*/
+    (spec.grows || []).forEach(gr => {
+      const groups = [];
+      (gr.parts || [gr.part]).forEach(key => {
+        const p = findPart(key); if (!p) return;
+        p.groups.forEach(g => {
+          g.userData.gw = g.userData.gw || { x: 0, y: 0, z: 0 };
+          // 半徑：用建好的外接盒量（此時 scale 還是 1、rotation 還是 0，量到的就是本尊的尺寸）
+          const bb = new THREE.Box3().setFromObject(g), sz = bb.getSize(new THREE.Vector3());
+          groups.push({ g, half: Math.max(0.001, sz[gr.axis || 'y'] / 2) });
+        });
+      });
+      if (!groups.length) return;
+      const anc = gr.anchor || 'min';
+      grows.push({ groups, axis: gr.axis || 'y', from: gr.from == null ? 1 : gr.from,
+        to: gr.to == null ? 1.35 : gr.to, period: gr.period || 3, phase: gr.phase || 0,
+        mode: gr.mode || 'pingpong', sgn: anc === 'min' ? 1 : (anc === 'max' ? -1 : 0), s: 1 });
+    });
+
+    /* ⑧ carry：沿一條路徑**被搬運**。兩種用法：
+         · 指名 part → 那個零件本人沿路徑走（鋼珠在螺帽裡循環、雷射修整頭沿溝走、光模組被插進籠子）
+         · 不指名   → 現生一顆小方塊當「載具」（資料封包穿過 TSV、電荷包在極板之間往返）。
+           小方塊 12 個三角形、顏色走角色 token，成本可以忽略；
+           它存在的理由是**有些場景真正在動的東西沒有對應的零件**（資料、電荷、光），
+           而那正是 Andy 點名要看到的東西（「HBM 儲存資料」「面板如何投影」）。
+       mode：'cycle' 走到底從頭來（單向循環）；'pingpong' 走到底原路折返（取放、插拔）。
+       ⚠ 路徑座標是 root 空間（＝零件 at 的同一個座標系），不是螢幕座標。*/
+    (spec.carries || []).forEach(ca => {
+      const pts = (ca.pts || []).map(a => new THREE.Vector3(a[0], a[1], a[2]));
+      if (pts.length < 2) return;
+      const groups = [];
+      if (ca.part) {
+        const p = findPart(ca.part); if (!p) return;
+        p.groups.forEach((g, i) => { g.userData.mv = g.userData.mv || { x: 0, y: 0, z: 0 }; groups.push({ g, base: g.userData.base, ph: (ca.spread || 0) * i }); });
+      } else {
+        const n = Math.max(1, ca.n || 1);
+        const K2 = kit(THREE, 'metal', false, cssRead, ca.kind || 'sig');
+        const sz = ca.size || [1.2, 1.2, 1.2];
+        const geo = new THREE.BoxGeometry(sz[0], sz[1], sz[2]);
+        for (let i = 0; i < n; i++) {
+          const m = new THREE.Mesh(geo, K2.mats[0]);
+          m.userData = { carryMark: true };
+          root.add(m); carryMarks.push(m);
+          groups.push({ g: m, base: null, ph: i / n });
+        }
+      }
+      if (!groups.length) return;
+      carries.push({ groups, pts, period: ca.period || 5, phase: ca.phase || 0,
+        mode: ca.mode || 'cycle', at: 0, u: 0 });
     });
 
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
@@ -6489,6 +6586,7 @@
       applyAuto();
       // 圖九 2-1：靜止＝電流不跑，粒子也不留在畫面上；走線本身一直都看得見
       flowAll.forEach(x => { x.visible = motionOn(); });
+      carryMarks.forEach(m => { m.visible = motionOn(); });   // C7 ⑧：同上，載具跟粒子同進同出
       if (!motionOn()) {
         /* C6：**真的完全停下來**。旗標改掉不算 ——
            要把 pulse 改過的顏色與 emissive 收回去、把位移歸零，
@@ -6499,6 +6597,13 @@
            驗收比 `moveOff` 有沒有繼續變就量得到（凍住的值不會變）。*/
         movers.forEach(mv => { mv.vel = 0; mv.warm = false; });
         spinners.forEach(sp => { if (sp.userData.spin.sync) sp.userData.spin.speed = 0; });
+        /* C7：擺動件與脹縮件跟位移件同一個規矩 —— **停在原地，不彈回**。
+           真的機器按下停止就是停在那裡；彈回去在畫面上是一個很醜的瞬跳。
+           三個時鐘（swingAt／growAt／carryAt）都只在 `if (run)` 裡前進，所以關掉之後
+           「跑 14 幀再跑 12 幀，pose 字串完全相同」——「真的停」是量得到的，不是旗標說了算。
+           唯一例外是 carry 現生的小方塊：它跟電流粒子是同一種東西（畫的是流動的能量／資料，
+           不是零件本身），所以跟粒子一樣**整組藏起來**，不要留一顆方塊卡在半空中。*/
+        carryMarks.forEach(m => { m.visible = false; });
         /* 動畫關掉：爆炸展開**不做過場**，直接跳到目前的目標狀態（#246）。
            以前（#238）是「一律停在拆開的狀態」—— 那是因為當時展開是進場動畫、沒有目標可言；
            現在展開與否是使用者用游標決定的，關動畫只該關掉「過場」，不該替他決定要不要展開。*/
@@ -7036,6 +7141,81 @@
       }
     }
 
+    /* ================================================================ C7 ⑥：來回擺動
+       rotation 是零件自己的屬性，改它不動任何一個頂點 —— 成本跟 spin 一樣是一次賦值。
+       擺幅用弧度，場景那邊寫的是「這東西實際上會轉多少」：
+       液晶從 0° 到約 90°（0.5 rad 左右在畫面上就很明顯）、石英片的剪切位移其實是奈米等級，
+       所以那裡是**刻意誇大**的示意（場景註解會寫明）。*/
+    let swingAt = 0;
+    function stepSwings(dt) {
+      if (!swings.length) return;
+      swingAt += dt;
+      for (let n = 0; n < swings.length; n++) {
+        const sw = swings[n];
+        const k = Math.sin((swingAt / sw.period + sw.phase) * Math.PI * 2);
+        sw.rot = k * sw.amp;
+        for (let i = 0; i < sw.groups.length; i++) {
+          const it = sw.groups[i];
+          it.g.rotation[it.ax] = it.g.userData.sw0 + sw.rot * it.sgn;
+        }
+      }
+    }
+
+    /* ================================================================ C7 ⑦：沿一軸脹縮
+       scale 同樣不碰頂點。錨點補償寫進 userData.gw，再由 place() 跟爆炸位移、運轉位移一起疊加 ——
+       三件事可以同時發生（使用者把圖拆開的時候，PPTC 還是在膨脹）。*/
+    let growAt = 0;
+    function stepGrows(dt) {
+      if (!grows.length) return;
+      growAt += dt;
+      for (let n = 0; n < grows.length; n++) {
+        const gr = grows[n];
+        let u = growAt / gr.period + gr.phase; u -= Math.floor(u);
+        // pingpong 用 (1-cos)/2：兩端停得住（膨脹到頂、收回到底各有一小段停留），saw 用鋸齒（單向）
+        const k = gr.mode === 'saw' ? u : (1 - Math.cos(u * Math.PI * 2)) / 2;
+        const sc = gr.from + (gr.to - gr.from) * k;
+        gr.s = sc;
+        for (let i = 0; i < gr.groups.length; i++) {
+          const it = gr.groups[i], g = it.g;
+          g.scale[gr.axis] = sc;
+          g.userData.gw[gr.axis] = (sc - 1) * it.half * gr.sgn;
+          place(g);
+        }
+      }
+    }
+
+    /* ================================================================ C7 ⑧：沿路徑被搬運
+       路徑用「段索引」參數化，跟電流粒子同一套（段長相近，肉眼看不出差別）。
+       零件本人是用 userData.mv 表示成「離原位多遠」，這樣它跟爆炸拆解仍然疊得起來；
+       現生的小方塊沒有原位，直接寫 position。*/
+    const _cv = new THREE.Vector3();
+    let carryAt = 0;
+    function stepCarries(dt) {
+      if (!carries.length) return;
+      carryAt += dt;
+      for (let n = 0; n < carries.length; n++) {
+        const ca = carries[n], pts = ca.pts;
+        for (let i = 0; i < ca.groups.length; i++) {
+          const it = ca.groups[i];
+          let u = carryAt / ca.period + ca.phase + it.ph; u -= Math.floor(u);
+          // pingpong：後半圈原路走回來（取放、插拔一定是走回來，不是瞬移回起點）
+          if (ca.mode === 'pingpong') u = u < 0.5 ? u * 2 : (1 - u) * 2;
+          if (i === 0) ca.u = u;
+          const at = (pts.length - 1) * u;
+          const si = Math.min(pts.length - 2, Math.floor(at)), ft = at - si;
+          _cv.copy(pts[si]).lerp(pts[si + 1], ft);
+          if (it.base) {
+            it.g.userData.mv.x = _cv.x - it.base.x;
+            it.g.userData.mv.y = _cv.y - it.base.y;
+            it.g.userData.mv.z = _cv.z - it.base.z;
+            place(it.g);
+          } else {
+            it.g.position.copy(_cv);
+          }
+        }
+      }
+    }
+
     /* ---- 只在看得到、而且真的有東西變了的時候畫
        ★ 2026-09-23（DECISIONS #245）：以前是「每一幀都無條件 renderer.render()」——
          連「動畫：關、沒有人在拖曳」的狀態都在燒 CPU。加上環境貼圖之後每一幀貴了 3 倍，
@@ -7067,6 +7247,11 @@
         leds.forEach(m => { if (m.emissiveIntensity > 0.02) m.emissiveIntensity = k; });
         stepFlows(dt);
         stepPulses(dt);
+        /* C7：三種「形狀真的在動」的動法。排在 pulse 之後沒有先後依賴
+           （只有 move→spin 有依賴，見上面），成本是一次 rotation／scale／position 賦值。*/
+        stepSwings(dt);
+        stepGrows(dt);
+        stepCarries(dt);
       }
       /* ★ #246 的爆炸補間刻意放在 `if (anim)` **外面**：
          展開／收攏是使用者用游標控制的狀態，不是「動態效果」的一部分。
@@ -7248,6 +7433,19 @@
         pulseK: +pulses.reduce((a, g) => a + g.items.reduce((b, it) => b + it.k, 0), 0).toFixed(4),
         movers: movers.length, moveAt: +moveAt.toFixed(3),
         moveOff: +movers.reduce((a, m) => a + Math.abs(m.off), 0).toFixed(3),
+        /* ★ C7 的量測介面。跟 C6 同一個原則：量「**零件真的動了多少**」，不是量「有沒有這個陣列」。
+             swingAt／growAt／carryAt ＝ 三個時鐘，只要在跑就單調前進；關掉動畫就不再前進
+             swingRot ＝ 這一刻擺動件轉開了幾弧度（絕對值和）
+             growS    ＝ 這一刻脹縮件的縮放和（靜止在 1×n，膨脹時 > n）
+             carryU   ＝ 載具走到路徑的第幾成
+           真正的驗收仍然是 pose()：它量的是每個零件的世界座標＋旋轉＋縮放，
+           「相隔一秒有幾個零件的字串變了」才是使用者眼睛看到的事。*/
+        swings: swings.length, swingAt: +swingAt.toFixed(3),
+        swingRot: +swings.reduce((a, x) => a + Math.abs(x.rot), 0).toFixed(4),
+        grows: grows.length, growAt: +growAt.toFixed(3),
+        growS: +grows.reduce((a, x) => a + x.s, 0).toFixed(4),
+        carries: carries.length, carryAt: +carryAt.toFixed(3), carryMarks: carryMarks.length,
+        carryU: +carries.reduce((a, x) => a + x.u, 0).toFixed(4),
         reduced, motion: motionOn(),
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
         flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
@@ -7410,6 +7608,30 @@
       // 給驗收看的：仰角上下限（N1 要能轉到底下）
       polar: () => [+controls.minPolarAngle.toFixed(3), +controls.maxPolarAngle.toFixed(3)],
       segs: () => byIdx.filter(Boolean).map(p => p.seg),
+      /* ★ C7（2026-09-23，Andy：「其他的圖片怎麼都沒有動畫特效，只有閃來閃去」）的量測介面。
+         回傳「**每一個零件現在的形狀擺在哪**」：世界座標 ＋ 旋轉 ＋ 縮放，量化到小數三位。
+         驗收要的是「相隔一秒，形狀的位置看得出差別」—— 用這支比對兩個時間點的字串陣列，
+         有幾個零件的字串變了，就是有幾個零件**真的在動**。
+         為什麼不用 stats() 裡那幾個時鐘：時鐘是旗標，會前進不代表零件真的移動了
+         （pulse 的時鐘一直在跑，但零件一格都沒動 —— 那正是「閃來閃去」的定義）。*/
+      pose: () => {
+        const out = [];
+        const q = (v) => v.toFixed(3);
+        byIdx.filter(Boolean).forEach(p => {
+          p.groups.forEach(g => {
+            g.updateWorldMatrix(true, false);
+            out.push(p.part + '|' + q(g.position.x) + ',' + q(g.position.y) + ',' + q(g.position.z)
+              + '|' + q(g.rotation.x) + ',' + q(g.rotation.y) + ',' + q(g.rotation.z)
+              + '|' + q(g.scale.x) + ',' + q(g.scale.y) + ',' + q(g.scale.z));
+            // 零件內部自己會轉的東西（扇葉、轉子、碼盤）也要算進去：它們在 group 底下
+            g.traverse(x => {
+              if (x.userData && x.userData.spin) out.push(p.part + '#s|' + q(x.rotation.x) + ',' + q(x.rotation.y) + ',' + q(x.rotation.z));
+              if (x.isInstancedMesh && x.userData && x.userData.ispin) out.push(p.part + '#i|' + q(x.userData.ispin.t));
+            });
+          });
+        });
+        return out;
+      },
       dispose: () => { dispose(); if (global.Rack3D.current === view) global.Rack3D.current = null; },
       /* 重設視角要跟第一次進來看到的「一模一樣」。麻煩的是 OrbitControls 內部還留著
          上一次拖曳的慣性（sphericalDelta），而且關掉阻尼時 update() 會把殘留量**整份**套上去，
