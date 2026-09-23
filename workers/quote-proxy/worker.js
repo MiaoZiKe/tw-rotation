@@ -93,6 +93,37 @@ const MAX_TOKENS = 140;
 const CACHE_QUOTE = 3;
 const CACHE_CHART = 10;
 
+/* ---------------------------------------------------------------- /stream（SSE 推送）
+ *
+ * 為什麼要有這條（2026-09-23）
+ * ----------------------------
+ * 原本的做法是「瀏覽器每分鐘打一次 /quote」。一分鐘一次對看盤來說太鈍，
+ * 但把瀏覽器的輪詢直接調快到 5 秒，就變成**每個分頁各自去敲 mis 一次** ——
+ * 開三個分頁就是三倍流量，而且 mis 不是我們家的端點。
+ * 改成 SSE（Server-Sent Events，伺服器推送）之後：
+ *   · 高頻輪詢只發生在 Worker 這一側（伺服器端），瀏覽器只維持一條連線
+ *   · 同一組代號的多個瀏覽器共用**同一份上游結果**（走邊緣快取，見 misText）
+ *   · 只有「值真的變了」才往下推，沒變就一個 byte 都不送
+ *
+ * ★ 為什麼一條連線只活 4 分鐘就自己收掉（STREAM_MAX_MS）
+ * Cloudflare Workers **免費方案每次調用只有 10ms CPU 時間**（等待 fetch 不算）。
+ * 一條長連線的 CPU 是一路累加的，連越久越容易被判超時砍掉。
+ * 所以刻意把單條連線壓短、到時間就送 bye 讓前端立刻重連 ——
+ * 重連會拿到一份完整快照，畫面不會有缺口。
+ * 這也是為什麼**前端一定要保留退回輪詢的路**：這條連線本來就可能被平台砍掉。
+ *
+ * ★ 為什麼 Worker 這一側挑 5 秒
+ * mis 自己的回應裡就寫著 `userDelay: 5000` —— 它每 5 秒才換一次快照。
+ * 打得比 5 秒更密只會拿到一模一樣的東西，純粹是浪費別人家的頻寬。
+ * 所以 5 秒是「上游真的會變的最快速度」，不是我們隨便挑的數字。
+ * POLL_MIN_MS 是硬下限，之後有人想調快也擋在這裡。
+ */
+const STREAM_MAX_MS = 4 * 60 * 1000;   // 一條連線最多活 4 分鐘（見上面的 CPU 說明）
+const POLL_TRADE_MS = 5000;            // 盤中：5 秒（＝ mis 的 userDelay）
+const POLL_EDGE_MS = 30000;            // 盤前／盤後緩衝：30 秒（值幾乎不動，降頻）
+const POLL_MIN_MS = 3000;              // 節流硬下限，不准再調快
+const SSE_RETRY_MS = 3000;             // 告訴瀏覽器斷線後隔多久自己重連
+
 function cors(origin) {
   const h = {
     'Access-Control-Allow-Methods': 'GET,OPTIONS',
@@ -114,7 +145,7 @@ function json(body, status, origin, extra) {
 }
 
 export default {
-  async fetch(request) {
+  async fetch(request, env, ctx) {
     const origin = request.headers.get('Origin') || '';
     const url = new URL(request.url);
 
@@ -125,15 +156,27 @@ export default {
       return json({ error: 'method not allowed' }, 405, origin);
     }
     if (url.pathname === '/' || url.pathname === '/health') {
-      return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw' }, 200, origin);
+      // features 是給前端與除錯用的「這支 Worker 會什麼」清單。
+      // 有 'stream' 才代表已經部署到支援 SSE 的版本；舊版不會有這個欄位，
+      // 前端看得出來就不會傻傻地一直重試（但它本來也有退回輪詢的路）。
+      return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw',
+                    features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream'],
+                    session: sessionNow() }, 200, origin);
     }
     if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y'
-        && url.pathname !== '/fut' && url.pathname !== '/futchart') {
+        && url.pathname !== '/fut' && url.pathname !== '/futchart' && url.pathname !== '/stream') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
       // 不給 CORS 標頭，瀏覽器那邊自然讀不到；這裡也直接講清楚原因方便除錯
       return json({ error: 'origin not allowed', origin }, 403, '');
+    }
+
+    // ---- /stream：SSE 推送即時報價（取代「瀏覽器每分鐘輪詢」）
+    if (url.pathname === '/stream') {
+      const ids = parseTokens(url.searchParams.get('ids') || url.searchParams.get('ex_ch') || '');
+      if (ids.error) return json(ids.error, 400, origin);
+      return openStream(ids.tokens, origin, request, ctx);
     }
 
     // ---- /fut：台指期報價（session=day|night）。夜盤是 MarketType=1。
@@ -212,16 +255,11 @@ export default {
                    origin, 'yahoo', CACHE_CHART);
     }
 
-    const raw = (url.searchParams.get('ex_ch') || '').trim();
-    if (!raw) return json({ error: 'missing ex_ch' }, 400, origin);
-    const tokens = raw.split('|').filter(Boolean);
-    if (tokens.length > MAX_TOKENS) {
-      return json({ error: 'too many symbols', max: MAX_TOKENS, got: tokens.length }, 400, origin);
-    }
-    const bad = tokens.find(t => !EX_CH.test(t));
-    if (bad) return json({ error: 'bad ex_ch token', token: bad }, 400, origin);
-
-    const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(tokens.join('|'))}`;
+    // /quote 與 /stream 共用同一套代號檢查 —— 兩條路的規則不一致的話，
+    // 「退回輪詢」就會變成「換一條路就被擋」，那退回等於沒用。
+    const parsed = parseTokens(url.searchParams.get('ex_ch') || '');
+    if (parsed.error) return json(parsed.error, 400, origin);
+    const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(parsed.tokens.join('|'))}`;
     return relay(target, origin, 'quote', CACHE_QUOTE);
   },
 };
@@ -279,4 +317,169 @@ async function relay(target, origin, kind, ttl) {
           'x-proxy-cache': 'MISS', 'x-proxy-kind': kind },
         cors(origin)),
     });
+}
+
+/* ================================================================ /stream 用的東西
+ *
+ * 這一整段只服務 SSE。上面那些 relay/json 一個字都沒動 ——
+ * 舊的 /quote 仍然是原本的樣子，所以前端退回輪詢時走的是「本來就在跑的那條路」，
+ * 不是另外寫一條沒人驗過的備援。
+ */
+
+/** /quote 與 /stream 共用的代號檢查。回 { tokens } 或 { error }。 */
+function parseTokens(raw) {
+  const s = (raw || '').trim();
+  if (!s) return { error: { error: 'missing ex_ch' } };
+  const tokens = s.split('|').filter(Boolean);
+  if (tokens.length > MAX_TOKENS) {
+    return { error: { error: 'too many symbols', max: MAX_TOKENS, got: tokens.length } };
+  }
+  const bad = tokens.find(t => !EX_CH.test(t));
+  if (bad) return { error: { error: 'bad ex_ch token', token: bad } };
+  return { tokens };
+}
+
+/** 現在是台北時間的哪一段。Worker 跑在 UTC，所以自己加 8 小時再判斷。
+ *  只看星期幾，**不管國定假日** —— 跟前端 live.js 的 isIntraday 同一個理由：
+ *  假日照跑只會拿到上一個交易日的數字（畫面上有資料時間），
+ *  不值得為此在兩邊各維護一份行事曆。 */
+function sessionNow() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  const w = d.getUTCDay();
+  if (w === 0 || w === 6) return 'closed';
+  const m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (m >= 9 * 60 && m <= 13 * 60 + 35) return 'trade';            // 盤中
+  if ((m >= 8 * 60 + 30 && m < 9 * 60) || (m > 13 * 60 + 35 && m <= 14 * 60 + 30)) return 'edge';
+  return 'closed';                                                  // 夜間／假日
+}
+
+/** 這一段時間該多久問上游一次。closed 不進迴圈（見 openStream）。 */
+function pollMsFor(sess) {
+  const ms = sess === 'trade' ? POLL_TRADE_MS : POLL_EDGE_MS;
+  return Math.max(POLL_MIN_MS, ms);
+}
+
+/** 去 mis 拿一份原始文字，**走邊緣快取**。
+ *
+ *  這就是「多個瀏覽器共用同一份上游結果」的實作：
+ *  同一組代號在 ttl 秒內，不管有幾條 SSE 連線、幾個分頁，
+ *  真的打到 mis 的只有第一次，其餘都吃快取。
+ *  ttl 直接設成輪詢間隔 —— 比間隔長會讓推送變鈍，比間隔短就等於沒有節流。 */
+async function misText(tokens, ttlSec) {
+  const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(tokens.join('|'))}`;
+  const cache = caches.default;
+  const key = new Request(target, { method: 'GET' });
+  const hit = await cache.match(key);
+  if (hit) return { text: await hit.text(), cached: true };
+
+  const r = await fetch(target, {
+    headers: {
+      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+      'Accept': 'application/json, text/plain, */*',
+      'Accept-Language': 'zh-TW,zh;q=0.9',
+      'Referer': 'https://mis.twse.com.tw/stock/index.jsp',
+    },
+    cf: { cacheTtl: ttlSec, cacheEverything: true },
+  });
+  if (!r.ok) throw new Error('upstream ' + r.status);
+  const text = await r.text();
+  await cache.put(key, new Response(text, {
+    headers: { 'content-type': 'application/json; charset=utf-8',
+               'Cache-Control': `public, max-age=${ttlSec}` },
+  }));
+  return { text, cached: false };
+}
+
+/** 把回應裡「會變但不代表行情變了」的尾巴切掉，只留真正的行情內容。
+ *
+ *  mis 每一次回應都會附 queryTime／exKey／cachedAlive，**它們每次都不一樣**。
+ *  直接比整串文字的話「永遠都在變」，等於沒有去重，5 秒推一次一模一樣的東西。
+ *  切在 "queryTime" 之前，前面剩下的就是 msgArray + rtcode 那一段。
+ *
+ *  ★ 刻意用字串比對而不是 JSON.parse 再比欄位：免費方案每次調用只有 10ms CPU，
+ *    一條連線要跑幾十輪，把 60KB 的 JSON 解析幾十次一定會超時。
+ *    字串切一刀再比一次，成本幾乎是零。 */
+function meaningful(text) {
+  const i = text.indexOf('"queryTime"');
+  return i > 0 ? text.slice(0, i) : text;
+}
+
+/** 組一則 SSE 訊息。data 可能有換行，逐行加 `data: ` 才符合規格。 */
+function sse(event, payload) {
+  const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
+  const lines = body.split('\n').map(l => 'data: ' + l).join('\n');
+  return `event: ${event}\n${lines}\n\n`;
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+/** 開一條 SSE 連線。 */
+function openStream(tokens, origin, request, ctx) {
+  const { readable, writable } = new TransformStream();
+  const writer = writable.getWriter();
+  const enc = new TextEncoder();
+  const send = s => writer.write(enc.encode(s));
+
+  const sess = sessionNow();
+  const pollMs = pollMsFor(sess);
+
+  const pump = (async () => {
+    let last = '';
+    try {
+      // retry 告訴瀏覽器：連線斷了隔 3 秒自己回來。前端另外還有自己的退避，
+      // 兩邊都有是故意的 —— 瀏覽器內建那套在某些情況下不會觸發（例如 404）。
+      await send(`retry: ${SSE_RETRY_MS}\n\n`);
+      await send(sse('hello', {
+        session: sess, pollMs, symbols: tokens.length,
+        maxMs: STREAM_MAX_MS, at: Date.now(),
+      }));
+
+      const started = Date.now();
+      let first = true;
+      while (true) {
+        if (request.signal && request.signal.aborted) break;   // 使用者關了分頁
+        let payload = null;
+        try {
+          const got = await misText(tokens, Math.ceil(pollMs / 1000));
+          const sig = meaningful(got.text);
+          // ★ 只有值真的變了才推。first 例外 ——
+          //   剛連上（含斷線重連）一定要先給一份完整快照，
+          //   不然「斷線期間漏掉的值」就永遠補不回來。
+          if (first || sig !== last) { payload = got.text; last = sig; }
+        } catch (e) {
+          await send(sse('warn', { error: String(e).slice(0, 120) }));
+        }
+        if (payload !== null) await send(sse('quote', payload));
+        first = false;
+
+        // 非交易時段不進迴圈空轉：給一份快照就收掉，前端會自己退回慢速輪詢。
+        if (sess === 'closed') {
+          await send(sse('idle', { reason: '非交易時段，改由前端慢速輪詢' }));
+          break;
+        }
+        if (Date.now() - started + pollMs > STREAM_MAX_MS) {
+          await send(sse('bye', { reason: 'rotate', hint: '連線輪替，請立刻重連' }));
+          break;
+        }
+        await send(`: hb ${Date.now()}\n\n`);   // 心跳，讓中間的代理不要把連線當成死的
+        await sleep(pollMs);
+      }
+    } catch (e) {
+      /* writer.write 失敗＝對面已經走了，這是正常結束，不是錯誤 */
+    } finally {
+      try { await writer.close(); } catch (e) { /* 已經關了 */ }
+    }
+  })();
+
+  if (ctx && ctx.waitUntil) ctx.waitUntil(pump);
+
+  return new Response(readable, {
+    status: 200,
+    headers: Object.assign({
+      'content-type': 'text/event-stream; charset=utf-8',
+      'cache-control': 'no-cache, no-transform',
+      'connection': 'keep-alive',
+      'x-accel-buffering': 'no',        // 叫中間層不要緩衝，不然推送會卡住
+    }, cors(origin)),
+  });
 }

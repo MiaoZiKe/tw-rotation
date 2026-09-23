@@ -1872,9 +1872,9 @@ def t_industry(pg, base):
     # Andy：「產業與個股 剖析圖不用新增縮放功能」—— 不可以被包成可縮放的框
     ok("產業與個股的剖析圖沒有縮放框",
        pg.evaluate("() => { const d = document.getElementById('prodDiagram'); return !d || (!d.classList.contains('zwrap') && !d.querySelector(':scope > .zpane') && !d.querySelector(':scope > .zbadge')); }"))
-    # 關聯圖的節點在 2026-09-23 從「公司」換成「族群」（DECISIONS #248）——
-    # 這一條守的是「關聯圖真的畫出來了」，量的對象跟著換，條件沒有放寬
-    ok("產業鏈頁有關聯圖族群節點", count(pg, "#cgGraph .cgnode[data-gid]") > 0)
+    # ★ 2026-09-23 C5 退版：關聯圖的節點從「族群大圓點」換回「公司卡」（分層圖）。
+    # 這一條守的事情沒有變（關聯圖真的畫出來了），只是量的對象跟著退版換回去。
+    ok("產業鏈頁有分層關聯圖的公司卡", count(pg, "#chainMap .co") > 0)
     # ★ 2026-09-23 第二批（W3-2，Andy 點名）：下方那張「成分股」卡片整塊移除。
     #   原本這一大段驗的是表格自己（預設排序／記進 localStorage／上市上櫃／點列進個股頁）——
     #   東西沒了，斷言留著就是假綠，所以整組改成驗「真的移除了」＋「它的新家還在做同一件事」。
@@ -1885,28 +1885,31 @@ def t_industry(pg, base):
     # --- 點環節 chip：圖上不相干的族群要被壓暗、環節詳情要真的長出那一格的股票
     if count(pg, "#segChips .segchip"):
         before = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
-            dim: document.querySelectorAll('#cgGraph .cgnode.dim').length })""")
+            dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         b_rows = seg_stocks(pg)
         _cg_chip(pg, "#segChips .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
-            dim: document.querySelectorAll('#cgGraph .cgnode.dim').length })""")
+            dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         a_rows = seg_stocks(pg)
         changed("點環節 chip 真的選起來了", before["sel"], after["sel"])
         ok("點環節 chip 圖下方真的列出那一格的台股（成分股表的新家）",
            a_rows > 0 and a_rows != b_rows, f"{b_rows} → {a_rows}")
-        # 舊版量的是「關聯圖自己捲到那一欄」（scrollLeft）。新的族群關聯圖不捲、
-        # 改成把不相干的族群節點壓暗 —— 一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選
-        changed("點環節 chip 圖上真的把不相干的族群壓暗了", before["dim"], after["dim"])
+        # 退版之後篩選在圖上的樣子＝不屬於那一格的**公司卡**被壓暗
+        # （一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選）
+        changed("點環節 chip 圖上真的把不相干的公司卡壓暗了", before["dim"], after["dim"])
         _cg_chip(pg, "#segChips .segchip.sel", 500)
         ok("再點一次真的取消（環節詳情收掉）", seg_stocks(pg) == 0, seg_stocks(pg))
         _cg_close_filter(pg)
 
-    # --- 點族群大圓點：選取狀態要真的換過去
-    if count(pg, "#cgGraph .cgnode[data-gid]"):
-        click(pg, "#cgGraph .cgnode[data-gid] .cghit", 900)
-        ok("點族群大圓點真的把那一顆選起來",
-           count(pg, "#cgGraph .cgnode[data-gid].sel") > 0)
-        click(pg, "#cgGraph .cgnode[data-gid].sel .cghit", 700)
+    # --- 點關聯圖上的公司卡：選取狀態要真的換過去（退版之後節點是公司卡，不是族群大圓點）
+    if count(pg, "#chainMap .co"):
+        d0 = count(pg, "#chainMap .co.dim")
+        click(pg, "#chainMap .co", 900)
+        ok("點公司卡真的把它那一格選起來（其餘公司卡被壓暗）",
+           count(pg, "#chainMap .co.dim") > d0, [d0, count(pg, "#chainMap .co.dim")])
+        # 收尾：把選取取消，不要留給後面的斷言（點同一顆色標即可）
+        if count(pg, "#segChips .segchip.sel"):
+            _cg_chip(pg, "#segChips .segchip.sel", 500)
 
     # --- 點剖析圖零件：只亮起來＋在原地說明，不准把整張圖聚焦到那一格（DECISIONS #73）
     if count(pg, "#prodDiagram [data-seg]"):
@@ -2028,13 +2031,13 @@ def t_chainnav(pg, base):
     click(pg, "#chainSwitch button[data-c='semiconductor']", 1800)
     after = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
         on: (document.querySelector('#chainSwitch button.on')||{dataset:{}}).dataset.c,
-        gids: document.querySelectorAll('#cgGraph .cgnode[data-gid]').length,
+        gids: document.querySelectorAll('#chainMap .co').length,
         canvas: document.querySelectorAll('#prod3d canvas').length })""")
     changed("E5 按切換列，頁面標題真的換一條鏈", h0, after["h2"])
     ok("E5 而且是直接切過去（沒有退回產業地圖）", after["hash"] == "#industry/semiconductor", after)
     ok("E5 切過去之後換它被標起來", after["on"] == "semiconductor", after)
-    # ★ W3-2：成分股表移除，「新的那條鏈真的有內容」改量關聯圖上的族群節點
-    ok("E5 新的那條鏈有族群（關聯圖畫得出節點）", after["gids"] > 0, after)
+    # ★ W3-2 ＋ C5 退版：「新的那條鏈真的有內容」改量關聯圖上的公司卡
+    ok("E5 新的那條鏈有內容（分層關聯圖畫得出公司卡）", after["gids"] > 0, after)
     # 換鏈要把上一個 3D 場景收乾淨，不然 WebGL context 會一路累積到瀏覽器上限
     ok("E5 換鏈不會留下上一個 3D 畫布", after["canvas"] == 0, after)
 
