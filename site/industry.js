@@ -874,7 +874,7 @@
        它承載的事情沒有消失，只是換了地方回答同一個問題「這一格裡面誰在漲」：
          · 族群層級 → 族群總覽分頁的族群漲幅長條圖＋占比圓餅圖（`renderGroupPanel`）
          · 個股層級 → 在長條圖上點一個族群，原地換成該族群所有個股的漲幅長條圖，點一條就進個股頁
-         · 某一個環節有哪幾檔 → 環節詳情 `#cgSegBox`（台股／外商／相關族群，全部可點）
+         · 某一個環節有哪幾檔 → 環節詳情 `#segBox`（台股／外商／相關族群，全部可點）
        ⚠ segFilter／state.group **沒有**跟著拿掉：剖析圖高亮與關聯圖還在讀它們。*/
     /* 點剖析圖上的零件只做「亮起來 + 在原地說明這個環節」，
        不捲動、也不把整張圖聚焦到那一格 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
@@ -1001,10 +1001,8 @@
       partHi = partSel = segHi = null;      // partSel 是小卡的狀態，忘了清小卡就收不掉
       syncHighlight({ quiet: true, noscroll: true });
     };
-    /* 環節色標搬進圖上「篩選」那顆鈕的面板裡（`#cgSegs`）——
-       行為跟舊的 `#segChips` 完全一樣：點一下篩、再點一下取消。
-       ⚠ 這一行一定要排在建圖之後：色標的 DOM 是 drawGroupGraph 建的空殼，
-       內容是上面那個區塊填的，太早掛就掛在空的容器上。*/
+    /* 環節色標 `#segChips`（2026-09-23 C5 退版之後回到圖的上方，不再藏在「篩選」面板裡）：
+       點一下篩、再點一下取消。內容是上面那個區塊填的，這裡只掛事件。*/
     $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
     /* ★「放寬 ⤢」（成分股暫時蓋住今日事件面板）跟著成分股表一起移除 ——
        它是為了那張表才存在的，表沒了就沒有服務對象。
@@ -1788,27 +1786,16 @@
     $$('[data-chain]', root).forEach(n => { n.style.cursor = 'pointer'; n.onclick = () => { location.hash = '#industry/' + n.dataset.chain; }; });
   }
   /* 選到某一格環節之後，把那一格帶進視野。
-     ★ 2026-09-22 改寫（DECISIONS #248）：以前是把 `#chainMap` 這個 SVG 捲到那一欄。
-     產業鏈頁的關聯圖換成族群力導向圖之後，「那一欄」不存在了 ——
-     環節在新圖上是**色標**（`#cgSegs`，住在「篩選」面板裡）與「被選起來的族群大圓點」，
-     所以改成把色標帶進視野；面板沒開的時候它量不到位置，`scrollIntoView` 自己會忽略。
-     block:'nearest' —— 色標本來就看得到時完全不動，不會把整頁拉走
-     （個股頁被 scrollIntoView 拉到底那個坑，2026-09-20 記過一次）。
-     個股頁仍然有 `#chainMap`，所以那一條路留著。*/
+     ★ 2026-09-23 C5 退版：環節色標回到 `#segChips`（圖的上方，永遠看得到），
+     所以先把色標帶進視野；`block:'nearest'` —— 色標本來就看得到時完全不動，
+     不會把整頁拉走（個股頁被 scrollIntoView 拉到底那個坑，2026-09-20 記過一次）。
+     色標帶完再把分層圖自己那個框捲到那一欄，但**不准動到整頁**。*/
   function scrollChainTo(root, seg) {
     if (!seg) return;
-    const chip = $(`#cgSegs .segchip[data-seg="${seg}"]`, root);
+    const chip = $(`#segChips .segchip[data-seg="${seg}"]`, root);
     if (chip && chip.scrollIntoView) {
-      /* ⚠ 面板收起來的時候色標是「存在但沒有面積」的（`.cggpop[hidden]`）。
-         對那種元素呼叫 scrollIntoView，瀏覽器會把整頁捲到它「理論上的位置」——
-         實測點一個剖析圖零件之後整頁自己往上跳 366px（scrollY 777 → 411）。
-         看不到的東西不需要「帶進視野」，直接跳過。*/
-      const pop = chip.closest('.cggpop');
       const r = chip.getBoundingClientRect();
-      if ((!pop || !pop.hidden) && r.width > 0 && r.height > 0) {
-        chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
-      return;
+      if (r.width > 0 && r.height > 0) chip.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
     const map = $('#chainMap', root); if (!map || map.hidden) return;
     const t = $(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root);
@@ -1857,9 +1844,13 @@
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
-    /* ★ 環節卡清單 `.seglist .segcard` 的高亮已移除（清單本身沒了，DECISIONS #248）。
-       同一件事現在由 `cg.sync({seg})` 做：不屬於被選環節的族群節點一律 `.dim`。
-       `.chainmap` 那兩行留著 —— 個股頁下方那張產業鏈位置圖還是用 drawChainMap 畫的。*/
+    /* 環節卡清單（2026-09-23 C5 退版之後回來了）：選到的那一格 `.sel`、其餘 `.dim`。
+       手機上還要順手把那張卡攤開 —— 不然「選起來了」但個股標籤還收著，看起來像沒反應。
+       流向圖模式下的環節方塊沿用 `.segtitle`，所以上面那兩行一併把它也處理掉了。*/
+    $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
+      n.classList.toggle('sel', hit);
+      n.classList.toggle('dim', on.size > 0 && !hit);
+      if (hit && on.size === 1 && segListReveal) segListReveal(n); });
   }
   /* ---------------------------------------------------------------- 3D 剖析圖（Three.js）
      Andy 拍板「先試試看 three.js」。四條硬性驗收都在這裡兌現：
@@ -2418,7 +2409,13 @@
     const layers = [...new Set(segs.map(s => s.layer))].sort((a, b) => a - b);
     const cos = sc.companies.filter(c => segs.some(s => s.id === c.segment));
     const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : []).forEach(g => (g.members || []).forEach(m => { priceOf[m.code] = m; }));
-    const colW = 178, cardH = 36, gapY = 8, padX = 14, padY = 36, colGap = 30;
+    /* ★ 2026-09-23 C5：欄寬、欄距、左右內距全部改成依容器寬度算（見 fitCols 的註解）。
+       舊版寫死 `colW=178, padX=14, colGap=30` 再配上 `max-width:W×1.25`，
+       1358px 的容器只用掉左邊約 1020px —— 那就是 Andy 說「需要將關聯圖置中」的那個毛病。*/
+    const layerCols = layers.length;
+    const fit = fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
+    const colW = fit.colW, colGap = fit.colGap, padX = fit.padX;
+    const cardH = 36, gapY = 8, padY = 36;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
     const cols = layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
@@ -2432,9 +2429,10 @@
     const noteWrap = (txt) => (String(txt || '').match(new RegExp(`.{1,${NOTE_CPL}}`, 'g')) || []);
     const noteLines = (sg, list) => (list.length ? 0 : Math.min(NOTE_MAX, noteWrap(sg.note || '台股無直接對應').length));
     cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18; }); maxH = Math.max(maxH, y); });
-    /* 右邊多留 24px：同一欄的兩張卡要從右緣繞一條 24px 的通道再回來，
-       不留的話最後一欄那條線會被 viewBox 切掉。*/
-    const W = padX * 2 + cols.length * (colW + colGap) - colGap + 24;
+    /* 寬度＝內容寬＋左右各 padX。**左右對稱**，內容就一定水平置中。
+       舊版是 `... + 24`（只加在右邊，給同一欄回頭線那條 24px 通道用），
+       那 24px 正是「看起來偏左」的另一半原因 —— 現在改成把它含進 padX 的下限（26px）。*/
+    const W = fit.W;
     const coPos = {};
     /* 孤立節點要標「?」，所以連線度數得在畫卡片之前就算好。
        只算兩端都在這條鏈上的邊 —— 另一端不在圖上的邊本來就畫不出來，
@@ -2529,8 +2527,22 @@
     /* 箭頭：markerUnits 用 userSpaceOnUse，不然細線的箭頭會跟著縮到看不見；
        fill 用 context-stroke，線變色（hover 成青色、設備灰）箭頭才跟著變。*/
     const defs = '<defs><marker id="scArrow" viewBox="0 0 8 8" refX="7.2" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path d="M0.5,0.8 L7.5,4 L0.5,7.2 z" fill="context-stroke"/></marker></defs>';
-    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;max-width:${Math.round(W * 1.25)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
-    $$('.co', host).forEach(n => { n.onmouseenter = () => { $$('.edge', host).forEach(e => { const on = e.dataset.from === n.dataset.id || e.dataset.to === n.dataset.id; e.classList.toggle('hi', on); e.classList.toggle('dim', !on); }); }; n.onmouseleave = () => $$('.edge', host).forEach(e => e.classList.remove('hi', 'dim')); n.onclick = () => { const co = cos.find(c => c.id === n.dataset.id); if (!co) return;
+    /* ⚠ `max-width` 拿掉了。它是舊版靠左的直接原因：W×1.25 常常小於容器寬度，
+       SVG 是 block 元素，撐不滿就靠左。現在寬度已經等於容器寬度，width:100% 剛好 1:1。
+       `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
+       也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
+    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
+    markFit(host, fit);
+    /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
+       舊版只提亮線 —— 線一多（半導體鏈 140 條）就看不出那條線通到誰，
+       使用者還要自己用眼睛沿著線找過去，那正是「看不懂」的典型形態。
+       另一端一起亮之後，「誰供貨給它、它賣給誰」一眼就讀得出來。*/
+    $$('.co', host).forEach(n => { n.onmouseenter = () => { const rel = new Set([n.dataset.id]);
+      $$('.edge', host).forEach(e => { const on = e.dataset.from === n.dataset.id || e.dataset.to === n.dataset.id;
+        if (on) { rel.add(e.dataset.from); rel.add(e.dataset.to); }
+        e.classList.toggle('hi', on); e.classList.toggle('dim', !on); });
+      $$('.co', host).forEach(m => m.classList.toggle('near', rel.has(m.dataset.id)));
+    }; n.onmouseleave = () => { $$('.edge', host).forEach(e => e.classList.remove('hi', 'dim')); $$('.co', host).forEach(m => m.classList.remove('near')); }; n.onclick = () => { const co = cos.find(c => c.id === n.dataset.id); if (!co) return;
       /* 2026-09-18（Andy 圖12）：以前無論點誰都先開一張 position:fixed 掛在 <body> 的卡，
          同時又跳去個股頁 —— 那張卡不屬於任何 view，換頁不會被清掉，
          於是「點 6116 之後，個股頁右下角一直浮著台積電 2330」。
@@ -2675,18 +2687,16 @@
   function wireRelBlock(box, sc, host) {
     const btn = box && box.querySelector('#relHi');
     if (!btn) return;
-    /* 兩種圖都要認得（DECISIONS #248）：
-         個股頁下方的產業鏈位置圖 `#chainMap` —— 節點是公司，邊有 data-from／data-to
-         產業鏈頁的族群關聯圖 `#cgGraph` —— 節點是族群，邊有 data-a／data-b
-       以前只認前者；關聯圖換掉之後，這顆按鈕在產業鏈頁按下去會完全沒反應，
-       那比沒有這顆按鈕更糟（2026-09-20 就為了同一件事修過一次）。*/
-    const svgHost = $('#chainMap') || $('#cgGraph') || host;
+    /* 2026-09-23 C5 退版之後產業鏈頁與個股頁又是同一張圖（`#chainMap`，節點是公司），
+       所以這裡只認它一個。流向圖模式下節點是環節不是公司，按鈕按下去不會有東西被提亮 ——
+       那是刻意的：那張圖本來就沒有「這一家公司」這個概念，硬亮一格會騙人。*/
+    const svgHost = $('#chainMap') || host;
     btn.onclick = () => {
       const on = btn.dataset.on === '1';
       btn.dataset.on = on ? '0' : '1';
       btn.classList.toggle('cyan', !on);
       btn.textContent = on ? '在圖上highlight' : '取消 highlight';
-      // 釘住這組高亮：滑鼠經過節點不准把它洗掉（見 drawGroupGraph 的 hover）
+      // 釘住這組高亮：滑鼠經過公司卡不准把它洗掉（見 drawChainMap 的 hover）
       if (svgHost && svgHost.classList) svgHost.classList.toggle('cghold', !on);
       const id = box.dataset.co, gid = box.dataset.gid || '';
       $$('.edge', svgHost).forEach(e => {
