@@ -483,18 +483,17 @@
         <text class="sub" x="666" y="${GB - 134}">匯流排槽懸吊在機櫃上方，插接箱往下拉線</text>
       </g>
       <!-- ★ 2026-09-23 版面（Andy：「下半部設備圖上方留白過多」）：
-           這一排的設備一台比一台矮，所以左半邊從標題到設備頂之間空了一大塊。
+           這一排的設備一台比一台矮，所以從章節標題到設備頂之間空了一大塊（左半尤其明顯）。
            補的是**每一格出來是幾伏特**的對照帶 —— 它就是上面那張電壓階梯在這一排的落地，
            本來只寫在框外的小字裡。純標註，pointer-events:none，data-part 一個都沒有動。 -->
       <g pointer-events="none">
-        <text class="sub" x="16" y="${GB - 156}" style="fill:var(--dg-mute)">這一排出來的電壓（對到上面那張階梯的段 4～段 6）：</text>
-        ${[['22.8 kV', 16, '中壓配電盤．不降壓'], ['22.8 kV', 172, '分路出去給每一台變壓器'],
-    ['380 / 220 V', 306, '乾式變壓器．這一格才降壓'], ['380 / 220 V', 448, 'UPS 與 PDU．不降壓'],
-    ['機櫃直流', 666, '電源架把交流轉成直流匯流排']]
-    .map(([v, x, s2], i) => `<text class="lbl" x="${x}" y="${GB - 136}"${i === 2 ? ` style="fill:${V('--dg-warn')}"` : ''}>${v}</text>`
-      + `<text class="cap" x="${x}" y="${GB - 120}" style="fill:var(--dg-mute)">${s2}</text>`
-      + `<path d="M${x},${GB - 132} v-8" stroke="${V(i === 2 ? '--dg-warn' : '--dg-mute')}" stroke-width="1.4" fill="none" opacity=".8"/>`).join('')}
-        <path d="M16,${GB - 144} H640" stroke="${V('--dg-mute')}" stroke-width="1" fill="none" opacity=".45"/>
+        <text class="cap" x="16" y="${GB - 140}" style="fill:var(--dg-mute)">這一排每一格出來是幾伏特（對到上面那張階梯的段 4～段 5）★ 只有乾式變壓器那一格在降壓</text>
+        <path d="M16,${GB - 134} H640" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".4"/>
+        ${[['22.8 kV', 16, '中壓配電盤．不降壓'], ['22.8 kV', 172, '分路給每一台變壓器'],
+    ['380 / 220 V', 328, '乾式變壓器．這格才降壓'], ['380 / 220 V', 484, 'UPS 與 PDU．不降壓']]
+    .map(([v, x, s2], i2) => `<text class="lbl" x="${x}" y="${GB - 116}"${i2 === 2 ? ` style="fill:${V('--dg-warn')}"` : ''}>${v}</text>`
+      + `<text class="cap" x="${x}" y="${GB - 100}" style="fill:var(--dg-mute)">${s2}</text>`
+      + `<path d="M${x},${GB - 130} v8" stroke="${V(i2 === 2 ? '--dg-warn' : '--dg-mute')}" stroke-width="1.4" fill="none" opacity=".8"/>`).join('')}
       </g>
 
       <!-- 第二排的三段說明 -->
