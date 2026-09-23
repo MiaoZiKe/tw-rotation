@@ -477,6 +477,11 @@
         this.wm = document.createElement('div'); this.wm.className = 'k-wm'; el.appendChild(this.wm);
         this._wheelOnPriceAxis();
         this._ro = new ResizeObserver(() => this._layoutLabels()); this._ro.observe(el);
+        this._initHistory();          // ③ 往左拖到頭就自動補更舊的 K 棒
+        /* 驗收用的把手：`_uitest.py` 要能拿到「畫面上那張大 K 線圖」本人，
+           才驗得了「灌一筆報價之後最後一根真的變了、而且前面的棒子沒被動到」。
+           只記整頁大圖（mini／compact 的小卡不覆蓋它）。*/
+        KChart.last = this;
       }
     }
     setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
@@ -525,6 +530,7 @@
         if (d >= 0) { this._applyTail(bars, d); return; }
       }
       this._histAdded = 0;      // 整條重灌＝回補的那些也沒了，重新算起
+      this._histDailyUsed = 0;  // 快取裡的更舊日線要重新接一次（換週期時就是走這條）
       this._lastCum = null;     // 換股／換週期，即時量的基準也要跟著歸零
       this.stats.setData++;
       const keep = keepView ? ts.getVisibleLogicalRange() : null;
@@ -670,6 +676,13 @@
       if (this.opts.mini) return;
       this._onRange = (r) => {
         if (!r || this._dead) return;
+        /* ★ 資料還沒進來就不要動作。
+           實測踩到：圖表剛 createChart、還沒 setBars 的那一瞬間，
+           Lightweight Charts 會先發一次「空資料的可視範圍」（from 在 0 附近），
+           當場就被當成「使用者拖到左邊界了」——於是一打開個股頁就自動下載一段
+           根本沒人要看的歷史（多 49KB），而且畫面會無故往左長 1,000 根。
+           回溯要由**使用者真的拖**觸發，不是由建圖觸發。*/
+        if (!this.data || this.data.length < 50) return;
         // 左邊界還剩不到 12 根就先去要下一段，等使用者拖到底才要就會看到一段空白
         if (r.from > 12) return;
         this.loadOlder();
@@ -690,9 +703,17 @@
       if (this.opts.mini || this._dead || !this.histReady()) return 0;
       const code = this.histCode();
       const st = histState(code);
-      if (st.done && st.next > 0 && !st.pages[st.next]) { /* 已經到底 */ }
-      if (this._loading || (st.done && this._histAdded >= st.daily.length)) return 0;
-      if (st.done) return 0;
+      if (this._loading) return 0;
+      /* 快取裡已經有、但「這張圖」還沒接上去的，先直接接 —— 不打網路。
+         換週期（日→週）、離開再回到同一檔都會走這條路：圖表是新的、快取是舊的。
+         這也是「拖過一次之後再拖不會重抓」的實作點。*/
+      if (st.daily.length > (this._histDailyUsed || 0)) {
+        st.hits++;
+        this._histDailyUsed = st.daily.length;
+        const n0 = this._prependHistory(st.daily);
+        if (n0) return n0;
+      }
+      if (st.done) return 0;                    // 已經到最早一筆就收手，不要無限打請求
       this._loading = true;
       this._histNote('載入更早的 K 棒…');
       try {
@@ -705,6 +726,9 @@
         st.next += 1;
         if (j.prev === null || j.prev === undefined) st.done = true;
         st.daily = j.bars.concat(st.daily);      // 由舊到新
+        // await 中間可能換過股票或週期，接回去之前再確認一次現在畫的還是同一檔
+        if (this._dead || this.histCode() !== code || !this.histReady()) return 0;
+        this._histDailyUsed = st.daily.length;
         const n = this._prependHistory(st.daily);
         this._histNote(n ? `已回補到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
           : '已經到最早一筆了', 2600);
@@ -1077,10 +1101,13 @@
       if (this._onDbl) this.el.removeEventListener('dblclick', this._onDbl);
       if (this.draw) this.draw.destroy();
       if (this._ro) this._ro.disconnect();
+      // ③ 的監聽與提示：圖表 remove 之後還留著的話，下一次拖曳會踩到已經死掉的 chart
+      if (this._onRange) { try { this.chart.timeScale().unsubscribeVisibleLogicalRangeChange(this._onRange); } catch (e) { /* 圖已銷毀 */ } }
+      clearTimeout(this._noteT);
       this.chart.remove();
     }
   }
 
   global.KChart = KChart; global.KInd = ind;
-  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa };
+  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa, hist: HIST };
 })(window);

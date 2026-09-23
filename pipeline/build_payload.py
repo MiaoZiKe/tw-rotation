@@ -728,6 +728,10 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
 
     stock_dir = config.SITE_DATA / "stock"
     stock_dir.mkdir(parents=True, exist_ok=True)
+    # ③ 歷史無限回溯用的分頁檔（個股頁那 1,250～1,500 根再往前的部分）
+    hist_dir = config.SITE_DATA / "hist"
+    hist_dir.mkdir(parents=True, exist_ok=True)
+    hist_stat = {"codes": 0, "files": 0, "bars": 0}
 
     # ★ 分 K 一律**只讀資料湖、不打 Yahoo**（DECISIONS #155 / #156）。
     #
@@ -933,6 +937,29 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         # 整頁過一次 _clean：任何漏網的 NaN 都會讓瀏覽器 JSON.parse 直接失敗
         (stock_dir / f"{code}.json").write_text(json.dumps(_clean(page), ensure_ascii=False),
                                                 encoding="utf-8")
+
+        # ---------------- ③ 更舊的日 K（往左拖到頭才載入）
+        #
+        #   只寫「個股頁那一段之前」的部分 —— 頁面裡已經有的那 1,250～1,500 根不重複寫一次。
+        #   ★ 這裡只**讀**已經在記憶體裡的 `ind`，不會再去抓任何東西（CLAUDE.md：
+        #     會重複用到的資料一律走資料湖，不准每次部署重抓）。
+        #   部署成本：全市場只有 345 檔的歷史超過個股頁那一段，總共約 70 萬根、
+        #   切成約 960 個檔案、未壓縮約 32MB；寫檔本身是純 I/O，實測遠小於算指標那一段。
+        older = ind.iloc[: max(0, len(ind) - len(long))]
+        if len(older):
+            chunks = stockpage.history_chunks(_bars(older, "date"))
+            if chunks:
+                d = hist_dir / code
+                d.mkdir(parents=True, exist_ok=True)
+                for ch in chunks:
+                    (d / f"p{ch['page']}.json").write_text(
+                        json.dumps(dict(ch, code=code, tf="1d"), ensure_ascii=False), encoding="utf-8")
+                hist_stat["codes"] += 1
+                hist_stat["files"] += len(chunks)
+                hist_stat["bars"] += sum(len(c["bars"]) for c in chunks)
+
+    log.info("歷史回溯分頁：%d 檔 / %d 個檔案 / %d 根日 K",
+             hist_stat["codes"], hist_stat["files"], hist_stat["bars"])
 
     # ---------------- 其餘股票：簡版個股頁（歷史還沒回補完，但一樣要點得進去）
     written = {r["code"] for r in rows}
