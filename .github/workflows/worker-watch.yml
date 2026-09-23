@@ -1,0 +1,86 @@
+name: 盯即時報價代理（Worker）
+
+# 為什麼要有這條（DECISIONS #255）：
+# 2026-09-23 Andy 一天之內回報三次「夜盤沒有數值」。真正的斷點是 Cloudflare Worker
+# 對 POST 帶了只對 GET 有效的快取選項，於是 /fut 與 /futchart 一起回 520
+# ——**而 /health（GET）是好的**，所以從外面看「Worker 活著」。
+#
+# 三次都是**使用者先發現**的。這條工作流的唯一目的就是讓那件事不要再發生：
+# 每兩小時真的打一次那三支端點，壞了就讓 run 變紅，並在摘要裡寫清楚下一步查什麼。
+#
+# ★ Claude 的容器連不出去（連 miaozike.github.io 都打不開），Actions 的 runner 打得到 ——
+#   所以「真的打一次」這件事只有在這裡做得到。
+#
+# ★ 三態原則（CLAUDE.md）：「沒設定」「還沒到」「真的壞了」要分得開。
+#   非交易時段本來就不會有夜盤資料，那**不算壞**：這裡只檢查「端點會不會回 200」，
+#   不檢查「裡面有沒有資料」。天天紅燈就再也沒人看紅燈。
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"      # 每兩小時的 17 分（錯開整點，那時段各家排程最擠）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: worker-watch
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 打三支端點
+        run: |
+          BASE="https://tw-quote.kcq01010909.workers.dev"
+          bad=0
+
+          # 名稱｜網址｜這支掛了代表什麼
+          probe() {
+            name="$1"; url="$2"; hint="$3"
+            code=$(curl -s -o /tmp/body.txt -w '%{http_code}' --max-time 20 "$url" || echo 000)
+            head=$(head -c 200 /tmp/body.txt | tr -d '\n')
+            if [ "$code" = "200" ]; then
+              echo "OK   $name  ($code)"
+              echo "| ✅ $name | $code | |" >> /tmp/rows.md
+            else
+              echo "FAIL $name  ($code)  $head"
+              echo "| ❌ **$name** | **$code** | $hint |" >> /tmp/rows.md
+              bad=1
+            fi
+          }
+
+          : > /tmp/rows.md
+          probe "/health（GET）"                "$BASE/health" \
+                "整台 Worker 掛了或網域不通。先看 Cloudflare 後台這個 Worker 還在不在。"
+          probe "/fut?session=night（POST）"    "$BASE/fut?session=night" \
+                "POST 那條路壞了。第一個嫌疑：又有人對 POST 帶了 cf 快取選項（那只對 GET 有效，會回 520）—— 見 DECISIONS #255。"
+          probe "/futchart（POST）"             "$BASE/futchart?symbol=TXFJ6-M" \
+                "同上。另一個可能是期交所擋掉 Cloudflare 的出口 IP，那時回的會是 502 upstream failed 而不是 520。"
+
+          {
+            echo "### 即時報價代理（Worker）狀態"
+            echo ""
+            echo "| 端點 | HTTP | 壞了代表什麼 |"
+            echo "|---|---|---|"
+            cat /tmp/rows.md
+            echo ""
+            if [ "$bad" = "1" ]; then
+              echo "⚠ **有端點沒回 200。** 網站上台指期夜盤那張卡會空白，"
+              echo "而且畫面上會寫出「代理回 HTTP <code>」—— 那個數字就是上面這張表的數字。"
+              echo ""
+              echo "查的順序（DECISIONS #255）："
+              echo "1. **GET 好、POST 壞** → 幾乎一定是 POST 帶了 cf 快取選項，去看 \`workers/quote-proxy/worker.js\`。"
+              echo "2. **全部都壞** → Worker 沒部署成功，看「部署 Worker（即時報價代理）」那條工作流。"
+              echo "3. **回 502 upstream failed** → 期交所那一側的問題，不是我們的。"
+            else
+              echo "三支都回 200。"
+              echo ""
+              echo "⚠ 這只證明「端點會回應」，**不證明裡面有資料** ——"
+              echo "非交易時段本來就沒有夜盤資料，那不算壞（三態原則）。"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          exit "$bad"
