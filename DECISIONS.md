@@ -3552,6 +3552,7 @@ PPTC 的碳黑鏈、MOV 的晶界路徑、功率電感的粉粒感 ——
    三個色一律走既有 token（`--dg-fl-hot`／`--dg-m-cool`／`--dg-fl-sig`），沒有寫死色值。
 3. **`seg: 'motion_axis'` 與 `seg: 'power_inductor'` 是佔位**（供應鏈裡沒有這兩格），
    跟 #247 的 `silicon_wafer` 同一個做法。點它們不會篩到任何環節，台股一律由 `codes` 給。
+
 ## #252　產業與個股頁改版：活頁簿分頁、族群長條圖＋占比圓餅圖當 Default、熱力圖獨立頂層分頁（frontend-ui 2026-09-23，分支 `claude/industry-tabs`）
 
 規格書 `docs/industry_page_tabs_spec.md`。Andy 2026-09-23 交辦五件事（原話）：
