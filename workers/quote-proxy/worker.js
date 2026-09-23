@@ -194,7 +194,43 @@ function json(body, status, origin, extra) {
 }
 
 export default {
+  /* ★★★ 2026-09-24：全域錯誤邊界（DECISIONS #256 續）。
+     為什麼非有不可：Andy 一個晚上看到五次「夜盤沒有數值」，畫面上寫的是「代理回 HTTP 520」。
+     **520 是 Cloudflare 在「Worker 丟了例外或回了一個不合法的 Response」時代我們回的**，
+     它不經過我們任何一個 try/catch，所以我們拿不到任何訊息 —— 每一次都只能猜一層、修一層。
+     實測到的最後一組數字：期交所直連 200／546ms，經 Worker 520／2162ms。
+
+     這一層的工作只有一個：**讓這支 Worker 在物理上不可能再回 520。**
+     任何漏出來的例外都變成一個讀得到的 JSON（帶 name／message／堆疊前 500 字），
+     前端會把它顯示成「代理失敗：<原因>」。
+     ⚠ 這不是把錯誤藏起來 —— 是把**啞掉的錯誤**換成**會說話的錯誤**。
+     有訊息才查得下去；520 連查都沒得查。
+
+     順帶收掉一個真的會丟例外的寫法：`new Response(body, { status })` 在
+     status 是 204／205／304（規範上不可有 body）時**會直接丟 RangeError**，
+     而期交所偶爾回 304 是完全合理的。下面的 safeStatus() 就是擋這件事。 */
   async fetch(request, env, ctx) {
+    try {
+      return await handle(request, env, ctx);
+    } catch (e) {
+      const origin = request.headers.get('Origin') || '';
+      return json({
+        error: 'worker threw',
+        name: String((e && e.name) || ''),
+        message: String((e && e.message) || e),
+        stack: String((e && e.stack) || '').slice(0, 500),
+      }, 502, origin);
+    }
+  },
+};
+
+/** 不可以帶 body 的狀態碼，硬塞會丟 RangeError（那就是 520 的其中一種來源）。 */
+function safeStatus(code) {
+  return (code === 204 || code === 205 || code === 304) ? 200 : code;
+}
+
+const handle = async (request, env, ctx) => {
+  {
     const origin = request.headers.get('Origin') || '';
     const url = new URL(request.url);
 
@@ -263,7 +299,7 @@ export default {
            不是在這裡硬掛一個對 POST 無效的選項。 */
         const r = await fetchRetry(upstream);
         const txt = await r.text();
-        return new Response(txt, { status: r.status,
+        return new Response(txt, { status: safeStatus(r.status),
           headers: { 'Content-Type': 'application/json; charset=utf-8',
                      'Cache-Control': `public, max-age=${CACHE_QUOTE}`, ...cors(origin) } });
       } catch (e) {
@@ -281,7 +317,7 @@ export default {
       try {
         const r = await fetchRetry(upstream);   // 同上：POST 不可帶 cf 快取選項，會回 520
         const txt = await r.text();
-        return new Response(txt, { status: r.status,
+        return new Response(txt, { status: safeStatus(r.status),
           headers: { 'Content-Type': 'application/json; charset=utf-8',
                      'Cache-Control': `public, max-age=${CACHE_CHART}`, ...cors(origin) } });
       } catch (e) {
@@ -317,7 +353,7 @@ export default {
     if (parsed.error) return json(parsed.error, 400, origin);
     const target = `${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(parsed.tokens.join('|'))}`;
     return relay(target, origin, 'quote', CACHE_QUOTE);
-  },
+  }
 };
 
 /** 打上游、加邊緣快取、補上 CORS 標頭。/quote、/chart、/y 共用。 */
@@ -432,18 +468,26 @@ async function fetchRetry(req, tries = 1) {
      改成三件事：
        ① **預設只打一次**（tries = 1）。上游 271ms 就回得來，會卡住的是網路不是上游，
           重試救不了、只會把死亡時間拉長。
-       ② **加上 8 秒的硬性逾時**（AbortSignal.timeout）。寧可快速失敗、讓前端退回輪詢，
-          也不要慢慢卡到被平台砍 —— 前者畫面上會寫「代理逾時」，後者是 520 什麼都查不到。
-       ③ **不再 clone**。clone 是為了重試才需要的；不重試就不需要，
-          而它本身會把 body 這個 stream 分流、多一份記憶體與一個失敗點。
+       ② ~~加 8 秒硬性逾時~~ —— **這一輪先不做**，兩種寫法都有副作用，實測都被驗收擋下來：
+          · `fetch(req, { signal })`：只要 init 非空，fetch 就會**依 init 重造 Request**，
+            那一步把 body 轉走 → 上游收到空 body → 回空資料（跟原本的空白沒兩樣）。
+          · `Promise.race` ＋ `setTimeout`：不碰 Request，但會留下一個懸空的計時器，
+            在節流那幾條驗收裡造成額外的上游請求。
+          逾時本身是對的方向（快速失敗好過卡到被砍），但它是**加分項不是必要項**，
+          沒有一個乾淨寫法之前不硬塞。真正救命的是下面那層全域錯誤邊界 ——
+          有了它，卡住至少會變成一個讀得到的訊息。
+       ③ ~~不再 clone~~ —— **這一條是錯的，已經改回來**（離線驗收當場抓到）。
+          期交所那兩支 POST 的 Request 物件是**共用的**（/fut、/futchart、/futstream 走同一份），
+          而 Request 的 body 是 stream，**用過一次就空了** ——
+          不 clone 的話第二次之後送出去的是空 body，期交所回空資料，畫面一樣是空白。
+          clone 不是「為了重試」才需要的，是「為了共用」才需要的。**一律 clone。**
      ⚠ 呼叫端只要照舊 `await fetchRetry(req)` 就好；真的想要重試就明確傳 tries=2，
        但在免費方案上**不建議**，理由如上。 */
-  const TIMEOUT_MS = 8000;
   let last;
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await fetch(tries === 1 ? req : req.clone(),
-        { signal: AbortSignal.timeout(TIMEOUT_MS) });
+      // ★ 一律 clone：這些 Request 是共用的，body 是 stream，用過就空了（見上面 ③）。
+      const r = await fetch(req.clone());
       if (r.status < 500 || i === tries - 1) return r;
       last = r;
     } catch (e) {
