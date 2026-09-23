@@ -997,18 +997,36 @@
      （麵包屑、頁首說明）一律**永遠顯示**，所以漏寫只會多顯示、不會讓東西消失。
      ⚠ 這是刻意的失敗方向：資訊架構改錯最貴的後果是「使用者找不到」，
        所以預設一律偏向「留著」。 */
+  /* ★★ 主軸動線（2026-09-24，CEO 拍板）：**首頁＝一條決策動線**，四個問題各自一步。
+     ① 錢往哪個族群跑 → ② 那個族群現在貴不貴 → ③ 什麼時候進場 → ④ 有沒有理由不進場
+     這不是新發明的東西 —— `CLAUDE.md` 第一段本來就是這樣寫的
+     （M1 資金面 ＋ M2 基本面決定方向 → M3 技術面決定時機 → M4 事件面否決），
+     以前只是沒有在介面上講出來，所有圖表平鋪在同一頁讓人自己猜順序。
+     ⚠ 一個功能都不准消失，只是換一個進得去的位置（對照表寫在 `docs/mobile_ia.md`）。*/
+  const MIA_STEPS = ['① 錢往哪跑', '② 貴不貴', '③ 何時進場', '④ 別進的理由'];
+  const MIA_STEP_SUB = [
+    '錢流進哪個族群、流出哪個族群',
+    '大盤與族群的體質：漲的是不是只有權值股，法人在不在裡面',
+    '技術面找時機：回檔承接還是突破追進',
+    '新聞、法說、目標價 —— 有沒有理由今天不要進場',
+  ];
   const MIA_PAGER = {
     overview: [
-      { n: '大盤', sel: ['#m3', '#hero'] },
-      { n: '熱力圖', sel: ['#ovHeatCard'] },
-      // 「輪動階段」那張卡在桌機是**一張卡兩件事**（上半時鐘＝誰在轉強、下半分流圖＝錢分給誰），
-      // 390px 量到 1059px —— 一屏放不下兩件事，所以手機把它拆成兩段。
-      // `#ovRotCard` 同時列在兩段裡 —— 它是這兩段共用的外殼（卡片本體）。
-      // 不列的話「大盤」那一段會留下一個 34px 高的空卡片（實測到的）。
-      { n: '輪動', sel: ['#ovRotCard', '#ovRotHead', '#how-rotm', '#rotClockMiniWrap'] },
-      { n: '資金去向', sel: ['#ovRotCard', '#ovFlowHead', '#ovFlowWrap', '#ovFlowNote'] },
-      { n: '題材候選', sel: ['#ovThemeCard', '#ovCandCard'] },
-      { n: '市場體質', sel: ['#ovBreadthCard', '#ovTrustCard'] },
+      /* 第①步的主圖是**輪動時鐘**（RRG 四象限）。升格的理由：
+         它就是「錢往哪個族群跑」這個問題最直接的一張圖，
+         而它原本只是總覽中段的一張卡，要捲 1911px 才看得到。*/
+      { s: 1, n: '輪動時鐘', sel: ['#ovRotCard', '#ovRotHead', '#ovRotKpi', '#how-rotm', '#rotClockMiniWrap'] },
+      // 「輪動階段」那張卡在桌機是**一張卡兩件事**（上半時鐘、下半昨日資金去向，量到 1059px）——
+      // 一屏放不下兩件事，手機拆成兩段；`#ovRotCard` 是兩段共用的外殼，
+      // 不同時列的話另一段會留下一個 34px 高的空卡片（實測到的）。
+      { s: 1, n: '資金去向', sel: ['#ovRotCard', '#ovFlowHead', '#ovFlowWrap', '#ovFlowNote'] },
+      { s: 1, n: '熱力圖', sel: ['#ovHeatCard'] },
+      { s: 1, n: '熱門題材', sel: ['#ovThemeCard'] },
+      { s: 2, n: '大盤', sel: ['#m3', '#hero'] },
+      { s: 2, n: '市場寬度', sel: ['#ovBreadthCard'] },
+      { s: 2, n: '法人買超', sel: ['#ovTrustCard'] },
+      { s: 3, n: '今日候選', sel: ['#ovCandCard'] },
+      { s: 4, n: '今日事件', sel: ['#ovEvents'] },
     ],
     flow: [
       { n: '輪動', sel: ['#flowRotCard'] },
@@ -1060,42 +1078,63 @@
   }
 
   function miaClearPager(host) {
-    const bar = host.querySelector(':scope > .mpager');
-    if (bar) bar.remove();
+    host.querySelectorAll(':scope > .mspine, :scope > .mpager, :scope > .mnext').forEach(el => el.remove());
     host.querySelectorAll('.mp-off').forEach(el => el.classList.remove('mp-off'));
   }
 
-  /* 建（或更新）一頁的分段導覽。桌機一律拆掉，連 DOM 節點都不留 ——
-     `.mpager` 是真的插進去的元素，只用 CSS 藏起來仍然會改變桌機的 DOM
-     （後續的 `+`、`:first-child` 之類選擇器會被它影響）。 */
+  /* 建（或更新）一頁的導覽。桌機一律拆掉，連 DOM 節點都不留 ——
+     `.mspine`／`.mpager` 是真的插進去的元素，只用 CSS 藏起來仍然會改變桌機的 DOM
+     （後續的 `+`、`:first-child` 之類選擇器會被它影響）。
+
+     兩層：**上層是主軸動線的四步（`.mspine`）**，下層是那一步底下的分段（`.mpager`）。
+     沒有標 `s` 的分段表（資金流向／個股／產業鏈／題材／季節性）只會畫下層那一條。*/
   function miaPager(key, prefer) {
     const view = document.querySelector('main .view.on');
     if (!view) return;
-    const host = key === 'stock' ? view : view;
     const groups = MIA_PAGER[key];
     if (!groups || !mIsM()) { miaClearPager(view); return; }
     // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #mtfCard）
-    const found = groups.map(g => ({ n: g.n, els: g.sel.map(s => view.querySelector(s) || document.querySelector(s)).filter(Boolean) }))
+    const found = groups.map(g => ({ s: g.s || 0, n: g.n,
+        els: g.sel.map(x => view.querySelector(x) || document.querySelector(x)).filter(Boolean) }))
       .filter(g => g.els.length);
     if (found.length < 2) { miaClearPager(view); return; }   // 只剩一段就沒有分段的意義
-    let i = Math.min(miaPick(key), found.length - 1);
+
+    const steps = [...new Set(found.map(g => g.s).filter(Boolean))].sort((a, b) => a - b);
+    let step = steps.length ? Math.min(Math.max(miaPick(key + '.step') || steps[0], steps[0]), steps[steps.length - 1]) : 0;
+    if (steps.length && !steps.includes(step)) step = steps[0];
+    const subsOf = (st) => st ? found.filter(g => g.s === st) : found;
+    let subs = subsOf(step);
+    let i = Math.min(miaPick(key + '.' + step), subs.length - 1);
+    if (i < 0) i = 0;
     /* `prefer`＝「這一次是被連結帶進來的，應該直接看那一段」。
        例：從題材熱力圖點一格會換 hash 成 `#themes/<id>`，
        那當然是要看細節，不是停在剛剛那張熱力圖上。*/
-    if (prefer) { const k = found.findIndex(g => g.n === prefer); if (k >= 0) { i = k; miaSave(key, k); } }
+    if (prefer) { const k = subs.findIndex(g => g.n === prefer); if (k >= 0) { i = k; miaSave(key + '.' + step, k); } }
 
-    let bar = host.querySelector(':scope > .mpager');
-    if (!bar) {
-      bar = document.createElement('nav');
-      bar.className = 'mpager'; bar.setAttribute('role', 'tablist');
-      bar.setAttribute('aria-label', '這一頁的分段');
-      host.insertBefore(bar, host.firstChild);
-    }
+    const mk = (cls, tag) => {
+      let e = view.querySelector(':scope > .' + cls);
+      if (!e) { e = document.createElement(tag || 'nav'); e.className = cls; }
+      return e;
+    };
+    const spine = steps.length ? mk('mspine') : null;
+    const bar = mk('mpager');
+    const next = mk('mnext', 'button');
+    // 順序：主軸 → 分段 → （內容）→ 下一步
+    if (spine && spine.parentElement !== view) view.insertBefore(spine, view.firstChild);
+    if (bar.parentElement !== view) view.insertBefore(bar, spine ? spine.nextSibling : view.firstChild);
+    if (steps.length) { next.type = 'button'; if (next.parentElement !== view) view.appendChild(next); }
+    else next.remove();
+
+    const centre = (host, el) => { if (!host || !el) return;
+      const l = el.offsetLeft - (host.clientWidth - el.offsetWidth) / 2; host.scrollLeft = Math.max(0, l); };
+
     const paint = () => {
+      subs = subsOf(step);
+      if (i > subs.length - 1) i = 0;
       /* ⚠ 先算「這一段要顯示哪些元素」的聯集，再一次套用。
          逐段 toggle 會出錯：同一個元素如果同時屬於兩段（例如 `#ovRotCard` 是
-         「輪動」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
-      const on = new Set(found[i].els);
+         「輪動時鐘」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
+      const on = new Set((subs[i] || { els: [] }).els);
       found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
       /* 「收合」那顆鈕要跟著它負責的那一塊一起藏：鈕是插在那一塊後面的獨立節點，
          不跟著藏的話會出現「一顆孤零零的鈕，按了畫面什麼都不會變」—— 就是 G7 那個毛病。*/
@@ -1103,31 +1142,101 @@
         const prev = b2.previousElementSibling;
         b2.classList.toggle('mp-off', !!(prev && prev.classList.contains('mp-off')));
       });
-      [...bar.children].forEach((b, k) => {
-        b.classList.toggle('on', k === i);
-        b.setAttribute('aria-selected', k === i ? 'true' : 'false');
-      });
-      // 目前這一段要捲進視野（分段列自己捲，不是整頁捲）
-      const cur = bar.children[i];
-      if (cur) { const l = cur.offsetLeft - (bar.clientWidth - cur.offsetWidth) / 2; bar.scrollLeft = Math.max(0, l); }
+      // 下層分段列：只有一段就不畫（一顆孤單的晶片是雜訊）
+      bar.hidden = subs.length < 2;
+      if (bar.dataset.k !== key + ':' + step || bar.children.length !== subs.length) {
+        bar.dataset.k = key + ':' + step; bar.innerHTML = '';
+        subs.forEach((g, k) => {
+          const b = document.createElement('button');
+          b.type = 'button'; b.textContent = g.n; b.setAttribute('role', 'tab');
+          b.onclick = () => { i = k; miaSave(key + '.' + step, k); paint(); after(); };
+          bar.appendChild(b);
+        });
+      }
+      [...bar.children].forEach((b, k) => { b.classList.toggle('on', k === i);
+        b.setAttribute('aria-selected', k === i ? 'true' : 'false'); });
+      centre(bar, bar.children[i]);
+      if (spine) {
+        [...spine.children].forEach((b, k) => { const st = steps[k];
+          b.classList.toggle('on', st === step);
+          b.setAttribute('aria-selected', st === step ? 'true' : 'false'); });
+        centre(spine, spine.children[steps.indexOf(step)]);
+        const j = steps.indexOf(step), nx = steps[(j + 1) % steps.length];
+        next.textContent = (j === steps.length - 1 ? '回到 ' : '下一步：') + MIA_STEPS[nx - 1] + ' ›';
+        next.onclick = () => { step = nx; i = 0; miaSave(key + '.step', nx); paint(); after(); };
+      }
     };
-    if (bar.children.length !== found.length || bar.dataset.k !== key) {
-      bar.dataset.k = key; bar.innerHTML = '';
-      found.forEach((g, k) => {
+    const after = () => {
+      // 換段＝換一件事，回到這一段的最上面（不然會停在上一段捲到的位置）
+      window.scrollTo({ top: 0 });
+      setTimeout(miaResize, 30); setTimeout(miaResize, 260);
+      if (window.twSwipeScan) setTimeout(window.twSwipeScan, 80);
+      miaMore();
+    };
+    if (spine && (spine.dataset.k !== key || spine.children.length !== steps.length)) {
+      spine.dataset.k = key; spine.setAttribute('role', 'tablist');
+      spine.setAttribute('aria-label', '決策動線：錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由');
+      spine.innerHTML = '';
+      steps.forEach(st => {
         const b = document.createElement('button');
-        b.type = 'button'; b.textContent = g.n; b.setAttribute('role', 'tab');
-        b.onclick = () => {
-          i = k; miaSave(key, k); paint();
-          // 換段＝換一件事，回到這一段的最上面（不然會停在上一段捲到的位置）
-          window.scrollTo({ top: 0 });
-          setTimeout(miaResize, 30); setTimeout(miaResize, 260);
-          if (window.twSwipeScan) setTimeout(window.twSwipeScan, 80);
-        };
-        bar.appendChild(b);
+        b.type = 'button'; b.setAttribute('role', 'tab');
+        b.title = MIA_STEP_SUB[st - 1] || '';
+        b.innerHTML = '<b>' + MIA_STEPS[st - 1] + '</b><em>' + (MIA_STEP_SUB[st - 1] || '') + '</em>';
+        b.onclick = () => { step = st; i = 0; miaSave(key + '.step', st); paint(); after(); };
+        spine.appendChild(b);
       });
     }
+    bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', '這一步底下的分段');
     paint();
     setTimeout(miaResize, 30); setTimeout(miaResize, 300);
+  }
+
+  /* ★ 第①步的關鍵數字：四個象限現在各有幾個族群。
+     這是「圖的關鍵數字要緊鄰圖」那條判準的具體落實 —— 總覽那張小時鐘
+     （`compact`）刻意不畫象限卡（桌機的設計，不准動），所以手機在標題下面補一列。
+     數字來自 `rotStageCounts()`，跟資金流向頁那張大圖**同一個來源**，不另外算一套。*/
+  function miaRotKpi() {
+    const head = document.getElementById('ovRotHead');
+    const old = document.getElementById('ovRotKpi');
+    if (!head || !mIsM()) { if (old) old.remove(); return; }
+    let cnt = null;
+    try { cnt = rotStageCounts(); } catch (e) { return; }
+    if (!cnt || !Object.keys(cnt).length) return;
+    let box = old;
+    if (!box) { box = document.createElement('div'); box.className = 'rotkpi'; box.id = 'ovRotKpi'; head.after(box); }
+    const html = STAGE_ORDER.map(k => `<span class="rk" style="--c:${STAGE[k].color}" title="${fmt.esc(STAGE[k].sub)}">`
+      + `${STAGE[k].name}<b>${cnt[k] || 0}</b></span>`).join('');
+    if (box.innerHTML !== html) box.innerHTML = html;
+  }
+
+  /* ★ 第④步「有沒有理由不進場」的內容。
+     今日事件在手機上是抽屜（`aside`，`position:fixed`）—— 抽屜不能同時當一屏的內容，
+     所以這裡用**同一份資料**（`window.twEventItems`，renderEvents 產的那一份）
+     在總覽裡長一張手機專屬的卡片。⚠ 只在手機建立、回桌機整個移除。*/
+  function miaEvents() {
+    const view = document.getElementById('v-overview');
+    const old = document.getElementById('ovEvents');
+    if (!view || !mIsM()) { if (old) old.remove(); return; }
+    const items = window.twEventItems || [];
+    let box = old;
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'card'; box.id = 'ovEvents'; box.style.marginTop = '16px';
+      view.appendChild(box);
+    }
+    const rows = items.slice(0, 8).map(i => `<a class="ev" href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">`
+      + `<span class="t">${fmt.esc(i.title || '')}</span>`
+      + `<span class="m"><span class="mono">${fmt.esc(i._d || '')}</span><span class="cat">${fmt.esc(i.cat || '')}</span>`
+      + `<span>${fmt.esc(i.source || '')}</span></span></a>`).join('');
+    const html = `<h3>今日事件 <small>新聞、法說、券商目標價 —— 進場前最後一關</small></h3>`
+      + `<div class="ovev">${rows || '<div class="empty">今天沒有事件</div>'}</div>`
+      + `<button type="button" class="mmore" id="ovEvAll">看全部 ${items.length} 則事件 ›</button>`;
+    if (box.innerHTML !== html) {
+      box.innerHTML = html;
+      const b = box.querySelector('#ovEvAll');
+      // 不重寫一套邏輯：去按手機「⋯」清單裡那顆「今日事件」（它負責把抽屜打開）
+      if (b) b.onclick = () => { const m = document.getElementById('mmEvents'); if (m) m.click(); };
+    }
   }
 
   /* ---- ② 長清單限筆 --------------------------------------------------------
