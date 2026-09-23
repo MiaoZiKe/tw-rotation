@@ -1663,6 +1663,12 @@
     indbody: 'emc', indwind: 'cu', indflux: 'si', indterm: 'sn',
     reslay: 'cer', resfilm: 'emc', restrim: 'cer', resglass: 'glass', resterm: 'sn', resback: 'sn',
     xtalbase: 'cer', xtalmount: 'cu', xtalblank: 'glass', xtalelec: 'metal', xtallid: 'metal',
+    /* CNC 工具機（2026-09-23）。一張圖一個主色：整台機器走鑄鐵／鋼的銀灰（metal），
+       工作台與工件走 alu（亮一階），只有控制器櫃走 emc —— 它本來就不是鑄件，
+       而且它是**外購的那一格**，材質不同正好把這件事講出來。*/
+    mtbed: 'metal', mtcol: 'metal', mtsaddle: 'metal', mttable: 'alu', mtwork: 'alu',
+    mthead: 'metal', mtspindle: 'metal', mttool: 'metal', mtmag: 'metal', mtatc: 'metal',
+    mtcab: 'emc', mtconv: 'metal', mtscrewy: 'metal', mtraily: 'metal',
     /* 2026-09-23 第二批補的高速連接器（規格書 docs/batch_0923b_spec.md W1-1，Andy 親自點名）。
        同樣是**多出來的詞**，舊的一個都沒有動。
        ⚠ 重電與石化原本也在這一批裡，Andy 當天親口否決（「這不用附上 3D 圖」），所以那兩張沒有場景。
@@ -5960,6 +5966,220 @@
       return g;
     }
 
+    /* ================================================================ CNC 工具機（2026-09-23，族群 `machine_tool`）
+       2D 是 `site/dg/machine_tool.js`，`part` 沿用它的 `data-part`（mt_*）。
+       ★ 這一組是**多出來的詞**，上面既有的 builder 一支都沒有動。
+       ★ 三根進給軸的零件（滾珠螺桿、線性滑軌、伺服馬達、軸承）**直接沿用
+         `mcscrew`／`mcrail`／`mcmotor`／`mcbrg`** —— 那不是偷懶，是因為
+         加工機的三根軸用的就是同一批零件（那正是這兩張圖的接縫）。
+         重畫一份只會變成兩份要一起改的幾何。
+       ⚠ 一張圖一個主色（#244）：整台機器走鑄鐵／鋼的銀灰，層與層之間靠 K.mat 的 k（明暗）分；
+         只有控制器櫃走 emc（深色模封灰）、工件走 alu —— 那兩件本來就不是鑄件。*/
+
+    /* 床身：上面是平的（軌道與鞍座鎖在上面），下面有縱橫肋（鑄件的識別特徵），
+       左前角開一個排屑的斜槽。★ 畫成一塊實心方塊就看不出它是鑄件。*/
+    function mtBed(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const t = h * 0.3;
+      g.add(box(w, t, d, K.mat(0.06, { rough: 0.5 })));                       // 頂面
+      const ribs = [[w, t * 0.8, d * 0.1, 0, -h * 0.4, -d * 0.4],
+        [w, t * 0.8, d * 0.1, 0, -h * 0.4, d * 0.4]];
+      for (let i = 0; i < 5; i++) ribs.push([w * 0.05, t * 0.8, d * 0.86, (-2 + i) * w * 0.2, -h * 0.4, 0]);
+      g.add(mboxes(ribs, K.mat(-0.16, { rough: 0.6 })));
+      g.add(put(box(w * 0.2, t * 0.5, d * 0.5, K.mat(-0.42, { rough: 0.72 })), -w * 0.38, -h * 0.1, d * 0.2));
+      return g;
+    }
+
+    /* 立柱：站在床身後緣的一根方柱，正面有兩條軌道的貼合面與一排鎖付孔。
+       ★ 它跟床身通常是一體的鑄件，所以這裡的明暗只差一階（不要畫成兩種材質）。*/
+    function mtCol(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(0.02, { rough: 0.5 })));
+      g.add(mboxes([[w * 0.86, h * 0.9, d * 0.08, 0, 0, d * 0.5],
+        [w * 0.2, h * 0.86, d * 0.1, -w * 0.3, 0, -d * 0.5],
+        [w * 0.2, h * 0.86, d * 0.1, w * 0.3, 0, -d * 0.5]], K.mat(-0.2, { rough: 0.58 })));
+      const holes = [];
+      for (let i = 0; i < 6; i++) holes.push([0, (-2.5 + i) * h * 0.15, d * 0.56]);
+      g.add(instOf(new T.CylinderGeometry(w * 0.05, w * 0.05, d * 0.06, 8),
+        K.mat(-0.6, { rough: 0.85, metal: 0.2 }), holes.map(a => [a[0], a[1], a[2], Math.PI / 2, 0, 0])));
+      return g;
+    }
+
+    /* 鞍座：夾在床身與工作台之間的那一層 —— 上下**兩組互相垂直的導引面**是它的識別特徵
+       （下面接 Y 向、上面接 X 向）。少掉這一層，三根軸就疊不起來。*/
+    function mtSaddle(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h * 0.7, d, h * 0.12, K.mat(-0.06, { rough: 0.52 })));
+      g.add(mboxes([[w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, -d * 0.36],
+        [w * 0.9, h * 0.3, d * 0.12, 0, h * 0.45, d * 0.36]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
+      g.add(mboxes([[w * 0.14, h * 0.3, d * 0.9, -w * 0.34, -h * 0.45, 0],
+        [w * 0.14, h * 0.3, d * 0.9, w * 0.34, -h * 0.45, 0]], K.mat(0.14, { rough: 0.3, metal: 0.9 })));
+      return g;
+    }
+
+    /* 工作台：★ 上面一定有 **T 型槽**（工件與虎鉗靠它鎖上去）——
+       沒有 T 型槽的平板不是工作台。槽是沿 X 開的、彼此平行。*/
+    function mtTable(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h * 0.6, d, h * 0.1, K.mat(0.12, { rough: 0.44 })));
+      const n = 3, sl = [];
+      for (let i = 0; i < n; i++) sl.push([w * 0.96, h * 0.3, d * 0.09, 0, h * 0.24, (-(n - 1) / 2 + i) * d * 0.28]);
+      g.add(mboxes(sl, K.mat(-0.5, { rough: 0.82 })));
+      return g;
+    }
+
+    /* 工件：一塊被銑出一個階梯與一個凹穴的方料 —— 看得出「已經被加工過」才叫工件。*/
+    function mtWork(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const m = K.mat(0.18, { rough: 0.34 });
+      g.add(mboxes([[w, h * 0.6, d, 0, -h * 0.2, 0],
+        [w * 0.62, h * 0.4, d, -w * 0.19, h * 0.3, 0],
+        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, -d * 0.3],
+        [w * 0.16, h * 0.4, d * 0.34, w * 0.3, h * 0.3, d * 0.3]], m));
+      return g;
+    }
+
+    /* 主軸頭：掛在立柱軌道上的箱體 ＋ 背面兩塊滑塊 ＋ 前面的主軸孔法蘭。
+       ★ 背面那兩塊滑塊是「它掛在軌道上」的證據 —— 沒有的話它看起來是浮著的。*/
+    function mtHead(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.1, K.mat(-0.04, { rough: 0.42 })));
+      g.add(mboxes([[w * 0.2, h * 0.7, d * 0.14, -w * 0.26, 0, -d * 0.55],
+        [w * 0.2, h * 0.7, d * 0.14, w * 0.26, 0, -d * 0.55]], K.mat(0.1, { rough: 0.3, metal: 0.9 })));
+      g.add(put(cyl(w * 0.3, h * 0.16, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 20), 0, -h * 0.54, 0));
+      return g;
+    }
+
+    /* 主軸：一根被前後兩組軸承夾住的軸，★ 下端是**錐孔**（刀柄靠錐面定位）。
+       錐孔朝下，所以這裡用一個倒過來的圓台把口畫出來 —— 畫成平底就看不出它怎麼夾刀。*/
+    function mtSpindle(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const st = K.mat(0.22, { rough: 0.2, metal: 0.95 });
+      g.add(cyl(R * 0.62, h * 0.8, st, 20));
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R, R * 0.6, h * 0.24, 20), K.mat(0.08, { rough: 0.26, metal: 0.92 })), 0, -h * 0.42, 0));
+      g.add(put(cyl(R * 0.82, h * 0.06, K.mat(-0.2, { rough: 0.4, metal: 0.85 }), 18), 0, h * 0.3, 0));
+      return g;
+    }
+
+    /* 刀柄 ＋ 刀具：★ 刀柄是**錐形**的（靠錐面定位，不是靠螺絲鎖），
+       中段那一圈溝是換刀機械手抓的地方；下面接一支有螺旋刃的銑刀。*/
+    function mtTool(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.82, R * 0.5, h * 0.42, 18), K.mat(0.04, { rough: 0.32, metal: 0.88 })), 0, h * 0.26, 0));
+      g.add(put(cyl(R * 0.62, h * 0.1, K.mat(-0.3, { rough: 0.46, metal: 0.8 }), 18), 0, h * 0.46, 0));   // 抓取溝
+      g.add(put(cyl(R * 0.38, h * 0.5, K.mat(-0.1, { rough: 0.28, metal: 0.9 }), 16), 0, -h * 0.2, 0));
+      // 螺旋刃：兩條沿刀身纏上去的溝
+      const seg = 40, fl = K.mat(-0.42, { rough: 0.36, metal: 0.85 });
+      [0, Math.PI].forEach(ph => {
+        const pts = [];
+        for (let i = 0; i <= seg; i++) {
+          const t = i / seg, a = ph + t * Math.PI * 2.4;
+          pts.push(new T.Vector3(Math.cos(a) * R * 0.38, (-0.45 + t * 0.5) * h, Math.sin(a) * R * 0.38));
+        }
+        g.add(new T.Mesh(new T.TubeGeometry(new T.CatmullRomCurve3(pts), seg, R * 0.09, 5, false), fl));
+      });
+      return g;
+    }
+
+    /* 刀庫（圓盤式）：★ 識別特徵是「**一圈刀套**繞著圓盤排列」，
+       而且每個刀套裡插著一支上粗下尖的錐柄。畫成一排方塊就不是刀庫。
+       圓盤立起來（軸沿 x），所以它轉起來在畫面上就是「刀套一格一格轉過去」。*/
+    function mtMag(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(h, d) / 2;
+      g.add(put(cylX(R * 0.9, w * 0.28, K.mat(-0.08, { rough: 0.5 }), 28), 0, 0, 0));
+      g.add(cylX(R * 0.26, w * 0.9, K.mat(0.12, { rough: 0.3, metal: 0.9 }), 16));
+      const n = 10, pk = [], tp = [];
+      for (let i = 0; i < n; i++) {
+        const a = i / n * Math.PI * 2;
+        pk.push([w * 0.2, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, 0]);
+        tp.push([w * 0.34, Math.sin(a) * R * 0.66, Math.cos(a) * R * 0.66, 0, 0, Math.PI / 2]);
+      }
+      g.add(instOf(new T.BoxGeometry(w * 0.22, R * 0.26, R * 0.26), K.mat(-0.3, { rough: 0.56 }), pk));
+      g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.08, w * 0.3, 10),
+        K.mat(0.1, { rough: 0.3, metal: 0.9 }), tp));
+      return g;
+    }
+
+    /* 換刀機械手（雙臂式 ATC）：★ **兩端對稱**的一支臂，兩端各有一個 V 形爪。
+       一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 ——
+       單臂畫法解釋不了「一次換兩把」。*/
+    function mtAtc(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h * 0.6, d * 0.6, h * 0.16, K.mat(-0.02, { rough: 0.44 })));
+      g.add(cyl(h * 0.6, h * 1.1, K.mat(0.1, { rough: 0.3, metal: 0.9 }), 16));
+      const claw = [], jaw = [];
+      [-1, 1].forEach(sgn => {
+        claw.push([w * 0.46 * sgn, 0, 0]);
+        jaw.push([w * 0.46 * sgn, 0, d * 0.42], [w * 0.46 * sgn, 0, -d * 0.42]);
+      });
+      g.add(instOf(new T.CylinderGeometry(h * 0.62, h * 0.62, h * 0.7, 14), K.mat(0.14, { rough: 0.3, metal: 0.9 }), claw));
+      g.add(instOf(new T.BoxGeometry(w * 0.1, h * 0.5, d * 0.36), K.mat(-0.24, { rough: 0.5 }), jaw));
+      return g;
+    }
+
+    /* 控制器櫃：★ 這一格是整張圖的重點 —— **它是外購的**。
+       上面是操作面板（一片螢幕 ＋ 手輪 ＋ 一排按鍵），中間是控制器，下面是四台並排的驅動器。
+       用不同的材質族（emc）跟機體分開，一眼看得出「這一櫃跟旁邊那台機器不是同一群人做的」。*/
+    function mtCab(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(rbox(w, h, d, Math.min(w, d) * 0.08, K.mat(-0.1, { rough: 0.56 })));
+      g.add(put(box(w * 0.82, h * 0.16, d * 0.06, K.mat(0.3, { rough: 0.2, metal: 0.3,
+        color: K.css('--dg-m-cool', '#4FC3E8') })), 0, h * 0.34, d * 0.53));                 // 面板螢幕
+      g.add(put(cyl(w * 0.1, d * 0.06, K.mat(0.16, { rough: 0.3, metal: 0.9 }), 14, 0), w * 0.28, h * 0.18, d * 0.55)
+        .rotateX(Math.PI / 2));                                                              // 手輪
+      const keys = [];
+      for (let i = 0; i < 4; i++) keys.push([(-1.5 + i) * w * 0.18, h * 0.18, d * 0.54]);
+      g.add(instOf(new T.BoxGeometry(w * 0.12, h * 0.04, d * 0.04), K.mat(-0.4, { rough: 0.7 }), keys));
+      const dr = [];
+      for (let i = 0; i < 4; i++) dr.push([(-1.5 + i) * w * 0.22, -h * 0.24, d * 0.1]);
+      g.add(instOf(new T.BoxGeometry(w * 0.18, h * 0.36, d * 0.7), K.mat(0.06, { rough: 0.5 }), dr));
+      return g;
+    }
+
+    /* 排屑機：一條斜著往外走的鏈板輸送帶 ＋ 出屑口。
+       它不影響精度，但它決定這台機器能不能連續跑而不用有人去清。*/
+    function mtConv(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(box(w, h * 0.5, d, K.mat(-0.16, { rough: 0.56 })));
+      const n = 7, pl = [];
+      for (let i = 0; i < n; i++) pl.push([(-(n - 1) / 2 + i) * (w * 0.92 / n), h * 0.34, 0]);
+      g.add(instOf(new T.BoxGeometry(w * 0.92 / n * 0.8, h * 0.14, d * 0.86),
+        K.mat(0.12, { rough: 0.34, metal: 0.9 }), pl));
+      g.add(put(box(w * 0.22, h * 0.9, d * 0.7, K.mat(-0.34, { rough: 0.6 })), -w * 0.42, h * 0.3, 0));
+      return g;
+    }
+
+    /* Z 軸的滾珠螺桿：跟 X 軸**完全同一支幾何**（`mcScrew`），只是立起來 ——
+       那正是這張圖想講的事：三根軸用的是同一批零件。*/
+    function mtScrewY(p, K) {
+      const [w, h, d] = p.box;
+      const s = mcScrew({ box: [h, w, d] }, K);
+      s.rotation.z = Math.PI / 2;
+      const g = new T.Group(); g.add(s); return g;
+    }
+    // 立柱上的線性滑軌：同樣直接沿用 `mcRail`，轉成垂直
+    function mtRailY(p, K) {
+      const [w, h, d] = p.box;
+      const r = mcRail({ box: [h, w, d] }, K);
+      r.rotation.z = Math.PI / 2;
+      const g = new T.Group(); g.add(r); return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -6013,6 +6233,10 @@
       xtalbase: xtalBase, xtalmount: xtalMount, xtalblank: xtalBlank, xtalelec: xtalElec, xtallid: xtalLid,
       /* ---- 2026-09-23 第二批補的高速連接器（規格書 W1-1）。同樣是**多出來的詞**，舊的一個都沒有動。*/
       hsasic: hsAsic, hscage: hsCage, hstongue: hsTongue, hspin: hsPin, hsfly: hsFly, hsslot: hsSlot,
+      /* ---- CNC 工具機（2026-09-23）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      mtbed: mtBed, mtcol: mtCol, mtsaddle: mtSaddle, mttable: mtTable, mtwork: mtWork,
+      mthead: mtHead, mtspindle: mtSpindle, mttool: mtTool, mtmag: mtMag, mtatc: mtAtc,
+      mtcab: mtCab, mtconv: mtConv, mtscrewy: mtScrewY, mtraily: mtRailY,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 

@@ -202,7 +202,15 @@
     **自己多挑幾段會用到它的段落加進去**，但不必跑滿 38 段。
   - **`_preview.py` 不在精簡範圍內，照跑**。它只要 2 分鐘，而且它抓的是
     文字重疊與多寬度溢出 —— 那正是「改 A 弄壞 B」最常見的形態，砍掉它省不到時間卻放掉最大的網。
-- **push 之後還沒完**：等 Actions 跑完，**真的打開 <https://miaozike.github.io/tw-rotation/> 確認線上版本換掉了**
+- **★★ 2026-09-23 更正：這個容器打不開 <https://miaozike.github.io/tw-rotation/>。**
+  實測 `curl` 回 `CONNECT tunnel failed, response 403`、HTTP 000；`WebFetch` 回 `EGRESS_BLOCKED`。
+  所以**「我開過線上確認版號換掉了」這句話是假的，不准再講** ——
+  2026-09-23 那天我對 Andy 講了很多次，全部是錯的。
+  能做到的最強證據是：① Actions 每一步都成功 ② `deploy-pages` 有
+  `Created deployment for <sha>` → `Reported success!` ③ Pages deployment 的 sha
+  等於推的那個 commit、state 是 success。版號可以用同一個 API 自己算，但那是**推算值**。
+  回報時一律講明「這是推算不是我親眼讀到的，請你重新整理看一眼」。
+- **（已被上面那條更正）push 之後還沒完**：等 Actions 跑完，**真的打開 <https://miaozike.github.io/tw-rotation/> 確認線上版本換掉了**
   （比對右上角的**版號徽章**，那是 2026-09-16 為了這件事加的，見 DECISIONS #148），再跟 Andy 說「好了」。
   只說「推上去了」不算交付。
 - **★ 每一次回報都要附上網址**（Andy 2026-09-18：「請每次都提供網址給我」）。
