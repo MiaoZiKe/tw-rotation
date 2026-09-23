@@ -19639,13 +19639,19 @@ T2D_MEASURE = """() => {
       if (g.x < -1 || g.x + g.width > vb.width + 1 || g.y < -1 || g.y + g.height > vb.height + 1)
         outs.push('字：' + t.slice(0, 14)); }
   });
-  // 零件也不准畫出 viewBox
-  if (vb) svg.querySelectorAll('[data-part] .part, g.art rect, g.art path').forEach(n => {
-    let g; try { g = n.getBBox(); } catch (e) { return; }
-    if (!g || !g.width) return;
-    if (g.x < -1 || g.x + g.width > vb.width + 1 || g.y < -1 || g.y + g.height > vb.height + 1)
-      outs.push('零件：' + (n.getAttribute('class') || n.tagName));
-  });
+  /* 零件也不准畫出畫布。
+     ⚠ 這裡**不能**拿 `getBBox()` 去比 viewBox：零件都住在有 transform 的群組裡，
+       `getBBox()` 回的是**那個群組的本地座標**，跟 viewBox 不是同一個座標系 ——
+       第一版就是這樣量的，結果 18 張全部誤判成「溢出」（實測改成螢幕座標之後是 0）。
+     所以改量**螢幕座標**：零件的外框要落在 svg 自己的外框裡。*/
+  {
+    const sr = svg.getBoundingClientRect();
+    svg.querySelectorAll('[data-part] .part, g.art rect, g.art path, g.art circle').forEach(n => {
+      const r = n.getBoundingClientRect(); if (!r.width || !r.height) return;
+      if (r.left < sr.left - 1 || r.right > sr.right + 1 || r.top < sr.top - 1 || r.bottom > sr.bottom + 1)
+        outs.push('零件：' + (n.getAttribute('class') || n.tagName));
+    });
+  }
   const ov = [];
   for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
     const a = boxes[i].r, b = boxes[j].r;
@@ -19660,9 +19666,18 @@ T2D_MEASURE = """() => {
            stn: svg.querySelectorAll('g.stn').length,
            slots: svg.querySelectorAll('rect.slot').length,
            codes: svg.querySelectorAll('.scode[data-code]').length,
-           // ★ 棘輪一：寫死色碼（`#rgb` / `#rrggbb`）一個都不准有 —— 顏色一律走 --dg-*
-           hard: (svg.outerHTML.match(/#[0-9a-fA-F]{3,8}\\b/g) || [])
-                   .filter(x => !/^#[0-9a-fA-F]{0,2}$/.test(x)).length,
+           /* ★ 棘輪一：**零件本身**不准寫死色碼 —— 顏色一律走 `--dg-*` 或上游傳進來的環節色。
+              量的是節點的 `fill` / `stroke` / `stop-color` 屬性，不是整份 outerHTML：
+                · `style="--c: #f9f871"` 是 app 那邊算好的**環節色**塞進來的（不是這張圖寫死的）
+                · 共用的 `<style>` 區塊裡有 `color-mix(..., #000)` 這種 fallback，
+                  而且中文註解裡還有「DECISIONS #231」這種字串 —— 掃 outerHTML 會把它們一起算進來
+                第一版就是這樣量的，cowos 一張就報 14 個「寫死色碼」，全部是誤判。*/
+           hard: (() => { const bad = [];
+             svg.querySelectorAll('*').forEach(n => {
+               ['fill', 'stroke', 'stop-color'].forEach(a => {
+                 const v = n.getAttribute(a);
+                 if (v && /^#[0-9a-fA-F]{3,8}$/.test(v.trim())) bad.push(a + '=' + v + '@' + n.tagName); }); });
+             return bad; })(),
            // ★ 棘輪二：`lit pulse`（Andy 講過三次的「螢光感太重」的來源）
            pulse: svg.querySelectorAll('.lit.pulse, .pulse.lit').length,
            docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
@@ -19697,8 +19712,10 @@ def t_themes_2d(pg, base):
                 if z["docW"] > z["winW"] + 1:
                     bad.append(f"{tag} 整頁橫向捲軸 {z['docW']} > {z['winW']}")
                 if theme == "dark" and w == 1440:
-                    hard_total += z["hard"]
+                    hard_total += len(z["hard"])
                     pulse_total += z["pulse"]
+                    if z["hard"]:
+                        bad.append(f"{tag} 寫死色碼 {z['hard'][:2]}")
     ok("★ 題材2D：十八張 × 三寬度 × 深淺兩主題 —— 畫布 980、字 ≥ 12px、不重疊、不溢出、不橫向捲",
        not bad, bad[:6])
     # ---- ⑦ 兩條棘輪
