@@ -2248,15 +2248,27 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    ★ 收合（`.dgfold`）時它仍然在、仍然點得到 —— 它住在標題那一列，跟 `#dgBody` 無關，
      所以「展開剖析圖」那顆鈕不可能跟著消失。*/
 #dgSec{position:relative}
-.dgsechead{gap:8px 10px;align-items:center}
-.dgsechead h4{min-width:0}
-#dgTools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;min-width:0}
+.dgsechead{gap:8px 10px;align-items:flex-start}
+/* ★ 2026-09-23 修：標題的自然寬度（含 #dgTitle 那串完整圖名）實測 872px，
+   設定列 587px，兩個加起來 1459px 遠大於容器 972px —— 於是設定列被擠到**第二行**，
+   靠左排，看起來就不在右上角了（實測 qx 0.21、離右緣 385px）。
+   `space-between` 對「換了行的單一項目」不會靠右，所以光靠它不夠。
+   修法兩件事配成一組：標題可收縮（`flex:1 1 auto` ＋ 既有的 `min-width:0`，文字自己換行），
+   設定列不收縮並用 `margin-left:auto` 頂到右緣 —— 這樣不論標題多長都留在同一列的最右邊。 */
+.dgsechead{flex-wrap:nowrap}      /* 寬畫面不准換行：換行＝設定列掉到第二列，就不是「標題右邊」了 */
+.dgsechead h4{min-width:0;flex:1 1 auto}
+/* `flex:0 1 auto` 而不是 `0 0 auto`：中等寬度（實測 1100px）容器只剩約 700px，
+   設定列自然寬 587px ＋ 標題最小寬就放不下，硬不收縮就會整條掉到第二列。
+   允許它自己把 pill 折成兩排，配上 `align-items:flex-start` 讓兩邊的頂端對齊，
+   這樣「跟標題同一列、靠右」在 1440 與 1100 都成立。 */
+#dgTools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
+  min-width:0;flex:0 1 auto;margin-left:auto}
 #dgTools[hidden]{display:none}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
   .dgsechead{flex-wrap:wrap}
   #dgTools{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;
-    -webkit-overflow-scrolling:touch}
+    margin-left:0;-webkit-overflow-scrolling:touch}
   #dgTools .pill{flex:none}
 }
 

@@ -11072,7 +11072,7 @@ def main() -> int:
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", headless=not args.headed)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
-        pg.on("pageerror", lambda e: fails.append(f"pageerror: {e}"))
+        pg.on("pageerror", lambda e: fails.append(f"pageerror: {e} || STACK: {(getattr(e, 'stack', '') or '')[:400]} || URL: {pg.url}"))
         # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題
         pg.on("console", lambda m: fails.append(f"console.error: {m.text}")
               if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text
