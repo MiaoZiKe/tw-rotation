@@ -22,6 +22,23 @@
  * 可以混在同一個請求；tse_t00.tw 是加權指數。當時它已經有當天（20260914）的資料，
  * 而 openapi.twse 那支到 14:32 都還停在 09-11 —— 所以這條也順便解掉「網站慢一天」。
  *
+ * 2026-09-23：從「每分鐘輪詢」改成「一條 SSE 連線」
+ * --------------------------------------------------
+ * Andy 看了永豐金 shioaji-pro-app 之後說「即時更新的功能幫我參考」。
+ * 那支是本機跑的交易終端，資料源我們用不到（它打的是使用者自己電腦上的 server），
+ * 但它的**做法**可以搬：前端不要自己輪詢，改成訂一條 SSE（伺服器推送）連線，
+ * 由伺服器那一側去高頻問上游，只有值變了才推下來。
+ *
+ * 我們這邊的伺服器就是 workers/quote-proxy 那支 Cloudflare Worker，
+ * 新增了 /stream 端點。好處是：高頻輪詢只發生在 Worker 一側，
+ * 多個分頁共用同一份上游結果，畫面卻從「一分鐘一跳」變成「五秒一跳」。
+ *
+ * ★★ 退回輪詢是硬性設計，不是備案
+ * Worker 隨時可能是舊版（還沒重新部署，就沒有 /stream）、可能被公司網路擋掉、
+ * 也可能因為免費方案的 CPU 上限被平台砍斷。這三種情況使用者都不該看到壞掉的畫面 ——
+ * 所以 SSE 一旦連不上或斷掉，**立刻回到原本那條每分鐘輪詢的路**，
+ * 而且馬上補抓一次，畫面不會有缺口。狀態列會寫現在走的是「推送」還是「輪詢」。
+ *
  * 更新哪些數字
  * ------------
  * 只更新「畫面上看得到的」（Andy 拍板）。做法是掃 DOM 上的 [data-lc]，
@@ -42,6 +59,22 @@
   // (2) 打不通的端點每分鐘敲一次沒有意義。按「更新」會把計數歸零重新開始。
   const MAX_FAILS = 3;
 
+  // ---- SSE（伺服器推送）相關
+  // 退避序列：斷了之後隔多久再試。從 1 秒開始翻倍到 30 秒封頂 ——
+  // 前面密一點是為了「只是換頁／連線輪替」那種瞬斷能馬上接回來，
+  // 後面拉長是為了「Worker 根本是舊版」那種永遠不會成功的情況不要一直洗。
+  const SSE_BACKOFF = [1000, 2000, 4000, 8000, 15000, 30000];
+  // **從來沒連上過**就失敗這麼多次 → 這次開頁不再試 SSE，安靜地用輪詢。
+  // 曾經連上過就不放棄（那代表 Worker 是新版，斷掉多半是輪替或網路抖動）。
+  const SSE_GIVEUP = 4;
+  // 連著卻這麼久沒收到任何東西（含心跳）就當成斷了。
+  // Worker 心跳最慢 30 秒一次（盤前盤後），所以 90 秒是「連漏三次心跳」。
+  const SSE_WATCHDOG_MS = 90 * 1000;
+  // SSE 活著的時候仍然保留一個**保底輪詢**，只是放很慢。
+  // 為什麼不乾脆關掉：推送這條路是新的，萬一它安靜地壞掉（連著但不推），
+  // 五分鐘一次的對帳至少能讓數字繼續走，而不是整頁停在那裡。
+  const MS_SAFETY = 5 * 60 * 1000;
+
   // Andy 的 Cloudflare Worker（2026-09-14 部署完成並實測過）。
   // 填成預設值，換一台電腦／換一個瀏覽器都不用再設定一次；
   // ⚙ 面板裡填的值會蓋過它（要換 Worker 或本機測試時用）。
@@ -56,6 +89,17 @@
     lastErr: '',
     tries: 0,
     fresher: false,      // 伺服器上已經有更新的資料，但盤中不自動重載
+    // ---- SSE
+    mode: 'poll',        // 現在真的走哪條路：'sse' 推送／'poll' 輪詢
+    es: null,            // EventSource
+    sseIds: '',          // 這條連線訂的是哪一組代號（畫面換了就要重開）
+    sseFails: 0,         // 連續失敗次數（連上就歸零）
+    sseEverOk: false,    // 這次開頁有沒有成功過
+    sseGaveUp: false,    // 放棄 SSE（按「更新」或改設定會重來）
+    sseTimer: null,      // 重連計時器
+    sseWatch: null,      // 看門狗
+    ssePaused: false,    // 分頁切到背景時暫停，不算失敗
+    sseAt: 0,            // 最後一次收到推送的時間
   };
 
   const ls = {
@@ -164,12 +208,166 @@
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
     const j = await r.json();
     if (j.rtcode && j.rtcode !== '0000') throw new Error('來源回 rtcode ' + j.rtcode);
+    return absorb(j);
+  }
+
+  /** mis 的整包回應 → { code: 報價 }。
+   *  輪詢與 SSE 推送共用這一支：兩條路拿到的是同一份上游 JSON，
+   *  解析各寫一套的話遲早會一邊對一邊錯（2026-09-15 那個「一直在跌」就是這樣來的）。 */
+  function absorb(j) {
     const out = {};
-    (j.msgArray || []).forEach(m => {
+    ((j && j.msgArray) || []).forEach(m => {
       const q = normalise(m);
       if (q.code) out[q.code] = q;
     });
     return out;
+  }
+
+  /** 把一包報價寫進 state 並重畫。推送與輪詢的收尾動作完全一樣。 */
+  function apply(pack) {
+    const n = Object.keys(pack).length;
+    if (!n) return 0;
+    state.quotes = Object.assign({}, state.quotes, pack);
+    state.lastOk = Date.now();
+    state.lastErr = '';
+    state.tries = 0;
+    paint();
+    return n;
+  }
+
+  // ---------------------------------------------------------------- SSE 推送
+  /* 這一整段就是「把每分鐘輪詢換成一條連線」。
+   *
+   * 設計上只有三個規矩，其他都是細節：
+   *   1. **推送是加分，輪詢是底線。** 任何一步失敗都回到輪詢，
+   *      而且立刻補抓一次，畫面不准出現缺口。
+   *   2. **只動 [data-live] 的格子。** 推送走的是跟輪詢同一個 apply() → paint()，
+   *      沒有另外一條會整頁重畫的路。
+   *   3. **重連一定要拿完整快照。** Worker 那邊對每條新連線的第一筆刻意不做去重，
+   *      所以重連＝補回斷線期間漏掉的值。
+   */
+
+  /** 這次要訂哪一組代號（跟輪詢用的是同一套 exch 規則）。 */
+  function streamIds() {
+    const ex = [];
+    codesOnScreen().forEach(c => exch(c).forEach(t => ex.push(t)));
+    return ex.slice(0, MAX_CODES * 2).join('|');
+  }
+
+  function clearWatch() {
+    if (state.sseWatch) { clearTimeout(state.sseWatch); state.sseWatch = null; }
+  }
+
+  /** 看門狗：連著卻沒聲音就當成斷了。
+   *  為什麼需要它：SSE 有一種最難查的壞法是「TCP 還在、資料不來」，
+   *  這時 onerror 永遠不會觸發，畫面會安靜地停住。 */
+  function armWatch() {
+    clearWatch();
+    state.sseWatch = setTimeout(() => {
+      dropStream('太久沒收到推送');
+    }, SSE_WATCHDOG_MS);
+  }
+
+  /** 關掉連線。paused=true 代表是我們自己暫停（切到背景），不算失敗。 */
+  function closeStream(paused) {
+    clearWatch();
+    if (state.sseTimer) { clearTimeout(state.sseTimer); state.sseTimer = null; }
+    if (state.es) { try { state.es.close(); } catch (e) { /* 已經關了 */ } state.es = null; }
+    state.ssePaused = !!paused;
+    if (state.mode === 'sse') { state.mode = 'poll'; reschedule(); }
+  }
+
+  /** 連線掉了：退回輪詢 → 立刻補抓一次 → 排一次重連。 */
+  function dropStream(why) {
+    const wasLive = state.mode === 'sse';
+    clearWatch();
+    if (state.es) { try { state.es.close(); } catch (e) { /* 已經關了 */ } state.es = null; }
+    state.mode = 'poll';
+    state.sseFails++;
+    // ★ 硬性要求：退回輪詢的同時馬上抓一次，不要等下一個整分鐘。
+    //   這一步就是「使用者不該看到任何壞掉的畫面」的實作。
+    reschedule();
+    if (autoOn()) tick(false);
+    if (!state.sseEverOk && state.sseFails >= SSE_GIVEUP) {
+      // 從頭到尾沒連上過 → 多半是 Worker 還是舊版（沒有 /stream）。
+      // 安靜地用輪詢就好，不要一直重試洗 console。
+      state.sseGaveUp = true;
+      stamp();
+      return;
+    }
+    const wait = SSE_BACKOFF[Math.min(state.sseFails - 1, SSE_BACKOFF.length - 1)];
+    if (state.sseTimer) clearTimeout(state.sseTimer);
+    state.sseTimer = setTimeout(() => { state.sseTimer = null; openStream(); }, wait);
+    stamp();
+    void wasLive; void why;
+  }
+
+  /** 開一條 SSE 連線。開不起來就當作一次失敗，交給 dropStream 處理。 */
+  function openStream() {
+    if (!autoOn() || state.sseGaveUp || state.ssePaused) return;
+    if (typeof EventSource === 'undefined') { state.sseGaveUp = true; return; }
+    const base = proxy();
+    if (!base) return;
+    const ids = streamIds();
+    if (!ids) return;                       // 畫面上一個代號都沒有，不用開
+    if (state.es && state.sseIds === ids) return;   // 同一組代號已經在推了
+    if (state.es) { try { state.es.close(); } catch (e) { /* 已經關了 */ } state.es = null; }
+    state.sseIds = ids;
+
+    let es;
+    try {
+      es = new EventSource(base + '/stream?ids=' + encodeURIComponent(ids));
+    } catch (e) {
+      dropStream('開不起來：' + e);
+      return;
+    }
+    state.es = es;
+
+    const alive = () => {
+      state.sseAt = Date.now();
+      state.sseEverOk = true;
+      state.sseFails = 0;
+      if (state.mode !== 'sse') { state.mode = 'sse'; reschedule(); }
+      armWatch();
+    };
+
+    es.addEventListener('hello', () => { alive(); stamp(); });
+    es.addEventListener('quote', ev => {
+      alive();
+      try {
+        const j = JSON.parse(ev.data);
+        if (j.rtcode && j.rtcode !== '0000') return;
+        apply(absorb(j));
+      } catch (e) { /* 壞掉的一筆不值得把整條連線收掉 */ }
+      stamp();
+    });
+    // 非交易時段：Worker 給一份快照就收線，我們安靜地退回慢速輪詢，不算失敗
+    es.addEventListener('idle', () => {
+      closeStream(false);
+      state.sseFails = 0;
+      stamp();
+    });
+    // 連線輪替（Worker 為了不撞免費方案的 CPU 上限，每 4 分鐘換一條）。
+    // 這是**正常結束**，所以不退避、直接重連。
+    es.addEventListener('bye', () => {
+      clearWatch();
+      if (state.es) { try { state.es.close(); } catch (e) { /* 已經關了 */ } state.es = null; }
+      state.sseFails = 0;
+      state.sseIds = '';
+      setTimeout(() => openStream(), 120);
+    });
+    es.onerror = () => {
+      // EventSource 自己也會重連，但它分不出「404」跟「網路抖一下」，
+      // 而且重連期間畫面是停的。所以一律由我們接手：先退回輪詢再自己排重連。
+      state.sseIds = '';
+      dropStream('連線錯誤');
+    };
+  }
+
+  /** 畫面上的代號換了一批（換頁）就重開連線，訂閱才會跟著換。 */
+  function syncStream() {
+    if (state.mode !== 'sse' && !state.es) { openStream(); return; }
+    if (streamIds() !== state.sseIds) { state.sseIds = ''; openStream(); }
   }
 
   // ---------------------------------------------------------------- 上色
@@ -228,12 +426,23 @@
     } else {
       const t = q && q.time ? q.time.slice(0, 5) : new Date(state.lastOk)
         .toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false });
-      txt = (intr ? '即時 ' : '收盤 ') + t + (autoOn() ? (intr ? '　每分鐘' : '　每 30 分') : '　自動已關');
+      /* ★ 走哪條路要寫在臉上（Andy 2026-09-23）。
+         放在既有的狀態列後面，不另外做一塊 —— 這件事平常不重要，
+         只有「數字為什麼跳得比較慢」的時候才需要看得到。 */
+      const way = state.mode === 'sse' ? '　推送（SSE）'
+        : autoOn() ? (intr ? '　每分鐘（輪詢）' : '　每 30 分（輪詢）')
+          : '　自動已關';
+      txt = (intr ? '即時 ' : '收盤 ') + t + way;
       cls = intr ? 'live' : 'ok';
       if (state.fresher) { txt = '有新資料，按「更新」載入'; cls = 'bad'; }
     }
     el.textContent = txt;
     el.className = 'livestate ' + cls;
+    el.title = state.mode === 'sse'
+      ? '推送（SSE）：跟代理保持一條連線，值一變就送過來（約 5 秒）。'
+      : (state.sseGaveUp
+        ? '輪詢：代理沒有推送功能（可能還沒更新到新版），已退回每分鐘抓一次。'
+        : '輪詢：目前用固定間隔去抓；推送連上之後會自動切過去。');
     btn.disabled = state.busy;
     btn.textContent = state.busy ? '更新中…' : '更新';
     void A;
@@ -242,16 +451,22 @@
   // ---------------------------------------------------------------- 一輪
   async function tick(manual) {
     if (state.busy) return;
-    if (manual) { state.tries = 0; if (!state.timer && autoOn()) reschedule(); }
+    if (manual) {
+      state.tries = 0;
+      if (!state.timer && autoOn()) reschedule();
+      // 手動按「更新」＝「再試一次」的意思，所以連 SSE 的放棄旗標一起歸零。
+      // 使用者剛把 Worker 重新部署好、或剛離開擋掉它的網路時，按一下就能切回推送。
+      state.sseGaveUp = false; state.sseFails = 0; state.ssePaused = false;
+      if (!state.es) openStream();
+    }
     // 分頁在背景就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
     const codes = codesOnScreen();
     state.busy = true; stamp();
     try {
       if (proxy() && codes.length) {
-        state.quotes = Object.assign({}, state.quotes, await fetchQuotes(codes));
+        apply(await fetchQuotes(codes));
         state.lastOk = Date.now(); state.lastErr = ''; state.tries = 0;
-        paint();
       } else if (!proxy()) {
         state.lastErr = '還沒設定代理網址';
       }
@@ -298,7 +513,9 @@
 
   function reschedule() {
     if (state.timer) clearInterval(state.timer);
-    state.timer = autoOn() ? setInterval(() => tick(false), intervalMs()) : null;
+    // SSE 活著的時候不是把輪詢關掉，而是放慢到五分鐘一次當對帳（見 MS_SAFETY）。
+    const ms = state.mode === 'sse' ? MS_SAFETY : intervalMs();
+    state.timer = autoOn() ? setInterval(() => tick(false), ms) : null;
     stamp();
   }
 
@@ -319,6 +536,9 @@
       ls.set(KEY_ON, chk.checked ? '1' : '0');
       state.lastOk = 0; state.lastErr = '';
       pop.hidden = true;
+      // 換了 Worker 網址或開關 → 舊連線一定要收掉重開，不然還連在舊的那台
+      closeStream(false);
+      state.sseGaveUp = false; state.sseFails = 0; state.sseIds = '';
       reschedule();
       tick(true);
     };
@@ -331,7 +551,15 @@
         const r = await fetch(base + '/quote?ex_ch=tse_2330.tw', { cache: 'no-store' });
         const j = await r.json();
         const m = (j.msgArray || [])[0];
-        out.textContent = m ? `通了：${m.n} ${m.z}（${m.d} ${m.t}）` : '回應沒有資料：' + JSON.stringify(j).slice(0, 80);
+        if (!m) { out.textContent = '回應沒有資料：' + JSON.stringify(j).slice(0, 80); return; }
+        // 順便問一下 /health，讓使用者看得出這台 Worker 是不是已經更新到支援推送的版本。
+        // 沒有推送不是錯誤（會退回輪詢），但它解釋了「為什麼數字跳得比較慢」。
+        let way = '（推送：查不到，會用輪詢）';
+        try {
+          const h = await (await fetch(base + '/health', { cache: 'no-store' })).json();
+          way = (h.features || []).indexOf('stream') >= 0 ? '（支援推送）' : '（舊版，只有輪詢）';
+        } catch (e) { /* 問不到就照上面那句講 */ }
+        out.textContent = `通了：${m.n} ${m.z}（${m.d} ${m.t}）${way}`;
       } catch (e) {
         out.textContent = '失敗：' + String(e.message || e).slice(0, 80);
       }
@@ -353,16 +581,31 @@
     MAX_CODES,
     get quotes() { return state.quotes; },
     get timerOn() { return !!state.timer; },   // 驗收用：自動更新到底有沒有在跑
+    get mode() { return state.mode; },         // 驗收用：現在真的走推送還是輪詢
+    get streamOn() { return !!state.es && state.mode === 'sse'; },
+    get sseGaveUp() { return state.sseGaveUp; },
     isIntraday,
     start() {
       const btn = document.getElementById('liveBtn');
       if (btn) btn.onclick = () => tick(true);
       wireSettings();
       reschedule();
-      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(false); });
-      // 換頁之後畫面上的代號就換了一批，重抓一次讓新的那批也有即時價
-      window.addEventListener('hashchange', () => setTimeout(() => tick(false), 800));
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+          // 背景分頁不該一直佔著一條連線（跟輪詢在背景不跑是同一個道理）
+          closeStream(true);
+        } else {
+          state.ssePaused = false;
+          tick(false);
+          openStream();     // 重連會拿到完整快照，剛好補回背景期間的變化
+        }
+      });
+      // 換頁之後畫面上的代號就換了一批，重抓一次讓新的那批也有即時價，
+      // 並且把 SSE 的訂閱換成新的那一組（不換的話新頁面的格子永遠不會動）
+      window.addEventListener('hashchange', () => setTimeout(() => { tick(false); syncStream(); }, 800));
+      window.addEventListener('pagehide', () => closeStream(true));
       tick(false);
+      openStream();
     },
   };
 
