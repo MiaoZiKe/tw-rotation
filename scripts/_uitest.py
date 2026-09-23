@@ -20027,7 +20027,7 @@ def t_b28_elec3d(pg, base):
         # 拿畫面位移當唯一證據會變成「看不到就當沒給」—— 那是量錯了東西。
         noex = pg.evaluate("""(id) => { const s = window.Rack3D.SCENES[id];
             return s.parts.filter(p => !p.ex || (!p.ex[0] && !p.ex[1] && !p.ex[2])).map(p => p.part); }""",
-                           B28_SCENE_OF[route.rsplit("/", 1)[-1]])
+                           _sid)
         ok(f"[{nice}] 每個零件都給了爆炸位移 ex（收攏看得出成品、展開看得出層次）", not noex, noex)
 
         # ---------------- ④ 真的用滑鼠點一顆零件 → 只有那一顆；點背景 → 回到點之前的樣子
