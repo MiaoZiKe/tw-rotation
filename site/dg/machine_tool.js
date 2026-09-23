@@ -389,17 +389,17 @@
     /* ⚠ 兩格都**不可以用 rotate 把長方形轉起來**（正視圖裡那是歪掉的棒子，不是在轉）：
        銑削那格用「刀刃上會往下跑的斜虛線 ＋ 鼻端的透視圓環」表示刀在轉；
        車床那格用「夾頭是正面的圓、繞中心轉」表示工件在轉 —— 圓轉起來才是對的。*/
-    const mring = `M156,${cy - 30} a14,5 0 1,0 28,0 a14,5 0 1,0 -28,0`;
+    const mring = `M226,${cy - 22} a14,5 0 1,0 28,0 a14,5 0 1,0 -28,0`;
     const mc = `<g data-part="mt_cmp_mill">`
       + `<rect class="part frame" x="28" y="${y0 + 40}" width="296" height="150" rx="7"/>`
       + T(42, y0 + 62, '綜合加工機（銑削）：刀在轉', 'lbl')
-      + R(116, cy, 108, 26, 'var(--dg-mc-cam)', null, 2)
-      + T(170, cy + 42, '工件（夾著不動）', 'sub', 'middle')
-      + R(158, cy - 64, 24, 8, 'var(--dg-steel-2)', null, 2)
-      + PA(`M160,${cy - 56} L180,${cy - 56} L177,${cy - 38} L163,${cy - 38}Z`, 'var(--dg-mute)')
-      + PA(`M165,${cy - 38} L175,${cy - 38} L174,${cy - 12} L166,${cy - 12}Z`, 'var(--dg-mc-cam)')
-      + LN(`M166,${cy - 34} L174,${cy - 26}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
-      + LN(`M166,${cy - 24} L174,${cy - 16}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
+      + R(186, cy + 4, 108, 26, 'var(--dg-mc-cam)', null, 2)
+      + T(240, cy + 46, '工件（夾著不動）', 'sub', 'middle')
+      + R(228, cy - 46, 24, 8, 'var(--dg-steel-2)', null, 2)
+      + PA(`M230,${cy - 38} L250,${cy - 38} L247,${cy - 22} L233,${cy - 22}Z`, 'var(--dg-mute)')
+      + PA(`M235,${cy - 22} L245,${cy - 22} L244,${cy + 6} L236,${cy + 6}Z`, 'var(--dg-mc-cam)')
+      + LN(`M236,${cy - 18} L244,${cy - 10}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
+      + LN(`M236,${cy - 8} L244,${cy}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
       + LN(mring, 'var(--dg-accent-2d)', 1.2, ' opacity=".7"')
       + `<circle r="2.8" fill="var(--dg-flow-dot)"><animateMotion dur="1.1s" repeatCount="indefinite" path="${mring}"/></circle>`
       + T(42, y0 + 178, '刀具裝在主軸上旋轉，工作台帶著工件沿 X／Y 走位', 'sub')
