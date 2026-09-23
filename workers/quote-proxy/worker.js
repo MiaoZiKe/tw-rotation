@@ -201,7 +201,13 @@ export default {
         body: TAIFEX_BODY(night),
       });
       try {
-        const r = await fetch(upstream, { cf: { cacheTtl: CACHE_QUOTE, cacheEverything: true } });
+        /* ★ 2026-09-23：這裡原本帶 cf: { cacheTtl, cacheEverything: true }。
+           **那組選項只對 GET 有效** —— 這是 POST，POST 的回應本來就不可快取，
+           帶著它送出去會讓子請求出錯，Cloudflare 對外就回 520
+           （Andy 看到的「代理回 HTTP 520」）。拿掉，改用下面的 fetchRetry 擋瞬斷。
+           要節流的話該做在「同一份上游結果給多條連線共用」那一層（/stream 已經有），
+           不是在這裡硬掛一個對 POST 無效的選項。 */
+        const r = await fetchRetry(upstream);
         const txt = await r.text();
         return new Response(txt, { status: r.status,
           headers: { 'Content-Type': 'application/json; charset=utf-8',
@@ -230,7 +236,7 @@ export default {
         body: JSON.stringify({ SymbolID: sym }),
       });
       try {
-        const r = await fetch(upstream, { cf: { cacheTtl: CACHE_CHART, cacheEverything: true } });
+        const r = await fetchRetry(upstream);   // 同上：POST 不可帶 cf 快取選項，會回 520
         const txt = await r.text();
         return new Response(txt, { status: r.status,
           headers: { 'Content-Type': 'application/json; charset=utf-8',
@@ -358,6 +364,29 @@ function sessionNow() {
   if (m >= 9 * 60 && m <= 13 * 60 + 35) return 'trade';            // 盤中
   if ((m >= 8 * 60 + 30 && m < 9 * 60) || (m > 13 * 60 + 35 && m <= 14 * 60 + 30)) return 'edge';
   return 'closed';                                                  // 夜間／假日
+}
+
+/** 打上游一次，瞬斷就再試一次。
+ *
+ *  為什麼要有：期交所那兩支是 POST，不能走邊緣快取（見 /fut、/futchart 裡的註解），
+ *  所以每一次都是真的連出去，偶發的連線重置就會直接變成使用者眼前的空白。
+ *  只重試一次、間隔 250ms —— 再多就會拖長使用者等待，而且 Worker 的 CPU 額度也有限。
+ *  ★ 重試要重建 Request：Request 的 body 是 stream，用過就不能再用。 */
+async function fetchRetry(req, tries = 2) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      const r = await fetch(req.clone());
+      if (r.status < 500 || i === tries - 1) return r;
+      last = r;
+    } catch (e) {
+      last = e;
+      if (i === tries - 1) throw e;
+    }
+    await new Promise(res => setTimeout(res, 250));
+  }
+  if (last instanceof Response) return last;
+  throw last;
 }
 
 /** 期交所台指期夜盤：台北 15:00 ~ 翌日 05:00（週一~週五開盤，週五夜盤跨到週六凌晨）。
