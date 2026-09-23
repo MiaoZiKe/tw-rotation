@@ -20957,7 +20957,17 @@ def t_night_fixture(b, base):
     FUT_NIGHT = S["taifex_quotelist_night"]["sample"]          # TXFJ6-M 最新 48180、量 7574
     FUT_DAY = S["taifex_quotelist_day"]["sample"]              # 日盤那一份（-F 合約）
     CHART_NIGHT = S["taifex_chartdata_1m_night"]["sample"]     # Ticks 最後一筆收 48180
-    LAST = 48180                                               # fixture 裡真正的夜盤收盤價
+    # ★ 2026-09-23 修正：這一行原本寫死 48180。fixture 是**會被重新探測覆蓋的**
+    #    （同一天就跑了兩輪，20:32 那輪收 48180、20:39 那輪收 48204），
+    #    寫死就等於「fixture 一更新，這一段必紅」—— 而且紅的是驗收，不是產品。
+    #    改成從 fixture 自己的最後一筆 Tick 讀出來，斷言才跟著資料走。
+    #    這跟今天稍早 tests/test_delivery_log.py 把筆數寫死成 34 是同一種毛病。
+    #    Ticks 的一筆是**陣列**不是物件：["204000","48196.00","48204.00","48196.00","48204.00","20"]
+    #    ＝ [時間, 開, 高, 低, 收, 量]，所以收盤價是 index 4。
+    _ticks = ((CHART_NIGHT.get("RtData") or {}).get("Ticks") or [])
+    assert _ticks, "fixture 裡沒有 Ticks，這一段的前提不成立"
+    LAST = int(float(_ticks[-1][4]))
+    LAST_TXT = f"{LAST:,}"                                     # 畫面上是帶千分位的寫法
     FIXED = "2026-09-23T12:39:00Z"                             # ＝台北 2026-09-23 20:39
 
     PROBE = """() => { const s = window.Market3.state, el = document.getElementById('m3c-FUT');
@@ -21023,7 +21033,7 @@ def t_night_fixture(b, base):
            {"series": r["series"], "canvas": r["canvas"], "txt": r["txt"][:90]})
         ok(f"{tag} 線的最後一點就是 fixture 裡那個收盤價 {LAST}",
            r["last"] is not None and abs(float(r["last"]) - LAST) < 0.5, r["last"])
-        ok(f"{tag} 卡片上的成交價也是 {LAST}", "48,180" in r["px"], r["px"])
+        ok(f"{tag} 卡片上的成交價也是 {LAST}", LAST_TXT in r["px"], r["px"])
         ok(f"{tag} 標成夜盤、而且是 fixture 裡那支近月合約 TXFJ6-M",
            "夜盤" in r["nums"] and "TXFJ6-M" in r["nums"], r["nums"][:120])
         ok(f"{tag} 沒有拿日盤冒充夜盤（fallback 那行字不准出現）", r["fb"] == "", r["fb"])
@@ -21038,7 +21048,7 @@ def t_night_fixture(b, base):
        {"series": r["series"], "e1": r["e1"], "e2": r["e2"], "txt": r["txt"][:110]})
     ok("★ 只靠 /futchart 也要畫得出整晚的線，收盤價一樣是 " + str(LAST),
        r["last"] is not None and abs(float(r["last"]) - LAST) < 0.5, r["last"])
-    ok("★ 只靠 /futchart 時，上排數字也要有（不是「—」）", "48,180" in r["px"], r["px"])
+    ok("★ 只靠 /futchart 時，上排數字也要有（不是「—」）", LAST_TXT in r["px"], r["px"])
     ok("推算出來的近月代號就是 TXFJ6-M（2026-09-23 已過第三個星期三 → 滾到 10 月）",
        "TXFJ6-M" in r["nums"], r["nums"][:120])
 
@@ -21047,8 +21057,8 @@ def t_night_fixture(b, base):
     r = shot("Asia/Taipei", "day", "ok")
     ok("/fut 回日盤合約時，夜盤序列不准被丟掉", (r["series"] or 0) >= 2,
        {"series": r["series"], "txt": r["txt"][:110]})
-    ok("/fut 回日盤合約時，上排數字要走夜盤序列自己帶的 Quote（48,180，不是日盤那個數字）",
-       "48,180" in r["px"], r["px"])
+    ok(f"/fut 回日盤合約時，上排數字要走夜盤序列自己帶的 Quote（{LAST_TXT}，不是日盤那個數字）",
+       LAST_TXT in r["px"], r["px"])
 
     # ---------------- ④ 兩支都掛 → 還是要空白（Andy 2026-09-23：「若沒有資訊則空白」）
     r = shot("Asia/Taipei", "fail", "fail")

@@ -110,6 +110,7 @@
   const KEY_BIG = 'tw.m3.big';       // 放大哪一張（空字串＝三張並排）
   const KEY_FUTS = 'tw.m3.fut';      // 台指期看日盤還是夜盤
   const KEY_NPTS = 'tw.m3.nightpts'; // 夜盤累積到的報價點（真實觀測值，以 CDate 分天）
+  const KEY_FSYM = 'tw.m3.futsym';   // 最後一次真的問到的近月合約代號（見 futSymbol()）
 
   const IDX = [
     // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
@@ -224,11 +225,25 @@
       state.futNight = await fetchFut('night');
       state.futNightErr = '';
       pushNight(state.futNight);
+      if (state.futNight && state.futNight.symbol) rememberSym(state.futNight.symbol);
     } catch (e) { state.futNightErr = String(e.message || e); }
-    // 近月合約代號從報價清單來（每個月都在換，不寫死）；拿不到就沿用上一輪問到的那支
-    const sym = (state.futNight && state.futNight.symbol) || (state.futChart && state.futChart.symbol);
+    /* ★ 2026-09-23（夜盤空白的根因）：以前這裡是
+         `const sym = futNight.symbol || futChart.symbol; if (!sym) return;`
+       —— 那一個 `return` 讓 **`/futchart` 整支綁在 `/fut` 身上**：
+       `/fut` 在瀏覽器這邊只要失敗一次（被公司網路擋、代理回 403、逾時），
+       就連問都不會去問 `/futchart`，於是 `state.futChart` 永遠是空的，
+       `seriesOf()` 兩個條件同時不成立 → 整張卡片留白，錯誤訊息還寫成
+       「還沒問到今天的近月合約代號」，把讀者導去查一個根本沒壞的東西。
+       檔頭那句「兩者互不依賴地失敗」在這一行之前是**假的**。
+
+       近月合約代號其實不需要跟 `/fut` 要：它每個月只換一次，而且算得出來。
+       所以改成三層：① 這一輪真的問到的 ② 記在 localStorage 的上一支
+       ③ 從台北日期推算（見 `futSymbol()`）。猜錯的代價只是期交所回空序列，
+       跟現在的留白一樣，不會更糟；猜對就是整晚的線都回來了。 */
+    const sym = (state.futNight && state.futNight.symbol)
+      || (state.futChart && state.futChart.symbol) || futSymbol();
     if (!sym) { state.futChartErr = state.futChartErr || 'NOSYMBOL'; return; }
-    try { state.futChart = await fetchFutChart(sym); state.futChartErr = ''; }
+    try { state.futChart = await fetchFutChart(sym); state.futChartErr = ''; rememberSym(sym); }
     catch (e) { state.futChartErr = String(e.message || e); }
   }
 
@@ -262,6 +277,42 @@
   function futSession() {
     const mm = nightMin(taipeiNow());
     return (mm >= SESSION_NIGHT[0] && mm <= SESSION_NIGHT[1]) ? 'night' : 'day';
+  }
+
+  /* ---- 近月合約代號：不必跟 `/fut` 要 -----------------------------------------
+     `pullNight()` 以前只從報價清單拿代號，所以 `/fut` 一掛整條夜盤就斷（見那裡的說明）。
+     代號的規則是公開的，算得出來：
+       `TXF` ＋ 月碼 ＋ 西元年個位數 ＋ `-M`（夜盤；日盤是 `-F`）
+     月碼是台期所自己那一套 **A~L ＝ 1~12 月**（不是 CME 的 F,G,H…，那是選擇權用的）。
+     對照 fixture（docs/fixtures/taifex_night_probe.json，2026-09-23 夜盤實測）：
+       TXFJ6-M ＝ 臺指期 **10** 月（J 是第 10 個字母）、TXFK6-M ＝ 11 月、TXFL6-M ＝ 12 月。★ 對得上。
+
+     ⚠ 為什麼 9 月 23 日的近月是「10 月」：台指期在**每月第三個星期三**結算，
+     2026-09 的第三個星期三是 09-16，早就過了，所以近月已經滾到 10 月。
+     夜盤是「結算日當天晚上就算新的那一個月」，所以判斷用 `>=`。
+
+     ⚠ 這是**推算值**，不是期交所講的。猜錯的代價只是期交所回空序列
+     （畫面照樣留白，跟現在一樣），所以順序一律是「真的問到的 → 記住的 → 推算的」。*/
+  function rememberSym(sym) {
+    if (!/^[A-Za-z0-9]{3,8}-[FM]$/.test(String(sym || ''))) return;
+    ls.set(KEY_FSYM, String(sym).toUpperCase());
+  }
+  /** 這個月第三個星期三是幾號（台指期結算日）。 */
+  function thirdWed(y, m0) {
+    const first = new Date(Date.UTC(y, m0, 1)).getUTCDay();   // 0=日
+    return 1 + ((3 - first + 7) % 7) + 14;                    // 第一個星期三再加兩週
+  }
+  /** 夜盤近月合約代號。先用記住的，沒有才推算。 */
+  function futSymbol() {
+    const kept = (ls.get(KEY_FSYM, '') || '').toUpperCase();
+    if (/^[A-Z0-9]{3,8}-M$/.test(kept)) return kept;
+    const d = taipeiNow();
+    /* 夜盤凌晨那幾個小時屬於「前一天晚上」開始的那一盤，所以先把日期退回去，
+       月底跨月時才不會一口氣多滾一個月。*/
+    const t = new Date(d.getTime() - (d.getHours() < 6 ? 12 * 3600 * 1000 : 0));
+    let y = t.getFullYear(), m0 = t.getMonth();
+    if (t.getDate() >= thirdWed(y, m0)) { m0 += 1; if (m0 > 11) { m0 = 0; y += 1; } }
+    return 'TXF' + 'ABCDEFGHIJKL'.charAt(m0) + String(y % 10) + '-M';
   }
   /** 現在該看哪一段：時鐘說了算，除非使用者「在這一段裡」自己切過。
    *  舊格式（只存 'day' / 'night' 的純字串）一律當成過期 —— 那正是造成黏住的那一版。*/
@@ -472,7 +523,15 @@
    *  真正的用處是官方那支暫時失敗時，畫面右邊不會停住。
    *  官方序列拿不到時就整條退回自己收的點（以前唯一的來源）。 */
   function nightSeries() {
-    const q = state.futNight;
+    /* ★ 2026-09-23：**只有真的落在夜盤時段的那一筆報價**才准拿來填數字。
+       夜盤時段外打 MarketType=1，期交所回的是日盤最後一筆（`inSession` 就是為此標的）。
+       以前這裡直接 `const q = state.futNight`，於是只要 `/futchart` 拿得到序列，
+       上排的開高低收與成交價就會被那筆**日盤**報價填滿，而標籤寫著「夜盤」——
+       那正是 Andy 2026-09-23 明講不要的「拿日盤冒充夜盤」。
+       更糟的是它還會連帶把圖弄空：下面那個「代號要對得上」的判斷會拿日盤合約
+       （`-F`）去比夜盤序列（`-M`），比不過就整條序列丟掉，變成「有數字、沒有線」。
+       濾掉之後這兩件事一起解決：數字改由序列自己帶的 Quote 提供，序列也留得住。*/
+    const q = (state.futNight && state.futNight.inSession) ? state.futNight : null;
     const fc = state.futChart;
     const base = nightBaseMs();
     // 自己收的點（[分鐘, 價, 累計量, 該段量]）
@@ -1425,6 +1484,7 @@
     },
     get futChart() { return state.futChart; },   // 驗收用：期交所分時序列接到了沒
     parseFutChart, tickMin,                      // 驗收用：時間欄位的坑（046000）有沒有處理對
+    futSymbol,                               // 驗收用：/fut 掛掉時推算出來的近月合約代號
     isIntraday,
   };
 })();
