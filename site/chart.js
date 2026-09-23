@@ -383,6 +383,19 @@
      - 為什麼存的是「日線」而不是各週期各存一份：週線月線本來就由日線在前端合成
        （`KUtil.resampleDaily`），存日線一份，三個週期共用。*/
   const HIST = Object.create(null);
+  /* 目錄檔：哪幾檔有更舊的歷史、各有幾段。
+     沒有它的話，全市場 2,341 檔裡那 1,996 檔沒有更舊歷史的股票，
+     每拖一次就打一次 404 —— console 會噴錯，而 `_preview.py` 的 console.error
+     關卡會當場抓到（2026-09-23 我第一版就是這樣被它擋下來的）。*/
+  let HIST_INDEX = null;
+  async function histIndex() {
+    if (HIST_INDEX) return HIST_INDEX;
+    try {
+      const r = await fetch('data/hist/index.json', { cache: 'force-cache' });
+      HIST_INDEX = r.ok ? await r.json() : { codes: {} };
+    } catch (e) { HIST_INDEX = { codes: {} }; }
+    return HIST_INDEX;
+  }
   function histState(code) {
     return HIST[code] || (HIST[code] = { pages: {}, daily: [], next: 0, done: false, fetches: 0, hits: 0 });
   }
@@ -588,7 +601,13 @@
         const b = nb[i];
         const p = { time: toTime(b[0]), open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] || 0 };
         this.data[i] = p;
-        this.candle.update(p);
+        /* ★ 一定要傳「複本」給 update()。
+           Lightweight Charts 的 update() 會**就地改寫**你傳進去的那個物件，
+           把 `time: '2026-09-22'` 換成 `{year, month, day}`。傳 this.data[i] 本人的話，
+           我們自己那份資料的 time 就變成物件了 —— 而 industry.js 的游標資訊框是
+           `KUtil.fmtTime(d.time, tf)`，拿到物件就印成 `NaN-NaN-NaN`（2026-09-23 實測，
+           截圖抓到的）。setData() 不會這樣，只有 update() 會，所以以前沒踩到。*/
+        this.candle.update({ time: p.time, open: p.open, high: p.high, low: p.low, close: p.close, volume: p.volume });
         this.stats.point++;
       }
       this.data.length = nb.length;
@@ -683,11 +702,19 @@
            根本沒人要看的歷史（多 49KB），而且畫面會無故往左長 1,000 根。
            回溯要由**使用者真的拖**觸發，不是由建圖觸發。*/
         if (!this.data || this.data.length < 50) return;
+        /* ★ 而且要**使用者真的動過這張圖**才算數。
+           歷史短的股票（只有 100 多根）一打開，左邊界本來就在畫面裡，
+           不設這道閘門的話「開啟個股頁」本身就會被當成「拖到頭了」，
+           於是還沒碰它就先下載一段。回補是使用者的動作換來的，不是開頁換來的。*/
+        if (!this._histArmed) return;
         // 左邊界還剩不到 12 根就先去要下一段，等使用者拖到底才要就會看到一段空白
         if (r.from > 12) return;
         this.loadOlder();
       };
       this.chart.timeScale().subscribeVisibleLogicalRangeChange(this._onRange);
+      this._arm = () => { this._histArmed = true; };
+      ['pointerdown', 'wheel', 'touchstart'].forEach(ev =>
+        this.el.addEventListener(ev, this._arm, { passive: true }));
     }
     /** 這張圖現在畫的是哪一檔。優先吃呼叫端給的，其次是 industry.js 寫在圖上的
      *  `_liveKey`（'代號|週期'），最後才從網址推 —— 個股頁的網址就是 #stock/<代號>。*/
@@ -717,6 +744,14 @@
       this._loading = true;
       this._histNote('載入更早的 K 棒…');
       try {
+        const idx = await histIndex();
+        const pages = (idx.codes || {})[code];
+        if (!pages || st.next >= pages) {
+          // 這一檔在資料湖裡沒有比個股頁更舊的歷史（回補還沒跑到它）
+          st.done = true;
+          this._histNote(pages ? '已經到最早一筆了' : '這一檔的更早歷史還在回補，目前只有畫面上這一段', 3200);
+          return 0;
+        }
         const j = await histFetch(code, st.next);
         if (!j || !j.bars || !j.bars.length) {
           st.done = true;
@@ -784,7 +819,10 @@
       if (!el) {
         el = this._noteEl = document.createElement('div');
         el.className = 'k-histnote';
-        el.style.cssText = 'position:absolute;left:10px;top:8px;z-index:4;pointer-events:none;'
+        /* 位置：左下角、時間軸上面一點。
+           不放左上角是因為那裡是 `.pane-labels`（游標資訊框「日期 開 高 低 收…」那一行），
+           疊上去會把它蓋掉 —— 實測截圖就是被蓋住看不見。*/
+        el.style.cssText = 'position:absolute;left:12px;bottom:34px;z-index:4;pointer-events:none;'
           + 'font:600 11.5px/1.5 "Noto Sans TC",sans-serif;padding:3px 9px;border-radius:999px;'
           + 'background:rgba(10,16,32,.78);color:#a9b6d6;border:1px solid rgba(62,224,255,.35)';
         this.el.appendChild(el);
@@ -879,6 +917,7 @@
         for (let i = i0; i < n; i++) {
           const v = f.pick(V, i);
           if (v === null || v === undefined || Number.isNaN(v)) continue;
+          // 同上：update() 會就地改寫傳進去的物件，所以每次都給一個新的
           const p = { time: this.data[i].time, value: v };
           if (f.color) p.color = f.color(V, i);
           f.s.update(p);
@@ -1103,6 +1142,7 @@
       if (this._ro) this._ro.disconnect();
       // ③ 的監聽與提示：圖表 remove 之後還留著的話，下一次拖曳會踩到已經死掉的 chart
       if (this._onRange) { try { this.chart.timeScale().unsubscribeVisibleLogicalRangeChange(this._onRange); } catch (e) { /* 圖已銷毀 */ } }
+      if (this._arm) ['pointerdown', 'wheel', 'touchstart'].forEach(ev => this.el.removeEventListener(ev, this._arm));
       clearTimeout(this._noteT);
       this.chart.remove();
     }

@@ -9142,11 +9142,22 @@ def t_mlcc(pg, base):
         return got
 
     def pick_group(pg_, gid):
-        # ★ 2026-09-23 C5 退版：沒有「族群節點」可以點了（節點回到公司卡）。
-        #   「選起這個族群」在退版的畫面上對應到二層分頁列那一格（每張剖析圖 ＝ 一個族群），
-        #   那才是使用者真的按得到的入口。
-        return pg_.evaluate("(g) => { const t = document.querySelector('#dgPick .segchip[data-dgid=\"' + g + '\"]');"
-                            " if (!t) return false; t.click(); return true; }", gid)
+        """把「現在選的是這個族群」這件事做出來，回傳有沒有真的做到。
+
+        ★ 2026-09-23 C5 退版之後，族群大圓點與族群卡片都不在畫面上了，所以分兩條路走 ——
+          兩條都是**使用者真的走得到的路徑**，不是繞過 UI 直接改狀態：
+            · 有專屬剖析圖的族群（mlcc／panel…）→ 點二層分頁列那一格（一張圖 ＝ 一個族群）
+            · 沒有專屬圖的族群（smartphone）    → 走它的族群網址 `#industry/group/<gid>`
+              （族群頁連結、熱力圖、資金流向排行都是這樣連過來的）
+          後者正是這一段要驗的情境：選到沒有圖的族群，圖要收起來、換回族群總覽。
+        """
+        hit = pg_.evaluate("(g) => { const t = document.querySelector('#dgPick .segchip[data-dgid=\"' + g + '\"]');"
+                           " if (!t) return false; t.click(); return true; }", gid)
+        if hit:
+            return True
+        pg_.goto(f"{base}#industry/group/{gid}", wait_until="networkidle")
+        pg_.wait_for_timeout(1800)
+        return pg_.evaluate("() => location.hash").endswith(gid)
 
     # ---------------- 1. 一般電子鏈：預設**不畫任何一張圖**，改成圖別選單
     #  Andy 2026-09-21：「不能一般電子點進去後就是 MLCC，因為他不代表全部」。

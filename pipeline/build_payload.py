@@ -732,6 +732,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     hist_dir = config.SITE_DATA / "hist"
     hist_dir.mkdir(parents=True, exist_ok=True)
     hist_stat = {"codes": 0, "files": 0, "bars": 0}
+    hist_pages: dict[str, int] = {}        # 代號 → 這一檔有幾段（給前端的目錄檔）
 
     # ★ 分 K 一律**只讀資料湖、不打 Yahoo**（DECISIONS #155 / #156）。
     #
@@ -954,10 +955,17 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                 for ch in chunks:
                     (d / f"p{ch['page']}.json").write_text(
                         json.dumps(dict(ch, code=code, tf="1d"), ensure_ascii=False), encoding="utf-8")
+                hist_pages[code] = len(chunks)
                 hist_stat["codes"] += 1
                 hist_stat["files"] += len(chunks)
                 hist_stat["bars"] += sum(len(c["bars"]) for c in chunks)
 
+    # 目錄檔：哪幾檔有更舊的歷史、各有幾段。前端第一次要回補時先讀它 ——
+    # 沒有這一份的話，對「沒有更舊歷史」的股票（全市場 2,341 檔裡有 1,996 檔）
+    # 每拖一次就打一次 404，console 會噴錯（`_preview.py` 的 console.error 關卡會直接抓到）。
+    (hist_dir / "index.json").write_text(
+        json.dumps({"chunk": stockpage.HIST_CHUNK, "codes": hist_pages}, ensure_ascii=False),
+        encoding="utf-8")
     log.info("歷史回溯分頁：%d 檔 / %d 個檔案 / %d 根日 K",
              hist_stat["codes"], hist_stat["files"], hist_stat["bars"])
 
