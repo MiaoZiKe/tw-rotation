@@ -372,6 +372,46 @@
     destroy() { try { this.kc.candle.detachPrimitive(this.prim); } catch (e) { /* 圖已銷毀 */ } }
   }
 
+  // ---------------------------------------------------------------- ③ 歷史無限回溯
+  /* 往左拖到頭就自動載入更舊的 K 棒。
+     - 資料來自 `data/hist/<代號>/p<N>.json`，由 `pipeline/build_payload.py` 從資料湖產出：
+       p0 是「個股頁那 1,250～1,500 根再往前的第一段」，p1 更舊，依此類推。
+       每一份自己帶 `prev`：prev 是 null 就代表**這已經是資料湖裡最早的一段**，
+       前端看到 null 就收手，不會再往下打請求（Andy 要的「拖到最早一筆要停下來」）。
+     - 快取放在模組層，key 是代號：換週期、離開再回到同一檔都不會重抓。
+       `fetches` / `hits` 是驗收用的 —— 「有沒有重抓」這件事一樣不能用眼睛猜。
+     - 為什麼存的是「日線」而不是各週期各存一份：週線月線本來就由日線在前端合成
+       （`KUtil.resampleDaily`），存日線一份，三個週期共用。*/
+  const HIST = Object.create(null);
+  /* 目錄檔：哪幾檔有更舊的歷史、各有幾段。
+     沒有它的話，全市場 2,341 檔裡那 1,996 檔沒有更舊歷史的股票，
+     每拖一次就打一次 404 —— console 會噴錯，而 `_preview.py` 的 console.error
+     關卡會當場抓到（2026-09-23 我第一版就是這樣被它擋下來的）。*/
+  let HIST_INDEX = null;
+  async function histIndex() {
+    if (HIST_INDEX) return HIST_INDEX;
+    try {
+      const r = await fetch('data/hist/index.json', { cache: 'force-cache' });
+      HIST_INDEX = r.ok ? await r.json() : { codes: {} };
+    } catch (e) { HIST_INDEX = { codes: {} }; }
+    return HIST_INDEX;
+  }
+  function histState(code) {
+    return HIST[code] || (HIST[code] = { pages: {}, daily: [], next: 0, done: false, fetches: 0, hits: 0 });
+  }
+  async function histFetch(code, n) {
+    const st = histState(code);
+    if (st.pages[n] !== undefined) { st.hits++; return st.pages[n]; }
+    st.fetches++;
+    let j = null;
+    try {
+      const r = await fetch(`data/hist/${code}/p${n}.json`, { cache: 'force-cache' });
+      j = r.ok ? await r.json() : null;
+    } catch (e) { j = null; }
+    st.pages[n] = j;      // 連「沒有這一段」都要記下來，不然每拖一次就再打一次 404
+    return j;
+  }
+
   // ---------------------------------------------------------------- 圖表
   /* 主題：色票 C 的預設值是深色，切到明亮主題時由 refreshTheme() 就地改寫。
      Lightweight Charts 的顏色是建圖當下寫進去的，所以換主題一定要把圖重建（app.js 會重跑 route()）。 */
@@ -434,11 +474,27 @@
       this.divPane = null;               // MACD 面板那一條，等 applyIndicators 建好 series 才掛
       this.overlays = []; this.panes = {}; this.priceLines = []; this.markers = null;
       this.bars = []; this.tf = this.opts.tf; this.paneIndex = {};
+      /* ②③ 的狀態。
+         stats 是驗收用的計數器 —— 「有沒有重畫整張圖」這件事沒有計數器就只能用眼睛猜，
+         而用眼睛猜正是以前放過一堆錯的原因（`_uitest.py` 會直接讀這幾個數字）。
+           setData  整條重灌了幾次（換股／換週期／回補歷史才該 +1）
+           tick     走過幾次「只更新尾巴」的快路
+           point    總共推了幾個單點（K 棒 + 各指標線）
+           rebuild  指標 series 整組重建了幾次 */
+      this.stats = { setData: 0, tick: 0, point: 0, rebuild: 0, backfill: 0 };
+      this._feeds = [];          // 每條指標線怎麼從 values 取值（只更新尾巴時用）
+      this._tailFrom = null;     // setBars 判定「只有這個 index 之後變了」
+      this._histAdded = 0;       // ③ 已經往左補了幾根
       if (!this.opts.mini) {
         this.labels = document.createElement('div'); this.labels.className = 'pane-labels'; el.appendChild(this.labels);
         this.wm = document.createElement('div'); this.wm.className = 'k-wm'; el.appendChild(this.wm);
         this._wheelOnPriceAxis();
         this._ro = new ResizeObserver(() => this._layoutLabels()); this._ro.observe(el);
+        this._initHistory();          // ③ 往左拖到頭就自動補更舊的 K 棒
+        /* 驗收用的把手：`_uitest.py` 要能拿到「畫面上那張大 K 線圖」本人，
+           才驗得了「灌一筆報價之後最後一根真的變了、而且前面的棒子沒被動到」。
+           只記整頁大圖（mini／compact 的小卡不覆蓋它）。*/
+        KChart.last = this;
       }
     }
     setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
@@ -477,6 +533,19 @@
      *  所以即時更新時保留目前的可視範圍，只有「換股票／換週期」才重新定位。 */
     setBars(bars, tf, keepView) {
       const ts = this.chart.timeScale();
+      /* ② 即時更新的快路。
+         盤中每幾秒送進來的那一份 bars，跟上一份的差別只有「最後一根被改掉」
+         （或多了一根新的）。以前不分青紅皂白整條 setData 重灌，於是
+         每一輪都是整張圖重畫一次 —— Andy 說的「要等資料整批換掉才會跳」就是這件事。
+         現在先比對一次：只有尾巴不一樣，就走 candle.update() 單點更新。*/
+      if (keepView && (!tf || tf === this.tf) && this.data && this.data.length && bars && bars.length) {
+        const d = this._tailDiff(bars);
+        if (d >= 0) { this._applyTail(bars, d); return; }
+      }
+      this._histAdded = 0;      // 整條重灌＝回補的那些也沒了，重新算起
+      this._histDailyUsed = 0;  // 快取裡的更舊日線要重新接一次（換週期時就是走這條）
+      this._lastCum = null;     // 換股／換週期，即時量的基準也要跟著歸零
+      this.stats.setData++;
       const keep = keepView ? ts.getVisibleLogicalRange() : null;
       const grew = keep && this.data ? bars.length - this.data.length : 0;
       this.tf = tf || this.tf; this.bars = bars;
@@ -508,8 +577,276 @@
       // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
       if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
     }
+    /** 新舊兩份 bars 的差在哪一根。
+     *  回傳「從第幾根開始不一樣」；只要有任何一根**舊資料的最後一根之前**被改過，
+     *  就回 -1（＝不是單純的即時更新，必須整條重灌）。
+     *  允許多出 1~3 根：換日、或是連續兩輪之間跨了一根分 K。 */
+    _tailDiff(nb) {
+      const ob = this.bars;
+      if (!ob || !ob.length) return -1;
+      const grew = nb.length - ob.length;
+      if (grew < 0 || grew > 3) return -1;
+      const same = (a, b) => !!a && !!b && String(a[0]) === String(b[0])
+        && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && (a[5] || 0) === (b[5] || 0);
+      for (let i = 0; i < ob.length - 1; i++) if (!same(ob[i], nb[i])) return -1;
+      return ob.length - 1;
+    }
+    /** 只把 from 之後那幾根推進圖裡。前面的棒子一根都不碰。 */
+    _applyTail(nb, from) {
+      const ts = this.chart.timeScale();
+      const keep = ts.getVisibleLogicalRange();
+      const grew = nb.length - this.bars.length;
+      this.bars = nb;
+      for (let i = from; i < nb.length; i++) {
+        const b = nb[i];
+        const p = { time: toTime(b[0]), open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] || 0 };
+        this.data[i] = p;
+        /* ★ 一定要傳「複本」給 update()。
+           Lightweight Charts 的 update() 會**就地改寫**你傳進去的那個物件，
+           把 `time: '2026-09-22'` 換成 `{year, month, day}`。傳 this.data[i] 本人的話，
+           我們自己那份資料的 time 就變成物件了 —— 而 industry.js 的游標資訊框是
+           `KUtil.fmtTime(d.time, tf)`，拿到物件就印成 `NaN-NaN-NaN`（2026-09-23 實測，
+           截圖抓到的）。setData() 不會這樣，只有 update() 會，所以以前沒踩到。*/
+        this.candle.update({ time: p.time, open: p.open, high: p.high, low: p.low, close: p.close, volume: p.volume });
+        this.stats.point++;
+      }
+      this.data.length = nb.length;
+      this.stats.tick++;
+      this._tailFrom = from;     // 接下來 applyIndicators 會用它決定只更新尾巴
+      /* 多了一根的時候：貼著右緣看的人要跟著新棒子走。
+         捲到左邊看歷史的人什麼都不用做 —— 新棒子接在右邊，舊棒子的 index 沒有變，
+         所以可視的邏輯範圍原封不動就是「留在原地」。*/
+      if (grew > 0 && keep && keep.to >= (nb.length - grew) - 1.5) {
+        ts.setVisibleLogicalRange({ from: keep.from + grew, to: keep.to + grew });
+      }
+      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+    }
+    /** ② 直接把一筆即時報價灌進「當根 K 棒」。
+     *
+     *  q = { price, volume(累計張數), time:'HH:MM:SS', date:'YYYY-MM-DD' }，形狀就是
+     *  `live.js` 的 `normalise()` 產出、`Live.quotes[code]` 裡放的那個。
+     *
+     *  兩件事要分清楚：
+     *   - **還在同一根**：高 = max(高, 價)、低 = min(低, 價)、收 = 價（開盤價不動）。
+     *   - **跨到下一根**：開 = 高 = 低 = 收 = 價，**開一根新的**，不是把舊的那根改掉。
+     *  量：日／週／月線的當天量，mis 給的就是「當天累計」，直接用它才對（累加會重複算）；
+     *  分 K 的一根只佔幾分鐘，所以用「這一輪累計 − 上一輪累計」的增量累加上去。
+     *  回傳 'update' / 'new' / null，驗收時才看得出到底發生了哪一種。 */
+    applyQuote(q) {
+      if (!q || q.price == null || !this.bars || !this.bars.length) return null;
+      const last = this.bars[this.bars.length - 1];
+      const key = this._bucketOf(q);
+      if (key == null) return null;
+      const price = +q.price;
+      const cum = q.volume == null ? null : +q.volume * 1000;   // mis 給張，資料湖存股
+      const dv = (cum == null || this._lastCum == null || cum < this._lastCum) ? 0 : cum - this._lastCum;
+      const daily = this.tf === '1d' || this.tf === '1w' || this.tf === '1M';
+      let nb;
+      if (String(key) > String(last[0])) {
+        // 跨根：開一根新的
+        const vol = daily && this.tf === '1d' ? (cum || 0) : dv;
+        nb = this.bars.concat([[key, price, price, price, price, vol]]);
+      } else if (String(key) === String(last[0])) {
+        const b = last.slice();
+        b[2] = Math.max(b[2], price); b[3] = Math.min(b[3], price); b[4] = price;
+        if (this.tf === '1d' && cum != null) b[5] = cum;          // 當天累計就是這一根的量
+        else b[5] = (b[5] || 0) + dv;                             // 週／月／分 K 用增量往上加
+        nb = this.bars.slice(); nb[nb.length - 1] = b;
+      } else {
+        return null;   // 報價比圖上最後一根還舊（假日／停牌），不要動
+      }
+      this._lastCum = cum;
+      const kind = nb.length > this.bars.length ? 'new' : 'update';
+      const d = this._tailDiff(nb);
+      if (d < 0) return null;
+      this._applyTail(nb, d);
+      if (this.cfg) this.applyIndicators(this.cfg);   // 指標跟著重算，線不能跟 K 棒對不起來
+      return kind;
+    }
+    /** 這筆報價該落在哪一根上（日線＝日期字串；週／月線＝當下那一根的標籤；分 K＝epoch）。*/
+    _bucketOf(q) {
+      const date = String(q.date || '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3');
+      const last = this.bars[this.bars.length - 1];
+      if (this.tf === '1d') return date || last[0];
+      if (this.tf === '1w' || this.tf === '1M') {
+        /* 週／月線的那一根一直是「當週／當月」，只有跨週跨月才換 —— 而換的時候
+           那一根的標籤是「該週最後一個交易日」，盤中不可能事先知道，
+           所以直接用今天的日期當新的一根（收盤後資料湖會給正式的那一根）。*/
+        if (!date) return last[0];
+        return this._sameBucket(String(last[0]), date) ? last[0] : date;
+      }
+      const m = /^(\d+)m$/.exec(this.tf || '');
+      if (!m || typeof last[0] !== 'number') return null;
+      const step = +m[1] * 60;
+      const ts = Date.parse(`${date || ''}T${q.time || '00:00:00'}`);
+      if (!isFinite(ts)) return null;
+      return Math.floor((Math.floor(ts / 1000) + TZ) / step) * step;
+    }
+    _sameBucket(a, b) {
+      if (this.tf === '1M') return a.slice(0, 7) === b.slice(0, 7);
+      const mon = (x) => { const d = new Date(x + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7)); return d.toISOString().slice(0, 10); };
+      return mon(a) === mon(b);
+    }
     setZones(z, style) { this.zones.setZones(z, style); }
     setZoneStyle(style) { this.zones.setStyle(style); }
+    /* ③ 掛上「拖到左邊界就補」的監聽。只有日／週／月線做得到 ——
+       分 K 的資料湖只留 60 分（730 天）與當天，往前補不到東西。*/
+    _initHistory() {
+      if (this.opts.mini) return;
+      this._onRange = (r) => {
+        if (!r || this._dead) return;
+        /* ★ 資料還沒進來就不要動作。
+           實測踩到：圖表剛 createChart、還沒 setBars 的那一瞬間，
+           Lightweight Charts 會先發一次「空資料的可視範圍」（from 在 0 附近），
+           當場就被當成「使用者拖到左邊界了」——於是一打開個股頁就自動下載一段
+           根本沒人要看的歷史（多 49KB），而且畫面會無故往左長 1,000 根。
+           回溯要由**使用者真的拖**觸發，不是由建圖觸發。*/
+        if (!this.data || this.data.length < 50) return;
+        /* ★ 而且要**使用者真的動過這張圖**才算數。
+           歷史短的股票（只有 100 多根）一打開，左邊界本來就在畫面裡，
+           不設這道閘門的話「開啟個股頁」本身就會被當成「拖到頭了」，
+           於是還沒碰它就先下載一段。回補是使用者的動作換來的，不是開頁換來的。*/
+        if (!this._histArmed) return;
+        // 左邊界還剩不到 12 根就先去要下一段，等使用者拖到底才要就會看到一段空白
+        if (r.from > 12) return;
+        this.loadOlder();
+      };
+      this.chart.timeScale().subscribeVisibleLogicalRangeChange(this._onRange);
+      this._arm = () => { this._histArmed = true; };
+      ['pointerdown', 'wheel', 'touchstart'].forEach(ev =>
+        this.el.addEventListener(ev, this._arm, { passive: true }));
+    }
+    /** 這張圖現在畫的是哪一檔。優先吃呼叫端給的，其次是 industry.js 寫在圖上的
+     *  `_liveKey`（'代號|週期'），最後才從網址推 —— 個股頁的網址就是 #stock/<代號>。*/
+    histCode() {
+      if (this.opts.code) return String(this.opts.code);
+      if (this._liveKey) return String(this._liveKey).split('|')[0];
+      const m = /#stock\/([A-Za-z0-9]+)/.exec(global.location ? global.location.hash || '' : '');
+      return m ? m[1] : null;
+    }
+    histReady() { return ['1d', '1w', '1M'].indexOf(this.tf) >= 0 && !!this.histCode(); }
+    /** 載入更舊的一段。回傳「這一次真的多了幾根」。 */
+    async loadOlder() {
+      if (this.opts.mini || this._dead || !this.histReady()) return 0;
+      const code = this.histCode();
+      const st = histState(code);
+      if (this._loading) return 0;
+      /* 快取裡已經有、但「這張圖」還沒接上去的，先直接接 —— 不打網路。
+         換週期（日→週）、離開再回到同一檔都會走這條路：圖表是新的、快取是舊的。
+         這也是「拖過一次之後再拖不會重抓」的實作點。*/
+      if (st.daily.length > (this._histDailyUsed || 0)) {
+        st.hits++;
+        this._histDailyUsed = st.daily.length;
+        const n0 = this._prependHistory(st.daily);
+        if (n0) return n0;
+      }
+      if (st.done) return 0;                    // 已經到最早一筆就收手，不要無限打請求
+      this._loading = true;
+      this._histNote('載入更早的 K 棒…');
+      try {
+        const idx = await histIndex();
+        const pages = (idx.codes || {})[code];
+        if (!pages || st.next >= pages) {
+          // 這一檔在資料湖裡沒有比個股頁更舊的歷史（回補還沒跑到它）
+          st.done = true;
+          this._histNote(pages ? '已經到最早一筆了' : '這一檔的更早歷史還在回補，目前只有畫面上這一段', 3200);
+          return 0;
+        }
+        const j = await histFetch(code, st.next);
+        if (!j || !j.bars || !j.bars.length) {
+          st.done = true;
+          this._histNote('已經到最早一筆了', 2600);
+          return 0;
+        }
+        st.next += 1;
+        if (j.prev === null || j.prev === undefined) st.done = true;
+        st.daily = j.bars.concat(st.daily);      // 由舊到新
+        // await 中間可能換過股票或週期，接回去之前再確認一次現在畫的還是同一檔
+        if (this._dead || this.histCode() !== code || !this.histReady()) return 0;
+        this._histDailyUsed = st.daily.length;
+        const n = this._prependHistory(st.daily);
+        this._histNote(n ? `已回補到 ${this.data.length ? fmtTime(this.data[0].time, this.tf) : ''}`
+          : '已經到最早一筆了', 2600);
+        return n;
+      } catch (e) {
+        this._histNote('更早的資料載入失敗', 3000);
+        histState(code).done = true;
+        return 0;
+      } finally {
+        this._loading = false;
+      }
+    }
+    /** 把「目前累積到的所有更舊日線」接到現有 K 棒前面。
+     *  每次都從頭接一次（而不是「這次只接新的那一段」）是刻意的：
+     *  週線／月線要跨段合成，一段一段接會在接縫處切出半根假的週 K。 */
+    _prependHistory(olderDaily) {
+      if (!olderDaily || !olderDaily.length || !this.data.length) return 0;
+      const base = this.bars.slice(this._histAdded || 0);   // 原本呼叫端給的那一份
+      if (!base.length) return 0;
+      let older = olderDaily;
+      if (this.tf === '1w') older = resampleDaily(olderDaily, 'W');
+      else if (this.tf === '1M') older = resampleDaily(olderDaily, 'M');
+      /* 邊界那一根可能跟現有第一根落在同一週／同一月 —— 那會變成兩根半截的週 K。
+         寧可丟掉我們自己合的那一根（現有第一根本來就在圖上），也不要多畫一根假的。*/
+      const anchor = String(base[0][0]);
+      const keepBar = (b) => (this.tf === '1d'
+        ? String(b[0]) < anchor
+        : !this._sameBucket(anchor, String(b[0])) && String(b[0]) < anchor);
+      const add = older.filter(keepBar);
+      if (add.length <= (this._histAdded || 0)) return 0;
+      const ts = this.chart.timeScale();
+      const keep = ts.getVisibleLogicalRange();
+      const grew = add.length - (this._histAdded || 0);
+      this.bars = add.concat(base);
+      this.data = this.bars.map(b => ({ time: toTime(b[0]), open: b[1], high: b[2], low: b[3], close: b[4], volume: b[5] || 0 }));
+      this.candle.setData(this.data);
+      this.stats.setData++; this.stats.backfill++;
+      this._histAdded = add.length;
+      /* 左邊多了資料，MA／KD／RSI 的起頭全部要重算（這正是回補的價值：
+         以前畫面最左邊那 60 根的均線是「沒有前文」的，現在才是對的），所以整組重建。*/
+      this._tailFrom = null; this._feeds = [];
+      if (this.cfg) this.applyIndicators(this.cfg);
+      // 視野往右平移 grew 根，使用者眼前的那一段不能因為左邊長出東西就跳掉
+      if (keep) ts.setVisibleLogicalRange({ from: keep.from + grew, to: keep.to + grew });
+      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+      return grew;
+    }
+    /* 「載入中」「已經到最早一筆」那一小塊字。
+       樣式寫在 JS 裡是刻意的 —— CSS 在 index.html，那支檔案這批不准動。*/
+    _histNote(msg, ms) {
+      if (this.opts.mini || !this.el) return;
+      let el = this._noteEl;
+      if (!el) {
+        el = this._noteEl = document.createElement('div');
+        el.className = 'k-histnote';
+        /* 位置：左下角、時間軸上面一點。
+           不放左上角是因為那裡是 `.pane-labels`（游標資訊框「日期 開 高 低 收…」那一行），
+           疊上去會把它蓋掉 —— 實測截圖就是被蓋住看不見。*/
+        el.style.cssText = 'position:absolute;left:12px;bottom:34px;z-index:4;pointer-events:none;'
+          + 'font:600 11.5px/1.5 "Noto Sans TC",sans-serif;padding:3px 9px;border-radius:999px;'
+          + 'background:rgba(10,16,32,.78);color:#a9b6d6;border:1px solid rgba(62,224,255,.35)';
+        this.el.appendChild(el);
+      }
+      /* 顏色跟著主題走。不要用 hexa(C.bg) 去算 —— `--chartbg` 在淺色主題有可能是
+         rgb()/rgba() 字串而不是 #hex，算出來會退回深色底，配上淺色主題的深色文字
+         就是深底深字（＝看不見）。直接依主題給兩組固定值，最不會出事。*/
+      const lightTheme = document.documentElement.getAttribute('data-theme') === 'light';
+      el.style.color = C.text;
+      el.style.background = lightTheme ? 'rgba(255,255,255,.94)' : 'rgba(10,16,32,.82)';
+      el.style.borderColor = C.line;
+      el.textContent = msg || '';
+      el.style.display = msg ? '' : 'none';
+      clearTimeout(this._noteT);
+      if (ms) this._noteT = setTimeout(() => { if (this._noteEl) this._noteEl.style.display = 'none'; }, ms);
+    }
+    /* 驗收用：這一檔的回溯狀態（抓了幾次、命中快取幾次、到底了沒）。*/
+    histStats() {
+      const code = this.histCode();
+      const st = code ? HIST[code] : null;
+      return { code, added: this._histAdded || 0, bars: this.data ? this.data.length : 0,
+        fetches: st ? st.fetches : 0, hits: st ? st.hits : 0, done: st ? !!st.done : false,
+        pages: st ? Object.keys(st.pages).length : 0 };
+    }
     clearOverlays() {
       // MACD 面板被移掉時，掛在它上面的背離線也跟著沒了（不清會留著指向已刪除的 series）
       this.divPane = null;
@@ -527,8 +864,89 @@
       return s;
     }
     // cfg = {ma:[5,20,60], boll:{n:20,k:2}, vol:true, kd:{n:9,m1:3,m2:3}, macd:{f:12,s:26,g:9}, rsi:{n:14}}
+    /* ★ 指標值一律「全量重算」，即時更新那條路也一樣（_calc）。
+       這是紅線：前端 KInd 與 Python 端必須同口徑同種子（KD 初始 50、RSI Wilder 用 SMA 種子）。
+       如果為了省時間另外寫一套「只算最後一根」的增量公式，同一個指標就會有兩份實作，
+       兩份遲早漂開，而且漂開的時候沒有任何測試擋得住。
+       真正貴的從來不是「算」（1,500 根全部算完 < 2ms），是「畫」——
+       所以省的是畫：即時更新只把最後那一根用 series.update() 推進去（見 _updateTail）。*/
+    _calc(cfg) {
+      const c = this.data.map(d => d.close), h = this.data.map(d => d.high),
+        l = this.data.map(d => d.low), v = this.data.map(d => d.volume);
+      const V = { VOL: v };
+      (cfg.ma || []).forEach(n => { V['MA' + n] = ind.sma(c, n); });
+      if (cfg.boll) V.BOLL = ind.boll(c, cfg.boll.n, cfg.boll.k);
+      if (cfg.vol && cfg.volma) V.VOLMA = ind.sma(v, cfg.volma);
+      if (cfg.kd) V.KD = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2);
+      if (cfg.macd) {
+        V.MACD = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g);
+        V.DIV = cfg.macdDiv === false ? { top: [], bottom: [] }
+          : ind.divergence(c, h, l, V.MACD.dif, cfg.divOpt);
+      }
+      if (cfg.rsi) V.RSI = ind.rsi(c, cfg.rsi.n);
+      /* 本益比河流的倍數線由 industry.js 算好掛在 this.peBands 上 —— 這裡只負責畫，
+         因為近四季 EPS 是財報那一層的事，圖表這層不該知道財報怎麼算。*/
+      V.PE = (this.peBands && this.peBands.length) ? this.peBands : null;
+      return V;
+    }
+    /* 背離畫在 canvas 上（DivPrimitive），不是 series，所以重算完直接換一組點就好。*/
+    _setDiv(V) {
+      const dv = (V && V.DIV) || { top: [], bottom: [] };
+      this.divergences = dv;
+      const times = this.data.map(d => d.time);
+      const priceItems = [], difItems = [];
+      dv.top.forEach(x => {
+        priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'top', label: '頂背離' });
+        difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'top' });
+      });
+      dv.bottom.forEach(x => {
+        priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'bottom', label: '底背離' });
+        difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'bottom' });
+      });
+      if (this.divPrice) this.divPrice.set(priceItems, times);
+      if (this.divPane) this.divPane.set(difItems, times);
+    }
+    /* 這一輪的「指標組成指紋」。指紋一樣＝series 的種類與條數沒變，才可以只更新尾巴；
+       只要使用者勾了新指標、改了參數或換了顏色，指紋就不同，一律走重建。*/
+    _cfgKey(cfg) {
+      const pe = (this.peBands || []).map(b => `${b.mult}/${b.color}/${b.width}/${b.alpha}`).join(',');
+      try { return JSON.stringify(cfg) + '|' + pe; } catch (e) { return 'x' + Math.random(); }
+    }
+    /** ② 只更新尾巴：K 棒已經在 setBars 裡用 candle.update() 推進去了，
+     *  這裡把每一條指標線最後那幾點也推進去 —— 整張圖不重畫，前面的棒子一根都不動。 */
+    _updateTail(cfg, from) {
+      this.cfg = cfg;
+      const V = this._calc(cfg);
+      this.values = V;
+      const n = this.data.length, i0 = Math.max(0, from);
+      for (const f of this._feeds) {
+        for (let i = i0; i < n; i++) {
+          const v = f.pick(V, i);
+          if (v === null || v === undefined || Number.isNaN(v)) continue;
+          // 同上：update() 會就地改寫傳進去的物件，所以每次都給一個新的
+          const p = { time: this.data[i].time, value: v };
+          if (f.color) p.color = f.color(V, i);
+          f.s.update(p);
+          this.stats.point++;
+        }
+      }
+      this._setDiv(V);
+      this.stats.tick++;
+    }
     applyIndicators(cfg) {
+      /* ② 即時更新的快路：資料只有尾巴變（setBars 判定的）、而且指標組成也沒變
+         → 只推最後那幾點，不重建任何 series。
+         以前盤中每幾秒就整組 removeSeries + addSeries + setData 重建一次，
+         那正是「要等資料整批換掉才會跳」與副圖高度一直跳動的來源。*/
+      if (this._tailFrom != null && this._feeds.length && this._cfgKey(cfg) === this._indKey) {
+        const from = this._tailFrom; this._tailFrom = null;
+        this._updateTail(cfg, from);
+        return;
+      }
+      this._tailFrom = null;
       this.clearOverlays(); this.cfg = cfg;
+      this._indKey = this._cfgKey(cfg); this._feeds = [];
+      this.stats.rebuild++;
       /* 面板高度有兩套：一般（個股頁那種整頁大圖）與 compact（總覽那三張小卡）。
          以前主圖高度寫死「至少 280px」，放進 230px 的小卡就會整個爆出去 ——
          成交量被擠成一條線、指標面板空白、面板標題跑到卡片外面。 */
@@ -538,79 +956,98 @@
         // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
         // 再大就要吃掉主圖了 —— 他同樣在意 K 線圖要大（DECISIONS #101），想更寬可以自己拖，會記住。
         : { vol: 100, ind: 120, min: 260 };
-      const c = this.data.map(d => d.close), h = this.data.map(d => d.high), l = this.data.map(d => d.low), v = this.data.map(d => d.volume);
-      this.values = {};
+      const V = this._calc(cfg);
+      this.values = V;
       // 均線：條數、週期、顏色、粗細都吃 cfg（Andy 2026-09-12「線寬 均線數量 數字 顏色 粗細都要能調」）
       const mc = cfg.maColor || [], mw = cfg.maWidth || [];
-      (cfg.ma || []).forEach((n, i) => { const m = ind.sma(c, n); this.values['MA' + n] = m; this.overlays.push(this._line(m, mc[i] || C.ma[i % C.ma.length], 0, mw[i] || cfg.lineWidth || 1)); });
-      /* 本益比河流的倍數線（Andy 2026-09-15：「上方也多一個選項新增河流圖」）。
-         資料由 industry.js 算好掛在 this.peBands 上 —— 這裡只負責畫，因為近四季 EPS
-         是財報那一層的事，圖表這層不該知道財報怎麼算。*/
-      this.values.PE = null;
-      if (this.peBands && this.peBands.length) {
-        this.values.PE = this.peBands;
-        this.peBands.forEach(b => this.overlays.push(
-          this._line(b.vals, hexa(b.color, b.alpha == null ? 70 : b.alpha), 0, b.width || 1, {
+      (cfg.ma || []).forEach((n, i) => {
+        const key = 'MA' + n;
+        const s = this._line(V[key], mc[i] || C.ma[i % C.ma.length], 0, mw[i] || cfg.lineWidth || 1);
+        this.overlays.push(s);
+        this._feeds.push({ s, pick: (VV, j) => (VV[key] ? VV[key][j] : null) });
+      });
+      if (V.PE) {
+        V.PE.forEach((b, bi) => {
+          const s = this._line(b.vals, hexa(b.color, b.alpha == null ? 70 : b.alpha), 0, b.width || 1, {
             lineStyle: 2,
             /* 倍數線離現價可以很遠（9.5 倍 ≈ 189、25 倍 ≈ 497），讓它們參與自動縮放的話
-               價格軸會被拉成 160–520，K 棒又被壓扁 —— 那正是 Andy 今天抱怨的事。
+               價格軸會被拉成 160–520，K 棒又被壓扁 —— 那正是 Andy 抱怨過的事。
                所以這幾條線「畫得出來但不影響取景」：落在畫面外就切掉，
                想看得更遠可以在價格軸上滾滾輪。*/
             autoscaleInfoProvider: () => null,
-          })));
+          });
+          this.overlays.push(s);
+          this._feeds.push({ s, pick: (VV, j) => (VV.PE && VV.PE[bi] ? VV.PE[bi].vals[j] : null) });
+        });
       }
       // 每個指標的顏色／線寬／透明度都可以個別設定（Andy 2026-09-12）
       const st = (k, d) => Object.assign({ w: cfg.lineWidth || 1, o: 100 }, d, (cfg.st || {})[k] || {});
       const col = (hex, o) => hexa(hex, o == null ? 100 : o);
-      if (cfg.boll) { const b = ind.boll(c, cfg.boll.n, cfg.boll.k); this.values.BOLL = b;
+      if (cfg.boll) {
         const y = st('boll', { c: C.boll }); const cc = col(y.c, y.o);
-        this.overlays.push(this._line(b.up, cc, 0, y.w, { lineStyle: 2 }));
-        this.overlays.push(this._line(b.mid, cc, 0, y.w));
-        this.overlays.push(this._line(b.low, cc, 0, y.w, { lineStyle: 2 })); }
+        const up = this._line(V.BOLL.up, cc, 0, y.w, { lineStyle: 2 });
+        const mid = this._line(V.BOLL.mid, cc, 0, y.w);
+        const low = this._line(V.BOLL.low, cc, 0, y.w, { lineStyle: 2 });
+        this.overlays.push(up, mid, low);
+        this._feeds.push({ s: up, pick: (VV, j) => VV.BOLL.up[j] },
+          { s: mid, pick: (VV, j) => VV.BOLL.mid[j] },
+          { s: low, pick: (VV, j) => VV.BOLL.low[j] });
+      }
       let pane = 1; this.paneIndex = {}; const want = [0];
       const ref = (series, price, color) => series.createPriceLine({ price, color, lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: '' });
       if (cfg.vol) {
         const y = st('vol', { c: '#ff4d6d', c2: '#2ee59d', o: 55 });
-        this.panes.vol = [this._hist(v, (i) => (this.data[i].close >= this.data[i].open ? col(y.c, y.o) : col(y.c2, y.o)), pane)];
+        const volColor = (i) => (this.data[i].close >= this.data[i].open ? col(y.c, y.o) : col(y.c2, y.o));
+        const hs = this._hist(V.VOL, volColor, pane);
+        this.panes.vol = [hs];
+        this._feeds.push({ s: hs, pick: (VV, j) => VV.VOL[j], color: (VV, j) => volColor(j) });
         // 量能均線：跟其他指標一樣吃色票（寫死 #ffd166 的話，淺色主題的圖例文字對比只有 1.44）
-        if (cfg.volma) { this.values.VOLMA = ind.sma(v, cfg.volma); this.panes.vol.push(this._line(this.values.VOLMA, C.ma[0], pane, y.w)); }
+        if (cfg.volma) {
+          const s = this._line(V.VOLMA, C.ma[0], pane, y.w);
+          this.panes.vol.push(s);
+          this._feeds.push({ s, pick: (VV, j) => (VV.VOLMA ? VV.VOLMA[j] : null) });
+        }
         this.paneIndex.vol = pane; want[pane] = PH.vol; pane++; }
-      if (cfg.kd) { const k = ind.kd(h, l, c, cfg.kd.n, cfg.kd.m1, cfg.kd.m2); this.values.KD = k;
+      if (cfg.kd) {
         const y = st('kd', { c: C.k, c2: C.d });
-        this.panes.kd = [this._line(k.k, col(y.c, y.o), pane, y.w), this._line(k.d, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.kd[0], 80, 'rgba(255,77,109,.35)'); ref(this.panes.kd[0], 20, 'rgba(46,229,157,.35)');
+        const sk = this._line(V.KD.k, col(y.c, y.o), pane, y.w), sd = this._line(V.KD.d, col(y.c2, y.o), pane, y.w);
+        this.panes.kd = [sk, sd];
+        this._feeds.push({ s: sk, pick: (VV, j) => VV.KD.k[j] }, { s: sd, pick: (VV, j) => VV.KD.d[j] });
+        ref(sk, 80, 'rgba(255,77,109,.35)'); ref(sk, 20, 'rgba(46,229,157,.35)');
         this.paneIndex.kd = pane; want[pane] = PH.ind; pane++; }
       this.divergences = { top: [], bottom: [] };
-      if (cfg.macd) { const m = ind.macd(c, cfg.macd.f, cfg.macd.s, cfg.macd.g); this.values.MACD = m;
+      this.divPane = null;
+      if (cfg.macd) {
         const y = st('macd', { c: C.dif, c2: C.dea });
-        this.panes.macd = [this._hist(m.osc, (i) => (m.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)), pane),
-          this._line(m.dif, col(y.c, y.o), pane, y.w), this._line(m.dea, col(y.c2, y.o), pane, y.w)];
-        ref(this.panes.macd[1], 0, C.line);          // 零軸跟著主題走，白色在淺色主題看不見 this.paneIndex.macd = pane; want[pane] = PH.ind; pane++;
+        const oscColor = (i) => (V.MACD.osc[i] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7));
+        const ho = this._hist(V.MACD.osc, oscColor, pane);
+        const sdif = this._line(V.MACD.dif, col(y.c, y.o), pane, y.w);
+        const sdea = this._line(V.MACD.dea, col(y.c2, y.o), pane, y.w);
+        this.panes.macd = [ho, sdif, sdea];
+        this._feeds.push({ s: ho, pick: (VV, j) => VV.MACD.osc[j], color: (VV, j) => (VV.MACD.osc[j] >= 0 ? col('#ff4d6d', (y.o || 100) * .7) : col('#2ee59d', (y.o || 100) * .7)) },
+          { s: sdif, pick: (VV, j) => VV.MACD.dif[j] },
+          { s: sdea, pick: (VV, j) => VV.MACD.dea[j] });
+        // 零軸跟著主題走，白色在淺色主題看不見
+        ref(sdif, 0, C.line);
+        /* ★ 2026-09-23 修回來的一行：下面這三個指派原本被寫在上一行的 `//` 註解後面，
+           整段被吃掉了（7643b14 那次把註解補在同一行的尾巴）。後果是
+           MACD 面板沒有登記 paneIndex（左上角標題不見）、pane 沒有 ++，
+           於是 RSI 被畫進 MACD 那一格 —— 兩條完全不同尺度的線疊在一起。*/
+        this.paneIndex.macd = pane; want[pane] = PH.ind; pane++;
         /* 背離（Andy 2026-09-15：「是很好的訊號」）。預設開，cfg.macdDiv === false 才關。
            主圖畫價格的那兩個轉折點，MACD 面板畫 DIF 的那兩點 —— 兩條線一起看才看得出「背」在哪。 */
         if (cfg.macdDiv !== false) {
-          const dv = ind.divergence(c, h, l, m.dif, cfg.divOpt);
-          this.divergences = dv;
-          const times = this.data.map(d => d.time);
-          const priceItems = [], difItems = [];
-          dv.top.forEach(x => {
-            priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'top', label: '頂背離' });
-            difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'top' });
-          });
-          dv.bottom.forEach(x => {
-            priceItems.push({ i: x.i, j: x.j, v1: x.p1, v2: x.p2, kind: 'bottom', label: '底背離' });
-            difItems.push({ i: x.i, j: x.j, v1: x.d1, v2: x.d2, kind: 'bottom' });
-          });
-          this.divPrice.set(priceItems, times);
           this.divPane = new DivPrimitive();
-          this.panes.macd[1].attachPrimitive(this.divPane);
-          this.divPane.set(difItems, times);
-        } else if (this.divPrice) { this.divPrice.set([], []); } }
-      else if (this.divPrice) { this.divPrice.set([], []); }
-      if (cfg.rsi) { const r = ind.rsi(c, cfg.rsi.n); this.values.RSI = r;
+          sdif.attachPrimitive(this.divPane);
+        }
+      }
+      this._setDiv(V);
+      if (cfg.rsi) {
         const y = st('rsi', { c: C.rsi });
-        this.panes.rsi = [this._line(r, col(y.c, y.o), pane, y.w)];
-        ref(this.panes.rsi[0], 70, 'rgba(255,77,109,.35)'); ref(this.panes.rsi[0], 30, 'rgba(46,229,157,.35)');
+        const s = this._line(V.RSI, col(y.c, y.o), pane, y.w);
+        this.panes.rsi = [s];
+        this._feeds.push({ s, pick: (VV, j) => VV.RSI[j] });
+        ref(s, 70, 'rgba(255,77,109,.35)'); ref(s, 30, 'rgba(46,229,157,.35)');
         this.paneIndex.rsi = pane; want[pane] = PH.ind; pane++; }
       /* 使用者自己拖過的高度優先。
          ★ 只在「這張圖第一次套指標」時做一次。
@@ -709,10 +1146,14 @@
       if (this._onDbl) this.el.removeEventListener('dblclick', this._onDbl);
       if (this.draw) this.draw.destroy();
       if (this._ro) this._ro.disconnect();
+      // ③ 的監聽與提示：圖表 remove 之後還留著的話，下一次拖曳會踩到已經死掉的 chart
+      if (this._onRange) { try { this.chart.timeScale().unsubscribeVisibleLogicalRangeChange(this._onRange); } catch (e) { /* 圖已銷毀 */ } }
+      if (this._arm) ['pointerdown', 'wheel', 'touchstart'].forEach(ev => this.el.removeEventListener(ev, this._arm));
+      clearTimeout(this._noteT);
       this.chart.remove();
     }
   }
 
   global.KChart = KChart; global.KInd = ind;
-  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa };
+  global.KUtil = { resampleDaily, toTime, fmtTime, colors: C, refreshTheme, DRAW_TOOLS, DRAW_COLORS, ZONE_DEF, hexa, hist: HIST };
 })(window);

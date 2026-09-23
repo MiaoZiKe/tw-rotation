@@ -339,3 +339,42 @@ def basics(company: pd.DataFrame, code: str) -> dict:
         "capital": cap, "capital_billion": round(cap / 1e8, 2) if cap else None,
         "chairman": r.get("chairman"), "website": r.get("website"),
     }
+
+
+# ------------------------------------------------------------------ 歷史無限回溯（③）
+
+HIST_CHUNK = 1000        # 一段幾根日 K
+
+
+def history_chunks(bars: list, chunk: int = HIST_CHUNK) -> list[dict]:
+    """把「個股頁那一段之前」的更舊日 K 切成一段一段，最新的那一段排 p0。
+
+    為什麼要切段：個股頁本來就給 1,250～1,500 根（5～6 年），再往前資料湖最多還有
+    5,100 根（2000-01-04 起）。一次全部塞給瀏覽器＝一檔多下載 200KB 而且九成用不到；
+    切成一段一段，使用者往左拖一次才要一段（約 40KB）。
+
+    為什麼每一段自己帶 `prev` 而不是另外做一份目錄檔：
+    前端要的判斷只有一個 ——「還有沒有更舊的」。`prev` 是 None 就代表這是資料湖裡
+    最早的一段，前端看到就收手，不會繼續往下打請求（也就不會出現「拖到底還一直轉」）。
+    多一份目錄檔等於多一次來回，而且多一個會對不起來的地方。
+
+    bars 由舊到新，形狀是 [日期, 開, 高, 低, 收, 量]。
+    """
+    if not bars:
+        return []
+    segs: list[list] = []
+    i = len(bars)
+    while i > 0:
+        j = max(0, i - chunk)
+        segs.append(bars[j:i])
+        i = j
+    out = []
+    for n, seg in enumerate(segs):
+        out.append({
+            "page": n,
+            "prev": None if n == len(segs) - 1 else f"p{n + 1}",
+            "from": str(seg[0][0]),
+            "to": str(seg[-1][0]),
+            "bars": seg,
+        })
+    return out
