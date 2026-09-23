@@ -115,6 +115,34 @@ PROBES: dict[str, list[dict]] = {
          "url": "https://mis.taifex.com.tw/futures/",
          "grep": [r"/futures/api/[A-Za-z0-9_]+", r"[A-Za-z0-9_/.-]+\.js"],
          "note": "行情看板首頁：把它引用的 api 路徑與 JS 檔名全部撈出來當候選清單"},
+        # ★★ 2026-09-23 加的三支：探測**我們自己的 Cloudflare Worker**，不是期交所。
+        #
+        #    為什麼要加：那天 Andy 回報「夜盤還是沒有數值」，而同一輪探測證明
+        #    **期交所完全正常**（getQuoteList MarketType=1 回 7 檔、TXFJ6-M 最新 48180 量 7574、
+        #    getChartData1M 回 200）。程式碼那一段的邏輯也對（挑量最大、跳過 -S/-P 現貨列、
+        #    SymbolID 送字串）。Worker 也確定是最新版（deploy-worker 那天 19:43 真的部署過）。
+        #    也就是說「期交所 → Worker → 瀏覽器」這條鏈上，**只剩中間那一段沒有被實測過**。
+        #
+        #    Claude 的容器連不出去（連自家網站都打不開），所以這是唯一能實測它的地方 ——
+        #    Actions 的 runner 打得到 Cloudflare。與其叫 Andy 自己開網址貼給我，不如自己去拿。
+        #
+        #    怎麼讀結果：
+        #      /health 沒有 features 欄位 → Worker 是舊版（但 2026-09-23 已排除）
+        #      /fut 回 502 upstream failed → 期交所擋掉 Cloudflare 的出口 IP
+        #      /fut 回 200 但 QuoteList 是空的 → Worker 把請求打歪了
+        #      /fut 回 200 且有 TXFJ6-M → Worker 沒問題，問題在瀏覽器那一端（CORS、快取、混合內容）
+        {"id": "our_worker_health", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/health",
+         "note": "自家 Worker 的健康檢查：features 裡要有 stream 才是新版"},
+        {"id": "our_worker_fut_night", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night",
+         "note": "★自家 Worker 的夜盤報價：跟上面 taifex_quotelist_night 逐欄對照，"
+                 "一樣就是 Worker 沒問題、問題在瀏覽器端"},
+        {"id": "our_worker_futchart_night", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFJ6-M",
+         "series_stats": {"path": "RtData.Ticks", "session": "RtData.Info.Sessions",
+                          "total": "RtData.Quote.CTotalVolume"},
+         "note": "★自家 Worker 的夜盤分時：跟 taifex_chartdata_1m_night 對照筆數"},
     ],
     # ---- 金十數據（Andy 2026-09-21：「並且需要多一項 金十數據」）
     #
