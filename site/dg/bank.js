@@ -21,12 +21,15 @@
        ③ 升息的時間差（收合章節①）：資產端先重訂價、負債端落後，中間那段就是淨利差擴張的窗口。
           這一段是他點名要的（「利率變動時哪一段會先動」），所以單獨給一個章節、畫成時間軸。
 
-   ★ `data-seg` 的處理：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡
-     完全沒有 financial 這條鏈（機器查的：`grep -n "financial" pipeline/groups/supply_chain.yaml`
-     ＝ 零筆命中），沒有任何環節 id 對得上。硬掛一個別條鏈的環節
-     ＝ 在 public 網站上宣稱錯誤的公司對應，所以寧可不掛。
-     代價：點零件不會篩成分股、拿不到環節色 —— 跟 `cyber_security.js`／`silicon_wafer.js`
-     同樣的既定取捨，不是壞掉。因此畫面上放一張永遠看得到的警語卡講清楚。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**。
+     這張圖剛做出來時 `supply_chain.yaml` 裡完全沒有 financial 這條鏈，所以一個都不敢掛。
+     Andy 2026-09-23 授權補資料（「若缺資料網路找，CEO 安排」），環節補上之後這裡跟著掛：
+       環節 ＝ `fin_bank`（銀行與銀行金控），成分 ＝ groups.yaml 的 bank 族群 16 檔。
+     ⚠ 整張圖只有一個環節（見下面 `part()` 的註解），所以點任何零件篩出來的清單都一樣 ——
+       那是題目的形狀，不是缺陷。
+     ⚠ 金融鏈在 `supply_chain.yaml` 裡**一條邊都沒有**：那份 schema 只有
+       supplies／outsources_to／designated_by／produced_by 四種關係，沒有一種表達得了「資金中介」。
+       理由逐字寫在 YAML 的 fin_bank 那一段上面。
 
    ★ 事實與出處（畫面上只寫查得到、而且不只一個來源講得出來的；其餘標示意）
      · 成分與定位：`pipeline/groups/groups.yaml` 的 `bank.note` ——
@@ -60,8 +63,17 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  // 這張圖沒有 data-seg，data-part 一律自己寫（沒有 seg 時 stampParts 自動補的 key 會退化成序號）
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：financial 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了 —— 環節 ＝ `fin_bank`（銀行與銀行金控），
+     成分 ＝ groups.yaml 的 bank 族群那 16 檔。
+     ★ 這張圖**整張只有一個環節**，那是對的不是偷懶：圖上每一塊（存款、放款、手續費、
+       加減項、升息時間差、估值）講的都是**同一批公司自己的資產負債表與損益表**，
+       不像半導體鏈那樣一格一格換公司。`stampParts()` 會因此自動補上 `.dg1`
+       （跟 MLCC 那張圖同一條路），所以點不同零件時「被點的那一個最強、同環節其餘次強」
+       的兩層高亮仍然成立。*/
+  const SEG = 'fin_bank';
+  const segOf = () => SEG;
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   /* 元件色（卡片 data-dgcolor ＋ 編號圓點 ＋ 引線端點共用），全部是 index.html 既有的 token。
      語意：負債／成本側走冷色（--dg-cold），資產／收益側走暖色（--dg-au 金），
@@ -76,7 +88,8 @@
     cap: 'var(--dg-steel)', warn: 'var(--dg-warn)', hot: 'var(--dg-hot)', yieldTx: 'var(--dg-pwr)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話點圖會篩、點旁邊那張卡卻不會。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -276,7 +289,7 @@
       + ['淨利差的百分點、逾放比、覆蓋率、各家市占 —— 都是逐季變動的時點數字，印在圖上隔天就過期，一個都不寫。',
         '各家的手續費收入占比：各家財報的分類口徑不完全一致，沒有可以直接並排比較的公開數字，所以只畫「有哪幾塊」不畫比例。',
         '升息到淨利差擴張要多久：各家重訂價週期與存款結構不同，查不到可引用的統一數字，所以只畫先後順序。',
-        '點零件不會篩成分股：供應鏈資料裡沒有「金融」這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+        '這 16 檔誰快誰慢：圖上畫的是銀行這門生意的通則，不是任何一家的資產負債結構。'].map((s, i) =>
           T(LX + 14, y0 + 238 + i * 18, s, 'sub')).join('');
   }
 
@@ -284,12 +297,13 @@
     return `<svg class="dg dgm rs dgbk" viewBox="0 0 ${CW} 1180" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，所以 diagrams.js 那一整組「.dg [data-seg] …」
-           的描邊與高亮規則一條都吃不到，要在這裡自己給。顏色一律走 --dg-* token。*/
-        svg.dgbk [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgbk [data-part]{cursor:default}
-        svg.dgbk [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgbk [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 那一整組「.dg [data-seg] …」
+           （環節色、hover、.sel／.sel-part），所以這裡的規則全部縮到 :not([data-seg])——
+           不縮的話它的選擇器比較強，會把環節色整個蓋掉，等於白掛。*/
+        svg.dgbk [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgbk [data-part]:not([data-seg]){cursor:default}
+        svg.dgbk [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgbk [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgbk .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgbk .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -331,7 +345,7 @@
       ${card({ part: 'bk_pl_credit', no: 14, side: 'l', order: 14, color: C.risk, ax: LX + 3 * 104.8 + 48, ay: PY + 87, title: '★ 信用成本：利差故事的反面', sub: ['升息讓銀行賺到利差，同時也推高借款人的還款壓力。景氣轉差時呆帳提存會一口氣吃掉好幾季的利差增量。', '所以看這一格不能只看利差往上，要同時看資產品質往哪裡走。'] })}
       ${card({ part: 'bk_pl_pbt', no: 15, side: 'r', order: 15, color: C.yield_, ax: LX + 5 * 104.8 + 48, ay: PY + 87, title: '稅前淨利 ÷ 淨值 ＝ ROE', sub: ['ROE 就是銀行股估值的核心變數：市場願意給幾倍股價淨值比，主要看它能不能長期維持較高的 ROE。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['方塊的大小不代表實際金額比重；利差帶的寬度是示意，不對應任何一家的淨利差數字。資金來源與運用只列常見的幾類，實際科目依各家財報分類而異。'] })}
-      ${note({ side: 'l', order: 97, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「金融」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'l', order: 97, title: '點零件會篩到哪些股票', lines: ['這張圖每一塊都掛在「銀行與銀行金控」這個環節上，點任何一個零件都會篩出 groups.yaml 的 bank 族群那 16 檔 —— 因為圖上講的全部是同一批公司自己的帳。', '★ 所以「點不同零件會列出不同股票」這件事在這張圖上**不會**發生，那是題目本來的形狀，不是壞掉。'] })}
       ${note({ side: 'r', order: 98, title: '這一格的兩個推力：價與量', lines: ['利息淨收益 ＝ 淨利差（價）× 生息資產規模（量）。利差看央行政策與資金行情，規模看放款需求與資本適足的空間 —— 兩個推力可以同時往上，也可能一個上一個下。'] })}
       ${note({ side: 'r', order: 99, warn: true, title: '★ 畫面上刻意不出現的數字', lines: ['淨利差的百分點、逾放比、覆蓋率、市占率一個都沒寫：它們是逐季變動的時點數字，印在圖上隔天就過期。要看當期數字請查央行與金管會的統計。'] })}
 

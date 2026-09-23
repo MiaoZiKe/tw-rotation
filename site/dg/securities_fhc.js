@@ -23,10 +23,12 @@
      看不到他真正要問的「大盤量縮時哪一塊先掉」。線型本身就是答案。
      最下面那一排是「量縮時的掉落順序」，把上面三條腿的差別收斂成一句可用的結論。
 
-   ★ `data-seg` 的處理：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡
-     完全沒有 financial 這條鏈（機器查的：`grep -n "financial" pipeline/groups/supply_chain.yaml`
-     ＝ 零筆命中）。硬掛別條鏈的環節＝在 public 網站上宣稱錯誤的公司對應，所以寧可不掛。
-     跟 `cyber_security.js` 同樣的既定取捨，畫面上放一張永遠看得到的警語卡講清楚。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**，環節 ＝ `fin_securities`
+     （證券金控），成分 ＝ groups.yaml 的 securities_fhc 族群（元大金 2885、凱基金 2883）。
+     這張圖剛做出來時 `supply_chain.yaml` 裡完全沒有 financial 這條鏈，所以一個都不敢掛；
+     Andy 2026-09-23 授權補資料之後補上了環節。
+     ⚠ 唯一不掛的是最上面那條「台股成交量」—— 它是市場，不是公司在做的事。
+     ⚠ 金融鏈在 YAML 裡**一條邊都沒有**（四種既有關係型別表達不了「資金中介」），理由寫在那裡。
 
    ★ 事實與出處
      · 經紀手續費率上限 0.1425%（千分之 1.425）：依證券交易法第 85 條，證券經紀商的
@@ -63,7 +65,16 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：financial 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了 —— 環節 ＝ `fin_securities`（證券金控），
+     成分 ＝ groups.yaml 的 securities_fhc 族群（元大金 2885、凱基金 2883）。
+     ⚠ **只有 `sf_volume`（台股成交量）不掛**，而且這是這張圖最重要的一個區別：
+       成交量是**市場**，不是這一格的公司在做的事。掛上去等於在說「台股成交量是券商的產品」。
+       它照舊點得動（`data-part` 那條路），只是不會去篩成分股。*/
+  const SEG = 'fin_securities';
+  const NO_SEG = new Set(['sf_volume']);
+  const segOf = (id) => (NO_SEG.has(id) ? null : SEG);
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   /* 元件色。語意：量能帶用主強調色（它是共同輸入），經紀＝冷色（線性、可預期），
      自營＝熱色（可正可負、最刺激），穩定腿＝中性灰，警示＝警告色。全部是既有 token。
@@ -77,7 +88,8 @@
     risk: 'var(--dg-err)', mute: 'var(--dg-mute)', gain: 'var(--dg-cool)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話點圖會篩、點旁邊那張卡卻不會。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -249,7 +261,7 @@
       + ['各家的經紀市占率、手續費收入占比、自營部位規模、實際折讓幅度 —— 逐季變動又口徑不一的公司別數字，一個都不寫。',
         '0.1425% 是依證券交易法第 85 條核定的費率上限，不是任何一家的實收費率；各券商普遍以折讓競爭，折扣幅度逐家不同還會促銷變動。',
         '「量縮時的掉落順序」是本圖從機制推出來的推論（成交當天結算 vs 融資餘額要幾天 vs 合約遞延），不是任何一家公司或研究機構的說法。',
-        '點零件不會篩成分股：供應鏈資料裡沒有「金融」這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+        '兩家的三條腿誰比重大：圖上畫的是券商這門生意的通則，不是任何一家的收入結構。'].map((s, i) =>
           T(LX + 14, y0 + 376 + i * 18, s, 'sub')).join('');
   }
 
@@ -257,12 +269,13 @@
     return `<svg class="dg dgm rs dgsf" viewBox="0 0 ${CW} 1260" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，所以 diagrams.js 那一整組「.dg [data-seg] …」
-           的描邊與高亮規則一條都吃不到，要在這裡自己給。顏色一律走 --dg-* token。*/
-        svg.dgsf [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgsf [data-part]{cursor:default}
-        svg.dgsf [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgsf [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 那一整組「.dg [data-seg] …」
+           （環節色、hover、.sel／.sel-part），所以這裡的規則全部縮到 :not([data-seg])——
+           不縮的話它的選擇器比較強，會把環節色整個蓋掉，等於白掛。*/
+        svg.dgsf [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgsf [data-part]:not([data-seg]){cursor:default}
+        svg.dgsf [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgsf [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgsf .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgsf .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -289,7 +302,7 @@
       ${card({ part: 'sf_o1', no: 5, side: 'l', order: 5, color: C.bro, ax: LX + 133, ay: OY + 20, title: '最先掉：經紀手續費', sub: ['成交當天就結算，量一縮當月就反映。所以券商股常常跟著月成交值的公布同步反應。'] })}
       ${card({ part: 'sf_o4', no: 6, side: 'r', order: 6, color: C.prop, ax: LX + 3 * 157 + 133, ay: OY + 20, title: '最後、而且不一定掉：自營', sub: ['看部位方向。行情急跌時，帳上的多方部位會虧，但債券部位或避險部位可能反而有貢獻 —— 所以自營是唯一可能逆著走的一條腿。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['量能柱是示意波形，不對應任何真實數列，也不表示任何水位；三條腿的框寬一樣，不代表收入占比一樣。'] })}
-      ${note({ side: 'l', order: 97, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「金融」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'l', order: 97, title: '點零件會篩到哪些股票', lines: ['三條腿、掉落順序四格與信用交易那一段，都掛在「證券金控」這個環節上，點下去會篩出元大金 2885 與凱基金 2883。', '★ 最上面那條「台股成交量」刻意不掛環節 —— 它是市場的共同輸入，不是這一格的公司在做的事。'] })}
       ${note({ side: 'r', order: 98, title: '一句話記住這一格', lines: ['券商是「大盤量能的槓桿」，不是「景氣的槓桿」。資金行情來的時候它會先動，製造業景氣好不好反而不是主變數 —— 這就是它要跟銀行、壽險分開看的原因。'] })}
       ${note({ side: 'r', order: 99, warn: true, title: '★ 畫面上刻意不出現的數字', lines: ['各家的經紀市占率、手續費收入占比、自營部位規模、實際折讓幅度一個都沒寫：逐季變動又口徑不一的公司別數字。0.1425% 是核定的費率上限，不是誰的實收費率。'] })}
 

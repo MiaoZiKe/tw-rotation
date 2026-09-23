@@ -24,11 +24,12 @@
      第三段是落點：同樣一件市場波動，有的走損益表、有的只走淨值 —— 這正是「看壽險股
      不能只看每股盈餘」的原因，所以獨立畫一排「這筆變動掉到哪裡」。
 
-   ★ `data-seg` 的處理：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡
-     完全沒有 financial 這條鏈（機器查的：`grep -n "financial" pipeline/groups/supply_chain.yaml`
-     ＝ 零筆命中）。硬掛別條鏈的環節＝在 public 網站上宣稱錯誤的公司對應，所以寧可不掛。
-     代價：點零件不會篩成分股、拿不到環節色 —— 跟 `cyber_security.js` 同樣的既定取捨。
-     畫面上放一張永遠看得到的警語卡講清楚。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**。
+     這張圖剛做出來時 `supply_chain.yaml` 裡完全沒有 financial 這條鏈，所以一個都不敢掛。
+     Andy 2026-09-23 授權補資料之後補上了環節 `fin_life`（壽險金控），這裡跟著掛，
+     成分 ＝ groups.yaml 的 life_fhc 族群（富邦金 2881、國泰金 2882）。
+     ⚠ 整張圖只有一個環節，所以點任何零件篩出來的清單都一樣 —— 那是題目的形狀，不是缺陷。
+     ⚠ 金融鏈在 YAML 裡**一條邊都沒有**（四種既有關係型別表達不了「資金中介」），理由寫在那裡。
 
    ★ 事實與出處
      · 國外投資上限：保險法第 146 條之 4 規定保險業資金辦理國外投資的額度，
@@ -66,7 +67,14 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：financial 鏈的環節補進 `supply_chain.yaml` 之後，
+     這張圖的零件掛得上 `data-seg` 了 —— 環節 ＝ `fin_life`（壽險金控），
+     成分 ＝ groups.yaml 的 life_fhc 族群（富邦金 2881、國泰金 2882）。
+     ★ 整張圖只有一個環節：天平兩端、匯率那三種緩衝、三個落點，講的都是**同一批公司自己的帳**。
+       `stampParts()` 會自動補 `.dg1`，兩層高亮（被點的最強、同環節其餘次強）照樣成立。*/
+  const SEG = 'fin_life';
+  const segOf = () => SEG;
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   /* 元件色。語意：負債／固定側走鋼色與冷色（不動的東西），資產／浮動側走金色與暖色，
      匯率那條獨立用有機色，緩衝用警示色，落到淨值的那一條用主強調色。全部是既有 token。
@@ -80,7 +88,8 @@
     buf: 'var(--dg-warn)', nv: 'var(--dg-accent-2d)', risk: 'var(--dg-err)', mute: 'var(--dg-steel)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話點圖會篩、點旁邊那張卡卻不會。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -285,7 +294,7 @@
         '國外投資上限 45% 是法定上限（保險法第 146 條之 4），另有經核准不計入限額的項目；畫面上寫的是法規，不是任何一家的實際比重。',
         '利率變動對淨值的敏感度：各家的資產存續期間與會計分類不同，沒有可以並排比較的公開統一口徑，所以只寫方向不寫幅度。',
         '哪一家接軌新制的壓力比較大：涉及未揭露的精算假設，這張圖不做公司比較。',
-        '點零件不會篩成分股：供應鏈資料裡沒有「金融」這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+        '兩家的部位配置差別：圖上畫的是壽險這門生意的通則，不是任何一家的實際投資組合。'].map((s, i) =>
           T(LX + 14, y0 + 238 + i * 18, s, 'sub')).join('');
   }
 
@@ -293,12 +302,13 @@
     return `<svg class="dg dgm rs dglf" viewBox="0 0 ${CW} 1400" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，所以 diagrams.js 那一整組「.dg [data-seg] …」
-           的描邊與高亮規則一條都吃不到，要在這裡自己給。顏色一律走 --dg-* token。*/
-        svg.dglf [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dglf [data-part]{cursor:default}
-        svg.dglf [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dglf [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 的零件改吃 diagrams.js 那一整組「.dg [data-seg] …」
+           （環節色、hover、.sel／.sel-part），所以這裡的規則全部縮到 :not([data-seg])——
+           不縮的話它的選擇器比較強，會把環節色整個蓋掉，等於白掛。*/
+        svg.dglf [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dglf [data-part]:not([data-seg]){cursor:default}
+        svg.dglf [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dglf [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dglf .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dglf .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -335,7 +345,7 @@
       ${card({ part: 'lf_d_oci', no: 15, side: 'r', order: 15, color: C.bondF, ax: LX + 396, ay: DY + 14, title: '★ 只走淨值、不走損益表的那些', sub: ['分類在「透過其他綜合損益按公允價值衡量」的債券，評價變動直接打進淨值，EPS 看不出來。', '這就是為什麼看壽險股要看淨值與股價淨值比，不能只看本益比。'] })}
       ${card({ part: 'lf_d_rbc', no: 16, side: 'r', order: 16, color: C.buf, ax: LX + 606, ay: DY + 14, title: '淨值變薄之後會發生什麼', sub: ['資本適足吃緊 → 可能要增資、發次順位債或調整部位，也會影響金控能配出多少股利。所以淨值不是只有帳面意義。'] })}
       ${note({ side: 'l', order: 96, title: '示意圖，非實物比例', lines: ['兩座塔的分層與高度不代表任何一家的實際部位比重，只表示「哪一類比較大」的相對關係；刻度線與游標是示意，不對應任何數值。'] })}
-      ${note({ side: 'l', order: 97, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「金融」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'l', order: 97, title: '點零件會篩到哪些股票', lines: ['這張圖每一塊都掛在「壽險金控」這個環節上，點任何一個零件都會篩出富邦金 2881 與國泰金 2882 —— 因為圖上講的全部是同一批公司自己的帳。', '★ 兩家都還有銀行、證券與產險子公司；這張圖只畫拉動股價的那一塊（壽險），不是它們的全貌。'] })}
       ${note({ side: 'r', order: 98, title: '一句話記住這一格', lines: ['壽險賣的是「幾十年後才要付的承諾」，卻要用「今天的市價」記帳。承諾的價格鎖死、市價每天在動 —— 利率與匯率之所以是主變數，就是因為它們同時決定了這兩張尺。'] })}
       ${note({ side: 'r', order: 99, warn: true, title: '★ 畫面上刻意不出現的數字', lines: ['各家的國外投資比重、避險比率與成本、淨值比、資本適足率一個都沒寫：全部是逐季變動、口徑又各家不同的公司別數字。45% 是保險法第 146 條之 4 的法定上限，不是任何一家的實際比重。'] })}
 

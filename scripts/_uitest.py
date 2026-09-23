@@ -1052,9 +1052,10 @@ def t_overview(pg, base):
         ok(f"KPI「{k}」有標題", len(st["title"] or "") > 2, st)
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
 
-    # --- 總覽下方三張圖：都不是長條圖了，而且點得動
-    for cid, name, want in (("breadth", "市場寬度", ("gauge", "pie")), ("trust", "投信連續買超", ("scatter",)),
-                            ("gval", "族群估值", ("scatter",))):
+    # --- 總覽下方這幾張圖：都不是長條圖了，而且點得動
+    # ★ 2026-09-23：「族群估值」`#gval` 整塊移除（Andy 追問後回覆 OK），所以它那一圈拿掉 ——
+    #   留著的話 `getInstanceByDom(null)` 回 null，那一圈三條會一起紅。
+    for cid, name, want in (("breadth", "市場寬度", ("gauge", "pie")), ("trust", "投信連續買超", ("scatter",))):
         types = pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
             return c ? (c.getOption().series || []).map(s => s.type) : null; }}""")
         ok(f"總覽「{name}」有畫出來", bool(types), types)
@@ -1138,8 +1139,8 @@ def t_overview(pg, base):
             pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
 
     # --- 除了熱力圖與法人連續買超，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
-    for w, lb in (("breadthWrap", "市場寬度"),
-                  ("gvalWrap", "族群估值"), ("rotClockMiniWrap", "總覽輪動時鐘")):
+    # ★ 2026-09-23：`#gvalWrap`（族群估值）整塊移除，從清單拿掉
+    for w, lb in (("breadthWrap", "市場寬度"), ("rotClockMiniWrap", "總覽輪動時鐘")):
         check_nozoom(pg, w, lb)
 
     # --- 資金熱力圖保留縮放，放大後要能用游標抓著移動
@@ -1171,8 +1172,9 @@ def t_overview(pg, base):
     ok("資金熱力圖有把卡片填滿（底下不會留一塊空的）", fill["empty"] <= 40, fill)
     ok("資金熱力圖本身夠大（不是被擠成一小條）", fill["heatH"] >= 400, fill)
 
-    # --- 下方三張圖：要有資料，不是空狀態
-    for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超"), ("gval", "族群估值")):
+    # --- 下方那幾張圖：要有資料，不是空狀態
+    # ★ 2026-09-23：「族群估值」`#gval` 整塊移除，從清單拿掉（留著 `has` 會是 None ＝ 必紅）
+    for cid, name in (("breadth", "市場寬度"), ("trust", "投信連續買超")):
         has = pg.evaluate(f"() => {{ const e = document.getElementById('{cid}'); return e ? {{ canvas: !!e.querySelector('canvas'), empty: !!e.querySelector('.empty') || /尚無|沒有|回補中/.test(e.innerText) }} : null; }}")
         ok(f"總覽「{name}」有畫出來", bool(has) and has["canvas"] and not has["empty"], has)
 
@@ -1585,8 +1587,9 @@ def t_flow(pg, base):
     #     指向的元素（`#valBody` / `#vCount` / `#vPeHi` / `#vRoe` / `#vReset` / `#vBelow`）
     #     現在一個都不存在 —— `pg.fill('#vPeHi', …)` 會直接逾時，整段紅在收尾。
     #     所以整組換成**正面驗「真的整塊不在了」**：移除本身就是需求，要有人守。
-    #     ⚠ 總覽頁的「族群估值」`#gval` 是**另一張圖**（族群層的本益比中位 vs 資金流入），
-    #       Andy 沒有要求移除，所以這裡刻意不把它一起掃進來。
+    #     ⚠ 總覽頁的「族群估值」`#gval` 原本判斷是另一張圖、先留著，
+    #       但 2026-09-23 向 Andy 追問之後他回覆 OK，**也一併移除了**
+    #       （連同它唯一的讀者 `group_valuation.json` 的那次 load）。
     gone_val = pg.evaluate("() => ['valBody','vCount','vPeHi','vPbHi','vRoe','vReset','vBelow','valWrap']"
                            ".filter(id => !!document.getElementById(id))")
     ok("D3：估值篩選整張卡片（表格／條件輸入／清除條件／只看低於族群中位）都不在 DOM 了",
@@ -4000,23 +4003,11 @@ def t_new_flow(pg, base):
         pg.wait_for_timeout(1200)
         ok("再點一次真的還原", pg.evaluate(DIMBAR) == 0, pg.evaluate(DIMBAR))
 
-    # 總覽的「族群估值」散布圖也套同一套（族群小 Tip ＝ 篩選，不是跳頁）
-    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    gchip = '.linkrow.gchips[data-for="gval"] .gchip'
-    DIMPT = """() => { const c = echarts.getInstanceByDom(document.getElementById('gval'));
-        if (!c) return null; const d = ((c.getOption().series || [])[0] || {}).data || [];
-        return d.filter(x => x.itemStyle && x.itemStyle.opacity != null && x.itemStyle.opacity < 0.5).length; }"""
-    if ok("總覽族群估值下方有族群晶片列", count(pg, gchip) > 0, count(pg, gchip)):
-        g0 = pg.evaluate(DIMPT)
-        h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector(gchip + " .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
-        changed("點總覽族群估值的晶片，被壓暗的圓點數真的變了", g0, pg.evaluate(DIMPT))
-        ok("而且不會跳頁", pg.evaluate("() => location.hash") == h0)
-        pg.eval_on_selector(gchip + ".on .pick", "b => b.click()")
-        pg.wait_for_timeout(1200)
-        ok("再點一次真的還原", pg.evaluate(DIMPT) == 0, pg.evaluate(DIMPT))
-    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    # ★ 2026-09-23：總覽的「族群估值」散布圖整塊移除（Andy 追問後回覆 OK），
+    #   原本這裡有一段「點晶片 → 圓點被壓暗 → 再點還原」。整段拿掉。
+    #   ⚠ **覆蓋沒有留空窗**：同一個共用機制（`filterChips` 點晶片就篩圖）
+    #     在上面的「族群 × 法人」（`#instGroups` 的 DIMBAR 那一段）已經完整驗過一次。
+    #     不是因為它不重要而刪，是因為它的載體不存在了。
 
     # ---------------------------------------------------------------- 窄畫面 800px
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -4158,7 +4149,10 @@ def t_new_layout(pg, base):
     # ------------------------------------------------ ③ 三張圖在五個寬度都不壓字
     SCAN = """
     () => {
-      const want = ['breadth', 'trust', 'gval'];
+      /* ★ 2026-09-23：`gval`（族群估值）整塊移除，從掃描清單拿掉。
+         ⚠ 這裡不是 `ok()`：找不到那張圖會被 `out.overlaps.push([...])` **算成一筆重疊**而變紅，
+           用關鍵字搜 `ok(` 找不到它 —— 這種「不是斷言但會判紅」的地方最容易漏。*/
+      const want = ['breadth', 'trust'];
       const out = { overlaps: [], outside: [], nodes: {} };
       for (const id of want) {
         const host = document.getElementById(id);
@@ -12820,10 +12814,13 @@ def t_b14b_wbg(pg, base):
        "來源：產業媒體，2026" in txt and "來源：媒體報導，2025–2026" in txt, "")
     # ★ 2026-09-23 W5：畫布 980 → 660，**上半那兩個 464 寬的大框已經不存在**，
     #   原本三條「溝」（480–500）掃到的位置現在什麼都沒有 ＝ 永遠 0 筆 ＝ 假綠。
-    #   新版唯一還是兩欄的地方是章節①（`areaVariants`）：左欄 x=24（溝槽閘）、
-    #   右欄 x=330（GaN-on-SiC ／ Cascode），中間那條溝是 300–330。
-    #   主畫面與章節②③ 現在是整張寬的單欄，欄與欄的分離由 `.dgv2` 的 grid 保證，不必再掃。
-    _b14b_gutter(pg, "第三代", [[300, 330, 16, 380, 900]])
+    #   ⚠ 也沒辦法換成新座標：新版唯一還是兩欄的地方是章節①（`areaVariants`，左欄 x=24、
+    #     右欄 x=330），但章節②的帶狀圖是**整張寬**的單欄，而且兩段的 y 是重疊的
+    #     （areaVariants 380–820、bandChart 700–910）—— 用 y 區間分不開，
+    #     只用 x 判就會把整張寬的那一行說明誤判成「伸進隔壁欄」（實測正是這樣紅的）。
+    #   所以這條掃描在這張圖上退場（`docs/batch_0923b_uitest_todo.md` 第一節給的第一個選項）。
+    #   **覆蓋沒有留空窗**：章節①兩欄之間真的疊到字的話，下面 `_b14b_typo` 的
+    #   「文字兩兩不重疊」會抓到 —— 那一條量的是畫面上的實際外框，比欄位溝更直接。
     ok("第三代・N3：三行誠實性標示都在（非實物比例／只講功率元件／沒有對應環節）",
        "示意圖，非實物比例" in txt and "射頻 GaN 與 LED 不在此圖" in txt and "還沒有對應環節" in txt, "")
 
@@ -18933,8 +18930,9 @@ def t_c4_fit(pg, base):
 # ★ 這是**刻意**的棘輪，不是還沒做完：`pipeline/groups/supply_chain.yaml` 裡
 #   **沒有 `financial` 也沒有 `software` 這兩條鏈**（grep -c 都是 0）。
 #   沒有環節卻硬掛 `data-seg`，等於在一個 public 的網站上宣稱錯誤的公司對應 ——
-#   那比「點了沒反應」嚴重得多。所以哪天有人「順手補上環節」，這一段會立刻紅，**那是對的**：
-#   它會逼那個人先去 YAML 把環節定義出來（而 YAML 由 Andy 校訂），而不是在繪圖端偷偷補。
+#   那比「點了沒反應」嚴重得多。
+#   ★ 2026-09-23：已經有一路在補這兩條鏈的環節，所以判準**不再寫死 0**，
+#     改成「圖上掛的每一個環節都要真的存在於那條鏈裡」（細節見 t_noseg 的 docstring）。
 NOSEG_ROUTES = [
     ("銀行", "financial/dg/bank"), ("壽險金控", "financial/dg/life_fhc"),
     ("證券金控", "financial/dg/securities_fhc"),
@@ -18944,23 +18942,54 @@ NOSEG_ROUTES = [
 
 
 def t_noseg(pg, base):
-    """金融鏈三張與軟體鏈四張：`#prodDiagram [data-seg]` 必須是 0（棘輪）。"""
+    """金融鏈三張與軟體鏈四張：掛上去的 `data-seg` 必須**真的存在於那條鏈的環節表裡**。
+
+    ★ 2026-09-23 改寫，原因寫清楚：
+      第一版寫成「`[data-seg]` 數量必須 == 0」——那是因為 `supply_chain.yaml` 當時
+      **沒有 `financial` 也沒有 `software` 這兩條鏈**，掛環節等於在一個 public 的網站上
+      宣稱錯誤的公司對應。但現在有一路正在補這兩條鏈的環節，交件之後那七張圖會
+      **從「沒有 data-seg」變成「有 data-seg」** —— 寫死 0 的話它一交件就紅，
+      而那個紅是假的（產品正確，是驗收沒跟上）。
+
+      所以判準換成**真正不變的那一件事**：
+        · 那條鏈還沒有環節 → 圖上一個 `data-seg` 都不准有（等同舊的 0 棘輪）
+        · 那條鏈有環節了　 → 圖上每一個 `data-seg` 都必須是那條鏈**真的有的**那幾個
+      兩種情況都擋得住「順手掛一個不存在的環節」，而且不必等誰交件才改一次。
+      名單直接讀 `site/data/supply_chain.json`（前端吃的就是它），不是寫死在這裡。
+    """
     pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    # `supply_chain.json` 的形狀是 `{segments: [{id, name, layer, chain, …}, …]}`（扁平一層，
+    # 每個環節自己帶 `chain`），不是「每條鏈底下掛一份環節」。依 `chain` 分組。
+    chains = pg.evaluate("""async () => { const r = await fetch('data/supply_chain.json');
+        const j = await r.json(); const o = {};
+        (j.segments || []).forEach(s => { const c = s.chain; if (!c) return;
+          (o[c] = o[c] || []).push(s.id); });
+        return o; }""") or {}
     for lab, route in NOSEG_ROUTES:
+        chain = route.split("/")[0]
+        allowed = chains.get(chain) or []
         pg.goto(f"{base}#industry/{route}", wait_until="networkidle")
         pg.reload(wait_until="networkidle")
         pg.wait_for_timeout(2400)
         z = pg.evaluate("""() => { const h = document.getElementById('prodDiagram');
             if (!h || !h.querySelector('svg')) return null;
             return { segs: h.querySelectorAll('[data-seg]').length,
-                     segList: [...new Set([...h.querySelectorAll('[data-seg]')].map(e => e.dataset.seg))].slice(0, 6),
+                     segList: [...new Set([...h.querySelectorAll('[data-seg]')].map(e => e.dataset.seg))],
                      parts: h.querySelectorAll('[data-part]').length,
                      title: (document.getElementById('dgTitle') || {}).textContent || '' }; }""")
         if not ok(f"[{lab}] 這張圖畫得出來", bool(z), z):
             continue
-        ok(f"★ [{lab}] 一個 `data-seg` 都沒有（supply_chain.yaml 裡沒有這條鏈，硬掛就是宣稱錯誤的公司對應）",
-           z["segs"] == 0, {"掛了": z["segs"], "是哪幾個": z["segList"]})
-        ok(f"[{lab}] 但零件本身是有的（不是整張圖空白）", z["parts"] > 0, z["parts"])
+        if not allowed:
+            ok(f"★ [{lab}] `{chain}` 這條鏈還沒有環節 → 圖上一個 `data-seg` 都不准掛"
+               f"（硬掛就是宣稱錯誤的公司對應）",
+               z["segs"] == 0, {"掛了": z["segs"], "是哪幾個": z["segList"][:6]})
+        else:
+            bad = [x for x in z["segList"] if x not in allowed]
+            ok(f"★ [{lab}] 圖上每一個 `data-seg` 都是 `{chain}` 這條鏈真的有的環節"
+               f"（鏈上有 {len(allowed)} 個環節）",
+               not bad, {"不存在的": bad, "圖上掛的": z["segList"][:6]})
+        ok(f"[{lab}] 零件本身是有的（不是整張圖空白）", z["parts"] > 0, z["parts"])
 
 
 # ===================================================================== 批次30：兩層下拉與象限卡（W6／W7）

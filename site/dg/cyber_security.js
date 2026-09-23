@@ -16,11 +16,13 @@
        ② 擋不住的怎麼辦：各層的日誌送進 SOC → 關聯分析 → 告警 → 通報與應變（這一段是「人」）
        ③ 所以收入分成三種型態，認列節奏完全不同（產品授權／委外服務／專案建置）
 
-   ★ `data-seg` 的處理：**一個都不掛**。`pipeline/groups/supply_chain.yaml` 裡
-     完全沒有 software 這條鏈（機器查的：`grep -c software` ＝ 0），沒有任何環節 id 對得上。
-     硬掛一個別條鏈的環節＝在 public 網站上宣稱錯誤的公司對應，所以寧可不掛。
-     代價：點零件不會篩成分股、拿不到環節色 —— 跟 `silicon_wafer.js`／`wide_bandgap.js` 同樣的
-     既定取捨，不是壞掉。因此「誰做的」直接印在畫面上。
+   ★ `data-seg`（2026-09-23 更新，批次 0923-C／C9）：**掛上了**。
+     這張圖剛做出來的時候 `pipeline/groups/supply_chain.yaml` 裡完全沒有 software 這條鏈，
+     所以一個 seg 都不敢掛（硬掛別條鏈的環節＝在 public 網站上宣稱錯誤的公司對應）。
+     Andy 2026-09-23 授權補資料（「若缺資料網路找，CEO 安排」），環節補上之後這裡跟著掛：
+       環節 ＝ `sw_secops`（資安監控與委外防護），成分 ＝ cyber_security 族群那兩檔。
+     ⚠ 只掛「這兩家真的在做的事」那些零件；攻擊面、核心資產、法規說明那幾塊維持不掛 ——
+       見下面 SEG_PARTS 的註解。「誰做的」照舊直接印在畫面上，沒有因為掛了 seg 就拿掉。
 
    ★ 事實與出處（畫面上只寫查得到的，其餘標示意）
      · 安碁資訊 6690 是 SOC 委外監控業者，提供 7×24 即時監控、分析與通報 —— 公司自己的服務頁
@@ -48,8 +50,21 @@
   const T = (x, y, s, cls, anchor, style) =>
     `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
-  // 這張圖沒有 data-seg，data-part 一律自己寫（沒有 seg 時 stampParts 自動補的 key 會退化成序號）
-  const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
+  /* ★ 2026-09-23（批次 0923-C／C9）：`pipeline/groups/supply_chain.yaml` 補上了 software 這條鏈，
+     這張圖的零件終於掛得上 `data-seg` —— 環節是 `sw_secops`（資安監控與委外防護），
+     成分就是 groups.yaml 的 cyber_security 族群（安碁資訊 6690、中華資安 7765）。
+     ⚠ **不是每一個零件都掛。** 只有「這兩家公司真的在做的事」才掛：
+       掛：四層防護、SOC 四格、三種收入型態、兩張公司卡。
+       不掛：攻擊面、核心資產、漏過去的那一條、政府與金融那兩段法規說明 ——
+             那些是**客戶那一側**與制度背景，不是這一格的公司在做的事。
+             硬掛的話，點「《資通安全管理法》」會跑出兩檔股票，那是錯的對應。
+     沒掛 seg 的零件仍然點得動（`data-part` 那條路），只是不會去篩成分股。*/
+  const SEG = 'sw_secops';
+  const SEG_PARTS = new Set(['cs_net', 'cs_edr', 'cs_idp', 'cs_data',
+    'cs_log', 'cs_corr', 'cs_alert', 'cs_ir',
+    'cs_rev_prod', 'cs_rev_svc', 'cs_rev_proj', 'cs_co_6690', 'cs_co_7765']);
+  const segOf = (id) => (SEG_PARTS.has(id) ? SEG : null);
+  const part = (id, inner) => `<g data-part="${id}"${segOf(id) ? ` data-seg="${segOf(id)}"` : ''}>${inner}</g>`;
 
   /* 元件色（卡片 data-dgcolor ＋ 編號圓點 ＋ 引線端點共用），全部是 index.html 既有的 token */
   const C = {
@@ -58,7 +73,9 @@
     people: 'var(--dg-organic)', mute: 'var(--dg-mute)', warn: 'var(--dg-warn)',
   };
   const card = (o) => {
-    const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
+    // seg 也要傳給卡片：卡片本身就是一個零件節點，沒傳的話「點圖上的零件」會亮、
+    // 「點旁邊那張卡」卻不會篩成分股，同一件事出現兩種行為。
+    const s = extRow({ part: o.part, seg: segOf(o.part), title: o.title, sub: o.sub, no: o.no,
       side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
     return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
   };
@@ -221,7 +238,7 @@
       + ['市占率、合約金額、各家產品與服務的收入占比 —— 查不到可引用的公開出處，一個數字都不寫。',
         '「政府占安碁營收六到七成」只見於投資分析平台的單一來源，沒有公司自己的說法可以對照，所以畫面上只寫定性的「以政府與金融為主」。',
         '資安產品的技術優劣、各家工具的比較：這張圖講的是錢從哪裡來，不做產品評比。',
-        '點零件不會篩成分股：供應鏈資料裡沒有 software 這條鏈的環節，硬掛一個環節等於宣稱錯誤的公司對應。'].map((s, i) =>
+        '各家在四層防護與 SOC 各段的分工細節：畫面上的分層是資安的通用概念，不是在說某一家做哪幾層。'].map((s, i) =>
           T(30, y0 + 212 + i * 18, s, 'sub')).join('');
   }
 
@@ -229,12 +246,14 @@
     return `<svg class="dg dgm rs dgcs" viewBox="0 0 ${CW} 1120" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（見 DECISIONS 第 231 條）。
-           這張圖一個 data-seg 都沒有，所以 diagrams.js 那一整組「.dg [data-seg] …」
-           的描邊與高亮規則一條都吃不到，要在這裡自己給。顏色一律走 --dg-* token。*/
-        svg.dgcs [data-part] .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
-        svg.dgcs [data-part]{cursor:default}
-        svg.dgcs [data-part]:hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
-        svg.dgcs [data-part].sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
+           ★ 2026-09-23：掛上 data-seg 之後，那些零件要吃 diagrams.js 的「.dg [data-seg] …」
+           （環節色、hover、.sel／.sel-part）。這裡的規則因此全部縮到 :not([data-seg]) ——
+           不縮的話它的選擇器比較specific，會把環節色整個蓋掉，等於白掛。
+           留下來的這幾條只服務「沒有環節的零件」（攻擊面、核心資產、法規說明那幾塊）。*/
+        svg.dgcs [data-part]:not([data-seg]) .part{stroke:var(--dg-part-mix);stroke-width:.9;transition:stroke .15s,filter .15s}
+        svg.dgcs [data-part]:not([data-seg]){cursor:default}
+        svg.dgcs [data-part]:not([data-seg]):hover .part{stroke:var(--dg-accent-2d);stroke-width:1.6}
+        svg.dgcs [data-part]:not([data-seg]).sel-part .part{stroke:var(--dg-accent-2d);stroke-width:2.4;
           filter:var(--dg-glow,drop-shadow(0 0 5px var(--dg-accent-2d)))}
         svg.dgcs .leader{fill:none;stroke:var(--dg-line-mix);stroke-width:1}
         svg.dgcs .anc .anchor{fill:var(--dg-card-c,var(--dg-accent-2d))}
@@ -267,7 +286,7 @@
       ${card({ part: 'cs_rev_svc', no: 13, side: 'r', order: 13, color: C.people, ax: 222, ay: 440, title: '委外服務：最穩，但要養人', sub: ['按月／按年收、逐月認列，續約率就是它的護城河。代價是人力成本跟著客戶數走，不像軟體可以無限複製。'] })}
       ${card({ part: 'cs_rev_proj', no: 14, side: 'r', order: 14, color: C.mute, ax: 434, ay: 440, title: '專案建置：看案子，季度落差大', sub: ['按人天報價、驗收才認列，所以單季營收會被幾個大案的驗收時點左右。'] })}
       ${note({ side: 'l', order: 97, title: '示意圖，非實物比例', lines: ['防護層只畫四層代表「縱深」這個概念，實際分層依各家架構而異；攻擊路徑與攻擊面為示意，不對應任何真實事件，也不指名任何產品或廠牌。'] })}
-      ${note({ side: 'l', order: 98, warn: true, title: '★ 為什麼點零件不會篩成分股', lines: ['供應鏈資料裡沒有「軟體與資訊服務」這條鏈的環節（機器查的：一個都沒有），所以這張圖一個 data-seg 都沒掛。那不是壞掉，是誠實 —— 硬掛一個別條鏈的環節，等於在 public 網站上宣稱錯誤的公司對應。'] })}
+      ${note({ side: 'l', order: 98, title: '點零件會篩到哪些股票', lines: ['防護四層、SOC 四格、三種收入型態與兩張公司卡都掛在「資安監控與委外防護」這個環節上，點下去會篩出這一格的成分股（安碁資訊 6690、中華資安 7765）。', '★ 攻擊面、核心資產與下面那兩段法規說明**刻意沒有掛環節** —— 那是客戶那一側與制度背景，不是這兩家公司在做的事。點它們仍然會開零件說明，但不會去篩股票。'] })}
       ${note({ side: 'r', order: 99, warn: true, title: '★ 這一格的景氣跟誰連動', lines: ['政府採購跟著法規與年度預算編列走、金融跟著主管機關的要求走 —— 兩者都不是純粹的景氣循環。所以看這一格不要只看終端需求，要看法規與預算的時程。', '這一句是本圖的推論（依《資通安全管理法》的委外規定與金管會的聯防機制推出來的），不是任何一家公司的說法。'] })}
 
       <!-- ================= ① 為什麼客戶是政府與金融（預設收合） ================= -->
