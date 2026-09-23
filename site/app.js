@@ -1402,7 +1402,8 @@
     if (window.Market3) window.Market3.mount();
     /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金去向分流圖」（D7）之後
        總覽也要用到它。它和資金流向頁吃的是**同一份檔案**（同一個口徑，不另外算一份）。 */
-    const [heat, gt, rot, cands, f3, th, trust, gval, , , sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('group_valuation'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
+    // ★ 2026-09-23：`group_valuation` 不再載入 —— 總覽的「族群估值」散布圖已移除，它是全站最後一個讀者。
+    const [heat, gt, rot, cands, f3, th, trust, , , sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
     // hero
     const b = (heat && heat.breadth) || {};
     const mv = b.movers || {};
@@ -1440,7 +1441,6 @@
     renderBreadth(heat);
     renderTrust(trust, cands);
     wireStreak(trust, cands);
-    renderGval(gval, rot, gt);
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
@@ -3396,92 +3396,12 @@
       sel.onchange = () => { streakState.days = +sel.value; renderTrust(trust, cands); }; }
   }
 
-  /* 族群估值：單看本益比高低沒有用（IC 設計本來就比航運貴）。
-     要看的是「貴不貴」× 「錢有沒有在進來」——
-     左上（便宜而且資金流入）才是這張儀表板真正想找的地方，右下（貴又在流出）是該閃的。 */
-  function renderGval(gval, rot, gt) {
-    if (!gval || !gval.length) return empty('gval');
-    const rotMap = {}; (rot || []).forEach(r => { rotMap[r.group_id] = r.rotation; });
-    const shareMap = {}; (gt || []).forEach(g => { shareMap[g.group_id] = g.turnover_share; });
-    const rows = gval.filter(g => g.metric === 'pe' && g.group_median && !g.group_id.startsWith('ind_')
-      && rotMap[g.group_id] != null).map(g => ({ ...g, rot: rotMap[g.group_id], share: shareMap[g.group_id] || 0 }));
-    if (rows.length < 3) return empty('gval', '族群估值需要更多有本益比的族群，財報還在回補');
-    const pes = rows.map(r => r.group_median);
-    const mid = pes.slice().sort((a, b) => a - b)[Math.floor(pes.length / 2)];
-    const maxShare = Math.max(...rows.map(r => r.share), 1);
-    const xs = [Math.min(...pes) * .9, Math.max(...pes) * 1.06];
-    const ys = rows.map(r => r.rot); const yr = Math.max(...ys.map(Math.abs), .5) * 1.25;
-    const gvHost = $('#gval');
-    const gvClamp = (p) => {
-      const W = (gvHost && gvHost.clientWidth) || 300, H = (gvHost && gvHost.clientHeight) || 250, L = p.labelRect;
-      let dx = 0, dy = 0;
-      if (L.x + L.width > W - 3) dx = (W - 3) - (L.x + L.width);
-      if (L.x + dx < 3) dx = 3 - L.x;
-      if (L.y + L.height > H - 3) dy = (H - 3) - (L.y + L.height);
-      if (L.y + dy < 3) dy = 3 - L.y;
-      return { dx, dy, hideOverlap: true };
-    };
-    const c = chart('gval', {
-      tooltip: { ...tip, formatter: q => `<b>${q.data.nm}</b><br>本益比中位 <b>${fmt.n(q.value[0], 1)}</b>（n=${q.data.n}，全市場中位 ${fmt.n(mid, 1)}）<br>資金流向 <span style="color:${upDown(q.value[1])}">${q.value[1] > 0 ? '流入 +' : '流出 '}${fmt.n(q.value[1], 2)} pp</span><br>成交值佔比 ${fmt.n(q.data.share, 1)}%<br><small>點一下看成分股</small>` },
-      /* ★ 2026-09-20（Andy 截圖：左上角「便宜 × 資金流入」跟「資金流入」糊成一團）。
-         量出來的根因有兩個，都是「用百分比定位 + 不知道旁邊有誰」：
-           1. y 軸名稱預設落在軸的最上端，正好就是左上角那個象限標籤的位置；
-           2. 四個象限標籤用 left:'13%' / bottom:40 定位，容器一窄就壓到 x 軸刻度
-              （1440px 量到「便宜 × 沒人要」和「-1.2」重疊 10×10px）。
-         改法：y 軸名稱轉成直的貼在最左邊（那一帶本來就空著）、
-         x 軸名稱拿掉（四個象限標籤已經把「左便宜右貴」講完了，留著只是再壓一次），
-         四個象限標籤改成**依 grid 用 px 算**、固定貼在繪圖區的四個角 ——
-         位置不再跟容器寬度成比例，1280 跟 1920 看到的是同一個版面。 */
-      grid: { left: 52, right: 18, top: 26, bottom: 30 },
-      xAxis: { ...axisStyle, min: +xs[0].toFixed(0), max: +xs[1].toFixed(0), splitLine: { show: false } },
-      yAxis: { ...axisStyle, name: '資金流入 ↑', nameLocation: 'middle', nameRotate: 90, nameGap: 38,
-        nameTextStyle: { color: CH.ink3, fontSize: 11 },
-        min: -yr, max: yr, axisLabel: { formatter: v => v.toFixed(1) }, splitLine: { show: false } },
-      graphic: (() => {
-        const gL = 52 + 6, gR = 18 + 6, gT = 26 + 2, gB = 30 + 2;
-        const f = { fontSize: 11.5, fontWeight: 700 };
-        return [
-          { type: 'text', left: gL, top: gT, style: { ...f, text: '便宜 × 資金流入', fill: 'rgba(255,77,109,.75)' } },
-          { type: 'text', right: gR, top: gT, style: { ...f, text: '貴 × 資金流入', fill: 'rgba(255,180,84,.7)', align: 'right' } },
-          { type: 'text', left: gL, bottom: gB, style: { ...f, text: '便宜 × 沒人要', fill: 'rgba(110,126,163,.8)' } },
-          { type: 'text', right: gR, bottom: gB, style: { ...f, text: '貴 × 資金流出', fill: 'rgba(46,229,157,.7)', align: 'right' } },
-        ];
-      })(),
-      series: [{ type: 'scatter',
-        data: rows.map(r => ({ value: [+r.group_median.toFixed(1), +r.rot.toFixed(2)], gid: r.group_id,
-          nm: r.group_name, n: r.group_n, share: r.share,
-          symbolSize: Math.max(11, Math.min(34, Math.sqrt(r.share / maxShare) * 34)),
-          itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0], opacity: .85, borderColor: CH.panel, borderWidth: 1 },
-          /* 靠右邊的族群名字一律寫在點的左邊（1280px 量到「封測」整串凸出容器 2px）。
-             label 的位置可以逐筆指定，所以直接讓標籤一律朝畫面中央長，
-             不必依賴 labelLayout 把它夾回來。 */
-          label: { position: r.group_median > xs[0] + (xs[1] - xs[0]) * .6 ? 'left' : 'right' } })),
-        label: { show: true, formatter: q => q.data.nm, position: 'right', color: CH.ink2, fontSize: 11 },
-        // 靠右邊那幾個族群的名字會整串長到框外；跟法人連續買超同一套夾回容器內
-        labelLayout: gvClamp },
-      { type: 'line', data: [], markLine: { silent: true, symbol: 'none',
-        lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed' },
-        data: [{ xAxis: +mid.toFixed(1) }, { yAxis: 0 }], label: { show: false } } }],
-    });
-    if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
-    /* 族群小 Tip 改成篩選（Andy 2026-09-20，同 filterChips 那一段的理由）。
-       散布圖的做法是把沒選到的圓點壓到 12% 透明度、標籤一起壓暗 ——
-       抽掉的話就看不出「它在便宜／貴這兩軸上站在哪裡」，那正是這張圖唯一的用途。*/
-    const gvPick = chipSel.gval || null;
-    if (c && gvPick) {
-      c.setOption({ series: [{ data: rows.map(r => ({
-        value: [+r.group_median.toFixed(1), +r.rot.toFixed(2)], gid: r.group_id,
-        nm: r.group_name, n: r.group_n, share: r.share,
-        symbolSize: Math.max(11, Math.min(34, Math.sqrt(r.share / maxShare) * 34)),
-        itemStyle: { color: L.gcolor[r.group_id] || PALETTE[0],
-          opacity: r.group_id === gvPick ? .95 : .12,
-          borderColor: CH.panel, borderWidth: 1 },
-        label: { opacity: r.group_id === gvPick ? 1 : .18 } })) }] }, { notMerge: false, lazyUpdate: true });
-    }
-    filterChips('gval', rows.slice().sort((a, b) => b.rot - a.rot).slice(0, 12)
-      .map(r => ({ gid: r.group_id, name: r.group_name })), gvPick, () => renderGval(gval, rot, gt));
-  }
-
+  /* ★ 2026-09-23（Andy：「估值篩選拿掉」，追問後回覆「OK」＝連總覽這張也一起砍）：
+     總覽的「族群估值」散布圖（`#gval` / `renderGval`，族群本益比中位 × 資金流入）已整塊移除，
+     連同它的卡片、族群篩選晶片，以及唯一讀 `group_valuation.json` 的那次 `load()`。
+     原因是「貴不貴」這條線在這份儀表板上已經由資金流向頁的排行與輪動時鐘回答，
+     而本益比中位跨族群比較本來就沒有意義（DECISIONS #13：絕不跨族群比 PE），
+     圖上四個象限反而在鼓勵那種比較。資料端照舊產出，只是前端不再有人讀。 */
   // ---------------------------------------------------------------- 資金流向
   // ================================================================ 資金流向頁
   // Andy 的要求：「需要有趨勢 好比說上週 上上週 上個月等等 可以查到不同時期 資金走向為何」
@@ -6322,8 +6242,8 @@
      「估值篩選」整張卡片（本益比／股價淨值比／ROE／市值／族群一起篩 ＋ 散點圖 ＋ 右側表格）
      已從 `#flow` 與這裡一起移除，連同它專用的 `VF` 狀態與 `renderVal()`。
      它是這一頁唯一一個讀 `fundamental.json` 的東西，所以那一份也不再載入。
-     ⚠ 總覽頁的「族群估值」（`#gval` / `renderGval`）是**另一張圖**（族群層的本益比中位 vs 資金流入），
-       Andy 沒有要求移除，所以留著 —— 不要因為名字裡都有「估值」就順手一起刪掉。 */
+     ⚠ 總覽頁的「族群估值」（`#gval` / `renderGval`）原本判斷是另一張圖、先留著，
+       但 2026-09-23 向 Andy 確認後他回「OK」＝ 一起砍，所以那張也已經移除（見 renderTrust 下方的註解）。 */
 
   // ---------------------------------------------------------------- 題材
   async function renderThemes() {

@@ -2434,7 +2434,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
         <div class="cards" id="candCards"></div></div>
     </div>
-    <div class="grid g3" style="margin-top:16px">
+    <!-- ★ 2026-09-23（Andy：「估值篩選拿掉」，追問後回覆「OK」＝連總覽這張也一起砍）：
+         這一列原本是三張卡（市場寬度／法人連續買超／族群估值），「族群估值」整張移除後只剩兩張，
+         所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
+         g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
+    <div class="grid g2" style="margin-top:16px">
       <div class="card"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
@@ -2446,8 +2450,6 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         </div></div>
         <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div>
         <div class="note" style="margin-top:6px">滾輪放大、放大後拖曳移動、雙擊還原；點泡泡進個股頁。</div></div>
-      <div class="card"><h3>族群估值 <small>橫軸＝族群本益比中位（左便宜、右貴），縱軸＝資金流入；找左上角那一格</small></h3>
-        <div id="gvalWrap"><div id="gval" class="chart" style="min-height:250px"></div></div></div>
     </div>
   </section>
 
@@ -2583,7 +2585,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          （本益比／股價淨值比／ROE／市值／族群一起篩 ＋ 散點圖 ＋ 右側表格 ＋ 清除條件）。
          app.js 的 `renderVal()`／`VF`／`HOW.val` 與 `.vfilters` 的 CSS 一起清掉，
          這一頁也不再載入 `fundamental.json`（只有它在讀）。
-         ⚠ 總覽頁的「族群估值」（`#gval`）是**另一張圖**，Andy 沒有要求移除，留著。 -->
+         ⚠ 總覽頁的「族群估值」（`#gval`）原本判斷是另一張圖、先留著，但 2026-09-23 向 Andy
+         確認後他回「OK」＝ 一起砍，所以總覽那張卡與 `renderGval()` 也已移除，
+         `group_valuation.json` 隨之沒有任何前端讀者（資料端照舊產出，停產是另一件事）。 -->
   </section>
 
   <!-- ================= 產業熱力圖 =================
