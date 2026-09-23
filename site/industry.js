@@ -1043,8 +1043,14 @@
           + `細到幾乎看不見的那幾格是邊陲，同樣的利多對它們影響小得多。點一格就篩到那一格。`
           + `<span class="muted">方塊高度＝這一格的台股檔數；帶子寬度＝兩格之間已建立的上下游關係條數。</span>`,
       };
+      /* 容器寬度變了就要重畫：欄寬、欄距、左右內距全部是依容器寬度算出來的。
+         最常見的觸發不是改視窗，是**點一檔個股** —— 右側資訊欄（340px）一出現，
+         圖的容器就從 998px 縮到 646px，不重畫的話剛剛量好的置中當場歪掉、內容還會溢出。
+         `lastW` 是防止 ResizeObserver 自己咬自己：重畫會改 SVG 高度、又觸發一次觀察。*/
+      let lastW = -1;
       const drawMap = () => {
         if (!mapHost) return;
+        lastW = mapHost.clientWidth;
         if (relView === 'flow') drawSegFlow(mapHost, sc, ch.id, im, { onSegment: segPick });
         else drawChainMap(mapHost, sc, ch.id, im, {
           onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
@@ -1081,14 +1087,21 @@
         if (relOpen) { drawMap(); syncHighlight({ quiet: true, noscroll: true }); }
       };
       paintRelFold();
-      /* 視窗寬度變了就重算欄寬（置中與撐滿都是依容器寬度算出來的，不重算就會偏掉）。
-         換頁時 `el` 已經不在文件裡，用它當存活判斷把 listener 自己收掉。*/
+      /* 容器寬度變了就重算（改視窗、開關右側資訊欄、開關事件抽屜都算）。
+         8px 的死區：捲軸出現／消失那種一兩個 pixel 的抖動不值得重畫一整張圖。
+         換頁時 `el` 已經不在文件裡，用它當存活判斷把 observer 自己收掉。*/
       let rt = null;
-      const onResize = () => {
-        if (!el.isConnected) { window.removeEventListener('resize', onResize); return; }
-        clearTimeout(rt); rt = setTimeout(() => { if (relOpen) { drawMap(); syncHighlight({ quiet: true, noscroll: true }); } }, 160);
+      const reflow = () => {
+        if (!el.isConnected) { if (ro) ro.disconnect(); window.removeEventListener('resize', reflow); return; }
+        if (!relOpen || !mapHost || Math.abs(mapHost.clientWidth - lastW) < 8) return;
+        clearTimeout(rt); rt = setTimeout(() => {
+          if (!el.isConnected || !relOpen) return;
+          drawMap(); syncHighlight({ quiet: true, noscroll: true });
+        }, 120);
       };
-      window.addEventListener('resize', onResize);
+      let ro = null;
+      if (window.ResizeObserver && mapHost) { ro = new ResizeObserver(reflow); ro.observe(mapHost); }
+      window.addEventListener('resize', reflow);
     }
     if (hasSlots && sc) {
       /* 手機（<640px）預設把剖析圖收起來。
@@ -2140,13 +2153,20 @@
         //    因為剩下的空白全部會變成左右內距，那正是 Andy 說的「右邊空一大塊」。
         colW = Math.min(o.hardColW || 380, Math.floor((avail - (ncol - 1) * colGap) / ncol));
       } else {
-        const minColW = o.minColW || 132, minGap = o.minGap || 18;
-        if (natural() > avail) colGap = Math.max(minGap, colGap);
-        if (natural() > avail) colW = Math.max(minColW, Math.floor((avail - (ncol - 1) * colGap) / ncol));
+        /* 塞不下：先把欄距收到下限、再把欄寬收到下限。內距也一起讓步到 `padTight`——
+           放不下的時候「同一欄回頭線那 24px 通道」的優先度，低於「整張圖不要變成左右滑」。*/
+        const minColW = o.minColW || 132, minGap = o.minGap || 18, padTight = o.padTight || 16;
+        const avail2 = HW - padTight * 2;
+        colGap = minGap;
+        colW = Math.max(minColW, Math.floor((avail2 - (ncol - 1) * colGap) / ncol));
+        // 收完還有餘裕就把欄距加一點回來（線才不會貼著卡片走）
+        if (ncol > 1 && ncol * colW + (ncol - 1) * colGap < avail2) {
+          colGap = Math.min(o.gap || 30, Math.floor((avail2 - ncol * colW) / (ncol - 1)));
+        }
       }
     }
     const CW = ncol * colW + (ncol - 1) * colGap;
-    const padX = Math.max(PAD, Math.round((HW - CW) / 2));
+    const padX = Math.max(CW + PAD * 2 <= HW ? PAD : (o.padTight || 16), Math.round((HW - CW) / 2));
     return { colW: colW, colGap: colGap, padX: padX, W: CW + padX * 2, CW: CW, HW: HW };
   }
   /* 量測用的標記：驗收（`_uitest.py` 批次25-關聯圖）讀這三個數字，再自己用
@@ -2428,7 +2448,16 @@
     const NOTE_CPL = 13, NOTE_LH = 16, NOTE_MAX = 4;
     const noteWrap = (txt) => (String(txt || '').match(new RegExp(`.{1,${NOTE_CPL}}`, 'g')) || []);
     const noteLines = (sg, list) => (list.length ? 0 : Math.min(NOTE_MAX, noteWrap(sg.note || '台股無直接對應').length));
-    cols.forEach((col, ci) => { let y = padY; col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18; }); maxH = Math.max(maxH, y); });
+    /* ★ 2026-09-23 C5 優化：**每一欄各自垂直置中**。
+       舊版每一欄都從最上面開始排，所以「IP/EDA 只有 5 家」那一欄下面是一大片空白，
+       而旁邊「封測有 20 家」那一欄一路排到底 —— 視覺上整張圖像是重心壓在右下角。
+       各自置中之後，同一條水平線上的才真的是「同一階的東西」，走線也短一截。*/
+    const colH = cols.map(col => col.reduce((t, s) => {
+      const list = bySeg[s.id] || [];
+      return t + 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18;
+    }, 0));
+    const bodyH = Math.max.apply(null, colH.concat([0]));
+    cols.forEach((col, ci) => { let y = padY + Math.round((bodyH - colH[ci]) / 2); col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18; }); maxH = Math.max(maxH, y); });
     /* 寬度＝內容寬＋左右各 padX。**左右對稱**，內容就一定水平置中。
        舊版是 `... + 24`（只加在右邊，給同一欄回頭線那條 24px 通道用），
        那 24px 正是「看起來偏左」的另一半原因 —— 現在改成把它含進 padX 的下限（26px）。*/

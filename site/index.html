@@ -2082,282 +2082,41 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media(prefers-reduced-motion:reduce){.m3-pulse.on .m3-ring{animation-duration:3.6s}}
 @media(max-width:900px){.m3-chart .m3-night{right:52px;max-height:52%}}
 
-/* ================= 產業關聯圖（力導向，DECISIONS #248 第二版）=================
-   照 Andy 的參考圖 `docs/diagram_refs/graph_ref_layout.webp` 與 `graph_ref_4styles.webp`：
-   大圓點＝族群、周遭小點＝個股（**有幾檔就有幾顆**）、左上標題、右上搜尋／篩選／重設視角、
-   左下分類圖例、右下 −／＋／置中、右側資訊欄。
+/* ================= 供應鏈關聯圖（2026-09-23 C5 退版：分層圖／流向圖）=================
+   Andy 逐字：「下方的關聯圖回到之前的設計，幫我退版 回到之前的格式，但是需要將關聯圖置中，
+   並且，Default 顯示族群相連標籤個股，點擊後才會跳初下拉清單，並且點擊股票 右側會顯示對應訊息」。
 
-   為什麼節點畫在 SVG、族群名卻是 HTML：
-   圓點、光暈、晶片接腳、PCB 紋路這些只有 SVG 畫得出來；而族群名要省略號、要精準字級
-   （SVG 的 text 不吃 text-overflow，而且被 transform 縮放之後 getComputedStyle 量不到真實字級）。
-   兩層都住在同一個 `.cgstage` 底下、吃同一個 transform，所以縮放拖曳永遠對得齊。
+   力導向星際圖（DECISIONS #248）那 320 行樣式整組刪掉 —— 產業鏈頁不再有 `.cgraph`，
+   留著就是死樣式。分層圖與環節卡清單的樣式本來就還在（`.chainmap` / `.seglist` 兩節），
+   這裡只補退版後新增的三件事：表達形式切換、流向圖、hover 提亮上下游。
 
-   ★ 自訂屬性裡寫 `var(--c)` 是在**宣告它的那個元素**上求值，不是在用它的地方。
-     所以凡是要吃族群色的，一律寫成 `.cgraph[data-cgstyle=…] .cgnode{…}` 這種掛在節點上的規則，
-     不可以塞進 `.cgraph` 的 token（第一版踩過：泡泡風格的節點整片變白，顏色一顆都沒出現）。*/
-/* 這一整塊不准把整頁撐寬。1100px 上量到過整頁 1116（多 16px），
-   而橫向捲軸是 Andy 抱怨過好幾次的東西 —— 與其追是哪一個子元素，直接把上限釘死。*/
-.cgsec{margin-top:14px;max-width:100%;min-width:0}
-.cgsec .chainrow{max-width:100%;min-width:0}
-.cgpane,.cgpanel,.cgraph{max-width:100%}
-.cgwrap{align-items:stretch}
-.cgpane{flex:1 1 620px;min-width:0}
-.cgpanel{flex:0 0 288px;min-width:0;background:var(--panel-2);border:1px solid var(--line-2);
-  border-radius:12px;padding:12px 13px 14px;align-self:flex-start;max-height:760px;overflow:auto}
-.cgpanel[hidden]{display:none}
-@media(max-width:1100px){.cgpanel{flex:1 1 100%;max-height:none}}
-.cgraph{position:relative;border-radius:12px;border:1px solid var(--line);overflow:hidden;
-  touch-action:none;-webkit-user-select:none;user-select:none;cursor:grab;
-  height:clamp(460px,66vh,720px);background:var(--cg-bg,var(--illus))}
-.cgraph.panning{cursor:grabbing}
-.cgstage{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
-.cgsvg{position:absolute;left:0;top:0;overflow:visible;display:block}
-.cglabels{position:absolute;left:0;top:0}
-/* 族群名 ＋ 標籤式個股：HTML，所以有省略號、字級精準，也才點得到每一顆標籤。
-   ★ 2026-09-23 第十批 C5（Andy：「Default 顯示族群相連標籤個股」）——
-     以前這裡只有一行族群名（nowrap、單行），現在是一張小卡：上面族群名、下面個股標籤。
-     寬度釘在 168px：再寬的話 24 顆族群的碰撞框橫向就排不下，力導向只好整片縮小。
-     標籤數量由 industry.js 的收斂策略決定（節點越多每顆掛越少），CSS 這邊只負責排版。*/
-.cglab{position:absolute;font-size:12.5px;font-weight:600;color:var(--cg-ink);
-  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:250px;
-  display:flex;flex-direction:row;align-items:center;flex-wrap:nowrap;gap:5px;overflow:hidden;
-  transition:opacity .15s}
-/* 族群名可以被截短，**個股標籤不准被截短**（`flex:none`）——
-   兩邊都可收縮的話會變成「台…／聯…／全…」那種一個字都讀不出來的東西，
-   那比少列一檔還糟。名字截短還看得懂（而且完整名在下拉清單與右側資訊欄裡）。*/
-.cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;min-width:48px}
-/* 檔數跟族群名同一行（C5）：獨立一顆「還有 N 檔」膠囊會自己佔掉整整一行，
-   24 顆族群就憑空多 24 行，個股標籤全部被擠掉 —— 實測過，所以擠在這裡。*/
-.cglab .cgcnt{font-style:normal;font-weight:500;font-size:11.5px;color:var(--cg-ink-3);margin-left:5px}
-.cglab.sel{color:var(--cg-ink-hi)}
-.cglab.sel .cgnm{font-weight:700}
-.cglab.dim{opacity:.22}
-/* 個股標籤。字級**下限是 12px**，不是 11px —— 關聯圖整張會被 fit() 縮到最小 0.92 倍，
-   12 × 0.92 ＝ 11.04px 才剛好守得住「手機不得小於 11px」那條線（12.5 → 11.5 也可以，
-   但標籤要排得下，所以取剛好守得住的那一個）。
-   底色用半透明的族群色，一眼看得出這幾檔屬於哪一顆球。*/
-.cgtags{display:flex;flex-wrap:nowrap;gap:4px;flex:none}
-.cgtag{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
-  white-space:nowrap;flex:none;
-  background:var(--cg-tag-bg,rgba(255,255,255,.08));border:1px solid var(--c);
-  border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--cg-ink);cursor:pointer}
-.cgtag:hover{border-color:var(--c);color:var(--cg-ink-hi)}
-.cgtag.sel{background:var(--c);border-color:var(--c);color:var(--cg-tag-on,#0b1220);font-weight:700}
-/* 連線 */
-.cgsvg .cge{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.45);
-  stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
-.cgsvg .cge-peer{stroke-dasharray:3 5;stroke-opacity:calc(var(--cg-edge-op,.45) * .6)}
-.cgsvg .cge-equip{stroke:var(--cg-edge-2,var(--cg-edge));stroke-opacity:calc(var(--cg-edge-op,.45) * .7)}
-.cgsvg .cge.hi{stroke:var(--cg-edge-hi);stroke-opacity:.95;stroke-width:calc(var(--w,1.2) + 1)}
-.cgsvg .cge.dim{stroke-opacity:.06}
-.cgsvg .cgvia{fill:var(--cg-edge);opacity:.9}
-.cgsvg .cgstars circle{fill:#fff}
-.cgsvg .cgstars.s0 circle{fill:#cfd8ff}
-/* 星點呼吸：純 CSS，錯開 delay 才不會整片一起閃 */
-.cgsvg .cgstars.tw circle{animation:cgtwinkle 3.4s ease-in-out var(--dly,0s) infinite}
-@keyframes cgtwinkle{0%,100%{opacity:1}50%{opacity:.35}}
-/* 星塵粒子：沿著連線由上游流向下游（軌跡由 SVG 原生的 animateMotion 跑） */
-.cgsvg .cgpx{fill:var(--c);opacity:.85;filter:drop-shadow(0 0 3px var(--c));pointer-events:none}
-.cgsvg .cgpx.hi{opacity:1}
-.cgsvg .cgpxs{pointer-events:none}
-/* 泡泡風格的背景裝飾大泡泡（純裝飾） */
-.cgsvg .cgdeco circle{fill:var(--cg-deco,rgba(120,150,210,.08));pointer-events:none}
-.cgsvg .cgdeco.fl circle{animation:cgfloat 9s ease-in-out var(--dly,0s) infinite;
-  transform-box:fill-box;transform-origin:50% 50%}
-@keyframes cgfloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
-/* 個股小點 */
-.cgsvg .cgdot{fill:var(--c);opacity:.72;cursor:pointer;transition:r .14s,opacity .14s}
-.cgsvg .cgdot.up{opacity:1}
-.cgsvg .cgdot.sel{stroke:var(--cg-ink-hi);stroke-width:2;opacity:1}
-.cgsvg .cgdot.dim{opacity:.12}
-/* 族群大圓點 */
-.cgsvg .cgnode{cursor:pointer}
-/* ★ 只有命中圈吃滑鼠，族群造型本身一律不吃。
-   星際風格的光暈 `.cgaura` 半徑是節點的 2.2 倍，會整片蓋在旁邊族群的個股小點上，
-   那幾顆小點就**點不下去**（Playwright 直接回 ".cgaura intercepts pointer events"，真人也一樣）。
-   造型全部關掉滑鼠之後，圖上真正可以點的東西只剩兩種：族群的命中圈、個股的小點。*/
-.cgsvg .cgnode *{pointer-events:none}
-.cgsvg .cghit{fill:transparent;pointer-events:auto}
-.cgsvg .cgstars,.cgsvg .cgbg{pointer-events:none}
-.cgsvg .cgnode.dim{opacity:.22}
-.cgsvg .cgball{fill:var(--c)}
-/* 星際：三層光暈（層數由占比決定，大族群才有 a3）＋亮心 */
-.cgsvg .cgaura{fill:var(--c)}
-.cgsvg .cgaura.a1{opacity:.22}
-.cgsvg .cgaura.a2{opacity:.1}
-.cgsvg .cgaura.a3{opacity:.055}
-.cgsvg .cgcore{pointer-events:none}
-/* 泡泡：柔和陰影＋折射亮邊＋高光點 */
-.cgsvg .cgshadow{fill:rgba(15,24,48,.18)}
-.cgsvg .cgrefr{pointer-events:none}
-.cgsvg .cggloss{fill:#fff;opacity:.72}
-/* 選中：外圈緩慢旋轉的虛線光環 */
-.cgsvg .cgsel{fill:none;stroke:var(--cg-ink-hi);stroke-width:2;stroke-dasharray:7 8;opacity:.9}
-/* ★ 會動的那一層。定位用的 transform 屬性掛在 `.cgnode` 上，動畫掛在 `.cgfx` 上 ——
-   合在一起的話 CSS 動畫的 transform 會整個蓋掉定位，節點會全部飛到畫布左上角。*/
-.cgfx,.cgorb,.cgsvg .cgsel{transform-box:fill-box;transform-origin:50% 50%}
-@keyframes cgspin{to{transform:rotate(360deg)}}
-/* ★ 衛星是「盪過去就停」，不是永遠轉。
-   無限公轉的話小點**永遠在動**：真人瞄不準，Playwright 也直接拒絕點擊
-   （"element is not stable"，實測 30 秒全部重試失敗）。
-   而「能點的東西就要能點到底」比「一直轉」重要，所以改成 hover 時轉一段（帶一點回彈）就定住。*/
-@keyframes cgswing{0%{transform:rotate(0)}70%{transform:rotate(19deg)}100%{transform:rotate(16deg)}}
-@keyframes cgbreathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@keyframes cgpop{0%{transform:scale(1)}45%{transform:scale(1.13)}100%{transform:scale(1.04)}}
-@keyframes cgglow{0%,100%{opacity:.22}50%{opacity:.34}}
-.cgraph[data-cganim="on"] .cgsvg .cgsel{animation:cgspin 14s linear infinite}
-/* 星際：光暈自己緩緩明滅；hover 時個股小點像衛星公轉（26 秒一圈，慢到不會讓人暈） */
-.cgraph[data-cganim="on"][data-cgstyle="space"] .cgaura.a1{animation:cgglow 5.5s ease-in-out var(--dly,0s) infinite}
-.cgraph[data-cganim="on"] .cgorb.orb{animation:cgswing 1.1s cubic-bezier(.22,.9,.24,1) forwards}
-/* 泡泡：輕微呼吸浮動（振幅 3px，週期每顆不同）；hover 彈一下（ease-out-back） */
-.cgraph[data-cganim="on"][data-cgstyle="bubble"] .cgnode .cgfx{
-  animation:cgbreathe var(--dur,5s) ease-in-out var(--dly,0s) infinite}
-.cgraph[data-cganim="on"][data-cgstyle="bubble"] .cgnode.hov .cgfx{
-  animation:cgpop .45s cubic-bezier(.34,1.56,.64,1) forwards}
-/* 「動畫：關」＝這裡一條都不掛，瀏覽器自然不重繪（全程沒有 requestAnimationFrame） */
-/* ---- 疊在畫布上的 UI（照參考圖的四個角）---- */
-.cghd{position:absolute;left:14px;top:12px;z-index:4;pointer-events:none}
-.cghd .cgt1{font-size:19px;font-weight:800;color:var(--cg-ink-hi);letter-spacing:.02em}
-.cghd .cgt1 small{font-size:12.5px;font-weight:500;color:var(--cg-ink-2);margin-left:9px}
-.cghd .cgt2{font-size:11.5px;color:var(--cg-ink-3);margin-top:3px}
-.cghd .cgscope{margin-top:9px;pointer-events:auto}
-.cghd .cgscope .chip{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--cg-ink);
-  background:var(--cg-hud);border:1px solid var(--cg-hud-line);border-radius:999px;padding:3px 9px}
-.cghd .cgscope .chip button{border:0;background:none;color:var(--cg-ink-3);cursor:pointer;font-size:14px;
-  line-height:1;padding:0}
-.cgtop{position:absolute;right:12px;top:12px;z-index:5;display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-  justify-content:flex-end;max-width:calc(100% - 24px)}
-.cggsearch{display:inline-flex;align-items:center;gap:6px;background:var(--cg-hud);
-  border:1px solid var(--cg-hud-line);border-radius:9px;padding:5px 10px}
-.cggsearch span{color:var(--cg-ink-3);font-size:14px}
-.cggsearch input{border:0;background:none;color:var(--cg-ink);font:inherit;font-size:12.5px;width:150px;outline:none}
-.cgbtn{display:inline-flex;align-items:center;gap:5px;background:var(--cg-hud);color:var(--cg-ink);
-  border:1px solid var(--cg-hud-line);border-radius:9px;padding:6px 11px;font-size:12.5px;cursor:pointer}
-.cgbtn:hover,.cgbtn.on{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
-.cggpop{position:absolute;right:12px;top:52px;z-index:6;width:min(340px,calc(100% - 24px));
-  max-height:calc(100% - 70px);overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);
-  border-radius:11px;padding:10px 12px 12px;box-shadow:0 18px 40px -20px var(--drop)}
-.cggpop[hidden]{display:none}
-.cggpop h6{font-size:12px;color:var(--ink-3);margin:8px 0 6px;font-weight:600}
-.cggpop h6 small{font-weight:400}
-.cgstyles{display:grid;gap:6px}
-#cgAnim{grid-template-columns:1fr 1fr}
-.cgstyles button{text-align:left;background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;
-  padding:6px 9px;cursor:pointer;color:var(--ink-2)}
-.cgstyles button b{display:block;font-size:13px;color:var(--ink)}
-.cgstyles button span{font-size:11.5px;color:var(--ink-3)}
-.cgstyles button.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-3))}
-.cglegend{position:absolute;left:14px;bottom:12px;z-index:4;display:flex;gap:10px;flex-wrap:wrap;
-  pointer-events:none;max-width:calc(100% - 120px)}
-.cglg{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;color:var(--cg-ink-2)}
-.cglg i{width:9px;height:9px;border-radius:50%;display:inline-block}
-.cgzoom{position:absolute;right:12px;bottom:12px;z-index:5;display:flex;gap:6px}
-.cgzoom button{width:32px;height:32px;border-radius:9px;background:var(--cg-hud);color:var(--cg-ink);
-  border:1px solid var(--cg-hud-line);cursor:pointer;font-size:15px;line-height:1}
-.cgzoom button:hover{border-color:var(--cg-ink-hi);color:var(--cg-ink-hi)}
-/* 點族群才跳出來的個股下拉清單（★ 2026-09-23 第十批 C5：「點擊後才會跳出下拉清單」）。
-   ★ 舊版寫死 pointer-events:none，理由是「hover 浮出的小卡會擋住它自己說明的那顆節點」。
-     那個前提在 C5 之後沒有了：現在它是**點出來的**、位置固定在框的另一側（placeTip），
-     而且有 × 可以關、點圖上空白處也會關。清單裡每一列都要點得進個股頁，
-     所以 `.open` 的時候一定要吃滑鼠 —— 不吃的話清單就只是一張看得到摸不到的圖。
-   沒有 .open 的狀態仍然不吃滑鼠，當作安全網（例如將來有人又拿它來做 hover 預覽）。*/
-.cgtip .tx{position:absolute;right:6px;top:5px;width:22px;height:22px;border-radius:7px;
-  background:transparent;border:1px solid var(--line-2);color:var(--ink-3);cursor:pointer;line-height:1}
-.cgtip .tx:hover{color:var(--ink);border-color:var(--ink-3)}
-.cgtip .th{padding-right:24px}
-.cgtip .ti.sel{background:var(--panel-3);outline:1px solid var(--line-2)}
-.cgtip.open{pointer-events:auto}
-.cgtip{pointer-events:none;position:absolute;z-index:7;width:min(260px,calc(100% - 20px));max-height:calc(100% - 20px);
-  overflow:auto;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;
-  padding:8px 10px 9px;box-shadow:0 14px 34px -18px var(--drop);font-size:12px;line-height:1.55}
-.cgtip[hidden]{display:none}
-.cgtip .th{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
-.cgtip .th i{width:9px;height:9px;border-radius:50%;background:var(--c);flex:none}
-.cgtip .th b{font-size:13.5px;color:var(--ink)}
-.cgtip .tl{margin-top:6px;display:grid;gap:2px}
-.cgtip .ti{display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:baseline;
-  cursor:pointer;border-radius:5px;padding:1px 3px}
-.cgtip .ti:hover{background:var(--panel-3)}
-.cgtip .ti .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
-.cgtip .ti .code,.cgtip .ti em{font-family:var(--mono);font-size:11.5px;font-style:normal}
-.cgtip .ti .code{color:var(--ink-3)}
-.cgtip .ti .sh{color:var(--ink-3)}
-.cgtip .tf{margin-top:6px;font-size:11.5px;color:var(--ink-3)}
-/* ---- 右側資訊欄（照參考圖）---- */
-.cgpanel .cgp-h{display:flex;align-items:center;gap:8px}
-.cgpanel .cgp-h i{width:12px;height:12px;border-radius:50%;background:var(--c);flex:none}
-.cgpanel .cgp-h b{font-size:17px;color:var(--ink)}
-.cgpanel .cgp-h .x{margin-left:auto;border:0;background:none;color:var(--ink-3);font-size:17px;
-  line-height:1;cursor:pointer}
-.cgpanel .cgp-sub{font-size:12.5px;color:var(--ink-3);margin-top:3px}
-.cgpanel .cgp-box{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;
-  background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:10px 8px}
-.cgpanel .cgp-box div{text-align:center;min-width:0}
-.cgpanel .cgp-box b{display:block;font-size:20px;font-family:var(--mono)}
-.cgpanel .cgp-box span{font-size:11.5px;color:var(--ink-3)}
-.cgpanel .cgp-asof{text-align:right;font-size:11px;color:var(--ink-3);margin-top:4px}
-.cgpanel h5{font-size:13px;color:var(--ink-2);margin:13px 0 7px}
-.cgpanel h5 small{color:var(--ink-3);font-weight:400}
-.cgpanel .cgp-co{display:grid;gap:5px}
-.cgpanel .cgp-co a.lk{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;
-  background:var(--panel-3);border:1px solid var(--line-2);border-radius:9px;padding:6px 9px;font-size:13px}
-.cgpanel .cgp-co a.lk .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink)}
-.cgpanel .cgp-co a.lk .code{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
-.cgpanel .cgp-co a.lk .chv{color:var(--ink-3)}
-.cgpanel .cgp-co a.lk:hover{border-color:var(--cyan)}
-.cgpanel .cgp-lks{display:flex;flex-wrap:wrap;gap:4px 7px;align-items:baseline;margin-top:9px;font-size:12.5px}
-.cgpanel .cgp-lks .lb{color:var(--ink-3);font-size:11.5px}
-.cgpanel .cgp-range{width:100%}
-.cgpanel .cgp-rels{display:grid;gap:6px}
-.cgpanel .cgp-rels label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2);cursor:pointer}
-.cgpanel .cgp-center{width:100%;margin-top:12px}
-.cgpanel .cgp-rel{margin-top:7px;font-size:12.5px;color:var(--ink-2);line-height:1.55}
-.cgpanel .cgp-rel .lb{color:var(--ink-3);font-size:11.5px;margin-right:5px}
-.cgpanel .cgp-rel.empty{color:var(--ink-3)}
-.cgpanel .relbox{margin-top:10px}
-/* 環節詳情（原 #segBox）住在圖下面，不跟右側資訊欄搶容器 */
-#cgSegBox{margin-top:10px}
-
-/* ---------------- 兩種風格（第四版：Andy 從四種裡留下星際與泡泡）---------------- */
-/* 01 星際：深邃宇宙・星辰連結・探索無限產業可能 */
-.cgraph[data-cgstyle="space"]{
-  --cg-bg:radial-gradient(120% 90% at 22% 12%,#2a2350 0%,#161a3d 42%,#080a1c 100%);
-  --cg-ink:#dfe6ff; --cg-ink-hi:#ffffff; --cg-ink-2:#aab4e0; --cg-ink-3:#8089b8;
-  --cg-edge:#aab6ee; --cg-edge-2:#8f9ad0; --cg-edge-op:.34; --cg-edge-hi:#ffffff;
-  --cg-grid:rgba(180,190,255,.16); --cg-hud:rgba(14,16,38,.72); --cg-hud-line:rgba(160,175,255,.25);
-  --cg-lab-sh:0 1px 4px rgba(0,0,0,.65);
-  /* 個股標籤（C5）：深底 → 標籤用很淡的白霧，選起來才整顆填成族群色 */
-  --cg-tag-bg:rgba(18,22,48,.72); --cg-tag-on:#0b1220;}
-.cgraph[data-cgstyle="space"] .cgball{filter:drop-shadow(0 0 9px var(--c))}
-/* 02 泡泡：輕盈柔和・繽紛氣泡・親切易讀的產業地圖（唯一的亮底） */
-.cgraph[data-cgstyle="bubble"]{
-  --cg-bg:radial-gradient(110% 90% at 40% 8%,#ffffff 0%,#eef4fd 55%,#e2eaf7 100%);
-  --cg-ink:#1d2742; --cg-ink-hi:#0f1830; --cg-ink-2:#465577; --cg-ink-3:#6b7994;
-  --cg-edge:#93a2bd; --cg-edge-2:#a8b4c9; --cg-edge-op:.5; --cg-edge-hi:#2b6cb0;
-  /* 亮底 → 標籤要用不透明的白，不然半透明白疊在淺藍底上等於沒有底、字會糊在背景裡 */
-  --cg-tag-bg:rgba(255,255,255,.88); --cg-tag-on:#101a2e;
-  --cg-grid:rgba(120,140,180,.12); --cg-hud:rgba(255,255,255,.86); --cg-hud-line:#cfd9ea;
-  --cg-deco:rgba(120,160,225,.055); --cg-lab-sh:none;}
-.cgraph[data-cgstyle="bubble"] .cgball{opacity:.8}
-.cgraph[data-cgstyle="bubble"] .cgdot{opacity:.85}
-.cgraph[data-cgstyle="bubble"] .cgball{filter:drop-shadow(0 4px 8px rgba(30,50,90,.18))}
-/* 淺色主題：星際**刻意維持深底**（它的名字就是深底的意思，而且 .chainmap 本來就是
-   兩個主題都深底 —— DECISIONS #239 第一節末尾），只把連線調亮一點。
-   泡泡本來就是亮底，深色主題下字色由它自己的 token 決定，不跟著全站主題走。*/
-:root[data-theme="light"] .cgraph[data-cgstyle="space"]{--cg-edge-op:.44}
-:root[data-theme="light"] .cgraph[data-cgstyle="bubble"]{--cg-edge:#6b7a95;--cg-edge-op:.55}
-/* 手機：控制項換行、圖高一點；字一律 ≥ 11px */
-@media (max-width:640px){
-  .cgraph{height:clamp(470px,78vh,680px)}
-  .cghd .cgt1{font-size:16px} .cghd .cgt1 small{display:block;margin:2px 0 0}
-  .cgtop{left:12px;right:12px;top:auto;bottom:52px;justify-content:flex-start}
-  .cggsearch input{width:96px}
-  .cglegend{bottom:12px;max-width:calc(100% - 92px);gap:6px 8px}
-  /* 手機：卡片收窄，但**字級一個都不往下調** —— 12px 已經是 fit() 縮到 0.92 倍之後
-     還守得住 11px 的最低值，再調就破線了（見上面 .cgtag 的註解）。*/
-  .cglab{font-size:12px;max-width:124px}
-  .cgtip{width:min(230px,calc(100% - 16px))}
-  .cgpanel{padding:10px 11px 12px}
+   ★ 置中不是靠 CSS 做的（`margin:auto` 對 `width:100%` 的 SVG 沒有作用）——
+     是 industry.js 的 `fitCols()` 把左右內距算成一樣大，寫進 viewBox 裡。
+     CSS 這邊只要**不要再有 max-width 把它卡住**就好，那正是舊版靠左的原因。*/
+.relsec{margin-top:16px;max-width:100%;min-width:0}
+.relsec .chainrow{max-width:100%;min-width:0}
+/* 表達形式切換：沿用全站 `.seg` 那組分段按鈕的外觀，只是更小一號 */
+.relsw button{font-size:12px;padding:3px 10px}
+.relsw[hidden]{display:none}
+/* hover 一張公司卡時，跟它有上下游關係的另一端一起提亮（只有線會看不出通到誰）*/
+.chainmap .co.near rect{stroke:var(--cyan);stroke-opacity:.9}
+.chainmap .co.near text{fill:var(--ink)}
+/* ---- 流向圖：節點是環節本身，帶子寬度＝兩格之間已建立的上下游關係條數 ---- */
+.chainmap .fband{fill:var(--c,var(--line-2));fill-opacity:.2;stroke:none;transition:fill-opacity .15s}
+.chainmap .fband.hi{fill-opacity:.62}
+.chainmap .fband.dim{fill-opacity:.05}
+.chainmap .fseg{cursor:pointer}
+.chainmap .fseg:hover rect:first-of-type{fill-opacity:.32}
+.chainmap .fseg.sel rect:first-of-type{fill-opacity:.42}
+.chainmap .fseg.dim{opacity:.34}
+/* 12px 是全站圖表字級的下限（手機不得小於 11px，這裡留一格餘裕）*/
+.chainmap .fnm{font-size:12.5px;font-weight:700;pointer-events:none}
+.chainmap .fct{font-size:11px;fill:var(--ink-3);font-family:var(--mono);pointer-events:none}
+/* 環節詳情：Default 是空的（高度 0），點色標或環節卡才展開 —— 這就是 Andy 說的「點擊後才會跳出下拉清單」 */
+#segBox:empty{display:none}
+#segBox{margin-top:10px}
+@media(max-width:820px){
+  .relsw button{font-size:11.5px;padding:3px 8px}
 }
 /* ---- 剖析圖設定列：跟標題**同一列、靠右**（Andy 2026-09-23：「設定列改到右上角」）----
    ★ 第一版是絕對定位浮在畫布的右上角內緣，`_preview.py` 當場量到文字重疊：

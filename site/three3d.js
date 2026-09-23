@@ -17,6 +17,28 @@
      E4 動態／靜止 → setAnim()：動態＝緩慢自轉＋風扇轉＋指示燈呼吸；靜止＝完全不自己動。
         使用者一拖曳就先停自轉，放開兩秒半後才接回去（不然會跟他搶）。
 
+   ★★★ 2026-09-23 退版紀錄（**想「順手加回去」的人請先看完這一段**）：
+     事情的順序是這樣的 ——
+       ① 批次 0923-C／E 依 Andy 的要求把 3D 加上動畫：先是 pulse（一組零件依序點亮），
+          後來他嫌「只有閃來閃去」，於是 0923-E 又補了「形狀真的在動」的四種動法
+          （swing 擺動、grow 脹縮、carry 沿路徑搬運，以及額外加到既有場景的 move／spin）。
+       ② 他實際看過之後，逐字說：
+            「3D 動畫「閃」改「動」，退回去 閃爍之前的版本，我覺得動畫效果加上去後沒那麼好」
+            「回到閃爍之前的一個版本，不要閃爍」
+       ③ 所以這一批把兩件事都退掉：
+            · 0923-E 加的那批動作宣告（swings／grows／carries ＋ 那批新加的 moves／spins）全部刪掉，
+              engine 端的實作留著（沒人宣告就不會跑，見 C7 那一段的註解）。
+            · pulse **整個關掉**（`PULSE_OFF`）—— 那就是他講的「閃爍」。不是把亮度調小，是不跑。
+              各場景的 `pulses:` 宣告原封不動留在原地，改一個旗標就整批回來。
+     **沒有退掉的**（刻意保留，不要一起賠掉）：
+       · `machine_tool`（CNC 工具機）整個場景 —— 那是他另外要的東西，只是它也不再自己動。
+       · `findPart().groups` 的 crash 修補（`realG()`）—— 那是既有 bug，跟動畫無關。
+       · `view.pose()` 量測介面 —— 唯讀，不影響畫面。
+       · `flows`（沿線跑的光點／電子流動）—— 這是**代筆的判斷，不是 Andy 說的**：
+         他說的是「閃爍」，而 flows 是沿路徑移動、不是原地忽亮忽暗，兩件事不一樣。
+         他如果連 flows 也不要，關掉的成本很低。
+     ⚠ 要加回任何一種動畫之前，請先確認他改變了主意 —— 上面那兩句是他親口說的。
+
    其他刻意的設計：
    - three.js 是**動態 import**，只有真的切到 3D 才付那 670KB；平面圖使用者完全不用載。
    - 函式庫內建在 site/vendor/（Andy 公司網路擋 CDN），OrbitControls 的 `from 'three'`
@@ -6566,14 +6588,14 @@
           pulse 就是他講的「閃爍」—— 它週期性地改材質的 emissive 與顏色，
           零件一個頂點都沒動，畫面上就是一格一格輪流亮。
           關法刻意選在**這一層**（收集時直接不 push），不是逐場景刪 `pulses:` 宣告：
-            · 19 張場景的 `pulses:` 宣告全部留在原地，哪一張想亮、亮哪幾顆、什麼節奏都還在，
+            · 各場景的 `pulses:` 宣告全部留在原地，哪一張想亮、亮哪幾顆、什麼節奏都還在，
               以後他改變主意，把下面這行 return 拿掉就整批回來。
-            · pulses 陣列是空的 → stepPulses / resetPulses 第一行就 return，
+            · pulses 陣列是空的 → stepPulses 第一行就 return、resetPulses 一圈都不跑，
               每幀一個材質都不會被碰到 → 「不是調暗，是真的不跑」是量得到的
-              （view.probe() 的 pulses 與 pulseK 都會是 0）。
+              （stats() 的 pulses 與 pulseK 都會是 0，而 colorSig 在時間軸上不再變化）。
           ⚠ 連帶作廢：同一天稍早那個「把預設 amp 從 0.45 拉回 1」的修正 ——
             亮度多少已經沒有意義，因為根本不會跑。*/
-    const PULSE_OFF = true;      // ← 只要改成 false，19 張場景的既有 pulses 宣告就整批回來
+    const PULSE_OFF = true;      // ← 只要改成 false，各場景既有的 pulses 宣告就整批回來
     if (!PULSE_OFF) (spec.pulses || []).forEach(pg => {
       const items = (pg.parts || []).map(findPart).filter(Boolean).map(p => ({ p, k: 0 }));
       if (!items.length) return;
