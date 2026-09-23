@@ -780,20 +780,28 @@ companies:
   #   有特別標明出處與信心度，因為它們正是「這一檔為什麼放這一格」的依據。
   # ---- 銀行與銀行金控（groups.yaml: bank，16 檔）
   - {id: ctbc_fhc, ticker: "2891", name: 中信金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群：以銀行子公司為主要獲利來源。★ 不連邊（見本段開頭）。"}
   - {id: firstbank_fhc, ticker: "2892", name: 第一金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: huanan_fhc, ticker: "2880", name: 華南金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: mega_fhc, ticker: "2886", name: 兆豐金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: tcfhc, ticker: "5880", name: 合庫金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: esun_fhc, ticker: "2884", name: 玉山金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: sinopac_fhc, ticker: "2890", name: 永豐金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: taishin_fhc, ticker: "2887", name: 台新新光金, segment: fin_bank,
+     tech: [金融控股（獲利主體為銀行子公司）, 商業銀行：存放款利差, 手續費業務：財管 / 信用卡 / 聯貸承銷 / 信託],
      note: "金控。2025-07-24 台新金與新光金合併，存續公司沿用代號 2887、更名為台新新光金控；
        旗下銀行（台新銀行與台灣新光商業銀行）的合併已獲金管會同意、以台新銀行為存續銀行。
        ★ 它**留在銀行這一格**而不是壽險那一格：groups.yaml 的註解記著本站實測
@@ -801,40 +809,52 @@ companies:
        ⚠ 但合併之後壽險部位確實變大，這一格的歸屬要隨資料重審，不是永久結論。
        ★ 不連邊（見本段開頭）。⚠ 證據等級：WebSearch 摘要（聯合報系、工商時報、台新銀行公告頁），信心中高。"}
   - {id: chang_hwa_bank, ticker: "2801", name: 彰銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: tbb, ticker: "2834", name: 臺企銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: scsb, ticker: "5876", name: 上海商銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控），不是任何一家金控的子公司。依 groups.yaml 的 bank 族群。
        ★ 不連邊（見本段開頭）。⚠ 證據等級：WebSearch 摘要（維基百科、Goodinfo／鉅亨公司資料），信心中高。"}
   - {id: tcb_bank, ticker: "2812", name: 台中銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。★ 不要跟 5880 合庫金（id: tcfhc）搞混，兩者都常被簡稱『台中／合庫』系的行庫，
        但一個是金控、一個是獨立商銀。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: feib, ticker: "2845", name: 遠東銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: ubot, ticker: "2838", name: 聯邦銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: bok, ticker: "2836", name: 高雄銀, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控）。依 groups.yaml 的 bank 族群。★ 不連邊（見本段開頭）。"}
   - {id: obank, ticker: "2897", name: 王道銀行, segment: fin_bank,
+     tech: [商業銀行：存放款利差, 手續費業務：財富管理 / 信用卡 / 信託],
      note: "純銀行（非金控），業務含數位銀行、企金、消金與財富管理。依 groups.yaml 的 bank 族群。
        ★ 不連邊（見本段開頭）。⚠ 證據等級：WebSearch 摘要（Yahoo 股市／公司資料頁），信心中。"}
   # ---- 壽險金控（groups.yaml: life_fhc，2 檔）
   - {id: fubon_fhc, ticker: "2881", name: 富邦金, segment: fin_life,
+     tech: [金融控股, 人身保險（壽險，獲利主體）, 商業銀行, 證券, 產險],
      note: "金控，獲利主體是壽險子公司（富邦人壽），另有銀行、證券與產險。
        ⚠ 摘要一致的定性說法是『國泰金偏重壽險本業、富邦金的經營相對多元』——
        但**沒有取得可引用的獲利占比**，所以只寫定性。★ 不連邊（見本段開頭）。
        ⚠ 證據等級：WebSearch 摘要（工商時報、鉅亨、CMoney），信心中。"}
   - {id: cathay_fhc, ticker: "2882", name: 國泰金, segment: fin_life,
+     tech: [金融控股, 人身保險（壽險，獲利主體）, 商業銀行, 證券, 產險],
      note: "金控，獲利主體是壽險子公司（國泰人壽），另有銀行、證券與產險。★ 不連邊（見本段開頭）。
        ⚠ 證據等級：WebSearch 摘要（工商時報、鉅亨、CMoney），信心中。"}
   # ---- 證券金控（groups.yaml: securities_fhc，2 檔）
   - {id: yuanta_fhc, ticker: "2885", name: 元大金, segment: fin_securities,
+     tech: [金融控股, 證券經紀與自營（獲利主體）, 投信與 ETF, 商業銀行, 期貨],
      note: "金控，獲利主體是證券子公司。摘要引到的拆分是『元大證券約 62.5%、元大銀行約 21.5%，
        兩家合計逾八成』—— ⚠ 這組數字只有投資內容平台（股感、Richiok）這一層的來源、也沒有標明期間，
        所以**不印在畫面上**，只留在這裡當『為什麼它放證券這一格』的依據。★ 不連邊（見本段開頭）。
        ⚠ 證據等級：WebSearch 摘要，信心中低（數字）／中高（證券為主體這個定性結論）。"}
   - {id: kgi_fhc, ticker: "2883", name: 凱基金, segment: fin_securities,
+     tech: [金融控股, 證券經紀與自營（獲利主體）, 人身保險（壽險）, 商業銀行, 創業投資],
      note: "金控，前身是中華開發金控，旗下有凱基證券、凱基銀行、凱基人壽與中華開發資本。
        ★ 這是 groups.yaml 自己承認『最沒把握』的一檔（它對壽險二家 +0.59、對元大金 +0.60，兩邊幾乎一樣高）。
        這次查證**找到了支持它放證券這一格的證據**：公司自結公告的 2026 年前 8 月子公司稅後盈餘為
