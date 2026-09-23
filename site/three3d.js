@@ -6494,10 +6494,10 @@
            要把 pulse 改過的顏色與 emissive 收回去、把位移歸零，
            否則畫面會停在「某顆零件剛好亮著、螺帽卡在半路」的那一幀。*/
         resetPulses();
-        movers.forEach(mv => {
-          mv.off = 0; mv.vel = 0;
-          mv.groups.forEach(g => { g.userData.mv.x = g.userData.mv.y = g.userData.mv.z = 0; place(g); });
-        });
+        /* 位移件**停在原地**，不彈回起點：真的機器按下停止就是停在那裡，
+           而且彈回去在畫面上是一個很醜的瞬跳。停 ＝ 速度歸零、相位不再前進，
+           驗收比 `moveOff` 有沒有繼續變就量得到（凍住的值不會變）。*/
+        movers.forEach(mv => { mv.vel = 0; mv.warm = false; });
         spinners.forEach(sp => { if (sp.userData.spin.sync) sp.userData.spin.speed = 0; });
         /* 動畫關掉：爆炸展開**不做過場**，直接跳到目前的目標狀態（#246）。
            以前（#238）是「一律停在拆開的狀態」—— 那是因為當時展開是進場動畫、沒有目標可言；
@@ -6973,7 +6973,7 @@
             const m = mats[j], ud = m.userData || {};
             // 指示燈、流線、AO 墊片有自己的節奏，疊上去只會變成一團亮
             if (ud.led || ud.glow || ud.ao) continue;
-            if (m.emissive && emOn) { m.emissive.copy(_pc); m.emissiveIntensity = p.hiEm + k * em * 1.15; }
+            if (m.emissive && emOn) { m.emissive.copy(_pc); m.emissiveIntensity = (p.hiEm || 0) + k * em * 1.15; }
             const b = p.baseCol.get(m);
             if (!b || !m.color) continue;
             _pb.copy(b); if (p.hiTint) _pb.lerp(p.hiTint, 0.45);
@@ -7013,7 +7013,11 @@
         // pingpong 用 -cos：兩端**減速再折返**，跟真的伺服軸一樣（線性往復會在端點硬生生彈回去）
         const sgn = mv.mode === 'saw' ? (u * 2 - 1) : -Math.cos(u * Math.PI * 2);
         mv.off = sgn * mv.amp;
-        mv.vel = (mv.off - prev) / Math.max(1e-4, dt);
+        /* 第一幀（以及剛從靜止接回來的那一幀）不算速度：
+           那一幀的「位移差」是從 0 跳到起始位置，算出來會是一個假的巨大速度，
+           跟它連動的螺桿就會在開頭轉一大圈。*/
+        mv.vel = mv.warm ? (mv.off - prev) / Math.max(1e-4, dt) : 0;
+        mv.warm = true;
         for (let i = 0; i < mv.groups.length; i++) {
           const g = mv.groups[i];
           g.userData.mv[mv.axis] = mv.off;

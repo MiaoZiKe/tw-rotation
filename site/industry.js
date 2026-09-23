@@ -1603,23 +1603,44 @@
        舊版面沒有這一層（`#prodDiagram` 底下就是 svg），才退回 host 自己，行為不變。
        ⚠ 另外一定要把 host 自己的 scrollLeft 壓回 0：它的 overflow-x 是 auto，
          不壓回去的話下一次重算（換圖、轉向、ResizeObserver）又會把 grid 推走。*/
+    /* ★ 2026-09-23 修「390px 時整個 `.dggrid` 被推走 178px、左欄說明卡片被切掉」。
+
+       ⚠ 這是既有缺陷（`saas`、`cloud_msp` 早就這樣），不是哪一批改出來的。
+       我照轉來的推測自己重驗過一次，**結論一致**：
+         舊版把 `box`（要捲的那一層）**在外面算一次就固定住**。
+         這一支是在 `externalize()` 把 svg 包進 `.dgcanvas` **之前**跑的，
+         所以那一刻 `svg.closest('.dgcanvas')` 是 null，`box` 就落回 `host` 自己 ——
+         於是「捲到正中央」捲的是整個 `#prodDiagram`（連 `.dghead` 與左欄卡片一起推走），
+         而且 `if (box !== host) host.scrollLeft = 0` 那條保險因為 `box === host` 永遠不會執行。
+         連 `requestAnimationFrame` 那一次補算也救不回來 —— 它用的是同一個被鎖死的 `box`。
+       為什麼只有 `scene: null` 的圖看得到：有 3D 場景的圖之後還會再跑一次 `applyDgNative()`，
+         那一次 `.dgcanvas` 已經存在，等於順手被修掉了。純 2D 的圖沒有第二次機會。
+
+       修法兩件事（跟上面那個「410～659 切右邊」是同一支函式、同一類問題，所以合併處理）：
+         1. **`box` 每次都重新找**，不要在外面鎖死。
+         2. **同步那一次只做 fitCanvas，不捲**。捲動一律等到 rAF 之後 ——
+            那時候 `externalize()` 已經跑完，`.dgcanvas` 找得到，捲的才是「圖」而不是「整個版面」。
+            差一幀，肉眼看不出來；捲錯元素則是整片內容被切掉。*/
     if (w && svg) {
-      const box = (svg.closest && svg.closest('.dgcanvas')) || host;
-      const center = () => {
+      const boxOf = () => (svg.closest && svg.closest('.dgcanvas')) || host;
+      const settle = () => {
+        const box = boxOf();
+        fitCanvas(svg, box, w);
         const cw = box.clientWidth;
+        // 窄到連 0.62 都不到（手機）→ 先把圖的正中央帶進畫面，要看左右再自己滑
         if (cw && cw < w * 0.62) box.scrollLeft = Math.max(0, (w - cw) / 2);
         if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
+        return box;
       };
-      fitCanvas(svg, box, w);
-      center();
-      requestAnimationFrame(() => { fitCanvas(svg, box, w); center(); });   // 剛換過 innerHTML 時 clientWidth 可能還是 0
-      /* 視窗寬度在 410～659 這一段變動時要重算（Andy 常常把瀏覽器縮成半邊）。
-         只觀察裝畫布的那一層：它的寬度就是唯一的輸入。*/
-      if (box._dgRO) { try { box._dgRO.disconnect(); } catch (e) { /* 忽略 */ } }
-      try {
-        box._dgRO = new ResizeObserver(() => { fitCanvas(svg, box, w); center(); });
-        box._dgRO.observe(box);
-      } catch (e) { /* 舊瀏覽器沒有 RO 就算了，換圖／換分頁時仍會重算 */ }
+      fitCanvas(svg, boxOf(), w);       // 同步這一次只縮畫布，不捲（`.dgcanvas` 可能還沒建出來）
+      requestAnimationFrame(() => {
+        const box = settle();
+        /* 視窗寬度在 410～659 這一段變動時要重算（Andy 常常把瀏覽器縮成半邊）。
+           掛在 rAF 之後才掛得到真正的 `.dgcanvas`；掛在 host 上的話寬度永遠是欄寬，量不到重點。*/
+        if (box._dgRO) { try { box._dgRO.disconnect(); } catch (e) { /* 忽略 */ } }
+        try { box._dgRO = new ResizeObserver(() => settle()); box._dgRO.observe(box); }
+        catch (e) { /* 舊瀏覽器沒有 RO 就算了，換圖／換分頁時仍會重算 */ }
+      });
     }
   }
   /* ★ 2026-09-23：修「容器寬 410～659px 時剖析圖右半邊被切掉」。

@@ -65,11 +65,15 @@
 
   /* 元件色（卡片 data-dgcolor ＋ 編號圓點 ＋ 引線端點共用），全部是 index.html 既有的 token。
      語意：負債／成本側走冷色（--dg-cold），資產／收益側走暖色（--dg-au 金），
-     利差本體用主強調色，手續費那條腿用有機色（跟利差明顯分開），減項用警示與錯誤色。*/
+     利差本體用主強調色，手續費那條腿用有機色（跟利差明顯分開），減項用警示與錯誤色。
+     ⚠ 淺色主題下 --dg-steel 與 --dg-au 這兩個 token **當文字對白底只有 2:1 上下**，
+       所以這兩個 token 只留給填色、描邊與卡片色條（那幾條共用 CSS 有自己的淺色處理），
+       「直接當 SVG 文字的 fill」一律改走 --dg-mute／--dg-pwr。*/
+
   const C = {
     cost: 'var(--dg-cold)', yield_: 'var(--dg-au)', nim: 'var(--dg-accent-2d)',
     fee: 'var(--dg-organic)', risk: 'var(--dg-err)', opex: 'var(--dg-mute)',
-    cap: 'var(--dg-steel)', warn: 'var(--dg-warn)', hot: 'var(--dg-hot)',
+    cap: 'var(--dg-steel)', warn: 'var(--dg-warn)', hot: 'var(--dg-hot)', yieldTx: 'var(--dg-pwr)',
   };
   const card = (o) => {
     const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
@@ -120,7 +124,7 @@
     g.push(part('bk_nim', R(MX + 16, yTop, MW - 32, yBot - yTop, 'var(--dg-frame-f)', 'part', 6)
       + LN(`M${MX + 16},${yTop} H${MX + MW - 16}`, C.yield_, 2.4)
       + LN(`M${MX + 16},${yBot} H${MX + MW - 16}`, C.cost, 2.4)
-      + T(MX + 18, yTop - 6, '資產收益率（放款＋投資）', 'sub', null, `fill:${C.yield_}`)
+      + T(MX + 18, yTop - 6, '資產收益率（放款＋投資）', 'sub', null, `fill:${C.yieldTx}`)
       + T(MX + 18, yBot + 16, '資金成本率（存款＋拆借）', 'sub', null, `fill:${C.cost}`)
       + LN(`M${MX + 28},${yTop + 4} V${yBot - 4}`, C.nim, 1.4, ' stroke-dasharray="4 4"')
       + T(MX + MW / 2, yTop + 24, '淨利差', 'lbl', 'middle', `fill:${C.nim}`)
@@ -256,7 +260,7 @@
         'valuation_metric 設成 pb_roe，就是這個理由。',
         '★ 用本益比會被單季的評價損益與呆帳',
         '　 提存扭曲，季與季之間不可比。',
-      ], 'bk_val', C.cap)
+      ], 'bk_val', C.cost)
       + box(1, '這一格收的是哪一種公司', [
         '依 groups.yaml 的定義：以銀行子公司為',
         '主要獲利來源的金控，以及純銀行股。',

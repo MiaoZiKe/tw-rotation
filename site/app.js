@@ -2947,10 +2947,15 @@
       lineStyle: { color: lineCol, width: wpx, curveness: .5 },
       ...extra,
     });
+    /* ★ 根節點**不畫**（symbolSize 0、label 不顯示）。
+       總覽這一欄只有 1/3 版面寬，多一個「台股成交值 8271 億」的節點會把它的標籤
+       一路壓到產業鏈那一欄的名字上（_preview 在 1280px 量到「其他產業別 10.5%」
+       和「ETF 100.0%」重疊）。總成交值改寫在小標上，資訊沒有消失、版面省一整欄。
+       ECharts 的 tree 需要一個根，所以節點留著、只是看不見。*/
     const data = [{
-      name: `台股成交值 ${fmt.yi(total)}`, value: total, symbolSize: 11,
-      itemStyle: { color: hexA(CH.cyan, lt ? .55 : .9), borderColor: 'transparent' },
-      label: { fontWeight: 700, fontSize: 11.5 },
+      name: '台股成交值', value: total, symbolSize: 0,
+      itemStyle: { color: 'transparent', borderColor: 'transparent' },
+      label: { show: false },
       children: chainArr.map(c => nodeOf(c.name, c.v, total, hexA(L.gcolor[c.kids[0].gid] || CH.cyan, lt ? .8 : .95),
         width(c.v, maxC), {
           label: { formatter: `${c.name} ${pct(c.v, total)}%`, fontWeight: 700, fontSize: 11.5 },
@@ -2982,8 +2987,11 @@
         left: 8, right: narrow ? 104 : 124, top: 12, bottom: 12,
         initialTreeDepth: 2,            // 只到族群那一層（Andy：個股不用）
         expandAndCollapse: false, roam: false, symbol: 'circle',
-        label: { position: 'right', distance: 6, color: CH.ink2, fontSize: 11,
-          textBorderColor: CH.panel, textBorderWidth: 3, align: 'left',
+        /* 產業鏈那一層的名字放在節點**正上方**，不是右邊。
+           右邊是它的族群那一欄：只有一個族群的鏈（例如「其他產業別」只有 ETF 一格）
+           父子會落在同一條水平線上，標籤就會直接疊在一起。*/
+        label: { position: 'top', distance: 4, color: CH.ink2, fontSize: 11,
+          textBorderColor: CH.panel, textBorderWidth: 3,
           ...(narrow ? { width: 96, overflow: 'truncate' } : {}) },
         leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3, align: 'left',
           ...(narrow ? { width: 96, overflow: 'truncate' } : {}) } },
@@ -2996,7 +3004,8 @@
       const gid = (p.data || {}).gid;
       if (gid) location.hash = '#industry/group/' + gid;
     });
-    if (sub) sub.textContent = `${day} 盤後結算　·　台股 → 產業鏈 → 族群（只到族群層）`
+    if (sub) sub.textContent = `${day} 盤後結算，這 ${gs.length} 個族群合計 ${fmt.yi(total)}`
+      + '　·　產業鏈 → 族群（只到族群層）'
       + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
   }
 

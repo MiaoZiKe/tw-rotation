@@ -66,11 +66,15 @@
   const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
 
   /* 元件色。語意：量能帶用主強調色（它是共同輸入），經紀＝冷色（線性、可預期），
-     自營＝熱色（可正可負、最刺激），穩定腿＝鋼色，警示＝警告色。全部是既有 token。*/
+     自營＝熱色（可正可負、最刺激），穩定腿＝中性灰，警示＝警告色。全部是既有 token。
+     ⚠ 淺色主題下 --dg-steel 與 --dg-au 這兩個 token **當文字對白底只有 2:1 上下**，
+       所以這兩個 token 只留給填色、描邊與卡片色條（那幾條共用 CSS 有自己的淺色處理），
+       「直接當 SVG 文字的 fill」一律改走 --dg-mute／--dg-pwr。*/
+
   const C = {
     vol: 'var(--dg-accent-2d)', bro: 'var(--dg-cold)', prop: 'var(--dg-hot)',
-    stab: 'var(--dg-steel)', margin: 'var(--dg-organic)', warn: 'var(--dg-warn)',
-    risk: 'var(--dg-err)', mute: 'var(--dg-mute)', au: 'var(--dg-au)',
+    stab: 'var(--dg-mute)', margin: 'var(--dg-organic)', warn: 'var(--dg-warn)',
+    risk: 'var(--dg-err)', mute: 'var(--dg-mute)', gain: 'var(--dg-cool)',
   };
   const card = (o) => {
     const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
@@ -132,7 +136,7 @@
       + head(1, '② 自營與投資部位', '跟的是盤勢方向，不是成交量', C.prop)
       + LN(`M${LEGX[1] + 15},${wy} H${LEGX[1] + 15 + ww}`, 'var(--dg-axis)', 1, ' stroke-dasharray="3 4"')
       + LN(wave, C.prop, 2.2)
-      + T(LEGX[1] + 15 + ww, wy - 22, '＋', 'lbl', 'end', `fill:${C.au}`)
+      + T(LEGX[1] + 15 + ww, wy - 22, '＋', 'lbl', 'end', `fill:${C.gain}`)
       + T(LEGX[1] + 15 + ww, wy + 30, '－', 'lbl', 'end', `fill:${C.risk}`)
       + ['股、債、權證與避險部位的損益。', '行情好時它是最大的驚喜，', '行情壞時它是最大的驚嚇 ——',
         '而且方向不必跟量一致。'].map((s, k) => T(LEGX[1] + 13, LY + 118 + k * 16, s, 'sub')).join('')

@@ -542,6 +542,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    小圓點傳輸動畫是一層絕對定位的 canvas，疊在 ECharts 自己的 canvas 上面。*/
 #sankey{position:relative;min-height:560px}
 #sankey.isempty{min-height:0}   /* 空狀態要把高度收掉，不然留一個 560px 的黑方塊 */
+/* ★ D7：總覽的分流圖高度是 JS 依族群數量算出來的（寫成 inline style），
+   空狀態時 `renderOvFlow` 會把 inline 高度清掉，這一條負責把 CSS 的 min-height 也收掉。*/
+#ovFlow{min-height:300px} #ovFlow.isempty{min-height:0}
 #sankey canvas.dotfx{position:absolute;left:0;top:0;pointer-events:none}
 @media (max-width:900px){ #sankey{min-height:520px} }
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
@@ -834,15 +837,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .cyclebar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:12px 0 4px}
 .cyclebar .st{padding:5px 13px;border-radius:999px;font-weight:700;font-size:13.5px}
 .cyclebar .ar{color:var(--ink-3);font-size:13px}
-.rotmove{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0 2px;padding:10px 12px;
-  border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2);font-size:13px}
-.rotmove>b{color:var(--ink-2);font-size:13px;margin-right:2px}
-.rotmove .mv{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;
-  background:var(--panel-2);border:1px solid var(--line-2);cursor:pointer;transition:.15s}
-.rotmove .mv:hover{border-color:var(--cyan)}
-.rotmove .mv i{width:8px;height:8px;border-radius:2px;display:inline-block}
-.rotmove .mv em{font-style:normal;color:var(--ink-3);margin:0 1px}
-.rotmove .mv b{color:var(--ink);font-weight:600}
+/* ★ 2026-09-23：`.rotmove` 一整組已移除 —— 它只服務「最近 5 個交易日換階段的族群」那一排（Andy 指定拿掉）。 */
 /* 輪動階段（F1，Andy 2026-09-18：「我覺得很醜，幫我想其他方式呈現，不夠直觀，不要那麼方方角角」）。
    原本是四個直角方塊並排 —— 看起來像四張沒有關係的表格，看不出「這是一個循環」。
    改成「四段軌道」：底下一條圓角的漸層軌，四段依序坐在上面、彼此用箭頭接起來，
@@ -890,8 +885,8 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stageboard{position:relative;display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:20px;padding-top:16px}
 .stageboard::before{content:"";position:absolute;left:2%;right:2%;top:4px;height:6px;border-radius:999px;
   background:linear-gradient(90deg,var(--fall),var(--cyan),var(--rise),var(--amber),var(--fall));opacity:.5}
-.stageboard.compact{grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;padding-top:12px}
-.stageboard.compact::before{display:none}
+/* ★ 2026-09-23：`.stageboard.compact` 的專屬規則已移除 —— 它只服務總覽的 `#rotMini`，
+   那一塊換成了「昨日資金去向分流圖」。`.stageboard` / `.stage` 本體**不要刪**：季節性的 `#seasonBoard` 還在用。 */
 .stage{position:relative;border:1px solid color-mix(in srgb,var(--c) 34%,transparent);border-radius:20px;
   padding:14px 15px 13px;background:linear-gradient(180deg,color-mix(in srgb,var(--c) 11%,var(--panel-3)),var(--panel-3));
   box-shadow:0 10px 26px -22px var(--c)}
@@ -902,7 +897,6 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .stage::after{content:"→";position:absolute;right:-15px;top:50%;transform:translateY(-50%);
   color:var(--ink-3);font-size:15px;font-weight:700}
 .stage:last-child::after{content:"↩";color:var(--ink-3)}
-.stageboard.compact .stage::before,.stageboard.compact .stage::after{display:none}
 @media (max-width:900px){ .stage::after{display:none} .stageboard::before{display:none} }
 .stage .sh{display:flex;align-items:baseline;gap:8px}
 .stage .sh b{font-size:15.5px}
@@ -924,7 +918,6 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
    「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
 #seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
-.stageboard.compact .stage ul{max-height:190px}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -978,15 +971,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
 .qlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-3)}
 .qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
-.vfilters{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-top:12px;
-  padding:12px;border-radius:10px;background:var(--panel-3);border:1px solid var(--line-2)}
-.vfilters label{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-size:13px;white-space:nowrap}
-.vfilters input[type=number]{width:72px;background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);
-  border-radius:7px;padding:5px 8px;font-family:var(--mono);font-size:13px}
-.vfilters select{background:var(--panel-2);border:1px solid var(--line-2);color:var(--ink-1);border-radius:7px;
-  padding:5px 8px;font-size:13px;max-width:190px}
-.vfilters .chk input{accent-color:var(--cyan);width:15px;height:15px}
-.vfilters .vcount{margin-left:auto;color:var(--cyan);font-family:var(--mono);font-size:13px}
+/* ★ 2026-09-23：`.vfilters` 一整組已移除 —— 它只服務「估值篩選」那張卡（Andy 指定拿掉）。 */
 .seg button:hover:not(.on){background:var(--panel-2);color:var(--ink)}
 /* K 線工具：重設縮放的小方框圖示、繪圖工具列、設定浮層 */
 .iconbtn{width:30px;height:30px;display:inline-grid;place-items:center;border:1px solid var(--line-2);
@@ -1725,9 +1710,8 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   /* 窄畫面排成 2×2。★ grid-auto-rows:1fr 不可拿掉：兩列的高度預設各自算，
      上下兩張卡就會差幾 px（2026-09-20 新增「機構件」族群之後量到 487 / 467，
      _uitest 的「[800px] 四格等高」就是在擋這件事）。四格輪動板四格必須等高。 */
-  .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr} .stageboard.compact{grid-template-columns:1fr}
+  .stageboard{grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
   .cyclebar{font-size:12px} .cyclebar .st{padding:4px 10px;font-size:12.5px}
-  .vfilters{gap:8px 10px;padding:10px} .vfilters .vcount{margin-left:0;width:100%}
   .magrid{grid-template-columns:1fr} .top5grid{grid-template-columns:1fr}
   #mktSeg2,#mktTabs{flex-wrap:wrap}
   /* 剖析圖不要壓成手機寬（viewBox 1200 壓到 360 的話標籤只剩 3px，等於看不到）；改成可以左右滑 */
@@ -1850,15 +1834,49 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 @media (max-width:900px){ .rotfilter{gap:5px 6px} }
 
 /* ★ 2026-09-21 合併卡（Andy：「這兩張圖合併，共用同個篩選資訊 週期 分類等等」）。
-   `.rottime` 是「看哪一天 ＋ 最近幾天 ＋ 軌跡開關」那一列。兩支拉Bar 並排是刻意的：
-   它們回答的是同一個問題的兩半（截止日在哪、往回看幾天），分兩行看不出關係。
-   flex-wrap 是硬需求 —— 800px／390px 下兩支拉Bar ＋ 軌跡開關一定擠不下同一行，
+   ★ 2026-09-23 D1：那兩支拉Bar 本身也合併成**一條雙把手的區間桿**（見下面 `.rbar .dual`），
+     所以 `.rottime` 現在只有「區間桿 ＋ 軌跡開關」兩塊。
+   flex-wrap 是硬需求 —— 800px／390px 下區間桿 ＋ 軌跡開關一定擠不下同一行，
    不換行就會凸出卡片（2026-09-18 E6 那次就是只驗寬螢幕放過去的）。
-   軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行，
-   而不是把兩支拉Bar 擠成細條。*/
+   軌跡開關後面那串說明字很長，所以給它 flex-basis 讓它自己換到下一行。*/
 .rottime{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:2px 0 4px}
-.rottime>#rotBack,.rottime>#rankDays{flex:0 1 auto}
+.rottime>#rotBack{flex:0 1 auto}
 .rottime>.rottools{flex:1 1 320px;margin:0}
+
+/* ★ D1：雙把手區間桿。兩支 `<input type=range>` 疊在同一條軌道上 ——
+   軌道本身 `pointer-events:none`，只有**滑塊**吃得到滑鼠，所以兩支互不搶事件。
+   `.lo`（區間起點）寫在後面＝疊在上層，兩個滑塊剛好碰在一起時先抓到的是它；
+   「看哪一天」那支（`.hi`）寫在前面，是為了讓 `box.querySelector('input')` 抓到主角。*/
+.rbar .dual{position:relative;width:168px;height:18px;flex:0 0 auto}
+.rbar .dual .track{position:absolute;left:0;right:0;top:7px;height:4px;border-radius:999px;background:var(--line-2)}
+.rbar .dual .sel{position:absolute;top:7px;height:4px;border-radius:999px;background:var(--cyan);opacity:.5}
+.rbar .dual input[type=range]{position:absolute;left:0;top:0;width:100%;height:18px;margin:0;
+  -webkit-appearance:none;appearance:none;background:transparent;pointer-events:none}
+.rbar .dual input[type=range]::-webkit-slider-runnable-track{height:4px;background:transparent;border:none}
+.rbar .dual input[type=range]::-moz-range-track{height:4px;background:transparent;border:none}
+.rbar .dual input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;pointer-events:auto;
+  width:13px;height:13px;margin-top:-4.5px;border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
+.rbar .dual input[type=range]::-moz-range-thumb{pointer-events:auto;
+  width:13px;height:13px;border-radius:999px;background:var(--cyan);border:none;cursor:pointer}
+/* 起點那顆用灰色：兩顆同色的話讀不出「哪一顆是我在看的那一天」 */
+.rbar .dual input.lo::-webkit-slider-thumb{background:var(--ink-3)}
+.rbar .dual input.lo::-moz-range-thumb{background:var(--ink-3)}
+.rbar .dual input[type=range]:focus-visible::-webkit-slider-thumb{box-shadow:0 0 0 3px color-mix(in srgb,var(--cyan) 40%,transparent)}
+.rbar .val{min-width:150px}
+@media (max-width:900px){ .rbar .dual{width:128px} .rbar .val{min-width:0} }
+
+/* ★ D2：象限展開面板搬到時鐘右邊那塊空白。時鐘吃剩下的寬（min-width:0 才縮得下去），
+   面板固定 300px。≤1100px 退回單欄（300px 面板 ＋ 讀得出來的時鐘在 800px 裡放不下）。*/
+.rotstagerow{display:flex;align-items:flex-start;gap:12px}
+.rotstagerow>#rotClockWrap{flex:1 1 auto;min-width:0}
+.rotstagerow>.stagepanel{flex:0 0 300px;max-width:300px;margin-top:0}
+@media (max-width:1100px){
+  .rotstagerow{display:block}
+  .rotstagerow>.stagepanel{max-width:none;margin-top:10px}
+}
+
+/* ★ D7：總覽「輪動階段」卡片下半的「昨日資金去向」小標與圖 */
+h4.ovflowh{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2)}
 /* 合併之後兩張圖各自需要一行小標（卡片標題已經被「資金輪動」佔走）。
    用 h4 而不是 h3：同一張卡裡的層級要看得出來，而且 h3 的字級會把圖往下推。*/
 .rotpane{display:flex;flex-direction:column;min-width:0}
@@ -2514,9 +2532,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          現在象限標籤本身就是那四顆卡（見 app.js 的 rotQuadChips / renderStagePanel）。
          · `#rotCycle`（改善→領先→轉弱→落後 ↩ 那一列）跟著移除：時鐘順時針轉一圈就是同一件事，
            而「怎麼看 ?」裡已經把順序寫清楚了。
-         · `#rotMove` 保留，搬到時鐘正下方。
-         · 總覽頁的 `#rotMini`（.stageboard.compact）與 N10 那組四段卡**不受影響**，
-           所以 .stageboard / .cyclebar 的樣式都留著。 -->
+         · ★ 2026-09-23 追加：`#rotMove` 也已經移除（Andy 親口要求），
+           所以 `.rotmove` 的樣式跟著清掉了。
+         · 總覽頁的 `#rotMini` 這一批換成「昨日資金去向分流圖」（D7），
+           `.stageboard.compact` 的專屬規則跟著清掉；
+           `.stageboard` / `.stage` 本體**留著**，季節性的 `#seasonBoard` 還在用。 -->
     <!-- ★ 2026-09-20（Andy：「圖四五 將時間週期以及族群佔比河流圖移除」）：
          「族群佔比河流」整張卡片（圖 ＋『最近 N 天』時間週期拉Bar ＋ 截止日回放）已移除。
          它回答的問題（這 60 天主流換過幾次）和下面的「資金集中度」重疊，

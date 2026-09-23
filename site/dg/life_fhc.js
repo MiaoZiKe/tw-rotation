@@ -69,11 +69,15 @@
   const part = (id, inner) => `<g data-part="${id}">${inner}</g>`;
 
   /* 元件色。語意：負債／固定側走鋼色與冷色（不動的東西），資產／浮動側走金色與暖色，
-     匯率那條獨立用有機色，緩衝用警示色，落到淨值的那一條用主強調色。全部是既有 token。*/
+     匯率那條獨立用有機色，緩衝用警示色，落到淨值的那一條用主強調色。全部是既有 token。
+     ⚠ 淺色主題下 --dg-steel 與 --dg-au 這兩個 token **當文字對白底只有 2:1 上下**，
+       所以這兩個 token 只留給填色、描邊與卡片色條（那幾條共用 CSS 有自己的淺色處理），
+       「直接當 SVG 文字的 fill」一律改走 --dg-mute／--dg-pwr。*/
+
   const C = {
-    fix: 'var(--dg-steel)', prem: 'var(--dg-cool)', bondF: 'var(--dg-au)',
+    fix: 'var(--dg-mute)', prem: 'var(--dg-cool)', bondF: 'var(--dg-au)', bondTx: 'var(--dg-pwr)',
     dom: 'var(--dg-cold)', eq: 'var(--dg-hot)', fx_: 'var(--dg-organic)',
-    buf: 'var(--dg-warn)', nv: 'var(--dg-accent-2d)', risk: 'var(--dg-err)', mute: 'var(--dg-mute)',
+    buf: 'var(--dg-warn)', nv: 'var(--dg-accent-2d)', risk: 'var(--dg-err)', mute: 'var(--dg-steel)',
   };
   const card = (o) => {
     const s = extRow({ part: o.part, title: o.title, sub: o.sub, no: o.no,
@@ -143,7 +147,7 @@
       + LN(`M${MX + 12},${my0 + 34} H${MX + MW - 12}`, C.bondF, 2.4)
       + LN(`M${MX + 12},${my1 - 36} H${MX + MW - 12}`, C.fix, 2.4)
       + T(MX + MW / 2, my0 + 20, '利差', 'lbl', 'middle', `fill:${C.nv}`)
-      + T(MX + MW / 2, my0 + 60, '投資報酬率', 'lbl', 'middle', `fill:${C.bondF}`)
+      + T(MX + MW / 2, my0 + 60, '投資報酬率', 'lbl', 'middle', `fill:${C.bondTx}`)
       + T(MX + MW / 2, my0 + 76, '減', 'sub', 'middle')
       + T(MX + MW / 2, my0 + 92, '保單成本率', 'lbl', 'middle', `fill:${C.fix}`)
       + T(MX + MW / 2, my1 - 18, '利差益／利差損', 'sub', 'middle', `fill:${C.nv}`)));
@@ -221,7 +225,7 @@
         '新收到的保費、以及到期再投資的錢，',
         '可以買到票面利率更高的債券 ——',
         '★ 長期看，利差益的空間變大。',
-      ], 'lf_up_good', C.bondF)
+      ], 'lf_up_good', C.bondTx)
       + q(1, '升息：手上的舊債市價會跌', [
         '債券價格與殖利率反向。分類在「透過其他',
         '綜合損益衡量」的部位，評價跌直接打到淨值，',
