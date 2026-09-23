@@ -1759,6 +1759,18 @@ def rot_dd_toggle(pg, gid, scope=ROT_DD, wait: int = 1400) -> bool:
     return bool(hit)
 
 
+def _rot_pick_chain(pg, chain: str, scope=ROT_DD, wait: int = 1400) -> bool:
+    """在第一層下拉裡挑一條產業鏈（`''` ＝「全部」）。★ W6 之後這一排是下拉不是按鈕列。"""
+    hit = pg.evaluate(
+        f"""(c) => {{ const dd = document.querySelector('{scope} .rotdd[data-dd="chain"]');
+            if (!dd) return false;
+            const b = dd.querySelector('.ddbtn'); if (b) b.click();
+            const o = dd.querySelector('.ddopt[data-c="' + c + '"]');
+            if (!o) return false; o.click(); return true; }}""", chain)
+    pg.wait_for_timeout(wait)
+    return bool(hit)
+
+
 def rot_dd_clear(pg, scope=ROT_DD, wait: int = 1000) -> bool:
     """按「清除」（沒有選任何東西時那顆鈕不存在，回 False）。"""
     hit = pg.evaluate(f"""() => {{ const b = document.querySelector('{scope} .rot-clear');
@@ -4199,8 +4211,9 @@ def t_new_layout(pg, base):
           });
       }
       // 合併的重點：整張卡只准有**一份**篩選列與**一顆**問號鈕
-      const merged = card ? { rf: card.querySelectorAll('.rotfilter').length,
-                              chips: card.querySelectorAll('.linkrow.gchips').length,
+      const merged = card ? { rf: card.querySelectorAll('.rotfilter[data-rf]').length,
+                              /* ★ 2026-09-23 W6：族群晶片列換成兩層下拉，數的是資金輪動那一排的 `.rotdd`（兩顆＝一份）。*/
+                              chips: card.querySelectorAll('.rotfilter[data-rf] .rotdd').length,
                               how: card.querySelectorAll('.howbtn').length,
                               inner: g.querySelectorAll('.card').length } : null;
       /* 排行圖的族群名稱有沒有被截掉／疊在一起：**量真的畫出去的那些字**。
@@ -4890,8 +4903,11 @@ def t_new_clock(pg, base):
     # ------------------------------------------- 2026-09-21⑥ 畫面上不准出現英文 id
     # Andy 的截圖上有一格寫著 `financial`。根因是 CHAIN_NAME 那張寫死的對照表沒跟上族群改版；
     # 正解是讀 payload 的 chains[].name，所以這裡直接對**畫面上的字**掃一次正規式。
-    segtxt = pg.evaluate("() => [...document.querySelectorAll('#v-flow .rotchain button')]"
-                         ".map(b => b.textContent.trim())")
+    # ★ 2026-09-23 W6：產業鏈那一排從 `.seg.rotchain` 的按鈕換成**第一層下拉**裡的選項。
+    #   舊選擇器現在回空清單，而 `not []` 是 True —— 這條會變成「掃了 0 個字也算過」＝假綠。
+    segtxt = pg.evaluate('() => [...document.querySelectorAll(\'#v-flow .rotfilter[data-rf] '
+                         '.rotdd[data-dd="chain"] .ddopt[data-c]\')].map(b => b.textContent.trim())')
+    ok("量得到產業鏈那一排的每一個名字（空清單不算過）", len(segtxt) >= 3, segtxt)
     import re as _re
     bad = [t for t in segtxt if _re.fullmatch(r"[A-Za-z0-9_\- ]+", t)]
     ok("產業鏈篩選列上一個英文 id 都沒有（全站繁體中文是硬規則）", not bad,
@@ -5253,8 +5269,9 @@ def t_rotmerge(pg, base):
                 if (q.width < 2) return;
                 const d = Math.max(q.right - r.right, r.left - q.left);
                 if (d > 2) out.push([(e.className + '').slice(0, 20), Math.round(d)]); });
-            return { rf: card.querySelectorAll('.rotfilter').length,
-                     chips: card.querySelectorAll('.linkrow.gchips').length,
+            return { rf: card.querySelectorAll('.rotfilter[data-rf]').length,
+                     /* ★ 2026-09-23 W6：族群晶片列換成兩層下拉，數的是資金輪動那一排的 `.rotdd`（兩顆＝一份）。*/
+                     chips: card.querySelectorAll('.rotfilter[data-rf] .rotdd').length,
                      how: card.querySelectorAll('.howbtn').length,
                      zoom: card.querySelectorAll('#rotZoomBtn').length,
                      back: card.querySelectorAll('#rotBack').length,
@@ -5266,8 +5283,8 @@ def t_rotmerge(pg, base):
                                > document.documentElement.clientWidth + 1 }; }""")
         if not ok(tag + "時鐘與排行在同一張卡裡（合併）", bool(one), one):
             return
-        ok(tag + "共用控制區只有一份（產業鏈 seg ＋ 族群晶片列）",
-           one["rf"] == 1 and one["chips"] == 1, one)
+        ok(tag + "共用控制區只有一份（產業鏈 ＋ 族群，兩層下拉各一顆）",
+           one["rf"] == 1 and one["chips"] == 2, one)
         ok(tag + "「看哪一天」與「最近幾天」都在同一張卡的時間列上",
            one["back"] == 1 and one["days"] == 1, one)
         ok(tag + "只剩一顆「怎麼看 ?」與一顆「⤢ 放大」",
@@ -5278,8 +5295,11 @@ def t_rotmerge(pg, base):
         # ★ 2026-09-23 W6：56 顆晶片改成兩層下拉，所以「不會把圖推下去」的做法變了：
         #   收起來的時候只有兩顆按鈕（高度必然小），族群清單是**點開才出現的面板**，
         #   而那個面板自己要有高度上限＋可捲。兩件事分開量。
-        sc = pg.evaluate("""() => { const r = document.querySelector('#v-flow .rotfilter');
-            const lst = document.querySelector('#v-flow .rotfilter .rotdd[data-dd="group"] .ddlist');
+        # ⚠ 清單住在「點開才出現」的面板裡，收著的時候 clientHeight／scrollHeight 都是 0 ——
+        #   不先打開就量，會拿到 0 > 0 的假紅。所以先真的按開第二層再量。
+        rot_dd_open(pg, "group", ROT_DD, 500)
+        sc = pg.evaluate("""() => { const r = document.querySelector('#v-flow .rotfilter[data-rf]');
+            const lst = document.querySelector('#v-flow .rotfilter[data-rf] .rotdd[data-dd="group"] .ddlist');
             if (!r || !lst) return null;
             return { ch: Math.round(r.getBoundingClientRect().height),
                      lch: Math.round(lst.clientHeight), lsh: Math.round(lst.scrollHeight),
@@ -5288,7 +5308,9 @@ def t_rotmerge(pg, base):
         if ok(tag + "量得到兩層下拉與它的族群清單", bool(sc), sc):
             ok(tag + "收起來時整排篩選列很矮（≤ 110px，不會把圖推下去）", sc["ch"] <= 110, sc)
             ok(tag + "族群清單自己有高度上限而且捲得動（56 個不會把面板撐爆）",
-               sc["loy"] in ("auto", "scroll") and sc["lsh"] > sc["lch"], sc)
+               sc["loy"] in ("auto", "scroll") and sc["lch"] > 0 and sc["lsh"] > sc["lch"], sc)
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(400)
 
         # ---------------------------------------------------------- ① 一次點擊同時影響兩張圖
         c0, r0 = _n_clock(), _n_rank()
@@ -5297,7 +5319,8 @@ def t_rotmerge(pg, base):
             const pts = ((((window.App || {}).D || {}).flow_v3 || {}).rrg || {}).points || [];
             const size = {};
             pts.forEach(p => { const c = p.chain || ''; if (c) size[c] = (size[c] || 0) + 1; });
-            return [...document.querySelectorAll('#v-flow .rotchain button')]
+            // ★ W6：產業鏈那一排＝第一層下拉裡的選項（`.ddopt[data-c]`）
+            return [...document.querySelectorAll('#v-flow .rotfilter[data-rf] .rotdd[data-dd="chain"] .ddopt[data-c]')]
               .filter(b => b.dataset.c)
               .map(b => ({ c: b.dataset.c, t: b.textContent.trim(), n: size[b.dataset.c] || 0 })); }""")
         # ★ 挑鏈要挑「真的會讓筆數變少」的那一條：時鐘最多畫 16 個族群、排行最多畫 15 根，
@@ -5307,7 +5330,7 @@ def t_rotmerge(pg, base):
         #   而「半導體」那種塞滿的鏈另外用「名單真的換人了」來驗。
         small = min([x for x in chains if 2 <= x["n"] < 15], key=lambda x: x["n"], default=None)
         if ok(tag + "產業鏈那一排點得到（至少有一條族群數 < 15 的鏈）", bool(small), chains):
-            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{small["c"]}"]', "b => b.click()")
+            _rot_pick_chain(pg, small["c"])
             pg.wait_for_timeout(1400)
             c1, r1 = _n_clock(), _n_rank()
             ok(tag + f"點「{small['t']}」→ 時鐘上的族群真的變少",
@@ -5321,8 +5344,7 @@ def t_rotmerge(pg, base):
                   .filter(p => !p.stock && !set.has(p.gid)).map(p => p.name);
                 return bad; }""", small["c"])
             ok(tag + f"而且時鐘上剩下的每一個都真的屬於「{small['t']}」", not inchain, inchain[:5])
-            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
-            pg.wait_for_timeout(1400)
+            _rot_pick_chain(pg, "")
             ok(tag + "按「全部」兩張圖一起還原",
                _n_clock() == c0 and _n_rank() == r0,
                {"時鐘": f"{c1} → {_n_clock()}（原 {c0}）", "排行": f"{r1} → {_n_rank()}（原 {r0}）"})
@@ -5331,7 +5353,7 @@ def t_rotmerge(pg, base):
         semi = next((x for x in chains if x["t"] == "半導體"), None)
         if semi:
             before = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
-            pg.eval_on_selector(f'#v-flow .rotchain button[data-c="{semi["c"]}"]', "b => b.click()")
+            _rot_pick_chain(pg, semi["c"])
             pg.wait_for_timeout(1400)
             after = sorted((p or {}).get("gid") or "" for p in (_rot_scatter(pg) or []))
             changed(tag + "點「半導體」→ 時鐘上的族群名單真的換人了（筆數受上限所限不會變）",
@@ -5345,8 +5367,7 @@ def t_rotmerge(pg, base):
                                   .map(d => d.gid).filter(g => !set.has(g)) : ['<沒有圖>'];
                 return gs; }""", semi["c"])
             ok(tag + "排行上剩下的每一根長條也都是半導體鏈的（同一份篩選）", not bad, bad[:5])
-            pg.eval_on_selector('#v-flow .rotchain button[data-c=""]', "b => b.click()")
-            pg.wait_for_timeout(1400)
+            _rot_pick_chain(pg, "")
 
         # ---------------------------------------------------------- ② 一支「看哪一天」決定兩張圖的日期
         rot_seek(pg, 3, 1400)
@@ -6558,7 +6579,8 @@ def t_batch2(pg, base):
        zb["bw"] >= zb["zw"] - 2 and zb["bh"] >= zb["zh"] - 2, zb)
     tools = pg.evaluate("""() => ({
         filt: document.querySelectorAll('#zoomTools .rotfilter[data-rf="zoom"]').length,
-        seg: document.querySelectorAll('#zoomTools .rotchain button').length,
+        // ★ W6：產業鏈那一排改成第一層下拉裡的選項
+        seg: document.querySelectorAll('#zoomTools .rotdd[data-dd="chain"] .ddopt[data-c]').length,
         top10: document.querySelectorAll('#zoomTools .rot-top10').length,
         sbtn: document.querySelectorAll('#zoomTools .rot-sbtn').length,
         gbtn: document.querySelectorAll('#zoomTools .rot-gbtn').length,
@@ -6861,7 +6883,7 @@ def t_batch7(pg, base):
               if (!c) return null; const s = (c.getOption().series||[]).filter(x=>x.type==='scatter')[0];
               return s ? (s.data||[]).length : null; })();
             return { hash: location.hash, panel: !!b && !b.hidden,
-                     on: [...document.querySelectorAll('#v-flow .rotfilter .rotdd[data-dd="group"] .ddlist input[data-g]')]
+                     on: [...document.querySelectorAll('#v-flow .rotfilter[data-rf] .rotdd[data-dd="group"] .ddlist input[data-g]')]
                            .filter(c => c.checked).length,
                      n: sc }; }""")
         ok("在下拉裡勾族群不會跳頁（N2「篩選不到」的根因）", st["hash"] == hash0, st["hash"])
