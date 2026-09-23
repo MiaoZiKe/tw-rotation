@@ -794,8 +794,20 @@
   // ---------------------------------------------------------------- 路由
   /* ★ 2026-09-23：'heatmap'＝產業熱力圖，從 #industry 拆出來的頂層分頁（DECISIONS #252）。
      它跟 'industry' 共用 industry.js 的資料載入，所以路由也交給 window.Industry 處理。*/
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'themes', 'season', 'tasks'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'themes', 'season', 'tasks', 'delivery'];
   const rendered = {};
+  /* ★ 2026-09-23：頂層分頁多了「熱力圖」「交付清單」之後，1440 以下這一排就放不下了。
+     放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
+     捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。
+     ⚠ 量的是兩個 rect 的差，不是 `on.offsetLeft` —— 後者是相對 offsetParent（頂欄）的座標，
+       會多算頂欄左側那一段，捲到底仍然只露出半個分頁（8 個分頁之後才看得出來）。 */
+  function centerActiveTab() {
+    const strip = document.getElementById('tabs'), on = strip && strip.querySelector('.tab.on');
+    if (!strip || !on || strip.scrollWidth <= strip.clientWidth + 2) return;
+    const r = on.getBoundingClientRect(), sr = strip.getBoundingClientRect();
+    strip.scrollLeft += (r.left - sr.left) - (sr.width - r.width) / 2;
+  }
+  window.addEventListener('resize', centerActiveTab);
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
@@ -830,10 +842,11 @@
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
        捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。*/
-    { const strip = document.getElementById('tabs'), on = strip && strip.querySelector('.tab.on');
-      if (strip && on && strip.scrollWidth > strip.clientWidth + 2) {
-        strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
-      } }
+    centerActiveTab();
+    /* 一開始就用網址直接開某一頁時，這裡量到的分頁列寬度還不是最後的寬度
+       （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
+       只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
+    setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -856,7 +869,7 @@
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
     if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }
-    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, themes: renderThemes, season: renderSeason, tasks: renderTasks })[view](); }
+    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, themes: renderThemes, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
     setTimeout(() => Object.values(charts).forEach(c => c && c.resize && c.resize()), 30);
   }
   window.addEventListener('hashchange', route);
@@ -6354,8 +6367,11 @@
           接收端是 `paint()` 對 `#themeMembers tr` 加 `.sel`）。
        ④ 「← 回題材總覽」鈕：上方的題材熱力圖本來就一直在同一頁，點別塊就換題材，
           所以回得去，不必另外補一顆鈕。
-     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖，兩張卡拿掉之後
-       它們會整塊空白，所以留一句說明，不要讓使用者以為網頁壞了。*/
+     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖。
+     ★ 2026-09-23 批次 0923-D：原本那三個會顯示一張「這個題材還沒有產品剖析圖…」的替代卡片，
+       **Andy 看過之後要求拿掉**（原話：「題材頁面 下方處可以移除」）。
+       所以沒有剖析圖時這一區就是空的 —— **那是他要的**，不要再補別的東西回去。
+       有剖析圖的題材完全不受影響。*/
   function renderThemeDetail(th, id) {
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const el = $('#themeDetail');
@@ -6366,7 +6382,7 @@
     el.innerHTML = dg
       ? `<div class="card"><div class="row spread">${head}<small class="muted">上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
-      : `<div class="card">${head}<div class="note">這個題材還沒有產品剖析圖，先從上方熱力圖挑別的題材，或按下面的標籤切換。</div>${other}</div>`;
+      : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
     if (dg) {
       // 爆炸圖的零件高矮差很多，字串階段量不到尺寸，進 DOM 之後再等比縮到各自那一列
       if (window.ThemeDiagrams.fit) window.ThemeDiagrams.fit($('#themeDiagram', el));
@@ -6383,6 +6399,108 @@
     const el = document.getElementById('v-tasks'); if (!el) return;
     const d = await load('tasks', { fallback: null });
     if (window.TaskBoard) window.TaskBoard.render(d, el);
+  }
+
+  // ---------------------------------------------------------------- 交付清單
+  /* Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，且如實完成」。
+     根本問題是**他驗不了**：我在對話裡列清單，他只能相信；而他只重新整理網頁。
+     所以這一頁的主角是**他的原話**（`docs/delivery_log.md` 逐字照抄，由
+     `pipeline/delivery_log.py` 轉成 delivery.json），我做了什麼只是配角。
+
+     設計上刻意只回答一個問題：**「我說過的每一句，現在各在什麼狀態？有什麼在等我？」**
+     所以頂端摘要把「等你決定／進行中」排最前面，而且摘要那一排本身就是篩選鈕 ——
+     看到「等你決定 1」就直接點得進去，不必再往下找。
+
+     ★ 同一天他才要我把「任務板」從導覽拿掉。這一格不能變成第二個沒人看的分頁：
+       差別在任務板寫的是**我的**工作項目，這一頁寫的是**他的**原話與「去看」連結。 */
+  const DLV_S = {
+    ask:  { label: '等你決定', hint: '在等你回一句，回之前我不動' },
+    wip:  { label: '進行中',   hint: '正在做，還沒上線' },
+    next: { label: '下一批',   hint: '已判斷成下一批，還沒開工' },
+    done: { label: '已上線',   hint: '已經部署，網頁上看得到' },
+    drop: { label: '你否決了', hint: '你說不要，所以沒做' },
+  };
+  // 順序＝摘要列與排序權重。等他的排最前面（他打開這一頁第一眼要看到「有什麼在等我」）
+  const DLV_ORDER = ['ask', 'wip', 'next', 'done', 'drop'];
+
+  function dlvCard(it) {
+    const st = DLV_S[it.state] ? it.state : 'wip';
+    const S_ = DLV_S[st];
+    /* 版號對照：這一筆是「第幾次部署」交付的，日期時間要跟右上角版號徽章對得上 ——
+       那是他驗證「這件事真的上線了沒」的唯一方法（DECISIONS #148）。 */
+    const ver = it.ver
+      ? `<span class="dlv-ver" title="對照右上角版號徽章：日期與時間要對得上">第 ${fmt.esc(it.ver)} 次部署`
+        + `${it.at ? ' · ' + fmt.esc(it.at) : ''}</span>`
+      : '<span class="dlv-ver">還沒部署</span>';
+    // 「去看」只有真的是 hash 路由才給；沒有畫面的（流程類）老實寫出來，不要給一個點了沒反應的鈕
+    const go = it.go
+      ? `<button class="dlv-go" data-go="${fmt.esc(it.go)}">去看 →</button>`
+      : (it.go_text ? `<span class="dlv-none">${fmt.esc(it.go_text)}</span>` : '');
+    return `<div class="dlv s-${st}">
+      ${it.quote
+        ? `<div class="dlv-q"><span class="dlv-tag">你說的</span>${fmt.esc(it.quote)}</div>
+           <div class="dlv-w"><b>我做了什麼</b>${fmt.esc(it.what)}</div>`
+        : `<div class="dlv-q"><span class="dlv-tag">不是你交代的，是我這邊還沒結束的</span>${fmt.esc(it.what)}</div>`}
+      ${it.note ? `<div class="dlv-n"><b>我自己判斷的：</b>${fmt.esc(it.note)}</div>` : ''}
+      <div class="dlv-f"><span class="dlv-b s-${st}" title="${fmt.esc(S_.hint)}">${S_.label}</span>
+        ${ver}${go}</div>
+    </div>`;
+  }
+
+  async function renderDelivery() {
+    const el = document.getElementById('v-delivery'); if (!el) return;
+    const d = await load('delivery', { fallback: null });
+    const items = (d && d.items) || [];
+    if (!items.length) {
+      el.innerHTML = `<div class="card"><h2>交付清單</h2>
+        <p class="hint">還沒有產出 delivery.json（下一次部署就會有）。</p></div>`;
+      return;
+    }
+    const c = {};
+    items.forEach(t => { c[t.state] = (c[t.state] || 0) + 1; });
+    const waiting = (c.ask || 0) + (c.wip || 0);
+    const chips = ['all'].concat(DLV_ORDER).map(k => {
+      const n = k === 'all' ? items.length : (c[k] || 0);
+      const label = k === 'all' ? '全部' : DLV_S[k].label;
+      return `<button data-f="${k}" class="${k === 'all' ? 'on' : ''}${n ? '' : ' zero'}"
+        title="${k === 'all' ? '不篩選' : fmt.esc(DLV_S[k].hint)}">${label} <b>${n}</b></button>`;
+    }).join('');
+
+    el.innerHTML = `
+      <div class="card">
+        <div class="row spread"><h2>交付清單 <small>你說過的每一句，現在各在什麼狀態</small></h2>
+          <span class="pill">共 ${items.length} 筆</span></div>
+        <p class="hint" style="margin-top:8px">
+          ${waiting
+            ? `★ <b>有 ${waiting} 件在等你</b>：「等你決定 ${c.ask || 0}」是我不敢自己拍板的，`
+              + `「進行中 ${c.wip || 0}」是還沒上線的。點下面那排就只看那一類。`
+            : '★ 目前沒有在等你的項目。'}
+          每一筆的<b>引號那段是你的原話，逐字照抄</b>，不是我改寫過的版本 ——
+          這樣你才驗得出「我聽到的」跟「你說的」是不是同一件事。
+          「第 N 次部署」的日期時間可以跟右上角的版號徽章對照，對得上就代表真的上線了。
+        </p>
+        <div class="dlvfil" id="dlvFil">${chips}</div>
+      </div>
+      <div class="dlvwrap" id="dlvWrap"></div>`;
+
+    const wrap = el.querySelector('#dlvWrap');
+    const draw = (f) => {
+      // 預設倒序：最新的在最上面（編號就是時間順序）
+      const rows = items.filter(t => f === 'all' || t.state === f).slice().sort((a, b) => b.n - a.n);
+      wrap.innerHTML = rows.length ? rows.map(dlvCard).join('')
+        : '<div class="card"><p class="hint" style="margin:0">這一類目前 0 筆。</p></div>';
+    };
+    draw('all');
+    el.querySelector('#dlvFil').addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-f]'); if (!b) return;
+      el.querySelectorAll('#dlvFil button').forEach(x => x.classList.toggle('on', x === b));
+      draw(b.dataset.f);
+    });
+    // 「去看」直接改 hash → 走既有路由，不另外做一套跳頁邏輯
+    wrap.addEventListener('click', (ev) => {
+      const b = ev.target.closest('button[data-go]'); if (!b) return;
+      location.hash = b.dataset.go;
+    });
   }
 
   async function renderSeason() {

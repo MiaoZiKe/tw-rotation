@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 
-from . import config, indicators
+from . import config, delivery_log, indicators
 from .compute import flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
@@ -512,6 +512,9 @@ def build() -> None:
 
     # ---------------------------------------------------------- meta
     _write("tasks", taskboard())
+    # 交付清單（Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
+    # 且如實完成」）。原話逐字放到網站上，他自己就驗得了 —— 不必相信我在對話裡列的清單。
+    _write("delivery", delivery_log.build(config.ROOT))
     _write("meta", meta_payload(latest, history_days))
     lap("meta")
     lap.report()

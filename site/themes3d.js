@@ -14,11 +14,22 @@
   const { STYLE, px, py, P3, onTop, onXZ, box, cyl, panel, wire } = D;
 
   const CW = 1180, PADX = 22, GAPX = 12;
-  const ART_Y = 214;          // 3D 物件站的地面線
-  const BAND_Y = 76;          // 上游／中游／下游 標題列
-  const CAP_Y = 256;          // 站點標題
-  /* 個股標籤的起點不再寫死（原本是 300）：2026-09-23 每一格多了第三行「圖：…」，
-     起點改成由 chainScene 依實際的說明行數算（CY），不然第三行會直接撞上標籤。*/
+  /* ★ 2026-09-23 批次 0923-D（Andy 原話：「題材一律統一水平」「字體圖片版面在小一點 符合正常範圍，有點太大了」）：
+     十八張題材圖**全部走水平版**（chainScene），垂直的爆炸圖版面整個退場。
+     同時把版面收一階：零件框從 122 高收到 96、說明列距 17 收到 15、站名基線往上提 36px，
+     所以 1440 一個畫面看得到的內容比改版前多，不是只有字變小。
+     ⚠ 零件建造函式一支都沒動 —— 這一輪只改版面配置。*/
+  const BAND_Y = 86;                    // 上游／中游／下游 標題列的文字基線
+  const ART_T = 104, ART_B = 200;       // 零件框：fit() 把每個零件等比縮進這個框並置中
+  const ART_C = (ART_T + ART_B) / 2, ART_MH = ART_B - ART_T;
+  const CAP_Y = 220;                    // 站點標題基線
+  /* 說明文字：第一行基線與列距。個股標籤的起點不寫死，由 chainScene 依**斷行後**的實際行數算（CY），
+     不然爆炸圖搬過來的「圖上：…」那一行會直接撞上標籤。*/
+  const SUB_Y0 = CAP_Y + 18, SUB_LH = 15;
+  /* 題材圖自己的字級，只在 .dg3 生效（產業鏈剖析圖不受影響）。
+     標題 16→14、站名 12.5→12；**內文維持 12px，那是字級下限（CLAUDE.md／DECISIONS #226），不准再往下**。
+     真正讓畫面變小的是上面那組版面數字，不是字級。*/
+  const TH_STYLE = `<style>.dg.dg3{--dg-fs-ttl:14px;--dg-fs-hd:12.5px;--dg-fs-lbl:12px;--dg-fs-min:12px}</style>`;
   const BANDS = ['上游：關鍵材料與設備', '中游：核心元件與製造', '下游：系統、模組與應用'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
@@ -42,33 +53,71 @@
     return { svg: out, rows: Math.round((cy - y) / CHIP_ROW) + 1 };
   }
 
+  /* ---------------------------------------------------------------- 說明文字斷行
+     水平版每一格只有約 177px 寬，而爆炸圖搬過來的「圖上：…」那一行有二十幾個字 ——
+     SVG 的 text 不會自動換行，所以一定要自己斷。
+     估寬：一個全形字 12px、一個半形字 6.7px（跟 .sub 的 12px 字級對應）。
+     斷點刻意避開英數字詞中間（HBM、CoWoS、800V 被切成兩半就讀不出來了）。*/
+  const isHalf = (ch) => ch.charCodeAt(0) < 0x2e80;
+  const NO_HEAD = '）」』、，。：；？！》〉·,.:;?!';   // 不准出現在行首的字
+  const NO_TAIL = '（「『《〈';                        // 不准出現在行尾的字
+  const runW = (t) => { let w = 0; for (const c of t) w += isHalf(c) ? 6.7 : 12; return w; };
+  function wrapSub(t, maxW) {
+    const s = String(t == null ? '' : t), out = [];
+    let line = '', w = 0;
+    for (let i = 0; i < s.length; i++) {
+      const ch = s[i], cw = isHalf(ch) ? 6.7 : 12;
+      if (w + cw > maxW && line) {
+        let cut = line.length;
+        // 正要在一串英數字中間斷掉 → 往回退到這串的開頭（退太多就算了，寧可切）
+        if (isHalf(ch) && ch !== ' ') {
+          let j = line.length;
+          while (j > 0 && isHalf(line[j - 1]) && line[j - 1] !== ' ') j--;
+          if (j > 0 && line.length - j < 9) cut = j;
+        }
+        /* 禁則處理：收尾的標點不准單獨掉到下一行的行首（「（兩顆鏡 / 頭）」那種），
+           作法是把前面那一個字一起趕下去；行尾也不准留一個開頭的括號。*/
+        if (cut > 1 && NO_HEAD.indexOf(ch) >= 0) cut--;
+        while (cut > 1 && NO_TAIL.indexOf(line[cut - 1]) >= 0) cut--;
+        out.push(line.slice(0, cut).replace(/\s+$/, ''));
+        line = line.slice(cut); w = runW(line);
+      }
+      line += ch; w += cw;
+    }
+    if (line) out.push(line);
+    return out.length ? out : [''];
+  }
+
   // ---------------------------------------------------------------- 場景外框
   function chainScene(o) {
     const st = o.stations, n = st.length;
-    /* ★ 2026-09-23：畫布寬可以自己決定，理由跟爆炸圖那邊一樣 ——
-       1440 螢幕上題材頁放圖的那一欄只有 996px，1180 的畫布永遠要左右滑。
-       十七張一起收到 980（Andy 已經在 AI 伺服器那張看過並接受這個做法）。*/
+    /* ★ 2026-09-23：畫布寬可以自己決定。1440 螢幕上題材頁放圖的那一欄只有 996px，
+       1180 的畫布永遠要左右滑；十八張一起收到 980，1440 下一次看完。*/
     const CANW = o.cw || CW;
     const W = Math.floor((CANW - PADX * 2 - GAPX * (n - 1)) / n);
-    /* 說明行數不再寫死兩行：個股標籤的起點跟著最長的那一格讓開，
-       不然第三行「圖：…」會直接撞上標籤（processBar 那個老毛病）。*/
-    const nsub = Math.max(2, ...st.map(x => (x.sub || []).length));
-    const CY = CAP_Y + 19 + nsub * 17 - 8;
+    /* 每一格的說明先斷好行，行數決定個股標籤從哪裡開始（最長的那一格說了算）。
+       行數不寫死，不然搬過來的「圖上：…」會直接撞上標籤（processBar 那個老毛病）。*/
+    const subs = st.map(s => (s.sub || []).reduce((a, t) => a.concat(wrapSub(t, W - 2)), []));
+    const nsub = Math.max(2, ...subs.map(a => a.length));
+    const CY = SUB_Y0 + nsub * SUB_LH - 3;
     const slot = (i) => PADX + i * (W + GAPX);
     let maxRows = 1;
     const body = st.map((s, i) => {
       const x = slot(i), cx = x + W / 2;
       const ch = chips(s.codes, x, CY, W); maxRows = Math.max(maxRows, ch.rows);
-      const sub = (s.sub || []).map((t, j) => `<text class="sub" x="${x}" y="${CAP_Y + 19 + j * 17}">${esc(t)}</text>`).join('');
+      const sub = subs[i].map((t, j) => `<text class="sub" x="${x}" y="${SUB_Y0 + j * SUB_LH}">${esc(t)}</text>`).join('');
+      /* 零件外面包一層 g.art 並帶上框的尺寸：fit()（SVG 進 DOM 之後）會量 bbox 再等比縮進框裡。
+         transform 先寫一個保底值，萬一 fit() 沒被呼叫也不會整排零件疊在原點。*/
       return `<g class="p3 stn" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${x - 7}" y="${BAND_Y + 16}" width="${W + 14}" height="${CY - BAND_Y - 12 + ch.rows * CHIP_ROW}" rx="10"/>
-        <g transform="translate(${cx},${ART_Y}) scale(${s.k || 1})">${s.art()}</g>
+        <rect class="slot" x="${x - 7}" y="${BAND_Y + 12}" width="${W + 14}" height="${CY - BAND_Y - 8 + ch.rows * CHIP_ROW}" rx="10"/>
+        <g class="art" data-cx="${cx}" data-cy="${ART_C}" data-mw="${W - 8}" data-mh="${ART_MH}" data-k="${s.k || 1}"
+           transform="translate(${cx},${ART_B - 14}) scale(${Math.min(1, s.k || 1)})">${s.art()}</g>
         <text class="lbl" x="${x}" y="${CAP_Y}">${esc(s.label)}</text>${sub}${ch.svg}</g>`;
     }).join('');
-    // 物件之間的流動彩帶（參考光通訊那張圖的「上游流到下游」）
+    // 物件之間的流動彩帶（參考光通訊那張圖的「上游流到下游」）：畫在零件框的中段
     const ribbon = st.slice(0, -1).map((s, i) => {
       const a = slot(i) + W - 4, b = slot(i + 1) + 4, m = (a + b) / 2;
-      const d = `M${a},${ART_Y - 40} C${m},${ART_Y - 40} ${m},${ART_Y - 62} ${b},${ART_Y - 62}`;
+      const d = `M${a},${ART_C + 10} C${m},${ART_C + 10} ${m},${ART_C - 12} ${b},${ART_C - 12}`;
       return `<path class="rib bg" d="${d}" fill="none"/><path class="rib flow" d="${d}" fill="none"/>`;
     }).join('');
     const bands = [0, 1, 2].map(b => {
@@ -78,117 +127,39 @@
       return `<g class="band b${b}"><rect x="${x}" y="${BAND_Y - 19}" width="${w}" height="26" rx="7"/>
         <text x="${x + 13}" y="${BAND_Y - 1}">${BANDS[b]}</text></g>`;
     }).join('');
-    const sy = CY + maxRows * CHIP_ROW + 30;
-    const H = sy + 82;
+    const sy = CY + maxRows * CHIP_ROW + 26;
+    const H = sy + 78;
     const steps = (o.steps || []).length;
     const sw = steps ? Math.floor((CANW - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
     const strip = (o.steps || []).map((s, i) => {
       const x = PADX + i * (sw + 10);
-      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
-        <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
-        <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
-        <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
+      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="38" rx="8"/>
+        <circle class="num" cx="${x + 17}" cy="${sy + 19}" r="10"/><text class="nn" x="${x + 17}" y="${sy + 23.5}" text-anchor="middle">${i + 1}</text>
+        <text class="lbl" x="${x + 34}" y="${sy + 16}">${esc(s.t)}</text>
+        <text class="sub" x="${x + 34}" y="${sy + 31}">${esc(s.s || '')}</text></g>`
         // ★ 2026-09-23：改吃 --dg-accent-2d（「不屬於任何零件」的強調色）。
         // 原本是寫死的青色色碼，在淺色主題下過亮；token 在深淺兩套各有一組值。
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
+        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 19} L${x + sw + 10},${sy + 19}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
     }).join('');
-    return `<svg class="dg dg3" data-cw="${CANW}" viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${AI_STYLE}${MAT_STYLE}
-      <text class="ttl" x="${PADX}" y="26">${esc(o.title)}</text>
-      <text class="cap" x="${PADX}" y="46">${esc(o.cap)}</text>
-      ${bands}${ribbon}${body}
+    /* o.unit ＝ 這張圖「該怎麼讀」那一行。爆炸圖時代寫的是「由上而下」的拆解順序，
+       改成水平之後方向語意跟著換成「由左到右」，每一張各自照自己的鏈重寫（見各 T.* 的那一行）。*/
+    const unit = o.unit ? `<text class="cap" x="${PADX}" y="64">${esc(o.unit)}</text>` : '';
+    return `<svg class="dg dg3" data-cw="${CANW}" viewBox="0 0 ${CANW} ${H}" width="100%" style="display:block">${STYLE}${TH_STYLE}${AI_STYLE}${MAT_STYLE}
+      <text class="ttl" x="${PADX}" y="24">${esc(o.title)}</text>
+      <text class="cap" x="${PADX}" y="45">${esc(o.cap)}</text>
+      ${unit}${bands}${ribbon}${body}
       <text class="cap" x="${PADX}" y="${sy - 9}">${esc(o.flowTitle || '產業鏈流程（點一格＝點上面那個環節）')}</text>${strip}
       <text class="cap" x="${PADX}" y="${H - 12}">原創等角示意圖，非實物比例；每個環節的顏色＝族群色，點環節或點代號都會進個股頁</text>
     </svg>`;
   }
   const S = (id, band, label, sub, codes, seg, art, k) => ({ id, band, label, sub, codes, seg, art, k });
 
-  /* ---------------------------------------------------------------- 爆炸圖（拆解圖）
-     參考 Andy 給的華南投顧「機架式伺服器機構爆炸圖」：把一台機器由上而下拉開，
-     每一層用引線拉到右邊標註「這一層是什麼、誰在做」。
-     組裝型的題材（伺服器、電源、散熱、AI PC、機器人、車、衛星、無人機）用這個版面，
-     材料型的（PCB/CCL、HBM、CoWoS、玻璃基板）維持 chainScene 的分層剖面。
-     station 的資料結構與 chainScene 完全一樣，所以點擊、顏色、成員連動都共用同一套。 */
-  const EX = { X: 306, TOP: 150, ROW: 124, LX: 628, LW: 530, K: 1.5 };
-
-  /* ★ 2026-09-23：版面參數改成「每張圖可以自己覆寫」（o.ex）。
-     為什麼不直接改 EX：這一輪只做 AI 伺服器那一張，其餘七張爆炸圖（電源、散熱、AI PC、
-     機器人、無人機、衛星、車用）**必須維持原樣**，所以覆寫值只由 T.ai_server 傳進來，
-     沒傳的圖吃的還是原本那組數字，版面一個像素都不會動。
-       MW／MH   零件框的寬高（fit() 會把零件等比縮進這個框）。
-                等角投影下一個扁平物件的寬高比上限是 0.866/0.5＝1.73，
-                所以 MW/MH 設到 1.73 附近才不會「框很寬、零件只佔一半」。
-       SLOT_MIN 右側說明卡的最小高度。設了之後卡片等高、上下貼齊，
-                不會像改版前那樣每張卡之間留一條空白。*/
-  function explodeScene(o) {
-    const E = Object.assign({}, EX, o.ex || {});
-    /* ★ 畫布寬度可以自己決定。量出來的事實（2026-09-23）：1440 螢幕上題材頁放圖的那一欄
-       只有 996px，而預設畫布是 1180px —— 也就是**這張圖在 Andy 的螢幕上永遠要左右滑**，
-       而 Andy 這一輪要的就是「只需要提供圖片給讀者閱讀」。所以 AI 伺服器這張把畫布收到 980，
-       1440 下一次看完、不必滑。其他圖沒傳 cw，吃的還是 1180，版面不動。*/
-    const W = o.cw || CW;
-    const MW = E.MW || 196, MH = E.MH || (E.ROW - 26);
-    // 引線起點：有覆寫 MW 的圖貼著零件框右緣算；沒覆寫的維持原本寫死的 +152（其他圖的引線不能位移）
-    const AX = E.MW ? Math.round(E.X + MW / 2 + 12) : E.X + 152;
-    const ly = o.layers, n = ly.length;
-    const rowY = (i) => E.TOP + i * E.ROW;
-    let maxRows = 1;
-    // 零件之間的虛線對位軸＋箭頭：爆炸圖的關鍵視覺提示「這些是同一台拆開的」
-    const guides = ly.slice(0, -1).map((s, i) => {
-      // 沒覆寫版面的圖（其他七張）維持原本寫死的 +26 / −44 —— 虛線位置一格都不能動
-      if (!E.MH) {
-        const a0 = rowY(i) + 26, b0 = rowY(i + 1) - 44;
-        return `<path class="etch" d="M${E.X},${a0} V${b0}" stroke-dasharray="4 7"/>`
-          + `<path class="etch" d="M${E.X - 5},${b0 - 9} L${E.X},${b0} L${E.X + 5},${b0 - 9}" fill="none"/>`;
-      }
-      /* 有覆寫版面的圖（AI 伺服器）零件畫得大，列與列之間只剩十幾 px，虛線硬塞進去不是被切掉
-         就是插進下一個零件裡。改成**一條連續的對位軸畫在所有零件後面**（零件是實心的，
-         所以只在縫隙看得到），箭頭放在兩個零件中間那個空檔 —— 這才是爆炸圖標準的畫法。*/
-      const m = rowY(i) + E.ROW / 2 - 22;
-      return `<path class="etch" d="M${E.X - 5},${m - 7} L${E.X},${m + 2} L${E.X + 5},${m - 7}" fill="none"/>`;
-    }).join('') + (E.MH ? `<path class="etch" d="M${E.X},${rowY(0) - 22} V${rowY(n - 1) - 22}" stroke-dasharray="4 7"/>` : '');
-    const rows = ly.map((s, i) => {
-      const y = rowY(i);
-      // 說明行數不一樣，標籤的起點就要跟著讓；沒覆寫的圖維持原本的 +18（其他七張爆炸圖不受影響）
-      const ch = chips(s.codes, E.LX, y + (E.CHIP_DY == null ? 18 : E.CHIP_DY), E.LW - 10);
-      maxRows = Math.max(maxRows, ch.rows);
-      const sub = (s.sub || []).map((t, j) =>
-        `<text class="sub" x="${E.LX}" y="${y - 6 + j * 17}">${esc(t)}</text>`).join('');
-      // 引線：從零件右緣往右拉一段、折一次、接到標註區
-      const d = `M${AX},${y - 12} H${E.LX - 66} L${E.LX - 34},${y - 26} H${E.LX - 8}`;
-      const slotH = Math.max(52 + (s.sub || []).length * 17 + ch.rows * CHIP_ROW, E.SLOT_MIN || 0);
-      return `<g class="p3 stn ex" data-part="${s.id}" data-codes="${(s.codes || []).join(',')}"${s.seg ? ` data-seg="${s.seg}"` : ''}>
-        <rect class="slot" x="${E.LX - 14}" y="${y - 46}" width="${E.LW + 14}" height="${slotH}" rx="9"/>
-        <g class="art" data-cx="${E.X}" data-cy="${y - 22}" data-mh="${MH}" data-mw="${MW}"
-           transform="translate(${E.X},${y}) scale(${(s.k || 1) * E.K})">${s.art()}</g>
-        <path class="leader" d="${d}"/><circle class="lit" cx="${AX}" cy="${y - 12}" r="3.2"/>
-        <text class="lbl" x="${E.LX}" y="${y - 26}">${esc(s.label)}</text>
-        <text class="tag" x="${E.LX + 10 + esc(s.label).length * 13}" y="${y - 26}">${BAND_TAG[s.band] || ''}</text>
-        ${sub}${ch.svg}</g>`;
-    }).join('');
-    const sy = rowY(n - 1) + Math.max(34 + maxRows * CHIP_ROW + 22, E.SLOT_MIN ? E.SLOT_MIN - 20 : 0);
-    const H = sy + 82;
-    const steps = (o.steps || []).length;
-    const sw = steps ? Math.floor((W - PADX * 2 - 10 * (steps - 1)) / steps) : 0;
-    const strip = (o.steps || []).map((s, i) => {
-      const x = PADX + i * (sw + 10);
-      return `<g class="p3 step" data-part="${s.p || ''}"><rect class="part f2" x="${x}" y="${sy}" width="${sw}" height="40" rx="8"/>
-        <circle class="num" cx="${x + 18}" cy="${sy + 20}" r="10.5"/><text class="nn" x="${x + 18}" y="${sy + 24.5}" text-anchor="middle">${i + 1}</text>
-        <text class="lbl" x="${x + 36}" y="${sy + 16}">${esc(s.t)}</text>
-        <text class="sub" x="${x + 36}" y="${sy + 32}">${esc(s.s || '')}</text></g>`
-        // ★ 2026-09-23（全題材那一輪）：原本寫死的青色色碼已換成 --dg-accent-2d。
-        // 全檔十三筆寫死色碼在這一輪一起清掉，淺色主題下不會再過亮。
-        + (i < steps - 1 ? `<path class="flow fast" d="M${x + sw},${sy + 20} L${x + sw + 10},${sy + 20}" stroke="var(--dg-accent-2d)" stroke-width="2"/>` : '');
-    }).join('');
-    const axis = `<text class="cap" x="${PADX}" y="${E.UNIT_Y || (E.TOP - 58)}">${esc(o.unit || '整機爆炸拆解（由上而下）')}</text>` + guides;
-    return `<svg class="dg dg3" data-cw="${W}" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${STYLE}${AI_STYLE}${MAT_STYLE}${o.style || ''}
-      <text class="ttl" x="${PADX}" y="26">${esc(o.title)}</text>
-      <text class="cap" x="${PADX}" y="46">${esc(o.cap)}</text>
-      ${axis}${rows}
-      <text class="cap" x="${PADX}" y="${sy - 9}">${esc(o.flowTitle || '組裝流程（點一格＝點上面那一層）')}</text>${strip}
-      <text class="cap" x="${PADX}" y="${H - 12}">原創等角爆炸示意圖，非實物比例；每一層的顏色＝族群色，點層或點代號都會進個股頁</text>
-    </svg>`;
-  }
-  const BAND_TAG = ['上游', '中游', '下游'];
+  /* ★ 2026-09-23 批次 0923-D：垂直的爆炸圖版面（explodeScene／EX／EX980／BAND_TAG）在這裡整個刪掉。
+     Andy 原話：「也看到部分提才是垂直版面，題材一律統一水平」。
+     原本八張組裝型題材（AI 伺服器、電源 BBU、散熱、AI PC、機器人、無人機、衛星、車用）走垂直拆解版，
+     改成全部走上面的 chainScene；零件建造函式一支都沒動，換掉的只有版面配置與方向語意
+     （由上而下的「拆解順序」→ 由左到右的「上下游順序」，每張圖的 unit 那一行各自重寫）。
+     上中下游在水平版是靠最上面那條 band 色帶表示，所以 BAND_TAG 那組小標也一起退場。*/
 
   /* ================================================================ 3D 物件庫
      每個物件都畫在模型原點附近（約 ±50），放進站點時再平移縮放，
@@ -954,12 +925,6 @@
     + mat('m-emc', box(12, -7, 4, 12, 14, 6, '') + box(28, -7, 4, 10, 14, 5, ''))
     + mat('m-au', onTop(4, aiGold(7, -8, 5, 16, 2)));
 
-  /* ★ 爆炸圖的共用版面（2026-09-23）：AI 伺服器那張量出來的一組數字，其餘七張沿用。
-     為什麼要沿用而不是各自調：1440 螢幕上題材頁放圖的那一欄只有 996px，
-     預設畫布 1180 代表**每一張都要左右滑**；收到 980 才是「一次看完」。
-     MW/MH 的比例 212/122＝1.74，貼著等角投影的寬高比上限 1.73，框不會空一半；
-     SLOT_MIN 讓右邊五張說明卡等高貼齊，中間不留白條。*/
-  const EX980 = { X: 182, TOP: 182, UNIT_Y: 68, ROW: 140, MW: 212, MH: 122, LX: 376, LW: 582, CHIP_DY: 34, SLOT_MIN: 112 };
   /* ================================================================ 十八個題材 */
   const T = {};
 
@@ -1265,14 +1230,13 @@
   /* AI 伺服器：2026-09-23 改版。零件全部換成上面那套專用件（識別特徵見 vaPackage 上方那段），
      版面用 o.ex 自己覆寫（框更寬、卡片等高），其他七張爆炸圖一個像素都沒動。
      每一層第三行 sub 是新加的「看圖看什麼」—— 圖是主角，那一行是圖的使用說明。*/
-  T.ai_server = () => explodeScene({
+  T.ai_server = () => chainScene({
     title: 'AI 伺服器：從一顆晶片到一座機櫃',
     cap: '晶片與封裝是成本主體，往下是板材與載板，再往下是電源與散熱，最後由 ODM 組成托盤與整機櫃交給雲端業者。',
-    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE,
+    unit: '由左到右＝從一顆晶片到一座機櫃：晶片與封裝在最左，往右一路上板、加電源散熱，最後組成托盤與整機櫃',
+    flowTitle: '組裝流程（點一格＝點上面那個環節）',
     cw: 980,
-    ex: { X: 182, TOP: 182, UNIT_Y: 68, ROW: 140, MW: 212, MH: 122, LX: 376, LW: 582, CHIP_DY: 34, SLOT_MIN: 112 },
-    layers: [
+    stations: [
       S('chip', 0, 'GPU / ASIC 與封裝', ['邏輯晶粒＋HBM＋CoWoS', '整櫃成本的最大塊',
         '圖上：中央大晶粒、兩側各四疊 HBM、底下矽中介層與一排錫球'], ['2330', '3661', '3711'], 'foundry', vaPackage),
       S('board', 0, '板材、載板與連接', ['高層數低損耗 PCB', 'CCL、載板與連接器',
@@ -1287,12 +1251,13 @@
     steps: [{ p: 'chip', t: '晶片與封裝', s: '2330 / 3711' }, { p: 'board', t: '上板', s: '3037 / 2383' }, { p: 'power', t: '電源散熱', s: '2308 / 3017' },
     { p: 'tray', t: '托盤組裝', s: '2382 / 6669' }, { p: 'rack', t: '整櫃交付', s: '資料中心' }],
   });
-  T.power_bbu = () => explodeScene({
+  T.power_bbu = () => chainScene({
     title: '伺服器電源與 BBU：機櫃的心臟',
     cap: '單櫃功耗從十幾 kW 跳到上百 kW，電源模組數量、電壓規格（800V HVDC）與備援電池全部跟著改版。',
-    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝電怎麼一路送進機櫃：從控制 IC 到電源模組、備援電池、匯流排，最後是整櫃供電架構',
+    flowTitle: '供電流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('pmic', 0, '電源管理 IC', ['數位電源控制與轉換', '效率每個百分點都算',
         '圖上：小板上一顆控制 IC、一排電感方塊與三顆電解電容'], ['6415', '3529', '6533'], 'ic_design', dPmicBoard),
       S('psu', 1, 'PSU 電源模組', ['伺服器電源供應器', 'AI 機櫃用量倍增',
@@ -1308,12 +1273,13 @@
     { p: 'busbar', t: '匯流與機構', s: '2059 / 3023' }, { p: 'rack', t: '機櫃整合', s: '2382 / 6669' }],
   });
 
-  T.thermal = () => explodeScene({
+  T.thermal = () => chainScene({
     title: '散熱與液冷：熱從晶片怎麼被帶出機房',
     cap: '單顆 GPU 破千瓦，風冷已經不夠。價值一路從均熱片、風扇往水冷板、快接頭與機櫃 CDU 移動。',
-    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝熱怎麼一路被帶走：從貼著晶片的均熱片與風扇，到水冷板、CDU，最後進機房冷卻水',
+    flowTitle: '散熱路徑（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('vc', 0, '均熱片與熱管', ['VC 均熱板、熱管', '風冷世代的主力',
         '圖上：扁平均熱板切開露出毛細結構，兩根銅熱管彎折出去'], ['3653', '6230', '3013'], 'thermal', dVaporChamber),
       S('fan', 0, '風扇與散熱模組', ['前端進氣與機櫃風牆', '風冷仍是多數機種',
@@ -1374,12 +1340,13 @@
     { p: 'ems', t: '整機組裝', s: '2317 / 4938' }, { p: 'ems', t: '品牌出貨', s: '終端銷售' }],
   });
 
-  T.edge_ai_pc = () => explodeScene({
+  T.edge_ai_pc = () => chainScene({
     title: '邊緣 AI 與 AI PC：算力搬到裝置端',
     cap: '端側推論靠 SoC 裡的 NPU，吃記憶體容量也吃散熱。台廠的位置在 ODM 板卡組裝、散熱電源與品牌整機。',
-    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝算力怎麼裝進一台機器：從 SoC 與記憶體，往右到板卡組裝、散熱電源，最後是品牌整機',
+    flowTitle: '組裝流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('soc', 0, 'SoC 與 NPU', ['端側推論算力', '定義了什麼叫 AI PC',
         '圖上：掀蓋露出大小不同的 CPU／GPU／NPU 分區，底下一排錫球'], ['2454', '6533'], 'ic_design', dSocNpu),
       S('mem', 0, '記憶體與儲存', ['端側模型吃容量', 'DRAM / SSD 同步升級',
@@ -1395,12 +1362,13 @@
     { p: 'power', t: '散熱電源', s: '2301' }, { p: 'brand', t: '品牌出貨', s: '2357 / 2353' }],
   });
 
-  T.robotics = () => explodeScene({
+  T.robotics = () => chainScene({
     title: '機器人：一個關節的價值分佈',
     cap: '一個關節 ＝ 減速機 ＋ 伺服馬達 ＋ 編碼器 ＋ 驅動器。人形機器人的關節數是工業手臂的好幾倍，量起來零組件先受惠。',
-    unit: '一個關節的爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝一個關節怎麼組起來：從減速機與伺服馬達，往右到控制驅動、視覺感測，最後是整機組裝',
+    flowTitle: '關節組裝流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('reducer', 0, '減速機與傳動', ['諧波／行星減速機', '精度決定重複定位',
         '圖上：外圈剛輪齒、薄壁柔輪杯，中間那顆橢圓凸輪就是波產生器'], ['2049', '4583', '1590'], null, dHarmonic),
       S('motor', 0, '伺服馬達', ['扭力密度與散熱', '大廠自製比例高',
@@ -1416,12 +1384,13 @@
     { p: 'vision', t: '感測整合', s: '3059 / 2359' }, { p: 'maker', t: '整機組裝', s: '2317' }],
   });
 
-  T.drone = () => explodeScene({
+  T.drone = () => chainScene({
     title: '無人機：一架四旋翼的供應鏈',
     cap: '馬達與螺旋槳決定推力，飛控與導航決定能不能自己飛，光電酬載決定它拿來做什麼。台廠以零組件與整機認證為主。',
-    unit: '整機爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝一架四旋翼怎麼組起來：從馬達螺旋槳與線束，往右到飛控導航、光電酬載，最後是整機交付',
+    flowTitle: '整機組裝流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('motor', 0, '無刷馬達與螺旋槳', ['推力與續航的核心', '四顆同步調速',
         '圖上：外轉子杯下方露出定子繞組，上面是兩葉槳與固定螺栓'], ['8033', '2231'], 'power', dPropMotor),
       S('conn', 0, '連接器與線束', ['軍規連接器與線材', '可靠度的隱形門檻',
@@ -1437,12 +1406,13 @@
     { p: 'payload', t: '酬載整合', s: '3059' }, { p: 'maker', t: '整機交付', s: '2634 / 3402' }],
   });
 
-  T.satellite = () => explodeScene({
+  T.satellite = () => chainScene({
     title: '低軌衛星：天上與地面各拿到什麼',
     cap: '衛星本體幾乎都是國外業者。台廠的錢主要在地面段：射頻元件、相位陣列天線、用戶終端與網通設備。',
-    unit: '由零件到系統的爆炸拆解（由上而下）：左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝訊號怎麼從元件走到地面：從化合物磊晶與射頻元件，往右到天線陣列、用戶終端，最後是營運商',
+    flowTitle: '訊號落地流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('epi', 0, '化合物半導體', ['砷化鎵磊晶與晶片', '高頻元件的底材',
         '圖上：晶圓上再長出幾層越縮越小的薄膜，邊緣看得到台階'], ['2455', '8086'], 'optical', dEpiWafer),
       S('rf', 0, '射頻元件與模組', ['功率放大、濾波、混頻', '規格門檻高',
@@ -1458,12 +1428,13 @@
     { p: 'cpe', t: '終端設備', s: '6285 / 4906' }, { p: 'op', t: '營運商', s: '海外客戶' }],
   });
 
-  T.ev_auto = () => explodeScene({
+  T.ev_auto = () => chainScene({
     title: '車用與電動車：台廠切在哪幾塊',
     cap: '滑板底盤裡是電池包，前後軸各一顆馬達，中間是電控與車載充電器。台廠強項在電源、線束連接器與金屬結構件。',
-    unit: '整車爆炸拆解（由上而下）：每一層都畫成它真正的樣子，左圖看形狀、右卡看誰在做',
-    style: AI_STYLE, cw: 980, ex: EX980,
-    layers: [
+    unit: '由左到右＝一台車怎麼組起來：從結構件與車用電子，往右到電源電控、高壓線束，最後是整車出貨',
+    flowTitle: '整車組裝流程（點一格＝點上面那個環節）',
+    cw: 980,
+    stations: [
       S('metal', 0, '金屬與結構件', ['沖壓件、車燈、扣件', '毛利穩、看車廠拉貨',
         '圖上：折邊鈑金、兩個安裝孔，邊緣那排小圈是焊點'], ['1536', '2228', '1319', '6605'], 'assembly', dStamping),
       S('sensor', 0, '車用電子與感測', ['胎壓、感測器、MCU', '車規認證是門檻',
@@ -1509,21 +1480,26 @@
     { p: 'motor', t: '設備整合', s: '1504' }, { p: 'epc', t: '統包交付', s: '2404 / 台電' }],
   });
 
-  /* 爆炸圖的零件高矮差很多（機櫃比晶片高一倍以上），字串階段算不出實際尺寸，
-     所以 SVG 進 DOM 之後再量一次 bbox，把每個零件等比縮到自己那一列的框裡並置中。
-     app.js 插完圖就呼叫這支；沒有爆炸圖的題材直接跳過。 */
+  /* 零件的尺寸差很多（機櫃比晶片高一倍以上），字串階段量不到 bbox，
+     所以 SVG 進 DOM 之後再量一次，把每個零件等比縮進自己那一格的框裡並置中。
+     ★ 2026-09-23 批次 0923-D：爆炸圖退場之後，這支改成十八張水平圖共用。
+     Andy 要的「圖片小一點」就是靠這個框（96px 高、約 170px 寬）保證的 ——
+     不是靠每張圖各自手調倍率，那種做法十八張就有十八套數字，下次又會跑掉。
+     data-k 是作者原本給的相對倍率，這裡只准把零件**縮小**（clamp 到 1 以下）：
+     框本來就已經被填滿，再放大只會撞到隔壁那一格。*/
   function fit(root) {
     if (!root) return;
     nativeWidth(root);
-    root.querySelectorAll('.p3.stn.ex > g.art').forEach(art => {
+    root.querySelectorAll('.p3.stn > g.art').forEach(art => {
       const cx = +art.dataset.cx, cy = +art.dataset.cy;
       const mh = +art.dataset.mh, mw = +art.dataset.mw;
-      if (!mh) return;
+      if (!mh || !mw) return;
+      const hint = Math.max(.5, Math.min(1, +art.dataset.k || 1));
       art.removeAttribute('transform');
       let bb;
       try { bb = art.getBBox(); } catch (e) { return; }
       if (!bb || !bb.height || !bb.width) return;
-      const k = Math.max(.45, Math.min(1.85, Math.min(mh / bb.height, mw / bb.width)));
+      const k = Math.max(.3, Math.min(1.7, Math.min(mh / bb.height, mw / bb.width))) * hint;
       const tx = cx - (bb.x + bb.width / 2) * k;
       const ty = cy - (bb.y + bb.height / 2) * k;
       art.setAttribute('transform', `translate(${tx.toFixed(1)},${ty.toFixed(1)}) scale(${k.toFixed(3)})`);
