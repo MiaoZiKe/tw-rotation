@@ -13785,13 +13785,22 @@ def t_b21_foundry(pg, base):
     ok("晶圓代工：沒有指定 cos 的零件走預設 —— 迴圈那張卡列得出晶圓代工環節的 3 家",
        "2330" in c_loop and "2303" in c_loop and "6770" in c_loop, c_loop[:140])
 
-    # ---------------- 點環節色標 → 成分股筆數真的變了（不是驗元素存在）
-    n0 = _b14b_rows(pg)
+    # ---------------- 點環節色標 → 畫面真的因此改變（不是驗元素存在）
+    # ⚠ 2026-09-23：原本比的是「筆數真的變了」（n1 != n0），那條在這裡量錯了東西。
+    #   走到這一步之前，上面幾條已經點過製程迴圈那個零件，而那個零件**就掛在 foundry 這一格**，
+    #   所以環節詳情早就列著 foundry 的 2330／2303／6770 三家。
+    #   接著點 foundry 色標，列出來的當然還是同樣那三家 —— 3 → 3 是**正確答案**，不是沒反應。
+    #   畫面真正改變的地方是那顆「只看這一格 →」變成「已只看這一格」（篩選真的被套用了）。
+    #   所以改成驗這兩件事：①列出來的就是這一格該有的那三家 ②焦點狀態真的從「沒套用」翻成「套用」。
+    #   這比原本嚴：原本只要數字有變就算過，現在名單錯了、或按了沒套用，都會紅。
+    a0 = seg_applied(pg)
     if _b14b_seg_chip(pg, "foundry"):
         pg.wait_for_timeout(600)
-        n1 = _b14b_rows(pg)
-        ok("晶圓代工：點「晶圓代工」環節色標 → **成分股筆數真的變了**（畫面真的因此改變）",
-           n1 != n0 and n1 > 0, f"{n0} 筆 → {n1} 筆")
+        n1, c1, a1 = _b14b_rows(pg), seg_codes(pg), seg_applied(pg)
+        ok("晶圓代工：點「晶圓代工」環節色標 → 環節詳情列的就是這一格的三家（2303／2330／6770），"
+           "而且「只看這一格」真的從沒套用翻成**已套用**（畫面真的因此改變）",
+           c1 == "2303,2330,6770" and n1 == 3 and a1 and not a0,
+           f"{n1} 筆／{c1}／套用 {a0} → {a1}")
         _b14b_seg_chip(pg, "foundry")
         pg.wait_for_timeout(400)
 
@@ -13960,9 +13969,18 @@ def t_b21_silicon_wafer(pg, base):
     flow = g["flow"]
     ft = [(f or {}).get("t", "") for f in flow]
     want = ["多晶矽", "CZ 長晶", "外圓磨", "線鋸切片", "倒角研磨蝕刻", "拋光", "磊晶"]
-    ok("矽晶圓・F1：流程七格的順序是 多晶矽 → CZ 長晶 → 外圓磨 → 線鋸切片 → 倒角研磨蝕刻 → 拋光清洗 → 磊晶",
+    # ⚠ 2026-09-23：原本第二個條件是「x 嚴格遞增」，那等於偷偷規定「七格一定排成一列」。
+    #   畫布從 980 收到 660 之後七格改成 **4 ＋ 3 兩列**（silicon_wafer.js 的 FB.cols = 4），
+    #   第 ⑤ 格換行回到最左邊，x 當然不再遞增 —— 圖沒有把順序畫反，是斷言把「一列」寫死了。
+    #   改成量**閱讀順序**：照 (列, x) 由上而下、由左而右嚴格遞增。
+    #   這不是放寬：真的把兩格對調、或把某一格移到上一列，這條照樣會紅。
+    #   同一列的七格是同一個 y（pbar() 用 Math.floor(i / cols) 算列），所以 y 直接就是列號。
+    seq = [(b["y"], b["x"]) for b in flow if b and b["x"] is not None and b["y"] is not None]
+    ok("矽晶圓・F1：流程七格的閱讀順序（由上而下、由左而右）是 "
+       "多晶矽 → CZ 長晶 → 外圓磨 → 線鋸切片 → 倒角研磨蝕刻 → 拋光清洗 → 磊晶（4 ＋ 3 兩列）",
        all(w in t for w, t in zip(want, ft))
-       and all(flow[i]["x"] < flow[i + 1]["x"] for i in range(6) if flow[i] and flow[i + 1]), ft)
+       and len(seq) == 7 and all(seq[i] < seq[i + 1] for i in range(6)),
+       f"{ft} ／ (列,x)＝{seq}")
     ok("矽晶圓・F2：磊晶在最後，而且標「選配」（不是每一片晶圓都有磊晶層）",
        "選配" in ft[6], ft[6])
     ok("矽晶圓・F3：★ 再生晶圓畫在**主線之外**（y 比流程列低），而且有一條返回箭頭接回去",
@@ -14864,19 +14882,26 @@ def t_e1_motion(pg, base):
        f"RV 外徑 {hs['w'] if hs else None} ／ 諧波外徑 {cs['w'] if cs else None}")
 
     # ---------------- C 組・控制鏈
-    cells = sorted(g["cells"], key=lambda b: b["x"])
+    # ⚠ 2026-09-23：原本只用 x 排序，那預設了「控制鏈五格排成一列」。
+    #   畫布收到 660 之後五格改成 **3 ＋ 2 兩列**（motion_control.js 的 CBCOLS = 3），
+    #   第 ④⑤ 格換行回到最左邊，單用 x 排會把第二列的格子插到中間 ——
+    #   下面 C2 量到的「第 3 格」因此變成第二列那一格（x 236），
+    #   而回授線其實好端端地從馬達那一格（x 440～630）的中線 535 出發。圖沒錯，是排序法過時了。
+    #   改成照**閱讀順序**（先列、後 x）排，一列或兩列都對。
+    cells = sorted(g["cells"], key=lambda b: (b["y"], b["x"]))
     fbb = g["fbBB"]
     ok("傳動件・C1：★★ 控制鏈五格都在，而且**回授線真的畫出來、接得回控制器那一格** —— "
        "只畫單向五格＝畫成了開迴路，那不是伺服【紅線】",
        len(cells) == 5 and fbb is not None
        and fbb["x"] <= cells[0]["x"] + cells[0]["w"] and fbb["x"] + fbb["w"] >= cells[2]["x"],
        f"五格 {[c['x'] for c in cells]} ／ 回授線 {fbb}")
-    ok("傳動件・C2：回授的起點在**馬達那一格**（第 3 格），不是在負載",
+    ok("傳動件・C2：回授的起點在**馬達那一格**（閱讀順序的第 3 格），不是在負載",
        len(cells) == 5 and fbb is not None
-       and cells[2]["x"] <= fbb["x"] + fbb["w"] <= cells[2]["x"] + cells[2]["w"] + 1,
+       and cells[2]["x"] - 1 <= fbb["x"] + fbb["w"] <= cells[2]["x"] + cells[2]["w"] + 1,
        f"回授線右緣 {fbb['x'] + fbb['w'] if fbb else None} ／ 第 3 格 "
        f"{cells[2]['x'] if len(cells) == 5 else None}～"
-       f"{cells[2]['x'] + cells[2]['w'] if len(cells) == 5 else None}")
+       f"{cells[2]['x'] + cells[2]['w'] if len(cells) == 5 else None}"
+       f" ／ 五格（閱讀順序）{[(c['y'], c['x']) for c in cells]}")
     rights = [t for t in g["arrR"] if t[0][0] > max(t[1][0], t[2][0])]
     lefts = [t for t in g["fbArr"] if t[0][0] < min(t[1][0], t[2][0])]
     ok("傳動件・C3：主鏈箭頭**一律向右**（4 支），回授箭頭有向左的 —— 兩條線不准同方向",
@@ -14947,12 +14972,25 @@ AC_GEOM = """() => {
   const an = band('.acanode'), ca = band('.accathode'), pa = band('.acpaper');
   const oxAll = A('.acoxflat').map(bb);
   const oxBand = oxAll.filter(b => b.x < 330 && b.y < 300);
-  // 區 ② 放大格（x 介於 440 與 740、y 小於 300）
-  const zoomOx = A('.acox').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
-  const zoomEl = A('.acel').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300 && b.h > 10);
+  /* 區 ② 放大格。
+     ⚠ 2026-09-23：原本是寫死的座標窗（x 介於 440 與 740、y 小於 300）——
+       那是畫布還有 980 寬的時候，區 ② 剛好落在右上角。畫布收到 660 之後區 ② 搬到
+       y 290～370、x 40～600（橫跨整個畫布寬），那個窗只框到 44 個孔裡的 6 個，
+       而放大格的陽極箔（x=40）整個框不到 → `foil` 是空的 → 箔厚量成 None，
+       E2／E3 連除都除不出來就紅了。**圖沒有壞，是斷言把版面座標寫死了。**
+     改成量**關係**而不是量座標：區 ② 的陽極箔＝所有 `ac_anode` 的 rect 裡**面積最大**的那一塊
+     （放大格 560×80，區 ① 的帶只有 268×36、區 ④ 的只有 288×34，差了 4 倍以上，不會認錯），
+     孔與電解液則是「落在那一塊箔裡面」的那些。這樣版面再怎麼搬，只要「放大格裡有一塊箔、
+     箔上有孔」這個結構還在，斷言就跟得上；而結構真的被改掉時它照樣會紅。*/
+  const inside = (b, o) => o && b.x >= o.x - 1 && b.x + b.w <= o.x + o.w + 1
+                             && b.y >= o.y - 1 && b.y + b.h <= o.y + o.h + 1;
+  const anodeRects = A('[data-part="ac_anode"] rect.part').map(bb);
+  const zoomFoil = anodeRects.slice().sort((p1, p2) => (p2.w * p2.h) - (p1.w * p1.h))[0] || null;
+  const zoomOx = A('.acox').map(bb).filter(b => inside(b, zoomFoil));
+  const zoomEl = A('.acel').map(bb).filter(b => inside(b, zoomFoil) && b.h > 10);
   const core = A('.accore').map(bb);
-  const foil = A('[data-part="ac_anode"] rect.part').map(bb).filter(b => b.x > 440 && b.x < 740 && b.y < 300);
-  const oxZoomFlat = oxAll.filter(b => b.x > 440 && b.x < 740);
+  const foil = zoomFoil ? [zoomFoil] : [];
+  const oxZoomFlat = oxAll.filter(b => inside(b, zoomFoil));
   // 區 ③ 整顆
   const can = A('.accan').map(bb), seal = A('.acseal').map(bb),
         pin = A('.acpin').map(bb), vent = A('.acvent').map(bb),
@@ -14960,9 +14998,17 @@ AC_GEOM = """() => {
   // 區 ④ 兩格
   const cell = (s) => A(s).map(e => ({b: bb(e), f: fl(e)})).sort((p, q) => p.b.x - q.b.x);
   const solidFill = A('.acsolidfill').map(bb);
-  // 文字有沒有壓在外套膠膜上（C4）
+  /* 文字有沒有壓在外套膠膜上（C4）。
+     ⚠ 2026-09-23：要排除引線的**編號圓點**（`text.non`，住在 `.anc` 裡）。
+       C4 這條紅線守的是「膠膜上不准印產品外觀與色碼」（耐壓、容值、色環那一類），
+       而編號圓點是 v2 版面的引線端點 —— 它**本來就必須**落在它指的那個零件上，
+       落在膠膜上正是它畫對了。v2 把說明卡外掛成 HTML 之後畫布上才長出這些圓點，
+       這條斷言比它早寫，於是把 10／11／12／13 四顆編號算成「膠膜上的字」。
+       排除的是身分（.non／.anc），不是位置 —— 真的把「16V 470µF」印上去照樣會紅。*/
   let onSleeve = 0;
-  if (sleeve.length) A('text').forEach(n => { if (hit(bb(n), sleeve[0])) onSleeve++; });
+  if (sleeve.length) A('text').forEach(n => {
+    if (n.closest('.anc') || (n.getAttribute('class') || '').split(/\s+/).indexOf('non') >= 0) return;
+    if (hit(bb(n), sleeve[0])) onSleeve++; });
   return {present: true,
     anode: an, cathode: ca, paper: pa, oxBand: oxBand,
     oxOnCathode: oxAll.filter(o => ca.some(c => hit(o, c))).length,
@@ -15821,9 +15867,24 @@ def t_style22(pg, base):
     v3 = land(MLCC, "light", 800, side="0")
     ok("★ [800] 單欄：卡片在畫布下面、不畫引線（靠編號對照）",
        v3["v2"] and v3["colL"] and v3["colL"]["t"] >= v3["canvas"]["b"] - 2 and v3["leads"] == 0, {"canvas": v3["canvas"], "L": v3["colL"], "leads": v3["leads"]})
-    ok("★ [800] 卡片照編號排（由上到下、由左到右），而且兩張一列沒有落單的格子（8 張＝4 列）",
-       v3["order"] == sorted(v3["order"]) and pg.evaluate("() => { const ys = new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top))); return ys.size === 4; }"),
-       {"order": v3["order"], "rows": pg.evaluate("() => [...new Set([...document.querySelectorAll('#prodDiagram .dgc')].map(c => Math.round(c.getBoundingClientRect().top)))]")})
+    # ⚠ 2026-09-23：原本寫死「8 張＝4 列」（`ys.size === 4`）。現在 MLCC 是 **9 張**——
+    #   v2 的共用契約要求每張圖都要有一張警語卡（`_v2_common` 就在驗 `warn == 1`），
+    #   於是 8 張編號卡 ＋ 1 張警語卡 ＝ 5 列（4 列各 2 張 ＋ 最後 1 張）。
+    #   「沒有落單的格子」在奇數張時本來就不可能成立，所以那句話本身也過時了。
+    #   改成量**關係**：兩欄鋪滿（除了最後一列，每一列都剛好 2 張），而且**畫面上**的排列順序
+    #   （由上而下、由左而右）跟編號一致 —— 注意要量畫面位置，不能量 DOM 順序：
+    #   卡片是用 CSS `order` ＋ `grid-auto-flow:dense` 重排的，DOM 順序跟看到的順序本來就不一樣
+    #   （實測 DOM 是 0,1,5,7,2,3,4,6,99，畫面上卻是 0..7,99 —— 量 DOM 會冤枉它）。
+    lay = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')]
+        .map(c => { const r = c.getBoundingClientRect(); return {o: +(c.style.order || 0), t: Math.round(r.top), l: Math.round(r.left)}; });
+      cs.sort((a, b) => a.t - b.t || a.l - b.l);
+      const rows = {}; cs.forEach(c => { (rows[c.t] = rows[c.t] || []).push(c); });
+      const sizes = Object.keys(rows).map(Number).sort((a, b) => a - b).map(k => rows[k].length);
+      return {n: cs.length, visualOrder: cs.map(c => c.o), rowSizes: sizes}; }""")
+    ok("★ [800] 兩欄鋪滿：除了最後一列，每一列都剛好兩張；而且**畫面上**由上而下、由左而右就是編號順序",
+       lay["n"] >= 8 and lay["visualOrder"] == sorted(lay["visualOrder"])
+       and all(x == 2 for x in lay["rowSizes"][:-1]) and 1 <= lay["rowSizes"][-1] <= 2
+       and sum(lay["rowSizes"]) == lay["n"], lay)
     ok("[800] 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
        pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
     v4 = land(MLCC, "light", 390, side="0")
@@ -16726,7 +16787,18 @@ def svg_count(pg, sel):
     return pg.evaluate("(s) => document.querySelectorAll('#prodDiagram svg ' + s).length", sel)
 
 def _seg_rows_distinct(pg, base, feat, segs):
-    """依序點幾個環節色標，回每一次篩出來的筆數（點色標要 reload，同 hash 的 goto 不會重置）。"""
+    """依序點幾個環節色標，回每一次篩出來的名單（點色標要 reload，同 hash 的 goto 不會重置）。
+
+    ⚠ 2026-09-23：這裡原本比的是「**檔數**彼此不同」，那是錯的比法，而且它紅得沒有道理。
+      實際資料裡 ccl_material 有 6 檔台股（7 家扣掉日東紡這家外商）、hdi_pcb 也剛好 6 檔
+      （2368 金像電／4958 臻鼎-KY／3044 健鼎／6191 精成科／5469 瀚宇博／2313 華通），
+      ccl 是 4 檔 —— 兩個環節的**家數**撞在一起，但**名單一家都沒有重複**。
+      也就是說「6／4／6」證明不了任何東西壞掉，只證明這兩格剛好一樣多；
+      補一家公司進 YAML 就會讓這條無緣無故翻紅或翻綠。
+      要證明的是「seg 真的分開掛對」，那就該比**篩出來的是不是同一批公司**。
+      互連那張（t_b14b_hsio）2026-09-21 就是為了同一個原因改成比名單的，
+      這一支沿用同一個判準，不是把門檻放寬（比名單其實更嚴：家數一樣但名單一樣就會紅）。
+    """
     got = {}
     for seg in segs:
         pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
@@ -16735,11 +16807,14 @@ def _seg_rows_distinct(pg, base, feat, segs):
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
         n = seg_stocks(pg) if hit else None
-        got[seg] = n
+        got[seg] = {"n": n, "codes": seg_codes(pg) if hit else ""}
         ok(f"[{feat}] 點「{seg}」環節色標 → 圖下方真的列出那一格的台股",
            hit and n is not None and n > 0 and n != b0, f"{b0} → {n}")
-    vals = [v for v in got.values() if v is not None]
-    ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的檔數**彼此不同**（證明 seg 真的分開掛對）", len(vals) == len(segs) and len(set(vals)) == len(segs), got)
+    codes = [g["codes"] for g in got.values() if g["n"] is not None]
+    ok(f"[{feat}] ★ {'／'.join(segs)} 各自列出來的**台股名單彼此都不同**（這才證明 seg 真的分開掛對；"
+       f"比家數會被「兩格剛好一樣多」誤判）",
+       len(codes) == len(segs) and len(set(codes)) == len(segs),
+       {k: (v["n"], v["codes"][:28]) for k, v in got.items()})
     return got
 
 
