@@ -21110,7 +21110,10 @@ UIP_CONTRAST_JS = r"""
       if (cs.backgroundImage && cs.backgroundImage !== 'none' && /gradient/.test(cs.backgroundImage)) return null;
       const b = cs.backgroundColor, m = b.match(/[\d.]+/g);
       // color(srgb r g b) 沒有第四個 alpha 欄；只有 rgba(...) 的第四個才是 alpha
-      if (m && (/^color\(/.test(b) || m.length < 4 || parseFloat(m[3]) > .85)) return b; }
+      // color(srgb r g b) 沒有 alpha；color(srgb r g b / .08) 的第四個才是，
+      // 而 rgba(...) 也是第四個。兩種都要看，不然 8% 的半透明底會被當成不透明，
+      // 於是量出一堆假的 1.0x 低對比（第一版就是這樣紅的）。
+      if (m && (m.length < 4 || parseFloat(m[3]) > .85)) return b; }
     return 'rgb(255,255,255)'; };
   const out = [];
   document.querySelectorAll('main .view.on *, header *').forEach(e => {
@@ -21271,18 +21274,17 @@ def t_ui_polish(pg, b, base, code):
            for k, v in tr.items() if k != "card"), tr)
     ok("[#5] 沒有任何一個過場超過 240ms 的上限", not slow, slow)
     # 按下去：量 transform 真的變了（不是驗 CSS 有寫）
-    press = pg.evaluate("""async () => {
-        const btn = document.querySelector('.evbtn'); if (!btn) return { skip: true };
-        const before = getComputedStyle(btn).transform;
-        btn.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
-        // :active 是 UA 依真實滑鼠狀態決定的，dispatchEvent 不會觸發 —— 回傳讓外面用真滑鼠再量一次
-        return { before }; }""")
-    box = pg.evaluate("""() => { const b = document.querySelector('.evbtn').getBoundingClientRect();
+    # ⚠ 受測對象刻意選 `.tab` 不選 `.evbtn`：`.evbtn` 的「更新」鈕在即時報價抓取中會被設成
+    #   `disabled`，而 **disabled 的元素不會進 :active**，於是這一條會間歇性假紅。
+    press = pg.evaluate("""() => ({ before: getComputedStyle(document.querySelector('.tab:not(.on)')).transform })""")
+    box = pg.evaluate("""() => { const b = document.querySelector('.tab:not(.on)').getBoundingClientRect();
         return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }""")
     pg.mouse.move(box["x"], box["y"]); pg.mouse.down(); pg.wait_for_timeout(180)
-    act = pg.evaluate("() => getComputedStyle(document.querySelector('.evbtn')).transform")
+    act = pg.evaluate("() => getComputedStyle(document.querySelector('.tab:not(.on)')).transform")
     pg.mouse.up(); pg.wait_for_timeout(200)
-    rel = pg.evaluate("() => getComputedStyle(document.querySelector('.evbtn')).transform")
+    # 放開之後把滑鼠移開，不然它還停在那顆分頁上（hover 不影響 transform，但量起來比較乾淨）
+    pg.mouse.move(10, 600)
+    rel = pg.evaluate("() => getComputedStyle(document.querySelector('.tab:not(.on)')).transform")
     ok("[#5] 按鈕**按下去的當下**真的有回饋（transform 從 none 變成縮放）",
        act != press.get("before") and act != "none", {"before": press.get("before"), "active": act})
     ok("[#5] 放開之後回到原狀（不會卡在按下的樣子）", rel == "none" or rel == press.get("before"),
@@ -21321,11 +21323,10 @@ def t_ui_polish(pg, b, base, code):
         return { dur: getComputedStyle(t).transitionDuration, anim: getComputedStyle(t).animationDuration }; }""")
     ok("[#6] 關掉動效之後，過場真的被壓成 0（不是只在 CSS 裡寫了一條 media query）",
        all(float(x.replace("s", "")) <= 0.001 for x in r1["dur"].split(", ")), r1)
-    bb = mp.evaluate("""() => { const b = document.querySelector('.evbtn').getBoundingClientRect();
-        return { x: b.x + b.width / 2, y: b.y + b.height / 2,
-                 bg: getComputedStyle(document.querySelector('.evbtn')).backgroundColor }; }""")
+    bb = mp.evaluate("""() => { const e = document.querySelector('.tab:not(.on)'); const b = e.getBoundingClientRect();
+        return { x: b.x + b.width / 2, y: b.y + b.height / 2, bg: getComputedStyle(e).backgroundColor }; }""")
     mp.mouse.move(bb["x"], bb["y"]); mp.mouse.down(); mp.wait_for_timeout(150)
-    after_bg = mp.evaluate("""() => { const e = document.querySelector('.evbtn'); const c = getComputedStyle(e);
+    after_bg = mp.evaluate("""() => { const e = document.querySelector('.tab:not(.on)'); const c = getComputedStyle(e);
         return { bg: c.backgroundColor, tf: c.transform }; }""")
     mp.mouse.up()
     ok("[#6] 關掉動效之後**回饋沒有消失**：按下去改用底色壓一階（而且不再縮放）",

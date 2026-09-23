@@ -945,7 +945,12 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rotquads .rq{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;
   display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
   appearance:none;font-family:inherit;font-size:13px;font-weight:700;padding:3px 9px;border-radius:999px;
-  color:var(--c);background:color-mix(in srgb,var(--c) 14%,var(--panel));
+  /* ★ 2026-09-23 UI 精修 #3：底色的混色比例 14% → 10%。
+     文字色就是 var(--c)、底色是同一個色混白／混深底，兩者越接近就越糊。
+     淺色主題實測：14% 時「落後」（--fall #07794f）只有 4.47，剛好卡在 4.5 底下；
+     10% 之後四個象限分別是 4.73／4.93／5.22／5.21，四個都過。
+     色相與語意一個字都沒改，只是讓底色退後一點點。*/
+  color:var(--c);background:color-mix(in srgb,var(--c) 10%,var(--panel));
   border:1px solid color-mix(in srgb,var(--c) 45%,transparent)}
 .rotquads .rq em{font-style:normal;font-weight:600;font-size:11px;font-family:var(--mono);color:var(--ink-2)}
 .rotquads .rq:hover{background:color-mix(in srgb,var(--c) 26%,var(--panel));border-color:var(--c)}
@@ -2082,6 +2087,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* `ask` 是在等他回答 —— 整張卡要醒目，不然會沉在 31 筆已上線裡面找不到 */
 .dlv.s-ask{background:color-mix(in srgb,var(--amber) 9%,var(--panel-3));
   border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+/* ★ 2026-09-23 UI 精修 #2 的連帶處理：這張卡的底是「琥珀 9% 混 --panel-3」，
+   比別的卡亮（深色）／暗（淺色）一階，於是 --ink-3 在上面只剩 4.14（深）／4.40（淺），
+   兩個都掉到 4.5 以下。不動那個 9%（它是「這張卡要醒目」的理由），
+   改成把這張卡上的次要文字提到 --ink-2 → 6.25／6.56。
+   ⚠ 這是全站唯一有色底的卡，所以只需要這一條例外，不是開一個新機制。*/
+.dlv.s-ask .dlv-tag,.dlv.s-ask .dlv-n,.dlv.s-ask .dlv-ver,.dlv.s-ask .dlv-none{color:var(--ink-2)}
 /* 摘要列同時就是篩選鈕：一個控制項，不要摘要一排、篩選又一排 */
 .dlvfil{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 .dlvfil button{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
