@@ -135,26 +135,34 @@
   };
 
   /* ================================================================ §1 版面常數（畫布座標，寬 660）
-     一台立式綜合加工機的正視半剖：
-       左欄 x 30–200  刀庫（圓盤）＋ 換刀機械手
-       中欄 x 200–470 床身 → 鞍座 → 工作台 → 工件 ／ 主軸頭 → 主軸 → 刀柄
-       右欄 x 470–644 立柱 ＋ 控制器櫃（面板、控制器、驅動器）
-     Z 軸在立柱上（主軸頭上下）、X 軸在工作台（左右）、Y 軸在鞍座（前後，畫成斜向）。*/
-  const BEDY = 330, BEDH = 46;                      // 床身上緣／高
-  const SADY = 308, TBLY = 286;                     // 鞍座上緣／工作台上緣
-  const TBX0 = 214, TBW = 214;                      // 工作台左緣／寬
-  const COLX = 470, COLY = 74, COLW = 62;           // 立柱
-  const HDY = 150, HDH = 62, HDX = 352;             // 主軸頭
-  const SPX = 396;                                  // 主軸軸心 x
-  const MAGX = 96, MAGY = 132, MAGR = 54;           // 刀庫圓盤
-  const ATCX = 232, ATCY = 196;                     // 換刀機械手軸心
+     一台立式綜合加工機的正視半剖，由左到右三帶：
+       左帶 x 36–234   刀庫（圓盤）＋ 換刀機械手（雙臂）
+       中帶 x 198–544  床身 → 鞍座 → 工作台 → 工件 ／ 立柱上的主軸頭 → 主軸 → 刀柄
+       右帶 x 546–642  控制器櫃（虛線框起來的那一格＝外購）
+     ⚠ 版面檢查（2026-09-23 第二輪，第一輪實際截圖抓到三處互撞才改成現在這組數字）：
+       ① 刀庫馬達不可以頂到第 58 行的副標 → 圓盤中心下移到 y 176，馬達頂端 94。
+       ② 換刀機械手是**整支繞中心轉**的，所以它掃出來的是一個圓，
+          半徑 ＝ 臂長 36 ＋ 爪 12 ＝ 48。圓心 (186, 268) 到工作台左緣 x 238 還有距離，
+          到刀庫外環（圓心 (92,176)、半徑 56）的圓心距 131.5 ＞ 48 ＋ 56 —— 兩個圓不相交。
+       ③ 三個軸向箭頭各自放在沒有零件的空檔：X 在工作台左段上方、Z 在主軸頭左側、Y 在床身正面。*/
+  const BEDY = 344, BEDH = 44;                      // 床身上緣／高
+  const SADY = 322, TBLY = 300;                     // 鞍座上緣／工作台上緣
+  const TBX0 = 238, TBW = 196;                      // 工作台左緣／寬
+  const COLX = 486, COLY = 76, COLW = 58;           // 立柱
+  const HDX = 344, HDY = 156, HDH = 58;             // 主軸頭
+  const SPX = 400;                                  // 主軸軸心 x
+  const MAGX = 92, MAGY = 176, MAGR = 46;           // 刀庫圓盤
+  const ATCX = 186, ATCY = 268, ATCL = 36;          // 換刀機械手軸心與臂長
+  const CBX = 552, CBY = 80, CBW = 86;              // 控制器櫃
 
   /* ---- 刀庫：一圈刀套 ＋ 插在刀套裡的刀柄（錐柄 ＋ 刀刃）。
      ★ 識別特徵：**刀套是繞著一個圓盤排成一圈的**，而且每一個刀套裡是「上粗下尖」的錐柄。
-        畫成一排方塊就不是刀庫。把數依機種而異 —— 這裡畫 10 個並在卡片上標「示意」。*/
+        畫成一排方塊就不是刀庫。把數依機種而異 —— 這裡畫 10 個並在卡片上標「示意」。
+     ★ 動畫：**整個圓盤連同刀套一起等速轉**（刀庫轉位就是這樣找刀的）。
+        圓形繞自己的中心轉，在正視圖裡本來就是對的 —— 這是這張圖唯一可以直接用 rotate 的幾何。*/
   function magazine() {
     const n = 10, g = [];
-    g.push(C(MAGX, MAGY, MAGR + 12, 'var(--dg-frame-f)', 'mtring'));
+    g.push(C(MAGX, MAGY, MAGR + 10, 'var(--dg-frame-f)', 'mtring'));
     const pockets = [];
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2;
@@ -166,85 +174,85 @@
         + PA('M-3.4,11 L3.4,11 L2.2,17 L-2.2,17Z', 'var(--dg-mute)')
         + '</g>');
     }
-    // 整個圓盤（含刀套）一起轉：刀庫轉位就是這樣找刀的
     g.push(part('mt_mag', `<g transform="translate(${MAGX},${MAGY})">`
       + `<g class="spin mtslow">`
       + C(0, 0, MAGR, 'var(--dg-mc-disc)', 'part')
       + C(0, 0, MAGR * 0.34, 'var(--dg-frame-f)')
       + pockets.join('')
       + `</g></g>`));
-    g.push(part('mt_magmot', R(MAGX - 13, MAGY - MAGR - 40, 26, 24, 'var(--dg-mc-case)', 'part', 3)
-      + LN(`M${MAGX},${MAGY - MAGR - 16} V${MAGY - MAGR + 2}`, 'var(--dg-steel-2)', 3)));
+    g.push(part('mt_magmot', R(MAGX - 13, MAGY - MAGR - 36, 26, 24, 'var(--dg-mc-case)', 'part', 3)
+      + LN(`M${MAGX},${MAGY - MAGR - 12} V${MAGY - MAGR + 2}`, 'var(--dg-steel-2)', 3)));
     return g.join('');
   }
 
   /* ---- 換刀機械手（雙臂式 ATC）：一支兩端各有一個爪的臂，繞中心轉。
      ★ 識別特徵：**兩端對稱**（一端抓主軸上的舊刀、另一端抓刀庫裡的新刀），
-        轉 180 度就完成交換。單臂畫法沒辦法解釋「一次換兩把」。*/
+        轉 180 度就完成交換。單臂畫法沒辦法解釋「一次換兩把」。
+     ★ 動畫：整支臂繞中心等速轉 —— 這是它真正在做的動作，不是閃。*/
   function atc() {
-    const L = 58;
-    const claw = (s) => `<g transform="translate(${s * L},0)">`
-      + PA(`M-9,-7 L9,-7 L9,7 L-9,7Z`, 'var(--dg-steel-2)')
-      + PA(`M-9,-7 L-9,7 L-14,4 L-14,-4Z`, 'var(--dg-mc-case)')
-      + PA(`M9,-7 L9,7 L14,4 L14,-4Z`, 'var(--dg-mc-case)')
-      + PA(`M-4,7 L4,7 L2.6,15 L-2.6,15Z`, 'var(--dg-mute)')
+    const claw = (s) => `<g transform="translate(${s * ATCL},0)">`
+      + PA(`M-8,-6 L8,-6 L8,6 L-8,6Z`, 'var(--dg-steel-2)')
+      + PA(`M-8,-6 L-8,6 L-12,3.5 L-12,-3.5Z`, 'var(--dg-mc-case)')
+      + PA(`M8,-6 L8,6 L12,3.5 L12,-3.5Z`, 'var(--dg-mc-case)')
+      + PA(`M-3.5,6 L3.5,6 L2.3,13 L-2.3,13Z`, 'var(--dg-mute)')
       + '</g>';
     return part('mt_atc', `<g transform="translate(${ATCX},${ATCY})">`
       + `<g class="spin mtmid">`
-      + PA(`M${-L - 14},-8 L${L + 14},-8 L${L + 14},8 L${-L - 14},8Z`, 'var(--dg-mc-cam)', 'part')
+      + PA(`M${-ATCL - 12},-7 L${ATCL + 12},-7 L${ATCL + 12},7 L${-ATCL - 12},7Z`, 'var(--dg-mc-cam)', 'part')
       + claw(-1) + claw(1)
-      + C(0, 0, 11, 'var(--dg-steel)')
+      + C(0, 0, 10, 'var(--dg-steel)')
       + `</g>`
-      + C(0, 0, 4.5, 'var(--dg-mute)')
+      + C(0, 0, 4.2, 'var(--dg-mute)')
       + `</g>`);
   }
 
   /* ---- 主軸頭（Z 軸）＋ 主軸 ＋ 刀柄 ＋ 刀具。
      ★ 識別特徵三件：① 主軸頭是**掛在立柱的線性滑軌上**（上下走）、
-        ② 主軸是一根**被一組軸承夾住的空心軸**（錐孔朝下）、
-        ③ 刀柄是**錐形**（靠錐面定位，不是靠螺絲鎖）。*/
+        ② 主軸是一根**被前後兩組軸承夾住的軸**（錐孔朝下）、
+        ③ 刀柄是**錐形**（靠錐面定位，不是靠螺絲鎖）。
+     ⚠ 主軸與刀具**不可以用 rotate 畫轉動**：在正視圖裡它們是長方形，
+        繞中心轉出來是「歪掉的一根棒子」，那在物理上是錯的（第一輪就是這樣，截圖立刻看得出來）。
+        改成兩個讀得對的做法：
+          ① 主軸鼻端畫一個**透視圓環**（橢圓），上面有一顆繞著跑的光點 —— 圓周運動；
+          ② 刀刃上的溝是**會往下跑的斜虛線**（.flow）—— 那正是旋轉中的螺旋刃在正視圖裡的樣子。
+        馬達裡面那顆風扇是圓的，所以它照舊用 rotate。*/
   function spindle() {
     const g = [];
-    // 主軸頭殼體（沿立柱上下）
-    g.push(part('mt_head', slab(HDX, HDY, 118, HDH, 'var(--dg-mc-case)', { r: 4 })
-      + R(HDX + 10, HDY + 8, 96, 8, 'var(--dg-steel)', null, 2)));
-    // 主軸馬達（頭頂上那顆）
-    g.push(part('mt_spmot', R(SPX - 22, HDY - 46, 44, 44, 'var(--dg-mc-case)', 'part', 4)
-      + `<g transform="translate(${SPX},${HDY - 24})"><g class="spin mtfast">`
-      + [0, 1, 2, 3, 4, 5].map((j) => LN(`M0,0 L${f1(13 * Math.cos(j * 1.047))},${f1(13 * Math.sin(j * 1.047))}`, 'var(--dg-steel-2)', 1.6)).join('')
+    g.push(part('mt_head', slab(HDX, HDY, 112, HDH, 'var(--dg-mc-case)', { r: 4 })
+      + R(HDX + 10, HDY + 8, 92, 7, 'var(--dg-steel)', null, 2)));
+    g.push(part('mt_spmot', R(SPX - 20, HDY - 42, 40, 42, 'var(--dg-mc-case)', 'part', 4)
+      + `<g transform="translate(${SPX},${HDY - 21})"><g class="spin mtfast">`
+      + [0, 1, 2, 3, 4, 5].map((j) => LN(`M0,0 L${f1(12 * Math.cos(j * 1.047))},${f1(12 * Math.sin(j * 1.047))}`, 'var(--dg-steel-2)', 1.6)).join('')
       + `</g></g>`));
-    // 主軸本體：軸承兩組 ＋ 空心軸 ＋ 錐孔
-    g.push(part('mt_bear', [0, 1].map((k) => C(SPX, HDY + 16 + k * 28, 15, 'var(--dg-steel)', 'part')
-      + C(SPX, HDY + 16 + k * 28, 9, 'var(--dg-frame-f)')
-      + [0, 1, 2, 3, 4, 5, 6, 7].map((j) => C(SPX + 12 * Math.cos(j * 0.785), HDY + 16 + k * 28 + 12 * Math.sin(j * 0.785), 2.4, 'var(--dg-mc-ball)')).join('')).join('')));
-    g.push(part('mt_spindle', `<g transform="translate(${SPX},${HDY + 30})"><g class="spin mtfast">`
-      + R(-11, -34, 22, 62, 'var(--dg-steel-2)', 'part', 2)
-      + PA('M-11,28 L11,28 L7,40 L-7,40Z', 'var(--dg-steel)')
-      + LN('M-5,-30 V36', 'var(--dg-mute)', 1)
-      + LN('M5,-30 V36', 'var(--dg-mute)', 1)
-      + `</g></g>`));
-    // 刀柄（錐柄）＋ 刀具：跟著主軸一起轉
-    g.push(part('mt_tool', `<g transform="translate(${SPX},${HDY + 76})"><g class="spin mtfast">`
-      + PA('M-10,-6 L10,-6 L6.5,14 L-6.5,14Z', 'var(--dg-mute)', 'part')
-      + R(-12, -12, 24, 7, 'var(--dg-steel-2)', null, 2)
-      + PA('M-5,14 L5,14 L4,34 L-4,34Z', 'var(--dg-mc-cam)')
-      + LN('M-4,20 L4,26', 'var(--dg-steel)', 1.2)
-      + LN('M-4,28 L4,34', 'var(--dg-steel)', 1.2)
-      + `</g></g>`));
+    g.push(part('mt_bear', [0, 1].map((k) => C(SPX, HDY + 16 + k * 24, 14, 'var(--dg-steel)', 'part')
+      + C(SPX, HDY + 16 + k * 24, 8, 'var(--dg-frame-f)')
+      + [0, 1, 2, 3, 4, 5, 6, 7].map((j) => C(SPX + 11 * Math.cos(j * 0.785), HDY + 16 + k * 24 + 11 * Math.sin(j * 0.785), 2.2, 'var(--dg-mc-ball)')).join('')).join('')));
+    // 主軸本體（靜止）＋ 鼻端的透視圓環與繞著跑的光點（＝在轉）
+    const ring = `M${SPX - 13},250 a13,4.6 0 1,0 26,0 a13,4.6 0 1,0 -26,0`;
+    g.push(part('mt_spindle', R(SPX - 10, 208, 20, 40, 'var(--dg-steel-2)', 'part', 2)
+      + LN(`M${SPX - 5},210 V246`, 'var(--dg-mute)', 1)
+      + LN(`M${SPX + 5},210 V246`, 'var(--dg-mute)', 1)
+      + PA(`M${SPX - 10},248 L${SPX + 10},248 L${SPX + 7},258 L${SPX - 7},258Z`, 'var(--dg-steel)')
+      + LN(ring, 'var(--dg-accent-2d)', 1.2, ' opacity=".7"')
+      + `<circle r="2.8" fill="var(--dg-flow-dot)"><animateMotion dur="1.1s" repeatCount="indefinite" path="${ring}"/></circle>`));
+    // 刀柄（錐形）＋ 刀刃（螺旋刃用會跑的斜虛線表示旋轉）
+    g.push(part('mt_tool', R(SPX - 13, 244, 26, 7, 'var(--dg-steel-2)', 'part', 2)
+      + PA(`M${SPX - 11},251 L${SPX + 11},251 L${SPX + 7},270 L${SPX - 7},270Z`, 'var(--dg-mute)', 'part')
+      + PA(`M${SPX - 5},270 L${SPX + 5},270 L${SPX + 4},290 L${SPX - 4},290Z`, 'var(--dg-mc-cam)')
+      + LN(`M${SPX - 4},272 L${SPX + 4},280`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
+      + LN(`M${SPX - 4},280 L${SPX + 4},288`, 'var(--dg-steel)', 1.4, ' class="flow fast"')));
     return g.join('');
   }
 
-  /* ---- 切削液噴嘴 ＋ 切屑：加工真的在發生的證據。
-     切屑往兩側飛、切削液往下澆 —— 兩者都用 .drop（既有的、輕量的）。*/
+  /* ---- 切削液噴嘴 ＋ 切屑：加工真的在發生的證據。切屑往兩側飛、切削液往下澆。*/
   function cutting() {
-    const y0 = HDY + 110;
     const jets = [0, 1, 2].map((i) => `<g class="drop${i ? ' d' + (i + 1) : ''}">`
-      + C(SPX - 26 + i * 3, y0 - 6, 2.6, 'var(--dg-cool)') + '</g>').join('');
-    const chips = [-1, 1].map((s, i) => [0, 1, 2].map((j) =>
+      + C(SPX - 40 + i * 3, 264, 2.6, 'var(--dg-cool)') + '</g>').join('');
+    const chips = [-1, 1].map((s) => [0, 1, 2].map((j) =>
       `<g class="drop${j ? ' d' + (j + 1) : ''}">`
-      + PA(`M${f1(SPX + s * (10 + j * 9))},${f1(y0 - 2 - j * 4)} l${s * 6},-5 l1,5Z`, 'var(--dg-oil)') + '</g>').join('')).join('');
-    return part('mt_coolant', LN(`M${SPX - 46},${HDY + 70} L${SPX - 30},${HDY + 70} L${SPX - 26},${y0 - 12}`, 'var(--dg-cool)', 2.4)
-      + R(SPX - 31, y0 - 14, 10, 8, 'var(--dg-mc-case)', 'part', 2) + jets)
+      + PA(`M${f1(SPX + s * (10 + j * 8))},${f1(272 - j * 4)} l${s * 6},-5 l1,5Z`, 'var(--dg-oil)') + '</g>').join('')).join('');
+    return part('mt_coolant', LN(`M${SPX - 72},236 H${SPX - 44} V252`, 'var(--dg-cool)', 2.4)
+      + R(SPX - 49, 252, 10, 8, 'var(--dg-mc-case)', 'part', 2) + jets)
       + part('mt_chip', chips);
   }
 
@@ -253,50 +261,45 @@
         這裡只畫得出「三根軸各裝在哪裡、往哪個方向走」，不重畫螺帽剖面。*/
   function axes() {
     const g = [];
-    // X 軸：工作台左右（螺桿畫在工作台下方）
-    g.push(part('mt_x', R(TBX0 - 4, SADY - 10, TBW + 8, 6, 'var(--dg-steel-2)', 'part', 3)
-      + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((j) => LN(`M${TBX0 + 6 + j * 18},${SADY - 10} l6,6`, 'var(--dg-mute)', 1.2)).join('')
-      + R(TBX0 - 32, SADY - 20, 28, 26, 'var(--dg-mc-case)', null, 3)));
-    // Y 軸：鞍座前後（畫成斜向的一條，表示往畫面裡外走）
-    g.push(part('mt_y', LN(`M${TBX0 + 36},${SADY + 16} l40,22`, 'var(--dg-steel-2)', 5)
-      + R(TBX0 + 66, SADY + 30, 24, 20, 'var(--dg-mc-case)', null, 3)));
-    // Z 軸：立柱上的螺桿（主軸頭上下）
-    g.push(part('mt_z', R(COLX - 12, COLY + 22, 6, 200, 'var(--dg-steel-2)', 'part', 3)
-      + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((j) => LN(`M${COLX - 12},${COLY + 34 + j * 19} l6,6`, 'var(--dg-mute)', 1.2)).join('')
-      + R(COLX - 22, COLY - 6, 26, 26, 'var(--dg-mc-case)', null, 3)));
-    // 三條線性滑軌（立柱上兩條、床身上兩條）：ㄇ 形滑塊是 motion_control 那張的紅線，這裡只畫軌
-    g.push(part('mt_rail', R(COLX + 2, COLY + 20, 7, 204, 'var(--dg-steel)', 'part', 2)
-      + R(TBX0 - 6, SADY + 2, TBW + 12, 7, 'var(--dg-steel)', 'part', 2)));
+    g.push(part('mt_x', R(TBX0 - 6, 326, TBW + 12, 6, 'var(--dg-steel-2)', 'part', 3)
+      + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((j) => LN(`M${TBX0 + 4 + j * 18},326 l6,6`, 'var(--dg-mute)', 1.2)).join('')
+      + R(TBX0 - 34, 318, 28, 24, 'var(--dg-mc-case)', null, 3)));
+    g.push(part('mt_y', LN('M262,356 l40,22', 'var(--dg-steel-2)', 5)
+      + R(300, 368, 24, 18, 'var(--dg-mc-case)', null, 3)));
+    g.push(part('mt_z', R(COLX - 12, 100, 6, 206, 'var(--dg-steel-2)', 'part', 3)
+      + [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((j) => LN(`M${COLX - 12},${110 + j * 19} l6,6`, 'var(--dg-mute)', 1.2)).join('')
+      + R(COLX - 22, 72, 26, 24, 'var(--dg-mc-case)', null, 3)));
+    g.push(part('mt_rail', R(COLX + 2, 100, 7, 236, 'var(--dg-steel)', 'part', 2)
+      + R(TBX0 - 6, 336, TBW + 12, 6, 'var(--dg-steel)', 'part', 2)));
     return g.join('');
   }
 
   /* ---- 控制器櫃：操作面板（畫面 ＋ 手輪）、CNC 控制器、三台伺服驅動器 ＋ 主軸驅動器。
      ★ 這一格是整張圖的重點：**它是外購的**。所以框用警示色的虛線，而不是跟機體同色。*/
   function cabinet() {
-    const x = 546, y = 74, w = 98, h = 250, g = [];
-    g.push(`<rect class="mtbuy" x="${x - 6}" y="${y - 8}" width="${w + 12}" height="${h + 16}" rx="8"/>`);
-    g.push(part('mt_panel', slab(x, y, w, 62, 'var(--dg-mc-case)', { r: 4 })
-      + R(x + 8, y + 8, w - 16, 30, 'var(--dg-pcb)', null, 2)
-      + [0, 1, 2].map((j) => LN(`M${x + 13},${y + 16 + j * 8} H${x + w - 21 - j * 9}`, 'var(--dg-sig)', 1.4, 'blink' + (j ? ' b' + (j + 1) : ''))).join('')
-      + C(x + w - 20, y + 50, 7, 'var(--dg-steel-2)')
-      + [0, 1, 2, 3].map((j) => R(x + 10 + j * 9, y + 45, 6, 6, 'var(--dg-mute)', null, 1)).join('')));
-    g.push(part('mt_cnc', slab(x, y + 74, w, 52, 'var(--dg-mc-case)', { r: 4 })
-      + R(x + 9, y + 84, w - 18, 20, 'var(--dg-pcb)', null, 2)
-      + R(x + 26, y + 88, 24, 12, 'var(--dg-si)', null, 2)
-      + [0, 1, 2, 3, 4].map((j) => C(x + 14 + j * 17, y + 116, 2.6, 'var(--dg-sw-gold)')).join('')));
+    const x = CBX, y = CBY, w = CBW, g = [];
+    g.push(`<rect class="mtbuy" x="${x - 6}" y="${y - 8}" width="${w + 12}" height="240" rx="8"/>`);
+    g.push(part('mt_panel', slab(x, y, w, 58, 'var(--dg-mc-case)', { r: 4 })
+      + R(x + 8, y + 8, w - 16, 28, 'var(--dg-pcb)', null, 2)
+      + [0, 1, 2].map((j) => LN(`M${x + 13},${y + 15 + j * 8} H${x + w - 21 - j * 9}`, 'var(--dg-sig)', 1.4, ' class="blink' + (j ? ' b' + (j + 1) : '') + '"')).join('')
+      + C(x + w - 18, y + 47, 7, 'var(--dg-steel-2)')
+      + [0, 1, 2, 3].map((j) => R(x + 10 + j * 9, y + 43, 6, 6, 'var(--dg-mute)', null, 1)).join('')));
+    g.push(part('mt_cnc', slab(x, y + 72, w, 50, 'var(--dg-mc-case)', { r: 4 })
+      + R(x + 9, y + 82, w - 18, 20, 'var(--dg-pcb)', null, 2)
+      + R(x + 26, y + 86, 24, 12, 'var(--dg-si)', null, 2)
+      + [0, 1, 2, 3, 4].map((j) => C(x + 14 + j * 17, y + 112, 2.6, 'var(--dg-sw-gold)')).join('')));
     g.push(part('mt_drive', [0, 1, 2, 3].map((j) =>
-      slab(x + 3 + j * 23, y + 140, 19, 88, j === 3 ? 'var(--dg-mc-cam)' : 'var(--dg-mc-case)', { r: 3 })
-      + C(x + 12.5 + j * 23, y + 150, 2.6, 'var(--dg-pwr)', 'blink' + (j % 3 ? ' b' + ((j % 3) + 1) : ''))).join('')));
+      slab(x + 2 + j * 21, y + 136, 18, 84, j === 3 ? 'var(--dg-mc-cam)' : 'var(--dg-mc-case)', { r: 3 })
+      + C(x + 11 + j * 21, y + 146, 2.6, 'var(--dg-pwr)', 'blink' + (j % 3 ? ' b' + ((j % 3) + 1) : ''))).join('')));
     return g.join('');
   }
 
-  /* ---- 控制訊號：控制器 → 驅動器 → 三顆馬達（主鏈）；編碼器 → 控制器（回授，反向）。
-     ★ 回授線一定要畫，而且方向相反 —— 沒有它就不是數值控制，只是一台會動的機器。*/
+  /* ---- 控制訊號：控制器 → 驅動器 → 三顆馬達（主鏈，往機器方向跑）；
+     編碼器 → 控制器（回授，**方向相反**）。兩條平行走在立柱上，一眼看得出是一來一回。*/
   function wires() {
-    const x = 546;
-    const main = `M${x - 4},${COLY + 190} H${COLX + 30} V${COLY - 6} H${COLX + 4}`;
-    const toSp = `M${x - 4},${COLY + 200} H${SPX + 66} V${HDY - 30} H${SPX + 22}`;
-    const fb = `M${TBX0 - 18},${SADY - 24} V${COLY + 236} H${x - 4}`;
+    const main = `M${CBX - 6},238 H504 V70 H${COLX - 22}`;
+    const toSp = `M${CBX - 6},252 H466 V${HDY - 26} H${SPX + 20}`;
+    const fb = `M${COLX - 9},96 H516 V264 H${CBX - 6}`;
     return part('mt_bus', fx.beam(main, { color: 'var(--dg-sig)', w: 2, flow: true, glow: false })
       + fx.beam(toSp, { color: 'var(--dg-sig)', w: 2, flow: true, glow: false }))
       + part('mt_fb', fx.beam(fb, { color: 'var(--dg-warn)', w: 2, flow: true, glow: false, cls: 'mtrev' }));
@@ -307,32 +310,32 @@
         工作台上面一定有 **T 型槽**（工件靠它鎖上去）。*/
   function body() {
     const g = [];
-    g.push(part('mt_bed', PA(`M180,${BEDY} H${COLX + COLW} V${BEDY + BEDH} H172Z`, 'var(--dg-steel)', 'part')
-      + LN(`M190,${BEDY + 14} H${COLX + 40}`, 'var(--dg-mute)', 1)
+    g.push(part('mt_bed', PA(`M206,${BEDY} H${COLX + COLW} V${BEDY + BEDH} H198Z`, 'var(--dg-steel)', 'part')
+      + LN(`M214,${BEDY + 14} H${COLX + 40}`, 'var(--dg-mute)', 1)
       + PA(`M${COLX},${COLY} H${COLX + COLW} V${BEDY} H${COLX}Z`, 'var(--dg-steel)', 'part')
       + LN(`M${COLX + 14},${COLY + 16} V${BEDY - 14}`, 'var(--dg-mute)', 1)
       + LN(`M${COLX + 44},${COLY + 16} V${BEDY - 14}`, 'var(--dg-mute)', 1)));
     g.push(part('mt_saddle', slab(TBX0 - 10, SADY, TBW + 20, BEDY - SADY, 'var(--dg-mc-case)', { r: 2 })));
-    const slots = [0, 1, 2].map((j) => R(TBX0 + 30 + j * 62, TBLY, 14, 6, 'var(--dg-frame-f)')).join('');
+    const slots = [0, 1, 2].map((j) => R(TBX0 + 28 + j * 60, TBLY, 14, 6, 'var(--dg-frame-f)')).join('');
     g.push(part('mt_table', slab(TBX0, TBLY, TBW, SADY - TBLY - 2, 'var(--dg-alu)', { r: 2 }) + slots));
-    g.push(part('mt_work', slab(SPX - 44, TBLY - 34, 88, 34, 'var(--dg-mc-cam)', { r: 2 })
-      + LN(`M${SPX - 36},${TBLY - 26} H${SPX + 36}`, 'var(--dg-mute)', 1)));
-    g.push(part('mt_guard', LN(`M186,${COLY + 26} V${BEDY - 4} M186,${COLY + 26} H${COLX - 4}`, 'var(--dg-frame-s)', 1.4, ' stroke-dasharray="7 5"')));
-    g.push(part('mt_conv', PA(`M110,${BEDY + BEDH} L172,${BEDY + 22} L172,${BEDY + BEDH} L110,${BEDY + BEDH + 22}Z`, 'var(--dg-mc-case)', 'part')
-      + [0, 1, 2, 3].map((j) => LN(`M${124 + j * 14},${BEDY + BEDH + 14 - j * 6} l8,-4`, 'var(--dg-mute)', 1.4)).join('')));
+    g.push(part('mt_work', slab(SPX - 37, 274, 74, 26, 'var(--dg-mc-cam)', { r: 2 })
+      + LN(`M${SPX - 30},282 H${SPX + 30}`, 'var(--dg-mute)', 1)));
+    g.push(part('mt_guard', LN(`M210,104 V${BEDY - 4} M210,104 H${COLX - 4}`, 'var(--dg-frame-s)', 1.4, ' stroke-dasharray="7 5"')));
+    g.push(part('mt_conv', PA(`M138,392 L206,356 L206,378 L138,414Z`, 'var(--dg-mc-case)', 'part')
+      + [0, 1, 2, 3].map((j) => LN(`M${150 + j * 13},${394 - j * 7} l8,-4`, 'var(--dg-mute)', 1.4)).join('')));
     return g.join('');
   }
 
-  /* 軸向標示：三個箭頭 ＋ 字母。字是畫在 SVG 裡的（只有三個字母，縮放不影響可讀性），
-     解釋一律在卡片上。*/
+  /* 軸向標示：三個雙向箭頭 ＋ 字母，各自放在沒有零件的空檔。
+     字是畫在 SVG 裡的（只有三個字母，縮放不影響可讀性），解釋一律在卡片上。*/
   function axisMarks() {
     return `<g class="mtax">`
-      + LN(`M${TBX0 + 60},${TBLY - 54} H${TBX0 + 150}`, 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
-      + T(TBX0 + 105, TBLY - 60, 'X', 'lbl', 'middle', 'fill:var(--dg-accent-2d)')
-      + LN(`M${COLX + COLW + 14},${COLY + 40} V${COLY + 150}`, 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
-      + T(COLX + COLW + 24, COLY + 98, 'Z', 'lbl', 'start', 'fill:var(--dg-accent-2d)')
-      + LN(`M${TBX0 + 30},${SADY + 40} l44,24`, 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
-      + T(TBX0 + 20, SADY + 38, 'Y', 'lbl', 'end', 'fill:var(--dg-accent-2d)')
+      + LN(`M${TBX0 + 8},292 H${TBX0 + 96}`, 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
+      + T(TBX0 + 52, 286, 'X', 'lbl', 'middle', 'fill:var(--dg-accent-2d)')
+      + LN('M330,148 V236', 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
+      + T(322, 196, 'Z', 'lbl', 'end', 'fill:var(--dg-accent-2d)')
+      + LN('M258,352 l40,22', 'var(--dg-accent-2d)', 1.6, ' marker-end="url(#mtAr)" marker-start="url(#mtAr)"')
+      + T(250, 350, 'Y', 'lbl', 'end', 'fill:var(--dg-accent-2d)')
       + `</g>`;
   }
 
@@ -383,29 +386,38 @@
   function foldKinds(y0) {
     const cy = y0 + 96, h = 250 + CO.length * 46 + 30;
     // 左：加工中心機（刀轉、工件不動）｜右：車床（工件轉、刀不動）
+    /* ⚠ 兩格都**不可以用 rotate 把長方形轉起來**（正視圖裡那是歪掉的棒子，不是在轉）：
+       銑削那格用「刀刃上會往下跑的斜虛線 ＋ 鼻端的透視圓環」表示刀在轉；
+       車床那格用「夾頭是正面的圓、繞中心轉」表示工件在轉 —— 圓轉起來才是對的。*/
+    const mring = `M156,${cy - 30} a14,5 0 1,0 28,0 a14,5 0 1,0 -28,0`;
     const mc = `<g data-part="mt_cmp_mill">`
       + `<rect class="part frame" x="28" y="${y0 + 40}" width="296" height="150" rx="7"/>`
       + T(42, y0 + 62, '綜合加工機（銑削）：刀在轉', 'lbl')
-      + R(120, cy - 4, 108, 26, 'var(--dg-mc-cam)', null, 2)
-      + T(174, cy + 14, '工件（夾著不動）', 'sub', 'middle')
-      + `<g transform="translate(174,${cy - 34})"><g class="spin mtfast">`
-      + PA('M-12,-16 L12,-16 L8,2 L-8,2Z', 'var(--dg-mute)')
-      + PA('M-5,2 L5,2 L4,20 L-4,20Z', 'var(--dg-mc-cam)')
-      + `</g></g>`
+      + R(116, cy, 108, 26, 'var(--dg-mc-cam)', null, 2)
+      + T(170, cy + 42, '工件（夾著不動）', 'sub', 'middle')
+      + R(158, cy - 64, 24, 8, 'var(--dg-steel-2)', null, 2)
+      + PA(`M160,${cy - 56} L180,${cy - 56} L177,${cy - 38} L163,${cy - 38}Z`, 'var(--dg-mute)')
+      + PA(`M165,${cy - 38} L175,${cy - 38} L174,${cy - 12} L166,${cy - 12}Z`, 'var(--dg-mc-cam)')
+      + LN(`M166,${cy - 34} L174,${cy - 26}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
+      + LN(`M166,${cy - 24} L174,${cy - 16}`, 'var(--dg-steel)', 1.4, ' class="flow fast"')
+      + LN(mring, 'var(--dg-accent-2d)', 1.2, ' opacity=".7"')
+      + `<circle r="2.8" fill="var(--dg-flow-dot)"><animateMotion dur="1.1s" repeatCount="indefinite" path="${mring}"/></circle>`
       + T(42, y0 + 178, '刀具裝在主軸上旋轉，工作台帶著工件沿 X／Y 走位', 'sub')
       + `</g>`;
+    const jaw = [0, 1, 2].map((j) => `<g transform="rotate(${j * 120})">`
+      + R(-5, -24, 10, 12, 'var(--dg-steel-2)', null, 2) + '</g>').join('');
     const lt = `<g data-part="mt_cmp_lathe">`
       + `<rect class="part frame" x="336" y="${y0 + 40}" width="296" height="150" rx="7"/>`
       + T(350, y0 + 62, '車床：工件在轉', 'lbl')
-      + R(350, cy - 22, 34, 46, 'var(--dg-mc-case)', null, 3)
-      + `<g transform="translate(440,${cy})"><g class="spin mtmid">`
-      + R(-52, -16, 104, 32, 'var(--dg-mc-cam)', null, 2)
-      + LN('M-40,-16 V16', 'var(--dg-mute)', 1)
-      + LN('M0,-16 V16', 'var(--dg-mute)', 1)
-      + LN('M40,-16 V16', 'var(--dg-mute)', 1)
+      + R(350, cy - 30, 30, 60, 'var(--dg-mc-case)', null, 3)
+      + `<g transform="translate(396,${cy})"><g class="spin mtmid">`
+      + C(0, 0, 26, 'var(--dg-mc-disc)') + C(0, 0, 9, 'var(--dg-frame-f)') + jaw
       + `</g></g>`
-      + PA(`M470,${cy + 30} L486,${cy + 46} L458,${cy + 46}Z`, 'var(--dg-steel-2)')
-      + T(494, cy + 44, '刀（不轉，沿軸走）', 'sub')
+      + T(396, cy + 44, '夾頭（正面：在轉）', 'sub', 'middle')
+      + R(422, cy - 13, 106, 26, 'var(--dg-mc-cam)', null, 2)
+      + [0, 1, 2, 3, 4].map((j) => LN(`M${430 + j * 20},${cy - 13} l10,26`, 'var(--dg-mute)', 1.2, ' class="flow"')).join('')
+      + PA(`M478,${cy + 22} L492,${cy + 38} L464,${cy + 38}Z`, 'var(--dg-steel-2)')
+      + T(500, cy + 36, '刀（不轉，沿軸走）', 'sub')
       + T(350, y0 + 178, '工件夾在主軸上旋轉，刀具沿工件的軸向與徑向進給', 'sub')
       + `</g>`;
     const rows = CO.map((r, i) => {
@@ -427,7 +439,7 @@
 
   /* ================================================================ 主圖 */
   function machineTool() {
-    const S1 = 430;
+    const S1 = 448;
     const w1 = foldBuy(S1 + 46);
     const S2 = S1 + 46 + w1.h;
     const w2 = foldKinds(S2 + 46);
@@ -462,7 +474,7 @@
       <text class="cap ext" x="0" y="0">綜合加工機是台廠金屬切削工具機的出口第一大機種。這張圖把一台立式綜合加工機攤開：左邊是刀庫與換刀機械手，中間是床身 → 鞍座 → 工作台 → 工件，以及從立柱伸出來的主軸頭 → 主軸 → 刀柄，右邊是外購的控制器櫃。三根軸（X 工作台、Y 鞍座、Z 主軸頭）各自是一組伺服馬達加滾珠螺桿加線性滑軌 —— 那一根軸拆開的樣子在「工業自動化」那張圖。虛線框起來的那一格是外購的，點卡片零件會亮、點零件卡片會亮；下面兩段預設收起來，按標題列就打得開。</text>
 
       <!-- ================= §1 整機（永遠看得到） ================= -->
-      ${frame(16, 16, 628, 398)}
+      ${frame(16, 16, 628, 416)}
       ${T(28, 40, '① 一台立式綜合加工機：刀庫 → 換刀機械手 → 主軸 ｜ 床身 → 鞍座 → 工作台 ｜ 控制器櫃（外購）', 'hd')}
       ${T(28, 58, '示意圖，非實物比例；刀庫把數、主軸轉速、精度等級一律不標（那些是某一機種的型錄數字，不是通例）', 'sub', null, 'fill:var(--dg-warn)')}
       ${body()}
@@ -474,31 +486,31 @@
       ${cabinet()}
       ${wires()}
       ${axisMarks()}
-      ${T(96, 210, '刀庫（圓盤式）', 'sub', 'middle')}
-      ${T(232, 232, '換刀機械手（雙臂）', 'sub', 'middle')}
-      ${T(595, 340, '控制器櫃：整櫃外購', 'sub', 'middle', 'fill:var(--dg-warn)')}
-      ${T(141, 400, '排屑機', 'sub', 'middle')}
+      ${T(MAGX, 246, '刀庫（圓盤式）', 'sub', 'middle')}
+      ${T(150, 352, '換刀機械手（雙臂）', 'sub', 'middle')}
+      ${T(CBX + CBW / 2, 336, '控制器櫃：整櫃外購', 'sub', 'middle', 'fill:var(--dg-warn)')}
+      ${T(104, 386, '排屑機', 'sub', 'middle')}
 
       <!-- ================= 說明卡片（HTML）：左欄機體與換刀、右欄主軸與控制 ================= -->
-      ${card({ side: 'l', no: 1, part: 'mt_bed', color: COL.iron, ax: 300, ay: 352, title: '床身與立柱（鑄件）', sub: ['整台機器的地基：所有切削力最後都由它承受', '★ 重、運費高、又要時效 —— 這是台廠自己做的一段'] })}
-      ${card({ side: 'l', no: 2, part: 'mt_saddle', color: COL.case, ax: 250, ay: 318, title: '鞍座（Y 軸滑座）', sub: '夾在床身與工作台之間，帶著工作台往畫面裡外走' })}
-      ${card({ side: 'l', no: 3, part: 'mt_table', color: COL.alu, ax: 268, ay: 292, title: '工作台（X 軸）', sub: ['上面那幾道是 T 型槽 —— 工件與虎鉗靠它鎖上去', '沒有 T 型槽的平板不是工作台'] })}
-      ${card({ side: 'l', no: 4, part: 'mt_work', color: COL.steel, ax: 396, ay: 266, title: '工件（被加工的那一塊）', sub: '★ 綜合加工機是「刀轉、工件不動」；車床剛好相反（見下面第 ② 段）' })}
-      ${card({ side: 'l', no: 5, part: 'mt_mag', color: COL.disc, ax: 96, ay: 132, title: '刀庫（圓盤式）', sub: ['一圈刀套繞著圓盤排列，轉位找到要的那一把', '★ 把數依機種而異，圖上畫 10 個是示意'] })}
-      ${card({ side: 'l', no: 6, part: 'mt_atc', color: COL.steel, ax: 232, ay: 196, title: '換刀機械手（雙臂式 ATC）', sub: ['★ 兩端對稱：一端抓主軸上的舊刀、一端抓刀庫的新刀', '轉半圈就同時換完 —— 單臂畫法解釋不了「一次換兩把」'] })}
-      ${card({ side: 'l', no: 7, part: 'mt_conv', color: COL.chip, ax: 141, ay: 384, title: '排屑機', sub: '把切屑從加工區運出去。切屑堆在機內會頂到工件、也會把熱悶在裡面' })}
-      ${card({ side: 'r', no: 8, part: 'mt_head', color: COL.case, ax: 366, ay: 166, title: '主軸頭（Z 軸）', sub: '掛在立柱的線性滑軌上，沿立柱上下 —— 它是整台機器上最重的一個移動件' })}
-      ${card({ side: 'r', no: 9, part: 'mt_spmot', color: COL.case, ax: 396, ay: 128, title: '主軸馬達', sub: '驅動主軸旋轉。高階機種會把馬達直接做進主軸裡（內藏式），圖上畫的是皮帶／直結那一類的外掛式' })}
-      ${card({ side: 'r', no: 10, part: 'mt_spindle', color: COL.steel, ax: 396, ay: 180, title: '主軸（錐孔朝下）', sub: ['轉速與剛性決定這台機器的加工上限', '★ 高階主軸多為外購（日、德、瑞士）'] })}
-      ${card({ side: 'r', no: 11, part: 'mt_bear', color: COL.steel, ax: 411, ay: 194, title: '主軸軸承（前後兩組）', sub: '夾住主軸的那兩圈滾珠。它決定主軸能轉多快、能吃多大的力' })}
-      ${card({ side: 'r', no: 12, part: 'mt_tool', color: COL.steel, ax: 396, ay: 240, title: '刀柄與刀具', sub: ['★ 刀柄是錐形的：靠錐面定位，不是靠螺絲鎖', '換刀機械手抓的就是刀柄中段那一圈溝'] })}
-      ${card({ side: 'r', no: 13, part: 'mt_coolant', color: COL.cool, ax: 370, ay: 248, title: '切削液噴嘴', sub: '降溫、潤滑、把切屑沖走。三件事少一件，刀具壽命就掉一截' })}
-      ${card({ side: 'r', no: 14, part: 'mt_z', color: COL.steel, ax: 464, ay: 180, title: 'Z 軸：伺服馬達＋滾珠螺桿', sub: ['三根軸的構造完全一樣，只是裝的方向不同', '★ 這一段拆開的樣子在「工業自動化」那張圖'] })}
-      ${card({ side: 'r', no: 15, part: 'mt_rail', color: COL.iron, ax: 476, ay: 250, title: '線性滑軌（軌道）', sub: '★ 台廠自己就很強的一段：滾珠螺桿與線性滑軌是本土傳動件廠的主場' })}
-      ${card({ side: 'r', no: 16, part: 'mt_cnc', color: COL.warn, ax: 595, ay: 174, title: '★ CNC 控制器（整櫃外購）', sub: ['台灣的高階機種皆搭配進口控制器（日本發那科、德國西門子、海德漢）', '國產的新代、寶元在中階與多軸逐步推廣'] })}
+      ${card({ side: 'l', no: 1, part: 'mt_bed', color: COL.iron, ax: 300, ay: 366, title: '床身與立柱（鑄件）', sub: ['整台機器的地基：所有切削力最後都由它承受', '★ 重、運費高、又要時效 —— 這是台廠自己做的一段'] })}
+      ${card({ side: 'l', no: 2, part: 'mt_saddle', color: COL.case, ax: 250, ay: 332, title: '鞍座（Y 軸滑座）', sub: '夾在床身與工作台之間，帶著工作台往畫面裡外走' })}
+      ${card({ side: 'l', no: 3, part: 'mt_table', color: COL.alu, ax: 268, ay: 310, title: '工作台（X 軸）', sub: ['上面那幾道是 T 型槽 —— 工件與虎鉗靠它鎖上去', '沒有 T 型槽的平板不是工作台'] })}
+      ${card({ side: 'l', no: 4, part: 'mt_work', color: COL.steel, ax: 400, ay: 286, title: '工件（被加工的那一塊）', sub: '★ 綜合加工機是「刀轉、工件不動」；車床剛好相反（見下面第 ② 段）' })}
+      ${card({ side: 'l', no: 5, part: 'mt_mag', color: COL.disc, ax: 92, ay: 176, title: '刀庫（圓盤式）', sub: ['一圈刀套繞著圓盤排列，轉位找到要的那一把', '★ 把數依機種而異，圖上畫 10 個是示意'] })}
+      ${card({ side: 'l', no: 6, part: 'mt_atc', color: COL.steel, ax: 186, ay: 268, title: '換刀機械手（雙臂式 ATC）', sub: ['★ 兩端對稱：一端抓主軸上的舊刀、一端抓刀庫的新刀', '轉半圈就同時換完 —— 單臂畫法解釋不了「一次換兩把」'] })}
+      ${card({ side: 'l', no: 7, part: 'mt_conv', color: COL.chip, ax: 172, ay: 374, title: '排屑機', sub: '把切屑從加工區運出去。切屑堆在機內會頂到工件、也會把熱悶在裡面' })}
+      ${card({ side: 'r', no: 8, part: 'mt_head', color: COL.case, ax: 360, ay: 178, title: '主軸頭（Z 軸）', sub: '掛在立柱的線性滑軌上，沿立柱上下 —— 它是整台機器上最重的一個移動件' })}
+      ${card({ side: 'r', no: 9, part: 'mt_spmot', color: COL.case, ax: 400, ay: 135, title: '主軸馬達', sub: '驅動主軸旋轉。高階機種會把馬達直接做進主軸裡（內藏式），圖上畫的是皮帶／直結那一類的外掛式' })}
+      ${card({ side: 'r', no: 10, part: 'mt_spindle', color: COL.steel, ax: 400, ay: 228, title: '主軸（錐孔朝下）', sub: ['轉速與剛性決定這台機器的加工上限', '★ 高階主軸多為外購（日、德、瑞士）'] })}
+      ${card({ side: 'r', no: 11, part: 'mt_bear', color: COL.steel, ax: 414, ay: 180, title: '主軸軸承（前後兩組）', sub: '夾住主軸的那兩圈滾珠。它決定主軸能轉多快、能吃多大的力' })}
+      ${card({ side: 'r', no: 12, part: 'mt_tool', color: COL.steel, ax: 400, ay: 260, title: '刀柄與刀具', sub: ['★ 刀柄是錐形的：靠錐面定位，不是靠螺絲鎖', '換刀機械手抓的就是刀柄中段那一圈溝'] })}
+      ${card({ side: 'r', no: 13, part: 'mt_coolant', color: COL.cool, ax: 356, ay: 256, title: '切削液噴嘴', sub: '降溫、潤滑、把切屑沖走。三件事少一件，刀具壽命就掉一截' })}
+      ${card({ side: 'r', no: 14, part: 'mt_z', color: COL.steel, ax: 477, ay: 200, title: 'Z 軸：伺服馬達＋滾珠螺桿', sub: ['三根軸的構造完全一樣，只是裝的方向不同', '★ 這一段拆開的樣子在「工業自動化」那張圖'] })}
+      ${card({ side: 'r', no: 15, part: 'mt_rail', color: COL.iron, ax: 489, ay: 240, title: '線性滑軌（軌道）', sub: '★ 台廠自己就很強的一段：滾珠螺桿與線性滑軌是本土傳動件廠的主場' })}
+      ${card({ side: 'r', no: 16, part: 'mt_cnc', color: COL.warn, ax: 595, ay: 176, title: '★ CNC 控制器（整櫃外購）', sub: ['台灣的高階機種皆搭配進口控制器（日本發那科、德國西門子、海德漢）', '國產的新代、寶元在中階與多軸逐步推廣'] })}
       ${card({ side: 'r', no: 17, part: 'mt_drive', color: COL.warn, ax: 595, ay: 258, title: '伺服驅動器 ×3 ＋ 主軸驅動器', sub: '通常跟控制器同一家成套供應 —— 換一家等於整套控制架構要重調' })}
-      ${card({ side: 'r', no: 18, part: 'mt_panel', color: COL.sig, ax: 595, ay: 104, title: '操作面板（人機介面）', sub: '畫面、手輪與按鍵。操作者看到的整台機器都是它的樣子，所以控制器的品牌很難換' })}
-      ${card({ side: 'r', no: 19, part: 'mt_fb', color: COL.warn, ax: 196, ay: 284, title: '位置回授（方向相反的那一條）', sub: ['★ 有這條線才叫數值控制：控制器 → 驅動器 → 馬達 → 進給 → 回授 → 控制器', '環不閉的話它只是一台會動的機器'] })}
+      ${card({ side: 'r', no: 18, part: 'mt_panel', color: COL.sig, ax: 595, ay: 108, title: '操作面板（人機介面）', sub: '畫面、手輪與按鍵。操作者看到的整台機器都是它的樣子，所以控制器的品牌很難換' })}
+      ${card({ side: 'r', no: 19, part: 'mt_fb', color: COL.warn, ax: 516, ay: 180, title: '位置回授（方向相反的那一條）', sub: ['★ 有這條線才叫數值控制：控制器 → 驅動器 → 馬達 → 進給 → 回授 → 控制器', '環不閉的話它只是一台會動的機器'] })}
       ${note({ side: 'l', order: 96, title: '這張圖要講的四件事',
         lines: ['① 一台加工機＝鑄件（床身、立柱）＋ 三根進給軸 ＋ 主軸 ＋ 刀庫與換刀 ＋ 控制器。',
           '② 三根軸的構造一模一樣：伺服馬達 ＋ 滾珠螺桿 ＋ 線性滑軌，只是裝的方向不同。',

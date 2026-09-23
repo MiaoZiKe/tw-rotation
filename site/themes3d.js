@@ -59,6 +59,8 @@
      估寬：一個全形字 12px、一個半形字 6.7px（跟 .sub 的 12px 字級對應）。
      斷點刻意避開英數字詞中間（HBM、CoWoS、800V 被切成兩半就讀不出來了）。*/
   const isHalf = (ch) => ch.charCodeAt(0) < 0x2e80;
+  const NO_HEAD = '）」』、，。：；？！》〉·,.:;?!';   // 不准出現在行首的字
+  const NO_TAIL = '（「『《〈';                        // 不准出現在行尾的字
   const runW = (t) => { let w = 0; for (const c of t) w += isHalf(c) ? 6.7 : 12; return w; };
   function wrapSub(t, maxW) {
     const s = String(t == null ? '' : t), out = [];
@@ -73,6 +75,10 @@
           while (j > 0 && isHalf(line[j - 1]) && line[j - 1] !== ' ') j--;
           if (j > 0 && line.length - j < 9) cut = j;
         }
+        /* 禁則處理：收尾的標點不准單獨掉到下一行的行首（「（兩顆鏡 / 頭）」那種），
+           作法是把前面那一個字一起趕下去；行尾也不准留一個開頭的括號。*/
+        if (cut > 1 && NO_HEAD.indexOf(ch) >= 0) cut--;
+        while (cut > 1 && NO_TAIL.indexOf(line[cut - 1]) >= 0) cut--;
         out.push(line.slice(0, cut).replace(/\s+$/, ''));
         line = line.slice(cut); w = runW(line);
       }

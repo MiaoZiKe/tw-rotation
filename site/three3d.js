@@ -274,7 +274,7 @@
         { kind: 'pwr', part: 'mlcc_term', r: 0.55, per: 10, speed: 0.5, bidir: 2.6,
           pts: [[-26, 22, 10], [0, 22, 10], [26, 22, 10]] },
       ],
-      pulses: [{ parts: ['mlcc_body'], period: 2.6, kind: 'pwr', sharp: 3, amp: 0.8 }],
+      pulses: [{ parts: ['mlcc_body'], period: 2.6, kind: 'pwr', sharp: 3, amp: 0.45 }],
     },
     /* ===== 半導體鏈：晶圓代工 ===== */
     /* 2D 是 `site/dg/foundry.js`，`part` 沿用它的 `data-part`（fd_*）——
@@ -6222,8 +6222,15 @@
     (spec.pulses || []).forEach(pg => {
       const items = (pg.parts || []).map(findPart).filter(Boolean).map(p => ({ p, k: 0 }));
       if (!items.length) return;
+      /* ★ C7：pulse 的預設亮度從 1 降到 0.45。
+         兩個理由，都是 Andy 講的：
+           ① 「只有閃來閃去」—— 上一批 19 個場景裡有 12 個**只有 pulse**，
+              於是整張圖的動態就只剩「一格一格輪流亮」。這一批把主角換成真的會動的形狀
+              （旋轉／位移／擺動／脹縮／搬運），pulse 退回配角：它只負責交代「訊號抵達了這一層」。
+           ② 「螢光感太重」（他講過三次）。振幅砍一半以上，看起來是精密儀器的指示，不是電競 RGB。
+         場景仍然可以自己指定 amp 覆寫這個預設。*/
       pulses.push({ items, period: pg.period || 3, sharp: pg.sharp || 8, phase: pg.phase || 0,
-        amp: pg.amp == null ? 1 : pg.amp, token: ROLE_TOKENS[pg.kind] || '--dg-fl-sig' });
+        amp: pg.amp == null ? 0.45 : pg.amp, token: ROLE_TOKENS[pg.kind] || '--dg-fl-sig' });
     });
     /* ⑤ move：零件沿一軸位移。pingpong ＝ 往復（螺帽沿軸走、晶圓在站之間往返），
        saw ＝ 單向循環（滾珠回流）。位移是疊在爆炸位移上的（見 place）。*/
@@ -6314,7 +6321,7 @@
       }
       if (!groups.length) return;
       carries.push({ groups, pts, period: ca.period || 5, phase: ca.phase || 0,
-        mode: ca.mode || 'cycle', at: 0, u: 0 });
+        mode: ca.mode || 'cycle', gate: ca.gate || null, at: 0, u: 0, on: true });
     });
 
     /* 柔和的接觸陰影（兩種模式都要「柔和環境陰影」）：真的 shadow map 要幾百顆 mesh 都 castShadow，
@@ -7195,6 +7202,14 @@
       carryAt += dt;
       for (let n = 0; n < carries.length; n++) {
         const ca = carries[n], pts = ca.pts;
+        /* 閘控（跟電流粒子同一個旋鈕）：截止的時候電流是 0，畫面上就**不該有東西在跑**。
+           MOSFET／HEMT 的閘極關、突波還沒來、PPTC 已經跳脫，都是這個狀態 ——
+           載具整組藏起來而且不前進，不是「跑慢一點」。*/
+        if (ca.gate) {
+          const on = (carryAt % ca.gate.per) < ca.gate.per * (ca.gate.duty == null ? 0.55 : ca.gate.duty);
+          if (ca.on !== on) { ca.on = on; ca.groups.forEach(it => { if (!it.base) it.g.visible = on; }); }
+          if (!on) continue;
+        }
         for (let i = 0; i < ca.groups.length; i++) {
           const it = ca.groups[i];
           let u = carryAt / ca.period + ca.phase + it.ph; u -= Math.floor(u);
