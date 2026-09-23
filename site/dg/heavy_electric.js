@@ -487,13 +487,10 @@
            補的是**每一格出來是幾伏特**的對照帶 —— 它就是上面那張電壓階梯在這一排的落地，
            本來只寫在框外的小字裡。純標註，pointer-events:none，data-part 一個都沒有動。 -->
       <g pointer-events="none">
-        <text class="cap" x="16" y="${GB - 140}" style="fill:var(--dg-mute)">這一排每一格出來是幾伏特（對到上面那張階梯的段 4～段 5）★ 只有乾式變壓器那一格在降壓</text>
         <path d="M16,${GB - 134} H640" stroke="var(--dg-mute)" stroke-width="1" fill="none" opacity=".4"/>
-        ${[['22.8 kV', 16, '中壓配電盤．不降壓'], ['22.8 kV', 172, '分路給每一台變壓器'],
-    ['380 / 220 V', 328, '乾式變壓器．這格才降壓'], ['380 / 220 V', 484, 'UPS 與 PDU．不降壓']]
-    .map(([v, x, s2], i2) => `<text class="lbl" x="${x}" y="${GB - 116}"${i2 === 2 ? ` style="fill:${V('--dg-warn')}"` : ''}>${v}</text>`
-      + `<text class="cap" x="${x}" y="${GB - 100}" style="fill:var(--dg-mute)">${s2}</text>`
-      + `<path d="M${x},${GB - 130} v8" stroke="${V(i2 === 2 ? '--dg-warn' : '--dg-mute')}" stroke-width="1.4" fill="none" opacity=".8"/>`).join('')}
+        <text class="lbl" x="16" y="${GB - 114}">段 4　中壓配電盤　22.8 kV（不降壓）</text>
+        <text class="lbl" x="250" y="${GB - 114}" style="fill:var(--dg-warn)">段 5　乾式變壓器　380 / 220 V（★ 只有這一格降壓）</text>
+        <text class="cap" x="16" y="${GB - 148}" style="fill:var(--dg-mute)">這一排每一格出來是幾伏特（對到上面那張階梯的段 4～段 5）—— 之後的 UPS 與 PDU 仍是 380 / 220 V，它們只是備援與分配</text>
       </g>
 
       <!-- 第二排的三段說明 -->

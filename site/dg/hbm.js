@@ -175,8 +175,8 @@
     const wires = [];
     for (let i = 0; i < 9; i++) {
       const y = S.intT + 5 + i * 2.2;
-      wires.push(LN(`M${BLK.h1 + 40},${y} H${BLK.gx + 20}`, C.cu, 1));
-      wires.push(LN(`M${BLK.gx + BLK.gw - 20},${y} H${BLK.h2 + 26}`, C.cu, 1));
+      wires.push(LN(`M${BLK.h1 + 40},${y} H${BLK.gx + 20}`, C.cu, 1, ' class="route"'));
+      wires.push(LN(`M${BLK.gx + BLK.gw - 20},${y} H${BLK.h2 + 26}`, C.cu, 1, ' class="route"'));
     }
     g.push(part('hb_interposer', fx.glass(S.intL, S.intT, S.intR - S.intL, S.intB - S.intT, { fill: 'var(--dg-si-2)', cls: 'part', rx: 2 })
       + wires.join(''), 'adv_pkg'));
@@ -211,7 +211,7 @@
       g.push(fx.glass(x, y + BD.h + 14, BD.w, BD.h, { fill: C.si, cls: 'part bdie2', rx: 2 }));
     } else {
       // 混合鍵合：銅對銅直接接合，兩層之間**只有一條界線**，沒有任何凸塊
-      g.push(LN(`M${x},${y + BD.h} L${x + BD.w},${y + BD.h}`, 'var(--dg-cu)', 2.6));
+      g.push(LN(`M${x},${y + BD.h} L${x + BD.w},${y + BD.h}`, 'var(--dg-cu)', 2.6, ' class="bondline"'));
       g.push(fx.glass(x, y + BD.h, BD.w, BD.h, { fill: C.si, cls: 'part bdie2', rx: 2 }));
     }
     return g.join('');
@@ -254,7 +254,8 @@
     {
       id: 'hb_band2', seg: 'foundry', mark: 'has', t: '② base die（邏輯晶粒）',
       who: '2330 台積電代工。',
-      s: 'SK hynix 的 HBM4 base die 採台積電 12 奈米邏輯製程（來源：產業媒體，2026）。這是做那顆邏輯晶粒，不是做記憶體顆粒。',
+      s: ['SK hynix 的 HBM4 base die 採台積電 12 奈米邏輯製程（來源：產業媒體，2026）。',
+        '這是做那顆邏輯晶粒，不是做記憶體顆粒。'],
     },
     {
       id: 'hb_band3', seg: 'hbm', mark: 'none', t: '③ 堆疊與封裝',
@@ -283,26 +284,26 @@
     if (kind === 'weak') return R(x - 7, y - 6, 14, 13, m.c, 'mk mk-weak', 2);
     return `<circle class="mk mk-has" cx="${x}" cy="${y}" r="7" fill="${m.c}"/>`;
   }
-  const BAND_Y = 646, BAND_STEP = 72;
+  const BAND_Y = 646, BAND_STEP = 90;   // 一列 82 高（三～四行）＋ 8 的列距
   function areaD() {
     const rows = BAND.map((o, i) => {
       const y = BAND_Y + i * BAND_STEP;
       /* ⚠ 底色那塊**刻意不掛 `part`**：`.dg [data-seg].sel .part` 會替它加一圈發光描邊，
          五條橫帶一起發光就是 Andy 講的「螢光感太重」。*/
       return part(o.id,
-        R(16, y, 628, 64, 'var(--dg-step-f)', 'row', 7)
-        + stamp(38, y + 20, o.mark)
-        + T(52, y + 24, MARK[o.mark].t, 'cap', null, 'fill:' + MARK[o.mark].c)
-        + T(120, y + 20, o.t, 'lbl')
-        + T(120, y + 38, o.who, 'lbl', null, 'fill:' + MARK[o.mark].c)
-        + T(120, y + 56, o.s, 'sub'), o.seg || null);
+        R(16, y, 628, 82, 'var(--dg-step-f)', 'row', 7)
+        + stamp(38, y + 22, o.mark)
+        + T(52, y + 26, MARK[o.mark].t, 'cap', null, 'fill:' + MARK[o.mark].c)
+        + T(120, y + 22, o.t, 'lbl')
+        + T(120, y + 42, o.who, 'lbl', null, 'fill:' + MARK[o.mark].c)
+        + (Array.isArray(o.s) ? o.s : [o.s]).map((t, j) => T(120, y + 62 + j * 16, t, 'sub')).join(''), o.seg || null);
     }).join('');
     return `<g>${T(16, 630, '台股在這條鏈上到底站在哪裡（★ 這張圖最重要的一段）', 'hd')}${rows}
-      <rect class="frame" x="16" y="1018" width="628" height="100" rx="9"/>
-      ${T(30, 1042, '同族群的另外兩檔，為什麼不畫在上面任何一段', 'hd')}
-      ${T(30, 1064, '2408 南亞科在供應鏈資料裡屬 DRAM／NOR 環節，其註記明寫「明確表示看淡 HBM、改押地端 AI 記憶體」；', 'sub')}
-      ${T(30, 1082, '　 它的「UWIO 客製化記憶體堆疊」與 HBM 的關係本圖未查證，所以圖上不把它畫在任何一段。', 'sub')}
-      ${T(30, 1100, '6239 力成的 tech 欄明寫「記憶體封測（非 HBM 本體）」，所以第 ③ 段（堆疊與封裝）也不列它。', 'sub')}</g>`;
+      <rect class="frame" x="16" y="1122" width="628" height="100" rx="9"/>
+      ${T(30, 1146, '同族群的另外兩檔，為什麼不畫在上面任何一段', 'hd')}
+      ${T(30, 1168, '2408 南亞科在供應鏈資料裡屬 DRAM／NOR 環節，其註記明寫「明確表示看淡 HBM、改押地端 AI 記憶體」；', 'sub')}
+      ${T(30, 1186, '　 它的「UWIO 客製化記憶體堆疊」與 HBM 的關係本圖未查證，所以圖上不把它畫在任何一段。', 'sub')}
+      ${T(30, 1204, '6239 力成的 tech 欄明寫「記憶體封測（非 HBM 本體）」，所以第 ③ 段（堆疊與封裝）也不列它。', 'sub')}</g>`;
   }
 
   /* ================================================================ 整張圖 */
@@ -319,7 +320,7 @@
        ★ 「台股標示帶」是這張圖最重要的一段，收起來會不會把它藏掉？
          不會：**結論留在 .dghead 的說明與那張警語卡片上**（台股沒有 HBM 顆粒廠、
          唯一具名的是 base die 找台積電代工），逐段的章與名單才收進章節。*/
-    return `<svg class="dg dgm rs dghb" viewBox="0 0 ${CW} 1160" width="100%" style="display:block">${D.STYLE}${VARS}
+    return `<svg class="dg dgm rs dghb" viewBox="0 0 ${CW} 1260" width="100%" style="display:block">${D.STYLE}${VARS}
       <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
       <!-- 標題與說明：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
       <text class="ttl ext" x="0" y="0">HBM：堆疊起來的記憶體與底下那顆邏輯晶粒</text>
