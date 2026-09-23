@@ -159,9 +159,16 @@ export default {
       // features 是給前端與除錯用的「這支 Worker 會什麼」清單。
       // 有 'stream' 才代表已經部署到支援 SSE 的版本；舊版不會有這個欄位，
       // 前端看得出來就不會傻傻地一直重試（但它本來也有退回輪詢的路）。
+      /* ★ `session` 只講**現貨盤**（09:00–13:35），因為它唯一的用途是決定
+         `/stream` 要用多快的節奏去問 mis 的現貨報價。夜盤（期交所）不走 SSE，
+         `/fut` 與 `/futchart` 也完全不看這個欄位，所以夜盤時 `session: "closed"`
+         是對的、而且對夜盤那張卡沒有任何影響 —— 2026-09-23 查夜盤空白時
+         這個欄位被當成嫌犯查過一輪，寫在這裡讓下一個人不用再查一次。
+         不過「closed」看起來像整台 Worker 收攤了，所以另外補一個 `futSession`
+         把期交所夜盤的狀態講出來，除錯時一眼就分得開這兩件事。*/
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw',
                     features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream'],
-                    session: sessionNow() }, 200, origin);
+                    session: sessionNow(), futSession: futSessionNow() }, 200, origin);
     }
     if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y'
         && url.pathname !== '/fut' && url.pathname !== '/futchart' && url.pathname !== '/stream') {
@@ -351,6 +358,18 @@ function sessionNow() {
   if (m >= 9 * 60 && m <= 13 * 60 + 35) return 'trade';            // 盤中
   if ((m >= 8 * 60 + 30 && m < 9 * 60) || (m > 13 * 60 + 35 && m <= 14 * 60 + 30)) return 'edge';
   return 'closed';                                                  // 夜間／假日
+}
+
+/** 期交所台指期夜盤：台北 15:00 ~ 翌日 05:00（週一~週五開盤，週五夜盤跨到週六凌晨）。
+ *  **只給 /health 看**，不影響任何一支端點的行為 —— /fut 與 /futchart 一律照打，
+ *  要不要顯示由前端的時鐘決定（site/market3.js 的 futSession()）。 */
+function futSessionNow() {
+  const d = new Date(Date.now() + 8 * 3600 * 1000);
+  const w = d.getUTCDay();
+  const m = d.getUTCHours() * 60 + d.getUTCMinutes();
+  if (m >= 15 * 60 && w >= 1 && w <= 5) return 'night';        // 週一~週五 15:00 之後
+  if (m < 5 * 60 && w >= 2 && w <= 6) return 'night';          // 週二~週六凌晨（前一晚延續）
+  return 'closed';
 }
 
 /** 這一段時間該多久問上游一次。closed 不進迴圈（見 openStream）。 */

@@ -2897,12 +2897,11 @@
           <button class="btn small" id="cfgBtn" title="圖表設定：線寬、均線、顏色">⚙ 設定</button>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
           <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
-          <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
           <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
             <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
         <div class="note livenote" id="liveNote" hidden></div>
-        <div class="chartwrap" id="chartWrap">
+        <div class="chartwrap">
           <div class="drawbar" id="drawBar"></div>
           <div id="chartHost"></div>
         </div>
@@ -3387,28 +3386,6 @@
       setTimeout(() => { window.dispatchEvent(new Event('resize')); }, 60);
     };
     paintWide();
-    /* ★ 2026-09-23 手機優先改版 G8（依據 `docs/mobile_audit.md`）：
-       390px 量到 `.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕，
-       而桌機是圖表左側的直排工具列 —— 位置對不起來，手指也點不準。
-       手機預設收起來，這顆開關就在同一排工具列上（桌機 display:none，因為那裡本來就常駐）。
-       ⚠ 收起來不是拿掉：畫過的線照樣在圖上，只是工具列收著；狀態會記住。 */
-    const drawTgl = $('#drawTgl'), wrap = $('#chartWrap');
-    if (drawTgl && wrap) {
-      let on = false;
-      try { on = localStorage.getItem('tw.drawbar') === '1'; } catch (e) { /* 忽略 */ }
-      const paintDraw = () => {
-        wrap.classList.toggle('drawon', on);
-        drawTgl.classList.toggle('on', on);
-        drawTgl.textContent = on ? '✎ 畫線 ✓' : '✎ 畫線';
-        drawTgl.title = on ? '收起畫線工具列（畫過的線不會消失）' : '打開畫線工具列';
-      };
-      drawTgl.onclick = () => {
-        on = !on;
-        try { localStorage.setItem('tw.drawbar', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-        paintDraw();
-      };
-      paintDraw();
-    }
     drawChips(); drawBar(); build();
   }
 
