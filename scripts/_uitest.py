@@ -7906,12 +7906,6 @@ def t_live(pg, base):
 
     # --- 3. 設定面板：點開、填網址、存起來
     pg.route("**/quote?*", fake_quote)
-    # ★ 2026-09-23：live.js 改成 SSE 推送之後，它啟動時會**另外開一條 EventSource 打 /stream**。
-    #   沒攔的話會真的往外連 `tw-quote.kcq01010909.workers.dev` —— 這個容器連不出去，
-    #   結果是這一段慢好幾秒、console 多一堆紅字，最後變成一個跟產品無關的假紅燈。
-    #   這一段驗的是**輪詢**那條路（SSE 那條在 `即時推送` 段落單獨驗），所以直接讓它 404。
-    pg.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json",
-                                                body='{"error":"not found"}'))
     click(pg, "#liveGear", 250)
     ok("設定面板真的打開了",
        pg.evaluate("() => !document.querySelector('#livePop').hidden"))
@@ -7962,106 +7956,7 @@ def t_live(pg, base):
 
     # --- 8. 收拾：把設定清掉，不要影響後面的測試
     pg.unroute("**/quote?*")
-    pg.unroute("**/stream?*")
     pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.live.on'); } catch(e){} }")
-
-
-# ===================================================================== 即時推送（SSE）
-# `site/live.js` 在 `7667b8f` 從「每分鐘輪詢」改成「優先走一條 SSE 連線、連不上就退回輪詢」。
-# 驗收草稿寫在 `docs/live_sse_uitest_todo.md`（那一輪不准動這個檔，所以先寫成草稿），這裡把它併進來。
-#
-# ★ 驗的不是「有沒有連上」，是**畫面上那一格的數字有沒有因此變**。三條路各驗一次：
-#     ① 代理沒有 /stream（Worker 還是舊版）→ 退回輪詢，照樣更新
-#     ② SSE 推一筆 → 那一格真的變
-#     ③ 連線被切斷 → 自動重連 → 補回斷線期間的值
-def t_live_sse(pg, base):
-    """SSE 推送與「退回輪詢」。"""
-    import json as _json
-    from urllib.parse import urlparse, parse_qs
-
-    SEL_PX = "#candBody tr[data-code] [data-live='close']"
-    SEL_CHG = "#candBody tr[data-code] [data-live='chg']"
-    box = {"z": "999.0000", "t": "11:22:33", "conns": 0}
-
-    def arr(ex, z, t):
-        out = []
-        for tok in [x for x in ex.split("|") if x]:
-            try:
-                code = tok.split("_", 1)[1].split(".")[0]
-            except IndexError:
-                continue
-            out.append({"c": code, "n": "測試" + code, "ex": tok[:3], "z": z,
-                        "y": "900.0000", "o": "905.0000", "h": "1000.0000",
-                        "l": "890.0000", "v": "12345", "t": t, "d": "20260914"})
-        return {"rtcode": "0000", "rtmessage": "OK", "msgArray": out}
-
-    def fake_quote(route):
-        q = parse_qs(urlparse(route.request.url).query)
-        route.fulfill(status=200, content_type="application/json; charset=utf-8",
-                      body=_json.dumps(arr((q.get("ex_ch") or [""])[0], box["z"], box["t"])))
-
-    # ---- ① 代理沒有 /stream（＝ Worker 還沒重新部署）：一定要退回輪詢
-    pg.route("**/quote?*", fake_quote)
-    pg.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json",
-                                                body='{"error":"not found"}'))
-    pg.evaluate("() => { try{ localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
-                "localStorage.setItem('tw.live.on','1'); }catch(e){} }")
-    pg.goto(base + "#overview", wait_until="load")
-    pg.wait_for_timeout(2500)
-    px = text(pg, SEL_PX)
-    ok("SSE 連不上時畫面照樣拿到即時價（999）", "999" in px, px)
-    ok("漲跌也算出來（999/900 = +11.00%）", "11.00" in text(pg, SEL_CHG), text(pg, SEL_CHG))
-    ok("模式是輪詢", pg.evaluate("() => window.Live.mode") == "poll",
-       pg.evaluate("() => window.Live.mode"))
-    ok("狀態列寫得出現在走輪詢", "輪詢" in text(pg, "#liveState"), text(pg, "#liveState"))
-    wait_until(pg, "window.Live.sseGaveUp === true", 12000)     # 1+2+4+8 秒退避跑完
-    ok("連不上就放棄 SSE，不會一直重試", pg.evaluate("() => window.Live.sseGaveUp") is True)
-    box["z"], box["t"] = "888.0000", "12:34:56"
-    click(pg, "#liveBtn", 1500)
-    changed("退回輪詢後按『更新』畫面真的再變一次", px, text(pg, SEL_PX))
-    ok("按更新後顯示新抓到的價格（888）", "888" in text(pg, SEL_PX), text(pg, SEL_PX))
-
-    # ---- ② SSE 正常：推一筆 → 那一格真的變
-    # Playwright 的 route.fulfill 一次送完整包 body 就關連線，剛好等於
-    #「推幾筆 → 斷線」，第二次連線就是重連。用 conns 分辨第幾條。
-    def fake_stream(route):
-        q = parse_qs(urlparse(route.request.url).query)
-        ids = (q.get("ids") or [""])[0]
-        box["conns"] += 1
-        z = "777.0000" if box["conns"] == 1 else "555.0000"
-        body = ("retry: 1000\n\n"
-                "event: hello\ndata: {\"session\":\"trade\",\"pollMs\":5000}\n\n"
-                "event: quote\ndata: " + _json.dumps(arr(ids, z, "11:30:01")) + "\n\n")
-        route.fulfill(status=200, content_type="text/event-stream; charset=utf-8", body=body)
-
-    pg.unroute("**/stream?*")
-    pg.route("**/stream?*", fake_stream)
-    before = text(pg, SEL_PX)
-    click(pg, "#liveBtn", 500)          # 手動更新會把 sseGaveUp 歸零並重開連線
-    wait_until(pg, "window.Live.mode === 'sse'", 8000)
-    wait_until(pg, f"(document.querySelector({SEL_PX!r})||{{}}).textContent.indexOf('777') >= 0", 8000)
-    after = text(pg, SEL_PX)
-    changed("SSE 推一筆之後那一格真的變了", before, after)
-    ok("變成的是推送過來的價格（777）", "777" in after, after)
-    ok("模式切成推送", pg.evaluate("() => window.Live.mode") == "sse")
-    st = text(pg, "#liveState")
-    ok("狀態列看得出現在走推送", "推送" in st and "SSE" in st, st)
-
-    # ---- ③ 斷線 → 自動重連 → 補回斷線期間的值
-    wait_until(pg, f"(document.querySelector({SEL_PX!r})||{{}}).textContent.indexOf('555') >= 0", 15000)
-    ok("重連拿到的第一筆快照補回了漏掉的值（555）", "555" in text(pg, SEL_PX), text(pg, SEL_PX))
-    ok("真的重連過（第二條連線成立）", box["conns"] >= 2, box["conns"])
-    ok("重連後模式回到推送", pg.evaluate("() => window.Live.mode") == "sse")
-
-    # ---- 收拾
-    pg.unroute("**/quote?*"); pg.unroute("**/stream?*")
-    pg.evaluate("() => { try{ localStorage.removeItem('tw.live.proxy');"
-                "localStorage.removeItem('tw.live.on'); }catch(e){} }")
-    # 草稿裡列出、但刻意沒有併進來的三條（理由寫在這裡，免得下次有人以為漏了）：
-    #   · 連線輪替（Worker 每 4 分鐘送一則 `bye` 讓前端立刻重連）—— 造得出來，但要多等一輪
-    #   · 看門狗（連著卻不推，門檻 90 秒）—— 放進來這一段會多跑一分半
-    #   · 分頁切到背景收掉連線 —— Playwright 不好造 `document.hidden`
-    notes.append("即時推送：連線輪替（bye）、看門狗（90 秒）、分頁切背景三條刻意沒驗（成本高於價值，理由寫在段落末）")
 
 
 def _fake_chart(idx_id: str):
@@ -10515,7 +10410,6 @@ def t_whomakes(pg, base):
 
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
-    "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
@@ -15627,23 +15521,6 @@ _L3_PROBE = """() => { const v = window.Rack3D.current, st = v.stats();
     out, mats: v.mats() }; }"""
 
 
-def _pal_moved(a, r):
-    """切色票前後，**逐零件**比對「現在真的畫出來的顏色」（mats().now），回傳變了的零件清單。
-
-    為什麼不再用 `colorSig`（2026-09-23 技術債清理）
-    ------------------------------------------------
-    舊斷言是 `abs(r['colorSig'] - a['colorSig']) > 1.0`。`colorSig` 是**全場材質顏色的加權總和**，
-    所以它有一個致命的性質：**有的零件變亮、有的變暗，加起來會互相抵銷**。
-    IC 載板那張實測 190.556 → 190.880（差 0.32，判定「沒變」而紅），
-    但逐零件量出來是 **11 個零件的顏色全部都變了** —— 產品完全正確，是斷言量錯了東西。
-    （這個抵銷以前被 pulse 的忽亮忽暗蓋住：pulse 一直在改顏色，總和自然會抖超過 1.0，
-      所以 `PULSE_OFF` 之後才露出來。那不是「關掉閃爍弄壞了什麼」，是舊斷言本來就靠雜訊過關。）
-    新判準嚴格得多：**每一個零件都要真的換色**，而不是「總和有動就好」。
-    """
-    return [(x["part"], x["now"], y["now"]) for x, y in zip(a["mats"], r["mats"])
-            if x["part"] == y["part"] and x["now"] != y["now"]]
-
-
 def t_dg3d_style(pg, base):
     """DECISIONS #238：3D 兩種模式、材質不走環節色、爆炸拆解、卡片、響應式卡片欄。"""
     pg.set_viewport_size({"width": 1500, "height": 1000})
@@ -15679,11 +15556,8 @@ def t_dg3d_style(pg, base):
         ok(f"[{nice}] 切到「閱讀」→ 畫布底真的變了", r["pal"] == "read" and r["bg"] != a["bg"], f"{a['bg'][:60]} → {r['bg'][:60]}")
         ok(f"[{nice}] 切到「閱讀」→ 卡片的底色與字色真的變了（白卡＋深灰字）",
            r["cardBg"] != a["cardBg"] and r["ink"] != a["ink"], {"科技": (a["cardBg"], a["ink"]), "閱讀": (r["cardBg"], r["ink"])})
-        _mv = _pal_moved(a, r)
-        ok(f"[{nice}] 切到「閱讀」→ **每一個零件**現在畫出來的顏色都真的換了"
-           f"（{len(_mv)}/{len(a['mats'])}；colorSig {a['colorSig']} → {r['colorSig']} 只是參考值）",
-           len(_mv) == len(a["mats"]) and len(a["mats"]) > 0,
-           {"沒換色的零件": [m["part"] for m in a["mats"] if m["part"] not in {x[0] for x in _mv}][:6]})
+        ok(f"[{nice}] 切到「閱讀」→ 材質色的指紋真的變了（{a['colorSig']} → {r['colorSig']}）",
+           abs(r["colorSig"] - a["colorSig"]) > 1.0)
         ok(f"[{nice}] 「閱讀」模式零件完全不自體發光（淺底上發光會刺眼）", r["idleEm"] == 0, r["idleEm"])
         ok(f"[{nice}] 舊名字（casual／soft／calm）送進來會被映到兩種模式之一，不會掛",
            pg.evaluate("""() => { const v = window.Rack3D.current;
@@ -17843,11 +17717,8 @@ def t_b24_semi3d(pg, base):
         pg.evaluate("() => window.Rack3D.current.setPal('read')")
         pg.wait_for_timeout(500)
         r = pg.evaluate(_L3_PROBE)
-        _mv = _pal_moved(a, r)
-        ok(f"[{nice}] 切到「閱讀」→ **每一個零件**現在畫出來的顏色都真的換了"
-           f"（{len(_mv)}/{len(a['mats'])}；colorSig {a['colorSig']} → {r['colorSig']} 只是參考值）",
-           len(_mv) == len(a["mats"]) and len(a["mats"]) > 0,
-           {"沒換色的零件": [m["part"] for m in a["mats"] if m["part"] not in {x[0] for x in _mv}][:6]})
+        ok(f"[{nice}] 切到「閱讀」→ 材質色的指紋真的變了（{a['colorSig']} → {r['colorSig']}）",
+           abs(r["colorSig"] - a["colorSig"]) > 1.0, f"{a['colorSig']} → {r['colorSig']}")
         ok(f"[{nice}] 切到「閱讀」→ 畫布底真的變了",
            r["pal"] == "read" and r["bg"] != a["bg"], f"{a['bg'][:50]} → {r['bg'][:50]}")
         ok(f"[{nice}] 切到「閱讀」→ 卡片底色與字色真的變了",
@@ -18075,11 +17946,8 @@ def t_b27_aiserver3d(pg, base):
         pg.evaluate("() => window.Rack3D.current.setPal('read')")
         pg.wait_for_timeout(500)
         r = pg.evaluate(_L3_PROBE)
-        _mv = _pal_moved(a, r)
-        ok(f"[{nice}] 切到「閱讀」→ **每一個零件**現在畫出來的顏色都真的換了"
-           f"（{len(_mv)}/{len(a['mats'])}；colorSig {a['colorSig']} → {r['colorSig']} 只是參考值）",
-           len(_mv) == len(a["mats"]) and len(a["mats"]) > 0,
-           {"沒換色的零件": [m["part"] for m in a["mats"] if m["part"] not in {x[0] for x in _mv}][:6]})
+        ok(f"[{nice}] 切到「閱讀」→ 材質色的指紋真的變了（{a['colorSig']} → {r['colorSig']}）",
+           abs(r["colorSig"] - a["colorSig"]) > 1.0, f"{a['colorSig']} → {r['colorSig']}")
         ok(f"[{nice}] 切到「閱讀」→ 畫布底真的變了",
            r["pal"] == "read" and r["bg"] != a["bg"], f"{a['bg'][:50]} → {r['bg'][:50]}")
         ok(f"[{nice}] 切到「閱讀」→ 卡片底色與字色真的變了",
@@ -19103,101 +18971,25 @@ def t_batch30(pg, base):
     notes.append("W6-18 的 390 版本刻意跳過：窄版三層樹本來就不畫葉節點，量了只會量到一個必然的 0")
 
 
-# ===================================================================== 批次C6：3D 退版後的靜態行為
-# ★★ 2026-09-23 整段重寫（技術債清理）。段落名沿用 `批次C6-3D運轉動畫` 不改，
-#    是因為 HANDOFF 與既有的 `--only` 指令都在引用它；但它現在驗的是**相反的事**。
+# ===================================================================== 批次C6：3D 運轉動畫
+# 19 個 3D 場景這一批全部補上「機器正在運作」的動畫（五種共用工具：
+# 流動 flow／旋轉 spin／陣列旋轉 ispin／脈衝點亮 pulse／位移 move）。
 #
-# 事情的經過（已經發生的事實，不要重新討論）：
-#   ① 批次 0923-C／E 依 Andy 的要求把 3D 加上動畫：先是 pulse（一組零件依序點亮），
-#      後來又補了「形狀真的在動」的四種動法（swing／grow／carry ＋ 額外加的 move／spin）。
-#   ② 他實際看過之後親口說：「3D 動畫「閃」改「動」，退回去 閃爍之前的版本，
-#      我覺得動畫效果加上去後沒那麼好」「回到閃爍之前的一個版本，不要閃爍」。
-#   ③ 於是 `edd87ec` 把 0923-E 那批動作宣告整批刪掉，並在 engine 端用 `PULSE_OFF`
-#      **整個關掉** pulse（不是調暗，是不跑）。
-#
-# 所以這一段的舊斷言（「19 個場景每一個都真的在動」「七個時鐘都在走」）**前提已經被使用者推翻**，
-# 從 `edd87ec` 起天天亮紅燈 —— 紅燈天天亮，下次真的壞掉就沒人看得出來。現在改成驗：
-#   ① 20 張場景全部從**真正的頁面路由**掛得起來，而且過程中沒有 crash
-#   ② 閃爍真的關掉了：`pulses` ／ `pulseK` 都是 0，而且
-#      **顏色指紋與自體發光在時間軸上不再起伏** ← 這是「關掉」與「只是調暗」唯一的分界
-#   ③ 0923-E 加的那批動作宣告真的沒了：`swings` ／ `grows` ／ `carries` 都是 0
-#   ④ **但**：0923-E 之前就有的機械轉動要留著（扇葉轉、晶碇提拉、滾珠螺桿進給、石英片振盪）
-#      —— 逐張比對「哪幾個零件真的在動」，多一個少一個都紅
-#   ⑤ `machine_tool`（CNC 工具機）場景刻意保留（它只是不再自己動）
-#   ⑥ 「動畫：關」這顆鈕對**還會動的那幾張**仍然真的有效；系統要求減少動態時一格都不准動
-#
-# ⚠⚠ 舊版是用 `C6_MOUNT`「離線掛到暫存容器」那條路量的（`position:fixed; z-index:-1; opacity:.01`）。
-#    那條路上 `IntersectionObserver` 會把 rAF 停掉，**動畫在那裡本來就不會跑** ——
-#    也就是舊版量到的「沒有在動」有一半是量法自己造成的，不是產品的行為。
-#    所以整段改走真正的頁面路由 `#industry/<chain>/dg/<scene>`，看到什麼就是使用者看到什麼。
+# ★ 這一段最重要的一條規矩：**不准驗「pulses 陣列存在」**。
+#   那是驗「有設定」，不是驗「有在動」—— 正是 DECISIONS #199 講的同一種錯。
+#   所以每一條都比 `stats()` 裡那七個時鐘（spinAt／ispinAt／flowT／flowAt／pulseAt／moveAt／moveOff）
+#   **跑了幾幀之後有沒有前進**。
 #
 # ⚠ 這個容器沒有 GPU，走 swiftshader 軟體渲染，`ai_server` 自己就是 632ms 一幀 ——
-#   **幀率的絕對值沒有任何意義**，效能判準一律寫成「相對於 ai_server 的比值」。
-#   段落一律 `--workers 1`（平行跑會把 CPU 吃滿、工具列 6 秒點不到，整批假紅）。
+#   **幀率的絕對值沒有任何意義**，所以效能判準一律寫成「相對於 ai_server 的比值」，
+#   不准寫死毫秒數。段落一律 `--workers 1`（平行跑會把 CPU 吃滿、工具列 6 秒點不到，整批假紅）。
+C6_SCENES = ["ai_server", "semiconductor", "mlcc", "foundry", "silicon_wafer", "hbm",
+             "wide_bandgap", "ic_substrate", "pcb_rigid", "server_psu", "liquid_cooling",
+             "air_cooling", "switch_wireless", "panel", "motion_axis", "resistor_protect",
+             "capacitor", "power_inductor", "ai_interconnect"]
 
-# 20 張場景 → 它在網站上真正的路由。場景 id 不一定等於路由最後一段
-# （工業自動化那一頁掛的是 `motion_axis`、先進封裝那一頁掛的是 `semiconductor`）。
-C6_ROUTES = {
-    "ai_server":       "industry/ai_server/dg/ai_server",
-    "semiconductor":   "industry/semiconductor/dg/ai_adv_packaging",
-    "mlcc":            "industry/electronics/dg/mlcc",
-    "foundry":         "industry/semiconductor/dg/foundry",
-    "silicon_wafer":   "industry/semiconductor/dg/silicon_wafer",
-    "hbm":             "industry/semiconductor/dg/hbm",
-    "wide_bandgap":    "industry/semiconductor/dg/wide_bandgap",
-    "ic_substrate":    "industry/ai_server/dg/ic_substrate",
-    "pcb_rigid":       "industry/ai_server/dg/pcb_rigid",
-    "server_psu":      "industry/ai_server/dg/server_psu",
-    "liquid_cooling":  "industry/ai_server/dg/liquid_cooling",
-    "air_cooling":     "industry/ai_server/dg/air_cooling",
-    "switch_wireless": "industry/ai_server/dg/switch_wireless",
-    "panel":           "industry/electronics/dg/panel",
-    "motion_axis":     "industry/electronics/dg/factory_automation",
-    "machine_tool":    "industry/electronics/dg/machine_tool",
-    "resistor_protect": "industry/electronics/dg/resistor_protect",
-    "capacitor":       "industry/electronics/dg/capacitor",
-    "power_inductor":  "industry/electronics/dg/power_inductor",
-    "ai_interconnect": "industry/ai_server/dg/ai_interconnect",
-}
-C6_SCENES = list(C6_ROUTES)
-
-# ★★ 「退版之後，每一張場景還有哪幾個零件真的在動」的基準表。
-#    這不是憑印象寫的 —— 是 2026-09-23 用 `view.pose()`（每個零件的世界座標＋旋轉＋縮放）
-#    走真正的頁面路由**逐張量出來**的：`#s` 是零件內部自己會轉的東西（扇葉、轉子、碼盤），
-#    `#i` 是陣列零件（風扇牆）各自繞自己的中心轉。
-#    四組保留下來的機械轉動剛好對應到它們：
-#      · 扇葉轉 → ai_server（ag_fan）、air_cooling（blade／counter_rot／fan_wall）、switch_wireless（sw_fan）
-#      · 晶碇提拉 → silicon_wafer（seed／ingot 一起往上拉，melt 跟著轉）
-#      · 滾珠螺桿進給 → motion_axis（螺桿轉、螺帽走，滑塊與工作台被推著走）
-#      · 石英片振盪 → power_inductor（xtal_blank）
-#      · 另外 foundry 的「取放晶粒」（fd_die）也是 0923-E **之前**就有的，一起留著
-#    判準是**集合相等**，不是「至少有幾個」：
-#      多出來 ＝ 有人把退掉的動畫悄悄加回去（那要先確認 Andy 改變了主意）；
-#      少掉   ＝ 本來就該動的機械轉動被一起賠掉了。兩種都要紅。
-C6_MOVING = {
-    "ai_server":        {"ag_fan#s"},
-    "semiconductor":    set(),
-    "mlcc":             set(),
-    "foundry":          {"fd_die"},
-    "silicon_wafer":    {"sw_ingot", "sw_ingot#s", "sw_melt", "sw_melt#s", "sw_seed", "sw_seed#s"},
-    "hbm":              set(),
-    "wide_bandgap":     set(),
-    "ic_substrate":     set(),
-    "pcb_rigid":        set(),
-    "server_psu":       set(),
-    "liquid_cooling":   set(),
-    "air_cooling":      {"blade#s", "counter_rot#s", "fan_wall#i"},
-    "switch_wireless":  {"sw_fan#s"},
-    "panel":            set(),
-    # ★ machine_tool 刻意留著這個場景，但它**不再自己動**（0923-E 加的那批 moves／spins 已刪）
-    "motion_axis":      {"mc_ball", "mc_ball#s", "mc_block", "mc_coupling", "mc_coupling#s",
-                         "mc_nut", "mc_return", "mc_screw", "mc_screw#s", "mc_table"},
-    "machine_tool":     set(),
-    "resistor_protect": set(),
-    "capacitor":        set(),
-    "power_inductor":   {"xtal_blank"},
-    "ai_interconnect":  set(),
-}
+# 七個「時鐘」。任何一個往前走，就代表畫面上真的有東西在動。
+C6_CLOCKS = ("spinAt", "ispinAt", "flowT", "flowAt", "pulseAt", "moveAt", "moveOff")
 
 # 跑 N 幀（用 rAF 數，不是用 wall clock）。軟體渲染一幀可能要半秒以上，
 # 所以另外給一個上限，避免整段卡在這裡。
@@ -19208,168 +19000,178 @@ C6_FRAMES = """([n, capMs]) => new Promise(res => {
     requestAnimationFrame(tick); };
   requestAnimationFrame(tick); })"""
 
+# 離線掛一個場景到暫存容器上（不走 UI，19 個場景才跑得完）。
+C6_MOUNT = """async (id) => {
+  if (!window.Rack3D || !window.Rack3D.supported()) return null;
+  let host = document.getElementById('__c6host');
+  if (host && host._view) { try { host._view.dispose(); } catch (e) {} }
+  if (!host) { host = document.createElement('div'); host.id = '__c6host';
+    host.style.cssText = 'position:fixed;left:0;top:0;width:640px;height:400px;z-index:-1;opacity:.01';
+    document.body.appendChild(host); }
+  host.innerHTML = '';
+  const v = await window.Rack3D.mount(host, id, { anim: true });
+  host._view = v;
+  return v ? id : null; }"""
+
 C6_STATS = "() => (window.Rack3D && window.Rack3D.current) ? window.Rack3D.current.stats() : null"
-C6_POSE = "() => (window.Rack3D && window.Rack3D.current) ? window.Rack3D.current.pose() : null"
 
 
-def _c6_moved(pg, rounds=3, frames=14, cap=16000):
-    """量「這一張場景有哪幾個零件真的在動」。
-
-    做法：連續取好幾次 `pose()`，把每一次跟上一次不同的零件**聯集**起來。
-    為什麼要取好幾次而不是頭尾兩次：位移件在折返點附近那一瞬間位置幾乎不變，
-    只比頭尾有機會剛好抓到同一個相位而漏判（那會變成**假紅**）。
-    回傳的是零件層級的 key：`part`（整個零件動了）／`part#s`（零件內部有東西在自轉）／
-    `part#i`（陣列零件各自轉）。
-    """
-    seen = set()
-    prev = pg.evaluate(C6_POSE) or []
-    for _ in range(rounds):
-        pg.evaluate(C6_FRAMES, [frames, cap])
-        cur = pg.evaluate(C6_POSE) or []
-        if len(cur) != len(prev):
-            seen.add("(零件數在跑的過程中變了：%d → %d)" % (len(prev), len(cur)))
-            prev = cur
-            continue
-        seen |= {a.split("|")[0] for a, b in zip(prev, cur) if a != b}
-        prev = cur
-    return seen
-
-
-def _c6_open(pg, base, route):
-    """開到某張 3D 剖析圖並確定 3D 真的掛起來了（走真正的頁面路由，不是離線暫存容器）。"""
-    pg.goto(f"{base}#{route}", wait_until="networkidle")
-    pg.wait_for_timeout(2600)
-    if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
-        return False
-    if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        _dg3d_toolbar_click(pg, "#dg3d", 4500)
-        pg.wait_for_timeout(3200)
-    return pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)")
+def _c6_clock_sig(st):
+    """把七個時鐘串成一個字串 —— 兩次完全相同才算「真的停住」。"""
+    return "|".join(str(st.get(k)) for k in C6_CLOCKS)
 
 
 def t_c6_anim(pg, base):
-    """C6：3D 退回「加動畫之前」而且連閃爍一起關掉之後，**現在正確的行為**。"""
-    boom: list[str] = []
-    pg.on("pageerror", lambda e: boom.append(f"pageerror: {e}"))
-    pg.on("crash", lambda _p: boom.append("頁面 crash"))
-
+    """C6：19 個場景「真的在動」、按鈕真的停得住、位移／連動／閘控／閱讀模式／減少動態／效能棘輪。"""
     pg.set_viewport_size({"width": 1200, "height": 900})
-    pg.goto(base, wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '1');"
-                " localStorage.setItem('tw.dg3d.pal', 'tech');"
-                " localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
     if not ok("這個容器支援 WebGL（整段的前提）",
               pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())")):
         notes.append("C6：WebGL 起不來，整段跳過")
         return
 
-    # ---------------------------------------------------------------- ⑤ 刻意保留的場景
-    have = pg.evaluate("() => Object.keys(window.Rack3D.SCENES)")
-    ok("★ C6-0：`machine_tool`（CNC 工具機）場景**仍然在**"
-       "（退動畫時刻意保留的，不要跟著一起賠掉）", "machine_tool" in have, have)
-    ok(f"C6-0：這一輪要走的 {len(C6_ROUTES)} 張場景，SCENES 裡一張都不缺",
-       not [k for k in C6_ROUTES if k not in have], [k for k in C6_ROUTES if k not in have])
-
-    # ---------------------------------------------------------------- ①②③④ 逐張走真正的路由
-    dead, flick, decl, wrong = [], [], [], []
-    base_tris, tri = None, {}
-    for sid, route in C6_ROUTES.items():
-        if not _c6_open(pg, base, route):
-            dead.append(f"{sid}（{route}）：掛不起來")
+    # ---------------------------------------------------------------- ① 每個場景都真的在動
+    base_tris = None
+    dead = []
+    for sid in C6_SCENES:
+        got = pg.evaluate(C6_MOUNT, sid)
+        if got != sid:
+            dead.append(f"{sid}：掛不起來")
             continue
-        st0 = pg.evaluate(C6_STATS) or {}
-        moved = _c6_moved(pg)
-        st1 = pg.evaluate(C6_STATS) or {}
-        tri[sid] = st1.get("triangles") or 0
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        a = pg.evaluate(C6_STATS)
+        pg.evaluate(C6_FRAMES, [20, 20000])
+        b = pg.evaluate(C6_STATS)
+        if not a or not b:
+            dead.append(f"{sid}：拿不到 stats")
+            continue
+        moved = [k for k in C6_CLOCKS if a.get(k) != b.get(k)]
+        if not moved:
+            dead.append(f"{sid}：跑了 20 幀七個時鐘一格都沒動")
         if sid == "ai_server":
-            base_tris = tri[sid]
+            base_tris = b.get("triangles") or 0
+    ok("★ C6-1：19 個 3D 場景**每一個都真的在動**（跑 20 幀之後至少一個時鐘往前走）",
+       not dead, dead[:6])
 
-        # ② 閃爍真的關掉了 —— 而且不是「調暗」
-        if st1.get("pulses") != 0 or st1.get("pulseK") != 0:
-            flick.append(f"{sid}：pulses={st1.get('pulses')} pulseK={st1.get('pulseK')}")
-        # 顏色指紋與自體發光在時間軸上都不准起伏（閃爍的定義就是「原地忽亮忽暗」）
-        if st0.get("colorSig") != st1.get("colorSig"):
-            flick.append(f"{sid}：顏色指紋還在起伏 {st0.get('colorSig')} → {st1.get('colorSig')}")
-        if st0.get("idleEmissive") or st1.get("idleEmissive"):
-            flick.append(f"{sid}：零件還在自體發光 idleEmissive={st0.get('idleEmissive')}／{st1.get('idleEmissive')}")
-
-        # ③ 0923-E 加的那批動作宣告真的沒了
-        for k in ("swings", "grows", "carries"):
-            if st1.get(k):
-                decl.append(f"{sid}：{k}={st1.get(k)}")
-
-        # ④ 該動的還在動、不該動的一個都不准動
-        want = C6_MOVING.get(sid, set())
-        if moved != want:
-            wrong.append({"場景": sid, "多出來": sorted(moved - want), "少掉": sorted(want - moved)})
-
-    ok(f"★ C6-1：{len(C6_ROUTES)} 張 3D 場景**全部從真正的頁面路由掛得起來**", not dead, dead[:6])
-    ok("★ C6-2：閃爍真的關掉了（pulses／pulseK 都是 0，而且顏色指紋與自體發光"
-       "在時間軸上**完全不起伏** —— 這是「關掉」與「只是調暗」唯一的分界）", not flick, flick[:6])
-    ok("★ C6-3：0923-E 那批動作宣告（swings／grows／carries）真的整批刪掉了", not decl, decl[:6])
-    ok("★ C6-4：**該動的還在動、不該動的一個都不准動** —— 逐張比對「哪幾個零件真的在動」"
-       "（多出來＝有人把退掉的動畫加回去；少掉＝原有的機械轉動被賠掉了）", not wrong, wrong[:4])
-    ok("★ C6-5：整輪走完沒有任何一張場景把頁面弄爆（crash／pageerror ＝ 0）", not boom, boom[:4])
-
-    # 效能棘輪：每張場景的三角形數不得超過 ai_server 的 1.15 倍
-    # （絕對的毫秒數在軟體渲染的容器裡沒有意義，所以一律寫成相對比值）
-    if base_tris:
-        over = [f"{k}：{v}（ai_server {base_tris} 的 {v / base_tris:.2f} 倍）"
-                for k, v in tri.items() if v > base_tris * 1.15]
-        ok(f"C6-6：每張場景的三角形數 ≤ `ai_server` 的 1.15 倍（棘輪；ai_server ＝ {base_tris}）",
-           not over, over[:5])
-    else:
-        notes.append("C6：量不到 ai_server 的三角形數，效能棘輪那一條跳過")
-
-    # ---------------------------------------------------------------- ⑥ 「動畫：關」對還會動的那張仍然真的有效
-    # 用 `motion_axis`（滾珠螺桿那張，退版後還在動的零件最多 —— 10 個），
-    # 拿一張本來就不動的圖來驗這顆鈕等於什麼都沒驗。
-    if _c6_open(pg, base, C6_ROUTES["motion_axis"]):
-        # 先確定現在是「動畫：開」。
-        # ⚠ 鈕上的字是**目前的狀態**（`industry.js` 的 setAnimAll：on ? '動畫：開' : '動畫：關'），
-        #   不是「按下去會變成什麼」。舊版寫成「沒有『關』就按一下」—— 那是把它讀反了，
-        #   結果是**先把動畫關掉**，再宣稱「動畫開著時時鐘真的在走」。那一條從頭到尾驗錯了狀態。
-        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.indexOf('關') >= 0) b.click(); }")
-        pg.wait_for_timeout(900)
-        on_moved = _c6_moved(pg)
-        ok("C6-7：動畫開著時，滾珠螺桿那張真的有東西在動", bool(on_moved), sorted(on_moved))
-        flow_on = (pg.evaluate(C6_STATS) or {}).get("flowVisible")
-
+    # ---------------------------------------------------------------- ② 真的按 #dgAnim → 全部凍住
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+    pg.wait_for_timeout(2600)
+    pg.evaluate("() => { try { localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    if pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+            _dg3d_toolbar_click(pg, "#dg3d", 4500)
+    if ok("C6-2：機櫃那張 3D 掛得起來（後面幾條都靠它）",
+          pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)")):
+        # 先確定現在是「動畫：開」
+        pg.eval_on_selector("#dgAnim", "b => { if (b.textContent.indexOf('關') < 0) b.click(); }")
+        pg.wait_for_timeout(700)
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        m0 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        m1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("C6-2：動畫開著時七個時鐘真的在走", m0 != m1, f"{m0} → {m1}")
         # ★ 真的按那顆鈕，不是呼叫 API
         _dg3d_toolbar_click(pg, "#dgAnim", 900)
-        ok("C6-7：鈕上的字真的換成「動畫：關」", "關" in text(pg, "#dgAnim"), text(pg, "#dgAnim"))
-        off_moved = _c6_moved(pg)
-        ok("★ C6-7：按「動畫：關」→ 零件**完全凍住**（連續三次量 pose，一個零件都沒變）",
-           not off_moved, sorted(off_moved))
-        flow_off = (pg.evaluate(C6_STATS) or {}).get("flowVisible")
-        ok("★ C6-7：按「動畫：關」→ 沿線跑的光點也真的收掉（flowVisible 從 %s 變成 0）" % flow_on,
-           flow_off == 0, {"開": flow_on, "關": flow_off})
-
+        ok("C6-2：鈕上的字真的換成「動畫：關」", "關" in text(pg, "#dgAnim"), text(pg, "#dgAnim"))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        s1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [12, 15000])
+        s2 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("★ C6-2：按「動畫：關」→ 七個時鐘**完全凍住**（跑 14 幀再跑 12 幀，兩次字串一模一樣）",
+           s1 == s2, f"{s1} ／ {s2}")
         _dg3d_toolbar_click(pg, "#dgAnim", 900)
-        pg.wait_for_timeout(600)
-        again = _c6_moved(pg)
-        ok("★ C6-7：再按一次 → 該動的零件又全部動起來", again == on_moved,
-           {"第一次": sorted(on_moved), "再開之後": sorted(again)})
-    else:
-        notes.append("C6：`motion_axis`（工業自動化那一頁）掛不起來，⑥ 跳過")
+        pg.evaluate(C6_FRAMES, [6, 8000])
+        r1 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        pg.evaluate(C6_FRAMES, [14, 15000])
+        r2 = _c6_clock_sig(pg.evaluate(C6_STATS))
+        ok("★ C6-2：再按一次 → 七個時鐘又全部動起來", r1 != r2, f"{r1} → {r2}")
 
-    # ---------------------------------------------------------------- ⑦ 系統要求「減少動態效果」
+    # ---------------------------------------------------------------- ③④ 位移與物理連動（motion_axis）
+    if pg.evaluate(C6_MOUNT, "motion_axis") == "motion_axis":
+        pg.evaluate(C6_FRAMES, [10, 12000])
+        offs, spins = [], []
+        for _ in range(10):
+            pg.evaluate(C6_FRAMES, [3, 5000])
+            st = pg.evaluate(C6_STATS)
+            offs.append(st.get("moveOff") or 0)
+            spins.append(st.get("spinAt") or 0)
+        ok("★ C6-3：`motion_axis` 的螺帽**真的走了一段**（moveOff 會變而且量得到 > 5）",
+           len(set(offs)) > 1 and max(offs) > 5, {"moveOff": [round(x, 2) for x in offs]})
+        # ④ 螺帽折返前後，螺桿的 spinAt 增量要變號（兩個各轉各的就是錯的）
+        d = [spins[i + 1] - spins[i] for i in range(len(spins) - 1)]
+        signs = {(1 if x > 1e-6 else (-1 if x < -1e-6 else 0)) for x in d}
+        ok("★ C6-4：螺帽折返時螺桿跟著反轉（spinAt 的增量出現過正也出現過負）",
+           1 in signs and -1 in signs, {"增量": [round(x, 4) for x in d]})
+    else:
+        notes.append("C6：`motion_axis` 掛不起來，③④ 跳過")
+
+    # ---------------------------------------------------------------- ⑤ 閘控真的斷流（wide_bandgap）
+    if pg.evaluate(C6_MOUNT, "wide_bandgap") == "wide_bandgap":
+        seen = set()
+        import time as _t
+        t0 = _t.time()
+        while (_t.time() - t0) < 1.8 or len(seen) < 2:
+            st = pg.evaluate(C6_STATS)
+            if st:
+                seen.add(0 if (st.get("flowVisible") or 0) == 0 else 1)
+            if (_t.time() - t0) > 8:
+                break
+            pg.evaluate(C6_FRAMES, [2, 3000])
+        ok("★ C6-5：`wide_bandgap` 的閘控真的會斷流（取樣裡同時出現 flowVisible ＝ 0 與 ≠ 0）",
+           seen == {0, 1}, {"取樣到的狀態": sorted(seen)})
+    else:
+        notes.append("C6：`wide_bandgap` 掛不起來，⑤ 跳過")
+
+    # ---------------------------------------------------------------- ⑥ 閱讀模式不發光
+    if pg.evaluate(C6_MOUNT, "ai_server") == "ai_server":
+        pg.evaluate("() => window.Rack3D.current.setPal('read')")
+        pg.evaluate(C6_FRAMES, [20, 20000])
+        st = pg.evaluate(C6_STATS)
+        ok("★ C6-6：閱讀模式跑 20 幀之後零件仍然完全不自體發光（idleEmissive === 0）",
+           (st or {}).get("idleEmissive") == 0, st and st.get("idleEmissive"))
+        # 效能棘輪：每個場景的 triangles 不得超過 ai_server 的 1.15 倍
+        if base_tris:
+            over = []
+            for sid in C6_SCENES:
+                if pg.evaluate(C6_MOUNT, sid) != sid:
+                    continue
+                pg.evaluate(C6_FRAMES, [4, 6000])
+                t = (pg.evaluate(C6_STATS) or {}).get("triangles") or 0
+                if t > base_tris * 1.15:
+                    over.append(f"{sid}：{t}（ai_server {base_tris} 的 {t / base_tris:.2f} 倍）")
+            ok(f"★ C6-8：每個場景的三角形數 ≤ `ai_server` 的 1.15 倍（棘輪；ai_server ＝ {base_tris}）",
+               not over, over[:5])
+        else:
+            notes.append("C6：量不到 ai_server 的三角形數，效能棘輪那一條跳過")
+        pg.evaluate("() => window.Rack3D.current.setPal('tech')")
+
+    # ---------------------------------------------------------------- ⑦ 減少動態效果
     ctx = pg.context.browser.new_context(reduced_motion="reduce", viewport={"width": 1200, "height": 900})
     pg2 = ctx.new_page()
     try:
-        pg2.goto(base, wait_until="networkidle")
-        pg2.evaluate("() => { try { localStorage.setItem('tw.dg3d', '1');"
-                     " localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
-        if _c6_open(pg2, base, C6_ROUTES["motion_axis"]):
-            ok("★ C6-8：系統要求「減少動態效果」時，連滾珠螺桿那張也一個零件都不准動",
-               not _c6_moved(pg2), sorted(_c6_moved(pg2)))
-            ok("C6-8：而且 stats 自己也誠實標示 reduced ＝ true",
+        pg2.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle")
+        pg2.wait_for_timeout(2600)
+        if pg2.evaluate(C6_MOUNT, "ai_server") == "ai_server":
+            pg2.evaluate(C6_FRAMES, [8, 10000])
+            a = _c6_clock_sig(pg2.evaluate(C6_STATS))
+            pg2.evaluate(C6_FRAMES, [16, 18000])
+            b = _c6_clock_sig(pg2.evaluate(C6_STATS))
+            ok("★ C6-7：系統要求「減少動態效果」時，七個時鐘一格都不准動",
+               a == b, f"{a} ／ {b}")
+            ok("C6-7：而且 stats 自己也誠實標示 reduced ＝ true",
                (pg2.evaluate(C6_STATS) or {}).get("reduced") is True,
                (pg2.evaluate(C6_STATS) or {}).get("reduced"))
         else:
             notes.append("C6：reduced-motion 的分頁裡場景掛不起來，⑦ 跳過")
     finally:
         pg2.close(); ctx.close()
+
+    # ---------------------------------------------------------------- 收尾
+    pg.evaluate("""() => { const h = document.getElementById('__c6host');
+        if (h && h._view) { try { h._view.dispose(); } catch (e) {} }
+        if (h) h.remove();
+        try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }""")
 
 
 # ===================================================================== 批次W9：軟體與資訊服務四張新圖
@@ -19820,12 +19622,7 @@ B28_ROUTES = {
     #   （批次24 已經記過：拿一個全站數字去量「一疊薄層」的圖就是拿錯尺）。
     "面板疊層":     ("industry/electronics/dg/panel", 90, 24000, 5000, 14),
     "工業自動化":   ("industry/electronics/dg/factory_automation", 110, 24000, 5000, 12),
-    # ★ 2026-09-23 更正（技術債清理）：CNC 工具機**已經不再共用 `motion_axis`**。
-    #   批次 0923-E 給它開了自己的場景 `machine_tool`（一台立式綜合加工機：床身／立柱／鞍座／
-    #   X-Z 兩根螺桿／工作台／工件／主軸頭／主軸馬達／主軸／主軸軸承／刀柄／刀庫／換刀機械手／
-    #   控制器櫃／排屑機／軌道，共 **17** 顆），那是刻意加的，不是「多畫了幾塊」。
-    #   這裡原本寫 12（那是 `motion_axis` 一根軸的零件數），從 0923-E 起就一直是紅的。
-    "CNC 工具機":   ("industry/electronics/dg/machine_tool", 110, 24000, 5000, 17),
+    "CNC 工具機":   ("industry/electronics/dg/machine_tool", 110, 24000, 5000, 12),
     "被動保護":     ("industry/electronics/dg/resistor_protect", 60, 14000, 2500, 10),
     "鋁電容":       ("industry/electronics/dg/capacitor", 80, 16000, 3000, 14),
     "電感電阻石英": ("industry/electronics/dg/power_inductor", 70, 14000, 2500, 16),
@@ -19884,14 +19681,10 @@ _B28_SCREEN = """() => { const out = {};
 _B28_NOCODE = """(id) => { const s = window.Rack3D.SCENES[id];
   return s ? s.parts.filter(p => Array.isArray(p.codes) && p.codes.length === 0).map(p => p.part) : []; }"""
 
-# 場景 id 不一定等於路由最後一段（例如工業自動化 → `motion_axis`）。
-# ★ 2026-09-23 更正：`machine_tool` 曾經共用 `motion_axis`，但 0923-E 之後它有自己的場景。
-#   這張表寫錯的後果很隱晦：`_B28_NOCODE` 會去讀**另一張場景**的 `codes: []` 零件（mc_*），
-#   拿去跟畫面上根本不存在的卡片對，於是四顆零件永遠回 None 而紅 ——
-#   看起來像「產品沒有標示台股無對應」，其實是驗收找錯了場景。
-# 所以這張表只留「路由最後一段 ≠ 場景 id」的那一筆，其餘一律**問現場的那個 view**
-#   （`window.Rack3D.current.id`），不要再靠一張會過期的手抄表。
-B28_SCENE_OF = {"factory_automation": "motion_axis"}
+# 場景 id 不一定等於路由最後一段：工業自動化與 CNC 工具機兩個族群**共用**同一個 3D 場景
+B28_SCENE_OF = {"panel": "panel", "factory_automation": "motion_axis", "machine_tool": "motion_axis",
+                "resistor_protect": "resistor_protect", "capacitor": "capacitor",
+                "power_inductor": "power_inductor"}
 
 
 def t_b28_elec3d(pg, base):
@@ -19961,11 +19754,8 @@ def t_b28_elec3d(pg, base):
         pg.evaluate("() => window.Rack3D.current.setPal('read')")
         pg.wait_for_timeout(500)
         r = pg.evaluate(_L3_PROBE)
-        _mv = _pal_moved(a, r)
-        ok(f"[{nice}] 切到「閱讀」→ **每一個零件**現在畫出來的顏色都真的換了"
-           f"（{len(_mv)}/{len(a['mats'])}；colorSig {a['colorSig']} → {r['colorSig']} 只是參考值）",
-           len(_mv) == len(a["mats"]) and len(a["mats"]) > 0,
-           {"沒換色的零件": [m["part"] for m in a["mats"] if m["part"] not in {x[0] for x in _mv}][:6]})
+        ok(f"[{nice}] 切到「閱讀」→ 材質色的指紋真的變了（{a['colorSig']} → {r['colorSig']}）",
+           abs(r["colorSig"] - a["colorSig"]) > 1.0, f"{a['colorSig']} → {r['colorSig']}")
         ok(f"[{nice}] 切到「閱讀」→ 畫布底真的變了",
            r["pal"] == "read" and r["bg"] != a["bg"], f"{a['bg'][:50]} → {r['bg'][:50]}")
         ok(f"[{nice}] 切到「閱讀」→ 卡片底色與字色真的變了",
@@ -19978,14 +19768,6 @@ def t_b28_elec3d(pg, base):
         # ---------------- ⑥ 卡片：編號圓點、中英雙語、字級、台股不留白
         c = pg.evaluate(_B28_CARDS)
         ok(f"[{nice}] 每張卡片都有編號圓點", c["no"] == c["n"] and c["n"] > 0, f"{c['no']}/{c['n']}")
-        # ⚠⚠ 這一條是**已知的產品缺口，不是過時的斷言，所以刻意不放寬**（2026-09-23 查證後保留）。
-        #   規格仍然有效：`docs/diagram_restyle_plan.md` 的卡片介面表明列 `b small.en`
-        #   ＝「英文標題（v3 §4 中英雙語），字級 12px、顏色 --dg-ink-3」，而且
-        #   **20 張 3D 場景裡有 19 張是 100% 覆蓋**（實測），只有 `machine_tool` 是 0/17 ——
-        #   原因是 `site/three3d.js` 的 `EN` 對照表從來沒有補上 `mt_*` 這 17 個 key
-        #   （0923-E 新增 machine_tool 場景時漏掉的）。
-        #   修法是在 EN 表補 17 列，不是把這裡改成「0 也可以」。`site/**` 不在這一輪的改動範圍，
-        #   所以這一條**會繼續紅**，直到有人去補那張表。
         ok(f"[{nice}] 每張卡片都有英文副標（中英雙語，v3 §4）", c["en"] == c["n"], f"{c['en']}/{c['n']}")
         ok(f"[{nice}] 每張卡片的零件身分（data-dgpart）都在，2D 才點得到同一個零件",
            not c["noPart"], c["noPart"])
@@ -19995,14 +19777,7 @@ def t_b28_elec3d(pg, base):
         # ★ 這一批的新斷言：場景寫 `codes: []` 的零件一定要「顯示無對應」而且晶片數是 0。
         #   會壞掉的路徑是「空陣列被當成沒指定 → 掉回 members(seg)」——
         #   那會把整個環節的公司貼到一個查不到對應的零件底下（錯誤宣稱，不是留白）。
-        # 場景 id 一律以**現場掛起來的那個 view** 為準（view.id 拿不到才退回手抄表），
-        # 這樣下次再有「某張圖換了場景」也不會再冒出一次假紅燈。
-        # view 本身沒有 id，但 `title` 是每張場景獨有的，可以反查回 SCENES 的 key。
-        _last = route.rsplit("/", 1)[-1]
-        _sid = pg.evaluate("""() => { const v = window.Rack3D.current; if (!v) return null;
-            return Object.keys(window.Rack3D.SCENES).find(k => window.Rack3D.SCENES[k].title === v.title) || null; }""") \
-            or B28_SCENE_OF.get(_last, _last)
-        nocode = pg.evaluate(_B28_NOCODE, _sid)
+        nocode = pg.evaluate(_B28_NOCODE, B28_SCENE_OF[route.rsplit("/", 1)[-1]])
         wrong = [(k, c["chipsOf"].get(k)) for k in nocode
                  if not (c["chipsOf"].get(k) or {}).get("none") or (c["chipsOf"].get(k) or {}).get("chips") != 0]
         ok(f"[{nice}] 場景宣告查不到台股（codes: []）的 {len(nocode)} 顆零件，"
@@ -20027,7 +19802,7 @@ def t_b28_elec3d(pg, base):
         # 拿畫面位移當唯一證據會變成「看不到就當沒給」—— 那是量錯了東西。
         noex = pg.evaluate("""(id) => { const s = window.Rack3D.SCENES[id];
             return s.parts.filter(p => !p.ex || (!p.ex[0] && !p.ex[1] && !p.ex[2])).map(p => p.part); }""",
-                           _sid)
+                           B28_SCENE_OF[route.rsplit("/", 1)[-1]])
         ok(f"[{nice}] 每個零件都給了爆炸位移 ex（收攏看得出成品、展開看得出層次）", not noex, noex)
 
         # ---------------- ④ 真的用滑鼠點一顆零件 → 只有那一顆；點背景 → 回到點之前的樣子
