@@ -10672,6 +10672,12 @@ SECTIONS = {
     "題材2D":              lambda pg, b, base, code: t_themes_2d(pg, base),
     # ★ 夜盤：用 docs/fixtures/taifex_night_probe.json 的真實回應 ＋ 時鐘平移 ＋ 非台北時區
     "夜盤真實fixture":     lambda pg, b, base, code: t_night_fixture(b, base),
+    # ★ 2026-09-23 桌面版介面精修第一階段九項（tabular-nums／token 對比／分頁溢出／
+    #   動效與按下回饋／關動效兜底／鍵盤焦點／小字下限／表格）。
+    #   最後一段同時證明「手機那一套沒有被這一批動到」。
+    "UI精修0923":          lambda pg, b, base, code: t_ui_polish(pg, b, base, code),
+    # ★ 2026-09-23：輪動時鐘四個象限展開面板的排版（Andy 回報「裡面的內容跑掉」）。
+    "輪動象限面板":        lambda pg, b, base, code: t_rot_stage_panel(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -21077,6 +21083,380 @@ def t_night_fixture(b, base):
        "夜盤資料未取得" in r["txt"] and "日盤" not in r["txt"], r["txt"][:140])
     ok("兩支都掛：上排數字留白", "—" in r["px"], r["px"])
     ok("兩支都掛：徽章寫「夜盤報價未取得」", "夜盤報價未取得" in r["nums"], r["nums"][:120])
+
+
+# ===================================================================== UI精修0923
+# ★ 2026-09-23 桌面版介面精修第一階段（規格：docs/ui_polish_spec.md §9 第 1～9 項）。
+#   Andy 的原話：「整體介面頁面UI 圖表 表格等等，優化的更好更平易近人
+#   包含滑動移動回饋等等效果都可以做出來讓使用者感受更好」。
+#   這一段的每一條都驗「畫面真的因此改變了」，不是驗「規則寫在 CSS 裡」——
+#   量 transition-duration、量 scrollLeft 真的動了、量 outline-width、量右緣對齊的 px 差。
+#   ⚠ 兩個已知的例外寫在下面 CONTRAST_SKIP，每一個都註明為什麼不是這一批造成的。
+UIP_ROUTES = ("overview", "flow", "industry", "season", "delivery")
+
+# 對比掃描的量測程式。背景取「往上找到的第一個不透明底色」（WCAG 2.x 的算法）。
+UIP_CONTRAST_JS = r"""
+() => {
+  /* ⚠ 2026-09-23 踩過的坑：`color-mix()` 算完之後 getComputedStyle 回的是
+     `color(srgb 0.86 0.91 0.93)` —— 三個數是 **0～1**，不是 0～255。
+     第一版沒分辨，把 0.86 當成 0.86/255 ＝ 近黑，於是量出一堆根本不存在的低對比
+     （最誇張的一個是 `.dlv-q` 報 1.19，實際上是 15.9）。兩種寫法都要接。 */
+  const L = (h) => { let m = h.match(/[\d.]+/g).map(Number);
+    if (/^color\(/.test(h)) m = m.slice(0, 3).map((x) => x * 255);
+    const f = (x) => { x /= 255; return x <= .04045 ? x / 12.92 : Math.pow((x + .055) / 1.055, 2.4); };
+    return .2126 * f(m[0]) + .7152 * f(m[1]) + .0722 * f(m[2]); };
+  const bgOf = (e) => { for (let p = e; p; p = p.parentElement) {
+      const cs = getComputedStyle(p);
+      /* 漸層底（例如左上角的 TW logo）量不出單一色，直接跳過整個元素 —— 
+         回 null 讓外面略過它，不要拿它底下那層透明色去算出一個假的 1.02。*/
+      if (cs.backgroundImage && cs.backgroundImage !== 'none' && /gradient/.test(cs.backgroundImage)) return null;
+      const b = cs.backgroundColor, m = b.match(/[\d.]+/g);
+      // color(srgb r g b) 沒有第四個 alpha 欄；只有 rgba(...) 的第四個才是 alpha
+      // color(srgb r g b) 沒有 alpha；color(srgb r g b / .08) 的第四個才是，
+      // 而 rgba(...) 也是第四個。兩種都要看，不然 8% 的半透明底會被當成不透明，
+      // 於是量出一堆假的 1.0x 低對比（第一版就是這樣紅的）。
+      if (m && (m.length < 4 || parseFloat(m[3]) > .85)) return b; }
+    return 'rgb(255,255,255)'; };
+  const out = [];
+  document.querySelectorAll('main .view.on *, header *').forEach(e => {
+    if (!Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 0)) return;
+    const c = getComputedStyle(e), r = e.getBoundingClientRect();
+    if (r.width < 3 || r.height < 3 || c.display === 'none' || c.visibility === 'hidden') return;
+    if (parseFloat(c.opacity) < .6) return;          // 刻意調淡的（dim 狀態）不算
+    const bg = bgOf(e); if (!bg) return;
+    const fs = parseFloat(c.fontSize);
+    const la = L(c.color), lb = L(bg);
+    const cr = (Math.max(la, lb) + .05) / (Math.min(la, lb) + .05);
+    const big = fs >= 24 || (fs >= 18.66 && parseInt(c.fontWeight) >= 700);
+    out.push({ cls: String(e.className.baseVal !== undefined ? e.className.baseVal : e.className || ''),
+               tag: e.tagName, fs: +fs.toFixed(2), cr: +cr.toFixed(2), big,
+               fg: c.color, bg, txt: e.textContent.trim().slice(0, 16) });
+  });
+  return out;
+}
+"""
+
+# 掃描時要放過的元素（每一個都要寫清楚為什麼，不准無條件放）
+def _uip_skip(x) -> bool:
+    # 集中度圖的均線勾選列：字色**必須**等於圖上那條線的顏色，而線色來自 PALETTE（分類色盤）。
+    # PALETTE 的前 14 色是鎖定區（DECISIONS #48：動一個值就把全站板塊顏色洗牌一次），
+    # 這一批不准碰，所以 4.25～4.56 這三個是**既有**的缺口，留給規格第二階段處理。
+    return x["txt"] in ("5 日", "20 日", "60 日")
+
+
+def t_ui_polish(pg, b, base, code):
+    """桌面版介面精修第一階段的九項，逐項驗「畫面真的因此改變了」。"""
+
+    # ---------- #1 數字等寬 ＋ 數字欄靠右 ----------
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    n = pg.evaluate("""() => {
+        const fv = getComputedStyle(document.body).fontVariantNumeric;
+        // 找一張真的有資料的表，取同一欄相鄰兩列，量右緣差。
+        // 等寬數字的定義就是「同一欄的數字右緣對得齊」——差 0.5px 以上代表沒吃到 tnum。
+        let worst = -1, where = null, pairs = 0;
+        document.querySelectorAll('table').forEach(t => {
+          const rows = [...t.querySelectorAll('tbody tr')].filter(r => r.offsetParent);
+          for (let ci = 0; ci < 8; ci++) {
+            const cells = rows.map(r => r.children[ci]).filter(Boolean)
+              .filter(td => /^[+\-]?[\d,.]+%?$/.test(td.textContent.trim()) && getComputedStyle(td).textAlign === 'right');
+            for (let i = 1; i < Math.min(cells.length, 12); i++) {
+              const d = Math.abs(cells[i].getBoundingClientRect().right - cells[i-1].getBoundingClientRect().right);
+              pairs++; if (d > worst) { worst = d; where = cells[i].textContent.trim() + ' / ' + cells[i-1].textContent.trim(); }
+            }
+          }
+        });
+        return { fv, worst, where, pairs };
+    }""")
+    ok("[#1] body 真的吃到 tabular-nums（不是只寫在 CSS 裡）", n["fv"] == "tabular-nums", n)
+    ok("[#1] 表格數字欄相鄰兩列的右緣真的對齊（差 ≤ 0.5px）",
+       n["pairs"] > 0 and n["worst"] <= 0.5, n)
+
+    # ---------- #2／#3 token 對比：兩個主題 × 五個路由，每一個有文字的元素都量 ----------
+    for th in ("dark", "light"):
+        for rt in UIP_ROUTES:
+            pg.goto(f"{base}#{rt}", wait_until="networkidle")
+            pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
+            pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+            data = pg.evaluate(UIP_CONTRAST_JS)
+            bad = [x for x in data if (not x["big"]) and x["cr"] < 4.5 and not _uip_skip(x)]
+            ok(f"[#2/#3 {th} #{rt}] 每一個小於 18.66px 的文字對背景都 ≥ 4.5:1（掃了 {len(data)} 個元素）",
+               not bad, bad[:6])
+    # token 的值本身也驗一次（避免有人「改了註解沒改值」）
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    tk = pg.evaluate("""() => { const s = getComputedStyle(document.documentElement);
+        const g = (n) => (s.getPropertyValue(n) || '').trim(); return { ink3: g('--ink-3'), rise: g('--rise'), fall: g('--fall') }; }""")
+    ok("[#2] 深色 --ink-3 已經是新值 #8493b8", tk["ink3"].lower() == "#8493b8", tk)
+    ok("[#2] 深色的紅漲綠跌一個字都沒動（--rise 仍是 #ff4d6d、--fall 仍是 #2ee59d）",
+       tk["rise"].lower() == "#ff4d6d" and tk["fall"].lower() == "#2ee59d", tk)
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','light'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    tl = pg.evaluate("""() => { const s = getComputedStyle(document.documentElement);
+        const g = (n) => (s.getPropertyValue(n) || '').trim();
+        return { ink3: g('--ink-3'), cyan: g('--cyan'), amber: g('--amber'), lime: g('--lime'),
+                 rise: g('--rise'), fall: g('--fall'), flat: g('--flat') }; }""")
+    ok("[#3] 淺色七個色 token 全部換成新值",
+       [tl[k].lower() for k in ("ink3", "cyan", "amber", "lime", "rise", "fall", "flat")]
+       == ["#5b6884", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+
+    # ---------- #8 四個高頻小字真的升到 12px ----------
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    small = pg.evaluate("""() => { const o = [];
+        ['a.lk .code', '.ev .cat', '.stage li .m', '.segcard .sco .code', '.dlv-b', '.dlv-tag', '.dlv-ver']
+          .forEach(sel => document.querySelectorAll(sel).forEach(e => {
+            if (!e.getBoundingClientRect().width) return;
+            const fs = parseFloat(getComputedStyle(e).fontSize);
+            if (fs < 12) o.push(sel + '@' + fs); }));
+        return o; }""")
+    ok("[#8] 個股頁上的代號／分類／次要說明沒有任何一個低於 12px", not small, small[:8])
+    pg.goto(f"{base}#delivery", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    small2 = pg.evaluate("""() => { const o = [];
+        ['.dlv-b', '.dlv-tag', '.dlv-ver', '.dlv-none', '.dlv-w b'].forEach(sel =>
+          document.querySelectorAll(sel).forEach(e => { if (!e.getBoundingClientRect().width) return;
+            const fs = parseFloat(getComputedStyle(e).fontSize); if (fs < 12) o.push(sel + '@' + fs); }));
+        return o; }""")
+    ok("[#8] 交付清單的 .dlv-* 全部 ≥ 12px", not small2, small2[:8])
+
+    # ---------- #4 導覽列溢出：遮罩、箭頭、而且箭頭真的捲得動 ----------
+    for w in (1440, 1280, 1024, 800):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        st = pg.evaluate("""() => { const s = document.getElementById('tabs'), wp = document.getElementById('tabsWrap');
+            const nx = document.getElementById('tabNext');
+            return { over: s.scrollWidth - s.clientWidth, cls: wp.className, left: s.scrollLeft,
+                     next: getComputedStyle(nx).display, mask: getComputedStyle(s).maskImage,
+                     docW: document.documentElement.scrollWidth, winW: innerWidth,
+                     tabs: document.querySelectorAll('#tabs .tab').length }; }""")
+        ok(f"[#4 {w}px] 整頁沒有橫向捲軸、八顆分頁都在 DOM 裡",
+           st["docW"] <= st["winW"] + 1 and st["tabs"] == 8, st)
+        if st["over"] > 2:
+            # 真的放不下 → 一定要看得到提示，而且那個提示按下去要真的有用
+            ok(f"[#4 {w}px] 分頁列放不下（溢出 {st['over']}px）時，右箭頭與右緣淡出真的出現了",
+               st["next"] != "none" and "ovf-r" in st["cls"] and "gradient" in (st["mask"] or ""), st)
+            pg.click("#tabNext"); pg.wait_for_timeout(700)
+            after = pg.evaluate("""() => { const s = document.getElementById('tabs');
+                return { left: s.scrollLeft, cls: document.getElementById('tabsWrap').className,
+                         prev: getComputedStyle(document.getElementById('tabPrev')).display }; }""")
+            ok(f"[#4 {w}px] 按右箭頭：分頁列真的往右捲了（{st['left']} → {after['left']}）",
+               after["left"] > st["left"] + 20, after)
+            ok(f"[#4 {w}px] 捲過去之後左箭頭跟著出現（左邊還有東西 → 要看得到）",
+               "ovf-l" in after["cls"] and after["prev"] != "none", after)
+            pg.click("#tabPrev"); pg.wait_for_timeout(700)
+            back = pg.evaluate("""() => ({ left: document.getElementById('tabs').scrollLeft,
+                cls: document.getElementById('tabsWrap').className })""")
+            ok(f"[#4 {w}px] 按左箭頭真的捲回去，而且捲到底之後左箭頭自己收掉",
+               back["left"] < after["left"] - 20 and (back["left"] > 2 or "ovf-l" not in back["cls"]), back)
+        else:
+            ok(f"[#4 {w}px] 分頁列放得下時，不要留一顆按了沒反應的箭頭",
+               st["next"] == "none" and "ovf-r" not in st["cls"], st)
+
+    # ---------- #4（A14）錯誤徽章不准把導覽擠掉 ----------
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    ls = pg.evaluate("""() => { const e = document.getElementById('liveState'); if (!e) return null;
+        const r = e.getBoundingClientRect(); const c = getComputedStyle(e);
+        return { w: +r.width.toFixed(1), txt: (e.textContent || '').trim().length,
+                 ov: c.overflow, cls: e.className }; }""")
+    ok("[#4] 即時徽章不管錯誤訊息多長，寬度都被壓在 150px 以內（不再把分頁擠掉）",
+       ls and ls["w"] <= 151, ls)
+
+    # ---------- #5 hover 過渡 ＋ :active 按下回饋 ----------
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    tr = pg.evaluate("""() => { const o = {};
+        [['tab', '.tab'], ['evbtn', '.evbtn'], ['row', 'tbody tr'], ['tile', '.tile'], ['card', '.card']]
+          .forEach(([k, sel]) => { const e = document.querySelector(sel);
+            o[k] = e ? getComputedStyle(e).transitionDuration : 'missing'; });
+        return o; }""")
+    slow = {k: v for k, v in tr.items() if v not in ("missing",)
+            and max([float(x.replace('s', '')) for x in v.split(', ')] or [0]) > 0.24}
+    ok("[#5] 分頁／按鈕／表格列／卡片都真的有過場（transition-duration > 0）",
+       all(v == "missing" or any(float(x.replace("s", "")) > 0 for x in v.split(", "))
+           for k, v in tr.items() if k != "card"), tr)
+    ok("[#5] 沒有任何一個過場超過 240ms 的上限", not slow, slow)
+    # 按下去：量 transform 真的變了（不是驗 CSS 有寫）
+    # ⚠ 受測對象刻意選 `.tab` 不選 `.evbtn`：`.evbtn` 的「更新」鈕在即時報價抓取中會被設成
+    #   `disabled`，而 **disabled 的元素不會進 :active**，於是這一條會間歇性假紅。
+    press = pg.evaluate("""() => ({ before: getComputedStyle(document.querySelector('.tab:not(.on)')).transform })""")
+    box = pg.evaluate("""() => { const b = document.querySelector('.tab:not(.on)').getBoundingClientRect();
+        return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; }""")
+    pg.mouse.move(box["x"], box["y"]); pg.mouse.down(); pg.wait_for_timeout(180)
+    act = pg.evaluate("() => getComputedStyle(document.querySelector('.tab:not(.on)')).transform")
+    pg.mouse.up(); pg.wait_for_timeout(200)
+    # 放開之後把滑鼠移開，不然它還停在那顆分頁上（hover 不影響 transform，但量起來比較乾淨）
+    pg.mouse.move(10, 600)
+    rel = pg.evaluate("() => getComputedStyle(document.querySelector('.tab:not(.on)')).transform")
+    ok("[#5] 按鈕**按下去的當下**真的有回饋（transform 從 none 變成縮放）",
+       act != press.get("before") and act != "none", {"before": press.get("before"), "active": act})
+    ok("[#5] 放開之後回到原狀（不會卡在按下的樣子）", rel == "none" or rel == press.get("before"),
+       {"released": rel})
+
+    # ---------- #7 鍵盤焦點：連按 30 次 Tab，每一次都要看得到焦點框 ----------
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    pg.evaluate("() => document.body.focus()")
+    noring = []
+    for i in range(30):
+        pg.keyboard.press("Tab")
+        r = pg.evaluate("""() => { const a = document.activeElement;
+            if (!a || a === document.body) return { body: true };
+            const c = getComputedStyle(a);
+            return { tag: a.tagName, cls: String(a.className || '').slice(0, 30),
+                     w: parseFloat(c.outlineWidth) || 0, st: c.outlineStyle }; }""")
+        if not r.get("body") and (r["w"] <= 0 or r["st"] == "none"):
+            noring.append(f"第{i+1}次 {r['tag']}.{r['cls']} outline={r['w']}px/{r['st']}")
+    ok("[#7] 連按 30 次 Tab，每一次都看得到焦點框（outline-width > 0）", not noring, noring[:6])
+    # 五處寫過 outline:0 的輸入框，焦點框真的補回來了
+    ring = pg.evaluate("""() => { const i = document.getElementById('q'); i.focus();
+        // focus-visible 只在鍵盤操作時成立，所以用鍵盤路徑進來的那一次才算；這裡直接問 matches
+        const c = getComputedStyle(i);
+        return { fv: i.matches(':focus-visible'), w: parseFloat(c.outlineWidth) || 0 }; }""")
+    pg.keyboard.press("Shift+Tab"); pg.keyboard.press("Tab"); pg.wait_for_timeout(120)
+    ring2 = pg.evaluate("""() => { const a = document.activeElement; const c = getComputedStyle(a);
+        return { id: a.id, w: parseFloat(c.outlineWidth) || 0 }; }""")
+    ok("[#7] 搜尋框（原本寫死 outline:0）用鍵盤走進去看得到焦點框", ring2["w"] > 0, {"first": ring, "kbd": ring2})
+
+    # ---------- #6 prefers-reduced-motion：動的沒了，回饋還在 ----------
+    rm = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    mp = rm.new_page()
+    mp.on("pageerror", lambda e: fails.append(f"UI精修 關動效 pageerror: {e}"))
+    mp.goto(f"{base}#overview", wait_until="networkidle"); mp.wait_for_timeout(2600)
+    r1 = mp.evaluate("""() => { const t = document.querySelector('.tab');
+        return { dur: getComputedStyle(t).transitionDuration, anim: getComputedStyle(t).animationDuration }; }""")
+    ok("[#6] 關掉動效之後，過場真的被壓成 0（不是只在 CSS 裡寫了一條 media query）",
+       all(float(x.replace("s", "")) <= 0.001 for x in r1["dur"].split(", ")), r1)
+    bb = mp.evaluate("""() => { const e = document.querySelector('.tab:not(.on)'); const b = e.getBoundingClientRect();
+        return { x: b.x + b.width / 2, y: b.y + b.height / 2, bg: getComputedStyle(e).backgroundColor }; }""")
+    mp.mouse.move(bb["x"], bb["y"]); mp.mouse.down(); mp.wait_for_timeout(150)
+    after_bg = mp.evaluate("""() => { const e = document.querySelector('.tab:not(.on)'); const c = getComputedStyle(e);
+        return { bg: c.backgroundColor, tf: c.transform }; }""")
+    mp.mouse.up()
+    ok("[#6] 關掉動效之後**回饋沒有消失**：按下去改用底色壓一階（而且不再縮放）",
+       after_bg["bg"] != bb["bg"] and after_bg["tf"] == "none", {"idle": bb["bg"], "active": after_bg})
+    mp.close(); rm.close()
+
+    # ---------- #9 表格：列高固定、列 hover 真的變色、表頭吸頂 ----------
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    # 用總覽的候選名單表：市場明細的預設子頁「漲跌家數」是卡片版面，沒有 <table>。
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    tb = pg.evaluate("""() => {
+        // ⚠ 不能用 querySelector('table') —— 那會撿到**沒顯示的那一頁**裡的表（量到 0 列，假紅）。
+        //   要找的是「現在這一頁、真的有看得見的列」的第一張表。
+        const t = [...document.querySelectorAll('table')]
+          .find(x => [...x.querySelectorAll('tbody tr')].some(r => r.offsetParent));
+        if (!t) return null;
+        const rows = [...t.querySelectorAll('tbody tr')].filter(r => r.offsetParent).slice(0, 12);
+        const hs = rows.map(r => +r.getBoundingClientRect().height.toFixed(1));
+        const th = t.querySelector('thead th');
+        return { hs, spread: hs.length ? Math.max(...hs) - Math.min(...hs) : -1,
+                 sticky: th ? getComputedStyle(th).position : null,
+                 shadow: th ? getComputedStyle(th).boxShadow : null,
+                 rowHover: getComputedStyle(document.documentElement).getPropertyValue('--row-hover').trim(),
+                 n: rows.length }; }""")
+    ok("[#9] 表格列高固定（前 12 列的高度差 ≤ 1px，不因內容長短抽動）",
+       tb and tb["n"] >= 3 and tb["spread"] <= 1.0, tb)
+    ok("[#9] 表頭仍然吸頂，而且底線改用 box-shadow（border-collapse 下 border 會跟著捲走）",
+       tb and tb["sticky"] == "sticky" and "rgb" in (tb["shadow"] or ""), tb)
+    # ⚠ 用 Playwright 的 hover()（它會自己捲進視窗、自己算中心點），
+    #   不要自己 mouse.move 到 getBoundingClientRect 算出來的座標 ——
+    #   那一列可能在摺線下面或在 `.tw` 的內捲容器裡，座標對不上就完全沒有 hover（第一版就是這樣假紅的）。
+    #   受測對象一律指名「現在這一頁、看得見的第一列」，不是 document 裡的第一列。
+    row = pg.locator("table tbody tr:visible").first
+    hv = pg.evaluate("""() => ({ bg: getComputedStyle(
+        [...document.querySelectorAll('table tbody tr')].find(x => x.offsetParent)).backgroundColor })""")
+    row.hover(); pg.wait_for_timeout(350)
+    hv2 = pg.evaluate("() => getComputedStyle([...document.querySelectorAll('table tbody tr')].find(x => x.offsetParent)).backgroundColor")
+    ok("[#9] 滑鼠移到表格列上，底色真的變了（不是驗 CSS 有寫）", hv2 != hv["bg"], {"idle": hv["bg"], "hover": hv2})
+
+    # ---------- 手機那一套有沒有被影響（這一批只動桌機，390px 必須零差異）----------
+    mb = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True,
+                       device_scale_factor=2)
+    mpg = mb.new_page()
+    mpg.on("pageerror", lambda e: fails.append(f"UI精修 手機 pageerror: {e}"))
+    for rt in ("overview", "industry", "season"):
+        mpg.goto(f"{base}#{rt}", wait_until="networkidle"); mpg.wait_for_timeout(2400)
+        m = mpg.evaluate("""() => { const wp = document.getElementById('tabsWrap'), s = document.getElementById('tabs');
+            const tabs = [...document.querySelectorAll('#tabs .tab')];
+            const rows = new Set(tabs.map(t => Math.round(t.getBoundingClientRect().top)));
+            return { wrap: getComputedStyle(wp).display,
+                     prev: getComputedStyle(document.getElementById('tabPrev')).display,
+                     next: getComputedStyle(document.getElementById('tabNext')).display,
+                     pos: getComputedStyle(s).position, n: tabs.length, rows: rows.size,
+                     allVisible: tabs.every(t => { const r = t.getBoundingClientRect();
+                       return r.width > 20 && r.left >= -1 && r.right <= innerWidth + 1; }),
+                     more: getComputedStyle(document.getElementById('moreBtn')).display,
+                     docW: document.documentElement.scrollWidth, winW: innerWidth }; }""")
+        ok(f"[手機零影響 #{rt}] 新加的 .tabswrap 在手機是 display:contents（整層從版面消失）",
+           m["wrap"] == "contents", m)
+        ok(f"[手機零影響 #{rt}] 桌機的左右箭頭在手機一顆都不出現", m["prev"] == "none" and m["next"] == "none", m)
+        ok(f"[手機零影響 #{rt}] 分頁列還是固定在底部、兩列、八顆全部看得見",
+           m["pos"] == "fixed" and m["n"] == 8 and m["rows"] == 2 and m["allVisible"], m)
+        ok(f"[手機零影響 #{rt}] 「⋯ 更多工具」還在，而且沒有橫向捲軸",
+           m["more"] != "none" and m["docW"] <= m["winW"] + 1, m)
+    mpg.close(); mb.close()
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 輪動象限面板排版
+def t_rot_stage_panel(pg, base):
+    """★ 2026-09-23（Andy 逐字：「資金輪動領先 改善 落後 轉若 裡面的內容跑掉需要重新排版」）。
+
+    壞掉的長相與量測值（修之前，1440px，四個象限都一樣）：
+      · 名稱欄 `.g` 寬 13～32px、**高 60～150px** ← 中文被壓成一個字一行、直排
+      · 數字欄 `.m` 右緣 748.3px vs 那一列右緣 676.7px ← **佔比那一欄被裁掉**
+      · `ul.ms` scrollWidth 342 vs clientWidth 270 ← 多出一條橫向捲軸
+    修完之後同一組量測：`.g` 高 20px（＝一行）、`.m` 不裁、scrollWidth == clientWidth。
+
+    這一段把那三個數字**逐項量出來**，四個象限 × 四個寬度全跑，
+    所以以後只要有人再把這塊面板塞進固定寬度的欄位，這裡就會紅。
+    """
+    QUADS = (("leading", "領先"), ("improving", "改善"), ("lagging", "落後"), ("weakening", "轉弱"))
+    MEASURE = """() => { const box = document.getElementById('stagePanel');
+        if (!box || box.hidden) return { open: false };
+        const ul = box.querySelector('ul.ms');
+        const lis = [...box.querySelectorAll('ul.ms li')].filter(l => !l.classList.contains('none'));
+        const rows = lis.map(l => { const g = l.querySelector('.g'), m = l.querySelector('.m');
+          const gr = g && g.getBoundingClientRect(), mr = m && m.getBoundingClientRect();
+          const lr = l.getBoundingClientRect();
+          return { name: g ? g.textContent.trim() : '',
+                   gH: gr ? +gr.height.toFixed(1) : 0,          // > 24 ＝ 名稱換行了（直排）
+                   mClipped: mr ? mr.right > lr.right + 0.5 : false,
+                   over: l.scrollWidth - l.clientWidth,
+                   parts: m ? m.querySelectorAll('span').length : 0,
+                   hasTitle: !!(g && g.getAttribute('title')) }; });
+        return { open: true, n: rows.length, rows,
+                 ulOver: ul.scrollWidth - ul.clientWidth,
+                 ulOverflowX: getComputedStyle(ul).overflowX,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
+    for w in (1440, 1280, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3600)
+        for k, zh in QUADS:
+            sel = f'.rq[data-k="{k}"]'
+            if not pg.query_selector(sel):
+                ok(f"[輪動面板 {w}px] 四顆象限徽章都在（找不到「{zh}」）", False, sel); continue
+            pg.click(sel); pg.wait_for_timeout(800)
+            r = pg.evaluate(MEASURE)
+            if not r.get("open"):
+                ok(f"[輪動面板 {w}px {zh}] 點下去面板真的展開了", False, r); continue
+            bad_name = [x for x in r["rows"] if x["gH"] > 24]
+            clipped = [x for x in r["rows"] if x["mClipped"]]
+            overs = [x for x in r["rows"] if x["over"] > 0]
+            ok(f"[輪動面板 {w}px {zh}] 族群名稱一行寫得完，沒有一個被壓成直排（{r['n']} 列）",
+               not bad_name, bad_name[:3])
+            ok(f"[輪動面板 {w}px {zh}] 強弱／動能／佔比三個數字一個都沒被裁掉",
+               not clipped, clipped[:3])
+            ok(f"[輪動面板 {w}px {zh}] 面板裡沒有任何一列溢出、也沒有橫向捲軸",
+               not overs and r["ulOver"] <= 0 and r["ulOverflowX"] == "hidden", 
+               {"overs": overs[:3], "ulOver": r["ulOver"], "overflowX": r["ulOverflowX"]})
+            ok(f"[輪動面板 {w}px {zh}] 整頁沒有因此長出橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+            ok(f"[輪動面板 {w}px {zh}] 名稱掛了 title（截斷時全名還看得到，是藏不是刪）",
+               all(x["hasTitle"] for x in r["rows"]), r["rows"][:2])
+            # 三個數字必須是三塊（動能只有 full 模式才有，所以至少 2、通常 3）
+            ok(f"[輪動面板 {w}px {zh}] 三個數字各自是一塊、可以各自換行（不是一整串硬塊）",
+               all(x["parts"] >= 2 for x in r["rows"]), r["rows"][:2])
+            pg.click(sel); pg.wait_for_timeout(300)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 if __name__ == "__main__":

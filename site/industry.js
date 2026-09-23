@@ -2494,8 +2494,11 @@
         const words = noteWrap(msg);
         const shown = words.slice(0, NOTE_MAX);
         if (words.length > NOTE_MAX) shown[NOTE_MAX - 1] = shown[NOTE_MAX - 1].slice(0, -1) + '…';
+        /* ★ 2026-09-23：這裡的 fill 本來寫死 #6f7ea3（深色主題的舊 --ink-3），
+           切到明亮主題不會換色，而且吃不到這次把 --ink-3 提亮的修正。
+           SVG 的 fill 讀得到 CSS 變數，所以直接指到 token 就好。*/
         nodes += `<g><title>${A.fmt.esc(msg)}</title>` + shown.map((w, i) =>
-          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="#6f7ea3">${A.fmt.esc(w)}</text>`).join('') + '</g>';
+          `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
       }
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
         nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });

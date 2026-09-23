@@ -807,7 +807,43 @@
     const r = on.getBoundingClientRect(), sr = strip.getBoundingClientRect();
     strip.scrollLeft += (r.left - sr.left) - (sr.width - r.width) / 2;
   }
+  /* ★ 2026-09-23 UI 精修 #4：分頁列溢出的提示（遮罩 ＋ 左右箭頭）。
+     `centerActiveTab()` 只保證「現在這一頁看得到」，它沒有回答另一個問題：
+     **右邊（或左邊）還有沒有東西？** 實測 1440px 的 `#tabs`
+     scrollWidth 比 clientWidth 多 163～358px，而 `.tabs` 是
+     `overflow-x:auto` ＋ `scrollbar-width:none` —— 連捲軸都沒有，
+     於是「總覽」或「季節性」整顆分頁被吃掉，而且毫無提示。
+
+     這裡把「還捲得動嗎」量出來，掛成兩個 class 給 CSS 用：
+       .ovf-l → 左邊還有（顯示 ‹ ＋ 左緣淡出）
+       .ovf-r → 右邊還有（顯示 › ＋ 右緣淡出）
+     捲到底那一側的 class 會被拿掉，箭頭與淡出跟著消失 ——
+     留著一顆按了沒反應的箭頭比沒有箭頭更糟。
+     ⚠ 2px 的容差是給 subpixel 用的：非整數縮放之下 scrollWidth 會比 clientWidth
+       多出 0.x px，沒有容差的話會永遠顯示一顆捲不動的箭頭。
+     ⚠ 手機（≤820px）`.tabs` 是固定在底部、兩列四顆、完全不捲的，
+       量出來 scrollWidth === clientWidth，所以這段在手機自然不會掛上任何 class；
+       CSS 那邊另外還有 `@media (min-width:821px)` 守門，兩層都擋。 */
+  function syncTabOverflow() {
+    const strip = document.getElementById('tabs'), wrap = document.getElementById('tabsWrap');
+    if (!strip || !wrap) return;
+    const max = strip.scrollWidth - strip.clientWidth;
+    wrap.classList.toggle('ovf-l', strip.scrollLeft > 2);
+    wrap.classList.toggle('ovf-r', strip.scrollLeft < max - 2);
+  }
+  window.twSyncTabOverflow = syncTabOverflow;     // 驗收腳本要直接叫它
+  function initTabNav() {
+    const strip = document.getElementById('tabs'); if (!strip) return;
+    // 一次捲「看得見的寬度的 ⅔」—— 整頁捲會跳過中間那幾顆，捲太少又要按很多下
+    const step = (dir) => strip.scrollBy({ left: dir * Math.max(120, strip.clientWidth * 0.66), behavior: 'smooth' });
+    const prev = document.getElementById('tabPrev'), next = document.getElementById('tabNext');
+    if (prev) prev.onclick = () => step(-1);
+    if (next) next.onclick = () => step(1);
+    strip.addEventListener('scroll', syncTabOverflow, { passive: true });
+    syncTabOverflow();
+  }
   window.addEventListener('resize', centerActiveTab);
+  window.addEventListener('resize', syncTabOverflow);
   /* ★ 2026-09-23 手機優先改版 G1／G9（依據 `docs/mobile_audit.md`）：
      390px 量到頂欄需要 528px、而它是 overflow:hidden，於是
      「明亮／深色」只露出 6px、「事件」整顆在畫面外 ——
@@ -955,6 +991,8 @@
        （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
        只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
     setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
+    // 分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算
+    syncTabOverflow(); setTimeout(syncTabOverflow, 0); setTimeout(syncTabOverflow, 420);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -984,6 +1022,7 @@
   }
   window.addEventListener('hashchange', route);
   $$('.tab').forEach(t => t.addEventListener('click', () => { location.hash = '#' + t.dataset.view; }));
+  initTabNav();
 
 
   /* 總覽上方那排數字只是摘要，點下去到「市場明細」分頁看完整名單。
@@ -1779,14 +1818,23 @@
      （`_preview.py` 抓的正是這種重疊），而那裡本來就只需要「往上還是往下」。*/
   function rotItem(r, full) {
     const arrow = r.dmo == null ? '' : r.dmo > 0.15 ? '<span class="ar up">↑</span>' : r.dmo < -0.15 ? '<span class="ar dn">↓</span>' : '<span class="ar fl">→</span>';
-    const mo = full && r.mo != null ? `　動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 1)}` : '';
+    /* ★ 2026-09-23：三個數字各自包一個 <span>。
+       為什麼要拆：它們原本是一整串（用全形空白隔開）＋ `white-space:nowrap`，
+       所以是一個「縮不下去也斷不了」的 219px 硬塊 —— 在 300px 的面板裡
+       一定會撐破那一列（實測 scrollWidth 227 vs clientWidth 226）。
+       拆成三塊之後，放不下的那一塊會自己換到下一行，**三個數字一個都不會被裁掉**，
+       而且永遠不需要橫向捲軸。每一塊自己仍然 nowrap（數字不准從中間斷開）。*/
+    const mo = full && r.mo != null ? `<span>動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 1)}</span>` : '';
     /* 換段徽章：「這 5 個交易日從哪一段換到哪一段」。
        2026-09-23 之前這件事另外有一整排常駐的 `#rotMove`，那一排已經移除，
        所以這顆徽章現在是換段資訊**唯一**的出口 —— 不要順手拿掉。*/
     const jump = full && r.moved && r.was
       ? `<span class="jmp" style="--c:${STAGE[r.stage].color}">${STAGE[r.was].name}→${STAGE[r.stage].name}</span>` : '';
-    return `<li data-gid="${r.gid}"><span class="g">${fmt.esc(r.name)}</span>${arrow}${jump}
-      <span class="m">強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}${mo}　佔比 ${fmt.n(r.share, 1)}%</span></li>`;
+    /* ★ 2026-09-23：`title` 是給「族群名長到要截斷」那一種用的 —— 截斷加 … 之後
+       全名仍然滑得到（藏起來可以，刪掉不行）。放在 .g 上而不是 li 上，
+       是因為 li 已經整列可點、再掛一個 title 會兩個提示打架。*/
+    return `<li data-gid="${r.gid}"><span class="g" title="${fmt.esc(r.name)}">${fmt.esc(r.name)}</span>${arrow}${jump}
+      <span class="m"><span>強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 1)}</span>${mo}<span>佔比 ${fmt.n(r.share, 1)}%</span></span></li>`;
   }
 
   /* ================================================================ 輪動階段併進輪動時鐘（Andy 2026-09-23）
@@ -3428,9 +3476,12 @@
           detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: 'JetBrains Mono',
             fontWeight: 700, color: theme() === 'light' ? CH.ink : '#e8eeff', formatter: v => v.toFixed(1) + '%' },
           data: [{ value: p20, name: '站上 20 日均線' }] },
-        segLabel('上漲', up, '#ff4d6d'),
-        segLabel('平盤', fl, '#6f7ea3'),
-        segLabel('下跌', dn, '#2ee59d'),
+        /* ★ 2026-09-23：這三個色本來是寫死的深色主題值（#ff4d6d／#6f7ea3／#2ee59d），
+           切到明亮主題時整排不會換色 —— 那正是「CSS 改了、圖表沒跟著改」那個病。
+           改讀 CH（refreshPalette() 會在切主題時就地換掉它），順便吃到新的 --ink-3。*/
+        segLabel('上漲', up, CH.up),
+        segLabel('平盤', fl, CH.ink3),
+        segLabel('下跌', dn, CH.down),
       ],
     }, { notMerge: true });
     // 圖下面一行把「還有什麼可以看」補上，不用再畫兩根 0% 的長條。
@@ -6730,11 +6781,17 @@
        季節性沒有「循環」，所以四段改成**強弱四級**：
        強勢／偏強／偏弱／弱勢，依「超額報酬勝率 × 0.6 ＋ 平均超額」分。
        樣本少於 3 年的不列（跟熱力圖同一條門檻）。*/
+    /* ★ 2026-09-23：這四個色本來是寫死的**深色主題**值（#ff4d6d／#ffb454／#8b7bff／#2ee59d）。
+       那些是螢光色，印在明亮主題的白底上實測只有 2.94／1.61／3.02／**1.50** ——
+       「強勢／偏強／偏弱／弱勢」這四個標題在淺色主題下根本讀不出來，
+       而它們是這張卡唯一的分級依據。改讀 CH（切主題時 refreshPalette() 會就地換掉），
+       淺色主題因此吃到新的 --rise／--amber／--violet／--fall，四個都 ≥5.2。
+       ⚠ 紅＝強、綠＝弱 是刻意的（台股紅漲綠跌），配色語意一個字都沒改。*/
     const SEASON_TIER = [
-      { k: 'strong', name: '強勢', color: '#ff4d6d', sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
-      { k: 'good', name: '偏強', color: '#ffb454', sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
-      { k: 'soft', name: '偏弱', color: '#8b7bff', sub: '這個月表現平平', act: '沒有季節性優勢' },
-      { k: 'weak', name: '弱勢', color: '#2ee59d', sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
+      { k: 'strong', name: '強勢', color: CH.up, sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
+      { k: 'good', name: '偏強', color: CH.amber, sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
+      { k: 'soft', name: '偏弱', color: CH.violet, sub: '這個月表現平平', act: '沒有季節性優勢' },
+      { k: 'weak', name: '弱勢', color: CH.down, sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
     ];
     const topThisMonth = (P) => {
       const m = new Date().getMonth() + 1;
