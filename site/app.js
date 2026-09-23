@@ -621,7 +621,9 @@
   }
 
   // ---------------------------------------------------------------- 路由
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'themes', 'season', 'tasks'];
+  /* ★ 2026-09-23：'heatmap'＝產業熱力圖，從 #industry 拆出來的頂層分頁（DECISIONS #252）。
+     它跟 'industry' 共用 industry.js 的資料載入，所以路由也交給 window.Industry 處理。*/
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'themes', 'season', 'tasks'];
   const rendered = {};
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   async function route() {
@@ -654,6 +656,13 @@
     const [head, ...rest] = h.split('/').map(_dec);
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
+    /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
+       放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
+       捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。*/
+    { const strip = document.getElementById('tabs'), on = strip && strip.querySelector('.tab.on');
+      if (strip && on && strip.scrollWidth > strip.clientWidth + 2) {
+        strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
+      } }
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -672,6 +681,7 @@
     const key = pageKey(head, rest);
     if (key !== _lastPageKey) window.scrollTo({ top: 0 });
     _lastPageKey = key;
+    if (view === 'heatmap') { await window.Industry.routeHeat(); return; }
     if (view === 'industry') { await window.Industry.route(head, rest); return; }
     if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); return; }

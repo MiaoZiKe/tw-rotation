@@ -1499,13 +1499,24 @@ def settle_scroll(pg, quiet_ms=350, limit_ms=3000):
 
 def t_industry(pg, base):
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(1400)
-    ok("產業地圖有產業鏈方塊", count(pg, "#chainTiles .tile") > 0)
-    ok("產業地圖有法定產業別方塊", count(pg, "#indTiles .tile") > 0)
-    click(pg, "#chainTiles .tile", 1600)
-    ok("點產業鏈方塊會進單一產業鏈頁", pg.evaluate("location.hash").startswith("#industry/"),
+    # ★ 2026-09-23（DECISIONS #252）：`#chainTiles`（產業鏈總覽）與 `#indTiles`（法定產業別）
+    #   兩塊卡片整組移除（Andy：「圖四下方的 產業鏈總覽 & 法定產業別 卡片全部移除」）。
+    #   它們承載的兩件事沒有消失，所以這三條**改成驗新家**，不是刪掉：
+    #     「這條鏈有幾個族群、幾檔」→ 一層活頁簿分頁上的檔數（#chainSwitch button em）
+    #     「點一下進那條鏈」        → 點那一頁（下面那一條）
+    #     「法定產業別點得到」      → 分頁列最後一頁（批次29 另有一整條在驗 35 個產業別進得去）
+    ok("產業地圖有產業鏈分頁（每一頁寫著檔數）",
+       count(pg, "#chainSwitch button[data-c]") > 2
+       and count(pg, "#chainSwitch button em") > 2)
+    ok("產業地圖有法定產業別那一頁", count(pg, "#chainSwitch button[data-c='industry']") == 1)
+    click(pg, "#chainSwitch button[data-c='semiconductor']", 1600)
+    ok("點產業鏈分頁會進單一產業鏈頁", pg.evaluate("location.hash").startswith("#industry/"),
        pg.evaluate("location.hash"))
 
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # ★ 2026-09-23：`#industry/<chain>` 現在是「族群總覽」那一個分頁（Andy 指定的 Default），
+    #   鏈層級的架構圖改成有自己的網址 `/dg/ai_server` —— 所以這裡改成直接開那一頁。
+    #   要驗的那件事沒有變：**AI 伺服器鏈的剖析圖畫得出來、而且沒有被包成可縮放的框**。
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("產業鏈頁有產品剖析圖", count(pg, "#prodDiagram svg") > 0)
     # Andy：「產業與個股 剖析圖不用新增縮放功能」—— 不可以被包成可縮放的框
     ok("產業與個股的剖析圖沒有縮放框",
@@ -1671,10 +1682,17 @@ def t_chainnav(pg, base):
     # ---------------- E5
     sw = pg.evaluate("""() => { const s = document.getElementById('chainSwitch'); if (!s) return null;
         const b = [...s.querySelectorAll('button')];
-        const card = s.closest('.card'), h2 = card && card.querySelector('h2');
+        /* ★ 2026-09-23（DECISIONS #252）：切換列改成活頁簿分頁之後，它**搬到卡片外面**
+           —— 分頁列在卡片裡的話，上面還壓著一層卡片的內距與邊框，
+           看起來就只是「卡片裡的一排鈕」，不是 Excel 那種「分頁貼著內容上緣」。
+           所以標題不再是它的兄弟節點，`closest('.card')` 會回 null。
+           要守的那件事一個字都沒有放寬：**它真的排在標題前面、而且在標題上方** ——
+           改成直接跟這一頁的 h2 比文件順序與座標。*/
+        const h2 = document.querySelector('#indChain h2');
         return { n: b.length, on: (s.querySelector('button.on')||{dataset:{}}).dataset.c,
-                 // 「上方」＝真的排在標題前面，不是塞在卡片最下面
-                 aboveTitle: !!(h2 && s.compareDocumentPosition(h2) & Node.DOCUMENT_POSITION_FOLLOWING),
+                 // 「上方」＝真的排在標題前面（文件順序）而且畫面上也在它上面（座標）
+                 aboveTitle: !!(h2 && (s.compareDocumentPosition(h2) & Node.DOCUMENT_POSITION_FOLLOWING)
+                                   && s.getBoundingClientRect().top < h2.getBoundingClientRect().top),
                  top: Math.round(s.getBoundingClientRect().top),
                  ids: b.map(x => x.dataset.c) }; }""")
     if not ok("E5 產業鏈頁最上方有類別切換列", bool(sw) and sw["n"] >= 3, sw):
@@ -6635,7 +6653,7 @@ def t_relpanel(pg, base):
     # ⚠ 它的族群在 **ai_server** 鏈上（semiconductor 鏈沒有那一顆節點），所以要先換鏈。
     # 關聯圖改成族群節點之後，要先展開它所屬的族群才點得到它（DECISIONS #248）。
     pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2100)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2100)
     _cg_open_stock(pg, "2368")
     gs = pg.evaluate("""() => { const b = document.getElementById('cgSide'); if (!b || b.hidden) return null;
         const g = [...b.querySelectorAll('.relbox li.guess')];
@@ -6715,7 +6733,7 @@ def t_batch6_n9(pg, base):
       2-3 個股晶片：文字框底下真的有晶片，點下去真的跳到個股頁
     """
     pg.set_viewport_size({"width": 1500, "height": 1000})
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2000)
     if not pg.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }"):
         return                                   # WebGL 不支援，整段跳過（與 N1 同一條規矩）
     # ★ #dg3d 是**開關**，而且開關狀態記在 localStorage。
@@ -6754,7 +6772,7 @@ def t_batch6_n9(pg, base):
         ok("點文字框上的個股晶片真的跳到個股頁（圖九 2-3）",
            pg.evaluate("() => location.hash").startswith("#stock/"),
            pg.evaluate("() => location.hash"))
-        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
         if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
             click(pg, "#dg3d", 3000); pg.wait_for_timeout(3000)
 
@@ -7180,7 +7198,11 @@ def t_lightink(b, base, code):
     # 產業板塊圖同理（圖13：treemap 用 itemStyle.borderColor 當整片底色，寫死 #0b1224）。
     pages = [("#overview", ["#heat"]),
              ("#flow", ["#rotClock", "#sankey", "#instGroups", "#conc", "#valScatter"]),
-             ("#industry", ["#indTree"]),
+             # ★ 2026-09-23：產業板塊 treemap 搬到自己的頂層分頁 #heatmap（DECISIONS #252），
+             #   #industry 換成族群漲幅長條圖＋占比圓餅圖 —— 兩頁都要掃，不然新的那兩張圖
+             #   在淺色主題下消失也沒有人會知道。
+             ("#heatmap", ["#indTree"]),
+             ("#industry", ["#gpBar", "#gpPie"]),
              ("#season", ["#seasonHeat"]),
              (f"#stock/{code}", ["#peChart", "#profitChart", "#peQ"])]
     ctx = b.new_context(viewport={"width": 1500, "height": 1000})
@@ -7283,6 +7305,7 @@ def t_zoom_sweep(pg, base, code):
       });
       return out; }"""
     pages = [("#overview", "總覽"), ("#flow", "資金流向"), ("#industry", "產業地圖"),
+             ("#heatmap", "產業熱力圖"),
              ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材"),
              ("#market", "市場明細"), ("#season", "季節性"), (f"#stock/{code}", "個股")]
     # 題材細節頁（產品剖析圖那一頁）全部都掃
@@ -9888,7 +9911,7 @@ def t_whomakes(pg, base):
     #   ★ 先繞一次 #industry/ai_server 再回來：`page.goto` 到**完全一樣的網址**（含 hash）
     #     不會觸發重新載入，頁內狀態（剛剛選起來的零件）會整包留著，
     #     於是下一次點同一個零件變成「取消」—— 看起來像功能壞了，其實是根本沒重置。
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(600)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(600)
     pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
     force_open(pg)
     click_part(pg, "abf_trace")
@@ -9929,7 +9952,7 @@ def t_whomakes(pg, base):
     for w in (800, 390):
         pg.set_viewport_size({"width": w, "height": 1000})
         # 同上：先繞一次別的網址，不然第二圈的 goto 不會重新載入、狀態會留著
-        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(500)
+        pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(500)
         pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2400)
         force_open(pg)
         k = click_part(pg, "abf_film")
@@ -9957,7 +9980,7 @@ def t_whomakes(pg, base):
     #   所以這一條只在 1440px、而且**先把動畫關掉**之後驗一次，
     #   證明「命中測試過得去、真人點得到」。內容正確性仍然靠 1～9。
     pg.set_viewport_size({"width": 1440, "height": 900})
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(400)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(400)
     pg.goto(DGH, wait_until="networkidle"); pg.wait_for_timeout(2200)
     force_open(pg)
     pg.evaluate("() => { const b = document.getElementById('dgAnim'); if (b) b.click(); }")
@@ -10063,6 +10086,8 @@ SECTIONS = {
     # 批次28：一般電子鏈六張補上 3D（面板／工業自動化＋CNC 工具機／被動保護／電容器／被動 RLC）。
     # 補完這一段，全站 19 張剖析圖就 19/19 全部有 3D。★ 這一段一律 --workers 1
     "批次28-一般電子鏈3D": lambda pg, b, base, code: t_b28_elec3d(pg, base),
+    # 批次29：產業與個股頁改版（活頁簿分頁、長條圖＋圓餅圖當 Default、昨天／即時、熱力圖獨立頂層分頁）
+    "批次29-產業分頁":     lambda pg, b, base, code: t_b29_tabs(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -12281,7 +12306,10 @@ def t_b14b_wbg(pg, base):
 
 L1_BUDGET = {
     # 路由,                              (draw call 上限, 三角形上限, 三角形下限)
-    "industry/ai_server":                (680, 40000, 15000),
+    # ★ 2026-09-23（DECISIONS #252）：`industry/ai_server` 現在是「族群總覽」那一個分頁，
+    #   鏈層級的機櫃圖改成有自己的網址 `/dg/ai_server`。全檔 14 處「一進去就要看到那張圖」的
+    #   網址都跟著換這一個字串，**要驗的事情一條都沒有放寬**（不換的話會像 #234 那次一樣安靜跳過＝假綠）。
+    "industry/ai_server/dg/ai_server":                (680, 40000, 15000),
     # ★ 2026-09-22：鏈層級的 `industry/semiconductor` 已經是圖別選單（DECISIONS #234），沒有 3D 鈕，
     #   照舊網址走這一段會安靜地整段跳過（假綠）。改成場景真正掛著的那張圖；
     #   上限照兩種模式之後量到的 165 個 draw call 放一點餘裕。
@@ -12509,7 +12537,7 @@ def t_dg3d_parts(pg, base):
 
     # ---------------- 窄畫面：800px 也要畫得出來、文字框不出框
     pg.set_viewport_size({"width": 800, "height": 1000})
-    if _l1_open(pg, base, "industry/ai_server"):
+    if _l1_open(pg, base, "industry/ai_server/dg/ai_server"):
         pg.wait_for_timeout(1500)
         nar = pg.evaluate("""() => { const host = document.getElementById('prod3d');
             const r = host.getBoundingClientRect();
@@ -14859,7 +14887,7 @@ def t_e3_protect(pg, base):
 #    ⑥ 卡片：編號圓點、--c ＝ data-dgcolor、字級 ≥ 12px
 #    ⑦ 響應式：1500 兩欄、1100 只有右欄、800 卡片搬到底下＋畫布上編號圓點；沒有卡片出框
 L3_ROUTES = {
-    "ai_server":     ("industry/ai_server", 680, 40000),
+    "ai_server":     ("industry/ai_server/dg/ai_server", 680, 40000),
     "semiconductor": ("industry/semiconductor/dg/ai_adv_packaging", 200, 40000),
     "mlcc":          ("industry/electronics/dg/mlcc", 120, 6000),
 }
@@ -15483,7 +15511,7 @@ def t_psu_v2(pg, base):
     # ---- 三個真 seg：三次篩出來的筆數彼此不同（規格書 §8 指定；點色標要 reload，同 hash 的 goto 不會重置）
     seg_rows = {}
     for seg in ("power", "connector", "assembly"):
-        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+        pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         base_rows = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"'+s+'\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
@@ -15742,7 +15770,7 @@ def t_cooling_v2(pg, base):
 
     # ---------------- 1. 圖別入口真的多出兩個（沿用舊的）
     pg.set_viewport_size({"width": 1440, "height": 1000})
-    pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)
     ent = pg.evaluate("""() => ({
       cards: [...document.querySelectorAll('#dgMenu .dgcard')].map(n => n.dataset.dgid),
       chips: [...document.querySelectorAll('#dgPick .segchip')].map(n => n.dataset.dgid),
@@ -15756,7 +15784,7 @@ def t_cooling_v2(pg, base):
     for did, feat in COOL_DGS:
         url = base + "#industry/ai_server/dg/" + did
         # ---------------- 2. 點進去 → 圖畫出來、網址真的變了、重新整理打得開
-        pg.goto(base + "#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        pg.goto(base + "#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2400)
         pg.click('#dgPick .segchip[data-dgid="%s"]' % did, timeout=5000); pg.wait_for_timeout(2000)
         h1 = pg.evaluate("() => location.hash")
         ok("[%s] 真的用滑鼠點入口 → 網址變成 /dg/%s" % (did, did), h1.endswith("/dg/" + did), h1)
@@ -16128,7 +16156,7 @@ def _seg_rows_distinct(pg, base, feat, segs):
     """依序點幾個環節色標，回每一次篩出來的筆數（點色標要 reload，同 hash 的 goto 不會重置）。"""
     got = {}
     for seg in segs:
-        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+        pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
         b0 = pg.evaluate("() => document.querySelectorAll('#memberTable tbody tr[data-code]').length")
         hit = pg.evaluate("(s) => { const c = document.querySelector('#cgSegs .segchip[data-seg=\"' + s + '\"]'); if (!c) return false; c.click(); return true; }", seg)
         pg.wait_for_timeout(800)
@@ -18009,7 +18037,7 @@ def t_b25_tools(pg, base):
     #   semiconductor 現在一進去是**圖別選單**（5 張各自獨立的圖），
     #   選單模式下本來就沒有工具列可言（既有行為，paintDgMode 會把它收起來）。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(300)
-    pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3200)
+    pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3200)
 
     # ⑰ 四個寬度都要在右下 1/4、而且完整在容器內
     for vw in (1440, 1100, 800, 390):
@@ -18064,7 +18092,9 @@ def t_b25_tools(pg, base):
         pg.evaluate("() => window.scrollTo({ top: 420 })"); pg.wait_for_timeout(500)
         y0 = pg.evaluate("() => Math.round(scrollY)")
         h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector("#dgPick .segchip:not(.sel)", "a => a.click()")
+        # ★ 2026-09-23：`#dgPick` 的第一頁現在是「族群總覽」（DECISIONS #252），
+        #   不加 `[data-dgid]` 的話這裡會點到它 —— 那驗到的是「切回總覽」，不是「切另一張圖」。
+        pg.eval_on_selector("#dgPick .segchip[data-dgid]:not(.sel)", "a => a.click()")
         pg.wait_for_timeout(2000)
         y1 = pg.evaluate("() => Math.round(scrollY)")
         changed("切圖別，網址真的跟著換", h0, pg.evaluate("() => location.hash"))
@@ -18359,6 +18389,257 @@ def t_b28_elec3d(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0');"
                 " localStorage.setItem('tw.dganim', '1');"
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
+
+
+
+# ================================================================ 批次29：產業與個股頁改版
+# 規格書 docs/industry_page_tabs_spec.md（Andy 2026-09-23 交辦的五件事）＋ DECISIONS #252。
+# 九條驗收逐條寫成真人操作：每一條都是「操作前記一次 → 真的操作 → 操作後再記一次 → 兩次必須不一樣」。
+B29_GP = """() => { const q = (s) => document.querySelector(s);
+  const vis = (n) => !!(n && n.offsetParent !== null);
+  const bar = q('#gpBar'), pie = q('#gpPie');
+  const br = bar ? bar.getBoundingClientRect() : null, pr = pie ? pie.getBoundingClientRect() : null;
+  const inst = (el) => (el && window.echarts) ? echarts.getInstanceByDom(el) : null;
+  const bi = inst(bar), pi = inst(pie);
+  const bo = bi ? bi.getOption().series[0].data : [];
+  const po = pi ? pi.getOption().series[0].data : [];
+  return { bar: !!bar, pie: !!pie, barCanvas: !!(bar && bar.querySelector('canvas,svg')),
+           pieCanvas: !!(pie && pie.querySelector('canvas,svg')),
+           barVis: vis(bar), pieVis: vis(pie),
+           // 「圓餅圖在右邊」＝ 圓餅的左緣不在長條的左邊，而且兩張圖在同一列
+           rightOfBar: !!(br && pr && pr.left >= br.right - 6 && pr.top < br.bottom - 40),
+           stacked: !!(br && pr && pr.top >= br.bottom - 6),
+           names: bo.map(d => d.name), vals: bo.map(d => d.value),
+           colors: bo.map(d => d.itemStyle && d.itemStyle.color),
+           pieNames: po.map(d => d.name), pieBorder: po.map(d => d.itemStyle && d.itemStyle.borderWidth),
+           title: (q('#gpTitle') || {}).innerText || '', hint: (q('#gpHint') || {}).innerText || '',
+           note: (q('#gpNote') || {}).innerText || '', focus: (q('#gpFocus') || {}).innerText || '',
+           back: vis(q('#gpBack')), liveOn: !!(q('#gpLiveBtn') && q('#gpLiveBtn').classList.contains('on')),
+           gp: (window.Industry && window.Industry._gp) ? window.Industry._gp() : null }; }"""
+
+# 第 i 條長條的螢幕座標（i＝ECharts 的 dataIndex，0 在最下面）。
+# 用 convertToPixel 問 ECharts 自己「這一條畫在哪」，再用真滑鼠點過去 —— 不是派事件。
+B29_BARPOS = """(i) => { const el = document.getElementById('gpBar');
+  const c = echarts.getInstanceByDom(el); const ds = c.getOption().series[0].data;
+  // i < 0 ＝「挑最長的那一條」（最短的那幾條只有幾個像素寬，真滑鼠點不準）
+  if (i < 0) { let bi = 0; ds.forEach((d, k) => { if (Math.abs(d.value) > Math.abs(ds[bi].value)) bi = k; }); i = bi; }
+  const d = ds[i]; if (!d) return null;
+  const r = el.getBoundingClientRect();
+  const p0 = c.convertToPixel({ seriesIndex: 0 }, [0, i]);
+  const pv = c.convertToPixel({ seriesIndex: 0 }, [d.value, i]);
+  // 點在「零線到長條末端」的中間 —— 負值的長條往左長，直接 +20 會點到空白處
+  return { name: d.name, value: d.value, i: i, wide: Math.abs(pv[0] - p0[0]) >= 8,
+           x: Math.round(r.left + (p0[0] + pv[0]) / 2), y: Math.round(r.top + p0[1]) }; }"""
+
+# 假的即時報價：本機與 CI 連不到 Cloudflare Worker（ERR_TUNNEL_CONNECTION_FAILED），
+# 真的按下去只驗得到「誠實地說抓不到」。要驗「數字真的換過一輪」就得給它一份回得來的報價。
+# ⚠ 換掉的只有**網路那一層**（Live.fetchQuotes），聚合、重畫、標示盤中暫定值全部走真的程式碼。
+B29_STUB = """() => { if (!window.Live) return false;
+  window.__b29real = window.Live.fetchQuotes;
+  window.Live.fetchQuotes = async (codes) => { const o = {};
+    (codes || []).forEach((c, i) => { o[String(c)] = { price: 50 + (i % 7) * 3, prevClose: 50,
+      chgPct: (i % 3 === 0 ? 8.8 : (i % 3 === 1 ? -6.6 : 1.1)), volume: 900 + i * 13, time: '11:22:33' }; });
+    return o; };
+  return true; }"""
+
+
+def t_b29_tabs(pg, base):
+    """產業與個股頁改版（活頁簿分頁＋長條圖／圓餅圖＋昨天／即時＋熱力圖獨立分頁）。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+    # ---------------- ⑦ 被移除的兩塊真的不在 DOM 了，但「法定產業別」還進得去
+    pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    gone = pg.evaluate("() => ['chainTiles','indTiles'].filter(id => !!document.getElementById(id))")
+    ok("產業鏈總覽卡片與法定產業別卡片都不在 DOM 了", gone == [], gone)
+    tabs = pg.evaluate("""() => [...document.querySelectorAll('#chainSwitch button')].map(b => ({
+        c: b.dataset.c, on: b.classList.contains('on'), t: b.innerText.trim() }))""")
+    ok("一層分頁列列得出全市場＋每一條鏈＋法定產業別",
+       len(tabs) >= 4 and tabs[0]["c"] == "_all" and any(t["c"] == "industry" for t in tabs), tabs)
+    ok("進 #industry 時選中的是「全市場」那一頁", tabs[0]["on"] and sum(1 for t in tabs if t["on"]) == 1, tabs)
+
+    # ---------------- ② 預設畫面＝長條圖（左）＋圓餅圖（右）
+    g0 = pg.evaluate(B29_GP)
+    ok("#industry 第一眼就是長條圖＋圓餅圖（量 DOM，不是看截圖）",
+       g0["barCanvas"] and g0["pieCanvas"] and g0["barVis"] and g0["pieVis"], g0)
+    ok("圓餅圖在右邊（Andy 指名）", g0["rightOfBar"], g0)
+    ok("長條圖真的有族群（至少 6 條）", len(g0["names"]) >= 6, g0["names"][:5])
+    ok("說明有寫「這張圖回答什麼」而且寫到「所以我該怎麼用」",
+       "這張圖回答" in g0["hint"] and "怎麼用" in g0["hint"] and len(g0["hint"]) > 60, g0["hint"][:60])
+    ok("預設是昨天（盤後），而且畫面上寫得出來",
+       "盤後" in g0["note"] and not g0["liveOn"], g0["note"][:60])
+
+    # ---------------- ③ 紅漲綠跌（拿真的正／負漲幅的族群驗顏色，不是看設定檔）
+    ch = pg.evaluate("() => ({ up: window.App.CH.up, down: window.App.CH.down })")
+    pos = [c for v, c in zip(g0["vals"], g0["colors"]) if v > 0]
+    neg = [c for v, c in zip(g0["vals"], g0["colors"]) if v < 0]
+    ok("漲的族群是紅色、跌的族群是綠色（台股慣例，不是國際配色）",
+       bool(pos) and bool(neg) and all(c == ch["up"] for c in pos) and all(c == ch["down"] for c in neg),
+       {"up": ch["up"], "pos": pos[:2], "down": ch["down"], "neg": neg[:2]})
+    rgb = pg.evaluate("""(hex) => { const h = hex.replace('#',''); const v = parseInt(h.length===3
+        ? h.split('').map(c=>c+c).join('') : h, 16); return [(v>>16)&255, (v>>8)&255, v&255]; }""", ch["up"])
+    ok("而且「漲」那個色真的是紅的（R 比 G 大），不會反過來", rgb[0] > rgb[1] + 40, rgb)
+
+    # ---------------- ⑤ 兩圖連動：滑過長條，圓餅對應扇形的樣式真的變
+    n = len(g0["names"])
+    top = pg.evaluate(B29_BARPOS, n - 1)
+    if not ok("量得到最上面那一條長條的位置", bool(top), top):
+        return
+    b_pie0 = g0["pieBorder"]
+    pg.mouse.move(top["x"], top["y"]); pg.wait_for_timeout(800)
+    g1 = pg.evaluate(B29_GP)
+    idx = g1["pieNames"].index(top["name"]) if top["name"] in g1["pieNames"] else -1
+    changed("滑過長條，圓餅對應扇形的描邊真的變了（量的是畫上去的樣式）",
+            b_pie0[idx] if idx >= 0 else None, g1["pieBorder"][idx] if idx >= 0 else None,
+            f"{top['name']}")
+    ok("而且兩張圖共用的讀數列真的寫出那個族群的數字",
+       top["name"] in g1["focus"] and "占" in g1["focus"], g1["focus"][:60])
+    pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+    g1b = pg.evaluate(B29_GP)
+    changed("滑鼠移開，圓餅的高亮真的收回去",
+            g1["pieBorder"][idx] if idx >= 0 else None, g1b["pieBorder"][idx] if idx >= 0 else None)
+
+    # ---------------- ④ 點長條 → 個股長條圖 → 點個股條進個股頁
+    pg.mouse.click(top["x"], top["y"]); pg.wait_for_timeout(1800)
+    g2 = pg.evaluate(B29_GP)
+    changed("點長條圖的族群，同一塊區域真的換成個股", g0["names"][:3], g2["names"][:3])
+    ok("換成的是「該族群所有個股」的漲幅長條圖",
+       g2["gp"]["mode"] == "stock" and g2["barCanvas"] and g2["pieCanvas"], g2["gp"])
+    ok("而且標題寫出是哪一個族群、幾檔", top["name"] in g2["title"] and "檔" in g2["title"], g2["title"])
+    ok("有「← 回到族群」可以回上一層", g2["back"], g2)
+    ok("不是跳到別頁（網址沒有變成個股或別的分頁）", pg.evaluate("location.hash") == "#industry",
+       pg.evaluate("location.hash"))
+    s0 = pg.evaluate(B29_BARPOS, -1)   # 個股層：挑最長的那一條，真滑鼠才點得準
+    pg.mouse.click(s0["x"], s0["y"]); pg.wait_for_timeout(2000)
+    ok("點個股那一條 → 真的進個股頁", pg.evaluate("location.hash").startswith("#stock/"),
+       pg.evaluate("location.hash"))
+    pg.go_back(); pg.wait_for_timeout(2200)
+    # 回到族群層：按鈕真的把畫面換回去
+    back0 = pg.evaluate("() => (window.Industry._gp()||{}).mode")
+    if back0 == "stock":
+        click(pg, "#gpBack", 1500)
+        changed("按「← 回到族群」真的回到族群層級", back0,
+                pg.evaluate("() => (window.Industry._gp()||{}).mode"))
+
+    # ---------------- ⑥ 昨天／即時
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    g3 = pg.evaluate(B29_GP)
+    ok("進一條鏈，第一個分頁一樣是長條圖＋右邊圓餅圖",
+       g3["barCanvas"] and g3["pieCanvas"] and g3["rightOfBar"] and g3["barVis"], g3)
+    seltab = pg.evaluate("""() => { const a = document.querySelector('#dgPick .segchip.on');
+        return a ? { tab: a.dataset.dgtab || a.dataset.dgid, i: [...a.parentNode.children].indexOf(a) } : null; }""")
+    ok("而且它就是二層分頁的第一頁（族群總覽）",
+       bool(seltab) and seltab["tab"] == "overview" and seltab["i"] == 0, seltab)
+    ok("即時鈕預設是關的，畫面寫著昨天（盤後）", (not g3["liveOn"]) and "盤後" in g3["note"], g3["note"][:50])
+    # 先量 onLive 監聽器：連開關三次，再敲三次 tw:quotes，被呼叫的次數必須剛好是 3
+    #   —— 監聽器重複疊加的話會變成 6、12、24（app.js 第 445 行寫過的坑）
+    for _ in range(3):
+        click(pg, "#gpLiveBtn", 500)
+        click(pg, "#gpLiveBtn", 500)
+    c0 = pg.evaluate("() => window.Industry._gp().liveCalls")
+    pg.evaluate("() => { for (let i = 0; i < 3; i++) window.dispatchEvent(new CustomEvent('tw:quotes', { detail: { n: 1 } })); }")
+    pg.wait_for_timeout(500)
+    c1 = pg.evaluate("() => window.Industry._gp().liveCalls")
+    ok("開關即時三次之後，onLive 監聽器**沒有**增加（敲 3 次就只被呼叫 3 次）", c1 - c0 == 3, f"{c0} → {c1}")
+    # 真的切到即時：本機連不到報價代理，所以要驗「誠實地說抓不到」；再餵一份假報價驗「數字真的換」
+    click(pg, "#gpLiveBtn", 2500)
+    g4 = pg.evaluate(B29_GP)
+    ok("按下即時：鈕亮起來、而且計時器真的開始跑", g4["liveOn"] and g4["gp"]["timer"], g4["gp"])
+    ok("抓不到報價時誠實寫出來（不可以默默畫成收盤值卻說是即時）",
+       "抓不到" in g4["note"] or "盤中暫定值" in g4["note"], g4["note"][:70])
+    click(pg, "#gpLiveBtn", 800)
+    ok("按下 B29_STUB 之前先把即時關掉", not pg.evaluate("() => window.Industry._gp().live"))
+    pg.evaluate(B29_STUB)
+    v0 = pg.evaluate(B29_GP)["vals"]
+    click(pg, "#gpLiveBtn", 3000)
+    g5 = pg.evaluate(B29_GP)
+    changed("切到即時，長條的數字真的換過一輪", v0, g5["vals"])
+    ok("而且畫面標明這是盤中暫定值、成交值是估算的",
+       "盤中暫定值" in g5["note"] and "估算" in g5["note"], g5["note"][:80])
+    click(pg, "#gpLiveBtn", 2000)
+    g6 = pg.evaluate(B29_GP)
+    changed("再按一次退回昨天，數字也真的換回來", g5["vals"], g6["vals"])
+    ok("退回昨天之後畫面也寫回「盤後」", "盤後" in g6["note"], g6["note"][:50])
+
+    # ---------------- ① 分頁真的切得動、選中的視覺不同
+    t0 = pg.evaluate(B29_GP)["title"]
+    st = pg.evaluate("""() => { const on = document.querySelector('#chainSwitch button.on');
+        const off = [...document.querySelectorAll('#chainSwitch button')].find(b => !b.classList.contains('on'));
+        const s = (e) => { const c = getComputedStyle(e); return { bg: c.backgroundColor, mt: c.marginTop,
+            bb: parseFloat(c.borderBottomWidth) || 0, fw: c.fontWeight, fs: parseFloat(c.fontSize) }; };
+        return { on: s(on), off: s(off), name: on.dataset.c }; }""")
+    ok("選中的那一頁與未選的**視覺真的不同**（底色、上緣位置、字重）",
+       st["on"]["bg"] != st["off"]["bg"] and st["on"]["mt"] != st["off"]["mt"], st)
+    ok("選中的那一頁沒有下邊界（和內容連成一片）", st["on"]["bb"] == 0, st["on"])
+    click(pg, "#chainSwitch button[data-c='ai_server']", 2600)
+    g7 = pg.evaluate(B29_GP)
+    changed("按一層分頁，內容真的換一條鏈", t0, g7["title"])
+    ok("而且網址跟著換（分頁是真的頁，不是只換畫面）",
+       pg.evaluate("location.hash") == "#industry/ai_server", pg.evaluate("location.hash"))
+    # 二層分頁：換到剖析圖那一頁
+    dg = pg.evaluate("() => { const a = document.querySelector('#dgPick .segchip[data-dgid]'); return a ? a.dataset.dgid : null; }")
+    if ok("二層分頁列得出這條鏈的剖析圖", bool(dg), dg):
+        click(pg, f"#dgPick .segchip[data-dgid='{dg}']", 2600)
+        g8 = pg.evaluate(B29_GP)
+        after = pg.evaluate("""() => ({ hash: location.hash, svg: !!document.querySelector('#prodDiagram svg'),
+            on: (document.querySelector('#dgPick .segchip.on') || { dataset: {} }).dataset.dgid })""")
+        ok("按二層分頁 → 剖析圖真的畫出來、族群總覽讓位", after["svg"] and not g8["barVis"], after)
+        ok("而且它有自己的網址（可分享、可回上一頁）", after["hash"].endswith("/dg/" + dg), after)
+        ok("被選起來的換成那一頁", after["on"] == dg, after)
+        click(pg, "#dgPick .segchip[data-dgtab='overview']", 2600)
+        g9 = pg.evaluate(B29_GP)
+        ok("按回「族群總覽」→ 長條圖與圓餅圖真的回來、網址回到這條鏈",
+           g9["barVis"] and g9["pieVis"] and pg.evaluate("location.hash") == "#industry/ai_server",
+           pg.evaluate("location.hash"))
+
+    # 法定產業別那一頁（35 個法定產業別唯一的入口，卡片移除之後更不能壞）
+    click(pg, "#chainSwitch button[data-c='industry']", 2600)
+    gi = pg.evaluate(B29_GP)
+    ok("法定產業別那一頁點得進去，而且真的有東西",
+       pg.evaluate("location.hash") == "#industry/industry" and len(gi["names"]) >= 5, gi["names"][:4])
+
+    # ---------------- ⑧ 熱力圖在自己的頂層分頁，而且點得動
+    ok("頂層分頁列多了「熱力圖」那一頁",
+       pg.evaluate("() => !!document.querySelector('#tabs .tab[data-view=\\'heatmap\\']')"))
+    click(pg, "#tabs .tab[data-view='heatmap']", 2800)
+    hm = pg.evaluate("""() => ({ hash: location.hash, tree: !!document.querySelector('#indTree canvas,#indTree svg'),
+        onTab: (document.querySelector('#tabs .tab.on') || { dataset: {} }).dataset.view,
+        trees: document.querySelectorAll('#indTree').length,
+        gpVis: !!(document.getElementById('gpBar') && document.getElementById('gpBar').offsetParent !== null) })""")
+    ok("熱力圖有自己的頂層分頁，而且圖真的畫出來",
+       hm["hash"] == "#heatmap" and hm["tree"] and hm["onTab"] == "heatmap", hm)
+    ok("整份 DOM 只有一張 #indTree（產業地圖那邊不准再畫一份）", hm["trees"] == 1, hm)
+    ok("熱力圖這一頁不會同時出現族群總覽（兩者是不同分頁）", not hm["gpVis"], hm)
+    box = pg.evaluate("() => { const r = document.getElementById('indTree').getBoundingClientRect();"
+                      " return { x: Math.round(r.left + r.width * 0.25), y: Math.round(r.top + r.height * 0.45) }; }")
+    pg.mouse.click(box["x"], box["y"]); pg.wait_for_timeout(2400)
+    h2 = pg.evaluate("""() => ({ hash: location.hash, rows: document.querySelectorAll('#memberTable tbody tr').length,
+        title: (document.getElementById('gpTitle') || {}).innerText || '' })""")
+    ok("從熱力圖點下去，仍然跳得到對應的族群／產業鏈頁",
+       h2["hash"].startswith("#industry/") and (h2["rows"] > 0 or len(h2["title"]) > 2), h2)
+
+    # ---------------- ⑨ 四個寬度：不溢出、分頁字不小於 12px、選中的分頁捲得進視野
+    for w in (1440, 1100, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        # ⚠ 一定要 reload：第二圈之後網址一模一樣，`goto` 是同文件導覽（不會重跑 render），
+        #   量到的會是**上一個寬度**的版面（實測 390 量到 800 的 716px，假紅）。
+        pg.goto(f"{base}#industry/industry", wait_until="networkidle")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+        r = pg.evaluate("""() => { const st = document.getElementById('chainSwitch');
+            const on = st.querySelector('button.on'); const sr = st.getBoundingClientRect(), orr = on.getBoundingClientRect();
+            const fs = [...document.querySelectorAll('#chainSwitch button, #dgPick .segchip')]
+              .map(e => parseFloat(getComputedStyle(e).fontSize));
+            const bar = document.getElementById('gpBar'), pie = document.getElementById('gpPie');
+            const br = bar.getBoundingClientRect(), pr = pie.getBoundingClientRect();
+            return { docW: document.documentElement.scrollWidth, winW: innerWidth,
+                     inView: orr.left >= sr.left - 2 && orr.right <= sr.right + 2,
+                     minFs: Math.min(...fs), barW: Math.round(br.width), pieW: Math.round(pr.width),
+                     side: pr.left >= br.right - 6, stacked: pr.top >= br.bottom - 6 }; }""")
+        ok(f"[{w}px] 沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+        ok(f"[{w}px] 分頁的字不小於 12px", r["minFs"] >= 12, r)
+        ok(f"[{w}px] 選中的那一頁在視野裡（放不下就自己捲過去）", r["inView"], r)
+        ok(f"[{w}px] 兩張圖不是並排就是上下排，不會互相壓到",
+           r["side"] or r["stacked"], r)
+        ok(f"[{w}px] 兩張圖都有實際寬度", r["barW"] > 120 and r["pieW"] > 120, r)
 
 
 if __name__ == "__main__":
