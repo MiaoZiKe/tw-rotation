@@ -40,29 +40,8 @@
   'use strict';
   const D = window.DG;
   if (!D || typeof D.register !== 'function') return;   // diagrams.js 沒載到就安靜退出
-  const { extRow, note, fold, fx } = D;
 
-  /* ★ 2026-09-23（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
-     並且需要適當的調整及填充版面間隔，不許有空白」）
-     -------------------------------------------------------------------------
-     原本：980 寬，三格電晶體各佔 304 寬的方框、框裡下半塞三行說明；
-           下面四段章節用 `D.foldBar()` ＋ 手算的 data-y0／data-y1 ＋ translate 疊出來。
-           三個框之間、框內右半邊、以及章節裡「環的四周」留著大片空白。
-     現在：跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套
-           （DECISIONS #238／#239 的 v2 風格）：
-             · svg 根掛 `rs` → `externalize()` 把說明卡片搬成 HTML（.dgc）排進畫布左右兩欄，
-               欄寬由 index.html 的 .dgv2 容器查詢決定 —— 版面自己填滿。
-               三格框內那九行說明因此退場，改成十五張帶編號的卡片 ＋ 畫布上的圓點與引線。
-             · 畫布收到 **660**（主角寬），`native` 跟著改。三格的半寬從 136 收到 **100**
-               （`HW`），三格中線改成 110／330／550 —— 幾何比例一個都沒動，
-               §6-T3（鰭高／鰭寬 4.75 倍）與 §6-T6（片寬／片厚 8 倍）照舊由常數保證。
-             · 材質走共用介面 `D.fx`（`glowDefs`／`glass`／`shadows`）。
-             · 章節改用 `D.fold()`（範圍由 getBBox 量），不再手算 y0／y1 與 translate。
-               製程迴圈環從 r=150 收到 r=140、九站清單從「環的右邊」改到「環的下面」一整排，
-               660 寬因此塞得下，而且字級一個都沒縮。
-             · 節點列四格從「橫排一列」改成 **2×2**，兩條分界線一條變橫的、一條仍是直的。
-     互動一個都沒少：32 個 `data-part` 一個不改名、每一個零件照舊掛 `data-seg="foundry"`。*/
-  const CW = 660, SEG = 'foundry';
+  const W = 980, SEG = 'foundry';
 
   /* ================================================================ 小工具 */
   const R = (x, y, w, h, fill, cls, rx) =>
@@ -77,20 +56,6 @@
     `<text class="${cls || 'sub'}" x="${+x.toFixed(1)}" y="${+y.toFixed(1)}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
 
-  /* 元件色（卡片 data-dgcolor ＋ 編號圓點 ＋ 引線端點共用），全部是 index.html 既有的 token */
-  const C = {
-    si: 'var(--dg-si)', si2: 'var(--dg-si-2)', org: 'var(--dg-organic)', steel: 'var(--dg-steel)',
-    sn: 'var(--dg-sn)', ni: 'var(--dg-ni)', tim: 'var(--dg-tim)', el: 'var(--dg-el)',
-    cu: 'var(--dg-cu-lit)', mute: 'var(--dg-mute)', cyan: 'var(--dg-accent-2d)', warn: 'var(--dg-warn)',
-  };
-  /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點 ＋ 引線。
-     卡片跟它指的零件**共用同一個 data-part**：點卡片零件亮、點零件卡片亮。*/
-  const card = (o) => {
-    const s = extRow({ seg: SEG, part: o.part, title: o.title, sub: o.sub, no: o.no,
-      side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order });
-    return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
-  };
-
   /* 一支「閘極管到這一面」的箭頭。三格共用同一支 —— §6-T8 要數得出 1／3／4 支，
      所以每一支都是一個 `path.arw`，數 path.arw 就是數面數。*/
   function arw(x0, y0, x1, y1) {
@@ -98,27 +63,26 @@
     const ux = dx / len, uy = dy / len, hx = -uy, hy = ux, H = 5.5, B = 3.4;
     const bx = x1 - ux * H, by = y1 - uy * H;
     return `<path class="arw" d="M${x0.toFixed(1)},${y0.toFixed(1)} L${bx.toFixed(1)},${by.toFixed(1)}" `
-      + `stroke="${C.cyan}" stroke-width="1.8" fill="none"/>`
+      + `stroke="var(--dg-accent-2d)" stroke-width="1.8" fill="none"/>`
       + `<path class="arwh" d="M${x1.toFixed(1)},${y1.toFixed(1)} L${(bx + hx * B).toFixed(1)},${(by + hy * B).toFixed(1)} `
-      + `L${(bx - hx * B).toFixed(1)},${(by - hy * B).toFixed(1)}Z" fill="${C.cyan}"/>`;
+      + `L${(bx - hx * B).toFixed(1)},${(by - hy * B).toFixed(1)}Z" fill="var(--dg-accent-2d)"/>`;
   }
 
   /* ================================================================ 區 A：三格電晶體
 
      三格共用的基準（§3-A F1／§6-T1：同一個放大倍率、同一套材質色、同一個剖面方向）：
        基板頂面 y=298、基板底 y=352；結構往上長，最高不超過 y=130。
-     `TXDY` 把三格的幾何整體往上提；**字一個都沒縮**（12px 是硬下限）。
-     2026-09-23：`HW`（半寬）從 136 收到 100，三格中線改成 110／330／550 ——
-     三格仍然是同一支 `txCell()` 產生的，所以「同一個放大倍率」是結構性的，不是靠眼睛對。*/
-  const CA_Y = 52, CA_H = 300, TXDY = -38;
-  const HW = 100;                                  // 每一格的半寬（基板 200 寬）
-  const CXS = [110, 330, 550];                     // 三格的中線
+     每一格 304 寬，內容區 X+16 ～ X+288，中線 cx = X+152。*/
+  /* 區 A 是**唯一留在主畫面**的一區（Andy 2026-09-22：「圖片及文字縮小一半…希望能一次看到完整資訊」）。
+     它就是這張圖的命題 —— 三代電晶體改的都是同一件事。其餘四塊收進章節列。
+     `TXDY` 把三格的幾何整體往上提，讓格子從 436 高瘦到 340；**字一個都沒縮**（12px 是硬下限）。*/
+  const CELL_W = 304, CA_Y = 52, CA_H = 340, TXDY = -38;
   const SUB_T = 298, SUB_B = 352;
 
   // 鰭：**高 76 ／ 寬 16 ＝ 4.75 倍**（§6-T3 要求 > 2 倍）。改這兩個數字之前先看那一條。
   const FIN_W = 16, FIN_H = 76;
-  // 奈米片：**寬 80 ／ 厚 10 ＝ 8 倍**（§6-T6 要求 > 3 倍）。片數 3（§3-A F5 要求 2～4）。
-  const SH_W = 80, SH_T = 10, SH_N = 3, GM_T = 20;   // GM_T＝片與片之間那層閘極金屬的厚度
+  // 奈米片：**寬 96 ／ 厚 12 ＝ 8 倍**（§6-T6 要求 > 3 倍）。片數 3（§3-A F5 要求 2～4）。
+  const SH_W = 96, SH_T = 12, SH_N = 3, GM_T = 20;   // GM_T＝片與片之間那層閘極金屬的厚度
 
   /* GAA 的疊構。**金屬與片在同一個迴圈裡產生**（§9 的提醒：畫在迴圈外最容易漏掉最底下那一層，
      那就是 T7 不過）。回傳由下往上的 y 界，metals 一定比 sheets 多一個。*/
@@ -133,37 +97,36 @@
     return { sheets: sheets, metals: metals, top: y };
   }
 
-  function txCell(cx, kind) {
-    const L0 = cx - HW, R0 = cx + HW;
+  function txCell(X, kind) {
+    const cx = X + 152, L0 = cx - 136, R0 = cx + 136;
     const g = [];
-    const slab = (x, y, w, h, fill, rx) => fx.glass(x, y, w, h, { fill, cls: 'part', rx: rx || 1 });
 
     // ---- 共用：矽基板（三格同一個位置、同一個顏色）
-    g.push(part('fd_sub', slab(L0, SUB_T, R0 - L0, SUB_B - SUB_T, C.si2, 2)));
+    g.push(part('fd_sub', R(L0, SUB_T, R0 - L0, SUB_B - SUB_T, 'var(--dg-si-2)', 'part', 2)));
 
     if (kind === 'planar') {
       /* 一 平面：通道是**一條水平薄層**，閘極**只從上方蓋下來**（§3-A F2／§6-T2）。
          閘極包到側面＝那不是平面電晶體。*/
-      g.push(part('fd_sd', slab(L0 + 8, 272, 52, 26, C.org, 2)
-        + slab(cx + 40, 272, 52, 26, C.org, 2)));
-      g.push(part('fd_planar', R(cx - 40, 288, 80, 10, C.si, 'part', 1)));      // 通道
-      g.push(part('fd_hk', R(cx - 40, 282, 80, 6, C.sn, 'part')));              // 閘極介電層（極薄）
-      g.push(part('fd_spacer', R(cx - 50, 252, 10, 36, C.mute, 'part', 1)
-        + R(cx + 40, 252, 10, 36, C.mute, 'part', 1)));
-      g.push(part('fd_gate', slab(cx - 40, 252, 80, 30, C.steel, 2)));
-      g.push(part('fd_face1', arw(cx, 214, cx, 246)));                          // 1 面
-      g.push(`<g pointer-events="none">${T(cx, 206, '閘極只管得到一面', 'lbl', 'middle')}</g>`);
+      g.push(part('fd_sd', R(L0 + 8, 272, 82, 26, 'var(--dg-organic)', 'part', 2)
+        + R(cx + 46, 272, 82, 26, 'var(--dg-organic)', 'part', 2)));
+      g.push(part('fd_planar', R(cx - 46, 288, 92, 10, 'var(--dg-si)', 'part', 1)));      // 通道
+      g.push(part('fd_hk', R(cx - 46, 282, 92, 6, 'var(--dg-sn)', 'part')));              // 閘極介電層（極薄）
+      g.push(part('fd_spacer', R(cx - 58, 252, 12, 36, 'var(--dg-mute)', 'part', 1)
+        + R(cx + 46, 252, 12, 36, 'var(--dg-mute)', 'part', 1)));
+      g.push(part('fd_gate', R(cx - 46, 252, 92, 30, 'var(--dg-steel)', 'part', 2)));
+      g.push(part('fd_face1', arw(cx, 214, cx, 246)));                                    // 1 面
+      g.push(`<g pointer-events="none">${T(cx, 206, '閘極只管得到通道的一面', 'lbl', 'middle')}</g>`);
 
     } else if (kind === 'fin') {
       /* 二 FinFET：**垂直於鰭的橫剖面**。閘極是 ㄇ 字形、真的罩到兩個側面，
          而**鰭的最底部埋在 STI 裡、沒有被包到**（§3-A F4／§6-T4）。
          兩片平行的鰭（§6-T5：單鰭看不出「鰭是重複單元」）。*/
-      const fxs = [cx - 44, cx + 28];                      // 兩片鰭的左緣，節距 72
-      g.push(part('fd_sd', slab(L0 + 8, 246, 36, 52, C.org, 2)
-        + slab(cx + 56, 246, 36, 52, C.org, 2)));
-      g.push(part('fd_fin', fxs.map(x => R(x, SUB_T - FIN_H, FIN_W, FIN_H, C.si, 'part', 1)).join('')));
+      const fx = [cx - 52, cx + 36];                       // 兩片鰭的左緣，節距 88
+      g.push(part('fd_sd', R(L0 + 8, 246, 44, 52, 'var(--dg-organic)', 'part', 2)
+        + R(cx + 84, 246, 44, 52, 'var(--dg-organic)', 'part', 2)));
+      g.push(part('fd_fin', fx.map(x => R(x, SUB_T - FIN_H, FIN_W, FIN_H, 'var(--dg-si)', 'part', 1)).join('')));
       // STI 只淹到鰭的下部（26／76），上面 50px 才是被閘極包住的那一段
-      g.push(part('fd_sti', R(L0, 272, R0 - L0, 26, C.el, 'part', 1)));
+      g.push(part('fd_sti', R(L0, 272, R0 - L0, 26, 'var(--dg-el)', 'part', 1)));
       /* ㄇ 字形一律用**填色的多邊形**畫，不用 stroke。
          理由：`diagrams.js` 的 `.dg [data-seg] .part{stroke:…}` 是 CSS，
          它會蓋掉 SVG 的 `stroke` 呈現屬性 —— 用 stroke 畫出來的閘極會變成
@@ -171,22 +134,23 @@
       const uShape = (x, out, topOut, inn, topIn, bot) =>
         `M${x - out},${bot} L${x - out},${topOut} L${x + FIN_W + out},${topOut} L${x + FIN_W + out},${bot} `
         + `L${x + FIN_W + inn},${bot} L${x + FIN_W + inn},${topIn} L${x - inn},${topIn} L${x - inn},${bot}Z`;
-      g.push(part('fd_hk', fxs.map((x) => PA(uShape(x, 3, 219, 0, 222, 272), C.sn, 'part')).join('')));
-      g.push(part('fd_gate', fxs.map((x) => PA(uShape(x, 15, 207, 3, 219, 272), C.steel, 'part')).join('')));
+      g.push(part('fd_hk', fx.map((x) => PA(uShape(x, 3, 219, 0, 222, 272), 'var(--dg-sn)', 'part')).join('')));
+      g.push(part('fd_gate', fx.map((x) => PA(uShape(x, 15, 207, 3, 219, 272), 'var(--dg-steel)', 'part')).join('')));
       // 三面：上、左、右各一支，指向左邊那片鰭的閘極
-      g.push(part('fd_face3', arw(cx - 36, 184, cx - 36, 204)
-        + arw(cx - 76, 248, cx - 62, 248) + arw(cx + 4, 248, cx - 10, 248)));
+      g.push(part('fd_face3', arw(cx - 44, 184, cx - 44, 204)
+        + arw(cx - 84, 248, cx - 70, 248) + arw(cx - 2, 248, cx - 18, 248)));
       /* 鰭底那一段管不到 —— 這就是 FinFET 的極限。
-         **這裡刻意只畫一個虛線框、不放文字**：那句話放在卡片裡。*/
-      g.push(`<g pointer-events="none">${LN(`M${cx - 50},271 L${cx - 22},271 L${cx - 22},299 L${cx - 50},299Z`,
-        C.warn, 1.4, ' stroke-dasharray="4 3"')}</g>`);
+         **這裡刻意只畫一個虛線框、不放文字**：格子只有 304 寬，任何一行說明放進來
+         都會壓到零件或伸出格外。那句話改放在下面的說明行（警語色那兩行）。*/
+      g.push(`<g pointer-events="none">${LN(`M${cx - 58},271 L${cx - 26},271 L${cx - 26},299 L${cx - 58},299Z`,
+        'var(--dg-warn)', 1.4, ' stroke-dasharray="4 3"')}</g>`);
       // 右上角的等角輔助圖（灰階、不搶主角）：一條長鰭橫躺、閘極橫跨過去
       g.push(part('fd_fin_iso', '<g opacity=".72">'
-        + PA(`M${cx + 34},196 L${cx + 86},164 L${cx + 92},168 L${cx + 40},200Z`, C.mute, 'part')
-        + PA(`M${cx + 34},196 L${cx + 40},200 L${cx + 40},212 L${cx + 34},208Z`, C.mute, 'part')
-        + PA(`M${cx + 56},190 L${cx + 68},182 L${cx + 74},186 L${cx + 62},194Z`, C.steel, 'part')
-        + PA(`M${cx + 56},190 L${cx + 62},194 L${cx + 62},208 L${cx + 56},204Z`, C.steel, 'part')
-        + '</g>' + T(cx - 96, 158, '等角輔助：閘極跨過鰭', 'sub')));
+        + PA(`M${cx + 56},196 L${cx + 122},164 L${cx + 130},168 L${cx + 64},200Z`, 'var(--dg-mute)', 'part')
+        + PA(`M${cx + 56},196 L${cx + 64},200 L${cx + 64},212 L${cx + 56},208Z`, 'var(--dg-mute)', 'part')
+        + PA(`M${cx + 84},190 L${cx + 100},182 L${cx + 108},186 L${cx + 92},194Z`, 'var(--dg-steel)', 'part')
+        + PA(`M${cx + 84},190 L${cx + 92},194 L${cx + 92},208 L${cx + 84},204Z`, 'var(--dg-steel)', 'part')
+        + '</g>' + T(cx + 6, 158, '等角輔助：閘極跨過鰭', 'sub')));
 
     } else {
       /* 三 GAA 奈米片 —— 本圖的主角。
@@ -194,64 +158,82 @@
          介電層**繞著每一片走一圈**（封閉細框，§3-A F7）。*/
       const lay = gaaLayers(292);
       const sx = cx - SH_W / 2, mx = cx - SH_W / 2 - 14, mw = SH_W + 28;
+      // 先鋪金屬（四層水平 ＋ 兩條側邊），片與介電層畫在它上面
       /* 金屬層左右各多伸 8px，剛好把「片與片之間、閘極與源汲之間」那一段補滿 ——
-         內間隙壁只存在於**片**那幾層，金屬層那幾層如果不補滿，畫面上會出現兩條看起來像破洞的黑縫。*/
+         內間隙壁只存在於**片**那幾層（它的工作是把閘極跟源汲擋開），
+         金屬層那幾層如果不補滿，畫面上會出現兩條看起來像破洞的黑縫。*/
       g.push(part('fd_gaa',
-        lay.metals.map((y) => R(mx - 8, y, mw + 16, GM_T, C.steel, 'part gm', 1)).join('')
-        + R(mx, lay.top, 14, 292 - lay.top, C.steel, 'part gs', 1)
-        + R(mx + mw - 14, lay.top, 14, 292 - lay.top, C.steel, 'part gs', 1)));
-      g.push(part('fd_sheet', lay.sheets.map(y => R(sx, y, SH_W, SH_T, C.si, 'part', 1)).join('')));
+        lay.metals.map((y) => R(mx - 8, y, mw + 16, GM_T, 'var(--dg-steel)', 'part gm', 1)).join('')
+        + R(mx, lay.top, 14, 292 - lay.top, 'var(--dg-steel)', 'part gs', 1)
+        + R(mx + mw - 14, lay.top, 14, 292 - lay.top, 'var(--dg-steel)', 'part gs', 1)));
+      g.push(part('fd_sheet', lay.sheets.map(y => R(sx, y, SH_W, SH_T, 'var(--dg-si)', 'part', 1)).join('')));
       g.push(part('fd_hk', lay.sheets.map(y =>
-        `<rect class="part" x="${(sx - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="${SH_W + 6}" height="${SH_T + 6}" rx="2" fill="none" stroke="${C.sn}" stroke-width="2"/>`).join('')));
+        `<rect class="part" x="${(sx - 3).toFixed(1)}" y="${(y - 3).toFixed(1)}" width="${SH_W + 6}" height="${SH_T + 6}" rx="2" fill="none" stroke="var(--dg-sn)" stroke-width="2"/>`).join('')));
       // 內間隙壁：夾在閘極與源汲之間，每一片兩端各一塊
       g.push(part('fd_spacer', lay.sheets.map(y =>
-        R(mx - 8, y - 3, 8, SH_T + 6, C.mute, 'part') + R(mx + mw, y - 3, 8, SH_T + 6, C.mute, 'part')).join('')));
+        R(mx - 8, y - 3, 8, SH_T + 6, 'var(--dg-mute)', 'part') + R(mx + mw, y - 3, 8, SH_T + 6, 'var(--dg-mute)', 'part')).join('')));
       // 源汲磊晶：**把所有奈米片的端部一起接起來**（§3-A F9／§6-T9）
-      g.push(part('fd_sd', slab(L0 + 8, lay.top, (mx - 8) - (L0 + 8), 292 - lay.top, C.org, 2)
-        + slab(mx + mw + 8, lay.top, (R0 - 8) - (mx + mw + 8), 292 - lay.top, C.org, 2)));
+      g.push(part('fd_sd', R(L0 + 8, lay.top, mx - 8 - (L0 + 8), 292 - lay.top, 'var(--dg-organic)', 'part', 2)
+        + R(mx + mw + 8, lay.top, (R0 - 8) - (mx + mw + 8), 292 - lay.top, 'var(--dg-organic)', 'part', 2)));
       // 四面：上、下、左、右，圍著中間那一片
       const mid = lay.sheets[1], mc = mid + SH_T / 2;
-      g.push(part('fd_face4', arw(cx - 18, mid - 16, cx - 18, mid - 3)
-        + arw(cx - 18, mid + SH_T + 16, cx - 18, mid + SH_T + 3)
+      g.push(part('fd_face4', arw(cx - 22, mid - 16, cx - 22, mid - 3)
+        + arw(cx - 22, mid + SH_T + 16, cx - 22, mid + SH_T + 3)
         + arw(mx - 2, mc, sx - 4, mc) + arw(mx + mw + 2, mc, sx + SH_W + 4, mc)));
       // 可變片寬（NanoFlex，示意）：兩疊寬窄不同的片，灰階小圖，**不寫任何寬度數字**（§7-B2）
       g.push(part('fd_flex', '<g opacity=".7">'
-        + [0, 1, 2].map(i => R(L0 + 14, 142 + i * 11, 22, 6, C.mute, 'part', 1)).join('')
-        + [0, 1, 2].map(i => R(L0 + 46, 142 + i * 11, 44, 6, C.mute, 'part', 1)).join('')
-        + '</g>' + T(L0 + 14, 134, '片寬可調（示意）', 'sub')));
+        + [0, 1, 2].map(i => R(L0 + 14, 142 + i * 11, 26, 6, 'var(--dg-mute)', 'part', 1)).join('')
+        + [0, 1, 2].map(i => R(L0 + 52, 142 + i * 11, 48, 6, 'var(--dg-mute)', 'part', 1)).join('')
+        + '</g>' + T(L0 + 14, 134, '片寬可調（NanoFlex，示意）', 'sub')));
     }
     return g.join('');
   }
 
-  /* 每一格的抬頭與兩行短說明（一行最多 17 個字 —— 每一格內寬只有 200px）。
-     原本框內那三行長說明搬到 HTML 卡片上，那裡的欄寬是容器查詢決定的，不會擠。
+  /* 每一格的說明行。**一行最多 21 個字**（格子內寬 272px ÷ 12px ≒ 22）——
+     超過就會伸進隔壁格，而那是字級與重疊都量不到的一種壞法。
      `wi` ＝要上警語色的行索引。*/
+  /* 每一格的說明行從七行砍到三行（Andy：「同一件事在標題、說明列、標註講三次，留一次」）。
+     砍掉的那幾行講的東西**沒有消失**：片寬片厚比、源汲磊晶接住所有片端、STI 埋住鰭底，
+     圖上本來就畫得出來，而且零件小卡裡逐條寫著。
+     一行最多 24 個字（格子內寬 272px）；`wi` ＝要上警語色的行索引。*/
   const TX = [
-    { k: 'planar', cx: CXS[0], no: '一', nm: '平面（Planar）', fa: '管到 1 面', wi: [],
-      cap: ['通道是一條水平薄層，', '閘極只從正上方蓋下來。'] },
-    { k: 'fin', cx: CXS[1], no: '二', nm: 'FinFET（鰭式）', fa: '管到 3 面', wi: [1],
-      cap: ['把通道立起來變成一片鰭。', '★ 虛線框那段鰭底包不到。'] },
-    { k: 'gaa', cx: CXS[2], no: '三', nm: 'GAA 奈米片', fa: '管到 4 面', wi: [],
-      cap: ['閘極金屬鑽進每一片之間', '的縫，上下左右都管得到。'] },
+    {
+      k: 'planar', x: 16, no: '一', nm: '平面（Planar）', fa: '閘極管到 1 面', wi: [],
+      cap: ['通道是一條水平的薄層，閘極只從',
+        '正上方蓋下來 —— 只管一面，關不住',
+        '的漏電從其餘三面跑掉。'],
+    },
+    {
+      k: 'fin', x: 334, no: '二', nm: 'FinFET（鰭式）', fa: '閘極管到 3 面', wi: [2],
+      cap: ['把通道立起來變成一片鰭，閘極就',
+        '罩住頂＋左＋右三面（鰭高是鰭寬 4.75 倍）。',
+        '★ 虛線框那一段鰭底包不到，那就是盡頭。'],
+    },
+    {
+      k: 'gaa', x: 652, no: '三', nm: 'GAA 奈米片', fa: '閘極管到 4 面', wi: [],
+      cap: ['閘極金屬鑽進每一片之間的縫，上下',
+        '左右四面都管得到 —— 這就是',
+        'Gate-All-Around。'],
+    },
   ];
 
   function areaA() {
     return TX.map((o) => {
-      const x = o.cx - 105;
-      const cap = o.cap.map((s, i) => T(x + 10, 368 + i * 18, s, 'sub', null,
-        o.wi.indexOf(i) >= 0 ? `fill:${C.warn}` : '')).join('');
-      return `<g>${frame(x, CA_Y, 210, CA_H)}
-        ${T(x + 10, CA_Y + 22, o.no + '、' + o.nm, 'hd')}
-        ${T(x + 200, CA_Y + 22, o.fa, 'lbl', 'end', `fill:${C.cyan}`)}
-        <g transform="translate(0,${TXDY})">${txCell(o.cx, o.k)}</g>
+      const cap = o.cap.map((s, i) => T(o.x + 16, 350 + i * 18, s, 'sub', null,
+        o.wi.indexOf(i) >= 0 ? 'fill:var(--dg-warn)' : '')).join('');
+      return `<g>${frame(o.x, CA_Y, CELL_W, CA_H)}
+        ${T(o.x + 16, CA_Y + 22, o.no + '、' + o.nm, 'hd')}
+        ${T(o.x + CELL_W - 16, CA_Y + 22, o.fa, 'lbl', 'end', 'fill:var(--dg-accent-2d)')}
+        <g transform="translate(0,${TXDY})">${txCell(o.x, o.k)}</g>
+        ${T(o.x + 16, 330, '（剖面兩端的源／汲為示意，不與閘極同切面）', 'cap')}
         ${cap}</g>`;
     }).join('');
   }
 
-  /* ================================================================ 章節 ②（左）：三級縮放尺
+  /* ================================================================ 區 B（左）：三級縮放尺
      §3-E：由大到小 晶圓 → 晶粒 → 電晶體，三級之間有引線；
      晶圓要有 **notch**，而且**邊緣那一圈是殘缺的方格**（切不出完整晶粒的邊緣損失）。*/
-  const WF = { cx: 100, cy: 560, r: 54, cell: 13, gap: 1.4 };
+  const WF = { cx: 112, cy: 632, r: 54, cell: 13, gap: 1.4 };
 
   function waferTop() {
     const pitch = WF.cell + WF.gap, cells = [];
@@ -261,12 +243,13 @@
       for (let j = 0; j < n; j++) {
         const x = x0 + i * pitch, y = y0 + j * pitch;
         /* 四個角都在圓內＝完整晶粒；只要有一個角在圓外就是**殘缺**的那一圈。
-           兩種格子分開上色，「邊緣損失」才看得到（§3-E Z2）。*/
+           兩種格子分開上色，「邊緣損失」才看得到（§3-E Z2：畫成整片都是完整方格
+           等於把邊緣損失畫不見了）。*/
         const cor = [[x, y], [x + WF.cell, y], [x, y + WF.cell], [x + WF.cell, y + WF.cell]];
         const d = cor.map((c) => Math.hypot(c[0] - WF.cx, c[1] - WF.cy));
         if (Math.min.apply(null, d) > WF.r) continue;              // 整格在圓外，不畫
         const full = Math.max.apply(null, d) <= WF.r;
-        cells.push(R(x, y, WF.cell, WF.cell, full ? C.si : C.si2, full ? 'wcell' : 'wedge', 1));
+        cells.push(R(x, y, WF.cell, WF.cell, full ? 'var(--dg-si)' : 'var(--dg-si-2)', full ? 'wcell' : 'wedge', 1));
       }
     }
     return `<clipPath id="fdWf"><circle cx="${WF.cx}" cy="${WF.cy}" r="${WF.r}"/></clipPath>`
@@ -276,55 +259,60 @@
       + PA(`M${WF.cx - 7},${WF.cy - WF.r + 0.5} L${WF.cx},${WF.cy - WF.r + 12} L${WF.cx + 7},${WF.cy - WF.r + 0.5}Z`, 'var(--dg-bg)', 'notch');
   }
 
-  /* 區 B（右）：閘極堆疊放大格
-     §3-C：由下到上 通道 → 界面層 → high-k → 功函數金屬 → 填充金屬。
-     `ly` ＝這一層的標註文字排在第幾列。**不能用層的中線當標註的 y** ——
-     high-k（8px）與界面層（4px）的中線只差 6px，兩行 12px 的字一定重疊。*/
-  const GS = [
-    { t: '填充金屬（fill metal）', y: 740, h: 40, ly: 752, c: C.steel },
-    { t: '功函數金屬（work-function metal）', y: 780, h: 20, ly: 780, c: C.ni },
-    { t: 'high-k 介電層（例：HfO2）', y: 800, h: 8, ly: 808, c: C.tim },
-    { t: '界面層（interfacial layer）', y: 808, h: 4, ly: 836, c: C.sn },
-    { t: '通道（矽／奈米片）', y: 812, h: 30, ly: 864, c: C.si },
-  ];
-  function areaScale() {
-    const dieX = 210, dieY = 526, dieW = 68, tzX = 316, tzY = 540;
+  function areaB() {
+    /* 三級的名稱一律放在圖形**上方同一列**（y=572）。放下方會跟底下那四行說明擠在一起 ——
+       1440 與 800 各量到兩對重疊 10～12px，那正是 `_preview.py` 專門在抓的壞法。*/
+    const dieX = 246, dieY = 598, dieW = 68, tzX = 386, tzY = 612;
     const blocks = [[6, 6, 26, 20], [36, 6, 26, 12], [36, 22, 26, 18], [6, 30, 18, 32], [28, 42, 34, 20]];
-    const gx = 40, gw = 150, lx = 214;
-    return `<g>
-      ${T(16, 470, '尺度：一片晶圓 → 一顆晶粒 → 一顆電晶體', 'hd')}
-      ${part('fd_wafer', T(WF.cx, 500, '12 吋（300 mm）晶圓俯視', 'lbl', 'middle') + waferTop())}
-      ${LN(`M${WF.cx + WF.r + 6},${WF.cy} L${dieX - 10},${dieY + dieW / 2}`, C.cyan, 1.6)}
-      ${part('fd_die', T(dieX + dieW / 2, 500, '一顆晶粒', 'lbl', 'middle')
-      + R(dieX, dieY, dieW, dieW, C.si2, 'part', 3)
-      + blocks.map((b) => R(dieX + b[0], dieY + b[1], b[2], b[3], C.si, 'part', 1)).join(''))}
-      ${LN(`M${dieX + dieW + 8},${dieY + dieW / 2} L${tzX - 8},${tzY + 22}`, C.cyan, 1.6)}
-      ${part('fd_zoom', T(tzX + 39, 500, '一顆電晶體', 'lbl', 'middle')
+    return `<g>${frame(16, 514, 484, 258)}
+      ${T(32, 540, '三級縮放尺：一片晶圓 → 一顆晶粒 → 一顆電晶體', 'hd')}
+      ${part('fd_wafer', T(WF.cx, 572, '12 吋（300 mm）晶圓俯視', 'lbl', 'middle') + waferTop())}
+      ${LN(`M${WF.cx + WF.r + 6},${WF.cy} L${dieX - 10},${dieY + dieW / 2}`, 'var(--dg-accent-2d)', 1.6)}
+      ${part('fd_die', T(dieX + dieW / 2, 572, '一顆晶粒', 'lbl', 'middle')
+      + R(dieX, dieY, dieW, dieW, 'var(--dg-si-2)', 'part', 3)
+      + blocks.map((b) => R(dieX + b[0], dieY + b[1], b[2], b[3], 'var(--dg-si)', 'part', 1)).join(''))}
+      ${LN(`M${dieX + dieW + 8},${dieY + dieW / 2} L${tzX - 8},${tzY + 22}`, 'var(--dg-accent-2d)', 1.6)}
+      ${part('fd_zoom', T(tzX + 39, 572, '一顆電晶體', 'lbl', 'middle')
       + R(tzX, tzY, 78, 44, 'var(--dg-void)', 'part', 3)
-      + R(tzX + 8, tzY + 28, 62, 8, C.si, 'part', 1)
-      + R(tzX + 22, tzY + 12, 34, 12, C.steel, 'part', 1))}
-      ${T(424, 526, '邊緣這一圈切不出完整晶粒', 'sub')}
-      ${T(424, 544, '（顏色較暗的那些格子）——', 'sub')}
-      ${T(424, 562, '晶圓越大，浪費掉的邊緣比例', 'sub')}
-      ${T(424, 580, '越小。同一個缺陷密度下，', 'sub')}
-      ${T(424, 598, '晶粒越大、報廢的比例越高。', 'sub')}
-      ${T(424, 620, '格數為示意；本圖不寫良率、', 'cap')}
-      ${T(424, 638, '產能與片數。', 'cap')}
-      ${T(16, 700, '閘極堆疊放大格（三格共用）—— 由下到上：界面層 → high-k → 功函數金屬 → 填充金屬', 'hd')}
-      ${part('fd_gate_stack', GS.map((o) => R(gx, o.y, gw, o.h, o.c, 'part', 1)).join(''))}
-      ${GS.map((o) => LN(`M${gx + gw},${o.y + o.h / 2} L${lx - 8},${o.ly - 4}`, C.mute, 1)
-      + T(lx, o.ly, o.t, 'sub')).join('')}
-      ${T(16, 892, '★ 先進節點是 high-k／金屬閘（HKMG）—— 畫成「二氧化矽＋複晶矽」等於畫了一個二十年前的', 'sub', null, `fill:${C.warn}`)}
-      ${T(16, 910, '　 結構。介電層是全圖最薄的層之一。', 'sub', null, `fill:${C.warn}`)}</g>`;
+      + R(tzX + 8, tzY + 28, 62, 8, 'var(--dg-si)', 'part', 1)
+      + R(tzX + 22, tzY + 12, 34, 12, 'var(--dg-steel)', 'part', 1))}
+      ${T(32, 706, '邊緣這一圈切不出完整晶粒（顏色較暗的那些格子）', 'sub')}
+      ${T(32, 724, '—— 晶圓越大，浪費掉的邊緣比例越小。', 'sub')}
+      ${T(32, 742, '同一個缺陷密度下，晶粒越大、報廢的比例越高。', 'sub')}
+      ${T(32, 760, '格數為示意；本圖不寫任何良率、產能與片數。', 'cap')}</g>`;
   }
 
-  /* ================================================================ 章節 ③：製程迴圈環（九站）
+  /* ================================================================ 區 B（右）：閘極堆疊放大格
+     §3-C：由下到上 通道 → 界面層 → high-k → 功函數金屬 → 填充金屬。
+     G1 high-k 在功函數金屬底下、G2 介電層是全圖最薄的層之一、
+     G3 **不准畫成「二氧化矽 ＋ 複晶矽」**（先進節點早就是 high-k／金屬閘）。*/
+  /* `ly` ＝這一層的標註文字排在第幾列。**不能用層的中線當標註的 y** ——
+     high-k（8px）與界面層（4px）的中線只差 6px，兩行 12px 的字一定重疊（量到 8px）。
+     所以標註走固定列距 26px，再用斜引線接回各自那一層。*/
+  const GS = [
+    { t: '填充金屬（fill metal）', y: 592, h: 40, ly: 600, c: 'var(--dg-steel)' },
+    { t: '功函數金屬（work-function metal）', y: 632, h: 20, ly: 626, c: 'var(--dg-ni)' },
+    { t: 'high-k 介電層（例：HfO2）', y: 652, h: 8, ly: 652, c: 'var(--dg-tim)' },
+    { t: '界面層（interfacial layer）', y: 660, h: 4, ly: 678, c: 'var(--dg-sn)' },
+    { t: '通道（矽／奈米片）', y: 664, h: 30, ly: 704, c: 'var(--dg-si)' },
+  ];
+  function areaB2() {
+    const x = 540, w = 150, lx = 706;
+    return `<g>${frame(512, 514, 452, 258)}
+      ${T(528, 540, '閘極堆疊放大格（三格共用）', 'hd')}
+      ${T(528, 560, '由下到上：界面層 → high-k → 功函數金屬 → 填充金屬。', 'sub')}
+      ${part('fd_gate_stack', GS.map((o) => R(x, o.y, w, o.h, o.c, 'part', 1)).join(''))}
+      ${GS.map((o) => LN(`M${x + w},${o.y + o.h / 2} L${lx - 10},${o.ly - 4}`, 'var(--dg-mute)', 1)
+      + T(lx, o.ly, o.t, 'sub')).join('')}
+      ${T(528, 734, '★ 先進節點是 high-k／金屬閘（HKMG）—— 畫成「二氧化矽＋複晶矽」', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(528, 752, '　 等於畫了一個二十年前的結構。介電層是全圖最薄的層之一。', 'sub', null, 'fill:var(--dg-warn)')}</g>`;
+  }
+
+  /* ================================================================ 區 C：製程迴圈環（九站）
      §3-B：**必須是閉合的環**（最後一站有一條線回到第一站），順序寫死，
      而且環的正中央要寫「這個環要繞 80～120 次」——沒有這句，這張圖的命題就不見了（P7）。
-     站點角度用 i * 360/9 算（§9 的提醒：手刻九組座標最容易把順序寫錯）。
-     2026-09-23：r 從 150 收到 140、中線移到 x=330（畫布中央），
-     九站清單從「環的右邊一長條」改成「環的下面一整排」—— 660 寬放得下，而且字沒縮。*/
-  const RING = { cx: 330, cy: 1010, r: 140, bw: 88, bh: 30, ar: 192 };
+     站點角度用 i * 360/9 算（§9 的提醒：手刻九組座標最容易把順序寫錯）。*/
+  const RING = { cx: 252, cy: 1040, r: 150, bw: 84, bh: 32, ar: 205 };
   const STEPS = [
     { id: 'fd_clean', n: '1', t: '清洗', s: '每一輪的開頭與結尾都要洗', m: '高純度化學品、超純水' },
     { id: 'fd_depo', n: '2', t: '沉積', s: '長出這一層的材料（CVD／ALD／PVD 濺鍍）', m: '靶材（PVD）、前驅氣體（CVD／ALD）' },
@@ -346,17 +334,18 @@
         R(p[0] - RING.bw / 2, p[1] - RING.bh / 2, RING.bw, RING.bh, 'var(--dg-step-f)', 'part st', 7)
         + T(p[0], p[1] + 5, s.n + '　' + s.t, 'lbl', 'middle'));
     }).join('');
-    /* 九段箭頭，i → i+1（**含最後一段回到第一站**，少了它環就不閉合＝P1 不過）。一律順時針。*/
+    /* 九段箭頭，i → i+1（**含最後一段回到第一站**，少了它環就不閉合＝P1 不過）。
+       一律順時針。*/
     const arrows = STEPS.map((s, i) => {
-      const a0 = ang(i) + 0.32, a1 = ang(i + 1) - 0.32, r = RING.r;
+      const a0 = ang(i) + 0.30, a1 = ang(i + 1) - 0.30, r = RING.r;
       const x0 = RING.cx + r * Math.cos(a0), y0 = RING.cy + r * Math.sin(a0);
       const x1 = RING.cx + r * Math.cos(a1), y1 = RING.cy + r * Math.sin(a1);
       const tx = -Math.sin(a1), ty = Math.cos(a1), ex = Math.cos(a1), ey = Math.sin(a1);
       return `<path class="rarr" d="M${x0.toFixed(1)},${y0.toFixed(1)} A${r},${r} 0 0 1 ${x1.toFixed(1)},${y1.toFixed(1)}" `
-        + `stroke="${C.cyan}" stroke-width="2" fill="none" opacity=".85"/>`
+        + 'stroke="var(--dg-accent-2d)" stroke-width="2" fill="none" opacity=".85"/>'
         + `<path class="rarrh" d="M${(x1 + tx * 7).toFixed(1)},${(y1 + ty * 7).toFixed(1)} `
         + `L${(x1 - tx * 3 + ex * 5).toFixed(1)},${(y1 - ty * 3 + ey * 5).toFixed(1)} `
-        + `L${(x1 - tx * 3 - ex * 5).toFixed(1)},${(y1 - ty * 3 - ey * 5).toFixed(1)}Z" fill="${C.cyan}"/>`;
+        + `L${(x1 - tx * 3 - ex * 5).toFixed(1)},${(y1 - ty * 3 - ey * 5).toFixed(1)}Z" fill="var(--dg-accent-2d)"/>`;
     }).join('');
     // FEOL 弧在 BEOL 弧之前（順時針較早的位置）（§3-B P8）
     const d2r = (d) => d * Math.PI / 180;
@@ -371,80 +360,48 @@
     return `<g>
       <circle cx="${RING.cx}" cy="${RING.cy}" r="${RING.r}" fill="none" stroke="var(--dg-frame-s)" stroke-width="1"/>
       ${arrows}${boxes}
-      ${part('fd_feol', arc(d2r(-124), d2r(-48), C.si)
-      + T(RING.cx, RING.cy - RING.ar - 14, 'FEOL 先做', 'lbl', 'middle'))}
+      ${part('fd_feol', arc(d2r(-124), d2r(-48), 'var(--dg-si)')
+      + T(RING.cx, 866, 'FEOL 先做', 'lbl', 'middle'))}
       ${part('fd_beol', arc(d2r(-24), d2r(52), 'var(--dg-cu)')
-      + T(RING.cx + 150, RING.cy + 152, 'BEOL 後做', 'lbl'))}
+      + T(386, 1222, 'BEOL 後做', 'lbl'))}
       ${part('fd_loop', `<circle class="part" cx="${RING.cx}" cy="${RING.cy}" r="98" fill="var(--dg-frame-f)"/>`
-      + T(RING.cx, RING.cy - 40, '這個環要繞', 'sub', 'middle')
-      + T(RING.cx, RING.cy - 16, '80～120 次', 'hd', 'middle')
-      + T(RING.cx, RING.cy + 6, '約 90 道光罩', 'sub', 'middle')
-      + T(RING.cx, RING.cy + 26, '一片晶圓在廠裡', 'sub', 'middle')
-      + T(RING.cx, RING.cy + 46, '3～4 個月', 'sub', 'middle')
-      + T(RING.cx, RING.cy + 66, '（業界整理，會過期）', 'cap', 'middle'))}
-      <circle r="4.5" fill="${C.cyan}"><animateMotion dur="11s" repeatCount="indefinite" path="${motion}"/></circle>
+      + T(RING.cx, RING.cy - 28, '這個環要繞', 'sub', 'middle')
+      + T(RING.cx, RING.cy - 4, '80～120 次', 'hd', 'middle')
+      + T(RING.cx, RING.cy + 20, '約 90 道光罩', 'sub', 'middle')
+      + T(RING.cx, RING.cy + 40, '一片晶圓在廠裡 3～4 個月', 'sub', 'middle')
+      + T(RING.cx, RING.cy + 60, '（來源：業界整理，會過期）', 'cap', 'middle'))}
+      <circle r="4.5" fill="var(--dg-accent-2d)"><animateMotion dur="11s" repeatCount="indefinite" path="${motion}"/></circle>
     </g>`;
   }
 
   function stepList() {
     return STEPS.map((s, i) => {
-      const y = 1250 + i * 42;
-      return `<g>${T(16, y + 14, s.n + '　' + s.t + ' —— ' + s.s, 'lbl')}${T(16, y + 32, '吃：' + s.m, 'sub')}</g>`;
+      const y = 840 + i * 44;
+      return `<g>${T(488, y + 14, s.n + '　' + s.t + ' —— ' + s.s, 'lbl')}${T(488, y + 32, '吃：' + s.m, 'sub')}</g>`;
     }).join('');
   }
-  function areaRing() {
-    return `<g>
-      ${T(16, 716, '製程迴圈：每一個圖案層都要走一次這九站，走完回到第一站，再走下一層', 'hd')}
-      ${T(16, 736, '順序不准對調：顯影在曝光之後、蝕刻在顯影之後、去光阻在蝕刻之後、CMP 在沉積與蝕刻之後。', 'sub')}
-      ${T(16, 754, '外圈兩條弧：FEOL（電晶體本身）先做、BEOL（上面那幾十層金屬線）後做 —— 不能反過來。', 'sub')}
-      ${ring()}
-      ${T(16, 1232, '九站各在做什麼、各自吃掉哪些材料', 'hd')}
-      ${stepList()}</g>`;
-  }
 
-  /* ================================================================ 章節 ④：節點列（四格＋兩條分界線）
+  /* ================================================================ 區 D：節點列（四格＋兩條分界線）
      §3-D：順序 N5 → N3 → N2 → A16；分界線 一「FinFET ↔ GAA」在 **N3 與 N2 之間**、
      二「正面供電 ↔ 背面供電」在 **N2 與 A16 之間**；
-     N4（紅線）**背面供電只准出現在 A16 那一格**。
-     2026-09-23：四格從「橫排一列 980 寬」改成 **2×2**（時間仍然是左 → 右、上 → 下），
-     所以第一條分界線變成橫的（N3／N2 之間＝第一列與第二列之間），第二條仍是直的。*/
+     N4（紅線）**背面供電只准出現在 A16 那一格**，所以只有最後一個 NODES 項目寫得到它。*/
   const NODES = [
     { t: 'N5', st: 'FinFET', a: ['成熟的 FinFET 世代。', '供電：正面。'] },
-    { t: 'N3', st: 'FinFET（最後一代）', a: ['業界普遍視為最後也最成熟的', 'FinFET 世代。供電：正面。'] },
+    { t: 'N3', st: 'FinFET（最後一代）', a: ['業界普遍視為最後也最成熟的', 'FinFET 世代。', '供電：正面。'] },
     { t: 'N2', st: 'GAA 奈米片（第一代）', a: ['2025 年底進入量產。相對 N3E：', '同功耗 +10～15% 速度，或同速度', '−25～30% 功耗、密度 +15% 以上。', '供電：正面。'] },
     { t: 'A16', st: 'GAA ＋ 背面供電', a: ['Super Power Rail：把供電網搬到', '晶圓背面。2026 下半年製程就緒，', '放量時程各家說法不一。'] },
   ];
-  const ND = { x0: 16, y0: 1560, w: 306, h: 124, gx: 322, gy: 138 };
   function nodeCell(o, i) {
-    const x = ND.x0 + (i % 2) * ND.gx, y = ND.y0 + Math.floor(i / 2) * ND.gy;
-    return `<g>${frame(x, y, ND.w, ND.h)}
-      ${T(x + 12, y + 24, o.t, 'hd')}
-      ${T(x + ND.w - 12, y + 24, o.st, 'lbl', 'end', `fill:${C.cyan}`)}
-      ${o.a.map((s, j) => T(x + 12, y + 46 + j * 18, s, 'sub')).join('')}</g>`;
+    const x = 16 + i * 238, y = 1308;
+    return `<g>${frame(x, y, 226, 124)}
+      ${T(x + 14, y + 26, o.t, 'hd')}
+      ${T(x + 212, y + 26, o.st, 'lbl', 'end', 'fill:var(--dg-accent-2d)')}
+      ${o.a.map((s, j) => T(x + 14, y + 50 + j * 18, s, 'sub')).join('')}</g>`;
   }
-  function areaNodes() {
-    const yMid = ND.y0 + ND.h + 7;
-    const xMid = ND.x0 + ND.gx - 8;
-    return `<g>
-      ${T(16, 1542, '節點演進：N5 → N3 → N2 → A16（時間往右、再往下）', 'hd')}
-      ${part('fd_node', NODES.map(nodeCell).join(''))}
-      ${LN(`M${ND.x0},${yMid} H${ND.x0 + ND.gx + ND.w}`, C.warn, 2, ' stroke-dasharray="6 4"')}
-      ${T(ND.x0 + 340, yMid - 5, 'FinFET ↔ GAA', 'lbl', null, `fill:${C.warn}`)}
-      ${LN(`M${xMid},${ND.y0 + ND.gy} V${ND.y0 + ND.gy + ND.h}`, C.warn, 2, ' stroke-dasharray="6 4"')}
-      ${T(xMid, ND.y0 + ND.gy + ND.h + 16, '正面供電 ↔ 背面供電', 'lbl', 'middle', `fill:${C.warn}`)}</g>`;
-  }
-
-  /* ================================================================ 章節 ⑤：這張圖上每一段台股是誰 */
-  function areaWho() {
-    return `<g>
-      ${frame(16, 1880, 628, 116)}
-      ${T(30, 1904, '這張圖上的段，台股是誰', 'hd')}
-      ${T(30, 1926, '先進邏輯節點（N3／N2／A16）：2330 台積電（供應鏈資料的 tech 欄寫的是「N3/N2 先進製程, CoWoS-L, SoIC」）。', 'sub')}
-      ${T(30, 1946, '成熟製程：2303 聯電、6770 力積電、5347 世界先進（5347 不在供應鏈資料裡）。6770 跟英特爾的關係不是', 'sub')}
-      ${T(30, 1964, '　 邏輯製程代工，是供矽電容與矽中介層。', 'sub')}
-      ${T(30, 1984, '化合物半導體代工：3105 穩懋、8086 宏捷科、4991 環宇-KY —— 跟本圖畫的矽邏輯製程不是同一件事，本圖不畫其結構。', 'sub')}
-      ${T(16, 2018, '★ 本圖的「誰做的」取自供應鏈資料的「晶圓代工」環節（目前 3 家）；族群成分股有 7 檔 ——', 'sub', null, `fill:${C.warn}`)}
-      ${T(16, 2036, '　 另外 4 檔（5347／3105／8086／4991）不在供應鏈資料裡，所以零件小卡列不出它們。那不是壞掉。', 'sub', null, `fill:${C.warn}`)}</g>`;
+  function areaD() {
+    const div = (x, t) => LN(`M${x},1304 L${x},1436`, 'var(--dg-warn)', 2, ' stroke-dasharray="6 4"')
+      + T(x, 1296, t, 'lbl', 'middle', 'fill:var(--dg-warn)');
+    return `<g>${part('fd_node', NODES.map(nodeCell).join(''))}${div(486, 'FinFET ↔ GAA')}${div(724, '正面供電 ↔ 背面供電')}</g>`;
   }
 
   /* ================================================================ 整張圖 */
@@ -452,57 +409,84 @@
     /* class 多一個 `dg1`：這張圖**全部零件都掛同一個 `foundry` 環節**，
        點任何一個都會讓所有零件一起 .sel —— `.dg.dg1` 的 `--dg-glow:none` 就是為這種圖留的，
        不然畫面上會同時有二十幾個東西在發光（Andy：「螢光感太重」）。*/
-    return `<svg class="dg dgm dgfd dg1 rs" viewBox="0 0 ${CW} 2070" width="100%" style="display:block">${D.STYLE}
-      <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
-      <!-- 標題與說明：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
-      <text class="ttl ext" x="0" y="0">晶圓代工：一顆電晶體與一個製程迴圈</text>
-      <text class="cap ext" x="0" y="0">三代電晶體改的都是同一件事 —— 閘極能管到通道的幾個面（1 → 3 → 4）。三格同一個放大倍率、同一套材質色、同一個剖面方向，所以「改了什麼」是比出來的，不是寫出來的。★ 誰做的：先進節點（N3／N2／A16）台股只有 2330 台積電；族群 7 檔裡有 4 檔不在供應鏈資料裡 —— 逐段名單見最後一段。示意圖，非實物比例｜各層厚度與尺寸均為誇張放大；本圖講矽邏輯製程，化合物半導體（GaAs／SiC／GaN）代工見「第三代半導體」那張；本圖止於「一片做完的晶圓」，切割與封裝見封裝那幾張。尺度尺、製程迴圈、節點演進、台股名單收在下面四段。</text>
+    /* 版面（Andy 2026-09-22：「圖片及文字縮小一半…希望能一次看到完整資訊」）
+       ------------------------------------------------------------------
+       主畫面只留**這張圖的命題**（三格電晶體）＋ 誰做的一句話 ＋ 四行誠實性標示；
+       其餘四塊收進章節列，**預設收合、按了打得開**（`wireFolds`，MLCC 那張同一套）。
+       收合後的高度 ＝ 第一條章節列的 y（492）＋ 四條列 × 46 ＋ 16 ＝ **692px**，
+       1440×900 一個畫面看得完。
 
-      <!-- ================= §1 三格電晶體（永遠看得到）＝ 這張圖的命題 ================= -->
-      ${fx.shadows(CXS.map((cx) => `<rect x="${cx - 97}" y="${SUB_T + TXDY}" width="194" height="${SUB_B - SUB_T}" rx="3"/>`).join(''))}
+       ★ 為什麼「誰做的」只留一句在主畫面、細節收進第五段：
+         `docs/diagram_purpose.md` R1／R4 要求「誰做的」與「台股沒人做的要明說」看得見，
+         但那一整塊是 6 行、110px。折衷是**把結論留在主畫面**（台股只有 2330、
+         7 檔裡有 4 檔不在資料裡），逐段名單收進章節 —— 資訊沒有不見，只是分兩層。
+
+       viewBox 寫的是「全部展開」的高度；收合是 `wireFolds()` 在執行期改的，
+       所以 JS 沒跑到的路徑（縮圖）吃到的仍然是一份座標正確的完整版面。
+       ⚠ 章節列刻意不掛 data-seg —— 掛了的話點一下展開就順便把成分股篩掉了。*/
+    const S1 = 492, S2 = 800, S3 = 1300, S4 = 1514;
+    return `<svg class="dg dgm dgfd dg1" viewBox="0 0 ${W} 1724" width="100%" style="display:block">${D.STYLE}
+      ${T(16, 24, '晶圓代工：一顆電晶體與一個製程迴圈', 'ttl')}
+      ${T(16, 42, '三代電晶體改的都是同一件事 —— 閘極能管到通道的幾個面（1 → 3 → 4）。底下四段預設收起來，按標題列就打得開。', 'cap')}
+
       ${areaA()}
 
-      <!-- ================= 說明卡片（HTML，左欄＝平面與 FinFET；右欄＝GAA 與共用層） ================= -->
-      ${card({ part: 'fd_planar', no: 1, side: 'l', color: C.si, ax: CXS[0], ay: 255, title: '平面電晶體的通道', sub: ['基板表面下一條水平的薄層，閘極只從正上方蓋下來 —— 只管得到一面，其餘三面關不住。'] })}
-      ${card({ part: 'fd_face1', no: 2, side: 'l', color: C.cyan, ax: CXS[0], ay: 190, title: '閘極管到 1 面', sub: ['一支箭頭＝一個面。三格的箭頭數就是 1／3／4，數得出來。'] })}
-      ${card({ part: 'fd_gate', no: 3, side: 'l', color: C.steel, ax: CXS[0], ay: 228, title: '閘極金屬', sub: ['平面只蓋在上面；FinFET 是 ㄇ 字形罩住頂＋左＋右；GAA 則鑽進每一片之間的縫。'] })}
-      ${card({ part: 'fd_hk', no: 4, side: 'l', color: C.sn, ax: CXS[0] - 30, ay: 247, title: 'high-k 閘極介電層', sub: ['夾在閘極與通道之間，是全圖最薄的層之一。GAA 那一格它繞著每一片走一圈（封閉細框）。'] })}
-      ${card({ part: 'fd_spacer', no: 5, side: 'l', color: C.mute, ax: CXS[0] - 45, ay: 232, title: '間隙壁／內間隙壁', sub: ['把閘極跟源汲擋開。GAA 那一格它只存在於「片」那幾層 —— 那就是「內」間隙壁。'] })}
-      ${card({ part: 'fd_sd', no: 6, side: 'l', color: C.org, ax: CXS[0] - 70, ay: 247, title: '源／汲極（磊晶）', sub: ['剖面兩端那兩塊。GAA 那一格它把所有奈米片的端部一起接起來 —— 只接到最上面一片是錯的。'] })}
-      ${card({ part: 'fd_sub', no: 7, side: 'l', color: C.si2, ax: CXS[0] - 90, ay: 285, title: '矽基板', sub: ['三格同一個位置、同一個顏色 —— 這是「同一個放大倍率」的錨。'] })}
-      ${card({ part: 'fd_fin', no: 8, side: 'l', color: C.si, ax: CXS[1] - 36, ay: 215, title: '鰭（fin）', sub: ['把通道立起來變成一片直立的鰭，閘極就能罩住頂面與兩個側面 —— 三面。', '圖上鰭高畫成鰭寬的 4.75 倍；這是可辨識性的下限，不是真實比例的宣稱。'] })}
-      ${card({ part: 'fd_sti', no: 9, side: 'l', color: C.el, ax: CXS[1] + 60, ay: 245, title: '淺溝槽隔離（STI）', sub: ['填在鰭與鰭之間的下半段，只淹到鰭的下部。★ 被它埋住的那一段鰭閘極包不到 —— 那就是 FinFET 走到盡頭的地方（虛線框）。'] })}
-      ${card({ part: 'fd_face3', no: 10, side: 'l', color: C.cyan, ax: CXS[1] - 36, ay: 150, title: '閘極管到 3 面', sub: ['上、左、右各一支箭頭，指著左邊那片鰭的閘極。'] })}
-      ${card({ part: 'fd_fin_iso', no: 11, side: 'r', color: C.mute, ax: CXS[1] + 60, ay: 145, title: '等角輔助：閘極跨過鰭', sub: ['主圖是「垂直於鰭」的橫剖面；這個小圖從斜上方看，說明閘極是橫跨過鰭的。'] })}
-      ${card({ part: 'fd_gaa', no: 12, side: 'r', color: C.steel, ax: CXS[2] + 56, ay: 200, title: '閘極金屬（填進每一片之間）', sub: ['★ 這是「Gate-All-Around」這個名字的全部意義：每一對相鄰奈米片之間都有金屬，最下面那片的下方也有。只畫在最上面＝畫的是 FinFET。'] })}
-      ${card({ part: 'fd_sheet', no: 13, side: 'r', color: C.si, ax: CXS[2], ay: 210, title: '奈米片（nanosheet）', sub: ['2～4 片水平堆疊、彼此不相連；片寬遠大於片厚（本圖 8 倍）—— 正方形斷面那是奈米線，不是奈米片。'] })}
-      ${card({ part: 'fd_face4', no: 14, side: 'r', color: C.cyan, ax: CXS[2] - 18, ay: 196, title: '閘極管到 4 面', sub: ['上、下、左、右四支箭頭圍著中間那一片。'] })}
-      ${card({ part: 'fd_flex', no: 15, side: 'r', color: C.mute, ax: CXS[2] - 76, ay: 118, title: '片寬可調（NanoFlex，示意）', sub: ['要速度就加寬、要省電就變窄。★ 本圖不寫任何寬度數字。'] })}
-      ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['先進節點（N3／N2／A16）台股只有 2330 台積電。族群成分股 7 檔裡有 4 檔（5347 世界先進／3105 穩懋／8086 宏捷科／4991 環宇-KY）不在供應鏈資料裡，所以零件小卡列不出它們 —— 那不是壞掉。逐段名單見最後一段。'] })}
-      ${note({ side: 'r', order: 99, title: '示意圖，非實物比例', lines: ['各層厚度與尺寸均為誇張放大；剖面兩端的源／汲為示意，不與閘極同切面。', '節點效能數字為媒體整理（2026），會過期；本圖不寫任何良率、成本、市占率與產能數字。'] })}
+      ${T(16, 410, '★ 誰做的：先進節點（N3／N2／A16）台股只有 2330 台積電；族群 7 檔裡有 4 檔不在供應鏈資料裡 —— 逐段名單見第 ⑤ 段。', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(16, 430, '示意圖，非實物比例｜各層厚度與尺寸均為誇張放大', 'cap')}
+      ${T(16, 446, '本圖講矽邏輯製程；化合物半導體（GaAs／SiC／GaN）代工見「第三代半導體」那張', 'cap')}
+      ${T(16, 462, '本圖止於「一片做完的晶圓」；切割、封裝、測試見「傳統封裝與測試」那張', 'cap')}
+      ${T(16, 478, '節點效能數字為媒體整理（2026），會過期；本圖不寫任何良率、成本、市占率與產能數字', 'cap')}
 
-      <!-- ================= ② 尺度 ＋ 閘極堆疊（預設收合） ================= -->
-      ${fold('fd2', '② 尺度：晶圓 → 晶粒 → 電晶體，以及閘極堆疊',
-      '12 吋晶圓俯視（notch、邊緣殘缺方格）、一顆晶粒、閘極堆疊五層放大格', areaScale())}
+      <!-- ================= ② 尺度：晶圓 → 晶粒 → 電晶體，以及閘極堆疊（預設收合） ================= -->
+      ${D.foldBar('fd2', S1, '② 尺度：晶圓 → 晶粒 → 電晶體，以及閘極堆疊',
+      '12 吋晶圓俯視（notch、邊緣殘缺方格）、晶粒、閘極堆疊四層放大格')}
+      <g class="dgbody" data-fold="fd2" data-y0="${S1 + 46}" data-y1="${S1 + 46 + 262}">
+        <g transform="translate(0,${S1 + 46 - 510})">${areaB()}${areaB2()}</g>
+      </g>
 
       <!-- ================= ③ 製程迴圈：九站走完回到第一站（預設收合） ================= -->
-      ${fold('fd3', '③ 製程迴圈：九站走完回到第一站，要繞 80～120 次',
-      '閉合的九站環、每一站吃什麼材料、FEOL 與 BEOL 的先後', areaRing())}
+      ${D.foldBar('fd3', S2, '③ 製程迴圈：九站走完回到第一站，要繞 80～120 次',
+      '閉合的九站環、每一站吃什麼材料、FEOL 與 BEOL 的先後')}
+      <g class="dgbody" data-fold="fd3" data-y0="${S2 + 46}" data-y1="${S2 + 46 + 451}">
+        <g transform="translate(0,${S2 + 46 - 777})">
+          ${T(16, 790, '製程迴圈：每一個圖案層都要走一次這九站，走完回到第一站，再走下一層', 'hd')}
+          ${T(16, 810, '順序不准對調：顯影在曝光之後、蝕刻在顯影之後、去光阻在蝕刻之後、CMP 在沉積與蝕刻之後。', 'sub')}
+          ${T(16, 828, '外圈兩條弧：FEOL（電晶體本身）先做、BEOL（上面那幾十層金屬線）後做 —— 不能反過來。', 'sub')}
+          ${ring()}${stepList()}
+        </g>
+      </g>
 
       <!-- ================= ④ 節點演進（預設收合） ================= -->
-      ${fold('fd4', '④ 節點演進：N5 → N3 → N2 → A16',
-      '兩條分界線畫在哪裡；背面供電是 A16 的事，不是 N2 的事', areaNodes())}
+      ${D.foldBar('fd4', S3, '④ 節點演進：N5 → N3 → N2 → A16',
+      '兩條分界線畫在哪裡；背面供電是 A16 的事，不是 N2 的事')}
+      <g class="dgbody" data-fold="fd4" data-y0="${S3 + 46}" data-y1="${S3 + 46 + 165}">
+        <g transform="translate(0,${S3 + 46 - 1271})">
+          ${T(16, 1284, '節點演進：N5 → N3 → N2 → A16（時間往右）', 'hd')}
+          ${areaD()}
+        </g>
+      </g>
 
       <!-- ================= ⑤ 這張圖上每一段台股是誰（預設收合） ================= -->
-      ${fold('fd5', '⑤ 這張圖上每一段台股是誰',
-      '先進節點／成熟製程／化合物半導體代工各是誰，以及那 4 檔的落差', areaWho())}
+      ${D.foldBar('fd5', S4, '⑤ 這張圖上每一段台股是誰',
+      '先進節點／成熟製程／化合物半導體代工各是誰，以及 4 檔的落差')}
+      <g class="dgbody" data-fold="fd5" data-y0="${S4 + 46}" data-y1="${S4 + 46 + 148}">
+        <g transform="translate(0,${S4 + 46 - 1440})">
+          ${frame(16, 1452, 940, 92)}
+          ${T(30, 1476, '這張圖上的段，台股是誰', 'hd')}
+          ${T(30, 1498, '先進邏輯節點（N3／N2／A16）：2330 台積電（供應鏈資料的 tech 欄寫的是「N3/N2 先進製程, CoWoS-L, SoIC」）。', 'sub')}
+          ${T(30, 1516, '成熟製程：2303 聯電、6770 力積電、5347 世界先進（5347 不在供應鏈資料裡）。6770 跟英特爾的關係不是邏輯製程代工，是供矽電容與矽中介層。', 'sub')}
+          ${T(30, 1534, '化合物半導體代工：3105 穩懋、8086 宏捷科、4991 環宇-KY —— 跟本圖畫的矽邏輯製程不是同一件事，本圖不畫其結構。', 'sub')}
+          ${T(16, 1566, '★ 本圖的「誰做的」取自供應鏈資料的「晶圓代工」環節（目前 3 家）；族群成分股有 7 檔 ——', 'sub', null, 'fill:var(--dg-warn)')}
+          ${T(16, 1584, '　 另外 4 檔（5347 世界先進／3105 穩懋／8086 宏捷科／4991 環宇-KY）不在供應鏈資料裡，所以零件小卡列不出它們。那不是壞掉。', 'sub', null, 'fill:var(--dg-warn)')}
+        </g>
+      </g>
     </svg>`;
   }
 
   window.DG.register('foundry', {
     level: 'group', chain: 'semiconductor',
     name: '晶圓代工：一顆電晶體與一個製程迴圈',
-    draw: foundryProcess, native: CW, scene: 'foundry',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
+    draw: foundryProcess, native: 980, scene: 'foundry',   /* ★ 2026-09-23 Andy：「確保這邊都有 3D 圖」。檔頭 §0 原本寫「不做真 3D」，
                        那個判斷被推翻的理由寫在 site/three3d.js 的 SCENES.foundry 檔頭（一句話：這張圖最重要的那件事本來就是三維的）。2D 的 data-part 與 3D 的 part 是同一組，所以切過去還是選著同一個零件。*/
     q: '一顆電晶體從平面變成 FinFET 再變成 GAA，到底改了什麼？為什麼一片晶圓要繞同一個迴圈幾百次？N3 跟 N2 差在哪？',
     /* `parts` ＝點這個零件時「誰做的」小卡要顯示什麼（docs/diagram_purpose.md §4）。

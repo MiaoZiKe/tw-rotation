@@ -1,4 +1,4 @@
-/* 產業與個股（合併頁）：產業地圖 → 單一產業鏈（族群總覽 + 產品剖析圖 + 分層關聯圖）→ 個股頁。
+/* 產業與個股（合併頁）：產業地圖 → 單一產業鏈（產品剖析圖 + 分層關聯圖 + 成分股）→ 個股頁。
    個股頁上方永遠帶著它所屬的產業鏈，點任何股票上方同步更新。 */
 (function () {
   'use strict';
@@ -26,9 +26,6 @@
     if (window.LiveK) window.LiveK.detach();
   }
 
-  /* 「使用者明確要看族群總覽」的哨兵（網址 `#industry/<chain>/overview`）。
-     放在 state.dg 裡，因為 state.dg 就是「這一頁要畫哪一張圖」的唯一來源。*/
-  const DG_OVERVIEW = '__overview__';
   // ================================================================ 路由
   async function route(head, rest) {
     A = window.App;
@@ -48,19 +45,12 @@
          supply_chain.yaml 裡的具名字串，例如 passive_comp／abf_pcb）。
          ⚠ 一定要驗「這張圖真的掛在這條鏈上」—— 有人手打 #industry/semiconductor/dg/mlcc
          就會在半導體鏈上畫出 MLCC，那正是這次要修掉的錯。驗不過就當作沒指定（回選單）。*/
-      /* ★ 2026-09-23 第二批（Andy：「點擊 AI 伺服器進去就直接看到第一個族群的 2D 圖 3D 圖」）
-         `#industry/<chain>` 的 Default 從「族群總覽」換成**這條鏈的第一張剖析圖**，
-         族群總覽本身沒有被刪，只是搬去自己的網址 `#industry/<chain>/overview`
-         （分頁列的位置不動，它仍然是第一個分頁）。
-         用一個哨兵值而不是 boolean：state.dg 本來就是「這一頁要畫哪一張圖」的唯一來源，
-         多開一個旗標會出現兩份真相。哨兵不可能撞到真的 slot id（DS.has 一定回 false）。*/
-      if (rest[1] === 'overview') { state.dg = DG_OVERVIEW; renderChain(im, sc, gd); return; }
       if (rest[1] === 'dg') {
         const want = rest[2] || '';
         if (DS && DS.has(want) && DS.chainOf(want) === rest[0]) {
           state.dg = want;
           /* 族群層級的 slot，它的 id 就是族群 id（見 diagrams.js 的 SLOTS）。
-             一併把族群選起來，整頁（關聯圖、環節詳情）才真的是「這個產品的分頁」，
+             一併把族群選起來，整頁（族群卡片、成分股）才真的是「這個產品的分頁」，
              而不是「一張圖浮在整條鏈的資料上」。*/
           if (DS.level(want) === 'group') state.group = want;
         }
@@ -87,11 +77,8 @@
      把它從 DOM 拔起來再插回去會讓圖表容器重新量一次尺寸，最糟的情況是高度變 0。
      而且 show() 一律在寫 innerHTML **之前**呼叫，所以搬的當下兩邊都還是空的。 */
   function show(map, chain, stock) {
-    /* 「放寬蓋住事件面板」是**這一頁**的暫時狀態，換頁就要還原 ——
-       不還原的話使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。
-       ★ 2026-09-23：放寬那顆鈕已經跟成分股表一起移除，**這段收尾仍然留著** ——
-         使用者可能是在上一版按下放寬之後才重新整理進來的，body 上還掛著 `.memwide`
-         卻再也沒有人會把它拿掉，事件面板就會永遠卡在被蓋住的狀態。*/
+    /* 「成分股放寬蓋住事件面板」是**這一頁**的暫時狀態，換頁就要還原 ——
+       不還原的話使用者在產業鏈頁按了放寬，跑去總覽會發現事件面板莫名其妙不見了。*/
     if (document.body.classList.contains('memwide')) {
       document.body.classList.remove('memwide');
       if (typeof window.twSetSide === 'function') {
@@ -121,7 +108,7 @@
     el.innerHTML = `<div class="card"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）</small></h3>
       <div class="sub"><b>這張圖回答：</b>今天全市場的錢分佈在哪幾塊、哪一塊在漲。<b>怎麼用：</b>先找又大又紅的方塊
       —— 那是今天「錢多而且在漲」的地方；大而綠的是資金正在退潮的權值區。
-      <b>點產業鏈的標題進那條鏈、點族群方塊直接看它裡面每一檔的漲幅。</b>要比較同一條鏈裡誰漲誰跌，用
+      <b>點產業鏈的標題進那條鏈、點族群方塊直接看它的成分股。</b>要比較同一條鏈裡誰漲誰跌，用
       <a class="lk" href="#industry">產業地圖</a> 那邊的長條圖比較快。</div>
       <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
     const data = im.chains.map(c => ({ name: c.name, cid: c.id, children: c.groups.map(g => ({ name: g.name, value: g.turnover || 1, gid: g.id, chg: g.chg_pct, share: g.turnover_share, pe: g.valuation && g.valuation.median, n: g.n, itemStyle: { color: A.chgColor(g.chg_pct, 3) } })) }));
@@ -442,7 +429,7 @@
       drill = d.group; hi = null;
       if (live) { q = null; liveTick(); }
       paint();
-      if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把選取狀態換成這個族群（剖析圖與關聯圖都吃它）
+      if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把下方成分股篩成這個族群
     }
 
     function paint() {
@@ -532,13 +519,6 @@
      名單只有一份，在 site/diagrams.js 的 SLOTS；這裡不准再維護第二份。*/
   const DS = window.DiagramSlots || null;
   // 這條鏈上有專屬剖析圖的族群，照成交值由大到小（沒選族群時就用第一個當預設）
-  /* ★ 2026-09-23（Andy：「圖一這邊的標籤只需要顯示：以前族群名稱即可，後面說明在文章內有就好」）
-     分頁上只印冒號前面那一段。SLOTS 裡的 `name` 是「族群名：這張圖在講什麼」的完整句子
-     （例：「晶圓代工：一顆電晶體與一個製程迴圈」），整串印在分頁上會把一排分頁撐爆。
-     ⚠ 只切**顯示用的那一份**，`DS.name()` 本身一個字都沒有動 ——
-       完整名稱在「產品剖析圖」標題列、分頁的 title 提示、圖別選單的卡片標題都還要用。
-     全形「：」與半形「:」都切（SLOTS 兩種都有寫過），取第一刀的前段；沒有冒號就整串照用。*/
-  const dgShortName = (id) => String((DS && DS.name(id)) || id).split(/[：:]/)[0].trim() || id;
   const dgGroupsOf = (ch) => {
     if (!DS || !ch) return [];
     const has = new Set(DS.groupsOf(ch.id));
@@ -684,9 +664,7 @@
     const syncDgHash = () => {
       const want = resolveDg();
       state.dg = want;
-      /* ★ 沒有圖＝族群總覽，它的網址是 `/overview`（不是光禿禿的 `#industry/<chain>`
-         —— 那個現在是「第一張剖析圖」的網址，寫回去會讓重新整理跳到圖上）。*/
-      const h = want ? dgHash(want) : '#industry/' + ch.id + '/overview';
+      const h = want ? dgHash(want) : '#industry/' + ch.id;
       try { if (location.hash !== h) history.replaceState(null, '', h); } catch (e) { /* 舊瀏覽器沒這支就算了 */ }
     };
     /* 這一頁現在該畫哪一張剖析圖（或不畫）。順序是刻意的：
@@ -711,19 +689,6 @@
       }
       return cur;
     };
-    /* ★ 2026-09-23 第二批：`#industry/<chain>` 的 Default ＝ **這條鏈的第一張剖析圖**
-       （鏈層級有圖就那張，沒有就這條鏈成交值最大的那個族群圖 —— dgOpts 本來就是這個順序）。
-       只在「使用者沒有指定任何東西」時才補：
-         · 走 `/overview` 進來（DG_OVERVIEW 哨兵）→ 他明講要族群總覽，不補
-         · 已經指定了某一張圖（`/dg/<slot>`）或某個族群 → 照他的，不補
-       補完就把哨兵清掉，後面 resolveDg 只要照原本的規則讀 state.dg 就好。
-       ⚠ 這一條**蓋掉 DECISIONS #252 的 Default**，但族群總覽沒有被刪（見上面 /overview 那條路）。*/
-    /* 「使用者自己走到某一張圖的網址」＝ /dg/<slot>。手機的預設收合只對「順著鏈逛進來」
-       的人有效，不該蓋掉明確的意圖；但**自動補上的 Default 不算明確意圖** ——
-       不然手機一進產業鏈就直接吃到一張 1000px 高的圖，Andy 抱怨過兩次的「上下框度太長」會回來。*/
-    const dgExplicit = !!state.dg && state.dg !== DG_OVERVIEW;
-    if (state.dg === DG_OVERVIEW) state.dg = null;
-    else if (!state.dg && !state.group && dgOpts.length) state.dg = dgOpts[0];
     let dgId = resolveDg();
     const hasSlots = dgOpts.length > 0;     // 這條鏈有圖可看（可能是選單狀態）
     // 宣告要早於任何會呼叫 swapDiagram 的路徑（wireDg → wire3D → sync），不然會踩到 TDZ
@@ -749,8 +714,8 @@
        class 沿用 `segchip` 並保留 `.sel`：既有的換圖邏輯與驗收都認這兩個，
        活頁簿的外觀由 `.nbsw` 負責（它的選擇器權重比 `.segchip` 高）。*/
     const dgTabsHtml = () => `<div class="chainsw nbsw lv2" id="dgPick" role="tablist">`
-      + `<a class="segchip${dgId ? '' : ' sel on'}" data-dgtab="overview" href="#industry/${ch.id}/overview" role="tab" style="--c:var(--cyan)" title="這條鏈各族群的漲幅與占比（第一個分頁）"><i></i>族群總覽</a>`
-      + dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel on' : ''}" data-dgid="${id}" href="${dgHash(id)}" role="tab" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.name(id))}${DS.q(id) ? '　·　' + A.fmt.esc(DS.q(id)) : ''}"><i></i>${A.fmt.esc(dgShortName(id))}</a>`).join('')
+      + `<a class="segchip${dgId ? '' : ' sel on'}" data-dgtab="overview" href="#industry/${ch.id}" role="tab" style="--c:var(--cyan)" title="這條鏈各族群的漲幅與占比（第一個分頁）"><i></i>族群總覽</a>`
+      + dgOpts.map(id => `<a class="segchip${id === dgId ? ' sel on' : ''}" data-dgid="${id}" href="${dgHash(id)}" role="tab" style="--c:${A.L.gcolor[id] || 'var(--cyan)'}" title="${A.fmt.esc(DS.q(id) || '換一張剖析圖')}"><i></i>${A.fmt.esc(DS.name(id))}</a>`).join('')
       + `</div>`;
     /* 產業地圖那一層的內容留在 DOM 裡的話，`#chainSwitch`／`#gpBar` 會同時出現兩份
        （一份看得見、一份被 display:none 藏著），getElementById 只拿得到前面那個。*/
@@ -760,7 +725,7 @@
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
         <div class="row spread"><div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格（有哪幾檔台股、哪幾家外商、對應哪些族群）；點關聯圖上的個股小點會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來。要看「這一格裡面誰在漲」，回第一個分頁的族群漲幅長條圖，點一個族群就攤開它每一檔。' : (hasMap ? '環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格；點個股小點會在右側展開它的產業關係（不跳頁）。（這條鏈還沒有產品剖析圖）' : '點第一個分頁的族群長條圖挑一個族群，原地攤開它每一檔的漲幅；點個股那一條進入個股頁。')}</div></div>
+          <div class="sub">${hasSlots ? '剖析圖的零件、環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。' : (hasMap ? '環節色標、環節卡、族群卡片都是同一套顏色：點任一個，其餘同色的一起亮，下方成分股同步篩選；點環節卡上的個股小卡會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來、下方成分股只留那一格。（這條鏈還沒有產品剖析圖）' : '點族群卡片篩選成分股；點股票進入個股頁。')}</div></div>
           <div class="row"><span class="pill">${groups.reduce((s, g) => s + (g.n || 0), 0)} 檔</span><span class="pill ${A.fmt.cls(chg)}">今日 ${A.fmt.pct(chg)}</span><span class="pill violet">本益比中位 ${pes.length ? A.fmt.n(median(pes), 1) : '—'}</span>${A.L.back()}</div></div>
         ${dgTabsHtml()}
         <div class="nbbody">
@@ -778,11 +743,14 @@
             <div id="cgSegBox"></div>
           </div><div class="cgpanel" id="cgSide" hidden></div></div></div>
         ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
-      </div>`;
+      </div>
+      <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="memberTitle">成分股</h3><div class="row" style="gap:8px"><button class="btn small" id="memWide" type="button" title="把成分股表拉寬，暫時蓋住右側「今日事件」；再按一次還原">放寬 ⤢</button><div class="seg" id="mktSeg"><button data-v="ALL" class="on">全部</button><button data-v="TWSE">上市</button><button data-v="TPEX">上櫃</button></div></div></div>
+        <div class="tw" style="margin-top:10px"><table id="memberTable"><thead></thead><tbody></tbody></table></div>
+        <div class="morebar" id="memberMore" hidden></div></div>`;
     /* ★ 族群卡片 `#groupCards` 已移除（DECISIONS #248）。
        它承載的兩件事都搬到關聯圖上，一件都沒有消失：
          「檔數／占比／漲跌／族群頁連結」→ 大圓點本身與右側資訊欄
-         「點卡片選起這個族群」         → 點大圓點（onGroup → state.group，同一條路）*/
+         「點卡片篩選成分股」           → 點大圓點（onGroup → state.group，同一條路）*/
     /* 產業關聯圖（第二版，照 Andy 的參考圖）。四種風格共用同一份佈局與互動，只換視覺。 */
     let cg = null;
     {
@@ -806,24 +774,94 @@
         if (hint) hint.innerHTML = '<b>這張圖回答：</b>這條鏈由哪幾個族群組成、每個族群有幾檔、誰跟誰有上下游關係、今天錢往哪一顆跑。'
           + '<b>怎麼用：</b>先看哪顆大圓點最大（占成交值最多）而且是紅的 —— 那是今天在漲的主流；'
           + '再沿著連線往上游看是誰在供貨，那幾檔通常慢一兩天才反應。'
-          + '滑鼠移到大圓點上會浮出它每一檔成分股的名稱、漲跌與占比；點大圓點把整張圖聚焦到它（有專屬剖析圖的話同時換過去）、'
+          + '滑鼠移到大圓點上會浮出它每一檔成分股的名稱、漲跌與占比；點大圓點把下方成分股篩成它、'
           + '點周圍的小點看那一檔的產業關係。<br><span class="muted">'
           + '圖例：大圓點＝族群（大小＝占本鏈成交值、顏色＝分類）　小點＝成分股，<b>有幾檔就有幾顆</b>　'
           + '連線粗細＝依存度　拖曳節點可以搬位置、滾輪縮放、右下角 ◎ 或雙擊空白處回到置中</span>';
       }
     }
-    let segFilter = opts.seg || null;
-    /* ★ 2026-09-23 第二批（Andy 點名）：下方那張「成分股」卡片整塊移除。
-       連同 renderMembers／COLS／排序記憶／市場別 seg／展開更多／放寬蓋住事件面板 一起拿掉 ——
-       它們只服務那張表，留著就是留一堆沒有人看得到的程式碼。
-       它承載的事情沒有消失，只是換了地方回答同一個問題「這一格裡面誰在漲」：
-         · 族群層級 → 族群總覽分頁的族群漲幅長條圖＋占比圓餅圖（`renderGroupPanel`）
-         · 個股層級 → 在長條圖上點一個族群，原地換成該族群所有個股的漲幅長條圖，點一條就進個股頁
-         · 某一個環節有哪幾檔 → 環節詳情 `#cgSegBox`（台股／外商／相關族群，全部可點）
-       ⚠ segFilter／state.group **沒有**跟著拿掉：剖析圖高亮與關聯圖還在讀它們。*/
+    let segFilter = opts.seg || null, mkt = 'ALL';
+    const members = () => {
+      let rows = []; groups.forEach(g => (g.members || []).forEach(m => rows.push({ ...m, group_name: g.name, gid: g.id })));
+      if (state.group) rows = rows.filter(r => r.gid === state.group);
+      if (segFilter && sc) { const codes = new Set(twOf(sc, segFilter).map(c => c.tw_code)); rows = rows.filter(r => codes.has(r.code)); }
+      if (mkt !== 'ALL') rows = rows.filter(r => marketOf(r) === mkt);
+      const seen = new Set(); return rows.filter(r => seen.has(r.code) ? false : (seen.add(r.code), true));
+    };
+    const COLS = [['code', '代號', r => `<span class="mono">${r.code}</span>`, 'l'], ['name', '簡稱', r => A.L.stock(r.code, r.name), 'l'], ['group_name', '族群', r => A.L.group(r.gid, r.group_name), 'l'], ['close', '收盤', r => `<span class="num" data-live="close" data-lc="${r.code}">${A.fmt.n(r.close)}</span>`], ['chg_pct', '漲跌', r => `<span class="num ${A.fmt.cls(r.chg_pct)}" data-live="chg" data-lc="${r.code}">${A.fmt.pct(r.chg_pct, 2)}</span>`], ['turnover', '成交值', r => `<span class="num">${A.fmt.yi(r.turnover)}</span>`], ['pe', '本益比', r => `<span class="num">${r.pe ? A.fmt.n(r.pe, 1) : '—'}</span>`], ['pe_percentile', '同業分位', r => `<span class="num">${r.pe_percentile != null ? A.fmt.n(r.pe_percentile, 0) + '%' : '—'}</span>`], ['momentum', '營運動能', r => `<span class="num">${r.momentum != null ? A.fmt.n(r.momentum, 0) : '—'}</span>`], ['foreign', '外資', r => `<span class="num ${A.fmt.cls(r.foreign)}">${r.foreign != null ? A.fmt.lot(r.foreign / 1000) : '—'}</span>`], ['trust', '投信', r => `<span class="num ${A.fmt.cls(r.trust)}">${r.trust != null ? A.fmt.lot(r.trust / 1000) : '—'}</span>`], ['grade', '技術判定', r => r.verdict ? `<span class="grade ${r.grade || 'W'}">${r.grade ? r.grade + ' ' : ''}${r.verdict}</span>` : '<span class="muted">—</span>', 'l']];
+    /* 成分股預設照漲幅排（Andy 2026-09-15：「族群 Default 排序適用漲幅」）。
+       以前預設是成交值，結果打開族群頁看到的永遠是那幾檔權值股，
+       今天真的在動的中小型股要自己按一次表頭才看得到。
+       按過表頭就記住，下次打開沿用他自己選的那一欄。 */
+    const SORT_KEY = 'tw.memberSort';
+    /* ---------------------------------------------------------- 成分股預設只列前 30 檔
+       2026-09-21：族群從 28 個換成 tide 的 110 個板塊之後，半導體鏈的成分股
+       從 47 檔變成 156 檔 —— 量出來的整頁高度 1366px 4939 → 9051，
+       **其中 6332px（七成）是這張表格自己**（148 列 × 約 43px）。
+       Andy 抱怨過兩次的「上下框度太長」又回來了，但這次的大戶不是關聯圖，是這張表。
+
+       為什麼是收「列數」而不是加捲軸：這一頁是「先看誰在動、再點進個股」，
+       表格預設照漲幅排，第 31 名之後對那個問題沒有貢獻；
+       而內捲框在手機上會把人卡住（頁面捲到一半變成在捲表格）。
+       所以改成「先列前 30 檔 ＋ 一顆在原地展開的鈕」，
+       真實筆數一直寫在標題上（「成分股 148 檔」），一檔都沒有消失。
+       展開狀態記進 localStorage —— 想一次看完的人只要按一次，之後都照他的意思。*/
+    const MEMBER_HEAD = 30, MEMBER_MAX = 200;
+    const loadMemberAll = () => { try { return localStorage.getItem('tw.memberAll') === '1'; } catch (e) { return false; } };
+    let memberAll = loadMemberAll();
+    let sort = { key: 'chg_pct', dir: -1 };
+    try {
+      const s = JSON.parse(localStorage.getItem(SORT_KEY) || 'null');
+      if (s && s.key) sort = { key: s.key, dir: s.dir === 1 ? 1 : -1 };
+    } catch (e) { /* 忽略 */ }
+    const renderMembers = () => {
+      // 先把即時值疊回去，排的才是使用者眼睛看到的那個數字（見 app.js 的 liveMerge）
+      let rows = A.liveMerge(members()); rows.sort((a, b) => { const x = a[sort.key], y = b[sort.key]; if (x == null) return 1; if (y == null) return -1; return (x > y ? 1 : x < y ? -1 : 0) * sort.dir; });
+      const segTw = segFilter ? twOf(sc, segFilter) : [];
+      $('#memberTitle', el).innerHTML = `成分股 <small>${rows.length} 檔${segFilter ? ' · 環節：<span style="color:' + segColor(segFilter) + '">' + A.fmt.esc(segName(sc, segFilter)) + '</span>' : ''}${state.group ? ' · ' + A.fmt.esc((groups.find(g => g.id === state.group) || {}).name || '') : ''}</small>`;
+      $('#memberTable thead', el).innerHTML = '<tr>' + COLS.map(c => `<th class="${c[3] || ''}" data-k="${c[0]}">${c[1]}${sort.key === c[0] ? (sort.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('') + '</tr>';
+      /* 展開鈕在 <table> 外面（不是塞一列 <tr>）—— 表格裡多一列的話，
+         所有「數 tbody tr 有幾筆」的地方（含驗收）都會把它算進筆數。*/
+      const capped = rows.slice(0, memberAll ? MEMBER_MAX : MEMBER_HEAD);
+      $('#memberTable tbody', el).innerHTML = capped.map(r => `<tr data-code="${r.code}">` + COLS.map(c => `<td class="${c[3] || ''}">${c[2](r)}</td>`).join('') + '</tr>').join('')
+        || `<tr><td colspan="12" class="l muted">${segFilter ? (segTw.length ? '這個環節的台股不在本鏈成分股裡：' + segTw.map(c => A.L.stock(c.tw_code, c.name)).join('　') : '這個環節目前沒有台股直接對應（' + foreignOf(sc, segFilter).map(c => c.name).join('、') + '），可看上方環節說明裡的相關族群') : '沒有符合的股票'}</td></tr>`;
+      const more = $('#memberMore', el);
+      if (more) {
+        /* 表格本來就最多只畫 200 列，所以「還有幾檔收著」要用 200 去算 ——
+           ETF 族群有 358 檔，寫「還有 328 檔收著」但按下去只出現 200 檔，那是騙人的 */
+        const shownMax = Math.min(rows.length, MEMBER_MAX);
+        const hidden = shownMax - capped.length;
+        more.hidden = rows.length <= MEMBER_HEAD;
+        if (!more.hidden) {
+          const sortName = (COLS.find(c => c[0] === sort.key) || [])[1] || '漲跌';
+          /* 說明一定要寫到「所以我該怎麼用」，只講「還有幾檔」等於沒寫 */
+          more.innerHTML = `<button type="button" class="btn small" id="memberMoreBtn">${memberAll
+              ? `只看前 ${MEMBER_HEAD} 檔` : `顯示全部 ${shownMax} 檔`}</button>`
+            + `<span class="muted">${memberAll
+              ? `已經攤開 ${shownMax} 檔。只想看今天最極端的那幾檔就收回去。`
+              : `目前依「${A.fmt.esc(sortName)}」排序，先列前 ${MEMBER_HEAD} 檔，還有 ${hidden} 檔收著`
+                + `${rows.length > MEMBER_MAX ? `（這一組共 ${rows.length} 檔，表格最多列 ${MEMBER_MAX} 檔）` : ''}。`
+                + `要找特定個股：先點上面的環節色標或族群卡片縮小範圍，或按一下表頭換一個排序欄位。`}</span>`;
+          const mb = $('#memberMoreBtn', el);
+          if (mb) mb.onclick = () => {
+            memberAll = !memberAll;
+            try { localStorage.setItem('tw.memberAll', memberAll ? '1' : '0'); } catch (e) { /* 私密視窗 */ }
+            renderMembers();
+          };
+        } else { more.innerHTML = ''; }
+      }
+      $$('#memberTable th', el).forEach(th => th.onclick = () => {
+        sort = { key: th.dataset.k, dir: sort.key === th.dataset.k ? -sort.dir : -1 };
+        try { localStorage.setItem(SORT_KEY, JSON.stringify(sort)); } catch (e) { /* 忽略 */ }
+        renderMembers();
+      });
+      $$('#memberTable tbody tr', el).forEach(tr => tr.onclick = () => { if (tr.dataset.code) A.goStock(tr.dataset.code); });
+      // 即時層更新之後重排一次 —— 只有正照著即時欄（收盤／漲跌）排序時才有意義
+      A.onLive($('#memberTable', el), () => { if (A.LIVE_KEYS.includes(sort.key)) renderMembers(); });
+    };
     /* 點剖析圖上的零件只做「亮起來 + 在原地說明這個環節」，
-       不捲動、也不把整張圖聚焦到那一格 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
-       要真的聚焦到某一格，用圖上的環節色標、關聯圖的大圓點，或零件小卡裡那顆「環節 →」。 */
+       不捲動、也不動下面的成分股表 —— Andy：「當我點擊圖片時，不用馬上切換到下方股票」。
+       要真的篩成分股，用下面的環節晶片、族群卡片，或說明框裡那顆按鈕。 */
     let segHi = null;
     /* partHi ＝**剛剛被點的那一個零件**（`data-part`，或 stampParts 自動補的 key）。
        為什麼要跟 segHi 分開：高亮以前只有環節這一層，所以「點一個零件」在程式裡
@@ -868,6 +906,7 @@
       renderSegBox($('#cgSegBox', el), sc, shown, ch, { filtered: !!segFilter, onFilter: () => {
         segFilter = shown; segHi = null; partHi = partSel = null; state.group = null; syncHighlight();
       } });
+      if (!o.quiet) renderMembers();
       /* 族群換了就換圖。★ 2026-09-21：換到「沒有圖」也是一種結果 ——
          選到還沒有專屬剖析圖的族群（例：面板），圖真的收起來、換回圖別選單，
          **不會**退回別的族群的圖。沒換就什麼都不做（不會閃）。*/
@@ -933,8 +972,8 @@
     };
     /* 點背景 ＝ 回到 Default：全部零件恢復全亮、零件小卡收掉（Andy 2026-09-22）。
        ⚠ **刻意不動 segFilter** —— 那是環節色標的「篩選」，跟零件的「高亮」是兩件事。
-         把它一起清掉的話，使用者只是想退出零件選取，圖下方的環節詳情卻莫名其妙整個收掉。
-       已經是 Default 就什麼都不做：避免每點一次背景就重畫一次環節詳情。
+         把它一起清掉的話，使用者只是想退出零件選取，下面的成分股卻莫名其妙全部跑回來。
+       已經是 Default 就什麼都不做：避免每點一次背景就重畫一次成分股表。
        noscroll：使用者的眼睛在圖上，不要把頁面捲到別的地方去。*/
     const clearPart = () => {
       if (!partHi && !segHi && !partSel) return;
@@ -946,11 +985,21 @@
        ⚠ 這一行一定要排在建圖之後：色標的 DOM 是 drawGroupGraph 建的空殼，
        內容是上面那個區塊填的，太早掛就掛在空的容器上。*/
     $$('#cgSegs .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
-    /* ★「放寬 ⤢」（成分股暫時蓋住今日事件面板）跟著成分股表一起移除 ——
-       它是為了那張表才存在的，表沒了就沒有服務對象。
-       ⚠ **`show()` 裡「換頁還原事件面板」那段收尾不准拿掉**（見檔案上方）：
-         使用者可能是在上一版按下放寬之後才重新整理／換頁進來的，
-         body 上還掛著 `.memwide` 卻再也沒有人會把它拿掉，事件面板就永遠卡在被蓋住的狀態。*/
+    /* Andy：「下方成分股清單可以暫時覆蓋旁邊事件頁面」。
+       ★ 事件面板是**被蓋住**不是被刪掉：按第二次就回到他自己設定的狀態
+         （twSetSide 的 remember=false ——「暫時蓋住」不該改掉他的偏好）。*/
+    {
+      const mw = $('#memWide', el);
+      if (mw) mw.onclick = () => {
+        const on = document.body.classList.toggle('memwide');
+        mw.classList.toggle('cyan', on);
+        mw.textContent = on ? '還原 ⤡' : '放寬 ⤢';
+        if (typeof window.twSetSide === 'function') {
+          window.twSetSide(on ? false : (window.twSideWanted ? window.twSideWanted() : true), false);
+        }
+      };
+    }
+    $$('#mktSeg button', el).forEach(b => b.onclick = () => { $$('#mktSeg button', el).forEach(x => x.classList.toggle('on', x === b)); mkt = b.dataset.v; renderMembers(); });
     // E5：上方切換列（2026-09-23 改成活頁簿分頁）—— 按了直接換一條鏈，不用退回產業地圖
     wireChainTabs(el, ch.id);
     /* ★ 環節清單 `#chainList` ＋「看關聯圖 →」`#chainView` ＋ 舊的 `#chainMap` 已移除
@@ -972,38 +1021,36 @@
       /* ★ 直接走到某一張圖自己的網址（#industry/<chain>/dg/<slot>）＝使用者明確說
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
-      if (dgExplicit) dgOpen = true;
+      if (state.dg) dgOpen = true;
       let did3d = false;
       const dgSecEl = $('#dgSec', el);
-      /* ★ 2026-09-23 第二批（Andy：「設定列改到右上角」）：工具列要停在**圖的右上角**，
-         不是整個區塊的右上角。它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，
-         住在裡面會一起消失），而 `#dgSec` 的上緣之上還有「產品剖析圖」標題列與
-         「這張圖回答」那一行 —— 直接 top:12px 會壓在標題上。
-         所以量一次「圖的上緣離區塊上緣多遠」，把那段距離補進 top。
-         ⚠ 換方向不等於可以拿掉防抖動：死區、補算時間點、ResizeObserver 全部照留
-         （那是量到工具列跑到圖外 25px 之後才補的）。
-         ★ 窄畫面（≤800px）現在也走這支：那邊的 CSS 只管「排成可左右捲的一列」，
-           top 一樣要量 —— 寫死一個數字會壓到標題列。*/
+      /* ★ 工具列要停在**圖的右下角**，不是整個區塊的右下角。
+         它絕對定位在 `#dgSec` 上（收合時 `#dgBody` 是 display:none，住在裡面會一起消失），
+         但 `#dgSec` 底下還有 3D 說明與零件卡 —— 一開 3D，區塊長高 480px，
+         工具列就跟著掉到圖外面、掉出視窗（實測：按了 3D 之後「重設視角」整個點不到）。
+         所以量一次「圖的底緣離區塊底緣多遠」，把那段距離補進 bottom。
+         窄畫面不套：那邊的規則是「貼在畫布底緣的一整列」，由 CSS 自己管。*/
       const placeDgTools = () => {
         /* 一律用 document 問「現在畫面上的那一個」：這一頁會整段重畫（換鏈、換圖別、
            視窗變寬都會），舊 closure 手上的 el 早就脫離 DOM 了，對它設 style 沒有人看得到。*/
         const sec = document.getElementById('dgSec'), tools = document.getElementById('dgTools');
         if (!tools || !sec) return;
-        if (sec.classList.contains('dgfold')) { tools.style.top = ''; return; }
+        if (window.innerWidth <= 800 || sec.classList.contains('dgfold')) { tools.style.bottom = ''; return; }
         const d3 = document.getElementById('prod3d'), d2 = document.getElementById('prodDiagram');
         const img = (d3 && !d3.hidden && d3.clientHeight > 40) ? d3 : d2;
-        if (!img || img.hidden || !img.clientHeight) { tools.style.top = ''; return; }
-        const gap = img.getBoundingClientRect().top - sec.getBoundingClientRect().top;
+        if (!img || img.hidden || !img.clientHeight) { tools.style.bottom = ''; return; }
+        const gap = sec.getBoundingClientRect().bottom - img.getBoundingClientRect().bottom;
         const want = Math.max(12, Math.round(gap) + 12);
-        /* 死區的方向判準跟改成 top 之前**完全一樣**，只是講法要換成 top 的語言：
-           `want` 變大 ＝ 圖的上緣往下跑了（標題列長高、換行、3D 說明補上來），
-           這時候還停在舊的小 top，工具列就落在圖的**上緣外面** —— 這一邊一律照做（死區 2px）。
-           `want` 變小 ＝ 工具列只是比需要的位置更深入圖內一點，不會跑到圖外，可以慢慢收（死區 8px）。
+        /* 差不到 8px 就不動：3D 掛載的那幾幀高度會一直微調，每幀都搬會變成一顆在抖的鈕。
+           ★ 2026-09-23：這個死區只准用在**往下搬**。往上搬（want 變大＝圖變矮了）一律照做 ——
+           不然差 6px 就被死區吃掉，工具列會停在畫布底緣**外面** 6px，剛好違反
+           「完整在圖內」那條驗收（實測 3D 開著時就是這樣紅的）。 */
+        const now = parseFloat(tools.style.bottom) || 12;
+        /* ★ 往上搬（圖變矮了）的死區收到 2px、往下搬維持 8px。
            兩邊都要有死區 —— 完全不設的話，3D 掛載那幾秒每次重算都差 1px，
            鈕就一直在抖，Playwright 的「元素穩定了嗎」永遠不成立、點擊直接逾時
            （實測：3D 開著時 `#dgAnim` 點不下去，8 秒卡在 performing click action）。*/
-        const now = parseFloat(tools.style.top) || 12;
-        if (want - now > 2 || now - want >= 8) tools.style.top = want + 'px';
+        if (want - now > 2 || now - want >= 8) tools.style.bottom = want + 'px';
       };
       try {
         // 開／關 3D、開零件卡、換圖都會改變區塊高度，統一用 ResizeObserver 收斂
@@ -1051,7 +1098,7 @@
          改 state —— 讓它走 hash 路由，跟圖別選單、跟直接貼網址完全同一條路。
          這樣「換一張圖」才會留下瀏覽紀錄（上一頁回得去）。*/
       const back = $('#dgBack', el);
-      if (back) back.onclick = () => { location.hash = '#industry/' + ch.id + '/overview'; };
+      if (back) back.onclick = () => { location.hash = '#industry/' + ch.id; };
       paintDgMode();
       replaceDgTools();
     }
@@ -1153,7 +1200,7 @@
        掛在這裡而不是版面那一段，是因為它的 callback 要用到 syncHighlight／segFilter ——
        那兩個宣告在後面，太早掛會踩到 TDZ。
        · drillGid：從 `#industry/group/<gid>` 或關聯圖進來時，直接展開那個族群的個股長條圖
-       · onGroup：點長條＝原地展開，同時把選取狀態換成這個族群（跟點關聯圖的大圓點同一條路）
+       · onGroup：點長條＝原地展開，同時把下方成分股篩成這個族群（跟點關聯圖的大圓點同一條路）
        · onBack：回到族群層級，篩選一起還原 */
     renderGroupPanel($('#gpSec', el), {
       scope: ch.name, groups: groups, asOf: (im && im.date) || '',
@@ -1175,7 +1222,8 @@
     syncHighlight();
   }
   // 環節說明盒：這個環節的台股（可點）、外商、相關族群（可點）
-  // （`marketOf` 只服務成分股表的「上市／上櫃」篩選，表移除後一併拿掉）
+  // 市場別一律以全市場索引（stocks.json）為準：groups_detail 的 market 欄位常常是空的
+  const marketOf = (r) => String(A.L.cmarket[r.code] || r.market || '').toUpperCase() || null;
 
   function renderSegBox(box, sc, seg, ch, opt) {
     if (!box) return;
@@ -1185,7 +1233,7 @@
     const s = sc.segments.find(x => x.id === seg) || {};
     box.innerHTML = `<div class="segbox" style="--c:${segColor(seg)}"><div class="row spread">
         <div><b class="t">${A.fmt.esc(s.name || seg)}</b> <span class="muted">${s.desc ? A.fmt.esc(s.desc) : ''}</span></div>
-        <button class="btn small" id="segOnly">${o.filtered ? '已只看這一格' : '只看這一格 →'}</button></div>
+        <button class="btn small" id="segOnly">${o.filtered ? '已套用到下方成分股' : '只看這個環節的成分股 →'}</button></div>
       <div class="row"><span class="muted">台股</span>${tw.length ? tw.map(c => A.L.stock(c.tw_code, c.name)).join('') : '<span class="muted">沒有直接對應的台股</span>'}</div>
       ${fo.length ? `<div class="row"><span class="muted">外商</span>${fo.map(c => `<span class="pill" title="${A.fmt.esc((c.tech || []).join('、'))}">${A.fmt.esc(c.name)}</span>`).join('')}</div>` : ''}
       ${gids.length ? `<div class="row"><span class="muted">相關族群</span>${gids.map(g => A.L.group(g)).join('')}</div>` : ''}
@@ -1202,8 +1250,8 @@
      這張小卡就是那個答案：**這是什麼 → 屬於哪個環節 → 做這個的台股有誰（負責什麼）
      → 相關料號 → 台股沒人做的話是誰做的**，順序照 docs 那五條。
 
-     ★ 它是「多給資訊」，不是「改掉既有行為」：DECISIONS #73 的「點零件只亮不篩」
-       一個字都沒有動 —— 圖下方的環節詳情不會因為點零件而變，要聚焦仍然是點環節色標。
+     ★ 它是「多給資訊」，不是「改掉既有行為」：DECISIONS #73 的「點零件只亮不篩成分股」
+       一個字都沒有動 —— 下面的成分股表不會因為點零件而變，要篩仍然是點環節色標。
 
      兩層資料來源，順序是刻意的：
        ① 預設 —— 零件的 `data-seg` → 那個環節的台股（附 companies[].tech）＋
@@ -1386,13 +1434,13 @@
     box.hidden = false;
     box.style.setProperty('--c', segColor(seg));
     box.innerHTML = `<div class="pc-hd"><span class="pc-dot"></span><span class="pc-t">${A.fmt.esc(name)}</span>
-        <button type="button" class="pc-seg" id="pcSeg" title="把整張圖聚焦到「${A.fmt.esc(segNm)}」這一格">環節：${A.fmt.esc(segNm)} →</button>
+        <button type="button" class="pc-seg" id="pcSeg" title="把下方成分股篩成「${A.fmt.esc(segNm)}」這一格">環節：${A.fmt.esc(segNm)} →</button>
         <span class="pc-btns"><button type="button" id="pcFold">${o.open ? '收合 ▴' : '展開 ▾'}</button><button type="button" id="pcClose" title="取消選取這個零件">✕</button></span></div>
       <div class="pc-bd" id="pcBody"${o.open ? '' : ' hidden'}>
         ${desc ? `<div class="pc-desc">${A.fmt.esc(desc)}</div>` : ''}
         ${twRow}${noneRow}${foRow}${itemRows}${noItem}
         ${def && def.note ? `<div class="pc-note">★ ${A.fmt.esc(def.note)}</div>` : ''}
-        <div class="pc-ft">公司與「負責什麼」讀 supply_chain 的 <b>companies[].tech</b>，料號讀 <b>edges[].item</b>；標籤是資料可信度（官方揭露／媒體報導／產業推論）。點零件只會亮起來，<b>不會</b>把整張圖聚焦到那一格 —— 要聚焦請按上面的「環節」。</div>
+        <div class="pc-ft">公司與「負責什麼」讀 supply_chain 的 <b>companies[].tech</b>，料號讀 <b>edges[].item</b>；標籤是資料可信度（官方揭露／媒體報導／產業推論）。點零件只會亮起來，<b>不會</b>動到下方成分股 —— 要篩請按上面的「環節」。</div>
       </div>`;
     const bSeg = $('#pcSeg', box); if (bSeg && o.onSeg) bSeg.onclick = () => o.onSeg(seg);
     const bX = $('#pcClose', box); if (bX && o.onClose) bX.onclick = () => o.onClose();
@@ -1545,13 +1593,8 @@
     if (id) host.dataset.dgid = id; else id = host.dataset.dgid || '';
     const w = (!on3d && DS && DS.native) ? DS.native(id) : 0;
     const svg = host.querySelector('svg');
-    /* ★ 2026-09-23（W3-5）：v2 版面的 svg 已經被 `externalize()` 包進 `.dgcanvas`
-       （diagrams.js:286 當場就把 host 的 overflow 清掉，捲動交給那一層）。
-       這一支在切 2D／3D、換圖時會再跑一次 —— 如果照舊把 `overflow-x:auto` 設回 host，
-       整個 `.dggrid`（單欄時連說明卡片一起）就又變成可捲的，下面那段置中一推就走。*/
-    const inCanvas = !!(svg && svg.closest && svg.closest('.dgcanvas'));
-    host.style.overflowX = (w && !inCanvas) ? 'auto' : '';
-    host.style.overflowY = (w && !inCanvas) ? 'hidden' : '';
+    host.style.overflowX = w ? 'auto' : '';
+    host.style.overflowY = w ? 'hidden' : '';
     if (svg) svg.style.minWidth = w ? w + 'px' : '';
     // 3D 畫布永遠不准比容器寬（它自己會依 clientWidth 取景，撐寬只會產生橫向捲動）
     if (host3) { host3.style.maxWidth = '100%'; host3.style.overflowX = 'hidden'; }
@@ -1560,22 +1603,10 @@
        欄寬窄到一定程度（不到原尺寸的 62%）就先把捲軸捲到圖的正中央，
        主角先進畫面，要看左右兩欄再自己滑。**沒有動幾何、沒有動字級**。
        ⚠ 這只是止血。規格書 §7 要求的「窄畫面把右側說明欄改成圖下方堆疊」還沒做。*/
-    /* ★ 2026-09-23 第二批（W3-5）：**要捲的是「裝著畫布的那一個框」，不是整個 `#prodDiagram`。**
-       量到的事實：390px 載入 AI 伺服器機櫃圖時，這行置中把整個 `.dggrid` 左移 143px
-       （MLCC 123px）—— 窄畫面的 `.dggrid` 是單欄、裡面還有 HTML 說明卡片，
-       那些卡片本來就該貼著左邊，一進來就被切掉半邊。19 張圖全中，因為這是框架層的行為。
-       v2 版面本來就有 `.dgcanvas` 這一層（CSS 給了它自己的 overflow-x:auto），
-       畫布超出欄寬是它在捲 —— 置中套在它身上才是原本那條規則要的意思
-       （「圖以原尺寸顯示、放不下時左右滑」講的是**圖**，不是整個版面）。
-       舊版面沒有這一層（`#prodDiagram` 底下就是 svg），才退回 host 自己，行為不變。
-       ⚠ 另外一定要把 host 自己的 scrollLeft 壓回 0：它的 overflow-x 是 auto，
-         不壓回去的話下一次重算（換圖、轉向、ResizeObserver）又會把 grid 推走。*/
     if (w && svg) {
-      const box = (svg.closest && svg.closest('.dgcanvas')) || host;
       const center = () => {
-        const cw = box.clientWidth;
-        if (cw && cw < w * 0.62) box.scrollLeft = Math.max(0, (w - cw) / 2);
-        if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
+        const cw = host.clientWidth;
+        if (cw && cw < w * 0.62) host.scrollLeft = Math.max(0, (w - cw) / 2);
       };
       center();
       requestAnimationFrame(center);     // 剛換過 innerHTML 時 clientWidth 可能還是 0
@@ -1880,7 +1911,7 @@
      真的要看線本身（誰連到誰、多粗），右上角「看關聯圖」一鍵切回原本那張 SVG。
 
      漲跌沒有印在小卡上（Andy 的參考圖就是名稱＋代號兩行），改放進 title 提示；
-     完整價量在第一個分頁的族群／個股漲幅長條圖上，那裡本來就照漲幅排好了。*/
+     完整價量本來就在下面的成分股表，而且那張表可以排序。*/
   /* ★ 已移除（DECISIONS #248）：`drawSegList`（環節卡清單）與它的三個偏好
      （`tw.chainView` 清單／關聯圖切換、`tw.segExpand` 手機展開、`segListReveal`／`segFoldMQ`）。
      環節清單整塊被族群關聯圖取代，留著就是死碼 —— 而且它還掛著一個
@@ -2267,7 +2298,7 @@
       + '</div><h6>動畫</h6><div class="cgstyles" id="cgAnim">'
       + '<button type="button" data-anim="on"><b>開</b><span>星塵流動・泡泡呼吸</span></button>'
       + '<button type="button" data-anim="off"><b>關</b><span>完全靜止，最省效能</span></button>'
-      + '</div><h6>依環節篩選 <small>點一下只看那一格，再點一次取消</small></h6>'
+      + '</div><h6>依環節篩選 <small>點一下只看那一格的成分股，再點一次取消</small></h6>'
       + '<div class="segchips" id="cgSegs"></div></div>'
       + '<div class="cglegend" id="cgLegend"></div>'
       + '<div class="cgzoom"><button type="button" id="cgZoomOut" title="縮小">−</button>'

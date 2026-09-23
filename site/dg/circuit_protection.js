@@ -1,20 +1,6 @@
 /* 被動保護：過流與過壓元件 —— docs/diagram_plan_electronics.md 的 E3
    （族群 `resistor_protect`，electronics 鏈）
 
-   ---- 2026-09-23 v2（Andy：「所有族群 2D 圖呈現風格都需要 Follow AI Server 族群內 2D 圖，
-        並且需要適當的調整及填充版面間隔，不許有空白」）----
-   原本是 980 寬 ＋ 二十餘行說明畫在 SVG 裡的舊版式；欄寬一窄 12px 的字就被縮成 8px，
-   而且五個元件的中文名直接壓在元件方塊上（AI 伺服器那三張早就改掉的畫法）。
-   改成跟 `site/dg/server_psu.js`／`liquid_cooling.js`／`switch_wireless.js` 同一套：
-     · 畫布 980 → **660**（`native: 660`），svg 根掛 `.rs`；
-     · 標題與導言 → `text.ext`（HTML 的 .dghead）；元件名與每一段說明 → `extRow(side)` 外掛卡片，
-       畫布上只留**編號圓點**（引線由 externalize 依實際寬度重算）——
-       字因此不再壓在零件上，左右兩欄也被卡片填滿、不留空白；
-     · 材質走共用的 `D.fx`（`glass` 當元件本體、`beam` 當主線與接地線、`glowDefs`）；
-     · 顏色一律 `--dg-*` token（本來就沒有寫死色碼，改完再 grep 一次確認）；
-     · **既有互動一個都沒動**：`data-part` 與 `data-seg` 逐字不變（改前改後比對過）。
-   ⚠ 舊註解全部保留 —— T1／T2／T3／T6／T10 那幾條紅線還是合約。
-
    合約＝`docs/diagram_specs/circuit_protection.md`。這個檔只實作，不重新決定規格。
    規格書裡已經寫死、這裡照辦的幾件事：
 
@@ -50,11 +36,9 @@
 (function () {
   'use strict';
   const D = window.DG;
-  if (!D || typeof D.register !== 'function' || !D.fx) return;
-  const { extRow, note, fx } = D;
+  if (!D || typeof D.register !== 'function') return;
 
-  /* 畫布寬：2026-09-23 從 980 收到 660。說明文字外掛成 HTML 卡片之後，SVG 只剩「畫」的部分。*/
-  const CW = 660, SEG = 'passive_comp';
+  const W = 980, SEG = 'passive_comp';
 
   /* ================================================================ 小工具 */
   const f1 = (v) => (+v).toFixed(1);
@@ -69,28 +53,6 @@
     `<text class="${cls || 'sub'}" x="${f1(x)}" y="${f1(y)}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${s}</text>`;
   const frame = (x, y, w, h) => `<rect class="frame" x="${x}" y="${y}" width="${w}" height="${h}" rx="9"/>`;
   const part = (id, inner) => `<g data-part="${id}" data-seg="${SEG}">${inner}</g>`;
-
-  /* ---- 2026-09-23 v2 新增（寫法照 `site/dg/liquid_cooling.js`）----
-     card()：說明卡片離開 SVG 變成 HTML（externalize），畫布上只留編號圓點；
-     卡片與它指的零件**共用同一個 data-part** —— 點卡片零件亮、點零件卡片亮。*/
-  const card = (o) => {
-    const s2 = extRow({ seg: o.seg === null ? undefined : (o.seg || SEG), part: o.part, title: o.title, sub: o.sub,
-      no: o.no, side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
-    return o.color ? s2.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s2;
-  };
-  // 中文長句斷行（畫布收窄之後章節裡的長句一個字都不刪，改成自動斷行）
-  const wrapCJK = (s2, n) => { const out = []; for (let i = 0; i < s2.length; i += n) out.push(s2.slice(i, i + n)); return out.length ? out : ['']; };
-  // 玻璃材質：跟 AI 伺服器那三張同一支 D.fx.glass
-  const slab = (x, y, w, h, fill, o) => fx.glass(x, y, w, h,
-    { fill, cls: 'part' + ((o && o.cls) ? ' ' + o.cls : ''), rx: (o && o.r) || 2, iso: o && o.iso });
-  /* 元件色（卡片色條、編號圓點、引線端點共用）—— 一律 token。
-     ⚠ 挑的是「同族但亮一階」的 token：卡片標題印在元件色上要 ≥ 4.5，
-       --dg-cp-carbon／--dg-cp-n 這種暗色直接當卡片色會讀不到（liquid_cooling 的銅走過同一條）。*/
-  const CC = {
-    mov: 'var(--dg-cp-grain)', gdt: 'var(--dg-steel)', ntc: 'var(--dg-cer)',
-    pptc: 'var(--dg-cp-poly)', tvs: 'var(--dg-cp-depl)', line: 'var(--dg-accent-2d)',
-    gnd: 'var(--dg-steel)', ni: 'var(--dg-ni)', gb: 'var(--dg-cp-gb)', ins: 'var(--dg-resin)',
-  };
   // 向右的箭頭（主線）：頂點一定在右邊，所以「箭頭方向」量得出來
   const arrR = (x, y) => PA(`M${f1(x + 7)},${f1(y)} L${f1(x)},${f1(y - 4)} L${f1(x)},${f1(y + 4)} Z`,
     'var(--dg-accent-2d)', 'cparrh');
@@ -98,81 +60,78 @@
   /* ================================================================ 區 ① 防護路徑帶
      §3-A／§3-B：由左到右 外部端子 → MOV／GDT（第一道，並聯）→ NTC → PPTC（串聯）
      → TVS／ESD（第二道，並聯，最靠近 IC）→ IC。 */
-  /* ⚠ 2026-09-23：座標整組重排到 660 寬。元件名從「寫在方塊上」改成「卡片 ＋ 編號圓點」，
-     所以方塊不必再放得下中文字，寬度改由**拓樸**決定（並聯要放得下兩條腿、串聯要放得下主線穿過）。*/
-  const LY = 116, GY = 208, LX0 = 64, LX1 = 596;    // 主線 y ／ 接地線 y ／ 主線左右端
+  const LY = 130, GY = 200, LX0 = 84, LX1 = 876;    // 主線 y ／ 接地線 y ／ 主線左右端
 
   /* 並聯元件：★ 一定有兩條腿 —— 一條接主線、一條接地，主線從它旁邊繼續往右走。 */
   function shunt(id, cx, w, title, fill, inner) {
-    const x0 = cx - w / 2, y0 = 146, h = 40;
-    // 2026-09-23：本體改用 D.fx.glass（有厚度與邊光），中文名搬到卡片，方塊上不再寫字
-    return part(id, slab(x0, y0, w, h, fill, { cls: 'cpbody', r: 4 })
+    const x0 = cx - w / 2, y0 = 148, h = 34;
+    return part(id, R(x0, y0, w, h, fill, 'part cpbody', 4)
       + (inner || '')
       + LN(`M${cx},${LY} L${cx},${y0}`, 'var(--dg-steel)', 2.2, 'cpleg')
       + LN(`M${cx},${y0 + h} L${cx},${GY}`, 'var(--dg-steel)', 2.2, 'cpleg')
-      + C(cx, LY, 3.2, 'var(--dg-accent-2d)', 'cpnode'));
+      + C(cx, LY, 3.2, 'var(--dg-accent-2d)', 'cpnode')
+      + `<g pointer-events="none">${T(cx, y0 + 21, title, 'lbl', 'middle')}</g>`);
   }
 
   /* 串聯元件：★ 主線從中間穿過（左進右出），而且**沒有接地腿**。 */
   function series(id, cx, w, title, fill, inner) {
-    const x0 = cx - w / 2, y0 = LY - 20, h = 40;
-    return part(id, slab(x0, y0, w, h, fill, { cls: 'cpbody', r: 4 })
+    const x0 = cx - w / 2, y0 = LY - 17, h = 34;
+    return part(id, R(x0, y0, w, h, fill, 'part cpbody', 4)
       + (inner || '')
-      + LN(`M${x0},${LY} L${x0 + w},${LY}`, 'var(--dg-accent-2d)', 2.2, 'cpthru'));
+      + LN(`M${x0},${LY} L${x0 + w},${LY}`, 'var(--dg-accent-2d)', 2.2, 'cpthru')
+      + `<g pointer-events="none">${T(cx, y0 - 6, title, 'lbl', 'middle')}</g>`);
   }
 
   /* 元件位置寫在陣列裡、照順序排 —— T3（MOV 比 TVS 更靠外）因此自動成立。 */
   const PATH = [
-    { id: 'cp_mov', kind: 'shunt', cx: 120, w: 76, t: '壓敏電阻 MOV' },
-    { id: 'cp_gdt', kind: 'shunt', cx: 214, w: 76, t: '氣體放電管 GDT' },
-    { id: 'cp_ntc', kind: 'series', cx: 316, w: 84, t: '熱敏電阻 NTC' },
-    { id: 'cp_pptc', kind: 'series', cx: 420, w: 96, t: '自恢復保險絲 PPTC' },
-    { id: 'cp_tvs', kind: 'shunt', cx: 520, w: 84, t: 'TVS／ESD 陣列' },
+    { id: 'cp_mov', kind: 'shunt', cx: 200, w: 84, t: '壓敏電阻 MOV' },
+    { id: 'cp_gdt', kind: 'shunt', cx: 306, w: 84, t: '氣體放電管 GDT' },
+    { id: 'cp_ntc', kind: 'series', cx: 442, w: 92, t: '熱敏電阻 NTC' },
+    { id: 'cp_pptc', kind: 'series', cx: 576, w: 108, t: '自恢復保險絲 PPTC' },
+    { id: 'cp_tvs', kind: 'shunt', cx: 736, w: 96, t: 'TVS／ESD 陣列' },
   ];
 
   function pathBand() {
     const g = [];
-    /* 主線：2026-09-23 改用 D.fx.beam（光暈 ＋ 實線 ＋ 流動虛線），跟 AI 伺服器那三張同一套。
-       ⚠ 全圖的 feGaussianBlur 元素維持 ≤ 3（DECISIONS #239）：只有主線這一條開 glow。*/
-    g.push(fx.beam(`M${LX0},${LY} L${LX1},${LY}`, { color: 'var(--dg-accent-2d)', w: 2.6, glow: true, flow: true }));
+    // 主線（一條貫穿全帶，由左到右）＋ 接地線（一條，所有並聯元件都掛在同一條上）
+    g.push(LN(`M${LX0},${LY} L${LX1},${LY}`, 'var(--dg-accent-2d)', 2.6, 'cpline'));
     g.push(part('cp_line', R(LX0, LY - 3, LX1 - LX0, 6, 'transparent', 'part')));
-    g.push(part('cp_gnd', fx.beam(`M${LX0 + 30},${GY} L${LX1 - 40},${GY}`, { color: 'var(--dg-steel)', w: 2.6, glow: false })
-      + LN(`M${LX0 + 40},${GY + 6} L${LX0 + 64},${GY + 6}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
-      + LN(`M${LX0 + 46},${GY + 11} L${LX0 + 58},${GY + 11}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
-      + `<g pointer-events="none">${T(LX0 + 74, GY + 13, '接地：所有並聯元件都掛在同一條上', 'sub')}</g>`));
+    g.push(part('cp_gnd', LN(`M${LX0 + 40},${GY} L${LX1 - 60},${GY}`, 'var(--dg-steel)', 2.6, 'cpgnd')
+      + LN(`M${LX0 + 52},${GY + 6} L${LX0 + 76},${GY + 6}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
+      + LN(`M${LX0 + 58},${GY + 11} L${LX0 + 70},${GY + 11}`, 'var(--dg-steel)', 2.2, 'cpgndsym')
+      + `<g pointer-events="none">${T(LX0 + 84, GY + 12, '接地（所有並聯元件都掛在同一條上）', 'sub')}</g>`));
     // 主線上的方向箭頭：一律向右（外 → 內）
-    [92, 170, 262, 370, 470, 566].forEach((x) => { g.push(arrR(x, LY)); });
+    [140, 372, 512, 664, 820].forEach((x) => { g.push(arrR(x, LY)); });
     // 外部端子（不是任何真實接頭的外觀 —— 只是兩個接點符號）
-    g.push(part('cp_term', slab(20, LY - 22, 44, 44, 'var(--dg-mc-case)', { r: 4 })
-      + C(38, LY - 9, 4, 'var(--dg-cp-gb)', 'part') + C(38, LY + 9, 4, 'var(--dg-cp-gb)', 'part')
-      + LN(`M42,${LY - 9} L64,${LY - 9}`, 'var(--dg-steel)', 1.6)
-      + LN(`M42,${LY + 9} L64,${LY + 9}`, 'var(--dg-steel)', 1.6)));
-    // 五個元件（名字在卡片上，方塊上不寫字）
+    g.push(part('cp_term', R(40, LY - 20, 44, 40, 'var(--dg-mc-case)', 'part', 4)
+      + C(58, LY - 9, 4, 'var(--dg-cp-gb)', 'part') + C(58, LY + 9, 4, 'var(--dg-cp-gb)', 'part')
+      + LN(`M62,${LY - 9} L84,${LY - 9}`, 'var(--dg-steel)', 1.6)
+      + LN(`M62,${LY + 9} L84,${LY + 9}`, 'var(--dg-steel)', 1.6)
+      + `<g pointer-events="none">${T(40, LY - 28, '外部端子', 'sub')}</g>`));
+    // 五個元件
     PATH.forEach((p) => {
       g.push(p.kind === 'shunt'
         ? shunt(p.id, p.cx, p.w, p.t, 'var(--dg-mc-case)')
         : series(p.id, p.cx, p.w, p.t, 'var(--dg-mc-case)'));
     });
     // IC（被保護的對象；不是任何真實晶片的外觀）
-    g.push(part('cp_ic', slab(596, LY - 24, 48, 48, 'var(--dg-cp-n)', { r: 4 })
-      + [0, 1, 2].map((i) => R(590, LY - 14 + i * 13, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
-      + `<g pointer-events="none">${T(620, LY + 4, 'IC', 'lbl', 'middle')}</g>`));
-    /* 兩道防護的分界：2026-09-23 畫布收窄之後，分界上的整句話搬到左右兩欄的卡片裡，
-       畫布上只留短標（字不准壓到別的字，也不准超出格子）—— 一個字都沒刪，只是換位置。*/
-    g.push(LN('M268,70 L268,232', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
-    g.push(LN('M476,70 L476,232', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
-    g.push(T(70, 66, '第一道：擋大能量（並聯到地）', 'sub', null, 'fill:var(--dg-accent-2d)'));
-    g.push(T(278, 66, '過流那一側：串在線上', 'sub', null, 'fill:var(--dg-accent-2d)'));
-    g.push(T(486, 66, '第二道：壓更低（並聯）', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(part('cp_ic', R(876, LY - 22, 64, 44, 'var(--dg-cp-n)', 'part', 4)
+      + [0, 1, 2].map((i) => R(870, LY - 12 + i * 12, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
+      + [0, 1, 2].map((i) => R(940, LY - 12 + i * 12, 6, 4, 'var(--dg-cp-gb)', 'part')).join('')
+      + `<g pointer-events="none">${T(908, LY + 4, 'IC', 'lbl', 'middle')}</g>`));
+    // 兩道防護的分界說明
+    g.push(LN('M362,96 L362,214', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
+    g.push(T(92, 92, '第一道（靠外，擋大能量）：並聯到地', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(T(374, 92, '過流那一側：串在線上', 'sub', null, 'fill:var(--dg-accent-2d)'));
+    g.push(LN('M644,96 L644,214', 'var(--dg-frame-s)', 1, null, ' stroke-dasharray="5 5"'));
+    g.push(T(656, 92, '第二道（靠近 IC，把電壓壓得更低）：並聯到地', 'sub', null, 'fill:var(--dg-accent-2d)'));
     return g.join('');
   }
 
   /* ================================================================ 區 ② ① PPTC 剖面
      §2-B：鎳電極箔 ×2 夾住高分子基體，裡面是串成鏈的導電碳黑粒子，外面包一層絕緣。
      兩格對照（常溫／跳脫）共用這一支，只換 `polyH` 與 `breaks` 兩個參數 —— T11 自動成立。 */
-  /* ⚠ 2026-09-23：40 → 52。畫布收窄之後第 ② 排的高度用不完，高分子層太扁看不出「變厚」。
-     跳脫格仍然是 `PP_BASE * 1.4` 真的乘出來的（T11），比例關係一個都沒動。*/
-  const PP_BASE = 72;
+  const PP_BASE = 40;
 
   function pptcCell(x0, yTop, polyH, breaks, wid) {
     const g = [], w = wid || 190, NI = 8, INS = 8;
@@ -246,38 +205,34 @@
   }
 
   /* ================================================================ 區 ② 四格剖面 */
-  /* ⚠ 2026-09-23：四格整組重排到 660 寬（分隔線在 178／336／494）。
-     每一格的內容一件都沒少，只是寬度從 ~237 收到 ~135、垂直方向放大一點把格子填滿。*/
   function cells() {
     const g = [];
     // ① PPTC
-    const p = pptcCell(26, 340, PP_BASE, 0, 140);
+    const p = pptcCell(46, 292, PP_BASE, 0);
     g.push(p.svg);
-    g.push(part('cp_pptc', R(20, 334, 152, p.y1 - 328, 'transparent', 'part')));
+    g.push(part('cp_pptc', R(40, 286, 202, p.y1 - 280, 'transparent', 'part')));
     // ② NTC：陶瓷本體 ＋ 兩個相對面電極 ＋ 引線 —— 沒有 PN 接面、沒有晶界網（V2）
-    g.push(part('cp_ntc', slab(196, 366, 120, 76, 'var(--dg-cer-cut)', { cls: 'cpntcbody', r: 3 })
-      + R(196, 354, 120, 12, 'var(--dg-ni)', 'part cpntcel')
-      + R(196, 442, 120, 12, 'var(--dg-ni)', 'part cpntcel')
-      // 引線兩根：★ 上緣停在 276、下緣停在 400 —— 上面是格子小標（bbox 到 278）、
-      //   下面是格子底下的說明（bbox 從 404 起）。字壓在零件上排版體檢抓不到，所以這裡自己算。
-      // ⚠ 上緣停在 336（格子小標的 bbox 到 330）、下緣停在 472（底下說明從 482 起）。
-      //   字壓在零件上排版體檢抓不到，所以這裡自己算清楚。
-      + R(248, 336, 16, 18, 'var(--dg-steel)', 'part')
-      + R(248, 454, 16, 18, 'var(--dg-steel)', 'part')));
+    g.push(part('cp_ntc', R(300, 300, 130, 56, 'var(--dg-cer-cut)', 'part cpntcbody', 3)
+      + R(300, 292, 130, 8, 'var(--dg-ni)', 'part cpntcel')
+      + R(300, 356, 130, 8, 'var(--dg-ni)', 'part cpntcel')
+      // 引線兩根：★ 上緣停在 284、下緣停在 368 —— 上面是格子標題（bbox 到 277）、
+      //   下面是說明文字（bbox 從 370 開始）。字壓在零件上排版體檢抓不到，所以這裡自己算。
+      + R(358, 284, 14, 16, 'var(--dg-steel)', 'part')
+      + R(358, 356, 14, 12, 'var(--dg-steel)', 'part')));
     // ③ MOV：晶粒 ＋ 晶界 ＋ 電流折線 ＋ 兩個相對面電極
-    const mv = movGrains(350, 484, 356, 428);
-    g.push(part('cp_movel', R(350, 342, 134, 14, 'var(--dg-ni)', 'part cpmovel')
-      + R(350, 428, 134, 14, 'var(--dg-ni)', 'part cpmovel')));
+    const mv = movGrains(512, 706, 302, 350);
+    g.push(part('cp_movel', R(512, 292, 194, 10, 'var(--dg-ni)', 'part cpmovel')
+      + R(512, 350, 194, 10, 'var(--dg-ni)', 'part cpmovel')));
     g.push(mv.svg);
     // ④ TVS：P 區 ／ 空乏區 ／ N 區 ＋ 上下金屬電極
     // ⚠ 上下金屬電極自己一個群組（`cp_tvsel`），不要併進 `cp_tvs` ——
     //   併進去的話 `parts.cp_tvsel` 那張小卡永遠開不起來，
     //   變成「定義在那裡、但點不到」的死條目。
-    g.push(part('cp_tvsel', R(508, 338, 130, 12, 'var(--dg-ni)', 'part cptvsel')
-      + R(508, 434, 130, 12, 'var(--dg-ni)', 'part cptvsel')));
-    g.push(part('cp_pn', R(508, 350, 130, 36, 'var(--dg-cp-p)', 'part cpp')
-      + R(508, 386, 130, 10, 'var(--dg-cp-depl)', 'part cpdepl')
-      + R(508, 396, 130, 38, 'var(--dg-cp-n)', 'part cpn')));
+    g.push(part('cp_tvsel', R(750, 288, 190, 8, 'var(--dg-ni)', 'part cptvsel')
+      + R(750, 354, 190, 8, 'var(--dg-ni)', 'part cptvsel')));
+    g.push(part('cp_pn', R(750, 296, 190, 26, 'var(--dg-cp-p)', 'part cpp')
+      + R(750, 322, 190, 6, 'var(--dg-cp-depl)', 'part cpdepl')
+      + R(750, 328, 190, 26, 'var(--dg-cp-n)', 'part cpn')));
     return g.join('');
   }
 
@@ -285,43 +240,22 @@
      §3-D（T10，紅線）：同一張圖，鏈斷開 ＋ 高分子層**明顯變厚**。
      ★ 1.4 倍是真的乘出來的（`PP_BASE * 1.4`），不是目測；畫面上不寫這個數字
        —— 那是畫圖用的下限，不是事實宣稱（§7-C2）。 */
-  /* ⚠ 2026-09-23：章節收到 660 寬。長句一個字都沒刪，改成 `wrapCJK` 自動斷行；
-     兩格對照從左右 330 寬改成左右 288 寬（兩格仍然同一個比例尺、同一支函式）。*/
-  const FW = 628, LH = 17;
-  // 章節裡可點的一列：粗體標題 ＋ 自動斷行的說明
-  function txtRow(id, y, title, body, warn) {
-    const lines = wrapCJK(body, 44);
-    const h = 18 + lines.length * LH;
-    const inner = [T(24, y + 13, title, 'lbl', null, warn ? 'fill:var(--dg-warn)' : '')]
-      .concat(lines.map((t, i) => T(24, y + 13 + LH * (i + 1), t, 'sub')));
-    return { svg: part(id, R(16, y, FW, h, 'transparent', 'part')
-      + `<g pointer-events="none">${inner.join('')}</g>`), h: h + 4 };
-  }
-  // 章節裡不可點的一段文字（自動斷行）
-  function txtPara(y, body, warn) {
-    const lines = wrapCJK(body, 46);
-    return { svg: lines.map((t, i) => T(24, y + 13 + LH * i, t, 'sub', null,
-      warn ? 'fill:var(--dg-warn)' : '')).join(''), h: 13 + lines.length * LH };
-  }
-
   function foldTrip(y0) {
     const g = [];
-    let y = y0 + 8;
-    g.push(T(24, y + 14, 'PPTC 跳脫前後長什麼樣', 'hd'));
-    g.push(T(24, y + 31, '兩格同一個比例尺、同一套材質色，只有兩件事不同：', 'sub'));
-    g.push(T(24, y + 48, '① 導電碳黑粒子的鏈斷開了　② 高分子層明顯變厚（體積膨脹）。', 'sub'));
-    g.push(T(24, y + 65, '只畫「變紅」不畫「變厚＋斷鏈」＝沒有解釋機制。', 'sub'));
-    y += 92;
-    g.push(T(24, y - 6, '常溫：碳黑連成通路 → 幾乎不擋路', 'sub'));
-    g.push(T(348, y - 6, '過流發熱：鏈被拉斷 → 變成高阻', 'sub'));
-    const a = pptcCell(24, y, PP_BASE, 0, 288);
-    const b = pptcCell(348, y, PP_BASE * 1.4, 1, 288);
+    let y = y0 + 22;
+    g.push(T(28, y, 'PPTC 跳脫前後長什麼樣：兩格同一個比例尺、同一套材質色，只有兩件事不同', 'hd'));
+    y += 20;
+    g.push(T(28, y, '① 導電碳黑粒子的鏈斷開了　② 高分子層明顯變厚（體積膨脹）。只畫「變紅」不畫「變厚＋斷鏈」＝沒有解釋機制。', 'sub'));
+    const AY = y + 28;                                // ＋28 ＝ 上面那行 sub 的 bbox（15px）留得下
+    const a = pptcCell(60, AY, PP_BASE, 0, 330);
+    const b = pptcCell(560, AY, PP_BASE * 1.4, 1, 330);
     g.push(a.svg, b.svg);
-    let yb = Math.max(a.y1, b.y1) + 10;
-    [['冷了之後高分子縮回去、鏈重新接上 —— 這就是「自恢復」。本圖不寫膨脹的百分比與正常態電阻值（查不到共通值）。', 0],
-      ['★ 台股做 PPTC 的是 6224 聚鼎（PPTC 保護元件）與 6642 富致（PPTC 過電流保護元件）。本圖不區分兩家的技術差異 —— 查不到就不編。', 1],
-    ].forEach(([t, w]) => { const r = txtPara(yb, t, w); g.push(r.svg); yb += r.h + 4; });
-    return { svg: g.join(''), h: yb - y0 + 10 };
+    g.push(T(60, AY - 4, '常溫：碳黑粒子連成貫穿上下電極的通路 → 幾乎不擋路', 'sub'));
+    g.push(T(560, AY - 4, '過流發熱：高分子膨脹，鏈被拉斷 → 變成高阻，把路切斷', 'sub'));
+    const yb = Math.max(a.y1, b.y1) + 20;
+    g.push(T(28, yb, '冷了之後高分子縮回去、鏈重新接上 —— 這就是「自恢復」。本圖不寫膨脹的百分比與正常態電阻值（查不到共通值）。', 'sub'));
+    g.push(T(28, yb + 17, '★ 台股做 PPTC 的是 6224 聚鼎（PPTC 保護元件）與 6642 富致（PPTC 過電流保護元件）。本圖不區分兩家的技術差異 —— 查不到就不編。', 'sub', null, 'fill:var(--dg-warn)'));
+    return { svg: g.join(''), h: yb + 17 - y0 + 16 };
   }
 
   /* 第 ② 段：這一格的台股站在哪一類 */
@@ -335,135 +269,105 @@
 
   function foldWho(y0) {
     const g = [];
-    let y = y0 + 8;
-    g.push(T(24, y + 14, '這一格的台股站在哪一類（6 家）', 'hd'));
-    g.push(T(24, y + 31, '4 家做保護元件、2 家做電阻（那兩家的剖面在別張圖）', 'sub'));
-    y += 40;
-    WHO.forEach((r, i) => { const b2 = txtRow('cp_who' + i, y, r[0], r[1], i === 3); g.push(b2.svg); y += b2.h; });
-    y += 8;
-    [['★ 這 6 檔用代號 grep 整份 supply_chain.yaml，一檔都沒有出現；而這張圖掛得上的環節只有「被動元件」一格，它底下的 5 家（國巨、華新科、凱美、禾伸堂、信昌電）沒有一家在這個族群裡 —— 它們做的是 MLCC 與晶片電阻。', 1],
-      ['所以這張圖每一個零件的公司清單都刻意留空、改用文字回答 —— 走環節預設會給出錯的答案，不是不完整的答案。', 1],
-      ['★ 6224 聚鼎的 CLM 用於 BBU 電池模組與伺服器電源保護（信心 reported）—— 本圖畫的是通用電路，主圖不指定用途，只在這裡列一句。', 0],
-    ].forEach(([t, w]) => { const r = txtPara(y, t, w); g.push(r.svg); y += r.h + 4; });
-    y += 4;
-    const ref = txtRow('cp_res_ref', y, '指路用的一格：晶片電阻不在這張',
-      '晶片電阻的三明治（基板／電阻膜／保護層／端電極）與雷射修整溝、電感的磁粉與繞線、石英的密封腔，全部在「被動元件：電感・電阻・石英」那張 —— 本圖一格都不畫。');
-    g.push(ref.svg); y += ref.h;
-    return { svg: g.join(''), h: y - y0 + 10 };
+    let y = y0 + 22;
+    g.push(T(28, y, '這一格的台股站在哪一類（6 家：4 家做保護元件、2 家做電阻）', 'hd'));
+    WHO.forEach((r, i) => {
+      y += 20;
+      g.push(part('cp_who' + i, R(24, y - 14, 932, 19, 'transparent', 'part')
+        + `<g pointer-events="none">${T(30, y, r[0] + '｜' + r[1], 'sub',
+          null, i === 3 ? 'fill:var(--dg-warn)' : '')}</g>`));
+    });
+    y += 26;
+    g.push(T(28, y, '★ 這 6 檔用代號 grep 整份 supply_chain.yaml，一檔都沒有出現；而這張圖掛得上的環節只有「被動元件」一格，它底下', 'sub', null, 'fill:var(--dg-warn)'));
+    y += 17;
+    g.push(T(28, y, '　 的 5 家（國巨、華新科、凱美、禾伸堂、信昌電）沒有一家在這個族群裡 —— 它們做的是 MLCC 與晶片電阻。', 'sub', null, 'fill:var(--dg-warn)'));
+    y += 17;
+    g.push(T(28, y, '　 所以這張圖每一個零件的公司清單都刻意留空、改用文字回答 —— 走環節預設會給出錯的答案，不是不完整的答案。', 'sub', null, 'fill:var(--dg-warn)'));
+    y += 24;
+    g.push(part('cp_res_ref', R(24, y - 15, 932, 38, 'transparent', 'part')
+      + `<g pointer-events="none">${T(30, y, '指路用的一格：晶片電阻的三明治（基板／電阻膜／保護層／端電極）與雷射修整溝、電感的磁粉與繞線、石英的密封腔，', 'sub')}`
+      + `${T(30, y + 17, '　全部在「被動元件：電感・電阻・石英」那張 —— 本圖一格都不畫。', 'sub')}</g>`));
+    y += 38;
+    g.push(T(28, y, '★ 6224 聚鼎的 CLM 用於 BBU 電池模組與伺服器電源保護（信心 reported）—— 本圖畫的是通用電路，主圖不指定用途，只在這裡列一句。', 'sub'));
+    return { svg: g.join(''), h: y - y0 + 16 };
   }
 
   /* ================================================================ 版面
-     ---- 2026-09-23 v2（Andy：Follow AI 伺服器那三張、版面不許有空白）----
-     畫布 660、兩排：
-       第 1 排　① 防護路徑帶（外部端子 → MOV／GDT → NTC → PPTC → TVS → IC，箭頭一律向右）
-       第 2 排　② 四種元件剖面（PPTC ｜ NTC ｜ MOV ｜ TVS，分隔線在 178／336／494）
-     元件名與每一段說明全部外掛成 HTML 卡片（左右兩欄）—— 畫布上只剩編號圓點，
-     字因此不再壓在零件上，而兩欄卡片把版面填滿。
-     收合時：HTML 標題列 ＋ 兩排圖（16～582）＋ 兩條章節列 ＝ 約 690px（上限 700）。*/
+     收合時：標題 ＋ 兩排圖 ＋ 四行誠實性標示 ＋ 兩條章節列 ＝ **644px**（上限 700）。*/
   function circuitProtection() {
-    const S1 = 596;
+    const S1 = 552;
     const p1 = foldTrip(S1 + 46);
     const S2 = S1 + 46 + p1.h;
     const p2 = foldWho(S2 + 46);
     const H = S2 + 46 + p2.h + 16;
-    return `<svg class="dg dgm rs dgcp dg1" viewBox="0 0 ${CW} ${H}" width="100%" style="display:block">${D.STYLE}
-      <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
+    return `<svg class="dg dgm dgcp dg1" viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${D.STYLE}
       <style>
         /* ⚠ SVG 裡的 style：連註解都不准出現角括號（DECISIONS #231）。
            這裡只補 diagrams.js 沒有的幾件：晶界線、接地符號的線帽、碳黑鏈的線帽。
            ★ 晶界是這張圖的識別特徵 —— 它必須是**線**，不是兩塊顏色的交界，
-             不然配色把色差壓掉之後就看不見了。顏色一律走 --dg-*。
-           2026-09-23 多一組：元件本體改用 D.fx.glass 之後自己有細邊（.fxe），
-           共用的 2.2px 描邊再疊上去會變成一團線框（Andy 講過三次的「螢光感太重」），
-           所以跟 panel／psu 那幾張一樣把描邊與發光各降一階。*/
+             不然休閒配色把色差壓掉之後就看不見了。顏色一律走 --dg-*。*/
         svg.dgcp .cpgrain{stroke:var(--dg-cp-gb);stroke-width:1.1;stroke-linejoin:round}
         svg.dgcp .cpchain{stroke-linecap:round}
         svg.dgcp .cpgnd,svg.dgcp .cpgndsym{stroke-linecap:round}
         svg.dgcp .cppath{stroke-linecap:round}
         svg.dgcp .cpnode{stroke:none}
-        svg.dgcp [data-seg] .part{stroke-width:0}
-        svg.dgcp [data-seg].sel .part{stroke-width:0;filter:none}
-        svg.dgcp [data-seg]:hover .part{stroke-width:1.4;filter:none}
-        svg.dgcp [data-seg].sel-part .part{stroke-width:2.4;filter:var(--dg-glow,drop-shadow(0 0 5px var(--cc)))}
-        svg.dgcp.haspart [data-seg].sel:not(.sel-part){opacity:.55}
       </style>
-      <!-- 標題與導言：v2 搬到 HTML 的 .dghead，SVG 裡不畫 -->
-      <text class="ttl ext" x="0" y="0">被動保護：過流與過壓元件</text>
-      <text class="cap ext" x="0" y="0">擋電壓的並聯、擋電流的串聯 —— 位置不一樣，因為工作方式根本不同。上排是一條線從外面走進晶片、中間被幾個零件擋過（由左到右＝由外到內）；下排把四種元件各切開一顆。左右兩欄的卡片逐件說明，點卡片零件會亮、點零件卡片會亮；下面兩段預設收起來，按標題列就打得開。</text>
+      ${T(16, 22, '被動保護：過流與過壓元件', 'ttl')}
+      ${T(16, 40, '擋電壓的並聯、擋電流的串聯 —— 位置不一樣，因為工作方式根本不同。底下兩段預設收起來，按標題列就打得開。', 'cap')}
 
-      <!-- ================= 第 1 排：① 防護路徑帶（這張圖的主角） ================= -->
-      ${frame(16, 16, 628, 250)}
-      ${T(28, 40, '① 一條線從外面走進晶片，中間被幾個零件擋過', 'hd')}
+      <!-- ================= ① 防護路徑帶（這張圖的主角） ================= -->
+      ${frame(16, 48, 948, 202)}
+      ${T(28, 66, '① 一條線從外面走進晶片，中間被幾個零件擋過（由左到右＝由外到內，箭頭一律向右）', 'hd')}
       ${pathBand()}
+      ${T(28, 234, '★ 並聯（MOV／GDT／TVS）＝兩條腿：一條接主線、一條接地。★ 串聯（NTC／PPTC）＝主線從中間穿過、沒有接地腿。', 'sub', null, 'fill:var(--dg-warn)')}
 
-      <!-- ================= 第 2 排：② 四種元件剖面（同一個外框尺寸、同一套材質色） ================= -->
-      ${frame(16, 282, 628, 300)}
-      <path d="M178,292 L178,572" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
-      <path d="M336,292 L336,572" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
-      <path d="M494,292 L494,572" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
-      ${T(26, 312, '① PPTC', 'hd')}${T(26, 330, '自恢復保險絲（串聯）', 'sub')}
-      ${T(190, 310, '② NTC', 'hd')}${T(190, 326, '熱敏電阻（串聯）', 'sub')}
-      ${T(348, 312, '③ MOV', 'hd')}${T(348, 330, '壓敏電阻（並聯）', 'sub')}
-      ${T(506, 312, '④ TVS／ESD', 'hd')}${T(506, 330, '（並聯，最靠近 IC）', 'sub')}
+      <!-- ================= ② 四種元件剖面（同一個外框尺寸、同一套材質色） ================= -->
+      ${frame(16, 256, 948, 204)}
+      <path d="M253,266 L253,452" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
+      <path d="M490,266 L490,452" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
+      <path d="M727,266 L727,452" stroke="var(--dg-frame-s)" stroke-width="1" fill="none"/>
+      ${T(28, 274, '① PPTC 自恢復保險絲（串聯）', 'hd')}
+      ${T(265, 274, '② NTC 熱敏電阻（串聯）', 'hd')}
+      ${T(502, 274, '③ 壓敏電阻 MOV（並聯）', 'hd')}
+      ${T(739, 274, '④ TVS／ESD（並聯）', 'hd')}
       ${cells()}
-      ${T(26, 494, '鎳電極箔 ×2 夾住高分子', 'sub')}
-      ${T(26, 511, '基體，外面包一層絕緣；', 'sub')}
-      ${T(26, 528, '黑點是導電碳黑。', 'sub')}
-      ${T(190, 494, '金屬氧化物燒結的陶瓷本', 'sub')}
-      ${T(190, 511, '體＋兩個相對面電極＋兩', 'sub')}
-      ${T(190, 528, '根引線。沒有 PN 接面。', 'sub')}
-      ${T(348, 494, '一堆大小不一的 ZnO 晶', 'sub')}
-      ${T(348, 511, '粒；擋電流的是晶粒之間', 'sub')}
-      ${T(348, 528, '的界面（晶界）。', 'sub')}
-      ${T(506, 494, '半導體 PN 接面：P 區／', 'sub')}
-      ${T(506, 511, '空乏區／N 區＋上下金屬', 'sub')}
-      ${T(506, 528, '電極。超過門檻就崩潰。', 'sub')}
+      ${T(28, 382, '鎳電極箔 ×2 夾住高分子基體，', 'sub')}
+      ${T(28, 398, '外面包一層絕緣。裡面的黑點是', 'sub')}
+      ${T(28, 414, '導電碳黑，常溫時連成通路。', 'sub')}
+      ${T(28, 430, '★ 擋的是過大的電流，冷了會自己', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(28, 446, '　 接回來 —— 跳脫前後見第 ① 段。', 'sub')}
+      ${T(265, 382, '金屬氧化物燒結的陶瓷本體 ＋', 'sub')}
+      ${T(265, 398, '兩個相對面的電極 ＋ 兩根引線。', 'sub')}
+      ${T(265, 414, '沒有 PN 接面，也沒有晶界網 ——', 'sub')}
+      ${T(265, 430, '★ 它擋的是開機瞬間的湧浪電流，', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(265, 446, '　 不是突波電壓。那是兩件事。', 'sub')}
+      ${T(502, 382, '★ 一堆大小不一的 ZnO 晶粒，', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(502, 398, '　 電流被擋住的地方是晶粒之間的', 'sub')}
+      ${T(502, 414, '　 界面（晶界），一顆裡面有數以', 'sub')}
+      ${T(502, 430, '　 百萬計個。畫成一塊均質陶瓷就', 'sub')}
+      ${T(502, 446, '　 不是 MOV。晶粒大小數量為示意。', 'sub')}
+      ${T(739, 382, '半導體 PN 接面：P 區／空乏區／', 'sub')}
+      ${T(739, 398, 'N 區 ＋ 上下金屬電極。電壓超過', 'sub')}
+      ${T(739, 414, '門檻就崩潰導通，把能量吃掉。', 'sub')}
+      ${T(739, 430, '★ 擺在最靠近 IC 的地方，把電壓', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(739, 446, '　 壓得比壓敏電阻更低、漂移更小。', 'sub')}
 
-      <!-- ================= 說明卡片（HTML）：左欄路徑帶、右欄四種剖面 =================
-           每一張卡片的 data-part 都跟畫布上的零件**同一個字串**（改造前後逐字比對過），
-           所以既有互動一個都沒掉：點卡片亮零件、點零件亮卡片。-->
-      ${card({ side: 'l', no: 1, part: 'cp_term', color: CC.gnd, ax: 42, ay: 96, title: '外部端子（插座／接頭）', sub: '這條線跟外面世界的交界；只畫成兩個接點符號' })}
-      ${card({ side: 'l', no: 2, part: 'cp_mov', color: CC.mov, ax: 120, ay: 166, title: '壓敏電阻 MOV —— 第一道，並聯到地', sub: ['★ 兩條腿：一條接主線、一條接地', '平常不導電，電壓一高就把能量導走；它是會消耗的'] })}
-      ${card({ side: 'l', no: 3, part: 'cp_gdt', color: CC.gdt, ax: 214, ay: 166, title: '氣體放電管 GDT —— 第一道，並聯到地', sub: '跟 MOV 同屬第一道，靠氣體游離導通（機制完全不同）' })}
-      ${card({ side: 'l', no: 4, part: 'cp_ntc', color: CC.ntc, ax: 316, ay: 116, title: '熱敏電阻 NTC —— 串在線上', sub: ['★ 主線從中間穿過，沒有接地腿', '它擋的是開機瞬間的湧浪電流，不是突波電壓'] })}
-      ${card({ side: 'l', no: 5, part: 'cp_pptc', color: CC.pptc, ax: 420, ay: 116, title: '自恢復保險絲 PPTC —— 串在線上', sub: '過流發熱 → 變高阻把路切斷；冷了會自己接回來' })}
-      ${card({ side: 'l', no: 6, part: 'cp_tvs', color: CC.tvs, ax: 520, ay: 166, title: 'TVS／ESD 陣列 —— 第二道，並聯到地', sub: '★ 擺在最靠近 IC 的地方，把電壓壓得比 MOV 更低' })}
-      ${card({ side: 'l', no: 7, part: 'cp_ic', color: CC.line, ax: 620, ay: 116, title: 'IC（被保護的對象）', sub: '不是任何真實晶片的外觀；整條路徑就是為了它而存在' })}
-      ${card({ side: 'r', no: 8, part: 'cp_line', color: CC.line, ax: 176, ay: 116, title: '主線路（訊號／電源線）', sub: '由左到右＝由外到內；箭頭一律向右' })}
-      ${card({ side: 'r', no: 9, part: 'cp_gnd', color: CC.gnd, ax: 470, ay: 208, title: '接地線（一條）', sub: '所有並聯元件都掛在同一條上，把導走的能量倒進這裡' })}
-      ${card({ side: 'r', no: 10, part: 'cp_ni', color: CC.ni, ax: 96, ay: 352, title: 'PPTC：鎳電極箔 ×2', sub: '上下各一片，把高分子基體夾在中間' })}
-      ${card({ side: 'r', no: 11, part: 'cp_poly', color: CC.pptc, ax: 96, ay: 400, title: 'PPTC：高分子基體', sub: '過流發熱就膨脹 —— 跳脫前後的對照見下面第 ① 段' })}
-      ${card({ side: 'r', no: 12, part: 'cp_carbon', color: CC.gb, ax: 150, ay: 380, title: 'PPTC：導電碳黑粒子', sub: '常溫連成貫穿上下電極的通路；膨脹時鏈被拉斷' })}
-      ${card({ side: 'r', no: 13, part: 'cp_grain', color: CC.mov, ax: 400, ay: 392, title: 'MOV：ZnO 晶粒', sub: '大小不一；畫成一塊均質陶瓷方塊就不是 MOV' })}
-      ${card({ side: 'r', no: 14, part: 'cp_gb', color: CC.gb, ax: 440, ay: 392, title: 'MOV：晶界（非線性的來源）', sub: '★ 電流被擋住的地方是晶粒之間的界面，一顆裡面數以百萬計' })}
-      ${card({ side: 'r', no: 15, part: 'cp_tvsel', color: CC.ni, ax: 573, ay: 344, title: 'TVS：上下金屬電極', sub: '把 PN 接面夾在中間，兩端接出去' })}
-      ${card({ side: 'r', no: 16, part: 'cp_pn', color: CC.tvs, ax: 573, ay: 400, title: 'TVS：PN 接面（P 區／空乏區／N 區）', sub: '★ 空乏區是它的識別特徵；超過門檻就崩潰導通把能量吃掉' })}
-      ${note({ side: 'l', warn: true, order: 96, title: '★ 這張圖唯一的一條規矩',
-      lines: ['並聯（MOV／GDT／TVS）＝兩條腿：一條接主線、一條接地。',
-        '串聯（NTC／PPTC）＝主線從中間穿過、沒有接地腿。',
-        '差別畫在**幾何**上，不畫在顏色上 —— 配色把色差壓掉也還是分得出來。'] })}
-      ${note({ side: 'l', warn: true, order: 97, title: '★ 誰做的（逐家見下面第 ② 段）',
-      lines: ['壓敏電阻與 NTC：2428 興勤（兩類都做，同時指到兩格）。',
-        'TVS／ESD：6284 佳邦。PPTC：6224 聚鼎、6642 富致。',
-        '★ 晶片電阻與精密電阻（3624 光頡、2478 大毅）在別張圖，本圖一格都不畫。'] })}
-      ${note({ side: 'r', order: 98, title: '為什麼零件小卡的公司欄是空的',
-      lines: ['本圖的四類元件，目前一家台股都不在供應鏈資料的環節裡。',
-        '所以公司一律用文字寫在小卡與第 ② 段，下方的「環節色標」篩不到它們。'] })}
-      ${note({ side: 'r', order: 99, title: '這張圖沒有回答的事',
-      lines: ['示意圖，非實物比例：晶粒、碳黑顆粒的大小與數量都是示意。',
-        '鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字一個都不寫。',
-        'MOV 每擋一次就退化一點、最後通常以短路收場；TVS 在額定脈衝下漂移很小（信心：中，單一比較型來源）。'] })}
+      ${T(16, 476, '★ 誰做的：壓敏電阻與 NTC 2428 興勤（兩類都做）；TVS／ESD 6284 佳邦；PPTC 6224 聚鼎與 6642 富致 —— 逐家見第 ② 段。', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(16, 492, '★ 晶片電阻與精密電阻（3624 光頡、2478 大毅）見「被動元件：電感・電阻・石英」那張；本圖一格都不畫它們的結構。', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(16, 508, '本圖的四類元件，目前一家台股都不在供應鏈資料的環節裡，所以公司用文字列在零件小卡與第 ② 段，下方的「環節色標」篩不到它們。', 'sub', null, 'fill:var(--dg-warn)')}
+      ${T(16, 524, '示意圖，非實物比例。晶粒、碳黑顆粒的大小與數量都是示意；本圖不寫鉗位電壓、通流容量、動作電流、壽命次數、市占率與營收數字。', 'cap')}
+      ${T(16, 540, '公司角色取自板塊成分股證據表，信心標示見該表。壓敏電阻每擋一次就退化一點、最後通常以短路收場；TVS 在額定脈衝下漂移很小（信心：中，單一比較型來源）。', 'cap')}
 
       <!-- ================= ① PPTC 跳脫前後（預設收合） ================= -->
       ${D.foldBar('cp1', S1, '① PPTC 跳脫前後長什麼樣（2 格對照）',
-    '同一個比例尺的兩格：導電鏈連通 → 膨脹斷鏈，以及為什麼它會自己恢復')}
+      '同一個比例尺的兩格：導電鏈連通 → 膨脹斷鏈，以及為什麼它會自己恢復')}
       <g class="dgbody" data-fold="cp1" data-y0="${S1 + 46}" data-y1="${S1 + 46 + p1.h}">
         ${p1.svg}
       </g>
 
       <!-- ================= ② 台股站在哪一類（預設收合） ================= -->
       ${D.foldBar('cp2', S2, '② 這一格的台股站在哪一類（6 家）',
-    '4 家做保護元件、2 家做電阻（在別張圖），以及為什麼這張圖的公司清單一律留空')}
+      '4 家做保護元件、2 家做電阻（在別張圖），以及為什麼這張圖的公司清單一律留空')}
       <g class="dgbody" data-fold="cp2" data-y0="${S2 + 46}" data-y1="${S2 + 46 + p2.h}">
         ${p2.svg}
       </g>
@@ -560,7 +464,7 @@
        所以 3D 這一張**不重畫拓樸**（拓樸留在 2D）。漏掉的那一半是：
        這四顆的外觀都只是小方塊，差別全部在**裡面**（晶粒與晶界／高分子與碳黑鏈／
        均質陶瓷／PN 接面與空乏區）—— 四顆並排剖開轉一圈，四種物理一次比得出來。*/
-    draw: circuitProtection, native: CW, scene: 'resistor_protect',
+    draw: circuitProtection, native: 980, scene: 'resistor_protect',
     q: '一條線從插座進到晶片，中間被幾個零件擋過？PPTC、NTC、壓敏電阻、TVS 各擋什麼，為什麼不能互換？',
     parts: PARTS,
   });

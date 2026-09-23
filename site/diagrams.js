@@ -791,256 +791,81 @@
      ⚠ 跨鏈面板（E6「ABF 這種跨類別環節要同時出現兩張架構圖」）仍然要兩張縮圖，
        所以 `chains()` 改成「有**代表圖**的鏈」—— 半導體的代表圖就是 `ai_adv_packaging`
        （它在 register 裡宣告 `rep: true`）。 */
-  /* ================================================================ AI 伺服器：機櫃 ＋ 運算托盤爆炸圖
-     ---- 2026-09-23 v2（Andy：「AI 伺服器機櫃與 GPU 運算托盤 2D 請 Follow 其他族群風格更新」）----
-     這張圖是 2026-09-21 之前畫的，跟 `site/dg/*.js` 那 19 張新族群圖對不起來。這一輪四件事：
-
-       1. **寫死色碼歸零**：原本 35 個 `#xxxxxx` / `rgba(...)` 全部換成 `--dg-*` token 與 `D.fx.*`
-          （對照表見下面 AG_COLORS）。深色「科技」與淺色「閱讀」兩種模式都成立 ——
-          以前淺色主題上這張圖是一塊深藍底的孤島，token 換了它也不會變。
-       2. **字級**：畫布上的字一律走 STYLE 的 `.hd` / `.lbl` / `.sub` / `.cap`（＝ `--dg-fs-*`，12px 下限），
-          說明文字全部搬進 HTML 卡片（`extRow` 傳 `side`），行距由卡片自己的 line-height 決定；
-          畫布寬度從 1220 收到 700（native 跟著改）—— 1220 在 900px 欄寬上被壓成 ×0.57，
-          字級怎麼調都沒用（DECISIONS #226）。
-       3. **版面左右不浪費空白**：卡片離開 SVG 之後由 `externalize()` 排到畫布左右兩欄
-          （三欄／畫布＋右欄／單欄由 index.html 的 .dgv2 容器查詢決定），畫布本身只剩主角：
-          左欄整機櫃（20..188）、右欄運算托盤爆炸圖（226..660），中間留 38px 的呼吸帶，
-          右下角原本的空白補上「×N 機櫃 → 資料中心」那一段，底下流程列拉滿整個畫布寬。
-       4. **互動一個都沒掉**：11 個繪圖群組的 `data-seg` / `data-part` 與改造前**逐字相同**
-          （ag_rack／ag_tor／ag_psu／ag_cdu／ag_coldplate／ag_gpu／ag_pcb／ag_vrm／ag_optic／ag_ccl／ag_csp），
-          所以 `three3d.js` 的 SCENES.ai_server 靠 data-part 做的 2D↔3D 同步（含 ag_cdu 的
-          `alias: ['ag_coldplate']`）原封不動；說明卡片跟改造前的 `labelRow` 一樣**只掛 data-seg、不掛 data-part**
-          —— 掛了的話卡片與零件會同時變成主角，「主角剛好一個」那條驗收就會紅。
-
-     ---- 色碼對照（AG_COLORS）：左邊是改造前寫死的值，右邊是現在吃的 token ----
-       #0f172b 機櫃／盒體內部     → var(--dg-void)      切面上的空隙／腔體背景（淺色是 #e8e5dd）
-       #141e36 托盤／光模組盒體   → var(--dg-frame)     框與盒的底
-       #182a3f ToR 盒體           → var(--dg-frame)
-       #1a1530 電源櫃／VRM 盒體   → var(--dg-frame)     ＋ 電力橘的線條做區別（不再用紫底）
-       #0e2a33 CDU 盒體           → var(--dg-frame)
-       #2b1f3f PSU 單體           → var(--dg-alu)（鋁殼，fx.glass 的 fill）
-       #1e2a48 / #2a3860 細框線   → .thin / .hair（var(--dg-ink-3) 加透明度）
-       #163a2a GPU 模組載板       → var(--dg-abf)       ABF 增層膜（模組載板就是 ABF 載板）
-       #1a2542 模組中介層         → var(--dg-si-2)      矽中介層
-       #3a2a5c + #8b7bff HBM      → var(--dg-si)        矽；改用「堆疊分層線」當識別特徵
-       #1f2f5c + #3ee0ff 邏輯晶粒 → var(--dg-die)       矽裸晶
-       rgba(62,224,255,.28/.35)   → var(--dg-sig)       訊號藍（語意色，兩種模式都有對比表）
-       #3ee0ff 冷卻水進／指示燈   → var(--dg-cold)（水）／var(--dg-sig)（訊號）
-       #ff4d6d 冷卻水回           → var(--dg-hot)       出水（熱）★ 語意色
-       #ffb454 供電              → var(--dg-pwr)       電力橘 ★ 語意色
-       #2ee59d 狀態燈            → var(--dg-cool)      刻意不用 #2ee59d：那是台股「跌」的綠
-       rgba(255,180,84,.5) 走線   → .trace（var(--dg-cu-lit)，銅走線就該是銅色）
-       rgba(120,200,150,.16) 織紋 → .weave（var(--dg-weave)，玻纖織紋）
-       #e8eeff 文字              → STYLE 的 .lbl／.sub（var(--dg-ink)／var(--dg-ink-3)）
-       #0a1d12 / #0b2418 底面     → 取消（改用 fx.glass 的等角側面，厚度由材質自己表現）
-       rgba(20,30,54,.55) 襯底    → 取消（GPU 那一層本來就是一塊等角玻璃板）
-       agCool／agPcb／agCcl 三條漸層維持吃 `--dg-ag-*`（它們本來就是 token，淺色模式另有一組值）。*/
-  const AG_VARS = `<style>
-    .dgag .thin{stroke:var(--dg-ink-3);stroke-opacity:.55;fill:none;stroke-width:1}
-    .dgag .hair{stroke:var(--dg-ink-3);stroke-opacity:.34;fill:none;stroke-width:.8}
-    .dgag .box{fill:var(--dg-frame)}
-    .dgag .cavity{fill:var(--dg-void)}
-    .dgag .gold{fill:var(--dg-sw-gold)}
-    .dgag .die{fill:var(--dg-die)}
-    .dgag .si{fill:var(--dg-si)}
-    .dgag .sicut{fill:var(--dg-si-2)}
-    .dgag .abf{fill:var(--dg-abf)}
-    .dgag .weave{stroke:var(--dg-weave);stroke-opacity:.5;fill:none;stroke-width:.8}
-    .dgag .trace{stroke:var(--dg-cu-lit);stroke-opacity:.8;fill:none;stroke-width:1.3}
-    .dgag .pwr{stroke:var(--dg-pwr);fill:none;stroke-width:2;stroke-linecap:round}
-    .dgag .fine{fill:var(--dg-ink-3)}
-    /* 發光只給主角（DECISIONS #238「暗色可發光但只給流動線與被選零件」）：
-       同環節其餘 .sel 不發光、描邊細一階。兩條都要排在共用 STYLE 之後、特異性也要高過它。*/
-    svg.dg.dgag [data-seg].sel .part{filter:none;stroke-width:1.6}
-    svg.dg.dgag [data-seg].sel-part .part{stroke-width:2.6;filter:var(--dg-glow,drop-shadow(0 0 6px var(--cc)))}
-  </style>`;
-
-  /* GPU 模組（CoWoS 封裝）：ABF 模組載板 → 矽中介層 → 中央邏輯晶粒 ＋ 兩側各 2 顆 HBM 堆疊。
-     ★ HBM 的識別特徵是「一疊 DRAM」，所以每一顆都畫三條分層線 ——
-       Andy 2026-09-16：「特徵比多邊形數重要」。只有最外面那塊載板掛 .part
-       （`.part` 的描邊吃環節色，全部都掛的話點一下會整顆模組描邊變粗、糊成一團）。*/
+  // ================================================================ AI 伺服器：機櫃 + 運算托盤爆炸圖
   function gpuModule(x, y, i) {
-    const W = 98, H = 26;
-    const hbm = (hx, hy) => `<rect class="si" x="${hx}" y="${hy}" width="12" height="8" rx="1"/>`
-      + `<path class="hair" d="M${hx},${hy + 2}h12M${hx},${hy + 4}h12M${hx},${hy + 6}h12"/>`;
     return `<g transform="translate(${x},${y})">
-      <rect class="abf part" x="0" y="0" width="${W}" height="${H}" rx="2"/>
-      <rect class="sicut" x="6" y="3" width="${W - 12}" height="${H - 6}" rx="1.5"/>
-      ${hbm(9, 5)}${hbm(9, 14)}${hbm(77, 5)}${hbm(77, 14)}
-      <rect class="die" x="27" y="5" width="44" height="16" rx="1.5"/>
-      <rect class="pulse" x="30" y="8" width="38" height="10" rx="1" fill="var(--dg-sig)" opacity=".22" style="animation-delay:${(i * 0.3).toFixed(1)}s"/>
-      <path class="hair" d="M27,5h44v16h-44Z"/></g>`;
+      <rect x="0" y="0" width="80" height="36" rx="3" fill="#163a2a" stroke="#2a3860"/>
+      <rect x="8" y="5" width="64" height="26" rx="2" fill="#1a2542" stroke="#2a3860" stroke-width=".7"/>
+      <rect x="9" y="7" width="13" height="10" rx="1" fill="#3a2a5c" stroke="#8b7bff" stroke-width=".6"/><rect x="9" y="19" width="13" height="10" rx="1" fill="#3a2a5c" stroke="#8b7bff" stroke-width=".6"/>
+      <rect x="58" y="7" width="13" height="10" rx="1" fill="#3a2a5c" stroke="#8b7bff" stroke-width=".6"/><rect x="58" y="19" width="13" height="10" rx="1" fill="#3a2a5c" stroke="#8b7bff" stroke-width=".6"/>
+      <rect x="27" y="7" width="26" height="22" rx="1.5" fill="#1f2f5c" stroke="#3ee0ff" stroke-width=".8"/>
+      <rect class="pulse" x="30" y="10" width="20" height="16" fill="rgba(62,224,255,.35)" style="animation-delay:${i * .3}s"/>
+    </g>`;
   }
-
   function aiServer() {
-    const CW = 700;                       // 畫布寬＝主角寬（SLOTS 的 native 跟著改）
-    const ISO = { dx: 16, dy: -9 };       // 等角玻璃板往右後上擠出去的位移（爆炸拆解共用）
-    /* 說明卡片（v2）：卡片離開 SVG 變成 HTML（diagrams.js 的 externalize），畫布上只留編號圓點。
-       ⚠ 這裡**刻意只傳 seg、不傳 part**：卡片與繪圖群組若共用同一個 data-part，
-         點一下會有兩個節點同時 .sel-part，「主角剛好一個」那條驗收就紅。
-         改造前的 labelRow 也是只掛 data-seg，所以這是「照舊」不是「放寬」。*/
-    const card = (o) => {
-      const s = extRow({ seg: o.seg, title: o.title, sub: o.sub, no: o.no, side: o.side,
-        ax: o.ax, ay: o.ay, color: o.color, order: o.order, warn: o.warn, note: o.note });
-      return o.color ? s.replace('<g class="anc" ', `<g class="anc" style="--dg-card-c:${o.color}" `) : s;
-    };
-    const C = { cool: 'var(--dg-cold)', hot: 'var(--dg-hot)', pwr: 'var(--dg-pwr)', sig: 'var(--dg-sig)',
-      cu: 'var(--dg-cu-lit)', si: 'var(--dg-si)', abf: 'var(--dg-abf)', steel: 'var(--dg-steel)',
-      gold: 'var(--dg-sw-gold)', mute: 'var(--dg-mute)' };
-
-    // ================================================================ ① 整機櫃（左欄 20..188）
-    const RX = 20, RW = 168, TRX = 34, TRW = 142;          // 機櫃外框、托盤左緣與寬
-    /* 8 個運算托盤：每個托盤 8 顆 GPU ＋ 一顆狀態燈 ＋ 後端連接器。
-       托盤 y ＝ 98 起、每 28 一層（高 24、呼吸 4），最後一層 98+7*28+24 ＝ 318。*/
-    const trays = [];
-    for (let i = 0; i < 8; i++) {
-      const y = 98 + i * 28;
-      const chips = [0, 1, 2, 3, 4, 5, 6, 7].map(j =>
-        `<rect class="pulse" x="${46 + j * 14}" y="${y + 6}" width="11" height="12" rx="1.5" fill="var(--dg-sig)" opacity=".22" style="animation-delay:${((i + j) % 5) * 0.35}s"/>`).join('');
-      trays.push(`<g><rect class="box" x="${TRX}" y="${y}" width="${TRW}" height="24" rx="3"/>`
-        + `<rect class="hair" x="${TRX}" y="${y}" width="${TRW}" height="24" rx="3" fill="none"/>${chips}`
-        + `<circle class="blink b${(i % 3) + 1}" cx="${TRX + 6}" cy="${y + 12}" r="2.4" fill="var(--dg-cool)"/>`
-        + `<rect class="cavity" x="${TRX + TRW - 10}" y="${y + 5}" width="7" height="14" rx="1"/></g>`);
-    }
-    /* 電源櫃：6 顆 CRPS 電源，每顆都有風扇與底部金手指 —— 那是 PSU 的識別特徵。*/
-    const psu = [0, 1, 2, 3, 4, 5].map(j => {
-      const x = 38 + j * 23;
-      const fingers = [0, 1, 2].map(k => `<rect class="gold" x="${x + 4 + k * 5}" y="${376}" width="3" height="6" rx="1"/>`).join('');
-      const blades = [0, 1, 2, 3, 4].map(k =>
-        `<path class="thin" d="M0,0 L${(6 * Math.cos(k * 1.2566)).toFixed(1)},${(6 * Math.sin(k * 1.2566)).toFixed(1)}"/>`).join('');
-      return fx.glass(x, 348, 20, 34, { fill: 'var(--dg-alu)', rx: 2 })
-        + `<circle class="thin" cx="${x + 10}" cy="${364}" r="7"/>`
-        + `<g transform="translate(${x + 10},364)"><g class="spin" style="animation-delay:${(j * 0.4).toFixed(1)}s">${blades}</g></g>`
-        + fingers;
-    }).join('');
-    /* 液冷 CDU：泵（會轉）＋ 板式熱交換器（一疊波紋薄板）＋ 四個口。*/
-    const plates = [0, 1, 2, 3, 4, 5, 6].map(j =>
-      `<path class="hair" d="M${96 + j * 10},420 v34"/>`).join('');
-    const cdu = `<rect class="box" x="${TRX}" y="412" width="${TRW}" height="50" rx="3"/>`
-      + `<circle class="spin" cx="62" cy="437" r="14" fill="none" stroke="var(--dg-cool)" stroke-width="2.5" stroke-dasharray="7 6"/>`
-      + `<circle cx="62" cy="437" r="4" fill="var(--dg-cool)"/>`
-      + `<rect class="cavity" x="90" y="418" width="80" height="38" rx="2"/>${plates}`;
-    /* 機櫃內的冷／熱水立管：冷水由 CDU 往上送到每一層托盤、熱水回 CDU（語意色 --dg-cold／--dg-hot）。
-       glow:false ＝ 不吃光暈濾鏡（一張圖的 feGaussianBlur 預算是 3 個元素，#239）。*/
-    const pipes = fx.beam(`M181,452 V92`, { color: 'var(--dg-cold)', w: 2.4, flow: true, glow: false })
-      + fx.beam(`M187,92 V452`, { color: 'var(--dg-hot)', w: 2.4, flow: true, glow: false });
-
-    // ================================================================ ② 運算托盤爆炸拆解（右欄 226..660）
-    const SX = 226, SW = 418;                              // 等角板的左緣與寬（+dx 之後右緣 660）
-    const slab = (x, y, w, h, fill, r) => fx.glass(x, y, w, h, { fill, cls: 'part', rx: r || 3, iso: ISO });
-    // 液冷冷板：四條流道由冷到熱（agCool 漸層，吃 --dg-ag-cool / -2）
-    const chan = [0, 1, 2, 3].map(k =>
-      `<path class="hair" d="M${SX + 8},${60 + k * 7} H${SX + SW - 8}" stroke-width="5.6" stroke-opacity=".7"/>`
-      + `<path class="flow" d="M${SX + 8},${60 + k * 7} H${SX + SW - 8}" stroke="url(#agCool)" stroke-width="3.2" fill="none"/>`).join('');
-    // 進出水口：冷水從上面進、熱水從上面回（立管 ＋ 端點光點；進水那一條是全圖唯一吃光暈的光束）
-    const ports = fx.beam(`M${SX + 70},38 V52`, { color: 'var(--dg-cold)', w: 3, flow: true, dots: [[SX + 70, 38]] })
-      + fx.beam(`M${SX + SW - 70},52 V38`, { color: 'var(--dg-hot)', w: 3, flow: true, glow: false, dots: [[SX + SW - 70, 38]] })
-      + `<text class="fine" x="${SX + 78}" y="42">冷水進</text>`
-      + `<text class="fine" x="${SX + SW - 62}" y="42">熱水回</text>`;
-    // 8 顆 GPU 模組：2 列 × 4
-    const modules = [];
-    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) modules.push(gpuModule(SX + 4 + c * 104, 132 + r * 30, r * 4 + c));
-    // 主機板：銅走線 ＋ 三組連接器插槽（高階 PCB 的識別特徵）
-    const traces = [[SX + 30, 246], [SX + 90, 252], [SX + 160, 246], [SX + 230, 258], [SX + 300, 250]]
-      .map(([x, y], i) => `<path class="trace flow ${i % 2 ? 'rev' : ''} slow" d="M${x},${y} h${44 + (i % 3) * 18}"/>`).join('');
-    const slots = [0, 1, 2].map(j => `<rect class="gold" x="${SX + 60 + j * 110}" y="242" width="64" height="4" rx="1"/>`).join('');
-    // CCL 銅箔基板：玻纖織紋（經緯兩個方向）
-    const weave = [];
-    for (let x = SX + 10; x <= SX + SW - 10; x += 20) weave.push(`<path class="weave" d="M${x},302 v18"/>`);
-    for (let y = 306; y <= 318; y += 6) weave.push(`<path class="weave" d="M${SX + 6},${y} h${SW - 12}"/>`);
-    // 層與層之間往上的小熱箭頭：看得出「熱由下往上走、拆開之後怎麼疊回去」
-    const gaps = [[200, 226], [272, 296]].map(([a, b]) =>
-      `<path class="hair" d="M${SX + SW / 2},${b} V${a} m-4,6 l4,-6 l4,6"/>`).join('');
-
-    // ================================================================ ③ 誰在買：資料中心（右下，原本是空白）
-    const racks = [0, 1, 2, 3].map(j => {
-      const x = SX + 10 + j * 36;
-      return `<rect class="hair" x="${x}" y="414" width="24" height="52" rx="2" fill="none"/>`
-        + [0, 1, 2, 3, 4].map(k => `<rect class="cavity" x="${x + 4}" y="${420 + k * 10}" width="16" height="6" rx="1"/>`).join('');
-    }).join('');
-
-    return `<svg class="dg dgm dgag rs" viewBox="0 0 ${CW} 620" width="100%" style="display:block">${STYLE}${AG_VARS}
-      <defs>${fx.glowDefs({ r: 3.5, soft: 3 })}
-        <linearGradient id="agCool" gradientUnits="userSpaceOnUse" x1="${SX}" y1="0" x2="${SX + SW}" y2="0"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
+    const K = 0.53; // skewX(-28°) 會把 x 往左移 0.53*y，右欄引線用這個換算
+    const sx = (x, y) => Math.round(x - K * y);
+    const trays = []; for (let i = 0; i < 8; i++) { const y = 118 + i * 40; trays.push(`<g><rect x="34" y="${y}" width="172" height="32" rx="4" fill="#141e36" stroke="#1e2a48"/>${[0, 1, 2, 3, 4, 5, 6, 7].map(j => `<rect class="pulse" x="${52 + j * 17}" y="${y + 9}" width="12" height="14" rx="2" fill="rgba(62,224,255,.28)" stroke="rgba(62,224,255,.5)" stroke-width=".6" style="animation-delay:${((i + j) % 5) * .35}s"/>`).join('')}<circle class="blink b${(i % 3) + 1}" cx="42" cy="${y + 16}" r="2.4" fill="#2ee59d"/><rect x="192" y="${y + 6}" width="8" height="20" rx="1" fill="#0f172b" stroke="#2a3860" stroke-width=".6"/></g>`); }
+    const psu = [0, 1, 2, 3, 4, 5].map(j => `<rect x="${40 + j * 28}" y="452" width="24" height="42" rx="2" fill="#2b1f3f" stroke="#2a3860"/><path class="flow" d="M${52 + j * 28},458 V488" stroke="#ffb454" stroke-width="2"/>`).join('');
+    const modules = []; for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) modules.push(gpuModule(600 + c * 100, 330 + r * 52, r * 4 + c));
+    const cages = [0, 1, 2, 3].map(j => `<rect x="${1004 + j * 14}" y="452" width="11" height="26" rx="1.5" fill="#0f172b" stroke="#2a3860"/><circle class="blink b${(j % 3) + 1}" cx="${1009.5 + j * 14}" cy="${458}" r="1.8" fill="#3ee0ff"/>`).join('');
+    const traces = [[590, 470], [640, 458], [720, 476], [800, 462], [880, 472], [940, 460]].map(([x, y], i) => `<path class="flow ${i % 2 ? 'rev' : ''} slow" d="M${x},${y} h${40 + (i % 3) * 20}" stroke="rgba(255,180,84,.5)" stroke-width="1.3"/>`).join('');
+    const weave = []; for (let x = 570; x <= 990; x += 22) weave.push(`<line x1="${x}" y1="522" x2="${x}" y2="560" stroke="rgba(120,200,150,.16)"/>`); for (let y = 530; y <= 556; y += 9) weave.push(`<line x1="562" y1="${y}" x2="1000" y2="${y}" stroke="rgba(120,200,150,.16)"/>`);
+    return `<svg class="dg dgm" viewBox="0 0 1220 662" width="100%" style="display:block">${STYLE}
+      <defs>
+        <linearGradient id="agCool" x1="0" x2="1"><stop offset="0" stop-color="var(--dg-ag-cool)"/><stop offset="1" stop-color="var(--dg-ag-cool-2)"/></linearGradient>
+        <linearGradient id="agPlate" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="rgba(62,224,255,.28)"/><stop offset="1" stop-color="rgba(62,224,255,.08)"/></linearGradient>
         <linearGradient id="agPcb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-pcb)"/><stop offset="1" stop-color="var(--dg-ag-pcb-2)"/></linearGradient>
         <linearGradient id="agCcl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--dg-ag-ccl)"/><stop offset="1" stop-color="var(--dg-ag-ccl-2)"/></linearGradient>
       </defs>
+      <text class="ttl" x="16" y="26">AI 伺服器機櫃與 GPU 運算托盤</text>
+      <text class="cap" x="16" y="44">左：整機櫃（交換器、8 個運算托盤、電源櫃、液冷 CDU）。中：一個運算托盤拆開由下往上看。右：對應的供應鏈環節。</text>
 
-      <!-- 標題與說明：v2 搬到 HTML 的 .dghead（跨整個容器寬），SVG 裡不畫 -->
-      <text class="ttl ext" x="0" y="0">AI 伺服器機櫃與 GPU 運算托盤</text>
-      <text class="cap ext" x="0" y="0">左邊是一整座機櫃（頂端交換器、8 個運算托盤、電源櫃、液冷 CDU）；右邊把其中一個運算托盤由上往下拆開 —— 由外到內，熱由下往上走。</text>
-      <text class="cap ext" x="0" y="0">每一張說明卡片對應畫布上同號的圓點；點卡片或點零件，同一個環節的零件會一起亮，下方流程列也跟著標起來。</text>
+      <!-- 左：機櫃 -->
+      <g data-seg="assembly" data-part="ag_rack"><rect class="part" x="20" y="60" width="200" height="550" rx="10" fill="#0f172b"/>${trays.join('')}<text class="sub" x="34" y="112">GPU 運算托盤 ×8</text><text class="lbl" x="28" y="632">整機櫃 Rack（系統組裝）</text></g>
+      <g data-seg="switch" data-part="ag_tor"><rect class="part" x="34" y="72" width="172" height="30" rx="4" fill="#182a3f"/>${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${44 + j * 12}" y="80" width="8" height="10" rx="1" fill="#ffb454"/>`).join('')}<circle class="blink b2" cx="196" cy="87" r="3" fill="#3ee0ff"/><text class="sub" x="136" y="68" style="fill:#e8eeff">ToR 交換器</text></g>
+      <g data-seg="power" data-part="ag_psu"><rect class="part" x="34" y="446" width="172" height="54" rx="4" fill="#1a1530"/>${psu}<text class="sub" x="26" y="512">電源櫃 PSU / BBU（800V HVDC）</text></g>
+      <g data-seg="thermal" data-part="ag_cdu"><rect class="part" x="34" y="524" width="172" height="76" rx="4" fill="#0e2a33"/>
+        <circle class="spin" cx="66" cy="562" r="16" fill="none" stroke="#3ee0ff" stroke-width="2.5" stroke-dasharray="7 6"/><circle cx="66" cy="562" r="4" fill="#3ee0ff"/>
+        <text class="lbl" x="94" y="556">CDU</text><text class="sub" x="94" y="571">冷卻液分配 / 熱交換</text><text class="sub" x="94" y="585">冷水進 · 熱水回</text>
+        <path class="flow" d="M212,596 V120" stroke="#3ee0ff" stroke-width="2.4"/><path class="flow rev" d="M218,120 V596" stroke="#ff4d6d" stroke-width="2.4"/></g>
 
-      <text class="hd" x="${RX}" y="24">① 整機櫃</text>
-      <text class="hd" x="${SX}" y="24">② 一個運算托盤拆開：由外到內，熱由下往上</text>
-
-      <!-- ===================== ① 整機櫃 ===================== -->
-      <g data-seg="assembly" data-part="ag_rack">
-        ${fx.glass(RX, 40, RW, 430, { fill: 'var(--dg-frame)', cls: 'part', rx: 8 })}
-        ${trays.join('')}${pipes}
-        <text class="sub" x="${RX + 6}" y="336">GPU 運算托盤 ×8</text>
-        <text class="lbl" x="${RX}" y="486">整機櫃 Rack（系統組裝）</text>
+      <!-- 中：托盤爆炸圖（skewX 做出斜視角） -->
+      <g transform="skewX(-28)">
+        <g data-seg="ccl" data-part="ag_ccl"><rect x="560" y="528" width="440" height="40" rx="3" fill="#0a1d12"/><rect class="part" x="560" y="520" width="440" height="40" rx="3" fill="url(#agCcl)"/>${weave.join('')}</g>
+        <g data-seg="abf_pcb" data-part="ag_pcb"><rect x="560" y="453" width="440" height="40" rx="3" fill="#0b2418"/><rect class="part" x="560" y="445" width="440" height="40" rx="3" fill="url(#agPcb)"/>${traces}
+          ${[0, 1, 2].map(j => `<rect x="${640 + j * 120}" y="449" width="70" height="7" rx="1.5" fill="#0f172b" stroke="#2a3860" stroke-width=".7"/>`).join('')}</g>
+        <g data-seg="power" data-part="ag_vrm"><rect class="part" x="470" y="445" width="76" height="40" rx="3" fill="#1a1530"/><path class="flow" d="M478,452 H538 M478,462 H538 M478,472 H538 M478,482 H538" stroke="#ffb454" stroke-width="2"/></g>
+        <g data-seg="optical" data-part="ag_optic"><rect class="part" x="1000" y="447" width="64" height="36" rx="3" fill="#141e36"/>${cages}</g>
+        <g data-seg="adv_pkg" data-part="ag_gpu"><rect x="580" y="316" width="440" height="110" rx="6" fill="rgba(20,30,54,.55)"/>${modules.join('')}<rect class="part" x="580" y="316" width="440" height="110" rx="6" fill="none"/></g>
+        <g data-seg="thermal" data-part="ag_coldplate"><rect class="part" x="560" y="150" width="480" height="120" rx="8" fill="url(#agPlate)"/>
+          <path class="flow" d="M580,172 H1020 M580,196 H1020 M580,220 H1020 M580,244 H1020" stroke="url(#agCool)" stroke-width="3.5" fill="none" opacity=".85"/>
+          <path class="flow" d="M520,172 H580" stroke="#3ee0ff" stroke-width="3.5"/><path class="flow rev" d="M1020,244 H1080" stroke="#ff4d6d" stroke-width="3.5"/>
+          <circle cx="520" cy="172" r="6" fill="#0f172b" stroke="#3ee0ff" stroke-width="2"/><circle cx="1080" cy="244" r="6" fill="#0f172b" stroke="#ff4d6d" stroke-width="2"/>
+          <path class="flow slow" d="M600,290 V310 M700,290 V310 M800,290 V310 M900,290 V310 M1000,290 V310" stroke="rgba(62,224,255,.5)" stroke-width="1.2"/></g>
       </g>
-      <g data-seg="switch" data-part="ag_tor">
-        <rect class="box part" x="${TRX}" y="52" width="${TRW}" height="28" rx="3"/>
-        ${[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map(j => `<rect class="blink b${(j % 3) + 1}" x="${TRX + 8 + j * 10}" y="60" width="7" height="9" rx="1" fill="var(--dg-pwr)"/>`).join('')}
-        <circle class="blink b2" cx="${TRX + TRW - 10}" cy="66" r="3" fill="var(--dg-sig)"/>
-      </g>
-      <g data-seg="power" data-part="ag_psu">
-        <rect class="box part" x="${TRX}" y="344" width="${TRW}" height="42" rx="3"/>${psu}
-        <text class="sub" x="${RX + 6}" y="402">電源櫃 PSU ×6（交流進、直流匯流排出）</text>
-      </g>
-      <g data-seg="thermal" data-part="ag_cdu">${cdu}
-        <rect class="hair" x="${TRX}" y="412" width="${TRW}" height="50" rx="3" fill="none"/>
-        <rect class="part" x="${TRX}" y="412" width="${TRW}" height="50" rx="3" fill="none"/></g>
+      <text class="sub" x="${sx(560, 585)}" y="585">CCL 銅箔基板（板材）</text>
+      <text class="sub" x="${sx(560, 508)}" y="508">主機板 高階 PCB · 連接器 · 供電模組</text>
+      <text class="sub" x="${sx(580, 442)}" y="442">GPU 模組 ×8（CoWoS 封裝：邏輯晶片 + HBM）</text>
+      <text class="sub" x="${sx(560, 146)}" y="146">液冷冷板（冷水進 → 熱水回）+ 快接頭</text>
 
-      <!-- ===================== ② 運算托盤爆炸拆解 ===================== -->
-      ${shadow(`${ports}
-        <g data-seg="thermal" data-part="ag_coldplate">${slab(SX, 52, SW, 34, 'var(--dg-cu-lit)')}${chan}</g>
-        ${gaps}
-        <g data-seg="adv_pkg" data-part="ag_gpu">${slab(SX, 126, SW, 66, 'var(--dg-alu)')}${modules.join('')}</g>
-        <g data-seg="power" data-part="ag_vrm">${slab(SX + 6, 200, 70, 20, 'var(--dg-frame)', 2)}
-          <path class="pwr" d="M${SX + 12},206 h58 M${SX + 12},212 h58 M${SX + 12},218 h58"/></g>
-        <g data-seg="optical" data-part="ag_optic">${slab(SX + SW - 76, 200, 70, 20, 'var(--dg-frame)', 2)}
-          ${[0, 1, 2, 3].map(j => `<rect class="cavity" x="${SX + SW - 70 + j * 15}" y="204" width="11" height="12" rx="1.5"/><circle class="blink b${(j % 3) + 1}" cx="${SX + SW - 64.5 + j * 15}" cy="207" r="1.8" fill="var(--dg-sw-fiber)"/>`).join('')}</g>
-        <g data-seg="abf_pcb" data-part="ag_pcb">${slab(SX, 236, SW, 26, 'url(#agPcb)')}${traces}${slots}</g>
-        <g data-seg="ccl" data-part="ag_ccl">${slab(SX, 296, SW, 22, 'url(#agCcl)')}${weave.join('')}</g>`)}
+      <!-- 右：說明欄 -->
+      <g data-seg="hyperscaler" data-part="ag_csp"><path class="part" d="M954,88 a18,18 0 0 1 34,-8 a16,16 0 0 1 30,10 a14,14 0 0 1 -6,27 h-56 a15,15 0 0 1 -2,-29 z" fill="#0f172b"/>
+        ${[0, 1, 2].map(j => `<circle class="drop d${j + 1}" cx="${966 + j * 22}" cy="126" r="2.5" fill="#8b7bff"/>`).join('')}
+        <text class="lbl" x="1030" y="94">雲端業者（終端需求）</text><text class="sub" x="1030" y="112">Microsoft / Google</text><text class="sub" x="1030" y="130">Amazon / Meta</text></g>
+      ${labelRow('thermal', 934, 196, '液冷冷板 / CDU', '冷板、快接頭、分歧管；機櫃 CDU 循環', sx(1040, 210), 210)}
+      ${labelRow('adv_pkg', 934, 248, 'GPU 模組（CoWoS 封裝）', '邏輯晶片 + HBM 放在矽中介層上', sx(1020, 330), 330)}
+      ${labelRow('foundry', 934, 300, 'GPU 晶片・晶圓代工', '3nm / 2nm 邏輯晶粒（看半導體鏈）', sx(946, 356), 356)}
+      ${labelRow('hbm', 934, 352, 'HBM 記憶體', '每顆 GPU 旁 4–8 顆 HBM 堆疊', sx(968, 402), 402)}
+      ${labelRow('abf_pcb', 934, 404, '主機板 高階 PCB / ABF 載板', '高層數 PCB、連接器、模組載板', sx(1000, 465), 465)}
+      ${labelRow('ccl', 934, 456, 'CCL 銅箔基板', '高速低損耗板材，PCB 的原料', sx(1000, 540), 540)}
+      ${labelRow('optical', 934, 508, '光通訊 / 矽光子', '800G–1.6T 光模組、CPO（前面板）', sx(1064, 465), 465)}
+      ${labelRow('switch', 934, 560, '交換器（ToR / Spine）', '機櫃頂端（左圖上方）接叢集網路', null, null)}
 
-      <!-- ===================== ③ 誰在買：一整座資料中心 ===================== -->
-      <text class="hd" x="${SX}" y="358">③ 誰在買：機櫃 ×N ＝ 一座資料中心</text>
-      <g data-seg="hyperscaler" data-part="ag_csp">
-        <path class="part" d="M${SX + 268},408 a34,34 0 0 1 66,-16 a31,31 0 0 1 58,19 a26,26 0 0 1 -11,51 h-108 a27,27 0 0 1 -5,-54 z" fill="var(--dg-void)"/>
-        ${[0, 1, 2].map(j => `<circle class="drop d${j + 1}" cx="${SX + 292 + j * 42}" cy="464" r="2.5" fill="var(--dg-sig)"/>`).join('')}
-      </g>
-      <g pointer-events="none">${racks}
-        <path class="flow slow" d="M${SX + 156},436 H${SX + 262}" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none"/>
-        <text class="fine" x="${SX}" y="484">×N 機櫃 · 電力與冷卻先到位，才輪到晶片</text><text class="fine" x="${SX + 278}" y="492">整櫃整櫃地買</text>
-      </g>
-
-      <!-- 左欄卡片：機櫃這一側（錨點在左邊零件上） -->
-      ${card({ seg: 'switch', no: 1, side: 'l', ax: TRX + 4, ay: 66, color: C.sig, title: 'ToR 交換器（機櫃頂端）', sub: '往上接叢集網路（scale-out）：InfiniBand 或 Ethernet' })}
-      ${card({ seg: 'assembly', no: 2, side: 'l', ax: RX + 4, ay: 250, color: C.steel, title: '整機櫃 Rack（系統組裝）', sub: '19 吋機櫃、滑軌、鈑金；整櫃出貨前做燒機與水路壓測' })}
-      ${card({ seg: 'power', no: 3, side: 'l', ax: TRX + 4, ay: 365, color: C.pwr, title: '電源櫃 PSU ／ BBU', sub: '交流進、機櫃內直流匯流排出；800V HVDC 是下一世代（示意）' })}
-      ${card({ seg: 'thermal', no: 4, side: 'l', ax: TRX + 4, ay: 437, color: C.cool, title: '液冷 CDU（冷卻液分配）', sub: '泵 ＋ 板式熱交換器；冷水送進每一層托盤、熱水回機房' })}
-      ${card({ seg: 'power', no: 5, side: 'l', ax: SX + 8, ay: 210, color: C.pwr, title: '板上供電模組 VRM', sub: '12V／48V 再降到晶片要的電壓，就在 GPU 旁邊' })}
-
-      <!-- 右欄卡片：拆解那一疊（錨點在等角板的右端） -->
-      ${card({ seg: 'thermal', no: 6, side: 'r', ax: SX + SW - 6, ay: 70, color: C.cool, title: '液冷冷板 ＋ 快接頭', sub: '直接貼在 GPU 上；冷板、分歧管、UQD 快接頭都在這一環' })}
-      ${card({ seg: 'adv_pkg', no: 7, side: 'r', ax: SX + SW - 6, ay: 160, color: C.abf, title: 'GPU 模組 ×8（CoWoS 封裝）', sub: '邏輯晶粒 ＋ HBM 一起放在矽中介層上，再打到模組載板' })}
-      ${card({ seg: 'hbm', no: 8, side: 'r', ax: SX + 19, ay: 140, color: C.si, title: 'HBM 記憶體（堆疊的那幾疊）', sub: '每顆 GPU 旁 4–8 顆；一顆就是十幾層 DRAM 用 TSV 打通' })}
-      ${card({ seg: 'foundry', no: 9, side: 'r', ax: SX + 57, ay: 140, color: C.si, title: 'GPU 邏輯晶粒・晶圓代工', sub: '3nm／2nm 的那一塊（看半導體鏈那幾張）' })}
-      ${card({ seg: 'optical', no: 10, side: 'r', ax: SX + SW - 6, ay: 210, color: 'var(--dg-sw-fiber)', title: '光通訊 ／ 矽光子', sub: '800G–1.6T 前面板可插拔光模組；CPO 把光引擎搬到交換 ASIC 旁' })}
-      ${card({ seg: 'abf_pcb', no: 11, side: 'r', ax: SX + SW - 6, ay: 248, color: C.gold, title: '主機板 高階 PCB ／ ABF 載板', sub: '高層數主機板、連接器插槽、模組載板' })}
-      ${card({ seg: 'ccl', no: 12, side: 'r', ax: SX + SW - 6, ay: 306, color: 'var(--dg-weave)', title: 'CCL 銅箔基板', sub: '低損耗板材，PCB 的原料；織紋那一層就是玻纖布' })}
-      ${card({ seg: 'hyperscaler', no: 13, side: 'r', ax: SX + 272, ay: 424, color: C.sig, title: '雲端業者（終端需求）', sub: '超大規模雲端業者、主權 AI、Neocloud —— 整櫃整櫃地買' })}
-      ${card({ seg: 'assembly', warn: true, note: true, order: 99, side: 'l', title: '點零件篩到的是「供應鏈環節」，不是整個族群', sub: '同一個環節可能同時收了好幾個族群的公司；族群與環節的落差在關聯圖上看得比較清楚。' })}
-
-      <!-- ===================== ④ 從晶片到交付 ===================== -->
-      <text class="hd" x="${RX}" y="512">④ 從晶片到交付</text>
-      ${processBar(RX, 524, [{ seg: 'foundry', t: 'GPU 晶粒', s: '晶圓代工' }, { seg: 'adv_pkg', t: 'CoWoS 封裝', s: '＋ HBM' }, { seg: 'abf_pcb', t: '模組上板', s: 'PCB ／ 載板' }, { seg: 'assembly', t: '托盤 → 機櫃', s: '系統組裝' }, { seg: 'hyperscaler', t: '交付 CSP', s: '資料中心' }], 118)}
-      ${chainLink('semiconductor', RX, 572, '← 看半導體鏈：晶片怎麼來')}
-      <text class="cap" x="244" y="584">示意圖，非實物比例｜托盤內的零件數量、層數與厚度比例均為示意；</text>
-      <text class="cap" x="244" y="602">機櫃配置（托盤數、供電與冷卻做法）依機種而異。</text>
+      <!-- 下：流程 -->
+      <text class="cap" x="250" y="612">從晶片到交付</text>
+      ${processBar(250, 620, [{ seg: 'foundry', t: 'GPU 晶片', s: '晶圓代工' }, { seg: 'adv_pkg', t: 'CoWoS 封裝', s: '＋HBM' }, { seg: 'abf_pcb', t: '模組上板', s: 'PCB / 載板' }, { seg: 'assembly', t: '托盤 → 機櫃', s: '系統組裝' }, { seg: 'hyperscaler', t: '交付 CSP', s: '資料中心' }], 118)}
+      ${chainLink('semiconductor', 934, 622, '← 看半導體鏈：晶片怎麼來')}
     </svg>`;
   }
 
@@ -1144,7 +969,7 @@
       + `<rect x="0" y="0" width="${uB}" height="${H}" fill="url(#mcCut)"/>`
       + `<rect x="0" y="0" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
       + `<rect x="0" y="${H - COV}" width="${uB}" height="${COV}" fill="url(#mcCov)"/>`
-      + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="var(--dg-edge)" stroke-opacity=".55" stroke-width=".9" fill="none"/>`
+      + `<path d="M0,${COV}H${uB}M0,${H - COV}H${uB}" stroke="rgba(30,36,50,.5)" stroke-width=".9" fill="none"/>`
       + chg.join('') + els.join('')
       + termBand(0, 'var(--dg-sn)') + termBand(3, 'var(--dg-ni)') + termBand(6.5, 'var(--dg-cu)')
       + `</g>`;
@@ -1169,7 +994,7 @@
     const leftCer = poly('part', 'url(#mcL)', [P3(XC, W, H), P3(TW, W, H), P3(TW, W, 0), P3(XC, W, 0)]);
     const leftTerm = poly('part', 'url(#mcMetL)', [P3(TW, W, H), P3(0, W, H), P3(0, W, 0), P3(TW, W, 0)]);
     // 端電極分層提示：兩條細線，遠看就知道那條金屬帶不是一塊實心
-    const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="var(--dg-sn)" stroke-opacity=".38" stroke-width=".9" fill="none"/>`;
+    const hint = `<path d="M${P3(L - 3, 0, H)}L${P3(L - 3, YC, H)}M${P3(L - 7, 0, H)}L${P3(L - 7, YC, H)}" stroke="rgba(255,255,255,.35)" stroke-width=".9" fill="none"/>`;
 
     const iso = `<g data-seg="${SEG}" data-part="mlcc_body" data-hero="mlcc_body" transform="translate(${CX},${CY}) scale(${S})">
       ${topFace}${topTermL}${topTermR}${leftCer}${leftTerm}${rightFace}${hint}${faceA}${faceB}</g>`;
@@ -1316,7 +1141,6 @@
       ${note({ side: 'l', order: 0, title: '① 容值是層數堆出來的', lines: ['C ＝ ε₀ · εr × n × A ÷ d', 'n＝層數、A＝重疊面積、d＝單層厚度', 'n ↑ 或 d ↓ → 容值 ↑，成本與風險也 ↑'] })}
       ${labelRow(SEG, 0, 0, '保護層（無電極素坯）', '上下各一疊，不貢獻容值', ax(120, 58), ay(120, 58, 150), 0, null, 1, 'l')}
       ${labelRow(SEG, 0, 0, '側邊餘白（不產生電容）', '電極不到側面，避免短路', ax(56, 115), ay(56, 115, 20), 0, null, 5, 'l')}
-      ${note({ side: 'l', order: 7, title: '⋮ ×N ＝ 中間省略掉的層', lines: ['畫面上只畫 16 層電極，看得出交錯的規律就夠；', '實際高容量品 400～1000 層以上（示意圖，非實物比例）。'] })}
       <!-- 右欄：02、03、04、06、警語 -->
       ${labelRow(SEG, 0, 0, '介電陶瓷層（鈦酸鋇 BaTiO₃）', '單層 0.5–2 µm；越薄，容值越大', ax(170, 58), ay(170, 58, 118), 0, null, 2, 'r')}
       ${labelRow(SEG, 0, 0, '內部電極（鎳 Ni，BME）', '約 0.5 µm；兩把梳子互插但不相碰', ax(190, 58), ay(190, 58, 88), 0, null, 3, 'r')}
@@ -1434,7 +1258,7 @@
     /* ⚠ `semiconductor` 這個鏈層級的檔位在 2026-09-22 退場了（DECISIONS #234）——
        它跟 `ai_adv_packaging` 畫的是同一顆 CoWoS 封裝的剖面。理由與「內容搬到哪裡」
        寫在本檔上方那段註解。半導體鏈現在走圖別選單，跟 AI 伺服器鏈同一個模式。*/
-    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 700,   /* ★ 2026-09-23 v2：畫布從 1220 收到 700（卡片外掛成 HTML），native 跟著改 */
+    ai_server: { level: 'chain', chain: 'ai_server', name: 'AI 伺服器：機櫃與運算托盤', draw: aiServer, scene: 'ai_server', native: 1220,
       q: '一座 AI 機櫃裡到底裝了什麼？運算托盤、散熱、電源、交換器各佔一塊，台廠站在哪幾格？' },
     mlcc: { level: 'group', chain: 'electronics', name: '被動元件：MLCC 疊層剖析', draw: mlccStack, scene: 'mlcc', native: 660,
       q: '一顆 MLCC 裡面疊了什麼？為什麼車規賣得比消費級貴，又為什麼板子一彎它就裂？',

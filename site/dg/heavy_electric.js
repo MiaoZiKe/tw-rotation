@@ -1,15 +1,5 @@
 /* 變壓器與 GIS 電力路徑 —— docs/diagram_plan.md 的第 14 張（族群 `heavy_electric`、infrastructure 鏈）
 
-   ★ 2026-09-23：這張原本寫 `scene: null`（不做真 3D），理由是這張圖的主題是
-   **電壓階梯**（哪幾格降壓、哪幾格只是開關）—— 那是流程，轉一圈幫不上忙。
-   這一輪 Andy 要求「所有 2D 圖都要補上 3D 圖且風格一樣」，所以改成 `scene: 'heavy_electric'`。
-   舊理由沒有被否定：3D 那張**不重畫電壓階梯**，它補的是另一件 2D 做不到的事 ——
-   **油箱裡面**：鐵心是三柱（三柱＝三相）、繞組是套在柱子上的兩層同心圓筒、內圈低壓外圈高壓。
-   剖面只能切一刀，看不到「套」這個關係。GIS 那一段也同理：剖開一節管子才看得到
-   「導體在裡面、接地殼在外面、中間一圈氣體」這個同軸結構。
-   3D 場景定義在 `site/three3d.js` 的 `SCENES.heavy_electric`；`seg` 沿用這個檔的中文站名、
-   `part` 沿用這個檔的 `data-part`（he_*），所以兩張圖點下去選到的是同一個東西。
-
    合約＝`docs/diagram_specs/transformer_gis.md`。這個檔只實作，不重新決定規格。
    位階更高的是 `docs/diagram_purpose.md`（R1～R6）：圖不是插圖，是「誰在做什麼」的入口。
 
@@ -562,7 +552,7 @@
   window.DG.register('heavy_electric', {
     level: 'group', chain: 'infrastructure',
     name: '電力路徑：變壓器與 GIS',
-    draw: transformerGis, native: 980, scene: 'heavy_electric',
+    draw: transformerGis, native: 980, scene: null,
     q: 'AI 資料中心的電從哪裡來？從 345 kV 電網走到機櫃直流，哪幾格是降壓、哪幾格只是開關，台廠站在哪幾格？',
     parts: {
       he_ladder: {
