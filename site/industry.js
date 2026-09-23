@@ -911,6 +911,8 @@
       const segsOn = shown ? [shown] : (state.group ? (A.L.gsegs[state.group] || []) : []);
       const color = shown ? segColor(shown) : (state.group ? A.L.gcolor[state.group] : null);
       highlightSegments(el, segsOn, color, partHi);
+      // 切主題會整頁重畫，選取狀態要有人記得（見上面 `_dgSnap` 那段註解）
+      _dgSnap = { dg: dgId, segHi, partHi, partSel, segFilter };
       /* 「這個零件是誰做的」小卡。只有點零件才畫（partSel），
          點環節色標／族群卡片走的是下面那個 segBox，兩者不互相取代。*/
       renderPartCard($('#partCard', el), el, sc, dgId, partSel && partSel.seg, partSel && partSel.key, {
@@ -1205,6 +1207,13 @@
     // 所以在這裡統一再畫一次（重複呼叫是冪等的）
     if (hasSlots) paintDgMode();
     else { const gp = $('#gpSec', el); if (gp) gp.hidden = false; }
+    /* 剛剛因為切主題被重畫掉的選取，在這裡放回去（同一張圖、3 秒內才算數）。
+       放在第一次 syncHighlight 之前 —— 它會把高亮、零件小卡、環節詳情一次畫對。*/
+    if (_dgKeep && _dgKeep.dg === dgId && Date.now() - _dgKeep.t < 3000) {
+      segHi = _dgKeep.segHi; partHi = _dgKeep.partHi;
+      partSel = _dgKeep.partSel; segFilter = _dgKeep.segFilter;
+    }
+    _dgKeep = null;                   // 領過就丟，免得之後逛回來又被還原一次
     syncHighlight();
   }
   // 環節說明盒：這個環節的台股（可點）、外商、相關族群（可點）
@@ -1434,6 +1443,26 @@
 
   // 收合狀態記在 localStorage：Andy「可以收納就收納」。讀不到就當展開，不要讓整頁掛掉。
   const partCardOpen = () => { try { return localStorage.getItem('tw.dgPartOpen') !== '0'; } catch (e) { return true; } };
+  /* ★ 2026-09-23 修「切全站主題之後，使用者選起來的零件被清掉」。
+     DECISIONS 已經寫明「換模式不准把使用者選起來的零件弄丟」，但切主題走的是另一條路：
+     `app.js` 的 `applyTheme(name, true)` 會 dispose 全部圖表再 `route()` 整頁重畫，
+     選取狀態住在這一頁的 render 閉包裡，重畫就跟著沒了。
+
+     修法刻意**不碰 `applyTheme`**（那支是全站共用的重畫路徑，動它會影響每一頁）：
+     改成在剖析圖這一側自己記住再還原 ——
+       · `_dgSnap`：每次 syncHighlight 都把當下的選取記在模組層級（閉包會死，模組不會）
+       · `tw:theme`：applyTheme 在 `route()` **之前**就發這個事件，這裡趁機把快照收起來
+       · 下一次重畫時，同一張圖（`dg` 相同）而且在 3 秒內，才把狀態放回去
+     為什麼要加 3 秒與同圖的條件：切主題時如果人不在這一頁，這份快照沒有人領走，
+     留著會變成「之後逛到產業鏈時莫名其妙有一個零件是亮的」。過期就丟掉最乾淨。
+     ⚠ 已知限制沒有變：3D 的鏡頭角度、ECharts 的縮放仍然會回到初始狀態 ——
+       那是整頁重畫本來就有的代價，要一起解只能動 `applyTheme`。*/
+  let _dgSnap = null;                 // 目前這一頁剖析圖的選取（隨時更新）
+  let _dgKeep = null;                 // 切主題那一瞬間的快照，只給下一次重畫領一次
+  window.addEventListener('tw:theme', () => {
+    _dgKeep = (_dgSnap && (_dgSnap.partHi || _dgSnap.segHi || _dgSnap.segFilter))
+      ? Object.assign({ t: Date.now() }, _dgSnap) : null;
+  });
   const setPartCardOpen = (v) => { try { localStorage.setItem('tw.dgPartOpen', v ? '1' : '0'); } catch (e) { /* 忽略 */ } };
 
   /* ⚠ 這裡原本有一支 revealPartCard()：小卡不在畫面上時，用最小幅度把它捲進視野。
@@ -1668,14 +1697,21 @@
     const cw = box.clientWidth;
     if (!cw) return;
     const k = cw / w;
+    /* ★ 2026-09-23 修「畫布被擠壓時閱讀模式的字級靜悄悄掉回科技那一組」。
+       基準值以前是從 `:root` 讀的，但閱讀模式那一組（19/15/14/13）定義在
+       `:root[data-dgpal="read"] .dg.rs` —— **那是後代選擇器**，`:root` 上永遠只有
+       科技的 12px 起。於是每次縮放都用 12 當基準，畫面上的字就從 13 掉到 12。
+       改成**從 svg 自己身上量**：那一層才吃得到 `.dg.rs` 那條規則。
+       原本不敢這樣讀是怕「第二次讀到上一輪放大過的值、愈放愈大」——
+       所以量之前先把上一輪的覆寫整組清掉（`getComputedStyle` 會即時重算），
+       量到的一定是還沒被動過手腳的基準值。
+       只動這裡：`:root` 上那組 token 一個字都沒改，非 rs 的圖行為完全不變。*/
+    DG_FS_VARS.forEach(v => svg.style.removeProperty(v));
     if (k >= 0.995 || k < 0.62) {          // 塞得下，或窄到交給置中止血 —— 兩種都退回原尺寸
       svg.style.width = w + 'px'; svg.style.minWidth = w + 'px';
-      DG_FS_VARS.forEach(v => svg.style.removeProperty(v));
       return;
     }
-    /* 字級的基準值要在**覆寫之前**從 :root 讀（科技 12px 起、閱讀 13px 起，
-       切主題時會換一組）—— 讀 svg 自己的話第二次就會讀到上一輪放大過的值，愈放愈大。*/
-    const rs = getComputedStyle(document.documentElement);
+    const rs = getComputedStyle(svg);
     DG_FS_VARS.forEach(v => {
       const base = parseFloat(rs.getPropertyValue(v));
       if (base) svg.style.setProperty(v, (base / k).toFixed(2) + 'px');

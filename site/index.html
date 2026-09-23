@@ -1592,8 +1592,18 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
      960～1279：畫布 ｜ 右欄（左欄的卡片也排進右欄）
      <960：單欄，卡片在畫布下面；390 一欄一張、字 12px 下限
    引線由 diagrams.js 的 externalize() 在 .dglead 疊層上畫，寬度變了（ResizeObserver）就重算，沒有寫死座標。*/
-.dgwrap.dgv2{container-type:inline-size;padding:10px 12px 12px}
-.dgv2 .dggrid{position:relative;display:grid;gap:12px 18px;align-items:start;
+/* ★ 2026-09-23 修「事件抽屜開著時說明卡片掉回單欄、引線一條都不畫」。
+   `container-type:inline-size` 量的是**內容盒**：內距寫在容器身上，
+   容器查詢看到的寬度就少了左右各 12px。抽屜開時外層 972px → 查詢只看到 948px，
+   差 12px 沒跨過 960 的門檻，整個掉回單欄（單欄本來就不畫引線）。
+   修法是把內距移到內層的 `.dggrid`，讓查詢量到完整寬度 ——
+   而不是把門檻改成 940 去遷就內距（那是把內距的數字抄進門檻裡，
+   以後有人調內距就會再壞一次，而且 1280 那道門檻也一樣少算 24px）。
+   ⚠ 畫面上的內距一點都沒有變（同一組數值只是換一層掛），
+     `.dglead` 的原點也沒有變 —— 絕對定位的基準是 padding box，
+     它的起點就是 `.dggrid` 的邊框邊，跟 relayout 拿的 getBoundingClientRect 同一個點。*/
+.dgwrap.dgv2{container-type:inline-size;padding:0}
+.dgv2 .dggrid{position:relative;display:grid;gap:12px 18px;align-items:start;padding:10px 12px 12px;
   grid-template-columns:minmax(0,1fr);grid-template-areas:"head" "c" "l" "r"}
 .dgv2 .dghead{grid-area:head;min-width:0}
 .dgv2 .dghead b{display:block;font-size:var(--dg-fs-ttl);font-weight:700;color:var(--dg-ink);letter-spacing:.02em;line-height:1.35}
