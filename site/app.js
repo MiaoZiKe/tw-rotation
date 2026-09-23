@@ -648,6 +648,18 @@
       if (!elx.isConnected) { try { pp.stop(); } catch (e) { /* 忽略 */ } _players.delete(elx); }
     });
     const PMAX = o.max != null ? o.max : 30;          // 軸長＝最多看到幾個交易日前
+    /* ★ 2026-09-23 修「最舊只到 29 天前」：左把手的可用範圍要比右把手**多一格**。
+       原本兩支 `<input type=range>` 都落在 0～PMAX，而區間長度 = hi − lo ≥ 1，
+       所以右把手最低只能停在位置 1（＝29 天前），永遠碰不到規格要求的「30 天前」。
+       解法是把軌道往左延伸一格（PMIN = −1）：右把手仍然只走 0～PMAX
+       （拉到底 = 位置 PMAX = 最新，讀數行為完全沒變，`input.hi` 的 max 也還是 30），
+       左把手則可以退到 −1，讓「截止 30 天前、區間 1 天」成立。
+       兩支 input 共用同一組 min/max，是為了讓它們的滑塊在**同一個像素刻度**上 ——
+       只改其中一支的 min 會讓兩顆滑塊錯開約一格寬，看起來就是壞掉的。
+       位置 −1 在語意上是「區間起點」的外側端點（lo 本來就是不含的那一端），
+       不是多出來一天資料。*/
+    const PMIN = -1;
+    const PSPAN = PMAX - PMIN;                        // 軌道的總格數（畫 .sel 用）
     const readLS = (key, lo, hi, dft) => {
       if (!key) return dft;
       try {
@@ -659,10 +671,12 @@
     };
     // 內部一律用「位置」p：p = PMAX − 幾天前，所以右邊＝最新，和時間軸的直覺一致
     let days = readLS(o.keyDays, 1, PMAX, o.days != null ? o.days : 20);
-    let pHi = PMAX - readLS(o.keyTo, 0, PMAX - 1, o.to != null ? o.to : 0);
+    let pHi = PMAX - readLS(o.keyTo, 0, PMAX, o.to != null ? o.to : 0);
     const clamp = () => {
       days = Math.max(1, Math.min(PMAX, Math.round(days)));
-      pHi = Math.max(days, Math.min(PMAX, Math.round(pHi)));   // 起點不可以掉到軸的左邊外面
+      pHi = Math.max(0, Math.min(PMAX, Math.round(pHi)));
+      // 起點不可以掉到軌道的左邊外面；撞到就縮短區間，不要默默改掉截止日
+      if (pHi - days < PMIN) days = pHi - PMIN;
     };
     clamp();
     box.classList.add('rbar');
@@ -670,9 +684,9 @@
       // ★ 「看哪一天」那支**寫在前面**：外面有程式碼用 `box.querySelector('input')` 抓這支拉Bar
       //   的主值（例如驗收腳本），抓到的必須是主角，不是區間起點。視覺上下的疊法由 CSS 決定。
       + '<div class="dual"><span class="track"></span><span class="sel"></span>'
-      + `<input class="hi" type="range" min="1" max="${PMAX}" step="1" value="${pHi}"`
+      + `<input class="hi" type="range" min="${PMIN}" max="${PMAX}" step="1" value="${pHi}"`
       + ' aria-label="看哪一天（這一段的截止日）">'
-      + `<input class="lo" type="range" min="0" max="${PMAX - 1}" step="1" value="${pHi - days}"`
+      + `<input class="lo" type="range" min="${PMIN}" max="${PMAX}" step="1" value="${pHi - days}"`
       + ' aria-label="這一段的起點（往回幾個交易日）"></div>'
       + '<span class="val"></span>';
     const hi = box.querySelector('input.hi'), lo = box.querySelector('input.lo');
@@ -680,10 +694,10 @@
     const toDays = () => PMAX - pHi;                  // 截止日是「幾天前」
     const paint = () => {
       hi.value = pHi; lo.value = pHi - days;
-      const a = (pHi - days) / PMAX * 100, b = pHi / PMAX * 100;
+      const a = ((pHi - days) - PMIN) / PSPAN * 100, b = (pHi - PMIN) / PSPAN * 100;
       sel.style.left = a + '%'; sel.style.width = Math.max(0, b - a) + '%';
       out.textContent = `最近 ${days} 天 · 截止 ${toDays() === 0 ? '最新' : toDays() + ' 天前'}`;
-      bMinus.disabled = pHi <= days; bPlus.disabled = pHi >= PMAX;
+      bMinus.disabled = pHi - days <= PMIN; bPlus.disabled = pHi >= PMAX;
       bPlay.textContent = timer ? '⏸' : '▶';
       bPlay.title = timer ? '暫停' : '播放（整段往「最新」滑）';
       bPlay.setAttribute('aria-label', bPlay.title);
@@ -717,12 +731,18 @@
        先 stop 的話這一行就把使用者剛拖出來的值蓋掉了，讀回來永遠是舊值，
        於是「拖了完全沒反應」（實測：拖到 24，讀回來還是 30）。*/
     // 右把手：拖它＝換截止日，**長度不變**（除非撞到軸的左端，那時只好把長度縮短）
-    hi.oninput = () => { const v = +hi.value; stop(); pHi = v; if (pHi < days) days = Math.max(1, pHi); paint(); fire(); };
+    hi.oninput = () => {
+      const v = Math.max(0, Math.min(PMAX, +hi.value));   // 右把手不准跑進左邊那一格
+      stop(); pHi = v; if (pHi - days < PMIN) days = pHi - PMIN; paint(); fire();
+    };
     // 左把手：拖它＝換這一段有多長（截止日不動）
-    lo.oninput = () => { const v = +lo.value; stop(); days = Math.max(1, pHi - v); paint(); fire(); };
+    lo.oninput = () => {
+      const v = Math.max(PMIN, Math.min(PMAX, +lo.value));
+      stop(); days = Math.max(1, Math.min(PMAX, pHi - v)); paint(); fire();
+    };
     hi.onchange = lo.onchange = save;
     const slide = (d) => {
-      const nx = Math.max(days, Math.min(PMAX, pHi + d));
+      const nx = Math.max(days + PMIN, Math.min(PMAX, pHi + d));
       if (nx === pHi) return false;
       pHi = nx; paint(); fire(); save(); return true;
     };
@@ -731,8 +751,8 @@
     const start = () => {
       if (timer) return;
       stopPlayGroup(o.group, api);                    // 同一個值一次只准一支在播
-      if (pHi >= PMAX) { pHi = days; paint(); fire(); }   // 已經在最新了就從最舊重播
-      timer = setInterval(() => { if (!slide(1)) { pHi = days; paint(); fire(); } }, o.frame || 600);
+      if (pHi >= PMAX) { pHi = days + PMIN; paint(); fire(); }   // 已經在最新了就從最舊重播
+      timer = setInterval(() => { if (!slide(1)) { pHi = days + PMIN; paint(); fire(); } }, o.frame || 600);
       paint();
     };
     bPlay.onclick = () => { if (timer) { stop(); stopPlayGroup(o.group, null); } else start(); };
@@ -740,16 +760,18 @@
     api = {
       get value() { return toDays(); },               // 對外沿用舊語彙：值＝「幾天前」
       get days() { return days; },
-      /* set(x)＝「把截止日設成 x 天前」。放大視窗那支拉Bar 的上限還是 30，
-         而這裡的右把手最遠只到 `PMAX − 1` 天前（左把手至少要佔一格），
-         所以撞到軸的左端時**優先保住他要的那一天**，把區間長度縮短，不要默默改掉截止日。*/
+      /* set(x)＝「把截止日設成 x 天前」，0～PMAX 全段都成立（含最舊那一天）。
+         撞到軌道左端時**優先保住他要的那一天**，把區間長度縮短，不要默默改掉截止日。*/
       set(x) {
-        let np = PMAX - Math.max(0, Math.min(PMAX, +x || 0));
-        if (np < 1) np = 1;
-        if (np < days) days = Math.max(1, np);
+        const np = PMAX - Math.max(0, Math.min(PMAX, +x || 0));
+        if (np - days < PMIN) days = np - PMIN;
         pHi = np; paint();
       },
-      setDays(k) { days = Math.max(1, Math.min(PMAX, +k || 1)); if (pHi < days) pHi = days; paint(); },
+      setDays(k) {
+        days = Math.max(1, Math.min(PMAX, +k || 1));
+        if (pHi - days < PMIN) pHi = days + PMIN;
+        paint();
+      },
       stop, start, playing: () => !!timer, el: box, group: o.group || '',
     };
     _players.set(box, api);
@@ -4418,7 +4440,17 @@
     /* f3 只有第一次（renderFlow）會傳進來；之後下拉清單、放大視窗、清除篩選都會再呼叫一次，
        那些地方手上沒有 f3，所以記在模組層。沒有它就沒有第一層（產業鏈）的選項。*/
     if (f3) rotF3 = f3; else f3 = rotF3;
-    const boxes = $$('.rotfilter');
+    /* ★ 2026-09-23 修 class 撞名：這裡**一定要加 `[data-rf]`**。
+       `filterDropdown()`（資金去向／桑基那排單選下拉）為了沿用同一套 CSS，
+       容器也掛了 `.rotfilter`，但它**不屬於 ROT 狀態**（它吃 `chipSel[chartId]`）。
+       以前這行是 `$$('.rotfilter')` 全抓，於是只要資金輪動這排重建一次，
+       就把桑基那排的 innerHTML 一起換成 ROT 的複選清單 ——
+       使用者看到的是「勾了輪動的族群，資金去向那排突然從 19 個單選變成 52 個 checkbox，
+       而且勾下去篩的是時鐘不是桑基」。
+       選 `[data-rf]` 而不是改桑基那排的 class：`data-rf` 本來就是「這排屬於哪個 ROT 面板」
+       （flow／zoom）的既有標記，桑基那排從來沒有它，所以這個選擇器天生就把兩者分開；
+       而且共用的 `.rotfilter` 樣式可以原封不動留著，不必再複製一份 CSS。*/
+    const boxes = $$('.rotfilter[data-rf]');
     if (!boxes.length) return;
     rotFillMeta(f3);
     const chains = [...new Set((rotAllGroups || []).map(r => (rotGroupMeta[r.gid] || {}).chain).filter(Boolean))];
