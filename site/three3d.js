@@ -298,7 +298,9 @@
             加交流電壓時陶瓷體真的會跟著形變 —— 那就是 MLCC 在電路板上「唱歌」（acoustic noise）的原因。
             實際形變是 ppm 等級，這裡放大到 7% 才看得見，屬於**示意，非實物比例**。
          錨點在底面（anchor: 'min'）：元件是焊在 PCB 焊墊上的，底面不會動。*/
-      grows: [{ parts: ['mlcc_body'], axis: 'y', from: 1, to: 1.07, period: 2.6, anchor: 'min' }],
+      /* 端電極跟著一起脹：電極是鍍在陶瓷本體上的薄層，本體變形它一定跟著變形。
+         只脹本體的話畫面上會看到陶瓷從金屬端帽裡「長出來」，那是不可能發生的事。*/
+      grows: [{ parts: ['mlcc_body', 'mlcc_term'], axis: 'y', from: 1, to: 1.07, period: 2.6, anchor: 'min' }],
       carries: [
         { kind: 'pwr', n: 2, size: [2.6, 2.6, 2.6], period: 2.6, mode: 'pingpong',
           pts: [[-32, 22, 0], [-20, 22, 0], [-7, 22, 0]] },
@@ -576,7 +578,9 @@
              二維電子氣耗盡（通道消失），加上閘壓才恢復 —— 這就是「常關」的物理。
          gate 的 duty 0.55 與 grows 的週期相同：**截止時電子整組消失、一格都不前進**
          （電流是 0，畫面上就不該有東西在跑）。*/
-      grows: [{ parts: ['wbg_2deg'], axis: 'y', from: 0.25, to: 2.2, period: 4.4, anchor: 'mid' }],
+      /* 錨在**上緣**（anchor: 'max'）：2DEG 就長在 AlGaN 阻障層與通道層的那個介面上，
+         耗盡時是從介面往下退掉、恢復時往下長回來。錨在中間的話會往上頂進阻障層，那是錯的。*/
+      grows: [{ parts: ['wbg_2deg'], axis: 'y', from: 0.25, to: 1.6, period: 4.4, anchor: 'max' }],
       carries: [
         { kind: 'sig', n: 2, size: [1.6, 1.6, 1.6], period: 2.0, gate: { per: 4.4, duty: 0.55 },
           pts: [[-32, 23.5, 0], [-32, 19, 0], [-32, 16.4, 0], [-32, 12.2, 0], [-32, 6.2, 0], [-32, 0.6, 0]] },
@@ -1210,6 +1214,105 @@
       ],
       pulses: [{ parts: ['mc_enc', 'mc_motor', 'mc_coupling', 'mc_screw', 'mc_nut', 'mc_table'], period: 3.2, kind: 'sig' }],
     },
+    /* ===== 一般電子鏈：CNC 工具機 —— 一台立式綜合加工機（2026-09-23）=====
+       2D 是 `site/dg/machine_tool.js`，`part` 沿用它的 `data-part`（mt_*）。
+       ★ 為什麼這一張值得做真 3D：一台加工機是**三根互相垂直的軸疊起來**的
+         （床身不動 → 鞍座走 Y → 工作台走 X → 主軸頭走 Z）。
+         「誰疊在誰上面、誰帶著誰走」這件事在正視圖裡看不出來 —— 一定要轉才看得到。
+         而 2D 那張真正的主張（台廠站在哪幾格）是資訊，不是形狀，所以留在 2D。
+       ★ 這一張跟 `motion_axis`（工業自動化）的分工：那張是**一根軸拆開**，
+         這張是**用那些軸組成的整台機器**。所以三根軸的零件直接沿用同一批幾何
+         （mcscrew／mcrail／mcmotor），不重畫。
+       ⚠ 運轉動畫走的是「東西在動」不是「在閃」（Andy 2026-09-23）：
+         主軸旋轉、刀庫轉位、換刀機械手擺動、工作台沿 X 走、鞍座沿 Z 走、主軸頭沿 Y 進刀、
+         切屑從加工區飛出去。脈衝只留控制器那一顆、而且壓到 0.5 ——
+         相隔一秒截兩張圖，**形狀的位置真的不一樣**。*/
+    machine_tool: {
+      title: 'CNC 工具機：一台立式綜合加工機',
+      sub: '床身不動 → 鞍座走 Y → 工作台走 X → 主軸頭沿立柱走 Z，三根軸互相垂直地疊起來；刀庫轉位找刀、雙臂機械手擺過去換刀、主軸帶著刀柄旋轉切削。★ 右邊那一櫃（控制器與驅動器）是外購的：台灣的高階機種皆搭配進口 CNC 控制器。示意圖，非實物比例',
+      camera: [78, 62, 130], target: [0, 26, 0], fit: 1.02, hk: 0.5,
+      parts: [
+        { seg: 'machine_tool', part: 'mt_bed', name: '床身（鑄件）', note: '★ 上面是平的、下面有縱橫肋 —— 鑄件的識別特徵，畫成一塊實心方塊就看不出來。所有切削力最後都由它承受。重、運費高、又要時效，所以在地供應比較划算，這是台廠自己做的一段',
+          kind: 'mtbed', box: [120, 16, 72], at: [0, -4, 0], ex: [0, -20, 0],
+          codes: [], chipnote: '整機與鑄件在台股：4526 東台精機、1583 程泰機械、1528 恩德科技。鑄件的供應分工查不到具名來源，不編。三檔都不在 supply_chain.yaml 的環節裡，所以直接指名' },
+        { seg: 'machine_tool', part: 'mt_col', name: '立柱（鑄件，與床身一體）', note: '站在床身後緣的方柱，正面是兩條軌道的貼合面與一排鎖付孔。★ 它跟床身通常是**一體的鑄件** —— 分成兩塊各自站著的話，剛性就不是一體的了',
+          kind: 'mtcol', box: [30, 96, 56], at: [0, 48, -30], ex: [0, 48, -54], codes: [] },
+        { seg: 'machine_tool', part: 'mt_rail', name: '線性滑軌・軌道（立柱上兩條）', note: '★ 跟「工業自動化」那張圖是**同一種零件**：滑軌不出力，只負責「別歪掉」與承重。這一段是台廠自己就很強的一段',
+          kind: 'mtraily', box: [9, 74, 11], at: [0, 50, -14], n: 2, gap: 22, axis: 'x', ex: [0, 50, -34],
+          codes: [], chipnote: '線性滑軌在台股：2049 上銀、1597 直得。兩檔屬於「工業自動化」族群、不在這一格，也都不在 supply_chain.yaml 裡' },
+        { seg: 'machine_tool', part: 'mt_z', name: 'Z 軸：滾珠螺桿（立柱上）', note: '★ 跟 X 軸**完全同一支零件**，只是立起來 —— 那正是這張圖想講的：三根軸用的是同一批零件。它是三根軸裡唯一要對抗重力的那一根',
+          kind: 'mtscrewy', box: [9, 76, 9], at: [0, 50, -22], ex: [24, 50, -34],
+          codes: [], chipnote: '滾珠螺桿在台股：2049 上銀、4540 全球傳動。兩檔屬於「工業自動化」族群，不在這一格，也都不在 supply_chain.yaml 裡' },
+        { seg: 'machine_tool', part: 'mt_saddle', name: '鞍座（Y 軸滑座）', note: '★ 上下**兩組互相垂直的導引面**是它的識別特徵：下面接 Y 向、上面接 X 向。少掉這一層，三根軸就疊不起來 —— 這件事只有轉過來看才看得出來',
+          kind: 'mtsaddle', box: [76, 12, 54], at: [0, 10, 6], ex: [0, 4, 30], codes: [] },
+        { seg: 'machine_tool', part: 'mt_x', name: 'X 軸：滾珠螺桿（工作台下方）', note: '把馬達的「轉」變成工作台的「直線走」。★ 螺桿轉一圈，工作台前進一個導程 —— 所以這裡的轉速是用工作台這一幀真正的速度算出來的，折返的瞬間螺桿也真的跟著反轉',
+          kind: 'mcscrew', box: [94, 9, 9], at: [0, 6, 22], ex: [0, -8, 38], codes: [] },
+        { seg: 'machine_tool', part: 'mt_table', name: '工作台（X 軸）', note: '★ 上面一定有 **T 型槽**：工件、虎鉗與夾治具靠它鎖上去。沒有 T 型槽的平板不是工作台',
+          kind: 'mttable', box: [88, 10, 46], at: [0, 21, 6], ex: [0, 32, 30], codes: [] },
+        { seg: 'machine_tool', part: 'mt_work', name: '工件（被加工的那一塊）', note: '★ 綜合加工機是「刀轉、工件夾著不動」—— 工件跟著工作台走位，但它自己不轉。車床剛好相反（工件轉、刀不轉），那是兩種機器唯一的分界',
+          kind: 'mtwork', box: [32, 16, 26], at: [0, 34, 6], ex: [0, 50, 30], codes: [] },
+        { seg: 'machine_tool', part: 'mt_head', name: '主軸頭（Z 軸）', note: '★ 背面那兩塊滑塊是「它掛在立柱軌道上」的證據 —— 沒有的話它看起來是浮著的。它是整台機器上最重的一個移動件，重量與剛性同時決定加工精度與加減速能力',
+          kind: 'mthead', box: [42, 32, 42], at: [0, 58, -4], ex: [0, 78, -4], codes: [] },
+        { seg: 'machine_tool', part: 'mt_spmot', name: '主軸馬達', note: '★ 跟三顆進給馬達**同一支幾何**（方殼、散熱肋、前法蘭、伸出去的軸）。圖上畫的是外掛式；高階機種會把馬達直接做進主軸裡（內藏式），那種在外觀上看不到這一顆',
+          kind: 'mtmoty', box: [22, 28, 22], at: [0, 86, -4], ex: [0, 108, -4],
+          codes: [], chipnote: '伺服馬達在台股：4576 大銀微系統。這一檔屬於「工業自動化」族群，不在這一格，也不在 supply_chain.yaml 裡' },
+        { seg: 'machine_tool', part: 'mt_spindle', name: '主軸（錐孔朝下）', note: '★ 下端是一個**錐孔**（刀柄靠錐面定位，不是靠螺絲鎖）—— 畫成平底就看不出它怎麼夾刀。它的轉速與剛性決定這台機器的加工上限；高階主軸多為外購',
+          kind: 'mtspindle', box: [16, 36, 16], at: [0, 46, -4], ex: [0, 54, 18],
+          codes: [], chipnote: '主軸這一件查不到台股的具名對應（高階品多為日、德、瑞士製）—— 查不到就寫查不到，不編一個對應' },
+        { seg: 'machine_tool', part: 'mt_bear', name: '主軸軸承（前後兩組）', note: '外環、內環與夾在中間的一圈滾珠。它決定主軸能轉多快、能吃多大的切削力，也是主軸壽命的瓶頸',
+          kind: 'mtbear', box: [20, 9, 20], at: [0, 46, -4], n: 2, gap: 18, axis: 'y', ex: [0, 46, 30], codes: [] },
+        { seg: 'machine_tool', part: 'mt_tool', name: '刀柄與刀具', note: '★ 刀柄是**錐形**的，中段那一圈溝就是換刀機械手抓的地方。下面那支銑刀的兩條螺旋刃是它「會切削」的識別特徵 —— 畫成一根圓棒就成了鑽孔用的麻花鑽都不是',
+          kind: 'mttool', box: [14, 30, 14], at: [0, 26, -4], ex: [0, 12, 30],
+          codes: [], chipnote: '刀具在台股：1528 恩德科技的營業項目含刀具。這一檔不在 supply_chain.yaml 的環節裡，所以直接指名' },
+        { seg: 'machine_tool', part: 'mt_mag', name: '刀庫（圓盤式）', note: '★ 識別特徵是「**一圈刀套**繞著圓盤排列」，每個刀套裡插著一支上粗下尖的錐柄 —— 畫成一排方塊就不是刀庫。圓盤轉位把要的那一把轉到換刀位置。把數依機種而異，圖上畫 10 個是示意',
+          kind: 'mtmag', box: [16, 52, 52], at: [-68, 58, -4], ex: [-96, 58, -4],
+          codes: [], chipnote: '刀庫與換刀機構的台股供應分工查不到具名來源。整機廠自製與向專業機構件廠採購兩種都有 —— 查不到就寫查不到' },
+        { seg: 'machine_tool', part: 'mt_atc', name: '換刀機械手（雙臂式 ATC）', note: '★ **兩端對稱**：一端抓主軸上的舊刀、另一端抓刀庫裡的新刀，擺過去就同時換完 —— 單臂的畫法解釋不了「為什麼一次可以換兩把」，也解釋不了換刀為什麼可以那麼快',
+          kind: 'mtatc', box: [50, 12, 12], at: [-34, 40, 6], ex: [-48, 26, 30], codes: [] },
+        { seg: 'machine_tool', part: 'mt_cnc', name: '★ 控制器櫃：CNC 控制器 ＋ 四台驅動器（整櫃外購）', note: '★ 這一櫃是整張圖的重點：它讀程式、算路徑，把每一軸每一毫秒該走到哪算出來。台灣生產的高階工具機**皆搭配進口 CNC 控制器**（日本發那科、德國西門子、海德漢）；國產的新代、寶元在中階與多軸逐步推廣。驅動器通常跟控制器同一家成套供應 —— 換一家等於整套控制架構要重調。材質跟機體不同，正是因為這一格不是同一群人做的',
+          kind: 'mtcab', box: [26, 74, 34], at: [82, 36, -4], ex: [110, 36, -4],
+          codes: [], chipnote: '控制器在台股：7750 新代科技（不在「CNC 工具機」族群、也不在 supply_chain.yaml 裡）。這張圖畫的整機廠四檔都不做控制器 —— 這就是「台廠做得了整機、關鍵件還是要買」' },
+        { seg: 'machine_tool', part: 'mt_conv', name: '排屑機', note: '一條斜著往外走的鏈板輸送帶。它不影響精度，但它決定這台機器能不能連續跑而不用有人去清 —— 切屑堆在機內會頂到工件，也會把熱悶在加工區裡',
+          kind: 'mtconv', box: [42, 12, 28], at: [-78, 0, 28], ex: [-104, -8, 46], codes: [] },
+      ],
+      /* ---- C6 運轉動畫：**三根軸各走各的、主軸在轉、刀庫在轉位、機械手在擺**。
+         這正是 Andy 2026-09-23 要的「東西在動」而不是「在閃」：
+           · 工作台沿 X 往復（7 秒一趟），工件跟著它走 —— 工件是鎖在工作台上的，不能各走各的。
+           · 鞍座沿 Z 往復（11 秒），而工作台與工件**疊在鞍座上**，所以它們同時吃到兩個位移。
+             兩個 mover 打在同一個群組上但**軸不同**（x 與 z），所以不會互相蓋掉。
+           · 主軸頭沿 Y 進刀（4.5 秒），主軸馬達、主軸、軸承與刀柄跟著它一起下（它們就裝在裡面）。
+           · X 與 Z 的螺桿用 `sync` 綁到對應的位移上：**位移折返的瞬間螺桿也真的反轉**，
+             不是兩個各跑各的動畫。
+           · 刀庫整個圓盤繞 x 軸慢轉（轉位找刀）；換刀機械手繞 y 軸**擺動** ±1.7 弧度
+             （約 ±97 度，換刀就是擺過去再擺回來，不是一直轉整圈）。
+           · 切屑用 carry 現生四顆小方塊從加工區往排屑機方向飛。
+         ⚠ 馬達外殼**刻意不轉**：會轉的是裡面的轉子，外殼是鎖在機構上的 ——
+           把整顆馬達轉起來在物理上是錯的。主軸馬達這一顆例外地跟著主軸轉是不行的，
+           所以它也只跟著主軸頭上下，不自轉。*/
+      moves: [
+        { name: 'feedx', parts: ['mt_table', 'mt_work'], axis: 'x', amp: 16, period: 7 },
+        { name: 'feedz', parts: ['mt_saddle', 'mt_table', 'mt_work'], axis: 'z', amp: 9, period: 11 },
+        { name: 'plunge', parts: ['mt_head', 'mt_spmot', 'mt_spindle', 'mt_bear', 'mt_tool'], axis: 'y', amp: 5, period: 4.5 },
+      ],
+      spins: [
+        { part: 'mt_spindle', axis: 'y', speed: 2.6 },
+        { part: 'mt_tool', axis: 'y', speed: 2.6 },
+        { part: 'mt_mag', axis: 'x', speed: 0.42 },
+        { part: 'mt_x', axis: 'x', speed: 0.3, sync: 'feedx' },
+        { part: 'mt_z', axis: 'y', speed: 0.3, sync: 'plunge' },
+      ],
+      swings: [{ part: 'mt_atc', axis: 'y', amp: 1.7, period: 5 }],
+      carries: [{ kind: 'hot', n: 4, size: [1.6, 1.6, 1.6], period: 2.6, mode: 'cycle', spread: 0.25,
+        pts: [[0, 34, 8], [-12, 42, 16], [-30, 30, 26], [-52, 14, 30], [-72, 4, 30]] }],
+      /* 控制訊號：控制器 → 驅動器 → 馬達（主鏈）；編碼器 → 控制器（回授，dir −1）。
+         有這條回授才叫數值控制 —— 環不閉的話它只是一台會動的機器。*/
+      flows: [
+        { kind: 'sig', part: 'mt_cnc', r: 0.34, per: 10, speed: 0.5, pts: [[70, 52, -4], [40, 66, -14], [8, 72, -22]] },
+        { kind: 'sig', part: 'mt_z', r: 0.3, per: 10, speed: 0.5, dir: -1, pts: [[8, 88, -22], [44, 74, -14], [70, 56, -4]] },
+      ],
+      // 脈衝只留控制器那一顆，而且壓到 0.5（Andy：要精密儀器不是電競 RGB）
+      pulses: [{ parts: ['mt_cnc'], period: 4.2, kind: 'sig', sharp: 6, amp: 0.5 }],
+    },
     /* ===== 一般電子鏈：被動保護 —— 過流與過壓元件 ===== */
     /* 2D 是 `site/dg/circuit_protection.js`，`part` 沿用它的 `data-part`（cp_*）。
        構圖：四顆並排、切掉同一個角（半剖，切掉 z > 0）。
@@ -1277,8 +1380,10 @@
          ③ TVS 箝位：同樣是並聯旁路，但反應更快、箝位電壓更低，所以 duty 更短、週期錯開。
             三者一起看，就是一條線上「慢的、粗的、快的」三道防線。*/
       grows: [
-        { parts: ['cp_poly'], axis: 'y', from: 1, to: 1.5, period: 6, anchor: 'mid' },
-        { parts: ['cp_carbon'], axis: 'y', from: 1, to: 1.5, period: 6, anchor: 'mid' },
+        /* 膨脹上限壓在 1.35：再大就會脹出包在外面的鎳電極箔（cp_ni，14 高），
+           變成「高分子跑到電極外面」—— 那是畫錯，不是畫得更明顯。*/
+        { parts: ['cp_poly'], axis: 'y', from: 1, to: 1.35, period: 6, anchor: 'mid' },
+        { parts: ['cp_carbon'], axis: 'y', from: 1, to: 1.35, period: 6, anchor: 'mid' },
       ],
       carries: [
         { kind: 'pwr', n: 2, size: [1.8, 1.8, 1.8], period: 2.2, gate: { per: 6, duty: 0.42 },
@@ -1375,7 +1480,8 @@
          ③ 鋁殼隨內壓**微鼓**（grows，1 → 1.02，錨在底部的防爆閥那一端）。
             這是真的：電解液分解產氣會讓內壓上升，鼓到一定程度防爆閥的刻痕才會裂開洩壓。
             2% 是**示意的放大**，真實的鼓脹到肉眼看得出來時這顆電容已經壞了。*/
-      grows: [{ parts: ['ac_can'], axis: 'y', from: 1, to: 1.02, period: 7, anchor: 'min' }],
+      /* 外套膠膜跟著鋁殼一起鼓：膠膜是套在殼外面的，殼鼓起來它不可能不動。*/
+      grows: [{ parts: ['ac_can', 'ac_sleeve'], axis: 'y', from: 1, to: 1.02, period: 7, anchor: 'min' }],
       carries: [
         { kind: 'pwr', n: 3, size: [1.8, 1.8, 1.8], period: 3.2, mode: 'pingpong',
           pts: [[26, 44, 0], [26, 38, 0], [26, 34, 0], [26, 30, 0], [26, 25, 0]] },
@@ -1667,6 +1773,7 @@
        工作台與工件走 alu（亮一階），只有控制器櫃走 emc —— 它本來就不是鑄件，
        而且它是**外購的那一格**，材質不同正好把這件事講出來。*/
     mtbed: 'metal', mtcol: 'metal', mtsaddle: 'metal', mttable: 'alu', mtwork: 'alu',
+    mtmoty: 'metal', mtbear: 'metal',
     mthead: 'metal', mtspindle: 'metal', mttool: 'metal', mtmag: 'metal', mtatc: 'metal',
     mtcab: 'emc', mtconv: 'metal', mtscrewy: 'metal', mtraily: 'metal',
     /* 2026-09-23 第二批補的高速連接器（規格書 docs/batch_0923b_spec.md W1-1，Andy 親自點名）。
@@ -6164,6 +6271,33 @@
       return g;
     }
 
+    /* 立起來的伺服馬達：跟「工業自動化」那張的 `mcMotor` **同一支幾何**，只是軸朝下。
+       主軸馬達與三顆進給馬達都用它 —— 那正是這兩張圖的接縫。*/
+    function mtMotY(p, K) {
+      const [w, h, d] = p.box;
+      const m = mcMotor({ box: [h, w, d] }, K);
+      m.rotation.z = -Math.PI / 2;
+      const g = new T.Group(); g.add(m); return g;
+    }
+    /* 主軸軸承（立著的那一組）：外環 ＋ 內環 ＋ 夾在中間的一圈滾珠。
+       ★ 不沿用 `mcBrg`：那一支是躺著的半剖軸承座（軸沿 x），
+         立起來會變成「被削掉一邊的罐頭」躺在錯的方向。這裡要的是整圈都看得到。*/
+    function mtBear(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const R = Math.min(w, d) / 2;
+      const st = K.mat(0.24, { rough: 0.2, metal: 0.95 });
+      g.add(new T.Mesh(new T.CylinderGeometry(R, R, h * 0.9, 24, 1, true), K.mat(-0.1, { rough: 0.34, metal: 0.9 })));
+      g.add(cyl(R * 0.44, h * 0.9, st, 18));
+      const balls = [];
+      for (let i = 0; i < 12; i++) {
+        const a = i / 12 * Math.PI * 2;
+        balls.push([Math.cos(a) * R * 0.72, 0, Math.sin(a) * R * 0.72]);
+      }
+      g.add(instOf(new T.SphereGeometry(R * 0.2, 8, 6), st, balls));
+      return g;
+    }
+
     /* Z 軸的滾珠螺桿：跟 X 軸**完全同一支幾何**（`mcScrew`），只是立起來 ——
        那正是這張圖想講的事：三根軸用的是同一批零件。*/
     function mtScrewY(p, K) {
@@ -6237,6 +6371,7 @@
       mtbed: mtBed, mtcol: mtCol, mtsaddle: mtSaddle, mttable: mtTable, mtwork: mtWork,
       mthead: mtHead, mtspindle: mtSpindle, mttool: mtTool, mtmag: mtMag, mtatc: mtAtc,
       mtcab: mtCab, mtconv: mtConv, mtscrewy: mtScrewY, mtraily: mtRailY,
+      mtmoty: mtMotY, mtbear: mtBear,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 
