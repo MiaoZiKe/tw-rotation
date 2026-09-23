@@ -1922,6 +1922,60 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .card.hot{border-color:color-mix(in srgb,var(--fall) 40%,transparent)}
 @media(max-width:700px){.tkwrap{grid-template-columns:1fr}}
 
+/* ============ 交付清單（`#delivery`，Andy 2026-09-23）============
+   他問的是：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，且如實完成」。
+   答案是把**他的原話**攤在網頁上 —— 他只重新整理網頁，清單寫在對話裡他驗不了。
+   所以版面的主角是引號裡那段原話，「我做了什麼」是配角，刻意做小一級。
+   五種狀態＝五個 token，不寫死色碼（DECISIONS #198 那個病）。
+   ★ 這裡的綠色是「完成」不是「下跌」：狀態徽章跟報價無關，所以用 --lime 而不是 --fall，
+     免得跟紅漲綠跌的價格色混在一起。 */
+:root{
+  --dlv-done:var(--lime); --dlv-wip:var(--cyan); --dlv-next:var(--violet);
+  --dlv-ask:var(--amber); --dlv-drop:var(--ink-3);
+}
+.dlvwrap{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:12px;margin-top:12px}
+.dlv{border:1px solid var(--line);border-left:4px solid var(--line-2);border-radius:12px;
+  padding:12px 14px;background:var(--panel-3);display:flex;flex-direction:column;gap:8px;min-width:0}
+/* 「這是你說的」：引號 ＋ 左色條，一眼分得出哪段是他的話、哪段是我的話 */
+.dlv-q{position:relative;font-size:14.5px;line-height:1.6;color:var(--ink);font-weight:600;
+  padding-left:22px;word-break:break-word}
+.dlv-q::before{content:'\201C';position:absolute;left:0;top:-4px;font-size:26px;line-height:1;
+  color:var(--ink-3);font-family:Georgia,serif}
+.dlv-tag{display:block;font-size:11px;color:var(--ink-3);font-weight:400;letter-spacing:.05em;margin-bottom:2px}
+.dlv-w{font-size:13px;line-height:1.65;color:var(--ink-2);word-break:break-word}
+.dlv-w b{color:var(--ink-3);font-weight:600;font-size:11.5px;display:block;margin-bottom:2px}
+.dlv-n{font-size:12px;line-height:1.65;color:var(--ink-3);border-left:2px dashed var(--line-2);
+  padding-left:9px;word-break:break-word}
+.dlv-n b{color:var(--amber);font-weight:600}
+.dlv-f{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-top:auto;
+  padding-top:8px;border-top:1px dashed var(--line);font-size:12px}
+.dlv-ver{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+.dlv-go{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:999px;font-size:12px;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--cyan);cursor:pointer}
+.dlv-go:hover{border-color:var(--cyan);box-shadow:var(--glow)}
+.dlv-none{font-size:11.5px;color:var(--ink-3)}
+.dlv-b{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:999px;
+  font-size:11.5px;font-weight:600;border:1px solid currentColor}
+/* 一筆的狀態同時決定左邊色條與徽章顏色 —— 只有一個地方定義 */
+.dlv.s-done{border-left-color:var(--dlv-done)} .dlv-b.s-done{color:var(--dlv-done)}
+.dlv.s-wip{border-left-color:var(--dlv-wip)}   .dlv-b.s-wip{color:var(--dlv-wip)}
+.dlv.s-next{border-left-color:var(--dlv-next)} .dlv-b.s-next{color:var(--dlv-next)}
+.dlv.s-ask{border-left-color:var(--dlv-ask)}   .dlv-b.s-ask{color:var(--dlv-ask)}
+.dlv.s-drop{border-left-color:var(--dlv-drop);opacity:.72} .dlv-b.s-drop{color:var(--dlv-drop)}
+/* `ask` 是在等他回答 —— 整張卡要醒目，不然會沉在 31 筆已上線裡面找不到 */
+.dlv.s-ask{background:color-mix(in srgb,var(--amber) 9%,var(--panel-3));
+  border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+/* 摘要列同時就是篩選鈕：一個控制項，不要摘要一排、篩選又一排 */
+.dlvfil{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.dlvfil button{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;
+  font-size:12.5px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);cursor:pointer}
+.dlvfil button:hover{border-color:var(--cyan);color:var(--ink)}
+.dlvfil button.on{color:var(--ontop);background:var(--cyan);font-weight:700;border-color:var(--cyan)}
+.dlvfil button b{font-family:var(--mono);font-size:12px}
+.dlvfil button.empty{opacity:.45}
+@media(max-width:860px){.dlvwrap{grid-template-columns:1fr}}
+@media(max-width:430px){.dlv-q{font-size:13.5px}.dlvfil button{font-size:12px;padding:5px 10px}}
+
 /* ============ C3 後半（2026-09-20 下午）：環節卡清單在手機上的「重點展開」============
    前一輪把供應鏈關聯圖改成環節卡清單之後，**桌機短了、手機反而長了**：
    390px 半導體 1088 → 1846、AI 伺服器 780 → 2599。
@@ -2361,6 +2415,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button class="tab" data-view="themes">題材</button>
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
+    <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
+         且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
+         同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
+    <button class="tab" data-view="delivery">交付清單</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
          直接貼 `…/#tasks` 仍然打得開，工作流產出的 `tasks.json` 也照舊。
@@ -2631,6 +2689,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        理由很單純：他只重新整理網頁、不跑本機指令，放在網站上他一定看得到。
        資料來源是 obsidian/tasks.yaml（唯一一份），由 build_payload 轉成 site/data/tasks.json。 -->
   <section class="view" id="v-tasks"></section>
+
+  <!-- ================= 交付清單 =================
+       資料來源是 docs/delivery_log.md（原話逐字），由 pipeline/delivery_log.py
+       轉成 site/data/delivery.json。整頁由 app.js 的 renderDelivery 畫。 -->
+  <section class="view" id="v-delivery"></section>
 
   <!-- ================= 季節性 ================= -->
   <section class="view" id="v-season">
