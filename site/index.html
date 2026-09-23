@@ -735,6 +735,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rotdd .ddopt.chk label:hover .nm{color:var(--ink)}
 .rotdd .ddopt.chk .go{flex:none;color:var(--ink-3);text-decoration:none;padding:3px 4px;font-size:12px}
 .rotdd .ddopt.chk .go:hover{color:var(--ink)}
+/* 單選版的第二層（資金去向桑基圖下面那排）。`.ddopt.one` 點一下就選定並收起來，
+   所以不需要 checkbox —— 這張圖從第一天起就是「一次只看一個族群」，
+   放 checkbox 會讓人以為可以多選。左邊那條族群色的粗邊是唯一的「顏色線索」。*/
+.rotdd .ddopt.one{display:flex;align-items:center;gap:6px;width:100%;border-radius:7px;padding:0 6px 0 0}
+.rotdd .ddopt.one:not(.row){appearance:none;border:0;background:transparent;color:var(--ink-2);
+  font-size:12.5px;font-family:inherit;text-align:left;padding:6px 9px;cursor:pointer}
+.rotdd .ddopt.one:hover{background:var(--panel-2)}
+.rotdd .ddopt.one .nm{flex:1 1 auto;min-width:0;appearance:none;border:0;background:transparent;
+  color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;cursor:pointer;
+  padding:6px 4px 6px 8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  border-left:3px solid var(--c,var(--cyan))}
+.rotdd .ddopt.one .nm:hover{color:var(--ink)}
+.rotdd .ddopt.one.on{background:color-mix(in srgb,var(--c,var(--cyan)) 20%,transparent)}
+.rotdd .ddopt.one.on .nm{color:var(--ink);font-weight:600}
+.rotdd .ddopt.one .go{flex:none;color:var(--ink-3);text-decoration:none;padding:3px 4px;font-size:12px}
+.rotdd .ddopt.one .go:hover{color:var(--ink)}
+/* 桑基圖下面那一排：`.rotfilter` 的排版 ＋ 和圖之間留一點距離 */
+.ddrow{margin:8px 0 2px}
 @media (max-width:420px){ .rotdd .ddbtn{font-size:11.5px;max-width:calc(100vw - 40px)} }
 .gchip{display:inline-flex;align-items:center;border:1px solid color-mix(in srgb,var(--c) 32%,transparent);
   border-radius:999px;overflow:hidden;background:color-mix(in srgb,var(--c) 8%,transparent);font-size:12px}

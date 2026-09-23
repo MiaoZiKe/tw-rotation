@@ -3322,6 +3322,10 @@
     // N2：兩張圖共用的完整族群名單（依成交值佔比排序），在畫圖之前就算好
     rotAllGroups = rotRows(f3 && f3.rrg, ROT_BOARD_WIN)
       .map(r => ({ gid: r.gid, name: r.name }));
+    /* ★ 2026-09-23：對照表要在**畫任何一張圖之前**建好 —— 資金去向（桑基）下面那排下拉
+       的第一層也讀 `rotGroupMeta`，而它有可能比 `wireRotFilter()` 早畫。
+       沒先建的話第一層只會剩一個「全部」，而且不會自己好（那張圖不會再重畫一次）。*/
+    rotFillMeta(f3);
     /* C4（Andy 2026-09-20：「資金流向排行、輪動時鐘，改用圖一這樣方式呈現，
        也可以篩選想要的股票」）—— 圖一指的是漲跌分佈那張卡的篩選列。
        這裡把同一套語彙搬過來，`rotFilter` 是排行與時鐘**共用**的那一份選擇。*/
@@ -3756,6 +3760,122 @@
     });
   }
 
+  /* ★★ 2026-09-23（Andy：「**圖一二 兩個標籤式都需要做成下拉清單 篩選，所以他會是 族群->題材**，
+     例如 半導體，下面就會有圖三那些，所以並非所有族群都在同一個下拉清單，
+     而是對應族群出現對應個股」）—— 圖二＝**資金去向（桑基圖）下面那一整片族群晶片**
+     （晶圓代工、ETF、面板產業、HPC 與網通 IC…排滿兩整行）。
+
+     這支是 `filterChips()` 的下拉版，用在**單選**的圖上：
+       第一層　產業鏈（和資金輪動那兩排同一份 `rotGroupMeta` / `chainLabel()`，不另建對照表）
+       第二層　被第一層篩過的族群，**單選**（點一下就選定並收起來）
+
+     ★ 刻意**不併進 `ROT`**。桑基的選取一直是自己的一份（`chipSel.sankey`），
+       併進去會讓「我在資金去向點了一個族群」連帶把輪動時鐘也篩掉 —— 那是行為退化。
+       要統一的是**外觀與操作方式**（都是兩層下拉），不是資料狀態。
+     ★ 也因此第二層是單選樣式而不是 checkbox：複選是資金輪動那邊的需求，
+       這張圖從第一天起就是「一次只看一個族群」，硬套 checkbox 只會讓人以為可以多選。 */
+  const ddChain = {};              // chartId → 第一層選到的產業鏈（''＝全部）
+  function filterDropdown(chartId, list, sel, onPick) {
+    const el = document.getElementById(chartId); if (!el) return;
+    const at = el.closest('.zwrap') || el;
+    let row = at.nextElementSibling;
+    if (!row || !row.classList.contains('ddrow')) {
+      row = document.createElement('div'); row.className = 'ddrow rotfilter';
+      at.parentNode.insertBefore(row, at.nextSibling);
+    }
+    row.dataset.for = chartId;
+    chipSel[chartId] = sel || null;
+    const meta = (g) => rotGroupMeta[g] || {};
+    /* 選到的族群不屬於目前第一層時，第一層**自動跳到它所屬的那條鏈** ——
+       這條是給「從圖上點節點」那條路用的：使用者沒碰下拉，但選取變了，
+       不跟著跳的話按鈕上會寫著「半導體 · 金融股」這種自相矛盾的摘要。*/
+    if (sel && meta(sel).chain) ddChain[chartId] = meta(sel).chain;
+    const chains = [...new Set(list.map(g => meta(g.gid).chain).filter(Boolean))];
+    const cur = chains.indexOf(ddChain[chartId]) >= 0 ? ddChain[chartId] : '';
+    ddChain[chartId] = cur;
+    const sub = cur ? list.filter(g => meta(g.gid).chain === cur) : list;
+    const chainName = cur ? chainLabel(cur) : '全部';
+    const selName = sel ? ((list.find(g => g.gid === sel) || {}).name || L.gname[sel] || sel) : '';
+    const rf = 'dd-' + chartId;                        // 開合狀態的 key（和資金輪動那兩排共用一套）
+    row.innerHTML = `<div class="rotdd" data-dd="chain">
+        <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
+          title="第一層：先挑產業鏈">產業鏈：<b>${fmt.esc(chainName)}</b><i aria-hidden="true">▾</i></button>
+        <div class="ddpanel" role="listbox" aria-label="產業鏈" hidden>
+          <button type="button" role="option" class="ddopt${cur ? '' : ' on'}" data-c=""
+            aria-selected="${cur ? 'false' : 'true'}">全部（${list.length} 個族群）</button>
+          ${chains.map(c => {
+            const n = list.filter(g => meta(g.gid).chain === c).length;
+            return `<button type="button" role="option" class="ddopt${cur === c ? ' on' : ''}" data-c="${fmt.esc(c)}"
+              aria-selected="${cur === c ? 'true' : 'false'}">${fmt.esc(chainLabel(c))}<em>${n}</em></button>`;
+          }).join('')}
+        </div>
+      </div>
+      <div class="rotdd wide" data-dd="group">
+        <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="false"
+          title="第二層：這條鏈底下的族群，一次看一個">族群：<b>${fmt.esc(chainName)} · ${sel ? fmt.esc(selName) : '未篩選'}</b><i aria-hidden="true">▾</i></button>
+        <div class="ddpanel" role="listbox" aria-label="族群（單選）" hidden>
+          <div class="ddbar"><span class="muted">${fmt.esc(chainName)}底下 ${sub.length} 個族群，一次看一個</span></div>
+          <div class="ddlist">
+            <button type="button" role="option" class="ddopt one${sel ? '' : ' on'}" data-g=""
+              aria-selected="${sel ? 'false' : 'true'}">全部族群（不篩選）</button>
+            ${sub.map(g => `<div class="ddopt one row${sel === g.gid ? ' on' : ''}" style="--c:${L.gcolor[g.gid] || CH.cyan}">
+                <button type="button" role="option" class="nm" data-g="${g.gid}"
+                  aria-selected="${sel === g.gid ? 'true' : 'false'}">${fmt.esc(g.name)}</button>
+                <a class="go" href="#industry/group/${g.gid}" title="進族群頁">→</a></div>`).join('')
+              || '<div class="muted" style="padding:8px">這條鏈目前沒有族群資料</div>'}
+          </div>
+        </div>
+      </div>
+      ${sel || cur ? '<button type="button" class="btn small dd-clear">清除</button>' : ''}
+      <span class="muted">${sel ? `資金去向只看「${fmt.esc(selName)}」這一支（選「全部族群」或按清除就回到整張圖）`
+        : '先挑產業鏈，再挑一個族群 —— 圖上就只剩它那一條分支'}</span>`;
+
+    // 開合：和資金輪動那兩排共用 `rotMenu` / `rotCloseMenus()`，所以點別處、Esc 的行為完全一致
+    $$('.rotdd', row).forEach(dd => {
+      const kind = dd.dataset.dd;
+      const btn = dd.querySelector('.ddbtn');
+      const pan = dd.querySelector('.ddpanel');
+      const lst = dd.querySelector('.ddlist');
+      if (rotMenu && rotMenu.rf === rf && rotMenu.kind === kind) {
+        pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+        if (lst) lst.scrollTop = rotMenuTop;
+      }
+      if (lst) lst.onscroll = () => { rotMenuTop = lst.scrollTop; };
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        const willOpen = pan.hidden;
+        rotCloseMenus();
+        if (willOpen) {
+          rotMenu = { rf, kind }; if (kind === 'group') rotMenuTop = 0;
+          pan.hidden = false; dd.classList.add('open'); btn.setAttribute('aria-expanded', 'true');
+        }
+      };
+      dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
+    });
+    // 第一層：挑鏈。挑完直接把第二層打開（和資金輪動那兩排同一個動作）
+    $$('.rotdd[data-dd="chain"] .ddopt', row).forEach(b => b.onclick = () => {
+      ddChain[chartId] = b.dataset.c;
+      rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
+      /* 換鏈時**不動選取**：這張圖是單選，硬把選取清掉會讓圖突然跳回整張，
+         而使用者只是想換一條鏈來找族群。選取和鏈對不上時，上面那段會讓第一層跟著跳回去。*/
+      filterDropdown(chartId, list, chipSel[chartId], onPick);
+    });
+    // 第二層：單選。點一下就選定並收起來（沒有「再點一次取消」——「全部族群」那一項就是取消）
+    $$('.rotdd[data-dd="group"] [data-g]', row).forEach(b => b.onclick = (ev) => {
+      ev.stopPropagation();
+      const gid = b.dataset.g || null;
+      rotCloseMenus();
+      chipSel[chartId] = gid;
+      onPick(gid);
+    });
+    $$('.rotdd[data-dd="group"] .go', row).forEach(a => a.onclick = () => { rotCloseMenus(); });
+    const clr = row.querySelector('.dd-clear');
+    if (clr) clr.onclick = () => {
+      ddChain[chartId] = ''; rotCloseMenus();
+      chipSel[chartId] = null; onPick(null);
+    };
+  }
+
   /* 把一個族群加進／移出篩選集合（E3 的核心：晶片列要**真的篩圖**）。
      只動狀態，不管畫面 —— 卡片與放大視窗各自的「點了要變成什麼樣」由呼叫端接。*/
   function rotToggleGroup(gid) {
@@ -3875,16 +3995,23 @@
         沒有退化的東西：複選、「只看前 10 大」、「排行與時鐘顯示全部 N 個族群」那句說明、
         以及**兩排（卡片／放大視窗）共用同一份 ROT 狀態** —— 這支仍然是「對每個 box 各產一份」，
         任何一邊改了都重建兩邊。 */
+  /* 族群 → {name, chain} 的對照。第一層（產業鏈）與顯示名稱**全站只有這一份** ——
+     資金輪動那兩排下拉與資金去向桑基下面那排下拉都讀它，不准各建一份。*/
+  function rotFillMeta(f3) {
+    if (!f3) return;
+    rotGroupMeta = {};
+    ((f3.rrg && f3.rrg.points) || []).forEach(p => {
+      rotGroupMeta[p.group_id] = { name: p.group_name, chain: p.chain || '' };
+    });
+  }
+
   function wireRotFilter(f3) {
     /* f3 只有第一次（renderFlow）會傳進來；之後下拉清單、放大視窗、清除篩選都會再呼叫一次，
        那些地方手上沒有 f3，所以記在模組層。沒有它就沒有第一層（產業鏈）的選項。*/
     if (f3) rotF3 = f3; else f3 = rotF3;
     const boxes = $$('.rotfilter');
     if (!boxes.length) return;
-    rotGroupMeta = {};
-    ((f3 && f3.rrg && f3.rrg.points) || []).forEach(p => {
-      rotGroupMeta[p.group_id] = { name: p.group_name, chain: p.chain || '' };
-    });
+    rotFillMeta(f3);
     const chains = [...new Set((rotAllGroups || []).map(r => (rotGroupMeta[r.gid] || {}).chain).filter(Boolean))];
     const nG = ROT.groups ? ROT.groups.size : 0;
     const picked = rotPickSet().size;
@@ -5400,8 +5527,10 @@
       } catch (e) { /* zrender 換版本時最多就是沒有這個功能，不能讓整張圖掛掉 */ }
     }
     /* 族群晶片改成篩選（Andy 2026-09-20：「所有圖表的族群小Tip都需要具備點擊後
-       就會在對應圖表上被篩選出去」）。名單也用固定名單，不是只有當天有量的那幾個。*/
-    filterChips('sankey', gs.map(g => ({ gid: g.gid, name: g.name })), selG,
+       就會在對應圖表上被篩選出去」）。名單也用固定名單，不是只有當天有量的那幾個。
+       ★ 2026-09-23：那一整片晶片（排滿兩整行）換成**兩層下拉**（Andy 的「圖二」）。
+         行為完全沒變 —— 仍然是單選、仍然是 `chipSel.sankey`、仍然只篩這張圖。*/
+    filterDropdown('sankey', gs.map(g => ({ gid: g.gid, name: g.name })), selG,
       (nx) => {
         if (!nx) return drillClose();
         drillOpen(nx, L.gname[nx] || nx, sankeyNote(day, k === lastIdx), 'sankeyPanel');

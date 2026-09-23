@@ -1,16 +1,5 @@
 /* 輕油裂解廠 —— docs/diagram_plan.md 的第 13 張（族群 `petrochemical`、traditional 鏈）
 
-   ★ 2026-09-23：這張原本寫 `scene: null`（不做真 3D），理由見下面那一段
-   「為什麼是正立面 ＋ 等角厚度」—— 一座裂解廠的資訊有一半在「誰高誰矮」，
-   而正立面**已經**把高度差講清楚了，轉一圈不會多講一件事。
-   這一輪 Andy 要求「所有 2D 圖都要補上 3D 圖且風格一樣」，所以改成 `scene: 'petrochemical'`。
-   舊理由沒有被否定，3D 那張是照同一條取捨做的延伸：它**不重畫物料流向與裂解價差**
-   （那兩件仍然只在 2D），只把「高度差與管線走向」立體化 ——
-   分離塔 > 急冷塔 > 乾燥器、球槽矮而圓（承壓）、浮頂槽矮而寬（常壓）、
-   冷箱是一個什麼細節都沒有的保冷方箱。這些在正立面上是輪廓，在立體裡才是體積。
-   3D 場景定義在 `site/three3d.js` 的 `SCENES.petrochemical`；`seg` 沿用這個檔的中文站名、
-   `part` 沿用這個檔的 `data-part`（nc_*）。
-
    合約＝`docs/diagram_specs/naphtha_cracker.md`。這個檔只實作，不重新決定規格。
    位階更高的是 `docs/diagram_purpose.md`（R1～R6）：圖不是插圖，是「誰在做什麼」的入口。
 
@@ -549,7 +538,7 @@
   window.DG.register('petrochemical', {
     level: 'group', chain: 'traditional',
     name: '輕油裂解廠：一進多出與裂解價差',
-    draw: naphthaCracker, native: 980, scene: 'petrochemical',
+    draw: naphthaCracker, native: 980, scene: null,
     q: '一座輕油裂解廠裡有哪些設備、石油腦進去之後為什麼是四支產品一次全部出來？台塑四寶各站在哪一段、看的是哪一種價差？',
     parts: {
       nc_refinery: {

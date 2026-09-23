@@ -168,7 +168,7 @@
     const w6 = [[96, 481], [96, 495], [110, 488], [188, 481], [188, 495], [174, 488]]
       .map(p => C(p[0], p[1], 6.5, 'var(--dg-cu)', 'part')).join('');
     return `<g>
-      ${part('ind_body', '', R(66, 330, 150, 84, 'var(--dg-el)', 'part', 3))}
+      ${part('ind_body', '', slab(66, 330, 150, 84, 'var(--dg-el)', { r: 3 }))}
       ${part('ind_wind', '', turns.join(''))}
       ${part('ind_flux', '',
     `<path class="leader flow" d="${FLUX}" stroke="var(--dg-accent-2d)" stroke-width="1.6" fill="none" opacity=".85"/>`
@@ -200,7 +200,7 @@
       ${part('res_trim', SEG_R, R(500, 326, 7, 10, 'var(--dg-bg)', 'part')
     + line('M500,326 v10 h7 v-10', 'var(--dg-warn)', 1.6))}
       ${part('res_inner_term', SEG_R, R(392, 332, 44, 10, 'var(--dg-ni)', 'part') + R(544, 332, 44, 10, 'var(--dg-ni)', 'part'))}
-      ${part('res_substrate', SEG_R, R(390, 342, 200, 48, 'var(--dg-cer)', 'part'))}
+      ${part('res_substrate', SEG_R, slab(390, 342, 200, 48, 'var(--dg-cer)', { r: 1 }))}
       ${part('res_bottom', SEG_R, R(394, 390, 44, 9, 'var(--dg-ni)', 'part') + R(542, 390, 44, 9, 'var(--dg-ni)', 'part'))}
       ${part('res_term3', SEG_R, term(376, 370, 364) + term(590, 604, 610))}
       <g pointer-events="none">${R(356, 407, 268, 9, 'var(--dg-pcb)')}
@@ -231,7 +231,7 @@
       ${part('xtal_blank', '', R(736, 378, 156, 9, 'var(--dg-glass)', 'part'))}
       ${part('xtal_elec', '', R(774, 374.5, 80, 3.5, 'var(--dg-au)', 'part') + R(774, 387, 80, 3.5, 'var(--dg-au)', 'part'))}
       ${part('xtal_mount', '', C(740, 389.5, 5, 'var(--dg-resin)', 'part') + C(758, 389.5, 5, 'var(--dg-resin)', 'part'))}
-      ${part('xtal_lid', '', R(698, 336, 244, 14, 'var(--dg-steel)', 'part', 1)
+      ${part('xtal_lid', '', slab(698, 336, 244, 14, 'var(--dg-steel)', { r: 1 })
     + line('M698,350 L942,350', 'var(--dg-cu-lit)', 3)
     + line('M698,336 L698,350 M942,336 L942,350', 'var(--dg-cu-lit)', 2.4))}
       ${part('xtal_pad', '', [704, 752, 850, 898].map(px => R(px, 430, 38, 9, 'var(--dg-au)', 'part', 1)).join(''))}
