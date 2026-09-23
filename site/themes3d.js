@@ -121,14 +121,18 @@
     let maxRows = 1;
     // 零件之間的虛線對位軸＋箭頭：爆炸圖的關鍵視覺提示「這些是同一台拆開的」
     const guides = ly.slice(0, -1).map((s, i) => {
-      /* 對位軸的起訖點：有覆寫 MH 的圖照零件實際佔的高度算（不然箭頭會插進下一個零件裡），
-         沒覆寫的圖維持原本寫死的 +26 / −44 —— 其他七張爆炸圖的虛線位置一格都不能動。*/
-      const a = E.MH ? rowY(i) - 22 + MH / 2 + 6 : rowY(i) + 26;
-      const b = E.MH ? rowY(i + 1) - 22 - MH / 2 - 10 : rowY(i + 1) - 44;
-      if (b - a < 12) return '';
-      return `<path class="etch" d="M${E.X},${a} V${b}" stroke-dasharray="4 7"/>`
-        + `<path class="etch" d="M${E.X - 5},${b - 9} L${E.X},${b} L${E.X + 5},${b - 9}" fill="none"/>`;
-    }).join('');
+      // 沒覆寫版面的圖（其他七張）維持原本寫死的 +26 / −44 —— 虛線位置一格都不能動
+      if (!E.MH) {
+        const a0 = rowY(i) + 26, b0 = rowY(i + 1) - 44;
+        return `<path class="etch" d="M${E.X},${a0} V${b0}" stroke-dasharray="4 7"/>`
+          + `<path class="etch" d="M${E.X - 5},${b0 - 9} L${E.X},${b0} L${E.X + 5},${b0 - 9}" fill="none"/>`;
+      }
+      /* 有覆寫版面的圖（AI 伺服器）零件畫得大，列與列之間只剩十幾 px，虛線硬塞進去不是被切掉
+         就是插進下一個零件裡。改成**一條連續的對位軸畫在所有零件後面**（零件是實心的，
+         所以只在縫隙看得到），箭頭放在兩個零件中間那個空檔 —— 這才是爆炸圖標準的畫法。*/
+      const m = rowY(i) + E.ROW / 2 - 22;
+      return `<path class="etch" d="M${E.X - 5},${m - 7} L${E.X},${m + 2} L${E.X + 5},${m - 7}" fill="none"/>`;
+    }).join('') + (E.MH ? `<path class="etch" d="M${E.X},${rowY(0) - 22} V${rowY(n - 1) - 22}" stroke-dasharray="4 7"/>` : '');
     const rows = ly.map((s, i) => {
       const y = rowY(i);
       // 說明行數不一樣，標籤的起點就要跟著讓；沒覆寫的圖維持原本的 +18（其他七張爆炸圖不受影響）

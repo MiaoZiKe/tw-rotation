@@ -50,6 +50,58 @@
   'use strict';
   const D = window.DG;
   if (!D || typeof D.register !== 'function') return;
+  const { extRow, note, fold } = D;
+
+  /* ================================================================ v2 版面（2026-09-23）
+     Andy：「傳產與內需 & 基礎建設與能源 2D 圖並沒有調整適當大小，請去調整，調整適當範圍，別浪費空白」。
+     ----------------------------------------------------------------
+     上一批（W8）已經補過一輪「在 980 的框裡補小圖填空白」，他看過之後說**還是沒調好**。
+     真正的問題不是框裡有沒有東西，是**整張圖的尺度**：這一批其餘 12 張已經收到 660／700，
+     只有這張與輕油裂解那張還是 980，於是在同樣的欄寬下被縮得比別人小、四周留白比別人多。
+     所以改成跟那 12 張（`server_psu`／`foundry`／`silicon_wafer`）完全一致的 v2 版面：
+       · svg 根掛 `rs` → `externalize()` 把說明搬成 HTML 卡片（`.dgc`），
+         欄寬由 index.html 的 `.dgv2` 容器查詢決定（1440 三欄／800 兩欄／390 單欄），
+         **圖檔裡不寫死「右邊留多少 px」**。
+       · 畫布 980 → **660**（`native` 同步改）；畫布上只留「畫」的部分。
+       · 章節改用 `D.fold()`（範圍由 `getBBox()` 量），不再手寫 y0／y1。
+     ⚠ 上一批為了填空白補進去的兩塊：
+       · 電壓階梯右上的圖例 → 收窄之後那個位置放不下，圖例文字搬進說明卡片 ⑫「電壓階梯」，
+         畫面上仍然看得到粉色豎線與圓點兩種記號（記號本來就是圖，不是文字）。
+       · 第二排上方的「每一格出來是幾伏特」對照帶 → 搬成章節 ③ 圖例行的第一句。
+       兩塊講的事一個字都沒有消失，只是換了位置。
+     沒有放寬的事：`data-part` 22 個一個不改名、一個不減少；九站 `data-seg` 照舊；
+     JS 裡一個十六進位色碼都沒有。*/
+  const CW = 660;
+
+  /* 兩排主體都是「幾何整組縮小放進 660 的畫布」。★ 文字一律留在縮放群組**外面**：
+     字級縮下去就破了 12px 硬下限（DECISIONS #227），所以縮的永遠只有圖形。*/
+  const K1 = 0.70, K1X = 4.8, K1Y = 3.8;        // 第一排（電網到變電所）：原圖 x[16,900] y[306,506]
+  const f1x = (x) => +(x * K1 + K1X).toFixed(1);
+  const f1y = (y) => +(y * K1 + K1Y).toFixed(1);
+  const K2 = 0.66, K2X = 5.44, K2Y = -348.4;    // 第二排（廠內配電到機櫃）：原圖 x[16,960] y[634,786]
+  const f2x = (x) => +(x * K2 + K2X).toFixed(1);
+  const f2y = (y) => +(y * K2 + K2Y).toFixed(1);
+
+  const T = (x, y, t, cls, anchor, style) =>
+    `<text class="${cls || 'sub'}" x="${x}" y="${y}"${anchor ? ` text-anchor="${anchor}"` : ''}${style ? ` style="${style}"` : ''}>${t}</text>`;
+  /* 章節裡的編號圓點。★ 章節內**不能**用 `extRow` —— `externalize()` 會把卡片抽到左右欄，
+     錨點卻留在收合起來的章節裡，於是出現一張指不到任何東西的孤兒卡片。*/
+  const ndot = (x, y, n) =>
+    `<g pointer-events="none"><circle class="ndot" cx="${x}" cy="${y}" r="9.5"/>`
+    + `<text class="nnum" x="${x}" y="${y}">${String(n).padStart(2, '0')}</text></g>`;
+
+  /* 卡片的元件色（`data-dgcolor`），跟畫面上那個零件的材質色同一個 token */
+  const CC = {
+    mute: 'var(--dg-mute)', si: 'var(--dg-si)', alu: 'var(--dg-alu)', cu: 'var(--dg-cu)',
+    el: 'var(--dg-el)', cer: 'var(--dg-cer)', resin: 'var(--dg-resin)', fws: 'var(--dg-fws)',
+    bezel: 'var(--dg-pn-bezel)', accent: 'var(--dg-accent-2d)',
+  };
+  /* 說明卡片（v2）：卡片離開 SVG 變成 HTML，畫布上只留編號圓點與引線。
+     ★ `seg` 與 `part` 照舊掛上去 —— externalize 把身分搬到卡片上，點卡片＝點那個零件。*/
+  const card = (o) => extRow({
+    seg: o.seg, part: o.part, title: o.title, sub: o.sub, no: o.no,
+    side: o.side, ax: o.ax, ay: o.ay, color: o.color, order: o.order,
+  });
 
   /* ================================================================ 環節（站）*/
   const G0 = '發電與電網側', G1 = '超高壓輸電', G2 = '變電所開關 GIS', G3 = '主變壓器降壓',
@@ -154,18 +206,23 @@
   /* ================================================================ 電壓階梯帶（§3-B）
      ★ 寫成一個陣列跑迴圈，不手刻每一階（規格書 §7 明講手刻就會刻錯）。
      y 只准變大（＝電壓只准往下掉）；段 2 與段 4 的 y 必須跟前一階**相同**（平的）。
-     驗收就是量這件事：`_uitest.py` 直接讀這幾條線的 y。*/
+     驗收就是量這件事：`_uitest.py` 直接讀 `.heStep` 這幾條線的 y。
+
+     ★ 2026-09-23 v2：x 座標整組收進 660 的畫布（原本跨 40～940）。
+     每一階上面只放電壓（短字串，放得下），下面放「①～⑥」＋兩三個字的站名；
+     原本寫在階梯旁邊的整句敘述與圖例搬進說明卡片 ⑫ —— 那不是刪掉，是換了位置。*/
   const LADDER = [
-    { x0: 40, x1: 196, y: 126, v: '345 kV', s: '① 超高壓輸電' },
-    { x0: 196, x1: 354, y: 142, v: '161 kV（平的）', s: '② GIS．不降壓' },
-    { x0: 354, x1: 520, y: 162, v: '22.8 kV', s: '③ 主變壓器降壓' },
-    { x0: 520, x1: 690, y: 162, v: '22.8 kV（平的）', s: '④ 配電盤．不降壓' },
-    { x0: 690, x1: 858, y: 180, v: '380 / 220 V', s: '⑤ 廠內變壓器降壓' },
-    { x0: 858, x1: 940, y: 192, v: '機櫃直流（示意）', s: '⑥ 機櫃取電' },
+    { x0: 32, x1: 132, y: 74, v: '345 kV', s: '① 輸電' },
+    { x0: 132, x1: 236, y: 88, v: '161 kV', s: '② GIS' },
+    { x0: 236, x1: 342, y: 110, v: '22.8 kV', s: '③ 主變' },
+    { x0: 342, x1: 448, y: 110, v: '22.8 kV', s: '④ 配電盤' },
+    { x0: 448, x1: 554, y: 132, v: '380 / 220 V', s: '⑤ 廠內變' },
+    { x0: 554, x1: 630, y: 148, v: '機櫃直流', s: '⑥ 機櫃' },
   ];
   function ladder() {
     const seg = LADDER.map((o, i) => {
       const prev = i ? LADDER[i - 1] : null;
+      // 粉色豎線＝真的降壓；圓點＝接上但不降壓（開關設備）。這兩個記號本身就是圖例，不必再寫字。
       const drop = prev && prev.y !== o.y
         ? `<path class="hedrop" d="M${o.x0},${prev.y} V${o.y}" stroke="${V('--dg-warn')}" stroke-width="2.2" fill="none"/>`
         : (prev ? `<circle cx="${o.x0}" cy="${o.y}" r="2.6" fill="${V('--dg-accent-2d')}"/>` : '');
@@ -174,23 +231,11 @@
         + `<text class="sub" x="${o.x0 + 4}" y="${o.y + 16}">${o.s}</text>`;
     }).join('');
     // 另一條常見路徑（一次變電所 161→69、二次變電所 69→22.8／11.4）：虛線，不是主線
-    const alt = `<path d="M196,142 L262,152 H354 L420,162" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`;
-    /* ★ 2026-09-23 版面（Andy：「電壓階梯圖右側整片空白」）：
-       階梯本身只用到框的中段，**右上角**與**左下角**是空的。
-       補的兩塊都是這張圖本來就該講、卻被塞到框外小字裡的事：
-         右上＝圖例（粉色豎線＝真的降壓／圓點＝平的），左下＝六格裡只有三格在降壓的那句結論。
-       兩塊都是 pointer-events:none 的標註，`data-seg` / `data-part` 一個都沒有動。*/
-    const legend = `<g transform="translate(724,110)">`
-      + `<path d="M0,0 v-9 M0,0 v9" stroke="${V('--dg-warn')}" stroke-width="2.2" fill="none"/>`
-      + `<text class="sub" x="12" y="4">粉色豎線＝真的降壓（只出現在變壓器）</text>`
-      + `<circle cx="0" cy="24" r="2.6" fill="${V('--dg-accent-2d')}"/>`
-      + `<text class="sub" x="12" y="28">圓點＝接上但不降壓（開關設備）</text>`
-      + `<path d="M-6,48 H6" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`
-      + `<text class="sub" x="12" y="52">灰虛線＝另一條常見路徑（見框外說明）</text></g>`;
-    const concl = `<text class="sub" x="40" y="206" style="fill:var(--dg-warn)">`
-      + `★ 六格裡只有三格在動電壓：段 0 升、段 3 降、段 5 降。其餘兩格（GIS、配電盤）只切斷與導通，所以階梯必須是平的。</text>`;
-    return P(GV, 'he_ladder', '--dg-accent-2d', `<rect class="frame part" x="16" y="78" width="948" height="142" rx="8"/>`)
-      + `<g pointer-events="none"><text class="hd" x="30" y="98">電壓階梯（示意，階高與電壓不成比例）　★ 降壓的只有變壓器，開關設備不降壓</text>${legend}${alt}${seg}${concl}</g>`;
+    const alt = `<path d="M132,88 L180,98 H236 L290,110" stroke="${V('--dg-mute')}" stroke-width="1.6" fill="none" stroke-dasharray="6 5"/>`;
+    const concl = `<text class="sub" x="30" y="182" style="fill:var(--dg-warn)">`
+      + `★ 六格裡只有三格在動電壓：段 0 升、段 3 降、段 5 降。其餘兩格只切斷與導通，所以階梯必須是平的。</text>`;
+    return P(GV, 'he_ladder', '--dg-accent-2d', `<rect class="frame part" x="16" y="30" width="628" height="160" rx="8"/>`)
+      + `<g pointer-events="none"><text class="hd" x="30" y="50">① 電壓階梯（示意，階高與電壓不成比例）　★ 降壓的只有變壓器</text>${alt}${seg}${concl}</g>`;
   }
 
   /* ================================================================ 版面常數 */
@@ -204,8 +249,10 @@
       + `<path d="M26,${GA - 46} V${GA - 64} M36,${GA - 46} V${GA - 60}" stroke="${V('--dg-mute')}" stroke-width="2.6" fill="none"/>`
       + cab(66, GA - 34, 28, 34, 6, '--dg-el', '--dg-el')
       + bushing(74, GA - 34, 14, 3, '--dg-cer', '--dg-cer-2')
-      + bushing(86, GA - 34, 10, 2, '--dg-cer', '--dg-cer-2')
-      + `<text class="sub" x="18" y="${GA + 16}" style="fill:var(--dg-mute)">電廠 → 升壓</text>`)
+      + bushing(86, GA - 34, 10, 2, '--dg-cer', '--dg-cer-2'))
+      /* ⚠ 2026-09-23 v2：原本這裡還有一行「電廠 → 升壓」的 SVG 文字。
+         第一排的幾何在 v2 被整組縮到 0.70，文字跟著縮就會變成 8.4px（破 12px 硬下限），
+         所以那句話搬到說明卡片 ①「電廠與升壓變壓器」的第一行 —— 資訊沒有消失，只是換了位置。*/
     + P(G0, 'he_re', '--dg-si',
       // 太陽能板：傾斜面板 ＋ 電池片格線；旁邊一個貨櫃式儲能
       `<path class="part" d="M18,${GA - 96} l36,-14 l14,10 l-36,14Z" fill="${V('--dg-si')}"/>`

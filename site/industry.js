@@ -2167,6 +2167,31 @@
       });
     }
   }
+  /* ★ 2026-09-23 第十批 C5：**只量「字有沒有疊到字」**，不含族群球的光暈與小點。
+     `cgOverlaps()` 量的是整個碰撞框（含 halo），兩顆大球的光暈碰到就算一次 ——
+     那個數字拿來決定「標籤要不要砍」會得到完全錯誤的結論：
+     把標籤全部砍光之後它照樣是非零（節點多、框又不准長高，本來就擠），
+     於是演算法每次都選「一個個股名都不掛」，等於拿使用者真正要的資訊去換一個換不到的東西。
+     這一支量的才是 `_preview.py` 會判紅的那一種錯：標籤卡片互相疊、或是壓在別顆族群的球上。*/
+  function cgLabBox(n) {
+    const lx = n.x - n.ox + (n.lx != null ? n.lx : n.R + 7);
+    return { x0: lx, x1: lx + (n.lw || 0), y0: n.y - (n.lh || 0) / 2, y1: n.y + (n.lh || 0) / 2 };
+  }
+  function cgLabOverlaps(nodes) {
+    const bs = nodes.map(cgLabBox);
+    let c = 0;
+    for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+      const a = bs[i], b = bs[j];
+      if (a.x1 - 1 > b.x0 && b.x1 - 1 > a.x0 && a.y1 - 1 > b.y0 && b.y1 - 1 > a.y0) c++;
+    }
+    // 標籤壓在別顆族群的球（含它的個股小點）上也算：那幾顆小點就真的點不下去了
+    for (let i = 0; i < nodes.length; i++) for (let j = 0; j < nodes.length; j++) {
+      if (i === j) continue;
+      const a = bs[i], n = nodes[j], cx = n.x - n.ox, r = n.halo || n.R;
+      if (a.x1 - 1 > cx - r && cx + r > a.x0 + 1 && a.y1 - 1 > n.y - r && n.y + r > a.y0 + 1) c++;
+    }
+    return c;
+  }
   // 還有幾組節點疊在一起（矩形相交）
   function cgOverlaps(nodes) {
     let n = 0;
@@ -2403,8 +2428,10 @@
          2. **排不下就退一級**：relayout 算完之後如果還有卡片重疊，
             預算從 40 → 26 → 14 → 0 一級一級砍再重算（手機 20 → 12 → 6 → 0）。
             0 ＝ 退回「只有族群名」，那是最後的安全網，保證任何寬度都不會字疊字。
-         3. 沒列到的收成一顆「還有 M 檔 ▾」，**點它＝點這顆族群**，跳出完整的下拉清單。
-            不用「…」是因為「還有 12 檔」本身就是資訊（看得出這個族群有多大）。*/
+         3. 沒列到的不另外開膠囊：檔數寫在族群名後面（「晶圓代工 9 檔 ▾」），
+            點族群名（或那顆球）就跳出完整的下拉清單。
+            一顆獨立的「還有 M 檔」膠囊在 150px 的卡片裡會自己佔掉整整一行，
+            24 顆族群＝憑空多 24 行，力導向就再也排不開 —— 實測就是它把標籤全部擠掉的。*/
     /* 依占比把 `tagBudget` 分給每顆族群（策略第 1 層）。只寫 `n.tagN`，不碰 DOM。*/
     function tagPlan() {
       const tot = nodes.reduce((a, n) => a + Math.max(n.share || 0, 0.01), 0) || 1;
@@ -2417,16 +2444,18 @@
     function paintLabels() {
       labs.innerHTML = nodes.map(n => {
         const show = n.members.slice(0, n.tagN || 0);
-        const rest = n.members.length - show.length;
         /* 標籤不帶漲跌顏色：這裡要回答的是「這個族群裡有誰」，
            顏色留給族群本身的分類色與右側資訊欄的漲跌數字，不要在同一塊塞兩套語意。*/
         const tags = show.map(m => '<span class="cgtag" data-code="' + m.code + '" data-gid="' + n.id
           + '" title="' + A.fmt.esc(m.name + ' ' + m.code + '　' + A.fmt.pct(m.chg_pct) + '　點一下在右側展開它的產業關係')
-          + '">' + A.fmt.esc(m.name) + '</span>').join('')
-          + (rest > 0 ? '<span class="cgmore" data-gid="' + n.id + '" title="展開這個族群的完整個股清單">還有 '
-              + rest + ' 檔 ▾</span>' : '');
+          + '">' + A.fmt.esc(m.name) + '</span>').join('');
+        /* 「共 N 檔 ▾」跟族群名**擠在同一行**，不另外開一顆「還有 M 檔」的膠囊。
+           這是排得下標籤的關鍵：一顆膠囊自己就要佔掉整整一行（卡片寬度只有 150px），
+           24 顆族群等於憑空多出 24 行，力導向就再也排不開 —— 實測就是這一行把標籤全部擠掉的。
+           資訊一個字都沒少：檔數照寫，點族群名（或球）一樣跳出完整的下拉清單。*/
         return '<span class="cglab" data-gid="' + n.id + '" style="--c:' + n.color + '">'
-          + '<b class="cgnm">' + A.fmt.esc(n.name) + '</b>'
+          + '<b class="cgnm">' + A.fmt.esc(n.name)
+          + '<em class="cgcnt">' + n.members.length + ' 檔 ▾</em></b>'
           + (tags ? '<span class="cgtags">' + tags + '</span>' : '') + '</span>';
       }).join('');
       nodes.forEach(n => {
@@ -2503,11 +2532,16 @@
          第二版是「一直把框拉高」，配上第四版跟市占走的半徑（最大的球大了快一倍）
          會把框撐到 866px —— 那正是 Andy 抱怨過的「上下框度太長」。
          縮節點不會破壞面積比例：每一顆都乘同一個數，排序與相對大小完全不變。*/
-      /* ★ C5：先試最大的標籤預算，排不下就一級一級砍（收斂策略第 2 層）。
-         每一級都完整跑一次「縮節點 → 再算」，真的還是疊在一起才往下砍 ——
-         順序是刻意的：**先犧牲節點大小，最後才犧牲資訊量**。*/
-      const BUDGETS = mobile() ? [20, 12, 6, 0] : [40, 26, 14, 0];
-      let need = 0;
+      /* ★ C5：標籤預算分三級試，**挑重疊最少的那一級**（收斂策略第 2 層）。
+         ⚠ 第一版寫成「只要還有重疊就一路砍到 0」，結果 24 顆族群的半導體鏈
+           在 800px 直接砍到「一個個股名都不掛」—— 而砍到 0 之後**照樣有重疊**，
+           也就是說重疊根本不是標籤造成的（節點多、框又不准長高，本來就擠）。
+           那是拿使用者真正要的資訊去換一個換不到的東西。
+         所以改成：每一級各算一次、量它的重疊數，**重疊最少的勝出；一樣少就選標籤多的那一級**。
+         這樣「標籤是元凶」時會自己退，「不是元凶」時就不會白白把名字砍掉。
+         每一級內部仍然照舊先縮節點再說（先犧牲大小，最後才犧牲資訊量）。*/
+      const BUDGETS = mobile() ? [16, 8, 0] : [40, 20, 0];
+      let need = 0, best = null;
       for (let bi = 0; bi < BUDGETS.length; bi++) {
         tagBudget = BUDGETS[bi]; tagPlan();
         SK = 1;
@@ -2516,7 +2550,13 @@
           SK = Math.max(0.72, SK * 0.88);
           need = layoutOnce(keep);
         }
-        if (cgOverlaps(nodes) === 0) break;
+        const ov = cgLabOverlaps(nodes);      // ★ 只看「字疊到字」，不看光暈碰光暈（見 cgLabOverlaps）
+        if (!best || ov < best.ov) best = { bi: bi, ov: ov, sk: SK, need: need };
+        if (ov === 0) break;
+      }
+      // 勝出的不是最後試的那一級 → 重算一次把它套回去（佈局狀態是共用的，不重算會停在最後一級）
+      if (best && BUDGETS[best.bi] !== tagBudget) {
+        tagBudget = BUDGETS[best.bi]; tagPlan(); SK = best.sk; need = layoutOnce(keep);
       }
       if (need > host.clientHeight + 8) host.style.height = Math.min(CG_HMAX, need) + 'px';
       fill(); paint(); fit();
@@ -2854,11 +2894,9 @@
       const ti0 = e.target.closest ? e.target.closest('.cgtip .ti[data-code]') : null;
       if (ti0) { pickStock(ti0.dataset.gid || tipGid, ti0.dataset.code); return; }
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
-      // 個股標籤與「還有 N 檔 ▾」（C5）。標籤住在 `.cglab` 裡面，所以要比族群那一路先判。
+      // 個股標籤（C5）。標籤住在 `.cglab` 裡面，所以要比「點到族群」那一路先判。
       const tag0 = e.target.closest ? e.target.closest('.cgtag[data-code]') : null;
       if (tag0) { pickStock(tag0.dataset.gid, tag0.dataset.code); return; }
-      const more0 = e.target.closest ? e.target.closest('.cgmore[data-gid]') : null;
-      if (more0) { pickGroup(more0.dataset.gid); return; }
       const dot = dotAt(e.target);
       if (dot) { pickStock(dot.dataset.gid, dot.dataset.code); return; }
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
@@ -2873,13 +2911,11 @@
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;
       const gid = gidAt(e.target) || (e.target.closest('.cglab') ? e.target.closest('.cglab').dataset.gid : null);
       const dot0 = dotAt(e.target);
-      /* 個股標籤與「還有 N 檔」都住在 `.cglab` 裡面，上面那一行會把它們一併認成「點到族群」。
+      /* 個股標籤住在 `.cglab` 裡面，上面那一行會把它一併認成「點到族群」。
          所以要另外記下來，pointerup 才分得出「他點的是這一檔」還是「他點的是整個族群」。*/
       const tg0 = e.target.closest ? e.target.closest('.cgtag[data-code]') : null;
-      const mr0 = e.target.closest ? e.target.closest('.cgmore[data-gid]') : null;
       drag = { gid: gid, code: dot0 ? dot0.dataset.code : null, dotGid: dot0 ? dot0.dataset.gid : null,
                tagCode: tg0 ? tg0.dataset.code : null, tagGid: tg0 ? tg0.dataset.gid : null,
-               moreGid: mr0 ? mr0.dataset.gid : null,
                x0: e.clientX, y0: e.clientY, tx0: tx, ty0: ty, moved: false };
       if (!gid) host.classList.add('panning');
       try { host.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ }
@@ -2909,7 +2945,6 @@
       if (!d) return;
       if (d.moved) { swallowAt = Date.now(); return; }
       if (d.tagCode) { pickStock(d.tagGid, d.tagCode); return; }     // 個股標籤（C5-1）
-      if (d.moreGid) { pickGroup(d.moreGid); return; }               // 「還有 N 檔 ▾」＝展開完整清單
       if (d.code) { pickStock(d.dotGid || d.gid, d.code); return; }
       if (d.gid) { pickGroup(d.gid); return; }
       if (e.target.closest('.cgtop, .cggpop, .cgzoom, .cghd, .cgtip, .cglegend')) return;

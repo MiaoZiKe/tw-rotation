@@ -341,6 +341,25 @@
           kind: 'die', box: [17, 2.9, 17], at: [0, 6.65, 0], ex: [0, 8, 0],
           codes: ['2330'], chipnote: '先進節點晶圓代工（這一格講的是「誰代工」，不是「誰設計這顆 GPU」）' },
       ],
+      /* ---- C6 運轉動畫：**訊號沿 TSV 由上而下貫穿**。
+         為什麼是由上而下：HBM 的核心晶粒堆在最上面，資料要送出去一定得穿過整疊的穿矽孔（TSV）
+         落到最底下的 base die（邏輯晶粒），由它做序列化之後再經中介層橫向送給 GPU。
+         所以動畫是兩段：先是兩疊 HBM 的 TSV 由上往下（sig），
+         再從 base die 橫著走中介層進到運算晶粒 —— 這正是 HBM 比 GDDR 快的原因（路徑短、位元寬）。
+         兩疊記憶體分別在 x = ±15（n: 2、gap: 30）。*/
+      flows: [
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[-15, 19, -4], [-15, 12, -4], [-15, 7.4, -4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[-15, 19, 4], [-15, 12, 4], [-15, 7.4, 4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[15, 19, -4], [15, 12, -4], [15, 7.4, -4]] },
+        { kind: 'sig', part: 'hb_tsv', r: 0.32, per: 10, speed: 0.55, pts: [[15, 19, 4], [15, 12, 4], [15, 7.4, 4]] },
+        /* base die → 中介層 → 運算晶粒（橫向，這一段才是「1024 bit 寬匯流排」）*/
+        { kind: 'sig', part: 'hb_interposer', r: 0.3, per: 12, speed: 0.5, pts: [[-15, 6.2, 0], [-9, 5.2, 0], [0, 6.4, 0]] },
+        { kind: 'sig', part: 'hb_interposer', r: 0.3, per: 12, speed: 0.5, pts: [[15, 6.2, 0], [9, 5.2, 0], [0, 6.4, 0]] },
+        /* 供電是**反向**的：從載板往上餵給核心晶粒（dir: -1 讓同一條路反著跑）*/
+        { kind: 'pwr', part: 'hb_sub', r: 0.26, per: 8, speed: 0.3, dir: -1, pts: [[-24, 3.4, 12], [-20, 5.6, 12], [-15, 8, 12], [-15, 16, 12]] },
+      ],
+      /* 訊號穿層：核心晶粒 → 微凸塊 → TSV → base die → 中介層 → 運算晶粒，一顆一顆接力點亮 */
+      pulses: [{ parts: ['hb_core', 'hb_ubump', 'hb_tsv', 'hb_base', 'hb_interposer', 'hb_gpu'], period: 2.6, kind: 'sig' }],
     },
     /* ===== 半導體鏈：第三代半導體 ===== */
     /* 2D 是 `site/dg/wide_bandgap.js`。兩顆元件並排、切掉同一個角：
@@ -545,6 +564,33 @@
         { seg: 'thermal', part: 'heatpipe', name: '熱管（heat pipe）', note: '跟 VC 同樣是兩相流，但形狀不同：**熱管是管、VC 是扁腔**，兩者不准互換。切開那一端看得到三層：外銅管 → 毛細 → 中央蒸氣道。★ 熱管**不准有支撐柱**（圓管靠管壁本身撐），而且它一定是彎的（要繞過零件）',
           kind: 'heatpipe', box: [36, 7, 18], at: [30, -34, 26], ex: [10, -16, 10] },
       ],
+      /* ---- C6 運轉動畫：**冷卻液真的在跑一圈**。
+         為什麼這樣動是對的 —— 液冷是一個封閉迴路，水一定回得來：
+           CDU 打出冷水 → 分歧管 → 快接頭（z = -9 那一側）→ 冷板進水口 → 微鰭片吸熱
+           → 冷板出水口 → 快接頭（z = +9 那一側）→ 分歧管 → CDU → 板式熱交換器 → 再出發。
+         去程走 `cold`（青綠）、回程走 `hot`（紅），顏色分開才看得出哪一邊已經吸了熱。
+         快接頭本身**不動**（它是機構件，會動的只有裡面的液體）—— 這是 Andy 指定的。
+         熱管與均熱板另外兩組：蒸氣往熱端外跑、冷凝液沿毛細結構回來，
+         所以它們各有一去一回、而且回程走比較低的一條路徑（液體靠重力與毛細回流）。
+         座標用**收攏態**（零件的 at），因為預設畫面就是收攏的。*/
+      flows: [
+        { kind: 'cold', part: 'manifold', r: 0.8, per: 16, speed: 0.15,
+          pts: [[44, 18, 0], [30, 20, -6], [10, 20, -9], [-6, 16, -9], [-14, 12, -9], [-36, 9, -9], [-52, 7, -9], [-54, 2, -6]] },
+        { kind: 'hot', part: 'manifold', r: 0.7, per: 16, speed: 0.13,
+          pts: [[-54, 2, 6], [-52, 7, 9], [-36, 9, 9], [-14, 12, 9], [-6, 16, 9], [10, 14, 9], [30, 8, 4], [44, 0, 0], [44, -14, 0]] },
+        /* 冷板內部：水從進水口下來、在微鰭片之間繞一個 U 再回到出水口（流道就是這樣設計的）*/
+        { kind: 'cold', part: 'cp_fin', r: 0.45, per: 12, speed: 0.3,
+          pts: [[-54, 1, -13], [-64, -2, -8], [-64, -2, 2], [-44, -2, 2], [-44, -2, 8], [-54, 1, 13]] },
+        /* 熱管：蒸氣從熱端往冷端（上半），冷凝液沿管壁毛細回熱端（下半）*/
+        { kind: 'hot', part: 'heatpipe', r: 0.4, per: 10, speed: 0.34, pts: [[14, -32, 26], [30, -31, 26], [46, -32, 26]] },
+        { kind: 'cold', part: 'heatpipe', r: 0.3, per: 10, speed: 0.22, pts: [[46, -36, 26], [30, -37, 26], [14, -36, 26]] },
+        /* 均熱板：中央（貼晶片）蒸發往外擴散，邊緣冷凝後回到中央 */
+        { kind: 'hot', part: 'vc', r: 0.35, per: 9, speed: 0.3, pts: [[-10, -31, 26], [-2, -31, 31], [2, -31, 37]] },
+        { kind: 'cold', part: 'vc', r: 0.28, per: 9, speed: 0.2, pts: [[2, -37, 37], [-2, -37, 31], [-10, -37, 26]] },
+      ],
+      /* 熱從晶片一路交棒出去：裸晶 → TIM1 → 蓋板 → TIM2 → 冷板 → 流道。
+         依序點亮＝熱阻是一串串聯的，前一段沒導出去後一段就不會熱。*/
+      pulses: [{ parts: ['die', 'tim1', 'ihs', 'tim2', 'cold_plate', 'cp_fin'], period: 3.4, kind: 'hot' }],
     },
     /* ===== AI 伺服器鏈：氣冷 ===== */
     /* 2D 是 `site/dg/air_cooling.js`。3D 這張把**一顆風扇沿轉軸拆開** ——
@@ -582,6 +628,25 @@
         { seg: 'thermal', part: 'vc', name: '均熱板 VC（當底座）', note: '晶片越大，熱越不可能只靠一塊銅底板攤開。VC 用兩相流把熱先**攤成一個面**再交給熱管與鰭片 —— 熱管是線、VC 是面，這就是兩者的分工',
           kind: 'vc', box: [34, 7, 30], at: [36, -34, 0], ex: [0, -30, 0] },
       ],
+      /* ---- C6 運轉動畫：**風扇在轉、空氣在走**。
+         扇葉與後轉子本來就會轉（frotor 自己掛了 userData.spin，反轉雙轉子第二組是負轉速）；
+         這一批補的是風扇牆（InstancedMesh，28 片葉片，見 fanWall 的 ispin）與**氣流**。
+         氣流為什麼是這樣：軸流風扇沿**軸向**（這裡是 z）吸進來、吹出去，
+         吹出來的風被導風罩圍住、逼著穿過鰭片之間的縫隙（不然會從旁邊溜掉），
+         最後帶著熱離開。所以氣流線是「先沿 z 穿過扇框」「再沿 z 穿過鰭片組」，
+         而且出風端的 y 略高 —— 熱空氣會往上走。*/
+      flows: [
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-58, 6, -34], [-56, 4, -12], [-56, 3, 12], [-57, 6, 34]] },
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-48, 2, -34], [-48, 2, -12], [-48, 2, 12], [-48, 4, 34]] },
+        { kind: 'airline', part: 'blade', line: true, per: 9, speed: 0.36, pts: [[-38, -2, -34], [-40, 0, -12], [-40, 1, 12], [-39, 4, 34]] },
+        /* 風扇牆 → 導風罩 → 鰭片：三條穿過鰭片組的縫隙（x 分開，看得出是一整面的風） */
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[24, -12, -30], [24, -14, -8], [24, -14, 10], [24, -10, 30]] },
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[36, -12, -30], [36, -14, -8], [36, -14, 10], [36, -10, 30]] },
+        { kind: 'airline', part: 'fin', line: true, per: 9, speed: 0.4, pts: [[48, -12, -30], [48, -14, -8], [48, -14, 10], [48, -10, 30]] },
+        { kind: 'airline', part: 'fan_wall', line: true, per: 8, speed: 0.44, pts: [[36, 28, -26], [36, 27, 0], [36, 30, 26]] },
+      ],
+      /* 熱從底下往上交棒：均熱板 → 熱管 → 鰭片，最後被風帶走。*/
+      pulses: [{ parts: ['vc', 'heatpipe', 'fin'], period: 2.8, kind: 'hot' }],
     },
     /* ===== AI 伺服器鏈：網通 ===== */
     /* 2D 是 `site/dg/switch_wireless.js`。3D 這張是一張交換器板卡：
@@ -6107,6 +6172,9 @@
        以前 reduced 只擋住爆炸補間，零件還是在轉、粒子還是在跑 —— 那不叫尊重。
        注意鈕上的字仍然照 `anim`（使用者自己的選擇），只是實際上一格都不動。*/
     const motionOn = () => anim && !reduced;
+    /* setAnim() 在色票區塊「之前」就會被呼叫一次，那時候 lastHi 還在 TDZ 裡 ——
+       所以「關動畫要把顏色還原」這件事只在場景真的建好之後才做。*/
+    let hiReady = false;
     const applyAuto = () => { controls.autoRotate = motionOn() && !userHold; };
     function hold() { userHold = true; if (holdT) clearTimeout(holdT); applyAuto(); }
     function release() {
@@ -6141,7 +6209,7 @@
         const df = controls.dampingFactor;
         controls.dampingFactor = 1; controls.update(); controls.dampingFactor = df;
         // 顏色要回到「目前選取狀態該有的樣子」（pulse 改過 color，highlight 才是權威）
-        if (typeof highlight === 'function') highlight(lastHi.on, lastHi.color, lastHi.part);
+        if (hiReady) highlight(lastHi.on, lastHi.color, lastHi.part);
         markDirty();
       }
     }
@@ -6279,6 +6347,8 @@
       return pal;
     }
     applyPal(o.pal || palByTheme());   // 一掛上去就照使用者選的模式（沒選就跟主題），不要先畫成預設再閃一下
+    hiReady = true;                    // 之後「關動畫」才可以回頭叫 highlight() 把 pulse 改過的顏色收回去
+    if (!motionOn()) setAnim(anim);    // 進場就是靜止（動畫關或系統要求減少動態）：把位移與 pulse 一次歸零
 
     /* 兩層高亮（2026-09-21 晚間）：`part` 是**被點的那一個零件**的身分，
        跟 2D 剖析圖共用同一個 key（見 SCENES 檔頭的 `part`）。
@@ -6851,6 +6921,20 @@
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
+        /* ★ C6 的量測介面。驗「這台機器在運作」一律比**這些數字有沒有變**，
+           不是比「有沒有 pulses 這個陣列」——「元素存在」從來不算驗收。
+             ispinAt  ＝ 陣列風扇（風扇牆）轉到哪（弧度和）
+             pulseAt  ＝ pulse 的相位時鐘，只要在跑就單調前進
+             pulseK   ＝ 這一刻所有 pulse 的亮度總和（窄脈衝，所以它會上上下下）
+             moveAt   ＝ 位移的相位時鐘
+             moveOff  ＝ **零件真的位移了多少**（螺帽現在在哪），關掉動畫一定回到 0
+             reduced  ＝ 系統要求減少動態效果（此時一格都不會動，鈕上的字仍照使用者的選擇）*/
+        ispinners: ispinners.length, ispinAt: +ispinners.reduce((a, x) => a + x.userData.ispin.t, 0).toFixed(3),
+        pulses: pulses.reduce((a, g) => a + g.items.length, 0), pulseAt: +pulseAt.toFixed(3),
+        pulseK: +pulses.reduce((a, g) => a + g.items.reduce((b, it) => b + it.k, 0), 0).toFixed(4),
+        movers: movers.length, moveAt: +moveAt.toFixed(3),
+        moveOff: +movers.reduce((a, m) => a + Math.abs(m.off), 0).toFixed(3),
+        reduced, motion: motionOn(),
         flows: flowPts.length, flowVisible: flowAll.filter(x => x.visible).length,
         flowAt: +flowAt.toFixed(3), flowT: +flowT.toFixed(4), pal, colorSig: colorSig(), matSig: matSig(),
         explode: +expT.toFixed(3), exploding: !!expAnim, glass: glassN, flowLines: glowN,
@@ -6994,6 +7078,8 @@
         expAnim = null; applyExplode(0); setExplode(true); return true;
       },
       isAnim: () => anim,
+      // C6：「使用者關掉動畫時畫面真的停了嗎」——比 motion() 與 stats() 裡的那幾個時鐘
+      motion: () => motionOn(),
       /* N1：切換左鍵拖曳的行為 —— 'rotate'（預設，繞著轉）或 'pan'（抓著移動）。
          右鍵一律保持平移，中鍵一律縮放，這樣習慣右鍵的人也不受影響。*/
       setDrag: (mode) => {

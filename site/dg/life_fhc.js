@@ -142,7 +142,6 @@
       + LN(`M${MX + 12},${my0 + 34} H${MX + MW - 12}`, C.bondF, 2.4)
       + LN(`M${MX + 12},${my1 - 36} H${MX + MW - 12}`, C.fix, 2.4)
       + T(MX + MW / 2, my0 + 20, '利差', 'lbl', 'middle', `fill:${C.nv}`)
-      + T(MX + MW / 2, my0 + 28, '', 'sub', 'middle')
       + T(MX + MW / 2, my0 + 60, '投資報酬率', 'sub', 'middle', `fill:${C.bondF}`)
       + T(MX + MW / 2, my0 + 76, '減', 'sub', 'middle')
       + T(MX + MW / 2, my0 + 92, '保單成本率', 'sub', 'middle', `fill:${C.fix}`)
@@ -159,9 +158,9 @@
      ★ 三者都不寫任何一家的比率 —— 那是逐季揭露、而且口徑各家不同的公司別數字。*/
   const FY = 320;
   const BUF = [
-    { id: 'lf_hedge', t: '避險（換匯與遠期）', a: '把匯率風險換掉', b: '★ 避險本身有成本，', c: '會直接吃掉投資收益', col: C.buf },
-    { id: 'lf_reserve', t: '外匯價格變動準備金', a: '法定的緩衝水庫', b: '匯損時沖抵、匯兌利益時回沖，', c: '有累積上限，不是無限大', col: C.fx_ },
-    { id: 'lf_naked', t: '不避險的部位', a: '沒有避險成本', b: '匯率怎麼走就怎麼吃，', c: '台幣升值時直接見骨', col: C.risk },
+    { id: 'lf_hedge', t: '避險（換匯與遠期）', b: '★ 避險本身有成本，', c: '會直接吃掉投資收益', col: C.buf },
+    { id: 'lf_reserve', t: '外匯價格變動準備金', b: '匯損時沖抵、匯兌利益時回沖，', c: '有累積上限，不是無限大', col: C.fx_ },
+    { id: 'lf_naked', t: '不避險的部位', b: '匯率怎麼走就怎麼吃，', c: '台幣升值時直接見骨', col: C.risk },
   ];
 
   function currency() {

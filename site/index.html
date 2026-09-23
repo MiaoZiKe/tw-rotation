@@ -2036,9 +2036,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      寬度釘在 168px：再寬的話 24 顆族群的碰撞框橫向就排不下，力導向只好整片縮小。
      標籤數量由 industry.js 的收斂策略決定（節點越多每顆掛越少），CSS 這邊只負責排版。*/
 .cglab{position:absolute;font-size:12.5px;font-weight:600;color:var(--cg-ink);
-  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:168px;
+  pointer-events:auto;cursor:pointer;text-shadow:var(--cg-lab-sh,none);width:max-content;max-width:150px;
   display:flex;flex-direction:column;gap:3px;transition:opacity .15s}
 .cglab .cgnm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+/* 檔數跟族群名同一行（C5）：獨立一顆「還有 N 檔」膠囊會自己佔掉整整一行，
+   24 顆族群就憑空多 24 行，個股標籤全部被擠掉 —— 實測過，所以擠在這裡。*/
+.cglab .cgcnt{font-style:normal;font-weight:500;font-size:11.5px;color:var(--cg-ink-3);margin-left:5px}
 .cglab.sel{color:var(--cg-ink-hi)}
 .cglab.sel .cgnm{font-weight:700}
 .cglab.dim{opacity:.22}
@@ -2047,13 +2050,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    但標籤要排得下，所以取剛好守得住的那一個）。
    底色用半透明的族群色，一眼看得出這幾檔屬於哪一顆球。*/
 .cgtags{display:flex;flex-wrap:wrap;gap:3px 4px}
-.cgtag,.cgmore{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
+.cgtag{font-size:12px;font-weight:500;line-height:1.35;padding:1px 6px;border-radius:999px;
   white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
   background:var(--cg-tag-bg,rgba(255,255,255,.08));border:1px solid var(--c);
   border-color:color-mix(in srgb,var(--c) 45%,transparent);color:var(--cg-ink);cursor:pointer}
-.cgtag:hover,.cgmore:hover{border-color:var(--c);color:var(--cg-ink-hi)}
+.cgtag:hover{border-color:var(--c);color:var(--cg-ink-hi)}
 .cgtag.sel{background:var(--c);border-color:var(--c);color:var(--cg-tag-on,#0b1220);font-weight:700}
-.cgmore{font-weight:600;opacity:.82;border-style:dashed}
 /* 連線 */
 .cgsvg .cge{fill:none;stroke:var(--cg-edge);stroke-opacity:var(--cg-edge-op,.45);
   stroke-width:var(--w,1.2);stroke-linecap:round;stroke-linejoin:round}
