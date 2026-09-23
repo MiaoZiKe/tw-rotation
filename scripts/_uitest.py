@@ -5508,7 +5508,10 @@ def t_tasks(pg, base):
 def t_themes(pg, base):
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)
     ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
-    ok("題材頁有下方明細", len(text(pg, "#themeDetail")) > 20, text(pg, "#themeDetail")[:40])
+    # ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
+    #   左卡（題材標題＋「← 回題材總覽」＋五個數字方塊＋熱度走勢折線）與右卡（成員表）整組移除。
+    #   `#themeDetail` 現在量到的是「產品剖析圖」那張卡，敘述跟著改。
+    ok("題材頁下方有產品剖析圖卡片", len(text(pg, "#themeDetail")) > 20, text(pg, "#themeDetail")[:40])
 
     # 真的用滑鼠點熱力方塊 → 下方明細要換一個題材
     before = text(pg, "#themeDetail")[:60]
@@ -5559,15 +5562,34 @@ def t_themes(pg, base):
         ok(f"題材 {tid} 有剖析圖", count(pg, "#themeDiagram svg") > 0)
         # Andy 09-13：剖析圖不要縮放（跟產業／個股剖析圖一致），要看大圖用右上角「放大」
         check_nozoom(pg, "themeDiagram", f"題材 {tid} 剖析圖")
-        # ★ 2026-09-19：原本的選擇器含 #themeParts，那是剖析圖零件框、
-        #   不管有沒有分組它都存在，所以這條永遠綠。真正的分組標記是 #themeMembers tr.ghead。
-        ok(f"題材 {tid} 成員有依族群分組", count(pg, "#themeMembers tr.ghead") > 0,
-           f"ghead={count(pg, '#themeMembers tr.ghead')} 列")
+        # ★ 2026-09-23：「成員有依族群分組」那一條隨**成員表整張移除**一起退場
+        #   （`#themeMembers` 已經不存在，留著對 22 個題材每一個都會紅）。
         if count(pg, "#themeDiagram [data-part][data-codes]"):
             # 零件會緩慢飄動，一般 click 會卡在「等它停下來」逾時 —— 見 click_moving 的說明
             click_moving(pg, "#themeDiagram [data-part][data-codes]", 700)
             ok(f"題材 {tid} 點零件會列出個股", count(pg, "#themeParts a.lk") > 0,
                f"#themeParts 連結數 = {count(pg, '#themeParts a.lk')}")
+
+    # ---- ★ 2026-09-23：中間兩張卡真的被拿掉了（移除本身就是需求，要有人守）
+    pg.goto(f"{base}#themes/{tids[0]}", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    ok("題材頁已無成員表、熱度走勢卡與「← 回題材總覽」鈕",
+       pg.evaluate("() => !document.querySelector('#themeMembers') && !document.querySelector('#themeSeries')"
+                   " && !document.querySelector('#themeBack')"))
+    ok("題材頁只剩一張卡（產品剖析圖）", count(pg, "#themeDetail .card") == 1,
+       count(pg, "#themeDetail .card"))
+    # 「其他題材」那排要留著，而且**真的點得動**（拿掉兩張卡不可以把換題材的路一起拿掉）
+    ok("題材頁保留「其他題材」那排標籤", count(pg, "#themeDetail .linkrow a.lk") >= 5,
+       count(pg, "#themeDetail .linkrow a.lk"))
+    _hb = pg.evaluate("location.hash")
+    click(pg, "#themeDetail .linkrow a.lk", 1200)
+    changed("★ 點「其他題材」標籤真的換題材（網址真的變了）", _hb, pg.evaluate("location.hash"))
+
+    # ---- ★ 22 個題材裡有 3 個沒有剖析圖（`window.ThemeDiagrams` 只有 19 把 key）。
+    #   兩張卡拿掉之後它們會整頁空白，所以要改顯示一張說明小卡 —— 驗的就是「不是空白」。
+    for tid in ("panel_pkg", "petrochemical", "mlcc_passive"):
+        pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1000)
+        ok(f"題材 {tid} 沒有剖析圖時有說明、不是空白",
+           "還沒有產品剖析圖" in text(pg, "#themeDetail"), text(pg, "#themeDetail")[:60])
 
 
 def t_stock(pg, base, code):
@@ -20689,12 +20711,22 @@ def t_b29_tabs(pg, base):
     gone2 = pg.evaluate("() => ['memberTable','memWide','mktSeg','memberMore','memberTitle']"
                         ".filter(id => !!document.getElementById(id))")
     ok("W3-2：成分股卡片（表格／放寬／市場別／展開更多／標題）整組不在 DOM 了", gone2 == [], gone2)
+    # ⚠ 這一條有兩個判斷，第二個（事件欄要回來）依賴「使用者的偏好是開著」。
+    #   前面的段落會為了各自的需要把 `tw.side` 設成 0（例如關聯圖那幾段），
+    #   狀態跨段落留下來，這條就會在**產品完全正確**的情況下變紅（實測：單跑綠、接在後面紅）。
+    #   所以先把偏好明確設成「開」再測 —— 那才是這條要問的前提，不是放寬。
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {} }")
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(600)
     pg.evaluate("() => { document.body.classList.add('memwide');"
                 " if (window.twSetSide) window.twSetSide(false, false); }")
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
     ok("W3-2：換頁一定會把 .memwide 還原掉（規格書點名要留的那段收尾沒有被刪）",
-       pg.evaluate("() => !document.body.classList.contains('memwide')")
-       and pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display") != "none")
+       pg.evaluate("() => !document.body.classList.contains('memwide')"),
+       pg.evaluate("() => document.body.className"))
+    ok("W3-2：而且事件欄跟著回來（`twSetSide(false, false)` 是暫時蓋住，不是改偏好）",
+       pg.evaluate("() => getComputedStyle(document.querySelector('aside')).display") != "none",
+       pg.evaluate("() => [getComputedStyle(document.querySelector('aside')).display,"
+                   " (() => { try { return localStorage.getItem('tw.side'); } catch (e) { return null; } })()]"))
 
     # ---------------- ⑨ 四個寬度：不溢出、分頁字不小於 12px、選中的分頁捲得進視野
     for w in (1440, 1100, 800, 390):
