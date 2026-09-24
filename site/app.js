@@ -7405,7 +7405,15 @@
        把整層 canvas 拆掉重建會讓小圓點閃一下（2026-09-20 加播放之後每 650ms 就閃一次）。*/
     let flowsRef = flows;
     let labelsRef = labels || [];
-    let raf = null, alive = true;
+    let raf = null, alive = true, vis = true;
+    let io = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver((es) => {
+        es.forEach(e => { vis = e.isIntersecting; });
+        if (vis && alive && !raf && !document.hidden) raf = requestAnimationFrame(step);
+      });
+      io.observe(el);
+    }
     const sizeTo = () => {
       const w = el.clientWidth, h = el.clientHeight;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -7426,9 +7434,12 @@
       if (!alive) return;
       // 容器離開 DOM，或整層 canvas 被別人清掉（例如 empty() 把容器 innerHTML 換掉）就收工
       if (!el.isConnected || !cv.isConnected) { stop(); return; }
-      // 換到別的分頁時容器還在 DOM 裡、只是被藏起來（offsetParent 會是 null）：
-      // 這時候什麼都不畫，但迴圈留著，回到這一頁就自己接上
-      if (el.offsetParent === null) { raf = requestAnimationFrame(step); return; }
+      /* ★ 2026-09-24 效能：看不到就**整個停掉迴圈**，看得到再由 IntersectionObserver 接上。
+         以前是「換到別頁（offsetParent 是 null）就空轉 rAF」、「捲到看不到還照畫」——
+         資金流向頁捲到底部、小圓點早就不在畫面上，主執行緒 5 秒裡仍有 1.7 秒在畫它（實測）；
+         跑去總覽之後這個迴圈也一直空轉。IntersectionObserver 對 display:none 與捲出畫面都報「看不到」，
+         一個條件就涵蓋兩種情況。*/
+      if (!vis || el.offsetParent === null) return;
       const dpr = sizeTo();
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, cv.width, cv.height);
@@ -7456,6 +7467,7 @@
     };
     function stop() {
       alive = false;
+      if (io) { io.disconnect(); io = null; }
       if (raf) { cancelAnimationFrame(raf); raf = null; }
       document.removeEventListener('visibilitychange', onVis);
       if (cv.parentNode) cv.parentNode.removeChild(cv);
