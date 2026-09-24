@@ -7559,7 +7559,11 @@ INK = """(sel) => {
 
 # 找出「文字顏色跟自己的背景幾乎一樣」的元素 —— 黑底時代留下來的白字，切到淺色就變隱形。
 CONTRAST = """() => {
-  const lum = (c) => { const m = (c.match(/[\\d.]+/g) || []).map(Number);
+  /* ★ 2026-09-24（設計系統 v2 第 3 批）：`color-mix()` 的 computed style 是 `color(srgb 0.90 0.94 0.95)`
+     —— 三個分量是 0～1，不是 0～255。改前一律當 0～255 讀，淺底被讀成近黑，
+     於是「深字印在淺色象限卡上」（實際約 10:1）被算成 1.85 而誤報。改後遇到 color(srgb …) 先 ×255。 */
+  const lum = (c) => { let m = (c.match(/[\\d.]+/g) || []).map(Number);
+    if (/^color\\(srgb/.test(c)) m = m.slice(0, 3).map(v => v * 255);
     const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
     return .2126 * f(m[0] || 0) + .7152 * f(m[1] || 0) + .0722 * f(m[2] || 0); };
   // 往上找第一個「不透明的純色背景」。中途碰到漸層就放棄這個元素 ——
@@ -22053,9 +22057,11 @@ def t_ui_polish(pg, b, base, code):
         const g = (n) => (s.getPropertyValue(n) || '').trim();
         return { ink3: g('--ink-3'), cyan: g('--cyan'), amber: g('--amber'), lime: g('--lime'),
                  rise: g('--rise'), fall: g('--fall'), flat: g('--flat') }; }""")
+    # 2026-09-24 設計系統 v2 第 3 批：--ink-3 改前 #5b6884（冷藍灰）→ 改後 #5f5a51（暖灰，對白 6.85、對新 --bg 6.16）。
+    # 其餘六個（主色與紅漲綠跌）第 3 批刻意不動，照舊驗。
     ok("[#3] 淺色七個色 token 全部換成新值",
        [tl[k].lower() for k in ("ink3", "cyan", "amber", "lime", "rise", "fall", "flat")]
-       == ["#5b6884", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
+       == ["#5f5a51", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
 
     # ---------- #8 四個高頻小字真的升到 12px ----------

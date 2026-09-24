@@ -126,7 +126,7 @@
     return {
       border: CH.panel,
       label: { color: lt ? CH.ink : '#fff', textShadowColor: lt ? 'rgba(255,255,255,.75)' : '#000', textShadowBlur: lt ? 3 : 4 },
-      upper: { color: lt ? CH.ink2 : '#a9b6d6', backgroundColor: lt ? 'rgba(15,24,48,.06)' : 'rgba(0,0,0,.25)' },
+      upper: { color: lt ? CH.ink2 : '#a9b6d6', backgroundColor: lt ? 'rgba(40,35,25,.06)' : 'rgba(0,0,0,.25)' },   // 淺色暖化（v2 第 3 批）
     };
   };
 
@@ -398,7 +398,8 @@
     document.documentElement.setAttribute('data-theme', name === 'light' ? 'light' : 'dark');
     try { localStorage.setItem(THEME_KEY, theme()); } catch (e) { /* 私密視窗，忽略 */ }
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme() === 'light' ? '#f2f5fb' : '#070b16');
+    // 淺色＝--bg（設計系統 v2 第 3 批：#f2f5fb → 暖紙底 #F4F3EF；手機瀏覽器的網址列顏色跟頁底一致）
+    if (meta) meta.setAttribute('content', theme() === 'light' ? '#F4F3EF' : '#070b16');
     const btn = document.getElementById('themeBtn');
     if (btn) { btn.textContent = theme() === 'light' ? '🌙' : '☀'; btn.title = theme() === 'light' ? '切換成深色' : '切換成明亮'; }
     refreshPalette();
