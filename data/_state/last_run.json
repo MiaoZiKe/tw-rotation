@@ -2,11 +2,11 @@
   "steps": {
     "news.collect": {
       "ok": true,
-      "rows": 134,
-      "seconds": 4.8
+      "rows": 133,
+      "seconds": 6.6
     },
     "news": {
-      "stored": 14
+      "stored": 99
     },
     "news.broker_views": {
       "ok": true,
@@ -14,28 +14,28 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 2
     },
     "mops.material_news": {
       "ok": true,
       "rows": 102,
-      "seconds": 1.7
+      "seconds": 2.3
     },
     "material_news": {
-      "stored": 102
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1755,
-      "seconds": 1.3
+      "rows": 1756,
+      "seconds": 1.2
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.1
+      "seconds": 0.9
     },
     "build_payload": {
       "ok": true
@@ -46,16 +46,16 @@
     "macro.fred"
   ],
   "phase": "news",
-  "started_at": "2026-09-23T23:23:04.889285+00:00",
-  "finished_at": "2026-09-23T23:30:12.134918+00:00",
-  "duration_seconds": 427.2,
+  "started_at": "2026-09-24T05:42:45.737319+00:00",
+  "finished_at": "2026-09-24T05:48:38.822635+00:00",
+  "duration_seconds": 353.1,
   "trade_date": null,
   "complete": true,
   "finmind_budget_left": 486,
   "tables": [
     {
       "table": "price_daily",
-      "rows": 1522144,
+      "rows": 2458955,
       "latest": "2026-09-23"
     },
     {
@@ -115,17 +115,17 @@
     },
     {
       "table": "news",
-      "rows": 2159,
+      "rows": 2258,
       "latest": "2026-09-24"
     },
     {
       "table": "broker_views",
-      "rows": 35,
-      "latest": "2026-09-23"
+      "rows": 37,
+      "latest": "2026-09-24"
     },
     {
       "table": "intl_daily",
-      "rows": 1832,
+      "rows": 1834,
       "latest": "2026-09-24"
     },
     {
@@ -135,12 +135,12 @@
     },
     {
       "table": "dividend_events",
-      "rows": 10162,
+      "rows": 10166,
       "latest": "—"
     },
     {
       "table": "dividend_results",
-      "rows": 15544,
+      "rows": 15545,
       "latest": "2026-09-17"
     },
     {
@@ -161,7 +161,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 2,
+    "days_since_review": 3,
     "is_stale": false,
     "group_count": 83,
     "code_count": 444,
