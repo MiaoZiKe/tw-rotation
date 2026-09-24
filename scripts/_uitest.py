@@ -22093,15 +22093,20 @@ def t_ui_polish(pg, b, base, code):
             after = pg.evaluate("""() => { const s = document.getElementById('tabs');
                 return { left: s.scrollLeft, cls: document.getElementById('tabsWrap').className,
                          prev: getComputedStyle(document.getElementById('tabPrev')).display }; }""")
+            # ★ 2026-09-24：分頁從八顆變七顆（題材併進熱力圖），1280px 只溢出 19px ——
+            #   「捲超過 20px」在物理上做不到。門檻改成「捲 20px，或捲到底（溢出不足 20px 時）」，
+            #   要驗的事情沒變：按一下，分頁列真的往右移到它能到的地方。
+            _need = min(st["left"] + 20, st["over"] - 1)
             ok(f"[#4 {w}px] 按右箭頭：分頁列真的往右捲了（{st['left']} → {after['left']}）",
-               after["left"] > st["left"] + 20, after)
+               after["left"] >= _need and after["left"] > st["left"], {**after, "至少要到": _need})
             ok(f"[#4 {w}px] 捲過去之後左箭頭跟著出現（左邊還有東西 → 要看得到）",
                "ovf-l" in after["cls"] and after["prev"] != "none", after)
             pg.click("#tabPrev"); pg.wait_for_timeout(700)
             back = pg.evaluate("""() => ({ left: document.getElementById('tabs').scrollLeft,
                 cls: document.getElementById('tabsWrap').className })""")
             ok(f"[#4 {w}px] 按左箭頭真的捲回去，而且捲到底之後左箭頭自己收掉",
-               back["left"] < after["left"] - 20 and (back["left"] > 2 or "ovf-l" not in back["cls"]), back)
+               back["left"] <= max(0, after["left"] - 20) and back["left"] < after["left"]
+               and (back["left"] > 2 or "ovf-l" not in back["cls"]), back)
         else:
             ok(f"[#4 {w}px] 分頁列放得下時，不要留一顆按了沒反應的箭頭",
                st["next"] == "none" and "ovf-r" not in st["cls"], st)
