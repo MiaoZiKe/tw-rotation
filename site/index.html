@@ -1029,6 +1029,23 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
   color:var(--ink);box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent)}
 .rotquads .rq.on em{color:var(--ink)}
 @media (max-width:900px){ .rotquads .rq{font-size:12px;padding:2px 7px} }
+/* ★ 2026-09-24 晚：足跡輪盤桌機版照 Andy 的參考檔換長相（理由寫在 app.js ROT_GRAD_V2 上面）。
+   象限徽章＝深底膠囊＋1.2px 象限色框；數字 12px（參考檔 11px 低於全站下限，補到 12）。
+   ⚠ 象限名**仍然用象限色**，不照參考檔改白字：四顆一樣白的話只剩框色在分，
+     「一眼分得出哪一格是哪一段」（W7-8、資金流向段）那條就不成立了。數字用主文字色。
+   只包在 min-width:821px 裡 —— Andy：「手機部分先暫停，等電腦版OK在執行」，手機照舊。
+   淺色主題的「深底」換成面板底（白），框色與字色照樣分得出象限。*/
+@media (min-width:821px){
+  .rotquads .rq{background:color-mix(in srgb,var(--bg) 70%,var(--panel));border:1.2px solid var(--c);color:var(--c);
+    font-size:13px;padding:3px 10px;box-shadow:none}
+  .rotquads .rq em{font-size:12px;color:var(--ink)}
+  .rotquads .rq .nw{font-size:12px}
+  .rotquads .rq:hover{background:color-mix(in srgb,var(--c) 18%,var(--panel))}
+  .rotquads .rq.on{background:color-mix(in srgb,var(--c) 30%,var(--panel));color:var(--ink);
+    box-shadow:0 0 0 2px color-mix(in srgb,var(--c) 28%,transparent)}
+  :root[data-theme="light"] .rotquads .rq{background:var(--panel)}
+}
+@media (max-width:820px){ .rottools .rot-scanlbl{display:none} }
 /* 展開面板：沿用全站的 .hpanel（固定高度＋自己的捲軸），不另開第三種清單樣式 */
 .stagepanel .ph{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12.5px}
 .stagepanel .ph i{width:10px;height:10px;border-radius:3px;display:inline-block}

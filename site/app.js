@@ -341,7 +341,8 @@
          ⚠ 圖自己寫了位置的一律尊重（排行圖的標籤位置與留白是量過的，改了會壓到族群名）；
            超過 16 根的（月營收 36 根、法人每日）不補 —— 一根一個數字只會糊成一排。
        · 類別軸的字：小於 12px 的補到 12px（全站 12px 下限）。
-       · 圓餅：扇區圓角 ＋ 扇區間隙（padAngle，ECharts 5.5 起）；甜甜圈的樣式在產業地圖那張自己寫（中心兩行字＋下方圖例）。
+       · 圓餅：一律甜甜圈（沒寫環的補成 58%／78%）＋ 扇區圓角 ＋ 扇區間隙（padAngle，ECharts 5.5 起）＋ 滑過外擴 4px；
+         中心兩行字＋下方兩欄圖例由各圖自己寫（產業地圖那張是範本）。
        · 儀表：圓頭（axisLine／progress 的 roundCap）。
        · 折線：端點與轉折改圓（lineStyle.cap／join = round）。
          ⚠ **不碰 smooth**：週期統計的曲線圖 Andy 今天才因為「平滑曲線畫出假波浪」改成直線段；
@@ -434,7 +435,12 @@
         // 每一根的標籤字級也補到 12（有些圖把字級寫在 data 上）
         s.data.forEach((d, k) => { if (d && typeof d === 'object' && d.label && typeof d.label.fontSize === 'number' && d.label.fontSize < 12) s.data[k] = { ...d, label: { ...d.label, fontSize: 12 } }; });
       } else if (t === 'pie') {
-        s.itemStyle = { borderRadius: 5, ...(s.itemStyle || {}) };
+        /* 圓餅一律甜甜圈（Andy 參考圖一）：沒自己寫環的（radius 不是陣列）補成內 58%／外 78%，
+           滑過外擴 ≤ 4px。中心兩行字與下方圖例是「那張圖要講什麼」，由各圖自己寫（產業地圖那張就是範本）。
+           ⚠ 全站目前只有產業地圖那一張圓餅，這一段是給「下一張新圓餅」的預設，不必每張各記一次。*/
+        if (s.type === 'pie' && !Array.isArray(s.radius)) s.radius = ['58%', '78%'];
+        if (s.type === 'pie' && !(s.emphasis && s.emphasis.scaleSize != null)) s.emphasis = { ...(s.emphasis || {}), scale: true, scaleSize: 4 };
+        s.itemStyle = { borderRadius: 6, ...(s.itemStyle || {}) };
         if (s.padAngle == null && Array.isArray(s.data) && s.data.length > 1) s.padAngle = 1.2;
       } else if (t === 'gauge') {
         s.axisLine = { ...(s.axisLine || {}) };
@@ -3527,6 +3533,18 @@
   /* 象限底色的徑向漸層（2026-09-24 取代第 5 批的三圈硬邊色塊）：[深色, 淺色] × [圓心, 半圈虛線, 外圈虛線, 盤緣]。
      中間兩個錨點取第 5 批三圈的中間值，讀起來的「深淺」跟三圈版一致，只是變成平順過渡。*/
   const ROT_GRAD_A = [[.02, .10, .17, .24], [.015, .08, .14, .21]];
+  /* ★ 2026-09-24 晚（Andy 給了參考檔「原站風格雷達 × 淡淡掃描特效」：「足跡輪盤依據我提供的內容進行參考改版」；
+       CEO 更正：「並非全部照抄，而是風格樣貌大致那樣，你自己要注意原來既有功能配置」；
+       另一條：「手機部分先暫停，等電腦版OK在執行」）。
+     所以這一版的新長相**只在桌機（視窗 > 820px）**：手機照舊是上一版（水滴點、細刻度、鞋印），版面與編號模式都不動。
+     參考檔取的是**長相**：象限色塊濃一點（它是 .42～.45 的深色調，換算到我們的階段色約等於 .22 的平塗）、
+     三圈虛線、十字軸、盤緣 72 刻羅盤刻度、深底＋象限色框的膠囊徽章、淡淡的旋轉掃描、掃到的點冒一圈聲納、
+     前掌＋腳跟的幾何小腳印、點＝發光核心＋1px 白外圈、名字寫成點右側的小膠囊。
+     它的版面（頂列、全螢幕 canvas、底部說明）不搬 —— 我們的篩選、時間軸、即時、面板、放大全部照舊。
+     象限底色仍然保留「離圓心越遠越濃」的徑向漸層（Andy 同一天稍早要的「分層需要漸層」），
+     只是整體拉到參考檔的濃度：圓心 .12 → 盤緣 .27（淺色主題 .07 → .18，淺底上同樣的 α 會顯得重很多）。*/
+  const ROT_GRAD_V2 = [[.12, .17, .22, .27], [.07, .10, .14, .18]];
+  const rotDesk = () => { try { return !window.matchMedia('(max-width:820px)').matches; } catch (e) { return true; } };
   const rotNum = {};                   // 圖表 id → 這一輪是不是編號模式
   /* 白字／深字寫在點裡夠不夠清楚（≥ 4.5:1）。點的顏色是 mixHex 混出來的 #rrggbb；
      靠圓心的點被調淡過，白字常常不夠 —— 那種就換深字，兩種都不夠就寫在點外面。*/
@@ -3695,7 +3713,9 @@
     if (!W || !H) return out;
     const si = (c.getOption().series || []).findIndex(x => x.type === 'scatter');
     if (si < 0) return out;
-    const PAD = 4, LH = LBL_FS + 5;
+    /* 桌機的名字是膠囊（上下 2、左右 5 的內距 ＋ 1px 邊），佔的框比純文字大一圈；排版要用真正的大小才不會疊。*/
+    const cap = rotDesk();
+    const PAD = 4, LH = LBL_FS + (cap ? 9 : 5);
     const px = [];
     pts.forEach((r, i) => {
       let q;
@@ -3724,7 +3744,8 @@
     const tryAt = (p, w, h, gaps, strictDots) => {
       const out0 = Math.atan2(p.y - cy, p.x - cx);
       // 先試水平兩側（中文橫寫，左右擺最不擋），再往外側一路轉
-      const dirs = [p.x >= cx ? 0 : Math.PI, p.x >= cx ? Math.PI : 0, out0];
+      // 桌機照參考檔先試右側（名字膠囊掛在點的右邊），再試左側與外側
+      const dirs = cap ? [0, Math.PI, out0] : [p.x >= cx ? 0 : Math.PI, p.x >= cx ? Math.PI : 0, out0];
       for (let k = 1; k <= 6; k++) { dirs.push(out0 + k * Math.PI / 6); dirs.push(out0 - k * Math.PI / 6); }
       for (const gap of gaps) {
         for (const t of dirs) {
@@ -3745,7 +3766,7 @@
       out[p.i] = { side: 'num', x: a.x + a.w / 2, y: a.y + a.h / 2, px: p.x, py: p.y,
         inside: false, ink: null, lead, ex, ey, rect: { x: a.x, y: a.y, w: a.w, h: a.h, name: p.name } };
     };
-    const wOf = (p) => Math.ceil(hmTextW(p.name, LBL_FS) * (p.f ? 1.06 : 1)) + 6;
+    const wOf = (p) => Math.ceil(hmTextW(p.name, LBL_FS) * (p.f ? 1.06 : 1)) + (cap ? 14 : 6);
     // ① 焦點（依佔比；pts 本來就照佔比排、個股在後）
     const left = [];
     px.filter(p => p.f).forEach(p => {
@@ -3873,6 +3894,10 @@
     if (compact || id === 'rotClockMini' || reduce) return false;
     return !!ROT.ripple;
   }
+  function rotScanOn(id, compact, reduce) {
+    if (compact || id === 'rotClockMini' || reduce || !rotDesk()) return false;
+    return !!ROT.scan;
+  }
   function rotRipple(el, top, geo, sameShape, on, isF) {
     if (!el) return;
     const S = el._rip || (el._rip = { prev: {}, last: {}, list: [], spawned: 0, raf: 0 });
@@ -3903,8 +3928,25 @@
     S.prev = next;
     if (!on) S.list = [];
     if (S.list.length > RIP_MAX) S.list = S.list.slice(S.list.length - RIP_MAX);
+    rotFxKick(el);
+  }
+
+  /* ================================================================ 掃描光束＋聲納（2026-09-24 晚，桌機）
+     Andy 放進參考檔的「淡淡的雷達掃描」：一道 45° 的扇形拖尾（最亮 12%）＋ 一條細射線，繞著盤心勻速轉（約 6 秒一圈），
+     只畫在盤內；掃到族群點的那一刻，那顆點冒一圈往外擴的聲納環（約 0.5 秒）、核心閃一下白。
+     和水波畫在**同一張**疊層 canvas、同一個 rAF 迴圈（兩個迴圈搶著清同一張畫布會閃）。
+     · 關得掉：工具列「掃描」勾選框（tw.rot.scan，預設開）；手機（≤820px）、總覽小時鐘、系統「減少動態效果」一律不掃。
+     · 不在畫面上就不轉：IntersectionObserver 看不到這張圖（捲走、切到別頁、分頁在背景）就停掉迴圈，看得到才接著轉 ——
+       一直轉的東西不能在看不到的時候還吃 CPU。
+     · 每一幀**不讀 getComputedStyle**（參考檔的毛病之一）：顏色在設定時從 CH 拿一次；盤的幾何用 clientWidth/Height 算，
+       和 polar 的設定同一個公式（center 50%／52%、radius 84%／66% × min(寬,高)/2）。
+     · 點的像素位置每一幀從 ECharts 的圖形元素讀（回放時點正在補間，用「目標位置」的話聲納會冒在點的前面）。*/
+  const SCAN_W = 1.08;                 // 角速度（弧度／秒）：參考檔每幀 0.018 × 60fps
+  const SCAN_SPAN = Math.PI / 4;       // 拖尾 45°
+  const PING_LIFE = 520;
+  const rotFxEls = new Set();
+  function rotFxCanvas(el) {
     let cv = el.querySelector(':scope > canvas.rotripple');
-    if (!S.list.length) { if (cv) { const g = cv.getContext('2d'); g && g.clearRect(0, 0, cv.width, cv.height); } return; }
     if (!cv) {
       cv = document.createElement('canvas');
       cv.className = 'rotripple';
@@ -3912,29 +3954,129 @@
       if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
       el.appendChild(cv);
     }
-    if (S.raf) return;
-    const tick = () => {
-      S.raf = 0;
-      if (!cv.isConnected) { S.list = []; return; }
-      const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
-      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-      const g = cv.getContext('2d'); if (!g) return;
-      g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.clearRect(0, 0, W, H);
-      const t = performance.now();
-      S.list = S.list.filter(x => t - x.t0 < RIP_LIFE);
-      S.list.forEach(x => {
-        const age = t - x.t0; if (age < 0) return;
-        const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
-        g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
-        g.strokeStyle = x.col;
-        g.lineWidth = 1.8 * (1 - u) + 0.5;
-        g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
-      });
-      g.globalAlpha = 1;
-      if (S.list.length) S.raf = requestAnimationFrame(tick); else g.clearRect(0, 0, W, H);
-    };
-    S.raf = requestAnimationFrame(tick);
+    return cv;
+  }
+  function rotFxKick(el) {
+    const F = el._fx || (el._fx = { raf: 0, ang: -Math.PI / 2, last: 0, pings: [], vis: true, scan: false, n: 0 });
+    if (!F.raf) F.raf = requestAnimationFrame((t) => rotFxTick(el, t));
+  }
+  function rotFxScan(el, on, compact) {
+    if (!el) return;
+    rotFxKick(el);
+    const F = el._fx;
+    F.scan = !!on; F.compact = !!compact;
+    F.col = CH.cyan; F.lt = theme() === 'light';
+    if (!on) F.pings = [];
+    if (on && !F.io && typeof IntersectionObserver !== 'undefined') {
+      F.io = new IntersectionObserver((es) => { es.forEach(e => { F.vis = e.isIntersecting; }); if (F.vis) rotFxKick(el); });
+      F.io.observe(el);
+    }
+    rotFxEls.add(el);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) rotFxEls.forEach(e => { if (e.isConnected) rotFxKick(e); }); });
+  // 族群點現在畫在哪裡（像素）：讀 ECharts 的圖形元素，補間中的點也拿得到「此刻」的位置
+  function rotFxDots(el) {
+    const out = [];
+    try {
+      const c = window.echarts && echarts.getInstanceByDom(el); if (!c || c.isDisposed()) return out;
+      const sm = c.getModel().getSeriesByName('族群')[0]; if (!sm) return out;
+      const d = sm.getData();
+      for (let i = 0; i < d.count(); i++) {
+        const g = d.getItemGraphicEl(i); const raw = d.getRawDataItem(i);
+        if (!g || !raw || !raw.row) continue;
+        const op = raw.itemStyle && raw.itemStyle.opacity != null ? raw.itemStyle.opacity : 1;
+        if (op < .3) continue;           // 被壓暗的（別人被點亮時）不冒聲納
+        out.push({ x: g.x, y: g.y, r0: (raw.row.sz || 10) / 2, col: STAGE[raw.row.stage] ? STAGE[raw.row.stage].color : CH.cyan, key: raw.row.gid });
+      }
+    } catch (e) { /* 圖還沒畫好：這一幀就不冒 */ }
+    return out;
+  }
+  function rotFxTick(el, t) {
+    const F = el._fx; F.raf = 0;
+    const S = el._rip;
+    if (!el.isConnected) { if (S) S.list = []; F.pings = []; rotFxEls.delete(el); return; }
+    const scanning = F.scan && F.vis !== false && !document.hidden;
+    if (S) S.list = S.list.filter(x => t - x.t0 < RIP_LIFE);
+    F.pings = F.pings.filter(x => t - x.t0 < PING_LIFE);
+    const busy = scanning || (S && S.list.length) || F.pings.length;
+    let cv = el.querySelector(':scope > canvas.rotripple');
+    if (!busy) {
+      if (cv) { const g0 = cv.getContext('2d'); g0 && g0.clearRect(0, 0, cv.width, cv.height); }
+      F.last = 0;
+      return;
+    }
+    cv = rotFxCanvas(el);
+    const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
+    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+    const g = cv.getContext('2d'); if (!g) return;
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, W, H);
+    if (scanning && W && H) {
+      const cx = W / 2, cy = H * (F.compact ? .52 : .5), R = (F.compact ? .66 : .84) * Math.min(W, H) / 2;
+      const dt = F.last ? Math.min(64, t - F.last) : 16;
+      const prev = F.ang;
+      F.ang = (F.ang + SCAN_W * dt / 1000) % (Math.PI * 2);
+      F.n++;
+      g.save();
+      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.clip();
+      const a0 = F.lt ? .10 : .12;
+      if (g.createConicGradient) {
+        const gr = g.createConicGradient(F.ang - SCAN_SPAN, cx, cy);
+        const f = SCAN_SPAN / (Math.PI * 2);
+        gr.addColorStop(0, hexA(F.col, 0));
+        gr.addColorStop(f, hexA(F.col, a0));
+        gr.addColorStop(Math.min(1, f + .001), hexA(F.col, 0));
+        gr.addColorStop(1, hexA(F.col, 0));
+        g.fillStyle = gr; g.fillRect(cx - R, cy - R, R * 2, R * 2);
+      } else {                           // 舊瀏覽器沒有錐形漸層：退成一塊很淡的扇形
+        g.fillStyle = hexA(F.col, a0 / 2);
+        g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, F.ang - SCAN_SPAN, F.ang); g.closePath(); g.fill();
+      }
+      g.strokeStyle = F.lt ? hexA(F.col, .55) : 'rgba(215,250,255,.45)';
+      g.lineWidth = 1.2;
+      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(F.ang) * R, cy + Math.sin(F.ang) * R); g.stroke();
+      g.restore();
+      // 這一幀掃過的角度區間 (prev, ang]：掃到的點冒聲納
+      const TAU = Math.PI * 2, sweep = ((F.ang - prev) % TAU + TAU) % TAU;
+      if (sweep > 0 && sweep < 1) {
+        rotFxDots(el).forEach(d => {
+          if (Math.hypot(d.x - cx, d.y - cy) > R) return;
+          const a = ((Math.atan2(d.y - cy, d.x - cx) - prev) % TAU + TAU) % TAU;
+          if (a > 0 && a <= sweep && !F.pings.some(p => p.key === d.key)) F.pings.push({ ...d, t0: t });
+        });
+      }
+    }
+    F.last = scanning ? t : 0;
+    // 聲納：一圈往外擴的細環 ＋ 核心閃一下白（參考檔：環 4 → 18px、透明度 .7 起淡出）
+    F.pings.forEach(x => {
+      const u = (t - x.t0) / PING_LIFE; if (u < 0) return;
+      const e = 1 - Math.pow(1 - u, 2);
+      g.globalAlpha = .7 * (1 - u);
+      g.strokeStyle = x.col; g.lineWidth = 1.2;
+      g.beginPath(); g.arc(x.x, x.y, x.r0 + 1 + e * 14, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = .8 * Math.pow(1 - u, 2);
+      g.fillStyle = '#ffffff';
+      g.beginPath(); g.arc(x.x, x.y, Math.max(1.5, x.r0 * .5), 0, Math.PI * 2); g.fill();
+    });
+    // 水波（點移動時）
+    if (S) S.list.forEach(x => {
+      const age = t - x.t0; if (age < 0) return;
+      const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
+      g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
+      g.strokeStyle = x.col;
+      g.lineWidth = 1.8 * (1 - u) + 0.5;
+      g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
+    });
+    g.globalAlpha = 1;
+    F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2));
+  }
+  // 驗收用：掃描有沒有在轉、轉了幾幀、目前角度、活著幾圈聲納
+  function rotScanState(id) {
+    const el = document.getElementById(id || 'rotClock');
+    const F = el && el._fx;
+    return { on: !!(F && F.scan), pref: !!ROT.scan, running: !!(F && F.raf), frames: F ? F.n : 0,
+      ang: F ? +F.ang.toFixed(3) : null, pings: F ? F.pings.length : 0,
+      canvas: !!(el && el.querySelector(':scope > canvas.rotripple')) };
   }
   // 驗收用：這張時鐘現在活著幾圈、累計冒過幾次、每一圈在哪裡（像素，相對於圖表容器）
   function rotRippleState(id) {
@@ -4189,7 +4331,8 @@
       const marks = [];
       for (let i = Math.floor(iEnd) - 5; i >= i0; i -= 5) marks.push(pos(t[i][1], t[i][2]));
       // 最後一步才取模：ECharts 的 angleAxis 是 0~360，連續角度餵進去會被畫到盤外
-      return { pts: resample(dense, TRAIL_PTS).map(p => [p[0], ((p[1] % 360) + 360) % 360]), marks };
+      // days＝這一段實際走了幾天（桌機的腳印「約每 2 天一步」用它算間距）
+      return { pts: resample(dense, TRAIL_PTS).map(p => [p[0], ((p[1] % 360) + 360) % 360]), marks, days: way.length - 1 };
     };
     /* A4 第 6 條（Andy：「越外圈顏色越深」）。
        做法是把族群色**往面板底色調淡**，離圓心越近調得越淡、越外圈越接近原色。
@@ -4210,6 +4353,7 @@
     /* ---------------- 設計系統 v2 第 5 批（規格 §3.2；常數與理由在 ROT_FOCUS_MAX 那一段）---------------- */
     const lt = theme() === 'light';
     let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 舊瀏覽器 */ }
+    const v2 = rotDesk();                // 桌機＝參考檔的長相（見 ROT_GRAD_V2 上面那段）；手機照舊
     // 軌跡畫哪幾個：focus（預設，只畫焦點族群）｜all（原本的畫法）｜off
     const tmode = !trailOn ? 'off' : (opts.tmode === 'all' ? 'all' : 'focus');
     /* ★ 2026-09-24（Andy：「由於族群比較多 怕彼此之間會覆蓋到對方，所以圓圈幫我再縮小」）：
@@ -4272,8 +4416,19 @@
         + `C${P(-3, 14)} ${P(-2.2, 12.5)} ${P(-2.4, 10.5)}`
         + `C${P(-2.6, 8.5)} ${P(-2.8, 7)} ${P(-3, 4)}Z`;
     };
-    const FOOT_L = 'path://' + FOOT(6.5, true), FOOT_R = 'path://' + FOOT(17.5, false);
-    const FOOT_GAP = 13;                 // 相鄰兩個腳印在畫面上相隔幾 px
+    const FOOT_L0 = 'path://' + FOOT(6.5, true), FOOT_R0 = 'path://' + FOOT(17.5, false);
+    /* 桌機：參考檔的幾何小腳印 —— 前掌一個橢圓（長 6.4、寬 3.6）＋ 腳跟一個小橢圓（長 3.6、寬 2.8），
+       左右腳各往外偏 2.2（一左一右走在路的兩側）。一樣是腳尖朝上畫、用 symbolRotate 轉到前進方向。
+       橢圓用四段三次貝茲近似（k＝0.5523），外框角落放兩個零面積的點把 13×13 的框撐住，左右偏移才不會被 ECharts 撐掉。*/
+    const ELL = (x, y, rx, ry) => { const k = 0.5523, f = (v) => +v.toFixed(2);
+      return `M${f(x + rx)},${f(y)}C${f(x + rx)},${f(y + k * ry)} ${f(x + k * rx)},${f(y + ry)} ${f(x)},${f(y + ry)}`
+        + `C${f(x - k * rx)},${f(y + ry)} ${f(x - rx)},${f(y + k * ry)} ${f(x - rx)},${f(y)}`
+        + `C${f(x - rx)},${f(y - k * ry)} ${f(x - k * rx)},${f(y - ry)} ${f(x)},${f(y - ry)}`
+        + `C${f(x + k * rx)},${f(y - ry)} ${f(x + rx)},${f(y - k * ry)} ${f(x + rx)},${f(y)}Z`; };
+    const FOOT2 = (lat) => 'path://M-6.5,-6.5L-6.49,-6.5M6.5,6.5L6.49,6.5'
+      + ELL(lat, -2.8, 1.8, 3.2) + ELL(lat, 2.5, 1.4, 1.8);
+    const FOOT_L = v2 ? FOOT2(-2.2) : FOOT_L0, FOOT_R = v2 ? FOOT2(2.2) : FOOT_R0;
+    const FOOT_GAP = 13;                 // 相鄰兩個腳印在畫面上相隔幾 px（手機；桌機見 trailDeco 裡的 gap）
     const trailDeco = (r, tf, col) => {
       const pts = tf.pts, n = pts.length;
       if (!n) return [];
@@ -4285,16 +4440,22 @@
       const total = cum[n - 1];
       if (total < 4) return out;         // 幾乎沒走：沒有腳印可畫
       const skip = r.sz / 2 + 3;         // 點本身蓋住的那一段不放
-      const hiA = r.isStock ? .6 : .95, loA = r.isStock ? .12 : .18;
+      /* 桌機照參考檔：大約「每 2 天一步」—— 這段期間走了 N 天就放 N/2 個腳印，平均攤在走過的路上；
+         但相鄰兩個至少隔 9px（路很短的族群擠成一團時，腳印會疊成一坨，那比少畫幾個更難讀）。
+         透明度 .15 → .85、越新越大一點（參考檔的 age 規則）。手機照舊：每 13px 一個、.18 → .95。*/
+      const days = Math.max(2, Math.round(tf.days || 20));
+      const gap = v2 ? Math.max(9, (total - skip) / Math.max(1, Math.floor(days / 2))) : FOOT_GAP;
+      const hiA = r.isStock ? .6 : (v2 ? .85 : .95), loA = r.isStock ? .12 : (v2 ? .15 : .18);
       let foot = 0;
-      for (let want = total - skip; want >= 0; want -= FOOT_GAP) {
+      for (let want = total - skip; want >= 0; want -= gap) {
         let k = n - 1; while (k > 0 && cum[k] > want) k--;
         if (!Array.isArray(out[k])) continue;     // 同一個點已經放過腳印（路很短時會撞到）
         const a = xy[Math.max(0, k - 2)], b = xy[Math.min(n - 1, k + 2)];
         if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.5) continue;
         const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
         const u = total > 0 ? cum[k] / total : 1;  // 0＝最舊、1＝最新
-        out[k] = { value: pts[k], symbol: foot % 2 ? FOOT_L : FOOT_R, symbolSize: [14, 12], symbolKeepAspect: true,
+        const fsz = v2 ? +(13 * (0.76 + 0.3 * u)).toFixed(1) : null;   // 桌機：越新越大（9.9 → 13.8px 的框，腳本身約 8～11px）
+        out[k] = { value: pts[k], symbol: foot % 2 ? FOOT_L : FOOT_R, symbolSize: v2 ? [fsz, fsz] : [14, 12], symbolKeepAspect: true,
           // 腳印的路徑是腳尖朝上畫的；ECharts 的 symbolRotate 正值＝逆時針，所以轉 (方向 − 90°)
           symbolRotate: ang - 90, foot: foot % 2 ? 'L' : 'R',
           itemStyle: { color: hexA(col, loA + (hiA - loA) * u), borderWidth: 0 } };
@@ -4391,8 +4552,10 @@
             baseOp: op,                                   // highlightClock 還原時回到這個值（不是一律 1）
             symbolSize: 0, data: trailDeco(r, tf, col), z: 2,
             itemStyle: { color: hexA(col, .9), opacity: op },
-            // 線本身不畫（寬 0）：路徑改由上面那串腳印表示；opacity 仍然留著，highlightClock 與驗收都讀它
-            lineStyle: { color: hexA(col, .5), width: 0, opacity: op },
+            /* 手機：線本身不畫（寬 0），路徑只由腳印表示。
+               桌機：照參考檔在腳印底下留一條 1.2px、25% 的極淡細線 —— 腳印是「一步一步」，細線把步與步串成一條路，
+               族群多的時候比較看得出哪一串腳印屬於哪一顆點。opacity 仍然留著，highlightClock 與驗收都讀它。*/
+            lineStyle: { color: hexA(col, v2 ? .25 : .5), width: v2 ? 1.2 : 0, opacity: op },
           };
         }),
         /* ★ 盤中即時的主角：那條「上一個收盤 → 現在」的箭頭。
@@ -4491,7 +4654,7 @@
             const cs = params.coordSys; if (!cs || !cs.r) return null;
             const s = CLOCK_SECTOR[api.value(0)];
             if (!s) return null;
-            const R = cs.r, A = ROT_GRAD_A[lt ? 1 : 0], col = STAGE[s.k].color;
+            const R = cs.r, A = (v2 ? ROT_GRAD_V2 : ROT_GRAD_A)[lt ? 1 : 0], col = STAGE[s.k].color;
             const f = (v) => Math.max(0, Math.min(1, v / axisMax));
             // zrender 的扇形角度：弧度、從 +x 起算、畫面上順時針為正；時鐘是逆時針 → 起訖都取負號
             return { type: 'sector', silent: true,
@@ -4523,6 +4686,30 @@
             const R = cs.r, k = R / axisMax, cx = cs.cx, cy = cs.cy;
             const st = (a, dash) => ({ fill: 'none', stroke: hexA(CH.ink3, a), lineWidth: 1, ...(dash ? { lineDash: dash } : {}) });
             const kids = [];
+            if (v2) {
+              /* 桌機（參考檔的盤面）：
+                   · 三圈虛線（4,4）：今天最大偏離的一半／今天偏離最大的那個族群／盤緣 ——
+                     參考檔是 0.35／0.68／1.0，我們的兩圈是「有意思的那兩圈」（約 0.40／0.80，「怎麼看 ?」講的就是它們），
+                     位置不改成參考檔的比例：改了那兩圈就不再代表任何數字。
+                   · 十字軸：實線、極淡
+                   · 盤緣 72 刻（每 5°）：30° 主刻 7px、15° 中刻 5px、其餘 3px，由濃到淡
+                 參考檔沒有的「放射狀細線」「三圈距離環」「圓心小點」這一版拿掉（參考檔的盤面比較乾淨）。
+                 顏色一律從 CH 拿（深色主題近白、淺色主題近黑），不寫死白色 —— 淺色主題下白線會整個看不見。*/
+              const ink = lt ? CH.ink : '#ffffff';
+              const sv = (a, dash) => ({ fill: 'none', stroke: hexA(ink, a), lineWidth: 1, ...(dash ? { lineDash: dash } : {}) });
+              kids.push({ type: 'circle', shape: { cx, cy, r: maxR / 2 * k }, style: sv(lt ? .16 : .12, [4, 4]) });
+              kids.push({ type: 'circle', shape: { cx, cy, r: maxR * k }, style: sv(lt ? .18 : .14, [4, 4]) });
+              kids.push({ type: 'circle', shape: { cx, cy, r: R - 0.5 }, style: sv(lt ? .30 : .25, [4, 4]) });
+              kids.push({ type: 'line', shape: { x1: cx - R, y1: cy, x2: cx + R, y2: cy }, style: sv(lt ? .16 : .12) });
+              kids.push({ type: 'line', shape: { x1: cx, y1: cy - R, x2: cx, y2: cy + R }, style: sv(lt ? .16 : .12) });
+              for (let i = 0; i < 72; i++) {
+                const t = i * 5 * Math.PI / 180, major = i % 6 === 0, mid = i % 3 === 0;
+                const len = major ? 7 : mid ? 5 : 3;
+                kids.push({ type: 'line', shape: { x1: cx + Math.cos(t) * (R - len), y1: cy - Math.sin(t) * (R - len), x2: cx + Math.cos(t) * R, y2: cy - Math.sin(t) * R },
+                  style: { stroke: hexA(ink, major ? (lt ? .5 : .45) : mid ? (lt ? .28 : .22) : (lt ? .12 : .08)), lineWidth: major ? 1.5 : 1 } });
+              }
+              return { type: 'group', silent: true, children: kids };
+            }
             // 距離環（極淡）
             [0.25, 0.5, 0.75].forEach(f => kids.push({ type: 'circle', shape: { cx, cy, r: R * f }, style: st(lt ? .14 : .12) }));
             // 放射狀刻度（每 30°，避開十字線那四條）
@@ -4569,7 +4756,13 @@
           data: top.slice(0, nG).map(r => {
             const f = isF(r);
             return { value: [r.p[0], r.p[1]], row: r, num: r.num, baseOp: f ? 1 : .7,
-              itemStyle: { color: rotDrop(r.dotCol), borderColor: hexA(CH.panel, .92), borderWidth: f ? 2 : 1.5, opacity: f ? 1 : .7 },
+              /* 桌機（參考檔）：發光核心＋1px 白外圈 —— 實心的階段深淺色（離圓心越遠越濃那條規則不變）、
+                 shadowBlur 6 的同色微光（參考檔寫「微螢光控制在 6px 內」），外面一圈 1px 近白細邊。
+                 手機照舊是水滴（徑向高光）。*/
+              itemStyle: v2
+                ? { color: r.dotCol, borderColor: lt ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.85)', borderWidth: 1,
+                    shadowBlur: 6, shadowColor: hexA(STAGE[r.stage].color, lt ? .45 : .7), opacity: f ? 1 : .7 }
+                : { color: rotDrop(r.dotCol), borderColor: hexA(CH.panel, .92), borderWidth: f ? 2 : 1.5, opacity: f ? 1 : .7 },
               // 左半邊的點把名字放左邊、右半邊放右邊，字才不會全部擠在同一側疊住
               label: { position: r.p[1] > 95 && r.p[1] < 265 ? 'left' : 'right',
                 color: f ? CH.ink : CH.ink3, fontWeight: f ? 700 : 400 } };
@@ -4578,6 +4771,11 @@
           label: { show: !compact, distance: 7, color: CH.ink2, fontSize: LBL_FS,
             // 描邊用面板底色，深淺主題都要跟著換（以前寫死 '#0b0f1a'，淺色主題下是黑邊白底）
             textBorderColor: CH.panel, textBorderWidth: 3,
+            /* 桌機（參考檔的「行內名稱膠囊」）：名字寫在一顆深底圓角小膠囊裡、1px 淡邊，貼在點旁邊（優先右側）。
+               膠囊本身就把字跟底下的色塊隔開了，所以不再描邊。編號模式（手機）照舊。*/
+            ...(v2 && !numMode ? { backgroundColor: lt ? 'rgba(255,255,255,.92)' : 'rgba(7,19,34,.88)',
+              borderColor: lt ? hexA(CH.ink, .14) : 'rgba(255,255,255,.12)', borderWidth: 1, borderRadius: 4,
+              padding: [2, 5], textBorderWidth: 0 } : {}),
             formatter: (q) => (rotNum[id] ? String(q.data.num) : q.data.row.name) },
           labelLine: { show: !compact, lineStyle: { color: hexA(CH.ink3, .55), width: 1 } },
           /* ★ 不要用 labelLayout: { hideOverlap: true }。
@@ -4603,6 +4801,9 @@
           symbolSize: (v, q) => q.data.row.sz,
           label: { show: !compact, distance: 7, color: CH.ink3, fontSize: LBL_FS,
             textBorderColor: CH.panel, textBorderWidth: 3,
+            ...(v2 && !numMode ? { backgroundColor: lt ? 'rgba(255,255,255,.92)' : 'rgba(7,19,34,.88)',
+              borderColor: lt ? hexA(CH.ink, .14) : 'rgba(255,255,255,.12)', borderWidth: 1, borderRadius: 4,
+              padding: [2, 5], textBorderWidth: 0 } : {}),
             formatter: (q) => (rotNum[id] ? String(q.data.num) : (q.data.row.lbl || q.data.row.name)) },
           labelLine: { show: !compact, lineStyle: { color: hexA(CH.ink3, .45), width: 1, type: 'dashed' } },
           // 標籤位置查的是同一張表，索引要加上族群的筆數（見上面 `top` 的排序註解）
@@ -4656,6 +4857,7 @@
        幾何跟 polar 的設定一致（center 50%／52%、radius 84%／66% 的基準是 min(寬,高)/2）。*/
     rotRipple(el, top, { cx: (el.clientWidth || 0) / 2, cy: (el.clientHeight || 0) * (compact ? .52 : .5), k: pxU },
       sameShape, rotRippleOn(id, compact, reduce), isF);
+    rotFxScan(el, rotScanOn(id, compact, reduce), compact);
     el._hiGid = null;                  // 剛重畫完＝沒有任何一個被單獨亮起來（highlightClock 用它擋重複重畫）
     el._hovGid = null;                 // 滑鼠 hover 的狀態也一起歸零（下一次 mousemove 會重新判斷）
     /* 標籤排版要等圖畫完（要有像素座標才知道誰在左誰在右），
@@ -6354,6 +6556,9 @@
   // 水波開關（說明在 rotRipple 上面那段）：預設開，記在這台瀏覽器
   ROT.ripple = true;
   try { if (localStorage.getItem('tw.rot.ripple') === '0') ROT.ripple = false; } catch (e) { /* 私密視窗：用預設 */ }
+  // 掃描光束開關（說明在 rotFx 上面那段）：預設開，記在這台瀏覽器；手機（≤820px）與減少動態一律不掃
+  ROT.scan = true;
+  try { if (localStorage.getItem('tw.rot.scan') === '0') ROT.scan = false; } catch (e) { /* 私密視窗：用預設 */ }
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rankSubPaint = () => {};     // 排行副標「M/D ～ M/D」（即時開關時要換結尾那個日期，見 rlvStamp）
   let rotBackBar = null;           // #rotBack 那支 dayBar（N 天前 ＋ 回放）
@@ -6630,11 +6835,15 @@
     box.innerHTML = '<label class="rotchk" title="沿路畫出這段期間走過的小腳印：越新越清楚，最新那一步就是現在的點"><input type="checkbox" class="rot-trail"'
       + (ROT.trail ? ' checked' : '') + '>顯示腳印</label>'
       + '<label class="rotchk" title="點移動時（回放、即時更新）在出發的位置泛起水波紋；靜止時不會冒"><input type="checkbox" class="rot-ripple"'
-      + (ROT.ripple ? ' checked' : '') + '>水波</label>';
+      + (ROT.ripple ? ' checked' : '') + '>水波</label>'
+      /* 掃描：淡淡的雷達光束繞盤一圈、掃到的點冒一圈聲納（桌機才有；手機這一版不動，CSS 在 ≤820px 把它藏起來）*/
+      + '<label class="rotchk rot-scanlbl" title="淡淡的雷達掃描光束繞著盤轉，掃到的族群冒一圈聲納；系統開了「減少動態效果」時不會轉"><input type="checkbox" class="rot-scan"'
+      + (ROT.scan ? ' checked' : '') + '>掃描</label>';
     // 兩邊（卡片／放大視窗）的狀態要一致，所以一律同步全部的 .rot-trail／.rot-ripple
     const sync = () => {
       $$('.rot-trail').forEach(x => { x.checked = ROT.trail; });
       $$('.rot-ripple').forEach(x => { x.checked = ROT.ripple; });
+      $$('.rot-scan').forEach(x => { x.checked = ROT.scan; });
     };
     const c = $('.rot-trail', box);
     if (c) c.onchange = () => { ROT.trail = c.checked; sync(); redraw(); };
@@ -6645,6 +6854,15 @@
       sync();
       // 關掉時已經在擴散的那幾圈也一起收掉（不必等它自己淡出）
       if (!ROT.ripple) ['rotClock', 'zoomBody'].forEach(i => { const e2 = document.getElementById(i); if (e2 && e2._rip) { e2._rip.list = []; const cv = e2.querySelector(':scope > canvas.rotripple'); if (cv) { const g = cv.getContext('2d'); if (g) g.clearRect(0, 0, cv.width, cv.height); } } });
+    };
+    const sc = $('.rot-scan', box);
+    if (sc) sc.onchange = () => {
+      ROT.scan = sc.checked;
+      try { localStorage.setItem('tw.rot.scan', ROT.scan ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
+      sync();
+      // 不必整張重畫：只切疊層的開關（開→迴圈接著轉；關→下一幀自己清掉）
+      let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 舊瀏覽器 */ }
+      ['rotClock', 'zoomBody'].forEach(i => { const e2 = document.getElementById(i); if (e2 && e2._fx) rotFxScan(e2, rotScanOn(i, false, reduce), false); });
     };
     sync();
   }
@@ -9246,6 +9464,7 @@
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
       sankeyDots: () => (sankeyFx ? sankeyFx.dots.map(d => [d.x, d.y, d.lvl]) : []),
       rotRipple: rotRippleState,           // 水波（2026-09-24）：活著幾圈、累計冒過幾次、在哪裡
+      rotScan: rotScanState,               // 掃描（2026-09-24 晚）：有沒有在轉、轉了幾幀、聲納冒了幾圈
       /* 足跡輪盤的回放（2026-09-24）：跟 ▶ 播放每一步走的是同一支（dayBar.seek → rotSeek），
          給驗收用來「停在第 k 天前」—— 等於按 ▶ 之後在那一天按 ⏸。回傳現在停在第幾天前。*/
       rotReplay: (k) => {

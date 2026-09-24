@@ -10985,6 +10985,8 @@ SECTIONS = {
     "圖表圓滑化":          lambda pg, b, base, code: t_soften(pg, base),
     "時鐘水波":            lambda pg, b, base, code: t_ripple(pg, b, base),
     "足跡輪盤":            lambda pg, b, base, code: t_footprint(pg, b, base),
+    "掃描光束":            lambda pg, b, base, code: t_scan(pg, b, base),
+    "足跡輪盤既有功能":    lambda pg, b, base, code: t_rot_keep(pg, b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -20836,7 +20838,9 @@ def t_b29_tabs(pg, base):
            [(t["text"], len(t["full"])) for t in w4])
 
     # ---- W3-1：剖析圖的設定列在圖的右**上**角（節流機制照留，所以要等它收斂）
-    pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); } catch (e) {} }")
+    # ★ 2026-09-24：一併把動畫偏好歸回「開」（tw.dganim）。前面的段落（題材／零件誰做的…）會把它留在「關」，
+    #   下面「按一下 → 字換成關」就變成「按一下 → 字換成開」而假紅 —— main 3748ade 同順序（新-產業與個股,題材,零件誰做的,批次29）一樣紅。
+    pg.evaluate("() => { try { localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.dg3d','0'); localStorage.setItem('tw.dganim','1'); } catch (e) {} }")
     pg.goto(f"{base}#industry/ai_server/dg/ai_server", wait_until="networkidle"); pg.wait_for_timeout(3600)
     t1 = pg.evaluate(CG_TOOLS)
     if ok("W3-1：找得到剖析圖的設定列", bool(t1) and t1.get("vis"), t1):
@@ -23203,11 +23207,15 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
       .map(d => ({ f: d.foot, rot: d.symbolRotate, sz: d.symbolSize,
                    a: +((String((d.itemStyle || {}).color || '').match(/,([\d.]+)\)$/) || [])[1] || 1) }))),
     lineW: Math.max(0, ...lines.map(s => ((s.lineStyle || {}).width) || 0)),
+    lineA: Math.max(0, ...vis.map(s => +((String((s.lineStyle || {}).color || '').match(/,([\d.]+)\)$/) || [])[1] || 1))),
     ringN: ring ? (ring.data || []).length : -1, movedN: moved ? (moved.data || []).length : -1,
     thinN: thin ? (thin.data || []).length : -1,
     splitArea: ((o.angleAxis[0] || {}).splitArea || {}).show,
     angSplit: ((o.angleAxis[0] || {}).splitLine || {}).show, radSplit: ((o.radiusAxis[0] || {}).splitLine || {}).show,
     glow: sc.data.filter(d => ((d.itemStyle || {}).shadowBlur || 0) > 0).length,
+    glowMax: Math.max(0, ...sc.data.map(d => ((d.itemStyle || {}).shadowBlur || 0))),
+    ringW: Math.max(0, ...sc.data.map(d => ((d.itemStyle || {}).borderWidth || 0))),
+    ringCol: [...new Set(sc.data.map(d => String((d.itemStyle || {}).borderColor || '')))],
     lblFs: ((sc.label || {}).fontSize) || 0,
     focusBold: sc.data.filter(d => (d.label || {}).fontWeight === 700).length,
     fr: (window.App && window.App._rotFrame) || null, anim: o.animation }; }"""
@@ -23301,7 +23309,10 @@ def t_clock_v2(pg, b, base):
         #   改後：線不畫（寬 0），改成一串左右交錯、腳尖朝前進方向、越舊越淡的小腳印
         feet = [f for f in s["feet"] if f]
         allf = [x for f in feet for x in f]
-        ok(f"[{th}] ② 線本身不畫了（寬 0），軌跡改由腳印表示", s["lineW"] == 0, s["lineW"])
+        # ★ 2026-09-24 晚（Andy 參考檔）：桌機在腳印底下留一條極淡的細線（1.2px、25%），把一步一步串成一條路。
+        #   改前（同一天稍早）：寬 0 → 改後（桌機）：≤ 1.2px、α ≤ .3；手機仍然是 0（這一段跑在 1440）
+        ok(f"[{th}] ② 腳印底下只有一條極淡的細線（≤ 1.2px、透明度 ≤ .3；主角是腳印）",
+           0 < s["lineW"] <= 1.2 and s["lineA"] <= .3, [s["lineW"], s["lineA"]])
         ok(f"[{th}] ② 看得到的每一條軌跡都畫出了腳印（每條 ≥ 2 個）",
            len(feet) == s["vis"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
         ok(f"[{th}] ② 左右腳交錯（相鄰兩個腳印一左一右）",
@@ -23310,7 +23321,7 @@ def t_clock_v2(pg, b, base):
            len({round(x["rot"] or 0) for x in allf}) >= 3, sorted({round(x["rot"] or 0) for x in allf})[:8])
         ok(f"[{th}] ② 越舊越淡、越新越清楚（每一條最舊的比最新的淡）",
            all(f[0]["a"] < f[-1]["a"] for f in feet if len(f) >= 2), [(f[0]["a"], f[-1]["a"]) for f in feet][:3])
-        ok(f"[{th}] ② 腳印大小約 6～12px（不會大到蓋住別的點）",
+        ok(f"[{th}] ② 腳印的框約 10～14px、越新越大（參考檔：前掌＋腳跟兩個橢圓，腳本身約 8～11px）",
            all(isinstance(x["sz"], list) and max(x["sz"]) <= 14 and min(x["sz"]) >= 6 for x in allf), allf[:2])
         ok(f"[{th}] ② 舊的「三角箭頭」「每 5 天小點」都不在了（改成腳印，不是疊在一起）", s["arrows"] == 0 and s["marks"] == 0,
            {"箭頭": s["arrows"], "小點": s["marks"]})
@@ -23322,15 +23333,21 @@ def t_clock_v2(pg, b, base):
         grad = pg.evaluate(CLK_GRAD, "rotClock")
         ok(f"[{th}] ③ 底色真的是徑向漸層（每一塊的填色是 radial、4 個色標、由內到外越來越濃）",
            bool(grad) and grad["n"] == 4 and all(g["radial"] and g["stops"] == 4 and g["rising"] for g in grad["cells"]), grad)
-        ok(f"[{th}] ③ 細線真的是細的（全部 1px、低對比 ≤ .45）",
-           bool(grad) and grad["thin"] and all(w == 1 for w in grad["thin"]["w"]) and max(grad["thin"]["a"]) <= .45, grad and grad["thin"])
+        # ★ 2026-09-24 晚：盤緣 72 刻裡每 30° 的主刻是 1.5px（參考檔），其餘 1px。改前：全部 1px、≤ .45 → 改後：≤ 1.5px、≤ .5
+        ok(f"[{th}] ③ 細線真的是細的（刻度與虛線 ≤ 1.5px、低對比 ≤ .5）",
+           bool(grad) and grad["thin"] and all(w <= 1.5 for w in grad["thin"]["w"]) and max(grad["thin"]["a"]) <= .5, grad and grad["thin"])
         rg = pg.evaluate(CLK_RINGS, "rotClock")
         ok(f"[{th}] ③ 由內到外真的有層次：至少三個象限「內 < 中 < 外」（跟卡片底色的差距，canvas 取樣）", _clk_rings_ok(rg), rg)
         smooth = pg.evaluate(CLK_SMOOTH, "rotClock")
         ok(f"[{th}] ③ 是平順過渡不是台階：沿半徑取樣 22 點，相鄰兩點的差距都 ≤ 12（三圈硬邊版在交界處會一次跳 20～30）",
            bool(smooth) and smooth["maxStep"] <= 12 and smooth["span"] >= 12, smooth)
         # ④ 換段色環取代發光
-        ok(f"[{th}] ④ 沒有任何一顆點還在用 shadowBlur 發光", s["glow"] == 0, s["glow"])
+        # ★ 2026-09-24 晚（Andy 參考檔「點＝發光核心＋1px 白外圈」）：
+        #   改前：一顆都不准發光（v2 第 5 批把「剛換段」的 14px 光暈換成色環）
+        #   改後（桌機）：**每一顆**都有同樣 6px 的微光（不再拿光暈標「換段」—— 換段仍然是色環），外圈 1px 近白
+        ok(f"[{th}] ④ 每一顆點都是同樣的微光（shadowBlur ≤ 6，不是舊的 14px 大光暈；換段不靠發光）",
+           s["glow"] == s["n"] and s["glowMax"] <= 6, [s["glow"], s["n"], s["glowMax"]])
+        ok(f"[{th}] ④ 點的外圈是 1px 近白細邊", s["ringW"] == 1 and all("255,255,255" in c for c in s["ringCol"]), [s["ringW"], s["ringCol"]])
         ok(f"[{th}] ④ 換段色環的數量＝畫面上剛換段的族群數", s["movedN"] == fr.get("rings"), {"色環": s["movedN"], "換段": fr.get("rings")})
         # ⑤ 象限卡的「本週新進」
         nw = pg.evaluate("""() => [...document.querySelectorAll('#rotClock .rotquads .rq')].map(q => ({
@@ -23746,10 +23763,11 @@ def t_dismiss(pg, b, base, code):
 #   長條每一根都有圓角、而且圓在「長出去的那一端」（正值／負值、橫的／直的各自對）；堆疊只圓最外面那一段；
 #   圓餅有扇區圓角＋間隙；儀表圓頭；折線圓頭圓角、**但不准變 smooth**（週期統計今天剛改成直線段）。
 SOFT_SCAN = r"""() => { const out = { bar: [], pie: [], gauge: [], line: [], stack: [] };
-  const ids = Object.keys(App.charts || {});
-  const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
-  ids.forEach(id => { const c = App.charts[id]; if (!c || c.isDisposed()) return;
-    const el = c.getDom(); if (!el || !el.getClientRects().length) return;
+  /* ★ 2026-09-24 晚：改成掃**畫面上每一個 ECharts 實例**（DOM 上的 _echarts_instance_），不只 App.charts ——
+     產業地圖、個股各分頁的圖是用元素建的，不一定登記在 App.charts 裡，只掃登記的會漏掉（CEO：全站逐張列）。*/
+  const insts = [...document.querySelectorAll('[_echarts_instance_]')].map(el => [el.id || ((el.closest('[id]') || {}).id) || '?', echarts.getInstanceByDom(el)]);
+  insts.forEach(([id, c]) => { if (!c || c.isDisposed()) return;
+    const el = c.getDom(); if (!el || !el.getClientRects().length || el.clientWidth < 2) return;
     const o = c.getOption(); const ss = o.series || [];
     if (ss.some(s => s.type === 'candlestick')) return;
     const yCat = (s) => { const y = (o.yAxis || [])[s.yAxisIndex || 0]; return !!(y && y.type === 'category'); };
@@ -23776,8 +23794,10 @@ SOFT_SCAN = r"""() => { const out = { bar: [], pie: [], gauge: [], line: [], sta
             const fs = il.fontSize || lab.fontSize || 12;
             if (pos !== want || fs < 12) lbad.push({ k, v, pos, want, fs });
           } });
+        const d0 = (s.data || []).find(x => x != null);
         out.bar.push({ id, si, n, bad: bad.slice(0, 3), nbad: bad.length, lbad: lbad.slice(0, 3), nlbad: lbad.length,
-          lbl: !!lab.show, thick: thick.length ? [Math.min(...thick), Math.max(...thick)] : null });
+          lbl: !!lab.show, thick: thick.length ? [Math.min(...thick), Math.max(...thick)] : null,
+          r0: JSON.stringify(rad(s, d0)), pos0: ((d0 && d0.label) || {}).position || lab.position || null, h: yCat(s) });
       } else if (s.type === 'pie') {
         out.pie.push({ id, r: (s.itemStyle || {}).borderRadius, pad: s.padAngle, n: (s.data || []).length });
       } else if (s.type === 'gauge') {
@@ -23799,14 +23819,28 @@ SOFT_SCAN = r"""() => { const out = { bar: [], pie: [], gauge: [], line: [], sta
 def t_soften(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 950})
     seen = {"bar": 0, "pie": 0, "gauge": 0, "line": 0, "stack": 0}
-    for rt in ("overview", "flow", "industry", "market", "season", f"industry/semiconductor"):
-        pg.goto(f"{base}#{rt}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    listing = []                       # 逐張列：哪一頁、哪張圖、讀 getOption 的結果（寫進備註，回報要逐張列）
+    # ★ 2026-09-24 晚（Andy：「整個網頁，都需要改成我要求長條圖風格 圓餅圖風格」）：個股各分頁（營收／獲利／除權息／籌碼／基本資料）也掃
+    for rt in ("overview", "flow", "industry", "market", "season", "industry/semiconductor",
+               "stock/2330|revenue", "stock/2330|profit", "stock/2330|dividend", "stock/2330|chips", "stock/2330|basics"):
+        rt, _, tab = rt.partition("|")
+        pg.goto("about:blank"); pg.goto(f"{base}#{rt}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if tab:
+            pg.evaluate("(t) => { const b = document.querySelector('#stockTabs button[data-t=\"' + t + '\"]'); if (b) b.click(); }", tab)
+            pg.wait_for_timeout(1800)
+            rt = rt + "/" + tab
         # 往下捲一輪，讓懶載入的圖都畫出來
         pg.evaluate("async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); } window.scrollTo(0, 0); }")
         pg.wait_for_timeout(900)
         s = pg.evaluate(SOFT_SCAN)
         for k in seen:
             seen[k] += len(s[k])
+        for x in s["bar"]:
+            listing.append(f"#{rt} {x['id']}（{'橫' if x['h'] else '直'}）圓角 {x['r0']}、標籤 {x['pos0'] or ('無' if not x['lbl'] else '預設')}、厚 {x['thick']}")
+        for sk in sorted({x["id"] for x in s["stack"]}):
+            listing.append(f"#{rt} {sk}（堆疊）只圓最外段 {sum(1 for x in s['stack'] if x['id'] == sk and x['outer'] and x['has'])} 格")
+        for x in s["pie"]:
+            listing.append(f"#{rt} {x['id']}（圓餅）圓角 {x['r']}、縫 {x['pad']}")
         badbar = [x for x in s["bar"] if x["nbad"]]
         ok(f"[圓滑化 #{rt}] 每一根長條都是膠囊形（圓角 ≥ 畫出來厚度的一半，兩端全圓；{len(s['bar'])} 個 series）", not badbar, badbar[:3])
         lb = [x for x in s["bar"] if x["nlbad"]]
@@ -23828,6 +23862,7 @@ def t_soften(pg, base):
                [(x["name"], x["smooth"]) for x in s2["line"]][:4])
     ok("[圓滑化] 全站真的掃到了長條、圓餅、儀表、折線、堆疊各至少一個（不是空掃）",
        all(v > 0 for v in seen.values()), seen)
+    notes.append("圖表圓滑化逐張（讀 getOption）：\n      " + "\n      ".join(listing))
 
     # ---- 甜甜圈（Andy 參考圖一）：產業地圖「成交值占比」
     DONUT = """() => { const el = document.getElementById('gpPie'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
@@ -23955,11 +23990,22 @@ def t_ripple(pg, b, base):
     pg.click("#rotTools input.rot-ripple"); pg.wait_for_timeout(300)
     ok("⑤ 再打開 → 記回 '1'", pg.evaluate("() => localStorage.getItem('tw.rot.ripple')") == "1")
     rot_seek(pg, 0, 1500)
-    # ⑥ 水滴：族群點的填色是帶高光的徑向漸層
+    # ⑥ 點的長相。★ 2026-09-24 晚（Andy 參考檔「點＝發光核心＋1px 白外圈」，桌機）：
+    #   改前：水滴（帶高光的徑向漸層）→ 改後（桌機）：實心核心 ＋ 6px 同色微光 ＋ 1px 近白外圈；手機仍是水滴（下面 390 那段驗）
     drop = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-        const sc = c.getOption().series.find(s => s.type === 'scatter'); const f = sc.data[0].itemStyle.color;
-        return { type: f && f.type, stops: f && f.colorStops ? f.colorStops.length : 0, n: sc.data.filter(d => d.itemStyle.color && d.itemStyle.color.type === 'radial').length, all: sc.data.length }; }""")
-    ok("⑥ 族群點是水滴（每一顆都是帶高光的徑向漸層）", drop["type"] == "radial" and drop["n"] == drop["all"] and drop["stops"] >= 3, drop)
+        const sc = c.getOption().series.find(s => s.type === 'scatter');
+        return { solid: sc.data.filter(d => typeof d.itemStyle.color === 'string').length, all: sc.data.length,
+                 glow: sc.data.filter(d => (d.itemStyle.shadowBlur || 0) > 0 && d.itemStyle.shadowBlur <= 6).length,
+                 ring: sc.data.filter(d => d.itemStyle.borderWidth === 1 && /255,255,255/.test(d.itemStyle.borderColor)).length }; }""")
+    ok("⑥ [桌機] 每一顆點都是發光核心＋1px 白外圈", drop["solid"] == drop["all"] == drop["glow"] == drop["ring"] and drop["all"] > 0, drop)
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
+    drop2 = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        const sc = c.getOption().series.find(s => s.type === 'scatter');
+        return { radial: sc.data.filter(d => d.itemStyle.color && d.itemStyle.color.type === 'radial').length, all: sc.data.length }; }""")
+    ok("⑥ [手機 390] 點仍然是上一版的水滴（Andy：手機先暫停，這一批不動手機）", drop2["radial"] == drop2["all"] > 0, drop2)
+    m.close()
     # ⑦ 總覽的小時鐘：一律不冒（總覽 Andy 不要動畫）
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
     mini = _rip(pg, "rotClockMini")
@@ -24003,17 +24049,22 @@ def t_footprint(pg, b, base):
     pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2000)
     ok("① 放大視窗的標題也是「足跡輪盤」", text(pg, "#zoomTitle") == "足跡輪盤", text(pg, "#zoomTitle"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(1200)
-    # ② 雷達：同心細圓 ＋ 放射狀刻度 ＋ 外圈角度刻度 ＋ 圓心小點（全部靜態）
+    # ② 雷達盤面（★ 2026-09-24 晚改成 Andy 參考檔的盤面，桌機）：
+    #   改前：距離環 3 ＋ 兩圈虛線 ＋ 盤緣 ＝ 6 圈；放射狀細線 8 ＋ 每 10° 刻度 36 ＋ 十字 2；圓心小點 1
+    #   改後：三圈虛線（一半／最大偏離／盤緣）；十字 2 ＋ 盤緣 72 刻（30° 主刻 12 條 1.5px）；沒有圓心小點
+    #   盤面本身仍然是靜態的 —— 會轉的掃描光束畫在另一張疊層 canvas（「掃描光束」段驗它），不進 ECharts。
     rad = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
         const els = c.getZr().storage.getDisplayList(true).filter(e => e.z === 1);
-        return { circles: els.filter(e => e.type === 'circle' && e.style && e.style.fill === 'none').length,
-                 lines: els.filter(e => e.type === 'line').length,
+        const cir = els.filter(e => e.type === 'circle' && e.style && e.style.fill === 'none');
+        const ln = els.filter(e => e.type === 'line');
+        return { circles: cir.length, dashed: cir.filter(e => e.style.lineDash && e.style.lineDash.length).length,
+                 lines: ln.length, major: ln.filter(e => e.style.lineWidth === 1.5).length,
                  dot: els.filter(e => e.type === 'circle' && e.style && e.style.fill && e.style.fill !== 'none').length,
                  anim: els.some(e => e.animators && e.animators.length) }; }""")
-    ok("② 雷達的同心圓（距離環 3 ＋ 兩圈虛線 ＋ 盤緣 ＝ 6 圈）", rad["circles"] == 6, rad)
-    ok("② 放射狀刻度 ＋ 外圈角度刻度 ＋ 十字線（≥ 8 ＋ 36 ＋ 2 條）", rad["lines"] >= 46, rad)
-    ok("② 圓心一個小點", rad["dot"] == 1, rad)
-    ok("② 刻度全部是靜態的（沒有會一直轉的掃描線）", not rad["anim"], rad)
+    ok("② 三圈同心虛線（今天最大偏離的一半／最大偏離／盤緣）", rad["circles"] == 3 and rad["dashed"] == 3, rad)
+    ok("② 十字軸 ＋ 盤緣 72 刻羅盤刻度（= 74 條；30° 主刻 12 條較粗）", rad["lines"] == 74 and rad["major"] == 12, rad)
+    ok("② 參考檔沒有的圓心小點拿掉了", rad["dot"] == 0, rad)
+    ok("② 盤面刻度本身是靜態的（會轉的只有疊層上的掃描光束）", not rad["anim"], rad)
     # ③ 圓點縮小：6～14px；重疊對數（圓心距離 < 兩個半徑相加）
     ov = pg.evaluate(FP_OVERLAP)
     ok("③ 族群圓點縮成 6～14px（改前 9～26px）", ov["minSz"] >= 6 and ov["maxSz"] <= 14, ov)
@@ -24037,6 +24088,192 @@ def t_footprint(pg, b, base):
         fs: parseFloat(getComputedStyle(document.querySelector('#rotBack .val')).fontSize) })""")
     ok("⑤ [390] 沒有橫向捲軸、拉Bar 讀數 ≥ 12px", not st["side"] and st["fs"] >= 12, st)
     m.close()
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 足跡輪盤：掃描光束＋聲納（2026-09-24 晚，桌機）
+# Andy 的參考檔「原站風格雷達 × 淡淡掃描特效」；CEO：照做但做成「掃描 開／關」、減少動態效果時關、手機這一批不動。
+# 這一段真的操作：勾掉／勾回「掃描」、看疊層真的在轉（幀數增加、角度在變）、掃到點真的冒聲納、
+# 捲離畫面就停、減少動態效果不轉、手機與總覽小時鐘不轉，最後量播放＋掃描同時跑的幀率。
+def _scan(pg, cid="rotClock"):
+    return pg.evaluate("(id) => window.App.rotScan(id)", cid)
+
+
+def t_scan(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.rot.scan'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(600)
+    s0 = _scan(pg)
+    ok("① 工具列有「掃描」勾選框，預設打開", pg.evaluate("() => { const x = document.querySelector('#rotTools input.rot-scan'); return !!x && x.checked; }"))
+    ok("① 預設就在轉（疊層 canvas 存在、迴圈在跑）", s0["on"] and s0["running"] and s0["canvas"], s0)
+    pg.wait_for_timeout(700)
+    s1 = _scan(pg)
+    ok("① 真的在轉：0.7 秒內幀數增加、角度變了", s1["frames"] > s0["frames"] + 10 and s1["ang"] != s0["ang"], [s0, s1])
+    # 光束真的畫在盤內：取疊層 canvas 的像素，有不透明的像素、而且都在盤的圓內
+    px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const cv = el.querySelector(':scope > canvas.rotripple');
+        const g = cv.getContext('2d'); const d = g.getImageData(0, 0, cv.width, cv.height).data; const k = cv.width / el.clientWidth;
+        const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+        let n = 0, out = 0;
+        for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const a = d[(y * cv.width + x) * 4 + 3];
+          if (a > 0) { n++; if (Math.hypot(x / k - cx, y / k - cy) > R + 20) out++; } }
+        return { n, out }; }""")
+    ok("① 光束真的畫出來了，而且只在盤內（盤外沒有掃描的像素；允許聲納環凸出 20px）", px["n"] > 50 and px["out"] == 0, px)
+    # ② 聲納：一圈約 5.8 秒，最多等 6.5 秒一定掃過至少一顆點
+    got = wait_until(pg, "() => (window.App.rotScan('rotClock').pings || 0) > 0", 6500)
+    ok("② 掃描線掃到族群點時冒出聲納環", bool(got), _scan(pg))
+    # ③ 關掉：寫進 localStorage、迴圈停、疊層清空
+    pg.click("#rotTools input.rot-scan"); pg.wait_for_timeout(400)
+    s2 = _scan(pg)
+    ok("③ 勾掉「掃描」→ 記在這台瀏覽器（tw.rot.scan = '0'）", pg.evaluate("() => localStorage.getItem('tw.rot.scan')") == "0")
+    f0 = s2["frames"]; pg.wait_for_timeout(600); s3 = _scan(pg)
+    ok("③ 勾掉之後真的停了（0.6 秒內一幀都沒有再轉）", not s3["on"] and s3["frames"] == f0, [s2, s3])
+    blank = pg.evaluate("""() => { const cv = document.querySelector('#rotClock > canvas.rotripple'); if (!cv) return true;
+        const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; for (let i = 3; i < d.length; i += 16) if (d[i]) return false; return true; }""")
+    ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank)
+    pg.click("#rotTools input.rot-scan"); pg.wait_for_timeout(500)
+    ok("③ 勾回來 → 記回 '1'、又開始轉", pg.evaluate("() => localStorage.getItem('tw.rot.scan')") == "1" and _scan(pg)["running"])
+    # ④ 捲離畫面就停（不在畫面上不吃 CPU）
+    pg.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })"); pg.wait_for_timeout(700)
+    a1 = _scan(pg)["frames"]; pg.wait_for_timeout(500); a2 = _scan(pg)["frames"]
+    ok("④ 捲到看不到輪盤 → 掃描停下來（0.5 秒內幀數不再增加）", a2 == a1, [a1, a2])
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(700)
+    ok("④ 捲回來 → 又接著轉", _scan(pg)["frames"] > a2)
+    # ⑤ 播放＋掃描＋水波同時跑的幀率（參考檔要求 60FPS；容器是軟體繪圖，門檻放在平均 ≥ 30、最長一幀 ≤ 200ms）
+    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }")
+    fr = pg.evaluate("""() => new Promise(res => { let n = 0; const t0 = performance.now(); const gaps = []; let last = t0;
+        const f = (t) => { n++; gaps.push(t - last); last = t; if (t - t0 < 2000) requestAnimationFrame(f); else res({ fps: +(n * 1000 / (t - t0)).toFixed(1), maxGap: Math.round(Math.max(...gaps)) }); };
+        requestAnimationFrame(f); })""")
+    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }")
+    notes.append(f"掃描＋播放＋水波同時跑：{fr['fps']} fps、最長一幀 {fr['maxGap']}ms（容器是軟體繪圖，實機會更高）")
+    ok("⑤ 播放＋掃描＋水波同時跑不卡（2 秒平均 ≥ 30 fps、最長一幀 ≤ 200ms）", fr["fps"] >= 30 and fr["maxGap"] <= 200, fr)
+    rot_seek(pg, 0, 900)
+    # ⑥ 放大視窗裡的輪盤也在轉；關掉放大視窗，卡片那張照轉
+    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2200)
+    z0 = _scan(pg, "zoomBody"); pg.wait_for_timeout(500); z1 = _scan(pg, "zoomBody")
+    ok("⑥ 放大視窗的輪盤也在掃描", z0["on"] and z1["frames"] > z0["frames"], [z0, z1])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(1000)
+    # ⑦ 總覽小時鐘不掃（總覽 Andy 不要動畫）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    mini = _scan(pg, "rotClockMini")
+    ok("⑦ 總覽的小時鐘不掃描、沒有疊層", not mini["on"] and not mini["canvas"], mini)
+    # ⑧ 減少動態效果：不轉、勾選框照樣在（使用者看得到它為什麼沒轉）
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    rp = ctx.new_page()
+    rp.goto(f"{base}#flow", wait_until="networkidle"); rp.wait_for_timeout(2600)
+    rr = rp.evaluate("() => window.App.rotScan('rotClock')")
+    ok("⑧ 系統開了「減少動態效果」→ 掃描不轉", not rr["on"] and rr["frames"] == 0, rr)
+    ctx.close()
+    # ⑨ 手機 390：這一批不動手機 —— 不掃、沒有「掃描」勾選框、盤面仍是上一版（6 圈細圓）
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
+    ms = m.evaluate("() => window.App.rotScan('rotClock')")
+    lbl = m.evaluate("() => { const l = document.querySelector('#rotTools .rot-scanlbl'); return !!l && l.getClientRects().length > 0; }")
+    circ = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+        return c.getZr().storage.getDisplayList(true).filter(e => e.z === 1 && e.type === 'circle' && e.style && e.style.fill === 'none').length; }""")
+    ok("⑨ [390] 手機不掃描、看不到「掃描」勾選框", not ms["on"] and not lbl, [ms, lbl])
+    ok("⑨ [390] 手機的盤面仍是上一版（距離環 3 ＋ 兩圈虛線 ＋ 盤緣 ＝ 6 圈）", circ == 6, circ)
+    m.close()
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 足跡輪盤：既有功能逐項（2026-09-24 晚）
+# CEO 更正：「參考檔只取視覺風格，既有功能一個都不准掉」。這一段把清單上每一項都真的操作一次，
+# 驗「畫面真的因此改變了」—— 各功能自己的細節在它原本的段落（資金流向、批次2、輪動象限面板…）。
+def t_rot_keep(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(500)
+    npts = lambda: len(pg.evaluate("() => (window.App._rotPts || [])"))
+    n0 = npts()
+    # 1 產業鏈／族群篩選（兩層下拉）
+    chain = pg.evaluate(f"""() => {{ const o = [...document.querySelectorAll('{ROT_DD} .rotdd[data-dd="chain"] .ddopt[data-c]')].find(x => x.dataset.c);
+        return o ? o.dataset.c : null; }}""")
+    hit = _rot_pick_chain(pg, chain) if chain else False
+    n1 = npts()
+    ok("1 產業鏈篩選：挑一條鏈之後盤上的點數真的變了", hit and n1 != n0, {"鏈": chain, "前": n0, "後": n1})
+    _rot_pick_chain(pg, "")
+    gs = rot_dd_groups(pg)
+    if gs:
+        rot_dd_toggle(pg, gs[0])
+        ok("1 族群篩選：勾一個族群 → 盤上只剩它", npts() == 1, npts())
+        rot_dd_clear(pg)
+    reset_rot(pg, base, 2400); scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
+    # 2 只看前 10 大
+    cb = pg.query_selector("#flowRotFilter input.rot-top10")
+    if ok("2 「只看前 10 大」勾選框還在", bool(cb)):
+        # 勾完篩選列會重畫（元素換新），所以每次都重新找一次再點
+        pg.click("#flowRotFilter input.rot-top10"); pg.wait_for_timeout(1400)
+        ok("2 勾「只看前 10 大」→ 盤上剩 10 顆", npts() == 10, npts())
+        pg.click("#flowRotFilter input.rot-top10"); pg.wait_for_timeout(1200)
+    # 3 時間軸（N 天前）＋ 播放
+    rot_span(pg, 8, 1200); sub8 = text(pg, "#rankSub")
+    rot_span(pg, 20, 1200); sub20 = text(pg, "#rankSub")
+    changed("3 拉「N 天前」→ 排行日期範圍真的變了", sub8, sub20)
+    f0 = pg.evaluate("() => window.App.rotFrameNow()")
+    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }"); pg.wait_for_timeout(1300)
+    f1 = pg.evaluate("() => window.App.rotFrameNow()")
+    pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); b && b.click(); }")
+    ok("3 按 ▶ → 真的在回放（看的那一天變了）", f1 != f0, [f0, f1])
+    rot_seek(pg, 0, 900)
+    # 4 即時模式與狀態字（假報價，同「輪動時鐘即時」段）
+    pg.evaluate(_RLV_STUB, None)
+    pg.evaluate("() => document.getElementById('rotLiveBtn').click()"); pg.wait_for_timeout(1800)
+    ok("4 按「即時」→ 卡片標題旁出現短狀態字", pg.evaluate("() => { const t = document.getElementById('rotLiveTag'); return !!t && !t.hidden; }"))
+    pg.evaluate("() => document.getElementById('rotLiveBtn').click()"); pg.wait_for_timeout(900)
+    ok("4 再按一次 → 退回盤後、狀態字收掉", pg.evaluate("() => !window.App.rotLive().on && document.getElementById('rotLiveTag').hidden"))
+    pg.goto("about:blank"); reset_rot(pg, base, 2400); scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
+    # 5 顯示腳印開關
+    feet = lambda: sum(len(f) for f in (pg.evaluate(CLK_STATE, "rotClock") or {"feet": []})["feet"])
+    k0 = feet(); pg.click("#rotTools input.rot-trail"); pg.wait_for_timeout(900); k1 = feet()
+    pg.click("#rotTools input.rot-trail"); pg.wait_for_timeout(900)
+    ok("5 「顯示腳印」關掉 → 腳印歸零；打開 → 回來", k0 > 0 and k1 == 0 and feet() > 0, [k0, k1])
+    # 6 點族群 → 成分股面板；點外面收掉
+    pt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+        const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter'); const d = o.series[si].data[0];
+        const p = c.convertToPixel({ seriesIndex: si }, d.value); const r = el.getBoundingClientRect();
+        return { x: r.left + p[0], y: r.top + p[1], name: d.row.name }; }""")
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1500)
+    ok("6 點盤上的族群點 → 成分股面板打開", pg.evaluate("() => !document.getElementById('rankPanel').hidden"), pt["name"])
+    pg.mouse.click(700, 140); pg.wait_for_timeout(700)
+    ok("6 點外面 → 面板收掉（點背景關閉）", pg.evaluate("() => document.getElementById('rankPanel').hidden"))
+    # 7 點象限徽章 → 展開面板；Esc 收掉
+    pg.eval_on_selector("#rotClock .rotquads .rq[data-k=leading]", "b => b.click()"); pg.wait_for_timeout(900)
+    ok("7 點「領先」徽章 → 右邊展開那一段的族群表", pg.evaluate("() => !document.getElementById('stagePanel').hidden"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+    ok("7 按 Esc → 收掉", pg.evaluate("() => document.getElementById('stagePanel').hidden"))
+    # 8 放大視窗
+    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2000)
+    ok("8 按「放大」→ 放大視窗裡有一張足跡輪盤", pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('zoomBody'))") and text(pg, "#zoomTitle") == "足跡輪盤")
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(1000)
+    # 9 右側排行連動：點排行長條 → 盤上只亮那一個（其他壓暗）。座標算法同「批次2」的 rank_spot（先捲到圖上、點長條末端內側）
+    scroll_to(pg, "rankFlow")
+    bar = pg.evaluate("""() => { const el = document.getElementById('rankFlow'); const c = echarts.getInstanceByDom(el);
+        const d = c.getOption().series[0].data; const i = d.length - 1; const v = typeof d[i] === 'object' ? d[i].value : d[i];
+        const p = c.convertToPixel({ seriesIndex: 0 }, [v, i]); const r = el.getBoundingClientRect();
+        return { x: r.left + p[0] - (v >= 0 ? 4 : -4), y: r.top + p[1] }; }""")
+    op0 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('rotClock')).getOption().series.find(s => s.type === 'scatter').data.map(d => d.itemStyle.opacity)")
+    pg.mouse.click(bar["x"], bar["y"]); pg.wait_for_timeout(1200)
+    op1 = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('rotClock')).getOption().series.find(s => s.type === 'scatter').data.map(d => d.itemStyle.opacity)")
+    note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
+    ok("9 點右邊排行的長條 → 成分股在原地展開", pg.evaluate("() => !document.getElementById('rankPanel').hidden"))
+    # 排行依「佔比變化」排、盤上只畫佔比前 16 —— 點到的族群不一定在盤上（同批次2 的兩種正確行為）
+    if "不在左邊足跡輪盤" in note:
+        ok("9 點到盤上沒有的族群 → 盤不准整張灰掉，面板明講原因", max(x if x is not None else 1 for x in op1) > .9, op1[:6])
+    else:
+        ok("9 點右邊排行的長條 → 盤上只亮那一個、其他壓暗（連動）",
+           min(x if x is not None else 1 for x in op1) < .3 and max(x if x is not None else 1 for x in op1) > .9, [op0[:6], op1[:6]])
+    pg.mouse.click(700, 140); pg.wait_for_timeout(800)
+    # 10 滑過提示 ＋ 焦點高亮
+    pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+    tip = pg.evaluate("() => { const t = [...document.querySelectorAll('div')].find(d => /相對大盤強弱/.test(d.textContent) && d.offsetParent && getComputedStyle(d).position === 'absolute'); return t ? t.textContent.slice(0, 40) : ''; }")
+    ok("10 滑到族群點 → 跳出提示框（名字＋強弱＋動能）", pt["name"] in tip, tip)
+    pg.mouse.move(5, 5); pg.wait_for_timeout(400)
+    # 11 水波／掃描開關都在
+    ok("11 工具列：顯示腳印、水波、掃描三個勾選框都在",
+       pg.evaluate("() => ['rot-trail','rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c))"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 

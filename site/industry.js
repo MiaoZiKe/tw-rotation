@@ -4208,9 +4208,12 @@
                  axisLabel: { color: A.CH.ink2 } },
         yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, formatter: (v) => (v > 0 ? '+' : '') + v + '%' } },
         series: [{ type: 'bar', barWidth: '58%',
+          /* ★ 2026-09-24（Andy：長條一律「數字寫在長出去那一端的外側」）：負值那幾個月的「上漲年數」
+             以前固定寫在 top —— 負值長條的 top 是零軸，字貼在零軸上、離長條的末端最遠。改成依正負放上／下。*/
           data: stat.map(s => ({ value: s.avg == null ? null : +s.avg.toFixed(2),
-            itemStyle: { color: s.avg > 0 ? A.CH.up : s.avg < 0 ? A.CH.down : A.CH.ink3, borderRadius: 4 } })),
-          label: { show: true, position: 'top', color: A.CH.ink3, fontSize: 10.5,
+            itemStyle: { color: s.avg > 0 ? A.CH.up : s.avg < 0 ? A.CH.down : A.CH.ink3, borderRadius: 4 },
+            label: { position: s.avg < 0 ? 'bottom' : 'top' } })),
+          label: { show: true, color: A.CH.ink3, fontSize: 12,
             formatter: (q) => { const s = stat[q.dataIndex]; return s.n ? `${s.up}/${s.n}` : ''; } } }],
       }, { notMerge: true });
       const best = stat.filter(s => s.avg != null).sort((a, b) => b.avg - a.avg)[0];
