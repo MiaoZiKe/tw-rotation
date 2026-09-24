@@ -11,10 +11,14 @@
 只有 `資金流向` 1 條（排行區間桿軸長，既有），其餘 0。
 ⚠ `--only` 是子字串比對（`批次2` 會帶到批次21～29 的 3D），要精準請用 `--sections`。
 
-## 真積木第一梯次（`frontend-ui`，待合併）
-分支 `worktree-agent-a6b4748aa5119a390`（基底 5d0650a，**落後 main 很多**）：broker.views／stock.signal 拆成 `site/blocks/*.js`、
-#4b 法人連續買超改明確傳參、`site/modules.js` 宣告 27 塊積木並產生 MIA_PAGER、`_uitest --module <id>`／`--list-modules`。
-⚠ 合併前要先把 main 合進去：週期統計改版已經從 MIA_PAGER 拿掉 season，modules.js 要跟著改。
+## 真積木第一梯次（`frontend-ui`，2026-09-24 傍晚上線）
+broker.views／stock.signal 拆成 `site/blocks/*.js`（各自一個出口、擋掉檔案其他功能照常）、#4b 法人連續買超改明確傳參、
+`site/modules.js` 宣告 27 塊積木並**產生 MIA_PAGER**（與手寫版逐字相同，4 頁 20 段）、`_uitest --module <id>`／`--list-modules`。
+純重構、畫面零差異（第一次 62 張像素比對 56 張 0 差、其餘為動畫雜訊；合併 main 後改靠逐字比對＋驗收段落）。
+**這批驗了哪幾段**：合併 3748ade 後 `_preview` 全綠；`_uitest --sections` 積木清單、積木-券商觀點、積木-個股三卡、積木-隱性參數、
+新-產業與個股、今日事件、總覽、手機、手機改版、手機一屏、桌機零差異、季節性、題材、同意條款與法律頁、時鐘v2、資金去向v2 全 0；
+`個股` 4 條（寬版鈕／事件欄）只在接在別段後面跑才紅，純 main 同順序也紅 → 既有的跨段狀態污染（`tw.side='0'` 殘留），待查。
+第二梯次建議順序（agent 提）：① charts 改用實例當 key ② #flow 頁當 mount/layout 試點 ③ ROT 拆 core.filter ④ industry.js 脫離 window.App。
 
 
 ## 週期統計（原季節性）改版（2026-09-24 16:20，台北）
