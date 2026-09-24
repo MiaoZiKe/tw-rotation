@@ -1069,15 +1069,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
 .stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:5px;
   max-height:380px;overflow-y:auto;scrollbar-width:thin}
-/* ★ 2026-09-19：季節性那塊四張卡每張只有 5–7 個族群，內捲沒有意義，而且捲軸沒有任何提示，
-   1100px 下有一半的族群名是看不到的（「記憶體」「封測」「伺服器電源」都被切一半）。
-   這一塊直接讓卡片長高。輪動階段那塊（compact）族群多，維持內捲。 */
-#seasonBoard .stage ul{max-height:none;overflow-y:visible}
-/* ★ 2026-09-19：只有季節性這塊要換行。它的 li 右邊掛著「超額 x%　勝率 y%　N 年」，
-   窄畫面時那一整段會溢出膠囊、壓到下面那行說明文字（_preview 報的 3 筆文字重疊）。
-   輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
-   「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
-#seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
+/* ---- 週期統計（#season）的熱力圖外框 ----
+   ★ 2026-09-24（Andy：約 100 個族群擠在 600px 高、每列 5～6px、名字只顯示每 4～5 列一個）：
+   列高改成固定值（桌機 24、手機 20），圖高＝列數 × 列高，所以每個族群名稱都印得出來；
+   整張太高時由外框捲動，月份表頭 sticky 釘在框頂。表頭是 HTML 按鈕而不是 ECharts 的 x 軸 ——
+   ECharts 的軸在 canvas 裡，跟著圖一起被捲走，捲到第 40 列就不知道哪一欄是幾月。
+   （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
+.shbox{position:relative;margin-top:10px;max-height:680px;overflow-y:auto;overscroll-behavior:contain;
+  border-radius:10px;scrollbar-width:thin}
+.shbox[hidden]{display:none}
+.shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
+  background:var(--panel);padding-top:2px;padding-bottom:4px}
+.shhead button{border:0;background:transparent;color:var(--ink-2);font:600 12px/1 var(--mono);height:24px;
+  padding:0;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0}
+.shhead button:hover{background:var(--panel-3);color:var(--ink)}
+.shhead button.on{background:var(--cyan);color:var(--ontop)}
+.shhead button.now:not(.on){box-shadow:inset 0 -2px 0 var(--cyan)}
+.sncav{color:var(--amber)!important}
+#seasonCtl{flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -2781,12 +2790,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      100vh 扣掉 頂欄72 ＋ 分段列58 ＋ 價格列65 ＋ 工具列46 ＋ 底部分頁102 ≈ 343。
      ⚠ 只在 ≤820px 生效，桌機那兩條一個字都沒動。*/
   body.miaon #lwc{height:clamp(380px,calc(100vh - 343px),620px)}
-  /* 季節性的月份熱力圖：桌機 640px，390px 上它會把下面那行結論（`#seasonNote`）
-     推出畫面（量到圖 132～772、結論 780～874，可視只到 742）。
-     收到 500px 之後兩個一起進得來 —— 「看圖不用再滑下去找結論」。*/
-  /* `!important` 是必要的：`#seasonHeat` 的 640px 寫在 index.html 的 inline style 上，
-     沒有 `!important` 的 class 規則權重壓不過 inline。*/
-  body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
+  /* 週期統計的月份熱力圖：2026-09-24 起圖高由列數決定（每列固定高），外框 `#seasonHeatBox` 負責捲動，
+     手機把外框上限壓到「一屏放得下框＋圖例＋結論」—— 看圖不用再滑下去找結論。*/
+  body.miaon #seasonHeatBox{max-height:clamp(300px,calc(100vh - 420px),460px)}
   body.miaon #skHead{flex-wrap:wrap}
   body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
   /* ⚠ 滿版的做法：`.card` 的內距是 16px 18px，所以要往左右各吃回 18px，
@@ -2968,7 +2974,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          舊網址 `#themes`、`#themes/<id>` **不准壞**（交付清單的「去看」、外面存的連結都指著它），
          由 app.js 的 route() 導到 `#heatmap/theme[/<id>]`。 -->
     <button class="tab" data-view="market">市場明細</button>
-    <button class="tab" data-view="season">季節性</button>
+    <!-- ★ 2026-09-24（Andy：「"季節性" 分頁改成 "週期統計"」）：只改畫面上的字，路由 `#season` 刻意不動 ——
+         交付清單的「去看」、外面存的連結都指著它，改網址等於把那些連結全部弄斷。 -->
+    <button class="tab" data-view="season">週期統計</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
@@ -3264,26 +3272,37 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        轉成 site/data/delivery.json。整頁由 app.js 的 renderDelivery 畫。 -->
   <section class="view" id="v-delivery"></section>
 
-  <!-- ================= 季節性 ================= -->
+  <!-- ================= 週期統計（路由沿用 #season） =================
+       ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
+         「本月最強」這件事改由熱力圖本身回答：列依某個月由強到弱排序（預設本月，點月份換一個月），
+         曲線圖的「本月最強 5」快捷鍵也是同一個排序 —— 一個問題只留一個答案的地方。 -->
   <section class="view" id="v-season">
     <div class="card" id="seasonHeatCard">
       <div class="row spread">
-        <h3>族群 × 月份 <small id="seasonRange"></small></h3>
-        <div class="row">
+        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small></h3>
+        <div class="row" id="seasonCtl">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
           <!-- J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）：
                熱力圖看得出「哪一格特別紅」，但看不出「一整年怎麼走」；曲線圖補的就是後者。 -->
           <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">曲線圖</button></div>
+          <!-- 熱力圖專用：列數與格內數字（預設不印數字 —— Andy：「新增顯示數字選項（所以 Default 是沒有）」） -->
+          <div class="seg" id="seasonRows" data-for="heat"><button data-v="20" class="on">前 20 名</button><button data-v="all">全部</button></div>
+          <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值；格子太小放不下的會略過（不疊字）">顯示數字</button></div>
+          <!-- 曲線圖專用：快捷挑線（圖例點選加減照舊可以用） -->
+          <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
       </div>
-      <div id="seasonHeat" class="chart" style="min-height:640px"></div>
+      <p class="note" id="seasonHow" style="margin-top:8px"></p>
+      <p class="note sncav" id="seasonCaveat" hidden></p>
+      <!-- 熱力圖放在可捲動的框裡：列高固定（每個族群名稱都印得出來），月份表頭用 sticky 釘在框頂，
+           捲到下面也知道哪一欄是幾月。表頭是 HTML 按鈕，點一下＝依那個月重新排序。 -->
+      <div class="shbox" id="seasonHeatBox">
+        <div class="shhead" id="seasonHeatHead" role="group" aria-label="依月份排序"></div>
+        <div id="seasonHeat" class="chart"></div>
+      </div>
       <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
-    </div>
-    <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="seasonDrillCard"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
-      <div class="card" id="seasonTopCard"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
     </div>
   </section>
 </main>
