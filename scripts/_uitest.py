@@ -10853,6 +10853,9 @@ SECTIONS = {
     #   與第 4 批（三張熱力圖的 7 格離散色階、2px 間隙、標籤分三級、圖例、提示框、分組／顏色下拉）。
     "設計系統v2":          lambda pg, b, base, code: t_ds2(pg, base),
     "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),
+    # ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）：驗「積木的邊界真的存在」——
+    #   出口拿到的就是畫面上的東西，而且把那塊積木的檔擋掉之後整站照常（原則三）。
+    "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -22649,6 +22652,126 @@ def t_heatmap_v2(pg, base):
         ok(f"[{w}px #indTree] 窄畫面上的小方塊也一樣不寫殘字", not tiny, [(t["name"], t["lab"]) for t in tiny][:4])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.hmGroup'); localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
+
+
+# =============================================================================
+# ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）
+#
+# 這一批是**純重構**：畫面一個像素都不准變（另外做了 1440／390 逐頁像素比對）。
+# 所以這裡驗的不是「長得對不對」，是**積木的邊界真的存在**：
+#   ① 從積木的出口拿到的東西，跟畫面上真的出現的東西是同一份（點下去真的有反應）
+#   ② 把那一塊積木的檔擋掉（不載入），整站沒有 JS 錯誤、其他積木照常 ——
+#      這就是 §2.1 原則三「能不能單獨關閉」的驗收方式，不是寫在文件裡的願望。
+# =============================================================================
+def _bv_stock_code() -> str | None:
+    """找一檔個股頁 JSON 裡真的有券商觀點的（本機快照會變，不寫死代號）。"""
+    d = SITE / "data" / "stock"
+    if not d.exists():
+        return None
+    best = None
+    for f in sorted(d.glob("*.json")):
+        try:
+            n = len(json.loads(f.read_text(encoding="utf-8")).get("broker_views") or [])
+        except Exception:  # noqa: BLE001
+            continue
+        if n and (best is None or n > best[1]):
+            best = (f.stem, n)
+            if n >= 2:
+                break
+    return best and best[0]
+
+
+def t_block_broker(b, base):
+    """積木 `broker.views`（site/blocks/broker_views.js）：兩個呼叫端都走同一個出口，而且關得掉。"""
+    tag = "積木-券商觀點"
+    bv_all = json.loads((SITE / "data" / "broker_views.json").read_text(encoding="utf-8")) \
+        if (SITE / "data" / "broker_views.json").exists() else []
+    code = _bv_stock_code()
+
+    def open_page(block_off: bool):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        errs: list[str] = []
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if block_off:
+            pg.route("**/blocks/broker_views.js*", lambda r: r.abort())
+        pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+            click(pg, "#evToggle", 500)
+        return ctx, pg, errs
+
+    # ---------- ① 積木開著：事件抽屜的「券商」分類 ----------
+    ctx, pg, errs = open_page(False)
+    ok(f"【{tag}】積木有註冊（window.BrokerViews.id ＝ broker.views）",
+       pg.evaluate("() => window.BrokerViews && window.BrokerViews.id") == "broker.views")
+    n_all = count(pg, "#evList .ev")
+    pg.click("#evFilters button[data-c='券商']"); pg.wait_for_timeout(400)
+    cats = pg.evaluate("() => [...document.querySelectorAll('#evList .ev .cat')].map(e => e.textContent)")
+    # `.ev > a` 才是標題；`.ev .m` 裡還有個股代號連結，不能一起抓
+    titles = pg.evaluate("() => [...document.querySelectorAll('#evList .ev > a')].map(e => e.textContent)")
+    want = min(len(bv_all), 120)
+    ok(f"【{tag}】點「券商」之後清單真的只剩券商那一類（{len(cats)} 則）",
+       bool(cats) and set(cats) == {"券商"}, sorted(set(cats))[:4])
+    ok(f"【{tag}】券商那一類的筆數 ＝ broker_views.json 的筆數（{want}）", len(cats) == want, [len(cats), want])
+    ok(f"【{tag}】每一則標題都是「<券商> 目標價 <數字>」的形狀（出口的 feed 格式）",
+       titles and all(" 目標價 " in t for t in titles), titles[:2])
+    # 從積木出口直接拿，跟畫面上的第一則要是同一件事（證明畫面走的是這個出口，不是另一份拷貝）
+    feed = pg.evaluate("() => fetch('data/broker_views.json').then(r => r.json()).then(bv => window.BrokerViews.view(bv, 'feed').map(i => i.title))")
+    ok(f"【{tag}】畫面上的券商標題集合 ＝ 積木出口 view(bv,'feed') 的標題集合",
+       (bool(titles) and sorted(titles) == sorted(feed)) if len(feed) <= 120 else set(titles) <= set(feed),
+       [len(titles), len(feed), titles[:1], feed[:1]])
+    pg.click("#evFilters button[data-c='all']"); pg.wait_for_timeout(300)
+    ok(f"【{tag}】切回「全部」筆數回來了", count(pg, "#evList .ev") == n_all, [n_all, count(pg, "#evList .ev")])
+
+    # ---------- ② 積木開著：個股頁「公告 / 新聞」分頁的表格 ----------
+    if code:
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pg.click("#stockTabs button[data-t='news']"); pg.wait_for_timeout(600)
+        rows = pg.evaluate("""() => { const h = [...document.querySelectorAll('#stockTab .card h3')].find(x => x.textContent.startsWith('券商觀點'));
+            return h ? [...h.closest('.card').querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(c => c.textContent)) : null; }""")
+        pgjs = json.loads((SITE / "data" / "stock" / f"{code}.json").read_text(encoding="utf-8"))
+        want_rows = pgjs.get("broker_views") or []
+        ok(f"【{tag}】{code} 個股頁的券商觀點表格列數 ＝ 個股 JSON 的 broker_views（{len(want_rows)}）",
+           rows is not None and len(rows) == len(want_rows), [rows and len(rows), len(want_rows)])
+        if rows:
+            ok(f"【{tag}】{code} 第一列的日期／券商對得上資料",
+               rows[0][0] == str(want_rows[0].get("date")) and rows[0][1] == (want_rows[0].get("broker") or "—"),
+               [rows[0], want_rows[0]])
+            # 真的點一列：要開新視窗到那則新聞（引述來源），不是點了沒反應。
+            # 攔 window.open 記下網址 —— 外站在這個容器連不到，等新分頁載入只會量到錯誤頁。
+            pg.evaluate("() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; }; }")
+            h3 = pg.locator("#stockTab .card h3", has_text="券商觀點")
+            h3.locator("xpath=ancestor::div[contains(@class,'card')][1]").locator("tbody tr").first.click()
+            pg.wait_for_timeout(200)
+            opened = pg.evaluate("() => window.__opened")
+            want_url = want_rows[0].get("url") or "#"
+            ok(f"【{tag}】點第一列開出那則新聞（{want_url[:48]}）", opened == [want_url], [opened, want_url])
+    else:
+        notes.append(f"{tag}：本機快照沒有任何一檔個股頁帶券商觀點，個股頁那半段沒驗到")
+    ok(f"【{tag}】積木開著時整段沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ③ 把積木關掉（擋掉 blocks/broker_views.js）：其他東西照常 ----------
+    ctx, pg, errs = open_page(True)
+    ok(f"【{tag}】關掉之後 window.BrokerViews 不存在（確實擋到了）",
+       pg.evaluate("() => typeof window.BrokerViews") == "undefined")
+    n_off = count(pg, "#evList .ev")
+    news_n = len(json.loads((SITE / "data" / "news.json").read_text(encoding="utf-8"))) \
+        if (SITE / "data" / "news.json").exists() else 0
+    ok(f"【{tag}】關掉之後事件抽屜照常列新聞（{n_off} 則）", n_off > 0 or news_n == 0, [n_off, news_n])
+    pg.click("#evFilters button[data-c='券商']"); pg.wait_for_timeout(300)
+    ok(f"【{tag}】關掉之後「券商」分類是空的（顯示空狀態文字，不是壞掉）",
+       count(pg, "#evList .ev") == 0 and "沒有這類事件" in pg.inner_text("#evList"), pg.inner_text("#evList")[:40])
+    if code:
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pg.click("#stockTabs button[data-t='news']"); pg.wait_for_timeout(600)
+        heads = pg.evaluate("() => [...document.querySelectorAll('#stockTab .card h3')].map(h => h.textContent.trim().slice(0, 6))")
+        ok(f"【{tag}】關掉之後個股頁「公告 / 新聞」照常有重大訊息與相關新聞、沒有券商觀點",
+           any(h.startswith("重大訊息") for h in heads) and any(h.startswith("相關新聞") for h in heads)
+           and not any(h.startswith("券商觀點") for h in heads), heads)
+    ok(f"【{tag}】關掉之後整站沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
+    ctx.close()
 
 
 if __name__ == "__main__":

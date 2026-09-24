@@ -7674,7 +7674,9 @@
   async function renderEvents() {
     const [news, bv] = await Promise.all([load('news'), load('broker_views')]);
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
-    (bv || []).forEach(b => items.push({ date: b.date, title: `${b.broker || '券商'} 目標價 ${b.target_price}${b.name ? '（' + b.name + ' ' + b.code + '）' : ''}${b.action ? ' · ' + b.action : ''}`, url: b.url, source: '新聞引述', cat: '券商', code: b.code }));
+    /* 「券商」那一類由積木 `broker.views` 自己決定長相與欄位（site/blocks/broker_views.js）——
+       這裡只負責把它跟新聞排在同一份清單裡。那支檔沒載入時這一類就是空的，抽屜照常。 */
+    if (window.BrokerViews) items.push(...window.BrokerViews.view(bv, 'feed'));
     /* 每一則的日期用同一個口徑取：先 published_at 再 date。
        以前標題旁邊寫的是 meta.data_date（價量資料的日期），清單裡卻有比它新的券商目標價 ——
        Andy 2026-09-14 截圖回報「今日事件那需要對應正確日期」就是這個：
