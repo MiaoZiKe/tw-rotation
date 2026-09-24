@@ -8053,8 +8053,8 @@ def t_buildver(b, base):
     #   畫面上真的沒有了、title 第一行真的有（而且跟著版號換，見下面第二組）。
     ok("徽章畫面上只留「v 日期 第 N 版」，不再寫建置時間", "11:16" not in a["txt"] and "·" not in a["txt"], a["txt"])
     ok("★ 建置時間沒有刪：搬進徽章滑鼠提示的第一行", "11:16" in (a["title"] or "").split("\n")[0], a["title"])
-    ok("徽章連得到那個 commit（短碼移到 tooltip 與連結）",
-       "/commit/1b28dfc" in (a["href"] or ""), a["href"])
+    # ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不准再是連到 GitHub 的連結
+    ok("★ 徽章不連到 GitHub（原始碼不公開）", not a["href"] and "github" not in (a["title"] or "").lower(), [a["href"], a["title"]])
     # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
     ok("手機也拿得到版號（橫幅拿掉後改掛在「盤後」那顆的提示裡）", "2026-09-18" in a["banner"],
        a["banner"][:200])
@@ -23295,6 +23295,13 @@ def t_legal(b, base):
     ok("[關] 頁尾是 main 的最後一個元素、不跑出內容欄", ft and ft["last"] and ft["inMain"], ft)
     ok("[關] 頁尾的服務條款／隱私權政策連結標「草稿」", ft and ft["t"].count("草稿") >= 2, ft and ft["t"])
     ok("[關] 頁尾與法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
+    # ★ 2026-09-24 Andy：「這完全不能公開」—— 頁尾曾經有一個「原始碼與演算法」連到 GitHub repo。
+    #   全站任何地方都不准出現連到 GitHub 的連結、也不准出現 repo 網址文字。
+    gh = pg.evaluate("""() => ({ links: [...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href'))
+        .filter(h => /github\\.com/i.test(h)), text: /github\\.com\\/MiaoZiKe/i.test(document.body.innerText),
+        foot: /原始碼/.test((document.getElementById('siteFoot') || {}).innerText || '') })""")
+    ok("★ [關] 全站沒有任何連到 GitHub 的連結、也沒有 repo 網址（原始碼不公開）",
+       not gh["links"] and not gh["text"] and not gh["foot"], gh)
 
     # 頁尾連結 → 服務條款
     pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
@@ -23329,8 +23336,8 @@ def t_legal(b, base):
     pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(600)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText, blanks: document.querySelectorAll('#lgDoc .lgblank').length })")
-    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），repo 網址已填",
-       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github.com/MiaoZiKe/tw-rotation" in r["t"], r["h1"])
+    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），而且沒有任何 GitHub 網址（原始碼不公開）",
+       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github" not in r["t"].lower(), r["h1"])
     # 從法律頁點頂欄回總覽 → 總覽真的回來
     pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
     ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(

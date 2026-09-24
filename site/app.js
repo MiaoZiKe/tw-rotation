@@ -8497,10 +8497,8 @@
     el.title = (b.at ? `建置時間 ${b.at}（台北）—— 比對這個時間確認網站換版了沒\n` : '')
       + (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
                  : `這個網頁的版本：${b.ver}`)
-      + (isCommit ? `\ncommit ${b.sha} —— 點開對照 GitHub` : '');
-    el.href = isCommit
-      ? `https://github.com/MiaoZiKe/tw-rotation/commit/${b.sha}`
-      : 'https://github.com/MiaoZiKe/tw-rotation/commits/main';
+      + (isCommit ? `\n版本代碼 ${b.sha.slice(0, 7)}` : '');
+    // ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不再連到 GitHub（以前點下去會開 commit 頁）。
     return b;
   }
 
