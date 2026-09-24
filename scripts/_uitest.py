@@ -24742,15 +24742,23 @@ def t_scan(pg, b, base):
     pg.wait_for_timeout(700)
     s1 = _scan(pg)
     ok("① 真的在轉：0.7 秒內幀數增加、角度變了", s1["frames"] > s0["frames"] + 10 and s1["ang"] != s0["ang"], [s0, s1])
-    # 光束真的畫在盤內：取疊層 canvas 的像素，有不透明的像素、而且都在盤的圓內
-    px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const cv = el.querySelector(':scope > canvas.rotripple');
-        const g = cv.getContext('2d'); const d = g.getImageData(0, 0, cv.width, cv.height).data; const k = cv.width / el.clientWidth;
+    # 光束真的畫在盤內。
+    # ★ 2026-09-24 效能：光束改成「圓形遮罩裡一片轉動的錐形漸層」（DOM ＋ 合成器動畫，以前是每幀整張重畫 canvas），
+    #   所以改驗那個元素：真的有錐形漸層、圓形遮罩、圓心對齊盤心、半徑不超過盤、動畫真的在跑。
+    #   舊的斷言（canvas 像素都在盤內）驗的是同一件事 ——「光束看得到，而且不會畫出盤外」。
+    px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const bm = el.querySelector(':scope > .rotbeam');
+        if (!bm) return { beam: false };
+        const r = bm.getBoundingClientRect(), e = el.getBoundingClientRect();
         const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
-        let n = 0, out = 0;
-        for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const a = d[(y * cv.width + x) * 4 + 3];
-          if (a > 0) { n++; if (Math.hypot(x / k - cx, y / k - cy) > R + 20) out++; } }
-        return { n, out }; }""")
-    ok("① 光束真的畫出來了，而且只在盤內（盤外沒有掃描的像素；允許聲納環凸出 20px）", px["n"] > 50 and px["out"] == 0, px)
+        const bx = r.left - e.left - el.clientLeft + r.width / 2, by = r.top - e.top - el.clientTop + r.height / 2;
+        const rotor = bm.querySelector('.rotor'), cs = getComputedStyle(bm);
+        const an = rotor && rotor.getAnimations ? rotor.getAnimations() : [];
+        return { beam: true, grad: !!rotor && /conic-gradient/.test(getComputedStyle(rotor).backgroundImage),
+          clip: cs.borderRadius === '50%' && cs.overflow === 'hidden', off: +Math.hypot(bx - cx, by - cy).toFixed(1),
+          rr: +(r.width / 2).toFixed(1), R: +R.toFixed(1), running: an.some(a => a.playState === 'running'),
+          ray: !!bm.querySelector('.ray') && bm.querySelector('.ray').getBoundingClientRect().width > 10 }; }""")
+    ok("① 光束真的畫出來了，而且只在盤內（錐形漸層＋射線、圓形遮罩、圓心對齊盤心、半徑不超過盤、正在轉）",
+       px.get("beam") and px["grad"] and px["ray"] and px["clip"] and px["off"] < 2 and px["rr"] <= px["R"] + 0.5 and px["running"], px)
     # ② 聲納：一圈約 5.8 秒，最多等 6.5 秒一定掃過至少一顆點
     got = wait_until(pg, "() => (window.App.rotScan('rotClock').pings || 0) > 0", 6500)
     ok("② 掃描線掃到族群點時冒出聲納環", bool(got), _scan(pg))
@@ -24762,7 +24770,8 @@ def t_scan(pg, b, base):
     ok("③ 勾掉之後真的停了（0.6 秒內一幀都沒有再轉）", not s3["on"] and s3["frames"] == f0, [s2, s3])
     blank = pg.evaluate("""() => { const cv = document.querySelector('#rotClock > canvas.rotripple'); if (!cv) return true;
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; for (let i = 3; i < d.length; i += 16) if (d[i]) return false; return true; }""")
-    ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank)
+    beam_left = pg.evaluate("() => document.querySelectorAll('#rotClock > .rotbeam, #rotClock > .rotping').length")
+    ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank and beam_left == 0, {"canvas 乾淨": blank, "殘留光束／聲納元素": beam_left})
     pg.click("#rotTools input.rot-scan"); pg.wait_for_timeout(500)
     ok("③ 勾回來 → 記回 '1'、又開始轉", pg.evaluate("() => localStorage.getItem('tw.rot.scan')") == "1" and _scan(pg)["running"])
     # ④ 捲離畫面就停（不在畫面上不吃 CPU）

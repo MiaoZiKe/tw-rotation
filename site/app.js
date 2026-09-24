@@ -3929,7 +3929,18 @@
      · 點的像素位置每一幀從 ECharts 的圖形元素讀（回放時點正在補間，用「目標位置」的話聲納會冒在點的前面）。*/
   const SCAN_W = 1.08;                 // 角速度（弧度／秒）：參考檔每幀 0.018 × 60fps
   const SCAN_SPAN = Math.PI / 4;       // 拖尾 45°
+  const SCAN_PERIOD = Math.PI * 2 / SCAN_W * 1000;   // 一圈幾毫秒（約 5.8 秒）
   const PING_LIFE = 520;
+  /* ★ 2026-09-24 效能（Andy：「開啟網頁都會卡頓一陣子」）：
+     以前光束與聲納是**每一幀在疊層 canvas 上整張重畫**（錐形漸層填滿整個盤面）。
+     canvas 只要動一個像素，瀏覽器每一幀都得把整張點陣圖交給合成器 —— 實測資金流向頁停著不動，
+     主執行緒有四成時間在做這件事（5 秒內 2 秒），首次載入時跟圖表搶 CPU，長任務一路拖到十幾秒。
+     改法（長相不變）：
+       · 光束＝一個圓形 <div>，背景是同一條錐形漸層、射線是它的子元素，用 Web Animations 的 rotate 轉 ——
+         旋轉由合成器做，主執行緒一幀都不用畫，載入時主執行緒忙也照樣轉得順。
+       · 聲納＝每掃到一顆點就生一個小 <span>，CSS 動畫放大＋淡出（transform／opacity，一樣走合成器），520ms 後移除。
+       · 疊層 canvas 只剩水波（點真的移動時才有），沒有水波就一幀都不碰它。
+     rAF 迴圈仍在：它每一幀只做「算角度、看這一幀掃過哪些點」這種純計算，不碰像素。*/
   const rotFxEls = new Set();
   function rotFxCanvas(el) {
     let cv = el.querySelector(':scope > canvas.rotripple');
@@ -3942,6 +3953,55 @@
     }
     return cv;
   }
+  // 盤的幾何：和 polar 的設定同一個公式（center 50%／52%、radius 84%／66% × min(寬,高)/2）
+  const rotFxGeo = (el, compact) => {
+    const W = el.clientWidth || 0, H = el.clientHeight || 0;
+    return { W, H, cx: W / 2, cy: H * (compact ? .52 : .5), R: (compact ? .66 : .84) * Math.min(W, H) / 2 };
+  };
+  // 光束元素：沒有就建；尺寸、顏色、主題變了才改樣式（每一幀比對一個字串，不寫 DOM）
+  function rotFxBeam(el, F) {
+    let bm = el.querySelector(':scope > .rotbeam');
+    if (!bm) {
+      bm = document.createElement('div');
+      bm.className = 'rotbeam'; bm.setAttribute('aria-hidden', 'true');
+      bm.innerHTML = '<div class="rotor"><div class="ray"></div></div>';
+      if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+      el.insertBefore(bm, el.querySelector(':scope > canvas.rotripple'));   // 在水波底下（跟以前的畫圖順序一樣）
+      F.geo = ''; F.anim = null;
+    }
+    const G = rotFxGeo(el, F.compact);
+    const key = [G.W, G.H, F.compact ? 1 : 0, F.col, F.lt ? 1 : 0].join('|');
+    if (key !== F.geo) {
+      F.geo = key;
+      const R = G.R, deg = SCAN_SPAN * 180 / Math.PI, a0 = F.lt ? .10 : .12;
+      bm.style.cssText = `left:${(G.cx - R).toFixed(1)}px;top:${(G.cy - R).toFixed(1)}px;width:${(2 * R).toFixed(1)}px;height:${(2 * R).toFixed(1)}px`;
+      const rotor = bm.firstChild;
+      // canvas 的角度 0 在三點鐘方向、CSS 錐形漸層的 0 在十二點鐘 —— from 90deg 對齊兩者
+      rotor.style.background = `conic-gradient(from 90deg, ${hexA(F.col, 0)} 0deg, ${hexA(F.col, a0)} ${deg}deg, ${hexA(F.col, 0)} ${(deg + 0.08).toFixed(2)}deg, ${hexA(F.col, 0)} 360deg)`;
+      rotor.firstChild.style.cssText = `width:${R.toFixed(1)}px;transform:rotate(${deg}deg);background:${F.lt ? hexA(F.col, .55) : 'rgba(215,250,255,.45)'}`;
+    }
+    if (!F.anim && bm.firstChild.animate) {
+      F.anim = bm.firstChild.animate([{ transform: 'rotate(0turn)' }, { transform: 'rotate(1turn)' }],
+        { duration: SCAN_PERIOD, iterations: Infinity });
+      const TAU = Math.PI * 2;
+      F.anim.currentTime = ((((F.ang - SCAN_SPAN) % TAU) + TAU) % TAU) / TAU * SCAN_PERIOD;   // 從上次停下的角度接著轉
+    }
+    return G;
+  }
+  function rotFxBeamStop(el, F, remove) {
+    if (F.anim) { if (remove) { F.anim.cancel(); F.anim = null; } else if (F.anim.playState === 'running') F.anim.pause(); }
+    if (remove) { const bm = el.querySelector(':scope > .rotbeam'); if (bm) bm.remove(); F.geo = ''; }
+  }
+  // 聲納：一顆 <span>，CSS 動畫放大＋淡出（參考檔：環 r0+1 → r0+15px、透明度 .7 起淡出；核心閃一下白）
+  function rotFxPing(el, d) {
+    const R1 = d.r0 + 15;
+    const p = document.createElement('span');
+    p.className = 'rotping'; p.setAttribute('aria-hidden', 'true');
+    p.style.cssText = `left:${d.x.toFixed(1)}px;top:${d.y.toFixed(1)}px;--c:${d.col};--r:${R1.toFixed(1)}px;--s0:${((d.r0 + 1) / R1).toFixed(3)};--k:${Math.max(1.5, d.r0 * .5).toFixed(1)}px`;
+    p.innerHTML = '<span class="rg"></span><span class="rc"></span>';
+    el.appendChild(p);
+    setTimeout(() => p.remove(), PING_LIFE + 80);
+  }
   function rotFxKick(el) {
     const F = el._fx || (el._fx = { raf: 0, ang: -Math.PI / 2, last: 0, pings: [], vis: true, scan: false, n: 0 });
     if (!F.raf) F.raf = requestAnimationFrame((t) => rotFxTick(el, t));
@@ -3952,7 +4012,8 @@
     const F = el._fx;
     F.scan = !!on; F.compact = !!compact;
     F.col = CH.cyan; F.lt = theme() === 'light';
-    if (!on) F.pings = [];
+    if (!on) { F.pings = []; rotFxBeamStop(el, F, true); el.querySelectorAll(':scope > .rotping').forEach(x => x.remove()); }
+    else rotFxCanvas(el);                // 疊層 canvas 照舊存在（水波畫在上面）；沒有水波時它是一張不動的透明圖，不花任何成本
     if (on && !F.io && typeof IntersectionObserver !== 'undefined') {
       F.io = new IntersectionObserver((es) => { es.forEach(e => { F.vis = e.isIntersecting; }); if (F.vis) rotFxKick(el); });
       F.io.observe(el);
@@ -3980,81 +4041,56 @@
   function rotFxTick(el, t) {
     const F = el._fx; F.raf = 0;
     const S = el._rip;
-    if (!el.isConnected) { if (S) S.list = []; F.pings = []; rotFxEls.delete(el); return; }
+    if (!el.isConnected) { if (S) S.list = []; F.pings = []; rotFxBeamStop(el, F, true); rotFxEls.delete(el); return; }
     const scanning = F.scan && F.vis !== false && !document.hidden;
     if (S) S.list = S.list.filter(x => t - x.t0 < RIP_LIFE);
     F.pings = F.pings.filter(x => t - x.t0 < PING_LIFE);
-    const busy = scanning || (S && S.list.length) || F.pings.length;
-    let cv = el.querySelector(':scope > canvas.rotripple');
-    if (!busy) {
-      if (cv) { const g0 = cv.getContext('2d'); g0 && g0.clearRect(0, 0, cv.width, cv.height); }
-      F.last = 0;
-      return;
-    }
-    cv = rotFxCanvas(el);
-    const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
-    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-    const g = cv.getContext('2d'); if (!g) return;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, W, H);
-    if (scanning && W && H) {
-      const cx = W / 2, cy = H * (F.compact ? .52 : .5), R = (F.compact ? .66 : .84) * Math.min(W, H) / 2;
-      const dt = F.last ? Math.min(64, t - F.last) : 16;
-      const prev = F.ang;
-      F.ang = (F.ang + SCAN_W * dt / 1000) % (Math.PI * 2);
-      F.n++;
-      g.save();
-      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.clip();
-      const a0 = F.lt ? .10 : .12;
-      if (g.createConicGradient) {
-        const gr = g.createConicGradient(F.ang - SCAN_SPAN, cx, cy);
-        const f = SCAN_SPAN / (Math.PI * 2);
-        gr.addColorStop(0, hexA(F.col, 0));
-        gr.addColorStop(f, hexA(F.col, a0));
-        gr.addColorStop(Math.min(1, f + .001), hexA(F.col, 0));
-        gr.addColorStop(1, hexA(F.col, 0));
-        g.fillStyle = gr; g.fillRect(cx - R, cy - R, R * 2, R * 2);
-      } else {                           // 舊瀏覽器沒有錐形漸層：退成一塊很淡的扇形
-        g.fillStyle = hexA(F.col, a0 / 2);
-        g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, F.ang - SCAN_SPAN, F.ang); g.closePath(); g.fill();
+    if (scanning) {
+      const G = rotFxBeam(el, F);
+      if (F.anim) {
+        if (F.anim.playState !== 'running') F.anim.play();
+        const TAU = Math.PI * 2, prev = F.ang;
+        F.ang = (SCAN_SPAN + TAU * ((+F.anim.currentTime || 0) % SCAN_PERIOD) / SCAN_PERIOD) % TAU;
+        F.n++;
+        // 這一幀掃過的角度區間 (prev, ang]：掃到的點冒聲納
+        const sweep = ((F.ang - prev) % TAU + TAU) % TAU;
+        if (F.last && sweep > 0 && sweep < 1 && G.R) {
+          rotFxDots(el).forEach(d => {
+            if (Math.hypot(d.x - G.cx, d.y - G.cy) > G.R) return;
+            const a = ((Math.atan2(d.y - G.cy, d.x - G.cx) - prev) % TAU + TAU) % TAU;
+            if (a > 0 && a <= sweep && !F.pings.some(p => p.key === d.key)) { F.pings.push({ ...d, t0: t }); rotFxPing(el, d); }
+          });
+        }
       }
-      g.strokeStyle = F.lt ? hexA(F.col, .55) : 'rgba(215,250,255,.45)';
-      g.lineWidth = 1.2;
-      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(F.ang) * R, cy + Math.sin(F.ang) * R); g.stroke();
-      g.restore();
-      // 這一幀掃過的角度區間 (prev, ang]：掃到的點冒聲納
-      const TAU = Math.PI * 2, sweep = ((F.ang - prev) % TAU + TAU) % TAU;
-      if (sweep > 0 && sweep < 1) {
-        rotFxDots(el).forEach(d => {
-          if (Math.hypot(d.x - cx, d.y - cy) > R) return;
-          const a = ((Math.atan2(d.y - cy, d.x - cx) - prev) % TAU + TAU) % TAU;
-          if (a > 0 && a <= sweep && !F.pings.some(p => p.key === d.key)) F.pings.push({ ...d, t0: t });
-        });
-      }
-    }
+    } else if (F.scan) rotFxBeamStop(el, F, false);   // 捲走、切頁、分頁在背景：光束停在原地（合成器也不轉）
     F.last = scanning ? t : 0;
-    // 聲納：一圈往外擴的細環 ＋ 核心閃一下白（參考檔：環 4 → 18px、透明度 .7 起淡出）
-    F.pings.forEach(x => {
-      const u = (t - x.t0) / PING_LIFE; if (u < 0) return;
-      const e = 1 - Math.pow(1 - u, 2);
-      g.globalAlpha = .7 * (1 - u);
-      g.strokeStyle = x.col; g.lineWidth = 1.2;
-      g.beginPath(); g.arc(x.x, x.y, x.r0 + 1 + e * 14, 0, Math.PI * 2); g.stroke();
-      g.globalAlpha = .8 * Math.pow(1 - u, 2);
-      g.fillStyle = '#ffffff';
-      g.beginPath(); g.arc(x.x, x.y, Math.max(1.5, x.r0 * .5), 0, Math.PI * 2); g.fill();
-    });
-    // 水波（點移動時）
-    if (S) S.list.forEach(x => {
-      const age = t - x.t0; if (age < 0) return;
-      const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
-      g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
-      g.strokeStyle = x.col;
-      g.lineWidth = 1.8 * (1 - u) + 0.5;
-      g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
-    });
-    g.globalAlpha = 1;
-    F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2));
+    // 水波（點移動時）：只有這一樣還畫在 canvas 上；沒有水波就只在「上一幀有畫」時清一次
+    const rip = S && S.list.length;
+    const cv0 = el.querySelector(':scope > canvas.rotripple');
+    if (rip) {
+      const cv = rotFxCanvas(el);
+      const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      const g = cv.getContext('2d');
+      if (g) {
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, W, H);
+        S.list.forEach(x => {
+          const age = t - x.t0; if (age < 0) return;
+          const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
+          g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
+          g.strokeStyle = x.col;
+          g.lineWidth = 1.8 * (1 - u) + 0.5;
+          g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
+        });
+        g.globalAlpha = 1;
+        F.dirty = true;
+      }
+    } else if (cv0 && F.dirty) {
+      const g0 = cv0.getContext('2d'); if (g0) g0.clearRect(0, 0, cv0.width, cv0.height);
+      F.dirty = false;
+    }
+    if (scanning || rip || F.pings.length) F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2));
   }
   // 驗收用：掃描有沒有在轉、轉了幾幀、目前角度、活著幾圈聲納
   function rotScanState(id) {
