@@ -1930,6 +1930,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .scard .h b{font-size:16px} .scard .r{display:flex;gap:10px;font-size:13px;color:var(--ink-2);margin-top:6px;flex-wrap:wrap}
 }
 @media (max-width:480px){ .hero{grid-template-columns:1fr 1fr} .kpi .v{font-size:22px} }
+/* 大盤 KPI 固定 6 格：只准排成 6／3／2 欄，不准出現「5 格＋孤兒 1 格」。
+   2026-09-24 截積木外觀時抓到：1440 寬、右側事件抽屜打開，內容區只剩約 1032px，
+   auto-fit 會排成 5＋1。用容器寬度判斷（抽屜開關都算得對），不用視窗寬度。 */
+#v-overview{container-type:inline-size}
+@container (min-width:960px){ #hero{grid-template-columns:repeat(6,minmax(0,1fr))} }
+@container (min-width:520px) and (max-width:959.98px){ #hero{grid-template-columns:repeat(3,minmax(0,1fr))} }
 
 /* ================= 供應鏈環節卡清單（#chainList / .seglist）=================
    Andy 2026-09-20：「供應鏈關聯圖 上下框度太長，改成顯示族群、族群標題底下顯示個股小卡」。
