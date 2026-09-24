@@ -10856,6 +10856,7 @@ SECTIONS = {
     # ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）：驗「積木的邊界真的存在」——
     #   出口拿到的就是畫面上的東西，而且把那塊積木的檔擋掉之後整站照常（原則三）。
     "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
+    "積木-個股三卡":       lambda pg, b, base, code: t_block_stock_cards(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -22771,6 +22772,59 @@ def t_block_broker(b, base):
            any(h.startswith("重大訊息") for h in heads) and any(h.startswith("相關新聞") for h in heads)
            and not any(h.startswith("券商觀點") for h in heads), heads)
     ok(f"【{tag}】關掉之後整站沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
+    ctx.close()
+
+
+def t_block_stock_cards(b, base, code):
+    """個股頁「總覽」分頁的三張卡拆成 `stock.fund`（基本面＋籌碼快照）與 `stock.signal`（技術面訊號）。
+
+    驗：① 三張卡照舊、順序照舊；② 第三張卡就是 `StockSignal.view()` 的輸出（畫面走的是積木出口）；
+        ③ 換分頁再換回來會重畫（不是一次性的字串）；④ 擋掉 blocks/stock_signal.js 之後
+        只少那一張卡、其他分頁照常、沒有 JS 錯誤。"""
+    tag = "積木-個股三卡"
+    heads_js = "() => [...document.querySelectorAll('#stockTab > .grid.g3 > .card > h3')].map(h => h.firstChild.textContent.trim())"
+
+    def open_page(block_off: bool):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        errs: list[str] = []
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if block_off:
+            pg.route("**/blocks/stock_signal.js*", lambda r: r.abort())
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+        wait_until(pg, "document.querySelectorAll('#stockTab .card').length >= 2", 8000)
+        return ctx, pg, errs
+
+    ctx, pg, errs = open_page(False)
+    heads = pg.evaluate(heads_js)
+    ok(f"【{tag}】{code} 總覽分頁照舊是三張卡：基本面／籌碼快照／技術面訊號",
+       heads == ["基本面", "籌碼快照", "技術面訊號"], heads)
+    same = pg.evaluate("""() => fetch('data/stock/' + location.hash.split('/')[1] + '.json').then(r => r.json()).then(pg => {
+        const cards = document.querySelectorAll('#stockTab > .grid.g3 > .card');
+        const html = window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, window.App.fmt);
+        const t = document.createElement('div'); t.innerHTML = html;
+        return { id: window.StockSignal.id, same: cards[2] && cards[2].outerHTML === t.firstElementChild.outerHTML,
+                 lights: cards[2] ? cards[2].querySelectorAll('.light').length : 0 }; })""")
+    ok(f"【{tag}】第三張卡 ＝ 積木 stock.signal 出口的輸出（九顆燈號）",
+       same.get("id") == "stock.signal" and same.get("same") and same.get("lights") == 9, same)
+    pg.click("#stockTabs button[data-t='revenue']"); pg.wait_for_timeout(500)
+    ok(f"【{tag}】換到「營收」分頁後三張卡真的換掉了", pg.evaluate(heads_js) == [], pg.evaluate(heads_js))
+    pg.click("#stockTabs button[data-t='overview']"); pg.wait_for_timeout(500)
+    ok(f"【{tag}】換回「總覽」三張卡重畫回來", pg.evaluate(heads_js) == ["基本面", "籌碼快照", "技術面訊號"], pg.evaluate(heads_js))
+    ok(f"【{tag}】積木開著時沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    ctx, pg, errs = open_page(True)
+    ok(f"【{tag}】擋掉 blocks/stock_signal.js 之後 window.StockSignal 不存在",
+       pg.evaluate("() => typeof window.StockSignal") == "undefined")
+    ok(f"【{tag}】關掉技術面訊號之後只剩基本面與籌碼快照兩張（其他照常）",
+       pg.evaluate(heads_js) == ["基本面", "籌碼快照"], pg.evaluate(heads_js))
+    pg.click("#stockTabs button[data-t='revenue']"); pg.wait_for_timeout(700)
+    ok(f"【{tag}】關掉之後其他分頁照常（營收分頁有畫出圖表）",
+       pg.evaluate("() => document.querySelectorAll('#stockTab canvas').length") > 0
+       or "尚無月營收" in pg.inner_text("#stockTab"), pg.inner_text("#stockTab")[:40])
+    ok(f"【{tag}】關掉之後沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
     ctx.close()
 
 
