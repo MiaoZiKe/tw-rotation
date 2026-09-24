@@ -1608,7 +1608,10 @@ def t_flow(pg, base):
         const kids = root.children || [];
         return { type: s.type, orient: s.orient, symbol: s.symbol,
                  n: kids.length,
-                 sizes: kids.map(k => k.symbolSize).filter(v => v != null),
+                 /* ★ 2026-09-24 設計系統 v2 第 5 批：產業鏈節點改前是圓點（symbolSize＝一個數字），
+                    改後是直立細長條（symbolSize＝[寬 4, 高]，高＝從它出發的線加總）。
+                    「錢越多的越大」要守的事沒變，比的從「圓點直徑」換成「直條的高」。*/
+                 sizes: kids.map(k => Array.isArray(k.symbolSize) ? k.symbolSize[1] : k.symbolSize).filter(v => v != null),
                  widths: kids.map(k => (k.lineStyle || {}).width).filter(v => v != null) }; }""")
     ok("資金去向是水平的（圖六）", bool(sk) and sk["type"] == "tree" and sk["orient"] == "LR", sk)
     ok("資金去向全部以點跟線呈現（圖六）", bool(sk) and sk["symbol"] == "circle" and sk["n"] > 0, sk)
@@ -7682,7 +7685,11 @@ INK = """(sel) => {
 
 # 找出「文字顏色跟自己的背景幾乎一樣」的元素 —— 黑底時代留下來的白字，切到淺色就變隱形。
 CONTRAST = """() => {
-  const lum = (c) => { const m = (c.match(/[\\d.]+/g) || []).map(Number);
+  /* ★ 2026-09-24（設計系統 v2 第 3 批）：`color-mix()` 的 computed style 是 `color(srgb 0.90 0.94 0.95)`
+     —— 三個分量是 0～1，不是 0～255。改前一律當 0～255 讀，淺底被讀成近黑，
+     於是「深字印在淺色象限卡上」（實際約 10:1）被算成 1.85 而誤報。改後遇到 color(srgb …) 先 ×255。 */
+  const lum = (c) => { let m = (c.match(/[\\d.]+/g) || []).map(Number);
+    if (/^color\\(srgb/.test(c)) m = m.slice(0, 3).map(v => v * 255);
     const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
     return .2126 * f(m[0] || 0) + .7152 * f(m[1] || 0) + .0722 * f(m[2] || 0); };
   // 往上找第一個「不透明的純色背景」。中途碰到漸層就放棄這個元素 ——
@@ -10980,6 +10987,11 @@ SECTIONS = {
     #   頁尾免責聲明（預設開）、三個法律頁、同意橫幅與平台導覽（預設關，條款空格填完＋enabled 才開）。
     #   開關打開的那半段用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 模擬「Andy 填好了」。
     "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
+
+    # ★ 2026-09-24 設計系統 v2 第 5 批（docs/design_system_v2.md §3.2／§3.3）：
+    #   輪動時鐘（三圈底色、焦點族群、漸強軌跡＋箭頭、換段色環、手機編號模式）與兩張資金去向（鏈色線條、直條節點、字的層次、點不壓字）。
+    "時鐘v2":              lambda pg, b, base, code: t_clock_v2(pg, b, base),
+    "資金去向v2":          lambda pg, b, base, code: t_flow_v2(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -22228,9 +22240,11 @@ def t_ui_polish(pg, b, base, code):
         const g = (n) => (s.getPropertyValue(n) || '').trim();
         return { ink3: g('--ink-3'), cyan: g('--cyan'), amber: g('--amber'), lime: g('--lime'),
                  rise: g('--rise'), fall: g('--fall'), flat: g('--flat') }; }""")
+    # 2026-09-24 設計系統 v2 第 3 批：--ink-3 改前 #5b6884（冷藍灰）→ 改後 #5f5a51（暖灰，對白 6.85、對新 --bg 6.16）。
+    # 其餘六個（主色與紅漲綠跌）第 3 批刻意不動，照舊驗。
     ok("[#3] 淺色七個色 token 全部換成新值",
        [tl[k].lower() for k in ("ink3", "cyan", "amber", "lime", "rise", "fall", "flat")]
-       == ["#5b6884", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
+       == ["#5f5a51", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
 
     # ---------- #8 四個高頻小字真的升到 12px ----------
@@ -23109,6 +23123,261 @@ def t_legal(b, base):
            pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 1
            and not pg.evaluate("() => window.TwLegal.state().active"), pg.evaluate("() => window.TwLegal.state()"))
         ctx.close()
+
+# ===================================================================== 時鐘 v2（設計系統 v2 第 5 批）
+# 規格：docs/design_system_v2.md §3.2。每一條都量**畫上去的**狀態（ECharts 的 option、canvas 像素、DOM），
+# 不是「元素存在」。
+CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
+  const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(); const ss = o.series || [];
+  const lines = ss.filter(s => s.type === 'line');
+  const vis = lines.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) > 0 && (s.data || []).length);
+  const sym = (s, k) => (s.data || []).filter(d => d && !Array.isArray(d) && d.symbol === k).length;
+  const sc = ss.filter(s => s.type === 'scatter')[0] || { data: [] };
+  const ring = ss.find(s => s.type === 'custom' && s.name === '象限底色');
+  const moved = ss.find(s => s.type === 'custom' && s.name === '換段色環');
+  const g0 = vis.map(s => s.lineStyle.color).find(x => x && typeof x === 'object');
+  return { n: sc.data.length, lines: lines.length, vis: vis.length, visGids: vis.map(s => s.gid),
+    arrows: vis.reduce((a, s) => a + sym(s, 'triangle'), 0), marks: vis.reduce((a, s) => a + sym(s, 'circle'), 0),
+    grad: g0 ? g0.colorStops.map(x => x.color) : null,
+    ringN: ring ? (ring.data || []).length : -1, movedN: moved ? (moved.data || []).length : -1,
+    splitArea: ((o.angleAxis[0] || {}).splitArea || {}).show,
+    glow: sc.data.filter(d => ((d.itemStyle || {}).shadowBlur || 0) > 0).length,
+    lblFs: ((sc.label || {}).fontSize) || 0,
+    focusBold: sc.data.filter(d => (d.label || {}).fontWeight === 700).length,
+    fr: (window.App && window.App._rotFrame) || null, anim: o.animation }; }"""
+
+# 三圈底色：沿著每個象限的角度，在三圈的中線上取樣 canvas 像素，量「跟卡片底色差多少」（越外圈越濃）
+CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = el && el.querySelector('canvas'); if (!cv) return null;
+  const g = cv.getContext('2d'); const k = cv.width / el.clientWidth;
+  const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+  const axisMax = 1.25 * 1.18 * 1.06, mids = [0.3125, 0.9375, (1.25 + axisMax) / 2];
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+  const hx = bg.replace('#', ''); const B = [0, 2, 4].map(i => parseInt(hx.slice(i, i + 2), 16));
+  // 取第 20 百分位（不是中位數）：盤上的點與軌跡是飽和色，會把取樣往上拉；最淡的那幾格才是底色本身
+  const med = (a) => { const s = a.slice().sort((x, y) => x - y); return Math.round(s[Math.floor(s.length * 0.2)]); };
+  const out = {};
+  [['leading', 0], ['improving', 90], ['lagging', 180], ['weakening', 270]].forEach(([q, a0]) => {
+    out[q] = mids.map(m => { const r = m / axisMax * R, ds = [];
+      for (let a = a0 + 8; a <= a0 + 82; a += 4) { const t = a * Math.PI / 180;
+        const x = Math.round((cx + Math.cos(t) * r) * k), y = Math.round((cy - Math.sin(t) * r) * k);
+        const p = g.getImageData(x, y, 1, 1).data, al = p[3] / 255;
+        /* 圖表的 canvas 底是透明的：getImageData 拿到的是「沒乘過 alpha 的色」，要自己疊在卡片底色上才是眼睛看到的 */
+        ds.push([0, 1, 2].reduce((s2, i) => s2 + Math.abs(p[i] * al + B[i] * (1 - al) - B[i]), 0)); }
+      return med(ds); }); });
+  return out; }"""
+
+
+def _clk_rings_ok(r):
+    """四個象限裡至少三個：內圈 < 中圈 < 外帶（跟卡片底色的差距，越外越大）。"""
+    if not r:
+        return False
+    good = sum(1 for v in r.values() if v[0] < v[1] < v[2])
+    return good >= 3
+
+
+def t_clock_v2(pg, b, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(600)
+        s = pg.evaluate(CLK_STATE, "rotClock")
+        if not ok(f"[{th}] 讀得到輪動時鐘的狀態", bool(s) and s["n"] > 6 and s["fr"], s and {k: s[k] for k in ("n", "lines")}):
+            continue
+        fr = s["fr"]
+        # ① 焦點族群：預設模式 focus，最多 6 個，只有焦點畫軌跡
+        ok(f"[{th}] ① 軌跡預設是「焦點」模式", fr.get("tmode") == "focus", fr.get("tmode"))
+        ok(f"[{th}] ① 焦點族群 1～6 個（佔比前 3 ＋ 最近換段）", 1 <= len(fr.get("focus") or []) <= 6, fr.get("focus"))
+        ok(f"[{th}] ① 看得到的軌跡 ≤ 6 條、而且只有焦點族群有（非焦點沒有軌跡）",
+           0 < s["vis"] <= 6 and set(s["visGids"]) <= set(fr["focus"]), {"看得到": s["vis"], "焦點": fr["focus"]})
+        ok(f"[{th}] ① 每個族群仍然各有一條 line series（資料還在，只是非焦點看不見）", s["lines"] == s["n"], s)
+        ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
+        ok(f"[{th}] ① 族群名稱字級 ≥ 12px", s["lblFs"] >= 12, s["lblFs"])
+        # ② 軌跡由舊到新漸強、箭頭、每 5 天一顆小點
+        ok(f"[{th}] ② 軌跡顏色是由舊到新的漸層（透明度 .15 → .90）",
+           bool(s["grad"]) and s["grad"][0].endswith(",0.15)") and s["grad"][-1].endswith(",0.9)"), s["grad"])
+        ok(f"[{th}] ② 最新一段有方向箭頭（三角形符號）", s["arrows"] >= 1, s["arrows"])
+        ok(f"[{th}] ② 每 5 個交易日一顆小點", s["marks"] >= s["vis"], {"小點": s["marks"], "軌跡": s["vis"]})
+        # ③ 象限底色三圈（像素量：越外圈跟卡片底差越多）
+        ok(f"[{th}] ③ 象限底色改由 12 塊扇形畫（splitArea 關掉）", s["ringN"] == 12 and s["splitArea"] is False, s)
+        rg = pg.evaluate(CLK_RINGS, "rotClock")
+        ok(f"[{th}] ③ 三圈真的有層次：至少三個象限「內圈 < 中圈 < 外帶」（跟卡片底色的差距）", _clk_rings_ok(rg), rg)
+        # ④ 換段色環取代發光
+        ok(f"[{th}] ④ 沒有任何一顆點還在用 shadowBlur 發光", s["glow"] == 0, s["glow"])
+        ok(f"[{th}] ④ 換段色環的數量＝畫面上剛換段的族群數", s["movedN"] == fr.get("rings"), {"色環": s["movedN"], "換段": fr.get("rings")})
+        # ⑤ 象限卡的「本週新進」
+        nw = pg.evaluate("""() => [...document.querySelectorAll('#rotClock .rotquads .rq')].map(q => ({
+            k: q.dataset.k, n: parseInt(((q.querySelector('em')||{}).textContent||'0'), 10),
+            nw: q.querySelector('i.nw') ? q.querySelector('i.nw').textContent : '' }))""")
+        ok(f"[{th}] ⑤ 象限卡的「+N 本週新進」格式正確、而且不超過那一段的族群數",
+           all((not x["nw"]) or (x["nw"].startswith("+") and 0 < int(x["nw"][1:]) <= x["n"]) for x in nw), nw)
+        if th == "dark":
+            # ⑥ 切到「全部」→ 每個族群都有軌跡；切回「焦點」→ 又收回 ≤ 6
+            pg.eval_on_selector("#rotTools .rot-tmode button[data-m=all]", "b => b.click()")
+            pg.wait_for_timeout(1400)
+            s2 = pg.evaluate(CLK_STATE, "rotClock")
+            ok("⑥ 按「全部」→ 看得到的軌跡數＝族群數（原本的畫法還在）", s2 and s2["vis"] == s2["n"], s2 and [s2["vis"], s2["n"]])
+            ok("⑥ 「全部」有記在這台瀏覽器（tw.rot.tmode）",
+               pg.evaluate("() => { try { return localStorage.getItem('tw.rot.tmode'); } catch (e) { return null; } }") == "all")
+            pg.eval_on_selector("#rotTools .rot-tmode button[data-m=focus]", "b => b.click()")
+            pg.wait_for_timeout(1400)
+            s3 = pg.evaluate(CLK_STATE, "rotClock")
+            ok("⑥ 按回「焦點」→ 看得到的軌跡又收回 ≤ 6", s3 and 0 < s3["vis"] <= 6, s3 and s3["vis"])
+            # ⑥-b 軌跡關掉時「焦點｜全部」停用
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(900)
+            dis = pg.evaluate("() => [...document.querySelectorAll('#rotTools .rot-tmode button')].every(b => b.disabled)")
+            ok("⑥ 軌跡關掉時「焦點｜全部」一起停用", dis)
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+            # ⑦ 滑到一顆**非焦點**的點 → 它的軌跡出現、其他壓暗；滑開 → 還原
+            tgt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+                const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter');
+                const f = new Set((window.App._rotFrame || {}).focus || []);
+                const d = o.series[si].data.find(x => x.row && !f.has(x.row.gid)); if (!d) return null;
+                const p = c.convertToPixel({ seriesIndex: si }, d.value); const r = el.getBoundingClientRect();
+                return { gid: d.row.gid, x: r.left + p[0], y: r.top + p[1] }; }""")
+            if ok("⑦ 找得到一顆非焦點的點（下一條要滑過去）", bool(tgt), tgt):
+                pg.mouse.move(tgt["x"], tgt["y"]); pg.wait_for_timeout(700)
+                hv = pg.evaluate("""(gid) => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+                    const ls = c.getOption().series.filter(s => s.type === 'line');
+                    const me = ls.find(s => s.gid === gid); const others = ls.filter(s => s.gid !== gid);
+                    return { me: me ? me.lineStyle.opacity : null, maxOther: Math.max(0, ...others.map(s => s.lineStyle.opacity)) }; }""", tgt["gid"])
+                ok("⑦ 滑到非焦點的點：它的軌跡出現（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
+                pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+                s4 = pg.evaluate(CLK_STATE, "rotClock")
+                ok("⑦ 滑開之後還原成焦點模式（非焦點的軌跡又看不見）", s4 and 0 < s4["vis"] <= 6, s4 and s4["vis"])
+            # ⑧ 編號模式的判準跟容器寬度一致（1440 不是編號模式）
+            ok("⑧ 1440px 的卡片不是編號模式（容器 ≥ 560px）", (s["fr"] or {}).get("num") is False, s["fr"].get("num"))
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }")
+
+    # ⑨ 手機 390px：編號模式 —— 編號框兩兩不重疊、全在畫布內、清單列數＝點數、點清單真的會單獨亮那一顆
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.on("pageerror", lambda e: fails.append(f"時鐘v2 手機 pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
+    st = m.evaluate("""() => { const el = document.getElementById('rotClock'); if (!el) return null;
+        const rs = (window.App && window.App._rotLabels) || [];
+        const W = el.clientWidth, H = el.clientHeight; let hit = null, out = null;
+        for (let i = 0; i < rs.length; i++) { const a = rs[i];
+          if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out = out || a.name;
+          for (let j = i + 1; j < rs.length; j++) { const q = rs[j];
+            if (a.x < q.x + q.w && q.x < a.x + a.w && a.y < q.y + q.h && q.y < a.y + a.h) hit = hit || [a.name, q.name]; } }
+        const pts = (window.App._rotPts || []).length;
+        return { W, num: (window.App._rotFrame || {}).num, n: rs.length, hit, out, pts,
+                 allNum: rs.every(r => /^\\d+$/.test(r.name)),
+                 rows: document.querySelectorAll('.rotnums[data-for="rotClock"] .rni').length }; }""")
+    if ok("⑨ [390px] 讀得到時鐘", bool(st), st):
+        ok("⑨ [390px] 容器 < 560px → 編號模式", st["num"] is True and st["W"] < 560, st)
+        ok("⑨ [390px] 圖上寫的全是編號（名字不再擠成一直排）", st["allNum"] and st["n"] == st["pts"], st)
+        ok("⑨ [390px] 編號框兩兩不重疊、全在畫布內", st["hit"] is None and st["out"] is None, st)
+        ok("⑨ [390px] 圖下方清單的列數＝圖上的點數（名字一個都沒少）", st["rows"] == st["pts"] and st["pts"] > 0, st)
+        m.eval_on_selector('.rotnums[data-for="rotClock"] .rni', "b => b.click()")
+        m.wait_for_timeout(900)
+        hl = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
+            const b0 = document.querySelector('.rotnums[data-for="rotClock"] .rni');
+            return { on: b0.classList.contains('on'), gid: b0.dataset.gid,
+                     lit: sc.data.filter(d => (d.itemStyle || {}).opacity === 1).map(d => d.row.gid),
+                     dim: sc.data.filter(d => (d.itemStyle || {}).opacity <= 0.18).length }; }""")
+        ok("⑨ [390px] 點清單第一列 → 圖上只亮那一顆、其他壓暗", hl["on"] and hl["lit"] == [hl["gid"]] and hl["dim"] > 3, hl)
+        m.eval_on_selector('.rotnums[data-for="rotClock"] .rni', "b => b.click()")
+        m.wait_for_timeout(900)
+        dim2 = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
+            return sc.data.filter(d => (d.itemStyle || {}).opacity <= 0.18).length; }""")
+        ok("⑨ [390px] 再點一次還原（沒有任何一顆被壓暗）", dim2 == 0, dim2)
+        fsz = m.evaluate("""() => Math.min(...[...document.querySelectorAll('.rotnums .rni, .rotnums .rni i, .rotnums .rnh')]
+            .map(e => parseFloat(getComputedStyle(e).fontSize)))""")
+        ok("⑨ [390px] 清單的字都 ≥ 12px", fsz >= 12, fsz)
+    m.close()
+
+    # ⑩ 使用者要求減少動態：時鐘的補間整個關掉
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    rp = ctx.new_page()
+    rp.goto(f"{base}#flow", wait_until="networkidle"); rp.wait_for_timeout(2600)
+    rs2 = rp.evaluate(CLK_STATE, "rotClock")
+    ok("⑩ prefers-reduced-motion：時鐘的動畫關掉（播放變成一天一跳）", bool(rs2) and rs2["anim"] is False, rs2 and rs2["anim"])
+    ctx.close()
+
+
+# ===================================================================== 資金去向 v2（設計系統 v2 第 5 批）
+OVF_STATE = r"""() => { const el = document.getElementById('ovFlow'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(); const s = o.series[0]; const root = s.data[0]; const chains = root.children || [];
+  const rgb = (x) => String(x || '').replace(/\s/g, '').replace(/^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/, '$1,$2,$3');
+  const alpha = (x) => { const m = String(x || '').match(/,([\d.]+)\)$/); return m ? +m[1] : null; };
+  const d = c.getModel().getSeriesByIndex(0).getData(); let outR = 0;
+  for (let i = 0; i < d.count(); i++) { const g = d.getItemGraphicEl(i); if (!g) continue;
+    const h = (g.getTextContent && g.getTextContent()) ? g : (g.childAt ? g.childAt(0) : null);
+    const t = h && h.getTextContent && h.getTextContent(); if (!t || t.ignore) continue;
+    const r = t.getBoundingRect().clone(); r.applyTransform(t.getComputedTransform()); outR = Math.max(outR, r.x + r.width); }
+  return { anim: o.animation, W: el.clientWidth, outR,
+    chains: chains.map(ch => ({ sym: ch.symbol, size: ch.symbolSize, line: ch.lineStyle.color, a: alpha(ch.lineStyle.color),
+      kidsSame: (ch.children || []).every(k => rgb(k.lineStyle.color) === rgb(ch.lineStyle.color)),
+      lbl: (ch.label || {}).formatter, first: ((ch.children || [])[0] || {}).label.formatter,
+      rest: (ch.children || []).slice(1).map(k => (k.label || {}).formatter) })) }; }"""
+
+
+def t_flow_v2(pg, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "ovFlow"); pg.wait_for_timeout(500)
+        s = pg.evaluate(OVF_STATE)
+        if not ok(f"[{th}] 總覽的資金去向畫得出來", bool(s) and len(s["chains"]) >= 2, s):
+            continue
+        ok(f"[{th}] 總覽資金去向仍然沒有動畫（Andy 09-23）", s["anim"] is False, s["anim"])
+        want_a = 0.38 if th == "dark" else 0.30
+        ok(f"[{th}] ① 線條＝所屬產業鏈的識別色（鏈底下每條線跟鏈同一個色）、淡 {want_a}",
+           all(c["kidsSame"] and c["a"] == want_a for c in s["chains"]), [(c["line"], c["kidsSame"]) for c in s["chains"]])
+        ok(f"[{th}] ① 不同產業鏈的線是不同的色（顏色真的在講「哪條鏈」）",
+           len({c["line"] for c in s["chains"]}) >= min(3, len(s["chains"])), [c["line"] for c in s["chains"]])
+        ok(f"[{th}] ② 產業鏈節點是直立細長條（圓角矩形、寬 4、高 ≥ 8）",
+           all(c["sym"] == "roundRect" and c["size"][0] == 4 and c["size"][1] >= 8 for c in s["chains"]),
+           [(c["sym"], c["size"]) for c in s["chains"]])
+        ok(f"[{th}] ③ 產業鏈名字用 13px 粗體那一級（rich cn）、% 用 12px --ink-3（rich gp）",
+           all(c["lbl"].startswith("{cn|") and "{gp|" in c["lbl"] for c in s["chains"]), [c["lbl"] for c in s["chains"]][:3])
+        ok(f"[{th}] ③ 每條鏈流量第一名的族群名字是粗體（gb），其餘一般（gn）",
+           all(c["first"].startswith("{gb|") and all(x.startswith("{gn|") for x in c["rest"]) for c in s["chains"]),
+           [c["first"] for c in s["chains"]])
+        ok(f"[{th}] ③ 百分比一個都沒被截掉（每一條都以「數字%」結尾）",
+           all(re.search(r"\d%\}$", x or "") for c in s["chains"] for x in [c["lbl"], c["first"]] + c["rest"]),
+           [x for c in s["chains"] for x in [c["first"]] + c["rest"] if not re.search(r"\d%\}$", x or "")][:4])
+        ok(f"[{th}] ③ 標籤沒有超出畫布右緣", s["outR"] <= s["W"] + 1, {"最右": s["outR"], "寬": s["W"]})
+
+    # 資金流向頁那張：鏈色線條、直條節點、小圓點不壓字（小圓點本身保留）
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
+    sk = pg.evaluate(r"""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey')); if (!c) return null;
+        const root = c.getOption().series[0].data[0];
+        const rgb = (x) => String(x || '').replace(/\s/g, '').replace(/^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/, '$1,$2,$3');
+        return (root.children || []).map(ch => ({ sym: ch.symbol, size: ch.symbolSize,
+          same: (ch.children || []).every(g => rgb(g.lineStyle.color) === rgb(ch.lineStyle.color)),
+          lbl: (ch.label || {}).formatter })); }""")
+    if ok("讀得到資金流向頁的資金去向", bool(sk), sk):
+        ok("① 族群那一層的線改用所屬產業鏈的色（跟鏈那條線同一個色相）", all(c["same"] for c in sk), [c["same"] for c in sk])
+        ok("② 產業鏈節點是直立細長條（圓角矩形、寬 4）",
+           all(c["sym"] == "roundRect" and c["size"][0] == 4 for c in sk), [(c["sym"], c["size"]) for c in sk])
+        ok("③ 產業鏈名字用 13px 粗體（rich cn）、百分比仍在", all(c["lbl"].startswith("{cn|") and "%" in c["lbl"] for c in sk),
+           [c["lbl"] for c in sk][:3])
+    # ⑥ 小圓點不壓字：連續取樣 1.2 秒，每一顆畫出來的點都不在任何標籤外框（含 3px 描邊）裡
+    bad, tot = 0, 0
+    lbs = pg.evaluate("() => window.App.sankeyLabels()") or []
+    for _ in range(8):
+        dots = pg.evaluate("() => window.App.sankeyDots()") or []
+        tot += len(dots)
+        for x, y, _l in dots:
+            if any(r["x"] - 3 < x < r["x"] + r["w"] + 3 and r["y"] - 3 < y < r["y"] + r["h"] + 3 for r in lbs):
+                bad += 1
+        pg.wait_for_timeout(150)
+    ok("⑥ 讀得到標籤外框（小圓點要避開的地方）", len(lbs) > 10, len(lbs))
+    ok("⑥ 小圓點還在跑（09-20／21 要的傳輸效果保留）", tot > 50 and pg.evaluate("() => window.App.sankeyFxRunning()"), tot)
+    ok("⑥ 取樣 8 次、每一顆畫出來的點都不在標籤上（點不壓字）", bad == 0, f"{bad} / {tot} 顆壓在字上")
 
 
 if __name__ == "__main__":
