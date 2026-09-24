@@ -1210,6 +1210,10 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
   border:1px solid var(--line-2);border-left:3px solid var(--cyan);color:var(--ink-2);font-size:13.5px;line-height:1.75}
 .howtxt b{color:var(--ink-1)} .howtxt em{color:var(--cyan);font-style:normal}
 .howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
+/* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列 → 最下面一行小字口徑」（app.js howHTML） */
+.howtxt .howq{display:block;color:var(--ink)}
+.howtxt .howfine{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line-2);font-size:12px;line-height:1.6;color:var(--ink-3)}
+.howtxt .howfine:empty{display:none}
 .qlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-3)}
 .qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
 /* ★ 2026-09-23：`.vfilters` 一整組已移除 —— 它只服務「估值篩選」那張卡（Andy 指定拿掉）。 */
@@ -3065,11 +3069,26 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #zoomTools .rotnums{max-height:30vh;overflow:auto}
 @media (prefers-reduced-motion:reduce){ .rotnums .rni{transition:none} }
 
+
+/* ★ 2026-09-24 晚：版號在標題下面（取代原本「YYYY-MM-DD 盤後」那行；資料日期與資料狀態在它的滑鼠提示裡）。 */
+#asof{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#asof .verline{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+#asof .freshbtn{font:600 12px/1 "Noto Sans TC",system-ui,sans-serif;color:var(--amber);background:none;border:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:2px 8px;cursor:pointer}
+#asof .freshbtn:hover{color:var(--ink);border-color:var(--amber)}
+.livebox[hidden]{display:none!important}
+@media (max-width:820px){
+  #asof .freshbtn{font-size:0;padding:2px 6px} #asof .freshbtn::before{content:"↻";font-size:13px}
+  #asof .verline{font-size:12px}
+}
+
+/* 既有 bug：.btn 的 display 蓋過 hidden，「← 回到族群」平常就露出來（2026-09-24 說明精簡時順手發現） */
+#gpBack[hidden]{display:none!important}
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof">—</small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
@@ -3114,13 +3133,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        **自動更新本身照跑**（live.js 的 MS_INTRADAY／MS_AFTER），拿掉的只是「手動按一下」的入口。
        這顆只顯示報價時間；「每分鐘（輪詢）」「收盤」這些狀態文字搬進 title ——
        那是「現在是不是即時、多久更新一次」的唯一線索，藏起來可以、刪掉不行。 -->
-  <div class="livebox">
+  <!-- ★ 2026-09-24 晚（Andy：「時間刪除」）：這顆報價時間從畫面上拿掉（hidden）。
+       元素留著：live.js 照舊把「即時／收盤、多久更新、代理有沒有壞」寫進它，
+       那串說明同時鏡射到標題下版號那行的滑鼠提示；「有新資料」改由版號旁的 #freshBtn 出現。 -->
+  <div class="livebox" hidden>
     <span class="livestate off" id="liveState" title="即時報價：尚未取得">—</span>
   </div>
   <!-- 明亮／深色（Andy 2026-09-14「版面內容需要新增切換明亮色調」）。
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
-  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- ★ 2026-09-24 晚（Andy：「明暗切換移動到右邊」）：放到頂欄最右邊。 -->
+  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
        390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
        「明亮／深色」只露出 6px、「事件」整顆在畫面外，
@@ -3137,10 +3160,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
     <div class="hint">這兩項在電腦版是頂欄右邊的兩顆鈕，名字一樣。</div>
   </div>
-  <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
-       但橫幅那一行也會寫，所以手機還是看得到。 -->
-  <a class="verbadge" id="buildver" href="https://github.com/MiaoZiKe/tw-rotation/commits/main"
-     target="_blank" rel="noopener" title="這個網頁的版本">—</a>
+  <!-- ★ 2026-09-24 晚（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：版號搬到標題下（#asof 裡的 #buildver）。 -->
 </header>
 
 <div class="layout" id="layout">
@@ -3158,7 +3178,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <div id="m3"></div>
     <div class="hero" id="hero"></div>
     <div class="grid g21" style="margin-top:var(--gap-card)">
-      <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
+      <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <small>族群資金流入／流出</small></h3>
         <div class="row" style="gap:8px"><span id="heatDate"></span><button class="btn small" id="heatZoom">放大 ⤢</button>
         <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-heat" hidden></div>
@@ -3185,10 +3205,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     </div>
     <div class="grid g12 eqpair" style="margin-top:var(--gap-card)">
       <div class="card" id="ovThemeCard"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
-      <div class="card" id="ovCandCard"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
-        <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div></div></div>
+      <div class="card" id="ovCandCard"><div class="row spread"><h3>今日候選 <small>A 回檔承接／B 突破追進</small></h3>
+        <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div>
+        <button class="howbtn" data-how="cand">怎麼看 ?</button></div></div>
+        <!-- ★ 2026-09-24 說明精簡：面向說明 #candHint 從卡片上搬進「怎麼看 ?」最下面那行小字（id 不變，切面向照樣換字）。 -->
+        <div class="howtxt" id="how-cand" hidden><div class="howbody"></div><div class="howfine" id="candHint"></div></div>
         <div class="facets" id="candFacets"></div>
-        <p class="hint" id="candHint"></p>
         <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
         <div class="cards" id="candCards"></div></div>
     </div>
@@ -3197,7 +3219,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
          g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
     <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="ovBreadthCard"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
+      <div class="card" id="ovBreadthCard"><div class="row spread"><h3>市場寬度 <small>站上均線比例＋漲跌家數</small></h3>
+        <button class="howbtn" data-how="breadth">怎麼看 ?</button></div>
+        <div class="howtxt" id="how-breadth" hidden></div>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
         <div class="row" style="gap:6px">
@@ -3205,9 +3229,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
           <select class="minisel" id="streakDays" title="連續買超天數門檻">
             <option value="2">≥2 天</option><option value="3" selected>≥3 天</option>
             <option value="5">≥5 天</option><option value="8">≥8 天</option><option value="12">≥12 天</option></select>
+          <button class="howbtn" data-how="trust">怎麼看 ?</button>
         </div></div>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div>
-        <div class="note" style="margin-top:6px">滾輪放大、放大後拖曳移動、雙擊還原；點泡泡進個股頁。</div></div>
+        <div class="howtxt" id="how-trust" hidden></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div></div>
     </div>
   </section>
 
@@ -3311,7 +3336,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <!-- #sankeySub 的字是 renderSankey() 每次重畫都會換掉的（會依「歷史回放／即時」換說法）。
          這裡只是圖還沒畫出來前的預設值，所以也不可以寫死成「位置固定」——
          切到即時的時候圖真的會換位，字說不會動就是在騙人。 -->
-    <div class="card" id="flowSankeyCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
+    <div class="card" id="flowSankeyCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>資金去向 <small id="sankeySub">% 佔上一層</small></h3>
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
@@ -3361,10 +3386,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          放在全市場熱力圖下面。id 一個都沒改（#themeMap／#themeMapWrap／#themeZoom 是縮放白名單、
          淺色主題掃描、驗收都認的 id）。點題材方塊 → 下面的 #themeDetail 就地展開那個題材的剖析圖，
          網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
-    <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
-      <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
-      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、顏色又最亮的方塊 ——
-        錢多、熱度也高的題材（右上可以把顏色換成平均漲跌，那時就是紅漲綠跌）；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
+    <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>題材成交值與熱度</small></h3>
+      <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button>
+        <button class="howbtn" data-how="theme">怎麼看 ?</button></div></div>
+      <!-- ★ 2026-09-24 說明精簡：原本的「這張圖回答／怎麼用」長句與口徑註 #themeNote 都搬進「怎麼看 ?」；
+           #themeNote 仍由 renderThemes 寫入資料端的口徑（成員不拆分、熱度怎麼算），id 不變。 -->
+      <div class="howtxt" id="how-theme" hidden><div class="howbody"></div><div class="howfine" id="themeNote"></div></div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
     <div id="themeDetail" style="margin-top:var(--gap-card)"></div>
@@ -3401,7 +3428,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   <section class="view" id="v-season">
     <div class="card" id="seasonHeatCard">
       <div class="row spread">
-        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small></h3>
+        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small> <button class="howbtn" data-how="season">怎麼看 ?</button></h3>
         <div class="row" id="seasonCtl">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
@@ -3415,7 +3442,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
           <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
       </div>
-      <p class="note" id="seasonHow" style="margin-top:8px"></p>
+      <!-- ★ 2026-09-24 說明精簡：「這張回答／所以」那段（#seasonHow）與口徑長註（#seasonFine）搬進「怎麼看 ?」，
+           卡片上的 #seasonNote 只留基準與數字去哪裡看。兩個 id 都由 writeNote() 寫。 -->
+      <div class="howtxt" id="how-season" hidden><div id="seasonHow"></div><div class="howfine" id="seasonFine"></div></div>
       <p class="note sncav" id="seasonCaveat" hidden></p>
       <!-- 熱力圖放在可捲動的框裡：列高固定（每個族群名稱都印得出來），月份表頭用 sticky 釘在框頂，
            捲到下面也知道哪一欄是幾月。表頭是 HTML 按鈕，點一下＝依那個月重新排序。 -->
@@ -3477,6 +3506,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 <script src="dg/bank.js"></script>
 <script src="dg/life_fhc.js"></script>
 <script src="dg/securities_fhc.js"></script>
+<!-- 積木（docs/feature_modules.md §4.1）：一塊一支檔，擋掉任何一支整站照常（原則三）。
+     呼叫端都在執行期才讀 window.<積木>，順序只要在 industry.js／app.js 之前就好。 -->
+<script src="blocks/broker_views.js"></script>
+<script src="blocks/stock_signal.js"></script>
+<!-- 積木清單：app.js 的手機分段表（MIA_PAGER）由它產生，所以一定要在 app.js 之前。 -->
+<script src="modules.js"></script>
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>

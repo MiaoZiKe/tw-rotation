@@ -128,6 +128,7 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
 
 - **職責**：前端所有頁面的資訊架構、視覺（深色科技／AI／專業風）、互動、手機版、可讀性。
 - **負責檔案**：`site/index.html`、`site/app.js`、`site/industry.js`、`site/chart.js`（圖表殼與互動）、
+  `site/modules.js`（27 塊積木的宣告，手機分段表由它產生，2026-09-24 起）、`site/blocks/*.js`（拆出來的獨立積木）、
   `site/diagrams.js`、`site/manifest.webmanifest`。
 - **產出格式**：直接改前端檔（不畫稿圖）；每個改動附桌機 1500px 與手機 390px 截圖（`_preview.py` 會產）。
 - **檢查標準**：
