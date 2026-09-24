@@ -1,5 +1,17 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 第 6 批：條款三頁＋同意橫幅＋平台導覽（預設關閉）＋頁尾免責聲明（2026-09-24 16:20，台北）
+
+- 新檔 `site/legal.js`（全部邏輯＋自帶 CSS）、`site/legal_config.js`（**唯一開關** `window.TW_LEGAL`）。
+  啟用條件：operator／email／effective_date／tax_id／court 五個必填都有值 ＋ 條款全文沒有【】 ＋ `enabled: true`。
+  **現在五項都空、enabled false** → 同意橫幅與導覽不出現；`#terms`／`#privacy` 頂端掛「草稿，尚未生效」；`#disclaimer` 與頁尾短版免責聲明照常顯示。
+- 驗收腳本（_uitest／_preview／_show）在每個新頁面預寫 `tw.consent={v:'*'}` 與 `tw.tour`，啟用那天關卡不會被橫幅擋紅。
+- `手機一屏` 的高度上限改成扣掉頁尾實際高度（頁尾手機約 300px）。
+- ⚠ 待 Andy：五個必填欄位；請律師看「不蒐集任何個人資料」（GitHub Pages／Cloudflare 會記 IP）與「依 LICENSE」（repo 沒有 LICENSE 檔）。
+**這批驗了哪幾段**：agent 自驗 `_preview` 全綠＋同意條款／總覽／手機／手機一屏／桌機零差異／設定面板／資料狀態；
+合併到 main 後我再跑：`_preview` 全綠；`_uitest --only 同意條款,網頁版號,縮放掃描,淺色主題,明亮主題,手機一屏,總覽,桌機零差異,題材,熱力圖v2,手機 --workers 1`（連帶手機改版、題材2D）全部 0。
+
+
 ## 題材熱力圖改暖金／湖水藍、提示框不透明、藏起來的圖表不再被縮成 100px（2026-09-24 15:40，台北）
 
 - Andy：「改用其他顏色，這顏色好醜 親近人一點顏色」→ 紫色（v2 第一版）否決。`--hm-v*` 改暖金、新增 `--hm-t*` 湖水藍，
