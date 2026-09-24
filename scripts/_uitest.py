@@ -7994,7 +7994,8 @@ def t_live(pg, base):
 
     # 開一頁新的：計時器紀錄器一定要在頁面腳本跑之前裝好（add_init_script），
     # 只改 hash 的導航不會重跑頁面腳本，所以不能沿用別段留下來的那一頁。
-    lp = pg.context.new_page()
+    # ⚠ 不能用 pg.context.new_page()：驗收的 pg 是 browser.new_page() 開的，那種頁面的 context 不給再開分頁
+    lp = pg.context.browser.new_page(viewport={"width": 1500, "height": 1000})
     lp.on("pageerror", lambda e: fails.append(f"盤中即時 pageerror: {e}"))
     lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     lp.add_init_script(IV_RECORDER)

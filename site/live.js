@@ -612,8 +612,10 @@
           state.ssePaused = false;
           state.tries = 0; state.sseGaveUp = false; state.sseFails = 0;
           if (state.slow) { state.slow = false; reschedule(); }
-          tick(false);
+          // 先開推送、再補抓一輪（跟以前按「更新」時 tick(true) 裡的順序一樣）：
+          // 推送的第一筆快照先到，輪詢那一輪再對帳，兩邊不會互相蓋掉對方剛寫上去的數字。
           openStream();     // 重連會拿到完整快照，剛好補回背景期間的變化
+          tick(false);
         }
       });
       // 換頁之後畫面上的代號就換了一批，重抓一次讓新的那批也有即時價，
