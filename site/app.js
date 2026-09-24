@@ -1663,6 +1663,16 @@
   let _miaKey = 'overview';
 
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
+  /* 換頁後把「看得見的」圖表 resize。藏起來的（display:none 的分頁裡）一律跳過：
+     量不到寬度時 ECharts 會把它縮成 100px，等那一頁再被打開時就是一塊空白（2026-09-24 抓到）。*/
+  function resizeVisibleCharts() {
+    Object.values(charts).forEach(c => {
+      if (!c || !c.resize || (c.isDisposed && c.isDisposed())) return;
+      const el = c.getDom && c.getDom();
+      if (el && (el.offsetWidth === 0 || el.offsetHeight === 0)) return;
+      c.resize();
+    });
+  }
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -1753,6 +1763,10 @@
       if (!rendered.themes) { rendered.themes = true; await renderThemes(tid); }
       else if (D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
       mia(); setTimeout(mia, 500);
+      /* ★ 2026-09-24：這一支提早 return，原本漏了下面那行「換頁後把圖表 resize」——
+         而別頁的 resize 會把藏起來的題材熱力圖縮成 100px（藏起來量不到寬度），
+         於是「上一頁 → 下一頁」回到這裡時，題材熱力圖是一塊空白、點方塊沒反應（_uitest「題材」5 條紅就是這個）。*/
+      setTimeout(resizeVisibleCharts, 30);
       /* 捲到題材那一塊（桌機）：
          · 從別頁（或舊網址 #themes）帶進來 → 一定捲，不然使用者看到的是上面那張全市場熱力圖，會以為連結壞了。
          · 同一頁裡換題材（點方塊、點細節底下的「其他題材」）→ 細節的上緣不在畫面上半部才捲：
@@ -1775,7 +1789,7 @@
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
     if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
     mia(); setTimeout(mia, 500);
-    setTimeout(() => Object.values(charts).forEach(c => c && c.resize && c.resize()), 30);
+    setTimeout(resizeVisibleCharts, 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）
     if (window.twSwipeScan) { setTimeout(window.twSwipeScan, 60); setTimeout(window.twSwipeScan, 600); }
   }
