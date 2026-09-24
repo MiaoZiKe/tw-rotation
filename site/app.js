@@ -15,7 +15,7 @@
     /* 熱力圖 v2 的色階（refreshPalette 會從 --hm-* 重讀；這裡只是讀到之前的保底值，跟深色主題的 token 同值）*/
     card: '#0f172b',
     hm: ['#078353', '#066542', '#0D4A35', '#495265', '#6B1927', '#A01831', '#D31239'], hmNa: '#2A3350',
-    hmV: ['#3D3833', '#6E4E24', '#9C6818', '#D4931F', '#F4BC45'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
+    hmV: ['#3A5A8C', '#56739E', '#6E6A80', '#A0585A', '#B8453F'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
   /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
      「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
@@ -163,7 +163,7 @@
   };
   const hmColor = (bin, kind) => (bin < 0 ? CH.hmNa : (kind === 'heat' ? CH.hmV : kind === 'heatT' ? CH.hmT : CH.hm)[bin]);
   /* 熱度那兩組最亮的兩格（第 4、5 格）太亮，白字不到 4.5:1，改深字。*/
-  const hmDarkInk = (bin, kind) => (kind === 'heat' || kind === 'heatT') && bin >= 3;
+  const hmDarkInk = (bin, kind) => kind === 'heatT' && bin >= 3;   // 藍→紅那組五格都夠深，一律白字
   const hmCount = (kind) => HM_KIND[kind].cells.length;
   /* 方塊的一格資料：顏色、第幾格、圖例聚焦時的透明度。`focus`＝圖例被點中的那一格（null＝沒有聚焦）。
      無資料的格子底色是淺灰（淺色主題）／深藍灰（深色），字色跟著換，不然白字會看不見。*/
@@ -350,7 +350,7 @@
        · 不動：熱力圖 treemap（本來就有 3px 圓角）、K 線（candlestick 那張圖的成交量柱也不動）、custom。
      套在 chart() 建立的實例上，而且**包住那個實例的 setOption** —— 很多圖之後會自己 setOption 換資料
      （滑過高亮、播放），只在第一次套的話，第一次互動之後圓角就不見了。*/
-  const SOFT_CAP = 999;                // 「夠大就好」的圓角：畫的時候會被縮成半個厚度（膠囊）
+  const SOFT_CAP = 3;                  // 2026-09-24 Andy：膠囊「圓弧化太嚴重」，改回上一版的小圓角 3px（只圓外端）
   const SOFT_LABEL_MAX = 16;           // 沒有標籤的長條，最多幾根才自動補數值標籤
   function softenOption(opt, inst) {
     if (!opt || typeof opt !== 'object' || !Array.isArray(opt.series) && !(opt.series && typeof opt.series === 'object')) return opt;
@@ -413,7 +413,7 @@
         if (s.barMaxWidth == null && (s.stack == null || s.barWidth == null)) s.barMaxWidth = 18;
         if (s.stack == null) {
           if (s.itemStyle && s.itemStyle.borderRadius != null) s.itemStyle = { ...s.itemStyle, borderRadius: R };
-          s.data.forEach((d, k) => { const v = val(d); if (v != null && isFinite(v)) setR(s, k, R); });
+          s.data.forEach((d, k) => { const v = val(d); if (v != null && isFinite(v)) setR(s, k, outer(h, v < 0)); });   // 只圓長出去那一端
         }
         // 數值標籤：有開的補字級與等寬字、沒寫位置的放到長出去那一端的外側
         const lab = s.label;
@@ -8610,7 +8610,7 @@
     const ctl = $('#themeCtl');
     if (ctl) {
       ctl.innerHTML = `<label class="hmctl" title="方塊的顏色依據">顏色：<select id="themeColorSel" aria-label="題材熱力圖的顏色依據">`
-        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（暖金）</option><option value="heatT"${mode === 'heatT' ? ' selected' : ''}>熱度（湖水藍）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
+        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（藍→紅）</option><option value="heatT"${mode === 'heatT' ? ' selected' : ''}>熱度（湖水藍）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
       const sel2 = $('#themeColorSel', ctl);
       if (sel2) sel2.onchange = () => { themeColor = sel2.value; themeFocus = null; hmLSset('tw.themeColor', themeColor); renderThemes(sel, true); };
     }
