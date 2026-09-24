@@ -178,10 +178,13 @@
       itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 3 },
       label: { show: true, fontSize: 12, fontWeight: 700, lineHeight: 16, color: '#fff', textShadowBlur: 0,
         overflow: 'truncate', ellipsis: '…', fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif' },
+      /* 產業鏈的分組小標：高 22、12px 粗體 --ink-2、底色＝卡片底（不再是半透明黑條），跟 6px 間隙連成一片。
+         ⚠ formatter 一定要自己寫：沒寫的話 upperLabel 會沿用 label 的 formatter（那支只認葉子），小標就變成空白。*/
       upperLabel: { show: !!nested, height: upperH || 22, fontSize: 12, fontWeight: 700, color: CH.ink2,
-        backgroundColor: 'transparent', textShadowBlur: 0 },
+        backgroundColor: 'transparent', textShadowBlur: 0, formatter: (p) => p.name, overflow: 'truncate', ellipsis: '…' },
       levels: nested
-        ? [{ itemStyle: { borderWidth: 0, gapWidth: 6, borderColor: gapC } },
+        // 根節點（第 0 層）不要小標：它沒有名字，留著只會在最上面多一條 22px 的空白
+        ? [{ itemStyle: { borderWidth: 0, gapWidth: 6, borderColor: gapC }, upperLabel: { show: false } },
           { itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 0 } }, leaf]
         : [{ itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC } }, leaf],
     };
@@ -272,7 +275,7 @@
     const at = el.closest('.zwrap') || el;
     let lg = at.nextElementSibling;
     if (!lg || !lg.classList.contains('hmlegend')) {
-      lg = document.createElement('div'); lg.className = 'hmlegend';
+      lg = document.createElement('div'); lg.className = 'hmlegend'; lg.id = afterId + 'Legend';
       at.parentNode.insertBefore(lg, at.nextSibling);
     }
     const K = HM_KIND[kind];
@@ -2456,7 +2459,10 @@
      只是從連續透明度換成 7 格離散色階。方塊上兩行：名稱 ＋「資金 +0.8pp」——
      顏色講的是資金，第二行就該是資金；漲跌移到提示框第一列（不是刪掉）。*/
   let heatFocus = null;
-  const heatVal = (d) => (d && d.gid ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp' : '資金 —') : '');
+  /* 第二行寫「顏色是依什麼上的色」：有資金流向就寫資金；沒有的族群（新板塊還沒累積到 20 日）顏色是用漲跌幅換算的，
+     這時第二行老實寫「漲跌 +9.9%」—— 以前寫「資金 —」卻塗成大紅，看的人會以為是資金大量流入。*/
+  const heatVal = (d) => (d && d.gid ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp'
+    : (d.chg != null ? '漲跌 ' + fmt.pct(d.chg) : '資金 —')) : '');
   function heatOption(gt, rot, chain, big, focus) {
     const rotMap = {}; (rot || []).forEach(r => { rotMap[r.group_id] = r.rotation; });
     const chains = {}; gt.forEach(g => { const c = g.chain || 'industry'; (chains[c] = chains[c] || []).push(g); });
@@ -2467,8 +2473,10 @@
         rot: rv, share: g.turnover_share, ...hmItem(bin, 'flow', focus) };
     };
     const inChain = chain && chains[chain] ? chains[chain] : null;
+    // 產業鏈節點自己的底色：子方塊全部小於 visibleMin 時，畫面上看到的就是它 —— 給「無資料」灰，
+    // 不給的話 ECharts 會拿預設色盤塗一塊紫色，看起來像是某一級色階
     const data = inChain ? inChain.map(mk)
-      : Object.keys(chains).map(cid => ({ name: chainLabel(cid), cid, children: chains[cid].map(mk) }));
+      : Object.keys(chains).map(cid => ({ name: chainLabel(cid), cid, itemStyle: { color: CH.hmNa }, children: chains[cid].map(mk) }));
     const HS = hmSeries(!inChain, big ? 26 : 22);
     return { chains, inChain, option: {
       tooltip: { ...hmTipOpt(), formatter: p => {
@@ -2509,7 +2517,10 @@
     // 圖例排在連結列前面：先插圖例、再插連結列（兩個都是插在 .zwrap 的正後面，所以後插的在前）
     linkRow('heat', list.slice().sort((a, b) => b.turnover - a.turnover).slice(0, 14)
       .map(g => L.group(g.group_id, g.group_name)).join(''), '族群');
-    hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
+    const lg = hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
+    const noRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
+    if (lg && noRot && heatFocus == null) lg.insertAdjacentHTML('afterbegin',
+      `<span class="hmhint" title="這些族群還沒有 5 日 vs 20 日的資金流向，顏色改用當日漲跌幅 ÷3 對到同一把尺（跟舊版同一個口徑）">第二行寫「漲跌」的 ${noRot} 塊沒有資金流向，顏色依漲跌幅換算</span>`);
     const dp = $('#heatDate'); if (dp) dp.innerHTML = hmDate(gt[0] && gt[0].date);
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
@@ -3961,8 +3972,10 @@
         label: { position: 'top', distance: 4, color: CH.ink2, fontSize: 12,
           textBorderColor: CH.panel, textBorderWidth: 3,
           ...(narrow ? { width: 96, overflow: 'truncate' } : {}) },
+        /* ★ 2026-09-24 設計系統 v2：字 11 → 12 之後，最長的族群名（「被動元件 MLCC 11.0%」）會超出右邊預留的
+           124px 約 2px（_preview 在 1280～1920 量到）。所以葉子的字一律給寬度上限並截斷，全名在提示框裡。*/
         leaves: { label: { position: 'right', distance: 6, fontSize: 12, color: CH.ink3, align: 'left',
-          ...(narrow ? { width: 96, overflow: 'truncate' } : {}) } },
+          width: narrow ? 94 : 114, overflow: 'truncate', ellipsis: '…' } },
         emphasis: { focus: 'relative', blurScope: 'series' },
         blur: { itemStyle: { opacity: .2 }, lineStyle: { opacity: .12 }, label: { opacity: .3 } },
         data,
@@ -6826,7 +6839,10 @@
         symbol: 'circle',
         label: { position: 'right', distance: 7, color: CH.ink2, fontSize: 12,
           textBorderColor: CH.panel, textBorderWidth: 3, align: 'left', rich: RICH },
-        leaves: { label: { position: 'right', distance: 6, fontSize: 12, color: CH.ink3, rich: RICH } },
+        /* ★ 2026-09-24 設計系統 v2：字 11 → 12 之後，最長的代表股名（「主動統一台股增長 9.5%」）會超出
+           右邊預留的寬度約 5px（_preview 1280～1920）。葉子的字給寬度上限並截斷，全名在提示框與右邊清單裡。*/
+        leaves: { label: { position: 'right', distance: 6, fontSize: 12, color: CH.ink3, rich: RICH,
+          width: (narrow ? 124 : 132) - 12, overflow: 'truncate', ellipsis: '…' } },
         /* hover 一條就把**整條路徑**亮起來、其餘壓暗（Andy 2026-09-20「更豐富」）。
            用 'relative' 不用 'ancestor'：滑到代表股時兩者一樣（葉子沒有子孫），
            但滑到族群時 'relative' 會連它的代表股一起亮 —— 那正是「這個族群的錢去了哪幾檔」。*/

@@ -139,7 +139,7 @@
       pe: g.valuation && g.valuation.median, n: g.n, ...A.hmItem(A.hmBin(g.chg_pct, 'chg'), 'chg', heatFocusT) });
     const nested = heatGroup !== 'flat';
     const data = nested
-      ? im.chains.map(c => ({ name: c.name, cid: c.id, children: c.groups.map(g => leaf(c, g)) }))
+      ? im.chains.map(c => ({ name: c.name, cid: c.id, itemStyle: { color: A.CH.hmNa }, children: c.groups.map(g => leaf(c, g)) }))
       : [].concat(...im.chains.map(c => c.groups.map(g => leaf(c, g))));
     const HS = A.hmSeries(nested, 22);
     const valOf = (d) => (d && d.gid ? A.fmt.pct(d.chg) : '');
