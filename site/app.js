@@ -15,7 +15,7 @@
     /* 熱力圖 v2 的色階（refreshPalette 會從 --hm-* 重讀；這裡只是讀到之前的保底值，跟深色主題的 token 同值）*/
     card: '#0f172b',
     hm: ['#078353', '#066542', '#0D4A35', '#495265', '#6B1927', '#A01831', '#D31239'], hmNa: '#2A3350',
-    hmV: ['#322e46', '#433a7c', '#503fbe', '#604dd8', '#705deb'] };
+    hmV: ['#3D3833', '#6E4E24', '#9C6818', '#D4931F', '#F4BC45'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
   /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
      「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
@@ -146,20 +146,24 @@
     chg: { title: '漲跌幅 (%)', edges: [-3, -1, 0, 1, 3], cells: ['<-3', '-3~-1', '-1~0', '0', '0~1', '1~3', '>3'] },
     // 總覽那張的顏色是資金流向 pp（5 日 vs 20 日佔比）。門檻＝原本「×3、cap 3」換算回來，色的飽和點不變。
     flow: { title: '資金流向 (pp)', edges: [-1, -0.33, 0, 0.33, 1], cells: ['<-1', '-1~-0.33', '-0.33~0', '0', '0~0.33', '0.33~1', '>1'] },
-    // 題材熱度 0～100：不用紅綠（紅在這個站是「漲」，熱度不是漲跌），改 5 格單一色相（紫）。切點跟舊的 heatColor 一樣。
+    // 題材熱度 0～100：不用紅綠（紅在這個站是「漲」，熱度不是漲跌），改 5 格單一色相。切點跟舊的 heatColor 一樣。
+    // heat＝暖金（預設）、heatT＝湖水藍（2026-09-24 Andy 嫌紫色醜，兩組都做、右上下拉可切）。
     heat: { title: '熱度', edges: [30, 45, 60, 75], cells: ['<30', '30~45', '45~60', '60~75', '≥75'] },
+    heatT: { title: '熱度', edges: [30, 45, 60, 75], cells: ['<30', '30~45', '45~60', '60~75', '≥75'] },
   };
   /* 值 → 第幾格（-1＝無資料）。7 格那兩種回 0～6、熱度回 0～4。*/
   const hmBin = (v, kind) => {
     if (v === null || v === undefined || !Number.isFinite(+v)) return -1;
     v = +v;
     const e = HM_KIND[kind].edges;
-    if (kind === 'heat') return v < e[0] ? 0 : v < e[1] ? 1 : v < e[2] ? 2 : v < e[3] ? 3 : 4;
+    if (kind === 'heat' || kind === 'heatT') return v < e[0] ? 0 : v < e[1] ? 1 : v < e[2] ? 2 : v < e[3] ? 3 : 4;
     if (Math.round(v * 100) / 100 === 0) return 3;
     if (v < e[0]) return 0; if (v < e[1]) return 1; if (v < 0) return 2;
     if (v <= e[3]) return 4; if (v <= e[4]) return 5; return 6;
   };
-  const hmColor = (bin, kind) => (bin < 0 ? CH.hmNa : (kind === 'heat' ? CH.hmV : CH.hm)[bin]);
+  const hmColor = (bin, kind) => (bin < 0 ? CH.hmNa : (kind === 'heat' ? CH.hmV : kind === 'heatT' ? CH.hmT : CH.hm)[bin]);
+  /* 熱度那兩組最亮的兩格（第 4、5 格）太亮，白字不到 4.5:1，改深字。*/
+  const hmDarkInk = (bin, kind) => (kind === 'heat' || kind === 'heatT') && bin >= 3;
   const hmCount = (kind) => HM_KIND[kind].cells.length;
   /* 方塊的一格資料：顏色、第幾格、圖例聚焦時的透明度。`focus`＝圖例被點中的那一格（null＝沒有聚焦）。
      無資料的格子底色是淺灰（淺色主題）／深藍灰（深色），字色跟著換，不然白字會看不見。*/
@@ -167,7 +171,7 @@
     const dim = focus != null && focus !== bin;
     const na = bin < 0;
     return { bin, itemStyle: { color: hmColor(bin, kind), opacity: dim ? 0.25 : 1 },
-      label: { color: dim ? CH.ink3 : (na ? (theme() === 'light' ? CH.ink : CH.ink2) : '#fff') } };
+      label: { color: dim ? CH.ink3 : (na ? (theme() === 'light' ? CH.ink : CH.ink2) : hmDarkInk(bin, kind) ? CH.hmInkDark : '#fff') } };
   };
   /* treemap 的殼：間隙 2／6、圓角 3、間隙色＝卡片底。`nested`＝有產業鏈分組那一層。
      ⚠ ECharts 的 treemap 用「父節點的 borderColor」當間隙的顏色 —— 所以這裡的 borderColor 就是「縫」的顏色。*/
@@ -269,7 +273,8 @@
       + rows.map(row).join('')
       + (foot ? `<div style="margin-top:8px;font-size:12px;color:${CH.ink3}">${foot}</div>` : '') + '</div>';
   }
-  const hmTipOpt = () => ({ ...tip, padding: [12, 14] });
+  // transitionDuration 0：ECharts 預設 0.4 秒淡入淡出，途中的提示框是半透明的，會跟後面方塊的字疊在一起（Andy 2026-09-24 截圖）
+  const hmTipOpt = () => ({ ...tip, padding: [12, 14], transitionDuration: 0 });
   /* 圖例（規格 §3.1-6）：圖的右下、圖底往下 16px；左邊標題、右邊一條膠囊，每格是一級。
      點一格 → 只亮這一級的方塊（其他退到 25%）；再點一次還原。`onFocus(bin|null)` 由呼叫端重畫。
      掛在 .zwrap 外面（跟 linkRow 同一個理由：放大時不會跟著被裁掉），而且排在連結列前面。*/
@@ -286,7 +291,7 @@
     lg.classList.toggle('focus', focus != null);
     lg.innerHTML = `${focus != null ? '<span class="hmhint">只亮這一級 · 再點一次還原</span>' : ''}<span class="hmttl">${K.title}</span>`
       + `<span class="hmbar" role="group" aria-label="${K.title} 圖例：點一格只看這一級">`
-      + K.cells.map((t, i) => `<button type="button" class="hmcell${focus === i ? ' on' : ''}" data-bin="${i}" style="--c:${hmColor(i, kind)}"`
+      + K.cells.map((t, i) => `<button type="button" class="hmcell${focus === i ? ' on' : ''}${hmDarkInk(i, kind) ? ' dk' : ''}" data-bin="${i}" style="--c:${hmColor(i, kind)}"`
         + ` aria-pressed="${focus === i}" title="${K.title} ${t}：點一下只亮這一級">${t}</button>`).join('')
       + '</span>';
     $$('.hmcell', lg).forEach(b => b.onclick = () => { const i = +b.dataset.bin; onFocus(focus === i ? null : i); });
@@ -385,6 +390,8 @@
     CH.hm = ['--hm-n3', '--hm-n2', '--hm-n1', '--hm-0', '--hm-p1', '--hm-p2', '--hm-p3'].map((n, i) => v(n, CH.hm[i]));
     CH.hmNa = v('--hm-na', CH.hmNa);
     CH.hmV = ['--hm-v1', '--hm-v2', '--hm-v3', '--hm-v4', '--hm-v5'].map((n, i) => v(n, CH.hmV[i]));
+    CH.hmT = ['--hm-t1', '--hm-t2', '--hm-t3', '--hm-t4', '--hm-t5'].map((n, i) => v(n, CH.hmT[i]));
+    CH.hmInkDark = v('--hm-ink-dark', CH.hmInkDark);
     /* ★ 2026-09-24 設計系統 v2 §2.2：提示框改成半透明＋毛玻璃、圓角 10、柔和陰影。
        透明度是算過的（淺色 86%／深色 88%），參考站的 70% 疊在最深的方塊上次要字只剩 3.71:1。*/
     tip.backgroundColor = v('--tip-bg', 'rgba(20,30,54,.88)');
@@ -7241,16 +7248,17 @@
   async function renderThemes(sel, mapOnly) {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     $('#themeNote').textContent = th.note || '';
-    /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，改用 5 格紫色單色階。
+    /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，改用 5 格單色階（09-24 Andy 嫌紫色醜，改暖金／湖水藍）。
        以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
        右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
-    const mode = themeColor === 'chg' ? 'chg' : 'heat';
+    const mode = themeColor === 'chg' || themeColor === 'heatT' ? themeColor : 'heat';
     const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7,
-      ...hmItem(hmBin(mode === 'heat' ? t.heat : t.chg_pct, mode), mode, themeFocus) }));
-    const valOf = (d) => (d && d.id ? (mode === 'heat' ? '熱度 ' + d.heat : fmt.pct(d.chg)) : '');
+      ...hmItem(hmBin(mode !== 'chg' ? t.heat : t.chg_pct, mode), mode, themeFocus) }));
+    const valOf = (d) => (d && d.id ? (mode !== 'chg' ? '熱度 ' + d.heat : fmt.pct(d.chg)) : '');
+    const heatKind = mode === 'heatT' ? 'heatT' : 'heat';
     const themeOpt = (big) => { const HS = hmSeries(false); return ({ tooltip: { ...hmTipOpt(), formatter: p => { const d = p.data || {};
         return hmTip(p.name, '', [
-          { k: '熱度', v: String(d.heat), dot: hmColor(hmBin(d.heat, 'heat'), 'heat') },
+          { k: '熱度', v: String(d.heat), dot: hmColor(hmBin(d.heat, heatKind), heatKind) },
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
@@ -7261,7 +7269,7 @@
     const ctl = $('#themeCtl');
     if (ctl) {
       ctl.innerHTML = `<label class="hmctl" title="方塊的顏色依據">顏色：<select id="themeColorSel" aria-label="題材熱力圖的顏色依據">`
-        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
+        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（暖金）</option><option value="heatT"${mode === 'heatT' ? ' selected' : ''}>熱度（湖水藍）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
       const sel2 = $('#themeColorSel', ctl);
       if (sel2) sel2.onchange = () => { themeColor = sel2.value; themeFocus = null; hmLSset('tw.themeColor', themeColor); renderThemes(sel, true); };
     }

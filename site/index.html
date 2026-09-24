@@ -69,11 +69,16 @@
      每一格上的 12px 粗體白字對比（深色主題）：4.79／7.12／10.25／7.84／11.71／7.87／5.36，全部 ≥ 4.5。 */
   --hm-n3:#078353; --hm-n2:#066542; --hm-n1:#0D4A35; --hm-0:#495265;
   --hm-p1:#6B1927; --hm-p2:#A01831; --hm-p3:#D31239; --hm-na:#2A3350;
-  /* 題材熱力的 5 格單一色相（--violet 247°）：熱度越高越亮越飽和。
-     「熱＝紅」在這個站會跟「漲」撞在一起，所以題材熱度改用紫（§3.1-4）。白字對比 13.0／9.84／7.51／5.91／4.71。 */
-  --hm-v1:#322e46; --hm-v2:#433a7c; --hm-v3:#503fbe; --hm-v4:#604dd8; --hm-v5:#705deb;
+  /* 題材熱力的 5 格單一色相：熱度越高越亮。「熱＝紅」會跟「漲」撞在一起，所以不用紅。
+     ★ 2026-09-24 Andy：「改用其他顏色，這顏色好醜 親近人一點顏色」—— 紫色（v2 第一版）換掉：
+       預設＝暖金（--hm-v*，蜂蜜色，由暖炭灰到金黃）；另一組湖水藍（--hm-t*），右上「顏色」下拉可切。
+     字色：前三格白字（11.6／7.6／4.8；湖水藍 12.6／7.6／4.6），後兩格太亮改深字 #1A1F2B（6.3／9.5；湖水藍 6.1／9.6）。
+     相鄰格對比 1.52～1.81，看得出分級。兩個主題共用（方塊是實心色，不吃底色）。 */
+  --hm-v1:#3D3833; --hm-v2:#6E4E24; --hm-v3:#9C6818; --hm-v4:#D4931F; --hm-v5:#F4BC45;
+  --hm-t1:#26363B; --hm-t2:#1B5C66; --hm-t3:#13828D; --hm-t4:#27AEB3; --hm-t5:#6FD6CF;
+  --hm-ink-dark:#1A1F2B;
   /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
-  --tip-bg:rgba(20,30,54,.88); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
+  --tip-bg:rgba(20,30,54,.97); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
   /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
      為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
@@ -368,9 +373,8 @@
   /* 熱力圖 7 格（淺色）白字對比：4.73／7.03／11.03／9.04／12.39／8.40／5.64。無資料格配深字（12.5:1）。 */
   --hm-n3:#068456; --hm-n2:#056642; --hm-n1:#084530; --hm-0:#424957;
   --hm-p1:#661522; --hm-p2:#99152D; --hm-p3:#CC1439; --hm-na:#E7E5E4;
-  --hm-v1:#2f2c40; --hm-v2:#413973; --hm-v3:#4e3fb3; --hm-v4:#5f4cd5; --hm-v5:#705de7;
   /* 提示框：白 86%（參考站是 70%，但 70% 疊在最深的方塊上次要字只剩 3.71:1；86% 才有 5.22） */
-  --tip-bg:rgba(255,255,255,.86); --tip-line:transparent; --tip-sh:0 8px 24px -8px rgba(40,35,25,.25);
+  --tip-bg:rgba(255,255,255,.97); --tip-line:transparent; --tip-sh:0 8px 24px -8px rgba(40,35,25,.25);
 }
 /* ================ 剖析圖的兩種模式（art-director 2026-09-22，Andy 拍板）================
    Andy 給了兩張參考圖：亮色系「閱讀」（暖白紙底、低飽和粉彩、深灰細引線、白色圓角卡片）
@@ -2905,6 +2909,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   color:#fff;cursor:pointer;background:var(--c);font-variant-numeric:tabular-nums;white-space:nowrap;
   transition:opacity var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
 .hmlegend .hmcell.na{color:var(--ink)}
+.hmlegend .hmcell.dk{color:var(--hm-ink-dark)}   /* 暖金／湖水藍最亮的兩格配深字 */
 /* 點一格＝只亮這一級：其他格退到 35%（圖上的方塊退到 25%），被選的那格內框一圈白線 */
 .hmlegend.focus .hmcell{opacity:.35}
 .hmlegend.focus .hmcell.on{opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.9)}
@@ -3233,7 +3238,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
     <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
       <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
-      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、紫色又最亮的方塊 ——
+      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、顏色又最亮的方塊 ——
         錢多、熱度也高的題材（右上可以把顏色換成平均漲跌，那時就是紅漲綠跌）；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
