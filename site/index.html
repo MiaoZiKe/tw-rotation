@@ -2949,6 +2949,40 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .hmctl.date{font-family:var(--mono);color:var(--ink-3)}
 .hmctl.date svg{flex:none}
 
+/* ==================================================================================
+   ★ 2026-09-24 設計系統 v2 第 5 批：輪動時鐘（規格 docs/design_system_v2.md §3.2）
+   ================================================================================== */
+/* 象限卡的「本週新進」：`領先 9 +2`，+2 是 12px --ink-3（最近 5 個交易日換進這一段的族群數） */
+.rotquads .rq i.nw{font-style:normal;font-weight:400;font-size:12px;font-family:var(--mono);color:var(--ink-3)}
+.rotquads .rq.on i.nw{color:var(--ink-2)}
+/* 軌跡「焦點｜全部」：勾選框旁邊一組小 seg；軌跡關掉時整組淡掉（按鈕 disabled） */
+.rot-tmode button:disabled{opacity:.45;cursor:not-allowed}
+/* 高度壓到跟旁邊的勾選框同一行（21px）：像素比對量到用一般 .seg.tiny（約 30px 高）會把整張卡往下推 8px */
+.rottools .rot-tmode{padding:1px;border-radius:var(--r-pill);vertical-align:middle}
+.rottools .rot-tmode button{padding:0 9px;font-size:12px;line-height:17px;border-radius:var(--r-pill)}
+/* 編號模式（時鐘容器 < 560px）的名字清單：依象限分四組，每格「編號 名字」，點一下＝在圖上只亮它。
+   字 12～13px、編號是 18px 圓（跟圖上的編號同一個數字），焦點族群的名字粗體。*/
+.rotnums{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.rotnums .rnh{font-size:12px;color:var(--ink-3)}
+.rotnums .rnh small{font-size:12px}
+.rotnums .rnq{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--r-sm,10px);
+  background:color-mix(in srgb,var(--c) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.rotnums .rnq>b{flex:none;font-size:13px;color:var(--c);line-height:24px;min-width:2.2em}
+.rotnums .rnl{display:flex;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.rotnums .rni{appearance:none;border:0;background:none;padding:2px 4px;margin:0;font:inherit;font-size:13px;
+  color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;cursor:pointer;border-radius:6px;min-height:24px;
+  text-align:left;max-width:100%}
+.rotnums .rni.f{color:var(--ink);font-weight:700}
+.rotnums .rni i{font-style:normal;flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 4px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono);
+  background:color-mix(in srgb,var(--c) 22%,var(--panel));color:var(--ink)}
+.rotnums .rni:hover{background:var(--row-hover)}
+.rotnums .rni.on{background:color-mix(in srgb,var(--c) 18%,var(--panel));box-shadow:inset 0 0 0 1px var(--c)}
+.rotnums .rni:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* 放大視窗那一份掛在 #zoomTools 裡：限制高度，不要把時鐘擠掉 */
+#zoomTools .rotnums{max-height:30vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){ .rotnums .rni{transition:none} }
+
 </style>
 </head>
 <body>
