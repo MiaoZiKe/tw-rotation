@@ -4197,8 +4197,8 @@ def t_new_layout(pg, base):
         if not ok(f"[{w}px] 找得到時鐘／排行那一列（F3）", bool(f) and len(f["ks"]) == 2, f):
             continue
         clock, rank = f["ks"][0], f["ks"][1]
-        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",
-           clock["h3"].startswith("輪動") and rank["h3"].startswith("資金"), f["ks"])
+        ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",  # 2026-09-24 輪動時鐘改名足跡輪盤
+           clock["h3"].startswith(("輪動", "足跡輪盤")) and rank["h3"].startswith("資金"), f["ks"])
         if w > 1100:
             ok(f"[{w}px] 欄寬真的是 2:1（F3）",
                abs(clock["w"] / max(1, rank["w"]) - 2) <= 0.12,
