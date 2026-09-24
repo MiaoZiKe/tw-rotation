@@ -740,6 +740,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms a:hover{border-color:var(--cyan)}
 .hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
+/* ★ 2026-09-24 夜（審查 R2 #28：「下鑽清單的股名被擠成一字一行 —— 群／聯、台／積電」）：
+   個股卡片（.dp，排行與資金去向兩個面板共用）的內容是「名字 代號 金額 佔比 漲跌 →」，
+   168px 一欄塞不下，flex 就去壓名字（中文沒有空白可斷，只能一字一行）。
+   改成和 .sub 同一套：名字＋代號在第一行（名字不換行、真的太長才截斷加…，全名在 title），數字整段換到第二行。*/
+.hpanel .ms a.dp:not(.grow):not(.sub){flex-wrap:wrap;row-gap:1px;align-items:center}
+.hpanel .ms a.dp:not(.grow):not(.sub)>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpanel .ms a.dp:not(.grow):not(.sub) .c{flex:none}
+.hpanel .ms a.dp:not(.grow):not(.sub) .g{order:3;flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 /* ★ 2026-09-20（Andy：「資金流向排行下方的族群點擊後所顯示的股票 太長了，
    需要變成固定大小，所以需要有拉Bar 功能，並且確認所有相關版面一樣使用這方式」）。
    成分股多的族群（ETF、半導體業）一展開就把整張圖推出畫面，得捲很久才捲得回來。
@@ -842,7 +850,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   padding:4px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
   color:var(--ink-2);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
 .rotdd .ddbtn b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
-.rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:10px}
+.rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:11px}  /* R2 #4：10 → 11px（全站字級下限） */
 .rotdd .ddbtn:hover{border-color:var(--cyan);color:var(--ink)}
 .rotdd.open .ddbtn{border-color:var(--cyan);color:var(--ink);background:var(--panel)}
 .rotdd .ddpanel{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:210px;
@@ -1095,6 +1103,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel ul.ms li>*{white-space:nowrap}
 .stagepanel ul.ms li+li:not(.cols){border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
 .stagepanel ul.ms li:not(.cols):hover{background:var(--panel-2);color:var(--ink)}
+.stagepanel ul.ms li[data-off]{opacity:.55}  /* 不在盤上的族群（成交值不在前 16）：審查 R2 #23 */
 .stagepanel ul.ms li.none{display:block;cursor:default;color:var(--ink-3);white-space:normal}
 .stagepanel ul.ms li.cols{position:sticky;top:0;z-index:1;cursor:default;padding-top:2px;padding-bottom:4px;
   background:var(--panel-3);font-size:12px;color:var(--ink-3);
@@ -2190,6 +2199,38 @@ h4.subh{margin:0 0 6px;font-size:13.5px;color:var(--ink-1);display:flex;flex-wra
 h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 圖區在窄畫面退單欄之後，上下兩塊要有間隔（.grid 的 gap 只在格與格之間） */
 @media (max-width:1100px){ .rotpane+.rotpane{margin-top:4px} }
+/* ★ 2026-09-24（Andy：「排行圖被擠到下方、上方一大片空白」）：資金輪動卡整張兩欄（HTML 註解有全文）。
+   左欄第一列是卡片標題、右欄第一列是排行小標＋兩顆鈕，兩列同高（min-height 32px、垂直置中），
+   所以排行圖的頂端跟篩選列同一高度（離卡片頂 ≈ 16 + 32 + 4 ＝ 52px）。
+   排行那一格 flex 撐滿整欄：左欄（輪盤）多高，排行就畫多高，底下不留空。*/
+.rotcols{align-items:stretch}
+/* ★ 2026-09-24 夜（Andy：「資金流向排行版面太窄、不符審美：排行區至少占卡片寬 40%」）：
+   2fr:1fr（排行 33%）→ 1.45fr:1fr（排行 ≈ 41%）。輪盤那一欄變窄一點，但它的高度改成跟著欄寬走（rotFitH），
+   盤的半徑仍比舊版大（1440 寬、開著今日事件側欄：185 → 約 215px）。≤1100px 照舊單欄。*/
+@media (min-width:1101px){ .rotcols{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)} }
+.rotcols .rothead,.rotcols .rotrhead{min-height:32px;align-items:center;margin-bottom:4px}
+.rotcols .rothead h3{margin:0}
+.rotcols .rotrhead h4.subh{margin:0}
+/* 右欄只有全寬的 1/3：鈕一定留在同一列，放不下時是日期那行字在小標裡換行，不是把兩顆鈕擠到下一列 */
+.rotcols .rotrhead{flex-wrap:nowrap;gap:8px}
+.rotcols .rotrhead h4.subh{flex:1 1 auto;min-width:0}
+.rotcols .rotrhead .rotbtns{flex:0 0 auto}
+.rotright>#rankFlowWrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:420px}
+.rotright>#rankFlowWrap>#rankFlow{flex:1 1 auto}
+/* 側欄（象限面板／成分股面板）蓋在右欄上：自己捲；輪盤那一欄的寬度完全不動。頂端留 40px —— 排行小標與放大／怎麼看兩顆鈕照樣看得到、按得到 */
+.rotright{position:relative}
+.rotright>.sidepanel{position:absolute;inset:40px 0 0 0;z-index:6;margin:0;max-width:none;overflow:auto;
+  box-shadow:0 12px 32px -12px rgba(0,0,0,.55);animation:sidein .16s ease-out}
+.rotright>.sidepanel .ms{max-height:none}
+.stagepanel.sidepanel ul.ms{max-height:none}
+@keyframes sidein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .rotright>.sidepanel{animation:none} }
+/* 審查 R2 #24：面板開著時輪盤不縮了，所以 .rotstagerow 只剩輪盤一格 */
+/* 退單欄時排行跑到輪盤下面 —— 兩顆鈕不跟著掉下去，釘在卡片右上角（仍是「卡片標題列右側」）*/
+@media (max-width:1100px){
+  #flowRotCard .rothead{padding-right:190px}
+  #flowRotCard .rotbtns{position:absolute;top:16px;right:18px}
+}
 
 /* ---------------------------------------------------------------- 任務板（#tasks）
    刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
@@ -3273,29 +3314,34 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
          → 共用時間列（看哪一天 ＋ 最近幾天 ＋ 軌跡開關）→ 圖區（2fr 時鐘 : 1fr 排行）。
          「怎麼看 ?」也只留一顆（原本 rank 那段說明併進 how-rot）—— 同一張卡不該有兩個問號鈕。 -->
     <div class="card rotcard" id="flowRotCard" style="margin-top:var(--gap-card)">
-      <div class="row spread"><h3>資金輪動 <small>錢往哪跑、跑到哪一段</small></h3>
-        <div class="row" style="gap:8px">
-          <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
-          <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
-      <div class="howtxt" id="how-rot" hidden></div>
-      <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
-           data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
-      <div class="rotfilter" id="flowRotFilter" data-rf="flow"></div>
-      <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
-           原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
-           合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
-             右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
-           容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
-           窄畫面自動換行（見 .rottime）。
-           ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
-             雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
-             N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。 -->
-      <div class="rottime" id="flowRotTime">
-        <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
-        <div class="rottools" id="rotTools"></div>
-      </div>
-      <div class="grid g21">
-        <div class="rotpane">
+      <!-- ★ 2026-09-24（Andy：「資金流向排行 右上角只有放大／怎麼看兩顆鈕，排行圖被擠到下方、上方一大片空白」）：
+           以前是「標題列 → 篩選列 → 時間列 → 圖區（2:1）」四段疊起來，篩選與時間列只佔左邊，
+           右邊那一欄從卡片頂端空到第四段才開始畫排行 —— 就是他說的「上方一大片空白」。
+           改成**整張卡就是兩欄**（仍是 .grid.g21，驗收 F3 量的 2:1 與左右順序不變）：
+             左欄＝卡片標題 → 篩選列（左上角，全站同一規則）→ 時間列 → 足跡輪盤
+             右欄＝「資金流向排行」小標＋放大／怎麼看（卡片標題列右側）→ 排行圖，從頂端一路填到卡片底
+           篩選與時間列管的仍然是兩張圖（排行也吃同一份 ROT 狀態），只是位置在左欄。
+           ≤1100px 退單欄時，兩顆鈕改成釘在卡片右上角（CSS .rotbtns），不會掉到排行那一段去。 -->
+      <div class="grid g21 rotcols">
+        <div class="rotpane rotleft">
+          <div class="row spread rothead"><h3>資金輪動 <small>錢往哪跑、跑到哪一段</small></h3></div>
+          <div class="howtxt" id="how-rot" hidden></div>
+          <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
+               data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
+          <div class="rotfilter" id="flowRotFilter" data-rf="flow"></div>
+          <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
+               原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
+               合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
+                 右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
+               容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
+               窄畫面自動換行（見 .rottime）。
+               ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
+                 雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
+                 N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。 -->
+          <div class="rottime" id="flowRotTime">
+            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
+            <div class="rottools" id="rotTools"></div>
+          </div>
           <h4 class="subh">足跡輪盤 <small>族群在強弱循環的哪一段</small></h4>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
@@ -3306,13 +3352,24 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
                  換段資訊改由展開面板每一列的「改善→領先」徽章承擔。 -->
           <div class="rotstagerow">
             <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
-            <div class="hpanel stagepanel" id="stagePanel" hidden></div>
           </div>
         </div>
-        <div class="rotpane">
-          <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
+        <div class="rotpane rotright">
+          <div class="row spread rotrhead">
+            <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
+            <div class="row rotbtns" style="gap:8px">
+              <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
+              <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
           <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
-          <div class="hpanel" id="rankPanel" hidden></div>
+          <!-- ★ 2026-09-24 夜（Andy：「點擊族群時，資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
+               （同一個位置、同一種樣式），不要蓋在別處」）＋ 審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」。
+               兩塊面板（象限 #stagePanel、成分股 #rankPanel）都改成**蓋在輪盤右邊這一欄上**（position:absolute，整欄高）：
+                 · 輪盤不再被擠窄 —— 以前面板插在輪盤那一格裡，盤縮到 540px 寬、切成編號模式、卡片長高 227px
+                 · 兩塊在同一個位置、同一種樣式（.hpanel.stagepanel），同時只開一塊（app.js renderDrillPanels／rotStageToggle）
+                 · 點排行長條、點盤上的族群點、點象限面板裡的族群、點「領先」徽章，全部開在這裡
+                 · 關閉照舊：點背景、按 Esc；排行在面板底下，關掉就回來 -->
+          <div class="hpanel stagepanel sidepanel" id="stagePanel" hidden></div>
+          <div class="hpanel stagepanel sidepanel" id="rankPanel" hidden></div>
         </div>
       </div>
     </div>
