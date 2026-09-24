@@ -489,6 +489,12 @@
     el.textContent = txt;
     el.className = 'livestate ' + cls;
     el.title = tip + '\n自動更新：' + way + '\n' + how;
+    /* ★ 2026-09-24 晚（Andy：「時間刪除」）：這顆從畫面上收起來了，同一串說明鏡射到標題下版號那行的提示，
+       「有新資料」改成版號旁的一顆小鈕 —— 資訊與功能都還在，只是不佔頂欄。*/
+    const asof = document.getElementById('asof');
+    if (asof) { asof.dataset.live = '即時報價：' + tip + '\n自動更新：' + way; asof.title = (asof.dataset.fresh || '') + '\n\n' + asof.dataset.live; }
+    const fb = document.getElementById('freshBtn');
+    if (fb) fb.hidden = !state.fresher;
   }
 
   // ---------------------------------------------------------------- 一輪
@@ -601,6 +607,8 @@
          ⚠ 每一個 getElementById 都要容忍拿到 null —— 版面以後再拿掉什麼，這裡都不准丟例外。*/
       const st = document.getElementById('liveState');
       if (st) st.addEventListener('click', () => { if (state.fresher) location.reload(); });
+      const fb = document.getElementById('freshBtn');
+      if (fb) fb.addEventListener('click', (e) => { e.stopPropagation(); location.reload(); });
       reschedule();
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {

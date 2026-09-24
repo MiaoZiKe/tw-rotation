@@ -334,9 +334,21 @@
    只換變數，版面與元件一行都不用改。JS 畫的圖不吃 CSS 變數，
    所以 app.js 的 refreshPalette() 會在切換時把同一組色讀進圖表色票再重畫。 */
 :root[data-theme="light"]{
-  --bg:#f2f5fb; --bg-2:#e9edf7; --panel:#ffffff; --panel-2:#f7f9fd; --panel-3:#eef2fa;
-  --line:#dde4f1; --line-2:#c2cde1;
-  --ink:#0f1830; --ink-2:#3f4e6d;
+  /* ★ 2026-09-24 設計系統 v2 第 3 批（docs/design_system_v2.md §2.2）：冷藍白 → 暖紙底、暖灰三階文字。
+     Andy：「我希望跟他們一樣規格」—— 參考截圖量到的是「暖白紙底、卡片比頁底亮一階、無陰影、暖灰字」這個**結構**；
+     色值不是抄對方的（對方 #EFEEEA／#24231F），是 Andy 自己在剖析圖閱讀模式拍板過的那組（--dg-bg／--dg-ink，2026-09-22）。
+     改前 → 改後（括號＝對 --panel 白／對 --bg 的實測對比）：
+       --bg      #f2f5fb → #F4F3EF（卡片對頁底 1.10:1，參考站 1.11）
+       --bg-2    #e9edf7 → #EFEDE8（事件抽屜底；--fall／--flat 對它 4.65／4.52，跟舊值同級）
+       --panel-2 #f7f9fd → #FAF9F6　--panel-3 #eef2fa → #F2F1EC
+       --line    #dde4f1 → #E9E6DF（1.25）　--line-2 #c2cde1 → #D6D2C8（1.51）
+       --ink     #0f1830 → #1F1D19（16.83／15.15）
+       --ink-2   #3f4e6d → #3E3A33（11.30／10.18）
+       --ink-3   #5b6884 → #5F5A51（6.85／6.16；對 --panel-3 6.05、對 --bg-2 5.85）
+     主色 --cyan 與紅漲綠跌**一個都沒動**（對新 --bg：cyan 5.43、rise 5.27、fall 4.90、flat 4.76、lime 5.02）。*/
+  --bg:#F4F3EF; --bg-2:#EFEDE8; --panel:#ffffff; --panel-2:#FAF9F6; --panel-3:#F2F1EC;
+  --line:#E9E6DF; --line-2:#D6D2C8;
+  --ink:#1F1D19; --ink-2:#3E3A33;
   /* ★ 2026-09-23 UI 精修 #2／#3：淺色主題七個色一起往下壓明度。
      為什麼：淺色主題底色是白與近白，舊值有七個對背景不到 4.5（最差的 --fall 只有 3.17），
      所以「切成明亮主題之後一堆字看不清楚」不是錯覺，是量得出來的。
@@ -354,19 +366,22 @@
      ⚠ app.js 的 PALETTE_LIGHT[0/2/3] 仍然是 #0b7fa6 / #b06a00 / #4a8a15 ——
         那是「分類色盤」的鎖定區（DECISIONS #48：動一個值就把全站板塊顏色洗牌），
         跟這裡的語意色是兩套東西，**刻意不同步**。 */
-  --ink-3:#5b6884;
+  --ink-3:#5F5A51;   /* v2 第 3 批：#5b6884（冷藍灰）→ 暖灰，見本段最上面的對比表 */
   --cyan:#0a6b8a; --violet:#5f4ddb; --amber:#8f5600; --lime:#3f7512;
   --rise:#c81234; --fall:#07794f; --flat:#5f6c85;
   --glow:0 0 0 1px rgba(11,127,166,.22), 0 4px 16px -8px rgba(11,127,166,.4);
-  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(15,24,48,.35);
+  /* v2 第 3 批：陰影改暖色調（冷藍 15,24,48 → 暖褐 40,35,25）。桌機卡片走 --card-sh:none；
+     這組只剩手機卡片與搜尋建議框在用（第 1 批的決定：手機的卡片結構不動）。 */
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(40,35,25,.30);
   --ontop:#ffffff; --chartbg:#ffffff;
   --topbar:rgba(255,255,255,.82); --topbar-m:rgba(255,255,255,.96);
   --ovl:rgba(255,255,255,.82); --ovl-sh:0 1px 2px rgba(255,255,255,.9);
-  --grid:rgba(15,24,48,.07);
-  --drop:rgba(15,24,48,.18);
-  --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
+  --grid:rgba(40,35,25,.07);     /* v2 第 3 批：格線、浮層陰影跟著暖化 */
+  --drop:rgba(40,35,25,.18);
+  /* v2 第 3 批：body 那兩團紫／青光暈在暖紙底上會發髒（紫＋暖白＝灰粉），淺色主題關掉。深色照舊。 */
+  --body-1:transparent; --body-2:transparent;
   --focus:#0a5f7d;    /* 淺色的焦點環：對白底 7.13、對 --bg 6.53 */
-  --row-hover:#eef2fa;/* 對白底實測 1.12，跟深色那組同一個強度 */
+  --row-hover:#F2F1EC;/* 對白底實測 1.13（舊 #eef2fa 1.12），跟深色那組同一個強度；v2 第 3 批暖化 */
   /* ---- 設計系統 v2（2026-09-24）淺色那一組 ----
      卡片：參考截圖量到「平塗、無陰影、只靠底色差分層」（σ＝0、外圍像素與頁底無差）。 */
   --card-sh:none;
@@ -1073,15 +1088,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
 .stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:5px;
   max-height:380px;overflow-y:auto;scrollbar-width:thin}
-/* ★ 2026-09-19：季節性那塊四張卡每張只有 5–7 個族群，內捲沒有意義，而且捲軸沒有任何提示，
-   1100px 下有一半的族群名是看不到的（「記憶體」「封測」「伺服器電源」都被切一半）。
-   這一塊直接讓卡片長高。輪動階段那塊（compact）族群多，維持內捲。 */
-#seasonBoard .stage ul{max-height:none;overflow-y:visible}
-/* ★ 2026-09-19：只有季節性這塊要換行。它的 li 右邊掛著「超額 x%　勝率 y%　N 年」，
-   窄畫面時那一整段會溢出膠囊、壓到下面那行說明文字（_preview 報的 3 筆文字重疊）。
-   輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
-   「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
-#seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
+/* ---- 週期統計（#season）的熱力圖外框 ----
+   ★ 2026-09-24（Andy：約 100 個族群擠在 600px 高、每列 5～6px、名字只顯示每 4～5 列一個）：
+   列高改成固定值（桌機 24、手機 20），圖高＝列數 × 列高，所以每個族群名稱都印得出來；
+   整張太高時由外框捲動，月份表頭 sticky 釘在框頂。表頭是 HTML 按鈕而不是 ECharts 的 x 軸 ——
+   ECharts 的軸在 canvas 裡，跟著圖一起被捲走，捲到第 40 列就不知道哪一欄是幾月。
+   （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
+.shbox{position:relative;margin-top:10px;max-height:680px;overflow-y:auto;overscroll-behavior:contain;
+  border-radius:10px;scrollbar-width:thin}
+.shbox[hidden]{display:none}
+.shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
+  background:var(--panel);padding-top:2px;padding-bottom:4px}
+.shhead button{border:0;background:transparent;color:var(--ink-2);font:600 12px/1 var(--mono);height:24px;
+  padding:0;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0}
+.shhead button:hover{background:var(--panel-3);color:var(--ink)}
+.shhead button.on{background:var(--cyan);color:var(--ontop)}
+.shhead button.now:not(.on){box-shadow:inset 0 -2px 0 var(--cyan)}
+.sncav{color:var(--amber)!important}
+#seasonCtl{flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -2785,12 +2809,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      100vh 扣掉 頂欄72 ＋ 分段列58 ＋ 價格列65 ＋ 工具列46 ＋ 底部分頁102 ≈ 343。
      ⚠ 只在 ≤820px 生效，桌機那兩條一個字都沒動。*/
   body.miaon #lwc{height:clamp(380px,calc(100vh - 343px),620px)}
-  /* 季節性的月份熱力圖：桌機 640px，390px 上它會把下面那行結論（`#seasonNote`）
-     推出畫面（量到圖 132～772、結論 780～874，可視只到 742）。
-     收到 500px 之後兩個一起進得來 —— 「看圖不用再滑下去找結論」。*/
-  /* `!important` 是必要的：`#seasonHeat` 的 640px 寫在 index.html 的 inline style 上，
-     沒有 `!important` 的 class 規則權重壓不過 inline。*/
-  body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
+  /* 週期統計的月份熱力圖：2026-09-24 起圖高由列數決定（每列固定高），外框 `#seasonHeatBox` 負責捲動，
+     手機把外框上限壓到「一屏放得下框＋圖例＋結論」—— 看圖不用再滑下去找結論。*/
+  body.miaon #seasonHeatBox{max-height:clamp(300px,calc(100vh - 420px),460px)}
   body.miaon #skHead{flex-wrap:wrap}
   body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
   /* ⚠ 滿版的做法：`.card` 的內距是 16px 18px，所以要往左右各吃回 18px，
@@ -2945,11 +2966,57 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .hmctl.date{font-family:var(--mono);color:var(--ink-3)}
 .hmctl.date svg{flex:none}
 
+/* ==================================================================================
+   ★ 2026-09-24 設計系統 v2 第 5 批：輪動時鐘（規格 docs/design_system_v2.md §3.2）
+   ================================================================================== */
+/* 象限卡的「本週新進」：`領先 9 +2`，+2 是 12px --ink-3（最近 5 個交易日換進這一段的族群數） */
+.rotquads .rq i.nw{font-style:normal;font-weight:400;font-size:12px;font-family:var(--mono);color:var(--ink-3)}
+.rotquads .rq.on i.nw{color:var(--ink-2)}
+/* 軌跡「焦點｜全部」：勾選框旁邊一組小 seg；軌跡關掉時整組淡掉（按鈕 disabled） */
+.rot-tmode button:disabled{opacity:.45;cursor:not-allowed}
+/* 高度壓到跟旁邊的勾選框同一行（21px）：像素比對量到用一般 .seg.tiny（約 30px 高）會把整張卡往下推 8px */
+.rottools .rot-tmode{padding:1px;border-radius:var(--r-pill);vertical-align:middle}
+.rottools .rot-tmode button{padding:0 9px;font-size:12px;line-height:17px;border-radius:var(--r-pill)}
+/* 編號模式（時鐘容器 < 560px）的名字清單：依象限分四組，每格「編號 名字」，點一下＝在圖上只亮它。
+   字 12～13px、編號是 18px 圓（跟圖上的編號同一個數字），焦點族群的名字粗體。*/
+.rotnums{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.rotnums .rnh{font-size:12px;color:var(--ink-3)}
+.rotnums .rnh small{font-size:12px}
+.rotnums .rnq{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--r-sm,10px);
+  background:color-mix(in srgb,var(--c) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.rotnums .rnq>b{flex:none;font-size:13px;color:var(--c);line-height:24px;min-width:2.2em}
+.rotnums .rnl{display:flex;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.rotnums .rni{appearance:none;border:0;background:none;padding:2px 4px;margin:0;font:inherit;font-size:13px;
+  color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;cursor:pointer;border-radius:6px;min-height:24px;
+  text-align:left;max-width:100%}
+.rotnums .rni.f{color:var(--ink);font-weight:700}
+.rotnums .rni i{font-style:normal;flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 4px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono);
+  background:color-mix(in srgb,var(--c) 22%,var(--panel));color:var(--ink)}
+.rotnums .rni:hover{background:var(--row-hover)}
+.rotnums .rni.on{background:color-mix(in srgb,var(--c) 18%,var(--panel));box-shadow:inset 0 0 0 1px var(--c)}
+.rotnums .rni:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* 放大視窗那一份掛在 #zoomTools 裡：限制高度，不要把時鐘擠掉 */
+#zoomTools .rotnums{max-height:30vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){ .rotnums .rni{transition:none} }
+
+
+/* ★ 2026-09-24 晚：版號在標題下面（取代原本「YYYY-MM-DD 盤後」那行；資料日期與資料狀態在它的滑鼠提示裡）。 */
+#asof{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#asof .verline{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+#asof .freshbtn{font:600 12px/1 "Noto Sans TC",system-ui,sans-serif;color:var(--amber);background:none;border:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:2px 8px;cursor:pointer}
+#asof .freshbtn:hover{color:var(--ink);border-color:var(--amber)}
+.livebox[hidden]{display:none!important}
+@media (max-width:820px){
+  #asof .freshbtn{font-size:0;padding:2px 6px} #asof .freshbtn::before{content:"↻";font-size:13px}
+  #asof .verline{font-size:12px}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof">—</small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
@@ -2973,7 +3040,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          舊網址 `#themes`、`#themes/<id>` **不准壞**（交付清單的「去看」、外面存的連結都指著它），
          由 app.js 的 route() 導到 `#heatmap/theme[/<id>]`。 -->
     <button class="tab" data-view="market">市場明細</button>
-    <button class="tab" data-view="season">季節性</button>
+    <!-- ★ 2026-09-24（Andy：「"季節性" 分頁改成 "週期統計"」）：只改畫面上的字，路由 `#season` 刻意不動 ——
+         交付清單的「去看」、外面存的連結都指著它，改網址等於把那些連結全部弄斷。 -->
+    <button class="tab" data-view="season">週期統計</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
@@ -2992,13 +3061,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        **自動更新本身照跑**（live.js 的 MS_INTRADAY／MS_AFTER），拿掉的只是「手動按一下」的入口。
        這顆只顯示報價時間；「每分鐘（輪詢）」「收盤」這些狀態文字搬進 title ——
        那是「現在是不是即時、多久更新一次」的唯一線索，藏起來可以、刪掉不行。 -->
-  <div class="livebox">
+  <!-- ★ 2026-09-24 晚（Andy：「時間刪除」）：這顆報價時間從畫面上拿掉（hidden）。
+       元素留著：live.js 照舊把「即時／收盤、多久更新、代理有沒有壞」寫進它，
+       那串說明同時鏡射到標題下版號那行的滑鼠提示；「有新資料」改由版號旁的 #freshBtn 出現。 -->
+  <div class="livebox" hidden>
     <span class="livestate off" id="liveState" title="即時報價：尚未取得">—</span>
   </div>
   <!-- 明亮／深色（Andy 2026-09-14「版面內容需要新增切換明亮色調」）。
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
-  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- ★ 2026-09-24 晚（Andy：「明暗切換移動到右邊」）：放到頂欄最右邊。 -->
+  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
        390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
        「明亮／深色」只露出 6px、「事件」整顆在畫面外，
@@ -3015,10 +3088,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
     <div class="hint">這兩項在電腦版是頂欄右邊的兩顆鈕，名字一樣。</div>
   </div>
-  <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
-       但橫幅那一行也會寫，所以手機還是看得到。 -->
-  <a class="verbadge" id="buildver" href="https://github.com/MiaoZiKe/tw-rotation/commits/main"
-     target="_blank" rel="noopener" title="這個網頁的版本">—</a>
+  <!-- ★ 2026-09-24 晚（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：版號搬到標題下（#asof 裡的 #buildver）。 -->
 </header>
 
 <div class="layout" id="layout">
@@ -3269,26 +3339,37 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        轉成 site/data/delivery.json。整頁由 app.js 的 renderDelivery 畫。 -->
   <section class="view" id="v-delivery"></section>
 
-  <!-- ================= 季節性 ================= -->
+  <!-- ================= 週期統計（路由沿用 #season） =================
+       ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
+         「本月最強」這件事改由熱力圖本身回答：列依某個月由強到弱排序（預設本月，點月份換一個月），
+         曲線圖的「本月最強 5」快捷鍵也是同一個排序 —— 一個問題只留一個答案的地方。 -->
   <section class="view" id="v-season">
     <div class="card" id="seasonHeatCard">
       <div class="row spread">
-        <h3>族群 × 月份 <small id="seasonRange"></small></h3>
-        <div class="row">
+        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small></h3>
+        <div class="row" id="seasonCtl">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
           <!-- J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）：
                熱力圖看得出「哪一格特別紅」，但看不出「一整年怎麼走」；曲線圖補的就是後者。 -->
           <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">曲線圖</button></div>
+          <!-- 熱力圖專用：列數與格內數字（預設不印數字 —— Andy：「新增顯示數字選項（所以 Default 是沒有）」） -->
+          <div class="seg" id="seasonRows" data-for="heat"><button data-v="20" class="on">前 20 名</button><button data-v="all">全部</button></div>
+          <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值；格子太小放不下的會略過（不疊字）">顯示數字</button></div>
+          <!-- 曲線圖專用：快捷挑線（圖例點選加減照舊可以用） -->
+          <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
       </div>
-      <div id="seasonHeat" class="chart" style="min-height:640px"></div>
+      <p class="note" id="seasonHow" style="margin-top:8px"></p>
+      <p class="note sncav" id="seasonCaveat" hidden></p>
+      <!-- 熱力圖放在可捲動的框裡：列高固定（每個族群名稱都印得出來），月份表頭用 sticky 釘在框頂，
+           捲到下面也知道哪一欄是幾月。表頭是 HTML 按鈕，點一下＝依那個月重新排序。 -->
+      <div class="shbox" id="seasonHeatBox">
+        <div class="shhead" id="seasonHeatHead" role="group" aria-label="依月份排序"></div>
+        <div id="seasonHeat" class="chart"></div>
+      </div>
       <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
-    </div>
-    <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="seasonDrillCard"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
-      <div class="card" id="seasonTopCard"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
     </div>
   </section>
 </main>
@@ -3341,10 +3422,21 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 <script src="dg/bank.js"></script>
 <script src="dg/life_fhc.js"></script>
 <script src="dg/securities_fhc.js"></script>
+<!-- 積木（docs/feature_modules.md §4.1）：一塊一支檔，擋掉任何一支整站照常（原則三）。
+     呼叫端都在執行期才讀 window.<積木>，順序只要在 industry.js／app.js 之前就好。 -->
+<script src="blocks/broker_views.js"></script>
+<script src="blocks/stock_signal.js"></script>
+<!-- 積木清單：app.js 的手機分段表（MIA_PAGER）由它產生，所以一定要在 app.js 之前。 -->
+<script src="modules.js"></script>
 <script src="themes3d.js"></script>
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
 <script src="livek.js"></script>
+<!-- ★ 2026-09-24 設計系統 v2 第 6 批：頁尾免責聲明、法律頁、同意橫幅、平台導覽。
+     開關在 legal_config.js（條款空格填完＋enabled:true 才啟用橫幅）。必須在 app.js 之前：
+     route() 第一次跑的時候就要問得到 window.TwLegal。 -->
+<script src="legal_config.js"></script>
+<script src="legal.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>

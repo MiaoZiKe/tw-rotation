@@ -1608,7 +1608,10 @@ def t_flow(pg, base):
         const kids = root.children || [];
         return { type: s.type, orient: s.orient, symbol: s.symbol,
                  n: kids.length,
-                 sizes: kids.map(k => k.symbolSize).filter(v => v != null),
+                 /* ★ 2026-09-24 設計系統 v2 第 5 批：產業鏈節點改前是圓點（symbolSize＝一個數字），
+                    改後是直立細長條（symbolSize＝[寬 4, 高]，高＝從它出發的線加總）。
+                    「錢越多的越大」要守的事沒變，比的從「圓點直徑」換成「直條的高」。*/
+                 sizes: kids.map(k => Array.isArray(k.symbolSize) ? k.symbolSize[1] : k.symbolSize).filter(v => v != null),
                  widths: kids.map(k => (k.lineStyle || {}).width).filter(v => v != null) }; }""")
     ok("資金去向是水平的（圖六）", bool(sk) and sk["type"] == "tree" and sk["orient"] == "LR", sk)
     ok("資金去向全部以點跟線呈現（圖六）", bool(sk) and sk["symbol"] == "circle" and sk["n"] > 0, sk)
@@ -6425,11 +6428,19 @@ def t_batch1(pg, base):
 
     # ---- 圖19：季節性熱力圖的顏色要真的跟著數字變
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # ★ 2026-09-24（週期統計改版）：visualMap 拿掉了，改成每一格直接寫 7 格離散色階的顏色
+    #   （熱力圖 v2 的 --hm-* token）。圖19 的根因（visualMap 取錯維度）因此物理上不存在，
+    #   這裡改驗「每一格的顏色都屬於 7 格之一，而且真的用到好幾級」。
     vm = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
         if (!c) return null; const o = c.getOption();
-        const v = (o.visualMap || [])[0] || {};
-        return { dim: v.dimension, min: v.min, max: v.max }; }""")
-    ok("熱力圖的 visualMap 指到數值那一維（圖19 根因）", bool(vm) and vm["dim"] == 2, vm)
+        const s = getComputedStyle(document.documentElement);
+        const tok = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(n => s.getPropertyValue(n).trim().toLowerCase());
+        const cols = (o.series[0].data || []).map(d => String((d.itemStyle || {}).color || '').toLowerCase());
+        return { vm: (o.visualMap || []).length, n: cols.length, bad: cols.filter(x => !tok.includes(x)).slice(0, 3),
+                 kinds: new Set(cols).size }; }""")
+    ok("週期統計熱力圖：每一格都是 7 格色階之一（不再是連續色／紫色）",
+       bool(vm) and vm["n"] > 0 and not vm["bad"] and vm["vm"] == 0, vm)
+    ok("週期統計熱力圖：真的用到 5 級以上的顏色（圖19：以前整張同色）", bool(vm) and vm["kinds"] >= 5, vm)
     colors = pg.evaluate("""() => { const el = document.getElementById('seasonHeat');
         const cv = el && el.querySelector('canvas'); if (!cv) return 0;
         const ctx = cv.getContext('2d'); const w = cv.width, h = cv.height;
@@ -6868,7 +6879,7 @@ def t_batch4(pg, base):
     rng = text(pg, "#seasonRange")
     ok("近三年是滾動 36 個完整月，不是日曆年（N9）", "2023" in rng or "36" in rng, rng)
     full = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
-        if (!c) return null; const d = (c.getOption().series[0].data||[]);
+        if (!c) return null; const d = (c.getOption().series[0].data||[]).map(x => Array.isArray(x) ? x : x.value);
         const months = new Set(d.filter(x => x[2] != null).map(x => x[0]));
         return { months: [...months].sort((a,b)=>a-b), n: d.length }; }""")
     ok("近三年 12 個月都有值，9-12 月不再留白（N9）",
@@ -6881,8 +6892,10 @@ def t_batch4(pg, base):
     changed("超額報酬與絕對報酬畫出來不一樣（N8）", h1, canvas_hash(pg, "#seasonHeat"))
     ok("超額報酬真的算得出來（不是整片空白）",
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
-           if (!c) return false; const d = (c.getOption().series[0].data||[]);
-           return d.filter(x => x[2] != null).length > d.length * 0.9; }"""))
+           if (!c) return false; const e = document.getElementById('seasonHeat');
+           // 2026-09-24 起沒資料的格子不進 series（留白），所以拿「有值的格數 / 列數×12」比
+           const d = (c.getOption().series[0].data||[]).map(x => Array.isArray(x) ? x : x.value);
+           return d.filter(x => x[2] != null).length > (+e.dataset.rows || 1) * 12 * 0.9; }"""))
 
 
 def t_batch7(pg, base):
@@ -6985,22 +6998,13 @@ def t_batch7(pg, base):
            if (!c) return false; const o = c.getOption();
            return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
 
-    # ---- N10 季節性下方改成四段卡片
+    # ---- N10 季節性下方的四段卡片：★ 2026-09-24 Andy「下方的兩個表格都拿掉」，整張移除。
+    #   這裡改驗「真的不在了」—— 連 DOM 節點都不留，也不准留一個空卡殼。
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    st2 = pg.evaluate("""() => ({ cards: document.querySelectorAll('#seasonBoard .stage').length,
-        names: [...document.querySelectorAll('#seasonBoard .stage .sh b')].map(e => e.textContent),
-        table: !!document.querySelector('#seasonTop table') })""")
-    ok("季節性下方改成四段卡片（N10）", st2["cards"] == 4, st2)
-    ok("四段是強勢／偏強／偏弱／弱勢（N10）",
-       st2["names"] == ["強勢", "偏強", "偏弱", "弱勢"], st2["names"])
-    ok("不再是表格（N10）", not st2["table"], st2)
-    if pg.evaluate("() => !!document.querySelector('#seasonBoard li[data-gid]')"):
-        h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector("#seasonBoard li[data-gid]", "li => li.click()")
-        pg.wait_for_timeout(700)
-        ok("點族群會原地展開成分股、不跳頁（N10 沿用批次1 的作法）",
-           pg.evaluate("() => !!document.querySelector('#seasonBoard li.mem')")
-           and pg.evaluate("() => location.hash") == h0)
+    st2 = pg.evaluate("""() => ({ board: !!document.querySelector('#seasonBoard'), top: !!document.getElementById('seasonTopCard'),
+        drill: !!document.getElementById('seasonDrillCard'), cards: document.querySelectorAll('#v-season > .card, #v-season .card').length })""")
+    ok("週期統計：「本月歷史最強族群」四段卡與「逐年明細」都拿掉了（Andy 2026-09-24）",
+       not st2["board"] and not st2["top"] and not st2["drill"] and st2["cards"] == 1, st2)
 
 
 def t_batch6_n1(pg, base):
@@ -7478,66 +7482,188 @@ def t_batch6_n3(pg, base):
 
 
 def t_season(pg, base):
-    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
-    ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
-    ok("季節性頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
+    """週期統計（路由 #season）。★ 2026-09-24 改版，Andy 原話：
+    「"季節性" 分頁改成 "週期統計"／下方的兩個表格都拿掉／熱力圖需要調整數字，
+      並在熱力圖分頁新增顯示數字選項(所以Default 是沒有)／圖三曲線圖需要優化 看不懂趨勢」。
+    每一條都是真的操作之後量畫面（不是驗元素存在）。"""
+    pg.goto(base, wait_until="domcontentloaded")
+    # 清掉本段會用到的偏好，才驗得到「預設」（預設不印數字、前 20 名、熱力圖）
+    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("週期統計熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
+    ok("週期統計頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
 
-    # J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）
-    vs = pg.evaluate("() => [...document.querySelectorAll('#seasonView button')].map(b => b.dataset.v)")
-    ok("族群×月份有熱力圖／曲線圖兩種呈現", vs == ["heat", "line"], vs)
-    ok("預設是熱力圖", pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
-                                  " document.getElementById('seasonLine').hidden]") == [False, True])
-    click(pg, '#seasonView button[data-v="line"]', 1300)
-    ok("切到曲線圖：熱力圖收起來、曲線圖出來",
-       pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
-                   " document.getElementById('seasonLine').hidden]") == [True, False])
-    ok("曲線圖真的畫出來了", canvas_hash(pg, "#seasonLine") not in ("no-canvas", "0"),
-       canvas_hash(pg, "#seasonLine"))
-    ser = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonLine'));
-        if (!c) return null; const o = c.getOption();
-        return { n: o.series.length, type: o.series[0].type, pts: (o.series[0].data || []).length,
-                 open: Object.values(o.legend[0].selected || {}).filter(Boolean).length }; }""")
-    ok("是線圖、12 個月一條線", bool(ser) and ser["type"] == "line" and ser["pts"] == 12, ser)
-    ok("預設只打開少數幾條（26 條疊在一起是一團毛線）",
-       bool(ser) and 0 < ser["open"] <= 10, ser)
-    # 換指標，曲線圖要跟著變（不是只有熱力圖會變）
-    l0 = canvas_hash(pg, "#seasonLine")
-    click(pg, '#seasonMetric button[data-v="win_rate"]', 1300)
-    changed("換指標，曲線圖跟著重畫", l0, canvas_hash(pg, "#seasonLine"))
-    ok("選過的呈現方式有記住",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.season.view'); } catch(e){ return null; } }") == "line")
-    click(pg, '#seasonView button[data-v="heat"]', 1100)
-    ok("切回熱力圖也還在", pg.evaluate("() => document.getElementById('seasonLine').hidden") is True)
-    click(pg, '#seasonMetric button[data-v="avg_excess"]', 900)
+    # ---- ① 改名：分頁、標題；網址 #season 照舊能開
+    nm = pg.evaluate("""() => ({ tab: (document.querySelector('#tabs .tab[data-view=season]') || {}).textContent,
+        h3: (document.querySelector('#seasonHeatCard h3') || {}).textContent || '',
+        old: [...document.querySelectorAll('#tabs .tab, #v-season h3, #v-season .note')].some(e => e.textContent.includes('季節性')),
+        on: (document.querySelector('main .view.on') || {}).id })""")
+    ok("分頁改名「週期統計」、舊網址 #season 照樣打開這一頁",
+       nm["tab"] == "週期統計" and "週期統計" in nm["h3"] and nm["on"] == "v-season", nm)
+    ok("畫面上不再出現「季節性」三個字（分頁、標題、說明）", not nm["old"], nm)
+
+    # ---- ② 下方兩張卡整張拿掉
+    gone = pg.evaluate("""() => ({ drill: !!document.getElementById('seasonDrillCard'), top: !!document.getElementById('seasonTopCard'),
+        board: !!document.getElementById('seasonBoard'), cards: document.querySelectorAll('#v-season .card').length })""")
+    ok("「逐年明細」「本月歷史最強族群」兩張卡真的不在了（只剩一張卡）",
+       not gone["drill"] and not gone["top"] and not gone["board"] and gone["cards"] == 1, gone)
+
+    HM = """() => { const e = document.getElementById('seasonHeat'); const c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const ax = c.getModel().getComponent('yAxis', 0).axis;
+        const box = document.getElementById('seasonHeatBox'), head = document.getElementById('seasonHeatHead');
+        return { rows: +e.dataset.rows, rowh: +e.dataset.rowh, colw: +e.dataset.colw, nlab: +e.dataset.nlab, nval: +e.dataset.nval,
+          h: Math.round(e.getBoundingClientRect().height), ydata: o.yAxis[0].data.length, ylab: ax.getViewLabels().length,
+          y0: o.yAxis[0].data[0], show: !!o.series[0].label.show, cursor: o.series[0].cursor,
+          vis: !box.hidden, boxH: box.clientHeight, boxSH: box.scrollHeight,
+          head: [...head.querySelectorAll('button')].map(b => b.classList.contains('on')).indexOf(true) + 1,
+          ls: localStorage.getItem('tw.season.num'), lsRows: localStorage.getItem('tw.season.rows') }; }"""
+    h0 = pg.evaluate(HM)
+    ok("預設是熱力圖、曲線圖收著",
+       h0 and h0["vis"] and pg.evaluate("() => document.getElementById('seasonLine').hidden") is True, h0)
+    # ---- ③ 每一列讀得出來：列高、每一個族群名都印
+    ok("熱力圖每列至少 20px（改版前 5～6px）", h0 and h0["rowh"] >= 20 and abs(h0["h"] - (h0["rows"] * h0["rowh"] + 8)) <= 2, h0)
+    ok("★ y 軸每一個族群名稱都印出來（量 ECharts 實際排出的標籤數＝列數，不准隔列省略）",
+       h0 and h0["ylab"] == h0["ydata"] == h0["rows"] > 0, h0)
+    ok("預設只看「本月最強的前 20 名」", h0 and h0["rows"] == 20, h0)
+    # ---- ④ 顯示數字：預設關；按一下真的印出來、localStorage 真的寫入；再按一下真的消失
+    ok("★ 格子裡預設不印數字（Andy：Default 是沒有）", h0 and not h0["show"] and h0["nlab"] == 0 and h0["ls"] is None, h0)
+    c0 = canvas_hash(pg, "#seasonHeat")
+    click(pg, "#seasonNum button", 700)
+    h1 = pg.evaluate(HM)
+    ok("按「顯示數字」→ 格子裡真的有數字，而且記進 localStorage",
+       h1 and h1["show"] and h1["nlab"] > 0 and h1["ls"] == "1", h1)
+    changed("按「顯示數字」畫面真的變了", c0, canvas_hash(pg, "#seasonHeat"))
+    ok("開了也只印放得下的格子（每格欄寬扣邊 ≥ 字寬；1500px 下應該全部放得下）",
+       h1 and h1["nlab"] <= h1["nval"] and h1["colw"] >= 40, h1)
+    ok("按鈕的 aria-pressed 跟著變", pg.evaluate("() => document.querySelector('#seasonNum button').getAttribute('aria-pressed')") == "true")
+    click(pg, "#seasonNum button", 700)
+    h2 = pg.evaluate(HM)
+    ok("再按一次 → 數字真的消失、localStorage 記成 0", h2 and not h2["show"] and h2["nlab"] == 0 and h2["ls"] == "0", h2)
+    # ---- ⑤ 列數切換：全部 → 每個族群都在；外框可捲、表頭 sticky
+    click(pg, '#seasonRows button[data-v="all"]', 900)
+    h3 = pg.evaluate(HM)
+    ok("切「全部」→ 列數真的變多、每一個名字都印、選擇記進 localStorage",
+       h3 and h3["rows"] > 20 and h3["ylab"] == h3["rows"] and h3["lsRows"] == "all", h3)
+    ok("「全部」時圖放在可捲動的框裡（不把整頁撐長）", h3 and h3["boxSH"] > h3["boxH"] + 50 and h3["boxH"] <= 700, h3)
+    stk = pg.evaluate("""() => { const b = document.getElementById('seasonHeatBox'); b.scrollTop = b.scrollHeight;
+        const hb = document.getElementById('seasonHeatHead').getBoundingClientRect(), bb = b.getBoundingClientRect();
+        return { st: b.scrollTop, headTop: Math.round(hb.top), boxTop: Math.round(bb.top) }; }""")
+    ok("捲到框的最底下，月份表頭還釘在框頂（知道哪一欄是幾月）",
+       stk["st"] > 100 and abs(stk["headTop"] - stk["boxTop"]) <= 3, stk)
+    click(pg, '#seasonRows button[data-v="20"]', 800)
+    # ---- ⑥ 點月份表頭 → 依那個月重新排序
+    y_before = pg.evaluate(HM)
+    tgt = 1 if y_before["head"] != 1 else 2
+    click(pg, f'#seasonHeatHead button[data-m="{tgt}"]', 800)
+    y_after = pg.evaluate(HM)
+    ok("點月份表頭 → 那一顆變成選中、列依那個月重排（第一名換人或順序變了）",
+       y_after["head"] == tgt and (y_after["y0"] != y_before["y0"]), {"前": y_before["y0"], "後": y_after["y0"], "月": tgt})
+    # ---- ⑦ 顏色：7 格離散色階＋圖例；點圖例只亮那一級
+    lg = pg.evaluate("""() => { const l = document.getElementById('seasonHeatBoxLegend'); if (!l) return null;
+        return { n: l.querySelectorAll('.hmcell').length, vis: getComputedStyle(l).display !== 'none', ttl: (l.querySelector('.hmttl') || {}).textContent }; }""")
+    ok("熱力圖下方有 7 格圖例（跟熱力圖 v2 同一套）", lg and lg["n"] == 7 and lg["vis"], lg)
+    click(pg, '#seasonHeatBoxLegend .hmcell[data-bin="6"]', 700)
+    dim = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
+        const d = c.getOption().series[0].data; return { dim: d.filter(x => x.itemStyle.opacity < 1).length, n: d.length }; }""")
+    ok("點圖例一格 → 其他級的格子真的退暗", dim["dim"] > 0 and dim["dim"] < dim["n"], dim)
+    click(pg, '#seasonHeatBoxLegend .hmcell[data-bin="6"]', 600)
+    click(pg, '#seasonMetric button[data-v="win_rate"]', 900)
+    wl = pg.evaluate("""() => { const l = document.getElementById('seasonHeatBoxLegend');
+        const cells = [...l.querySelectorAll('.hmcell')].map(b => b.textContent);
+        const c = echarts.getInstanceByDom(document.getElementById('seasonHeat')); const s = getComputedStyle(document.documentElement);
+        const tok = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(n => s.getPropertyValue(n).trim().toLowerCase());
+        const hi = c.getOption().series[0].data.filter(d => d.value[2] > 75).map(d => String(d.itemStyle.color).toLowerCase());
+        const lo = c.getOption().series[0].data.filter(d => d.value[2] < 25).map(d => String(d.itemStyle.color).toLowerCase());
+        return { cells, hiRed: hi.every(x => x === tok[6]), loGreen: lo.every(x => x === tok[0]), nhi: hi.length, nlo: lo.length }; }""")
+    ok("勝率以 50% 為中性：圖例是 <25 … 50 … >75，>75 用最亮的紅、<25 用最亮的綠（紅漲綠跌）",
+       "50" in wl["cells"] and wl["hiRed"] and wl["loGreen"], wl)
+    # ---- ⑧ 點格子：只出提示框，不跳頁、不開任何東西
+    pt = pg.evaluate("""() => { const e = document.getElementById('seasonHeat'); const c = echarts.getInstanceByDom(e);
+        const d = c.getOption().series[0].data[0]; const p = c.convertToPixel({ seriesIndex: 0 }, [d.value[0], d.value[1]]);
+        const r = e.getBoundingClientRect(); return { x: r.x + p[0], y: r.y + p[1] }; }""")
+    h_hash = pg.evaluate("() => location.hash")
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+    tipv = pg.evaluate("""() => [...document.querySelectorAll('#seasonHeat div')].some(d => getComputedStyle(d).display !== 'none'
+        && d.textContent.includes('樣本') && d.textContent.includes('排第'))""")
+    ok("點格子只出提示框（有樣本數與排名）、不跳頁，游標不是手指（沒有假裝可以點）",
+       tipv and pg.evaluate("() => location.hash") == h_hash and h0["cursor"] == "default", {"提示框": tipv, "cursor": h0["cursor"]})
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 700)
+
+    # ---- ⑨ 期間／指標切換，熱力圖真的重畫
     for grp, name in (("#seasonPeriod", "期間"), ("#seasonMetric", "指標")):
         vs = pg.evaluate(f"[...document.querySelectorAll('{grp} button')].filter(b => b.style.display !== 'none').map(b => b.dataset.v)")
         if len(vs) >= 2:
-            h0 = canvas_hash(pg, "#seasonHeat")
+            hh = canvas_hash(pg, "#seasonHeat")
             click(pg, f'{grp} button[data-v="{vs[-1]}"]', 900)
-            changed(f"季節性切換「{name}」，熱力圖真的重畫", h0, canvas_hash(pg, "#seasonHeat"))
+            changed(f"週期統計切換「{name}」，熱力圖真的重畫", hh, canvas_hash(pg, "#seasonHeat"))
             click(pg, f'{grp} button[data-v="{vs[0]}"]', 700)
         else:
-            notes.append(f"季節性「{name}」只有一個選項，沒東西可切")
-    # 點格子 → 逐年明細要出來。用 ECharts 自己換算某一格的座標，不要亂點（亂點會落在空白處）
-    pg.evaluate("document.getElementById('seasonHeat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
-    before = text(pg, "#seasonDrillTitle")
-    pt = pg.evaluate("""() => { const e = document.getElementById('seasonHeat');
-        const c = echarts.getInstanceByDom(e); if (!c) return null;
-        const op = c.getOption(); const d = (op.series[0] || {}).data || [];
-        const cell = d.find(v => Array.isArray(v) ? v[2] != null : (v && v.value && v.value[2] != null));
-        if (!cell) return null;
-        const v = Array.isArray(cell) ? cell : cell.value;
-        const p = c.convertToPixel({ seriesIndex: 0 }, [v[0], v[1]]);
-        const r = e.getBoundingClientRect();
-        return p ? { x: r.x + p[0], y: r.y + p[1] } : null; }""")
-    if pt:
-        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1200)
-        after = text(pg, "#seasonDrillTitle")
-        changed("點季節性格子會帶出逐年明細", before, after)
-        ok("逐年明細有畫出圖", pg.evaluate("() => !!document.querySelector('#seasonDrill canvas')"),
-           text(pg, "#seasonDrill")[:40])
-    else:
-        fails.append("季節性熱力圖沒有任何一格有資料，點不出逐年明細")
+            notes.append(f"週期統計「{name}」只有一個選項，沒東西可切")
+
+    # ---- ⑩ 曲線圖：直線、預設 5 條＋平均線、快捷鍵、端點標籤不重疊、樣本少的提醒
+    vs = pg.evaluate("() => [...document.querySelectorAll('#seasonView button')].map(b => b.dataset.v)")
+    ok("族群×月份有熱力圖／曲線圖兩種呈現", vs == ["heat", "line"], vs)
+    click(pg, '#seasonView button[data-v="line"]', 1300)
+    ok("切到曲線圖：熱力圖收起來、曲線圖出來",
+       pg.evaluate("() => [document.getElementById('seasonHeatBox').hidden, document.getElementById('seasonLine').hidden]") == [True, False])
+    ok("選過的呈現方式有記住",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.season.view'); } catch(e){ return null; } }") == "line")
+    LN = """() => { const e = document.getElementById('seasonLine'); const c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const sel = o.legend[0].selected || {};
+        const on = o.series.filter(s => sel[s.name] !== false).map(s => s.name);
+        const avg = o.series.find(s => s.name === '全部族群平均');
+        const end = JSON.parse(e.dataset.endlab || '[]').map(x => x.y).sort((a, b) => a - b);
+        let gap = 999; for (let i = 1; i < end.length; i++) gap = Math.min(gap, end[i] - end[i - 1]);
+        return { on, n: on.length, smooth: o.series.filter(s => s.smooth).length, pts: (o.series[1] || {}).data.length,
+                 avgW: avg ? avg.lineStyle.width : 0, nEnd: end.length, gap,
+                 pickOn: (document.querySelector('#seasonPick button.on') || {}).dataset?.v || null,
+                 pickVis: getComputedStyle(document.getElementById('seasonPick')).display !== 'none',
+                 numVis: getComputedStyle(document.getElementById('seasonNum')).display !== 'none' }; }"""
+    l0 = pg.evaluate(LN)
+    ok("曲線圖不再 smooth（直線段＋點，不畫出不存在的波浪）", l0 and l0["smooth"] == 0 and l0["pts"] == 12, l0)
+    ok("★ 預設只顯示 5 條＋一條「全部族群平均」（改版前幾十條疊成一團）", l0 and l0["n"] == 6 and "全部族群平均" in l0["on"], l0)
+    ok("「全部族群平均」是粗線（≥ 4px）", l0 and l0["avgW"] >= 4, l0)
+    ok("右側端點標籤只給顯示中的線，而且互不重疊（間距 ≥ 15px）", l0 and l0["nEnd"] == l0["n"] and l0["gap"] >= 15, l0)
+    ok("曲線圖時快捷鈕出現、熱力圖專用的「顯示數字」收起來", l0 and l0["pickVis"] and not l0["numVis"] and l0["pickOn"] == "top", l0)
+    click(pg, '#seasonPick button[data-v="bot"]', 900)
+    l1 = pg.evaluate(LN)
+    changed("按「最弱 5」→ 顯示的線真的換了一組", sorted(l0["on"]), sorted(l1["on"]), str(l1["on"]))
+    ok("「最弱 5」一樣是 5 條＋平均線", l1["n"] == 6, l1)
+    click(pg, '#seasonPick button[data-v="none"]', 900)
+    l2 = pg.evaluate(LN)
+    ok("按「只留平均線」→ 只剩平均線", l2["on"] == ["全部族群平均"] and l2["nEnd"] == 1, l2)
+    # 圖例點選加減照舊可以用（legendToggleSelect 就是滑鼠點圖例時 ECharts 自己送的那個動作）
+    pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonLine'));
+        const nm = c.getOption().series[3].name; c.dispatchAction({ type: 'legendToggleSelect', name: nm }); }""")
+    pg.wait_for_timeout(700)
+    l3 = pg.evaluate(LN)
+    ok("圖例點一個族群 → 真的多一條線、也多一個端點標籤", l3["n"] == 2 and l3["nEnd"] == 2 and l3["pickOn"] is None, l3)
+    click(pg, '#seasonPick button[data-v="top"]', 700)
+    # 近 3 年勝率只有四種值 → 圖旁要講出來
+    click(pg, '#seasonPeriod button[data-v="3y"]', 700)
+    click(pg, '#seasonMetric button[data-v="win_rate"]', 900)
+    cav = pg.evaluate("() => { const e = document.getElementById('seasonCaveat'); return { vis: !e.hidden && e.offsetHeight > 0, t: e.textContent }; }")
+    ok("近 3 年勝率：圖旁講明「勝率只會是 0／33／67／100%」（樣本少不是趨勢）",
+       cav["vis"] and "0／33／67／100" in cav["t"], cav)
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 700)
+    cav2 = pg.evaluate("() => document.getElementById('seasonCaveat').hidden")
+    ok("換回超額報酬，那句提醒收起來（只在會誤判的時候出現）", cav2 is True)
+    l4 = canvas_hash(pg, "#seasonLine")
+    click(pg, '#seasonMetric button[data-v="avg_return"]', 900)
+    changed("換指標，曲線圖跟著重畫", l4, canvas_hash(pg, "#seasonLine"))
+    click(pg, '#seasonPeriod button[data-v="all"]', 500)
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 500)
+    click(pg, '#seasonView button[data-v="heat"]', 1100)
+    ok("切回熱力圖也還在", pg.evaluate("() => document.getElementById('seasonLine').hidden") is True
+       and pg.evaluate("() => !document.getElementById('seasonHeatBox').hidden"))
+
+    # ---- ⑪ 窄畫面（820px）與手機（390px 另見「手機」段）：名字照樣全部印、沒有橫向捲軸
+    pg.set_viewport_size({"width": 820, "height": 1000}); pg.wait_for_timeout(1200)
+    n8 = pg.evaluate(HM)
+    ow = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok("[820px] 每一個族群名都印、沒有橫向捲軸", n8 and n8["ylab"] == n8["rows"] and ow <= 1, {**(n8 or {}), "溢出": ow})
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
+    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
 # 量「畫布上跟背景不一樣的像素占多少」。白線畫在白底上 → 這個數字會掉下去。
@@ -7559,7 +7685,11 @@ INK = """(sel) => {
 
 # 找出「文字顏色跟自己的背景幾乎一樣」的元素 —— 黑底時代留下來的白字，切到淺色就變隱形。
 CONTRAST = """() => {
-  const lum = (c) => { const m = (c.match(/[\\d.]+/g) || []).map(Number);
+  /* ★ 2026-09-24（設計系統 v2 第 3 批）：`color-mix()` 的 computed style 是 `color(srgb 0.90 0.94 0.95)`
+     —— 三個分量是 0～1，不是 0～255。改前一律當 0～255 讀，淺底被讀成近黑，
+     於是「深字印在淺色象限卡上」（實際約 10:1）被算成 1.85 而誤報。改後遇到 color(srgb …) 先 ×255。 */
+  const lum = (c) => { let m = (c.match(/[\\d.]+/g) || []).map(Number);
+    if (/^color\\(srgb/.test(c)) m = m.slice(0, 3).map(v => v * 255);
     const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); };
     return .2126 * f(m[0] || 0) + .7152 * f(m[1] || 0) + .0722 * f(m[2] || 0); };
   // 往上找第一個「不透明的純色背景」。中途碰到漸層就放棄這個元素 ——
@@ -7699,7 +7829,7 @@ def t_mobile(b, base, code):
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     # ★ 2026-09-24：「題材」併進「熱力圖」—— 熱力圖分頁本身、以及舊網址 #themes 導過去的樣子都要量
     for h, name in (("overview", "總覽"), ("market", "市場明細"), ("flow", "資金流向"), ("industry", "產業"),
-                    ("heatmap", "熱力圖"), ("themes", "題材（舊網址→熱力圖）"), ("season", "季節性"),
+                    ("heatmap", "熱力圖"), ("themes", "題材（舊網址→熱力圖）"), ("season", "週期統計"),
                     (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(1700)
         st = m.evaluate("""() => {
@@ -7765,7 +7895,7 @@ def t_zoom_sweep(pg, base, code):
     pages = [("#overview", "總覽"), ("#flow", "資金流向"), ("#industry", "產業地圖"),
              ("#heatmap", "產業熱力圖"),
              ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材（舊網址→熱力圖分頁）"),
-             ("#market", "市場明細"), ("#season", "季節性"), (f"#stock/{code}", "個股")]
+             ("#market", "市場明細"), ("#season", "週期統計"), (f"#stock/{code}", "個股")]
     # 題材細節頁（產品剖析圖那一頁）全部都掃
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1500)
     for tid in (pg.evaluate("() => Object.keys(window.ThemeDiagrams || {}).filter(k => k !== 'fit')") or [])[:6]:
@@ -7830,7 +7960,8 @@ def t_freshness(b, base):
                      txt: (a ? (a.title || '') : '').replace(/\\s+/g, ' ').trim(),
                      asof: (a || {}).textContent || '' }; }""")
         ok(f"「{name}」黃底橫幅真的不佔版面了", not got["on"], got["cls"])
-        ok(f"「{name}」頂端日期跟著 meta 走", str(meta["data_date"]) in got["asof"], got["asof"])
+        # ★ 2026-09-24 晚（Andy：版號搬到標題下面）：標題下那行改顯示版號，資料日期改寫在提示第一行 —— 日期沒刪，換地方
+        ok(f"「{name}」資料日期跟著 meta 走（寫在標題下那行的提示第一行）", str(meta["data_date"]) in got["txt"][:40], got["txt"][:60])
         miss = [w for w in must if w not in got["txt"]]
         ok(f"「{name}」原因搬到提示裡、一個字都沒少", not miss,
            {"少了": miss, "實際": got["txt"][:160]})
@@ -7904,7 +8035,8 @@ def t_buildver(b, base):
         pg.wait_for_timeout(400)
         got = pg.evaluate("""() => { const e = document.getElementById('buildver');
             const r = e.getBoundingClientRect(); const b = document.getElementById('banner');
-            return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: e.title,
+            return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: ((document.getElementById('asof') || {}).title || e.title || ''),
+                     inBrand: !!e.closest('.brand'),
                      visible: r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none',
                      /* ★ 2026-09-23：黃底橫幅已從版面拿掉，版號改掛在「盤後」那顆的 title。
                         欄位名沿用 banner（引用它的斷言在下面，沒必要為了改名再動一輪）。 */
@@ -7916,15 +8048,17 @@ def t_buildver(b, base):
     # 版號格式：西元日期＋今天第幾版（Andy 2026-09-18）
     a = run("2026-09-18 第 3 版|11:16")
     ok("版號徽章看得到", a["visible"], a)
-    ok("徽章寫的是西元日期＋第幾版", "2026-09-18" in a["txt"] and "第 3 版" in a["txt"], a["txt"])
+    ok("版號的完整寫法（西元日期＋第幾版）在提示裡", "2026-09-18" in a["title"] and "第 3 版" in a["title"], a["title"][:120])
     # ★ 2026-09-24 改口徑（Andy：版號「只留文字 不用時間」）：畫面上拿掉「· 11:16」。
     #   ⚠⚠ 建置時間**不准刪**，搬進 title 的第一行 —— 「第 N 版」已經證實不準，
     #   建置時間是唯一能確認「網站換版了沒」的依據。所以這裡同時驗兩件事：
     #   畫面上真的沒有了、title 第一行真的有（而且跟著版號換，見下面第二組）。
-    ok("徽章畫面上只留「v 日期 第 N 版」，不再寫建置時間", "11:16" not in a["txt"] and "·" not in a["txt"], a["txt"])
+    # ★ 2026-09-24 晚改口徑（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：建置時間放回畫面上
+    ok("版號寫「v MM-DD 第N版 · 建置時間」（年份省略，完整版號在提示）", "09-18" in a["txt"] and "第3版" in a["txt"].replace(" ", "") and "11:16" in a["txt"], a["txt"])
+    ok("版號在左上方標題下面（在品牌區塊裡）", a.get("inBrand"), a)
     ok("★ 建置時間沒有刪：搬進徽章滑鼠提示的第一行", "11:16" in (a["title"] or "").split("\n")[0], a["title"])
-    ok("徽章連得到那個 commit（短碼移到 tooltip 與連結）",
-       "/commit/1b28dfc" in (a["href"] or ""), a["href"])
+    # ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不准再是連到 GitHub 的連結
+    ok("★ 徽章不連到 GitHub（原始碼不公開）", not a["href"] and "github" not in (a["title"] or "").lower(), [a["href"], a["title"]])
     # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
     ok("手機也拿得到版號（橫幅拿掉後改掛在「盤後」那顆的提示裡）", "2026-09-18" in a["banner"],
        a["banner"][:200])
@@ -8106,7 +8240,9 @@ def t_live(pg, base):
         cls = lp.evaluate("() => document.getElementById('liveState').className")
         ok("盤中有新資料：狀態那顆轉成可點的警示（不自動打斷）", "fresh" in cls and "bad" in cls, cls)
         ok("盤中有新資料：提示寫「點一下重新載入」", "重新載入" in lp.evaluate(TITLE), lp.evaluate(TITLE))
-        lp.click("#liveState"); lp.wait_for_timeout(2500)
+        # ★ 2026-09-24 晚：時間那顆從畫面收起來了，「有新資料」改由標題下版號旁的「有新資料 ↻」出現、點它重新載入
+        ok("盤中有新資料：版號旁出現「有新資料 ↻」", lp.evaluate("() => { const b = document.getElementById('freshBtn'); return !!b && !b.hidden && b.offsetWidth > 0; }"))
+        lp.click("#freshBtn"); lp.wait_for_timeout(2500)
     ok("有新資料時頁面真的重新載入了（盤後自己載、盤中點狀態那顆載）",
        lp.evaluate("() => window.__mark === undefined"), lp.evaluate("() => window.__mark"))
     lp.unroute("**/data/meta.json*")
@@ -10853,6 +10989,23 @@ SECTIONS = {
     #   與第 4 批（三張熱力圖的 7 格離散色階、2px 間隙、標籤分三級、圖例、提示框、分組／顏色下拉）。
     "設計系統v2":          lambda pg, b, base, code: t_ds2(pg, base),
     "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),
+    # ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）：驗「積木的邊界真的存在」——
+    #   出口拿到的就是畫面上的東西，而且把那塊積木的檔擋掉之後整站照常（原則三）。
+    "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
+    "積木-個股三卡":       lambda pg, b, base, code: t_block_stock_cards(b, base, code),
+    "積木-隱性參數":       lambda pg, b, base, code: t_block_implicit(b, base),
+    # 積木清單（site/modules.js）：27 個 id 跟文件一致、手機分段列由它產生而且每段真的切得動
+    "積木清單":            lambda pg, b, base, code: t_block_registry(b, base, code),
+
+    # ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js、site/legal_config.js）：
+    #   頁尾免責聲明（預設開）、三個法律頁、同意橫幅與平台導覽（預設關，條款空格填完＋enabled 才開）。
+    #   開關打開的那半段用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 模擬「Andy 填好了」。
+    "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
+
+    # ★ 2026-09-24 設計系統 v2 第 5 批（docs/design_system_v2.md §3.2／§3.3）：
+    #   輪動時鐘（三圈底色、焦點族群、漸強軌跡＋箭頭、換段色環、手機編號模式）與兩張資金去向（鏈色線條、直條節點、字的層次、點不壓字）。
+    "時鐘v2":              lambda pg, b, base, code: t_clock_v2(pg, b, base),
+    "資金去向v2":          lambda pg, b, base, code: t_flow_v2(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11729,8 +11882,10 @@ def _selected(args, name: str) -> bool:
     """
     if args.sections:
         return name in [x.strip() for x in args.sections.split(",")]
-    if args.only:
-        return _want(args.only, name)
+    if getattr(args, "module", "") or args.only:
+        # --module 與 --only 可以一起給，取聯集
+        return (bool(args.only) and _want(args.only, name)) \
+            or (bool(getattr(args, "module", "")) and name in _module_sections(args.module))
     return True
 
 
@@ -11821,6 +11976,41 @@ def run_parallel(args) -> int:
     return 0
 
 
+
+# ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js）：同意條款橫幅。
+#   橫幅一旦啟用（site/legal_config.js 填完＋enabled:true），會固定在畫面最下方約 130～160px，
+#   **擋住所有點畫面下緣的驗收步驟** —— 腳本沒改先上線，所有關卡會一起紅（docs/design_system_v2.md 4.1 最後一段）。
+#   所以在這裡把 Playwright 的 Browser.new_page／new_context 包一層：每一個新開的頁面，
+#   在頁面腳本執行前都先寫好 tw.consent（v:'*'＝這個瀏覽器不必再看橫幅）與 tw.tour。
+#   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
+#   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
+#   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
+CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+                  "JSON.stringify({v:'*',at:'test'}));"
+                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+
+
+def _preset_consent() -> None:
+    from playwright.sync_api import Browser
+    if getattr(Browser, "_tw_consent", False):
+        return
+    raw_page, raw_ctx = Browser.new_page, Browser.new_context
+
+    def new_page(self, *a, **k):
+        pg = raw_page(self, *a, **k)
+        pg.add_init_script(CONSENT_PRESET)
+        return pg
+
+    def new_context(self, *a, **k):
+        c = raw_ctx(self, *a, **k)
+        c.add_init_script(CONSENT_PRESET)
+        return c
+
+    Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
+    Browser.new_page, Browser.new_context = new_page, new_context
+    Browser._tw_consent = True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -11837,7 +12027,24 @@ def main() -> int:
     #   預設 4：實測 31 段一輪 15 分鐘，最長的那幾段各 2~3 分鐘，
     #   再多開也被最長那一段卡住，而且每個 worker 都要吃一個 Chromium 的記憶體。
     ap.add_argument("--workers", type=int, default=4)
+    # --module：用積木 id 挑段落（逗號分隔，例：`--module broker.views,stock.signal`）。
+    #   段落清單讀 site/modules.js 的 `tests` 欄位 —— 跟 app.js 產生手機分段表的是同一份清單，
+    #   積木改名／搬家時驗收段落會跟著走，不必再去對 CLAUDE.md 那張人工表。
+    #   前綴也行：`--module flow.` ＝ 所有 flow.* 積木。一律連帶跑「積木清單」。
+    ap.add_argument("--module", default="")
+    # --list-modules：印出「積木 → 驗收段落」對照表就結束（不開瀏覽器）
+    ap.add_argument("--list-modules", action="store_true")
     args = ap.parse_args()
+
+    if args.list_modules:
+        for m in _modules()["list"]:
+            print(f"{m['id']:<16} {m['law']} {m['question']:<3} {m['name']:<14} → {'、'.join(m.get('tests') or [])}")
+        return 0
+    if args.module:
+        unknown = [x for x in args.module.split(",") if x.strip() and not any(
+            m["id"] == x.strip() or m["id"].startswith(x.strip()) for m in _modules()["list"])]
+        if unknown:
+            print(f"不認得的積木 id：{'、'.join(unknown)}（用 --list-modules 看清單）"); return 2
 
     # 父行程模式：自己不跑瀏覽器，只負責拆工與合併
     if args.workers > 1 and not args.json:
@@ -11846,6 +12053,7 @@ def main() -> int:
         return _report(t_par)
 
     from playwright.sync_api import sync_playwright
+    _preset_consent()
 
     srv = serve(); time.sleep(0.4)
     # ★ 讀 srv 真正綁到的埠（serve() 會在被佔走時自動往後找），不要自己組 PORT
@@ -13474,6 +13682,41 @@ def t_rot_live(pg, base):
     ok("鈕本身也亮起來了（aria-pressed 真的變 true）",
        pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "true")
 
+    # ---------------------------------------------------------- ②b 盤中巡檢的唯讀窗口 ＋ 象限面板跟著即時走
+    # `rlvState()` 是 `.github/workflows/live-rotation-probe.yml` 在線上讀的那一份；
+    # 形狀錯了巡檢就讀不到東西，所以在這裡先守住欄位。
+    rs = pg.evaluate("() => window.App.rlvState ? window.App.rlvState() : null")
+    ok("巡檢窗口 App.rlvState() 回得出 on/at/quoteAt/hit/codes/reqs/err/cover/pts",
+       bool(rs) and all(k in rs for k in ("on", "at", "quoteAt", "hit", "codes", "reqs", "err", "cover", "pts"))
+       and rs["on"] and len(rs["pts"]) > 5
+       and all(set(v) == {"x", "y"} for v in rs["pts"].values()),
+       rs and {k: rs[k] for k in rs if k != "pts"})
+    if rs:
+        pg.evaluate("() => { const p = window.App.rlvState().pts; for (const g in p) p[g].x = -999; }")
+        ok("巡檢窗口是唯讀的（改它拿到的物件不會改到即時狀態）",
+           all(v["x"] != -999 for v in pg.evaluate("() => window.App.rlvState().pts").values()))
+    # ★ 2026-09-24 修的 bug：象限面板的「強弱／動能」原本讀持平基準（fx/fy），那是整天不會動的常數。
+    #   驗法：把四個象限一個個點開，面板上每個族群的「強弱」要等於**現在那一點**（pts.x − 100），
+    #   而且至少有一個族群「今天推的那一段」（tdx）夠大 —— 不然讀 fx 也會剛好對上，驗不出差別。
+    top_td = {t["gid"]: t["tdx"] for t in pg.evaluate("() => window.App.rotLive().top")}
+    panel = {}
+    for k in ("leading", "improving", "lagging", "weakening"):
+        if not click(pg, f'#rotClock .rotquads .rq[data-k="{k}"]', 500):
+            continue
+        for it in pg.evaluate("""() => [...document.querySelectorAll('#stagePanel li[data-gid]')]
+                .map(li => ({ g: li.dataset.gid, t: li.innerText.replace(/\\s+/g, ' ') }))"""):
+            m = re.search(r"強弱 ([+\-−]?\d+(?:\.\d+)?)", it["t"])
+            if m:
+                panel[it["g"]] = float(m.group(1).replace("−", "-"))
+        click(pg, f'#rotClock .rotquads .rq[data-k="{k}"]', 300)     # 收起來，不影響下一步
+    pts_now = pg.evaluate("() => window.App.rlvState().pts")
+    cmp = {g: (panel[g], round(pts_now[g]["x"] - 100, 1)) for g in panel if g in pts_now}
+    bad = {g: v for g, v in cmp.items() if abs(v[0] - v[1]) > 0.051}
+    ok(f"象限面板的「強弱」＝即時續算的那一點（{len(cmp) - len(bad)}/{len(cmp)} 個族群對得上）",
+       len(cmp) >= 3 and not bad, bad or list(cmp.items())[:4])
+    ok("而且這一輪真的有族群「今天推的那一段」≥ 0.06 點出現在面板上（讀持平基準的話會對不上）",
+       any(g in cmp and abs(td) >= 0.06 for g, td in top_td.items()), top_td)
+
     # ---------------------------------------------------------- ③ 那條「上一個收盤 → 現在」真的畫出來了
     seg = pg.evaluate("() => window.App.rotLiveSeg()")
     lens = [s["px"] for s in (seg or []) if s.get("px") is not None]
@@ -13580,17 +13823,23 @@ def t_rot_live(pg, base):
     click(pg, "#rotLiveBtn", 500)
     _rlv_wait(pg)
     ok("為了驗互斥，先把即時重新打開", pg.evaluate("() => window.App.rotLive().on"))
-    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+    # ★ 2026-09-24 修（原本這條一直紅：「滑鼠真的把時間軸拖動了（30 → 30）」）：
+    #   D1 把時間軸改成雙把手的 spanBar 之後，`<input>` 本身是 `pointer-events:none`，
+    #   **只有滑塊（thumb）接得到滑鼠**（index.html `.rbar .dual`）。舊寫法從軌道 5% 處按下去，
+    #   按到的是空氣，所以值永遠不變，連帶讓 ⑦ 那一段拿到「即時還開著」的狀態、按一下反而把它關掉。
+    #   真人是抓住右邊那顆青色滑塊往左拖 —— 這裡照做：算出 `input.hi` 滑塊中心的像素位置再拖。
+    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.hi');
         if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' });
-        const r = i.getBoundingClientRect();
-        return { x: r.left, y: r.top + r.height / 2, w: r.width, v: +i.value }; }""")
+        const r = i.getBoundingClientRect(), mx = +i.max || 30, v = +i.value, TH = 13;
+        return { x: r.left, y: r.top + r.height / 2, w: r.width, v: v, max: mx,
+                 tx: r.left + TH / 2 + (r.width - TH) * v / mx }; }""")
     if ok("抓得到「看哪一天」那支拉Bar 的位置（要真的用滑鼠拖）", bool(box), box):
-        pg.mouse.move(box["x"] + box["w"] * 0.05, box["y"])
+        pg.mouse.move(box["tx"], box["y"])
         pg.mouse.down()
         pg.mouse.move(box["x"] + box["w"] * 0.45, box["y"], steps=12)
         pg.mouse.up()
         pg.wait_for_timeout(1200)
-        v1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+        v1 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
         if ok(f"滑鼠真的把時間軸拖動了（{box['v']} → {v1}）", v1 != box["v"], {"前": box["v"], "後": v1}):
             ok("拖時間軸 → **自動退出即時**（和資金去向同一條互斥規矩）",
                pg.evaluate("() => !window.App.rotLive().on")
@@ -20984,7 +21233,7 @@ def t_mobile_v2(b, base, code):
                  w: Math.round(r.width), h: Math.round(r.height) }; })""")
     ok("[390px] 七個分頁一個都沒少（題材併進熱力圖，不是消失）", len(tabs) == 7 and "themes" not in [t["v"] for t in tabs]
        and "heatmap" in [t["v"] for t in tabs], [t["v"] for t in tabs])
-    ok("[390px] 七個分頁**全部**在畫面裡（改版前季節性與交付清單整個在畫面外）",
+    ok("[390px] 七個分頁**全部**在畫面裡（改版前週期統計（原季節性）與交付清單整個在畫面外）",
        all(t["right"] <= 391 for t in tabs), [t for t in tabs if t["right"] > 391] or "都在")
     _rows = {}
     for t in tabs:
@@ -21042,7 +21291,7 @@ def t_mobile_v2(b, base, code):
           .map(e => `${e.tagName}@${eff(e).toFixed(1)}:${e.textContent.trim().slice(0,12)}`); }"""
     for h, name in (("overview", "總覽"), ("flow", "資金流向"), ("industry", "產業地圖"),
                     ("heatmap", "熱力圖"), ("heatmap/theme", "熱力圖（題材段）"),
-                    ("season", "季節性"), ("delivery", "交付清單"),
+                    ("season", "週期統計"), ("delivery", "交付清單"),
                     ("market", "市場明細"), (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(2200)
         r = m.evaluate(f"""() => ({{ tiny: ({TINY})(),
@@ -21131,8 +21380,13 @@ def t_desktop_untouched(pg, base, code):
                r["tips"] == 0 and r["hsc"] == 0, r)
             # ★ 2026-09-24：「更新」「⚙」兩顆是 Andy 親口要拿掉的（不是手機規則外洩），
             #   剩下的主題、事件、即時時間三樣一個都不准少；分頁因為題材併進熱力圖，八個變七個。
-            ok(f"[{w}px {h}] 桌機頂欄的主題、事件、即時時間都還在",
-               r["theme"] != "none" and r["ev"] != "none" and r["live"] != "none", r)
+            # ★ 2026-09-24 晚（Andy：「時間刪除」「明暗切換移動到右邊」）：即時時間那顆收起、明暗鈕在最右邊
+            ok(f"[{w}px {h}] 桌機頂欄的主題、事件還在；即時時間那顆已收起",
+               r["theme"] != "none" and r["ev"] != "none" and r["live"] == "none", r)
+            rt = pg.evaluate("""() => { const t = document.getElementById('themeBtn').getBoundingClientRect();
+                const vis = [...document.querySelectorAll('.topbar > *')].filter(e => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0);
+                return { themeR: Math.round(t.right), maxR: Math.round(Math.max(...vis.map(e => e.getBoundingClientRect().right))) }; }""")
+            ok(f"[{w}px {h}] 明暗切換在頂欄最右邊", rt["themeR"] >= rt["maxR"] - 1, rt)
             ok(f"[{w}px {h}] 分頁是七個（題材併進熱力圖）、沒有橫向捲軸",
                r["tabs"] == 7 and r["docW"] <= r["winW"] + 1, r)
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少
@@ -21185,7 +21439,9 @@ def t_mobile_oneview(b, base, code):
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
         ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeNote", None),
-        ("season", "季節性 月份熱力", "#seasonHeat", "#seasonNote", None),
+        # ★ 2026-09-24 週期統計改版：圖高＝列數 × 列高，捲動交給外框 `#seasonHeatBox`，
+        #   所以「主圖」量外框；「關鍵數字」是 7 格圖例（沒有它讀不出顏色是哪一級）。
+        ("season", "週期統計 月份熱力", "#seasonHeatBox", "#seasonHeatBoxLegend", None),
     ]
     for route, name, cs, ks, step in CASES:
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(3000)
@@ -21301,8 +21557,13 @@ def t_mobile_oneview(b, base, code):
                   f"stock/{code}": 2200, "industry/semiconductor": 1800}
     for route, cap in HEIGHT_MAX.items():
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
-        h = m.evaluate("() => document.documentElement.scrollHeight")
-        ok(f"[390px] {route} 的整頁高度 {h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
+        # ★ 2026-09-24 設計系統 v2 第 6 批：全站頁尾多了一段免責聲明（site/legal.js 的 #siteFoot，手機約 300px）。
+        #   這條量的是「內容要滑幾屏」，頁尾是每一頁都有的法律文字、不是內容 —— 扣掉它再比，
+        #   否則上限等於在懲罰「有放免責聲明」這件事。扣的是實量（高度＋上外距），不是寫死的數字。
+        h = m.evaluate("""() => { const f = document.getElementById('siteFoot');
+            const fh = f ? f.offsetHeight + (parseFloat(getComputedStyle(f).marginTop) || 0) : 0;
+            return Math.round(document.documentElement.scrollHeight - fh); }""")
+        ok(f"[390px] {route} 的整頁高度（不含頁尾免責聲明）{h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
 
     # ================================================================
     # ★ 2026-09-24（Andy：「另外這個手機版我剛剛看體驗那邊有跑掉」—— 只有這一句、沒有截圖）
@@ -21423,26 +21684,31 @@ def t_mobile_oneview(b, base, code):
     notes.append(f"[390px 個股] K 線圖例目前佔圖高 {lg['h'] if lg else '?'}px"
                  f"（{lg['pct'] if lg else '?'}%）—— 已知、未收斂，見 docs/mobile_ia.md")
 
-    # ⑤ 季節性月份熱力圖：格子小到放不下數字時，就不要硬畫上去。
-    #    實測（修之前）：容器 324×480、grid 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
-    #    12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73`（約 30px 寬）——
-    #    912 個標籤橫跨 3 欄、縱跨 2 列疊在一起，結果不是「字小」是一團糊。
-    m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3600)
+    # ⑤ 週期統計月份熱力圖（2026-09-24 改版）：手機每欄約 17px，最短的「0%」都放不下 ——
+    #    所以「顯示數字」那顆直接收起來（不留一顆按了畫面不會變的鈕），而且就算 localStorage
+    #    記著「要顯示」也一個字都不准印（不准疊字）；說明列要講得出數字去哪裡拿。
+    #    列高與「每一個族群名都印」也在這裡量（Andy：手機可以少一點但名字不准被略過）。
+    m.goto(base, wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.setItem('tw.season.num', '1'); localStorage.removeItem('tw.season.rows'); } catch (e) {} }")
+    m.goto(f"{base}#season", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(3600)
     HM = """() => { const e = document.getElementById('seasonHeat');
         const i = window.echarts && echarts.getInstanceByDom(e); if (!i) return null;
-        const o = i.getOption(), g = (o.grid || [])[0] || {}, r = e.getBoundingClientRect();
-        const rows = ((o.yAxis || [])[0] || {}).data || [];
-        const pw = r.width - (+g.left || 0) - (+g.right || 0);
-        const ph = r.height - (+g.top || 0) - (+g.bottom || 0);
-        const lab = (o.series[0].label && o.series[0].label[0]) || o.series[0].label || {};
-        return { cellW: +(pw / 12).toFixed(2), cellH: +(ph / Math.max(1, rows.length)).toFixed(2),
-                 rows: rows.length, show: !!lab.show, fs: lab.fontSize,
+        const o = i.getOption(), ax = i.getModel().getComponent('yAxis', 0).axis;
+        const d = o.series[0].data || [], fmt = o.series[0].label.formatter;
+        return { colw: +e.dataset.colw, rowh: +e.dataset.rowh, rows: +e.dataset.rows, nlab: +e.dataset.nlab,
+                 ylab: ax.getViewLabels().length,
+                 printed: d.filter(x => { try { return fmt({ data: x }) !== ''; } catch (err) { return false; } }).length,
+                 numBtn: getComputedStyle(document.getElementById('seasonNum')).display,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth,
                  note: (document.getElementById('seasonNote') || {}).textContent || '' }; }"""
     hm = m.evaluate(HM)
-    ok("[390px 季節性] 格子放不下數字（量到每格 10×6px）就不畫在格子裡",
-       hm and (hm["cellW"] >= 30 and hm["cellH"] >= 13) == hm["show"], hm)
-    ok("[390px 季節性] 而且畫面上要講得出數字去哪裡了（收起來，不是刪掉）",
-       hm and (hm["show"] or "點一格" in hm["note"]), {k: hm[k] for k in ("show",)} if hm else hm)
+    ok("[390px 週期統計] 格子放不下數字（每欄約 17px）：一個字都不印、「顯示數字」鈕收起來",
+       hm and hm["colw"] < 26 and hm["printed"] == 0 and hm["nlab"] == 0 and hm["numBtn"] == "none", hm)
+    ok("[390px 週期統計] 而且畫面上要講得出數字去哪裡了（點一格）",
+       hm and "點一格" in hm["note"], {k: hm[k] for k in ("note",)} if hm else hm)
+    ok("[390px 週期統計] 每列 ≥ 18px、每一個族群名都印（不隔列省略）、沒有橫向捲軸",
+       hm and hm["rowh"] >= 18 and hm["ylab"] == hm["rows"] > 0 and hm["docW"] <= hm["winW"] + 1, hm)
+    m.evaluate("() => { try { localStorage.removeItem('tw.season.num'); } catch (e) {} }")
 
     m.close()
 
@@ -22053,9 +22319,11 @@ def t_ui_polish(pg, b, base, code):
         const g = (n) => (s.getPropertyValue(n) || '').trim();
         return { ink3: g('--ink-3'), cyan: g('--cyan'), amber: g('--amber'), lime: g('--lime'),
                  rise: g('--rise'), fall: g('--fall'), flat: g('--flat') }; }""")
+    # 2026-09-24 設計系統 v2 第 3 批：--ink-3 改前 #5b6884（冷藍灰）→ 改後 #5f5a51（暖灰，對白 6.85、對新 --bg 6.16）。
+    # 其餘六個（主色與紅漲綠跌）第 3 批刻意不動，照舊驗。
     ok("[#3] 淺色七個色 token 全部換成新值",
        [tl[k].lower() for k in ("ink3", "cyan", "amber", "lime", "rise", "fall", "flat")]
-       == ["#5b6884", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
+       == ["#5f5a51", "#0a6b8a", "#8f5600", "#3f7512", "#c81234", "#07794f", "#5f6c85"], tl)
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
 
     # ---------- #8 四個高頻小字真的升到 12px ----------
@@ -22670,6 +22938,957 @@ def t_heatmap_v2(pg, base):
         ok(f"[{w}px #indTree] 窄畫面上的小方塊也一樣不寫殘字", not tiny, [(t["name"], t["lab"]) for t in tiny][:4])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.hmGroup'); localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
+
+
+# =============================================================================
+# ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）
+#
+# 這一批是**純重構**：畫面一個像素都不准變（另外做了 1440／390 逐頁像素比對）。
+# 所以這裡驗的不是「長得對不對」，是**積木的邊界真的存在**：
+#   ① 從積木的出口拿到的東西，跟畫面上真的出現的東西是同一份（點下去真的有反應）
+#   ② 把那一塊積木的檔擋掉（不載入），整站沒有 JS 錯誤、其他積木照常 ——
+#      這就是 §2.1 原則三「能不能單獨關閉」的驗收方式，不是寫在文件裡的願望。
+# =============================================================================
+def _bv_stock_code() -> str | None:
+    """找一檔個股頁 JSON 裡真的有券商觀點的（本機快照會變，不寫死代號）。"""
+    d = SITE / "data" / "stock"
+    if not d.exists():
+        return None
+    best = None
+    for f in sorted(d.glob("*.json")):
+        try:
+            n = len(json.loads(f.read_text(encoding="utf-8")).get("broker_views") or [])
+        except Exception:  # noqa: BLE001
+            continue
+        if n and (best is None or n > best[1]):
+            best = (f.stem, n)
+            if n >= 2:
+                break
+    return best and best[0]
+
+
+def t_block_broker(b, base):
+    """積木 `broker.views`（site/blocks/broker_views.js）：兩個呼叫端都走同一個出口，而且關得掉。"""
+    tag = "積木-券商觀點"
+    bv_all = json.loads((SITE / "data" / "broker_views.json").read_text(encoding="utf-8")) \
+        if (SITE / "data" / "broker_views.json").exists() else []
+    code = _bv_stock_code()
+
+    def open_page(block_off: bool):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        errs: list[str] = []
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if block_off:
+            pg.route("**/blocks/broker_views.js*", lambda r: r.abort())
+        pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        if pg.evaluate("() => document.getElementById('layout').classList.contains('noside')"):
+            click(pg, "#evToggle", 500)
+        return ctx, pg, errs
+
+    # ---------- ① 積木開著：事件抽屜的「券商」分類 ----------
+    ctx, pg, errs = open_page(False)
+    ok(f"【{tag}】積木有註冊（window.BrokerViews.id ＝ broker.views）",
+       pg.evaluate("() => window.BrokerViews && window.BrokerViews.id") == "broker.views")
+    n_all = count(pg, "#evList .ev")
+    pg.click("#evFilters button[data-c='券商']"); pg.wait_for_timeout(400)
+    cats = pg.evaluate("() => [...document.querySelectorAll('#evList .ev .cat')].map(e => e.textContent)")
+    # `.ev > a` 才是標題；`.ev .m` 裡還有個股代號連結，不能一起抓
+    titles = pg.evaluate("() => [...document.querySelectorAll('#evList .ev > a')].map(e => e.textContent)")
+    want = min(len(bv_all), 120)
+    ok(f"【{tag}】點「券商」之後清單真的只剩券商那一類（{len(cats)} 則）",
+       bool(cats) and set(cats) == {"券商"}, sorted(set(cats))[:4])
+    ok(f"【{tag}】券商那一類的筆數 ＝ broker_views.json 的筆數（{want}）", len(cats) == want, [len(cats), want])
+    ok(f"【{tag}】每一則標題都是「<券商> 目標價 <數字>」的形狀（出口的 feed 格式）",
+       titles and all(" 目標價 " in t for t in titles), titles[:2])
+    # 從積木出口直接拿，跟畫面上的第一則要是同一件事（證明畫面走的是這個出口，不是另一份拷貝）
+    feed = pg.evaluate("() => fetch('data/broker_views.json').then(r => r.json()).then(bv => window.BrokerViews.view(bv, 'feed').map(i => i.title))")
+    ok(f"【{tag}】畫面上的券商標題集合 ＝ 積木出口 view(bv,'feed') 的標題集合",
+       (bool(titles) and sorted(titles) == sorted(feed)) if len(feed) <= 120 else set(titles) <= set(feed),
+       [len(titles), len(feed), titles[:1], feed[:1]])
+    pg.click("#evFilters button[data-c='all']"); pg.wait_for_timeout(300)
+    ok(f"【{tag}】切回「全部」筆數回來了", count(pg, "#evList .ev") == n_all, [n_all, count(pg, "#evList .ev")])
+
+    # ---------- ② 積木開著：個股頁「公告 / 新聞」分頁的表格 ----------
+    if code:
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pg.click("#stockTabs button[data-t='news']"); pg.wait_for_timeout(600)
+        rows = pg.evaluate("""() => { const h = [...document.querySelectorAll('#stockTab .card h3')].find(x => x.textContent.startsWith('券商觀點'));
+            return h ? [...h.closest('.card').querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(c => c.textContent)) : null; }""")
+        pgjs = json.loads((SITE / "data" / "stock" / f"{code}.json").read_text(encoding="utf-8"))
+        want_rows = pgjs.get("broker_views") or []
+        ok(f"【{tag}】{code} 個股頁的券商觀點表格列數 ＝ 個股 JSON 的 broker_views（{len(want_rows)}）",
+           rows is not None and len(rows) == len(want_rows), [rows and len(rows), len(want_rows)])
+        if rows:
+            ok(f"【{tag}】{code} 第一列的日期／券商對得上資料",
+               rows[0][0] == str(want_rows[0].get("date")) and rows[0][1] == (want_rows[0].get("broker") or "—"),
+               [rows[0], want_rows[0]])
+            # 真的點一列：要開新視窗到那則新聞（引述來源），不是點了沒反應。
+            # 攔 window.open 記下網址 —— 外站在這個容器連不到，等新分頁載入只會量到錯誤頁。
+            pg.evaluate("() => { window.__opened = []; window.open = (u) => { window.__opened.push(u); return null; }; }")
+            h3 = pg.locator("#stockTab .card h3", has_text="券商觀點")
+            h3.locator("xpath=ancestor::div[contains(@class,'card')][1]").locator("tbody tr").first.click()
+            pg.wait_for_timeout(200)
+            opened = pg.evaluate("() => window.__opened")
+            want_url = want_rows[0].get("url") or "#"
+            ok(f"【{tag}】點第一列開出那則新聞（{want_url[:48]}）", opened == [want_url], [opened, want_url])
+    else:
+        notes.append(f"{tag}：本機快照沒有任何一檔個股頁帶券商觀點，個股頁那半段沒驗到")
+    ok(f"【{tag}】積木開著時整段沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ③ 把積木關掉（擋掉 blocks/broker_views.js）：其他東西照常 ----------
+    ctx, pg, errs = open_page(True)
+    ok(f"【{tag}】關掉之後 window.BrokerViews 不存在（確實擋到了）",
+       pg.evaluate("() => typeof window.BrokerViews") == "undefined")
+    n_off = count(pg, "#evList .ev")
+    news_n = len(json.loads((SITE / "data" / "news.json").read_text(encoding="utf-8"))) \
+        if (SITE / "data" / "news.json").exists() else 0
+    ok(f"【{tag}】關掉之後事件抽屜照常列新聞（{n_off} 則）", n_off > 0 or news_n == 0, [n_off, news_n])
+    pg.click("#evFilters button[data-c='券商']"); pg.wait_for_timeout(300)
+    ok(f"【{tag}】關掉之後「券商」分類是空的（顯示空狀態文字，不是壞掉）",
+       count(pg, "#evList .ev") == 0 and "沒有這類事件" in pg.inner_text("#evList"), pg.inner_text("#evList")[:40])
+    if code:
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pg.click("#stockTabs button[data-t='news']"); pg.wait_for_timeout(600)
+        heads = pg.evaluate("() => [...document.querySelectorAll('#stockTab .card h3')].map(h => h.textContent.trim().slice(0, 6))")
+        ok(f"【{tag}】關掉之後個股頁「公告 / 新聞」照常有重大訊息與相關新聞、沒有券商觀點",
+           any(h.startswith("重大訊息") for h in heads) and any(h.startswith("相關新聞") for h in heads)
+           and not any(h.startswith("券商觀點") for h in heads), heads)
+    ok(f"【{tag}】關掉之後整站沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
+    ctx.close()
+
+
+def t_block_stock_cards(b, base, code):
+    """個股頁「總覽」分頁的三張卡拆成 `stock.fund`（基本面＋籌碼快照）與 `stock.signal`（技術面訊號）。
+
+    驗：① 三張卡照舊、順序照舊；② 第三張卡就是 `StockSignal.view()` 的輸出（畫面走的是積木出口）；
+        ③ 換分頁再換回來會重畫（不是一次性的字串）；④ 擋掉 blocks/stock_signal.js 之後
+        只少那一張卡、其他分頁照常、沒有 JS 錯誤。"""
+    tag = "積木-個股三卡"
+    heads_js = "() => [...document.querySelectorAll('#stockTab > .grid.g3 > .card > h3')].map(h => h.firstChild.textContent.trim())"
+
+    def open_page(block_off: bool):
+        ctx = b.new_context(viewport={"width": 1440, "height": 900})
+        errs: list[str] = []
+        pg = ctx.new_page()
+        pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        if block_off:
+            pg.route("**/blocks/stock_signal.js*", lambda r: r.abort())
+        pg.goto(base + f"#stock/{code}", wait_until="networkidle")
+        wait_until(pg, "document.querySelectorAll('#stockTab .card').length >= 2", 8000)
+        return ctx, pg, errs
+
+    ctx, pg, errs = open_page(False)
+    heads = pg.evaluate(heads_js)
+    ok(f"【{tag}】{code} 總覽分頁照舊是三張卡：基本面／籌碼快照／技術面訊號",
+       heads == ["基本面", "籌碼快照", "技術面訊號"], heads)
+    same = pg.evaluate("""() => fetch('data/stock/' + location.hash.split('/')[1] + '.json').then(r => r.json()).then(pg => {
+        const cards = document.querySelectorAll('#stockTab > .grid.g3 > .card');
+        const html = window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, window.App.fmt);
+        const t = document.createElement('div'); t.innerHTML = html;
+        return { id: window.StockSignal.id, same: cards[2] && cards[2].outerHTML === t.firstElementChild.outerHTML,
+                 lights: cards[2] ? cards[2].querySelectorAll('.light').length : 0 }; })""")
+    ok(f"【{tag}】第三張卡 ＝ 積木 stock.signal 出口的輸出（九顆燈號）",
+       same.get("id") == "stock.signal" and same.get("same") and same.get("lights") == 9, same)
+    pg.click("#stockTabs button[data-t='revenue']"); pg.wait_for_timeout(500)
+    ok(f"【{tag}】換到「營收」分頁後三張卡真的換掉了", pg.evaluate(heads_js) == [], pg.evaluate(heads_js))
+    pg.click("#stockTabs button[data-t='overview']"); pg.wait_for_timeout(500)
+    ok(f"【{tag}】換回「總覽」三張卡重畫回來", pg.evaluate(heads_js) == ["基本面", "籌碼快照", "技術面訊號"], pg.evaluate(heads_js))
+    ok(f"【{tag}】積木開著時沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    ctx, pg, errs = open_page(True)
+    ok(f"【{tag}】擋掉 blocks/stock_signal.js 之後 window.StockSignal 不存在",
+       pg.evaluate("() => typeof window.StockSignal") == "undefined")
+    ok(f"【{tag}】關掉技術面訊號之後只剩基本面與籌碼快照兩張（其他照常）",
+       pg.evaluate(heads_js) == ["基本面", "籌碼快照"], pg.evaluate(heads_js))
+    pg.click("#stockTabs button[data-t='revenue']"); pg.wait_for_timeout(700)
+    ok(f"【{tag}】關掉之後其他分頁照常（營收分頁有畫出圖表）",
+       pg.evaluate("() => document.querySelectorAll('#stockTab canvas').length") > 0
+       or "尚無月營收" in pg.inner_text("#stockTab"), pg.inner_text("#stockTab")[:40])
+    ok(f"【{tag}】關掉之後沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
+    ctx.close()
+
+
+_MODULES_CACHE: dict | None = None
+
+
+def _modules() -> dict:
+    """讀 site/modules.js 的積木清單。那支檔把資料寫成夾在標記之間的純 JSON，就是為了這裡能直接讀，
+    不必為了一份清單在 Python 端跑 JavaScript。"""
+    global _MODULES_CACHE
+    if _MODULES_CACHE is None:
+        src = (SITE / "modules.js").read_text(encoding="utf-8")
+
+        def block(tag):
+            a = src.index(f"/*{tag}-JSON*/") + len(f"/*{tag}-JSON*/")
+            return json.loads(src[a:src.index(f"/*END-{tag}-JSON*/")])
+        _MODULES_CACHE = {"list": block("MODULES"), "pages": block("PAGES")}
+    return _MODULES_CACHE
+
+
+def _module_sections(spec: str) -> set[str]:
+    """`--module a,b` → 要跑的段落名集合（積木自己的 tests ＋「積木清單」）。支援前綴（`flow.`）。"""
+    want = [x.strip() for x in spec.split(",") if x.strip()]
+    out = {"積木清單"}
+    for m in _modules()["list"]:
+        if any(m["id"] == w or m["id"].startswith(w) for w in want):
+            out.update(m.get("tests") or [])
+    return out
+
+
+def t_block_registry(b, base, code):
+    """積木清單（site/modules.js）本身的驗收。
+
+    ① 清單裡的 27 個 id ＝ docs/feature_modules.md §3 的 27 個 id（名稱對不起來＝文件與程式分家了）
+    ② 每一塊積木的 `tests` 都是真的存在的段落（不然 `--module` 會默默少跑）
+    ③ 桌機 1440：每一個「不參與手機分段」的放置，選擇器在那一頁真的抓得到
+    ④ 手機 390：畫面上的分段列（主軸四步 ＋ 每一步底下的分段）跟清單產生出來的**逐字相同**，
+       而且**真的點每一段**，那一段宣告的 DOM 要顯示、只屬於別段的 DOM 要被收起來（畫面真的變了）。"""
+    tag = "積木清單"
+    mods = _modules()
+    ids = [m["id"] for m in mods["list"]]
+    doc = (ROOT / "docs" / "feature_modules.md").read_text(encoding="utf-8")
+    doc_ids = re.findall(r"^### \d+\. `([a-z]+\.[a-z]+)`", doc, re.M)
+    ok(f"【{tag}】modules.js 的積木 id ＝ docs/feature_modules.md §3 的 id（{len(doc_ids)} 個）",
+       sorted(ids) == sorted(doc_ids) and len(ids) == len(set(ids)) == 27,
+       {"只在程式": sorted(set(ids) - set(doc_ids)), "只在文件": sorted(set(doc_ids) - set(ids)), "n": len(ids)})
+    missing = sorted({t for m in mods["list"] for t in (m.get("tests") or []) if t not in SECTIONS})
+    ok(f"【{tag}】每塊積木宣告的驗收段落都真的存在", not missing, missing)
+    bad_page = sorted({p["page"] for m in mods["list"] for p in m["at"] if p["page"] not in mods["pages"]})
+    ok(f"【{tag}】每個放置的 page 都在 PAGES 裡", not bad_page, bad_page)
+
+    url = lambda page: base + mods["pages"][page].replace("{code}", code)  # noqa: E731
+
+    # ---------- ③ 桌機：不參與分段的放置，選擇器真的抓得到 ----------
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    errs: list[str] = []
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    by_page: dict[str, list] = {}
+    for m in mods["list"]:
+        for p in m["at"]:
+            if not p.get("seg"):
+                by_page.setdefault(p["page"], []).append((m["id"], p["selector"]))
+    for page, items in by_page.items():
+        pg.goto("about:blank"); pg.goto(url(page), wait_until="networkidle"); pg.wait_for_timeout(1800)
+        for mid, sels in items:
+            miss = pg.evaluate("(ss) => ss.filter(s => !document.querySelector('main .view.on ' + s))", sels)
+            ok(f"【{tag}】桌機 {mods['pages'][page]}：積木 {mid} 宣告的 DOM 都在畫面上", not miss, miss)
+    ok(f"【{tag}】桌機走過每一頁沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ④ 手機：分段列 ＝ 清單產生的分段，而且每一段真的切得動 ----------
+    ctx = b.new_context(**MOBILE_VP)
+    errs = []
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+    gen = m.evaluate("() => window.TwModules && window.TwModules.pager()")
+    ok(f"【{tag}】頁面上拿得到清單產生的分段表（{len(gen or {})} 頁）", bool(gen), gen)
+    for page, segs in (gen or {}).items():
+        m.goto("about:blank"); m.goto(url(page), wait_until="networkidle"); m.wait_for_timeout(1800)
+        steps = sorted({g.get("s", 0) for g in segs})
+        for st in steps:
+            if st:
+                m.evaluate(f"() => document.querySelectorAll('.view.on > .mspine > button')[{steps.index(st)}].click()")
+                m.wait_for_timeout(500)
+            want = [g for g in segs if g.get("s", 0) == st]
+            # 抓不到任何元素的段會被 miaPager 略過（例如簡版個股頁沒有 #mtfCard），比對時一起略過
+            present = m.evaluate("(ws) => ws.map(g => g.sel.some(s => document.querySelector('.view.on ' + s) || document.querySelector(s)))", want)
+            want = [g for g, keep in zip(want, present) if keep]
+            labels = m.evaluate("() => [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent)")
+            where = f"{mods['pages'][page]}" + (f" 第{st}步" if st else "")
+            if len(want) >= 2:
+                ok(f"【{tag}】手機 {where}：分段列 ＝ 清單產生的段名（{'／'.join(g['n'] for g in want)}）",
+                   labels == [g["n"] for g in want], [labels, [g["n"] for g in want]])
+            for k, g in enumerate(want):
+                if len(want) >= 2:
+                    m.evaluate(f"() => document.querySelectorAll('.view.on > .mpager > button')[{k}].click()")
+                    m.wait_for_timeout(350)
+                others = [s for h in want if h is not g for s in h["sel"] if s not in g["sel"]]
+                vis = m.evaluate("""([mine, others]) => {
+                    const q = s => document.querySelector('.view.on ' + s) || document.querySelector(s);
+                    // 看的是分段導覽自己下的 .mp-off（含祖先），不是 display：「怎麼看」說明本來就預設收合，那不是分段造成的
+                    const shown = s => { const e = q(s); return !!e && !e.closest('.mp-off'); };
+                    return { mine: mine.filter(s => q(s)).map(s => [s, shown(s)]),
+                             others: others.filter(s => q(s)).map(s => [s, shown(s)]) }; }""", [g["sel"], others])
+                # 清單裡寫的選擇器在手機上一個都不能是死的（這條不是自己跟自己比：選擇器寫錯，這裡就紅）
+                dead = [s for s in g["sel"] if s not in [x for x, _ in vis["mine"]]]
+                ok(f"【{tag}】手機 {where}「{g['n']}」：清單宣告的選擇器都抓得到", not dead, dead)
+                hidden_mine = [s for s, on in vis["mine"] if not on]
+                shown_others = [s for s, on in vis["others"] if on]
+                ok(f"【{tag}】手機 {where}「{g['n']}」：自己的 DOM 全部顯示、只屬於別段的 DOM 全部收起",
+                   not hidden_mine and not shown_others and vis["mine"],
+                   {"該顯示卻沒顯示": hidden_mine, "該收卻沒收": shown_others})
+    ok(f"【{tag}】手機走過每一段沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ⑤ 清單本身擋掉：手機不分段、所有卡片照常顯示（失敗方向偏向「留著」），沒有 JS 錯誤 ----------
+    ctx = b.new_context(**MOBILE_VP)
+    errs = []
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.route("**/modules.js*", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
+    st = m.evaluate("""() => ({ mods: typeof window.TwModules, pager: document.querySelectorAll('.view.on > .mpager').length,
+        off: document.querySelectorAll('.view.on .mp-off').length,
+        shown: ['#ovHeatCard', '#ovTrustCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
+          return e && e.getBoundingClientRect().height > 0; }).length })""")
+    ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／法人／候選三張卡都照常顯示",
+       st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 3, st)
+    ok(f"【{tag}】擋掉 modules.js 之後沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+
+def t_block_implicit(b, base):
+    """#4b：`market.streak`（法人連續買超）不再靠全域快取 `D.inst_streak` 當隱性參數。
+
+    驗法是直接把那條暗道拆掉：總覽畫完之後把 `App.D.inst_streak` 清成 null，
+    再真的按「外資」「合計」與天數下拉 —— 以前 renderTrust 讀的是 D，這時會變成空圖；
+    現在它讀的是 renderOverview 明確傳進來的參數，圖與筆數要跟清掉之前一模一樣。"""
+    tag = "積木-隱性參數"
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    errs: list[str] = []
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="networkidle")
+    wait_until(pg, "window.App && document.querySelector('#streakSub') && /檔/.test(document.querySelector('#streakSub').textContent)", 8000)
+    read = """() => { const el = document.getElementById('trust'); const c = el && window.echarts && echarts.getInstanceByDom(el);
+        const s = c && c.getOption().series[0];
+        return { sub: document.getElementById('streakSub').textContent, n: s ? (s.data || []).length : 0 }; }"""
+
+    def run():
+        out = {}
+        for w in ("foreign", "total", "trust"):
+            pg.click(f"#streakWho button[data-w='{w}']"); pg.wait_for_timeout(500)
+            out[w] = pg.evaluate(read)
+        pg.select_option("#streakDays", "2"); pg.wait_for_timeout(500)
+        out["d2"] = pg.evaluate(read)
+        pg.select_option("#streakDays", "3"); pg.wait_for_timeout(500)
+        return out
+
+    before = run()
+    ok(f"【{tag}】外資／合計在拆暗道之前就有資料（這條驗收才有意義）",
+       before["foreign"]["n"] > 0 or before["total"]["n"] > 0, before)
+    pg.evaluate("() => { window.App.D.inst_streak = null; }")
+    after = run()
+    ok(f"【{tag}】把 App.D.inst_streak 清掉之後，三種法人與天數門檻的圖與筆數完全不變（讀的是參數，不是 D）",
+       after == before, {"before": before, "after": after})
+    ok(f"【{tag}】整段沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+
+# ===================================================================== 同意條款與法律頁（設計系統 v2 第 6 批）
+# site/legal.js ＋ site/legal_config.js。驗的全部是「畫面真的因此改變了」：
+#   · 開關關著（現況）：橫幅**不出現**（連沒有 tw.consent 的乾淨瀏覽器也不出現）、三頁打得開、
+#     頁尾連結點得到、條款頁掛「草稿，尚未生效」、導覽可以手動開但不自動彈。
+#   · 開關打開（注入 TW_LEGAL_OVERRIDE）：橫幅出現 → 按同意 → localStorage 真的寫進去、橫幅消失、
+#     導覽自動開一次、重新整理不再出現；按不同意 → #leave、什麼都沒寫、換頁被擋回 #leave、重新整理橫幅又出現；
+#     localStorage 寫入會丟錯時 → 這次瀏覽不再出現、不報錯。
+# ⚠ 這一段刻意用 Browser._tw_raw_new_context（沒有預寫 tw.consent 的原版），其他段落一律有預寫。
+LEGAL_ON = ("window.TW_LEGAL_OVERRIDE={operator:'驗收用營業人',email:'uitest@example.com',"
+            "effective_date:'2026-10-01',tax_id:'尚未辦理',court:'臺灣臺北地方法院',enabled:true};")
+
+_LG_FONTS = """(sel) => { const out = []; document.querySelectorAll(sel).forEach(root => {
+    root.querySelectorAll('*').forEach(e => { if (!e.childNodes.length) return;
+      const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (!own || e.offsetParent === null) return;
+      const fs = parseFloat(getComputedStyle(e).fontSize);
+      if (fs < 11.95) out.push(fs + 'px「' + e.textContent.trim().slice(0, 14) + '」'); }); });
+  return out; }"""
+
+
+def _lg_page(b, w=1440, h=950, init=None, mobile=False, extra=None):
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    kw = dict(viewport={"width": w, "height": h})
+    if mobile:
+        kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx = raw(b, **kw) if raw else b.new_context(**kw)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"同意條款 pageerror: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    if init:
+        pg.add_init_script(init)
+    if extra:
+        pg.add_init_script(extra)
+    return ctx, pg
+
+
+def _lg_ls(pg, k):
+    return pg.evaluate(f"() => {{ try {{ return localStorage.getItem('{k}'); }} catch (e) {{ return 'ERR'; }} }}")
+
+
+def t_legal(b, base):
+    # ---------------------------------------------------------------- A. 開關關著（現況）
+    ctx, pg = _lg_page(b)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    st = pg.evaluate("() => window.TwLegal && window.TwLegal.state()")
+    ok("[關] legal.js 載入、判定為未啟用，而且列得出還缺哪些欄位",
+       st and st["active"] is False and set(["operator", "email", "effective_date"]) <= set(st["missing"]["fields"]), st)
+    ok("[關] 乾淨的瀏覽器（沒有 tw.consent）也不出現同意橫幅", pg.locator("#lgBanner").count() == 0,
+       pg.locator("#lgBanner").count())
+    ok("[關] 沒有同意紀錄時也不寫任何東西", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    ok("[關] 導覽沒有自動彈出", pg.locator("#lgTour").count() == 0)
+    ft = pg.evaluate("""() => { const f = document.getElementById('siteFoot'); if (!f) return null;
+        const r = f.getBoundingClientRect(), m = document.querySelector('main').getBoundingClientRect();
+        return { t: f.innerText, fs: parseFloat(getComputedStyle(f).fontSize), inMain: r.left >= m.left - 1 && r.right <= m.right + 1,
+                 last: f === document.querySelector('main').lastElementChild }; }""")
+    ok("[關] 頁尾常駐一行短版免責聲明（預設開啟）",
+       ft and "不是證券投資顧問事業" in ft["t"] and "不提供投資建議" in ft["t"] and ft["fs"] >= 12, ft)
+    ok("[關] 頁尾是 main 的最後一個元素、不跑出內容欄", ft and ft["last"] and ft["inMain"], ft)
+    ok("[關] 頁尾的服務條款／隱私權政策連結標「草稿」", ft and ft["t"].count("草稿") >= 2, ft and ft["t"])
+    ok("[關] 頁尾與法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
+    # ★ 2026-09-24 Andy：「這完全不能公開」—— 頁尾曾經有一個「原始碼與演算法」連到 GitHub repo。
+    #   全站任何地方都不准出現連到 GitHub 的連結、也不准出現 repo 網址文字。
+    gh = pg.evaluate("""() => ({ links: [...document.querySelectorAll('a[href]')].map(a => a.getAttribute('href'))
+        .filter(h => /github\\.com/i.test(h)), text: /github\\.com\\/MiaoZiKe/i.test(document.body.innerText),
+        foot: /原始碼/.test((document.getElementById('siteFoot') || {}).innerText || '') })""")
+    ok("★ [關] 全站沒有任何連到 GitHub 的連結、也沒有 repo 網址（原始碼不公開）",
+       not gh["links"] and not gh["text"] and not gh["foot"], gh)
+
+    # ---- 頁尾第二版（2026-09-24 Andy 給參考截圖）：© 行＋「顯示詳細規範」膠囊鈕＋8 格詳細規範 ----
+    FD = """() => { const f = document.getElementById('siteFoot'), d = document.getElementById('sfDetail'),
+        btn = document.getElementById('sfMore'), g = d && d.querySelector('.sf-grid');
+        const items = g ? [...g.children] : [];
+        return { copy: (document.getElementById('sfCopy') || {}).textContent || '',
+          shown: !!d && getComputedStyle(d).display !== 'none' && d.getBoundingClientRect().height > 0,
+          dh: d ? Math.round(d.getBoundingClientRect().height) : -1,
+          label: btn ? btn.textContent.trim() : '', exp: btn ? btn.getAttribute('aria-expanded') : null,
+          n: items.length,
+          cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+          icons: items.filter(li => li.querySelector('svg circle')).length,
+          bolds: items.filter(li => { const b = li.querySelector('b');
+            return b && /：$/.test(b.textContent.trim()) && +getComputedStyle(b).fontWeight >= 600; }).length,
+          heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
+          ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
+    fd0 = pg.evaluate(FD)
+    ok("[頁尾] 第一行是「© 2026 台股資金輪動儀表板 · 保留所有權利」",
+       fd0["copy"].startswith("© 2026 ") and "台股資金輪動儀表板" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明全文／服務條款／隱私權政策／平台導覽）",
+       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明全文", "服務條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
+    ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",
+       not fd0["shown"] and fd0["dh"] == 0 and fd0["label"] == "顯示詳細規範" and fd0["exp"] == "false"
+       and _lg_ls(pg, "tw.footDetail") is None, fd0)
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
+    pg.click("#sfMore"); pg.wait_for_timeout(350)
+    fd1 = pg.evaluate(FD)
+    ok("[頁尾] 點「顯示詳細規範」→ 真的展開、頁尾變高、按鈕改成「隱藏詳細規範」",
+       fd1["shown"] and fd1["dh"] > 100 and fd1["fh"] > fd0["fh"] + 100 and fd1["label"] == "隱藏詳細規範"
+       and fd1["exp"] == "true", {k: fd1[k] for k in ("shown", "dh", "fh", "label", "exp")} | {"fh0": fd0["fh"]})
+    ok("[頁尾] 展開後 8 格、每格都有 ⓘ 圖示（內嵌 SVG）與粗體小標＋冒號",
+       fd1["n"] == 8 and fd1["icons"] == 8 and fd1["bolds"] == 8, fd1["heads"])
+    ok("[頁尾] 8 格的小標是本站自己的那 8 項（沒有「上鏈績效認可」「最終解釋權」）",
+       [h.rstrip("：") for h in fd1["heads"]] == ["重要聲明", "非投資建議", "投資風險警告", "不代操／不託管／不招攬",
+                                                  "數據來源", "即時資料說明", "專業諮詢", "責任限制"]
+       and "上鏈" not in fd1["ftxt"] and "最終解釋權" not in fd1["ftxt"], fd1["heads"])
+    ok("★ [頁尾] 展開後也沒有 GitHub／repo／原始碼／演算法字眼，也沒有【】空格",
+       not re.search(r"github|repo|原始碼|演算法|【|】", fd1["ftxt"], re.I), fd1["ftxt"][-300:])
+    ok("[頁尾] 展開後沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
+    ok("[頁尾] 展開 → localStorage tw.footDetail 真的寫入 '1'", _lg_ls(pg, "tw.footDetail") == "1", _lg_ls(pg, "tw.footDetail"))
+    cols = {}
+    for w in (1440, 820, 390):
+        pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(350)
+        cols[w] = pg.evaluate(FD)["cols"]
+        cols[f"docW{w}"] = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok("[頁尾] 詳細規範欄數：1440＝4 欄、820＝2 欄、390＝1 欄，而且都沒有橫向捲軸",
+       cols[1440] == 4 and cols[820] == 2 and cols[390] == 1 and all(cols[f"docW{w}"] <= 1 for w in (1440, 820, 390)), cols)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    fd2 = pg.evaluate(FD)
+    ok("[頁尾] 重新整理 → 維持展開（讀 tw.footDetail）", fd2["shown"] and fd2["label"] == "隱藏詳細規範", fd2["label"])
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
+    pg.click("#sfMore"); pg.wait_for_timeout(300)
+    fd3 = pg.evaluate(FD)
+    ok("[頁尾] 再點 → 收起、按鈕回「顯示詳細規範」、tw.footDetail 寫成 '0'",
+       not fd3["shown"] and fd3["label"] == "顯示詳細規範" and _lg_ls(pg, "tw.footDetail") == "0", [fd3["label"], _lg_ls(pg, "tw.footDetail")])
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[頁尾] 重新整理 → 維持收起", not pg.evaluate(FD)["shown"])
+
+    # 頁尾連結 → 服務條款
+    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+    pg.click("#sfTerms"); pg.wait_for_timeout(1500)   # 捲回頁首也是 smooth，等它到
+    r = pg.evaluate("""() => ({ hash: location.hash, legal: document.getElementById('v-legal').classList.contains('on'),
+        ov: document.getElementById('v-overview').classList.contains('on'), tabs: document.querySelectorAll('.tab.on').length,
+        h1: (document.querySelector('#lgDoc h1') || {}).textContent || '', draft: !!document.getElementById('lgDraft'),
+        blanks: document.querySelectorAll('#lgDoc .lgblank').length, sy: scrollY })""")
+    ok("[關] 點頁尾「服務條款」→ 真的換到服務條款頁、總覽收起來、頂欄分頁沒有一顆亮",
+       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "服務條款" in r["h1"], r)
+    ok("[關] 服務條款頂端掛「草稿，尚未生效」，空格用【】標出來",
+       r["draft"] and r["blanks"] >= 3 and "草稿，尚未生效" in pg.inner_text("#lgDraft"), r)
+    ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
+    ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    # 目錄：點第五條 → 捲下去，但網址不變（目錄不能改 hash，不然會被當成未知路由導回總覽）
+    toc = pg.locator(".lgtoc a[data-sec='4']")
+    if ok("[關] 桌機 1440 有左側目錄", toc.count() == 1 and toc.is_visible(), toc.count()):
+        toc.click(); pg.wait_for_timeout(1400)      # 全站 scroll-behavior:smooth，要等它捲完
+        r2 = pg.evaluate("""() => ({ hash: location.hash, sy: scrollY,
+            top: document.getElementById('lg-terms-4').getBoundingClientRect().top,
+            on: (document.querySelector('.lgtoc a.on') || {}).dataset })""")
+        ok("[關] 點目錄第五條 → 那一條捲到畫面上緣、網址還是 #terms、目錄亮在第五條",
+           r2["hash"] == "#terms" and r2["sy"] > 100 and 40 < r2["top"] < 200 and r2["on"] and r2["on"].get("sec") == "4", r2)
+    # 上方三個分頁切換（2026-09-24 改成膠囊：目前頁實心主色、其他描邊）
+    TABS = """() => { const bg = (e) => getComputedStyle(e).backgroundColor, cy = (() => { const s = document.createElement('i');
+        s.style.color = 'var(--cyan)'; document.body.appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c; })();
+      return [...document.querySelectorAll('.lgtabs a')].map(a => { const r = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        return { t: a.textContent.trim(), on: a.classList.contains('on'), solid: bg(a) === cy, h: Math.round(r.height),
+                 top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
+                 fw: +cs.fontWeight }; }); }"""
+    tb = pg.evaluate(TABS)
+    ok("[分頁] 三顆膠囊（服務條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["服務條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
+       and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
+    ok("[分頁] 目前頁（服務條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
+       tb[0]["solid"] and tb[0]["fw"] >= 700 and not tb[1]["solid"] and not tb[2]["solid"]
+       and tb[1]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
+    pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
+    tb2 = pg.evaluate(TABS)
+    ok("[分頁] 點「隱私權政策」→ 換頁、實心跟著換到隱私權政策那顆",
+       pg.evaluate("() => location.hash") == "#privacy" and tb2[1]["solid"] and tb2[1]["on"]
+       and not tb2[0]["solid"] and not tb2[2]["solid"], tb2)
+    r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
+                    " t: document.getElementById('lgDoc').innerText })")
+    ok("[關] 切到隱私權政策：標題換了、一樣是草稿、有補上「是否已同意條款存在 localStorage」那一句",
+       "隱私權政策" in r["h1"] and r["draft"] and "是否已同意條款" in r["t"], r["h1"])
+    ok("[關] 隱私權政策沒有列出本站沒有的服務（電子報／付費／流量統計）",
+       "訂閱電子報" not in r["t"] and "註冊付費服務" not in r["t"] and "網站流量統計" not in r["t"], "")
+    pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(600)
+    r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
+                    " t: document.getElementById('lgDoc').innerText, blanks: document.querySelectorAll('#lgDoc .lgblank').length })")
+    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），而且沒有任何 GitHub 網址（原始碼不公開）",
+       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github" not in r["t"].lower(), r["h1"])
+    # 從法律頁點頂欄回總覽 → 總覽真的回來
+    pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
+    ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(
+        "() => document.getElementById('v-overview').classList.contains('on') && !document.getElementById('v-legal').classList.contains('on')"))
+    # 平台導覽：手動開得到；下一步 ×3 標題依序變；Esc 關閉、焦點回到頁尾那顆
+    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+    pg.click("#sfTour"); pg.wait_for_timeout(400)
+    seen = [pg.inner_text("#lgStepT")]
+    for _ in range(3):
+        pg.click("#lgNext"); pg.wait_for_timeout(250); seen.append(pg.inner_text("#lgStepT"))
+    ok("[關] 導覽：下一步 ×3 → 標題依序是 ①～④", seen == ["① 錢往哪跑", "② 貴不貴", "③ 何時進場", "④ 別進的理由"], seen)
+    ok("[關] 導覽最後一步按鈕變成「開始使用」", pg.inner_text("#lgNext") == "開始使用", pg.inner_text("#lgNext"))
+    pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab")
+    ok("[關] 導覽開著時 Tab 焦點困在彈窗裡", pg.evaluate(
+        "() => !!document.activeElement && !!document.activeElement.closest('#lgTour')"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok("[關] Esc 關閉導覽、焦點回到頁尾「平台導覽」", pg.locator("#lgTour").count() == 0
+       and pg.evaluate("() => document.activeElement && document.activeElement.id") == "sfTour",
+       pg.evaluate("() => document.activeElement && document.activeElement.id"))
+    ctx.close()
+
+    # 手機 390：法律頁不能有橫向捲軸；頁尾在底部分頁列上面、看得到
+    ctx, pg = _lg_page(b, 390, 844, mobile=True)
+    pg.goto(base + "#privacy", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    r = pg.evaluate("""() => ({ docW: document.documentElement.scrollWidth, winW: innerWidth,
+        toc: getComputedStyle(document.querySelector('.lgtoc')).display, tocm: !!document.querySelector('.lgtocm') &&
+        getComputedStyle(document.querySelector('.lgtocm')).display })""")
+    ok("[390] 隱私權政策（有表格）沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+    ok("[390] 手機收起左側目錄、改用可展開的目錄", r["toc"] == "none" and r["tocm"] not in (False, "none"), r)
+    ok("[390] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    r = pg.evaluate("""() => { const a = [...document.querySelectorAll('.lgtabs a')].map(x => x.getBoundingClientRect());
+        return { tops: a.map(x => Math.round(x.top)), l: Math.round(a[0].left), r: Math.round(a[2].right), winW: innerWidth,
+                 fs: Math.min(...[...document.querySelectorAll('.lgtabs a')].map(x => parseFloat(getComputedStyle(x).fontSize))) }; }""")
+    ok("[390] 三顆膠囊分頁一列放得下（同一條上緣、不超出畫面、字 ≥ 13px）",
+       len(set(r["tops"])) == 1 and r["l"] >= 0 and r["r"] <= r["winW"] and r["fs"] >= 13, r)
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
+    r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
+        t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
+    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住）", r["fb"] <= r["tt"] + 1 and r["ft"] > 0, r)
+    ctx.close()
+
+    # ---------------------------------------------------------------- B. 開關打開（模擬 Andy 填好了）
+    ctx, pg = _lg_page(b, init=LEGAL_ON)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    st = pg.evaluate("() => window.TwLegal.state()")
+    ok("[開] 注入設定後判定為啟用", st["active"] is True and st["version"] == "2026-10-01", st)
+    ban = pg.evaluate("""() => { const b = document.getElementById('lgBanner'); if (!b) return null;
+        const r = b.getBoundingClientRect(); return { role: b.getAttribute('role'), label: b.getAttribute('aria-label'),
+        z: +getComputedStyle(b).zIndex, bottom: innerHeight - r.bottom, w: r.width, focusIn: b.contains(document.activeElement),
+        pos: getComputedStyle(b).position }; }""")
+    ok("[開] 沒同意過 → 橫幅出現（固定在下方、z 90、role=region）",
+       ban and ban["pos"] == "fixed" and ban["z"] == 90 and ban["role"] == "region" and 16 <= ban["bottom"] <= 32, ban)
+    ok("[開] 橫幅出現時不搶焦點", ban and not ban["focusIn"], ban)
+    ok("[開] 按同意之前 localStorage 沒有 tw.consent", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    ok("[開] 橫幅不擋內容：底下的「放大」鈕照樣點得到", pg.evaluate(
+        "() => { const e = document.getElementById('heatZoom'); if (!e) return true; const r = e.getBoundingClientRect();"
+        " const x = document.elementFromPoint(r.left + 4, r.top + 4); return !r.height || r.top > innerHeight || !!(x && !x.closest('#lgBanner')) ; }"))
+    pg.click("#lgAccept"); pg.wait_for_timeout(700)
+    raw = _lg_ls(pg, "tw.consent")
+    try:
+        cv = json.loads(raw or "null")
+    except Exception:  # noqa: BLE001
+        cv = None
+    ok("[開] 按同意 → localStorage 真的寫進 {v: 生效日期, at: 時間}", cv and cv.get("v") == "2026-10-01" and cv.get("at"), raw)
+    ok("[開] 按同意 → 橫幅消失", pg.locator("#lgBanner").count() == 0)
+    ok("[開] 第一次同意 → 平台導覽自動開一次", pg.locator("#lgTour").count() == 1)
+    # 「到總覽看這一步」（第③步）→ 彈窗關閉、今日候選那張卡在畫面上半部、外圈亮一下
+    pg.click("#lgNext"); pg.wait_for_timeout(200); pg.click("#lgNext"); pg.wait_for_timeout(200)
+    pg.click("#lgGo"); pg.wait_for_timeout(450)
+    fl = pg.evaluate("() => ({ flash: document.getElementById('ovCandCard').classList.contains('lgflash'),"
+                     " tour: !!document.getElementById('lgTour') })")
+    pg.wait_for_timeout(900)                          # 全站 scroll-behavior:smooth，等捲完再量位置
+    r = pg.evaluate("""() => { const r = document.getElementById('ovCandCard').getBoundingClientRect();
+        return { top: r.top, vh: innerHeight }; }""")
+    ok("[開] 導覽「到總覽看這一步」→ 彈窗關閉、外圈亮一圈", not fl["tour"] and fl["flash"], fl)
+    ok("[開] 導覽「到總覽看這一步」→ 今日候選捲到畫面上半部", 0 <= r["top"] < r["vh"] / 2, r)
+    pg.wait_for_timeout(500)
+    ok("[開] 外圈亮 1 秒後自己消失", not pg.evaluate("() => document.getElementById('ovCandCard').classList.contains('lgflash')"))
+    ok("[開] 導覽看過 → tw.tour 寫入版本字串", (_lg_ls(pg, "tw.tour") or "") != "", _lg_ls(pg, "tw.tour"))
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok("[開] 重新整理 → 橫幅不再出現、導覽也不再自動開",
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+    # 條款改版（生效日期換了）→ 舊的同意不算數，橫幅重新出現
+    pg.evaluate("() => localStorage.setItem('tw.consent', JSON.stringify({v:'2025-01-01', at:'x'}))")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[開] 條款版本換了 → 舊同意不算、橫幅再出現一次", pg.locator("#lgBanner").count() == 1)
+    ctx.close()
+
+    # 不同意 → #leave，什麼都不寫，換頁被擋回 #leave，三頁照樣打得開，重新整理橫幅又出現
+    ctx, pg = _lg_page(b, init=LEGAL_ON)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    pg.click("#lgDecline"); pg.wait_for_timeout(700)
+    r = pg.evaluate("""() => ({ hash: location.hash, leave: !!document.getElementById('lgLeave'),
+        ov: document.getElementById('v-overview').classList.contains('on'), ban: !!document.getElementById('lgBanner') })""")
+    ok("[開] 按不同意 → 換成站內 #leave 畫面、總覽收起來、橫幅收掉",
+       r["hash"] == "#leave" and r["leave"] and not r["ov"] and not r["ban"], r)
+    ok("[開] 按不同意 → localStorage 沒有被寫入（不記住拒絕）", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    pg.click(".tab[data-view='flow']"); pg.wait_for_timeout(700)
+    ok("[開] 不同意之後按頂欄「資金流向」→ 這次瀏覽維持在 #leave", pg.evaluate("() => location.hash") == "#leave"
+       and not pg.evaluate("() => document.getElementById('v-flow').classList.contains('on')"), pg.evaluate("() => location.hash"))
+    pg.click("#lgRead"); pg.wait_for_timeout(600)
+    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開服務條款（正式版，沒有草稿標示）",
+       pg.evaluate("() => location.hash") == "#terms" and pg.locator("#lgDraft").count() == 0
+       and "驗收用營業人" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
+    ok("[開] 在條款頁上橫幅重新出現，讀完可以直接選", pg.locator("#lgBanner").count() == 1)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.goto(base + "#overview"); pg.wait_for_timeout(1500)
+    ok("[開] 重新整理 → 拒絕被忘掉：總覽照常、橫幅再出現",
+       pg.locator("#lgBanner").count() == 1 and pg.evaluate("() => document.getElementById('v-overview').classList.contains('on')"))
+    # 「我重新考慮，同意並繼續」
+    pg.click("#lgDecline"); pg.wait_for_timeout(600)
+    pg.click("#lgReAccept"); pg.wait_for_timeout(900)
+    raw = _lg_ls(pg, "tw.consent")
+    ok("[開] 「我重新考慮，同意並繼續」→ 寫入同意、回到總覽",
+       raw and "2026-10-01" in raw and pg.evaluate("() => location.hash") == "#overview"
+       and pg.locator("#lgBanner").count() == 0, raw)
+    ctx.close()
+
+    # localStorage 寫入會丟錯（無痕／被封鎖）：按同意 → 這次瀏覽不再出現、不報錯、導覽不自動開
+    n0 = len(fails)
+    ctx, pg = _lg_page(b, init=LEGAL_ON,
+                       extra="Storage.prototype.setItem = function(){ throw new Error('QuotaExceededError（驗收模擬）'); };")
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    ok("[開／寫不進去] 橫幅照樣出現", pg.locator("#lgBanner").count() == 1)
+    pg.click("#lgAccept"); pg.wait_for_timeout(600)
+    ok("[開／寫不進去] 按同意 → 橫幅消失、導覽不自動開（避免每次重新整理都跳）",
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+    pg.click(".tab[data-view='flow']"); pg.wait_for_timeout(1200)
+    ok("[開／寫不進去] 換頁之後這次瀏覽不再出現（記在記憶體）", pg.locator("#lgBanner").count() == 0)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[開／寫不進去] 重新整理 → 橫幅再出現一次（無可避免，而且這樣是對的）", pg.locator("#lgBanner").count() == 1)
+    ok("[開／寫不進去] 整段沒有 pageerror", len([f for f in fails[n0:] if "pageerror" in f]) == 0, fails[n0:])
+    ctx.close()
+
+    # 手機 390：橫幅在底部分頁列上方、兩顆按鈕上下排滿寬
+    ctx, pg = _lg_page(b, 390, 844, init=LEGAL_ON, mobile=True)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    r = pg.evaluate("""() => { const b = document.getElementById('lgBanner'); if (!b) return null;
+        const r = b.getBoundingClientRect(), t = document.getElementById('tabs').getBoundingClientRect(),
+              a = document.getElementById('lgAccept').getBoundingClientRect(), d = document.getElementById('lgDecline').getBoundingClientRect();
+        return { bb: r.bottom, tt: t.top, l: r.left, rr: innerWidth - r.right, aw: a.width, bw: r.width, stacked: a.bottom <= d.top + 1,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth, ah: a.height }; }""")
+    ok("[開 390] 橫幅在底部分頁列上方、左右各留 12px",
+       r and r["bb"] <= r["tt"] and abs(r["l"] - 12) <= 1 and abs(r["rr"] - 12) <= 1, r)
+    ok("[開 390] 兩顆按鈕上下排、滿寬、高 44（「同意並繼續」在上）",
+       r and r["stacked"] and r["aw"] >= r["bw"] - 42 and r["ah"] >= 43, r)
+    ok("[開 390] 沒有橫向捲軸", r and r["docW"] <= r["winW"] + 1, r)
+    pg.click("#lgAccept"); pg.wait_for_timeout(700)
+    r = pg.evaluate("""() => { const t = document.getElementById('lgTour'); if (!t) return null; const r = t.getBoundingClientRect();
+        return { bottom: innerHeight - r.bottom, w: r.width, winW: innerWidth }; }""")
+    ok("[開 390] 手機的導覽是底部抽屜（貼底、滿寬）", r and abs(r["bottom"]) <= 1 and r["w"] >= r["winW"] - 1, r)
+    pg.click("#lgNext"); pg.wait_for_timeout(200)
+    pg.click("#lgGo"); pg.wait_for_timeout(1500)
+    r = pg.evaluate("""() => { const sp = document.querySelector('#v-overview .mspine .on'); const e = document.getElementById('hero');
+        const r = e ? e.getBoundingClientRect() : null;
+        return { step: sp ? sp.textContent : '', top: r ? r.top : null, h: r ? r.height : 0, vh: innerHeight }; }""")
+    ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 貴不貴、大盤那張在畫面上",
+       r["step"].startswith("② 貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
+    ctx.close()
+
+    # 填好了但 enabled:false → 仍然不啟用；欄位裡還留著【】也不算填好
+    for name, cfg in (("填好但總開關關著", LEGAL_ON.replace("enabled:true", "enabled:false")),
+                      ("欄位還留著【】", LEGAL_ON.replace("驗收用營業人", "【營業人名稱】"))):
+        ctx, pg = _lg_page(b, init=cfg)
+        pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        ok(f"[{name}] 不啟用：沒有橫幅、條款頁仍掛草稿標示",
+           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 1
+           and not pg.evaluate("() => window.TwLegal.state().active"), pg.evaluate("() => window.TwLegal.state()"))
+        ctx.close()
+
+# ===================================================================== 時鐘 v2（設計系統 v2 第 5 批）
+# 規格：docs/design_system_v2.md §3.2。每一條都量**畫上去的**狀態（ECharts 的 option、canvas 像素、DOM），
+# 不是「元素存在」。
+CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
+  const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(); const ss = o.series || [];
+  const lines = ss.filter(s => s.type === 'line');
+  const vis = lines.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) > 0 && (s.data || []).length);
+  const sym = (s, k) => (s.data || []).filter(d => d && !Array.isArray(d) && d.symbol === k).length;
+  const sc = ss.filter(s => s.type === 'scatter')[0] || { data: [] };
+  const ring = ss.find(s => s.type === 'custom' && s.name === '象限底色');
+  const moved = ss.find(s => s.type === 'custom' && s.name === '換段色環');
+  const g0 = vis.map(s => s.lineStyle.color).find(x => x && typeof x === 'object');
+  return { n: sc.data.length, lines: lines.length, vis: vis.length, visGids: vis.map(s => s.gid),
+    arrows: vis.reduce((a, s) => a + sym(s, 'triangle'), 0), marks: vis.reduce((a, s) => a + sym(s, 'circle'), 0),
+    grad: g0 ? g0.colorStops.map(x => x.color) : null,
+    ringN: ring ? (ring.data || []).length : -1, movedN: moved ? (moved.data || []).length : -1,
+    splitArea: ((o.angleAxis[0] || {}).splitArea || {}).show,
+    glow: sc.data.filter(d => ((d.itemStyle || {}).shadowBlur || 0) > 0).length,
+    lblFs: ((sc.label || {}).fontSize) || 0,
+    focusBold: sc.data.filter(d => (d.label || {}).fontWeight === 700).length,
+    fr: (window.App && window.App._rotFrame) || null, anim: o.animation }; }"""
+
+# 三圈底色：沿著每個象限的角度，在三圈的中線上取樣 canvas 像素，量「跟卡片底色差多少」（越外圈越濃）
+CLK_RINGS = r"""(cid) => { const el = document.getElementById(cid); const cv = el && el.querySelector('canvas'); if (!cv) return null;
+  const g = cv.getContext('2d'); const k = cv.width / el.clientWidth;
+  const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+  const axisMax = 1.25 * 1.18 * 1.06, mids = [0.3125, 0.9375, (1.25 + axisMax) / 2];
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--panel').trim();
+  const hx = bg.replace('#', ''); const B = [0, 2, 4].map(i => parseInt(hx.slice(i, i + 2), 16));
+  // 取第 20 百分位（不是中位數）：盤上的點與軌跡是飽和色，會把取樣往上拉；最淡的那幾格才是底色本身
+  const med = (a) => { const s = a.slice().sort((x, y) => x - y); return Math.round(s[Math.floor(s.length * 0.2)]); };
+  const out = {};
+  [['leading', 0], ['improving', 90], ['lagging', 180], ['weakening', 270]].forEach(([q, a0]) => {
+    out[q] = mids.map(m => { const r = m / axisMax * R, ds = [];
+      for (let a = a0 + 8; a <= a0 + 82; a += 4) { const t = a * Math.PI / 180;
+        const x = Math.round((cx + Math.cos(t) * r) * k), y = Math.round((cy - Math.sin(t) * r) * k);
+        const p = g.getImageData(x, y, 1, 1).data, al = p[3] / 255;
+        /* 圖表的 canvas 底是透明的：getImageData 拿到的是「沒乘過 alpha 的色」，要自己疊在卡片底色上才是眼睛看到的 */
+        ds.push([0, 1, 2].reduce((s2, i) => s2 + Math.abs(p[i] * al + B[i] * (1 - al) - B[i]), 0)); }
+      return med(ds); }); });
+  return out; }"""
+
+
+def _clk_rings_ok(r):
+    """四個象限裡至少三個：內圈 < 中圈 < 外帶（跟卡片底色的差距，越外越大）。"""
+    if not r:
+        return False
+    good = sum(1 for v in r.values() if v[0] < v[1] < v[2])
+    return good >= 3
+
+
+def t_clock_v2(pg, b, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(600)
+        s = pg.evaluate(CLK_STATE, "rotClock")
+        if not ok(f"[{th}] 讀得到輪動時鐘的狀態", bool(s) and s["n"] > 6 and s["fr"], s and {k: s[k] for k in ("n", "lines")}):
+            continue
+        fr = s["fr"]
+        # ① 焦點族群：預設模式 focus，最多 6 個，只有焦點畫軌跡
+        ok(f"[{th}] ① 軌跡預設是「焦點」模式", fr.get("tmode") == "focus", fr.get("tmode"))
+        ok(f"[{th}] ① 焦點族群 1～6 個（佔比前 3 ＋ 最近換段）", 1 <= len(fr.get("focus") or []) <= 6, fr.get("focus"))
+        ok(f"[{th}] ① 看得到的軌跡 ≤ 6 條、而且只有焦點族群有（非焦點沒有軌跡）",
+           0 < s["vis"] <= 6 and set(s["visGids"]) <= set(fr["focus"]), {"看得到": s["vis"], "焦點": fr["focus"]})
+        ok(f"[{th}] ① 每個族群仍然各有一條 line series（資料還在，只是非焦點看不見）", s["lines"] == s["n"], s)
+        ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
+        ok(f"[{th}] ① 族群名稱字級 ≥ 12px", s["lblFs"] >= 12, s["lblFs"])
+        # ② 軌跡由舊到新漸強、箭頭、每 5 天一顆小點
+        ok(f"[{th}] ② 軌跡顏色是由舊到新的漸層（透明度 .15 → .90）",
+           bool(s["grad"]) and s["grad"][0].endswith(",0.15)") and s["grad"][-1].endswith(",0.9)"), s["grad"])
+        ok(f"[{th}] ② 最新一段有方向箭頭（三角形符號）", s["arrows"] >= 1, s["arrows"])
+        ok(f"[{th}] ② 每 5 個交易日一顆小點", s["marks"] >= s["vis"], {"小點": s["marks"], "軌跡": s["vis"]})
+        # ③ 象限底色三圈（像素量：越外圈跟卡片底差越多）
+        ok(f"[{th}] ③ 象限底色改由 12 塊扇形畫（splitArea 關掉）", s["ringN"] == 12 and s["splitArea"] is False, s)
+        rg = pg.evaluate(CLK_RINGS, "rotClock")
+        ok(f"[{th}] ③ 三圈真的有層次：至少三個象限「內圈 < 中圈 < 外帶」（跟卡片底色的差距）", _clk_rings_ok(rg), rg)
+        # ④ 換段色環取代發光
+        ok(f"[{th}] ④ 沒有任何一顆點還在用 shadowBlur 發光", s["glow"] == 0, s["glow"])
+        ok(f"[{th}] ④ 換段色環的數量＝畫面上剛換段的族群數", s["movedN"] == fr.get("rings"), {"色環": s["movedN"], "換段": fr.get("rings")})
+        # ⑤ 象限卡的「本週新進」
+        nw = pg.evaluate("""() => [...document.querySelectorAll('#rotClock .rotquads .rq')].map(q => ({
+            k: q.dataset.k, n: parseInt(((q.querySelector('em')||{}).textContent||'0'), 10),
+            nw: q.querySelector('i.nw') ? q.querySelector('i.nw').textContent : '' }))""")
+        ok(f"[{th}] ⑤ 象限卡的「+N 本週新進」格式正確、而且不超過那一段的族群數",
+           all((not x["nw"]) or (x["nw"].startswith("+") and 0 < int(x["nw"][1:]) <= x["n"]) for x in nw), nw)
+        if th == "dark":
+            # ⑥ 切到「全部」→ 每個族群都有軌跡；切回「焦點」→ 又收回 ≤ 6
+            pg.eval_on_selector("#rotTools .rot-tmode button[data-m=all]", "b => b.click()")
+            pg.wait_for_timeout(1400)
+            s2 = pg.evaluate(CLK_STATE, "rotClock")
+            ok("⑥ 按「全部」→ 看得到的軌跡數＝族群數（原本的畫法還在）", s2 and s2["vis"] == s2["n"], s2 and [s2["vis"], s2["n"]])
+            ok("⑥ 「全部」有記在這台瀏覽器（tw.rot.tmode）",
+               pg.evaluate("() => { try { return localStorage.getItem('tw.rot.tmode'); } catch (e) { return null; } }") == "all")
+            pg.eval_on_selector("#rotTools .rot-tmode button[data-m=focus]", "b => b.click()")
+            pg.wait_for_timeout(1400)
+            s3 = pg.evaluate(CLK_STATE, "rotClock")
+            ok("⑥ 按回「焦點」→ 看得到的軌跡又收回 ≤ 6", s3 and 0 < s3["vis"] <= 6, s3 and s3["vis"])
+            # ⑥-b 軌跡關掉時「焦點｜全部」停用
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(900)
+            dis = pg.evaluate("() => [...document.querySelectorAll('#rotTools .rot-tmode button')].every(b => b.disabled)")
+            ok("⑥ 軌跡關掉時「焦點｜全部」一起停用", dis)
+            pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+            # ⑦ 滑到一顆**非焦點**的點 → 它的軌跡出現、其他壓暗；滑開 → 還原
+            tgt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+                const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter');
+                const f = new Set((window.App._rotFrame || {}).focus || []);
+                const d = o.series[si].data.find(x => x.row && !f.has(x.row.gid)); if (!d) return null;
+                const p = c.convertToPixel({ seriesIndex: si }, d.value); const r = el.getBoundingClientRect();
+                return { gid: d.row.gid, x: r.left + p[0], y: r.top + p[1] }; }""")
+            if ok("⑦ 找得到一顆非焦點的點（下一條要滑過去）", bool(tgt), tgt):
+                pg.mouse.move(tgt["x"], tgt["y"]); pg.wait_for_timeout(700)
+                hv = pg.evaluate("""(gid) => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+                    const ls = c.getOption().series.filter(s => s.type === 'line');
+                    const me = ls.find(s => s.gid === gid); const others = ls.filter(s => s.gid !== gid);
+                    return { me: me ? me.lineStyle.opacity : null, maxOther: Math.max(0, ...others.map(s => s.lineStyle.opacity)) }; }""", tgt["gid"])
+                ok("⑦ 滑到非焦點的點：它的軌跡出現（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
+                pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+                s4 = pg.evaluate(CLK_STATE, "rotClock")
+                ok("⑦ 滑開之後還原成焦點模式（非焦點的軌跡又看不見）", s4 and 0 < s4["vis"] <= 6, s4 and s4["vis"])
+            # ⑧ 編號模式的判準跟容器寬度一致（1440 不是編號模式）
+            ok("⑧ 1440px 的卡片不是編號模式（容器 ≥ 560px）", (s["fr"] or {}).get("num") is False, s["fr"].get("num"))
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }")
+
+    # ⑨ 手機 390px：編號模式 —— 編號框兩兩不重疊、全在畫布內、清單列數＝點數、點清單真的會單獨亮那一顆
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.on("pageerror", lambda e: fails.append(f"時鐘v2 手機 pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
+    st = m.evaluate("""() => { const el = document.getElementById('rotClock'); if (!el) return null;
+        const rs = (window.App && window.App._rotLabels) || [];
+        const W = el.clientWidth, H = el.clientHeight; let hit = null, out = null;
+        for (let i = 0; i < rs.length; i++) { const a = rs[i];
+          if (a.x < -1 || a.y < -1 || a.x + a.w > W + 1 || a.y + a.h > H + 1) out = out || a.name;
+          for (let j = i + 1; j < rs.length; j++) { const q = rs[j];
+            if (a.x < q.x + q.w && q.x < a.x + a.w && a.y < q.y + q.h && q.y < a.y + a.h) hit = hit || [a.name, q.name]; } }
+        const pts = (window.App._rotPts || []).length;
+        return { W, num: (window.App._rotFrame || {}).num, n: rs.length, hit, out, pts,
+                 allNum: rs.every(r => /^\\d+$/.test(r.name)),
+                 rows: document.querySelectorAll('.rotnums[data-for="rotClock"] .rni').length }; }""")
+    if ok("⑨ [390px] 讀得到時鐘", bool(st), st):
+        ok("⑨ [390px] 容器 < 560px → 編號模式", st["num"] is True and st["W"] < 560, st)
+        ok("⑨ [390px] 圖上寫的全是編號（名字不再擠成一直排）", st["allNum"] and st["n"] == st["pts"], st)
+        ok("⑨ [390px] 編號框兩兩不重疊、全在畫布內", st["hit"] is None and st["out"] is None, st)
+        ok("⑨ [390px] 圖下方清單的列數＝圖上的點數（名字一個都沒少）", st["rows"] == st["pts"] and st["pts"] > 0, st)
+        m.eval_on_selector('.rotnums[data-for="rotClock"] .rni', "b => b.click()")
+        m.wait_for_timeout(900)
+        hl = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
+            const b0 = document.querySelector('.rotnums[data-for="rotClock"] .rni');
+            return { on: b0.classList.contains('on'), gid: b0.dataset.gid,
+                     lit: sc.data.filter(d => (d.itemStyle || {}).opacity === 1).map(d => d.row.gid),
+                     dim: sc.data.filter(d => (d.itemStyle || {}).opacity <= 0.18).length }; }""")
+        ok("⑨ [390px] 點清單第一列 → 圖上只亮那一顆、其他壓暗", hl["on"] and hl["lit"] == [hl["gid"]] and hl["dim"] > 3, hl)
+        m.eval_on_selector('.rotnums[data-for="rotClock"] .rni', "b => b.click()")
+        m.wait_for_timeout(900)
+        dim2 = m.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+            const sc = c.getOption().series.filter(s => s.type === 'scatter')[0];
+            return sc.data.filter(d => (d.itemStyle || {}).opacity <= 0.18).length; }""")
+        ok("⑨ [390px] 再點一次還原（沒有任何一顆被壓暗）", dim2 == 0, dim2)
+        fsz = m.evaluate("""() => Math.min(...[...document.querySelectorAll('.rotnums .rni, .rotnums .rni i, .rotnums .rnh')]
+            .map(e => parseFloat(getComputedStyle(e).fontSize)))""")
+        ok("⑨ [390px] 清單的字都 ≥ 12px", fsz >= 12, fsz)
+    m.close()
+
+    # ⑩ 使用者要求減少動態：時鐘的補間整個關掉
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    rp = ctx.new_page()
+    rp.goto(f"{base}#flow", wait_until="networkidle"); rp.wait_for_timeout(2600)
+    rs2 = rp.evaluate(CLK_STATE, "rotClock")
+    ok("⑩ prefers-reduced-motion：時鐘的動畫關掉（播放變成一天一跳）", bool(rs2) and rs2["anim"] is False, rs2 and rs2["anim"])
+    ctx.close()
+
+
+# ===================================================================== 資金去向 v2（設計系統 v2 第 5 批）
+OVF_STATE = r"""() => { const el = document.getElementById('ovFlow'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(); const s = o.series[0]; const root = s.data[0]; const chains = root.children || [];
+  const rgb = (x) => String(x || '').replace(/\s/g, '').replace(/^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/, '$1,$2,$3');
+  const alpha = (x) => { const m = String(x || '').match(/,([\d.]+)\)$/); return m ? +m[1] : null; };
+  const d = c.getModel().getSeriesByIndex(0).getData(); let outR = 0;
+  for (let i = 0; i < d.count(); i++) { const g = d.getItemGraphicEl(i); if (!g) continue;
+    const h = (g.getTextContent && g.getTextContent()) ? g : (g.childAt ? g.childAt(0) : null);
+    const t = h && h.getTextContent && h.getTextContent(); if (!t || t.ignore) continue;
+    const r = t.getBoundingRect().clone(); r.applyTransform(t.getComputedTransform()); outR = Math.max(outR, r.x + r.width); }
+  return { anim: o.animation, W: el.clientWidth, outR,
+    chains: chains.map(ch => ({ sym: ch.symbol, size: ch.symbolSize, line: ch.lineStyle.color, a: alpha(ch.lineStyle.color),
+      kidsSame: (ch.children || []).every(k => rgb(k.lineStyle.color) === rgb(ch.lineStyle.color)),
+      lbl: (ch.label || {}).formatter, first: ((ch.children || [])[0] || {}).label.formatter,
+      rest: (ch.children || []).slice(1).map(k => (k.label || {}).formatter) })) }; }"""
+
+
+def t_flow_v2(pg, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "ovFlow"); pg.wait_for_timeout(500)
+        s = pg.evaluate(OVF_STATE)
+        if not ok(f"[{th}] 總覽的資金去向畫得出來", bool(s) and len(s["chains"]) >= 2, s):
+            continue
+        ok(f"[{th}] 總覽資金去向仍然沒有動畫（Andy 09-23）", s["anim"] is False, s["anim"])
+        want_a = 0.38 if th == "dark" else 0.30
+        ok(f"[{th}] ① 線條＝所屬產業鏈的識別色（鏈底下每條線跟鏈同一個色）、淡 {want_a}",
+           all(c["kidsSame"] and c["a"] == want_a for c in s["chains"]), [(c["line"], c["kidsSame"]) for c in s["chains"]])
+        ok(f"[{th}] ① 不同產業鏈的線是不同的色（顏色真的在講「哪條鏈」）",
+           len({c["line"] for c in s["chains"]}) >= min(3, len(s["chains"])), [c["line"] for c in s["chains"]])
+        ok(f"[{th}] ② 產業鏈節點是直立細長條（圓角矩形、寬 4、高 ≥ 8）",
+           all(c["sym"] == "roundRect" and c["size"][0] == 4 and c["size"][1] >= 8 for c in s["chains"]),
+           [(c["sym"], c["size"]) for c in s["chains"]])
+        ok(f"[{th}] ③ 產業鏈名字用 13px 粗體那一級（rich cn）、% 用 12px --ink-3（rich gp）",
+           all(c["lbl"].startswith("{cn|") and "{gp|" in c["lbl"] for c in s["chains"]), [c["lbl"] for c in s["chains"]][:3])
+        ok(f"[{th}] ③ 每條鏈流量第一名的族群名字是粗體（gb），其餘一般（gn）",
+           all(c["first"].startswith("{gb|") and all(x.startswith("{gn|") for x in c["rest"]) for c in s["chains"]),
+           [c["first"] for c in s["chains"]])
+        ok(f"[{th}] ③ 百分比一個都沒被截掉（每一條都以「數字%」結尾）",
+           all(re.search(r"\d%\}$", x or "") for c in s["chains"] for x in [c["lbl"], c["first"]] + c["rest"]),
+           [x for c in s["chains"] for x in [c["first"]] + c["rest"] if not re.search(r"\d%\}$", x or "")][:4])
+        ok(f"[{th}] ③ 標籤沒有超出畫布右緣", s["outR"] <= s["W"] + 1, {"最右": s["outR"], "寬": s["W"]})
+
+    # 資金流向頁那張：鏈色線條、直條節點、小圓點不壓字（小圓點本身保留）
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
+    sk = pg.evaluate(r"""() => { const c = echarts.getInstanceByDom(document.getElementById('sankey')); if (!c) return null;
+        const root = c.getOption().series[0].data[0];
+        const rgb = (x) => String(x || '').replace(/\s/g, '').replace(/^rgba\((\d+),(\d+),(\d+),[\d.]+\)$/, '$1,$2,$3');
+        return (root.children || []).map(ch => ({ sym: ch.symbol, size: ch.symbolSize,
+          same: (ch.children || []).every(g => rgb(g.lineStyle.color) === rgb(ch.lineStyle.color)),
+          lbl: (ch.label || {}).formatter })); }""")
+    if ok("讀得到資金流向頁的資金去向", bool(sk), sk):
+        ok("① 族群那一層的線改用所屬產業鏈的色（跟鏈那條線同一個色相）", all(c["same"] for c in sk), [c["same"] for c in sk])
+        ok("② 產業鏈節點是直立細長條（圓角矩形、寬 4）",
+           all(c["sym"] == "roundRect" and c["size"][0] == 4 for c in sk), [(c["sym"], c["size"]) for c in sk])
+        ok("③ 產業鏈名字用 13px 粗體（rich cn）、百分比仍在", all(c["lbl"].startswith("{cn|") and "%" in c["lbl"] for c in sk),
+           [c["lbl"] for c in sk][:3])
+    # ⑥ 小圓點不壓字：連續取樣 1.2 秒，每一顆畫出來的點都不在任何標籤外框（含 3px 描邊）裡
+    bad, tot = 0, 0
+    lbs = pg.evaluate("() => window.App.sankeyLabels()") or []
+    for _ in range(8):
+        dots = pg.evaluate("() => window.App.sankeyDots()") or []
+        tot += len(dots)
+        for x, y, _l in dots:
+            if any(r["x"] - 3 < x < r["x"] + r["w"] + 3 and r["y"] - 3 < y < r["y"] + r["h"] + 3 for r in lbs):
+                bad += 1
+        pg.wait_for_timeout(150)
+    ok("⑥ 讀得到標籤外框（小圓點要避開的地方）", len(lbs) > 10, len(lbs))
+    ok("⑥ 小圓點還在跑（09-20／21 要的傳輸效果保留）", tot > 50 and pg.evaluate("() => window.App.sankeyFxRunning()"), tot)
+    ok("⑥ 取樣 8 次、每一顆畫出來的點都不在標籤上（點不壓字）", bad == 0, f"{bad} / {tot} 顆壓在字上")
 
 
 if __name__ == "__main__":
