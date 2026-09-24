@@ -973,10 +973,21 @@
           <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
             <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
           <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
-          <div class="segchips" id="segChips"></div>
-          <div id="segBox"></div>
+          <!-- ★ 2026-09-24（Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」）
+               圖上方那一大片環節色標拿掉，改成**圖旁邊的一份清單**（環節 → 族群 → 個股）。
+               ⚠ 這段註解住在樣板字串裡，所以不能出現反引號。
+               清單就是原本的 #segChips：每一格的標題列仍然是 .segchip[data-seg]（class、.sel、.nomem 全部沿用），
+               所以「點色標＝篩這一格」那條路一行都沒換，只是色標長大成清單的一節。
+               桌機（大於 820px）：.relmain 排成「圖｜清單」兩欄，清單與圖等高、自己捲、捲頁時黏在畫面上；
+               環節詳情 #segBox 移到圖的下面（放上面的話，點清單會把清單自己往下推，游標底下的東西就跑掉了）。
+               手機（820px 以下）：.relcol／.relstick 變成 display:contents，清單退回原本的一排色標，
+               順序照舊是「色標 → 環節詳情 → 圖」，畫面跟改之前一樣。 -->
           <div class="chainrow" id="relRow"><div class="chainpane">
-            <div class="chainmap" id="chainMap"></div>
+            <div class="relmain" id="relMain">
+              <div class="relcol"><div class="relstick" id="relStick"><div class="segchips rellist" id="segChips"></div></div></div>
+              <div id="segBox"></div>
+              <div class="chainmap" id="chainMap"></div>
+            </div>
             <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
           </div></div></div>` : ''}
@@ -992,13 +1003,9 @@
        族群力導向星際圖（DECISIONS #248）整組退場，換回 a846f16 的分層形式。
        這裡只負責把環節色標填回 `#segChips`（它是這一頁「選一格」的總入口）——
        圖與清單要等 syncHighlight／segPick 都宣告完才畫得起來，所以放在下面。*/
-    {
-      const segBoxEl = $('#segChips', el);
-      if (segBoxEl) segBoxEl.innerHTML = segs.map(s2 => {
-        const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
-        return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s2.id}" style="--c:${segColor(s2.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s2.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`;
-      }).join('');
-    }
+    /* ★ 2026-09-24：色標長大成清單（環節 → 族群 → 個股），見 renderRelList。
+       標題列仍然是同一顆 .segchip，所以下面掛事件、syncHighlight 切 .sel 的程式碼一行都不用動。*/
+    renderRelList($('#segChips', el), sc, segs, im);
     let segFilter = opts.seg || null;
     /* ★ 2026-09-23 第二批（Andy 點名）：下方那張「成分股」卡片整塊移除。
        連同 renderMembers／COLS／排序記憶／市場別 seg／展開更多／放寬蓋住事件面板 一起拿掉 ——
@@ -2428,6 +2435,126 @@
       g.onmouseleave = () => $$('.fband', host).forEach(b => b.classList.remove('hi', 'dim'));
       g.onclick = () => handlers && handlers.onSegment && handlers.onSegment(g.dataset.seg);
     });
+  }
+
+  /* ==================================================================== 關聯圖旁邊的清單（環節 → 族群 → 個股）
+     Andy 2026-09-24：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」。
+     他看到的是：圖上方兩三排環節色標（銅箔／玻纖布／樹脂 6、IC 設計 4…），色標只有名字＋數字，
+     要知道「這一格有哪幾檔、今天漲還跌」得先點、再去圖下面找 —— 兩步推論。
+     改成一份清單直接回答「這一格裡有哪些族群、每個族群是哪幾檔、今天誰漲誰跌」。
+
+     ★ 為什麼是把 #segChips 長大，而不是另起一個清單：
+       色標是這一頁「選一格」的總入口（syncHighlight 切 .sel、scrollChainTo、E6 跨鏈、十幾段驗收都認它）。
+       清單每一節的標題列**就是原本那顆 .segchip**（data-seg、.nomem、.sel、點一下篩／再點取消全部沿用），
+       這樣色標的篩選功能一件都沒有掉，只是從「一排按鈕」變成「一份清單的節標題」。
+     ★ 手機（≤820px）用 CSS 把節標題以外的東西藏起來、節容器 display:contents，
+       看起來就是原本那一排色標 —— 手機這次不動。
+
+     族群用的是 supply_chain.yaml 的 companies[].groups（取第一個，比環節細：IC 設計底下分成
+     「HPC 與網通 IC」「顯示驅動 IC」…）。沒有台股的環節不硬塞，寫「外商」灰字並列出外商名字；
+     連外商都沒有的（例：先進封裝 CoWoS/SoIC）寫它自己的 note —— 那句話本來就在解釋為什麼是空的。
+     點個股＝進個股頁（`#stock/<code>`，一般連結，所以上一頁回得來、也能在新分頁開）。*/
+  function renderRelList(host, sc, segsIn, im) {
+    if (!host) return;
+    const segs = (segsIn || []).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));   // 上游排到下游，跟圖同一個方向
+    const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : [])
+      .forEach(g => (g.members || []).forEach(m => { if (!priceOf[m.code]) priceOf[m.code] = m; }));
+    let nTw = 0;
+    const html = segs.map(s2 => {
+      const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
+      nTw += tw.length;
+      /* 族群分組：保持 YAML 的順序（那是人工校訂過的），第一次出現的族群排前面 */
+      const order = [], byG = {};
+      tw.forEach(c => {
+        const gn = (c.groups || [])[0] || '';
+        if (!byG[gn]) { byG[gn] = []; order.push(gn); }
+        byG[gn].push(c);
+      });
+      const row = (c) => {
+        const m = priceOf[c.tw_code], chg = m ? m.chg_pct : null;
+        const tip = `${c.name} ${c.tw_code}${m ? `｜收 ${A.fmt.n(m.close)}　${A.fmt.pct(chg)}` : ''}｜點一下看個股頁`;
+        return `<a class="rlco" href="#stock/${c.tw_code}" data-code="${c.tw_code}" title="${A.fmt.esc(tip)}">`
+          + `<span class="cd">${c.tw_code}</span><span class="nm">${A.fmt.esc(c.name)}</span>`
+          + `<span class="chg ${chg == null ? 'flat' : A.fmt.cls(chg)}">${chg == null ? '—' : A.fmt.pct(chg)}</span></a>`;
+      };
+      const grp = (gn) => {
+        const gid = gn ? A.L.gid[gn] : null;
+        const label = gid ? A.L.group(gid, gn, { cls: 'rlgn' }) : `<span class="rlgn muted">${gn ? A.fmt.esc(gn) : '未歸族群'}</span>`;
+        return `<div class="rlgrp"><div class="rlgh">${label}<span class="n">${byG[gn].length} 檔</span></div>${byG[gn].map(row).join('')}</div>`;
+      };
+      const body = order.map(grp).join('')
+        + (fo.length ? `<div class="rlfo"><span class="fo">外商</span>${fo.map(c => A.fmt.esc(c.name)).join('、')}</div>` : '')
+        + (tw.length || fo.length ? '' : `<div class="rlnt">${A.fmt.esc(s2.note || '台股無直接對應')}</div>`);
+      /* 標題列＝原本那顆色標，內部結構（<i>、名稱、.n）一個都沒改：手機上它照舊長成一顆膠囊 */
+      return `<div class="rlseg" data-seg="${s2.id}" style="--c:${segColor(s2.id)}">`
+        + `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s2.id}" style="--c:${segColor(s2.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s2.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`
+        + `<div class="rlbody">${body}</div></div>`;
+    }).join('');
+    host.innerHTML = `<div class="rlhead"><b>環節 · 族群 · 個股</b><span class="muted">${segs.length} 格 · ${nTw} 檔台股</span>`
+      + `<div class="rlhint muted">點環節＝在圖上亮起那一格（再點一次取消）；點個股＝看個股頁</div></div>${html}`;
+  }
+  /* 關聯圖是不是「圖｜清單」並排的桌機版面。手機（≤820px）清單退回色標，行為照舊。*/
+  const relListMode = () => { try { return window.matchMedia('(min-width:821px)').matches; } catch (e) { return false; } };
+
+  /* ==================================================================== 環節說明框（滑過環節時）
+     Andy 看到的是：滑過「先進封裝 CoWoS/SoIC」時，說明框窄到字一個一個斷行
+     （「CoWoS/SoIC 由台 / 積電自己做…」）。SVG 的 <title> 是瀏覽器原生提示，寬度與斷行都管不到，
+     所以改成自己畫的說明框：寬度 240～360px、正常斷行（中文不會被拆成一字一行）、跟著游標走、不吃滑鼠。
+     內容一次講完：這一格是什麼、台股幾檔／外商幾家、說明（desc／note）、上游是誰、下游是誰 ——
+     清單上沒有線，上下游就靠這裡補回來。
+     只在有滑鼠的裝置掛（hover:hover）；觸控裝置沒有「滑過」，點下去本來就會選起那一格。*/
+  function segTipHtml(sc, chainId, seg) {
+    const s = (sc && sc.segments.find(x => x.id === seg)) || null; if (!s) return '';
+    const segs = chainSegments(sc, chainId), ids = new Set(segs.map(x => x.id));
+    const coSeg = {}; sc.companies.forEach(c => { if (ids.has(c.segment)) coSeg[c.id] = c.segment; });
+    const up = new Set(), dn = new Set();
+    (sc.edges || []).forEach(e => {
+      if (e.rel === 'competes') return;
+      const a = coSeg[e.from], b = coSeg[e.to]; if (!a || !b || a === b) return;
+      if (b === seg) up.add(a); if (a === seg) dn.add(b);
+    });
+    const tw = twOf(sc, seg).length, fo = foreignOf(sc, seg).length;
+    const nm = (set) => [...set].map(x => A.fmt.esc(segName(sc, x))).join('、') || '（沒有）';
+    const txt = [s.desc, s.note].filter(Boolean).map(A.fmt.esc).join('　');
+    return `<b style="color:${segColor(seg)}">${A.fmt.esc(s.name)}</b>`
+      + `<div class="rtn">${tw ? tw + ' 檔台股' : '沒有台股'}${fo ? ' · 外商 ' + fo + ' 家' : ''}</div>`
+      + (txt ? `<div class="rtd">${txt}</div>` : '')
+      + `<div class="rtr"><span class="k">上游</span>${nm(up)}</div><div class="rtr"><span class="k">下游</span>${nm(dn)}</div>`;
+  }
+  function wireSegTip(root, sc, chainId) {
+    if (!root || !sc) return;
+    let can = true; try { can = window.matchMedia('(hover:hover)').matches; } catch (e) { /* 舊瀏覽器當成有滑鼠 */ }
+    if (!can) return;
+    let tip = document.getElementById('relTip');
+    if (!tip) { tip = document.createElement('div'); tip.id = 'relTip'; tip.className = 'reltip'; tip.hidden = true; document.body.appendChild(tip); }
+    const SEL = '#chainMap .segtitle, #chainMap .segnote, #segChips.rellist .segchip';
+    let cur = null;
+    const place = (ev) => {
+      const r = tip.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+      let x = ev.clientX + 14, y = ev.clientY + 16;
+      if (x + r.width > W - 8) x = Math.max(8, ev.clientX - r.width - 14);
+      if (y + r.height > H - 8) y = Math.max(8, ev.clientY - r.height - 12);
+      tip.style.left = Math.round(x) + 'px'; tip.style.top = Math.round(y) + 'px';
+    };
+    const hide = () => { cur = null; tip.hidden = true; };
+    root.addEventListener('mouseover', (ev) => {
+      const t = ev.target.closest && ev.target.closest(SEL);
+      if (!t || !root.contains(t)) return;
+      /* 清單上的色標只在「清單」版面才給說明框；手機那排色標維持原本的原生提示 */
+      if (t.classList.contains('segchip') && !relListMode()) return;
+      const seg = t.dataset.seg; if (!seg) return;
+      if (cur !== seg) { const h = segTipHtml(sc, chainId, seg); if (!h) return; tip.innerHTML = h; cur = seg; }
+      tip.hidden = false; place(ev);
+    });
+    root.addEventListener('mousemove', (ev) => { if (!tip.hidden && cur) place(ev); });
+    root.addEventListener('mouseout', (ev) => {
+      const t = ev.target.closest && ev.target.closest(SEL); if (!t) return;
+      const to = ev.relatedTarget && ev.relatedTarget.closest ? ev.relatedTarget.closest(SEL) : null;
+      if (to !== t) hide();
+    });
+    // 換頁／捲動時一定要收掉：position:fixed 的框不收會留在原地，壓在別頁的內容上
+    window.addEventListener('scroll', hide, { passive: true });
+    window.addEventListener('hashchange', hide);
   }
 
   /* ==================================================================== 環節卡清單（Default 畫面）
