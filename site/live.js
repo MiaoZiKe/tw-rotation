@@ -212,6 +212,7 @@
     };
   }
 
+  const FETCH_TIMEOUT_MS = 12000;   // 報價請求逾時
   async function fetchQuotes(codes) {
     const base = proxy();
     if (!base) throw new Error('還沒設定代理網址');
@@ -219,7 +220,16 @@
     const ex = [];
     codes.forEach(c => exch(c).forEach(t => ex.push(t)));
     const url = base + '/quote?ex_ch=' + encodeURIComponent(ex.slice(0, MAX_CODES * 2).join('|'));
-    const r = await fetch(url, { cache: 'no-store' });
+    // ★ 2026-09-24：加逾時。以前代理卡住時 fetch 永遠不回，即時模式就停在「更新中」不動。
+    const ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+    const tm = ctl ? setTimeout(() => ctl.abort(), FETCH_TIMEOUT_MS) : 0;
+    let r;
+    try {
+      r = await fetch(url, ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw new Error('報價逾時（' + FETCH_TIMEOUT_MS / 1000 + ' 秒沒回應）');
+      throw e;
+    } finally { if (tm) clearTimeout(tm); }
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
     const j = await r.json();
     if (j.rtcode && j.rtcode !== '0000') throw new Error('來源回 rtcode ' + j.rtcode);
