@@ -13676,6 +13676,41 @@ def t_rot_live(pg, base):
     ok("鈕本身也亮起來了（aria-pressed 真的變 true）",
        pg.evaluate("() => document.getElementById('rotLiveBtn').getAttribute('aria-pressed')") == "true")
 
+    # ---------------------------------------------------------- ②b 盤中巡檢的唯讀窗口 ＋ 象限面板跟著即時走
+    # `rlvState()` 是 `.github/workflows/live-rotation-probe.yml` 在線上讀的那一份；
+    # 形狀錯了巡檢就讀不到東西，所以在這裡先守住欄位。
+    rs = pg.evaluate("() => window.App.rlvState ? window.App.rlvState() : null")
+    ok("巡檢窗口 App.rlvState() 回得出 on/at/quoteAt/hit/codes/reqs/err/cover/pts",
+       bool(rs) and all(k in rs for k in ("on", "at", "quoteAt", "hit", "codes", "reqs", "err", "cover", "pts"))
+       and rs["on"] and len(rs["pts"]) > 5
+       and all(set(v) == {"x", "y"} for v in rs["pts"].values()),
+       rs and {k: rs[k] for k in rs if k != "pts"})
+    if rs:
+        pg.evaluate("() => { const p = window.App.rlvState().pts; for (const g in p) p[g].x = -999; }")
+        ok("巡檢窗口是唯讀的（改它拿到的物件不會改到即時狀態）",
+           all(v["x"] != -999 for v in pg.evaluate("() => window.App.rlvState().pts").values()))
+    # ★ 2026-09-24 修的 bug：象限面板的「強弱／動能」原本讀持平基準（fx/fy），那是整天不會動的常數。
+    #   驗法：把四個象限一個個點開，面板上每個族群的「強弱」要等於**現在那一點**（pts.x − 100），
+    #   而且至少有一個族群「今天推的那一段」（tdx）夠大 —— 不然讀 fx 也會剛好對上，驗不出差別。
+    top_td = {t["gid"]: t["tdx"] for t in pg.evaluate("() => window.App.rotLive().top")}
+    panel = {}
+    for k in ("leading", "improving", "lagging", "weakening"):
+        if not click(pg, f'#rotClock .rotquads .rq[data-k="{k}"]', 500):
+            continue
+        for it in pg.evaluate("""() => [...document.querySelectorAll('#stagePanel li[data-gid]')]
+                .map(li => ({ g: li.dataset.gid, t: li.innerText.replace(/\\s+/g, ' ') }))"""):
+            m = re.search(r"強弱 ([+\-−]?\d+(?:\.\d+)?)", it["t"])
+            if m:
+                panel[it["g"]] = float(m.group(1).replace("−", "-"))
+        click(pg, f'#rotClock .rotquads .rq[data-k="{k}"]', 300)     # 收起來，不影響下一步
+    pts_now = pg.evaluate("() => window.App.rlvState().pts")
+    cmp = {g: (panel[g], round(pts_now[g]["x"] - 100, 1)) for g in panel if g in pts_now}
+    bad = {g: v for g, v in cmp.items() if abs(v[0] - v[1]) > 0.051}
+    ok(f"象限面板的「強弱」＝即時續算的那一點（{len(cmp) - len(bad)}/{len(cmp)} 個族群對得上）",
+       len(cmp) >= 3 and not bad, bad or list(cmp.items())[:4])
+    ok("而且這一輪真的有族群「今天推的那一段」≥ 0.06 點出現在面板上（讀持平基準的話會對不上）",
+       any(g in cmp and abs(td) >= 0.06 for g, td in top_td.items()), top_td)
+
     # ---------------------------------------------------------- ③ 那條「上一個收盤 → 現在」真的畫出來了
     seg = pg.evaluate("() => window.App.rotLiveSeg()")
     lens = [s["px"] for s in (seg or []) if s.get("px") is not None]
@@ -13782,17 +13817,23 @@ def t_rot_live(pg, base):
     click(pg, "#rotLiveBtn", 500)
     _rlv_wait(pg)
     ok("為了驗互斥，先把即時重新打開", pg.evaluate("() => window.App.rotLive().on"))
-    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]');
+    # ★ 2026-09-24 修（原本這條一直紅：「滑鼠真的把時間軸拖動了（30 → 30）」）：
+    #   D1 把時間軸改成雙把手的 spanBar 之後，`<input>` 本身是 `pointer-events:none`，
+    #   **只有滑塊（thumb）接得到滑鼠**（index.html `.rbar .dual`）。舊寫法從軌道 5% 處按下去，
+    #   按到的是空氣，所以值永遠不變，連帶讓 ⑦ 那一段拿到「即時還開著」的狀態、按一下反而把它關掉。
+    #   真人是抓住右邊那顆青色滑塊往左拖 —— 這裡照做：算出 `input.hi` 滑塊中心的像素位置再拖。
+    box = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.hi');
         if (!i) return null; i.scrollIntoView({ block: 'center', behavior: 'instant' });
-        const r = i.getBoundingClientRect();
-        return { x: r.left, y: r.top + r.height / 2, w: r.width, v: +i.value }; }""")
+        const r = i.getBoundingClientRect(), mx = +i.max || 30, v = +i.value, TH = 13;
+        return { x: r.left, y: r.top + r.height / 2, w: r.width, v: v, max: mx,
+                 tx: r.left + TH / 2 + (r.width - TH) * v / mx }; }""")
     if ok("抓得到「看哪一天」那支拉Bar 的位置（要真的用滑鼠拖）", bool(box), box):
-        pg.mouse.move(box["x"] + box["w"] * 0.05, box["y"])
+        pg.mouse.move(box["tx"], box["y"])
         pg.mouse.down()
         pg.mouse.move(box["x"] + box["w"] * 0.45, box["y"], steps=12)
         pg.mouse.up()
         pg.wait_for_timeout(1200)
-        v1 = pg.evaluate("() => +document.querySelector('#rotBack input').value")
+        v1 = pg.evaluate("() => +document.querySelector('#rotBack input.hi').value")
         if ok(f"滑鼠真的把時間軸拖動了（{box['v']} → {v1}）", v1 != box["v"], {"前": box["v"], "後": v1}):
             ok("拖時間軸 → **自動退出即時**（和資金去向同一條互斥規矩）",
                pg.evaluate("() => !window.App.rotLive().on")

@@ -2639,7 +2639,11 @@
       if (liveOn) {
         const v = RLV.pt[r.gid];
         // 沒抓到報價的族群維持盤後位置（和時鐘上那些「沒有箭頭的點」一致，不要自己編一個數字）
-        if (v) return { ...r, stage: v.stage, rs: v.fx, mo: v.fy, was: STAGE[v.stage0] ? v.stage0 : null, moved: v.stage0 !== v.stage, isLive: true };
+        /* ★ 2026-09-24 修：rs／mo 原本讀 `v.fx／v.fy`（持平基準），那是**整天不會動的常數** ——
+           持平基準＝把族群報酬代成大盤報酬，①式的 (1+ret)/(1+mkt) 恆等於 1，跟報價無關。
+           結果即時模式下象限面板的「強弱／動能」一整天都不會變，而且和 `stage`（用現在那一點算的）
+           對不起來：可能出現「列在領先、強弱卻是 −0.2」。改讀現在那一點，和時鐘上畫的點同一個口徑。*/
+        if (v) return { ...r, stage: v.stage, rs: v.x, mo: v.y, was: STAGE[v.stage0] ? v.stage0 : null, moved: v.stage0 !== v.stage, isLive: true };
         return r;
       }
       if (frame > 0) {
@@ -8630,6 +8634,17 @@
         quoteAt: RLV.quoteAt, top: rlvTop(6) }),
       rotLiveToggle: () => rlvToggle(),
       rotLiveTick: () => rlvTick(),
+      /* 盤中巡檢（`.github/workflows/live-rotation-probe.yml`）讀的**唯一**窗口。
+         Andy 2026-09-24 問「盤中真的會即時更新輪動嗎」—— 容器打不到證交所，
+         只有 Actions 的 runner 打開線上網站、隔 2.5 分鐘讀兩次這一份，才答得出來。
+         ★ 唯讀、淺拷貝：巡檢拿到的東西改不回 RLV，這支**不准**有任何副作用。
+         `pts` 是續算出來的資料座標（強弱／動能），畫上去的那一點另外看 `_rotPts`。*/
+      rlvState: () => {
+        const pts = {};
+        Object.keys(RLV.pt).forEach(g => { const v = RLV.pt[g]; pts[g] = { x: v.x, y: v.y }; });
+        return { on: RLV.on, at: RLV.at, quoteAt: RLV.quoteAt, hit: RLV.hit, codes: RLV.codes,
+          reqs: RLV.reqs, err: RLV.err, cover: RLV.cover, pts };
+      },
       /* 那條「上一個收盤 → 現在」在**畫面上**有多長（像素）。
          驗「線真的畫出來了」只能量像素 —— 陣列裡有兩個點不代表使用者看得到一條線
          （極座標兩點可能落在同一個像素上）。*/

@@ -1,0 +1,74 @@
+name: 盤中巡檢（資金輪動即時）
+
+# 為什麼要有這條（2026-09-24）：
+# Andy 問「在盤中時，他真的有辦法達到即時功能？是會更新上面的輪動？」並說這題很重要。
+# `_uitest.py` 的「輪動時鐘即時」用的是假報價，只證明「給它報價畫面會動」；
+# 線上那一台在盤中到底拿不拿得到報價、每分鐘有沒有真的重算，只有打得到外面的 runner 驗得出來
+# （Claude 的容器連 miaozike.github.io 與 mis.twse 都打不開）。
+#
+# 做的事：Playwright 打開線上 #flow → 真的按「即時」→ 隔約 2.5 分鐘讀兩次
+# `App.rlvState()`／畫上去的點／排行 → 判定寫進摘要，JSON 與兩張時鐘截圖存成 artifact。
+#
+# ★ 三態原則（CLAUDE.md）：
+#   · 週末、休市 → 綠燈，摘要寫「今天不是交易日」（先看星期、再看證交所 openapi 休市表，
+#     最後以報價回應裡的日期為準 —— 不用執行當下的日期當交易日）
+#   · 手動在盤後按 → 只判「抓不抓得到報價」，報價時間與點位移列出來但不判紅
+#   · 盤中抓不到報價、或兩次之間點完全沒動 → 紅燈
+# ★ 不 commit 任何東西：巡檢結果只放摘要與 artifact，不跟每日管線搶 commit。
+#
+# 時間：台北 10:00 與 12:30（週一～五）。GitHub 的排程常常晚 5～30 分鐘，
+# 12:30 那一輪留了 60 分鐘的緩衝才碰到 13:30 收盤；真的晚到收盤後，巡檢會自己判成「不是盤中」而不是紅燈。
+
+on:
+  schedule:
+    - cron: "0 2 * * 1-5"      # 台北 10:00
+    - cron: "30 4 * * 1-5"     # 台北 12:30
+  workflow_dispatch:
+    inputs:
+      wait:
+        description: "兩次快照之間等幾秒（預設 150＝頁面自己跑兩輪）"
+        required: false
+        default: "150"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-rotation-probe
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: scripts
+          sparse-checkout-cone-mode: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安裝 Playwright（只要 Chromium）
+        run: |
+          pip install --quiet playwright
+          python -m playwright install --with-deps chromium
+
+      - name: 打開線上網站、按「即時」、隔 2.5 分鐘讀兩次
+        env:
+          PYTHONIOENCODING: utf-8
+          # 輸入值走環境變數、不直接內插進指令（避免把輸入當成 shell 執行）；argparse 只收整數
+          WAIT: ${{ github.event.inputs.wait || '150' }}
+        run: |
+          python scripts/live_rotation_probe.py --wait "$WAIT" --out probe-out/live_rotation.json
+
+      - name: 存巡檢結果（JSON ＋ 兩張時鐘截圖）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-rotation-probe-${{ github.run_id }}
+          path: probe-out/
+          if-no-files-found: ignore
+          retention-days: 14
