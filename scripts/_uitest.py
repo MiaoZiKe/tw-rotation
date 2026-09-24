@@ -10849,6 +10849,10 @@ SECTIONS = {
     "UI精修0923":          lambda pg, b, base, code: t_ui_polish(pg, b, base, code),
     # ★ 2026-09-23：輪動時鐘四個象限展開面板的排版（Andy 回報「裡面的內容跑掉」）。
     "輪動象限面板":        lambda pg, b, base, code: t_rot_stage_panel(pg, base),
+    # ★ 2026-09-24 設計系統 v2（docs/design_system_v2.md）：第 1／2 批（卡片、間距、字級、膠囊按鈕、圖表字級下限）
+    #   與第 4 批（三張熱力圖的 7 格離散色階、2px 間隙、標籤分三級、圖例、提示框、分組／顏色下拉）。
+    "設計系統v2":          lambda pg, b, base, code: t_ds2(pg, base),
+    "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -22316,6 +22320,335 @@ def t_rot_stage_panel(pg, base):
                all(x["parts"] >= 2 for x in r["rows"]), r["rows"][:2])
             pg.click(sel); pg.wait_for_timeout(300)
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 設計系統 v2（第 1／2 批）
+# ★ 2026-09-24 規格：docs/design_system_v2.md §2.1。Andy：「我希望跟他們一樣規格…將UI大改，需要美化他」。
+#   這一段驗的是**量出來的尺寸真的上了畫面**（getComputedStyle／getBoundingClientRect），
+#   不是驗「CSS 裡有寫」。範圍只有桌機（≥821px）—— 最後一組驗手機一個數字都沒被動到。
+DS2_CSS = r"""() => {
+  const cs = (e) => e ? getComputedStyle(e) : null;
+  const card = document.querySelector('#ovHeatCard'); const c = cs(card);
+  const kpi = document.querySelector('#hero .card.tight'); const k = cs(kpi);
+  const grid = document.querySelector('#v-overview > .grid'); const g = cs(grid);
+  const cards = [...document.querySelectorAll('#v-overview > .grid > .card')].map(x => x.getBoundingClientRect());
+  const btn = document.querySelector('#heatZoom'); const bs = cs(btn);
+  const how = document.querySelector('#ovHeatCard .howbtn'); const hs = cs(how);
+  const tab = document.querySelector('.tab'); const h3 = document.querySelector('#ovHeatCard h3');
+  const sm = document.querySelector('#ovHeatCard h3 small');
+  return {
+    cardR: c && c.borderTopLeftRadius, cardPad: c && c.paddingTop + ' ' + c.paddingLeft, cardBgImg: c && c.backgroundImage,
+    cardBg: c && c.backgroundColor, cardSh: c && c.boxShadow,
+    kpiR: k && k.borderTopLeftRadius, kpiPad: k && k.paddingTop,
+    gap: g && g.columnGap, gridMt: g && g.marginTop,
+    gapX: cards.length >= 2 ? Math.round((cards[1].left - cards[0].right) * 10) / 10 : null,
+    mainPad: cs(document.querySelector('main')).paddingTop + ' ' + cs(document.querySelector('main')).paddingLeft,
+    bodyFs: cs(document.body).fontSize, bodyLh: cs(document.body).lineHeight,
+    h3Fs: h3 && cs(h3).fontSize, smallFs: sm && cs(sm).fontSize,
+    btnR: bs && bs.borderTopLeftRadius, btnH: btn && Math.round(btn.getBoundingClientRect().height), btnFs: bs && bs.fontSize,
+    howH: how && Math.round(how.getBoundingClientRect().height), howR: hs && hs.borderTopLeftRadius,
+    tabR: tab && cs(tab).borderTopLeftRadius,
+    panel: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim(),
+    docW: document.documentElement.scrollWidth, winW: innerWidth };
+}"""
+
+
+def t_ds2(pg, base):
+    """設計系統 v2 第 1／2 批：卡片、間距、字級、膠囊按鈕、圖表字級下限。"""
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        r = pg.evaluate(DS2_CSS)
+        ok(f"[{th}] 大卡片圓角 12 → 24px（參考截圖擬合 21.9）", r["cardR"] == "24px", r)
+        ok(f"[{th}] 卡片內距 16/18 → 20px", r["cardPad"] == "20px 20px", r)
+        ok(f"[{th}] 卡片改成平塗（不再是上下漸層），底色＝--panel", r["cardBgImg"] == "none", r)
+        ok(f"[{th}] KPI 小卡是中型容器：圓角 16、內距 16", r["kpiR"] == "16px" and r["kpiPad"] == "16px", r)
+        ok(f"[{th}] 卡片之間 16 → 24px（CSS 的 gap）", r["gap"] == "24px", r)
+        ok(f"[{th}] 卡片之間**實際量到**的距離是 24px（兩張卡片的邊框之間）", r["gapX"] == 24, r)
+        ok(f"[{th}] KPI 列 → 熱力圖那一列的上邊距也是 24（原本行內寫死 16）", r["gridMt"] == "24px", r)
+        ok(f"[{th}] 頁面外距 20/22 → 24/24", r["mainPad"] == "24px 24px", r)
+        ok(f"[{th}] 內文 15.5 → 14px、行高 1.7（23.8px）", r["bodyFs"] == "14px" and r["bodyLh"] == "23.8px", r)
+        ok(f"[{th}] 卡片標題 16.5 → 16px、標題旁的小字 12.5 → 13px", r["h3Fs"] == "16px" and r["smallFs"] == "13px", r)
+        ok(f"[{th}] 按鈕一律膠囊（圓角＝半高）", r["btnR"] == "999px" and r["howR"] == "999px" and r["tabR"] == "999px", r)
+        ok(f"[{th}] 工具列按鈕高 28、字 12（守觸控下限；參考站 26）", r["btnH"] == 28 and r["btnFs"] == "12px" and r["howH"] == 28, r)
+        ok(f"[{th}] 1440px 沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+        if th == "light":
+            ok("[light] 淺色卡片無陰影（參考截圖卡片外圍像素與頁底無差）", r["cardSh"] == "none", r)
+        else:
+            ok("[dark] 深色卡片只留內高光（深底上的外陰影本來就看不到）",
+               "inset" in (r["cardSh"] or "") and "32px" not in (r["cardSh"] or ""), r)
+    # ---- 圖表字級下限：這一批升到 12 的那幾張（輪動時鐘、資金去向兩張、季節性）----
+    FS = r"""(ids) => { const out = {};
+      ids.forEach(id => { const el = document.getElementById(id); const c = el && window.echarts && echarts.getInstanceByDom(el);
+        if (!c) { out[id] = null; return; }
+        const small = []; const walk = (o, path) => { if (!o || typeof o !== 'object') return;
+          if (Array.isArray(o)) { o.slice(0, 400).forEach((x, i) => walk(x, path)); return; }
+          for (const k of Object.keys(o)) { const v = o[k];
+            if (k === 'fontSize' && typeof v === 'number' && v < 12) small.push(path + '.' + k + '=' + v);
+            else if (v && typeof v === 'object' && k !== 'data') walk(v, path + '.' + k); } };
+        walk(c.getOption(), id); out[id] = small.slice(0, 6); }); return out; }"""
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+    for hash_, ids in (("#overview", ["rotClockMini", "ovFlow"]), ("#flow", ["rotClock", "sankey"]), ("#season", ["seasonHeat"])):
+        pg.goto(f"{base}{hash_}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        got = pg.evaluate(FS, ids)
+        for i in ids:
+            if got.get(i) is None:
+                notes.append(f"設計系統v2：{hash_} 找不到圖 #{i}（沒資料時會這樣），字級沒量到")
+                continue
+            ok(f"[{hash_} #{i}] 圖表裡沒有任何一個字小於 12px（11～11.5 升到 12）", not got[i], got[i])
+    # ---- 手機一個數字都沒動（這一批只改桌機）----
+    pg.set_viewport_size({"width": 390, "height": 844})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    m = pg.evaluate("""() => { const c = document.querySelector('#ovHeatCard'); const s = getComputedStyle(c);
+        const mn = getComputedStyle(document.querySelector('main'));
+        return { r: s.borderTopLeftRadius, pad: s.paddingTop + ' ' + s.paddingLeft, bodyFs: getComputedStyle(document.body).fontSize,
+                 lh: getComputedStyle(document.body).lineHeight, main: mn.paddingLeft,
+                 gap: getComputedStyle(document.querySelector('#v-overview > .grid')).columnGap }; }""")
+    ok("[390px] 手機的卡片、內距、字級、行高、頁面外距、卡片間距都沒被這一批動到",
+       m == {"r": "12px", "pad": "16px 18px", "bodyFs": "15px", "lh": "24px", "main": "14px", "gap": "16px"}, m)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 熱力圖 v2（第 4 批）
+# ★ 2026-09-24 規格：docs/design_system_v2.md §3.1。三張 treemap：總覽 #heat、熱力圖頁 #indTree、題材 #themeMap。
+#   六條規格斷言（⑤ 對比、⑥ 圖例聚焦都做了）＋ 兩個新下拉（分組／顏色）真的改了畫面。
+HM_READ = r"""(id) => {
+  const el = document.getElementById(id); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const s = getComputedStyle(document.documentElement); const tok = (n) => s.getPropertyValue(n).trim().toLowerCase();
+  const pal7 = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(tok);
+  const pal5 = ['--hm-v1','--hm-v2','--hm-v3','--hm-v4','--hm-v5'].map(tok); const na = tok('--hm-na');
+  const tree = c.getModel().getSeriesByIndex(0).getData().tree; const leaves = []; const byP = {};
+  const all = [];
+  tree.root.eachNode(n => { if (n.children && n.children.length) return; const l = n.getLayout(); if (!l) return;
+    if (l.width > 0 && l.height > 0) all.push({ x: l.x, y: l.y, w: l.width, h: l.height, p: n.parentNode ? n.parentNode.dataIndex : -1 });
+    if (!l.isInView) return;
+    const raw = n.getModel().option || {}; const key = raw.gid || raw.id || raw.cid || raw.name;
+    const st = n.getVisual('style') || {};
+    const it = { key, name: n.name, x: l.x, y: l.y, w: l.width, h: l.height, p: n.parentNode ? n.parentNode.dataIndex : -1,
+      fill: String(raw.itemStyle && raw.itemStyle.color || st.fill || '').toLowerCase(), bin: raw.bin,
+      op: raw.itemStyle && raw.itemStyle.opacity, lab: (el._hmLab || {})[key] || null };
+    leaves.push(it); (byP[it.p] = byP[it.p] || []).push(it); });
+  // 間隙：每一格只量「右邊最近」與「下面最近」那一個鄰居（同一個父節點裡），
+  // 被 visibleMin 藏起來的小方塊也算進去 —— 不然兩格中間夾一塊沒畫的，會量成 10px 的假間隙。
+  const gaps = []; const allP = {}; all.forEach(it => (allP[it.p] = allP[it.p] || []).push(it));
+  Object.values(allP).forEach(a => a.forEach(p => { let bx = null, by = null;
+    a.forEach(q => { if (p === q) return;
+      const dx = q.x - (p.x + p.w), ov = Math.min(p.y + p.h, q.y + q.h) - Math.max(p.y, q.y);
+      if (dx > -0.5 && ov > 4 && (bx === null || dx < bx)) bx = dx;
+      const dy = q.y - (p.y + p.h), ox = Math.min(p.x + p.w, q.x + q.w) - Math.max(p.x, q.x);
+      if (dy > -0.5 && ox > 4 && (by === null || dy < by)) by = dy; });
+    if (bx !== null && bx < 12) gaps.push(bx); if (by !== null && by < 12) gaps.push(by); }));
+  const card = el.closest('.card'); const lg = card && card.querySelector('.hmlegend');
+  const cells = lg ? [...lg.querySelectorAll('.hmcell')].map(b => { const r = b.getBoundingClientRect();
+    return { w: Math.round(r.width), bg: getComputedStyle(b).backgroundColor, txt: b.textContent }; }) : [];
+  const opt = c.getOption(); const se = opt.series[0];
+  return { n: leaves.length, leaves, gaps, pal7, pal5, na, cells, legendTitle: lg ? (lg.querySelector('.hmttl') || {}).textContent : null,
+    lgRight: lg ? lg.getBoundingClientRect().right : null, cardRight: card ? card.getBoundingClientRect().right : null,
+    radius: se.itemStyle && se.itemStyle.borderRadius, fs: se.label && se.label.fontSize,
+    tipBg: (opt.tooltip && opt.tooltip[0] && opt.tooltip[0].backgroundColor) || '',
+    nested: !!(se.data && se.data[0] && se.data[0].children), docW: document.documentElement.scrollWidth, winW: innerWidth };
+}"""
+
+
+def _lum(hexs):
+    h = hexs.lstrip("#")
+    if len(h) == 3:
+        h = "".join(c * 2 for c in h)
+    rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    f = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
+    return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]
+
+
+def _cr_white(hexs):
+    return (1.05) / (_lum(hexs) + 0.05)
+
+
+def _hm_check(tag, r, kind):
+    """一張熱力圖的共通斷言（規格 ①～⑤）。kind＝7 格（chg/flow）或 5 格（heat）。"""
+    if not ok(f"[{tag}] 熱力圖畫得出來、讀得到方塊", r and r["n"] > 0, r and r.get("n")):
+        return
+    gaps = r["gaps"]
+    ok(f"[{tag}] ① 相鄰兩個族群方塊的間隙實測 2±1px（{len(gaps)} 對）",
+       gaps and all(1 <= g <= 3 for g in gaps), sorted(set(round(g, 1) for g in gaps))[:8])
+    ncell = 5 if kind == "heat" else 7
+    ok(f"[{tag}] ② 圖例存在、{ncell} 格、每格寬 ≥ 36px",
+       len(r["cells"]) == ncell and all(c["w"] >= 36 for c in r["cells"]), r["cells"])
+    pal = r["pal5"] if kind == "heat" else r["pal7"]
+    bad = [lf["name"] + " " + lf["fill"] for lf in r["leaves"] if lf["fill"] not in pal + [r["na"]]]
+    ok(f"[{tag}] ③ 每一格方塊的填色都屬於 {ncell} 格之一（不再是連續色）", not bad, bad[:5])
+    used = {lf["fill"] for lf in r["leaves"]}
+    ok(f"[{tag}] ③ 畫面上真的用到了不只一級（{len(used)} 種）", len(used) >= 2, sorted(used))
+    tiny = [lf for lf in r["leaves"] if lf["w"] < 48 or lf["h"] < 24]
+    bad4 = [(lf["name"], round(lf["w"]), round(lf["h"]), lf["lab"]) for lf in tiny if not lf["lab"] or lf["lab"]["text"]]
+    ok(f"[{tag}] ④ 寬 < 48 或高 < 24 的方塊（{len(tiny)} 塊）一個字都不寫", not bad4, bad4[:5])
+    two = [lf for lf in r["leaves"] if lf["lab"] and lf["lab"]["mode"] == 2]
+    bad4b = [(lf["name"], round(lf["w"]), round(lf["h"])) for lf in two if lf["h"] < 44]
+    ok(f"[{tag}] ④ 寫兩行的方塊（{len(two)} 塊）高度都 ≥ 44", two and not bad4b, bad4b[:5])
+    trunc = [lf["lab"]["text"] for lf in r["leaves"] if lf["lab"] and lf["lab"]["text"].endswith("…")]
+    ok(f"[{tag}] ④ 截斷的名稱至少留兩個字（不再有「M +」這種殘字）",
+       all(len(t) >= 3 for t in trunc), trunc[:6])
+    lowc = [(c, round(_cr_white(c), 2)) for c in pal if _cr_white(c) < 4.5]
+    ok(f"[{tag}] ⑤ 每一級色階上的白字對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
+    ok(f"[{tag}] 方塊圓角 3px、標籤 12px", r["radius"] == 3 and r["fs"] == 12, [r["radius"], r["fs"]])
+    ok(f"[{tag}] 提示框是半透明的（毛玻璃那一種，不是實心）", "rgba" in r["tipBg"] and ",.8" in r["tipBg"].replace(" ", ""), r["tipBg"])
+    ok(f"[{tag}] 圖例沒有跑出卡片右緣", r["lgRight"] is not None and r["lgRight"] <= r["cardRight"] + 0.5,
+       [r["lgRight"], r["cardRight"]])
+
+
+def _hm_focus(pg, tag, id_):
+    """⑥ 點圖例一格 → 其他級的方塊 opacity 變 0.25；再點一次還原。"""
+    r0 = pg.evaluate(HM_READ, id_)
+    bins = {}
+    for lf in r0["leaves"]:
+        bins[lf["bin"]] = bins.get(lf["bin"], 0) + 1
+    pick = max((b for b in bins if b is not None and b >= 0), key=lambda b: bins[b], default=None)
+    if pick is None:
+        ok(f"[{tag}] ⑥ 找得到一級可以點", False, bins)
+        return
+    lg = f"#{id_}Legend"
+    pg.evaluate("(s) => document.querySelector(s).scrollIntoView({block:'center'})", lg)
+    click(pg, f'{lg} .hmcell[data-bin="{pick}"]', 900)
+    r1 = pg.evaluate(HM_READ, id_)
+    on = [lf["op"] for lf in r1["leaves"] if lf["bin"] == pick]
+    off = [lf["op"] for lf in r1["leaves"] if lf["bin"] != pick]
+    ok(f"[{tag}] ⑥ 點圖例第 {pick} 級 → 這一級的方塊不透明、其他級退到 0.25",
+       on and all(o == 1 for o in on) and off and all(o == 0.25 for o in off), {"on": on[:4], "off": off[:4]})
+    ok(f"[{tag}] ⑥ 圖例上被點的那一格標成選中（aria-pressed）",
+       pg.evaluate("(s) => { const b = document.querySelector(s); return !!b && b.getAttribute('aria-pressed') === 'true'; }",
+                   f'{lg} .hmcell[data-bin="{pick}"]'))
+    click(pg, f'{lg} .hmcell[data-bin="{pick}"]', 900)
+    r2 = pg.evaluate(HM_READ, id_)
+    ok(f"[{tag}] ⑥ 再點一次還原：全部方塊回到不透明", all(lf["op"] == 1 for lf in r2["leaves"]),
+       [lf["op"] for lf in r2["leaves"]][:6])
+
+
+def t_heatmap_v2(pg, base):
+    """熱力圖 v2：三張 treemap 的 7 格離散色階、2px 間隙、圓角、標籤分三級、圖例、提示框、兩個新下拉。"""
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#overview", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.hmGroup');"
+                    " localStorage.removeItem('tw.themeColor'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        r = pg.evaluate(HM_READ, "heat")
+        _hm_check(f"{th} 總覽 #heat", r, "flow")
+        ok(f"[{th} 總覽 #heat] 圖例標題寫的是「資金流向 (pp)」（顏色依據講清楚）", r and r["legendTitle"] == "資金流向 (pp)",
+           r and r["legendTitle"])
+        # 間隙色＝卡片底：產業鏈節點的 borderColor 就是縫的顏色
+        gapc = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('heat'));
+            const o = c.getOption().series[0]; return { gap: o.itemStyle.borderColor,
+              panel: getComputedStyle(document.documentElement).getPropertyValue('--panel').trim() }; }""")
+        ok(f"[{th} 總覽 #heat] 方塊之間的縫是卡片底色（看起來是白縫／暗縫，不是黑框）",
+           gapc["gap"].lower() == gapc["panel"].lower(), gapc)
+        if th == "dark":
+            _hm_focus(pg, f"{th} 總覽 #heat", "heat")
+            # 產業鏈篩選切過去之後，圖例、標籤照樣在（下鑽不會把 v2 的東西弄丟）
+            chips = pg.evaluate("[...document.querySelectorAll('#heatChips button')].map(b => b.dataset.c).filter(Boolean)")
+            if chips:
+                click(pg, f'#heatChips button[data-c="{chips[0]}"]', 900)
+                r2 = pg.evaluate(HM_READ, "heat")
+                ok(f"[{th} 總覽 #heat] 切到單一產業鏈之後圖例還在、只有一條、方塊仍是 7 格色",
+                   r2 and len(r2["cells"]) == 7 and not r2["nested"]
+                   and pg.evaluate("document.querySelectorAll('#ovHeatCard .hmlegend').length") == 1
+                   and all(lf["fill"] in r2["pal7"] + [r2["na"]] for lf in r2["leaves"]), r2 and r2["cells"])
+                ok(f"[{th} 總覽 #heat] 重畫幾次連結列都只有一條（圖例插在圖與連結列之間，不會多長出一條）",
+                   pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length") == 1,
+                   pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length"))
+                click(pg, '#heatChips button[data-c=""]', 900)
+        # ---- 熱力圖頁 ----
+        pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        r = pg.evaluate(HM_READ, "indTree")
+        _hm_check(f"{th} 熱力圖頁 #indTree", r, "chg")
+        ok(f"[{th} #indTree] 圖例標題「漲跌幅 (%)」、七格文字照規格", r and r["legendTitle"] == "漲跌幅 (%)"
+           and [c["txt"] for c in r["cells"]] == ["<-3", "-3~-1", "-1~0", "0", "0~1", "1~3", ">3"], r and r["cells"])
+        # 紅漲綠跌：漲最多那一格要是紅色系、跌最多那一格要是綠色系（R 通道 vs G 通道）
+        pal = r["pal7"] if r else []
+        if pal:
+            up, dn = pal[6].lstrip("#"), pal[0].lstrip("#")
+            ok(f"[{th} #indTree] 紅漲綠跌：「>3」是紅、「<-3」是綠",
+               int(up[0:2], 16) > int(up[2:4], 16) and int(dn[2:4], 16) > int(dn[0:2], 16), [pal[0], pal[6]])
+        # 每一個標籤都指到它自己那一格的真值：兩行標籤的第二行 == 該族群的漲跌幅
+        lab = pg.evaluate("""() => { const el = document.getElementById('indTree'); const c = echarts.getInstanceByDom(el);
+            const out = []; c.getModel().getSeriesByIndex(0).getData().tree.root.eachNode(n => {
+              if (n.children && n.children.length) return; const o = n.getModel().option || {}; const m = (el._hmLab || {})[o.gid];
+              if (m && m.mode === 2) out.push({ t: m.text, chg: o.chg }); }); return out; }""")
+        badl = [x for x in lab if x["t"].split("\n")[-1] != pg.evaluate("(v) => window.App.fmt.pct(v)", x["chg"])]
+        ok(f"[{th} #indTree] 兩行標籤的數值就是那一格自己的漲跌幅（{len(lab)} 塊）", lab and not badl, badl[:4])
+        # 產業鏈小標真的有字（v2 把根節點那條空白拿掉之後，小標要自己寫 formatter，沒寫就會變空白）
+        up = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('indTree'));
+            const o = c.getOption().series[0]; const f = o.upperLabel && o.upperLabel.formatter;
+            return { show: o.upperLabel && o.upperLabel.show, name: typeof f === 'function' ? f({ name: '半導體' }) : null,
+                     root: o.levels && o.levels[0] && o.levels[0].upperLabel && o.levels[0].upperLabel.show }; }""")
+        ok(f"[{th} #indTree] 產業鏈小標有字、根節點不留空白小標", up["show"] and up["name"] == "半導體" and up["root"] is False, up)
+        if th == "dark":
+            _hm_focus(pg, f"{th} #indTree", "indTree")
+            # 「分組」下拉：產業鏈 → 不分組，畫面真的換成平鋪一層，而且記住
+            pg.select_option("#indTreeGroup", "flat"); pg.wait_for_timeout(1400)
+            rf = pg.evaluate(HM_READ, "indTree")
+            ok("[#indTree] 分組切到「不分組」→ 真的平鋪成一層（沒有產業鏈那一層）",
+               rf and not rf["nested"] and rf["n"] >= r["n"] - 2, rf and [rf["nested"], rf["n"], r["n"]])
+            ok("[#indTree] 「不分組」有記在 localStorage", pg.evaluate("() => { try { return localStorage.getItem('tw.hmGroup'); } catch (e) { return null; } }") == "flat")
+            _hm_check("dark #indTree 不分組", rf, "chg")
+            pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+            ok("[#indTree] 重新整理之後還是「不分組」", pg.evaluate("() => document.getElementById('indTreeGroup').value") == "flat")
+            pg.select_option("#indTreeGroup", "chain"); pg.wait_for_timeout(1400)
+            ok("[#indTree] 切回「產業鏈」又分組了", (pg.evaluate(HM_READ, "indTree") or {}).get("nested") is True)
+            ok("[#indTree] 日期膠囊顯示這份資料的交易日（MM/DD）",
+               bool(pg.evaluate("() => /\\d\\d\\/\\d\\d/.test((document.querySelector('#indHeat .hmctl.date') || {}).textContent || '')")))
+        # ---- 題材 ----
+        pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
+        r = pg.evaluate(HM_READ, "themeMap")
+        _hm_check(f"{th} 題材 #themeMap", r, "heat")
+        ok(f"[{th} #themeMap] 預設顏色＝熱度（紫色 5 格，不再用紅 —— 紅在這個站是「漲」）",
+           r and r["legendTitle"] == "熱度" and len(r["cells"]) == 5, r and r["legendTitle"])
+        if th == "dark":
+            pg.select_option("#themeColorSel", "chg"); pg.wait_for_timeout(1400)
+            rc = pg.evaluate(HM_READ, "themeMap")
+            ok("[#themeMap] 顏色切到「平均漲跌」→ 換成 7 格紅綠、圖例跟著換",
+               rc and len(rc["cells"]) == 7 and rc["legendTitle"] == "漲跌幅 (%)"
+               and all(lf["fill"] in rc["pal7"] + [rc["na"]] for lf in rc["leaves"]), rc and rc["cells"])
+            vals = pg.evaluate("""() => { const el = document.getElementById('themeMap'); return Object.values(el._hmLab || {})
+                .filter(m => m.mode === 2).map(m => m.text.split('\\n')[1]); }""")
+            ok("[#themeMap] 平均漲跌模式下，兩行標籤的第二行是漲跌幅（不是熱度）",
+               vals and all(v.endswith("%") for v in vals), vals[:5])
+            ok("[#themeMap] 題材細節沒有因為換顏色被重建（只重畫這張圖）",
+               pg.evaluate("() => location.hash").startswith("#heatmap"))
+            pg.select_option("#themeColorSel", "heat"); pg.wait_for_timeout(1400)
+            ok("[#themeMap] 切回「熱度」→ 紫色 5 格", len((pg.evaluate(HM_READ, "themeMap") or {}).get("cells") or []) == 5)
+            _hm_focus(pg, f"{th} #themeMap", "themeMap")
+    # ---- 窄畫面：800px 與 390px，圖例不准縮字、不准撐出橫向捲軸 ----
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 900})
+        pg.goto("about:blank")   # 同一個網址只換寬度時 goto 不會重新載入，先跳開才是真的在這個寬度重畫
+        pg.goto(f"{base}#heatmap", wait_until="networkidle")
+        # 手機分段導覽會記住上次翻到哪一段（tw.mia.heatmap.*）；前面的「題材」段落會把它留在「題材熱力」，
+        # 那時全市場熱力圖是收起來的（寬高 0）—— 清掉再重載，才是量「第一段＝全市場熱力圖」
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.mia.heatmap'))"
+                    ".forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        pg.evaluate("document.getElementById('indTree') && document.getElementById('indTree').scrollIntoView({block:'center'})")
+        pg.wait_for_timeout(600)
+        r = pg.evaluate(HM_READ, "indTree")
+        dbg = pg.evaluate("""() => { const el = document.getElementById('indTree'); if (!el) return 'no-el';
+            const r = el.getBoundingClientRect(); const c = window.echarts && echarts.getInstanceByDom(el);
+            return { w: r.width, h: r.height, inst: !!c, cw: c && c.getWidth(), ch: c && c.getHeight(), hash: location.hash,
+                     view: (document.querySelector('.view.on') || {}).id, cls: document.body.className }; }""")
+        if not ok(f"[{w}px #indTree] 熱力圖畫得出來", r and r["n"] > 0, [r and r.get("n"), dbg]):
+            continue
+        fs = pg.evaluate("() => [...document.querySelectorAll('#indHeat .hmcell')].map(b => getComputedStyle(b).fontSize)")
+        ok(f"[{w}px #indTree] 圖例每格 ≥ 36px、字不縮（12px）",
+           all(c["w"] >= 36 for c in r["cells"]) and fs and all(f == "12px" for f in fs), [r["cells"], fs])
+        ok(f"[{w}px #indTree] 圖例沒有跑出卡片、整頁沒有橫向捲軸",
+           r["lgRight"] <= r["cardRight"] + 0.5 and r["docW"] <= r["winW"] + 1, [r["lgRight"], r["cardRight"], r["docW"], r["winW"]])
+        tiny = [lf for lf in r["leaves"] if (lf["w"] < 48 or lf["h"] < 24) and lf["lab"] and lf["lab"]["text"]]
+        ok(f"[{w}px #indTree] 窄畫面上的小方塊也一樣不寫殘字", not tiny, [(t["name"], t["lab"]) for t in tiny][:4])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.hmGroup'); localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
 
 
 if __name__ == "__main__":

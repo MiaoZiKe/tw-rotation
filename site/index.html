@@ -51,6 +51,29 @@
   --glow:0 0 0 1px rgba(62,224,255,.25), 0 0 24px -6px rgba(62,224,255,.45);
   --shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 12px 32px -20px rgba(0,0,0,.9);
   --r:12px; --side-w:360px;
+  /* ================ 2026-09-24 設計系統 v2（docs/design_system_v2.md §2.1）================
+     間距 9 階（接續 ui_polish_spec 的 8 階，多一個 20＝卡片內距）、圓角 4 階＋膠囊、字級 6 階。
+     量自 Andy 給的三張參考截圖（99／100／101.png），數字與出處都在規格書裡。
+     ⚠ `--r:12px` 故意不動：`.banner`／`.themehint` 這些小元件還在吃它，
+       大卡片改吃 `--r-lg`，不要把 `--r` 直接改成 24（小元件會一起變成大圓角）。
+     ⚠ 這一組 token 兩個主題共用；會用到它們的版面規則只在桌機（≥821px）生效，
+       手機那一套（2026-09-23／24 兩版手機改版）這一批一個數字都沒動。 */
+  --s1:4px; --s2:6px; --s3:8px; --s4:12px; --s5:16px; --s5h:20px; --s6:24px; --s7:32px; --s8:48px;
+  --r-xs:3px; --r-sm:10px; --r-md:16px; --r-lg:24px; --r-pill:999px;
+  --fs-h1:22px; --fs-h2:18px; --fs-h3:16px; --fs-body:14px; --fs-sm:13px; --fs-min:12px;
+  --lh-body:1.7; --lh-tight:1.35;
+  --gap-card:16px;            /* 卡片之間：手機 16（不動），桌機在下面的 @media 換成 24 */
+  --card-sh:0 1px 0 rgba(255,255,255,.03) inset;                    /* 深色：只留內高光（§2.2） */
+  /* ---- 熱力圖 7 格離散色階（§3.1-3）：紅漲綠跌，漲跌越小越暗、越大越亮；0 是中性灰 ----
+     色相跟 --rise(349°)／--fall(158°) 同一個，不是抄參考站的那組色。
+     每一格上的 12px 粗體白字對比（深色主題）：4.79／7.12／10.25／7.84／11.71／7.87／5.36，全部 ≥ 4.5。 */
+  --hm-n3:#078353; --hm-n2:#066542; --hm-n1:#0D4A35; --hm-0:#495265;
+  --hm-p1:#6B1927; --hm-p2:#A01831; --hm-p3:#D31239; --hm-na:#2A3350;
+  /* 題材熱力的 5 格單一色相（--violet 247°）：熱度越高越亮越飽和。
+     「熱＝紅」在這個站會跟「漲」撞在一起，所以題材熱度改用紫（§3.1-4）。白字對比 13.0／9.84／7.51／5.91／4.71。 */
+  --hm-v1:#322e46; --hm-v2:#433a7c; --hm-v3:#503fbe; --hm-v4:#604dd8; --hm-v5:#705deb;
+  /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
+  --tip-bg:rgba(20,30,54,.88); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
   /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
      為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
@@ -339,6 +362,15 @@
   --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
   --focus:#0a5f7d;    /* 淺色的焦點環：對白底 7.13、對 --bg 6.53 */
   --row-hover:#eef2fa;/* 對白底實測 1.12，跟深色那組同一個強度 */
+  /* ---- 設計系統 v2（2026-09-24）淺色那一組 ----
+     卡片：參考截圖量到「平塗、無陰影、只靠底色差分層」（σ＝0、外圍像素與頁底無差）。 */
+  --card-sh:none;
+  /* 熱力圖 7 格（淺色）白字對比：4.73／7.03／11.03／9.04／12.39／8.40／5.64。無資料格配深字（12.5:1）。 */
+  --hm-n3:#068456; --hm-n2:#056642; --hm-n1:#084530; --hm-0:#424957;
+  --hm-p1:#661522; --hm-p2:#99152D; --hm-p3:#CC1439; --hm-na:#E7E5E4;
+  --hm-v1:#2f2c40; --hm-v2:#413973; --hm-v3:#4e3fb3; --hm-v4:#5f4cd5; --hm-v5:#705de7;
+  /* 提示框：白 86%（參考站是 70%，但 70% 疊在最深的方塊上次要字只剩 3.71:1；86% 才有 5.22） */
+  --tip-bg:rgba(255,255,255,.86); --tip-line:transparent; --tip-sh:0 8px 24px -8px rgba(40,35,25,.25);
 }
 /* ================ 剖析圖的兩種模式（art-director 2026-09-22，Andy 拍板）================
    Andy 給了兩張參考圖：亮色系「閱讀」（暖白紙底、低飽和粉彩、深灰細引線、白色圓角卡片）
@@ -1182,7 +1214,7 @@ tr.whyrow>td{padding:2px 10px 10px;border-top:0}
 .hero{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
 
 /* ---------------- 大盤三張圖（加權 / 櫃買 / 台指期） ---------------- */
-#m3{margin-bottom:16px}
+#m3{margin-bottom:var(--gap-card)}
 .m3-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .m3-bar .note{flex:1;min-width:200px}
 .seg.tiny button{padding:3px 8px;font-size:12.5px}
@@ -1233,6 +1265,10 @@ a.lk-group{color:var(--ink-2);font-weight:500}
 a.lk-group i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--ink-3));box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--ink-3)) 25%,transparent);flex:none}
 a.lk-group:hover{color:var(--c,var(--cyan));border-bottom-color:var(--c,var(--cyan))}
 a.lk-theme{color:#c3baff;font-weight:500} a.lk-theme::before{content:"#";opacity:.6;margin-right:-3px}
+/* ★ 2026-09-24（設計系統 v2 第 1 批順手抓到的）：#c3baff 是深色主題的淡紫，印在淺色主題的白卡片上只有 1.78:1。
+   以前卡片是漸層底，「淺色主題」那段對比掃描量不到漸層背景所以一直沒報；卡片改平塗之後就量到了。
+   淺色主題改吃 --violet（#5f4ddb，對白 5.88）。.pill.violet 是同一個寫死值，一起修。*/
+:root[data-theme="light"] a.lk-theme,:root[data-theme="light"] .pill.violet{color:var(--violet)}
 a.lk-chain{color:var(--cyan);font-weight:600}
 a.lk-back{color:var(--ink-3);font-size:13px} a.lk-back:hover{color:var(--ink)}
 a.lk.sm{font-size:12px;font-weight:500}
@@ -2807,6 +2843,88 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .swipetip[data-pos]::after{content:' → 第 ' attr(data-pos) ' 張 / 共 ' attr(data-of) ' 張';opacity:.85}
 }
 
+/* ==================================================================================
+   ★ 2026-09-24 設計系統 v2 第 1／2 批（規格：docs/design_system_v2.md §2.1、⑤）
+   Andy：「我希望跟他們一樣規格，並且他們方塊的間隔也調整的不錯…將UI大改，需要美化他」。
+   每一個數字都是從他給的三張參考截圖量的（規格書 ① 有出處與座標），不是憑感覺。
+
+   範圍：**只有桌機（≥821px）**。手機在 2026-09-23／24 剛做完兩版專屬改版（手機一屏、底部分頁），
+   那一套的內距、字級、按鈕高度是另外量過、另外驗過的（驗收段「手機」「手機一屏」），
+   這一批不去動它 —— 參考截圖三張都是桌機，拿桌機的尺寸去套手機沒有依據。
+   放在樣式表**最後面**，是為了蓋得過前面散在各處的同名規則。
+   ================================================================================== */
+@media (min-width:821px){
+  :root{ --gap-card:24px; }                         /* 卡片之間 16 → 24（101 圖 x=600 直掃，兩條邊線之間 24px） */
+  /* ---- 第 1 批：卡片、格線、頁面外距 ---- */
+  main{padding:24px 24px 80px}                      /* 20/22 → 24/24 */
+  .card{background:var(--panel);                    /* 漸層 → 平塗（101 圖卡片 σ＝0） */
+    border-radius:var(--r-lg);                      /* 12 → 24（101 圖擬合 21.9） */
+    padding:var(--s5h);                             /* 16/18 → 20（101 圖 卡片邊 x=18 → 熱力圖 x=38） */
+    box-shadow:var(--card-sh)}                      /* 深色只留內高光、淺色無陰影 */
+  .card.tight{padding:var(--s5);border-radius:var(--r-md)}   /* 12/14 → 16；KPI 小卡是「中型容器」，圓角 16 不是 24 */
+  .grid{gap:var(--gap-card)}
+  /* 中型容器 16、小元件 10（規格 §2.1 四階圓角：一律 12 的結果是分不出哪個是容器、哪個是按鈕）*/
+  .tile,.dlv,.hpanel,.gpcard,.howtxt{border-radius:var(--r-md)}
+  .search input,.sugg{border-radius:var(--r-sm)}
+  /* ---- 第 2 批：字級（17／16／14／13／12，比原本 20／16.5／15.5／12.5 整體小一號，但行高拉到 1.7）---- */
+  body{font-size:var(--fs-body);line-height:var(--lh-body)}         /* 15.5/1.6 → 14/1.7 */
+  h2{font-size:var(--fs-h2)}                                          /* 20 → 18 */
+  h3{font-size:var(--fs-h3)}                                          /* 16.5 → 16 */
+  .card h3 small,h3 small{font-size:var(--fs-sm);line-height:20px}    /* 12.5 → 13 */
+  .card .sub{font-size:var(--fs-sm);line-height:20px}                 /* 13/20.8 → 13/20 */
+  /* ---- 第 2 批：按鈕一律膠囊（參考站的主按鈕、下拉、日期、圖例全部量到圓角＝半高）---- */
+  .btn{border-radius:var(--r-pill);font-size:var(--fs-sm);font-weight:600;
+    min-height:36px;padding:0 16px;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .btn.small{font-size:var(--fs-min);min-height:28px;padding:0 12px}   /* 工具列 28（參考站 26，我們守觸控下限）*/
+  .howbtn{font-size:var(--fs-sm);font-weight:600;min-height:28px;padding:0 12px;
+    display:inline-flex;align-items:center}
+  .chainchips button{font-size:var(--fs-sm)}
+  .evbtn,.tab,.verbadge,.livestate{border-radius:var(--r-pill)}
+  .livestate.bad{border-radius:var(--r-pill)}
+}
+
+/* ==================================================================================
+   ★ 2026-09-24 設計系統 v2 第 4 批：熱力圖的圖例、標題列控制項（規格 §3.1-6／-8）
+   這一段**不分寬度**：圖例與控制項是熱力圖本身的一部分，手機一樣要讀得出「這格是哪一級」。
+   ================================================================================== */
+/* 圖例：圖的右下、圖底往下 16px；左邊標題 12px、右邊一條膠囊，7 格等寬、格間 0。 */
+.hmlegend{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:8px 10px;margin-top:var(--s5)}
+.hmlegend .hmttl{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.hmlegend .hmbar{display:inline-flex;border-radius:var(--r-pill);overflow:hidden;border:1px solid var(--line);flex:none}
+.hmlegend .hmcell{min-width:44px;height:24px;display:inline-flex;align-items:center;justify-content:center;
+  padding:0 6px;border:0;margin:0;font:600 12px/1 "Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  color:#fff;cursor:pointer;background:var(--c);font-variant-numeric:tabular-nums;white-space:nowrap;
+  transition:opacity var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
+.hmlegend .hmcell.na{color:var(--ink)}
+/* 點一格＝只亮這一級：其他格退到 35%（圖上的方塊退到 25%），被選的那格內框一圈白線 */
+.hmlegend.focus .hmcell{opacity:.35}
+.hmlegend.focus .hmcell.on{opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.9)}
+.hmlegend .hmhint{font-size:12px;color:var(--ink-3);white-space:nowrap}
+/* 窄於 560px：每格縮到 36、字不縮；再擠就換行（綠三格＋0 ／ 紅三格），**不准縮字** */
+@media (max-width:560px){
+  .hmlegend{justify-content:flex-start}
+  .hmlegend .hmcell{min-width:36px;padding:0 4px}
+  .hmlegend .hmbar{flex-wrap:wrap;border-radius:12px}
+}
+/* 「滾輪放大」徽章：三張熱力圖改成左下角。原本在右上角，是因為那裡以前有一條沒有字的根節點小標（22px 空白）；
+   v2 把那條空白拿掉之後，右上角正好是最右邊那條產業鏈的小標（量到會蓋住「傳產與…」）。
+   左下角是第一條鏈最大那一塊的左下 —— 方塊標籤一律置中，那個角落不會有字。*/
+#heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{top:auto;right:auto;bottom:8px;left:8px}
+.zwrap>.zbadge{font-size:12px}   /* 11 → 12（字級下限） */
+/* 觸控裝置沒有滾輪（wheelZoom 也沒做雙指縮放），「滾輪放大」是一句用不到的提示；
+   而手機上熱力圖的左下角常是一塊小方塊的標籤（390px 量到蓋住「面板產業 +6.1%」）。只在觸控裝置收起來。*/
+@media (hover:none){ #heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{display:none} }
+/* 卡片標題列右側的控制項：下拉與日期膠囊（只顯示、不能改）。高 28、膠囊。 */
+.hmctl{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:var(--r-pill);
+  border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:12px;white-space:nowrap}
+.hmctl select{appearance:none;-webkit-appearance:none;border:0;background:transparent;color:var(--ink);
+  font:inherit;font-weight:600;padding:0 14px 0 0;cursor:pointer;
+  background-image:linear-gradient(45deg,transparent 50%,var(--ink-3) 50%),linear-gradient(135deg,var(--ink-3) 50%,transparent 50%);
+  background-position:calc(100% - 6px) 55%,calc(100% - 2px) 55%;background-size:4px 4px;background-repeat:no-repeat}
+.hmctl select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.hmctl.date{font-family:var(--mono);color:var(--ink-3)}
+.hmctl.date svg{flex:none}
+
 </style>
 </head>
 <body>
@@ -2897,9 +3015,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <!-- 加權 / 櫃買 / 台指期 的當日走勢與分 K（Andy 2026-09-14）。資料與繪圖在 market3.js -->
     <div id="m3"></div>
     <div class="hero" id="hero"></div>
-    <div class="grid g21" style="margin-top:16px">
+    <div class="grid g21" style="margin-top:var(--gap-card)">
       <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <small>方塊＝族群成交值佔比，顏色＝資金流入/流出（5 日 vs 20 日佔比）</small></h3>
-        <div class="row" style="gap:8px"><button class="btn small" id="heatZoom">放大 ⤢</button>
+        <div class="row" style="gap:8px"><span id="heatDate"></span><button class="btn small" id="heatZoom">放大 ⤢</button>
         <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
         <div class="howtxt" id="how-heat" hidden></div>
         <div class="chainchips" id="heatChips"></div>
@@ -2923,7 +3041,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
           只畫到族群那一層，個股請點族群名。族群成交值對同時掛兩個板塊的股票已照 <b>1/n 拆分</b>，
           所以族群加總會略小於逐檔加總。</div></div>
     </div>
-    <div class="grid g12 eqpair" style="margin-top:16px">
+    <div class="grid g12 eqpair" style="margin-top:var(--gap-card)">
       <div class="card" id="ovThemeCard"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
       <div class="card" id="ovCandCard"><div class="row spread"><h3>今日候選 <small>A 回檔承接 / B 突破追進；技術面永遠是最後一關</small></h3>
         <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div></div></div>
@@ -2936,7 +3054,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          這一列原本是三張卡（市場寬度／法人連續買超／族群估值），「族群估值」整張移除後只剩兩張，
          所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
          g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
-    <div class="grid g2" style="margin-top:16px">
+    <div class="grid g2" style="margin-top:var(--gap-card)">
       <div class="card" id="ovBreadthCard"><h3>市場寬度 <small>指數漲，是「大家都在漲」還是「只有權值股在漲」？上半＝站上 20 日均線的比例，下半＝今天漲／平／跌的家數</small></h3>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
       <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
@@ -2956,7 +3074,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <div class="card periodbar"><div class="row spread">
       <div><h3 style="margin:0">市場明細</h3><div class="pnote" id="mktNote">總覽上方那幾個數字，這裡是完整名單</div></div>
       <div class="seg" id="mktSeg2"></div></div></div>
-    <div class="card" style="margin-top:16px"><div class="row spread"><h3 id="mktTitle">—</h3>
+    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3 id="mktTitle">—</h3>
       <button class="howbtn" data-how="mkt">怎麼看 ?</button></div>
       <div class="howtxt" id="how-mkt" hidden></div>
       <div id="mktBody"></div></div>
@@ -2986,7 +3104,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          現在由上到下是：標題列 → 共用篩選區（產業鏈 seg／族群晶片／只看前 10 大／清除）
          → 共用時間列（看哪一天 ＋ 最近幾天 ＋ 軌跡開關）→ 圖區（2fr 時鐘 : 1fr 排行）。
          「怎麼看 ?」也只留一顆（原本 rank 那段說明併進 how-rot）—— 同一張卡不該有兩個問號鈕。 -->
-    <div class="card rotcard" id="flowRotCard" style="margin-top:16px">
+    <div class="card rotcard" id="flowRotCard" style="margin-top:var(--gap-card)">
       <div class="row spread"><h3>資金輪動 <small>錢跑到哪個族群，那個族群在強弱循環的哪一段</small></h3>
         <div class="row" style="gap:8px">
           <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
@@ -3048,7 +3166,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <!-- #sankeySub 的字是 renderSankey() 每次重畫都會換掉的（會依「歷史回放／即時」換說法）。
          這裡只是圖還沒畫出來前的預設值，所以也不可以寫死成「位置固定」——
          切到即時的時候圖真的會換位，字說不會動就是在騙人。 -->
-    <div class="card" id="flowSankeyCard" style="margin-top:16px"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
+    <div class="card" id="flowSankeyCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>資金去向 <small id="sankeySub">歷史回放時族群固定在原位；切到「即時」會依當下成交值換位</small></h3>
       <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
@@ -3063,7 +3181,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
         <div id="sankeyWrap"><div id="sankey" class="chart tall"></div></div>
         <div class="hpanel" id="sankeyPanel" hidden></div>
       </div></div>
-    <div class="grid g2" style="margin-top:16px">
+    <div class="grid g2" style="margin-top:var(--gap-card)">
       <div class="card" id="flowInstCard"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">
           <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
@@ -3098,13 +3216,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          放在全市場熱力圖下面。id 一個都沒改（#themeMap／#themeMapWrap／#themeZoom 是縮放白名單、
          淺色主題掃描、驗收都認的 id）。點題材方塊 → 下面的 #themeDetail 就地展開那個題材的剖析圖，
          網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
-    <div class="card" id="themeMapCard" style="margin-top:16px"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
-      <div class="row" style="gap:8px"><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
-      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大又紅的方塊 ——
-        錢多、熱度也高的題材；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
+    <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
+      <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
+      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、紫色又最亮的方塊 ——
+        錢多、熱度也高的題材（右上可以把顏色換成平均漲跌，那時就是紅漲綠跌）；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
-    <div id="themeDetail" style="margin-top:16px"></div>
+    <div id="themeDetail" style="margin-top:var(--gap-card)"></div>
   </section>
 
   <!-- ================= 產業與個股 ================= -->
@@ -3148,7 +3266,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
       <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
     </div>
-    <div class="grid g2" style="margin-top:16px">
+    <div class="grid g2" style="margin-top:var(--gap-card)">
       <div class="card" id="seasonDrillCard"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
       <div class="card" id="seasonTopCard"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
     </div>
