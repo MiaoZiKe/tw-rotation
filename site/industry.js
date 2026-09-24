@@ -125,13 +125,19 @@
     if (!el) return;
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     if (heatGroup === null) heatGroup = A.hmLS('tw.hmGroup', 'chain') === 'flat' ? 'flat' : 'chain';
-    el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <small>方塊＝族群成交值，顏色＝今日漲跌（紅漲綠跌）</small></h3>
+    /* ★ 2026-09-24 說明精簡（Andy：「已經有說明就把表上補充文字拿掉」）：
+       原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
+    el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <small>族群成交值與今日漲跌</small></h3>
       <div class="row" style="gap:8px"><label class="hmctl" title="方塊要不要依產業鏈分組">分組：<select id="indTreeGroup" aria-label="熱力圖分組方式">
-        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label>${A.hmDate(im.date)}</div></div>
-      <div class="sub"><b>這張圖回答：</b>今天全市場的錢分佈在哪幾塊、哪一塊在漲。<b>怎麼用：</b>先找又大又紅的方塊
-      —— 那是今天「錢多而且在漲」的地方；大而綠的是資金正在退潮的權值區。
-      <b>點產業鏈的標題進那條鏈、點族群方塊直接看它裡面每一檔的漲幅。</b>要比較同一條鏈裡誰漲誰跌，用
-      <a class="lk" href="#industry">產業地圖</a> 那邊的長條圖比較快。</div>
+        <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label>${A.hmDate(im.date)}
+        <button class="howbtn" data-how="indheat">怎麼看 ?</button></div></div>
+      <div class="howtxt" id="how-indheat" hidden>${A.howHTML('這張圖回答：今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
+        '方塊大小＝族群成交值',
+        '顏色＝今日漲跌，紅漲綠跌',
+        '又大又紅＝錢多而且在漲',
+        '大而綠＝資金正在退潮的權值區',
+        '點鏈標題進產業鏈，點方塊看它的個股',
+      ], '要比同一條鏈裡誰漲誰跌，用<a class="lk" href="#industry">產業地圖</a>的長條圖比較快；右上「分組」可以改成不分組平鋪，一眼比大小。')}</div>
       <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
     const gsel = document.getElementById('indTreeGroup');
     if (gsel) gsel.onchange = () => { heatGroup = gsel.value; A.hmLSset('tw.hmGroup', heatGroup); renderHeat(im); };
@@ -214,7 +220,7 @@
     wireChainTabs(el, '_all');
     renderGroupPanel($('#gpHost', el), {
       scope: '全市場', groups: groups, asOf: (im && im.date) || '',
-      tail: '<span class="muted">想一次看完整張版圖（方塊大小＝成交值、一眼看出錢集中在哪）：</span><a class="lk" href="#heatmap">產業熱力圖 →</a>',
+      tail: '<span class="muted">完整版圖：</span><a class="lk" href="#heatmap" title="方塊大小＝成交值，一眼看出錢集中在哪">產業熱力圖 →</a>',
     });
   }
   /* ================================================================ 族群總覽：長條圖 ＋ 圓餅圖
@@ -273,16 +279,19 @@
           <button class="btn small" id="gpBack" type="button" hidden title="回到族群層級的長條圖">← 回到族群</button>
           <span class="rbar"><button class="pb livebtn" id="gpLiveBtn" type="button" aria-pressed="false"
             title="切到盤中即時：用當下的成交價與累積成交量重算漲跌與占比，每分鐘更新（盤中暫定值）">即時</button></span>
+          <button class="howbtn" data-how="gp" type="button">怎麼看 ?</button>
         </div>
       </div>
-      <div class="sub" id="gpHint" style="margin-top:2px"></div>
+      <!-- ★ 2026-09-24 說明精簡：#gpHint（這張圖回答／怎麼用）與即時的估算口徑搬進「怎麼看 ?」；
+           #gpNote 留在卡片上但只寫「現在看的是昨天收盤還是盤中暫定值」一句 —— 那句不能藏（DECISIONS #252 三）。 -->
+      <div class="howtxt" id="how-gp" hidden><div id="gpHint"></div></div>
       <div class="note livenote gpnote" id="gpNote"></div>
       <!-- ★ 2026-09-23（W3-8，Andy：「看起來太乾澀了」）：兩張圖各自裝進一張有標題的卡片。
            以前兩張圖裸放在同一片背景上、中間沒有分界 —— 沒有容器，圖就像貼在牆上，
            而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
       <div class="gpgrid">
-        <div class="gpcard"><h5>族群漲跌幅 <small>紅漲綠跌，由高到低</small></h5><div id="gpBar" class="chart"></div></div>
-        <div class="gpcard"><h5>成交值占比 <small>只標前五大，其餘併成「其他」</small></h5><div id="gpPie" class="chart"></div></div>
+        <div class="gpcard"><h5>族群漲跌幅</h5><div id="gpBar" class="chart"></div></div>
+        <div class="gpcard"><h5>成交值占比</h5><div id="gpPie" class="chart"></div></div>
       </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
       ${ctx.tail ? `<div class="linkrow">${ctx.tail}</div>` : ''}`;
@@ -438,30 +447,29 @@
 
     function paintNote() {
       const day = ctx.asOf ? `資料日期 ${ctx.asOf}` : '最新一個交易日';
+      /* ★ 2026-09-24 說明精簡：這一行只講「現在是哪一種數字」；估算怎麼算、涵蓋率怎麼讀搬進「怎麼看 ?」。
+         ⚠ 即時時「盤中暫定值」「估算」「涵蓋幾檔」三件事**一定留在畫面上**（DECISIONS #252 三：即時是估算，畫面上一定要寫出來）。*/
       if (!live) {
-        noteEl.innerHTML = `<b>昨天（盤後收盤）</b>　${day}　—— 漲跌與占比都是收盤結算值。`
-          + `要看盤中就按右邊那顆<b>「即時」</b>（每分鐘更新，數字會標成盤中暫定值）。`;
+        noteEl.innerHTML = `<b>昨天（盤後收盤）</b>　${day}`;
         return;
       }
       if (busy && !q) { noteEl.innerHTML = '<b class="live">即時</b>　抓取中…'; return; }
       if (liveErr) {
         noteEl.innerHTML = `<b class="bad">即時抓不到報價</b>　${A.fmt.esc(liveErr)}`
-          + `　<span class="muted">目前畫的仍然是 ${day} 的收盤值；公司網路擋掉代理時會這樣，按一次「即時」關掉即可。</span>`;
+          + `　<span class="muted">仍畫 ${day} 收盤值；再按「即時」關掉</span>`;
         return;
       }
-      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　報價 ${A.fmt.esc(liveAt || '—')}　每分鐘更新`
-        + `　<span class="warn">這不是收盤值</span>`
-        + `<br><span class="muted">成交值是<b>估算</b>的：即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算`
-        + `（和輪動時鐘的即時同一個口徑）；漲跌幅是這批個股的成交值加權。`
-        + `這一輪涵蓋 ${cov[0]} / ${cov[1]} 檔，抓不到報價的仍然用 ${day} 的收盤值，所以占比只能當「相對大小」看。</span>`;
+      noteEl.innerHTML = `<b class="live">⚡ 盤中暫定值</b>　報價 ${A.fmt.esc(liveAt || '—')}`
+        + `　<span class="warn">成交值估算</span>　涵蓋 ${cov[0]} / ${cov[1]} 檔`;
     }
 
     function paintFocus() {
       const el = $('#gpFocus', host);
       if (!el) return;
       const d = items.find(x => x.name === hi);
+      /* 說明精簡：沒滑過時不寫操作說明（搬進「怎麼看 ?」），留一個空白佔住這一行的高度，滑過時版面不會跳 */
       if (!d) {
-        el.innerHTML = `<span class="muted">滑過左邊任一條長條，右邊圓餅對應的那一塊會一起標起來（反過來也一樣），這一行會寫出它的數字。</span>`;
+        el.innerHTML = '&nbsp;';
         return;
       }
       el.innerHTML = `<b style="color:${d.color}">${A.fmt.esc(d.name)}</b>`
@@ -529,15 +537,25 @@
       $('#gpTitle', host).innerHTML = drill
         ? `${A.fmt.esc(drill.name)}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
         : `${A.fmt.esc(ctx.scope)}族群漲幅與占比　<small class="muted">列出成交值前 ${b.asc.length} 個族群</small>`;
+      /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
+      const gpFine = '甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
+        + '按「即時」＝盤中暫定值，每分鐘更新：成交值是<b>估算</b>的（即時端點沒有每檔的累積成交金額，用「最新價 × 累積張數」推算，和輪動時鐘的即時同一個口徑），'
+        + '漲跌幅是這批個股的成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
       $('#gpHint', host).innerHTML = drill
-        ? `<b>這張圖回答：</b>這個族群裡面今天是誰在漲、量能集中在哪幾檔。`
-          + `<b>怎麼用：</b>左邊長條由高到低（紅漲綠跌），右邊甜甜圈只標成交值前五大、其餘併成「其他」，中心寫的是前五大合計；`
-          + `<b>漲得多、量也大</b>的那幾檔才是主流，只有漲幅、成交值卻小的通常是跟風。`
-          + `點任一條長條直接進那一檔的個股頁看 K 線與籌碼；按「← 回到族群」回上一層。`
-        : `<b>這張圖回答：</b>${A.fmt.esc(ctx.scope)}今天哪一個族群在漲、錢集中在誰身上。`
-          + `<b>怎麼用：</b>左邊長條看方向（紅漲綠跌、由高到低），右邊甜甜圈看份量（只標前五大，其餘併成「其他」，中心是前五大合計）；`
-          + `<b>兩邊都靠前</b>才是今天真正的主流——長條很長但圓餅很小，多半是小族群在噴、量還沒跟上，追之前先看成交值。`
-          + `點任一條長條就在原地換成<b>該族群所有個股</b>的漲幅長條圖，再點一次進個股頁。`;
+        ? A.howHTML('這張圖回答：這個族群裡今天是誰在漲、量能集中在哪幾檔。', [
+          '左邊長條由高到低，紅漲綠跌',
+          '右邊甜甜圈只標成交值前五大',
+          '怎麼用：漲得多、量也大＝主流',
+          '只有漲幅、成交值卻小＝多半是跟風',
+          '點長條進個股頁；「← 回到族群」回上層',
+        ], gpFine)
+        : A.howHTML(`這張圖回答：${A.fmt.esc(ctx.scope)}今天哪一個族群在漲、錢集中在誰身上。`, [
+          '左邊長條看方向，紅漲綠跌、由高到低',
+          '右邊甜甜圈看份量，只標前五大',
+          '怎麼用：兩邊都靠前＝今天真正的主流',
+          '長條長、圓餅小＝小族群在噴，量未跟上',
+          '點長條，原地換成該族群的個股',
+        ], gpFine);
       paintNote();
       const axl = { ...A.axisStyle.axisLabel, fontSize: 11.5 };
       A.chart(barEl, {
@@ -845,12 +863,27 @@
     el.innerHTML = `
       ${chainTabsHtml(im, ch.id)}
       <div class="card nbcard">
-        <div><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
-          <div class="sub" id="nbIntro">${hasSlots ? '剖析圖的零件、環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格（有哪幾檔台股、哪幾家外商、對應哪些族群）；點關聯圖上的個股小點會在右側展開它的產業關係（不跳頁），同時把它所屬的環節與族群一起選起來。要看「這一格裡面誰在漲」，回第一個分頁的族群漲幅長條圖，點一個族群就攤開它每一檔。' : (hasMap ? '環節色標、關聯圖的大圓點都是同一套顏色：點任一個，其餘同色的一起亮，圖下方的環節詳情同步換成那一格；點個股小點會在右側展開它的產業關係（不跳頁）。（這條鏈還沒有產品剖析圖）' : '點第一個分頁的族群長條圖挑一個族群，原地攤開它每一檔的漲幅；點個股那一條進入個股頁。')}</div></div>
+        <!-- ★ 2026-09-24 說明精簡：頁首那段「同一套顏色、點了會怎樣」(#nbIntro) 搬進「怎麼看 ?」，頁首只留鏈名。 -->
+        <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
+          ${hasSlots || hasMap ? '<button class="howbtn" data-how="nb" type="button">怎麼看 ?</button>' : ''}</div>
+          ${hasSlots || hasMap ? `<div class="howtxt" id="how-nb" hidden><div id="nbIntro">${hasSlots
+            ? A.howHTML('這一頁回答：這條鏈由哪些環節組成、每一格有誰。', [
+              '零件、環節色標、關聯圖大圓點同一套顏色',
+              '點任一個，其餘同色的一起亮',
+              '下方環節詳情換成那一格的台股與外商',
+              '點關聯圖個股小點，右側展開產業關係',
+              '看誰在漲：回「族群總覽」點一個族群',
+            ], '點個股小點不跳頁，同時把它所屬的環節與族群一起選起來；環節詳情會寫出那一格有哪幾檔台股、哪幾家外商、對應哪些族群。')
+            : A.howHTML('這一頁回答：這條鏈由哪些環節組成、每一格有誰。', [
+              '環節色標、關聯圖大圓點同一套顏色',
+              '點任一個，其餘同色的一起亮',
+              '下方環節詳情換成那一格',
+              '點個股小點，右側展開產業關係',
+            ], '這條鏈還沒有產品剖析圖。點個股小點不跳頁。')}</div></div>` : ''}
         ${dgTabsHtml()}
         <div class="nbbody">
-        <div id="gpSec"></div>
-        ${hasSlots ? `<div style="margin-top:2px" id="dgSec"><div class="row spread dgsechead">
+        <div id="gpSec" data-howsec></div>
+        ${hasSlots ? `<div style="margin-top:2px" id="dgSec" data-howsec><div class="row spread dgsechead">
           <!-- ★ 2026-09-23 第十批 C1（Andy：「幫我將 產品剖析圖、族群總覽、配色拿掉、另外收合圖 移動到上方同一排」）
                ⚠ 這段註解住在樣板字串裡，所以**不能出現反引號**（會把字串提早結束掉）。
                三件一起拿掉，各自的功能都沒有消失：
@@ -861,15 +894,22 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
+          <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
+            '點零件：看它是誰做的（供應商）',
+            '同色的環節色標、關聯圖會一起亮',
+            '右上可開關動畫、收合圖',
+            '有「3D 立體」的圖可以拖曳轉動',
+            '圖以原尺寸顯示，放不下可左右滑',
+          ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
           <div id="dgBody">
-          <div class="sub" id="dgQ" style="margin:6px 0 4px"></div>
           <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
-        ${hasMap ? `<div class="relsec" id="relSec">
+        ${hasMap ? `<div class="relsec" id="relSec" data-howsec>
           <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
-            <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span></span></div>
-          <div class="sub" id="relHint" style="margin:4px 0 8px"></div>
+            <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
+          <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
           <div class="segchips" id="segChips"></div>
           <div id="segBox"></div>
           <div class="chainrow" id="relRow"><div class="chainpane">
@@ -967,14 +1007,14 @@
     function paintDgTitle() {
       const t = $('#dgTitle', el), q = $('#dgQ', el);
       if (t) {
+        /* 說明精簡：圖名＋誠實標示留在畫面；「點零件看供應商／原尺寸可左右滑」搬進「怎麼看 ?」 */
         t.textContent = dgId
-          ? `${DS.name(dgId)}　·　原創示意圖，非實物比例；點零件看供應商`
-            + (DS.native(dgId) ? '　·　圖以原尺寸顯示（字不縮小），欄位放不下時可左右滑' : '')
+          ? `${DS.name(dgId)}　·　原創示意圖，非實物比例`
           /* 沒有選圖＝正在看族群總覽。以前這裡寫「在下面選一張」是指圖別選單，
              選單移除之後要改成指**上方的分頁列**，不然會叫使用者去看一個不存在的東西。*/
-          : `這條鏈有 ${dgOpts.length} 張，各自是獨立的產品 · 在上方分頁列選一張`;
+          : `共 ${dgOpts.length} 張剖析圖，在上方分頁選一張`;
       }
-      if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b>這張圖回答：</b>${A.fmt.esc(DS.q(dgId))}` : '';
+      if (q) q.innerHTML = (dgId && DS.q(dgId)) ? `<b class="howq">這張圖回答：${A.fmt.esc(DS.q(dgId))}</b>` : '';
     }
     /* 「族群總覽」與「剖析圖」兩種模式的顯示切換。
        用的是 hidden 屬性，但 .row 這幾個有 display 規則的類別會蓋掉
@@ -989,6 +1029,9 @@
       const body = $('#dgBody', el), tools = $('#dgTools', el);
       if (body) body.hidden = !on;
       if (tools) tools.hidden = !on;
+      /* 說明精簡：「怎麼看 ?」的鈕住在 #dgTools 裡，回族群總覽時鈕被藏起來 —— 盒子也要一起收，不然會留一段舊圖的說明 */
+      if (!on) { const hb = $('#how-dg', el), hbtn = $('.howbtn[data-how="dg"]', el);
+        if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.textContent = '怎麼看 ?'; } }
       // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
@@ -1061,16 +1104,22 @@
       const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
       const mapHost = $('#chainMap', el);
       let relView = loadRelView();
+      /* ★ 2026-09-24 說明精簡：兩種圖的說明改成條列，住在「怎麼看 ?」（#how-rel）裡；圖例口徑放最下面一行小字。*/
       const HINT = {
-        layer: `<b>這張圖回答：</b>這條鏈由哪幾格組成、每一格有誰、誰供貨給誰。`
-          + `<b>怎麼用：</b>由左往右就是上游到下游 —— 先找到你手上那檔在第幾欄，`
-          + `再沿著箭頭往左看是誰在供貨（那幾檔通常慢一兩天才反應）、往右看它賣給誰（下游轉弱它就會被拖到）。`
-          + `滑過一張卡會把跟它有關的線與上下游公司一起提亮；點卡片右側就展開它的產業關係與佐證連結。`
-          + `<span class="muted">線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；<b style="color:#d9a441">?</b>＝還沒建立上下游關聯。</span>`,
-        flow: `<b>這張圖回答：</b>這條鏈的關係量集中在哪兩格之間。`
-          + `<b>怎麼用：</b>先看最粗的那條帶子 —— 那是這條鏈的主幹，它兩端的族群才是行情的主戰場；`
-          + `細到幾乎看不見的那幾格是邊陲，同樣的利多對它們影響小得多。點一格就篩到那一格。`
-          + `<span class="muted">方塊高度＝這一格的台股檔數；帶子寬度＝兩格之間已建立的上下游關係條數。</span>`,
+        layer: (st) => A.howHTML('這張圖回答：這條鏈由哪幾格組成、每一格有誰、誰供貨給誰。', [
+          st,
+          '怎麼用：左上游、右下游，先找你那檔',
+          '往左看誰在供貨（常慢一兩天才反應）',
+          '往右看它賣給誰（下游轉弱會被拖到）',
+          '滑過卡片提亮上下游；點右側看佐證',
+        ], '線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；<b style="color:#d9a441">?</b>＝還沒建立上下游關聯。'),
+        flow: (st) => A.howHTML('這張圖回答：這條鏈的關係量集中在哪兩格之間。', [
+          st,
+          '怎麼用：先看最粗的帶子＝這條鏈的主幹',
+          '主幹兩端的族群才是行情的主戰場',
+          '細到看不見的是邊陲，利多影響小得多',
+          '點一格就篩到那一格',
+        ], '方塊高度＝這一格的台股檔數；帶子寬度＝兩格之間已建立的上下游關係條數。'),
       };
       /* 容器寬度變了就要重畫：欄寬、欄距、左右內距全部是依容器寬度算出來的。
          最常見的觸發不是改視窗，是**點一檔個股** —— 右側資訊欄（340px）一出現，
@@ -1088,7 +1137,7 @@
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
         const hint = $('#relHint', el);
-        if (hint) hint.innerHTML = `這條鏈分成 ${stat.nSeg} 格、${stat.nTw} 檔台股，已建立 ${stat.nEdge} 條上下游關係。` + HINT[relView];
+        if (hint) hint.innerHTML = HINT[relView](`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
         $$('#relView button', el).forEach(b => b.classList.toggle('on', b.dataset.rv === relView));
       };
       drawMap();
@@ -2919,7 +2968,7 @@
           <div id="skIdent"><h2>${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
-          <div class="verdict" id="skVerdict" style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
+          <div class="verdict" id="skVerdict" data-readout style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
         </div>
         <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
@@ -2930,9 +2979,18 @@
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
           <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
           <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
+          <button class="howbtn" data-how="kline" type="button">怎麼看 ?</button>
           <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
             <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
         </div>
+        <!-- ★ 2026-09-24 說明精簡：圖下那段滑鼠／拖曳操作說明（.skhelp 第一行）整段搬進「怎麼看 ?」 -->
+        <div class="howtxt" id="how-kline" hidden>${A.howHTML('這張圖：這一檔的 K 線、成交量與技術指標。', [
+          '圖內滾輪＝時間縮放',
+          '價格軸上滾輪或拖曳＝調整上下寬度',
+          '雙擊價格軸或按「重設縮放」還原',
+          '副圖之間的分隔線可上下拖，會記住',
+          '週期鈕被劃掉＝這檔沒有那個週期資料',
+        ], '滑鼠移到劃掉的週期鈕上會說原因。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新；K 棒會跟著上下寬度一起變。')}</div>
         <div class="note livenote" id="liveNote" hidden></div>
         <div class="chartwrap" id="chartWrap">
           <div class="drawbar" id="drawBar"></div>
@@ -2940,10 +2998,7 @@
         </div>
         <div class="cfgpop" id="cfgPop" hidden></div>
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
-        <div class="note skhelp" style="margin-top:6px">滑鼠在圖內滾輪＝時間縮放；在右側價格軸上滾輪或拖曳＝調整上下寬度（K 棒跟著變）；雙擊價格軸還原。
-          <b>成交量／KD／MACD／RSI 之間的分隔線可以上下拖，把哪一格拉大都行，拉完會記住；按右上角「重設縮放」還原。</b>分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新。
-          <b>週期鈕上被劃掉的＝這檔沒有那個週期的資料</b>，滑鼠移上去會說原因。</div>
-        <div class="note skhelp" style="margin-top:4px">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞）。</div>
+        <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每日盤後）</div>
       </div>
       <div class="card" style="margin-top:var(--gap-card)" id="mtfCard"></div>
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
@@ -2979,7 +3034,7 @@
        所以要自己講清楚「這是什麼、看它幹嘛」—— 原本它緊貼在麵包屑下面，
        靠位置就看得懂；搬到底下之後沒有標題就只是一排看不懂的連結。*/
     el.innerHTML = `<div class="card tight">
-      <h4 style="margin:0 0 8px">產業鏈位置 <small class="muted">這一檔卡在上下游的哪一段、同族群還有誰在動；要換一檔比較就直接點下面那排</small></h4>
+      <h4 style="margin:0 0 8px">產業鏈位置 <small class="muted">同族群誰在動，點名字換一檔</small></h4>
       <div class="row spread"><div class="row" style="gap:8px"><b>${A.L.chain(cid, ch.name)}</b><span class="muted">›</span>${g ? A.L.group(g.id, g.name) : A.fmt.esc(m.group || '')}${co ? `<span class="muted">›</span><span class="pill" style="border-color:${segColor(co.segment)};color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>` : ''}</div>
         <div class="row" style="gap:8px">${hasDiagram ? `<button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
       ${sibs.length ? `<div class="sibs" id="sibs"><span class="muted" style="flex:none;font-size:12px;align-self:center">同族群</span>${sibs.map(x => `<a class="lk ${x.code === m.code ? 'cur' : ''}" href="#stock/${x.code}">${A.fmt.esc(x.name)}<span class="code">${x.code}</span><span class="chg ${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></a>`).join('')}</div>` : ''}
@@ -3597,11 +3652,19 @@
     const el = $('#mtfCard'); const sm = pg.mtf && pg.mtf.summary; if (!sm || !sm.headline) { el.innerHTML = '<h3>多週期判讀</h3><div class="empty">資料不足</div>'; return; }
     const lv = sm.key_levels || {};
     const row = (z, kind) => `<div class="k" style="border-left:3px solid ${kind === 'support' ? '#2ee59d' : '#ff4d6d'}"><div class="l">${A.fmt.esc(z.label)} ${kind === 'support' ? '需求區' : '供給區'}</div><div class="v" style="font-size:15px">${z.low} – ${z.high}</div><div class="l">距現價 ${A.fmt.pct(z.dist_pct)} · 分數 ${z.score}</div></div>`;
-    el.innerHTML = `<h3>多週期判讀 <small>大週期定方向（週 › 日），小週期找進場（4H › 1H › 15 分）</small></h3>
+    /* ★ 2026-09-24 說明精簡：副標縮成一句，完整讀法搬進「怎麼看 ?」 */
+    el.innerHTML = `<div class="row spread"><h3>多週期判讀 <small>週日定方向，小週期找進場</small></h3><button class="howbtn" data-how="mtf" type="button">怎麼看 ?</button></div>
+      <div class="howtxt" id="how-mtf" hidden>${A.howHTML('這張卡回答：各週期方向一不一致、該在哪裡進場。', [
+        '大週期（週線、日線）定方向',
+        '小週期（4 小時、1 小時、15 分）找進場',
+        '每個週期一顆燈：多／空／盤整',
+        '支撐＝需求區、壓力＝供給區，由近到遠',
+        '距現價＝那一區離現在價格多遠',
+      ], '分 K 還沒取得時，小週期暫以日線代替（判讀裡會寫出來）。')}</div>
       <div class="lights">${(sm.tf_used || []).map(tf => { const t = sm.per_tf[tf]; return `<span class="light ${t.trend > 0 ? 'pos' : t.trend < 0 ? 'neg' : ''}">${({ '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' })[tf]} ${t.trend > 0 ? '多' : t.trend < 0 ? '空' : '盤整'}</span>`; }).join('')}</div>
-      <div class="verdict" style="margin:10px 0"><h3 style="font-size:16px">${A.fmt.esc(sm.headline)}</h3><ul>${(sm.script || []).map(x => `<li>${A.fmt.esc(x)}</li>`).join('')}</ul></div>
+      <div class="verdict" data-readout style="margin:10px 0"><h3 style="font-size:16px">${A.fmt.esc(sm.headline)}</h3><ul>${(sm.script || []).map(x => `<li>${A.fmt.esc(x)}</li>`).join('')}</ul></div>
       <div class="grid g2"><div><h4>支撐（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.support || []).map(z => row(z, 'support')).join('') || '<div class="note">沒有通過門檻的需求區</div>'}</div></div><div><h4>壓力（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.resistance || []).map(z => row(z, 'resistance')).join('') || '<div class="note">上方沒有通過門檻的供給區</div>'}</div></div></div>
-      ${pg.verdict && pg.verdict.weekly_note ? `<div class="note" style="margin-top:8px">${A.fmt.esc(pg.verdict.weekly_note)}</div>` : ''}`;
+      ${pg.verdict && pg.verdict.weekly_note ? `<div class="note" data-readout style="margin-top:8px">${A.fmt.esc(pg.verdict.weekly_note)}</div>` : ''}`;
   }
 
   // ---------------------------------------------------------------- 個股分頁
@@ -3628,7 +3691,7 @@
     const s = pg.summary || {}, iv = pg.inst_v3 || {};
     const holders = pg.holders && pg.holders.length ? pg.holders[pg.holders.length - 1] : null; const hPrev = pg.holders && pg.holders.length > 4 ? pg.holders[pg.holders.length - 5] : null;
     const k = statK;
-    return `<div class="card"><h3>籌碼快照</h3><div class="kvs" style="margin-top:8px">${k('法人 20 日', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('外資 20 日', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('投信 20 日', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('千張大戶', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('大戶 4 週變化', holders && hPrev && holders[1] != null && hPrev[1] != null ? A.fmt.pct(holders[1] - hPrev[1], 2).replace('%', ' pp') : '—', holders && hPrev ? A.fmt.cls(holders[1] - hPrev[1]) : '')}${k('散戶（≤10 張）', holders ? A.fmt.n(holders[3], 1) + '%' : '—')}${k('融資餘額', pg.margin && pg.margin.length ? A.fmt.lot(pg.margin[pg.margin.length - 1][1]) : '—')}${k('量比', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div><div class="note" style="margin-top:8px">「主力家數差」需券商分點資料（免費開放資料沒有）；這裡以集保千張大戶增減＋法人動向作替代指標。</div></div>`;
+    return `<div class="card"><h3>籌碼快照</h3><div class="kvs" style="margin-top:8px">${k('法人 20 日', iv.sum20 != null ? A.fmt.lot(iv.sum20 / 1000) : '—', A.fmt.cls(iv.sum20))}${k('外資 20 日', iv.foreign20 != null ? A.fmt.lot(iv.foreign20 / 1000) : '—', A.fmt.cls(iv.foreign20))}${k('投信 20 日', iv.trust20 != null ? A.fmt.lot(iv.trust20 / 1000) : '—', A.fmt.cls(iv.trust20))}${k('千張大戶', holders ? A.fmt.n(holders[1], 1) + '%' : '—')}${k('大戶 4 週變化', holders && hPrev && holders[1] != null && hPrev[1] != null ? A.fmt.pct(holders[1] - hPrev[1], 2).replace('%', ' pp') : '—', holders && hPrev ? A.fmt.cls(holders[1] - hPrev[1]) : '')}${k('散戶（≤10 張）', holders ? A.fmt.n(holders[3], 1) + '%' : '—')}${k('融資餘額', pg.margin && pg.margin.length ? A.fmt.lot(pg.margin[pg.margin.length - 1][1]) : '—')}${k('量比', s.vol_ratio != null ? A.fmt.n(s.vol_ratio, 2) : '—')}</div><div class="note" style="margin-top:8px" title="「主力家數差」需券商分點資料（免費開放資料沒有）；這裡以集保千張大戶增減＋法人動向作替代指標。">主力家數差無免費資料，改看千張大戶＋法人</div></div>`;
   }
   function tabOverview(pg, el) {
     const signal = window.StockSignal ? window.StockSignal.view({ summary: pg.summary, verdict: pg.verdict }, A.fmt) : '';
@@ -3949,8 +4012,9 @@
     if (!q.length) { el.innerHTML = '<div class="card"><div class="empty">尚無季報歷史（回補進行中）</div></div>'; return; }
     const last = q[q.length - 1];
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">最新季度</div><div class="v">${last[0]}</div></div><div class="k"><div class="l">單季 EPS</div><div class="v">${A.fmt.n(last[5])}</div></div><div class="k"><div class="l">年度累計 EPS</div><div class="v">${A.fmt.n(last[6])}</div></div><div class="k"><div class="l">EPS 年增（元）</div><div class="v ${A.fmt.cls(last[7])}">${last[7] != null ? (last[7] > 0 ? '+' : '') + A.fmt.n(last[7]) : '—'}</div></div><div class="k"><div class="l">毛利率</div><div class="v">${A.fmt.n(last[2], 1)}%</div></div><div class="k"><div class="l">營益率</div><div class="v">${A.fmt.n(last[3], 1)}%</div></div><div class="k"><div class="l">淨利率</div><div class="v">${A.fmt.n(last[4], 1)}%</div></div></div>
-      <div class="card"><div class="row spread"><h3>本益比河流圖 <small>近四季 EPS × 各倍數 ＝ 那個倍數對應的股價；白線是實際收盤，它落在哪一條帶就是市場現在給的評價。倍數用這一檔自己的歷史分位數，不是寫死的 15/20/25 倍</small></h3>
+      <div class="card"><div class="row spread"><h3>本益比河流圖 <small>收盤落在哪一條評價帶</small></h3>
         <div class="row" style="gap:10px;align-items:center">
+          <button class="howbtn" data-how="pe" type="button">怎麼看 ?</button>
           <div class="seg" id="peMode"><button data-v="band">色帶分區</button><button data-v="fill">填滿</button><button data-v="mult">倍數線</button></div>
           <label class="opabox" title="色帶透明度（跟上面 K 線的本益比帶共用同一組設定）">透明度
             <input id="peOpa" type="range" min="10" max="100" step="5"><span class="val" id="peOpaV"></span></label>
@@ -3959,8 +4023,15 @@
           <div id="peLen" title="這張圖一次看多長一段"></div>
           <div id="peEnd" title="截止到哪一天：往回拉看以前的評價，按 ▶ 一天一天播"></div>
         </div>
-        <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote"></div></div>
-      <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）<small>每季財報可用日後的收盤 / 近四季 EPS；虧損不算</small></h3><div id="peQ" class="chart"></div></div></div>
+        <div class="howtxt" id="how-pe" hidden>${A.howHTML('這張圖回答：市場現在給這一檔幾倍的評價。', [
+          '每條帶＝近四季 EPS × 某個倍數',
+          '收盤線落在哪條帶＝市場現在給的評價',
+          '倍數用這檔自己的歷史分位，非固定',
+          '色帶越紅＝市場給的評價越高',
+          '拉 Bar 選長度與截止日，▶ 一天天播',
+        ], '倍數不是寫死的 15／20／25 倍。右上三種畫法：色帶分區（顏色越紅評價越高）／填滿（整片實色，一眼看出收盤線落在哪一塊）／倍數線（線尾標本益比倍數）；透明度跟上面 K 線的本益比帶共用。')}</div>
+        <div id="peWrap"><div id="peChart" class="chart" style="height:340px"></div></div><div class="note" id="peNote" data-readout></div></div>
+      <div class="grid g2" style="margin-top:var(--gap-card)"><div class="card"><h3>EPS 與三率 <small>單季；財報法規為季報，沒有每月</small></h3><div id="profitChart" class="chart"></div></div><div class="card"><h3>本益比（每季）<small>財報可用日收盤 ÷ 近四季 EPS，虧損不算</small></h3><div id="peQ" class="chart"></div></div></div>
       <div class="card" style="margin-top:var(--gap-card)"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
     A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: q.map(r => r[0]), axisLabel: { color: A.CH.ink3 } }, yAxis: [{ ...A.axisStyle, name: 'EPS' }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
@@ -3975,10 +4046,12 @@
     let mode = 'band';
     try { const s = localStorage.getItem('tw.periver'); if (MODES.includes(s)) mode = s; } catch (e) { /* 忽略 */ }
     const note = $('#peNote', el);
+    /* 說明精簡（2026-09-24）：三種畫法的完整說明搬進「怎麼看 ?」（#how-pe）最下面一行；
+       讀數後面只留一句短的「現在這種畫法怎麼讀」（切畫法時要跟著換，_uitest「個股」在驗）。*/
     const HOWTO = {
-      band: '色帶分區：顏色越紅代表市場給的評價越高',
-      fill: '填滿：整片實色，一眼看出收盤線落在哪一塊評價區間',
-      mult: '倍數線：線尾標的是本益比倍數',
+      band: '色帶分區：越紅評價越高',
+      fill: '填滿：看收盤落在哪一塊',
+      mult: '倍數線：線尾標本益比倍數',
     };
     const paint = () => {
       $$('#peMode button', el).forEach(b => b.classList.toggle('on', b.dataset.v === mode));
@@ -4064,7 +4137,7 @@
         `融資券歷史只回補到 ${mg.length} 天，兩個點連起來是一條假的斜線，先直接列數字。`); }
 
     if (ho.length >= CHIP_MIN) {
-      card('holderChart', '大戶 / 散戶持股', '集保每週：千張大戶、400–1000 張、10 張以下');
+      card('holderChart', '大戶 / 散戶持股', '集保每週：≥1000、400–1000、≤10 張');
       card('holderCount', '股東人數', '人數下降＋大戶比例上升＝籌碼集中');
     } else if (ho.length) { const r = ho[ho.length - 1];
       numCard('集保股權分散', `最新一週 ${r[0]}`,
@@ -4097,11 +4170,19 @@
       <div class="card" style="margin-top:var(--gap-card)"><div class="row spread">
         <h3>1–12 月平均漲幅 <small id="msSub"></small></h3>
         <div class="row" style="gap:10px;align-items:center">
+          <button class="howbtn" data-how="ms" type="button">怎麼看 ?</button>
           <div class="seg" id="msYears"><button data-v="1">1 年</button><button data-v="3">3 年</button><button data-v="5" class="on">5 年</button><button data-v="0">全部</button></div>
           <label class="opabox">自填 <input id="msCustom" type="number" min="1" max="15" step="1" style="width:56px" placeholder="年"></label>
         </div></div>
+        <div class="howtxt" id="how-ms" hidden>${A.howHTML('這張圖回答：這一檔哪幾個月歷史上容易漲。', [
+          '柱高＝那個月的平均漲幅',
+          '柱上 x/y＝上漲年數／取樣年數',
+          '只看平均會被一次暴漲暴跌帶偏',
+          '樣本少於 3 年的月份參考就好',
+          '右上切 1／3／5 年、全部或自填年數',
+        ])}</div>
         <div id="msChart" class="chart" style="min-height:320px"></div>
-        <div class="note" id="msNote"></div></div>`;
+        <div class="note" id="msNote" data-readout></div></div>`;
     drawMonthSeason(pg);
   }
 
@@ -4158,10 +4239,9 @@
       const best = stat.filter(s => s.avg != null).sort((a, b) => b.avg - a.avg)[0];
       const worst = stat.filter(s => s.avg != null).sort((a, b) => a.avg - b.avg)[0];
       $('#msNote').innerHTML = best && worst
-        ? `這段期間最強的是 <b>${best.m} 月</b>（平均 ${A.fmt.pct(best.avg)}、${best.up}/${best.n} 年上漲），`
-          + `最弱的是 <b>${worst.m} 月</b>（平均 ${A.fmt.pct(worst.avg)}、${worst.up}/${worst.n} 年上漲）。`
-          + `<br><span class="muted">柱子上的 ${'x/y'} 是「上漲年數／取樣年數」—— 只看平均會被一次暴漲暴跌帶偏。`
-          + `樣本少於 3 年的月份參考就好。</span>`
+        /* 說明精簡：讀數留著，「x/y 是什麼、樣本少參考就好」搬進「怎麼看 ?」（#how-ms） */
+        ? `最強 <b>${best.m} 月</b>（平均 ${A.fmt.pct(best.avg)}、${best.up}/${best.n} 年上漲）；`
+          + `最弱 <b>${worst.m} 月</b>（平均 ${A.fmt.pct(worst.avg)}、${worst.up}/${worst.n} 年上漲）`
         : '';
     };
     const mark = () => $$('#msYears button').forEach(b => b.classList.toggle('on', +b.dataset.v === n));
@@ -4202,7 +4282,7 @@
     el.innerHTML = `<div class="card" style="margin-bottom:16px"><div class="row spread">
         <h3>重大訊息 <small>公司自己公告的，不是媒體報導</small></h3>
         <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
-      <div class="note" style="margin:6px 0 4px">只存摘要前 800 字；要看全文請到公開資訊觀測站查該公司該日期的公告。</div>
+      <div class="note" style="margin:6px 0 4px" title="要看全文請到公開資訊觀測站查該公司該日期的公告">只存摘要前 800 字；全文見公開資訊觀測站</div>
       ${mnHtml}</div>
       <div class="grid g2"><div class="card"><h3>相關新聞 <small>鉅亨 / TechNews / 經濟日報</small></h3>${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty">近期沒有提到這檔的新聞</div>'}</div>
       ${window.BrokerViews ? window.BrokerViews.view(bv, 'card', A.fmt) : ''}</div>`;
