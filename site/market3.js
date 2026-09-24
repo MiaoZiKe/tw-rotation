@@ -116,8 +116,8 @@
     // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
     //（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395），
     // 台指期則沒有免費來源 —— 這兩個只有「當天即時」，選到歷史週期時畫面會說清楚為什麼。
-    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII' },
-    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null },
+    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII', yahoo1m: '^TWII' },
+    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null, yahoo1m: '^TWOII' },
     { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null },
   ];
   // 交易時段（台北）。留白到收盤，才看得出「現在走到哪」。
@@ -167,7 +167,7 @@
      期交所行情看板本身是秒級更新，一分鐘問一次已經很客氣。 */
   const MS_NIGHT = 60 * 1000;
 
-  const state = { data: {}, err: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
+  const state = { data: {}, err: {}, lakeHead: {}, mode: 'line', tf: 5, big: '', kcharts: {}, busy: false, at: 0,
     hist: {}, histErr: {}, histBusy: {}, timer: null, nTimer: null, tickMs: 0, fails: 0,
     // 呼吸燈：tipKey＝上一次看到的「最後一個點」是誰；tipAt＝它最後一次真的往前走的時刻
     tipKey: {}, tipAt: {}, pulses: {}, pTimer: null,
@@ -890,6 +890,41 @@
     };
   }
 
+  /** 備援：Yahoo 1 分鐘線 → 跟 parse() 一樣的形狀。 */
+  async function fetchYahoo1m(x) {
+    const base = proxy(); if (!base) return null;
+    const r = await fetch(`${base}/y?symbol=${encodeURIComponent(x.yahoo1m)}&interval=1m&range=1d`, { cache: 'no-store' });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const res = ((j.chart || {}).result || [])[0];
+    if (!res || !res.timestamp) return null;
+    const q = ((res.indicators || {}).quote || [])[0] || {}, m = res.meta || {};
+    const pts = [];
+    res.timestamp.forEach((t, i) => {
+      const c = num(q.close && q.close[i]); if (c === null) return;
+      const d = new Date(t * 1000 + 8 * 3600 * 1000);
+      pts.push({ ms: t * 1000, min: d.getUTCHours() * 60 + d.getUTCMinutes(), c, s: num(q.volume && q.volume[i]) || 0 });
+    });
+    if (!pts.length) return null;
+    const cs = pts.map(p => p.c), last = pts[pts.length - 1];
+    const dd = new Date(last.ms + 8 * 3600 * 1000);
+    return {
+      id: x.id, name: x.name, src: 'Yahoo',
+      date: dd.toISOString().slice(0, 10).replace(/-/g, ''),
+      time: dd.toISOString().slice(11, 19),
+      prev: num(m.chartPreviousClose) ?? num(m.previousClose),
+      open: cs[0], high: Math.max.apply(null, cs), low: Math.min.apply(null, cs),
+      last: num(m.regularMarketPrice) ?? last.c, vol: null, amt: null, points: pts,
+    };
+  }
+  /** 這台瀏覽器存的「當天最後一份分時」—— 只給同一天用，隔天就作廢。 */
+  function tpeDay() { try { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }).replace(/-/g, ''); } catch (e) { return ''; } }
+  function cachePut(id, d) { try { localStorage.setItem('m3.last.' + id, JSON.stringify({ day: tpeDay(), d })); } catch (e) {} }
+  function cacheGet(id) {
+    try { const o = JSON.parse(localStorage.getItem('m3.last.' + id) || 'null'); return (o && o.day === tpeDay()) ? o.d : null; }
+    catch (e) { return null; }
+  }
+
   async function refresh(manual) {
     if (state.busy) return;
     if (!document.getElementById('m3')) return;          // 不在總覽就不用抓
@@ -900,8 +935,32 @@
     syncSession();
     state.busy = true;
     const jobs = IDX.map(async x => {
-      try { state.data[x.id] = await fetchOne(x.id); state.err[x.id] = ''; }
-      catch (e) { state.err[x.id] = String(e.message || e); }
+      let d = null, err = '';
+      try { d = await fetchOne(x.id); } catch (e) { err = String(e.message || e); }
+      /* ★ 2026-09-24 Andy：「日盤不能重新整理找不到數據就空白，麻煩補上該有數據」。
+         證交所分時在收盤後常回空、櫃買那支會回 502 —— 以前就直接留白。
+         現在依序退：① Yahoo 1 分鐘線（加權 ^TWII、櫃買 ^TWOII）② 這台瀏覽器存下的當天最後一份。
+         退到備援時卡片上會標來源，不假裝是證交所即時。*/
+      if ((!d || !d.points.length) && x.yahoo1m) {
+        try { const y = await fetchYahoo1m(x); if (y && y.points.length) { d = y; err = ''; } } catch (e) {}
+      }
+      if (!d || !d.points.length) {
+        const c = cacheGet(x.id); if (c && c.points && c.points.length) { d = Object.assign(c, { src: '本機暫存' }); err = ''; }
+      } else if (!d.src) cachePut(x.id, d);
+      // ③ 都沒有分時 → 至少把資料湖最後一根日線的收盤放上標題列，不讓數字是「—」
+      if ((!d || !d.points.length) && x.id !== 'FUT') {
+        try {
+          const all = await window.App.load('index_ohlc', { fallback: {} });
+          const b = (all && all[x.id]) || [];
+          if (b.length) {
+            const L = b[b.length - 1], P = b.length > 1 ? b[b.length - 2] : null;
+            state.lakeHead[x.id] = { id: x.id, src: '資料湖日線', date: String(L[0]).replace(/-/g, ''), time: '收盤',
+              open: L[1], high: L[2], low: L[3], last: L[4], prev: P ? P[4] : null, amt: null, vol: null, points: [] };
+          }
+        } catch (e) {}
+      }
+      if (d && d.points.length) { state.data[x.id] = d; state.err[x.id] = ''; }
+      else { if (!state.data[x.id] || !state.data[x.id].points.length) state.data[x.id] = d; state.err[x.id] = err; }
     });
     /* 夜盤報價也放進同一輪（2026-09-19）。
        以前只有 mount 與按鈕點擊時抓一次，等於「夜盤的數字永遠不會自己更新」——
@@ -1084,8 +1143,9 @@
   }
 
   function cardHead(x) {
-    const d = seriesOf(x);
+    let d = seriesOf(x);
     const f = F();
+    if ((!d || !d.points || !d.points.length) && !isNight(x) && state.lakeHead && state.lakeHead[x.id]) d = state.lakeHead[x.id];
     if (!d || !f) return `<div class="m3-nums"><span class="m3-px">—</span></div>`;
     /* ★ 2026-09-23：夜盤拿不到時，這排數字也不准拿日盤的開高低收頂替。
        理由跟圖表那邊一樣（見 drawOne）：分頁明明選在「夜盤」，
@@ -1110,7 +1170,8 @@
     // 夜盤沒有「昨收」的概念，期交所給的是「參考價」（日盤收盤價）
     const base = d.prevLabel || '昨收';
     // 「夜盤報價未取得」那個徽章移到上面的早退分支去了（走到這裡一定有資料）
-    const tag = d.night ? `<span class="m3-tag">夜盤 ${f.esc(d.symbol || '')}</span>` + futWayTag() : '';
+    const tag = d.night ? `<span class="m3-tag">夜盤 ${f.esc(d.symbol || '')}</span>` + futWayTag()
+      : (d.src && d.src !== 'taifex') ? `<span class="m3-tag" title="證交所分時抓不到，改用備援來源">${f.esc(d.src)}</span>` : '';
     return `<div class="m3-nums">
       <span class="m3-px ${f.cls(chg)}">${f.n(d.last, dp)}</span>
       <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>
