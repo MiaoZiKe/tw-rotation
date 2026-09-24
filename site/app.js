@@ -491,6 +491,10 @@
         const sig = el.clientWidth + 'x' + el.clientHeight;
         if (el._roSize === sig) return;
         el._roSize = sig;
+        /* ★ 2026-09-24 效能：observe() 之後瀏覽器**一定**會先回呼一次（報「現在的尺寸」），
+           那時圖表剛 init、尺寸本來就對 —— 以前這一次也照樣 resize，等於每張圖一建好就再整張重畫一遍
+           （首次開資金流向實測 5 張圖各白畫一次，約 0.5 秒）。圖表自己的尺寸已經等於容器就不動。*/
+        if (i.getWidth() === el.clientWidth && i.getHeight() === el.clientHeight) return;
         i.resize();
       });
       el._ro.observe(el);
@@ -655,7 +659,23 @@
       try { e.close(); } catch (er) { /* 同上 */ }
     });
   });
-  window.addEventListener('resize', () => { Object.values(charts).forEach(c => c && c.resize && c.resize()); });
+  /* ★ 2026-09-24 效能（Andy：「開啟網頁都會卡頓一陣子」）：ECharts 的 `resize()` **不管尺寸有沒有變都會整張重畫**。
+     以前全站好幾個地方「對每一張圖都 resize 一次」—— 視窗 resize 事件（大盤三張圖每畫一次就派一次、事件欄開關也派一次）、
+     換頁後的 resizeVisibleCharts、手機換段、說明展開 —— 首次開總覽實測這幾輪白畫就佔掉 400～600ms 的長任務。
+     改成一支共用的 `resizeIfChanged()`：容器尺寸跟圖表現在的尺寸一樣就不動；容器藏起來（寬或高是 0）也不動
+     （藏起來時 resize 會把圖縮成 100px，等那頁打開又是一塊空白 —— 2026-09-24 抓過一次）。
+     ⚠ 只省「白畫」：尺寸真的變了照樣 resize，所以版面、縮放、切分頁的行為一點都沒變。
+     ⚠ 容器有 padding 時 getWidth() 會比 clientWidth 小 → 判成「變了」→ 照舊 resize（寧可多畫，不可漏畫）。*/
+  function resizeIfChanged(c) {
+    if (!c || !c.resize || (c.isDisposed && c.isDisposed())) return false;
+    const el = c.getDom && c.getDom(); if (!el) return false;
+    const w = el.clientWidth, h = el.clientHeight;
+    if (!(w > 0) || !(h > 0)) return false;
+    if (c.getWidth() === w && c.getHeight() === h) return false;
+    c.resize(); return true;
+  }
+  const resizeAllCharts = () => { Object.values(charts).forEach(c => { try { resizeIfChanged(c); } catch (e) { /* 已經 dispose 的圖 */ } }); };
+  window.addEventListener('resize', resizeAllCharts);
   /* 瀏覽器縮放（Ctrl +/-）會改 devicePixelRatio，而 ECharts 是在 init 當下記住 DPR 的。
      只呼叫 resize() 的話畫布尺寸對了、內部座標還是舊 DPR，結果就是「圖縮到中間一小塊、周圍一片黑」
      （Andy 縮小視窗後熱力圖變一小塊就是這個）。DPR 一變就整個丟掉重建，沒有別的解法。 */
@@ -1579,7 +1599,7 @@
      量到的寬度是 0，顯示回來不重算就是一張空白圖（2026-09-18 K 線那個 bug 的同一個形態）。
      所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
   function miaResize() {
-    try { Object.values(charts).forEach(c => c && c.resize && c.resize()); } catch (e) { /* 忽略 */ }
+    try { resizeAllCharts(); } catch (e) { /* 忽略 */ }
     try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
   }
 
@@ -1935,14 +1955,7 @@
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   /* 換頁後把「看得見的」圖表 resize。藏起來的（display:none 的分頁裡）一律跳過：
      量不到寬度時 ECharts 會把它縮成 100px，等那一頁再被打開時就是一塊空白（2026-09-24 抓到）。*/
-  function resizeVisibleCharts() {
-    Object.values(charts).forEach(c => {
-      if (!c || !c.resize || (c.isDisposed && c.isDisposed())) return;
-      const el = c.getDom && c.getDom();
-      if (el && (el.offsetWidth === 0 || el.offsetHeight === 0)) return;
-      c.resize();
-    });
-  }
+  function resizeVisibleCharts() { resizeAllCharts(); }   // 藏起來的與尺寸沒變的都跳過（見 resizeIfChanged）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -5742,7 +5755,7 @@
       const set = (on) => {
         box.hidden = !on; b.classList.toggle('on', on);
         b.setAttribute('aria-expanded', on ? 'true' : 'false');
-        Object.values(charts).forEach(c => c && c.resize && c.resize());
+        resizeAllCharts();
       };
       set(open);
       if (open) dismissable(box, () => set(false));
