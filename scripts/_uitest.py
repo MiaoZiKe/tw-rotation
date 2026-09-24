@@ -22939,7 +22939,7 @@ def _hm_check(tag, r, kind):
     ok(f"[{tag}] ④ 截斷的名稱至少留兩個字（不再有「M +」這種殘字）",
        all(len(t) >= 3 for t in trunc), trunc[:6])
     # 熱度那兩組（暖金／湖水藍）最亮的兩格改配深字（2026-09-24 Andy 嫌紫色醜之後換的色）；其他格一律白字
-    ink = lambda i: r["inkDark"] if kind in ("heat", "heatT") and i >= 3 else "#ffffff"
+    ink = lambda i: r["inkDark"] if kind == "heatT" and i >= 3 else "#ffffff"   # 09-24 熱度改藍→紅，五格都白字
     lowc = [(c, ink(i), round(_cr(c, ink(i)), 2)) for i, c in enumerate(pal) if _cr(c, ink(i)) < 4.5]
     ok(f"[{tag}] ⑤ 每一級色階上的字（白字，熱度最亮兩格是深字）對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
     ok(f"[{tag}] 方塊圓角 3px、標籤 12px", r["radius"] == 3 and r["fs"] == 12, [r["radius"], r["fs"]])
@@ -23056,7 +23056,7 @@ def t_heatmap_v2(pg, base):
         pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
         r = pg.evaluate(HM_READ, "themeMap")
         _hm_check(f"{th} 題材 #themeMap", r, "heat")
-        ok(f"[{th} #themeMap] 預設顏色＝熱度（暖金 5 格，不用紅 —— 紅在這個站是「漲」；09-24 紫色被 Andy 否決）",
+        ok(f"[{th} #themeMap] 預設顏色＝熱度（藍→紅 5 格；09-24 Andy 指定溫和紅藍，改前暖金）",
            r and r["legendTitle"] == "熱度" and len(r["cells"]) == 5, r and r["legendTitle"])
         if th == "dark":
             pg.select_option("#themeColorSel", "chg"); pg.wait_for_timeout(1400)
@@ -23079,7 +23079,7 @@ def t_heatmap_v2(pg, base):
                pg.evaluate("() => localStorage.getItem('tw.themeColor')") == "heatT")
             pg.select_option("#themeColorSel", "heat"); pg.wait_for_timeout(1400)
             rh = pg.evaluate(HM_READ, "themeMap")
-            ok("[#themeMap] 切回「熱度（暖金）」→ 暖金 5 格",
+            ok("[#themeMap] 切回「熱度（藍→紅）」→ 藍→紅 5 格",
                rh and len(rh["cells"]) == 5 and all(lf["fill"] in rh["pal5"] + [rh["na"]] for lf in rh["leaves"]), rh and rh["cells"])
             _hm_focus(pg, f"{th} #themeMap", "themeMap")
     # ---- 窄畫面：800px 與 390px，圖例不准縮字、不准撐出橫向捲軸 ----
@@ -24414,7 +24414,8 @@ SOFT_SCAN = r"""() => { const out = { bar: [], pie: [], gauge: [], line: [], sta
           const r = rad(s, d); const rr = Array.isArray(r) ? r : [r, r, r, r];
           // 膠囊：畫出來的厚度的一半就是半圓；四個角的圓角都要 ≥ 厚度一半（zrender 會縮回剛好半圓）
           const L = sd.getItemLayout(k) || {}; const t = Math.abs(h ? L.height : L.width) || 0; thick.push(Math.round(t));
-          if (!(t > 0 && Math.min(...rr.map(x => +x || 0)) >= t / 2 - 0.5)) bad.push({ k, v, r, t });
+          // 2026-09-24 Andy：「圓弧化太嚴重」改回小圓角 → 改前「四角 ≥ 厚度一半（膠囊）」→ 改後「最大圓角 1～4px」
+          const mx = Math.max(...rr.map(x => +x || 0)); if (!(t > 0 && mx >= 1 && mx <= 4)) bad.push({ k, v, r, t });
           // 數值標籤在末端外側：正值右／上、負值左／下（有開標籤、而且不是寫在長條裡面的）
           const il = (d && typeof d === 'object' && d.label) || {};
           const show = il.show != null ? il.show : lab.show;
@@ -24472,7 +24473,7 @@ def t_soften(pg, base):
         for x in s["pie"]:
             listing.append(f"#{rt} {x['id']}（圓餅）圓角 {x['r']}、縫 {x['pad']}")
         badbar = [x for x in s["bar"] if x["nbad"]]
-        ok(f"[圓滑化 #{rt}] 每一根長條都是膠囊形（圓角 ≥ 畫出來厚度的一半，兩端全圓；{len(s['bar'])} 個 series）", not badbar, badbar[:3])
+        ok(f"[圓滑化 #{rt}] 每一根長條都是小圓角（1～4px，不是膠囊；{len(s['bar'])} 個 series）", not badbar, badbar[:3])
         lb = [x for x in s["bar"] if x["nlbad"]]
         ok(f"[圓滑化 #{rt}] 長條的數值標籤都在末端外側（正值右／上、負值左／下），字 ≥ 12px", not lb, lb[:3])
         thick = [x for x in s["bar"] if x["thick"] and x["thick"][1] > 18.5]
