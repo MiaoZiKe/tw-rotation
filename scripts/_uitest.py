@@ -10857,6 +10857,7 @@ SECTIONS = {
     #   出口拿到的就是畫面上的東西，而且把那塊積木的檔擋掉之後整站照常（原則三）。
     "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
     "積木-個股三卡":       lambda pg, b, base, code: t_block_stock_cards(b, base, code),
+    "積木-隱性參數":       lambda pg, b, base, code: t_block_implicit(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -22825,6 +22826,46 @@ def t_block_stock_cards(b, base, code):
        pg.evaluate("() => document.querySelectorAll('#stockTab canvas').length") > 0
        or "尚無月營收" in pg.inner_text("#stockTab"), pg.inner_text("#stockTab")[:40])
     ok(f"【{tag}】關掉之後沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
+    ctx.close()
+
+
+
+def t_block_implicit(b, base):
+    """#4b：`market.streak`（法人連續買超）不再靠全域快取 `D.inst_streak` 當隱性參數。
+
+    驗法是直接把那條暗道拆掉：總覽畫完之後把 `App.D.inst_streak` 清成 null，
+    再真的按「外資」「合計」與天數下拉 —— 以前 renderTrust 讀的是 D，這時會變成空圖；
+    現在它讀的是 renderOverview 明確傳進來的參數，圖與筆數要跟清掉之前一模一樣。"""
+    tag = "積木-隱性參數"
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    errs: list[str] = []
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.goto(base + "#overview", wait_until="networkidle")
+    wait_until(pg, "window.App && document.querySelector('#streakSub') && /檔/.test(document.querySelector('#streakSub').textContent)", 8000)
+    read = """() => { const el = document.getElementById('trust'); const c = el && window.echarts && echarts.getInstanceByDom(el);
+        const s = c && c.getOption().series[0];
+        return { sub: document.getElementById('streakSub').textContent, n: s ? (s.data || []).length : 0 }; }"""
+
+    def run():
+        out = {}
+        for w in ("foreign", "total", "trust"):
+            pg.click(f"#streakWho button[data-w='{w}']"); pg.wait_for_timeout(500)
+            out[w] = pg.evaluate(read)
+        pg.select_option("#streakDays", "2"); pg.wait_for_timeout(500)
+        out["d2"] = pg.evaluate(read)
+        pg.select_option("#streakDays", "3"); pg.wait_for_timeout(500)
+        return out
+
+    before = run()
+    ok(f"【{tag}】外資／合計在拆暗道之前就有資料（這條驗收才有意義）",
+       before["foreign"]["n"] > 0 or before["total"]["n"] > 0, before)
+    pg.evaluate("() => { window.App.D.inst_streak = null; }")
+    after = run()
+    ok(f"【{tag}】把 App.D.inst_streak 清掉之後，三種法人與天數門檻的圖與筆數完全不變（讀的是參數，不是 D）",
+       after == before, {"before": before, "after": after})
+    ok(f"【{tag}】整段沒有 JS 錯誤", not errs, errs[:2])
     ctx.close()
 
 

@@ -2338,7 +2338,15 @@
     /* ★ 2026-09-23：多載一份 `sankey_daily` —— 右下角那塊換成「昨日資金去向分流圖」（D7）之後
        總覽也要用到它。它和資金流向頁吃的是**同一份檔案**（同一個口徑，不另外算一份）。 */
     // ★ 2026-09-23：`group_valuation` 不再載入 —— 總覽的「族群估值」散布圖已移除，它是全站最後一個讀者。
-    const [heat, gt, rot, cands, f3, th, trust, , , sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
+    /* ★ 2026-09-24 積木化 #4b（docs/feature_modules.md §4）：以前這一行寫成 `trust, , , sd`，
+       把 `groups_detail` 與 `inst_streak` 的回傳值丟掉，只為了讓全域快取 `D` 被填滿 ——
+       `renderTrust` 再去讀 `D.inst_streak`。兩塊程式碼靠「誰先把 D 填滿」溝通，
+       延後或搬走任何一塊，另一塊就會拿到空的（原則二的反例）。
+       現在 `inst_streak` 明確當參數傳給 `market.streak`（renderTrust／wireStreak）。
+       `groups_detail` 的讀者是熱力面板與族群展開這幾支共用工具（heatPanel／toggleRotMembers…），
+       它們仍然讀 `D`，要改得整條呼叫鏈一起穿參數 —— 留給下一棒，這裡先把回傳值具名，
+       至少讀程式的人看得到「這一份是為了誰載的」。 */
+    const [heat, gt, rot, cands, f3, th, trust, gdForPanels, streak, sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
     // hero
     const b = (heat && heat.breadth) || {};
     const mv = b.movers || {};
@@ -2374,8 +2382,8 @@
     renderThemeStrip(th);
     renderCandidates(cands);
     renderBreadth(heat);
-    renderTrust(trust, cands);
-    wireStreak(trust, cands);
+    renderTrust(trust, cands, streak);
+    wireStreak(trust, cands, streak);
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
@@ -4283,8 +4291,11 @@
   const streakState = { who: 'trust', days: 3 };
   const STREAK_NAME = { trust: '投信', foreign: '外資', total: '三大法人合計' };
 
-  function renderTrust(trust, cands) {
-    const all = D.inst_streak || {};
+  /* 積木 `market.streak` 的三份輸入全部從參數來（2026-09-24 #4b）：
+       trust ＝ 舊鍵 trust_streak（換版緩衝）、cands ＝ 只為了查中文名、streak ＝ inst_streak（三種法人）。
+       以前 streak 是直接讀全域快取 `D.inst_streak`，靠 renderOverview 先把它載進去。 */
+  function renderTrust(trust, cands, streak) {
+    const all = streak || {};
     const src = (all[streakState.who] && all[streakState.who].length)
       ? all[streakState.who]
       : (streakState.who === 'trust' ? (trust || []) : []);
@@ -4360,14 +4371,14 @@
     linkRow('trust', rows.slice(0, 12).map(r => L.stock(r.code, nm(r.code))).join(''));
   }
 
-  function wireStreak(trust, cands) {
+  function wireStreak(trust, cands, streak) {
     $$('#streakWho button').forEach(b => b.onclick = () => {
       $$('#streakWho button').forEach(x => x.classList.toggle('on', x === b));
-      streakState.who = b.dataset.w; renderTrust(trust, cands);
+      streakState.who = b.dataset.w; renderTrust(trust, cands, streak);
     });
     const sel = $('#streakDays');
     if (sel) { sel.value = String(streakState.days);
-      sel.onchange = () => { streakState.days = +sel.value; renderTrust(trust, cands); }; }
+      sel.onchange = () => { streakState.days = +sel.value; renderTrust(trust, cands, streak); }; }
   }
 
   /* ★ 2026-09-23（Andy：「估值篩選拿掉」，追問後回覆「OK」＝連總覽這張也一起砍）：
