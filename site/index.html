@@ -2638,6 +2638,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mpager{display:flex;gap:6px;margin:0 0 10px;padding:7px 2px;
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.55)}
+  /* ⚠ 2026-09-24 修：`miaPager` 用 `bar.hidden = subs.length < 2` 想把
+     「只有一段」的分頁列收掉（程式註解寫得很清楚：「一顆孤單的晶片是雜訊」），
+     但 `display:flex` 的權重 (0,1,0) 蓋過瀏覽器內建的 `[hidden]{display:none}` (0,0,0)，
+     **那一行完全沒有生效** —— 實測第③步「今日候選」與第④步「今日事件」
+     各留下一顆孤單的晶片，連同 margin 共 68px（844 可視區的 8%）。
+     這一條把它補回來；`!important` 不需要，同權重下後寫的贏。 */
+  .mpager[hidden]{display:none}
   .mpager::-webkit-scrollbar{display:none}
   .mpager>button{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
@@ -2665,6 +2672,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mspine>button.on{background:var(--panel-3);color:var(--ink);border-color:var(--focus);
     box-shadow:inset 0 0 0 1px var(--focus)}
   .mspine>button.on em{color:var(--ink-2)}
+  /* ★ 2026-09-24 修：主軸列量到 scrollWidth 818 / clientWidth 362 ——**藏了 456px**，
+     而且它也是釘住的，所以跟 `#skPx` 走同一條路（不透明蓋片，不是 `.hsc` 的 mask）。
+     `right:-2px` 抵銷它自己的 2px 左右內距。*/
+  .mspine::after{content:'';flex:0 0 30px;width:30px;margin-left:-30px;
+    position:sticky;right:-2px;align-self:stretch;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,0,0),var(--bg))}
+  .mspine.sk-end::after{background:none}
   /* 「下一步」：動線的方向感靠它 —— 看完一屏就有一顆鈕帶去下一屏，不必回頭找分頁 */
   .mnext{display:block;width:100%;min-height:48px;margin:14px 0 4px;padding:12px;
     border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
@@ -2742,10 +2756,29 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     box-shadow:0 6px 10px -9px rgba(0,0,0,.6);
     /* 排成**一列**（原本四個 pill 換行成三列、整塊 180px 高）。
        釘住的東西越高，留給圖的畫布就越少 —— 一列 ~48px 是「價格永遠看得到」的成本上限。
-       本益比／同業分位／營收 YoY 沒有不見，往右滑就在（`.hsc` 會補淡出）。*/
+       本益比／同業分位／營收 YoY 沒有不見，往右滑就在。
+       ⚠ 2026-09-24 更正：這裡原本寫「`.hsc` 會補淡出」—— **沒有，`#skPx` 不在 `SWIPE_SEL` 裡**，
+         而且它也**不能**用 `.hsc`（那是 mask，會讓釘住的列半透明）。淡出改由下面的
+         `#skPx::after` 不透明蓋片畫。*/
     flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   body.miaon #skPx::-webkit-scrollbar{display:none}
   body.miaon #skPx>*{flex:0 0 auto}
+  /* ★ 2026-09-24 修：這一列**藏了 442px 的內容**（scrollWidth 802 / clientWidth 360，
+     「本益比」「同業分位」「營收 YoY」「分 K 完整」四顆整個在畫面外，第四顆起跑點 359.4
+     被卡片右緣 376 切一半），而畫面上原本**沒有任何記號**說得出「這一列可以滑」。
+     ⚠ 不可以用 `.hsc` 那套淡出 —— 它是 CSS `mask`，會連背景一起淡掉，
+       而這一列是釘住的：實測捲到工具列滑進它底下（重疊 25.6px）時，
+       右緣**真的看得到底下的「5 秒」晶片透出來**。釘住的東西必須不透明。
+     所以改用一塊**不透明的蓋片**：`::after` 在 flex 容器裡是一個 flex 子項，
+     用 `position:sticky;right:-18px` 黏在捲動視窗的右緣（-18 是抵銷這一列自己的右內距），
+     顏色從透明收到 `var(--bg)`（＝這一列自己的底色）。
+     看起來跟淡出一樣，但它是**蓋在內容上**，不是讓內容透出來。
+     `margin-left:-36px` 讓它不增加可捲寬度；`pointer-events:none` 讓它不擋點擊。*/
+  body.miaon #skPx::after{content:'';flex:0 0 36px;width:36px;margin-left:-36px;
+    position:sticky;right:-18px;align-self:stretch;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,0,0),var(--bg))}
+  /* 捲到最右邊就不要再淡（「已經到底了還在淡」是假提示）—— 由 app.js 掛 `.sk-end`。*/
+  body.miaon #skPx.sk-end::after{background:none}
   /* 工具列（週期／指標／設定 共 11 顆）改成**一列左右滑**，高度從 404px 收成一列。
      全部留著、一顆都沒少，只是排成一條可以滑的帶子（`.hsc` 會補淡出與「左右滑」提示）。*/
   body.miaon #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
@@ -2761,6 +2794,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      既有的拍板優先於我這一版的偏好，所以整段撤回；`.gpgrid` 在手機維持單欄堆疊。
      代價：產業地圖頁在 390px 仍有 1358px（圓餅圖要捲 1025px 才看得到）——
      寫進「刻意留到下一版」，要改得先問過他。*/
+
+  /* ---- ⑤-b K 線圖例：一個數字不准被切成兩半 -----------------------------------
+     390px 實測：`#legendOv` 的兩行邏輯內容折成 5 行、佔掉 501px 高的 K 線圖 101.8px（20.3%），
+     而且**折在項目中間** —— 量到「MA60」留在第一行、「2,400.83」被推到第二行
+     （那個 span 的邊界框是 244.3×33.8，橫跨兩行）。讀者看到的是一個被拆開的數字。
+     `inline-block` 讓每一個 `<span>` 成為不可分割的一塊，要折就整塊折下去。
+     ⚠ 只在 `body.miaon`（≤640px 的真手機）生效，桌機那條路徑一個字都沒動。
+     ⚠ 這只解決「折在項目中間」；「圖例佔掉圖的五分之一」是另一件事，
+       要動到 industry.js 的圖例內容，寫進 docs/mobile_ia.md 的待辦。*/
+  body.miaon #lwc .legend-ov span{display:inline-block}
 
   /* ---- ⑥ 左右滑的位置指示：第幾張／共幾張 ------------------------------------
      Andy 點名的：「左右滑的卡片要有位置指示，不然不知道還有沒有」。

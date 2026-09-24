@@ -21119,6 +21119,147 @@ def t_mobile_oneview(b, base, code):
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
         h = m.evaluate("() => document.documentElement.scrollHeight")
         ok(f"[390px] {route} 的整頁高度 {h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
+
+    # ================================================================
+    # ★ 2026-09-24（Andy：「另外這個手機版我剛剛看體驗那邊有跑掉」—— 只有這一句、沒有截圖）
+    #   底下五條都是**掃出來的具體壞法**，每一條驗的是「那個壞法本身」，
+    #   不是「元素存在」。四條是「程式註解說會做、實際被蓋掉或根本沒接上」的那一種 ——
+    #   它們共同的形態是：讀程式碼看起來是對的，量畫面才知道沒生效。
+    # ================================================================
+
+    # ① 只有一段時不准留一顆孤單的晶片。
+    #    壞法：`miaPager` 寫了 `bar.hidden = subs.length < 2`（註解：「一顆孤單的晶片是雜訊」），
+    #    但 `.mpager{display:flex}` 的權重 (0,1,0) 蓋過瀏覽器內建的 `[hidden]{display:none}` (0,0,0)，
+    #    那一行**完全沒有生效**。實測第③④步各留 58px＋10px margin ＝ 68px。
+    #    ⚠ 所以這裡驗的是 **computed display 與實際高度**，不是 `hidden` 屬性 ——
+    #      驗屬性的話舊版也會綠，那就是假綠。
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
+    PAGER = """() => { const b = document.querySelector('main .view.on > .mpager');
+        if (!b) return { none: true };
+        const r = b.getBoundingClientRect();
+        return { n: b.children.length, attr: b.hidden, disp: getComputedStyle(b).display,
+                 h: Math.round(r.height),
+                 step: [...document.querySelectorAll('.mspine>button')].findIndex(x => x.classList.contains('on')) }; }"""
+    for want_step in (0, 1, 2, 3):
+        st = m.evaluate(PAGER)
+        if st.get("none"):
+            ok(f"[390px 分段] 第{want_step + 1}步找得到分段列的狀態", False, st)
+        elif st["n"] < 2:
+            ok(f"[390px 分段] 第{st['step'] + 1}步只有 1 段 → 分段列整條收掉（不留孤單的晶片）",
+               st["disp"] == "none" and st["h"] == 0, st)
+        else:
+            ok(f"[390px 分段] 第{st['step'] + 1}步有 {st['n']} 段 → 分段列要看得見",
+               st["disp"] != "none" and st["h"] > 30, st)
+        if want_step < 3:
+            m.click(".mnext"); m.wait_for_timeout(1300)
+
+    # ② 換段之後不准留「高度 0 卻還占著外距」的空殼容器。
+    #    壞法：總覽的卡片包在 `.grid.g21`／`.grid.g12.eqpair`／`.grid.g2` 這幾層排版容器裡，
+    #    分段導覽藏的是**卡片**，容器沒被藏 → 每一步留下 2～3 個空殼，各帶 margin-top:16px。
+    #    實測第④步：分段列底 202 → 內容頂 266，中間 64px 沒有人知道那是什麼的空白。
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
+    SHELL = """() => { const v = document.querySelector('main .view.on'); if (!v) return null;
+        const bad = [];
+        [...v.children].forEach(el => {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none') return;
+          if (!el.children.length) return;                 // 沒有元素子項的不算排版容器
+          const r = el.getBoundingClientRect();
+          if (r.height >= 1) return;
+          const mt = parseFloat(cs.marginTop) || 0, mb = parseFloat(cs.marginBottom) || 0;
+          if (mt + mb <= 0) return;                        // 高度 0 又沒有外距 ＝ 不占版面，無害
+          bad.push({ sel: (el.id || el.className || el.tagName).toString().slice(0, 30),
+                     mt: mt, mb: mb, kids: el.children.length }); });
+        return { bad, waste: bad.reduce((s, x) => s + x.mt + x.mb, 0),
+                 step: [...document.querySelectorAll('.mspine>button')].findIndex(x => x.classList.contains('on')) }; }"""
+    for _ in range(4):
+        sh = m.evaluate(SHELL)
+        ok(f"[390px 分段] 第{sh['step'] + 1}步沒有殘留的空殼容器（修之前 2～3 個、白佔 32～48px）",
+           sh and not sh["bad"], sh)
+        m.click(".mnext"); m.wait_for_timeout(1300)
+
+    # ③ 個股頁釘住的價格列：藏了 442px 的內容，畫面上就得看得出「可以左右滑」。
+    #    壞法：`index.html` 的註解寫「本益比／同業分位／營收 YoY 沒有不見，往右滑就在
+    #    （`.hsc` 會補淡出）」，但 `#skPx` **根本不在 `SWIPE_SEL` 裡**，淡出一次都沒出現過。
+    #    實測 scrollWidth 802 / clientWidth 360，第 4 顆「本益比 28.5」起跑點 359.4 ——
+    #    被卡片右緣 376 切一半，而且沒有任何記號說得出右邊還有東西。
+    #    ⚠⚠ 修法**不可以**是「把它加進 SWIPE_SEL」：`.hsc` 是 CSS mask，會連背景一起淡掉，
+    #      而這一列是釘住的 —— 我親手驗過：捲到工具列滑進它底下（重疊 25.6px）時，
+    #      右緣真的看得到「5 秒」那顆晶片透出來（上一批的註解早就寫了，我差點又踩一次）。
+    #      所以這裡同時驗兩件事：① 右緣有看得出來的淡出 ② 那是**蓋片**不是 mask。
+    m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
+    SK = """() => { const e = document.getElementById('skPx'); if (!e) return null;
+        const cs = getComputedStyle(e), af = getComputedStyle(e, '::after');
+        const kids = [...e.children];
+        const last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
+        return { sw: e.scrollWidth, cw: e.clientWidth, sl: Math.round(e.scrollLeft),
+                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none',
+                 hsc: e.classList.contains('hsc'), end: e.classList.contains('sk-end'),
+                 pos: cs.position,
+                 cover: (af.backgroundImage || 'none').indexOf('gradient') >= 0,
+                 coverW: Math.round(parseFloat(af.width) || 0),
+                 tip: !!(e.nextElementSibling && e.nextElementSibling.classList
+                         && e.nextElementSibling.classList.contains('swipetip')),
+                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null,
+                 vw: innerWidth }; }"""
+    k0 = m.evaluate(SK)
+    ok("[390px 個股] 價格列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
+       k0 and k0["sw"] > k0["cw"] + 4 and k0["cover"] and k0["coverW"] >= 20 and not k0["end"], k0)
+    ok("[390px 個股] 而且那塊淡出是**不透明的蓋片**、不是 mask"
+       "（mask 會讓釘住的列半透明 —— 實測底下工具列的「5 秒」會透出來）",
+       k0 and not k0["mask"] and not k0["hsc"], k0)
+    ok("[390px 個股] 但**不准**在它後面插一行「左右滑看更多」（釘住的東西越高，留給圖的越少）",
+       k0 and not k0["tip"], k0)
+    # 真的把它滑到底，最後一顆要完整進得了畫面
+    m.evaluate("() => { const e = document.getElementById('skPx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
+    m.wait_for_timeout(600)
+    k1 = m.evaluate(SK)
+    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0["sl"], k1["sl"], str(k1))
+    ok("[390px 個股] 滑到底之後最後一顆（分 K 完整）整顆在畫面內",
+       k1 and k1["lastR"] is not None and k1["lastR"] <= k1["vw"] and k1["lastT"] >= 0, k1)
+    ok("[390px 個股] 滑到底之後蓋片收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"], k1)
+    ok("[390px 個股] 滑動之後它還是釘住的（蓋片沒有把 sticky 弄掉）", k1 and k1["pos"] == "sticky", k1)
+
+    # ④ K 線圖例：一個數字不准被折成兩半。
+    #    實測（修之前）：「MA60 2,400.83」那個 span 的邊界框是 244.3×33.8 —— 橫跨兩行，
+    #    也就是「MA60」在第一行尾、「2,400.83」被推到第二行開頭。
+    LG = """() => { const l = document.getElementById('legendOv'); if (!l) return null;
+        const fs = parseFloat(getComputedStyle(l).fontSize) || 12.5;
+        const lh = parseFloat(getComputedStyle(l).lineHeight) || fs * 1.5;
+        const split = [...l.querySelectorAll('span')].map(s => {
+            const r = s.getBoundingClientRect();
+            return { t: (s.textContent || '').trim().slice(0, 18), h: Math.round(r.height), w: Math.round(r.width) }; })
+          .filter(x => x.h > lh * 1.6);
+        const r = l.getBoundingClientRect(), c = document.getElementById('lwc').getBoundingClientRect();
+        return { split, lh: Math.round(lh), h: Math.round(r.height),
+                 pct: Math.round(r.height / c.height * 100) }; }"""
+    lg = m.evaluate(LG)
+    ok("[390px 個股] K 線圖例沒有任何一個數字被折成兩行（修之前「MA60 2,400.83」就是）",
+       lg and not lg["split"], lg)
+    notes.append(f"[390px 個股] K 線圖例目前佔圖高 {lg['h'] if lg else '?'}px"
+                 f"（{lg['pct'] if lg else '?'}%）—— 已知、未收斂，見 docs/mobile_ia.md")
+
+    # ⑤ 季節性月份熱力圖：格子小到放不下數字時，就不要硬畫上去。
+    #    實測（修之前）：容器 324×480、grid 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
+    #    12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73`（約 30px 寬）——
+    #    912 個標籤橫跨 3 欄、縱跨 2 列疊在一起，結果不是「字小」是一團糊。
+    m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3600)
+    HM = """() => { const e = document.getElementById('seasonHeat');
+        const i = window.echarts && echarts.getInstanceByDom(e); if (!i) return null;
+        const o = i.getOption(), g = (o.grid || [])[0] || {}, r = e.getBoundingClientRect();
+        const rows = ((o.yAxis || [])[0] || {}).data || [];
+        const pw = r.width - (+g.left || 0) - (+g.right || 0);
+        const ph = r.height - (+g.top || 0) - (+g.bottom || 0);
+        const lab = (o.series[0].label && o.series[0].label[0]) || o.series[0].label || {};
+        return { cellW: +(pw / 12).toFixed(2), cellH: +(ph / Math.max(1, rows.length)).toFixed(2),
+                 rows: rows.length, show: !!lab.show, fs: lab.fontSize,
+                 note: (document.getElementById('seasonNote') || {}).textContent || '' }; }"""
+    hm = m.evaluate(HM)
+    ok("[390px 季節性] 格子放不下數字（量到每格 10×6px）就不畫在格子裡",
+       hm and (hm["cellW"] >= 30 and hm["cellH"] >= 13) == hm["show"], hm)
+    ok("[390px 季節性] 而且畫面上要講得出數字去哪裡了（收起來，不是刪掉）",
+       hm and (hm["show"] or "點一格" in hm["note"]), {k: hm[k] for k in ("show",)} if hm else hm)
+
     m.close()
 
 

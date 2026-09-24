@@ -904,7 +904,15 @@
        底下捲過去的工具列就會透出來（實測看到「技術分 88」後面疊著「4時」）。
        釘住的東西必須不透明，所以它只吃 `overflow-x:auto`，不吃淡出與提示列。
      ⚠ `.gpgrid` 曾經也加進來，後來撤回 —— 見 index.html 那段「⑤（撤回）」。*/
-  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools';
+  /* ★ 2026-09-24 補一個漏掉的：`.mpager`（分段列）。
+     ⚠ **`#skPx` 與 `.mspine` 刻意不加進來** —— 上面那段註解是對的，而且我親手驗過一次：
+       把 `#skPx` 加進來之後，捲到工具列剛好滑到價格列底下時（實測重疊 25.6px），
+       右緣的工具列「5 秒」那顆晶片**真的從半透明的邊緣透出來**（截圖確認）。
+       `.hsc` 用的是 CSS `mask`，它連元素的**背景**一起淡掉，而釘住的列必須不透明。
+       所以這兩個改走「不透明的蓋片」那條路（`index.html` 的 `#skPx::after`／`.mspine::after`）：
+       看起來一樣是淡出，但它是**蓋**在內容上，不是讓內容透出來。
+     ⚠ `.mpager` 可以用 `.hsc`，因為它**不是** sticky —— 底下沒有東西會捲過去。*/
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools,.mpager';
   /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
      這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
      在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
@@ -930,7 +938,13 @@
        `#dgTools` 是 `.dgsechead`（flex，寬畫面 nowrap）裡的一個子元素 ——
        在它後面插一個 div 會多一個 flex 子項，把標題那一列擠掉，
        所以它只吃淡出、不吃文字提示。*/
-    if (el.id === 'dgTools') return;
+    /* ★ 只吃淡出、不吃文字提示的名單。
+       `#dgTools` 的理由見上面（會多一個 flex 子項把標題那一列擠掉）。
+       `.mpager` 的理由不一樣：它是**導覽層**，在它後面插一行「左右滑看更多」
+       等於把 844 的可視區再吃掉 20px —— 而這整批改版的目的就是把導覽的高度壓下來
+       （CSS 註解：「釘住的東西越高，留給圖的畫布就越少」）。
+       淡出已經講得出「右邊還有東西」，文字提示在這裡是負收益。 */
+    if (el.id === 'dgTools' || el.classList.contains('mpager')) return;
     const nx = el.nextElementSibling;
     const has = nx && nx.classList && nx.classList.contains('swipetip');
     if (can && !has) {
@@ -956,6 +970,18 @@
     if (tip.getAttribute('data-pos') !== String(i + 1)) tip.setAttribute('data-pos', String(i + 1));
     if (tip.getAttribute('data-of') !== String(n)) tip.setAttribute('data-of', String(n));
   }
+  /* ★ 2026-09-24：**釘住的**橫向可捲列（`#skPx` 個股價格列、`.mspine` 主軸動線）。
+     它們不能走 `.hsc`（CSS `mask` 會連背景一起淡掉，底下捲過去的東西會透出來 ——
+     實測看得到工具列的「5 秒」晶片），所以淡出改由 index.html 的**不透明蓋片**
+     （`::after` ＋ `position:sticky`）畫。這裡只負責一件事：
+     **捲到最右邊就把蓋片收掉** —— 「已經到底了還在淡」跟沒有提示一樣糟，
+     它會讓人以為右邊永遠還有東西。*/
+  const STICKY_SCROLL_SEL = '#skPx,.mspine';
+  function paintStickyEnd(el) {
+    if (window.innerWidth > SWIPE_MAX) { el.classList.remove('sk-end'); return; }
+    const can = el.scrollWidth > el.clientWidth + 4;
+    el.classList.toggle('sk-end', !can || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  }
   function initSwipeHints() {
     const scan = () => {
       document.querySelectorAll(SWIPE_SEL).forEach(el => {
@@ -964,6 +990,13 @@
           el.addEventListener('scroll', () => paintSwipe(el), { passive: true });
         }
         paintSwipe(el);
+      });
+      document.querySelectorAll(STICKY_SCROLL_SEL).forEach(el => {
+        if (!el._stickyWired) {
+          el._stickyWired = true;
+          el.addEventListener('scroll', () => paintStickyEnd(el), { passive: true });
+        }
+        paintStickyEnd(el);
       });
     };
     window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
@@ -1146,6 +1179,25 @@
          「輪動時鐘」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
       const on = new Set((subs[i] || { els: [] }).els);
       found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
+      /* ★ 2026-09-24 修：**空殼容器要跟著收掉**。
+         總覽的卡片是包在 `.grid.g21`／`.grid.g12.eqpair`／`.grid.g2` 這幾層排版容器裡的，
+         分段導覽藏的是**卡片**，容器本身沒被藏 —— 於是換一段之後那幾層變成
+         「高度 0、但各自還帶 margin-top:16px」的空殼。
+         實測（390×844）：第①步殘留 2 個 ＝ 32px、第②④步殘留 3 個 ＝ 48px，
+         就是分段列和內容之間那一塊莫名其妙的空白（量到 mpager 底 202 → 內容頂 266）。
+         判準寫得很保守：**只收「本來就有元素子項、而且每一個子項都已經不顯示」的容器**，
+         沒有元素子項的（分隔線之類）一律不碰 —— 資訊架構改錯最貴的後果是「使用者找不到」。 */
+      const managed = new Set(); found.forEach(g => g.els.forEach(el => managed.add(el)));
+      [...view.children].forEach(w => {
+        if (managed.has(w) || w === spine || w === bar || w === next) return;
+        if (w.classList.contains('mspine') || w.classList.contains('mpager')
+            || w.classList.contains('mnext')) return;
+        const kids = [...w.children];
+        if (!kids.length) return;                       // 沒有元素子項 → 不是排版容器，不碰
+        const allOff = kids.every(k => k.classList.contains('mp-off')
+          || getComputedStyle(k).display === 'none');
+        w.classList.toggle('mp-off', allOff);
+      });
       /* 「收合」那顆鈕要跟著它負責的那一塊一起藏：鈕是插在那一塊後面的獨立節點，
          不跟著藏的話會出現「一顆孤零零的鈕，按了畫面什麼都不會變」—— 就是 G7 那個毛病。*/
       document.querySelectorAll('.mfold').forEach(b2 => {
@@ -7227,6 +7279,17 @@
       const cellLabel = lt
         ? { color: CH.ink, textBorderColor: 'rgba(255,255,255,.85)', textBorderWidth: 2.5 }
         : { color: '#e8eeff' };
+      /* ★ 2026-09-24 修（390px 實測）：**手機上格子裡的數字要收掉**。
+         量到的數字：容器 324×480、`grid` 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
+         塞 12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73` ——
+         字寬約 30px（跨 3 欄）、字高 11px（跨 2 列），912 個標籤整片疊在一起，
+         結果不是「字小」而是**一團看不出任何東西的糊**（截圖確認）。
+         ⚠ 這是「收起來，不是刪掉」：顏色與色階還在（那本來就是熱力圖要傳達的東西），
+           數字改由**點一格**拿到 —— tooltip 與下面的「逐年明細」都是原本就有的路徑，
+           所以資訊一個都沒有少，只是換一個進得去的位置。
+         ⚠ 桌機那條路徑一個字都沒動：判斷用 `mIsM()`（≤640px），
+           桌機的 `cellH` 同樣只有 8.4px，但「桌機不准被降級」優先於我這一版的偏好。 */
+      const cellsSmall = mIsM();
       const c = chart('seasonHeat', { tooltip: { ...tip, formatter: p => { const cl = p.data[3]; return `<b>${cl.group_name}</b> ${cl.month} 月<br>平均超額 ${cl.avg_excess != null ? fmt.pct(cl.avg_excess) : '—'}（勝率 ${cl.excess_win_rate ?? '—'}%）<br>平均報酬 ${cl.avg_return != null ? fmt.pct(cl.avg_return) : '—'}（勝率 ${cl.win_rate ?? '—'}%）<br>樣本 ${cl.samples} 年`; } },
         grid: { left: 130, right: 70, top: 10, bottom: 30 }, xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月'), ...axisStyle, splitArea: { show: false }, axisLabel: { color: CH.ink2 } },
         yAxis: { type: 'category', data: groups.map(g => g.group_name), ...axisStyle, axisLabel: { color: CH.ink2, fontSize: 12 } },
@@ -7237,10 +7300,12 @@
         visualMap: { min: lim[0], max: lim[1], dimension: 2, calculable: false, orient: 'vertical', right: 0, top: 'center',
           textStyle: { color: CH.ink3 }, inRange: { color: ramp },
           outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
-        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
+        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: !cellsSmall, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').innerHTML = fmt.esc(s3.note)
         + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
+        // 手機把格內數字收掉了，要在畫面上講出來去哪裡拿 —— 不講就是「資訊不見了」
+        + (cellsSmall ? '　<b>手機上格子太小，數字收進點擊：點一格看它的逐年明細。</b>' : '')
         + (fellBack ? '　<b style="color:var(--amber)">這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。</b>' : '');
       topThisMonth(P);
       drawLine();          // 兩張圖吃同一份資料、同一個期間與指標，切過去不用等
