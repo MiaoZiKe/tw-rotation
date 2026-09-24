@@ -8878,10 +8878,13 @@
   // 曲線圖的線色：從全站色盤挑 10 個彼此分得開、而且**不是紅也不是綠**的（紅綠在這個站是漲跌）
   const SEASON_LINE_IDX = [0, 2, 1, 6, 15, 12, 9, 13, 21, 25];
   let _snCtx = null;
+  /* 格內數字的字族。★ 2026-09-24：以前畫布上只寫 'JetBrains Mono' 一個字，沒裝這個字的電腦（Windows 預設就沒有）
+     會退回瀏覽器預設的襯線體，數字變成細細的 Times；跟全站 `--mono` 用同一串退路，量字寬與畫字也用同一串。*/
+  const SN_MONO = 'JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace';
   const snTextW = (s) => {           // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
     if (!_snCtx) { try { _snCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _snCtx = null; } }
     if (!_snCtx) return String(s).length * 7.5;
-    _snCtx.font = '600 12px JetBrains Mono, monospace';
+    _snCtx.font = '600 12px ' + SN_MONO;
     return _snCtx.measureText(String(s)).width;
   };
 
@@ -8929,16 +8932,42 @@
       const all = ordered(P, sortM);
       const rows = rowsMode === 'all' ? all : all.slice(0, 20);
       const mob = mIsM();
-      const rowH = mob ? 20 : 24;
+      /* ★ 2026-09-24 格子尺寸（規格 docs/season_grid_spec.md；Andy：「格子彼此需要多一點間隔」
+         「每格寬度調整成剛好容納數字」）。只改桌機（>820px），手機照舊（列高 20、縫 1、欄寬撐滿）。
+         桌機：格子看得到的部分 56～64 × 24、縫 4px、圓角 3px；整張表靠左，卡片多出來的寬度留白。
+         縫的做法：ECharts 熱力圖的方塊一定撐滿整個類目帶，所以用「跟卡片底同色的邊框」把縫畫出來 ——
+         邊框線以方塊邊緣為中心，寬 GAP 就在相鄰兩格之間留下 GAP 寬的底色；
+         圓角要設成 3 + GAP/2，邊框內緣看起來才是 3px 的圓角。*/
+      const GAP = mob ? 1 : 4;
+      const rowH = mob ? 20 : 24 + GAP;
       // 名稱欄寬：量最長的名字；手機上限 112（超過截成「…」，全名在提示框），桌機上限 180
       const nameW = Math.ceil(Math.max(40, ...rows.map(r => hmTextW(r.name, 12)))) + 12;
       const left = Math.min(nameW, mob ? 112 : 180), right = 4;
-      const W = box.clientWidth || el.clientWidth || 600;
-      const colW = (W - left - right) / 12;
       el.style.height = (rows.length * rowH + 8) + 'px';
+      let colW, cellW;
+      if (mob) {
+        box.style.width = '';
+        const W = box.clientWidth || el.clientWidth || 600;
+        colW = (W - left - right) / 12; cellW = colW - GAP;
+      } else {
+        /* 格寬＝「這個指標所有格子裡最寬的那個數字」＋左右各 8px，夾在 56～64 之間：
+           用全部族群量（不是只量畫出來的前 20 名），切「前 20／全部」時格寬才不會跳。*/
+        let maxT = 0;
+        all.forEach(r => { for (let m = 1; m <= 12; m++) { const c = r.m[m]; const v = c ? c[metric] : null;
+          if (v != null) maxT = Math.max(maxT, snTextW(cellTxt(v, metric))); } });
+        const want = Math.min(64, Math.max(56, Math.ceil(maxT) + 16)) + GAP;
+        // 可用寬度＝卡片內容寬（外框本身被設成表格寬，量它會量到自己）；扣掉「全部」時的捲軸寬
+        const host = box.parentElement, cs = getComputedStyle(host);
+        const avail = host.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+        const sb = Math.max(0, box.offsetWidth - box.clientWidth);
+        colW = Math.min(want, (avail - sb - left - right) / 12);   // 窄桌機放不下 12 × 64 時才縮，照舊撐滿
+        cellW = colW - GAP;
+        box.style.width = Math.floor(left + 12 * colW + right + sb) + 'px';
+      }
       const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
-      // 月份表頭（HTML、sticky）：跟 grid 的左右邊界對齊；點一下＝依那個月排序
-      head.style.paddingLeft = left + 'px'; head.style.paddingRight = right + 'px';
+      // 月份表頭（HTML、sticky）：跟格子看得到的那一塊對齊（左右各內縮半條縫、欄距＝縫）；點一下＝依那個月排序
+      head.style.paddingLeft = (left + (mob ? 0 : GAP / 2)) + 'px'; head.style.paddingRight = (right + (mob ? 0 : GAP / 2)) + 'px';
+      head.style.columnGap = mob ? '' : GAP + 'px';
       head.innerHTML = MONTHS.map((t, i) => { const m = i + 1;
         return `<button type="button" data-m="${m}" class="${m === sortM ? 'on' : ''}${m === nowM ? ' now' : ''}"`
           + ` aria-pressed="${m === sortM}" title="依 ${m} 月由強到弱排序${m === nowM ? '（本月）' : ''}">${colW >= 40 ? t : m}</button>`; }).join('');
@@ -8957,8 +8986,8 @@
             itemStyle: { color: hmColor(bin, K), opacity: focus != null && focus !== bin ? 0.22 : 1 } });
         }
       });
-      // 放得下才印：寬度扣 6px 邊、列高至少 16（12px 字＋上下各 2）
-      const fits = (t) => !!t && rowH >= 16 && snTextW(t) <= colW - 6;
+      // 放得下才印：列高至少 16（12px 字＋上下各 2）；手機寬度扣 6px 邊，桌機是「字寬＋左右各 4 ≤ 格子看得到的寬」
+      const fits = (t) => !!t && rowH >= 16 && (mob ? snTextW(t) <= colW - 6 : snTextW(t) + 8 <= cellW);
       const nFit = data.filter(d => fits(cellTxt(d.value[2], metric))).length;
       const nLab = showNum ? nFit : 0;
       /* 一格都放不下（手機 390px：每欄約 17px，最短的「0%」也要 20px）→「顯示數字」這顆整個收起來，
@@ -8967,6 +8996,7 @@
       el.dataset.canfit = nFit ? '1' : '0';
       el.dataset.rows = rows.length; el.dataset.nlab = nLab; el.dataset.nval = nVal;
       el.dataset.rowh = rowH; el.dataset.colw = colW.toFixed(1);
+      el.dataset.cellw = cellW.toFixed(1); el.dataset.gap = GAP;
       const tipRow = (k, v, key) => ({ k, v: fmtV(v, key), c: v == null ? CH.ink3 : key.includes('win') ? CH.ink : v > 0 ? CH.up : v < 0 ? CH.down : CH.ink });
       const c = chart('seasonHeat', {
         animation: false,
@@ -8982,15 +9012,19 @@
           // ★ interval: 0 ＝ 每一列的名字都印（以前 ECharts 自動隔列省略，只印每 4～5 列一個）
           axisLabel: { interval: 0, color: CH.ink2, fontSize: 12, margin: 8, width: left - 10, overflow: 'truncate', ellipsis: '…' } },
         series: [{ type: 'heatmap', data, cursor: 'default',
-          itemStyle: { borderColor: CH.card, borderWidth: 1, borderRadius: 3 },
-          emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 1.5 } },
-          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: 'JetBrains Mono', color: '#fff',
+          itemStyle: { borderColor: CH.card, borderWidth: GAP, borderRadius: mob ? 3 : 3 + GAP / 2 },
+          emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: mob ? 1.5 : 2 } },
+          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: SN_MONO, color: '#fff',
             formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? t : ''; } } }],
       }, { notMerge: true });
       // ★ 點格子只出提示框（ECharts 預設就會），不做別的事：逐年明細那張卡已經拿掉，不留一個點了沒反應的入口
       if (c) c.off('click');
       const lg = hmLegend('seasonHeatBox', K, focus, (f) => { focus = f; drawHeat(); });
-      if (lg) lg.style.display = view === 'heat' ? '' : 'none';
+      if (lg) {
+        lg.style.display = view === 'heat' ? '' : 'none';
+        // 桌機：圖例的寬跟表格一樣寬 → 圖例右緣對齊最後一欄（「圖的右下」這條規則不變，只是圖變窄了）
+        lg.style.width = mob ? '' : box.style.width;
+      }
       writeNote();
     };
 
@@ -9199,13 +9233,15 @@
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });
     /* 外框寬度變了（視窗縮放、事件抽屜開關）就重畫熱力圖：表頭寫「9 月」還是「9」、
        格子放不放得下數字，都是依當下的欄寬算的，不重算就會用舊寬度的判斷。*/
-    const hbox = $('#seasonHeatBox');
-    if (hbox && !hbox._ro && typeof ResizeObserver !== 'undefined') {
-      let lastW = hbox.clientWidth;
-      hbox._ro = new ResizeObserver(() => { const w = hbox.clientWidth;
+    /* ★ 2026-09-24：桌機的外框寬被設成「表格寬」，量它會量到自己設的值（視窗變窄它也不會變），
+       所以改量外面那張卡片。*/
+    const hbox = $('#seasonHeatBox'), hcard = hbox && hbox.parentElement;
+    if (hcard && !hbox._ro && typeof ResizeObserver !== 'undefined') {
+      let lastW = hcard.clientWidth;
+      hbox._ro = new ResizeObserver(() => { const w = hcard.clientWidth;
         if (!w || Math.abs(w - lastW) < 16) return; lastW = w;
         if (view === 'heat') { drawHeat(); } });
-      hbox._ro.observe(hbox);
+      hbox._ro.observe(hcard);
     }
     draw();
   }

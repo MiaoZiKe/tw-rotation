@@ -1145,7 +1145,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
    ECharts 的軸在 canvas 裡，跟著圖一起被捲走，捲到第 40 列就不知道哪一欄是幾月。
    （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
 .shbox{position:relative;margin-top:10px;max-height:680px;overflow-y:auto;overscroll-behavior:contain;
-  border-radius:10px;scrollbar-width:thin}
+  border-radius:10px;scrollbar-width:thin;max-width:100%}
+/* ★ 2026-09-24（docs/season_grid_spec.md）：桌機的外框寬由 app.js 設成「名稱欄＋12 格」的表格寬，整張表靠左；
+   `max-width:100%` 是保險 —— 算錯也不准撐出卡片、不准出現橫向捲軸。手機不設寬，照舊撐滿。*/
 .shbox[hidden]{display:none}
 .shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
   background:var(--panel);padding-top:2px;padding-bottom:4px}

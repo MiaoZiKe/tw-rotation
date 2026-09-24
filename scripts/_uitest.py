@@ -7514,6 +7514,65 @@ def t_season(pg, base):
     ok("★ y 軸每一個族群名稱都印出來（量 ECharts 實際排出的標籤數＝列數，不准隔列省略）",
        h0 and h0["ylab"] == h0["ydata"] == h0["rows"] > 0, h0)
     ok("預設只看「本月最強的前 20 名」", h0 and h0["rows"] == 20, h0)
+    # ---- ③-2 ★ 2026-09-24 格子間隔與格寬（Andy：「格子彼此需要多一點間隔」「每格寬度調整成剛好容納數字」，
+    #      規格 docs/season_grid_spec.md）。量的是**畫布上真的畫出來的像素**，不是讀設定值：
+    #      沿第一列上緣往下 3px 那條線橫掃（避開格子正中間的數字），跟卡片底色差很多的像素＝格子，
+    #      其餘＝縫；直向同理，沿第一欄左緣往右 3px 往下掃。深、淺兩個主題各量一次（縫是用卡片底色畫的，
+    #      換主題時縫的顏色也要跟著換，不然淺色主題會出現一條條深色格線）。
+    GRID = """() => { const e = document.getElementById('seasonHeat'); const c = echarts.getInstanceByDom(e);
+        const cv = e.querySelector('canvas'); if (!c || !cv) return null;
+        const er = e.getBoundingClientRect(), k = cv.width / er.width, g = cv.getContext('2d');
+        const card = document.getElementById('seasonHeatCard'), cr = card.getBoundingClientRect(), cs = getComputedStyle(card);
+        const bg = (cs.backgroundColor.match(/[\\d.]+/g) || []).map(Number);
+        const at = (x, y) => g.getImageData(Math.round(x * k), Math.round(y * k), 1, 1).data;
+        const dist = (p, q) => Math.abs(p[0] - q[0]) + Math.abs(p[1] - q[1]) + Math.abs(p[2] - q[2]);
+        /* 兩個相鄰格子中心之間，逐像素算「這一點有幾成是卡片底色」再加總 ＝ 縫寬（含抗鋸齒的半格，量到 0.1px）。
+           格子的純色取中心點（掃描線刻意避開格子正中間的數字，所以中心點是純色）。*/
+        const gapBetween = (a, b, fixed, horiz) => { const ca = horiz ? at(a, fixed) : at(fixed, a), cb = horiz ? at(b, fixed) : at(fixed, b);
+          let s = 0; for (let t = Math.ceil(a) + 1; t < b; t++) { const p = horiz ? at(t, fixed) : at(fixed, t); const cc = t < (a + b) / 2 ? ca : cb;
+            const full = dist(cc, bg); if (full < 30) return null;        // 格子顏色跟底色太像，量不準 → 這一對不算
+            s += Math.min(1, Math.max(0, 1 - dist(p, bg) / full)); } return s; };
+        const o = c.getOption(), d = o.series[0].data;
+        const rowH = +e.dataset.rowh, cw = +e.dataset.colw;
+        const px = (m, r) => c.convertToPixel({ seriesIndex: 0 }, [m, r]);
+        const r0 = [...Array(12).keys()].filter(m => d.some(x => x.value[0] === m && x.value[1] === 0));
+        const col0 = [...Array(8).keys()].filter(r => d.some(x => x.value[0] === 0 && x.value[1] === r));
+        if (r0.length < 12 || col0.length < 5) return { err: '第一列或第一欄的格子不齊', r0: r0.length, c0: col0.length };
+        const yLine = px(0, 0)[1] - rowH / 2 + 5, xLine = px(0, 0)[0] - cw / 2 + 5;   // 格子上緣／左緣往內 3px
+        const gapH = [], cellW = [], gapV = [], cellH = [];
+        for (let m = 0; m < 11; m++) { const a = px(m, 0)[0], b = px(m + 1, 0)[0]; const s = gapBetween(a, b, yLine, true);
+          if (s != null) { gapH.push(+s.toFixed(1)); cellW.push(+((b - a) - s).toFixed(1)); } }
+        for (let r = 0; r < col0.length - 1; r++) { const a = px(0, r)[1], b = px(0, r + 1)[1]; const s = gapBetween(a, b, xLine, false);
+          if (s != null) { gapV.push(+s.toFixed(1)); cellH.push(+((b - a) - s).toFixed(1)); } }
+        // 最後一格的右緣：從最後一格中心往右掃到變回底色
+        let xr = px(11, 0)[0]; const cl = at(xr, yLine); while (xr < er.width && dist(at(xr + 1, yLine), bg) > dist(cl, bg) / 2) xr++;
+        // 數字字寬：用格子標籤同一個字（字重、字級、字族）量，所有有值的格子取最寬
+        const L = o.series[0].label; const m = document.createElement('canvas').getContext('2d');
+        m.font = `${L.fontWeight} ${L.fontSize}px ${L.fontFamily}`;
+        const txt = (v) => { const r = Math.round(v * 10) / 10; return r === 0 ? '0.0' : (r > 0 ? '+' : '') + r.toFixed(1); };
+        const tw = Math.max(...d.map(x => m.measureText(txt(x.value[2])).width));
+        const pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight);
+        return { n: r0.length, cellW, gapH, cellH, gapV, textW: +tw.toFixed(1),
+          tableW: Math.round(er.left + xr + 1 - (cr.left + pl)), cardW: Math.round(cr.width), cardInner: Math.round(cr.width - pl - pr),
+          font: m.font, theme: document.documentElement.getAttribute('data-theme') || 'dark' }; }"""
+    def _sn_theme(th):
+        # 用 JS 的 element.click() 按全站主題鈕（吸頂的頂欄會攔下 pg.click()），已經是那一邊就不按
+        if (pg.evaluate("() => document.documentElement.getAttribute('data-theme') || 'dark'") or "dark") != th:
+            pg.eval_on_selector("#themeBtn", "b => b.click()"); pg.wait_for_timeout(2400)
+    for th in ("dark", "light"):
+        _sn_theme(th)
+        gm = pg.evaluate(GRID) or {}
+        tag = "深色" if th == "dark" else "淺色"
+        ok(f"★ [{tag}] 熱力圖第一列 12 格都有值、量得到（主題真的是 {th}）",
+           gm.get("n") == 12 and gm.get("theme") == th and len(gm.get("gapH") or []) >= 8 and len(gm.get("gapV") or []) >= 4, gm)
+        ok(f"★ [{tag}] 格子彼此的間距 ≥ 3px（橫向與直向都量；改版前 1px）",
+           bool(gm.get("gapH")) and min(gm["gapH"]) >= 3 and bool(gm.get("gapV")) and min(gm["gapV"]) >= 3, gm)
+        ok(f"★ [{tag}] 格寬 ≤ 72px，而且 ≥ 最寬的數字 + 8px（改版前每格約 100px、數字小小一個在中間）",
+           bool(gm.get("cellW")) and max(gm["cellW"]) <= 72 and min(gm["cellW"]) >= gm["textW"] + 8, gm)
+        ok(f"★ [{tag}] 表格總寬 < 卡片寬（靠左、不再把 12 個月撐滿整張卡片）",
+           bool(gm.get("tableW")) and gm["tableW"] < gm["cardW"] and gm["tableW"] < gm["cardInner"] - 100, gm)
+    _sn_theme("dark")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.theme'); } catch(e){} }")
     # ---- ④ 顯示數字：預設關；按一下真的印出來、localStorage 真的寫入；再按一下真的消失
     ok("★ 格子裡預設不印數字（Andy：Default 是沒有）", h0 and not h0["show"] and h0["nlab"] == 0 and h0["ls"] is None, h0)
     c0 = canvas_hash(pg, "#seasonHeat")
