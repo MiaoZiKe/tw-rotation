@@ -116,9 +116,11 @@
     // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
     //（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395），
     // 台指期則沒有免費來源 —— 這兩個只有「當天即時」，選到歷史週期時畫面會說清楚為什麼。
-    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII', yahoo1m: '^TWII' },
-    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null, yahoo1m: '^TWOII' },
-    { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null },
+    // yahoo15：1 小時／4 小時要合成用的 15 分 K 來源（2026-09-24，見下面 synthBars 的註解）。
+    // 台指期 Yahoo 沒有對應代號，只能拿「今天的分時」合成（日盤走證交所分時、夜盤走期交所分時）。
+    { id: 'TSE', name: '加權指數', sub: '上市', turnover: true, yahoo: '^TWII', yahoo1m: '^TWII', yahoo15: '^TWII' },
+    { id: 'OTC', name: '櫃買指數', sub: '上櫃', turnover: true, yahoo: null, yahoo1m: '^TWOII', yahoo15: '^TWOII' },
+    { id: 'FUT', name: '台指期', sub: '近月', turnover: false, yahoo: null, yahoo15: null },
   ];
   // 交易時段（台北）。留白到收盤，才看得出「現在走到哪」。
   const SESSION = {
@@ -136,8 +138,12 @@
      Andy 2026-09-15：「櫃買 台指期怎麼可能沒有日線數據」—— 對，Yahoo 那條壞了不代表沒有別條。
      只有「1 小時 / 4 小時」還是走 Yahoo，因為那是日線合成不出來的週期，而且只有加權有。 */
   const HIST = [
-    { id: 'H1', label: '1 小時', iv: '60m', range: '3mo', group: 1, yahooOnly: true },
-    { id: 'H4', label: '4 小時', iv: '60m', range: '1y', group: 4, yahooOnly: true },
+    /* ★ 2026-09-24：1 小時／4 小時改成「15 分 K 依台股交易時段合成」（Andy：櫃買與台指期
+       「沒有這個週期的免費來源，已改用日」要改成用分 K 合成，拿不到才退回日並標明）。
+       以前走 Yahoo 的 60m，只有加權有、而且 4 小時是「四根 1 小時硬併」—— 那會跨午休、跨日
+       （例如 12:00～隔天 10:00 被併成一根），不是台股的交易節奏。規則寫在 sessKey() 上。*/
+    { id: 'H1', label: '1 小時', synth: 'H1' },
+    { id: 'H4', label: '4 小時', synth: 'H4' },
     { id: 'D', label: '日 K', lake: true },
     { id: 'W', label: '週 K', lake: true, roll: 'W' },
     { id: 'M', label: '月 K', lake: true, roll: 'M' },
@@ -197,7 +203,9 @@
     fsWhy: '',           // 上一次退回輪詢的原因（只給除錯與驗收看）
     lakeDaily: {},     // 資料湖原始日線（用來講「歷史只有幾年」，需求二）
     // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
-    noSrc: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
+    noSrc: {},     // （舊）保留欄位；2026-09-24 起 1H／4H 退回日線不再是黏著的旗標，每次畫都重算
+    // fine[id] = { bars: [[t,o,h,l,c,v] 15 分 K], err }：1H／4H 合成用的多日分 K（Yahoo 15m，只抓一次）
+    fine: {}, fineBusy: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
 
   function taipeiNow() {
     return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
@@ -521,6 +529,9 @@
     return m < 6 * 60 ? m + 24 * 60 : m;
   }
   function futSession() {
+    // 驗收用：`Market3.forceClock('night'|'day')` 可以把時鐘釘在某一段（null＝跟著台北時間）。
+    // 只有驗收會呼叫；使用者沒有任何入口能碰到它（2026-09-24 切換鈕拿掉之後，時鐘是唯一的依據）。
+    if (state.clock === 'day' || state.clock === 'night') return state.clock;
     const mm = nightMin(taipeiNow());
     return (mm >= SESSION_NIGHT[0] && mm <= SESSION_NIGHT[1]) ? 'night' : 'day';
   }
@@ -560,17 +571,23 @@
     if (t.getDate() >= thirdWed(y, m0)) { m0 += 1; if (m0 > 11) { m0 = 0; y += 1; } }
     return 'TXF' + 'ABCDEFGHIJKL'.charAt(m0) + String(y % 10) + '-M';
   }
-  /** 現在該看哪一段：時鐘說了算，除非使用者「在這一段裡」自己切過。
-   *  舊格式（只存 'day' / 'night' 的純字串）一律當成過期 —— 那正是造成黏住的那一版。*/
+  /** 現在該「抓」哪一段：只看台北時鐘。
+   *  ★ 2026-09-24（Andy：「台指期的『日盤／夜盤』切換拿掉、合併成一張 —— 自動顯示目前有資料的那一段」）：
+   *  以前這裡還會讀 localStorage 的手動選擇（`tw.m3.fut`，{sess, base}）。切換鈕拿掉之後
+   *  使用者沒有任何方式改它，留著只會讓舊版存下的值把畫面卡在錯的那一段，所以一律不讀。
+   *  「抓哪一段」與「顯示哪一段」是兩件事：抓由時鐘決定（夜盤時段才去問期交所），
+   *  顯示由 `nightHas()` 決定（真的拿到夜盤資料才顯示夜盤，否則顯示日盤）。 */
   function pickSession() {
-    const now = futSession();
-    let raw = '';
-    try { raw = ls.get(KEY_FUTS, '') || ''; } catch (e) { raw = ''; }
-    if (!raw || raw.charAt(0) !== '{') return now;          // 沒存過、或是舊格式 → 跟時鐘
-    try {
-      const o = JSON.parse(raw);
-      return (o && o.base === now && (o.sess === 'day' || o.sess === 'night')) ? o.sess : now;
-    } catch (e) { return now; }
+    return futSession();
+  }
+  /** 夜盤這一輪真的有資料嗎（有一筆落在夜盤時段的報價，或期交所的分時序列有點）。
+   *  這就是「自動切」的判準：沒有 → 卡片整張顯示日盤（並在標題旁寫「日盤」）；有 → 顯示夜盤。
+   *  ⚠ DECISIONS #255 ① 反對的是「標著夜盤、畫著日盤」。現在標籤永遠跟著畫的那一份走，
+   *    顯示日盤時就寫「日盤」，所以不再是冒充 —— 這是 Andy 這次明講的新規則。 */
+  function nightHas() {
+    if (state.futSession !== 'night') return false;
+    if (state.futNight && state.futNight.inSession) return true;
+    return !!(state.futChart && state.futChart.points && state.futChart.points.length);
   }
   /** 時段翻頁時把畫面帶回當下該看的那一段。回傳「有沒有真的換」。 */
   function syncSession() {
@@ -845,7 +862,7 @@
     return Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8)) - 8 * 3600 * 1000;
   }
   /** 現在這張 FUT 卡片要看的是夜盤嗎。 */
-  const isNight = (x) => x.id === 'FUT' && state.futSession === 'night';
+  const isNight = (x) => x.id === 'FUT' && nightHas();
 
   async function fetchOne(id) {
     const base = proxy();
@@ -1015,35 +1032,99 @@
       }
       return;
     }
-    if (!x.yahoo) { state.histErr[key] = 'NOSRC'; return; }
+    /* 1 小時／4 小時不走這裡（2026-09-24 改成 fetchFine ＋ synthBars）。走到這裡代表週期代號對不上。*/
+    state.histErr[key] = 'NOSRC';
+  }
+
+  /* ---------------------------------------------------------------- 1 小時／4 小時：15 分 K 依交易時段合成
+     ★ 2026-09-24（Andy：「改成用 15 分 K 合成 1H、4H，依台股交易時段切」）
+
+     來源（依序，拿得到哪個用哪個）
+       ① 多日的 15 分 K：Yahoo `/y?interval=15m&range=60d`（加權 ^TWII、櫃買 ^TWOII）。
+          Yahoo 的 15m 最多只給 60 天，所以 1 小時大約 300 根、4 小時大約 60 根。
+       ② 今天的分時：就是走勢圖那一份（證交所分時；台指期夜盤時是期交所分時），用 toBars(…, 15) 切成 15 分 K。
+          Yahoo 已經有今天的就以「今天的分時」為準（證交所是第一手、而且每 10 秒更新）。
+       台指期沒有 ①（Yahoo 沒有台指期代號），所以只有 ② —— 一天只有 5 根 1 小時，卡片上會寫出來。
+       ① ② 都沒有（或合成不到 2 根）才退回日 K，並在卡片上寫「已改用日」。
+
+     怎麼切（全部用台北牆鐘）
+       · 日盤 1 小時：對齊 09:00 起每小時 —— 09、10、11、12、13 五根。
+         台指期 08:45～09:00 那 15 分鐘併進 09:00 那根；13:00 之後（現貨 13:30 收、期貨 13:45 收）併進 13:00 那根。
+         刻意不多開一根只有 15 分鐘的 08:45 或 13:30 K 棒：那種半截 K 棒的高低會被讀成「那一小時很安靜」。
+       · 日盤 4 小時：一天一根（09:00～13:30／13:45）。台股一個交易日本來就只有 4.5～5 小時，
+         硬切成「4 小時＋半小時」兩根，第二根永遠是殘缺的，不如一日一根、跟交易節奏對齊。
+       · 夜盤 1 小時：15:00 起每小時（跨午夜照樣接著算，05:00 收）。
+       · 夜盤 4 小時：一晚一根（15:00～翌日 05:00），歸在開盤那天。
+     時間戳：用那一根「開始」的台北時間（跟其他週期同一個口徑：秒數＋8 小時）。 */
+  async function fetchFine(x) {
+    if (state.fine[x.id] || state.fineBusy[x.id]) return;
+    if (!x.yahoo15) { state.fine[x.id] = { bars: [], err: 'NOSRC' }; return; }
     const base = proxy();
-    if (!base) { state.histErr[key] = '還沒設定即時來源'; return; }
-    state.histBusy[key] = true;
+    if (!base) { state.fine[x.id] = { bars: [], err: '還沒設定即時來源' }; return; }
+    state.fineBusy[x.id] = true;
     try {
-      const r = await fetch(`${base}/y?symbol=${encodeURIComponent(x.yahoo)}&interval=${def.iv}&range=${def.range}`,
-                            { cache: 'no-store' });
-      if (r.status === 404 || r.status === 400) throw new Error('NOCHART');
+      const r = await fetch(`${base}/y?symbol=${encodeURIComponent(x.yahoo15)}&interval=15m&range=60d`, { cache: 'no-store' });
       if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
       const j = await r.json();
       const res = ((j.chart || {}).result || [])[0];
-      if (!res || !res.timestamp) throw new Error('Yahoo 沒有資料');
+      if (!res || !res.timestamp) throw new Error('Yahoo 沒有 15 分 K');
       const q = ((res.indicators || {}).quote || [])[0] || {};
-      let bars = [];
+      const bars = [];
       res.timestamp.forEach((t, i) => {
         const c = num(q.close && q.close[i]); if (c === null) return;
         bars.push([t + 8 * 3600, num(q.open && q.open[i]) ?? c, num(q.high && q.high[i]) ?? c,
                    num(q.low && q.low[i]) ?? c, c, num(q.volume && q.volume[i]) || 0]);
       });
-      if (def.roll === 'W') bars = rollWeek(bars);
-      if (def.group > 1) bars = groupBars(bars, def.group);
-      state.hist[key] = bars;
-      state.histErr[key] = '';
+      state.fine[x.id] = { bars, err: bars.length ? '' : 'Yahoo 回空的 15 分 K' };
     } catch (e) {
-      state.histErr[key] = String(e.message || e);
+      state.fine[x.id] = { bars: [], err: String(e.message || e) };
     } finally {
-      state.histBusy[key] = false;
+      state.fineBusy[x.id] = false;
       draw();
     }
+  }
+
+  /** 一根 K 棒（台北牆鐘秒數）→ 它屬於哪一個 1 小時／4 小時的格子（回傳那一格的開始時間）。 */
+  function sessKey(t, tf) {
+    const day = Math.floor(t / 86400), min = Math.floor((t % 86400) / 60);
+    const night = min >= 15 * 60 || min < 5 * 60 + 1;
+    if (night) {
+      if (tf === 'H4') return (min < 5 * 60 + 1 ? day - 1 : day) * 86400 + 15 * 3600;
+      return Math.floor(t / 3600) * 3600;
+    }
+    if (tf === 'H4') return day * 86400 + 9 * 3600;
+    const h = Math.min(13, Math.max(9, Math.floor(min / 60)));
+    return day * 86400 + h * 3600;
+  }
+  /** 15 分 K → 1 小時／4 小時。回傳 { bars, n15, days, today, why }。 */
+  function synthBars(x, tf) {
+    const f = state.fine[x.id] || { bars: [], err: '' };
+    let b15 = (f.bars || []).slice();
+    // 今天（或今晚）的分時 → 15 分 K；Yahoo 已經有的同一天以分時為準
+    const d = seriesOf(x);
+    const today = (d && d.points && d.points.length) ? toBars(d.points, 15) : [];
+    if (today.length) {
+      const days = new Set(today.map(b => sessKey(b[0], 'H4')));
+      b15 = b15.filter(b => !days.has(sessKey(b[0], 'H4'))).concat(today);
+    }
+    b15.sort((a, b) => a[0] - b[0]);
+    const out = []; let cur = null, key = null;
+    for (const b of b15) {
+      const k = sessKey(b[0], tf);
+      if (k !== key) { if (cur) out.push(cur); key = k; cur = [k, b[1], b[2], b[3], b[4], b[5] || 0]; }
+      else { cur[2] = Math.max(cur[2], b[2]); cur[3] = Math.min(cur[3], b[3]); cur[4] = b[4]; cur[5] += (b[5] || 0); }
+    }
+    if (cur) out.push(cur);
+    const days = new Set(out.map(b => sessKey(b[0], 'H4'))).size;
+    const why = f.err === 'NOSRC' ? '沒有多日分 K 的免費來源' : f.err ? '15 分 K 抓不到' : '';
+    return { bars: out, n15: b15.length, days, today: today.length, why };
+  }
+  /** 量柱要不要畫：超過一半的 K 棒沒有量＝來源根本沒給量（Yahoo 指數的成交量是 0），畫出一排 0 張是錯的。
+   *  只有零星幾根是 0（例如資料湖加權日線 1300 根裡有 12 根沒量）就照畫 —— 那是缺值，不是沒有這項資料。 */
+  function hasVol(bars) {
+    if (!bars || !bars.length) return false;
+    const z = bars.filter(b => !(b[5] > 0)).length;
+    return z * 2 < bars.length;
   }
 
   /** N 根併一根（4 小時＝四根 1 小時；季＝三根月線）。 */
@@ -1122,7 +1203,7 @@
   function seriesOf(x) {
     // 有期交所的分時序列，或有一筆真的落在夜盤時段的報價 —— 兩者任一就是「夜盤那一份」。
     // 兩個來源互不依賴：序列掛了還有報價，報價掛了序列自己也帶著開高低收。
-    if (isNight(x) && ((state.futNight && state.futNight.inSession) || state.futChart)) return nightSeries();
+    if (isNight(x)) return nightSeries();
     return state.data[x.id];
   }
 
@@ -1131,7 +1212,7 @@
    *  平常沒人在意它；只有「數字為什麼跳得比較慢」的時候才需要一眼看得出走的是哪條路。
    *  ⚠ 只有夜盤那張卡才有 —— 日盤與加權／櫃買走的是原本的輪詢，狀態沒有變，不該多一個字。 */
   function futWayTag() {
-    if (state.futSession !== 'night') return '';
+    if (!nightHas()) return '';
     const push = state.fsMode === 'sse';
     const tip = push
       ? `推送（SSE）：跟代理保持一條連線，值一變就送過來（約 ${Math.round(FS_PUSH_HINT_MS / 1000)} 秒）。`
@@ -1203,8 +1284,7 @@
         <div class="card m3-card" data-id="${x.id}">
           <div class="m3-h">
             <h3>${x.name} <small>${x.sub}</small></h3>
-            ${x.id === 'FUT' ? `<div class="seg tiny" id="futSeg">
-              <button data-s="day">日盤</button><button data-s="night">夜盤</button></div>` : ''}
+            ${x.id === 'FUT' ? '<span class="m3-sess" id="futSess" data-s="day">日盤</span>' : ''}
             <button class="btn small m3-big" data-id="${x.id}">展開 ⤢</button>
           </div>
           ${cardHead(x)}
@@ -1222,18 +1302,11 @@
          現在：**預設一律跟著台北時間走**；手動切只在「做選擇時的那個時段」內有效，
          時段一翻（日盤↔夜盤）就自動回到當下該看的那一個。
          存的是 {sess, base}：base＝做這個選擇時時鐘在哪一段，用來判斷過期。*/
+    /* ★ 2026-09-24：「日盤／夜盤」切換鈕拿掉（Andy：「合併成一張 —— 自動顯示目前有資料的那一段」）。
+       時鐘決定要不要去抓夜盤；抓到了（`nightHas()`）才顯示夜盤，否則整張卡顯示日盤。
+       標題旁的 `#futSess` 小標註明現在畫的是哪一段（draw() 會更新）。*/
     state.futSession = pickSession();
     loadNightPts();
-    /* 切日盤／夜盤：換的是**同一張卡片**的資料來源（數字 ＋ 圖），不是多開一塊。
-       切過去先 draw() 讓畫面立刻反應，再 refresh() 去補最新一筆夜盤報價。*/
-    $$('#futSeg button').forEach(b => b.onclick = () => {
-      state.futSession = b.dataset.s;
-      // 連同「做這個選擇時時鐘在哪一段」一起存，時段翻頁時才知道要作廢
-      try { ls.set(KEY_FUTS, JSON.stringify({ sess: state.futSession, base: futSession() })); }
-      catch (e) { /* 私密視窗 */ }
-      draw(); refresh(true);
-      syncFutStream();       // 切到夜盤就把推送開起來，切回日盤就收掉（不留著空佔一條連線）
-    });
     $$('#m3Grid .m3-big').forEach(b => b.onclick = () => {
       state.big = state.big === b.dataset.id ? '' : b.dataset.id;
       ls.set(KEY_BIG, state.big); draw();
@@ -1340,8 +1413,11 @@
         : '分 K 由每分鐘指數收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。指標與個股共用同一組設定。';
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）
-    const seg = document.getElementById('futSeg');
-    if (seg) $$('button', seg).forEach(b => b.classList.toggle('on', b.dataset.s === state.futSession));
+    // 台指期現在畫的是哪一段（2026-09-24 切換鈕拿掉之後，這個小標是唯一的標示，不准省）
+    const ss = document.getElementById('futSess');
+    if (ss) { const n = nightHas(); ss.textContent = n ? '夜盤' : '日盤'; ss.dataset.s = n ? 'night' : 'day';
+      ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
+        ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' : '日盤時段（08:45～13:45）'); }
     grid.classList.toggle('big', !!state.big);
     IDX.forEach(x => {
       const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
@@ -1764,39 +1840,43 @@
        同時老實講「這個週期沒來源，改用日線」。
        fallbackTf 只影響這一張卡片，上方的週期選單不動（其他卡片仍照選的走）。*/
     let def = histDef(state.tf);
-    const fbKey = x.id + '|' + state.tf;
-    if (def && state.noSrc && state.noSrc[fbKey]) def = histDef('D') || def;
-    let bars, tfName;
-    if (def) {
+    let bars, tfName, synthSay = '';
+    /* 1 小時／4 小時：15 分 K 合成（見 synthBars 的註解）。合成不到 2 根才退回日 K，而且這不是黏著的旗標 ——
+       下一輪今天的分時進來、或 Yahoo 補抓成功，就會自己回到 1 小時。*/
+    if (def && def.synth) {
+      if (!state.fine[x.id]) fetchFine(x);
+      if (!state.fine[x.id]) { killK(x.id); el.dataset.kind = ''; el.innerHTML = '<div class="empty">載入中…</div>'; return; }
+      const r = synthBars(x, def.synth);
+      if (r.bars.length >= 2) {
+        bars = r.bars; tfName = def.synth === 'H4' ? '240m' : '60m';
+        if (r.why) synthSay = `${x.name}${r.why}，只用今天的分時合成（${r.bars.length} 根）`;
+      } else {
+        synthSay = `${x.name}${r.why || '分 K 不足'}，已改用「日」`;
+        def = histDef('D');
+      }
+    }
+    if (def && !bars) {
       const key = (def.lake ? lakeSym(x) : x.id) + '|' + def.id;
       bars = state.hist[key];
       if (!bars) {
         const err = state.histErr[key];
         killK(x.id); el.dataset.kind = '';
         if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
-        /* 沒有這個週期的來源 → 記下來、退回日線、立刻重畫一次。
-           只記一次就好，否則會無限重畫。*/
-        if (err === 'NOSRC' && !(state.noSrc && state.noSrc[fbKey])) {
-          state.noSrc = state.noSrc || {};
-          state.noSrc[fbKey] = true;
-          setTimeout(draw, 0);
-          el.innerHTML = '<div class="empty">這個週期沒有免費來源，改用日線…</div>';
-          return;
-        }
         el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
           err === 'NOLAKE' ? `${x.name}的歷史日 K 還沒進資料湖 —— 下一輪每日管線跑完（台北 15:30 / 18:30 / 21:30）就會有。`
-          : err === 'NOSRC' ? `${x.name}沒有這個週期的免費來源，正在改用日線…`
-          : err === 'NOCHART' ? 'Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會有 1 小時／4 小時。'
           : '抓不到歷史 K：' + err) : err}</div>`;
         return;
       }
-      tfName = def.lake ? '1d' : def.id === 'H4' ? '240m' : '60m';
+      tfName = '1d';
+    }
+    if (def) {
+      const key = (def.lake ? lakeSym(x) : x.id) + '|' + def.id;
       /* 圖上方那行說明。可能同時有三件事要講，所以收成一個陣列再串起來：
-         ① 這個週期沒來源、已退回日線（N11）
+         ① 1 小時／4 小時合成不到、已退回日線（或只用今天的分時合成）
          ② 歷史不到 3 年（Andy 2026-09-19「為何這些走勢都沒有過往歷史數據」）
-         ③ 選在夜盤，但歷史 K 只有一般交易時段（日盤）那條 */
+         ③ 夜盤的歷史 K 只有一般交易時段（日盤）那條 */
       const says = [];
-      if (state.noSrc && state.noSrc[fbKey]) says.push(`${x.name}沒有這個週期的免費來源，已改用「日」`);
+      if (synthSay) says.push(synthSay);
       if (def.lake) {
         const sh = shortHistNote(x);
         if (sh) says.push(sh);
@@ -1824,15 +1904,19 @@
     }
     const expanded = state.big === x.id;
     // key 含日盤／夜盤：切 session 時資料整組換掉，不能沿用同一個圖表就地改
-    const key = x.id + '|' + String(state.tf) + '|' + (expanded ? 'big' : 'small')
+    // ★ 2026-09-24：key 多帶 tfName（1 小時合成不到會退回日，同一個選單值畫的是不同週期）與「有沒有量」
+    const vol = hasVol(bars);
+    const key = x.id + '|' + String(state.tf) + '|' + tfName + '|' + (vol ? 'v' : 'nv') + '|' + (expanded ? 'big' : 'small')
       + '|' + (d && d.night ? 'n' : 'd');
+    /* 量柱：來源沒給量（Yahoo 指數的 15 分 K 成交量全是 0）就整個面板收掉，不畫一排 0 張（見 hasVol）。*/
+    const cfgOf = () => { const c = loadCfg(expanded); if (!vol) c.vol = false; return c; };
     const live0 = state.kcharts[x.id];
     /* 同一張卡、同一個週期、同樣大小 → 就地換資料。
        盤中 10 秒重畫一次，如果每次都 destroy 再 new，使用者的縮放與位置會一直被彈回最右邊，
        等於不能往左看早盤（Andy 2026-09-15 要的是「自動更新」，不是「自動跳回去」）。 */
     if (live0 && live0._m3key === key && el.dataset.kind === 'k') {
       live0.setBars(bars, tfName, true);
-      live0.applyIndicators(loadCfg(expanded));
+      live0.applyIndicators(cfgOf());
       return;
     }
     killK(x.id);
@@ -1842,7 +1926,7 @@
     k._m3key = key;
     state.kcharts[x.id] = k;
     k.setBars(bars, tfName);
-    const cfg = loadCfg(expanded);
+    const cfg = cfgOf();
     k.applyIndicators(cfg);
     const f = F();
     const dp = x.id === 'FUT' ? 0 : 2;
@@ -1881,7 +1965,14 @@
     mount, refresh, draw, schedule,
     get state() { return state; },
     toBars,                                  // 驗收用
-    get session() { return state.futSession; },          // 驗收用：現在看的是日盤還是夜盤
+    get session() { return state.futSession; },          // 驗收用：時鐘現在在哪一段（決定要不要去抓夜盤）
+    get shown() { return nightHas() ? 'night' : 'day'; },  // 驗收用：台指期卡片現在「畫的」是哪一段
+    /** 驗收用：把時鐘釘在某一段（'day'／'night'；null＝跟著台北時間），並立刻重抓重畫。
+     *  使用者沒有入口能碰到它 —— 切換鈕 2026-09-24 已拿掉，平常一律由台北時間決定。 */
+    forceClock(v) { state.clock = (v === 'day' || v === 'night') ? v : null;
+      state.futSession = pickSession(); if (state.futSession !== 'night') { state.futNight = null; state.futChart = null; }
+      draw(); return refresh(true); },
+    synthBars, sessKey,                          // 驗收用：1 小時／4 小時的合成規則
     get nightPoints() { return state.nightPts.slice(); },  // 驗收用：真的收到幾個夜盤點
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
     get lastAt() { return state.at; },
