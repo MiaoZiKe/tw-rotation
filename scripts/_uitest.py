@@ -1048,7 +1048,10 @@ def t_overview(pg, base):
         else:
             ok(f"KPI「{k}」點下去會到市場明細分頁", st["tab"] == "market" and st["hash"].endswith(k), st)
         ok(f"KPI「{k}」的明細真的有內容", st["rows"] > 0 or st["blocks"] > 0, st)
-        ok(f"KPI「{k}」有寫怎麼看", st["note"] > 10, st)
+        # ★ 2026-09-24 說明精簡（Andy：「說明內容需要簡短」）：每一頁上方那行縮成一句定義（例如「漲幅 ≥ 9.5%」9 字），
+        #   檔位／估算口徑搬進「怎麼看 ?」（HOW.mkt）。所以這裡改成「有一句定義」＋「怎麼看的鈕在」，不再要求 >10 字。
+        ok(f"KPI「{k}」有寫怎麼看", st["note"] >= 5 and (k.startswith("#") or pg.evaluate(
+            "() => !!document.querySelector('#v-market .howbtn[data-how=\"mkt\"]')")), st)
         ok(f"KPI「{k}」有標題", len(st["title"] or "") > 2, st)
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
 
@@ -11007,6 +11010,8 @@ SECTIONS = {
     #   輪動時鐘（三圈底色、焦點族群、漸強軌跡＋箭頭、換段色環、手機編號模式）與兩張資金去向（鏈色線條、直條節點、字的層次、點不壓字）。
     "時鐘v2":              lambda pg, b, base, code: t_clock_v2(pg, b, base),
     "資金去向v2":          lambda pg, b, base, code: t_flow_v2(pg, base),
+    # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
+    "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11986,6 +11991,107 @@ def run_parallel(args) -> int:
 #   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
 #   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
 #   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
+# ===================================================================== 說明精簡（2026-09-24，visual-explainer）
+# Andy 原話：「所有內容 已經有說明 就把表上補充文字拿掉，並且說明內容需要在簡短方便閱讀，
+#            盡可能圖上只留功能按鍵及圖表 和簡短說明」。
+# 這一段真的把全站（資金輪動卡與總覽小輪盤除外 —— 那兩張另一支 agent 在改）每一頁走一遍：
+#   ① 每張卡片（或卡片裡標了 data-howsec 的區段）上，**不含「怎麼看 ?」展開內容**的說明文字 ≤ 40 字
+#   ② 每一顆「怎麼看 ?」都**真的按下去**：盒子真的打開、內容非空、條列最多 5 條、每條 ≤ 30 字、
+#      按鈕字變成「收起說明」；再按一次真的收起來（不是只驗元素存在）
+#   ③ 這一批新加的入口一顆都不准少（量不到就是被誰拿掉了）
+# 量尺的定義寫在 COPY_MEASURE 的註解裡 —— 什麼算「說明文字」、什麼是「計算結果」（data-readout）不算。
+COPY_MEASURE = r"""() => {
+  const SKIP = '#flowRotCard, #ovRotCard';
+  const UNIT = '.card, [data-howsec]';
+  /* 說明文字＝副標（h3/h4/h5 裡的 small）、.sub、.note、.hint、.pnote、.kpinote、.hmhint、.skhelp、.muted、.themehint。
+     不算：「怎麼看」盒子、側邊面板、表格、按鈕、圖表、燈號、數字格、環節詳情與清單、
+           標了 data-readout 的「這一檔的計算結果」（停損目標、判讀、本益比與月份讀數）。
+     一段字歸給離它最近的卡片或區段；字數＝去掉空白後的字元數。*/
+  const EXPL = 'h3 > small, h4 > small, h5 > small, .sub, .note, .hint, .pnote, .kpinote, .hmhint, .skhelp, .muted, .themehint';
+  const NOPE = '.howtxt, .hpanel, table, button, select, .chart, svg, .lights, .kvs, .sibs, .legend-ov, .segchips, #segBox, #chainList, .dgwrap, [data-readout], .rotfilter, .zbadge, .partcard, .chainmap, .tw, .cards, .facets, .kpi';
+  const vis = (e) => { if (!e || !e.isConnected) return false; const r = e.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return false;
+    const cs = getComputedStyle(e); return cs.visibility !== 'hidden' && cs.display !== 'none' && +cs.opacity > 0.05; };
+  const len = (t) => (t || '').replace(/\s+/g, '').length;
+  const units = [...document.querySelectorAll(UNIT)].filter(u => vis(u) && !u.closest(SKIP));
+  const acc = new Map(units.map(u => [u, []]));
+  document.querySelectorAll(EXPL).forEach(e => {
+    if (!vis(e) || e.closest(NOPE) || e.closest(SKIP)) return;
+    const u = e.closest(UNIT); if (!u || !acc.has(u)) return;
+    const p = e.parentElement && e.parentElement.closest(EXPL);
+    if (p && u.contains(p)) return;
+    const n = len(e.innerText);
+    if (n) acc.get(u).push({ n, t: e.innerText.replace(/\s+/g, ' ').trim().slice(0, 50) });
+  });
+  return units.map(u => {
+    const h = u.querySelector('h3, h2, h4, h5');
+    const title = h ? ((h.childNodes[0] && h.childNodes[0].textContent) || h.innerText || '').trim().slice(0, 20) : (u.id || '');
+    const items = acc.get(u);
+    const how = [...u.querySelectorAll('.howbtn[data-how]')].filter(b => vis(b) && b.closest(UNIT) === u).map(b => b.dataset.how);
+    return { title, n: items.reduce((a, x) => a + x.n, 0), items, how };
+  });
+}"""
+
+COPY_HOWBOX = r"""(k) => { const b = document.getElementById('how-' + k);
+  const btn = document.querySelector('.howbtn[data-how="' + k + '"]');
+  if (!b) return null;
+  const lis = [...b.querySelectorAll('li')].map(li => li.innerText.replace(/\s+/g, ''));
+  return { open: !b.hidden && b.getBoundingClientRect().height > 10, len: b.innerText.replace(/\s+/g, '').length,
+           n: lis.length, long: lis.filter(t => t.length > 30), label: btn ? btn.textContent : '' }; }"""
+
+
+def t_copy_trim(pg, base, code):
+    """說明精簡：卡片上的說明 ≤40 字、每顆「怎麼看 ?」點得開且條列短。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    routes = [("overview", None), ("market", None), ("flow", None), ("heatmap", None), ("heatmap/theme/cowos", None),
+              ("industry", None), ("industry/semiconductor/overview", None), ("industry/semiconductor", None),
+              ("industry/ai_server", None), ("season", None)] + \
+             [(f"stock/{code}", t) for t in ("overview", "profit", "basics", "news")]
+    seen_how = set()
+    for route, tab in routes:
+        pg.goto(f"{base}#{route}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        if tab:
+            click(pg, f'#stockTabs button[data-t="{tab}"]', 1300)
+        where = route + (f"／{tab}" if tab else "")
+        for u in pg.evaluate(COPY_MEASURE):
+            ok(f"[說明精簡] {where}「{u['title']}」卡片上的說明 ≤ 40 字（不含怎麼看）", u["n"] <= 40,
+               f"{u['n']} 字：" + "｜".join(f"{x['n']} {x['t']}" for x in u["items"]))
+            for k in u["how"]:
+                if k in ("rot", "rotm"):
+                    continue                     # 資金輪動卡／總覽小輪盤是另一支 agent 的範圍
+                pg.evaluate("() => window.scrollTo(0, 0)")
+                was_open = pg.evaluate(f"() => {{ const b = document.getElementById('how-{k}'); return !!b && !b.hidden; }}")
+                if was_open:                     # 保險：前一段留下的開著狀態先收起來
+                    click(pg, f'.howbtn[data-how="{k}"]', 300)
+                click(pg, f'.howbtn[data-how="{k}"]', 450)
+                st = pg.evaluate(COPY_HOWBOX, k)
+                seen_how.add(k)
+                ok(f"[說明精簡] {where}「怎麼看：{k}」按下去真的展開、內容非空", bool(st) and st["open"] and st["len"] > 20, st)
+                ok(f"[說明精簡] {where}「怎麼看：{k}」條列 1～5 條", bool(st) and 1 <= st["n"] <= 5, st and st["n"])
+                ok(f"[說明精簡] {where}「怎麼看：{k}」每條 ≤ 30 字", bool(st) and not st["long"], st and st["long"])
+                ok(f"[說明精簡] {where}「怎麼看：{k}」按鈕字變成「收起說明」", bool(st) and "收起" in (st["label"] or ""), st and st["label"])
+                click(pg, f'.howbtn[data-how="{k}"]', 300)
+                closed = pg.evaluate(f"() => document.getElementById('how-{k}').hidden")
+                ok(f"[說明精簡] {where}「怎麼看：{k}」再按一次真的收起來", closed is True)
+    # 這一批新加（或改寫）的入口，一顆都不准少
+    want = {"heat", "cand", "breadth", "trust", "mkt", "sankey", "inst", "conc", "indheat", "theme", "themedg",
+            "gp", "nb", "dg", "rel", "season", "kline", "mtf", "pe", "ms"}
+    ok("[說明精簡] 全站「怎麼看 ?」入口一顆都沒少", want <= seen_how, sorted(want - seen_how))
+    # 搬家不是刪除：幾段搬進盒子的關鍵句，打開盒子之後真的讀得到
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    txt = how_text(pg, "season")
+    ok("[說明精簡] 週期統計的口徑（生存者偏差、基準）搬進怎麼看，沒有消失",
+       "生存者偏差" in txt and "基準" in txt, txt[-120:])
+    pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    txt = how_text(pg, "theme")
+    ok("[說明精簡] 題材熱力的口徑（成員不拆分、熱度怎麼算）搬進怎麼看，沒有消失",
+       "不拆分" in txt and "熱度" in txt, txt[-120:])
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    txt = how_text(pg, "kline")
+    ok("[說明精簡] K 線的操作說明（滾輪、分隔線、Yahoo 來源）搬進怎麼看，沒有消失",
+       "滾輪" in txt and "分隔線" in txt and "Yahoo" in txt, txt[:120])
+
+
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
@@ -21439,7 +21545,8 @@ def t_mobile_oneview(b, base, code):
         ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
-        ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeNote", None),
+        # ★ 2026-09-24 說明精簡：#themeNote（題材口徑）搬進「怎麼看 ?」，關鍵數字改看熱度圖例（沒有它讀不出顏色是哪一級）
+        ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeMapLegend", None),
         # ★ 2026-09-24 週期統計改版：圖高＝列數 × 列高，捲動交給外框 `#seasonHeatBox`，
         #   所以「主圖」量外框；「關鍵數字」是 7 格圖例（沒有它讀不出顏色是哪一級）。
         ("season", "週期統計 月份熱力", "#seasonHeatBox", "#seasonHeatBoxLegend", None),
@@ -23520,6 +23627,13 @@ def t_legal(b, base):
        ban and ban["pos"] == "fixed" and ban["z"] == 90 and ban["role"] == "region" and 16 <= ban["bottom"] <= 32, ban)
     ok("[開] 橫幅出現時不搶焦點", ban and not ban["focusIn"], ban)
     ok("[開] 按同意之前 localStorage 沒有 tw.consent", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    # ★ 2026-09-24 說明精簡：總覽熱力圖的長副標縮短後，標題列少一行，「放大」鈕在 1440×950 的首屏
+    #   剛好落在固定橫幅（832～926px）的高度 —— 改版前是 915px、只是水平方向剛好錯開。
+    #   這條要驗的是「橫幅不會永久蓋住內容」，所以先把鈕捲到畫面中間（真人也會捲），再量那一點是誰；
+    #   不捲就等於在驗「首屏某個座標剛好沒被蓋到」，版面一動就假紅。
+    pg.evaluate("() => { const e = document.getElementById('heatZoom'); if (e) { const r = e.getBoundingClientRect();"
+                " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); } }")
+    pg.wait_for_timeout(300)
     ok("[開] 橫幅不擋內容：底下的「放大」鈕照樣點得到", pg.evaluate(
         "() => { const e = document.getElementById('heatZoom'); if (!e) return true; const r = e.getBoundingClientRect();"
         " const x = document.elementFromPoint(r.left + 4, r.top + 4); return !r.height || r.top > innerHeight || !!(x && !x.closest('#lgBanner')) ; }"))
