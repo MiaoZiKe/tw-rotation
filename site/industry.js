@@ -291,7 +291,8 @@
            而且「左邊在講什麼、右邊在講什麼」要靠讀說明才知道。標題直接寫在各自的卡片上。 -->
       <div class="gpgrid">
         <div class="gpcard"><h5>族群漲跌幅</h5><div id="gpBar" class="chart"></div></div>
-        <div class="gpcard"><h5>成交值占比</h5><div id="gpPie" class="chart"></div></div>
+        <div class="gpcard"><h5>成交值占比</h5><div id="gpPie" class="chart"></div>
+          <div class="gplegend" id="gpLegend" aria-label="圖例"></div></div>
       </div>
       <div class="sub" id="gpFocus" style="margin-top:8px"></div>
       ${ctx.tail ? `<div class="linkrow">${ctx.tail}</div>` : ''}`;
@@ -419,7 +420,7 @@
            以前只有末端那一端圓、貼著零軸那一端是直角，目標圖兩端都是圓的。*/
         itemStyle: { color: A.upDown(d.chg), borderRadius: 5, borderWidth: 0, borderColor: CH.ink },
         /* 色票（CH.*）在切主題時由 applyTheme 就地換掉，所以這裡不必自己分深／淺兩套 */
-        label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 11.5,
+        label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
           color: CH.ink2, formatter: A.fmt.pct(d.chg) } }));
       /* ★ 2026-09-23（W3-8）：圓餅只標**前五大**，其餘全部併成一塊中性灰的「其他」。
          以前是把十幾塊小碎片全部畫出來、標籤貼在旁邊互相干擾 —— 那張圖回答不了
@@ -432,12 +433,10 @@
       const otherN = Math.max(0, bySize.length - top.length) + restN;
       pieTopNames = top.map(d => d.name);
       pieData = top.map(d => ({ name: d.name, value: Math.max(0, d.val || 0), key: d.key,
-        itemStyle: { color: d.color, borderColor: CH.panel, borderWidth: 1 },
-        label: { show: true } }));
+        itemStyle: { color: d.color, borderColor: CH.panel, borderWidth: 1 } }));
       if (otherVal > 0) {
         pieData.push({ name: PIE_OTHER, value: otherVal, key: '_rest',
-          itemStyle: { color: A.hexA(CH.ink3, .38), borderColor: CH.panel, borderWidth: 1 },
-          label: { show: true } });
+          itemStyle: { color: A.hexA(CH.ink3, .38), borderColor: CH.panel, borderWidth: 1 } });
       }
       /* 中心那個數字一定要**真的算**（前五大的占比相加），不准寫死、不准用估的 */
       pieTopShare = total > 0 ? top.reduce((s2, d) => s2 + (d.val || 0), 0) / total * 100 : 0;
@@ -481,6 +480,30 @@
         + `　<span class="muted">${drill ? '點一下進個股頁' : '點一下看它的個股'}</span>`;
     }
 
+    /* 甜甜圈中心兩行字（標題＋大數字）。top 用像素算：圓心在 cy，兩行字的總高約 52px。*/
+    function pieCenter(cy, t1, t2) {
+      const ff = 'Noto Sans TC, sans-serif';
+      return [
+        { text: t1, left: '50%', top: cy - 30, textAlign: 'center',
+          textStyle: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, width: 120, overflow: 'truncate' } },
+        { text: t2, left: '50%', top: cy - 10, textAlign: 'center',
+          textStyle: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: 'JetBrains Mono, ' + ff } },
+      ];
+    }
+    /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
+    function paintLegend() {
+      const el = $('#gpLegend', host); if (!el) return;
+      const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
+      el.innerHTML = pieData.map(d => `<button type="button" class="lg${d.name === PIE_OTHER ? ' other' : ''}" data-n="${A.fmt.esc(d.name)}" title="${A.fmt.esc(d.name)}">`
+        + `<i style="background:${(d.itemStyle || {}).color || CH.ink3}"></i><span class="nm">${A.fmt.esc(d.name)}</span>`
+        + `<span class="pc">${A.fmt.n(d.value / tot * 100, 1)}%</span></button>`).join('');
+      $$('.lg', el).forEach(bn => {
+        bn.onmouseenter = () => setHi(bn.dataset.n);
+        bn.onmouseleave = () => setHi(null);
+        bn.onclick = () => { if (bn.dataset.n !== PIE_OTHER) onPick(bn.dataset.n); };
+      });
+    }
+
     /* 兩圖連動。**刻意用 setOption 改真的樣式**，而不是只送 highlight 事件：
        只送事件的話「扇形的樣式到底有沒有變」在畫面之外量不到，驗收就只能驗「我有呼叫」，
        那不是「畫面真的因此改變了」。這裡改的是描邊寬度與顏色，是真的畫上去的樣式。*/
@@ -507,8 +530,18 @@
          要讓**「其他」那一塊**亮起來 —— 不然滑過去等於沒反應，連動就斷在那裡。
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
-      if (pi) pi.setOption({ series: [{ data: pieData.map(d => ({ ...d,
-        itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
+      if (pi) {
+        const ph2 = parseFloat(pieEl.style.height) || pieEl.clientHeight;
+        const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
+        const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
+        pi.setOption({
+          // 中心：滑到某一塊就寫它的名字與百分比，滑開回到「前五大 xx%」
+          title: hd ? pieCenter(Math.round(ph2 * 0.5), hd.name, A.fmt.n(hd.value / tot * 100, 1) + '%')
+            : pieCenter(Math.round(ph2 * 0.5), '前五大', A.fmt.n(pieTopShare, 1) + '%'),
+          series: [{ data: pieData.map(d => ({ ...d,
+            itemStyle: { ...d.itemStyle, borderWidth: d.name === pieHi ? 3 : 1, borderColor: d.name === pieHi ? CH.ink : CH.panel } })) }] });
+      }
+      $$('#gpLegend .lg', host).forEach(bn => bn.classList.toggle('on', !!pieHi && bn.dataset.n === pieHi));
       if (bi) bi.setOption({ series: [{ data: barData.map(d => ({ ...d,
         itemStyle: { ...d.itemStyle, borderWidth: d.name === hi ? 2 : 0, borderColor: CH.ink } })) }] });
       } catch (e) { /* tooltip 與 dispose 的競態，下一次 hover 就會正常，不要炸掉整頁 */ }
@@ -532,7 +565,15 @@
       const b = build();
       const n = Math.max(barData.length, 6);
       const h = Math.max(320, Math.min(660, n * 26 + 56));
-      barEl.style.height = h + 'px'; pieEl.style.height = h + 'px';
+      /* ★ 2026-09-24 甜甜圈改版：圖例搬到圖下方（兩欄），圖本身讓出那一塊，兩張卡片仍然一樣高。*/
+      const legRows = Math.ceil(Math.min(6, (pieData.length || 1)) / 2);
+      const legH = legRows * 24 + 12;
+      /* 窄畫面兩張卡上下疊（.gpgrid ≤820px 單欄），這時甜甜圈不必跟長條一樣高 ——
+         跟長條一樣高的話 390px 上甜甜圈上下各空出一大片（截圖量到約 200px 的空白）。改成「寬多少、高就差不多多少」。*/
+      const stacked = (() => { try { return window.matchMedia('(max-width:820px)').matches; } catch (e) { return false; } })();
+      const pw = pieEl.clientWidth || 360;
+      const pieH = stacked ? Math.min(Math.max(220, h - legH), Math.max(240, Math.round(pw * 0.86))) : Math.max(220, h - legH);
+      barEl.style.height = h + 'px'; pieEl.style.height = pieH + 'px';
       backBtn.hidden = !drill;
       $('#gpTitle', host).innerHTML = drill
         ? `${A.fmt.esc(drill.name)}　<small class="muted">這個族群的個股漲幅（${b.asc.length}／${(drill.members || []).length} 檔）</small>`
@@ -558,6 +599,21 @@
         ], gpFine);
       paintNote();
       const axl = { ...A.axisStyle.axisLabel, fontSize: 11.5 };
+      /* ★ 2026-09-24（Andy：長條一律「數值貼在末端外側，正右負左」）：負值的數字寫在長條左端外面，
+         但長條左邊緊貼著的就是族群名 —— 390px 實測「AI 伺服器組裝」後面直接疊上「1.6%」，
+         連負號都被名字蓋掉（看起來像正的）。所以跟資金流向排行同一個做法：
+         把 x 軸下限往左多撐出「最寬那個負值標籤」的寬度（字寬是量的，不是估的），
+         負值標籤就落在零軸左邊自己的空間裡，不會壓到名字。
+         plotW 要扣掉左邊族群名的寬度（containLabel 會自己留那一塊）與右邊 52px 留白。*/
+      const vals = barData.map(d => +d.value || 0);
+      const negL = barData.filter(d => (+d.value || 0) < 0).map(d => A.fmt.pct(d.value));
+      const vMin = Math.min(0, ...vals), vMax = Math.max(0, ...vals);
+      const nameW = A.textW ? A.textW(barData.map(d => d.name), 12) : 0;
+      const plotW = Math.max(60, (barEl.clientWidth || 360) - 4 - 52 - nameW - 10);
+      const needL = negL.length && A.textW ? Math.ceil(A.textW(negL, 12)) + 8 : 0;
+      const span0 = (vMax - vMin) || 1;
+      const xMin = needL ? +(vMin - needL * span0 / Math.max(30, plotW - needL)).toFixed(3) : undefined;
+      const narrowBar = plotW < 260;
       A.chart(barEl, {
         grid: { left: 4, right: 52, top: 8, bottom: 4, containLabel: true },
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
@@ -566,7 +622,10 @@
             + `<br>成交值 ${A.fmt.yi(d.val)}（${A.fmt.n(d.share, 1)}%）${d.n != null ? ' · ' + d.n + ' 檔' : ''}`
             + `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>`; } },
         /* ★ W3-8：格線收到極淡（有格線會跟長條搶注意力），改由**零軸那一條**負責分正負 */
-        xAxis: { type: 'value', axisLabel: { ...axl, formatter: v => A.fmt.n(v, 1) + '%' },
+        /* 軸刻度：窄畫面只留 3 格並開 hideOverlap —— 390px 實測五個刻度（-3.0%～9.0%）擠成一串疊在一起。
+           撐出來的下限不是整數，刻度字只寫「落在資料範圍內」的那幾個，免得左端冒出一個 -4.37% 這種怪值。*/
+        xAxis: { type: 'value', min: xMin, splitNumber: narrowBar ? 3 : 5,
+          axisLabel: { ...axl, hideOverlap: true, formatter: v => (xMin != null && v < vMin - 1e-9) ? '' : A.fmt.n(v, 1) + '%' },
           splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
         /* ★ W3-8：族群名**不准再被截斷**（以前超過 8 個字就加省略號，
            使用者看到的是「被動元件 MLC…」「AI PC 筆電…」—— 那等於沒寫名字）。
@@ -578,32 +637,36 @@
           axisLabel: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2 } },
         series: [{ type: 'bar', barMaxWidth: 17, data: barData, cursor: 'pointer' }],
       }, { notMerge: true });
+      /* ★ 2026-09-24 甜甜圈改版（Andy 給了參考圖：「圓餅圖幫我設計這樣的樣式」）：
+           · 粗環：內半徑 58%、外半徑 78%（環寬約半徑的 1/4），扇區之間只留 1.2° 的底色縫、扇區端點圓角
+           · 環的內側一圈很細的淡色軌道（下面那個 series[1]），讓中心像一個圓盤
+           · 中心兩行：上面小字標題（12.5px、輔助色）、下面大數字（34px、粗體、等寬）——
+             平常寫「前五大」與它們的合計；滑到某一塊就換成那一塊的名字與百分比（setHi 裡改），滑開還原
+           · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
+           · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
+         W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
+      const ph = parseFloat(pieEl.style.height) || h;
+      const cy = Math.round(ph * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
           const d = items.find(x => x.name === p.name);
           return `<b>${A.fmt.esc(p.name)}</b><br>成交值 ${A.fmt.yi(p.value)}（${A.fmt.n(p.percent, 1)}%）`
             + (d ? `<br>漲跌 <span style="color:${A.upDown(d.chg)}">${A.fmt.pct(d.chg)}</span>` : '')
             + (d ? `<br><small>${drill ? '點一下進個股頁' : '點一下看它的個股'}</small>` : '<br><small>其餘的量太小，沒有畫成長條</small>'); } },
-        /* ★ W3-8：中心寫「前五大」與它們的合計占比。那個數字是 build() 算出來的
-           （前五大的成交值 ÷ 這一頁的總成交值），不是寫死、也不是估的。*/
-        title: [
-          { text: '前五大', left: '50%', top: '44%', textAlign: 'center',
-            textStyle: { color: CH.ink3, fontSize: 12, fontWeight: 400, fontFamily: 'Noto Sans TC, sans-serif' } },
-          { text: A.fmt.n(pieTopShare, 1) + '%', left: '50%', top: '51%', textAlign: 'center',
-            textStyle: { color: CH.ink, fontSize: 22, fontWeight: 700, fontFamily: 'Noto Sans TC, sans-serif' } },
-        ],
-        series: [{ type: 'pie', radius: ['46%', '66%'], center: ['50%', '52%'], minAngle: 2,
-          avoidLabelOverlap: true, cursor: 'pointer',
-          /* 標籤用引線拉出去：名稱在上、百分比在下。只有六塊（前五大＋其他），
-             拉得開，不會再出現「十幾個標籤擠在一起互相干擾」那種畫面。*/
-          label: { ...axl, fontFamily: 'Noto Sans TC, sans-serif', color: CH.ink2, show: true,
-            position: 'outside', lineHeight: 15,
-            formatter: p => `{n|${p.name}}\n{v|${A.fmt.n(p.percent, 1)}%}`,
-            rich: { n: { fontSize: 11.5, color: CH.ink2, fontFamily: 'Noto Sans TC, sans-serif' },
-              v: { fontSize: 12.5, fontWeight: 700, color: CH.ink, fontFamily: 'Noto Sans TC, sans-serif' } } },
-          labelLine: { show: true, length: 10, length2: 14, smooth: true, lineStyle: { color: CH.ink3 } },
-          data: pieData }],
+        title: pieCenter(cy, '前五大', A.fmt.n(pieTopShare, 1) + '%'),
+        animationDurationUpdate: 200,
+        series: [{ type: 'pie', radius: ['58%', '78%'], center: ['50%', cy], minAngle: 2, padAngle: 1.2,
+          avoidLabelOverlap: false, cursor: 'pointer', label: { show: false }, labelLine: { show: false },
+          itemStyle: { borderRadius: 6 },
+          emphasis: { scale: true, scaleSize: 4, label: { show: false } },
+          data: pieData },
+        // 環內側的細軌道：只是一圈底，不能點、沒有提示框、不參與連動
+        { type: 'pie', radius: ['55%', '55.8%'], center: ['50%', cy], silent: true, animation: false,
+          label: { show: false }, labelLine: { show: false }, tooltip: { show: false }, emphasis: { disabled: true },
+          itemStyle: { borderRadius: 0 },
+          data: [{ name: '_track', value: 1, itemStyle: { color: A.hexA(CH.ink3, .22) } }] }],
       }, { notMerge: true });
+      paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
       /* ⚠ 滑鼠**整個離開圖表**時 ECharts 發的是 `globalout`，不是 `mouseout`
@@ -1073,6 +1136,15 @@
       partHi = partSel = segHi = null;      // partSel 是小卡的狀態，忘了清小卡就收不掉
       syncHighlight({ quiet: true, noscroll: true });
     };
+    /* ★ 2026-09-24（Andy：「不需要"收起"選項，點擊背景即可消除（每個點擊資訊都確保是這樣功能）」）：
+       零件小卡登記進全站那一份「點外面就關、按 Esc 也關」（app.js 的 dismissable）。
+       剖析圖那一整區（含 3D／拖曳／重設／動畫／收合那排鈕）與關聯圖**不算外面**：
+       圖上點背景本來就會 clearPart（上面那段），而按 3D、換拖曳模式時「選起來的零件不准弄丟」是既有的決定。
+       所以「外面」指的是這兩區以外（頁首、族群總覽、其他產業鏈那排…），外加任何地方按 Esc。*/
+    if (A.dismissable && $('#partCard', el)) {
+      A.dismissable($('#partCard', el), clearPart, { ignore: ['#dgSec', '#relSec', '.dgtabs', '#chainSwitch'],
+        isOpen: () => !!partSel && el.isConnected && !$('#partCard', el).hidden && $('#partCard', el).getClientRects().length > 0 });
+    }
     /* 環節色標 `#segChips`（2026-09-23 C5 退版之後回到圖的上方，不再藏在「篩選」面板裡）：
        點一下篩、再點一下取消。內容是上面那個區塊填的，這裡只掛事件。*/
     $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
@@ -1590,7 +1662,7 @@
     box.style.setProperty('--c', segColor(seg));
     box.innerHTML = `<div class="pc-hd"><span class="pc-dot"></span><span class="pc-t">${A.fmt.esc(name)}</span>
         <button type="button" class="pc-seg" id="pcSeg" title="把整張圖聚焦到「${A.fmt.esc(segNm)}」這一格">環節：${A.fmt.esc(segNm)} →</button>
-        <span class="pc-btns"><button type="button" id="pcFold">${o.open ? '收合 ▴' : '展開 ▾'}</button><button type="button" id="pcClose" title="取消選取這個零件">✕</button></span></div>
+        <span class="pc-btns"><button type="button" id="pcFold">${o.open ? '收合 ▴' : '展開 ▾'}</button></span></div>
       <div class="pc-bd" id="pcBody"${o.open ? '' : ' hidden'}>
         ${desc ? `<div class="pc-desc">${A.fmt.esc(desc)}</div>` : ''}
         ${twRow}${noneRow}${foRow}${itemRows}${noItem}
@@ -1598,7 +1670,8 @@
         <div class="pc-ft">公司與「負責什麼」讀 supply_chain 的 <b>companies[].tech</b>，料號讀 <b>edges[].item</b>；標籤是資料可信度（官方揭露／媒體報導／產業推論）。點零件只會亮起來，<b>不會</b>把整張圖聚焦到那一格 —— 要聚焦請按上面的「環節」。</div>
       </div>`;
     const bSeg = $('#pcSeg', box); if (bSeg && o.onSeg) bSeg.onclick = () => o.onSeg(seg);
-    const bX = $('#pcClose', box); if (bX && o.onClose) bX.onclick = () => o.onClose();
+    /* 2026-09-24：「✕」拿掉（Andy：「不需要"收起"選項，點擊背景即可消除」）。取消選取的入口：
+       再點一次同一個零件、點剖析圖的空白處、點這兩區以外的地方、按 Esc（見 clearPart 下面那段）。*/
     const bF = $('#pcFold', box); if (bF && o.onToggle) bF.onclick = () => o.onToggle();
   }
 
@@ -3787,6 +3860,9 @@
     }, true);
     // 換頁一律收掉：不收的話 hidden 會留在 false，回來按 ⚙ 就變成「關掉看不見的面板」
     window.addEventListener('hashchange', () => closePop());
+    // 2026-09-24：外面點一下本來就會關（上面那段）；登記進全站那一份是為了多一個 Esc
+    const pop0 = document.getElementById('cfgPop');
+    if (pop0 && A && A.dismissable) A.dismissable(pop0, () => closePop(pop0), { ignore: ['.cfgpop', '#cfgBtn', '#tfAdd'] });
   }
 
   function placePop(pop, btn) {
@@ -4231,9 +4307,12 @@
                  axisLabel: { color: A.CH.ink2 } },
         yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, formatter: (v) => (v > 0 ? '+' : '') + v + '%' } },
         series: [{ type: 'bar', barWidth: '58%',
+          /* ★ 2026-09-24（Andy：長條一律「數字寫在長出去那一端的外側」）：負值那幾個月的「上漲年數」
+             以前固定寫在 top —— 負值長條的 top 是零軸，字貼在零軸上、離長條的末端最遠。改成依正負放上／下。*/
           data: stat.map(s => ({ value: s.avg == null ? null : +s.avg.toFixed(2),
-            itemStyle: { color: s.avg > 0 ? A.CH.up : s.avg < 0 ? A.CH.down : A.CH.ink3, borderRadius: 4 } })),
-          label: { show: true, position: 'top', color: A.CH.ink3, fontSize: 10.5,
+            itemStyle: { color: s.avg > 0 ? A.CH.up : s.avg < 0 ? A.CH.down : A.CH.ink3, borderRadius: 4 },
+            label: { position: s.avg < 0 ? 'bottom' : 'top' } })),
+          label: { show: true, color: A.CH.ink3, fontSize: 12,
             formatter: (q) => { const s = stat[q.dataIndex]; return s.n ? `${s.up}/${s.n}` : ''; } } }],
       }, { notMerge: true });
       const best = stat.filter(s => s.avg != null).sort((a, b) => b.avg - a.avg)[0];
