@@ -17,7 +17,13 @@
 <link rel="manifest" href="manifest.webmanifest">
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
 <script>try{var t=localStorage.getItem('tw.theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);}catch(e){}</script>
-<link rel="apple-touch-icon" href="icon.png">
+<!-- ★ 2026-09-24 PWA：圖示改用 site/icons/ 那一組（舊的 icon.png 是 2026-09-18 的 2KB 圖，
+     留著當退路沒有刪）。maskable 版是給 Android 啟動器裁切用的。
+     ⚠ 這組圖示是**暫時版** —— 命名與視覺識別還沒定案（docs/product_strategy.md 提了 8 個候選），
+     定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -535,8 +541,6 @@ small{font-size:12.5px}
 
 /* ---------------- 盤中即時（live.js） ---------------- */
 .livebox{position:relative;display:flex;align-items:center;gap:6px}
-.livebox .gear{padding:7px 9px}
-.livebox button:disabled{opacity:.55;cursor:progress}
 /* ★ 2026-09-23 UI 精修 #4（A14）：即時徽章**不准因為錯誤訊息變長就把導覽分頁擠掉**。
    量到的事實：#flow 的分頁溢出 352px，比其他頁多 190px，差的就是這顆吐出
    `Failed to fetch` 的徽章。一個次要的抓取失敗不該有比整個導覽更大的視覺權重。
@@ -550,25 +554,18 @@ small{font-size:12.5px}
 .livestate.ok{color:var(--ink-2);border-color:var(--line-2)}
 .livestate.bad{color:var(--amber);border-color:var(--line-2);background:var(--panel-2);
   border-left:3px solid var(--amber);border-radius:4px 7px 7px 4px}
-.livepop{position:absolute;top:42px;right:0;width:min(420px,92vw);z-index:60;
-  background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r);
-  box-shadow:var(--shadow);padding:14px 16px}
-.livepop h4{margin:0 0 8px;font-size:14px;color:var(--ink)}
-.livepop p{margin:0 0 10px;font-size:12.5px;line-height:1.65;color:var(--ink-3)}
-.livepop code{font-family:var(--mono);color:var(--cyan)}
-.livepop label{display:block;font-size:12.5px;color:var(--ink-2);margin-bottom:10px}
-.livepop label.chk{display:flex;align-items:center;gap:8px}
-.livepop input[type=text]{width:100%;margin-top:5px;padding:8px 10px;border:1px solid var(--line-2);
-  background:var(--panel-2);color:var(--ink);border-radius:8px;font-size:13px;font-family:var(--mono)}
-.livepop input[type=text]:focus{outline:0;border-color:var(--cyan);box-shadow:var(--glow)}
-.livepop .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.livepop .out{font-size:12px;color:var(--ink-3);flex:1;min-width:0;word-break:break-all}
+/* ★ 2026-09-24：`.livepop`（⚙ 即時來源設定面板）連同那顆鈕一起拿掉，樣式跟著刪。
+   `.fresh`＝「網站重新部署過、有新資料」：以前的路是按「更新」，現在改成點這顆本身重新載入
+   （只有這個狀態可以點，平常它就是一個時間，不是按鈕）。*/
+.livestate.fresh{cursor:pointer}
+.livestate.fresh:hover{color:var(--ink)}
+/* 熱力圖分頁：還沒選題材時，題材細節那一塊只放一句怎麼用（2026-09-24 題材併進熱力圖）*/
+.themehint{padding:12px 4px;font-size:13px;line-height:1.6;border:1px dashed var(--line-2);border-radius:var(--r);text-align:center}
 /* 數字真的變了才閃一下 —— 沒有這個提示，盤中盯著看根本分不出有沒有在動 */
 @keyframes liveflash{0%{background:rgba(62,224,255,.35)}100%{background:transparent}}
 .liveflash{animation:liveflash 1.1s ease-out;border-radius:4px}
 @media (max-width:820px){
   .livebox .livestate{display:none}
-  .livepop{right:-40px}
 }
 /* ★ 2026-09-23 UI 精修 #3：事件顆數徽章的字色從寫死的 #fff 改成 var(--ontop)。
    實測白字印在深色主題的 --violet(#8b7bff) 上只有 **3.29:1**，讀不出來；
@@ -2419,6 +2416,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     padding:5px 6px calc(5px + env(safe-area-inset-bottom))}
   .tab{flex:1 0 calc(25% - 3px);min-height:44px;display:flex;align-items:center;justify-content:center;
     padding:4px 2px;font-size:12.5px;line-height:1.2}
+  /* ★ 2026-09-24：「題材」併進「熱力圖」之後剩七顆 ＝ 上排四顆、下排三顆。
+     下排三顆**各佔三分之一、把整列排滿**，不准留一個空位（Andy 截圖上的要求）。
+     `flex-grow:1` 本來就會把剩下的寬度分給同一列的人，這裡把基準寫明，
+     讓「下排三顆一樣寬」不是靠碰巧：以後分頁再增減一顆，改這一行就好。*/
+  .tab:nth-child(n+5){flex-basis:calc(33.333% - 3px)}
   /* 兩列分頁列約 102px 高，內容的下緣要讓開，不然最後一張卡片被蓋住 */
   main{padding-bottom:150px}
 }
@@ -2632,6 +2634,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mpager{display:flex;gap:6px;margin:0 0 10px;padding:7px 2px;
     overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
     background:var(--bg);box-shadow:0 6px 10px -8px rgba(0,0,0,.55)}
+  /* ⚠ 2026-09-24 修：`miaPager` 用 `bar.hidden = subs.length < 2` 想把
+     「只有一段」的分頁列收掉（程式註解寫得很清楚：「一顆孤單的晶片是雜訊」），
+     但 `display:flex` 的權重 (0,1,0) 蓋過瀏覽器內建的 `[hidden]{display:none}` (0,0,0)，
+     **那一行完全沒有生效** —— 實測第③步「今日候選」與第④步「今日事件」
+     各留下一顆孤單的晶片，連同 margin 共 68px（844 可視區的 8%）。
+     這一條把它補回來；`!important` 不需要，同權重下後寫的贏。 */
+  .mpager[hidden]{display:none}
   .mpager::-webkit-scrollbar{display:none}
   .mpager>button{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:999px;
     border:1px solid var(--line);background:var(--panel-2);color:var(--ink-2);
@@ -2659,6 +2668,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .mspine>button.on{background:var(--panel-3);color:var(--ink);border-color:var(--focus);
     box-shadow:inset 0 0 0 1px var(--focus)}
   .mspine>button.on em{color:var(--ink-2)}
+  /* ★ 2026-09-24 修：主軸列量到 scrollWidth 818 / clientWidth 362 ——**藏了 456px**，
+     而且它也是釘住的，所以跟 `#skPx` 走同一條路（不透明蓋片，不是 `.hsc` 的 mask）。
+     `right:-2px` 抵銷它自己的 2px 左右內距。*/
+  .mspine::after{content:'';flex:0 0 30px;width:30px;margin-left:-30px;
+    position:sticky;right:-2px;align-self:stretch;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,0,0),var(--bg))}
+  .mspine.sk-end::after{background:none}
   /* 「下一步」：動線的方向感靠它 —— 看完一屏就有一顆鈕帶去下一屏，不必回頭找分頁 */
   .mnext{display:block;width:100%;min-height:48px;margin:14px 0 4px;padding:12px;
     border:1px solid var(--focus);border-radius:12px;background:var(--panel-2);
@@ -2736,10 +2752,29 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     box-shadow:0 6px 10px -9px rgba(0,0,0,.6);
     /* 排成**一列**（原本四個 pill 換行成三列、整塊 180px 高）。
        釘住的東西越高，留給圖的畫布就越少 —— 一列 ~48px 是「價格永遠看得到」的成本上限。
-       本益比／同業分位／營收 YoY 沒有不見，往右滑就在（`.hsc` 會補淡出）。*/
+       本益比／同業分位／營收 YoY 沒有不見，往右滑就在。
+       ⚠ 2026-09-24 更正：這裡原本寫「`.hsc` 會補淡出」—— **沒有，`#skPx` 不在 `SWIPE_SEL` 裡**，
+         而且它也**不能**用 `.hsc`（那是 mask，會讓釘住的列半透明）。淡出改由下面的
+         `#skPx::after` 不透明蓋片畫。*/
     flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
   body.miaon #skPx::-webkit-scrollbar{display:none}
   body.miaon #skPx>*{flex:0 0 auto}
+  /* ★ 2026-09-24 修：這一列**藏了 442px 的內容**（scrollWidth 802 / clientWidth 360，
+     「本益比」「同業分位」「營收 YoY」「分 K 完整」四顆整個在畫面外，第四顆起跑點 359.4
+     被卡片右緣 376 切一半），而畫面上原本**沒有任何記號**說得出「這一列可以滑」。
+     ⚠ 不可以用 `.hsc` 那套淡出 —— 它是 CSS `mask`，會連背景一起淡掉，
+       而這一列是釘住的：實測捲到工具列滑進它底下（重疊 25.6px）時，
+       右緣**真的看得到底下的「5 秒」晶片透出來**。釘住的東西必須不透明。
+     所以改用一塊**不透明的蓋片**：`::after` 在 flex 容器裡是一個 flex 子項，
+     用 `position:sticky;right:-18px` 黏在捲動視窗的右緣（-18 是抵銷這一列自己的右內距），
+     顏色從透明收到 `var(--bg)`（＝這一列自己的底色）。
+     看起來跟淡出一樣，但它是**蓋在內容上**，不是讓內容透出來。
+     `margin-left:-36px` 讓它不增加可捲寬度；`pointer-events:none` 讓它不擋點擊。*/
+  body.miaon #skPx::after{content:'';flex:0 0 36px;width:36px;margin-left:-36px;
+    position:sticky;right:-18px;align-self:stretch;pointer-events:none;
+    background:linear-gradient(90deg,rgba(0,0,0,0),var(--bg))}
+  /* 捲到最右邊就不要再淡（「已經到底了還在淡」是假提示）—— 由 app.js 掛 `.sk-end`。*/
+  body.miaon #skPx.sk-end::after{background:none}
   /* 工具列（週期／指標／設定 共 11 顆）改成**一列左右滑**，高度從 404px 收成一列。
      全部留著、一顆都沒少，只是排成一條可以滑的帶子（`.hsc` 會補淡出與「左右滑」提示）。*/
   body.miaon #skTools{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;
@@ -2755,6 +2790,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      既有的拍板優先於我這一版的偏好，所以整段撤回；`.gpgrid` 在手機維持單欄堆疊。
      代價：產業地圖頁在 390px 仍有 1358px（圓餅圖要捲 1025px 才看得到）——
      寫進「刻意留到下一版」，要改得先問過他。*/
+
+  /* ---- ⑤-b K 線圖例：一個數字不准被切成兩半 -----------------------------------
+     390px 實測：`#legendOv` 的兩行邏輯內容折成 5 行、佔掉 501px 高的 K 線圖 101.8px（20.3%），
+     而且**折在項目中間** —— 量到「MA60」留在第一行、「2,400.83」被推到第二行
+     （那個 span 的邊界框是 244.3×33.8，橫跨兩行）。讀者看到的是一個被拆開的數字。
+     `inline-block` 讓每一個 `<span>` 成為不可分割的一塊，要折就整塊折下去。
+     ⚠ 只在 `body.miaon`（≤640px 的真手機）生效，桌機那條路徑一個字都沒動。
+     ⚠ 這只解決「折在項目中間」；「圖例佔掉圖的五分之一」是另一件事，
+       要動到 industry.js 的圖例內容，寫進 docs/mobile_ia.md 的待辦。*/
+  body.miaon #lwc .legend-ov span{display:inline-block}
 
   /* ---- ⑥ 左右滑的位置指示：第幾張／共幾張 ------------------------------------
      Andy 點名的：「左右滑的卡片要有位置指示，不然不知道還有沒有」。
@@ -2785,7 +2830,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button class="tab" data-view="flow">資金流向</button>
     <button class="tab" data-view="industry">產業地圖</button>
     <button class="tab" data-view="heatmap">熱力圖</button>
-    <button class="tab" data-view="themes">題材</button>
+    <!-- ★ 2026-09-24（Andy：「題材內 熱力圖 放到熱力圖分頁」，截圖上把「熱力圖」「題材」框在一起寫「合併」）：
+         「題材」分頁併進「熱力圖」—— 題材資金熱力＋題材細節（剖析圖）整塊搬到 #v-heatmap 的全市場熱力圖下面。
+         舊網址 `#themes`、`#themes/<id>` **不准壞**（交付清單的「去看」、外面存的連結都指著它），
+         由 app.js 的 route() 導到 `#heatmap/theme[/<id>]`。 -->
     <button class="tab" data-view="market">市場明細</button>
     <button class="tab" data-view="season">季節性</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
@@ -2800,28 +2848,14 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   <button class="tabnav r" id="tabNext" type="button" aria-label="往右看更多分頁" tabindex="-1">›</button>
   </div>
   <div class="search"><input id="q" placeholder="代號 / 簡稱" autocomplete="off"><div class="sugg" id="sugg"></div></div>
-  <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分，另外要一顆手動更新）。
-       DECISIONS #37「Andy 只重新整理網頁、不點按鈕」在這裡被他自己推翻 —— 見 DECISIONS #113。 -->
+  <!-- 盤中即時（Andy 2026-09-14：盤中每分鐘、盤後每 30 分）。
+       ★ 2026-09-24（Andy：「按鈕更新、設定 版都移除」「即時 10:44 每分鐘（輪詢） → 只留時間」）：
+       「更新」（#liveBtn）與「⚙ 即時來源設定」（#liveGear ＋ #livePop 面板）兩顆拿掉，
+       **自動更新本身照跑**（live.js 的 MS_INTRADAY／MS_AFTER），拿掉的只是「手動按一下」的入口。
+       這顆只顯示報價時間；「每分鐘（輪詢）」「收盤」這些狀態文字搬進 title ——
+       那是「現在是不是即時、多久更新一次」的唯一線索，藏起來可以、刪掉不行。 -->
   <div class="livebox">
-    <button class="evbtn" id="liveBtn" title="立刻抓一次即時報價">更新</button>
-    <button class="evbtn gear" id="liveGear" title="即時來源設定">⚙</button>
-    <span class="livestate off" id="liveState">—</span>
-    <div class="livepop" id="livePop" hidden>
-      <h4>即時報價來源</h4>
-      <p>靜態網站不能直接抓證交所（被 CORS 擋），要一層 Cloudflare Worker 轉一手。
-         部署方法看 repo 的 <code>workers/README.md</code>，全程在網頁上完成、免費、不用綁卡。</p>
-      <label>Worker 網址
-        <input id="liveProxy" type="text" placeholder="https://tw-quote.xxx.workers.dev" autocomplete="off"></label>
-      <label class="chk"><input id="liveAuto" type="checkbox" checked>
-        <span>自動更新（盤中每分鐘 · 盤後每 30 分鐘）</span></label>
-      <div class="row">
-        <button class="btn small" id="liveTest">測試</button>
-        <button class="btn small on" id="liveSave">儲存</button>
-        <span class="out" id="liveTestOut"></span>
-      </div>
-      <p class="muted">設定存在這個瀏覽器裡，換電腦要再設一次。沒設定的話「更新」只會去看
-         靜態資料有沒有重新部署過。</p>
-    </div>
+    <span class="livestate off" id="liveState" title="即時報價：尚未取得">—</span>
   </div>
   <!-- 明亮／深色（Andy 2026-09-14「版面內容需要新增切換明亮色調」）。
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
@@ -2835,13 +2869,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        ⚠ 清單裡的每一列**不重寫邏輯**，一律去按桌機那顆原來的鈕（見 app.js initMore）——
          兩邊行為保證一樣，以後改一邊不會漏掉另一邊。 -->
   <button class="evbtn morebtn" id="moreBtn" aria-haspopup="true" aria-expanded="false"
-          title="更多工具：更新、即時來源、主題、今日事件">⋯<span class="n" id="moreCount" hidden>0</span></button>
+          title="更多工具：主題、今日事件">⋯<span class="n" id="moreCount" hidden>0</span></button>
   <div class="morepop" id="morePop" hidden>
     <button type="button" id="mmEvents"><span class="ic">▤</span>今日事件<span class="n" id="mmEvCount">0</span></button>
-    <button type="button" id="mmLive"><span class="ic">⟳</span>更新（即時報價）</button>
-    <button type="button" id="mmGear"><span class="ic">⚙</span>即時來源設定</button>
+    <!-- ★ 2026-09-24：「更新（即時報價）」「即時來源設定」兩列跟著桌機那兩顆一起拿掉 ——
+         這兩列是去按桌機的鈕，鈕不在了，留著就是點了沒反應的死列。 -->
     <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
-    <div class="hint">這幾項在電腦版是頂欄右邊的四顆鈕，名字一樣。</div>
+    <div class="hint">這兩項在電腦版是頂欄右邊的兩顆鈕，名字一樣。</div>
   </div>
   <!-- 網頁版號：點得開，直接對到 GitHub 上那個 commit。手機上藏起來（頂部塞不下），
        但橫幅那一行也會寫，所以手機還是看得到。 -->
@@ -3060,6 +3094,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        #industry 改成「族群漲幅長條圖＋占比圓餅圖」。內容由 industry.js 的 renderHeat 畫。 -->
   <section class="view" id="v-heatmap">
     <div id="indHeat"></div>
+    <!-- ★ 2026-09-24（Andy：「題材內 熱力圖 放到熱力圖分頁」）：原本 #v-themes 的兩塊整塊搬過來，
+         放在全市場熱力圖下面。id 一個都沒改（#themeMap／#themeMapWrap／#themeZoom 是縮放白名單、
+         淺色主題掃描、驗收都認的 id）。點題材方塊 → 下面的 #themeDetail 就地展開那個題材的剖析圖，
+         網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
+    <div class="card" id="themeMapCard" style="margin-top:16px"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
+      <div class="row" style="gap:8px"><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
+      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大又紅的方塊 ——
+        錢多、熱度也高的題材；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
+      <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
+      <div class="hpanel" id="themePanel" hidden></div></div>
+    <div id="themeDetail" style="margin-top:16px"></div>
   </section>
 
   <!-- ================= 產業與個股 ================= -->
@@ -3070,14 +3115,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <div id="stockPage"></div>
   </section>
 
-  <!-- ================= 題材 ================= -->
-  <section class="view" id="v-themes">
-    <div class="card" id="themeMapCard"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
-      <div class="row" style="gap:8px"><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
-      <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
-      <div class="hpanel" id="themePanel" hidden></div></div>
-    <div id="themeDetail" style="margin-top:16px"></div>
-  </section>
+  <!-- ================= 題材 =================
+       ★ 2026-09-24：整塊搬進上面的 #v-heatmap（「題材資金熱力」＋「題材細節」）。
+       `#v-themes` 這個 view 不再存在；`#themes` 路由由 app.js 導到 `#heatmap/theme`。 -->
 
   <!-- ================= 任務板 =================
        Andy 2026-09-20：「很常發生我問你問題你做完，但我發現做不全，你就接續其他工作，
@@ -3180,5 +3220,22 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   <div id="zoomTools" class="ztools"></div>
   <div class="zb"><div id="zoomBody" class="chart"></div></div>
 </div>
+<!-- ★ 2026-09-24：Service Worker 註冊（PWA 第一步，docs/mobile_release_plan.md）。
+     用途是「加到主畫面」與離線仍打得開，**不是**為了快取資料。
+     ⚠⚠ sw.js 對 `data/**` 與任何 .json **完全不介入** —— 那是每天會變的數字，
+        快取住會讓人看到昨天的價格，**那比沒有 PWA 還糟**。這條有驗收釘著。
+     版本化靠 `?v=<tw:build 版號>`：每次部署版號會變 → 瀏覽器視為新的 SW →
+     activate 時刪掉舊快取。**不需要有人記得手動改常數。**
+     只在 http(s) 下註冊：本機用 file:// 打開時不跑，免得在開發時留下一個幽靈快取。 -->
+<script>
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  addEventListener('load', function () {
+    var m = document.querySelector('meta[name="tw:build"]');
+    var v = (m && m.content) || 'dev';
+    navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(v))
+      .catch(function (e) { console.warn('Service Worker 註冊失敗：', e); });
+  });
+}
+</script>
 </body>
 </html>

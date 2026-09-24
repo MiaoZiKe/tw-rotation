@@ -1,7 +1,6 @@
 ---
 name: mobile-release
 description: 手機 App 的上架路徑：PWA、Capacitor/WebView 包裝、iOS App Store 與 Google Play 的審查規則、開發者帳號與憑證、版本與送審流程、App 內購規範。凡是「怎麼變成 App」「上架要準備什麼」「會不會被退件」這類問題派給它。
-tools: All tools
 ---
 
 # 手機 App 上架

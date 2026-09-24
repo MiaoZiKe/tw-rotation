@@ -2234,7 +2234,10 @@ def t_electronics(pg, base):
     for tid, want in (("mlcc_passive", "2327"), ("switch_800g", "2345"),
                       ("panel_pkg", "2409"), ("petrochemical", "1301")):
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1200)
-        body = pg.evaluate("() => (document.querySelector('#v-themes')||{}).innerText || ''")
+        # ★ 2026-09-24：題材併進熱力圖分頁，`#v-themes` 不在了。舊的 #v-themes 裝的就是
+        #   「題材資金熱力」＋「題材細節」這兩塊，所以讀這兩塊的字 —— 範圍跟以前一樣，
+        #   **不是**改讀整個 #v-heatmap（那會把上面全市場熱力圖的字也算進去，等於放寬）。
+        body = pg.evaluate("() => ['themeMapCard', 'themeDetail'].map(i => (document.getElementById(i) || {}).innerText || '').join('\\n')")
         ok(f"新題材 {tid} 的頁面打得開而且不是空的", len(body.strip()) > 40, body[:80])
         ok(f"新題材 {tid} 列得出成分股 {want}", want in body, body[:160])
     pg.goto(f"{base}#industry/electronics", wait_until="networkidle"); pg.wait_for_timeout(1500)
@@ -5444,19 +5447,50 @@ def t_tasks(pg, base):
 
 
 def t_themes(pg, base):
-    pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1800)
-    ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
-    # ★ 2026-09-23（Andy：「題材這頁 將中間這兩個表格拿掉」）：
-    #   左卡（題材標題＋「← 回題材總覽」＋五個數字方塊＋熱度走勢折線）與右卡（成員表）整組移除。
-    #   `#themeDetail` 現在量到的是「產品剖析圖」那張卡，敘述跟著改。
-    ok("題材頁下方有產品剖析圖卡片", len(text(pg, "#themeDetail")) > 20, text(pg, "#themeDetail")[:40])
+    """題材（2026-09-24 起住在「熱力圖」分頁）。
 
-    # 真的用滑鼠點熱力方塊 → 下方明細要換一個題材
+    ★ 2026-09-24 改口徑（Andy：「題材內 熱力圖 放到熱力圖分頁」，截圖把兩個分頁框在一起寫「合併」）：
+      「題材」分頁併進「熱力圖」—— 題材資金熱力＋題材細節搬到全市場熱力圖下面。
+      以前這一段「開 #themes 看到題材圖」；現在改成「開 #themes 會**導到**熱力圖分頁，而且題材圖真的在」。
+      舊網址不准壞（交付清單的「去看」、外面存的連結都指著它），所以每一個題材都用**舊網址**開一次。
+    """
+    # ---- ① 舊網址 #themes → 熱力圖分頁（不是 404、不是停在總覽）
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    pg.evaluate("() => { location.hash = '#themes'; }"); pg.wait_for_timeout(2600)
+    st = pg.evaluate("""() => ({ hash: location.hash,
+        tab: (document.querySelector('#tabs .tab.on') || {}).dataset?.view || null,
+        view: (document.querySelector('main .view.on') || {}).id || null,
+        oldTab: !!document.querySelector('#tabs .tab[data-view=themes]'),
+        oldView: !!document.getElementById('v-themes'),
+        tabs: [...document.querySelectorAll('#tabs .tab')].map(t => t.textContent.trim()),
+        inHeat: !!document.querySelector('#v-heatmap #themeMapCard') && !!document.querySelector('#v-heatmap #themeDetail'),
+        order: (() => { const a = document.getElementById('indHeat'), b = document.getElementById('themeMapCard');
+                        return a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null; })() })""")
+    ok("★ 舊網址 #themes 導到熱力圖分頁（網址換成 #heatmap/theme）", st["hash"] == "#heatmap/theme", st)
+    ok("導過去之後亮的是「熱力圖」分頁、顯示的是熱力圖那一頁", st["tab"] == "heatmap" and st["view"] == "v-heatmap", st)
+    ok("「題材」分頁真的合併掉了（分頁列只剩一個「熱力圖」）",
+       not st["oldTab"] and not st["oldView"] and "題材" not in st["tabs"] and "熱力圖" in st["tabs"], st)
+    ok("題材資金熱力與題材細節都搬進熱力圖分頁", st["inHeat"], st)
+    ok("題材那一塊放在全市場熱力圖**下面**", st["order"] is True, st)
+    ok("題材熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#themeMap canvas')"))
+    ok("全市場熱力圖也還在（合併不是取代）", pg.evaluate("() => !!document.querySelector('#indTree canvas')"))
+    tm = pg.evaluate("() => { const r = document.getElementById('themeMapCard').getBoundingClientRect(); return { t: Math.round(r.top), vh: innerHeight }; }")
+    ok("從舊網址進來會捲到題材那一塊（不然只看得到上面那張全市場熱力圖，會以為連結壞了）",
+       0 <= tm["t"] <= tm["vh"] * 0.5, tm)
+    # 上一頁不能卡在「回到 #themes → 又被導回來」的迴圈裡
+    pg.go_back(); pg.wait_for_timeout(1500)
+    ok("★ 導過去之後按上一頁回得到原本那一頁（不會卡在 #themes 迴圈）",
+       pg.evaluate("location.hash") == "#overview", pg.evaluate("location.hash"))
+    pg.go_forward(); pg.wait_for_timeout(1800)
+
+    # ---- ② 還沒選題材：細節那一塊是一句「點方塊會展開」，不是空白也不是替使用者挑一個
+    ok("還沒選題材時，細節區寫著怎麼用（點方塊展開剖析圖）",
+       "點「題材資金熱力」" in text(pg, "#themeDetail") and count(pg, "#themeDiagram") == 0,
+       text(pg, "#themeDetail")[:60])
+
+    # ---- ③ 真的用滑鼠點熱力方塊 → 下方就地展開那個題材，不離開這一頁、上面那張 treemap 不重畫
     before = text(pg, "#themeDetail")[:60]
-    pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
-    # 熱力圖方塊的大小跟著資料變，而且預設顯示的就是最大那一塊 ——
-    # 固定戳一個座標很容易戳到「現在已經選的那一塊」，看起來像點不動。
-    # 改成掃一格格的點，而且**每次點之前重新量位置**（點下去會換 hash、版面會跟著動）。
+    tree0 = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('indTree')); return c ? c.id : null; }")
     after = before
     grid = [(fx / 10, fy / 10) for fy in (2, 5, 8) for fx in (9, 1, 7, 3, 5)]
     for fx, fy in grid:
@@ -5470,6 +5504,19 @@ def t_themes(pg, base):
         if after != before:
             break
     changed("點題材熱力方塊，下方明細跟著換", before, after)
+    st = pg.evaluate("""() => ({ hash: location.hash, view: (document.querySelector('main .view.on') || {}).id,
+        svg: document.querySelectorAll('#themeDiagram svg').length,
+        top: Math.round(document.getElementById('themeDetail').getBoundingClientRect().top), vh: innerHeight,
+        tree: (() => { const c = echarts.getInstanceByDom(document.getElementById('indTree')); return c ? c.id : null; })() })""")
+    ok("點下去網址變成 #heatmap/theme/<id>（分享得出去、上一頁回得來）", st["hash"].startswith("#heatmap/theme/"), st)
+    ok("★ 點方塊是就地展開：人還在熱力圖分頁、剖析圖真的畫出來", st["view"] == "v-heatmap" and st["svg"] > 0, st)
+    ok("展開後捲到細節那一塊（上緣在畫面上半部）", 0 <= st["top"] <= st["vh"] * 0.5, st)
+    ok("換題材不會把上面那張全市場熱力圖重畫一次", tree0 is not None and st["tree"] == tree0, [tree0, st["tree"]])
+    # 收起：就地展開要收得回去
+    click(pg, "#themeClose", 1200)
+    ok("按「收起」細節真的收回去，網址回到 #heatmap/theme",
+       pg.evaluate("location.hash") == "#heatmap/theme" and count(pg, "#themeDiagram") == 0,
+       [pg.evaluate("location.hash"), count(pg, "#themeDiagram")])
 
     # 題材熱力圖也要能放大，而且一樣不能拖
     ok("題材熱力圖有放大鈕", count(pg, "#themeZoom") == 1)
@@ -5483,12 +5530,20 @@ def t_themes(pg, base):
     # Andy：「題材資金熱力這邊也是會影響大小」—— 放大只能在框內發生（熱力圖保留縮放）
     check_zoom(pg, "themeMapWrap", "themeMap", "題材資金熱力")
 
-    # 總覽的「熱門題材」方塊 → 點了要切到該題材
+    # 總覽的「熱門題材」方塊 → 點了要切到該題材（2026-09-24 起直接指熱力圖分頁，不再繞舊網址）
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
     ok("總覽有熱門題材方塊", count(pg, "#themeStrip .tile") > 0)
     if count(pg, "#themeStrip .tile"):
-        click(pg, "#themeStrip .tile", 1600)
-        ok("點熱門題材會切到該題材", pg.evaluate("location.hash").startswith("#themes/"), pg.evaluate("location.hash"))
+        _nm = text(pg, "#themeStrip .tile .t")
+        click(pg, "#themeStrip .tile", 2200)
+        ok("點熱門題材會切到熱力圖分頁的那個題材", pg.evaluate("location.hash").startswith("#heatmap/theme/"),
+           pg.evaluate("location.hash"))
+        _tid = pg.evaluate("location.hash").split("/")[-1]
+        _has = pg.evaluate("(t) => !!(window.ThemeDiagrams || {})[t]", _tid)
+        # 22 個題材有 3 個沒有剖析圖（整區留白，Andy 0923-D）—— 熱門第一名剛好是它們時，驗「留白」而不是驗名字
+        ok("而且下面展開的就是剛剛點的那個題材",
+           (_nm and _nm in text(pg, "#themeDetail")) if _has else count(pg, "#themeDetail .card") == 0,
+           [_nm, _tid, _has, text(pg, "#themeDetail")[:40]])
 
     # 題材頁：族群分組 + 剖析圖零件點得到個股
     tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
@@ -5496,7 +5551,10 @@ def t_themes(pg, base):
     # ★ 2026-09-19：原本只跑前 3 個，18 個題材裡有 15 個從來沒被打開過。
     #   一輪多 15 次 goto 約 30 秒，換掉「題材頁壞了沒人知道」這個洞是划算的。
     for tid in tids:
+        # ★ 2026-09-24：一律用**舊網址**開 —— 順便逐一證明每個題材的舊連結都導得到新位置
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1100)
+        ok(f"題材 {tid} 的舊網址導到 #heatmap/theme/{tid}", pg.evaluate("location.hash") == f"#heatmap/theme/{tid}",
+           pg.evaluate("location.hash"))
         ok(f"題材 {tid} 有剖析圖", count(pg, "#themeDiagram svg") > 0)
         # Andy 09-13：剖析圖不要縮放（跟產業／個股剖析圖一致），要看大圖用右上角「放大」
         check_nozoom(pg, "themeDiagram", f"題材 {tid} 剖析圖")
@@ -5523,11 +5581,16 @@ def t_themes(pg, base):
     changed("★ 點「其他題材」標籤真的換題材（網址真的變了）", _hb, pg.evaluate("location.hash"))
 
     # ---- ★ 22 個題材裡有 3 個沒有剖析圖（`window.ThemeDiagrams` 只有 19 把 key）。
-    #   兩張卡拿掉之後它們會整頁空白，所以要改顯示一張說明小卡 —— 驗的就是「不是空白」。
+    #   ⚠ 2026-09-24 更正這一條：它原本驗「顯示一張『還沒有產品剖析圖』的說明小卡」，
+    #   但那張小卡在批次 0923-D（HANDOFF 開頭那一節）已經被 **Andy 親口要求拿掉**
+    #   （原話：「題材頁面 下方處可以移除」），這條斷言沒跟著改，在未改動的 main 上就是紅的。
+    #   現在驗的是他要的行為：整區留白、**沒有替代卡片**，而且上面的題材熱力圖照舊在（沒有整頁空掉）。
     for tid in ("panel_pkg", "petrochemical", "mlcc_passive"):
         pg.goto(f"{base}#themes/{tid}", wait_until="networkidle"); pg.wait_for_timeout(1000)
-        ok(f"題材 {tid} 沒有剖析圖時有說明、不是空白",
-           "還沒有產品剖析圖" in text(pg, "#themeDetail"), text(pg, "#themeDetail")[:60])
+        ok(f"題材 {tid} 沒有剖析圖時整區留白、不放替代卡片（Andy 0923-D 指定）",
+           count(pg, "#themeDetail .card") == 0 and "還沒有產品剖析圖" not in text(pg, "#themeDetail")
+           and pg.evaluate("() => !!document.querySelector('#themeMap canvas')"),
+           [count(pg, "#themeDetail .card"), text(pg, "#themeDetail")[:60]])
 
 
 def t_stock(pg, base, code):
@@ -7634,8 +7697,10 @@ def t_mobile(b, base, code):
     m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.on("pageerror", lambda e: fails.append(f"手機 pageerror: {e}"))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    # ★ 2026-09-24：「題材」併進「熱力圖」—— 熱力圖分頁本身、以及舊網址 #themes 導過去的樣子都要量
     for h, name in (("overview", "總覽"), ("market", "市場明細"), ("flow", "資金流向"), ("industry", "產業"),
-                    ("themes", "題材"), ("season", "季節性"), (f"stock/{code}", "個股")):
+                    ("heatmap", "熱力圖"), ("themes", "題材（舊網址→熱力圖）"), ("season", "季節性"),
+                    (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(1700)
         st = m.evaluate("""() => {
             // SVG 文字會跟著 viewBox 一起縮放，所以要量「螢幕上真正的大小」而不是 CSS 值
@@ -7659,9 +7724,16 @@ def t_mobile(b, base, code):
     tabs = m.evaluate("[...document.querySelectorAll('#tabs .tab')].map(a => a.dataset.view)")
     ok("手機有分頁列", len([t for t in tabs if t]) >= 6, tabs)
     # 分頁列真的按得動（手機上它固定在畫面底部）
+    # ★ 2026-09-24：以前按「題材」，那顆併進「熱力圖」了 —— 改按熱力圖，而且驗題材那一塊真的在
+    ok("手機分頁列沒有「題材」這顆了（併進熱力圖）", "themes" not in tabs, tabs)
     if tabs:
-        m.evaluate("document.querySelector('#tabs .tab[data-view=themes]').click()"); m.wait_for_timeout(1400)
-        ok("手機分頁列按得動", m.evaluate("location.hash").startswith("#themes"), m.evaluate("location.hash"))
+        m.evaluate("document.querySelector('#tabs .tab[data-view=heatmap]').click()"); m.wait_for_timeout(1800)
+        st = m.evaluate("""() => ({ hash: location.hash, view: (document.querySelector('main .view.on') || {}).id,
+            pager: [...document.querySelectorAll('#v-heatmap .mpager button')].map(b => b.textContent.trim()) })""")
+        ok("手機分頁列按得動（按熱力圖真的換到熱力圖那一頁）",
+           st["hash"].startswith("#heatmap") and st["view"] == "v-heatmap", st)
+        ok("手機熱力圖分頁的分段裡有題材那兩段（題材熱力、題材細節）",
+           any("題材熱力" in x for x in st["pager"]) and any("題材細節" in x for x in st["pager"]), st)
     m.close()
 
 
@@ -7692,12 +7764,12 @@ def t_zoom_sweep(pg, base, code):
       return out; }"""
     pages = [("#overview", "總覽"), ("#flow", "資金流向"), ("#industry", "產業地圖"),
              ("#heatmap", "產業熱力圖"),
-             ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材"),
+             ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材（舊網址→熱力圖分頁）"),
              ("#market", "市場明細"), ("#season", "季節性"), (f"#stock/{code}", "個股")]
     # 題材細節頁（產品剖析圖那一頁）全部都掃
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1500)
     for tid in (pg.evaluate("() => Object.keys(window.ThemeDiagrams || {}).filter(k => k !== 'fit')") or [])[:6]:
-        pages.append((f"#themes/{tid}", f"題材 {tid}"))
+        pages.append((f"#heatmap/theme/{tid}", f"題材 {tid}"))      # 2026-09-24 起題材住在熱力圖分頁
     for path, name in pages:
         pg.goto(base + path, wait_until="networkidle"); pg.wait_for_timeout(1500)
         r = pg.evaluate(SCAN)
@@ -7845,7 +7917,12 @@ def t_buildver(b, base):
     a = run("2026-09-18 第 3 版|11:16")
     ok("版號徽章看得到", a["visible"], a)
     ok("徽章寫的是西元日期＋第幾版", "2026-09-18" in a["txt"] and "第 3 版" in a["txt"], a["txt"])
-    ok("徽章也寫建置時間", "11:16" in a["txt"], a["txt"])
+    # ★ 2026-09-24 改口徑（Andy：版號「只留文字 不用時間」）：畫面上拿掉「· 11:16」。
+    #   ⚠⚠ 建置時間**不准刪**，搬進 title 的第一行 —— 「第 N 版」已經證實不準，
+    #   建置時間是唯一能確認「網站換版了沒」的依據。所以這裡同時驗兩件事：
+    #   畫面上真的沒有了、title 第一行真的有（而且跟著版號換，見下面第二組）。
+    ok("徽章畫面上只留「v 日期 第 N 版」，不再寫建置時間", "11:16" not in a["txt"] and "·" not in a["txt"], a["txt"])
+    ok("★ 建置時間沒有刪：搬進徽章滑鼠提示的第一行", "11:16" in (a["title"] or "").split("\n")[0], a["title"])
     ok("徽章連得到那個 commit（短碼移到 tooltip 與連結）",
        "/commit/1b28dfc" in (a["href"] or ""), a["href"])
     # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
@@ -7855,6 +7932,8 @@ def t_buildver(b, base):
     c = run("2026-09-19 第 1 版|08:02")
     changed("換一個版號，畫面上的字真的跟著換", a["txt"], c["txt"])
     ok("第二組版號也對得上", "2026-09-19" in c["txt"] and "第 1 版" in c["txt"], c["txt"])
+    ok("★ 換一組版號，提示裡的建置時間也真的跟著換（08:02）",
+       "08:02" in (c["title"] or "").split("\n")[0] and "11:16" not in (c["title"] or ""), c["title"])
     ok("日期不同就看得出誰比較新（不像 sha 沒有順序）", a["txt"] < c["txt"], [a["txt"], c["txt"]])
 
     # 沒跑過部署流程的版本要看得出來，不能假裝自己是正式版
@@ -7862,20 +7941,42 @@ def t_buildver(b, base):
     ok("本機版標成 local", "local" in d["txt"], d["txt"])
 
 
+# 攔截 setInterval：記下每一個計時器的間隔與回呼，驗收才能「讓計時器真的走一輪」而不用乾等 60 秒。
+# 只包一層、原本的計時器照樣排上去 —— 產品的行為不變，只是多一份紀錄。
+IV_RECORDER = """(() => { if (window.__iv) return; window.__iv = [];
+  const si = window.setInterval.bind(window), ci = window.clearInterval.bind(window);
+  window.setInterval = function (fn, ms, ...a) { const id = si(fn, ms, ...a);
+    window.__iv.push({ id, ms, fn, src: String(fn) }); return id; };
+  window.clearInterval = function (id) { const r = window.__iv.find(x => x.id === id);
+    if (r) r.cleared = true; return ci(id); }; })();"""
+# 找出 live.js 那一顆（回呼是 `() => tick(false)`、間隔等於 Live.periodMs、還沒被清掉），真的呼叫它一次。
+IV_FIRE_LIVE = """(ms) => { const r = (window.__iv || []).filter(x => !x.cleared && x.ms === ms
+    && /tick\\(false\\)/.test(x.src)); r.forEach(x => x.fn()); return r.length; }"""
+
+
 def t_live(pg, base):
     """盤中即時層（live.js）。
 
-    驗收的重點不是「按鈕在不在」，而是**按下去之後畫面上的數字真的變了**。
-    做法：攔截 /quote 這個請求，回一份自己編的報價（收 999、昨收 900 ＝ +11%），
-    然後比對候選表第一列的收盤與漲跌欄在按更新前後是不是不一樣。
+    ★ 2026-09-24 改口徑（Andy：「按鈕更新、設定 版都移除」「即時 10:44 每分鐘（輪詢） → 只留時間」）：
+      以前這一段驗「按『更新』之後數字真的變了」「⚙ 面板填網址、測試、儲存」。
+      兩顆鈕拿掉了，但**要守的事情一條都沒少**，只是換成新的觸發點：
+        · 「按更新會重抓」     → 「自動更新的計時器真的排了、而且它走一輪數字真的變」
+        · 「面板存網址」       → 鈕與面板真的不在了（連手機「⋯」裡那兩列）＋ 來源預設就有
+        · 「狀態列寫報價時間」 → 畫面上**只剩**時間，狀態文字一個字都沒少、搬進 title
+        · 「關掉自動更新計時器停」→ 照驗（localStorage 開關仍然有效）
+      另外新增兩條：連續失敗**不會**把自動更新停掉（以前會，等人按更新 —— 鈕沒了就永久停擺），
+      以及「有新資料」那條路（以前按更新載入，現在點狀態那顆或盤後自動重載）。
+    做法：攔截 /quote，回自己編的報價（收 999、昨收 900 ＝ +11%），比對候選表第一列前後。
+    計時器用 IV_RECORDER 記下來、IV_FIRE_LIVE 讓它走一輪 —— 走的是產品自己排的那一顆。
     """
     import json as _json
     from urllib.parse import urlparse, parse_qs
 
-    # 用可變的容器裝「這一輪要回什麼價」，好分辨「存設定那次抓的」與「按更新那次抓的」
-    fake = {"z": "999.0000", "t": "11:22:33"}
+    fake = {"z": "999.0000", "t": "11:22:33", "fail": False}
 
     def fake_quote(route):
+        if fake["fail"]:
+            route.fulfill(status=500, content_type="text/plain", body="boom"); return
         q = parse_qs(urlparse(route.request.url).query)
         ex = (q.get("ex_ch") or [""])[0]
         arr = []
@@ -7891,89 +7992,133 @@ def t_live(pg, base):
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
 
-    pg.goto(base + "#overview", wait_until="networkidle")
-    pg.wait_for_timeout(1500)
+    # 開一頁新的：計時器紀錄器一定要在頁面腳本跑之前裝好（add_init_script），
+    # 只改 hash 的導航不會重跑頁面腳本，所以不能沿用別段留下來的那一頁。
+    lp = pg.context.new_page()
+    lp.on("pageerror", lambda e: fails.append(f"盤中即時 pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lp.add_init_script(IV_RECORDER)
+    lp.goto(base + "#overview", wait_until="networkidle")
+    lp.wait_for_timeout(1500)
+    TITLE = "() => { const e = document.getElementById('liveState'); return e ? (e.title || '') : '<缺>'; }"
 
-    # --- 1. 按鈕與狀態真的在畫面上
-    ok("有『更新』按鈕", count(pg, "#liveBtn") == 1)
-    ok("有即時來源設定鈕", count(pg, "#liveGear") == 1)
-    # live.js 的 DEFAULT_PROXY 已經填了正式的 Worker 網址（換電腦不用再設定），
-    # 所以這裡不該再是「未設定」。本機連不到那個網址，狀態要**照實講抓不到**，
-    # 不可以停在「—」假裝一切正常。
-    st0 = text(pg, "#liveState")
-    ok("狀態列有講話（不是停在破折號）", st0 not in ("—", "<缺>", ""), st0)
-    ok("預設就有即時來源，不用每台電腦自己設", "未設定" not in st0, st0)
-    ok("抓不到的時候照實講", ("即時" in st0 or "抓不到" in st0 or "暫停" in st0), st0)
+    # --- 1. 兩顆鈕真的拿掉了（連手機「⋯」清單裡代按它們的兩列）
+    ok("「更新」鈕已拿掉（#liveBtn 不在頁面上）", count(lp, "#liveBtn") == 0, count(lp, "#liveBtn"))
+    ok("「⚙ 即時來源設定」鈕與它的面板已拿掉", count(lp, "#liveGear") == 0 and count(lp, "#livePop") == 0,
+       [count(lp, "#liveGear"), count(lp, "#livePop")])
+    ok("手機「⋯」裡代按那兩顆的兩列也一起拿掉（不然點了沒反應）",
+       count(lp, "#mmLive") == 0 and count(lp, "#mmGear") == 0, [count(lp, "#mmLive"), count(lp, "#mmGear")])
+    # live.js 的 DEFAULT_PROXY 填了正式的 Worker（換電腦不用再設定）。本機連不到那個網址，
+    # 提示裡要**照實講抓不到**，不可以假裝一切正常。
+    st0, tt0 = text(lp, "#liveState"), lp.evaluate(TITLE)
+    ok("狀態那顆的提示有講話（不是空的）", len(tt0) > 6, tt0)
+    ok("預設就有即時來源，不用每台電腦自己設", "未設定" not in tt0, tt0)
+    ok("抓不到的時候提示照實講", ("即時" in tt0 or "抓不到" in tt0), tt0)
+    ok("畫面上不再塞一長串狀態文字（只留時間或 —）", len(st0) <= 5, st0)
 
     # --- 2. 候選表的價格欄真的被標記起來了（沒有標記，即時層就無從更新）
-    # 原始值要在設定來源**之前**讀，否則第一輪即時抓完才讀就比不出差異
     SEL_PX = "#candBody tr[data-code] [data-live='close']"
     SEL_CHG = "#candBody tr[data-code] [data-live='chg']"
-    before_px, before_chg = text(pg, SEL_PX), text(pg, SEL_CHG)
-    marked = count(pg, "#candBody [data-live='close'][data-lc]")
+    before_px, before_chg = text(lp, SEL_PX), text(lp, SEL_CHG)
+    marked = count(lp, "#candBody [data-live='close'][data-lc]")
     ok("候選表的收盤欄有標記可即時更新", marked > 0, f"只有 {marked} 格")
-    ok("加權指數有標記可即時更新", count(pg, "#hero [data-live='idx'][data-lc='t00']") == 1)
+    ok("加權指數有標記可即時更新", count(lp, "#hero [data-live='idx'][data-lc='t00']") == 1)
 
-    # --- 3. 設定面板：點開、填網址、存起來
-    pg.route("**/quote?*", fake_quote)
-    # ★ 2026-09-23：live.js 改成 SSE 推送之後，它啟動時會**另外開一條 EventSource 打 /stream**。
-    #   沒攔的話會真的往外連 `tw-quote.kcq01010909.workers.dev` —— 這個容器連不出去，
-    #   結果是這一段慢好幾秒、console 多一堆紅字，最後變成一個跟產品無關的假紅燈。
-    #   這一段驗的是**輪詢**那條路（SSE 那條在 `即時推送` 段落單獨驗），所以直接讓它 404。
-    pg.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json",
+    # --- 3. ★ 自動更新的計時器真的在跑，而且間隔對（盤中每分鐘、盤後每 30 分）
+    intr = lp.evaluate("() => window.Live.isIntraday()")
+    per = lp.evaluate("() => window.Live.periodMs")
+    ok("自動更新計時器真的在跑（沒有手動鈕之後，這是唯一的更新來源）",
+       lp.evaluate("() => window.Live.timerOn === true"))
+    ok("間隔對：盤中每分鐘、盤後每 30 分鐘", per == (60000 if intr else 1800000), {"盤中": intr, "間隔": per})
+    ok("瀏覽器裡真的排了一顆這個間隔的計時器（不是只有旗標）",
+       lp.evaluate("(ms) => (window.__iv || []).filter(x => !x.cleared && x.ms === ms"
+                   " && /tick\\(false\\)/.test(x.src)).length", per) == 1, per)
+
+    # --- 4. ★ 核心：計時器走一輪，即時價真的蓋掉靜態資料的收盤價
+    lp.route("**/quote?*", fake_quote)
+    lp.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json",
                                                 body='{"error":"not found"}'))
-    click(pg, "#liveGear", 250)
-    ok("設定面板真的打開了",
-       pg.evaluate("() => !document.querySelector('#livePop').hidden"))
-    pg.fill("#liveProxy", "https://fake-worker.test")
-    click(pg, "#liveTest", 600)
-    out = text(pg, "#liveTestOut")
-    ok("測試按鈕真的打出去並拿到回應", "通了" in out, out[:80])
-    click(pg, "#liveSave", 1200)
-    ok("存完面板會收起來",
-       pg.evaluate("() => document.querySelector('#livePop').hidden"))
-    saved = pg.evaluate("() => { try { return localStorage.getItem('tw.live.proxy'); } catch(e){ return null; } }")
-    ok("Worker 網址真的存進 localStorage", saved == "https://fake-worker.test", repr(saved))
-
-    # --- 4. ★ 核心：即時價真的蓋掉了靜態資料的收盤價
-    after_px, after_chg = text(pg, SEL_PX), text(pg, SEL_CHG)
-    changed("設定好來源之後收盤價真的換成即時價", before_px, after_px)
+    # 設定面板沒了，本機測試改從 localStorage 指向假的 Worker（proxy() 每一輪都重讀）
+    lp.evaluate("() => { try { localStorage.setItem('tw.live.proxy', 'https://fake-worker.test'); } catch (e) {} }")
+    fired = lp.evaluate(IV_FIRE_LIVE, per)
+    lp.wait_for_timeout(1500)
+    after_px, after_chg = text(lp, SEL_PX), text(lp, SEL_CHG)
+    ok("找得到 live.js 自己排的那顆計時器來觸發", fired == 1, fired)
+    changed("計時器走一輪，收盤價真的換成即時價", before_px, after_px)
     changed("漲跌也跟著換", before_chg, after_chg)
     ok("換上去的就是回應裡的價格", "999" in after_px, after_px)
     ok("漲跌是用昨收重算的（999/900 = +11.00%）", "11.00" in after_chg, after_chg)
     ok("漲跌顏色跟著轉紅（台股紅漲）",
-       "up" in pg.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"),
-       pg.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"))
+       "up" in lp.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"),
+       lp.evaluate(f"() => document.querySelector({SEL_CHG!r}).className"))
 
-    # --- 4b. ★ 核心：手動按「更新」真的會再抓一次（換個價格看它跟不跟）
-    fake["z"] = "888.0000"
-    fake["t"] = "12:34:56"
-    click(pg, "#liveBtn", 1500)
-    again_px = text(pg, SEL_PX)
-    changed("按『更新』真的重新抓了一次", after_px, again_px)
-    ok("按更新後顯示的是新抓到的價格", "888" in again_px, again_px)
+    # --- 4b. 再走一輪：換個價格，看它跟不跟（證明不是只抓第一次）
+    fake["z"], fake["t"] = "888.0000", "12:34:56"
+    lp.evaluate(IV_FIRE_LIVE, per)
+    lp.wait_for_timeout(1500)
+    again_px = text(lp, SEL_PX)
+    changed("計時器再走一輪，畫面真的又換了一次", after_px, again_px)
+    ok("顯示的是新抓到的價格（888）", "888" in again_px, again_px)
 
     # --- 5. 加權指數也要動，而且是整數位（不要跑出 45,862.52 那種小數）
-    idx_txt = text(pg, "#hero [data-live='idx']")
+    idx_txt = text(lp, "#hero [data-live='idx']")
     ok("加權指數也換成即時值", "888" in idx_txt, idx_txt)
     ok("指數不顯示小數", "." not in idx_txt, idx_txt)
 
-    # --- 6. 狀態列要講得出「是幾點的報價」
-    st = text(pg, "#liveState")
-    ok("狀態列顯示報價時間", "12:34" in st, st)
+    # --- 6. ★ 狀態那顆：畫面上只剩時間，狀態文字搬進 title（一個字都沒少）
+    st, tt = text(lp, "#liveState"), lp.evaluate(TITLE)
+    ok("狀態那顆畫面上只顯示報價時間（12:34）", st == "12:34", st)
+    ok("「即時／收盤」搬進提示", ("即時 12:34" in tt) if intr else ("收盤 12:34" in tt), tt)
+    ok("「每分鐘（輪詢）／每 30 分（輪詢）」搬進提示", ("每分鐘（輪詢）" if intr else "每 30 分（輪詢）") in tt, tt)
+    ok("走輪詢還是推送也寫在提示裡", "輪詢" in tt, tt)
+    ok("盤中／收盤的顏色分得出來（只剩時間之後靠顏色一眼看）",
+       ("live" if intr else "ok") in lp.evaluate("() => document.getElementById('liveState').className"),
+       lp.evaluate("() => document.getElementById('liveState').className"))
 
-    # --- 7. 自動更新關掉之後，計時器要真的停掉
-    click(pg, "#liveGear", 250)
-    pg.uncheck("#liveAuto")
-    click(pg, "#liveSave", 800)
-    ok("關掉自動更新後狀態列講出來", "自動已關" in text(pg, "#liveState"), text(pg, "#liveState"))
-    ok("關掉後自動更新的計時器真的停了",
-       pg.evaluate("() => window.Live && window.Live.timerOn === false"))
+    # --- 7. ★ 連續抓不到 **不准** 把自動更新停掉（以前會停、等人按「更新」—— 那顆鈕沒了）
+    fake["fail"] = True
+    for _ in range(3):
+        lp.evaluate(IV_FIRE_LIVE, per)
+        lp.wait_for_timeout(700)
+    slow = lp.evaluate("() => ({ on: window.Live.timerOn, ms: window.Live.periodMs })")
+    tt_bad = lp.evaluate(TITLE)
+    ok("★ 連續失敗三次後自動更新**還在跑**（放慢，不是停掉）", slow["on"] is True, slow)
+    ok("放慢到每 5 分鐘重試一次（不洗版、也不停）", slow["ms"] == 300000, slow)
+    ok("提示裡講得出「連續抓不到、改成每 5 分鐘重試」", "5 分鐘" in tt_bad, tt_bad[:120])
+    fake["fail"], fake["z"], fake["t"] = False, "777.0000", "12:40:01"
+    lp.evaluate(IV_FIRE_LIVE, 300000)
+    lp.wait_for_timeout(1500)
+    ok("通了之後畫面真的換成新價格（777）", "777" in text(lp, SEL_PX), text(lp, SEL_PX))
+    ok("通了之後間隔回到正常（盤中每分鐘／盤後每 30 分）",
+       lp.evaluate("() => window.Live.periodMs") == per, lp.evaluate("() => window.Live.periodMs"))
 
-    # --- 8. 收拾：把設定清掉，不要影響後面的測試
-    pg.unroute("**/quote?*")
-    pg.unroute("**/stream?*")
-    pg.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.live.on'); } catch(e){} }")
+    # --- 8. 「有新資料」那條路：以前是按「更新」載入，現在
+    #        盤後 → 自己重新載入；盤中 → 狀態那顆轉警示色，點它才載入（不打斷看盤）。
+    #        兩條都驗「頁面真的重新載入了」（window 上的記號消失），不是驗 class。
+    lp.route("**/data/meta.json*", lambda r: r.fulfill(
+        status=200, content_type="application/json; charset=utf-8", headers={"cache-control": "no-store"},
+        body=_json.dumps({**(_json.loads(r.fetch().text())), "generated_at": "2099-01-01T00:00:00+00:00"})))
+    lp.evaluate("() => { window.__mark = 1; }")
+    lp.evaluate(IV_FIRE_LIVE, per)
+    lp.wait_for_timeout(2500)
+    if intr:
+        cls = lp.evaluate("() => document.getElementById('liveState').className")
+        ok("盤中有新資料：狀態那顆轉成可點的警示（不自動打斷）", "fresh" in cls and "bad" in cls, cls)
+        ok("盤中有新資料：提示寫「點一下重新載入」", "重新載入" in lp.evaluate(TITLE), lp.evaluate(TITLE))
+        lp.click("#liveState"); lp.wait_for_timeout(2500)
+    ok("有新資料時頁面真的重新載入了（盤後自己載、盤中點狀態那顆載）",
+       lp.evaluate("() => window.__mark === undefined"), lp.evaluate("() => window.__mark"))
+    lp.unroute("**/data/meta.json*")
+
+    # --- 9. 自動更新關掉（localStorage 開關；面板沒了，這條留給主控台與驗收用）→ 計時器真的停了
+    lp.evaluate("() => { try { localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+    lp.reload(wait_until="networkidle"); lp.wait_for_timeout(1500)
+    ok("關掉自動更新後計時器真的停了", lp.evaluate("() => window.Live && window.Live.timerOn === false"))
+    ok("關掉之後提示講得出來（自動已關）", "自動已關" in lp.evaluate(TITLE), lp.evaluate(TITLE))
+
+    # --- 10. 收拾：把設定清掉，不要影響後面的測試
+    lp.evaluate("() => { try { localStorage.removeItem('tw.live.proxy'); localStorage.removeItem('tw.live.on'); } catch(e){} }")
+    lp.close()
 
 
 # ===================================================================== 即時推送（SSE）
@@ -8024,6 +8169,8 @@ def t_live_sse(pg, base):
     #      所以先進站、明確寫進 localStorage、再真的 reload 一次。
     pg.goto(base + "#overview", wait_until="load")
     pg.evaluate("() => { try { localStorage.setItem('tw.sse', '1'); } catch (e) {} }")
+    # ★ 2026-09-24：「更新」鈕拿掉了，要讓輪詢走一輪改成觸發 live.js 自己排的計時器（IV_RECORDER 記下來的那顆）
+    pg.add_init_script(IV_RECORDER)
     pg.reload(wait_until="load")
     pg.wait_for_timeout(2500)
     px = text(pg, SEL_PX)
@@ -8031,13 +8178,18 @@ def t_live_sse(pg, base):
     ok("漲跌也算出來（999/900 = +11.00%）", "11.00" in text(pg, SEL_CHG), text(pg, SEL_CHG))
     ok("模式是輪詢", pg.evaluate("() => window.Live.mode") == "poll",
        pg.evaluate("() => window.Live.mode"))
-    ok("狀態列寫得出現在走輪詢", "輪詢" in text(pg, "#liveState"), text(pg, "#liveState"))
+    # ★ 2026-09-24：狀態文字搬進 title（畫面上只留時間），所以讀 title
+    _lt = pg.evaluate("() => (document.getElementById('liveState') || {}).title || ''")
+    ok("狀態那顆的提示寫得出現在走輪詢", "輪詢" in _lt, _lt)
     wait_until(pg, "window.Live.sseGaveUp === true", 12000)     # 1+2+4+8 秒退避跑完
     ok("連不上就放棄 SSE，不會一直重試", pg.evaluate("() => window.Live.sseGaveUp") is True)
     box["z"], box["t"] = "888.0000", "12:34:56"
-    click(pg, "#liveBtn", 1500)
-    changed("退回輪詢後按『更新』畫面真的再變一次", px, text(pg, SEL_PX))
-    ok("按更新後顯示新抓到的價格（888）", "888" in text(pg, SEL_PX), text(pg, SEL_PX))
+    # 以前這裡按「更新」；鈕拿掉之後，退回輪詢的更新只剩計時器這條路 —— 就驗它
+    _fired = pg.evaluate(IV_FIRE_LIVE, pg.evaluate("() => window.Live.periodMs"))
+    pg.wait_for_timeout(1500)
+    ok("退回輪詢後找得到 live.js 排的輪詢計時器", _fired == 1, _fired)
+    changed("退回輪詢後計時器走一輪，畫面真的再變一次", px, text(pg, SEL_PX))
+    ok("計時器走一輪後顯示新抓到的價格（888）", "888" in text(pg, SEL_PX), text(pg, SEL_PX))
 
     # ---- ② SSE 正常：推一筆 → 那一格真的變
     # Playwright 的 `route.fulfill` 只能**一次送完整包 body 然後關連線**，
@@ -8072,7 +8224,11 @@ def t_live_sse(pg, base):
             if (s) window.__sseLog.st.push((s.textContent || '').trim());
           } catch (err) { /* 錄影機自己不准把測試弄爆 */ }
         }, 20); }""", SEL_PX)
-    click(pg, "#liveBtn", 500)          # 手動更新會把 sseGaveUp 歸零並重開連線
+    # ★ 2026-09-24：以前是按「更新」把 sseGaveUp 歸零並重開連線；鈕拿掉之後，
+    #   這件事改在「分頁切回前景」時做（使用者回來看的那一刻）。headless 的 document.hidden 是 false，
+    #   派一個 visibilitychange 就是走產品真的那條路（live.js start() 裡的監聽器）。
+    pg.evaluate("() => document.dispatchEvent(new Event('visibilitychange'))")
+    pg.wait_for_timeout(500)
     # 等到第二條連線也成立（＝斷線之後真的自己重連了），最多等 20 秒
     import time as _t
     _t0 = _t.time()
@@ -20784,9 +20940,13 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 點「⋯」清單真的打開了", m.eval_on_selector("#morePop", "e => !e.hidden"))
     rows = m.evaluate("""() => [...document.querySelectorAll('#morePop button')]
         .map(e => ({ t: e.textContent.replace(/\s+/g,' ').trim(), h: Math.round(e.getBoundingClientRect().height) }))""")
-    ok("[390px] 清單裡四件事都在，名字跟電腦版一樣", len(rows) == 4 and
-       any("今日事件" in r["t"] for r in rows) and any("主題" in r["t"] for r in rows) and
-       any("更新" in r["t"] for r in rows) and any("即時來源設定" in r["t"] for r in rows), rows)
+    # ★ 2026-09-24 改口徑（Andy：「按鈕更新、設定 版都移除」）：桌機的「更新」「⚙」拿掉了，
+    #   清單裡去按它們的兩列一定要一起拿掉（留著就是點了沒反應）。剩下的兩件事照舊要在、名字照舊跟電腦版一樣。
+    ok("[390px] 清單裡剩「今日事件」「主題」兩件事，名字跟電腦版一樣", len(rows) == 2 and
+       any("今日事件" in r["t"] for r in rows) and any("主題" in r["t"] for r in rows), rows)
+    ok("[390px] 「更新（即時報價）」「即時來源設定」兩列跟著桌機的鈕一起拿掉了",
+       not any("更新" in r["t"] or "即時來源設定" in r["t"] for r in rows)
+       and not m.evaluate("() => !!(document.getElementById('mmLive') || document.getElementById('mmGear'))"), rows)
     ok("[390px] 清單每一列的觸控高度都 ≥ 44px", all(r["h"] >= 44 for r in rows), rows)
 
     # 今日事件：點下去抽屜要真的滑出來（改版前這件事在手機上做不到 —— 入口被裁掉，
@@ -20809,14 +20969,29 @@ def t_mobile_v2(b, base, code):
     m.click("#moreBtn"); m.wait_for_timeout(250); m.click("#mmTheme"); m.wait_for_timeout(700)
     ok("[390px] 再點一次真的換回來", m.evaluate("() => document.documentElement.dataset.theme") == th0)
 
-    # ---------- G2：底部分頁列 8 顆全部看得到、而且按得動 ----------
+    # ---------- G2：底部分頁列全部看得到、而且按得動 ----------
+    # ★ 2026-09-24：「題材」併進「熱力圖」，八顆變七顆 ＝ 上排四顆、下排三顆。
+    #   Andy 截圖上的要求是**不准留一個空位**：下排三顆要把整列排滿（右緣貼齊上排的右緣）。
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
     tabs = m.evaluate("""() => [...document.querySelectorAll('#tabs .tab')].map(e => {
         const r = e.getBoundingClientRect();
-        return { v: e.dataset.view, right: Math.round(r.right), h: Math.round(r.height) }; })""")
-    ok("[390px] 八個分頁一個都沒少", len(tabs) == 8, [t["v"] for t in tabs])
-    ok("[390px] 八個分頁**全部**在畫面裡（改版前季節性與交付清單整個在畫面外）",
+        return { v: e.dataset.view, left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top),
+                 w: Math.round(r.width), h: Math.round(r.height) }; })""")
+    ok("[390px] 七個分頁一個都沒少（題材併進熱力圖，不是消失）", len(tabs) == 7 and "themes" not in [t["v"] for t in tabs]
+       and "heatmap" in [t["v"] for t in tabs], [t["v"] for t in tabs])
+    ok("[390px] 七個分頁**全部**在畫面裡（改版前季節性與交付清單整個在畫面外）",
        all(t["right"] <= 391 for t in tabs), [t for t in tabs if t["right"] > 391] or "都在")
+    _rows = {}
+    for t in tabs:
+        _rows.setdefault(t["top"], []).append(t)
+    _rv = [sorted(v, key=lambda t: t["left"]) for _, v in sorted(_rows.items())]
+    ok("[390px] 排成兩列：上排四顆、下排三顆", [len(r) for r in _rv] == [4, 3], [len(r) for r in _rv])
+    if [len(r) for r in _rv] == [4, 3]:
+        ok("★ [390px] 下排沒有空位：三顆把整列排滿（右緣貼齊上排、左緣貼齊上排）",
+           abs(_rv[1][-1]["right"] - _rv[0][-1]["right"]) <= 2 and abs(_rv[1][0]["left"] - _rv[0][0]["left"]) <= 2,
+           {"上排": [(t["left"], t["right"]) for t in _rv[0]], "下排": [(t["left"], t["right"]) for t in _rv[1]]})
+        ok("[390px] 下排三顆一樣寬（不是一顆特別長去填空）",
+           max(t["w"] for t in _rv[1]) - min(t["w"] for t in _rv[1]) <= 2, [t["w"] for t in _rv[1]])
     ok("[390px] 每個分頁的觸控高度 ≥ 44px（改版前只有 32px）",
        all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
     # 真的按最後那兩個（改版前按不到）
@@ -20861,7 +21036,8 @@ def t_mobile_v2(b, base, code):
           const s = eff(e); return s > 0 && s < (e.ownerSVGElement ? 8 : 12); })
           .map(e => `${e.tagName}@${eff(e).toFixed(1)}:${e.textContent.trim().slice(0,12)}`); }"""
     for h, name in (("overview", "總覽"), ("flow", "資金流向"), ("industry", "產業地圖"),
-                    ("themes", "題材"), ("season", "季節性"), ("delivery", "交付清單"),
+                    ("heatmap", "熱力圖"), ("heatmap/theme", "熱力圖（題材段）"),
+                    ("season", "季節性"), ("delivery", "交付清單"),
                     ("market", "市場明細"), (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(2200)
         r = m.evaluate(f"""() => ({{ tiny: ({TINY})(),
@@ -20948,10 +21124,12 @@ def t_desktop_untouched(pg, base, code):
                r["draw"] in ("none", "missing"), r)
             ok(f"[{w}px {h}] 桌機不掛「左右滑」提示與淡出（桌機有捲軸與滾輪，不需要）",
                r["tips"] == 0 and r["hsc"] == 0, r)
-            ok(f"[{w}px {h}] 桌機原本那四顆頂欄鈕全部還在",
+            # ★ 2026-09-24：「更新」「⚙」兩顆是 Andy 親口要拿掉的（不是手機規則外洩），
+            #   剩下的主題、事件、即時時間三樣一個都不准少；分頁因為題材併進熱力圖，八個變七個。
+            ok(f"[{w}px {h}] 桌機頂欄的主題、事件、即時時間都還在",
                r["theme"] != "none" and r["ev"] != "none" and r["live"] != "none", r)
-            ok(f"[{w}px {h}] 分頁還是八個、沒有橫向捲軸",
-               r["tabs"] == 8 and r["docW"] <= r["winW"] + 1, r)
+            ok(f"[{w}px {h}] 分頁是七個（題材併進熱力圖）、沒有橫向捲軸",
+               r["tabs"] == 7 and r["docW"] <= r["winW"] + 1, r)
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3200)
@@ -21000,7 +21178,8 @@ def t_mobile_oneview(b, base, code):
         ("flow", "資金流向 輪動時鐘", "#rotClock", "#flowRotCard .rotquads", None),
         ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
-        ("themes", "題材 資金熱力", "#themeMap", "#themeNote", None),
+        # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
+        ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeNote", None),
         ("season", "季節性 月份熱力", "#seasonHeat", "#seasonNote", None),
     ]
     for route, name, cs, ks, step in CASES:
@@ -21119,6 +21298,147 @@ def t_mobile_oneview(b, base, code):
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
         h = m.evaluate("() => document.documentElement.scrollHeight")
         ok(f"[390px] {route} 的整頁高度 {h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
+
+    # ================================================================
+    # ★ 2026-09-24（Andy：「另外這個手機版我剛剛看體驗那邊有跑掉」—— 只有這一句、沒有截圖）
+    #   底下五條都是**掃出來的具體壞法**，每一條驗的是「那個壞法本身」，
+    #   不是「元素存在」。四條是「程式註解說會做、實際被蓋掉或根本沒接上」的那一種 ——
+    #   它們共同的形態是：讀程式碼看起來是對的，量畫面才知道沒生效。
+    # ================================================================
+
+    # ① 只有一段時不准留一顆孤單的晶片。
+    #    壞法：`miaPager` 寫了 `bar.hidden = subs.length < 2`（註解：「一顆孤單的晶片是雜訊」），
+    #    但 `.mpager{display:flex}` 的權重 (0,1,0) 蓋過瀏覽器內建的 `[hidden]{display:none}` (0,0,0)，
+    #    那一行**完全沒有生效**。實測第③④步各留 58px＋10px margin ＝ 68px。
+    #    ⚠ 所以這裡驗的是 **computed display 與實際高度**，不是 `hidden` 屬性 ——
+    #      驗屬性的話舊版也會綠，那就是假綠。
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
+    PAGER = """() => { const b = document.querySelector('main .view.on > .mpager');
+        if (!b) return { none: true };
+        const r = b.getBoundingClientRect();
+        return { n: b.children.length, attr: b.hidden, disp: getComputedStyle(b).display,
+                 h: Math.round(r.height),
+                 step: [...document.querySelectorAll('.mspine>button')].findIndex(x => x.classList.contains('on')) }; }"""
+    for want_step in (0, 1, 2, 3):
+        st = m.evaluate(PAGER)
+        if st.get("none"):
+            ok(f"[390px 分段] 第{want_step + 1}步找得到分段列的狀態", False, st)
+        elif st["n"] < 2:
+            ok(f"[390px 分段] 第{st['step'] + 1}步只有 1 段 → 分段列整條收掉（不留孤單的晶片）",
+               st["disp"] == "none" and st["h"] == 0, st)
+        else:
+            ok(f"[390px 分段] 第{st['step'] + 1}步有 {st['n']} 段 → 分段列要看得見",
+               st["disp"] != "none" and st["h"] > 30, st)
+        if want_step < 3:
+            m.click(".mnext"); m.wait_for_timeout(1300)
+
+    # ② 換段之後不准留「高度 0 卻還占著外距」的空殼容器。
+    #    壞法：總覽的卡片包在 `.grid.g21`／`.grid.g12.eqpair`／`.grid.g2` 這幾層排版容器裡，
+    #    分段導覽藏的是**卡片**，容器沒被藏 → 每一步留下 2～3 個空殼，各帶 margin-top:16px。
+    #    實測第④步：分段列底 202 → 內容頂 266，中間 64px 沒有人知道那是什麼的空白。
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
+    SHELL = """() => { const v = document.querySelector('main .view.on'); if (!v) return null;
+        const bad = [];
+        [...v.children].forEach(el => {
+          const cs = getComputedStyle(el);
+          if (cs.display === 'none') return;
+          if (!el.children.length) return;                 // 沒有元素子項的不算排版容器
+          const r = el.getBoundingClientRect();
+          if (r.height >= 1) return;
+          const mt = parseFloat(cs.marginTop) || 0, mb = parseFloat(cs.marginBottom) || 0;
+          if (mt + mb <= 0) return;                        // 高度 0 又沒有外距 ＝ 不占版面，無害
+          bad.push({ sel: (el.id || el.className || el.tagName).toString().slice(0, 30),
+                     mt: mt, mb: mb, kids: el.children.length }); });
+        return { bad, waste: bad.reduce((s, x) => s + x.mt + x.mb, 0),
+                 step: [...document.querySelectorAll('.mspine>button')].findIndex(x => x.classList.contains('on')) }; }"""
+    for _ in range(4):
+        sh = m.evaluate(SHELL)
+        ok(f"[390px 分段] 第{sh['step'] + 1}步沒有殘留的空殼容器（修之前 2～3 個、白佔 32～48px）",
+           sh and not sh["bad"], sh)
+        m.click(".mnext"); m.wait_for_timeout(1300)
+
+    # ③ 個股頁釘住的價格列：藏了 442px 的內容，畫面上就得看得出「可以左右滑」。
+    #    壞法：`index.html` 的註解寫「本益比／同業分位／營收 YoY 沒有不見，往右滑就在
+    #    （`.hsc` 會補淡出）」，但 `#skPx` **根本不在 `SWIPE_SEL` 裡**，淡出一次都沒出現過。
+    #    實測 scrollWidth 802 / clientWidth 360，第 4 顆「本益比 28.5」起跑點 359.4 ——
+    #    被卡片右緣 376 切一半，而且沒有任何記號說得出右邊還有東西。
+    #    ⚠⚠ 修法**不可以**是「把它加進 SWIPE_SEL」：`.hsc` 是 CSS mask，會連背景一起淡掉，
+    #      而這一列是釘住的 —— 我親手驗過：捲到工具列滑進它底下（重疊 25.6px）時，
+    #      右緣真的看得到「5 秒」那顆晶片透出來（上一批的註解早就寫了，我差點又踩一次）。
+    #      所以這裡同時驗兩件事：① 右緣有看得出來的淡出 ② 那是**蓋片**不是 mask。
+    m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3200)
+    SK = """() => { const e = document.getElementById('skPx'); if (!e) return null;
+        const cs = getComputedStyle(e), af = getComputedStyle(e, '::after');
+        const kids = [...e.children];
+        const last = kids.length ? kids[kids.length - 1].getBoundingClientRect() : null;
+        return { sw: e.scrollWidth, cw: e.clientWidth, sl: Math.round(e.scrollLeft),
+                 mask: (cs.webkitMaskImage || cs.maskImage || 'none') !== 'none',
+                 hsc: e.classList.contains('hsc'), end: e.classList.contains('sk-end'),
+                 pos: cs.position,
+                 cover: (af.backgroundImage || 'none').indexOf('gradient') >= 0,
+                 coverW: Math.round(parseFloat(af.width) || 0),
+                 tip: !!(e.nextElementSibling && e.nextElementSibling.classList
+                         && e.nextElementSibling.classList.contains('swipetip')),
+                 lastT: last ? Math.round(last.left) : null, lastR: last ? Math.round(last.right) : null,
+                 vw: innerWidth }; }"""
+    k0 = m.evaluate(SK)
+    ok("[390px 個股] 價格列藏了內容時，右緣真的有淡出（看得出可以左右滑）",
+       k0 and k0["sw"] > k0["cw"] + 4 and k0["cover"] and k0["coverW"] >= 20 and not k0["end"], k0)
+    ok("[390px 個股] 而且那塊淡出是**不透明的蓋片**、不是 mask"
+       "（mask 會讓釘住的列半透明 —— 實測底下工具列的「5 秒」會透出來）",
+       k0 and not k0["mask"] and not k0["hsc"], k0)
+    ok("[390px 個股] 但**不准**在它後面插一行「左右滑看更多」（釘住的東西越高，留給圖的越少）",
+       k0 and not k0["tip"], k0)
+    # 真的把它滑到底，最後一顆要完整進得了畫面
+    m.evaluate("() => { const e = document.getElementById('skPx'); e.scrollLeft = e.scrollWidth; e.dispatchEvent(new Event('scroll')); }")
+    m.wait_for_timeout(600)
+    k1 = m.evaluate(SK)
+    changed("[390px 個股] 真的滑得動（scrollLeft 變了，不是裝飾）", k0["sl"], k1["sl"], str(k1))
+    ok("[390px 個股] 滑到底之後最後一顆（分 K 完整）整顆在畫面內",
+       k1 and k1["lastR"] is not None and k1["lastR"] <= k1["vw"] and k1["lastT"] >= 0, k1)
+    ok("[390px 個股] 滑到底之後蓋片收掉了（「已經到底了還在淡」是假提示）", k1 and k1["end"], k1)
+    ok("[390px 個股] 滑動之後它還是釘住的（蓋片沒有把 sticky 弄掉）", k1 and k1["pos"] == "sticky", k1)
+
+    # ④ K 線圖例：一個數字不准被折成兩半。
+    #    實測（修之前）：「MA60 2,400.83」那個 span 的邊界框是 244.3×33.8 —— 橫跨兩行，
+    #    也就是「MA60」在第一行尾、「2,400.83」被推到第二行開頭。
+    LG = """() => { const l = document.getElementById('legendOv'); if (!l) return null;
+        const fs = parseFloat(getComputedStyle(l).fontSize) || 12.5;
+        const lh = parseFloat(getComputedStyle(l).lineHeight) || fs * 1.5;
+        const split = [...l.querySelectorAll('span')].map(s => {
+            const r = s.getBoundingClientRect();
+            return { t: (s.textContent || '').trim().slice(0, 18), h: Math.round(r.height), w: Math.round(r.width) }; })
+          .filter(x => x.h > lh * 1.6);
+        const r = l.getBoundingClientRect(), c = document.getElementById('lwc').getBoundingClientRect();
+        return { split, lh: Math.round(lh), h: Math.round(r.height),
+                 pct: Math.round(r.height / c.height * 100) }; }"""
+    lg = m.evaluate(LG)
+    ok("[390px 個股] K 線圖例沒有任何一個數字被折成兩行（修之前「MA60 2,400.83」就是）",
+       lg and not lg["split"], lg)
+    notes.append(f"[390px 個股] K 線圖例目前佔圖高 {lg['h'] if lg else '?'}px"
+                 f"（{lg['pct'] if lg else '?'}%）—— 已知、未收斂，見 docs/mobile_ia.md")
+
+    # ⑤ 季節性月份熱力圖：格子小到放不下數字時，就不要硬畫上去。
+    #    實測（修之前）：容器 324×480、grid 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
+    #    12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73`（約 30px 寬）——
+    #    912 個標籤橫跨 3 欄、縱跨 2 列疊在一起，結果不是「字小」是一團糊。
+    m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3600)
+    HM = """() => { const e = document.getElementById('seasonHeat');
+        const i = window.echarts && echarts.getInstanceByDom(e); if (!i) return null;
+        const o = i.getOption(), g = (o.grid || [])[0] || {}, r = e.getBoundingClientRect();
+        const rows = ((o.yAxis || [])[0] || {}).data || [];
+        const pw = r.width - (+g.left || 0) - (+g.right || 0);
+        const ph = r.height - (+g.top || 0) - (+g.bottom || 0);
+        const lab = (o.series[0].label && o.series[0].label[0]) || o.series[0].label || {};
+        return { cellW: +(pw / 12).toFixed(2), cellH: +(ph / Math.max(1, rows.length)).toFixed(2),
+                 rows: rows.length, show: !!lab.show, fs: lab.fontSize,
+                 note: (document.getElementById('seasonNote') || {}).textContent || '' }; }"""
+    hm = m.evaluate(HM)
+    ok("[390px 季節性] 格子放不下數字（量到每格 10×6px）就不畫在格子裡",
+       hm and (hm["cellW"] >= 30 and hm["cellH"] >= 13) == hm["show"], hm)
+    ok("[390px 季節性] 而且畫面上要講得出數字去哪裡了（收起來，不是刪掉）",
+       hm and (hm["show"] or "點一格" in hm["note"]), {k: hm[k] for k in ("show",)} if hm else hm)
+
     m.close()
 
 
@@ -21761,8 +22081,9 @@ def t_ui_polish(pg, b, base, code):
                      next: getComputedStyle(nx).display, mask: getComputedStyle(s).maskImage,
                      docW: document.documentElement.scrollWidth, winW: innerWidth,
                      tabs: document.querySelectorAll('#tabs .tab').length }; }""")
-        ok(f"[#4 {w}px] 整頁沒有橫向捲軸、八顆分頁都在 DOM 裡",
-           st["docW"] <= st["winW"] + 1 and st["tabs"] == 8, st)
+        # ★ 2026-09-24：「題材」併進「熱力圖」，八顆變七顆
+        ok(f"[#4 {w}px] 整頁沒有橫向捲軸、七顆分頁都在 DOM 裡",
+           st["docW"] <= st["winW"] + 1 and st["tabs"] == 7, st)
         if st["over"] > 2:
             # 真的放不下 → 一定要看得到提示，而且那個提示按下去要真的有用
             ok(f"[#4 {w}px] 分頁列放不下（溢出 {st['over']}px）時，右箭頭與右緣淡出真的出現了",
@@ -21921,8 +22242,8 @@ def t_ui_polish(pg, b, base, code):
         ok(f"[手機零影響 #{rt}] 新加的 .tabswrap 在手機是 display:contents（整層從版面消失）",
            m["wrap"] == "contents", m)
         ok(f"[手機零影響 #{rt}] 桌機的左右箭頭在手機一顆都不出現", m["prev"] == "none" and m["next"] == "none", m)
-        ok(f"[手機零影響 #{rt}] 分頁列還是固定在底部、兩列、八顆全部看得見",
-           m["pos"] == "fixed" and m["n"] == 8 and m["rows"] == 2 and m["allVisible"], m)
+        ok(f"[手機零影響 #{rt}] 分頁列還是固定在底部、兩列、七顆（題材併進熱力圖）全部看得見",
+           m["pos"] == "fixed" and m["n"] == 7 and m["rows"] == 2 and m["allVisible"], m)
         ok(f"[手機零影響 #{rt}] 「⋯ 更多工具」還在，而且沒有橫向捲軸",
            m["more"] != "none" and m["docW"] <= m["winW"] + 1, m)
     mpg.close(); mb.close()

@@ -521,3 +521,275 @@ Apple 退的不是 WebView 本身，退的是**沒有加值的殼**。
 | **11** | **資料每天變，商店截圖很快就跟畫面對不上** | 高 | 低 | 〔判斷〕截圖挑**版面**不挑**數字**；不要在截圖上標具體股價 |
 | **12** | **PWA 的 Service Worker 快取住舊版，使用者看到舊畫面** | **已處理（低）** | 高（如果發生） | 導覽一律網路優先 ＋ 每次部署換一個新的快取名稱（做法與驗證在第 ⑨ 節） |
 | **13** | 即時報價 Worker 的可用度（現況「今天壞了五次」） | 高 | 中（免費時）／高（收費後） | B7；上架前至少把錯誤處理與「上次更新時間」做明確 |
+
+---
+
+# ⑨ PWA 第一步：已經做掉的東西
+
+**這一批只新增檔案，一支既有檔案都沒有動**（`site/index.html` 一行未改，那支在別人手上）。
+
+## 9-1 新增了什麼
+
+| 檔案 | 內容 |
+|---|---|
+| `site/manifest.webmanifest` | ⚠ **這支是「改」不是「新增」**（它本來就存在）。補上 `id`／`lang`／`display_override`／`categories`／三個捷徑，圖示補齊 192／512／maskable，底色對齊網站真正的 `#070b16`，`orientation` 由 `portrait` 改成 `any` |
+| `site/sw.js` | Service Worker，162 行，整份策略寫在檔頭。**核心規則：`data/**` 與任何 `.json` 一律不進快取** |
+| `site/icons/icon.svg` | 圖示母檔（圓角底板）。手寫 SVG，沒有用任何設計工具 |
+| `site/icons/icon-maskable.svg` | 圖示母檔（滿版底板，給 Android maskable 與 iOS 用） |
+| `site/icons/icon-192.png`／`icon-512.png` | `purpose: any`，圓角外透明 |
+| `site/icons/icon-maskable-192.png`／`icon-maskable-512.png` | `purpose: maskable`，不透明 |
+| `site/icons/apple-touch-icon-180.png` | iOS 主畫面用，**不透明**（iOS 會把透明填成黑） |
+
+## 9-2 Service Worker 的四條規則（照順序判斷）
+
+| 順序 | 什麼樣的請求 | 怎麼處理 | 為什麼 |
+|---|---|---|---|
+| 0 | 非 GET、或**跨網域** | **完全不介入**（不呼叫 `respondWith`） | 即時報價走 Cloudflare Worker 代理與 `mis.twse`，每分鐘就過期，而且快取 opaque 回應只會浪費配額 |
+| ① | **`data/**` 與任何 `.json`** | **★ 完全不介入，一個位元組都不存** | **這是整支 SW 最重要的一條。**那是每天盤後重算的資料，快取住等於他看到昨天的數字 |
+| ② | **導覽／`index.html`** | **網路優先**，斷線才退回快取 | 兩個理由：① 他永遠看到最新的畫面 ② **這是「版本能不能換掉」的關鍵** —— HTML 是新的，裡面的版號才是新的，SW 才換得掉（見 9-3） |
+| ③ | **`vendor/**`** | 快取優先，放在**不跟版號跑**的 `tw-vendor-v1` | ECharts ＋ Lightweight Charts 約 1.2MB，而且 `stamp_assets.py` 刻意不給 vendor 加版本戳。跟著版號換名字＝每天叫他重抓 1.2MB。**換函式庫時要把 `v1` 加一** |
+| ④ | 其餘 app shell（自家 JS／CSS／圖示） | 快取優先，放在 `tw-shell-<版號>` | 這些的網址都被 `stamp_assets.py` 加過 `?v=<版號>`，**內容一變網址就變**，所以快取優先拿不到過期的東西 |
+
+**安裝時只預先抓 6 個小檔**（`./`、`index.html`、manifest、三個圖示，合計約 45KB）。
+**刻意不預抓那 40 支自家 JS（2.7MB）與 vendor（1.9MB）** —— 安裝時就灌 4MB 在手機網路上是不禮貌的，
+那些檔案第一次用到時自然會被快取起來。
+
+## 9-3 版本化：新版怎麼「真的」換掉舊的
+
+```
+部署 → stamp_assets.py 換掉 <meta name="tw:build"> 的值
+     → 使用者重新整理，拿到新的 index.html（因為導覽是網路優先）
+     → 頁面讀 meta，註冊 sw.js?v=<新版號>
+     → 網址變了 ＝ 一支新的 SW → install（skipWaiting）→ activate
+     → activate 把所有 tw- 開頭、不在白名單裡的快取全部刪掉
+     → 舊的 tw-shell-<舊版號> 消失，clients.claim() 接手
+```
+
+**為什麼不用「在 sw.js 裡寫死一個常數」**：寫死的常數要有人記得改，
+而「有人記得改」在這個專案裡已經被證明不成立。
+`?v=` 讓它**跟著現有的版號機制自動跑**，不必多做任何事。
+
+⚠ **這套會成立的唯一前提是「導覽網路優先」。**
+如果 `index.html` 是從快取拿的，版號永遠是舊的，就會**鎖死在舊版再也更新不了** ——
+這是 PWA 最經典的一個坑，所以我把它寫在 `sw.js` 的檔頭當警告。
+
+## 9-4 我實際量到的驗證結果
+
+**工具**：Playwright ＋ 真的 Chromium，真的註冊一次 Service Worker，
+**真的去翻 Cache Storage 的內容**（不是看有沒有 render）。
+**環境**：本機 HTTP 伺服器，掛的是 `site/` 底下**真實的檔案**（symlink），
+載的是**真正的 `index.html`**（暫存區的複本，加上第 ⑩ 節那段註冊片段），
+所以整個 app 真的被啟動、41 支自家 JS 真的被載入。**跑了三次，最後兩次結果一致。**
+
+```
+✅ ① Service Worker 註冊成功：scope=http://127.0.0.1:8791/ script=sw.js?v=A1111111
+✅ ① 註冊網址帶到版號 A1111111
+✅ ① SW 已接手這個頁面（controller 存在）
+✅ ② index.html 已在快取中
+✅ ② app.js 已在快取中
+✅ ② manifest.webmanifest 已在快取中
+✅ ② 圖示已在快取中
+✅ ② vendor/echarts.min.js 在 tw-vendor-v1 快取中（不跟版號跑）
+✅ ② vendor 沒有被重複存進 shell 快取
+   shell 快取筆數 = 43 ／ vendor 快取筆數 = 2
+       └ 43 筆的內容：index.html ＋ `/`（導覽）＋ app.js／industry.js／chart.js／diagrams.js／
+         market3.js／three3d.js／themes3d.js／live.js／livek.js／tasks.js ＋ **27 支 dg/*.js**
+         ＋ manifest ＋ 3 個圖示。**一筆 data 都沒有。**
+       └ vendor 2 筆：echarts.min.js、lightweight-charts.js（放在不跟版號跑的快取裡）
+✅ ③ ★ data/** 與 .json 完全沒有被快取（違規 0 筆）
+✅ ④ 新版快取 tw-shell-B2222222 已建立
+✅ ④ ★ 舊版快取 tw-shell-A1111111 已被刪掉
+✅ ④ vendor 快取沒有被換版誤殺（不必重抓 1.2MB）
+✅ ④ 接手的是新版 SW：sw.js?v=B2222222
+✅ ④ 換版之後 data/** 仍然沒被快取（違規 0 筆）
+✅ ⑤ 離線仍打得開，標題＝「台股資金輪動儀表板」
+
+通過 16 項，失敗 0 項
+```
+
+**③ 這一條的做法要講清楚**：我不是「檢查有沒有 `data/xxx.json` 這一筆」，
+而是**把每一個快取裡的每一個網址全部撈出來**，
+凡是路徑含 `/data/` 或副檔名是 `.json` 的就算違規 —— **結果是 0**。
+測試前我還刻意讓頁面去抓 `data/meta.json`、`data/candidates.json`、`data/hist/index.json`，
+確定「真的有發生過 data 請求」，不是因為沒請求所以沒快取。
+
+**其他驗證**
+- `python3 -c "json.load(...)"` → `manifest.webmanifest` 是合法 JSON，16 個鍵。
+- `node --check site/sw.js` → 通過。
+- 圖示：程式量過 **maskable 的安全區**（Android 規定內容要落在中央 80% 圓內）——
+  內容最遠半徑 **192.3**，上限 **204.8**，**通過**；安全區外的非底板像素 **0**。
+- 圖示：在 **29／48／60／120／192／512** 六個尺寸 × **深底／淺底／圓形遮罩** 三種情境合成一張對照表看過。
+  **29px 下指針仍然認得出來**（這正是選「轉針」而不是「四格關卡」的原因）。
+
+## 9-5 圖示的設計說明（**這是暫時版**）
+
+照 `docs/product_strategy.md` ⑥ 的結論做 **方向 D「單一轉針」**：
+
+- **為什麼是轉針**：29×29 只放得下一個形狀，指針是唯一在該尺寸仍然高對比的元素。
+- **為什麼弧是斷成四段**：原本的方向 B（齒輪咬合）在小尺寸會糊成鋸齒雜訊。
+  斷開的四段粗弧既讀得出來，又**把「四問」的四道關卡編進圖形裡**（長度與粗細遞增）。
+- **配色**：底板 `#16203c`（比網站底色亮一階，深色桌布上才有輪廓）、
+  弧 `#93a2c4`（中性灰藍，深淺底都活得下來）、指針 `#ffb454`（琥珀）。
+  **刻意避開紅綠** —— 台股紅漲綠跌有既定語意，拿來當品牌色會製造誤讀。
+
+⚠⚠ **這是暫時版，命名定案後整組要重做。**
+`docs/product_strategy.md` ⑤ 列了 8 個候選名字、最推薦〈剖面〉，Andy 還沒挑。
+名字換了，圖示的方向可能要跟著換（例如選〈剖面〉就該用方向 A 剖面線）。
+`manifest.webmanifest` 的 `name`／`short_name` 與 `site/icons/*` 裡都留了註解指到這一段。
+
+---
+
+# ⑩ ★ 要合進 `site/index.html` 的那幾行（我沒有動這支檔案）
+
+⚠ **`site/index.html` 目前有另一個 agent 在改（手機版面重整），所以我一行都沒碰。**
+下面三段請由 CEO 合入。三段都是**純新增**，不會動到既有的任何一行。
+
+## 10-1 【必要】註冊 Service Worker —— 貼在 `</body>` 之前
+
+```html
+<!-- PWA：註冊 Service Worker（2026-09-24 新增）。
+     ?v= 帶的是 <meta name="tw:build"> 的版號，每次部署都會變 ——
+     版號一變就等於換了一支新的 SW，舊快取才會在 activate 時被真的刪掉。
+     快取策略與「為什麼 data/** 一律不快取」全部寫在 site/sw.js 的檔頭。 -->
+<script>
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  addEventListener('load', function () {
+    var m = document.querySelector('meta[name="tw:build"]');
+    var v = (m && m.content) || 'dev';
+    navigator.serviceWorker.register('sw.js?v=' + encodeURIComponent(v))
+      .catch(function (e) { console.warn('Service Worker 註冊失敗：', e); });
+  });
+}
+</script>
+```
+
+**為什麼是 `?v=` 而不是在 `sw.js` 裡寫死一個常數**：寫死的常數要有人記得改，
+而「有人記得改」在這個專案裡已經被證明不成立。`?v=` 讓它**跟著現有的版號機制自動跑**，
+`scripts/stamp_assets.py` 每次部署都會換掉那個 meta，不必多做任何事。
+
+**為什麼要判 `location.protocol`**：`scripts/_show.py` 與直接開檔（`file://`）都不該註冊 SW，
+Service Worker 在 `file://` 下本來就會丟例外。
+
+## 10-2 【建議】換掉 apple-touch-icon，加上 favicon —— 在 `<head>` 內
+
+現在第 20 行是 `<link rel="apple-touch-icon" href="icon.png">`，
+指向的 `site/icon.png` 是 2026-09-18 的 2KB 舊圖。建議換成新的（**`site/icon.png` 我沒有刪，留著當退路**）：
+
+```html
+<link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+```
+
+⚠ `apple-touch-icon` **不可以有透明**（iOS 會把透明填成黑），所以我特地為它出了一張不透明的滿版圖；
+`icons/icon-192.png`／`icon-512.png` 則是圓角＋圓角外透明，給 Android 與桌面瀏覽器用。
+
+## 10-3 【建議】把 `theme-color` 拆成深／淺兩個 —— 在 `<head>` 內
+
+現在第 7 行只有 `<meta name="theme-color" content="#070b16">`，
+所以**明亮主題的人裝成 App 之後，狀態列仍然是深色的**。建議改成：
+
+```html
+<meta name="theme-color" content="#070b16" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#f6f7fb" media="(prefers-color-scheme: light)">
+```
+
+⚠ **這一段我標「建議」不是「必要」**，因為它會動到既有的那一行，
+而且網站的主題是用 `localStorage` 的 `tw.theme` 決定的，不完全等於系統偏好 ——
+真正對齊要在 `applyTheme` 裡同步改那個 meta，那是別人手上的檔案，**我不越界**。
+
+---
+
+# ⑪ 我判斷過、但 Andy 可能不同意的地方（請一次否決，不要一項一項問我）
+
+| # | 我的判斷 | 你可能的反對 | 如果你反對，我的退路 |
+|---|---|---|---|
+| **1** | **`manifest.webmanifest` 我是「改」不是「新增」** —— 那支檔案已經存在（2026-09-11 的版本，只有一張 512 圖示、沒有 192、沒有真正的 maskable）。任務說「新增」，但再開一支 `manifest2` 只會更糟 | 「不是說不准改既有檔案嗎」 | 舊內容完整保留在 git 裡，`git checkout HEAD -- site/manifest.webmanifest` 一行就退回去。**這支檔案沒有別的 agent 在動**（git log 顯示上次變動是 2026-09-11 的資料 commit） |
+| **2** | **`orientation` 從 `portrait` 改成 `any`** | 「我本來就要直式」 | 這是一個有 K 線圖、桑基圖、3D 場景的儀表板，**鎖直式等於不准他橫過來看 K 線**。要鎖回去改一個字就好 |
+| **3** | **`background_color`／`theme_color` 從 `#0e1014` 改成 `#070b16`** | 「差那麼一點有差嗎」 | 有 —— 舊值跟網站真正的底色不一樣，開啟時的啟動畫面會先閃一下不同的黑。改回去改兩個字 |
+| **4** | **第一版一定要免費上架，不要帶訂閱** | 「那我什麼時候才收得到錢」 | 理由是 4-1 與 4-5：收費會同時引爆投顧法與 GitHub Pages 條款，而且會讓 Apple 3.2.1(viii) 的檢視變嚴。**先上架、先累積使用者**，收費放里程碑 B |
+| **5** | **399／799 這個價格帶我認為偏高**（`product_strategy.md` 建議 149～249，對標 Tide 是 199） | 「我就是要 399」 | 我不再問第二次，你說了算。但請看 5-2 的實收：399 扣蘋果 15% 是 **NT$339** |
+| **6** | **Android 先、iOS 後** | 「iOS 才是我要的」 | 可以倒過來，但 iOS 那條要多 3～5 天開發（原生層），而且有 4-1 的致命風險。**先做 Android 的好處是「先有一個 App 存在」** |
+| **7** | **建議買一個自有網域** | 「github.io 不是好好的嗎」 | 自有網域一次解決三件事：TWA 的 assetlinks、品牌、未來搬家不用換網址。NT$1,000／年 |
+| **8** | **「今日候選」要改名、全站要加免責聲明** | 「這是我要的詞」 | 保留詞，但卡片上加一行「這是條件篩選結果，不是推薦」。⚠ **免責聲明本身沒有退路** —— 那是 4-1 與 4-3 的硬要求 |
+| **9** | **圖示我自己決定用「轉針」而不是「剖面線」** | 「我比較喜歡剖面」 | `product_strategy.md` 說這兩個在 29×29 都活得下來，轉針更安全。**SVG 是手寫的，換一個方向就是改幾行**。而且反正命名定案後整組要重做 |
+| **10** | **Bundle ID 建議用中性的 `io.github.miaozike.twrotation`**，不要把產品名寫進去 | 「那不是很醜」 | 使用者看不到 Bundle ID，但它**一旦上架就永遠不能改**。把還沒定案的名字寫進去，是把一個可逆的決定變成不可逆的 |
+
+---
+
+# ⑫ ★ 我沒有查到／沒有驗到的（不准用模糊的話帶過）
+
+## 12-1 沒查到的
+
+| # | 沒查到的東西 | 為什麼重要 | 怎麼才查得到 |
+|---|---|---|---|
+| 1 | **台灣是否要求投顧執照才能通過 Google 的「財務功能聲明」** | 直接決定 Android 能不能上 | 只有真的去 Play Console 填那張表才會知道要求上傳什麼。**這是「做了才知道」** |
+| 2 | **Apple 3.2.1(viii) 對「純資訊、不下單」的 App 實際上怎麼判** | 這是最高風險那一條 | 我查到的全是條文轉述，沒有判例。**最快的驗證是先送一次 TestFlight 審查** |
+| 3 | **台灣商店能不能用「導到網頁付款」** | 影響抽成 15% 還是 0% | 我查到的是**美國專屬**的禁制令，且案子在最高法院進行中。台灣的部分**未確認** |
+| 4 | **GitHub Actions 的 macOS runner 對 public repo 是否仍免費、額度多少** | A12 能不能自動化 | 這個政策改過好幾次，**要在真的要用時看當下的計費頁** |
+| 5 | **`miaozike.github.io` 根目錄能不能放 `.well-known/assetlinks.json`** | TWA 成敗 | 我是從機制推的（信心：中）。**開一個 `miaozike.github.io` repo 試一次就知道，10 分鐘** |
+| 6 | **StockIntelli／Tide 是不是已經上架、用哪一種包裝** | 對標 | 這個容器打不開 App Store。**Andy 自己開商店搜一次就有答案** |
+| 7 | **Apple 對「未上市公司的個人開發者」送金融類 App 的額外文件要求** | 影響 A10 的時間 | 未確認 |
+
+## 12-2 ★ 我沒有驗到的（重要）
+
+1. **我沒有在真的手機上裝過這個 PWA。** 這個容器沒有 iPhone 也沒有 Android，
+   我驗的是 **headless Chromium**。iOS Safari 的行為**已知跟 Chromium 不一樣**
+   （安裝流程、`display: standalone` 的安全區、狀態列顏色、Web Push）。
+   **→ Andy 一定要自己用手機裝一次，這一步我取代不了。**
+2. **我沒有打開 <https://miaozike.github.io/tw-rotation/> 確認過任何事。**
+   這個容器打不開那個網址（`CLAUDE.md` 已載明）。
+   **我也沒有 commit、沒有 push**（任務明令）。所以線上目前還沒有這些檔案。
+3. **我沒有跑 `pytest`、`_preview.py`、`_uitest.py`。**
+   理由：這批**只新增檔案、沒有改任何既有檔案**，`site/index.html` 一行未動，
+   所以現有的任何一段驗收在物理上都不會碰到我新增的東西。
+   **⚠ 但合入第 ⑩ 節那幾行之後，就要跑一次前端關卡** ——
+   那時 `git diff --name-only` 會出現 `site/index.html`，
+   按 `CLAUDE.md` 的對照表至少要跑 `總覽`、`縮放掃描`、`手機` 三段，並跑 `_preview.py`。
+4. **我沒有驗「Service Worker 上線之後，`live.js` 的每分鐘即時報價還正常」。**
+   理論上不會受影響（SW 對跨網域請求完全不介入，程式碼裡是 `url.origin !== self.location.origin` 就 return），
+   **但這是理論，不是量測。** 合入之後請把 `盤中即時` 那一段一起跑。
+5. **我沒有量 Lighthouse 的 PWA 分數。** TWA 上架建議 ≥ 80（信心：中），
+   這個容器沒有 Lighthouse CLI。**上架前要補量。**
+6. **圖示只在「深底／淺底／圓形遮罩」三種情境下用合成圖看過**，
+   沒有在真的 iOS 主畫面與 Android 啟動器上看過。
+
+---
+
+# 附：來源清單
+
+⚠ **以下每一條我都只讀得到搜尋摘要，沒有讀到原文。** 信心度標在括號裡。
+
+**Apple**
+- App Review Guidelines（4.2 最低功能性、3.2.1(viii) 金融類）：<https://developer.apple.com/app-store/review/guidelines/>（高）
+- Guideline 4.2 與網站包裝的實務討論：<https://www.mobiloud.com/blog/app-store-review-guidelines-webview-wrapper/>、<https://appcompliance.io/blog/apple-guideline-4-2-minimum-functionality/>（中）
+- 3.2.1(viii) 的開發者論壇討論：<https://developer.apple.com/forums/thread/704470>、<https://developer.apple.com/forums/thread/775803>（中）
+- Small Business Program：<https://developer.apple.com/app-store/small-business-program/>、<https://www.revenuecat.com/docs/platform-resources/apple-platform-resources/app-store-small-business-program>（高）
+- 截圖規格：<https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/>（高）
+- 隱私權營養標示：<https://developer.apple.com/app-store/app-privacy-details/>（高）
+- 審查時間：<https://appcompliance.io/blog/app-store-review-time-2026/>、<https://patchrelease.com/app-store-review-times>（中）
+
+**Google**
+- 新個人帳號的測試要求（12 人 × 14 天）：<https://support.google.com/googleplay/android-developer/answer/14151465>（高）
+- Financial Services 政策：<https://support.google.com/googleplay/android-developer/answer/9876821>（高）
+- 財務功能聲明表：<https://support.google.com/googleplay/android-developer/answer/13849271>（高）
+- 目標 API 等級：<https://support.google.com/googleplay/android-developer/answer/11926878>（高）
+- Trusted Web Activity 快速上手：<https://developer.android.com/develop/ui/views/layout/webapps/guide-trusted-web-activities-version2>（高）
+- Bubblewrap：<https://github.com/GoogleChromeLabs/bubblewrap>（高）
+- TWA 的新功能：<https://developer.chrome.com/docs/android/trusted-web-activity/whats-new>（中）
+
+**費用**
+- <https://splitmetrics.com/blog/google-play-apple-app-store-fees/>、<https://axonbuild.com/blog/cost-to-publish-an-app-to-the-app-stores>（高，兩個來源一致）
+
+**iOS 的 PWA 現況**
+- <https://www.mobiloud.com/blog/progressive-web-apps-ios/>、<https://www.magicbell.com/blog/pwa-ios-limitations-safari-support-complete-guide>（中）
+- Apple 開發者論壇「iOS PWA 資料保存超過 7 天」：<https://developer.apple.com/forums/thread/710157>（中）
+
+**Epic v. Apple（外部連結付款）**
+- 第九巡迴上訴法院 2025-12 判決：<https://law.justia.com/cases/federal/appellate-courts/ca9/25-2935/25-2935-2025-12-11.html>（中）
+- 最高法院進度（Apple 2026-09-14 遞出主要訴狀）：<https://www.techtimes.com/articles/327527/20260915/app-store-commission-limbo-enters-new-phase-apples-epic-merits-brief-opens-scotus-fight.htm>（低，單一二手來源）
+
+**本專案**
+- `docs/product_strategy.md`（法規紅線、GitHub Pages 條款、資料授權、命名候選、圖示方向）
+- `CLAUDE.md`（Andy 不跑本機指令、容器打不開自家網站、`WebSearch` 摘要會湊關係）
+- `site/`、`scripts/stamp_assets.py`（版號機制）、`workers/quote-proxy/`

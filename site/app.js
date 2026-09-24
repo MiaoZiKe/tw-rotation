@@ -1,5 +1,6 @@
 /* 台股資金輪動儀表板 v3 —— 前端只畫圖不運算（K 線指標除外，因為要能調參數）。
-   路由：#overview / #flow / #industry / #industry/<chain> / #stock/<code> / #themes / #season
+   路由：#overview / #flow / #industry / #industry/<chain> / #stock/<code> / #heatmap[/theme/<id>] / #season
+   （舊的 #themes[/<id>] 2026-09-24 併進熱力圖分頁，進來會被導到 #heatmap/theme[/<id>]）
    台股慣例：紅漲綠跌。 */
 (function () {
   'use strict';
@@ -403,7 +404,8 @@
     group(gid, name, o) { o = o || {}; if (!gid) return fmt.esc(name || ''); const n = name || L.gname[gid] || gid; const col = L.gcolor[gid] || '#8ea0c4'; return `<a class="lk lk-group ${o.cls || ''}" href="#industry/group/${gid}" title="看「${fmt.esc(n)}」族群成分股" style="--c:${col}">${o.dot === false ? '' : '<i></i>'}${fmt.esc(n)}</a>`; },
     groupByName(name, o) { const gid = L.gid[name] || (L.gname['ind_' + name] ? 'ind_' + name : null); return gid ? L.group(gid, name, o) : fmt.esc(name || ''); },
     chain(cid, name, o) { o = o || {}; const n = name || L.chains[cid] || ({ industry: '法定產業別' })[cid] || cid; return `<a class="lk lk-chain ${o.cls || ''}" href="#industry/${cid}" title="看整條產業鏈">${fmt.esc(n)}</a>`; },
-    theme(id, name, o) { o = o || {}; return `<a class="lk lk-theme ${o.cls || ''}" href="#themes/${id}" title="看題材">${fmt.esc(name)}</a>`; },
+    // ★ 2026-09-24：題材併進熱力圖分頁，連結直接指新位置（舊的 #themes/<id> 仍會被 route() 導過來）
+    theme(id, name, o) { o = o || {}; return `<a class="lk lk-theme ${o.cls || ''}" href="#heatmap/theme/${id}" title="看題材">${fmt.esc(name)}</a>`; },
     themesOf(code) { return (L.ctheme[code] || []).map(t => L.theme(t.id, t.name)).join(''); },
     back() { return `<a class="lk lk-back" data-back="1" href="#" title="回上一頁">← 返回</a>`; },
   };
@@ -794,7 +796,9 @@
   // ---------------------------------------------------------------- 路由
   /* ★ 2026-09-23：'heatmap'＝產業熱力圖，從 #industry 拆出來的頂層分頁（DECISIONS #252）。
      它跟 'industry' 共用 industry.js 的資料載入，所以路由也交給 window.Industry 處理。*/
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'themes', 'season', 'tasks', 'delivery'];
+  /* ★ 2026-09-24：'themes' 從這裡拿掉 —— 題材併進熱力圖分頁（Andy：「題材內 熱力圖 放到熱力圖分頁」）。
+     `#themes` 這個網址仍然有效，route() 一進來就導到 `#heatmap/theme`，見那裡的註解。*/
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'tasks', 'delivery'];
   const rendered = {};
   /* ★ 2026-09-23：頂層分頁多了「熱力圖」「交付清單」之後，1440 以下這一排就放不下了。
      放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
@@ -864,7 +868,9 @@
       btn.setAttribute('aria-expanded', pop.hidden ? 'false' : 'true');
     };
     // 代按：id 對 id，看得出哪一列對應桌機的哪一顆
-    const proxy = { mmEvents: 'evToggle', mmLive: 'liveBtn', mmGear: 'liveGear', mmTheme: 'themeBtn' };
+    // ★ 2026-09-24：mmLive／mmGear 兩列跟著桌機的「更新」「⚙」一起拿掉（Andy：「按鈕更新、設定 版都移除」）。
+    //   只拿掉 HTML 不拿掉這裡的話不會壞（下面有 `if (!a) return`），但留著會讓人以為它們還在。
+    const proxy = { mmEvents: 'evToggle', mmTheme: 'themeBtn' };
     Object.entries(proxy).forEach(([mine, theirs]) => {
       const a = document.getElementById(mine);
       if (!a) return;
@@ -872,11 +878,7 @@
         e.stopPropagation();
         const t = document.getElementById(theirs);
         if (t) t.click();
-        /* 「即時來源設定」按下去會開 `#livePop`，那顆浮層掛在被藏起來的 `.livebox` 裡面 ——
-           手機上打不開。所以齒輪這一列改成把浮層搬到清單下面顯示。
-           其餘三列按完就收起清單（動作已經完成，留著會擋住畫面）。*/
-        if (mine === 'mmGear') { const lp = document.getElementById('livePop'); if (lp) lp.hidden = false; }
-        close();
+        close();          // 按完就收起清單（動作已經完成，留著會擋住畫面）
       };
     });
     document.addEventListener('pointerdown', (ev) => {
@@ -904,7 +906,15 @@
        底下捲過去的工具列就會透出來（實測看到「技術分 88」後面疊著「4時」）。
        釘住的東西必須不透明，所以它只吃 `overflow-x:auto`，不吃淡出與提示列。
      ⚠ `.gpgrid` 曾經也加進來，後來撤回 —— 見 index.html 那段「⑤（撤回）」。*/
-  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools';
+  /* ★ 2026-09-24 補一個漏掉的：`.mpager`（分段列）。
+     ⚠ **`#skPx` 與 `.mspine` 刻意不加進來** —— 上面那段註解是對的，而且我親手驗過一次：
+       把 `#skPx` 加進來之後，捲到工具列剛好滑到價格列底下時（實測重疊 25.6px），
+       右緣的工具列「5 秒」那顆晶片**真的從半透明的邊緣透出來**（截圖確認）。
+       `.hsc` 用的是 CSS `mask`，它連元素的**背景**一起淡掉，而釘住的列必須不透明。
+       所以這兩個改走「不透明的蓋片」那條路（`index.html` 的 `#skPx::after`／`.mspine::after`）：
+       看起來一樣是淡出，但它是**蓋**在內容上，不是讓內容透出來。
+     ⚠ `.mpager` 可以用 `.hsc`，因為它**不是** sticky —— 底下沒有東西會捲過去。*/
+  const SWIPE_SEL = '#chainSwitch,#dgPick,#dgTools,#stockTabs,.tw.cap-lg,.m3-grid,.dgwrap,#themeDiagram,#skTools,.mpager';
   /* ⚠⚠ 2026-09-23 需求翻轉（Andy：「除了桌面不可以遷就手機 其他你要怎麼優化都可以」）：
      這整套只在 ≤820px 生效。桌機有捲軸、有滾輪、有 hover，本來就看得出來可以捲 ——
      在桌機也掛淡出與提示列，就是替桌機加了它不需要的東西（＝桌機遷就手機）。
@@ -930,7 +940,13 @@
        `#dgTools` 是 `.dgsechead`（flex，寬畫面 nowrap）裡的一個子元素 ——
        在它後面插一個 div 會多一個 flex 子項，把標題那一列擠掉，
        所以它只吃淡出、不吃文字提示。*/
-    if (el.id === 'dgTools') return;
+    /* ★ 只吃淡出、不吃文字提示的名單。
+       `#dgTools` 的理由見上面（會多一個 flex 子項把標題那一列擠掉）。
+       `.mpager` 的理由不一樣：它是**導覽層**，在它後面插一行「左右滑看更多」
+       等於把 844 的可視區再吃掉 20px —— 而這整批改版的目的就是把導覽的高度壓下來
+       （CSS 註解：「釘住的東西越高，留給圖的畫布就越少」）。
+       淡出已經講得出「右邊還有東西」，文字提示在這裡是負收益。 */
+    if (el.id === 'dgTools' || el.classList.contains('mpager')) return;
     const nx = el.nextElementSibling;
     const has = nx && nx.classList && nx.classList.contains('swipetip');
     if (can && !has) {
@@ -956,6 +972,18 @@
     if (tip.getAttribute('data-pos') !== String(i + 1)) tip.setAttribute('data-pos', String(i + 1));
     if (tip.getAttribute('data-of') !== String(n)) tip.setAttribute('data-of', String(n));
   }
+  /* ★ 2026-09-24：**釘住的**橫向可捲列（`#skPx` 個股價格列、`.mspine` 主軸動線）。
+     它們不能走 `.hsc`（CSS `mask` 會連背景一起淡掉，底下捲過去的東西會透出來 ——
+     實測看得到工具列的「5 秒」晶片），所以淡出改由 index.html 的**不透明蓋片**
+     （`::after` ＋ `position:sticky`）畫。這裡只負責一件事：
+     **捲到最右邊就把蓋片收掉** —— 「已經到底了還在淡」跟沒有提示一樣糟，
+     它會讓人以為右邊永遠還有東西。*/
+  const STICKY_SCROLL_SEL = '#skPx,.mspine';
+  function paintStickyEnd(el) {
+    if (window.innerWidth > SWIPE_MAX) { el.classList.remove('sk-end'); return; }
+    const can = el.scrollWidth > el.clientWidth + 4;
+    el.classList.toggle('sk-end', !can || el.scrollLeft + el.clientWidth >= el.scrollWidth - 4);
+  }
   function initSwipeHints() {
     const scan = () => {
       document.querySelectorAll(SWIPE_SEL).forEach(el => {
@@ -964,6 +992,13 @@
           el.addEventListener('scroll', () => paintSwipe(el), { passive: true });
         }
         paintSwipe(el);
+      });
+      document.querySelectorAll(STICKY_SCROLL_SEL).forEach(el => {
+        if (!el._stickyWired) {
+          el._stickyWired = true;
+          el.addEventListener('scroll', () => paintStickyEnd(el), { passive: true });
+        }
+        paintStickyEnd(el);
       });
     };
     window.twSwipeScan = scan;          // 換頁／重畫之後由 route() 再叫一次
@@ -1059,7 +1094,11 @@
        是上一批拍板的行為 —— **既有的拍板優先於我這一版的偏好**。
        這一頁改成只收兩段長說明（見 miaChain），高度從 2561 收到約 2200。
        要真的分段，得先把那三段驗收一起改，那是另一批的工作。*/
-    themes: [
+    /* ★ 2026-09-24：題材併進熱力圖分頁，原本 `themes` 那兩段接在「產業熱力」後面。
+       分段名稱沿用舊的「題材熱力」「題材細節」—— route() 的 `prefer` 用名字找段落，
+       從熱力方塊點進來（`#heatmap/theme/<id>`）一樣直接翻到「題材細節」。*/
+    heatmap: [
+      { n: '產業熱力', sel: ['#indHeat'] },
       { n: '題材熱力', sel: ['#themeMapCard'] },
       { n: '題材細節', sel: ['#themeDetail'] },
     ],
@@ -1117,7 +1156,7 @@
     let i = Math.min(miaPick(key + '.' + step), subs.length - 1);
     if (i < 0) i = 0;
     /* `prefer`＝「這一次是被連結帶進來的，應該直接看那一段」。
-       例：從題材熱力圖點一格會換 hash 成 `#themes/<id>`，
+       例：從題材熱力圖點一格會換 hash 成 `#heatmap/theme/<id>`，
        那當然是要看細節，不是停在剛剛那張熱力圖上。*/
     if (prefer) { const k = subs.findIndex(g => g.n === prefer); if (k >= 0) { i = k; miaSave(key + '.' + step, k); } }
 
@@ -1146,6 +1185,25 @@
          「輪動時鐘」與「資金去向」共用的卡片外殼），後面那一段會把前面那一段剛開的又關掉。*/
       const on = new Set((subs[i] || { els: [] }).els);
       found.forEach(g => g.els.forEach(el => el.classList.toggle('mp-off', !on.has(el))));
+      /* ★ 2026-09-24 修：**空殼容器要跟著收掉**。
+         總覽的卡片是包在 `.grid.g21`／`.grid.g12.eqpair`／`.grid.g2` 這幾層排版容器裡的，
+         分段導覽藏的是**卡片**，容器本身沒被藏 —— 於是換一段之後那幾層變成
+         「高度 0、但各自還帶 margin-top:16px」的空殼。
+         實測（390×844）：第①步殘留 2 個 ＝ 32px、第②④步殘留 3 個 ＝ 48px，
+         就是分段列和內容之間那一塊莫名其妙的空白（量到 mpager 底 202 → 內容頂 266）。
+         判準寫得很保守：**只收「本來就有元素子項、而且每一個子項都已經不顯示」的容器**，
+         沒有元素子項的（分隔線之類）一律不碰 —— 資訊架構改錯最貴的後果是「使用者找不到」。 */
+      const managed = new Set(); found.forEach(g => g.els.forEach(el => managed.add(el)));
+      [...view.children].forEach(w => {
+        if (managed.has(w) || w === spine || w === bar || w === next) return;
+        if (w.classList.contains('mspine') || w.classList.contains('mpager')
+            || w.classList.contains('mnext')) return;
+        const kids = [...w.children];
+        if (!kids.length) return;                       // 沒有元素子項 → 不是排版容器，不碰
+        const allOff = kids.every(k => k.classList.contains('mp-off')
+          || getComputedStyle(k).display === 'none');
+        w.classList.toggle('mp-off', allOff);
+      });
       /* 「收合」那顆鈕要跟著它負責的那一塊一起藏：鈕是插在那一塊後面的獨立節點，
          不跟著藏的話會出現「一顆孤零零的鈕，按了畫面什麼都不會變」—— 就是 G7 那個毛病。*/
       document.querySelectorAll('.mfold').forEach(b2 => {
@@ -1447,6 +1505,15 @@
        使用者手打出壞的 % 序列會丟例外，包起來退回原字串。 */
     const _dec = (x) => { try { return decodeURIComponent(x); } catch (e) { return x; } };
     const [head, ...rest] = h.split('/').map(_dec);
+    /* ★ 2026-09-24 舊網址導向：「題材」分頁併進「熱力圖」（Andy：「題材內 熱力圖 放到熱力圖分頁」）。
+       `#themes`、`#themes/<id>` 外面可能有人存著（交付清單的「去看」也有好幾筆指著它），**不准壞**：
+       一進來就換成 `#heatmap/theme[/<id>]`，熱力圖分頁會捲到題材那一塊、有 id 就就地展開那個題材。
+       用 `location.replace` 而不是改 `location.hash`：後者會多留一筆歷史，
+       使用者按上一頁會回到 `#themes`、又被導回來 —— 等於上一頁永遠按不出去。*/
+    if (head === 'themes') {
+      location.replace('#heatmap/theme' + (rest[0] ? '/' + encodeURIComponent(rest[0]) : ''));
+      return;
+    }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
@@ -1475,7 +1542,8 @@
          `#flow` → `#overview` 也會 —— 驗收有一條就是反過來證明這件事。*/
     const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : hd;
     const key = pageKey(head, rest);
-    if (key !== _lastPageKey) window.scrollTo({ top: 0 });
+    const pageChanged = key !== _lastPageKey;       // 熱力圖分頁要用它判斷「換題材」還是「剛進來」
+    if (pageChanged) window.scrollTo({ top: 0 });
     _lastPageKey = key;
     /* ★ 2026-09-24 手機第二版：這一頁在手機上要用哪一份分段表（見 applyMobileIA）。
        用的是「路由的頁面種類」而不是 view id —— 個股與產業地圖共用 `#v-industry`，
@@ -1484,14 +1552,42 @@
     _miaKey = mk;
     /* 換頁時「看全部」的展開狀態要歸零：他點進另一頁再回來，應該回到精簡版。*/
     if (typeof miaMoreReset === 'function') miaMoreReset();
-    /* 題材頁：網址帶了題材 id（從熱力圖點一格進來的）就直接翻到「題材細節」那一段。*/
-    const prefer = (mk === 'themes' && rest[0]) ? '題材細節' : null;
+    /* 熱力圖分頁（手機分段）：網址帶了 `theme` 就翻到題材那一段；
+       再帶了題材 id（從題材熱力圖點一格進來的）就直接翻到「題材細節」。*/
+    const wantTheme = view === 'heatmap' && rest[0] === 'theme';
+    const prefer = wantTheme ? (rest[1] ? '題材細節' : '題材熱力') : null;
     const mia = () => { try { applyMobileIA(mk, prefer); } catch (e) { /* 忽略 */ } };
-    if (view === 'heatmap') { await window.Industry.routeHeat(); mia(); setTimeout(mia, 500); return; }
+    if (view === 'heatmap') {
+      /* ★ 2026-09-24：這一頁現在有兩張熱力圖（全市場 ＋ 題材）＋ 就地展開的題材細節。
+         ① 全市場那張只在「剛進這一頁」或主題切換（rendered 被清掉）時重畫 ——
+            點題材方塊只會改 `#heatmap/theme/<id>` 的後半段，不該把上面那張 treemap 重畫一次。
+         ② 題材那張第一次進來才畫，之後換題材只重畫下面的細節（跟舊的 #themes 頁同一套）。*/
+      const tid = wantTheme ? (rest[1] || '') : '';
+      if (pageChanged || !rendered.heatmap) { rendered.heatmap = true; await window.Industry.routeHeat(); }
+      if (!rendered.themes) { rendered.themes = true; await renderThemes(tid); }
+      else if (D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
+      mia(); setTimeout(mia, 500);
+      /* 捲到題材那一塊（桌機）：
+         · 從別頁（或舊網址 #themes）帶進來 → 一定捲，不然使用者看到的是上面那張全市場熱力圖，會以為連結壞了。
+         · 同一頁裡換題材（點方塊、點細節底下的「其他題材」）→ 細節的上緣不在畫面上半部才捲：
+           點方塊時細節在下面、點「其他題材」時細節的上緣早就捲過頭了，兩種都要帶回去；
+           已經看得到就不動，免得畫面無緣無故跳一下。
+         70 ＝ 頂欄 58 ＋ 一點呼吸空間（scrollIntoView 會讓標題壓在釘住的頂欄底下）。
+         手機不在這裡捲：那邊是分段導覽，`prefer` 已經把題材那一段翻出來了（點擊處理自己會捲）。*/
+      if (wantTheme && !mIsM()) {
+        setTimeout(() => {
+          const e = document.getElementById(tid ? 'themeDetail' : 'themeMapCard'); if (!e) return;
+          const top = e.getBoundingClientRect().top;
+          if (pageChanged || (tid && (top < 58 || top > window.innerHeight * 0.5))) {
+            window.scrollTo({ top: Math.max(0, top + window.scrollY - 70) });
+          }
+        }, 80);
+      }
+      return;
+    }
     if (view === 'industry') { await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
-    if (view === 'themes' && rendered.themes && D.themes && D.themes.themes) { renderThemeDetail(D.themes, rest[0] || D.themes.themes[0].id); mia(); return; }
     if (view === 'market' && rendered.market) { drawMarket(rest[0] || 'updown'); mia(); return; }
-    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, themes: renderThemes, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
+    if (!rendered[view]) { rendered[view] = true; await ({ overview: renderOverview, flow: renderFlow, market: renderMarket, season: renderSeason, tasks: renderTasks, delivery: renderDelivery })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(() => Object.values(charts).forEach(c => c && c.resize && c.resize()), 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）
@@ -3693,7 +3789,7 @@
 
   function renderThemeStrip(th) {
     const el = $('#themeStrip'); if (!th || !th.themes || !th.themes.length) { el.innerHTML = '<div class="empty">尚無題材資料</div>'; return; }
-    el.innerHTML = `<div class="tiles">` + th.themes.slice(0, 8).map(t => `<div class="tile" onclick="location.hash='#themes/${t.id}'"><div class="t">${fmt.esc(t.name)}</div><div class="m">${t.n} 檔 · 佔比 ${fmt.n(t.share, 1)}% · 新聞 ${t.news7}</div><div class="v"><span style="color:${t.heat >= 70 ? CH.up : t.heat >= 45 ? CH.amber : CH.ink2}">熱度 ${t.heat}</span> <small class="${fmt.cls(t.chg_pct)}" style="font-size:12px">${fmt.pct(t.chg_pct)}</small></div><div class="lks">${(t.members || []).slice(0, 4).map(m => L.stock(m.code, m.name)).join('')}</div></div>`).join('') + '</div>';
+    el.innerHTML = `<div class="tiles">` + th.themes.slice(0, 8).map(t => `<div class="tile" onclick="location.hash='#heatmap/theme/${t.id}'"><div class="t">${fmt.esc(t.name)}</div><div class="m">${t.n} 檔 · 佔比 ${fmt.n(t.share, 1)}% · 新聞 ${t.news7}</div><div class="v"><span style="color:${t.heat >= 70 ? CH.up : t.heat >= 45 ? CH.amber : CH.ink2}">熱度 ${t.heat}</span> <small class="${fmt.cls(t.chg_pct)}" style="font-size:12px">${fmt.pct(t.chg_pct)}</small></div><div class="lks">${(t.members || []).slice(0, 4).map(m => L.stock(m.code, m.name)).join('')}</div></div>`).join('') + '</div>';
   }
 
   // ---- 候選名單：綜合／籌碼／技術／基本面四種切法 ----------------------------
@@ -6928,7 +7024,11 @@
        但 2026-09-23 向 Andy 確認後他回「OK」＝ 一起砍，所以那張也已經移除（見 renderTrust 下方的註解）。 */
 
   // ---------------------------------------------------------------- 題材
-  async function renderThemes() {
+  /* ★ 2026-09-24：這兩張（題材資金熱力＋題材細節）現在住在熱力圖分頁（#v-heatmap）的全市場熱力圖下面。
+     `sel`＝網址 `#heatmap/theme/<id>` 帶進來的題材；空字串＝還沒選，細節那一塊只放一句怎麼用。
+     點方塊只改網址的後半段 → route() 只重畫細節，上面兩張熱力圖不動（就地展開，不離開這一頁）。*/
+  const themeHash = (id) => '#heatmap/theme/' + id;
+  async function renderThemes(sel) {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     $('#themeNote').textContent = th.note || '';
     const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, itemStyle: { color: heatColor(t.heat) } }));
@@ -6937,22 +7037,25 @@
     const c = chart('themeMap', themeOpt(false));
     wheelZoom($('#themeMapWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#themeMap')); if (i) i.resize(); } });
     // 點方塊：換下方明細（hash 一樣時 route 不會觸發，所以直接重畫）並捲到明細
+    // ★ 2026-09-24：桌機換了 hash 之後由 route() 負責捲（它量得到細節在不在畫面上，見那裡的註解），
+    //   這裡只補 route() 不會跑的兩種：hash 沒變（點的是同一塊），以及手機（分段導覽由這裡捲）。
     if (c) c.off('click').on('click', p => {
       if (!p.data || !p.data.id) return;
-      const h = '#themes/' + p.data.id;
-      if (location.hash === h) renderThemeDetail(th, p.data.id); else location.hash = h;
-      const d = $('#themeDetail'); if (d && d.scrollIntoView) setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+      const h = themeHash(p.data.id);
+      const same = location.hash === h;
+      if (same) renderThemeDetail(th, p.data.id); else location.hash = h;
+      const d = $('#themeDetail');
+      if ((same || mIsM()) && d && d.scrollIntoView) setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
     });
     const tz = $('#themeZoom');
     if (tz) tz.onclick = () => openZoom('題材資金熱力', (body, chipBox, close) => {
       const bc = chart(body, themeOpt(true));
       if (bc) bc.off('click').on('click', p => {
         if (!p.data || !p.data.id) return;
-        close(); location.hash = '#themes/' + p.data.id;
+        close(); location.hash = themeHash(p.data.id);
       });
     });
-    const sel = location.hash.split('/')[1];
-    renderThemeDetail(th, sel || th.themes[0].id);
+    renderThemeDetail(th, sel || '');
   }
   // 題材產品圖：點零件→列出該零件的個股（成員表已於 2026-09-23 移除，所以不再有「滑過成員列」那一端）。
   function wireThemeDiagram(host, t) {
@@ -7011,14 +7114,25 @@
        所以沒有剖析圖時這一區就是空的 —— **那是他要的**，不要再補別的東西回去。
        有剖析圖的題材完全不受影響。*/
   function renderThemeDetail(th, id) {
-    const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const el = $('#themeDetail');
+    /* ★ 2026-09-24：題材併進熱力圖分頁之後，**沒選題材時不預設展開第一個**。
+       舊的題材頁一打開就畫第一個題材的剖析圖 —— 那一頁只有題材，這樣合理；
+       現在這一頁的主角是兩張熱力圖，一進來就在下面攤一張大剖析圖，等於替使用者選了一個他沒選的題材。
+       Andy 描述的行為是「點題材格子會展開題材細節」，所以改成點了才展開，沒點就只留一句怎麼用。*/
+    if (!id) {
+      el.innerHTML = `<div class="muted themehint">點「題材資金熱力」裡任一個方塊，這裡會展開那個題材的產品剖析圖（上游 → 中游 → 下游），再點環節或代號就到個股。</div>`;
+      return;
+    }
+    const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const dg = (window.ThemeDiagrams || {})[t.id];
     // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材
     const head = `<h3>產品剖析圖 <small>${fmt.esc(t.name)}${t.desc ? '　' + fmt.esc(t.desc) : ''}</small></h3>`;
+    /* 「就地展開」要收得回去：收起＝回到 `#heatmap/theme`（網址跟著變，上一頁回得來）。
+       沒有剖析圖的三個題材整區留白（下面那段），那時也就沒有東西需要收。*/
+    const closeBtn = `<a class="btn small" id="themeClose" href="#heatmap/theme" title="收起這個題材的剖析圖">收起 ✕</a>`;
     const other = `<div class="linkrow" style="margin-top:12px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div>`;
     el.innerHTML = dg
-      ? `<div class="card"><div class="row spread">${head}<small class="muted">上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small></div>
+      ? `<div class="card"><div class="row spread">${head}<span class="row" style="gap:8px"><small class="muted">上游 → 中游 → 下游；原創等角示意圖，非實物比例。點環節看該段台股、點代號直接進個股頁</small>${closeBtn}</span></div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
       : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
     if (dg) {
@@ -7067,7 +7181,7 @@
     /* 版號對照：這一筆是「第幾次部署」交付的，日期時間要跟右上角版號徽章對得上 ——
        那是他驗證「這件事真的上線了沒」的唯一方法（DECISIONS #148）。 */
     const ver = it.ver
-      ? `<span class="dlv-ver" title="對照右上角版號徽章：日期與時間要對得上">第 ${fmt.esc(it.ver)} 次部署`
+      ? `<span class="dlv-ver" title="對照右上角版號徽章：日期要對得上；建置時間在徽章的滑鼠提示裡（滑鼠停在徽章上）">第 ${fmt.esc(it.ver)} 次部署`
         + `${it.at ? ' · ' + fmt.esc(it.at) : ''}</span>`
       : '<span class="dlv-ver">還沒部署</span>';
     // 「去看」只有真的是 hash 路由才給；沒有畫面的（流程類）老實寫出來，不要給一個點了沒反應的鈕
@@ -7227,6 +7341,17 @@
       const cellLabel = lt
         ? { color: CH.ink, textBorderColor: 'rgba(255,255,255,.85)', textBorderWidth: 2.5 }
         : { color: '#e8eeff' };
+      /* ★ 2026-09-24 修（390px 實測）：**手機上格子裡的數字要收掉**。
+         量到的數字：容器 324×480、`grid` 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
+         塞 12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73` ——
+         字寬約 30px（跨 3 欄）、字高 11px（跨 2 列），912 個標籤整片疊在一起，
+         結果不是「字小」而是**一團看不出任何東西的糊**（截圖確認）。
+         ⚠ 這是「收起來，不是刪掉」：顏色與色階還在（那本來就是熱力圖要傳達的東西），
+           數字改由**點一格**拿到 —— tooltip 與下面的「逐年明細」都是原本就有的路徑，
+           所以資訊一個都沒有少，只是換一個進得去的位置。
+         ⚠ 桌機那條路徑一個字都沒動：判斷用 `mIsM()`（≤640px），
+           桌機的 `cellH` 同樣只有 8.4px，但「桌機不准被降級」優先於我這一版的偏好。 */
+      const cellsSmall = mIsM();
       const c = chart('seasonHeat', { tooltip: { ...tip, formatter: p => { const cl = p.data[3]; return `<b>${cl.group_name}</b> ${cl.month} 月<br>平均超額 ${cl.avg_excess != null ? fmt.pct(cl.avg_excess) : '—'}（勝率 ${cl.excess_win_rate ?? '—'}%）<br>平均報酬 ${cl.avg_return != null ? fmt.pct(cl.avg_return) : '—'}（勝率 ${cl.win_rate ?? '—'}%）<br>樣本 ${cl.samples} 年`; } },
         grid: { left: 130, right: 70, top: 10, bottom: 30 }, xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月'), ...axisStyle, splitArea: { show: false }, axisLabel: { color: CH.ink2 } },
         yAxis: { type: 'category', data: groups.map(g => g.group_name), ...axisStyle, axisLabel: { color: CH.ink2, fontSize: 12 } },
@@ -7237,10 +7362,12 @@
         visualMap: { min: lim[0], max: lim[1], dimension: 2, calculable: false, orient: 'vertical', right: 0, top: 'center',
           textStyle: { color: CH.ink3 }, inRange: { color: ramp },
           outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
-        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: true, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
+        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: !cellsSmall, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').innerHTML = fmt.esc(s3.note)
         + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
+        // 手機把格內數字收掉了，要在畫面上講出來去哪裡拿 —— 不講就是「資訊不見了」
+        + (cellsSmall ? '　<b>手機上格子太小，數字收進點擊：點一格看它的逐年明細。</b>' : '')
         + (fellBack ? '　<b style="color:var(--amber)">這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。</b>' : '');
       topThisMonth(P);
       drawLine();          // 兩張圖吃同一份資料、同一個期間與指標，切過去不用等
@@ -7471,10 +7598,15 @@
     const b = buildInfo();
     const el = $('#buildver');
     if (!el) return b;
-    el.textContent = b.at ? `v ${b.ver} · ${b.at}` : `v ${b.ver}`;
+    /* ★ 2026-09-24（Andy：版號「只留文字 不用時間」）：畫面上拿掉「· 11:16」，只留「v 日期 第 N 版」。
+       ⚠⚠ **建置時間沒有刪，搬進 title 的第一行**。理由：「第 N 版」這個數字已經證實不準
+       （2026-09-23 推算成第 14 版、他畫面上是第 7 版），**建置時間是唯一能確認「網站換版了沒」的依據**
+       —— 每次部署都是請他比對這個時間。所以它放在滑鼠一停上去第一眼就看得到的位置。*/
+    el.textContent = `v ${b.ver}`;
     const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
-    el.title = (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
-                 : `這個網頁的版本：${b.ver}${b.at ? '，建置於 ' + b.at + '（台北）' : ''}`)
+    el.title = (b.at ? `建置時間 ${b.at}（台北）—— 比對這個時間確認網站換版了沒\n` : '')
+      + (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
+                 : `這個網頁的版本：${b.ver}`)
       + (isCommit ? `\ncommit ${b.sha} —— 點開對照 GitHub` : '');
     el.href = isCommit
       ? `https://github.com/MiaoZiKe/tw-rotation/commit/${b.sha}`

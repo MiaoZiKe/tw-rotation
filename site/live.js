@@ -39,6 +39,17 @@
  * 所以 SSE 一旦連不上或斷掉，**立刻回到原本那條每分鐘輪詢的路**，
  * 而且馬上補抓一次，畫面不會有缺口。狀態列會寫現在走的是「推送」還是「輪詢」。
  *
+ * 2026-09-24：「更新」與「⚙ 即時來源設定」兩顆鈕拿掉
+ * ------------------------------------------------
+ * Andy：「按鈕更新、設定 版都移除」「即時 10:44 每分鐘（輪詢） → 只留時間」。
+ * 拿掉的只是**手動入口**，自動更新一條都沒停（盤中每分鐘、盤後每 30 分鐘）。
+ * 連帶改的三件事（不改就會出事）：
+ *   ① 以前「連續失敗三次 → 關掉計時器，等使用者按『更新』」。按鈕沒了，那等於**自動更新永久停擺**。
+ *      改成「連續失敗 → 放慢到每 5 分鐘試一次，成功就回到正常間隔」，洗版的理由照顧到、也不會停。
+ *   ② 以前「有新資料，按『更新』載入」。改成點狀態那顆本身重新載入（只有那個狀態可以點）。
+ *   ③ 以前「放棄 SSE 之後按『更新』重試」。改成分頁切回前景時重試（那是使用者回來看的時間點）。
+ * 狀態那顆畫面上只剩時間，「即時／收盤、每分鐘（輪詢）、推送」這些字全部搬進 title。
+ *
  * 更新哪些數字
  * ------------
  * 只更新「畫面上看得到的」（Andy 拍板）。做法是掃 DOM 上的 [data-lc]，
@@ -54,9 +65,10 @@
   const MS_INTRADAY = 60 * 1000;       // 盤中：每分鐘
   const MS_AFTER = 30 * 60 * 1000;     // 盤後：每 30 分鐘
   const STALE_MS = 3 * 60 * 1000;      // 超過這麼久沒成功就把狀態標成「停了」
-  // 連續失敗這麼多次就把自動輪詢關掉，等使用者自己按「更新」再試。
+  // 連續失敗這麼多次就把自動輪詢**放慢**到 MS_SAFETY（5 分鐘）一次，成功就回到正常間隔。
   // 理由有兩個：(1) 公司網路可能整個擋掉 Worker，一直重試只會洗版 console；
-  // (2) 打不通的端點每分鐘敲一次沒有意義。按「更新」會把計數歸零重新開始。
+  // (2) 打不通的端點每分鐘敲一次沒有意義。
+  // ★ 2026-09-24 以前是「關掉，等使用者按『更新』」—— 那顆鈕拿掉之後就等於永久停擺，所以改成放慢。
   const MAX_FAILS = 3;
 
   // ---- SSE（伺服器推送）相關
@@ -76,8 +88,9 @@
   const MS_SAFETY = 5 * 60 * 1000;
 
   // Andy 的 Cloudflare Worker（2026-09-14 部署完成並實測過）。
-  // 填成預設值，換一台電腦／換一個瀏覽器都不用再設定一次；
-  // ⚙ 面板裡填的值會蓋過它（要換 Worker 或本機測試時用）。
+  // 填成預設值，換一台電腦／換一個瀏覽器都不用再設定一次。
+  // localStorage['tw.live.proxy'] 仍然蓋得過它（本機測試與驗收用）；
+  // ⚙ 設定面板 2026-09-24 拿掉了，要換 Worker 就改這一行。
   // 這不是密鑰 —— Worker 本身只轉一個端點、只給白名單網域 CORS。
   const DEFAULT_PROXY = 'https://tw-quote.kcq01010909.workers.dev';
 
@@ -88,6 +101,8 @@
     lastOk: 0,
     lastErr: '',
     tries: 0,
+    slow: false,         // 連續失敗 MAX_FAILS 次之後放慢重試（見 MAX_FAILS）
+    period: 0,           // 目前計時器的間隔（毫秒）；驗收用它確認「每分鐘／每 30 分」真的排上去了
     fresher: false,      // 伺服器上已經有更新的資料，但盤中不自動重載
     // ---- SSE
     mode: 'poll',        // 現在真的走哪條路：'sse' 推送／'poll' 輪詢
@@ -95,7 +110,7 @@
     sseIds: '',          // 這條連線訂的是哪一組代號（畫面換了就要重開）
     sseFails: 0,         // 連續失敗次數（連上就歸零）
     sseEverOk: false,    // 這次開頁有沒有成功過
-    sseGaveUp: false,    // 放棄 SSE（按「更新」或改設定會重來）
+    sseGaveUp: false,    // 放棄 SSE（分頁切回前景會重來）
     sseTimer: null,      // 重連計時器
     sseWatch: null,      // 看門狗
     ssePaused: false,    // 分頁切到背景時暫停，不算失敗
@@ -429,59 +444,66 @@
   }
 
   // ---------------------------------------------------------------- 狀態列
+  /* ★ 2026-09-24（Andy：「即時 10:44 每分鐘（輪詢）」→「只留時間」）：
+     畫面上只顯示報價時間（例如 `10:44`）；「即時／收盤」「每分鐘（輪詢）」「推送」「已停」這些
+     **狀態文字一個字都沒刪，全部搬進 title**。那是「現在是不是即時、多久更新一次」的唯一線索
+     （2026-09-23 夜盤出事時就是靠它判斷的），藏起來可以、刪掉不行。
+     顏色（class）照舊分四種：live 盤中、ok 收盤、bad 有問題、off 還沒資料 —— 只剩時間之後，
+     「出事了」要靠顏色一眼看出來，細節滑上去看。*/
+  const hhmm = (ms) => new Date(ms)
+    .toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false });
   function stamp() {
     const q = Object.values(state.quotes)[0];
-    const A = window.App;
     const el = document.getElementById('liveState');
-    const btn = document.getElementById('liveBtn');
-    if (!el || !btn) return;
+    if (!el) return;                    // 沒有狀態那顆（例如被別的版面拿掉）就安靜略過，不丟例外
 
     const intr = isIntraday();
-    let cls = 'off', txt;
-    if (!proxy()) {
-      txt = '未設定即時來源';
-    } else if (!state.lastOk) {
-      txt = state.lastErr ? '即時：' + state.lastErr : '即時：尚未取得';
-      cls = state.lastErr ? 'bad' : 'off';
-    } else if (Date.now() - state.lastOk > STALE_MS) {
-      txt = '即時已停（' + Math.round((Date.now() - state.lastOk) / 60000) + ' 分鐘沒更新）';
-      cls = 'bad';
-    } else {
-      const t = q && q.time ? q.time.slice(0, 5) : new Date(state.lastOk)
-        .toLocaleTimeString('zh-TW', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit', hour12: false });
-      /* ★ 走哪條路要寫在臉上（Andy 2026-09-23）。
-         放在既有的狀態列後面，不另外做一塊 —— 這件事平常不重要，
-         只有「數字為什麼跳得比較慢」的時候才需要看得到。 */
-      const way = state.mode === 'sse' ? '　推送（SSE）'
-        : autoOn() ? (intr ? '　每分鐘（輪詢）' : '　每 30 分（輪詢）')
-          : '　自動已關';
-      txt = (intr ? '即時 ' : '收盤 ') + t + way;
-      cls = intr ? 'live' : 'ok';
-      if (state.fresher) { txt = '有新資料，按「更新」載入'; cls = 'bad'; }
-    }
-    el.textContent = txt;
-    el.className = 'livestate ' + cls;
-    el.title = state.mode === 'sse'
+    const way = state.mode === 'sse' ? '推送（SSE）'
+      : !autoOn() ? '自動已關（這台瀏覽器的 localStorage 設了 tw.live.on=0）'
+        : state.slow ? '連續抓不到，改成每 5 分鐘重試（輪詢）'
+          : (intr ? '每分鐘（輪詢）' : '每 30 分（輪詢）');
+    const how = state.mode === 'sse'
       ? '推送（SSE）：跟代理保持一條連線，值一變就送過來（約 5 秒）。'
       : (state.sseGaveUp
-        ? '輪詢：代理沒有推送功能（可能還沒更新到新版），已退回每分鐘抓一次。'
+        ? '輪詢：代理沒有推送功能（或推送預設關閉），用固定間隔去抓。'
         : '輪詢：目前用固定間隔去抓；推送連上之後會自動切過去。');
-    btn.disabled = state.busy;
-    btn.textContent = state.busy ? '更新中…' : '更新';
-    void A;
+    let cls = 'off', txt = '—', tip;
+    if (!proxy()) {
+      tip = '未設定即時來源';
+    } else if (!state.lastOk) {
+      tip = state.lastErr ? '即時：' + state.lastErr : '即時：尚未取得';
+      cls = state.lastErr ? 'bad' : 'off';
+    } else if (Date.now() - state.lastOk > STALE_MS) {
+      // 停了：畫面上留「最後一次拿到的時間」，顏色轉成警示，原因寫在提示裡
+      txt = hhmm(state.lastOk);
+      tip = '即時已停（' + Math.round((Date.now() - state.lastOk) / 60000) + ' 分鐘沒更新）'
+        + (state.lastErr ? '：' + state.lastErr : '');
+      cls = 'bad';
+    } else {
+      txt = q && q.time ? q.time.slice(0, 5) : hhmm(state.lastOk);
+      tip = (intr ? '即時 ' : '收盤 ') + txt + '　' + way;
+      cls = intr ? 'live' : 'ok';
+      if (state.fresher) { tip = '有新資料（網站重新部署過），點一下重新載入　' + tip; cls = 'bad fresh'; }
+    }
+    if (state.lastErr && cls !== 'bad' && cls !== 'bad fresh') tip += '\n上一次錯誤：' + state.lastErr;
+    el.textContent = txt;
+    el.className = 'livestate ' + cls;
+    el.title = tip + '\n自動更新：' + way + '\n' + how;
   }
 
   // ---------------------------------------------------------------- 一輪
   async function tick(manual) {
     if (state.busy) return;
     if (manual) {
-      state.tries = 0;
+      // manual＝「再試一次」（以前是按「更新」鈕；鈕 2026-09-24 拿掉了，這條路留給 Live.tick(true) 呼叫端）。
+      state.tries = 0; state.slow = false;
       if (!state.timer && autoOn()) reschedule();
-      // 手動按「更新」＝「再試一次」的意思，所以連 SSE 的放棄旗標一起歸零。
-      // 使用者剛把 Worker 重新部署好、或剛離開擋掉它的網路時，按一下就能切回推送。
       state.sseGaveUp = false; state.sseFails = 0; state.ssePaused = false;
       if (!state.es) openStream();
     }
+    /* 盤前開的頁面，計時器排的是「盤後每 30 分」；過了 09:00 不重排的話，盤中也是 30 分鐘才跳一次。
+       每一輪檢查一次「現在該用的間隔」跟排上去的一不一樣，不一樣就重排。*/
+    if (state.timer && !state.slow && state.mode !== 'sse' && state.period !== intervalMs()) reschedule();
     // 分頁在背景就不要一直打人家的端點；切回來 visibilitychange 會補跑一次
     if (!manual && document.hidden) return;
     const codes = codesOnScreen();
@@ -490,6 +512,7 @@
       if (proxy() && codes.length) {
         apply(await fetchQuotes(codes));
         state.lastOk = Date.now(); state.lastErr = ''; state.tries = 0;
+        if (state.slow) { state.slow = false; reschedule(); }     // 通了 → 回到正常間隔
       } else if (!proxy()) {
         state.lastErr = '還沒設定代理網址';
       }
@@ -505,10 +528,10 @@
     } catch (e) {
       state.tries++;
       state.lastErr = String(e.message || e).slice(0, 60);
-      if (state.tries >= MAX_FAILS && state.timer) {
-        clearInterval(state.timer);
-        state.timer = null;
-        state.lastErr = `連續 ${state.tries} 次抓不到，已暫停自動更新（按「更新」重試）`;
+      if (state.tries >= MAX_FAILS && autoOn()) {
+        // ★ 放慢，不是停掉（見 MAX_FAILS 的註解）
+        if (!state.slow) { state.slow = true; reschedule(); }
+        state.lastErr = `連續 ${state.tries} 次抓不到，改成每 5 分鐘自動重試：` + state.lastErr;
       }
     } finally {
       state.busy = false; stamp();
@@ -519,8 +542,9 @@
    *
    *  盤中不自動重載 —— reload 會把展開的列、勾選的族群、K 線縮放全部弄掉，
    *  而盤中價格本來就靠即時報價在更新，沒必要打斷正在看盤的人。
-   *  改成在狀態列掛一句「有新資料」，按「更新」才真的載入。
-   *  盤後（以及手動按更新）就直接重載，那時打斷不了什麼。 */
+   *  改成把狀態那顆轉成警示色（提示寫「有新資料」），點那顆才真的載入
+   *  （2026-09-24 以前是按「更新」鈕，鈕拿掉了）。
+   *  盤後（以及 manual）就直接重載，那時打斷不了什麼。 */
   async function reloadIfRedeployed(manual) {
     try {
       const A = window.App;
@@ -537,63 +561,25 @@
   function reschedule() {
     if (state.timer) clearInterval(state.timer);
     // SSE 活著的時候不是把輪詢關掉，而是放慢到五分鐘一次當對帳（見 MS_SAFETY）。
-    const ms = state.mode === 'sse' ? MS_SAFETY : intervalMs();
+    const ms = (state.mode === 'sse' || state.slow) ? MS_SAFETY : intervalMs();
+    state.period = autoOn() ? ms : 0;
     state.timer = autoOn() ? setInterval(() => tick(false), ms) : null;
     stamp();
   }
 
   // ---------------------------------------------------------------- 設定面板
-  function wireSettings() {
-    const pop = document.getElementById('livePop');
-    const gear = document.getElementById('liveGear');
-    if (!pop || !gear) return;
-    const inp = document.getElementById('liveProxy');
-    const chk = document.getElementById('liveAuto');
-    inp.value = ls.get(KEY_PROXY, '');
-    chk.checked = autoOn();
-    gear.onclick = e => { e.stopPropagation(); pop.hidden = !pop.hidden; };
-    pop.onclick = e => e.stopPropagation();
-    document.addEventListener('click', () => { pop.hidden = true; });
-    document.getElementById('liveSave').onclick = () => {
-      ls.set(KEY_PROXY, inp.value.trim().replace(/\/+$/, ''));
-      ls.set(KEY_ON, chk.checked ? '1' : '0');
-      state.lastOk = 0; state.lastErr = '';
-      pop.hidden = true;
-      // 換了 Worker 網址或開關 → 舊連線一定要收掉重開，不然還連在舊的那台
-      closeStream(false);
-      state.sseGaveUp = false; state.sseFails = 0; state.sseIds = '';
-      reschedule();
-      tick(true);
-    };
-    document.getElementById('liveTest').onclick = async () => {
-      const out = document.getElementById('liveTestOut');
-      const base = inp.value.trim().replace(/\/+$/, '');
-      out.textContent = '測試中…';
-      if (!base) { out.textContent = '先填網址'; return; }
-      try {
-        const r = await fetch(base + '/quote?ex_ch=tse_2330.tw', { cache: 'no-store' });
-        const j = await r.json();
-        const m = (j.msgArray || [])[0];
-        if (!m) { out.textContent = '回應沒有資料：' + JSON.stringify(j).slice(0, 80); return; }
-        // 順便問一下 /health，讓使用者看得出這台 Worker 是不是已經更新到支援推送的版本。
-        // 沒有推送不是錯誤（會退回輪詢），但它解釋了「為什麼數字跳得比較慢」。
-        let way = '（推送：查不到，會用輪詢）';
-        try {
-          const h = await (await fetch(base + '/health', { cache: 'no-store' })).json();
-          way = (h.features || []).indexOf('stream') >= 0 ? '（支援推送）' : '（舊版，只有輪詢）';
-        } catch (e) { /* 問不到就照上面那句講 */ }
-        out.textContent = `通了：${m.n} ${m.z}（${m.d} ${m.t}）${way}`;
-      } catch (e) {
-        out.textContent = '失敗：' + String(e.message || e).slice(0, 80);
-      }
-    };
-  }
+  /* ★ 2026-09-24 整段刪除（Andy：「按鈕更新、設定 版都移除」）。原本面板裡有四樣東西：
+       ① Worker 網址輸入框（存 localStorage['tw.live.proxy']）—— DEFAULT_PROXY 已經寫死正式的那台
+       ② 「自動更新」勾選框（存 localStorage['tw.live.on']）—— 預設就是開；localStorage 設了 0 仍然尊重（驗收在用）
+       ③ 「測試」鈕：打一次 /quote 與 /health，回報通不通、Worker 支不支援推送
+       ④ 「儲存」鈕
+     SSE 推送的開關本來就不在面板裡（localStorage['tw.sse']，見 sseAllowed）。*/
 
   // ---------------------------------------------------------------- 對外
   const Live = {
     tick,
     paint,
-    proxy,                                     // market3.js 共用同一組設定（⚙ 面板改這裡也跟著改）
+    proxy,                                     // market3.js／livek.js 共用同一組來源
     /* ★ 2026-09-21：對外開放這一支，給「即時資金去向」批次抓板塊成分股用。
        它要的不是「畫面上看得到的代號」（那是 codesOnScreen 的工作），
        而是一組指定的代號 —— 但 Worker 代理、上市上櫃判定（exch）、
@@ -604,21 +590,28 @@
     MAX_CODES,
     get quotes() { return state.quotes; },
     get timerOn() { return !!state.timer; },   // 驗收用：自動更新到底有沒有在跑
+    get periodMs() { return state.period; },   // 驗收用：計時器排的間隔（盤中 60000／盤後 1800000／放慢 300000）
     get mode() { return state.mode; },         // 驗收用：現在真的走推送還是輪詢
     get streamOn() { return !!state.es && state.mode === 'sse'; },
     get sseGaveUp() { return state.sseGaveUp; },
     isIntraday,
     start() {
-      const btn = document.getElementById('liveBtn');
-      if (btn) btn.onclick = () => tick(true);
-      wireSettings();
+      /* ★ 2026-09-24：「更新」鈕與 ⚙ 設定面板拿掉了，這裡不再綁它們。
+         狀態那顆只有在「有新資料」時可以點（重新載入），平常點了什麼都不做。
+         ⚠ 每一個 getElementById 都要容忍拿到 null —— 版面以後再拿掉什麼，這裡都不准丟例外。*/
+      const st = document.getElementById('liveState');
+      if (st) st.addEventListener('click', () => { if (state.fresher) location.reload(); });
       reschedule();
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
           // 背景分頁不該一直佔著一條連線（跟輪詢在背景不跑是同一個道理）
           closeStream(true);
         } else {
+          /* 切回前景＝使用者回來看了：以前「按更新重試」做的事改在這裡做 ——
+             失敗計數歸零、放慢的間隔恢復、放棄的推送再試一次。*/
           state.ssePaused = false;
+          state.tries = 0; state.sseGaveUp = false; state.sseFails = 0;
+          if (state.slow) { state.slow = false; reschedule(); }
           tick(false);
           openStream();     // 重連會拿到完整快照，剛好補回背景期間的變化
         }

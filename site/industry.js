@@ -3029,7 +3029,8 @@
   function liveEmptyMsg() {
     const has = !!(window.Live && window.Live.proxy && window.Live.proxy());
     return has ? '即時資料還在收集（開盤後每 5 秒補一根）'
-               : '這個週期要即時資料：右上角 ⚙ 設定即時報價來源之後才看得到';
+               // ★ 2026-09-24：右上角的 ⚙ 即時來源設定已經拿掉，不能再叫人去按它
+               : '這個週期要即時資料，目前沒有即時報價來源，所以看不到';
   }
   const tfLabel = (tf) => TF_NAME[tf] || (/^\d+D$/.test(tf) ? tf.replace('D', ' 日') : /^\d+W$/.test(tf) ? tf.replace('W', ' 週') : tf);
   function tfList() { const c = (state.cfg && state.cfg.tfs) || []; return TF_BUILTIN.concat(c); }
