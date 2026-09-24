@@ -22624,9 +22624,21 @@ def t_heatmap_v2(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
     for w in (800, 390):
         pg.set_viewport_size({"width": w, "height": 900})
-        pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        pg.goto("about:blank")   # 同一個網址只換寬度時 goto 不會重新載入，先跳開才是真的在這個寬度重畫
+        pg.goto(f"{base}#heatmap", wait_until="networkidle")
+        # 手機分段導覽會記住上次翻到哪一段（tw.mia.heatmap.*）；前面的「題材」段落會把它留在「題材熱力」，
+        # 那時全市場熱力圖是收起來的（寬高 0）—— 清掉再重載，才是量「第一段＝全市場熱力圖」
+        pg.evaluate("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.mia.heatmap'))"
+                    ".forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        pg.evaluate("document.getElementById('indTree') && document.getElementById('indTree').scrollIntoView({block:'center'})")
+        pg.wait_for_timeout(600)
         r = pg.evaluate(HM_READ, "indTree")
-        if not ok(f"[{w}px #indTree] 熱力圖畫得出來", r and r["n"] > 0, r and r.get("n")):
+        dbg = pg.evaluate("""() => { const el = document.getElementById('indTree'); if (!el) return 'no-el';
+            const r = el.getBoundingClientRect(); const c = window.echarts && echarts.getInstanceByDom(el);
+            return { w: r.width, h: r.height, inst: !!c, cw: c && c.getWidth(), ch: c && c.getHeight(), hash: location.hash,
+                     view: (document.querySelector('.view.on') || {}).id, cls: document.body.className }; }""")
+        if not ok(f"[{w}px #indTree] 熱力圖畫得出來", r and r["n"] > 0, [r and r.get("n"), dbg]):
             continue
         fs = pg.evaluate("() => [...document.querySelectorAll('#indHeat .hmcell')].map(b => getComputedStyle(b).fontSize)")
         ok(f"[{w}px #indTree] 圖例每格 ≥ 36px、字不縮（12px）",

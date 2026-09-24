@@ -1265,6 +1265,10 @@ a.lk-group{color:var(--ink-2);font-weight:500}
 a.lk-group i{width:8px;height:8px;border-radius:50%;background:var(--c,var(--ink-3));box-shadow:0 0 0 2px color-mix(in srgb,var(--c,var(--ink-3)) 25%,transparent);flex:none}
 a.lk-group:hover{color:var(--c,var(--cyan));border-bottom-color:var(--c,var(--cyan))}
 a.lk-theme{color:#c3baff;font-weight:500} a.lk-theme::before{content:"#";opacity:.6;margin-right:-3px}
+/* ★ 2026-09-24（設計系統 v2 第 1 批順手抓到的）：#c3baff 是深色主題的淡紫，印在淺色主題的白卡片上只有 1.78:1。
+   以前卡片是漸層底，「淺色主題」那段對比掃描量不到漸層背景所以一直沒報；卡片改平塗之後就量到了。
+   淺色主題改吃 --violet（#5f4ddb，對白 5.88）。.pill.violet 是同一個寫死值，一起修。*/
+:root[data-theme="light"] a.lk-theme,:root[data-theme="light"] .pill.violet{color:var(--violet)}
 a.lk-chain{color:var(--cyan);font-weight:600}
 a.lk-back{color:var(--ink-3);font-size:13px} a.lk-back:hover{color:var(--ink)}
 a.lk.sm{font-size:12px;font-weight:500}
@@ -1926,6 +1930,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .scard .h b{font-size:16px} .scard .r{display:flex;gap:10px;font-size:13px;color:var(--ink-2);margin-top:6px;flex-wrap:wrap}
 }
 @media (max-width:480px){ .hero{grid-template-columns:1fr 1fr} .kpi .v{font-size:22px} }
+/* 大盤 KPI 固定 6 格：只准排成 6／3／2 欄，不准出現「5 格＋孤兒 1 格」。
+   2026-09-24 截積木外觀時抓到：1440 寬、右側事件抽屜打開，內容區只剩約 1032px，
+   auto-fit 會排成 5＋1。用容器寬度判斷（抽屜開關都算得對），不用視窗寬度。 */
+#v-overview{container-type:inline-size}
+@container (min-width:960px){ #hero{grid-template-columns:repeat(6,minmax(0,1fr))} }
+@container (min-width:520px) and (max-width:959.98px){ #hero{grid-template-columns:repeat(3,minmax(0,1fr))} }
 
 /* ================= 供應鏈環節卡清單（#chainList / .seglist）=================
    Andy 2026-09-20：「供應鏈關聯圖 上下框度太長，改成顯示族群、族群標題底下顯示個股小卡」。
@@ -2907,6 +2917,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    左下角是第一條鏈最大那一塊的左下 —— 方塊標籤一律置中，那個角落不會有字。*/
 #heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{top:auto;right:auto;bottom:8px;left:8px}
 .zwrap>.zbadge{font-size:12px}   /* 11 → 12（字級下限） */
+/* 觸控裝置沒有滾輪（wheelZoom 也沒做雙指縮放），「滾輪放大」是一句用不到的提示；
+   而手機上熱力圖的左下角常是一塊小方塊的標籤（390px 量到蓋住「面板產業 +6.1%」）。只在觸控裝置收起來。*/
+@media (hover:none){ #heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{display:none} }
 /* 卡片標題列右側的控制項：下拉與日期膠囊（只顯示、不能改）。高 28、膠囊。 */
 .hmctl{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:var(--r-pill);
   border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:12px;white-space:nowrap}

@@ -174,7 +174,10 @@
   const hmSeries = (nested, upperH) => {
     const gapC = CH.card;
     const leaf = { itemStyle: { borderWidth: 0, gapWidth: 0, borderRadius: 3, borderColor: gapC } };
+    // 動效上限 240ms（全站那條規矩；chart() 的預設是 500）；使用者要求減少動態就整個關掉
+    let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 舊瀏覽器 */ }
     return {
+      animation: !reduce, animationDuration: 240, animationDurationUpdate: 240,
       itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 3 },
       label: { show: true, fontSize: 12, fontWeight: 700, lineHeight: 16, color: '#fff', textShadowBlur: 0,
         overflow: 'truncate', ellipsis: '…', fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif' },
