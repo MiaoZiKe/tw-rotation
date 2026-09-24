@@ -10,6 +10,8 @@
 
    開關在 site/legal_config.js（window.TW_LEGAL）：
      · 頁尾那一行短版免責聲明 —— **永遠開著**（版本 A 沒有空格，規格說可以先上）。
+       2026-09-24 第二版：上面多一行「© 年 站名 · 保留所有權利」，右邊一顆「顯示詳細規範」膠囊鈕，
+       展開是 8 格詳細規範（預設收起，狀態記在 localStorage tw.footDetail）。
      · 三個法律頁 —— 永遠打得開；條款還有空格時，服務條款與隱私權政策頂端掛「草稿，尚未生效」。
      · 同意橫幅、平台導覽自動彈出 —— 只有「必填全部填好、條款全文掃不到【】、enabled:true」才啟用。
    ========================================================================== */
@@ -211,20 +213,57 @@
      字級下限 12px（全站硬規矩）。*/
   const CSS = `
 .sitefoot{max-width:1200px;margin:32px auto 0;padding:24px 0;border-top:1px solid var(--line);
-  font-size:12px;line-height:1.7;color:var(--ink-3)}
+  font-size:12px;line-height:1.7;color:var(--ink-3);container:sfoot/inline-size}
 .sitefoot p{margin:0}
 .sitefoot b{color:var(--ink-2);font-weight:600}
+/* 上半部：左邊是版權＋短版免責＋連結列（寬度收在約 2/3，長句才不會拉成一整條難讀的線），右邊是「詳細規範」開關 */
+.sitefoot .sf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 24px}
+.sitefoot .sf-main{flex:1 1 auto;min-width:0;max-width:760px}
+.sitefoot .sf-copy{color:var(--ink-2);margin-bottom:4px}
 .sitefoot .sf-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
 .sitefoot .sf-links a,.sitefoot .sf-links button{font:inherit;font-size:12px;color:var(--cyan);background:none;border:0;padding:0;
   cursor:pointer;text-decoration:none}
 .sitefoot .sf-links a:hover,.sitefoot .sf-links button:hover{text-decoration:underline}
 .sitefoot .sf-links em{font-style:normal;color:var(--ink-3)}
+.sf-more{flex:none;display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 12px 0 14px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);font:inherit;font-size:12px;font-weight:600;
+  cursor:pointer;white-space:nowrap}
+.sf-more:hover{border-color:var(--cyan);color:var(--ink)}
+.sf-more:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.sf-more svg{width:12px;height:12px;transition:transform .18s}
+.sf-more[aria-expanded="true"] svg{transform:rotate(180deg)}
+/* ⚠ 一定要寫 [hidden] 規則：下面 .sf-detail 有自己的 display，權重會蓋過瀏覽器內建的 [hidden]{display:none}
+   （2026-09-24 手機分段列「hidden 完全沒生效」就是這樣踩到的）。*/
+.sf-detail[hidden]{display:none!important}
+.sf-detail{display:block;margin-top:16px;background:var(--panel-2);border:1px solid var(--line);border-radius:16px;padding:20px 24px}
+.sf-grid{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px 24px}
+.sf-item{display:grid;grid-template-columns:18px minmax(0,1fr);gap:10px;align-items:start}
+.sf-item svg{width:18px;height:18px;color:var(--cyan);margin-top:1px}
+.sf-item b{display:block;font-size:13px;font-weight:700;color:var(--ink);line-height:1.5}
+.sf-item p{font-size:12px;line-height:1.6;color:var(--ink-3);margin-top:2px}
+@container sfoot (max-width:900px){ .sf-grid{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@container sfoot (max-width:560px){
+  .sitefoot .sf-top{flex-direction:column}
+  .sf-grid{grid-template-columns:minmax(0,1fr);gap:14px}
+  .sf-detail{padding:16px}
+}
+@media (prefers-reduced-motion:reduce){ .sf-more svg{transition:none} }
 
 #v-legal{container-type:inline-size}
-.lgtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
-.lgtabs a{font-size:13px;padding:7px 14px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2);
-  text-decoration:none;background:var(--panel)}
-.lgtabs a.on{background:var(--cyan);color:var(--ontop);border-color:transparent;font-weight:700}
+/* 法律頁上方三顆膠囊分頁：目前頁實心主色、其他描邊。高 38、全圓角、間距 8；
+   手機 390 三顆要一列放得下（13px 字：4＋5＋4 個字 ≈ 170px ＋ 內距 84 ＋ 間距 16 ≈ 270px < 358）。*/
+.lgtabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+.lgtabs a{display:inline-flex;align-items:center;justify-content:center;height:38px;padding:0 18px;border-radius:999px;
+  border:1px solid var(--line-2);background:var(--panel);color:var(--ink-2);font-size:14px;font-weight:500;
+  text-decoration:none;white-space:nowrap;transition:border-color .15s,color .15s}
+.lgtabs a:hover{border-color:var(--cyan);color:var(--ink)}
+.lgtabs a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.lgtabs a.on{background:var(--cyan);color:var(--ontop);border-color:var(--cyan);font-weight:700}
+@container (min-width:1000px){ .lgtabs{margin-left:244px} }   /* 跟右邊文件卡的左緣對齊（目錄 220 ＋ 間距 24）*/
+@media (max-width:560px){
+  .lgtabs{flex-wrap:nowrap;gap:8px}
+  .lgtabs a{flex:1 1 auto;padding:0 12px;font-size:13px;height:36px}
+}
 .lgwrap{display:block}
 .lgtoc{display:none}
 .lgtocm{margin:0 0 16px;font-size:13px}
@@ -345,13 +384,50 @@
   // ------------------------------------------------------------------ 頁尾
   /* 版本 A 的**短版**：意思一個不少（不是投顧、不建議不推介、僅供參考、可能有誤、風險自負），
      全文在 #disclaimer。這一行**預設開啟**，不看開關。*/
+  /* 「詳細規範」八格：版面參考別的台股站的頁尾（小標＋一兩句），**文字全部是本站自己的事實**，沒有一句照抄。
+     刻意不做的兩格（參考站有）：
+       · 「上鏈績效認可」—— 本站沒有任何績效上鏈或第三方認證機制，寫了就是不實陳述。
+       · 「最終解釋權歸本站所有」—— 對消費者不利的單方解釋條款，在消保法第 11、12 條下效力有疑義，
+         而且跟服務條款第十條「不影響消費者依消保法所得主張之權利」自相矛盾。
+     每格 ≤ 60 字；這裡**不准**出現【】空格（營業人名稱等還沒填，頁尾是永遠開著的）。*/
+  const FOOT_ITEMS = [
+    ['重要聲明', '本站不是證券投資顧問事業、證券經紀商或自營商，不提供投資顧問服務。'],
+    ['非投資建議', '所有數值、排行、條件篩選結果僅供研究參考，不構成買賣建議或推介。'],
+    ['投資風險警告', '投資有風險，市場價格可能劇烈波動，過去表現不代表未來結果。'],
+    ['不代操／不託管／不招攬', '不代客操作、不代收代付、不保管資金或證券、不招攬投資。'],
+    ['數據來源', '臺灣證券交易所 OpenAPI 與即時報價、櫃買中心、集保結算所、FinMind 等公開資料；可能延遲、遺漏或錯誤。'],
+    ['即時資料說明', '盤中數字為估算與代理值（例如成交值權重、代理大盤），以交易所正式公告為準。'],
+    ['專業諮詢', '做投資決定前，建議諮詢合格的證券投資顧問或財務顧問。'],
+    ['責任限制', '在法律允許的範圍內，使用本站資訊所生之任何損失，本站不負賠償責任。'],
+  ];
+  const K_FOOT = 'tw.footDetail';
+  /* ⓘ：內嵌 SVG，顏色吃 currentColor（跟著主題 token 走），不用圖片也不用圖示庫。*/
+  const ICON_I = '<svg viewBox="0 0 18 18" aria-hidden="true" focusable="false"><circle cx="9" cy="9" r="7.6" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.4"/><circle cx="9" cy="5.6" r="1" fill="currentColor"/>'
+    + '<path d="M9 8.2v4.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>';
+  const CHEV = '<svg viewBox="0 0 12 12" aria-hidden="true" focusable="false"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" '
+    + 'stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function footOpenPref() {
+    try { return localStorage.getItem(K_FOOT) === '1'; } catch (e) { return false; }   // 讀不到＝預設收起
+  }
+  function setFootOpen(f, open, save) {
+    const btn = f.querySelector('#sfMore'), box = f.querySelector('#sfDetail');
+    box.hidden = !open;
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.querySelector('span').textContent = open ? '隱藏詳細規範' : '顯示詳細規範';
+    if (save) { try { localStorage.setItem(K_FOOT, open ? '1' : '0'); } catch (e) { /* 無痕或被封鎖：這次瀏覽照樣能切 */ } }
+  }
+
   function buildFooter() {
     const main = document.querySelector('main');
     if (!main || document.getElementById('siteFoot')) return;
     const draft = filled() ? '' : '<em>（草稿）</em>';
+    const year = isBlank(CFG.copyright_year) ? '2026' : String(CFG.copyright_year).trim();
     const f = document.createElement('footer');
     f.className = 'sitefoot'; f.id = 'siteFoot';
-    f.innerHTML = '<p class="sf-dis"><b>免責聲明</b>　本站為公開資料之整理、計算與視覺化工具，不是證券投資顧問事業，'
+    f.innerHTML = '<div class="sf-top"><div class="sf-main">'
+      + '<p class="sf-copy" id="sfCopy">© ' + esc(year) + ' ' + esc(val('site_name') || '本站') + ' · 保留所有權利</p>'
+      + '<p class="sf-dis"><b>免責聲明</b>　本站為公開資料之整理、計算與視覺化工具，不是證券投資顧問事業，'
       + '不提供投資建議、不推介任何有價證券；所有數值僅供研究參考，資料可能有誤、遺漏或延遲，'
       + '投資決策與風險由使用者自行判斷並承擔。</p>'
       + '<nav class="sf-links" aria-label="法律與說明">'
@@ -359,9 +435,19 @@
       + '<a href="#terms" id="sfTerms">服務條款' + draft + '</a>'
       + '<a href="#privacy" id="sfPriv">隱私權政策' + draft + '</a>'
       + '<button type="button" id="sfTour">平台導覽</button>'
-      + '</nav>';   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
+      + '</nav></div>'   // ★ 2026-09-24 Andy：原始碼不能公開 ——「原始碼與演算法」連結已拿掉
+      + '<button type="button" class="sf-more" id="sfMore" aria-expanded="false" aria-controls="sfDetail">'
+      + '<span>顯示詳細規範</span>' + CHEV + '</button></div>'
+      + '<div class="sf-detail" id="sfDetail" role="region" aria-label="詳細規範" hidden><ul class="sf-grid">'
+      + FOOT_ITEMS.map((x) => '<li class="sf-item">' + ICON_I + '<div><b>' + esc(x[0]) + '：</b><p>' + esc(x[1]) + '</p></div></li>').join('')
+      + '</ul></div>';
     main.appendChild(f);
     f.querySelector('#sfTour').addEventListener('click', (e) => openTour(e.currentTarget));
+    /* 預設收起（畫面上盡量只留必要的東西）；使用者展開過就記住，下次進來維持展開。*/
+    setFootOpen(f, footOpenPref(), false);
+    f.querySelector('#sfMore').addEventListener('click', () => {
+      setFootOpen(f, f.querySelector('#sfDetail').hidden, true);
+    });
   }
 
   // ------------------------------------------------------------------ 法律頁 view

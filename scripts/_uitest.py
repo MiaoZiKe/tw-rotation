@@ -23303,6 +23303,64 @@ def t_legal(b, base):
     ok("★ [關] 全站沒有任何連到 GitHub 的連結、也沒有 repo 網址（原始碼不公開）",
        not gh["links"] and not gh["text"] and not gh["foot"], gh)
 
+    # ---- 頁尾第二版（2026-09-24 Andy 給參考截圖）：© 行＋「顯示詳細規範」膠囊鈕＋8 格詳細規範 ----
+    FD = """() => { const f = document.getElementById('siteFoot'), d = document.getElementById('sfDetail'),
+        btn = document.getElementById('sfMore'), g = d && d.querySelector('.sf-grid');
+        const items = g ? [...g.children] : [];
+        return { copy: (document.getElementById('sfCopy') || {}).textContent || '',
+          shown: !!d && getComputedStyle(d).display !== 'none' && d.getBoundingClientRect().height > 0,
+          dh: d ? Math.round(d.getBoundingClientRect().height) : -1,
+          label: btn ? btn.textContent.trim() : '', exp: btn ? btn.getAttribute('aria-expanded') : null,
+          n: items.length,
+          cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+          icons: items.filter(li => li.querySelector('svg circle')).length,
+          bolds: items.filter(li => { const b = li.querySelector('b');
+            return b && /：$/.test(b.textContent.trim()) && +getComputedStyle(b).fontWeight >= 600; }).length,
+          heads: items.map(li => (li.querySelector('b') || {}).textContent || ''),
+          ftxt: f ? f.innerText : '', fh: f ? Math.round(f.offsetHeight) : 0 }; }"""
+    fd0 = pg.evaluate(FD)
+    ok("[頁尾] 第一行是「© 2026 台股資金輪動儀表板 · 保留所有權利」",
+       fd0["copy"].startswith("© 2026 ") and "台股資金輪動儀表板" in fd0["copy"] and "保留所有權利" in fd0["copy"], fd0["copy"])
+    ok("[頁尾] 短版免責聲明與四個連結都還在（免責聲明全文／服務條款／隱私權政策／平台導覽）",
+       all(x in fd0["ftxt"] for x in ("不是證券投資顧問事業", "免責聲明全文", "服務條款", "隱私權政策", "平台導覽")), fd0["ftxt"][:200])
+    ok("[頁尾] 詳細規範預設收起（畫面上只留必要的）：區塊不佔高度、按鈕寫「顯示詳細規範」、aria-expanded=false",
+       not fd0["shown"] and fd0["dh"] == 0 and fd0["label"] == "顯示詳細規範" and fd0["exp"] == "false"
+       and _lg_ls(pg, "tw.footDetail") is None, fd0)
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
+    pg.click("#sfMore"); pg.wait_for_timeout(350)
+    fd1 = pg.evaluate(FD)
+    ok("[頁尾] 點「顯示詳細規範」→ 真的展開、頁尾變高、按鈕改成「隱藏詳細規範」",
+       fd1["shown"] and fd1["dh"] > 100 and fd1["fh"] > fd0["fh"] + 100 and fd1["label"] == "隱藏詳細規範"
+       and fd1["exp"] == "true", {k: fd1[k] for k in ("shown", "dh", "fh", "label", "exp")} | {"fh0": fd0["fh"]})
+    ok("[頁尾] 展開後 8 格、每格都有 ⓘ 圖示（內嵌 SVG）與粗體小標＋冒號",
+       fd1["n"] == 8 and fd1["icons"] == 8 and fd1["bolds"] == 8, fd1["heads"])
+    ok("[頁尾] 8 格的小標是本站自己的那 8 項（沒有「上鏈績效認可」「最終解釋權」）",
+       [h.rstrip("：") for h in fd1["heads"]] == ["重要聲明", "非投資建議", "投資風險警告", "不代操／不託管／不招攬",
+                                                  "數據來源", "即時資料說明", "專業諮詢", "責任限制"]
+       and "上鏈" not in fd1["ftxt"] and "最終解釋權" not in fd1["ftxt"], fd1["heads"])
+    ok("★ [頁尾] 展開後也沒有 GitHub／repo／原始碼／演算法字眼，也沒有【】空格",
+       not re.search(r"github|repo|原始碼|演算法|【|】", fd1["ftxt"], re.I), fd1["ftxt"][-300:])
+    ok("[頁尾] 展開後沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
+    ok("[頁尾] 展開 → localStorage tw.footDetail 真的寫入 '1'", _lg_ls(pg, "tw.footDetail") == "1", _lg_ls(pg, "tw.footDetail"))
+    cols = {}
+    for w in (1440, 820, 390):
+        pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(350)
+        cols[w] = pg.evaluate(FD)["cols"]
+        cols[f"docW{w}"] = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok("[頁尾] 詳細規範欄數：1440＝4 欄、820＝2 欄、390＝1 欄，而且都沒有橫向捲軸",
+       cols[1440] == 4 and cols[820] == 2 and cols[390] == 1 and all(cols[f"docW{w}"] <= 1 for w in (1440, 820, 390)), cols)
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(300)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    fd2 = pg.evaluate(FD)
+    ok("[頁尾] 重新整理 → 維持展開（讀 tw.footDetail）", fd2["shown"] and fd2["label"] == "隱藏詳細規範", fd2["label"])
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(300)
+    pg.click("#sfMore"); pg.wait_for_timeout(300)
+    fd3 = pg.evaluate(FD)
+    ok("[頁尾] 再點 → 收起、按鈕回「顯示詳細規範」、tw.footDetail 寫成 '0'",
+       not fd3["shown"] and fd3["label"] == "顯示詳細規範" and _lg_ls(pg, "tw.footDetail") == "0", [fd3["label"], _lg_ls(pg, "tw.footDetail")])
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[頁尾] 重新整理 → 維持收起", not pg.evaluate(FD)["shown"])
+
     # 頁尾連結 → 服務條款
     pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
     pg.click("#sfTerms"); pg.wait_for_timeout(1500)   # 捲回頁首也是 smooth，等它到
@@ -23325,8 +23383,25 @@ def t_legal(b, base):
             on: (document.querySelector('.lgtoc a.on') || {}).dataset })""")
         ok("[關] 點目錄第五條 → 那一條捲到畫面上緣、網址還是 #terms、目錄亮在第五條",
            r2["hash"] == "#terms" and r2["sy"] > 100 and 40 < r2["top"] < 200 and r2["on"] and r2["on"].get("sec") == "4", r2)
-    # 上方三個分頁切換
+    # 上方三個分頁切換（2026-09-24 改成膠囊：目前頁實心主色、其他描邊）
+    TABS = """() => { const bg = (e) => getComputedStyle(e).backgroundColor, cy = (() => { const s = document.createElement('i');
+        s.style.color = 'var(--cyan)'; document.body.appendChild(s); const c = getComputedStyle(s).color; s.remove(); return c; })();
+      return [...document.querySelectorAll('.lgtabs a')].map(a => { const r = a.getBoundingClientRect(), cs = getComputedStyle(a);
+        return { t: a.textContent.trim(), on: a.classList.contains('on'), solid: bg(a) === cy, h: Math.round(r.height),
+                 top: Math.round(r.top), rad: parseFloat(cs.borderTopLeftRadius), bw: parseFloat(cs.borderTopWidth),
+                 fw: +cs.fontWeight }; }); }"""
+    tb = pg.evaluate(TABS)
+    ok("[分頁] 三顆膠囊（服務條款｜隱私權政策｜免責聲明）排一列、高 34～42、全圓角",
+       [x["t"] for x in tb] == ["服務條款", "隱私權政策", "免責聲明"] and len({x["top"] for x in tb}) == 1
+       and all(34 <= x["h"] <= 42 and x["rad"] >= x["h"] / 2 - 1 for x in tb), tb)
+    ok("[分頁] 目前頁（服務條款）那顆是實心主色＋粗體，其他兩顆不是實心、有細框",
+       tb[0]["solid"] and tb[0]["fw"] >= 700 and not tb[1]["solid"] and not tb[2]["solid"]
+       and tb[1]["bw"] >= 1 and tb[2]["bw"] >= 1, tb)
     pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
+    tb2 = pg.evaluate(TABS)
+    ok("[分頁] 點「隱私權政策」→ 換頁、實心跟著換到隱私權政策那顆",
+       pg.evaluate("() => location.hash") == "#privacy" and tb2[1]["solid"] and tb2[1]["on"]
+       and not tb2[0]["solid"] and not tb2[2]["solid"], tb2)
     r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
                     " t: document.getElementById('lgDoc').innerText })")
     ok("[關] 切到隱私權政策：標題換了、一樣是草稿、有補上「是否已同意條款存在 localStorage」那一句",
@@ -23368,6 +23443,11 @@ def t_legal(b, base):
     ok("[390] 隱私權政策（有表格）沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
     ok("[390] 手機收起左側目錄、改用可展開的目錄", r["toc"] == "none" and r["tocm"] not in (False, "none"), r)
     ok("[390] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    r = pg.evaluate("""() => { const a = [...document.querySelectorAll('.lgtabs a')].map(x => x.getBoundingClientRect());
+        return { tops: a.map(x => Math.round(x.top)), l: Math.round(a[0].left), r: Math.round(a[2].right), winW: innerWidth,
+                 fs: Math.min(...[...document.querySelectorAll('.lgtabs a')].map(x => parseFloat(getComputedStyle(x).fontSize))) }; }""")
+    ok("[390] 三顆膠囊分頁一列放得下（同一條上緣、不超出畫面、字 ≥ 13px）",
+       len(set(r["tops"])) == 1 and r["l"] >= 0 and r["r"] <= r["winW"] and r["fs"] >= 13, r)
     pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
     r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
         t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
