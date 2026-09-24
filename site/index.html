@@ -3016,6 +3016,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   #asof .freshbtn{font-size:0;padding:2px 6px} #asof .freshbtn::before{content:"↻";font-size:13px}
   #asof .verline{font-size:12px}
 }
+
+/* 既有 bug：.btn 的 display 蓋過 hidden，「← 回到族群」平常就露出來（2026-09-24 說明精簡時順手發現） */
+#gpBack[hidden]{display:none!important}
 </style>
 </head>
 <body>
