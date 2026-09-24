@@ -3000,11 +3000,23 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #zoomTools .rotnums{max-height:30vh;overflow:auto}
 @media (prefers-reduced-motion:reduce){ .rotnums .rni{transition:none} }
 
+
+/* ★ 2026-09-24 晚：版號在標題下面（取代原本「YYYY-MM-DD 盤後」那行；資料日期與資料狀態在它的滑鼠提示裡）。 */
+#asof{display:flex;align-items:center;gap:6px;white-space:nowrap}
+#asof .verline{font-family:var(--mono);font-size:12px;color:var(--ink-3);letter-spacing:.02em}
+#asof .freshbtn{font:600 12px/1 "Noto Sans TC",system-ui,sans-serif;color:var(--amber);background:none;border:1px solid var(--line-2);
+  border-radius:var(--r-pill);padding:2px 8px;cursor:pointer}
+#asof .freshbtn:hover{color:var(--ink);border-color:var(--amber)}
+.livebox[hidden]{display:none!important}
+@media (max-width:820px){
+  #asof .freshbtn{font-size:0;padding:2px 6px} #asof .freshbtn::before{content:"↻";font-size:13px}
+  #asof .verline{font-size:12px}
+}
 </style>
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof">—</small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
@@ -3049,13 +3061,17 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        **自動更新本身照跑**（live.js 的 MS_INTRADAY／MS_AFTER），拿掉的只是「手動按一下」的入口。
        這顆只顯示報價時間；「每分鐘（輪詢）」「收盤」這些狀態文字搬進 title ——
        那是「現在是不是即時、多久更新一次」的唯一線索，藏起來可以、刪掉不行。 -->
-  <div class="livebox">
+  <!-- ★ 2026-09-24 晚（Andy：「時間刪除」）：這顆報價時間從畫面上拿掉（hidden）。
+       元素留著：live.js 照舊把「即時／收盤、多久更新、代理有沒有壞」寫進它，
+       那串說明同時鏡射到標題下版號那行的滑鼠提示；「有新資料」改由版號旁的 #freshBtn 出現。 -->
+  <div class="livebox" hidden>
     <span class="livestate off" id="liveState" title="即時報價：尚未取得">—</span>
   </div>
   <!-- 明亮／深色（Andy 2026-09-14「版面內容需要新增切換明亮色調」）。
        只換 CSS 變數 + 重畫圖表，不重新整理頁面。 -->
-  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <button class="evbtn" id="evToggle">事件<span class="n" id="evCount">0</span></button>
+  <!-- ★ 2026-09-24 晚（Andy：「明暗切換移動到右邊」）：放到頂欄最右邊。 -->
+  <button class="evbtn theme" id="themeBtn" title="切換明亮／深色">☀</button>
   <!-- ★ 2026-09-23 手機優先改版 G1／G9（`docs/mobile_audit.md`）：
        390px 量到頂欄需要 528px 卻只有 390px 而且是 overflow:hidden ——
        「明亮／深色」只露出 6px、「事件」整顆在畫面外，
@@ -3072,9 +3088,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
     <button type="button" id="mmTheme"><span class="ic">☀</span>明亮／深色主題</button>
     <div class="hint">這兩項在電腦版是頂欄右邊的兩顆鈕，名字一樣。</div>
   </div>
-  <!-- 網頁版號：只顯示文字，滑鼠停上去看建置時間。
-       ★ 2026-09-24 Andy：原始碼不能公開 —— 以前點下去會開 GitHub 的 commit 頁，已拿掉連結。 -->
-  <span class="verbadge" id="buildver" title="這個網頁的版本">—</span>
+  <!-- ★ 2026-09-24 晚（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：版號搬到標題下（#asof 裡的 #buildver）。 -->
 </header>
 
 <div class="layout" id="layout">

@@ -7960,7 +7960,8 @@ def t_freshness(b, base):
                      txt: (a ? (a.title || '') : '').replace(/\\s+/g, ' ').trim(),
                      asof: (a || {}).textContent || '' }; }""")
         ok(f"「{name}」黃底橫幅真的不佔版面了", not got["on"], got["cls"])
-        ok(f"「{name}」頂端日期跟著 meta 走", str(meta["data_date"]) in got["asof"], got["asof"])
+        # ★ 2026-09-24 晚（Andy：版號搬到標題下面）：標題下那行改顯示版號，資料日期改寫在提示第一行 —— 日期沒刪，換地方
+        ok(f"「{name}」資料日期跟著 meta 走（寫在標題下那行的提示第一行）", str(meta["data_date"]) in got["txt"][:40], got["txt"][:60])
         miss = [w for w in must if w not in got["txt"]]
         ok(f"「{name}」原因搬到提示裡、一個字都沒少", not miss,
            {"少了": miss, "實際": got["txt"][:160]})
@@ -8034,7 +8035,8 @@ def t_buildver(b, base):
         pg.wait_for_timeout(400)
         got = pg.evaluate("""() => { const e = document.getElementById('buildver');
             const r = e.getBoundingClientRect(); const b = document.getElementById('banner');
-            return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: e.title,
+            return { txt: e.textContent.trim(), href: e.getAttribute('href'), title: ((document.getElementById('asof') || {}).title || e.title || ''),
+                     inBrand: !!e.closest('.brand'),
                      visible: r.width > 0 && r.height > 0 && getComputedStyle(e).display !== 'none',
                      /* ★ 2026-09-23：黃底橫幅已從版面拿掉，版號改掛在「盤後」那顆的 title。
                         欄位名沿用 banner（引用它的斷言在下面，沒必要為了改名再動一輪）。 */
@@ -8046,13 +8048,16 @@ def t_buildver(b, base):
     # 版號格式：西元日期＋今天第幾版（Andy 2026-09-18）
     a = run("2026-09-18 第 3 版|11:16")
     ok("版號徽章看得到", a["visible"], a)
-    ok("徽章寫的是西元日期＋第幾版", "2026-09-18" in a["txt"] and "第 3 版" in a["txt"], a["txt"])
+    ok("版號的完整寫法（西元日期＋第幾版）在提示裡", "2026-09-18" in a["title"] and "第 3 版" in a["title"], a["title"][:120])
     # ★ 2026-09-24 改口徑（Andy：版號「只留文字 不用時間」）：畫面上拿掉「· 11:16」。
     #   ⚠⚠ 建置時間**不准刪**，搬進 title 的第一行 —— 「第 N 版」已經證實不準，
     #   建置時間是唯一能確認「網站換版了沒」的依據。所以這裡同時驗兩件事：
     #   畫面上真的沒有了、title 第一行真的有（而且跟著版號換，見下面第二組）。
-    ok("徽章畫面上只留「v 日期 第 N 版」，不再寫建置時間", "11:16" not in a["txt"] and "·" not in a["txt"], a["txt"])
-    ok("★ 建置時間沒有刪：搬進徽章滑鼠提示的第一行", "11:16" in (a["title"] or "").split("\n")[0], a["title"])
+    # ★ 2026-09-24 晚改口徑（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：建置時間放回畫面上
+    ok("版號寫「v MM-DD 第N版 · 建置時間」（年份省略，完整版號在提示）", "09-18" in a["txt"] and "第3版" in a["txt"].replace(" ", "") and "11:16" in a["txt"], a["txt"])
+    ok("版號在左上方標題下面（在品牌區塊裡）", a.get("inBrand"), a)
+    # ★ 2026-09-24 晚：建置時間回到畫面上（見上一條）；提示第一行改成資料日期，建置時間仍寫在提示的「網頁版本 …（… 建置）」那一行
+    ok("★ 建置時間沒有刪：畫面上有、提示裡也有", "11:16" in a["txt"] and "11:16" in (a["title"] or ""), [a["txt"], a["title"][-120:]])
     # ★ 2026-09-24 Andy：原始碼不能公開 —— 徽章不准再是連到 GitHub 的連結
     ok("★ 徽章不連到 GitHub（原始碼不公開）", not a["href"] and "github" not in (a["title"] or "").lower(), [a["href"], a["title"]])
     # ★ 2026-09-23：橫幅拿掉之後，手機看版號的地方改成「盤後」那顆的提示（見 renderFreshness）。
@@ -8061,9 +8066,9 @@ def t_buildver(b, base):
 
     c = run("2026-09-19 第 1 版|08:02")
     changed("換一個版號，畫面上的字真的跟著換", a["txt"], c["txt"])
-    ok("第二組版號也對得上", "2026-09-19" in c["txt"] and "第 1 版" in c["txt"], c["txt"])
+    ok("第二組版號也對得上（短寫 MM-DD 第N版 · 時間）", "09-19" in c["txt"] and "第1版" in c["txt"].replace(" ", "") and "08:02" in c["txt"], c["txt"])
     ok("★ 換一組版號，提示裡的建置時間也真的跟著換（08:02）",
-       "08:02" in (c["title"] or "").split("\n")[0] and "11:16" not in (c["title"] or ""), c["title"])
+       "08:02" in (c["title"] or "") and "11:16" not in (c["title"] or ""), c["title"][-120:])
     ok("日期不同就看得出誰比較新（不像 sha 沒有順序）", a["txt"] < c["txt"], [a["txt"], c["txt"]])
 
     # 沒跑過部署流程的版本要看得出來，不能假裝自己是正式版
@@ -8236,7 +8241,9 @@ def t_live(pg, base):
         cls = lp.evaluate("() => document.getElementById('liveState').className")
         ok("盤中有新資料：狀態那顆轉成可點的警示（不自動打斷）", "fresh" in cls and "bad" in cls, cls)
         ok("盤中有新資料：提示寫「點一下重新載入」", "重新載入" in lp.evaluate(TITLE), lp.evaluate(TITLE))
-        lp.click("#liveState"); lp.wait_for_timeout(2500)
+        # ★ 2026-09-24 晚：時間那顆從畫面收起來了，「有新資料」改由標題下版號旁的「有新資料 ↻」出現、點它重新載入
+        ok("盤中有新資料：版號旁出現「有新資料 ↻」", lp.evaluate("() => { const b = document.getElementById('freshBtn'); return !!b && !b.hidden && b.offsetWidth > 0; }"))
+        lp.click("#freshBtn"); lp.wait_for_timeout(2500)
     ok("有新資料時頁面真的重新載入了（盤後自己載、盤中點狀態那顆載）",
        lp.evaluate("() => window.__mark === undefined"), lp.evaluate("() => window.__mark"))
     lp.unroute("**/data/meta.json*")
@@ -21374,8 +21381,13 @@ def t_desktop_untouched(pg, base, code):
                r["tips"] == 0 and r["hsc"] == 0, r)
             # ★ 2026-09-24：「更新」「⚙」兩顆是 Andy 親口要拿掉的（不是手機規則外洩），
             #   剩下的主題、事件、即時時間三樣一個都不准少；分頁因為題材併進熱力圖，八個變七個。
-            ok(f"[{w}px {h}] 桌機頂欄的主題、事件、即時時間都還在",
-               r["theme"] != "none" and r["ev"] != "none" and r["live"] != "none", r)
+            # ★ 2026-09-24 晚（Andy：「時間刪除」「明暗切換移動到右邊」）：即時時間那顆收起、明暗鈕在最右邊
+            ok(f"[{w}px {h}] 桌機頂欄的主題、事件還在；即時時間那顆已收起",
+               r["theme"] != "none" and r["ev"] != "none" and r["live"] == "none", r)
+            rt = pg.evaluate("""() => { const t = document.getElementById('themeBtn').getBoundingClientRect();
+                const vis = [...document.querySelectorAll('.topbar > *')].filter(e => getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0);
+                return { themeR: Math.round(t.right), maxR: Math.round(Math.max(...vis.map(e => e.getBoundingClientRect().right))) }; }""")
+            ok(f"[{w}px {h}] 明暗切換在頂欄最右邊", rt["themeR"] >= rt["maxR"] - 1, rt)
             ok(f"[{w}px {h}] 分頁是七個（題材併進熱力圖）、沒有橫向捲軸",
                r["tabs"] == 7 and r["docW"] <= r["winW"] + 1, r)
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少

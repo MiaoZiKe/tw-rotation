@@ -8496,7 +8496,12 @@
        ⚠⚠ **建置時間沒有刪，搬進 title 的第一行**。理由：「第 N 版」這個數字已經證實不準
        （2026-09-23 推算成第 14 版、他畫面上是第 7 版），**建置時間是唯一能確認「網站換版了沒」的依據**
        —— 每次部署都是請他比對這個時間。所以它放在滑鼠一停上去第一眼就看得到的位置。*/
-    el.textContent = `v ${b.ver}`;
+    /* ★ 2026-09-24 晚（Andy：「版號增加進版時間」）：畫面上改回「v 日期 第 N 版 · HH:MM」，建置時間放回來。 */
+    const hm = (b.at.match(/(\d{1,2}:\d{2})/) || [])[1] || '';
+    // 畫面上用短寫「v MM-DD 第N版 · HH:MM」（年份省略，完整版號在提示裡）—— 長版在 1280 會把分頁列擠出去、手機會撐出橫向捲軸
+    const vm = b.ver.match(/^\d{4}-(\d{2})-(\d{2})\s*(.*)$/);
+    const short = vm ? `${vm[1]}-${vm[2]}${vm[3] ? ' ' + vm[3].replace(/\s+/g, '') : ''}` : b.ver;
+    el.textContent = `v ${short}${hm ? ' · ' + hm : ''}`;
     const isCommit = /^[0-9a-f]{7,40}$/.test(b.sha);
     el.title = (b.at ? `建置時間 ${b.at}（台北）—— 比對這個時間確認網站換版了沒\n` : '')
       + (b.ver === 'dev' ? '本機開發版，還沒經過部署流程'
@@ -8512,7 +8517,7 @@
       const t = new Date(d.getTime() + 8 * 3600e3);    // 轉台北時間
       return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`; };
     const D_ = meta.data_date || '';
-    $('#asof').textContent = D_ ? `${D_} 盤後` : '—';
+    // ★ 2026-09-24 晚：標題下那行改顯示版號（#buildver），資料日期改寫在它的滑鼠提示第一行，不再覆寫文字。
 
     const bits = [];
     let level = '';                                     // '' 正常 / 'warn' / 'bad'
@@ -8565,7 +8570,8 @@
     else bits.forEach(x => lines.push('· ' + plain(x)));
     if (tail.length) lines.push(tail.map(plain).join('、') + '（台北時間）');
     const asof = $('#asof');
-    if (asof) asof.title = lines.join('\n');
+    if (asof) { asof.dataset.fresh = lines.join('\n'); asof.title = lines.join('\n') + (asof.dataset.live ? '\n\n' + asof.dataset.live : ''); }
+    const bv = $('#buildver'); if (bv) bv.title = '';   // 提示統一掛在 #asof（整行），免得兩層 title 互相蓋
     const b = $('#banner');
     if (b) { b.hidden = true; b.className = 'banner'; b.innerHTML = ''; }
   }
