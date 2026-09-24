@@ -22998,7 +22998,7 @@ def _hm_check(tag, r, kind):
     ok(f"[{tag}] ④ 截斷的名稱至少留兩個字（不再有「M +」這種殘字）",
        all(len(t) >= 3 for t in trunc), trunc[:6])
     # 熱度那兩組（暖金／湖水藍）最亮的兩格改配深字（2026-09-24 Andy 嫌紫色醜之後換的色）；其他格一律白字
-    ink = lambda i: r["inkDark"] if kind == "heatT" and i >= 3 else "#ffffff"   # 09-24 熱度改藍→紅，五格都白字
+    ink = lambda i: r["inkDark"] if (kind == "heat" and 1 <= i <= 3) or (kind == "heatT" and i >= 3) else "#ffffff"   # 09-25 深藍→淺藍→淺紅→深紅，中間三格深字
     lowc = [(c, ink(i), round(_cr(c, ink(i)), 2)) for i, c in enumerate(pal) if _cr(c, ink(i)) < 4.5]
     ok(f"[{tag}] ⑤ 每一級色階上的字（白字，熱度最亮兩格是深字）對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
     ok(f"[{tag}] 方塊圓角 3px、標籤 12px", r["radius"] == 3 and r["fs"] == 12, [r["radius"], r["fs"]])
@@ -23129,13 +23129,11 @@ def t_heatmap_v2(pg, base):
                vals and all(v.endswith("%") for v in vals), vals[:5])
             ok("[#themeMap] 題材細節沒有因為換顏色被重建（只重畫這張圖）",
                pg.evaluate("() => location.hash").startswith("#heatmap"))
-            pg.select_option("#themeColorSel", "heatT"); pg.wait_for_timeout(1400)
-            rt = pg.evaluate(HM_READ, "themeMap")
-            _hm_check("dark 題材 #themeMap 湖水藍", rt, "heatT")
-            ok("[#themeMap] 顏色切到「熱度（湖水藍）」→ 每一格都換成湖水藍 5 格、圖例跟著換",
-               rt and len(rt["cells"]) == 5 and all(lf["fill"] in rt["palT"] + [rt["na"]] for lf in rt["leaves"]), rt and rt["cells"])
-            ok("[#themeMap] 湖水藍的選擇有記住（localStorage tw.themeColor）",
-               pg.evaluate("() => localStorage.getItem('tw.themeColor')") == "heatT")
+            # 2026-09-25 Andy：熱度只留藍→紅一組 → 改前「可切湖水藍」→ 改後「選單裡沒有湖水藍」
+            ok("[#themeMap] 顏色選單只剩「熱度（藍→紅）」與「平均漲跌」（湖水藍已拿掉）",
+               pg.evaluate("() => [...document.querySelectorAll('#themeColorSel option')].map(o => o.value).join(',')") == "heat,chg")
+            ok("[#themeMap] 平均漲跌的選擇有記住（localStorage tw.themeColor）",
+               pg.evaluate("() => localStorage.getItem('tw.themeColor')") == "chg")
             pg.select_option("#themeColorSel", "heat"); pg.wait_for_timeout(1400)
             rh = pg.evaluate(HM_READ, "themeMap")
             ok("[#themeMap] 切回「熱度（藍→紅）」→ 藍→紅 5 格",

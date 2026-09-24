@@ -15,7 +15,7 @@
     /* 熱力圖 v2 的色階（refreshPalette 會從 --hm-* 重讀；這裡只是讀到之前的保底值，跟深色主題的 token 同值）*/
     card: '#0f172b',
     hm: ['#078353', '#066542', '#0D4A35', '#495265', '#6B1927', '#A01831', '#D31239'], hmNa: '#2A3350',
-    hmV: ['#3A5A8C', '#56739E', '#6E6A80', '#A0585A', '#B8453F'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
+    hmV: ['#1F4E8C', '#7EA6D8', '#F0B4AC', '#E0776B', '#B3261E'], hmT: ['#26363B', '#1B5C66', '#13828D', '#27AEB3', '#6FD6CF'], hmInkDark: '#1A1F2B' };
   /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
      「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
@@ -163,7 +163,7 @@
   };
   const hmColor = (bin, kind) => (bin < 0 ? CH.hmNa : (kind === 'heat' ? CH.hmV : kind === 'heatT' ? CH.hmT : CH.hm)[bin]);
   /* 熱度那兩組最亮的兩格（第 4、5 格）太亮，白字不到 4.5:1，改深字。*/
-  const hmDarkInk = (bin, kind) => kind === 'heatT' && bin >= 3;   // 藍→紅那組五格都夠深，一律白字
+  const hmDarkInk = (bin, kind) => (kind === 'heat' && bin >= 1 && bin <= 3) || (kind === 'heatT' && bin >= 3);   // 淺藍／淺紅三格配深字
   const hmCount = (kind) => HM_KIND[kind].cells.length;
   /* 方塊的一格資料：顏色、第幾格、圖例聚焦時的透明度。`focus`＝圖例被點中的那一格（null＝沒有聚焦）。
      無資料的格子底色是淺灰（淺色主題）／深藍灰（深色），字色跟著換，不然白字會看不見。*/
@@ -8592,7 +8592,7 @@
     /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，改用 5 格單色階（09-24 Andy 嫌紫色醜，改暖金／湖水藍）。
        以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
        右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
-    const mode = themeColor === 'chg' || themeColor === 'heatT' ? themeColor : 'heat';
+    const mode = themeColor === 'chg' ? 'chg' : 'heat';   // 2026-09-25 Andy：熱度只留藍→紅一組（湖水藍拿掉；舊存的 heatT 一律回 heat）
     const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7,
       ...hmItem(hmBin(mode !== 'chg' ? t.heat : t.chg_pct, mode), mode, themeFocus) }));
     const valOf = (d) => (d && d.id ? (mode !== 'chg' ? '熱度 ' + d.heat : fmt.pct(d.chg)) : '');
@@ -8610,7 +8610,7 @@
     const ctl = $('#themeCtl');
     if (ctl) {
       ctl.innerHTML = `<label class="hmctl" title="方塊的顏色依據">顏色：<select id="themeColorSel" aria-label="題材熱力圖的顏色依據">`
-        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（藍→紅）</option><option value="heatT"${mode === 'heatT' ? ' selected' : ''}>熱度（湖水藍）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
+        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度（藍→紅）</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
       const sel2 = $('#themeColorSel', ctl);
       if (sel2) sel2.onchange = () => { themeColor = sel2.value; themeFocus = null; hmLSset('tw.themeColor', themeColor); renderThemes(sel, true); };
     }
