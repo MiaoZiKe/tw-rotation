@@ -1236,59 +1236,15 @@
     '技術面找時機：回檔承接還是突破追進',
     '新聞、法說、目標價 —— 有沒有理由今天不要進場',
   ];
-  const MIA_PAGER = {
-    overview: [
-      /* 第①步的主圖是**輪動時鐘**（RRG 四象限）。升格的理由：
-         它就是「錢往哪個族群跑」這個問題最直接的一張圖，
-         而它原本只是總覽中段的一張卡，要捲 1911px 才看得到。*/
-      { s: 1, n: '輪動時鐘', sel: ['#ovRotCard', '#ovRotHead', '#ovRotKpi', '#how-rotm', '#rotClockMiniWrap'] },
-      // 「輪動階段」那張卡在桌機是**一張卡兩件事**（上半時鐘、下半昨日資金去向，量到 1059px）——
-      // 一屏放不下兩件事，手機拆成兩段；`#ovRotCard` 是兩段共用的外殼，
-      // 不同時列的話另一段會留下一個 34px 高的空卡片（實測到的）。
-      { s: 1, n: '資金去向', sel: ['#ovRotCard', '#ovFlowHead', '#ovFlowWrap', '#ovFlowNote'] },
-      { s: 1, n: '熱力圖', sel: ['#ovHeatCard'] },
-      { s: 1, n: '熱門題材', sel: ['#ovThemeCard'] },
-      { s: 2, n: '大盤', sel: ['#m3', '#hero'] },
-      { s: 2, n: '市場寬度', sel: ['#ovBreadthCard'] },
-      { s: 2, n: '法人買超', sel: ['#ovTrustCard'] },
-      { s: 3, n: '今日候選', sel: ['#ovCandCard'] },
-      { s: 4, n: '今日事件', sel: ['#ovEvents'] },
-    ],
-    flow: [
-      { n: '輪動', sel: ['#flowRotCard'] },
-      { n: '資金去向', sel: ['#flowSankeyCard'] },
-      { n: '法人', sel: ['#flowInstCard'] },
-      { n: '集中度', sel: ['#flowConcCard'] },
-    ],
-    season: [
-      { n: '月份熱力', sel: ['#seasonHeatCard'] },
-      { n: '逐年明細', sel: ['#seasonDrillCard'] },
-      { n: '最強族群', sel: ['#seasonTopCard'] },
-    ],
-    /* ⚠ 單一產業鏈頁（`#industry/<chain>`）**刻意不做分段導覽**（做過，撤回了）。
-       原本切成「剖析圖／關聯圖」兩段，390px 從 2561px 收到 844px，數字很漂亮 ——
-       但它把 `#relSec` 底下的 `#segChips`、`.seglist` 收到第二段去，於是既有的
-       「批次29-產業分頁」「產業關係面板」「新-產業與個股」三段當場變紅
-       （`element is not visible`）。那些斷言驗的是「窄畫面照樣點得到個股標籤」，
-       是上一批拍板的行為 —— **既有的拍板優先於我這一版的偏好**。
-       這一頁改成只收兩段長說明（見 miaChain），高度從 2561 收到約 2200。
-       要真的分段，得先把那三段驗收一起改，那是另一批的工作。*/
-    /* ★ 2026-09-24：題材併進熱力圖分頁，原本 `themes` 那兩段接在「產業熱力」後面。
-       分段名稱沿用舊的「題材熱力」「題材細節」—— route() 的 `prefer` 用名字找段落，
-       從熱力方塊點進來（`#heatmap/theme/<id>`）一樣直接翻到「題材細節」。*/
-    heatmap: [
-      { n: '產業熱力', sel: ['#indHeat'] },
-      { n: '題材熱力', sel: ['#themeMapCard'] },
-      { n: '題材細節', sel: ['#themeDetail'] },
-    ],
-    // 個股頁：#stockPage 裡的四塊 ＋ 被 industry.js 搬到它後面的 #indChain
-    stock: [
-      { n: 'K 線', sel: ['#skChartCard'] },
-      { n: '判讀', sel: ['#mtfCard'] },
-      { n: '財報籌碼', sel: ['#stockTabs', '#stockTab'] },
-      { n: '產業鏈', sel: ['#indChain'] },
-    ],
-  };
+  /* ★ 2026-09-24 積木化 #4（docs/feature_modules.md §4 第 4 項）：分段表不再手寫。
+     以前這裡是一張寫死 CSS 選擇器字串的物件表 —— 搬一塊積木要同時改 HTML、render 函式、
+     這張表、`_uitest.py` 的段落對照四處，而且四處之間沒有任何東西綁著。
+     現在它由 site/modules.js 的積木清單產生（每塊積木自己宣告「在哪一頁、哪一段、哪些 DOM」），
+     產生出來的物件形狀跟以前一模一樣（`{ s, n, sel }` 或 `{ n, sel }`），下面的 miaPager 一行都沒改。
+     原本寫在這張表旁邊的理由（#ovRotCard 為什麼出現兩次、題材段名為什麼不能改、
+     單一產業鏈頁為什麼刻意不分段）都搬到 modules.js 各積木的 `note` 裡了。
+     ⚠ modules.js 沒載入時這裡是空表 ＝ 手機不分段、所有東西照常顯示（失敗方向偏向「留著」）。*/
+  const MIA_PAGER = (window.TwModules && window.TwModules.pager()) || {};
 
   /* 目前選到第幾段（每一頁各自記，寫進 localStorage —— 他回到同一頁時停在原地）。*/
   function miaPick(key) {

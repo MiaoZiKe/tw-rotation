@@ -680,6 +680,25 @@
 2. **拆 `stock.signal` / `stock.fund`**（#3）—— 把 🔴 與 🟡 分開，分層表才放得下。
 3. **`MIA_PAGER` 改成從模組清單生成**（#4 ＋ #12）—— 一次解決「搬一塊要改四處」。
 
+### 第一梯次實作紀錄（2026-09-24，UI 專家，純重構、畫面零差異）
+
+| 項目 | 狀態 | 落在哪 |
+|---|---|---|
+| #2 `broker.views` | ✅ | `site/blocks/broker_views.js`：一份輸入、一個出口 `BrokerViews.view(rows, 'feed'｜'card', fmt)`，對外欄位只在 `pick()` 決定。`renderEvents`／`tabNews` 都改呼叫它；擋掉那支檔整站照常 |
+| #3 `stock.signal`／`stock.fund` | ✅ | `industry.js` 的 `fundCard`／`chipCard`（`stock.fund`）＋ `site/blocks/stock_signal.js`（`stock.signal`，一份輸入 `{summary, verdict}`）|
+| #4b 全域 `D` 當隱性參數 | 🟡 部分 | `renderTrust`／`wireStreak` 改收 `inst_streak` 參數；`renderOverview` 不再用 `, ,` 丟回傳值。**其餘清單見下** |
+| #4 ＋ #12 `MIA_PAGER` 從清單產生 | ✅ | `site/modules.js`（27 塊積木的唯一宣告，資料是夾在標記之間的純 JSON，Python 也讀得到）。`MIA_PAGER = TwModules.pager()`，產生的物件跟手寫版逐字相同；`_uitest.py --module <id>`／`--list-modules` 從同一份清單挑段落 |
+
+**#4b 還沒處理的 `D.<表名>` 讀者**（留給下一棒，理由逐條）：
+- `groups_detail`×12（`heatPanel`、`toggleRotMembers`、`renderDrillPanel`、`renderDrillChainPanel`、`rlvCodes`／`rlvCompute`、`sklWeights`／`sklFetch`、`expandRows`／`expandBabies`、`mudCodes`、`drawMarket`）：
+  它們是好幾頁共用的展開／即時工具，要改成參數得整條呼叫鏈一起穿，跟第二梯次「`core.filter`／`core.live`」一起做才不會改兩次。
+- `renderMarket`＋`drawMarket` 那一組（`stocks`×4、`market_heat`、`groups_today`、`candidates`）：跟總覽同一種寫法（`Promise.all` 丟回傳值），
+  **但不能直接改**：`route()` 是先設 `rendered.market = true` 再 `await renderMarket()`，這段空檔裡再來一次 hashchange 就會直接呼叫 `drawMarket`；
+  現在它讀得到別頁先載好的 `D`，改成只讀自己的輸入會在這個空檔畫出空的 —— 那是行為改變，不是純重構。要先修 `route()` 的閘門。
+- `miaRotKpi` 的 `D.flow_v3`、`route()` 的 `D.themes`：`core.mobileIA`／`core.route` 讀積木的資料，該等第二梯次的模組宣告（`inputs[]`）一起改。
+  `route()` 那條若改成 `await load('themes')`，載入失敗時會變成重抓一次（`load` 對 null 不快取），也是行為改變。
+- `renderInstPeriod` 的 `D.meta`（3 處）、`industry.js` 的 `A.D.meta`（2 處）、`live.js` 的 `A.D.meta`：`meta` 是全站共用的版本資訊，屬於 `core.freshness`，不算積木之間的暗道。
+
 **第二梯次（結構，各 2～4 天）**
 
 4. **模組宣告檔 ＋ 版面設定**（#1 ＋ #9 ＋ #11）：

@@ -10858,6 +10858,8 @@ SECTIONS = {
     "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
     "積木-個股三卡":       lambda pg, b, base, code: t_block_stock_cards(b, base, code),
     "積木-隱性參數":       lambda pg, b, base, code: t_block_implicit(b, base),
+    # 積木清單（site/modules.js）：27 個 id 跟文件一致、手機分段列由它產生而且每段真的切得動
+    "積木清單":            lambda pg, b, base, code: t_block_registry(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11734,8 +11736,10 @@ def _selected(args, name: str) -> bool:
     """
     if args.sections:
         return name in [x.strip() for x in args.sections.split(",")]
-    if args.only:
-        return _want(args.only, name)
+    if getattr(args, "module", "") or args.only:
+        # --module 與 --only 可以一起給，取聯集
+        return (bool(args.only) and _want(args.only, name)) \
+            or (bool(getattr(args, "module", "")) and name in _module_sections(args.module))
     return True
 
 
@@ -11842,7 +11846,24 @@ def main() -> int:
     #   預設 4：實測 31 段一輪 15 分鐘，最長的那幾段各 2~3 分鐘，
     #   再多開也被最長那一段卡住，而且每個 worker 都要吃一個 Chromium 的記憶體。
     ap.add_argument("--workers", type=int, default=4)
+    # --module：用積木 id 挑段落（逗號分隔，例：`--module broker.views,stock.signal`）。
+    #   段落清單讀 site/modules.js 的 `tests` 欄位 —— 跟 app.js 產生手機分段表的是同一份清單，
+    #   積木改名／搬家時驗收段落會跟著走，不必再去對 CLAUDE.md 那張人工表。
+    #   前綴也行：`--module flow.` ＝ 所有 flow.* 積木。一律連帶跑「積木清單」。
+    ap.add_argument("--module", default="")
+    # --list-modules：印出「積木 → 驗收段落」對照表就結束（不開瀏覽器）
+    ap.add_argument("--list-modules", action="store_true")
     args = ap.parse_args()
+
+    if args.list_modules:
+        for m in _modules()["list"]:
+            print(f"{m['id']:<16} {m['law']} {m['question']:<3} {m['name']:<14} → {'、'.join(m.get('tests') or [])}")
+        return 0
+    if args.module:
+        unknown = [x for x in args.module.split(",") if x.strip() and not any(
+            m["id"] == x.strip() or m["id"].startswith(x.strip()) for m in _modules()["list"])]
+        if unknown:
+            print(f"不認得的積木 id：{'、'.join(unknown)}（用 --list-modules 看清單）"); return 2
 
     # 父行程模式：自己不跑瀏覽器，只負責拆工與合併
     if args.workers > 1 and not args.json:
@@ -22828,6 +22849,139 @@ def t_block_stock_cards(b, base, code):
     ok(f"【{tag}】關掉之後沒有任何 JS 錯誤（原則三：能單獨關閉）", not errs, errs[:2])
     ctx.close()
 
+
+_MODULES_CACHE: dict | None = None
+
+
+def _modules() -> dict:
+    """讀 site/modules.js 的積木清單。那支檔把資料寫成夾在標記之間的純 JSON，就是為了這裡能直接讀，
+    不必為了一份清單在 Python 端跑 JavaScript。"""
+    global _MODULES_CACHE
+    if _MODULES_CACHE is None:
+        src = (SITE / "modules.js").read_text(encoding="utf-8")
+
+        def block(tag):
+            a = src.index(f"/*{tag}-JSON*/") + len(f"/*{tag}-JSON*/")
+            return json.loads(src[a:src.index(f"/*END-{tag}-JSON*/")])
+        _MODULES_CACHE = {"list": block("MODULES"), "pages": block("PAGES")}
+    return _MODULES_CACHE
+
+
+def _module_sections(spec: str) -> set[str]:
+    """`--module a,b` → 要跑的段落名集合（積木自己的 tests ＋「積木清單」）。支援前綴（`flow.`）。"""
+    want = [x.strip() for x in spec.split(",") if x.strip()]
+    out = {"積木清單"}
+    for m in _modules()["list"]:
+        if any(m["id"] == w or m["id"].startswith(w) for w in want):
+            out.update(m.get("tests") or [])
+    return out
+
+
+def t_block_registry(b, base, code):
+    """積木清單（site/modules.js）本身的驗收。
+
+    ① 清單裡的 27 個 id ＝ docs/feature_modules.md §3 的 27 個 id（名稱對不起來＝文件與程式分家了）
+    ② 每一塊積木的 `tests` 都是真的存在的段落（不然 `--module` 會默默少跑）
+    ③ 桌機 1440：每一個「不參與手機分段」的放置，選擇器在那一頁真的抓得到
+    ④ 手機 390：畫面上的分段列（主軸四步 ＋ 每一步底下的分段）跟清單產生出來的**逐字相同**，
+       而且**真的點每一段**，那一段宣告的 DOM 要顯示、只屬於別段的 DOM 要被收起來（畫面真的變了）。"""
+    tag = "積木清單"
+    mods = _modules()
+    ids = [m["id"] for m in mods["list"]]
+    doc = (ROOT / "docs" / "feature_modules.md").read_text(encoding="utf-8")
+    doc_ids = re.findall(r"^### \d+\. `([a-z]+\.[a-z]+)`", doc, re.M)
+    ok(f"【{tag}】modules.js 的積木 id ＝ docs/feature_modules.md §3 的 id（{len(doc_ids)} 個）",
+       sorted(ids) == sorted(doc_ids) and len(ids) == len(set(ids)) == 27,
+       {"只在程式": sorted(set(ids) - set(doc_ids)), "只在文件": sorted(set(doc_ids) - set(ids)), "n": len(ids)})
+    missing = sorted({t for m in mods["list"] for t in (m.get("tests") or []) if t not in SECTIONS})
+    ok(f"【{tag}】每塊積木宣告的驗收段落都真的存在", not missing, missing)
+    bad_page = sorted({p["page"] for m in mods["list"] for p in m["at"] if p["page"] not in mods["pages"]})
+    ok(f"【{tag}】每個放置的 page 都在 PAGES 裡", not bad_page, bad_page)
+
+    url = lambda page: base + mods["pages"][page].replace("{code}", code)  # noqa: E731
+
+    # ---------- ③ 桌機：不參與分段的放置，選擇器真的抓得到 ----------
+    ctx = b.new_context(viewport={"width": 1440, "height": 900})
+    errs: list[str] = []
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    by_page: dict[str, list] = {}
+    for m in mods["list"]:
+        for p in m["at"]:
+            if not p.get("seg"):
+                by_page.setdefault(p["page"], []).append((m["id"], p["selector"]))
+    for page, items in by_page.items():
+        pg.goto("about:blank"); pg.goto(url(page), wait_until="networkidle"); pg.wait_for_timeout(1800)
+        for mid, sels in items:
+            miss = pg.evaluate("(ss) => ss.filter(s => !document.querySelector('main .view.on ' + s))", sels)
+            ok(f"【{tag}】桌機 {mods['pages'][page]}：積木 {mid} 宣告的 DOM 都在畫面上", not miss, miss)
+    ok(f"【{tag}】桌機走過每一頁沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ④ 手機：分段列 ＝ 清單產生的分段，而且每一段真的切得動 ----------
+    ctx = b.new_context(**MOBILE_VP)
+    errs = []
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+    gen = m.evaluate("() => window.TwModules && window.TwModules.pager()")
+    ok(f"【{tag}】頁面上拿得到清單產生的分段表（{len(gen or {})} 頁）", bool(gen), gen)
+    for page, segs in (gen or {}).items():
+        m.goto("about:blank"); m.goto(url(page), wait_until="networkidle"); m.wait_for_timeout(1800)
+        steps = sorted({g.get("s", 0) for g in segs})
+        for st in steps:
+            if st:
+                m.evaluate(f"() => document.querySelectorAll('.view.on > .mspine > button')[{steps.index(st)}].click()")
+                m.wait_for_timeout(500)
+            want = [g for g in segs if g.get("s", 0) == st]
+            # 抓不到任何元素的段會被 miaPager 略過（例如簡版個股頁沒有 #mtfCard），比對時一起略過
+            present = m.evaluate("(ws) => ws.map(g => g.sel.some(s => document.querySelector('.view.on ' + s) || document.querySelector(s)))", want)
+            want = [g for g, keep in zip(want, present) if keep]
+            labels = m.evaluate("() => [...document.querySelectorAll('.view.on > .mpager > button')].map(b => b.textContent)")
+            where = f"{mods['pages'][page]}" + (f" 第{st}步" if st else "")
+            if len(want) >= 2:
+                ok(f"【{tag}】手機 {where}：分段列 ＝ 清單產生的段名（{'／'.join(g['n'] for g in want)}）",
+                   labels == [g["n"] for g in want], [labels, [g["n"] for g in want]])
+            for k, g in enumerate(want):
+                if len(want) >= 2:
+                    m.evaluate(f"() => document.querySelectorAll('.view.on > .mpager > button')[{k}].click()")
+                    m.wait_for_timeout(350)
+                others = [s for h in want if h is not g for s in h["sel"] if s not in g["sel"]]
+                vis = m.evaluate("""([mine, others]) => {
+                    const q = s => document.querySelector('.view.on ' + s) || document.querySelector(s);
+                    // 看的是分段導覽自己下的 .mp-off（含祖先），不是 display：「怎麼看」說明本來就預設收合，那不是分段造成的
+                    const shown = s => { const e = q(s); return !!e && !e.closest('.mp-off'); };
+                    return { mine: mine.filter(s => q(s)).map(s => [s, shown(s)]),
+                             others: others.filter(s => q(s)).map(s => [s, shown(s)]) }; }""", [g["sel"], others])
+                # 清單裡寫的選擇器在手機上一個都不能是死的（這條不是自己跟自己比：選擇器寫錯，這裡就紅）
+                dead = [s for s in g["sel"] if s not in [x for x, _ in vis["mine"]]]
+                ok(f"【{tag}】手機 {where}「{g['n']}」：清單宣告的選擇器都抓得到", not dead, dead)
+                hidden_mine = [s for s, on in vis["mine"] if not on]
+                shown_others = [s for s, on in vis["others"] if on]
+                ok(f"【{tag}】手機 {where}「{g['n']}」：自己的 DOM 全部顯示、只屬於別段的 DOM 全部收起",
+                   not hidden_mine and not shown_others and vis["mine"],
+                   {"該顯示卻沒顯示": hidden_mine, "該收卻沒收": shown_others})
+    ok(f"【{tag}】手機走過每一段沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
+
+    # ---------- ⑤ 清單本身擋掉：手機不分段、所有卡片照常顯示（失敗方向偏向「留著」），沒有 JS 錯誤 ----------
+    ctx = b.new_context(**MOBILE_VP)
+    errs = []
+    m = ctx.new_page()
+    m.on("pageerror", lambda e: errs.append(str(e)))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.route("**/modules.js*", lambda r: r.abort())
+    m.goto(base + "#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
+    st = m.evaluate("""() => ({ mods: typeof window.TwModules, pager: document.querySelectorAll('.view.on > .mpager').length,
+        off: document.querySelectorAll('.view.on .mp-off').length,
+        shown: ['#ovHeatCard', '#ovTrustCard', '#ovCandCard'].filter(s => { const e = document.querySelector(s);
+          return e && e.getBoundingClientRect().height > 0; }).length })""")
+    ok(f"【{tag}】擋掉 modules.js：沒有分段列、沒有被收起的卡、熱力／法人／候選三張卡都照常顯示",
+       st["mods"] == "undefined" and st["pager"] == 0 and st["off"] == 0 and st["shown"] == 3, st)
+    ok(f"【{tag}】擋掉 modules.js 之後沒有 JS 錯誤", not errs, errs[:2])
+    ctx.close()
 
 
 def t_block_implicit(b, base):
