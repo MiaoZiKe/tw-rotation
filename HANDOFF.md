@@ -1,5 +1,34 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 批次 0924-H（`frontend-ui`）：題材併進熱力圖 ＋ 頂欄精簡（2026-09-24，台北）
+
+Andy 原話：「題材內 熱力圖 放到熱力圖分頁 按鈕更新、設定 版都移除 版號只留文字 並旁邊留當下時間」。
+
+- 題材分頁併進「熱力圖」：新網址 `#heatmap/theme/<id>`，點題材方塊原地展開剖析圖，有「收起 ✕」。
+  舊網址 `#themes`／`#themes/<id>` 用 `location.replace` 導過去（上一頁不會迴圈）。頂層分頁 8 → 7。
+- 拿掉 `#liveBtn`／`#liveGear`／`#livePop` 與手機「⋯」的 `#mmLive`／`#mmGear`；自動更新照跑。
+  連帶：連續失敗 3 次不再停擺，改每 5 分鐘重試；盤中「有新資料」改成點即時那顆重新載入；
+  放棄 SSE 後改在分頁回前景時重試；盤前開的頁面過 09:00 會自己換成每分鐘。
+- 即時那顆只顯示時間，狀態搬進 `title`；版號只顯示「v 日期 第 N 版」，建置時間在 `title` 第一行。
+- ⚠ 設定面板拿掉後沒有介面可以改 `tw.live.proxy`／`tw.live.on`，也沒有「測試連線」了。
+
+**這批驗了哪幾段**：`_preview.py` 全綠；`_uitest --only 題材,盤中即時,即時推送,網頁版號,手機改版,UI精修0923,資料狀態 --workers 1`
+（連帶跑到 `題材2D`）全部 0 個問題。`一般電子鏈` 4 條紅是既有的（未改動的 main 同樣 4 條）。
+**沒跑 pytest**（只動 `site/**` 與 `_uitest.py`，tests 沒有 import 它）。
+
+## 設計系統 v2 規格（`visual-designer`，2026-09-24）
+
+`docs/design_system_v2.md`：從 Andy 給的三張截圖量出的間距／字級／圓角／熱力圖 7 格色階，分 7 批上線。
+第 1、2 批動全站共用 CSS，要在這批之後開工。第 6 批（同意橫幅＋法律頁）**卡在 Andy 填條款空格**
+（營業人名稱、email、生效日期）。預設主題暫維持深色。
+
+## 積木版面設計器（私人 Artifact，不在 repo）
+
+<https://claude.ai/artifact/8BathC1yk7yD8PAbbbeZxT> —— Andy 用拖拉排 27 塊積木的版面。
+存檔在該 Artifact 的資料庫 `layouts/current`（版本在 `versions`），用 `ArtifactData` 讀。
+Andy 說「照設計器做」時讀它產出模板。
+
+
 ## 批次 0923-D（`tech-illustrator`）：題材圖一律水平 ＋ 替代卡片移除 ＋ 版面收一階
 
 Andy 原話：「題材頁面 下方處可以移除」「也看到部分提才是垂直版面，題材一律統一水平，

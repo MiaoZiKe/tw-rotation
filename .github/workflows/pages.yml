@@ -82,9 +82,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          SINCE=$(TZ=Asia/Taipei date +%Y-%m-%d)T00:00:00+08:00
+          # ⚠ 網址裡的 + 一定要寫成 %2B：沒編碼的 + 會被伺服器解成空白，時區就錯了，
+          # 等於從 UTC 00:00（台北 08:00）起算 —— 台北 00:00～08:00 的部署都沒被數到
+          # （2026-09-24 deployer 實測：沒編碼回 2、編碼後回 8；也是 09-23「推 14 看到 5」的原因）。
+          SINCE=$(TZ=Asia/Taipei date +%Y-%m-%d)T00:00:00%2B08:00
           N=$(gh api "repos/${{ github.repository }}/actions/workflows/pages.yml/runs?created=%3E%3D${SINCE}&per_page=100" --jq '.total_count' 2>/dev/null || echo "")
-          echo "今天（台北 ${SINCE}）第 ${N:-?} 次部署"
+          echo "今天（台北 ${SINCE/\%2B/+}）第 ${N:-?} 次部署"
           echo "n=${N}" >> "$GITHUB_OUTPUT"
 
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）

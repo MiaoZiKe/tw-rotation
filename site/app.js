@@ -11,7 +11,11 @@
   /* 圖表色票。深色是預設值；切到明亮主題時 refreshPalette() 會就地改寫這個物件
      （所有圖表都是在 render 當下才讀它，改完重畫就會換色）。 */
   const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b',
-    ink: '#e8eeff', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48', grid: 'rgba(255,255,255,.05)', panel: '#0a1020' };
+    ink: '#e8eeff', ink2: '#a9b6d6', ink3: '#6f7ea3', line: '#1e2a48', grid: 'rgba(255,255,255,.05)', panel: '#0a1020',
+    /* 熱力圖 v2 的色階（refreshPalette 會從 --hm-* 重讀；這裡只是讀到之前的保底值，跟深色主題的 token 同值）*/
+    card: '#0f172b',
+    hm: ['#078353', '#066542', '#0D4A35', '#495265', '#6B1927', '#A01831', '#D31239'], hmNa: '#2A3350',
+    hmV: ['#322e46', '#433a7c', '#503fbe', '#604dd8', '#705deb'] };
   /* 分類色盤。深色主題那組是螢光色，畫在近白色的面板上（供應鏈環節的小標籤、
      族群卡片、折線）對比度只有 1.5 左右，等於看不見（Andy 2026-09-16
      「切換回白色 UI 後需要更改的顏色」）。淺色主題換成同色相壓深的一組。
@@ -125,6 +129,167 @@
       upper: { color: lt ? CH.ink2 : '#a9b6d6', backgroundColor: lt ? 'rgba(15,24,48,.06)' : 'rgba(0,0,0,.25)' },
     };
   };
+
+  /* ================================================================ 熱力圖 v2（2026-09-24）
+     規格：docs/design_system_v2.md §3.1。三張 treemap（總覽 #heat、熱力圖頁 #indTree、題材 #themeMap）共用。
+     Andy：「包含他的熱力圖 明顯好看很多，幫我優化圖表」。從他給的參考截圖量到、並改成我們自己的做法的四件事：
+       ① **離散 7 格色階**取代連續透明度 —— 連續色讀不出「這格是哪一級」，7 格配圖例一眼就對得上。
+          小漲小跌最暗、大漲大跌最亮、0 是中性灰；色相跟 --rise／--fall 同一個（不是抄對方的色）。
+       ② 方塊之間 **2px** 間隙（產業鏈之間 6px），間隙色＝卡片底，看起來是「白縫」而不是黑框。
+       ③ 方塊圓角 3px。
+       ④ 標籤分三級：放得下「名稱＋數值」才寫兩行、只放得下名稱就只寫名稱（必要時截斷成「前 N 字…」）、
+          再小就**什麼都不寫** —— 以前會截成「M +」「AI -0」這種看不懂的殘字。
+          不寫字的方塊資訊沒有消失：滑上去有提示框、圖下方的連結列照樣列出前 14 名。
+     顏色一律讀 CSS token（--hm-*），**不准寫死**；切主題時 refreshPalette() 會重讀。*/
+  const HM_KIND = {
+    // 邊界定義照規格寫（不准就近湊）：v<-3｜-3≤v<-1｜-1≤v<0｜四捨五入到 2 位＝0｜0<v≤1｜1<v≤3｜v>3
+    chg: { title: '漲跌幅 (%)', edges: [-3, -1, 0, 1, 3], cells: ['<-3', '-3~-1', '-1~0', '0', '0~1', '1~3', '>3'] },
+    // 總覽那張的顏色是資金流向 pp（5 日 vs 20 日佔比）。門檻＝原本「×3、cap 3」換算回來，色的飽和點不變。
+    flow: { title: '資金流向 (pp)', edges: [-1, -0.33, 0, 0.33, 1], cells: ['<-1', '-1~-0.33', '-0.33~0', '0', '0~0.33', '0.33~1', '>1'] },
+    // 題材熱度 0～100：不用紅綠（紅在這個站是「漲」，熱度不是漲跌），改 5 格單一色相（紫）。切點跟舊的 heatColor 一樣。
+    heat: { title: '熱度', edges: [30, 45, 60, 75], cells: ['<30', '30~45', '45~60', '60~75', '≥75'] },
+  };
+  /* 值 → 第幾格（-1＝無資料）。7 格那兩種回 0～6、熱度回 0～4。*/
+  const hmBin = (v, kind) => {
+    if (v === null || v === undefined || !Number.isFinite(+v)) return -1;
+    v = +v;
+    const e = HM_KIND[kind].edges;
+    if (kind === 'heat') return v < e[0] ? 0 : v < e[1] ? 1 : v < e[2] ? 2 : v < e[3] ? 3 : 4;
+    if (Math.round(v * 100) / 100 === 0) return 3;
+    if (v < e[0]) return 0; if (v < e[1]) return 1; if (v < 0) return 2;
+    if (v <= e[3]) return 4; if (v <= e[4]) return 5; return 6;
+  };
+  const hmColor = (bin, kind) => (bin < 0 ? CH.hmNa : (kind === 'heat' ? CH.hmV : CH.hm)[bin]);
+  const hmCount = (kind) => HM_KIND[kind].cells.length;
+  /* 方塊的一格資料：顏色、第幾格、圖例聚焦時的透明度。`focus`＝圖例被點中的那一格（null＝沒有聚焦）。
+     無資料的格子底色是淺灰（淺色主題）／深藍灰（深色），字色跟著換，不然白字會看不見。*/
+  const hmItem = (bin, kind, focus) => {
+    const dim = focus != null && focus !== bin;
+    const na = bin < 0;
+    return { bin, itemStyle: { color: hmColor(bin, kind), opacity: dim ? 0.25 : 1 },
+      label: { color: dim ? CH.ink3 : (na ? (theme() === 'light' ? CH.ink : CH.ink2) : '#fff') } };
+  };
+  /* treemap 的殼：間隙 2／6、圓角 3、間隙色＝卡片底。`nested`＝有產業鏈分組那一層。
+     ⚠ ECharts 的 treemap 用「父節點的 borderColor」當間隙的顏色 —— 所以這裡的 borderColor 就是「縫」的顏色。*/
+  const hmSeries = (nested, upperH) => {
+    const gapC = CH.card;
+    const leaf = { itemStyle: { borderWidth: 0, gapWidth: 0, borderRadius: 3, borderColor: gapC } };
+    return {
+      itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 3 },
+      label: { show: true, fontSize: 12, fontWeight: 700, lineHeight: 16, color: '#fff', textShadowBlur: 0,
+        overflow: 'truncate', ellipsis: '…', fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif' },
+      upperLabel: { show: !!nested, height: upperH || 22, fontSize: 12, fontWeight: 700, color: CH.ink2,
+        backgroundColor: 'transparent', textShadowBlur: 0 },
+      levels: nested
+        ? [{ itemStyle: { borderWidth: 0, gapWidth: 6, borderColor: gapC } },
+          { itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 0 } }, leaf]
+        : [{ itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC } }, leaf],
+    };
+  };
+  /* ---- 標籤分三級（兩段式）----
+     ECharts 的 label.formatter 拿不到方塊尺寸，所以：先 setOption 一次 → 讀每一格排好的 {width,height}
+     → 算好每格要寫幾行 → 第二次 setOption 把新的 formatter 寫回去（跟輪動時鐘的標籤避讓同一個做法）。
+     字寬用 canvas measureText 量，不用「字數 × 12」估（中英數混排差很多）。*/
+  let _hmCtx = null;
+  const hmTextW = (s, fs) => {
+    if (!_hmCtx) { try { _hmCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _hmCtx = null; } }
+    if (!_hmCtx) return String(s).length * fs;
+    _hmCtx.font = `700 ${fs}px Noto Sans TC, JetBrains Mono, sans-serif`;
+    return _hmCtx.measureText(String(s)).width;
+  };
+  const hmKey = (d) => (d ? (d.gid || d.id || d.cid || d.name) : '');
+  /* 規則（規格 §3.1-5）：
+       寬 ≥ 名稱與數值中較寬者 + 16 **且** 高 ≥ 44 → 兩行（名稱／數值）
+       寬 ≥ 48 **且** 高 ≥ 24 → 只有名稱；放不下就截成「前 N 字…」（N ≥ 2，放不下兩個字就不寫）
+       更小 → 不寫 */
+  function hmLayoutLabels(c, valueOf) {
+    if (!c || c.isDisposed()) return {};
+    const sm = c.getModel().getSeriesByIndex(0); if (!sm) return {};
+    const tree = sm.getData().tree; const fs = 12;
+    const out = {};
+    tree.root.eachNode(n => {
+      if (n.children && n.children.length) return;
+      const l = n.getLayout(); if (!l || !l.isInView) return;
+      const raw = n.getModel().option || {};
+      const name = String(n.name || ''), val = valueOf(raw);
+      const w = l.width, h = l.height;
+      const nw = hmTextW(name, fs), vw = val ? hmTextW(val, fs) : 0;
+      let text = '', mode = 0;
+      if (val && w >= Math.max(nw, vw) + 16 && h >= 44) { text = name + '\n' + val; mode = 2; }
+      else if (w >= 48 && h >= 24) {
+        if (nw + 12 <= w) { text = name; mode = 1; }
+        else {
+          const chars = Array.from(name);
+          for (let k = chars.length - 1; k >= 2; k--) {
+            const t = chars.slice(0, k).join('') + '…';
+            if (hmTextW(t, fs) + 12 <= w) { text = t; mode = 1; break; }
+          }
+        }
+      }
+      out[hmKey(raw)] = { mode, text, w: Math.round(w), h: Math.round(h) };
+    });
+    return out;
+  }
+  /* 畫完後補上標籤；尺寸變了（視窗縮放、滾輪放大、放大罩）再算一次。
+     `finished` 會在每一次重畫之後觸發，所以用「尺寸簽名」擋掉重複計算，不然會無限迴圈。*/
+  function hmRelabel(c, valueOf) {
+    if (!c) return;
+    const el = c.getDom();
+    const apply = () => {
+      if (c.isDisposed()) return;
+      el._hmLab = hmLayoutLabels(c, valueOf);
+      el._hmSig = c.getWidth() + 'x' + c.getHeight();
+      const lab = el._hmLab;
+      c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } } }] });
+    };
+    apply();
+    if (!el._hmFin) {
+      el._hmFin = true;
+      c.on('finished', () => {
+        if (c.isDisposed() || !el._hmRe) return;
+        const sig = c.getWidth() + 'x' + c.getHeight();
+        if (sig !== el._hmSig) el._hmRe();
+      });
+    }
+    el._hmRe = apply;
+  }
+  /* 提示框（規格 §3.1-7）：標題 13px 半粗＋所屬 12px；每一列「色點 名稱 …… 值」，值靠右、等寬數字。*/
+  function hmTip(title, sub, rows, foot) {
+    const row = (r) => `<div style="display:flex;align-items:center;gap:8px;margin-top:6px;font-size:12px;color:${CH.ink3}">`
+      + `<span style="width:6px;height:6px;border-radius:50%;background:${r.dot || CH.ink3};flex:none"></span><span>${r.k}</span>`
+      + `<span style="margin-left:auto;padding-left:14px;font-size:13px;color:${r.c || CH.ink};font-variant-numeric:tabular-nums;white-space:nowrap">${r.v}</span></div>`;
+    return `<div style="min-width:180px;line-height:1.35"><div style="font-size:13px;font-weight:600;color:${CH.ink}">${fmt.esc(title)}`
+      + `${sub ? ` <span style="font-size:12px;font-weight:400;color:${CH.ink3}">${fmt.esc(sub)}</span>` : ''}</div>`
+      + rows.map(row).join('')
+      + (foot ? `<div style="margin-top:8px;font-size:12px;color:${CH.ink3}">${foot}</div>` : '') + '</div>';
+  }
+  const hmTipOpt = () => ({ ...tip, padding: [12, 14] });
+  /* 圖例（規格 §3.1-6）：圖的右下、圖底往下 16px；左邊標題、右邊一條膠囊，每格是一級。
+     點一格 → 只亮這一級的方塊（其他退到 25%）；再點一次還原。`onFocus(bin|null)` 由呼叫端重畫。
+     掛在 .zwrap 外面（跟 linkRow 同一個理由：放大時不會跟著被裁掉），而且排在連結列前面。*/
+  function hmLegend(afterId, kind, focus, onFocus) {
+    const el = document.getElementById(afterId); if (!el) return null;
+    const at = el.closest('.zwrap') || el;
+    let lg = at.nextElementSibling;
+    if (!lg || !lg.classList.contains('hmlegend')) {
+      lg = document.createElement('div'); lg.className = 'hmlegend';
+      at.parentNode.insertBefore(lg, at.nextSibling);
+    }
+    const K = HM_KIND[kind];
+    lg.dataset.kind = kind;
+    lg.classList.toggle('focus', focus != null);
+    lg.innerHTML = `${focus != null ? '<span class="hmhint">只亮這一級 · 再點一次還原</span>' : ''}<span class="hmttl">${K.title}</span>`
+      + `<span class="hmbar" role="group" aria-label="${K.title} 圖例：點一格只看這一級">`
+      + K.cells.map((t, i) => `<button type="button" class="hmcell${focus === i ? ' on' : ''}" data-bin="${i}" style="--c:${hmColor(i, kind)}"`
+        + ` aria-pressed="${focus === i}" title="${K.title} ${t}：點一下只亮這一級">${t}</button>`).join('')
+      + '</span>';
+    $$('.hmcell', lg).forEach(b => b.onclick = () => { const i = +b.dataset.bin; onFocus(focus === i ? null : i); });
+    return lg;
+  }
+  /* 卡片標題列的日期膠囊：這份資料的交易日，只顯示、不能改。圖示是內嵌 SVG（不引入圖示庫）。*/
+  const hmDate = (d) => d ? `<span class="hmctl date" title="這張圖的資料日期（交易日）"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
+  const hmLS = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
+  const hmLSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
   async function load(name, opt) {
     if (D[name] && !opt) return D[name];
     try { const r = await fetch(`data/${name}.json?v=${(D.meta && D.meta.generated_at) || ''}`, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); D[name] = await r.json(); }
@@ -210,8 +375,16 @@
     axisStyle.axisLine.lineStyle.color = CH.line;
     axisStyle.axisLabel.color = CH.ink3;
     axisStyle.splitLine.lineStyle.color = CH.grid;
-    tip.backgroundColor = v('--panel-2', '#141e36');
-    tip.borderColor = v('--line-2', '#2a3860');
+    CH.card = v('--panel', '#0f172b');
+    CH.hm = ['--hm-n3', '--hm-n2', '--hm-n1', '--hm-0', '--hm-p1', '--hm-p2', '--hm-p3'].map((n, i) => v(n, CH.hm[i]));
+    CH.hmNa = v('--hm-na', CH.hmNa);
+    CH.hmV = ['--hm-v1', '--hm-v2', '--hm-v3', '--hm-v4', '--hm-v5'].map((n, i) => v(n, CH.hmV[i]));
+    /* ★ 2026-09-24 設計系統 v2 §2.2：提示框改成半透明＋毛玻璃、圓角 10、柔和陰影。
+       透明度是算過的（淺色 86%／深色 88%），參考站的 70% 疊在最深的方塊上次要字只剩 3.71:1。*/
+    tip.backgroundColor = v('--tip-bg', 'rgba(20,30,54,.88)');
+    tip.borderColor = v('--tip-line', '#2a3860');
+    tip.borderWidth = theme() === 'light' ? 0 : 1;
+    tip.extraCssText = `border-radius:10px;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);box-shadow:${v('--tip-sh', '0 8px 24px -8px rgba(0,0,0,.55)')};`;
     tip.textStyle.color = CH.ink;
     if (window.KUtil && window.KUtil.refreshTheme) window.KUtil.refreshTheme();
   }
@@ -1298,7 +1471,7 @@
     let box = old;
     if (!box) {
       box = document.createElement('div');
-      box.className = 'card'; box.id = 'ovEvents'; box.style.marginTop = '16px';
+      box.className = 'card'; box.id = 'ovEvents'; box.style.marginTop = 'var(--gap-card)';
       view.appendChild(box);
     }
     const rows = items.slice(0, 8).map(i => `<a class="ev" href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener">`
@@ -1829,13 +2002,13 @@
         formatter: (ps) => { const i = ps[0].dataIndex;
           return `<b>${labels[i]}%</b><br>${bins[i]} 檔（${fmt.n(bins[i] / n * 100, 1)}%）<br><small>點一下只看這一段</small>`; } },
       grid: { left: 50, right: 20, top: 26, bottom: 34 },
-      xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 10.5, interval: 0, rotate: 30 } },
-      yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3 } },
+      xAxis: { ...axisStyle, type: 'category', data: labels, axisLabel: { color: CH.ink3, fontSize: 12, interval: 0, rotate: 30 } },
+      yAxis: { ...axisStyle, name: '家數', nameTextStyle: { color: CH.ink3, fontSize: 12 }, axisLabel: { color: CH.ink3 } },
       series: [
         { type: 'bar', data: bins.map((v, i) => ({ value: v,
             itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0] } })),
           barWidth: '72%',
-          label: { show: true, position: 'top', color: CH.ink3, fontSize: 10.5,
+          label: { show: true, position: 'top', color: CH.ink3, fontSize: 12,
             formatter: (q) => (q.value ? `${q.value}` : '') } },
         { type: 'line', data: norm, smooth: true, symbol: 'none', silent: true,
           lineStyle: { color: hexA(CH.ink3, .8), width: 1.4, type: 'dashed' } },
@@ -2206,7 +2379,9 @@
   function linkRow(afterId, html, label) {
     const el = document.getElementById(afterId); if (!el) return;
     // 圖被包進放大層時，連結列要掛在放大層外面，否則放大時會跟著被裁掉
-    const at = el.closest('.zwrap') || el;
+    let at = el.closest('.zwrap') || el;
+    // 熱力圖的圖例（.hmlegend）緊貼在圖下面，連結列排在圖例後面 —— 跳過它，不然每重畫一次就多長一條連結列
+    if (at.nextElementSibling && at.nextElementSibling.classList.contains('hmlegend')) at = at.nextElementSibling;
     let row = at.nextElementSibling; if (!row || !row.classList.contains('linkrow')) { row = document.createElement('div'); row.className = 'linkrow'; at.parentNode.insertBefore(row, at.nextSibling); }
     row.innerHTML = (label ? `<span class="muted">${label}</span>` : '') + html;
   }
@@ -2276,31 +2451,40 @@
   }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
-  function heatOption(gt, rot, chain, big) {
+  /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
+     舊的退路 —— 用漲跌幅 ÷3 換算到同一把尺上，等於舊版 `chgColor(chg, 3)` 的飽和點），
+     只是從連續透明度換成 7 格離散色階。方塊上兩行：名稱 ＋「資金 +0.8pp」——
+     顏色講的是資金，第二行就該是資金；漲跌移到提示框第一列（不是刪掉）。*/
+  let heatFocus = null;
+  const heatVal = (d) => (d && d.gid ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp' : '資金 —') : '');
+  function heatOption(gt, rot, chain, big, focus) {
     const rotMap = {}; (rot || []).forEach(r => { rotMap[r.group_id] = r.rotation; });
     const chains = {}; gt.forEach(g => { const c = g.chain || 'industry'; (chains[c] = chains[c] || []).push(g); });
-    const mk = (g) => ({ name: g.group_name, value: g.turnover, gid: g.group_id, chg: g.chg_pct,
-      rot: rotMap[g.group_id], share: g.turnover_share,
-      itemStyle: { color: chgColor(rotMap[g.group_id] != null ? rotMap[g.group_id] * 3 : g.chg_pct, 3) } });
+    const mk = (g) => {
+      const rv = rotMap[g.group_id];
+      const bin = hmBin(rv != null ? rv : (g.chg_pct != null ? g.chg_pct / 3 : null), 'flow');
+      return { name: g.group_name, value: g.turnover, gid: g.group_id, chg: g.chg_pct, chain: chainLabel(g.chain || 'industry'),
+        rot: rv, share: g.turnover_share, ...hmItem(bin, 'flow', focus) };
+    };
     const inChain = chain && chains[chain] ? chains[chain] : null;
     const data = inChain ? inChain.map(mk)
       : Object.keys(chains).map(cid => ({ name: chainLabel(cid), cid, children: chains[cid].map(mk) }));
-    const SK = treeSkin();
+    const HS = hmSeries(!inChain, big ? 26 : 22);
     return { chains, inChain, option: {
-      tooltip: { ...tip, formatter: p => p.data.gid
-        ? `<b>${p.name}</b><br>成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）<br>漲跌 <span style="color:${upDown(p.data.chg)}">${fmt.pct(p.data.chg)}</span><br>資金流向 <span style="color:${upDown(p.data.rot)}">${p.data.rot != null ? (p.data.rot > 0 ? '流入 +' : '流出 ') + p.data.rot.toFixed(2) + ' pp' : '—'}</span><br><small>點一下看成分股</small>`
-        : `<b>${p.name}</b><br><small>點一下只看這條產業鏈</small>` },
+      tooltip: { ...hmTipOpt(), formatter: p => {
+        const d = p.data || {};
+        if (!d.gid) return hmTip(p.name, '', [], '點一下只看這條產業鏈');
+        const fb = d.rot == null ? hmBin(d.chg != null ? d.chg / 3 : null, 'flow') : hmBin(d.rot, 'flow');
+        return hmTip(p.name, d.chain, [
+          { k: '漲跌幅', v: fmt.pct(d.chg, 2), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
+          { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
+          { k: '資金流向', v: d.rot != null ? (d.rot > 0 ? '流入 +' : '流出 ') + d.rot.toFixed(2) + ' pp' : '—（顏色依漲跌幅換算）',
+            c: upDown(d.rot), dot: hmColor(fb, 'flow') },
+        ], '點一下看成分股');
+      } },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
         width: '100%', height: '100%', top: 0, left: 0, visibleMin: inChain ? (big ? 5 : 20) : (big ? 40 : 120),
-        /* 顏色＝資金流向（5日vs20日佔比），文字以前只寫漲跌 —— 於是出現「紅底寫 -0.7%」，
-           使用者只會當成 bug。現在方塊上兩個數字都寫，而且標明哪個是哪個。 */
-        label: { show: true, formatter: p => `${p.name}\n${fmt.pct(p.data.chg)}\n${p.data.rot != null ? '資金 ' + (p.data.rot > 0 ? '+' : '') + p.data.rot.toFixed(1) + 'pp' : '資金 —'}`,
-          lineHeight: big ? 19 : 16,
-          fontSize: big ? 15 : (inChain ? 14 : 13), ...SK.label, overflow: 'truncate' },
-        upperLabel: { show: !inChain, height: big ? 26 : 22, fontSize: big ? 13 : 12, ...SK.upper },
-        itemStyle: { borderColor: SK.border, borderWidth: 2, gapWidth: 2 },
-        levels: inChain ? [{ itemStyle: { gapWidth: 2 } }]
-          : [{ itemStyle: { borderColor: SK.border, borderWidth: 3, gapWidth: 3 } }, { itemStyle: { gapWidth: 1 } }],
+        ...HS, label: { ...HS.label, formatter: () => '' },
         data }] } };
   }
 
@@ -2318,13 +2502,17 @@
 
   function renderHeat(gt, rot) {
     if (!gt || !gt.length) return empty('heat');
-    const { chains, inChain, option } = heatOption(gt, rot, heatChain, false);
+    const { chains, inChain, option } = heatOption(gt, rot, heatChain, false, heatFocus);
     if (heatChain && !chains[heatChain]) heatChain = null;
     heatChips(chains, $('#heatChips'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); });
     const list = inChain || gt.filter(g => !g.group_id.startsWith('ind_'));
+    // 圖例排在連結列前面：先插圖例、再插連結列（兩個都是插在 .zwrap 的正後面，所以後插的在前）
     linkRow('heat', list.slice().sort((a, b) => b.turnover - a.turnover).slice(0, 14)
       .map(g => L.group(g.group_id, g.group_name)).join(''), '族群');
+    hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
+    const dp = $('#heatDate'); if (dp) dp.innerHTML = hmDate(gt[0] && gt[0].date);
     const c = chart('heat', option);
+    hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
     if (c) c.off('click').on('click', p => {
       if (!p.data) return;
@@ -2336,9 +2524,10 @@
     if (zb) zb.onclick = () => openZoom('資金熱力圖', (body, chipBox) => {
       let ch = heatChain;
       const draw = () => {
-        const r = heatOption(gt, rot, ch, true);
+        const r = heatOption(gt, rot, ch, true, heatFocus);
         heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); });
         const bc = chart(body, r.option);
+        hmRelabel(bc, heatVal);
         if (bc) bc.off('click').on('click', p => {
           if (!p.data) return;
           if (p.data.gid) location.hash = '#industry/group/' + p.data.gid;
@@ -2924,7 +3113,8 @@
      一天固定走 420ms（60fps 下約 25 幀），速率完全一致，中間沒有停頓。
      順帶一提這樣整段 30 天播完是 12.6 秒，比舊的 24.6 秒還快。 */
   const ROT_ANIM_MS = 420;
-  const LBL_FS = 11.5;                 // 標籤字級；排版與驗收都用同一個值
+  const LBL_FS = 12;                   // 標籤字級；排版與驗收都用同一個值
+  /* ★ 2026-09-24 設計系統 v2 第 2 批：11.5 → 12（字級 12px 是下限，docs/design_system_v2.md §2.1）。*/
   /* 這一輪排好的標籤位置：`rotLbl[圖表 id][scatter 的 dataIndex]`。
      labelLayout 是每個標籤各呼叫一次的，拿不到「全部標籤」，
      所以先自己算好放這裡，labelLayout 只負責查表。
@@ -3511,7 +3701,7 @@
                  數字全部在圖下方那條狀態列裡，圖上塞數字一定會撞到族群名。*/
               + (liveArr.length ? '⚡ 即時：灰虛線＝慣性　亮色箭頭＝今天推的\n' : '')
               + '圈圈大＝佔比高　·　離圓心遠＝差大盤多',
-            fill: hexA(CH.ink2, .55), fontSize: 11.5, lineHeight: 16, textAlign: 'right' },
+            fill: hexA(CH.ink2, .55), fontSize: 12, lineHeight: 16, textAlign: 'right' },
         }],
     };
     /* N3（Andy 2026-09-19「族群在時鐘上要像螞蟻一樣可以緩步移動，而非定格方式，
@@ -3736,11 +3926,11 @@
       label: { show: false },
       children: chainArr.map(c => nodeOf(c.name, c.v, total, hexA(L.gcolor[c.kids[0].gid] || CH.cyan, lt ? .8 : .95),
         width(c.v, maxC), {
-          label: { formatter: `${c.name} ${pct(c.v, total)}%`, fontWeight: 700, fontSize: 11.5 },
+          label: { formatter: `${c.name} ${pct(c.v, total)}%`, fontWeight: 700, fontSize: 12 },
           children: c.kids.slice().sort((a, b) => b.v - a.v).map(g => nodeOf(
             g.name, g.v, c.v, hexA(L.gcolor[g.gid] || CH.cyan, lt ? .75 : .9), width(g.v), {
               gid: g.gid,
-              label: { formatter: `${g.name} ${pct(g.v, c.v)}%`, fontSize: 11 },
+              label: { formatter: `${g.name} ${pct(g.v, c.v)}%`, fontSize: 12 },
             })),
         })),
     }];
@@ -3768,10 +3958,10 @@
         /* 產業鏈那一層的名字放在節點**正上方**，不是右邊。
            右邊是它的族群那一欄：只有一個族群的鏈（例如「其他產業別」只有 ETF 一格）
            父子會落在同一條水平線上，標籤就會直接疊在一起。*/
-        label: { position: 'top', distance: 4, color: CH.ink2, fontSize: 11,
+        label: { position: 'top', distance: 4, color: CH.ink2, fontSize: 12,
           textBorderColor: CH.panel, textBorderWidth: 3,
           ...(narrow ? { width: 96, overflow: 'truncate' } : {}) },
-        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3, align: 'left',
+        leaves: { label: { position: 'right', distance: 6, fontSize: 12, color: CH.ink3, align: 'left',
           ...(narrow ? { width: 96, overflow: 'truncate' } : {}) } },
         emphasis: { focus: 'relative', blurScope: 'series' },
         blur: { itemStyle: { opacity: .2 }, lineStyle: { opacity: .12 }, label: { opacity: .3 } },
@@ -4024,7 +4214,7 @@
     const segLabel = (name, v, col) => ({
       name, type: 'bar', stack: 'ad', barWidth: 26,
       itemStyle: { color: col }, emphasis: { disabled: true },
-      label: { show: v / tot >= 0.14, position: 'inside', color: '#0b1022', fontSize: 11.5, fontWeight: 700,
+      label: { show: v / tot >= 0.14, position: 'inside', color: '#0b1022', fontSize: 12, fontWeight: 700,
         formatter: () => `${name} ${v}` },
       data: [v],
     });
@@ -4045,7 +4235,7 @@
           axisLabel: { show: false },
           pointer: { show: false },
           anchor: { show: false },
-          title: { show: true, offsetCenter: [0, 32], color: CH.ink3, fontSize: 11.5 },
+          title: { show: true, offsetCenter: [0, 32], color: CH.ink3, fontSize: 12 },
           detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: 'JetBrains Mono',
             fontWeight: 700, color: theme() === 'light' ? CH.ink : '#e8eeff', formatter: v => v.toFixed(1) + '%' },
           data: [{ value: p20, name: '站上 20 日均線' }] },
@@ -4130,9 +4320,9 @@
          那正是 Andy 09-13 抱怨過、要我把其他圖的縮放拿掉的原因。
          wheelZoom 在 1 倍時把 wheel 交還給頁面，放大後才攔，而且有「拖曳移動 · 雙擊還原」的徽章。 */
       xAxis: { ...axisStyle, name: '連續買超天數 →', nameLocation: 'middle', nameGap: 24,
-        nameTextStyle: { color: CH.ink3, fontSize: 11 },
+        nameTextStyle: { color: CH.ink3, fontSize: 12 },
         min: Math.max(0, streakState.days - 1), max: maxDay + 1, splitLine: { show: false } },
-      yAxis: { ...axisStyle, name: '累計張數 ↑', nameTextStyle: { color: CH.ink3, fontSize: 11 },
+      yAxis: { ...axisStyle, name: '累計張數 ↑', nameTextStyle: { color: CH.ink3, fontSize: 12 },
         scale: true, axisLabel: { formatter: v => fmt.lot(v) } },
       series: [{ type: 'scatter',
         data: rows.map(r => { const gid = L.cgroup[r.code];
@@ -4143,7 +4333,7 @@
            有底板才讀得出來（沒底板就是 Andy 截圖裡那種深色字壓在深色圓上）。
            底板也讓 hideOverlap 量到的框變大，該讓位的會自己讓。*/
         label: { show: true, formatter: q => (labelled.has(q.data.code) ? q.data.nm : ''),
-          position: 'top', color: CH.ink, fontSize: 11,
+          position: 'top', color: CH.ink, fontSize: 12,
           backgroundColor: hexA(CH.panel, .78), padding: [1, 4], borderRadius: 4 },
         labelLayout: clampLabel }],
     }, { notMerge: true });
@@ -4765,13 +4955,13 @@
       },
       // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
       grid: { left: GL, right: GR, top: 12, bottom: 38 },
-      xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 11 }, axisLabel: { color: CH.ink3, hideOverlap: true } },
+      xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 12 }, axisLabel: { color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', data: rows.map(g => fit(label(g))), axisLabel: { color: CH.ink2, fontSize: FS } },
       series: [{
         type: 'bar', barWidth: 15,
         data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
           itemStyle: { color: chgColor(g.share_chg, 1.5), borderRadius: g.share_chg >= 0 ? [0, 4, 4, 0] : [4, 0, 0, 4] } })),
-        label: { show: true, position: 'right', color: CH.ink2, fontSize: 11.5, fontFamily: 'JetBrains Mono',
+        label: { show: true, position: 'right', color: CH.ink2, fontSize: 12, fontFamily: 'JetBrains Mono',
           // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
           formatter: (q) => { const g = rows[q.dataIndex];
             const v = `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}`;
@@ -6264,8 +6454,8 @@
     const pct = (v, base) => fmt.n((v || 0) / (base || 1) * 100, 1);
     /* 比昨天多還是少（Andy「更豐富」）：紅漲綠跌，用 rich text 才能只給箭頭上色、
        族群名維持原本的顏色。沒有前一天（第一天）就不畫。*/
-    const RICH = { up: { color: CH.up, fontSize: 11 }, dn: { color: CH.down, fontSize: 11 },
-      fl: { color: CH.ink3, fontSize: 11 } };
+    const RICH = { up: { color: CH.up, fontSize: 12 }, dn: { color: CH.down, fontSize: 12 },
+      fl: { color: CH.ink3, fontSize: 12 } };
     const dodTag = (v, prev) => {
       if (v == null || prev == null || prev <= 0) return '';
       const d = (v - prev) / prev * 100;
@@ -6497,7 +6687,7 @@
           : has ? (narrow ? `${g.name}\n${pct(gv, cv)}%`
             // ▾ ＝ 這個族群現在是展開的（再點一次收回）。標在名字前面，不用讀說明也知道。
             : `${expanded ? '▾ ' : ''}${g.name} ${pct(gv, cv)}%${dodTag(gv, g.prev)}`) : `${g.name} 無資料`,
-          ...(narrow ? { width: 116, overflow: 'truncate', lineHeight: 13, fontSize: 10.5 } : {}),
+          ...(narrow ? { width: 116, overflow: 'truncate', lineHeight: 13, fontSize: 12 } : {}),
           opacity: off ? 0.35 : (drawn ? 1 : 0.55), rich: RICH } };
       });
       const cname = uniqName(seen, ch.name);
@@ -6510,7 +6700,7 @@
         label: { formatter: cAllStale ? `${ch.name}${narrow ? '\n' : ' '}盤後`
           : narrow ? `${ch.name}\n${pct(cv, total)}%`
             : `${ch.name} ${pct(cv, total)}%${dodTag(cv, cprev)}`,
-          ...(narrow ? { width: 108, overflow: 'truncate', lineHeight: 13, fontSize: 11 } : {}),
+          ...(narrow ? { width: 108, overflow: 'truncate', lineHeight: 13, fontSize: 12 } : {}),
           fontSize: 12.5, fontWeight: 700, opacity: cOff ? 0.4 : 1, rich: RICH } };
     });
     /* 根節點。★ 即時模式下這一格是唯一一個「真實值」—— `Market3.marketAmt` 是
@@ -6528,7 +6718,7 @@
          ECharts 判定你點的是**根節點的標籤**（`p.name` 回「台股成交值」），
          所以「點產業鏈」在手機上完全點不動，而且畫面沒有任何異狀可以看出原因。*/
       label: { formatter: rootLbl, fontWeight: 700, lineHeight: 15, rich: RICH,
-        ...(narrow ? { position: 'bottom', distance: 8, align: 'left', fontSize: 11 } : {}) },
+        ...(narrow ? { position: 'bottom', distance: 8, align: 'left', fontSize: 12 } : {}) },
       children: chainNodes };
 
     // 哪一個族群現在是展開的（給副標寫「已展開 N 檔」用；沒有就是 null）
@@ -6634,9 +6824,9 @@
         left: 10, right: narrow ? 124 : 132, top: 14, bottom: 18,
         initialTreeDepth: 3, expandAndCollapse: false, roam: false,
         symbol: 'circle',
-        label: { position: 'right', distance: 7, color: CH.ink2, fontSize: 11.5,
+        label: { position: 'right', distance: 7, color: CH.ink2, fontSize: 12,
           textBorderColor: CH.panel, textBorderWidth: 3, align: 'left', rich: RICH },
-        leaves: { label: { position: 'right', distance: 6, fontSize: 11, color: CH.ink3, rich: RICH } },
+        leaves: { label: { position: 'right', distance: 6, fontSize: 12, color: CH.ink3, rich: RICH } },
         /* hover 一條就把**整條路徑**亮起來、其餘壓暗（Andy 2026-09-20「更豐富」）。
            用 'relative' 不用 'ancestor'：滑到代表股時兩者一樣（葉子沒有子孫），
            但滑到族群時 'relative' 會連它的代表股一起亮 —— 那正是「這個族群的錢去了哪幾檔」。*/
@@ -7028,13 +7218,38 @@
      `sel`＝網址 `#heatmap/theme/<id>` 帶進來的題材；空字串＝還沒選，細節那一塊只放一句怎麼用。
      點方塊只改網址的後半段 → route() 只重畫細節，上面兩張熱力圖不動（就地展開，不離開這一頁）。*/
   const themeHash = (id) => '#heatmap/theme/' + id;
-  async function renderThemes(sel) {
+  let themeColor = hmLS('tw.themeColor', 'heat'), themeFocus = null;
+  async function renderThemes(sel, mapOnly) {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     $('#themeNote').textContent = th.note || '';
-    const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, itemStyle: { color: heatColor(t.heat) } }));
-    const themeOpt = (big) => { const SK = treeSkin(); return ({ tooltip: { ...tip, formatter: p => `<b>${p.name}</b><br>熱度 ${p.data.heat} · 成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）<br>平均漲跌 <span style="color:${upDown(p.data.chg)}">${fmt.pct(p.data.chg)}</span> · 近 7 天新聞 ${p.data.news7}<br><small>點一下看這個題材</small>` },
-      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60, label: { overflow: 'truncate', formatter: p => `${p.name}\n熱度 ${p.data.heat} · ${fmt.pct(p.data.chg)}`, fontSize: big ? 15 : 13, ...SK.label }, itemStyle: { borderColor: SK.border, borderWidth: 3, gapWidth: 3 }, data }] }); };
+    /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，改用 5 格紫色單色階。
+       以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
+       右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
+    const mode = themeColor === 'chg' ? 'chg' : 'heat';
+    const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7,
+      ...hmItem(hmBin(mode === 'heat' ? t.heat : t.chg_pct, mode), mode, themeFocus) }));
+    const valOf = (d) => (d && d.id ? (mode === 'heat' ? '熱度 ' + d.heat : fmt.pct(d.chg)) : '');
+    const themeOpt = (big) => { const HS = hmSeries(false); return ({ tooltip: { ...hmTipOpt(), formatter: p => { const d = p.data || {};
+        return hmTip(p.name, '', [
+          { k: '熱度', v: String(d.heat), dot: hmColor(hmBin(d.heat, 'heat'), 'heat') },
+          { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
+          { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
+          { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
+        ], '點一下看這個題材'); } },
+      series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60,
+        ...HS, label: { ...HS.label, formatter: () => '' }, data }] }); };
+    // 標題列：顏色下拉＋日期膠囊（只顯示）
+    const ctl = $('#themeCtl');
+    if (ctl) {
+      ctl.innerHTML = `<label class="hmctl" title="方塊的顏色依據">顏色：<select id="themeColorSel" aria-label="題材熱力圖的顏色依據">`
+        + `<option value="heat"${mode === 'heat' ? ' selected' : ''}>熱度</option><option value="chg"${mode === 'chg' ? ' selected' : ''}>平均漲跌</option></select></label>${hmDate(th.date)}`;
+      const sel2 = $('#themeColorSel', ctl);
+      if (sel2) sel2.onchange = () => { themeColor = sel2.value; themeFocus = null; hmLSset('tw.themeColor', themeColor); renderThemes(sel, true); };
+    }
+    // 換顏色／點圖例只重畫這張圖（mapOnly）：下面的題材細節不動，不然已經展開的剖析圖會被重建一次
+    hmLegend('themeMap', mode, themeFocus, (f) => { themeFocus = f; renderThemes(sel, true); });
     const c = chart('themeMap', themeOpt(false));
+    hmRelabel(c, valOf);
     wheelZoom($('#themeMapWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#themeMap')); if (i) i.resize(); } });
     // 點方塊：換下方明細（hash 一樣時 route 不會觸發，所以直接重畫）並捲到明細
     // ★ 2026-09-24：桌機換了 hash 之後由 route() 負責捲（它量得到細節在不在畫面上，見那裡的註解），
@@ -7050,12 +7265,13 @@
     const tz = $('#themeZoom');
     if (tz) tz.onclick = () => openZoom('題材資金熱力', (body, chipBox, close) => {
       const bc = chart(body, themeOpt(true));
+      hmRelabel(bc, valOf);
       if (bc) bc.off('click').on('click', p => {
         if (!p.data || !p.data.id) return;
         close(); location.hash = themeHash(p.data.id);
       });
     });
-    renderThemeDetail(th, sel || '');
+    if (!mapOnly) renderThemeDetail(th, sel || '');
   }
   // 題材產品圖：點零件→列出該零件的個股（成員表已於 2026-09-23 移除，所以不再有「滑過成員列」那一端）。
   function wireThemeDiagram(host, t) {
@@ -7291,7 +7507,7 @@
           data: Array.from({ length: 12 }, (_, k) => { const v = r.m[k + 1]; return v == null ? null : +v.toFixed(2); }),
           lineStyle: { width: i < 3 ? 2.6 : 1.7, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
           itemStyle: { color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
-          endLabel: { show: i < 8, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length], fontSize: 11,
+          endLabel: { show: i < 8, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length], fontSize: 12,
             formatter: (q) => q.seriesName },
           labelLayout: { moveOverlap: 'shiftY' },
           markLine: i === 0 ? { silent: true, symbol: 'none', label: { show: false },
@@ -7362,7 +7578,7 @@
         visualMap: { min: lim[0], max: lim[1], dimension: 2, calculable: false, orient: 'vertical', right: 0, top: 'center',
           textStyle: { color: CH.ink3 }, inRange: { color: ramp },
           outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
-        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: !cellsSmall, ...cellLabel, fontSize: 11, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
+        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: !cellsSmall, ...cellLabel, fontSize: 12, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
       if (c) c.off('click').on('click', p => drill(p.data[3]));
       $('#seasonNote').innerHTML = fmt.esc(s3.note)
         + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
@@ -7693,7 +7909,8 @@
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
+    window.App = { load, chart, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
