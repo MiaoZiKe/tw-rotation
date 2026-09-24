@@ -2923,6 +2923,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 觸控裝置沒有滾輪（wheelZoom 也沒做雙指縮放），「滾輪放大」是一句用不到的提示；
    而手機上熱力圖的左下角常是一塊小方塊的標籤（390px 量到蓋住「面板產業 +6.1%」）。只在觸控裝置收起來。*/
 @media (hover:none){ #heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{display:none} }
+/* 桌機：三張熱力圖的徽章平常不顯示，滑鼠移進圖裡（或已經放大）才出現。
+   2026-09-24 截積木外觀時量到：左下角仍會蓋住小方塊的名字（總覽「半導體・其他」）——
+   方塊排法每天不同，找不到永遠空著的角落，所以改成「不用的時候不佔位」。 */
+#heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{opacity:0}
+#heatWrap:hover>.zbadge,#indTreeWrap:hover>.zbadge,#themeMapWrap:hover>.zbadge,
+#heatWrap.zoomed>.zbadge,#indTreeWrap.zoomed>.zbadge,#themeMapWrap.zoomed>.zbadge{opacity:1}
 /* 卡片標題列右側的控制項：下拉與日期膠囊（只顯示、不能改）。高 28、膠囊。 */
 .hmctl{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:var(--r-pill);
   border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:12px;white-space:nowrap}
