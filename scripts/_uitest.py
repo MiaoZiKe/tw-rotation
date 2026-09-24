@@ -6425,11 +6425,19 @@ def t_batch1(pg, base):
 
     # ---- 圖19：季節性熱力圖的顏色要真的跟著數字變
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    # ★ 2026-09-24（週期統計改版）：visualMap 拿掉了，改成每一格直接寫 7 格離散色階的顏色
+    #   （熱力圖 v2 的 --hm-* token）。圖19 的根因（visualMap 取錯維度）因此物理上不存在，
+    #   這裡改驗「每一格的顏色都屬於 7 格之一，而且真的用到好幾級」。
     vm = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
         if (!c) return null; const o = c.getOption();
-        const v = (o.visualMap || [])[0] || {};
-        return { dim: v.dimension, min: v.min, max: v.max }; }""")
-    ok("熱力圖的 visualMap 指到數值那一維（圖19 根因）", bool(vm) and vm["dim"] == 2, vm)
+        const s = getComputedStyle(document.documentElement);
+        const tok = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(n => s.getPropertyValue(n).trim().toLowerCase());
+        const cols = (o.series[0].data || []).map(d => String((d.itemStyle || {}).color || '').toLowerCase());
+        return { vm: (o.visualMap || []).length, n: cols.length, bad: cols.filter(x => !tok.includes(x)).slice(0, 3),
+                 kinds: new Set(cols).size }; }""")
+    ok("週期統計熱力圖：每一格都是 7 格色階之一（不再是連續色／紫色）",
+       bool(vm) and vm["n"] > 0 and not vm["bad"] and vm["vm"] == 0, vm)
+    ok("週期統計熱力圖：真的用到 5 級以上的顏色（圖19：以前整張同色）", bool(vm) and vm["kinds"] >= 5, vm)
     colors = pg.evaluate("""() => { const el = document.getElementById('seasonHeat');
         const cv = el && el.querySelector('canvas'); if (!cv) return 0;
         const ctx = cv.getContext('2d'); const w = cv.width, h = cv.height;
@@ -6868,7 +6876,7 @@ def t_batch4(pg, base):
     rng = text(pg, "#seasonRange")
     ok("近三年是滾動 36 個完整月，不是日曆年（N9）", "2023" in rng or "36" in rng, rng)
     full = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
-        if (!c) return null; const d = (c.getOption().series[0].data||[]);
+        if (!c) return null; const d = (c.getOption().series[0].data||[]).map(x => Array.isArray(x) ? x : x.value);
         const months = new Set(d.filter(x => x[2] != null).map(x => x[0]));
         return { months: [...months].sort((a,b)=>a-b), n: d.length }; }""")
     ok("近三年 12 個月都有值，9-12 月不再留白（N9）",
@@ -6881,8 +6889,10 @@ def t_batch4(pg, base):
     changed("超額報酬與絕對報酬畫出來不一樣（N8）", h1, canvas_hash(pg, "#seasonHeat"))
     ok("超額報酬真的算得出來（不是整片空白）",
        pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
-           if (!c) return false; const d = (c.getOption().series[0].data||[]);
-           return d.filter(x => x[2] != null).length > d.length * 0.9; }"""))
+           if (!c) return false; const e = document.getElementById('seasonHeat');
+           // 2026-09-24 起沒資料的格子不進 series（留白），所以拿「有值的格數 / 列數×12」比
+           const d = (c.getOption().series[0].data||[]).map(x => Array.isArray(x) ? x : x.value);
+           return d.filter(x => x[2] != null).length > (+e.dataset.rows || 1) * 12 * 0.9; }"""))
 
 
 def t_batch7(pg, base):
@@ -6985,22 +6995,13 @@ def t_batch7(pg, base):
            if (!c) return false; const o = c.getOption();
            return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
 
-    # ---- N10 季節性下方改成四段卡片
+    # ---- N10 季節性下方的四段卡片：★ 2026-09-24 Andy「下方的兩個表格都拿掉」，整張移除。
+    #   這裡改驗「真的不在了」—— 連 DOM 節點都不留，也不准留一個空卡殼。
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    st2 = pg.evaluate("""() => ({ cards: document.querySelectorAll('#seasonBoard .stage').length,
-        names: [...document.querySelectorAll('#seasonBoard .stage .sh b')].map(e => e.textContent),
-        table: !!document.querySelector('#seasonTop table') })""")
-    ok("季節性下方改成四段卡片（N10）", st2["cards"] == 4, st2)
-    ok("四段是強勢／偏強／偏弱／弱勢（N10）",
-       st2["names"] == ["強勢", "偏強", "偏弱", "弱勢"], st2["names"])
-    ok("不再是表格（N10）", not st2["table"], st2)
-    if pg.evaluate("() => !!document.querySelector('#seasonBoard li[data-gid]')"):
-        h0 = pg.evaluate("() => location.hash")
-        pg.eval_on_selector("#seasonBoard li[data-gid]", "li => li.click()")
-        pg.wait_for_timeout(700)
-        ok("點族群會原地展開成分股、不跳頁（N10 沿用批次1 的作法）",
-           pg.evaluate("() => !!document.querySelector('#seasonBoard li.mem')")
-           and pg.evaluate("() => location.hash") == h0)
+    st2 = pg.evaluate("""() => ({ board: !!document.querySelector('#seasonBoard'), top: !!document.getElementById('seasonTopCard'),
+        drill: !!document.getElementById('seasonDrillCard'), cards: document.querySelectorAll('#v-season > .card, #v-season .card').length })""")
+    ok("週期統計：「本月歷史最強族群」四段卡與「逐年明細」都拿掉了（Andy 2026-09-24）",
+       not st2["board"] and not st2["top"] and not st2["drill"] and st2["cards"] == 1, st2)
 
 
 def t_batch6_n1(pg, base):
@@ -7478,66 +7479,188 @@ def t_batch6_n3(pg, base):
 
 
 def t_season(pg, base):
-    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(1800)
-    ok("季節性熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
-    ok("季節性頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
+    """週期統計（路由 #season）。★ 2026-09-24 改版，Andy 原話：
+    「"季節性" 分頁改成 "週期統計"／下方的兩個表格都拿掉／熱力圖需要調整數字，
+      並在熱力圖分頁新增顯示數字選項(所以Default 是沒有)／圖三曲線圖需要優化 看不懂趨勢」。
+    每一條都是真的操作之後量畫面（不是驗元素存在）。"""
+    pg.goto(base, wait_until="domcontentloaded")
+    # 清掉本段會用到的偏好，才驗得到「預設」（預設不印數字、前 20 名、熱力圖）
+    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2200)
+    ok("週期統計熱力圖有畫出來", pg.evaluate("() => !!document.querySelector('#seasonHeat canvas')"))
+    ok("週期統計頁有區間文字", len(text(pg, "#seasonRange")) > 3, text(pg, "#seasonRange"))
 
-    # J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）
-    vs = pg.evaluate("() => [...document.querySelectorAll('#seasonView button')].map(b => b.dataset.v)")
-    ok("族群×月份有熱力圖／曲線圖兩種呈現", vs == ["heat", "line"], vs)
-    ok("預設是熱力圖", pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
-                                  " document.getElementById('seasonLine').hidden]") == [False, True])
-    click(pg, '#seasonView button[data-v="line"]', 1300)
-    ok("切到曲線圖：熱力圖收起來、曲線圖出來",
-       pg.evaluate("() => [document.getElementById('seasonHeat').hidden,"
-                   " document.getElementById('seasonLine').hidden]") == [True, False])
-    ok("曲線圖真的畫出來了", canvas_hash(pg, "#seasonLine") not in ("no-canvas", "0"),
-       canvas_hash(pg, "#seasonLine"))
-    ser = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonLine'));
-        if (!c) return null; const o = c.getOption();
-        return { n: o.series.length, type: o.series[0].type, pts: (o.series[0].data || []).length,
-                 open: Object.values(o.legend[0].selected || {}).filter(Boolean).length }; }""")
-    ok("是線圖、12 個月一條線", bool(ser) and ser["type"] == "line" and ser["pts"] == 12, ser)
-    ok("預設只打開少數幾條（26 條疊在一起是一團毛線）",
-       bool(ser) and 0 < ser["open"] <= 10, ser)
-    # 換指標，曲線圖要跟著變（不是只有熱力圖會變）
-    l0 = canvas_hash(pg, "#seasonLine")
-    click(pg, '#seasonMetric button[data-v="win_rate"]', 1300)
-    changed("換指標，曲線圖跟著重畫", l0, canvas_hash(pg, "#seasonLine"))
-    ok("選過的呈現方式有記住",
-       pg.evaluate("() => { try { return localStorage.getItem('tw.season.view'); } catch(e){ return null; } }") == "line")
-    click(pg, '#seasonView button[data-v="heat"]', 1100)
-    ok("切回熱力圖也還在", pg.evaluate("() => document.getElementById('seasonLine').hidden") is True)
-    click(pg, '#seasonMetric button[data-v="avg_excess"]', 900)
+    # ---- ① 改名：分頁、標題；網址 #season 照舊能開
+    nm = pg.evaluate("""() => ({ tab: (document.querySelector('#tabs .tab[data-view=season]') || {}).textContent,
+        h3: (document.querySelector('#seasonHeatCard h3') || {}).textContent || '',
+        old: [...document.querySelectorAll('#tabs .tab, #v-season h3, #v-season .note')].some(e => e.textContent.includes('季節性')),
+        on: (document.querySelector('main .view.on') || {}).id })""")
+    ok("分頁改名「週期統計」、舊網址 #season 照樣打開這一頁",
+       nm["tab"] == "週期統計" and "週期統計" in nm["h3"] and nm["on"] == "v-season", nm)
+    ok("畫面上不再出現「季節性」三個字（分頁、標題、說明）", not nm["old"], nm)
+
+    # ---- ② 下方兩張卡整張拿掉
+    gone = pg.evaluate("""() => ({ drill: !!document.getElementById('seasonDrillCard'), top: !!document.getElementById('seasonTopCard'),
+        board: !!document.getElementById('seasonBoard'), cards: document.querySelectorAll('#v-season .card').length })""")
+    ok("「逐年明細」「本月歷史最強族群」兩張卡真的不在了（只剩一張卡）",
+       not gone["drill"] and not gone["top"] and not gone["board"] and gone["cards"] == 1, gone)
+
+    HM = """() => { const e = document.getElementById('seasonHeat'); const c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const ax = c.getModel().getComponent('yAxis', 0).axis;
+        const box = document.getElementById('seasonHeatBox'), head = document.getElementById('seasonHeatHead');
+        return { rows: +e.dataset.rows, rowh: +e.dataset.rowh, colw: +e.dataset.colw, nlab: +e.dataset.nlab, nval: +e.dataset.nval,
+          h: Math.round(e.getBoundingClientRect().height), ydata: o.yAxis[0].data.length, ylab: ax.getViewLabels().length,
+          y0: o.yAxis[0].data[0], show: !!o.series[0].label.show, cursor: o.series[0].cursor,
+          vis: !box.hidden, boxH: box.clientHeight, boxSH: box.scrollHeight,
+          head: [...head.querySelectorAll('button')].map(b => b.classList.contains('on')).indexOf(true) + 1,
+          ls: localStorage.getItem('tw.season.num'), lsRows: localStorage.getItem('tw.season.rows') }; }"""
+    h0 = pg.evaluate(HM)
+    ok("預設是熱力圖、曲線圖收著",
+       h0 and h0["vis"] and pg.evaluate("() => document.getElementById('seasonLine').hidden") is True, h0)
+    # ---- ③ 每一列讀得出來：列高、每一個族群名都印
+    ok("熱力圖每列至少 20px（改版前 5～6px）", h0 and h0["rowh"] >= 20 and abs(h0["h"] - (h0["rows"] * h0["rowh"] + 8)) <= 2, h0)
+    ok("★ y 軸每一個族群名稱都印出來（量 ECharts 實際排出的標籤數＝列數，不准隔列省略）",
+       h0 and h0["ylab"] == h0["ydata"] == h0["rows"] > 0, h0)
+    ok("預設只看「本月最強的前 20 名」", h0 and h0["rows"] == 20, h0)
+    # ---- ④ 顯示數字：預設關；按一下真的印出來、localStorage 真的寫入；再按一下真的消失
+    ok("★ 格子裡預設不印數字（Andy：Default 是沒有）", h0 and not h0["show"] and h0["nlab"] == 0 and h0["ls"] is None, h0)
+    c0 = canvas_hash(pg, "#seasonHeat")
+    click(pg, "#seasonNum button", 700)
+    h1 = pg.evaluate(HM)
+    ok("按「顯示數字」→ 格子裡真的有數字，而且記進 localStorage",
+       h1 and h1["show"] and h1["nlab"] > 0 and h1["ls"] == "1", h1)
+    changed("按「顯示數字」畫面真的變了", c0, canvas_hash(pg, "#seasonHeat"))
+    ok("開了也只印放得下的格子（每格欄寬扣邊 ≥ 字寬；1500px 下應該全部放得下）",
+       h1 and h1["nlab"] <= h1["nval"] and h1["colw"] >= 40, h1)
+    ok("按鈕的 aria-pressed 跟著變", pg.evaluate("() => document.querySelector('#seasonNum button').getAttribute('aria-pressed')") == "true")
+    click(pg, "#seasonNum button", 700)
+    h2 = pg.evaluate(HM)
+    ok("再按一次 → 數字真的消失、localStorage 記成 0", h2 and not h2["show"] and h2["nlab"] == 0 and h2["ls"] == "0", h2)
+    # ---- ⑤ 列數切換：全部 → 每個族群都在；外框可捲、表頭 sticky
+    click(pg, '#seasonRows button[data-v="all"]', 900)
+    h3 = pg.evaluate(HM)
+    ok("切「全部」→ 列數真的變多、每一個名字都印、選擇記進 localStorage",
+       h3 and h3["rows"] > 20 and h3["ylab"] == h3["rows"] and h3["lsRows"] == "all", h3)
+    ok("「全部」時圖放在可捲動的框裡（不把整頁撐長）", h3 and h3["boxSH"] > h3["boxH"] + 50 and h3["boxH"] <= 700, h3)
+    stk = pg.evaluate("""() => { const b = document.getElementById('seasonHeatBox'); b.scrollTop = b.scrollHeight;
+        const hb = document.getElementById('seasonHeatHead').getBoundingClientRect(), bb = b.getBoundingClientRect();
+        return { st: b.scrollTop, headTop: Math.round(hb.top), boxTop: Math.round(bb.top) }; }""")
+    ok("捲到框的最底下，月份表頭還釘在框頂（知道哪一欄是幾月）",
+       stk["st"] > 100 and abs(stk["headTop"] - stk["boxTop"]) <= 3, stk)
+    click(pg, '#seasonRows button[data-v="20"]', 800)
+    # ---- ⑥ 點月份表頭 → 依那個月重新排序
+    y_before = pg.evaluate(HM)
+    tgt = 1 if y_before["head"] != 1 else 2
+    click(pg, f'#seasonHeatHead button[data-m="{tgt}"]', 800)
+    y_after = pg.evaluate(HM)
+    ok("點月份表頭 → 那一顆變成選中、列依那個月重排（第一名換人或順序變了）",
+       y_after["head"] == tgt and (y_after["y0"] != y_before["y0"]), {"前": y_before["y0"], "後": y_after["y0"], "月": tgt})
+    # ---- ⑦ 顏色：7 格離散色階＋圖例；點圖例只亮那一級
+    lg = pg.evaluate("""() => { const l = document.getElementById('seasonHeatBoxLegend'); if (!l) return null;
+        return { n: l.querySelectorAll('.hmcell').length, vis: getComputedStyle(l).display !== 'none', ttl: (l.querySelector('.hmttl') || {}).textContent }; }""")
+    ok("熱力圖下方有 7 格圖例（跟熱力圖 v2 同一套）", lg and lg["n"] == 7 and lg["vis"], lg)
+    click(pg, '#seasonHeatBoxLegend .hmcell[data-bin="6"]', 700)
+    dim = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonHeat'));
+        const d = c.getOption().series[0].data; return { dim: d.filter(x => x.itemStyle.opacity < 1).length, n: d.length }; }""")
+    ok("點圖例一格 → 其他級的格子真的退暗", dim["dim"] > 0 and dim["dim"] < dim["n"], dim)
+    click(pg, '#seasonHeatBoxLegend .hmcell[data-bin="6"]', 600)
+    click(pg, '#seasonMetric button[data-v="win_rate"]', 900)
+    wl = pg.evaluate("""() => { const l = document.getElementById('seasonHeatBoxLegend');
+        const cells = [...l.querySelectorAll('.hmcell')].map(b => b.textContent);
+        const c = echarts.getInstanceByDom(document.getElementById('seasonHeat')); const s = getComputedStyle(document.documentElement);
+        const tok = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(n => s.getPropertyValue(n).trim().toLowerCase());
+        const hi = c.getOption().series[0].data.filter(d => d.value[2] > 75).map(d => String(d.itemStyle.color).toLowerCase());
+        const lo = c.getOption().series[0].data.filter(d => d.value[2] < 25).map(d => String(d.itemStyle.color).toLowerCase());
+        return { cells, hiRed: hi.every(x => x === tok[6]), loGreen: lo.every(x => x === tok[0]), nhi: hi.length, nlo: lo.length }; }""")
+    ok("勝率以 50% 為中性：圖例是 <25 … 50 … >75，>75 用最亮的紅、<25 用最亮的綠（紅漲綠跌）",
+       "50" in wl["cells"] and wl["hiRed"] and wl["loGreen"], wl)
+    # ---- ⑧ 點格子：只出提示框，不跳頁、不開任何東西
+    pt = pg.evaluate("""() => { const e = document.getElementById('seasonHeat'); const c = echarts.getInstanceByDom(e);
+        const d = c.getOption().series[0].data[0]; const p = c.convertToPixel({ seriesIndex: 0 }, [d.value[0], d.value[1]]);
+        const r = e.getBoundingClientRect(); return { x: r.x + p[0], y: r.y + p[1] }; }""")
+    h_hash = pg.evaluate("() => location.hash")
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+    tipv = pg.evaluate("""() => [...document.querySelectorAll('#seasonHeat div')].some(d => getComputedStyle(d).display !== 'none'
+        && d.textContent.includes('樣本') && d.textContent.includes('排第'))""")
+    ok("點格子只出提示框（有樣本數與排名）、不跳頁，游標不是手指（沒有假裝可以點）",
+       tipv and pg.evaluate("() => location.hash") == h_hash and h0["cursor"] == "default", {"提示框": tipv, "cursor": h0["cursor"]})
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 700)
+
+    # ---- ⑨ 期間／指標切換，熱力圖真的重畫
     for grp, name in (("#seasonPeriod", "期間"), ("#seasonMetric", "指標")):
         vs = pg.evaluate(f"[...document.querySelectorAll('{grp} button')].filter(b => b.style.display !== 'none').map(b => b.dataset.v)")
         if len(vs) >= 2:
-            h0 = canvas_hash(pg, "#seasonHeat")
+            hh = canvas_hash(pg, "#seasonHeat")
             click(pg, f'{grp} button[data-v="{vs[-1]}"]', 900)
-            changed(f"季節性切換「{name}」，熱力圖真的重畫", h0, canvas_hash(pg, "#seasonHeat"))
+            changed(f"週期統計切換「{name}」，熱力圖真的重畫", hh, canvas_hash(pg, "#seasonHeat"))
             click(pg, f'{grp} button[data-v="{vs[0]}"]', 700)
         else:
-            notes.append(f"季節性「{name}」只有一個選項，沒東西可切")
-    # 點格子 → 逐年明細要出來。用 ECharts 自己換算某一格的座標，不要亂點（亂點會落在空白處）
-    pg.evaluate("document.getElementById('seasonHeat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
-    before = text(pg, "#seasonDrillTitle")
-    pt = pg.evaluate("""() => { const e = document.getElementById('seasonHeat');
-        const c = echarts.getInstanceByDom(e); if (!c) return null;
-        const op = c.getOption(); const d = (op.series[0] || {}).data || [];
-        const cell = d.find(v => Array.isArray(v) ? v[2] != null : (v && v.value && v.value[2] != null));
-        if (!cell) return null;
-        const v = Array.isArray(cell) ? cell : cell.value;
-        const p = c.convertToPixel({ seriesIndex: 0 }, [v[0], v[1]]);
-        const r = e.getBoundingClientRect();
-        return p ? { x: r.x + p[0], y: r.y + p[1] } : null; }""")
-    if pt:
-        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1200)
-        after = text(pg, "#seasonDrillTitle")
-        changed("點季節性格子會帶出逐年明細", before, after)
-        ok("逐年明細有畫出圖", pg.evaluate("() => !!document.querySelector('#seasonDrill canvas')"),
-           text(pg, "#seasonDrill")[:40])
-    else:
-        fails.append("季節性熱力圖沒有任何一格有資料，點不出逐年明細")
+            notes.append(f"週期統計「{name}」只有一個選項，沒東西可切")
+
+    # ---- ⑩ 曲線圖：直線、預設 5 條＋平均線、快捷鍵、端點標籤不重疊、樣本少的提醒
+    vs = pg.evaluate("() => [...document.querySelectorAll('#seasonView button')].map(b => b.dataset.v)")
+    ok("族群×月份有熱力圖／曲線圖兩種呈現", vs == ["heat", "line"], vs)
+    click(pg, '#seasonView button[data-v="line"]', 1300)
+    ok("切到曲線圖：熱力圖收起來、曲線圖出來",
+       pg.evaluate("() => [document.getElementById('seasonHeatBox').hidden, document.getElementById('seasonLine').hidden]") == [True, False])
+    ok("選過的呈現方式有記住",
+       pg.evaluate("() => { try { return localStorage.getItem('tw.season.view'); } catch(e){ return null; } }") == "line")
+    LN = """() => { const e = document.getElementById('seasonLine'); const c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const sel = o.legend[0].selected || {};
+        const on = o.series.filter(s => sel[s.name] !== false).map(s => s.name);
+        const avg = o.series.find(s => s.name === '全部族群平均');
+        const end = JSON.parse(e.dataset.endlab || '[]').map(x => x.y).sort((a, b) => a - b);
+        let gap = 999; for (let i = 1; i < end.length; i++) gap = Math.min(gap, end[i] - end[i - 1]);
+        return { on, n: on.length, smooth: o.series.filter(s => s.smooth).length, pts: (o.series[1] || {}).data.length,
+                 avgW: avg ? avg.lineStyle.width : 0, nEnd: end.length, gap,
+                 pickOn: (document.querySelector('#seasonPick button.on') || {}).dataset?.v || null,
+                 pickVis: getComputedStyle(document.getElementById('seasonPick')).display !== 'none',
+                 numVis: getComputedStyle(document.getElementById('seasonNum')).display !== 'none' }; }"""
+    l0 = pg.evaluate(LN)
+    ok("曲線圖不再 smooth（直線段＋點，不畫出不存在的波浪）", l0 and l0["smooth"] == 0 and l0["pts"] == 12, l0)
+    ok("★ 預設只顯示 5 條＋一條「全部族群平均」（改版前幾十條疊成一團）", l0 and l0["n"] == 6 and "全部族群平均" in l0["on"], l0)
+    ok("「全部族群平均」是粗線（≥ 4px）", l0 and l0["avgW"] >= 4, l0)
+    ok("右側端點標籤只給顯示中的線，而且互不重疊（間距 ≥ 15px）", l0 and l0["nEnd"] == l0["n"] and l0["gap"] >= 15, l0)
+    ok("曲線圖時快捷鈕出現、熱力圖專用的「顯示數字」收起來", l0 and l0["pickVis"] and not l0["numVis"] and l0["pickOn"] == "top", l0)
+    click(pg, '#seasonPick button[data-v="bot"]', 900)
+    l1 = pg.evaluate(LN)
+    changed("按「最弱 5」→ 顯示的線真的換了一組", sorted(l0["on"]), sorted(l1["on"]), str(l1["on"]))
+    ok("「最弱 5」一樣是 5 條＋平均線", l1["n"] == 6, l1)
+    click(pg, '#seasonPick button[data-v="none"]', 900)
+    l2 = pg.evaluate(LN)
+    ok("按「只留平均線」→ 只剩平均線", l2["on"] == ["全部族群平均"] and l2["nEnd"] == 1, l2)
+    # 圖例點選加減照舊可以用（legendToggleSelect 就是滑鼠點圖例時 ECharts 自己送的那個動作）
+    pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('seasonLine'));
+        const nm = c.getOption().series[3].name; c.dispatchAction({ type: 'legendToggleSelect', name: nm }); }""")
+    pg.wait_for_timeout(700)
+    l3 = pg.evaluate(LN)
+    ok("圖例點一個族群 → 真的多一條線、也多一個端點標籤", l3["n"] == 2 and l3["nEnd"] == 2 and l3["pickOn"] is None, l3)
+    click(pg, '#seasonPick button[data-v="top"]', 700)
+    # 近 3 年勝率只有四種值 → 圖旁要講出來
+    click(pg, '#seasonPeriod button[data-v="3y"]', 700)
+    click(pg, '#seasonMetric button[data-v="win_rate"]', 900)
+    cav = pg.evaluate("() => { const e = document.getElementById('seasonCaveat'); return { vis: !e.hidden && e.offsetHeight > 0, t: e.textContent }; }")
+    ok("近 3 年勝率：圖旁講明「勝率只會是 0／33／67／100%」（樣本少不是趨勢）",
+       cav["vis"] and "0／33／67／100" in cav["t"], cav)
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 700)
+    cav2 = pg.evaluate("() => document.getElementById('seasonCaveat').hidden")
+    ok("換回超額報酬，那句提醒收起來（只在會誤判的時候出現）", cav2 is True)
+    l4 = canvas_hash(pg, "#seasonLine")
+    click(pg, '#seasonMetric button[data-v="avg_return"]', 900)
+    changed("換指標，曲線圖跟著重畫", l4, canvas_hash(pg, "#seasonLine"))
+    click(pg, '#seasonPeriod button[data-v="all"]', 500)
+    click(pg, '#seasonMetric button[data-v="avg_excess"]', 500)
+    click(pg, '#seasonView button[data-v="heat"]', 1100)
+    ok("切回熱力圖也還在", pg.evaluate("() => document.getElementById('seasonLine').hidden") is True
+       and pg.evaluate("() => !document.getElementById('seasonHeatBox').hidden"))
+
+    # ---- ⑪ 窄畫面（820px）與手機（390px 另見「手機」段）：名字照樣全部印、沒有橫向捲軸
+    pg.set_viewport_size({"width": 820, "height": 1000}); pg.wait_for_timeout(1200)
+    n8 = pg.evaluate(HM)
+    ow = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
+    ok("[820px] 每一個族群名都印、沒有橫向捲軸", n8 and n8["ylab"] == n8["rows"] and ow <= 1, {**(n8 or {}), "溢出": ow})
+    pg.set_viewport_size({"width": 1500, "height": 1000}); pg.wait_for_timeout(600)
+    pg.evaluate("() => { try { ['tw.season.num','tw.season.rows','tw.season.view'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
 
 
 # 量「畫布上跟背景不一樣的像素占多少」。白線畫在白底上 → 這個數字會掉下去。
@@ -7699,7 +7822,7 @@ def t_mobile(b, base, code):
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     # ★ 2026-09-24：「題材」併進「熱力圖」—— 熱力圖分頁本身、以及舊網址 #themes 導過去的樣子都要量
     for h, name in (("overview", "總覽"), ("market", "市場明細"), ("flow", "資金流向"), ("industry", "產業"),
-                    ("heatmap", "熱力圖"), ("themes", "題材（舊網址→熱力圖）"), ("season", "季節性"),
+                    ("heatmap", "熱力圖"), ("themes", "題材（舊網址→熱力圖）"), ("season", "週期統計"),
                     (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(1700)
         st = m.evaluate("""() => {
@@ -7765,7 +7888,7 @@ def t_zoom_sweep(pg, base, code):
     pages = [("#overview", "總覽"), ("#flow", "資金流向"), ("#industry", "產業地圖"),
              ("#heatmap", "產業熱力圖"),
              ("#industry/ai_server", "AI 伺服器鏈"), ("#themes", "題材（舊網址→熱力圖分頁）"),
-             ("#market", "市場明細"), ("#season", "季節性"), (f"#stock/{code}", "個股")]
+             ("#market", "市場明細"), ("#season", "週期統計"), (f"#stock/{code}", "個股")]
     # 題材細節頁（產品剖析圖那一頁）全部都掃
     pg.goto(f"{base}#themes", wait_until="networkidle"); pg.wait_for_timeout(1500)
     for tid in (pg.evaluate("() => Object.keys(window.ThemeDiagrams || {}).filter(k => k !== 'fit')") or [])[:6]:
@@ -21024,7 +21147,7 @@ def t_mobile_v2(b, base, code):
                  w: Math.round(r.width), h: Math.round(r.height) }; })""")
     ok("[390px] 七個分頁一個都沒少（題材併進熱力圖，不是消失）", len(tabs) == 7 and "themes" not in [t["v"] for t in tabs]
        and "heatmap" in [t["v"] for t in tabs], [t["v"] for t in tabs])
-    ok("[390px] 七個分頁**全部**在畫面裡（改版前季節性與交付清單整個在畫面外）",
+    ok("[390px] 七個分頁**全部**在畫面裡（改版前週期統計（原季節性）與交付清單整個在畫面外）",
        all(t["right"] <= 391 for t in tabs), [t for t in tabs if t["right"] > 391] or "都在")
     _rows = {}
     for t in tabs:
@@ -21082,7 +21205,7 @@ def t_mobile_v2(b, base, code):
           .map(e => `${e.tagName}@${eff(e).toFixed(1)}:${e.textContent.trim().slice(0,12)}`); }"""
     for h, name in (("overview", "總覽"), ("flow", "資金流向"), ("industry", "產業地圖"),
                     ("heatmap", "熱力圖"), ("heatmap/theme", "熱力圖（題材段）"),
-                    ("season", "季節性"), ("delivery", "交付清單"),
+                    ("season", "週期統計"), ("delivery", "交付清單"),
                     ("market", "市場明細"), (f"stock/{code}", "個股")):
         m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(2200)
         r = m.evaluate(f"""() => ({{ tiny: ({TINY})(),
@@ -21225,7 +21348,9 @@ def t_mobile_oneview(b, base, code):
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
         ("themes", "熱力圖 題材資金熱力（舊網址 #themes）", "#themeMap", "#themeNote", None),
-        ("season", "季節性 月份熱力", "#seasonHeat", "#seasonNote", None),
+        # ★ 2026-09-24 週期統計改版：圖高＝列數 × 列高，捲動交給外框 `#seasonHeatBox`，
+        #   所以「主圖」量外框；「關鍵數字」是 7 格圖例（沒有它讀不出顏色是哪一級）。
+        ("season", "週期統計 月份熱力", "#seasonHeatBox", "#seasonHeatBoxLegend", None),
     ]
     for route, name, cs, ks, step in CASES:
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(3000)
@@ -21468,26 +21593,31 @@ def t_mobile_oneview(b, base, code):
     notes.append(f"[390px 個股] K 線圖例目前佔圖高 {lg['h'] if lg else '?'}px"
                  f"（{lg['pct'] if lg else '?'}%）—— 已知、未收斂，見 docs/mobile_ia.md")
 
-    # ⑤ 季節性月份熱力圖：格子小到放不下數字時，就不要硬畫上去。
-    #    實測（修之前）：容器 324×480、grid 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
-    #    12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73`（約 30px 寬）——
-    #    912 個標籤橫跨 3 欄、縱跨 2 列疊在一起，結果不是「字小」是一團糊。
-    m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3600)
+    # ⑤ 週期統計月份熱力圖（2026-09-24 改版）：手機每欄約 17px，最短的「0%」都放不下 ——
+    #    所以「顯示數字」那顆直接收起來（不留一顆按了畫面不會變的鈕），而且就算 localStorage
+    #    記著「要顯示」也一個字都不准印（不准疊字）；說明列要講得出數字去哪裡拿。
+    #    列高與「每一個族群名都印」也在這裡量（Andy：手機可以少一點但名字不准被略過）。
+    m.goto(base, wait_until="domcontentloaded")
+    m.evaluate("() => { try { localStorage.setItem('tw.season.num', '1'); localStorage.removeItem('tw.season.rows'); } catch (e) {} }")
+    m.goto(f"{base}#season", wait_until="networkidle"); m.reload(wait_until="networkidle"); m.wait_for_timeout(3600)
     HM = """() => { const e = document.getElementById('seasonHeat');
         const i = window.echarts && echarts.getInstanceByDom(e); if (!i) return null;
-        const o = i.getOption(), g = (o.grid || [])[0] || {}, r = e.getBoundingClientRect();
-        const rows = ((o.yAxis || [])[0] || {}).data || [];
-        const pw = r.width - (+g.left || 0) - (+g.right || 0);
-        const ph = r.height - (+g.top || 0) - (+g.bottom || 0);
-        const lab = (o.series[0].label && o.series[0].label[0]) || o.series[0].label || {};
-        return { cellW: +(pw / 12).toFixed(2), cellH: +(ph / Math.max(1, rows.length)).toFixed(2),
-                 rows: rows.length, show: !!lab.show, fs: lab.fontSize,
+        const o = i.getOption(), ax = i.getModel().getComponent('yAxis', 0).axis;
+        const d = o.series[0].data || [], fmt = o.series[0].label.formatter;
+        return { colw: +e.dataset.colw, rowh: +e.dataset.rowh, rows: +e.dataset.rows, nlab: +e.dataset.nlab,
+                 ylab: ax.getViewLabels().length,
+                 printed: d.filter(x => { try { return fmt({ data: x }) !== ''; } catch (err) { return false; } }).length,
+                 numBtn: getComputedStyle(document.getElementById('seasonNum')).display,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth,
                  note: (document.getElementById('seasonNote') || {}).textContent || '' }; }"""
     hm = m.evaluate(HM)
-    ok("[390px 季節性] 格子放不下數字（量到每格 10×6px）就不畫在格子裡",
-       hm and (hm["cellW"] >= 30 and hm["cellH"] >= 13) == hm["show"], hm)
-    ok("[390px 季節性] 而且畫面上要講得出數字去哪裡了（收起來，不是刪掉）",
-       hm and (hm["show"] or "點一格" in hm["note"]), {k: hm[k] for k in ("show",)} if hm else hm)
+    ok("[390px 週期統計] 格子放不下數字（每欄約 17px）：一個字都不印、「顯示數字」鈕收起來",
+       hm and hm["colw"] < 26 and hm["printed"] == 0 and hm["nlab"] == 0 and hm["numBtn"] == "none", hm)
+    ok("[390px 週期統計] 而且畫面上要講得出數字去哪裡了（點一格）",
+       hm and "點一格" in hm["note"], {k: hm[k] for k in ("note",)} if hm else hm)
+    ok("[390px 週期統計] 每列 ≥ 18px、每一個族群名都印（不隔列省略）、沒有橫向捲軸",
+       hm and hm["rowh"] >= 18 and hm["ylab"] == hm["rows"] > 0 and hm["docW"] <= hm["winW"] + 1, hm)
+    m.evaluate("() => { try { localStorage.removeItem('tw.season.num'); } catch (e) {} }")
 
     m.close()
 

@@ -1267,11 +1267,8 @@
       { n: '法人', sel: ['#flowInstCard'] },
       { n: '集中度', sel: ['#flowConcCard'] },
     ],
-    season: [
-      { n: '月份熱力', sel: ['#seasonHeatCard'] },
-      { n: '逐年明細', sel: ['#seasonDrillCard'] },
-      { n: '最強族群', sel: ['#seasonTopCard'] },
-    ],
+    /* 週期統計（#season）：2026-09-24 拿掉「逐年明細」「本月歷史最強族群」兩張卡之後只剩一張，
+       一段就沒有分段的意義（miaPager 也會自己收掉），所以整個不列。*/
     /* ⚠ 單一產業鏈頁（`#industry/<chain>`）**刻意不做分段導覽**（做過，撤回了）。
        原本切成「剖析圖／關聯圖」兩段，390px 從 2561px 收到 844px，數字很漂亮 ——
        但它把 `#relSec` 底下的 `#segChips`、`.seglist` 收到第二段去，於是既有的
@@ -1510,7 +1507,6 @@
      ⚠ **收起來不是刪掉**：按鈕就在原地，按一下全部回來；展開狀態不記住（換頁回到精簡）。*/
   const MIA_MORE = [
     ['#candCards', 6, '候選'],
-    ['#seasonTop', 6, '族群'],
     ['#dlvWrap', 5, '筆'],
     ['#chainList', 4, '格'],
   ];
@@ -7524,183 +7520,343 @@
     });
   }
 
+  /* ================================================================ 週期統計（路由 #season）
+     ★ 2026-09-24（Andy：「"季節性" 分頁改成 "週期統計"／下方的兩個表格都拿掉／熱力圖需要調整數字，
+       並在熱力圖分頁新增顯示數字選項(所以Default 是沒有)／圖三曲線圖需要優化 看不懂趨勢」）。
+     改前量到的問題與這一版的回答：
+       ① 熱力圖 76 個族群擠在 600px → 每列 5～6px、名字隔 4～5 列才印一個、912 個數字疊成一團。
+          → 列高固定（桌機 24、手機 20），圖高＝列數 × 列高；預設只看「某個月最強的前 20 名」，
+            「全部」時外框捲動、月份表頭 sticky。每一個族群名稱都印（y 軸 interval 0）。
+       ② 格內數字預設**不印**，要看再開「顯示數字」（記在 localStorage）；開了也只印放得下的格子。
+       ③ 紫～紅連續色 → 改熱力圖 v2 的 7 格離散色階（--hm-* token）＋圖例；紅＝強、綠＝弱（台股紅漲綠跌）。
+          勝率以 50% 為中性（灰），高於 50 偏紅、低於偏綠。
+       ④ 曲線圖幾十條 smooth 曲線疊在一起 → 直線段＋點、預設只畫 5 條、加「全部族群平均」粗灰參考線、
+          右側端點標籤自己排（不重疊），近幾年樣本少時把「勝率只會是 0／33／67／100%」講出來。
+     色階的邊界掛在 HM_KIND 上，hmBin／hmColor／hmLegend 直接吃；用賦值而不是改 HM_KIND 的字面值，
+     是因為那一塊別的批次也在改，分開寫才不會互相撞。
+     月報酬的邊界（±1.5／±4）是看資料定的：全部期間 |平均超額| 的中位數 1.6、90 分位 4.6，
+     近 3 年分別是 3.7／9.5 —— ±1.5／±4 讓每個期間都有一半以上的格子落在「有顏色深淺差」的四格裡。*/
+  HM_KIND.sexc = { title: '平均超額報酬 (%)', edges: [-4, -1.5, 0, 1.5, 4], cells: ['<-4', '-4~-1.5', '-1.5~0', '0', '0~1.5', '1.5~4', '>4'] };
+  HM_KIND.sret = { title: '平均報酬 (%)', edges: [-4, -1.5, 0, 1.5, 4], cells: ['<-4', '-4~-1.5', '-1.5~0', '0', '0~1.5', '1.5~4', '>4'] };
+  // 勝率：先減 50 再分格，所以「0」那一格＝剛好 50%（一半一半），跟報酬的「0」同一個語意（中性灰）
+  HM_KIND.swin = { title: '勝率 (%)', edges: [-25, -10, 0, 10, 25], cells: ['<25', '25~40', '40~50', '50', '50~60', '60~75', '>75'] };
+  // 曲線圖的線色：從全站色盤挑 10 個彼此分得開、而且**不是紅也不是綠**的（紅綠在這個站是漲跌）
+  const SEASON_LINE_IDX = [0, 2, 1, 6, 15, 12, 9, 13, 21, 25];
+  let _snCtx = null;
+  const snTextW = (s) => {           // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
+    if (!_snCtx) { try { _snCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _snCtx = null; } }
+    if (!_snCtx) return String(s).length * 7.5;
+    _snCtx.font = '600 12px JetBrains Mono, monospace';
+    return _snCtx.measureText(String(s)).width;
+  };
+
   async function renderSeason() {
-    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '季節性需要歷史回補完成'); return; }
+    const s3 = await load('seasonality_v3'); if (!s3 || !s3.periods || !Object.keys(s3.periods).length) { empty('seasonHeat', '週期統計需要歷史回補完成'); return; }
     let period = s3.periods['all'] ? 'all' : Object.keys(s3.periods)[0], metric = 'avg_excess';
     let view = 'heat';
     try { const v = localStorage.getItem('tw.season.view'); if (v === 'line' || v === 'heat') view = v; } catch (e) { /* 忽略 */ }
+    const nowM = new Date().getMonth() + 1;
+    let sortM = nowM;                                            // 熱力圖依哪個月排序（點表頭換）
+    let rowsMode = hmLS('tw.season.rows', '20') === 'all' ? 'all' : '20';
+    let showNum = hmLS('tw.season.num', '0') === '1';           // ★ 預設不印數字（Andy 指定）
+    let focus = null;                                            // 圖例聚焦的那一級
+    let pick = 'top', lineSel = new Set(), avgOn = true;         // 曲線圖：top／bot／none／custom
+    let fellBack = false;
+    const AVG = '全部族群平均';
+    const MONTHS = Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月');
+    const kindOf = (m) => (m === 'win_rate' ? 'swin' : m === 'avg_return' ? 'sret' : 'sexc');
+    const binOf = (v, m) => hmBin(v == null ? v : (m === 'win_rate' ? v - 50 : v), kindOf(m));
+    // 勝率一律整數 %（樣本是整數年，小數點沒有意義）、報酬一位小數
+    // 一位小數：先四捨五入再決定正負號，不然 -0.04 會印成「-0.0」
+    const one = (v) => { const r = Math.round(v * 10) / 10; return r === 0 ? '0.0' : (r > 0 ? '+' : '') + r.toFixed(1); };
+    const fmtV = (v, m) => (v == null ? '—' : m === 'win_rate' || m === 'excess_win_rate'
+      ? Math.round(v) + '%' : one(v) + '%');
+    const cellTxt = (v, m) => (v == null ? '' : m === 'win_rate' ? Math.round(v) + '%' : one(v));
+    const mLabel = (m) => (m === nowM ? '本月' : m + ' 月');
 
-    /* J1 曲線圖：x 軸是 1–12 月，一條線一個族群。
-       只畫「波動最大的前 8 個族群」—— 26 條線疊在一起是一團毛線，看不出任何東西；
-       其餘的收進圖例，想看自己點開。0 那條基準線畫粗一點，正負一眼分得出來。*/
-    const drawLine = () => {
-      const P = s3.periods[period]; if (!P) return empty('seasonLine');
-      const byG = {};
-      P.cells.forEach(c => { (byG[c.group_id] = byG[c.group_id] || { name: c.group_name, m: {} }).m[c.month] = c[metric]; });
-      const isWin = metric === 'win_rate';
-      const rank = Object.entries(byG).map(([gid, g]) => {
-        const vs = Object.values(g.m).filter(v => v != null);
-        const base = isWin ? 50 : 0;
-        return { gid, name: g.name, m: g.m,
-                 amp: vs.length ? Math.max(...vs.map(v => Math.abs(v - base))) : 0 };
-      }).sort((a, b) => b.amp - a.amp);
-      const months = Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月');
-      const c = chart('seasonLine', {
-        tooltip: { ...tip, trigger: 'axis',
-          formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.filter(q => q.value != null)
-            .sort((a, b) => b.value - a.value).slice(0, 12)
-            .map(q => `${q.marker}${q.seriesName} ${isWin ? fmt.n(q.value, 0) + '%' : fmt.pct(q.value)}`).join('<br>') },
-        legend: { type: 'scroll', top: 0, textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 },
-          selected: rank.reduce((o, r, i) => { o[r.name] = i < 8; return o; }, {}) },
-        grid: { left: 58, right: 96, top: 38, bottom: 30 },
-        xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: months, axisLabel: { color: CH.ink2 } },
-        yAxis: { ...axisStyle, axisLabel: { color: CH.ink3, formatter: (v) => (isWin ? v + '%' : (v > 0 ? '+' : '') + v + '%') } },
-        series: rank.map((r, i) => ({
-          name: r.name, type: 'line', smooth: 0.35, symbol: 'circle', symbolSize: 6, connectNulls: true,
-          data: Array.from({ length: 12 }, (_, k) => { const v = r.m[k + 1]; return v == null ? null : +v.toFixed(2); }),
-          lineStyle: { width: i < 3 ? 2.6 : 1.7, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
-          itemStyle: { color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length] },
-          endLabel: { show: i < 8, color: L.gcolor[r.gid] || PALETTE[i % PALETTE.length], fontSize: 12,
-            formatter: (q) => q.seriesName },
-          labelLayout: { moveOverlap: 'shiftY' },
-          markLine: i === 0 ? { silent: true, symbol: 'none', label: { show: false },
-            lineStyle: { color: hexA(CH.ink3, .6), type: 'dashed', width: 1.4 },
-            data: [{ yAxis: isWin ? 50 : 0 }] } : undefined,
-          gid: r.gid,
-        })),
-      }, { notMerge: true });
-      if (c) c.off('click').on('click', q => { const r = rank[q.seriesIndex];
-        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
+    /* 族群 → 12 個月的格子；依 `month` 那一欄的目前指標由強到弱排（沒資料的排最後）。
+       同分（近 3 年勝率只有四種值，同分很多）再比平均超額，排序才穩定。*/
+    const ordered = (P, month) => {
+      const G = {};
+      P.cells.forEach(c => { (G[c.group_id] = G[c.group_id] || { gid: c.group_id, name: c.group_name, m: {} }).m[c.month] = c; });
+      const list = s3.groups.map(g => G[g.group_id] || { gid: g.group_id, name: g.group_name, m: {} });
+      const key = (r) => (r.m[month] ? r.m[month][metric] : null);
+      const tie = (r) => (r.m[month] ? (r.m[month].avg_excess ?? r.m[month].avg_return ?? 0) : 0);
+      return list.sort((a, b) => { const va = key(a), vb = key(b);
+        if (va == null && vb == null) return 0; if (va == null) return 1; if (vb == null) return -1;
+        return (vb - va) || (tie(b) - tie(a)); });
     };
 
+    /* ---------------- 熱力圖 ---------------- */
+    const drawHeat = () => {
+      const P = s3.periods[period]; if (!P) return empty('seasonHeat');
+      const el = $('#seasonHeat'), box = $('#seasonHeatBox'), head = $('#seasonHeatHead');
+      const all = ordered(P, sortM);
+      const rows = rowsMode === 'all' ? all : all.slice(0, 20);
+      const mob = mIsM();
+      const rowH = mob ? 20 : 24;
+      // 名稱欄寬：量最長的名字；手機上限 112（超過截成「…」，全名在提示框），桌機上限 180
+      const nameW = Math.ceil(Math.max(40, ...rows.map(r => hmTextW(r.name, 12)))) + 12;
+      const left = Math.min(nameW, mob ? 112 : 180), right = 4;
+      const W = box.clientWidth || el.clientWidth || 600;
+      const colW = (W - left - right) / 12;
+      el.style.height = (rows.length * rowH + 8) + 'px';
+      const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
+      // 月份表頭（HTML、sticky）：跟 grid 的左右邊界對齊；點一下＝依那個月排序
+      head.style.paddingLeft = left + 'px'; head.style.paddingRight = right + 'px';
+      head.innerHTML = MONTHS.map((t, i) => { const m = i + 1;
+        return `<button type="button" data-m="${m}" class="${m === sortM ? 'on' : ''}${m === nowM ? ' now' : ''}"`
+          + ` aria-pressed="${m === sortM}" title="依 ${m} 月由強到弱排序${m === nowM ? '（本月）' : ''}">${colW >= 40 ? t : m}</button>`; }).join('');
+      $$('button', head).forEach(b => b.onclick = () => { sortM = +b.dataset.m; box.scrollTop = 0; drawHeat(); paintPick(); });
+
+      const K = kindOf(metric);
+      const data = [];
+      let nVal = 0;
+      rows.forEach((r, yi) => {
+        for (let m = 1; m <= 12; m++) {
+          const c = r.m[m]; const v = c ? c[metric] : null;
+          if (v == null) continue;            // 樣本不足的格子留白（跟以前一樣），不畫假顏色
+          nVal++;
+          const bin = binOf(v, metric);
+          data.push({ value: [m - 1, yi, +v.toFixed(2)], c, gname: r.name, rank: yi + 1,
+            itemStyle: { color: hmColor(bin, K), opacity: focus != null && focus !== bin ? 0.22 : 1 } });
+        }
+      });
+      // 放得下才印：寬度扣 6px 邊、列高至少 16（12px 字＋上下各 2）
+      const fits = (t) => !!t && rowH >= 16 && snTextW(t) <= colW - 6;
+      const nFit = data.filter(d => fits(cellTxt(d.value[2], metric))).length;
+      const nLab = showNum ? nFit : 0;
+      /* 一格都放不下（手機 390px：每欄約 17px，最短的「0%」也要 20px）→「顯示數字」這顆整個收起來，
+         不留一顆按了畫面不會變的鈕；數字照樣可以點格子從提示框拿到（說明列有寫）。*/
+      const numSeg = $('#seasonNum'); if (numSeg) numSeg.style.display = nFit ? '' : 'none';
+      el.dataset.canfit = nFit ? '1' : '0';
+      el.dataset.rows = rows.length; el.dataset.nlab = nLab; el.dataset.nval = nVal;
+      el.dataset.rowh = rowH; el.dataset.colw = colW.toFixed(1);
+      const tipRow = (k, v, key) => ({ k, v: fmtV(v, key), c: v == null ? CH.ink3 : key.includes('win') ? CH.ink : v > 0 ? CH.up : v < 0 ? CH.down : CH.ink });
+      const c = chart('seasonHeat', {
+        animation: false,
+        tooltip: { ...hmTipOpt(), trigger: 'item', formatter: (p) => { const d = p.data, cl = d.c;
+          return hmTip(d.gname, `${cl.month} 月`, [
+            tipRow('平均超額', cl.avg_excess, 'avg_excess'), tipRow('超額勝率', cl.excess_win_rate, 'excess_win_rate'),
+            tipRow('平均報酬', cl.avg_return, 'avg_return'), tipRow('勝率', cl.win_rate, 'win_rate')],
+            `樣本 ${cl.samples} 年 · 依 ${mLabel(sortM)}排第 ${d.rank} 名`); } },
+        grid: { left, right, top: 4, bottom: 4 },
+        xAxis: { type: 'category', data: MONTHS, show: false, splitArea: { show: false } },
+        yAxis: { type: 'category', data: rows.map(r => r.name), inverse: true,
+          axisLine: { show: false }, axisTick: { show: false }, splitArea: { show: false },
+          // ★ interval: 0 ＝ 每一列的名字都印（以前 ECharts 自動隔列省略，只印每 4～5 列一個）
+          axisLabel: { interval: 0, color: CH.ink2, fontSize: 12, margin: 8, width: left - 10, overflow: 'truncate', ellipsis: '…' } },
+        series: [{ type: 'heatmap', data, cursor: 'default',
+          itemStyle: { borderColor: CH.card, borderWidth: 1, borderRadius: 3 },
+          emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 1.5 } },
+          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: 'JetBrains Mono', color: '#fff',
+            formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? t : ''; } } }],
+      }, { notMerge: true });
+      // ★ 點格子只出提示框（ECharts 預設就會），不做別的事：逐年明細那張卡已經拿掉，不留一個點了沒反應的入口
+      if (c) c.off('click');
+      const lg = hmLegend('seasonHeatBox', K, focus, (f) => { focus = f; drawHeat(); });
+      if (lg) lg.style.display = view === 'heat' ? '' : 'none';
+      writeNote();
+    };
+
+    /* ---------------- 曲線圖 ---------------- */
+    const pickNames = (all) => {
+      const valid = all.filter(r => r.m[sortM] && r.m[sortM][metric] != null);
+      if (pick === 'top') return valid.slice(0, 5).map(r => r.name);
+      if (pick === 'bot') return valid.slice(-5).reverse().map(r => r.name);
+      if (pick === 'none') return [];
+      return [...lineSel];
+    };
+    const drawLine = () => {
+      const P = s3.periods[period]; if (!P) return empty('seasonLine');
+      const el = $('#seasonLine');
+      const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
+      const all = ordered(P, sortM);
+      const sel = pickNames(all); lineSel = new Set(sel);
+      const isWin = metric === 'win_rate';
+      const mob = mIsM();
+      // 線色依「在已選清單裡的順序」配，所以畫出來的那幾條一定是彼此分得開的顏色
+      const colorOf = {}; sel.forEach((n, i) => { colorOf[n] = PALETTE[SEASON_LINE_IDX[i % SEASON_LINE_IDX.length]]; });
+      const avg = MONTHS.map((_, k) => { const vs = all.map(r => r.m[k + 1] && r.m[k + 1][metric]).filter(v => v != null);
+        return vs.length ? +(vs.reduce((a, b) => a + b, 0) / vs.length).toFixed(2) : null; });
+      const selected = { [AVG]: avgOn }; all.forEach(r => { selected[r.name] = lineSel.has(r.name); });
+      const gridR = mob ? 86 : 132;
+      const series = [{ name: AVG, type: 'line', smooth: false, symbol: 'none', z: 1, data: avg,
+        lineStyle: { width: 4.5, color: hexA(CH.ink3, 0.85) }, itemStyle: { color: CH.ink3 },
+        markLine: { silent: true, symbol: 'none', label: { show: false },
+          lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed', width: 1 }, data: [{ yAxis: isWin ? 50 : 0 }] } }]
+        .concat(all.map(r => { const col = colorOf[r.name] || CH.ink3;
+          return { name: r.name, type: 'line', smooth: false, symbol: 'circle', symbolSize: 6, showSymbol: true, z: 3,
+            connectNulls: false, emphasis: { focus: 'series' },
+            data: Array.from({ length: 12 }, (_, k) => { const cl = r.m[k + 1]; const v = cl ? cl[metric] : null; return v == null ? null : +v.toFixed(2); }),
+            lineStyle: { width: 2.4, color: col }, itemStyle: { color: col } }; }));
+      const c = chart('seasonLine', {
+        animation: false,
+        tooltip: { ...tip, trigger: 'axis',
+          formatter: ps => { const avgP = ps.find(q => q.seriesName === AVG);
+            const rest = ps.filter(q => q.seriesName !== AVG && q.value != null).sort((a, b) => b.value - a.value).slice(0, 12);
+            return `<b>${ps[0].axisValue}</b>`
+              + (avgP && avgP.value != null ? `<br>${avgP.marker}${AVG} ${fmtV(avgP.value, metric)}` : '')
+              + rest.map(q => `<br>${q.marker}${q.seriesName} ${fmtV(q.value, metric)}`
+                + (avgP && avgP.value != null ? `<span style="color:${CH.ink3}">（${q.value >= avgP.value ? '高於' : '低於'}平均）</span>` : '')).join(''); } },
+        legend: { type: 'scroll', top: 0, data: [AVG].concat(all.map(r => r.name)), selected,
+          textStyle: { color: CH.ink2, fontSize: 12 }, pageTextStyle: { color: CH.ink3, fontSize: 12 }, inactiveColor: hexA(CH.ink3, .5) },
+        grid: { left: 52, right: gridR, top: 40, bottom: 28 },
+        xAxis: { ...axisStyle, type: 'category', boundaryGap: false, data: MONTHS, axisLabel: { color: CH.ink2, fontSize: 12 } },
+        yAxis: { ...axisStyle, ...(isWin ? { min: 0, max: 100, interval: 25 } : { scale: true }),
+          axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => (isWin ? v + '%' : (v > 0 ? '+' : '') + v + '%') } },
+        series,
+      }, { notMerge: true });
+      if (!c) return;
+      el._endSig = ''; layoutEnd(c, gridR, colorOf);
+      // 點圖例走 legendselectchanged；程式（或鍵盤輔助）送 legendSelect／legendUnSelect 走另外兩個事件 —— 三個都接，
+      // 不然端點標籤跟線色會停在舊的選擇上
+      const onLegend = (e) => {
+        avgOn = e.selected[AVG] !== false;
+        // 保留原本的順序（顏色才不會整組換），新點的接在後面
+        const now = Object.keys(e.selected).filter(k => k !== AVG && e.selected[k]);
+        lineSel = new Set([...[...lineSel].filter(n => now.includes(n)), ...now.filter(n => !lineSel.has(n))]);
+        pick = 'custom'; paintPick(); setTimeout(drawLine, 0);
+      };
+      ['legendselectchanged', 'legendselected', 'legendunselected'].forEach(ev => c.off(ev).on(ev, onLegend));
+      c.off('click').on('click', q => { if (q.seriesName === AVG) return; const r = all.find(x => x.name === q.seriesName);
+        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
+      if (!el._endFin) { el._endFin = true;
+        c.on('finished', () => { if (c.isDisposed() || !el._endRe) return;
+          if (el._endSig !== c.getWidth() + 'x' + c.getHeight()) el._endRe(); }); }
+      el._endRe = () => layoutEnd(c, gridR, colorOf);
+    };
+    /* 右側端點標籤：ECharts 的 endLabel ＋ moveOverlap 在線很多、端點很近時仍會疊（Andy 截圖），
+       所以自己排：取每條「顯示中」的線最後一個點的像素 y，由上往下排、至少隔 16px，
+       超出底邊再由下往上推回來；放不下的（線太多）寧可不標，也不准疊字。
+       標籤與端點之間拉一條細線，被推開的標籤也對得回自己那條線。*/
+    const layoutEnd = (c, gridR, colorOf) => {
+      const el = c.getDom(); const LH = 16;
+      const opt = c.getOption(); const sel = (opt.legend && opt.legend[0] && opt.legend[0].selected) || {};
+      const H = c.getHeight(), Wd = c.getWidth(), top = 40, bot = H - 28;
+      const items = [];
+      opt.series.forEach(s => { if (sel[s.name] === false) return;
+        const d = s.data || []; let k = d.length - 1; while (k >= 0 && d[k] == null) k--; if (k < 0) return;
+        const p = c.convertToPixel({ gridIndex: 0 }, [k, d[k]]); if (!p) return;
+        items.push({ name: s.name, x0: p[0], y0: p[1], y: p[1], color: s.name === AVG ? CH.ink2 : (colorOf[s.name] || CH.ink2) }); });
+      const maxN = Math.max(1, Math.floor((bot - top) / LH) + 1);
+      const keep = items.slice(0, maxN);          // series 順序＝平均線先 → 平均線一定有標籤
+      keep.sort((a, b) => a.y - b.y);
+      for (let i = 1; i < keep.length; i++) if (keep[i].y < keep[i - 1].y + LH) keep[i].y = keep[i - 1].y + LH;
+      for (let i = keep.length - 1; i >= 0; i--) {
+        const lim = i === keep.length - 1 ? bot : keep[i + 1].y - LH;
+        if (keep[i].y > lim) keep[i].y = lim;
+      }
+      const x = Wd - gridR + 10, maxW = gridR - 14;
+      const clip = (t) => { if (hmTextW(t, 12) <= maxW) return t; const ch = Array.from(t);
+        for (let k = ch.length - 1; k >= 1; k--) { const u = ch.slice(0, k).join('') + '…'; if (hmTextW(u, 12) <= maxW) return u; } return ch[0] + '…'; };
+      const children = [];
+      keep.forEach(it => {
+        children.push({ type: 'line', silent: true, shape: { x1: it.x0 + 5, y1: it.y0, x2: x - 3, y2: it.y },
+          style: { stroke: hexA(it.color, .6), lineWidth: 1 } });
+        children.push({ type: 'text', silent: true, x, y: it.y,
+          style: { text: clip(it.name === AVG ? '平均' : it.name), fill: it.color, font: `${it.name === AVG ? 700 : 600} 12px Noto Sans TC, sans-serif`, verticalAlign: 'middle' } });
+      });
+      el._endSig = Wd + 'x' + H;
+      el.dataset.endlab = JSON.stringify(keep.map(it => ({ n: it.name, y: Math.round(it.y) })));
+      c.setOption({ graphic: [{ id: 'snEnd', type: 'group', children }] }, { replaceMerge: ['graphic'] });
+    };
+
+    /* ---------------- 共用：說明、提醒、按鈕狀態 ---------------- */
+    const paintPick = () => {
+      const lab = { top: `${mLabel(sortM)}最強 5`, bot: `${mLabel(sortM)}最弱 5`, none: '只留平均線' };
+      $$('#seasonPick button').forEach(b => { b.textContent = lab[b.dataset.v]; b.classList.toggle('on', b.dataset.v === pick); });
+    };
+    const writeNote = () => {
+      const P = s3.periods[period]; if (!P) return;
+      const nm = { avg_excess: '超額報酬', avg_return: '絕對報酬', win_rate: '勝率' }[metric];
+      const how = $('#seasonHow');
+      if (how) how.innerHTML = view === 'heat'
+        ? `<b>這張回答：</b>哪些族群在「${mLabel(sortM)}」歷史上容易${metric === 'avg_excess' ? '跑贏大盤' : '上漲'}。`
+          + `列依${mLabel(sortM)}的${nm}由強到弱排（點上方月份可以換一個月排）；紅＝強、綠＝弱、灰＝持平，顏色越亮越極端。`
+          + `<b>所以：</b>排在最上面、而且${mLabel(sortM)}那一欄是紅色的族群，是這個月的歷史順風；綠色的要有別的理由（資金、基本面）才進場。`
+        : `<b>這張回答：</b>同一個族群一整年裡哪幾個月強、哪幾個月弱。灰色粗線是<b>全部族群平均</b>——線在灰線之上＝那個月比整體強`
+          + (metric === 'avg_excess' ? '（超額報酬的平均本來就貼著 0 軸：基準就是全市場）。' : '。')
+          + `<b>所以：</b>看你關心的族群在接下來 1～2 個月是不是在灰線之上。預設只畫${mLabel(sortM)}最強 5 個，用上面的按鈕或圖例加減。`;
+      // 樣本少時勝率只有幾種值：講出來，不要讓人把「0 → 67 → 33」看成趨勢
+      const n = Math.max(0, ...P.cells.map(c => c.samples || 0));
+      const cav = $('#seasonCaveat');
+      if (cav) {
+        const small = metric === 'win_rate' && n > 0 && n <= 6;
+        cav.hidden = !small;
+        if (small) {
+          const vals = Array.from({ length: n + 1 }, (_, k) => Math.round(k * 100 / n)).join('／');
+          cav.innerHTML = `⚠ 這個期間每一格只有 ${n} 個樣本（${n} 年），勝率只會是 ${vals}% 這 ${n + 1} 種值 ——`
+            + `差一年就跳 ${Math.round(100 / n)} 個百分點，是樣本少，不是趨勢。看趨勢請改「近 10 年」「全部」，或改看超額報酬。`;
+        }
+      }
+      const el = $('#seasonHeat');
+      const ds = (el && el.dataset) || {};
+      // 「點一格」這幾個字是 _uitest「手機」段在驗的：數字收起來不是刪掉，要講得出去哪裡拿
+      const numMsg = view !== 'heat' ? ''
+        : ds.canfit === '0' ? '　<b>格子太窄放不下數字：點一格（滑鼠移上去）看數字。</b>'
+        : !showNum ? '　格子裡的數字預設不印：滑鼠移上去（手機點一格）看，或按「顯示數字」。'
+        : +ds.nlab < +ds.nval ? `　格子太窄的 ${+ds.nval - +ds.nlab} 格沒印數字（滑鼠移上去看）。` : '';
+      $('#seasonNote').innerHTML = fmt.esc(s3.note)
+        + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
+        + numMsg
+        + (fellBack ? '　<b style="color:var(--amber)">這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。</b>' : '');
+    };
     const paintView = () => {
-      $('#seasonHeat').hidden = view !== 'heat';
+      $('#seasonHeatBox').hidden = view !== 'heat';
       $('#seasonLine').hidden = view !== 'line';
+      const lg = document.getElementById('seasonHeatBoxLegend'); if (lg) lg.style.display = view === 'heat' ? '' : 'none';
+      // `.seg` 是 display:inline-flex，會蓋掉 [hidden]，所以用 style.display
+      $$('#seasonCtl [data-for]').forEach(e => { e.style.display = e.dataset.for === view ? '' : 'none'; });
       $$('#seasonView button').forEach(b => b.classList.toggle('on', b.dataset.v === view));
+      $$('#seasonRows button').forEach(b => b.classList.toggle('on', b.dataset.v === rowsMode));
+      const nb = $('#seasonNum button'); if (nb) { nb.classList.toggle('on', showNum); nb.setAttribute('aria-pressed', String(showNum)); }
+      paintPick();
     };
 
     const draw = () => {
       const P = s3.periods[period]; if (!P) return empty('seasonHeat');
       $('#seasonRange').textContent = `${P.from} ～ ${P.to}，${P.years} 年`;
-      /* ★ 2026-09-19（Andy 圖三「超額 & 絕對報酬沒變化」）：
-         以前超額算不出來時，這裡**靜靜**把指標換成絕對報酬 ——
-         使用者按了「超額報酬」卻看到一模一樣的圖，只會以為按鈕壞了。
-         現在退回時要**講出來**（畫面上寫一行），不要無聲退回。*/
+      /* ★ 2026-09-19（Andy 圖三「超額 & 絕對報酬沒變化」）：超額算不出來時要**講出來**，不准無聲退回。*/
       const hasExcess = P.cells.some(c => c.avg_excess != null);
-      let fellBack = false;
+      fellBack = false;
       if (metric === 'avg_excess' && !hasExcess) {
         metric = 'avg_return'; fellBack = true;
         $$('#seasonMetric button').forEach(b => b.classList.toggle('on', b.dataset.v === metric));
       }
-      const groups = s3.groups; const gi = {}; groups.forEach((g, i) => { gi[g.group_id] = i; });
-      const data = P.cells.map(c => [c.month - 1, gi[c.group_id], c[metric], c]);
-      const isWin = metric === 'win_rate'; const vals = data.map(d => d[2]).filter(v => v != null);
-      /* 色階上下界：以前用 max|v|，只要有一格離群（例如某族群某月 +48%），
-         其餘 300 格就全部擠在色階中央＝看起來全同色。改用 |v| 的 90 分位，
-         超界的格子走 outOfRange 用最濃的顏色，不會被截斷資訊（Andy 2026-09-18 圖19）。*/
-      const q90 = (xs) => { if (!xs.length) return 5; const a = xs.slice().sort((x, y) => x - y); return a[Math.min(a.length - 1, Math.floor(a.length * 0.9))] || 5; };
-      const cap = q90(vals.map(Math.abs));
-      const lim = isWin ? [0, 100] : [-cap, cap];
-      const lt = theme() === 'light';
-      // 淺色主題要整組換掉：深藍中點（#16203a）在白底上是一塊深色，反而變成最顯眼的東西
-      const ramp = isWin
-        ? (lt ? ['#f3f5fa', '#7c6ce0', '#dc2440'] : ['#16203a', '#8b7bff', '#ff6b84'])
-        : (lt ? ['#1a9e6f', '#f3f5fa', '#e04a66'] : ['#19c489', '#16203a', '#ff6b84']);
-      // 格子上的數字：淺色主題的兩端是飽和紅綠，單靠深色字對比不夠，補一圈白色描邊
-      const cellLabel = lt
-        ? { color: CH.ink, textBorderColor: 'rgba(255,255,255,.85)', textBorderWidth: 2.5 }
-        : { color: '#e8eeff' };
-      /* ★ 2026-09-24 修（390px 實測）：**手機上格子裡的數字要收掉**。
-         量到的數字：容器 324×480、`grid` 左 130 右 70 上 10 下 30 → 繪圖區 124×440，
-         塞 12 欄 × 76 列 ＝ **每格 10.33 × 5.79px**，而標籤是 11px 的 `+0.73` ——
-         字寬約 30px（跨 3 欄）、字高 11px（跨 2 列），912 個標籤整片疊在一起，
-         結果不是「字小」而是**一團看不出任何東西的糊**（截圖確認）。
-         ⚠ 這是「收起來，不是刪掉」：顏色與色階還在（那本來就是熱力圖要傳達的東西），
-           數字改由**點一格**拿到 —— tooltip 與下面的「逐年明細」都是原本就有的路徑，
-           所以資訊一個都沒有少，只是換一個進得去的位置。
-         ⚠ 桌機那條路徑一個字都沒動：判斷用 `mIsM()`（≤640px），
-           桌機的 `cellH` 同樣只有 8.4px，但「桌機不准被降級」優先於我這一版的偏好。 */
-      const cellsSmall = mIsM();
-      const c = chart('seasonHeat', { tooltip: { ...tip, formatter: p => { const cl = p.data[3]; return `<b>${cl.group_name}</b> ${cl.month} 月<br>平均超額 ${cl.avg_excess != null ? fmt.pct(cl.avg_excess) : '—'}（勝率 ${cl.excess_win_rate ?? '—'}%）<br>平均報酬 ${cl.avg_return != null ? fmt.pct(cl.avg_return) : '—'}（勝率 ${cl.win_rate ?? '—'}%）<br>樣本 ${cl.samples} 年`; } },
-        grid: { left: 130, right: 70, top: 10, bottom: 30 }, xAxis: { type: 'category', data: Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月'), ...axisStyle, splitArea: { show: false }, axisLabel: { color: CH.ink2 } },
-        yAxis: { type: 'category', data: groups.map(g => g.group_name), ...axisStyle, axisLabel: { color: CH.ink2, fontSize: 12 } },
-        /* ★ dimension: 2 不能省。
-           資料列是 [月, 族群, 數值, 原始格子物件] 四維，visualMap 沒指定維度時
-           ECharts 取「最後一維」＝那個物件 → 轉數字是 NaN → 每一格都落在範圍外 → 全部同色。
-           Andy 2026-09-18 圖19「熱力圖根本沒有依據數字變換顏色」就是這一行造成的。*/
-        visualMap: { min: lim[0], max: lim[1], dimension: 2, calculable: false, orient: 'vertical', right: 0, top: 'center',
-          textStyle: { color: CH.ink3 }, inRange: { color: ramp },
-          outOfRange: { color: [ramp[0], ramp[ramp.length - 1]] } },
-        series: [{ type: 'heatmap', data: data.map(d => [d[0], d[1], d[2] == null ? null : +d[2].toFixed(1), d[3]]), label: { show: !cellsSmall, ...cellLabel, fontSize: 12, fontFamily: 'JetBrains Mono', formatter: p => p.data[2] == null ? '' : (isWin ? p.data[2] : (p.data[2] > 0 ? '+' : '') + p.data[2]) }, itemStyle: { borderColor: CH.panel, borderWidth: 2, borderRadius: 3 }, emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,.6)' } } }] });
-      if (c) c.off('click').on('click', p => drill(p.data[3]));
-      $('#seasonNote').innerHTML = fmt.esc(s3.note)
-        + `　基準：<b>${fmt.esc(s3.benchmark_source || '大盤')}</b>（${s3.benchmark_months} 個月）。`
-        // 手機把格內數字收掉了，要在畫面上講出來去哪裡拿 —— 不講就是「資訊不見了」
-        + (cellsSmall ? '　<b>手機上格子太小，數字收進點擊：點一格看它的逐年明細。</b>' : '')
-        + (fellBack ? '　<b style="color:var(--amber)">這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。</b>' : '');
-      topThisMonth(P);
-      drawLine();          // 兩張圖吃同一份資料、同一個期間與指標，切過去不用等
-      paintView();
-    };
-    const drill = (cell) => {
-      const det = (s3.detail || {})[cell.group_id] || {}; const years = Object.keys(det).sort();
-      const vals = years.map(y => det[y][cell.month] ?? det[y][String(cell.month)]);
-      $('#seasonDrillTitle').innerHTML = `${L.group(cell.group_id, cell.group_name)} · ${cell.month} 月逐年超額報酬 <small>紅正綠負 · 點族群名看成分股</small>`;
-      chart('seasonDrill', { tooltip: { ...tip, formatter: p => `${p.name} 年：${p.value != null ? fmt.pct(p.value) : '—'}` }, grid: { left: 50, right: 16, top: 16, bottom: 30 }, xAxis: { ...axisStyle, type: 'category', data: years, axisLabel: { color: CH.ink3 } }, yAxis: { ...axisStyle, axisLabel: { formatter: '{value}%' } },
-        series: [{ type: 'bar', data: vals.map(v => ({ value: v, itemStyle: { color: v > 0 ? CH.up : CH.down, borderRadius: 3 } })), barWidth: '55%' }] });
-    };
-    /* N10（Andy 2026-09-19：「圖四 下方族群可以變成輪動階段 四段循環與換段的族群
-       這樣形式呈現」）：原本是一張表，改成跟輪動階段同一種四段卡片。
-       季節性沒有「循環」，所以四段改成**強弱四級**：
-       強勢／偏強／偏弱／弱勢，依「超額報酬勝率 × 0.6 ＋ 平均超額」分。
-       樣本少於 3 年的不列（跟熱力圖同一條門檻）。*/
-    /* ★ 2026-09-23：這四個色本來是寫死的**深色主題**值（#ff4d6d／#ffb454／#8b7bff／#2ee59d）。
-       那些是螢光色，印在明亮主題的白底上實測只有 2.94／1.61／3.02／**1.50** ——
-       「強勢／偏強／偏弱／弱勢」這四個標題在淺色主題下根本讀不出來，
-       而它們是這張卡唯一的分級依據。改讀 CH（切主題時 refreshPalette() 會就地換掉），
-       淺色主題因此吃到新的 --rise／--amber／--violet／--fall，四個都 ≥5.2。
-       ⚠ 紅＝強、綠＝弱 是刻意的（台股紅漲綠跌），配色語意一個字都沒改。*/
-    const SEASON_TIER = [
-      { k: 'strong', name: '強勢', color: CH.up, sub: '這個月歷史上最會漲的一群', act: '可以優先看' },
-      { k: 'good', name: '偏強', color: CH.amber, sub: '勝率或幅度其中一項不錯', act: '可以留意，但別只靠這一項' },
-      { k: 'soft', name: '偏弱', color: CH.violet, sub: '這個月表現平平', act: '沒有季節性優勢' },
-      { k: 'weak', name: '弱勢', color: CH.down, sub: '這個月歷史上偏弱', act: '要買得有別的理由' },
-    ];
-    const topThisMonth = (P) => {
-      const m = new Date().getMonth() + 1;
-      const all = P.cells
-        .filter(c => c.month === m && c.samples >= 3 && (c.avg_excess != null || c.avg_return != null))
-        .map(c => ({ ...c, score: (c.excess_win_rate ?? c.win_rate ?? 0) * 0.6
-          + Math.max(-20, Math.min(20, c.avg_excess ?? c.avg_return ?? 0)) }))
-        .sort((a, b) => b.score - a.score);
-      const box = $('#seasonTop');
-      if (!box) return;
-      if (!all.length) { box.innerHTML = '<div class="empty">本月尚無足夠樣本</div>'; return; }
-      // 四等分（不足 4 個就往前塞）
-      const q = Math.max(1, Math.ceil(all.length / 4));
-      const buckets = [all.slice(0, q), all.slice(q, q * 2), all.slice(q * 2, q * 3), all.slice(q * 3)];
-      box.innerHTML = `<div class="stageboard" id="seasonBoard">${SEASON_TIER.map((t, i2) => {
-        const list = buckets[i2] || [];
-        return `<div class="stage" style="--c:${t.color}">
-          <div class="sh"><b style="color:${t.color}">${t.name}</b><span class="n">${list.length}</span></div>
-          <div class="sd">${t.sub}<br><em>${t.act}</em></div>
-          <ul>${list.map(r => `<li data-gid="${r.group_id}"><span class="g">${fmt.esc(r.group_name)}</span>
-            <span class="m">超額 ${r.avg_excess != null ? fmt.pct(r.avg_excess) : '—'}　勝率 ${r.excess_win_rate ?? r.win_rate ?? '—'}%　${r.samples} 年</span></li>`).join('')
-            || '<li class="none">這一段沒有族群</li>'}</ul></div>`;
-      }).join('')}</div>
-        <div class="note" style="margin-top:8px">${m} 月，依「超額報酬勝率 × 0.6 ＋ 平均超額」分四段；樣本少於 3 年不列。點族群看成分股。</div>`;
-      $$('#seasonBoard li[data-gid]').forEach(li => li.onclick = () => toggleRotMembers(li));
+      focus = null;                         // 換期間／指標，圖例的級距意義變了，聚焦一律還原
+      paintView();                          // 先把要畫的那張顯示出來，才量得到寬高
+      if (view === 'heat') drawHeat(); else drawLine();
+      writeNote();
     };
     $$('#seasonPeriod button').forEach(b => b.onclick = () => { $$('#seasonPeriod button').forEach(x => x.classList.toggle('on', x === b)); period = b.dataset.v; draw(); });
     $$('#seasonMetric button').forEach(b => b.onclick = () => { $$('#seasonMetric button').forEach(x => x.classList.toggle('on', x === b)); metric = b.dataset.v; draw(); });
     $$('#seasonView button').forEach(b => b.onclick = () => {
-      view = b.dataset.v; paintView();
+      view = b.dataset.v;
       try { localStorage.setItem('tw.season.view', view); } catch (e) { /* 忽略 */ }
-      // 藏起來的容器量不到寬高，切過來要讓 ECharts 重新量一次
-      const inst = window.echarts && echarts.getInstanceByDom($('#' + (view === 'line' ? 'seasonLine' : 'seasonHeat')));
-      if (inst) setTimeout(() => inst.resize(), 30);
+      draw();
+    });
+    $$('#seasonRows button').forEach(b => b.onclick = () => {
+      rowsMode = b.dataset.v === 'all' ? 'all' : '20'; hmLSset('tw.season.rows', rowsMode);
+      $('#seasonHeatBox').scrollTop = 0; paintView(); drawHeat();
+    });
+    $$('#seasonNum button').forEach(b => b.onclick = () => {
+      showNum = !showNum; hmLSset('tw.season.num', showNum ? '1' : '0'); paintView(); drawHeat();
+    });
+    $$('#seasonPick button').forEach(b => b.onclick = () => {
+      pick = b.dataset.v; if (pick === 'none') avgOn = true; paintPick(); drawLine(); writeNote();
     });
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });
+    /* 外框寬度變了（視窗縮放、事件抽屜開關）就重畫熱力圖：表頭寫「9 月」還是「9」、
+       格子放不放得下數字，都是依當下的欄寬算的，不重算就會用舊寬度的判斷。*/
+    const hbox = $('#seasonHeatBox');
+    if (hbox && !hbox._ro && typeof ResizeObserver !== 'undefined') {
+      let lastW = hbox.clientWidth;
+      hbox._ro = new ResizeObserver(() => { const w = hbox.clientWidth;
+        if (!w || Math.abs(w - lastW) < 16) return; lastW = w;
+        if (view === 'heat') { drawHeat(); } });
+      hbox._ro.observe(hbox);
+    }
     draw();
   }
 
