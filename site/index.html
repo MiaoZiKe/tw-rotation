@@ -69,11 +69,16 @@
      每一格上的 12px 粗體白字對比（深色主題）：4.79／7.12／10.25／7.84／11.71／7.87／5.36，全部 ≥ 4.5。 */
   --hm-n3:#078353; --hm-n2:#066542; --hm-n1:#0D4A35; --hm-0:#495265;
   --hm-p1:#6B1927; --hm-p2:#A01831; --hm-p3:#D31239; --hm-na:#2A3350;
-  /* 題材熱力的 5 格單一色相（--violet 247°）：熱度越高越亮越飽和。
-     「熱＝紅」在這個站會跟「漲」撞在一起，所以題材熱度改用紫（§3.1-4）。白字對比 13.0／9.84／7.51／5.91／4.71。 */
-  --hm-v1:#322e46; --hm-v2:#433a7c; --hm-v3:#503fbe; --hm-v4:#604dd8; --hm-v5:#705deb;
+  /* 題材熱力的 5 格單一色相：熱度越高越亮。「熱＝紅」會跟「漲」撞在一起，所以不用紅。
+     ★ 2026-09-24 Andy：「改用其他顏色，這顏色好醜 親近人一點顏色」—— 紫色（v2 第一版）換掉：
+       預設＝暖金（--hm-v*，蜂蜜色，由暖炭灰到金黃）；另一組湖水藍（--hm-t*），右上「顏色」下拉可切。
+     字色：前三格白字（11.6／7.6／4.8；湖水藍 12.6／7.6／4.6），後兩格太亮改深字 #1A1F2B（6.3／9.5；湖水藍 6.1／9.6）。
+     相鄰格對比 1.52～1.81，看得出分級。兩個主題共用（方塊是實心色，不吃底色）。 */
+  --hm-v1:#3D3833; --hm-v2:#6E4E24; --hm-v3:#9C6818; --hm-v4:#D4931F; --hm-v5:#F4BC45;
+  --hm-t1:#26363B; --hm-t2:#1B5C66; --hm-t3:#13828D; --hm-t4:#27AEB3; --hm-t5:#6FD6CF;
+  --hm-ink-dark:#1A1F2B;
   /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
-  --tip-bg:rgba(20,30,54,.88); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
+  --tip-bg:rgba(20,30,54,.97); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
   --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
   /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
      為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
@@ -329,9 +334,21 @@
    只換變數，版面與元件一行都不用改。JS 畫的圖不吃 CSS 變數，
    所以 app.js 的 refreshPalette() 會在切換時把同一組色讀進圖表色票再重畫。 */
 :root[data-theme="light"]{
-  --bg:#f2f5fb; --bg-2:#e9edf7; --panel:#ffffff; --panel-2:#f7f9fd; --panel-3:#eef2fa;
-  --line:#dde4f1; --line-2:#c2cde1;
-  --ink:#0f1830; --ink-2:#3f4e6d;
+  /* ★ 2026-09-24 設計系統 v2 第 3 批（docs/design_system_v2.md §2.2）：冷藍白 → 暖紙底、暖灰三階文字。
+     Andy：「我希望跟他們一樣規格」—— 參考截圖量到的是「暖白紙底、卡片比頁底亮一階、無陰影、暖灰字」這個**結構**；
+     色值不是抄對方的（對方 #EFEEEA／#24231F），是 Andy 自己在剖析圖閱讀模式拍板過的那組（--dg-bg／--dg-ink，2026-09-22）。
+     改前 → 改後（括號＝對 --panel 白／對 --bg 的實測對比）：
+       --bg      #f2f5fb → #F4F3EF（卡片對頁底 1.10:1，參考站 1.11）
+       --bg-2    #e9edf7 → #EFEDE8（事件抽屜底；--fall／--flat 對它 4.65／4.52，跟舊值同級）
+       --panel-2 #f7f9fd → #FAF9F6　--panel-3 #eef2fa → #F2F1EC
+       --line    #dde4f1 → #E9E6DF（1.25）　--line-2 #c2cde1 → #D6D2C8（1.51）
+       --ink     #0f1830 → #1F1D19（16.83／15.15）
+       --ink-2   #3f4e6d → #3E3A33（11.30／10.18）
+       --ink-3   #5b6884 → #5F5A51（6.85／6.16；對 --panel-3 6.05、對 --bg-2 5.85）
+     主色 --cyan 與紅漲綠跌**一個都沒動**（對新 --bg：cyan 5.43、rise 5.27、fall 4.90、flat 4.76、lime 5.02）。*/
+  --bg:#F4F3EF; --bg-2:#EFEDE8; --panel:#ffffff; --panel-2:#FAF9F6; --panel-3:#F2F1EC;
+  --line:#E9E6DF; --line-2:#D6D2C8;
+  --ink:#1F1D19; --ink-2:#3E3A33;
   /* ★ 2026-09-23 UI 精修 #2／#3：淺色主題七個色一起往下壓明度。
      為什麼：淺色主題底色是白與近白，舊值有七個對背景不到 4.5（最差的 --fall 只有 3.17），
      所以「切成明亮主題之後一堆字看不清楚」不是錯覺，是量得出來的。
@@ -349,28 +366,30 @@
      ⚠ app.js 的 PALETTE_LIGHT[0/2/3] 仍然是 #0b7fa6 / #b06a00 / #4a8a15 ——
         那是「分類色盤」的鎖定區（DECISIONS #48：動一個值就把全站板塊顏色洗牌），
         跟這裡的語意色是兩套東西，**刻意不同步**。 */
-  --ink-3:#5b6884;
+  --ink-3:#5F5A51;   /* v2 第 3 批：#5b6884（冷藍灰）→ 暖灰，見本段最上面的對比表 */
   --cyan:#0a6b8a; --violet:#5f4ddb; --amber:#8f5600; --lime:#3f7512;
   --rise:#c81234; --fall:#07794f; --flat:#5f6c85;
   --glow:0 0 0 1px rgba(11,127,166,.22), 0 4px 16px -8px rgba(11,127,166,.4);
-  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(15,24,48,.35);
+  /* v2 第 3 批：陰影改暖色調（冷藍 15,24,48 → 暖褐 40,35,25）。桌機卡片走 --card-sh:none；
+     這組只剩手機卡片與搜尋建議框在用（第 1 批的決定：手機的卡片結構不動）。 */
+  --shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 10px 24px -18px rgba(40,35,25,.30);
   --ontop:#ffffff; --chartbg:#ffffff;
   --topbar:rgba(255,255,255,.82); --topbar-m:rgba(255,255,255,.96);
   --ovl:rgba(255,255,255,.82); --ovl-sh:0 1px 2px rgba(255,255,255,.9);
-  --grid:rgba(15,24,48,.07);
-  --drop:rgba(15,24,48,.18);
-  --body-1:rgba(95,77,219,.10); --body-2:rgba(11,127,166,.09);
+  --grid:rgba(40,35,25,.07);     /* v2 第 3 批：格線、浮層陰影跟著暖化 */
+  --drop:rgba(40,35,25,.18);
+  /* v2 第 3 批：body 那兩團紫／青光暈在暖紙底上會發髒（紫＋暖白＝灰粉），淺色主題關掉。深色照舊。 */
+  --body-1:transparent; --body-2:transparent;
   --focus:#0a5f7d;    /* 淺色的焦點環：對白底 7.13、對 --bg 6.53 */
-  --row-hover:#eef2fa;/* 對白底實測 1.12，跟深色那組同一個強度 */
+  --row-hover:#F2F1EC;/* 對白底實測 1.13（舊 #eef2fa 1.12），跟深色那組同一個強度；v2 第 3 批暖化 */
   /* ---- 設計系統 v2（2026-09-24）淺色那一組 ----
      卡片：參考截圖量到「平塗、無陰影、只靠底色差分層」（σ＝0、外圍像素與頁底無差）。 */
   --card-sh:none;
   /* 熱力圖 7 格（淺色）白字對比：4.73／7.03／11.03／9.04／12.39／8.40／5.64。無資料格配深字（12.5:1）。 */
   --hm-n3:#068456; --hm-n2:#056642; --hm-n1:#084530; --hm-0:#424957;
   --hm-p1:#661522; --hm-p2:#99152D; --hm-p3:#CC1439; --hm-na:#E7E5E4;
-  --hm-v1:#2f2c40; --hm-v2:#413973; --hm-v3:#4e3fb3; --hm-v4:#5f4cd5; --hm-v5:#705de7;
   /* 提示框：白 86%（參考站是 70%，但 70% 疊在最深的方塊上次要字只剩 3.71:1；86% 才有 5.22） */
-  --tip-bg:rgba(255,255,255,.86); --tip-line:transparent; --tip-sh:0 8px 24px -8px rgba(40,35,25,.25);
+  --tip-bg:rgba(255,255,255,.97); --tip-line:transparent; --tip-sh:0 8px 24px -8px rgba(40,35,25,.25);
 }
 /* ================ 剖析圖的兩種模式（art-director 2026-09-22，Andy 拍板）================
    Andy 給了兩張參考圖：亮色系「閱讀」（暖白紙底、低飽和粉彩、深灰細引線、白色圓角卡片）
@@ -1069,15 +1088,24 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    現在全部列出來，格子高度固定所以四格永遠等高，版面也不會被撐長。*/
 .stage ul{list-style:none;margin:0;padding:0 4px 0 0;display:flex;flex-direction:column;gap:5px;
   max-height:380px;overflow-y:auto;scrollbar-width:thin}
-/* ★ 2026-09-19：季節性那塊四張卡每張只有 5–7 個族群，內捲沒有意義，而且捲軸沒有任何提示，
-   1100px 下有一半的族群名是看不到的（「記憶體」「封測」「伺服器電源」都被切一半）。
-   這一塊直接讓卡片長高。輪動階段那塊（compact）族群多，維持內捲。 */
-#seasonBoard .stage ul{max-height:none;overflow-y:visible}
-/* ★ 2026-09-19：只有季節性這塊要換行。它的 li 右邊掛著「超額 x%　勝率 y%　N 年」，
-   窄畫面時那一整段會溢出膠囊、壓到下面那行說明文字（_preview 報的 3 筆文字重疊）。
-   輪動階段那塊的 li 只有族群名，不會溢出，而且 999px 全圓角是 Andy 2026-09-18
-   「不要那麼方方角角」指定的造型（_uitest 有一條 liR >= 100 在守），所以**不要動到它**。 */
-#seasonBoard .stage li{flex-wrap:wrap;gap:4px 6px;border-radius:14px}
+/* ---- 週期統計（#season）的熱力圖外框 ----
+   ★ 2026-09-24（Andy：約 100 個族群擠在 600px 高、每列 5～6px、名字只顯示每 4～5 列一個）：
+   列高改成固定值（桌機 24、手機 20），圖高＝列數 × 列高，所以每個族群名稱都印得出來；
+   整張太高時由外框捲動，月份表頭 sticky 釘在框頂。表頭是 HTML 按鈕而不是 ECharts 的 x 軸 ——
+   ECharts 的軸在 canvas 裡，跟著圖一起被捲走，捲到第 40 列就不知道哪一欄是幾月。
+   （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
+.shbox{position:relative;margin-top:10px;max-height:680px;overflow-y:auto;overscroll-behavior:contain;
+  border-radius:10px;scrollbar-width:thin}
+.shbox[hidden]{display:none}
+.shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
+  background:var(--panel);padding-top:2px;padding-bottom:4px}
+.shhead button{border:0;background:transparent;color:var(--ink-2);font:600 12px/1 var(--mono);height:24px;
+  padding:0;border-radius:6px;cursor:pointer;white-space:nowrap;overflow:hidden;min-width:0}
+.shhead button:hover{background:var(--panel-3);color:var(--ink)}
+.shhead button.on{background:var(--cyan);color:var(--ontop)}
+.shhead button.now:not(.on){box-shadow:inset 0 -2px 0 var(--cyan)}
+.sncav{color:var(--amber)!important}
+#seasonCtl{flex-wrap:wrap;gap:8px;justify-content:flex-end}
 .stage ul::-webkit-scrollbar{width:6px}
 .stage ul::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 點開的族群：底下原地插一列成分股膠囊 */
@@ -2781,12 +2809,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
      100vh 扣掉 頂欄72 ＋ 分段列58 ＋ 價格列65 ＋ 工具列46 ＋ 底部分頁102 ≈ 343。
      ⚠ 只在 ≤820px 生效，桌機那兩條一個字都沒動。*/
   body.miaon #lwc{height:clamp(380px,calc(100vh - 343px),620px)}
-  /* 季節性的月份熱力圖：桌機 640px，390px 上它會把下面那行結論（`#seasonNote`）
-     推出畫面（量到圖 132～772、結論 780～874，可視只到 742）。
-     收到 500px 之後兩個一起進得來 —— 「看圖不用再滑下去找結論」。*/
-  /* `!important` 是必要的：`#seasonHeat` 的 640px 寫在 index.html 的 inline style 上，
-     沒有 `!important` 的 class 規則權重壓不過 inline。*/
-  body.miaon #seasonHeat{min-height:480px!important;height:480px!important}
+  /* 週期統計的月份熱力圖：2026-09-24 起圖高由列數決定（每列固定高），外框 `#seasonHeatBox` 負責捲動，
+     手機把外框上限壓到「一屏放得下框＋圖例＋結論」—— 看圖不用再滑下去找結論。*/
+  body.miaon #seasonHeatBox{max-height:clamp(300px,calc(100vh - 420px),460px)}
   body.miaon #skHead{flex-wrap:wrap}
   body.miaon #skIdent{min-width:0;max-width:100%;flex:1 1 100%}
   /* ⚠ 滿版的做法：`.card` 的內距是 16px 18px，所以要往左右各吃回 18px，
@@ -2905,6 +2930,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   color:#fff;cursor:pointer;background:var(--c);font-variant-numeric:tabular-nums;white-space:nowrap;
   transition:opacity var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
 .hmlegend .hmcell.na{color:var(--ink)}
+.hmlegend .hmcell.dk{color:var(--hm-ink-dark)}   /* 暖金／湖水藍最亮的兩格配深字 */
 /* 點一格＝只亮這一級：其他格退到 35%（圖上的方塊退到 25%），被選的那格內框一圈白線 */
 .hmlegend.focus .hmcell{opacity:.35}
 .hmlegend.focus .hmcell.on{opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.9)}
@@ -2923,6 +2949,12 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 觸控裝置沒有滾輪（wheelZoom 也沒做雙指縮放），「滾輪放大」是一句用不到的提示；
    而手機上熱力圖的左下角常是一塊小方塊的標籤（390px 量到蓋住「面板產業 +6.1%」）。只在觸控裝置收起來。*/
 @media (hover:none){ #heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{display:none} }
+/* 桌機：三張熱力圖的徽章平常不顯示，滑鼠移進圖裡（或已經放大）才出現。
+   2026-09-24 截積木外觀時量到：左下角仍會蓋住小方塊的名字（總覽「半導體・其他」）——
+   方塊排法每天不同，找不到永遠空著的角落，所以改成「不用的時候不佔位」。 */
+#heatWrap>.zbadge,#indTreeWrap>.zbadge,#themeMapWrap>.zbadge{opacity:0}
+#heatWrap:hover>.zbadge,#indTreeWrap:hover>.zbadge,#themeMapWrap:hover>.zbadge,
+#heatWrap.zoomed>.zbadge,#indTreeWrap.zoomed>.zbadge,#themeMapWrap.zoomed>.zbadge{opacity:1}
 /* 卡片標題列右側的控制項：下拉與日期膠囊（只顯示、不能改）。高 28、膠囊。 */
 .hmctl{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:var(--r-pill);
   border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);font-size:12px;white-space:nowrap}
@@ -2933,6 +2965,40 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .hmctl select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .hmctl.date{font-family:var(--mono);color:var(--ink-3)}
 .hmctl.date svg{flex:none}
+
+/* ==================================================================================
+   ★ 2026-09-24 設計系統 v2 第 5 批：輪動時鐘（規格 docs/design_system_v2.md §3.2）
+   ================================================================================== */
+/* 象限卡的「本週新進」：`領先 9 +2`，+2 是 12px --ink-3（最近 5 個交易日換進這一段的族群數） */
+.rotquads .rq i.nw{font-style:normal;font-weight:400;font-size:12px;font-family:var(--mono);color:var(--ink-3)}
+.rotquads .rq.on i.nw{color:var(--ink-2)}
+/* 軌跡「焦點｜全部」：勾選框旁邊一組小 seg；軌跡關掉時整組淡掉（按鈕 disabled） */
+.rot-tmode button:disabled{opacity:.45;cursor:not-allowed}
+/* 高度壓到跟旁邊的勾選框同一行（21px）：像素比對量到用一般 .seg.tiny（約 30px 高）會把整張卡往下推 8px */
+.rottools .rot-tmode{padding:1px;border-radius:var(--r-pill);vertical-align:middle}
+.rottools .rot-tmode button{padding:0 9px;font-size:12px;line-height:17px;border-radius:var(--r-pill)}
+/* 編號模式（時鐘容器 < 560px）的名字清單：依象限分四組，每格「編號 名字」，點一下＝在圖上只亮它。
+   字 12～13px、編號是 18px 圓（跟圖上的編號同一個數字），焦點族群的名字粗體。*/
+.rotnums{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+.rotnums .rnh{font-size:12px;color:var(--ink-3)}
+.rotnums .rnh small{font-size:12px}
+.rotnums .rnq{display:flex;align-items:flex-start;gap:8px;padding:6px 8px;border-radius:var(--r-sm,10px);
+  background:color-mix(in srgb,var(--c) 7%,var(--panel));border:1px solid color-mix(in srgb,var(--c) 28%,transparent)}
+.rotnums .rnq>b{flex:none;font-size:13px;color:var(--c);line-height:24px;min-width:2.2em}
+.rotnums .rnl{display:flex;flex-wrap:wrap;gap:4px 10px;min-width:0}
+.rotnums .rni{appearance:none;border:0;background:none;padding:2px 4px;margin:0;font:inherit;font-size:13px;
+  color:var(--ink-2);display:inline-flex;align-items:center;gap:5px;cursor:pointer;border-radius:6px;min-height:24px;
+  text-align:left;max-width:100%}
+.rotnums .rni.f{color:var(--ink);font-weight:700}
+.rotnums .rni i{font-style:normal;flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 4px;
+  display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:var(--mono);
+  background:color-mix(in srgb,var(--c) 22%,var(--panel));color:var(--ink)}
+.rotnums .rni:hover{background:var(--row-hover)}
+.rotnums .rni.on{background:color-mix(in srgb,var(--c) 18%,var(--panel));box-shadow:inset 0 0 0 1px var(--c)}
+.rotnums .rni:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* 放大視窗那一份掛在 #zoomTools 裡：限制高度，不要把時鐘擠掉 */
+#zoomTools .rotnums{max-height:30vh;overflow:auto}
+@media (prefers-reduced-motion:reduce){ .rotnums .rni{transition:none} }
 
 </style>
 </head>
@@ -2962,7 +3028,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          舊網址 `#themes`、`#themes/<id>` **不准壞**（交付清單的「去看」、外面存的連結都指著它），
          由 app.js 的 route() 導到 `#heatmap/theme[/<id>]`。 -->
     <button class="tab" data-view="market">市場明細</button>
-    <button class="tab" data-view="season">季節性</button>
+    <!-- ★ 2026-09-24（Andy：「"季節性" 分頁改成 "週期統計"」）：只改畫面上的字，路由 `#season` 刻意不動 ——
+         交付清單的「去看」、外面存的連結都指著它，改網址等於把那些連結全部弄斷。 -->
+    <button class="tab" data-view="season">週期統計</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
@@ -3227,7 +3295,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
          網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
     <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>方塊＝題材成交值（成員不拆分，一檔可屬多題材）；顏色＝熱度</small></h3>
       <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button><span class="note" id="themeNote"></span></div></div>
-      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、紫色又最亮的方塊 ——
+      <div class="sub"><b>這張圖回答：</b>今天市場在炒哪些題材、哪一個最熱。<b>怎麼用：</b>先找又大、顏色又最亮的方塊 ——
         錢多、熱度也高的題材（右上可以把顏色換成平均漲跌，那時就是紅漲綠跌）；<b>點一塊就展開它的產品剖析圖</b>（電腦版就在這張圖下面），再點剖析圖上的環節或代號就到個股。</div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
@@ -3258,26 +3326,37 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
        轉成 site/data/delivery.json。整頁由 app.js 的 renderDelivery 畫。 -->
   <section class="view" id="v-delivery"></section>
 
-  <!-- ================= 季節性 ================= -->
+  <!-- ================= 週期統計（路由沿用 #season） =================
+       ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
+         「本月最強」這件事改由熱力圖本身回答：列依某個月由強到弱排序（預設本月，點月份換一個月），
+         曲線圖的「本月最強 5」快捷鍵也是同一個排序 —— 一個問題只留一個答案的地方。 -->
   <section class="view" id="v-season">
     <div class="card" id="seasonHeatCard">
       <div class="row spread">
-        <h3>族群 × 月份 <small id="seasonRange"></small></h3>
-        <div class="row">
+        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small></h3>
+        <div class="row" id="seasonCtl">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>
           <!-- J1（Andy 2026-09-18：「族群 × 月份還需要新增圖表方式表示 包含曲線圖，這樣看圖更直觀」）：
                熱力圖看得出「哪一格特別紅」，但看不出「一整年怎麼走」；曲線圖補的就是後者。 -->
           <div class="seg" id="seasonView"><button data-v="heat" class="on">熱力圖</button><button data-v="line">曲線圖</button></div>
+          <!-- 熱力圖專用：列數與格內數字（預設不印數字 —— Andy：「新增顯示數字選項（所以 Default 是沒有）」） -->
+          <div class="seg" id="seasonRows" data-for="heat"><button data-v="20" class="on">前 20 名</button><button data-v="all">全部</button></div>
+          <div class="seg" id="seasonNum" data-for="heat"><button data-v="num" aria-pressed="false" title="在格子裡印出數值；格子太小放不下的會略過（不疊字）">顯示數字</button></div>
+          <!-- 曲線圖專用：快捷挑線（圖例點選加減照舊可以用） -->
+          <div class="seg" id="seasonPick" data-for="line" style="display:none"><button data-v="top">本月最強 5</button><button data-v="bot">本月最弱 5</button><button data-v="none">只留平均線</button></div>
         </div>
       </div>
-      <div id="seasonHeat" class="chart" style="min-height:640px"></div>
+      <p class="note" id="seasonHow" style="margin-top:8px"></p>
+      <p class="note sncav" id="seasonCaveat" hidden></p>
+      <!-- 熱力圖放在可捲動的框裡：列高固定（每個族群名稱都印得出來），月份表頭用 sticky 釘在框頂，
+           捲到下面也知道哪一欄是幾月。表頭是 HTML 按鈕，點一下＝依那個月重新排序。 -->
+      <div class="shbox" id="seasonHeatBox">
+        <div class="shhead" id="seasonHeatHead" role="group" aria-label="依月份排序"></div>
+        <div id="seasonHeat" class="chart"></div>
+      </div>
       <div id="seasonLine" class="chart" style="min-height:560px" hidden></div>
       <div class="note" id="seasonNote" style="margin-top:8px"></div>
-    </div>
-    <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="seasonDrillCard"><h3 id="seasonDrillTitle">逐年明細 <small>點上方格子</small></h3><div id="seasonDrill" class="chart"></div></div>
-      <div class="card" id="seasonTopCard"><h3>本月歷史最強族群 <small>依超額報酬勝率與平均</small></h3><div id="seasonTop"></div></div>
     </div>
   </section>
 </main>
@@ -3340,6 +3419,11 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
 <script src="livek.js"></script>
+<!-- ★ 2026-09-24 設計系統 v2 第 6 批：頁尾免責聲明、法律頁、同意橫幅、平台導覽。
+     開關在 legal_config.js（條款空格填完＋enabled:true 才啟用橫幅）。必須在 app.js 之前：
+     route() 第一次跑的時候就要問得到 window.TwLegal。 -->
+<script src="legal_config.js"></script>
+<script src="legal.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>

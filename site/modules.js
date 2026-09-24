@@ -151,12 +151,11 @@
       ],
       "tests": ["市場明細", "批次4"] },
 
-    { "id": "season.month", "name": "季節性", "question": "②", "ask": "這個族群在這個月份，歷史上通常表現如何",
+    { "id": "season.month", "name": "週期統計", "question": "②", "ask": "這個族群在這個月份，歷史上通常表現如何",
       "tier": "免費", "law": "🟡",
       "at": [
-        { "page": "season", "seg": "月份熱力", "ord": 10, "selector": ["#seasonHeatCard"] },
-        { "page": "season", "seg": "逐年明細", "ord": 20, "selector": ["#seasonDrillCard"] },
-        { "page": "season", "seg": "最強族群", "ord": 30, "selector": ["#seasonTopCard"] }
+        { "page": "season", "selector": ["#seasonHeatCard"],
+          "note": "週期統計（#season）：2026-09-24 改版拿掉「逐年明細」「本月歷史最強族群」兩張卡之後只剩這一張，一段就沒有分段的意義（miaPager 也會自己收掉），所以不帶 seg、不參與手機分段。" }
       ],
       "tests": ["季節性"] },
 

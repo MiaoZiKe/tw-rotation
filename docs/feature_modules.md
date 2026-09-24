@@ -687,7 +687,7 @@
 | #2 `broker.views` | ✅ | `site/blocks/broker_views.js`：一份輸入、一個出口 `BrokerViews.view(rows, 'feed'｜'card', fmt)`，對外欄位只在 `pick()` 決定。`renderEvents`／`tabNews` 都改呼叫它；擋掉那支檔整站照常 |
 | #3 `stock.signal`／`stock.fund` | ✅ | `industry.js` 的 `fundCard`／`chipCard`（`stock.fund`）＋ `site/blocks/stock_signal.js`（`stock.signal`，一份輸入 `{summary, verdict}`）|
 | #4b 全域 `D` 當隱性參數 | 🟡 部分 | `renderTrust`／`wireStreak` 改收 `inst_streak` 參數；`renderOverview` 不再用 `, ,` 丟回傳值。**其餘清單見下** |
-| #4 ＋ #12 `MIA_PAGER` 從清單產生 | ✅ | `site/modules.js`（27 塊積木的唯一宣告，資料是夾在標記之間的純 JSON，Python 也讀得到）。`MIA_PAGER = TwModules.pager()`，產生的物件跟手寫版逐字相同；`_uitest.py --module <id>`／`--list-modules` 從同一份清單挑段落 |
+| #4 ＋ #12 `MIA_PAGER` 從清單產生 | ✅ | `site/modules.js`（27 塊積木的唯一宣告，資料是夾在標記之間的純 JSON，Python 也讀得到）。`MIA_PAGER = TwModules.pager()`，產生的物件跟手寫版逐字相同；`_uitest.py --module <id>`／`--list-modules` 從同一份清單挑段落。合併 main（週期統計改版）後 `season.month` 不再分段，產生結果與 main 手寫版（4 頁 20 段）逐字相同 |
 
 **#4b 還沒處理的 `D.<表名>` 讀者**（留給下一棒，理由逐條）：
 - `groups_detail`×12（`heatPanel`、`toggleRotMembers`、`renderDrillPanel`、`renderDrillChainPanel`、`rlvCodes`／`rlvCompute`、`sklWeights`／`sklFetch`、`expandRows`／`expandBabies`、`mudCodes`、`drawMarket`）：
