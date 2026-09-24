@@ -775,3 +775,19 @@ computed style（`#ovHeatCard`）。**`ui_polish_spec.md` 提的 `--s1～--s8` �
 ⚠ `ECharts 5.6.0 treemap borderRadius`（⑦ 最後一條）已實測：生效。
 
 驗收段落：`_uitest --only 設計系統v2,熱力圖v2`（新增）。
+
+## ⑨ 實作紀錄：第 6 批（同意橫幅、平台導覽、三個法律頁、頁尾免責聲明）（2026-09-24，台北）
+
+- 新檔：`site/legal.js`（全部邏輯＋自己注入的 CSS）、`site/legal_config.js`（**唯一的開關**）。
+  既有檔只動了：`index.html` 兩行 `<script>`、`app.js` `route()` 一段掛勾（`#terms`／`#privacy`／`#disclaimer`／`#leave`）。
+- **預設狀態**：頁尾一行短版免責聲明（版本 A）常駐；三頁打得開，服務條款與隱私權政策頂端掛「草稿，尚未生效」、
+  空格用【】標出；同意橫幅**不出現**、導覽**不自動彈**（頁尾「平台導覽」可手動開）。
+- **啟用條件**（`legal.js` 的 `active()`）：`operator`／`email`／`effective_date`／`tax_id`／`court` 全部有值、
+  畫出來的兩份條款全文掃不到任何【】、而且 `enabled: true`。之後只改 `legal_config.js` 就能上線。
+- 跟草稿不同的三處（理由寫在 `legal.js` 的註解）：① 本站沒有的服務（付費、電子報、同步、流量統計）對應段落用旗標關掉、章節自動重排；
+  ② 沒有授權頁時「授權方案請見【授權頁網址】」改成「請來信 email 洽詢」；③ 隱私權政策第六條補上 4.1 要求的 localStorage 同意那一句。
+- 驗收：`_uitest --only 同意條款與法律頁`（新增）；`_uitest.py`／`_preview.py`／`_show.py` 都把 Playwright 的
+  `Browser.new_page／new_context` 包一層，預寫 `tw.consent={v:'*'}` 與 `tw.tour`，啟用那天其他關卡不會被橫幅擋紅。
+- `手機一屏` 的「整頁高度上限」改成扣掉頁尾實量高度再比（頁尾是每頁都有的法律文字，不是要滑的內容）。
+- `_preview.py` 的文字重疊掃描：折成多行的行內元素（段落裡的 `<b>`）改用逐行 `getClientRects()` 比，
+  否則同一段前後兩個粗體會被誤報成重疊（法律頁加進掃描時踩到，截圖確認沒疊）。

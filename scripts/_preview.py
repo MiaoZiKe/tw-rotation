@@ -56,6 +56,22 @@ OVERLAP_JS = r"""
     }
     return r;
   };
+  /* ★ 2026-09-24（法律頁加進掃描時踩到）：**折行的行內元素**（段落裡的 <b>、<mark>）
+     getBoundingClientRect() 回的是「第一行起點到最後一行終點」的大方框，
+     會把同一段裡前後相鄰的另一個 <b> 整個框進去 —— 截圖上兩者是同一行裡一前一後，根本沒疊。
+     所以只要有一邊是折成多行的行內元素，就改用 getClientRects() 逐行比，逐行都沒交集才算誤報。
+     這只會讓掃描更準：真的疊字一定有某一行的方框彼此相交。*/
+  const wrapOnly = (p, q) => {
+    const multi = (e) => getComputedStyle(e).display === 'inline' && e.getClientRects().length > 1;
+    if (!multi(p) && !multi(q)) return false;
+    const P = [...p.getClientRects()], Q = [...q.getClientRects()];
+    for (const a of P) for (const b of Q) {
+      const x = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+      const y = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      if (x > 1 && y > 1) return false;
+    }
+    return true;
+  };
   const rects = els.map(e => ({ e, r: clipRect(e) }))
                    .filter(x => x.r && x.r.width > 6 && x.r.height > 6);
   const bad = [];
@@ -65,7 +81,7 @@ OVERLAP_JS = r"""
     const x = Math.max(0, Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left));
     const y = Math.max(0, Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top));
     const inter = x * y; const small = Math.min(a.r.width * a.r.height, b.r.width * b.r.height);
-    if (inter > 0.3 * small && inter > 40) bad.push([a.e.textContent.trim().slice(0, 30), b.e.textContent.trim().slice(0, 30)]);
+    if (inter > 0.3 * small && inter > 40 && !wrapOnly(a.e, b.e)) bad.push([a.e.textContent.trim().slice(0, 30), b.e.textContent.trim().slice(0, 30)]);
   }
   return bad.slice(0, 12);
 }
@@ -185,9 +201,45 @@ def serve():
     return srv
 
 
+
+# ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js）：同意條款橫幅。
+#   橫幅一旦啟用（site/legal_config.js 填完＋enabled:true），會固定在畫面最下方約 130～160px，
+#   **擋住所有點畫面下緣的驗收步驟** —— 腳本沒改先上線，所有關卡會一起紅（docs/design_system_v2.md 4.1 最後一段）。
+#   所以在這裡把 Playwright 的 Browser.new_page／new_context 包一層：每一個新開的頁面，
+#   在頁面腳本執行前都先寫好 tw.consent（v:'*'＝這個瀏覽器不必再看橫幅）與 tw.tour。
+#   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
+#   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
+#   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
+CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+                  "JSON.stringify({v:'*',at:'test'}));"
+                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+
+
+def _preset_consent() -> None:
+    from playwright.sync_api import Browser
+    if getattr(Browser, "_tw_consent", False):
+        return
+    raw_page, raw_ctx = Browser.new_page, Browser.new_context
+
+    def new_page(self, *a, **k):
+        pg = raw_page(self, *a, **k)
+        pg.add_init_script(CONSENT_PRESET)
+        return pg
+
+    def new_context(self, *a, **k):
+        c = raw_ctx(self, *a, **k)
+        c.add_init_script(CONSENT_PRESET)
+        return c
+
+    Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
+    Browser.new_page, Browser.new_context = new_page, new_context
+    Browser._tw_consent = True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(); ap.add_argument("--code", default=None); args = ap.parse_args()
     from playwright.sync_api import sync_playwright
+    _preset_consent()
     srv = serve(); time.sleep(0.4)
     out = ROOT / "docs"; out.mkdir(exist_ok=True)
     problems: list[str] = []; state = {}
@@ -295,6 +347,14 @@ def main() -> int:
             pg.screenshot(path=str(out / "v3_theme_diagram.png"), full_page=True)
         state["theme_diagrams"] = tstat
         visit("season", "season")
+        # ★ 2026-09-24 設計系統 v2 第 6 批：三個法律頁（site/legal.js）也走一次文字重疊掃描。
+        #   這三頁是純文字長頁，最常出事的是表格與【】空格標示在窄欄裡疊字。
+        for lg in ("terms", "privacy", "disclaimer"):
+            info = visit(lg, "legal_" + lg, wait=900)
+            if info["text"] < 300:
+                problems.append(f"法律頁 #{lg} 幾乎沒有內容（{info['text']} 字）")
+            if info["overlaps"]:
+                problems.append(f"法律頁 #{lg} 文字重疊：{info['overlaps'][:3]}")
 
         code = args.code or pg.evaluate("(document.querySelector('#candBody tr')||{}).dataset ? document.querySelector('#candBody tr').dataset.code : '2330'") or "2330"
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
