@@ -22420,6 +22420,7 @@ HM_READ = r"""(id) => {
   const s = getComputedStyle(document.documentElement); const tok = (n) => s.getPropertyValue(n).trim().toLowerCase();
   const pal7 = ['--hm-n3','--hm-n2','--hm-n1','--hm-0','--hm-p1','--hm-p2','--hm-p3'].map(tok);
   const pal5 = ['--hm-v1','--hm-v2','--hm-v3','--hm-v4','--hm-v5'].map(tok); const na = tok('--hm-na');
+  const palT = ['--hm-t1','--hm-t2','--hm-t3','--hm-t4','--hm-t5'].map(tok); const inkDark = tok('--hm-ink-dark');
   const tree = c.getModel().getSeriesByIndex(0).getData().tree; const leaves = []; const byP = {};
   const all = [];
   tree.root.eachNode(n => { if (n.children && n.children.length) return; const l = n.getLayout(); if (!l) return;
@@ -22445,10 +22446,11 @@ HM_READ = r"""(id) => {
   const cells = lg ? [...lg.querySelectorAll('.hmcell')].map(b => { const r = b.getBoundingClientRect();
     return { w: Math.round(r.width), bg: getComputedStyle(b).backgroundColor, txt: b.textContent }; }) : [];
   const opt = c.getOption(); const se = opt.series[0];
-  return { n: leaves.length, leaves, gaps, pal7, pal5, na, cells, legendTitle: lg ? (lg.querySelector('.hmttl') || {}).textContent : null,
+  return { n: leaves.length, leaves, gaps, pal7, pal5, palT, inkDark, na, cells, legendTitle: lg ? (lg.querySelector('.hmttl') || {}).textContent : null,
     lgRight: lg ? lg.getBoundingClientRect().right : null, cardRight: card ? card.getBoundingClientRect().right : null,
     radius: se.itemStyle && se.itemStyle.borderRadius, fs: se.label && se.label.fontSize,
     tipBg: (opt.tooltip && opt.tooltip[0] && opt.tooltip[0].backgroundColor) || '',
+    tipDur: opt.tooltip && opt.tooltip[0] ? opt.tooltip[0].transitionDuration : null,
     nested: !!(se.data && se.data[0] && se.data[0].children), docW: document.documentElement.scrollWidth, winW: innerWidth };
 }"""
 
@@ -22466,6 +22468,11 @@ def _cr_white(hexs):
     return (1.05) / (_lum(hexs) + 0.05)
 
 
+def _cr(a, b):
+    la, lb = _lum(a), _lum(b)
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+
+
 def _hm_check(tag, r, kind):
     """一張熱力圖的共通斷言（規格 ①～⑤）。kind＝7 格（chg/flow）或 5 格（heat）。"""
     if not ok(f"[{tag}] 熱力圖畫得出來、讀得到方塊", r and r["n"] > 0, r and r.get("n")):
@@ -22473,10 +22480,10 @@ def _hm_check(tag, r, kind):
     gaps = r["gaps"]
     ok(f"[{tag}] ① 相鄰兩個族群方塊的間隙實測 2±1px（{len(gaps)} 對）",
        gaps and all(1 <= g <= 3 for g in gaps), sorted(set(round(g, 1) for g in gaps))[:8])
-    ncell = 5 if kind == "heat" else 7
+    ncell = 5 if kind in ("heat", "heatT") else 7
     ok(f"[{tag}] ② 圖例存在、{ncell} 格、每格寬 ≥ 36px",
        len(r["cells"]) == ncell and all(c["w"] >= 36 for c in r["cells"]), r["cells"])
-    pal = r["pal5"] if kind == "heat" else r["pal7"]
+    pal = r["pal5"] if kind == "heat" else r["palT"] if kind == "heatT" else r["pal7"]
     bad = [lf["name"] + " " + lf["fill"] for lf in r["leaves"] if lf["fill"] not in pal + [r["na"]]]
     ok(f"[{tag}] ③ 每一格方塊的填色都屬於 {ncell} 格之一（不再是連續色）", not bad, bad[:5])
     used = {lf["fill"] for lf in r["leaves"]}
@@ -22490,10 +22497,15 @@ def _hm_check(tag, r, kind):
     trunc = [lf["lab"]["text"] for lf in r["leaves"] if lf["lab"] and lf["lab"]["text"].endswith("…")]
     ok(f"[{tag}] ④ 截斷的名稱至少留兩個字（不再有「M +」這種殘字）",
        all(len(t) >= 3 for t in trunc), trunc[:6])
-    lowc = [(c, round(_cr_white(c), 2)) for c in pal if _cr_white(c) < 4.5]
-    ok(f"[{tag}] ⑤ 每一級色階上的白字對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
+    # 熱度那兩組（暖金／湖水藍）最亮的兩格改配深字（2026-09-24 Andy 嫌紫色醜之後換的色）；其他格一律白字
+    ink = lambda i: r["inkDark"] if kind in ("heat", "heatT") and i >= 3 else "#ffffff"
+    lowc = [(c, ink(i), round(_cr(c, ink(i)), 2)) for i, c in enumerate(pal) if _cr(c, ink(i)) < 4.5]
+    ok(f"[{tag}] ⑤ 每一級色階上的字（白字，熱度最亮兩格是深字）對比都 ≥ 4.5:1（從 token 算）", not lowc, lowc)
     ok(f"[{tag}] 方塊圓角 3px、標籤 12px", r["radius"] == 3 and r["fs"] == 12, [r["radius"], r["fs"]])
-    ok(f"[{tag}] 提示框是半透明的（毛玻璃那一種，不是實心）", "rgba" in r["tipBg"] and ",.8" in r["tipBg"].replace(" ", ""), r["tipBg"])
+    # 2026-09-24 Andy 截圖：提示框 88% 透明＋0.4 秒淡入，途中後面方塊的字透出來看不清 → 改 97%、不淡入
+    _a = re.search(r"rgba\([^)]*,\s*([0-9.]+)\)", r["tipBg"] or "")
+    ok(f"[{tag}] 提示框近乎不透明（≥ 95%），後面方塊的字不會透出來", bool(_a) and float(_a.group(1)) >= 0.95, r["tipBg"])
+    ok(f"[{tag}] 提示框不做淡入淡出（途中半透明會跟方塊的字疊在一起）", r.get("tipDur") == 0, r.get("tipDur"))
     ok(f"[{tag}] 圖例沒有跑出卡片右緣", r["lgRight"] is not None and r["lgRight"] <= r["cardRight"] + 0.5,
        [r["lgRight"], r["cardRight"]])
 
@@ -22603,7 +22615,7 @@ def t_heatmap_v2(pg, base):
         pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
         r = pg.evaluate(HM_READ, "themeMap")
         _hm_check(f"{th} 題材 #themeMap", r, "heat")
-        ok(f"[{th} #themeMap] 預設顏色＝熱度（紫色 5 格，不再用紅 —— 紅在這個站是「漲」）",
+        ok(f"[{th} #themeMap] 預設顏色＝熱度（暖金 5 格，不用紅 —— 紅在這個站是「漲」；09-24 紫色被 Andy 否決）",
            r and r["legendTitle"] == "熱度" and len(r["cells"]) == 5, r and r["legendTitle"])
         if th == "dark":
             pg.select_option("#themeColorSel", "chg"); pg.wait_for_timeout(1400)
@@ -22617,8 +22629,17 @@ def t_heatmap_v2(pg, base):
                vals and all(v.endswith("%") for v in vals), vals[:5])
             ok("[#themeMap] 題材細節沒有因為換顏色被重建（只重畫這張圖）",
                pg.evaluate("() => location.hash").startswith("#heatmap"))
+            pg.select_option("#themeColorSel", "heatT"); pg.wait_for_timeout(1400)
+            rt = pg.evaluate(HM_READ, "themeMap")
+            _hm_check("dark 題材 #themeMap 湖水藍", rt, "heatT")
+            ok("[#themeMap] 顏色切到「熱度（湖水藍）」→ 每一格都換成湖水藍 5 格、圖例跟著換",
+               rt and len(rt["cells"]) == 5 and all(lf["fill"] in rt["palT"] + [rt["na"]] for lf in rt["leaves"]), rt and rt["cells"])
+            ok("[#themeMap] 湖水藍的選擇有記住（localStorage tw.themeColor）",
+               pg.evaluate("() => localStorage.getItem('tw.themeColor')") == "heatT")
             pg.select_option("#themeColorSel", "heat"); pg.wait_for_timeout(1400)
-            ok("[#themeMap] 切回「熱度」→ 紫色 5 格", len((pg.evaluate(HM_READ, "themeMap") or {}).get("cells") or []) == 5)
+            rh = pg.evaluate(HM_READ, "themeMap")
+            ok("[#themeMap] 切回「熱度（暖金）」→ 暖金 5 格",
+               rh and len(rh["cells"]) == 5 and all(lf["fill"] in rh["pal5"] + [rh["na"]] for lf in rh["leaves"]), rh and rh["cells"])
             _hm_focus(pg, f"{th} #themeMap", "themeMap")
     # ---- 窄畫面：800px 與 390px，圖例不准縮字、不准撐出橫向捲軸 ----
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
