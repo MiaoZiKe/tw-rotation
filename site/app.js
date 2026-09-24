@@ -1710,6 +1710,18 @@
       location.replace('#heatmap/theme' + (rest[0] ? '/' + encodeURIComponent(rest[0]) : ''));
       return;
     }
+    /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
+       這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
+    const lg = window.TwLegal ? window.TwLegal.route(head, rest) : null;
+    if (lg === 'redirect') return;
+    if (lg === 'legal') {
+      $$('.tab').forEach(t => t.classList.remove('on'));
+      $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-legal'));
+      _lastPageKey = 'legal'; _miaKey = 'legal';
+      try { applyMobileIA('legal'); } catch (e) { /* 忽略 */ }
+      window.scrollTo({ top: 0 });
+      return;
+    }
     let view = VIEWS.includes(head) ? head : head === 'stock' ? 'industry' : 'overview';
     $$('.tab').forEach(t => t.classList.toggle('on', t.dataset.view === view));
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。

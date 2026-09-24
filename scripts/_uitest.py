@@ -10853,6 +10853,10 @@ SECTIONS = {
     #   與第 4 批（三張熱力圖的 7 格離散色階、2px 間隙、標籤分三級、圖例、提示框、分組／顏色下拉）。
     "設計系統v2":          lambda pg, b, base, code: t_ds2(pg, base),
     "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),
+    # ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js、site/legal_config.js）：
+    #   頁尾免責聲明（預設開）、三個法律頁、同意橫幅與平台導覽（預設關，條款空格填完＋enabled 才開）。
+    #   開關打開的那半段用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 模擬「Andy 填好了」。
+    "同意條款與法律頁":    lambda pg, b, base, code: t_legal(b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -11821,6 +11825,41 @@ def run_parallel(args) -> int:
     return 0
 
 
+
+# ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js）：同意條款橫幅。
+#   橫幅一旦啟用（site/legal_config.js 填完＋enabled:true），會固定在畫面最下方約 130～160px，
+#   **擋住所有點畫面下緣的驗收步驟** —— 腳本沒改先上線，所有關卡會一起紅（docs/design_system_v2.md 4.1 最後一段）。
+#   所以在這裡把 Playwright 的 Browser.new_page／new_context 包一層：每一個新開的頁面，
+#   在頁面腳本執行前都先寫好 tw.consent（v:'*'＝這個瀏覽器不必再看橫幅）與 tw.tour。
+#   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
+#   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
+#   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
+CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+                  "JSON.stringify({v:'*',at:'test'}));"
+                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+
+
+def _preset_consent() -> None:
+    from playwright.sync_api import Browser
+    if getattr(Browser, "_tw_consent", False):
+        return
+    raw_page, raw_ctx = Browser.new_page, Browser.new_context
+
+    def new_page(self, *a, **k):
+        pg = raw_page(self, *a, **k)
+        pg.add_init_script(CONSENT_PRESET)
+        return pg
+
+    def new_context(self, *a, **k):
+        c = raw_ctx(self, *a, **k)
+        c.add_init_script(CONSENT_PRESET)
+        return c
+
+    Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
+    Browser.new_page, Browser.new_context = new_page, new_context
+    Browser._tw_consent = True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -11846,6 +11885,7 @@ def main() -> int:
         return _report(t_par)
 
     from playwright.sync_api import sync_playwright
+    _preset_consent()
 
     srv = serve(); time.sleep(0.4)
     # ★ 讀 srv 真正綁到的埠（serve() 會在被佔走時自動往後找），不要自己組 PORT
@@ -21301,8 +21341,13 @@ def t_mobile_oneview(b, base, code):
                   f"stock/{code}": 2200, "industry/semiconductor": 1800}
     for route, cap in HEIGHT_MAX.items():
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
-        h = m.evaluate("() => document.documentElement.scrollHeight")
-        ok(f"[390px] {route} 的整頁高度 {h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
+        # ★ 2026-09-24 設計系統 v2 第 6 批：全站頁尾多了一段免責聲明（site/legal.js 的 #siteFoot，手機約 300px）。
+        #   這條量的是「內容要滑幾屏」，頁尾是每一頁都有的法律文字、不是內容 —— 扣掉它再比，
+        #   否則上限等於在懲罰「有放免責聲明」這件事。扣的是實量（高度＋上外距），不是寫死的數字。
+        h = m.evaluate("""() => { const f = document.getElementById('siteFoot');
+            const fh = f ? f.offsetHeight + (parseFloat(getComputedStyle(f).marginTop) || 0) : 0;
+            return Math.round(document.documentElement.scrollHeight - fh); }""")
+        ok(f"[390px] {route} 的整頁高度（不含頁尾免責聲明）{h} ≤ {cap}（改版前總覽 9233、交付清單 11299）", h <= cap, h)
 
     # ================================================================
     # ★ 2026-09-24（Andy：「另外這個手機版我剛剛看體驗那邊有跑掉」—— 只有這一句、沒有截圖）
@@ -22670,6 +22715,270 @@ def t_heatmap_v2(pg, base):
         ok(f"[{w}px #indTree] 窄畫面上的小方塊也一樣不寫殘字", not tiny, [(t["name"], t["lab"]) for t in tiny][:4])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.hmGroup'); localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
+
+
+
+# ===================================================================== 同意條款與法律頁（設計系統 v2 第 6 批）
+# site/legal.js ＋ site/legal_config.js。驗的全部是「畫面真的因此改變了」：
+#   · 開關關著（現況）：橫幅**不出現**（連沒有 tw.consent 的乾淨瀏覽器也不出現）、三頁打得開、
+#     頁尾連結點得到、條款頁掛「草稿，尚未生效」、導覽可以手動開但不自動彈。
+#   · 開關打開（注入 TW_LEGAL_OVERRIDE）：橫幅出現 → 按同意 → localStorage 真的寫進去、橫幅消失、
+#     導覽自動開一次、重新整理不再出現；按不同意 → #leave、什麼都沒寫、換頁被擋回 #leave、重新整理橫幅又出現；
+#     localStorage 寫入會丟錯時 → 這次瀏覽不再出現、不報錯。
+# ⚠ 這一段刻意用 Browser._tw_raw_new_context（沒有預寫 tw.consent 的原版），其他段落一律有預寫。
+LEGAL_ON = ("window.TW_LEGAL_OVERRIDE={operator:'驗收用營業人',email:'uitest@example.com',"
+            "effective_date:'2026-10-01',tax_id:'尚未辦理',court:'臺灣臺北地方法院',enabled:true};")
+
+_LG_FONTS = """(sel) => { const out = []; document.querySelectorAll(sel).forEach(root => {
+    root.querySelectorAll('*').forEach(e => { if (!e.childNodes.length) return;
+      const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (!own || e.offsetParent === null) return;
+      const fs = parseFloat(getComputedStyle(e).fontSize);
+      if (fs < 11.95) out.push(fs + 'px「' + e.textContent.trim().slice(0, 14) + '」'); }); });
+  return out; }"""
+
+
+def _lg_page(b, w=1440, h=950, init=None, mobile=False, extra=None):
+    raw = getattr(type(b), "_tw_raw_new_context", None)
+    kw = dict(viewport={"width": w, "height": h})
+    if mobile:
+        kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+    ctx = raw(b, **kw) if raw else b.new_context(**kw)
+    pg = ctx.new_page()
+    pg.on("pageerror", lambda e: fails.append(f"同意條款 pageerror: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg.add_init_script("try{localStorage.setItem('tw.live.on','0')}catch(e){}")
+    if init:
+        pg.add_init_script(init)
+    if extra:
+        pg.add_init_script(extra)
+    return ctx, pg
+
+
+def _lg_ls(pg, k):
+    return pg.evaluate(f"() => {{ try {{ return localStorage.getItem('{k}'); }} catch (e) {{ return 'ERR'; }} }}")
+
+
+def t_legal(b, base):
+    # ---------------------------------------------------------------- A. 開關關著（現況）
+    ctx, pg = _lg_page(b)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    st = pg.evaluate("() => window.TwLegal && window.TwLegal.state()")
+    ok("[關] legal.js 載入、判定為未啟用，而且列得出還缺哪些欄位",
+       st and st["active"] is False and set(["operator", "email", "effective_date"]) <= set(st["missing"]["fields"]), st)
+    ok("[關] 乾淨的瀏覽器（沒有 tw.consent）也不出現同意橫幅", pg.locator("#lgBanner").count() == 0,
+       pg.locator("#lgBanner").count())
+    ok("[關] 沒有同意紀錄時也不寫任何東西", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    ok("[關] 導覽沒有自動彈出", pg.locator("#lgTour").count() == 0)
+    ft = pg.evaluate("""() => { const f = document.getElementById('siteFoot'); if (!f) return null;
+        const r = f.getBoundingClientRect(), m = document.querySelector('main').getBoundingClientRect();
+        return { t: f.innerText, fs: parseFloat(getComputedStyle(f).fontSize), inMain: r.left >= m.left - 1 && r.right <= m.right + 1,
+                 last: f === document.querySelector('main').lastElementChild }; }""")
+    ok("[關] 頁尾常駐一行短版免責聲明（預設開啟）",
+       ft and "不是證券投資顧問事業" in ft["t"] and "不提供投資建議" in ft["t"] and ft["fs"] >= 12, ft)
+    ok("[關] 頁尾是 main 的最後一個元素、不跑出內容欄", ft and ft["last"] and ft["inMain"], ft)
+    ok("[關] 頁尾的服務條款／隱私權政策連結標「草稿」", ft and ft["t"].count("草稿") >= 2, ft and ft["t"])
+    ok("[關] 頁尾與法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#siteFoot"), pg.evaluate(_LG_FONTS, "#siteFoot"))
+
+    # 頁尾連結 → 服務條款
+    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+    pg.click("#sfTerms"); pg.wait_for_timeout(1500)   # 捲回頁首也是 smooth，等它到
+    r = pg.evaluate("""() => ({ hash: location.hash, legal: document.getElementById('v-legal').classList.contains('on'),
+        ov: document.getElementById('v-overview').classList.contains('on'), tabs: document.querySelectorAll('.tab.on').length,
+        h1: (document.querySelector('#lgDoc h1') || {}).textContent || '', draft: !!document.getElementById('lgDraft'),
+        blanks: document.querySelectorAll('#lgDoc .lgblank').length, sy: scrollY })""")
+    ok("[關] 點頁尾「服務條款」→ 真的換到服務條款頁、總覽收起來、頂欄分頁沒有一顆亮",
+       r["hash"] == "#terms" and r["legal"] and not r["ov"] and r["tabs"] == 0 and "服務條款" in r["h1"], r)
+    ok("[關] 服務條款頂端掛「草稿，尚未生效」，空格用【】標出來",
+       r["draft"] and r["blanks"] >= 3 and "草稿，尚未生效" in pg.inner_text("#lgDraft"), r)
+    ok("[關] 進法律頁捲回頁首", r["sy"] == 0, r)
+    ok("[關] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    # 目錄：點第五條 → 捲下去，但網址不變（目錄不能改 hash，不然會被當成未知路由導回總覽）
+    toc = pg.locator(".lgtoc a[data-sec='4']")
+    if ok("[關] 桌機 1440 有左側目錄", toc.count() == 1 and toc.is_visible(), toc.count()):
+        toc.click(); pg.wait_for_timeout(1400)      # 全站 scroll-behavior:smooth，要等它捲完
+        r2 = pg.evaluate("""() => ({ hash: location.hash, sy: scrollY,
+            top: document.getElementById('lg-terms-4').getBoundingClientRect().top,
+            on: (document.querySelector('.lgtoc a.on') || {}).dataset })""")
+        ok("[關] 點目錄第五條 → 那一條捲到畫面上緣、網址還是 #terms、目錄亮在第五條",
+           r2["hash"] == "#terms" and r2["sy"] > 100 and 40 < r2["top"] < 200 and r2["on"] and r2["on"].get("sec") == "4", r2)
+    # 上方三個分頁切換
+    pg.click(".lgtabs a[href='#privacy']"); pg.wait_for_timeout(600)
+    r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
+                    " t: document.getElementById('lgDoc').innerText })")
+    ok("[關] 切到隱私權政策：標題換了、一樣是草稿、有補上「是否已同意條款存在 localStorage」那一句",
+       "隱私權政策" in r["h1"] and r["draft"] and "是否已同意條款" in r["t"], r["h1"])
+    ok("[關] 隱私權政策沒有列出本站沒有的服務（電子報／付費／流量統計）",
+       "訂閱電子報" not in r["t"] and "註冊付費服務" not in r["t"] and "網站流量統計" not in r["t"], "")
+    pg.click(".lgtabs a[href='#disclaimer']"); pg.wait_for_timeout(600)
+    r = pg.evaluate("() => ({ h1: document.querySelector('#lgDoc h1').textContent, draft: !!document.getElementById('lgDraft'),"
+                    " t: document.getElementById('lgDoc').innerText, blanks: document.querySelectorAll('#lgDoc .lgblank').length })")
+    ok("[關] 免責聲明：沒有空格、不掛草稿標示（版本 A 可以先上），repo 網址已填",
+       r["h1"] == "免責聲明" and not r["draft"] and r["blanks"] == 0 and "github.com/MiaoZiKe/tw-rotation" in r["t"], r["h1"])
+    # 從法律頁點頂欄回總覽 → 總覽真的回來
+    pg.click(".tab[data-view='overview']"); pg.wait_for_timeout(1500)
+    ok("[關] 從法律頁按頂欄「總覽」→ 回到總覽", pg.evaluate(
+        "() => document.getElementById('v-overview').classList.contains('on') && !document.getElementById('v-legal').classList.contains('on')"))
+    # 平台導覽：手動開得到；下一步 ×3 標題依序變；Esc 關閉、焦點回到頁尾那顆
+    pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(300)
+    pg.click("#sfTour"); pg.wait_for_timeout(400)
+    seen = [pg.inner_text("#lgStepT")]
+    for _ in range(3):
+        pg.click("#lgNext"); pg.wait_for_timeout(250); seen.append(pg.inner_text("#lgStepT"))
+    ok("[關] 導覽：下一步 ×3 → 標題依序是 ①～④", seen == ["① 錢往哪跑", "② 貴不貴", "③ 何時進場", "④ 別進的理由"], seen)
+    ok("[關] 導覽最後一步按鈕變成「開始使用」", pg.inner_text("#lgNext") == "開始使用", pg.inner_text("#lgNext"))
+    pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab"); pg.keyboard.press("Tab")
+    ok("[關] 導覽開著時 Tab 焦點困在彈窗裡", pg.evaluate(
+        "() => !!document.activeElement && !!document.activeElement.closest('#lgTour')"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    ok("[關] Esc 關閉導覽、焦點回到頁尾「平台導覽」", pg.locator("#lgTour").count() == 0
+       and pg.evaluate("() => document.activeElement && document.activeElement.id") == "sfTour",
+       pg.evaluate("() => document.activeElement && document.activeElement.id"))
+    ctx.close()
+
+    # 手機 390：法律頁不能有橫向捲軸；頁尾在底部分頁列上面、看得到
+    ctx, pg = _lg_page(b, 390, 844, mobile=True)
+    pg.goto(base + "#privacy", wait_until="networkidle"); pg.wait_for_timeout(2000)
+    r = pg.evaluate("""() => ({ docW: document.documentElement.scrollWidth, winW: innerWidth,
+        toc: getComputedStyle(document.querySelector('.lgtoc')).display, tocm: !!document.querySelector('.lgtocm') &&
+        getComputedStyle(document.querySelector('.lgtocm')).display })""")
+    ok("[390] 隱私權政策（有表格）沒有橫向捲軸", r["docW"] <= r["winW"] + 1, r)
+    ok("[390] 手機收起左側目錄、改用可展開的目錄", r["toc"] == "none" and r["tocm"] not in (False, "none"), r)
+    ok("[390] 法律頁沒有小於 12px 的字", not pg.evaluate(_LG_FONTS, "#v-legal"), pg.evaluate(_LG_FONTS, "#v-legal"))
+    pg.evaluate("() => window.scrollTo({top: document.body.scrollHeight, behavior: 'instant'})"); pg.wait_for_timeout(400)
+    r = pg.evaluate("""() => { const f = document.getElementById('siteFoot').getBoundingClientRect(),
+        t = document.getElementById('tabs').getBoundingClientRect(); return { fb: f.bottom, ft: f.top, tt: t.top }; }""")
+    ok("[390] 捲到底時頁尾整段在底部分頁列上方（沒被蓋住）", r["fb"] <= r["tt"] + 1 and r["ft"] > 0, r)
+    ctx.close()
+
+    # ---------------------------------------------------------------- B. 開關打開（模擬 Andy 填好了）
+    ctx, pg = _lg_page(b, init=LEGAL_ON)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    st = pg.evaluate("() => window.TwLegal.state()")
+    ok("[開] 注入設定後判定為啟用", st["active"] is True and st["version"] == "2026-10-01", st)
+    ban = pg.evaluate("""() => { const b = document.getElementById('lgBanner'); if (!b) return null;
+        const r = b.getBoundingClientRect(); return { role: b.getAttribute('role'), label: b.getAttribute('aria-label'),
+        z: +getComputedStyle(b).zIndex, bottom: innerHeight - r.bottom, w: r.width, focusIn: b.contains(document.activeElement),
+        pos: getComputedStyle(b).position }; }""")
+    ok("[開] 沒同意過 → 橫幅出現（固定在下方、z 90、role=region）",
+       ban and ban["pos"] == "fixed" and ban["z"] == 90 and ban["role"] == "region" and 16 <= ban["bottom"] <= 32, ban)
+    ok("[開] 橫幅出現時不搶焦點", ban and not ban["focusIn"], ban)
+    ok("[開] 按同意之前 localStorage 沒有 tw.consent", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    ok("[開] 橫幅不擋內容：底下的「放大」鈕照樣點得到", pg.evaluate(
+        "() => { const e = document.getElementById('heatZoom'); if (!e) return true; const r = e.getBoundingClientRect();"
+        " const x = document.elementFromPoint(r.left + 4, r.top + 4); return !r.height || r.top > innerHeight || !!(x && !x.closest('#lgBanner')) ; }"))
+    pg.click("#lgAccept"); pg.wait_for_timeout(700)
+    raw = _lg_ls(pg, "tw.consent")
+    try:
+        cv = json.loads(raw or "null")
+    except Exception:  # noqa: BLE001
+        cv = None
+    ok("[開] 按同意 → localStorage 真的寫進 {v: 生效日期, at: 時間}", cv and cv.get("v") == "2026-10-01" and cv.get("at"), raw)
+    ok("[開] 按同意 → 橫幅消失", pg.locator("#lgBanner").count() == 0)
+    ok("[開] 第一次同意 → 平台導覽自動開一次", pg.locator("#lgTour").count() == 1)
+    # 「到總覽看這一步」（第③步）→ 彈窗關閉、今日候選那張卡在畫面上半部、外圈亮一下
+    pg.click("#lgNext"); pg.wait_for_timeout(200); pg.click("#lgNext"); pg.wait_for_timeout(200)
+    pg.click("#lgGo"); pg.wait_for_timeout(450)
+    fl = pg.evaluate("() => ({ flash: document.getElementById('ovCandCard').classList.contains('lgflash'),"
+                     " tour: !!document.getElementById('lgTour') })")
+    pg.wait_for_timeout(900)                          # 全站 scroll-behavior:smooth，等捲完再量位置
+    r = pg.evaluate("""() => { const r = document.getElementById('ovCandCard').getBoundingClientRect();
+        return { top: r.top, vh: innerHeight }; }""")
+    ok("[開] 導覽「到總覽看這一步」→ 彈窗關閉、外圈亮一圈", not fl["tour"] and fl["flash"], fl)
+    ok("[開] 導覽「到總覽看這一步」→ 今日候選捲到畫面上半部", 0 <= r["top"] < r["vh"] / 2, r)
+    pg.wait_for_timeout(500)
+    ok("[開] 外圈亮 1 秒後自己消失", not pg.evaluate("() => document.getElementById('ovCandCard').classList.contains('lgflash')"))
+    ok("[開] 導覽看過 → tw.tour 寫入版本字串", (_lg_ls(pg, "tw.tour") or "") != "", _lg_ls(pg, "tw.tour"))
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2000)
+    ok("[開] 重新整理 → 橫幅不再出現、導覽也不再自動開",
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+    # 條款改版（生效日期換了）→ 舊的同意不算數，橫幅重新出現
+    pg.evaluate("() => localStorage.setItem('tw.consent', JSON.stringify({v:'2025-01-01', at:'x'}))")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[開] 條款版本換了 → 舊同意不算、橫幅再出現一次", pg.locator("#lgBanner").count() == 1)
+    ctx.close()
+
+    # 不同意 → #leave，什麼都不寫，換頁被擋回 #leave，三頁照樣打得開，重新整理橫幅又出現
+    ctx, pg = _lg_page(b, init=LEGAL_ON)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    pg.click("#lgDecline"); pg.wait_for_timeout(700)
+    r = pg.evaluate("""() => ({ hash: location.hash, leave: !!document.getElementById('lgLeave'),
+        ov: document.getElementById('v-overview').classList.contains('on'), ban: !!document.getElementById('lgBanner') })""")
+    ok("[開] 按不同意 → 換成站內 #leave 畫面、總覽收起來、橫幅收掉",
+       r["hash"] == "#leave" and r["leave"] and not r["ov"] and not r["ban"], r)
+    ok("[開] 按不同意 → localStorage 沒有被寫入（不記住拒絕）", _lg_ls(pg, "tw.consent") is None, _lg_ls(pg, "tw.consent"))
+    pg.click(".tab[data-view='flow']"); pg.wait_for_timeout(700)
+    ok("[開] 不同意之後按頂欄「資金流向」→ 這次瀏覽維持在 #leave", pg.evaluate("() => location.hash") == "#leave"
+       and not pg.evaluate("() => document.getElementById('v-flow').classList.contains('on')"), pg.evaluate("() => location.hash"))
+    pg.click("#lgRead"); pg.wait_for_timeout(600)
+    ok("[開] 「已離開」畫面上「閱讀條款」照樣打得開服務條款（正式版，沒有草稿標示）",
+       pg.evaluate("() => location.hash") == "#terms" and pg.locator("#lgDraft").count() == 0
+       and "驗收用營業人" in pg.inner_text("#lgDoc"), pg.evaluate("() => location.hash"))
+    ok("[開] 在條款頁上橫幅重新出現，讀完可以直接選", pg.locator("#lgBanner").count() == 1)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    pg.goto(base + "#overview"); pg.wait_for_timeout(1500)
+    ok("[開] 重新整理 → 拒絕被忘掉：總覽照常、橫幅再出現",
+       pg.locator("#lgBanner").count() == 1 and pg.evaluate("() => document.getElementById('v-overview').classList.contains('on')"))
+    # 「我重新考慮，同意並繼續」
+    pg.click("#lgDecline"); pg.wait_for_timeout(600)
+    pg.click("#lgReAccept"); pg.wait_for_timeout(900)
+    raw = _lg_ls(pg, "tw.consent")
+    ok("[開] 「我重新考慮，同意並繼續」→ 寫入同意、回到總覽",
+       raw and "2026-10-01" in raw and pg.evaluate("() => location.hash") == "#overview"
+       and pg.locator("#lgBanner").count() == 0, raw)
+    ctx.close()
+
+    # localStorage 寫入會丟錯（無痕／被封鎖）：按同意 → 這次瀏覽不再出現、不報錯、導覽不自動開
+    n0 = len(fails)
+    ctx, pg = _lg_page(b, init=LEGAL_ON,
+                       extra="Storage.prototype.setItem = function(){ throw new Error('QuotaExceededError（驗收模擬）'); };")
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    ok("[開／寫不進去] 橫幅照樣出現", pg.locator("#lgBanner").count() == 1)
+    pg.click("#lgAccept"); pg.wait_for_timeout(600)
+    ok("[開／寫不進去] 按同意 → 橫幅消失、導覽不自動開（避免每次重新整理都跳）",
+       pg.locator("#lgBanner").count() == 0 and pg.locator("#lgTour").count() == 0)
+    pg.click(".tab[data-view='flow']"); pg.wait_for_timeout(1200)
+    ok("[開／寫不進去] 換頁之後這次瀏覽不再出現（記在記憶體）", pg.locator("#lgBanner").count() == 0)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    ok("[開／寫不進去] 重新整理 → 橫幅再出現一次（無可避免，而且這樣是對的）", pg.locator("#lgBanner").count() == 1)
+    ok("[開／寫不進去] 整段沒有 pageerror", len([f for f in fails[n0:] if "pageerror" in f]) == 0, fails[n0:])
+    ctx.close()
+
+    # 手機 390：橫幅在底部分頁列上方、兩顆按鈕上下排滿寬
+    ctx, pg = _lg_page(b, 390, 844, init=LEGAL_ON, mobile=True)
+    pg.goto(base + "#overview", wait_until="networkidle"); pg.wait_for_timeout(2500)
+    r = pg.evaluate("""() => { const b = document.getElementById('lgBanner'); if (!b) return null;
+        const r = b.getBoundingClientRect(), t = document.getElementById('tabs').getBoundingClientRect(),
+              a = document.getElementById('lgAccept').getBoundingClientRect(), d = document.getElementById('lgDecline').getBoundingClientRect();
+        return { bb: r.bottom, tt: t.top, l: r.left, rr: innerWidth - r.right, aw: a.width, bw: r.width, stacked: a.bottom <= d.top + 1,
+                 docW: document.documentElement.scrollWidth, winW: innerWidth, ah: a.height }; }""")
+    ok("[開 390] 橫幅在底部分頁列上方、左右各留 12px",
+       r and r["bb"] <= r["tt"] and abs(r["l"] - 12) <= 1 and abs(r["rr"] - 12) <= 1, r)
+    ok("[開 390] 兩顆按鈕上下排、滿寬、高 44（「同意並繼續」在上）",
+       r and r["stacked"] and r["aw"] >= r["bw"] - 42 and r["ah"] >= 43, r)
+    ok("[開 390] 沒有橫向捲軸", r and r["docW"] <= r["winW"] + 1, r)
+    pg.click("#lgAccept"); pg.wait_for_timeout(700)
+    r = pg.evaluate("""() => { const t = document.getElementById('lgTour'); if (!t) return null; const r = t.getBoundingClientRect();
+        return { bottom: innerHeight - r.bottom, w: r.width, winW: innerWidth }; }""")
+    ok("[開 390] 手機的導覽是底部抽屜（貼底、滿寬）", r and abs(r["bottom"]) <= 1 and r["w"] >= r["winW"] - 1, r)
+    pg.click("#lgNext"); pg.wait_for_timeout(200)
+    pg.click("#lgGo"); pg.wait_for_timeout(1500)
+    r = pg.evaluate("""() => { const sp = document.querySelector('#v-overview .mspine .on'); const e = document.getElementById('hero');
+        const r = e ? e.getBoundingClientRect() : null;
+        return { step: sp ? sp.textContent : '', top: r ? r.top : null, h: r ? r.height : 0, vh: innerHeight }; }""")
+    ok("[開 390] 手機「到總覽看這一步」（第②步）→ 主軸動線真的切到 ② 貴不貴、大盤那張在畫面上",
+       r["step"].startswith("② 貴不貴") and r["top"] is not None and r["h"] > 0 and 0 <= r["top"] < r["vh"], r)
+    ctx.close()
+
+    # 填好了但 enabled:false → 仍然不啟用；欄位裡還留著【】也不算填好
+    for name, cfg in (("填好但總開關關著", LEGAL_ON.replace("enabled:true", "enabled:false")),
+                      ("欄位還留著【】", LEGAL_ON.replace("驗收用營業人", "【營業人名稱】"))):
+        ctx, pg = _lg_page(b, init=cfg)
+        pg.goto(base + "#terms", wait_until="networkidle"); pg.wait_for_timeout(1800)
+        ok(f"[{name}] 不啟用：沒有橫幅、條款頁仍掛草稿標示",
+           pg.locator("#lgBanner").count() == 0 and pg.locator("#lgDraft").count() == 1
+           and not pg.evaluate("() => window.TwLegal.state().active"), pg.evaluate("() => window.TwLegal.state()"))
+        ctx.close()
 
 
 if __name__ == "__main__":

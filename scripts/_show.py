@@ -45,6 +45,41 @@ class _Quiet(SimpleHTTPRequestHandler):
         pass
 
 
+
+# ★ 2026-09-24 設計系統 v2 第 6 批（site/legal.js）：同意條款橫幅。
+#   橫幅一旦啟用（site/legal_config.js 填完＋enabled:true），會固定在畫面最下方約 130～160px，
+#   **擋住所有點畫面下緣的驗收步驟** —— 腳本沒改先上線，所有關卡會一起紅（docs/design_system_v2.md 4.1 最後一段）。
+#   所以在這裡把 Playwright 的 Browser.new_page／new_context 包一層：每一個新開的頁面，
+#   在頁面腳本執行前都先寫好 tw.consent（v:'*'＝這個瀏覽器不必再看橫幅）與 tw.tour。
+#   · 只在「還沒有值」時才寫：有些段落會 localStorage.clear() 再重新整理，init script 會在下一次載入補回來。
+#   · 包在類別上而不是某一個 page：驗收裡有幾十個地方各自 new_page，逐一加一定會漏。
+#   · 「同意條款」那一段要刻意不寫，改用 Browser._tw_raw_new_context（原本那支）開乾淨的頁面。
+CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
+                  "JSON.stringify({v:'*',at:'test'}));"
+                  "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+
+
+def _preset_consent() -> None:
+    from playwright.sync_api import Browser
+    if getattr(Browser, "_tw_consent", False):
+        return
+    raw_page, raw_ctx = Browser.new_page, Browser.new_context
+
+    def new_page(self, *a, **k):
+        pg = raw_page(self, *a, **k)
+        pg.add_init_script(CONSENT_PRESET)
+        return pg
+
+    def new_context(self, *a, **k):
+        c = raw_ctx(self, *a, **k)
+        c.add_init_script(CONSENT_PRESET)
+        return c
+
+    Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
+    Browser.new_page, Browser.new_context = new_page, new_context
+    Browser._tw_consent = True
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--view", default="overview", help="hash 路由，例如 flow、industry/semiconductor、stock/2330")
@@ -66,6 +101,7 @@ def main() -> int:
     args = ap.parse_args()
 
     from playwright.sync_api import sync_playwright
+    _preset_consent()
 
     if OUT.exists():
         shutil.rmtree(OUT)
