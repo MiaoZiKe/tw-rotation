@@ -891,6 +891,11 @@
     let swapping = false;
     // 剖析圖是展開還是收起來（手機預設收）。swapDiagram 也要看得到它，所以放在這一層
     let dgOpen = true;
+    /* 3D 有沒有接上線（wireDg 沒帶 skip3d 跑過一次）。★ 2026-09-24 從 `if (hasSlots && sc)` 區塊裡搬上來：
+       收合狀態下換圖（點族群晶片 → swapDiagram）會用 wireDg(true) 把 3D 鈕藏起來，
+       但區塊裡那份 did3d 還是上一張圖留下的 true —— 展開時 paintFold 以為「接過了」，
+       結果新那張圖**連 3D 鈕都不見**。放在這一層，swapDiagram 才改得到它。*/
+    let did3d = false;
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     /* ★ 2026-09-23 第二批（W3-6，Andy：「分頁的這紅框處標籤都拿掉」）：
        標題底下那排 `N 檔 ／ 今日 +x% ／ 本益比中位 ／ ← 返回` 整排移除。
@@ -1276,7 +1281,7 @@
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
       if (dgExplicit) dgOpen = true;
-      let did3d = false;
+      did3d = false;
       const dgSecEl = $('#dgSec', el);
       /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，
          而且是**跟標題同一列、靠右**（不是浮在圖上面）。
@@ -1412,6 +1417,7 @@
         host.innerHTML = DS.draw(next);
         paintDgMode();        // 從「選單」換回「有圖」時要先把 #dgBody 打開，3D 才量得到尺寸
         wireDg(!dgOpen);      // 收合狀態下不要順手把 3D 掛起來（手機背景多一個 WebGL context）
+        did3d = dgOpen;       // 收合時換的圖 3D 還沒接線 → 展開時 paintFold 要補接
         host.style.opacity = '1';
         swapping = false;
         syncHighlight({ quiet: true, noscroll: true });
