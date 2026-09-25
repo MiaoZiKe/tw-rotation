@@ -1002,20 +1002,28 @@
         <!-- ★ 2026-09-24 說明精簡：頁首那段「同一套顏色、點了會怎樣」(#nbIntro) 搬進「怎麼看 ?」，頁首只留鏈名。 -->
         <div class="row spread nbhead" data-howsec><h2>${A.fmt.esc(ch.name)}${state.group && ch.id === 'industry' ? ' · ' + A.fmt.esc((groups[0] || {}).name) : ''}</h2>
           ${hasSlots || hasMap ? '<button class="howbtn" data-how="nb" type="button">怎麼看 ?</button>' : ''}</div>
-          ${hasSlots || hasMap ? `<div class="howtxt" id="how-nb" hidden><div id="nbIntro">${hasSlots
+          ${/* ★ 2026-09-24（審查 R3）：這段說明以前還在講退版前的「關聯圖大圓點／個股小點」，
+                 而且沒有關聯圖的鏈（傳產、基礎建設）也照樣講關聯圖與色標。改成照這一頁真的有什麼來講：
+                 有剖析圖 × 有關聯圖三種組合各一份，不提畫面上沒有的東西。*/ ''}
+          ${hasSlots || hasMap ? `<div class="howtxt" id="how-nb" hidden><div id="nbIntro">${hasSlots && hasMap
             ? A.howHTML('這一頁回答：這條鏈由哪些環節組成、每一格有誰。', [
-              '零件、環節色標、關聯圖大圓點同一套顏色',
-              '點任一個，其餘同色的一起亮',
-              '下方環節詳情換成那一格的台股與外商',
-              '點關聯圖個股小點，右側展開產業關係',
+              '零件、環節選單、關聯圖公司卡同一套顏色',
+              '點零件：關聯圖上同一格的公司卡一起亮',
+              '從「環節 ▾」選一格：圖上亮起、右邊列出族群與個股',
+              '點關聯圖的公司卡，右側展開產業關係',
               '看誰在漲：回「族群總覽」點一個族群',
-            ], '點個股小點不跳頁，同時把它所屬的環節與族群一起選起來；環節詳情會寫出那一格有哪幾檔台股、哪幾家外商、對應哪些族群。')
-            : A.howHTML('這一頁回答：這條鏈由哪些環節組成、每一格有誰。', [
-              '環節色標、關聯圖大圓點同一套顏色',
-              '點任一個，其餘同色的一起亮',
-              '下方環節詳情換成那一格',
-              '點個股小點，右側展開產業關係',
-            ], '這條鏈還沒有產品剖析圖。點個股小點不跳頁。')}</div></div>` : ''}
+            ], '點公司卡不跳頁，同時把它所屬的環節一起選起來；圖下方的環節詳情寫出那一格有哪幾檔台股、哪幾家外商、對應哪些族群。手機上環節選單是一排色標。')
+            : hasSlots
+              ? A.howHTML('這一頁回答：這條鏈的產品由哪些零件組成、每一格是誰做的。', [
+                '點零件：看它是誰做的（供應商）',
+                '同色的零件屬於同一個環節',
+                '看誰在漲：回「族群總覽」點一個族群',
+              ], '這條鏈還沒有供應鏈關聯圖（supply_chain.yaml 還沒有這條鏈的環節）。')
+              : A.howHTML('這一頁回答：這條鏈由哪些環節組成、每一格有誰。', [
+                '環節選單、關聯圖公司卡同一套顏色',
+                '從「環節 ▾」選一格：圖上亮起、右邊列出族群與個股',
+                '點公司卡，右側展開產業關係',
+              ], '這條鏈還沒有產品剖析圖。點公司卡不跳頁。手機上環節選單是一排色標。')}</div></div>` : ''}
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec" data-howsec></div>
@@ -1046,10 +1054,25 @@
           <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
             <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
           <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
-          <div class="segchips" id="segChips"></div>
-          <div id="segBox"></div>
+          <!-- ★ 2026-09-24（Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」，
+               之後再補明確指示：上方的標籤改成下拉清單、下方那片環節字卡全部拿掉）。桌機（大於 820px）才動：
+               ⚠ 這段註解住在樣板字串裡，所以不能出現反引號。
+               · 圖上方那一大片環節色標 → 一顆「環節：全部 ▾」下拉（樣式照資金輪動卡的「產業鏈：全部 ▾」）。
+                 下拉面板就是原本的 #segChips，裡面每一列仍然是 .segchip[data-seg]（.sel、.nomem 全部沿用），
+                 所以「點色標＝篩這一格／再點取消」那條路一行都沒換，只是從一排按鈕收進一個選單。
+               · 選了一格之後，圖的右邊才長出 #relList：那一格有哪些族群、每個族群是哪幾檔、今天漲跌。
+                 沒選的時候不顯示（全部列出來就又是一份跟圖重複的東西），圖用滿整個寬度。
+               · 圖下方的環節字卡 #chainList 在桌機藏起來（跟圖重複）；手機照舊。
+               · 環節詳情 #segBox 移到圖的下面（放上面的話，選一格會把圖往下推）。
+               手機（820px 以下）：下拉鈕藏起來、面板攤開成原本那排色標，#relList 不顯示，順序照舊「色標 → 環節詳情 → 圖」。 -->
           <div class="chainrow" id="relRow"><div class="chainpane">
-            <div class="chainmap" id="chainMap"></div>
+            <div class="relmain" id="relMain">
+              <div class="segdd" id="segDD"><button type="button" class="ddbtn" id="segDDBtn" aria-haspopup="listbox" aria-expanded="false" title="選一個環節：圖上只亮那一格，右邊列出那一格的族群與個股">環節：<b>全部</b><i aria-hidden="true">▾</i></button>
+                <div class="segchips ddpanel" id="segChips" role="listbox" aria-label="環節"></div></div>
+              <div class="relcol"><div class="relstick" id="relStick"><div class="rellist" id="relList"></div></div></div>
+              <div id="segBox"></div>
+              <div class="chainmap" id="chainMap"></div>
+            </div>
             <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
           </div></div></div>` : ''}
@@ -1065,13 +1088,10 @@
        族群力導向星際圖（DECISIONS #248）整組退場，換回 a846f16 的分層形式。
        這裡只負責把環節色標填回 `#segChips`（它是這一頁「選一格」的總入口）——
        圖與清單要等 syncHighlight／segPick 都宣告完才畫得起來，所以放在下面。*/
-    {
-      const segBoxEl = $('#segChips', el);
-      if (segBoxEl) segBoxEl.innerHTML = segs.map(s2 => {
-        const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
-        return `<span class="segchip ${tw.length ? '' : 'nomem'}" data-seg="${s2.id}" style="--c:${segColor(s2.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s2.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`;
-      }).join('');
-    }
+    /* ★ 2026-09-24：色標收進「環節：全部 ▾」下拉，選中的那一格在圖右邊列族群與個股（見 renderSegPicker）。
+       下拉裡的每一列仍然是同一顆 .segchip，所以下面掛事件、syncHighlight 切 .sel 的程式碼不用換路。*/
+    renderSegPicker($('#segChips', el), $('#relList', el), sc, segs, im);
+    const segDDOpen = wireSegDD(el);
     let segFilter = opts.seg || null;
     /* ★ 2026-09-23 第二批（Andy 點名）：下方那張「成分股」卡片整塊移除。
        連同 renderMembers／COLS／排序記憶／市場別 seg／展開更多／放寬蓋住事件面板 一起拿掉 ——
@@ -1122,6 +1142,18 @@
          再把圖捲到那一欄只會讓他剛剛點的那張卡片跑掉。點環節色標（在圖下面）才需要捲。*/
       if (segFilter && !o.quiet && !o.noscroll) scrollChainTo(el, segFilter);
       $$('#segChips .segchip', el).forEach(c => c.classList.toggle('sel', segsOn.includes(c.dataset.seg)));
+      /* 清單版面：選到的那一節 .on、其餘淡一階（.hassel），一眼看得出「現在圖上亮的是哪一格」 */
+      /* 下拉：「全部環節」那一列在沒選時亮；按鈕上寫目前選的是哪一格（選了族群就寫幾格） */
+      { const all = $('#segChips .segall', el); if (all) all.classList.toggle('on', !segsOn.length); }
+      { const bb = $('#segDDBtn b', el); if (bb) bb.textContent = !segsOn.length ? '全部'
+          : (segsOn.length === 1 ? segName(sc, segsOn[0]) : `${segsOn.length} 格（${(A.L.gname[state.group] || '族群')}）`); }
+      /* 右欄只列選中的那幾格；一格都沒選就整欄收掉（.hassel 由 CSS 決定要不要切成兩欄） */
+      /* ⚠ 點剖析圖的零件（partHi）也會亮一格，但那時候**不開右欄**：右欄一開圖就變窄重畫、整頁高度跟著變，
+         使用者明明在上面看剖析圖，下面的關聯圖卻整張跳一下（驗收「點零件不會把畫面捲走」就是在守這件事）。
+         右欄只回應「真的選了一格」：下拉、點公司卡、點圖上的環節標題。*/
+      const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
+      $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
+      { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
       /* 退版之後「選起來」的視覺回到分層圖的公司卡與環節卡清單上，
          由 highlightSegments 一次做完（它同時處理剖析圖、分層圖、環節卡）。*/
       /* 環節詳情 `#segBox` ＝ Andy 說的「點擊後才會跳出的下拉清單」：
@@ -1225,7 +1257,12 @@
     }
     /* 環節色標 `#segChips`（2026-09-23 C5 退版之後回到圖的上方，不再藏在「篩選」面板裡）：
        點一下篩、再點一下取消。內容是上面那個區塊填的，這裡只掛事件。*/
-    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; syncHighlight(); });
+    /* ★ 2026-09-24：色標住進下拉之後，選好一格就把下拉收起來（跟資金輪動卡的下拉同一個手感）。
+       「全部環節」＝取消選取；右欄標題的 × 也是取消選取。*/
+    $$('#segChips .segchip', el).forEach(c => c.onclick = () => { segFilter = segFilter === c.dataset.seg ? null : c.dataset.seg; segHi = null; partHi = partSel = null; state.group = null; if (segDDOpen) segDDOpen(false); syncHighlight(); });
+    { const all = $('#segChips .segall', el);
+      if (all) all.onclick = () => { segFilter = null; segHi = null; partHi = partSel = null; state.group = null; if (segDDOpen) segDDOpen(false); syncHighlight({ quiet: true }); }; }
+    $$('#relList .rlx', el).forEach(x => x.onclick = () => { segFilter = null; segHi = null; partHi = partSel = null; state.group = null; closeCoBox(); syncHighlight({ quiet: true }); });
     /* ★「放寬 ⤢」（成分股暫時蓋住今日事件面板）跟著成分股表一起移除 ——
        它是為了那張表才存在的，表沒了就沒有服務對象。
        ⚠ **`show()` 裡「換頁還原事件面板」那段收尾不准拿掉**（見檔案上方）：
@@ -1262,13 +1299,14 @@
           '往左看誰在供貨（常慢一兩天才反應）',
           '往右看它賣給誰（下游轉弱會被拖到）',
           '滑過卡片提亮上下游；點右側看佐證',
+          '滑過環節標題：看這一格的說明與上下游',
         ], '線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；<b style="color:#d9a441">?</b>＝還沒建立上下游關聯。'),
         flow: (st) => A.howHTML('這張圖回答：這條鏈的關係量集中在哪兩格之間。', [
           st,
           '怎麼用：先看最粗的帶子＝這條鏈的主幹',
           '主幹兩端的族群才是行情的主戰場',
           '細到看不見的是邊陲，利多影響小得多',
-          '點一格就篩到那一格',
+          '點一格就篩到那一格；滑過一格看它的說明與上下游',
         ], '方塊高度＝這一格的台股檔數；帶子寬度＝兩格之間已建立的上下游關係條數。'),
       };
       /* 容器寬度變了就要重畫：欄寬、欄距、左右內距全部是依容器寬度算出來的。
@@ -1291,6 +1329,8 @@
         $$('#relView button', el).forEach(b => b.classList.toggle('on', b.dataset.rv === relView));
       };
       drawMap();
+      // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明、流向圖方塊共用一個）
+      wireSegTip($('#relSec', el), sc, ch.id);
       $$('#relView button', el).forEach(b => b.onclick = () => {
         if (relView === b.dataset.rv) return;            // 已經在這個模式就不要白重畫一次
         relView = b.dataset.rv; saveRelView(relView); drawMap();
@@ -1304,6 +1344,9 @@
       try { const v = localStorage.getItem('tw.relOpen'); if (v != null) relOpen = v === '1'; } catch (e) { /* 忽略 */ }
       const paintRelFold = () => {
         if (mapHost) mapHost.hidden = !relOpen;
+        /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
+           .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
+        const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
         const sw = $('#relView', el); if (sw) sw.hidden = !relOpen;
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
       };
@@ -2045,6 +2088,21 @@
      色標帶完再把分層圖自己那個框捲到那一欄，但**不准動到整頁**。*/
   function scrollChainTo(root, seg) {
     if (!seg) return;
+    /* ★ 2026-09-24 桌機（下拉＋圖＋右欄）：選一格會讓右欄長出來、圖變窄並重畫（ResizeObserver 延遲 120ms），
+       所以等圖重畫完再量位置。只做兩件事：右欄捲回頂端；圖上那一格的標題不在畫面裡才把整頁捲過去
+       （右欄是 sticky 的，整頁捲動時它跟著黏在旁邊）。圖比框寬時，框自己左右捲到那一欄 —— 只捲框。*/
+    if (relListMode()) {
+      setTimeout(() => {
+        const list = $('#relList', root); if (list) list.scrollTop = 0;
+        const map2 = $('#chainMap', root);
+        const t2 = map2 && !map2.hidden && ($(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root));
+        if (!t2) return;
+        const r = t2.getBoundingClientRect(), mr = map2.getBoundingClientRect();
+        if (r.width > 0 && (r.left < mr.left || r.right > mr.right)) map2.scrollTo({ left: Math.max(0, map2.scrollLeft + (r.left - mr.left) - 40), behavior: 'instant' });
+        if (r.height > 0 && (r.top < 70 || r.bottom > window.innerHeight - 20)) window.scrollBy({ top: r.top - Math.round(window.innerHeight / 3), behavior: 'instant' });   // 瞬間到位：平滑捲動會拖好幾百毫秒，期間下拉鈕在游標底下一直移動，接著點什麼都會點歪
+      }, 200);
+      return;
+    }
     const chip = $(`#segChips .segchip[data-seg="${seg}"]`, root);
     if (chip && chip.scrollIntoView) {
       const r = chip.getBoundingClientRect();
@@ -2502,10 +2560,11 @@
         + `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="7" fill="${c}" fill-opacity=".16" stroke="${c}" stroke-opacity=".55"/>`
         + `<rect x="${p.x}" y="${p.y}" width="3.5" height="${p.h}" rx="2" fill="${c}"/>`
         + `<text class="fnm" x="${p.x + 10}" y="${p.y + 17}" fill="${c}">${A.fmt.esc(nm)}</text>`
-        + `<text class="fct" x="${p.x + 10}" y="${p.y + 31}">${A.fmt.esc(cnt)}</text>`
-        + `<title>${A.fmt.esc(s.name)}　${cnt}${s.desc ? '　' + A.fmt.esc(s.desc) : ''}</title></g>`;
+        + `<text class="fct" x="${p.x + 10}" y="${p.y + 31}">${A.fmt.esc(cnt)}</text></g>`;   // 說明改由 wireSegTip 的說明框顯示（原生提示寬度管不到）
     });
-    host.innerHTML = `<svg viewBox="0 0 ${f.W} ${H}" style="width:100%;height:auto;min-width:${Math.min(f.W, 640)}px;display:block">`
+    /* ★ 2026-09-24（審查 R3：金融鏈流向圖 0 條帶子、也沒有任何說明）：沒有帶子就明講，不要讓人以為圖壞了 */
+    const emptyF = Object.keys(pair).length ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— 環節之間還沒有已建立的供貨關係，所以沒有帶子；方塊高度仍然是各環節的台股檔數。</div>';
+    host.innerHTML = `${emptyF}<svg viewBox="0 0 ${f.W} ${H}" style="width:100%;height:auto;min-width:${Math.min(f.W, 640)}px;display:block">`
       + `<g class="fbands">${bands}</g>${boxes}</svg>`;
     markFit(host, f);
     /* hover 一格：把「這一格吐出去」與「進到這一格」的帶子一起提亮，其餘壓暗 ——
@@ -2517,6 +2576,157 @@
       });
       g.onmouseleave = () => $$('.fband', host).forEach(b => b.classList.remove('hi', 'dim'));
       g.onclick = () => handlers && handlers.onSegment && handlers.onSegment(g.dataset.seg);
+    });
+  }
+
+  /* ==================================================================== 環節下拉 ＋ 選中環節的族群／個股
+     Andy 2026-09-24 兩句話：
+       「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」
+       「上方標籤式的環節一律改成下拉清單（樣式參考資金輪動卡的『產業鏈：全部 ▾』）；
+        下方那片環節字卡全部拿掉 —— 跟上面的關聯圖重複了」
+     他看到的是：圖上方兩三排環節色標（銅箔／玻纖布／樹脂 6、IC 設計 4…）＋ 圖下方一整片環節字卡，
+     同一份「每一格有誰」講了三次（色標、圖、字卡），真正的主角（圖）被夾在中間。
+
+     ★ 下拉面板就是原本的 #segChips，每一列仍然是那顆 .segchip（data-seg、.nomem、.sel 全部沿用）：
+       色標是這一頁「選一格」的總入口（syncHighlight 切 .sel、E6 跨鏈、十幾段驗收都認它），
+       收進選單而不是另寫一個選單，篩選功能就一件都不會掉。
+       手機（≤820px）用 CSS 把下拉鈕藏起來、面板攤開，看起來就是原本那一排色標 —— 手機這次不動。
+     ★ #relList（圖右邊）只列**選中的那一格**：那一格有哪些族群、每個族群是哪幾檔、今天漲跌。
+       全部都列就又是一份跟圖重複的字卡，所以沒選的時候整欄不顯示、圖用滿寬度。
+       族群用 supply_chain.yaml 的 companies[].groups（取第一個，比環節細：IC 設計底下分成
+       「HPC 與網通 IC」「顯示驅動 IC」…）。沒有台股的環節寫「外商」灰字並列出外商名字；
+       連外商都沒有的（例：先進封裝 CoWoS/SoIC）寫它自己的 note —— 那句話本來就在解釋為什麼是空的。
+       點個股＝進個股頁（一般連結，上一頁回得來、也能在新分頁開）。*/
+  function renderSegPicker(chipHost, listHost, sc, segs, im) {
+    const priceOf = {}; (im ? im.chains.flatMap(c => c.groups).concat(im.industries || []) : [])
+      .forEach(g => (g.members || []).forEach(m => { if (!priceOf[m.code]) priceOf[m.code] = m; }));
+    let nTw = 0;
+    segs.forEach(s2 => { nTw += twOf(sc, s2.id).length; });
+    if (chipHost) {
+      /* 「全部環節」那一列只在下拉裡出現（class 是 segall，不是 segchip —— 驗收數色標時不會把它算進去）。
+         色標內部結構（<i>、名稱、.n）一個都沒改：手機上它照舊長成一顆膠囊。*/
+      chipHost.innerHTML = `<button type="button" class="segall on" data-seg="" role="option">全部環節<em>${segs.length} 格 · ${nTw} 檔</em></button>`
+        + segs.map(s2 => {
+          const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
+          return `<span class="segchip ${tw.length ? '' : 'nomem'}" role="option" data-seg="${s2.id}" style="--c:${segColor(s2.id)}" title="${tw.length ? tw.length + ' 檔台股' : '台股沒有直接對應，看外商'}"><i></i>${A.fmt.esc(s2.name)}<span class="n">${tw.length ? tw.length : (fo.length ? '外商 ' + fo.length : '—')}</span></span>`;
+        }).join('');
+    }
+    if (!listHost) return;
+    const sec = (s2) => {
+      const tw = twOf(sc, s2.id), fo = foreignOf(sc, s2.id);
+      /* 族群分組：保持 YAML 的順序（那是人工校訂過的），第一次出現的族群排前面 */
+      const order = [], byG = {};
+      tw.forEach(c => {
+        const gn = (c.groups || [])[0] || '';
+        if (!byG[gn]) { byG[gn] = []; order.push(gn); }
+        byG[gn].push(c);
+      });
+      const row = (c) => {
+        const m = priceOf[c.tw_code], chg = m ? m.chg_pct : null;
+        const tip = `${c.name} ${c.tw_code}${m ? `｜收 ${A.fmt.n(m.close)}　${A.fmt.pct(chg)}` : ''}｜點一下看個股頁`;
+        return `<a class="rlco" href="#stock/${c.tw_code}" data-code="${c.tw_code}" title="${A.fmt.esc(tip)}">`
+          + `<span class="cd">${c.tw_code}</span><span class="nm">${A.fmt.esc(c.name)}</span>`
+          + `<span class="chg ${chg == null ? 'flat' : A.fmt.cls(chg)}">${chg == null ? '—' : A.fmt.pct(chg)}</span></a>`;
+      };
+      const grp = (gn) => {
+        const gid = gn ? A.L.gid[gn] : null;
+        const label = gid ? A.L.group(gid, gn, { cls: 'rlgn' }) : `<span class="rlgn muted">${gn ? A.fmt.esc(gn) : '未歸族群'}</span>`;
+        return `<div class="rlgrp"><div class="rlgh">${label}<span class="n">${byG[gn].length} 檔</span></div>${byG[gn].map(row).join('')}</div>`;
+      };
+      const body = order.map(grp).join('')
+        + (fo.length ? `<div class="rlfo"><span class="fo">外商</span>${fo.map(c => A.fmt.esc(c.name)).join('、')}</div>` : '')
+        + (tw.length || fo.length ? '' : `<div class="rlnt">${A.fmt.esc(s2.note || '台股無直接對應')}</div>`);
+      return `<div class="rlseg" data-seg="${s2.id}" style="--c:${segColor(s2.id)}">`
+        + `<div class="rlsh"><i></i><b>${A.fmt.esc(s2.name)}</b><span class="n">${tw.length ? tw.length + ' 檔' : (fo.length ? '外商 ' + fo.length : '—')}</span>`
+        + `<button type="button" class="rlx" data-seg="${s2.id}" title="取消選取這一格" aria-label="取消選取">×</button></div>`
+        + `<div class="rlbody">${body}</div></div>`;
+    };
+    listHost.innerHTML = segs.map(sec).join('');
+  }
+  /* 關聯圖是不是桌機的「下拉＋圖（＋右欄）」版面。手機（≤820px）照舊是一排色標。*/
+  const relListMode = () => { try { return window.matchMedia('(min-width:821px)').matches; } catch (e) { return false; } };
+  /* 下拉的開合。點外面、按 Esc、選好一格都會收起來；只在第一次掛全站的監聽器（換鏈不會一路疊上去）。*/
+  let segDDWired = false;
+  function wireSegDD(root) {
+    const dd = $('#segDD', root), btn = $('#segDDBtn', root);
+    if (!dd || !btn) return;
+    const setOpen = (on) => { dd.classList.toggle('open', on); btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+      if (on) { const s = $('#segChips .segchip.sel', dd); if (s && s.scrollIntoView) s.scrollIntoView({ block: 'nearest' }); } };
+    btn.onclick = (ev) => { ev.stopPropagation(); setOpen(!dd.classList.contains('open')); };
+    if (!segDDWired) {
+      segDDWired = true;
+      document.addEventListener('click', (ev) => {
+        const cur = document.getElementById('segDD');
+        if (cur && cur.classList.contains('open') && !cur.contains(ev.target)) { cur.classList.remove('open'); const b = document.getElementById('segDDBtn'); if (b) b.setAttribute('aria-expanded', 'false'); }
+      });
+      document.addEventListener('keydown', (ev) => {
+        if (ev.key !== 'Escape') return;
+        const cur = document.getElementById('segDD');
+        if (cur && cur.classList.contains('open')) { cur.classList.remove('open'); const b = document.getElementById('segDDBtn'); if (b) { b.setAttribute('aria-expanded', 'false'); b.focus(); } }
+      });
+    }
+    return setOpen;
+  }
+
+  /* ==================================================================== 環節說明框（滑過環節時）
+     Andy 看到的是：滑過「先進封裝 CoWoS/SoIC」時，說明框窄到字一個一個斷行
+     （「CoWoS/SoIC 由台 / 積電自己做…」）。SVG 的 <title> 是瀏覽器原生提示，寬度與斷行都管不到，
+     所以改成自己畫的說明框：寬度 240～360px、正常斷行（中文不會被拆成一字一行）、跟著游標走、不吃滑鼠。
+     內容一次講完：這一格是什麼、台股幾檔／外商幾家、說明（desc／note）、上游是誰、下游是誰 ——
+     清單上沒有線，上下游就靠這裡補回來。
+     只在有滑鼠的裝置掛（hover:hover）；觸控裝置沒有「滑過」，點下去本來就會選起那一格。*/
+  function segTipHtml(sc, chainId, seg) {
+    const s = (sc && sc.segments.find(x => x.id === seg)) || null; if (!s) return '';
+    const segs = chainSegments(sc, chainId), ids = new Set(segs.map(x => x.id));
+    const coSeg = {}; sc.companies.forEach(c => { if (ids.has(c.segment)) coSeg[c.id] = c.segment; });
+    const up = new Set(), dn = new Set();
+    (sc.edges || []).forEach(e => {
+      if (e.rel === 'competes') return;
+      const a = coSeg[e.from], b = coSeg[e.to]; if (!a || !b || a === b) return;
+      if (b === seg) up.add(a); if (a === seg) dn.add(b);
+    });
+    const tw = twOf(sc, seg).length, fo = foreignOf(sc, seg).length;
+    const nm = (set) => [...set].map(x => A.fmt.esc(segName(sc, x))).join('、') || '（沒有）';
+    const txt = [s.desc, s.note].filter(Boolean).map(A.fmt.esc).join('　');
+    return `<b style="color:${segColor(seg)}">${A.fmt.esc(s.name)}</b>`
+      + `<div class="rtn">${tw ? tw + ' 檔台股' : '沒有台股'}${fo ? ' · 外商 ' + fo + ' 家' : ''}</div>`
+      + (txt ? `<div class="rtd">${txt}</div>` : '')
+      + `<div class="rtr"><span class="k">上游</span>${nm(up)}</div><div class="rtr"><span class="k">下游</span>${nm(dn)}</div>`;
+  }
+  function wireSegTip(root, sc, chainId) {
+    if (!root || !sc) return;
+    let can = true; try { can = window.matchMedia('(hover:hover)').matches; } catch (e) { /* 舊瀏覽器當成有滑鼠 */ }
+    if (!can) return;
+    let tip = document.getElementById('relTip');
+    if (!tip) {
+      tip = document.createElement('div'); tip.id = 'relTip'; tip.className = 'reltip'; tip.hidden = true; document.body.appendChild(tip);
+      /* 換頁／捲動時一定要收掉：position:fixed 的框不收會留在原地，壓在別頁的內容上。
+         只在第一次建立說明框時掛一次 —— 每畫一次鏈就掛一次的話，監聽器會一路疊上去。*/
+      const off = () => { tip.hidden = true; tip._seg = null; };
+      window.addEventListener('scroll', off, { passive: true });
+      window.addEventListener('hashchange', off);
+    }
+    const SEL = '#chainMap .segtitle, #chainMap .segnote';
+    const place = (ev) => {
+      const r = tip.getBoundingClientRect(), W = window.innerWidth, H = window.innerHeight;
+      let x = ev.clientX + 14, y = ev.clientY + 16;
+      if (x + r.width > W - 8) x = Math.max(8, ev.clientX - r.width - 14);
+      if (y + r.height > H - 8) y = Math.max(8, ev.clientY - r.height - 12);
+      tip.style.left = Math.round(x) + 'px'; tip.style.top = Math.round(y) + 'px';
+    };
+    const hide = () => { tip._seg = null; tip.hidden = true; };
+    root.addEventListener('mouseover', (ev) => {
+      const t = ev.target.closest && ev.target.closest(SEL);
+      if (!t || !root.contains(t)) return;
+      const seg = t.dataset.seg; if (!seg) return;
+      if (tip._seg !== seg) { const h = segTipHtml(sc, chainId, seg); if (!h) return; tip.innerHTML = h; tip._seg = seg; }
+      tip.hidden = false; place(ev);
+    });
+    root.addEventListener('mousemove', (ev) => { if (!tip.hidden && tip._seg) place(ev); });
+    root.addEventListener('mouseout', (ev) => {
+      const t = ev.target.closest && ev.target.closest(SEL); if (!t) return;
+      const to = ev.relatedTarget && ev.relatedTarget.closest ? ev.relatedTarget.closest(SEL) : null;
+      if (to !== t) hide();
     });
   }
 
@@ -2683,21 +2893,56 @@
     /* ★ 2026-09-23 C5：欄寬、欄距、左右內距全部改成依容器寬度算（見 fitCols 的註解）。
        舊版寫死 `colW=178, padX=14, colGap=30` 再配上 `max-width:W×1.25`，
        1358px 的容器只用掉左邊約 1020px —— 那就是 Andy 說「需要將關聯圖置中」的那個毛病。*/
-    const layerCols = layers.length;
+    /* ★ 2026-09-24（審查 R3：金融鏈分層圖只用到 28% 寬）：整條鏈**一條上下游都沒有**時，
+       「一層一欄」沒有意義（沒有線要走、上下游也分不出來），金融鏈 3 個環節全擠在同一欄、左右各空 480px。
+       這種時候改成**一個環節一欄**：寬度用得開、高度也跟著縮，圖上方再明講「這條鏈沒有可畫的上下游關係」。
+       有任何一條邊就照舊一層一欄 —— 那時候欄的左右就是上下游，不能拆。*/
+    const inChain0 = new Set(cos.map(c => c.id));
+    const nEdge0 = (sc.edges || []).filter(e => e.rel !== 'competes' && inChain0.has(e.from) && inChain0.has(e.to)).length;
+    const noEdge = nEdge0 === 0 && segs.length > layers.length;
+    const layerCols = noEdge ? segs.length : layers.length;
     const fit = fitCols(host, layerCols, { colW: 178, gap: 30, maxColW: 260, maxGap: 86, minColW: 136, minGap: 18, pad: 26 });
     const colW = fit.colW, colGap = fit.colGap, padX = fit.padX;
     const cardH = 36, gapY = 8, padY = 36;
     const bySeg = {}; cos.forEach(c => (bySeg[c.segment] = bySeg[c.segment] || []).push(c));
-    const cols = layers.map(Lr => segs.filter(s => s.layer === Lr));
+    const cols = noEdge ? segs.map(s => [s]) : layers.map(Lr => segs.filter(s => s.layer === Lr));
     let maxH = 0; const pos = {};
     /* 沒有台股的環節要顯示 note（見下面的 nodes 迴圈）。那幾行字**要先算進版面高度**，
        不然它會壓到下一個環節的標題列 —— 2026-09-19 實測到「先進封裝 CoWoS/SoIC」的說明
        整段蓋在「封測 / 測試」上面。*/
-    /* 一行放幾個字：欄寬 178 − 左右留白 12 = 166px，說明字級 11px，
-       中文大約 1 字 1 字寬 → 13 字是安全值。切 18 字會**超出欄寬**，
-       整段跑到隔壁欄去壓到別人的卡片（2026-09-19 用 getBBox 量到的）。*/
-    const NOTE_CPL = 13, NOTE_LH = 16, NOTE_MAX = 4;
-    const noteWrap = (txt) => (String(txt || '').match(new RegExp(`.{1,${NOTE_CPL}}`, 'g')) || []);
+    /* 一行放多少：以前寫死 13 字（欄寬 178 − 左右留白 12 = 166px、11px 字級的安全值；
+       切 18 字會超出欄寬壓到隔壁欄，2026-09-19 用 getBBox 量到的）。
+       ★ 2026-09-24 改成依**實際欄寬**算：欄寬現在依容器在 136～260 之間變，寫死 13 的話
+       寬的時候一樣 13 字一行，看起來就是「字一個一個斷行」（Andy 回報的「CoWoS/SoIC 由台 / 積電自己做」）。
+       上限仍然是欄寬本身，所以不會重演超出欄寬那個坑。完整說明另外有滑過才出現的說明框（wireSegTip）。
+       依**字寬**斷行：中文與全形標點約 11px、英數約 6.5px（11px 字級量出來的）。
+       以前一律當成一字 11px，所以「CoWoS/SoIC」這種英數混排會被切得特別碎。
+       快滿的時候（最後 3 個字以內）剛好遇到「，」「）」「、」就在那裡斷，不把詞從中間切開。*/
+    const NOTE_W = colW - 10, NOTE_LH = 16, NOTE_MAX = 5;   // 文字從欄左 +6 開始，右邊留 4px；5 行（高度已算進 noteLines）
+    /* 字寬用畫布真的量（字級沿用這個框實際吃到的字型；量不到就退回「中文 13、英數 7.5」的估計）。
+       ⚠ 這段 SVG 文字沒有自己的字級規則，吃的是繼承下來的 13px，不是註解上寫的 11px —— 用猜的會溢出欄寬。*/
+    const cs0 = (() => { try { return getComputedStyle(host); } catch (e) { return null; } })();
+    const ctx0 = (() => { try { const c = document.createElement('canvas').getContext('2d');
+      c.font = `${(cs0 && cs0.fontSize) || '13px'} ${(cs0 && cs0.fontFamily) || 'sans-serif'}`; return c; } catch (e) { return null; } })();
+    const chW = (ch) => (ctx0 ? ctx0.measureText(ch).width : (/[\u0000-ÿ]/.test(ch) ? 7.5 : 13));
+    const CLOSE = '，）、。)';
+    const noteWrap = (txt) => {
+      const t = String(txt || ''), out = [];
+      let line = '', w = 0, lastP = -1;
+      for (const ch of t) {
+        const cw = chW(ch);
+        /* 收尾標點不准落在行首（避頭點）：讓它吊在上一行的行尾，最多伸進欄距一個字寬（欄距最小 18px，不會碰到隔壁欄） */
+        if (w + cw > NOTE_W && line && !CLOSE.includes(ch)) {
+          if (lastP >= line.length - 3 && lastP > 0) { out.push(line.slice(0, lastP + 1)); line = line.slice(lastP + 1); }
+          else { out.push(line); line = ''; }
+          w = [...line].reduce((a, c) => a + chW(c), 0); lastP = -1;
+        }
+        line += ch; w += cw;
+        if ('，）、。'.includes(ch)) lastP = line.length - 1;
+      }
+      if (line) out.push(line);
+      return out.map(x => x.trim()).filter(Boolean);
+    };
     const noteLines = (sg, list) => (list.length ? 0 : Math.min(NOTE_MAX, noteWrap(sg.note || '台股無直接對應').length));
     /* ★ 2026-09-23 C5 優化：**每一欄各自垂直置中**。
        舊版每一欄都從最上面開始排，所以「IP/EDA 只有 5 家」那一欄下面是一大片空白，
@@ -2734,7 +2979,8 @@
         /* ★ 2026-09-23：這裡的 fill 本來寫死 #6f7ea3（深色主題的舊 --ink-3），
            切到明亮主題不會換色，而且吃不到這次把 --ink-3 提亮的修正。
            SVG 的 fill 讀得到 CSS 變數，所以直接指到 token 就好。*/
-        nodes += `<g><title>${A.fmt.esc(msg)}</title>` + shown.map((w, i) =>
+        // 說明全文改由 wireSegTip 的說明框顯示（原生 <title> 寬度管不到，會窄到逐字斷行）
+        nodes += `<g class="segnote" data-seg="${s.id}">` + shown.map((w, i) =>
           `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
       }
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
@@ -2814,7 +3060,8 @@
        SVG 是 block 元素，撐不滿就靠左。現在寬度已經等於容器寬度，width:100% 剛好 1:1。
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
-    host.innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
+    const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
+    host.innerHTML = `${empty}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
        舊版只提亮線 —— 線一多（半導體鏈 140 條）就看不出那條線通到誰，
@@ -2891,7 +3138,13 @@
        窄畫面（<1100px）自動 wrap 掉到圖的下面 —— 800px 硬要並排會把圖擠到看不清。*/
     const anchor = host || $('#chainMap');
     const row = anchor && anchor.closest ? anchor.closest('.chainrow') : null;
-    if (row) { box.classList.add('relside'); row.appendChild(box); }
+    /* ★ 2026-09-24 桌機：圖的右邊是「選中環節的族群／個股」那一欄，資訊欄就住進同一欄、疊在它上面
+       （.relstick 是上下兩格：資訊欄在上、族群清單在下，各自捲；CSS 看到 #coBox 就把那一欄打開）。
+       不另開第三欄：圖｜清單｜資訊欄三欄並排會把圖擠到要左右滑。
+       ⚠ 不能先量那一欄看不看得到：點公司時那一格是在這支之後才被選起來的，這一刻那一欄可能還收著。*/
+    const stick = relListMode() && row ? row.querySelector('.relstick') : null;
+    if (stick) { box.classList.add('relside'); stick.insertBefore(box, stick.firstChild); }
+    else if (row) { box.classList.add('relside'); row.appendChild(box); }
     else if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(box, anchor.nextSibling);
     else document.body.appendChild(box);
     /* 市占數字要三件事同時看得到：值、什麼時候的、以及**這是實績還是預估**。

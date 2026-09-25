@@ -3334,7 +3334,12 @@ def t_new_industry(pg, base):
                   pg.evaluate(f"() => !!document.querySelector({tag!r})")):
             continue
         seg3711 = pg.evaluate(f"() => document.querySelector({tag!r}).dataset.segment")
-        pg.eval_on_selector(tag, "e => e.scrollIntoView({block:'center'})"); pg.wait_for_timeout(250)
+        # ★ 2026-09-24（Andy：「下方那片環節字卡全部拿掉」）桌機的字卡藏起來了，入口換成關聯圖上的公司卡
+        #   （走同一支 showCompany ＋ onCompany，下面每一條斷言一個字都沒改）。
+        #   改前：一律點字卡上的標籤 `.seglist .sco`；改後：桌機點 `#chainMap .co[data-code="3711"]`，800px 照舊點字卡。
+        if not pg.evaluate("() => { const l = document.querySelector('.seglist'); return !!l && l.getClientRects().length > 0; }"):
+            tag = '#chainMap .co[data-code="3711"]'
+        pg.eval_on_selector(tag, "e => e.scrollIntoView({block:'center'})"); settle_scroll(pg)
         if not click(pg, tag, 1400):
             continue
         after = pg.evaluate(SNAP)
@@ -10992,12 +10997,12 @@ def t_cooling(pg, base):
         # ---------------- 4. 點零件不篩（#73）；點環節色標真的篩
         ok("[%s] 點零件之後成分股筆數一動都不動（DECISIONS #73：零件只亮不篩）" % did,
            rows1 == rows0, "%s → %s" % (rows0, rows1))
-        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(1000)
+        _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 1000)  # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
         rows2 = rows(pg)
         mtitle = pg.evaluate("() => (document.querySelector('#memberTitle') || {}).textContent || ''")
         ok("[%s] 點「散熱」環節色標 → 成分股**真的換了一批**（筆數與標題都變）" % did,
            rows2 != rows0 and "環節" in mtitle, "%s → %s（%s）" % (rows0, rows2, mtitle.strip()))
-        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(800)
+        _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 800)  # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
 
         # ---------------- 5. 族群 ≠ 環節 那一行真的在畫面上
         ok("[%s] ★ 畫面最底下有「%s」那一行（族群 ≠ 環節，規格書 §6-N5）" % (did, FOOT),
@@ -11332,6 +11337,321 @@ def t_whomakes(pg, base):
     except Exception as e:  # noqa: BLE001 —— 點不到就是點不到，要報出來
         ok("真的用滑鼠點得到 ABF 膜（1440px、動畫關掉）", False, str(e).split(chr(10))[0])
 
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===========================================================================
+# 關聯圖清單（2026-09-24）
+# Andy 原話（兩次）：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」；
+#   「上方標籤式的環節一律改成下拉清單（樣式參考資金輪動卡的『產業鏈：全部 ▾』）、
+#     下方那片環節字卡全部拿掉 —— 跟上面的關聯圖重複了」。
+# 做法（industry.js renderSegPicker / wireSegDD / wireSegTip）：
+#   · 圖上方的環節色標 → 「環節：全部 ▾」下拉（面板就是 #segChips，每一列仍是 .segchip）
+#   · 選了一格 → 圖右邊長出 #relList：那一格的族群 → 個股（代號＋名稱＋今日漲跌，紅漲綠跌）
+#   · 圖下方的環節字卡 #chainList 在桌機藏起來
+#   · 滑過環節的說明框改成自己畫的（寬 240～360px、不逐字斷行）
+# 只動桌機（>820px）。1440 與 1024 各跑一輪，最後 390 驗手機沒被動到。
+# 每一條都是真的操作之後量「畫面真的因此改變了」。
+# ===========================================================================
+RL_STATE = """() => {
+  const q = (s) => document.querySelector(s), R = (e) => e ? e.getBoundingClientRect() : null;
+  const vis = (e) => { if (!e) return false; const r = e.getBoundingClientRect(); return r.width > 1 && r.height > 1; };
+  const map = q('#chainMap'), col = q('#relMain .relcol'), head = q('#relHead'), btn = q('#segDDBtn'), panel = q('#segChips');
+  const mr = R(map), cr = R(col), hr = R(head), br = R(btn), lr = R(q('#relList'));
+  return {
+    btnVis: vis(btn), btnTxt: btn ? btn.innerText.replace(/\\s+/g, '') : '',
+    open: !!q('#segDD.open'), panelVis: vis(panel),
+    chips: document.querySelectorAll('#segChips .segchip').length,
+    visChips: [...document.querySelectorAll('#segChips .segchip')].filter(vis).length,
+    segTitles: document.querySelectorAll('#chainMap .segtitle').length,
+    grid: vis(q('#chainList')), gridTools: vis(q('#segTools')),
+    colVis: vis(col), rows: [...document.querySelectorAll('#relList .rlco')].filter(vis).length,
+    groups: [...document.querySelectorAll('#relList .rlgrp')].filter(vis).length,
+    onSec: [...document.querySelectorAll('#relList .rlseg')].filter(vis).map(c => c.dataset.seg),
+    map: mr && { l: Math.round(mr.left), r: Math.round(mr.right), t: Math.round(mr.top), h: Math.round(mr.height), w: Math.round(mr.width), hidden: map.hidden },
+    mainW: Math.round((R(q('#relMain')) || { width: 0 }).width),
+    col: cr && { l: Math.round(cr.left), t: Math.round(cr.top), h: Math.round(cr.height) },
+    list: lr && { h: Math.round(lr.height) },
+    btn: br && { t: Math.round(br.top), b: Math.round(br.bottom) },
+    headBottom: hr ? Math.round(hr.bottom) : null,
+    dim: document.querySelectorAll('#chainMap .co.dim').length,
+    selChip: [...document.querySelectorAll('#segChips .segchip.sel')].map(c => c.dataset.seg),
+    selTitle: [...document.querySelectorAll('#chainMap .segtitle.sel')].map(c => c.dataset.seg),
+    allOn: !!q('#segChips .segall.on'),
+    docW: document.documentElement.scrollWidth, winW: innerWidth,
+  };
+}"""
+
+# 下拉面板每一列的樣子：一列一格、右邊寫數量、選中的那一列底色不同
+RL_PANEL = """() => [...document.querySelectorAll('#segChips .segchip')].map(c => { const r = c.getBoundingClientRect(), cs = getComputedStyle(c);
+  return { seg: c.dataset.seg, l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height),
+           n: (c.querySelector('.n') || {}).textContent || '', nRight: (() => { const n = c.querySelector('.n'); return n ? Math.round(r.right - n.getBoundingClientRect().right) : 99; })(),
+           bg: cs.backgroundColor, sel: c.classList.contains('sel'), fs: parseFloat(cs.fontSize) }; })"""
+
+# 說明框現在長怎樣：寬度、是否顯示、每一行平均幾個字（逐字斷行＝一行 1～2 個字）
+RL_TIP = """() => {
+  const t = document.getElementById('relTip'); if (!t || t.hidden) return { shown: false };
+  const r = t.getBoundingClientRect();
+  const tops = new Set(); let chars = 0;
+  const w = document.createTreeWalker(t, NodeFilter.SHOW_TEXT);
+  while (w.nextNode()) { const n = w.currentNode; const s = n.textContent.replace(/\\s+/g, '');
+    if (!s) continue; chars += s.length;
+    const rg = document.createRange(); rg.selectNodeContents(n);
+    [...rg.getClientRects()].forEach(x => { if (x.width > 0) tops.add(Math.round(x.top)); }); }
+  const lines = tops.size || 1;
+  return { shown: true, w: Math.round(r.width), h: Math.round(r.height), lines, chars,
+           perLine: +(chars / lines).toFixed(1), txt: t.innerText.replace(/\\s+/g, ' ').slice(0, 80) };
+}"""
+
+
+def _rl_pick(pg, seg, wait=900):
+    """真人的做法：按「環節 ▾」打開下拉，再點那一列。回傳下拉有沒有真的打開過。"""
+    click(pg, "#segDDBtn", 300)
+    opened = pg.evaluate("() => !!document.querySelector('#segDD.open')")
+    click(pg, f'#segChips .segchip[data-seg="{seg}"]', wait)
+    return opened
+
+
+def t_rel_list(pg, base):
+    """環節下拉＋選中環節的族群／個股＋拿掉下方字卡＋寬說明框（桌機 1440／1024），手機 390 沒被動到。"""
+    for w in (1440, 1024):
+        _rel_goto(pg, base, chain="ai_server", w=w, view="layer", fold="1")
+        pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
+        pg.evaluate("document.getElementById('relSec').scrollIntoView({block:'start'}); window.scrollBy({top:-70, behavior:'instant'})")
+        settle_scroll(pg)
+        s0 = pg.evaluate(RL_STATE)
+        L = f"[{w}px]"
+        # ---- Default：一顆下拉鈕、面板收著、圖用滿寬度、下方字卡不見了
+        if not ok(f"{L} 圖上方是一顆「環節：全部 ▾」下拉（不是一排色標）",
+                  s0["btnVis"] and "環節" in s0["btnTxt"] and "全部" in s0["btnTxt"] and not s0["panelVis"]
+                  and s0["visChips"] == 0, s0):
+            continue
+        ok(f"{L} 圖上方不再有一大片色標（下拉鈕底到圖頂 < 24px、標題列到圖頂 < 70px）",
+           s0["map"]["t"] - s0["btn"]["b"] < 24 and s0["map"]["t"] - s0["headBottom"] < 70, s0)
+        ok(f"{L} 圖下方那片環節字卡拿掉了（改前：.seglist 看得到 → 改後：看不到）",
+           not s0["grid"] and not s0["gridTools"], s0)
+        ok(f"{L} 沒選環節時右欄不顯示、圖用滿寬度", not s0["colVis"] and s0["map"]["w"] >= s0["mainW"] - 4, s0)
+        ok(f"{L} 整頁沒有橫向捲軸", s0["docW"] <= s0["winW"], s0)
+
+        # ---- 打開下拉：環節數＝原本的色標數＝圖上的環節數；一列一格、右邊寫數量
+        click(pg, "#segDDBtn", 400)
+        o = pg.evaluate(RL_STATE)
+        ok(f"{L} 按下拉鈕 → 面板真的打開", o["open"] and o["panelVis"], o)
+        ok(f"{L} 下拉裡的環節數＝原本的色標數＝圖上的環節數（{o['chips']}）",
+           o["visChips"] == o["chips"] == o["segTitles"] and o["chips"] >= 10, o)
+        rowsP = pg.evaluate(RL_PANEL)
+        lefts = {r["l"] for r in rowsP}
+        tops = [r["t"] for r in rowsP]
+        ok(f"{L} 下拉裡一列一個環節（左緣對齊、由上往下排）",
+           len(lefts) == 1 and tops == sorted(tops) and len(set(tops)) == len(tops), sorted(lefts)[:3])
+        ok(f"{L} 每一列右邊都寫著數量（檔數或外商家數）",
+           all(r["n"] and r["nRight"] < 16 for r in rowsP), [r for r in rowsP if not (r["n"] and r["nRight"] < 16)][:2])
+        ok(f"{L} 下拉的字沒有小於 11px", all(r["fs"] >= 11 for r in rowsP), min((r["fs"] for r in rowsP), default=0))
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(250)
+        ok(f"{L} 按 Esc → 下拉收起來", not pg.evaluate(RL_STATE)["panelVis"])
+
+        # ---- 選一格：圖上高亮真的變、下拉那一列高亮、按鈕寫出名字、右欄長出那一格的族群與個股
+        seg = pg.evaluate("() => { const c = document.querySelector('#segChips .segchip:not(.nomem)'); return c ? c.dataset.seg : null; }")
+        segnm = pg.evaluate(f"() => document.querySelector('#segChips .segchip[data-seg=\"{seg}\"]').childNodes[1].textContent")
+        ok(f"{L} 點之前圖上沒有任何東西被壓暗", s0["dim"] == 0 and not s0["selChip"], s0)
+        _rl_pick(pg, seg, 1200)
+        settle_scroll(pg)
+        s1 = pg.evaluate(RL_STATE)
+        changed(f"{L} 從下拉選「{segnm}」→ 圖上不相干的公司卡真的被壓暗", s0["dim"], s1["dim"])
+        ok(f"{L} 圖上那一格的標題真的亮起來", s1["selTitle"] == [seg] and s1["selChip"] == [seg], s1)
+        ok(f"{L} 選好之後下拉自己收起來、按鈕寫著「{segnm}」",
+           not s1["panelVis"] and segnm.replace(" ", "") in s1["btnTxt"], s1)
+        click(pg, "#segDDBtn", 300)
+        pr = pg.evaluate(RL_PANEL)
+        on = [r for r in pr if r["sel"]]
+        off = [r for r in pr if not r["sel"]]
+        ok(f"{L} 下拉裡選中的那一列真的高亮（底色跟其他列不同）",
+           len(on) == 1 and on[0]["seg"] == seg and all(r["bg"] != on[0]["bg"] for r in off), on)
+        pg.keyboard.press("Escape")
+        pg.wait_for_timeout(250)
+        ok(f"{L} 右欄長出來、只列這一格（{s1['onSec']}）", s1["colVis"] and s1["onSec"] == [seg], s1)
+        ok(f"{L} 右欄在圖的右邊、與圖等高（差 ≤ 3px）",
+           s1["col"]["l"] >= s1["map"]["r"] - 2 and abs(s1["col"]["h"] - s1["map"]["h"]) <= 3, s1)
+        ok(f"{L} 右欄列得出族群與個股（{s1['groups']} 個族群、{s1['rows']} 檔）",
+           s1["groups"] >= 1 and s1["rows"] >= 1, s1)
+        rows = pg.evaluate("""() => [...document.querySelectorAll('#relList .rlseg.on .rlco')].map(a => ({
+            code: a.dataset.code, cd: (a.querySelector('.cd')||{}).textContent, nm: (a.querySelector('.nm')||{}).textContent,
+            chg: (a.querySelector('.chg')||{}).textContent, cls: (a.querySelector('.chg')||{className:''}).className,
+            col: getComputedStyle(a.querySelector('.chg')).color, fs: parseFloat(getComputedStyle(a).fontSize) }))""")
+        bad = [r for r in rows if not (r["cd"] == r["code"] and r["nm"] and
+                                       (r["chg"] == "—" or re.match(r"^[+-]?\d+\.\d%$", r["chg"] or "")))]
+        ok(f"{L} 每一檔都寫了代號、名稱、今日漲跌", not bad and len(rows) > 0, bad[:3])
+        ok(f"{L} 右欄的字沒有小於 11px", all(r["fs"] >= 11 for r in rows), min((r["fs"] for r in rows), default=0))
+        # 紅漲綠跌：整條鏈找一檔漲、一檔跌來比（這一格可能剛好全漲或全跌）
+        cols = pg.evaluate("""() => { const up = document.querySelector('#relList .rlco .chg.up'), dn = document.querySelector('#relList .rlco .chg.down');
+            return [up ? getComputedStyle(up).color : null, dn ? getComputedStyle(dn).color : null]; }""")
+        rgb = lambda c: [int(x) for x in re.findall(r"\d+", c or "")[:3]] or [0, 0, 0]  # noqa: E731
+        ok(f"{L} 紅漲綠跌（漲的比較紅、跌的比較綠）",
+           bool(cols[0] and cols[1]) and rgb(cols[0])[0] > rgb(cols[0])[1] and rgb(cols[1])[1] > rgb(cols[1])[0], cols)
+
+        # ---- 換成沒有台股的一格：右欄寫「外商」灰字與外商名字
+        fseg = pg.evaluate("""() => { const c = [...document.querySelectorAll('#relList .rlseg')]
+            .find(s => s.querySelector('.rlfo') && !s.querySelector('.rlco')); return c ? c.dataset.seg : null; }""")
+        if fseg:
+            _rl_pick(pg, fseg, 1000)
+            fo = pg.evaluate(f"""() => {{ const c = document.querySelector('#relList .rlseg.on'); if (!c) return null;
+                const f = c.querySelector('.rlfo .fo');
+                return {{ seg: c.dataset.seg, txt: c.querySelector('.rlfo').innerText, tag: f ? f.textContent : '',
+                         col: f ? getComputedStyle(f).color : '', ink: getComputedStyle(c.querySelector('.rlsh')).color }}; }}""")
+            ok(f"{L} 選沒有台股的環節 → 右欄換成它、標「外商」灰字並列出外商名字",
+               bool(fo) and fo["seg"] == fseg and fo["tag"] == "外商" and len(fo["txt"]) > 4 and fo["col"] != fo["ink"], fo)
+
+        # ---- 取消：下拉的「全部環節」與右欄的 × 都能取消
+        click(pg, "#segDDBtn", 300)
+        click(pg, "#segChips .segall", 900)
+        s2 = pg.evaluate(RL_STATE)
+        ok(f"{L} 下拉選「全部環節」→ 取消（壓暗解除、右欄收掉、按鈕寫回全部）",
+           s2["dim"] == 0 and not s2["selChip"] and not s2["colVis"] and "全部" in s2["btnTxt"] and s2["allOn"], s2)
+        _rl_pick(pg, seg, 1000)
+        click(pg, "#relList .rlseg.on .rlx", 900)
+        s3 = pg.evaluate(RL_STATE)
+        ok(f"{L} 按右欄標題的 × → 一樣取消", s3["dim"] == 0 and not s3["selChip"] and not s3["colVis"], s3)
+        _rl_pick(pg, seg, 1000)
+        _rl_pick(pg, seg, 900)
+        s4 = pg.evaluate(RL_STATE)
+        ok(f"{L} 下拉再選一次同一格 → 取消（跟以前再點一次色標同一個結果）",
+           s4["dim"] == 0 and not s4["selChip"] and not s4["colVis"], s4)
+
+        # ---- 說明框：圖上環節標題、沒有台股那格的說明文字，都要夠寬、不逐字斷行
+        pg.evaluate("document.getElementById('relSec').scrollIntoView({block:'start'}); window.scrollBy({top:-70, behavior:'instant'})")
+        settle_scroll(pg)
+        targets = [("圖上環節標題", f'#chainMap .segtitle[data-seg="{seg}"]')]
+        if pg.query_selector("#chainMap .segnote"):
+            targets.append(("圖上沒有台股那一格的說明", "#chainMap .segnote"))
+        for nm, sel in targets:
+            # ⚠ 說明框遇到整頁捲動會自己收掉（刻意的：fixed 定位的框不收會留在原地）。
+            #   全站是 scroll-behavior:smooth，沒等捲動停就 hover，框一出現就被收掉 —— 量到的是假紅。
+            pg.eval_on_selector(sel, "e => { const r = e.getBoundingClientRect(); window.scrollBy({top: r.top - innerHeight / 2, behavior: 'instant'}); }")
+            settle_scroll(pg)
+            pg.hover(sel)
+            pg.wait_for_timeout(350)
+            tp = pg.evaluate(RL_TIP)
+            if not ok(f"{L} 滑過{nm} → 說明框真的出現", tp.get("shown"), tp):
+                continue
+            ok(f"{L} 滑過{nm}：說明框寬度 240～360px", 240 <= tp["w"] <= 362, tp)
+            ok(f"{L} 滑過{nm}：不逐字斷行（平均一行 ≥ 8 個字）", tp["perLine"] >= 8, tp)
+            ok(f"{L} 滑過{nm}：寫得出上游與下游", "上游" in tp["txt"] and "下游" in tp["txt"], tp["txt"])
+        pg.mouse.move(5, 300)
+        pg.wait_for_timeout(250)
+        ok(f"{L} 滑鼠移開 → 說明框收掉", not pg.evaluate(RL_TIP).get("shown"))
+
+        # ---- 點公司卡開資訊欄：住進右欄（疊在族群清單上面），右欄的清單照樣看得到
+        pg.evaluate("document.getElementById('relSec').scrollIntoView({block:'start'}); window.scrollBy({top:-70, behavior:'instant'})")
+        settle_scroll(pg)
+        code0 = pg.evaluate("() => { const c = [...document.querySelectorAll('#chainMap .co[data-code]')].find(e => e.dataset.code); return c ? c.dataset.code : null; }")
+        _cg_click_dot(pg, code0, 1400)
+        cb = pg.evaluate("""() => { const b = document.getElementById('coBox'), m = document.getElementById('chainMap');
+            if (!b) return null; const r = b.getBoundingClientRect(), mr = m.getBoundingClientRect();
+            const l = document.getElementById('relList').getBoundingClientRect();
+            return { inStick: !!b.closest('.relstick'), right: r.left >= mr.right - 2, h: Math.round(r.height),
+                     listH: Math.round(l.height), above: r.bottom <= l.top + 2,
+                     rows: [...document.querySelectorAll('#relList .rlseg.on .rlco')].length }; }""")
+        if ok(f"{L} 點圖上的公司卡（{code0}）→ 資訊欄開在圖的右邊", bool(cb) and cb["inStick"] and cb["right"], cb):
+            ok(f"{L} 資訊欄開著時，它那一格的族群清單還看得到（疊在下面）",
+               cb["listH"] >= 100 and cb["above"] and cb["rows"] > 0, cb)
+            sel2 = pg.evaluate("() => (document.querySelector('#segChips .segchip.sel') || {dataset:{}}).dataset.seg")
+            if sel2:
+                _rl_pick(pg, sel2, 900)
+                ok(f"{L} 資訊欄開著時，下拉照樣能取消選取",
+                   pg.evaluate("() => document.querySelectorAll('#segChips .segchip.sel').length") == 0)
+            pg.evaluate("() => { const b = document.getElementById('coBox'); if (b) b.remove(); }")
+            pg.wait_for_timeout(400)
+
+        # ---- 收合圖：選了一格時右欄不能跟著收成 0（改成用自己的高度）；再展開回到與圖等高
+        _rl_pick(pg, seg, 1100)
+        click(pg, "#relFold", 800)
+        f1 = pg.evaluate(RL_STATE)
+        ok(f"{L} 收合圖之後，選中那一格的族群清單還在、看得到個股",
+           f1["map"]["hidden"] and f1["list"]["h"] >= 100 and f1["rows"] > 0, f1)
+        click(pg, "#relFold", 1400)
+        f2 = pg.evaluate(RL_STATE)
+        ok(f"{L} 再展開 → 右欄回到與圖等高", not f2["map"]["hidden"] and abs(f2["col"]["h"] - f2["map"]["h"]) <= 3, f2)
+
+        # ---- 流向圖：下拉照樣在、選取照樣在；滑過方塊一樣有寬說明框
+        click(pg, "#relView button[data-rv='flow']", 1400)
+        fl = pg.evaluate(RL_STATE)
+        ok(f"{L} 切到流向圖，下拉與右欄照樣在（選取沒丟）", fl["btnVis"] and fl["colVis"] and fl["onSec"] == [seg], fl)
+        if pg.query_selector("#chainMap .fseg"):
+            pg.hover("#chainMap .fseg")
+            pg.wait_for_timeout(350)
+            tp = pg.evaluate(RL_TIP)
+            ok(f"{L} 流向圖滑過方塊 → 說明框 ≥ 240px", tp.get("shown") and tp["w"] >= 240, tp)
+        click(pg, "#relView button[data-rv='layer']", 1400)
+
+        # ---- 點右欄的個股 → 真的進那一檔的個股頁；上一頁回得來
+        code = pg.evaluate("() => (document.querySelector('#relList .rlseg.on .rlco') || {dataset:{}}).dataset.code")
+        click(pg, f'#relList .rlseg.on .rlco[data-code="{code}"]', 1600)
+        h = pg.evaluate("location.hash")
+        ok(f"{L} 點右欄的個股（{code}）→ 真的進那一檔的個股頁", h == f"#stock/{code}", h)
+        pg.go_back()
+        pg.wait_for_timeout(1500)
+        ok(f"{L} 上一頁回得來（回到這條鏈）", pg.evaluate("location.hash").startswith("#industry/ai_server"),
+           pg.evaluate("location.hash"))
+
+    # ---- 審查 R3（2026-09-24）的三件事，一起真的打開來量
+    # ① 淺色主題下關聯圖不准再是深底：底要亮、公司卡跟底分得開；切回深色要回到深底（深色一個值都沒動）
+    lum = """() => { const m = document.getElementById('chainMap'); if (!m) return null;
+        const px = (c) => { const v = (c.match(/\\d+(\\.\\d+)?/g) || []).map(Number); return v.length >= 3 ? (0.299*v[0] + 0.587*v[1] + 0.114*v[2]) : -1; };
+        const card = m.querySelector('.co:not(.foreign) rect');
+        return { bg: Math.round(px(getComputedStyle(m).backgroundColor)),
+                 card: card ? Math.round(px(getComputedStyle(card).fill)) : -1,
+                 edge: (() => { const e = m.querySelector('.edge'); return e ? getComputedStyle(e).stroke : ''; })() }; }"""
+    for th in ("light", "dark"):
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme', '{th}'); localStorage.setItem('tw.relOpen', '1');"
+                    " localStorage.setItem('tw.relView', 'layer'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
+        v = pg.evaluate(lum)
+        if th == "light":
+            ok("[淺色] 關聯圖的底跟著主題變亮（改前：深藍 #0a1020 挖一塊黑）", bool(v) and v["bg"] >= 200, v)
+            ok("[淺色] 公司卡跟底分得開（亮度差 ≥ 4）而且走線看得到（不是跟底同色）",
+               bool(v) and abs(v["card"] - v["bg"]) >= 4 and v["edge"] not in ("", "none"), v)
+        else:
+            ok("[深色] 關聯圖維持深底（這次只改淺色）", bool(v) and v["bg"] <= 40, v)
+    # ② 整條鏈沒有任何上下游（金融）：圖上方明講、分層圖不再只用一欄 28% 寬；流向圖也要有說明
+    _rel_goto(pg, base, chain="financial", w=1440, view="layer", fold="1")
+    fe = pg.evaluate("""() => { const m = document.getElementById('chainMap'), e = m && m.querySelector('.mapempty');
+        const t = [...m.querySelectorAll('.segtitle')].map(x => Math.round(x.getBoundingClientRect().left));
+        return { msg: e ? e.innerText : '', cols: new Set(t).size, segs: t.length }; }""")
+    f = pg.evaluate(REL_FIT)
+    ok("[金融 分層圖] 沒有上下游時圖上方明講「此鏈沒有可畫的上下游關係」", "此鏈沒有可畫的上下游關係" in fe["msg"], fe)
+    ok("[金融 分層圖] 一個環節一欄，寬度用得開（改前：3 格擠在 1 欄、只用 28%）",
+       fe["cols"] == fe["segs"] and bool(f) and f.get("fill", 0) >= 60, [fe, f])
+    click(pg, "#relView button[data-rv='flow']", 1200)
+    ff = pg.evaluate("() => { const e = document.querySelector('#chainMap .mapempty'); return e ? e.innerText : ''; }")
+    ok("[金融 流向圖] 0 條帶子時一樣明講（改前：只有 3 個方塊、沒有任何說明）", "此鏈沒有可畫的上下游關係" in ff, ff)
+    click(pg, "#relView button[data-rv='layer']", 900)
+    # ③ 頁首「怎麼看 ?」不准再講退版前的「大圓點／個股小點」；沒有關聯圖的鏈不准提關聯圖
+    for cid, has_map in (("semiconductor", True), ("traditional", False)):
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(300)
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('nbIntro')", 8000)
+        hb = pg.query_selector('.howbtn[data-how="nb"]')
+        if hb:
+            click(pg, '.howbtn[data-how="nb"]', 400)
+        tx = pg.evaluate("() => (document.getElementById('nbIntro') || {}).innerText || ''")
+        ok(f"[{cid}] 頁首「怎麼看 ?」打得開、不再講「大圓點／個股小點」", bool(tx) and "大圓點" not in tx and "小點" not in tx, tx[:90])
+        if not has_map:
+            has_rel = pg.evaluate("() => !!document.getElementById('relSec')")
+            # 可以老實講「這條鏈還沒有關聯圖」，但不准叫人去點一個不存在的圖或色標
+            ok(f"[{cid}] 沒有關聯圖的鏈，說明裡不叫人去用關聯圖與色標",
+               (not has_rel) and "色標" not in tx and "公司卡" not in tx and "點關聯圖" not in tx and "環節 ▾" not in tx,
+               [has_rel, tx[:90]])
+
+    # ---- 手機 390：色標照舊攤開、沒有下拉鈕、沒有右欄、下方字卡照舊（這次刻意不動手機）
+    _rel_goto(pg, base, chain="ai_server", w=390, view="layer", fold="1")
+    m = pg.evaluate(RL_STATE)
+    ok("[390px] 手機沒有下拉鈕、色標一顆都沒少而且攤開著", not m["btnVis"] and m["visChips"] == m["chips"] >= 10, m)
+    ok("[390px] 手機照舊有下方的環節字卡、沒有右欄", m["grid"] and not m["colVis"] and m["rows"] == 0, m)
+    ok("[390px] 整頁沒有橫向捲軸", m["docW"] <= m["winW"], m)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -12165,6 +12485,8 @@ SECTIONS = {
     "批次29-產業分頁":     lambda pg, b, base, code: t_b29_tabs(pg, base),
     # ★ 2026-09-23 第十批 C5：關聯圖退版（Default 標籤式個股、點才開清單、點個股右側換人）
     "批次C5-關聯圖標籤":   lambda pg, b, base, code: t_b25_tags(pg, base),
+    # ★ 2026-09-24：關聯圖的環節下拉＋選中環節的族群／個股＋拿掉下方字卡＋寬說明框；1440／1024 各一輪，390 驗手機沒動
+    "關聯圖清單":          lambda pg, b, base, code: t_rel_list(pg, base),
     # ★ C4：窄欄（事件抽屜開著、視窗 980～1150）剖析圖不准被切掉右半邊
     "批次C4-剖析圖窄欄":   lambda pg, b, base, code: t_c4_fit(pg, base),
     # ★ 金融鏈三張＋軟體鏈四張：supply_chain.yaml 沒有這兩條鏈，所以環節必須是 0（棘輪）
@@ -18513,11 +18835,11 @@ def t_cooling_v2(pg, base):
         c = click_part(nk)
         ok("[%s] ★ 點「%s」→ 小卡老實寫出「不在環節裡」是哪一家（%s）" % (did, nk, "富世達" if nk == "qd" else "尼得科超眾"),
            c and c["partCard"] and ("富世達" in c["partCard"] if nk == "qd" else "尼得科超眾" in c["partCard"]), (c or {}).get("partCard", "")[:160])
-        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(900)
+        _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 900)  # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
         r2 = rows()
         ok("[%s] 點「散熱」環節色標 → 圖下方真的列出那一格的台股" % did,
            r2 != r0 and r2 > 0 and seg_applied(pg), "%s → %s" % (r0, r2))
-        pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(700)
+        _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 700)  # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
         click_part(keys[0])
         bgpt = pg.evaluate(_DGL_BG)
         if ok("[%s] 圖上找得到一塊空白可以點" % did, bool(bgpt), bgpt):
@@ -18567,7 +18889,8 @@ def t_cooling_v2(pg, base):
             CN = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
             m = _re.search(r"散熱這一格目前收錄([一二三四五六七八九十]+)家", txt)
             land(base + "#industry/ai_server/dg/" + did, "dark")
-            r0 = rows(); pg.click('#segChips .segchip[data-seg="thermal"]', timeout=5000); pg.wait_for_timeout(900); r2 = rows()
+            # ★ 2026-09-24 桌機色標收進下拉，_cg_chip 會先打開下拉（改前：pg.click 直接點色標）
+            r0 = rows(); _cg_chip(pg, '#segChips .segchip[data-seg="thermal"]', 900); r2 = rows()
             ok("[%s] 畫面寫的「散熱這一格收錄 N 家」跟實際篩出來的筆數一致" % did, bool(m) and CN.get(m.group(1)) == r2, "畫面寫 %s ／ 實際 %s" % (m.group(1) if m else "（沒寫）", r2))
             if did == "air_cooling":
                 m2 = _re.search(r"族群有([一二三四五六七八九十]+)檔", txt)
@@ -20100,7 +20423,21 @@ def _cg_chip(pg, sel: str, wait: int = 800):
     舊呼叫端傳進來的選擇器寫的是 `#segChips`（力導向版本色標的容器 id），
     這裡統一翻譯成新的 `#segChips`，呼叫端不必改。
     """
-    return click(pg, sel.replace('#segChips', '#segChips'), wait)
+    sel = sel.replace('#segChips', '#segChips')
+    # ★ 2026-09-24（Andy：上方標籤改成下拉清單）桌機的色標收在「環節：全部 ▾」下拉裡，
+    #   平常看不到 —— 真人要先按下拉鈕才點得到，這裡照做。手機（≤820px）色標照舊攤開，不會走進這一段。
+    #   改前：直接 click(sel)；改後：看不到就先按 #segDDBtn 打開下拉再點。
+    if pg.evaluate("""(s) => { const c = document.querySelector(s), b = document.getElementById('segDDBtn');
+        if (!c || !b || b.offsetParent === null) return false;
+        const r = c.getBoundingClientRect(); return !(r.width > 0 && r.height > 0); }""", sel):
+        # 先把下拉鈕瞬間捲到畫面中間、等捲動停：選完一格之後頁面可能還在把圖上那一格帶進視野，
+        # 這時候直接點會點到正在移動的鈕（實測被圖本身擋到：「svg … intercepts pointer events」）
+        settle_scroll(pg)
+        pg.evaluate("() => { const b = document.getElementById('segDDBtn'); const r = b.getBoundingClientRect();"
+                    " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+        settle_scroll(pg)
+        click(pg, "#segDDBtn", 250)
+    return click(pg, sel, wait)
 
 
 def _cg_click_dot(pg, code: str, wait: int = 1400) -> bool:
@@ -20110,6 +20447,17 @@ def _cg_click_dot(pg, code: str, wait: int = 1400) -> bool:
     所以直接 `click()` 就好 —— 那正是真人做的事。
     手機上它所屬的環節卡可能是收起來的，先按那張卡的 ▾ 把它攤開（真人也一樣）。
     """
+    # ★ 2026-09-24（Andy：「下方那片環節字卡全部拿掉 —— 跟上面的關聯圖重複了」）：
+    #   桌機（>820px）的環節字卡 `.seglist` 藏起來了，個股的入口只剩**關聯圖上的公司卡**，真人也是點那一張。
+    #   點公司卡走的是同一支 showCompany ＋ onCompany（開資訊欄、選起它的環節），結果跟以前點標籤一樣。
+    #   改前：一律點 `.seglist .sco`；改後：字卡看不到時改點 `#chainMap .co[data-code]`。手機照舊點字卡。
+    if not pg.evaluate("() => { const l = document.querySelector('.seglist'); return !!l && l.getClientRects().length > 0; }"):
+        card = f'#chainMap .co[data-code="{code}"]'
+        if not pg.query_selector(card):
+            return False
+        pg.eval_on_selector(card, "e => e.scrollIntoView({block:'center'})")
+        settle_scroll(pg)
+        return bool(click(pg, card, wait))
     sel = f'.seglist .segcard .sco[data-code="{code}"]'
     if not pg.evaluate("(c) => [...document.querySelectorAll('.seglist .segcard .sco')]"
                        ".some(e => e.dataset.code === c)", code):
@@ -20388,10 +20736,19 @@ def t_b25_tags(pg, base):
             d = pg.evaluate(REL_DEFAULT)
             if not ok(f"[{cname} {w}px] 這一頁的關聯圖區畫得出來", bool(d) and d["cards"] > 0, d):
                 continue
-            ok(f"[{cname} {w}px] Default 就看得到每一格的「上游／下游」（{d['flows']}/{d['cards']} 張卡）",
-               d["flows"] >= max(1, d["cards"] // 2), d)
-            ok(f"[{cname} {w}px] Default 就看得到個股標籤，而且帶得出代號（{d['coded']} 個）",
-               d["coded"] >= 10, d)
+            # ★ 2026-09-24（Andy：「下方那片環節字卡全部拿掉 —— 跟上面的關聯圖重複了」，只動桌機）：
+            #   桌機（>820px）的字卡 `.seglist` 藏起來了，「上下游」與「個股」都由關聯圖本身回答：
+            #   改前：字卡 Default 看得到上游／下游、看得到 ≥10 顆帶代號的標籤；
+            #   改後（桌機）：字卡看不到（0 顆標籤），圖上有走線、公司卡 ≥10 張；800px 照舊驗字卡。
+            if w > 820:
+                ok(f"[{cname} {w}px] 下方字卡拿掉了（看得到的標籤 {d['tags']} 顆）", d["tags"] == 0, d)
+                ok(f"[{cname} {w}px] 上下游改由圖上的走線回答（{d['edges']} 條）", d["edges"] > 0, d)
+                ok(f"[{cname} {w}px] 個股改由圖上的公司卡回答（{d['co']} 張）", d["co"] >= 10, d)
+            else:
+                ok(f"[{cname} {w}px] Default 就看得到每一格的「上游／下游」（{d['flows']}/{d['cards']} 張卡）",
+                   d["flows"] >= max(1, d["cards"] // 2), d)
+                ok(f"[{cname} {w}px] Default 就看得到個股標籤，而且帶得出代號（{d['coded']} 個）",
+                   d["coded"] >= 10, d)
             ok(f"[{cname} {w}px] 舊的力導向星際圖一個殘骸都不剩", d["ghosts"] == [], d["ghosts"])
             ok(f"[{cname} {w}px] Default 沒有任何下拉清單展開（高度 0）", d["segBoxH"] == 0, d)
             _cg_chip(pg, "#segChips .segchip:not(.nomem)", 900)   # 選擇器會被翻譯成 #segChips
@@ -20413,7 +20770,9 @@ def t_b25_tags(pg, base):
                 continue
             ok(f"[{cname} {w}px] 點股票之前右側是空的",
                pg.evaluate("() => !document.getElementById('coBox')"))
-            click(pg, f'.seglist .segcard .sco[data-code="{codes[0]}"]', 1100)
+            # 桌機的入口是圖上的公司卡（字卡藏起來了），800px 照舊點字卡標籤 —— 見 _cg_click_dot
+            # 改前：click(pg, '.seglist .segcard .sco[data-code=…]')；改後：_cg_click_dot 依寬度挑入口
+            _cg_click_dot(pg, codes[0], 1100)
             s1 = pg.evaluate(REL_SIDE)
             if ok(f"[{cname} {w}px] 點個股標籤之後資訊欄真的出現，而且寫的是這一檔（{codes[0]}）",
                   bool(s1) and s1["h"] > 60 and codes[0] in s1["txt"], s1):
@@ -20425,7 +20784,7 @@ def t_b25_tags(pg, base):
                        s1["top"] > s1["mapTop"], s1)
                 ok(f"[{cname} {w}px] 資訊欄裡有可以往下走的入口（看個股頁／同環節／佐證連結）",
                    s1["links"] >= 2, s1)
-            click(pg, f'.seglist .segcard .sco[data-code="{codes[1]}"]', 1100)
+            _cg_click_dot(pg, codes[1], 1100)
             s2 = pg.evaluate(REL_SIDE)
             ok(f"[{cname} {w}px] 再點另一檔（{codes[1]}）資訊欄真的換人，不是疊第二張",
                bool(s2) and codes[1] in s2["txt"] and codes[0] not in s2["txt"]
@@ -20437,7 +20796,9 @@ def t_b25_tags(pg, base):
             fz = pg.evaluate(REL_FIT)
             _rel_fit_ok(pg, fz, f"[{cname} {w}px] 關掉資訊欄之後")
 
-    _rel_goto(pg, base, "semiconductor", 1440)
+    # ★ 2026-09-24：字卡只剩窄畫面／手機有，這一條改在 800px 驗（改前：1440px）
+    _rel_goto(pg, base, "semiconductor", 800)
+    pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
     tgt = pg.evaluate("""() => { const t = document.querySelector('.seglist .segcard .sf .sg[data-seg]');
         return t ? t.dataset.seg : null; }""")
     if ok("環節卡上找得到可以點的上下游環節名", bool(tgt), tgt):
@@ -22304,7 +22665,11 @@ def t_b29_tabs(pg, base):
        len(box8) == 2 and all(b["r"] >= 8 and b["bw"] >= 1 for b in box8), box8)
     ok("W3-8：族群名稱一個都沒有被截斷（畫面上不准出現「…」）",
        all("…" not in str(y) for y in g8["yLabels"]), [y for y in g8["yLabels"] if "…" in str(y)][:4])
-    ok("W3-8：長條兩端是圓角（不是直角）", (g8["barRadius"] or 0) >= 3, g8["barRadius"])
+    # ★ 2026-09-24：main 657a9ce「長條改回小圓角」之後 borderRadius 變成四角陣列，
+    #   直接拿陣列跟數字比會讓整段「操作中途爆掉」、後面的斷言全部沒跑到 —— 陣列取最大的那個角來比（門檻沒動）。
+    _br = g8["barRadius"]
+    _br = max([x for x in _br if isinstance(x, (int, float))] or [0]) if isinstance(_br, list) else (_br or 0)
+    ok("W3-8：長條兩端是圓角（不是直角）", _br >= 3, g8["barRadius"])
     ok("W3-8：零軸那一條真的畫出來而且加粗了（正負分得開）",
        bool(g8["zeroAxis"]) and g8["zeroAxis"].get("show") is not False
        and (g8["zeroAxis"].get("lineStyle") or {}).get("width", 0) >= 1.5, g8["zeroAxis"])
