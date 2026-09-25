@@ -116,12 +116,12 @@
     // yahoo：有歷史 OHLC 可以抓的才填。櫃買的 ^TWOII 在 Yahoo 已經壞掉
     //（2026-09-15 實測：最後一筆停在 2026-07-17、現價給 269.45 而實際 395），
     // 台指期則沒有免費來源 —— 這兩個只有「當天即時」，選到歷史週期時畫面會說清楚為什麼。
-    // yahoo15：1 小時／4 小時要合成用的 15 分 K 來源（2026-09-24，見下面 synthBars 的註解）。
-    // 台指期 Yahoo 沒有對應代號，只能拿「今天的分時」合成（日盤走證交所分時、夜盤走期交所分時）。
+    // ★ 2026-09-26：拿掉 yahoo15（瀏覽器端抓 Yahoo 15 分 K）。多日分 K 三個指數一律讀資料湖
+    //   （每天盤後存的證交所分時 1 分 K；加權另有 Yahoo 歷史），見 synthBars 的註解。
     // short：卡片上那一行短句用的簡稱（2026-09-25，Andy 要把長文案縮成一行）
-    { id: 'TSE', name: '加權指數', short: '加權', sub: '上市', turnover: true, yahoo: '^TWII', yahoo1m: '^TWII', yahoo15: '^TWII' },
-    { id: 'OTC', name: '櫃買指數', short: '櫃買', sub: '上櫃', turnover: true, yahoo: null, yahoo1m: '^TWOII', yahoo15: '^TWOII' },
-    { id: 'FUT', name: '台指期', short: '台指期', sub: '近月', turnover: false, yahoo: null, yahoo15: null },
+    { id: 'TSE', name: '加權指數', short: '加權', sub: '上市', turnover: true, yahoo: '^TWII', yahoo1m: '^TWII' },
+    { id: 'OTC', name: '櫃買指數', short: '櫃買', sub: '上櫃', turnover: true, yahoo: null, yahoo1m: '^TWOII' },
+    { id: 'FUT', name: '台指期', short: '台指期', sub: '近月', turnover: false, yahoo: null },
   ];
   // 交易時段（台北）。留白到收盤，才看得出「現在走到哪」。
   const SESSION = {
@@ -205,8 +205,6 @@
     lakeDaily: {},     // 資料湖原始日線（用來講「歷史只有幾年」，需求二）
     // noSrc[指數|週期] = true：這張卡片的這個週期沒有免費來源，已自動退回日線（N11）
     noSrc: {},     // （舊）保留欄位；2026-09-24 起 1H／4H 退回日線不再是黏著的旗標，每次畫都重算
-    // fine[id] = { bars: [[t,o,h,l,c,v] 15 分 K], err }：1H／4H 合成用的多日分 K（Yahoo 15m，只抓一次）
-    fine: {}, fineBusy: {},
     // histEst[鍵] = Map(時間 → 'nb'|'part')：日／週／月／季裡哪幾根的量是補的（見 fillDaily）
     histEst: {} };   // hist[TSE+'|'+id] = [[t,o,h,l,c,v]]
 
@@ -1041,20 +1039,24 @@
       }
       return;
     }
-    /* 1 小時／4 小時不走這裡（2026-09-24 改成 fetchFine ＋ synthBars）。走到這裡代表週期代號對不上。*/
+    /* 1 小時／4 小時不走這裡（synthBars ＋ 資料湖 index_intraday，見下面）。走到這裡代表週期代號對不上。*/
     state.histErr[key] = 'NOSRC';
   }
 
-  /* ---------------------------------------------------------------- 1 小時／4 小時：15 分 K 依交易時段合成
+  /* ---------------------------------------------------------------- 1 小時／4 小時：依交易時段合成
      ★ 2026-09-24（Andy：「改成用 15 分 K 合成 1H、4H，依台股交易時段切」）
+     ★★ 2026-09-26（Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，不是一個有一個沒有」）
 
-     來源（依序，拿得到哪個用哪個）
-       ① 多日的 15 分 K：Yahoo `/y?interval=15m&range=60d`（加權 ^TWII、櫃買 ^TWOII）。
-          Yahoo 的 15m 最多只給 60 天，所以 1 小時大約 300 根、4 小時大約 60 根。
-       ② 今天的分時：就是走勢圖那一份（證交所分時；台指期夜盤時是期交所分時），用 toBars(…, 15) 切成 15 分 K。
-          Yahoo 已經有今天的就以「今天的分時」為準（證交所是第一手、而且每 10 秒更新）。
-       台指期沒有 ①（Yahoo 沒有台指期代號），所以只有 ② —— 一天只有 5 根 1 小時，卡片上會寫出來。
-       ① ② 都沒有（或合成不到 2 根）才退回日 K，並在卡片上寫「已改用日」。
+     來源 —— 三個指數同一條路，不再「加權一套、櫃買一套、台指期一套」：
+       ① 多日：資料湖 `index_intraday.json`（build_payload 合成好的 H1／H4／M15）。
+          裡面是每個交易日盤後由管線存下來的**證交所當日分時**（mis_ohlc_TSE／OTC、futures_chart，
+          就是今天走勢圖那三個檔），加權另外保留 Yahoo 的兩年歷史（同一天兩邊都有時以證交所為準）。
+          櫃買、台指期的歷史從第一個存到的交易日開始累積（過去的補不回來），卡片上一行短句講「自哪天起、幾天」。
+       ② 今天：走勢圖那一份分時（證交所；台指期夜盤時是期交所），用 toBars(…, 15) 切成 15 分 K 再合成。
+          今天那一盤以 ② 為準（第一手、10 秒更新），規則在 mergeLake()。
+       以前還有一條「瀏覽器經 Worker 抓 Yahoo 15 分 K」（只有加權拿得到），以及「合成不到 2 根就整張退回日 K、
+       寫『已改用日』」—— 兩條都拿掉了：累積天數不夠就照畫有的那幾天（4 小時選了只有 3 天就畫 3 根）。
+       只有「湖裡一根都沒有、今天的分時也拿不到」這種什麼都畫不出來的情況，drawK 才退到日 K 並寫明原因。
 
      怎麼切（全部用台北牆鐘）
        · 日盤 1 小時：對齊 09:00 起每小時 —— 09、10、11、12、13 五根。
@@ -1064,36 +1066,10 @@
          硬切成「4 小時＋半小時」兩根，第二根永遠是殘缺的，不如一日一根、跟交易節奏對齊。
        · 夜盤 1 小時：15:00 起每小時（跨午夜照樣接著算，05:00 收）。
        · 夜盤 4 小時：一晚一根（15:00～翌日 05:00），歸在開盤那天。
-     時間戳：用那一根「開始」的台北時間（跟其他週期同一個口徑：秒數＋8 小時）。 */
-  async function fetchFine(x) {
-    if (state.fine[x.id] || state.fineBusy[x.id]) return;
-    if (!x.yahoo15) { state.fine[x.id] = { bars: [], err: 'NOSRC' }; return; }
-    const base = proxy();
-    if (!base) { state.fine[x.id] = { bars: [], err: '還沒設定即時來源' }; return; }
-    state.fineBusy[x.id] = true;
-    try {
-      const r = await fetch(`${base}/y?symbol=${encodeURIComponent(x.yahoo15)}&interval=15m&range=60d`, { cache: 'no-store' });
-      if (!r.ok) throw new Error('代理回 HTTP ' + r.status);
-      const j = await r.json();
-      const res = ((j.chart || {}).result || [])[0];
-      if (!res || !res.timestamp) throw new Error('Yahoo 沒有 15 分 K');
-      const q = ((res.indicators || {}).quote || [])[0] || {};
-      const bars = [];
-      res.timestamp.forEach((t, i) => {
-        const c = num(q.close && q.close[i]); if (c === null) return;
-        bars.push([t + 8 * 3600, num(q.open && q.open[i]) ?? c, num(q.high && q.high[i]) ?? c,
-                   num(q.low && q.low[i]) ?? c, c, num(q.volume && q.volume[i]) || 0]);
-      });
-      state.fine[x.id] = { bars, err: bars.length ? '' : 'Yahoo 回空的 15 分 K' };
-    } catch (e) {
-      state.fine[x.id] = { bars: [], err: String(e.message || e) };
-    } finally {
-      state.fineBusy[x.id] = false;
-      draw();
-    }
-  }
+     時間戳：用那一根「開始」的台北時間（跟其他週期同一個口徑：秒數＋8 小時）。
+     ⚠ 這套切法跟 pipeline/compute/intraday_bars.py 的 session_key() 一字不差，改一邊記得改另一邊。 */
 
-  /** 資料湖合成好的 1H／4H（site/data/index_intraday.json）。只載一次；讀不到記成 {}，走舊退回鏈。 */
+  /** 資料湖合成好的 1H／4H／15 分（site/data/index_intraday.json）。只載一次；讀不到記成 {}（只畫今天）。 */
   async function loadLakeIntra() {
     if (state.lakeIntraBusy) return;
     state.lakeIntraBusy = true;
@@ -1117,17 +1093,11 @@
     const h = Math.min(13, Math.max(9, Math.floor(min / 60)));
     return day * 86400 + h * 3600;
   }
-  /** 15 分 K → 1 小時／4 小時。回傳 { bars, n15, days, today, why }。 */
-  function synthBars(x, tf, noFine) {
-    const f = (!noFine && state.fine[x.id]) || { bars: [], err: '' };
-    let b15 = (f.bars || []).slice();
-    // 今天（或今晚）的分時 → 15 分 K；Yahoo 已經有的同一天以分時為準
+  /** 今天（或今晚）的分時 → 15 分 K → 1 小時／4 小時。回傳 { bars, n15, days, today }。
+   *  多日的部分由呼叫端拿資料湖的 H1／H4 用 mergeLake() 接上。 */
+  function synthBars(x, tf) {
     const d = seriesOf(x);
-    const today = (d && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
-    if (today.length) {
-      const days = new Set(today.map(b => sessKey(b[0], 'H4')));
-      b15 = b15.filter(b => !days.has(sessKey(b[0], 'H4'))).concat(today);
-    }
+    const b15 = (d && d.points && d.points.length) ? toBars(d.points, 15, volUnit(x)) : [];
     b15.sort((a, b) => a[0] - b[0]);
     const out = []; let cur = null, key = null;
     for (const b of b15) {
@@ -1137,12 +1107,22 @@
     }
     if (cur) out.push(cur);
     const days = new Set(out.map(b => sessKey(b[0], 'H4'))).size;
-    /* ★ 2026-09-25（Andy：卡片上那兩行長文案縮成一行短句，完整原因放進「?」）。
-       why 只回「多日分 K 為什麼沒有」的短句；完整原因寫在 srcNote()（「?」讀的 #m3Note）。
-       櫃買、台指期是**真的沒有免費來源**（Yahoo ^TWOII 停更、台指期沒有 Yahoo 代號、FinMind 分 K 要付費等級）；
-       加權有來源（資料湖的 Yahoo 分 K），走到這裡只是暫時缺，所以用「暫缺」不用「無」。*/
-    const why = !f.err ? '' : (x.id === 'TSE' ? '多日分 K 暫缺，1H/4H 只含今日' : '多日分 K 無免費來源，1H/4H 只含今日');
-    return { bars: out, n15: b15.length, days, today: today.length, why };
+    return { bars: out, n15: b15.length, days, today: b15.length };
+  }
+  /** 多日分 K 累積到哪 → 卡片上一行短句（Andy 2026-09-26：「櫃買／台指期分 K 自 YYYY-MM-DD 起累積（N 天）」，
+   *  一行、不要長段落；「?」裡不放附註）。天數讀資料湖 src（build_payload 算的），不寫死。
+   *   · 整段歷史都是自己累積的（first ≥ mis_first，也就是櫃買、台指期）→「自 … 起累積（N 天）」
+   *   · 加權有 Yahoo 兩年歷史 → 不囉嗦（回空字串）
+   *   · 湖裡這個指數還一盤都沒有 →「多日分 K 尚未累積，只含今日」
+   *   · 台指期夜盤：管線只存證交所的日盤檔（期交所夜盤不在管線白名單）→「夜盤多日分 K 未累積，只含今晚」 */
+  function accumSay(x) {
+    if (isNight(x)) return '夜盤多日分 K 未累積，只含今晚';
+    const L = (state.lakeIntra || {})[x.id] || {}, o = L.src || {};
+    if (o.mis_first && (!o.first || o.first >= o.mis_first)) return `${x.short}分 K 自 ${o.mis_first} 起累積（${o.mis_days} 天）`;
+    // src 缺欄位（舊版 payload）時用實際的 4 小時根數當天數 —— 有畫出多日就不能說「尚未累積」
+    const days = o.days != null ? o.days : (L.H4 || []).length;
+    if (!days) return `${x.short}多日分 K 尚未累積，只含今日`;
+    return '';
   }
   /** 量柱要不要畫：超過一半的 K 棒沒有量＝來源根本沒給量（Yahoo 指數的成交量是 0），畫出一排 0 張是錯的。
    *  只有零星幾根是 0（例如資料湖加權日線 1300 根裡有 12 根沒量）就照畫 —— 那是缺值，不是沒有這項資料。 */
@@ -1680,14 +1660,17 @@
   }
 
   /** 「?」裡的來源與量的完整口徑（#m3Note → app.js HOW.m3 打開時讀）。
-   *  ★ 2026-09-25：卡片上只留一行短句（例如「櫃買多日分 K 無免費來源，1H/4H 只含今日」），完整原因全部搬到這裡。
-   *  天數是讀資料湖實際的 index_intraday.json 算的，不寫死。*/
+   *  ★ 2026-09-25：卡片上只留一行短句，完整口徑搬到這裡。天數是讀資料湖實際的 index_intraday.json 算的，不寫死。
+   *  ★ 2026-09-26：多日分 K 改成三個指數同一個來源（證交所分時每天盤後存進資料湖）—— 以前那段
+   *    「為什麼櫃買、台指期只有今天（^TWOII 停更、付費等級）」已經不成立，拿掉。*/
   function srcNote() {
     const L = state.lakeIntra || {};
     const per = IDX.map(x => {
       const o = L[x.id] || {};
+      const s = o.src || {};
       const d4 = (o.H4 || []).length, d15 = new Set((o.M15 || []).map(b => sessKey(b[0], 'H4'))).size;
-      return d4 ? `${x.short} ${d4} 個交易日（其中 ${d15} 天有 15 分 K）` : `${x.short}只有今天`;
+      if (!d4) return `${x.short}還沒累積（只有今天）`;
+      return `${x.short} ${d4} 個交易日（其中 ${d15} 天有 15 分 K${s.mis_first ? `；證交所分時自 ${s.mis_first} 起 ${s.mis_days} 天` : ''}）`;
     }).join('、');
     const p = state.data.TSE ? volProfile(IDX[0], false) : null;
     const pw = !p ? '最近一個完整交易日的分時量分布'
@@ -1695,20 +1678,12 @@
       : p.src === 'cache' ? `最近一個完整交易日（${p.day}）的分時量分布（今天還沒走完一盤）`
       : '台股常見的量分布（開盤與 13:25 收盤集合競價量大、午盤量小；這台瀏覽器還沒看過完整一盤的分時）';
     return '【來源】日／週／月／季＝資料湖日線（FinMind：加權 TAIEX、櫃買 TPEx、台指期 TX 近月），週月季由日線合成。'
-      + `1 小時／4 小時＝同一份 15 分 K 依交易時段切（1 小時 09:00 起每小時、13:00 那根含到收盤；4 小時一盤一根；夜盤一晚一根），多日分 K：${per}。`
-      + '15／30 分：加權接資料湖的 15 分 K（近 60 天）＋今天；1／5 分只有今天。'
-      + (() => {
-        // 只替「湖裡真的沒有」的那幾張講原因 —— 哪天湖裡長出來了，這段就自己消失，不會留一句過時的話
-        const miss = IDX.filter(x => !((L[x.id] || {}).H4 || []).length);
-        if (!miss.length) return '';
-        const why = { TSE: '加權的分 K 在資料湖（Yahoo ^TWII），這次沒讀到（index_intraday.json 是空的，下一輪管線重算就會回來）',
-          OTC: '櫃買：Yahoo 代號 ^TWOII 已停更（2026-09-25 回補實測回空）、FinMind 的指數分 K 要付費會員等級（我們的等級回 400）',
-          FUT: '台指期：Yahoo 沒有代號、FinMind 期貨逐筆要付費會員等級（回 400）' };
-        return `【為什麼${miss.map(x => x.short).join('、')}只有今天】` + miss.map(x => why[x.id]).join('；')
-          + '。白名單內沒有其他免費的多日分 K 來源，所以只能用今天的證交所分時合成。';
-      })()
-      + '【量】今天的 K 棒＝證交所分時的逐分鐘實量（台指期是口數）；日／週／月／季＝資料湖實量；4 小時一盤一根＝當天實際總量。'
-      + `加權歷史的 15／30 分與 1 小時：Yahoo 指數沒有量，改用「那天的實際總量 × ${pw}」估算，量柱畫灰色、游標看板標「估」；`
+      + '1 小時／4 小時／15／30 分＝三個指數同一個來源：證交所當日分時檔（今天走勢圖那三個檔），每個交易日盤後存進資料湖自己累積，'
+      + '加權另外保留 Yahoo 的兩年歷史（同一天兩邊都有時以證交所為準）；櫃買、台指期從第一個存到的交易日開始累積，過去的補不回來。'
+      + `依交易時段切（1 小時 09:00 起每小時、13:00 那根含到收盤；4 小時一盤一根；夜盤一晚一根），多日分 K：${per}。`
+      + '1／5 分只有今天；台指期夜盤的多日分 K 沒有累積（只含今晚）。'
+      + '【量】證交所分時的 K 棒＝逐分鐘實量（台指期是口數）；日／週月季＝資料湖實量；4 小時一盤一根＝當天實際總量。'
+      + `加權 Yahoo 那段歷史的 15／30 分與 1 小時：Yahoo 指數沒有量，改用「那天的實際總量 × ${pw}」估算，量柱畫灰色、游標看板標「估」；`
       + '那天的總量還沒進資料湖時用前 20 個交易日的中位數。日 K 少數缺量的日子用前後各 5 個交易日平均補，一樣標「估」（週月季標「含估」）。'
       + '【分 K 的開高低】由每分鐘收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。';
   }
@@ -1859,7 +1834,7 @@
       /* ★ 2026-09-25：K 線選 15／30 分、而資料湖有這張的 15 分 K（加權約 60 天）→ 照畫多日 15／30 分，
          只是少了今天那一盤；不必整張退回日 K。其他週期／沒有湖資料的照舊退日 K。*/
       const mt = +state.tf;
-      if (state.mode === 'k' && (mt === 15 || mt === 30) && (((state.lakeIntra || {})[x.id] || {}).M15 || []).length >= 2) {
+      if (state.mode === 'k' && (mt === 15 || mt === 30) && (((state.lakeIntra || {})[x.id] || {}).M15 || []).length >= 1) {
         el.dataset.fallback = why + '，只有資料湖的歷史 ' + mt + ' 分 K';
         drawK(x, { points: [] }, el);
         return;
@@ -2218,35 +2193,25 @@
     const tfKey = forceTf || state.tf;
     let def = histDef(tfKey);
     let bars, tfName, synthSay = forceSay || '', multi = false;
-    /* 1 小時／4 小時：15 分 K 合成（見 synthBars 的註解）。合成不到 2 根才退回日 K，而且這不是黏著的旗標 ——
-       下一輪今天的分時進來、或 Yahoo 補抓成功，就會自己回到 1 小時。*/
-    /* ★ 2026-09-25：1H／4H 先讀資料湖（管線在 Actions 端把 ^TWII／^TWOII 的 60／15 分 K、台指期逐筆聚合的
-       60 分 K 存進 index_intraday，build_payload 依交易時段合成成 index_intraday.json）。
-       Andy：「幫我處理週期問題」—— 以前只靠瀏覽器即時抓 Yahoo，線上抓不到就三張全部退回日 K。
-       湖裡有 ≥2 根就用湖的，今天的分時（證交所第一手、10 秒更新）蓋掉湖裡同一盤；湖裡沒有才走下面的舊退回鏈。*/
+    /* ★ 2026-09-26：1 小時／4 小時三個指數同一條路（Andy：「這三個到底有沒有統一的來源」）——
+       資料湖 index_intraday.json（每天盤後存的證交所分時 1 分 K 合成；加權另有 Yahoo 歷史）接今天的分時。
+       湖裡有幾盤就畫幾盤（4 小時選了只累積 3 天就畫 3 根），不再因為「不足 2 根」整張退回日 K；
+       卡片上一行短句講累積狀況（accumSay：「櫃買分 K 自 YYYY-MM-DD 起累積（N 天）」）。
+       只有「湖裡一根都沒有、今天的分時也拿不到」＝真的什麼都畫不出來時，才退到日 K 並寫明原因。*/
     if (def && def.synth && state.lakeIntra === undefined) {
       loadLakeIntra();
       killK(x.id); el.dataset.kind = ''; el.innerHTML = '<div class="empty">載入中…</div>'; return;
     }
     if (def && def.synth) {
       const lb = ((state.lakeIntra || {})[lakeSym(x)] || {})[def.synth] || [];
-      if (lb.length >= 2) {
-        bars = mergeLake(lb, synthBars(x, def.synth, true).bars);
+      const merged = cleanBars(mergeLake(lb, synthBars(x, def.synth).bars));
+      if (merged.length) {
+        bars = merged;
         tfName = def.synth === 'H4' ? '240m' : '60m';
-        el.dataset.src = 'lake';
-      }
-    }
-    if (def && def.synth && !bars) {
-      el.dataset.src = 'fine';
-      if (!state.fine[x.id]) fetchFine(x);
-      if (!state.fine[x.id]) { killK(x.id); el.dataset.kind = ''; el.innerHTML = '<div class="empty">載入中…</div>'; return; }
-      const r = synthBars(x, def.synth);
-      if (r.bars.length >= 2) {
-        bars = r.bars; tfName = def.synth === 'H4' ? '240m' : '60m';
-        // 一行短句（Andy 2026-09-25）；為什麼沒有多日分 K 的完整原因在「?」（srcNote）
-        if (r.why) synthSay = x.short + r.why;
+        el.dataset.src = lb.length ? 'lake' : 'today';
+        if (!synthSay) synthSay = accumSay(x);
       } else {
-        synthSay = `${x.short}分 K 不足，已改用「日」`;
+        synthSay = `${x.short}分 K 還沒有任何一盤，先顯示日 K`;
         def = histDef('D');
       }
     }
@@ -2293,9 +2258,13 @@
       const today = (d && d.points && d.points.length) ? toBars(d.points, n, volUnit(x)) : [];
       if ((n === 15 || n === 30) && !(d && d.night) && state.lakeIntra === undefined) loadLakeIntra();
       const m15 = (n === 15 || n === 30) && !(d && d.night) ? (((state.lakeIntra || {})[x.id] || {}).M15 || []) : [];
-      if (m15.length >= 2) {
+      // ★ 2026-09-26：門檻 2 → 1，三個指數都接湖（櫃買、台指期的 15 分 K 由證交所分時每天累積）；
+      //   只接到自己累積的那幾天時，跟 1H／4H 同一句短句講「自 … 起累積（N 天）」。
+      if (m15.length >= 1) {
         bars = mergeLake(n === 30 ? rollMin(m15, 30) : m15, today);
         multi = true; el.dataset.src = 'lake';
+        const a = accumSay(x);
+        if (a) el.dataset.fallback = el.dataset.fallback ? el.dataset.fallback + '　·　' + a : a;
       } else { bars = today; el.dataset.src = 'today'; }
       tfName = state.tf + 'm';
     }
