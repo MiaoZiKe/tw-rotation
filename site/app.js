@@ -6656,7 +6656,8 @@
       '投信的錢較黏，連續買超參考性較高',
       '右上拉 Bar 選天數與截止日',
       '點任一列看成分股',
-    ], '篩選：先挑產業鏈、再挑一個族群，圖上就只亮它那一列；選「全部族群」或按「清除」還原。'),
+    ], '篩選：先挑產業鏈，圖上就只列那條鏈的族群；再挑一個族群，就只亮它那一列；選「全部族群」或按「清除」還原。'
+      + 'ETF 不列入這張圖：它的法人買賣超幾乎是自營商避險部位，動輒幾百萬張，會把其他族群壓成細線。'),
     conc: howHTML('這張圖回答：現在是少數股票撐盤，還是雨露均霑。', [
       '線＝前幾大族群吃掉的成交值比例',
       '往上＝縮圈，買冷門股容易不會動',
@@ -6896,7 +6897,8 @@
         .filter(g => g.foreign != null || g.trust != null || g.dealer != null);
       /* ★ 2026-09-24 說明精簡：副標只留「哪一段、幾天、單位」，年份省掉（卡片其他地方都寫了資料日期）。*/
       const md = (d) => String(d || '').slice(5);
-      $('#instSub').textContent = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）淨買超（張）`;
+      // data-base：renderInstPeriod 會在後面接「· 產業鏈」，基底記在這裡，重畫時才不會越接越長
+      { const se = $('#instSub'); se.textContent = se.dataset.base = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）淨買超（張）`; }
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
@@ -7424,6 +7426,24 @@
      ★ 也因此第二層是單選樣式而不是 checkbox：複選是資金輪動那邊的需求，
        這張圖從第一天起就是「一次只看一個族群」，硬套 checkbox 只會讓人以為可以多選。 */
   const ddChain = {};              // chartId → 第一層選到的產業鏈（''＝全部）
+  /* ★ 2026-09-26（Andy：「當我先點選其中一個族群後，再次點選其他族群無法切換」）。
+     根因：`filterDropdown()` 每次重建都無條件執行「選到的族群不屬於目前第一層 → 第一層跳回它那條鏈」。
+     那一條原本只是給「從圖上點節點」（選取從外面變了）用的，但**使用者自己在第一層換鏈時也會重建一次**，
+     於是：選了「一般電子 · 面板產業」→ 在第一層點「金融」→ ddChain 設成金融 → 重建 →
+     那一行又看見選取是面板（一般電子）→ 把 ddChain 改回一般電子。畫面上就是「點了沒反應」，
+     而且第二層只列得出一般電子的族群，別鏈的族群根本點不到（連帶「族群下拉也不能換到別鏈」）。
+     修法：跳鏈只在**選取真的換了**（和上一次畫這一排時看到的不同）才做 —— 這就是「從外面選」的定義；
+     使用者自己換鏈時選取沒變，第一層就聽使用者的。記「上一次看到的選取」的就是這張表。*/
+  const ddSelSeen = {};            // chartId → 上一次重建時的選取（用來分辨「選取從外面變了」）
+  const ddChainOf = (opt) => (opt && opt.chainOf) || ((g) => (rotGroupMeta[g] || {}).chain);
+  /* 把「選取換了 → 第一層跟過去」這一步抽出來：族群 × 法人要在**畫圖之前**就知道現在是哪一條鏈
+     （它的長條會依鏈篩），不能等 filterDropdown（畫完圖才叫）替它決定。重複呼叫是安全的（第二次選取已經「看過」）。*/
+  function ddSync(chartId, sel, opt) {
+    const c = sel ? ddChainOf(opt)(sel) : '';
+    if (sel && sel !== ddSelSeen[chartId] && c) ddChain[chartId] = c;
+    ddSelSeen[chartId] = sel || null;
+    return ddChain[chartId] || '';
+  }
   /* ★ 2026-09-24（Andy：「篩選列一律放在卡片左上角（產業鏈／族群兩顆下拉），全站同一規則：
        凡是有篩選的卡片，篩選列放在標題下方左上角，不要漂在中間或右側」）。
      以前 filterDropdown／filterChips 都是把那一排插在**圖的下面**（資金去向那排在一整棵樹的最底下，
@@ -7453,11 +7473,14 @@
     const row = filterSlot(el, 'ddrow rotfilter', chartId);
     row.dataset.for = chartId;
     chipSel[chartId] = sel || null;
-    const meta = (g) => rotGroupMeta[g] || {};
+    // opt.chainOf：族群 → 產業鏈。預設查 rotGroupMeta（輪動資料裡那 50 個）；族群 × 法人列的是全部族群，要自己給
+    const chainOf = ddChainOf(opt);
+    const meta = (g) => ({ chain: chainOf(g) || '' });
     /* 選到的族群不屬於目前第一層時，第一層**自動跳到它所屬的那條鏈** ——
        這條是給「從圖上點節點」那條路用的：使用者沒碰下拉，但選取變了，
-       不跟著跳的話按鈕上會寫著「半導體 · 金融股」這種自相矛盾的摘要。*/
-    if (sel && meta(sel).chain) ddChain[chartId] = meta(sel).chain;
+       不跟著跳的話按鈕上會寫著「半導體 · 金融股」這種自相矛盾的摘要。
+       ★ 2026-09-26：只在選取**真的換了**才跳（ddSync），理由見 ddSelSeen 上面那段。*/
+    ddSync(chartId, sel, opt);
     const chains = [...new Set(list.map(g => meta(g.gid).chain).filter(Boolean))];
     const cur = chains.indexOf(ddChain[chartId]) >= 0 ? ddChain[chartId] : '';
     ddChain[chartId] = cur;
@@ -7524,11 +7547,27 @@
       dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
     });
     // 第一層：挑鏈。挑完直接把第二層打開（和資金輪動那兩排同一個動作）
-    $$('.rotdd[data-dd="chain"] .ddopt', row).forEach(b => b.onclick = () => {
-      ddChain[chartId] = b.dataset.c;
+    $$('.rotdd[data-dd="chain"] .ddopt', row).forEach(b => b.onclick = (ev) => {
+      ev.stopPropagation();
+      const c = b.dataset.c;
+      ddChain[chartId] = c;
       rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
-      /* 換鏈時**不動選取**：這張圖是單選，硬把選取清掉會讓圖突然跳回整張，
-         而使用者只是想換一條鏈來找族群。選取和鏈對不上時，上面那段會讓第一層跟著跳回去。*/
+      /* ★ 2026-09-26 改：換到**別的**鏈時，把不屬於那條鏈的選取清掉。
+         以前是「換鏈不動選取，對不上就讓第一層跳回去」—— 那正是「換不過去」的根因（見 ddSelSeen 上面那段）。
+         留著別鏈的選取也說不通：按鈕會寫「金融 · 面板產業」，第二層卻列不出面板產業。
+         換到「全部」不清：全部本來就包含它，使用者只是想回全部清單挑別的。*/
+      const s0 = chipSel[chartId];
+      const drop = !!(s0 && c && chainOf(s0) !== c);
+      if (drop) chipSel[chartId] = null;
+      ddSelSeen[chartId] = chipSel[chartId];
+      // opt.onChain：這張圖的長條會跟著鏈換（族群 × 法人）—— 交給它整張重畫（它會再叫回 filterDropdown）
+      if (opt.onChain) return opt.onChain(c, drop);
+      if (drop) {
+        onPick(null);
+        /* 資金去向的 onPick(null) 走 drillClose()，它會把 ddChain.sankey 清回「全部」（審查 R2 #43：Esc／點背景回整張圖），
+           那條規矩對「使用者自己換鏈」不適用 —— 不補回來的話就是換鏈之後第一層又變回全部（09-26 實測）。*/
+        ddChain[chartId] = c; rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
+      }
       filterDropdown(chartId, list, chipSel[chartId], onPick, opt);
     });
     // 第二層：單選。點一下就選定並收起來（沒有「再點一次取消」——「全部族群」那一項就是取消）
@@ -9660,8 +9699,33 @@
   function renderInstPeriod(p, pick) {
     if (pick !== undefined) instPick = pick;
     pick = instPick;
-    const gs = (p.groups || []).filter(g => g.foreign != null || g.trust != null || g.dealer != null)
+    /* ★ 2026-09-26（Andy：「ETF 族群拿掉」）：ETF 整桶不進這張卡 —— 長條、族群清單、產業鏈下拉的族群數、
+       「全部（N 個族群）」都不算它。理由：ETF 的法人買賣超幾乎全是自營商的避險／造市部位
+       （一段期間動輒賣超幾百萬張），不是「法人把錢放進哪個產業」；混在一起，整張圖的刻度被它一條撐開，
+       其他族群只剩細線（09-24 那一版：ETF 37.2%、自營 −462 萬張 ≫ 折斷）。
+       以前的做法是 R2 #47 的「折斷刻度」—— 刻度照 ETF 以外的族群定、ETF 裁在軸邊寫「≫ 實際值」。
+       那是在「ETF 要留著」的前提下止血；ETF 不在這張卡之後折斷就沒有對象了，整段一起拿掉（不留死碼）。
+       ⚠ 只動這張卡：資金去向、漲跌分佈等其他卡的 ETF 照舊（漲跌分佈本來就預設排除，見 DIST.etf）。*/
+    const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
+    const gsAll = (p.groups || []).filter(g => !isEtf(g))
+      .filter(g => g.foreign != null || g.trust != null || g.dealer != null)
       .map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }));
+    /* 產業鏈：輪動資料（rotGroupMeta）只涵蓋 50 個族群，這張卡列的是全部有法人資料的族群（一百多個），
+       所以查不到的退回 L.gchain（groups.yaml 的鏈），兩邊是同一套鏈 id。*/
+    const chainOf = (gid) => (rotGroupMeta[gid] || {}).chain || L.gchain[gid] || '';
+    /* ★ 2026-09-26：第一層（產業鏈）要**真的改變長條** —— 以前選了鏈只是讓第二層清單變短，圖一條都沒換，
+       使用者看不出自己選了什麼。現在選了鏈，圖上就只列那條鏈的族群（一樣是前 8 ＋ 後 6）。
+       ddSync 先把「選取從外面換了 → 鏈跟過去」做完，畫圖跟下拉才看的是同一條鏈。*/
+    const ddo = { chainOf };
+    let chainNow = ddSync('instGroups', pick, ddo);
+    // 一定要是副本：底下的 gs.sort() 是原地排序，直接拿 gsAll 會把下拉的鏈順序跟著洗掉（每重畫一次順序就換）
+    let gs = chainNow ? gsAll.filter(g => chainOf(g.group_id) === chainNow) : gsAll.slice();
+    // 換了天數／截止日之後那條鏈剛好沒有法人資料：退回全部，不然圖變空白、下拉也跟著消失（回不去）
+    if (chainNow && !gs.length) { ddChain.instGroups = ''; chainNow = ''; gs = gsAll.slice(); }
+    // 副標跟著寫現在看的是哪條鏈（drawInstDays 寫的那段存在 data-base，這裡只在後面接一段，不會越疊越長）
+    const subEl = $('#instSub');
+    if (subEl) { if (subEl.dataset.base == null) subEl.dataset.base = subEl.textContent;
+      subEl.textContent = subEl.dataset.base + (chainNow ? `　·　${chainLabel(chainNow)}` : ''); }
     /* 法人比價量晚落地（價量 15:30、法人 18:30），所以每個交易日下午「本週」這一段
        會出現「價量有、法人還沒有」。以前只寫「這個期間沒有法人資料」，看起來像壞掉 ——
        講清楚是還沒出，並告訴他上一段看得到。 */
@@ -9674,23 +9738,13 @@
     }
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
+    // 選到的族群排在中段（不在前 8、後 6）時也要畫出來，不然「只亮它」亮的是一個不在圖上的東西
+    if (pick && !top.some(g => g.group_id === pick)) {
+      const hit = gs.find(g => g.group_id === pick);
+      if (hit) { top.push(hit); top.sort((a, b) => b.total - a.total); }
+    }
     const denom = top.reduce((s, g) => s + Math.abs(g.total || 0), 0);
-    /* ★ 2026-09-25（審查 R2 #47：ETF 自營商一段期間可以賣超幾百萬張，一條就把刻度撐到 ±400 萬張，
-       其他族群的長條只剩幾像素 —— 整張圖只剩「ETF 很大」一件事）。
-       刻度改用 **ETF 以外** 最長的那一條定（正、負各自堆疊後的長度，留 15%）；
-       ETF 超出刻度的部分被裁在軸邊，y 軸名稱後面標「≫」、軸邊加一個「≫ 實際 N 萬張」的記號，真值照樣在提示框。
-       ETF 沒有超出（或畫面上根本沒有 ETF）時一切照舊，交給 ECharts 自己決定刻度。*/
-    const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
-    const ext = (g) => { let pos = 0, neg = 0;
-      ['foreign', 'trust', 'dealer'].forEach(k => { const v = g[k] || 0; if (v > 0) pos += v; else neg += v; });
-      return { pos, neg }; };
-    const others = top.filter(g => !isEtf(g)).map(ext);
-    const lim = others.length ? Math.max(...others.map(e => Math.max(e.pos, -e.neg))) * 1.15 : 0;
-    const over = lim > 0 ? top.map((g, i) => ({ g, i, e: ext(g) }))
-      .filter(x => isEtf(x.g) && (x.e.pos > lim * 1.3 || -x.e.neg > lim * 1.3)) : [];
-    const clip = over.length > 0;
-    const overIdx = new Set(over.map(x => x.i));
-    const yLab = top.map((g, i) => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%${overIdx.has(i) ? ' ≫' : ''}`);
+    const yLab = top.map(g => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%`);
     /* y 軸寬：以前固定 100px 截斷（「石化與塑膠產業 ...」「AI PC 筆電與平...」）；改成量最長那個標籤，
        上限 200px（再長就截，免得圖本身被擠沒了）。*/
     const yW = Math.min(200, Math.max(100, Math.ceil(textW(yLab, 12)) + 6));
@@ -9709,7 +9763,7 @@
          才把這個一直都在的邊界問題逼出來。 */
       legend: { textStyle: { color: CH.ink2 }, top: 0, data: ['外資', '投信', '自營'] }, grid: { left: yW + 8, right: 42, top: 30, bottom: 22 },
       // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
-      xAxis: { ...axisStyle, ...(clip ? { min: -lim, max: lim } : {}),
+      xAxis: { ...axisStyle,
         axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', inverse: true,
         // 族群名後面直接掛占比 %，不用滑過去才看得到
@@ -9720,24 +9774,20 @@
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id, dim: !!(pick && pick !== g.group_id),
           itemStyle: { color: col, opacity: (pick && pick !== g.group_id) ? 0.14 : 1 } })),
-        itemStyle: { color: col } })).concat(clip ? [{
-        // 折斷記號：ETF 超出刻度的那一側，在軸邊寫「≫ 實際值」（不進圖例、不接提示框）
-        name: '超出刻度', type: 'scatter', silent: true, symbolSize: 0, z: 5,
-        // 字排在軸邊的**內側**（右邊那顆往左長、左邊那顆往右長），不會壓到 y 軸名稱或凸出卡片
-        data: over.flatMap(x => [x.e.pos > lim * 1.3 ? { value: [lim, x.i, x.e.pos], label: { align: 'right' } } : null,
-          -x.e.neg > lim * 1.3 ? { value: [-lim, x.i, x.e.neg], label: { align: 'left' } } : null].filter(Boolean)),
-        label: { show: true, color: CH.ink, fontSize: 12, fontWeight: 700,
-          formatter: q => `≫ ${fmt.lot(q.data.value[2] / 1000)}`,
-          position: 'inside', backgroundColor: CH.panel, borderColor: CH.ink3, borderWidth: 1, borderRadius: 4, padding: [2, 5] } }] : []),
+        itemStyle: { color: col } })),
     });
-    const ig = $('#instGroups'); if (ig) { ig.dataset.clip = clip ? '1' : '0'; ig.dataset.lim = clip ? String(Math.round(lim)) : ''; ig.dataset.yw = String(yW); }
+    const ig = $('#instGroups'); if (ig) { ig.dataset.yw = String(yW); ig.dataset.chain = chainNow; }
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
     /* ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
        這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金去向同一支 filterDropdown。
        行為不變：單選、選到的族群亮、其餘壓暗；選「全部族群」或按清除就還原；→ 進族群頁仍在第二層清單裡。*/
-    filterDropdown('instGroups', top.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
+    /* ★ 2026-09-26：下拉的族群清單改成**全部**有法人資料的族群（ETF 除外），不再只是圖上那 14 列 ——
+       以前第一層「全部（14 個族群）」、各鏈的數字加起來卻只有 9（另外 5 個不在輪動資料裡、查不到鏈），
+       而且中段的族群根本選不到。第一層選了鏈 → onChain 整張重畫（長條換成那條鏈的族群）。*/
+    filterDropdown('instGroups', gsAll.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
       (nx) => renderInstPeriod(p, nx),
-      { onText: (nm) => `只亮「${fmt.esc(nm)}」` });
+      { ...ddo, onText: (nm) => `只亮「${fmt.esc(nm)}」`,
+        onChain: (c, drop) => renderInstPeriod(p, drop ? null : undefined) });
   }
 
   /* 資金集中度（Andy 2026-09-18）：
