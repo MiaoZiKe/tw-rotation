@@ -71,8 +71,12 @@
   const PALETTE = PALETTE_DARK.slice();
 
   // ---------------------------------------------------------------- 工具
+  const _nf = {};
+  const nfOf = (d) => _nf[d] || (_nf[d] = new Intl.NumberFormat('zh-TW', { minimumFractionDigits: d, maximumFractionDigits: d }));
   const fmt = {
-    n(v, d = 2) { if (v === null || v === undefined || Number.isNaN(v)) return '—'; return Number(v).toLocaleString('zh-TW', { minimumFractionDigits: d, maximumFractionDigits: d }); },
+    /* ★ 2026-09-25 效能（perf-2）：`toLocaleString(…, 選項)` 每呼叫一次就在底層新建一個 Intl 格式器（首次開總覽 4 倍降速量到 147ms）。
+       同一個小數位數共用一個 Intl.NumberFormat，輸出一字不差（toLocaleString 內部就是用同樣的參數建它）。*/
+    n(v, d = 2) { if (v === null || v === undefined || Number.isNaN(v)) return '—'; return nfOf(d).format(Number(v)); },
     i(v) { if (v === null || v === undefined) return '—'; return Math.round(v).toLocaleString('zh-TW'); },
     /* ★ 2026-09-24：先四捨五入到顯示位數、再決定正負號。
        以前用原始值判斷，-0.04 會顯示成「-0.0%」（toFixed 保留負號），+0.04 顯示「+0.0%」——
