@@ -965,7 +965,9 @@
         const c = cacheGet(x.id); if (c && c.points && c.points.length) { d = Object.assign(c, { src: '本機暫存' }); err = ''; }
       } else if (!d.src) cachePut(x.id, d);
       // ③ 都沒有分時 → 至少把資料湖最後一根日線的收盤放上標題列，不讓數字是「—」
-      if ((!d || !d.points.length) && x.id !== 'FUT') {
+      /* ★ 2026-09-24（審查 R1）：以前這裡寫 `x.id !== 'FUT'` 把台指期排除，但 index_ohlc 裡明明有 FUT，
+         於是 Worker 一掛台指期的大數字就只剩「—」。三張一律退到資料湖最後一根日線。*/
+      if (!d || !d.points.length) {
         try {
           const all = await window.App.load('index_ohlc', { fallback: {} });
           const b = (all && all[x.id]) || [];
@@ -1223,41 +1225,31 @@
       + `${push ? '推送' : '輪詢'}</span>`;
   }
 
+  /* ★ 2026-09-24（Andy：「每張中間那兩行資訊移除：『開 高 低 昨收』與『成交 xx 億／日期時間』——
+     只留名稱、大數字、漲跌」）。那兩行沒有刪掉資訊，是搬到這排數字的滑鼠提示（title）裡：
+     開高低、昨收（夜盤是參考價）、成交值（台指期是口數與未平倉）、資料時間、夜盤合約代號都還拿得到。
+     留在畫面上的只有「不寫就會被讀錯」的來源標籤：數字不是證交所即時（Yahoo／本機暫存／資料湖收盤）、
+     以及夜盤走推送還是輪詢（小標）。*/
   function cardHead(x) {
     let d = seriesOf(x);
     const f = F();
     if ((!d || !d.points || !d.points.length) && !isNight(x) && state.lakeHead && state.lakeHead[x.id]) d = state.lakeHead[x.id];
     if (!d || !f) return `<div class="m3-nums"><span class="m3-px">—</span></div>`;
-    /* ★ 2026-09-23：夜盤拿不到時，這排數字也不准拿日盤的開高低收頂替。
-       理由跟圖表那邊一樣（見 drawOne）：分頁明明選在「夜盤」，
-       數字卻是日盤那一份 —— 而數字比線更容易被直接當成真的。
-       留白 ＋ 保留「夜盤報價未取得」那個徽章，是這裡唯一誠實的呈現。
-       ⚠ 只影響夜盤；日盤走的是下面原本那條路，一個字都沒動。*/
-    if (isNight(x) && !d.night) {
-      return `<div class="m3-nums">
-        <span class="m3-px">—</span>
-        <span class="m3-chg">—</span>
-        <span class="m3-sub">開 —　高 —　低 —　參考價 —</span>
-        <span class="m3-sub">總量 —　<span class="m3-tag warn">夜盤報價未取得</span>${futWayTag()}</span>
-      </div>`;
-    }
     const chg = (d.last != null && d.prev) ? d.last - d.prev : null;
     const pct = chg != null ? chg / d.prev * 100 : null;
-    const dp = x.id === 'OTC' ? 2 : (x.id === 'FUT' ? 0 : 2);
+    const dp = x.id === 'FUT' ? 0 : 2;
+    const base = d.prevLabel || '昨收';
+    const when = `${String(d.date || '').replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3')} ${String(d.time || '').replace(/^(\d{2})(\d{2})(\d{2})?$/, '$1:$2')}`.trim();
     const extra = x.turnover
       ? `成交 ${d.amt != null ? f.n(d.amt / 100, 0) + ' 億' : '—'}`
-      : `總量 ${d.vol != null ? f.i(d.vol) + ' 口' : '—'}`
-        + (d.oi != null ? `　未平倉 ${f.i(d.oi)}` : '');
-    // 夜盤沒有「昨收」的概念，期交所給的是「參考價」（日盤收盤價）
-    const base = d.prevLabel || '昨收';
-    // 「夜盤報價未取得」那個徽章移到上面的早退分支去了（走到這裡一定有資料）
-    const tag = d.night ? `<span class="m3-tag">夜盤 ${f.esc(d.symbol || '')}</span>` + futWayTag()
+      : `總量 ${d.vol != null ? f.i(d.vol) + ' 口' : '—'}` + (d.oi != null ? `　未平倉 ${f.i(d.oi)}` : '');
+    const tipTxt = `開 ${f.n(d.open, dp)}　高 ${f.n(d.high, dp)}　低 ${f.n(d.low, dp)}　${base} ${f.n(d.prev, dp)}\n${extra}　${when}`
+      + (d.night && d.symbol ? `\n夜盤合約 ${d.symbol}` : '');
+    const tag = d.night ? futWayTag()
       : (d.src && d.src !== 'taifex') ? `<span class="m3-tag" title="證交所分時抓不到，改用備援來源">${f.esc(d.src)}</span>` : '';
-    return `<div class="m3-nums">
+    return `<div class="m3-nums" title="${f.esc(tipTxt)}" data-open="${d.open ?? ''}" data-prev="${d.prev ?? ''}">
       <span class="m3-px ${f.cls(chg)}">${f.n(d.last, dp)}</span>
-      <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>
-      <span class="m3-sub">開 ${f.n(d.open, dp)}　高 <b class="up">${f.n(d.high, dp)}</b>　低 <b class="down">${f.n(d.low, dp)}</b>　${base} ${f.n(d.prev, dp)}</span>
-      <span class="m3-sub">${extra}　<span class="mono">${f.esc(String(d.date).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3'))} ${f.esc(String(d.time || '').replace(/^(\d{2})(\d{2})(\d{2})?$/, '$1:$2'))}</span>${tag}</span>
+      <span class="m3-chg ${f.cls(chg)}">${chg == null ? '—' : (chg > 0 ? '+' : '') + f.n(chg, dp)} ${f.pct(pct, 2)}</span>${tag}
     </div>`;
   }
 
@@ -1270,26 +1262,34 @@
     state.tf = normTf(ls.get(KEY_TF, '5'));
     state.big = ls.get(KEY_BIG, '');
     if (!IDX.some(x => x.id === state.big)) state.big = '';
+    /* ★ 2026-09-24（Andy：「三張圖合併進一個大方框，彼此用細線隔開；『走勢圖／K 線』切換（及週期下拉）
+       放在大框內左上角；那行說明文字拿掉（改 ?）」）。
+       #m3Note 留著但不上畫面：它是會跟著模式／週期換字的口徑說明，「?」打開時由 HOW.m3 讀它。
+       .m3-card 不再是 .card（外框只有一個：.m3-frame）；手機 ≤820px 的左右滑仍然吃 .m3-grid > .m3-card。*/
     host.innerHTML = `
+      <div class="card m3-frame" id="m3Frame">
       <div class="m3-bar">
         <div class="seg" id="m3Mode"><button data-m="line">走勢圖</button><button data-m="k">K 線</button></div>
         <label class="m3-tfsel">週期
           <select id="m3Tf">
             <optgroup label="當天即時（證交所分時）">${TFS.map(n => `<option value="${n}">${n} 分</option>`).join('')}</optgroup>
-            <optgroup label="歷史（Yahoo ^TWII）">${HIST.map(h => `<option value="${h.id}">${h.label}</option>`).join('')}</optgroup>
+            <optgroup label="歷史（1 小時／4 小時由 15 分 K 合成）">${HIST.map(h => `<option value="${h.id}">${h.label}</option>`).join('')}</optgroup>
           </select></label>
-        <span class="note" id="m3Note"></span>
+        <button class="howbtn pop" data-how="m3" aria-label="大盤三張圖怎麼看">?</button>
+        <span class="note" id="m3Note" hidden></span>
       </div>
+      <div class="howtxt" id="how-m3" hidden></div>
       <div class="m3-grid" id="m3Grid">${IDX.map(x => `
-        <div class="card m3-card" data-id="${x.id}">
+        <div class="m3-card" data-id="${x.id}">
           <div class="m3-h">
-            <h3>${x.name} <small>${x.sub}</small></h3>
+            <h3 title="${x.sub}">${x.name}</h3>
             ${x.id === 'FUT' ? '<span class="m3-sess" id="futSess" data-s="day">日盤</span>' : ''}
             <button class="btn small m3-big" data-id="${x.id}">展開 ⤢</button>
           </div>
           ${cardHead(x)}
+          <div class="m3-fb" data-for="${x.id}"></div>
           <div class="m3-chart" id="m3c-${x.id}"></div>
-        </div>`).join('')}</div>`;
+        </div>`).join('')}</div></div>`;
     $$('#m3Mode button').forEach(b => b.onclick = () => { state.mode = b.dataset.m; ls.set(KEY_MODE, state.mode); draw(); });
     $('#m3Tf').onchange = (e) => { state.tf = e.target.value; ls.set(KEY_TF, state.tf); draw(); };
     /* 台指期的日盤／夜盤（Andy 2026-09-18 圖一）。
@@ -1429,12 +1429,23 @@
       const btn = card.querySelector('.m3-big');
       if (btn) btn.textContent = state.big === x.id ? '收合 ⤡' : '展開 ⤢';
       drawOne(x);
+      syncFb(x, card);
     });
     // K 線模式、空狀態、退回日盤 —— 這些情況下 paintPulse 會自己把燈移掉
     paintPulses();
     setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
   }
 
+  /* ★ 2026-09-24：圖上方那行「已改用日／只有幾根日 K／先顯示資料湖日 K」以前是圖表容器的 ::before，
+     會把 Lightweight Charts 往下推 21px、戳出大方框底（三格高低還不一樣）。
+     改成圖表上方一條**固定 18px** 的字列（.m3-fb）：三格永遠一樣高，字太長就截斷、完整內容在滑鼠提示。
+     `data-fallback` 仍然寫在圖表容器上（驗收與其他段落照舊讀它），只是不再由 ::before 畫出來。*/
+  function syncFb(x, card) {
+    const fb = card && card.querySelector('.m3-fb'); if (!fb) return;
+    const el = document.getElementById('m3c-' + x.id);
+    const t = (el && el.dataset.fallback) || '';
+    if (fb.textContent !== t) { fb.textContent = t; fb.title = t; }
+  }
   function killK(id) {
     if (state.kcharts[id]) { try { state.kcharts[id].destroy(); } catch (e) { /* 忽略 */ } delete state.kcharts[id]; }
   }
@@ -1490,23 +1501,36 @@
       return;
     }
     if (!d || !d.points.length) {
-      killK(x.id);
-      if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
-      el.classList.add('isempty');
-      el.dataset.kind = '';
-      // 沒資料時先問「是不是根本還沒開盤」，再落回「載入中」——
-      // 開盤前寫「載入中…」會讓人以為壞掉（Andy 2026-09-21 就是這樣問的）
-      const hint = sessionHint(x, x.id === 'FUT' && state.futSession === 'night');
-      el.innerHTML = `<div class="empty">${err === 'NOCHART'
-        ? 'Worker 還是舊版（只有 /quote）。到 Cloudflare → Workers → tw-quote → 編輯程式碼，把 repo 裡 <code>workers/quote-proxy/worker.js</code> 整份貼上去再按 Deploy，這三張圖就會出現。'
-        : err ? '抓不到：' + (window.App ? window.App.fmt.esc(err) : err)
-        : hint || '載入中…'}</div>`;
+      /* ★ 2026-09-24（審查 R1：「Worker 掛掉就全倒並顯示英文『抓不到：Failed to fetch』」）。
+         以前這裡只印一行錯誤（還是英文），三張圖整塊空白。證交所分時、Yahoo 1 分線、本機暫存
+         三層備援都走不到時（例如 Worker 連不上、或根本還沒開盤），**最後一層一律退到資料湖的日 K**
+         （index_ohlc.json，三個代號都有），圖上方用一行字講清楚為什麼、畫的是什麼。
+         還在「載入中」（第一輪還沒回來、也沒有錯誤）才先印載入中。*/
+      const hint = sessionHint(x, false);
+      if (!err && !hint && !state.at) {
+        killK(x.id);
+        if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
+        el.classList.add('isempty'); el.dataset.kind = '';
+        el.innerHTML = '<div class="empty">載入中…</div>';
+        return;
+      }
+      el.classList.remove('isempty');
+      const why = err === 'NOCHART' ? '即時代理是舊版（沒有分時功能）' : err ? errZh(err) : (hint || '還沒有今天的分時');
+      drawK(x, {}, el, 'D', why + '，先顯示資料湖的日 K');
       return;
     }
     el.classList.remove('isempty');
     if (state.mode === 'k') drawK(x, d, el); else drawLine(x, d, el);
   }
 
+  /** 瀏覽器／代理丟回來的英文錯誤 → 中文（畫面上一律繁中，原字串留在括號裡給除錯用）。*/
+  function errZh(e) {
+    const t = String(e || '');
+    if (/failed to fetch|networkerror|load failed/i.test(t)) return '連不到即時代理';
+    if (/HTTP (\d+)/.test(t)) return '代理回 ' + t.match(/HTTP (\d+)/)[0];
+    if (/timeout|timed out|abort/i.test(t)) return '代理逾時';
+    return t;
+  }
   /* ★ 2026-09-21（Andy：「為何這是載入中，台指不應該先開始了嗎 在 08:30」）
      以前只要沒資料又沒錯誤就一律印「載入中…」，所以**開盤前打開網頁，三張圖會永遠寫著載入中**
      —— 看起來像壞掉，而其實只是還沒開盤。他 07:50 打開時：
@@ -1631,8 +1655,10 @@
        所以統一從這個掛在容器上的盒子裡讀 —— 補資料時就地換掉它的欄位就好。*/
     const H = el._m3line = { cats, price, vol, d, night: !!d.night, prev: d.prev, s0 };
     A.chart(el, {
-      grid: [{ left: 14, right: 58, top: 10, bottom: 74, containLabel: true },
-        { left: 14, right: 58, height: 44, bottom: 24, containLabel: true }],
+      /* ★ 2026-09-24（Andy：「走勢圖／K 線左右擴充到適當範圍，不要留太多空白」）：
+         左 14→2、右 58→4（containLabel 會自己把右側價格軸的字算進來，不必再多留 54px）。*/
+      grid: [{ left: 2, right: 4, top: 10, bottom: 70, containLabel: true },
+        { left: 2, right: 4, height: 44, bottom: 22, containLabel: true }],
       tooltip: Object.assign({}, A.tip, {
         trigger: 'axis', axisPointer: { type: 'cross' },
         formatter: (ps) => {
@@ -1830,7 +1856,7 @@
     return c;
   }
 
-  function drawK(x, d, el) {
+  function drawK(x, d, el, forceTf, forceSay) {
     if (typeof window.KChart === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return; }
     if (typeof echarts !== 'undefined') { const i = echarts.getInstanceByDom(el); if (i) i.dispose(); }
     /* 2026-09-19（Andy N11「這邊不該出現沒有數據」）：
@@ -1839,8 +1865,9 @@
        改成**自動退回日線並在卡片上說明**：畫面上永遠有東西可看，
        同時老實講「這個週期沒來源，改用日線」。
        fallbackTf 只影響這一張卡片，上方的週期選單不動（其他卡片仍照選的走）。*/
-    let def = histDef(state.tf);
-    let bars, tfName, synthSay = '';
+    const tfKey = forceTf || state.tf;
+    let def = histDef(tfKey);
+    let bars, tfName, synthSay = forceSay || '';
     /* 1 小時／4 小時：15 分 K 合成（見 synthBars 的註解）。合成不到 2 根才退回日 K，而且這不是黏著的旗標 ——
        下一輪今天的分時進來、或 Yahoo 補抓成功，就會自己回到 1 小時。*/
     if (def && def.synth) {
@@ -1864,7 +1891,7 @@
         if (!err) { fetchHist(x, def); el.innerHTML = '<div class="empty">載入中…</div>'; return; }
         el.innerHTML = `<div class="empty">${window.App ? window.App.fmt.esc(
           err === 'NOLAKE' ? `${x.name}的歷史日 K 還沒進資料湖 —— 下一輪每日管線跑完（台北 15:30 / 18:30 / 21:30）就會有。`
-          : '抓不到歷史 K：' + err) : err}</div>`;
+          : '抓不到歷史 K：' + errZh(err)) : errZh(err)}</div>`;
         return;
       }
       tfName = '1d';
@@ -1906,7 +1933,7 @@
     // key 含日盤／夜盤：切 session 時資料整組換掉，不能沿用同一個圖表就地改
     // ★ 2026-09-24：key 多帶 tfName（1 小時合成不到會退回日，同一個選單值畫的是不同週期）與「有沒有量」
     const vol = hasVol(bars);
-    const key = x.id + '|' + String(state.tf) + '|' + tfName + '|' + (vol ? 'v' : 'nv') + '|' + (expanded ? 'big' : 'small')
+    const key = x.id + '|' + String(tfKey) + '|' + tfName + '|' + (vol ? 'v' : 'nv') + '|' + (expanded ? 'big' : 'small')
       + '|' + (d && d.night ? 'n' : 'd');
     /* 量柱：來源沒給量（Yahoo 指數的 15 分 K 成交量全是 0）就整個面板收掉，不畫一排 0 張（見 hasVol）。*/
     const cfgOf = () => { const c = loadCfg(expanded); if (!vol) c.vol = false; return c; };
@@ -1935,6 +1962,46 @@
     k.fitLast(def ? (expanded ? 160 : 90) : bars.length + 2);
     if (!def && d.prev != null) k.setPriceLines([{ price: d.prev,
       title: (d.prevLabel || '昨收') + ' ' + (f ? f.n(d.prev, dp) : d.prev), color: '#8ea0c4' }]);
+    kTip(x, k, el);
+  }
+
+  /* ★ 2026-09-24（Andy：「游標移到 K 線要顯示開高低收＋成交量」）。
+     總覽的三張是 mini 版 KChart —— 個股頁那個 OHLC 看板（#lwc .ohlcbox）只掛在整頁大圖上，
+     所以這裡自己訂閱十字線，在圖的左上角放一塊小看板。每一個週期（分 K、1 小時、日週月季）都走同一支。
+     量是 0 的來源（Yahoo 指數）寫「—」，不寫「0 張」。*/
+  function kTip(x, k, el) {
+    if (!k || !k.chart || !k.chart.subscribeCrosshairMove) return;
+    let box = el.querySelector('.m3-ktip');
+    if (!box) { box = document.createElement('div'); box.className = 'm3-ktip'; box.hidden = true; el.appendChild(box); }
+    if (!el._ktipLeave) {                 // 容器跨圖表活著，只掛一次
+      el._ktipLeave = true;
+      el.addEventListener('mouseleave', () => { const bb = el.querySelector('.m3-ktip'); if (bb) bb.hidden = true; });
+    }
+    const f = F(); const dp = x.id === 'FUT' ? 0 : 2; const unit = x.id === 'FUT' ? '口' : '張';
+    k.chart.subscribeCrosshairMove((p) => {
+      try {
+        const b = p && p.time != null && p.seriesData ? p.seriesData.get(k.candle) : null;
+        /* 沒有 K 棒時：只有「滑鼠還在圖上、但停在空白處」才收起來。
+           盤中每 10 秒換資料、draw() 補發的 resize 也會觸發一次沒有座標的十字線事件 ——
+           那種不算「滑鼠離開」，收掉的話看板會在使用者眼前一閃就不見（驗收抓到的）。
+           真的離開圖表由下面的 mouseleave 負責。*/
+        if (!b || b.open == null) { if (p && p.point && p.sourceEvent) box.hidden = true; return; }
+        /* 日／週／月／季的時間是 'YYYY-MM-DD' 字串，Lightweight Charts 在十字線事件裡會把它換成
+           {year, month, day} 物件 —— 直接拿去比對或格式化就對不到（看板不出現）。先正規化回字串。*/
+        const pt = (p.time && typeof p.time === 'object' && p.time.year)
+          ? `${p.time.year}-${String(p.time.month).padStart(2, '0')}-${String(p.time.day).padStart(2, '0')}` : p.time;
+        const row = (k.data || []).find(r => r.time === pt) || {};
+        const t = typeof pt === 'string' ? pt : (window.KUtil && window.KUtil.fmtTime ? window.KUtil.fmtTime(pt, k.tf) : '');
+        const up = b.close >= b.open;
+        const v = row.volume > 0 ? (x.id === 'FUT' ? f.i(row.volume) + ' 口' : f.lot(row.volume / 1000)) : '—';
+        box.innerHTML = `${t ? `<b>${f.esc(String(t))}</b>` : ''}`
+          + `<span>開 <i>${f.n(b.open, dp)}</i></span><span>高 <i class="up">${f.n(b.high, dp)}</i></span>`
+          + `<span>低 <i class="down">${f.n(b.low, dp)}</i></span><span>收 <i class="${up ? 'up' : 'down'}">${f.n(b.close, dp)}</i></span>`
+          + `<span>量 <i>${v}</i></span>`;
+        box.hidden = false;
+        box.dataset.unit = unit;
+      } catch (e) { box.hidden = true; }
+    });
   }
 
   // ---------------------------------------------------------------- 對外
@@ -1971,7 +2038,9 @@
      *  使用者沒有入口能碰到它 —— 切換鈕 2026-09-24 已拿掉，平常一律由台北時間決定。 */
     forceClock(v) { state.clock = (v === 'day' || v === 'night') ? v : null;
       state.futSession = pickSession(); if (state.futSession !== 'night') { state.futNight = null; state.futChart = null; }
-      draw(); return refresh(true); },
+      draw();
+      // refresh() 在上一輪還沒回來時會直接跳過（busy）—— 等它空出來再跑，時鐘換段才一定會真的去抓
+      return new Promise((ok) => { const go = () => (state.busy ? setTimeout(go, 150) : refresh(true).then(ok, ok)); go(); }); },
     synthBars, sessKey,                          // 驗收用：1 小時／4 小時的合成規則
     get nightPoints() { return state.nightPts.slice(); },  // 驗收用：真的收到幾個夜盤點
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
