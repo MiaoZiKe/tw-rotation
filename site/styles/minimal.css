@@ -85,9 +85,11 @@
 [data-style="minimal"] .card{background:var(--panel);border:1px solid var(--line);box-shadow:none}
 @media (min-width:821px){
   [data-style="minimal"]{--gap-card:32px}
-  [data-style="minimal"] main{padding:40px 40px 96px}
-  [data-style="minimal"] .card{padding:28px;border-radius:var(--r-lg)}
-  [data-style="minimal"] .card.tight{padding:20px;border-radius:var(--r-md)}
+  [data-style="minimal"] main{padding:40px clamp(24px,calc(24px + (100vw - 1280px) * .1),40px) 96px}   /* 1440 以上 40；1280 以下回到原本 24（再窄，1280 的 KPI「漲跌家數」會被截掉，實測） */
+  /* .m3-frame（大盤三張圖的外框）原檔刻意 10px 0 6px、由裡面三格自己留內距，這裡不能蓋掉它（否則內距變兩層、漲跌幅被擠到看不見） */
+  [data-style="minimal"] .card:not(.m3-frame){padding:28px}
+  [data-style="minimal"] .card{border-radius:var(--r-lg)}
+  [data-style="minimal"] .card.tight{padding:var(--s5);border-radius:var(--r-md)}   /* KPI 小卡維持原本 16：再寬，1280 的「漲跌家數」就會被截掉 */
   [data-style="minimal"] h3{font-size:17px;letter-spacing:-.01em;font-weight:800}
   [data-style="minimal"] h2{font-size:22px;letter-spacing:-.015em;font-weight:800}
 }
