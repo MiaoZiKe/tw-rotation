@@ -91,7 +91,7 @@
     CL_CP1: 0.55, CL_CP2: 0.45,             // 三次貝茲控制點：CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)
     HIT_ADD: 0.35, HIT_DECAY: 0.035,        // 碰撞激發：每到一顆 +0.35（上限 1），每幀 −0.035
     RP_GROW: 26, RP_GROW_LEAF: 16,          // 震波外擴：r → r＋26（代表股間距只有 16px，縮成 +16）
-    RP_STEP: 0.85, RP_FADE: 0.026, RP_A0: 0.85, RP_P: 0.45,   // 每幀 r+0.85、alpha−0.026；到站 45% 機率起一圈
+    RP_STEP: 0.85, RP_A0: 0.85, RP_P: 0.45,   // 每幀 r+0.85、alpha 0.85 隨半徑線性降到 0（≈ 每幀 −0.026）；到站 45% 機率起一圈
     RP_LW: 1.6,                             // 漣漪線寬
     RP_MAX: 60, RP_COOL: 180,               // 同時最多 60 圈；同一節點 180ms 內不重複起
   });
@@ -885,7 +885,7 @@
     S.meter.hits++;
     if (Math.random() < CFG.RP_P && S.ripples.length < CFG.RP_MAX && now - (n.rpLast || -1e9) >= CFG.RP_COOL) {
       n.rpLast = now;
-      S.ripples.push({ n, r: n.r, max: n.r + (n.lv === 3 ? CFG.RP_GROW_LEAF : CFG.RP_GROW), a: CFG.RP_A0 });
+      S.ripples.push({ n, r: n.r, r0: n.r, max: n.r + (n.lv === 3 ? CFG.RP_GROW_LEAF : CFG.RP_GROW), a: CFG.RP_A0 });
       S.meter.rpMade++;
       if (S.ripples.length > S.meter.rpPeak) S.meter.rpPeak = S.ripples.length;
     }
@@ -933,7 +933,10 @@
       const k = dt * 60;
       for (let i = S.ripples.length - 1; i >= 0; i--) {
         const rp = S.ripples[i];
-        rp.r += CFG.RP_STEP * k; rp.a -= CFG.RP_FADE * k;
+        /* 原型（docs/prototypes/capital_flow_impact.html）：alpha 跟半徑同步線性遞減 0.85 → 0，
+           等同每幀 −0.026（0.85／26 格 × 0.85px）；代表股外擴只有 16px，照同一條公式縮短 */
+        rp.r += CFG.RP_STEP * k;
+        rp.a = CFG.RP_A0 * (1 - (rp.r - rp.r0) / (rp.max - rp.r0 || 1));
         if (rp.a <= 0 || rp.r >= rp.max || !S.nodes.has(rp.n.key)) { S.ripples[i] = S.ripples[S.ripples.length - 1]; S.ripples.pop(); }
       }
     } else if (S.ripples.length) S.ripples = S.ripples.filter(r => now - r.t0 < CFG.RIPPLE_SEC * 1000);
