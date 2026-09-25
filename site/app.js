@@ -3004,7 +3004,10 @@
          一直空著的那一圈還給盤面。容器高度同步 300 → 360（見 index.html），
          不然 82% 只是「在同樣小的框裡畫大一點」。
        · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
+    /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：總覽小輪盤跟著同一個「顯示腳印」偏好（ROT.trail，預設關）。
+       改前：這裡沒傳 trail，renderRotClock 的 `opts.trail !== false` 把它當成開 —— 焦點族群身後永遠拖著腳印，
+       連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: ROT.trail });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
@@ -5680,7 +5683,8 @@
         o.polar = { ...o.polar, radius: Math.max(10, G2.R) };
         try { c.setOption({ polar: o.polar, series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
-      el._rotRedraw = () => renderRotClock(rows, back, id, compact, opts);
+      // patch：只改這張圖的某幾個選項再重畫（例：總覽小輪盤跟著「顯示腳印」開關換 trail），之後的重畫沿用改過的
+      el._rotRedraw = (patch) => { if (patch) Object.assign(opts, patch); return renderRotClock(rows, back, id, compact, opts); };
       // 名字已經在 setOption 前排好（lblPre）就不必再畫第二次；沒排成（容器還是 0×0）才走舊路
       if (!lblPre) relayout();
       // 第一次 echarts.init 會清空容器（把先前掛上的象限卡一起清掉），所以畫完再掛一次
@@ -6493,8 +6497,8 @@
         <em>領先</em>＝主流、回檔找買點；<em>轉弱</em>＝動能在掉、設停利；<em>落後</em>＝別急著抄底。</li>
       <li><b>一顆點＝一個族群</b>：越大＝成交值佔比越高；離圓心越遠＝跟大盤差越多。
         兩圈虛線＝今天最大偏離的一半／今天偏離最大的那個族群。</li>
-      <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。預設只畫佔比前 3 ＋ 最近換段的（最多 6 個）；
-        滑到任何一顆點就畫它的。外圈多一圈色環＝最近 5 天剛換段。</li>
+      <li><b>預設只畫圓點</b>；勾「顯示腳印」才畫這幾天走過的路（越新越清楚，腳尖朝前進的方向）。
+        外圈多一圈色環＝最近 5 天剛換段。</li>
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段；<em>▶</em> 從那一天一步一步走回最新。</li>
       <li><b>篩選</b>：上面兩個下拉（先挑產業鏈、再勾族群，可複選）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出；點長條看成分股。</li>
@@ -6631,12 +6635,17 @@
     ], '虛線是它的 20 日平均；往上時主流吃掉更多量，往下時主流反而容易休息。'
       + '標題旁的讀數：比 20 日均高 0.8pp 以上＝縮圈（冷門股不容易動）、低 0.8pp 以上＝擴散（主流容易休息）、其餘＝沒有明顯方向。'),
   };
-  /* 「怎麼看 ?」共用格式：一句問題 → 條列 → 最下面一行小字口徑。
-     條列每條 ≤30 字、最多 5 條（_uitest「說明精簡」在量）。industry.js 也用這支（App.howHTML）。*/
+  /* 「怎麼看 ?」共用格式：一句問題 → 條列。
+     條列每條 ≤30 字、最多 5 條（_uitest「說明精簡」在量）。industry.js 也用這支（App.howHTML）。
+     ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：第三個參數 `fine`（條列下面那段
+     `.howfine` 小字口徑）**不再輸出**。改前：每個「?」在條列下方還有一段幾十到幾百字的口徑細節；
+     改後：彈窗只剩標題＋條列。參數位置保留、呼叫端的字串先不動 —— 全站 29 個呼叫點（含 industry.js，
+     另一支 agent 正在改那支檔案）在這一個地方收掉，不必逐檔改、也不會漏掉之後新加的呼叫點。
+     那些字串現在只是寫給維護者看的口徑備忘（等同註解），畫面上不會出現。
+     卡片上本來就有的一行短註（例如大盤三張圖的「為什麼沒有多日分 K」短句）照舊留在卡片上，不搬回彈窗。*/
   function howHTML(q, items, fine) {
     return (q ? `<b class="howq">${q}</b>` : '')
-      + (items && items.length ? `<ul>${items.map(t => `<li>${t}</li>`).join('')}</ul>` : '')
-      + (fine ? `<div class="howfine">${fine}</div>` : '');
+      + (items && items.length ? `<ul>${items.map(t => `<li>${t}</li>`).join('')}</ul>` : '');
   }
   /* ★ 2026-09-24：「怎麼看 ?」改成**整站一個委派監聽器**。
      以前每頁各自 `$$('.howbtn').onclick`，所以只有總覽／市場明細／資金流向三頁的鈕會動；
@@ -7556,7 +7565,7 @@
      而頁首明明寫著資料更新到 09-18 —— 圖跟字對不起來。
      0 ＝ 資料裡的最後一個交易日（rrg.trail 與 share_daily 的最後一筆）。*/
   const ROT_MIN_BACK = 0;          // 0＝最新一天 ～ 前三十天（Andy 2026-09-21）
-  const ROT = { chain: '', groups: null, trail: true, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
+  const ROT = { chain: '', groups: null, trail: false, topOnly: false };   // 2026-09-21：個股篩選移除，stocks 一併拿掉
   /* v2 第 5 批：軌跡畫哪幾個族群 —— 'focus'（預設：佔比前 3 ＋ 最近換段，最多 6 個）｜'all'（原本的畫法）。
      「關」仍然是那個勾選框（ROT.trail），兩個合起來就是規格 §3.2-2 的三段：關｜焦點｜全部。
      記在這台瀏覽器（per-viewer 的偏好），讀寫不到就用預設。*/
@@ -7568,6 +7577,14 @@
        非焦點族群也畫腳印，只是退到背景（ROT_REST_OP／ROT_REST_SZ／ROT_REST_GAP，理由在 renderRotClock 的 restDim）。
        鈕仍然不加回來：要不要看全部的答案已經是「全部都看得到」，淡與實由焦點規則決定。*/
   ROT.tmode = 'focus';
+  /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：腳印預設**關**，盤上只畫族群點（圓圈）。
+     改前：ROT.trail 寫死 true、沒有記憶 —— 每次開頁都是十幾串腳印拖在點後面。
+     改後：「顯示腳印」勾選框留著（有選項就讓使用者自己切），但預設不勾；勾了記在這台瀏覽器。
+     key 用**新的** `tw.rot.feet`（'1'＝開）：以前沒有存過這個偏好，換一個全新的 key 等於保證
+     「之前開過／關過的人」一律先看到只有圓圈，要看腳印自己再勾一次。
+     回放／補間照舊由 rotTween 搬點的位置（它不依賴腳印），所以關掉腳印之後點一樣是平滑滑過去。*/
+  ROT.trail = false;
+  try { if (localStorage.getItem('tw.rot.feet') === '1') ROT.trail = true; } catch (e) { /* 私密視窗：用預設（關） */ }
   // 「N 天前」（1～30）：輪盤腳印與排行共用的那一段長度，記在這台瀏覽器
   ROT.days = 20;
   try { const v = +localStorage.getItem('tw.rot.days'); if (v >= 1 && v <= 30) ROT.days = Math.round(v); } catch (e) { /* 私密視窗 */ }
@@ -7864,7 +7881,16 @@
       $$('.rot-scan').forEach(x => { x.checked = ROT.scan; });
     };
     const c = $('.rot-trail', box);
-    if (c) c.onchange = () => { ROT.trail = c.checked; sync(); redraw(); };
+    if (c) c.onchange = () => {
+      ROT.trail = c.checked; sync(); redraw();
+      try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
+      /* 總覽小輪盤讀同一個偏好，但它畫在另一個分頁（此刻藏著、寬高是 0，當場重畫會算錯半徑）。
+         標成「沒畫過」，下次切回總覽時 route() 會整頁重畫一次（換主題也是走這條路）；
+         總覽正開著（從總覽按「放大」進來的）就當場帶新的 trail 重畫那一張。*/
+      const ov = document.getElementById('v-overview'), mini = document.getElementById('rotClockMini');
+      if (ov && ov.classList.contains('on') && mini && mini._rotRedraw) mini._rotRedraw({ trail: ROT.trail });   // 從總覽開的放大視窗：當場跟上
+      else delete rendered.overview;
+    };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {
       ROT.ripple = rp.checked;
@@ -9843,7 +9869,7 @@
   let themeColor = hmLS('tw.themeColor', 'heat'), themeFocus = null;
   async function renderThemes(sel, mapOnly) {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
-    $('#themeNote').textContent = th.note || '';
+    /* 2026-09-26：題材口徑（th.note）原本寫進「?」最下面的 #themeNote 小字；「?」不再放附註，那一格連同這行一起拿掉。*/
     /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，5 格藍→紅（09-25 定案，只留這一組：藍＝冷、紅＝熱）。
        以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
        右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
@@ -10458,16 +10484,12 @@
       const noteHTML = (numMsg ? numMsg.replace(/^　/, '') : '')
         + (fellBack ? `${numMsg ? '　' : ''}<b style="color:var(--amber)">缺大盤基準，已改看絕對報酬</b>` : '');
       const sn = $('#seasonNote'); sn.innerHTML = noteHTML; sn.hidden = !noteHTML;
-      const fine = $('#seasonFine');
-      /* ★ 2026-09-24（審查 R4）：`s3.note` 本身已經把基準字串（含「（指數只有 12 個月，不夠比）」）寫進去了，
-         這裡再接一次完整的 benchmark_source，同一段小字就出現兩次同一個括號。
-         括號說明已經在 note 裡時，這裡只寫基準名稱。*/
-      const benchParen = (bench.match(/（[^）]*）/g) || []).join('');
-      const benchFine = benchParen && String(s3.note || '').includes(benchParen) ? bench.replace(/（[^）]*）/g, '') : bench;
-      if (fine) fine.innerHTML = fmt.esc(s3.note)
-        + `　基準：${fmt.esc(benchFine)}（${s3.benchmark_months} 個月）。`
-        + (view === 'heat' ? '　格子裡的數字預設不印：滑鼠移上去（手機點一格）看，或按「顯示數字」；格子太窄的不印。' : '')
-        + (fellBack ? '　這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。' : '');
+      /* ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：「?」最下面那段口徑小字（#seasonFine：
+         生存者偏差、基準、格子數字怎麼看）拿掉。基準是「超額報酬」的分母，不寫會被讀錯，所以改掛在副標
+         #seasonRange 的滑鼠提示上（不佔版面、不回到「?」裡）。*/
+      const rg = $('#seasonRange');
+      if (rg) rg.title = `基準：${bench}（${s3.benchmark_months} 個月）`
+        + (fellBack ? '。這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。' : '');
     };
     const paintView = () => {
       $('#seasonHeatBox').hidden = view !== 'heat';

@@ -3212,7 +3212,8 @@ def t_new_market3(pg, base):
     click(pg, "#m3Frame .howbtn.pop[data-how='m3']", 500)
     hp = pg.evaluate("() => ({ pop: !document.getElementById('howPop').hidden, back: !document.getElementById('howBack').hidden,"
                      " txt: (document.getElementById('how-m3')||{}).innerText || '' })")
-    ok("★ 大盤的「?」點下去跳出說明", hp["pop"] and hp["back"] and "1 小時" in hp["txt"], hp)
+    # 2026-09-26 改前：驗「1 小時」合成說明在「?」的附註裡 → 改後：附註拿掉，驗跳得出來、有條列
+    ok("★ 大盤的「?」點下去跳出說明", hp["pop"] and hp["back"] and "走勢圖" in hp["txt"], hp)
     pg.mouse.click(8, 500); pg.wait_for_timeout(400)
     ok("★ 點背景說明就關掉", pg.evaluate("() => document.getElementById('howPop').hidden && document.getElementById('howBack').hidden"))
 
@@ -3656,13 +3657,13 @@ def t_new_market3(pg, base):
     tv = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k.data[0].volume; }")
     ok("加權 1 分 K 的量＝張 × 1000（存股，跟日線同口徑）", tv == 1000 * 1000, tv)
 
-    # --- 「?」：完整原因與量的口徑都在裡面
-    click(pg, "#m3Frame .howbtn.pop[data-how='m3']", 500)
+    # --- 「?」：★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」，點名的就是這段【來源】長註）
+    #   改前：驗「?」裡寫出 ^TWOII 停更／付費等級／實際總量 → 改後：「?」只剩標題＋條列，那段 srcNote 不再出現
+    _m3f = how_fine(pg, "m3")
+    ok("★ 大盤「?」只剩標題＋條列（沒有【來源】那段附註）",
+       bool(_m3f) and _m3f["n"] >= 1 and _m3f["fine"] == 0 and not _m3f["tail"], _m3f)
     how = pg.evaluate("() => (document.getElementById('how-m3') || {}).innerText || ''")
-    ok("★「?」裡寫出櫃買、台指期為什麼只有今天（^TWOII 停更、付費等級）",
-       "只有今天" in how and "^TWOII" in how and "付費" in how, how[-400:])
-    ok("★「?」裡寫出量怎麼估（實際總量 × 分時量分布、標「估」）", "實際總量" in how and "估" in how, how[-400:])
-    pg.mouse.click(8, 500); pg.wait_for_timeout(300)
+    ok("★ 大盤「?」裡不再有「^TWOII」「付費」那幾句來源長註", "^TWOII" not in how and "付費" not in how, how[-200:])
 
     # --- 手機 390px：同一件事照樣成立、不能有橫向捲軸、卡片短句的字 ≥ 11px
     #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
@@ -7755,9 +7756,10 @@ def t_batch4(pg, base):
 
     # ---- 季節性 N8／N9
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
-    # ★ 2026-09-25：卡片上的「基準：…」搬進標題旁「?」（#seasonFine），這裡改成打開「?」讀
-    _snb = how_text(pg, "season")
-    ok("季節性有寫出基準是什麼（N8；2026-09-25 起在「?」裡）", "基準" in _snb, _snb[-80:])
+    # ★ 2026-09-25：卡片上的「基準：…」搬進標題旁「?」（#seasonFine）
+    # ★ 2026-09-26：「?」不放附註（#seasonFine 拿掉），基準改掛在副標 #seasonRange 的滑鼠提示
+    _snb = pg.evaluate("() => (document.getElementById('seasonRange') || {}).title || ''")
+    ok("季節性有寫出基準是什麼（N8；2026-09-26 起在副標的滑鼠提示）", "基準" in _snb, _snb[-80:])
     click(pg, '#seasonPeriod button[data-v="3y"]', 1400)
     rng = text(pg, "#seasonRange")
     ok("近三年是滾動 36 個完整月，不是日曆年（N9）", "2023" in rng or "36" in rng, rng)
@@ -13545,6 +13547,8 @@ SECTIONS = {
     "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
     # ★ 2026-09-25（claude/rot-all-trails）：每一顆族群點都有腳印，非焦點淡、小，滑到提亮
     "足跡輪盤全部腳印":    lambda pg, b, base, code: t_rot_all_trails(pg, b, base),
+    # ★ 2026-09-26（claude/wheel-dots-howto）：足跡輪盤預設只畫圓圈（腳印開關預設關、手機不畫），乾淨頁面驗預設
+    "足跡輪盤只留圓圈":    lambda pg, b, base, code: t_rot_dots_only(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
     "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
     # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
@@ -14601,8 +14605,28 @@ COPY_HOWBOX = r"""(k) => { const b = document.getElementById('how-' + k);
   const btn = document.querySelector('.howbtn[data-how="' + k + '"]');
   if (!b) return null;
   const lis = [...b.querySelectorAll('li')].map(li => li.innerText.replace(/\s+/g, ''));
-  return { open: !b.hidden && b.getBoundingClientRect().height > 10, len: b.innerText.replace(/\s+/g, '').length,
-           n: lis.length, long: lis.filter(t => t.length > 30), label: btn ? btn.textContent : '' }; }"""
+  /* 2026-09-26：附註段＝條列下面那段小字（.howfine）。fine＝畫面上看得到、有字的 .howfine 個數；
+     tail＝最後一條條列之後還看得到的字（innerText 不含 display:none，所以量的是「使用者真的看得到」的） */
+  const all = b.innerText.replace(/\s+/g, ''), last = lis[lis.length - 1] || '';
+  const fine = [...b.querySelectorAll('.howfine')].filter(e => e.getClientRects().length && e.textContent.trim()).length;
+  return { open: !b.hidden && b.getBoundingClientRect().height > 10, len: all.length,
+           n: lis.length, long: lis.filter(t => t.length > 30), label: btn ? btn.textContent : '',
+           fine, tail: last ? all.slice(all.lastIndexOf(last) + last.length) : '' }; }"""
+
+
+def how_fine(pg, key: str):
+    """打開某顆「?」→ 回傳 {fine, tail, n, len}（fine＝看得到的附註段數、tail＝條列之後還看得到的字）→ 關回去。
+    2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：全站「?」只留標題＋條列，這支就是量那件事的。"""
+    box = f"#how-{key}"
+    if pg.evaluate(f"() => {{ const b = document.querySelector({box!r}); return !b || b.hidden; }}"):
+        click(pg, f'.howbtn[data-how="{key}"]', 450)
+    st = pg.evaluate(COPY_HOWBOX, key)
+    if not pg.evaluate(f"() => {{ const b = document.querySelector({box!r}); return !b || b.hidden; }}"):
+        if pg.evaluate("() => { const b = document.getElementById('howBack'); return !!b && !b.hidden; }"):
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+        else:
+            click(pg, f'.howbtn[data-how="{key}"]', 300)
+    return st
 
 
 OVR_WHEEL = r"""() => { const e = document.getElementById('rotClockMini'); const c = e && echarts.getInstanceByDom(e); if (!c) return null;
@@ -14737,6 +14761,10 @@ def t_copy_trim(pg, base, code):
                 ok(f"[說明精簡] {where}「怎麼看：{k}」按下去真的展開、內容非空", bool(st) and st["open"] and st["len"] > 20, st)
                 ok(f"[說明精簡] {where}「怎麼看：{k}」條列 1～5 條", bool(st) and 1 <= st["n"] <= 5, st and st["n"])
                 ok(f"[說明精簡] {where}「怎麼看：{k}」每條 ≤ 30 字", bool(st) and not st["long"], st and st["long"])
+                # ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：
+                #   改前：條列下方還有一段 .howfine 小字口徑 → 改後：只留標題＋條列，條列之後一個字都看不到
+                ok(f"[說明精簡] ★ {where}「怎麼看：{k}」沒有附註段（條列之後沒有字）",
+                   bool(st) and st["fine"] == 0 and not st["tail"], st and [st["fine"], st["tail"][:60]])
                 # ★ 合併（2026-09-24）：Andy「不需要"收起"選項，點擊背景即可消除」—— 按鈕不改字，改成亮起來
                 ok(f"[說明精簡] {where}「怎麼看：{k}」按鈕亮起來（aria-expanded），字不變成「收起」",
                    pg.evaluate(f"() => {{ const b = document.querySelector('.howbtn[data-how=\"{k}\"]'); return !!b && b.getAttribute('aria-expanded') === 'true'; }}")
@@ -14756,17 +14784,21 @@ def t_copy_trim(pg, base, code):
     ok("[說明精簡] 全站「怎麼看 ?」入口一顆都沒少", want <= seen_how, sorted(want - seen_how))
     # 搬家不是刪除：幾段搬進盒子的關鍵句，打開盒子之後真的讀得到
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    # ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：
+    #   改前：驗口徑小字（生存者偏差／不拆分／Yahoo 來源）搬進「?」沒有消失
+    #   改後：「?」只留條列 —— 條列的讀法還在、附註段真的不見；週期統計的基準改掛在副標的滑鼠提示
     txt = how_text(pg, "season")
-    ok("[說明精簡] 週期統計的口徑（生存者偏差、基準）搬進怎麼看，沒有消失",
-       "生存者偏差" in txt and "基準" in txt, txt[-120:])
+    ok("[說明精簡] 週期統計「?」只剩條列（沒有「生存者偏差」那段附註）", "生存者偏差" not in txt and "紅＝強" in txt, txt[-120:])
+    ok("[說明精簡] 週期統計的基準改掛在副標的滑鼠提示（不在「?」裡、也不佔版面）",
+       "基準" in pg.evaluate("() => (document.getElementById('seasonRange') || {}).title || ''"))
     pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2400)
     txt = how_text(pg, "theme")
-    ok("[說明精簡] 題材熱力的口徑（成員不拆分、熱度怎麼算）搬進怎麼看，沒有消失",
-       "不拆分" in txt and "熱度" in txt, txt[-120:])
+    ok("[說明精簡] 題材熱力「?」只剩條列（讀法「熱度」還在、「不拆分」那段附註不見）",
+       "不拆分" not in txt and "熱度" in txt, txt[-120:])
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
     txt = how_text(pg, "kline")
-    ok("[說明精簡] K 線的操作說明（滾輪、分隔線、Yahoo 來源）搬進怎麼看，沒有消失",
-       "滾輪" in txt and "分隔線" in txt and "Yahoo" in txt, txt[:120])
+    ok("[說明精簡] K 線「?」只剩條列（滾輪、分隔線還在；Yahoo 來源那段附註不見）",
+       "滾輪" in txt and "分隔線" in txt and "Yahoo" not in txt, txt[:120])
 
 
 # ===================================================================== 收尾 0925（claude/wrapup-1）
@@ -14838,11 +14870,16 @@ def t_wrap_popq(pg, base, code):
     ok("[說明改問號] 市場明細上方那行說明拿掉了", count(pg, "#mktNote") == 0)
     ok("[說明改問號] 盤後的漲停頁不再印「漲幅 ≥ 9.5%」那句（定義在「?」裡）",
        "9.5" not in text(pg, "#mktInner .kpinote") if count(pg, "#mktInner .kpinote") else True, text(pg, "#mktInner"))
-    ok("[說明改問號] 定義搬進「?」沒有消失（打開讀得到「漲停＝漲幅 ≥ 9.5%」）", "9.5" in how_text(pg, "mkt"))
+    # ★ 2026-09-26 改前：驗「漲停＝漲幅 ≥ 9.5%」在「?」的附註裡 → 改後：「?」沒有附註段（Andy：「不需要附註」）
+    _mf = how_fine(pg, "mkt")
+    ok("[說明改問號] ★ 市場明細「?」只剩標題＋條列（沒有附註段）", bool(_mf) and _mf["n"] >= 1 and _mf["fine"] == 0 and not _mf["tail"], _mf)
     # 週期統計：卡片上的「基準：…」拿掉、搬進「?」
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2200)
     ok("[說明改問號] 週期統計卡片上不再有「基準：…」", "基準" not in text(pg, "#seasonNote"), text(pg, "#seasonNote"))
-    ok("[說明改問號] 週期統計的基準搬進「?」", "基準" in how_text(pg, "season"))
+    # ★ 2026-09-26 改前：基準在「?」的附註裡 → 改後：「?」不放附註，基準改掛在副標 #seasonRange 的滑鼠提示
+    ok("[說明改問號] 週期統計的基準在副標的滑鼠提示（不在「?」裡）",
+       "基準" in pg.evaluate("() => (document.getElementById('seasonRange') || {}).title || ''")
+       and "基準" not in how_text(pg, "season"))
     # 題材剖析圖：「?」開著時點背景只關說明，剖析圖不能跟著被收掉（dismissable 要放過 #howBack）
     pg.goto(f"{base}#heatmap/theme/cowos", wait_until="networkidle"); pg.wait_for_timeout(2200)
     if ok("[說明改問號] 題材剖析圖打開了", count(pg, "#themeDiagram svg") > 0):
@@ -14900,10 +14937,12 @@ def t_flow_popq(pg, base, code):
     ok("[資金流向問號] 關掉「?」之後頁面還在 #flow、沒有殘留背景", pg.evaluate("location.hash") == "#flow"
        and not pg.evaluate(POP_STATE)["back"])
     # 搬家不是刪除
-    ok("[資金流向問號] 篩選說明搬進資金去向的「?」", "先挑產業鏈" in how_text(pg, "sankey"))
-    ok("[資金流向問號] 粒子圖例搬進資金去向的「?」", "粒子" in how_text(pg, "sankey"))
-    ok("[資金流向問號] 篩選說明搬進族群×法人的「?」", "先挑產業鏈" in how_text(pg, "inst"))
-    ok("[資金流向問號] 縮圈／擴散的解讀搬進集中度的「?」", "冷門股" in how_text(pg, "conc") and "休息" in how_text(pg, "conc"))
+    # ★ 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：
+    #   改前：驗篩選說明／粒子圖例／「休息」那句附註搬進「?」→ 改後：三顆「?」都只剩標題＋條列
+    for _k in ("sankey", "inst", "conc"):
+        _f = how_fine(pg, _k)
+        ok(f"[資金流向問號] ★「?」（{_k}）只剩標題＋條列、沒有附註段", bool(_f) and _f["n"] >= 1 and _f["fine"] == 0 and not _f["tail"], _f)
+    ok("[資金流向問號] 集中度的讀法（冷門股）還在條列裡", "冷門股" in how_text(pg, "conc"))
     ok("[資金流向問號] 集中度讀數的解讀句滑上去看得到（title）", len(pg.evaluate("() => document.getElementById('concState').title || ''")) > 4)
     # 選了族群時，篩選列只留狀態讀數「只看「X」」（不寫圖只剩一支會被讀成資料壞掉）
     pg.evaluate("() => document.getElementById('flowSankeyCard').scrollIntoView({block:'start', behavior:'instant'})"); pg.wait_for_timeout(300)
@@ -15107,6 +15146,13 @@ def t_wrap_r2(pg, base, code):
 CONSENT_PRESET = ("try{if(!localStorage.getItem('tw.consent'))localStorage.setItem('tw.consent',"
                   "JSON.stringify({v:'*',at:'test'}));"
                   "if(!localStorage.getItem('tw.tour'))localStorage.setItem('tw.tour','*');}catch(e){}")
+# ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：足跡輪盤的「顯示腳印」改成**預設關**（site/app.js 的 tw.rot.feet）。
+#   既有的幾十段驗收（時鐘v2、足跡輪盤、足跡輪盤全部腳印、足跡輪盤補間、拉Bar 腳印長度、放大視窗開關軌跡…）
+#   驗的是「腳印打開時長得對不對、跟不跟得上」—— 那些行為一個都沒變，只是要先勾開關。
+#   所以這裡替它們預先寫好 tw.rot.feet='1'（＝使用者勾過「顯示腳印」），同樣只在「還沒有值」時才寫：
+#   段落裡勾掉又勾回來、或 localStorage.clear() 之後重新整理，都跟真人的行為一致。
+#   **預設（沒有這個 key）到底是不是只有圓圈**，由「足跡輪盤只留圓圈」那一段用原版 new_page（不帶這條）開乾淨頁面驗。
+FEET_PRESET = "try{if(localStorage.getItem('tw.rot.feet')===null)localStorage.setItem('tw.rot.feet','1');}catch(e){}"
 
 
 def _preset_consent() -> None:
@@ -15118,11 +15164,13 @@ def _preset_consent() -> None:
     def new_page(self, *a, **k):
         pg = raw_page(self, *a, **k)
         pg.add_init_script(CONSENT_PRESET)
+        pg.add_init_script(FEET_PRESET)
         return pg
 
     def new_context(self, *a, **k):
         c = raw_ctx(self, *a, **k)
         c.add_init_script(CONSENT_PRESET)
+        c.add_init_script(FEET_PRESET)
         return c
 
     Browser._tw_raw_new_page, Browser._tw_raw_new_context = raw_page, raw_ctx
@@ -26454,11 +26502,15 @@ def t_heatmap_r4(pg, base):
 
     # ---------- ⑧ 週期統計「怎麼看」口徑小字不重複 ----------
     pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2200)
-    fine = pg.evaluate("() => (document.getElementById('seasonFine') || {}).textContent || ''")
+    # ★ 2026-09-26 改前：驗 #seasonFine 口徑小字沒有重複的括號 → 改後：那段附註整個拿掉（Andy：「"?" 內…不需要附註」），
+    #   括號重複的根因（基準字串接兩次）改在副標的滑鼠提示上驗
+    _sf = how_fine(pg, "season")
+    ok(f"【{tag}】週期統計「?」沒有附註段（#seasonFine 不存在）",
+       pg.evaluate("() => !document.getElementById('seasonFine')") and bool(_sf) and _sf["fine"] == 0 and not _sf["tail"], _sf)
     import re as _re
-    parens = _re.findall(r"（[^）]*）", fine)
-    dup = sorted({x for x in parens if parens.count(x) > 1})
-    ok(f"【{tag}】週期統計口徑小字沒有重複的括號說明", fine and not dup, [dup, fine[:160]])
+    _tt = pg.evaluate("() => (document.getElementById('seasonRange') || {}).title || ''")
+    parens = _re.findall(r"（[^）]*）", _tt)
+    ok(f"【{tag}】週期統計的基準提示沒有重複的括號說明", _tt and not sorted({x for x in parens if parens.count(x) > 1}), _tt[:160])
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -28384,6 +28436,139 @@ ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && 
       a: Math.max(0, ...feet.map(x => alpha((x.itemStyle || {}).color))) };
   });
   return { rows, dots: sc.data.length }; }"""
+
+
+# ===================================================================== 足跡輪盤只留圓圈（2026-09-26）
+# Andy：「足跡輪盤只需要留下圓圈即可」。改法：「顯示腳印」勾選框留著、**預設關**（新 key tw.rot.feet，'1'＝開）；
+# 手機雷達（mobile3.js）沒有開關，直接不畫腳印。
+# ⚠ 這一段刻意用 Browser._tw_raw_new_page（原版，不帶 FEET_PRESET）開乾淨頁面 —— 其他段落都被預寫成「勾過腳印」，
+#   只有這裡量得到「完全沒動過設定的人」看到什麼。
+# 真的操作：乾淨開頁 → 量盤上 0 個腳印／0 條看得到的軌跡、圓點照畫 → 按 ▶ 回放量點的逐幀位置（沒有腳印也要平滑）
+#   → 勾「顯示腳印」看腳印長出來、記進 localStorage → 重新整理還是開的 → 勾掉又歸零 → 放大視窗、總覽小輪盤、手機兩張雷達
+#   → 手機「?」點開量沒有附註段。
+# 手機：這一頁看得到的每一顆「?」的 key（去重）
+MOB_HOWKEYS = r"""() => [...new Set([...document.querySelectorAll('.howbtn[data-how]')]
+  .filter(b => b.getClientRects().length && b.offsetParent).map(b => b.dataset.how))]"""
+MOB_HOWCLICK = r"""(k) => { const b = [...document.querySelectorAll('.howbtn[data-how="' + k + '"]')].find(x => x.getClientRects().length && x.offsetParent);
+  if (!b) return false; b.scrollIntoView({block: 'center', behavior: 'instant'}); b.click(); return true; }"""
+
+
+def t_rot_dots_only(pg, b, base):
+    raw = getattr(type(b), "_tw_raw_new_page", None)
+
+    def fresh(w, h, mobile=False):
+        kw = dict(viewport={"width": w, "height": h})
+        if mobile:
+            kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+        p = raw(b, **kw) if raw else b.new_page(**kw)
+        p.add_init_script(CONSENT_PRESET)          # 只預寫同意條款與導覽（不寫 tw.rot.feet）
+        p.on("pageerror", lambda e: fails.append(f"足跡輪盤只留圓圈 pageerror: {e}"))
+        return p
+
+    feet_n = lambda st: sum(len(f) for f in (st or {}).get("feet") or [])
+    d = fresh(1440, 950)
+    try:
+        d.goto(f"{base}#flow", wait_until="networkidle"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(700)
+        ok("乾淨的瀏覽器沒有 tw.rot.feet（量的是真正的預設）",
+           d.evaluate("() => { try { return localStorage.getItem('tw.rot.feet'); } catch (e) { return 'ERR'; } }") is None)
+        chk = d.evaluate("() => { const c = document.querySelector('#rotTools input.rot-trail'); return c ? c.checked : null; }")
+        ok("「顯示腳印」開關還在，預設**不勾**", chk is False, chk)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        # 改前（09-25）：每一顆族群點身後都有一串腳印（焦點實、其他淡）→ 改後：預設只有圓圈
+        ok("★ 預設盤上一個腳印都沒有、沒有任何看得到的軌跡線", bool(st) and st["vis"] == 0 and feet_n(st) == 0,
+           st and {"看得到的軌跡": st["vis"], "腳印": feet_n(st)})
+        ok("族群點（圓圈）照舊畫（> 6 顆）", bool(st) and st["n"] > 6, st and st["n"])
+        ok("象限底色、刻度照舊", bool(st) and st["ringN"] > 0 and st["thinN"] > 0, st and [st["ringN"], st["thinN"]])
+        ok("回報給驗收的狀態也是「腳印關」（_rotFrame.trail false、走過 0 天）",
+           bool(st) and st["fr"] and st["fr"]["trail"] is False and st["fr"].get("trailDays", 0) == 0, st and st["fr"])
+        # 沒有腳印時，回放／補間照舊平滑（點由 rotTween 搬，不靠腳印）
+        r = d.evaluate(TW_SAMPLE, [12, 900])
+        out = r["out"]
+        if ok("沒有腳印：回放到 12 天前量得到點的逐幀位置", len(out) >= 3 and r["a"], {"n": len(out)}):
+            A, B = r["a"], out[-1]
+            D = ((B["x"] - A["x"]) ** 2 + (B["y"] - A["y"]) ** 2) ** 0.5
+            mids = [q for q in out if 0.03 * D < ((q["x"] - A["x"]) ** 2 + (q["y"] - A["y"]) ** 2) ** 0.5 < 0.97 * D]
+            ok("★ 沒有腳印：點仍然平滑滑過去（補間中出現 ≥ 1 個中間位置）", D >= 3 and len(mids) >= 1,
+               {"距離": round(D, 1), "中間幀": len(mids)})
+            dist = [((q["x"] - B["x"]) ** 2 + (q["y"] - B["y"]) ** 2) ** 0.5 for q in out]
+            ok("沒有腳印：位置一路往終點走（沒有往回跳）",
+               not [i for i in range(1, len(dist)) if dist[i] > dist[i - 1] + 0.5])
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("回放中也沒有冒出腳印", feet_n(st) == 0 and st["vis"] == 0, st and st["vis"])
+        d.evaluate("() => window.App.rotReplay(0)"); d.wait_for_timeout(900)
+        # 勾「顯示腳印」→ 真的長出來、記在這台瀏覽器
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1100)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("★ 勾「顯示腳印」→ 盤上真的畫出腳印", feet_n(st) > 0 and st["vis"] > 0, st and [st["vis"], feet_n(st)])
+        ok("勾了之後記在這台瀏覽器（tw.rot.feet = '1'）", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "1")
+        d.reload(wait_until="networkidle"); d.wait_for_timeout(2600)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(600)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("重新整理之後仍然是開的（勾選框勾著、腳印在）",
+           d.evaluate("() => document.querySelector('#rotTools input.rot-trail').checked") and feet_n(st) > 0, feet_n(st))
+        # 總覽小輪盤跟同一個偏好：勾著 → 總覽也有腳印；在資金流向勾掉 → 回總覽只剩圓圈（改前：總覽那張永遠畫焦點腳印）
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("勾著「顯示腳印」時，總覽小輪盤也畫腳印（兩張一致）", bool(ms) and feet_n(ms) > 0, ms and feet_n(ms))
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1000)
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("★ 在資金流向勾掉 → 回到總覽，小輪盤也跟著只剩圓圈（不是停在舊的那一張）",
+           bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0, ms and [ms["vis"], feet_n(ms)])
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1000)   # 勾回來，下面驗放大視窗
+        # 放大視窗：開關同一份
+        click(d, "#rotZoomBtn", 1600)
+        if ok("放大視窗打得開", d.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }")):
+            ok("放大視窗的「顯示腳印」跟卡片同步（勾著）", d.evaluate("() => document.querySelector('#rotZoomTools .rot-trail').checked"))
+            d.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
+            zs = d.evaluate(CLK_STATE, "zoomBody")
+            ok("在放大視窗勾掉 → 放大的那張只剩圓圈", bool(zs) and feet_n(zs) == 0 and zs["vis"] == 0 and zs["n"] > 6,
+               zs and [zs["vis"], feet_n(zs), zs["n"]])
+            ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
+            d.eval_on_selector("#zoomClose", "b => b.click()"); d.wait_for_timeout(900)
+        st = d.evaluate(CLK_STATE, "rotClock")
+        ok("關掉放大視窗後卡片也跟著只剩圓圈（勾選框不勾）",
+           feet_n(st) == 0 and st["vis"] == 0 and not d.evaluate("() => document.querySelector('#rotTools input.rot-trail').checked"),
+           st and [st["vis"], feet_n(st)])
+        # 總覽小輪盤：乾淨預設只有圓圈
+        d.evaluate("() => localStorage.removeItem('tw.rot.feet')")
+        d.goto(f"{base}#overview", wait_until="networkidle"); d.reload(wait_until="networkidle"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(700)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("★ 總覽小輪盤預設也只有圓圈（0 個腳印、0 條軌跡）", bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0,
+           ms and [ms["n"], ms["vis"], feet_n(ms)])
+    finally:
+        d.close()
+    # 手機 390：兩張雷達都沒有腳印（mobile3.js 沒有開關，直接不畫）；「?」點開沒有附註段
+    m = fresh(390, 844, mobile=True)
+    try:
+        for route, box in (("flow", "#mRadarFlow"), ("overview", "#mRadarOv")):
+            m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2600)
+            r = m.evaluate(f"""() => {{ const s = document.querySelector('{box} svg'); if (!s) return null;
+                return {{ dots: s.querySelectorAll('g[data-g]').length, feet: s.querySelectorAll('ellipse').length }}; }}""")
+            ok(f"★ 手機 {route} 雷達：圓點照畫、腳印 0 個（改前：佔比前 3 名身後各一串小腳印）",
+               bool(r) and r["dots"] > 3 and r["feet"] == 0, r)
+        # 手機：總覽與資金流向看得到的每一顆「?」都真的按開，量沒有附註段（手機一律是跳出式，點背景／Esc 關）
+        for route in ("overview", "flow"):
+            m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2400)
+            keys = m.evaluate(MOB_HOWKEYS) or []
+            ok(f"手機 {route} 找得到「?」", len(keys) >= 1, keys)
+            for k in keys:
+                if not m.evaluate(MOB_HOWCLICK, k):
+                    continue
+                m.wait_for_timeout(450)
+                hs = m.evaluate(COPY_HOWBOX, k)
+                ok(f"★ 手機 {route}「?」（{k}）跳出來只有標題＋條列、沒有附註段",
+                   bool(hs) and hs["open"] and hs["fine"] == 0 and not hs["tail"], hs)
+                m.keyboard.press("Escape"); m.wait_for_timeout(300)
+    finally:
+        m.close()
 
 
 def t_rot_all_trails(pg, b, base):
