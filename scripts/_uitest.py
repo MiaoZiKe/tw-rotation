@@ -19192,6 +19192,12 @@ def _cg_chip(pg, sel: str, wait: int = 800):
     if pg.evaluate("""(s) => { const c = document.querySelector(s), b = document.getElementById('segDDBtn');
         if (!c || !b || b.offsetParent === null) return false;
         const r = c.getBoundingClientRect(); return !(r.width > 0 && r.height > 0); }""", sel):
+        # 先把下拉鈕瞬間捲到畫面中間、等捲動停：選完一格之後頁面可能還在把圖上那一格帶進視野，
+        # 這時候直接點會點到正在移動的鈕（實測被圖本身擋到：「svg … intercepts pointer events」）
+        settle_scroll(pg)
+        pg.evaluate("() => { const b = document.getElementById('segDDBtn'); const r = b.getBoundingClientRect();"
+                    " window.scrollBy({ top: r.top - innerHeight / 2, behavior: 'instant' }); }")
+        settle_scroll(pg)
         click(pg, "#segDDBtn", 250)
     return click(pg, sel, wait)
 

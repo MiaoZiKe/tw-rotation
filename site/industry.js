@@ -1075,8 +1075,12 @@
       { const bb = $('#segDDBtn b', el); if (bb) bb.textContent = !segsOn.length ? '全部'
           : (segsOn.length === 1 ? segName(sc, segsOn[0]) : `${segsOn.length} 格（${(A.L.gname[state.group] || '族群')}）`); }
       /* 右欄只列選中的那幾格；一格都沒選就整欄收掉（.hassel 由 CSS 決定要不要切成兩欄） */
-      $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', segsOn.includes(c.dataset.seg)));
-      { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', segsOn.length > 0); }
+      /* ⚠ 點剖析圖的零件（partHi）也會亮一格，但那時候**不開右欄**：右欄一開圖就變窄重畫、整頁高度跟著變，
+         使用者明明在上面看剖析圖，下面的關聯圖卻整張跳一下（驗收「點零件不會把畫面捲走」就是在守這件事）。
+         右欄只回應「真的選了一格」：下拉、點公司卡、點圖上的環節標題。*/
+      const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
+      $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
+      { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
       /* 退版之後「選起來」的視覺回到分層圖的公司卡與環節卡清單上，
          由 highlightSegments 一次做完（它同時處理剖析圖、分層圖、環節卡）。*/
       /* 環節詳情 `#segBox` ＝ Andy 說的「點擊後才會跳出的下拉清單」：
@@ -2015,9 +2019,9 @@
         const t2 = map2 && !map2.hidden && ($(`.chainmap .segtitle[data-seg="${seg}"]`, root) || $(`.chainmap .co[data-segment="${seg}"]`, root));
         if (!t2) return;
         const r = t2.getBoundingClientRect(), mr = map2.getBoundingClientRect();
-        if (r.width > 0 && (r.left < mr.left || r.right > mr.right)) map2.scrollTo({ left: Math.max(0, map2.scrollLeft + (r.left - mr.left) - 40), behavior: 'smooth' });
-        if (r.height > 0 && (r.top < 70 || r.bottom > window.innerHeight - 20)) window.scrollBy({ top: r.top - Math.round(window.innerHeight / 3), behavior: 'smooth' });
-      }, 280);
+        if (r.width > 0 && (r.left < mr.left || r.right > mr.right)) map2.scrollTo({ left: Math.max(0, map2.scrollLeft + (r.left - mr.left) - 40), behavior: 'instant' });
+        if (r.height > 0 && (r.top < 70 || r.bottom > window.innerHeight - 20)) window.scrollBy({ top: r.top - Math.round(window.innerHeight / 3), behavior: 'instant' });   // 瞬間到位：平滑捲動會拖好幾百毫秒，期間下拉鈕在游標底下一直移動，接著點什麼都會點歪
+      }, 200);
       return;
     }
     const chip = $(`#segChips .segchip[data-seg="${seg}"]`, root);
