@@ -645,16 +645,28 @@ def check_3d(pg):
     # 驗收 2：點零件要亮起來，而且帶出這個環節的台股
     seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
     pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
-    b4 = pg.evaluate("() => ({ box: (document.getElementById('segBox')||{}).innerText || '' })")
+    # ★ 2026-09-25（stale-reds）改前→改後：
+    #   改前：點 3D 零件 → 圖下方環節面板 #segBox 換字、裡面有 a.lk 台股連結。
+    #   改後：桌機（>820）#segBox 整塊拿掉（Andy，29149fc）；3D 跟 2D 共用 pickPart，
+    #         「這個零件有哪些台股」現在由剖析圖下方的零件小卡 #partCard 回答（台股是 #stock/ 連結）。
+    #         手機寬由 #segBox 回答，這段在桌機跑所以兩個都量、依寬度選一個。
+    PC3 = """() => { const b = document.getElementById('partCard'), v = !!b && !b.hidden && b.getClientRects().length > 0;
+        const sb = document.getElementById('segBox');
+        return { box: v ? b.innerText : '', links: v ? [...b.querySelectorAll('a')].filter(a => (a.getAttribute('href') || '').startsWith('#stock/')).length : 0,
+                 segBox: sb ? sb.innerText : '', segLinks: document.querySelectorAll('#segBox a.lk').length, wide: innerWidth > 820,
+                 sel: document.querySelectorAll('.lbl3d.sel').length, dim: document.querySelectorAll('.lbl3d.dim').length }; }"""
+    b4 = pg.evaluate(PC3)
     pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
-    af = pg.evaluate("""() => ({ box: (document.getElementById('segBox')||{}).innerText || '',
-        sel: document.querySelectorAll('.lbl3d.sel').length,
-        dim: document.querySelectorAll('.lbl3d.dim').length,
-        links: document.querySelectorAll('#segBox a.lk').length })""")
+    af = pg.evaluate(PC3)
     ok("點 3D 零件會亮起來、其餘變暗", af["sel"] > 0 and af["dim"] > 0, af)
-    # 不能比長度：這頁前面的驗收可能已經選過別的環節，說明框本來就有字
-    ok("點 3D 零件會帶出這個環節的台股",
-       af["links"] > 0 and len(af["box"]) > 0 and af["box"] != b4["box"], {"before": b4["box"][:30], **af})
+    # 不能比長度：這頁前面的驗收可能已經選過別的零件，小卡本來就有字 —— 比「內容換了」
+    if af["wide"]:
+        ok("點 3D 零件會帶出這個零件的台股（桌機：零件小卡，可點進個股頁）",
+           af["links"] > 0 and len(af["box"]) > 0 and af["box"] != b4["box"], {"before": b4["box"][:30], **{k: af[k] for k in ("links", "sel", "dim")}, "box": af["box"][:40]})
+        ok("[桌機] 點 3D 零件之後圖下方不會長出環節面板（#segBox 空）", af["segBox"].strip() == "" and af["segLinks"] == 0, af["segBox"][:40])
+    else:
+        ok("點 3D 零件會帶出這個環節的台股",
+           af["segLinks"] > 0 and af["segBox"] != b4["segBox"], {"before": b4["segBox"][:30], "links": af["segLinks"]})
     # 點標籤也要能選（小零件用滑鼠很難打到，點名字是主要路徑）
     lp = pg.evaluate("""() => { const cur = (document.querySelector('.lbl3d.sel')||{dataset:{}}).dataset.seg;
         for (const e of document.querySelectorAll('.lbl3d')) { const r = e.getBoundingClientRect();
@@ -1909,6 +1921,12 @@ def seg_codes(pg_):
                         ".map(a => (a.getAttribute('href')||'').replace('#stock/','')).sort().join(',')")
 
 
+# 圖右邊 #relList 目前「選中的那一格」（桌機 >820px 才有）：環節 id、幾檔可點的台股、看不看得到、連結去哪
+REL_ON = """() => [...document.querySelectorAll('#relList .rlseg.on')].map(e => ({ seg: e.dataset.seg,
+    links: e.querySelectorAll('a.rlco').length, vis: e.getClientRects().length > 0 && e.offsetParent !== null,
+    hrefs: [...e.querySelectorAll('a.rlco')].map(a => a.getAttribute('href') || '').slice(0, 5) }))"""
+
+
 def seg_applied(pg_):
     """「只看這一格」到底有沒有被**套用**（segFilter），不是只有「亮起來」（segHi）。
 
@@ -1961,16 +1979,33 @@ def t_industry(pg, base):
         b_rows = seg_stocks(pg)
         _cg_chip(pg, "#segChips .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
+            selSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(e => e.dataset.seg),
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         a_rows = seg_stocks(pg)
         changed("點環節 chip 真的選起來了", before["sel"], after["sel"])
-        ok("點環節 chip 圖下方真的列出那一格的台股（成分股表的新家）",
-           a_rows > 0 and a_rows != b_rows, f"{b_rows} → {a_rows}")
+        # ★ 2026-09-25（stale-reds）改前→改後：
+        #   改前：點色標後「圖下方」環節面板 #segBox 列出那一格的台股（a_rows > 0）。
+        #   改後：這一段跑在 1500px（桌機）—— Andy 要求桌機整塊環節資訊面板拿掉（29149fc，
+        #   industry.js renderSegBox 在 >820px 直接清空），所以 #segBox 必須是 0 檔；
+        #   「這一格有哪幾檔」的現行答案是圖右邊的 #relList（.rlseg.on 裡的 a.rlco，每一檔都連到個股頁）。
+        #   ≤820 的手機寬照舊由 #segBox 回答，這段不跑窄畫面。
+        rl = pg.evaluate(REL_ON)
+        if pg.evaluate("() => innerWidth > 820"):
+            ok("[桌機] 點環節 chip 之後圖下方不再長出環節面板（#segBox 0 檔、沒有「只看這一格」）",
+               a_rows == 0 and not pg.evaluate("() => !!document.getElementById('segOnly')"), a_rows)
+            ok("[桌機] 點環節 chip 圖右邊 #relList 真的列出那一格的台股（面板的現行替代，可點進個股頁）",
+               len(rl) == 1 and rl[0]["seg"] in after["selSeg"] and rl[0]["links"] > 0 and rl[0]["vis"]
+               and all(h.startswith("#stock/") for h in rl[0]["hrefs"]), rl)
+        else:
+            ok("點環節 chip 圖下方真的列出那一格的台股（成分股表的新家）",
+               a_rows > 0 and a_rows != b_rows, f"{b_rows} → {a_rows}")
         # 退版之後篩選在圖上的樣子＝不屬於那一格的**公司卡**被壓暗
         # （一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選）
         changed("點環節 chip 圖上真的把不相干的公司卡壓暗了", before["dim"], after["dim"])
         _cg_chip(pg, "#segChips .segchip.sel", 500)
-        ok("再點一次真的取消（環節詳情收掉）", seg_stocks(pg) == 0, seg_stocks(pg))
+        # （改前只量 #segBox 0 檔 —— 桌機那裡本來就是 0，量了等於沒量；改後一併量右欄真的收掉）
+        ok("再點一次真的取消（環節詳情收掉、右欄 #relList 沒有選中的那一格）",
+           seg_stocks(pg) == 0 and pg.evaluate(REL_ON) == [], [seg_stocks(pg), pg.evaluate(REL_ON)])
         _cg_close_filter(pg)
 
     # --- 點關聯圖上的公司卡：選取狀態要真的換過去（退版之後節點是公司卡，不是族群大圓點）
@@ -1988,24 +2023,37 @@ def t_industry(pg, base):
         # 先把剖析圖捲進畫面再記位置，否則量到的是測試自己捲的，不是頁面被點擊帶走的
         pg.evaluate("document.querySelector('#prodDiagram [data-seg]').scrollIntoView({block:'center'})")
         settle_scroll(pg)
-        before = pg.evaluate("""() => ({ y: Math.round(scrollY),
-            seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent })""")
+        # ★ 2026-09-25（stale-reds）改前→改後：
+        #   改前：點零件 → 圖下方環節面板 #segBox 在原地說明（b.t 標題）＋「只看這一格 →」#segOnly，
+        #         按了變「已只看這一格」。
+        #   改後：桌機（>820）#segBox 整塊拿掉（Andy，29149fc）。點零件的「原地說明」現在是剖析圖正下方的
+        #         零件小卡 #partCard（零件名 .pc-t、做這個的台股連結），「只看這一格」的現行入口是小卡上的
+        #         「環節：XX →」#pcSeg（按了才真的篩選：右欄 #relList 長出那一格、下拉顯示那一格）。
+        #   DECISIONS #73（點零件只亮不篩）守法不變：點零件之後右欄 #relList 不可以打開。
+        PC = """() => { const b = document.getElementById('partCard'), vis = !!b && !b.hidden && b.getClientRects().length > 0;
+            return { vis, t: vis ? (b.querySelector('.pc-t') || {}).textContent || '' : '', seg: vis ? ((b.querySelector('#pcSeg') || {}).textContent || '') : '',
+                     links: vis ? [...b.querySelectorAll('a')].filter(a => (a.getAttribute('href') || '').startsWith('#stock/')).length : 0 }; }"""
+        before = pg.evaluate("() => ({ y: Math.round(scrollY) })")
+        before["pc"] = pg.evaluate(PC)
         click(pg, "#prodDiagram [data-seg]", 800)
         after = pg.evaluate("""() => ({ y: Math.round(scrollY),
-            seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent,
             sel: document.querySelectorAll('#prodDiagram [data-seg].sel').length,
-            btn: (document.getElementById('segOnly') || {}).textContent || '' })""")
+            segBox: ((document.getElementById('segBox') || {}).innerHTML || '').trim().length,
+            segOnly: !!document.getElementById('segOnly') })""")
+        after["pc"] = pg.evaluate(PC); after["rel"] = pg.evaluate(REL_ON)
         ok("點零件會亮起來", after["sel"] > 0, after)
-        ok("點零件會在原地說明這個環節", bool(after["seg"]) and after["seg"] != before["seg"], f"{before['seg']} → {after['seg']}")
-        # ★ 「只亮不聚焦」改成量那顆按鈕的字：還沒套用時寫「只看這一格 →」，
-        #   套用之後才變成「已只看這一格」。這是畫面上真的看得到的差別，不是內部旗標。
-        ok("點零件不會自己把整張圖聚焦到那一格", "已" not in after["btn"], after["btn"])
+        ok("點零件會在原地說明這個零件（剖析圖下方的零件小卡打開、寫出零件名與做這個的台股）",
+           after["pc"]["vis"] and bool(after["pc"]["t"]) and after["pc"]["t"] != before["pc"]["t"], [before["pc"], after["pc"]])
+        ok("[桌機] 點零件之後圖下方不再長出環節面板（#segBox 空、沒有 #segOnly）",
+           after["segBox"] == 0 and not after["segOnly"], after)
+        ok("點零件不會自己把整張圖聚焦到那一格（右欄 #relList 沒打開，DECISIONS #73）", after["rel"] == [], after["rel"])
         ok("點零件不會把畫面捲走", abs(after["y"] - before["y"]) < 40, f"{before['y']} → {after['y']}")
-        ok("說明框有「只看這一格」的按鈕", bool(after["btn"]), after)
-        # 按了那顆按鈕才真的聚焦
-        click(pg, "#segOnly", 900)
-        btn2 = pg.evaluate("() => (document.getElementById('segOnly') || {}).textContent || ''")
-        changed("按「只看這一格」之後按鈕真的換成「已只看這一格」", after["btn"], btn2)
+        ok("零件小卡有「環節：XX →」這顆（「只看這一格」的現行入口）", after["pc"]["seg"].startswith("環節："), after["pc"])
+        # 按了那顆才真的聚焦：右欄長出那一格、而且有可點的個股
+        click(pg, "#pcSeg", 900)
+        rl2 = pg.evaluate(REL_ON)
+        changed("按小卡上的「環節：XX →」之後右欄真的長出那一格（真的篩選了）", after["rel"], rl2)
+        ok("而且右欄那一格列出可點進個股頁的台股", len(rl2) == 1 and rl2[0]["links"] > 0, rl2)
 
     # --- 剖析圖零件：點下去要亮起來
     if count(pg, "#prodDiagram [data-part]"):
