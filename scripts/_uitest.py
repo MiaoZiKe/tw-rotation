@@ -14884,12 +14884,15 @@ def t_ov_right(pg, base):
         _ovfx_checks(pg, f"[總覽右欄][{th}][1440]", dark=(th == "dark"))
     # 其他寬度：側欄打開（預設）時 1440＝294px、1280＝241px；側欄收起 1440≈454px；1024 單欄 ≈ 574px
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    # ⚠ tw.side 量完要還原成原本的值（驗收框架預設把側欄收起＝'0'；拿掉這個 key 會讓後面的段落在側欄打開的窄版面下跑、整批假紅）
+    side0 = pg.evaluate("() => { try { return localStorage.getItem('tw.side'); } catch (e) { return null; } }")
     for w, side in ((1280, None), (1024, None), (1440, "0")):
         pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
         pg.set_viewport_size({"width": w, "height": 1000}); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
         _ovfx_checks(pg, f"[總覽右欄][{w}{'・側欄收起' if side == '0' else ''}]")
-    pg.evaluate("() => { try { localStorage.removeItem('tw.side'); } catch (e) {} }")
+    pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side0)
     pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1200)
     # 減少動態：只畫靜態
     ctx = pg.context.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
     p2 = ctx.new_page()
