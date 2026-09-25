@@ -201,6 +201,13 @@ def intraday_since(codes: list[str], markets: dict[str, str], since: str | None,
 # 改成管線在 Actions 端抓、增量進資料湖 `index_intraday`，前端只讀（DECISIONS #155）。
 # 指數代號不能走 symbol_of()（那會加上 .TW），所以另外一張對照表。
 INDEX_SYMBOLS = {"^TWII": "TSE", "^TWOII": "OTC"}
+# 同一個指數在 Yahoo 可能掛不同代號：依序試，第一個有資料的就用，後面不再打。
+# 為什麼（2026-09-25）：Actions 實測 ^TWOII 分 K 回「No data found」。WebSearch 查證：
+#   · Investing.com 把櫃買指數標成 TWOII（https://www.investing.com/indices/tpex）
+#   · Bloomberg 的代號是 TWOTCI（https://www.bloomberg.com/quote/TWOTCI:IND）
+#   Yahoo 上沒有找到任何一篇原文寫出「^TWOTCI 有分 K」—— 這是低信心的候選，只能在 Actions 看 log 定案。
+#   試不到就算了（每個候選一次請求），櫃買改由 FinMind 分 K 那條補（run_daily.collect_kbar_60m）。
+INDEX_CANDIDATES = {"TSE": ["^TWII"], "OTC": ["^TWOII", "^TWOTCI"]}
 
 
 def index_intraday(interval: str, period: str,
@@ -210,14 +217,21 @@ def index_intraday(interval: str, period: str,
     ^TWOII 在 Yahoo 的**日線**壞過（config.py 註解），分 K 能不能用只能在 Actions 上看 log；
     拿不到就只有加權，不影響其他步驟。
     """
-    symbols = symbols or INDEX_SYMBOLS
+    if symbols is None:
+        cands = INDEX_CANDIDATES
+    else:
+        cands = {}
+        for ysym, sym in symbols.items():
+            cands.setdefault(sym, []).append(ysym)
     try:
         import yfinance as yf
     except ImportError:
         log.warning("未安裝 yfinance，跳過指數分 K")
         return pd.DataFrame()
     frames = []
-    for ysym, sym in symbols.items():
+    for sym, ysym in ((s_, y) for s_, ys in cands.items() for y in ys):
+        if any((f["symbol"] == sym).any() for f in frames):
+            continue            # 這個指數前一個候選代號已經拿到了
         try:
             raw = yf.download(ysym, interval=interval, period=period, auto_adjust=False,
                               progress=False, threads=False)

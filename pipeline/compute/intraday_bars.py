@@ -118,16 +118,38 @@ def ticks_to_60m(ticks: pd.DataFrame) -> pd.DataFrame:
     逐筆欄位：date（"YYYY-MM-DD HH:MM:SS"，台北時間）, contract_date, price, volume。
     近月＝那一個盤裡成交量最大的單一月份（帶 `/` 的是價差單，丟掉）—— 跟日 K 的 `_near_month` 同一口徑。
     """
-    if ticks is None or ticks.empty or "date" not in ticks.columns:
+    if ticks is None or ticks.empty or "date" not in ticks.columns or "price" not in ticks.columns:
         return pd.DataFrame()
     d = ticks.copy()
-    d = d[~d.get("contract_date", pd.Series("", index=d.index)).astype(str).str.contains("/", na=False)]
-    d["price"] = pd.to_numeric(d.get("price"), errors="coerce")
+    d["ts"] = d["date"]
+    for c in ("open", "high", "low", "close"):
+        d[c] = d["price"]
+    return kbar_to_60m(d, futures=True)
+
+
+def kbar_to_60m(kbar: pd.DataFrame, symbol: str | None = None, futures: bool = False) -> pd.DataFrame:
+    """1 分 K（或逐筆，已轉成 ts/open/high/low/close/volume）→ 60 分 K，照 session_key 切。
+
+    為什麼存 60 分而不是 1 分（2026-09-25）：`build()` 的合成只需要整點以下的顆粒，
+    60 分由 1 分聚合時高低點是真的盤中極值；存 60 分每天每個指數只有 5 列，資料湖不會被 1 分 K 撐大。
+    futures=True：分日盤 FUT／夜盤 FUT_N，每個盤挑成交量最大的單一月份當近月（價差單帶 `/`，丟掉）。
+    否則整份都標成 `symbol`（例：OTC）。指數量固定 0 也照存。
+    """
+    if kbar is None or kbar.empty or "ts" not in kbar.columns:
+        return pd.DataFrame()
+    d = kbar.copy()
+    if futures:
+        d = d[~d.get("contract_date", pd.Series("", index=d.index)).astype(str).str.contains("/", na=False)]
+    for c in ("open", "high", "low", "close"):
+        d[c] = pd.to_numeric(d.get(c), errors="coerce")
     d["volume"] = pd.to_numeric(d.get("volume"), errors="coerce").fillna(0)
-    d = d[d["price"] > 0]
+    d = d[d["close"] > 0]
     if d.empty:
         return pd.DataFrame()
-    d["t"] = wall_seconds(d["date"])
+    d["open"] = d["open"].fillna(d["close"])
+    d["high"] = d["high"].fillna(d["close"])
+    d["low"] = d["low"].fillna(d["close"])
+    d["t"] = wall_seconds(d["ts"])
     d = d.dropna(subset=["t"])
     d["t"] = d["t"].astype("int64")
     d["day"] = d["t"].map(trade_day_of)
@@ -135,12 +157,17 @@ def ticks_to_60m(ticks: pd.DataFrame) -> pd.DataFrame:
     d["night"] = (minute >= NIGHT_START) | (minute < NIGHT_END)
     rows = []
     for (day, night), g in d.groupby(["day", "night"]):
-        near = g.groupby(g["contract_date"].astype(str))["volume"].sum().idxmax()
-        g = g[g["contract_date"].astype(str) == near].sort_values("t", kind="stable")
-        g = g.assign(open=g["price"], high=g["price"], low=g["price"], close=g["price"])
+        if futures:
+            cd = g.get("contract_date", pd.Series("", index=g.index)).astype(str)
+            near = g.groupby(cd)["volume"].sum().idxmax()
+            g = g[cd == near]
+            sym = "FUT_N" if night else "FUT"
+        else:
+            sym = symbol
+        g = g.sort_values("t", kind="stable")
         for b in synth(g[["t", "open", "high", "low", "close", "volume"]], "H1"):
             ts = (pd.Timestamp("1970-01-01") + pd.Timedelta(seconds=b[0])).tz_localize(TZ)
-            rows.append({"ts": ts.isoformat(), "symbol": "FUT_N" if night else "FUT",
+            rows.append({"ts": ts.isoformat(), "symbol": sym,
                          "interval": "60m", "open": b[1], "high": b[2], "low": b[3],
                          "close": b[4], "volume": b[5]})
     return pd.DataFrame(rows)

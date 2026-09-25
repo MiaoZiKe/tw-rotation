@@ -345,7 +345,34 @@ def collect_futures_60m(day: str) -> pd.DataFrame:
         if fut["ts"].astype(str).str.startswith(str(day)).any():
             log.info("台指期 %s 的 60 分 K 已在湖裡，跳過", day)
             return pd.DataFrame()
-    return ticks_to_60m(finmind.futures_ticks(str(day)))
+    out = ticks_to_60m(finmind.futures_ticks(str(day)))
+    if out.empty:
+        # 逐筆在 register 等級回 400（2026-09-25 Actions 實測），改試期貨分 K；兩條都沒有就回空、記 log。
+        from .compute.intraday_bars import kbar_to_60m
+        out = kbar_to_60m(finmind.futures_kbar(str(day)), futures=True)
+    return out
+
+
+def collect_otc_60m(day: str) -> pd.DataFrame:
+    """櫃買某一天的 60 分 K：Yahoo 沒有時改用 FinMind 指數 1 分 K 聚合。湖裡已有那天就不花額度。
+
+    為什麼（2026-09-25）：Yahoo ^TWOII 分 K 回「No data found」；證交所 mis_ohlc_OTC.txt 不是
+    getStockInfo.jsp、不在管線白名單，所以只剩 FinMind（白名單）這條。代號依序試 OTC_KBAR_IDS。
+    """
+    from .compute.intraday_bars import kbar_to_60m
+
+    have = store.read("index_intraday")
+    if not have.empty:
+        otc = have[have["symbol"].astype(str) == "OTC"]
+        if otc["ts"].astype(str).str.startswith(str(day)).any():
+            log.info("櫃買 %s 的分 K 已在湖裡，跳過", day)
+            return pd.DataFrame()
+    for data_id in finmind.OTC_KBAR_IDS:
+        out = kbar_to_60m(finmind.index_kbar(str(day), data_id), symbol="OTC")
+        if not out.empty:
+            log.info("櫃買 %s 分 K 由 FinMind TaiwanStockKBar data_id=%s 取得 %d 根 60 分", day, data_id, len(out))
+            return out
+    return pd.DataFrame()
 
 
 def main() -> int:
@@ -485,6 +512,7 @@ def main() -> int:
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:
         save("index_intraday", step("finmind.futures_60m", collect_futures_60m, trade_date))
+        save("index_intraday", step("finmind.otc_60m", collect_otc_60m, trade_date))
 
     if not light and not news_only and not args.skip_finmind and trade_date:
         codes = universe(args.universe)

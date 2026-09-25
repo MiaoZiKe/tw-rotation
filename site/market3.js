@@ -1130,7 +1130,7 @@
     }
     if (cur) out.push(cur);
     const days = new Set(out.map(b => sessKey(b[0], 'H4'))).size;
-    const why = f.err === 'NOSRC' ? '的多日分 K 資料湖還沒有（台指期要等 FinMind 逐筆入湖）'
+    const why = f.err === 'NOSRC' ? '的多日分 K 資料湖還沒有（加權走 Yahoo；櫃買、台指期只剩 FinMind 分 K 這條合規來源，我們的會員等級可能拿不到）'
       : f.err ? '的分 K 資料湖還沒有、瀏覽器端也抓不到' : '';
     return { bars: out, n15: b15.length, days, today: today.length, why };
   }
@@ -1422,7 +1422,7 @@
       note.textContent = state.mode !== 'k'
         ? '紅／綠對照昨收；下方是每分鐘成交量。時間軸固定到收盤，空白＝還沒走到。'
         : histDef(state.tf)
-        ? '日／週／月／季來自資料湖（FinMind：加權 TAIEX、櫃買 TPEx、台指期 TX 近月），週月季是拿日線合成的；1 小時／4 小時走 Yahoo，只有加權有。' + lakeSpan()
+        ? '日／週／月／季來自資料湖（FinMind：加權 TAIEX、櫃買 TPEx、台指期 TX 近月），週月季是拿日線合成的；1 小時／4 小時來自資料湖的分 K（加權：Yahoo；櫃買、台指期：FinMind 分 K，會員等級拿不到時就只有當天分時）。' + lakeSpan()
         : '分 K 由每分鐘指數收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。指標與個股共用同一組設定。';
     }
     // 台指期的日盤／夜盤鈕：選中的要亮起來（以前藏在 drawFutNight 裡，拆掉之後移到這裡）

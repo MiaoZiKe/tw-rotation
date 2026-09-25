@@ -524,3 +524,104 @@ def test_篩選器在真實評估集上的precision與recall沒有退步():
     res = mod.evaluate(mod.load_labels())
     assert res["precision"] >= 0.85, f"precision 掉到 {res['precision']:.3f}"
     assert res["recall"] >= 0.85, f"recall 掉到 {res['recall']:.3f}"
+
+
+
+# ------------------------------------------------------------ 櫃買／台指期分 K（2026-09-25，假回應）
+def _kbar_rows(day="2026-09-24", minutes=("09:01:00", "09:59:00", "10:01:00", "13:30:00"), extra=None):
+    rows = []
+    for i, m in enumerate(minutes):
+        r = {"date": day, "minute": m, "open": 100 + i, "high": 101 + i, "low": 99 + i,
+             "close": 100.5 + i, "volume": 0}
+        r.update(extra or {})
+        rows.append(r)
+    return rows
+
+
+def test_index_kbar_to_60m(monkeypatch):
+    from pipeline.compute.intraday_bars import kbar_to_60m
+    from pipeline.util import http
+    monkeypatch.setattr(http, "finmind_get", lambda *a, **k: _kbar_rows(extra={"stock_id": "TPEx"}))
+    out = kbar_to_60m(finmind.index_kbar("2026-09-24", "TPEx"), symbol="OTC")
+    assert list(out["symbol"].unique()) == ["OTC"]
+    assert list(out["interval"].unique()) == ["60m"]
+    assert len(out) == 3                       # 09、10、13 三根
+    first = out.iloc[0]
+    assert first["high"] == 102 and first["low"] == 99   # 09:01 與 09:59 兩根的真實極值
+
+
+def test_index_kbar_bad_columns_logs_head(monkeypatch, caplog):
+    from pipeline.util import http
+    monkeypatch.setattr(http, "finmind_get", lambda *a, **k: [{"weird": 1}])
+    with caplog.at_level("WARNING"):
+        assert finmind.index_kbar("2026-09-24", "TPEx").empty
+    assert "weird" in caplog.text               # 前 200 字真的進了 log
+
+
+def test_index_kbar_denied_returns_empty(monkeypatch):
+    from pipeline.util import http
+    monkeypatch.setattr(http, "finmind_get", lambda *a, **k: None)
+    assert finmind.index_kbar("2026-09-24", "TPEx").empty
+    assert finmind.futures_kbar("2026-09-24").empty
+
+
+def test_futures_kbar_near_month_and_night(monkeypatch):
+    from pipeline.compute.intraday_bars import kbar_to_60m
+    from pipeline.util import http
+    rows = (_kbar_rows(minutes=("08:46:00", "09:30:00"), extra={"contract_date": "202610", "volume": 50})
+            + _kbar_rows(minutes=("09:30:00",), extra={"contract_date": "202611", "volume": 1})
+            + _kbar_rows(minutes=("09:30:00",), extra={"contract_date": "202610/202611", "volume": 999})
+            + _kbar_rows(minutes=("15:30:00",), extra={"contract_date": "202610", "volume": 5}))
+    monkeypatch.setattr(http, "finmind_get", lambda *a, **k: rows)
+    out = kbar_to_60m(finmind.futures_kbar("2026-09-24"), futures=True)
+    assert set(out["symbol"]) == {"FUT", "FUT_N"}
+    day = out[out["symbol"] == "FUT"]
+    assert len(day) == 1 and day.iloc[0]["volume"] == 100   # 價差單與遠月都沒混進來
+
+
+def test_yahoo_index_tries_candidates(monkeypatch):
+    import sys, types
+    asked = []
+
+    def dl(sym, **k):
+        asked.append(sym)
+        if sym in ("^TWII", "^TWOTCI"):
+            idx = pd.DatetimeIndex(["2026-09-24 09:00"]).tz_localize("Asia/Taipei")
+            return pd.DataFrame({"Open": [1.0], "High": [1.0], "Low": [1.0], "Close": [1.0],
+                                 "Volume": [0]}, index=idx)
+        return pd.DataFrame()
+    monkeypatch.setitem(sys.modules, "yfinance", types.SimpleNamespace(download=dl))
+    out = yahoo.index_intraday("60m", "5d")
+    assert asked == ["^TWII", "^TWOII", "^TWOTCI"]
+    assert set(out["symbol"]) == {"TSE", "OTC"}
+
+
+def test_collect_otc_60m_skips_when_in_lake(monkeypatch):
+    from pipeline import run_daily
+    from pipeline.util import store
+    called = []
+    monkeypatch.setattr(store, "read", lambda t: pd.DataFrame(
+        {"ts": ["2026-09-24T09:00:00+08:00"], "symbol": ["OTC"]}))
+    monkeypatch.setattr(finmind, "index_kbar", lambda *a, **k: called.append(a) or pd.DataFrame())
+    assert run_daily.collect_otc_60m("2026-09-24").empty
+    assert not called                          # 湖裡已有那天就不花額度
+    monkeypatch.setattr(store, "read", lambda t: pd.DataFrame())
+    run_daily.collect_otc_60m("2026-09-24")
+    assert [a[1] for a in called] == finmind.OTC_KBAR_IDS   # 依序試每個候選代號
+
+
+
+def test_backfill_otc_marks_unavailable_after_empties(monkeypatch):
+    from pipeline import run_backfill
+    from pipeline.util import http, store
+    days = pd.DataFrame({"date": ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24"],
+                         "symbol": ["OTC"] * 4})
+    monkeypatch.setattr(store, "read", lambda t: days if t == "index_ohlc" else pd.DataFrame())
+    monkeypatch.setattr(http, "finmind_budget_left", lambda: 500)
+    monkeypatch.setattr(http, "finmind_last_error", lambda: None)
+    calls = []
+    monkeypatch.setattr(finmind, "index_kbar", lambda d, i, **k: calls.append((d, i)) or pd.DataFrame())
+    flag = {}
+    assert run_backfill._backfill_otc_kbar(flag, pd.DataFrame(), 60) is True
+    assert "otc_unavailable" in flag
+    assert len(calls) == 3 * len(finmind.OTC_KBAR_IDS)   # 3 天就停，不會把 60 天的額度燒完
