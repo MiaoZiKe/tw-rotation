@@ -7622,6 +7622,9 @@ def t_relpanel(pg, base):
     ok("寬螢幕時面板在圖的旁邊，不是擠在下面", st["side"] and st["beside"], st)
 
     # ---- 真的按 highlight：圖上的線要變
+    # 2026-09-25：先把滑鼠移開圖 —— _cg_open_stock 用真滑鼠點公司，游標若還停在節點上，
+    # 滑過提亮會讓「按之前」就已經一堆線是暗的，整條比較失準（多段一起跑時才會發作）。
+    pg.mouse.move(2, 2); pg.wait_for_timeout(300)
     before = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap .edge.hi').length,
                                      dim: document.querySelectorAll('#chainMap .edge.dim').length })""")
     pg.eval_on_selector("#relHi", "b => b.click()")

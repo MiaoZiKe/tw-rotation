@@ -1008,8 +1008,8 @@ edges:
   - {from: hta,      to: tsmc,   rel: supplies, item: "先進封裝點膠 / 檢測設備", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: hta,      to: pti,    rel: supplies, item: "封裝設備", strength: 1, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: allring,  to: ase,    rel: supplies, item: "點膠 / 封裝設備", strength: 3, confidence: verified,
-     note: "日月光向萬潤採購設備含稅約 10.86 億元，約當萬潤 2025 年全年營收 20.2%",
-     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/6006991"}
+     note: "2026 年日月光（含矽品）多次公告向萬潤取得機器設備，單筆約 10～19 億元（例：矽品 7 批 18.93 億元）。原寫的『約當萬潤 2025 年營收 20.2%』查不到出處，已刪。",
+     source: "鉅亨網（日月光投控觀測站公告）", source_url: "https://news.cnyes.com/news/id/6524336"}
 
   # ================================ 封測 / 測試介面
   - {from: kyec,     to: nvidia, rel: supplies, item: "AI 晶片測試", strength: 4, confidence: reported,
@@ -1068,7 +1068,7 @@ edges:
      note: "★ 只有 Digitimes 一個原始來源（獨家），其餘媒體皆為轉述，尚未取得第二個獨立佐證",
      source: "DIGITIMES（獨家）", source_url: "https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlID=1&Cat=40&id=0000759074_3Y9LNQ1186LDM13LXJR5A"}
   - {from: wineai,   to: nvidia, rel: supplies, item: "測試座 / 探針卡 / 熱控系統", strength: 4, confidence: reported,
-     note: "Phase 1 設計認證已過，Phase 2 於 2025 年底啟動，簽有至少 5 年長約",
+     note: "法說（2026-05-26）：北美 AI 客戶營收占比逾 80%，客戶未具名；輝達為客戶是媒體報導。原寫的『Phase 2 啟動、至少 5 年長約』兩輪查證都找不到出處，媒體報導未證實，已刪。",
      source: "數位時代", source_url: "https://www.bnext.com.tw/article/60666/winway-nvidia-ic-test-socket"}
   - {from: wineai,   to: amd,    rel: supplies, item: "測試座 / 探針卡", strength: 3, confidence: reported,
      note: "對應 B100／MI400 世代；2025 前三大客戶合計佔合併營收 54.3%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
@@ -1113,7 +1113,7 @@ edges:
   # ================================ IC 載板 → 晶片設計商
   - {from: unimicron, to: nvidia,   rel: supplies, item: "ABF 載板", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: nanya_pcb, to: broadcom, rel: supplies, item: "網通 / ASIC ABF 載板", strength: 4, confidence: reported,
-     note: "網通載板占南電營收 65～70%，主要對應 Broadcom",
+     note: "法說（2026-03-17）：網路通訊應用首季營收占比約 49%（原寫 65～70% 查不到出處，已改）。『博通是南電網通載板大客戶』是媒體說法，公司未具名。",
      source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/q4%E8%BC%89%E6%9D%BF%E6%9A%AB%E7%84%A1%E6%BC%B2%E5%83%B9%E8%A8%88%E7%95%AB-%E5%A4%A7%E5%AE%A2%E6%88%B6%E5%8D%9A%E9%80%9A%E5%B0%87%E8%87%AA%E5%BB%BA%E7%94%A2%E8%83%BD-%E5%8D%97%E9%9B%BB%E7%88%86%E9%87%8F%E8%B7%8C%E5%81%9C-063117937.html"}
   - {from: nanya_pcb, to: amd,      rel: supplies, item: "CPU / GPU ABF 載板", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: kinsus,    to: nvidia,   rel: supplies, item: "CPU / GPU ABF 載板", strength: 3, confidence: reported,
@@ -1156,8 +1156,8 @@ edges:
   - {from: delta,    to: wiwynn,  rel: supplies, item: "電源 / Power Shelf", strength: 3, confidence: reported,
      note: "2026-09-19 補上：緯穎原本完全沒有上游，圖上是斷頭"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: delta,    to: nvidia,  rel: supplies, item: "800V HVDC 電源櫃 / DC-DC 模組", strength: 3, confidence: reported,
-     note: "Vera Rubin 平台，最快 2026H2 出貨",
-     source: "鏈新聞 ABMedia", source_url: "https://abmedia.io/nvidia-800v-hvdc-delta-2027-q1-production"}
+     note: "台達電 2026-04-30 法說：800V 產品 2026 下半年小量出貨、2027 年進入主要貢獻（配合新一代 AI 平台；公司未具名輝達）。另有報導寫『2027Q1 投產』，與法說口徑不同，以法說為準。",
+     source: "科技新報（台達電法說）", source_url: "https://technews.tw/2026/04/30/hvdc-400-800-hvdc/"}
   - {from: liteon,   to: foxconn, rel: supplies, item: "PSU", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: liteon,   to: hyperscaler, rel: supplies, item: "AI 電源櫃 / 110kW Power Shelf", strength: 3, confidence: reported,
      note: "已打入所有北美主要 CSP 供應鏈"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
@@ -1169,8 +1169,12 @@ edges:
      source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/5593524"}
 
   # ================================ 光通訊
-  - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 4, confidence: reported,
-     note: "聯亞最大客戶是國際光模組大廠，不是台廠"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  # ★ 2026-09-25 降級 reported → estimated、strength 4 → 2：兩輪 WebSearch 都找不到聯亞或具名媒體
+  #   講「中際旭創是聯亞客戶」，唯一提到的是 CMoney 論壇摘要；公司公告的長約對象是「美國客戶」。
+  #   保留這條線是因為聯亞 CW 磊晶與中際旭創矽光模組在產業上確實接得起來，但它是推論，不是揭露。
+  - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 2, confidence: estimated,
+     note: "推論依據：聯亞是矽光模組 CW Laser 磊晶的主要供應商，中際旭創是全球最大 800G/1.6T 光模組廠，兩段接起來推測有供貨。缺的是：公司或具名媒體點名中際旭創為客戶；聯亞自己公告的長約對象是『美國客戶』（2027～2030 年 4 年期），未指名。",
+     source: "MoneyDJ", source_url: "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=600a927c-818e-45d6-9bda-8021508a6f48"}
   - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: lpc,      to: luxnet,    rel: outsources_to, item: "CW Laser 晶粒後段製程代工", strength: 2, confidence: estimated,
      note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。推論依據：① MoneyDJ 把台廠定位拆成「CW 磊晶供應商聯亞、CW 晶片代工廠華星光與光環」② 聯亞 2026Q2 法說自承「CW Laser 代工廠產能遠遠不足公司需求，有些訂單委由外面代工廠代工」。缺的是：沒有任何一篇把「華星光是聯亞的代工廠」這個雙方具名的組合講出來",
