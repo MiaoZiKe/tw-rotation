@@ -3018,3 +3018,12 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 原 agent 被中斷（f5bdd15 已完成功能＋驗收段），由 CEO 接手驗收合併：跟熱門題材共用 `ddSingle`，放大視窗內同一種下拉。
 - 修 1 條過時斷言：放大視窗沿用卡片篩選，「選回全部」改驗分組還原（不比 z0）。
 - 這批驗了：資金熱力圖下拉／總覽／淺色主題 0、_preview 綠。
+
+### 09-26 05:4x 一批五件合併上線（breadth-market／stock-offhours-k／inst-filter-fix／kpi-footer-zoom／sankey-fx-only）
+- 漲跌家數分「全部｜上市｜上櫃」：pipeline `compute/flow.py` 新增 `updown_bin`／`updown_distribution`，產 `updown.json`（加總檢查）＋`stocks.json` 每列 `ud`；DECISIONS #263。
+- 個股分 K 非交易時段：livek.js 無今日盤時畫最近交易日（Yahoo 1d→5d），灰點＝非即時；5 秒 K 無收集則退 1 分並註明。
+- 族群×法人：拿掉 ETF；根因 `filterDropdown()` 重建時無條件把第一層跳回選中族群的鏈 → 新增 `ddSync()` 只在選取改變時跟隨（資金去向共用同一支，一起修）。選鏈後長條換成該鏈族群（agent 自加，待 Andy 確認）。
+- KPI 列搬進大盤三張圖工具列（>640 搬、≤640 原位，同一節點，live 更新照舊）；拿掉足跡輪盤「⤢ 放大」與 `openRotZoom`；頁尾不設 1200 上限、跟主內容同寬。
+- 資金去向只留經典光纖（拿掉 #sankeyStyleSeg、忽略 tw.sankey.mode）；代表股預設收起、滑過族群槽位才淡入；修 `總覽右欄` 段刪 `tw.side` 害後續段落假紅。
+- 這批驗了：pytest 586 passed；重算 payload（SKIP_INTRADAY）；漲跌家數市場別／個股分K非交易時段／族群法人篩選／KPI工具列頁尾0926／資金去向經典光纖／資金去向拓撲／總覽／總覽右欄／資金流向／手機／淺色主題 0；`個股` 4 條＝既有紅（寬版切換，串在其他段落後才紅）；_preview 綠。合併衝突：`_uitest` R2 #35 取「放大已拿掉」版＋#47 ETF 註解。
+- 待處理：`個股` 寬版 4 條既有紅；`新-版面等高與多寬度` 找已不存在的 `#themeStrip`；`t_ds2` 量已不存在的 `#hero .card.tight`；`同意條款與法律頁` v-legal null；DECISIONS 待補 #185／#260 放大取消、KPI 搬家、頁尾不設上限。
