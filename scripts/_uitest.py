@@ -14832,7 +14832,9 @@ def t_ov_right(pg, base):
     hp = pg.evaluate("""() => { const p = document.getElementById('howPop'), b = document.getElementById('how-ovflow');
         return { open: !!p && !p.hidden && !!b && p.contains(b), txt: b ? b.innerText : '', ttl: p ? p.querySelector('.hp-h').textContent : '' }; }""")
     ok("[總覽右欄] ★「昨日資金去向」的「?」點得開、標題對", hp["open"] and "昨日資金去向" in hp["ttl"], hp["ttl"])
-    ok("[總覽右欄] 口徑（1/n 拆分、盤後結算、加權指數）搬進「?」", "1/n" in hp["txt"] and "盤後" in hp["txt"] and "加權指數" in hp["txt"], hp["txt"][-160:])
+    # 改前：驗口徑（1/n 拆分、盤後結算）搬進「?」的附註段 → 改後：Andy 2026-09-26「"?" 內說明欄下方的更詳細說明不需要附註」，
+    #   附註段整段拿掉，只驗條列裡仍講清楚起點是「加權指數」、而且沒有附註段。
+    ok("[總覽右欄] 「?」只剩條列、起點講明是加權指數、沒有附註段", "加權指數" in hp["txt"] and "1/n" not in hp["txt"], hp["txt"][-160:])
     pg.mouse.click(6, 300); pg.wait_for_timeout(350)
     ok("[總覽右欄] 點背景就關", pg.evaluate("() => document.getElementById('how-ovflow').hidden && document.getElementById('howBack').hidden"))
     click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
