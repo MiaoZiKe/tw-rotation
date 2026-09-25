@@ -285,6 +285,9 @@
 
 /* 焦點框：外面再多一圈柔光，鍵盤使用者一眼看得到 */
 :root[data-style="immersive"] :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+/* 分頁列是橫向捲動容器，外擴的焦點框會被上下裁掉（實測截圖只剩左右兩個括號）→ 分頁的焦點框往內縮 */
+:root[data-style="immersive"] .tab:focus-visible{outline-offset:-3px}
+:root[data-style="immersive"] .tab.on:focus-visible{outline-color:var(--im-key-ink)}   /* 選中那顆是漸層底，框改用它上面的字色 */
 
 /* 表格表頭：稍微浮起，捲動時像一片壓在資料上的玻璃 */
 :root[data-style="immersive"] th{box-shadow:0 1px 0 var(--line-2),0 6px 10px -8px rgba(0,0,0,.45)}
