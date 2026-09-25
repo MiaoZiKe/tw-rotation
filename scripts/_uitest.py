@@ -13279,6 +13279,8 @@ SECTIONS = {
     "剖析圖卡片限高":      lambda pg, b, base, code: t_dgfit(pg, base),
     # ★ 2026-09-25 Andy：2D 圖也要附股票、所有剖析圖裡的股票都要能點進 K 線頁（⚠ 一律 --workers 1）
     "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
+    # ★ 2026-09-25 Andy 回報「點擊後不會收回」：2D／3D 剖析圖同一時間只展開一張卡片（⚠ 一律 --workers 1）
+    "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -28409,6 +28411,197 @@ def t_dgfit(pg, base):
         ok(f"[3D] {dg}：卡片都在畫布兩側（沒有掉到底下那一排）", st["below"] == 0 and st["hostH"] <= st["ch"] + 40, st)
     pg.evaluate("(s) => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.removeItem('tw.dganim');"
                 " if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side0)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ============================================================================================
+# ★ 2026-09-25 Andy 回報（產業地圖 → 半導體 → 矽晶圓，3D）：「點擊後不會收回」——
+#   左欄 01／06／02／03、右欄 05 同時展開說明全文＋台股，越點越多張。
+#   根因：3D 卡片的收合階數 0 ＝ 全開（一欄塞得下就整欄全開，跟點了哪一張無關）；
+#   2D 收合模式的公式／警語說明卡各自 toggle .open，點背景／Esc 收不掉。
+#   規則（兩種圖一樣）：同一時間最多一張展開說明（被選的那張，或滑過的那張）；
+#   再點同一張 → 0；點背景／Esc → 0；點圖上零件後再點背景 → 0。
+#   「展開」＝那張卡片的說明全文（3D 的 <i>／2D 的 .bd i）真的顯示在畫面上 —— 量畫面，不是量 class。
+#   ⚠ 一律 --workers 1（3D、滑鼠位置、動畫都會互相干擾）。
+# ============================================================================================
+DGC_3D = """() => { const h = document.getElementById('prod3d'); if (!h) return null;
+  const cards = [...h.querySelectorAll('.lbl3d')].filter(e => e.offsetParent && !e.classList.contains('hid'));
+  const no = (e) => (e.querySelector('em.no3d') || {}).textContent || '';
+  const shown = (e) => { const i = e.querySelector('i'); return !!i && getComputedStyle(i).display !== 'none' && i.getBoundingClientRect().height > 0; };
+  return { n: cards.length, mode: ['lr', 'r', 'below'].find(m => h.classList.contains('dgstage--' + m)) || '',
+    exp: cards.filter(shown).map(no), sel: cards.filter(e => e.classList.contains('sel-part')).map(no), nos: cards.map(no) }; }"""
+DGC_2D = """() => { const w = document.getElementById('prodDiagram'); if (!w || w.hidden) return null;
+  const cards = [...w.querySelectorAll('.dgc')].filter(e => e.offsetParent);
+  const no = (e) => (e.querySelector('.no') || {}).textContent || ('note' + [...e.parentNode.children].indexOf(e) + (e.classList.contains('warn') ? 'w' : ''));
+  const shown = (e) => [...e.querySelectorAll('.bd i')].some(i => i.offsetParent && i.getBoundingClientRect().height > 0);
+  const pop = w.querySelector('.dgpop');
+  return { n: cards.length, fold: w.classList.contains('dgfold'),
+    exp: cards.filter(shown).map(no), sel: cards.filter(e => e.classList.contains('sel-part')).map(no),
+    nos: cards.filter(e => e.dataset.seg || e.dataset.part).map(no), notes: cards.filter(e => !e.dataset.seg && !e.dataset.part).map(no),
+    pop: !!(pop && !pop.hidden) }; }"""
+# 找某一張卡片的「標題」那一點（避開台股標籤 —— 點到標籤會進個股頁），捲進畫面後**立刻**回座標
+DGC_PT = """([mode, no]) => { const all = mode === '3d' ? [...document.querySelectorAll('#prod3d .lbl3d')] : [...document.querySelectorAll('#prodDiagram .dgc')];
+  const nf = mode === '3d' ? (e) => (e.querySelector('em.no3d') || {}).textContent || ''
+    : (e) => (e.querySelector('.no') || {}).textContent || ('note' + [...e.parentNode.children].indexOf(e) + (e.classList.contains('warn') ? 'w' : ''));
+  const e = all.find(x => nf(x) === no && x.offsetParent); if (!e) return null;
+  e.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const t = e.querySelector('b') || e; const r = t.getBoundingClientRect();
+  const x = Math.min(r.right - 4, r.left + 34), y = r.top + Math.min(9, r.height / 2);
+  const hit = document.elementFromPoint(x, y);
+  return hit && e.contains(hit) && !hit.closest('a') ? { x, y } : null; }"""
+# 3D 畫布上的「背景」：畫布頂端正中間那一條（模型一律置中、兩側是卡片欄）
+DGC_BG3D = """() => { const c = document.querySelector('#prod3d canvas'); if (!c) return null;
+  c.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = c.getBoundingClientRect();
+  for (const [fx, fy] of [[.5, .02], [.45, .03], [.55, .03], [.5, .98]]) { const x = r.left + r.width * fx, y = r.top + r.height * fy;
+    if (document.elementFromPoint(x, y) === c) return { x, y }; } return null; }"""
+
+
+def _dgc_meas(pg, mode):
+    return pg.evaluate(DGC_3D if mode == "3d" else DGC_2D)
+
+
+def _dgc_click_card(pg, mode, no):
+    """點某一張卡片的標題；最多試 3 次（3D 卡片每幾幀會重排，量和點之間可能換了位置）。
+    點完把滑鼠移開（滑過會展開，要量的是「點擊之後」的狀態），回傳量測結果。"""
+    m = None
+    for _ in range(3):
+        pt = pg.evaluate(DGC_PT, [mode, no])
+        if not pt:
+            pg.wait_for_timeout(300); continue
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(650)
+        pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+        return _dgc_meas(pg, mode)
+    return m
+
+
+def _dgc_bg(pg, mode):
+    pt = pg.evaluate(DGC_BG3D) if mode == "3d" else _dgfit_bg_point(pg)
+    if not pt:
+        return None
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(650)
+    pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+    return _dgc_meas(pg, mode)
+
+
+def t_dgcollapse(pg, base):
+    keep = pg.evaluate("() => { try { return ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null]; } }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    for route, name in (("industry/semiconductor/dg/silicon_wafer", "矽晶圓"), ("industry/ai_server/dg/pcb_rigid", "PCB硬板")):
+        for mode in ("3d", "2d"):
+            tag = f"[{name}/{mode.upper()}]"
+            pg.evaluate("(m) => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.dgOpen', '1');"
+                        " localStorage.setItem('tw.dganim', '0'); localStorage.setItem('tw.dg3d', m === '3d' ? '1' : '0'); } catch (e) {} }", mode)
+            pg.goto("about:blank"); pg.goto(f"{base}#{route}", wait_until="networkidle")
+            if mode == "3d":
+                if not wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d').length > 2", 15000):
+                    ok(f"{tag} 3D 掛得起來", False, "15 秒內沒有卡片"); continue
+            else:
+                wait_until(pg, "() => { const w = document.getElementById('prodDiagram'); return w && !w.hidden && !!w.querySelector('.dgc'); }", 8000)
+            pg.wait_for_timeout(1400)
+            pg.mouse.move(3, 3); pg.wait_for_timeout(500)
+            m0 = _dgc_meas(pg, mode)
+            if not ok(f"{tag} 量得到卡片", bool(m0 and m0["n"] >= 4), m0):
+                continue
+            if mode == "3d" and m0["mode"] == "below":
+                ok(f"{tag} 1440 寬應該是欄位模式（lr／r），不是底下那一排", False, m0); continue
+            if mode == "2d" and not m0["fold"]:
+                ok(f"{tag} 1440／抽屜關：卡片塞不下，應該進收合模式（.dgfold）", False, m0); continue
+            ok(f"{tag} 一進來：沒有任何一張卡片展開說明", len(m0["exp"]) == 0, m0["exp"])
+            nos = sorted(m0["nos"])[:3]
+            # ① 依序點三張：任何時刻展開數 ≤ 1，而且展開的就是剛剛點的那一張
+            last = None
+            for no in nos:
+                m = _dgc_click_card(pg, mode, no)
+                ok(f"{tag} 點 {no}：只有它展開（展開數 ≤ 1、選取＝{no}）",
+                   bool(m) and len(m["exp"]) <= 1 and m["sel"] == [no] and m["exp"] == [no], m and {"exp": m["exp"], "sel": m["sel"]})
+                last = no
+            # ② 再點同一張 → 收回、取消選取
+            m = _dgc_click_card(pg, mode, last)
+            ok(f"{tag} 再點同一張 {last} → 收回（展開 0、選取 0）", bool(m) and not m["exp"] and not m["sel"],
+               m and {"exp": m["exp"], "sel": m["sel"]})
+            # ③ 點一張 → 點背景 → 0
+            _dgc_click_card(pg, mode, nos[0])
+            m = _dgc_bg(pg, mode)
+            ok(f"{tag} 點 {nos[0]} 再點背景 → 全部收回", bool(m) and not m["exp"] and not m["sel"], m and {"exp": m["exp"], "sel": m["sel"]})
+            # ④ 點一張 → 按 Esc → 0
+            _dgc_click_card(pg, mode, nos[1])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+            m = _dgc_meas(pg, mode)
+            ok(f"{tag} 點 {nos[1]} 再按 Esc → 全部收回", bool(m) and not m["exp"] and not m["sel"], m and {"exp": m["exp"], "sel": m["sel"]})
+            # ⑤ 點圖上的零件（3D：模型本身；2D：圖上的編號）→ 展開 ≤ 1 → 點背景 → 0
+            if mode == "3d":
+                pt = pg.evaluate("""() => { const v = window.Rack3D && window.Rack3D.current; if (!v) return null;
+                  document.querySelector('#prod3d canvas').scrollIntoView({ block: 'center', behavior: 'instant' });
+                  for (const s of v.segs()) { const p = v.screen(s); if (p && p.front) return p; } return null; }""")
+            else:
+                pt = pg.evaluate(DGFIT_ANC)
+            if ok(f"{tag} 找得到圖上的零件可以點", bool(pt), pt):
+                pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+                pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+                m = _dgc_meas(pg, mode)
+                ok(f"{tag} 點圖上零件：選起來、展開數 ≤ 1", bool(m) and len(m["sel"]) >= 1 and len(m["exp"]) <= 1,
+                   m and {"exp": m["exp"], "sel": m["sel"]})
+                m = _dgc_bg(pg, mode)
+                ok(f"{tag} 點圖上零件後再點背景 → 全部收回", bool(m) and not m["exp"] and not m["sel"] and not m.get("pop"),
+                   m and {"exp": m["exp"], "sel": m["sel"], "pop": m.get("pop")})
+            # ⑥ 滑過展開、滑出收回（3D 收成一行的卡片靠 :hover 看說明）
+            if mode == "3d":
+                bg = pg.evaluate(DGC_BG3D)                    # 先進容器（爆炸圖展開、卡片重排完）再找卡片，不然滑進去那一刻卡片會跑掉
+                if bg:
+                    pg.mouse.move(bg["x"], bg["y"]); pg.wait_for_timeout(600)
+                mh, pt = None, None
+                for _ in range(3):                            # 捲動／爆炸圖重排會讓卡片離開游標底下：重新找點再滑一次
+                    pt = pg.evaluate(DGC_PT, ["3d", nos[2]])
+                    if not pt:
+                        pg.wait_for_timeout(300); continue
+                    pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(400)
+                    mh = _dgc_meas(pg, mode)
+                    if mh and nos[2] in mh["exp"]:
+                        break
+                if pt:
+                    pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+                    mo = _dgc_meas(pg, mode)
+                    ok(f"{tag} 滑過 {nos[2]} → 只有它展開；滑出 → 收回",
+                       bool(mh and mo) and mh["exp"] == [nos[2]] and not mo["exp"], [mh and mh["exp"], mo and mo["exp"]])
+            # ⑦ 2D 的公式／警語說明卡（沒有零件身分、點它自己開合）：一次只開一張，點背景／Esc 收回
+            if mode == "2d" and len(m0["notes"]) >= 2:
+                a, b2 = m0["notes"][0], m0["notes"][1]
+                m = _dgc_click_card(pg, mode, a)
+                ok(f"{tag} 點說明卡 {a} → 只有它展開", bool(m) and m["exp"] == [a], m and m["exp"])
+                m = _dgc_click_card(pg, mode, b2)
+                ok(f"{tag} 再點說明卡 {b2} → 前一張收回、只剩它", bool(m) and m["exp"] == [b2], m and m["exp"])
+                m = _dgc_click_card(pg, mode, nos[0])
+                ok(f"{tag} 說明卡開著時點零件卡 {nos[0]} → 說明卡收回、只剩零件卡", bool(m) and m["exp"] == [nos[0]], m and m["exp"])
+                _dgc_click_card(pg, mode, a)
+                m = _dgc_bg(pg, mode)
+                ok(f"{tag} 說明卡開著時點背景 → 收回", bool(m) and not m["exp"], m and m["exp"])
+                _dgc_click_card(pg, mode, b2)
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+                m = _dgc_meas(pg, mode)
+                ok(f"{tag} 說明卡開著時按 Esc → 收回", bool(m) and not m["exp"], m and m["exp"])
+
+    # ⑧ 動畫開著（自轉＋爆炸圖展開，投影點每幀在動 —— 修之前就是這時候一欄從塞不下變塞得下、冒出整欄全開）：
+    #    選一張卡片之後，游標停在畫布上（爆炸圖展開）連續取樣 3 秒，每一次展開數都 ≤ 1
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.dg3d', '1'); localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle")
+    if wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d').length > 2", 15000):
+        pg.wait_for_timeout(1400)
+        m0 = _dgc_meas(pg, "3d")
+        no = sorted(m0["nos"])[0] if m0 and m0["nos"] else None
+        if no:
+            _dgc_click_card(pg, "3d", no)
+            bg = pg.evaluate(DGC_BG3D)
+            if bg:
+                pg.mouse.move(bg["x"], bg["y"])
+            worst = []
+            for _ in range(8):
+                pg.wait_for_timeout(400)
+                m = _dgc_meas(pg, "3d")
+                if m and len(m["exp"]) > len(worst):
+                    worst = m["exp"]
+            ok("[矽晶圓/3D 動畫開] 自轉＋爆炸圖展開 3 秒內，任何時刻展開數 ≤ 1", len(worst) <= 1, worst)
+    pg.mouse.move(3, 3)
+    pg.evaluate("(k) => { try { ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].forEach((n, i) => { if (k[i] == null) localStorage.removeItem(n); else localStorage.setItem(n, k[i]); }); } catch (e) {} }", keep)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
