@@ -1613,6 +1613,13 @@ tbody tr:last-child td{border-bottom:0}
 .opabox input[type=number]{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);border-radius:6px;
   padding:3px 6px;font-family:var(--mono);font-size:12.5px;color-scheme:light dark}
 .opabox input[type=number]:focus{outline:0;border-color:var(--cyan)}
+/* 個股「基本資料」分頁：基本資料表＋1–12 月平均漲幅並排（2026-09-26）。季節卡是直欄 flex，圖吃掉剩下的高度，
+   兩張卡等高；≤900px 疊成上下（.g2 全站是 ≤820 才疊，這裡欄寬到 900 以下，季節圖的 12 個月份標籤就開始擠）。 */
+.skBasics{align-items:stretch}
+.skBasics .msCard{display:flex;flex-direction:column}
+.skBasics .msCard>.chart{flex:1 1 auto;min-height:300px}
+.mshint{font-size:12.5px;color:var(--amber,#ffb454);margin:4px 0 0;text-align:right}
+@media (max-width:900px){ .skBasics{grid-template-columns:minmax(0,1fr)} .skBasics .msCard>.chart{min-height:300px} .mshint{text-align:left} }
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
    以前寫死 640px，螢幕再大也只有那麼高。扣掉頂部列＋標題＋工具列＋說明約 300px，
    剩下的全部給圖；上下限避免小筆電被壓扁、超寬螢幕拉成一條。 */

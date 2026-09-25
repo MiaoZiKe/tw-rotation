@@ -166,7 +166,7 @@
         { "page": "stock", "seg": "財報籌碼", "ord": 30, "selector": ["#stockTabs", "#stockTab"],
           "note": "stock.fund／stock.signal／stock.news／broker.views 共用同一個分頁列（#stockTabs）與內容區（#stockTab），手機上是同一段。" }
       ],
-      "tests": ["個股", "新-產業與個股", "積木-個股三卡"] },
+      "tests": ["個股", "新-產業與個股", "積木-個股三卡", "籌碼基本0926"] },
 
     { "id": "cand.board", "name": "今日候選", "question": "③", "ask": "今天有哪些標的符合「A 回檔承接／B 突破追進」的條件",
       "tier": "只准免費", "law": "🔴",

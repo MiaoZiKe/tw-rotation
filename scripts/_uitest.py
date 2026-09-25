@@ -13078,8 +13078,11 @@ def t_r5(pg, base, code):
            hc["y"] and len(set(hc["y"])) == len(hc["y"]), hc["y"])
         ok("★ R5-4 股東人數 X 軸每個點的日期都不一樣（不再三點都是「26-09」）",
            hc["x"] and len(set(hc["x"])) == len(hc["x"]), hc["x"])
-        hh = pg.evaluate(AX_JS, "holderChart")
-        ok("R5-4 大戶／散戶持股 X 軸也是 MM-DD、不重複", bool(hh) and hh["x"] and len(set(hh["x"])) == len(hh["x"]), hh)
+        # 2026-09-26 改：大戶／散戶持股拆成三格小圖（改前：單一 xAxis 0；改後：日期只印在最下面那格 xAxis 2）
+        hh = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('holderChart')); if (!c) return null;
+            try { return { x: c.getModel().getComponent('xAxis', 2).axis.getViewLabels().map(l => l.formattedLabel) }; } catch (e) { return null; } }""")
+        ok("R5-4 大戶／散戶持股 X 軸也是 MM-DD、不重複", bool(hh) and hh["x"] and len(set(hh["x"])) == len(hh["x"])
+           and all(len(x) == 5 and x[2] == "-" for x in hh["x"]), hh)
 
     # ---------------------------------------------------------------- 5. K 線上的字不互相壓住
     goto_stock()
@@ -13525,6 +13528,136 @@ def t_mobile_v3(b, base, code):
             ok(f"{T} #17 {h}：HTML 字 < 12px 的節點 0", not r["tiny"], r["tiny"][:6])
         m.close()
 
+
+# ===================================================================== 籌碼／基本資料 0926（claude/stock-chips-basic）
+# Andy 2026-09-26 個股頁四件：①大戶／散戶持股畫「過去 30 天」、三條各自看得出變化 ②股東人數改成每週增減長條
+# ③「自填」寫清楚填什麼、超出範圍夾值＋提示 ④「1–12 月平均漲幅」搬到基本資料右邊並排。
+# 每一件都真的操作並驗「畫面因此改變」：數點數、量像素、填輸入框看副標與圖重畫、量兩張卡的位置。
+HO_OPT = r"""() => { const el = document.getElementById('holderChart'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption();
+  const ys = o.series.map((s, i) => { const ax = c.getModel().getComponent('yAxis', i).axis; const ext = ax.scale.getExtent();
+    const vs = s.data.map(d => d[1]).filter(v => v != null);
+    const px = vs.length ? Math.abs(c.convertToPixel({ yAxisIndex: i }, Math.max(...vs)) - c.convertToPixel({ yAxisIndex: i }, Math.min(...vs))) : 0;
+    return { name: s.name, n: s.data.length, lo: ext[0], hi: ext[1], px: Math.round(px), spread: vs.length ? Math.max(...vs) - Math.min(...vs) : 0,
+             label: !!(s.label && s.label.show), sym: s.showSymbol !== false, dates: s.data.map(d => d[0]) }; });
+  const xa = c.getModel().getComponent('xAxis', 2).axis.scale.getExtent();
+  const titles = (o.title || []).map(t => t.text || '');
+  const note = (document.querySelector('#stockTab .hoNote') || {}).textContent || '';
+  return { ys, grids: (o.grid || []).length, xmin: xa[0], xmax: xa[1], titles, note }; }"""
+HC_OPT = r"""() => { const el = document.getElementById('holderCount'); const c = el && echarts.getInstanceByDom(el); if (!c) return null;
+  const o = c.getOption(), s = o.series[0], dat = c.getModel().getSeriesByIndex(0).getData();
+  const bars = s.data.map((d, i) => { const L = dat.getItemLayout(i) || {}; const fmt = s.label.formatter;
+    return { ts: d.value[0], v: d.value[1], color: d.itemStyle && d.itemStyle.color, h: Math.abs(L.height || 0) }; });
+  return { type: s.type, bars, title: (el.closest('.card').querySelector('h3') || {}).textContent || '' }; }"""
+
+
+def t_chips_basic0926(pg, base, code):
+    import datetime as _dt
+    code = code or "2330"
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.ms.years'); } catch (e) {} }")
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    raw = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).then(j => j.holders || []).catch(() => [])")
+    if not ok(f"[籌碼0926] {code} 的資料有集保週資料（前置條件）", len(raw) >= 3, len(raw)):
+        return
+    last = _dt.date.fromisoformat(raw[-1][0][:10])
+    win = [r for r in raw if _dt.date.fromisoformat(r[0][:10]) >= last - _dt.timedelta(days=30)]
+    click(pg, '#stockTabs button[data-t="chips"]', 1800)
+    pg.eval_on_selector("#holderChart", "e => e.scrollIntoView({block:'center'})"); pg.wait_for_timeout(500)
+    h = pg.evaluate(HO_OPT)
+    if not ok("[籌碼0926] 大戶／散戶持股圖畫出來了", bool(h), h):
+        return
+    ok("★ [籌碼0926] 三條線分三格（3 個 grid、3 個系列）", h["grids"] == 3 and len(h["ys"]) == 3, {"grid": h["grids"], "系列": len(h["ys"])})
+    ok(f"★ [籌碼0926] 每條線的點數＝資料湖 30 天內的週數（{len(win)}）",
+       all(y["n"] == len(win) for y in h["ys"]), [(y["name"], y["n"]) for y in h["ys"]])
+    ok("★ [籌碼0926] 每格 Y 軸各自縮放、不從 0 起（下緣 > 0）", all(y["lo"] > 0 for y in h["ys"]), [(y["name"], y["lo"], y["hi"]) for y in h["ys"]])
+    moving = [y for y in h["ys"] if y["spread"] > 0]
+    ok("★ [籌碼0926] 有變化的線，高低差在圖上 ≥ 20px（以前三條都壓成水平直線，不到 1px）",
+       bool(moving) and all(y["px"] >= 20 for y in moving), [(y["name"], y["spread"], y["px"]) for y in h["ys"]])
+    ok("[籌碼0926] 點要畫出來、標數值", all(y["label"] and y["sym"] for y in h["ys"]), [(y["name"], y["label"], y["sym"]) for y in h["ys"]])
+    span_days = (h["xmax"] - h["xmin"]) / 864e5
+    x0 = _dt.datetime.fromtimestamp(h["xmin"] / 1000, _dt.timezone.utc).date()
+    ok("★ [籌碼0926] X 軸固定是「最新一週往回 30 天」的視窗", x0 == last - _dt.timedelta(days=30) and 30 <= span_days <= 33,
+       {"起": str(x0), "最新": str(last), "跨天數": span_days})
+    ok("[籌碼0926] 每格左上寫最新比例與週變化（pp）", len(h["titles"]) == 3 and all("週" in t and "pp" in t for t in h["titles"]), h["titles"])
+    ok(f"★ [籌碼0926] 卡片短註寫「集保每週更新一次，自 {raw[0][0]} 起累積 {len(raw)} 週」",
+       "集保每週更新一次" in h["note"] and f"自 {raw[0][0]} 起累積 {len(raw)} 週" in h["note"], h["note"])
+    ok("[籌碼0926] 卡片上沒有「?」以外的附註鈕（短註是讀數，不是說明鈕）",
+       pg.evaluate("() => !document.querySelector('#stockTab .hoNote button')"))
+    # 真的滑過一個點：提示框要出現、而且有週變化
+    pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('holderChart')).dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 1 })")
+    pg.wait_for_timeout(400)
+    tip = pg.evaluate("() => { const t = [...document.querySelectorAll('#holderChart div')].find(d => /週/.test(d.textContent) && getComputedStyle(d).display !== 'none' && d.style.position === 'absolute'); return t ? t.textContent : ''; }")
+    ok("★ [籌碼0926] 滑過第 2 週：提示框列出三條的比例與週變化（pp）", tip.count("pp") >= 3 and win[1][0] in tip, tip[:160])
+
+    c = pg.evaluate(HC_OPT)
+    if ok("[籌碼0926] 股東人數圖畫出來了", bool(c), c):
+        ok("★ [籌碼0926] 股東人數改成長條（type=bar），標題寫「週增減」", c["type"] == "bar" and "週增減" in c["title"], {"type": c["type"], "標題": c["title"]})
+        idx0 = raw.index(win[0])
+        exp = [None if (idx0 + i) == 0 else (r[4] - raw[idx0 + i - 1][4]) for i, r in enumerate(win)]
+        got = [b["v"] for b in c["bars"]]
+        ok("★ [籌碼0926] 每根柱＝當週總人數 − 上週總人數（第一週沒有上一週 → 不畫）", got == exp, {"預期": exp, "畫的": got})
+        if idx0 == 0:
+            ok("★ [籌碼0926] 湖裡第一週那根沒有柱（值是空、高度 0）", got[0] is None and c["bars"][0]["h"] == 0, c["bars"][0])
+        colors = pg.evaluate("() => ({ up: App.CH.up, down: App.CH.down })")
+        bad = [b for b in c["bars"] if b["v"] is not None and ((b["v"] > 0 and b["color"] != colors["up"]) or (b["v"] < 0 and b["color"] != colors["down"]))]
+        ok("★ [籌碼0926] 紅＝增加、綠＝減少（台股紅漲綠跌）", not bad and any(b["v"] is not None for b in c["bars"]), {"錯色": bad, "色": colors})
+        ok("[籌碼0926] 有值的柱真的畫出高度", all(b["h"] > 0 for b in c["bars"] if b["v"]), [(b["v"], b["h"]) for b in c["bars"]])
+        pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('holderCount')).dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: 1 })")
+        pg.wait_for_timeout(400)
+        tip2 = pg.evaluate("() => { const t = [...document.querySelectorAll('#holderCount div')].find(d => /總股東/.test(d.textContent) && d.style.position === 'absolute'); return t ? t.textContent : ''; }")
+        ok("★ [籌碼0926] 滑過柱子：提示框有當週總人數與增減", "總股東" in tip2 and "比上週" in tip2 and "人" in tip2, tip2[:120])
+
+    # ---------------------------------------------------------------- 基本資料＋季節卡並排、自填
+    click(pg, '#stockTabs button[data-t="basics"]', 1800)
+    POS = """() => { const a = document.querySelector('#stockTab .skBasics > .card:first-child'), b = document.getElementById('msCard');
+        if (!a || !b) return null; const A = a.getBoundingClientRect(), B = b.getBoundingClientRect();
+        const ch = document.getElementById('msChart').getBoundingClientRect();
+        return { aL: A.left, aR: A.right, aT: A.top, aB: A.bottom, aH: A.height, bL: B.left, bT: B.top, bB: B.bottom, bH: B.height, chH: ch.height,
+                 sw: document.documentElement.scrollWidth, vw: innerWidth }; }"""
+    p = pg.evaluate(POS)
+    if ok("[基本0926] 基本資料卡與 1–12 月平均漲幅卡都在", bool(p), p):
+        ok("★ [基本0926] 1440：季節卡在基本資料右邊並排（同一列、在右側）", p["bL"] >= p["aR"] - 1 and abs(p["bT"] - p["aT"]) <= 2, p)
+        ok("★ [基本0926] 1440：兩張卡等高", abs(p["aH"] - p["bH"]) <= 2, {"基本": p["aH"], "季節": p["bH"]})
+        ok("[基本0926] 1440：季節圖有足夠高度（≥ 280px）", p["chH"] >= 280, p["chH"])
+    inp = pg.evaluate("""() => { const e = document.getElementById('msCustom'); if (!e) return null; const lb = e.closest('label');
+        return { ph: e.placeholder, title: e.title, max: +e.max, lbl: lb ? lb.textContent.replace(/\\s+/g, ' ').trim() : '' }; }""")
+    years = pg.evaluate(f"() => fetch('data/stock/{code}.json').then(r => r.json()).then(j => Object.keys((j.month_season || {{}}).by_year || {{}}).length)")
+    ok("★ [基本0926] 自填框寫清楚：placeholder「輸入年數」、前後是「自填 … 年」", bool(inp) and inp["ph"] == "輸入年數" and inp["lbl"].startswith("自填") and inp["lbl"].endswith("年"), inp)
+    ok(f"★ [基本0926] 滑過說明「輸入要統計的最近 N 年（1～{years}…）」，max＝這檔可用年數", bool(inp) and "最近 N 年" in inp["title"] and f"1～{years}" in inp["title"] and inp["max"] == years, inp)
+    if years >= 4:
+        sub0 = text(pg, "#msSub"); h0 = canvas_hash(pg, "#msChart")
+        pg.fill("#msCustom", "3"); pg.wait_for_timeout(900)
+        sub1 = text(pg, "#msSub")
+        ok("★ [基本0926] 自填 3 → 副標變「共 3 年」", "共 3 年" in sub1 and sub1 != sub0, {"前": sub0, "後": sub1})
+        changed("[基本0926] 自填 3 → 圖真的重畫", h0, canvas_hash(pg, "#msChart"))
+        ok("[基本0926] 自填 3 → 1／3／5 年鈕都熄掉（現在是自填）", count(pg, "#msYears button.on") == 0, count(pg, "#msYears button.on"))
+        h1 = canvas_hash(pg, "#msChart")
+        pg.fill("#msCustom", "99"); pg.wait_for_timeout(900)
+        st = pg.evaluate("() => ({ v: document.getElementById('msCustom').value, hint: document.getElementById('msHint').hidden ? '' : document.getElementById('msHint').textContent, sub: document.getElementById('msSub').textContent, ls: localStorage.getItem('tw.ms.years') })")
+        ok(f"★ [基本0926] 自填 99 → 框裡夾到最大值 {years}", st["v"] == str(years), st)
+        ok("★ [基本0926] 自填 99 → 下方提示「最多只有 N 年資料，已改為 N 年」", "最多" in st["hint"] and str(years) in st["hint"], st)
+        ok(f"[基本0926] 自填 99 → 副標變「共 {years} 年」、存進 localStorage", f"共 {years} 年" in st["sub"] and st["ls"] == str(years), st)
+        changed("[基本0926] 自填 99 → 圖真的重畫", h1, canvas_hash(pg, "#msChart"))
+        click(pg, '#msYears button[data-v="5"]', 800)
+        st2 = pg.evaluate("() => ({ v: document.getElementById('msCustom').value, hint: document.getElementById('msHint').hidden, sub: document.getElementById('msSub').textContent })")
+        ok("[基本0926] 按回「5 年」→ 自填框清空、提示收掉", st2["v"] == "" and st2["hint"] and "共 5 年" in st2["sub"], st2)
+    # 窄寬：≤900 疊上下
+    for w in (800, 390):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(900)
+        p = pg.evaluate(POS)
+        if p:
+            ok(f"★ [基本0926] {w}px：季節卡疊到基本資料下面（上下排）", p["bT"] >= p["aB"] - 1 and abs(p["bL"] - p["aL"]) <= 2, p)
+            ok(f"[基本0926] {w}px：沒有橫向捲軸", p["sw"] <= p["vw"] + 1, {"scrollWidth": p["sw"], "vw": p["vw"]})
+    # 390 的籌碼頁：三格圖與長條圖照樣畫、沒有橫向捲軸
+    click(pg, '#stockTabs button[data-t="chips"]', 1800)
+    h = pg.evaluate(HO_OPT)
+    ok("[籌碼0926] 390px：三格仍各自看得出變化（≥ 20px）", bool(h) and all(y["px"] >= 20 for y in h["ys"] if y["spread"] > 0), h and [(y["name"], y["px"]) for y in h["ys"]])
+    ok("[籌碼0926] 390px：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.ms.years'); } catch (e) {} }")
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
@@ -13723,6 +13856,7 @@ SECTIONS = {
     "載入效能":            lambda pg, b, base, code: t_loadperf(pg, b, base),
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
     "個股R5":              lambda pg, b, base, code: t_r5(pg, base, code),
+    "籌碼基本0926":        lambda pg, b, base, code: t_chips_basic0926(pg, base, code),
     # ★ 2026-09-25 收尾批（claude/wrapup-1）：說明改「?」（熱力圖／市場明細／週期統計／個股頁）、K 線「還原」小標、
     #   週期統計提示框多中位數與勝率、R2／R4 剩下的小項
     "收尾0925-說明改問號":  lambda pg, b, base, code: t_wrap_popq(pg, base, code),
