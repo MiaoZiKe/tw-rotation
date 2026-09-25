@@ -2642,6 +2642,18 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* hover 一張公司卡時，跟它有上下游關係的另一端一起提亮（只有線會看不出通到誰）*/
 .chainmap .co.near rect{stroke:var(--cyan);stroke-opacity:.9}
 .chainmap .co.near text{fill:var(--ink)}
+/* 關聯圖環節收合（2026-09-25）：收合時每檔是一顆小晶片，邊框顏色＝漲跌（紅漲綠跌），外商灰字 */
+.chainmap .co.chip rect{stroke:var(--ud);stroke-width:1.3}
+.chainmap .co.chip text{font-size:12px}
+.chainmap .co.chip.foreign text{fill:var(--ink-3)}
+.chainmap .co.chip:hover rect,.chainmap .co.chip.sel rect,.chainmap .co.chip.near rect{stroke:var(--c,var(--cyan));stroke-width:1.8}
+.chainmap .segfold{cursor:pointer}
+.chainmap .segfold text{font-size:12px;text-anchor:middle;pointer-events:none}
+.chainmap .segfold:hover rect{fill:var(--line-2)}
+.chainmap .foldbar{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 12px 0;font-size:12px}
+.chainmap .foldbar button{font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
+.chainmap .foldbar button:hover{border-color:var(--cyan)}
+.chainmap .foldbar .sub{color:var(--ink-3)}
 /* ---- 流向圖：節點是環節本身，帶子寬度＝兩格之間已建立的上下游關係條數 ---- */
 .chainmap .fband{fill:var(--c,var(--line-2));fill-opacity:.2;stroke:none;transition:fill-opacity .15s}
 .chainmap .fband.hi{fill-opacity:.62}
