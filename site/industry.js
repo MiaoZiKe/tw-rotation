@@ -1077,13 +1077,13 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="dgmode" id="dgMode" role="group" aria-label="平面或立體" hidden><button type="button" id="dg2d" data-dgm="2d" class="cur" aria-pressed="true" title="平面剖析圖" hidden>2D</button><button type="button" id="dg3d" data-dgm="3d" aria-pressed="false" title="立體剖析圖：可拖曳轉動" hidden>3D</button></span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             '點零件：看它是誰做的（供應商）',
             '同色的環節色標、關聯圖會一起亮',
             '右上可開關動畫、收合圖',
-            '有「3D 立體」的圖可以拖曳轉動',
+            '右上「2D｜3D」切平面／立體，3D 可拖曳轉動',
             '圖以原尺寸顯示，放不下可左右滑',
           ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
           <div id="dgBody">
@@ -1379,6 +1379,47 @@
       else drawMap();
       // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明、流向圖方塊共用一個）
       wireSegTip($('#relSec', el), sc, ch.id);
+      /* ★ 2026-09-26（Andy：「點擊背景後說明欄會消失」）：點關聯圖的環節標題或公司卡之後，
+         圖右邊會長出那一格的族群／個股卡（#relList）、點公司還會多一張公司資訊欄（#coBox）。
+         以前只有卡片右上的 × 關得掉；現在跟全站其他「點了才出現的資訊」一樣：
+           ① 點**圖的空白處**（不是公司卡、環節標題、收合鈕，也不是卡片本身）＝取消選取、卡片收掉
+           ② 點關聯圖以外的地方、按 Esc ＝ 同一件事（走 app.js 的 dismissable，全站同一份規則）
+         收的是「關聯圖這一側」的選取：segFilter（環節）、segHi（點環節標題的高亮）、公司資訊欄。
+         ⚠ 兩件刻意**不動**的事：
+           · 剖析圖的零件（partHi／partSel）—— 那是上面剖析圖自己的選取，有自己的點背景（clearPart）；
+             零件小卡開著時 segHi 也是它的，所以這時 segHi 不歸這裡收。
+           · state.group（族群）—— 它綁著網址 #industry/group/…、族群總覽的下鑽、還決定上面要畫哪一張剖析圖；
+             點背景把它清掉會讓剖析圖整張換掉。族群的取消交給族群總覽的「← 返回」與下拉的「全部環節」。*/
+      const relPicked = () => !!(segFilter || (segHi && !partSel) || document.getElementById('coBox'));
+      const clearRel = () => {
+        if (!relPicked()) return;
+        segFilter = null;
+        if (!partSel) segHi = null;
+        closeCoBox();
+        syncHighlight({ quiet: true, noscroll: true });   // 眼睛在圖上：不捲頁
+      };
+      /* 關聯圖這一整區（#relSec）裡面：點到「點得到的東西」＝選別的，其餘都是背景
+         （圖的空白處、線、環節說明小字、標題列空白、右欄底下沒卡片的那一段）。
+         ⚠ #chainList（手機的環節卡清單）整張卡都可以點（點卡片＝選那一格），所以整塊算「點得到」。*/
+      const REL_HIT = '.co, .segtitle, .segfold, .foldbar, button, a, input, select, label, .pill, .seg, '
+        + '#relStick, #coBox, #segDD, #segBox, #chainList, #segTools, .howtxt';
+      const relSecEl = $('#relSec', el);
+      if (relSecEl) relSecEl.addEventListener('click', (ev) => {
+        const t = ev.target;
+        if (!t || !t.closest || t.closest(REL_HIT)) return;
+        // 圖的框在捲動時：點在它自己的捲軸上不算點背景
+        if (t === mapHost && (ev.offsetX > mapHost.clientWidth || ev.offsetY > mapHost.clientHeight)) return;
+        clearRel();
+      });
+      /* 關聯圖以外的地方交給 dismissable（點外面、Esc）。#relSec 整區由上面那支自己判斷，所以在這裡算「裡面」。*/
+      if (A.dismissable && relSecEl) {
+        A.dismissable(relSecEl, clearRel, {
+          /* 這幾區各自有「選一格／換圖」的動作（族群總覽、剖析圖、剖析圖分頁、換鏈），點它們不是「點外面」；
+             #coBox 在手機（≤820px）掛在圖的下面、可能在 #relSec 外面 */
+          ignore: ['#coBox', '#dgSec', '#gpSec', '.dgtabs', '#chainSwitch'],
+          isOpen: () => !!(mapHost && mapHost.isConnected) && relPicked(),
+        });
+      }
       $$('#relView button', el).forEach(b => b.onclick = () => {
         if (relView === b.dataset.rv) return;            // 已經在這個模式就不要白重畫一次
         relView = b.dataset.rv; saveRelView(relView); drawMap();
@@ -1563,12 +1604,13 @@
          現在是**真的把圖收掉、換回圖別選單** —— 畫面上不會再出現一張不屬於這個族群的圖。
          沒有淡出淡入：這一步是「圖不見了」，淡出反而看起來像壞掉。*/
       if (!next) {
+        dgModeGen++;                    // 還在掛的 3D（上一張圖的）作廢，不准掛好之後冒出來
         dispose3D();
         const host3 = $('#prod3d', el), note3 = $('#dg3dNote', el);
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note3) note3.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
-        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        ['dgMode', 'dg2d', 'dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false; host.innerHTML = ''; host.style.opacity = '1';
         paintDgMode();
         swapping = false;
@@ -1584,7 +1626,7 @@
         if (host3) { host3.hidden = true; host3.innerHTML = ''; }
         if (note) note.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
-        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        ['dgMode', 'dg2d', 'dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
         host.hidden = false;
         host.innerHTML = DS.draw(next);
         paintDgMode();        // 從「選單」換回「有圖」時要先把 #dgBody 打開，3D 才量得到尺寸
@@ -2244,6 +2286,7 @@
        可以轉、點零件會亮並帶出台股、標籤是 DOM、WebGL 不能用就退回 SVG。
      three.js 是動態載入的，只有真的按下 3D 才付那 670KB。*/
   let view3d = null;                 // 目前掛著的 3D 場景（沒有就是 null）
+  let dgModeGen = 0;                 // 2D／3D 切換的世代號（見 wire3D 的 setMode）
   // 動畫偏好（平面圖與 3D 共用同一個開關）；沒設定過就是開
   const animPref = () => { try { return localStorage.getItem('tw.dganim') !== '0'; } catch (e) { return true; } };
 
@@ -2343,13 +2386,28 @@
   }
 
   function wire3D(el, chainId, hooks) {
+    dgModeGen++;                      // 換了一張圖：上一張還在掛的 3D 一律作廢（見 setMode）
     const hk = hooks || {};
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
-    const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
+    /* ★ 2026-09-26（Andy：「切回 2D 時，顯示 2D，不要都 3D」）：
+       以前是一顆「3D 立體」開關，兩種模式下字都一樣（3D 時多一個 ✓），看不出現在是平面還是立體 ——
+       而且在 3D 時按它是「回到 2D」，鈕上卻寫著 3D。改成分段鈕「2D｜3D」，目前模式那一半亮起（.cur）。
+       id 刻意留給兩個半邊：#dg3d＝「3D」那一半（驗收與既有程式「按 #dg3d 開 3D」的意思不變），
+       #dg2d＝「2D」那一半；外框 #dgMode 只管整組顯示與否。
+       模式記在 localStorage 的 tw.dg3d（全站一份）：換剖析圖分頁、換產業鏈、重新整理都照最後一次選的。*/
+    const btn = $('#dg3d', el), btn2 = $('#dg2d', el), modeSeg = $('#dgMode', el);
+    const rst = $('#dgReset', el), note = $('#dg3dNote', el);
     const drg = $('#dgDrag', el);     // 配色已經不是一顆鈕了（跟著全站主題走，見 wirePal）
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
+    // 分段鈕的亮法只看「畫面上實際是哪一種」：3D 起不來退回平面時，亮的是 2D，不是使用者按的那一半
+    const paintMode = (on3) => {
+      [[btn2, !on3], [btn, on3]].forEach(([b, cur]) => {
+        if (!b) return;
+        b.classList.toggle('cur', cur); b.setAttribute('aria-pressed', cur ? 'true' : 'false');
+      });
+    };
     const R = window.Rack3D;
     if (!R || !R.hasScene(chainId)) return;         // 這條鏈還沒有 3D 場景 → 維持平面圖
     if (!R.supported()) {                            // WebGL 不能用 → 連鈕都不出現，安靜退回 SVG
@@ -2358,10 +2416,18 @@
       return;
     }
     btn.hidden = false;
+    if (btn2) btn2.hidden = false;
+    if (modeSeg) modeSeg.hidden = false;
+    /* dgModeGen（模組層級）：每切一次、每換一張圖（重新 wire3D）都加一。
+       3D 掛載是非同步的（要先載 three.js、再建場景，軟體渲染要好幾秒），
+       掛到一半使用者又按了「2D」或換了分頁，舊的那次掛好之後不准再把 3D 蓋回來 ——
+       不然就是「明明切了 2D，過一下又跳回 3D」。放在模組層級是因為換分頁會產生新的 wire3D 閉包，
+       舊閉包自己的計數器看不到新的那一次（「換一張圖」的那一次加在 wire3D 最上面，連沒有 3D 的圖也算）。*/
     const setMode = async (on) => {
+      const gen = ++dgModeGen;
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-      btn.classList.toggle('cyan', on);
-      btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
+      paintMode(on);
+      // 「拖曳：轉動／平移」「重設視角」只對 3D 有意義：2D 時整顆藏起來
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
       svg.hidden = on; host.hidden = !on;     // 配色不跟著 3D 開關（2D 也吃同一組 --dg-*）
@@ -2388,11 +2454,15 @@
           pal: palPref(),                // 圖九 2-2：三種配色，記在 localStorage
         });
       } catch (err) {
+        if (gen !== dgModeGen) return;          // 已經被後來的切換取代，這次的結果不算數
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
         note.textContent = '3D 起不來（' + (err && err.message ? err.message : err) + '），已退回平面剖析圖。';
-        svg.hidden = false; host.hidden = true; rst.hidden = true; return;
+        svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return;
       }
-      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; return; }
+      /* 掛好的時候使用者已經切回 2D（或換了別張圖）：這一個場景沒有人要了，當場收掉，
+         畫面維持在使用者最後選的那一種。*/
+      if (gen !== dgModeGen || !host.isConnected) { if (v) { try { v.dispose(); } catch (e) { /* 忽略 */ } } return; }
+      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return; }
       view3d = v;
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
@@ -2423,7 +2493,9 @@
       note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
       sync();
     };
-    btn.onclick = () => setMode(host.hidden);
+    /* 分段鈕：按目前已經亮著的那一半不做事（不是開關 —— 在 3D 時再按「3D」不會變回 2D） */
+    btn.onclick = () => { if (host.hidden) setMode(true); };
+    if (btn2) btn2.onclick = () => { if (!host.hidden) setMode(false); };
     rst.onclick = () => { if (view3d) view3d.reset(); };
     let want = false;
     try { want = localStorage.getItem('tw.dg3d') === '1'; } catch (e) { /* 忽略 */ }

@@ -668,7 +668,7 @@ def check_3d(pg):
     # 切回平面再切回來：不可以留下第二張 canvas（WebGL context 有上限）
     # ★ #246：上面剛用滑鼠點過 3D 標籤，游標還停在畫布上（圖是展開的、還在補間）——
     #   直接按工具列會 6 秒點不到，見 _dg3d_toolbar_click 的說明。
-    _dg3d_toolbar_click(pg, "#dg3d", 900)
+    _dg3d_toolbar_click(pg, "#dg2d", 900)
     off = pg.evaluate("""() => ({ svg: !(document.getElementById('prodDiagram')||{}).hidden,
         canvas: document.querySelectorAll('#prod3d canvas').length })""")
     ok("切回平面圖，3D 收乾淨", off["svg"] and off["canvas"] == 0, off)
@@ -677,7 +677,7 @@ def check_3d(pg):
     check_3d_e1(pg)
     check_3d_e2(pg)
     check_3d_e34(pg)
-    click(pg, "#dg3d", 800)   # 留在平面圖，不影響後面的驗收
+    click(pg, "#dg2d", 800)   # 留在平面圖，不影響後面的驗收
 
 
 def check_3d_e1(pg):
@@ -7881,7 +7881,7 @@ def t_batch6_n1(pg, base):
     #   **SECTIONS 的宣告順序**跑的 —— 這裡不關的話，後面任何一段驗 2D 剖析圖的
     #   都會看到 #prodDiagram 被 3D 蓋住，整段紅。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
+        _dg3d_toolbar_click(pg, "#dg2d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -8193,7 +8193,7 @@ def t_batch6_n9(pg, base):
     # ★ 2026-09-22 收尾：同 N1 —— 3D 開關記在 localStorage，開著離開會讓同一個 worker
     #   後面那些驗 2D 剖析圖的段落看到「圖被藏起來」。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
+        _dg3d_toolbar_click(pg, "#dg2d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -10883,7 +10883,7 @@ def t_mlcc(pg, base):
             ok("MLCC 3D 按「動畫：關」之後場景真的停住", a0 == a1, f"{a0} → {a1}")
             pg.eval_on_selector("#dgAnim", "b => b.click()")     # 還原偏好，不要汙染後面的段落
             pg.wait_for_timeout(400)
-        click(pg, "#dg3d", 2000); pg.wait_for_timeout(1200)      # 切回平面圖
+        click(pg, "#dg2d", 2000); pg.wait_for_timeout(1200)      # 切回平面圖
     else:
         notes.append("MLCC 3D：這個環境沒有 WebGL，3D 那幾條跳過（與圖九 / N1 同一條規矩）")
 
@@ -13252,7 +13252,7 @@ def t_mobile_v3(b, base, code):
                 m.wait_for_timeout(400)
                 ok(f"{T} #14 點 3D 的第 1 顆編號 → 抽屜同號", m.evaluate(S)["no"] == first, {"want": first, "got": m.evaluate(S)})
             m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
-            m.tap('#dg3d'); m.wait_for_timeout(800)
+            m.tap('#dg2d'); m.wait_for_timeout(800)
             m.evaluate("() => { try { localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
         else:
             ok(f"{T} #14 HBM 那張有 3D 可以切（這台模擬器的 WebGL 沒開就量不到）", False, "dg3d 鈕不在")
@@ -16655,7 +16655,7 @@ def t_dg3d_parts(pg, base):
     #   —— 例如「批次19-剖析圖版面」驗的是 2D 那張 SVG —— 會看到 #prodDiagram 被藏起來，整段紅。
     #   2026-09-22 實測過：單獨跑批次19 是 0 個問題，跟這一段排在同一個 worker 就變 7 個。
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        _dg3d_toolbar_click(pg, "#dg3d", 900)          # #246：先把游標移出畫布再按
+        _dg3d_toolbar_click(pg, "#dg2d", 900)          # #246：先把游標移出畫布再按
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
 
 
@@ -18141,7 +18141,7 @@ def t_b21_cowos(pg, base):
                sorted(set(seen)) == ["read", "tech"], seen)
             ok("每切一次全站主題，3D 零件材質色真的變了（不是只有變數改了）", all(chg), list(zip(seen, chg)))
             pg.evaluate("() => window.Rack3D.current.setPal('tech')")
-            click(pg, "#dg3d", 1200)          # 切回平面圖，不要汙染後面的段落
+            click(pg, "#dg2d", 1200)          # 切回平面圖，不要汙染後面的段落
             pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
         else:
             notes.append("批次21：3D 掛不起來（WebGL？），⑥ 那幾條跳過")
@@ -19378,7 +19378,7 @@ def t_dg3d_style(pg, base):
     pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
         _dg3d_settle(pg, 0, 3000)
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
@@ -20968,7 +20968,7 @@ def t_dg3d_pbr(pg, base):
     pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
         _dg3d_settle(pg, 0, 3000)
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1'); localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
 
 
@@ -21221,7 +21221,7 @@ def t_dg3d_hover(pg, base):
     pg.mouse.move(4, 4)
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
         _dg3d_settle(pg, 0, 3000)
-        click(pg, "#dg3d", 1200)
+        click(pg, "#dg2d", 1200)
     mob = None
     try:
         mob = pg.context.browser.new_page(viewport={"width": 390, "height": 844},
@@ -21299,7 +21299,7 @@ def t_dg3d_hover(pg, base):
     pg.mouse.move(4, 4)
     pg.wait_for_timeout(600)          # 手機分頁剛關掉，讓 GPU 行程喘一口氣再繼續
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("""() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dganim', '1');
         localStorage.setItem('tw.dg3d.pal', 'tech'); localStorage.removeItem('tw.dg3d.exp'); } catch (e) {} }""")
 """★ 批次24（2026-09-23）：半導體鏈四張剖析圖補上 3D 立體。
@@ -21549,7 +21549,7 @@ def t_b24_semi3d(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # 收尾：把 3D 關回平面圖、偏好恢復預設（跟「3D零件字彙」那一段同一條規矩）
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0');"
                 " localStorage.setItem('tw.dganim', '1');"
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
@@ -21784,7 +21784,7 @@ def t_b27_aiserver3d(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # 收尾：把 3D 關回平面圖、偏好恢復預設（跟批次24 同一條規矩）
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0');"
                 " localStorage.setItem('tw.dganim', '1');"
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
@@ -22309,7 +22309,7 @@ def t_c4_fit(pg, base):
         _dg3d_toolbar_click(pg, "#dg3d", 4200)
         ok("切到 3D 真的掛得起來（往返驗收的前提）",
            pg.evaluate("() => !!document.querySelector('#prod3d canvas')"))
-        _dg3d_toolbar_click(pg, "#dg3d", 2600)
+        _dg3d_toolbar_click(pg, "#dg2d", 2600)
         after = _c4_check(pg, "[晶圓代工 1050px 切回 2D 之後]")
         if after:
             ok("★ 3D 往返之後畫布寬回到原本那個值（不是每往返一次就縮一點）",
@@ -23476,7 +23476,7 @@ def t_b25_tools(pg, base):
         ok("切到 3D 之後設定列還在同一個位置（離標題列右緣距離差 ≤ 6px，而且仍然不壓到標題）",
            bool(t3d) and abs(t3d["right"] - t2d["right"]) <= 6 and not t3d["overlapTitle"],
            f"{t2d} → {t3d}")
-        pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(2000)
+        pg.eval_on_selector("#dg2d", "e => e.click()"); pg.wait_for_timeout(2000)
     else:
         notes.append("這個環境不支援 WebGL，「切 3D 工具列不跳位置」那一條跳過")
 
@@ -23819,7 +23819,7 @@ def t_b28_elec3d(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
     # 收尾：把 3D 關回平面圖、偏好恢復預設（跟批次24 同一條規矩）
     if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
-        click(pg, "#dg3d", 900)
+        click(pg, "#dg2d", 900)
     pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0');"
                 " localStorage.setItem('tw.dganim', '1');"
                 " localStorage.setItem('tw.dg3d.pal', 'tech'); } catch (e) {} }")
@@ -28630,7 +28630,7 @@ def t_fold3d(pg, base):
             ok(f"[{width}/{tag}] 說明文字沒有疊在圖上或卡片上", not m1["noteOnCanvas"] and not m1["noteOnCard"], m1)
 
         # ---- 2D 模式也走一遍：收合期間動視窗，展開後圖寬、引線、卡片要跟收合前一樣
-        click(pg, "#dg3d", 1200)
+        click(pg, "#dg2d", 1200)
         wait_until(pg, "() => { const w = document.getElementById('prodDiagram'); return w && !w.hidden && !!w.querySelector('svg'); }", 4000)
         pg.wait_for_timeout(600)
         d0 = pg.evaluate(FOLD2D_MEAS)
@@ -28649,7 +28649,7 @@ def t_fold3d(pg, base):
         pg.goto(f"{base}#{r2}", wait_until="networkidle"); pg.wait_for_timeout(1600)
         if not pg.evaluate(f"() => !!(window.Rack3D && window.Rack3D.hasScene('{scene}'))"):
             continue
-        if not pg.evaluate("() => (document.getElementById('dg3d')||{}).classList.contains('cyan')"):
+        if not pg.evaluate("() => (document.getElementById('dg3d')||{}).classList.contains('cur')"):
             click(pg, "#dg3d", 400)
         wait_until(pg, "() => !!(window.Rack3D.current && document.querySelectorAll('#prod3d .lbl3d').length > 3)", 12000)
         pg.wait_for_timeout(1000)
