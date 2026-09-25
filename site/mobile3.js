@@ -288,17 +288,52 @@
   }
   function radar(el, all, opts) {
     opts = opts || {};
-    const W = Math.round(el.clientWidth || 340);
+    const cw = el.clientWidth, W = Math.round(cw || 340);
     let S = Math.min(W, opts.max || 360);
+    /* ★ 2026-09-25（stale-reds）：輪盤大小「量到可信的一次就記住」，之後點東西重畫都沿用。
+       改前：每次重畫（點一顆點、點角落徽章）都重量「輪盤頂端」來決定大小。第一次畫的時候容器還沒排版
+       （寬 0、頂端 0）→ 一律 340px；使用者一點才量到真正的頂端 → 資金流向縮成 290px。
+       結果是**每點一下整個盤面就縮一圈、所有點都跳位置**，看起來像點錯東西。
+       改後：
+         · 寬 0（還沒排版）：先用 340 畫，不記；ResizeObserver 等它真的有寬度再重畫一次。
+         · 量得到寬、而且輪盤頂端在第一屏之內（頂端 < 視窗高）：照「塞得進一屏」算大小，記住。
+         · 頂端還在第一屏外（實測總覽剛換頁那一刻會量到 1483px —— 上面的桌機內容還沒藏）：
+           量到的東西不可信，先用「欄寬」畫、不記，等下一次重畫再量。
+       記憶的鍵是「容器寬 × 視窗高」，轉向或縮放視窗才重量。
+       ResizeObserver 只在寬度真的變了才重畫（高度跟著大小變不算），不會自己繞圈。*/
+    el._radarArgs = [all, opts];
+    if (!el._radarRO && window.ResizeObserver) {
+      let lastW = cw;
+      el._radarRO = new ResizeObserver(() => {
+        const w = el.clientWidth;
+        if (w && w !== lastW && el.isConnected) { lastW = w; radar(el, el._radarArgs[0], el._radarArgs[1]); }
+      });
+      el._radarRO.observe(el);
+    }
     /* 依「可視高度 − 輪盤頂端 − 底部導覽 − 下面要放的東西」決定大小（下限 260）：先保數字，再給圖 */
-    if (opts.fitBelow) {
-      const top = el.getBoundingClientRect().top + window.scrollY;
-      S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - top - opts.fitBelow)));
+    if (opts.fitBelow && cw) {
+      const key = W + 'x' + window.innerHeight;
+      if (el._radarKey === key) S = el._radarS;
+      else {
+        const vtop = el.getBoundingClientRect().top;
+        if (vtop < window.innerHeight) {
+          S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));
+          el._radarKey = key; el._radarS = S;
+        }
+      }
     }
     const c = S / 2, R = c - 30;
-    const pos = radarPos(all);
-    const shown = all.slice().sort((a, b) => b.share - a.share).slice(0, opts.top || 16)
-      .filter(p => !opts.quad || p.quadrant === opts.quad);
+    /* ★ 2026-09-25（stale-reds）：尺度改從「盤上那 16 顆」算，不再從全部族群算。
+       改前：radarPos(all) —— 全部約 50 個族群（含沒畫上盤的小族群）一起決定「今天最大偏離」。
+       改後：radarPos(top16) —— 跟桌機 renderRotation 一樣（桌機的 `scope` 就是盤上的 top0）。
+       為什麼：沒上盤的小族群常常偏離最大（成交值小、相對強弱一跳就很大），
+       用它當尺，盤上的 16 顆全被壓在圓心 25% 以內 —— 390 手機實測 16 顆有 15 對圓點互相重疊、
+       名字膠囊被擠離自己的點，使用者根本分不出誰是誰；外圈虛線「今天偏離最大的族群」也對應到一顆看不到的點。
+       這支上面的註解本來就寫「跟 app.js 的 pos() 同一條」，是實作跟註解對不上。
+       象限篩選（quad）刻意放在算尺之後：點角落只看一段時，點的位置不跳。*/
+    const top16 = all.slice().sort((a, b) => b.share - a.share).slice(0, opts.top || 16);
+    const pos = radarPos(top16);
+    const shown = top16.filter(p => !opts.quad || p.quadrant === opts.quad);
     const xy = (x, y) => { const [r, a] = pos(x, y); return [c + Math.cos(a) * r * R, c - Math.sin(a) * r * R]; };
     const ringR = R / (1 + TAIL);
     const Q = [['leading', 0], ['improving', 90], ['lagging', 180], ['weakening', 270]];
@@ -354,11 +389,22 @@
     pts.filter(q => lbl.includes(q.p.group_id)).forEach(q => {
       const t = q.p.group_name.length > 6 ? q.p.group_name.slice(0, 6) + '…' : q.p.group_name;
       const w = t.length * 12 + 12, h = 18;
-      let x = q.x + q.r + 4, y = q.y - h / 2;
-      if (x + w > S - 2) x = q.x - q.r - 4 - w;
-      const hit = () => boxes.some(b => x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]);
-      for (let k = 0; k < 3 && hit(); k++) y += h + 2;
-      if (hit()) return;
+      /* ★ 2026-09-25（stale-reds）：名字膠囊找位置改成「八個候選位置挑第一個乾淨的」。
+         改前：固定掛在點右邊，撞到別的膠囊就一路往下推（最多三格）—— 推完常常離自己的點 40px 以上、
+         還蓋住別顆點，看起來像是在標另一顆。
+         改後：依序試 右／左／右上／右下／左上／左下／正上／正下，先找「不撞膠囊、也不蓋住別顆點、不出盤」的；
+         找不到就退而求其次只要「不撞膠囊、不出盤」；再不行才不寫（點本身還在，點了一樣看得到名字）。*/
+      const gap = q.r + 4, cand = [
+        [q.x + gap, q.y - h / 2], [q.x - gap - w, q.y - h / 2],
+        [q.x + gap - 4, q.y - h - q.r], [q.x + gap - 4, q.y + q.r],
+        [q.x - gap - w + 4, q.y - h - q.r], [q.x - gap - w + 4, q.y + q.r],
+        [q.x - w / 2, q.y - q.r - 4 - h], [q.x - w / 2, q.y + q.r + 4]];
+      const inS = (x, y) => x >= 2 && y >= 2 && x + w <= S - 2 && y + h <= S - 2;
+      const hitB = (x, y) => boxes.some(b => x < b[0] + b[2] && x + w > b[0] && y < b[1] + b[3] && y + h > b[1]);
+      const hitP = (x, y) => pts.some(o => o !== q && o.x + o.r > x && o.x - o.r < x + w && o.y + o.r > y && o.y - o.r < y + h);
+      const at = cand.find(([x, y]) => inS(x, y) && !hitB(x, y) && !hitP(x, y)) || cand.find(([x, y]) => inS(x, y) && !hitB(x, y));
+      if (!at) return;
+      const [x, y] = at;
       boxes.push([x, y, w, h]);
       g += `<g pointer-events="none"><rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w}" height="${h}" rx="9" fill="${bg}" fill-opacity=".82" stroke="${stc(q.p.quadrant)}" stroke-opacity=".8"/>`
         + `<text x="${(x + 6).toFixed(1)}" y="${(y + 13.2).toFixed(1)}" font-size="12" fill="${ink}">${esc(t)}</text></g>`;

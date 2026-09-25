@@ -645,16 +645,28 @@ def check_3d(pg):
     # 驗收 2：點零件要亮起來，而且帶出這個環節的台股
     seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
     pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg)
-    b4 = pg.evaluate("() => ({ box: (document.getElementById('segBox')||{}).innerText || '' })")
+    # ★ 2026-09-25（stale-reds）改前→改後：
+    #   改前：點 3D 零件 → 圖下方環節面板 #segBox 換字、裡面有 a.lk 台股連結。
+    #   改後：桌機（>820）#segBox 整塊拿掉（Andy，29149fc）；3D 跟 2D 共用 pickPart，
+    #         「這個零件有哪些台股」現在由剖析圖下方的零件小卡 #partCard 回答（台股是 #stock/ 連結）。
+    #         手機寬由 #segBox 回答，這段在桌機跑所以兩個都量、依寬度選一個。
+    PC3 = """() => { const b = document.getElementById('partCard'), v = !!b && !b.hidden && b.getClientRects().length > 0;
+        const sb = document.getElementById('segBox');
+        return { box: v ? b.innerText : '', links: v ? [...b.querySelectorAll('a')].filter(a => (a.getAttribute('href') || '').startsWith('#stock/')).length : 0,
+                 segBox: sb ? sb.innerText : '', segLinks: document.querySelectorAll('#segBox a.lk').length, wide: innerWidth > 820,
+                 sel: document.querySelectorAll('.lbl3d.sel').length, dim: document.querySelectorAll('.lbl3d.dim').length }; }"""
+    b4 = pg.evaluate(PC3)
     pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
-    af = pg.evaluate("""() => ({ box: (document.getElementById('segBox')||{}).innerText || '',
-        sel: document.querySelectorAll('.lbl3d.sel').length,
-        dim: document.querySelectorAll('.lbl3d.dim').length,
-        links: document.querySelectorAll('#segBox a.lk').length })""")
+    af = pg.evaluate(PC3)
     ok("點 3D 零件會亮起來、其餘變暗", af["sel"] > 0 and af["dim"] > 0, af)
-    # 不能比長度：這頁前面的驗收可能已經選過別的環節，說明框本來就有字
-    ok("點 3D 零件會帶出這個環節的台股",
-       af["links"] > 0 and len(af["box"]) > 0 and af["box"] != b4["box"], {"before": b4["box"][:30], **af})
+    # 不能比長度：這頁前面的驗收可能已經選過別的零件，小卡本來就有字 —— 比「內容換了」
+    if af["wide"]:
+        ok("點 3D 零件會帶出這個零件的台股（桌機：零件小卡，可點進個股頁）",
+           af["links"] > 0 and len(af["box"]) > 0 and af["box"] != b4["box"], {"before": b4["box"][:30], **{k: af[k] for k in ("links", "sel", "dim")}, "box": af["box"][:40]})
+        ok("[桌機] 點 3D 零件之後圖下方不會長出環節面板（#segBox 空）", af["segBox"].strip() == "" and af["segLinks"] == 0, af["segBox"][:40])
+    else:
+        ok("點 3D 零件會帶出這個環節的台股",
+           af["segLinks"] > 0 and af["segBox"] != b4["segBox"], {"before": b4["segBox"][:30], "links": af["segLinks"]})
     # 點標籤也要能選（小零件用滑鼠很難打到，點名字是主要路徑）
     lp = pg.evaluate("""() => { const cur = (document.querySelector('.lbl3d.sel')||{dataset:{}}).dataset.seg;
         for (const e of document.querySelectorAll('.lbl3d')) { const r = e.getBoundingClientRect();
@@ -1909,6 +1921,12 @@ def seg_codes(pg_):
                         ".map(a => (a.getAttribute('href')||'').replace('#stock/','')).sort().join(',')")
 
 
+# 圖右邊 #relList 目前「選中的那一格」（桌機 >820px 才有）：環節 id、幾檔可點的台股、看不看得到、連結去哪
+REL_ON = """() => [...document.querySelectorAll('#relList .rlseg.on')].map(e => ({ seg: e.dataset.seg,
+    links: e.querySelectorAll('a.rlco').length, vis: e.getClientRects().length > 0 && e.offsetParent !== null,
+    hrefs: [...e.querySelectorAll('a.rlco')].map(a => a.getAttribute('href') || '').slice(0, 5) }))"""
+
+
 def seg_applied(pg_):
     """「只看這一格」到底有沒有被**套用**（segFilter），不是只有「亮起來」（segHi）。
 
@@ -1961,16 +1979,33 @@ def t_industry(pg, base):
         b_rows = seg_stocks(pg)
         _cg_chip(pg, "#segChips .segchip:not(.nomem)", 800)
         after = pg.evaluate("""() => ({ sel: document.querySelectorAll('#segChips .segchip.sel').length,
+            selSeg: [...document.querySelectorAll('#segChips .segchip.sel')].map(e => e.dataset.seg),
             dim: document.querySelectorAll('#chainMap .co.dim').length })""")
         a_rows = seg_stocks(pg)
         changed("點環節 chip 真的選起來了", before["sel"], after["sel"])
-        ok("點環節 chip 圖下方真的列出那一格的台股（成分股表的新家）",
-           a_rows > 0 and a_rows != b_rows, f"{b_rows} → {a_rows}")
+        # ★ 2026-09-25（stale-reds）改前→改後：
+        #   改前：點色標後「圖下方」環節面板 #segBox 列出那一格的台股（a_rows > 0）。
+        #   改後：這一段跑在 1500px（桌機）—— Andy 要求桌機整塊環節資訊面板拿掉（29149fc，
+        #   industry.js renderSegBox 在 >820px 直接清空），所以 #segBox 必須是 0 檔；
+        #   「這一格有哪幾檔」的現行答案是圖右邊的 #relList（.rlseg.on 裡的 a.rlco，每一檔都連到個股頁）。
+        #   ≤820 的手機寬照舊由 #segBox 回答，這段不跑窄畫面。
+        rl = pg.evaluate(REL_ON)
+        if pg.evaluate("() => innerWidth > 820"):
+            ok("[桌機] 點環節 chip 之後圖下方不再長出環節面板（#segBox 0 檔、沒有「只看這一格」）",
+               a_rows == 0 and not pg.evaluate("() => !!document.getElementById('segOnly')"), a_rows)
+            ok("[桌機] 點環節 chip 圖右邊 #relList 真的列出那一格的台股（面板的現行替代，可點進個股頁）",
+               len(rl) == 1 and rl[0]["seg"] in after["selSeg"] and rl[0]["links"] > 0 and rl[0]["vis"]
+               and all(h.startswith("#stock/") for h in rl[0]["hrefs"]), rl)
+        else:
+            ok("點環節 chip 圖下方真的列出那一格的台股（成分股表的新家）",
+               a_rows > 0 and a_rows != b_rows, f"{b_rows} → {a_rows}")
         # 退版之後篩選在圖上的樣子＝不屬於那一格的**公司卡**被壓暗
         # （一樣是「畫面真的因此改變了」，而且比捲軸位置更看得出篩選）
         changed("點環節 chip 圖上真的把不相干的公司卡壓暗了", before["dim"], after["dim"])
         _cg_chip(pg, "#segChips .segchip.sel", 500)
-        ok("再點一次真的取消（環節詳情收掉）", seg_stocks(pg) == 0, seg_stocks(pg))
+        # （改前只量 #segBox 0 檔 —— 桌機那裡本來就是 0，量了等於沒量；改後一併量右欄真的收掉）
+        ok("再點一次真的取消（環節詳情收掉、右欄 #relList 沒有選中的那一格）",
+           seg_stocks(pg) == 0 and pg.evaluate(REL_ON) == [], [seg_stocks(pg), pg.evaluate(REL_ON)])
         _cg_close_filter(pg)
 
     # --- 點關聯圖上的公司卡：選取狀態要真的換過去（退版之後節點是公司卡，不是族群大圓點）
@@ -1988,24 +2023,37 @@ def t_industry(pg, base):
         # 先把剖析圖捲進畫面再記位置，否則量到的是測試自己捲的，不是頁面被點擊帶走的
         pg.evaluate("document.querySelector('#prodDiagram [data-seg]').scrollIntoView({block:'center'})")
         settle_scroll(pg)
-        before = pg.evaluate("""() => ({ y: Math.round(scrollY),
-            seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent })""")
+        # ★ 2026-09-25（stale-reds）改前→改後：
+        #   改前：點零件 → 圖下方環節面板 #segBox 在原地說明（b.t 標題）＋「只看這一格 →」#segOnly，
+        #         按了變「已只看這一格」。
+        #   改後：桌機（>820）#segBox 整塊拿掉（Andy，29149fc）。點零件的「原地說明」現在是剖析圖正下方的
+        #         零件小卡 #partCard（零件名 .pc-t、做這個的台股連結），「只看這一格」的現行入口是小卡上的
+        #         「環節：XX →」#pcSeg（按了才真的篩選：右欄 #relList 長出那一格、下拉顯示那一格）。
+        #   DECISIONS #73（點零件只亮不篩）守法不變：點零件之後右欄 #relList 不可以打開。
+        PC = """() => { const b = document.getElementById('partCard'), vis = !!b && !b.hidden && b.getClientRects().length > 0;
+            return { vis, t: vis ? (b.querySelector('.pc-t') || {}).textContent || '' : '', seg: vis ? ((b.querySelector('#pcSeg') || {}).textContent || '') : '',
+                     links: vis ? [...b.querySelectorAll('a')].filter(a => (a.getAttribute('href') || '').startsWith('#stock/')).length : 0 }; }"""
+        before = pg.evaluate("() => ({ y: Math.round(scrollY) })")
+        before["pc"] = pg.evaluate(PC)
         click(pg, "#prodDiagram [data-seg]", 800)
         after = pg.evaluate("""() => ({ y: Math.round(scrollY),
-            seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent,
             sel: document.querySelectorAll('#prodDiagram [data-seg].sel').length,
-            btn: (document.getElementById('segOnly') || {}).textContent || '' })""")
+            segBox: ((document.getElementById('segBox') || {}).innerHTML || '').trim().length,
+            segOnly: !!document.getElementById('segOnly') })""")
+        after["pc"] = pg.evaluate(PC); after["rel"] = pg.evaluate(REL_ON)
         ok("點零件會亮起來", after["sel"] > 0, after)
-        ok("點零件會在原地說明這個環節", bool(after["seg"]) and after["seg"] != before["seg"], f"{before['seg']} → {after['seg']}")
-        # ★ 「只亮不聚焦」改成量那顆按鈕的字：還沒套用時寫「只看這一格 →」，
-        #   套用之後才變成「已只看這一格」。這是畫面上真的看得到的差別，不是內部旗標。
-        ok("點零件不會自己把整張圖聚焦到那一格", "已" not in after["btn"], after["btn"])
+        ok("點零件會在原地說明這個零件（剖析圖下方的零件小卡打開、寫出零件名與做這個的台股）",
+           after["pc"]["vis"] and bool(after["pc"]["t"]) and after["pc"]["t"] != before["pc"]["t"], [before["pc"], after["pc"]])
+        ok("[桌機] 點零件之後圖下方不再長出環節面板（#segBox 空、沒有 #segOnly）",
+           after["segBox"] == 0 and not after["segOnly"], after)
+        ok("點零件不會自己把整張圖聚焦到那一格（右欄 #relList 沒打開，DECISIONS #73）", after["rel"] == [], after["rel"])
         ok("點零件不會把畫面捲走", abs(after["y"] - before["y"]) < 40, f"{before['y']} → {after['y']}")
-        ok("說明框有「只看這一格」的按鈕", bool(after["btn"]), after)
-        # 按了那顆按鈕才真的聚焦
-        click(pg, "#segOnly", 900)
-        btn2 = pg.evaluate("() => (document.getElementById('segOnly') || {}).textContent || ''")
-        changed("按「只看這一格」之後按鈕真的換成「已只看這一格」", after["btn"], btn2)
+        ok("零件小卡有「環節：XX →」這顆（「只看這一格」的現行入口）", after["pc"]["seg"].startswith("環節："), after["pc"])
+        # 按了那顆才真的聚焦：右欄長出那一格、而且有可點的個股
+        click(pg, "#pcSeg", 900)
+        rl2 = pg.evaluate(REL_ON)
+        changed("按小卡上的「環節：XX →」之後右欄真的長出那一格（真的篩選了）", after["rel"], rl2)
+        ok("而且右欄那一格列出可點進個股頁的台股", len(rl2) == 1 and rl2[0]["links"] > 0, rl2)
 
     # --- 剖析圖零件：點下去要亮起來
     if count(pg, "#prodDiagram [data-part]"):
@@ -15139,7 +15187,7 @@ def main() -> int:
               # 本機／CI 連不到 Cloudflare Worker，即時報價抓不到是預期的，不是 bug
               and "ERR_TUNNEL_CONNECTION_FAILED" not in m.text and "workers.dev" not in m.text
               and "ERR_NAME_NOT_RESOLVED" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text
-              and "404" not in m.text else None)
+              and "404" not in m.text and not _icon_pna_blank(m.text, pg.url) else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
         for name in SECTION_NAMES:
@@ -15174,6 +15222,22 @@ def main() -> int:
     except Exception:  # noqa: BLE001
         pass
     return _report(t0)
+
+
+def _icon_pna_blank(msg: str, page_url: str) -> bool:
+    """測試環境才有的 console.error：頁面剛被驗收腳本 goto("about:blank") 帶離本站時，
+    Chrome 自己發起的網站圖示抓取（<link rel=icon> 的 icon.svg、manifest 安裝性檢查挑的主圖示 icon-192.png）
+    晚一步才送出，送出時頁面已經是 about:blank（origin null、非安全環境），
+    Chrome 的私網存取保護（Private Network Access）把「非安全環境 → loopback（127.0.0.1）」擋掉，印出：
+      Access to resource at 'http://127.0.0.1:8767/icons/icon-192.png' from origin 'null' has been blocked
+      by CORS policy: The request client is not a secure context and the resource is in more-private address space `loopback`.
+    ★ 2026-09-25（stale-reds）實測重現（scratchpad probe6）：載入 #overview 後 0～50ms 內 goto about:blank，
+      12 次出 3 次；同樣時序改成站內換頁（→ #flow）12 次 0 次。站內程式沒有任何 sandbox／data:／window.open／
+      Notification 會用 origin null 去讀圖示。
+    線上不會發生：① 使用者不會被帶去 about:blank；② github.io 的圖示是公網位址，PNA 只擋「往更私有的位址」。
+    所以只放過「頁面此刻是 about:、訊息是 origin null ＋ loopback ＋ /icons/ 底下的檔」這一種，其他 CORS 錯照報。"""
+    return ((page_url or "").startswith("about:") and "from origin 'null'" in msg
+            and "address space `loopback`" in msg and "/icons/" in msg)
 
 
 def _report(t0: float) -> int:
@@ -28017,8 +28081,41 @@ def t_footprint(pg, b, base):
     m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
-    ov2 = m.evaluate(FP_OVERLAP)
-    ok("⑤ [390] 預設 16 個族群的圓點重疊 ≤ 8 對（改前 14 對）", ov2["pairs"] <= 8, ov2)
+    # ★ 2026-09-25（stale-reds）改前→改後：
+    #   改前：在 390 量 `#rotClock`（桌機那張 ECharts）的重疊 → 量到 105～109 對。
+    #   改後：量使用者在 390 真正看到的那張 —— mobile3.js 的 `#mRadarFlow`（SVG 雷達）。
+    #   理由：≤640 時 body.m3on、卡片掛 .m3host，桌機那張 `#rotClock` 是 display:none（0×0），
+    #   convertToPixel 在 0×0 的圖上把 16 顆點全算到同一小塊，105 對是量測假象，不是畫面。
+    #   但換量真正看得到的雷達之後，它**真的**擠：16 顆有 15 對重疊（尺度用全部 ~50 族群算、盤上只畫 16 顆，
+    #   全被壓在圓心附近）→ 真 bug，已修 mobile3.js（尺度改用盤上那 16 顆，跟桌機 scope 同一條）。
+    hid = m.evaluate("() => { const r = document.getElementById('rotClock').getBoundingClientRect(); return { m3on: document.body.classList.contains('m3on'), w: r.width, h: r.height }; }")
+    ok("⑤ [390] 手機版掛上了、桌機那張 #rotClock 藏起來（所以重疊要量手機雷達）", hid["m3on"] and hid["w"] == 0, hid)
+    MR_OVERLAP = """() => { const cs = [...document.querySelectorAll('#mRadarFlow g[data-g] circle[stroke="#fff"]')]
+        .map(c => ({ g: c.parentNode.dataset.g, x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), r: +c.getAttribute('r') }));
+      let n = 0; for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++)
+        if (Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y) < cs[i].r + cs[j].r) n++;
+      const svg = document.querySelector('#mRadarFlow svg'), S = svg ? +svg.getAttribute('width') : 0;
+      const far = cs.length ? Math.max(...cs.map(c => Math.hypot(c.x - S / 2, c.y - S / 2))) / (S / 2 - 30) : 0;
+      const lbl = [...document.querySelectorAll('#mRadarFlow svg g[pointer-events=none] rect')].map(r => ({ x: +r.getAttribute('x'), y: +r.getAttribute('y'), w: +r.getAttribute('width'), h: +r.getAttribute('height') }));
+      return { dots: cs.length, pairs: n, far: +far.toFixed(2), lbl, pos: Object.fromEntries(cs.map(c => [c.g, [Math.round(c.x), Math.round(c.y)]])) }; }"""
+    ov2 = m.evaluate(MR_OVERLAP)
+    ok("⑤ [390] 手機雷達 16 顆族群圓點重疊 ≤ 8 對（改前 15 對）", ov2["dots"] == 16 and ov2["pairs"] <= 8, {k: ov2[k] for k in ("dots", "pairs", "far")})
+    ok("⑤ [390] 盤上最遠那顆點離圓心 ≥ 盤半徑 60%（改前全擠在圓心 30% 內）", ov2["far"] >= 0.6, ov2["far"])
+    # 名字膠囊要貼著自己的點：每一個膠囊最近邊到某一顆點中心 ≤ 16px（改前會被往下推到 40px 以上）
+    near = m.evaluate("""() => { const cs = [...document.querySelectorAll('#mRadarFlow g[data-g] circle[stroke="#fff"]')].map(c => ({ x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), r: +c.getAttribute('r') }));
+      return [...document.querySelectorAll('#mRadarFlow svg g[pointer-events=none] rect')].map(r => { const x = +r.getAttribute('x'), y = +r.getAttribute('y'), w = +r.getAttribute('width'), h = +r.getAttribute('height');
+        return Math.round(Math.min(...cs.map(c => Math.hypot(Math.max(x - c.x, 0, c.x - x - w), Math.max(y - c.y, 0, c.y - y - h)) - c.r))); }); }""")
+    ok("⑤ [390] 手機雷達的名字膠囊都貼著點（膠囊邊到點邊 ≤ 12px）", len(near) >= 3 and max(near) <= 12, near)
+    # 真的點一個角落徽章：只剩那一段的點，而且留下來的點位置一個像素都不動（尺不跟著篩選換）
+    q = m.evaluate("() => { const b = [...document.querySelectorAll('#mRadarFlow .mqb')].find(x => +x.querySelector('b').textContent > 0 && x.dataset.quad === 'improving'); if (b) b.click(); return b ? b.dataset.quad : null; }")
+    m.wait_for_timeout(500)
+    ov3 = m.evaluate(MR_OVERLAP)
+    same = [g for g, p in ov3["pos"].items() if ov2["pos"].get(g) == p]
+    # （改前：點一下角落整個盤面從 340px 縮成 290px、每顆點都跳位置 —— 輪盤大小每次重畫都重量，已修 mobile3.js）
+    ok("⑤ [390] 點「改善」角落：盤上點變少，且留下的點位置不動（尺度、盤面大小都沒跟著篩選換）",
+       q == "improving" and 0 < ov3["dots"] < ov2["dots"] and len(same) == ov3["dots"], [q, ov2["dots"], ov3["dots"], len(same)])
+    m.evaluate("() => { const b = document.querySelector('#mRadarFlow .mqb[data-quad=improving]'); if (b) b.click(); }")
+    m.wait_for_timeout(400)
     st = m.evaluate("""() => ({ side: document.documentElement.scrollWidth > innerWidth + 1,
         fs: parseFloat(getComputedStyle(document.querySelector('#rotBack .val')).fontSize) })""")
     ok("⑤ [390] 沒有橫向捲軸、拉Bar 讀數 ≥ 12px", not st["side"] and st["fs"] >= 12, st)
