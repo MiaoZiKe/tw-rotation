@@ -29539,7 +29539,7 @@ def t_flowtopo(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
 
 
-def _topo_contrast(t, tag, motion=True):
+def _topo_contrast(t, tag, motion=True, fx=False):
     """粗細、快慢、明暗三個維度的對比（Andy 2026-09-25：「粗細、快慢、明暗變化加強點，看不出差異」）。
     量的是探針回報的每條活著的線：線寬 w、粒子速度 v（px/秒）、不透明度係數 al、實際發車率 er。
     改前實測（1440 深色）：線寬 1.43～2.87（2 倍）、速度 141～177（1.3 倍），沒有明暗係數。"""
@@ -29547,8 +29547,14 @@ def _topo_contrast(t, tag, motion=True):
     if not ok(f"{tag} 量得到活著的連線", len(lk) >= 5, len(lk)):
         return
     ws, als = [x["w"] for x in lk], [x["al"] for x in lk]
-    ok(f"{tag} 粗細：最粗線寬 ≥ 最細 ×6，且落在 1～14px", max(ws) >= min(ws) * 6 and max(ws) <= 14 and min(ws) >= 1,
-       {"min": min(ws), "max": max(ws)})
+    if fx:
+        # ★ 2026-09-26（第二版）經典光纖 改前→改後：weight 1～13px、×6 → 黃金標準的 0.8～3.8、×4.5 以上
+        #   （最粗 13px 的外暈 ×2.4＝31px 就是 Andy 說的「霧」；參考稿主幹 3.8、毛細 0.8）
+        ok(f"{tag} 粗細：最粗 weight ≥ 最細 ×4.5，且落在 0.8～3.8（黃金標準尺度）",
+           max(ws) >= min(ws) * 4.5 and max(ws) <= 3.81 and min(ws) >= 0.79, {"min": min(ws), "max": max(ws)})
+    else:
+        ok(f"{tag} 粗細：最粗線寬 ≥ 最細 ×6，且落在 1～14px", max(ws) >= min(ws) * 6 and max(ws) <= 14 and min(ws) >= 1,
+           {"min": min(ws), "max": max(ws)})
     ok(f"{tag} 明暗：最小線不透明度 ≤ 最大 ×0.45", min(als) <= max(als) * 0.45, {"min": min(als), "max": max(als)})
     if motion:
         vs = [x["v"] for x in lk if x["v"] > 0]
@@ -29663,6 +29669,13 @@ def t_flowtopo_reduced(b, base):
 #     · 線：S 形貝茲 CP 0.45／0.55（從產業鏈直條上依目標 y 扇形排開）→ 規格貝茲 CP 0.55／0.45，一律從父節點圓心那一列出發
 #     · 產業鏈節點：直條 → 圓點
 #     · 特效：加上碰撞激發（hitFlash）、擴散震波（同時 ≤ 60 圈）、標籤變亮；動態關／減少動態時全部不出現
+# ★★ 2026-09-26（第二版）Andy：「參考圖顏色更鮮豔」＋第一版「濁、混亂」四點，附黃金標準 docs/prototypes/flow_perfect_topology.html。
+#   改前→改後（_fx_bezier／_fx_crisp／_fx_hits 與版面那幾條）：
+#     · 控制點 0.55／0.45 → 0.45／x1−0.45（對稱張力）
+#     · 線：外暈 w×3.2、內芯 w×0.9／.32 → 外暈 w×2.4／≤ .09、內芯固定 1.1px／.65（毛細 0.7px／.2、外暈 .04）
+#     · 節點：產業鏈 6～12、族群 4～15 → 全部 4.5～7.5；標籤描邊字 → 17px 高圓角膠囊
+#     · 版面：四欄等分、葉子等距 16px → 欄位 26%／54%／83%、族群等距槽位 36～42、代表股固定在 83% 那一欄、間距 13
+#     · 拿掉「標籤變亮」的第四張畫布；深色畫布底 #050a14
 FX_FIRST_DRAW_MAX = 400     # ms：首次畫圖（buildModel→layout→量字→曲線→畫底圖與標籤）。容器實測 80～230ms，拓撲版同條件 77～190ms
 
 
@@ -29672,9 +29685,10 @@ def _fx_lv(t, k):
 
 def _fx_bezier(t, tag):
     """★ 2026-09-26 Andy 規格：連線禁止生硬直線，一律「平滑水平切線的三次貝茲」，
-    CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)；產業鏈不要直條（圖三紅框）。
+    產業鏈不要直條（圖三紅框）。
     改前→改後：
-      · 控制點：CP1＝x0＋dx×0.45、CP2＝x1−dx×0.45（＝x0＋dx×0.55）→ CP1 0.55、CP2 0.45
+      · 控制點：CP1＝x0＋dx×0.45、CP2＝x1−dx×0.45（＝x0＋dx×0.55）→ CP1 0.55、CP2 0.45（第一版）
+        → 第二版（黃金標準）CP1＝x0＋dx×0.45、CP2＝x1−dx×0.45（對稱張力）
       · 起點：在產業鏈直條上依目標 y 排開（扇形散出）→ 一律從父節點圓心那一列（y0＝父節點 y）
       · 產業鏈節點：直立細條（hh＝出發線寬加總）→ 圓點
     量的是探針回報的每條線的貝茲 cp＝[x0,y0, c1x,c1y, c2x,c2y, x1,y1]（粒子沿同一條的查表走，offCurve 另外量）。"""
@@ -29687,14 +29701,14 @@ def _fx_bezier(t, tag):
     for x in lk:
         x0, y0, c1x, c1y, c2x, c2y, x1, y1 = x["cp"]
         dx = x1 - x0
-        if dx <= 0 or abs(c1x - (x0 + dx * 0.55)) > 0.05 or abs(c2x - (x0 + dx * 0.45)) > 0.05 \
+        if dx <= 0 or abs(c1x - (x0 + dx * 0.45)) > 0.05 or abs(c2x - (x1 - dx * 0.45)) > 0.05 \
                 or abs(c1y - y0) > 0.05 or abs(c2y - y1) > 0.05:
             bad_cp.append((x["key"], x["cp"]))
         a, b = nodes.get(x["from"]), nodes.get(x["to"])
         if not a or not b or abs(y0 - a["y"]) > 1 or abs(y1 - b["y"]) > 1 \
                 or not (a["x"] <= x0 <= a["x"] + a["r"] + 1) or not (b["x"] - b["r"] - 1 <= x1 <= b["x"]):
             bad_end.append((x["key"], x["cp"][:2], x["cp"][6:], a and [a["x"], a["y"], a["r"]], b and [b["x"], b["y"], b["r"]]))
-    ok(f"{tag} 四層連線都是規格貝茲：CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)（兩端切線水平；改前 0.45／0.55）",
+    ok(f"{tag} 四層連線都是黃金標準貝茲：CP1＝(x0＋dx×0.45, y0)、CP2＝(x1−dx×0.45, y1)（對稱張力；第一版 0.55／0.45）",
        not bad_cp, bad_cp[:3])
     ok(f"{tag} 連線從父節點圓心那一列出發、接進子節點（改前在產業鏈直條上依目標 y 排開、扇形散出）",
        not bad_end, bad_end[:3])
@@ -29702,10 +29716,69 @@ def _fx_bezier(t, tag):
        sorted({x["lv"] for x in lk}))
     L1 = _fx_lv(t, 1)
     ok(f"{tag} 產業鏈節點是圓、不是直條（改前：直立細條 hh＝出發線寬加總，Andy 圖三紅框）",
-       bool(L1) and all(n["shape"] == "circle" and n["hh"] == 0 and n["r"] >= 4 for n in L1),
+       bool(L1) and all(n["shape"] == "circle" and n["hh"] == 0 and 4.5 <= n["r"] <= 7.5 for n in L1),
        [(n["name"], n["shape"], n["hh"], n["r"]) for n in L1][:5])
     ok(f"{tag} 四層節點全部是圓點", all(n["shape"] == "circle" for n in t["nodes"]),
        [n["key"] for n in t["nodes"] if n["shape"] != "circle"][:3])
+
+
+def _fx_crisp(t, tag, dark=True):
+    """★★ 2026-09-26（第二版）Andy「濁、混亂」四點＋黃金標準的數字，全部讀探針回報的「實際畫出去的值」：
+      ① 去霧：內芯固定 1.1px、alpha 0.65（毛細 0.7px／0.2）；外暈寬＝weight×2.4、alpha ≤ 0.09（毛細 ≤ 0.04）
+      ② 節點 4.5～7.5 的圓點；根／產業鏈／族群的標籤是高 17px 的膠囊，代表股不是膠囊
+      ③ 族群等距垂直槽位 36～42px（同一條鏈內相鄰族群的 y 差都一樣）
+      ④ 代表股全部對齊在寬度 83% 那一欄；三檔在族群的 y 上下對稱排開
+      ⑤ 深色主題畫布底 #050a14（淺色照舊），畫布三張（第一版為標籤變亮加的第四張拿掉）"""
+    lk = [x for x in (t or {}).get("links", []) if not x["dead"]]
+    trunk = [x for x in lk if x["lv"] < 2]
+    cap = [x for x in lk if x["lv"] == 2]
+    ok(f"{tag} ① 內芯固定 1.1px、alpha 0.65（主幹與族群段；改前 w×0.9、0.32）",
+       bool(trunk) and all(x["inW"] == 1.1 and x["inA"] == 0.65 for x in trunk),
+       [(x["key"], x["inW"], x["inA"]) for x in trunk if not (x["inW"] == 1.1 and x["inA"] == 0.65)][:3])
+    ok(f"{tag} ① 毛細線（族群 → 代表股）0.7px、alpha 0.2",
+       bool(cap) and all(x["inW"] == 0.7 and x["inA"] == 0.2 for x in cap),
+       [(x["key"], x["inW"], x["inA"]) for x in cap if not (x["inW"] == 0.7 and x["inA"] == 0.2)][:3])
+    ok(f"{tag} ① 外暈寬＝weight×2.4（改前 ×3.2）、alpha ≤ 0.09（毛細 ≤ 0.04）",
+       bool(lk) and all(abs(x["outW"] - x["w"] * 2.4) < 0.02 and 0 < x["outA"] <= (0.04 if x["lv"] == 2 else 0.09) + 1e-9 for x in lk),
+       [(x["key"], x["w"], x["outW"], x["outA"]) for x in lk
+        if not (abs(x["outW"] - x["w"] * 2.4) < 0.02 and 0 < x["outA"] <= (0.04 if x["lv"] == 2 else 0.09) + 1e-9)][:3])
+    # 參考稿每幀蓋 rgba(5,10,20,.38) 再重畫 → 看起來的透明度是穩態 a／(1−(1−a)(1−.38))；底圖直接畫這個值
+    eq = lambda a: a / (1 - (1 - a) * (1 - 0.38))
+    ok(f"{tag} ① 實際畫出的透明度＝參考稿殘影穩態（內芯 .65→{eq(.65):.3f}、毛細 .2→{eq(.2):.3f}、外暈同公式）",
+       bool(lk) and all(abs(x["inAEff"] - eq(x["inA"])) < 2e-3 and abs(x["outAEff"] - eq(x["outA"])) < 2e-3 for x in lk),
+       [(x["key"], x["inA"], x["inAEff"], x["outA"], x["outAEff"]) for x in lk
+        if not (abs(x["inAEff"] - eq(x["inA"])) < 2e-3 and abs(x["outAEff"] - eq(x["outA"])) < 2e-3)][:3])
+    L0, L1, L2, L3 = (_fx_lv(t, i) for i in range(4))
+    big = L0 + L1 + L2
+    ok(f"{tag} ② 根／產業鏈／族群節點半徑 4.5～7.5（改前產業鏈 6～12、族群 4～15、根 13）",
+       bool(big) and all(4.5 <= n["r"] <= 7.5 for n in big), [(n["name"], n["r"]) for n in big if not 4.5 <= n["r"] <= 7.5][:4])
+    ok(f"{tag} ② 產業鏈與族群的標籤是高 17px 的膠囊（改前是描邊字）",
+       all(n["lab"] and n["lab"]["badge"] and n["lab"]["h"] == 17 for n in L1 + L2),
+       [(n["name"], n["lab"]) for n in L1 + L2 if not (n["lab"] and n["lab"]["badge"] and n["lab"]["h"] == 17)][:3])
+    ok(f"{tag} ② 代表股不是膠囊（小點＋「名稱 佔比%」）", bool(L3) and all(n["lab"] and not n["lab"]["badge"] for n in L3))
+    bad_eq, diffs = [], set()
+    for c in L1:
+        ys = sorted(g["y"] for g in L2 if g["parent"] == c["key"])
+        d = [ys[i + 1] - ys[i] for i in range(len(ys) - 1)]
+        diffs.update(d)
+        if d and max(d) - min(d) > 1.01:
+            bad_eq.append((c["name"], d))
+    sl = t.get("slot") or 0
+    ok(f"{tag} ③ 族群等距垂直槽位：同一條鏈內相鄰族群的 y 差都一樣、槽高 36～42（改前依葉子數排）",
+       not bad_eq and 36 <= sl <= 42 and all(abs(x - sl) <= 1.01 for x in diffs), {"slot": sl, "差": sorted(diffs), "不等距": bad_eq[:2]})
+    x83 = t["W"] * 0.83
+    lx = sorted({n["x"] for n in L3})
+    ok(f"{tag} ④ 代表股全部對齊在寬度 83% 那一欄（改前在第四欄等分位置）", bool(lx) and max(lx) - min(lx) <= 1 and abs(lx[0] - x83) <= 1.5,
+       {"x": lx[:4], "83%": round(x83, 1)})
+    per = {}
+    for n in L3:
+        per.setdefault(n["parent"], []).append(n)
+    gy = {g["key"]: g["y"] for g in L2}
+    bad_c = [k for k, v in per.items() if len(v) >= 2 and abs((min(n["y"] for n in v) + max(n["y"] for n in v)) / 2 - gy.get(k, -99)) > 1.5]
+    ok(f"{tag} ④ 代表股以族群的 y 為中心上下排開", not bad_c, bad_c[:3])
+    ok(f"{tag} ⑤ 畫布底：深色 #050a14、淺色照舊；畫布三張（改前四張）",
+       t.get("canvases") == 3 and (("5, 10, 20" in t.get("stageBg", "") or "#050a14" in t.get("stageBg", "")) if dark else t.get("stageBg", "") == ""),
+       {k: t.get(k) for k in ("canvases", "stageBg")})
 
 
 def _fx_hits(pg, t0, tag):
@@ -29735,9 +29808,9 @@ def _fx_hits(pg, t0, tag):
     dots = {n["dot"] for n in t0["nodes"]}
     ok(f"{tag} 節點色是產業鏈色、不是漲跌紅綠（原型每條線不同色，站上規矩：紅綠只給 ▲▼）",
        rise not in dots and fall not in dots and len(dots) >= 3, sorted(dots))
-    ok(f"{tag} 標籤變亮用的第四張畫布在（疊在標籤上、不吃滑鼠）", bool(t2) and t2["glowCanvas"] and pg.evaluate(
-        "() => { const c = document.querySelector('#sankey canvas.ftglow'); return !!c && getComputedStyle(c).pointerEvents === 'none'"
-        " && c.width > 100; }"))
+    # 2026-09-26 第二版 改前→改後：「標籤變亮用的第四張畫布在」→ 拿掉（黃金標準的膠囊字固定色），改驗「沒有 ftglow」
+    ok(f"{tag} 第一版的標籤變亮畫布（ftglow）已拿掉", not pg.evaluate("() => !!document.querySelector('#sankey canvas.ftglow')"))
+    ok(f"{tag} 代表股（毛細終點）不起漣漪、節點仍會被激發", all(n["hf"] >= 0 for n in t1["nodes"]) and t1["rpMade"] > 0)
 
 
 def _fx_seg(pg):
@@ -29795,7 +29868,11 @@ def t_flowfx(pg, b, base):
     one_col = all(len(v) >= 1 and max(v) - min(v) <= 1 for v in xs)
     cx = [v[0] for v in xs]
     gaps = [cx[i + 1] - cx[i] for i in range(3)]
-    ok("四層各自一欄、欄距相等（經典版 tree 的深度等分）", one_col and max(gaps) - min(gaps) <= 2, {"x": xs, "欄距": gaps})
+    # 2026-09-26 第二版 改前→改後：四欄等分 → 黃金標準的 26%／54%／83%（根貼左）
+    W0 = t0["W"]
+    ok("四層各自一欄：根貼左、產業鏈 26%、族群 54%、代表股 83%（改前四欄等分）",
+       one_col and cx[0] < 40 and all(abs(cx[i] - W0 * f) <= 1.5 for i, f in ((1, 0.26), (2, 0.54), (3, 0.83))),
+       {"x": xs, "欄距": gaps, "W": W0})
     ok("標籤都在節點右邊（經典版 label.position = right）",
        all(n["lab"] and n["lab"]["x"] > n["x"] for n in t0["nodes"]),
        [n["key"] for n in t0["nodes"] if n["lab"] and n["lab"]["x"] <= n["x"]][:3])
@@ -29806,19 +29883,22 @@ def t_flowfx(pg, b, base):
             bad_mid.append(c["name"])
     ok("產業鏈節點在它第一個與最後一個族群的正中間（經典版 tree 的父節點置中）", not bad_mid, bad_mid)
     lf_step = sorted({round(per[k][i + 1]["y"] - per[k][i]["y"]) for k in per for i in range(len(per[k]) - 1)})
-    ok("同一族群的代表股等距排開（經典版一片葉子 16px 的間距，≥ 12px）",
+    # 2026-09-26 第二版：間距 16 → 13（黃金標準 9px 配 10px 字；這裡字是 12px 下限，所以 13）
+    ok("同一族群的代表股等距排開（間距 ≥ 12px）",
        bool(lf_step) and min(lf_step) >= 12 and max(lf_step) - min(lf_step) <= 1, lf_step)
     ok("標籤沒有互相重疊", _topo_overlap(t0) == 0, _topo_overlap(t0))
     ok("發光 shadowBlur ≤ 6px、畫布字 ≥ 12px", 0 < t0["maxBlur"] <= 6 and (t0["minFont"] or 0) >= 12, [t0["maxBlur"], t0["minFont"]])
     # ---- ★ 2026-09-26 連線改規格貝茲（CP 0.55／0.45）、產業鏈改圓點（圖三不要直條）
     _fx_bezier(t0, "[經典光纖 1440 深色]")
+    _fx_crisp(t0, "[經典光纖 1440 深色]")
     # ---- 特效半：照拓撲版
     lk = [x for x in t0["links"] if not x["dead"]]
     ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
-    ok("線寬最粗 ≥ 最細 ×6（依金額平方根，1～13px）", max(ws) >= min(ws) * 6 and 1 <= min(ws) and max(ws) <= 13.01,
+    # 2026-09-26 第二版 改前→改後：1～13px、×6 → 黃金標準 0.8～3.8、×4.5（見 _topo_contrast 的 fx 分支）
+    ok("線 weight 最粗 ≥ 最細 ×4.5（依金額平方根，0.8～3.8）", max(ws) >= min(ws) * 4.5 and 0.79 <= min(ws) and max(ws) <= 3.81,
        {"min": min(ws), "max": max(ws)})
     ok("粒子速度最大 ≥ 最小 ×4", bool(vs) and max(vs) >= min(vs) * 4, vs and {"min": min(vs), "max": max(vs)})
-    _topo_contrast(t0, "[經典光纖 1440 深色]")
+    _topo_contrast(t0, "[經典光纖 1440 深色]", fx=True)
     ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
        sum(x["n"] for x in t0["links"] if x["lv"] == 2))
     # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
@@ -29943,7 +30023,7 @@ def t_flowfx(pg, b, base):
     ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == canvas_hash(pg, "#sankey"))
     ok("動態關掉：沒有震波、沒有節點在激發（靜止狀態不閃）", tm["ripples"] == 0 and all(n["hf"] == 0 for n in tm["nodes"]),
        {"震波": tm["ripples"], "激發中": [n["name"] for n in tm["nodes"] if n["hf"]][:3]})
-    _topo_contrast(tm, "[經典光纖・動態關]", motion=False)
+    _topo_contrast(tm, "[經典光纖・動態關]", motion=False, fx=True)
     pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()")
     ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
     # ---- 看不見就停：捲出畫面
@@ -29985,6 +30065,7 @@ def t_flowfx(pg, b, base):
        tw and {"overlap": _topo_overlap(tw), "leaves": len(_fx_lv(tw, 3))})
     if tw:
         _fx_bezier(tw, "[1024px]")
+        _fx_crisp(tw, "[1024px]")
     ok("[1024px] 分段鈕沒有被擠出拉Bar 那一列", pg.evaluate("""() => { const s = document.getElementById('sankeyStyleSeg');
         const r = s.getBoundingClientRect(), p = document.getElementById('sankeyDays').getBoundingClientRect();
         return r.width > 60 && r.right <= p.right + 1 && r.left >= p.left - 1; }"""))
@@ -30000,9 +30081,10 @@ def t_flowfx(pg, b, base):
     ok("[淺色] 經典光纖畫得出來、是淺色配色、發光 ≤ 6", bool(tl) and tl["layout"] == "classic" and tl["dark"] is False
        and tl["maxBlur"] <= 6, tl and (tl["layout"], tl["dark"]))
     if tl:
-        _topo_contrast(tl, "[經典光纖 1440 淺色]")
+        _topo_contrast(tl, "[經典光纖 1440 淺色]", fx=True)
         ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
         _fx_bezier(tl, "[淺色]")
+        _fx_crisp(tl, "[淺色]", dark=False)
         _fx_hits(pg, tl, "[淺色]")
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.sankey.style'); } catch (e) {} }")
     # ---- 減少動態效果：經典光纖一樣只畫靜態、換日不補間
