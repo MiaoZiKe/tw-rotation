@@ -8976,9 +8976,12 @@ def t_market3(pg, base):
     pg.goto("about:blank")
     pg.goto(base + "#overview", wait_until="networkidle")
     pg.wait_for_timeout(2200)
-    msg = text(pg, "#m3c-TSE .empty")
-    ok("Worker 是舊版時，畫面直接告訴你要去 Cloudflare 重貼",
-       "Cloudflare" in msg and "worker.js" in msg, msg[:120])
+    # 2026-09-25 總覽改版（審查 R1）：改前「只印要去 Cloudflare 重貼的空白」→ 改後「退到其他來源／資料湖照樣畫圖，不留空白」
+    st = pg.evaluate("""() => { const el = document.getElementById('m3c-TSE'); if (!el) return null;
+        return { empty: !!el.querySelector('.empty'), txt: (el.textContent || '').slice(0, 120),
+                 drawn: !!el.querySelector('canvas, svg') }; }""")
+    ok("Worker 是舊版時不留空白：退到其他來源照樣畫得出圖",
+       bool(st) and st["drawn"] and not st["empty"], st)
 
     # --- 收拾
     pg.unroute("**/chart?*")
