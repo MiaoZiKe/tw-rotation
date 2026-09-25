@@ -51,6 +51,9 @@ TABLES: dict[str, list[str]] = {
     # symbol：TSE（^TWII）/ OTC（^TWOII）/ FUT（台指期日盤）/ FUT_N（夜盤）；
     # interval：60m（Yahoo 保留 730 天，當長歷史）/ 15m（Yahoo 60 天，補最近的細節）。
     # 跟個股的 intraday_60m 分開：那張表的增量起點是「全表最後一根」，混進指數會互相干擾。
+    # v8（2026-09-26）：interval 多一個 1m ＝ 證交所 mis 當日分時檔（TSE／OTC／FUT 同一個來源），
+    #   每個交易日盤後自己存、自己累積（見 sources/mis.index_minute_bars）。多一欄 src="mis" 標來源；
+    #   舊列沒有這欄（讀出來是 NaN），不影響 key。同一天有 1m 時 build 以 1m 為準（真實量、同口徑）。
     "index_intraday":     ["ts", "symbol", "interval"],
     # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
     # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
@@ -89,6 +92,15 @@ MIS_QUOTE = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp"
 # 它的 infoArray[0] 直接附當天的開高低收、昨收與成交金額，
 # 用來在 openapi 還沒給今天的時候補 market_daily（加權指數那格數字）。
 MIS_CHART_TSE = "https://mis.twse.com.tw/stock/data/mis_ohlc_TSE.txt"
+# 大盤三張圖的「當日分時」三個檔（DECISIONS #121 登記的就是這三個，跟 getStockInfo.jsp 同一台主機）。
+# 2026-09-26 起管線盤後把它們存成 1 分 K 進 index_intraday，櫃買與台指期的多日分 K 才有來源
+# （Yahoo ^TWOII 回空、台指期沒有 Yahoo 代號、FinMind 分 K 要付費等級）。
+# ⚠ 只放這三個檔名；期交所（mis.taifex.com.tw）的夜盤分時沒有進管線白名單，不在這裡。
+MIS_CHART_FILES = {
+    "TSE": MIS_CHART_TSE,                                              # 加權 t00
+    "OTC": "https://mis.twse.com.tw/stock/data/mis_ohlc_OTC.txt",      # 櫃買 o00
+    "FUT": "https://mis.twse.com.tw/stock/data/futures_chart.txt",     # 台指期（只有日盤）
+}
 
 TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {

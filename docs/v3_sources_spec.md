@@ -255,3 +255,28 @@ PLAN_DEFAULT = [
 
 `backfill_indices()` 現在要求 `index_ohlc` 同時回到 `TSE` **與** `OTC` 才標 done
 （那支函式一次抓兩個指數，只回到加權時它仍然「非空」，照舊標 done 會讓櫃買永遠只有 40 天）。
+
+## 8. 大盤三張圖的 1 分 K：mis 當日分時檔自己累積（2026-09-26）
+
+Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源，不是一個有一個沒有」。
+當天分時三張本來就同一個來源；多日分 K 以前只有加權有（Yahoo `^TWII`），
+櫃買 `^TWOII` 回空、台指期沒有 Yahoo 代號、FinMind 分 K 要付費等級（register 回 400）。
+
+- 來源：`config.MIS_CHART_FILES` —— `mis_ohlc_TSE.txt`（t00）、`mis_ohlc_OTC.txt`（o00）、
+  `futures_chart.txt`（台指期日盤）。三個都是 DECISIONS #121 登記過的、跟 `getStockInfo.jsp` 同一台主機。
+  期交所 `mis.taifex.com.tw` 的夜盤分時**沒有進管線白名單**，不抓（前端經 Worker 讀的那條不受影響）。
+- 函式：`mis.parse_index_chart(symbol, payload)`（純解析，可測）、`mis.index_minute_bars()`（抓三個檔，各自可失敗）；
+  `run_daily.collect_index_minute()` 包成 `step("mis.index_minute")`，**每一個 phase 都跑**
+  （含週末與清晨 news：那時檔案是上一個交易日的殘留，照內容歸日、去重，多一次保險）。
+- 表：沿用 `index_intraday`（key `["ts","symbol","interval"]`），`interval="1m"`、多一欄 `src="mis"`。
+  - `ts`：每一筆 epoch `t` 換成台北時間（`2026-09-25T09:01:00+08:00`）—— **交易日取自檔案內容**。
+  - 開＝前一分鐘收盤（第一根用 `infoArray.o`，日期對得上才用）；高低＝開收兩者極值（檔案只有分鐘收盤）。
+  - 量：TSE／OTC 的 `s` 是張 → 存股（×1000，跟 `index_ohlc` 同口徑）；FUT 是口，照存。
+- 防呆（上游改格式時不把錯的時間寫進只增不改的湖）：
+  TSE／OTC 的 `ts` 標籤跟 epoch 對不上、或點落在交易時段外，超過 5% 就整檔不收，log 附回應前 200 字；
+  `s` 若變成累計量（單調、最後一筆≈`staticObj.tv`）改用差分。
+- 合成（`compute/intraday_bars.build`）：同一盤挑一種顆粒，1m（mis）＞15m＞60m（Yahoo）。
+  加權的 Yahoo 歷史保留，同一天以 mis 為準；1m 聚合成 M15（格子開始時間）、H1、H4。
+  `src` 多給 `first／last／mis_first／mis_days`，前端寫「櫃買分 K 自 YYYY-MM-DD 起累積（N 天）」。
+- 限制：過去的補不回來；櫃買、台指期從第一個抓到的交易日開始長。夜盤沒有多日分 K。
+- 測試：`tests/test_sources_v3.py` 的 `test_mis_chart_*`、`test_build_*`（假回應，不打真 API）。

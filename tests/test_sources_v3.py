@@ -625,3 +625,199 @@ def test_backfill_otc_marks_unavailable_after_empties(monkeypatch):
     assert run_backfill._backfill_otc_kbar(flag, pd.DataFrame(), 60) is True
     assert "otc_unavailable" in flag
     assert len(calls) == 3 * len(finmind.OTC_KBAR_IDS)   # 3 天就停，不會把 60 天的額度燒完
+
+
+# ------------------------------------------------------------------ mis 當日分時檔 → 1 分 K（2026-09-26）
+# Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源」。三個檔同一台主機（DECISIONS #121），
+# 盤後存成 1 分 K 自己累積。容器連不到 mis，格式照 docs/fixtures/mis_ohlc_tse_20260914.json（真的打回來的）
+# 與 worker.js／market3.js 註解裡的實測描述：TSE／OTC {t, ts, c, s}；FUT {t, c, s}（沒有 ts）。
+import json as _json  # noqa: E402
+
+from pipeline.compute import intraday_bars as _ib  # noqa: E402
+from pipeline.sources import mis as _mis  # noqa: E402
+
+_MIS_FIX = Path(__file__).resolve().parents[1] / "docs" / "fixtures" / "mis_ohlc_tse_20260914.json"
+
+
+def _ems(day: str, hhmm: str) -> str:
+    """台北時間 → mis 檔裡的 epoch 毫秒字串（檔案裡是字串）。"""
+    return str(pd.Timestamp(f"{day} {hhmm}", tz="Asia/Taipei").value // 10**6)
+
+
+def _chart(minutes, closes, vols, *, day="2026-09-25", with_ts=True, info=None, static=None):
+    arr = []
+    for m, c, s in zip(minutes, closes, vols):
+        o = {"t": _ems(day, m), "c": str(c), "s": str(s)}
+        if with_ts:
+            o["ts"] = m.replace(":", "") + "00"
+        arr.append(o)
+    out = {"infoArray": [info] if info is not None else [], "ohlcArray": arr,
+           "rtcode": "0000", "rtmessage": "OK"}
+    if static is not None:
+        out["staticObj"] = static
+    return _json.dumps(out)
+
+
+def _wall(s: str) -> int:
+    return int((pd.Timestamp(s) - pd.Timestamp("1970-01-01")).total_seconds())
+
+
+def test_mis_chart_real_tse_fixture():
+    """真的打回來的加權分時檔：日期取自檔案（09-14），第一根開盤用 infoArray 的真開盤，量＝張×1000。"""
+    df = _mis.parse_index_chart("TSE", _MIS_FIX.read_text(encoding="utf-8"))
+    assert len(df) == 1
+    r = df.iloc[0]
+    assert r["ts"] == "2026-09-14T09:01:00+08:00"
+    assert (r["symbol"], r["interval"], r["src"]) == ("TSE", "1m", "mis")
+    assert r["open"] == 46010.74 and r["close"] == 45550.39
+    assert r["high"] == 46010.74 and r["low"] == 45550.39
+    assert r["volume"] == 33505 * 1000
+
+
+def test_mis_chart_otc_chain_open_and_units():
+    info = {"d": "20260925", "o": "390.00", "h": "395", "l": "389", "z": "392", "y": "388"}
+    txt = _chart(["09:01", "09:02", "09:03"], [391.0, 390.5, 392.0], [120, 80, 95], info=info)
+    df = _mis.parse_index_chart("OTC", "﻿" + txt)          # 帶 BOM 也要解得開
+    assert list(df["open"]) == [390.0, 391.0, 390.5]            # 開＝前一分收；第一根＝infoArray 開盤
+    assert list(df["high"]) == [391.0, 391.0, 392.0]
+    assert list(df["low"]) == [390.0, 390.5, 390.5]
+    assert list(df["volume"]) == [120_000, 80_000, 95_000]       # 張 → 股
+    assert set(df["ts"].str[:10]) == {"2026-09-25"}
+
+
+def test_mis_chart_futures_no_ts_no_date_uses_epoch():
+    """futures_chart.txt 沒有 ts、infoArray 也不一定有 d：交易日一律取每一筆的 epoch，量是口數不乘。"""
+    txt = _chart(["08:46", "08:47", "13:45"], [45100, 45110, 45200], [900, 300, 1500],
+                 with_ts=False, info={"o": "45090"})
+    df = _mis.parse_index_chart("FUT", txt)
+    assert list(df["ts"]) == ["2026-09-25T08:46:00+08:00", "2026-09-25T08:47:00+08:00",
+                              "2026-09-25T13:45:00+08:00"]
+    assert list(df["volume"]) == [900.0, 300.0, 1500.0]
+    assert df.iloc[0]["open"] == 45100                          # 沒有 d 就不拿 infoArray 開盤冒充
+
+
+def test_mis_chart_residual_file_dated_by_content():
+    """週六清晨抓到的是週五的殘留檔：歸在週五（檔案內容），跟執行當下是哪天無關。"""
+    txt = _chart(["13:29", "13:30"], [100.0, 101.0], [1, 2], day="2026-09-25",
+                 info={"d": "20260925", "o": "99"})
+    df = _mis.parse_index_chart("TSE", txt)
+    assert set(df["ts"].str[:10]) == {"2026-09-25"}
+
+
+def test_mis_chart_label_mismatch_rejects_whole_file(caplog):
+    """時間標籤跟 epoch 對不上＝時間戳語意變了：整檔不收（寫進只增不改的湖就洗不掉），log 附回應前 200 字。"""
+    bad = _json.loads(_chart(["09:01", "09:02"], [1.0, 2.0], [1, 1]))
+    for o in bad["ohlcArray"]:
+        o["ts"] = "170100"
+    with caplog.at_level("WARNING"):
+        assert _mis.parse_index_chart("TSE", _json.dumps(bad)).empty
+    assert "ohlcArray" in caplog.text                         # 前 200 字真的印出來了
+
+
+def test_mis_chart_out_of_session_rejects():
+    """epoch 被當成台北時間送（整體偏 8 小時）→ 全部落在時段外 → 不收。"""
+    txt = _chart(["01:01", "01:02"], [1.0, 2.0], [1, 1], with_ts=False)
+    assert _mis.parse_index_chart("FUT", txt).empty
+
+
+def test_mis_chart_bad_payloads_return_empty(caplog):
+    with caplog.at_level("WARNING"):
+        assert _mis.parse_index_chart("TSE", "<html>系統維護中</html>").empty
+    assert "系統維護中" in caplog.text
+    assert _mis.parse_index_chart("TSE", _json.dumps({"rtcode": "5000", "ohlcArray": []})).empty
+    assert _mis.parse_index_chart("TSE", _json.dumps({"rtcode": "0000"})).empty
+    assert _mis.parse_index_chart("TSE", _json.dumps([1, 2])).empty
+
+
+def test_mis_chart_cumulative_volume_guard():
+    """萬一 s 變成累計量（單調、最後一筆＝總量、加總遠大於總量），改用差分，不把量放大幾十倍。"""
+    mins = [f"09:{i:02d}" for i in range(1, 21)]
+    cum = [10 * (i + 1) for i in range(20)]                     # 10, 20, … 200
+    txt = _chart(mins, [100.0] * 20, cum, info={"d": "20260925", "o": "100"}, static={"tv": "200"})
+    df = _mis.parse_index_chart("TSE", txt)
+    assert df["volume"].sum() == 200 * 1000
+
+
+def test_mis_index_minute_bars_one_source_failing(monkeypatch):
+    """三個檔各自可失敗：一個 None、一個丟例外，剩下那個照收。"""
+    good = _chart(["09:01"], [390.0], [5], info={"d": "20260925", "o": "390"})
+
+    def fake_get(url, **k):
+        if "OTC" in url:
+            return good
+        if "futures" in url:
+            raise RuntimeError("連線被重置")
+        return None
+    monkeypatch.setattr(_mis.http, "get", fake_get)
+    df = _mis.index_minute_bars()
+    assert set(df["symbol"]) == {"OTC"}
+
+
+def test_mis_minute_append_dedup(tmp_path, monkeypatch):
+    """重複抓不重複寫；後一次比較完整時只多出新的分鐘，同一分鐘以後到的為準。"""
+    from pipeline.util import store
+    monkeypatch.setattr(config, "DATA", tmp_path)
+    info = {"d": "20260925", "o": "100"}
+    half = _mis.parse_index_chart("OTC", _chart(["09:01", "09:02"], [100.0, 101.0], [1, 2], info=info))
+    full = _mis.parse_index_chart("OTC", _chart(["09:01", "09:02", "09:03"], [100.0, 101.5, 102.0],
+                                                [1, 3, 4], info=info))
+    assert store.append("index_intraday", half) == 2
+    assert store.append("index_intraday", half) == 0
+    assert store.append("index_intraday", full) == 1
+    got = store.read("index_intraday").sort_values("ts")
+    assert len(got) == 3 and got.iloc[1]["close"] == 101.5      # 09:02 那一分鐘被後到的蓋掉
+
+
+def _mis_day(sym, day, base, unit_vol=10):
+    """一整盤 09:01～13:30 的 1 分 K（走 parser，跟管線同一條路）。"""
+    mins = [(pd.Timestamp(f"{day} 09:01") + pd.Timedelta(minutes=i)).strftime("%H:%M") for i in range(270)]
+    closes = [base + i * 0.1 for i in range(270)]
+    return _mis.parse_index_chart(sym, _chart(mins, closes, [unit_vol] * 270, day=day,
+                                              info={"d": day.replace("-", ""), "o": str(base)}))
+
+
+def test_build_minute_synth_15_60_240():
+    """1 分 K → 15 分（格子開始時間）、1 小時（09～13）、4 小時（一盤一根），量加總＝真實量。"""
+    out = _ib.build(_mis_day("OTC", "2026-09-25", 390.0))["OTC"]
+    h1, h4, m15 = out["H1"], out["H4"], out["M15"]
+    assert [b[0] for b in h1] == [_wall(f"2026-09-25 {h:02d}:00") for h in (9, 10, 11, 12, 13)]
+    assert len(h4) == 1 and h4[0][0] == _wall("2026-09-25 09:00")
+    assert h4[0][1] == 390.0 and h4[0][4] == pytest.approx(390.0 + 269 * 0.1)
+    assert h4[0][5] == 270 * 10 * 1000
+    assert m15[0][0] == _wall("2026-09-25 09:00") and all(b[0] % 900 == 0 for b in m15)
+    assert m15[1][0] == _wall("2026-09-25 09:15")
+    assert sum(b[5] for b in m15) == h4[0][5]
+    assert out["src"]["mis_first"] == "2026-09-25" and out["src"]["mis_days"] == 1
+    assert out["src"]["first"] == "2026-09-25" and out["src"]["days15"] == 1
+
+
+def test_build_mis_wins_over_yahoo_same_day_and_keeps_history():
+    """加權：Yahoo 歷史保留；同一天兩個來源都有時以 mis 為準（真實量、同口徑）。"""
+    old = pd.DataFrame([{"ts": "2026-09-01T09:00:00+08:00", "symbol": "TSE", "interval": "60m",
+                         "open": 1, "high": 2, "low": 1, "close": 2, "volume": 0}])
+    dup = pd.DataFrame([{"ts": "2026-09-25T09:00:00+08:00", "symbol": "TSE", "interval": "15m",
+                         "open": 999, "high": 999, "low": 999, "close": 999, "volume": 0}])
+    out = _ib.build(pd.concat([old, dup, _mis_day("TSE", "2026-09-25", 45000.0)], ignore_index=True))["TSE"]
+    assert out["H4"][0][4] == 2                                  # 09-01 的 Yahoo 還在
+    assert out["H4"][-1][1] == 45000.0 and out["H4"][-1][5] > 0  # 09-25 用 mis（不是 999、量不是 0）
+    assert out["src"]["first"] == "2026-09-01" and out["src"]["mis_first"] == "2026-09-25"
+    assert out["src"]["days"] == 2
+
+
+def test_build_three_symbols_same_logic_multi_day():
+    """三個指數同一套邏輯：各自從第一個存到的交易日開始累積，天數讀資料。"""
+    lake = pd.concat([_mis_day(s, d, b) for s, b in (("TSE", 45000.0), ("OTC", 390.0), ("FUT", 45100.0))
+                      for d in ("2026-09-24", "2026-09-25")], ignore_index=True)
+    out = _ib.build(lake)
+    for s in ("TSE", "OTC", "FUT"):
+        assert len(out[s]["H4"]) == 2 and len(out[s]["H1"]) == 10
+        assert out[s]["src"]["mis_first"] == "2026-09-24" and out[s]["src"]["mis_days"] == 2
+
+
+def test_collect_index_minute_records_days(monkeypatch):
+    from pipeline import run_daily
+    df = _mis_day("FUT", "2026-09-25", 45100.0).head(3)
+    monkeypatch.setattr(_mis, "index_minute_bars", lambda: df)
+    got = run_daily.collect_index_minute()
+    assert len(got) == 3
+    assert run_daily.RESULT["index_minute_days"] == {"FUT": ["2026-09-25"]}
