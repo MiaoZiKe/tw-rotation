@@ -23,6 +23,7 @@ BIG_LEVEL = 15                 # ≥ 1,000 張
 MID_LEVELS = (12, 13, 14)      # 400–1,000 張
 RETAIL_LEVELS = (1, 2, 3)      # ≤ 10 張
 TOTAL_LEVEL = 17
+DIV_YEAR_DAYS = 320            # 殖利率：最後一次除息往回幾天內算「同一個配息年度」
 
 
 def _f(x):
@@ -113,60 +114,137 @@ def profit_series(fin: pd.DataFrame, code: str, quarters: int = 24) -> dict:
 
 # ------------------------------------------------------------------ 本益比歷史
 
-def pe_history(price: pd.DataFrame, fin: pd.DataFrame, code: str, years: int = 5) -> list:
-    """每季一個點：季報可用日之後的第一個收盤 / 當時近四季 EPS。
+def pe_daily(price: pd.DataFrame, fin: pd.DataFrame, code: str,
+             shares: dict | None = None, quarters: int | None = None) -> pd.DataFrame:
+    """逐日本益比：[date, close, ttm_eps, pe, period, from]。price 必須是**原始**（未還原）收盤。
 
-    也順便給該季區間的最高與最低本益比（用區間內每日收盤 / 同一個 TTM EPS），
-    前端畫本益比河流圖用。虧損（TTM ≤ 0）的季度給 None。
+    公式：PE_d ＝ 原始收盤_d ÷ TTM_d，
+          TTM_d ＝ Σ(近四季 eps_q ÷ eps_divisor(..., d))  —— 每季 EPS 換算到 d 當天的股本。
+    所以除權當天收盤掉到 1/2.98、TTM 也同步除以 2.98，本益比連續（R5：6669 從 20 掉到 6.7 就是少了這步）。
+    - 只用公布日（缺值用法定期限）之後的價格，不偷看未來季報。
+    - 四季不連續或任一季缺 EPS → 那一段不給；TTM ≤ 0 → pe 為 NaN（不給負數）。
+    - quarters：只算最後幾季（個股頁只要 5 年，全算會多花好幾倍時間）。
+    效能：TTM 只會在「新季報」或「股數事件」那天變，所以區段再依事件日切開、每一小段向量化，
+    不逐日呼叫查表（逐日版本全市場要多 10 分鐘以上）。
     """
+    from .fundamental import eps_divisor, eps_basis_info
+    cols = ["date", "close", "ttm_eps", "pe", "period", "from"]
     if fin is None or fin.empty or price is None or price.empty:
-        return []
+        return pd.DataFrame(columns=cols)
     g = fin[fin["code"] == code].copy()
     if g.empty:
-        return []
+        return pd.DataFrame(columns=cols)
     for c in ("year", "quarter"):
         g[c] = pd.to_numeric(g[c], errors="coerce")
     g = g.dropna(subset=["year", "quarter"])
     g["year"] = g["year"].astype(int); g["quarter"] = g["quarter"].astype(int)
     g["qidx"] = g["year"] * 4 + g["quarter"]
-    g = g.sort_values("qidx").drop_duplicates("qidx", keep="last")
+    g = g.sort_values("qidx").drop_duplicates("qidx", keep="last").reset_index(drop=True)
     g["eps"] = pd.to_numeric(g["eps"], errors="coerce")
-    px = price[price["code"] == code][["date", "close"]].copy()
-    px["date"] = px["date"].astype(str)
-    px = px.sort_values("date")
-    if px.empty:
+    info = eps_basis_info(g)                    # 在完整序列上算（隱含股數要上一季）
+    pend = [x[0] for x in info]; avail = [x[1] for x in info]; impl = [x[2] for x in info]
+    px = price[price["code"] == code][["date", "close"]]
+    dates = px["date"].astype(str).to_numpy()
+    closes = pd.to_numeric(px["close"], errors="coerce").to_numpy(dtype=float)
+    ok = np.isfinite(closes) & (closes > 0)
+    dates, closes = dates[ok], closes[ok]
+    order = np.argsort(dates, kind="stable")
+    dates, closes = dates[order], closes[order]
+    if len(dates) == 0:
+        return pd.DataFrame(columns=cols)
+    ent = (shares or {}).get(str(code))
+    ev_dates = ent[0] if ent is not None else []
+    qidx = g["qidx"].to_numpy(); eps = g["eps"].to_numpy(dtype=float)
+    first_i = 3 if quarters is None else max(3, len(g) - int(quarters))
+    parts = []
+    for i in range(first_i, len(g)):
+        if qidx[i] - qidx[i - 3] != 3 or np.isnan(eps[i - 3: i + 1]).any():
+            continue
+        start = avail[i]
+        end = avail[i + 1] if i + 1 < len(g) else "9999-12-31"
+        lo, hi = np.searchsorted(dates, start, "left"), np.searchsorted(dates, end, "left")
+        if hi <= lo:
+            continue
+        sd, sc = dates[lo:hi], closes[lo:hi]
+        # 區段內的股數事件日把這段再切開；每一小段 TTM 是常數
+        cuts = [0] + [int(np.searchsorted(sd, e, "left")) for e in ev_dates if sd[0] < e <= sd[-1]] + [len(sd)]
+        t = np.empty(len(sd))
+        for a_, b_ in zip(cuts[:-1], cuts[1:]):
+            if b_ <= a_:
+                continue
+            d0 = sd[a_]
+            t[a_:b_] = sum(eps[k] / (eps_divisor(shares, code, pend[k], avail[k], d0, impl[k]) if ent is not None else 1.0)
+                           for k in range(i - 3, i + 1))
+        with np.errstate(divide="ignore", invalid="ignore"):
+            pe = np.where(t > 0, sc / t, np.nan)
+        parts.append(pd.DataFrame({"date": sd, "close": sc, "ttm_eps": t, "pe": pe,
+                                   "period": f"{g.at[i, 'year']}Q{g.at[i, 'quarter']}", "from": sd[0]}))
+    if not parts:
+        return pd.DataFrame(columns=cols)
+    return pd.concat(parts, ignore_index=True)[cols]
+
+
+def pe_history(price: pd.DataFrame, fin: pd.DataFrame, code: str, years: int = 5,
+               shares: dict | None = None, adj_price: pd.DataFrame | None = None) -> list:
+    """每季一個點：季報可用日之後的第一個收盤 / 當時近四季 EPS，外加該季區間的最高與最低本益比。
+
+    price 是**原始**收盤（本益比用的是當天真的價格 ÷ 當天股本下的 EPS，見 pe_daily）。
+    ttm_eps 欄位要給前端「本益比河流圖」拿去跟**還原 K 線**相除，所以換算到還原價的基準：
+      ttm_eps_輸出 ＝ 區段最後一天的 收盤_還原 ÷ PE
+    這樣河流圖的 收盤_還原 ÷ ttm_eps 在區段最後一天會精確等於真的本益比；
+    區段內若有除息，前面幾天的偏差不超過那次的現金殖利率（除權的股數部分則完全抵銷）。
+    沒給 adj_price 時 ttm_eps 就是當天股本下的 TTM（舊行為）。虧損（TTM ≤ 0）的季度給 None。
+    """
+    d = pe_daily(price, fin, code, shares, quarters=years * 4 + 1)
+    if d.empty:
         return []
+    adj_map = None
+    if adj_price is not None and not adj_price.empty:
+        a = adj_price[adj_price["code"] == code]
+        adj_map = pd.Series(pd.to_numeric(a["close"], errors="coerce").to_numpy(),
+                            index=a["date"].astype(str).to_numpy())
+        adj_map = adj_map[~adj_map.index.duplicated(keep="last")]
     rows = []
-    hist = g.tail(years * 4 + 4).reset_index(drop=True)
-    for i in range(len(hist)):
-        win = hist.iloc[max(0, i - 3): i + 1]
-        if len(win) < 4 or (win["qidx"].max() - win["qidx"].min()) != 3 or win["eps"].isna().any():
+    per = d["period"].to_numpy()
+    brk = np.flatnonzero(per[1:] != per[:-1]) + 1
+    for a_, b_ in zip(np.r_[0, brk], np.r_[brk, len(d)]):
+        seg = d.iloc[a_:b_]
+        last = seg.iloc[-1]
+        ttm_raw = float(last["ttm_eps"])
+        if ttm_raw <= 0:
+            rows.append({"period": last["period"], "ttm_eps": round(ttm_raw, 2),
+                         "pe": None, "pe_high": None, "pe_low": None, "from": seg["from"].iloc[0]})
             continue
-        ttm = float(win["eps"].sum())
-        r = hist.iloc[i]
-        start = str(r.get("announce_date") or "")
-        nxt = hist.iloc[i + 1] if i + 1 < len(hist) else None
-        end = str(nxt.get("announce_date")) if nxt is not None else "9999-12-31"
-        seg = px[(px["date"] >= start) & (px["date"] < end)]
-        if seg.empty:
-            continue
-        if ttm <= 0:
-            rows.append({"period": f"{r.year}Q{r.quarter}", "ttm_eps": round(ttm, 2),
-                         "pe": None, "pe_high": None, "pe_low": None, "from": seg["date"].iloc[0]})
-            continue
-        closes = pd.to_numeric(seg["close"], errors="coerce").dropna()
-        rows.append({"period": f"{r.year}Q{r.quarter}", "ttm_eps": round(ttm, 2),
-                     "pe": _r(closes.iloc[0] / ttm, 1),
-                     "pe_high": _r(closes.max() / ttm, 1), "pe_low": _r(closes.min() / ttm, 1),
-                     "from": seg["date"].iloc[0]})
+        ttm_out = ttm_raw
+        if adj_map is not None:
+            ac = adj_map.get(last["date"])
+            if ac is not None and pd.notna(ac) and ac > 0 and pd.notna(last["pe"]) and last["pe"] > 0:
+                ttm_out = float(ac) / float(last["pe"])
+        pes = seg["pe"].dropna()
+        rows.append({"period": last["period"], "ttm_eps": round(ttm_out, 2),
+                     "pe": _r(seg["pe"].iloc[0], 1),
+                     "pe_high": _r(pes.max(), 1) if len(pes) else None,
+                     "pe_low": _r(pes.min(), 1) if len(pes) else None,
+                     "from": seg["from"].iloc[0]})
     return rows[-years * 4:]
 
 
 # ------------------------------------------------------------------ 除權息
 
 def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
-              code: str, close: float | None) -> dict:
-    """股利公告 + 除權息結果（含填息天數）+ 近四次現金股利合計的殖利率。"""
+              code: str, close: float | None, shares: dict | None = None,
+              asof: str | None = None) -> dict:
+    """股利公告 + 除權息結果（含填息天數）+ 近一年現金股利合計的殖利率。
+
+    price 必須是**原始**收盤（填息是拿除權息前的真實收盤比）。
+    - 殖利率 ＝ 最近一個配息年度的現金股利（換算到今天的股數）÷ 收盤；
+      配息年度＝最後一次除息往回 DIV_YEAR_DAYS（320）天內的各次除息。
+      每筆現金 ÷ share_growth([除息日, asof])：6669 6/22 配 144.39 元，9/2 每股變 2.98 股，
+      換算後每股 48.4 元 → 殖利率約 3.4%（R5 回報沒換算時是 10.33%）。
+    - 除權息紀錄的「股利」只放股利：現金＋股票股利（元），取自 dividend_events 同一除權息日；
+      以前放的是 dividend_results 的「前收盤 − 參考價」價差（6669 寫成 5,185）。
+      對不到公告時：純除息用價差（除息價差就是現金股利），含權的留空（不猜）。
+    """
     out = {"events": [], "results": [], "cash_ttm": None, "yield_ttm": None}
     if events is not None and not events.empty:
         e = events[events["code"] == code].copy()
@@ -182,14 +260,33 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
             cash = e[e["kind"] == "cash"].copy()
             cash["ex_date"] = cash["ex_date"].astype(str)
             cash = cash[cash["ex_date"].str.match(r"^\d{4}-\d{2}-\d{2}$", na=False)].sort_values("ex_date")
+            if asof:
+                cash = cash[cash["ex_date"] <= str(asof)]      # 還沒除息的不算進「近一年已配」
             if not cash.empty:
-                cutoff = (pd.Timestamp(cash["ex_date"].iloc[-1]) - pd.Timedelta(days=365)).date().isoformat()
-                ttm_cash = float(pd.to_numeric(cash[cash["ex_date"] > cutoff]["amount"], errors="coerce").sum())
+                # 「最近一個配息年度」＝最後一次除息往回 320 天內（不是 365 天）：
+                # 年配息股每年除息日會前後漂移幾天，用 365 天會把去年那一筆也算進來
+                # （6669：2025-06-24 與 2026-06-22 只差 363 天，殖利率被多算一整年）。
+                # 季配息四次橫跨約 9 個月（≈275 天）、半年配兩次約 6 個月，都在 320 天內。
+                cutoff = (pd.Timestamp(cash["ex_date"].iloc[-1]) - pd.Timedelta(days=DIV_YEAR_DAYS)).date().isoformat()
+                recent = cash[cash["ex_date"] > cutoff]
+                amt = pd.to_numeric(recent["amount"], errors="coerce")
+                if shares:
+                    from .fundamental import share_growth
+                    amt = amt / np.asarray([share_growth(shares, code, d, asof, include_after=True)
+                                            for d in recent["ex_date"]], dtype=float)
+                ttm_cash = float(amt.sum())
                 out["cash_ttm"] = round(ttm_cash, 4)
                 if close:
                     out["yield_ttm"] = round(ttm_cash / close * 100, 2)
     if results is not None and not results.empty:
         rs = results[results["code"] == code].copy()
+        paid: dict[str, dict[str, float]] = {}
+        if events is not None and not events.empty and "ex_date" in events.columns:
+            ee = events[events["code"] == code]
+            for k, d, amt in zip(ee["kind"], ee["ex_date"].astype(str), pd.to_numeric(ee["amount"], errors="coerce")):
+                if pd.notna(amt):
+                    paid.setdefault(d, {}).setdefault(k, 0.0)
+                    paid[d][k] += float(amt)
         if not rs.empty:
             px = price[price["code"] == code][["date", "close"]].copy() if price is not None else pd.DataFrame()
             if not px.empty:
@@ -208,7 +305,18 @@ def dividends(events: pd.DataFrame, results: pd.DataFrame, price: pd.DataFrame,
                         fill_days = int(hit[0]) + 1
                     elif len(after) >= 250:
                         fill_days = -1        # 一年內沒填
-                rows.append({"date": d, "kind": r.get("kind"), "dividend": _r(r.get("dividend"), 4),
+                pd_ = paid.get(d)
+                if pd_:
+                    cash_d, stock_d = pd_.get("cash"), pd_.get("stock")
+                    div = (cash_d or 0.0) + (stock_d or 0.0)
+                elif "權" not in str(r.get("kind") or ""):
+                    cash_d, stock_d, div = _f(r.get("dividend")), None, _f(r.get("dividend"))
+                else:
+                    cash_d = stock_d = div = None
+                gap = (before - _f(r.get("reference_price"))) if before and _f(r.get("reference_price")) else None
+                rows.append({"date": d, "kind": r.get("kind"), "dividend": _r(div, 4),
+                             "cash_dividend": _r(cash_d, 4), "stock_dividend": _r(stock_d, 4),
+                             "price_gap": _r(gap, 2),
                              "before_price": before, "reference_price": _f(r.get("reference_price")),
                              "fill_days": fill_days})
             out["results"] = rows
