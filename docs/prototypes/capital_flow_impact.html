@@ -1,0 +1,379 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>台股資金分流拓撲</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    body {
+      background: #050a12;
+      color: #e2f1f8;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 頂部導覽列 */
+    .topbar {
+      flex: 0 0 64px;
+      height: 64px;
+      padding: 0 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(8, 17, 30, 0.85);
+      border-bottom: 1px solid rgba(34, 211, 238, 0.2);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      z-index: 10;
+    }
+    .brand {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: .06em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      white-space: nowrap;
+    }
+    .brand span {
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: #22d3ee;
+      color: #03131a;
+      font-weight: 900;
+      letter-spacing: .08em;
+    }
+    .status-tags {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 4px 16px;
+      font-size: 12px;
+      color: #799ab0;
+    }
+    .status-tags b { color: #22d3ee; font-weight: 700; }
+
+    /* 畫布容器 */
+    .canvas-box {
+      flex: 1 1 auto;
+      position: relative;
+      min-height: 0;
+    }
+    canvas {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .legend-tip {
+      position: absolute;
+      bottom: 22px;
+      left: 28px;
+      background: rgba(9, 21, 36, 0.85);
+      border: 1px solid rgba(34, 211, 238, 0.25);
+      padding: 10px 18px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: #8daec0;
+      -webkit-backdrop-filter: blur(10px);
+      backdrop-filter: blur(10px);
+      pointer-events: none;
+    }
+    .legend-tip i {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    @media (max-width: 720px) {
+      .topbar { padding: 0 16px; }
+      .status-tags { display: none; }
+      .legend-tip { left: 16px; bottom: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="brand">台股資金分流拓撲 <span>IMPACT ACTIVE</span></div>
+    <div class="status-tags">
+      <div>傳導管道：<b>光纖能量管</b></div>
+      <div>動能表現：<b>發光粒子群流</b></div>
+      <div>碰撞反饋：<b>節點高光激發 + 擴散震波</b></div>
+    </div>
+  </header>
+
+  <main class="canvas-box" id="box">
+    <canvas id="flowCanvas"></canvas>
+    <div class="legend-tip">
+      <i style="background:#22d3ee"></i>半導體 ·
+      <i style="background:#f472b6"></i>AI 伺服器 ·
+      <i style="background:#818cf8"></i>一般電子
+    </div>
+  </main>
+
+  <script>
+  (() => {
+    'use strict';
+
+    const BG = '#050a12';
+    const LABEL_FONT = '700 12px -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans TC", "PingFang TC", "Microsoft JhengHei", sans-serif';
+    const box = document.getElementById('box');
+    const canvas = document.getElementById('flowCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let width = 0, height = 0, dpr = 1;
+    let nodes = [], links = [], particles = [], ripples = [];
+
+    // ───────── 資料：三級水平樹（位置皆依畫布寬高百分比計算） ─────────
+    const L1 = [
+      { id: 'semi', name: '半導體 50.8% ▲21%',   yr: 0.28, r: 8,   color: '#22d3ee', weight: 4.8, density: 32 },
+      { id: 'ai',   name: 'AI 伺服器 25.8% ▼1%',  yr: 0.62, r: 7.5, color: '#f472b6', weight: 3.0, density: 18 },
+      { id: 'elec', name: '一般電子 12.1% ▼28%',  yr: 0.84, r: 7,   color: '#818cf8', weight: 2.2, density: 12 },
+    ];
+    const L2 = {
+      semi: [
+        { name: '晶圓代工 26.3% ▼27%',  dy: -160, color: '#22d3ee' },
+        { name: '矽晶圓 15.1% ▲23%',    dy: -115, color: '#f43f5e' },
+        { name: 'HPC 與網通 12.0% ▼44%', dy: -70,  color: '#22d3ee' },
+        { name: 'ASIC 矽智財 9.8% ▲22%', dy: -25,  color: '#fbbf24' },
+        { name: 'HBM 高頻寬 9.6% ▼14%',  dy: 20,   color: '#34d399' },
+        { name: '封測代工 7.9% ▼26%',    dy: 65,   color: '#22d3ee' },
+        { name: '封裝設備 7.5% ▼33%',    dy: 110,  color: '#22d3ee' },
+      ],
+      ai: [
+        { name: 'PCB 載板 38.2% ▲24%',     dy: -30, color: '#f43f5e' },
+        { name: 'PCB 硬板製造 20.5% ▼1%',  dy: 15,  color: '#22d3ee' },
+        { name: 'CCL 銅箔基板 15.6% ▼28%', dy: 60,  color: '#22d3ee' },
+        { name: '液冷散熱 13.0% ▲5%',      dy: 105, color: '#f43f5e' },
+      ],
+    };
+
+    // ───────── 視窗自適應：依容器實際大小與裝置像素比重建畫布 ─────────
+    function resize() {
+      const rect = box.getBoundingClientRect();
+      width = Math.max(1, Math.round(rect.width));
+      height = Math.max(1, Math.round(rect.height));
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.fillStyle = BG;
+      ctx.fillRect(0, 0, width, height);
+      buildNetwork();
+    }
+    let resizeTimer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(resize, 80);
+    });
+
+    function makeNode(id, name, x, y, r, color) {
+      return { id, name, x, y, r, color, hitFlash: 0 };
+    }
+
+    function buildNetwork() {
+      nodes = []; links = []; particles = []; ripples = [];
+
+      // Level 0：大盤原點
+      // 寬螢幕照規格的百分比；窄螢幕（手機）時把右欄往左收，讓最長的細產業標籤不被切掉
+      ctx.font = LABEL_FONT;
+      const leafW = Math.max(...Object.values(L2).flat().map(s => ctx.measureText(s.name).width));
+      const x0 = width < 720 ? 24 : 80;
+      const x2 = Math.min(width * 0.72, width - leafW - 5 - 10 - 12);
+      const x1 = Math.min(width * 0.36, x0 + (x2 - x0) * 0.45);
+
+      const root = makeNode('root', '台股成交值 7,304億', x0, height * 0.58, 9, '#38bdf8');
+      nodes.push(root);
+
+      // Level 1：一級主板塊
+      L1.forEach(b => {
+        const n = makeNode(b.id, b.name, x1, height * b.yr, b.r, b.color);
+        nodes.push(n);
+        links.push({ from: root, to: n, color: b.color, weight: b.weight, particleDensity: b.density });
+
+        // Level 2：二級細產業（以一級板塊的 Y 座標偏移）
+        (L2[b.id] || []).forEach((s, i) => {
+          const leaf = makeNode(`${b.id}_${i}`, s.name, x2, n.y + s.dy, 5, s.color);
+          nodes.push(leaf);
+          links.push({ from: n, to: leaf, color: s.color, weight: 1.8, particleDensity: 10 });
+        });
+      });
+
+      links.forEach(l => { l.from.hasOut = true; });
+
+      // 預先算好每條管道的貝茲控制點
+      links.forEach(l => {
+        const { from: p0, to: p1 } = l;
+        l.cx1 = p0.x + (p1.x - p0.x) * 0.55; l.cy1 = p0.y;
+        l.cx2 = p0.x + (p1.x - p0.x) * 0.45; l.cy2 = p1.y;
+      });
+
+      // 粒子池：大板塊流速較快、顆粒較大（速度約 0.0025 ~ 0.0045）
+      links.forEach(link => {
+        const major = link.weight > 3;
+        for (let i = 0; i < link.particleDensity; i++) {
+          particles.push({
+            link,
+            t: Math.random(),
+            speed: 0.0025 + Math.random() * 0.0012 + (major ? 0.0008 : 0),
+            size: major ? 2.8 : 2.0,
+          });
+        }
+      });
+    }
+
+    // 三次貝茲：B(t) = (1-t)^3 P0 + 3(1-t)^2 t CP1 + 3(1-t) t^2 CP2 + t^3 P1
+    function bezierPoint(l, t) {
+      const u = 1 - t, uu = u * u, tt = t * t;
+      const a = uu * u, b = 3 * uu * t, c = 3 * u * tt, d = tt * t;
+      return {
+        x: a * l.from.x + b * l.cx1 + c * l.cx2 + d * l.to.x,
+        y: a * l.from.y + b * l.cy1 + c * l.cy2 + d * l.to.y,
+      };
+    }
+
+    function tracePath(l) {
+      ctx.beginPath();
+      ctx.moveTo(l.from.x, l.from.y);
+      ctx.bezierCurveTo(l.cx1, l.cy1, l.cx2, l.cy2, l.to.x, l.to.y);
+    }
+
+    // ───────── 動畫主循環 ─────────
+    // k＝以 60 FPS 為基準的時間倍率，高更新率螢幕與掉幀時動畫速度一致
+    let last = 0;
+    function render(now) {
+      const k = last ? Math.min((now - last) / (1000 / 60), 3) : 1;
+      last = now;
+
+      // 步驟 A：殘影畫布刷新（粒子高速移動時的微弱拖尾）
+      ctx.fillStyle = 'rgba(5, 10, 18, 0.35)';
+      ctx.fillRect(0, 0, width, height);
+
+      // 步驟 B：雙層光纖能量管道
+      ctx.lineCap = 'round';
+      links.forEach(link => {
+        ctx.strokeStyle = link.color;
+
+        tracePath(link);                     // 外層微光漫射管
+        ctx.globalAlpha = 0.08;
+        ctx.lineWidth = link.weight * 3.2;
+        ctx.stroke();
+
+        tracePath(link);                     // 內層實心光纖芯
+        ctx.globalAlpha = 0.32;
+        ctx.lineWidth = link.weight * 0.9;
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      // 步驟 C：流動發光粒子群 ＋ 碰撞判定
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 12;
+      particles.forEach(p => {
+        p.t += p.speed * k;
+
+        if (p.t >= 1) {
+          p.t = 0;
+          const hit = p.link.to;
+          hit.hitFlash = Math.min(1, hit.hitFlash + 0.35);   // 充能激發節點
+          if (Math.random() < 0.45) {                         // 45% 機率生成震波漣漪
+            ripples.push({ x: hit.x, y: hit.y, r: hit.r, maxR: hit.r + 26, alpha: 0.85, color: hit.color });
+          }
+        }
+
+        const pt = bezierPoint(p.link, p.t);
+        ctx.shadowColor = p.link.color;
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.shadowBlur = 0;
+
+      // 步驟 D-1：震波漣漪擴散
+      ctx.lineWidth = 1.6;
+      ctx.shadowBlur = 10;
+      for (let i = ripples.length - 1; i >= 0; i--) {
+        const rp = ripples[i];
+        rp.r += 0.85 * k;
+        // 透明度由 0.85 線性遞減至 0（與半徑擴散同步）
+        rp.alpha = 0.85 * (1 - (rp.r - (rp.maxR - 26)) / 26);
+        if (rp.alpha <= 0 || rp.r >= rp.maxR) { ripples.splice(i, 1); continue; }
+
+        ctx.beginPath();
+        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
+        ctx.strokeStyle = rp.color;
+        ctx.shadowColor = rp.color;
+        ctx.globalAlpha = rp.alpha;
+        ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      // 步驟 D-2：節點本體（碰撞高光衰減 → 爆發光環 → 呼吸底圈 → 球心 → 標籤）
+      ctx.font = LABEL_FONT;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      nodes.forEach(node => {
+        if (node.hitFlash > 0) node.hitFlash = Math.max(0, node.hitFlash - 0.035 * k);
+        const f = node.hitFlash;
+
+        if (f > 0.01) {                                  // 碰撞爆發光環
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.r + 8 * f, 0, Math.PI * 2);
+          ctx.fillStyle = node.color;
+          ctx.globalAlpha = f * 0.6;
+          ctx.shadowBlur = 24 * f;
+          ctx.shadowColor = node.color;
+          ctx.fill();
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = 1;
+        }
+
+        ctx.beginPath();                                 // 恆常呼吸底圈
+        ctx.arc(node.x, node.y, node.r + 2, 0, Math.PI * 2);
+        ctx.fillStyle = node.color;
+        ctx.globalAlpha = 0.25;
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.beginPath();                                 // 實心球心
+        ctx.arc(node.x, node.y, node.r, 0, Math.PI * 2);
+        ctx.fillStyle = f > 0.3 ? '#ffffff' : node.color;
+        ctx.shadowBlur = 10 + 15 * f;
+        ctx.shadowColor = node.color;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        // 標籤：葉節點放右側；有出線的節點放上方，避免被自己發出去的光纖與粒子蓋住。
+        // 先用背景色描一圈字框，粒子從字底下穿過時字仍然讀得到。
+        const leaf = !node.hasOut;
+        const lx = leaf ? node.x + node.r + 10 : node.x - node.r;
+        const ly = leaf ? node.y : node.y - node.r - 12;
+        ctx.lineWidth = 4;
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = BG;
+        ctx.strokeText(node.name, lx, ly);
+        ctx.fillStyle = f > 0.4 ? '#ffffff' : '#d2e7f2'; // 被撞擊時暫態變亮為高光白
+        ctx.fillText(node.name, lx, ly);
+      });
+
+      requestAnimationFrame(render);
+    }
+
+    resize();
+    requestAnimationFrame(render);
+  })();
+  </script>
+</body>
+</html>
