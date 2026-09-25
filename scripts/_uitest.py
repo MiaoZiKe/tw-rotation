@@ -11003,6 +11003,8 @@ SECTIONS = {
     "足跡輪盤既有功能":    lambda pg, b, base, code: t_rot_keep(pg, b, base),
     # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
+    # ★ 2026-09-24 Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」→ 首次載入的可互動時間與最長卡住設上限
+    "載入效能":            lambda pg, b, base, code: t_loadperf(pg, b, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -24913,5 +24915,127 @@ def t_rot_keep(pg, b, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+# ===================================================================== 載入效能（2026-09-24）
+# Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」。
+# 修法（見 app.js 的「★ 2026-09-24 效能」註解）：尺寸沒變就不 resize、首屏以下的卡片延後畫、
+# 圖表第一次出現不播進場動畫、熱力圖不再被拉長重畫、掃描光束改由合成器轉、看不到的動畫停掉、
+# JSON 同時要兩次只抓一次……
+# 這一段守的是「修好的不要再慢回去」，所以量的是**使用者感覺得到的兩個數字**：
+#   ① 可互動時間：從開始載入，到「連續 3 秒沒有任何 >50ms 的長任務」之前最後一個長任務結束的時刻
+#   ② 最長的單一卡住：這段期間最長的那一個長任務（這段時間整頁點不動、捲不動）
+# 門檻＝修完之後在這個容器實測中位數 × 1.5（容器 4 核常被別的 agent 吃滿，數字會飄，1.5 倍是留給它的）。
+# 另外守三件「接近 0」的事（不受容器忙不忙影響，最穩）：
+#   ③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內幾乎不忙（修前 1.4 秒）
+#   ④ 從資金流向切到總覽 → 那邊的動畫不再空轉（修前 90ms／5 秒）
+#   ⑤ 延後畫的卡片最後都真的畫出來了（功能一個都沒少）
+# 2026-09-25 實測（這一段自己的量法，同一台容器、交錯跑）：
+#   修前 可互動 4663／6178／4511ms、最長卡住 1124／2299／1249ms
+#   修後 可互動 2635／3545／3134／3328／3299／3267／3663ms（中位數 3299）、最長卡住 460／573／307／609／579／461／728ms（中位數 573）
+LOADPERF_TTI_MAX = 5000        # ms：修後中位數 3299 × 1.5 ≈ 4950
+LOADPERF_LONGEST_MAX = 860     # ms：修後中位數 573 × 1.5 ≈ 860
+LOADPERF_IDLE_BUSY_MAX = 150   # ms／5 秒：看不見的動畫該停就停（修前 1442ms，修後實測 1～2ms）
+
+_LT_INIT = """window.__lt = [];
+try { new PerformanceObserver(l => l.getEntries().forEach(e => __lt.push([+e.startTime.toFixed(0), +e.duration.toFixed(0)])))
+  .observe({type: 'longtask', buffered: true}); } catch (e) {}"""
+
+
+def _lp_first_load(b, url, route_block=True):
+    """全新的瀏覽環境（沒有快取）開一次網址，回傳 (可互動 ms, 最長長任務 ms, 長任務清單, page, ctx)。"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, service_workers="block")
+    ctx.add_init_script(_LT_INIT)
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    if route_block:
+        pg.route("**/*workers.dev/**", lambda r: r.abort())      # 容器連不到報價代理：直接失敗，不要讓它拖著網路
+    pg.goto(url, wait_until="load")
+    t0 = time.time()
+    while time.time() - t0 < 30:                                  # 等到「連續 3 秒沒有長任務」，最多 30 秒
+        pg.wait_for_timeout(250)
+        now = pg.evaluate("performance.now()")
+        lt = pg.evaluate("window.__lt || []")
+        last = max([s0 + d for s0, d in lt] or [0])
+        if now - last > 3000 and now > 2500:
+            break
+    lt = pg.evaluate("window.__lt || []")
+    dcl = pg.evaluate("performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd")
+    tti = round(max([dcl] + [s0 + d for s0, d in lt]))
+    longest = max([d for _s, d in lt] or [0])
+    return tti, longest, lt, pg, ctx
+
+
+def _lp_busy(pg, ms=5000):
+    """主執行緒在接下來 ms 毫秒內忙了多久（CDP Performance.TaskDuration 差值）。"""
+    cdp = pg.context.new_cdp_session(pg)
+    cdp.send("Performance.enable")
+    m = lambda: {x["name"]: x["value"] for x in cdp.send("Performance.getMetrics")["metrics"]}
+    a = m(); pg.wait_for_timeout(ms); z = m()
+    return round((z["TaskDuration"] - a["TaskDuration"]) * 1000)
+
+
+def t_loadperf(pg, b, base):
+    # ---- ①② 首次開總覽（預設首頁）：量兩次取較好的一次（容器忙的時候單次會被別人的 CPU 拖到）
+    runs = []
+    for _ in range(2):
+        tti, longest, lt, p2, c2 = _lp_first_load(b, f"{base}#overview")
+        runs.append((tti, longest, len(lt)))
+        if _ == 1 or tti <= LOADPERF_TTI_MAX:
+            # ⑤ 延後畫的卡片最後都真的畫出來了（沒捲動也會在閒下來時補畫）
+            drawn = wait_until(p2, """() => { const has = (id) => { const e = document.getElementById(id);
+                return !!(e && window.echarts && echarts.getInstanceByDom(e)); };
+              return has('heat') && has('rotClockMini') && has('ovFlow') && has('breadth') && has('trust')
+                && document.querySelectorAll('#candBody tr').length > 0
+                && document.querySelectorAll('#themeStrip .tile').length > 0; }""", 8000)
+            ok("⑤ 首屏以下延後畫的卡片（資金去向、站上均線、投信連買、候選名單、熱門題材）最後都真的畫出來了", bool(drawn))
+            c2.close()
+            break
+        c2.close()
+    best = min(runs, key=lambda r: r[0])
+    notes.append(f"載入效能：首次開總覽 可互動 {best[0]}ms、最長卡住 {best[1]}ms、長任務 {best[2]} 個（各次：{runs}）")
+    ok(f"① 首次開總覽的可互動時間 ≤ {LOADPERF_TTI_MAX}ms（修完實測中位數 × 1.5）", best[0] <= LOADPERF_TTI_MAX, runs)
+    ok(f"② 首次開總覽最長的單一卡住 ≤ {LOADPERF_LONGEST_MAX}ms", min(r[1] for r in runs) <= LOADPERF_LONGEST_MAX, runs)
+
+    # ---- ③ 資金流向：捲到看不見輪盤與分流圖 → 動畫停，主執行緒幾乎不忙
+    tti_f, longest_f, _lt, p3, c3 = _lp_first_load(b, f"{base}#flow")
+    notes.append(f"載入效能：首次開資金流向 可互動 {tti_f}ms、最長卡住 {longest_f}ms")
+    p3.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })")
+    p3.wait_for_timeout(1500)
+    busy_bottom = _lp_busy(p3)
+    ok(f"③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內忙 ≤ {LOADPERF_IDLE_BUSY_MAX}ms（修前 1442ms）",
+       busy_bottom <= LOADPERF_IDLE_BUSY_MAX, busy_bottom)
+    # 捲回來 → 動畫要接著跑（停是為了省 CPU，不是把功能關掉）
+    scroll_to(p3, "sankey"); p3.wait_for_timeout(900)
+    d0 = p3.evaluate("() => (window.App.sankeyDots() || []).slice(0, 6)"); p3.wait_for_timeout(500)
+    d1 = p3.evaluate("() => (window.App.sankeyDots() || []).slice(0, 6)")
+    ok("③ 捲回分流圖 → 小圓點又接著跑（座標在變）", bool(d0) and d0 != d1, [d0[:2], d1[:2]])
+    # ---- ④ 切到總覽 → 資金流向那邊的動畫不再空轉
+    # 總覽第一次打開本來就要畫圖（那是正當的工作，時間長短跟容器忙不忙有關），
+    # 所以這裡不量「總覽忙多久」，直接問兩組動畫的迴圈**還在不在跑**——那才是這一條要守的事。
+    p3.evaluate("() => { location.hash = '#overview'; }"); p3.wait_for_timeout(2500)
+    st = p3.evaluate("() => ({ sankey: !!window.App.sankeyFxRunning(), scan: !!window.App.rotScan('rotClock').running })")
+    ok("④ 從資金流向切到總覽 → 分流圖小圓點與輪盤掃描的迴圈都停了（修前小圓點一直空轉：90ms／5 秒）",
+       not st["sankey"] and not st["scan"], st)
+    busy_ov = _lp_busy(p3)
+    notes.append(f"載入效能：資金流向捲到底 5 秒忙 {busy_bottom}ms、切到總覽後 5 秒忙 {busy_ov}ms")
+    c3.close()
+
+    # ---- ⑥（R6 附帶）報價抓不到時，仍然會檢查網站有沒有重新部署（「有新資料」鈕與盤後自動重新載入靠它）
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, service_workers="block")
+    p4 = ctx.new_page()
+    p4.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    p4.route("**/*workers.dev/**", lambda r: r.abort())
+    hits = []
+    p4.on("request", lambda r: hits.append(r.url) if "meta.json?t=" in r.url else None)
+    p4.goto(f"{base}#overview", wait_until="networkidle"); p4.wait_for_timeout(1500)
+    n0 = len(hits)
+    p4.evaluate("() => window.Live && window.Live.tick(false)")
+    wait_until(p4, "() => true", 1500)
+    p4.wait_for_timeout(1500)
+    ok("⑥ 報價代理連不到時，Live.tick() 仍會去檢查 meta.json（是否重新部署）", len(hits) > n0, {"前": n0, "後": len(hits)})
+    ctx.close()
+
+
 if __name__ == "__main__":
     raise SystemExit(main())
+
