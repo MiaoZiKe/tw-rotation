@@ -286,7 +286,8 @@
     if (todayLive()) return { date: today(), live: true };
     let best = null;
     for (const b of state.hist) if (!best || b.d > best) best = b.d;
-    for (const t of state.ticks) { const d = dateOf(t.s); if (!best || d > best) best = d; }
+    // 09:00 以前的報價是試撮，不代表那天開盤了（開盤前打開頁面，不可以把「今天」當成最近交易日）
+    for (const t of state.ticks) { if (minOf(t.s) < 9 * 60) continue; const d = dateOf(t.s); if (!best || d > best) best = d; }
     return { date: best, live: false };
   }
   /** 非交易時段：某一天的 5 秒序列 ＝ 這次收到的（同一天的）＋ 那天盤中存進 localStorage 的。*/
@@ -407,18 +408,23 @@
   function sourceNote(tf) {
     const ses = session();
     if (!ses.live) {
-      if (ses.date) {
+      const nh = ses.date ? state.hist.filter(b => b.d === ses.date).length : 0;
+      /* 有日期但 Yahoo 是「連不到」（不是「沒有」）：照舊的說法往下走 —— industry.js 會據此先退回
+         有資料的週期（審查 R5-6），這裡不要把網路問題講成「沒有資料」。*/
+      const netErr = !nh && state.histErr && state.histErr !== 'EMPTY';
+      // 報價比 Yahoo 先回來（週末那筆是上一交易日收盤）：Yahoo 還沒回之前不要先講「沒有分 K」
+      if (!nh && !state.histTried && proxy()) return '正在抓最近交易日的分 K…';
+      if (ses.date && !netErr) {
         const head = `最近交易日 ${ses.date}（非即時）`;
-        if (tf === '5s') {
-          const n = ticksOf(ses.date).length;
+        const n = ticksOf(ses.date).length;
+        if (tf === '5s' && n >= 2) return `${head}：5 秒 K 是那天盤中開著這一頁時收集的 ${n} 筆。今天還沒有成交，開盤後自動換回即時。`;
+        if (!nh) {
           return n >= 2
-            ? `${head}：5 秒 K 是那天盤中開著這一頁時收集的 ${n} 筆。今天還沒有成交，開盤後自動換回即時。`
-            : `${head}：5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K。`;
+            ? `${head}：Yahoo 沒有這一檔的分 K，這裡是那天盤中開著頁面收到的 ${n} 筆報價疊的。`
+            : `最近交易日（${ses.date}）也沒有分 K 資料（Yahoo 查不到這一檔的 1 分 K，冷門股常見）。日線／週線／月線可以正常看。`;
         }
-        const nh = state.hist.filter(b => b.d === ses.date).length;
-        return nh
-          ? `${head}：${TFZ[tf] || tf} K ${tf === '1m' ? '來自' : '由'} Yahoo 1 分 K${tf === '1m' ? '' : '合成'}（那天共 ${nh} 根）。今天還沒有成交（週末、休市或開盤前），開盤後自動換回即時。`
-          : `${head}：只有那天收到的報價，沒有 Yahoo 分 K。`;
+        if (tf === '5s') return `${head}：5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K。`;
+        return `${head}：${TFZ[tf] || tf} K ${tf === '1m' ? '來自' : '由'} Yahoo 1 分 K${tf === '1m' ? '' : '合成'}（那天共 ${nh} 根）。今天還沒有成交（週末、休市或開盤前），開盤後自動換回即時。`;
       }
       if (!state.histTried && proxy()) return '正在抓最近交易日的分 K…';
       if (state.histErr === 'EMPTY') return '最近交易日也沒有分 K 資料（Yahoo 查不到這一檔的 1 分 K，冷門股常見）。日線／週線／月線可以正常看。';
