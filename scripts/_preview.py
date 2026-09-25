@@ -341,7 +341,7 @@ def main() -> int:
         code = args.code or "2330"          # 2026-09-24：總覽的候選表拿掉了，不再從它挑第一檔
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
         st = pg.evaluate("""() => ({ title: (document.querySelector('#stockPage h2')||{}).innerText, lwc: !!document.querySelector('#lwc canvas'), lwcCanvases: document.querySelectorAll('#lwc canvas').length,
-            chips: document.querySelectorAll('#indChips .chip').length, legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('mtfCard')||{}).innerText.slice(0,120), chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
+            indBtn: !!document.getElementById('indBtn'), /* 2026-09-26 指標晶片改成下拉 */ legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('mtfCard')||{}).innerText.slice(0,120), chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
         st["overlaps"] = pg.evaluate(OVERLAP_JS); state["stock"] = st
         pg.screenshot(path=str(out / "v3_stock.png"), full_page=True)
         # 切分頁與週期
@@ -362,11 +362,17 @@ def main() -> int:
         pg.screenshot(path=str(out / "v3_mtf.png"), full_page=False)
         # 指標參數
         pg.evaluate("document.getElementById('mtfBtn').click()"); pg.wait_for_timeout(600)
-        pg.evaluate("document.querySelector('#indChips .chip[data-k=rsi]').click()"); pg.wait_for_timeout(400)
-        state["rsi_on"] = pg.evaluate("({ chipOn: document.querySelector('#indChips .chip[data-k=rsi]').classList.contains('on'), legend: (document.getElementById('legendOv')||{}).innerText.includes('RSI') })")
+        # ★ 2026-09-26 改前：點工具列的 RSI 晶片、按「⚙ 設定」開圖表設定面板
+        #   → 改後：打開「指標 ▾」下拉，點 RSI 那一列的開關；整體／均線兩列按 ▸ 展開（內容跟以前的面板同一套）
+        pg.evaluate("document.getElementById('indBtn').click()"); pg.wait_for_timeout(350)
+        pg.evaluate("document.querySelector('#cfgPop .indrow[data-k=rsi] input.ion').click()"); pg.wait_for_timeout(400)
+        state["rsi_on"] = pg.evaluate("({ chipOn: document.querySelector('#cfgPop .indrow[data-k=rsi] input.ion').checked, legend: (document.getElementById('lwc')||{}).innerText.includes('RSI') })")
+        if not state["rsi_on"]["chipOn"] or not state["rsi_on"]["legend"]:
+            problems.append(f"指標下拉裡打開 RSI 沒生效：{state['rsi_on']}")
 
         # ---- K 線的基本設定與繪圖工具（Andy #43）：真的操作一遍，不是只看有沒有 render
-        pg.evaluate("document.getElementById('cfgBtn').click()"); pg.wait_for_timeout(350)
+        pg.evaluate("['base', 'ma'].forEach(k => { const r = document.querySelector('#cfgPop .indrow[data-k=' + k + ']');"
+                    " if (r && r.querySelector('.ibody').hidden) r.querySelector('.iexp').click(); })"); pg.wait_for_timeout(350)
         state["kcfg_open"] = pg.evaluate("""() => ({ rows: document.querySelectorAll('#maRows .marow').length,
             lw: !!document.getElementById('lw'), color: !!document.querySelector('#maRows input[type=color]') })""")
         if state["kcfg_open"]["rows"] < 2 or not state["kcfg_open"]["lw"] or not state["kcfg_open"]["color"]:
@@ -382,7 +388,7 @@ def main() -> int:
             problems.append(f"線寬調了沒生效：{state['kcfg_after']}")
         if len(state["kcfg_after"].get("ma") or []) < 5:
             problems.append(f"新增均線沒生效：{state['kcfg_after']}")
-        pg.evaluate("document.getElementById('cfgClose').click()"); pg.wait_for_timeout(200)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)      # 改前：按「完成」→ 改後：Esc 關下拉
 
         # 自訂時間週期：加一個 3 日
         pg.evaluate("document.getElementById('tfAdd').click()"); pg.wait_for_timeout(300)

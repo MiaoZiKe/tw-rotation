@@ -181,7 +181,7 @@
       "at": [
         { "page": "stock", "seg": "K 線", "ord": 10, "selector": ["#skChartCard"] }
       ],
-      "tests": ["個股", "K線縮放", "個股即時分K", "個股分K非交易時段", "個股R5"] },
+      "tests": ["個股", "K線縮放", "個股即時分K", "個股分K非交易時段", "個股R5", "個股指標下拉0926"] },
 
     { "id": "stock.mtf", "name": "多週期 SMC 判讀", "question": "③", "ask": "日／週／月多個週期的結構指向同一個方向嗎",
       "tier": "只准免費", "law": "🔴",
@@ -240,9 +240,8 @@
     { "id": "chain.segments", "name": "環節詳情與分層關聯圖", "question": "知識", "ask": "這一條鏈分成哪幾個環節，每個環節有哪幾檔台股、哪幾家外商，誰依賴誰",
       "tier": "免費看／399 跨鏈搜尋", "law": "🟢",
       "at": [
-        { "page": "chain", "selector": ["#relSec", "#segChips", "#chainMap"] },
-        { "page": "stock", "seg": "產業鏈", "ord": 40, "selector": ["#indChain"],
-          "note": "個股頁上方的鏈條（renderChainStrip），被 industry.js 搬到 #stockPage 後面。" }
+        { "page": "chain", "selector": ["#relSec", "#segChips", "#chainMap"],
+          "note": "個股頁那一份（renderChainStrip、手機分段「產業鏈」）2026-09-26 拿掉：Andy「下方產業鏈位置表格 拿掉」。" }
       ],
       "tests": ["產業關係面板", "一般電子鏈", "批次6-圖十", "批次C5-關聯圖標籤", "零件誰做的", "新-產業與個股"] },
 
