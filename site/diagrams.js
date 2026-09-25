@@ -1809,3 +1809,186 @@
     window.Diagrams[id] = def.draw;     // 舊介面同步（題材圖與驗收腳本還在用）
   };
 })();
+
+/* ============================================================================
+   ★ 手機版 v3 D：剖析圖只留編號（docs/mobile_v3_spec.md R3、§3-4）
+   Andy 2026-09-24：「2D 3D 圖那麼多說明可以使用編號顯示就好，想知道再點編號，編號就會給出答案」。
+   ≤640px：字卡（.dgcards）、引線（.dglead）、圖頭（.dghead）、就地小卡（.dgpop）全部藏掉，
+   圖上疊一層 HTML 編號鈕（28px 可見、44px 觸控）；點編號從底部升起抽屜（編號＋名稱＋說明＋台股），
+   抽屜底部「‹ 03 / 15 ›」依序走完不必關。互相擋到的編號推開並拉引線回原點（mobile3.js 的 M3.spread）。
+   ⚠ 桌機（>640）這兩支一進來就 return，而且會把手機留下的東西拆掉 —— 桌機一個像素都不動。
+   放在這支（不是 industry.js）是規格 §5 的安排：題材頁的剖析圖以後要一起吃。
+   ============================================================================ */
+(function () {
+  'use strict';
+  if (!window.DG) return;
+  const isM = () => window.innerWidth <= 640 && !!window.M3;
+  const $$ = (s, r) => [].slice.call((r || document).querySelectorAll(s));
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const MIN = 30;                                    // 兩顆編號中心的最小距離（28px 鈕＋2px 縫）
+  const zoomOf = () => { try { return localStorage.getItem('tw.m3.dgzoom') === 'big' ? 'big' : 'fit'; } catch (e) { return 'fit'; } };
+  const stockName = (c) => (window.Link && window.Link.cname && window.Link.cname[c]) || c;
+
+  /* 抽屜：cur＝{ items, host, layer }；k＝第幾個 */
+  let cur = null;
+  function openNo(k) {
+    if (!cur || !cur.items[k] || !window.M3) return;
+    const it = cur.items[k], n = cur.items.length;
+    const chips = it.codes.length
+      ? it.codes.slice(0, 8).map(c => `<a href="#stock/${esc(c)}">${esc(stockName(c))} ${esc(c)}</a>`).join('')
+      : '<span class="none">台股無直接對應</span>';
+    const sh = window.M3.openSheet(`<div class="mshhead" style="--c:${esc(it.color)}"><span class="no">${esc(it.no)}</span><b>${esc(it.title)}</b></div>`
+      + `<div class="mshbody">${it.lines.map(l => `<i>${esc(l)}</i>`).join('')}</div><div class="mchips">${chips}</div>`
+      + `<div class="mshnav"><button type="button" data-d="-1" aria-label="上一個編號">‹</button><span>${esc(it.no)} / ${String(n).padStart(2, '0')}</span><button type="button" data-d="1" aria-label="下一個編號">›</button></div>`,
+      { kind: 'dgno', onClose: () => { cur.sel = null; $$('.mnum.on', cur.layer).forEach(b => b.classList.remove('on')); } });
+    sh.dataset.no = it.no;
+    cur.sel = it.no;
+    $$('.mnum', cur.layer).forEach(b => b.classList.toggle('on', +b.dataset.i === k));
+    $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); openNo((k + (+b.dataset.d) + n) % n); });
+    /* 抽屜會蓋住下半部：被選的編號如果落在抽屜底下，先把整頁捲上來讓它露出來 */
+    const btn = cur.layer.querySelector(`.mnum[data-i="${k}"]`);
+    if (btn) {
+      const r = btn.getBoundingClientRect(), top = window.innerHeight - sh.offsetHeight - 16;
+      if (r.bottom > top) window.scrollBy({ top: r.bottom - top + 8, behavior: 'instant' });
+      else if (r.top < 60) window.scrollBy({ top: r.top - 70, behavior: 'instant' });
+      const sc = cur.scroller;
+      if (sc && sc.classList.contains('mbig')) {
+        const b0 = sc.getBoundingClientRect(), r2 = btn.getBoundingClientRect();
+        if (r2.left < b0.left + 20 || r2.right > b0.right - 20) sc.scrollLeft += r2.left - (b0.left + b0.width / 2);
+      }
+    }
+  }
+  function numBtns(P, items, sel) {
+    return P.map(p => { const it = items[p.i];
+      return `<button type="button" class="mnum${sel === it.no ? ' on' : ''}" data-i="${p.i}" data-no="${esc(it.no)}" style="left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--c:${esc(it.color)}${p.back ? ';opacity:.55' : ''}" aria-label="編號 ${esc(it.no)}：${esc(it.title)}">${esc(it.no)}</button>`; }).join('');
+  }
+
+  /* ---------------- 2D ---------------- */
+  function items2d(host) {
+    return $$('.dgcards .dgc', host).filter(c => c.querySelector('.no') && c.dataset.anc).map(c => ({
+      no: c.querySelector('.no').textContent.trim(), anc: c.dataset.anc,
+      title: (c.querySelector('.bd b') || {}).textContent || '',
+      lines: $$('.bd i', c).map(x => x.textContent),
+      codes: (c.dataset.codes || '').split(/[,\s]+/).filter(Boolean),
+      color: c.style.getPropertyValue('--dg-card-c') || c.style.getPropertyValue('--c') || c.dataset.dgcolor || '#3ee0ff',
+    })).sort((a, b) => a.no.localeCompare(b.no));
+  }
+  function unmount2d(host) {
+    if (!host) return;
+    host.classList.remove('mnum2d', 'mbig');
+    $$(':scope > .mnumlayer', host).forEach(e => e.remove());
+    const bar = host.previousElementSibling;
+    if (bar && bar.classList.contains('mdgbar')) bar.remove();
+  }
+  function layout2d(host) {
+    if (!cur || cur.host !== host || !host.isConnected) return;
+    const layer = cur.layer;
+    const base = host.getBoundingClientRect();
+    if (!base.width) return;
+    const P = cur.items.map((it, i) => {
+      const g = host.querySelector(`g.anc[data-for="${CSS.escape(it.anc)}"]`);
+      const a = g && (g.querySelector('.anchor') || g);
+      if (!a) return null;
+      const r = a.getBoundingClientRect();
+      if (!r.width && !r.height) return null;
+      const x = r.left + r.width / 2 - base.left + host.scrollLeft, y = r.top + r.height / 2 - base.top + host.scrollTop;
+      return { i, x, y, x0: x, y0: y, c: it.color };
+    }).filter(Boolean);
+    window.M3.spread(P, MIN);
+    const W = host.scrollWidth, H = host.scrollHeight;
+    /* 推開之後可能被推出畫面邊緣：夾回容器內（留 15px，編號鈕半徑 14）—— 不夾的話被推出去的鈕會撐出假的捲動寬 */
+    P.forEach(q => { q.x = Math.max(15, Math.min(W - 15, q.x)); q.y = Math.max(15, Math.min(H - 15, q.y)); });
+    const ov = window.M3.overlaps(P, MIN);
+    layer.style.width = W + 'px'; layer.style.height = H + 'px';
+    layer.innerHTML = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, cur.items, cur.sel);
+    layer.dataset.overlap = ov; layer.dataset.n = P.length;
+    const cnt = host.previousElementSibling && host.previousElementSibling.querySelector('.mdgcnt');
+    if (cnt) cnt.textContent = `${P.length} 個編號　點編號看說明`;
+  }
+  function mobileNums(host) {
+    if (!host) return;
+    if (!isM()) { unmount2d(host); return; }
+    const items = items2d(host);
+    if (!items.length) { unmount2d(host); return; }
+    host.classList.add('mnum2d');
+    host.classList.toggle('mbig', zoomOf() === 'big');
+    let layer = host.querySelector(':scope > .mnumlayer');
+    if (!layer) { layer = document.createElement('div'); layer.className = 'mnumlayer'; host.appendChild(layer); }
+    /* 控制列：整張／放大、圖說與公式（圖頭長說明、公式卡、警語卡收在這裡 —— 收起來不是刪掉）*/
+    let bar = host.previousElementSibling;
+    if (!bar || !bar.classList.contains('mdgbar')) {
+      bar = document.createElement('div'); bar.className = 'mdgbar';
+      bar.innerHTML = '<span class="mseg mdgzoom"><button type="button" data-z="fit">整張</button><button type="button" data-z="big">放大</button></span>'
+        + '<button type="button" class="mdginfo">圖說 ›</button><span class="mdgcnt"></span>';
+      host.before(bar);
+    }
+    const paintZ = () => $$('.mdgzoom button', bar).forEach(b => b.classList.toggle('on', b.dataset.z === zoomOf()));
+    bar.querySelector('.mdgzoom').onclick = (e) => {
+      const b = e.target.closest('button[data-z]'); if (!b) return;
+      try { localStorage.setItem('tw.m3.dgzoom', b.dataset.z); } catch (x) { /* 私密視窗 */ }
+      host.classList.toggle('mbig', b.dataset.z === 'big'); paintZ();
+      requestAnimationFrame(() => layout2d(host));
+    };
+    bar.querySelector('.mdginfo').onclick = () => {
+      const hd = host.querySelector('.dghead');
+      const heads = hd ? $$('b,span', hd).map(x => x.textContent.trim()).filter(Boolean) : [];
+      const notes = $$('.dgcards .dgc.note, .dgcards .dgc.warn', host).map(x => x.innerText.replace(/\s+/g, ' ').trim()).filter(Boolean);
+      window.M3.openSheet(`<div class="mshhead"><b>${esc(heads[0] || '圖說')}</b></div><div class="mshbody">`
+        + heads.slice(1).map(t => `<i>${esc(t)}</i>`).join('')
+        + (notes.length ? '<div class="mgrp">公式與注意</div>' + notes.map(t => `<i>${esc(t)}</i>`).join('') : '')
+        + '<div class="mgrp">原創示意圖，非實物比例。圖上每個編號＝一個零件或環節，點編號看說明與台股；「放大」可以上下左右滑看細節。</div></div>', { kind: 'dginfo' });
+    };
+    paintZ();
+    cur = { host, layer, items, scroller: host, sel: null };
+    layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); openNo(+b.dataset.i); } };
+    requestAnimationFrame(() => requestAnimationFrame(() => layout2d(host)));
+    setTimeout(() => layout2d(host), 400);
+  }
+  let rz = null;
+  window.addEventListener('resize', () => {
+    clearTimeout(rz);
+    rz = setTimeout(() => {
+      $$('.mnum2d').forEach(h => { if (!isM()) unmount2d(h); else layout2d(h); });
+      if (isM()) { const h = document.getElementById('prodDiagram'); if (h && !h.classList.contains('mnum2d') && h.querySelector('.dgcards')) mobileNums(h); }
+    }, 220);
+  });
+
+  /* ---------------- 3D ----------------
+     站上 .ld-no 編號圓點會互相疊住（HBM 那張 8 個疊成 4 堆，點下去點到別的號碼），手機改由這一層接手：
+     每 60ms 用 view.pointOf(零件) 拿螢幕座標重排一次，背面的零件半透明。只在看得到時跑。*/
+  function items3d(h3) {
+    return $$('.lbl3d', h3).map(d => {
+      const b = d.querySelector('b');
+      const chips = $$('.chips3d a', d).map(a => (a.getAttribute('href') || '').replace('#stock/', '')).filter(Boolean);
+      return { no: d.dataset.dgno, part: d.dataset.dgpart, title: b && b.firstChild ? b.firstChild.textContent : '',
+        lines: [(d.querySelector('i') || {}).textContent || ''].filter(Boolean), codes: chips, color: d.dataset.dgcolor || '#3ee0ff' };
+    }).filter(x => x.no).sort((a, b) => a.no.localeCompare(b.no));
+  }
+  function mobileNums3d(h3, view) {
+    if (!h3) return;
+    const old = h3.querySelector(':scope > .mnumlayer'); if (old) old.remove();
+    if (!isM() || !view || !view.pointOf) { h3.classList.remove('mnum3d'); return; }
+    h3.classList.add('mnum3d');
+    const layer = document.createElement('div'); layer.className = 'mnumlayer m3d'; h3.appendChild(layer);
+    const ctx = { host: h3, layer, items: [], scroller: null, sel: null };
+    layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); cur = ctx; openNo(+b.dataset.i); } };
+    let tries = 0;
+    const tick = () => {
+      if (!layer.isConnected || !isM()) return;
+      if (!ctx.items.length) { ctx.items = items3d(h3); if (!ctx.items.length && tries++ < 40) { setTimeout(tick, 150); return; } }
+      if (!h3.hidden && h3.offsetParent) {
+        const base = h3.getBoundingClientRect();
+        const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
+          const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
+        window.M3.spread(P, MIN);
+        P.forEach(q => { q.x = Math.max(15, Math.min(base.width - 15, q.x)); q.y = Math.max(15, Math.min(base.height - 15, q.y)); });
+        layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
+        layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
+      }
+      setTimeout(() => requestAnimationFrame(tick), 60);
+    };
+    tick();
+  }
+  window.DG.mobileNums = mobileNums;
+  window.DG.mobileNums3d = mobileNums3d;
+})();

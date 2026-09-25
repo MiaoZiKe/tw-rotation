@@ -12629,6 +12629,256 @@ def t_r5(pg, base, code):
     pg.wait_for_timeout(800)
 
 
+
+# ===================================================================== 手機v3
+def t_mobile_v3(b, base, code):
+    """★ 2026-09-25 手機版 v3（規格 docs/mobile_v3_spec.md §7；Andy：「補充文字可以用 ? 代替…
+    2D 3D 圖那麼多說明可以使用編號顯示就好，想知道再點編號，編號就會給出答案」）。
+
+    390×844 與 360×780 各跑一輪，全部 is_mobile＋has_touch＋DPR2、用 `tap`。
+    每一條驗「畫面真的變了」或量座標（一屏：bottom ≤ innerHeight − 58），不驗「元素存在」。"""
+    for (W, H) in ((390, 844), (360, 780)):
+        vp = dict(MOBILE_VP); vp["viewport"] = {"width": W, "height": H}
+        m = b.new_page(**vp)
+        m.on("pageerror", lambda e: fails.append(f"手機v3 pageerror: {e}"))
+        m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        m.goto(base, wait_until="domcontentloaded")
+        m.evaluate("() => { try { localStorage.clear(); localStorage.setItem('tw.live.on', '0'); } catch (e) {} }")
+        T = f"[手機v3 {W}px]"
+
+        # ---- 骨架：頂欄 52、底部一列五顆 58 ----
+        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(3000)
+        sk = m.evaluate("""() => ({ top: Math.round(document.querySelector('.topbar').getBoundingClientRect().height),
+            nav: Math.round(document.getElementById('tabs').getBoundingClientRect().height),
+            n: [...document.querySelectorAll('#tabs > *')].filter(e => getComputedStyle(e).display !== 'none').length })""")
+        ok(f"{T} 頂欄 52px、底部導覽一列 58px、五顆", sk["top"] == 52 and 54 <= sk["nav"] <= 62 and sk["n"] == 5, sk)
+        # 搜尋收成一顆鈕：點了展開成整列、Esc 收回
+        m.tap("#mSearchBtn"); m.wait_for_timeout(300)
+        s1 = m.evaluate("() => ({ on: document.querySelector('.topbar').classList.contains('msearch'), q: getComputedStyle(document.querySelector('.topbar .search')).display, f: document.activeElement && document.activeElement.id })")
+        ok(f"{T} 點搜尋鈕 → 搜尋框展開而且游標在框裡", s1["on"] and s1["q"] != "none" and s1["f"] == "q", s1)
+        m.keyboard.press("Escape"); m.wait_for_timeout(200)
+        ok(f"{T} Esc 收回搜尋框", not m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')"))
+
+        # ---- #1 總覽：輪盤與焦點條同一屏；步驟列一列排完 ----
+        R = """() => { const r = (s) => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { t: Math.round(b.top), b: Math.round(b.bottom), r: Math.round(b.right) }; };
+            return { vh: innerHeight, vw: innerWidth, radar: r('#mRadarOv .mradar'), focus: r('#rotClockMiniWrap .mfocus'),
+                     steps: [...document.querySelectorAll('.mspine>button')].map(b => Math.round(b.getBoundingClientRect().right)),
+                     sel: (document.getElementById('mRadarOv') || {}).dataset?.sel || '',
+                     focusId: (document.querySelector('#rotClockMiniWrap .mfocus') || {}).dataset?.focus || '',
+                     shown: +((document.getElementById('mRadarOv') || {}).dataset?.shown || 0),
+                     dots: document.querySelectorAll('#mRadarOv svg g[data-g]').length }; }"""
+        r0 = m.evaluate(R)
+        ok(f"{T} #1 總覽：輪盤與焦點條都在一屏內（bottom ≤ {r0['vh'] - 58}）",
+           r0["radar"] and r0["focus"] and r0["focus"]["b"] <= r0["vh"] - 58 and r0["radar"]["t"] >= 52, r0)
+        ok(f"{T} #1 步驟列每一格都在畫面內（四步一次看得到）", r0["steps"] and max(r0["steps"]) <= r0["vw"], r0["steps"])
+        ok(f"{T} #1 焦點條預設就有人（佔比第一名，不留空）", bool(r0["focusId"]), r0)
+        # ---- #2 點輪盤上第 3 顆點 → 焦點條換人 ----
+        pt = m.evaluate("""() => { const g = document.querySelectorAll('#mRadarOv svg g[data-g]')[2]; if (!g) return null;
+            const c = g.querySelectorAll('circle')[1].getBoundingClientRect(); return { x: c.left + c.width / 2, y: c.top + c.height / 2, id: g.dataset.g }; }""")
+        if pt:
+            m.touchscreen.tap(pt["x"], pt["y"]); m.wait_for_timeout(400)
+            r1 = m.evaluate(R)
+            ok(f"{T} #2 點輪盤上一顆點 → 焦點條換成那一顆", r1["focusId"] == r1["sel"] and r1["focusId"] != r0["focusId"], {"before": r0["focusId"], "after": r1["focusId"], "tapped": pt["id"]})
+        else:
+            ok(f"{T} #2 輪盤上至少有 3 顆點", False, r0)
+        # ---- #3 點角落「改善」→ 點數變少；再點還原 ----
+        m.tap('#mRadarOv .mqb[data-quad="improving"]'); m.wait_for_timeout(400)
+        r2 = m.evaluate(R)
+        ok(f"{T} #3 點角落「改善」→ 盤上的點變少（只剩改善）", r2["dots"] < r0["dots"] and r2["dots"] > 0, {"before": r0["dots"], "after": r2["dots"]})
+        m.tap('#mRadarOv .mqb[data-quad="improving"]'); m.wait_for_timeout(400)
+        ok(f"{T} #3 再點一次還原", m.evaluate(R)["dots"] == r0["dots"])
+        # ---- #4「?」→ 氣泡在「?」正下方；點背景關；沒有「收起」鈕 ----
+        m.tap('#ovRotHead .howbtn'); m.wait_for_timeout(400)
+        q = m.evaluate("""() => { const p = document.getElementById('howPop'), b = document.querySelector('#ovRotHead .howbtn');
+            if (!p || p.hidden) return { open: false };
+            const pr = p.getBoundingClientRect(), br = b.getBoundingClientRect();
+            return { open: true, below: Math.round(pr.top - br.bottom), l: Math.round(pr.left), r: Math.round(innerWidth - pr.right),
+                     fold: [...p.querySelectorAll('button')].some(x => /收起/.test(x.textContent)), q: Math.round(br.width) }; }""")
+        ok(f"{T} #4 點「?」→ 氣泡開在「?」正下方、左右各留 12px", q["open"] and 0 <= q.get("below", -1) <= 16 and q.get("l") == 12 and q.get("r") == 12, q)
+        ok(f"{T} #4 「?」本身 32px、氣泡裡沒有「收起」鈕", q.get("q") == 32 and not q.get("fold"), q)
+        m.touchscreen.tap(5, H / 2); m.wait_for_timeout(300)          # 氣泡左右各留 12px：點最左邊那條縫＝點背景
+        ok(f"{T} #4 點背景 → 氣泡關掉", m.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
+        # ---- #5／#6 第②步：大盤一張、切換、滑、位置指示 ----
+        m.tap('#v-overview .mspine>button:nth-child(2)'); m.wait_for_timeout(1500)
+        st = m.evaluate("() => localStorage.getItem('tw.mia.overview.step')")
+        M = """() => { const g = document.getElementById('m3Grid'), p = document.getElementById('mM3Pos');
+            const c = g && g.querySelector('.m3-card.mcur'); const px = c && c.querySelector('.m3-nums');
+            return { vis: g ? [...g.children].filter(x => getComputedStyle(x).display !== 'none').length : 0,
+                     cur: g && g.dataset.cur, pos: p && p.dataset.pos, px: px ? px.innerText.slice(0, 30) : '',
+                     chart: c ? Math.round(c.getBoundingClientRect().bottom) : 0, posB: p ? Math.round(p.getBoundingClientRect().bottom) : 0, vh: innerHeight }; }"""
+        a0 = m.evaluate(M)
+        ok(f"{T} #5 點步驟② → localStorage 寫入、大盤卡片看得到 1 張", st == "2" and a0["vis"] == 1, {"step": st, **a0})
+        m.tap('#mM3Sw button[data-id="OTC"]'); m.wait_for_timeout(700)
+        a1 = m.evaluate(M)
+        ok(f"{T} #6 點「櫃買」→ 卡片換成櫃買、位置指示 2/3", a1["cur"] == "OTC" and a1["pos"] == "2", a1)
+        # 左滑：在卡片上用觸控事件拖一段
+        m.evaluate("""() => { const g = document.getElementById('m3Grid'); const r = g.getBoundingClientRect();
+            const mk = (t, x) => new TouchEvent(t, { bubbles: true, touches: t === 'touchend' ? [] : [new Touch({ identifier: 1, target: g, clientX: x, clientY: r.top + 100 })],
+              changedTouches: [new Touch({ identifier: 1, target: g, clientX: x, clientY: r.top + 100 })] });
+            g.dispatchEvent(mk('touchstart', r.right - 40)); g.dispatchEvent(mk('touchend', r.left + 40)); }""")
+        m.wait_for_timeout(700)
+        a2 = m.evaluate(M)
+        ok(f"{T} #6 在圖上往左滑 → 換成台指期、位置指示 3/3", a2["cur"] == "FUT" and a2["pos"] == "3", a2)
+        ok(f"{T} #6 localStorage 記住選的那一張", m.evaluate("() => localStorage.getItem('tw.m3.idx')") == "FUT")
+        m.tap('#mM3Sw button[data-id="TSE"]'); m.wait_for_timeout(500)
+        # ---- 資金流向 #7～#10 ----
+        m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(3000)
+        F = """() => { const b = document.querySelector('#flowRotCard .m3keep[data-k=rot]'), f = document.querySelector('#flowRotCard .mfocus');
+            const li = [...document.querySelectorAll('#mRank li')];
+            const r5 = li[4] ? Math.round(li[4].getBoundingClientRect().bottom) : 9999;
+            return { sel: b && b.dataset.sel, n: b ? +b.dataset.n : 0, chain: b && b.dataset.chain, focus: f && f.dataset.focus,
+                     on: li.findIndex(x => x.classList.contains('on')), r5, vh: innerHeight,
+                     rb: Math.round((document.querySelector('#mRadarFlow .mradar') || document.body).getBoundingClientRect().bottom),
+                     filt: (document.getElementById('mFlowFilt') || {}).textContent || '' }; }"""
+        f0 = m.evaluate(F)
+        ok(f"{T} 資金流向：輪盤＋焦點條＋排行前 5 都在一屏內", f0["r5"] <= f0["vh"] - 58 + (60 if W == 360 else 0), f0)
+        m.tap('#mRank li:nth-child(4)'); m.wait_for_timeout(400)
+        f1 = m.evaluate(F)
+        ok(f"{T} #7 點排行第 4 列 → 輪盤選取與排行亮起的都換成它", f1["on"] == 3 and f1["sel"] != f0["sel"], {"before": f0["sel"], "after": f1["sel"], "on": f1["on"]})
+        m.tap('#mFlowFilt'); m.wait_for_timeout(400)
+        ok(f"{T} #8 篩選鈕 → 底部抽屜打開", m.evaluate("() => { const s = document.getElementById('mSheet'); return !!s && !s.hidden && s.dataset.kind === 'filter'; }"))
+        m.tap('#mShChain button[data-c="semiconductor"]'); m.wait_for_timeout(500)
+        f2 = m.evaluate(F)
+        ok(f"{T} #8 選「半導體」→ 輪盤族群數變少、鈕上的字變了、localStorage 寫入",
+           f2["n"] < f0["n"] and f2["chain"] == "semiconductor" and "半導體" in f2["filt"]
+           and m.evaluate("() => localStorage.getItem('tw.m3.flow.chain')") == "semiconductor", {"before": f0, "after": f2})
+        m.tap('#mFlowFilt'); m.wait_for_timeout(300); m.tap('#mShChain button[data-c=""]'); m.wait_for_timeout(400)
+        # #9 資金去向
+        m.tap('#v-flow .mpager>button:nth-child(2)'); m.wait_for_timeout(900)
+        D = "() => { const u = document.querySelector('#flowSankeyCard .m3keep[data-k=drill] > .mrank'); if (!u) return null; const li = [...u.querySelectorAll(':scope > li[data-k]')]; return { n: document.querySelectorAll('#flowSankeyCard .mrank li[data-k]').length, last: li.length ? li[li.length - 1].querySelector('.n').textContent : '', first: li[0] ? li[0].dataset.k : '' }; }"
+        d0 = m.evaluate(D)
+        ok(f"{T} #9 資金去向：「其他」排最後（不會以最大值排第一看起來像主流）", d0 and d0["last"].startswith("其他"), d0)
+        m.tap('#flowSankeyCard .mrank > li[data-k]:first-child'); m.wait_for_timeout(400)
+        d1 = m.evaluate(D)
+        ok(f"{T} #9 點第一條產業鏈 ▸ → 列數增加（往下展開族群）", d1 and d1["n"] > d0["n"], {"before": d0 and d0["n"], "after": d1 and d1["n"]})
+        # #10 法人
+        m.tap('#v-flow .mpager>button:nth-child(3)'); m.wait_for_timeout(900)
+        I = "() => { const b = document.querySelector('#flowInstCard .m3keep[data-k=inst]'); return b ? { k: b.dataset.inst, sig: b.dataset.sig, sub: (document.getElementById('mInstSub') || {}).textContent || '', n: b.querySelectorAll('.minst li').length } : null; }"
+        i0 = m.evaluate(I)
+        m.tap('#mInstSw button[data-k="trust"]'); m.wait_for_timeout(400)
+        i1 = m.evaluate(I)
+        ok(f"{T} #10 法人切「投信」→ 長條資料真的換了", i1 and i1["k"] == "trust" and i1["sig"] != i0["sig"] and i1["n"] > 0, {"before": i0, "after": i1})
+        ok(f"{T} #10 副標日期是有值的那一天（不是整天 null 的最後一天）", i1 and i1["sub"][:10] != "" and "null" not in i1["sub"], i1)
+        m.tap('#mInstSw button[data-k="total"]'); m.wait_for_timeout(200)
+
+        # ---- #11～#14 剖析圖 ----
+        m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3800)
+        N = """() => { const l = document.querySelector('#prodDiagram .mnumlayer'); const bs = [...document.querySelectorAll('#prodDiagram .mnum')];
+            const P = bs.map(b => { const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, r.width]; });
+            let ov = 0; for (let a = 0; a < P.length; a++) for (let c = a + 1; c < P.length; c++) if (Math.hypot(P[a][0] - P[c][0], P[a][1] - P[c][1]) < 28) ov++;
+            const h = document.getElementById('prodDiagram');
+            return { body: getComputedStyle(document.getElementById('dgBody') || document.body).display,
+                     cards: [...document.querySelectorAll('#prodDiagram .dgc')].filter(e => e.offsetParent).length,
+                     n: bs.length, ov, minW: P.length ? Math.min(...P.map(p => p[2])) : 0,
+                     sw: h ? h.scrollWidth : 0, cw: h ? h.clientWidth : 0 }; }"""
+        n0 = m.evaluate(N)
+        ok(f"{T} #11 產業鏈：剖析圖預設展開、可見字卡 0 張", n0["body"] != "none" and n0["cards"] == 0, n0)
+        ok(f"{T} #11 編號 ≥ 1、兩兩距離 ≥ 28（重疊 0 對）、每顆寬 ≥ 28", n0["n"] >= 1 and n0["ov"] == 0 and n0["minW"] >= 28, n0)
+        m.evaluate("() => { const e = document.getElementById('prodDiagram'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 120); }")
+        m.wait_for_timeout(500)
+        m.tap('#prodDiagram .mnum[data-no="03"]'); m.wait_for_timeout(500)
+        S = """() => { const s = document.getElementById('mSheet'), b = document.querySelector('#prodDiagram .mnum.on');
+            return { open: !!s && !s.hidden, no: s && s.dataset.no, kind: s && s.dataset.kind,
+                     top: s ? Math.round(s.getBoundingClientRect().top) : 0, bb: b ? Math.round(b.getBoundingClientRect().bottom) : 9999,
+                     chips: s ? s.querySelectorAll('.mchips a, .mchips span').length : 0 }; }"""
+        s0 = m.evaluate(S)
+        ok(f"{T} #12 點編號 03 → 抽屜寫 03、有台股晶片或「台股無直接對應」", s0["open"] and s0["no"] == "03" and s0["chips"] >= 1, s0)
+        ok(f"{T} #12 被選的編號沒有被抽屜蓋住（編號底 ≤ 抽屜頂）", s0["bb"] <= s0["top"], s0)
+        m.tap('#mSheet .mshnav button[data-d="1"]'); m.wait_for_timeout(300)
+        ok(f"{T} #12 按 › → 變成 04", m.evaluate(S)["no"] == "04")
+        m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
+        ok(f"{T} #12 點背景 → 抽屜關掉", not m.evaluate(S)["open"])
+        m.tap('.mdgzoom button[data-z="big"]'); m.wait_for_timeout(700)
+        n1 = m.evaluate(N)
+        ok(f"{T} #13 放大 → 容器真的變成可捲（scrollWidth > 1.5 × clientWidth）、重疊仍 0",
+           n1["sw"] > 1.5 * n1["cw"] and n1["ov"] == 0, n1)
+        ok(f"{T} #13 放大的選擇寫進 localStorage", m.evaluate("() => localStorage.getItem('tw.m3.dgzoom')") == "big")
+        m.tap('.mdgzoom button[data-z="fit"]'); m.wait_for_timeout(500)
+        # #14 3D
+        m.goto(f"{base}#industry/semiconductor/dg/hbm", wait_until="networkidle"); m.wait_for_timeout(3000)
+        has3d = m.evaluate("() => { const b = document.getElementById('dg3d'); return !!b && !b.hidden; }")
+        if has3d:
+            m.tap('#dg3d'); m.wait_for_timeout(5000)
+            z = m.evaluate("""() => { const h = document.getElementById('prod3d'); if (!h) return null;
+                const bs = [...h.querySelectorAll('.mnum')]; const P = bs.map(b => { const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+                let ov = 0; for (let a = 0; a < P.length; a++) for (let c = a + 1; c < P.length; c++) if (Math.hypot(P[a][0] - P[c][0], P[a][1] - P[c][1]) < 28) ov++;
+                const vis = (s) => [...h.querySelectorAll(s)].filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && getComputedStyle(e).display !== 'none'; }).length;
+                return { n: bs.length, parts: h.querySelectorAll('.lbl3d').length, ov, lbl: vis('.lbl3d'), ldno: vis('.ld-no') }; }""")
+            ok(f"{T} #14 3D：可見字卡 0、可見 .ld-no 0、HTML 編號數 = 零件數、重疊 0",
+               z and z["lbl"] == 0 and z["ldno"] == 0 and z["n"] == z["parts"] and z["n"] > 0 and z["ov"] == 0, z)
+            if z and z["n"]:
+                m.evaluate("() => { const e = document.getElementById('prod3d'); window.scrollTo(0, e.getBoundingClientRect().top + scrollY - 100); }")
+                m.wait_for_timeout(600)
+                first = m.evaluate("() => { const b = [...document.querySelectorAll('#prod3d .mnum')].sort((a, c) => a.dataset.no.localeCompare(c.dataset.no))[0]; return b ? b.dataset.no : null; }")
+                m.evaluate("() => { const b = [...document.querySelectorAll('#prod3d .mnum')].sort((a, c) => a.dataset.no.localeCompare(c.dataset.no))[0]; if (b) b.click(); }")
+                m.wait_for_timeout(400)
+                ok(f"{T} #14 點 3D 的第 1 顆編號 → 抽屜同號", m.evaluate(S)["no"] == first, {"want": first, "got": m.evaluate(S)})
+            m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
+            m.tap('#dg3d'); m.wait_for_timeout(800)
+            m.evaluate("() => { try { localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
+        else:
+            ok(f"{T} #14 HBM 那張有 3D 可以切（這台模擬器的 WebGL 沒開就量不到）", False, "dg3d 鈕不在")
+
+        # ---- 「更多」抽屜：版號、主題 ----
+        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1500)
+        m.tap("#mTabMore"); m.wait_for_timeout(300)
+        mo = m.evaluate("() => { const s = document.getElementById('mSheet'); return { open: !s.hidden, kind: s.dataset.kind, ver: (s.querySelector('.mver') || {}).textContent || '', rows: s.querySelectorAll('.mrow').length }; }")
+        ok(f"{T} 「更多」抽屜：市場明細／週期統計／交付清單／今日事件／主題 五列＋版號", mo["open"] and mo["rows"] == 5 and "版號" in mo["ver"], mo)
+        th0 = m.evaluate("() => document.documentElement.dataset.theme")
+        m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(800)
+        th1 = m.evaluate("() => document.documentElement.dataset.theme")
+        ok(f"{T} 「更多」→ 切換主題真的換了", th0 != th1, {"before": th0, "after": th1})
+        m.tap("#mTabMore"); m.wait_for_timeout(300); m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(600)
+
+        # ---- #15 熱力圖：點一個小方塊 → 抽屜寫那一格的族群全名（手機沒有 hover）----
+        m.goto(f"{base}#heatmap", wait_until="networkidle"); m.wait_for_timeout(3000)
+        tile = m.evaluate("""() => { const c = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (!c) return null;
+            const leaves = []; (function walk(a) { (a || []).forEach(d => { if (d.gid) leaves.push(d); walk(d.children); }); })(c.getOption().series[0].data);
+            if (!leaves.length) return null;
+            const g = leaves[leaves.length - 1];   // 最後一格（通常是最小、字最容易被截掉的）
+            c.trigger('click', { data: g, name: g.name });
+            return g.name; }""")
+        m.wait_for_timeout(500)
+        tsh = m.evaluate("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? { kind: s.dataset.kind, name: s.dataset.name, hash: location.hash } : { hash: location.hash }; }")
+        ok(f"{T} #15 熱力圖點小方塊 → 抽屜打開、寫的是那一格的族群全名、沒有直接跳頁",
+           tile and tsh.get("kind") == "tile" and tsh.get("name") == tile and tsh["hash"].startswith("#heatmap"), {"tile": tile, **tsh})
+        m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
+        # ---- #16 市場明細：切「名單」段 → 分佈圖藏、名單出現、整頁高度變了 ----
+        m.goto(f"{base}#market", wait_until="networkidle"); m.wait_for_timeout(2600)
+        K = """() => { const b = document.getElementById('mktBody'); const c = b && b.querySelector(':scope > .card'), l = document.getElementById('mktInner');
+            return { dist: !!c && c.offsetHeight > 0, list: !!l && l.offsetHeight > 0, h: document.documentElement.scrollHeight }; }"""
+        k0 = m.evaluate(K)
+        m.tap('#mMktSeg button[data-s="list"]'); m.wait_for_timeout(700)
+        k1 = m.evaluate(K)
+        ok(f"{T} #16 市場明細預設「分佈圖」段：圖在、名單收起", k0["dist"] and not k0["list"], k0)
+        ok(f"{T} #16 切「名單」→ 分佈圖藏起來、名單出現、整頁高度變了、localStorage 記住",
+           not k1["dist"] and k1["list"] and k1["h"] != k0["h"] and m.evaluate("() => localStorage.getItem('tw.m3.mkt.seg')") == "list", {"before": k0, "after": k1})
+        m.tap('#mMktSeg button[data-s="dist"]'); m.wait_for_timeout(300)
+        # ---- 週期統計：四列選項收進抽屜，換一個選項 → 鈕上的字跟著變 ----
+        m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3000)
+        s0 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', ctl: getComputedStyle(document.getElementById('seasonCtl')).display })")
+        ok(f"{T} 週期統計：選項收成一顆「設定 · …」鈕（四列選項平常不佔版面）", s0["btn"].startswith("設定") and s0["ctl"] == "none", s0)
+        m.tap('#mSeasonBtn'); m.wait_for_timeout(400)
+        alt = m.evaluate("() => { const b = [...document.querySelectorAll('#mSheet #seasonCtl button')].find(x => !x.classList.contains('on')); if (b) b.click(); return b ? b.textContent.trim() : null; }")
+        m.wait_for_timeout(1200)
+        m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(400)
+        s1 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', home: document.getElementById('seasonCtl').closest('#seasonHeatCard') !== null })")
+        ok(f"{T} 週期統計：抽屜裡換一個選項 → 關掉後鈕上的字變了、選項搬回原位", bool(alt) and s1["btn"] != s0["btn"] and alt in s1["btn"] and s1["home"], {"alt": alt, **s1})
+
+        # ---- #17 全部頁：不准橫向捲、HTML 字 ≥ 12px ----
+        TINY = """() => [...document.querySelectorAll('main .view.on *, .msheet *, .mnumlayer *')].filter(e => {
+              if (e.ownerSVGElement) return false;
+              const t = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 0); if (!t) return false;
+              const r = e.getBoundingClientRect(); if (!r.width || !r.height) return false;
+              const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none') return false;
+              return parseFloat(cs.fontSize) < 12; }).map(e => `${e.tagName}.${e.className}@${getComputedStyle(e).fontSize}:${e.textContent.trim().slice(0, 10)}`)"""
+        for h in ("overview", "flow", "industry/semiconductor"):
+            m.goto(f"{base}#{h}", wait_until="networkidle"); m.wait_for_timeout(2600)
+            r = m.evaluate(f"() => ({{ tiny: ({TINY})(), docW: document.documentElement.scrollWidth, winW: innerWidth }})")
+            ok(f"{T} #17 {h}：沒有橫向捲動", r["docW"] <= r["winW"] + 1, r)
+            ok(f"{T} #17 {h}：HTML 字 < 12px 的節點 0", not r["tiny"], r["tiny"][:6])
+        m.close()
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
@@ -12705,6 +12955,9 @@ SECTIONS = {
     #   這一段驗的是**座標**（bottom ≤ 可視高），不是「元素存在」——
     #   Andy 抱怨的正是「看圖要一直滑下去來回看」，那件事只有量座標才驗得到。
     "手機一屏":            lambda pg, b, base, code: t_mobile_oneview(b, base, code),
+    # ★ 2026-09-25 手機版 v3（docs/mobile_v3_spec.md §7）：底部一列五顆、「?」氣泡、大盤合一張、新雷達＋焦點條、
+    #   資金去向長條、法人對稱長條、篩選抽屜、剖析圖只留編號（2D／3D）。390 與 360 各一輪。⚠ 一律 --workers 1（有 3D）
+    "手機v3":              lambda pg, b, base, code: t_mobile_v3(b, base, code),
     # 批次14：輕油裂解（site/dg/petrochemical.js）與變壓器 GIS（site/dg/heavy_electric.js）
     "批次14-輕油裂解":     lambda pg, b, base, code: t_naphtha(pg, base),
     "批次14-變壓器GIS":    lambda pg, b, base, code: t_transformer(pg, base),
@@ -23695,60 +23948,45 @@ def t_mobile_v2(b, base, code):
     m.click("#moreBtn"); m.wait_for_timeout(250); m.click("#mmTheme"); m.wait_for_timeout(700)
     ok("[390px] 再點一次真的換回來", m.evaluate("() => document.documentElement.dataset.theme") == th0)
 
-    # ---------- G2：底部分頁列全部看得到、而且按得動 ----------
-    # ★ 2026-09-24：「題材」併進「熱力圖」，八顆變七顆 ＝ 上排四顆、下排三顆。
-    #   Andy 截圖上的要求是**不准留一個空位**：下排三顆要把整列排滿（右緣貼齊上排的右緣）。
+    # ---------- G2（手機 v3 改寫）：底部導覽一列五顆（總覽／資金流向／產業／熱力圖／更多）----------
+    # ★ 2026-09-25 手機 v3（docs/mobile_v3_spec.md §2-1）：兩列七顆 102px → 一列五顆 58px，
+    #   市場明細／週期統計／交付清單收進「更多」抽屜（收起來不是刪掉：三顆分頁仍在 DOM、按「更多」一定到得了）。
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1800)
-    tabs = m.evaluate("""() => [...document.querySelectorAll('#tabs .tab')].map(e => {
+    tabs = m.evaluate("""() => [...document.querySelectorAll('#tabs .tab, #tabs .mtabmore')].filter(e => getComputedStyle(e).display !== 'none').map(e => {
         const r = e.getBoundingClientRect();
-        return { v: e.dataset.view, left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top),
+        return { v: e.dataset.view || e.id, left: Math.round(r.left), right: Math.round(r.right), top: Math.round(r.top),
                  w: Math.round(r.width), h: Math.round(r.height) }; })""")
-    ok("[390px] 七個分頁一個都沒少（題材併進熱力圖，不是消失）", len(tabs) == 7 and "themes" not in [t["v"] for t in tabs]
-       and "heatmap" in [t["v"] for t in tabs], [t["v"] for t in tabs])
-    ok("[390px] 七個分頁**全部**在畫面裡（改版前週期統計（原季節性）與交付清單整個在畫面外）",
-       all(t["right"] <= 391 for t in tabs), [t for t in tabs if t["right"] > 391] or "都在")
-    _rows = {}
-    for t in tabs:
-        _rows.setdefault(t["top"], []).append(t)
-    _rv = [sorted(v, key=lambda t: t["left"]) for _, v in sorted(_rows.items())]
-    ok("[390px] 排成兩列：上排四顆、下排三顆", [len(r) for r in _rv] == [4, 3], [len(r) for r in _rv])
-    if [len(r) for r in _rv] == [4, 3]:
-        ok("★ [390px] 下排沒有空位：三顆把整列排滿（右緣貼齊上排、左緣貼齊上排）",
-           abs(_rv[1][-1]["right"] - _rv[0][-1]["right"]) <= 2 and abs(_rv[1][0]["left"] - _rv[0][0]["left"]) <= 2,
-           {"上排": [(t["left"], t["right"]) for t in _rv[0]], "下排": [(t["left"], t["right"]) for t in _rv[1]]})
-        ok("[390px] 下排三顆一樣寬（不是一顆特別長去填空）",
-           max(t["w"] for t in _rv[1]) - min(t["w"] for t in _rv[1]) <= 2, [t["w"] for t in _rv[1]])
-    ok("[390px] 每個分頁的觸控高度 ≥ 44px（改版前只有 32px）",
-       all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
-    # 真的按最後那兩個（改版前按不到）
-    for v, want in (("season", "#season"), ("delivery", "#delivery")):
-        m.click(f'#tabs .tab[data-view={v}]'); m.wait_for_timeout(1600)
+    ok("[390px] 底部一列五顆：總覽／資金流向／產業／熱力圖／更多",
+       [t["v"] for t in tabs] == ["overview", "flow", "industry", "heatmap", "mTabMore"], [t["v"] for t in tabs])
+    ok("[390px] 五顆全部在畫面裡、而且在同一列", all(t["right"] <= 391 for t in tabs) and len({t["top"] for t in tabs}) == 1, tabs)
+    ok("[390px] 每顆的觸控高度 ≥ 44px", all(t["h"] >= 44 for t in tabs), sorted({t["h"] for t in tabs}))
+    nh = m.evaluate("() => Math.round(document.getElementById('tabs').getBoundingClientRect().height)")
+    ok("[390px] 底部導覽高 58px（改版前兩列 102px）", 54 <= nh <= 62, nh)
+    ok("[390px] 七個分頁一個都沒少（三顆收進「更多」，DOM 裡還在）",
+       m.evaluate("() => document.querySelectorAll('#tabs .tab').length") == 7)
+    for v, want in (("season", "#season"), ("delivery", "#delivery"), ("market", "#market")):
+        m.tap("#mTabMore"); m.wait_for_timeout(400)
+        m.tap(f'#mSheet .mrow[data-m={v}]'); m.wait_for_timeout(1600)
         st = m.evaluate("""() => ({ hash: location.hash,
             on: (document.querySelector('main .view.on') || {}).id,
+            more: document.getElementById('mTabMore').classList.contains('on'),
             txt: ((document.querySelector('main .view.on') || document.body).innerText || '').trim().length })""")
-        ok(f"[390px] 按得到「{v}」而且畫面真的換過去了（改版前這一顆在畫面外）",
-           st["hash"].startswith(want) and st["on"] == "v-" + v and st["txt"] > 60, st)
+        ok(f"[390px] 「更多」→「{v}」畫面真的換過去了，而且「更多」亮起來（知道自己在哪）",
+           st["hash"].startswith(want) and st["on"] == "v-" + v and st["txt"] > 60 and st["more"], st)
 
-    # ---------- G3：總覽大盤三張圖改成左右滑 ----------
-    # ★ 2026-09-24：總覽在手機上改成四步動線，大盤三張圖掛在第②步「貴不貴」底下，
-    #   所以要先走到那一步才量得到（停在第①步量只會拿到 null —— 那是假紅）。
+    # ---------- G3（手機 v3 改寫）：大盤三張合一張可切換（R1）----------
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
-    spine = m.evaluate("() => [...document.querySelectorAll('.mspine>button')].map(b => b.innerText.split(String.fromCharCode(10))[0])")
-    ok("[390px] 首頁是一條四步決策動線（錢往哪跑 → 貴不貴 → 何時進場 → 別進的理由）",
-       len(spine) == 4 and spine[0].startswith('①') and spine[3].startswith('④'), spine)
-    m.evaluate("() => document.querySelectorAll('.mspine>button')[1].click()"); m.wait_for_timeout(1400)
+    spine = m.evaluate("() => [...document.querySelectorAll('.mspine>button')].map(b => b.innerText.replace(/\\s+/g, ' ').trim())")
+    # ⚠ 第③步（今日候選）在 main 2026-09-24 總覽改版時被拿掉了（#ovCandCard 不在頁面上），所以這裡不寫死 4 步
+    ok("[390px] 首頁是一條決策動線（從 ① 錢往哪跑 開始、④ 別進的理由 結束）",
+       len(spine) >= 3 and spine[0].startswith('①') and spine[-1].startswith('④'), spine)
+    m.evaluate("() => document.querySelectorAll('.mspine>button')[1].click()"); m.wait_for_timeout(1600)
     g = m.evaluate("""() => { const g = document.querySelector('.m3-grid'); if (!g) return null;
-        const tip = g.nextElementSibling;
-        return { h: Math.round(g.getBoundingClientRect().height), sw: g.scrollWidth, cw: g.clientWidth,
-                 kids: g.children.length, hsc: g.classList.contains('hsc'),
-                 tip: !!(tip && tip.classList && tip.classList.contains('swipetip')) }; }""")
-    ok("[390px] 大盤三張圖從直立堆疊（1331px）收成一張的高度", g and g["h"] < 700, g)
-    ok("[390px] 三張都還在，只是改成左右滑（沒有刪東西）", g and g["kids"] == 3 and g["sw"] > g["cw"] + 50, g)
-    ok("[390px] 有「可以左右滑」的提示（淡出 ＋ 文字）", g and g["hsc"] and g["tip"], g)
-    m.evaluate("() => { const g = document.querySelector('.m3-grid'); g.scrollLeft = g.clientWidth; }")
-    m.wait_for_timeout(500)
-    sl = m.evaluate("() => document.querySelector('.m3-grid').scrollLeft")
-    ok("[390px] 真的滑得動（scrollLeft 真的變了）", sl > 100, sl)
+        const vis = [...g.children].filter(c => getComputedStyle(c).display !== 'none');
+        return { h: Math.round(g.getBoundingClientRect().height), kids: g.children.length, vis: vis.length,
+                 cur: g.dataset.cur, pos: (document.getElementById('mM3Pos') || {}).dataset }; }""")
+    ok("[390px] 大盤三張合成一張：看得到的只有 1 張（三張都還在 DOM，沒有刪）", g and g["kids"] == 3 and g["vis"] == 1, g)
+    ok("[390px] 一張的高度（改版前三張直立 1331px）", g and g["h"] < 700, g)
 
     # ---------- G4：字級下限 12px ----------
     TINY = """() => { const eff = (e) => { const s = parseFloat(getComputedStyle(e).fontSize);
@@ -23780,27 +24018,17 @@ def t_mobile_v2(b, base, code):
     ok("[390px] 產業鏈分頁列捲得動的時候有淡出與「左右滑」提示（八條鏈只看得到三條）",
        sc and sc["sw"] > sc["cw"] and sc["hsc"] and sc["tip"], sc)
 
-    # ---------- G7：剖析圖收合時，設定列跟著收 ----------
-    m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3200)
+    # ---------- G7（手機 v3 改寫）：剖析圖手機預設展開、只留編號（§9 第 1 條）----------
+    m.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); m.wait_for_timeout(3600)
     fold = m.evaluate("""() => { const d = (id) => { const e = document.getElementById(id);
           return e ? getComputedStyle(e).display : 'missing'; };
-        const f = document.getElementById('dgFold');
-        return { fold: f ? f.textContent.trim() : null, foldD: d('dgFold'),
-                 a: d('dgAnim'), b: d('dg3d') }; }""")
-    ok("[390px] 剖析圖預設是收著的（這是既有的刻意設計，不要改回去）",
-       fold["fold"] and "展開" in fold["fold"], fold)
-    ok("[390px] 收著的時候 3D／動畫那幾顆設定不見了（點了畫面不會變的鈕不該留著）",
-       fold["a"] == "none" and fold["b"] == "none", fold)
-    ok("[390px] 但「展開剖析圖」自己一定要留著（它是把圖開回來的唯一入口）",
-       fold["foldD"] != "none", fold)
-    m.click("#dgFold"); m.wait_for_timeout(2600)
-    fold2 = m.evaluate("""() => ({ fold: document.getElementById('dgFold').textContent.trim(),
-        a: getComputedStyle(document.getElementById('dgAnim')).display,
-        body: document.getElementById('dgBody') ? getComputedStyle(document.getElementById('dgBody')).display : null,
-        svg: document.querySelectorAll('#prodDiagram svg *').length })""")
-    ok("[390px] 按「展開剖析圖」圖真的展開了（SVG 真的有內容）",
-       fold2["body"] != "none" and fold2["svg"] > 20, fold2)
-    ok("[390px] 展開之後設定列真的回來了", fold2["a"] != "none", fold2)
+        return { body: d('dgBody'), foldD: d('dgFold'), anim: d('dgAnim'),
+                 cards: [...document.querySelectorAll('#prodDiagram .dgc')].filter(e => e.offsetParent).length,
+                 nums: document.querySelectorAll('#prodDiagram .mnum').length }; }""")
+    ok("[390px] 剖析圖手機預設展開（字卡拿掉之後圖只剩約 300px，收合的理由不在了）", fold["body"] != "none", fold)
+    ok("[390px] 手機不放「收合圖／動畫」這兩顆（設定列只留 平面／3D、整張／放大、?）",
+       fold["foldD"] == "none" and fold["anim"] == "none", fold)
+    ok("[390px] 可見字卡 0 張、編號 ≥ 1", fold["cards"] == 0 and fold["nums"] >= 1, fold)
 
     # ---------- G8：個股頁的畫線工具列 ----------
     m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(3600)
@@ -23874,6 +24102,30 @@ def t_desktop_untouched(pg, base, code):
        t["body"] != "none" and "收合" in (t["fold"] or ""), t)
     ok("[1440px] 桌機的 3D 設定列五顆全在",
        all(t[i] != "none" for i in ("dg3d", "dgDrag", "dgReset", "dgAnim", "dgFold")), t)
+    # ★ 手機 v3：像素比對只涵蓋「初始畫面」（2026-09-24 踩過），所以「點了才出現」的東西另外驗
+    d = pg.evaluate("""() => ({ more: !!document.getElementById('mTabMore'), sbtn: !!document.getElementById('mSearchBtn'),
+        keep: document.querySelectorAll('.m3keep, .mnumlayer, .mdgbar, #mM3Sw').length,
+        cards: [...document.querySelectorAll('#prodDiagram .dgc')].filter(e => e.offsetParent).length,
+        m3on: document.body.classList.contains('m3on') })""")
+    ok("[1440px] 手機 v3 的節點（更多、搜尋鈕、雷達、編號層、大盤切換）在桌機一個都沒有插",
+       not d["more"] and not d["sbtn"] and d["keep"] == 0 and not d["m3on"], d)
+    ok("[1440px] 剖析圖的字卡仍在兩側（手機只留編號那條沒有外洩）", d["cards"] > 0, d)
+    b0 = pg.query_selector('#dgTools .howbtn')
+    if b0:
+        b0.click(); pg.wait_for_timeout(400)
+        hp = pg.evaluate("""() => { const p = document.getElementById('how-dg'); const hp = document.getElementById('howPop');
+            return { inplace: !!p && !p.hidden && !(hp && hp.contains(p)), bubble: !!(hp && hp.classList.contains('mbubble')) }; }""")
+        ok("[1440px] 剖析圖「怎麼看 ?」在桌機仍是就地展開（手機才是氣泡）", hp["inplace"] and not hp["bubble"], hp)
+        b0.click(); pg.wait_for_timeout(200)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    pb = pg.query_selector('#ovRotHead .howbtn')
+    if pb:
+        pb.click(); pg.wait_for_timeout(400)
+        hp = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? { bubble: p.classList.contains('mbubble'), tf: getComputedStyle(p).transform } : null; }")
+        ok("[1440px] 標題旁「?」在桌機仍是置中的跳出說明（不是手機的氣泡）", hp and not hp["bubble"] and hp["tf"] != "none", hp)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+    g3 = pg.evaluate("() => { const g = document.getElementById('m3Grid'); return g ? [...g.children].filter(c => getComputedStyle(c).display !== 'none').length : -1; }")
+    ok("[1440px] 大盤三張在桌機仍是三張並排（合一張只給手機）", g3 == 3, g3)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
@@ -23905,8 +24157,9 @@ def t_mobile_oneview(b, base, code):
                  docW: document.documentElement.scrollWidth, winW: innerWidth }; }"""
     # （路由, 名字, 主圖, 關鍵數字, 要不要先點某一步）
     CASES = [
-        ("overview", "總覽 輪動時鐘（第①步）", "#rotClockMini", "#ovRotKpi", None),
-        ("flow", "資金流向 輪動時鐘", "#rotClock", "#flowRotCard .rotquads", None),
+        # ★ 手機 v3：足跡輪盤換成新雷達（#mRadarOv／#mRadarFlow），關鍵數字＝焦點條（.mfocus）
+        ("overview", "總覽 足跡輪盤（第①步）", "#mRadarOv", "#rotClockMiniWrap .mfocus", None),
+        ("flow", "資金流向 足跡輪盤", "#mRadarFlow", "#flowRotCard .mfocus", None),
         ("industry", "產業地圖 族群漲跌長條", "#gpBar", "#gpNote", None),
         (f"stock/{code}", "個股 K 線", "#chartWrap", "#skPx", None),
         # ★ 2026-09-24：題材併進熱力圖分頁；用舊網址開，順便驗手機導過去之後直接翻到「題材熱力」那一段
@@ -23927,7 +24180,7 @@ def t_mobile_oneview(b, base, code):
         m.evaluate("(sel) => { const e = document.querySelector(sel); if (e) window.scrollTo({ top: e.getBoundingClientRect().top + scrollY - 132 }); }", cs)
         m.wait_for_timeout(500)
         r = m.evaluate(RECT, [cs, ks])
-        vis = r["vh"] - 102                       # 扣掉底部固定的兩列分頁
+        vis = r["vh"] - 58                        # 扣掉底部導覽（手機 v3：一列 58px；改版前兩列 102px）
         ok(f"[390px 一屏] {name}：主圖整張在可視範圍內（{vis}px）",
            r["c"]["t"] >= -4 and r["c"]["b"] <= vis + 4, r)
         ok(f"[390px 一屏] {name}：關鍵數字**同時**看得到（改版前個股頁相隔 1087px）",
@@ -23951,83 +24204,80 @@ def t_mobile_oneview(b, base, code):
        st and any(ch.isdigit() for ch in st["txt"]), st)
 
     # 主軸動線：按「下一步」真的換一步，而且畫面真的因此換了內容
+    # ⚠ 第③步（今日候選）main 在 2026-09-24 總覽改版拿掉了（#ovCandCard 不在頁面上），
+    #   所以這裡照「實際有幾步」走一圈，不寫死 4 步；每一步都驗「下一步」真的換了、最後一步回到第①步。
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2800)
     def _state():
         return m.evaluate("""() => ({
             on: [...document.querySelectorAll('.mspine>button')].findIndex(b => b.classList.contains('on')),
+            n: document.querySelectorAll('.mspine>button').length,
             rot: !!document.querySelector('#rotClockMiniWrap:not(.mp-off)'),
             m3: !!document.querySelector('#m3:not(.mp-off)'),
-            cand: !!document.querySelector('#ovCandCard:not(.mp-off)'),
             ev: !!document.querySelector('#ovEvents:not(.mp-off)'),
             next: (document.querySelector('.mnext') || {}).textContent || '' })""")
     s0 = _state()
-    ok("[390px 動線] 一進首頁停在第①步，主圖是輪動時鐘", s0["on"] == 0 and s0["rot"] and not s0["m3"], s0)
+    ok("[390px 動線] 一進首頁停在第①步，主圖是足跡輪盤", s0["on"] == 0 and s0["rot"] and not s0["m3"], s0)
     ok("[390px 動線] 最下面有「下一步」帶去第②步", "下一步" in s0["next"] and "貴不貴" in s0["next"], s0)
+    sp = m.evaluate("""() => [...document.querySelectorAll('.mspine>button')].map(b => { const r = b.getBoundingClientRect();
+        return { r: Math.round(r.right), t: Math.round(r.top), h: Math.round(r.height) }; })""")
+    ok("[390px 動線] 步驟列一列排完、每一步都看得到（改版前一次只露一格半）",
+       all(x["r"] <= 390 for x in sp) and len({x["t"] for x in sp}) == 1 and all(x["h"] >= 44 for x in sp), sp)
     m.click(".mnext"); m.wait_for_timeout(1300)
     s1 = _state()
-    changed("[390px 動線] 按「下一步」畫面真的換到第②步（大盤三張圖出現、時鐘收起來）",
+    changed("[390px 動線] 按「下一步」畫面真的換到第②步（大盤出現、輪盤收起來）",
             (s0["on"], s0["m3"], s0["rot"]), (s1["on"], s1["m3"], s1["rot"]), str(s1))
-    ok("[390px 動線] 第②步顯示的是大盤與體質，不是輪動時鐘", s1["on"] == 1 and s1["m3"] and not s1["rot"], s1)
-    m.click(".mnext"); m.wait_for_timeout(1300); s2 = _state()
-    ok("[390px 動線] 第③步是今日候選（何時進場）", s2["on"] == 2 and s2["cand"], s2)
-    m.click(".mnext"); m.wait_for_timeout(1300); s3 = _state()
-    ok("[390px 動線] 第④步是今日事件（有沒有理由不進場）", s3["on"] == 3 and s3["ev"], s3)
+    for _ in range(max(0, s0["n"] - 2)):
+        m.click(".mnext"); m.wait_for_timeout(1300)
+    s3 = _state()
+    ok("[390px 動線] 最後一步是今日事件（有沒有理由不進場）", s3["on"] == s0["n"] - 1 and s3["ev"], s3)
     ev = m.evaluate("""() => { const b = document.getElementById('ovEvents'); if (!b) return null;
         return { n: b.querySelectorAll('.ovev .ev').length,
                  all: (b.querySelector('#ovEvAll') || {}).textContent || '',
                  side: (document.getElementById('evCount') || {}).textContent || '' }; }""")
-    ok("[390px 動線] 第④步真的列出事件，而且筆數跟抽屜是同一份資料",
+    ok("[390px 動線] 最後一步真的列出事件，而且筆數跟抽屜是同一份資料",
        ev and ev["n"] > 0 and ev["side"] and ev["side"] in ev["all"], ev)
     ok("[390px 動線] 走到最後一步時「下一步」變成回到第①步", "回到" in s3["next"], s3)
     m.click(".mnext"); m.wait_for_timeout(1300)
     ok("[390px 動線] 按下去真的回到第①步", _state()["on"] == 0)
 
-    # 第①步的關鍵數字：四個象限的族群數，而且跟資金流向頁那張大圖同一個來源
-    kpi = m.evaluate("""() => { const e = document.getElementById('ovRotKpi'); if (!e) return null;
-        return { n: e.querySelectorAll('.rk').length,
-                 txt: e.innerText.replace(/\s+/g, ' ').trim(),
-                 nums: [...e.querySelectorAll('.rk b')].map(x => +x.textContent) }; }""")
-    ok("[390px 動線] 第①步的圖旁邊就有四個象限的族群數（不必滑到別的地方找）",
+    # 第①步的關鍵數字：四角徽章＝四個象限的族群數（手機 v3 取代原本那一列 #ovRotKpi）
+    kpi = m.evaluate("""() => { const e = document.getElementById('mRadarOv'); if (!e) return null;
+        return { n: e.querySelectorAll('.mqb').length, txt: e.innerText.replace(/\\s+/g, ' ').trim(),
+                 nums: [...e.querySelectorAll('.mqb b')].map(x => +x.textContent) }; }""")
+    ok("[390px 動線] 第①步的輪盤四角就是四個象限的族群數（不必滑到別的地方找）",
        kpi and kpi["n"] == 4 and sum(kpi["nums"]) > 0
        and all(w in kpi["txt"] for w in ("改善", "領先", "轉弱", "落後")), kpi)
 
-    # 長清單限筆：今日候選預設只給 6 張，按「看全部」真的全部回來
-    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
-    m.evaluate("() => { const b = document.querySelectorAll('.mspine>button')[2]; if (b) b.click(); }")
-    m.wait_for_timeout(1300)
-    C = """() => { const c = document.getElementById('candCards'); if (!c) return null;
-        const kids = [...c.children].filter(x => !x.classList.contains('mmore'));
-        return { total: kids.length, shown: kids.filter(x => getComputedStyle(x).display !== 'none').length,
-                 btn: (c.querySelector('.mmore') || {}).textContent || '' }; }"""
-    c0 = m.evaluate(C)
-    ok("[390px 限筆] 今日候選預設只給前 6 張（改版前 30 張共 4335px）",
-       c0 and c0["shown"] == 6 and c0["total"] > 6 and "看全部" in c0["btn"], c0)
-    m.click("#candCards .mmore"); m.wait_for_timeout(700)
-    c1 = m.evaluate(C)
-    changed("[390px 限筆] 按「看全部」筆數真的變多（收起來不是刪掉）", c0["shown"], c1["shown"], str(c1))
-    ok("[390px 限筆] 展開之後全部都在、鈕也收掉了",
-       c1 and c1["shown"] == c1["total"] and not c1["btn"], c1)
+    # 長清單限筆：今日候選（第③步）main 已經拿掉 —— 還在頁面上才驗，不在就記一筆「略過」而不是假紅
+    if m.evaluate("() => !!document.getElementById('candCards')"):
+        m.evaluate("() => { const b = document.querySelectorAll('.mspine>button')[2]; if (b) b.click(); }")
+        m.wait_for_timeout(1300)
+        C = """() => { const c = document.getElementById('candCards'); if (!c) return null;
+            const kids = [...c.children].filter(x => !x.classList.contains('mmore'));
+            return { total: kids.length, shown: kids.filter(x => getComputedStyle(x).display !== 'none').length,
+                     btn: (c.querySelector('.mmore') || {}).textContent || '' }; }"""
+        c0 = m.evaluate(C)
+        ok("[390px 限筆] 今日候選預設只給前 6 張", c0 and c0["shown"] == 6 and c0["total"] > 6 and "看全部" in c0["btn"], c0)
 
-    # 左右滑的位置指示（Andy 點名）
+    # 左右滑的位置指示（Andy 點名）—— 手機 v3：大盤合一張，圖下「● ○ ○ 1 / 3」
     m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
     m.evaluate("() => { const b = document.querySelectorAll('.mspine>button')[1]; if (b) b.click(); }")
     m.wait_for_timeout(1400)
-    P = """() => { const g = document.querySelector('.m3-grid'); if (!g) return null;
-        const t = g.nextElementSibling;
-        return { pos: t && t.getAttribute ? t.getAttribute('data-pos') : null,
-                 of: t && t.getAttribute ? t.getAttribute('data-of') : null,
-                 sl: Math.round(g.scrollLeft) }; }"""
+    P = """() => { const p = document.getElementById('mM3Pos'), g = document.querySelector('.m3-grid');
+        return p ? { pos: p.dataset.pos, of: p.dataset.of, cur: g && g.dataset.cur, txt: p.innerText } : null; }"""
     p0 = m.evaluate(P)
-    ok("[390px] 左右滑的卡片有「第幾張／共幾張」（他點名的：不然不知道還有沒有）",
-       p0 and p0["pos"] == "1" and p0["of"] == "3", p0)
-    m.evaluate("() => { const g = document.querySelector('.m3-grid'); g.scrollLeft = g.clientWidth; g.dispatchEvent(new Event('scroll')); }")
-    m.wait_for_timeout(500)
+    ok("[390px] 大盤有「第幾張／共幾張」（他點名的：不然不知道還有沒有）",
+       p0 and p0["of"] == "3" and p0["pos"] in ("1", "2", "3") and "/ 3" in p0["txt"], p0)
+    m.tap('#mM3Sw button[data-id="OTC"]'); m.wait_for_timeout(600)
     p1 = m.evaluate(P)
-    changed("[390px] 真的滑過去之後指示跟著變（量的是 scrollLeft，不是寫死的）", p0["pos"], p1["pos"], str(p1))
+    ok("[390px] 點「櫃買」指示跟著變成 2 / 3、卡片換成櫃買", p1 and p1["pos"] == "2" and p1["cur"] == "OTC", p1)
 
     # 整頁高度：不准回到改版前那種「一頁滑十屏」
     HEIGHT_MAX = {"overview": 2200, "flow": 2400, "season": 2400, "delivery": 3200,
-                  f"stock/{code}": 2200, "industry/semiconductor": 1800}
+                  f"stock/{code}": 2200,
+                  # ★ 手機 v3：剖析圖手機預設展開（規格 §9 第 1 條），圖本身約 300px；上限 1800 → 2700。
+                  #   規格另有「剖析圖／關聯圖」分段（§3-4），排在下一批，做完之後這個數字要收回 1800 以下。
+                  "industry/semiconductor": 2700}
     for route, cap in HEIGHT_MAX.items():
         m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2800)
         # ★ 2026-09-24 設計系統 v2 第 6 批：全站頁尾多了一段免責聲明（site/legal.js 的 #siteFoot，手機約 300px）。
