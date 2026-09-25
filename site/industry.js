@@ -1077,13 +1077,13 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="pill" id="dg3d" style="cursor:pointer" hidden>3D 立體</span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="seg tiny dgmode" id="dg3d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             '點零件：看它是誰做的（供應商）',
             '同色的環節色標、關聯圖會一起亮',
             '右上可開關動畫、收合圖',
-            '有「3D 立體」的圖可以拖曳轉動',
+            '有「2D｜3D」的圖，切到 3D 可拖曳轉動',
             '圖以原尺寸顯示，放不下可左右滑',
           ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
           <div id="dgBody">
@@ -1302,6 +1302,43 @@
     { const all = $('#segChips .segall', el);
       if (all) all.onclick = () => { segFilter = null; segHi = null; partHi = partSel = null; state.group = null; if (segDDOpen) segDDOpen(false); syncHighlight({ quiet: true }); }; }
     $$('#relList .rlx', el).forEach(x => x.onclick = () => { segFilter = null; segHi = null; partHi = partSel = null; state.group = null; closeCoBox(); syncHighlight({ quiet: true }); });
+    /* ★ 2026-09-26（Andy：「點擊背景後說明欄會消失」）：關聯圖右邊那張「● 晶圓代工 3 檔 …」說明卡
+       （#relList 選中的那一節）、公司資訊欄 #coBox、窄畫面的環節詳情 #segBox，以前只有 × 關得掉。
+       改成跟零件小卡一樣登記進全站那一份 dismissable：點圖的空白處、點頁面其他地方、按 Esc 都收，
+       收的時候**連選取一起取消**（圖上的 .dim／.sel 高亮全部恢復）—— 跟按 × 是同一個結果，不另寫一套。
+       「不算外面」的地方，每一個都是「點了本來就會改選取」的入口，不能被當成點背景而抵銷：
+         · 圖上的公司卡／個股標籤（.co）、環節標題（.segtitle，流向圖的方塊也掛這個 class）、▸▾ 收合鈕與「全部收合」列
+         · 「環節：全部 ▾」下拉（#segDD）、關聯圖標題列（分層／流向切換、收合圖、怎麼看）
+         · 手機的環節卡清單（#chainList）、剖析圖那一整區（點零件／背景有自己的 pickPart／clearPart，
+           而且「點剖析圖背景不動 segFilter」是既有決定，見 clearPart 的註解）、族群總覽（#gpSec，點長條＝換族群）、
+           兩層分頁列（換頁本來就會重畫）
+       ⚠ 圖的邊線（.edge）、環節底下那幾行小字（.segnote）算背景：它們不是節點也不是標籤，點了本來就沒有反應。*/
+    const relStick = $('#relStick', el), segBox0 = $('#segBox', el), relMain0 = $('#relMain', el);
+    if (A.dismissable && relStick) {
+      const clearRel = () => {
+        if (!segFilter && !segHi && !state.group && !document.getElementById('coBox')) return;
+        segFilter = null; segHi = null; partHi = partSel = null; state.group = null; closeCoBox();
+        syncHighlight({ quiet: true, noscroll: true });
+      };
+      const relDz = A.dismissable(relStick, clearRel, {
+        also: [segBox0].filter(Boolean),
+        ignore: ['.chainmap .co', '.chainmap .segtitle', '.chainmap .segfold', '.chainmap .foldbar', '#segDD', '#relHead',
+          '#chainList', '#segTools', '#coBox', '#dgSec', '#gpSec', '.dgtabs', '#dgPick', '#chainSwitch'],
+        /* 開著＝右欄真的攤開（.hassel）、公司資訊欄在、或窄畫面的環節詳情有內容。
+           ⚠ 不能用預設的「el 看不看得到」：桌機沒選時 .relcol 是 display:none，窄畫面 .relstick 是 display:contents（沒有框）。*/
+        isOpen: () => relStick.isConnected && (
+          !!(relMain0 && relMain0.classList.contains('hassel'))
+          || !!document.getElementById('coBox')
+          || !!(segBox0 && segBox0.childElementCount && segBox0.getClientRects().length)),
+      });
+      /* 關聯圖在窄畫面是左右滑的（SVG 有 min-width）。按住它自己的捲軸拖，pointerdown 的 target 是 #chainMap 這個 div、
+         座標落在內容寬高之外 —— 那是在捲圖，不是點背景。dismissable 的 pointerdown 在 document 的 capture 階段先跑，
+         這裡（冒泡階段）再把這一筆標成 dirty，dzFinish 看到 dirty 就不關。*/
+      const mh = $('#chainMap', el);
+      if (mh && relDz) mh.addEventListener('pointerdown', (ev) => {
+        if (ev.target === mh && (ev.offsetX >= mh.clientWidth || ev.offsetY >= mh.clientHeight)) relDz.dirty = true;
+      });
+    }
     /* ★「放寬 ⤢」（成分股暫時蓋住今日事件面板）跟著成分股表一起移除 ——
        它是為了那張表才存在的，表沒了就沒有服務對象。
        ⚠ **`show()` 裡「換頁還原事件面板」那段收尾不准拿掉**（見檔案上方）：
@@ -2358,10 +2395,23 @@
       return;
     }
     btn.hidden = false;
+    /* ★ 2026-09-26（Andy：「切回 2D 時，顯示 2D，不要都 3D」）：
+       以前這是一顆開關「3D 立體」，2D 時寫「3D 立體」、3D 時寫「3D 立體 ✓」——
+       不管在哪個模式，眼睛讀到的都是「3D」，看不出現在到底是哪一種。
+       改成分段鈕「2D｜3D」，**亮的那一格就是現在的模式**（樣式跟同一頁的「分層圖｜流向圖」同一種 .seg）。
+       記憶沿用 localStorage `tw.dg3d`（'1'＝3D），全站剖析圖共用一個值：換分頁、重新整理都照最後選的那個。
+       paintMode 畫的是「實際上現在是哪個」，不是「使用者想要哪個」：3D 掛不起來退回平面時，亮的要是 2D。*/
+    const paintMode = (is3d) => {
+      $$('button[data-dm]', btn).forEach(b => {
+        const on3 = b.dataset.dm === '3d', cur = on3 === !!is3d;
+        b.classList.toggle('on', cur); b.setAttribute('aria-pressed', cur ? 'true' : 'false');
+      });
+      btn.dataset.mode = is3d ? '3d' : '2d';
+    };
     const setMode = async (on) => {
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
-      btn.classList.toggle('cyan', on);
-      btn.textContent = on ? '3D 立體 ✓' : '3D 立體';
+      paintMode(on);
+      // 「拖曳：轉動」「重設視角」只對 3D 有意義 —— 2D 時整顆藏起來，不留一顆按了沒反應的鈕
       rst.hidden = !on;
       if (drg) drg.hidden = !on;
       svg.hidden = on; host.hidden = !on;     // 配色不跟著 3D 開關（2D 也吃同一組 --dg-*）
@@ -2390,9 +2440,9 @@
       } catch (err) {
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
         note.textContent = '3D 起不來（' + (err && err.message ? err.message : err) + '），已退回平面剖析圖。';
-        svg.hidden = false; host.hidden = true; rst.hidden = true; return;
+        svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return;
       }
-      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; return; }
+      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return; }
       view3d = v;
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
@@ -2423,7 +2473,15 @@
       note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
       sync();
     };
-    btn.onclick = () => setMode(host.hidden);
+    /* 點「2D」或「3D」那一格＝切到那個模式；點的是已經亮著的那一格就什麼都不做（分段鈕的慣例，不是開關）。
+       點在兩格之間的縫、或程式直接呼叫容器的 .click()（target 是容器本身）才當成「切到另一個」——
+       保留這條是為了舊的呼叫方式（驗收裡有 eval_on_selector('#dg3d', e => e.click())）不必全部改寫。*/
+    btn.onclick = (ev) => {
+      const b = ev && ev.target && ev.target.closest ? ev.target.closest('button[data-dm]') : null;
+      const want3 = b ? b.dataset.dm === '3d' : host.hidden;
+      if (want3 === !host.hidden) return;
+      setMode(want3);
+    };
     rst.onclick = () => { if (view3d) view3d.reset(); };
     let want = false;
     try { want = localStorage.getItem('tw.dg3d') === '1'; } catch (e) { /* 忽略 */ }
@@ -3288,6 +3346,12 @@
       ${peers.length ? `<div class="row" style="gap:4px 8px;margin-top:8px;font-size:12.5px"><span class="muted">同環節</span>${peers.map(p => p.tw_code ? A.L.stock(p.tw_code, p.name, { cls: 'sm' }) : `<span class="muted">${A.fmt.esc(p.name)}</span>`).join('')}</div>` : ''}
       ${co.tw_code ? `<button class="btn primary" style="margin-top:8px" onclick="goStock('${co.tw_code}')">看個股頁 →</button>` : ''}`;
     wireRelBlock(box, sc, host);
+    /* ★ 2026-09-26：點背景／Esc 收掉這張卡（全站 dismissable）。
+       產業鏈頁（#relSec 裡）由 renderChain 那一筆負責 —— 它收卡的同時還要取消環節選取，兩筆一起登記會各關各的。
+       其他地方（個股頁的產業鏈小圖）只有這張卡本身要收；點另一家公司＝換卡（舊卡會先被 closeCoBox 拿掉），不算點外面。*/
+    if (A.dismissable && !(box.closest && box.closest('#relSec'))) {
+      A.dismissable(box, closeCoBox, { ignore: ['.chainmap .co'] });
+    }
   }
 
   /* ---------------------------------------------------------------- 產業關係說明
