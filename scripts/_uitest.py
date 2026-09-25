@@ -13673,6 +13673,19 @@ OVR_WHEEL = r"""() => { const e = document.getElementById('rotClockMini'); const
            wrapW: (document.getElementById('rotClockMiniWrap') || e).clientWidth }; }"""
 
 
+DD_CONTRAST = r"""(sel) => {
+  const P = (c) => { let m = String(c).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/);
+    if (m) return [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]];
+    m = String(c).match(/color\(srgb ([\d.]+) ([\d.]+) ([\d.]+)(?: \/ ([\d.]+))?/);
+    if (m) return [m[1] * 255, m[2] * 255, m[3] * 255, m[4] == null ? 1 : +m[4]];
+    return [0, 0, 0, 0]; };
+  const bgOf = (el) => { const st = []; for (let e = el; e; e = e.parentElement) st.push(P(getComputedStyle(e).backgroundColor));
+    let c = [255, 255, 255]; for (let i = st.length - 1; i >= 0; i--) { const [r, g, b, a] = st[i]; c = [r * a + c[0] * (1 - a), g * a + c[1] * (1 - a), b * a + c[2] * (1 - a)]; } return c; };
+  const L = (c) => { const f = (v) => { v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4); }; return .2126 * f(c[0]) + .7152 * f(c[1]) + .0722 * f(c[2]); };
+  return [...document.querySelectorAll(sel)].map(o => { const bg = bgOf(o), fg = P(getComputedStyle(o).color);
+    const a = L(bg), b = L(fg.slice(0, 3)); return { t: o.textContent.trim().slice(0, 12), r: +((Math.max(a, b) + .05) / (Math.min(a, b) + .05)).toFixed(2), on: o.classList.contains('on') }; }); }"""
+
+
 def t_ov_right(pg, base):
     """總覽右欄（2026-09-25）：足跡輪盤放大、族群面板收小；昨日資金去向「?」、族群不跳頁、提示框精簡、起點「加權指數」。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -13703,6 +13716,21 @@ def t_ov_right(pg, base):
             ok("[總覽右欄] ★ 個股改成一行多檔（前 6 檔排不到 6 行）", pn["n"] < 2 or pn["rows6"] < min(6, pn["n"]), pn)
             ok("[總覽右欄] 面板字收小但不小於 11px", pn["fs"] <= 12.5 and pn["min"] >= 11, pn)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    # 熱門題材下拉（2026-09-25 Andy：「展開後清單項目是白底、字看不到」）：
+    # 改前選項吃瀏覽器預設白底按鈕（.ddlist 包住，舊選擇器 .ddpanel>.ddopt 沒套到）→ 改後跟「產業鏈：全部 ▾」同一套深色清單
+    for th in ("dark", "light"):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        pg.eval_on_selector("#ovThemeCard", "el => el.scrollIntoView({block:'start', behavior:'instant'})"); pg.wait_for_timeout(400)
+        click(pg, "#ovThemeDD .ddbtn", 400)
+        rows = pg.evaluate(DD_CONTRAST, "#ovThemeDD .ddpanel:not([hidden]) .ddopt")
+        if ok(f"[總覽右欄][{th}] 題材下拉打得開、列得出選項", len(rows) >= 2, len(rows)):
+            bad = [r for r in rows if r["r"] < 4.5]
+            ok(f"[總覽右欄][{th}] ★ 題材下拉每一列文字對比 ≥ 4.5（不再是白底白字）", not bad, bad[:4] or rows[:2])
+            ok(f"[總覽右欄][{th}] 選中那一列有高亮（.on）", sum(1 for r in rows if r["on"]) == 1, [r for r in rows if r["on"]])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
     # 昨日資金去向：「?」開關
     pg.evaluate("() => window.scrollTo(0, 0)")
     click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)

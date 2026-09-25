@@ -885,12 +885,13 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rotdd .ddlist::-webkit-scrollbar{width:6px}
 .rotdd .ddlist::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 第一層（產業鏈）的選項：整列可點，右邊寫這條鏈底下有幾個族群 —— 選之前就知道會篩掉多少 */
-.rotdd .ddpanel>.ddopt{display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
+/* 2026-09-25：熱門題材的下拉把選項包在 .ddlist 裡（捲動用），原本只認 .ddpanel>.ddopt，選項吃到瀏覽器預設白底按鈕 —— 一起涵蓋 */
+.rotdd .ddpanel>.ddopt,.rotdd .ddlist>.ddopt:not(.chk):not(.one){display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
   background:transparent;color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;
   padding:6px 9px;border-radius:7px;cursor:pointer}
-.rotdd .ddpanel>.ddopt em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
-.rotdd .ddpanel>.ddopt:hover{background:var(--panel-2);color:var(--ink)}
-.rotdd .ddpanel>.ddopt.on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
+.rotdd .ddpanel>.ddopt em,.rotdd .ddlist>.ddopt:not(.chk):not(.one) em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
+.rotdd .ddpanel>.ddopt:hover,.rotdd .ddlist>.ddopt:not(.chk):not(.one):hover{background:var(--panel-2);color:var(--ink)}
+.rotdd .ddpanel>.ddopt.on,.rotdd .ddlist>.ddopt:not(.chk):not(.one).on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
 /* 第二層（族群）：checkbox ＋ 族群顏色點 ＋ 「→ 進族群頁」。
    `→` 刻意放在 <label> 外面，不然點它會連帶把勾選也切掉（瀏覽器原生行為）。*/
 .rotdd .ddopt.chk{display:flex;align-items:center;gap:6px;border-radius:7px;padding:0 6px 0 0}
