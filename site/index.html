@@ -686,6 +686,8 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 #ovFlow{min-height:300px} #ovFlow.isempty{min-height:0}
 #sankey canvas.dotfx{position:absolute;left:0;top:0;pointer-events:none}
 @media (max-width:900px){ #sankey{min-height:520px} }
+/* 拓撲版／經典版切換鈕：手機（≤ 820px）一律經典版，所以鈕也不出現 */
+@media (max-width:820px){ #sankeyStyleBtn{display:none} }
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
@@ -3524,6 +3526,8 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
      route() 第一次跑的時候就要問得到 window.TwLegal。 -->
 <script src="legal_config.js"></script>
 <script src="legal.js"></script>
+<!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
+<script src="flowtopo.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
