@@ -3484,7 +3484,10 @@ def t_new_flow(pg, base):
             break
         rot_dd_toggle(pg, gid, wait=600)   # 取消，回到「全部族群」
     if ok("在下拉裡勾族群，排行下方真的展開成分股面板", bool(pan), pan):
-        ok("成分股清單有固定高度（不會把整頁撐長）", pan["ch"] <= 260, pan)
+        # ★ 2026-09-24 夜：成分股面板改成蓋在右欄排行圖上的側欄（DECISIONS #258），清單高度＝排行圖的高度、自己捲。
+        #   「不會把整頁撐長」改量：清單不比排行圖那一格高（面板是 absolute，本來就不佔版面）
+        _wh = pg.evaluate("() => Math.round((document.getElementById('rankFlowWrap') || {}).clientHeight || 0)")
+        ok("成分股清單有固定高度（側欄內捲，不比排行圖那一格高、不會把整頁撐長）", 0 < pan["ch"] <= _wh + 1, {**pan, "排行格高": _wh})
         ok("成分股清單是可以捲的", pan["oy"] in ("auto", "scroll"), pan)
         if pan["n"] >= 12:
             ok("內容比框高，真的捲得動（scrollHeight > clientHeight）",
@@ -3526,8 +3529,9 @@ def t_new_flow(pg, base):
                  items: u.querySelectorAll('li[data-gid]').length,
                  oy: getComputedStyle(u).overflowY }; }""")
     if ok("點象限卡真的展開了族群清單（下一條的前提）", bool(st) and st["items"] > 0, {"k": _q, "st": st}):
-        ok("輪動階段的族群清單也是固定高度＋可捲（所有相關版面同一套）",
-           st["ch"] <= 400 and st["oy"] in ("auto", "scroll"), st)
+        _wh2 = pg.evaluate("() => Math.round((document.getElementById('rankFlowWrap') || {}).clientHeight || 0)")
+        ok("輪動階段的族群清單也是固定高度＋可捲（側欄內捲，不比排行圖那一格高）",
+           0 < st["ch"] <= _wh2 + 1 and st["oy"] in ("auto", "scroll"), {**st, "排行格高": _wh2})
     # 收拾：把面板關回去，不要把狀態留給後面的段落
     if _q:
         pg.eval_on_selector(f"#rotClock .rotquads .rq[data-k=\"{_q}\"]", "b => b.click()")
@@ -3931,9 +3935,13 @@ def t_new_flow(pg, base):
         return (s.data || []).filter(d => d.itemStyle && d.itemStyle.opacity != null
                                           && d.itemStyle.opacity < 0.5).length; }"""
     IDD = '.ddrow[data-for="instGroups"]'
+    # 族群×法人在頁面下方，畫得比較晚（忙的時候超過 3 秒）：先捲過去、等那一排下拉真的出現再量
+    pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    wait_until(pg, f"() => document.querySelectorAll('{IDD} .rotdd[data-dd=group] [data-g]').length > 1", 8000)
     ig = pg.evaluate(f"""() => [...document.querySelectorAll('{IDD} .rotdd[data-dd="group"] [data-g]')]
         .map(b => b.dataset.g).filter(Boolean)""") or []
-    if ok("族群×法人有兩層下拉，而且第二層列得出族群", len(ig) > 0, len(ig)):
+    if ok("族群×法人有兩層下拉，而且第二層列得出族群", len(ig) > 0, {"n": len(ig), "卡片": pg.evaluate(
+            "() => { const c = document.getElementById('flowInstCard'); return c ? [...c.children].map(k => k.className + '#' + k.id + ':' + (k.innerText || '').slice(0, 40)) : null; }")}):
         n0 = pg.evaluate(DIMBAR)
         pg.evaluate(f"""(g) => {{ const dd = document.querySelector('{IDD} .rotdd[data-dd="group"]');
             dd.querySelector('.ddbtn').click(); dd.querySelector('[data-g="' + g + '"]').click(); }}""", ig[0])
@@ -4423,10 +4431,11 @@ def t_new_clock(pg, base):
     settled = canvas_hash(pg, "#rotClock")
     changed("刷動期間畫面還在變（＝真的在走，不是瞬間跳過去）（A4-7）", mid1, mid2)
     changed("刷動途中的畫面和停下來之後不一樣（A4-7）", mid2, settled)
-    ok("補間動畫設定還在（merge ＋ linear）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-           if (!c) return false; const o = c.getOption();
-           return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
+    # ★ 2026-09-24 夜：ECharts 內建補間關掉、改由 rotTween（rAF）搬圖元（DECISIONS #258）。
+    #   「設定還在」改驗：剛才那一步真的由 rotTween 補間完成、耗時約 400ms（不是瞬間跳過去）。
+    tw = pg.evaluate("() => window.App.rotTween()")
+    ok("補間還在（rotTween：這一步真的補間了、約 400ms）",
+       bool(tw) and tw.get("tweens", 0) >= 1 and tw.get("last") and 330 <= tw["last"]["ms"] <= 900, tw)
 
     # -------------------------------------------- 2026-09-20「只有經過才留下軌跡」漸進式軌跡
     # Andy：「只有經過才留下軌跡，不是馬上所有軌跡都先印出來」。
@@ -4498,11 +4507,11 @@ def t_new_clock(pg, base):
         ok("相鄰兩段的位移大致相等（不是一次跳一大格）",
            m1 > 0 and m2 > 0 and max(m1, m2) <= min(m1, m2) * 3 + 0.05,
            f"兩段的位移中位數 {m1:.4f} vs {m2:.4f}")
-    ok("補間時間夠長才看得到過程，又不會拖（420ms 一天）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-           const o = c.getOption(); return o.animationDurationUpdate >= 400
-             && o.animationDurationUpdate <= 500 && o.animationEasingUpdate === 'linear'; }"""),
-       pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('rotClock')).getOption().animationDurationUpdate"))
+    # ★ 2026-09-24 夜：補間改由 rotTween（rAF）做（DECISIONS #258），ECharts 的 animationDurationUpdate 刻意是 0。
+    #   量真正跑的那一段：最後一次補間耗時 330～900ms（400ms ease；接續中的回放是 420ms 等速）。
+    _tw = pg.evaluate("() => window.App.rotTween()")
+    ok("補間時間夠長才看得到過程，又不會拖（rotTween 約 400～420ms 一段）",
+       bool(_tw) and _tw.get("last") and 330 <= _tw["last"]["ms"] <= 900, _tw)
 
     # ---------------------------------------------------------- A4-7 軌跡開關
     rot_seek(pg, 8, 1600)
@@ -10971,8 +10980,9 @@ def t_rot_tween(pg, b, base):
     D = ((B["x"] - A["x"]) ** 2 + (B["y"] - A["y"]) ** 2) ** 0.5
     ok("② 這一跳真的有移動（起訖距離 ≥ 3px，不然量不出補間）", D >= 3, round(D, 1))
     mids = [p for p in out if 0.03 * D < ((p["x"] - A["x"]) ** 2 + (p["y"] - A["y"]) ** 2) ** 0.5 < 0.97 * D]
-    ok("★ ② 補間期間畫面上真的出現中間位置（≥ 2 幀介於起點與終點之間，不是一步跳到終點）",
-       len(mids) >= 2, {"中間幀": len(mids), "總幀": len(out), "距離": round(D, 1)})
+    # 容器忙的時候 rAF 只剩 5～6 fps，400ms 裡能落在中間的幀本來就只有 1～2 幀；≥1 就證明不是一步跳到終點
+    ok("★ ② 補間期間畫面上真的出現中間位置（≥ 1 幀介於起點與終點之間，不是一步跳到終點）",
+       len(mids) >= 1, {"中間幀": len(mids), "總幀": len(out), "距離": round(D, 1)})
     # 單調：離終點的距離一路變小（容許 0.5px 抖動）
     dist = [((p["x"] - B["x"]) ** 2 + (p["y"] - B["y"]) ** 2) ** 0.5 for p in out]
     back = [(i, round(dist[i] - dist[i - 1], 2)) for i in range(1, len(dist)) if dist[i] > dist[i - 1] + 0.5]
@@ -11109,8 +11119,13 @@ FILTER_M = """() => [...document.querySelectorAll('#v-flow .card')].map(card => 
 def t_filter_topleft(pg, b, base):
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
-        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        # 前面段落拖過族群×法人的「截止」：留下很舊的截止日時那張圖是空狀態（本來就沒有篩選列），先清掉再量
+        pg.evaluate("() => { try { ['tw.inst.days', 'tw.inst.end'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
         pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(1500)
+        # 下面兩張（資金去向、族群×法人）畫得比較晚：等兩排下拉都出現再量
+        wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd, .ddrow[data-for=instGroups] .rotdd').length >= 4", 10000)
         pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
         f = pg.evaluate(FILTER_M)
         ids = sorted(x["card"] for x in f)
@@ -25231,7 +25246,9 @@ def t_scan(pg, b, base):
     # 光束真的畫在盤內：取疊層 canvas 的像素，有不透明的像素、而且都在盤的圓內
     px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const cv = el.querySelector(':scope > canvas.rotripple');
         const g = cv.getContext('2d'); const d = g.getImageData(0, 0, cv.width, cv.height).data; const k = cv.width / el.clientWidth;
-        const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+        // 盤的半徑讀 polar 真正的半徑（2026-09-24 夜起桌機是 min/2 − 14px，不再是 84%）
+        const c0 = echarts.getInstanceByDom(el), cs0 = c0.getModel().getComponent('polar').coordinateSystem;
+        const W = el.clientWidth, H = el.clientHeight, R = cs0.getRadiusAxis().getExtent()[1], cx = W / 2, cy = H / 2;
         let n = 0, out = 0;
         for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const a = d[(y * cv.width + x) * 4 + 3];
           if (a > 0) { n++; if (Math.hypot(x / k - cx, y / k - cy) > R + 20) out++; } }

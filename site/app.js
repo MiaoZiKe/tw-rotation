@@ -3476,7 +3476,8 @@
     /* 狀態字（#rotLiveTag）＋ 它的提示框（#rotLive）掛在卡片標題旁邊（2026-09-24，理由見 rlvStamp 上面那段）。
        不寫死在 index.html 是因為它只有資金流向頁的那張卡用得到。*/
     if (!$('#rotLiveTag')) {
-      const h3 = $('#flowRotCard > .row h3');
+      // 2026-09-24 夜：卡片改成整張兩欄，標題在左欄的 .rothead 裡（舊結構 > .row h3 留著當退路）
+      const h3 = $('#flowRotCard .rothead h3') || $('#flowRotCard > .row h3');
       if (h3) {
         const w = document.createElement('span');
         w.className = 'rotlivewrap';
@@ -3630,8 +3631,9 @@
         const d = sm.getData(); const n0 = d.count();
         if (si < top.length) {
           const r = top[si];
-          // 看不見的軌跡（焦點模式下非焦點那十條）不搬：它停在目標位置，被點亮時本來就該在那裡
-          if (s.baseOp === 0 && hi !== r.gid) return;
+          // 看不見的軌跡（焦點模式下非焦點那十條）只搬折線、不搬腳印：
+          // 折線很便宜（48 點），而且滑到它時 highlightClock 會把整條打開 —— 尖端要跟點在一起
+          const hidden = s.baseOp === 0 && hi !== r.gid;
           const pts = r._ptsCur; if (!pts || pts.length < 2) return;
           const px = pts.map(P), n = px.length;
           const view = c.getViewOfSeriesModel(sm), poly = view && view._polyline;
@@ -3640,6 +3642,7 @@
             px.forEach((q, k) => { arr[2 * k] = q[0]; arr[2 * k + 1] = q[1]; });
             poly.setShape('points', arr);
           }
+          if (hidden) return;
           // 腳印：照目標那一版的「弧長比例」（trailDeco 記在 fu）擺到此刻這條路上，腳尖跟著路轉
           const cum = [0];
           for (let k = 1; k < n; k++) cum.push(cum[k - 1] + Math.hypot(px[k][0] - px[k - 1][0], px[k][1] - px[k - 1][1]));
@@ -3699,12 +3702,14 @@
       el._twDisp = { p: target.p, pts: target.pts, lbl: rotLbl[id] || {} };
     };
     // 目標沒變、補間還在跑（例如即時那一輪重畫了同一個位置）：接著跑，只把畫筆換成這一輪的
-    if (same && run && el._twRaf) { run.paint = paint; paint(run.ease(Math.min(1, (performance.now() - run.t0) / run.dur)), run.from); return; }
+    if (same && run && el._twRaf) { run.paint = paint; paint(run.t0 == null ? 0 : run.ease(Math.min(1, (performance.now() - run.t0) / run.dur)), run.from); return; }
     if (!a.sameShape || a.reduce || !disp || same || !prevT || prevT.shape !== target.shape) { settle(); return; }
     const now = performance.now();
     const chained = !!(run && el._twRaf) || (now - (el._twEndAt || 0) < 150);
     if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
-    const T = { from: disp, t0: now, dur: chained ? ROT_ANIM_MS : ROT_TW_MS, ease: chained ? (u) => u : rotEase,
+    /* t0 從「第一個 rAF」才開始算，不是從這裡：重畫之後的第一幀要付 ECharts 整張重繪的錢（本機忙的時候 300～400ms），
+       從這裡起算的話那一幀就把 400ms 吃光，畫面直接跳到終點 —— 驗收量到過「29 幀裡 0 幀在中間」。*/
+    const T = { from: disp, t0: null, dur: chained ? ROT_ANIM_MS : ROT_TW_MS, ease: chained ? (u) => u : rotEase,
       paint, frames: 0, maxGap: 0, lastT: now, chained };
     el._twT = T;
     const S = el._twStat || (el._twStat = { tweens: 0, frames: 0, ms: 0, maxGap: 0, last: null });
@@ -3715,6 +3720,7 @@
       if (el._twT !== T || !el.isConnected) return;
       const t = performance.now();
       T.maxGap = Math.max(T.maxGap, t - T.lastT); T.lastT = t; T.frames++;
+      if (T.t0 == null) T.t0 = t;
       const u = Math.min(1, (t - T.t0) / T.dur);
       const pt0 = performance.now();
       if (T.paint(T.ease(u), T.from) === false) { el._twT = null; rotLblCur[id] = null; return; }
