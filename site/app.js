@@ -5902,7 +5902,8 @@
        （site/flowtopo.js 的緊湊版 layout:'mini'：加權指數 → 產業鏈 → 族群，圓點＋細亮光芯＋膠囊標籤＋粒子）。
        功能照舊：根節點「加權指數」、同一份資料與口徑（最後一天盤後）、% 佔上一層、提示框內容同下面 ECharts 那一份、
        族群**不是連結**（onPick 什麼都不做，09-25 Andy 要求切斷）、高度公式不變（族群數 × 22 ＋ 46，最低 300）。
-       手機（視窗 ≤ 820，mobile3.js 把這張收進抽屜）與太窄的容器（< 360px）維持原本的 ECharts 樹 —— 選不會壞的那一邊。*/
+       手機（視窗 ≤ 820，mobile3.js 把這張收進抽屜）維持原本的 ECharts 樹 —— 選不會壞的那一邊。
+       桌機側欄打開時這一欄只有 241～347px（1280～1600），flowtopo 的緊湊版有窄排法（產業鏈膠囊改放節點下方）。*/
     const ovH = Math.max(300, gs.length * 22 + 46);
     const ovTip = (d) => {
       if (!d || d.value == null) return d && d.name ? fmt.esc(d.name) : '';
@@ -5911,8 +5912,7 @@
         + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
         + `<br>佔全場 ${pct(d.value, total)}%`;
     };
-    const cw = el.clientWidth || 0;
-    if (window.FlowTopo && window.innerWidth > 820 && (cw === 0 || cw >= 360)) {
+    if (window.FlowTopo && window.innerWidth > 820) {
       try { const ec = window.echarts && echarts.getInstanceByDom(el); if (ec) { ec.dispose(); delete charts[el.id]; } } catch (e) { /* 忽略 */ }
       el.classList.remove('isempty');
       const tree = { name: '加權指數', value: total, isRoot: true,

@@ -14689,6 +14689,19 @@ def _ovfx_checks(pg, tag, dark=True):
                                                           or n["lab"]["y"] < 0 or n["lab"]["y"] + n["lab"]["h"] > t["H"] + 0.5)]
     ok(f"{tag} 標籤全部在畫布內（沒有被切，寬 {t['W']}px）", not out, out[:4])
     ok(f"{tag} 標籤兩兩不重疊", _topo_overlap(t) == 0, _topo_overlap(t))
+    # 寬度 ≥ 290（側欄打開的 1440 是 294、收起來約 454、單欄 450～650）名稱一個都不截；
+    # 更窄（1280＋側欄＝241px，兩邊都放不下）才准截名稱，而且 % 一定完整、全名在提示框
+    tr_ = [n["text"] for n in t["nodes"] if "…" in n["text"]]
+    if t["W"] >= 290:
+        ok(f"{tag} 寬 {t['W']}px：沒有任何名稱被截（…）", not tr_, tr_[:4])
+    else:
+        notes.append(f"{tag} 寬 {t['W']}px（1280＋側欄）截了 {len(tr_)} 個名稱：{tr_[:6]}")
+    ok(f"{tag} 就算截名稱，每個膠囊仍以「數字%」結尾", all(re.search(r"\d%$", n["text"]) for n in t["nodes"] if n["lv"] > 0),
+       [n["text"] for n in t["nodes"] if n["lv"] > 0 and not re.search(r"\d%$", n["text"])][:3])
+    root_n = [n for n in t["nodes"] if n["lv"] == 0][0]
+    near = [n["name"] for n in t["nodes"] if n["lv"] == 1 and n["lab"]["x"] < root_n["x"] + root_n["r"] + 1
+            and n["lab"]["y"] < root_n["y"] + root_n["r"] and root_n["y"] - root_n["r"] < n["lab"]["y"] + n["lab"]["h"]]
+    ok(f"{tag} 產業鏈膠囊沒有蓋住根節點的圓點", not near, near)
     ok(f"{tag} 畫布字 ≥ 12px、發光 ≤ 6px", (t["minFont"] or 0) >= 12 and t["maxBlur"] <= 6, [t["minFont"], t["maxBlur"]])
     # 特效：粒子（小預算）、碰撞光環／細漣漪
     t1 = wait_until(pg, """() => { const el = document.getElementById('ovFlow'); const t = window.FlowTopo.probe(el);
@@ -14720,9 +14733,14 @@ def _ovfx_checks(pg, tag, dark=True):
         ok(f"{tag} 滑到「加權指數」出現合計成交值", "加權指數" in tt and "成交值" in tt, tt)
         pg.mouse.move(5, 5); pg.wait_for_timeout(200)
     # 動態開關（畫布左下角那顆，跟資金流向頁同一個設定）
-    if ok(f"{tag} 動態開關在畫布左下角", pg.evaluate("""() => { const b = document.querySelector('#ovFlow .ftstage #ovFlowMotionBtn.ftcorner');
+    if ok(f"{tag} 動態開關在畫布左上角（左上角一直是空的；左下角在窄排法會壓到最後一條鏈的膠囊）", pg.evaluate("""() => { const b = document.querySelector('#ovFlow .ftstage #ovFlowMotionBtn.ftcorner');
             if (!b) return false; const r = b.getBoundingClientRect(), s = b.parentNode.getBoundingClientRect();
-            return r.left - s.left < 20 && s.bottom - r.bottom < 20; }""")):
+            return r.left - s.left < 20 && r.top - s.top < 20; }""")):
+        bb = pg.evaluate("""() => { const b = document.getElementById('ovFlowMotionBtn'), s = b.parentNode.getBoundingClientRect(), r = b.getBoundingClientRect();
+            return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }; }""")
+        hitb = [n["name"] for n in t["nodes"] if n["lab"] and n["lab"]["x"] < bb["x"] + bb["w"] and bb["x"] < n["lab"]["x"] + n["lab"]["w"]
+                and n["lab"]["y"] < bb["y"] + bb["h"] and bb["y"] < n["lab"]["y"] + n["lab"]["h"]]
+        ok(f"{tag} 動態開關沒有壓到任何標籤", not hitb, {"鈕": bb, "壓到": hitb})
         pg.eval_on_selector("#ovFlowMotionBtn", "b => b.click()"); pg.wait_for_timeout(600)
         tm = pg.evaluate(OVFX)
         ok(f"{tag} 按「動態」：動畫停、設定寫進 localStorage、沒有漣漪與激發",
@@ -14802,11 +14820,13 @@ def t_ov_right(pg, base):
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }", th)
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
         _ovfx_checks(pg, f"[總覽右欄][{th}][1440]", dark=(th == "dark"))
-    # 窄一點的桌機：右欄約 490px 那種寬度也不能切字、不能重疊
+    # 其他寬度：側欄打開（預設）時 1440＝294px、1280＝241px；側欄收起 1440≈454px；1024 單欄 ≈ 574px
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
-    for w in (1280, 1024):
+    for w, side in ((1280, None), (1024, None), (1440, "0")):
+        pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
         pg.set_viewport_size({"width": w, "height": 1000}); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
-        _ovfx_checks(pg, f"[總覽右欄][{w}]")
+        _ovfx_checks(pg, f"[總覽右欄][{w}{'・側欄收起' if side == '0' else ''}]")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.side'); } catch (e) {} }")
     pg.set_viewport_size({"width": 1440, "height": 1000})
     # 減少動態：只畫靜態
     ctx = pg.context.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")

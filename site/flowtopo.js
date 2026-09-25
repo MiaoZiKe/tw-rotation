@@ -68,7 +68,7 @@
    ★ 2026-09-26（總覽）Andy：「昨日資金去向這邊 UI 也需要重新設定，但功能照舊」→ 加一個緊湊版 layout:'mini'：
      和經典光纖第二版**同一套視覺**（精緻圓點、細亮光芯＋淡外暈、CP 0.45 對稱貝茲、飽和產業鏈色、17px 膠囊、
      白核心粒子＋碰撞光環／細漣漪），但只有三層（加權指數 → 產業鏈 → 族群，沒有代表股欄）、沒有上方說明列
-     （動態開關縮成畫布左下角一顆小鈕）、粒子預算小（CFG.MINI_P_BUDGET）、高度由呼叫端給（總覽那張的高度公式不變）。
+     （動態開關縮成畫布左上角一顆小鈕）、粒子預算小（CFG.MINI_P_BUDGET）、高度由呼叫端給（總覽那張的高度公式不變）。
      根節點標籤放在圓點正上方（和舊版一樣），產業鏈與族群的膠囊在節點右邊；欄位依「最長的族群標籤」往右靠齊，
      產業鏈那欄夾在根與族群之間、讓膠囊不壓到族群欄（見 layoutMini）。
 
@@ -178,7 +178,7 @@
 .ftopo .ftbtn:hover:not(:disabled){border-color:var(--cyan);color:var(--ink)}
 .ftopo .ftbtn[aria-pressed="true"]{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,transparent)}
 .ftopo .ftbtn:disabled{opacity:.5;cursor:default}
-.ftopo .ftstage .ftbtn.ftcorner{position:absolute;left:6px;bottom:6px;z-index:5;padding:1px 8px;line-height:16px;opacity:.85}
+.ftopo .ftstage .ftbtn.ftcorner{position:absolute;left:6px;top:6px;z-index:5;padding:1px 8px;line-height:16px;opacity:.85}
 .ftopo .ftstage{position:relative;width:100%;border-radius:10px;overflow:hidden;
   background:radial-gradient(120% 90% at 8% 50%,color-mix(in srgb,var(--cyan) 5%,transparent),transparent 60%)}
 .ftopo .ftstage canvas{position:absolute;left:0;top:0;display:block}
@@ -372,7 +372,7 @@
       Object.assign(e, { from, to }, patch); seenL.add(key); return e;
     };
     const rootHue = classic ? ROOT_HUE_EL[S.pal.dark ? 'dark' : 'light'] : S.pal.cyan;
-    const root = up('root', { lv: 0, d: M, name: '台股成交值', hue: rootHue, dot: rootHue, rt: 1, r: 8, dim: false, parent: null });
+    const root = up('root', { lv: 0, d: M, name: S.mini && M.name ? clean(M.name) : '台股成交值', hue: rootHue, dot: rootHue, rt: 1, r: 8, dim: false, parent: null });
     root.kids = [];
     let anyLeaves = false;
     /* ★ 2026-09-25 Andy：「拓撲版要跟經典版一樣絲滑」—— 換日期時依當天成交值重新排名，
@@ -528,11 +528,15 @@
     return cols;
   }
 
-  /* 緊湊版（總覽）：先量「根／產業鏈／族群」三種膠囊最長的寬度，再決定欄位 ——
-       · 族群欄：往右靠，讓最長的族群膠囊剛好收在畫布右緣內（最多吃掉半張寬）
-       · 產業鏈欄：夾在根與族群之間，產業鏈膠囊的右緣要離族群圓點 ≥ 10px；放不下時膠囊裡只截名稱（% 永遠完整）
-       · 根：貼左，標籤在圓點正上方（右邊整片是分流線）
-     族群一格 22px、鏈與鏈之間空 ≤ 6px，剩下的高度平均分到上下。*/
+  /* 緊湊版（總覽）：先量「根／產業鏈／族群」三種膠囊最長的寬度，再決定欄位。總覽右欄的寬度差很多 ——
+     側欄收起的 1440～1920 約 450px、1024／900 單欄 450～650px，但**側欄打開**時 1440 只有 294px、1280 只有 241px
+     （預設是打開的），所以分兩種排法：
+       · 寬（≥ 420px）：族群欄往右靠（最長的族群膠囊剛好收在右緣內），產業鏈膠囊在節點右邊、右緣離族群圓點 ≥ 10px。
+       · 窄（< 420px）：產業鏈膠囊改放在節點**正下方**、左右置中（夾在畫布左緣與族群圓點之間），
+         寬度先給產業鏈膠囊、剩下給族群（至少 104px）；鏈與鏈之間拉開 12～18px（下方膠囊才不會壓到下一條鏈的圓點），
+         族群一格縮成 20px 補回高度 —— 總高度仍是呼叫端給的那個數（不比改前高）。
+       兩種都放不下時只截**名稱**（% 永遠完整，全名在提示框）。
+     根：貼左，標籤在圓點正上方（右邊整片是分流線）。*/
   function elBadgeW(S, n) {
     const g = S.gL; let w = 12;
     partsOf(S, n).forEach(p => { S.font(g, 12, 600); w += mw(g, p.t.replace(/^\n/, '')); });
@@ -542,16 +546,37 @@
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
     let maxG = 0, maxC = 0;
     chains.forEach(c => { maxC = Math.max(maxC, elBadgeW(S, c)); c.kids.forEach(g => { maxG = Math.max(maxG, elBadgeW(S, g)); }); });
-    const rootX = 12, gR = 6;
-    const gX = Math.max(W * 0.5, W - 4 - Math.min(maxG, W * 0.5) - 6 - gR);
-    const cMax = gX - gR - 10 - Math.min(maxC, W * 0.3) - 6 - 7;
-    const cX = Math.max(rootX + 60, Math.min(cMax, W * 0.36));
+    const rootX = 12, gR = 6, narrow = S.miniNarrow = W < 420;
+    let gX, cX;
+    if (!narrow) {
+      gX = Math.max(W * 0.5, W - 4 - Math.min(maxG, W * 0.5) - 6 - gR);
+      const cMax = gX - gR - 10 - Math.min(maxC, W * 0.3) - 6 - 7;
+      cX = Math.max(rootX + 60, Math.min(cMax, W * 0.36));
+    } else {
+      /* 寬度先給產業鏈膠囊（只有 5 條、名字短），剩下的給族群；族群至少 104px（和舊版 ECharts 窄版同一個下限）。
+         241px（1280＋側欄）時兩邊都放不下，只截名稱 */
+      const gLab = Math.max(Math.min(104, maxG), Math.min(maxG, W - 28 - maxC));
+      gX = W - 4 - gLab - 6 - gR;
+      cX = rootX + Math.max(38, (gX - rootX) * 0.42);
+      S.miniCR = gX - gR - 4;                           // 產業鏈膠囊（在節點下方）的右界
+    }
     const cols = [rootX, cX, gX, W + 6];                 // 第四欄（代表股）不存在：放在畫布外，量標籤時右界＝畫布右緣
-    const n = chains.reduce((a, c) => a + c.kids.length, 0) || 1;
-    const gap = chains.length > 1 ? Math.min(CFG.MINI_GAP, 24 / (chains.length - 1)) : 0;
-    const slot = CFG.MINI_SLOT, body = n * slot + gap * Math.max(0, chains.length - 1);
+    const n = chains.reduce((a, c) => a + c.kids.length, 0) || 1, nc = chains.length;
+    let slot, gap, y;
+    if (!narrow) {
+      slot = CFG.MINI_SLOT;
+      gap = nc > 1 ? Math.min(CFG.MINI_GAP, 24 / (nc - 1)) : 0;
+      y = Math.max(4, (H - n * slot - gap * Math.max(0, nc - 1)) / 2);
+    } else {
+      /* 族群一格 19～20px：先保證鏈與鏈之間空得出 16px（下方膠囊 r＋3＋17 ≈ 27px，加上下一條鏈的圓點才放得下），
+         剩下的才給族群那一格。18 個族群、5 條鏈、高 442 時算出來約 19.3px（膠囊 17px，上下仍各留 1px 以上）*/
+      const top = 4, bot = 26;
+      slot = Math.max(19, Math.min(20, (H - top - bot - 16 * Math.max(0, nc - 1)) / n));
+      const avail = H - top - bot - n * slot;
+      gap = nc > 1 ? Math.max(0, Math.min(18, avail / (nc - 1))) : 0;
+      y = top + Math.max(0, (avail - gap * Math.max(0, nc - 1)) / 2);
+    }
     S.step = slot; S.slot = slot;
-    let y = Math.max(4, (H - body) / 2);
     chains.forEach((c, ci) => {
       if (ci) y += gap;
       c.kids.forEach(g => {
@@ -915,7 +940,8 @@
       const x = leaf ? n.tx + 6 : n.tx + n.r + 6;
       const pad = leaf ? 0 : 12;                         // 膠囊左 5、右 7（參考稿 badgeW＝字寬＋12）
       const nextX = n.lv === 0 ? cols[1] - 10 : n.lv === 1 ? cols[2] - 12 : n.lv === 2 ? cols[3] - 10 : W - 4;
-      const maxW = Math.max(40, nextX - x);
+      const maxW = S.mini && n.lv === 1 && S.miniNarrow ? Math.max(40, S.miniCR - 2)
+        : S.mini && n.lv === 0 ? Math.max(40, W * 0.45) : Math.max(40, nextX - x);   // 緊湊版的根標籤在圓點上方，不受產業鏈欄限制
       let bw = 0;
       lines.forEach(line => {
         line.forEach(p => { S.font(g, p.fs, p.w); p.pw = mw(g, p.t); });
@@ -932,8 +958,43 @@
         line.w = lw; bw = Math.max(bw, lw);
       });
       const bh = leaf ? 12 : CFG.EL_BADGE_H + (lines.length - 1) * 15;
-      if (S.mini && n.lv === 0) {                         // 緊湊版：根的膠囊在圓點正上方、左緣對齊圓點左緣
-        n.lab = { lines, x: Math.max(2, n.tx - n.r), y: n.ty - n.r - 5 - bh, w: bw, h: bh, fs: 12, badge: true };
+      if (S.mini && n.lv === 1 && S.miniNarrow) {
+        /* 緊湊版・窄：產業鏈膠囊放在圓點正下方（或正上方），左右以圓點置中、夾在 [2, 族群圓點左邊]。
+           一條一條放，每次都避開「根的圓點與膠囊、所有產業鏈圓點、已經放好的產業鏈膠囊」：
+           依序試 下方置中 → 上方置中 → 下方靠右讓開根 → 上方靠右讓開根，第一個不撞的就用
+           （和根節點同一高度的那條鏈 —— 通常是 AI 伺服器 —— 靠這一步躲開根）。*/
+        const hit = (b) => (S._miniObs || []).some(o => b.x < o.x + o.w && o.x < b.x + b.w && b.y < o.y + o.h && o.y < b.y + b.h);
+        const xc = Math.max(2, Math.min(n.tx - bw / 2, S.miniCR - bw));
+        const xr = S.root ? S.root.tx + S.root.r + 4 : 22;
+        const cand = [[xc, n.ty + n.r + 3], [xc, n.ty - n.r - 3 - bh], [Math.max(xc, xr), n.ty + n.r + 3], [Math.max(xc, xr), n.ty - n.r - 3 - bh]]
+          .filter(([cx, cy]) => cx + bw <= S.miniCR + 0.5 && cy >= 0 && cy + bh <= S.H)
+          .map(([cx, cy]) => ({ x: cx, y: cy, w: bw, h: bh }));
+        let box = cand.find(b => !hit(b));
+        if (!box) {
+          /* 四個位置都撞（最窄的 241px：膠囊讓開根之後放不下全名）→ 讓開根、名稱再截短到放得下（% 照樣完整）*/
+          const avail = S.miniCR - xr, nm = lines[0].find(p => p.name);
+          if (nm) {
+            const cs = Array.from(nm.t.replace(/…$/, ''));
+            S.font(g, nm.fs, nm.w);
+            for (let k = cs.length - 1; k >= 1 && bw > avail; k--) {
+              nm.t = cs.slice(0, k).join('') + '…';
+              const w2 = mw(g, nm.t); bw = bw - nm.pw + w2; nm.pw = w2; lines[0].w = bw;
+            }
+          }
+          box = [{ x: xr, y: n.ty + n.r + 3, w: bw, h: bh }, { x: xr, y: n.ty - n.r - 3 - bh, w: bw, h: bh }]
+            .find(b => !hit(b) && b.y >= 0 && b.y + bh <= S.H) || cand[0] || { x: xc, y: n.ty + n.r + 3, w: bw, h: bh };
+        }
+        (S._miniObs = S._miniObs || []).push(box);
+        n.lab = { lines, x: box.x, y: box.y, w: bw, h: bh, fs: 12, badge: true };
+        return;
+      }
+      if (S.mini && n.lv === 0) {
+        /* 緊湊版：根的膠囊在圓點正上方、左緣對齊圓點左緣。順便建「產業鏈膠囊要避開的東西」清單：
+           根的圓點與膠囊、每一顆產業鏈圓點（S.order 裡根一定排第一個，所以這裡先建好）。*/
+        const box = { x: Math.max(2, n.tx - n.r), y: n.ty - n.r - 5 - bh, w: bw, h: bh };
+        S._miniObs = [box, { x: n.tx - n.r - 2, y: n.ty - n.r - 2, w: 2 * n.r + 4, h: 2 * n.r + 4 }];
+        (n.kids || []).forEach(c => S._miniObs.push({ x: c.tx - c.r - 2, y: c.ty - c.r - 2, w: 2 * c.r + 4, h: 2 * c.r + 4 }));
+        n.lab = { lines, x: box.x, y: box.y, w: bw, h: bh, fs: 12, badge: true };
         return;
       }
       n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs: 12, badge: !leaf };
@@ -1366,7 +1427,8 @@
     if (S._layout !== lay) { S._layout = lay; S.first = true; S.tween = null; }   // 換版面：直接就位，不從舊版面補間過來
     S.pal = pal; S.opts = opts || {}; S.model = tree;
     S.leg.innerHTML = opts.legend || '';
-    /* 緊湊版：說明列整條藏起來，動態開關搬進畫布左下角（同一顆按鈕、同一個 localStorage 設定） */
+    /* 緊湊版：說明列整條藏起來，動態開關搬進畫布左上角（同一顆按鈕、同一個 localStorage 設定）。
+       左上角：根在左邊中間、線往右上右下散開，左上角那一小塊一直是空的；左下角在窄排法會壓到最後一條鏈的膠囊。*/
     const mini = lay === 'mini';
     S.bar.style.display = mini ? 'none' : '';
     S.mbtn.classList.toggle('ftcorner', mini);
