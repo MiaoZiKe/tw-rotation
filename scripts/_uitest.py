@@ -13612,6 +13612,8 @@ SECTIONS = {
     "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
     # ★ 2026-09-25 Andy 回報「點擊後不會收回」：2D／3D 剖析圖同一時間只展開一張卡片（⚠ 一律 --workers 1）
     "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
+    # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
+    "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -30470,6 +30472,194 @@ def t_flowfx(pg, b, base):
         ok("[減少動態] 換日直接到位（沒有補間）", bool(tr2) and not tr2["tweening"])
     ctx.close()
 
+
+# ===================================================================== 小數點普查（2026-09-26，claude/decimal-audit）
+# Andy：「除了我抓到這邊數字異常，幫我檢查所有有這樣過多小數點的問題修正」。
+# 他抓到的是資金集中度 tooltip「20 日均 34.951174999999985」—— 浮點數沒格式化、也沒有 %。
+# 這段是**機器面的普查**，走遍每一頁、每張圖，四個面向一起掃：
+#   ① ECharts 提示框：對每張看得見的圖、每個 series 抽樣（頭、尾、中間共 ≤8 點）dispatchAction showTip，
+#      讀提示框 DOM 的字 —— 使用者把游標移上去看到的就是這些字。
+#   ② ECharts 圖內文字：zrender 顯示清單裡每個文字元素（軸標籤、資料標籤、中心字）。
+#   ③ 所有 canvas 的 fillText／strokeText（init script 攔截）：K 線（Lightweight Charts）、自畫 KChart、
+#      流向拓撲這些**不是 ECharts** 的畫布；另外把游標在這些畫布上移幾格，讓十字線標籤也畫一次。
+#   ④ 整頁看得見的文字（innerText）＋ SVG 文字＋ title 屬性（滑上去會跳出來的那段）。
+# 抓三種字：小數點後 ≥ 4 位、科學記號（1e-7、2e+21）、NaN／undefined／Infinity。一個都不准有。
+# ★ 門檻是 4 位不是 5 位：Andy 截圖裡的「前 5 族群佔比 30.5033」就是 4 位 —— 資料端存 4 位、前端原樣吐出，
+#   5 位的門檻會把他親手抓到的那一半放掉。全站口徑最多 2 位（股價、指數、pp、比率），4 位一定是「沒格式化」。
+# 另外 3 位的只記進備註（notes）給人逐條看：3 位有時是對的（例如成交量萬張 0.125），有時是漏網的原始值。
+# 白名單：**目前一條都不需要**；真的需要放行時要在 _DEC_ALLOW 加一條並寫理由。
+_DEC_BAD = r"\d\.\d{4,}|\d[eE][+-]\d|\bNaN\b|\bundefined\b|\bInfinity\b"
+_DEC_SOFT = r"(?<![\d.])\d+\.\d{3}(?![\d])"
+_DEC_ALLOW: list[str] = []   # 正規式；每一條都要寫為什麼需要放行
+
+_DEC_HOOK = """(() => {
+  const re = new RegExp(%s);
+  const bad = []; window.__twDecCanvas = bad;
+  const wrap = (P) => { if (!P) return; ['fillText', 'strokeText'].forEach(k => { const f = P[k]; if (!f) return;
+    P[k] = function (t, ...a) { try { const s = String(t); if (re.test(s) && bad.length < 80) bad.push(location.hash + '｜' + s.slice(0, 80)); } catch (e) {}
+      return f.call(this, t, ...a); }; }); };
+  wrap(window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype);
+  wrap(window.OffscreenCanvasRenderingContext2D && OffscreenCanvasRenderingContext2D.prototype);
+})();""" % json.dumps(_DEC_BAD)
+
+_DEC_SCAN = """async (bad) => {
+  const re = new RegExp(bad[0]), soft = new RegExp(bad[1]);
+  const hits = [], softs = [];
+  const test = (s, where) => { if (s == null) return; s = String(s); const m = s.match(re);
+    if (m) hits.push(where + '｜…' + s.slice(Math.max(0, m.index - 28), m.index + 28).replace(/\\s+/g, ' ') + '…');
+    const m2 = s.match(soft);
+    if (m2) softs.push(where + '｜…' + s.slice(Math.max(0, m2.index - 20), m2.index + 20).replace(/\\s+/g, ' ') + '…'); };
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const vis = (el) => { const r = el.getBoundingClientRect(); if (!(r.width > 0 && r.height > 0)) return false;
+    const cs = getComputedStyle(el); return cs.visibility !== 'hidden' && cs.display !== 'none'; };
+  const tipText = (dom) => [...dom.children, ...document.body.children]
+    .filter(d => d.domBelongToZr && d.style.display !== 'none' && d.style.opacity !== '0').map(d => d.innerText || d.textContent || '').join(' ');
+  let nChart = 0, nTip = 0;
+  const doms = [...document.querySelectorAll('[_echarts_instance_]')].filter(vis);
+  for (const dom of doms) {
+    const c = window.echarts && echarts.getInstanceByDom(dom); if (!c || c.isDisposed()) continue;
+    nChart++;
+    const nm = '#' + (dom.id || (dom.parentElement && dom.parentElement.id) || dom.className || '?');
+    try { c.getZr().storage.getDisplayList(true).forEach(e => {
+      if (e.ignore || e.invisible) return;
+      if (e.style && typeof e.style.text === 'string') test(e.style.text, '圖內文字' + nm);
+      const tc = e.getTextContent && e.getTextContent(); if (tc && tc.style && !tc.ignore) test(tc.style.text, '圖內標籤' + nm); }); } catch (e) { /* 忽略 */ }
+    let opt; try { opt = c.getOption(); } catch (e) { continue; }
+    const tt = (opt.tooltip || [])[0];
+    if (!tt || tt.show === false || tt.trigger === 'none') continue;
+    const model = c.getModel();
+    const q = []; let budget = 36;
+    (opt.series || []).forEach((s, si) => {
+      let n = 0; try { n = model.getSeriesByIndex(si).getData().count(); } catch (e) { n = 0; }
+      if (!n) return;
+      // treemap／sunburst 的 dataIndex 0 是看不見的根節點（使用者滑不到），從 1 開始抽
+      const lo = /treemap|sunburst|tree/.test(s.type || '') && n > 1 ? 1 : 0;
+      const k = Math.min(8, n - lo), idx = new Set();
+      for (let j = 0; j < k; j++) idx.add(lo + Math.round(j * (n - 1 - lo) / Math.max(1, k - 1)));
+      idx.forEach(i => { if (budget-- > 0) q.push([si, i]); });
+    });
+    for (const [si, i] of q) {
+      try { c.dispatchAction({ type: 'showTip', seriesIndex: si, dataIndex: i }); } catch (e) { continue; }
+      await sleep(25);
+      const t = tipText(dom); if (t.trim()) { nTip++; test(t, '提示框' + nm + ' s' + si + '#' + i); }
+    }
+    try { c.dispatchAction({ type: 'hideTip' }); } catch (e) { /* 忽略 */ }
+  }
+  // 整頁看得見的字（display:none 的分頁 innerText 本來就不算）＋ SVG 字 ＋ title
+  test(document.body.innerText, '頁面文字');
+  document.querySelectorAll('svg text, svg tspan').forEach(t => { if (vis(t)) test(t.textContent, 'SVG 文字'); });
+  document.querySelectorAll('[title]').forEach(t => { if (vis(t)) test(t.getAttribute('title'), 'title「' + (t.textContent || '').trim().slice(0, 10) + '」'); });
+  return { hits: [...new Set(hits)], softs: [...new Set(softs)], nChart, nTip };
+}"""
+
+
+def _dec_page(pg, url: str, label: str, acts=(), settle: int = 2600, each: str = ""):
+    """開一頁 → 捲到底（懶畫的圖捲到才畫）→ 掃 → 依序做 acts（點按鈕切狀態）每個狀態再掃一次。
+    each：一個選擇器，符合的按鈕**每一顆都點一次再掃**（個股頁的營收／獲利／籌碼分頁、手機的分段列 .mpager）——
+    這些分頁沒點開之前圖根本不存在，只掃預設那一段會漏掉大半張圖。回傳掃到的圖數。"""
+    pg.goto(url, wait_until="networkidle")
+    pg.wait_for_timeout(settle)
+    total = 0
+
+    def scan(tag):
+        nonlocal total
+        # 捲一遍整頁：IntersectionObserver 才會把還沒畫的圖畫出來
+        pg.evaluate("""async () => { const H = document.documentElement.scrollHeight;
+            for (let y = 0; y < H; y += Math.max(300, innerHeight * 0.8)) { scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); }
+            scrollTo(0, 0); }""")
+        pg.wait_for_timeout(700)
+        # 非 ECharts 的畫布（K 線、自畫 KChart、拓撲）：游標在上面走幾格，讓十字線／游標看板也畫一次
+        boxes = pg.evaluate("""() => [...document.querySelectorAll('canvas')].filter(c => {
+            if (c.closest('[_echarts_instance_]')) return false;
+            const r = c.getBoundingClientRect(); return r.width > 80 && r.height > 60; }).slice(0, 12)
+            .map(c => { c.scrollIntoView({block: 'center'}); const r = c.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })""")
+        for bx in boxes:
+            for fx in (0.2, 0.5, 0.85):
+                try:
+                    pg.mouse.move(bx[0] + bx[2] * fx, bx[1] + bx[3] * 0.5); pg.wait_for_timeout(60)
+                except Exception:  # noqa: BLE001
+                    pass
+        pg.mouse.move(2, 2)
+        r = pg.evaluate(_DEC_SCAN, [_DEC_BAD, _DEC_SOFT])
+        total += r["nChart"]
+        notes.append(f"小數點普查／{label}{tag}：圖 {r['nChart']} 張、提示框 {r['nTip']} 次"
+                     + (f"；3 位小數待看 {len(r['softs'])} 處：{r['softs'][:6]}" if r["softs"] else ""))
+        hits = [h for h in r["hits"] if not any(re.search(a, h) for a in _DEC_ALLOW)]
+        ok(f"小數點普查／{label}{tag}：提示框、圖內文字、頁面文字沒有長小數／科學記號／NaN（圖 {r['nChart']} 張、提示框 {r['nTip']} 次）",
+           not hits, hits[:8])
+
+    scan("")
+    if each:
+        labels = pg.evaluate(f"() => [...document.querySelectorAll({json.dumps(each)})].map(b => (b.textContent || '').trim())")
+        for i, t in enumerate(labels):
+            try:
+                pg.evaluate(f"() => {{ const b = document.querySelectorAll({json.dumps(each)})[{i}]; if (b) b.click(); }}")
+                pg.wait_for_timeout(1500)
+                scan(f"（{t}）")
+            except Exception as e:  # noqa: BLE001
+                notes.append(f"小數點普查／{label}（{t}）：{type(e).__name__} {e}")
+    for sel, tag in acts:
+        try:
+            if pg.evaluate(f"() => !!document.querySelector({json.dumps(sel)})"):
+                pg.evaluate(f"() => document.querySelector({json.dumps(sel)}).click()")
+                pg.wait_for_timeout(1600)
+                scan(f"（{tag}）")
+            else:
+                notes.append(f"小數點普查／{label}：找不到 {sel}，那個狀態沒掃到")
+        except Exception as e:  # noqa: BLE001
+            notes.append(f"小數點普查／{label}（{tag}）：{type(e).__name__} {e}")
+    return total
+
+
+def t_decimal_audit(b, base, code):
+    """全站小數點普查：桌機 1500 走十幾頁（含幾個切換狀態）＋ 手機 390 走主要頁。"""
+    theme_id = ""
+    try:
+        theme_id = (json.loads((SITE / "data" / "themes.json").read_text(encoding="utf-8")).get("themes") or [{}])[0].get("id", "")
+    except Exception:  # noqa: BLE001
+        pass
+    pg = b.new_page(viewport={"width": 1500, "height": 1000})
+    pg.add_init_script(_DEC_HOOK)
+    pg.on("pageerror", lambda e: fails.append(f"小數點普查 pageerror: {e}"))
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    n = 0
+    n += _dec_page(pg, f"{base}#overview", "總覽")
+    n += _dec_page(pg, f"{base}#flow", "資金流向", acts=(("#concSeg button[data-v='10']", "集中度前 10 大"),))
+    # 市場明細：每一個子頁都掃一次
+    pg.goto(f"{base}#market", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    subs = pg.evaluate("() => [...document.querySelectorAll('#mktSeg2 button')].map(b => b.dataset.k).filter(Boolean)")
+    ok("小數點普查：市場明細有子頁可以掃", len(subs) >= 2, subs)
+    for k in subs:
+        n += _dec_page(pg, f"{base}#market/{k}", f"市場明細/{k}", settle=1800)
+    n += _dec_page(pg, f"{base}#industry", "產業地圖")
+    for ch in ("semiconductor", "ai_server", "electronics"):
+        n += _dec_page(pg, f"{base}#industry/{ch}", f"產業鏈/{ch}")
+    n += _dec_page(pg, f"{base}#heatmap", "熱力圖")
+    if theme_id:
+        n += _dec_page(pg, f"{base}#heatmap/theme/{theme_id}", f"題材/{theme_id}")
+    n += _dec_page(pg, f"{base}#season", "週期統計", acts=(("#seasonView button[data-v='line']", "曲線圖"),
+                                                        ("#seasonMetric button[data-v='win_rate']", "勝率")))
+    n += _dec_page(pg, f"{base}#delivery", "交付清單", settle=1500)
+    n += _dec_page(pg, f"{base}#stock/{code}", f"個股/{code}", settle=3400, each="#stockTabs button")
+    cv = pg.evaluate("() => window.__twDecCanvas || []")
+    ok("小數點普查／桌機：所有畫布（含 K 線、自畫圖）fillText 沒有長小數／科學記號／NaN",
+       not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
+    ok("小數點普查／桌機：真的掃到圖（不是空跑）", n >= 30, n)
+    pg.close()
+
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.add_init_script(_DEC_HOOK)
+    m.on("pageerror", lambda e: fails.append(f"小數點普查（手機）pageerror: {e}"))
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    mn = 0
+    for h, name in (("overview", "總覽"), ("flow", "資金流向"), ("market", "市場明細"), ("heatmap", "熱力圖"),
+                    ("season", "週期統計"), (f"stock/{code}", "個股")):
+        mn += _dec_page(m, f"{base}#{h}", f"手機/{name}", settle=2400, each="main .view.on .mpager button")
+    cv = m.evaluate("() => window.__twDecCanvas || []")
+    ok("小數點普查／手機：所有畫布 fillText 沒有長小數／科學記號／NaN",
+       not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
+    ok("小數點普查／手機：真的掃到圖", mn >= 6, mn)
+    m.close()
 
 if __name__ == "__main__":
     raise SystemExit(main())

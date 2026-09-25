@@ -552,6 +552,34 @@
     }
     return opt;
   }
+  /* ★ 2026-09-26（Andy：「幫我檢查所有有這樣過多小數點的問題修正」）：提示框的**預設**數字格式。
+     他抓到的是資金集中度「20 日均 34.951174999999985」—— 那張圖的 tooltip 沒寫 formatter，
+     ECharts 就把 JS 算出來的浮點數原樣吐出來（均線是前端自己加總再除的，一定帶二進位誤差）。
+     與其一張一張等人抓，這裡在 chart() 統一補：**沒寫 formatter、也沒寫 valueFormatter 的提示框**，
+     數字一律整數照印（千分位）、非整數 2 位 —— 對齊全站口徑（股價／指數／pp／比率 2 位）。
+     單位補不出來的就不補（猜錯單位比沒單位更糟）；唯一會補的是 %：y 軸刻度自己就寫 `{value}%` 的圖，
+     提示框的數字跟刻度同一個單位，這個推論不會錯。
+     ⚠ 不碰的情況：值是陣列（散點圖 [x, y]、時間軸的 [時間, 值]）或 K 棒／盒鬚圖 —— ECharts 對陣列會逐維各印一格，
+       塞一支 valueFormatter 會把它們擠成一串，而且可能把時間戳當數字印。這幾種圖在站上都自己寫了 formatter。*/
+  const tipNum = (v, unit) => {
+    if (v == null || v === '' || v === '-') return '—';
+    const x = Number(v);
+    if (!isFinite(x)) return typeof v === 'string' ? v : '—';
+    return (Number.isInteger(x) ? x.toLocaleString('zh-TW') : fmt.n(x, 2)) + (unit || '');
+  };
+  function withTipFmt(o) {
+    const t0 = o && o.tooltip;
+    const t = Array.isArray(t0) ? t0[0] : t0;
+    if (!t || typeof t !== 'object' || t.formatter != null || t.valueFormatter != null || t.show === false) return o;
+    const ser = Array.isArray(o.series) ? o.series : o.series ? [o.series] : [];
+    const arrayish = ser.some(s => s && (/candlestick|boxplot|scatter|effectScatter|graph|sankey|treemap|sunburst|tree|map|lines|custom|parallel|themeRiver/.test(s.type || '')
+      || (Array.isArray(s.data) && s.data.slice(0, 6).some(d => Array.isArray(d) || (d && typeof d === 'object' && Array.isArray(d.value))))));
+    if (arrayish) return o;
+    const ys = Array.isArray(o.yAxis) ? o.yAxis : o.yAxis ? [o.yAxis] : [];
+    const pctAx = ys.length && ys.every(y => y && y.axisLabel && typeof y.axisLabel.formatter === 'string' && /%/.test(y.axisLabel.formatter));
+    const nt = { ...t, valueFormatter: (v) => tipNum(v, pctAx ? '%' : '') };
+    return { ...o, tooltip: Array.isArray(t0) ? [nt, ...t0.slice(1)] : nt };
+  }
   function chart(id, option, opts) {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return null;
     if (typeof echarts === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return null; }
@@ -567,7 +595,7 @@
       c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
       c._soft = true;
     }
-    let full = Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option);
+    let full = withTipFmt(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option));
     /* ★ 2026-09-24 效能：**圖表第一次出現不播進場動畫**（長條長出來、扇形轉開那一段 0.24～0.5 秒）。
        首次開總覽時七八張圖同時進場，每一幀都要把每張圖重畫一次 —— 實測把進場動畫拿掉，
        總阻塞時間（TBT）2.6／3.3 秒 → 1.3／2.0 秒、最長卡住 1.8／1.4 秒 → 0.8／0.7 秒（同一台機器交錯量兩輪）。
@@ -6083,7 +6111,7 @@
       valOf = (d) => (d && d.id ? '熱度 ' + d.heat : '');
       tipOf = (p) => { const d = p.data || {};
         return hmTip(p.name, `${d.n || 0} 檔`, [
-          { k: '熱度', v: String(d.heat), dot: hmColor(hmBin(d.heat, 'heat'), 'heat') },
+          { k: '熱度', v: d.heat != null ? String(d.heat) : '—', dot: hmColor(hmBin(d.heat, 'heat'), 'heat') },
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
@@ -9813,7 +9841,11 @@
         type: n >= 120 ? 'dashed' : 'solid' },
     }));
     const c = chart('conc', {
-      tooltip: { ...tip, trigger: 'axis' }, grid: { left: 50, right: 20, top: 30, bottom: 30 },
+      /* ★ 2026-09-26（Andy 抓到「20 日均 34.951174999999985」「前 5 族群佔比 30.5033」）：
+         佔比是資料端存的 4 位原值、均線是前端 sma() 加總再除的浮點數，以前提示框原樣吐出。
+         一律 2 位＋%（同一張卡標題旁的讀數是 1 位；提示框多 1 位，看得出均線與佔比差多少）。只改顯示，sma() 不動。*/
+      tooltip: { ...tip, trigger: 'axis', valueFormatter: (v) => (v == null || !isFinite(v) ? '—' : fmt.n(v, 2) + '%') },
+      grid: { left: 50, right: 20, top: 30, bottom: 30 },
       legend: { type: 'scroll', textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, top: 0 },
       /* ★ 2026-09-25（審查 R2 #53：資料跨 2025-02～2026-09，軸上只有「02-06」「02-10」看不出是哪一年）：
          刻度一律寫「YY/MM/DD」—— 不靠「換年那格才寫年」：ECharts 會自己跳著印刻度，換年那一格常常剛好被跳過。*/
@@ -9911,7 +9943,7 @@
     const heatKind = mode === 'heatT' ? 'heatT' : 'heat';
     const themeOpt = (big) => { const HS = hmSeries(false); return ({ tooltip: { ...hmTipOpt(), formatter: p => { const d = p.data || {};
         return hmTip(p.name, '', [
-          { k: '熱度', v: String(d.heat), dot: hmColor(hmBin(d.heat, heatKind), heatKind) },
+          { k: '熱度', v: d.heat != null ? String(d.heat) : '—', dot: hmColor(hmBin(d.heat, heatKind), heatKind) },
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
