@@ -50,7 +50,7 @@
     code: null, market: null, symbol: null,
     ticks: [],        // [{s: epoch 秒, p: 價, cv: 累計張數}]
     hist: [],         // Yahoo 的 1 分 K：[{s, o, h, l, c, v(股)}]
-    histTried: false, histErr: '',
+    histTried: false, histErr: '', histErrRaw: '',
     timer: null, busy: false, fails: 0,
     lastAt: 0, lastErr: '', prevClose: null, name: '',
     today: null,      // 今天這一根日 K（直接來自報價的 o/h/l/z/v，見 todayBar()）
@@ -117,8 +117,18 @@
       if (state.prevClose == null) state.prevClose = num((res.meta || {}).chartPreviousClose);
       state.histErr = '';
     } catch (e) {
-      state.histErr = String(e.message || e).slice(0, 60);
+      state.histErrRaw = String(e.message || e).slice(0, 120);
+      state.histErr = zhErr(e);
     }
+  }
+  /* ★ 2026-09-25（審查 R5）：以前把瀏覽器的原始錯誤直接印在畫面上 ——「早盤資料抓不到（Failed to fetch）」，
+     中文句子中間夾一段英文。換成人話；原文留在 state.histErrRaw（驗收與除錯看得到，畫面不印）。*/
+  function zhErr(e) {
+    const m = String((e && (e.name + ' ' + e.message)) || e || '');
+    if (/abort|timeout|timed out/i.test(m)) return '連 Yahoo 逾時';
+    if (/failed to fetch|networkerror|load failed|network|cors/i.test(m)) return '連不到 Yahoo（網路擋住或代理離線）';
+    if (/json|unexpected token|syntax/i.test(m)) return 'Yahoo 回來的格式看不懂';
+    return '抓取失敗';
   }
 
   // ---------------------------------------------------------------- mis 即時
@@ -147,7 +157,8 @@
       emit();
     } catch (e) {
       state.fails++;
-      state.lastErr = String(e.message || e).slice(0, 60);
+      // 自己丟的錯（代理回 HTTP xxx、沒有這一檔的報價）本來就是中文；瀏覽器丟的英文換成人話
+      state.lastErr = /[\u4e00-\u9fff]/.test(String(e.message || '')) ? String(e.message).slice(0, 60) : zhErr(e).replace('Yahoo', '即時報價');
       if (state.fails >= MAX_FAILS) stopTimer();     // 打不通就別一直洗 console
     } finally {
       state.busy = false;
@@ -324,6 +335,12 @@
     },
     detach() { stopTimer(); state.code = null; },
     bars, sourceNote, isIntraday,
+    /** Yahoo 早盤那段**真的抓失敗了**（不是還沒設定來源、也不是 Worker 舊版）。
+     *  industry.js 用它決定要不要先退回有資料的週期，不讓使用者對著一塊空白。*/
+    histFailed() {
+      return !!(state.histTried && !state.hist.length && state.histErr
+        && state.histErr !== 'NOYAHOO' && state.histErr !== '還沒設定即時來源');
+    },
     /** 今天那一根「還沒收的日 K」。沒有報價就回 null（例如假日、或代理打不通）。 */
     todayBar() {
       const t = state.today;

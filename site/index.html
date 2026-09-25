@@ -74,7 +74,7 @@
        預設＝暖金（--hm-v*，蜂蜜色，由暖炭灰到金黃）；另一組湖水藍（--hm-t*），右上「顏色」下拉可切。
      字色：前三格白字（11.6／7.6／4.8；湖水藍 12.6／7.6／4.6），後兩格太亮改深字 #1A1F2B（6.3／9.5；湖水藍 6.1／9.6）。
      相鄰格對比 1.52～1.81，看得出分級。兩個主題共用（方塊是實心色，不吃底色）。 */
-  --hm-v1:#3A5A8C; --hm-v2:#56739E; --hm-v3:#6E6A80; --hm-v4:#A0585A; --hm-v5:#B8453F;  /* 2026-09-24 Andy：熱度改溫和的藍→紅（冷→熱） */
+  --hm-v1:#1F4E8C; --hm-v2:#7EA6D8; --hm-v3:#F0B4AC; --hm-v4:#E0776B; --hm-v5:#B3261E;  /* 2026-09-25 Andy：深藍→淺藍→淺紅→深紅，乾淨不混濁；中間三格配深字 */
   --hm-t1:#26363B; --hm-t2:#1B5C66; --hm-t3:#13828D; --hm-t4:#27AEB3; --hm-t5:#6FD6CF;
   --hm-ink-dark:#1A1F2B;
   /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
@@ -686,6 +686,8 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 #ovFlow{min-height:300px} #ovFlow.isempty{min-height:0}
 #sankey canvas.dotfx{position:absolute;left:0;top:0;pointer-events:none}
 @media (max-width:900px){ #sankey{min-height:520px} }
+/* 拓撲版／經典版切換鈕：手機（≤ 820px）一律經典版，所以鈕也不出現 */
+@media (max-width:820px){ #sankeyStyleBtn{display:none} }
 .empty{display:grid;place-items:center;min-height:160px;color:var(--ink-3);font-size:14px;text-align:center;padding:20px}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;
   background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
@@ -715,7 +717,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   display:flex;flex-direction:column;padding:14px 16px 18px}
 .zoomov[hidden]{display:none}
 .zoomov .zh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.zoomov .zh b{font-size:17px}
+/* ★ 2026-09-24（審查 R4）：罩底固定深色（不隨主題變），標題字色也要固定淺色 ——
+   以前吃 var(--ink)，淺色主題下變成深字壓深底，「題材資金熱力」幾乎隱形。*/
+.zoomov .zh b{font-size:17px;color:#E8EEFF}
 .zoomov .zh .chainchips{margin:0;flex:1}
 .zoomov .zb{flex:1;min-height:0;display:flex}
 /* ★ E2：#zoomBody 要**真的佔滿** .zb。以前寫 `.zb>div`，而 groupChips 會把一排族群晶片
@@ -740,6 +744,14 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .hpanel .ms a:hover{border-color:var(--cyan)}
 .hpanel .ms a .c{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .hpanel .ms a .g{margin-left:auto;font-family:var(--mono);font-size:12px}
+/* ★ 2026-09-24 夜（審查 R2 #28：「下鑽清單的股名被擠成一字一行 —— 群／聯、台／積電」）：
+   個股卡片（.dp，排行與資金去向兩個面板共用）的內容是「名字 代號 金額 佔比 漲跌 →」，
+   168px 一欄塞不下，flex 就去壓名字（中文沒有空白可斷，只能一字一行）。
+   改成和 .sub 同一套：名字＋代號在第一行（名字不換行、真的太長才截斷加…，全名在 title），數字整段換到第二行。*/
+.hpanel .ms a.dp:not(.grow):not(.sub){flex-wrap:wrap;row-gap:1px;align-items:center}
+.hpanel .ms a.dp:not(.grow):not(.sub)>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hpanel .ms a.dp:not(.grow):not(.sub) .c{flex:none}
+.hpanel .ms a.dp:not(.grow):not(.sub) .g{order:3;flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 /* ★ 2026-09-20（Andy：「資金流向排行下方的族群點擊後所顯示的股票 太長了，
    需要變成固定大小，所以需要有拉Bar 功能，並且確認所有相關版面一樣使用這方式」）。
    成分股多的族群（ETF、半導體業）一展開就把整張圖推出畫面，得捲很久才捲得回來。
@@ -842,7 +854,7 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   padding:4px 10px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);
   color:var(--ink-2);font-size:12px;font-family:inherit;cursor:pointer;white-space:nowrap}
 .rotdd .ddbtn b{color:var(--ink);font-weight:600;overflow:hidden;text-overflow:ellipsis}
-.rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:10px}
+.rotdd .ddbtn i{font-style:normal;color:var(--ink-3);font-size:11px}  /* R2 #4：10 → 11px（全站字級下限） */
 .rotdd .ddbtn:hover{border-color:var(--cyan);color:var(--ink)}
 .rotdd.open .ddbtn{border-color:var(--cyan);color:var(--ink);background:var(--panel)}
 .rotdd .ddpanel{position:absolute;z-index:40;top:calc(100% + 4px);left:0;min-width:210px;
@@ -964,12 +976,26 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .zwrap:hover>.zbadge{opacity:1;color:var(--cyan);border-color:rgba(62,224,255,.4)}
 /* 法人連續買超：右上角正好是「買最久又買最多」那一顆泡泡（2026-09-20 Andy 截圖的玉山金），
    「滾輪放大」徽章壓在上面會把它的名字整個蓋掉。這張圖右下角是空的，徽章挪過去。*/
+/* 本益比河流圖右側印著區間名稱（警示／昂貴…），徽章放右上會蓋住「警示」→ 移到左上、y 軸刻度右邊 */
+#peWrap>.zbadge{right:auto;left:62px;top:2px}
 #trustWrap>.zbadge{top:auto;bottom:34px}   /* 34 而不是 8：8 會壓到橫軸的刻度數字 */
+/* 2026-09-24 四象限：右下角是「連買減碼」的象限名 → 徽章改放下緣正中（x＝0 那條虛線上，本來就沒有點） */
+#trustWrap>.zbadge{right:auto;left:50%;transform:translateX(-50%)}
+/* 放大後才出現的「還原」鈕（審查 R4：角標寫「雙擊還原」，但雙擊第一下會被圖當成點方塊而跳頁，
+   所以給一顆真的按鈕）。放右上角：三張熱力圖的徽章在左下、法人連買的徽章在右下，不會疊在一起。*/
+.zwrap>.zreset{position:absolute;right:8px;top:8px;z-index:6;height:26px;padding:0 11px;border-radius:999px;
+  border:1px solid rgba(62,224,255,.45);background:rgba(10,16,32,.9);color:#E8EEFF;font-size:12px;cursor:pointer}
+.zwrap>.zreset:hover{border-color:var(--cyan);color:var(--cyan)}
+.zwrap>.zreset[hidden]{display:none}
 .chainchips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 6px}
 .chainchips button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:5px 13px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
 .chainchips button em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
 .chainchips button:hover{border-color:var(--cyan);color:var(--ink)}
+/* 站上均線：成分股 < 5 檔的族群標「樣本少」（琥珀色，跟其他數字的灰色分開） */
+.chainchips button em.smallN{font-family:inherit;font-size:11px;color:var(--amber);margin-left:4px}
+/* 可捲的鈕區：底部淡出，提示下面還有（捲到底由 JS 拿掉這個 class） */
+.scrollfade{-webkit-mask-image:linear-gradient(#000 calc(100% - 26px),transparent);mask-image:linear-gradient(#000 calc(100% - 26px),transparent)}
 .chainchips button.on{background:var(--cyan);border-color:var(--cyan);color:var(--ontop);font-weight:700}
 .chainchips button.on em{color:rgba(6,16,24,.7)}
 /* 輪動階段看板 */
@@ -1095,6 +1121,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .stagepanel ul.ms li>*{white-space:nowrap}
 .stagepanel ul.ms li+li:not(.cols){border-top:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
 .stagepanel ul.ms li:not(.cols):hover{background:var(--panel-2);color:var(--ink)}
+.stagepanel ul.ms li[data-off]{opacity:.55}  /* 不在盤上的族群（成交值不在前 16）：審查 R2 #23 */
 .stagepanel ul.ms li.none{display:block;cursor:default;color:var(--ink-3);white-space:normal}
 .stagepanel ul.ms li.cols{position:sticky;top:0;z-index:1;cursor:default;padding-top:2px;padding-bottom:4px;
   background:var(--panel-3);font-size:12px;color:var(--ink-3);
@@ -1145,7 +1172,9 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
    ECharts 的軸在 canvas 裡，跟著圖一起被捲走，捲到第 40 列就不知道哪一欄是幾月。
    （原本 `#seasonBoard` 的兩條規則跟著「本月歷史最強族群」那張卡一起拿掉了。）*/
 .shbox{position:relative;margin-top:10px;max-height:680px;overflow-y:auto;overscroll-behavior:contain;
-  border-radius:10px;scrollbar-width:thin}
+  border-radius:10px;scrollbar-width:thin;max-width:100%}
+/* ★ 2026-09-24（docs/season_grid_spec.md）：桌機的外框寬由 app.js 設成「名稱欄＋12 格」的表格寬，整張表靠左；
+   `max-width:100%` 是保險 —— 算錯也不准撐出卡片、不准出現橫向捲軸。手機不設寬，照舊撐滿。*/
 .shbox[hidden]{display:none}
 .shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
   background:var(--panel);padding-top:2px;padding-bottom:4px}
@@ -1523,6 +1552,18 @@ tbody tr:last-child td{border-bottom:0}
   font-family:var(--mono);font-size:12.5px;padding:0 2px;text-align:center}
 .chip input:focus{outline:0;border-color:var(--cyan)}
 .chip i{width:9px;height:9px;border-radius:50%;display:inline-block}
+/* ★ 2026-09-25（審查 R5）：參數平常只是文字（整顆籤都是開關），要改才按尾巴的 ⚙ 攤開輸入框 */
+.chip .pv{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.chip.on .pv{color:var(--cyan)}
+.chip .pedit{border:0;background:transparent;color:var(--ink-3);font-size:12px;line-height:1;padding:2px 3px;margin:-2px -4px -2px 0;
+  border-radius:5px;cursor:pointer;min-width:0;min-height:0}
+.chip .pedit:hover,.chip.editing .pedit{color:var(--cyan);background:rgba(62,224,255,.12)}
+/* 基本資料的題材／族群連結：以前黏成「#AI 伺服器#高階 PCB」一串，看不出哪裡斷 */
+.tagrow{display:inline-flex;flex-wrap:wrap;gap:4px 12px}
+/* 週期統計「自填 年」：以前沒套樣式，深色主題裡是一塊白底 */
+.opabox input[type=number]{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink);border-radius:6px;
+  padding:3px 6px;font-family:var(--mono);font-size:12.5px;color-scheme:light dark}
+.opabox input[type=number]:focus{outline:0;border-color:var(--cyan)}
 /* K 線圖高度跟著視窗走（Andy：「K 線圖太小，版面需要擴大」）：
    以前寫死 640px，螢幕再大也只有那麼高。扣掉頂部列＋標題＋工具列＋說明約 300px，
    剩下的全部給圖；上下限避免小筆電被壓扁、超寬螢幕拉成一條。 */
@@ -2190,6 +2231,43 @@ h4.subh{margin:0 0 6px;font-size:13.5px;color:var(--ink-1);display:flex;flex-wra
 h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 圖區在窄畫面退單欄之後，上下兩塊要有間隔（.grid 的 gap 只在格與格之間） */
 @media (max-width:1100px){ .rotpane+.rotpane{margin-top:4px} }
+/* ★ 2026-09-24（Andy：「排行圖被擠到下方、上方一大片空白」）：資金輪動卡整張兩欄（HTML 註解有全文）。
+   左欄第一列是卡片標題、右欄第一列是排行小標＋兩顆鈕，兩列同高（min-height 32px、垂直置中），
+   所以排行圖的頂端跟篩選列同一高度（離卡片頂 ≈ 16 + 32 + 4 ＝ 52px）。
+   排行那一格 flex 撐滿整欄：左欄（輪盤）多高，排行就畫多高，底下不留空。*/
+.rotcols{align-items:stretch}
+/* ★ 2026-09-24 夜（Andy：「資金流向排行版面太窄、不符審美：排行區至少占卡片寬 40%」）：
+   2fr:1fr（排行 33%）→ 1.4fr:1fr（扣掉欄間距後排行 ≈ 41%；1.45 量出來只有 39.7%）。輪盤那一欄變窄一點，但它的高度改成跟著欄寬走（rotFitH），
+   盤的半徑仍比舊版大（1440 寬、開著今日事件側欄：185 → 約 215px）。≤1100px 照舊單欄。*/
+@media (min-width:1101px){ .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)} }
+.rotcols .rothead,.rotcols .rotrhead{min-height:32px;align-items:center;margin-bottom:4px}
+.rotcols .rothead h3{margin:0}
+.rotcols .rotrhead h4.subh{margin:0}
+/* 右欄只有全寬的 1/3：鈕一定留在同一列，放不下時是日期那行字在小標裡換行，不是把兩顆鈕擠到下一列 */
+.rotcols .rotrhead{flex-wrap:nowrap;gap:8px}
+.rotcols .rotrhead h4.subh{flex:1 1 auto;min-width:0}
+.rotcols .rotrhead .rotbtns{flex:0 0 auto}
+.rotright>#rankFlowWrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:420px}
+.rotright>#rankFlowWrap>#rankFlow{flex:1 1 auto}
+/* 側欄（象限面板／成分股面板）蓋在右欄上：自己捲；輪盤那一欄的寬度完全不動。掛在 #rankFlowWrap 上（只蓋排行圖）—— 排行小標與放大／怎麼看兩顆鈕照樣看得到、按得到；
+   .rotright 刻意不設 position，≤1100px 那兩顆鈕的 absolute 才會對準卡片右上角 */
+#rankFlowWrap{position:relative}
+#rankFlowWrap>.sidepanel{position:absolute;inset:0;z-index:6;margin:0;max-width:none;overflow:hidden;
+  box-shadow:0 12px 32px -12px rgba(0,0,0,.55);animation:sidein .16s ease-out}
+/* 面板本身是直欄 flex：標題列固定、清單（.ms）吃剩下的高度並自己捲 —— 清單仍是「固定高度＋可捲」那一套，
+   只是高度改成「排行圖有多高就多高」。[hidden] 要另外寫：這條的 display:flex 權重比 .hpanel[hidden] 高 */
+#rankFlowWrap>.sidepanel{display:flex;flex-direction:column}
+#rankFlowWrap>.sidepanel[hidden]{display:none}
+#rankFlowWrap>.sidepanel>*{flex:none}
+#rankFlowWrap>.sidepanel .ms,#rankFlowWrap>.stagepanel ul.ms{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
+@keyframes sidein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ #rankFlowWrap>.sidepanel{animation:none} }
+/* 審查 R2 #24：面板開著時輪盤不縮了，所以 .rotstagerow 只剩輪盤一格 */
+/* 退單欄時排行跑到輪盤下面 —— 兩顆鈕不跟著掉下去，釘在卡片右上角（仍是「卡片標題列右側」）*/
+@media (max-width:1100px){
+  #flowRotCard .rothead{padding-right:190px}
+  #flowRotCard .rotbtns{position:absolute;top:16px;right:18px}
+}
 
 /* ---------------------------------------------------------------- 任務板（#tasks）
    刻意用「一張卡一件事」而不是表格：表格在手機上一定要橫捲，
@@ -3194,6 +3272,109 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 /* 既有 bug：.btn 的 display 蓋過 hidden，「← 回到族群」平常就露出來（2026-09-24 說明精簡時順手發現） */
 #gpBack[hidden]{display:none!important}
 select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下拉選項白底白字看不到 */
+
+/* ==================================================================================
+   ★ 2026-09-24 總覽改版（Andy 八條＋大盤三張圖四條，桌機 >820px）
+   放在整份樣式的最後面，才蓋得過前面設計系統 v2 那幾批對 .howbtn／.kpi／.m3-* 的設定。
+   手機（≤820px）另有人做：這裡凡是會改版面的規則都包在 min-width:821px 裡，
+   不包的只有「顏色／字色」這種兩邊都該一樣的東西。
+   ================================================================================== */
+
+/* ---- 標題旁的「?」：一顆 22px 圓鈕，點了跳出說明（#howPop），點背景（#howBack）關 ---- */
+.howbtn.pop{min-height:0;width:22px;height:22px;padding:0;border-radius:50%;font-size:12.5px;font-weight:700;
+  display:inline-flex;align-items:center;justify-content:center;vertical-align:2px;margin-left:6px;line-height:1}
+h3 .howbtn.pop{font-family:inherit}
+.m3-bar .howbtn.pop{margin-left:0}
+#howBack{position:fixed;inset:0;z-index:180;background:rgba(4,8,18,.46);backdrop-filter:blur(1.5px)}
+:root[data-theme="light"] #howBack{background:rgba(30,28,24,.28)}
+#howBack[hidden],#howPop[hidden]{display:none}
+#howPop{position:fixed;z-index:181;left:50%;top:50%;transform:translate(-50%,-50%);
+  width:min(520px,calc(100vw - 32px));max-height:min(72vh,640px);overflow:auto;
+  background:var(--panel);border:1px solid var(--line-2);border-radius:14px;padding:14px 16px 12px;
+  box-shadow:0 18px 50px rgba(0,0,0,.45)}
+#howPop .hp-h{font-size:15px;margin-bottom:6px;color:var(--ink)}
+#howPop .howtxt{margin:0;border-left-width:3px}
+#howPop .howfine{font-size:12px}
+
+/* ---- ① KPI 橫條（≤64px）---- */
+@media (min-width:821px){
+  #hero.ovstrip{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;
+    background:var(--card,var(--panel));border:1px solid var(--line);border-radius:14px;overflow:hidden;
+    margin-bottom:var(--gap-card);max-height:64px}
+  #hero.ovstrip .kpi{display:flex;flex-direction:column;justify-content:center;gap:1px;
+    padding:8px 16px;min-height:0;height:58px;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none}
+  #hero.ovstrip .kpi+.kpi{border-left:1px solid var(--line)}
+  #hero.ovstrip .kpi.clickable:hover{background:color-mix(in srgb,var(--cyan) 7%,transparent)}
+}
+#hero.ovstrip .kpi .l{font-size:12px;line-height:16px;letter-spacing:.04em;color:var(--ink-3);display:flex;align-items:center;gap:6px;flex:none}
+#hero.ovstrip .kpi .l .more{float:none;margin-left:auto;font-size:14px;opacity:.75}
+#hero.ovstrip .kpi .vv{display:flex;align-items:baseline;gap:8px;white-space:nowrap;overflow:hidden;flex:none;line-height:28px;height:28px}
+#hero.ovstrip .kpi .v{font-size:22px;line-height:1.15}
+#hero.ovstrip .kpi .d{font-size:12.5px;color:var(--ink-2);font-family:var(--mono)}
+
+/* ---- 大盤三張圖：一個大方框、三格用細線隔開、工具列在框內左上 ---- */
+#m3{margin-bottom:0}
+.m3-frame{padding:10px 0 6px}
+.m3-frame .m3-bar{padding:0 14px;margin-bottom:4px;gap:8px}
+.m3-frame .m3-bar .seg button{padding:4px 12px;font-size:13px}
+.m3-card{min-width:0}
+.m3-card>.m3-h{align-items:center;gap:6px}
+.m3-card>.m3-h h3{font-size:15px;margin:0}
+.m3-card>.m3-h .m3-big{margin-left:auto}
+.m3-sess{padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line-2);color:var(--ink-2);background:var(--panel-3)}
+.m3-sess[data-s="night"]{color:var(--violet,#b69cff);border-color:color-mix(in srgb,var(--violet,#b69cff) 45%,transparent)}
+.m3-nums{flex-direction:row;align-items:baseline;flex-wrap:wrap;gap:4px 10px;margin:2px 0 4px;min-height:0;cursor:help}
+.m3-nums .m3-px{font-size:24px}
+.m3-nums .m3-chg{font-size:13.5px}
+.m3-nums .m3-tag{margin-left:0;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* 三格一樣高：數字列不准折行（1024 時加權的數字最長，標籤折下去整格就比別人高一行）*/
+.m3-nums{flex-wrap:nowrap;overflow:hidden}
+.m3-nums .m3-px,.m3-nums .m3-chg{flex:none;white-space:nowrap}
+.m3-card [id^='m3c-'][data-fallback]::before{display:none}
+.m3-fb{height:18px;line-height:18px;font-size:12px;color:var(--amber);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
+@media (min-width:821px){
+  .m3-grid{gap:0}
+  .m3-card{padding:4px 12px 0;border-left:1px solid var(--line)}
+  .m3-card:first-child{border-left:0}
+  .m3-grid.big .m3-card{border-left:0}
+  .m3-chart{height:232px}
+}
+@media (min-width:821px){
+  /* Andy：「電腦版維持三張」—— 以前 1100 以下會變成三張直排（整頁多出 700px），
+     合進一個框之後 821～1100 也維持三欄並排（1024 時每格約 320px，數字與 K 線都放得下）。*/
+  #m3Frame .m3-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  #m3Frame .m3-grid.big{grid-template-columns:1fr}
+}
+/* K 線的游標看板（mini KChart 沒有 OHLC 看板，market3.js 的 kTip 自己畫）*/
+.m3-ktip{position:absolute;left:4px;top:4px;z-index:6;pointer-events:none;display:flex;flex-wrap:wrap;gap:2px 10px;
+  max-width:calc(100% - 70px);padding:4px 8px;border-radius:8px;font-size:12px;line-height:1.5;color:var(--ink-2);
+  background:color-mix(in srgb,var(--panel) 92%,transparent);border:1px solid var(--line-2);font-family:var(--mono)}
+.m3-ktip[hidden]{display:none}
+.m3-ktip b{color:var(--ink);font-weight:600;margin-right:2px}
+.m3-ktip i{font-style:normal;color:var(--ink)}
+.m3-ktip i.up{color:var(--rise)} .m3-ktip i.down{color:var(--fall)}
+/* 800px 按「展開」：左右滑的那一格要吃滿整列，不然卡片變高、內容擠在 88% 裡、右邊留一條漸層（審查 R1）*/
+@media (max-width:820px){
+  .m3-grid.big>*{flex:0 0 100%}
+  .m3-grid.big{-webkit-mask-image:none;mask-image:none}
+  .m3-grid.big .m3-chart{height:clamp(320px,60vh,560px)}
+}
+
+/* ---- ③ 左欄：資金熱力圖（撐滿）＋熱門題材熱力圖（固定高）上下疊 ---- */
+.ovcol{display:flex;flex-direction:column;gap:var(--gap-card);min-width:0}
+@media (min-width:1101px){
+  .ovcol>#ovHeatCard{flex:1 1 auto;min-height:0}
+}
+#ovThemeCard .rotdd .ddpanel{min-width:240px}
+#ovThemeCard .rotdd .ddpanel .ddopt em{margin-left:auto}
+#ovTheme{height:300px}
+.ovmain h3,.ovlow h3{display:flex;align-items:center}
+#udSum{font-size:12.5px}
+#streakSub{font-size:12.5px}
+
+/* ---- 法人卡「滾輪放大」徽章：淺色主題原本是深底配灰字、再疊在淺底上 → 灰底灰字看不見（審查 R1）---- */
+:root[data-theme="light"] .zwrap>.zbadge{background:rgba(255,255,255,.92);color:var(--ink-2);border-color:var(--line-2)}
+:root[data-theme="light"] .zwrap:hover>.zbadge{color:var(--cyan)}
 </style>
 </head>
 <body>
@@ -3284,65 +3465,57 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
 
   <!-- ================= 總覽 ================= -->
   <section class="view" id="v-overview">
+    <!-- ★ 2026-09-24 總覽改版（Andy 八條，桌機 >820px）：
+         ① KPI 從三張走勢圖下方搬到**上方**，六格收成四格（加權指數／成交值／漲跌家數／前五族群佔比）的緊湊橫條（≤64px）。
+            「今日候選」「站上 MA20」兩格拿掉 —— 名單仍在市場明細的「今日候選」「站上均線」分頁。
+         ② 「今日候選」表整張拿掉（#ovCandCard）。
+         ③ 「熱門題材」改熱力圖，放在資金熱力圖**下方**（左欄上下疊，右欄是足跡輪盤）；題材標籤改下拉。
+         ④ 「市場寬度」改「漲跌家數」分佈直條；「法人連續買超」改買賣都有的四象限散佈圖。
+         ⑤ 卡片上的副標、註腳、圖下那排「族群／其他題材」連結全部拿掉；說明一律收進標題旁的「?」（點了跳出、點背景關）。
+         元素 id 全部沿用（#hero／#ovHeatCard／#ovThemeCard／#ovBreadthCard／#ovTrustCard），
+         手機分段（site/modules.js）照原本的選擇器就抓得到 —— 手機版另有人做，這裡保留可合併的結構。 -->
+    <div class="hero ovstrip" id="hero"></div>
     <!-- 加權 / 櫃買 / 台指期 的當日走勢與分 K（Andy 2026-09-14）。資料與繪圖在 market3.js -->
     <div id="m3"></div>
-    <div class="hero" id="hero"></div>
-    <div class="grid g21" style="margin-top:var(--gap-card)">
-      <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <small>族群資金流入／流出</small></h3>
-        <div class="row" style="gap:8px"><span id="heatDate"></span><button class="btn small" id="heatZoom">放大 ⤢</button>
-        <button class="howbtn" data-how="heat">怎麼看 ?</button></div></div>
-        <div class="howtxt" id="how-heat" hidden></div>
-        <div class="chainchips" id="heatChips"></div>
-        <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
-        <div class="hpanel" id="heatPanel" hidden></div></div>
-      <!-- ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點，
-             下方的紅框處改成昨日的資金去向分流圖」）。這張卡片現在回答**兩個不同的問題**：
-             上半「誰在轉強」（時鐘）、下半「昨天的錢分給了誰」（分流圖）。
-             以前下半是同樣四段的清單（`#rotMini`），和時鐘講的是同一件事，等於把版面用掉兩次。
-             · 「⤢ 放大」整顆移除：完整版（拉Bar／篩選／播放）就在「資金流向」那一頁。
-             · 圓圈變大：容器 300 → 360px，`renderRotClock` 的 compact 半徑 66% → 82%。 -->
-      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>足跡輪盤 <small>族群在強弱循環的哪一段</small></h3>
-        <button class="howbtn" data-how="rotm">怎麼看 ?</button></div>
+    <div class="grid g21 ovmain" style="margin-top:var(--gap-card)">
+      <div class="ovcol" id="ovLeft">
+        <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <button class="howbtn pop" data-how="heat" aria-label="資金熱力圖怎麼看">?</button></h3>
+          <div class="row" style="gap:8px"><span id="heatDate"></span><button class="btn small" id="heatZoom">放大 ⤢</button></div></div>
+          <div class="howtxt" id="how-heat" hidden></div>
+          <div class="chainchips" id="heatChips"></div>
+          <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
+          <div class="hpanel" id="heatPanel" hidden></div></div>
+        <!-- ★ 2026-09-24：熱門題材改熱力圖（方塊大小＝題材成交值、顏色＝熱度），題材清單改成下拉
+             （樣式跟資金輪動卡的「產業鏈：全部 ▾」同一套 .rotdd）。選一個題材 → 同一張圖原地換成那個題材的成分股。 -->
+        <div class="card" id="ovThemeCard"><div class="row spread"><h3>熱門題材 <button class="howbtn pop" data-how="themeov" aria-label="熱門題材怎麼看">?</button></h3>
+          <div class="row" style="gap:8px" id="ovThemeCtl"></div></div>
+          <div class="howtxt" id="how-themeov" hidden></div>
+          <div id="ovThemeWrap"><div id="ovTheme" class="chart"></div></div></div>
+      </div>
+      <div class="card" id="ovRotCard"><div class="row spread" id="ovRotHead"><h3>足跡輪盤 <button class="howbtn pop" data-how="rotm" aria-label="足跡輪盤怎麼看">?</button></h3></div>
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
-        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <small id="ovFlowSub">昨天收盤，錢分到哪幾條產業鏈、鏈裡又分給哪幾個族群</small></h4>
-        <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div>
-        <!-- 口徑說明不可以因為「圖變簡單」就拿掉（和資金流向頁那張桑基圖是同一份資料）：
-             族群成交值對同時掛兩個板塊的股票做過 1/n 拆分，所以族群加總會略小於逐檔加總。 -->
-        <div class="note" id="ovFlowNote" style="margin-top:6px">線越粗＝流過的成交值越大（這張圖<b>只用粗細</b>表示流量，沒有動畫）。
-          只畫到族群那一層，個股請點族群名。族群成交值對同時掛兩個板塊的股票已照 <b>1/n 拆分</b>，
-          所以族群加總會略小於逐檔加總。</div></div>
+        <div class="hpanel" id="ovRotPanel" hidden></div>
+        <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，說明精簡後搬進足跡輪盤的「?」（HOW.rotm 會讀它）。 -->
+        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <small id="ovFlowSub" hidden></small></h4>
+        <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div></div>
     </div>
-    <div class="grid g12 eqpair" style="margin-top:var(--gap-card)">
-      <div class="card" id="ovThemeCard"><h3>熱門題材 <small>熱度＝資金佔比變化＋法人＋新聞</small></h3><div id="themeStrip" class="pane"></div></div>
-      <div class="card" id="ovCandCard"><div class="row spread"><h3>今日候選 <small>A 回檔承接／B 突破追進</small></h3>
-        <div class="row" style="gap:8px"><span class="pill" id="candNum"></span><div class="cgwrap" id="candGroupFilter"></div>
-        <button class="howbtn" data-how="cand">怎麼看 ?</button></div></div>
-        <!-- ★ 2026-09-24 說明精簡：面向說明 #candHint 從卡片上搬進「怎麼看 ?」最下面那行小字（id 不變，切面向照樣換字）。 -->
-        <div class="howtxt" id="how-cand" hidden><div class="howbody"></div><div class="howfine" id="candHint"></div></div>
-        <div class="facets" id="candFacets"></div>
-        <div class="tw cap-lg hide-m"><table id="candTable"><thead></thead><tbody id="candBody"></tbody></table></div>
-        <div class="cards" id="candCards"></div></div>
-    </div>
-    <!-- ★ 2026-09-23（Andy：「估值篩選拿掉」，追問後回覆「OK」＝連總覽這張也一起砍）：
-         這一列原本是三張卡（市場寬度／法人連續買超／族群估值），「族群估值」整張移除後只剩兩張，
-         所以欄位從 g3 改成 g2 —— 不改的話 1fr×3 會在右邊留下一個空欄（Andy 最在意的「留一塊白」）。
-         g2 在 1100px 以下仍是 1fr 1fr、820px 以下自動變單欄，手機不必另外處理。 -->
-    <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="ovBreadthCard"><div class="row spread"><h3>市場寬度 <small>站上均線比例＋漲跌家數</small></h3>
-        <button class="howbtn" data-how="breadth">怎麼看 ?</button></div>
+    <div class="grid g2 ovlow" style="margin-top:var(--gap-card)">
+      <div class="card" id="ovBreadthCard"><div class="row spread"><h3>漲跌家數 <button class="howbtn pop" data-how="breadth" aria-label="漲跌家數怎麼看">?</button></h3>
+        <span class="pill" id="udSum" data-readout></span></div>
         <div class="howtxt" id="how-breadth" hidden></div>
-        <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:250px"></div></div></div>
-      <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買超 <small id="streakSub">投信 ≥3 天</small></h3>
+        <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:300px"></div></div>
+        <div class="hpanel" id="udPanel" hidden></div></div>
+      <div class="card" id="ovTrustCard"><div class="row spread"><h3>法人連續買賣超 <button class="howbtn pop" data-how="trust" aria-label="法人連續買賣超怎麼看">?</button></h3>
         <div class="row" style="gap:6px">
+          <span class="pill" id="streakSub" data-readout></span>
           <div class="seg tiny" id="streakWho"><button data-w="trust" class="on">投信</button><button data-w="foreign">外資</button><button data-w="total">合計</button></div>
-          <select class="minisel" id="streakDays" title="連續買超天數門檻">
+          <select class="minisel" id="streakDays" title="連續天數門檻（買與賣都套用）">
             <option value="2">≥2 天</option><option value="3" selected>≥3 天</option>
             <option value="5">≥5 天</option><option value="8">≥8 天</option><option value="12">≥12 天</option></select>
-          <button class="howbtn" data-how="trust">怎麼看 ?</button>
         </div></div>
         <div class="howtxt" id="how-trust" hidden></div>
-        <div id="trustWrap"><div id="trust" class="chart" style="min-height:300px"></div></div></div>
+        <div id="trustWrap"><div id="trust" class="chart" style="min-height:320px"></div></div></div>
     </div>
   </section>
 
@@ -3382,29 +3555,34 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
          → 共用時間列（看哪一天 ＋ 最近幾天 ＋ 軌跡開關）→ 圖區（2fr 時鐘 : 1fr 排行）。
          「怎麼看 ?」也只留一顆（原本 rank 那段說明併進 how-rot）—— 同一張卡不該有兩個問號鈕。 -->
     <div class="card rotcard" id="flowRotCard" style="margin-top:var(--gap-card)">
-      <div class="row spread"><h3>資金輪動 <small>錢往哪跑、跑到哪一段</small></h3>
-        <div class="row" style="gap:8px">
-          <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
-          <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
-      <div class="howtxt" id="how-rot" hidden></div>
-      <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
-           data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
-      <div class="rotfilter" id="flowRotFilter" data-rf="flow"></div>
-      <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
-           原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
-           合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
-             右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
-           容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
-           窄畫面自動換行（見 .rottime）。
-           ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
-             雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
-             N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。 -->
-      <div class="rottime" id="flowRotTime">
-        <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
-        <div class="rottools" id="rotTools"></div>
-      </div>
-      <div class="grid g21">
-        <div class="rotpane">
+      <!-- ★ 2026-09-24（Andy：「資金流向排行 右上角只有放大／怎麼看兩顆鈕，排行圖被擠到下方、上方一大片空白」）：
+           以前是「標題列 → 篩選列 → 時間列 → 圖區（2:1）」四段疊起來，篩選與時間列只佔左邊，
+           右邊那一欄從卡片頂端空到第四段才開始畫排行 —— 就是他說的「上方一大片空白」。
+           改成**整張卡就是兩欄**（仍是 .grid.g21，驗收 F3 量的 2:1 與左右順序不變）：
+             左欄＝卡片標題 → 篩選列（左上角，全站同一規則）→ 時間列 → 足跡輪盤
+             右欄＝「資金流向排行」小標＋放大／怎麼看（卡片標題列右側）→ 排行圖，從頂端一路填到卡片底
+           篩選與時間列管的仍然是兩張圖（排行也吃同一份 ROT 狀態），只是位置在左欄。
+           ≤1100px 退單欄時，兩顆鈕改成釘在卡片右上角（CSS .rotbtns），不會掉到排行那一段去。 -->
+      <div class="grid g21 rotcols">
+        <div class="rotpane rotleft">
+          <div class="row spread rothead"><h3>資金輪動 <small>錢往哪跑、跑到哪一段</small></h3></div>
+          <div class="howtxt" id="how-rot" hidden></div>
+          <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
+               data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
+          <div class="rotfilter" id="flowRotFilter" data-rf="flow"></div>
+          <!-- ★ 2026-09-23 D1（Andy：「資金輪動已經有一個時間拉 Bar 幫我合併」）：
+               原本這一列有**兩條**拉Bar（`#rotBack` 看哪一天、`#rankDays` 最近 N 天），
+               合併成一條**雙把手的區間桿**（`spanBar`，做法與代價寫在 app.js 的檔頭註解）：
+                 右把手＝看哪一天（時鐘大圈 ＋ 排行的截止日）／左把手＝這一段的起點（排行往回幾天）
+               容器 id 沿用 `#rotBack` —— 「即時」鈕與狀態列（`rlvMountBtn`）掛的就是它。
+               窄畫面自動換行（見 .rottime）。
+               ★ 2026-09-24（Andy：「時間軸拉Bar 只需要留一個 並且旁邊備註需要改成幾天前…至多30天」）：
+                 雙把手區間桿再收成**單一拉Bar「N 天前」**（`dayBar`，1～30）。點永遠停在最新一天，
+                 N 只決定腳印從哪一天走過來、排行從哪一天算起；要看「過去某一天」改用 ▶ 回放、按 ⏸ 停住。 -->
+          <div class="rottime" id="flowRotTime">
+            <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
+            <div class="rottools" id="rotTools"></div>
+          </div>
           <h4 class="subh">足跡輪盤 <small>族群在強弱循環的哪一段</small></h4>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
@@ -3415,13 +3593,25 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
                  換段資訊改由展開面板每一列的「改善→領先」徽章承擔。 -->
           <div class="rotstagerow">
             <div id="rotClockWrap"><div id="rotClock" class="chart" style="min-height:440px"></div></div>
-            <div class="hpanel stagepanel" id="stagePanel" hidden></div>
           </div>
         </div>
-        <div class="rotpane">
-          <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
-          <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
-          <div class="hpanel" id="rankPanel" hidden></div>
+        <div class="rotpane rotright">
+          <div class="row spread rotrhead">
+            <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
+            <div class="row rotbtns" style="gap:8px">
+              <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
+              <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
+          <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div>
+          <!-- ★ 2026-09-24 夜（Andy：「點擊族群時，資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
+               （同一個位置、同一種樣式），不要蓋在別處」）＋ 審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」。
+               兩塊面板（象限 #stagePanel、成分股 #rankPanel）都改成**蓋在輪盤右邊這一欄上**（position:absolute，整欄高）：
+                 · 輪盤不再被擠窄 —— 以前面板插在輪盤那一格裡，盤縮到 540px 寬、切成編號模式、卡片長高 227px
+                 · 兩塊在同一個位置、同一種樣式（.hpanel.stagepanel），同時只開一塊（app.js renderDrillPanels／rotStageToggle）
+                 · 點排行長條、點盤上的族群點、點象限面板裡的族群、點「領先」徽章，全部開在這裡
+                 · 關閉照舊：點背景、按 Esc；排行在面板底下，關掉就回來 -->
+          <div class="hpanel stagepanel sidepanel" id="stagePanel" hidden></div>
+          <div class="hpanel stagepanel sidepanel" id="rankPanel" hidden></div>
+          </div>
         </div>
       </div>
     </div>
@@ -3631,6 +3821,8 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
      route() 第一次跑的時候就要問得到 window.TwLegal。 -->
 <script src="legal_config.js"></script>
 <script src="legal.js"></script>
+<!-- 資金去向拓撲版（桌機 > 820px）：app.js 的 renderSankey() 會呼叫 window.FlowTopo，所以要在它之前 -->
+<script src="flowtopo.js"></script>
 <script src="app.js"></script>
 <script src="market3.js"></script>
 <script src="tasks.js"></script>

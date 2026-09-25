@@ -94,6 +94,36 @@ def benchmark_monthly(price: pd.DataFrame, intl: pd.DataFrame | None,
     return eq, "全市場等權月報酬" + short
 
 
+def span_months(first, last) -> int:
+    """視窗涵蓋幾個月（頭尾都算）：2023-09～2026-08 → 36。
+
+    用首尾月份相減，不數「有資料的月份」—— 中間哪個月整個族群剛好沒報酬時，
+    數出來會少一個月，但使用者選的視窗長度並沒有變。空值回 0。
+    """
+    if first is None or last is None or pd.isna(first) or pd.isna(last):
+        return 0
+    f, l_ = pd.Period(first, freq="M"), pd.Period(last, freq="M")
+    return max(0, (l_ - f).n + 1)
+
+
+def span_years(first, last) -> int:
+    """視窗長度換成「幾年」＝月數 ÷ 12，**四捨五入到整數、.5 進位**（不是銀行家捨入）。
+
+    ★ 2026-09-24 審查員抓到：近 10／5／3 年顯示成「11 年／6 年／4 年」。
+      舊寫法是 `year.nunique()`＝橫跨幾個**日曆年** —— 36 個月的滾動視窗
+      2023-09～2026-08 碰到 2023、2024、2025、2026 四個年份，就被算成 4 年。
+      改成月數 ÷ 12：36 → 3、120 → 10。
+
+    捨入規則：用 floor(月數/12 + 0.5)，所以 6 個月＝1 年（半年進位）、5 個月＝0 年、
+    137 個月（11.42）＝11 年、138 個月（11.5）＝12 年。
+    Python 內建 round() 是銀行家捨入（round(0.5)=0、round(2.5)=2），
+    同樣是「半年」卻有時進有時捨，所以刻意不用。
+    滾動視窗本身一定是 12 的倍數（整年）；只有「全部」那一段才會出現零頭。
+    """
+    m = span_months(first, last)
+    return int(np.floor(m / 12 + 0.5)) if m > 0 else 0
+
+
 def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
     if price is None or price.empty:
         return {"periods": {}, "groups": [], "benchmark_months": 0, "note": ""}
@@ -119,7 +149,6 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
     grp["excess"] = grp["ret"] - grp["bench"]
     grp["year"] = grp["ym"].dt.year
     grp["month"] = grp["ym"].dt.month
-    last_year = int(grp["year"].max())
 
     groups = (grp[["group_id", "group_name"]].drop_duplicates()
                  .sort_values("group_name").to_dict("records"))
@@ -159,7 +188,8 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
             continue
         periods[key] = {
             "from": str(sub["ym"].min()), "to": str(sub["ym"].max()),
-            "years": int(sub["year"].nunique()),
+            "years": span_years(sub["ym"].min(), sub["ym"].max()),
+            "months": span_months(sub["ym"].min(), sub["ym"].max()),
             "cells": _stats(sub),
         }
 
@@ -174,9 +204,12 @@ def build(price: pd.DataFrame, intl: pd.DataFrame | None = None) -> dict:
     bench_rows = []
     if len(bench):
         b = bench[bench.index < this_month]
-        bdf = pd.DataFrame({"ret": b.values, "month": b.index.month, "year": b.index.year})
+        bdf = pd.DataFrame({"ret": b.values, "ym": b.index, "month": b.index.month, "year": b.index.year})
         for key, years in PERIODS.items():
-            sub = bdf if years is None else bdf[bdf["year"] > last_year - years]
+            # ★ 2026-09-24：大盤對照也改成和族群同一個滾動視窗（最近 12×N 個完整月）。
+            #   以前這裡還是日曆年切法，族群用 2023-09～2026-08、大盤卻用 2024-01～2026-08，
+            #   兩邊不是同一段時間，「族群 vs 大盤」的對照就不成立。
+            sub = bdf if years is None else bdf[bdf["ym"] > last_ym - 12 * years]
             for mo, s in sub.groupby("month")["ret"]:
                 bench_rows.append({"period": key, "month": int(mo),
                                    "avg_return": round(float(s.mean()), 2),
