@@ -271,6 +271,52 @@
     }
     delete host.dataset.dgv2; delete host.dataset.dglbl; host.classList.remove('dgv2', 'dg1', 'haspart', 'dgfold');
   }
+  /* ★ 2026-09-25（Andy：「2D 圖也需要附上股票代碼，並且所有圖片內的股票代碼都要超連結到 K 線頁面」）：
+     2D 資訊卡底下掛一排台股標籤，名單規則與 3D 文字框（three3d.js 的 chips3d）完全相同：
+     零件有指定 codes 就照它（最多 4 檔、其餘 +N），沒指定才退回「這個環節的台股」（members(seg)）；
+     掛零就明講「台股無直接對應」（灰字）。標籤是真的 <a href="#stock/代號">，點擊自己吃掉，不會選到卡片。*/
+  const goStock = (code) => { if (window.goStock) window.goStock(code); else location.hash = '#stock/' + code; };
+  function wireChips(box) {
+    box.querySelectorAll('a.dgchip').forEach((a) => {
+      a.addEventListener('pointerdown', (e) => e.stopPropagation());
+      a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); goStock(a.dataset.code); });
+    });
+    return box;
+  }
+  let P3IDX = null;
+  function part3d() {
+    if (P3IDX) return P3IDX;
+    const SC = window.Rack3D && window.Rack3D.SCENES; if (!SC) return {};
+    P3IDX = {};
+    Object.keys(SC).forEach((k) => ((SC[k] && SC[k].parts) || []).forEach((p) => { if (p && p.part && !P3IDX[p.part]) P3IDX[p.part] = p; }));
+    return P3IDX;
+  }
+  function fillChips(host, members) {
+    if (!host) return;
+    host.querySelectorAll('.dgc').forEach((card) => {
+      if (!card.dataset.seg && !card.dataset.part) return;          // 公式／警語卡不掛
+      const old = card.querySelector('.dgchips'); if (old) old.remove();
+      /* 名單的權威來源是 3D 場景（three3d.js 的 SCENES[].parts[].codes）：同一個零件 2D、3D 要列同一批人。
+         3D 沒有這個零件才退回 2D 自己標的 data-codes，再退回「這個環節的台股」。*/
+      const p3 = card.dataset.part && part3d()[card.dataset.part];
+      const codes = p3 && p3.codes ? p3.codes : (card.dataset.codes != null ? card.dataset.codes.split(',').filter(Boolean) : null);
+      const cname = (c) => (window.Link && window.Link.cname && window.Link.cname[c]) || c;
+      const mem = codes
+        ? { list: codes.slice(0, 4).map((c) => ({ code: c, name: cname(c) })), total: codes.length }
+        : (members && card.dataset.seg ? (members(card.dataset.seg) || { list: [], total: 0 }) : { list: [], total: 0 });
+      const box = document.createElement('u'); box.className = 'dgchips';
+      if (!mem.list.length) box.innerHTML = '<s>台股無直接對應</s>';
+      else {
+        mem.list.forEach((c) => {
+          const a = document.createElement('a'); a.className = 'dgchip'; a.textContent = c.name;
+          a.href = '#stock/' + c.code; a.dataset.code = c.code; a.title = `${c.name} ${c.code} · 看個股 K 線`;
+          box.appendChild(a);
+        });
+        if (mem.total > mem.list.length) { const m = document.createElement('s'); m.textContent = '+' + (mem.total - mem.list.length); m.title = `這個環節共 ${mem.total} 檔台股`; box.appendChild(m); }
+      }
+      const bd = card.querySelector('.bd') || card; bd.appendChild(wireChips(box));
+    });
+  }
   function externalize(host, svg) {
     if (svg.closest('.dgcanvas')) return;                 // 這一張已經外掛過（同一張圖被 stamp 兩次）
     const exts = [].slice.call(svg.querySelectorAll('g.lrow.ext'));
@@ -370,6 +416,7 @@
       const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', '關閉'); x.textContent = '✕';
       hd.appendChild(x); pop.appendChild(hd);
       subs.forEach((tx) => { const i = document.createElement('i'); i.textContent = tx; pop.appendChild(i); });
+      const ch0 = card.querySelector('.dgchips'); if (ch0) pop.appendChild(wireChips(ch0.cloneNode(true)));
       pop.dataset.for = card.dataset.anc || '';
       pop.hidden = false; popFor = card; popAnc = anc;
       placePop();
@@ -1644,7 +1691,7 @@
      新的查找一律走 window.DiagramSlots，不要在別的地方再維護第二份名單。*/
   window.Diagrams = Object.keys(SLOTS).reduce((o, k) => (o[k] = SLOTS[k].draw, o), {});
   // 題材產品圖（site/themes3d.js）共用同一套樣式與 3D 工具，兩邊看起來才是同一套產品圖
-  window.DG = { STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   // ===== 2.5D 材質（玻璃／發光／光束）=====
   /* Andy 2026-09-22 晚的參考圖（docs/diagram_refs/2d_panel_dark_light.webp）翻成三支可重用的 helper。
