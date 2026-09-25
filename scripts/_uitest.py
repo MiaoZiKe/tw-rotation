@@ -28017,8 +28017,41 @@ def t_footprint(pg, b, base):
     m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2600)
-    ov2 = m.evaluate(FP_OVERLAP)
-    ok("⑤ [390] 預設 16 個族群的圓點重疊 ≤ 8 對（改前 14 對）", ov2["pairs"] <= 8, ov2)
+    # ★ 2026-09-25（stale-reds）改前→改後：
+    #   改前：在 390 量 `#rotClock`（桌機那張 ECharts）的重疊 → 量到 105～109 對。
+    #   改後：量使用者在 390 真正看到的那張 —— mobile3.js 的 `#mRadarFlow`（SVG 雷達）。
+    #   理由：≤640 時 body.m3on、卡片掛 .m3host，桌機那張 `#rotClock` 是 display:none（0×0），
+    #   convertToPixel 在 0×0 的圖上把 16 顆點全算到同一小塊，105 對是量測假象，不是畫面。
+    #   但換量真正看得到的雷達之後，它**真的**擠：16 顆有 15 對重疊（尺度用全部 ~50 族群算、盤上只畫 16 顆，
+    #   全被壓在圓心附近）→ 真 bug，已修 mobile3.js（尺度改用盤上那 16 顆，跟桌機 scope 同一條）。
+    hid = m.evaluate("() => { const r = document.getElementById('rotClock').getBoundingClientRect(); return { m3on: document.body.classList.contains('m3on'), w: r.width, h: r.height }; }")
+    ok("⑤ [390] 手機版掛上了、桌機那張 #rotClock 藏起來（所以重疊要量手機雷達）", hid["m3on"] and hid["w"] == 0, hid)
+    MR_OVERLAP = """() => { const cs = [...document.querySelectorAll('#mRadarFlow g[data-g] circle[stroke="#fff"]')]
+        .map(c => ({ g: c.parentNode.dataset.g, x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), r: +c.getAttribute('r') }));
+      let n = 0; for (let i = 0; i < cs.length; i++) for (let j = i + 1; j < cs.length; j++)
+        if (Math.hypot(cs[i].x - cs[j].x, cs[i].y - cs[j].y) < cs[i].r + cs[j].r) n++;
+      const svg = document.querySelector('#mRadarFlow svg'), S = svg ? +svg.getAttribute('width') : 0;
+      const far = cs.length ? Math.max(...cs.map(c => Math.hypot(c.x - S / 2, c.y - S / 2))) / (S / 2 - 30) : 0;
+      const lbl = [...document.querySelectorAll('#mRadarFlow svg g[pointer-events=none] rect')].map(r => ({ x: +r.getAttribute('x'), y: +r.getAttribute('y'), w: +r.getAttribute('width'), h: +r.getAttribute('height') }));
+      return { dots: cs.length, pairs: n, far: +far.toFixed(2), lbl, pos: Object.fromEntries(cs.map(c => [c.g, [Math.round(c.x), Math.round(c.y)]])) }; }"""
+    ov2 = m.evaluate(MR_OVERLAP)
+    ok("⑤ [390] 手機雷達 16 顆族群圓點重疊 ≤ 8 對（改前 15 對）", ov2["dots"] == 16 and ov2["pairs"] <= 8, {k: ov2[k] for k in ("dots", "pairs", "far")})
+    ok("⑤ [390] 盤上最遠那顆點離圓心 ≥ 盤半徑 60%（改前全擠在圓心 30% 內）", ov2["far"] >= 0.6, ov2["far"])
+    # 名字膠囊要貼著自己的點：每一個膠囊最近邊到某一顆點中心 ≤ 16px（改前會被往下推到 40px 以上）
+    near = m.evaluate("""() => { const cs = [...document.querySelectorAll('#mRadarFlow g[data-g] circle[stroke="#fff"]')].map(c => ({ x: +c.getAttribute('cx'), y: +c.getAttribute('cy'), r: +c.getAttribute('r') }));
+      return [...document.querySelectorAll('#mRadarFlow svg g[pointer-events=none] rect')].map(r => { const x = +r.getAttribute('x'), y = +r.getAttribute('y'), w = +r.getAttribute('width'), h = +r.getAttribute('height');
+        return Math.round(Math.min(...cs.map(c => Math.hypot(Math.max(x - c.x, 0, c.x - x - w), Math.max(y - c.y, 0, c.y - y - h)) - c.r))); }); }""")
+    ok("⑤ [390] 手機雷達的名字膠囊都貼著點（膠囊邊到點邊 ≤ 12px）", len(near) >= 3 and max(near) <= 12, near)
+    # 真的點一個角落徽章：只剩那一段的點，而且留下來的點位置一個像素都不動（尺不跟著篩選換）
+    q = m.evaluate("() => { const b = [...document.querySelectorAll('#mRadarFlow .mqb')].find(x => +x.querySelector('b').textContent > 0 && x.dataset.quad === 'improving'); if (b) b.click(); return b ? b.dataset.quad : null; }")
+    m.wait_for_timeout(500)
+    ov3 = m.evaluate(MR_OVERLAP)
+    same = [g for g, p in ov3["pos"].items() if ov2["pos"].get(g) == p]
+    # （改前：點一下角落整個盤面從 340px 縮成 290px、每顆點都跳位置 —— 輪盤大小每次重畫都重量，已修 mobile3.js）
+    ok("⑤ [390] 點「改善」角落：盤上點變少，且留下的點位置不動（尺度、盤面大小都沒跟著篩選換）",
+       q == "improving" and 0 < ov3["dots"] < ov2["dots"] and len(same) == ov3["dots"], [q, ov2["dots"], ov3["dots"], len(same)])
+    m.evaluate("() => { const b = document.querySelector('#mRadarFlow .mqb[data-quad=improving]'); if (b) b.click(); }")
+    m.wait_for_timeout(400)
     st = m.evaluate("""() => ({ side: document.documentElement.scrollWidth > innerWidth + 1,
         fs: parseFloat(getComputedStyle(document.querySelector('#rotBack .val')).fontSize) })""")
     ok("⑤ [390] 沒有橫向捲軸、拉Bar 讀數 ≥ 12px", not st["side"] and st["fs"] >= 12, st)
