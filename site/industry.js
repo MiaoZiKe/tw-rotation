@@ -3925,7 +3925,7 @@
       kchart.setPriceLines(cfg.lines && tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
       const TFN = { '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）', '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
-      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${offDay ? `${TF_NAME[tf] || tf} · 最近交易日 ${offDay}（非即時）` : (TFN[tf] || tf)}${fbNote ? '（分 K 暫代）' : ''}`);
+      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${offDay ? `${TF_NAME[tf] || tf} · ${offDay}（非即時）` : (TFN[tf] || tf)}${fbNote ? '（分 K 暫代）' : ''}`);
       const at = (arr, i) => (arr ? arr[i == null ? arr.length - 1 : i] : null);
       const show = (i, pt) => {
         const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
@@ -4291,8 +4291,10 @@
         el.innerHTML = `<div class="empty"${wait ? ' data-live="1"' : ''} style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg(tf) : '這個週期尚無資料')}</div>`;
         return;
       }
-      const c = new KChart(el, { mini: true, tf });
-      c.setBars(bars, tf);
+      // 非交易時段的 5 秒格沒收過就畫 1 分（livek.js 決定），游標時間要用分鐘格式
+      const dtf = isLiveTf(tf) && window.LiveK && window.LiveK.drawnTf ? window.LiveK.drawnTf(tf) : tf;
+      const c = new KChart(el, { mini: true, tf: dtf });
+      c.setBars(bars, dtf);
       c.applyIndicators({ ma: [20, 60], vol: false });
       if (!isLiveTf(tf)) { c.setZones(zonesFor(pg, tf)); c.setMarkers(marksFor(pg, tf)); }
       miniCharts.push(c);
