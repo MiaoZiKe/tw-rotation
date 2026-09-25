@@ -29522,8 +29522,9 @@ def t_flowtopo_reduced(b, base):
 #     特效半（照拓撲版）：線寬最粗 ≥ 最細 ×6、粒子速度最大 ≥ 最小 ×4、密度 ×6、明暗、換日依排名補間、動態開關
 #   另外驗三種模式都切得過去、看不見時停動畫、首次畫圖時間與回放幀率（寫進 notes）。
 # ★ 2026-09-26 Andy：「資金去向維持經典版的樹狀結構，不要像圖三那樣；樹狀改成如圖四那樣結構；幫我參考圖五」
-#   改前→改後（_fx_elbow／_fx_hits 兩支）：
-#     · 線：S 形貝茲、從產業鏈直條上扇形排開 → 直角（肘形）樹，兄弟共用一根幹線，四層一致
+#   Andy 的完整規格：連線「禁止使用生硬直線，必須採用平滑水平切線的三次貝茲」，CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)。
+#   改前→改後（_fx_bezier／_fx_hits 兩支）：
+#     · 線：S 形貝茲 CP 0.45／0.55（從產業鏈直條上依目標 y 扇形排開）→ 規格貝茲 CP 0.55／0.45，一律從父節點圓心那一列出發
 #     · 產業鏈節點：直條 → 圓點
 #     · 特效：加上碰撞激發（hitFlash）、擴散震波（同時 ≤ 60 圈）、標籤變亮；動態關／減少動態時全部不出現
 FX_FIRST_DRAW_MAX = 400     # ms：首次畫圖（buildModel→layout→量字→曲線→畫底圖與標籤）。容器實測 80～230ms，拓撲版同條件 77～190ms
@@ -29533,55 +29534,36 @@ def _fx_lv(t, k):
     return [n for n in (t or {}).get("nodes", []) if n["lv"] == k]
 
 
-def _fx_elbow(t, tag):
-    """★ 2026-09-26 Andy：「資金去向維持經典版的樹狀結構，不要像圖三那樣；樹狀改成如圖四那樣結構」。
+def _fx_bezier(t, tag):
+    """★ 2026-09-26 Andy 規格：連線禁止生硬直線，一律「平滑水平切線的三次貝茲」，
+    CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)；產業鏈不要直條（圖三紅框）。
     改前→改後：
-      · 線：S 形貝茲曲線（起點在直條上依目標 y 排開、扇形散出）→ 直角（肘形）樹：水平 → 垂直 → 水平，
-        起點＝父節點圓心，同一個父節點的兄弟共用同一個分叉點 x（一根幹線），四層一致
+      · 控制點：CP1＝x0＋dx×0.45、CP2＝x1−dx×0.45（＝x0＋dx×0.55）→ CP1 0.55、CP2 0.45
+      · 起點：在產業鏈直條上依目標 y 排開（扇形散出）→ 一律從父節點圓心那一列（y0＝父節點 y）
       · 產業鏈節點：直立細條（hh＝出發線寬加總）→ 圓點
-    量的是探針回報的每條邊的特徵點 el＝[x0, y0, 分叉點 x, y1, x1, 圓角]，以及查表（粒子走的那張表）
-    離理想「水平-垂直-水平」折線的最大距離 elDev（圓角半徑 7 的弧最多偏約 2px）。"""
+    量的是探針回報的每條線的貝茲 cp＝[x0,y0, c1x,c1y, c2x,c2y, x1,y1]（粒子沿同一條的查表走，offCurve 另外量）。"""
     nodes = {n["key"]: n for n in (t or {}).get("nodes", [])}
-    lk = [x for x in (t or {}).get("links", []) if x.get("el")]
-    if not ok(f"{tag} 每條邊都有直角路徑的特徵點", bool(lk) and len(lk) == len(t["links"]),
+    lk = [x for x in (t or {}).get("links", []) if x.get("cp")]
+    if not ok(f"{tag} 每條線都讀得到貝茲控制點", bool(lk) and len(lk) == len(t["links"]),
               {"有": len(lk), "全部": len(t["links"])}):
         return
-    bad_shape = []
+    bad_cp, bad_end = [], []
     for x in lk:
-        x0, y0, xb, y1, x1, rad = x["el"]
+        x0, y0, c1x, c1y, c2x, c2y, x1, y1 = x["cp"]
+        dx = x1 - x0
+        if dx <= 0 or abs(c1x - (x0 + dx * 0.55)) > 0.05 or abs(c2x - (x0 + dx * 0.45)) > 0.05 \
+                or abs(c1y - y0) > 0.05 or abs(c2y - y1) > 0.05:
+            bad_cp.append((x["key"], x["cp"]))
         a, b = nodes.get(x["from"]), nodes.get(x["to"])
-        if not a or not b:
-            bad_shape.append((x["key"], "找不到節點"))
-            continue
-        # 起點＝父節點圓心、終點＝子節點左緣、分叉點 x 夾在兩者之間
-        if abs(x0 - a["x"]) > 1 or abs(y0 - a["y"]) > 1 or abs(y1 - b["y"]) > 1 or not (x0 < xb < x1 <= b["x"]):
-            bad_shape.append((x["key"], x["el"], [a["x"], a["y"], b["x"], b["y"]]))
-    ok(f"{tag} 直角樹：每條邊從父節點圓心水平出發、在分叉點 x 轉垂直、再水平接進子節點（改前是 S 形貝茲、從直條上排開）",
-       not bad_shape, bad_shape[:3])
-    devs = [x["elDev"] for x in lk]
-    ok(f"{tag} 直角樹：粒子走的查表貼著「水平-垂直-水平」折線（偏離 ≤ 3px，只有轉角小圓弧會偏）",
-       max(devs) <= 3, {"max": max(devs), "worst": max(lk, key=lambda x: x["elDev"])["key"]})
-    sib = {}
-    for x in lk:
-        sib.setdefault(x["from"], []).append(x["el"][2])
-    split = {k: (min(v), max(v)) for k, v in sib.items() if max(v) - min(v) > 0.5}
-    ok(f"{tag} 直角樹：同一個父節點的兄弟共用同一根幹線（分叉點 x 相同）", not split, list(split.items())[:3])
-    by_lv = {}
-    for x in lk:
-        by_lv.setdefault(x["lv"], set()).add(round(x["el"][2], 1))
-    ok(f"{tag} 直角樹：同一層的分叉點 x 一致（每層一根對齊的幹線，四層都套用）",
-       sorted(by_lv) == [0, 1, 2] and all(len(v) == 1 for v in by_lv.values()), {k: sorted(v) for k, v in by_lv.items()})
-    cols, tr = t.get("cols") or [], t.get("trunk") or []
-    fr = [round((tr[i] - cols[i]) / (cols[i + 1] - cols[i]), 3) for i in range(3)] if len(cols) == 4 and len(tr) == 3 else []
-    ok(f"{tag} 直角樹：分叉點在兩欄之間、靠父節點那側（40%～62%）", len(fr) == 3 and all(0.39 <= f <= 0.63 for f in fr),
-       {"比例": fr, "幹線x": tr, "欄": cols})
-    # 幹線真的是一根：每個父節點的幹線從最上面的子節點拉到最下面的子節點
-    bad_trunk = []
-    for k, xs in sib.items():
-        kids = [nodes[x["to"]]["y"] for x in lk if x["from"] == k and x["to"] in nodes]
-        if len(kids) >= 2 and max(kids) - min(kids) < 1:
-            bad_trunk.append(k)
-    ok(f"{tag} 直角樹：有兩個以上子節點的父節點，幹線長度 > 0（最上到最下）", not bad_trunk, bad_trunk[:3])
+        if not a or not b or abs(y0 - a["y"]) > 1 or abs(y1 - b["y"]) > 1 \
+                or not (a["x"] <= x0 <= a["x"] + a["r"] + 1) or not (b["x"] - b["r"] - 1 <= x1 <= b["x"]):
+            bad_end.append((x["key"], x["cp"][:2], x["cp"][6:], a and [a["x"], a["y"], a["r"]], b and [b["x"], b["y"], b["r"]]))
+    ok(f"{tag} 四層連線都是規格貝茲：CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)（兩端切線水平；改前 0.45／0.55）",
+       not bad_cp, bad_cp[:3])
+    ok(f"{tag} 連線從父節點圓心那一列出發、接進子節點（改前在產業鏈直條上依目標 y 排開、扇形散出）",
+       not bad_end, bad_end[:3])
+    ok(f"{tag} 四層都有連線（根→產業鏈、產業鏈→族群、族群→代表股）", sorted({x["lv"] for x in lk}) == [0, 1, 2],
+       sorted({x["lv"] for x in lk}))
     L1 = _fx_lv(t, 1)
     ok(f"{tag} 產業鏈節點是圓、不是直條（改前：直立細條 hh＝出發線寬加總，Andy 圖三紅框）",
        bool(L1) and all(n["shape"] == "circle" and n["hh"] == 0 and n["r"] >= 4 for n in L1),
@@ -29692,8 +29674,8 @@ def t_flowfx(pg, b, base):
        bool(lf_step) and min(lf_step) >= 12 and max(lf_step) - min(lf_step) <= 1, lf_step)
     ok("標籤沒有互相重疊", _topo_overlap(t0) == 0, _topo_overlap(t0))
     ok("發光 shadowBlur ≤ 6px、畫布字 ≥ 12px", 0 < t0["maxBlur"] <= 6 and (t0["minFont"] or 0) >= 12, [t0["maxBlur"], t0["minFont"]])
-    # ---- ★ 2026-09-26 樹狀改直角樹（Andy 圖四）、產業鏈改圓點（圖三不要直條）
-    _fx_elbow(t0, "[經典光纖 1440 深色]")
+    # ---- ★ 2026-09-26 連線改規格貝茲（CP 0.55／0.45）、產業鏈改圓點（圖三不要直條）
+    _fx_bezier(t0, "[經典光纖 1440 深色]")
     # ---- 特效半：照拓撲版
     lk = [x for x in t0["links"] if not x["dead"]]
     ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
@@ -29704,7 +29686,7 @@ def t_flowfx(pg, b, base):
     ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
        sum(x["n"] for x in t0["links"] if x["lv"] == 2))
     # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
-    # 2026-09-26 改前→改後：「曲線」現在是直角路徑（探針的 offCurve 量的是同一張查表，斷言不變）
+    # 2026-09-26 改前→改後：曲線控制點 0.45／0.55 → 0.55／0.45（探針的 offCurve 量的是同一張查表，斷言不變）
     ok("粒子全部在自己的曲線上、根節點左邊沒有散點", t0["offCurve"] == 0 and t0["leftStray"] == 0,
        {k: t0[k] for k in ("particles", "offCurve", "leftStray", "rootX")})
     # ---- ★ 2026-09-26 碰撞激發＋擴散震波（Andy 圖五＋原型）
@@ -29866,7 +29848,7 @@ def t_flowfx(pg, b, base):
        and _topo_overlap(tw) == 0 and pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
        tw and {"overlap": _topo_overlap(tw), "leaves": len(_fx_lv(tw, 3))})
     if tw:
-        _fx_elbow(tw, "[1024px]")
+        _fx_bezier(tw, "[1024px]")
     ok("[1024px] 分段鈕沒有被擠出拉Bar 那一列", pg.evaluate("""() => { const s = document.getElementById('sankeyStyleSeg');
         const r = s.getBoundingClientRect(), p = document.getElementById('sankeyDays').getBoundingClientRect();
         return r.width > 60 && r.right <= p.right + 1 && r.left >= p.left - 1; }"""))
@@ -29884,7 +29866,7 @@ def t_flowfx(pg, b, base):
     if tl:
         _topo_contrast(tl, "[經典光纖 1440 淺色]")
         ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
-        _fx_elbow(tl, "[淺色]")
+        _fx_bezier(tl, "[淺色]")
         _fx_hits(pg, tl, "[淺色]")
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.sankey.style'); } catch (e) {} }")
     # ---- 減少動態效果：經典光纖一樣只畫靜態、換日不補間
@@ -29903,7 +29885,7 @@ def t_flowfx(pg, b, base):
     if tr:
         ok("[減少動態] 沒有震波、沒有節點在激發、標籤變亮那層是空的", tr["ripples"] == 0 and all(n["hf"] == 0 for n in tr["nodes"])
            and tr["hits"] == 0, {k: tr[k] for k in ("ripples", "hits")})
-        _fx_elbow(tr, "[減少動態]")
+        _fx_bezier(tr, "[減少動態]")
     if count(p2, bar) == 1:
         p2.evaluate(f"() => {{ const i = document.querySelector('{bar}'); i.value = 0;"
                     " i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
