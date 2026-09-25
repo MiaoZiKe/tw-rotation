@@ -342,6 +342,16 @@ def test_build_payload_end_to_end(populated):
     assert {c["code"] for c in cands} <= {r["code"] for r in index}
     for r in index:
         assert (stock_dir / f"{r['code']}.json").exists(), f"{r['code']} 在索引裡卻沒有個股頁"
+    # 漲跌家數分佈（2026-09-26 分上市／上櫃／全部）：每列帶管線算的級距 `ud`，
+    # updown.json 的 all.n ＝ 有級距的列數，而且每一級 全部 ＝ 上市 ＋ 上櫃 ＋ 市場別不明
+    from pipeline.compute import flow
+    assert all("ud" in r for r in index)
+    assert all(r["ud"] == flow.updown_bin(r["chg_pct"]) for r in index)
+    ud = json.loads((site / "updown.json").read_text(encoding="utf-8"))
+    assert ud["check"]["ok"] and ud["all"]["n"] == sum(1 for r in index if r["ud"] is not None) > 0
+    for i in range(11):
+        assert ud["all"]["counts"][i] == ud["twse"]["counts"][i] + ud["tpex"]["counts"][i] + ud["other"]["counts"][i]
+    assert ud["twse"]["n"] == sum(1 for r in index if r["ud"] is not None and r["market"] == "TWSE")
 
     # 族群下鑽：每個族群都有成分股明細，成交值由大到小
     gd = json.loads((site / "groups_detail.json").read_text(encoding="utf-8"))

@@ -659,3 +659,101 @@ def _bump(g: pd.DataFrame, blocks_days: list[list[str]], unit: str) -> dict:
         name = latest[latest["group_id"] == gid]["group_name"].iloc[0]
         series.append({"group_id": gid, "group_name": name, "ranks": ranks, "shares": shares})
     return {"weeks": labels, "series": series, "unit": unit, "label": BUMP_UNIT_LABEL[unit]}
+
+
+# ---------------------------------------------------------------- 漲跌家數分佈（總覽，依市場拆三組）
+# Andy 2026-09-26：總覽「漲跌家數」長條圖「需要分 上市 上櫃 全部」。
+# 分級規則以前只寫在前端（app.js 的 UD_BINS），這裡搬一份到管線當**唯一權威**：
+# stocks.json 每列多帶 `ud`（級距索引），前端有 `ud` 就直接用它分組，不再各算各的 ——
+# 兩邊各寫一套邊界，遲早有一邊改了另一邊沒改（KInd 與 indicators.py 就是前車之鑑）。
+UD_LABELS = ("跌停", "<-5", "-5~-3", "-3~-1", "-1~0", "平", "0~1", "1~3", "3~5", ">5", "漲停")
+UD_MARKETS = ("twse", "tpex")          # 前端分段鈕的兩個市場鍵；all＝全部，other 收市場別不明的
+
+
+def _round2_half_up(v: float) -> float:
+    """四捨五入到 0.01，**.5 一律往 +∞ 進**，跟 JavaScript 的 `Math.round(v*100)/100` 逐位相同。
+
+    刻意不用 Python 內建 `round()`：它是銀行家捨入（0.125 → 0.12），前端 Math.round 是 0.13，
+    剛好落在邊界上的股票兩邊會分到不同級距，點一級列出來的清單就跟長條高度對不起來。
+    """
+    return float(np.floor(v * 100 + 0.5)) / 100
+
+
+def updown_bin(chg_pct, limit_pct: float = 9.5) -> int | None:
+    """單檔漲跌幅（%）→ 11 級距的索引（對應 UD_LABELS）；缺值／非數字／非有限數回 None。
+
+    先四捨五入到 0.01（_round2_half_up），再依序比：
+      0 跌停 v ≤ -limit｜1 <-5：v ≤ -5｜2 -5~-3：v ≤ -3｜3 -3~-1：v ≤ -1｜4 -1~0：v < 0
+      5 平 v == 0｜6 0~1：v < 1｜7 1~3：v < 3｜8 3~5：v < 5｜9 >5：v < limit｜10 漲停 v ≥ limit
+    邊界值一律歸到「比較極端」那一級（-5.00 → <-5、+1.00 → 1~3），正負兩邊對稱。
+    漲跌停門檻由呼叫端傳 build_payload.LIMIT_PCT（9.5），不在這裡另立一個真值。
+    ⚠ 新上市前五天沒有漲跌幅限制（例如 +110%），也歸在「漲停」這一級 —— 那是「≥ 門檻」的意思，
+      不是宣稱它鎖漲停（DECISIONS #258 第 8 點的既有口徑，這裡不變）。
+    """
+    if isinstance(chg_pct, bool):
+        return None
+    try:
+        v = float(chg_pct)
+    except (TypeError, ValueError):
+        return None
+    if not np.isfinite(v):
+        return None
+    v = _round2_half_up(v)
+    if v <= -limit_pct:
+        return 0
+    for i, edge in ((1, -5), (2, -3), (3, -1)):
+        if v <= edge:
+            return i
+    if v < 0:
+        return 4
+    if v == 0:
+        return 5
+    for i, edge in ((6, 1), (7, 3), (8, 5), (9, limit_pct)):
+        if v < edge:
+            return i
+    return 10
+
+
+def _market_key(m) -> str:
+    """company_info 的市場別（TWSE／TPEX）→ 分段鈕的鍵；其他（興櫃、缺值）一律 other。"""
+    s = str(m or "").strip().upper()
+    return {"TWSE": "twse", "TPEX": "tpex"}.get(s, "other")
+
+
+def updown_distribution(rows, limit_pct: float = 9.5) -> dict:
+    """漲跌家數分佈，依市場拆成 all／twse／tpex（＋other 收市場別不明的）。
+
+    輸入：stocks.json 那種列（dict，需有 `chg_pct`、`market`）。沒有有效漲跌幅的列不計入任何一組
+    （跟前端長條的分母同一個定義，卡片右上「共 N 檔」就是 all.n）。
+    輸出：
+      {"labels": [11 級], "limit_pct": 9.5,
+       "all":  {"n": 2289, "counts": [11 個整數], "down": 跌家數, "flat": 平盤, "up": 漲家數},
+       "twse": {...}, "tpex": {...}, "other": {...},
+       "check": {"ok": True, "diff": [11 個 0]}}   # diff＝all −(twse+tpex+other)，每一級都要是 0
+    不變式：每一級 all ＝ twse ＋ tpex ＋ other。2026-09-24 的資料湖 other＝0
+    （company_info 的市場別與 price_daily 當天回報那一檔的交易所，2333 檔逐檔比對 0 不符），
+    所以畫面上「上市＋上櫃＝全部」；哪天出現 other，前端會在「?」裡寫出幾檔，
+    不會默默讓兩個按鈕加起來少於「全部」。
+    空輸入：各組 n＝0、counts 全 0，check.ok 仍為 True。
+    """
+    keys = ("all",) + UD_MARKETS + ("other",)
+    counts = {k: [0] * len(UD_LABELS) for k in keys}
+    for r in rows or []:
+        if not isinstance(r, dict):
+            continue
+        i = updown_bin(r.get("chg_pct"), limit_pct)
+        if i is None:
+            continue
+        counts["all"][i] += 1
+        counts[_market_key(r.get("market"))][i] += 1
+
+    def _pack(c: list[int]) -> dict:
+        return {"n": int(sum(c)), "counts": c, "down": int(sum(c[:5])), "flat": int(c[5]),
+                "up": int(sum(c[6:]))}
+
+    out: dict = {"labels": list(UD_LABELS), "limit_pct": limit_pct}
+    out.update({k: _pack(counts[k]) for k in keys})
+    diff = [counts["all"][i] - sum(counts[k][i] for k in UD_MARKETS + ("other",))
+            for i in range(len(UD_LABELS))]
+    out["check"] = {"ok": not any(diff), "diff": diff}
+    return out

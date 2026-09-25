@@ -1104,7 +1104,16 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             "grade": r["grade"] if r else None,
             "tier": ("full" if code in intraday_set else "daily") if r else "thin",
         })
+    # ★ 2026-09-26 漲跌家數分上市／上櫃／全部：級距由管線決定（flow.updown_bin，唯一權威），
+    # 每列帶 `ud`，前端分組直接讀它；updown.json 是三組家數（all／twse／tpex／other）＋加總檢查。
+    for it in index:
+        it["ud"] = flow.updown_bin(it["chg_pct"], LIMIT_PCT)
     _write("stocks", index)
+    ud = flow.updown_distribution(index, LIMIT_PCT)
+    if not ud["check"]["ok"]:
+        # 不可能發生（all 是三組逐列加出來的），真的發生代表程式被改壞 —— 寫 log，不擋整個 payload
+        log.warning("漲跌家數分佈加總不一致：%s", ud["check"]["diff"])
+    _write("updown", ud)
     log.info("個股頁：完整 %d 檔（分 K %d 檔）、簡版 %d 檔",
              len(rows), len(intraday_set & written), len(thin_codes))
 

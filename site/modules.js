@@ -136,7 +136,7 @@
       "at": [
         { "page": "overview", "step": 2, "seg": "市場寬度", "ord": 60, "selector": ["#ovBreadthCard"] }
       ],
-      "tests": ["總覽"] },
+      "tests": ["總覽", "漲跌家數市場別"] },
 
     { "id": "market.streak", "name": "法人連續買賣超", "question": "②", "ask": "法人在誰身上連續買或賣、力道在加大還是收手（四象限，投信／外資／合計，門檻可調）",
       "tier": "免費〔推〕", "law": "🟠",
