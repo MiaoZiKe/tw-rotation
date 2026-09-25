@@ -13576,6 +13576,10 @@ SECTIONS = {
     "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
     # ★ 2026-09-25 Andy 回報「點擊後不會收回」：2D／3D 剖析圖同一時間只展開一張卡片（⚠ 一律 --workers 1）
     "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
+    # ★ 2026-09-26 Andy：「點擊背景後說明欄會消失」—— 關聯圖右欄說明卡／公司資訊欄／環節詳情點背景、Esc 收回並取消高亮
+    "關聯圖說明卡點背景收回": lambda pg, b, base, code: t_rel_dismiss(pg, base),
+    # ★ 2026-09-26 Andy：「切回 2D 時，顯示 2D，不要都 3D」—— 剖析圖 2D｜3D 分段鈕、記住最後選的模式（⚠ 一律 --workers 1）
+    "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -29108,7 +29112,7 @@ def t_fold3d(pg, base):
         pg.goto(f"{base}#{r2}", wait_until="networkidle"); pg.wait_for_timeout(1600)
         if not pg.evaluate(f"() => !!(window.Rack3D && window.Rack3D.hasScene('{scene}'))"):
             continue
-        if not pg.evaluate("() => (document.getElementById('dg3d')||{}).classList.contains('cyan')"):
+        if not pg.evaluate("() => ((document.getElementById('dg3d')||{}).dataset||{}).mode === '3d'"):
             click(pg, "#dg3d button:not(.on)", 400)
         wait_until(pg, "() => !!(window.Rack3D.current && document.querySelectorAll('#prod3d .lbl3d').length > 3)", 12000)
         pg.wait_for_timeout(1000)
@@ -30433,6 +30437,187 @@ def t_flowfx(pg, b, base):
         tr2 = p2.evaluate(TOPO)
         ok("[減少動態] 換日直接到位（沒有補間）", bool(tr2) and not tr2["tweening"])
     ctx.close()
+
+
+# ===================================================================== 2026-09-26：關聯圖說明卡點背景收回
+REL_ST = """() => { const rm = document.getElementById('relMain'), sb = document.getElementById('segBox');
+  const lst = [...document.querySelectorAll('#relList .rlseg.on')].filter(x => x.getClientRects().length > 0);
+  return { hassel: !!rm && rm.classList.contains('hassel'), on: lst.map(x => x.dataset.seg),
+    co: !!document.getElementById('coBox'), coTxt: ((document.getElementById('coBox') || {}).innerText || '').slice(0, 40),
+    dim: document.querySelectorAll('.chainmap .co.dim').length, sel: document.querySelectorAll('.chainmap .segtitle.sel').length,
+    segBox: sb ? sb.innerText.trim().length : 0, dd: ((document.querySelector('#segDDBtn b') || {}).textContent || '') }; }"""
+# 圖上的「空白背景」：SVG 本身（不是節點、標籤、邊線）。從可視範圍裡掃一個 elementFromPoint 正好是 <svg> 的點。
+REL_BLANK = """() => { const svg = document.querySelector('#chainMap svg'); if (!svg) return null;
+  const r = svg.getBoundingClientRect(), top = Math.max(r.top, 90) + 8, bot = Math.min(r.bottom, innerHeight) - 8;
+  for (let y = top; y < bot; y += 11)
+    for (let x = Math.max(r.left, 0) + 8; x < Math.min(r.right, innerWidth) - 8; x += 13) {
+      const e = document.elementFromPoint(x, y); if (e === svg) return { x, y }; }
+  return null; }"""
+
+
+def _rel_blank_click(pg):
+    """捲到關聯圖、找一塊空白、用真滑鼠點下去。找不到空白就回 None（呼叫端自己處理）。"""
+    pg.evaluate("() => { const m = document.getElementById('chainMap'); if (m) m.scrollIntoView({ block: 'center', behavior: 'instant' }); }")
+    pg.wait_for_timeout(300)
+    pt = pg.evaluate(REL_BLANK)
+    if pt:
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(600)
+    return pt
+
+
+def t_rel_dismiss(pg, base):
+    """Andy 2026-09-26：「點擊背景後說明欄會消失」。
+    #industry/semiconductor 的供應鏈分層圖，點環節標題或個股標籤之後右側（窄畫面在圖上方）會出現說明卡。
+    要驗的是「畫面真的變了」：卡片不見（.hassel 拿掉、.rlseg.on 0、#coBox 不在、#segBox 空）、
+    圖上的選取高亮（.co.dim、.segtitle.sel）全部歸零、下拉鈕回到「全部」。
+    反過來也要驗：點到節點、標籤、卡片本身**不會**被當成點背景而收掉。"""
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    keep = pg.evaluate("() => { try { return ['tw.relOpen','tw.relView','tw.side'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null]; } }")
+    for width in (1440, 800):
+        T = f"[{width}]"
+        wide = width > 820
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        pg.evaluate("() => { try { localStorage.setItem('tw.relOpen','1'); localStorage.setItem('tw.relView','layer'); localStorage.setItem('tw.side','0'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.evaluate("() => { const r = document.getElementById('relSec'); if (r) r.scrollIntoView({ block: 'start', behavior: 'instant' }); }")
+        if not wait_until(pg, "() => document.querySelectorAll('#chainMap .segtitle').length > 3", 10000):
+            ok(f"{T} 關聯圖畫得出來", False, "10 秒內沒有環節標題"); continue
+        s0 = pg.evaluate(REL_ST)
+        ok(f"{T} 一進來沒有任何選取（卡片不在、沒有淡化）", not s0["hassel"] and not s0["co"] and s0["dim"] == 0 and s0["segBox"] == 0, s0)
+        # ① 點環節標題 → 卡片出現、圖上有高亮
+        click(pg, "#chainMap .segtitle[data-seg='foundry']", 700)
+        s1 = pg.evaluate(REL_ST)
+        ok(f"{T} 點「晶圓代工」標題：說明卡出現、其餘公司淡化",
+           s1["dim"] > 0 and s1["sel"] == 1 and (s1["on"] == ["foundry"] if wide else s1["segBox"] > 0), s1)
+        # ② 點卡片本身（桌機：右欄那一節的標題；窄畫面：環節詳情的標題）→ 不收
+        click(pg, "#relList .rlseg.on .rlsh b" if wide else "#segBox .segbox .t", 500)
+        s2 = pg.evaluate(REL_ST)
+        ok(f"{T} 點說明卡本身不會收掉",
+           s2["dim"] == s1["dim"] and (s2["on"] == ["foundry"] if wide else s2["segBox"] > 0), s2)
+        # ③ 點另一個環節標題＝換一格，不是點背景
+        click(pg, "#chainMap .segtitle[data-seg='ic_design']", 700)
+        s3 = pg.evaluate(REL_ST)
+        ok(f"{T} 點另一個環節標題＝換成那一格（不是收掉）",
+           s3["dim"] > 0 and s3["sel"] == 1 and (s3["on"] == ["ic_design"] if wide else s3["segBox"] > 0), s3)
+        # ④ 點圖的空白背景 → 卡片消失、高亮全部取消
+        pt = _rel_blank_click(pg)
+        if ok(f"{T} 關聯圖上找得到空白背景可以點", bool(pt), pt):
+            s4 = pg.evaluate(REL_ST)
+            ok(f"{T} 點圖的空白背景：說明卡消失、高亮取消、下拉回到「全部」",
+               not s4["hassel"] and not s4["on"] and s4["dim"] == 0 and s4["sel"] == 0 and s4["segBox"] == 0 and s4["dd"] == "全部", s4)
+        # ⑤ 點個股標籤（2330）→ 公司資訊欄＋環節卡；再點另一家（2303）→ 換卡不收
+        click(pg, "#chainMap .co[data-code='2330']", 900)
+        s5 = pg.evaluate(REL_ST)
+        ok(f"{T} 點台積電 2330：公司資訊欄出現、晶圓代工被選起來", s5["co"] and "2330" in s5["coTxt"] and s5["dim"] > 0, s5)
+        click(pg, "#chainMap .co[data-code='2303']", 900)
+        s6 = pg.evaluate(REL_ST)
+        ok(f"{T} 點另一家聯電 2303＝換成它的資訊欄（不是收掉）", s6["co"] and "2303" in s6["coTxt"] and s6["dim"] > 0, s6)
+        # ⑥ Esc → 全部收
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+        s7 = pg.evaluate(REL_ST)
+        ok(f"{T} 按 Esc：公司資訊欄與說明卡一起收、高亮取消",
+           not s7["co"] and not s7["hassel"] and s7["dim"] == 0 and s7["sel"] == 0 and s7["segBox"] == 0, s7)
+        # ⑦ 開公司資訊欄 → 點背景 → 全部收
+        click(pg, "#chainMap .co[data-code='2330']", 900)
+        pt = _rel_blank_click(pg)
+        if not pt:
+            # 窄畫面資訊欄會把圖往下推，可視範圍裡可能剛好沒有空白 —— 改點頁面最底下的空白處（同樣是「背景」）
+            pg.mouse.click(width - 6, 940); pg.wait_for_timeout(600)
+        s8 = pg.evaluate(REL_ST)
+        ok(f"{T} 開著公司資訊欄時點背景：資訊欄與說明卡一起收、高亮取消",
+           not s8["co"] and not s8["hassel"] and s8["dim"] == 0 and s8["segBox"] == 0, {**s8, "blank": pt})
+        # ⑧ 從「環節 ▾」下拉選一格（桌機才有下拉）→ 卡片出現，不會被「點下拉」當成點外面收掉
+        if wide:
+            click(pg, "#segDDBtn", 400)
+            click(pg, "#segChips .segchip[data-seg='foundry']", 700)
+            s9 = pg.evaluate(REL_ST)
+            ok(f"{T} 從下拉選「晶圓代工」：說明卡出現而且留著", s9["on"] == ["foundry"] and s9["dim"] > 0, s9)
+            pt = _rel_blank_click(pg)
+            s10 = pg.evaluate(REL_ST)
+            ok(f"{T} 下拉選的那一格，點背景一樣收", bool(pt) and not s10["on"] and s10["dim"] == 0, {**s10, "blank": pt})
+    pg.evaluate("(v) => { try { ['tw.relOpen','tw.relView','tw.side'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
+# ===================================================================== 2026-09-26：剖析圖 2D｜3D 分段鈕
+DG_MODE = """() => { const s = document.getElementById('dg3d'); if (!s) return null;
+  const vis = (e) => !!e && !e.hidden && e.getClientRects().length > 0;
+  return { shown: vis(s), mode: s.dataset.mode || '', on: [...s.querySelectorAll('button.on')].map(b => b.textContent.trim()),
+    pressed: [...s.querySelectorAll('button[aria-pressed="true"]')].map(b => b.textContent.trim()),
+    svg: vis(document.getElementById('prodDiagram')), canvas: document.querySelectorAll('#prod3d canvas').length,
+    host3d: vis(document.getElementById('prod3d')),
+    drag: vis(document.getElementById('dgDrag')), reset: vis(document.getElementById('dgReset')),
+    ls: (() => { try { return localStorage.getItem('tw.dg3d'); } catch (e) { return 'ERR'; } })(),
+    tab: location.hash.split('/').pop() }; }"""
+
+
+def t_dg_2d3d(pg, base):
+    """Andy 2026-09-26：「切回 2D 時，顯示 2D，不要都 3D」。
+    以前那顆開關不管在哪個模式都寫「3D 立體」。現在是分段鈕「2D｜3D」，亮的那一格＝現在的模式。
+    真的按：（上次選 3D 進來）3D 亮 → 按亮著的 3D 不動 → 切 2D：2D 亮、平面圖在、3D 收乾淨、拖曳／重設藏起來
+    → 換分頁仍是 2D → 重新整理仍是 2D → 切 3D：3D 亮、畫布掛起來 → 換分頁仍是 3D → 收尾切回 2D。
+    800px 也走一次，而且分段鈕不准撐出橫向捲軸。"""
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    keep = pg.evaluate("() => { try { return ['tw.dg3d','tw.dgOpen','tw.side'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null]; } }")
+    for width in (1440, 800):
+        T = f"[{width}]"
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        # 故意從 3D 開始：「切回 2D」這一步本身就是要驗的事
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d','1'); localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.side','0'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle")
+        if not wait_until(pg, "() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; }", 8000):
+            ok(f"{T} 矽晶圓分頁有 2D｜3D 分段鈕", False, pg.evaluate(DG_MODE)); continue
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+            notes.append(f"{T} 這個環境不支援 WebGL，2D｜3D 分段鈕沒有驗"); continue
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        m0 = pg.evaluate(DG_MODE)
+        ok(f"{T} 上次選 3D → 一進來 3D 那一格亮（不是 2D）",
+           m0["on"] == ["3D"] and m0["pressed"] == ["3D"] and m0["mode"] == "3d" and m0["host3d"], m0)
+        ok(f"{T} 3D 時「拖曳」「重設視角」在", m0["drag"] and m0["reset"], m0)
+        # 按一下已經亮著的「3D」＝什麼都不做（分段鈕不是開關）
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 600)
+        m1 = pg.evaluate(DG_MODE)
+        ok(f"{T} 按已經亮著的「3D」不會切走", m1["mode"] == "3d" and m1["canvas"] == 1 and m1["host3d"], m1)
+        # 切 2D
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+        m2 = pg.evaluate(DG_MODE)
+        ok(f"{T} 按「2D」→ 2D 那一格亮、平面圖出現、3D 畫布收乾淨",
+           m2["on"] == ["2D"] and m2["pressed"] == ["2D"] and m2["svg"] and m2["canvas"] == 0 and not m2["host3d"] and m2["ls"] == "0", m2)
+        ok(f"{T} 2D 時「拖曳：轉動」「重設視角」藏起來", not m2["drag"] and not m2["reset"], m2)
+        # 換分頁（真的點分頁列）→ 仍是 2D
+        click(pg, "#dgPick .segchip[data-dgid='hbm']", 400)
+        wait_until(pg, "() => location.hash.endsWith('/hbm') && (() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; })()", 6000)
+        pg.wait_for_timeout(900)
+        m3 = pg.evaluate(DG_MODE)
+        ok(f"{T} 換到 HBM 分頁：仍然是 2D（2D 亮、沒有 3D 畫布）", m3["tab"] == "hbm" and m3["on"] == ["2D"] and m3["svg"] and m3["canvas"] == 0, m3)
+        # 重新整理 → 仍是 2D
+        pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; }", 8000)
+        pg.wait_for_timeout(1200)
+        m4 = pg.evaluate(DG_MODE)
+        ok(f"{T} 重新整理：仍然是 2D", m4["on"] == ["2D"] and m4["svg"] and m4["canvas"] == 0 and m4["ls"] == "0", m4)
+        if width <= 820:
+            ov = pg.evaluate("() => document.documentElement.scrollWidth - document.documentElement.clientWidth")
+            ok(f"{T} 分段鈕沒有撐出整頁橫向捲軸", ov <= 1, ov)
+        # 切 3D → 3D 亮、畫布掛起來
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        m5 = pg.evaluate(DG_MODE)
+        ok(f"{T} 按「3D」→ 3D 那一格亮、平面圖收起來、3D 畫布掛起來",
+           m5["on"] == ["3D"] and m5["mode"] == "3d" and not m5["svg"] and m5["canvas"] == 1 and m5["ls"] == "1", m5)
+        # 換回矽晶圓分頁 → 仍是 3D（全頁一致）
+        _dg3d_toolbar_click(pg, "#dgPick .segchip[data-dgid='silicon_wafer']", 400)
+        wait_until(pg, "() => location.hash.endsWith('/silicon_wafer') && document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        m6 = pg.evaluate(DG_MODE)
+        ok(f"{T} 換到矽晶圓分頁：仍然是 3D", m6["tab"] == "silicon_wafer" and m6["on"] == ["3D"] and m6["canvas"] == 1, m6)
+        # 收尾：切回 2D，不要汙染後面的段落
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+        m7 = pg.evaluate(DG_MODE)
+        ok(f"{T} 收尾切回 2D", m7["on"] == ["2D"] and m7["canvas"] == 0, m7)
+    pg.evaluate("(v) => { try { ['tw.dg3d','tw.dgOpen','tw.side'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
 
 
 if __name__ == "__main__":
