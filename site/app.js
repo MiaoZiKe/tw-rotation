@@ -497,13 +497,27 @@
     let c = echarts.getInstanceByDom(el);
     // renderer 是 init 當下決定的，中途要換只能整個 dispose 重建
     if (c && el._renderer && el._renderer !== want) { c.dispose(); c = null; }
-    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; }
+    let fresh = false;
+    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; }
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
       c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
       c._soft = true;
     }
-    c.setOption(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option), opts && opts.notMerge !== false);
+    let full = Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option);
+    /* ★ 2026-09-24 效能：**圖表第一次出現不播進場動畫**（長條長出來、扇形轉開那一段 0.24～0.5 秒）。
+       首次開總覽時七八張圖同時進場，每一幀都要把每張圖重畫一次 —— 實測把進場動畫拿掉，
+       總阻塞時間（TBT）2.6／3.3 秒 → 1.3／2.0 秒、最長卡住 1.8／1.4 秒 → 0.8／0.7 秒（同一台機器交錯量兩輪）。
+       只拿掉「第一次建立這張圖」的那一次：之後換篩選、拖時間軸、播放的**更新補間**（animationDurationUpdate）完全不動，
+       輪動時鐘的絲滑移動、排行換位都照舊。下一次經由 chart() 重畫就回到原本的進場時間。
+       ⚠ 系列自己寫了 animationDuration 的（熱力圖 240ms）那一層也要一起歸零，不然系列層會蓋過頂層。*/
+    if (fresh) {
+      full = Object.assign({}, full, { animationDuration: 0 });
+      const ser = full.series;
+      const zero = (x) => (x && typeof x === 'object' && x.animationDuration != null ? Object.assign({}, x, { animationDuration: 0 }) : x);
+      if (Array.isArray(ser)) full.series = ser.map(zero); else if (ser) full.series = zero(ser);
+    }
+    c.setOption(full, opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
     if (!el._ro && typeof ResizeObserver !== 'undefined') {
