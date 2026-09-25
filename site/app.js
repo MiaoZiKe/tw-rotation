@@ -676,6 +676,43 @@
   }
   const resizeAllCharts = () => { Object.values(charts).forEach(c => { try { resizeIfChanged(c); } catch (e) { /* 已經 dispose 的圖 */ } }); };
   window.addEventListener('resize', resizeAllCharts);
+  /* ★ 2026-09-24 效能：**首屏以外的卡片延後畫**（Andy：「開啟網頁都會卡頓一陣子」）。
+     以前總覽／資金流向一進來就把整頁十幾張圖**在同一個任務裡**全部畫完 —— 實測首次開總覽那一個任務 1.4 秒、
+     資金流向 1.5 秒，這段時間整頁點不動、捲不動。其中一半是還在畫面下方、使用者根本還沒捲到的卡片。
+     `whenNear(el, fn)`：卡片已經在畫面裡（或離畫面不到 NEAR_PX）→ 當場畫，跟以前一模一樣；
+     還在下面 → 等它捲近了（IntersectionObserver）才畫；使用者沒捲，也會在瀏覽器**閒下來**時一張一張補畫
+     （requestIdleCallback，每張各自一個任務，最慢 NEAR_IDLE_MAX 毫秒內一定畫）。
+     所以功能一個都沒少：只是「畫的順序」從「全部一起」變成「看得到的先、看不到的閒了再畫」。
+     ⚠ 同一個容器重排（換主題重畫、篩選改了）時，以最後一次交代的為準（Map 以元素為鍵），不會畫兩次舊的。*/
+  const NEAR_PX = 240, NEAR_IDLE_MAX = 2500;
+  const _near = new Map();
+  let _nearIO = null, _nearIdle = 0;
+  function runNear(el) {
+    const fn = _near.get(el); if (!fn) return;
+    _near.delete(el);
+    if (_nearIO) _nearIO.unobserve(el);
+    try { fn(); } catch (e) { console.warn('延後畫的卡片失敗', el && el.id, e); }
+  }
+  function nearIdle() {
+    if (_nearIdle || !_near.size) return;
+    const ric = window.requestIdleCallback || ((f) => setTimeout(f, 120));
+    _nearIdle = ric(() => {
+      _nearIdle = 0;
+      const first = _near.keys().next();
+      if (!first.done) runNear(first.value);
+      nearIdle();
+    }, { timeout: NEAR_IDLE_MAX });
+  }
+  function whenNear(el, fn) {
+    if (!el || typeof IntersectionObserver === 'undefined') { fn(); return; }
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.top < window.innerHeight + NEAR_PX && r.bottom > -NEAR_PX) { _near.delete(el); fn(); return; }
+    if (!_nearIO) _nearIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) runNear(e.target); }),
+      { rootMargin: NEAR_PX + 'px 0px' });
+    _near.set(el, fn);
+    _nearIO.observe(el);
+    nearIdle();
+  }
   /* 瀏覽器縮放（Ctrl +/-）會改 devicePixelRatio，而 ECharts 是在 init 當下記住 DPR 的。
      只呼叫 resize() 的話畫布尺寸對了、內部座標還是舊 DPR，結果就是「圖縮到中間一小塊、周圍一片黑」
      （Andy 縮小視窗後熱力圖變一小塊就是這個）。DPR 一變就整個丟掉重建，沒有別的解法。 */
@@ -2693,12 +2730,12 @@
          不然 82% 只是「在同樣小的框裡畫大一點」。
        · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
     renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
-    renderOvFlow(sd);
-    renderThemeStrip(th);
-    renderCandidates(cands);
-    renderBreadth(heat);
-    renderTrust(trust, cands, streak);
-    wireStreak(trust, cands, streak);
+    // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
+    whenNear($('#ovFlow'), () => renderOvFlow(sd));
+    whenNear($('#themeStrip'), () => renderThemeStrip(th));
+    whenNear($('#candTable') && $('#candTable').closest('.card'), () => renderCandidates(cands));
+    whenNear($('#breadth'), () => renderBreadth(heat));
+    whenNear($('#trust'), () => { renderTrust(trust, cands, streak); wireStreak(trust, cands, streak); });
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
@@ -5827,7 +5864,8 @@
     const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
       drawRankDays(ROT.days);
-      drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
+      // 族群 × 法人在首屏下方：捲近了（或閒下來）才畫；已經在畫面裡就當場畫（見 whenNear）
+      whenNear($('#instGroups'), () => drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS));
     };
     /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
@@ -6144,7 +6182,7 @@
        和「資金集中度」高度重疊，而集中度那張還多了均線與逐日鑽取。
        `renderRiver` / `sliceShare` 也一併刪掉 —— 留著沒有人呼叫的函式只會讓下一個人以為還在用。*/
     const drawConc = () => renderConc(conc, flowState.concTop);
-    drawConc();
+    whenNear($('#conc'), drawConc);               // 首屏下方：捲近了（或閒下來）才畫
     $$('#concSeg button').forEach(b => b.onclick = () => {
       $$('#concSeg button').forEach(x => x.classList.toggle('on', x === b)); flowState.concTop = +b.dataset.v; drawConc();
     });
