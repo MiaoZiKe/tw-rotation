@@ -65,6 +65,13 @@
      5. 鮮豔：深色主題畫布底 #050a14；產業鏈色改飽和版（CHAIN_HUE_EL）。
      字級照專案下限 12px（參考稿 11／10px），所以代表股間距 13px（參考稿 9px 配 10px 字）。
 
+   ★ 2026-09-26（總覽）Andy：「昨日資金去向這邊 UI 也需要重新設定，但功能照舊」→ 加一個緊湊版 layout:'mini'：
+     和經典光纖第二版**同一套視覺**（精緻圓點、細亮光芯＋淡外暈、CP 0.45 對稱貝茲、飽和產業鏈色、17px 膠囊、
+     白核心粒子＋碰撞光環／細漣漪），但只有三層（加權指數 → 產業鏈 → 族群，沒有代表股欄）、沒有上方說明列
+     （動態開關縮成畫布左下角一顆小鈕）、粒子預算小（CFG.MINI_P_BUDGET）、高度由呼叫端給（總覽那張的高度公式不變）。
+     根節點標籤放在圓點正上方（和舊版一樣），產業鏈與族群的膠囊在節點右邊；欄位依「最長的族群標籤」往右靠齊，
+     產業鏈那欄夾在根與族群之間、讓膠囊不壓到族群欄（見 layoutMini）。
+
    規矩（CLAUDE.md，載入時斷言，違規直接丟錯）：
      · 發光 shadowBlur 4～6px（上限 10，這裡壓 6）；只在預先畫好的粒子小圖上用
      · Canvas 字級 ≥ 12px（setTransform 乘 DPR，字是用 CSS px 算的，不會糊）
@@ -108,7 +115,10 @@
     /* 黃金標準每幀先蓋一層 rgba(5,10,20,.38) 再重畫線 → 線條的「看起來的」透明度會累積到穩態
        a／(1−(1−a)(1−0.38))：內芯 0.65 → 0.83、外暈 0.09 → 0.21、毛細 0.2 → 0.40、毛細外暈 0.04 → 0.10。
        Andy 附的鮮豔度參考圖就是這個穩態。這裡不做整張殘影（軟體繪圖會掉一半幀率），改成底圖直接畫穩態值。*/
-    EL_TRAIL: 0.38,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
+    EL_TRAIL: 0.38,
+    /* 緊湊版（layout:'mini'，總覽「昨日資金去向」）：族群一格 22px（舊版 ECharts 的「族群數 × 22 ＋ 46」同一個間距），
+       鏈與鏈之間最多空 6px；整張的粒子預算 110 顆（總覽首屏，不能讓載入變重）*/
+    MINI_SLOT: 22, MINI_GAP: 6, MINI_P_BUDGET: 110,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
     /* ★ 2026-09-26 經典光纖改貝茲規格＋碰撞激發（數字取自 Andy 給的規格／原型，「每幀」換算成「每 1/60 秒」）*/
     /* 三次貝茲控制點（寫成 x0＋dx×k）：CP1＝(x0＋dx×0.45, y0)、CP2＝(x0＋dx×0.55, y1)＝(x1−dx×0.45, y1)。
        2026-09-26 第二版改前 0.55／0.45（CP 交叉、中段轉折急）→ 改後 0.45／0.55（對稱張力，Andy 黃金標準第 3 點）*/
@@ -168,6 +178,7 @@
 .ftopo .ftbtn:hover:not(:disabled){border-color:var(--cyan);color:var(--ink)}
 .ftopo .ftbtn[aria-pressed="true"]{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 55%,transparent)}
 .ftopo .ftbtn:disabled{opacity:.5;cursor:default}
+.ftopo .ftstage .ftbtn.ftcorner{position:absolute;left:6px;bottom:6px;z-index:5;padding:1px 8px;line-height:16px;opacity:.85}
 .ftopo .ftstage{position:relative;width:100%;border-radius:10px;overflow:hidden;
   background:radial-gradient(120% 90% at 8% 50%,color-mix(in srgb,var(--cyan) 5%,transparent),transparent 60%)}
 .ftopo .ftstage canvas{position:absolute;left:0;top:0;display:block}
@@ -193,7 +204,9 @@
     host.innerHTML = '';
     const bar = document.createElement('div'); bar.className = 'ftbar';
     const leg = document.createElement('span'); leg.className = 'ftleg';
-    const mbtn = document.createElement('button'); mbtn.type = 'button'; mbtn.className = 'ftbtn'; mbtn.id = 'sankeyMotionBtn';
+    const mbtn = document.createElement('button'); mbtn.type = 'button'; mbtn.className = 'ftbtn';
+    /* id：資金流向頁那張照舊叫 sankeyMotionBtn；總覽那張（#ovFlow）叫 ovFlowMotionBtn —— 兩頁的 DOM 同時在，id 不能重複 */
+    mbtn.id = host.id === 'sankey' ? 'sankeyMotionBtn' : (host.id || 'ft') + 'MotionBtn';
     bar.append(leg, mbtn);
     const stage = document.createElement('div'); stage.className = 'ftstage';
     const cvBase = document.createElement('canvas'), cvFx = document.createElement('canvas'), cvLab = document.createElement('canvas');
@@ -341,7 +354,8 @@
 
   function buildModel(S) {
     const M = S.model, o = S.opts, maxV = o.maxV || 1;
-    const classic = S.classic = o.layout === 'classic';
+    const classic = S.classic = o.layout === 'classic' || o.layout === 'mini';
+    S.mini = o.layout === 'mini';
     const ratio = (v) => Math.min(1, Math.max(0, (v || 0) / maxV));
     const seenN = new Set(), seenL = new Set();
     const order = [];
@@ -386,7 +400,7 @@
           slots: Math.max(1, (gd.children || []).length) });
         g.kids = [];
         c.kids.push(g);
-        if (g.open || classic) {
+        if (g.open || (classic && !S.mini)) {
           (gd.children || []).forEach(xd => {
             if (xd.placeholder) return;
             const lf = up('l:' + gd.gid + ':' + (xd.code || ('rest' + (xd.restN || ''))), { lv: 3, d: xd,
@@ -448,6 +462,10 @@
   /* 版面：四欄（有展開的族群才有第四欄）。族群等距槽位、產業鏈之間空 0.7 列、
      成分股以族群為中心往上下排開（夾在畫布內）。回傳這一輪要的畫布高度。*/
   function wantHeight(S) {
+    if (S.mini) {
+      const nG = S.root.kids.reduce((a, c) => a + c.kids.length, 0);
+      return Math.round(S.opts.height || Math.max(300, nG * CFG.MINI_SLOT + 46));
+    }
     if (S.classic) return slotPlan(S).H;
     const chains = S.root.kids, nG = chains.reduce((a, c) => a + c.kids.length, 0);
     const slots = nG + 0.7 * Math.max(0, chains.length - 1);
@@ -510,10 +528,52 @@
     return cols;
   }
 
+  /* 緊湊版（總覽）：先量「根／產業鏈／族群」三種膠囊最長的寬度，再決定欄位 ——
+       · 族群欄：往右靠，讓最長的族群膠囊剛好收在畫布右緣內（最多吃掉半張寬）
+       · 產業鏈欄：夾在根與族群之間，產業鏈膠囊的右緣要離族群圓點 ≥ 10px；放不下時膠囊裡只截名稱（% 永遠完整）
+       · 根：貼左，標籤在圓點正上方（右邊整片是分流線）
+     族群一格 22px、鏈與鏈之間空 ≤ 6px，剩下的高度平均分到上下。*/
+  function elBadgeW(S, n) {
+    const g = S.gL; let w = 12;
+    partsOf(S, n).forEach(p => { S.font(g, 12, 600); w += mw(g, p.t.replace(/^\n/, '')); });
+    return w;
+  }
+  function layoutMini(S) {
+    const W = S.W, H = S.H, root = S.root, chains = root.kids;
+    let maxG = 0, maxC = 0;
+    chains.forEach(c => { maxC = Math.max(maxC, elBadgeW(S, c)); c.kids.forEach(g => { maxG = Math.max(maxG, elBadgeW(S, g)); }); });
+    const rootX = 12, gR = 6;
+    const gX = Math.max(W * 0.5, W - 4 - Math.min(maxG, W * 0.5) - 6 - gR);
+    const cMax = gX - gR - 10 - Math.min(maxC, W * 0.3) - 6 - 7;
+    const cX = Math.max(rootX + 60, Math.min(cMax, W * 0.36));
+    const cols = [rootX, cX, gX, W + 6];                 // 第四欄（代表股）不存在：放在畫布外，量標籤時右界＝畫布右緣
+    const n = chains.reduce((a, c) => a + c.kids.length, 0) || 1;
+    const gap = chains.length > 1 ? Math.min(CFG.MINI_GAP, 24 / (chains.length - 1)) : 0;
+    const slot = CFG.MINI_SLOT, body = n * slot + gap * Math.max(0, chains.length - 1);
+    S.step = slot; S.slot = slot;
+    let y = Math.max(4, (H - body) / 2);
+    chains.forEach((c, ci) => {
+      if (ci) y += gap;
+      c.kids.forEach(g => {
+        g.tx = cols[2]; g.ty = y + slot / 2; y += slot;
+        g.r = g.stale || g.nodata ? 4.5 : 4.5 + 1.5 * Math.sqrt(g.rt);
+      });
+      c.tx = cols[1];
+      c.ty = c.kids.length ? (c.kids[0].ty + c.kids[c.kids.length - 1].ty) / 2 : H / 2;
+      c.r = c.stale ? 5.5 : 5.5 + 1.5 * Math.sqrt(c.rt);
+      c.hh = 0; c.cw = 0;
+    });
+    root.tx = cols[0];
+    root.ty = chains.length ? (chains[0].ty + chains[chains.length - 1].ty) / 2 : H / 2;
+    root.r = 6;
+    S.cols = cols;
+    return cols;
+  }
+
   function layout(S) {
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
     const padT = 16, padB = 14;
-    const cols = S.classic ? layoutClassic(S) : layoutTopo(S, W, H, root, chains, padT, padB);
+    const cols = S.mini ? layoutMini(S) : S.classic ? layoutClassic(S) : layoutTopo(S, W, H, root, chains, padT, padB);
     placeTween(S);
     S.cols = cols;
   }
@@ -872,6 +932,10 @@
         line.w = lw; bw = Math.max(bw, lw);
       });
       const bh = leaf ? 12 : CFG.EL_BADGE_H + (lines.length - 1) * 15;
+      if (S.mini && n.lv === 0) {                         // 緊湊版：根的膠囊在圓點正上方、左緣對齊圓點左緣
+        n.lab = { lines, x: Math.max(2, n.tx - n.r), y: n.ty - n.r - 5 - bh, w: bw, h: bh, fs: 12, badge: true };
+        return;
+      }
       n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs: 12, badge: !leaf };
     });
   }
@@ -959,7 +1023,8 @@
     if (S.classic) {                                       // 經典版面：整體發車率壓回粒子預算（見 CFG.CL_P_BUDGET）
       let want = 0;
       S.linkList.forEach(e => { if (e.dead || !e.L) return; const v = (18 + 132 * e.spdK) * sc; want += e.rate * e.L / v; });
-      if (want > CFG.CL_P_BUDGET) kR = CFG.CL_P_BUDGET / want;
+      const budget = S.mini ? CFG.MINI_P_BUDGET : CFG.CL_P_BUDGET;
+      if (want > budget) kR = budget / want;
     }
     S.kRate = kR;
     S.linkList.forEach(e => {
@@ -1196,7 +1261,7 @@
     const tA = performance.now();
     S.H = wantHeight(S);
     S.stage.style.height = S.H + 'px';
-    S.host.style.height = (S.H + CFG.BAR_H) + 'px';          // 高度先定（版面不會等圖畫完才長高）
+    S.host.style.height = (S.H + barH(S)) + 'px';            // 高度先定（版面不會等圖畫完才長高）
     /* ★ 2026-09-25（開網頁卡頓那批的要求：首次載入不額外變重）：
        資金流向頁一進來，這張卡的畫布剛好在首屏下緣之外。**第一次**畫（配三張全尺寸 HiDPI 畫布、量約 300 段字、
        77 條曲線查表、畫底圖與標籤，容器實測 80～230ms 的長任務）不在載入那一刻做：
@@ -1234,6 +1299,7 @@
     S.meter.lastDrawMs = dt;
     if (S.meter.firstDrawMs == null) S.meter.firstDrawMs = dt;
   }
+  const barH = (S) => (S.mini ? 0 : CFG.BAR_H);             // 緊湊版沒有上方說明列
   const spriteKey = (S) => S.DPR + '|' + S.pal.dark + '|' + (S.classic ? 'el' : 'tp') + '|' + [...new Set(S.order.map(n => n.hue))].join(',');
 
   /* ---- 滑過／點擊 ---- */
@@ -1300,10 +1366,16 @@
     if (S._layout !== lay) { S._layout = lay; S.first = true; S.tween = null; }   // 換版面：直接就位，不從舊版面補間過來
     S.pal = pal; S.opts = opts || {}; S.model = tree;
     S.leg.innerHTML = opts.legend || '';
+    /* 緊湊版：說明列整條藏起來，動態開關搬進畫布左下角（同一顆按鈕、同一個 localStorage 設定） */
+    const mini = lay === 'mini';
+    S.bar.style.display = mini ? 'none' : '';
+    S.mbtn.classList.toggle('ftcorner', mini);
+    if (mini && S.mbtn.parentNode !== S.stage) S.stage.appendChild(S.mbtn);
+    if (!mini && S.mbtn.parentNode !== S.bar) S.bar.appendChild(S.mbtn);
     paintMotionBtn(S);
     buildModel(S);
     layoutAndDraw(S, true);
-    return S.H + CFG.BAR_H;
+    return S.H + barH(S);
   }
 
   /* 驗收用：量測與探針（_uitest.py 讀這裡；不改任何狀態）*/
@@ -1331,7 +1403,7 @@
     const m = S.meter, ts = m.ts;
     const fps = ts.length > 5 ? (ts.length - 1) / ((ts[ts.length - 1] - ts[0]) / 1000) : 0;
     return {
-      W: S.W, H: S.H, total: S.H + CFG.BAR_H, dpr: S.DPR, motion: S.motion, running: !!S.raf,
+      W: S.W, H: S.H, total: S.H + barH(S), dpr: S.DPR, motion: S.motion, running: !!S.raf,
       reduce: !!reduceMQ.matches, dark: !!S.pal.dark,
       nodes: S.order.map(n => ({ key: n.key, lv: n.lv, name: n.name, x: Math.round(n.x), y: Math.round(n.y),
         cx: Math.round(b.left + n.x), cy: Math.round(b.top + n.y), r: +(n.r || 0).toFixed(1), dim: !!n.dim,
@@ -1357,7 +1429,7 @@
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
-      layout: S.classic ? 'classic' : 'topo',
+      layout: S.mini ? 'mini' : S.classic ? 'classic' : 'topo',
       firstDrawMs: m.firstDrawMs == null ? null : +m.firstDrawMs.toFixed(1),
       lastDrawMs: m.lastDrawMs == null ? null : +m.lastDrawMs.toFixed(1),
       warmMs: m.warmMs == null ? null : +m.warmMs.toFixed(1),
