@@ -3785,6 +3785,12 @@ h3 .howbtn.pop{font-family:inherit}
 }
 @media (min-width:641px){ #mMktSeg,#mSeasonBtn{display:none!important} }
 </style>
+<!-- ★ 風格實驗室（只在 claude/style-lab 分支，不進 main）：?style=minimal|maximal|y2k|glass|immersive|eco
+     會載入 styles/<名稱>.css 蓋在原本樣式上面；只改外觀，不動任何功能。選擇記在 localStorage tw.style，?style=off 清掉。 -->
+<script>(function(){try{var q=new URLSearchParams(location.search).get('style');var ok=['minimal','maximal','y2k','glass','immersive','eco'];
+if(q==='off'){localStorage.removeItem('tw.style');q=null;}else if(q&&ok.indexOf(q)>=0){localStorage.setItem('tw.style',q);}
+var s=q||localStorage.getItem('tw.style');if(s&&ok.indexOf(s)>=0){document.documentElement.setAttribute('data-style',s);
+var l=document.createElement('link');l.rel='stylesheet';l.href='styles/'+s+'.css';l.id='styleLab';document.head.appendChild(l);}}catch(e){}})();</script>
 </head>
 <body>
 <header class="topbar">
