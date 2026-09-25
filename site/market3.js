@@ -1669,7 +1669,9 @@
           const c = H.price[i], ch = d.prev ? c - d.prev : null;
           return `<b>${cats[i]}</b><br>指數 <b class="mono">${f.n(c, dp)}</b>`
             + (ch != null ? ` <span style="color:${ch >= 0 ? '#ff4d6d' : '#2ee59d'}">${(ch > 0 ? '+' : '') + f.n(ch, dp)}（${f.pct(ch / d.prev * 100, 2)}）</span>` : '')
-            + `<br>該分量 ${f.lot(H.vol[i] || 0)}`;
+            + (() => { const vv = H.vol[i]; const n = +(vv && typeof vv === 'object' ? vv.value : vv);
+                // 量柱有時是 { value, itemStyle } 物件（上色用），直接丟進 f.lot 會印「非數值」（Andy 09-25 截圖）
+                return `<br>該分量 ${Number.isFinite(n) ? (x.id === 'FUT' ? f.i(n) + ' 口' : f.lot(n)) : '—'}`; })();
         },
       }),
       axisPointer: { link: [{ xAxisIndex: 'all' }] },
