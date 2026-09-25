@@ -783,6 +783,20 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    1440 看不到、800 一看就發現，是 DECISIONS #171 那一類的坑。*/
 .hpanel .ms a.sub{margin-left:12px;font-size:12.5px;flex-wrap:wrap;row-gap:1px;align-items:center}
 .hpanel .ms a.sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ★ 2026-09-25（Andy：總覽足跡輪盤下方點族群出現的面板「範圍要小一點」）：只收桌機的 #ovRotPanel
+   （手機另有人做）。字與間距收小、個股從一格一格的卡片改成一行排好幾檔的小標籤，高度上限 88px（約三行）。
+   代號藏起來（連結本身就走到個股頁），留名稱＋漲跌。*/
+@media (min-width:821px){
+  #ovRotPanel{margin-top:6px;padding:7px 10px;border-radius:8px}
+  #ovRotPanel .hh{gap:6px}
+  #ovRotPanel .hh b{font-size:13px}
+  #ovRotPanel .hh .m{font-size:11.5px}
+  #ovRotPanel .hh .pill{font-size:11.5px;padding:1px 8px}
+  #ovRotPanel .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;max-height:88px}
+  #ovRotPanel .ms a{padding:2px 7px;gap:4px;border-radius:6px;font-size:12px;line-height:1.35}
+  #ovRotPanel .ms a .c{display:none}
+  #ovRotPanel .ms a .g{margin-left:0;font-size:11px}
+}
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
@@ -871,12 +885,13 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 .rotdd .ddlist::-webkit-scrollbar{width:6px}
 .rotdd .ddlist::-webkit-scrollbar-thumb{background:var(--line-2);border-radius:999px}
 /* 第一層（產業鏈）的選項：整列可點，右邊寫這條鏈底下有幾個族群 —— 選之前就知道會篩掉多少 */
-.rotdd .ddpanel>.ddopt{display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
+/* 2026-09-25：熱門題材的下拉把選項包在 .ddlist 裡（捲動用），原本只認 .ddpanel>.ddopt，選項吃到瀏覽器預設白底按鈕 —— 一起涵蓋 */
+.rotdd .ddpanel>.ddopt,.rotdd .ddlist>.ddopt:not(.chk):not(.one){display:flex;align-items:center;gap:8px;width:100%;appearance:none;border:0;
   background:transparent;color:var(--ink-2);font-size:12.5px;font-family:inherit;text-align:left;
   padding:6px 9px;border-radius:7px;cursor:pointer}
-.rotdd .ddpanel>.ddopt em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
-.rotdd .ddpanel>.ddopt:hover{background:var(--panel-2);color:var(--ink)}
-.rotdd .ddpanel>.ddopt.on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
+.rotdd .ddpanel>.ddopt em,.rotdd .ddlist>.ddopt:not(.chk):not(.one) em{margin-left:auto;font-style:normal;color:var(--ink-3);font-size:11px;font-family:var(--mono)}
+.rotdd .ddpanel>.ddopt:hover,.rotdd .ddlist>.ddopt:not(.chk):not(.one):hover{background:var(--panel-2);color:var(--ink)}
+.rotdd .ddpanel>.ddopt.on,.rotdd .ddlist>.ddopt:not(.chk):not(.one).on{background:color-mix(in srgb,var(--cyan) 18%,transparent);color:var(--ink);font-weight:600}
 /* 第二層（族群）：checkbox ＋ 族群顏色點 ＋ 「→ 進族群頁」。
    `→` 刻意放在 <label> 外面，不然點它會連帶把勾選也切掉（瀏覽器原生行為）。*/
 .rotdd .ddopt.chk{display:flex;align-items:center;gap:6px;border-radius:7px;padding:0 6px 0 0}
@@ -3622,8 +3637,9 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <div class="hpanel" id="ovRotPanel" hidden></div>
-        <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，說明精簡後搬進足跡輪盤的「?」（HOW.rotm 會讀它）。 -->
-        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <small id="ovFlowSub" hidden></small></h4>
+        <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，2026-09-25 起搬進「昨日資金去向」自己的「?」（HOW.ovflow 會讀它）。 -->
+        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <button class="howbtn pop" data-how="ovflow" aria-label="昨日資金去向怎麼看">?</button> <small id="ovFlowSub" hidden></small></h4>
+        <div class="howtxt" id="how-ovflow" hidden></div>
         <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div></div>
     </div>
     <div class="grid g2 ovlow" style="margin-top:var(--gap-card)">
