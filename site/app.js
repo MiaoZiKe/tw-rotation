@@ -3004,7 +3004,10 @@
          一直空著的那一圈還給盤面。容器高度同步 300 → 360（見 index.html），
          不然 82% 只是「在同樣小的框裡畫大一點」。
        · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
-    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
+    /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：總覽小輪盤跟著同一個「顯示腳印」偏好（ROT.trail，預設關）。
+       改前：這裡沒傳 trail，renderRotClock 的 `opts.trail !== false` 把它當成開 —— 焦點族群身後永遠拖著腳印，
+       連資金流向頁把開關勾掉都關不掉這一張。改後：資金流向頁沒勾 → 這裡也只有圓圈；勾了 → 兩張一致。*/
+    renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true, trail: ROT.trail });
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
     // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
     whenNear($('#ovFlow'), () => renderOvFlow(sd));
@@ -5680,7 +5683,8 @@
         o.polar = { ...o.polar, radius: Math.max(10, G2.R) };
         try { c.setOption({ polar: o.polar, series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
-      el._rotRedraw = () => renderRotClock(rows, back, id, compact, opts);
+      // patch：只改這張圖的某幾個選項再重畫（例：總覽小輪盤跟著「顯示腳印」開關換 trail），之後的重畫沿用改過的
+      el._rotRedraw = (patch) => { if (patch) Object.assign(opts, patch); return renderRotClock(rows, back, id, compact, opts); };
       // 名字已經在 setOption 前排好（lblPre）就不必再畫第二次；沒排成（容器還是 0×0）才走舊路
       if (!lblPre) relayout();
       // 第一次 echarts.init 會清空容器（把先前掛上的象限卡一起清掉），所以畫完再掛一次
@@ -7880,6 +7884,12 @@
     if (c) c.onchange = () => {
       ROT.trail = c.checked; sync(); redraw();
       try { localStorage.setItem('tw.rot.feet', ROT.trail ? '1' : '0'); } catch (e) { /* 私密視窗：這次瀏覽有效就好 */ }
+      /* 總覽小輪盤讀同一個偏好，但它畫在另一個分頁（此刻藏著、寬高是 0，當場重畫會算錯半徑）。
+         標成「沒畫過」，下次切回總覽時 route() 會整頁重畫一次（換主題也是走這條路）；
+         總覽正開著（從總覽按「放大」進來的）就當場帶新的 trail 重畫那一張。*/
+      const ov = document.getElementById('v-overview'), mini = document.getElementById('rotClockMini');
+      if (ov && ov.classList.contains('on') && mini && mini._rotRedraw) mini._rotRedraw({ trail: ROT.trail });   // 從總覽開的放大視窗：當場跟上
+      else delete rendered.overview;
     };
     const rp = $('.rot-ripple', box);
     if (rp) rp.onchange = () => {

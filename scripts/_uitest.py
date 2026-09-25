@@ -28446,9 +28446,11 @@ ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && 
 # 真的操作：乾淨開頁 → 量盤上 0 個腳印／0 條看得到的軌跡、圓點照畫 → 按 ▶ 回放量點的逐幀位置（沒有腳印也要平滑）
 #   → 勾「顯示腳印」看腳印長出來、記進 localStorage → 重新整理還是開的 → 勾掉又歸零 → 放大視窗、總覽小輪盤、手機兩張雷達
 #   → 手機「?」點開量沒有附註段。
-MOB_HOWPOP = r"""() => { const bs = [...document.querySelectorAll('.howbtn[data-how]')].filter(b => b.getClientRects().length && b.offsetParent);
-  const b = bs[0]; if (!b) return null; b.scrollIntoView({block: 'center', behavior: 'instant'}); b.click();
-  return b.dataset.how; }"""
+# 手機：這一頁看得到的每一顆「?」的 key（去重）
+MOB_HOWKEYS = r"""() => [...new Set([...document.querySelectorAll('.howbtn[data-how]')]
+  .filter(b => b.getClientRects().length && b.offsetParent).map(b => b.dataset.how))]"""
+MOB_HOWCLICK = r"""(k) => { const b = [...document.querySelectorAll('.howbtn[data-how="' + k + '"]')].find(x => x.getClientRects().length && x.offsetParent);
+  if (!b) return false; b.scrollIntoView({block: 'center', behavior: 'instant'}); b.click(); return true; }"""
 
 
 def t_rot_dots_only(pg, b, base):
@@ -28505,6 +28507,21 @@ def t_rot_dots_only(pg, b, base):
         st = d.evaluate(CLK_STATE, "rotClock")
         ok("重新整理之後仍然是開的（勾選框勾著、腳印在）",
            d.evaluate("() => document.querySelector('#rotTools input.rot-trail').checked") and feet_n(st) > 0, feet_n(st))
+        # 總覽小輪盤跟同一個偏好：勾著 → 總覽也有腳印；在資金流向勾掉 → 回總覽只剩圓圈（改前：總覽那張永遠畫焦點腳印）
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("勾著「顯示腳印」時，總覽小輪盤也畫腳印（兩張一致）", bool(ms) and feet_n(ms) > 0, ms and feet_n(ms))
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1000)
+        d.evaluate("() => { location.hash = '#overview'; }"); d.wait_for_timeout(2800)
+        scroll_to(d, "rotClockMini"); d.wait_for_timeout(600)
+        ms = d.evaluate(CLK_STATE, "rotClockMini")
+        ok("★ 在資金流向勾掉 → 回到總覽，小輪盤也跟著只剩圓圈（不是停在舊的那一張）",
+           bool(ms) and ms["n"] > 0 and feet_n(ms) == 0 and ms["vis"] == 0, ms and [ms["vis"], feet_n(ms)])
+        d.evaluate("() => { location.hash = '#flow'; }"); d.wait_for_timeout(2000)
+        scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1000)   # 勾回來，下面驗放大視窗
         # 放大視窗：開關同一份
         click(d, "#rotZoomBtn", 1600)
         if ok("放大視窗打得開", d.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }")):
@@ -28537,12 +28554,19 @@ def t_rot_dots_only(pg, b, base):
                 return {{ dots: s.querySelectorAll('g[data-g]').length, feet: s.querySelectorAll('ellipse').length }}; }}""")
             ok(f"★ 手機 {route} 雷達：圓點照畫、腳印 0 個（改前：佔比前 3 名身後各一串小腳印）",
                bool(r) and r["dots"] > 3 and r["feet"] == 0, r)
-        m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2400)
-        k = m.evaluate(MOB_HOWPOP); m.wait_for_timeout(500)
-        if ok("手機總覽找得到一顆「?」並按下去", bool(k), k):
-            hs = m.evaluate(COPY_HOWBOX, k)
-            ok(f"★ 手機「?」（{k}）跳出來只有標題＋條列、沒有附註段",
-               bool(hs) and hs["open"] and hs["fine"] == 0 and not hs["tail"], hs)
+        # 手機：總覽與資金流向看得到的每一顆「?」都真的按開，量沒有附註段（手機一律是跳出式，點背景／Esc 關）
+        for route in ("overview", "flow"):
+            m.goto(f"{base}#{route}", wait_until="networkidle"); m.wait_for_timeout(2400)
+            keys = m.evaluate(MOB_HOWKEYS) or []
+            ok(f"手機 {route} 找得到「?」", len(keys) >= 1, keys)
+            for k in keys:
+                if not m.evaluate(MOB_HOWCLICK, k):
+                    continue
+                m.wait_for_timeout(450)
+                hs = m.evaluate(COPY_HOWBOX, k)
+                ok(f"★ 手機 {route}「?」（{k}）跳出來只有標題＋條列、沒有附註段",
+                   bool(hs) and hs["open"] and hs["fine"] == 0 and not hs["tail"], hs)
+                m.keyboard.press("Escape"); m.wait_for_timeout(300)
     finally:
         m.close()
 
