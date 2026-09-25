@@ -2853,3 +2853,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 實測（容器空閒）：總覽可互動 2581→1889ms、最長卡住 680→188ms；資金流向可互動 1529→1140ms。「可互動 -40%」目標未達（-27%）。
 - 這批驗了：_preview 全綠；盤中即時、總覽、資金流向、新-大盤三張圖、題材、關聯圖清單、圖表圓滑化、足跡輪盤、掃描光束、載入效能 全 0；個股 4（已知整批順序）。
 - 待處理：data/tasks.json 仍由 build_payload 產出（網址打得開，含內部作業文字）→ 改管線移除。
+
+### 09-25 10:49 網站不再產出 tasks.json（含內部作業文字）
+- build_payload 不寫並主動刪除 site/data/tasks.json；pages.yml 上傳前 rm -f 保險；pytest 與 _uitest 任務板④ 驗 404 且 delivery.json 無 token／金鑰／Secrets。
+- 這批驗了：pytest 513 passed；任務板 0（刪掉本機舊產物後）、資料狀態 0。
+- 待處理（需 Andy 決定）：obsidian/tasks.yaml 在 public repo 裡仍有 token 流程說明文字（不上網站）。
