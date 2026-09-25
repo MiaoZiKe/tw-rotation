@@ -311,6 +311,21 @@
       el._radarRO.observe(el);
     }
     /* 依「可視高度 − 輪盤頂端 − 底部導覽 − 下面要放的東西」決定大小（下限 260）：先保數字，再給圖 */
+    /* ★ 2026-09-25（clock-mobile-reds）：輪盤上方的東西晚一步才插進來時，記住的大小要作廢重量。
+       實測 390×844 資金流向：第一次量的時候上方的分段列（.mpager，app.js 在卡片畫完之後才插）還不在，
+       輪盤頂端量到 139px → 記住 324px 的盤；分段列插進來把整張卡往下推 36px（頂端變 175），
+       盤卻還是 324 —— 排行第 5 名的底落在 794px，被底部導覽（786 以下）蓋掉半列，第一屏看不完。
+       上面那段「量到可信的一次就記住」只防「點一下就縮一圈」，防不到「上方版面後來才變」。
+       做法：盯住整個分頁（.view）的大小；它一變就比「輪盤在頁面上的頂端」跟記住的時候差多少，
+       差超過 2px 才作廢重量、重畫一次。點盤面、點角落不會改變輪盤頂端，所以不會讓盤面跳。*/
+    if (opts.fitBelow && !el._radarTopRO && window.ResizeObserver) {
+      el._radarTopRO = new ResizeObserver(() => {
+        if (!el.isConnected || !el.clientWidth || el._radarTop == null) return;
+        const t = el.getBoundingClientRect().top + window.scrollY;
+        if (Math.abs(t - el._radarTop) > 2) { el._radarKey = null; el._radarTop = null; radar(el, el._radarArgs[0], el._radarArgs[1]); }
+      });
+      el._radarTopRO.observe(el.closest('.view') || document.body);
+    }
     if (opts.fitBelow && cw) {
       const key = W + 'x' + window.innerHeight;
       if (el._radarKey === key) S = el._radarS;
@@ -318,7 +333,7 @@
         const vtop = el.getBoundingClientRect().top;
         if (vtop < window.innerHeight) {
           S = Math.max(260, Math.min(S, Math.floor(window.innerHeight - NAV_H - (vtop + window.scrollY) - opts.fitBelow)));
-          el._radarKey = key; el._radarS = S;
+          el._radarKey = key; el._radarS = S; el._radarTop = vtop + window.scrollY;
         }
       }
     }
@@ -386,7 +401,11 @@
     const boxes = [];
     const lbl = shown.slice(0, 5).map(p => p.group_id); if (opts.sel && !lbl.includes(opts.sel)) lbl.push(opts.sel);
     const bg = cssv('--bg'), ink = cssv('--ink');
-    pts.filter(q => lbl.includes(q.p.group_id)).forEach(q => {
+    /* ★ 2026-09-25（clock-mobile-reds）：選取的那一顆先找位置。
+       改前：依佔比順序找，選取的排最後 —— 前 5 名把好位置佔完，點一顆沒掛名字的點（實測「石化與塑膠產業」），
+       盤上圈起來了卻沒有名字，要往下看焦點條才知道點到誰。
+       改後：選取的先放，前 5 名在剩下的位置裡找；放不下的那一個前 5 名，點一下一樣會出現。*/
+    pts.filter(q => lbl.includes(q.p.group_id)).sort((a, b) => (b.p.group_id === opts.sel) - (a.p.group_id === opts.sel)).forEach(q => {
       const t = q.p.group_name.length > 6 ? q.p.group_name.slice(0, 6) + '…' : q.p.group_name;
       const w = t.length * 12 + 12, h = 18;
       /* ★ 2026-09-25（stale-reds）：名字膠囊找位置改成「八個候選位置挑第一個乾淨的」。
