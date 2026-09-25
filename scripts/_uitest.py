@@ -13520,6 +13520,8 @@ SECTIONS = {
     "批次C3-無環節棘輪":   lambda pg, b, base, code: t_noseg(pg, base),
     # ★ W6／W7：資金輪動與資金去向的兩層下拉、時鐘上的四顆象限卡
     "批次30-兩層下拉與象限卡": lambda pg, b, base, code: t_batch30(pg, base),
+    # 2026-09-26（Andy）：族群×法人拿掉 ETF ＋「選了族群之後換不了產業鏈」（filterDropdown 共用，資金去向／資金輪動一起做 A→B）
+    "族群法人篩選":          lambda pg, b, base, code: t_inst_filter(pg, base),
     # ★ C6：19 個 3D 場景的「機器正在運作」動畫（⚠ 一律 --workers 1）
     "批次C6-3D運轉動畫":   lambda pg, b, base, code: t_c6_anim(pg, base),
     # ★ W9：軟體與資訊服務四張新圖（換圖、點零件、展章節、窄畫面、淺色對比）
@@ -15247,6 +15249,213 @@ def t_wrap_r4_label(pg, base, code):
     notes.append(f"R4 中型方塊改成「截短名稱＋數值」的有：{(r or {}).get('two', [])[:8]}")
 
 
+def _dd_state(pg, cid):
+    """某一排兩層下拉（filterDropdown）＋它那張圖的現況。長條圖回 y 軸名稱；桑基回 None（只看下拉）。"""
+    return pg.evaluate("""(cid) => { const r = document.querySelector('.ddrow[data-for="' + cid + '"]'); if (!r) return null;
+        const el = document.getElementById(cid); const c = el && echarts.getInstanceByDom(el); const o = c && c.getOption();
+        const bars = o && (o.series || []).filter(s => s.type === 'bar');
+        const dim = bars && bars[0] ? (bars[0].data || []).filter(d => d.itemStyle && d.itemStyle.opacity != null && d.itemStyle.opacity < 0.5).length : null;
+        return { chain: r.querySelector('[data-dd=chain] .ddbtn b').textContent.trim(),
+                 grp: r.querySelector('[data-dd=group] .ddbtn b').textContent.trim(),
+                 cur: (r.querySelector('[data-dd=chain] .ddopt.on') || {dataset: {}}).dataset.c,
+                 note: [...r.querySelectorAll(':scope > span.muted')].map(x => x.textContent).join('|'),
+                 clear: !!r.querySelector('.dd-clear'),
+                 chains: [...r.querySelectorAll('[data-dd=chain] .ddopt[data-c]')].map(b => ({ c: b.dataset.c, t: b.textContent.trim(),
+                           n: +((b.querySelector('em') || {}).textContent || 0) })),
+                 groups: [...r.querySelectorAll('[data-dd=group] button[data-g]')].map(b => b.dataset.g).filter(Boolean),
+                 gnames: [...r.querySelectorAll('[data-dd=group] button[data-g]')].map(b => b.textContent.trim()),
+                 names: o && o.yAxis && o.yAxis[0] && o.yAxis[0].data ? o.yAxis[0].data.slice() : null,
+                 sub: cid === 'instGroups' ? (document.getElementById('instSub') || {}).textContent : null,
+                 dim }; }""", cid)
+
+
+def _dd_chain(pg, cid, c, wait=900):
+    """用真的滑鼠：打開第一層 → 點某條鏈。"""
+    row = f'.ddrow[data-for="{cid}"]'
+    if pg.evaluate(f"() => document.querySelector('{row} [data-dd=chain] .ddpanel').hidden"):
+        pg.click(f'{row} [data-dd=chain] .ddbtn'); pg.wait_for_timeout(200)
+    pg.click(f'{row} [data-dd=chain] .ddopt[data-c="{c}"]'); pg.wait_for_timeout(wait)
+
+
+def _dd_group(pg, cid, g, wait=900):
+    """用真的滑鼠：第二層沒開就先打開 → 點某個族群（g＝'' 是「全部族群（不篩選）」）。"""
+    row = f'.ddrow[data-for="{cid}"]'
+    if pg.evaluate(f"() => document.querySelector('{row} [data-dd=group] .ddpanel').hidden"):
+        pg.click(f'{row} [data-dd=group] .ddbtn'); pg.wait_for_timeout(200)
+    pg.click(f'{row} [data-dd=group] [data-g="{g}"]'); pg.wait_for_timeout(wait)
+
+
+def t_inst_filter(pg, base):
+    """2026-09-26（Andy）族群 × 法人：① ETF 拿掉 ② 「先點一個族群後，再點其他族群／其他產業鏈無法切換」。
+
+    根因（寫在 site/app.js 的 ddSelSeen 上面）：filterDropdown() 每次重建都把第一層跳回「選取所屬的鏈」，
+    使用者自己換鏈也會重建 → 又被跳回去。資金去向（桑基）共用同一支，所以這段連它一起做 A→B；
+    資金輪動那排是另一支（wireRotFilter，複選），也做一次 A→B 確認沒有同樣的問題。
+    每一步都驗「畫面真的變了」（長條名單、副標、按鈕字、壓暗數），不是驗元素存在。
+    """
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    reset_rot(pg, base, 2600)
+    CID = "instGroups"
+    IDD = f'.ddrow[data-for="{CID}"]'
+    pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    if not ok("[族群法人篩選] 族群×法人那排兩層下拉畫得出來",
+              wait_until(pg, f"() => document.querySelectorAll('{IDD} .rotdd[data-dd=group] [data-g]').length > 1", 10000)):
+        return
+    s0 = _dd_state(pg, CID)
+
+    # ---------------------------------------------------------------- ① ETF 不在這張卡任何地方
+    ok("★ [ETF] 長條（y 軸）沒有 ETF", not any("ETF" in n for n in s0["names"]), s0["names"])
+    ok("★ [ETF] 第二層族群清單（全部）沒有 ETF", not any("ETF" in g.upper() for g in s0["groups"])
+       and not any("ETF" in n for n in s0["gnames"]), [g for g in s0["groups"] if "ETF" in g.upper()])
+    ok("[ETF] 長條上沒有「≫」折斷記號、也沒有折斷系列（ETF 不在之後刻度交給 ECharts）",
+       not any("≫" in n for n in s0["names"]) and pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{CID}'));
+           return c.getOption().series.every(s => s.type === 'bar') && c.getOption().xAxis[0].max == null; }}"""), s0["names"])
+    tot = [x for x in s0["chains"] if x["c"] == ""]
+    n_all = int("".join(ch for ch in (tot[0]["t"] if tot else "") if ch.isdigit()) or 0)
+    per = sum(x["n"] for x in s0["chains"] if x["c"])
+    ok("★ [ETF] 「全部（N 個族群）」的 N ＝ 第二層列出的族群數（不含 ETF）", n_all == len(s0["groups"]) and n_all > 0,
+       {"全部": n_all, "第二層": len(s0["groups"])})
+    ok("[ETF] 各產業鏈的族群數加起來 ＝ 全部（沒有查不到鏈的族群被漏掉）", per == n_all, {"各鏈合計": per, "全部": n_all})
+    ind = [x for x in s0["chains"] if x["c"] == "industry"]
+    if ind:
+        _dd_chain(pg, CID, "industry")
+        si = _dd_state(pg, CID)
+        ok("★ [ETF] 「其他產業別」底下沒有 ETF，而且數字跟第二層對得上",
+           not any("ETF" in g.upper() for g in si["groups"]) and len(si["groups"]) == ind[0]["n"],
+           {"數字": ind[0]["n"], "第二層": si["groups"][:40]})
+        click(pg, f"{IDD} .dd-clear", 900)
+    else:
+        notes.append("族群法人篩選：這份資料的產業鏈下拉沒有「其他產業別」（ETF 拿掉後那條鏈剩 0 個族群，已經自動從下拉消失）")
+
+    # ---------------------------------------------------------------- ② 選鏈 A → 選鏈 B 真的切
+    big = [x["c"] for x in sorted(s0["chains"], key=lambda x: -x["n"]) if x["c"] and x["n"] >= 2]
+    if not ok("[族群法人篩選] 至少有兩條鏈各有 ≥2 個族群（才驗得了 A→B、X→Y）", len(big) >= 2, s0["chains"]):
+        return
+    A, B = big[0], big[1]
+    _dd_chain(pg, CID, A)
+    sa = _dd_state(pg, CID)
+    ok("[A] 選鏈 A：第一層按鈕寫 A、第二層只列 A 的族群", sa["cur"] == A and len(sa["groups"]) < len(s0["groups"]), [sa["chain"], len(sa["groups"])])
+    changed("★ [A] 選鏈 A：長條真的換成 A 的族群（y 軸名單變了）", s0["names"], sa["names"])
+    changed("[A] 選鏈 A：副標跟著寫出鏈名", s0["sub"], sa["sub"])
+    ok("[A] 選完鏈，第二層自動打開（兩層連動）", not pg.evaluate(f"() => document.querySelector('{IDD} [data-dd=group] .ddpanel').hidden"))
+    _dd_chain(pg, CID, B)
+    sb = _dd_state(pg, CID)
+    ok("★ [A→B] 沒選族群時換鏈 B：第一層真的變 B", sb["cur"] == B, [sa["chain"], sb["chain"]])
+    changed("★ [A→B] 長條換成 B 的族群", sa["names"], sb["names"])
+    changed("[A→B] 副標換成 B", sa["sub"], sb["sub"])
+
+    # ---------------------------------------------------------------- ③ Andy 的重現路徑：先選一個族群，再換別的鏈
+    _dd_chain(pg, CID, A)
+    X, Y = sa["groups"][0], sa["groups"][1]
+    _dd_group(pg, CID, X)
+    sx = _dd_state(pg, CID)
+    ok("[X] 選族群 X：按鈕寫 X、旁邊寫「只亮」、其餘長條壓暗", X and sx["cur"] == A and "只亮" in sx["note"] and (sx["dim"] or 0) >= 1, sx)
+    _dd_chain(pg, CID, B)
+    sxb = _dd_state(pg, CID)
+    ok("★★ [Andy 回報的 bug] 選了族群之後再點別的產業鏈 B → 第一層真的換成 B（修之前會被跳回 A）",
+       sxb["cur"] == B, {"之前": sx["chain"], "之後": sxb["chain"]})
+    changed("★★ [Andy 回報的 bug] 換到 B 之後長條真的換了", sx["names"], sxb["names"])
+    ok("[X→B] 選取（屬於 A 的 X）被清掉：沒有「只亮」、沒有長條被壓暗，按鈕寫「未篩選」",
+       "只亮" not in sxb["note"] and not sxb["dim"] and "未篩選" in sxb["grp"], sxb)
+    ok("[X→B] 第二層列的是 B 的族群，可以直接挑", set(sxb["groups"]) == set(sb["groups"]), [len(sxb["groups"]), len(sb["groups"])])
+
+    # ---------------------------------------------------------------- ④ X → 同鏈 Y → 別鏈 Z
+    _dd_chain(pg, CID, A)
+    _dd_group(pg, CID, X)
+    d_x = _dd_state(pg, CID)
+    _dd_group(pg, CID, Y)
+    d_y = _dd_state(pg, CID)
+    ok("★ [X→Y] 同鏈換族群：按鈕從 X 換成 Y", d_y["grp"] != d_x["grp"] and d_y["cur"] == A, [d_x["grp"], d_y["grp"]])
+    lit = lambda cid: pg.evaluate(f"""() => {{ const c = echarts.getInstanceByDom(document.getElementById('{cid}'));
+        const s = c.getOption().series[0]; return (s.data || []).map(d => d.gid + ':' + (d.itemStyle && d.itemStyle.opacity < 0.5 ? 0 : 1)); }}""")
+    ly = lit(CID)
+    ok("[X→Y] 亮的那一條真的是 Y（其餘壓暗）", [x for x in ly if x.endswith(":1")] == [f"{Y}:1"], ly)
+    # 別鏈 Z：回到「全部」→ 在全部清單裡挑一個 B 鏈的族群，第一層要自動跟到 B
+    Z = sb["groups"][0]
+    _dd_chain(pg, CID, "")
+    s_all = _dd_state(pg, CID)
+    ok("[→全部] 選了族群時換回「全部」也換得過去（修之前一樣會被跳回原鏈）", s_all["cur"] == "", s_all["chain"])
+    _dd_group(pg, CID, Z)
+    d_z = _dd_state(pg, CID)
+    ok("★ [Y→Z] 在全部清單挑別鏈的族群 Z：第一層自動跟到 Z 那條鏈、只亮 Z", d_z["cur"] == B and "只亮" in d_z["note"], d_z)
+    lz = lit(CID)
+    ok("[Y→Z] 亮的那一條真的是 Z", [x for x in lz if x.endswith(":1")] == [f"{Z}:1"], lz)
+    # 清除 → 回到全部
+    click(pg, f"{IDD} .dd-clear", 1000)
+    d_c = _dd_state(pg, CID)
+    ok("★ [清除] 回到全部：第一層「全部」、沒有「清除」鈕、沒有壓暗、長條名單和一開始一樣",
+       d_c["cur"] == "" and not d_c["clear"] and not d_c["dim"] and d_c["names"] == s0["names"] and d_c["sub"] == s0["sub"],
+       {"cur": d_c["cur"], "clear": d_c["clear"], "dim": d_c["dim"], "sub": [s0["sub"], d_c["sub"]]})
+
+    # ---------------------------------------------------------------- ⑤ 資金去向（共用 filterDropdown）：A → 選族群 → B
+    SK = "sankey"
+    pg.evaluate("() => { const e = document.getElementById('flowSankeyCard') || document.getElementById('sankey'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    if ok("[資金去向] 那排兩層下拉畫得出來",
+          wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd[data-dd=group] [data-g]').length > 1", 8000)):
+        k0 = _dd_state(pg, SK)
+        kb = [x["c"] for x in sorted(k0["chains"], key=lambda x: -x["n"]) if x["c"]]
+        if ok("[資金去向] 至少兩條鏈", len(kb) >= 2, k0["chains"]):
+            _dd_chain(pg, SK, kb[0])
+            ka = _dd_state(pg, SK)
+            _dd_group(pg, SK, ka["groups"][0], 1500)
+            kx = _dd_state(pg, SK)
+            ok("[資金去向] 選了族群：摘要寫出它", "只看" in kx["note"], kx["note"])
+            _dd_chain(pg, SK, kb[1], 1500)
+            kbb = _dd_state(pg, SK)
+            ok("★★ [資金去向] 選了族群之後換別的鏈 → 第一層真的換過去（共用同一支，修之前一樣會跳回去）",
+               kbb["cur"] == kb[1], {"之前": kx["chain"], "之後": kbb["chain"]})
+            ok("[資金去向] 換鏈後選取清掉、第二層換成新鏈的族群", "只看" not in kbb["note"] and kbb["groups"] != ka["groups"], kbb)
+            click(pg, '.ddrow[data-for="sankey"] .dd-clear', 1200)
+            ok("[資金去向] 清除回到全部", _dd_state(pg, SK)["cur"] == "")
+
+    # ---------------------------------------------------------------- ⑥ 資金輪動那排（另一支 wireRotFilter，複選）：A → 勾族群 → B
+    pg.evaluate("() => { const e = document.getElementById('flowRotCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    RR = ROT_DD
+    rch = pg.evaluate(f"""() => [...document.querySelectorAll('{RR} .rotdd[data-dd=chain] .ddopt[data-c]')]
+        .map(b => ({{ c: b.dataset.c, n: +((b.querySelector('em') || {{}}).textContent || 0) }})).filter(x => x.c && x.n >= 1)""") or []
+    if ok("[資金輪動] 第一層至少兩條鏈", len(rch) >= 2, rch):
+        def rot_chain(c):
+            if pg.evaluate(f"() => document.querySelector('{RR} .rotdd[data-dd=chain] .ddpanel').hidden"):
+                pg.click(f'{RR} .rotdd[data-dd=chain] .ddbtn'); pg.wait_for_timeout(200)
+            pg.click(f'{RR} .rotdd[data-dd=chain] .ddopt[data-c="{c}"]'); pg.wait_for_timeout(1000)
+        RS = f"""() => ({{ chain: (document.querySelector('{RR} .rotdd[data-dd=chain] .ddopt.on') || {{dataset:{{}}}}).dataset.c,
+            btn: document.querySelector('{RR} .rotdd[data-dd=group] .ddbtn b').textContent,
+            gs: [...document.querySelectorAll('{RR} .rotdd[data-dd=group] input[data-g]')].map(i => i.dataset.g) }})"""
+        rot_chain(rch[0]["c"])
+        r1 = pg.evaluate(RS)
+        pg.click(f'{RR} .rotdd[data-dd=group] input[data-g="{r1["gs"][0]}"]'); pg.wait_for_timeout(1000)
+        r2 = pg.evaluate(RS)
+        ok("[資金輪動] 勾了一個族群：摘要寫「已選 1 個」", "已選 1" in r2["btn"], r2["btn"])
+        rot_chain(rch[1]["c"])
+        r3 = pg.evaluate(RS)
+        ok("★ [資金輪動] 勾了族群之後換別的鏈 → 第一層真的換過去、第二層換成新鏈的族群",
+           r3["chain"] == rch[1]["c"] and r3["gs"] != r1["gs"], {"之前": r2, "之後": r3})
+        click(pg, f"{RR} .rot-clear", 1000)
+        ok("[資金輪動] 清除回到全部", pg.evaluate(RS)["chain"] == "")
+
+    # ---------------------------------------------------------------- ⑦ 手機 390：換鏈之後不長出橫向捲軸
+    pg.set_viewport_size({"width": 390, "height": 900})
+    pg.wait_for_timeout(1200)
+    pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    pg.wait_for_timeout(600)
+    # 手機版的族群×法人是另一套（`.m3keep[data-k=inst]` 的外資／投信／自營切換清單），桌機那排下拉在 390 是藏起來的 ——
+    # 藏起來就不驗（驗的會是一個使用者碰不到的東西），改記一筆；看得到才真的點
+    vis = pg.evaluate(f"() => {{ const b = document.querySelector('{IDD} [data-dd=chain] .ddbtn'); return !!(b && b.offsetParent && b.getBoundingClientRect().width > 0); }}")
+    if not vis:
+        notes.append("族群法人篩選：390 寬時族群×法人的兩層下拉不在畫面上（手機版是另一套清單），手機那步只驗了沒有橫向捲軸")
+        ok("[390] 手機寬沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth"))
+    else:
+        _dd_chain(pg, CID, B)
+        m = pg.evaluate(f"""() => {{ const r = document.querySelector('{IDD}').getBoundingClientRect();
+            const p = document.querySelector('{IDD} [data-dd=group] .ddpanel'); const pr = p && !p.hidden ? p.getBoundingClientRect() : null;
+            return {{ sw: document.documentElement.scrollWidth, w: innerWidth, row: [Math.round(r.left), Math.round(r.right)],
+                     pan: pr ? [Math.round(pr.left), Math.round(pr.right)] : null, cur: (document.querySelector('{IDD} [data-dd=chain] .ddopt.on') || {{dataset:{{}}}}).dataset.c }}; }}""")
+        ok("[390] 手機上換鏈一樣換得過去", m["cur"] == B, m)
+        ok("[390] 換鏈後沒有橫向捲軸、下拉面板沒跑出畫面", m["sw"] <= m["w"] and (not m["pan"] or (m["pan"][0] >= 0 and m["pan"][1] <= m["w"])), m)
+        click(pg, f"{IDD} .dd-clear", 800)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
 def t_wrap_r2(pg, base, code):
     """R2 收尾：放大輪盤的象限徽章與即時鈕、族群×法人 ETF 折斷刻度、集中度側欄 N 一致、x 軸有年份、800 寬拉Bar 夠長。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -15264,25 +15473,20 @@ def t_wrap_r2(pg, base, code):
         pg.eval_on_selector("#rotZoomLiveBtn", "b => b.click()"); pg.wait_for_timeout(500)
         ok("[R2 #35] 再按一次 → 退回盤後（鈕熄掉）", not pg.evaluate("() => document.getElementById('rotZoomLiveBtn').classList.contains('on')"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
-    # #47 族群 × 法人：ETF 超出時刻度用其他族群定，y 軸名稱不截斷
+    # #47 族群 × 法人：y 軸名稱不截斷。
+    # ★ 2026-09-26（Andy：「ETF 族群拿掉」）：ETF 整桶不進這張卡，R2 #47 的「折斷刻度」失去對象一併拿掉 ——
+    #   原本那兩條「ETF 撐爆時刻度改用其他族群定／≫ 折斷記號」改成「ETF 不在圖上、也沒有折斷系列」。
+    #   ETF 不在下拉、不在「全部（N 個族群）」的那幾條在 `族群法人篩選` 段落專門守。
     scroll_to(pg, "instGroups"); pg.wait_for_timeout(600)
     ig = pg.evaluate("""() => { const el = document.getElementById('instGroups'); const c = echarts.getInstanceByDom(el); if (!c) return null;
-        const o = c.getOption(); const names = o.yAxis[0].data; const ser = o.series.filter(s => s.type === 'bar');
-        const tot = names.map((n, i) => { let p = 0, q = 0; ser.forEach(s => { const v = (s.data[i] || {}).value || 0; if (v > 0) p += v; else q += v; }); return { n, p, q }; });
+        const o = c.getOption(); const names = o.yAxis[0].data;
         const cv = document.createElement('canvas').getContext('2d'); cv.font = '12px "Noto Sans TC", "JetBrains Mono", sans-serif';
-        return { clip: el.dataset.clip, lim: +el.dataset.lim || null, yw: +el.dataset.yw, max: o.xAxis[0].max, min: o.xAxis[0].min, tot,
-                 longest: Math.max(...names.map(t => cv.measureText(t).width)), marks: (o.series.find(s => s.type === 'scatter') || { data: [] }).data.length }; }""")
+        return { yw: +el.dataset.yw, names, max: o.xAxis[0].max, scatter: o.series.filter(s => s.type === 'scatter').length,
+                 longest: Math.max(...names.map(t => cv.measureText(t).width)) }; }""")
     if ok("[R2 #47] 族群 × 法人畫得出來", bool(ig), ig):
-        etf = [t for t in ig["tot"] if "ETF" in t["n"]]
-        others = [max(t["p"], -t["q"]) for t in ig["tot"] if "ETF" not in t["n"]]
-        big = etf and others and max(etf[0]["p"], -etf[0]["q"]) > max(others) * 1.15 * 1.3
-        if big:
-            ok("★ [R2 #47] ETF 撐爆時，刻度改用 ETF 以外最長那條定（其他族群的長條看得見）",
-               ig["clip"] == "1" and ig["max"] and abs(ig["max"] - max(others) * 1.15) < max(others) * 0.02, ig)
-            ok("[R2 #47] ETF 超出的那一側有「≫ 實際值」折斷記號、名稱後面標 ≫", ig["marks"] >= 1 and etf[0]["n"].endswith("≫"), [ig["marks"], etf[0]["n"]])
-        else:
-            notes.append(f"R2 #47：這份資料 ETF 沒有撐爆刻度（{etf[:1]}），折斷那一支沒被觸發 —— 只驗了 y 軸寬")
-            ok("[R2 #47] ETF 沒撐爆時不折斷（刻度交給 ECharts）", ig["clip"] == "0" and ig["max"] is None, ig)
+        ok("★ [0926] 族群 × 法人的長條裡沒有 ETF、也沒有「≫」折斷記號（刻度交給 ECharts）",
+           not any("ETF" in n or "≫" in n for n in ig["names"]) and ig["scatter"] == 0 and ig["max"] is None,
+           {"names": ig["names"], "scatter": ig["scatter"], "max": ig["max"]})
         ok("★ [R2 #47] y 軸名稱不再被 100px 截斷（軸寬 ≥ 最長名稱，或到 200px 上限）",
            ig["yw"] >= min(200, ig["longest"]), [ig["yw"], round(ig["longest"])])
     # #52 集中度側欄跟著「前 N 大」
