@@ -1279,7 +1279,7 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
   border:1px solid var(--line-2);border-left:3px solid var(--cyan);color:var(--ink-2);font-size:13.5px;line-height:1.75}
 .howtxt b{color:var(--ink-1)} .howtxt em{color:var(--cyan);font-style:normal}
 .howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
-/* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列 → 最下面一行小字口徑」（app.js howHTML） */
+/* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列」（app.js howHTML；最下面那行小字口徑 2026-09-26 拿掉） */
 .howtxt .howq{display:block;color:var(--ink)}
 /* 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：「?」只留標題＋條列。
    howHTML 已經不輸出 .howfine；這一條是保險 —— 還有少數地方自己手寫了 .howfine（例如總覽「昨日資金去向」，
@@ -4094,7 +4094,7 @@ h3 .howbtn.pop{font-family:inherit}
     <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <button class="howbtn pop" data-how="theme" type="button" aria-label="題材資金熱力怎麼看">?</button></h3>
       <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button></div></div>
       <!-- ★ 2026-09-24 說明精簡：原本的「這張圖回答／怎麼用」長句與口徑註 #themeNote 都搬進「怎麼看 ?」；
-           #themeNote 仍由 renderThemes 寫入資料端的口徑（成員不拆分、熱度怎麼算），id 不變。 -->
+           2026-09-26：「?」不放附註（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」），#themeNote 那一格拿掉。 -->
       <div class="howtxt" id="how-theme" hidden><div class="howbody"></div></div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
