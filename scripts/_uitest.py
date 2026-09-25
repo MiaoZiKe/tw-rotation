@@ -12199,16 +12199,17 @@ def t_rel_list(pg, base):
         f2 = pg.evaluate(RL_STATE)
         ok(f"{L} 再展開 → 右欄回到與圖等高", not f2["map"]["hidden"] and abs(f2["col"]["h"] - f2["map"]["h"]) <= 3, f2)
 
-        # ---- 流向圖：下拉照樣在、選取照樣在；滑過方塊一樣有寬說明框
-        click(pg, "#relView button[data-rv='flow']", 1400)
-        fl = pg.evaluate(RL_STATE)
-        ok(f"{L} 切到流向圖，下拉與右欄照樣在（選取沒丟）", fl["btnVis"] and fl["colVis"] and fl["onSec"] == [seg], fl)
-        if pg.query_selector("#chainMap .fseg"):
-            pg.hover("#chainMap .fseg")
-            pg.wait_for_timeout(350)
-            tp = pg.evaluate(RL_TIP)
-            ok(f"{L} 流向圖滑過方塊 → 說明框 ≥ 240px", tp.get("shown") and tp["w"] >= 240, tp)
-        click(pg, "#relView button[data-rv='layer']", 1400)
+        # ---- ★ 2026-09-26 改前→改後（Andy：「刪除流向圖」）：
+        #   改前：按「流向圖」→ 下拉與右欄照樣在、滑過環節方塊有寬說明框，再切回分層圖。
+        #   改後：標題列沒有「分層圖｜流向圖」切換、圖上沒有流向帶；分層圖本身（公司卡＋走線）照常、選取沒丟。
+        fl = pg.evaluate("""() => ({ sw: !!document.getElementById('relView'),
+            flowBtn: document.querySelectorAll('[data-rv="flow"]').length,
+            bands: document.querySelectorAll('#chainMap .fband, #chainMap .fseg').length,
+            co: document.querySelectorAll('#chainMap .co').length, edges: document.querySelectorAll('#chainMap .edge').length })""")
+        ok(f"{L} 沒有流向圖入口（沒有切換鈕、沒有流向帶），分層圖正常（有公司卡、有走線）",
+           not fl["sw"] and fl["flowBtn"] == 0 and fl["bands"] == 0 and fl["co"] > 0 and fl["edges"] > 0, fl)
+        fs = pg.evaluate(RL_STATE)
+        ok(f"{L} 下拉與右欄照樣在（選取沒丟）", fs["btnVis"] and fs["colVis"] and fs["onSec"] == [seg], fs)
 
         # ---- 點右欄的個股 → 真的進那一檔的個股頁；上一頁回得來
         code = pg.evaluate("() => (document.querySelector('#relList .rlseg.on .rlco') || {dataset:{}}).dataset.code")
@@ -12242,7 +12243,8 @@ def t_rel_list(pg, base):
                bool(v) and abs(v["card"] - v["bg"]) >= 4 and v["edge"] not in ("", "none"), v)
         else:
             ok("[深色] 關聯圖維持深底（這次只改淺色）", bool(v) and v["bg"] <= 40, v)
-    # ② 整條鏈沒有任何上下游（金融）：圖上方明講、分層圖不再只用一欄 28% 寬；流向圖也要有說明
+    # ② 整條鏈沒有任何上下游（金融）：圖上方明講、分層圖不再只用一欄 28% 寬
+    #   （2026-09-26 流向圖拿掉之後，原本「流向圖 0 條帶子也要明講」那一條改成「沒有流向圖入口」）
     _rel_goto(pg, base, chain="financial", w=1440, view="layer", fold="1")
     fe = pg.evaluate("""() => { const m = document.getElementById('chainMap'), e = m && m.querySelector('.mapempty');
         const t = [...m.querySelectorAll('.segtitle')].map(x => Math.round(x.getBoundingClientRect().left));
@@ -12251,10 +12253,8 @@ def t_rel_list(pg, base):
     ok("[金融 分層圖] 沒有上下游時圖上方明講「此鏈沒有可畫的上下游關係」", "此鏈沒有可畫的上下游關係" in fe["msg"], fe)
     ok("[金融 分層圖] 一個環節一欄，寬度用得開（改前：3 格擠在 1 欄、只用 28%）",
        fe["cols"] == fe["segs"] and bool(f) and f.get("fill", 0) >= 60, [fe, f])
-    click(pg, "#relView button[data-rv='flow']", 1200)
-    ff = pg.evaluate("() => { const e = document.querySelector('#chainMap .mapempty'); return e ? e.innerText : ''; }")
-    ok("[金融 流向圖] 0 條帶子時一樣明講（改前：只有 3 個方塊、沒有任何說明）", "此鏈沒有可畫的上下游關係" in ff, ff)
-    click(pg, "#relView button[data-rv='layer']", 900)
+    ok("[金融] 沒有「流向圖」切換鈕（2026-09-26 刪除流向圖）",
+       pg.evaluate("() => !document.getElementById('relView') && !document.querySelector('[data-rv=\"flow\"]')"))
     # ③ 頁首「怎麼看 ?」不准再講退版前的「大圓點／個股小點」；沒有關聯圖的鏈不准提關聯圖
     for cid, has_map in (("semiconductor", True), ("traditional", False)):
         pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(300)
@@ -22282,23 +22282,24 @@ def t_b25_graph(pg, base):
            abs(float(f["own"]) - f["fill"]) <= 3, f)
         ok(f"[{w}px] 內容沒有溢出容器底部", f["over"] <= 2, f)
 
-    # ---------- ⑤-1 兩種表達形式真的切得動，而且偏好真的記住 ----------
-    _rel_goto(pg, base, "semiconductor", 1440, view="layer")
+    # ---------- ⑤-1 只有分層圖（★ 2026-09-26 改前→改後，Andy：「刪除流向圖」） ----------
+    #   改前：「分層圖｜流向圖」兩種表達形式切得動、偏好寫進 localStorage（tw.relView）。
+    #   改後：標題列沒有切換鈕、沒有流向帶；以前記過 tw.relView='flow' 的人進來一樣是分層圖，舊值被清掉。
+    _rel_goto(pg, base, "semiconductor", 1440, view="flow")      # 故意帶一個舊的「流向圖」偏好進來
     a = pg.evaluate(REL_DEFAULT)
-    ok("預設是分層圖（有公司卡、有帶箭頭的走線、沒有流向帶）",
+    ok("記過流向圖的人進來仍然是分層圖（有公司卡、有帶箭頭的走線、沒有流向帶）",
        a["co"] >= 20 and a["edges"] > 0 and a["bands"] == 0, a)
-    click(pg, '#relView button[data-rv="flow"]', 1000)
-    b = pg.evaluate(REL_DEFAULT)
-    ok("切到流向圖：公司卡整批換成環節流向帶（畫面真的變了）",
-       b["bands"] > 0 and b["co"] == 0, [a["co"], a["bands"], b["co"], b["bands"]])
-    fb = pg.evaluate(REL_FIT)
-    ok(f"流向圖一樣撐滿且置中：{fb.get('fill')}% / {fb.get('dx')}%",
-       fb.get("fill", 0) >= 90 and abs(fb.get("dx", 99)) <= 1.0, fb)
-    ok("切換偏好真的寫進 localStorage",
-       pg.evaluate("() => localStorage.getItem('tw.relView')") == "flow")
-    click(pg, '#relView button[data-rv="layer"]', 1000)
-    c = pg.evaluate(REL_DEFAULT)
-    ok("切回分層圖：流向帶收掉、公司卡回來", c["co"] >= 20 and c["bands"] == 0, c)
+    sw = pg.evaluate("""() => ({ sw: !!document.getElementById('relView'), flow: document.querySelectorAll('[data-rv]').length,
+        fold: !!document.getElementById('relFold'), how: !!document.querySelector('#relHead .howbtn[data-how="rel"]'),
+        ls: (() => { try { return localStorage.getItem('tw.relView'); } catch (e) { return 'ERR'; } })() })""")
+    ok("標題列沒有「分層圖｜流向圖」切換，只留「收合圖」「怎麼看 ?」",
+       not sw["sw"] and sw["flow"] == 0 and sw["fold"] and sw["how"], sw)
+    ok("舊的 tw.relView 偏好被忽略而且清掉", sw["ls"] is None, sw)
+    click(pg, '#relHead .howbtn[data-how="rel"]', 600)
+    how = pg.evaluate("() => (document.getElementById('how-rel') || {}).innerText || ''")
+    ok("「怎麼看 ?」只講分層圖，沒有流向圖的說明（帶子、主幹）",
+       "流向" not in how and "帶子" not in how and "上游" in how, how[:120])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
     # ---------- ⑤-2 hover 一張公司卡：線與**另一端的公司卡**一起提亮 ----------
     _rel_goto(pg, base, "semiconductor", 1440)

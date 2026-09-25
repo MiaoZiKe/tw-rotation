@@ -1091,7 +1091,7 @@
         </div>
         ${hasMap ? `<div class="relsec" id="relSec" data-howsec>
           <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
-            <span class="row" style="gap:6px"><span class="seg relsw" id="relView"><button type="button" data-rv="layer">分層圖</button><button type="button" data-rv="flow">流向圖</button></span><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
+            <span class="row" style="gap:6px"><span class="pill" id="relFold" style="cursor:pointer">收合圖 ▴</span><button class="howbtn" data-how="rel" type="button">怎麼看 ?</button></span></div>
           <div class="howtxt" id="how-rel" hidden><div id="relHint"></div></div>
           <!-- ★ 2026-09-24（Andy：「只留下供應鏈關聯圖，其他的用清單方式呈現族群以及個股」，
                之後再補明確指示：上方的標籤改成下拉清單、下方那片環節字卡全部拿掉）。桌機（大於 820px）才動：
@@ -1307,7 +1307,7 @@
        改成跟零件小卡一樣登記進全站那一份 dismissable：點圖的空白處、點頁面其他地方、按 Esc 都收，
        收的時候**連選取一起取消**（圖上的 .dim／.sel 高亮全部恢復）—— 跟按 × 是同一個結果，不另寫一套。
        「不算外面」的地方，每一個都是「點了本來就會改選取」的入口，不能被當成點背景而抵銷：
-         · 圖上的公司卡／個股標籤（.co）、環節標題（.segtitle，流向圖的方塊也掛這個 class）、▸▾ 收合鈕與「全部收合」列
+         · 圖上的公司卡／個股標籤（.co）、環節標題（.segtitle）、▸▾ 收合鈕與「全部收合」列
          · 「環節：全部 ▾」下拉（#segDD）、關聯圖標題列（分層／流向切換、收合圖、怎麼看）
          · 手機的環節卡清單（#chainList）、剖析圖那一整區（點零件／背景有自己的 pickPart／clearPart，
            而且「點剖析圖背景不動 segFilter」是既有決定，見 clearPart 的註解）、族群總覽（#gpSec，點長條＝換族群）、
@@ -1351,10 +1351,11 @@
          ① 舊版 SVG 有 `max-width: W×1.25`，1358px 的容器只用掉左邊 1020px、右邊空一大塊 ——
             現在欄寬與欄距依容器寬度算，內容水平置中、撐滿率 ≥ 90%（`drawChainMap` 裡有量測用的
             `data-fill` / `data-dx`，驗收就是讀它們再自己用 getBoundingClientRect 對一次）。
-         ② 舊版只有一種畫法。現在兩種都做出來、做成畫面上可以切的：
-            **分層圖**（節點＝公司卡，依環節排成直欄，上游→下游由左往右，固定走線帶箭頭）＝ 預設，
-            **流向圖**（節點＝環節本身，帶寬＝兩格之間的關係條數，看得出「量往哪邊走」）。
-            偏好記在 localStorage `tw.relView`，不拿來問 Andy。
+         ② **分層圖**（節點＝公司卡，依環節排成直欄，上游→下游由左往右，固定走線帶箭頭）是唯一的畫法。
+            ★ 2026-09-26 Andy：「刪除流向圖」—— 2026-09-23 做成可切的第二種畫法「流向圖」（節點＝環節、
+            帶寬＝兩格之間的關係條數）整個拿掉：標題列的「分層圖｜流向圖」切換、drawSegFlow、
+            「怎麼看 ?」裡流向圖那一段、樣式一起刪。localStorage 以前記過的 `tw.relView`（'flow'）
+            一律不讀，順手清掉，免得留一個再也沒有人用的值。
          ③ Default 畫面就要看得到「這一格的上游是誰、下游是誰」與底下的個股標籤 —— 那是 `#chainList`。
          ④ 環節詳情與跨鏈對照預設收起（`#segBox` 是空的），點色標／點環節卡才展開。
        點個股標籤或公司卡 → 右側 `#coBox.relside` 資訊欄（窄畫面 <1100px 自動掉到圖下方）。*/
@@ -1366,8 +1367,9 @@
       const coPick = (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); };
       const stat = drawSegList($('#chainList', el), sc, ch.id, im, { onSegment: segPick, onCompany: coPick });
       const mapHost = $('#chainMap', el);
-      let relView = loadRelView();
-      /* ★ 2026-09-24 說明精簡：兩種圖的說明改成條列，住在「怎麼看 ?」（#how-rel）裡；圖例口徑放最下面一行小字。*/
+      try { localStorage.removeItem('tw.relView'); } catch (e) { /* 私密視窗：讀不到也寫不了，本來就不會用它 */ }
+      /* ★ 2026-09-24 說明精簡：圖的說明改成條列，住在「怎麼看 ?」（#how-rel）裡；圖例口徑放最下面一行小字。
+         （2026-09-26 流向圖拿掉之後只剩分層圖這一份。）*/
       const HINT = {
         layer: (st) => A.howHTML('這張圖回答：這條鏈由哪幾格組成、每一格有誰、誰供貨給誰。', [
           st,
@@ -1376,13 +1378,6 @@
           '往右看它賣給誰（下游轉弱會被拖到）',
           '滑過卡片或環節標題：提亮上下游、看說明',
         ], '線越粗依存度越高；虛線＝委外、點虛線＝終端指定料號；灰線＝設備／材料；虛線框＝外商；<b style="color:#d9a441">?</b>＝還沒建立上下游關聯。'),
-        flow: (st) => A.howHTML('這張圖回答：這條鏈的關係量集中在哪兩格之間。', [
-          st,
-          '怎麼用：先看最粗的帶子＝這條鏈的主幹',
-          '主幹兩端的族群才是行情的主戰場',
-          '細到看不見的是邊陲，利多影響小得多',
-          '點一格就篩到那一格；滑過一格看它的說明與上下游',
-        ], '方塊高度＝這一格的台股檔數；帶子寬度＝兩格之間已建立的上下游關係條數。'),
       };
       /* 容器寬度變了就要重畫：欄寬、欄距、左右內距全部是依容器寬度算出來的。
          最常見的觸發不是改視窗，是**點一檔個股** —— 右側資訊欄（340px）一出現，
@@ -1392,8 +1387,7 @@
       const drawMap = () => {
         if (!mapHost) return;
         lastW = mapHost.clientWidth;
-        if (relView === 'flow') drawSegFlow(mapHost, sc, ch.id, im, { onSegment: segPick });
-        else drawChainMap(mapHost, sc, ch.id, im, {
+        drawChainMap(mapHost, sc, ch.id, im, {
           onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
           /* 點公司＝連同它所屬的**環節**一起選起來（不是族群）：一家公司只有一個 segment，
              卻可能掛好幾個族群，選族群就得替他猜一個。環節推族群是自動成立的（A.L.sgroups）。*/
@@ -1401,8 +1395,7 @@
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
         const hint = $('#relHint', el);
-        if (hint) hint.innerHTML = HINT[relView](`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
-        $$('#relView button', el).forEach(b => b.classList.toggle('on', b.dataset.rv === relView));
+        if (hint) hint.innerHTML = HINT.layer(`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
          以前跟剖析圖在同一個任務裡畫：drawMap 一開頭讀 clientWidth，逼整頁（含剛插進去的剖析圖）當場排版，
@@ -1414,13 +1407,8 @@
       const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
       if (mapBelow) deferNear(mapHost, () => { if (!mapHost.isConnected) return; drawMap(); syncHighlight({ quiet: true, noscroll: true }); });
       else drawMap();
-      // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明、流向圖方塊共用一個）
+      // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明共用一個）
       wireSegTip($('#relSec', el), sc, ch.id);
-      $$('#relView button', el).forEach(b => b.onclick = () => {
-        if (relView === b.dataset.rv) return;            // 已經在這個模式就不要白重畫一次
-        relView = b.dataset.rv; saveRelView(relView); drawMap();
-        syncHighlight({ quiet: true, noscroll: true });  // 換圖之後選取狀態要跟著畫回去
-      });
       /* 收合關聯圖：手機（<640px）預設收起來 —— 分層圖在 390px 上是要左右滑的，
          而 Default 真正要給人看的是下面那份環節卡清單（有上下游與個股標籤）。
          桌機預設展開；選擇記在 localStorage，跟剖析圖那顆是同一種做法。*/
@@ -1432,7 +1420,6 @@
         /* 清單平常與圖等高（它自己的高度不算進版面）；圖收起來之後沒有「圖的高度」可以對齊，
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
-        const sw = $('#relView', el); if (sw) sw.hidden = !relOpen;
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
       };
       if (foldRel) foldRel.onclick = () => {
@@ -2270,7 +2257,7 @@
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));
     /* 環節卡清單（2026-09-23 C5 退版之後回來了）：選到的那一格 `.sel`、其餘 `.dim`。
        手機上還要順手把那張卡攤開 —— 不然「選起來了」但個股標籤還收著，看起來像沒反應。
-       流向圖模式下的環節方塊沿用 `.segtitle`，所以上面那兩行一併把它也處理掉了。*/
+*/
     $$('.seglist .segcard', root).forEach(n => { const hit = on.has(n.dataset.seg);
       n.classList.toggle('sel', hit);
       n.classList.toggle('dim', on.size > 0 && !hit);
@@ -2398,7 +2385,7 @@
     /* ★ 2026-09-26（Andy：「切回 2D 時，顯示 2D，不要都 3D」）：
        以前這是一顆開關「3D 立體」，2D 時寫「3D 立體」、3D 時寫「3D 立體 ✓」——
        不管在哪個模式，眼睛讀到的都是「3D」，看不出現在到底是哪一種。
-       改成分段鈕「2D｜3D」，**亮的那一格就是現在的模式**（樣式跟同一頁的「分層圖｜流向圖」同一種 .seg）。
+       改成分段鈕「2D｜3D」，**亮的那一格就是現在的模式**（樣式是站上通用的 .seg 分段鈕，亮的那格實心青色）。
        記憶沿用 localStorage `tw.dg3d`（'1'＝3D），全站剖析圖共用一個值：換分頁、重新整理都照最後選的那個。
        paintMode 畫的是「實際上現在是哪個」，不是「使用者想要哪個」：3D 掛不起來退回平面時，亮的要是 2D。*/
     const paintMode = (is3d) => {
@@ -2542,12 +2529,9 @@
      漲跌沒有印在小卡上（Andy 的參考圖就是名稱＋代號兩行），改放進 title 提示；
      完整價量在第一個分頁的族群／個股漲幅長條圖上，那裡本來就照漲幅排好了。*/
   /* ---------------------------------------------------------------- 三個偏好
-     `tw.relView`   ：關聯圖用哪一種表達形式（layer 分層圖／flow 流向圖），預設 layer
+     （`tw.relView` 已於 2026-09-26 隨流向圖一起拿掉，renderChain 會把舊值清掉）
      `tw.segExpand` ：手機上環節卡是「全部展開」還是「只展開重點幾格」
      每次重畫都重讀，不要在模組載入時讀一次就算了 —— 使用者可能在別的分頁改過。*/
-  const REL_VIEWS = ['layer', 'flow'];
-  const loadRelView = () => { try { const v = localStorage.getItem('tw.relView'); return REL_VIEWS.includes(v) ? v : 'layer'; } catch (e) { return 'layer'; } };
-  const saveRelView = (v) => { try { localStorage.setItem('tw.relView', v); } catch (e) { /* 忽略 */ } };
   const loadSegExpand = () => { try { return localStorage.getItem('tw.segExpand') === 'all'; } catch (e) { return false; } };
   const saveSegExpand = (v) => { try { localStorage.setItem('tw.segExpand', v ? 'all' : 'key'); } catch (e) { /* 忽略 */ } };
   /* 從外面選到某一格（點色標、點剖析圖零件、點公司卡）時，手機要順手把那張環節卡攤開。
@@ -2615,96 +2599,9 @@
     host.dataset.padx = String(f.padX);
   }
 
-  /* ==================================================================== 流向圖（第二種表達形式）
-     Andy 2026-09-23：「不然你先展示你認為更好表達的形式」—— 有兩種值得做就兩種都做出來，
-     做成畫面上可以切的，不拿來問他（CLAUDE.md 2026-09-23 的規矩）。
-
-     分層圖回答的是「**誰**接誰」（節點是公司，看得到你手上那一檔在哪）；
-     流向圖回答的是「**量**往哪裡走」（節點是環節，帶子寬度＝兩格之間已建立的關係條數）。
-     同一份 edges，兩個不同的問題 —— 這就是為什麼兩張都留著，而不是二選一。
-
-     ⚠ 帶子寬度是「關係條數」不是「金額」。供應鏈 YAML 沒有金流，硬換算成金額是造假；
-        所以圖例與說明都寫「關係條數」，不寫「占比」。*/
-  function drawSegFlow(host, sc, chainId, im, handlers) {
-    if (!host) return;
-    const segs = chainSegments(sc, chainId).slice().sort((a, b) => (a.layer || 0) - (b.layer || 0));
-    if (!segs.length) { host.innerHTML = ''; return; }
-    const layers = [...new Set(segs.map(s => s.layer || 0))].sort((a, b) => a - b);
-    const segIds = new Set(segs.map(s => s.id));
-    const cos = sc.companies.filter(c => segIds.has(c.segment));
-    const coSeg = {}; cos.forEach(c => (coSeg[c.id] = c.segment));
-    const twN = {}; cos.forEach(c => { if (c.tw_code) twN[c.segment] = (twN[c.segment] || 0) + 1; });
-    const allN = {}; cos.forEach(c => (allN[c.segment] = (allN[c.segment] || 0) + 1));
-    // 兩格之間的關係條數（只算兩端都在這條鏈上、而且不同格的邊；競爭關係不是上下游）
-    const pair = {};
-    (sc.edges || []).forEach(e => {
-      if (e.rel === 'competes') return;
-      const a = coSeg[e.from], b = coSeg[e.to];
-      if (!a || !b || a === b) return;
-      const k = a + '\u0000' + b; pair[k] = (pair[k] || 0) + 1;
-    });
-    const f = fitCols(host, layers.length, { colW: 150, gap: 62, maxColW: 210, maxGap: 190, minColW: 116, minGap: 34, pad: 18 });
-    const boxW = f.colW, padY = 34, gapY = 14;
-    const UNIT = 11, MIN_H = 36;                    // 每一檔台股 11px 高，最矮 36px（放得下一行環節名）
-    const hOf = (s) => Math.max(MIN_H, (twN[s.id] || 0) * UNIT);
-    const cols = layers.map(L => segs.filter(s => (s.layer || 0) === L));
-    const colH = cols.map(col => col.reduce((t, s) => t + hOf(s) + gapY, -gapY));
-    const bodyH = Math.max.apply(null, colH.concat([120]));
-    const H = bodyH + padY * 2;
-    const pos = {};
-    cols.forEach((col, ci) => {
-      let y = padY + (bodyH - colH[ci]) / 2;        // 每一欄自己垂直置中，短的那欄不會黏在上面
-      col.forEach(s => { const h = hOf(s); pos[s.id] = { x: f.padX + ci * (boxW + f.colGap), y: y, w: boxW, h: h, out: 0, in: 0 }; y += h + gapY; });
-    });
-    const maxPair = Math.max.apply(null, Object.values(pair).concat([1]));
-    // 先算每一格要吐出／收進多少寬度，才知道帶子從方塊的哪一段接出去
-    const outT = {}, inT = {};
-    const bandW = (n) => Math.max(3, Math.round((n / maxPair) * 26));
-    Object.keys(pair).forEach(k => { const [a, b] = k.split('\u0000'); const w = bandW(pair[k]);
-      outT[a] = (outT[a] || 0) + w; inT[b] = (inT[b] || 0) + w; });
-    let bands = '';
-    Object.keys(pair).sort((x, y) => pair[y] - pair[x]).forEach(k => {
-      const [a, b] = k.split('\u0000'); const A1 = pos[a], B1 = pos[b]; if (!A1 || !B1) return;
-      const w = bandW(pair[k]);
-      const a0 = A1.y + (A1.h - Math.min(A1.h - 6, outT[a])) / 2 + A1.out; A1.out += w;
-      const b0 = B1.y + (B1.h - Math.min(B1.h - 6, inT[b])) / 2 + B1.in; B1.in += w;
-      const x1 = A1.x + (B1.x >= A1.x ? A1.w : 0), x2 = B1.x + (B1.x >= A1.x ? 0 : B1.w);
-      const mx = (x1 + x2) / 2;
-      const d = `M${x1},${a0} C${mx},${a0} ${mx},${b0} ${x2},${b0}`
-        + ` L${x2},${b0 + w} C${mx},${b0 + w} ${mx},${a0 + w} ${x1},${a0 + w} Z`;
-      bands += `<path class="fband" data-a="${a}" data-b="${b}" style="--c:${segColor(a)}" d="${d}">`
-        + `<title>${A.fmt.esc(segName(sc, a))} → ${A.fmt.esc(segName(sc, b))}：${pair[k]} 條已建立的上下游關係</title></path>`;
-    });
-    let boxes = '';
-    segs.forEach(s => {
-      const p = pos[s.id]; if (!p) return; const c = segColor(s.id);
-      const n = twN[s.id] || 0, nAll = allN[s.id] || 0;
-      const cnt = n ? `${n} 檔` : (nAll ? `外商 ${nAll}` : '—');
-      /* 環節名放在方塊裡；方塊只有 36px 高時仍然放得下一行 12px 的字＋一行 11px 的檔數。
-         名稱過長就交給 SVG 的 textLength 縮排不動、改成切字（SVG 不會自己換行）。*/
-      const nm = s.name.length > Math.floor(boxW / 13) ? s.name.slice(0, Math.floor(boxW / 13) - 1) + '…' : s.name;
-      boxes += `<g class="fseg segtitle" data-seg="${s.id}" style="--c:${c}">`
-        + `<rect x="${p.x}" y="${p.y}" width="${p.w}" height="${p.h}" rx="7" fill="${c}" fill-opacity=".16" stroke="${c}" stroke-opacity=".55"/>`
-        + `<rect x="${p.x}" y="${p.y}" width="3.5" height="${p.h}" rx="2" fill="${c}"/>`
-        + `<text class="fnm" x="${p.x + 10}" y="${p.y + 17}" fill="${c}">${A.fmt.esc(nm)}</text>`
-        + `<text class="fct" x="${p.x + 10}" y="${p.y + 31}">${A.fmt.esc(cnt)}</text></g>`;   // 說明改由 wireSegTip 的說明框顯示（原生提示寬度管不到）
-    });
-    /* ★ 2026-09-24（審查 R3：金融鏈流向圖 0 條帶子、也沒有任何說明）：沒有帶子就明講，不要讓人以為圖壞了 */
-    const emptyF = Object.keys(pair).length ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— 環節之間還沒有已建立的供貨關係，所以沒有帶子；方塊高度仍然是各環節的台股檔數。</div>';
-    host.innerHTML = `${emptyF}<svg viewBox="0 0 ${f.W} ${H}" style="width:100%;height:auto;min-width:${Math.min(f.W, 640)}px;display:block">`
-      + `<g class="fbands">${bands}</g>${boxes}</svg>`;
-    markFit(host, f);
-    /* hover 一格：把「這一格吐出去」與「進到這一格」的帶子一起提亮，其餘壓暗 ——
-       這就是 Andy 要的「看得懂誰接誰」：一眼就分得出上游那一側與下游那一側。*/
-    $$('.fseg', host).forEach(g => {
-      g.onmouseenter = () => $$('.fband', host).forEach(b => {
-        const on = b.dataset.a === g.dataset.seg || b.dataset.b === g.dataset.seg;
-        b.classList.toggle('hi', on); b.classList.toggle('dim', !on);
-      });
-      g.onmouseleave = () => $$('.fband', host).forEach(b => b.classList.remove('hi', 'dim'));
-      g.onclick = () => handlers && handlers.onSegment && handlers.onSegment(g.dataset.seg);
-    });
-  }
+  /* ★ 2026-09-26 Andy：「刪除流向圖」—— 這裡原本是 drawSegFlow（第二種表達形式：節點＝環節、帶寬＝關係條數），
+     整支拿掉。分層圖本身就看得到「誰接誰」，右欄與下拉看得到每一格有誰；流向圖多出來的只有「哪兩格關係條數最多」，
+     而那是條數不是金額，讀起來容易被當成資金量。*/
 
   /* ==================================================================== 環節下拉 ＋ 選中環節的族群／個股
      Andy 2026-09-24 兩句話：
@@ -3428,8 +3325,7 @@
     const btn = box && box.querySelector('#relHi');
     if (!btn) return;
     /* 2026-09-23 C5 退版之後產業鏈頁與個股頁又是同一張圖（`#chainMap`，節點是公司），
-       所以這裡只認它一個。流向圖模式下節點是環節不是公司，按鈕按下去不會有東西被提亮 ——
-       那是刻意的：那張圖本來就沒有「這一家公司」這個概念，硬亮一格會騙人。*/
+       所以這裡只認它一個。*/
     const svgHost = $('#chainMap') || host;
     btn.onclick = () => {
       const on = btn.dataset.on === '1';
