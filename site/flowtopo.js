@@ -72,6 +72,16 @@
      根節點標籤放在圓點正上方（和舊版一樣），產業鏈與族群的膠囊在節點右邊；欄位依「最長的族群標籤」往右靠齊，
      產業鏈那欄夾在根與族群之間、讓膠囊不壓到族群欄（見 layoutMini）。
 
+   ★ 2026-09-26（晚）Andy：「將資金去向只留下經典光纖版本，並且族群後的個股先隱藏，只有游標移動過去會顯示」：
+     · 經典光纖（layout 'classic'）的代表股欄（83% 那欄三檔＋毛細線）**預設收起**（S.leafHover）：
+       滑鼠移到某個族群的圓點、膠囊或它那一格槽位（那一橫條，從族群圓點左邊一路到畫布右緣）→ 只顯示那個族群的三檔（淡入 180ms），
+       移開淡出；點開的族群（展開全部成分股）與你掛上去的個股（虛線）常駐。
+     · 收起的代表股：毛細線上不發粒子、原本在跑的收掉（省效能）；看不見的點點不到（pickAt 跳過）。族群節點照樣被撞擊激發。
+     · 代表股收起時右邊那欄空出來的寬度讓給版面：族群欄往右移（最多到 66%），代表股欄在「族群膠囊最右緣 ＋ 16px」與 83% 取大者，
+       所以滑過顯示時不會蓋到任何族群膠囊（見 layoutClassic）。
+     · 觸控（沒有 hover）：點一下族群＝照舊展開全部成分股＋面板（展開時常駐顯示），不另加「點一下先顯示三檔」那一段 —— 不會壞。
+     拓撲版（layout 'topo'）程式碼留著，但 app.js 已經沒有入口（三選一分段鈕拿掉）。
+
    規矩（CLAUDE.md，載入時斷言，違規直接丟錯）：
      · 發光 shadowBlur 4～6px（上限 10，這裡壓 6）；只在預先畫好的粒子小圖上用
      · Canvas 字級 ≥ 12px（setTransform 乘 DPR，字是用 CSS px 算的，不會糊）
@@ -356,6 +366,7 @@
     const M = S.model, o = S.opts, maxV = o.maxV || 1;
     const classic = S.classic = o.layout === 'classic' || o.layout === 'mini';
     S.mini = o.layout === 'mini';
+    S.leafHover = classic && !S.mini && o.leafHover !== false;   // 經典光纖：代表股預設收起，滑過族群才顯示
     const ratio = (v) => Math.min(1, Math.max(0, (v || 0) / maxV));
     const seenN = new Set(), seenL = new Set();
     const order = [];
@@ -494,7 +505,21 @@
      父節點（根、產業鏈）在它第一個與最後一個子節點的正中間（樹狀結構）。*/
   function layoutClassic(S) {
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
-    const cols = [CFG.CL_LEFT + 8, W * 0.26, W * 0.54, W * 0.83];
+    let cols = [CFG.CL_LEFT + 8, W * 0.26, W * 0.54, W * 0.83];
+    if (S.leafHover) {
+      /* 代表股預設收起：右邊那欄的寬度讓給版面 —— 族群欄往右移（54% → 最多 66%），但要留得下
+         「族群膠囊 ＋ 16px 空隙 ＋ 代表股（小點＋最長的「名稱 佔比%」）」，滑過顯示時才不會蓋到任何族群膠囊。
+         代表股欄＝max(83%, 族群膠囊最右緣 ＋ 16)；產業鏈欄放在根與族群的 44% 處。*/
+      let maxG = 0, maxL = 0;
+      chains.forEach(c => c.kids.forEach(g => {
+        maxG = Math.max(maxG, elBadgeW(S, g));
+        g.kids.forEach(lf => { maxL = Math.max(maxL, Math.min(CFG.CL_LEAF_LABEL_W, elBadgeW(S, lf) - 12)); });
+      }));
+      const need = 6 + 6 + maxG + 16 + 6 + maxL + 4;       // 族群圓點右半＋膠囊＋空隙＋代表股小點到字＋字＋右緣
+      const gX = Math.max(W * 0.54, Math.min(W * 0.66, W - need));
+      const lX = Math.min(W - 4 - maxL - 6, Math.max(W * 0.83, gX + 6 + 6 + maxG + 16));
+      cols = [CFG.CL_LEFT + 8, CFG.CL_LEFT + 8 + (gX - CFG.CL_LEFT - 8) * 0.44, gX, lX];
+    }
     const plan = slotPlan(S), slot = plan.slot;
     S.step = slot; S.slot = slot;
     let y = Math.max(CFG.EL_PAD, (H - plan.body) / 2);   // 內容比最低高度矮時垂直置中
@@ -503,7 +528,7 @@
       c.kids.forEach(g => {
         const nL = g.kids.length;
         const gs = g.open ? Math.max(slot, nL * CFG.EL_LEAF_SP + 16) : slot;
-        g.tx = cols[2]; g.ty = y + gs / 2; y += gs;
+        g.tx = cols[2]; g.ty = y + gs / 2; y += gs; g.gs = gs;
         // 族群圓點 4.5～6（依佔比平方根）；盤後／無資料 4.5
         g.r = g.stale || g.nodata ? 4.5 : 4.5 + 1.5 * Math.sqrt(g.rt);
         /* 代表股：固定 X（寬度 83%）垂直排開，以族群的 y 為中心。
@@ -812,7 +837,14 @@
     g.lineCap = 'round';
     const pass = (fn) => S.linkList.forEach(e => {
       const p = e.p; if (!p) return;
-      const k = Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
+      const lvis = e.lv === 2 ? visOf(S, e.to) : 1;         // 代表股收起：毛細線跟著淡出
+      if (lvis < 0.01) {                                   // 收起的毛細線不畫，但規格值照樣記（探針讀的是「顯示時會用的」寬度與透明度）
+        e.inW = e.dead ? 0.8 : 0.7; e.inA = e.dead ? 0.35 : 0.2;
+        e.outW = e.dead ? 0 : e.w * 2.4; e.outA = e.dead ? 0 : 0.04 * (0.55 + 0.45 * e.al);
+        e.inAEff = e.dead ? e.inA : trailEq(e.inA); e.outAEff = e.dead ? 0 : trailEq(e.outA);
+        return;
+      }
+      const k = Math.min(fadeOf(S, e.from), fadeOf(S, e.to)) * lvis;
       const col = e.dead && !e.to.dim ? P.ink3 : e.hue || e.to.hue;
       g.beginPath(); g.moveTo(p[0], p[1]); g.bezierCurveTo(p[2], p[3], p[4], p[5], p[6], p[7]);
       fn(e, k, col, e.lv === 2);
@@ -1007,8 +1039,9 @@
     S.order.forEach(n => {
       const B = n.lab; if (!B) return;
       const ox = n.x - n.tx, oy = n.y - n.ty;
-      // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25
-      g.globalAlpha = n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : 0.25);
+      // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25；代表股收起時跟著淡出
+      const lvs = visOf(S, n); if (lvs < 0.01) return;
+      g.globalAlpha = (n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : 0.25)) * lvs;
       if (B.badge) {
         g.beginPath();
         if (g.roundRect) g.roundRect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1, 3); else g.rect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1);
@@ -1048,6 +1081,32 @@
     g.globalAlpha = 1;
   }
 
+  /* ---- 代表股的顯示（S.leafHover）：目標值 0／1，實際值 n.vis 在迴圈裡 180ms 淡入淡出 ---- */
+  function leafWant(S, n) {
+    if (n.lv !== 3 || !S.leafHover) return 1;
+    const g = n.parent;
+    return g && (g.open || g === S.leafHot) || n.picked ? 1 : 0;
+  }
+  const visOf = (S, n) => (n.lv === 3 && S.leafHover ? (n.vis == null ? leafWant(S, n) : n.vis) : 1);
+  function snapVis(S) { S.order.forEach(n => { if (n.lv === 3) n.vis = leafWant(S, n); }); }
+  /* 每幀把 vis 往目標推；有變就回傳 true（底圖與標籤要重畫）*/
+  function stepVis(S, dt) {
+    if (!S.leafHover) return false;
+    let moved = false; const k = dt / 0.18;
+    S.order.forEach(n => {
+      if (n.lv !== 3) return;
+      const w = leafWant(S, n), v = n.vis == null ? w : n.vis;
+      if (v === w) { n.vis = v; return; }
+      n.vis = w > v ? Math.min(w, v + k) : Math.max(w, v - k); moved = true;
+    });
+    return moved;
+  }
+  function setLeafHot(S, g) {
+    if (!S.leafHover || g === S.leafHot) return;
+    S.leafHot = g;
+    if (!S.raf) { snapVis(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true); }
+  }
+
   /* ---- 動態：粒子、碰撞反饋、彈簧 ---- */
   function spawnOn(S, e, s0) {
     if (S.parts.length >= CFG.P_MAX) return;
@@ -1083,7 +1142,7 @@
     let kR = 1;
     if (S.classic) {                                       // 經典版面：整體發車率壓回粒子預算（見 CFG.CL_P_BUDGET）
       let want = 0;
-      S.linkList.forEach(e => { if (e.dead || !e.L) return; const v = (18 + 132 * e.spdK) * sc; want += e.rate * e.L / v; });
+      S.linkList.forEach(e => { if (e.dead || !e.L || (e.lv === 2 && !leafWant(S, e.to))) return; const v = (18 + 132 * e.spdK) * sc; want += e.rate * e.L / v; });
       const budget = S.mini ? CFG.MINI_P_BUDGET : CFG.CL_P_BUDGET;
       if (want > budget) kR = budget / want;
     }
@@ -1091,6 +1150,7 @@
     S.linkList.forEach(e => {
       if (e.dead || !e.L) return;
       e.v = (18 + 132 * e.spdK) * sc;                       // px/秒
+      if (e.lv === 2 && S.leafHover && !leafWant(S, e.to)) { e.er = 0; return; }   // 代表股收起：毛細線不發車
       /* 每條活著的線「至少一顆在線上」：發車間隔不超過走完全程的時間 */
       const rate = Math.max(e.rate * kR, e.v / e.L * 1.05); e.er = rate;   // 實際發車率（驗收量通過率用）
       e.acc += rate * dt;
@@ -1099,6 +1159,9 @@
     const parts = S.parts;
     for (let i = parts.length - 1; i >= 0; i--) {
       const p = parts[i], e = p.e;
+      if (e.lv === 2 && S.leafHover && !leafWant(S, e.to) && visOf(S, e.to) < 0.02) {   // 收起（淡出完）的毛細線：粒子收掉
+        parts[i] = parts[parts.length - 1]; parts.pop(); S.pool.push(p); continue;
+      }
       p.s += e.v * p.jit * dt;
       if (p.s >= e.L) { hit(S, e.to, now, prewarming); parts[i] = parts[parts.length - 1]; parts.pop(); S.pool.push(p); }
     }
@@ -1147,7 +1210,8 @@
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i], e = p.e; if (!e.xs) continue;
         const sp = S.sprites[e.to.hue]; if (!sp) continue;
-        const a0 = p.a * e.al * Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
+        const lvis = e.lv === 2 ? visOf(S, e.to) : 1; if (lvis < 0.02) continue;
+        const a0 = p.a * e.al * Math.min(fadeOf(S, e.from), fadeOf(S, e.to)) * lvis;
         const sz0 = sp.size * e.pr / sp.R;
         /* 經典版面：慢的粒子彗尾本來就疊在自己身上（7px 內），省掉那兩次 drawImage；快的才畫尾巴 */
         const tails = S.classic ? (e.v > 95 ? 2 : e.v > 50 ? 1 : 0) : 2;
@@ -1223,10 +1287,11 @@
       const r = n.r, hf = still ? 0 : (n.hf || 0);
       const ha = S.halos && S.halos[n.hue];
       const wz = Math.max(0, Math.min(1, (hf - 0.3) / 0.3));
-      if (n.lv === 3) {                                  // 代表股小點
-        g.globalAlpha = 0.75 * f; g.fillStyle = col;
+      if (n.lv === 3) {                                  // 代表股小點（收起時跟著淡出）
+        const lv = visOf(S, n); if (lv < 0.01) return;
+        g.globalAlpha = 0.75 * f * lv; g.fillStyle = col;
         g.beginPath(); g.arc(n.x, n.y, r, 0, Math.PI * 2); g.fill();
-        if (wz > 0) { g.globalAlpha = wz * f; g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.6); g.fill(); }
+        if (wz > 0) { g.globalAlpha = wz * f * lv; g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.6); g.fill(); }
         return;
       }
       if (ha && !off) {                                  // 常駐 6px 微光
@@ -1266,6 +1331,8 @@
     const t0 = performance.now();
     const dt = Math.min(0.05, Math.max(0, (now - S.lastT) / 1000)); S.lastT = now;
     if (S.tween) stepTween(S, now);
+    else if (stepVis(S, dt)) { drawBase(S); drawLabels(S); }
+    if (S.tween) stepVis(S, dt);
     update(S, dt, now, false);
     drawFx(S, now, false);
     const m = S.meter; m.frames++; m.cost += performance.now() - t0;
@@ -1285,6 +1352,7 @@
   }
   function drawStill(S) {                          // 靜止：不閃、不動、不留殘影
     S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; n.hf = 0; n.x = n.tx; n.y = n.ty; });
+    snapVis(S);                                      // 代表股：靜止時沒有淡入淡出，直接到位
     S.ripples = []; S.tween = null; S.twE = 1;
     measureLabels(S); curves(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true);
   }
@@ -1367,6 +1435,7 @@
   function pickAt(S, mx, my) {
     let best = null, bd = 1e9;
     for (const n of S.order) {
+      if (n.lv === 3 && S.leafHover && !leafWant(S, n)) continue;   // 收起的代表股：看不見就點不到
       const d = n.lv === 1 && !S.classic ? (Math.abs(mx - n.x) <= 8 && Math.abs(my - n.y) <= n.hh + 5 ? 0 : 1e9)
         : Math.hypot(mx - n.x, my - n.y) - (n.r + 6);
       if (d <= 0 && d < bd) { best = n; bd = d; }
@@ -1382,11 +1451,23 @@
     const t = S.tipEl; t.innerHTML = html; t.classList.add('on');
     const tw = t.offsetWidth, th = t.offsetHeight;
     let x = mx + 14, y = my + 12;
+    /* 代表股收起（S.leafHover）時滑到族群，右邊正要淡入那一族的三檔 —— 提示框改放在游標左邊，不要蓋住它們 */
+    if (S.leafHover && (n.lv === 2 || n.lv === 3) && mx - tw - 14 >= 4) x = mx - tw - 14;
     if (x + tw > S.W - 4) x = mx - tw - 14;
     if (y + th > S.H - 4) y = my - th - 12;
     t.style.left = Math.max(4, x) + 'px'; t.style.top = Math.max(4, y) + 'px';
   }
   function hideTip(S) { S.tipEl.classList.remove('on'); }
+  /* 滑鼠在哪個族群的「那一格槽位」裡：從族群圓點左邊 12px 到畫布右緣、上下半格（點開的族群那格比較高）*/
+  function rowGroupAt(S, mx, my) {
+    if (!S.leafHover) return null;
+    for (const n of S.order) {
+      if (n.lv !== 2) continue;
+      const half = (n.gs || S.slot || 36) / 2;
+      if (Math.abs(my - n.y) <= half && mx >= n.x - n.r - 12) return n;
+    }
+    return null;
+  }
   function setHover(S, n) {
     if (n === S.hover) return;
     S.hover = n;
@@ -1399,10 +1480,12 @@
     cv.addEventListener('pointermove', (ev) => {
       const [mx, my] = loc(ev), n = pickAt(S, mx, my);
       cv.classList.toggle('hot', !!n && !(n.d && n.d.placeholder));
+      // 代表股要顯示哪一族：滑到族群本身 → 它；滑到代表股 → 它的族群；都不是 → 看在不在哪個族群那一格槽位裡
+      setLeafHot(S, n && n.lv === 2 ? n : n && n.lv === 3 ? n.parent : rowGroupAt(S, mx, my));
       if (n) { showTip(S, n, mx, my); setHover(S, n.lv === 0 ? null : n); }
       else { hideTip(S); setHover(S, null); }
     });
-    cv.addEventListener('pointerleave', () => { hideTip(S); setHover(S, null); cv.classList.remove('hot'); });
+    cv.addEventListener('pointerleave', () => { hideTip(S); setHover(S, null); setLeafHot(S, null); cv.classList.remove('hot'); });
     cv.addEventListener('click', (ev) => {
       const [mx, my] = loc(ev), n = pickAt(S, mx, my);
       hideTip(S);
@@ -1475,6 +1558,7 @@
         // ★ 2026-09-26：節點形狀（經典光纖一律圓；拓撲版產業鏈是直條）、碰撞激發讀值、節點色
         shape: (S.classic || n.lv !== 1) ? 'circle' : 'bar', hh: +(n.hh || 0).toFixed(1),
         hf: +(n.hf || 0).toFixed(3), dot: n.dot,
+        vis: +visOf(S, n).toFixed(3), want: leafWant(S, n),
         text: n.lab ? n.lab.lines.map(l => l.map(p => p.t).join('')).join(' / ') : '',
         chg: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).chg || null : null,
         chgColor: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).c || null : null,
@@ -1496,6 +1580,7 @@
       lastDrawMs: m.lastDrawMs == null ? null : +m.lastDrawMs.toFixed(1),
       warmMs: m.warmMs == null ? null : +m.warmMs.toFixed(1),
       pending: !!S.pendingDraw,
+      leafHover: !!S.leafHover, leafHot: S.leafHot ? S.leafHot.key : null,
       ripples: S.ripples.length, rpMax: CFG.RP_MAX, rpPeak: m.rpPeak, rpMade: m.rpMade, hits: m.hits,
       cols: (S.cols || []).map(v => +(+v).toFixed(1)), cp: [CFG.CL_CP1, CFG.CL_CP2],
       slot: S.classic ? +(S.slot || 0).toFixed(1) : null, canvases: S.stage.querySelectorAll('canvas').length,
