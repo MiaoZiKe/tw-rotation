@@ -3047,15 +3047,43 @@
      而象限中線（45°/135°/225°/315°）上的那個位置，本來就是 ECharts 原本畫象限標籤的地方，
      所以換成卡片之後**版面的佔用完全沒變**，`_preview.py` 的重疊風險也沒變大。
      ★ ECharts 原本那組 axisLabel 會被關掉（見 axisLabel.show），不然同一個名字會出現兩次。*/
+  /* ★ 2026-09-24 夜（Andy：「足跡輪盤再放大一點，大到剛好離卡片邊緣留一點距離」
+       ＋「領先／改善／落後／轉弱四張字卡要放在雷達圓圈邊緣外一點，不要壓在圓內」）。
+     以前盤的半徑固定是 min(寬,高)/2 × 84%、四張象限卡的中心放在 1.02 倍半徑 —— 卡片有一大半壓在盤裡。
+     桌機改成：
+       · 半徑 ＝ min(寬,高)/2 − 14px（離容器邊留 14px）
+       · 象限卡沿 45° 對角線往外推，推到「卡片最靠圓心的那個角」離盤緣 ≥ 6px 為止（ROT_CHIP_W×H 是量過的卡片外框）
+       · 容器太窄、卡片會被推出容器時，半徑一次縮 4px 再算，直到卡片放得進容器（例如象限面板打開、時鐘變窄）
+     手機（≤820px）照舊 84%＋卡片壓在盤緣（Andy：手機先暫停）；總覽小時鐘 66%。
+     盤的半徑、名字排版的障礙物、掃描光束、水波、腳印間距全部讀這一支，所以永遠對得上。*/
+  const ROT_PAD = 14, ROT_CHIP_W = 104, ROT_CHIP_H = 34, ROT_CHIP_GAP = 6;
+  const ROT_ANG = { leading: 45, improving: 135, lagging: 225, weakening: 315 };
+  const rotChipD = (R) => {                            // 象限卡中心離圓心多遠（沿 45°）
+    const hw = ROT_CHIP_W / 2, hh = ROT_CHIP_H / 2;
+    let D = R;
+    for (; D < R + 240; D += 1) {
+      const c = D * Math.SQRT1_2;
+      if (Math.hypot(Math.max(0, c - hw), Math.max(0, c - hh)) >= R + ROT_CHIP_GAP) break;
+    }
+    return D;
+  };
+  function rotGeo(W, H, compact) {
+    const m = Math.min(W, H) / 2;
+    if (compact) return { R: 0.66 * m, D: 0.66 * m * 1.02 };
+    if (!rotDesk()) return { R: 0.84 * m, D: 0.84 * m * 1.02 };
+    let R = Math.max(40, m - ROT_PAD), D = rotChipD(R);
+    while (R > 80 && (D * Math.SQRT1_2 + ROT_CHIP_W / 2 > W / 2 - 2 || D * Math.SQRT1_2 + ROT_CHIP_H / 2 > H / 2 - 2)) { R -= 4; D = rotChipD(R); }
+    return { R, D };
+  }
   function rotQuadChips(el) {
     if (!el) return;
     let host = el.querySelector('.rotquads');
     if (!host) { host = document.createElement('div'); host.className = 'rotquads'; el.appendChild(host); }
     const W = el.clientWidth, H = el.clientHeight;
     if (!W || !H) { host.innerHTML = ''; return; }
-    // 和 polar 的設定一致：center 50%/50%、radius 84%（百分比的基準是 min(寬,高)/2）
-    const R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
-    const ANG = { leading: 45, improving: 135, lagging: 225, weakening: 315 };
+    // 和 polar 的設定一致（rotGeo）：半徑與象限卡的距離都從同一支算
+    const G = rotGeo(W, H, false), cx = W / 2, cy = H / 2;
+    const ANG = ROT_ANG;
     const cnt = rotStageCounts();
     /* v2 第 5 批（規格 §3.2-4）：「本週新進」—— 最近 5 個交易日換進這一段的族群數，
        寫成 `領先 9 +2`（+2 是 12px --ink-3）。回放到過去那一天時沒有「換段」可言（moved 一律 false），就不寫。
@@ -3064,7 +3092,7 @@
     rotStageAll().forEach(r => { if (r.moved) nw[r.stage] = (nw[r.stage] || 0) + 1; });
     host.innerHTML = STAGE_ORDER.map(k => {
       const a = ANG[k] * Math.PI / 180;
-      const x = cx + Math.cos(a) * R * 1.02, y = cy - Math.sin(a) * R * 1.02;
+      const x = cx + Math.cos(a) * G.D, y = cy - Math.sin(a) * G.D;
       const on = rotStageOpen === k;
       return `<button type="button" class="rq${on ? ' on' : ''}" data-k="${k}" aria-expanded="${on ? 'true' : 'false'}"
         style="--c:${STAGE[k].color};left:${x.toFixed(1)}px;top:${y.toFixed(1)}px"
@@ -3089,11 +3117,20 @@
        重排完一幀，`clientWidth` 才是新的值。*/
   function rotStageToggle(k) {
     rotStageOpen = rotStageOpen === k ? '' : k;
+    // 側欄同時只開一塊（2026-09-24 夜）：開象限就把成分股面板收掉
+    if (rotStageOpen) { const rp = $('#rankPanel'); if (rp && !rp.hidden && drillActive()) drillClose(); }
+    rotQuadSync();
+    renderStagePanel();
+    rotSideChanged();
+  }
+  function rotQuadSync() {
     $$('#rotClock .rotquads .rq').forEach(b => {
       const on = b.dataset.k === rotStageOpen;
       b.classList.toggle('on', on); b.setAttribute('aria-expanded', on ? 'true' : 'false');
     });
-    renderStagePanel();
+  }
+  // 輪盤旁邊的側欄開合之後，時鐘變窄／變寬：等瀏覽器排完一幀再 resize ＋ 重排名字與象限卡
+  function rotSideChanged() {
     requestAnimationFrame(() => {
       const el = $('#rotClock'); if (!el) return;
       try {
@@ -3124,15 +3161,22 @@
     const live = list.some(r => r.isLive);
     box.hidden = false;
     box.dataset.k = k;
+    /* ★ 2026-09-24 夜（審查 R2 #23：「轉弱 7」但轉弱象限一顆點都沒有）：徽章與面板算的是全部族群，
+       盤上只畫成交值前 16 名。徽章數字不改（它回答「這一段有幾個族群」），面板裡把「盤上有幾個」寫出來，
+       不在盤上的那幾列調淡並在 title 講明 —— 使用者就不會以為點不見了。*/
+    const el0 = $('#rotClock');
+    const onW = new Set(((el0 && el0._rotHov && el0._rotHov.top) || []).filter(r => !r.isStock).map(r => r.gid));
+    const nOn = list.filter(r => onW.has(r.gid)).length;
     /* ★ 2026-09-24：「收起 ✕」拿掉（Andy：「不需要"收起"選項，點擊背景即可消除」）。
        關閉的入口：點面板以外的地方、按 Esc、或再點一次同一顆象限卡。
        點**另一顆**象限卡＝換一段（面板重畫，dismissable 會認得出「這不是點外面」）。
        ignore #rankPanel：從這裡點族群會在排行下面展開成分股，在那裡點個股畫到時鐘上是同一串動作，不該把這裡關掉。*/
     box.innerHTML = `<div class="ph"><i style="background:${s.color}"></i>
-        <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群</span>
+        <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群${onW.size ? `（盤上 ${nOn}）` : ''}</span>
         <span class="muted">${s.sub}　·　<em>${s.act}</em></span></div>
       <div class="sd muted" title="點族群＝在「資金流向排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序${live ? '　·　<b>⚡ 盤中即時</b>' : ''}</div>
-      <ul class="ms">${list.length ? `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>` : ''}${list.map(r => rotItem(r)).join('')
+      <ul class="ms">${list.length ? `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>` : ''}${list.map(r => (onW.size && !onW.has(r.gid)
+          ? rotItem(r).replace('<li ', '<li data-off="1" title="成交值不在前 16 名，沒有畫在盤上" ') : rotItem(r))).join('')
         || '<li class="none">這一段目前沒有族群（可能是上面的篩選只留了別段的族群）</li>'}</ul>`;
     dismissable(box, () => { if (rotStageOpen) rotStageToggle(rotStageOpen); }, { ignore: ['#rankPanel'] });
     /* 展開成分股走**既有**那條路（`drillOpen` → `#rankPanel`），和即時那排 `rlvchip`、
@@ -3501,7 +3545,8 @@
     /* 狀態字（#rotLiveTag）＋ 它的提示框（#rotLive）掛在卡片標題旁邊（2026-09-24，理由見 rlvStamp 上面那段）。
        不寫死在 index.html 是因為它只有資金流向頁的那張卡用得到。*/
     if (!$('#rotLiveTag')) {
-      const h3 = $('#flowRotCard > .row h3');
+      // 2026-09-24 夜：卡片改成整張兩欄，標題在左欄的 .rothead 裡（舊結構 > .row h3 留著當退路）
+      const h3 = $('#flowRotCard .rothead h3') || $('#flowRotCard > .row h3');
       if (h3) {
         const w = document.createElement('span');
         w.className = 'rotlivewrap';
@@ -3560,6 +3605,203 @@
        就會把放大視窗排好的標籤位置整個洗掉（名字停在別張圖的像素座標上）。
        兩張圖是兩套座標，所以狀態也要分開，以圖表 id 當 key。*/
   const rotLbl = {};
+  const rotLblCur = {};                // 補間中的標籤位置（rotTween 每一幀寫；補間結束清成 null）
+  /* ================================================================ 足跡輪盤的平滑補間（2026-09-24）
+     Andy：「移動（拉 N 天前、▶ 回放、即時更新）時點會卡頓跳動，要改成平滑補間移動」。
+     根因與為什麼不用 ECharts 內建補間寫在 renderRotClock 的 animationDurationUpdate 那段。
+     做法：每次重畫先把「目標」完整畫好（標籤排版、highlight 都照舊算），再從「畫面上此刻的樣子」
+     用 requestAnimationFrame 一幀一幀內插過去：
+       · 點：極座標內插，角度走短的那一邊（350° → 10° 不會繞一大圈）
+       · 軌跡：48 個取樣點逐點內插（點數固定，所以逐點一定對得上）；腳印依內插後的路重新擺（精確弧長位置）
+       · 名字膠囊：位置＝點此刻的像素 ＋「相對點的偏移」由舊到新內插 —— 膠囊永遠貼著點走
+       · 換段色環、即時箭頭與漣漪：都讀同一個 _pt
+     時間：單次移動 400ms easeInOutCubic；**接續中的移動**（回放每 420ms 一天、拖拉Bar、即時連續更新）
+     用 ROT_ANIM_MS 等速（linear）—— ease 在每一天首尾減速，接起來就是「走一步停一下」（2026-09-20 修過的病）。
+     prefers-reduced-motion：不補間，直接到位。*/
+  const ROT_TW_MS = 400;
+  const rotEase = (u) => (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(-2 * u + 2, 3) / 2);
+  const rotLerpP = (a, b, e) => {
+    if (!a) return b;
+    let d = b[1] - a[1]; d = ((d % 360) + 540) % 360 - 180;
+    let ang = a[1] + d * e; ang = ((ang % 360) + 360) % 360;
+    return [a[0] + (b[0] - a[0]) * e, ang];
+  };
+  /* highlightClock 對 scatter 每一顆點做的事（亮／暗、滑到時暫時寫名字），抽出來給補間每一幀共用 ——
+     補間每一幀都要換 scatter 的 data，不照同一套規則套一次的話，被點亮的族群會在移動中被洗回原狀。*/
+  function rotHiItem(d, gid) {
+    const base = d.baseOp == null ? 1 : d.baseOp;
+    const op = !gid ? base : ((d.row && d.row.gid === gid) ? 1 : 0.18);
+    const lbl = { ...(d.label || {}), opacity: !gid ? 1 : op };
+    if (d.lblShow != null) lbl.show = !!d.lblShow || !!(gid && d.row && d.row.gid === gid);
+    return { ...d, itemStyle: { ...(d.itemStyle || {}), opacity: op }, label: lbl };
+  }
+  function rotTween(el, id, c, a) {
+    const top = a.top;
+    const target = { shape: a.shape, p: top.map(r => r.p), pts: top.map(r => (r._tf && r._tf.pts) || []) };
+    const prevT = el._twTarget, disp = el._twDisp, run = el._twT;
+    const near = (x, y) => x && y && Math.abs(x[0] - y[0]) < 1e-6 && Math.abs(((y[1] - x[1]) % 360 + 540) % 360 - 180) < 1e-4;
+    const same = !!(prevT && prevT.shape === target.shape && target.p.every((p, i) => near(prevT.p[i], p))
+      && target.pts.every((q, i) => { const o = prevT.pts[i] || []; return o.length === q.length && (!q.length || (near(o[0], q[0]) && near(o[o.length - 1], q[q.length - 1]))); }));
+    el._twTarget = target;
+    const iLive = a.series.findIndex(s => s.name === '即時位移');
+    const iEff = a.series.findIndex(s => s.type === 'effectScatter');
+    const iRing = a.series.findIndex(s => s.name === '換段色環');
+    const iGrp = a.series.findIndex(s => s.name === '族群');
+    /* ★ 每一幀**直接搬 zrender 圖元**，不走 setOption。
+       第一版是每一幀 setOption（換 scatter／軌跡的 data），量出來一次 setOption 要跑完 ECharts 整條管線
+       （22 個 series 全部重算、重建圖元），本機無頭瀏覽器每幀 25～240ms ＝ 4～10 fps，比原本還卡。
+       改成：目標那一版照常 setOption 畫好一次（標籤排版、highlight、腳印位置都由 ECharts 算），
+       補間期間只改「位置」—— 點與即時漣漪的 x/y、名字膠囊與引線、換段色環的圓心、軌跡折線的點、
+       腳印的 x/y 與轉角。一幀只剩幾十個屬性賦值 ＋ 一次重繪，最後一幀剛好落在 ECharts 畫好的目標上。
+       ECharts 中途自己重畫（滑鼠 hover 的 highlightClock、容器縮放）會把圖元放回目標位置 ——
+       下一幀照樣被搬回補間位置，所以不會卡住，最多閃一幀。*/
+    const nG = top.filter(r => !r.isStock).length;
+    const moveTo = (g, x, y) => { if (g.x !== x || g.y !== y) { g.x = x; g.y = y; g.markRedraw(); } };
+    // 名字膠囊與引線：ECharts 放的位置當基準（被它重畫時自動換新基準），往上加「此刻 − 目標」的位移
+    const shiftLbl = (sp, k, dotD) => {
+      const tx = sp.getTextContent && sp.getTextContent();
+      const gl = sp.getTextGuideLine && sp.getTextGuideLine();
+      const m = (rotLbl[id] || {})[k], f = (F0.lbl || {})[k];
+      let lx = 0, ly = 0;
+      if (m && m.px != null) {
+        const ox1 = m.x - m.px, oy1 = m.y - m.py;
+        const ox0 = f && f.px != null ? f.x - f.px : ox1, oy0 = f && f.py != null ? f.y - f.py : oy1;
+        // 此刻膠囊中心 ＝ 點此刻 ＋ 偏移（舊→新）；相對目標膠囊中心的位移
+        lx = (m.px + dotD[0] + ox0 + (ox1 - ox0) * E) - m.x; ly = (m.py + dotD[1] + oy0 + (oy1 - oy0) * E) - m.y;
+        curLbl[k] = { x: m.x + lx, y: m.y + ly, px: m.px + dotD[0], py: m.py + dotD[1] };
+      }
+      if (tx) {
+        if (!tx._twW || tx.x !== tx._twW[0] || tx.y !== tx._twW[1]) tx._twB = [tx.x, tx.y];
+        tx.x = tx._twB[0] + lx; tx.y = tx._twB[1] + ly; tx._twW = [tx.x, tx.y]; tx.markRedraw();
+      }
+      if (gl && gl.shape && gl.shape.points && gl.shape.points.length) {
+        const cur0 = gl.shape.points;
+        if (!gl._twW || gl._twW !== cur0) gl._twB = cur0.map(q => [q[0], q[1]]);
+        const np = gl._twB.map((q, i) => (i === 0 ? [q[0] + dotD[0], q[1] + dotD[1]] : [q[0] + lx, q[1] + ly]));
+        gl.setShape('points', np); gl._twW = gl.shape.points;
+      }
+    };
+    let F0 = null, E = 0, curLbl = {};
+    const paint = (e, F) => {
+      if (c.isDisposed && c.isDisposed()) return false;
+      F0 = F; E = e; curLbl = {};
+      top.forEach((r, i) => {
+        r._pt = rotLerpP(F.p[i], r.p, e);
+        const f = F.pts[i], t = target.pts[i];
+        r._ptsCur = (f && f.length === t.length && t.length) ? t.map((q, k) => rotLerpP(f[k], q, e)) : t;
+      });
+      const model = c.getModel();
+      const pc = model && model.getComponent('polar');
+      const cs = pc && pc.coordinateSystem; if (!cs) return false;
+      const P = (q) => cs.dataToPoint(q);
+      const hi = el._hiGid || null;
+      a.series.forEach((s, si) => {
+        const sm = model.getSeriesByIndex(si); if (!sm) return;
+        const d = sm.getData(); const n0 = d.count();
+        if (si < top.length) {
+          const r = top[si];
+          // 看不見的軌跡（焦點模式下非焦點那十條）只搬折線、不搬腳印：
+          // 折線很便宜（48 點），而且滑到它時 highlightClock 會把整條打開 —— 尖端要跟點在一起
+          const hidden = s.baseOp === 0 && hi !== r.gid;
+          const pts = r._ptsCur; if (!pts || pts.length < 2) return;
+          const px = pts.map(P), n = px.length;
+          const view = c.getViewOfSeriesModel(sm), poly = view && view._polyline;
+          if (poly && poly.shape && poly.shape.points && poly.shape.points.length === n * 2) {
+            const arr = new Float32Array(n * 2);
+            px.forEach((q, k) => { arr[2 * k] = q[0]; arr[2 * k + 1] = q[1]; });
+            poly.setShape('points', arr);
+          }
+          if (hidden) return;
+          // 腳印：照目標那一版的「弧長比例」（trailDeco 記在 fu）擺到此刻這條路上，腳尖跟著路轉
+          const cum = [0];
+          for (let k = 1; k < n; k++) cum.push(cum[k - 1] + Math.hypot(px[k][0] - px[k - 1][0], px[k][1] - px[k - 1][1]));
+          const total = cum[n - 1];
+          for (let k = 0; k < n0; k++) {
+            const raw = d.getRawDataItem(k); if (!raw || raw.fu == null) continue;
+            const g = d.getItemGraphicEl(k); if (!g) continue;
+            const want = raw.fu * total; let j = 1;
+            while (j < n - 1 && cum[j] < want) j++;
+            const seg = cum[j] - cum[j - 1] || 1, u = Math.max(0, Math.min(1, (want - cum[j - 1]) / seg));
+            moveTo(g, px[j - 1][0] + (px[j][0] - px[j - 1][0]) * u, px[j - 1][1] + (px[j][1] - px[j - 1][1]) * u);
+            const A = px[Math.max(0, j - 3)], B = px[Math.min(n - 1, j + 2)];
+            const ch = g.childAt && g.childAt(0);
+            if (ch && Math.hypot(B[0] - A[0], B[1] - A[1]) > 0.5) {
+              // ECharts：子路徑 rotation ＝ symbolRotate（度→弧度）；symbolRotate ＝ 前進方向（y 朝上）− 90°
+              ch.rotation = (Math.atan2(-(B[1] - A[1]), B[0] - A[0]) * 180 / Math.PI - 90) * Math.PI / 180; ch.markRedraw();
+            }
+          }
+          return;
+        }
+        if (si === iLive) {                  // 即時箭頭：補間中先藏起來，到位才出現（它的兩端是「收盤 → 現在」，移動中畫會亂指）
+          for (let j = 0; j < n0; j++) { const g = d.getItemGraphicEl(j); if (g && g.ignore !== (e < 1)) { g.ignore = e < 1; g.markRedraw(); } }
+          return;
+        }
+        if (si === iEff) {
+          for (let j = 0; j < n0; j++) { const g = d.getItemGraphicEl(j), r = a.liveArr[j]; if (g && r) { const q = P(r._pt); moveTo(g, q[0], q[1]); } }
+          return;
+        }
+        if (si === iRing) {
+          for (let j = 0; j < n0; j++) { const g = d.getItemGraphicEl(j), r = a.movedArr[j];
+            if (g && r && g.setShape) { const q = P(r._pt); g.setShape({ cx: q[0], cy: q[1] }); } }
+          return;
+        }
+        if (s.type === 'scatter') {
+          /* ⚠ 用索引對人，不用 raw.row：ECharts 收 option 時會把 data 裡的純物件深拷貝一份，
+             getRawDataItem().row 是**拷貝**，不是這裡的 top 列（第一次就踩到：補間算好了，點卻動也不動）。
+             族群 series 的第 j 顆 ＝ top[j]、個股 series 的第 j 顆 ＝ top[nG + j]（renderRotClock 排好的順序）。*/
+          const off = s.name === '個股' ? nG : 0;
+          for (let j = 0; j < n0; j++) {
+            const r = top[off + j], g = d.getItemGraphicEl(j);
+            if (!r || !g) continue;
+            const q = P(r._pt), q1 = P(r.p);
+            moveTo(g, q[0], q[1]);
+            const sp = g.childAt && g.childAt(0);
+            if (sp) shiftLbl(sp, off + j, [q[0] - q1[0], q[1] - q1[1]]);
+          }
+        }
+      });
+      try { c.getZr().refreshImmediately(); } catch (err) { /* 下一幀照樣會畫 */ }
+      el._twDisp = { p: top.map(r => r._pt), pts: top.map(r => r._ptsCur), lbl: e < 1 ? { ...(rotLbl[id] || {}), ...curLbl } : (rotLbl[id] || {}) };
+      return true;
+    };
+    const settle = () => {                 // 不補間：畫面＝目標
+      if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
+      el._twT = null; rotLblCur[id] = null;
+      top.forEach(r => { r._pt = r.p; r._ptsCur = (r._tf && r._tf.pts) || []; });
+      el._twDisp = { p: target.p, pts: target.pts, lbl: rotLbl[id] || {} };
+    };
+    // 目標沒變、補間還在跑（例如即時那一輪重畫了同一個位置）：接著跑，只把畫筆換成這一輪的
+    if (same && run && el._twRaf) { run.paint = paint; paint(run.t0 == null ? 0 : run.ease(Math.min(1, (performance.now() - run.t0) / run.dur)), run.from); return; }
+    if (!a.sameShape || a.reduce || !disp || same || !prevT || prevT.shape !== target.shape) { settle(); return; }
+    const now = performance.now();
+    const chained = !!(run && el._twRaf) || (now - (el._twEndAt || 0) < 150);
+    if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
+    /* t0 從「第一個 rAF」才開始算，不是從這裡：重畫之後的第一幀要付 ECharts 整張重繪的錢（本機忙的時候 300～400ms），
+       從這裡起算的話那一幀就把 400ms 吃光，畫面直接跳到終點 —— 驗收量到過「29 幀裡 0 幀在中間」。*/
+    const T = { from: disp, t0: null, dur: chained ? ROT_ANIM_MS : ROT_TW_MS, ease: chained ? (u) => u : rotEase,
+      paint, frames: 0, maxGap: 0, lastT: now, chained };
+    el._twT = T;
+    const S = el._twStat || (el._twStat = { tweens: 0, frames: 0, ms: 0, maxGap: 0, last: null });
+    S.tweens++;
+    paint(0, T.from);
+    const step = () => {
+      el._twRaf = 0;
+      if (el._twT !== T || !el.isConnected) return;
+      const t = performance.now();
+      T.maxGap = Math.max(T.maxGap, t - T.lastT); T.lastT = t; T.frames++;
+      if (T.t0 == null) T.t0 = t;
+      const u = Math.min(1, (t - T.t0) / T.dur);
+      const pt0 = performance.now();
+      if (T.paint(T.ease(u), T.from) === false) { el._twT = null; rotLblCur[id] = null; return; }
+      T.paintMs = (T.paintMs || 0) + performance.now() - pt0;
+      if (u < 1) { el._twRaf = requestAnimationFrame(step); return; }
+      el._twT = null; el._twEndAt = t;
+      S.frames += T.frames; S.ms += t - T.t0; S.maxGap = Math.max(S.maxGap, T.maxGap);
+      S.last = { frames: T.frames, ms: Math.round(t - T.t0), maxGap: Math.round(T.maxGap), chained: T.chained,
+        fps: +(T.frames / Math.max(1, (t - T.t0) / 1000)).toFixed(1), paintMs: +((T.paintMs || 0) / Math.max(1, T.frames)).toFixed(1) };
+    };
+    el._twRaf = requestAnimationFrame(step);
+  }
   /* ================================================================ 設計系統 v2 第 5 批（輪動時鐘）
      規格：docs/design_system_v2.md §3.2。Andy：「輪動階段、資金去向 優化圖表，需要更生動點」。
      「生動」在這裡的定義是**三秒內讀得出誰在哪一段、誰剛換段**，不是加特效：
@@ -3681,10 +3923,10 @@
     const cx = W / 2, cy = H / 2;
     const obst = [];
     if (quads) {
-      const R = 0.84 * Math.min(W, H) / 2;
+      const Dq = rotGeo(W, H, false).D;
       [45, 135, 225, 315].forEach(a => {
         const t = a * Math.PI / 180;
-        const x = cx + Math.cos(t) * R * 1.02, y = cy - Math.sin(t) * R * 1.02;
+        const x = cx + Math.cos(t) * Dq, y = cy - Math.sin(t) * Dq;
         obst.push({ x: x - 40, y: y - 16, w: 80, h: 32 });
       });
     }
@@ -3769,11 +4011,11 @@
     const cx = W / 2, cy = H / 2;
     const obst = [];
     if (quads) {
-      const R = 0.84 * Math.min(W, H) / 2;
+      const Dq = rotGeo(W, H, false).D;
       [45, 135, 225, 315].forEach(a => {
         const t = a * Math.PI / 180;
-        const x = cx + Math.cos(t) * R * 1.02, y = cy - Math.sin(t) * R * 1.02;
-        obst.push({ x: x - 46, y: y - 16, w: 92, h: 32 });
+        const x = cx + Math.cos(t) * Dq, y = cy - Math.sin(t) * Dq;
+        obst.push({ x: x - ROT_CHIP_W / 2, y: y - ROT_CHIP_H / 2, w: ROT_CHIP_W, h: ROT_CHIP_H });
       });
     }
     const placed = [];
@@ -3833,7 +4075,8 @@
   }
   /* 標籤排版查表（兩個 scatter series 共用；`k` 是在 rotLbl 裡的索引）。*/
   const rotLabelAt = (id, k) => {
-    const m = (rotLbl[id] || {})[k];
+    // 補間中（rotTween）查「此刻」那一張表：名字膠囊跟著點一起走，到終點時兩張表完全相同
+    const m = (rotLblCur[id] || rotLbl[id] || {})[k];
     if (!m) return {};
     if (m.side === 'num') {
       return { x: m.x, y: m.y, align: 'center', verticalAlign: 'middle',
@@ -4047,6 +4290,13 @@
       F.last = 0;
       return;
     }
+    /* ★ 2026-09-24 夜（審查 R2 #16：掃描開著時整頁從 57 掉到 16 fps）：只有掃描在轉（沒有水波、沒有聲納）時，
+       最多每 32ms 畫一次（≈30fps）。6 秒一圈的淡扇形，30fps 跟 60fps 肉眼分不出來，重繪成本減半，
+       補間與回放搶得到的幀就多了。水波／聲納在跑時照舊每幀畫（它們是跟著點動的）。*/
+    if (scanning && !(S && S.list.length) && !F.pings.length && F.lastDraw && t - F.lastDraw < 32) {
+      F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2)); return;
+    }
+    F.lastDraw = t;
     cv = rotFxCanvas(el);
     const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
     if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
@@ -4054,7 +4304,7 @@
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
     if (scanning && W && H) {
-      const cx = W / 2, cy = H * (F.compact ? .52 : .5), R = (F.compact ? .66 : .84) * Math.min(W, H) / 2;
+      const cx = W / 2, cy = H * (F.compact ? .52 : .5), R = rotGeo(W, H, F.compact).R;
       const dt = F.last ? Math.min(64, t - F.last) : 16;
       const prev = F.ang;
       F.ang = (F.ang + SCAN_W * dt / 1000) % (Math.PI * 2);
@@ -4131,9 +4381,21 @@
       pts: alive.map(x => ({ x: +x.x.toFixed(1), y: +x.y.toFixed(1), key: x.key })) };
   }
 
+  /* ★ 2026-09-24 夜（Andy：「足跡輪盤再放大一點」）：卡片上那張時鐘的高度跟著欄寬走（寬 × 0.8，夾在 440～640px），
+     盤的半徑再由 rotGeo 取「離容器邊 14px」。以前固定 440px 高，1440 寬的畫面上盤只有半徑 185px、兩側大片空白。
+     只看寬度決定高度，所以 ResizeObserver 不會來回觸發；手機與放大視窗不動。*/
+  function rotFitH(el, id, compact) {
+    if (compact || id !== 'rotClock' || !el) return;
+    if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
+    const w = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
+    if (!(w > 0)) return;
+    const h = Math.round(Math.max(440, Math.min(640, w * 0.8)));
+    if (Math.abs((el.clientHeight || 0) - h) > 2) el.style.height = h + 'px';
+  }
   function renderRotClock(rows, back, id, compact, opts) {
     opts = opts || {};
     const el = $('#' + id); if (!el) return;
+    rotFitH(el, id, compact);
     const cap = compact ? 10 : 16;
     let top0 = rows.slice(0, cap);                       // rotRows 已照成交值佔比排序
     if (opts.pick && opts.pick.size) {
@@ -4429,7 +4691,7 @@
     /* 軌跡上的方向箭頭要放在**大圈的邊緣外面**（大圈直徑 9～26px，放在圈裡就被蓋掉了），
        所以要知道「一個半徑單位是幾 px」：polar 的半徑百分比是以 min(寬,高)/2 為基準。*/
     const axisMax = maxR * (1 + CLOCK_TAIL) * 1.06;
-    const Rpx = (compact ? 0.66 : 0.84) * Math.min(el.clientWidth || 0, el.clientHeight || 0) / 2;
+    const Rpx = rotGeo(el.clientWidth || 0, el.clientHeight || 0, compact).R;
     const pxU = Rpx > 0 ? Rpx / axisMax : 0;
     const toXY = (p) => { const t = p[1] * Math.PI / 180; return [p[0] * Math.cos(t), p[0] * Math.sin(t)]; };
     // （2026-09-24：原本的 trailGrad「線由舊到新漸強」隨著線改成腳印一起退場；漸強改寫在每個腳印自己的顏色上）
@@ -4489,17 +4751,29 @@
       const gap = v2 ? Math.max(9, (total - skip) / Math.max(1, Math.floor(days / 2))) : FOOT_GAP;
       const hiA = r.isStock ? .6 : (v2 ? .85 : .95), loA = r.isStock ? .12 : (v2 ? .15 : .18);
       let foot = 0;
-      for (let want = total - skip; want >= 0; want -= gap) {
+      // ⚠ 下限寫 -0.01 不是 0：gap 剛好整除時最後一步的 want 會是 -1e-13，浮點誤差讓最舊那一步忽隱忽現（補間時看得到）
+      for (let want0 = total - skip; want0 >= -0.01; want0 -= gap) {
+        const want = Math.max(0, want0);
         let k = n - 1; while (k > 0 && cum[k] > want) k--;
         if (!Array.isArray(out[k])) continue;     // 同一個點已經放過腳印（路很短時會撞到）
+        /* ★ 2026-09-24（Andy：「移動時點會卡頓跳動」）：腳印放在**弧長的精確位置**（k → k+1 那一段上內插），
+           不再吸附到 48 個取樣點之一。吸附的話補間中每一幀腳印都在取樣點之間跳格（一格 3～6px），
+           看起來就是一抖一抖的。內插點落在原本那條折線上，所以細線的形狀不變。*/
+        let val = pts[k];
+        if (k < n - 1 && cum[k + 1] > cum[k]) {
+          const u2 = (want - cum[k]) / (cum[k + 1] - cum[k]);
+          const X = xy[k][0] + (xy[k + 1][0] - xy[k][0]) * u2, Y = xy[k][1] + (xy[k + 1][1] - xy[k][1]) * u2;
+          let a2 = Math.atan2(Y, X) * 180 / Math.PI; if (a2 < 0) a2 += 360;
+          val = [Math.hypot(X, Y) / pxU, a2];
+        }
         const a = xy[Math.max(0, k - 2)], b = xy[Math.min(n - 1, k + 2)];
         if (Math.hypot(b[0] - a[0], b[1] - a[1]) < 0.5) continue;
         const ang = Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI;
         const u = total > 0 ? cum[k] / total : 1;  // 0＝最舊、1＝最新
         const fsz = v2 ? +(13 * (0.76 + 0.3 * u)).toFixed(1) : null;   // 桌機：越新越大（9.9 → 13.8px 的框，腳本身約 8～11px）
-        out[k] = { value: pts[k], symbol: foot % 2 ? FOOT_L : FOOT_R, symbolSize: v2 ? [fsz, fsz] : [14, 12], symbolKeepAspect: true,
+        out[k] = { value: val, symbol: foot % 2 ? FOOT_L : FOOT_R, symbolSize: v2 ? [fsz, fsz] : [14, 12], symbolKeepAspect: true,
           // 腳印的路徑是腳尖朝上畫的；ECharts 的 symbolRotate 正值＝逆時針，所以轉 (方向 − 90°)
-          symbolRotate: ang - 90, foot: foot % 2 ? 'L' : 'R',
+          symbolRotate: ang - 90, foot: foot % 2 ? 'L' : 'R', fu: total > 0 ? want / total : 1,   // fu＝弧長比例（補間搬腳印用）
           itemStyle: { color: hexA(col, loA + (hiA - loA) * u), borderWidth: 0 } };
         foot++;
       }
@@ -4507,6 +4781,9 @@
     };
     // 剛換段的族群（看「最新」那一天、或即時模式下盤中跨過象限）：外圈一圈 2px 階段色環
     const movedArr = top.slice(0, nG).filter(r => r.moved);
+    /* 補間（rotTween，2026-09-24）要知道每個族群「目標」的軌跡點，所以先算好掛在列上；
+       `_pt`＝此刻畫面上的位置（補間中是中間值，平常就等於目標 p）。*/
+    top.forEach(r => { r._tf = trailFull(r); r._pt = r.p; });
     const o = {
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => {
@@ -4541,7 +4818,7 @@
       },
       // N5（Andy 2026-09-19「輪動時鐘圓圈範圍擴大點」）：72% → 84%。
       // 標籤已經改成左右兩欄＋引線（不佔盤面），所以盤可以放大。
-      polar: { center: ['50%', compact ? '52%' : '50%'], radius: compact ? '66%' : '84%' },
+      polar: { center: ['50%', compact ? '52%' : '50%'], radius: compact ? '66%' : Math.max(10, Rpx) },
       angleAxis: {
         type: 'value', min: 0, max: 360, startAngle: 0, clockwise: false, interval: 45,
         axisLine: { show: false }, axisTick: { show: false },
@@ -4586,10 +4863,13 @@
                點排行長條或清單時 highlightClock 會把被點的那一條打開，也就是「它變焦點」。*/
         ...top.map(r => {
           const col = STAGE[r.stage].color;
-          const tf = trailFull(r);
+          const tf = r._tf;
           const op = shownTrail(r) ? 1 : 0;
           return {
-            type: 'line', coordinateSystem: 'polar', silent: true, symbol: 'circle', showSymbol: true, showAllSymbol: true,
+            /* symbol 'none'：只有腳印那幾個資料點自己帶 symbol（trailDeco），其餘 40 幾個點不建圖元。
+               以前是 'circle' ＋ symbolSize 0 —— 16 條 × 48 點＝768 個看不見的圓也要每次重畫，
+               補間每一幀都要 setOption，實測這一項讓每一幀的成本約翻倍（2026-09-24）。*/
+            type: 'line', coordinateSystem: 'polar', silent: true, symbol: 'none', showSymbol: true, showAllSymbol: true,
             gid: r.gid,                                   // 給 highlightClock 認人用（圖四點長條時只亮這一族群）
             baseOp: op,                                   // highlightClock 還原時回到這個值（不是一律 1）
             symbolSize: 0, data: trailDeco(r, tf, col), z: 2,
@@ -4629,7 +4909,8 @@
             const r = liveArr[params.dataIndex]; if (!r) return null;
             const a = api.coord([r.p0[0], r.p0[1]]);      // 上一個收盤
             const f = api.coord([r.pf[0], r.pf[1]]);      // 持平基準（慣性走到的地方）
-            const b = api.coord([r.p[0], r.p[1]]);        // 現在
+            const pp = r._pt || r.p;                       // 補間中＝此刻畫面上的位置
+            const b = api.coord([pp[0], pp[1]]);          // 現在
             if (!a || !f || !b) return null;
             const col = STAGE[r.stage].color;
             const kids = [];
@@ -4867,14 +5148,22 @@
             「↻ 箭頭＝行進方向」那一句搬到文字說明裡（當時是 #rotCenterNote，
             2026-09-21 起併進「怎麼看 ?」）—— 它是 HTML，
             會自己換行，任何寬度都不可能溢出。圖裡只留「回放日期」與一行最短的比例說明。*/
-        { type: 'text', right: 12, bottom: 8, silent: true,
+        /* ★ 2026-09-24 夜（桌機）：盤放大到離容器邊 14px、象限卡推到盤外的四個角之後，右下角正好是「轉弱」卡 ——
+           這行字壓在卡上。桌機改成置中貼底、而且只在回放／即時時才寫（那兩件事不寫會讀錯）；
+           「圈圈大＝佔比高 · 離圓心遠＝差大盤多」這句是讀法，在「怎麼看 ?」裡已經有，不必常駐。手機照舊右下角。*/
+        (v2 ? { type: 'text', left: 'center', bottom: 0, silent: true, z: 20,
+          style: { text: [frameDate ? '⏱ 回放：' + frameDate : '', liveArr.length ? '⚡ 即時：灰虛線＝慣性　亮色箭頭＝今天推的' : '']
+              .filter(Boolean).join('\n'),
+            fill: hexA(CH.ink2, .8), fontSize: 12, lineHeight: 16, textAlign: 'center',
+            backgroundColor: hexA(CH.panel, .75), padding: [1, 6], borderRadius: 4 } }
+        : { type: 'text', right: 12, bottom: 8, silent: true,
           style: { text: (frameDate ? '⏱ 回放：' + frameDate + '\n' : '')
               /* 即時模式時多一行講箭頭是什麼。只有一行、而且刻意不寫數字 ——
                  數字全部在圖下方那條狀態列裡，圖上塞數字一定會撞到族群名。*/
               + (liveArr.length ? '⚡ 即時：灰虛線＝慣性　亮色箭頭＝今天推的\n' : '')
               + '圈圈大＝佔比高　·　離圓心遠＝差大盤多',
             fill: hexA(CH.ink2, .55), fontSize: 12, lineHeight: 16, textAlign: 'right' },
-        }],
+        })],
     };
     /* N3（Andy 2026-09-19「族群在時鐘上要像螞蟻一樣可以緩步移動，而非定格方式，
        這樣播放才有趨勢性」）：回放時**不要** notMerge。
@@ -4890,10 +5179,68 @@
        easeOut 會在每一天的尾巴急停，那正是「段點段點」的另一個來源。*/
     o.animationDurationUpdate = ROT_ANIM_MS;
     o.animationEasingUpdate = 'linear';
+    /* ★ 2026-09-24（Andy：「移動時點會卡頓跳動」）：卡片與放大視窗的時鐘改由自己的 rAF 補間（rotTween，見下面）。
+       ECharts 內建的 merge 補間有三個對不齊的地方，量出來就是他看到的「卡頓跳動」：
+         ① 名字膠囊的位置由 labelLayout 查表，表是用「目標」座標算的 —— 點還在路上，名字已經瞬移到終點
+         ② 腳印是 line series 上的個別資料點，換一天就換一批索引 —— 舊的消失、新的冒出來，一格一格跳
+         ③ 每次重畫後 relayout 會再 setOption 一次，把還在跑的補間從中途重新開始
+       所以內建補間關掉（durationUpdate 0＝瞬間到位），每一幀由 rotTween 把「點、軌跡、腳印、名字、換段色環、即時箭頭」
+       一起放到同一個中間位置。總覽小時鐘（compact）沒有名字與腳印，照舊用內建的。*/
+    if (!compact) o.animationDurationUpdate = 0;
     /* 使用者要求減少動態（prefers-reduced-motion）：補間整個關掉，播放變成一天一跳。
        ⚠ 420ms 的播放補間不受「動效 ≤ 240ms」那條限制 —— 那是 Andy 2026-09-20 指定的「資料的播放速度」，
        不是介面過場（見 ROT_ANIM_MS 的註解）。*/
     if (reduce) o.animation = false;
+    /* ★ 2026-09-24 夜（審查 R2 #15：回放 7～10 fps，每一步整份重設兩次）：名字排版改在 setOption **之前**算。
+       以前是「setOption 畫一次 → 用 convertToPixel 量點的像素 → 排名字 → 再 setOption 一次」，
+       回放每 420ms 一步就是兩次整條管線。點的像素其實用極座標自己算得出來（圓心在容器中央、
+       半徑 rotGeo、角度逆時針從 +x 起算，和 polar 的設定同一組數），所以給排版一個「假的 chart」
+       只回答 convertToPixel，名字排好直接寫進 o.series，整步只剩一次 setOption。
+       容器縮放時的 relayout 仍然用真的 chart 量（那時候圖已經畫好了）。*/
+    const applyLbl = (cc) => {
+      rotLbl[id] = numMode ? layoutRotNums(cc, el, top, !!opts.quads) : layoutRotNear(cc, el, top, isF, !!opts.quads);
+      /* 寬畫面（layoutRotNear）：排得下的才寫名字；引線只有離點遠的焦點族群才畫。*/
+      if (!numMode) {
+        const L2 = rotLbl[id];
+        o.series.forEach(s => {
+          if (s.type !== 'scatter') return;
+          const off = s.name === '個股' ? nG : 0;
+          (s.data || []).forEach((d, j) => {
+            const m = L2[off + j];
+            d.lblShow = !!m;                     // highlightClock 還原時回到這個值（滑到沒寫名字的點會暫時寫出來）
+            d.label = { ...(d.label || {}), show: !!m };
+            d.labelLine = { show: !!(m && m.lead) };
+          });
+        });
+      }
+      /* 編號模式：寫在點裡的編號用白字／深字、不描邊；寫在點外的用 --ink 粗體＋面板色描邊。
+         這要等排版算完才知道，所以在第二次 setOption 之前改 data 上的 label。*/
+      if (numMode) {
+        const L2 = rotLbl[id];
+        o.series.forEach(s => {
+          if (s.type !== 'scatter') return;
+          const off = s.name === '個股' ? nG : 0;
+          (s.data || []).forEach((d, j) => {
+            const m = L2[off + j]; if (!m) return;
+            d.label = { ...(d.label || {}), color: m.inside ? m.ink : CH.ink, fontWeight: 700,
+              textBorderWidth: m.inside ? 0 : 3 };
+          });
+        });
+      }
+      // 驗收用：量兩兩不重疊、全在畫布內（只有卡片那張圖要攤出來，不然放大時會互相蓋掉）
+      if (opts.expose) window.App._rotLabels = Object.keys(rotLbl[id]).map(k => rotLbl[id][k].rect);
+      // 象限卡的位置是從容器尺寸算出來的，所以和族群名標籤走同一個重排時機（含 120ms 去抖動）
+      if (opts.quads) rotQuadChips(el);
+    };
+    let lblPre = false;
+    if (!compact && pxU > 0) {
+      const W0 = el.clientWidth || 0, H0 = el.clientHeight || 0;
+      if (W0 && H0) {
+        applyLbl({ getOption: () => ({ series: [{ type: 'scatter' }] }),
+          convertToPixel: (_q, v) => { const t = v[1] * Math.PI / 180, rr = v[0] * pxU; return [W0 / 2 + rr * Math.cos(t), H0 / 2 - rr * Math.sin(t)]; } });
+        lblPre = true;
+      }
+    }
     const c = chart(id, o, { notMerge: !sameShape });
     /* 水波（Andy 2026-09-24「結合水滴這概念，當他移動會有水波紋」）：點真的挪了位置才冒，靜止時不冒。
        幾何跟 polar 的設定一致（center 50%／52%、radius 84%／66% 的基準是 min(寬,高)/2）。*/
@@ -4955,43 +5302,18 @@
            重畫時 numMode 是用同一個 clientWidth 算的，所以不會來回觸發。*/
         const wantNum = (el.clientWidth || 0) > 0 && el.clientWidth < ROT_NUM_W;
         if (wantNum !== !!rotNum[id] && el._rotRedraw) { el._rotRedraw(); return; }
-        rotLbl[id] = numMode ? layoutRotNums(c, el, top, !!opts.quads) : layoutRotNear(c, el, top, isF, !!opts.quads);
-        /* 寬畫面（layoutRotNear）：排得下的才寫名字；引線只有離點遠的焦點族群才畫。*/
-        if (!numMode) {
-          const L2 = rotLbl[id];
-          o.series.forEach(s => {
-            if (s.type !== 'scatter') return;
-            const off = s.name === '個股' ? nG : 0;
-            (s.data || []).forEach((d, j) => {
-              const m = L2[off + j];
-              d.lblShow = !!m;                     // highlightClock 還原時回到這個值（滑到沒寫名字的點會暫時寫出來）
-              d.label = { ...(d.label || {}), show: !!m };
-              d.labelLine = { show: !!(m && m.lead) };
-            });
-          });
-        }
-        /* 編號模式：寫在點裡的編號用白字／深字、不描邊；寫在點外的用 --ink 粗體＋面板色描邊。
-           這要等排版算完才知道，所以在第二次 setOption 之前改 data 上的 label。*/
-        if (numMode) {
-          const L2 = rotLbl[id];
-          o.series.forEach(s => {
-            if (s.type !== 'scatter') return;
-            const off = s.name === '個股' ? nG : 0;
-            (s.data || []).forEach((d, j) => {
-              const m = L2[off + j]; if (!m) return;
-              d.label = { ...(d.label || {}), color: m.inside ? m.ink : CH.ink, fontWeight: 700,
-                textBorderWidth: m.inside ? 0 : 3 };
-            });
-          });
-        }
-        // 驗收用：量兩兩不重疊、全在畫布內（只有卡片那張圖要攤出來，不然放大時會互相蓋掉）
-        if (opts.expose) window.App._rotLabels = Object.keys(rotLbl[id]).map(k => rotLbl[id][k].rect);
-        // 象限卡的位置是從容器尺寸算出來的，所以和族群名標籤走同一個重排時機（含 120ms 去抖動）
-        if (opts.quads) rotQuadChips(el);
-        try { c.setOption({ series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
+        applyLbl(c);
+        // 盤的半徑是像素（rotGeo），容器變了要跟著換 —— 不然放大視窗／象限面板開合之後盤會凸出或縮在中間
+        rotFitH(el, id, compact);
+        const G2 = rotGeo(el.clientWidth || 0, el.clientHeight || 0, false);
+        o.polar = { ...o.polar, radius: Math.max(10, G2.R) };
+        try { c.setOption({ polar: o.polar, series: o.series }, { notMerge: false, lazyUpdate: false }); } catch (e) { /* 忽略 */ }
       };
       el._rotRedraw = () => renderRotClock(rows, back, id, compact, opts);
-      relayout();
+      // 名字已經在 setOption 前排好（lblPre）就不必再畫第二次；沒排成（容器還是 0×0）才走舊路
+      if (!lblPre) relayout();
+      // 第一次 echarts.init 會清空容器（把先前掛上的象限卡一起清掉），所以畫完再掛一次
+      else if (opts.quads && !el.querySelector('.rotquads .rq')) rotQuadChips(el);
       el._rotRelayout = relayout;                    // 永遠指向「最後一次畫的那一版」
       renderRotNumList(el, id, top, numMode, isF);
       /* 滑到一顆點＝它變焦點、其他壓到 20%（規格 §3.2-2；點排行長條、點清單都是同一支 highlightClock）。
@@ -5013,7 +5335,8 @@
             if (si < 0) return;
             let best = null, bd = Infinity;
             H.top.forEach(r => {
-              let q; try { q = H.c.convertToPixel({ seriesIndex: si }, [r.p[0], r.p[1]]); } catch (e) { q = null; }
+              const pp = r._pt || r.p;                 // 補間中用「此刻畫面上」的位置命中
+              let q; try { q = H.c.convertToPixel({ seriesIndex: si }, [pp[0], pp[1]]); } catch (e) { q = null; }
               if (!q) return;
               const d = Math.hypot(q[0] - ev.offsetX, q[1] - ev.offsetY);
               if (d <= r.sz / 2 + 3 && d < bd) { bd = d; best = r; }
@@ -5040,6 +5363,9 @@
     } else if (compact) {
       rotLbl[id] = {};
     }
+    if (c && !compact) rotTween(el, id, c, {
+      shape, sameShape, reduce, top, liveArr, movedArr, series: o.series,
+      deco: (r, pts) => trailDeco(r, { pts, days: r._tf.days }, STAGE[r.stage].color) });
     /* ★ 2026-09-21（Andy 的兩階段）：點族群**不再跳頁**，改成原地展開成分股。
        他的規矩是「點擊優先在原地展開，不要動不動就把人帶離當前頁面」——
        真的要進族群頁的話，展開的面板標題右邊有「進族群頁 →」。
@@ -6198,7 +6524,15 @@
     /* 篩選（產業鏈／前 10 大／個股／族群晶片）變了就重畫。
        放大視窗開著時它也要跟著重畫 —— 兩邊吃的是同一份 ROT 狀態，
        只更新其中一邊的話，使用者關掉放大就會看到「剛剛按的東西不見了」。*/
-    rotRedraw = () => { drawRot(rotFrame); drawPeriod(); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); };
+    /* ★ 2026-09-24 夜（審查 R2 #10：「只看前 10 大」點下去 912ms 才畫完）：輪盤先畫、先讓瀏覽器畫出一幀，
+       排行／象限面板／放大視窗排在下一個工作 —— 總時間差不多，但點下去的回饋從 0.9 秒變成一幀。
+       多次連點時只做最後一次（rotRedrawT）。*/
+    let rotRedrawT = 0;
+    rotRedraw = () => {
+      drawRot(rotFrame);
+      if (rotRedrawT) clearTimeout(rotRedrawT);
+      requestAnimationFrame(() => { rotRedrawT = setTimeout(() => { rotRedrawT = 0; drawPeriod(); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); }, 0); });
+    };
     /* 即時那一輪只要重畫「時鐘」（卡片＋放大視窗）。
        刻意**不叫 `rotRedraw`** —— 它連排行與期間卡一起重畫，那兩張和即時完全無關，
        每分鐘白重建一次只會讓畫面閃一下。*/
@@ -6375,7 +6709,11 @@
        最窄的時候右邊那串只留佔比變化（期間報酬讓位給族群名，tooltip 裡還看得到）。*/
     const rfw = (document.getElementById('rankFlow') || {}).clientWidth || 600;
     const narrow = rfw < 380, mid = rfw < 470;
-    const GR = narrow ? 58 : mid ? 76 : 96;
+    /* ★ 2026-09-24 夜（Andy：「資金流向排行版面太窄、長條區要夠長、族群名與數字不擠」）：
+       欄寬 < 560px（桌機兩欄時的常態）長條末端只寫佔比變化，期間報酬留在提示框 ——
+       兩個數字並排要吃掉左右各 ~90px，長條只剩 100px 出頭，看起來全擠在一起。*/
+    const lean = rfw < 560;
+    const GR = narrow || lean ? 58 : 96;
     // 2026-09-24：窄欄 11.5 → 12（全站 12px 下限；softenOption 也會把長條圖類別軸補到 12，這裡的留白要用同一個字級量）
     const FS = narrow ? 12 : 12.5;
     /* 左留白**量出來**，不要寫死：族群名長度差很多（「金融」2 個字 vs
@@ -6385,7 +6723,8 @@
        下限是為了讓短名字的時候長條不要貼著卡片邊；上限鎖在欄寬的一半，
        不然窄欄位會被名字整個吃掉、長條沒有地方畫。*/
     const GL = Math.max(narrow ? 96 : mid ? 108 : 124,
-      Math.min(Math.round(rfw * 0.5), Math.ceil(textW(rows.map(label), FS)) + 12));
+      // 2026-09-24 夜：上限 50% → 42%（長條區要夠長；放不下的名字照舊截斷加…，全名在提示框）
+      Math.min(Math.round(rfw * (lean ? 0.42 : 0.5)), Math.ceil(textW(rows.map(label), FS)) + 12));
     /* ★ 2026-09-21：留白有上限（欄寬的一半，否則長條沒地方畫），所以**名字仍然可能放不下**。
        實測：1280px 合併版面下右欄只剩 ~330px，「NOR Flash 利基記憶體 1↓」凸出容器 4px。
        上面那段註解說「留白不該是常數」是對的，但它沒處理「量出來也還是不夠」這種情形。
@@ -6403,7 +6742,7 @@
        以前這張的數字一律寫在右邊，負值那幾根的數字其實是貼在零軸旁邊、不在長條的末端。
        改成負值寫在左端外側之後，左邊要有地方放字 —— 左留白是族群名的，不能拿來用，
        所以把 x 軸的下限往左多撐出「最寬那個負值標籤」的寬度（量出來的，不是估的）。*/
-    const lblOf = (g) => { const v = `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}`; return narrow ? v : `${v}　${fmt.pct(g.ret, 1)}`; };
+    const lblOf = (g) => { const v = `${g.share_chg > 0 ? '+' : ''}${g.share_chg.toFixed(2)}`; return narrow || lean ? v : `${v}　${fmt.pct(g.ret, 1)}`; };
     const negs = rows.filter(g => g.share_chg < 0);
     const vMin = Math.min(0, ...rows.map(g => g.share_chg)), vMax = Math.max(0, ...rows.map(g => g.share_chg));
     const plotW = Math.max(60, rfw - GL - GR);
@@ -6423,10 +6762,13 @@
       grid: { left: GL, right: GR, top: 12, bottom: 38 },
       xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 12 },
         ...(xMin != null ? { min: xMin } : {}),
+        // 2026-09-24 夜：上限貼著最大值（不再湊到整數 1），最長那根長條直接頂到右邊數字欄 —— 長條區多出 15～20%
+        ...(vMax > 0 ? { max: +(vMax * 1.03).toFixed(3) } : {}),
         /* 刻度只寫資料範圍內的（左邊為了放負值標籤撐出去的那一段不寫字），並收到約 4 格 ——
            改前 1440px 讀起來是「-2-1.5-1-0.5 0 0.5 1」擠成一串（量起來沒疊到，但字距不到 2px）。*/
         splitNumber: 4,
-        axisLabel: { color: CH.ink3, hideOverlap: true, formatter: (v) => (xMin != null && v < vMin - 1e-9) ? '' : (Math.abs(v) < 1e-9 ? '0' : +(+v).toFixed(2)) } },
+        // showMaxLabel:false —— 上限現在是「最大值 × 1.03」這種不整齊的數，寫出來會和 0.5 擠成「0.5 0.82」
+        axisLabel: { color: CH.ink3, hideOverlap: true, showMaxLabel: vMax > 0 ? false : null, formatter: (v) => (xMin != null && v < vMin - 1e-9) ? '' : (Math.abs(v) < 1e-9 ? '0' : +(+v).toFixed(2)) } },
       yAxis: { ...axisStyle, type: 'category', data: rows.map(g => fit(label(g))), axisLabel: { color: CH.ink2, fontSize: FS } },
       series: [{
         type: 'bar', barWidth: 15,
@@ -6576,13 +6918,8 @@
   const chipSel = {};
   function filterChips(chartId, list, sel, onPick) {
     const el = document.getElementById(chartId); if (!el) return;
-    const at = el.closest('.zwrap') || el;
-    let row = at.nextElementSibling;
-    if (!row || !row.classList.contains('linkrow')) {
-      row = document.createElement('div'); row.className = 'linkrow';
-      at.parentNode.insertBefore(row, at.nextSibling);
-    }
-    row.classList.add('gchips');
+    // 2026-09-24：和 filterDropdown 同一條規則 —— 篩選列放在卡片標題下方（filterSlot）。目前全站已沒有呼叫端，留給下一張圖用
+    const row = filterSlot(el, 'linkrow gchips', chartId);
     row.dataset.for = chartId;
     chipSel[chartId] = sel || null;
     row.innerHTML = (sel ? '<span class="muted">篩選中（再點一次取消）</span>' : '')
@@ -6613,14 +6950,33 @@
      ★ 也因此第二層是單選樣式而不是 checkbox：複選是資金輪動那邊的需求，
        這張圖從第一天起就是「一次只看一個族群」，硬套 checkbox 只會讓人以為可以多選。 */
   const ddChain = {};              // chartId → 第一層選到的產業鏈（''＝全部）
-  function filterDropdown(chartId, list, sel, onPick) {
-    const el = document.getElementById(chartId); if (!el) return;
-    const at = el.closest('.zwrap') || el;
-    let row = at.nextElementSibling;
-    if (!row || !row.classList.contains('ddrow')) {
-      row = document.createElement('div'); row.className = 'ddrow rotfilter';
+  /* ★ 2026-09-24（Andy：「篩選列一律放在卡片左上角（產業鏈／族群兩顆下拉），全站同一規則：
+       凡是有篩選的卡片，篩選列放在標題下方左上角，不要漂在中間或右側」）。
+     以前 filterDropdown／filterChips 都是把那一排插在**圖的下面**（資金去向那排在一整棵樹的最底下，
+     要捲過 700px 才看得到）。現在一律插在「卡片標題列（＋它的『怎麼看 ?』說明盒）」的正下方：
+     使用者先看到「這張圖可以怎麼篩」，再看到圖。找不到卡片（例如圖被搬進放大視窗）才退回舊位置（圖的下面）。*/
+  function filterSlot(el, cls, chartId) {
+    const card = el.closest('.card');
+    const head = card && [...card.children].find(x => x.classList.contains('row') && x.querySelector('h3'));
+    let row = card ? card.querySelector(`:scope > .${cls.split(' ')[0]}[data-for="${chartId}"]`) : null;
+    if (row) return row;
+    row = document.createElement('div'); row.className = cls; row.dataset.for = chartId;
+    if (head) {
+      let at = head;
+      while (at.nextElementSibling && at.nextElementSibling.classList.contains('howtxt')) at = at.nextElementSibling;
+      at.parentNode.insertBefore(row, at.nextSibling);
+    } else {
+      const at = el.closest('.zwrap') || el;
+      const nx = at.nextElementSibling;
+      if (nx && nx.classList.contains(cls.split(' ')[0])) return nx;
       at.parentNode.insertBefore(row, at.nextSibling);
     }
+    return row;
+  }
+  function filterDropdown(chartId, list, sel, onPick, opt) {
+    const el = document.getElementById(chartId); if (!el) return;
+    opt = opt || {};
+    const row = filterSlot(el, 'ddrow rotfilter', chartId);
     row.dataset.for = chartId;
     chipSel[chartId] = sel || null;
     const meta = (g) => rotGroupMeta[g] || {};
@@ -6665,8 +7021,8 @@
         </div>
       </div>
       ${sel || cur ? '<button type="button" class="btn small dd-clear">清除</button>' : ''}
-      <span class="muted">${sel ? `資金去向只看「${fmt.esc(selName)}」這一支（選「全部族群」或按清除就回到整張圖）`
-        : '先挑產業鏈，再挑一個族群 —— 圖上就只剩它那一條分支'}</span>`;
+      <span class="muted">${sel ? (opt.onText ? opt.onText(selName) : `資金去向只看「${fmt.esc(selName)}」這一支（選「全部族群」或按清除就回到整張圖）`)
+        : (opt.offText || '先挑產業鏈，再挑一個族群 —— 圖上就只剩它那一條分支')}</span>`;
 
     // 開合：和資金輪動那兩排共用 `rotMenu` / `rotCloseMenus()`，所以點別處、Esc 的行為完全一致
     $$('.rotdd', row).forEach(dd => {
@@ -6696,7 +7052,7 @@
       rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
       /* 換鏈時**不動選取**：這張圖是單選，硬把選取清掉會讓圖突然跳回整張，
          而使用者只是想換一條鏈來找族群。選取和鏈對不上時，上面那段會讓第一層跟著跳回去。*/
-      filterDropdown(chartId, list, chipSel[chartId], onPick);
+      filterDropdown(chartId, list, chipSel[chartId], onPick, opt);
     });
     // 第二層：單選。點一下就選定並收起來（沒有「再點一次取消」——「全部族群」那一項就是取消）
     $$('.rotdd[data-dd="group"] [data-g]', row).forEach(b => b.onclick = (ev) => {
@@ -7208,10 +7564,15 @@
     const had = DRILL.stocks.size;
     DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set(); DRILL.notes = {};
     DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set();
+    const rpWas = !!($('#rankPanel') && !$('#rankPanel').hidden);
     DRILL_PANELS.forEach(id => { const b = $('#' + id); if (b) { b.hidden = true; b.dataset.gid = ''; b.dataset.sig = ''; } });
+    if (rpWas) rotSideChanged();
     // 排行的「只亮這一個族群」與資金去向的聚焦也一起還原，不然圖上會留著壓暗的殘影
     if (rankSel) { rankSel = null; highlightClock(null); }
     if (chipSel.sankey) chipSel.sankey = null;
+    /* 審查 R2 #43：按 Esc／點背景回到整張圖時，下拉第一層也要回到「全部」——
+       以前只清了選取，按鈕上仍寫「產業鏈：半導體」＋「清除」，圖和下拉對不上。renderSankey 會用這個值重畫那一排。*/
+    ddChain.sankey = '';
     if (sankeyState) { sankeySel = null; renderSankey(sankeyState.sd, sankeyState.k, null); }
     if (had) drillRedraw();
   }
@@ -7243,7 +7604,14 @@
     if (sankeyState) { try { renderSankey(sankeyState.sd, sankeyState.k, sankeySel); } catch (e) { /* 同上 */ } }
   }
 
-  function renderDrillPanels() { DRILL_PANELS.forEach(renderDrillPanel); }
+  function renderDrillPanels() {
+    const rp = $('#rankPanel'), was = !!(rp && !rp.hidden);
+    DRILL_PANELS.forEach(renderDrillPanel);
+    const now = !!(rp && !rp.hidden);
+    /* 成分股面板和象限面板在輪盤旁邊共用同一格（2026-09-24 夜）：成分股一開，象限面板就收起來 */
+    if (now && rotStageOpen) { rotStageOpen = ''; rotQuadSync(); renderStagePanel(); }
+    if (was !== now) rotSideChanged();
+  }
 
   /* 階段〇：整條產業鏈。只有資金去向那一欄畫得出來（輪動時鐘的單位是族群，沒有鏈這一層），
      所以 rankPanel 在鏈模式下維持收起 —— 與其給它一份看起來像壞掉的空清單，不如不開。*/
@@ -7450,14 +7818,9 @@
         return { lineStyle: { opacity: op }, itemStyle: { opacity: op } };
       }
       if (sr.type === 'scatter') {
-        return { data: (sr.data || []).map(d => {
-          const base = d.baseOp == null ? 1 : d.baseOp;
-          const op = !gid ? base : ((d.row && d.row.gid === gid) ? 1 : 0.18);
-          const lbl = { ...(d.label || {}), opacity: !gid ? 1 : op };
-          // 寬畫面沒寫名字的點：滑到／點到它時把名字寫出來（其他點都壓暗了，不會撞成一團）
-          if (d.lblShow != null) lbl.show = !!d.lblShow || !!(gid && d.row && d.row.gid === gid);
-          return { ...d, itemStyle: { ...(d.itemStyle || {}), opacity: op }, label: lbl };
-        }) };
+        // 寬畫面沒寫名字的點：滑到／點到它時把名字寫出來（其他點都壓暗了，不會撞成一團）
+        // （規則抽成 rotHiItem：足跡輪盤補間每一幀也套同一套，移動中被點亮的族群不會被洗掉）
+        return { data: (sr.data || []).map(d => rotHiItem(d, gid)) };
       }
       if (sr.type === 'custom' && sr.name === '換段色環') {
         return { data: (sr.data || []).map(d => ({ ...d,
@@ -8727,8 +9090,13 @@
         itemStyle: { color: col } })),
     });
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
-    filterChips('instGroups', top.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
-      (nx) => renderInstPeriod(p, nx));
+    /* ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
+       這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金去向同一支 filterDropdown。
+       行為不變：單選、選到的族群亮、其餘壓暗；選「全部族群」或按清除就還原；→ 進族群頁仍在第二層清單裡。*/
+    filterDropdown('instGroups', top.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
+      (nx) => renderInstPeriod(p, nx),
+      { onText: (nm) => `只亮「${fmt.esc(nm)}」這一列（選「全部族群」或按清除就還原）`,
+        offText: '先挑產業鏈，再挑一個族群 —— 圖上就只亮它那一列' });
   }
 
   /* 資金集中度（Andy 2026-09-18）：
@@ -9830,6 +10198,9 @@
       sankeyDots: () => (sankeyFx ? sankeyFx.dots.map(d => [d.x, d.y, d.lvl]) : []),
       rotRipple: rotRippleState,           // 水波（2026-09-24）：活著幾圈、累計冒過幾次、在哪裡
       rotScan: rotScanState,               // 掃描（2026-09-24 晚）：有沒有在轉、轉了幾幀、聲納冒了幾圈
+      // 足跡輪盤補間（2026-09-24）：正在補間嗎、累計幾次、最後一次幾幀／幾毫秒／最大幀距／幀率
+      rotTween: (id) => { const el = document.getElementById(id || 'rotClock');
+        return el ? { running: !!(el._twT && el._twRaf), ...(el._twStat || { tweens: 0 }) } : null; },
       /* 足跡輪盤的回放（2026-09-24）：跟 ▶ 播放每一步走的是同一支（dayBar.seek → rotSeek），
          給驗收用來「停在第 k 天前」—— 等於按 ▶ 之後在那一天按 ⏸。回傳現在停在第幾天前。*/
       rotReplay: (k) => {

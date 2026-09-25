@@ -3733,7 +3733,10 @@ def t_new_flow(pg, base):
             break
         rot_dd_toggle(pg, gid, wait=600)   # 取消，回到「全部族群」
     if ok("在下拉裡勾族群，排行下方真的展開成分股面板", bool(pan), pan):
-        ok("成分股清單有固定高度（不會把整頁撐長）", pan["ch"] <= 260, pan)
+        # ★ 2026-09-24 夜：成分股面板改成蓋在右欄排行圖上的側欄（DECISIONS #259），清單高度＝排行圖的高度、自己捲。
+        #   「不會把整頁撐長」改量：清單不比排行圖那一格高（面板是 absolute，本來就不佔版面）
+        _wh = pg.evaluate("() => Math.round((document.getElementById('rankFlowWrap') || {}).clientHeight || 0)")
+        ok("成分股清單有固定高度（側欄內捲，不比排行圖那一格高、不會把整頁撐長）", 0 < pan["ch"] <= _wh + 1, {**pan, "排行格高": _wh})
         ok("成分股清單是可以捲的", pan["oy"] in ("auto", "scroll"), pan)
         if pan["n"] >= 12:
             ok("內容比框高，真的捲得動（scrollHeight > clientHeight）",
@@ -3775,8 +3778,9 @@ def t_new_flow(pg, base):
                  items: u.querySelectorAll('li[data-gid]').length,
                  oy: getComputedStyle(u).overflowY }; }""")
     if ok("點象限卡真的展開了族群清單（下一條的前提）", bool(st) and st["items"] > 0, {"k": _q, "st": st}):
-        ok("輪動階段的族群清單也是固定高度＋可捲（所有相關版面同一套）",
-           st["ch"] <= 400 and st["oy"] in ("auto", "scroll"), st)
+        _wh2 = pg.evaluate("() => Math.round((document.getElementById('rankFlowWrap') || {}).clientHeight || 0)")
+        ok("輪動階段的族群清單也是固定高度＋可捲（側欄內捲，不比排行圖那一格高）",
+           0 < st["ch"] <= _wh2 + 1 and st["oy"] in ("auto", "scroll"), {**st, "排行格高": _wh2})
     # 收拾：把面板關回去，不要把狀態留給後面的段落
     if _q:
         pg.eval_on_selector(f"#rotClock .rotquads .rq[data-k=\"{_q}\"]", "b => b.click()")
@@ -4172,21 +4176,31 @@ def t_new_flow(pg, base):
         sk_dd_pick(pg, "", 1500)
         b2 = pg.evaluate(SK)
         ok("選「全部族群（不篩選）」真的還原（沒有任何族群被壓暗）", b2["dim"] == 0, b2["dim"])
-    # 族群 × 法人：點晶片 → 被壓暗的長條數真的變
-    chip2 = '.linkrow.gchips[data-for="instGroups"] .gchip'
+    # 族群 × 法人：在兩層下拉裡選族群 → 被壓暗的長條數真的變
+    # ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
+    #   這張以前是圖下面一整片晶片（`.linkrow.gchips .gchip`），換成和資金去向同一支 filterDropdown。
     DIMBAR = """() => { const c = echarts.getInstanceByDom(document.getElementById('instGroups'));
         if (!c) return null; const s = (c.getOption().series || [])[0]; if (!s) return null;
         return (s.data || []).filter(d => d.itemStyle && d.itemStyle.opacity != null
                                           && d.itemStyle.opacity < 0.5).length; }"""
-    if ok("族群×法人下方有族群晶片列", count(pg, chip2) > 0, count(pg, chip2)):
+    IDD = '.ddrow[data-for="instGroups"]'
+    # 族群×法人在頁面下方，畫得比較晚（忙的時候超過 3 秒）：先捲過去、等那一排下拉真的出現再量
+    pg.evaluate("() => { const e = document.getElementById('flowInstCard'); e && e.scrollIntoView({block:'center', behavior:'instant'}); }")
+    wait_until(pg, f"() => document.querySelectorAll('{IDD} .rotdd[data-dd=group] [data-g]').length > 1", 8000)
+    ig = pg.evaluate(f"""() => [...document.querySelectorAll('{IDD} .rotdd[data-dd="group"] [data-g]')]
+        .map(b => b.dataset.g).filter(Boolean)""") or []
+    if ok("族群×法人有兩層下拉，而且第二層列得出族群", len(ig) > 0, {"n": len(ig), "卡片": pg.evaluate(
+            "() => { const c = document.getElementById('flowInstCard'); return c ? [...c.children].map(k => k.className + '#' + k.id + ':' + (k.innerText || '').slice(0, 40)) : null; }")}):
         n0 = pg.evaluate(DIMBAR)
-        pg.eval_on_selector(chip2 + " .pick", "b => b.click()")
+        pg.evaluate(f"""(g) => {{ const dd = document.querySelector('{IDD} .rotdd[data-dd="group"]');
+            dd.querySelector('.ddbtn').click(); dd.querySelector('[data-g="' + g + '"]').click(); }}""", ig[0])
         pg.wait_for_timeout(1200)
         n1 = pg.evaluate(DIMBAR)
-        changed("點族群×法人的族群晶片，被壓暗的長條數真的變了", n0, n1)
-        pg.eval_on_selector(chip2 + ".on .pick", "b => b.click()")
+        changed("在族群×法人的下拉裡選一個族群，被壓暗的長條數真的變了", n0, n1)
+        pg.evaluate(f"""() => {{ const dd = document.querySelector('{IDD} .rotdd[data-dd="group"]');
+            dd.querySelector('.ddbtn').click(); dd.querySelector('[data-g=""]').click(); }}""")
         pg.wait_for_timeout(1200)
-        ok("再點一次真的還原", pg.evaluate(DIMBAR) == 0, pg.evaluate(DIMBAR))
+        ok("選「全部族群（不篩選）」真的還原", pg.evaluate(DIMBAR) == 0, pg.evaluate(DIMBAR))
 
     # ★ 2026-09-23：總覽的「族群估值」散布圖整塊移除（Andy 追問後回覆 OK），
     #   原本這裡有一段「點晶片 → 圓點被壓暗 → 再點還原」。整段拿掉。
@@ -4393,7 +4407,8 @@ def t_new_layout(pg, base):
       if (!g) return null;
       const ks = [...g.children].map(e => {
         const r = e.getBoundingClientRect();
-        return { h3: ((e.querySelector('h4, h3') || {}).textContent || '').trim().slice(0, 4),
+        // 2026-09-24：資金輪動卡整張兩欄，左欄第一個是卡片標題 h3，小標要讀 h4.subh
+        return { h3: ((e.querySelector('h4.subh') || e.querySelector('h4, h3') || {}).textContent || '').trim().slice(0, 4),
                  x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width) };
       });
       const gr = g.getBoundingClientRect();
@@ -4457,8 +4472,9 @@ def t_new_layout(pg, base):
         ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是資金流向排行（F3）",  # 2026-09-24 輪動時鐘改名足跡輪盤
            clock["h3"].startswith(("輪動", "足跡輪盤")) and rank["h3"].startswith("資金"), f["ks"])
         if w > 1100:
-            ok(f"[{w}px] 欄寬真的是 2:1（F3）",
-               abs(clock["w"] / max(1, rank["w"]) - 2) <= 0.12,
+            # ★ 2026-09-24 夜（Andy：「排行區至少占卡片寬 40%」）：2:1 → 1.45:1（排行 ≈ 41%）
+            ok(f"[{w}px] 欄寬是 1.45:1（排行 ≥ 40%，2026-09-24 夜由 2:1 改）",
+               abs(clock["w"] / max(1, rank["w"]) - 1.45) <= 0.12,
                f"{clock['w']} : {rank['w']} = {clock['w'] / max(1, rank['w']):.2f}")
             ok(f"[{w}px] 排行在時鐘的右邊（F3）", rank["x"] > clock["x"], f["ks"])
         else:
@@ -4664,10 +4680,11 @@ def t_new_clock(pg, base):
     settled = canvas_hash(pg, "#rotClock")
     changed("刷動期間畫面還在變（＝真的在走，不是瞬間跳過去）（A4-7）", mid1, mid2)
     changed("刷動途中的畫面和停下來之後不一樣（A4-7）", mid2, settled)
-    ok("補間動畫設定還在（merge ＋ linear）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-           if (!c) return false; const o = c.getOption();
-           return o.animationDurationUpdate >= 400 && o.animationEasingUpdate === 'linear'; }"""))
+    # ★ 2026-09-24 夜：ECharts 內建補間關掉、改由 rotTween（rAF）搬圖元（DECISIONS #259）。
+    #   「設定還在」改驗：剛才那一步真的由 rotTween 補間完成、耗時約 400ms（不是瞬間跳過去）。
+    tw = pg.evaluate("() => window.App.rotTween()")
+    ok("補間還在（rotTween：這一步真的補間了、約 400ms）",
+       bool(tw) and tw.get("tweens", 0) >= 1 and tw.get("last") and 330 <= tw["last"]["ms"] <= 900, tw)
 
     # -------------------------------------------- 2026-09-20「只有經過才留下軌跡」漸進式軌跡
     # Andy：「只有經過才留下軌跡，不是馬上所有軌跡都先印出來」。
@@ -4739,11 +4756,11 @@ def t_new_clock(pg, base):
         ok("相鄰兩段的位移大致相等（不是一次跳一大格）",
            m1 > 0 and m2 > 0 and max(m1, m2) <= min(m1, m2) * 3 + 0.05,
            f"兩段的位移中位數 {m1:.4f} vs {m2:.4f}")
-    ok("補間時間夠長才看得到過程，又不會拖（420ms 一天）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
-           const o = c.getOption(); return o.animationDurationUpdate >= 400
-             && o.animationDurationUpdate <= 500 && o.animationEasingUpdate === 'linear'; }"""),
-       pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('rotClock')).getOption().animationDurationUpdate"))
+    # ★ 2026-09-24 夜：補間改由 rotTween（rAF）做（DECISIONS #259），ECharts 的 animationDurationUpdate 刻意是 0。
+    #   量真正跑的那一段：最後一次補間耗時 330～900ms（400ms ease；接續中的回放是 420ms 等速）。
+    _tw = pg.evaluate("() => window.App.rotTween()")
+    ok("補間時間夠長才看得到過程，又不會拖（rotTween 約 400～420ms 一段）",
+       bool(_tw) and _tw.get("last") and 330 <= _tw["last"]["ms"] <= 900, _tw)
 
     # ---------------------------------------------------------- A4-7 軌跡開關
     rot_seek(pg, 8, 1600)
@@ -5082,14 +5099,14 @@ def t_new_clock(pg, base):
                    "#rankFlowWrap .linkrow.gchips').length") == 0,
        pg.evaluate("() => document.querySelectorAll('#rotClockWrap .linkrow.gchips, "
                    "#rankFlowWrap .linkrow.gchips').length"))
-    # ★ 2026-09-21 合併：共用篩選列必須在**兩張圖**的上面（它管的是兩張圖）
-    ok("共用篩選列在時鐘與排行兩張圖的上面",
+    # ★ 2026-09-21 合併：共用篩選列必須在圖的上面。
+    # ★ 2026-09-24（Andy：「排行標題與圖貼齊頂端」）：排行改成從卡片頂端畫起（右欄），
+    #   篩選列在左欄標題下方 —— 所以「在排行上面」這半條不再成立，改驗「在輪盤上面、而且就在標題下方」。
+    ok("共用篩選列在輪盤的上面（排行 2026-09-24 起改成貼卡片頂端）",
        pg.evaluate("""() => { const f = document.querySelector('#v-flow .rotfilter');
-           const a = document.getElementById('rotClock'), b = document.getElementById('rankFlow');
-           if (!f || !a || !b) return false;
-           const fr = f.getBoundingClientRect();
-           return fr.bottom <= a.getBoundingClientRect().top + 1
-               && fr.bottom <= b.getBoundingClientRect().top + 1; }"""))
+           const a = document.getElementById('rotClock');
+           if (!f || !a) return false;
+           return f.getBoundingClientRect().bottom <= a.getBoundingClientRect().top + 1; }"""))
 
     # ------------------------------------------- 2026-09-21⑥ 畫面上不准出現英文 id
     # Andy 的截圖上有一格寫著 `financial`。根因是 CHAIN_NAME 那張寫死的對照表沒跟上族群改版；
@@ -11182,6 +11199,403 @@ def t_whomakes(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+
+# ===================================================================== 2026-09-24 夜：市場寬度／足跡輪盤補間／排行貼頂／篩選列左上角
+# Andy 的四件（只做桌機；800px 驗「沒壞」）：
+#   ①（市場寬度卡：Andy 後來改成交給另一支 agent 整張換掉，這一批不動它）
+#   ② 足跡輪盤移動改成 rAF 平滑補間（~400ms ease，reduced-motion 直接到位），腳印與名字膠囊跟著點走
+#   ③ 資金流向排行貼齊卡片頂端、填滿卡片高度，兩顆鈕在卡片標題列右側
+#   ④ 全站篩選列（產業鏈／族群兩顆下拉）一律在卡片標題下方左上角
+# 每一條都是真的操作之後量數字，不是看元素在不在。
+
+TW_SAMPLE = """async ([k, ms]) => {
+  const el = document.getElementById('rotClock');
+  const c = echarts.getInstanceByDom(el);
+  const sm = () => c.getModel().getSeriesByName('族群')[0].getData();
+  // 挑一顆有寫名字的點（名字膠囊要跟著走，才量得到）
+  let idx = 0;
+  // 名字掛在 symbol 群組裡那條路徑（childAt(0)）上，不是群組本身
+  const txt = (g) => { const sp = g && g.childAt && g.childAt(0); return sp && sp.getTextContent ? sp.getTextContent() : null; };
+  { const d = sm(); for (let i = 0; i < d.count(); i++) { const g = d.getItemGraphicEl(i); const t = txt(g);
+      if (t && !t.ignore && t.style && t.style.text) { idx = i; break; } } }
+  const at = () => { const d = sm(); const g = d.getItemGraphicEl(idx); if (!g) return null;
+    const t = txt(g);
+    return { x: g.x, y: g.y, lx: t && !t.ignore ? t.x : null, ly: t && !t.ignore ? t.y : null }; };
+  const st0 = window.App.rotTween();
+  const a = at();
+  window.App.rotReplay(k);
+  const out = []; const t0 = performance.now();
+  await new Promise(res => { const f = () => { const p = at(); if (p) out.push({ t: performance.now() - t0, ...p });
+    if (performance.now() - t0 < ms) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+  return { idx, a, out, st0, st1: window.App.rotTween() };
+}"""
+
+
+def t_rot_tween(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(600)
+    r = pg.evaluate(TW_SAMPLE, [12, 900])
+    out = r["out"]
+    if not ok("② 回放到 12 天前：量得到點的逐幀位置", len(out) >= 3 and r["a"], {"n": len(out)}):
+        return
+    A, B = r["a"], out[-1]
+    D = ((B["x"] - A["x"]) ** 2 + (B["y"] - A["y"]) ** 2) ** 0.5
+    ok("② 這一跳真的有移動（起訖距離 ≥ 3px，不然量不出補間）", D >= 3, round(D, 1))
+    mids = [p for p in out if 0.03 * D < ((p["x"] - A["x"]) ** 2 + (p["y"] - A["y"]) ** 2) ** 0.5 < 0.97 * D]
+    # 容器忙的時候 rAF 只剩 5～6 fps，400ms 裡能落在中間的幀本來就只有 1～2 幀；≥1 就證明不是一步跳到終點
+    ok("★ ② 補間期間畫面上真的出現中間位置（≥ 1 幀介於起點與終點之間，不是一步跳到終點）",
+       len(mids) >= 1, {"中間幀": len(mids), "總幀": len(out), "距離": round(D, 1)})
+    # 單調：離終點的距離一路變小（容許 0.5px 抖動）
+    dist = [((p["x"] - B["x"]) ** 2 + (p["y"] - B["y"]) ** 2) ** 0.5 for p in out]
+    back = [(i, round(dist[i] - dist[i - 1], 2)) for i in range(1, len(dist)) if dist[i] > dist[i - 1] + 0.5]
+    ok("② 位置是連續往終點走的（沒有往回跳）", not back, back[:5])
+    st = r["st1"]
+    ok("② 補間真的由 rAF 跑完（次數 +1、幀數 ≥ 3、耗時約 400ms）",
+       st and st["tweens"] > r["st0"]["tweens"] and st["last"] and st["last"]["frames"] >= 3
+       and 330 <= st["last"]["ms"] <= 900, st)
+    if st and st.get("last"):
+        notes.append(f"足跡輪盤補間實測（本機無頭瀏覽器、無 GPU）：{st['last']['frames']} 幀／{st['last']['ms']}ms"
+                     f"＝{st['last']['fps']} fps，最大幀距 {st['last']['maxGap']}ms，每幀重畫 {st['last'].get('paintMs')}ms")
+    # 名字膠囊跟著點走：膠囊與點的相對位移在整段補間中都落在「起點偏移～終點偏移」之間（± 8px）
+    lab = [p for p in out if p["lx"] is not None]
+    if lab and A.get("lx") is not None:
+        o0 = (A["lx"] - A["x"], A["ly"] - A["y"]); o1 = (B["lx"] - B["x"], B["ly"] - B["y"])
+        off = [(p["lx"] - p["x"], p["ly"] - p["y"]) for p in lab]
+        bad = [o for o in off if not (min(o0[0], o1[0]) - 8 <= o[0] <= max(o0[0], o1[0]) + 8
+                                      and min(o0[1], o1[1]) - 8 <= o[1] <= max(o0[1], o1[1]) + 8)]
+        ok("★ ② 名字膠囊跟著點一起走（每一幀的相對位移都在起訖之間 ±8px，不是先瞬移到終點）", not bad,
+           {"起": o0, "訖": o1, "脫隊": bad[:3]})
+        lm = [p for p in lab if 0.03 * D < ((p["x"] - A["x"]) ** 2 + (p["y"] - A["y"]) ** 2) ** 0.5 < 0.97 * D]
+        ok("② 名字膠囊在補間中也有中間位置", len(lm) >= 1, len(lm))
+    else:
+        notes.append("足跡輪盤補間：這一顆點起點沒有寫名字，名字膠囊那兩條沒量到")
+    # 腳印：補間中位置也是連續的（取一條看得見的軌跡，量腳印第一顆的位置有中間值）
+    fp = pg.evaluate("""async () => {
+      const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+      const pick = () => { const ser = c.getModel().getSeries().filter(s => s.subType === 'line');
+        for (const s of ser) { const d = s.getData(); for (let i = d.count() - 1; i >= 0; i--) {
+          const raw = d.getRawDataItem(i); if (raw && raw.foot) { const g = d.getItemGraphicEl(i); if (g) return { sid: s.componentIndex, x: g.x, y: g.y }; } } }
+        return null; };
+      const a = pick(); window.App.rotReplay(0);
+      const out = []; const t0 = performance.now();
+      await new Promise(res => { const f = () => { const p = pick(); if (p) out.push(p); if (performance.now() - t0 < 900) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+      return { a, out }; }""")
+    if fp and fp["a"] and fp["out"]:
+        uniq = {(round(p["x"], 1), round(p["y"], 1)) for p in fp["out"]}
+        ok("② 腳印也跟著補間移動（最新那一個腳印在補間中出現 ≥ 3 個不同位置）", len(uniq) >= 3, len(uniq))
+    # ▶ 回放：連續播 1.5 秒，點每一幀都在動、沒有大跳格
+    pg.evaluate("() => window.App.rotReplay(0)"); pg.wait_for_timeout(700)
+    pl = pg.evaluate("""async () => {
+      const c = echarts.getInstanceByDom(document.getElementById('rotClock'));
+      const at = () => { const g = c.getModel().getSeriesByName('族群')[0].getData().getItemGraphicEl(0); return g ? [g.x, g.y] : null; };
+      const btn = document.querySelector('#rotBack .pb.play'); btn.click();
+      const ps = []; const t0 = performance.now();
+      await new Promise(res => { const f = () => { ps.push(at()); if (performance.now() - t0 < 1500) requestAnimationFrame(f); else res(); }; requestAnimationFrame(f); });
+      btn.click();
+      return ps.filter(Boolean); }""")
+    if ok("② 按 ▶ 回放量得到逐幀位置", len(pl) >= 5, len(pl)):
+        uniq = {(round(p[0], 1), round(p[1], 1)) for p in pl}
+        ok("② 回放中點一直在動（≥ 5 個不同位置，不是一天一跳）", len(uniq) >= 5, len(uniq))
+    # prefers-reduced-motion：不補間，直接到位
+    pg.emulate_media(reduced_motion="reduce")
+    reset_rot(pg, base, 2400)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
+    rr = pg.evaluate(TW_SAMPLE, [10, 300])
+    if rr["out"]:
+        f0 = rr["out"][0]; fl = rr["out"][-1]
+        ok("② 系統「減少動態效果」：不補間（次數沒增加）、第一幀就在終點",
+           rr["st1"]["tweens"] == rr["st0"]["tweens"] and abs(f0["x"] - fl["x"]) < 0.5 and abs(f0["y"] - fl["y"]) < 0.5,
+           {"st": rr["st1"], "第一幀": [f0["x"], f0["y"]], "最後": [fl["x"], fl["y"]]})
+    pg.emulate_media(reduced_motion="no-preference")
+    pg.evaluate("() => window.App.rotReplay(0)")
+
+
+RANKTOP_M = """() => {
+  const card = document.getElementById('flowRotCard'), rf = document.getElementById('rankFlow');
+  const zb = document.getElementById('rotZoomBtn'), hb = card && card.querySelector('.howbtn[data-how="rot"]');
+  const h4 = card && card.querySelector('.rotright h4.subh'), h3 = card && card.querySelector('h3');
+  const clock = document.getElementById('rotClockWrap');
+  if (!card || !rf || !zb || !hb) return null;
+  const R = (e) => e.getBoundingClientRect();
+  const cr = R(card), rr = R(rf), zr = R(zb), hr = R(hb), tr = h4 ? R(h4) : null, t3 = R(h3), kr = clock ? R(clock) : null;
+  return { top: Math.round(rr.top - cr.top), rankBottom: Math.round(rr.bottom), clockBottom: kr ? Math.round(kr.bottom) : null,
+           cardBottom: Math.round(cr.bottom), rankH: Math.round(rr.height),
+           btnTop: Math.round(Math.min(zr.top, hr.top) - cr.top), btnRight: Math.round(cr.right - Math.max(zr.right, hr.right)),
+           btnRowDy: Math.abs((zr.top + zr.bottom) / 2 - (hr.top + hr.bottom) / 2),
+           h4Dy: tr ? Math.abs((tr.top + tr.bottom) / 2 - (zr.top + zr.bottom) / 2) : null,
+           h3Dy: Math.abs((t3.top + t3.bottom) / 2 - (zr.top + zr.bottom) / 2),
+           rankTitleTop: tr ? Math.round(tr.top - cr.top) : null };
+}"""
+
+
+def t_rank_top(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    scroll_to(pg, "flowRotCard"); pg.wait_for_timeout(500)
+    m = pg.evaluate(RANKTOP_M)
+    if not ok("③ [1440] 量得到資金輪動卡與排行圖", bool(m), m):
+        return
+    ok("★ ③ [1440] 排行圖頂端距卡片頂 < 80px（不再被擠到下方）", m["top"] < 80, m)
+    ok("③ [1440] 排行小標在卡片最上面那一列（距卡片頂 < 40px）", m["rankTitleTop"] is not None and m["rankTitleTop"] < 40, m)
+    ok("③ [1440] 排行圖填滿卡片高度（下緣與輪盤下緣差 ≤ 40px）",
+       m["clockBottom"] is not None and m["rankBottom"] >= m["clockBottom"] - 40, m)
+    ok("③ [1440] 放大／怎麼看在卡片標題列右側（距卡片頂 < 40px、距右緣 ≤ 24px、兩顆同一列）",
+       m["btnTop"] < 40 and m["btnRight"] <= 24 and m["btnRowDy"] <= 3, m)
+    ok("③ [1440] 兩顆鈕和卡片標題、排行小標在同一條水平線上（中線差 ≤ 12px）",
+       m["h3Dy"] <= 12 and (m["h4Dy"] or 0) <= 12, m)
+    # 真的按一下：鈕還是那兩顆鈕（放大開得起來、怎麼看展得開）
+    pg.click("#rotZoomBtn"); pg.wait_for_timeout(1200)
+    ok("③ [1440] 搬位置之後「放大」按下去真的開出放大視窗", pg.evaluate("() => !!document.querySelector('.zoomov')"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+    pg.click('#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(500)
+    ok("③ [1440] 搬位置之後「怎麼看 ?」按下去真的展開", pg.evaluate("() => !document.getElementById('how-rot').hidden"))
+    m2 = pg.evaluate(RANKTOP_M)
+    ok("③ [1440] 展開說明後排行圖仍然在右欄、沒有凸出卡片", m2 and m2["rankBottom"] <= m2["cardBottom"], m2)
+    pg.click('#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(300)
+    # 800px（單欄）：兩顆鈕釘在卡片右上角，不會掉到排行那一段
+    pg.set_viewport_size({"width": 800, "height": 1000}); pg.wait_for_timeout(1500)
+    scroll_to(pg, "flowRotCard"); pg.wait_for_timeout(400)
+    m3 = pg.evaluate(RANKTOP_M)
+    ok("③ [800] 單欄時兩顆鈕仍在卡片右上角（距頂 < 50px、距右緣 ≤ 24px）",
+       m3 and m3["btnTop"] < 50 and m3["btnRight"] <= 24, m3)
+    ok("③ [800] 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
+FILTER_M = """() => [...document.querySelectorAll('#v-flow .card')].map(card => {
+  const row = card.querySelector('.rotfilter');
+  if (!row || !row.querySelector('.rotdd')) return null;
+  const cs = getComputedStyle(card), cr = card.getBoundingClientRect(), rr = row.getBoundingClientRect();
+  // 量「標題列」（h3 所在那一列，可能連著拉Bar 一起換行）的下緣，不是 h3 本身
+  const h3 = card.querySelector('h3'), hrow = h3.closest('.row') || h3, hr = hrow.getBoundingClientRect();
+  const dd = row.querySelector('.rotdd').getBoundingClientRect();
+  const chart = [...card.querySelectorAll('.chart')].find(e => e.getBoundingClientRect().height > 40);
+  const ch = chart ? chart.getBoundingClientRect() : null;
+  return { card: card.id, padL: parseFloat(cs.paddingLeft) + parseFloat(cs.borderLeftWidth),
+           ddL: Math.round((dd.left - cr.left) * 10) / 10, belowTitle: Math.round(rr.top - hr.bottom),
+           aboveChart: ch ? rr.bottom <= ch.top + 1 : null, top: Math.round(rr.top - cr.top),
+           kinds: [...row.querySelectorAll('.rotdd')].map(d => d.dataset.dd) };
+}).filter(Boolean)"""
+
+
+def t_filter_topleft(pg, b, base):
+    for w in (1440, 800):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        # 前面段落拖過族群×法人的「截止」：留下很舊的截止日時那張圖是空狀態（本來就沒有篩選列），先清掉再量
+        pg.evaluate("() => { try { ['tw.inst.days', 'tw.inst.end'].forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        pg.evaluate("() => window.scrollTo(0, document.body.scrollHeight)"); pg.wait_for_timeout(1500)
+        # 下面兩張（資金去向、族群×法人）畫得比較晚：等兩排下拉都出現再量
+        wait_until(pg, "() => document.querySelectorAll('.ddrow[data-for=sankey] .rotdd, .ddrow[data-for=instGroups] .rotdd').length >= 4", 10000)
+        pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(500)
+        f = pg.evaluate(FILTER_M)
+        ids = sorted(x["card"] for x in f)
+        ok(f"④ [{w}] 資金流向頁三張有篩選的卡（資金輪動／資金去向／族群×法人）都量得到那一排下拉",
+           {"flowRotCard", "flowSankeyCard", "flowInstCard"} <= set(ids), ids)
+        for x in f:
+            tag = f"④ [{w}] {x['card']}"
+            ok(f"{tag}：兩顆下拉是「產業鏈 → 族群」", x["kinds"][:2] == ["chain", "group"], x["kinds"])
+            ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
+            ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
+            ok(f"{tag}：篩選列在圖的上面（不是漂在圖下方）", x["aboveChart"] is True, x)
+    # 真的操作：在資金去向那排挑一個族群，重畫之後那一排仍然在標題下方左上角（不會被插回圖下面）
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    g1 = sk_dd_groups(pg)
+    if ok("④ 資金去向那排第二層列得出族群", len(g1) > 0, len(g1)):
+        before = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
+        sk_dd_pick(pg, g1[0], 1500)
+        after = [x for x in pg.evaluate(FILTER_M) if x["card"] == "flowSankeyCard"][0]
+        ok("④ 挑完族群（整排重建）之後還是同一個位置（左緣與離卡片頂的距離不變）",
+           abs(after["ddL"] - before["ddL"]) <= 1 and abs(after["top"] - before["top"]) <= 2, [before, after])
+        ok("④ 整張卡只有一排資金去向的下拉（重建沒有多長一排）",
+           pg.evaluate("() => document.querySelectorAll('.ddrow[data-for=\"sankey\"]').length") == 1)
+        sk_dd_pick(pg, "", 1200)
+
+
+
+# ===================================================================== 2026-09-24 夜（第二批）：輪盤放大／象限卡在盤外／點族群開側欄／點背景關／排行 ≥ 40%
+WHEEL_M = """() => {
+  const el = document.getElementById('rotClock'), card = document.getElementById('flowRotCard');
+  const c = el && echarts.getInstanceByDom(el); if (!c || !card) return null;
+  const cs = c.getModel().getComponent('polar').coordinateSystem;
+  const R = cs.getRadiusAxis().getExtent()[1], cx = cs.cx, cy = cs.cy;
+  const er = el.getBoundingClientRect(), cr = card.getBoundingClientRect();
+  const chips = [...el.querySelectorAll('.rotquads .rq')].map(b => { const r = b.getBoundingClientRect();
+    const x0 = r.left - er.left, y0 = r.top - er.top, x1 = x0 + r.width, y1 = y0 + r.height;
+    const nx = Math.max(x0, Math.min(cx, x1)), ny = Math.max(y0, Math.min(cy, y1));
+    // 卡片離圓心最近的那個點，到圓心的距離（< R 就是有一角壓進盤裡）
+    const near = Math.hypot(nx - cx, ny - cy);
+    const fx = Math.abs(cx - x0) > Math.abs(cx - x1) ? x1 : x0, fy = Math.abs(cy - y0) > Math.abs(cy - y1) ? y1 : y0;
+    const cxr = Math.max(Math.abs(x0 - cx), Math.abs(x1 - cx)), cyr = Math.max(Math.abs(y0 - cy), Math.abs(y1 - cy));
+    let inner = Infinity;   // 卡片四個角裡離圓心最近的
+    [[x0, y0], [x1, y0], [x0, y1], [x1, y1]].forEach(([x, y]) => { inner = Math.min(inner, Math.hypot(x - cx, y - cy)); });
+    return { k: b.dataset.k, near: Math.round(near), inner: Math.round(inner),
+             inBox: x0 >= -1 && y0 >= -1 && x1 <= er.width + 1 && y1 <= er.height + 1 }; });
+  return { R: Math.round(R), W: Math.round(er.width), H: Math.round(er.height), cx, cy,
+           marginX: Math.round(Math.min(cx - R, er.width - cx - R)), marginY: Math.round(Math.min(cy - R, er.height - cy - R)),
+           cardW: Math.round(cr.width), chips };
+}"""
+
+
+def t_wheel_big(pg, b, base):
+    for w in (1440, 1280):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(600)
+        m = pg.evaluate(WHEEL_M)
+        if not ok(f"⑤② [{w}] 量得到足跡輪盤的盤面與四張象限卡", bool(m) and len(m["chips"]) == 4, m):
+            continue
+        ok(f"② [{w}] 足跡輪盤放大了（半徑 > 舊版 185px）", m["R"] > 185, m["R"])
+        ok(f"② [{w}] 盤離容器邊只留一點距離（上下或左右最窄處 6～30px）",
+           6 <= min(m["marginX"], m["marginY"]) <= 30, {"x": m["marginX"], "y": m["marginY"]})
+        for ch in m["chips"]:
+            ok(f"★ ⑤ [{w}] 象限卡「{ch['k']}」在盤緣外（卡片離圓心最近的點 ≥ 半徑）", ch["near"] >= m["R"],
+               {"最近": ch["near"], "半徑": m["R"]})
+            ok(f"⑤ [{w}] 象限卡「{ch['k']}」沒有被容器切掉", ch["inBox"], ch)
+    # 點象限卡 → 面板開在旁邊（時鐘變窄）→ 卡片仍在盤外、仍在容器內
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
+    pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(1200)
+    m2 = pg.evaluate(WHEEL_M)
+    if m2:
+        ok("⑤ 開了象限面板（時鐘變窄）之後，四張卡仍在盤外、仍在容器內",
+           all(c["near"] >= m2["R"] - 1 and c["inBox"] for c in m2["chips"]), m2)
+    pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(600)
+
+
+SIDE_M = """() => { const R = (id) => { const e = document.getElementById(id); if (!e || e.hidden) return null;
+    const r = e.getBoundingClientRect(); return { l: Math.round(r.left), t: Math.round(r.top), w: Math.round(r.width) }; };
+  const row = document.querySelector('#flowRotCard .rotright');
+  const clk = document.getElementById('rotClockWrap').getBoundingClientRect();
+  return { stage: R('stagePanel'), rank: R('rankPanel'), clockW: Math.round(clk.width),
+           inRow: !!(row && row.contains(document.getElementById('rankPanel'))),
+           sameCls: document.getElementById('rankPanel').classList.contains('stagepanel') }; }"""
+
+
+def t_side_panel(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(500)
+    # 先開「領先」象限面板，記下它的位置
+    pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(1000)
+    w0 = pg.evaluate("() => Math.round(document.getElementById('rotClockWrap').getBoundingClientRect().width)")
+    h0 = pg.evaluate("() => Math.round(document.getElementById('flowRotCard').getBoundingClientRect().height)")
+    s0 = pg.evaluate(SIDE_M)
+    ok("③ 點「領先」徽章：象限面板開在輪盤旁邊", bool(s0["stage"]), s0)
+    h1 = pg.evaluate("() => Math.round(document.getElementById('flowRotCard').getBoundingClientRect().height)")
+    ok("③ 開象限面板時卡片不跳高、輪盤不縮（R2 #24）", abs(h1 - h0) <= 2 and abs(s0["clockW"] - w0) <= 2,
+       {"卡高": [h0, h1], "輪盤寬": [w0, s0["clockW"]]})
+    ok("③ 象限面板寫出「盤上有幾個」（R2 #23：徽章算全部族群、盤上只畫前 16）",
+       "盤上" in pg.evaluate("() => (document.querySelector('#stagePanel .ph') || {}).innerText || ''"))
+    # 點盤上的一顆族群點
+    xy = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+        const d = c.getModel().getSeriesByName('族群')[0].getData(); const g = d.getItemGraphicEl(0);
+        const r = el.getBoundingClientRect(); return g ? [r.left + g.x, r.top + g.y] : null; }""")
+    if ok("③ 算得出盤上第一顆族群點的螢幕座標", bool(xy), xy):
+        pg.mouse.click(xy[0], xy[1]); pg.wait_for_timeout(1400)
+        s1 = pg.evaluate(SIDE_M)
+        ok("★ ③ 點族群點：成分股資訊開在輪盤旁邊的側欄（#rankPanel 在輪盤右邊那一欄）", bool(s1["rank"]) and s1["inRow"], s1)
+        ok("③ 和象限面板同一個位置（左緣與頂端差 ≤ 4px）", bool(s1["rank"]) and bool(s0["stage"])
+           and abs(s1["rank"]["l"] - s0["stage"]["l"]) <= 4 and abs(s1["rank"]["t"] - s0["stage"]["t"]) <= 4, [s0, s1])
+        ok("③ 同一種樣式（.hpanel.stagepanel）", s1["sameCls"], s1)
+        ok("③ 同時只開一塊：成分股一開，象限面板就收起來", s1["stage"] is None, s1)
+        ok("③ 側欄開著時輪盤不被擠窄（寬度和開之前一樣，R2 #24 的卡片跳高不再發生）",
+           abs(s1["clockW"] - s0["clockW"]) <= 2, [s0["clockW"], s1["clockW"]])
+        # 再點象限卡 → 換回象限面板、成分股收掉
+        pg.click('#rotClock .rq[data-k="improving"]'); pg.wait_for_timeout(1000)
+        s2 = pg.evaluate(SIDE_M)
+        ok("③ 再點「改善」徽章：換回象限面板、成分股面板收掉", bool(s2["stage"]) and s2["rank"] is None, s2)
+        pg.click('#rotClock .rq[data-k="improving"]'); pg.wait_for_timeout(500)
+    # 點排行長條也開在同一個地方
+    rb = pg.evaluate("""() => { const el = document.getElementById('rankFlow'); const c = echarts.getInstanceByDom(el);
+        const d = c.getModel().getSeriesByIndex(0).getData(); const g = d.getItemGraphicEl(0);
+        const r = el.getBoundingClientRect(); if (!g) return null; const bb = g.getBoundingRect();
+        return [r.left + bb.x + bb.width / 2, r.top + bb.y + bb.height / 2]; }""")
+    if rb:
+        pg.mouse.click(rb[0], rb[1]); pg.wait_for_timeout(1400)
+        s3 = pg.evaluate(SIDE_M)
+        ok("③ 點排行長條：成分股也開在輪盤旁邊的側欄", bool(s3["rank"]) and s3["inRow"], s3)
+        pg.mouse.click(6, 500); pg.wait_for_timeout(600)
+
+
+def t_flow_dismiss(pg, b, base):
+    """④ 資金流向頁每一個說明欄位／面板：打開 → 點背景（卡片外面的頁面空白）→ 真的收起來。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    reset_rot(pg, base, 2600)
+    bg = lambda: pg.mouse.click(6, 520)
+    hid = lambda sel: pg.evaluate(f"() => {{ const e = document.querySelector('{sel}'); return !e || e.hidden || !e.getClientRects().length; }}")
+    for key, box in (("rot", "#how-rot"), ("sankey", "#how-sankey"), ("inst", "#how-inst"), ("conc", "#how-conc")):
+        pg.eval_on_selector(f'.howbtn[data-how="{key}"]', "b => b.scrollIntoView({block:'center', behavior:'instant'})")
+        pg.wait_for_timeout(300)
+        pg.click(f'.howbtn[data-how="{key}"]'); pg.wait_for_timeout(400)
+        if ok(f"④ 「怎麼看 ?」（{key}）按得開", not hid(box)):
+            bg(); pg.wait_for_timeout(400)
+            ok(f"★ ④ 「怎麼看 ?」（{key}）點背景就收起來", hid(box))
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(400)
+    pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(900)
+    if ok("④ 象限面板打得開", not hid("#stagePanel")):
+        bg(); pg.wait_for_timeout(500)
+        ok("★ ④ 象限面板點背景就收起來", hid("#stagePanel"))
+    pg.evaluate("() => { const b = document.querySelector('#flowRotFilter .rotdd[data-dd=\"group\"] .ddbtn'); b && b.click(); }")
+    pg.wait_for_timeout(300)
+    if ok("④ 族群下拉打得開", not hid('#flowRotFilter .rotdd[data-dd="group"] .ddpanel')):
+        bg(); pg.wait_for_timeout(300)
+        ok("★ ④ 族群下拉點背景就收起來", hid('#flowRotFilter .rotdd[data-dd="group"] .ddpanel'))
+    g1 = sk_dd_groups(pg)
+    if g1:
+        sk_dd_pick(pg, g1[0], 1500)
+        if ok("④ 資金去向的成分股面板打得開", not hid("#sankeyPanel")):
+            bg(); pg.wait_for_timeout(600)
+            ok("★ ④ 資金去向的成分股面板點背景就收起來", hid("#sankeyPanel"))
+    # 集中度：點一天 → 右側面板
+    xy = pg.evaluate("""() => { const el = document.getElementById('conc'); el.scrollIntoView({block:'center', behavior:'instant'});
+        return null; }""")
+    pg.wait_for_timeout(500)
+    xy = pg.evaluate("""() => { const el = document.getElementById('conc'); const c = echarts.getInstanceByDom(el); if (!c) return null;
+        const s = c.getOption().series[0]; const n = (s.data || []).length; if (!n) return null;
+        const p = c.convertToPixel({ seriesIndex: 0 }, [n - 5, (s.data[n - 5] && (s.data[n - 5].value ?? s.data[n - 5])) || 0]);
+        const r = el.getBoundingClientRect(); return p ? [r.left + p[0], r.top + p[1]] : null; }""")
+    if xy:
+        pg.mouse.click(xy[0], xy[1]); pg.wait_for_timeout(900)
+        if not hid("#concSide"):
+            bg(); pg.wait_for_timeout(500)
+            ok("★ ④ 資金集中度那一天的面板點背景就收起來", hid("#concSide"))
+        else:
+            notes.append("④ 資金集中度：這一輪點不出右側面板（點位沒命中那一天），沒量到點背景關")
+
+
+def t_rank_ratio(pg, b, base):
+    for w in (1440, 1280):
+        pg.set_viewport_size({"width": w, "height": 1000})
+        pg.goto(f"{base}?svg=1#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
+        m = pg.evaluate("""() => { const card = document.getElementById('flowRotCard'), rf = document.getElementById('rankFlow');
+            const c = rf && echarts.getInstanceByDom(rf); if (!c || !card) return null;
+            const cs = getComputedStyle(card), cr = card.getBoundingClientRect();
+            const inner = cr.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+            const pane = card.querySelector('.rotright').getBoundingClientRect();
+            const d = c.getModel().getSeriesByIndex(0).getData();
+            let maxBar = 0; for (let i = 0; i < d.count(); i++) { const g = d.getItemGraphicEl(i); if (g) maxBar = Math.max(maxBar, g.getBoundingRect().width); }
+            const rr = rf.getBoundingClientRect();
+            const ts = [...rf.querySelectorAll('svg text')].filter(t => (t.textContent || '').trim()).map(t => t.getBoundingClientRect());
+            let hit = 0; for (let i = 0; i < ts.length; i++) for (let j = i + 1; j < ts.length; j++) {
+              const a = ts[i], b2 = ts[j]; const ox = Math.min(a.right, b2.right) - Math.max(a.left, b2.left), oy = Math.min(a.bottom, b2.bottom) - Math.max(a.top, b2.top);
+              if (ox > 1 && oy > 1) hit++; }
+            return { share: +(pane.width / inner).toFixed(3), maxBar: Math.round(maxBar), rfW: Math.round(rr.width), hit, n: ts.length }; }""")
+        if not ok(f"⑥ [{w}] 量得到排行區", bool(m), m):
+            continue
+        ok(f"★ ⑥ [{w}] 排行區至少佔卡片寬 40%", m["share"] >= 0.40, m)
+        # 長條區：改前（2:1、數字兩欄）1440 最長一根約 50px；這一批要到排行圖寬的 20% 以上
+        # 1280 開著今日事件側欄時，排行區只有 ~330px（族群名就要吃掉 40%），門檻放到 15%
+        need = 0.20 if w >= 1440 else 0.15
+        ok(f"⑥ [{w}] 最長那根長條 ≥ 排行圖寬的 {int(need * 100)}%（長條區夠長）", m["maxBar"] >= need * m["rfW"], m)
+        ok(f"⑥ [{w}] 排行圖上的字兩兩不重疊（族群名與數字不擠）", m["n"] > 10 and m["hit"] == 0, m)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
@@ -11343,6 +11757,15 @@ SECTIONS = {
     "足跡輪盤":            lambda pg, b, base, code: t_footprint(pg, b, base),
     "掃描光束":            lambda pg, b, base, code: t_scan(pg, b, base),
     "足跡輪盤既有功能":    lambda pg, b, base, code: t_rot_keep(pg, b, base),
+    # ★ 2026-09-24 夜（Andy 四件）：市場寬度比例、足跡輪盤平滑補間、排行貼頂、篩選列左上角
+    "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
+    "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
+    "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
+    # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
+    "輪盤放大與象限卡":    lambda pg, b, base, code: t_wheel_big(pg, b, base),
+    "輪盤側欄":            lambda pg, b, base, code: t_side_panel(pg, b, base),
+    "資金流向點背景關":    lambda pg, b, base, code: t_flow_dismiss(pg, b, base),
+    "排行比例":            lambda pg, b, base, code: t_rank_ratio(pg, b, base),
     # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
 }
@@ -25275,7 +25698,9 @@ def t_scan(pg, b, base):
     # 光束真的畫在盤內：取疊層 canvas 的像素，有不透明的像素、而且都在盤的圓內
     px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const cv = el.querySelector(':scope > canvas.rotripple');
         const g = cv.getContext('2d'); const d = g.getImageData(0, 0, cv.width, cv.height).data; const k = cv.width / el.clientWidth;
-        const W = el.clientWidth, H = el.clientHeight, R = 0.84 * Math.min(W, H) / 2, cx = W / 2, cy = H / 2;
+        // 盤的半徑讀 polar 真正的半徑（2026-09-24 夜起桌機是 min/2 − 14px，不再是 84%）
+        const c0 = echarts.getInstanceByDom(el), cs0 = c0.getModel().getComponent('polar').coordinateSystem;
+        const W = el.clientWidth, H = el.clientHeight, R = cs0.getRadiusAxis().getExtent()[1], cx = W / 2, cy = H / 2;
         let n = 0, out = 0;
         for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const a = d[(y * cv.width + x) * 4 + 3];
           if (a > 0) { n++; if (Math.hypot(x / k - cx, y / k - cy) > R + 20) out++; } }
