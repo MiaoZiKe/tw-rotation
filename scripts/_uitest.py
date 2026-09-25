@@ -13070,7 +13070,11 @@ def t_r5(pg, base, code):
     goto_stock()
     tab("chips", 1800)
     AX_JS = """(id) => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return null;
-        const lab = (k) => { try { return c.getModel().getComponent(k, 0).axis.getViewLabels().map(l => l.formattedLabel); } catch (e) { return null; } };
+        // 2026-09-26 改：集保兩張圖換成時間軸＋customValues 之後，ECharts 5.6 的 getViewLabels() 會把頭尾兩個刻度各回兩次
+        //   （同一個 tickValue、畫在同一個位置，畫面上只看得到一個）。改前直接比 formattedLabel；改後先依 tickValue 去重再比
+        //   —— 這條要擋的是「不同的點印成同一個日期」，同一個點被回報兩次不算。
+        const uniq = (ls) => { const seen = new Set(); return ls.filter(l => { const k = String(l.tickValue); if (seen.has(k)) return false; seen.add(k); return true; }); };
+        const lab = (k) => { try { return uniq(c.getModel().getComponent(k, 0).axis.getViewLabels()).map(l => l.formattedLabel); } catch (e) { return null; } };
         return { y: lab('yAxis'), x: lab('xAxis') }; }"""
     hc = pg.evaluate(AX_JS, "holderCount")
     if hc:
@@ -13080,7 +13084,9 @@ def t_r5(pg, base, code):
            hc["x"] and len(set(hc["x"])) == len(hc["x"]), hc["x"])
         # 2026-09-26 改：大戶／散戶持股拆成三格小圖（改前：單一 xAxis 0；改後：日期只印在最下面那格 xAxis 2）
         hh = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('holderChart')); if (!c) return null;
-            try { return { x: c.getModel().getComponent('xAxis', 2).axis.getViewLabels().map(l => l.formattedLabel) }; } catch (e) { return null; } }""")
+            const seen = new Set();
+            try { return { x: c.getModel().getComponent('xAxis', 2).axis.getViewLabels()
+                .filter(l => { const k = String(l.tickValue); if (seen.has(k)) return false; seen.add(k); return true; }).map(l => l.formattedLabel) }; } catch (e) { return null; } }""")
         ok("R5-4 大戶／散戶持股 X 軸也是 MM-DD、不重複", bool(hh) and hh["x"] and len(set(hh["x"])) == len(hh["x"])
            and all(len(x) == 5 and x[2] == "-" for x in hh["x"]), hh)
 

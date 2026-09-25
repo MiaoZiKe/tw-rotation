@@ -4910,14 +4910,15 @@
           formatter: (ps) => { const r = ho30[ps[0].dataIndex]; if (!r) return ''; const p = prevOf(r);
             return `<b>${r[0]}</b>` + LINES.map(L => `<br><span style="color:${L.c}">●</span> ${L.name} ${A.fmt.n(r[L.k], 2)}%`
               + `　週 ${p && p[L.k] != null ? pp(r[L.k] - p[L.k]) : '—（第一週）'}`).join(''); } },
-        /* 每格左上：名稱＋最新比例＋週變化＋30 天變化（紅＝比例上升、綠＝下降；只是方向色） */
+        /* 每格左上：色點＋名稱＋最新比例＋週變化＋30 天變化（紅＝比例上升、綠＝下降；只是方向色）。
+           名稱用正文色、線色只給前面的圓點 —— 淺色主題下琥珀／薄荷綠的字在白底上對比不夠。 */
         title: LINES.map((L, i) => { const w = lastPrev && lastPrev[L.k] != null ? last[L.k] - lastPrev[L.k] : null;
           const m = first[L.k] != null && ho30.length > 1 ? last[L.k] - first[L.k] : null;
           return { left: 52, top: TOP + i * CELL, padding: 0, textStyle: { rich: {
-              n: { color: L.c, fontSize: 12.5, fontWeight: 700 }, v: { color: A.CH.ink, fontSize: 12.5, fontFamily: A.NUM_FONT },
+              d: { color: L.c, fontSize: 13 }, n: { color: A.CH.ink, fontSize: 12.5, fontWeight: 700 }, v: { color: A.CH.ink, fontSize: 12.5, fontFamily: A.NUM_FONT },
               l: { color: A.CH.ink3, fontSize: 11.5 }, up: { color: A.CH.up, fontSize: 12, fontFamily: A.NUM_FONT },
               dn: { color: A.CH.down, fontSize: 12, fontFamily: A.NUM_FONT }, fl: { color: A.CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT } } },
-            text: `{n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}  {l|週} {${ppCls(w)}|${pp(w)}}  {l|30天} {${ppCls(m)}|${pp(m)}}` }; }),
+            text: `{d|●} {n|${L.name}} {v|${A.fmt.n(last[L.k], 2)}%}  {l|週} {${ppCls(w)}|${pp(w)}}  {l|30天} {${ppCls(m)}|${pp(m)}}` }; }),
         grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + 34, height: CELL - 44 })),
         xAxis: LINES.map((L, i) => xAx(i)),
         yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
