@@ -32,6 +32,17 @@
  *
  * 收集到的 5 秒序列會存在 localStorage（當天、當檔），
  * 這樣中途重新整理不會把早上盯著累積的細節丟掉。
+ *
+ * 非交易時段（Andy 2026-09-26：「為何這邊分 K 無法使用？」）
+ * ------------------------------------------------------------
+ * 以前只收「今天」的：週末、休市、開盤前打開個股頁，四個分 K 週期全是空的。
+ * 現在今天沒有盤時，改畫「最近一個交易日」那一天的分 K（Yahoo 1 分 K，5 分／15 分由 1 分合成），
+ * 圖上寫明「最近交易日 YYYY-MM-DD（非即時）」。
+ * ★ 哪一天是「最近交易日」一律看資料本身帶的日期（Yahoo 每根 K 棒的時間戳、報價的撮合時間），
+ *   不自己寫假日表、也不拿「現在幾月幾號」當交易日（CLAUDE.md 絕對不做的事 #3）。
+ *   「今天」只拿來比對：資料裡有沒有「今天 09:00 以後」的成交 —— 有才算今天開盤了。
+ * 5 秒 K 只有盤中開著頁面才收得到：那天有收過（localStorage 以那天的日期為鍵）就畫，
+ * 沒有就先畫那天的 1 分 K，並寫明原因。盤中（今天有成交）的行為完全不變。
  */
 (function () {
   'use strict';
@@ -49,7 +60,8 @@
   const state = {
     code: null, market: null, symbol: null,
     ticks: [],        // [{s: epoch 秒, p: 價, cv: 累計張數}]
-    hist: [],         // Yahoo 的 1 分 K：[{s, o, h, l, c, v(股)}]
+    hist: [],         // Yahoo 的 1 分 K：[{s, d(台北日期), o, h, l, c, v(股)}]；可能含前幾個交易日（range=5d）
+    offTicks: null,   // 非交易時段：最近交易日那天在 localStorage 裡收過的 5 秒序列 {date, t}
     histTried: false, histErr: '', histErrRaw: '',
     timer: null, busy: false, fails: 0,
     lastAt: 0, lastErr: '', prevClose: null, name: '',
@@ -84,37 +96,65 @@
     return code + ((market || '').toUpperCase() === 'TPEX' || (market || '').toUpperCase() === 'OTC' ? '.TWO' : '.TW');
   }
 
+  /* 台北日期（YYYY-MM-DD）。s 是真正的 epoch 秒。*/
+  const dateOf = (s) => new Date((s + 8 * 3600) * 1000).toISOString().slice(0, 10);
+  /* 台北牆鐘的「第幾分鐘」（09:00 ＝ 540）。*/
+  const minOf = (s) => Math.floor(((s + 8 * 3600) % 86400) / 60);
+
+  /** 打一次 /y，回 {bars} 或 {err}。Worker 只允許白名單裡的 interval／range（1m＋1d／5d 都在裡面），
+   *  這裡不動 Worker。*/
+  async function fetchYahoo(base, range) {
+    const r = await fetch(`${base}/y?symbol=${encodeURIComponent(state.symbol)}&interval=1m&range=${range}`,
+                          { cache: 'no-store' });
+    if (r.status === 404 || r.status === 400) return { err: 'NOYAHOO' };
+    if (!r.ok) {
+      /* Worker 把 Yahoo 的 404（「查無資料」—— 冷門股、或代號在 Yahoo 那邊沒有分 K）包成 502 回來，
+         本體寫著 status:404。那不是「連不到」，是「真的沒有」，要分開講。*/
+      let j = null; try { j = await r.json(); } catch (e) { /* 本體不是 JSON 就當一般錯誤 */ }
+      if (j && j.status === 404) return { err: 'EMPTY' };
+      return { err: '代理回 HTTP ' + r.status };
+    }
+    const j = await r.json();
+    const res = ((j.chart || {}).result || [])[0];
+    if (!res || !res.timestamp || !res.timestamp.length) return { err: 'EMPTY', res };
+    const q = ((res.indicators || {}).quote || [])[0] || {};
+    const out = [];
+    res.timestamp.forEach((s, i) => {
+      const c = num(q.close && q.close[i]);
+      if (c === null) return;
+      out.push({
+        s, d: dateOf(s),
+        o: num(q.open && q.open[i]) ?? c,
+        h: num(q.high && q.high[i]) ?? c,
+        l: num(q.low && q.low[i]) ?? c,
+        c,
+        v: num(q.volume && q.volume[i]) || 0,          // 股
+      });
+    });
+    return out.length ? { bars: out, res } : { err: 'EMPTY', res };
+  }
+
   async function loadHistory() {
     state.histTried = true;
     const base = proxy();
     if (!base) { state.histErr = '還沒設定即時來源'; return; }
     try {
-      const r = await fetch(`${base}/y?symbol=${encodeURIComponent(state.symbol)}&interval=1m&range=1d`,
-                            { cache: 'no-store' });
-      if (r.status === 404 || r.status === 400) { state.histErr = 'NOYAHOO'; return; }
-      if (!r.ok) { state.histErr = '代理回 HTTP ' + r.status; return; }
-      const j = await r.json();
-      const res = ((j.chart || {}).result || [])[0];
-      if (!res || !res.timestamp) { state.histErr = 'Yahoo 沒有今天的資料'; return; }
-      const q = ((res.indicators || {}).quote || [])[0] || {};
+      /* 先打 range=1d（盤中跟以前一模一樣）。裡面沒有「今天」的 K 棒（週末、休市、開盤前、
+         或開盤頭 20 分鐘 Yahoo 還沒給）才補打 range=5d，找最近一個有資料的交易日。*/
+      let got = await fetchYahoo(base, '1d');
       const day = today();
-      const out = [];
-      res.timestamp.forEach((s, i) => {
-        const c = num(q.close && q.close[i]);
-        if (c === null) return;
-        // 只留「今天」的（range=1d 偶爾會夾帶前一個交易日的尾巴）
-        if (new Date((s + 8 * 3600) * 1000).toISOString().slice(0, 10) !== day) return;
-        out.push({
-          s,
-          o: num(q.open && q.open[i]) ?? c,
-          h: num(q.high && q.high[i]) ?? c,
-          l: num(q.low && q.low[i]) ?? c,
-          c,
-          v: num(q.volume && q.volume[i]) || 0,          // 股
-        });
-      });
-      state.hist = out;
-      if (state.prevClose == null) state.prevClose = num((res.meta || {}).chartPreviousClose);
+      if (!got.bars || !got.bars.some(b => b.d === day)) {
+        const more = await fetchYahoo(base, '5d');
+        if (more.bars) got = more;
+        else if (!got.bars && more.err === 'EMPTY' && got.err !== 'NOYAHOO') got = more;
+      }
+      if (got.err) {
+        state.histErr = got.err === 'EMPTY' ? 'EMPTY' : got.err;
+        if (got.err !== 'NOYAHOO') state.hist = [];
+        return;
+      }
+      state.hist = got.bars;
+      if (state.prevClose == null && got.res) state.prevClose = num((got.res.meta || {}).chartPreviousClose);
       state.histErr = '';
     } catch (e) {
       state.histErrRaw = String(e.message || e).slice(0, 120);
@@ -213,8 +253,11 @@
 
   function save() {
     if (!state.code) return;
-    ls.set(KEY(today(), state.code), JSON.stringify({
-      t: state.ticks, y: state.prevClose, n: state.name, d: state.today,
+    /* 只存「今天」的 tick。週末打開頁面時報價回的是上一個交易日收盤那一筆（撮合時間是那天），
+       那一筆不屬於今天，存進今天的鍵只是垃圾；更不能存進那天的鍵 —— 會把那天盤中收的整串 5 秒 K 蓋掉。*/
+    const day = today();
+    ls.set(KEY(day, state.code), JSON.stringify({
+      t: state.ticks.filter(t => dateOf(t.s) === day), y: state.prevClose, n: state.name, d: state.today,
     }));
   }
   function load() {
@@ -229,12 +272,46 @@
     } catch (e) { /* 壞掉就當沒有 */ }
   }
 
+  // ---------------------------------------------------------------- 哪一天
+  /** 今天有沒有盤：資料裡有「今天」的 Yahoo K 棒，或有「今天 09:00 以後」撮合的報價。
+   *  ⚠ 不看星期幾、不看假日表 —— 看資料。開盤前的試撮（09:00 以前）不算開盤。*/
+  function todayLive() {
+    const day = today();
+    if (state.hist.some(b => b.d === day)) return true;
+    return state.ticks.some(t => dateOf(t.s) === day && minOf(t.s) >= 9 * 60);
+  }
+  /** 要畫哪一天：{date, live}。
+   *  live＝今天有盤（行為跟以前一模一樣）；否則 date＝資料裡最新的那個交易日（Yahoo 的 K 棒或收到的報價）。*/
+  function session() {
+    if (todayLive()) return { date: today(), live: true };
+    let best = null;
+    for (const b of state.hist) if (!best || b.d > best) best = b.d;
+    for (const t of state.ticks) { const d = dateOf(t.s); if (!best || d > best) best = d; }
+    return { date: best, live: false };
+  }
+  /** 非交易時段：某一天的 5 秒序列 ＝ 這次收到的（同一天的）＋ 那天盤中存進 localStorage 的。*/
+  function ticksOf(date) {
+    let stored = [];
+    if (date !== today()) {
+      if (!state.offTicks || state.offTicks.date !== date || state.offTicks.code !== state.code) {
+        let t = [];
+        try { const o = JSON.parse(ls.get(KEY(date, state.code)) || 'null'); if (o && Array.isArray(o.t)) t = o.t; } catch (e) { /* 壞掉就當沒有 */ }
+        state.offTicks = { date, code: state.code, t };
+      }
+      stored = state.offTicks.t;
+    }
+    const seen = new Map();
+    stored.concat(state.ticks).forEach(t => { if (t && dateOf(t.s) === date) seen.set(Math.floor(t.s / 5), t); });
+    return [...seen.values()].sort((a, b) => a.s - b.s);
+  }
+
   // ---------------------------------------------------------------- 合成 K 棒
   /** 自己收集的 tick → N 秒 K。
-   *  開＝前一根的收（連續盤），量＝累計張數的差值 × 1000（換成股，跟個股頁其他地方同口徑）。 */
-  function barsFromTicks(sec, sinceSec) {
+   *  開＝前一根的收（連續盤），量＝累計張數的差值 × 1000（換成股，跟個股頁其他地方同口徑）。
+   *  list 不給就用這次收到的全部（盤中，跟以前一樣）。*/
+  function barsFromTicks(sec, sinceSec, list) {
     const out = []; let cur = null, key = null, prevClose = null, prevCv = null;
-    for (const t of state.ticks) {
+    for (const t of (list || state.ticks)) {
       if (sinceSec != null && t.s < sinceSec) { prevCv = t.cv; prevClose = t.p; continue; }
       const k = Math.floor(t.s / sec);
       const dv = (prevCv == null || t.cv < prevCv) ? 0 : (t.cv - prevCv) * 1000;
@@ -253,10 +330,12 @@
     return out;
   }
 
-  /** Yahoo 的 1 分 K → 我們的形狀（時間一律 +8 小時，跟 chart.js 的 fmtTime 對齊）。 */
-  function barsFromHist(sec, untilSec) {
+  /** Yahoo 的 1 分 K → 我們的形狀（時間一律 +8 小時，跟 chart.js 的 fmtTime 對齊）。
+   *  只取 date 那一天（range=5d 會帶前幾天的）。*/
+  function barsFromHist(sec, untilSec, date) {
     const out = []; let cur = null, key = null;
     for (const b of state.hist) {
+      if (b.d !== date) continue;
       if (untilSec != null && b.s >= untilSec) break;
       const k = Math.floor(b.s / sec);
       if (k !== key) {
@@ -272,43 +351,108 @@
     return out;
   }
 
-  /** 對外：某個週期的 K 棒。5 秒只用自己收的；1 分 / 5 分是「Yahoo 早盤 ＋ 自己收的尾巴」。 */
-  function bars(tf) {
-    const sec = TFS[tf];
-    if (!sec) return [];
-    if (tf === '5s') return barsFromTicks(5);
-    const firstTick = state.ticks.length ? state.ticks[0].s : null;
-    // 接縫：自己有資料的第一格開始用自己的，之前的用 Yahoo（同一格不要兩邊都畫）
-    const seam = firstTick == null ? null : Math.floor(firstTick / sec) * sec;
-    const head = barsFromHist(sec, seam);
-    const tail = barsFromTicks(sec, seam);
+  /** 頭（Yahoo）接尾巴（tick），尾巴第一根用頭最後一根的收盤當開盤，接起來才連續。*/
+  function join(head, tail) {
     if (!head.length) return tail;
     if (!tail.length) return head;
-    // 尾巴的第一根用 Yahoo 最後一根的收盤當開盤，接起來才連續
     tail[0][1] = head[head.length - 1][4];
     tail[0][2] = Math.max(tail[0][2], tail[0][1]);
     tail[0][3] = Math.min(tail[0][3], tail[0][1]);
     return head.concat(tail);
   }
 
+  /** 非交易時段的分 K：那一天的 Yahoo 1 分 K（5／15 分由它合成），
+   *  報價收到的只拿來補「Yahoo 最後一根之後」的部分 —— 那天的 Yahoo 已經是完整的，不必讓 tick 蓋掉它
+   *  （尤其收盤那一筆報價的量是 0，蓋掉會把尾盤集合競價的量弄丟）。*/
+  function offBars(sec, date) {
+    const head = barsFromHist(sec, null, date);
+    const dayTicks = ticksOf(date);
+    if (!head.length) return barsFromTicks(sec, null, dayTicks);
+    const lastS = head[head.length - 1][0] - 8 * 3600;
+    return join(head, barsFromTicks(sec, lastS + sec, dayTicks));
+  }
+
+  /** 對外：某個週期的 K 棒。
+   *  盤中（今天有盤）：5 秒只用自己收的；1／5／15 分是「Yahoo 早盤 ＋ 自己收的尾巴」—— 跟以前一模一樣。
+   *  非交易時段：最近交易日那一天的（見 offBars）；5 秒那天沒收過就先給 1 分 K（drawnTf 會說）。*/
+  function bars(tf) {
+    const sec = TFS[tf];
+    if (!sec) return [];
+    const ses = session();
+    if (!ses.live) {
+      if (!ses.date) return [];
+      if (tf === '5s') {
+        const tk = ticksOf(ses.date);
+        return tk.length >= 2 ? barsFromTicks(5, null, tk) : offBars(60, ses.date);
+      }
+      return offBars(sec, ses.date);
+    }
+    if (tf === '5s') return barsFromTicks(5);
+    const firstTick = state.ticks.length ? state.ticks[0].s : null;
+    // 接縫：自己有資料的第一格開始用自己的，之前的用 Yahoo（同一格不要兩邊都畫）
+    const seam = firstTick == null ? null : Math.floor(firstTick / sec) * sec;
+    return join(barsFromHist(sec, seam, ses.date), barsFromTicks(sec, seam));
+  }
+  /** 這個週期實際畫的是哪一個週期（只有「非交易時段、那天沒收過 5 秒」會回 1m）。*/
+  function drawnTf(tf) {
+    const ses = session();
+    if (tf === '5s' && !ses.live && ses.date && ticksOf(ses.date).length < 2) return '1m';
+    return tf;
+  }
+  /** 非交易時段畫的那一天（YYYY-MM-DD）；盤中或完全沒資料回 null。*/
+  function offDay() { const s = session(); return s.live ? null : s.date; }
+
+  const TFZ = { '5s': '5 秒', '1m': '1 分', '5m': '5 分', '15m': '15 分' };
   /** 這個週期的資料是哪裡來的，畫面上要講清楚。 */
   function sourceNote(tf) {
+    const ses = session();
+    if (!ses.live) {
+      if (ses.date) {
+        const head = `最近交易日 ${ses.date}（非即時）`;
+        if (tf === '5s') {
+          const n = ticksOf(ses.date).length;
+          return n >= 2
+            ? `${head}：5 秒 K 是那天盤中開著這一頁時收集的 ${n} 筆。今天還沒有成交，開盤後自動換回即時。`
+            : `${head}：5 秒 K 只在盤中收集，非交易時段先顯示最近交易日 1 分 K。`;
+        }
+        const nh = state.hist.filter(b => b.d === ses.date).length;
+        return nh
+          ? `${head}：${TFZ[tf] || tf} K ${tf === '1m' ? '來自' : '由'} Yahoo 1 分 K${tf === '1m' ? '' : '合成'}（那天共 ${nh} 根）。今天還沒有成交（週末、休市或開盤前），開盤後自動換回即時。`
+          : `${head}：只有那天收到的報價，沒有 Yahoo 分 K。`;
+      }
+      if (!state.histTried && proxy()) return '正在抓最近交易日的分 K…';
+      if (state.histErr === 'EMPTY') return '最近交易日也沒有分 K 資料（Yahoo 查不到這一檔的 1 分 K，冷門股常見）。日線／週線／月線可以正常看。';
+    }
     const n = state.ticks.length;
     if (tf === '5s') {
       return n < 2
         ? '5 秒 K 是打開這一頁之後才開始收集的（證交所沒有個股的歷史分時檔）。開著就會一路長出來。'
         : `5 秒 K：每 5 秒一筆，${n} 筆。這是證交所報價能給的最細顆粒（它自己就是 5 秒更新一次）。盤中量為估計值。`;
     }
-    const h = state.hist.length;
+    const h = state.hist.filter(b => b.d === ses.date).length;
     if (!h && state.histErr === 'NOYAHOO') {
       return '早盤那段還沒接上：Worker 還是舊版（沒有 /y）。到 Cloudflare 重貼 workers/quote-proxy/worker.js 就會補齊 09:00 起的 K 棒。';
     }
-    if (!h) return `早盤資料抓不到${state.histErr ? '（' + state.histErr + '）' : ''}，目前只有打開這一頁之後收集到的 ${n} 筆。`;
+    if (!h) return `早盤資料抓不到${state.histErr && state.histErr !== 'EMPTY' ? '（' + state.histErr + '）' : ''}，目前只有打開這一頁之後收集到的 ${n} 筆。`;
     return `早盤 ${h} 根來自 Yahoo（延遲約 20 分鐘、量偏低），最近這段是證交所即時報價每 5 秒一筆自己疊的。盤中量為估計值，收盤後由管線的正式資料覆蓋。`;
   }
 
+  /** 週期鈕上的點：紅＝即時（今天有盤）、灰＝非即時（畫的是最近交易日）。
+   *  industry.js 的 markTf 重畫按鈕時也會叫它，所以按鈕重建之後顏色不會跑掉。*/
+  function paintDots() {
+    // 還沒問到任何資料之前先不下結論（不然盤中每次打開都會先閃一下灰點）
+    const off = (state.histTried || state.ticks.length > 0) && !session().live;
+    const day = offDay();
+    document.querySelectorAll('#tfSeg button.livetf').forEach(b => {
+      b.classList.toggle('offhrs', off);
+      b.title = off
+        ? (day ? `非即時：今天還沒有成交，顯示最近交易日 ${day} 的分 K（灰點＝非即時，紅點＝即時）` : '非即時：目前沒有今天的成交資料（灰點＝非即時，紅點＝即時）')
+        : '當天即時（Yahoo 補早盤 ＋ 證交所報價每 5 秒補尾巴；紅點＝即時）';
+    });
+  }
+
   // ---------------------------------------------------------------- 排程
-  function emit() { state.subs.forEach(fn => { try { fn(); } catch (e) { /* 一個壞掉不要影響其他 */ } }); }
+  function emit() { paintDots(); state.subs.forEach(fn => { try { fn(); } catch (e) { /* 一個壞掉不要影響其他 */ } }); }
   function stopTimer() { if (state.timer) { clearInterval(state.timer); state.timer = null; } }
   function startTimer() {
     stopTimer();
@@ -325,7 +469,7 @@
       stopTimer();
       state.code = code; state.market = market || null;
       state.symbol = yahooSymbol(code, market);
-      state.ticks = []; state.hist = []; state.histTried = false; state.histErr = '';
+      state.ticks = []; state.hist = []; state.histTried = false; state.histErr = ''; state.offTicks = null;
       state.prevClose = null; state.name = ''; state.fails = 0; state.lastErr = '';
       load();
       startTimer();
@@ -335,11 +479,16 @@
     },
     detach() { stopTimer(); state.code = null; },
     bars, sourceNote, isIntraday,
+    // 非交易時段（Andy 2026-09-26「為何這邊分 K 無法使用？」）：畫哪一天、實際畫哪個週期、按鈕上的點
+    session, offDay, drawnTf, paintDots,
+    /** 還在抓 Yahoo（四週期同看用它決定「資料到了要不要重建那一格」）。*/
+    get loading() { return !state.histTried; },
     /** Yahoo 早盤那段**真的抓失敗了**（不是還沒設定來源、也不是 Worker 舊版）。
      *  industry.js 用它決定要不要先退回有資料的週期，不讓使用者對著一塊空白。*/
     histFailed() {
+      // 'EMPTY'＝Yahoo 回了、但這一檔真的沒有分 K（冷門股）—— 那要明講，不是悄悄退回別的週期
       return !!(state.histTried && !state.hist.length && state.histErr
-        && state.histErr !== 'NOYAHOO' && state.histErr !== '還沒設定即時來源');
+        && state.histErr !== 'NOYAHOO' && state.histErr !== '還沒設定即時來源' && state.histErr !== 'EMPTY');
     },
     /** 今天那一根「還沒收的日 K」。沒有報價就回 null（例如假日、或代理打不通）。 */
     todayBar() {
@@ -348,7 +497,8 @@
       return [t.date, t.o, t.h, t.l, t.c, t.v];
     },
     tfs: Object.keys(TFS),
-    refresh: async () => { await poll(); if (!state.hist.length) await loadHistory(); emit(); },
+    // 手動更新：Yahoo 還沒有「今天」的 K 棒就再抓一次（盤中開盤頭 20 分鐘、或休市日剛開盤）
+    refresh: async () => { await poll(); if (!state.hist.some(b => b.d === today())) await loadHistory(); emit(); },
     onUpdate(fn) { state.subs.push(fn); return () => { state.subs = state.subs.filter(f => f !== fn); }; },
     get state() { return state; },
     get ticking() { return !!state.timer; },
