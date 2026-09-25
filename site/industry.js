@@ -197,11 +197,20 @@
   }
   /* 分頁列放不下時左右捲，但**選中的那一頁一定要在視野裡** ——
      捲的是分頁列自己（不是 scrollIntoView，那會連整頁一起捲，使用者的位置就跑掉了）。*/
+  /* ★ 2026-09-25 效能（perf-2）：改到下一幀開頭才量。
+     這支讀 scrollWidth／clientWidth／offsetLeft —— 在 renderChain 的中途讀，等於逼瀏覽器把還沒排好的整頁**當場排版**，
+     之後 render 又改一大堆 DOM、再排一次。實測首次開 #industry/semiconductor 光這支就 210ms（整個任務 778ms 的 27%）。
+     rAF 在畫面畫出來之前跑，捲的結果一樣、看不出差別；同一條分頁列一幀內叫幾次都只量一次。*/
   function scrollTabIntoView(strip) {
-    if (!strip) return;
-    const on = strip.querySelector('.on');
-    if (!on || strip.scrollWidth <= strip.clientWidth + 2) return;
-    strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
+    if (!strip || strip._tabQ) return;
+    strip._tabQ = true;
+    requestAnimationFrame(() => {
+      strip._tabQ = false;
+      if (!strip.isConnected) return;
+      const on = strip.querySelector('.on');
+      if (!on || strip.scrollWidth <= strip.clientWidth + 2) return;
+      strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
+    });
   }
   function wireChainTabs(root, cur) {
     const strip = $('#chainSwitch', root);
@@ -754,7 +763,20 @@
         hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null };
     }
 
-    paint();
+    /* ★ 2026-09-25 效能（perf-2）：這一塊（族群總覽）在「選了一張剖析圖」時是藏起來的（#gpSec hidden，跟剖析圖互斥），
+       以前照樣當場畫兩張 ECharts —— 首次開 #industry/semiconductor 在同一個任務裡白畫 174ms，而且畫在 0 寬的容器裡。
+       改成：藏著就等它**真的露出來**（ResizeObserver：從 display:none 變成有尺寸就會通知）才畫第一次；
+       沒藏就跟以前一樣當場畫。判斷只看 hidden 屬性（不量尺寸，免得又逼整頁排版）。*/
+    const hiddenNow = () => !!(host.hidden || (host.closest && host.closest('[hidden]')));
+    if (hiddenNow() && window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (!host.isConnected) { ro.disconnect(); return; }
+        if (hiddenNow() || !host.clientWidth) return;
+        ro.disconnect();
+        if (gen === gpGen) paint();
+      });
+      ro.observe(host);
+    } else paint();
     return { paint, stop: () => { stopTimer(); }, dbg: () => gpDbg };
   }
   // （`median` / `wavg` 已移除：它們只服務標題下那排標籤，W3-6 把那排整排拿掉了）
@@ -2034,7 +2056,10 @@
         if (box !== host) host.scrollLeft = 0;   // 說明卡片貼左邊，不准被推走
         return box;
       };
-      fitCanvas(svg, boxOf(), w);       // 同步這一次只縮畫布，不捲（`.dgcanvas` 可能還沒建出來）
+      /* 同步這一次只縮畫布，不捲。★ 2026-09-25 效能（perf-2）：只在 `.dgcanvas` 已經存在（切 2D／3D、重套）時做 ——
+         第一次畫圖時它還沒建出來，縮的是 host，接著 externalize() 又把 svg 寬度釘回 viewBox 寬，這一次的量測（逼整頁排版）是白做的；
+         真正生效的是下面 rAF 那一次。*/
+      if (inCanvas) fitCanvas(svg, boxOf(), w);
       requestAnimationFrame(() => {
         const box = settle();
         /* 視窗寬度在 410～659 這一段變動時要重算（Andy 常常把瀏覽器縮成半邊）。

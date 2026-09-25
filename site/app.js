@@ -2231,7 +2231,15 @@
     const pageKey = (hd, rs) => (hd === 'industry' || hd === 'stock') ? hd + '/' + (rs[0] || '') : hd;
     const key = pageKey(head, rest);
     const pageChanged = key !== _lastPageKey;       // 熱力圖分頁要用它判斷「換題材」還是「剛進來」
-    if (pageChanged) window.scrollTo({ top: 0 });
+    /* ★ 2026-09-25 效能（perf-2）：**第一次進站**那一次改到下一幀開頭才捲。
+       `scrollTo` 會逼瀏覽器當場把整頁排版一次 —— 而這時候下面的 render 還要再改一大堆 DOM，
+       等於同一幀排版兩次。實測首次開資金流向這一行自己佔 133ms（4 倍降速 687ms），全部是白排。
+       下一幀開頭（rAF）瀏覽器本來就要排版，那時候捲只排一次；rAF 在畫面畫出來之前跑，所以看不出差別。
+       站內換頁（使用者點了才換）維持當場捲：那時候 route 後面接著的 whenNear 要用「已經在頂端」的位置判斷誰在首屏。*/
+    if (pageChanged) {
+      if (_lastPageKey === null) requestAnimationFrame(() => window.scrollTo({ top: 0 }));
+      else window.scrollTo({ top: 0 });
+    }
     _lastPageKey = key;
     /* ★ 2026-09-24 手機第二版：這一頁在手機上要用哪一份分段表（見 applyMobileIA）。
        用的是「路由的頁面種類」而不是 view id —— 個股與產業地圖共用 `#v-industry`，
@@ -6959,6 +6967,10 @@
     rlvMountBtn();
     wireRotTrailToggle(() => drawRot(rotFrame));
     drawRot(rotFrame);
+    /* ★ 2026-09-25 效能（perf-2）：輪盤畫完先讓瀏覽器畫一幀、喘口氣，再畫排行與下面那幾張。
+       首次開資金流向時輪盤＋排行在同一個任務裡（實測 722ms，4 倍降速 2.3 秒），這段整頁點不動。
+       跟總覽「熱力圖畫完讓一幀再畫輪盤」同一個做法；總工作量不變，只是拆成兩段。*/
+    await yieldFrame();
 
     // I1 的拉 Bar 要在 drawPeriod 之前建好（drawPeriod 會讀它的值）
     // ★ 2026-09-20：min 0 → 1、預設 20。0 以前代表「跟著上方期間走」，
@@ -10431,7 +10443,12 @@
   /* ★ 2026-09-24 效能：`toLocaleDateString(…, { timeZone })` 每呼叫一次就在底層新建一個 Intl 格式器，
      事件欄 1232 則逐則轉一次，實測 164～197ms（R6 審查量到的）。格式器建一次重複用，結果一字不差（'YYYY-MM-DD'）。*/
   let _tpeFmt = null;
+  /* ★ 2026-09-25 效能（perf-2）：1980 年以後台灣沒有日光節約，台北＝UTC+8 固定 —— 直接平移 8 小時取 ISO 日期，
+     不走 Intl 格式器（事件欄 1209 則，Intl 那條實測 48ms、4 倍降速 90ms，而且擋在第一次畫頁之前）。
+     拿現有 news.json 的 567 則非 ISO 日期逐則比對兩條路：0 則不同。1980 年以前才退回 Intl。*/
+  const TPE_FIXED_FROM = Date.UTC(1980, 0, 1);
   const tpeDate = (ms) => {
+    if (ms >= TPE_FIXED_FROM) return new Date(ms + 8 * 3600e3).toISOString().slice(0, 10);
     try {
       if (!_tpeFmt) _tpeFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
       return _tpeFmt.format(ms);

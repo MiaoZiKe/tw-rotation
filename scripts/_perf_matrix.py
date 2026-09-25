@@ -15,7 +15,7 @@ rep = int(opt('--rep', '1'))
 width = opt('--width', '1440')
 OUTD = opt('--out', '')
 sites = [a.split('=', 1) for a in args]
-KEYS = ('fcp_ms', 'boot_done_ms', 'tti_approx_ms', 'tbt_ms', 'longest_ms', 'long_tasks')
+KEYS = ('fcp_ms', 'boot_done_ms', 'tti_approx_ms', 'tbt_ms', 'longest_ms', 'long_tasks', 'longest_cpu_ms', 'tbt_cpu_ms', 'main_cpu_ms')
 for c in cpus:
     for h in hashes:
         t = h.replace('/', '_')

@@ -528,7 +528,12 @@
     obs.esc = (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); };
     document.addEventListener('keydown', obs.esc);
     host.__dgv2 = obs;                                    // 換下一張圖時 teardownV2 靠這個把觀察器收掉
-    relayout(); requestAnimationFrame(relayout); setTimeout(relayout, 300);
+    /* ★ 2026-09-25 效能（perf-2）：拿掉「當場 relayout() 一次」，第一次改在下一幀開頭。
+       relayout → fitCards 每一步都讀 getBoundingClientRect／scrollHeight（逼整頁排版，搬卡片的迴圈最多 30 次），
+       而這時候呼叫端（industry.js wireDg）接著還要貼台股標籤（fillChips）、接 3D、畫族群面板 ——
+       當場量完馬上又被改掉，實測首次開半導體鏈這一段白排 288ms（4 倍降速 1.5 秒）。
+       rAF 在畫面畫出來之前跑，第一幀看到的版面跟以前一樣；300ms 那次補算照舊（字型晚到時靠它）。*/
+    later(); setTimeout(relayout, 300);             // later()＝下一幀、同一幀內多次要求只做一次（MutationObserver 那條也走它）
   }
 
   /* ================================================================ 量完再縮（風格系統 2026-09-22）

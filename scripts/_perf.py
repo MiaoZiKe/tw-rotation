@@ -197,7 +197,7 @@ for t in long:
     allk = collections.Counter()
     for c in ch: allk[c['name']] += c['dur']
     evs = [(c['name'], round(c['dur']/1000,1), {k: v for k, v in (c.get('args', {}).get('data', {}) or {}).items() if k in ('url','functionName','lineNumber','timerId','type','stackTrace')}) for c in ch if c['dur'] > 5000][:25]
-    rows.append({'evs': evs, 'all_ms': {k: round(v/1000) for k, v in allk.most_common(8)}, 'start_ms': round((t['ts'] - nav0) / 1000), 'dur_ms': round(t['dur'] / 1000),
+    rows.append({'evs': evs, 'all_ms': {k: round(v/1000) for k, v in allk.most_common(8)}, 'start_ms': round((t['ts'] - nav0) / 1000), 'dur_ms': round(t['dur'] / 1000), 'cpu_ms': round(t.get('tdur', t['dur']) / 1000),
                  'kinds_ms': {k: round(v / 1000) for k, v in agg.most_common(6)},
                  'detail_ms': {k: round(v / 1000) for k, v in detail.most_common(5)},
                  'prof_incl_ms': top_incl, 'prof_self_ms': top_self})
@@ -223,12 +223,19 @@ for s, e in lt_ends:
     if e > tti and s < tti + 5000:
         tti = e
 tbt = sum(max(0, r['dur_ms'] - 50) for r in rows if fcp and r['start_ms'] >= fcp)
+# ★ CPU 時間（trace 的 tdur＝這條執行緒真的在跑的時間）：容器被別的程序搶 CPU 時，牆鐘時間會被拉長，
+#   tdur 不會 —— 比較兩版時看這幾個欄位比較穩（2026-09-25 perf-2：負載 12／4 核時牆鐘同一版可差 2 倍）。
+cpu_all = sum(t.get('tdur', t['dur']) for t in tasks) / 1000
+cpu_long = [t.get('tdur', t['dur']) / 1000 for t in tasks]
+longest_cpu = round(max(cpu_long or [0]))
+tbt_cpu = round(sum(max(0, c - 50) for c in cpu_long))
 
 res = {'tag': a.tag, 'cpu': a.cpu, 'net': a.net, 'hash': a.hash, 'width': a.width,
        'fcp_ms': fcp, 'dcl_ms': nav['dcl'], 'load_ms': nav['load'], 'app_ms': round(r6['marks'].get('app', 0)),
        'boot_done_ms': round(boot or 0), 'tti_approx_ms': tti, 'tbt_ms': tbt,
        'long_tasks': len(rows), 'long_total_ms': sum(r['dur_ms'] for r in rows),
        'longest_ms': max([r['dur_ms'] for r in rows] or [0]),
+       'longest_cpu_ms': longest_cpu, 'tbt_cpu_ms': tbt_cpu, 'main_cpu_ms': round(cpu_all),
        'lag_events': r6['lag'][:40],
        'json_parse': sorted(r6['jp'], key=lambda x: x['at']),
        'resources': nav['res'],
@@ -237,7 +244,7 @@ res = {'tag': a.tag, 'cpu': a.cpu, 'net': a.net, 'hash': a.hash, 'width': a.widt
        'self_by_fn_ms': [(f"{f[0]} @{f[1]}:{f[2]}", round(c)) for f, c in by_fn.most_common(30)],
        'rows': rows, 'errors': errs, 'incl_global': incl_global}
 (OUT / f'perf_{a.tag}.json').write_text(json.dumps(res, ensure_ascii=False, indent=1))
-print(json.dumps({k: res[k] for k in ('tag', 'fcp_ms', 'dcl_ms', 'load_ms', 'app_ms', 'boot_done_ms', 'tti_approx_ms', 'tbt_ms', 'long_tasks', 'long_total_ms', 'longest_ms')}, ensure_ascii=False))
+print(json.dumps({k: res[k] for k in ('tag', 'fcp_ms', 'dcl_ms', 'load_ms', 'app_ms', 'boot_done_ms', 'tti_approx_ms', 'tbt_ms', 'long_tasks', 'long_total_ms', 'longest_ms', 'longest_cpu_ms', 'tbt_cpu_ms', 'main_cpu_ms')}, ensure_ascii=False))
 js = [r for r in nav['res'] if r['n'].endswith('.js')]
 dj = [r for r in nav['res'] if r['n'].startswith('data/') and r['n'].endswith('.json')]
 print('script_total_kb', round(sum(r['sz'] or 0 for r in js) / 1024), 'n', len(js), '| json_total_kb', round(sum(r['sz'] or 0 for r in dj) / 1024), 'n', len(dj))
