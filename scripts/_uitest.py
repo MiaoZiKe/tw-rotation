@@ -23356,8 +23356,9 @@ def t_heatmap_v2(pg, base):
                    r2 and len(r2["cells"]) == 7 and not r2["nested"]
                    and pg.evaluate("document.querySelectorAll('#ovHeatCard .hmlegend').length") == 1
                    and all(lf["fill"] in r2["pal7"] + [r2["na"]] for lf in r2["leaves"]), r2 and r2["cells"])
-                ok(f"[{th} 總覽 #heat] 重畫幾次連結列都只有一條（圖例插在圖與連結列之間，不會多長出一條）",
-                   pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length") == 1,
+                # 2026-09-25 Andy：資金熱力圖下方的「族群」連結列拿掉 → 改前「只有一條」→ 改後「重畫幾次都不會長出連結列」
+                ok(f"[{th} 總覽 #heat] 重畫幾次都不會長出連結列（09-25 已拿掉）",
+                   pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length") == 0,
                    pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length"))
                 click(pg, '#heatChips button[data-c=""]', 900)
         # ---- 熱力圖頁 ----

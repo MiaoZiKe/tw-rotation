@@ -5693,7 +5693,7 @@
     };
     const qTxt = (t, left, top, align, vAlign) => ({ type: 'text', left, top, silent: true, z: 1,
       style: { text: t, fill: hexA(CH.ink3, .9), font: '600 12px "Noto Sans TC", sans-serif', textAlign: align, textVerticalAlign: vAlign } });
-    const G = { left: 58, right: 18, top: 30, bottom: 40 };
+    const G = { left: 14, right: 18, top: 30, bottom: 40, containLabel: true };   // containLabel：「100.0 萬張」這種長刻度不會跑出框（_preview 1920 抓到 7px）
     const c = chart('trust', {
       tooltip: { ...tip, trigger: 'item', formatter: q => { const r = q.data.r;
         return `<b>${fmt.esc(nm(r.code))} ${r.code}</b>　<span style="color:${r.side === 'buy' ? CH.up : CH.down}">${quad(r)}</span><br>`
@@ -5710,9 +5710,10 @@
         : { ...axisStyle, type: 'log', name: '累計張數', nameTextStyle: { color: CH.ink3, fontSize: 12, align: 'left' },
             axisLabel: { color: CH.ink3, fontSize: 12, formatter: v => fmt.lot(v) } },
       graphic: [
-        qTxt(hasRatio ? '連賣加碼' : '連賣', G.left + 8, G.top + 4, 'left', 'top'),
-        qTxt(hasRatio ? '連買加碼' : '連買', null, G.top + 4, 'right', 'top'),
-        ...(hasRatio ? [qTxt('連賣減碼', G.left + 8, null, 'left', 'bottom'), qTxt('連買減碼', null, null, 'right', 'bottom')] : []),
+        // 舊資料（縱軸＝累計張數）時大泡泡都擠在上緣，象限名改放下緣才不會壓到名字（_preview 1920 抓到「連買」壓「玉山金」）
+        qTxt(hasRatio ? '連賣加碼' : '連賣', G.left + 66, hasRatio ? G.top + 4 : null, 'left', hasRatio ? 'top' : 'bottom'),
+        qTxt(hasRatio ? '連買加碼' : '連買', null, hasRatio ? G.top + 4 : null, 'right', hasRatio ? 'top' : 'bottom'),
+        ...(hasRatio ? [qTxt('連賣減碼', G.left + 66, null, 'left', 'bottom'), qTxt('連買減碼', null, null, 'right', 'bottom')] : []),
       ].map((g, i) => { if (g.left == null) { g.right = G.right + 8; delete g.left; } if (g.top == null) { g.bottom = G.bottom + 6; delete g.top; } return g; }),
       series: [{ type: 'scatter',
         data: rows.map(r => ({ value: [r.side === 'buy' ? r.n : -r.n, yOf(r)], r, code: r.code,
