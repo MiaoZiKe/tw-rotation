@@ -15568,6 +15568,31 @@ def t_inst_filter(pg, base):
         click(pg, f"{RR} .rot-clear", 1000)
         ok("[資金輪動] 清除回到全部", pg.evaluate(RS)["chain"] == "")
 
+    # ---------------------------------------------------------------- ⑥b 總覽的單層下拉（ddSingle：資金熱力圖產業鏈、熱門題材）A → B
+    # 這兩顆不是 filterDropdown（沒有「選取 → 鏈跟過去」那一步，所以沒有同一個根因），但一樣是「先選一個再換另一個」，
+    # Andy 要求共用類似元件的卡也做一次 A→B：真的點 A、再點 B，驗按鈕字與圖真的換過去。
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    for ddid, key, chart_id in (("heatDD", "c", "heat"), ("ovThemeDD", "t", None)):
+        pg.evaluate(f"() => {{ const e = document.getElementById('{ddid}'); e && e.scrollIntoView({{block:'center', behavior:'instant'}}); }}")
+        pg.wait_for_timeout(400)
+        opts = pg.evaluate(f"() => [...document.querySelectorAll('#{ddid} .ddopt')].map(o => o.dataset.{key}).filter(Boolean)") or []
+        if not ok(f"[{ddid}] 單層下拉至少兩個選項（才驗得了 A→B）", len(opts) >= 2, opts):
+            continue
+        SIG = (f"""() => {{ const b = document.querySelector('#{ddid} .ddbtn b'); const el = {f"document.getElementById('{chart_id}')" if chart_id else 'null'};
+            const c = el && echarts.getInstanceByDom(el); const d = c ? c.getOption().series[0].data : null;
+            return {{ btn: b ? b.textContent : null, data: d ? d.map(x => x.gid || x.name).join('|').slice(0, 400) : null }}; }}""")
+        got = []
+        for v in opts[:2]:
+            pg.click(f"#{ddid} .ddbtn"); pg.wait_for_timeout(250)
+            pg.click(f'#{ddid} .ddopt[data-{key}="{v}"]'); pg.wait_for_timeout(1000)
+            got.append(pg.evaluate(SIG))
+        ok(f"★ [{ddid}] 選 A 再選 B：按鈕字真的從 A 換成 B", got[0]["btn"] != got[1]["btn"], got)
+        if chart_id:
+            changed(f"[{ddid}] 選 A 再選 B：圖上的方塊真的換了", got[0]["data"], got[1]["data"])
+        pg.click(f"#{ddid} .ddbtn"); pg.wait_for_timeout(250)
+        pg.click(f"#{ddid} .ddopt:first-child"); pg.wait_for_timeout(800)
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
+
     # ---------------------------------------------------------------- ⑦ 手機 390：換鏈之後不長出橫向捲軸
     pg.set_viewport_size({"width": 390, "height": 900})
     pg.wait_for_timeout(1200)
