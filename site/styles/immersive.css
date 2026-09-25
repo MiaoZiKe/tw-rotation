@@ -1,0 +1,304 @@
+/* ==================================================================================
+   風格實驗室 ⑤ 沉浸式 3D 與互動（immersive）—— 只在 claude/style-lab 分支
+   載入方式：網址 ?style=immersive（index.html 最後面的載入器把這支疊在原樣式上，<html data-style="immersive">）
+   明暗沿用原本的 data-theme：沒有 data-theme 或 data-theme="dark" ＝ 深色；data-theme="light" ＝ 淺色。
+
+   設計語言：「景深三層」
+     ① 最底層：固定不動的背景（漸層＋兩團星雲光）
+     ② 中間層：往遠方延伸的透視網格地板（perspective＋rotateX），捲動時比內容慢（視差）
+     ③ 最上層：卡片像浮在空中的面板 —— 多層陰影（接觸影／主光影／環境光）＋上緣受光的亮邊
+   互動：沒有 JS 可以追滑鼠，所以「隨滑鼠動」用 :hover／:focus-visible 模擬 ——
+     KPI 小卡往你這邊翻 8°、按鈕像鍵帽（按下去真的沉 2px）、Logo 是一塊會轉的立體方塊。
+
+   ★ 規矩（任務書）：
+     · 圖表容器本身**不做任何 transform**。含圖表的卡片（裡面有 canvas／svg／.chart）hover 只換陰影與亮邊，
+       不位移、不傾斜 —— ECharts／Lightweight Charts 的滑鼠座標才不會錯位。
+       會位移或傾斜的只有：KPI 小卡、按鈕、分頁、膠囊、Logo、不含圖表的卡片。
+     · 動效只准用 --dur-fast 120／--dur 180／--dur-slow 240，超過 240ms 一律不准。
+     · prefers-reduced-motion：reduce → 所有傾斜、位移、視差一律關掉，只留顏色與陰影的變化。
+     · 紅漲綠跌、熱力圖 7 格色階一個都不動（--rise／--fall／--hm-* 沿用原值）。
+     · 字級不改任何一階（沿用設計系統 v2 的 22／18／16／14／13／12），所以不會新增溢出。
+   ================================================================================== */
+
+/* ---------------- 色票：深色（專業但不沉重：比原本的 #070b16 提亮一階、偏靛藍）---------------- */
+:root[data-style="immersive"]{
+  --bg:#080d1e; --bg-2:#0c1328;
+  --panel:#111a33; --panel-2:#15203d; --panel-3:#1b2749;
+  --line:#22305a; --line-2:#2e3f72;
+  --ink:#eef2ff; --ink-2:#b4bfdf; --ink-3:#8f9cc2;        /* 對 panel-3 最差：13.11／8.00／5.37 */
+  --cyan:#4fd8ff; --violet:#a193ff; --amber:#ffb454; --lime:#c3ff5b;
+  /* 紅漲綠跌：沿用原值，語意與色相零改變 */
+  --rise:#ff4d6d; --fall:#2ee59d; --flat:#8ea0c4;
+  --ontop:#061018;
+  --chartbg:#0d1530;          /* 比面板暗一階：圖表像嵌進面板裡的螢幕 */
+  --topbar:rgba(8,13,30,.72); --topbar-m:rgba(8,13,30,.95);
+  --grid:rgba(160,190,255,.06);
+  --focus:#4fd8ff;
+  --row-hover:#1a2546;
+  --tip-bg:rgba(17,26,51,.96); --tip-line:#2e3f72;
+  --glow:0 0 0 1px rgba(79,216,255,.35), 0 0 22px -4px rgba(79,216,255,.55);
+  /* 景深三階（多層陰影：上緣亮邊 inset → 接觸影 → 主光影 → 環境光） */
+  /* 厚度：卡片底下多一條 6px 的「側面」（實心、比面板亮一階的靛藍），看起來像一塊有厚度的板子，不是一張紙 */
+  --im-slab:#1f2c5c; --im-slab-2:#172248;
+  --im-e1:inset 0 1px 0 rgba(255,255,255,.06), 0 4px 0 -1px var(--im-slab), 0 6px 14px -4px rgba(0,0,0,.6);
+  --im-e2:inset 0 1px 0 rgba(255,255,255,.07), 0 6px 0 -1px var(--im-slab), 0 7px 0 -1px var(--im-slab-2), 0 18px 32px -12px rgba(0,0,0,.7), 0 40px 70px -34px rgba(60,80,200,.5);
+  --im-e3:inset 0 1px 0 rgba(255,255,255,.10), 0 9px 0 -1px var(--im-slab), 0 10px 0 -1px var(--im-slab-2), 0 28px 46px -14px rgba(0,0,0,.75), 0 56px 96px -36px rgba(79,216,255,.45);
+  --im-rim-a:rgba(160,200,255,.30);   /* 卡片亮邊：左上受光 */
+  --im-rim-b:rgba(46,63,114,.55);     /* 卡片亮邊：右下背光 */
+  --im-rim-hover:rgba(79,216,255,.55);
+  --im-spec:rgba(130,170,255,.10);    /* 卡片左上角的鏡面反光（光從左上打下來） */
+  --im-grid:rgba(79,216,255,.20);     /* 地板網格線 */
+  --im-orb-1:rgba(109,123,255,.22);   /* 星雲：靛紫 */
+  --im-orb-2:rgba(46,229,210,.12);    /* 星雲：青綠（比 --fall 偏藍、而且只當背景光，不會被讀成「跌」） */
+  --im-horizon:rgba(79,216,255,.18);
+  --im-key-1:#6d7bff; --im-key-2:#3ec8ff;   /* 主按鈕／選中分頁的漸層 */
+  --im-key-ink:#061018;                     /* 疊在漸層上的字：白字對 #3ec8ff 只有 2.0，所以用深字（對 #6d7bff 5.33、對 #3ec8ff 10.35） */
+  --im-cap:#0a1022;                         /* 鍵帽底邊（按鈕下面那 2px 厚度） */
+  --im-body:linear-gradient(180deg,#0b1230 0%,#080d1e 38%,#060a17 100%);
+}
+
+/* ---------------- 色票：淺色（親近、舒服、好閱讀：柔和長春花白底、白卡片浮起來）---------------- */
+:root[data-style="immersive"][data-theme="light"]{
+  --bg:#eef1f9; --bg-2:#e8ecf6;
+  --panel:#ffffff; --panel-2:#f8f9fd; --panel-3:#eef1fa;
+  --line:#e1e5f1; --line-2:#cbd2e6;
+  --ink:#151a30; --ink-2:#3a4263; --ink-3:#566084;        /* 對 bg 最差：15.21／8.69／5.46 */
+  --cyan:#2f55d4; --violet:#6a4fd8; --amber:#8f5600; --lime:#3f7512;   /* 主色改靛藍：對白 6.23、對 bg 5.51 */
+  --rise:#c81234; --fall:#07794f; --flat:#5f6c85;         /* 沿用原本淺色主題的值 */
+  --ontop:#ffffff;
+  --chartbg:#ffffff;
+  --topbar:rgba(255,255,255,.74); --topbar-m:rgba(255,255,255,.96);
+  --grid:rgba(40,55,120,.07);
+  --focus:#2f55d4;
+  --row-hover:#f0f3fc;
+  --tip-bg:rgba(255,255,255,.97); --tip-line:transparent;
+  --glow:0 0 0 1px rgba(47,85,212,.22), 0 6px 18px -8px rgba(47,85,212,.45);
+  --im-slab:#d9dff1; --im-slab-2:#c9d1ea;
+  --im-e1:inset 0 1px 0 #fff, 0 4px 0 -1px var(--im-slab), 0 8px 16px -8px rgba(30,40,90,.22);
+  --im-e2:inset 0 1px 0 #fff, 0 6px 0 -1px var(--im-slab), 0 7px 0 -1px var(--im-slab-2), 0 16px 30px -14px rgba(30,40,90,.22), 0 36px 64px -32px rgba(60,80,200,.30);
+  --im-e3:inset 0 1px 0 #fff, 0 9px 0 -1px var(--im-slab), 0 10px 0 -1px var(--im-slab-2), 0 24px 40px -14px rgba(30,40,90,.26), 0 50px 86px -34px rgba(47,85,212,.36);
+  --im-rim-a:rgba(255,255,255,1);
+  --im-rim-b:rgba(203,210,230,.9);
+  --im-rim-hover:rgba(47,85,212,.45);
+  --im-spec:rgba(120,140,255,.07);
+  --im-grid:rgba(47,85,212,.18);
+  --im-orb-1:rgba(160,150,255,.28);   /* 淡紫 */
+  --im-orb-2:rgba(120,200,255,.26);   /* 天空藍 */
+  --im-horizon:rgba(47,85,212,.10);
+  --im-key-1:#4a66e8; --im-key-2:#2f55d4;
+  --im-key-ink:#ffffff;               /* 白字對 #4a66e8 4.82、對 #2f55d4 6.23 */
+  --im-cap:#1f3a9e;
+  --im-body:linear-gradient(180deg,#f4f6fd 0%,#eef1f9 45%,#e6eaf6 100%);
+}
+
+/* ---------------- ① ② 背景三層 ---------------- */
+:root[data-style="immersive"] body{
+  background:
+    radial-gradient(900px 520px at 12% -8%, var(--im-orb-1), transparent 62%),
+    radial-gradient(760px 460px at 96% 4%, var(--im-orb-2), transparent 60%),
+    var(--im-body);
+  background-attachment:fixed;   /* 內容捲動、背景不動 ＝ 最便宜的視差 */
+  background-color:var(--bg);
+}
+/* 透視網格地板：固定在畫面下半部，往遠方收成地平線 */
+:root[data-style="immersive"] body::before{
+  content:"";position:fixed;left:-25vw;right:-25vw;bottom:-6vh;height:62vh;z-index:-1;pointer-events:none;
+  background:
+    linear-gradient(var(--im-grid) 1px, transparent 1px) 0 0/56px 56px,
+    linear-gradient(90deg, var(--im-grid) 1px, transparent 1px) 0 0/56px 56px;
+  transform:perspective(520px) rotateX(64deg);transform-origin:50% 100%;
+  -webkit-mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.6) 45%,transparent 92%);
+          mask-image:linear-gradient(to top,#000 0%,rgba(0,0,0,.6) 45%,transparent 92%);
+}
+/* 天花板網格：跟地板對稱，上下兩片往遠方收 —— 站在一個「房間」裡看盤，而不是看一張平面 */
+:root[data-style="immersive"]::before{
+  content:"";position:fixed;left:-25vw;right:-25vw;top:-4vh;height:34vh;z-index:-1;pointer-events:none;
+  background:
+    linear-gradient(var(--im-grid) 1px, transparent 1px) 0 0/56px 56px,
+    linear-gradient(90deg, var(--im-grid) 1px, transparent 1px) 0 0/56px 56px;
+  transform:perspective(520px) rotateX(-64deg);transform-origin:50% 0;
+  -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 85%);
+          mask-image:linear-gradient(to bottom,rgba(0,0,0,.7) 0%,transparent 85%);
+}
+/* 地平線的一道光（固定），讓「遠方」有個落點 */
+:root[data-style="immersive"] body::after{
+  content:"";position:fixed;left:0;right:0;bottom:44vh;height:1px;z-index:-1;pointer-events:none;
+  background:linear-gradient(90deg,transparent,var(--im-horizon) 30%,var(--im-horizon) 70%,transparent);
+  box-shadow:0 0 40px 10px var(--im-horizon);
+}
+/* 捲動視差：網格往上漂得比內容慢（scroll-driven animation，不吃時間、不耗 JS） */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline:scroll()){
+    :root[data-style="immersive"] body::before{
+      animation:im-floor linear both;animation-timeline:scroll(root block);
+    }
+    :root[data-style="immersive"] body::after{
+      animation:im-horizon linear both;animation-timeline:scroll(root block);
+    }
+    :root[data-style="immersive"]::before{
+      animation:im-ceil linear both;animation-timeline:scroll(root block);
+    }
+  }
+}
+@keyframes im-floor{ from{background-position:0 0,0 0} to{background-position:0 -560px,0 -560px} }
+@keyframes im-ceil{ from{background-position:0 0,0 0} to{background-position:0 320px,0 320px} }
+@keyframes im-horizon{ from{opacity:1} to{opacity:.35} }
+
+/* ---------------- 頂部列：玻璃面板＋往下投影，像浮在內容上的一層 ---------------- */
+:root[data-style="immersive"] .topbar{
+  border-bottom-color:transparent;
+  box-shadow:0 1px 0 var(--line), 0 10px 30px -18px rgba(0,0,0,.55);
+}
+:root[data-style="immersive"][data-theme="light"] .topbar{box-shadow:0 1px 0 var(--line), 0 10px 30px -20px rgba(30,40,90,.25)}
+
+/* Logo：一塊立體方塊（側面用 4 層實心陰影疊出厚度），滑過去轉一個角度 */
+:root[data-style="immersive"] .brand{perspective:260px}
+:root[data-style="immersive"] .brand .logo{
+  background:linear-gradient(135deg,var(--im-key-1),var(--im-key-2));color:var(--im-key-ink);
+  box-shadow:1px 1px 0 var(--im-cap),2px 2px 0 var(--im-cap),3px 3px 0 var(--im-cap),4px 4px 8px rgba(0,0,0,.35);
+  transition:transform var(--dur-slow) var(--ease),box-shadow var(--dur-slow) var(--ease);
+  transform-style:preserve-3d;
+}
+:root[data-style="immersive"] .brand:hover .logo,
+:root[data-style="immersive"] .brand:focus-visible .logo{
+  transform:rotateX(18deg) rotateY(-24deg) translateZ(4px);
+  box-shadow:1px 1px 0 var(--im-cap),2px 2px 0 var(--im-cap),3px 3px 0 var(--im-cap),4px 4px 0 var(--im-cap),8px 10px 16px rgba(0,0,0,.35);
+}
+
+/* 分頁：選中那顆是凸起的鍵帽（漸層＋上緣亮邊＋2px 厚度） */
+:root[data-style="immersive"] .tab{transition:color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease),transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease)}
+:root[data-style="immersive"] .tab.on{
+  background:linear-gradient(180deg,var(--im-key-1),var(--im-key-2));color:var(--im-key-ink);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 0 var(--im-cap),0 8px 18px -6px rgba(79,120,255,.55);
+}
+@media (min-width:821px){
+  :root[data-style="immersive"] .tab:not(.on):hover{transform:translateY(-1px);box-shadow:0 2px 0 var(--line-2)}
+}
+
+/* ---------------- ③ 卡片：浮空面板 ---------------- */
+/* 亮邊：用「padding-box 底色 ＋ border-box 漸層」畫出左上受光、右下背光的 1px 邊 */
+:root[data-style="immersive"] .card{
+  border:1px solid transparent;
+  background:
+    radial-gradient(90% 70% at 0% 0%,var(--im-spec),transparent 60%) padding-box,
+    linear-gradient(180deg,var(--panel),var(--panel-2)) padding-box,
+    linear-gradient(150deg,var(--im-rim-a),var(--im-rim-b) 38%,var(--im-rim-b) 70%,rgba(0,0,0,.25)) border-box;
+  box-shadow:var(--im-e2);
+  transition:box-shadow var(--dur-slow) var(--ease),transform var(--dur-slow) var(--ease),background var(--dur) var(--ease);
+}
+:root[data-style="immersive"][data-theme="light"] .card{
+  background:
+    radial-gradient(90% 70% at 0% 0%,var(--im-spec),transparent 60%) padding-box,
+    linear-gradient(180deg,var(--panel),var(--panel-2)) padding-box,
+    linear-gradient(150deg,var(--im-rim-a),var(--im-rim-b) 45%,var(--im-rim-b)) border-box;
+}
+/* 桌機 v2 把卡片改成平塗（.card{background:var(--panel)}），這裡要一樣寫在 @media 裡才蓋得過同名規則 */
+@media (min-width:821px){
+  :root[data-style="immersive"] .card{
+    background:
+      radial-gradient(90% 70% at 0% 0%,var(--im-spec),transparent 60%) padding-box,
+    linear-gradient(180deg,var(--panel),var(--panel-2)) padding-box,
+      linear-gradient(150deg,var(--im-rim-a),var(--im-rim-b) 38%,var(--im-rim-b) 70%,rgba(0,0,0,.25)) border-box;
+    box-shadow:var(--im-e2);
+  }
+  :root[data-style="immersive"][data-theme="light"] .card{
+    background:
+      radial-gradient(90% 70% at 0% 0%,var(--im-spec),transparent 60%) padding-box,
+    linear-gradient(180deg,var(--panel),var(--panel-2)) padding-box,
+      linear-gradient(150deg,var(--im-rim-a),var(--im-rim-b) 45%,var(--im-rim-b)) border-box;
+  }
+  /* 所有卡片 hover：陰影往下拉長、亮邊換成主色 —— 不位移，含圖表的卡片只有這一段 */
+  :root[data-style="immersive"] .card:hover{
+    box-shadow:var(--im-e3);
+    background:
+      radial-gradient(90% 70% at 0% 0%,var(--im-spec),transparent 60%) padding-box,
+    linear-gradient(180deg,var(--panel),var(--panel-2)) padding-box,
+      linear-gradient(150deg,var(--im-rim-hover),var(--im-rim-b) 40%,var(--im-rim-b) 70%,var(--im-rim-hover)) border-box;
+  }
+  /* 不含圖表的卡片才准往上浮 4px（沒有 canvas／svg／.chart，滑鼠座標不受影響） */
+  @media (prefers-reduced-motion:no-preference){
+    :root[data-style="immersive"] .card:not(:has(canvas,svg,.chart,iframe)):hover{transform:translateY(-4px);z-index:3}
+  }
+}
+
+/* KPI 橫條：從一條拆成四塊浮起來的小磚；滑過去往你這邊翻 8°（小磚裡沒有圖表） */
+@media (min-width:821px){
+  :root[data-style="immersive"] #hero.ovstrip{
+    gap:12px;background:none;border:0;overflow:visible;max-height:none;perspective:700px;
+  }
+  :root[data-style="immersive"] #hero.ovstrip .kpi{
+    border:1px solid transparent;border-radius:16px;
+    background:
+      linear-gradient(180deg,var(--panel-2),var(--panel)) padding-box,
+      linear-gradient(150deg,var(--im-rim-a),var(--im-rim-b) 45%,var(--im-rim-b)) border-box;
+    box-shadow:var(--im-e1);
+    transform-origin:50% 100%;
+    transition:transform var(--dur-slow) var(--ease),box-shadow var(--dur-slow) var(--ease);
+  }
+  :root[data-style="immersive"] #hero.ovstrip .kpi+.kpi{border-left:1px solid transparent}
+  :root[data-style="immersive"] #hero.ovstrip .kpi.clickable:hover{
+    background:
+      linear-gradient(180deg,color-mix(in srgb,var(--cyan) 9%,var(--panel-2)),var(--panel)) padding-box,
+      linear-gradient(150deg,var(--im-rim-hover),var(--im-rim-b) 45%,var(--im-rim-b)) border-box;
+  }
+  :root[data-style="immersive"] #hero.ovstrip .kpi:hover{box-shadow:var(--im-e3)}
+  @media (prefers-reduced-motion:no-preference){
+    :root[data-style="immersive"] #hero.ovstrip .kpi:hover{transform:rotateX(8deg) translateY(-3px)}
+  }
+}
+
+/* ---------------- 按鈕、膠囊：鍵帽 ---------------- */
+:root[data-style="immersive"] .btn,
+:root[data-style="immersive"] .howbtn,
+:root[data-style="immersive"] .evbtn,
+:root[data-style="immersive"] .chip{
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 2px 0 var(--line-2);
+  transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease),color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease);
+}
+:root[data-style="immersive"][data-theme="light"] .btn,
+:root[data-style="immersive"][data-theme="light"] .howbtn,
+:root[data-style="immersive"][data-theme="light"] .evbtn,
+:root[data-style="immersive"][data-theme="light"] .chip{
+  box-shadow:inset 0 1px 0 #fff,0 2px 0 var(--line-2),0 4px 10px -6px rgba(30,40,90,.25);
+}
+:root[data-style="immersive"] .btn.primary,
+:root[data-style="immersive"] .howbtn.on{
+  background:linear-gradient(180deg,var(--im-key-1),var(--im-key-2));color:var(--im-key-ink);border-color:transparent;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 2px 0 var(--im-cap),0 8px 16px -8px rgba(79,120,255,.6);
+}
+@media (prefers-reduced-motion:no-preference){
+  :root[data-style="immersive"] .btn:hover,
+  :root[data-style="immersive"] .howbtn:hover,
+  :root[data-style="immersive"] .evbtn:hover,
+  :root[data-style="immersive"] .chip:hover{transform:translateY(-1px)}
+  /* 按下去：沉 2px、厚度消失 —— 「按到了」看得見 */
+  :root[data-style="immersive"] .btn:active,
+  :root[data-style="immersive"] .howbtn:active,
+  :root[data-style="immersive"] .evbtn:active,
+  :root[data-style="immersive"] .chip:active,
+  :root[data-style="immersive"] .tab:active{transform:translateY(2px);box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 0 var(--line-2)}
+}
+
+/* 搜尋框：凹進去的井（內陰影），跟凸起的按鈕形成一進一出 */
+:root[data-style="immersive"] .search input{box-shadow:inset 0 2px 4px rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.02)}
+:root[data-style="immersive"][data-theme="light"] .search input{box-shadow:inset 0 2px 4px rgba(30,40,90,.10)}
+
+/* 焦點框：外面再多一圈柔光，鍵盤使用者一眼看得到 */
+:root[data-style="immersive"] :focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+/* 表格表頭：稍微浮起，捲動時像一片壓在資料上的玻璃 */
+:root[data-style="immersive"] th{box-shadow:0 1px 0 var(--line-2),0 6px 10px -8px rgba(0,0,0,.45)}
+:root[data-style="immersive"][data-theme="light"] th{box-shadow:0 1px 0 var(--line-2),0 6px 10px -8px rgba(30,40,90,.18)}
+
+/* ---------------- 減少動態：全部關掉位移／傾斜／視差，只留顏色與陰影 ---------------- */
+@media (prefers-reduced-motion:reduce){
+  :root[data-style="immersive"] body{background-attachment:scroll}
+  :root[data-style="immersive"] body::before,
+  :root[data-style="immersive"] body::after,
+  :root[data-style="immersive"]::before{animation:none}
+  :root[data-style="immersive"] .brand:hover .logo{transform:none}
+  :root[data-style="immersive"] .card,
+  :root[data-style="immersive"] #hero.ovstrip .kpi,
+  :root[data-style="immersive"] .btn,:root[data-style="immersive"] .chip,
+  :root[data-style="immersive"] .tab,:root[data-style="immersive"] .howbtn,:root[data-style="immersive"] .evbtn{transition:none}
+}
