@@ -29539,7 +29539,7 @@ def t_flowtopo(pg, base):
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
 
 
-def _topo_contrast(t, tag, motion=True):
+def _topo_contrast(t, tag, motion=True, fx=False):
     """粗細、快慢、明暗三個維度的對比（Andy 2026-09-25：「粗細、快慢、明暗變化加強點，看不出差異」）。
     量的是探針回報的每條活著的線：線寬 w、粒子速度 v（px/秒）、不透明度係數 al、實際發車率 er。
     改前實測（1440 深色）：線寬 1.43～2.87（2 倍）、速度 141～177（1.3 倍），沒有明暗係數。"""
@@ -29547,8 +29547,14 @@ def _topo_contrast(t, tag, motion=True):
     if not ok(f"{tag} 量得到活著的連線", len(lk) >= 5, len(lk)):
         return
     ws, als = [x["w"] for x in lk], [x["al"] for x in lk]
-    ok(f"{tag} 粗細：最粗線寬 ≥ 最細 ×6，且落在 1～14px", max(ws) >= min(ws) * 6 and max(ws) <= 14 and min(ws) >= 1,
-       {"min": min(ws), "max": max(ws)})
+    if fx:
+        # ★ 2026-09-26（第二版）經典光纖 改前→改後：weight 1～13px、×6 → 黃金標準的 0.8～3.8、×4.5 以上
+        #   （最粗 13px 的外暈 ×2.4＝31px 就是 Andy 說的「霧」；參考稿主幹 3.8、毛細 0.8）
+        ok(f"{tag} 粗細：最粗 weight ≥ 最細 ×4.5，且落在 0.8～3.8（黃金標準尺度）",
+           max(ws) >= min(ws) * 4.5 and max(ws) <= 3.81 and min(ws) >= 0.79, {"min": min(ws), "max": max(ws)})
+    else:
+        ok(f"{tag} 粗細：最粗線寬 ≥ 最細 ×6，且落在 1～14px", max(ws) >= min(ws) * 6 and max(ws) <= 14 and min(ws) >= 1,
+           {"min": min(ws), "max": max(ws)})
     ok(f"{tag} 明暗：最小線不透明度 ≤ 最大 ×0.45", min(als) <= max(als) * 0.45, {"min": min(als), "max": max(als)})
     if motion:
         vs = [x["v"] for x in lk if x["v"] > 0]
@@ -29736,6 +29742,12 @@ def _fx_crisp(t, tag, dark=True):
        bool(lk) and all(abs(x["outW"] - x["w"] * 2.4) < 0.02 and 0 < x["outA"] <= (0.04 if x["lv"] == 2 else 0.09) + 1e-9 for x in lk),
        [(x["key"], x["w"], x["outW"], x["outA"]) for x in lk
         if not (abs(x["outW"] - x["w"] * 2.4) < 0.02 and 0 < x["outA"] <= (0.04 if x["lv"] == 2 else 0.09) + 1e-9)][:3])
+    # 參考稿每幀蓋 rgba(5,10,20,.38) 再重畫 → 看起來的透明度是穩態 a／(1−(1−a)(1−.38))；底圖直接畫這個值
+    eq = lambda a: a / (1 - (1 - a) * (1 - 0.38))
+    ok(f"{tag} ① 實際畫出的透明度＝參考稿殘影穩態（內芯 .65→{eq(.65):.3f}、毛細 .2→{eq(.2):.3f}、外暈同公式）",
+       bool(lk) and all(abs(x["inAEff"] - eq(x["inA"])) < 2e-3 and abs(x["outAEff"] - eq(x["outA"])) < 2e-3 for x in lk),
+       [(x["key"], x["inA"], x["inAEff"], x["outA"], x["outAEff"]) for x in lk
+        if not (abs(x["inAEff"] - eq(x["inA"])) < 2e-3 and abs(x["outAEff"] - eq(x["outA"])) < 2e-3)][:3])
     L0, L1, L2, L3 = (_fx_lv(t, i) for i in range(4))
     big = L0 + L1 + L2
     ok(f"{tag} ② 根／產業鏈／族群節點半徑 4.5～7.5（改前產業鏈 6～12、族群 4～15、根 13）",
@@ -29882,10 +29894,11 @@ def t_flowfx(pg, b, base):
     # ---- 特效半：照拓撲版
     lk = [x for x in t0["links"] if not x["dead"]]
     ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
-    ok("線寬最粗 ≥ 最細 ×6（依金額平方根，1～13px）", max(ws) >= min(ws) * 6 and 1 <= min(ws) and max(ws) <= 13.01,
+    # 2026-09-26 第二版 改前→改後：1～13px、×6 → 黃金標準 0.8～3.8、×4.5（見 _topo_contrast 的 fx 分支）
+    ok("線 weight 最粗 ≥ 最細 ×4.5（依金額平方根，0.8～3.8）", max(ws) >= min(ws) * 4.5 and 0.79 <= min(ws) and max(ws) <= 3.81,
        {"min": min(ws), "max": max(ws)})
     ok("粒子速度最大 ≥ 最小 ×4", bool(vs) and max(vs) >= min(vs) * 4, vs and {"min": min(vs), "max": max(vs)})
-    _topo_contrast(t0, "[經典光纖 1440 深色]")
+    _topo_contrast(t0, "[經典光纖 1440 深色]", fx=True)
     ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
        sum(x["n"] for x in t0["links"] if x["lv"] == 2))
     # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
@@ -30010,7 +30023,7 @@ def t_flowfx(pg, b, base):
     ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == canvas_hash(pg, "#sankey"))
     ok("動態關掉：沒有震波、沒有節點在激發（靜止狀態不閃）", tm["ripples"] == 0 and all(n["hf"] == 0 for n in tm["nodes"]),
        {"震波": tm["ripples"], "激發中": [n["name"] for n in tm["nodes"] if n["hf"]][:3]})
-    _topo_contrast(tm, "[經典光纖・動態關]", motion=False)
+    _topo_contrast(tm, "[經典光纖・動態關]", motion=False, fx=True)
     pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()")
     ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
     # ---- 看不見就停：捲出畫面
@@ -30068,7 +30081,7 @@ def t_flowfx(pg, b, base):
     ok("[淺色] 經典光纖畫得出來、是淺色配色、發光 ≤ 6", bool(tl) and tl["layout"] == "classic" and tl["dark"] is False
        and tl["maxBlur"] <= 6, tl and (tl["layout"], tl["dark"]))
     if tl:
-        _topo_contrast(tl, "[經典光纖 1440 淺色]")
+        _topo_contrast(tl, "[經典光纖 1440 淺色]", fx=True)
         ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
         _fx_bezier(tl, "[淺色]")
         _fx_crisp(tl, "[淺色]", dark=False)

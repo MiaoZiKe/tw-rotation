@@ -54,6 +54,7 @@
    ★★ 2026-09-26（第二版）Andy：「參考圖顏色更鮮豔」，指出第一版「濁、混亂」四點，附黃金標準
      docs/prototypes/flow_perfect_topology.html（＋鮮豔度參考 ref_vivid_0926.png）。上面第一版的數字以這一段為準：
      1. 去霧：外暈 weight×2.4、alpha 0.09；內芯**固定 1.1px、alpha 0.65**；毛細線 0.7px／0.2、外暈 0.04（drawBaseEl）。
+        weight 改成參考稿的 0.8～3.8；透明度照參考稿殘影的穩態畫（見 CFG.EL_TRAIL），和鮮豔度參考圖並排量過。
         粒子白核心、光暈 ≤ 5px、半徑 2.2（主幹）／1.7（族群）／1.3（毛細）。
      2. 節點：4.5～7.5 的實心圓點＋1px 白描邊＋6px 微光，拿掉大發光圈與常駐淡底；碰撞光環 r＋5×hitFlash、alpha ×0.45；
         漣漪 r→r＋16、每幀 ＋0.7、alpha 0.8 每幀 −0.035、線寬 1.2。標籤改成節點右側 6px、高 17px 的深色圓角膠囊
@@ -103,7 +104,11 @@
     /* ★ 2026-09-26（第二版）黃金標準 docs/prototypes/flow_perfect_topology.html 的版面數字 */
     EL_SLOT_MAX: 42, EL_SLOT_MIN: 36, EL_PAD: 22,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
     EL_LEAF_SP: 13, EL_LEAF_R: 1.8,                 // 代表股間距（12px 字＋1）、小點半徑 1.8
-    EL_BADGE_H: 17,                                 // 標籤膠囊高 17、圓角 3    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
+    EL_BADGE_H: 17,                                 // 標籤膠囊高 17、圓角 3
+    /* 黃金標準每幀先蓋一層 rgba(5,10,20,.38) 再重畫線 → 線條的「看起來的」透明度會累積到穩態
+       a／(1−(1−a)(1−0.38))：內芯 0.65 → 0.83、外暈 0.09 → 0.21、毛細 0.2 → 0.40、毛細外暈 0.04 → 0.10。
+       Andy 附的鮮豔度參考圖就是這個穩態。這裡不做整張殘影（軟體繪圖會掉一半幀率），改成底圖直接畫穩態值。*/
+    EL_TRAIL: 0.38,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
     /* ★ 2026-09-26 經典光纖改貝茲規格＋碰撞激發（數字取自 Andy 給的規格／原型，「每幀」換算成「每 1/60 秒」）*/
     /* 三次貝茲控制點（寫成 x0＋dx×k）：CP1＝(x0＋dx×0.45, y0)、CP2＝(x0＋dx×0.55, y1)＝(x1−dx×0.45, y1)。
        2026-09-26 第二版改前 0.55／0.45（CP 交叉、中段轉折急）→ 改後 0.45／0.55（對稱張力，Andy 黃金標準第 3 點）*/
@@ -427,6 +432,10 @@
       /* ★ 2026-09-26 經典光纖（黃金標準）：粒子半徑照層級固定 —— 主幹 2.2／族群 1.7／毛細（代表股）1.3。
          「錢多 → 大」這個維度改由速度、密度、外光暈寬度與亮度承擔（那三個照舊依金額拉開）。*/
       if (classic) e.pr = e.lv === 0 ? 2.2 : e.lv === 1 ? 1.7 : 1.3;
+      /* ★ 2026-09-26（第二版）weight 改用黃金標準的尺度：參考稿主幹 3.6～3.8、族群 1.3、毛細 0.8 →
+         這裡依金額平方根 0.8～3.8（最粗／最細 4.75 倍）。改前 1～13px：外暈 ×2.4 之後最粗那條是 31px 寬的一片霧，
+         和參考圖（主幹外暈約 9px）差最多的就是這裡。粗細對比仍在（外暈寬 1.9～9.1px、粒子密度與速度照舊依金額）。*/
+      if (classic) e.w = e.dead ? 0.8 : 0.8 + 3.0 * q;
     });
     // 回收已經不在的連線上的粒子
     for (let i = S.parts.length - 1; i >= 0; i--) {
@@ -711,6 +720,7 @@
      「錢多 → 粗」這個維度留在外層光暈的寬度（weight 仍是依金額平方根 1～13px）；
      「錢多 → 亮」留在外層光暈的透明度（× 0.55＋0.45×e.al，最大那條＝0.09）與粒子亮度。
      每條線實際用的寬度與透明度記在 e.inW／e.inA／e.outW／e.outA，探針直接讀（驗收量的是畫出去的值）。*/
+  const trailEq = (a) => a / (1 - (1 - a) * (1 - CFG.EL_TRAIL));   // 規格的每幀透明度 → 殘影穩態下看起來的透明度
   function drawBaseEl(S) {
     const g = S.gB, P = S.pal;
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
@@ -727,14 +737,16 @@
     pass((e, k, col, cap) => {
       e.outW = e.dead ? 0 : e.w * 2.4;
       e.outA = e.dead ? 0 : (cap ? 0.04 : 0.09) * (0.55 + 0.45 * e.al);
+      e.outAEff = e.dead ? 0 : trailEq(e.outA);
       if (e.dead) return;
-      g.strokeStyle = rgba(col, e.outA * k); g.lineWidth = e.outW; g.stroke();
+      g.strokeStyle = rgba(col, e.outAEff * k); g.lineWidth = e.outW; g.stroke();
     });
     pass((e, k, col, cap) => {
       e.inW = e.dead ? 0.8 : cap ? 0.7 : 1.1;
       e.inA = e.dead ? 0.35 : cap ? 0.2 : 0.65;
+      e.inAEff = e.dead ? e.inA : trailEq(e.inA);
       g.setLineDash(e.dashed ? [4, 3] : []);
-      g.strokeStyle = rgba(col, e.inA * k);
+      g.strokeStyle = rgba(col, e.inAEff * k);
       g.lineWidth = e.inW; g.stroke();
     });
     g.setLineDash([]);
@@ -1340,7 +1352,8 @@
         // ★ 2026-09-26：這條線的三次貝茲 [x0,y0, cp1x,cp1y, cp2x,cp2y, x1,y1]（驗控制點比例 0.55／0.45）
         cp: e.p ? e.p.map(v => +v.toFixed(2)) : null,
         inW: e.inW == null ? null : e.inW, inA: e.inA == null ? null : e.inA,
-        outW: e.outW == null ? null : +e.outW.toFixed(2), outA: e.outA == null ? null : +e.outA.toFixed(4) })),
+        outW: e.outW == null ? null : +e.outW.toFixed(2), outA: e.outA == null ? null : +e.outA.toFixed(4),
+        inAEff: e.inAEff == null ? null : +e.inAEff.toFixed(4), outAEff: e.outAEff == null ? null : +e.outAEff.toFixed(4) })),
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
