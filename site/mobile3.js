@@ -602,7 +602,10 @@
     const fmtN = (v) => Math.round(Math.abs(v)).toLocaleString('en-US');
     const draw = () => {
       $$('#mInstSw button', box).forEach(b => b.classList.toggle('on', b.dataset.k === k));
-      const gs = src.groups.map(g => { const fo = g.foreign[last] || 0, tr = g.trust[last] || 0, de = g.dealer[last] || 0;
+      /* ★ 2026-09-26（Andy：「ETF 族群拿掉」）：同一張「族群 × 法人」卡的手機版也不列 ETF ——
+         它的法人買賣超幾乎全是自營商避險部位，單日就能幾十萬張，這裡的長條是「除以最長那條」，
+         ETF 一在，其他族群全縮成細線（和桌機那張同一個理由，見 app.js renderInstPeriod）。*/
+      const gs = src.groups.filter(g => !/ETF/i.test(g.group_id || '') && !/ETF/.test(g.group_name || '')).map(g => { const fo = g.foreign[last] || 0, tr = g.trust[last] || 0, de = g.dealer[last] || 0;
         return { n: g.group_name, v: (k === 'total' ? fo + tr + de : k === 'foreign' ? fo : k === 'trust' ? tr : de) / 1000 }; })
         .filter(g => g.v).sort((a, b) => b.v - a.v);
       const buy = gs.filter(g => g.v > 0).slice(0, 8), sell = gs.filter(g => g.v < 0).slice(-8).reverse();

@@ -6369,20 +6369,62 @@
     { k: '漲停', t: () => true, m: 10 },
   ];
   const udBin = (v) => { v = Math.round(+v * 100) / 100; for (let i = 0; i < UD_BINS.length; i++) if (UD_BINS[i].t(v)) return i; return UD_BINS.length - 1; };
-  let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔）
+  /* ★ 2026-09-26（Andy：「需要分 上市 上櫃 全部」）：標題列的分段鈕 `#udMkt` 切市場別。
+     · 級距以管線為準：stocks.json 每列的 `ud`（`flow.updown_bin`，pytest 釘住每一條邊界）；
+       舊 payload 沒有 `ud` 才退回上面這支 `udBin`（兩支邊界相同，只是換版當下不要開天窗）。
+     · 市場別＝stocks.json 的 `market`（company_info；2026-09-24 與 price_daily 當天回報該檔的交易所
+       2333 檔逐檔比對 0 不符）。不是 TWSE／TPEX 的歸「其他」：只算在「全部」，會寫在「?」裡，
+       不會默默讓「上市＋上櫃」少於「全部」。
+     · 切換後長條、數字標籤、「共 N 檔」、提示框佔比（分母＝該市場家數）、已打開的那一級清單全部跟著換。
+     · 選擇記在 localStorage `tw.udMkt`（私密視窗讀寫失敗就用預設「全部」）。
+     · 這張圖不吃盤中即時（live.js 沒有更新 #breadth），三組都是盤後 stocks.json 的同一份。*/
+  const UD_MKT_NAME = { all: '全部', twse: '上市', tpex: '上櫃' };
+  let udMkt = 'all';
+  try { const v = localStorage.getItem('tw.udMkt'); if (v && UD_MKT_NAME[v]) udMkt = v; } catch (e) { /* 私密視窗：用預設（全部） */ }
+  const udMktOf = (r) => { const s = String(r.market || '').toUpperCase(); return s === 'TWSE' ? 'twse' : s === 'TPEX' ? 'tpex' : 'other'; };
+  const udBinOf = (r) => (Number.isInteger(r.ud) && r.ud >= 0 && r.ud < UD_BINS.length ? r.ud
+    : ('ud' in r ? null : (r.chg_pct != null && Number.isFinite(+r.chg_pct) ? udBin(r.chg_pct) : null)));
+  let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔、市場別不明幾檔）
+  function udPanelFill(box, i, rows) {
+    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt;
+    const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
+    box.innerHTML = `<div class="hh"><b>${mk}${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
+        <span class="m">${rows.length} 檔（依成交值，最多列 60 檔）</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
+  }
   function renderUpDown(stocks, heat) {
     const el = $('#breadth'); if (!el) return;
-    const pool = (stocks || []).filter(r => r && r.chg_pct != null && Number.isFinite(+r.chg_pct));
+    const seg = $('#udMkt');
+    if (seg && !seg.dataset.wired) {
+      seg.dataset.wired = '1';
+      $$('#udMkt button').forEach(b => b.onclick = () => {
+        if (b.dataset.m === udMkt) return;
+        udMkt = b.dataset.m;
+        try { localStorage.setItem('tw.udMkt', udMkt); } catch (e) { /* 私密視窗：不記，但這次照樣切 */ }
+        renderUpDown(stocks, heat);
+      });
+    }
+    if (seg) $$('#udMkt button').forEach(x => { const on = x.dataset.m === udMkt; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const every = (stocks || []).filter(r => r && udBinOf(r) != null);
+    const pool = udMkt === 'all' ? every : every.filter(r => udMktOf(r) === udMkt);
     const sum = $('#udSum');
-    if (!pool.length) { if (sum) sum.textContent = ''; el.style.height = ''; return empty('breadth', '尚無逐檔漲跌資料'); }
+    const box = $('#udPanel');
+    if (!pool.length) {
+      if (sum) sum.textContent = ''; el.style.height = ''; el.dataset.total = '0';
+      if (box) box.hidden = true;
+      return empty('breadth', every.length ? `${UD_MKT_NAME[udMkt]}沒有逐檔漲跌資料` : '尚無逐檔漲跌資料');
+    }
     const bins = UD_BINS.map(() => []);
-    pool.forEach(r => bins[udBin(r.chg_pct)].push(r));
+    pool.forEach(r => bins[udBinOf(r)].push(r));
     const cnt = bins.map(b => b.length);
     const up = cnt.slice(6).reduce((a, b) => a + b, 0), dn = cnt.slice(0, 5).reduce((a, b) => a + b, 0), fl = cnt[5];
-    udStat = { n: pool.length, up, dn, fl,
+    const nBy = { twse: 0, tpex: 0, other: 0 }; every.forEach(r => { nBy[udMktOf(r)]++; });
+    udStat = { n: pool.length, up, dn, fl, mkt: udMkt, nAll: every.length, ...nBy,
       heatN: heat ? (heat.advancers || 0) + (heat.decliners || 0) + (heat.unchanged || 0) : null };
     if (sum) sum.innerHTML = `共 <b>${pool.length}</b> 檔`;
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
+    el.dataset.mkt = udMkt;
     el.style.height = '300px'; el.style.minHeight = '300px';
     // 顏色：紅漲綠跌，越極端越飽和（讀 CH，切主題會跟著換）；平盤用中性灰
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
@@ -6391,7 +6433,7 @@
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: (ps) => { const i = ps[0].dataIndex;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
-          return `<b>${lab}</b><br>${cnt[i]} 檔（${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
+          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
       grid: { left: 44, right: 12, top: 26, bottom: 28 },
       xAxis: { ...axisStyle, type: 'category', data: UD_BINS.map(b => b.k),
         axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 }, axisTick: { show: false } },
@@ -6401,16 +6443,18 @@
         data: cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } })),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
+    const rowsOf = (i) => bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一級
+    const arm = () => dismissable(box, () => { box.hidden = true; }, { ignore: ['#udMkt'] });
     if (c) c.off('click').on('click', (p) => {
-      const i = p.dataIndex; const box = $('#udPanel'); if (!box || i == null) return;
-      const rows = bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-      box.hidden = false; box.dataset.bin = String(i);
-      box.innerHTML = `<div class="hh"><b>${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
-          <span class="m">${rows.length} 檔（依成交值，最多列 60 檔）</span></div>
-        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-          ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
-      dismissable(box, () => { box.hidden = true; });       // 點外面／Esc 關
+      const i = p.dataIndex; if (!box || i == null) return;
+      udPanelFill(box, i, rowsOf(i)); arm();
     });
+    // 切市場時清單正開著 → 同一級換成新市場的股票（不是關掉，也不是留著舊市場的名單）
+    if (box && !box.hidden && box.dataset.bin != null && box.dataset.mkt !== udMkt) {
+      const i = +box.dataset.bin;
+      if (i >= 0 && i < UD_BINS.length) { udPanelFill(box, i, rowsOf(i)); arm(); }
+    }
   }
 
   /* 投信連續買超：長條圖只講得出「買幾天」，講不出「買多少」。
@@ -6644,9 +6688,14 @@
       '兩頭都高＝強弱分歧，選股重於方向',
       '紅漲綠跌，越外側顏色越深',
       '點直條列出那一級的股票',
+      '右上切全部／上市／上櫃（盤後資料，盤中不跳）',
+      // howHTML 不印第三個參數（說明精簡），所以三組家數的讀數要放在條列裡才看得到；
+      // 市場別不明的（other）只算在「全部」，有的話一定寫出來，不讓兩個按鈕加起來默默少於全部
+      ...(udStat ? [`全部 ${udStat.nAll} 檔＝上市 ${udStat.twse}＋上櫃 ${udStat.tpex}`
+        + (udStat.other ? `＋市場別不明 ${udStat.other}（只算在全部）` : '')] : []),
     ], '漲停＝漲幅 ≥ 9.5%、跌停＝跌幅 ≥ 9.5%（新上市前五天沒有漲跌幅限制，也算在漲停那格）；平＝四捨五入到 0.01% 為 0。'
-      + (udStat ? `這張圖的分母是個股索引裡有漲跌幅的 ${udStat.n} 檔`
-        + (udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
+      + (udStat ? `這張圖目前的分母是${udStat.mkt === 'all' ? '' : UD_MKT_NAME[udStat.mkt]}個股索引裡有漲跌幅的 ${udStat.n} 檔`
+        + (udStat.mkt === 'all' && udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
     trust: howHTML('這張圖回答：法人在誰身上連續下注、力道在加大還是收手。', [
       '右半＝連買、左半＝連賣，越外側越久',
@@ -6674,8 +6723,8 @@
       + '桌機版的粒子＝資金流動（「動態」鈕可關）。'
       + '例：「台積電 49.8%」＝吃掉晶圓代工的一半，不是佔全台股一半；滑鼠提示兩種分母都寫。節點旁 ▲▼＝和前一天比（紅增綠減）。'
       + '大小跟這 60 天最大值比，整排一起變細＝大盤量縮，不是輪動。'
-      + '桌機右上可切三種版面：「經典光纖」（預設：經典版的版面＋光纖粒子，換日依排名滑到新位置）、'
-      + '「拓撲」（族群點開才長出成分股，卡片較矮）、「經典」（原本的樹狀圖，回放時位置固定、只有粗細會變）。'
+      + '桌機版的代表股先收起：滑鼠移到某個族群（圓點、名稱或那一整列）才顯示它的三檔，移開就收；點族群展開全部成分股時會一直顯示。'
+      + '換日時節點依排名滑到新位置。'
       + '半導體的 IC 設計／代工／封測掛在同一個「半導體」節點；法定產業別的收容桶歸在「其他產業別」。'
       + '點產業鏈＝右邊列出它底下的族群（◎＝圖上只看這個族群）；右邊清單點個股＝掛到族群底下（虛線、可多選，和輪動時鐘同一份選擇），→ 進個股頁。'
       + '展開只畫前 20 檔；「〇〇・其他」自動桶不展開。回上一階：麵包屑、「收起 ✕」、ESC 或點空白處。窄畫面先收起代表股那一層。'
@@ -6687,7 +6736,8 @@
       '投信的錢較黏，連續買超參考性較高',
       '右上拉 Bar 選天數與截止日',
       '點任一列看成分股',
-    ], '篩選：先挑產業鏈、再挑一個族群，圖上就只亮它那一列；選「全部族群」或按「清除」還原。'),
+    ], '篩選：先挑產業鏈，圖上就只列那條鏈的族群；再挑一個族群，就只亮它那一列；選「全部族群」或按「清除」還原。'
+      + 'ETF 不列入這張圖：它的法人買賣超幾乎是自營商避險部位，動輒幾百萬張，會把其他族群壓成細線。'),
     conc: howHTML('這張圖回答：現在是少數股票撐盤，還是雨露均霑。', [
       '線＝前幾大族群吃掉的成交值比例',
       '往上＝縮圈，買冷門股容易不會動',
@@ -6927,7 +6977,8 @@
         .filter(g => g.foreign != null || g.trust != null || g.dealer != null);
       /* ★ 2026-09-24 說明精簡：副標只留「哪一段、幾天、單位」，年份省掉（卡片其他地方都寫了資料日期）。*/
       const md = (d) => String(d || '').slice(5);
-      $('#instSub').textContent = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）淨買超（張）`;
+      // data-base：renderInstPeriod 會在後面接「· 產業鏈」，基底記在這裡，重畫時才不會越接越長
+      { const se = $('#instSub'); se.textContent = se.dataset.base = `${md(src.dates[from])}～${md(src.dates[end - 1])}（${k} 日）淨買超（張）`; }
       renderInstPeriod({ label: `最近 ${k} 天`, days: k, groups: gs });
     };
     /* 名次變化（bump）整張拿掉 —— Andy 2026-09-18 圖四：
@@ -7039,10 +7090,9 @@
        而它講的每一件事「怎麼看 ?」那顆鈕裡都有（或已經補進去了）。
        他要拿掉的是「一直佔著版面的那一段」，不是說明本身 ——
        所以整段刪掉、說明留在按鈕後面，需要的人自己展開。*/
-    /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
-       重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
-    const zb = $('#rotZoomBtn');
-    if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, ROT_BOARD_WIN);
+    /* ★ 2026-09-26（Andy：「放大功能取消」）：輪盤欄右上角的「⤢ 放大」（#rotZoomBtn）與它開的放大視窗（openRotZoom）拿掉。
+       改前：這裡把那顆鈕接到 openRotZoom()（openZoom 裡再畫一份輪盤＋拉Bar＋即時鈕）。
+       改後：沒有入口；卡片上的輪盤、篩選、時間軸、即時鈕就是全部。rotZoomBar／rotZoomDraw 永遠是 null（見宣告處）。*/
     /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar」）→ N4（2026-09-19）拉到 30 天
        → **A4（2026-09-20）第 1、3、5、7 條，四件事都在這一支拉Bar 上**：
 
@@ -7324,68 +7374,9 @@
        （產業鏈 seg 的正下方），所以這裡不再插一排 —— 見 wireRotFilter()。*/
   }
 
-  /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
-
-     ★ 2026-09-20（E2，Andy：「放大之後的功能都沒反應」）—— 兩個根因，都已經量過：
-       ① `renderRotClock` 結尾那段 `if (!compact) groupChips(...)` 對放大視窗也成立，
-          於是 `.linkrow.gchips` 被插在 `#zoomBody` 的下一個兄弟，而 `.zb` 是 flex ——
-          實測 `#zoomBody` 704×756、那排晶片 704×748，**放大視窗一半的版面被晶片吃掉**；
-          更糟的是那排晶片綁的是**卡片**的選取，在放大視窗裡按下去對這張圖完全沒有作用。
-       ② 這裡本來維護**第二套**控制項（只有 16 顆的簡化晶片 ＋ 兩支語意不同的拉Bar），
-          兩套行為不一致就是這個 bug 的溫床。
-     改法：放大視窗吃**同一份 ROT 狀態、同一組控制項**（產業鏈 seg／族群晶片列／
-     只看前 10 大／清除篩選／看哪一天／顯示軌跡），關掉時把卡片同步回來。
-     ★ 2026-09-21：族群晶片列搬進 `.rotfilter` 之後，這裡連 `#rotZoomChips` 都不用自己維護了 ——
-       `wireRotFilter()` 會把三排（時鐘卡／排行卡／放大視窗）一起填好。*/
-  function openRotZoom(rrg, back0) {
-    const rows0 = rotRows(rrg, back0);
-    if (!rows0.length) return;
-    /* ★ 2026-09-21：卡片那支如果正在播，開放大之前先停掉。
-       不停的話它會躲在遮罩後面繼續每 420ms 推進 `rotFrame`，
-       而使用者在放大視窗裡按的 ⏸ 停的是另一支 —— 關掉放大就會看到時鐘還在自己跑。
-       （量測：ESC 之後「幾天前」3 秒內從 3 跑到 27。）*/
-    if (rotBackBar) { try { rotBackBar.stop(); } catch (e) { /* 忽略 */ } }
-    let bar = null;
-    openZoom('足跡輪盤', (body, chipBox, close) => {
-      /* 控制項一律用 class 或「Zoom」字樣的 id，**不可以和卡片上的 id 撞名** ——
-         同一個 id 出現兩次時 getElementById 只抓得到第一個，另一邊就按了沒反應。*/
-      const tools = $('#zoomTools');
-      if (tools) tools.innerHTML = '<div class="rotfilter" data-rf="zoom"></div>'
-        + '<div id="rotZoomBack" title="看幾天前到最新；▶ 從那一天一步一步走回最新"></div>'
-        + '<div class="rottools" id="rotZoomTools"></div>';
-      /* ★ 2026-09-25（審查 R2 #35：放大後沒有象限計數徽章、也沒有「即時」鈕 —— 放大反而少東西）：
-         象限卡（quads）跟卡片同一支 rotQuadChips；即時鈕掛在放大視窗的拉Bar 後面，跟卡片那顆同一個狀態（RLV）。*/
-      const draw = () => renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
-        { pick: rotPickSet(), frame: rotFrame, span: Math.max(0, ROT.days - rotFrame), trail: ROT.trail, tmode: 'focus', quads: true });
-      rotZoomDraw = draw;
-      draw();
-      wireRotFilter();                        // 放大視窗那排 .rotfilter 也由同一支填
-      /* 「看哪一天」：和卡片上那支**同一個值、同一個 localStorage key、同一個方向**。
-         值變了只重畫這張放大的圖 —— 播放是每 420ms 一幀，
-         連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
-         關閉時 `rotSyncCard()` 會把卡片一次補上。*/
-      // ★ 2026-09-24：和卡片同一支單一拉Bar（N 天前 ＋ 回放），同一個值、同一個 localStorage key
-      bar = rotZoomBar = dayBar('rotZoomBack', { min: 1, max: 30, value: ROT.days, frame0: rotFrame, key: 'tw.rot.days', step: ROT_ANIM_MS, group: 'rot.back',
-        onDays: (n) => { ROT.days = n; rotFrame = 0; draw(); },
-        // 回放就退出即時（和卡片那支同一條規矩；`false`＝下一行本來就會重畫）
-        onFrame: (f) => { if (f > 0 && RLV.on) rlvOff(false); rotFrame = f; draw(); } });
-      const zb = $('#rotZoomBack');
-      if (zb) {
-        const lb = document.createElement('button');
-        lb.type = 'button'; lb.id = 'rotZoomLiveBtn'; lb.className = 'pb livebtn'; lb.textContent = '即時';
-        lb.title = '切到盤中即時（跟卡片上那顆同一個開關）：每分鐘用當下成交價量續算位置；拖時間軸會自動退出';
-        lb.onclick = () => { rlvToggle(); if (RLV.on && rotZoomBar) { try { rotZoomBar.seek(0); } catch (e) { /* 忽略 */ } } };
-        zb.appendChild(lb);
-        rlvStamp();
-      }
-      wireRotTrailToggle(draw, 'rotZoomTools');
-    }, () => {
-      // 關閉：停掉播放（拉Bar 的 DOM 已經被清掉了，再跑下去只是空轉）、把卡片同步回來
-      if (bar) { try { bar.stop(); } catch (e) { /* 忽略 */ } }
-      bar = null; rotZoomBar = null; rotZoomDraw = null;
-      rotSyncCard();
-    });
-  }
+  /* ★ 2026-09-26：輪動時鐘的放大視窗（openRotZoom，2026-09-18 起）整支移除 —— Andy：「放大功能取消」。
+     它的入口只有資金流向頁輪盤欄右上角那顆 #rotZoomBtn，鈕拿掉之後這支就沒有人叫得到了。
+     共用的 openZoom() 不動（資金熱力圖、題材熱力、法人、河流圖等其他卡的放大還在用）。*/
 
   /* N2（Andy 2026-09-19 圖一：「兩邊族群對不上，有些為何篩選不到」）。
      根因：排行卡下面那排晶片列的是**排行圖上畫出來的 15 檔**（依佔比變化挑的），
@@ -7455,6 +7446,24 @@
      ★ 也因此第二層是單選樣式而不是 checkbox：複選是資金輪動那邊的需求，
        這張圖從第一天起就是「一次只看一個族群」，硬套 checkbox 只會讓人以為可以多選。 */
   const ddChain = {};              // chartId → 第一層選到的產業鏈（''＝全部）
+  /* ★ 2026-09-26（Andy：「當我先點選其中一個族群後，再次點選其他族群無法切換」）。
+     根因：`filterDropdown()` 每次重建都無條件執行「選到的族群不屬於目前第一層 → 第一層跳回它那條鏈」。
+     那一條原本只是給「從圖上點節點」（選取從外面變了）用的，但**使用者自己在第一層換鏈時也會重建一次**，
+     於是：選了「一般電子 · 面板產業」→ 在第一層點「金融」→ ddChain 設成金融 → 重建 →
+     那一行又看見選取是面板（一般電子）→ 把 ddChain 改回一般電子。畫面上就是「點了沒反應」，
+     而且第二層只列得出一般電子的族群，別鏈的族群根本點不到（連帶「族群下拉也不能換到別鏈」）。
+     修法：跳鏈只在**選取真的換了**（和上一次畫這一排時看到的不同）才做 —— 這就是「從外面選」的定義；
+     使用者自己換鏈時選取沒變，第一層就聽使用者的。記「上一次看到的選取」的就是這張表。*/
+  const ddSelSeen = {};            // chartId → 上一次重建時的選取（用來分辨「選取從外面變了」）
+  const ddChainOf = (opt) => (opt && opt.chainOf) || ((g) => (rotGroupMeta[g] || {}).chain);
+  /* 把「選取換了 → 第一層跟過去」這一步抽出來：族群 × 法人要在**畫圖之前**就知道現在是哪一條鏈
+     （它的長條會依鏈篩），不能等 filterDropdown（畫完圖才叫）替它決定。重複呼叫是安全的（第二次選取已經「看過」）。*/
+  function ddSync(chartId, sel, opt) {
+    const c = sel ? ddChainOf(opt)(sel) : '';
+    if (sel && sel !== ddSelSeen[chartId] && c) ddChain[chartId] = c;
+    ddSelSeen[chartId] = sel || null;
+    return ddChain[chartId] || '';
+  }
   /* ★ 2026-09-24（Andy：「篩選列一律放在卡片左上角（產業鏈／族群兩顆下拉），全站同一規則：
        凡是有篩選的卡片，篩選列放在標題下方左上角，不要漂在中間或右側」）。
      以前 filterDropdown／filterChips 都是把那一排插在**圖的下面**（資金去向那排在一整棵樹的最底下，
@@ -7484,11 +7493,14 @@
     const row = filterSlot(el, 'ddrow rotfilter', chartId);
     row.dataset.for = chartId;
     chipSel[chartId] = sel || null;
-    const meta = (g) => rotGroupMeta[g] || {};
+    // opt.chainOf：族群 → 產業鏈。預設查 rotGroupMeta（輪動資料裡那 50 個）；族群 × 法人列的是全部族群，要自己給
+    const chainOf = ddChainOf(opt);
+    const meta = (g) => ({ chain: chainOf(g) || '' });
     /* 選到的族群不屬於目前第一層時，第一層**自動跳到它所屬的那條鏈** ——
        這條是給「從圖上點節點」那條路用的：使用者沒碰下拉，但選取變了，
-       不跟著跳的話按鈕上會寫著「半導體 · 金融股」這種自相矛盾的摘要。*/
-    if (sel && meta(sel).chain) ddChain[chartId] = meta(sel).chain;
+       不跟著跳的話按鈕上會寫著「半導體 · 金融股」這種自相矛盾的摘要。
+       ★ 2026-09-26：只在選取**真的換了**才跳（ddSync），理由見 ddSelSeen 上面那段。*/
+    ddSync(chartId, sel, opt);
     const chains = [...new Set(list.map(g => meta(g.gid).chain).filter(Boolean))];
     const cur = chains.indexOf(ddChain[chartId]) >= 0 ? ddChain[chartId] : '';
     ddChain[chartId] = cur;
@@ -7555,11 +7567,27 @@
       dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); rotCloseMenus(); btn.focus(); } };
     });
     // 第一層：挑鏈。挑完直接把第二層打開（和資金輪動那兩排同一個動作）
-    $$('.rotdd[data-dd="chain"] .ddopt', row).forEach(b => b.onclick = () => {
-      ddChain[chartId] = b.dataset.c;
+    $$('.rotdd[data-dd="chain"] .ddopt', row).forEach(b => b.onclick = (ev) => {
+      ev.stopPropagation();
+      const c = b.dataset.c;
+      ddChain[chartId] = c;
       rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
-      /* 換鏈時**不動選取**：這張圖是單選，硬把選取清掉會讓圖突然跳回整張，
-         而使用者只是想換一條鏈來找族群。選取和鏈對不上時，上面那段會讓第一層跟著跳回去。*/
+      /* ★ 2026-09-26 改：換到**別的**鏈時，把不屬於那條鏈的選取清掉。
+         以前是「換鏈不動選取，對不上就讓第一層跳回去」—— 那正是「換不過去」的根因（見 ddSelSeen 上面那段）。
+         留著別鏈的選取也說不通：按鈕會寫「金融 · 面板產業」，第二層卻列不出面板產業。
+         換到「全部」不清：全部本來就包含它，使用者只是想回全部清單挑別的。*/
+      const s0 = chipSel[chartId];
+      const drop = !!(s0 && c && chainOf(s0) !== c);
+      if (drop) chipSel[chartId] = null;
+      ddSelSeen[chartId] = chipSel[chartId];
+      // opt.onChain：這張圖的長條會跟著鏈換（族群 × 法人）—— 交給它整張重畫（它會再叫回 filterDropdown）
+      if (opt.onChain) return opt.onChain(c, drop);
+      if (drop) {
+        onPick(null);
+        /* 資金去向的 onPick(null) 走 drillClose()，它會把 ddChain.sankey 清回「全部」（審查 R2 #43：Esc／點背景回整張圖），
+           那條規矩對「使用者自己換鏈」不適用 —— 不補回來的話就是換鏈之後第一層又變回全部（09-26 實測）。*/
+        ddChain[chartId] = c; rotMenu = { rf, kind: 'group' }; rotMenuTop = 0;
+      }
       filterDropdown(chartId, list, chipSel[chartId], onPick, opt);
     });
     // 第二層：單選。點一下就選定並收起來（沒有「再點一次取消」——「全部族群」那一項就是取消）
@@ -7659,13 +7687,13 @@
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rankSubPaint = () => {};     // 排行副標「M/D ～ M/D」（即時開關時要換結尾那個日期，見 rlvStamp）
   let rotBackBar = null;           // #rotBack 那支 dayBar（N 天前 ＋ 回放）
-  let rotZoomBar = null;           // 放大視窗那支（開著的時候才有）
+  let rotZoomBar = null;           // 2026-09-26 起放大視窗拿掉，永遠是 null；留著是因為鍵盤快捷鍵等幾處仍以「有沒有放大視窗」分支，null 就走卡片那支
   /* 篩選變了就重畫。預設只重畫放大視窗 —— 從總覽直接按「放大」時資金流向頁還沒渲染過，
      這支會在 renderFlow 裡被換成「兩張卡片＋放大視窗」的版本。*/
   let rotRedraw = () => { if (rotZoomDraw) rotZoomDraw(); };
   let rotGroupMeta = {};           // gid → {name, chain}
   let rotF3 = null;                // 最後一次拿到的 flow_v3（晶片列／放大視窗要重建篩選列時用）
-  let rotZoomDraw = null;          // 放大視窗開著時＝重畫它的函式；關掉就設回 null
+  let rotZoomDraw = null;          // 2026-09-26 起放大視窗拿掉，永遠是 null（重畫只剩卡片那張）
   /* 兩層下拉的開合狀態。勾一個族群就把整排重建一次，所以「剛才開著哪一個」必須記在
      模組層才還原得回來 —— 不記的話複選等於不能用（每勾一次面板就關一次）。
      `rf` 分得出是卡片那排還是放大視窗那排，兩排同時存在時才不會一起彈開。*/
@@ -8355,7 +8383,7 @@
     dismissable($('#rankPanel'), () => { if (drillActive()) drillClose(); }, {
       also: [$('#sankeyPanel')],
       ignore: ['#flowRotTime', '#flowRotFilter', '#rotLive', '.rotquads', '#stagePanel', '#sankeyWrap',
-        '#sankeyDays', '#sankeyLive', '#rotZoomBtn', '.rotdd'],
+        '#sankeyDays', '#sankeyLive', '.rotdd'],   // 2026-09-26：#rotZoomBtn 已移除，不再列
       isOpen: () => drillActive() && ['rankPanel', 'sankeyPanel'].some(id => { const b = $('#' + id); return b && !b.hidden && b.getClientRects().length > 0; }),
     });
   }
@@ -8765,21 +8793,14 @@
        · classic    ＝「經典」：原 ECharts 樹＋小圓點
      設定改記在 tw.sankey.mode（新 key）：舊的 tw.sankey.style 裡存著「classic」的人（例如之前按過「經典版」鈕）
      沿用舊 key 就永遠看不到新的預設，等於這次改了跟沒改一樣 —— 所以換 key，大家先落在新的預設。*/
-  const SANKEY_STYLE_KEY = 'tw.sankey.mode';
-  const SANKEY_STYLES = ['fx', 'topo', 'classic'];
-  const SANKEY_STYLE_NAME = { fx: '經典光纖', topo: '拓撲', classic: '經典' };
-  let sankeyStyleForce = null;          // localStorage 寫不進去（私密視窗）時，這一次瀏覽仍照使用者選的畫
-  const sankeyStyle = () => {
-    let v = null; try { v = localStorage.getItem(SANKEY_STYLE_KEY); } catch (e) { /* 忽略 */ }
-    return SANKEY_STYLES.includes(v) ? v : (sankeyStyleForce || 'fx');
-  };
-  const paintSankeySeg = () => {
-    const cur = sankeyStyle();
-    document.querySelectorAll('#sankeyStyleSeg [data-sk-style]').forEach(b => {
-      const on = b.dataset.skStyle === cur;
-      b.classList.toggle('cur', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
-    });
-  };
+  /* ★ 2026-09-26（晚）Andy：「將資金去向只留下經典光纖版本」→ 三選一分段鈕拿掉，桌機一律經典光纖（fx）。
+     改前：sankeyStyle() 讀 localStorage 的 tw.sankey.mode（fx／topo／classic）。
+     改後：**不讀 localStorage**（舊值一律忽略）；只剩驗收用的內部切換（App.sankeyStyle('classic')）可以臨時換成
+     ECharts 樹 —— 那一套仍是手機（≤ 820）在用的畫法，驗收要在桌機寬度量它，使用者沒有任何入口。拓撲版不再能切到。*/
+  const SANKEY_STYLES = ['fx', 'classic'];
+  let sankeyStyleForce = null;          // 只有驗收的 App.sankeyStyle() 會設（不寫 localStorage、重新整理就回到 fx）
+  const sankeyStyle = () => sankeyStyleForce || 'fx';
+  const paintSankeySeg = () => {};      // 分段鈕已拿掉（留著空函式，舊的呼叫點不用一一拆）
   // 「由 flowtopo.js 的 Canvas 引擎畫」＝經典光纖或拓撲（兩者共用同一支引擎，只差版面）
   const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
 
@@ -8956,29 +8977,8 @@
     b.setAttribute('aria-pressed', 'false');
     b.onclick = sklToggle;
     box.appendChild(b);
-    /* 版面三選一（只在桌機出現；≤ 820px 一律經典版，CSS 把這組藏起來）。
-       選項放進畫面而不是放進對話：三種都做好，使用者自己切，設定記在 tw.sankey.mode。
-       改前（2026-09-24）是一顆「經典版／拓撲版」互切鈕 #sankeyStyleBtn。*/
-    const seg = document.createElement('span');
-    seg.id = 'sankeyStyleSeg'; seg.className = 'skseg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '資金去向版面');
-    const TIPS = { fx: '經典版的版面與標籤＋拓撲版的光纖與粒子流（預設）',
-      topo: '微光拓撲版：族群點開才長出成分股，整張卡比較矮',
-      classic: '原本的樹狀圖（ECharts）' };
-    SANKEY_STYLES.forEach(k2 => {
-      const b = document.createElement('button');
-      b.type = 'button'; b.className = 'pb livebtn'; b.dataset.skStyle = k2;
-      b.textContent = SANKEY_STYLE_NAME[k2]; b.title = TIPS[k2];
-      b.onclick = () => {
-        if (sankeyStyle() === k2) return;
-        try { localStorage.setItem(SANKEY_STYLE_KEY, k2); } catch (e) { /* 私密視窗：這一次照切，只是不會記住 */ }
-        sankeyStyleForce = k2;
-        paintSankeySeg();
-        const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
-      };
-      seg.appendChild(b);
-    });
-    box.appendChild(seg);
-    paintSankeySeg();
+    /* ★ 2026-09-26（晚）：版面三選一分段鈕 #sankeyStyleSeg 整個拿掉（Andy：「只留下經典光纖版本」）。
+       改前：這裡建一組「經典光纖／拓撲／經典」三顆鈕，設定記在 tw.sankey.mode。*/
     /* 換主題會把整頁重畫一次（applyTheme → route），playBar 連帶把這一排的 innerHTML
        換掉，所以這顆鈕是全新的一顆。即時模式如果還開著，要把「亮起來」的樣子補回去，
        不然畫的明明是即時資料、鈕看起來卻是關的。*/
@@ -9366,7 +9366,7 @@
          ⚠ 即時的「估算」兩個字不准拿掉：少了它，盤中的成交值會被讀成真實值。*/
       sub.textContent = `${when}・% 佔上一層`
         + (live ? '・即時換位（成交值估算）' : topo ? '・依排名換位' : '・位置固定')
-        + (narrow ? '・窄版不畫代表股' : '')
+        + (narrow ? '・窄版不畫代表股' : topo && !expNode ? '・滑到族群看代表股' : '')
         + (selName ? `・只看「${selName}」` : '')
         + (expNode
           ? `・已展開「${expNode.gid ? (L.gname[expNode.gid] || expNode.gid) : ''}」${expNode.children.length} 格`
@@ -9691,8 +9691,33 @@
   function renderInstPeriod(p, pick) {
     if (pick !== undefined) instPick = pick;
     pick = instPick;
-    const gs = (p.groups || []).filter(g => g.foreign != null || g.trust != null || g.dealer != null)
+    /* ★ 2026-09-26（Andy：「ETF 族群拿掉」）：ETF 整桶不進這張卡 —— 長條、族群清單、產業鏈下拉的族群數、
+       「全部（N 個族群）」都不算它。理由：ETF 的法人買賣超幾乎全是自營商的避險／造市部位
+       （一段期間動輒賣超幾百萬張），不是「法人把錢放進哪個產業」；混在一起，整張圖的刻度被它一條撐開，
+       其他族群只剩細線（09-24 那一版：ETF 37.2%、自營 −462 萬張 ≫ 折斷）。
+       以前的做法是 R2 #47 的「折斷刻度」—— 刻度照 ETF 以外的族群定、ETF 裁在軸邊寫「≫ 實際值」。
+       那是在「ETF 要留著」的前提下止血；ETF 不在這張卡之後折斷就沒有對象了，整段一起拿掉（不留死碼）。
+       ⚠ 只動這張卡：資金去向、漲跌分佈等其他卡的 ETF 照舊（漲跌分佈本來就預設排除，見 DIST.etf）。*/
+    const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
+    const gsAll = (p.groups || []).filter(g => !isEtf(g))
+      .filter(g => g.foreign != null || g.trust != null || g.dealer != null)
       .map(g => ({ ...g, total: (g.foreign || 0) + (g.trust || 0) + (g.dealer || 0) }));
+    /* 產業鏈：輪動資料（rotGroupMeta）只涵蓋 50 個族群，這張卡列的是全部有法人資料的族群（一百多個），
+       所以查不到的退回 L.gchain（groups.yaml 的鏈），兩邊是同一套鏈 id。*/
+    const chainOf = (gid) => (rotGroupMeta[gid] || {}).chain || L.gchain[gid] || '';
+    /* ★ 2026-09-26：第一層（產業鏈）要**真的改變長條** —— 以前選了鏈只是讓第二層清單變短，圖一條都沒換，
+       使用者看不出自己選了什麼。現在選了鏈，圖上就只列那條鏈的族群（一樣是前 8 ＋ 後 6）。
+       ddSync 先把「選取從外面換了 → 鏈跟過去」做完，畫圖跟下拉才看的是同一條鏈。*/
+    const ddo = { chainOf };
+    let chainNow = ddSync('instGroups', pick, ddo);
+    // 一定要是副本：底下的 gs.sort() 是原地排序，直接拿 gsAll 會把下拉的鏈順序跟著洗掉（每重畫一次順序就換）
+    let gs = chainNow ? gsAll.filter(g => chainOf(g.group_id) === chainNow) : gsAll.slice();
+    // 換了天數／截止日之後那條鏈剛好沒有法人資料：退回全部，不然圖變空白、下拉也跟著消失（回不去）
+    if (chainNow && !gs.length) { ddChain.instGroups = ''; chainNow = ''; gs = gsAll.slice(); }
+    // 副標跟著寫現在看的是哪條鏈（drawInstDays 寫的那段存在 data-base，這裡只在後面接一段，不會越疊越長）
+    const subEl = $('#instSub');
+    if (subEl) { if (subEl.dataset.base == null) subEl.dataset.base = subEl.textContent;
+      subEl.textContent = subEl.dataset.base + (chainNow ? `　·　${chainLabel(chainNow)}` : ''); }
     /* 法人比價量晚落地（價量 15:30、法人 18:30），所以每個交易日下午「本週」這一段
        會出現「價量有、法人還沒有」。以前只寫「這個期間沒有法人資料」，看起來像壞掉 ——
        講清楚是還沒出，並告訴他上一段看得到。 */
@@ -9705,23 +9730,13 @@
     }
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
+    // 選到的族群排在中段（不在前 8、後 6）時也要畫出來，不然「只亮它」亮的是一個不在圖上的東西
+    if (pick && !top.some(g => g.group_id === pick)) {
+      const hit = gs.find(g => g.group_id === pick);
+      if (hit) { top.push(hit); top.sort((a, b) => b.total - a.total); }
+    }
     const denom = top.reduce((s, g) => s + Math.abs(g.total || 0), 0);
-    /* ★ 2026-09-25（審查 R2 #47：ETF 自營商一段期間可以賣超幾百萬張，一條就把刻度撐到 ±400 萬張，
-       其他族群的長條只剩幾像素 —— 整張圖只剩「ETF 很大」一件事）。
-       刻度改用 **ETF 以外** 最長的那一條定（正、負各自堆疊後的長度，留 15%）；
-       ETF 超出刻度的部分被裁在軸邊，y 軸名稱後面標「≫」、軸邊加一個「≫ 實際 N 萬張」的記號，真值照樣在提示框。
-       ETF 沒有超出（或畫面上根本沒有 ETF）時一切照舊，交給 ECharts 自己決定刻度。*/
-    const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
-    const ext = (g) => { let pos = 0, neg = 0;
-      ['foreign', 'trust', 'dealer'].forEach(k => { const v = g[k] || 0; if (v > 0) pos += v; else neg += v; });
-      return { pos, neg }; };
-    const others = top.filter(g => !isEtf(g)).map(ext);
-    const lim = others.length ? Math.max(...others.map(e => Math.max(e.pos, -e.neg))) * 1.15 : 0;
-    const over = lim > 0 ? top.map((g, i) => ({ g, i, e: ext(g) }))
-      .filter(x => isEtf(x.g) && (x.e.pos > lim * 1.3 || -x.e.neg > lim * 1.3)) : [];
-    const clip = over.length > 0;
-    const overIdx = new Set(over.map(x => x.i));
-    const yLab = top.map((g, i) => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%${overIdx.has(i) ? ' ≫' : ''}`);
+    const yLab = top.map(g => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%`);
     /* y 軸寬：以前固定 100px 截斷（「石化與塑膠產業 ...」「AI PC 筆電與平...」）；改成量最長那個標籤，
        上限 200px（再長就截，免得圖本身被擠沒了）。*/
     const yW = Math.min(200, Math.max(100, Math.ceil(textW(yLab, 12)) + 6));
@@ -9740,7 +9755,7 @@
          才把這個一直都在的邊界問題逼出來。 */
       legend: { textStyle: { color: CH.ink2 }, top: 0, data: ['外資', '投信', '自營'] }, grid: { left: yW + 8, right: 42, top: 30, bottom: 22 },
       // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
-      xAxis: { ...axisStyle, ...(clip ? { min: -lim, max: lim } : {}),
+      xAxis: { ...axisStyle,
         axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', inverse: true,
         // 族群名後面直接掛占比 %，不用滑過去才看得到
@@ -9751,24 +9766,20 @@
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id, dim: !!(pick && pick !== g.group_id),
           itemStyle: { color: col, opacity: (pick && pick !== g.group_id) ? 0.14 : 1 } })),
-        itemStyle: { color: col } })).concat(clip ? [{
-        // 折斷記號：ETF 超出刻度的那一側，在軸邊寫「≫ 實際值」（不進圖例、不接提示框）
-        name: '超出刻度', type: 'scatter', silent: true, symbolSize: 0, z: 5,
-        // 字排在軸邊的**內側**（右邊那顆往左長、左邊那顆往右長），不會壓到 y 軸名稱或凸出卡片
-        data: over.flatMap(x => [x.e.pos > lim * 1.3 ? { value: [lim, x.i, x.e.pos], label: { align: 'right' } } : null,
-          -x.e.neg > lim * 1.3 ? { value: [-lim, x.i, x.e.neg], label: { align: 'left' } } : null].filter(Boolean)),
-        label: { show: true, color: CH.ink, fontSize: 12, fontWeight: 700,
-          formatter: q => `≫ ${fmt.lot(q.data.value[2] / 1000)}`,
-          position: 'inside', backgroundColor: CH.panel, borderColor: CH.ink3, borderWidth: 1, borderRadius: 4, padding: [2, 5] } }] : []),
+        itemStyle: { color: col } })),
     });
-    const ig = $('#instGroups'); if (ig) { ig.dataset.clip = clip ? '1' : '0'; ig.dataset.lim = clip ? String(Math.round(lim)) : ''; ig.dataset.yw = String(yW); }
+    const ig = $('#instGroups'); if (ig) { ig.dataset.yw = String(yW); ig.dataset.chain = chainNow; }
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
     /* ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
        這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金去向同一支 filterDropdown。
        行為不變：單選、選到的族群亮、其餘壓暗；選「全部族群」或按清除就還原；→ 進族群頁仍在第二層清單裡。*/
-    filterDropdown('instGroups', top.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
+    /* ★ 2026-09-26：下拉的族群清單改成**全部**有法人資料的族群（ETF 除外），不再只是圖上那 14 列 ——
+       以前第一層「全部（14 個族群）」、各鏈的數字加起來卻只有 9（另外 5 個不在輪動資料裡、查不到鏈），
+       而且中段的族群根本選不到。第一層選了鏈 → onChain 整張重畫（長條換成那條鏈的族群）。*/
+    filterDropdown('instGroups', gsAll.map(g => ({ gid: g.group_id, name: g.group_name })), pick,
       (nx) => renderInstPeriod(p, nx),
-      { onText: (nm) => `只亮「${fmt.esc(nm)}」` });
+      { ...ddo, onText: (nm) => `只亮「${fmt.esc(nm)}」`,
+        onChain: (c, drop) => renderInstPeriod(p, drop ? null : undefined) });
   }
 
   /* 資金集中度（Andy 2026-09-18）：
@@ -10975,13 +10986,11 @@
          `sankeyStyle('classic'|'topo')` 讓驗收切版本（經典版的舊段落仍在驗 ECharts 那一套）。*/
       sankeyTopo: () => (window.FlowTopo ? window.FlowTopo.probe(document.getElementById('sankey')) : null),
       sankeyTopoOn: () => sankeyTopoOn() && !!(window.FlowTopo && window.FlowTopo.has(document.getElementById('sankey'))),
-      /* 改前只收 'classic'|'topo'；★ 2026-09-25 起收 'fx'（經典光纖，預設）|'topo'|'classic' */
+      /* 驗收用的內部切換：'fx'（經典光纖，唯一的使用者版本）| 'classic'（ECharts 樹＝手機的畫法，桌機寬度量它用）。
+         改前（09-25）收 'fx'|'topo'|'classic' 並寫進 tw.sankey.mode；改後不寫 localStorage、'topo' 一律當 'fx'（09-26 晚）。*/
       sankeyStyle: (s) => {
         if (s) {
-          const v = SANKEY_STYLES.includes(s) ? s : 'fx';
-          try { localStorage.setItem(SANKEY_STYLE_KEY, v); } catch (e) { /* 忽略 */ }
-          sankeyStyleForce = v;
-          paintSankeySeg();
+          sankeyStyleForce = SANKEY_STYLES.includes(s) ? s : 'fx';
           const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
         }
         return sankeyStyle();
