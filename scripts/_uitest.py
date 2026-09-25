@@ -11467,6 +11467,94 @@ def _rl_pick(pg, seg, wait=900):
     return opened
 
 
+# ===========================================================================
+# 關聯圖環節收合（2026-09-25）
+# Andy 原話：「族群需要可以收起來，收起來的時候只能留下個股標籤」。
+# 做法（industry.js drawChainMap）：每個環節標題列右邊一顆 ▸／▾；收合時該環節只剩一排排
+#   小晶片（名稱＋代號、漲跌色邊、外商灰字），走線接到整個晶片區塊；圖上方「全部收合／全部展開」；
+#   預設全部收合；狀態記 localStorage `tw.chainFold`。只做桌機（>820px）。
+# 每一條都是真的點、再量畫面變了沒有。
+# ===========================================================================
+CF_STATE = """(seg) => {
+  const m = document.getElementById('chainMap'); const svg = m && m.querySelector('svg');
+  const g = (s) => [...m.querySelectorAll(s)];
+  const segCos = seg ? g(`.co[data-segment="${seg}"]`) : [];
+  let ls = null; try { ls = localStorage.getItem('tw.chainFold'); } catch (e) {}
+  return { svgH: svg ? Math.round(svg.getBoundingClientRect().height) : 0,
+           cards: g('.co:not(.chip)').length, chips: g('.co.chip').length,
+           segN: segCos.length, segChips: segCos.filter(c => c.classList.contains('chip')).length,
+           segFolded: seg ? (m.querySelector(`.segfold[data-seg="${seg}"]`) || {dataset:{}}).dataset.folded : null,
+           folds: g('.segfold').length, bar: !!m.querySelector('.foldbar'), ls,
+           docW: document.documentElement.scrollWidth, winW: innerWidth };
+}"""
+
+
+def t_chain_fold(pg, base):
+    """關聯圖環節收合：預設收合、單一環節展開／收合、全部展開／收合、點晶片開資訊欄、重新整理記得。"""
+    pg.set_viewport_size({"width": 1440, "height": 1100})
+    pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.chainFold'); localStorage.setItem('tw.relView','layer');"
+                " localStorage.setItem('tw.relOpen','1'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
+    pg.wait_for_timeout(500)
+    s0 = pg.evaluate(CF_STATE, None)
+    if not ok("預設全部收合：關聯圖上全是個股標籤、沒有大卡", s0["chips"] > 20 and s0["cards"] == 0 and s0["bar"], s0):
+        return
+    ok("每個有台股的環節標題列都有收合鈕", s0["folds"] >= 8, s0)
+    ok("整頁沒有橫向捲軸", s0["docW"] <= s0["winW"], s0)
+    # ---- 全部展開：大卡數＝原本的標籤數、高度變長
+    click(pg, '#chainMap .foldbar [data-fold="none"]', 700)
+    s1 = pg.evaluate(CF_STATE, None)
+    ok("按「全部展開」→ 標籤全變回大卡，張數＝原本標籤數",
+       s1["chips"] == 0 and s1["cards"] == s0["chips"], {"前": s0, "後": s1})
+    ok("展開後圖變高（收合時高度 < 展開的 75%）", s0["svgH"] < s1["svgH"] * 0.75, {"收": s0["svgH"], "展": s1["svgH"]})
+    # ---- 單一環節收合：點「封測」的 ▾
+    seg = pg.evaluate("() => { const f = [...document.querySelectorAll('#chainMap .segfold')]"
+                      ".map(n => n.dataset.seg).filter(sg => document.querySelectorAll(`#chainMap .co[data-segment=\"${sg}\"]`).length >= 4);"
+                      " return f[0] || null; }")
+    if not ok("找得到一個 4 檔以上的環節可以收", bool(seg), seg):
+        return
+    a = pg.evaluate(CF_STATE, seg)
+    click(pg, f'#chainMap .segfold[data-seg="{seg}"]', 700)
+    b = pg.evaluate(CF_STATE, seg)
+    ok(f"點 {seg} 的 ▾ → 只有這個環節變成標籤，張數不變",
+       b["segFolded"] == "1" and b["segChips"] == a["segN"] == b["segN"] and b["chips"] == b["segN"], {"前": a, "後": b})
+    ok(f"收合 {seg} 之後圖變矮（或至少沒變高）", b["svgH"] <= a["svgH"], {"前": a["svgH"], "後": b["svgH"]})
+    click(pg, f'#chainMap .segfold[data-seg="{seg}"]', 700)
+    c = pg.evaluate(CF_STATE, seg)
+    ok(f"再點一次 ▸ → {seg} 展開回大卡", c["segFolded"] == "0" and c["segChips"] == 0 and c["chips"] == 0, c)
+    # ---- 全部收合
+    click(pg, '#chainMap .foldbar [data-fold="all"]', 700)
+    d = pg.evaluate(CF_STATE, None)
+    ok("按「全部收合」→ 全部回到標籤、localStorage 記下來", d["cards"] == 0 and d["chips"] == s0["chips"]
+       and d["ls"] and '"def":true' in d["ls"], d)
+    # ---- 點標籤＝點公司卡：選取＋右側資訊欄
+    code = pg.evaluate("() => { const n = document.querySelector('#chainMap .co.chip[data-code=\"2330\"]')"
+                       " || document.querySelector('#chainMap .co.chip[data-code]:not([data-code=\"\"])'); return n ? n.dataset.code : null; }")
+    if ok("收合時找得到有代號的個股標籤", bool(code), code):
+        pg.evaluate("() => { const b = document.getElementById('coBox'); if (b) b.remove(); }")
+        click(pg, f'#chainMap .co.chip[data-code="{code}"]', 900)
+        box = pg.evaluate("() => { const b = document.getElementById('coBox'); if (!b) return null;"
+                          " const r = b.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), t: b.innerText.slice(0, 60) }; }")
+        ok(f"點標籤 {code} → 右側資訊欄打開", bool(box) and box["w"] > 100 and box["h"] > 40, box)
+        tip = pg.evaluate(f"() => {{ const t = document.querySelector('#chainMap .co.chip[data-code=\"{code}\"] title'); return t ? t.textContent : ''; }}")
+        ok("滑過標籤的提示有價格與漲跌（%）", "%" in tip and code in tip, tip)
+    # ---- 重新整理記得狀態：先全部展開再重整 → 還是展開
+    click(pg, '#chainMap .foldbar [data-fold="none"]', 700)
+    pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
+    pg.wait_for_timeout(500)
+    e = pg.evaluate(CF_STATE, None)
+    ok("重新整理之後記得「全部展開」（沒有被預設收合蓋掉）", e["chips"] == 0 and e["cards"] == s0["chips"], e)
+    click(pg, '#chainMap .foldbar [data-fold="all"]', 700)
+    pg.reload(wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
+    pg.wait_for_timeout(500)
+    f = pg.evaluate(CF_STATE, None)
+    ok("重新整理之後記得「全部收合」", f["cards"] == 0 and f["chips"] == s0["chips"], f)
+
+
 def t_rel_list(pg, base):
     """環節下拉＋選中環節的族群／個股＋拿掉下方字卡＋寬說明框（桌機 1440／1024），手機 390 沒被動到。"""
     for w in (1440, 1024):
@@ -12549,6 +12637,8 @@ SECTIONS = {
     "批次C5-關聯圖標籤":   lambda pg, b, base, code: t_b25_tags(pg, base),
     # ★ 2026-09-24：關聯圖的環節下拉＋選中環節的族群／個股＋拿掉下方字卡＋寬說明框；1440／1024 各一輪，390 驗手機沒動
     "關聯圖清單":          lambda pg, b, base, code: t_rel_list(pg, base),
+    # ★ 2026-09-25：關聯圖環節收合（預設收合、▸／▾、全部收合／展開、點標籤開資訊欄、重整記得）
+    "關聯圖環節收合":      lambda pg, b, base, code: t_chain_fold(pg, base),
     # ★ C4：窄欄（事件抽屜開著、視窗 980～1150）剖析圖不准被切掉右半邊
     "批次C4-剖析圖窄欄":   lambda pg, b, base, code: t_c4_fit(pg, base),
     # ★ 金融鏈三張＋軟體鏈四張：supply_chain.yaml 沒有這兩條鏈，所以環節必須是 0（棘輪）

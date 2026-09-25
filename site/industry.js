@@ -1320,6 +1320,7 @@
           onSegment: (seg) => { segHi = segHi === seg ? null : seg; segFilter = null; partHi = partSel = null; syncHighlight({ quiet: true }); },
           /* 點公司＝連同它所屬的**環節**一起選起來（不是族群）：一家公司只有一個 segment，
              卻可能掛好幾個族群，選族群就得替他猜一個。環節推族群是自動成立的（A.L.sgroups）。*/
+          onFold: () => syncHighlight({ quiet: true, noscroll: true }),
           onCompany: (co) => { if (!co || !co.segment) return; segFilter = co.segment; segHi = null; partHi = partSel = null; state.group = null; syncHighlight({ noscroll: true }); },
         });
         const hint = $('#relHint', el);
@@ -2946,12 +2947,38 @@
        舊版每一欄都從最上面開始排，所以「IP/EDA 只有 5 家」那一欄下面是一大片空白，
        而旁邊「封測有 20 家」那一欄一路排到底 —— 視覺上整張圖像是重心壓在右下角。
        各自置中之後，同一條水平線上的才真的是「同一階的東西」，走線也短一截。*/
-    const colH = cols.map(col => col.reduce((t, s) => {
-      const list = bySeg[s.id] || [];
-      return t + 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18;
-    }, 0));
+    /* ★ 2026-09-25 環節收合（Andy：「族群需要可以收起來，收起來的時候只能留下個股標籤」）。
+       每檔一張兩行高的大卡，半導體鏈一欄就排到 900px 以上。收合的環節改成一排排緊湊的
+       個股小晶片（名稱＋代號、漲跌色邊、外商灰字），高度只剩原本的三分之一左右。
+       預設全部收合（Andy 要短），逐鏈記在 localStorage `tw.chainFold`。
+       只在桌機（>820px）生效：手機另有一套清單版面，窄畫面一律照舊展開。*/
+    const foldOn = (window.innerWidth || 1440) > 820;
+    const foldSt = chainFoldGet(chainId);
+    const isFolded = (sid) => foldOn && (foldSt.seg[sid] != null ? foldSt.seg[sid] : foldSt.def);
+    const CHIP_H = 22, CHIP_GX = 5, CHIP_GY = 5;
+    const chipW = (c) => {
+      const code = c.tw_code || '外商';
+      const cw = 16 + 4 + code.length * (c.tw_code ? 7 : 11.5);
+      const nmW = (t) => { let w1 = 0; for (const ch of t) w1 += chW(ch) * 12 / 13; return w1; };
+      /* 名稱最多 6 字；欄寬窄（136px 下限）時再往下切，文字絕不准超出晶片框 ——
+         超出的話量到的內容寬度會比欄寬寬，置中就歪了（1100px 實測偏 1.1%）。*/
+      let n = Math.min(6, c.name.length), nm = c.name;
+      const cut = (k) => (k >= c.name.length ? c.name : c.name.slice(0, Math.max(1, k - 1)) + '…');
+      nm = cut(n); while (n > 2 && cw + nmW(nm) > colW) { n--; nm = cut(n); }
+      return { nm, code, w: Math.min(colW, Math.ceil(cw + nmW(nm))) };
+    };
+    const chipLay = (list) => {             // 依欄寬把晶片一排一排排下去，回傳各自相對位置與總高
+      let x = 0, row = 0; const out = [];
+      list.forEach(c => { const k = chipW(c); if (x && x + k.w > colW) { x = 0; row++; }
+        out.push(Object.assign({ dx: x, dy: row * (CHIP_H + CHIP_GY) }, k)); x += k.w + CHIP_GX; });
+      return { items: out, h: list.length ? (row + 1) * (CHIP_H + CHIP_GY) - CHIP_GY + 4 : 0 };
+    };
+    const segBodyH = (s, list) => (list.length && isFolded(s.id)
+      ? 4 + chipLay(list).h + 18
+      : list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18);
+    const colH = cols.map(col => col.reduce((t, s) => t + 24 + segBodyH(s, bySeg[s.id] || []), 0));
     const bodyH = Math.max.apply(null, colH.concat([0]));
-    cols.forEach((col, ci) => { let y = padY + Math.round((bodyH - colH[ci]) / 2); col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + list.length * (cardH + gapY) + noteLines(s, list) * NOTE_LH + 18; }); maxH = Math.max(maxH, y); });
+    cols.forEach((col, ci) => { let y = padY + Math.round((bodyH - colH[ci]) / 2); col.forEach(s => { const list = bySeg[s.id] || []; pos[s.id] = { x: padX + ci * (colW + colGap), y, list }; y += 24 + segBodyH(s, list); }); maxH = Math.max(maxH, y); });
     /* 寬度＝內容寬＋左右各 padX。**左右對稱**，內容就一定水平置中。
        舊版是 `... + 24`（只加在右邊，給同一欄回頭線那條 24px 通道用），
        那 24px 正是「看起來偏左」的另一半原因 —— 現在改成把它含進 padX 的下限（26px）。*/
@@ -2980,6 +3007,21 @@
         // 說明全文改由 wireSegTip 的說明框顯示（原生 <title> 寬度管不到，會窄到逐字斷行）
         nodes += `<g class="segnote" data-seg="${s.id}">` + shown.map((w, i) =>
           `<text class="sub" x="${p.x + 6}" y="${p.y + 15 + i * NOTE_LH}" fill="var(--ink-3)">${A.fmt.esc(w)}</text>`).join('') + '</g>';
+      }
+      if (foldOn && p.list.length) {
+        const fd = isFolded(s.id);
+        nodes += `<g class="segfold" data-seg="${s.id}" data-folded="${fd ? 1 : 0}"><rect x="${p.x + colW - 24}" y="${p.y - 20}" width="24" height="20" rx="5" fill="transparent"/><text x="${p.x + colW - 12}" y="${p.y - 6}" fill="${col}">${fd ? '▸' : '▾'}</text><title>${fd ? '展開這個環節（每檔一張卡）' : '收合這個環節（只留個股標籤）'}</title></g>`;
+      }
+      if (p.list.length && isFolded(s.id)) {
+        /* 收合：走線的端點接到「整個環節的晶片區塊」左右緣，不是個別晶片 ——
+           晶片擠成一排排，線接到中間那顆會從隔壁晶片上穿過去。*/
+        const lay = chipLay(p.list), bh = lay.h;
+        p.list.forEach((c, i) => { const it = lay.items[i]; const x = p.x + it.dx, y = p.y + 4 + it.dy;
+          coPos[c.id] = { x: p.x, y: p.y + 2, w: colW, h: Math.max(bh, CHIP_H) };
+          const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
+          const tip = `${c.name}${c.tw_code ? ' ' + c.tw_code : '（外商）'}${m ? ` · ${A.fmt.n(m.close)} ${A.fmt.pct(chg)}` : ''}${deg[c.id] ? '' : ' · 還沒有上下游關聯'}`;
+          nodes += `<g class="co chip ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col};--ud:${chg == null ? 'var(--line-2)' : A.upDown(chg)}"><rect x="${x}" y="${y}" width="${it.w}" height="${CHIP_H}" rx="11"/><text x="${x + 8}" y="${y + 15}">${A.fmt.esc(it.nm)} <tspan class="sub">${it.code}</tspan></text><title>${A.fmt.esc(tip)}</title></g>`; });
+        return;
       }
       p.list.forEach((c, i) => { const y = p.y + 4 + i * (cardH + gapY); coPos[c.id] = { x: p.x, y, w: colW, h: cardH }; const m = c.tw_code ? priceOf[c.tw_code] : null; const chg = m ? m.chg_pct : null;
         nodes += `<g class="co ${c.foreign || !c.tw_code ? 'foreign' : ''} ${state.code && c.tw_code === state.code ? 'sel' : ''}" data-id="${c.id}" data-segment="${c.segment}" data-code="${c.tw_code || ''}" style="--c:${col}"><rect x="${p.x}" y="${y}" width="${colW}" height="${cardH}" rx="7"/><rect x="${p.x}" y="${y}" width="4" height="${cardH}" rx="2" fill="${col}"/><text x="${p.x + 12}" y="${y + 15}">${A.fmt.esc(c.name.length > 13 ? c.name.slice(0, 12) + '…' : c.name)}${c.tw_code ? ` <tspan class="sub">${c.tw_code}</tspan>` : ' <tspan class="sub">外商</tspan>'}</text><text class="sub" x="${p.x + 12}" y="${y + 29}">${m ? `${A.fmt.n(m.close)} <tspan fill="${A.upDown(chg)}">${A.fmt.pct(chg)}</tspan>` : A.fmt.esc((c.tech || []).slice(0, 2).join(' · '))}</text>${deg[c.id] ? '' : `<g class="iso"><circle cx="${p.x + colW - 12}" cy="${y + 12}" r="6.5"/><text x="${p.x + colW - 12}" y="${y + 15.5}">?</text><title>這家還沒有上下游關聯（supply_chain.yaml 的 edges 待補）</title></g>`}</g>`; }); });
@@ -3059,7 +3101,8 @@
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
     const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
-    host.innerHTML = `${empty}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
+    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" data-fold="all">全部收合</button><button type="button" data-fold="none">全部展開</button><span class="sub">收合＝每個環節只留個股標籤；點環節標題右邊的 ▸／▾ 單獨切換</span></div>` : '';
+    host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
        舊版只提亮線 —— 線一多（半導體鏈 140 條）就看不出那條線通到誰，
@@ -3090,6 +3133,10 @@
          現在把它接到**既有那一套**上（onCompany → 跟點環節色標同一條路），
          不另外寫一套高亮邏輯。選的是**環節**（co.segment）不是族群，理由見 renderChain 的註解。*/
       if (handlers && handlers.onCompany) handlers.onCompany(co); }; });
+    const redraw = () => { drawChainMap(host, sc, chainId, im, handlers); if (handlers && handlers.onFold) handlers.onFold(); };
+    $$('.segfold', host).forEach(n => n.onclick = (ev) => { ev.stopPropagation();
+      const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
+    $$('.foldbar button', host).forEach(b => b.onclick = () => { chainFoldSet(chainId, { def: b.dataset.fold === 'all', seg: {} }); redraw(); });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
        原本用 scrollIntoView，它會一路往上找每一個可捲的祖先，連 document 也算。
@@ -3121,6 +3168,17 @@
     if (Array.isArray(g.drivers) && g.drivers.length) parts.push('動能：' + g.drivers.join('、'));
     if (g.capacity_source) parts.push('（來源：' + g.capacity_source + '）');
     return parts.join(' · ');
+  }
+  /* 關聯圖環節收合狀態：{ 鏈 id: { def: 預設收合?, seg: { 環節 id: 收合? } } }。
+     讀不到（無痕、被擋）就當成預設全部收合，不影響畫圖。*/
+  function chainFoldGet(cid) {
+    try { const all = JSON.parse(localStorage.getItem('tw.chainFold') || '{}'); const v = all[cid];
+      if (v && typeof v === 'object') return { def: v.def !== false, seg: v.seg || {} }; } catch (e) { /* 忽略 */ }
+    return { def: true, seg: {} };
+  }
+  function chainFoldSet(cid, v) {
+    try { const all = JSON.parse(localStorage.getItem('tw.chainFold') || '{}'); all[cid] = v;
+      localStorage.setItem('tw.chainFold', JSON.stringify(all)); } catch (e) { /* 忽略 */ }
   }
   function closeCoBox() { const b = document.getElementById('coBox'); if (b) b.remove(); }
   /* 外商／無台股代號的公司：在產業鏈圖正下方原地展開，不再用浮動卡。
