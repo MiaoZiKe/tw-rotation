@@ -11047,7 +11047,9 @@ SECTIONS = {
     # ★ 2026-09-24 設計系統 v2（docs/design_system_v2.md）：第 1／2 批（卡片、間距、字級、膠囊按鈕、圖表字級下限）
     #   與第 4 批（三張熱力圖的 7 格離散色階、2px 間隙、標籤分三級、圖例、提示框、分組／顏色下拉）。
     "設計系統v2":          lambda pg, b, base, code: t_ds2(pg, base),
-    "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),
+    "熱力圖v2":            lambda pg, b, base, code: t_heatmap_v2(pg, base),   # 最後會接著跑 t_heatmap_r4
+    # ★ 審查 R4 那幾條單獨跑（放大後雙擊不跳頁、還原鈕、淺色放大罩標題、尚無剖析圖、口徑去重）
+    "熱力圖R4":            lambda pg, b, base, code: t_heatmap_r4(pg, base),
     # ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4.1）：驗「積木的邊界真的存在」——
     #   出口拿到的就是畫面上的東西，而且把那塊積木的檔擋掉之後整站照常（原則三）。
     "積木-券商觀點":       lambda pg, b, base, code: t_block_broker(b, base),
@@ -23119,8 +23121,11 @@ def t_heatmap_v2(pg, base):
             # 「分組」下拉：產業鏈 → 不分組，畫面真的換成平鋪一層，而且記住
             pg.select_option("#indTreeGroup", "flat"); pg.wait_for_timeout(1400)
             rf = pg.evaluate(HM_READ, "indTree")
+            # ★ 2026-09-24（審查 R4）：分組模式把小鏈的面積放大到至少 5%，那幾條鏈裡原本小於 visibleMin
+            #   而不畫的小方塊會多畫出來（實測分組 60 塊、不分組 56 塊），所以不分組的塊數**可以比分組少**。
+            #   這條要驗的是「真的換成平鋪」，塊數只拿來防「切了之後整張圖空掉」：至少八成五。
             ok("[#indTree] 分組切到「不分組」→ 真的平鋪成一層（沒有產業鏈那一層）",
-               rf and not rf["nested"] and rf["n"] >= r["n"] - 2, rf and [rf["nested"], rf["n"], r["n"]])
+               rf and not rf["nested"] and rf["n"] >= r["n"] * 0.85, rf and [rf["nested"], rf["n"], r["n"]])
             ok("[#indTree] 「不分組」有記在 localStorage", pg.evaluate("() => { try { return localStorage.getItem('tw.hmGroup'); } catch (e) { return null; } }") == "flat")
             _hm_check("dark #indTree 不分組", rf, "chg")
             pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -23186,6 +23191,183 @@ def t_heatmap_v2(pg, base):
         ok(f"[{w}px #indTree] 窄畫面上的小方塊也一樣不寫殘字", not tiny, [(t["name"], t["lab"]) for t in tiny][:4])
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.evaluate("() => { try { localStorage.removeItem('tw.hmGroup'); localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
+    t_heatmap_r4(pg, base)
+
+
+# ★ 2026-09-24 審查 R4（熱力圖頁）：放大後照角標「雙擊還原」不能跳頁、還原鈕真的還原、
+#   淺色主題的放大罩標題看得到、沒有剖析圖的題材點了要講「尚無剖析圖」、口徑小字不重複。
+#   找方塊中心用 ECharts 自己排好的版面（treemap 子節點座標相對父節點，所以要一路加上去）。
+HM_LEAF_XY = r"""(a) => {
+  const el = document.getElementById(a.id); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return null;
+  const tree = c.getModel().getSeriesByIndex(0).getData().tree; const R = el.getBoundingClientRect(); const out = [];
+  tree.root.eachNode(n => { if (n.children && n.children.length) return; const l = n.getLayout(); if (!l || !l.isInView) return;
+    let x = l.x, y = l.y, q = n.parentNode;
+    while (q) { const ql = q.getLayout(); if (ql) { x += ql.x; y += ql.y; } q = q.parentNode; }
+    const o = n.getModel().option || {};
+    out.push({ key: o.gid || o.id, name: n.name, cx: R.left + x + l.width / 2, cy: R.top + y + l.height / 2, a: l.width * l.height }); });
+  out.sort((p, q) => q.a - p.a);
+  return a.key ? out.filter(v => v.key === a.key) : out;
+}"""
+ZST = """(id) => { const b = document.getElementById(id); if (!b) return null; const r = b.querySelector(':scope > .zreset');
+  return { k: b._zoom ? b._zoom.scale : null, zoomed: b.classList.contains('zoomed'),
+           reset: !!r && !r.hidden && r.getClientRects().length > 0, hash: location.hash,
+           badge: (b.querySelector(':scope > .zbadge') || {}).textContent || '' }; }"""
+
+
+def _r4_zoom_in(pg, x, y, n=3):
+    pg.mouse.move(x, y)
+    for _ in range(n):
+        pg.mouse.wheel(0, -160); pg.wait_for_timeout(140)
+    pg.wait_for_timeout(450)
+
+
+def t_heatmap_r4(pg, base):
+    tag = "熱力圖R4"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto("about:blank")
+    pg.goto(f"{base}#heatmap", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.hmGroup');"
+                " localStorage.removeItem('tw.themeColor'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+
+    # ---------- ① 產業熱力：放大後雙擊 → 不跳頁、還原成 1 倍 ----------
+    pg.evaluate("document.getElementById('indTree').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    leaf = (pg.evaluate(HM_LEAF_XY, {"id": "indTree"}) or [None])[0]
+    if not ok(f"【{tag}】產業熱力找得到最大那一塊（{leaf and leaf['name']}）", bool(leaf), leaf):
+        return
+    # 先證明這個點在 1 倍時真的是「點了會跳頁」的方塊 —— 不然下面「沒跳頁」是假綠
+    pg.mouse.click(leaf["cx"], leaf["cy"]); pg.wait_for_timeout(500)
+    h1 = pg.evaluate("() => location.hash")
+    ok(f"【{tag}】前提：1 倍時單擊這一塊立刻進族群頁（{h1}）", h1.startswith("#industry/group/"), h1)
+    pg.go_back(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    pg.evaluate("document.getElementById('indTree').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    leaf = (pg.evaluate(HM_LEAF_XY, {"id": "indTree", "key": leaf["key"]}) or [leaf])[0]
+    z0 = pg.evaluate(ZST, "indTreeWrap")
+    ok(f"【{tag}】1 倍時「還原」鈕不顯示", z0 and not z0["reset"], z0)
+    _r4_zoom_in(pg, leaf["cx"], leaf["cy"])
+    z1 = pg.evaluate(ZST, "indTreeWrap")
+    ok(f"【{tag}】產業熱力滾輪放大了（{z1 and z1['k']:.2f}×）、角標寫雙擊或按「還原」、還原鈕出現",
+       z1 and z1["k"] > 1.2 and z1["reset"] and "還原" in z1["badge"], z1)
+    pg.mouse.dblclick(leaf["cx"], leaf["cy"]); pg.wait_for_timeout(700)
+    z2 = pg.evaluate(ZST, "indTreeWrap")
+    ok(f"【{tag}】放大後照角標雙擊 → 沒有跳到族群頁（還在 {z2 and z2['hash']}）",
+       z2 and z2["hash"] == z1["hash"], [z1 and z1["hash"], z2 and z2["hash"]])
+    ok(f"【{tag}】雙擊真的還原成 1 倍、還原鈕收起", z2 and z2["k"] == 1 and not z2["zoomed"] and not z2["reset"], z2)
+
+    # ---------- ② 放大後單擊仍然會導頁（只是延後），不是整個點不動 ----------
+    _r4_zoom_in(pg, leaf["cx"], leaf["cy"])
+    pg.mouse.click(leaf["cx"], leaf["cy"]); pg.wait_for_timeout(80)
+    h_mid = pg.evaluate("() => location.hash")
+    pg.wait_for_timeout(600)
+    h_end = pg.evaluate("() => location.hash")
+    ok(f"【{tag}】放大後單擊：先等一下（80ms 時還沒跳），之後照樣進族群頁（{h_end}）",
+       h_mid == z1["hash"] and h_end.startswith("#industry/group/"), [h_mid, h_end])
+    pg.go_back(wait_until="networkidle"); pg.wait_for_timeout(2400)
+
+    # ---------- ③ 「還原」鈕：按了回 1 倍、不跳頁 ----------
+    pg.evaluate("document.getElementById('indTree').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    leaf = (pg.evaluate(HM_LEAF_XY, {"id": "indTree", "key": leaf["key"]}) or [leaf])[0]
+    _r4_zoom_in(pg, leaf["cx"], leaf["cy"])
+    z3 = pg.evaluate(ZST, "indTreeWrap")
+    ok(f"【{tag}】（還原鈕前提）又放大了", z3 and z3["k"] > 1.2 and z3["reset"], z3)
+    pg.click("#indTreeWrap > .zreset"); pg.wait_for_timeout(600)
+    z4 = pg.evaluate(ZST, "indTreeWrap")
+    ok(f"【{tag}】按「還原」→ 回 1 倍、沒有跳頁、鈕收起",
+       z4 and z4["k"] == 1 and not z4["zoomed"] and not z4["reset"] and z4["hash"] == z3["hash"], z4)
+
+    # ---------- ④ 產業熱力：小鏈的名字不截成殘字 ----------
+    lab = pg.evaluate("""() => { const el = document.getElementById('indTree'); const c = echarts.getInstanceByDom(el); const out = [];
+        c.getModel().getSeriesByIndex(0).getData().tree.root.eachNode(n => { if (n.children && n.children.length) return;
+          const o = n.getModel().option || {}; const m = (el._hmLab || {})[o.gid];
+          if (m && m.mode === 1 && m.text.endsWith('…')) out.push({ name: n.name, t: m.text }); }); return out; }""")
+    names = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('indTree')); const o = {};
+        c.getModel().getSeriesByIndex(0).getData().tree.root.eachNode(n => { const l = n.getLayout();
+          if (n.depth === 1 && l) { const cv = document.createElement('canvas').getContext('2d');
+            cv.font = '700 12px Noto Sans TC, JetBrains Mono, sans-serif';
+            o[n.name] = { w: Math.round(l.width), need: Math.round(cv.measureText(n.name).width + 10) }; } }); return o; }""")
+    short = [x["t"] for x in lab if len(x["t"].rstrip("…")) * 2 < len(x["name"])]
+    ok(f"【{tag}】方塊名稱截斷時至少保留一半的字（沒有「石化…」「基礎建…」這種殘字）",
+       not short, short[:5])
+    up = pg.evaluate("() => document.getElementById('indTree')._hmUp || {}")
+    bad_up = {k: t for k, t in up.items()
+              if not (t == k or (t and "與" in k and t == k.split("與")[0])
+                      or (t.endswith("…") and len(t) - 1 >= max(2, -(-len(k) // 2))))}
+    ok(f"【{tag}】產業鏈小標是全名、或「與」前那一段、或至少保留一半的字（{up}）",
+       len(up) == len(names) and not bad_up and all(up.values()), [bad_up, up, names])
+    ok(f"【{tag}】「怎麼看」有寫明小鏈面積放大",
+       "小鏈至少佔 5%" in pg.evaluate("() => (document.getElementById('how-indheat') || {}).textContent || ''"))
+
+    # ---------- ⑤ 題材熱力：放大後雙擊不展開題材；離開再回來倍率歸 1 ----------
+    pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(700)
+    tl = (pg.evaluate(HM_LEAF_XY, {"id": "themeMap"}) or [None])[0]
+    if ok(f"【{tag}】題材熱力找得到最大那一塊（{tl and tl['name']}）", bool(tl), tl):
+        h0 = pg.evaluate("() => location.hash")
+        _r4_zoom_in(pg, tl["cx"], tl["cy"])
+        pg.mouse.dblclick(tl["cx"], tl["cy"]); pg.wait_for_timeout(700)
+        zt = pg.evaluate(ZST, "themeMapWrap")
+        ok(f"【{tag}】題材熱力放大後雙擊 → 沒有展開題材細節（網址仍是 {zt and zt['hash']}）、回 1 倍",
+           zt and zt["hash"] == h0 and "/theme/" not in zt["hash"] and zt["k"] == 1, [h0, zt])
+        _r4_zoom_in(pg, tl["cx"], tl["cy"])
+        k_before = (pg.evaluate(ZST, "themeMapWrap") or {}).get("k")
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2200)
+        zb = pg.evaluate(ZST, "themeMapWrap")
+        ok(f"【{tag}】題材熱力放大到 {k_before and round(k_before, 2)}× → 離開再回來倍率歸 1",
+           (k_before or 0) > 1.2 and zb and zb["k"] == 1 and not zb["zoomed"], [k_before, zb])
+        click(pg, 'button.howbtn[data-how="theme"]', 400)   # 說明是按了才填進去的
+        ok(f"【{tag}】題材「怎麼看」寫的是「藍＝冷、紅＝熱」（不是「越亮越熱」）",
+           pg.evaluate("() => { const t = (document.getElementById('how-theme') || document.body).textContent;"
+                       " return t.includes('藍＝冷、紅＝熱') && !t.includes('越亮越熱'); }"))
+
+    # ---------- ⑥ 沒有剖析圖的題材：提示框與細節區都寫「尚無剖析圖」 ----------
+    nodg = pg.evaluate("""() => fetch('data/themes.json').then(r => r.json()).then(th =>
+        th.themes.filter(t => !(window.ThemeDiagrams || {})[t.id]).map(t => t.id))""")
+    notes.append(f"{tag}：沒有剖析圖的題材 {nodg}")
+    pg.evaluate("document.getElementById('themeMap').scrollIntoView({block:'center'})"); pg.wait_for_timeout(600)
+    cand = [v for v in (pg.evaluate(HM_LEAF_XY, {"id": "themeMap"}) or []) if v["key"] in (nodg or [])]
+    if not nodg:
+        notes.append(f"{tag}：所有題材都有剖析圖了，「尚無剖析圖」那段沒得驗")
+    elif ok(f"【{tag}】無剖析圖的題材在圖上點得到（{cand and cand[0]['name']}）", bool(cand), nodg):
+        v = cand[0]
+        pg.mouse.move(v["cx"], v["cy"]); pg.wait_for_timeout(600)
+        tip = pg.evaluate("() => [...document.querySelectorAll('#themeMap div')].map(d => d.innerText || '').join(' ')")
+        ok(f"【{tag}】滑過「{v['name']}」提示框寫「尚無剖析圖」", "尚無剖析圖" in tip, tip[-80:])
+        pg.mouse.click(v["cx"], v["cy"]); pg.wait_for_timeout(900)
+        d = pg.evaluate("""() => { const el = document.getElementById('themeDetail'); const r = el.getBoundingClientRect();
+            return { h: Math.round(r.height), txt: el.innerText, card: !!el.querySelector('.card'), hash: location.hash }; }""")
+        ok(f"【{tag}】點「{v['name']}」→ 網址換成它、細節區不是 0 高，寫「尚無剖析圖」",
+           d["hash"].endswith("/theme/" + v["key"]) and d["h"] > 0 and "尚無剖析圖" in d["txt"], d)
+        ok(f"【{tag}】沒有剖析圖時不加回佔位卡（Andy 09-23 拿掉的那張）", not d["card"], d)
+
+    # ---------- ⑦ 淺色主題：放大罩標題對比 ≥ 4.5 ----------
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2400)
+    pg.evaluate("document.getElementById('themeZoom').scrollIntoView({block:'center'})"); pg.wait_for_timeout(400)
+    click(pg, "#themeZoom", 1300)
+    cc = pg.evaluate("""() => { const t = document.getElementById('zoomTitle'), ov = document.getElementById('zoomOv');
+        const p = (s) => (s.match(/[\d.]+/g) || []).map(Number);
+        const fg = p(getComputedStyle(t).color), bg = p(getComputedStyle(ov).backgroundColor);
+        const a = bg.length > 3 ? bg[3] : 1;
+        // 罩底半透明：最壞情況是底下整片白（淺色主題的頁面底），先跟白色合成再算
+        const comp = [0, 1, 2].map(i => bg[i] * a + 255 * (1 - a));
+        const L = (c) => { const f = c.map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); });
+          return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
+        const l1 = L(fg.slice(0, 3)), l2 = L(comp);
+        return { txt: t.textContent, fg: getComputedStyle(t).color, bg: getComputedStyle(ov).backgroundColor,
+                 cr: Math.round(((Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05)) * 100) / 100,
+                 theme: document.documentElement.dataset.theme || '' }; }""")
+    ok(f"【{tag}】淺色主題：放大罩標題「{cc['txt']}」對比 {cc['cr']} ≥ 4.5", cc["cr"] >= 4.5, cc)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+
+    # ---------- ⑧ 週期統計「怎麼看」口徑小字不重複 ----------
+    pg.goto(f"{base}#season", wait_until="networkidle"); pg.wait_for_timeout(2200)
+    fine = pg.evaluate("() => (document.getElementById('seasonFine') || {}).textContent || ''")
+    import re as _re
+    parens = _re.findall(r"（[^）]*）", fine)
+    dup = sorted({x for x in parens if parens.count(x) > 1})
+    ok(f"【{tag}】週期統計口徑小字沒有重複的括號說明", fine and not dup, [dup, fine[:160]])
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 # =============================================================================

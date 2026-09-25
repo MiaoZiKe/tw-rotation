@@ -132,7 +132,7 @@
         <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label>${A.hmDate(im.date)}
         <button class="howbtn" data-how="indheat">怎麼看 ?</button></div></div>
       <div class="howtxt" id="how-indheat" hidden>${A.howHTML('這張圖回答：今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
-        '方塊大小＝族群成交值',
+        '方塊大小＝族群成交值（分組時小鏈至少佔 5%）',
         '顏色＝今日漲跌，紅漲綠跌',
         '又大又紅＝錢多而且在漲',
         '大而綠＝資金正在退潮的權值區',
@@ -141,7 +141,20 @@
       <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
     const gsel = document.getElementById('indTreeGroup');
     if (gsel) gsel.onchange = () => { heatGroup = gsel.value; A.hmLSset('tw.hmGroup', heatGroup); renderHeat(im); };
-    const leaf = (c, g) => ({ name: g.name, value: g.turnover || 1, gid: g.id, chg: g.chg_pct, share: g.turnover_share, chain: c.name,
+    /* ★ 2026-09-24（審查 R4）：產業鏈模式下，傳產／金融／基礎建設／軟體四條鏈的成交值加起來不到 5%，
+       被擠在最右一條窄欄，鏈小標截成「傳產與…」、方塊截成「石化…」「基礎建…」這種殘字，很多塊乾脆沒字。
+       做法：分組時每條鏈的**面積**至少佔全圖 CHAIN_MIN（鏈內各族群等比放大），名字才放得下；
+       真實成交值另存在 `to`，提示框一律讀它，「怎麼看」也寫明這件事 —— 面積失真要講清楚，不能偷偷做。
+       不分組模式照原本的成交值，不做任何放大（那是「一眼比大小」的模式）。*/
+    const CHAIN_MIN = 0.05;
+    const nested0 = heatGroup !== 'flat';
+    const allTo = im.chains.reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.turnover || 0), 0), 0) || 1;
+    const chainK = {};
+    im.chains.forEach(c => {
+      const t = c.groups.reduce((s2, g) => s2 + (g.turnover || 0), 0);
+      chainK[c.id] = nested0 && t > 0 ? Math.max(1, (allTo * CHAIN_MIN) / t) : 1;
+    });
+    const leaf = (c, g) => ({ name: g.name, value: (g.turnover || 1) * (chainK[c.id] || 1), to: g.turnover, gid: g.id, chg: g.chg_pct, share: g.turnover_share, chain: c.name,
       pe: g.valuation && g.valuation.median, n: g.n, ...A.hmItem(A.hmBin(g.chg_pct, 'chg'), 'chg', heatFocusT) });
     const nested = heatGroup !== 'flat';
     const data = nested
@@ -153,7 +166,7 @@
         if (!d.gid) return A.hmTip(p.name, '', [], '點一下進入這條產業鏈');
         return A.hmTip(p.name, d.chain, [
           { k: '漲跌幅', v: A.fmt.pct(d.chg, 2), c: A.upDown(d.chg), dot: A.hmColor(A.hmBin(d.chg, 'chg'), 'chg') },
-          { k: '成交值', v: `${A.fmt.yi(p.value)}（${A.fmt.n(d.share, 1)}%）` },
+          { k: '成交值', v: `${A.fmt.yi(d.to != null ? d.to : p.value)}（${A.fmt.n(d.share, 1)}%）` },
           { k: '成分股', v: `${d.n != null ? d.n : '—'} 檔` },
           { k: '本益比中位', v: d.pe != null ? A.fmt.n(d.pe, 1) : '—' },
         ], '點一下看成分股'); } },
@@ -163,7 +176,8 @@
     A.hmRelabel(c, valOf);
     A.hmLegend('indTree', 'chg', heatFocusT, (f) => { heatFocusT = f; renderHeat(im); });
     A.wheelZoom(document.getElementById('indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (i) i.resize(); } });
-    if (c) c.off('click').on('click', p => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } });
+    // 放大狀態下單擊延後判定，雙擊（還原）不會被當成點方塊而跳頁（審查 R4，見 app.js wheelZoom 的 defer）
+    if (c) c.off('click').on('click', p => A.zoomClick(document.getElementById('indTreeWrap'), () => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } }));
   }
 
   // ================================================================ 活頁簿分頁（第一層：產業鏈）
