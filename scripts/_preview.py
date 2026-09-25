@@ -264,38 +264,20 @@ def main() -> int:
             return info
 
         visit("overview", "overview")
-        state["overview"]["cands"] = pg.evaluate("document.querySelectorAll('#candBody tr').length")
+        # ★ 2026-09-24 總覽改版：「今日候選」表整張拿掉（Andy）→ 以前這裡切四個面向、點列展開理由的檢查一併移除
+        #   （名單留在市場明細「今日候選」分頁，由 _uitest 的市場明細／排序段落負責）。改記這一版的關鍵版面數字。
         state["overview"]["hero"] = pg.evaluate("document.getElementById('hero').innerText.slice(0,80)")
-        # 候選名單四個面向：切得動、排序跟著換、點一列會展開「為何選它」（Andy #35）
-        facets = pg.evaluate("Array.from(document.querySelectorAll('#candFacets button')).map(b => b.dataset.f)")
-        if sorted(facets) != ["all", "chip", "fund", "tech"]:
-            problems.append(f"候選名單少了面向按鈕：{facets}")
-        fstat = {}
-        for f in facets:
-            pg.evaluate(f"document.querySelector('#candFacets button[data-f=\"{f}\"]').click()")
-            pg.wait_for_timeout(350)
-            fstat[f] = pg.evaluate("""() => {
-              const head = Array.from(document.querySelectorAll('#candTable th')).map(t => t.textContent.replace(/[▲▼]/g,'').trim());
-              const rows = document.querySelectorAll('#candBody tr[data-code]');
-              const first = rows[0] ? rows[0].dataset.code : null;
-              document.querySelector('#candBody tr[data-code]').dispatchEvent(new MouseEvent('click', {bubbles:true}));
-              const why = document.querySelectorAll('#candBody tr.whyrow .why span').length;
-              return { head, rows: rows.length, first, why, hint: (document.getElementById('candHint')||{}).textContent.length };
-            }""")
-            if not fstat[f]["why"]:
-                problems.append(f"候選名單 {f} 面向點開沒有「為何選它」")
-            if not fstat[f]["hint"]:
-                problems.append(f"候選名單 {f} 面向沒有說明文字")
-            ovf = pg.evaluate(OVERLAP_JS)
-            if ovf:
-                problems.append(f"候選名單 {f} 面向文字重疊：{ovf[:3]}")
-        # 四個面向排出來的第一名不該完全一樣，不然等於沒分
-        if len({v["first"] for v in fstat.values()}) < 2:
-            problems.append(f"四個面向排序結果一模一樣：{ {k: v['first'] for k, v in fstat.items()} }")
-        state["cand_facets"] = fstat
-        pg.evaluate("document.querySelector('#candFacets button[data-f=\"all\"]').click()")
-        pg.wait_for_timeout(300)
-        pg.screenshot(path=str(out / "v3_cand_facets.png"), full_page=False)
+        state["overview"]["layout"] = pg.evaluate("""() => ({
+            heroH: Math.round(document.getElementById('hero').getBoundingClientRect().height),
+            kpis: document.querySelectorAll('#hero .kpi').length,
+            candGone: !document.getElementById('ovCandCard'),
+            m3Cards: document.querySelectorAll('#m3Frame .m3-card').length,
+            ud: !!document.querySelector('#breadth canvas'), theme: !!document.querySelector('#ovTheme canvas') })""")
+        lay = state["overview"]["layout"]
+        if lay["heroH"] > 64 or lay["kpis"] != 4:
+            problems.append(f"總覽 KPI 橫條應該 4 格、高度 ≤ 64px：{lay}")
+        if not lay["candGone"] or lay["m3Cards"] != 3 or not lay["ud"] or not lay["theme"]:
+            problems.append(f"總覽改版後的版面不完整：{lay}")
         visit("flow", "flow")
         visit("industry", "industry_map")
         visit("industry/ai_server", "industry_chain")
@@ -356,7 +338,7 @@ def main() -> int:
             if info["overlaps"]:
                 problems.append(f"法律頁 #{lg} 文字重疊：{info['overlaps'][:3]}")
 
-        code = args.code or pg.evaluate("(document.querySelector('#candBody tr')||{}).dataset ? document.querySelector('#candBody tr').dataset.code : '2330'") or "2330"
+        code = args.code or "2330"          # 2026-09-24：總覽的候選表拿掉了，不再從它挑第一檔
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
         st = pg.evaluate("""() => ({ title: (document.querySelector('#stockPage h2')||{}).innerText, lwc: !!document.querySelector('#lwc canvas'), lwcCanvases: document.querySelectorAll('#lwc canvas').length,
             chips: document.querySelectorAll('#indChips .chip').length, legend: (document.getElementById('legendOv')||{}).innerText, mtf: (document.getElementById('mtfCard')||{}).innerText.slice(0,120), chainCos: document.querySelectorAll('#chainMap .co').length, sel: document.querySelectorAll('#chainMap .co.sel').length })""")
@@ -458,7 +440,7 @@ def main() -> int:
         m.on("pageerror", lambda e: problems.append(f"mobile pageerror: {e}"))
         m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(1200)
-        state["mobile"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, cards: document.querySelectorAll('#candCards .scard').length })")
+        state["mobile"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, hero: document.querySelectorAll('#hero .kpi').length })")
         m.screenshot(path=str(out / "v3_mobile.png"), full_page=False)
         m.goto(f"{base}#stock/{code}", wait_until="networkidle"); m.wait_for_timeout(1800)
         state["mobile_stock"] = m.evaluate("({ sideways: document.documentElement.scrollWidth > 391, lwc: !!document.querySelector('#lwc canvas') })")

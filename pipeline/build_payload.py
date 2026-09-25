@@ -210,6 +210,10 @@ def build() -> None:
     for who in ("trust", "foreign", "total"):
         df_s = flow.trust_streak(inst, min_days=2, who=who)
         streaks[who] = [] if df_s.empty else _clean(df_s.head(60).to_dict("records"))
+        # 2026-09-24：連續賣超另存一份（`<法人>_sell`），總覽的四象限要買賣兩半。
+        # 鍵名刻意不跟買超混在同一個清單：舊前端只讀 `trust`／`foreign`／`total`，看不到賣超也不會讀錯。
+        df_x = flow.trust_streak(inst, min_days=2, who=who, side="sell")
+        streaks[who + "_sell"] = [] if df_x.empty else _clean(df_x.head(60).to_dict("records"))
     _write("trust_streak", streaks.get("trust", []))      # 舊鍵留著，換版時不會開天窗
     _write("inst_streak", streaks)
 

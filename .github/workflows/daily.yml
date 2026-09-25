@@ -145,6 +145,13 @@ jobs:
           echo "::error::推送連續失敗 5 次"
           exit 1
 
+      - name: 前端對齊 main 最新版（避免把開跑時的舊前端蓋上線）
+        # ★ 2026-09-25：這輪開跑時 checkout 的 main，跑到這裡可能已經落後（中途有人推了前端）。
+        #   走「合併重試」那條路時工作區保留的是舊 site/，直接上傳就會把舊前端部署上線、蓋掉推送部署。
+        #   site/data 是 gitignore 的產出，checkout 不會動到它。
+        run: |
+          git fetch origin "${{ github.ref_name }}"
+          git checkout "origin/${{ github.ref_name }}" -- site/
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
         run: python scripts/stamp_assets.py
       - name: 上傳網站
