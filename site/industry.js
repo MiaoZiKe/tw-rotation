@@ -4076,7 +4076,9 @@
          拉完換一檔又縮回去等於白拉。 */
       if (!box._paneSave) {
         box._paneSave = true;
-        box.addEventListener('pointerup', () => setTimeout(() => {
+        /* 放開的是右下角那顆「重設縮放」就不存：它的 click 會把 paneH 清掉、面板高度改回預設，
+           120ms 後這裡再量一次就會把「預設高度」當成使用者拖出來的存回去 —— 等於重設沒生效。*/
+        box.addEventListener('pointerup', (ev) => (ev.target && ev.target.closest && ev.target.closest('.kfit')) ? null : setTimeout(() => {
           if (!kchart || !kchart.paneHeights) return;
           const h = kchart.paneHeights();
           // 面板在還沒畫出來時 getHeight() 會回 0，那種讀數不能存（存了下次就把版面壓扁）
@@ -4480,14 +4482,19 @@
     }, true);
     // 換頁一律收掉：不收的話 hidden 會留在 false，回來按 ⚙ 就變成「關掉看不見的面板」
     window.addEventListener('hashchange', () => closePop());
-    // 2026-09-24：外面點一下本來就會關（上面那段）；登記進全站那一份是為了多一個 Esc
-    const pop0 = document.getElementById('cfgPop');
-    if (pop0 && A && A.dismissable) A.dismissable(pop0, () => closePop(pop0), { ignore: ['.cfgpop', '#indBtn', '#tfAdd'] });
+  }
+
+  /* 2026-09-24：外面點一下本來就會關（wirePopDismiss 那段）；登記進全站那一份是為了多一個 Esc。
+     ★ 2026-09-26 改成**每次打開都登記目前這一顆** #cfgPop：它是個股頁模板的一部分，換一檔／換頁回來就是新的元素，
+     以前只在第一次打開時登記，之後登記表裡抓的是已經被拆掉的舊元素 —— 換過頁之後按 Esc 就關不掉（驗收抓到的）。
+     dismissable 對同一個元素重複登記只會更新，不會疊。*/
+  function popEsc(pop) {
+    if (pop && A && A.dismissable) A.dismissable(pop, () => closePop(pop), { ignore: ['.cfgpop', '#indBtn', '#tfAdd'] });
   }
 
   function placePop(pop, btn) {
     if (!pop || !btn) return;
-    wirePopDismiss();
+    wirePopDismiss(); popEsc(pop);
     pop.hidden = false;                                  // 要先顯示才量得到寬高
     pop.style.maxHeight = '';
     const r = btn.getBoundingClientRect();

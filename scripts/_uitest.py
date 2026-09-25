@@ -6538,6 +6538,9 @@ IND_POP_OPEN = ("() => { const p = document.getElementById('cfgPop'); if (!p || 
 def ind_open(pg):
     """打開「指標 ▾」下拉（已經開著就不動）。"""
     if not pg.evaluate(IND_POP_OPEN):
+        # 先把按鈕捲到畫面中段：Playwright 自己捲只保證「進畫面」，按鈕可能停在黏頂的頂欄底下，點到的是頂欄
+        pg.evaluate("() => { const b = document.getElementById('indBtn'); if (b) b.scrollIntoView({ block: 'center', behavior: 'instant' }); }")
+        pg.wait_for_timeout(150)
         click(pg, "#indBtn", 450)
     return pg.evaluate(IND_POP_OPEN)
 
@@ -6871,8 +6874,7 @@ def t_stock(pg, base, code):
     pg.wait_for_timeout(200)
     # ★ 2026-09-26 改前：按「⚙ 設定」開圖表設定面板 → 改後：「指標 ▾」下拉（同一個 #cfgPop，kind=ind）
     ind_close(pg)
-    click(pg, "#indBtn", 600)
-    ok("指標下拉打得開", pg.evaluate(IND_POP_OPEN))
+    ok("指標下拉打得開", ind_open(pg))
     # --- 面板要開在按鈕旁邊（Andy 2026-09-15：「設定出現的位置應該要在 設定按鈕旁邊」）
     #     以前是 CSS 的 absolute + right:18px，錨點跟按鈕無關，常常飄到整張圖下面。
     geo = pg.evaluate("""() => { const p = document.getElementById('cfgPop'), b = document.getElementById('indBtn');
@@ -6979,7 +6981,7 @@ def t_stock(pg, base, code):
     # 把剛才為了測試加上去的 transform 拿掉，後面的驗收才不會被影響
     pg.evaluate("() => { const v = document.getElementById('v-industry'); if (v) v.style.transform = ''; }")
     # 回復預設：設定要真的還原，面板順手關掉（改前：⚙ 設定面板裡的鈕 → 改後：下拉底部的鈕）
-    click(pg, "#indBtn", 450)
+    ind_open(pg)
     if count(pg, "#cfgReset"):
         click(pg, "#cfgReset", 900)
         cfg3 = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.kcfg')||'{}')")
