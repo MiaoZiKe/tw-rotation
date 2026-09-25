@@ -15479,16 +15479,16 @@
     "divresult@m2026-09:6994": true,
     "divresult@m2026-09:8038": true
   },
-  "updated_at": "2026-09-25T10:56:39.115389+00:00",
+  "updated_at": "2026-09-25T13:07:49.015091+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-09-25T10:56:21.876515+00:00",
+      "at": "2026-09-25T13:07:32.821257+00:00",
       "codes": 500
     },
     "plan:default": {
       "done": true,
-      "at": "2026-09-25T10:56:39.115370+00:00",
+      "at": "2026-09-25T13:07:49.015078+00:00",
       "month": "2026-09",
       "steps": {
         "balance+financial+revenue": true,
@@ -15507,35 +15507,38 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-09-25T10:56:26.557357+00:00",
+      "at": "2026-09-25T13:07:37.564540+00:00",
       "codes": 500
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-09-25T10:56:31.965301+00:00",
+      "at": "2026-09-25T13:07:41.949801+00:00",
       "codes": 500
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-09-25T10:56:35.535708+00:00",
+      "at": "2026-09-25T13:07:45.477838+00:00",
       "codes": 444
     },
     "dividend+divresult@m2026-09": {
       "done": true,
-      "at": "2026-09-25T10:56:39.106638+00:00",
+      "at": "2026-09-25T13:07:49.004894+00:00",
       "codes": 444
     },
     "index_intraday": {
       "yahoo": true,
-      "fut_unavailable": "400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
       "fut_left": 60,
-      "done": true,
-      "at": "2026-09-25T10:56:17.315333+00:00"
+      "at": "2026-09-25T13:07:27.706646+00:00",
+      "kbar_v": 1,
+      "tick_unavailable": "TaiwanFuturesTick 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
+      "fut_unavailable": "TaiwanFuturesKBar 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
+      "otc_unavailable": "TaiwanStockKBar 400 Your level is register. Please update your user level. Detail information:https://finmindtrade.com/analysis/#/Sponsor/sponsor",
+      "done": true
     }
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-09-25T10:56:14.543094+00:00",
+    "at": "2026-09-25T13:07:27.091077+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-09-15",
     "detail": ""
   },
