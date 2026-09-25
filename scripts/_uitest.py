@@ -13478,13 +13478,29 @@ def t_ud_market(pg, base):
     ok("淺色主題：按上市照樣換長條", a5["vals"] == ud["twse"]["counts"], a5["vals"])
     _ud_click_seg(pg, "all")
     dg_set_theme(pg, "dark", 1400)
-    # ---- 手機寬 390：分段鈕在卡片裡、不撐出橫向捲動、按得到
-    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(900)
-    scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
+    # ---- 手機寬 390：總覽是分段導覽（① ② ④ ＋ 下層晶片），這張卡在「② 貴不貴 → 市場寬度」。
+    #      真的點過去（不這樣做的話卡片是 display:none，量到的全是 0，「在卡片內」會假綠 —— 第一版就是這樣）。
+    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(600)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
+    stepped = pg.evaluate("""() => { const sp = [...document.querySelectorAll('#v-overview .mspine button, .mspine button')].find(b => /貴不貴/.test(b.textContent));
+        if (!sp) return 'no-spine'; sp.click(); return 'ok'; }""")
+    pg.wait_for_timeout(700)
+    seg_hit = pg.evaluate("""() => { const b = [...document.querySelectorAll('.mpager button')].find(x => /市場寬度|漲跌家數/.test(x.textContent) && x.offsetParent);
+        if (!b) return [...document.querySelectorAll('.mpager button')].filter(x => x.offsetParent).map(x => x.textContent);
+        b.click(); return 'ok'; }""")
+    pg.wait_for_timeout(1200)
+    ok("手機 390：點「② 貴不貴」→「市場寬度」到得了這張卡", stepped == "ok" and seg_hit == "ok", (stepped, seg_hit))
+    scroll_to(pg, "breadth"); pg.wait_for_timeout(600)
     mb = pg.evaluate("""() => { const s = document.getElementById('udMkt').getBoundingClientRect(), c = document.getElementById('ovBreadthCard').getBoundingClientRect();
-        return { inside: s.left >= c.left - 1 && s.right <= c.right + 1, w: Math.round(s.width), sw: document.documentElement.scrollWidth, vw: innerWidth }; }""")
-    ok("★ 手機 390：分段鈕在卡片內、整頁沒有橫向捲動", mb["inside"] and mb["sw"] <= mb["vw"] + 1, mb)
-    a6 = _ud_click_seg(pg, "tpex")
+        const bs = [...document.querySelectorAll('#udMkt button')].map(b => b.getBoundingClientRect());
+        return { shown: c.width > 0 && s.width > 0, inside: s.left >= c.left - 1 && s.right <= c.right + 1,
+                 btnMinW: Math.round(Math.min(...bs.map(r => r.width))), btnMinH: Math.round(Math.min(...bs.map(r => r.height))),
+                 w: Math.round(s.width), cw: Math.round(c.width), sw: document.documentElement.scrollWidth, vw: innerWidth }; }""")
+    ok("★ 手機 390：分段鈕看得見、在卡片內、整頁沒有橫向捲動", mb["shown"] and mb["inside"] and mb["sw"] <= mb["vw"] + 1, mb)
+    # 真的用手指點（滑鼠點座標），不是 JS click —— 被別的東西蓋住的話這裡會點不到
+    bx = pg.evaluate("""() => { const r = document.querySelector('#udMkt button[data-m="tpex"]').getBoundingClientRect(); return {x: r.left + r.width / 2, y: r.top + r.height / 2}; }""")
+    pg.mouse.click(bx["x"], bx["y"]); pg.wait_for_timeout(800)
+    a6 = pg.evaluate(UD_PROBE)
     ok("★ 手機 390：按上櫃照樣換長條", a6["vals"] == ud["tpex"]["counts"] and a6["total"] == ud["tpex"]["n"], a6["total"])
     _ud_click_seg(pg, "all")
     pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
