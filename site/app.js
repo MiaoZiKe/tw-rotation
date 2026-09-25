@@ -4056,9 +4056,19 @@
     }
     return cv;
   }
-  // 盤的幾何：和 polar 的設定同一個公式（center 50%／52%、radius 84%／66% × min(寬,高)/2）
+  /* 盤的幾何：和 polar 的設定同一個公式（center 50%／52%、radius 84%／66% × min(寬,高)/2）。
+     ★ 2026-09-24 效能：寬高**不每一幀讀 clientWidth**（頁面上任何地方剛改過 DOM 時，讀它會逼瀏覽器當場重排整頁）；
+       改由這張圖自己的 ResizeObserver 記下尺寸，尺寸真的變了才更新。*/
   const rotFxGeo = (el, compact) => {
-    const W = el.clientWidth || 0, H = el.clientHeight || 0;
+    const F = el._fx || {};
+    if (!F.sz) {
+      F.sz = [el.clientWidth || 0, el.clientHeight || 0];
+      if (typeof ResizeObserver !== 'undefined' && !F.szro) {
+        F.szro = new ResizeObserver(() => { F.sz = [el.clientWidth || 0, el.clientHeight || 0]; });
+        F.szro.observe(el);
+      }
+    }
+    const W = F.sz[0], H = F.sz[1];
     return { W, H, cx: W / 2, cy: H * (compact ? .52 : .5), R: (compact ? .66 : .84) * Math.min(W, H) / 2 };
   };
   // 光束元素：沒有就建；尺寸、顏色、主題變了才改樣式（每一幀比對一個字串，不寫 DOM）
