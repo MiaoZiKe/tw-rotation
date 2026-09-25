@@ -7991,6 +7991,9 @@ def t_batch6_n3(pg, base):
       一條都沒有放寬。每條鏈各挑一檔一定在那條鏈上的權值股當入口。
     """
     ENTRY = {"ai_server": "3017", "semiconductor": "2330"}
+    # 2026-09-25 關聯圖環節預設收合（chainmap-fold）→ 這段量的是「展開的公司卡」幾何，先把兩條鏈設成展開再量
+    pg.goto(base + "#overview"); pg.evaluate("""() => { try { localStorage.setItem('tw.chainFold',
+        JSON.stringify({ ai_server: { def: false, seg: {} }, semiconductor: { def: false, seg: {} } })); } catch (e) {} }""")
     for wpx in (1500, 800):
         pg.set_viewport_size({"width": wpx, "height": 1000})
         tag = f"（{wpx}px）"
