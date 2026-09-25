@@ -3376,6 +3376,18 @@
     rotQuadSync();
     renderStagePanel();
     rotSideChanged();
+    if (rotStageOpen) rotStageReveal();
+  }
+  /* ★ 2026-09-25（批次30 收尾）：≤1100px 單欄時，側欄掛在排行那一格、排在輪盤**下面**。
+     1000×1000 實測：點「改善」之後面板的上緣在 y≈1070，整塊落在畫面外 —— 使用者按下去只看到徽章變色，
+     以為什麼都沒發生。所以只有在「面板整塊（幾乎）都在畫面下緣之外」時才捲，捲到剛好看得到（nearest），
+     面板已經有一部分在畫面上（桌機兩欄時它就在輪盤右邊）一律不動 —— 2026-09-18 踩過「一捲就把剛點的圖捲走」。*/
+  function rotStageReveal() {
+    requestAnimationFrame(() => {
+      const b = $('#stagePanel'); if (!b || b.hidden) return;
+      const r = b.getBoundingClientRect();
+      if (r.height && r.top > window.innerHeight - 60) b.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    });
   }
   function rotQuadSync() {
     $$('#rotClock .rotquads .rq').forEach(b => {
