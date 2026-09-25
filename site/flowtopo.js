@@ -184,7 +184,11 @@
     };
     const onMQ = () => setMotion(S, motionWanted());
     try { reduceMQ.addEventListener ? reduceMQ.addEventListener('change', onMQ) : reduceMQ.addListener(onMQ); } catch (e) { /* 舊瀏覽器 */ }
-    S.onVis = () => { if (document.hidden) stopLoop(S); else startLoop(S); };
+    S.onVis = () => {
+      if (document.hidden) return stopLoop(S);
+      if (S.pendingDraw && !farAway(S)) layoutAndDraw(S, false, true);
+      startLoop(S);
+    };
     document.addEventListener('visibilitychange', S.onVis);
     if (window.IntersectionObserver) {
       S.io = new IntersectionObserver((es) => {
@@ -192,6 +196,11 @@
         if (S.visible) startLoop(S); else stopLoop(S);
       });
       S.io.observe(stage);
+      /* 首次畫圖延後（見 layoutAndDraw 的 pendingDraw）：捲進畫面就當場畫 */
+      S.pendIO = new IntersectionObserver((es) => {
+        if (S.alive && S.pendingDraw && es.some(e => e.isIntersecting)) layoutAndDraw(S, false, true);
+      });
+      S.pendIO.observe(stage);
     }
     if (window.ResizeObserver) {
       S.ro = new ResizeObserver(() => {
@@ -214,6 +223,8 @@
     stopLoop(S);
     document.removeEventListener('visibilitychange', S.onVis);
     if (S.io) S.io.disconnect();
+    if (S.pendIO) S.pendIO.disconnect();
+    if (S.pendIdle && window.cancelIdleCallback) try { cancelIdleCallback(S.pendIdle); } catch (e) { /* 忽略 */ }
     if (S.ro) S.ro.disconnect();
     if (S.cleanupMQ) S.cleanupMQ();
     if (S.bar.parentNode === host) host.removeChild(S.bar);
@@ -225,6 +236,7 @@
   function setMotion(S, on) {
     S.motion = !!on;
     paintMotionBtn(S);
+    if (!S.drawn) return;                    // 還沒畫過（首次畫圖延後中）：等真的畫的時候自然照新設定畫
     if (S.motion) { prewarm(S, 3); startLoop(S); }
     else { stopLoop(S); drawStill(S); }
   }
@@ -925,12 +937,34 @@
       c.style.width = S.W + 'px'; c.style.height = S.H + 'px';
     });
   }
-  function layoutAndDraw(S, allowTween) {
+  /* 畫布不在視窗裡（或分頁在背景）→ 還沒必要當場畫 */
+  function farAway(S) {
+    if (document.hidden) return true;
+    const r = S.stage.getBoundingClientRect();
+    return r.top >= window.innerHeight || r.bottom <= 0;
+  }
+  function layoutAndDraw(S, allowTween, force) {
     if (!S.stage.clientWidth) return;
     const tA = performance.now();
     S.H = wantHeight(S);
     S.stage.style.height = S.H + 'px';
-    S.host.style.height = (S.H + CFG.BAR_H) + 'px';
+    S.host.style.height = (S.H + CFG.BAR_H) + 'px';          // 高度先定（版面不會等圖畫完才長高）
+    /* ★ 2026-09-25（開網頁卡頓那批的要求：首次載入不額外變重）：
+       資金流向頁一進來，這張卡的畫布剛好在首屏下緣之外。**第一次**畫（配三張全尺寸 HiDPI 畫布、量約 300 段字、
+       77 條曲線查表、畫底圖與標籤，容器實測 80～230ms 的長任務）不在載入那一刻做：
+       捲進畫面就當場畫（pendIO）；沒捲的話等瀏覽器閒下來再畫（requestIdleCallback，最慢 1.5 秒）——
+       和 app.js 的 whenNear 同一個想法。分頁在背景也先不畫（onVis 補）。
+       資料模型照算（buildModel 在 render() 裡），所以點擊、探針的節點清單都在。
+       畫過一次之後就照舊每次重畫（換日、即時都要當場反映）。*/
+    if (!S.drawn && !force && farAway(S)) {
+      S.pendingDraw = true;
+      if (!S.pendIdle) {
+        const ric = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+        S.pendIdle = ric(() => { S.pendIdle = 0; if (S.alive && S.pendingDraw && !document.hidden) layoutAndDraw(S, false, true); }, { timeout: 1500 });
+      }
+      return;
+    }
+    S.pendingDraw = false; S.drawn = true;
     const prevW = S.W;
     sizeCanvases(S);
     if (!allowTween || prevW !== S.W) S.first = S.first || prevW !== S.W;
@@ -1070,6 +1104,7 @@
       firstDrawMs: m.firstDrawMs == null ? null : +m.firstDrawMs.toFixed(1),
       lastDrawMs: m.lastDrawMs == null ? null : +m.lastDrawMs.toFixed(1),
       warmMs: m.warmMs == null ? null : +m.warmMs.toFixed(1),
+      pending: !!S.pendingDraw,
       tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
     };
   }
