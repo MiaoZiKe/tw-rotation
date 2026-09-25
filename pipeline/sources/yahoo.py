@@ -193,3 +193,70 @@ def intraday_since(codes: list[str], markets: dict[str, str], since: str | None,
     out = df[keep].reset_index(drop=True)
     log.info("分 K 增量：拿到 %d 列，其中 %d 列是 %s 之後的新資料", len(df), len(out), since)
     return out
+
+
+
+# ------------------------------------------------------------------ 大盤指數分 K（2026-09-25）
+# 總覽大盤三張圖的 1 小時／4 小時。以前是瀏覽器經 Worker 即時抓 Yahoo 15 分 K，線上抓不到就整張退回日 K；
+# 改成管線在 Actions 端抓、增量進資料湖 `index_intraday`，前端只讀（DECISIONS #155）。
+# 指數代號不能走 symbol_of()（那會加上 .TW），所以另外一張對照表。
+INDEX_SYMBOLS = {"^TWII": "TSE", "^TWOII": "OTC"}
+
+
+def index_intraday(interval: str, period: str,
+                   symbols: dict[str, str] | None = None) -> pd.DataFrame:
+    """指數分 K：ts, symbol（TSE/OTC）, interval, open, high, low, close, volume。失敗回空並記 log。
+
+    ^TWOII 在 Yahoo 的**日線**壞過（config.py 註解），分 K 能不能用只能在 Actions 上看 log；
+    拿不到就只有加權，不影響其他步驟。
+    """
+    symbols = symbols or INDEX_SYMBOLS
+    try:
+        import yfinance as yf
+    except ImportError:
+        log.warning("未安裝 yfinance，跳過指數分 K")
+        return pd.DataFrame()
+    frames = []
+    for ysym, sym in symbols.items():
+        try:
+            raw = yf.download(ysym, interval=interval, period=period, auto_adjust=False,
+                              progress=False, threads=False)
+            if raw is not None and isinstance(raw.columns, pd.MultiIndex):
+                parts = _split_by_ticker(raw, {ysym: sym})
+                f = parts[0] if parts else pd.DataFrame()
+            else:
+                f = _frame_to_long(raw, sym)
+            if f is None or f.empty:
+                log.warning("Yahoo 指數分 K %s %s/%s 回空（回應前 200 字：%s）",
+                            ysym, interval, period, str(raw)[:200])
+                continue
+            f = f.rename(columns={"code": "symbol"})
+            f.insert(2, "interval", interval)
+            frames.append(f)
+        except Exception as exc:  # noqa: BLE001 —— Yahoo 隨時會掛，這層不能拋
+            log.warning("Yahoo 指數分 K %s %s/%s 失敗：%s", ysym, interval, period, exc)
+    if not frames:
+        return pd.DataFrame()
+    df = pd.concat(frames, ignore_index=True)
+    log.info("Yahoo 指數分 K %s/%s：%d 列 %s", interval, period, len(df),
+             df.groupby("symbol").size().to_dict())
+    return df
+
+
+def index_intraday_since(have: pd.DataFrame, interval: str) -> pd.DataFrame:
+    """增量：依資料湖裡這個 interval 最後一根決定跟 Yahoo 要多長；湖是空的就補滿保留上限。
+
+    時間比較用 Timestamp，不用字串 —— 字串比較在 +08:00 與 Z 混用時會錯。
+    """
+    since = None
+    if have is not None and not have.empty and "interval" in have.columns:
+        sub = have[have["interval"].astype(str) == interval]
+        if not sub.empty:
+            since = pd.to_datetime(sub["ts"].astype(str), utc=True, format="mixed").max()
+    cap_days = int(str(INTRADAY_MAX_PERIOD.get(interval, "60d")).rstrip("d"))
+    gap = cap_days if since is None else (pd.Timestamp.now(tz="UTC") - since).days
+    df = index_intraday(interval, period_for(gap, interval))
+    if df.empty or since is None:
+        return df
+    keep = pd.to_datetime(df["ts"].astype(str), utc=True, format="mixed") > since
+    return df[keep].reset_index(drop=True)

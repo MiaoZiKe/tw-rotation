@@ -1086,6 +1086,18 @@
     }
   }
 
+  /** 資料湖合成好的 1H／4H（site/data/index_intraday.json）。只載一次；讀不到記成 {}，走舊退回鏈。 */
+  async function loadLakeIntra() {
+    if (state.lakeIntraBusy) return;
+    state.lakeIntraBusy = true;
+    try {
+      const all = window.App ? await window.App.load('index_intraday', { fallback: {} }) : {};
+      state.lakeIntra = all || {};
+    } catch (e) { state.lakeIntra = {}; }
+    state.lakeIntraBusy = false;
+    draw();
+  }
+
   /** 一根 K 棒（台北牆鐘秒數）→ 它屬於哪一個 1 小時／4 小時的格子（回傳那一格的開始時間）。 */
   function sessKey(t, tf) {
     const day = Math.floor(t / 86400), min = Math.floor((t % 86400) / 60);
@@ -1099,8 +1111,8 @@
     return day * 86400 + h * 3600;
   }
   /** 15 分 K → 1 小時／4 小時。回傳 { bars, n15, days, today, why }。 */
-  function synthBars(x, tf) {
-    const f = state.fine[x.id] || { bars: [], err: '' };
+  function synthBars(x, tf, noFine) {
+    const f = (!noFine && state.fine[x.id]) || { bars: [], err: '' };
     let b15 = (f.bars || []).slice();
     // 今天（或今晚）的分時 → 15 分 K；Yahoo 已經有的同一天以分時為準
     const d = seriesOf(x);
@@ -1118,7 +1130,8 @@
     }
     if (cur) out.push(cur);
     const days = new Set(out.map(b => sessKey(b[0], 'H4'))).size;
-    const why = f.err === 'NOSRC' ? '沒有多日分 K 的免費來源' : f.err ? '15 分 K 抓不到' : '';
+    const why = f.err === 'NOSRC' ? '的多日分 K 資料湖還沒有（台指期要等 FinMind 逐筆入湖）'
+      : f.err ? '的分 K 資料湖還沒有、瀏覽器端也抓不到' : '';
     return { bars: out, n15: b15.length, days, today: today.length, why };
   }
   /** 量柱要不要畫：超過一半的 K 棒沒有量＝來源根本沒給量（Yahoo 指數的成交量是 0），畫出一排 0 張是錯的。
@@ -1872,7 +1885,26 @@
     let bars, tfName, synthSay = forceSay || '';
     /* 1 小時／4 小時：15 分 K 合成（見 synthBars 的註解）。合成不到 2 根才退回日 K，而且這不是黏著的旗標 ——
        下一輪今天的分時進來、或 Yahoo 補抓成功，就會自己回到 1 小時。*/
+    /* ★ 2026-09-25：1H／4H 先讀資料湖（管線在 Actions 端把 ^TWII／^TWOII 的 60／15 分 K、台指期逐筆聚合的
+       60 分 K 存進 index_intraday，build_payload 依交易時段合成成 index_intraday.json）。
+       Andy：「幫我處理週期問題」—— 以前只靠瀏覽器即時抓 Yahoo，線上抓不到就三張全部退回日 K。
+       湖裡有 ≥2 根就用湖的，今天的分時（證交所第一手、10 秒更新）蓋掉湖裡同一盤；湖裡沒有才走下面的舊退回鏈。*/
+    if (def && def.synth && state.lakeIntra === undefined) {
+      loadLakeIntra();
+      killK(x.id); el.dataset.kind = ''; el.innerHTML = '<div class="empty">載入中…</div>'; return;
+    }
     if (def && def.synth) {
+      const lb = ((state.lakeIntra || {})[lakeSym(x)] || {})[def.synth] || [];
+      if (lb.length >= 2) {
+        const t = synthBars(x, def.synth, true).bars;
+        const days = new Set(t.map(b => sessKey(b[0], 'H4')));
+        bars = lb.filter(b => !days.has(sessKey(b[0], 'H4'))).map(b => b.slice()).concat(t);
+        tfName = def.synth === 'H4' ? '240m' : '60m';
+        el.dataset.src = 'lake';
+      }
+    }
+    if (def && def.synth && !bars) {
+      el.dataset.src = 'fine';
       if (!state.fine[x.id]) fetchFine(x);
       if (!state.fine[x.id]) { killK(x.id); el.dataset.kind = ''; el.innerHTML = '<div class="empty">載入中…</div>'; return; }
       const r = synthBars(x, def.synth);

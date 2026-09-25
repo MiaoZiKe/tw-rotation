@@ -472,6 +472,70 @@ def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
     return True
 
 
+FUT_TICK_DAYS = 60     # 台指期逐筆往回補幾個交易日（一天 1 次額度；60 天 ≈ 1H 300 根）
+
+
+def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
+    """大盤三張圖 1H／4H 的一次性回補（2026-09-25）。
+
+    ① 加權／櫃買：Yahoo 60 分補滿 730 天、15 分補滿 60 天（不吃 FinMind 額度）。
+       每日管線湖空時也會自己補滿，這裡是讓回補那輪就先長出來。
+    ② 台指期：FinMind TaiwanFuturesTick 逐日抓最近 `days` 個交易日（交易日取自 index_ohlc 的 FUT，
+       不用執行當天推算），聚合成 60 分入湖。一天 1 次額度，額度剩 ≤ 5 就停，下一輪接續；
+       已在湖裡的日子跳過，所以中斷重跑不會重花額度。
+    全部補完記 `complete["index_intraday"]`。資料集沒權限（回空且有錯誤訊息）就記 `unavailable` 不再重試。
+    """
+    from .compute.intraday_bars import ticks_to_60m
+    from .sources import yahoo
+
+    flag = (prog.get("complete") or {}).get("index_intraday") or {}
+    if flag.get("done"):
+        return True
+    have = store.read("index_intraday")
+    if not flag.get("yahoo"):
+        n = 0
+        for iv in ("60m", "15m"):
+            n += store.append("index_intraday", yahoo.index_intraday_since(have, iv))
+        log.info("指數分 K（Yahoo）回補寫入 %d 列", n)
+        flag["yahoo"] = n > 0 or not have.empty
+        have = store.read("index_intraday")
+
+    if not flag.get("fut_unavailable"):
+        dates = store.read("index_ohlc")
+        dates = (sorted(dates.loc[dates["symbol"].astype(str) == "FUT", "date"].astype(str).unique())
+                 if not dates.empty else [])[-days:]
+        got = set()
+        if not have.empty:
+            fut = have[have["symbol"].astype(str) == "FUT"]
+            got = set(fut["ts"].astype(str).str.slice(0, 10))
+        todo = [d for d in dates if d not in got]
+        for d in reversed(todo):          # 新的先補：最近的 1H 最有用
+            if http.finmind_budget_left() <= 5:
+                log.warning("額度剩不多，台指期逐筆回補停在 %s，下一輪接續", d)
+                break
+            ticks = finmind.futures_ticks(d)
+            if ticks.empty:
+                err = http.finmind_last_error() or {}
+                if err.get("dataset") == "TaiwanFuturesTick" and err.get("status") not in (None, 402, 429):
+                    log.warning("TaiwanFuturesTick 不可用（%s %s），記下來不再重試",
+                                err.get("status"), err.get("msg"))
+                    flag["fut_unavailable"] = f"{err.get('status')} {err.get('msg')}"[:200]
+                    break
+                continue
+            store.append("index_intraday", ticks_to_60m(ticks))
+            todo = [x for x in todo if x != d]
+        flag["fut_left"] = len(todo)
+        fut_ok = not todo or bool(flag.get("fut_unavailable"))
+    else:
+        fut_ok = True
+
+    flag["done"] = bool(flag.get("yahoo")) and fut_ok
+    flag["at"] = datetime.now(timezone.utc).isoformat()
+    prog.setdefault("complete", {})["index_intraday"] = flag
+    _save_progress(prog)
+    return flag["done"]
+
+
 def finmind_reachable(prog: dict) -> bool:
     """花 1 次額度確認「整把 token 還通不通」。
 
@@ -557,6 +621,11 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
     # 指數歷史只要 3 次請求，放最前面：它一補完，總覽的月 K／季 K 與季節性的
     # 大盤基準就都有東西了，不必等後面幾千檔個股跑完。
     idx_ok = backfill_indices(prog0)
+    # 大盤 1H／4H 的分 K（Yahoo 不吃額度；台指期逐筆一天 1 次）。失敗不擋後面的個股回補。
+    try:
+        backfill_index_intraday(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("指數分 K 回補失敗（不影響其他步驟）：%s", exc)
     results: dict[str, bool] = {}
     stopped_at: str | None = None
     totals = {k: 0 for k in DATA_KEYS}

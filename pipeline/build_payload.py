@@ -379,6 +379,14 @@ def build() -> None:
             ])
     _write("index_ohlc", out_idx)
 
+    # 大盤三張圖的 1H／4H（2026-09-25）：資料湖 index_intraday 依台股時段合成，前端只讀、不再即時抓 Yahoo。
+    try:
+        from .compute import intraday_bars
+        _write("index_intraday", intraday_bars.build(store.read("index_intraday")))
+    except Exception as exc:  # noqa: BLE001 —— 這張壞掉不能拖垮整個 build，前端會走退回鏈
+        log.warning("index_intraday 合成失敗：%s", exc)
+        _write("index_intraday", {})
+
     lap("大盤歷史日K")
 
     # ---------------------------------------------------------- v3：資金流向 / 題材 / 產業地圖

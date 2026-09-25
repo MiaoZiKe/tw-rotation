@@ -3210,8 +3210,8 @@ def t_new_market3(pg, base):
     pg.evaluate("() => { const s = window.Market3.state; s.fine = {}; }")
     pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(1800)
     o2 = pg.evaluate(HOUR, "OTC")
-    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片寫「15 分 K 抓不到」",
-       o2 and o2["n"] == 5 and "15 分 K 抓不到" in o2["fb"], o2)
+    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片寫「瀏覽器端也抓不到」",
+       o2 and o2["n"] == 5 and "瀏覽器端也抓不到" in o2["fb"], o2)
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
     pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
@@ -3219,6 +3219,50 @@ def t_new_market3(pg, base):
     t2 = pg.evaluate(HOUR, "TSE")
     ok("★ 分 K 全部拿不到 → 1 小時退回日 K，並標明「已改用「日」」",
        t2 and t2["tf"] == "1d" and "已改用「日」" in t2["fb"], t2)
+
+    # --- ★ 2026-09-25：1H／4H 優先讀資料湖合成好的 index_intraday.json（Andy：「幫我處理週期問題」）
+    #     這時分時與 Yahoo 全部 404 —— 正是線上「三張全部退回日 K」的情況；湖裡有就不該再退回。
+    def fake_intra(route):
+        import calendar, datetime as _dt
+        out = {}
+        for sym, px0, vol in (("TSE", 45000.0, 0), ("OTC", 390.0, 0), ("FUT", 45100.0, 1200)):
+            h1, h4, d, n = [], [], _dt.date(2026, 8, 3), 0
+            while n < 30:
+                if d.weekday() < 5:
+                    for hr in range(9, 14):
+                        t = calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
+                        px = px0 * (1 + ((len(h1) % 17) - 8) / 3000.0)
+                        h1.append([t, px - 1, px + 5, px - 6, px, vol])
+                    h4.append([calendar.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)),
+                               px0, px0 + 20, px0 - 20, px0 + (n % 5) - 2, vol * 5])
+                    n += 1
+                d += _dt.timedelta(days=1)
+            out[sym] = {"H1": h1, "H4": h4}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+    pg.route("**/data/index_intraday.json*", fake_intra)
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1")
+    for i in ("TSE", "OTC", "FUT"):
+        wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length > 5; }" % i, 8000)
+    pg.wait_for_timeout(400)
+    for tf, tfn in (("H1", "60m"), ("H4", "240m")):
+        if tf == "H4":
+            pg.select_option("#m3Tf", "H4")
+            for i in ("TSE", "OTC", "FUT"):
+                wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '240m'; }" % i, 8000)
+            pg.wait_for_timeout(400)
+        li = {i: pg.evaluate(HOUR, i) for i in ("TSE", "OTC", "FUT")}
+        src = pg.evaluate("() => ['TSE','OTC','FUT'].map(id => document.getElementById('m3c-' + id).dataset.src || '')")
+        for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+            ok(f"★ [{tf}] {nm}讀資料湖 index_intraday：根數 > 5、週期是 {tfn}",
+               li[i] and li[i]["tf"] == tfn and li[i]["n"] > 5, li[i])
+            ok(f"★ [{tf}] {nm}不再出現「已改用日」", li[i] and "已改用" not in li[i]["fb"], li[i])
+        ok(f"[{tf}] 三張圖的來源標記都是 lake", src == ["lake"] * 3, src)
+        ok(f"[{tf}] 指數量全 0 → 量柱隱藏；台指期有量 → 量柱照畫",
+           li["TSE"] and not li["TSE"]["vol"] and li["FUT"] and li["FUT"]["vol"], li)
+    pg.unroute("**/data/index_intraday.json*")
+    fresh(sess="day")
     # --- 分時全掛（Worker 連不上）時，走勢圖模式最後一層退到資料湖日 K、大數字補上、錯誤中文（審查 R1）
     click(pg, "#m3Mode button[data-m='line']", 1500)
     pg.wait_for_timeout(1200)
