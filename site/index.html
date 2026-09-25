@@ -2273,6 +2273,41 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
   .rotstagerow>.stagepanel{max-width:none;margin-top:10px}
 }
 
+/* ★ 2026-09-25：輪盤欄標題列（足跡輪盤＋日期區間／放大鈕在右端） */
+.rotchead{align-items:center;margin:2px 0 4px;gap:8px}
+.rotchead h4.subh{margin:0}
+/* ★ 2026-09-25 合併側欄（Andy：「佔太多空間…兩張圖合併，並調整適當大小」）：
+   側欄不再 inset:0 撐滿整欄，高度跟著內容走（最多到整欄高、超過才自己捲），底下的排行圖露出來；
+   列高、字級、內距一起收小。只影響 >1100px 蓋在排行上的那一型。 */
+@media (min-width:1101px){
+  #rankFlowWrap>.sidepanel.stagepanel{bottom:auto;max-height:100%;padding:8px 10px}
+  #rankFlowWrap>.sidepanel .ph{font-size:12px;gap:6px}
+  #rankFlowWrap>.sidepanel .ph b{font-size:13.5px}
+  #rankFlowWrap>.sidepanel .sd{font-size:11.5px;margin:3px 0 0;line-height:1.4}
+  #rankFlowWrap>.stagepanel ul.ms{margin-top:4px}
+  #rankFlowWrap>.stagepanel ul.ms li:not(.mem){padding-top:3px;padding-bottom:3px;font-size:12px}
+  #rankFlowWrap>.stagepanel ul.ms li .v{font-size:11.5px}
+}
+.stagepanel ul.ms li .tw2{flex:none;width:10px;font-size:11px;color:var(--ink-3)}
+.stagepanel ul.ms li.ison{background:var(--panel-2)}
+.stagepanel ul.ms li.ison .g{color:var(--cyan,var(--ink))}
+/* 展開那一列底下的成分股小表：一行一檔，名稱｜代號｜成交值｜佔比｜漲跌｜→ */
+.stagepanel ul.ms li.mem{display:block;cursor:default;padding:2px 0 6px 14px;border-top:0}
+.stagepanel ul.ms li.mem:hover{background:transparent}
+.stagepanel .mt .mr{display:grid;grid-template-columns:minmax(0,1fr) 38px 52px 40px 50px 14px;column-gap:5px;
+  align-items:center;font-size:11.5px;line-height:1.35;padding:2px 4px;border-radius:5px;cursor:pointer}
+.stagepanel .mt .mr>*{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stagepanel .mt .mr:hover{background:var(--panel-2)}
+.stagepanel .mt .mr .nm{color:var(--ink);font-weight:600}
+.stagepanel .mt .mr .c{font-family:var(--mono);color:var(--ink-3)}
+.stagepanel .mt .mr .v{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink-2)}
+.stagepanel .mt .mr b.v.up{color:var(--rise)} .stagepanel .mt .mr b.v.down{color:var(--fall)}
+.stagepanel .mt .mr a.go{display:block;padding:0;margin:0;border:0;background:none;min-height:0;box-shadow:none;color:var(--cyan,var(--ink-2));text-decoration:none;text-align:center;font-weight:700}
+.stagepanel .mt .mr.ison{box-shadow:inset 2px 0 0 var(--c)}
+.stagepanel .mt .mr.noplot .nm{color:var(--ink-3);font-weight:500}
+.stagepanel .mt .mr.none{display:block;cursor:default}
+.stagepanel li.mem .mw{font-size:11px;padding:2px 4px}
+
 /* ★ D7：總覽「輪動階段」卡片下半的「昨日資金去向」小標與圖 */
 h4.ovflowh{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-2)}
 /* 合併之後兩張圖各自需要一行小標（卡片標題已經被「資金輪動」佔走）。
@@ -3661,7 +3696,11 @@ h3 .howbtn.pop{font-family:inherit}
             <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
             <div class="rottools" id="rotTools"></div>
           </div>
-          <h4 class="subh">足跡輪盤</h4>
+          <!-- ★ 2026-09-25（Andy）：①「放大」從右欄（排行標題列）搬到輪盤欄右上角 —— 它放大的是輪盤，
+               放在排行上面會讓人以為放大的是排行；②標題後面補日期區間（#rotSub），格式與排行副標相同，
+               由 rankSubPaint 一起寫，所以拉Bar／回放／即時三條路自動同步，不另寫第二套。 -->
+          <div class="row spread rotchead"><h4 class="subh">足跡輪盤 <small id="rotSub"></small></h4>
+            <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button></div>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。
@@ -3676,8 +3715,7 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="rotpane rotright">
           <div class="row spread rotrhead">
             <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
-            <div class="row rotbtns" style="gap:8px">
-              <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button></div></div>
+</div>
           <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div>
           <!-- ★ 2026-09-24 夜（Andy：「點擊族群時，資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
                （同一個位置、同一種樣式），不要蓋在別處」）＋ 審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」。

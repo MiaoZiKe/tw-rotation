@@ -11855,11 +11855,13 @@ def t_rank_top(pg, b, base):
     ok("③ [1440] 排行圖填滿卡片高度（下緣與輪盤下緣差 ≤ 40px）",
        m["clockBottom"] is not None and m["rankBottom"] >= m["clockBottom"] - 40, m)
     # 改前「放大／怎麼看兩顆同一列在右上」→ 改後「放大在右上；?」在卡片標題旁、和標題同一條中線」
-    ok("③ [1440] 放大在卡片標題列右側（距卡片頂 < 40px、距右緣 ≤ 24px）",
-       m["btnTop"] < 40 and m["btnRight"] <= 24, m)
+    # ★ 2026-09-25（Andy）：改前「放大在卡片標題列右側（距卡片頂 < 40、距右緣 ≤ 24）」→
+    #   改後放大搬到輪盤欄右上角（與「足跡輪盤」同列），位置改由「輪盤合併側欄」段驗；這裡只驗它不在右欄
+    ok("③ [1440] 放大不在右欄排行標題列（已搬到輪盤欄）",
+       not pg.evaluate("() => !!document.querySelector('#flowRotCard .rotright #rotZoomBtn')"), m)
     ok("③ [1440] 「?」在「資金輪動」標題裡、和標題同一條中線（差 ≤ 3px）", m["hbInH3"] and m["btnRowDy"] <= 3, m)
     ok("③ [1440] 兩顆鈕和卡片標題、排行小標在同一條水平線上（中線差 ≤ 12px）",
-       m["h3Dy"] <= 12 and (m["h4Dy"] or 0) <= 12, m)
+       m["btnRowDy"] <= 12, m)  # 改前也要求放大鈕與標題同列（h3Dy/h4Dy）→ 改後放大在輪盤欄，只剩「?」
     # 真的按一下：鈕還是那兩顆鈕（放大開得起來、怎麼看展得開）
     pg.click("#rotZoomBtn"); pg.wait_for_timeout(1200)
     ok("③ [1440] 搬位置之後「放大」按下去真的開出放大視窗", pg.evaluate("() => !!document.querySelector('.zoomov')"))
@@ -11875,8 +11877,10 @@ def t_rank_top(pg, b, base):
     pg.set_viewport_size({"width": 800, "height": 1000}); pg.wait_for_timeout(1500)
     scroll_to(pg, "flowRotCard"); pg.wait_for_timeout(400)
     m3 = pg.evaluate(RANKTOP_M)
-    ok("③ [800] 單欄時兩顆鈕仍在卡片右上角（距頂 < 50px、距右緣 ≤ 24px）",
-       m3 and m3["btnTop"] < 50 and m3["btnRight"] <= 24, m3)
+    # ★ 2026-09-25：改前「放大在卡片右上角（距頂 < 50）」→ 改後放大跟著輪盤欄標題列（足跡輪盤那一列右端），
+    #   單欄時仍靠右（距右緣 ≤ 24）、在輪盤上方（距卡片頂 < 200）
+    ok("③ [800] 單欄時放大鈕在輪盤欄標題列右端（距右緣 ≤ 24px、距卡片頂 < 200px）",
+       m3 and m3["btnTop"] < 200 and m3["btnRight"] <= 24, m3)
     ok("③ [800] 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
@@ -12038,6 +12042,102 @@ def t_side_panel(pg, b, base):
         s3 = pg.evaluate(SIDE_M)
         ok("③ 點排行長條：成分股也開在輪盤旁邊的側欄", bool(s3["rank"]) and s3["inRow"], s3)
         pg.mouse.click(6, 500); pg.wait_for_timeout(600)
+
+
+def t_side_merge(pg, b, base):
+    """★ 2026-09-25 Andy：「這邊版面要優化，佔太多空間；點擊領先時，裡面的 HPC 會有下拉清單可以看個股資訊，
+    這兩張圖合併，並調整適當大小」＋同批追加「放大鈕搬到輪盤欄右上」「足跡輪盤標題後補日期區間」。
+    真的操作：點領先 → 點第一列展開 → 成分股列數＝原面板檔數 → 點另一列只剩它展開 → 面板比整欄矮 → 點名稱畫到盤上。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(500)
+    col_h = pg.evaluate("() => Math.round(document.getElementById('rankFlowWrap').getBoundingClientRect().height)")
+    pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(900)
+    rows = pg.evaluate("() => [...document.querySelectorAll('#stagePanel li[data-gid]')].map(li => li.dataset.gid)")
+    if not ok("合併側欄：點「領先」列出族群列（每列有 ▸）", len(rows) >= 2 and
+              pg.evaluate("() => [...document.querySelectorAll('#stagePanel li[data-gid] .tw2')].every(e => e.textContent === '▸')"), rows):
+        return
+    g0, g1 = rows[0], rows[1]
+    pg.click(f'#stagePanel li[data-gid="{g0}"]'); pg.wait_for_timeout(1200)
+    st = pg.evaluate("""(g) => { const b = document.getElementById('rankPanel');
+        const li = b.querySelector(`li[data-gid="${g}"]`);
+        const mem = b.querySelector('li.mem');
+        return { vis: !b.hidden, merged: b.classList.contains('merged'), stageHidden: document.getElementById('stagePanel').hidden,
+                 openTw: li ? li.querySelector('.tw2').textContent : null, rightAfter: !!(li && li.nextElementSibling === mem),
+                 nMem: b.querySelectorAll('li.mem .mr[data-code]').length, nOpen: b.querySelectorAll('li.mem').length,
+                 nGroups: b.querySelectorAll('li[data-gid]').length, h: Math.round(b.getBoundingClientRect().height),
+                 hasAll: !!b.querySelector('[data-all]'), hasGrp: !!b.querySelector('a[href^="#industry/group/"]'),
+                 go: b.querySelectorAll('li.mem a.go[href^="#stock/"]').length }; }""", g0)
+    n_det = pg.evaluate("(g) => (((App.D.groups_detail || {})[g] || {}).members || []).length", g0)
+    ok("★ 點 HPC 那一列：同一張表就地展開（▾、成分股小表緊接在該列下方、象限面板收起）",
+       st["vis"] and st["merged"] and st["stageHidden"] and st["openTw"] == "▾" and st["rightAfter"], st)
+    ok("★ 展開的成分股列數＝原本成分股面板的檔數（groups_detail.members）",
+       n_det > 0 and st["nMem"] == n_det, {"列": st["nMem"], "原面板": n_det})
+    ok("合併表仍列出整段族群（改前：成分股面板只剩一個族群 → 改後：同段族群都在）", st["nGroups"] == len(rows), [st["nGroups"], len(rows)])
+    ok("表頭保留「‹ 全部族群」與「進族群頁 →」", st["hasAll"] and st["hasGrp"], st)
+    ok("每檔有 → 進個股頁連結", st["go"] > 0, st)
+    ok("★ 面板高度隨內容、比整欄矮（改前 inset:0 撐滿 = 整欄高）", st["h"] < col_h - 10, {"面板": st["h"], "整欄": col_h})
+    # 點另一列 → 只剩它展開
+    pg.click(f'#rankPanel li[data-gid="{g1}"]'); pg.wait_for_timeout(1200)
+    s2 = pg.evaluate("""(g) => { const b = document.getElementById('rankPanel'); const li = b.querySelector(`li[data-gid="${g}"]`);
+        return { nOpen: b.querySelectorAll('li.mem').length, nOn: b.querySelectorAll('li[data-gid].ison').length,
+                 after: !!(li && li.nextElementSibling && li.nextElementSibling.classList.contains('mem')) }; }""", g1)
+    ok("★ 點另一列：只剩它展開（同時只展開一列）", s2["nOpen"] == 1 and s2["nOn"] == 1 and s2["after"], s2)
+    # 字級 ≥ 11px
+    fs = pg.evaluate("() => Math.min(...[...document.querySelectorAll('#rankPanel li.mem .mr > *')].map(e => parseFloat(getComputedStyle(e).fontSize)))")
+    ok("成分股小表字級 ≥ 11px", fs >= 11, fs)
+    # 點名稱畫到盤上
+    code = pg.evaluate("() => { const r = [...document.querySelectorAll('#rankPanel li.mem .mr[data-code]')].find(x => !x.classList.contains('noplot')); return r ? r.dataset.code : null; }")
+    if code:
+        pg.click(f'#rankPanel li.mem .mr[data-code="{code}"] .nm'); pg.wait_for_timeout(1200)
+        s3 = pg.evaluate("""(c) => ({ on: !!document.querySelector(`#rankPanel li.mem .mr.ison[data-code="${c}"]`),
+            hash: location.hash, vis: !document.getElementById('rankPanel').hidden })""", code)
+        ok("★ 點個股名稱：畫到盤上（該列變成已選、面板仍開、沒有跳頁）", s3["on"] and s3["vis"] and s3["hash"] == "#flow", s3)
+    else:
+        ok("這個族群有畫得上盤的個股（個股輪動資料）", False, "全部 noplot")
+    # 點展開中的列 → 收回同一段的象限表
+    pg.click(f'#rankPanel li[data-gid="{g1}"]'); pg.wait_for_timeout(1000)
+    s4 = pg.evaluate("() => ({ rank: !document.getElementById('rankPanel').hidden, stage: !document.getElementById('stagePanel').hidden })")
+    ok("點展開中的那一列：收起、回到同一段的象限表", (not s4["rank"]) and s4["stage"], s4)
+    # Esc 關（上一步已經回到「領先」象限表，不要再點徽章 —— 再點一次會把它收掉）
+    if pg.evaluate("() => document.getElementById('stagePanel').hidden"):
+        pg.click('#rotClock .rq[data-k="leading"]'); pg.wait_for_timeout(600)
+    pg.click(f'#stagePanel li[data-gid="{g0}"]'); pg.wait_for_timeout(1000)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+    ok("按 Esc：合併面板關閉", pg.evaluate("() => document.getElementById('rankPanel').hidden"))
+    # 直接點盤上族群點 → 同一張表、自動展開該列
+    xy = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+        const d = c.getModel().getSeriesByName('族群')[0].getData(); const g = d.getItemGraphicEl(0);
+        const r = el.getBoundingClientRect(); return g ? [r.left + g.x, r.top + g.y] : null; }""")
+    if xy:
+        pg.mouse.click(xy[0], xy[1]); pg.wait_for_timeout(1300)
+        s5 = pg.evaluate("""() => { const b = document.getElementById('rankPanel'); const on = b.querySelector('li[data-gid].ison');
+            return { merged: b.classList.contains('merged') && !b.hidden, gid: b.dataset.gid, onGid: on ? on.dataset.gid : null,
+                     mem: b.querySelectorAll('li.mem').length }; }""")
+        ok("★ 直接點盤上族群：同一張合併表、自動展開那一列", s5["merged"] and s5["onGid"] == s5["gid"] and s5["mem"] == 1, s5)
+        pg.mouse.click(6, 520); pg.wait_for_timeout(700)
+        ok("點背景：合併面板關閉", pg.evaluate("() => document.getElementById('rankPanel').hidden"))
+    # 追加：放大鈕在輪盤欄右上、日期區間同步
+    z = pg.evaluate("""() => { const zb = document.getElementById('rotZoomBtn'), lf = document.querySelector('#flowRotCard .rotleft'),
+        rt = document.querySelector('#flowRotCard .rotright'), h4 = document.querySelector('#flowRotCard .rotchead h4');
+        const zr = zb.getBoundingClientRect(), lr = lf.getBoundingClientRect(), tr = h4.getBoundingClientRect(), kr = document.getElementById('rotClockWrap').getBoundingClientRect();
+        return { inLeft: lf.contains(zb), notRight: !rt.contains(zb), rightGap: Math.round(lr.right - zr.right),
+                 rowDy: Math.round(Math.abs((zr.top + zr.bottom) / 2 - (tr.top + tr.bottom) / 2)), aboveClock: zr.bottom <= kr.top + 2,
+                 rot: (document.getElementById('rotSub') || {}).textContent || '', rank: (document.getElementById('rankSub') || {}).textContent || '' }; }""")
+    ok("★ 放大鈕在輪盤欄右上角（改前：右欄排行標題列 → 改後：輪盤欄、與「足跡輪盤」同列右端）",
+       z["inLeft"] and z["notRight"] and z["rightGap"] <= 24 and z["rowDy"] <= 6 and z["aboveClock"], z)
+    ok("★ 足跡輪盤標題後有日期區間，且與排行副標一致", bool(z["rot"]) and "～" in z["rot"] and z["rot"] == z["rank"], z)
+    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(1500)
+    ok("點放大鈕：放大視窗真的開了", pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!(o && !o.hidden); }"))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+    # 拉Bar 後兩者一起變
+    r0 = z["rot"]
+    moved = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]'); if (!i) return false;
+        const v = +i.value, nv = v > +i.min + 4 ? v - 5 : v + 5; i.value = String(nv);
+        i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); return true; }""")
+    pg.wait_for_timeout(1500)
+    z2 = pg.evaluate("() => ({ rot: document.getElementById('rotSub').textContent, rank: document.getElementById('rankSub').textContent })")
+    ok("★ 拉「N 天前」拉Bar：足跡輪盤日期區間跟著變、仍與排行副標一致", moved and z2["rot"] != r0 and z2["rot"] == z2["rank"], [r0, z2])
 
 
 def t_flow_dismiss(pg, b, base):
@@ -12614,6 +12714,8 @@ SECTIONS = {
     # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
     "輪盤放大與象限卡":    lambda pg, b, base, code: t_wheel_big(pg, b, base),
     "輪盤側欄":            lambda pg, b, base, code: t_side_panel(pg, b, base),
+    # ★ 2026-09-25：象限族群表與成分股面板合併成一張就地展開的表＋放大鈕搬到輪盤欄右上＋足跡輪盤日期區間
+    "輪盤合併側欄":        lambda pg, b, base, code: t_side_merge(pg, b, base),
     "資金流向點背景關":    lambda pg, b, base, code: t_flow_dismiss(pg, b, base),
     "排行比例":            lambda pg, b, base, code: t_rank_ratio(pg, b, base),
     # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
