@@ -7555,6 +7555,48 @@ def t_relpanel(pg, base):
     ok("每一條都標了是官方揭露／媒體報導／產業推論", st["conf"] == st["rows"], st)
     ok("依存度用長條畫出來（不是只寫一個數字）", st["dep"] > 0, st["dep"])
 
+    # ---- Andy 2026-09-25：媒體報導／官方揭露要能點到原文；只有推論才要說明；
+    #      依存度小條旁邊一定要有「n/5」；標籤不准擠到折行壓在說明上。
+    #      台積電的上游有辛耘（官方揭露）、弘塑（媒體報導）等已補網址的邊，所以用同一個面板驗。
+    lk = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
+        const li = [...b.querySelectorAll('.relbox li')];
+        const links = [...b.querySelectorAll('.relbox li a.cf')];
+        const hit = (a, c) => a.right > c.left + 1 && a.left < c.right - 1 && a.bottom > c.top + 1 && a.top < c.bottom - 1;
+        const overlap = li.filter(x => { const cf = x.querySelector('.cf'); if (!cf) return false;
+          const r = cf.getBoundingClientRect();
+          return [...x.querySelectorAll('.it,.nt,.why')].some(t => hit(r, t.getBoundingClientRect())); }).length;
+        const foot = [...b.querySelectorAll('.relbox > .nt')].map(n => n.textContent).join(' ');
+        const est = b.querySelector('.relbox > .nt .cf-estimated');
+        return { rows: li.length, links: links.length,
+                 good: links.filter(a => /^https?:\\/\\//.test(a.getAttribute('href') || '')
+                   && a.target === '_blank' && /noopener/.test(a.rel)).length,
+                 notFact: links.filter(a => !/cf-(verified|reported)/.test(a.className)).length,
+                 depN: li.filter(x => /\\b[1-5]\\/5\\b/.test((x.querySelector('.depn') || {}).textContent || '')).length,
+                 depRows: li.filter(x => x.querySelector('.dep')).length,
+                 depTip: li.filter(x => /1 弱～5 強/.test((x.querySelector('.depw') || {}).title || '')).length,
+                 overlap, factWord: /事實/.test(foot),
+                 estTip: !!est && /產業推論＝/.test(est.title || '') }; }""")
+    ok("有網址的媒體報導／官方揭露標籤是 <a target=_blank rel=noopener>、href 為 http(s)",
+       bool(lk) and lk["links"] >= 2 and lk["good"] == lk["links"] and lk["notFact"] == 0, lk)
+    ok("每一條有依存度小條的關係都讀得到「依存度 n/5」，滑過有說明",
+       bool(lk) and lk["depRows"] > 0 and lk["depN"] == lk["depRows"] and lk["depTip"] == lk["depRows"], lk)
+    ok("資訊欄底部說明不再出現「事實」字樣", bool(lk) and not lk["factWord"], lk)
+    ok("推論標籤帶滑過說明（產業推論＝…）", bool(lk) and lk["estTip"], lk)
+    ok("可信度標籤沒有壓在品項或說明文字上", bool(lk) and lk["overlap"] == 0, lk)
+    # 真的點一下：要開新分頁，而不是把目前頁面帶走
+    if lk and lk["links"]:
+        try:
+            with pg.context.expect_page(timeout=5000) as newp:
+                pg.eval_on_selector("#coBox .relbox li a.cf", "a => a.click()")
+            np_ = newp.value
+            opened = np_.url
+            np_.close()
+        except Exception as ex:          # 沙盒擋外連時 URL 仍會先建立分頁
+            opened = f"ERR {ex}"
+        # 沙盒擋外連，新分頁的網址會是 chrome-error://；這裡驗的是「開了新分頁、原頁沒被帶走」
+        ok("點媒體報導標籤會開新分頁（原頁不跳走）",
+           not opened.startswith("ERR") and "#industry" in pg.url, f"{opened[:80]} / {pg.url[-40:]}")
+
     # ---- Andy 2026-09-19：「若是事實可以不上相關連結，若是你的推論也記得補上，並說明原因」
     #      推論要跟事實一眼分得開，而且要攤開「為什麼這樣推」＋佐證連結。
     # 金像電 2368（PCB 硬板製造）：它的下游是一整排「產業推論」，所以用它驗推論的標示。

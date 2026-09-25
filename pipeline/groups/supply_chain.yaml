@@ -890,169 +890,196 @@ companies:
 edges:
   # ================================ 材料 → 載板 / CCL
   - {from: ajinomoto, to: unimicron,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported,
-     note: "全球 >95% 市占，近乎獨占；占載板 BOM 成本約 25%"}
-  - {from: ajinomoto, to: nanya_pcb,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}
-  - {from: ajinomoto, to: kinsus,     rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}
-  - {from: mgc,       to: unimicron,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
-  - {from: mgc,       to: nanya_pcb,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
-  - {from: mgc,       to: kinsus,     rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}
-  - {from: kingco,    to: emc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+     note: "全球 >95% 市占，近乎獨占；占載板 BOM 成本約 25%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: ajinomoto, to: nanya_pcb,  rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: ajinomoto, to: kinsus,     rel: supplies, item: "ABF 增層膜", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: mgc,       to: unimicron,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: mgc,       to: nanya_pcb,  rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: mgc,       to: kinsus,     rel: supplies, item: "BT 樹脂 core CCL", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: kingco,    to: emc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported,
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5607/8729665"}
   # ★ 2026-09-19（第二輪）：這兩條把金居的下游補齊，第二條順便解掉台燿的孤立狀態。
   #   上午那輪刻意讓台燿孤立，是因為找不到它的**下游**具名客戶（「台燿供 UBB 用 CCL」＋
   #   「UBB 主要 PCB 廠是金像電」是兩段推論接起來的，不該畫）。但它的**上游**查得到：
   #   來源直接寫「金居…作為 CCL 廠商台光電、聯茂、台燿的上游供應商」，是一句明確的供貨陳述，
   #   不是並列標題。找不到下游不代表找不到上游 —— 這是這次學到的第三條規矩。
-  - {from: kingco,    to: iteq,       rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
-  - {from: kingco,    to: tuc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported}
+  - {from: kingco,    to: iteq,       rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported,
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5607/8729665"}
+  - {from: kingco,    to: tuc,        rel: supplies, item: "HVLP 銅箔", strength: 3, confidence: reported,
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5607/8729665"}
   - {from: kingco,    to: nvidia,     rel: designated_by,
      item: "高頻高速反轉銅箔 RTF（2025 初打入 AI 伺服器供應鏈）", confidence: reported,
-     note: "實體出貨走 CCL 廠與 PCB 廠，不直接出貨給輝達"}
-  - {from: nittobo,   to: emc,        rel: supplies, item: "高階玻纖布 / T-glass", strength: 3, confidence: reported}
+     note: "實體出貨走 CCL 廠與 PCB 廠，不直接出貨給輝達"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: nittobo,   to: emc,        rel: supplies, item: "高階玻纖布 / T-glass", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: nittobo,   to: nanya_plastics, rel: supplies, item: "第二代低介電玻璃原紗 NER", strength: 4,
      confidence: verified,
-     note: "南亞官方新聞稿公告的策略合作：日東紡供原紗、南亞協助織造特殊玻纖布；到 2027 年日東紡供應市場的特殊玻纖布中將有 20% 由南亞製造。★ 合作稿寫的是「產能互補」，但原紗的供應方向是單向的"}
+     note: "南亞官方新聞稿公告的策略合作：日東紡供原紗、南亞協助織造特殊玻纖布；到 2027 年日東紡供應市場的特殊玻纖布中將有 20% 由南亞製造。★ 合作稿寫的是「產能互補」，但原紗的供應方向是單向的",
+     source: "南亞公司官網新聞稿", source_url: "https://www.npc.com.tw/j2npc/zhtw/newsdetail/5JEFBU9NW1C"}
   - {from: nittobo,   to: chien_jung, rel: supplies, item: "高階玻璃原紗（日東紡持股 47.65%、過半董事席次）",
      strength: 4, confidence: reported,
-     note: "建榮是日東紡的台灣高階玻纖布生產基地。★ 這條邊真正的語意是母子公司，不是單純買賣 —— schema 沒有 subsidiary_of 這個 rel，先用 supplies 承載並在 item 寫明持股"}
+     note: "建榮是日東紡的台灣高階玻纖布生產基地。★ 這條邊真正的語意是母子公司，不是單純買賣 —— schema 沒有 subsidiary_of 這個 rel，先用 supplies 承載並在 item 寫明持股",
+     source: "口袋學堂", source_url: "https://www.pocket.tw/school/report/SCHOOL/7035/"}
   - {from: fuchiao,   to: hyperscaler, rel: designated_by,
      item: "LDK2 低介電玻纖布通過 CSP 認證，指定用於下一代 ASIC 平台", confidence: reported,
-     note: "★ 報導用語是「部分 CSP」「市場傳出」，未指名是哪一家 CSP。另外兩條（富喬供玻纖布給台光電／聯茂）三個來源彼此高度相似、疑似互抄，沒有硬來源，不畫"}
+     note: "★ 報導用語是「部分 CSP」「市場傳出」，未指名是哪一家 CSP。另外兩條（富喬供玻纖布給台光電／聯茂）三個來源彼此高度相似、疑似互抄，沒有硬來源，不畫",
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20260914700227-430203"}
   - {from: kolight,   to: tsmc,       rel: supplies, item: "高階濺鍍靶材（釕靶，2/3/5nm 先進製程）",
      strength: 3, confidence: reported,
-     note: "台積 2nm 最重要的國內靶材供應商。★ 不要寫「獨家供應」—— 原文是法人用語「可望成為獨家供應商」"}
+     note: "台積 2nm 最重要的國內靶材供應商。★ 不要寫「獨家供應」—— 原文是法人用語「可望成為獨家供應商」",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/11074/9488929"}
 
   # ================================ 設計服務 / IC 設計 ← 晶圓代工
   # ★ 方向很容易寫反：設計服務是 turnkey，**向**晶圓廠買晶圓與封裝產能，所以晶圓廠才是供應方。
   - {from: tsmc,    to: gud,      rel: supplies, item: "晶圓 + 先進封裝產能", strength: 5, confidence: verified,
-     note: "台積電持股約 34.8%、為創意唯一的晶圓代工來源；創意是台積電 OIP 價值鏈聯盟成員"}
+     note: "台積電持股約 34.8%、為創意唯一的晶圓代工來源；創意是台積電 OIP 價值鏈聯盟成員"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tsmc,    to: alchip,   rel: supplies, item: "先進製程晶圓 + CoWoS", strength: 4, confidence: verified,
-     note: "台積電 VCA 成員與 3DFabric 聯盟支援夥伴；N3/N2/N5/N7 佔世芯業務 8 成以上"}
+     note: "台積電 VCA 成員與 3DFabric 聯盟支援夥伴；N3/N2/N5/N7 佔世芯業務 8 成以上"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: umc,     to: faraday,  rel: supplies, item: "成熟製程 ～14nm 晶圓", strength: 4, confidence: reported,
-     note: "聯電是智原最大股東（13.77%→14.13%），智原原為聯電 IP／NRE 部門切分而來。智原另走三星／Intel／GlobalFoundries 多元代工，不是台積電陣營"}
+     note: "聯電是智原最大股東（13.77%→14.13%），智原原為聯電 IP／NRE 部門切分而來。智原另走三星／Intel／GlobalFoundries 多元代工，不是台積電陣營"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: umc,     to: novatek,  rel: supplies, item: "28/22nm 高壓製程晶圓", strength: 4, confidence: reported,
-     note: "聯電在 28nm 小尺寸面板 DDIC 的全球純代工市占 >90%；OLED DDIC 已用 22nm 高壓製程量產"}
-  - {from: tsmc,    to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, confidence: verified, note: "獨家代工"}
-  - {from: tsmc,    to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4, confidence: reported}
-  - {from: tsmc,    to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4, confidence: reported}
+     note: "聯電在 28nm 小尺寸面板 DDIC 的全球純代工市占 >90%；OLED DDIC 已用 22nm 高壓製程量產"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, confidence: verified, note: "獨家代工"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tsmc,    to: marvell,  rel: supplies, item: "ASIC 晶圓（3nm，roadmap 到 A14）+ CoWoS", strength: 4, confidence: reported,
-     note: "2026-09-19 補上。以前沒有這條，但 products.cowos 的需求分配已經寫了 marvell 8% —— 檔案自己跟自己矛盾"}
-  - {from: tsmc,    to: mtk,      rel: supplies, item: "晶圓", strength: 4, confidence: reported}
+     note: "2026-09-19 補上。以前沒有這條，但 products.cowos 的需求分配已經寫了 marvell 8% —— 檔案自己跟自己矛盾"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: mtk,      rel: supplies, item: "晶圓", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   # ================================ IP 授權（★ 方向跟設計服務相反）
   # 設計服務（創意／世芯）是 turnkey，**向**晶圓廠買產能 → tsmc → gud。
   # IP 廠是把 IP 授權給晶圓廠與 IC 設計公司、收授權金與權利金 → 晶圓廠是**客戶** → m31 → tsmc。
   # 同一個 ip_eda 格裡同時出現兩個方向的邊是對的，不是畫反。
   - {from: m31,     to: tsmc,     rel: supplies, item: "製程平台矽智財授權（高速介面 / 基礎 IP）",
      strength: 2, confidence: verified,
-     note: "M31 法說自陳「來自晶圓廠**客戶**的新案授權金額年增逾 200%，16 奈米以下先進製程授權成長超過 250%」；並獲 TSMC OIP Partner of the Year（Specialty Process IP）"}
+     note: "M31 法說自陳「來自晶圓廠**客戶**的新案授權金額年增逾 200%，16 奈米以下先進製程授權成長超過 250%」；並獲 TSMC OIP Partner of the Year（Specialty Process IP）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: ememory, to: tsmc,     rel: supplies, item: "eNVM / OTP 矽智財授權（權利金按晶圓片數提撥）",
      strength: 3, confidence: verified,
-     note: "力旺官網投資人 FAQ 自述商業模式為授權金＋權利金，權利金隨晶圓代工廠客戶量產提撥；TSMC OIP 最佳 IP 合作夥伴 16 度得獎"}
+     note: "力旺官網投資人 FAQ 自述商業模式為授權金＋權利金，權利金隨晶圓代工廠客戶量產提撥；TSMC OIP 最佳 IP 合作夥伴 16 度得獎"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ 前段設備 → 晶圓代工
   - {from: amat,    to: tsmc,     rel: supplies, item: "前段製程設備（沉積 / 蝕刻 / 佈植 / CMP）",
      strength: 5, confidence: verified,
-     note: "買賣雙方各自的官網都講同一件事：台積電官方 2025 供應鏈管理論壇表揚名單；應材官網自陳連續 16 年獲台積電 Excellent Performance Award。這是整份檔案裡少數到得了 verified 的一條"}
+     note: "買賣雙方各自的官網都講同一件事：台積電官方 2025 供應鏈管理論壇表揚名單；應材官網自陳連續 16 年獲台積電 Excellent Performance Award。這是整份檔案裡少數到得了 verified 的一條"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: gudeng,  to: tsmc,     rel: supplies, item: "EUV 光罩傳送盒 EUV Pod / 晶圓載具 FOUP",
      strength: 4, confidence: reported,
-     note: "家登 EUV 光罩盒已囊括台積電、三星、英特爾三大廠訂單。★「台積電占家登營收逾 50%」只有投顧／社群等級來源，是法人估算不是公司揭露，所以不寫進 item"}
+     note: "家登 EUV 光罩盒已囊括台積電、三星、英特爾三大廠訂單。★「台積電占家登營收逾 50%」只有投顧／社群等級來源，是法人估算不是公司揭露，所以不寫進 item",
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20220224701097-439901"}
   - {from: gudeng,  to: intel,    rel: supplies, item: "EUV 光罩傳送盒 EUV Pod",
-     strength: 2, confidence: reported}
+     strength: 2, confidence: reported,
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20220224701097-439901"}
   - {from: marketech, to: amat,   rel: supplies,
      item: "客製化設備 / 模組 OEM 代工（2022 年應用材料最佳供應商獎）",
      strength: 2, confidence: reported,
-     note: "★ 得獎項目是 **OLED 面板設備製造**，不是半導體前段設備。帆宣同時也是國外設備的代理商（方向相反），但查不到「代理應用材料設備賣給台廠」的來源，所以不畫反向那條"}
+     note: "★ 得獎項目是 **OLED 面板設備製造**，不是半導體前段設備。帆宣同時也是國外設備的代理商（方向相反），但查不到「代理應用材料設備賣給台廠」的來源，所以不畫反向那條",
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20220413700695-430502"}
   - {from: foxsemicon, to: amat,  rel: supplies, item: "半導體設備模組 / 備品製造",
      strength: 3, confidence: reported,
-     note: "2022 年獲應用材料最佳供應商獎，得獎項目為半導體設備模組與備品製造 —— 比帆宣的面板設備更接近半導體前段"}
+     note: "2022 年獲應用材料最佳供應商獎，得獎項目為半導體設備模組與備品製造 —— 比帆宣的面板設備更接近半導體前段",
+     source: "工商時報", source_url: "https://www.ctee.com.tw/news/20220413700695-430502"}
 
   # ================================ 先進封裝平台 → 台廠零組件
   - {from: psmc,    to: intel,    rel: supplies,
      item: "12 吋矽電容 IPD / 矽中介層（Intel EMIB 先進封裝平台，已通過認證）",
      strength: 2, confidence: reported,
-     note: "★ 不要寫「代工 Intel」—— 不是邏輯製程。也不要寫「獨供矽電容」，那是工商時報標「傳」的說法。法說會揭露矽中介層與 IPD 已通過 EMIB 認證，目前數千片規模、2027H2 才目標單月近萬片，所以 strength 只給 2"}
+     note: "★ 不要寫「代工 Intel」—— 不是邏輯製程。也不要寫「獨供矽電容」，那是工商時報標「傳」的說法。法說會揭露矽中介層與 IPD 已通過 EMIB 認證，目前數千片規模、2027H2 才目標單月近萬片，所以 strength 只給 2",
+     source: "科技新報", source_url: "https://technews.tw/2026/05/08/psmc-into-intel-emib/"}
   - {from: psmc,    to: esmt,     rel: supplies,
      item: "利基型 DRAM / Flash 成熟製程晶圓（簽有每月最低投片量的產能保證長約）",
      strength: 4, confidence: reported,
-     note: "★ 方向與設計服務同理：晶豪科是 fabless，向力積電買產能。晶豪科為力積電最大的記憶體代工客戶"}
+     note: "★ 方向與設計服務同理：晶豪科是 fabless，向力積電買產能。晶豪科為力積電最大的記憶體代工客戶"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: asmedia, to: amd,      rel: supplies,
      item: "桌上型平台晶片組 ASIC（AM5 / 800 系列）", strength: 4, confidence: reported,
-     note: "★ 方向：AMD 把晶片組委外給祥碩開發與供應 —— 貨從祥碩流向 AMD、錢從 AMD 流向祥碩，所以 from 是祥碩。「約占祥碩營收 60%」是媒體數字，公司財報未正式揭露單一客戶占比，所以不寫進 item"}
+     note: "★ 方向：AMD 把晶片組委外給祥碩開發與供應 —— 貨從祥碩流向 AMD、錢從 AMD 流向祥碩，所以 from 是祥碩。「約占祥碩營收 60%」是媒體數字，公司財報未正式揭露單一客戶占比，所以不寫進 item",
+     source: "聯合新聞網（經濟日報）", source_url: "https://udn.com/news/story/7253/7917138"}
 
   - {from: cowos,   to: tsmc,     rel: produced_by}
-  - {from: tsmc,    to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2, confidence: reported}
+  - {from: tsmc,    to: ase,      rel: outsources_to, item: "封裝外溢", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ 設備 → 晶圓代工 / 封測
   - {from: scientech, to: tsmc,  rel: supplies, item: "濕製程 / 貼合解貼合設備", strength: 3, confidence: verified,
-     note: "台積電年度優良供應商名單（27 家、7 家台廠），辛耘首次上榜，得獎項目與先進封裝量產支援相關"}
-  - {from: gpt,      to: tsmc,   rel: supplies, item: "濕製程設備", strength: 3, confidence: reported}
-  - {from: gpt,      to: ase,    rel: supplies, item: "濕製程設備 + 製程化學品", strength: 2, confidence: reported}
-  - {from: allring,  to: tsmc,   rel: supplies, item: "點膠 / 固晶設備", strength: 2, confidence: reported}
+     note: "台積電年度優良供應商名單（27 家、7 家台廠），辛耘首次上榜，得獎項目與先進封裝量產支援相關",
+     source: "數位時代", source_url: "https://www.bnext.com.tw/article/81545/tsmc-supply-chain-company"}
+  - {from: gpt,      to: tsmc,   rel: supplies, item: "濕製程設備", strength: 3, confidence: reported,
+     source: "商周財富網", source_url: "https://wealth.businessweekly.com.tw/GArticle.aspx?id=ARTL003017917"}
+  - {from: gpt,      to: ase,    rel: supplies, item: "濕製程設備 + 製程化學品", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: allring,  to: tsmc,   rel: supplies, item: "點膠 / 固晶設備", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: hta,      to: ase,    rel: supplies, item: "均熱片植片 / 壓合 / 點膠 / AOI 設備", strength: 2, confidence: reported,
-     note: "含子公司矽品；報導稱矽品為因應輝達 H 系列與 GB 系列先進封裝需求追加下單"}
-  - {from: hta,      to: tsmc,   rel: supplies, item: "先進封裝點膠 / 檢測設備", strength: 2, confidence: reported}
-  - {from: hta,      to: pti,    rel: supplies, item: "封裝設備", strength: 1, confidence: reported}
+     note: "含子公司矽品；報導稱矽品為因應輝達 H 系列與 GB 系列先進封裝需求追加下單",
+     source: "CMoney 股市爆料同學會（轉貼公開資訊觀測站公告）", source_url: "https://www.cmoney.tw/forum/article/179927330"}
+  - {from: hta,      to: tsmc,   rel: supplies, item: "先進封裝點膠 / 檢測設備", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: hta,      to: pti,    rel: supplies, item: "封裝設備", strength: 1, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: allring,  to: ase,    rel: supplies, item: "點膠 / 封裝設備", strength: 3, confidence: verified,
-     note: "日月光向萬潤採購設備含稅約 10.86 億元，約當萬潤 2025 年全年營收 20.2%"}
+     note: "日月光向萬潤採購設備含稅約 10.86 億元，約當萬潤 2025 年全年營收 20.2%",
+     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/6006991"}
 
   # ================================ 封測 / 測試介面
-  - {from: kyec,     to: nvidia, rel: supplies, item: "AI 晶片測試", strength: 4, confidence: reported}
+  - {from: kyec,     to: nvidia, rel: supplies, item: "AI 晶片測試", strength: 4, confidence: reported,
+     source: "今周刊", source_url: "https://www.businesstoday.com.tw/article/category/183015/post/202601070039/"}
   - {from: sigurd,   to: mtk,    rel: supplies, item: "測試代工", strength: 4, confidence: reported,
-     note: "矽格最大客戶為聯發科；營收結構測試 79%／封裝 19.7%"}
-  - {from: pti,      to: micron,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported}
+     note: "矽格最大客戶為聯發科；營收結構測試 79%／封裝 19.7%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: pti,      to: micron,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: pti,      to: kioxia,  rel: supplies, item: "記憶體封測", strength: 3, confidence: reported,
-     note: "鎧俠與美光各佔力成營收約 2～3 成"}
-  - {from: pti,      to: skhynix, rel: supplies, item: "記憶體封測", strength: 2, confidence: reported}
+     note: "鎧俠與美光各佔力成營收約 2～3 成"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: pti,      to: skhynix, rel: supplies, item: "記憶體封測", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: pti,      to: broadcom, rel: supplies, item: "FOPLP 面板級先進封裝（CPO）", strength: 2, confidence: reported,
-     note: "2026-07-16 董事會決議與博通合資新加坡廠、投資總額 4 億美元；2028 年才量產，現在是建廠與小量階段"}
+     note: "2026-07-16 董事會決議與博通合資新加坡廠、投資總額 4 億美元；2028 年才量產，現在是建廠與小量階段",
+     source: "科技新報", source_url: "https://finance.technews.tw/2026/07/17/powertech-and-broadcom-establish-joint-venture-in-singapore/"}
   # ★ 這兩條是 outsources_to 不是 supplies：精材與欣銓都是**服務廠**，不向台積電買晶圓。
   #   寫成 supplies 會被讀成「台積電賣晶圓給它們」，那是錯的
   #   —— 跟創意／世芯那三條（那才是真的買產能）語意剛好相反。
   - {from: tsmc,     to: xintec, rel: outsources_to,
      item: "晶圓針測 CP 外溢訂單 + 12 吋晶圓背面處理", strength: 4, confidence: reported,
-     note: "台積電把 CP 測試外溢出來、騰出產能給單價更高的先進封裝。★ 報導提到這批訂單裡有蘋果自研 5G 數據機與 NVIDIA 中階產品，那是講「跑的是誰的晶片」，**不是說蘋果／輝達是精材的客戶** —— 不要據此畫 xintec → nvidia"}
+     note: "台積電把 CP 測試外溢出來、騰出產能給單價更高的先進封裝。★ 報導提到這批訂單裡有蘋果自研 5G 數據機與 NVIDIA 中階產品，那是講「跑的是誰的晶片」，**不是說蘋果／輝達是精材的客戶** —— 不要據此畫 xintec → nvidia",
+     source: "理財周刊", source_url: "https://www.moneyweekly.com.tw/ArticleData/Info/Article/222984"}
   - {from: tsmc,     to: ardentec, rel: outsources_to,
      item: "晶圓針測 CP 外溢訂單（AI ASIC）", strength: 3, confidence: reported,
-     note: "欣銓憑龍潭廠擴充空間承接台積電 CP 測試外溢訂單，主要鎖定 AI ASIC 產品"}
+     note: "欣銓憑龍潭廠擴充空間承接台積電 CP 測試外溢訂單，主要鎖定 AI ASIC 產品",
+     source: "FTNN 新聞網", source_url: "https://www.ftnn.com.tw/news/543340"}
   - {from: chipmos,  to: micron, rel: supplies, item: "記憶體封測（NAND / 利基型 DRAM）",
      strength: 3, confidence: reported,
-     note: "南茂在 NASDAQ 掛 IMOS，2013～2015 年 Form 20-F 連三年列美光為第二大客戶（約占營收 15～16%）。★ 那是十年前的數字，FY2025 20-F 只揭露前五大客戶合計 61%、未具名個別占比，所以不寫百分比"}
+     note: "南茂在 NASDAQ 掛 IMOS，2013～2015 年 Form 20-F 連三年列美光為第二大客戶（約占營收 15～16%）。★ 那是十年前的數字，FY2025 20-F 只揭露前五大客戶合計 61%、未具名個別占比，所以不寫百分比"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: chipmos,  to: novatek, rel: supplies, item: "驅動 IC 封測（TCP/COF、COG、金凸塊）",
      strength: 3, confidence: reported,
-     note: "南茂官方新聞稿揭露與聯詠簽長期合約、保留 LCD 驅動 IC 封測產能；20-F 曾列聯詠為第一大客戶。★ 硬來源都在十年前，現況只有媒體轉述，所以 strength 給 3 不給 4"}
+     note: "南茂官方新聞稿揭露與聯詠簽長期合約、保留 LCD 驅動 IC 封測產能；20-F 曾列聯詠為第一大客戶。★ 硬來源都在十年前，現況只有媒體轉述，所以 strength 給 3 不給 4"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: pti,      to: amd,     rel: supplies, item: "FOPLP 面板級先進封裝", strength: 2, confidence: reported,
-     note: "法說會揭露分工：台灣竹科廠的 FOPLP 產能服務超微、新加坡廠支援博通；2027 年依規劃投產"}
+     note: "法說會揭露分工：台灣竹科廠的 FOPLP 產能服務超微、新加坡廠支援博通；2027 年依規劃投產"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   # ---- 企業級儲存（NVIDIA ICMS 把 SSD 拉進記憶體階層）
   - {from: tsmc,     to: phison, rel: supplies, item: "SSD 控制 IC 晶圓（6nm/7nm；Gen7 走 4nm）", strength: 3,
-     confidence: reported, note: "★ 方向與設計服務同理：群聯是 fabless，向台積電買產能"}
-  - {from: kioxia,   to: phison, rel: supplies, item: "NAND 晶圓（已簽長約 LTA）", strength: 4, confidence: reported}
+     confidence: reported, note: "★ 方向與設計服務同理：群聯是 fabless，向台積電買產能"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: kioxia,   to: phison, rel: supplies, item: "NAND 晶圓（已簽長約 LTA）", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: phison,   to: nvidia, rel: supplies, item: "企業級 SSD / Boot Drive", strength: 3, confidence: reported,
-     note: "CES 2026 的 Vera Rubin NVL72 Switch Tray 上實體現身；合作量與應用因保密協議未揭露"}
+     note: "CES 2026 的 Vera Rubin NVL72 Switch Tray 上實體現身；合作量與應用因保密協議未揭露"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: phison,   to: hyperscaler, rel: supplies, item: "PCIe Gen5 企業級 SSD（Pascari X201/D201）",
-     strength: 2, confidence: reported, note: "SC25 發表，明列雲端業者為目標客戶"}
+     strength: 2, confidence: reported, note: "SC25 發表，明列雲端業者為目標客戶"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   # ---- DRAM / NOR Flash
   - {from: nanya_tech, to: sandisk,  rel: supplies, item: "DRAM（多年期策略供應協議）", strength: 4, confidence: verified,
-     note: "SanDisk 2026-03 私募認購南亞科約 4.5% 股權並簽署多年期策略供應協議；SanDisk 法說自陳投資約 10 億美元以確保長期 DRAM 供應"}
+     note: "SanDisk 2026-03 私募認購南亞科約 4.5% 股權並簽署多年期策略供應協議；SanDisk 法說自陳投資約 10 億美元以確保長期 DRAM 供應",
+     source: "今周刊", source_url: "https://www.businesstoday.com.tw/article/category/183008/post/202603250081/"}
   - {from: nanya_tech, to: kioxia,   rel: supplies, item: "DRAM（長期供應協議）", strength: 4, confidence: verified,
-     note: "鎧俠 2026-03 私募認購約 2.3%，並表示已與南亞科簽訂長期 DRAM 供應協議"}
-  - {from: nanya_tech, to: solidigm, rel: supplies, item: "DRAM", strength: 3, confidence: reported}
+     note: "鎧俠 2026-03 私募認購約 2.3%，並表示已與南亞科簽訂長期 DRAM 供應協議",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/9402940"}
+  - {from: nanya_tech, to: solidigm, rel: supplies, item: "DRAM", strength: 3, confidence: reported,
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/9402911"}
   - {from: mxic,     to: nvidia, rel: supplies, item: "NOR Flash（GB300 GPU 插槽旁 512Mb 韌體／開機）",
      strength: 2, confidence: reported,
-     note: "GB300 主機板改 GPU 插槽設計，每個插槽旁需加 512Mb NOR。報導用「獨家打入」但公司未正式證實，兩家獨立媒體都標「傳」"}
+     note: "GB300 主機板改 GPU 插槽設計，每個插槽旁需加 512Mb NOR。報導用「獨家打入」但公司未正式證實，兩家獨立媒體都標「傳」",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/11162/8634454"}
   - {from: winbond,  to: nvidia, rel: supplies, item: "NOR Flash（Vera Rubin 平台，2026H2 起）",
      strength: 2, confidence: reported,
-     note: "★ 只有 Digitimes 一個原始來源（獨家），其餘媒體皆為轉述，尚未取得第二個獨立佐證"}
+     note: "★ 只有 Digitimes 一個原始來源（獨家），其餘媒體皆為轉述，尚未取得第二個獨立佐證",
+     source: "DIGITIMES（獨家）", source_url: "https://www.digitimes.com.tw/tech/dt/n/shwnws.asp?CnlID=1&Cat=40&id=0000759074_3Y9LNQ1186LDM13LXJR5A"}
   - {from: wineai,   to: nvidia, rel: supplies, item: "測試座 / 探針卡 / 熱控系統", strength: 4, confidence: reported,
-     note: "Phase 1 設計認證已過，Phase 2 於 2025 年底啟動，簽有至少 5 年長約"}
+     note: "Phase 1 設計認證已過，Phase 2 於 2025 年底啟動，簽有至少 5 年長約",
+     source: "數位時代", source_url: "https://www.bnext.com.tw/article/60666/winway-nvidia-ic-test-socket"}
   - {from: wineai,   to: amd,    rel: supplies, item: "測試座 / 探針卡", strength: 3, confidence: reported,
-     note: "對應 B100／MI400 世代；2025 前三大客戶合計佔合併營收 54.3%"}
+     note: "對應 B100／MI400 世代；2025 前三大客戶合計佔合併營收 54.3%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ HBM
-  - {from: skhynix,  to: nvidia, rel: supplies, item: "HBM", strength: 5, confidence: reported}
-  - {from: micron,   to: nvidia, rel: supplies, item: "HBM", strength: 3, confidence: reported}
+  - {from: skhynix,  to: nvidia, rel: supplies, item: "HBM", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: micron,   to: nvidia, rel: supplies, item: "HBM", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ CCL → PCB → 組裝
-  - {from: emc,      to: gce,    rel: supplies, item: "極低損耗高階 CCL", strength: 4, confidence: reported}
-  - {from: iteq,     to: gce,    rel: supplies, item: "高階 CCL", strength: 3, confidence: reported}
+  - {from: emc,      to: gce,    rel: supplies, item: "極低損耗高階 CCL", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: iteq,     to: gce,    rel: supplies, item: "高階 CCL", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   # ★ 刪掉了 emc → unimicron：欣興的 ABF 載板用的是味之素 ABF 膜＋三菱瓦斯 BT core，
   #   不是台光電的高速 CCL。那條邊會被讀成「台光電供 ABF 載板材料」，是錯的。
   - {from: gce,      to: foxconn, rel: supplies, item: "伺服器 PCB", strength: 3, confidence: estimated,
@@ -1063,119 +1090,137 @@ edges:
      source_url: "https://uanalyze.com.tw/articles/4135513187"}
   - {from: zdt,      to: nvidia, rel: supplies,
      item: "高階 HDI / 高層數伺服器板 / IC 載板（NVIDIA MGX 生態系）", strength: 4, confidence: verified,
-     note: "2026-06-01 臻鼎官方新聞稿宣布加入 NVIDIA MGX 生態系，四家獨立媒體同日報導"}
+     note: "2026-06-01 臻鼎官方新聞稿宣布加入 NVIDIA MGX 生態系，四家獨立媒體同日報導",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/9539045"}
   - {from: tripod,   to: hyperscaler, rel: supplies, item: "伺服器 / 網通 PCB、記憶體模組板",
      strength: 3, confidence: reported,
-     note: "為美系四大 CSP（Meta / Google / AWS / Microsoft）提供伺服器與網路板"}
+     note: "為美系四大 CSP（Meta / Google / AWS / Microsoft）提供伺服器與網路板",
+     source: "CMoney 研究筆記", source_url: "https://www.cmoney.tw/notes/note-detail.aspx?nid=1013058"}
   - {from: flexium,  to: nvidia, rel: designated_by,
      item: "AI 機櫃漏液感測軟板（輝達 COMPUTEX MGX 供應鏈展示區公開點名）", confidence: reported,
-     note: "★ 是 designated_by 不是 supplies：報導寫的是台郡打進「輝達供應鏈中的台系水冷散熱大廠」，實體出貨走那家水冷廠（未具名），輝達只是公開列名"}
+     note: "★ 是 designated_by 不是 supplies：報導寫的是台郡打進「輝達供應鏈中的台系水冷散熱大廠」，實體出貨走那家水冷廠（未具名），輝達只是公開列名",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/8751119"}
   - {from: gce,      to: hyperscaler, rel: designated_by, item: "CSP 自研 ASIC 平台直接指定 PCB 料號（AVL）",
      confidence: reported,
-     note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM"}
+     note: "AWS Trainium / Google TPU / Meta MTIA / 微軟 Maia 由 CSP 直接指定用料，實體出貨仍走 ODM",
+     source: "理財周刊", source_url: "https://www.moneyweekly.com.tw/ArticleData/Info/Article/250682"}
   - {from: emc,      to: nvidia, rel: designated_by, item: "GB200/GB300 UBB 板材 AVL", confidence: reported,
-     note: "M9 於 2026Q3 進入量產，供 DGX/NVL 系列 GPU 主板與中板；外資點名台光電為 M9 合格供應商。★ 原本這裡寫「台光電為二供」，2026-09-19 查證判定很可能是從 AWS Trainium 那條線誤植過來的（在 AWS 那邊才是台光電一供、台燿二供），已拿掉"}
+     note: "M9 於 2026Q3 進入量產，供 DGX/NVL 系列 GPU 主板與中板；外資點名台光電為 M9 合格供應商。★ 原本這裡寫「台光電為二供」，2026-09-19 查證判定很可能是從 AWS Trainium 那條線誤植過來的（在 AWS 那邊才是台光電一供、台燿二供），已拿掉"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tuc,      to: hyperscaler, rel: designated_by,
      item: "AWS Trainium ASIC 伺服器主板 M8 CCL（AVL 第二供應商）", confidence: reported,
-     note: "台光電為一供、台燿為二供；法人估 Trainium 3 的 CCL 分配約台光電 70%／台燿 30%（法人估算，非官方揭露）。實體出貨走 PCB 廠與 ODM，不經過 AWS"}
+     note: "台光電為一供、台燿為二供；法人估 Trainium 3 的 CCL 分配約台光電 70%／台燿 30%（法人估算，非官方揭露）。實體出貨走 PCB 廠與 ODM，不經過 AWS"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ IC 載板 → 晶片設計商
-  - {from: unimicron, to: nvidia,   rel: supplies, item: "ABF 載板", strength: 3, confidence: reported}
+  - {from: unimicron, to: nvidia,   rel: supplies, item: "ABF 載板", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: nanya_pcb, to: broadcom, rel: supplies, item: "網通 / ASIC ABF 載板", strength: 4, confidence: reported,
-     note: "網通載板占南電營收 65～70%，主要對應 Broadcom"}
-  - {from: nanya_pcb, to: amd,      rel: supplies, item: "CPU / GPU ABF 載板", strength: 2, confidence: reported}
+     note: "網通載板占南電營收 65～70%，主要對應 Broadcom",
+     source: "Yahoo 股市", source_url: "https://tw.stock.yahoo.com/news/q4%E8%BC%89%E6%9D%BF%E6%9A%AB%E7%84%A1%E6%BC%B2%E5%83%B9%E8%A8%88%E7%95%AB-%E5%A4%A7%E5%AE%A2%E6%88%B6%E5%8D%9A%E9%80%9A%E5%B0%87%E8%87%AA%E5%BB%BA%E7%94%A2%E8%83%BD-%E5%8D%97%E9%9B%BB%E7%88%86%E9%87%8F%E8%B7%8C%E5%81%9C-063117937.html"}
+  - {from: nanya_pcb, to: amd,      rel: supplies, item: "CPU / GPU ABF 載板", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: kinsus,    to: nvidia,   rel: supplies, item: "CPU / GPU ABF 載板", strength: 3, confidence: reported,
-     note: "2026 新增大單；法人估 CPU 載板市占約 45%、GPU 載板約 20%（法人估算，非官方揭露）"}
-  - {from: kinsus,    to: amd,      rel: supplies, item: "FPGA ABF 載板（原 Xilinx）", strength: 3, confidence: reported}
-  - {from: kinsus,    to: mtk,      rel: supplies, item: "BT 載板", strength: 3, confidence: reported}
+     note: "2026 新增大單；法人估 CPU 載板市占約 45%、GPU 載板約 20%（法人估算，非官方揭露）",
+     source: "FTNN 新聞網", source_url: "https://www.ftnn.com.tw/news/555113"}
+  - {from: kinsus,    to: amd,      rel: supplies, item: "FPGA ABF 載板（原 Xilinx）", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: kinsus,    to: mtk,      rel: supplies, item: "BT 載板", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ 散熱 / 電源
   - {from: iac,      to: nvidia, rel: supplies, item: "Grace CPU 均熱片 lid", strength: 3, confidence: reported,
-     note: "2025Q4 起量產出貨（法說會揭露）；下世代 Feynman 平台散熱新品仍在送樣階段"}
-  - {from: iac,      to: hyperscaler, rel: supplies, item: "Google TPU / AWS Trainium 均熱片", strength: 2, confidence: reported}
-  - {from: iac,      to: broadcom, rel: supplies, item: "AI ASIC 均熱片", strength: 2, confidence: reported}
+     note: "2025Q4 起量產出貨（法說會揭露）；下世代 Feynman 平台散熱新品仍在送樣階段",
+     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/6322956"}
+  - {from: iac,      to: hyperscaler, rel: supplies, item: "Google TPU / AWS Trainium 均熱片", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: iac,      to: broadcom, rel: supplies, item: "AI ASIC 均熱片", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: jentech,  to: nvidia, rel: supplies, item: "GPU 均熱片 lid/IHS + 補強框", strength: 4, confidence: reported,
-     note: "Rubin 世代改雙片式＋鍍金；3 月均熱片營收月增 85%"}
+     note: "Rubin 世代改雙片式＋鍍金；3 月均熱片營收月增 85%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: jentech,  to: amd,    rel: supplies, item: "MI450/MI455 均熱片", strength: 3, confidence: reported,
-     note: "報導稱為獨家供應商"}
+     note: "報導稱為獨家供應商"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   # ★ 2026-09-19：DIGITIMES 報導 NVIDIA 下一代 Vera Rubin 將「統一採購」水冷板，
   #   入列四家＝訊凱（未上市）、奇鋐、雙鴻、台達電。若統購成真，這三條的買方會由 ODM 變成 NVIDIA。
   #   只有一個來源、而且用的是「傳」，所以**先不改邊**，只記在這裡並列進半年重審清單。
   - {from: avc,      to: foxconn, rel: supplies, item: "水冷板", strength: 4, confidence: reported,
-     note: "2026 傳 Vera Rubin 世代改由 NVIDIA 統一採購，屆時買方會由 ODM 變成 NVIDIA（單一來源，待第二個佐證）"}
+     note: "2026 傳 Vera Rubin 世代改由 NVIDIA 統一採購，屆時買方會由 ODM 變成 NVIDIA（單一來源，待第二個佐證）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: avc,      to: quanta,  rel: supplies, item: "水冷板", strength: 4, confidence: reported,
-     note: "同上，Vera Rubin 統購傳聞待證"}
+     note: "同上，Vera Rubin 統購傳聞待證"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: auras,    to: foxconn, rel: supplies, item: "水冷板", strength: 3, confidence: reported,
-     note: "同上，Vera Rubin 統購傳聞待證"}
+     note: "同上，Vera Rubin 統購傳聞待證"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: sunon,    to: nvidia,  rel: designated_by,
      item: "GB200 / GB300 RVL 系列伺服器風扇（已列入輝達認證供應鏈）", confidence: reported,
-     note: "★ 是 designated_by 不是 supplies：來源講的是「列入認證供應鏈名單、通過 GB200/GB300 RVL 認證」，實體出貨走組裝廠，但沒有任何一篇具名是哪一家組裝廠。GB300 自 2026-09 起放量，GPU 伺服器占其 AI Server 比重由 20% 升至 30%"}
+     note: "★ 是 designated_by 不是 supplies：來源講的是「列入認證供應鏈名單、通過 GB200/GB300 RVL 認證」，實體出貨走組裝廠，但沒有任何一篇具名是哪一家組裝廠。GB300 自 2026-09 起放量，GPU 伺服器占其 AI Server 比重由 20% 升至 30%"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: kaori,    to: bloom_energy, rel: supplies,
      item: "SOFC 燃料電池 Hot Box 熱反應盒（每台 SOFC 用 6 顆）", strength: 4, confidence: reported,
-     note: "Bloom Energy 是高力最大單一客戶；管理層預期熱反應盒年產量由 3,500–4,000 顆升至 7,000 顆以上"}
+     note: "Bloom Energy 是高力最大單一客戶；管理層預期熱反應盒年產量由 3,500–4,000 顆升至 7,000 顆以上",
+     source: "科技新報", source_url: "https://technews.tw/2026/05/11/sofc-bloom-enegy-hot-box/"}
   - {from: bloom_energy, to: hyperscaler, rel: supplies,
-     item: "SOFC 燃料電池系統（供 Oracle AI 資料中心，擴大合作達 2.8GW）", strength: 3, confidence: reported}
-  - {from: delta,    to: foxconn, rel: supplies, item: "電源 / CDU", strength: 4, confidence: reported}
-  - {from: delta,    to: quanta,  rel: supplies, item: "電源", strength: 3, confidence: reported}
+     item: "SOFC 燃料電池系統（供 Oracle AI 資料中心，擴大合作達 2.8GW）", strength: 3, confidence: reported,
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/9442059"}
+  - {from: delta,    to: foxconn, rel: supplies, item: "電源 / CDU", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: delta,    to: quanta,  rel: supplies, item: "電源", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: delta,    to: wiwynn,  rel: supplies, item: "電源 / Power Shelf", strength: 3, confidence: reported,
-     note: "2026-09-19 補上：緯穎原本完全沒有上游，圖上是斷頭"}
+     note: "2026-09-19 補上：緯穎原本完全沒有上游，圖上是斷頭"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: delta,    to: nvidia,  rel: supplies, item: "800V HVDC 電源櫃 / DC-DC 模組", strength: 3, confidence: reported,
-     note: "Vera Rubin 平台，最快 2026H2 出貨"}
-  - {from: liteon,   to: foxconn, rel: supplies, item: "PSU", strength: 3, confidence: reported}
+     note: "Vera Rubin 平台，最快 2026H2 出貨",
+     source: "鏈新聞 ABMedia", source_url: "https://abmedia.io/nvidia-800v-hvdc-delta-2027-q1-production"}
+  - {from: liteon,   to: foxconn, rel: supplies, item: "PSU", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: liteon,   to: hyperscaler, rel: supplies, item: "AI 電源櫃 / 110kW Power Shelf", strength: 3, confidence: reported,
-     note: "已打入所有北美主要 CSP 供應鏈"}
+     note: "已打入所有北美主要 CSP 供應鏈"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ 連接器 / 線材
   - {from: bizlink,  to: nvidia, rel: supplies,
      item: "GB200 Busbar 匯流排 + power whip 電源線組", strength: 3, confidence: reported,
-     note: "匯流排與連接器已通過 NVIDIA 認證並小量生產，是 GB200 商機首批受惠者"}
+     note: "匯流排與連接器已通過 NVIDIA 認證並小量生產，是 GB200 商機首批受惠者",
+     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/5593524"}
 
   # ================================ 光通訊
   - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 4, confidence: reported,
-     note: "聯亞最大客戶是國際光模組大廠，不是台廠"}
-  - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}
+     note: "聯亞最大客戶是國際光模組大廠，不是台廠"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: lpc,      to: luxnet,    rel: outsources_to, item: "CW Laser 晶粒後段製程代工", strength: 2, confidence: estimated,
      note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。推論依據：① MoneyDJ 把台廠定位拆成「CW 磊晶供應商聯亞、CW 晶片代工廠華星光與光環」② 聯亞 2026Q2 法說自承「CW Laser 代工廠產能遠遠不足公司需求，有些訂單委由外面代工廠代工」。缺的是：沒有任何一篇把「華星光是聯亞的代工廠」這個雙方具名的組合講出來",
      source_url: "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=67534107-733a-4e9a-9559-cd6a84018ea6"}
-  - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}
+  - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: browave,  to: nvidia,  rel: supplies, item: "CPO 用 800G/1.6T 光纖套件（Fiber Harness / Shuffle Box）",
-     strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大"}
+     strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大",
+     source: "科技新報", source_url: "https://technews.tw/2026/08/24/browave-shuffle-box-set-to-ramp-up-in-q4"}
   - {from: foci,     to: tsmc,    rel: supplies,
      item: "CPO / 矽光子 COUPE 封裝用光纖陣列 FAU（光纖與矽光子晶片對準接合）",
      strength: 2, confidence: reported,
-     note: "與台積電共同研發 COUPE：台積電做矽光子晶片製造、上詮做對準接合。已交付 5 種以上 MCM CPO 封裝方案，另有 5 家以上客戶 design-in（未具名）。★ FAU 2026Q3 才開始微量貢獻營收、2027 才放量"}
+     note: "與台積電共同研發 COUPE：台積電做矽光子晶片製造、上詮做對準接合。已交付 5 種以上 MCM CPO 封裝方案，另有 5 家以上客戶 design-in（未具名）。★ FAU 2026Q3 才開始微量貢獻營收、2027 才放量",
+     source: "經濟日報", source_url: "https://money.udn.com/money/story/5612/9461053"}
   - {from: pcl,      to: broadcom, rel: supplies,
      item: "CPO 光引擎 / ELSFP 外置雷射光源模組（Tomahawk-5 Bailly 51.2T 平台）",
      strength: 2, confidence: reported,
-     note: "Bailly 內含八個 6.4T 光引擎。★ 目前是量產準備中，2026～2027 才是第一波大量導入"}
+     note: "Bailly 內含八個 6.4T 光引擎。★ 目前是量產準備中，2026～2027 才是第一波大量導入",
+     source: "科技新報", source_url: "https://finance.technews.tw/2025/12/09/pcl-technology/"}
 
   # ================================ 交換器 / IC 設計 → 組裝 → 雲端
   - {from: broadcom, to: accton, rel: supplies, item: "Tomahawk 交換器晶片", strength: 5, confidence: reported,
-     note: "2026-09-19 補上：這是整張 AI 鏈最明顯的一個洞，兩個節點都在、中間卻沒有邊。智邦 OFC 2026 展出全球首台 Tomahawk 6 的 102.4T 交換器"}
+     note: "2026-09-19 補上：這是整張 AI 鏈最明顯的一個洞，兩個節點都在、中間卻沒有邊。智邦 OFC 2026 展出全球首台 Tomahawk 6 的 102.4T 交換器",
+     source: "智邦官網", source_url: "https://www.accton.com.tw/engineering-the-102-4t-switch/"}
   - {from: rtk,      to: nvidia, rel: supplies, item: "PCIe SSD 控制 IC", strength: 1, confidence: reported,
-     note: "2026-01 打進，Rubin 平台／Quantum-X；比重未揭露。★ 不是交換器晶片 —— 智邦用的是 Broadcom Tomahawk"}
+     note: "2026-01 打進，Rubin 平台／Quantum-X；比重未揭露。★ 不是交換器晶片 —— 智邦用的是 Broadcom Tomahawk",
+     source: "鉅亨網", source_url: "https://news.cnyes.com/news/id/6307515"}
   - {from: marvell,  to: hyperscaler, rel: supplies, item: "客製化 AI ASIC（Trainium / Maia / Google）", strength: 4,
-     confidence: reported, note: "2026-08 拿下 Google，湊齊三大 CSP"}
-  - {from: gud,      to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}
-  - {from: alchip,   to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}
-  - {from: nvidia,   to: foxconn, rel: supplies, item: "GB300 模組", strength: 5, confidence: reported}
-  - {from: nvidia,   to: quanta,  rel: supplies, item: "GPU 模組", strength: 4, confidence: reported}
-  - {from: nvidia,   to: wistron, rel: supplies, item: "GPU 模組", strength: 3, confidence: reported}
-  - {from: nvidia,   to: inventec, rel: supplies, item: "GB200 GPU 模組", strength: 3, confidence: reported}
+     confidence: reported, note: "2026-08 拿下 Google，湊齊三大 CSP"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: gud,      to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: alchip,   to: hyperscaler, rel: supplies, item: "ASIC 設計服務", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: nvidia,   to: foxconn, rel: supplies, item: "GB300 模組", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: nvidia,   to: quanta,  rel: supplies, item: "GPU 模組", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: nvidia,   to: wistron, rel: supplies, item: "GPU 模組", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: nvidia,   to: inventec, rel: supplies, item: "GB200 GPU 模組", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: nvidia,   to: gigabyte, rel: supplies, item: "HGX / GB200 NVL4 GPU 平台", strength: 3, confidence: verified,
-     note: "技嘉官網新聞稿：技鋼科技發表基於 NVIDIA GB200 NVL4 平台的伺服器（雙 Grace CPU ＋四 Blackwell GPU、直接液冷）"}
-  - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5, confidence: reported}
-  - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5, confidence: reported}
+     note: "技嘉官網新聞稿：技鋼科技發表基於 NVIDIA GB200 NVL4 平台的伺服器（雙 Grace CPU ＋四 Blackwell GPU、直接液冷）",
+     source: "技嘉官網新聞稿", source_url: "https://www.gigabyte.com/tw/press/news/2360"}
+  - {from: foxconn,  to: hyperscaler, rel: supplies, item: "整櫃系統", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: quanta,   to: hyperscaler, rel: supplies, item: "AI 伺服器", strength: 5, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: wistron,  to: hyperscaler, rel: supplies, item: "AI 伺服器 / GB200-GB300 機架系統", strength: 4,
-     confidence: reported, note: "2026-09-19 補上：緯創原本有上游沒下游，圖上是斷尾"}
+     confidence: reported, note: "2026-09-19 補上：緯創原本有上游沒下游，圖上是斷尾"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: wiwynn,   to: hyperscaler, rel: supplies, item: "雲端伺服器（以 ASIC 專案為主，Meta 佔比逾五成）",
-     strength: 4, confidence: reported}
+     strength: 4, confidence: reported,
+     source: "聯合新聞網", source_url: "https://udn.com/news/story/7240/8514999"}
   - {from: inventec, to: hyperscaler, rel: supplies,
-     item: "AI 伺服器主機板 L6 / 整櫃 L10-L11（北美四大 CSP GB200 專案）", strength: 4, confidence: reported}
+     item: "AI 伺服器主機板 L6 / 整櫃 L10-L11（北美四大 CSP GB200 專案）", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: gigabyte, to: hyperscaler, rel: supplies, item: "AI 伺服器 / GIGAPOD 機櫃級方案",
      strength: 3, confidence: reported,
-     note: "客戶含 CSP 與企業客戶（企業占比高於純 ODM 三雄），不是純 CSP 鏈"}
-  - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4, confidence: reported}
+     note: "客戶含 CSP 與企業客戶（企業占比高於純 ODM 三雄），不是純 CSP 鏈"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: accton,   to: hyperscaler, rel: supplies, item: "白牌交換器", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
   # ================================ 產品 → 生產者
   - {from: liquid_cooling, to: avc,   rel: produced_by}
@@ -1220,10 +1265,10 @@ edges:
      source_url: "https://www.bnext.com.tw/article/91220/spacex-taiwan-leo-satellite-supply-chain"}
   - {from: pegatron, to: apple, rel: supplies,
      item: "iPhone / iPad 組裝代工", strength: 4, confidence: reported,
-     note: "★ 和碩自己不具名蘋果（法說只講「通訊產品」）。依據是 Apple 官方供應商名單長年收錄 Pegatron ＋ 媒體長期報導；查證那一輪 apple.com 的名單 PDF 被擋，只取得搜尋摘要層級佐證，這是六條裡最該人工覆核的兩條之一"}
+     note: "★ 和碩自己不具名蘋果（法說只講「通訊產品」）。依據是 Apple 官方供應商名單長年收錄 Pegatron ＋ 媒體長期報導；查證那一輪 apple.com 的名單 PDF 被擋，只取得搜尋摘要層級佐證，這是六條裡最該人工覆核的兩條之一"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: foxconn, to: apple, rel: supplies,
      item: "iPhone 組裝代工", strength: 5, confidence: reported,
-     note: "同 pegatron → apple 的依據，一樣待人工覆核。★ 這條邊要在一般電子鏈上看得到，site/industry.js 的 CHAIN_EXTRA.electronics 必須含 assembly（鴻海的節點在那一格）"}
+     note: "同 pegatron → apple 的依據，一樣待人工覆核。★ 這條邊要在一般電子鏈上看得到，site/industry.js 的 CHAIN_EXTRA.electronics 必須含 assembly（鴻海的節點在那一格）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
 
   # ================================ 公有雲原廠 → 台廠 MSP（2026-09-23 新增，software 鏈）
@@ -1239,17 +1284,17 @@ edges:
      strength: 5, confidence: reported,
      note: "strength 給 5 是因為轉售與代管本來就是它的主體業務，不是一條附帶的線。
        ★ 不寫『雲端占營收 85%』那個數字（單一媒體來源、無公司自述）。
-       ⚠ 證據等級：WebSearch 摘要（iThome 新聞稿、Yahoo 股市），沒有讀過原文。"}
+       ⚠ 證據等級：WebSearch 摘要（iThome 新聞稿、Yahoo 股市），沒有讀過原文。"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: pub_cloud, to: acer_aeb, rel: supplies,
      item: "公有雲資源與授權（2022 年取得 Microsoft Azure Expert MSP 認證；2026 年初整合宏碁智雲後補上 AWS 與 GCP）",
      strength: 4, confidence: reported,
-     note: "⚠ 證據等級：WebSearch 摘要（富果法說備忘錄、CMoney、vocus），沒有讀過法說原文。"}
+     note: "⚠ 證據等級：WebSearch 摘要（富果法說備忘錄、CMoney、vocus），沒有讀過法說原文。"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: pub_cloud, to: systex, rel: supplies,
      item: "公有雲資源與軟體授權（加值型代理經銷 VAD；摘要稱其為微軟 Azure 在台主要服務商）",
      strength: 4, confidence: reported,
      note: "★ 『Azure 在台市占接近五成』只有單一投資內容平台的來源，所以寫進 item 的是
        『主要服務商』這個定性說法，不寫那個百分比。
-       ⚠ 證據等級：WebSearch 摘要（優分析、vocus、公司簡介），沒有讀過原文。"}
+       ⚠ 證據等級：WebSearch 摘要（優分析、vocus、公司簡介），沒有讀過原文。"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
 
 # ---------------------------------------------------------------- 競爭關係
 # 2026-09-19：從 edges 搬出來。圖十不畫競爭關係（那不是上下游，畫了會被誤讀成供貨），
