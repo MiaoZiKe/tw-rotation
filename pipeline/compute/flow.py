@@ -310,7 +310,7 @@ INST_COLS = {"trust": "trust", "foreign": "foreign_total", "total": None}
 
 
 def trust_streak(inst_hist: pd.DataFrame, min_days: int = 2,
-                 who: str = "trust") -> pd.DataFrame:
+                 who: str = "trust", side: str = "buy") -> pd.DataFrame:
     """法人連續買超天數排行。
 
     台股中期最有效的籌碼訊號之一：法人持續買代表真的在建倉，而不是當沖或避險部位。
@@ -318,6 +318,13 @@ def trust_streak(inst_hist: pd.DataFrame, min_days: int = 2,
     `who`：`trust` 投信、`foreign` 外資、`total` 三大法人合計
     （Andy 2026-09-15：「還能切換買超週期 不限只有3天，還要加上外資買超，以及綜合」）。
     `min_days` 放寬到 2 —— 門檻由前端自己篩，這裡給得多一點前端才有得選。
+
+    `side`（2026-09-24，Andy：「法人連續買超改成買與賣都有，做成四象限散佈圖」）：
+      `buy`  連續買超（淨額 > 0），`accumulated` 為正
+      `sell` 連續賣超（淨額 < 0），`accumulated` 為負
+    每一列另外帶 `last`＝最近一天的淨額（跟 accumulated 同號、同單位：股）。
+    總覽的四象限拿「last ÷ (accumulated ÷ streak_days)」當力道：> 1 ＝最後一天比期間日均大（加碼）。
+    欄位只增不改，舊的前端（只讀 streak_days／accumulated）不受影響。
     """
     if inst_hist.empty:
         return pd.DataFrame()
@@ -339,14 +346,16 @@ def trust_streak(inst_hist: pd.DataFrame, min_days: int = 2,
         g = g.sort_values("date")
         streak = 0
         total = 0.0
-        for net in reversed(g["_net"].tolist()):
-            if not (net > 0):
+        nets = g["_net"].tolist()
+        for net in reversed(nets):
+            if not ((net > 0) if side == "buy" else (net < 0)):
                 break
             streak += 1
             total += float(net or 0)
         if streak >= min_days:
             rows.append({"code": code, "streak_days": streak,
-                         "accumulated": total, "who": who,
+                         "accumulated": total, "last": float(nets[-1] or 0),
+                         "who": who, "side": side,
                          "date": g["date"].iloc[-1]})
     out = pd.DataFrame(rows)
     return out.sort_values("streak_days", ascending=False) if not out.empty else out
