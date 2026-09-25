@@ -3257,6 +3257,8 @@ def t_new_market3(pg, base):
     ok("★ 4 小時＝一個交易時段一根：湖是空的只有今天 → 1 根（在 09:00），照畫不退回日 K",
        h4 and h4["tf"] == "240m" and h4["n"] == 1 and h4["hours"] == [9], h4)
     pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(800)
+    # Yahoo 也要一起掛：否則 1 分線備援（fetchYahoo1m）會從假的 /y 拿到 20 天的點，當成「今天的分時」
+    Y15["ok"] = False
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
     pg.evaluate("() => { const s = window.Market3.state; s.data = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
@@ -3325,8 +3327,9 @@ def t_new_market3(pg, base):
         # ★ 2026-09-26：櫃買、台指期的多日分 K 是證交所分時自己累積的 → 卡片一行「自 YYYY-MM-DD 起累積（N 天）」；
         #   加權有 Yahoo 更早的歷史 → 不寫。天數讀 src（build_payload 算的），不寫死。
         for i, nm in (("OTC", "櫃買"), ("FUT", "台指期")):
-            ok(f"★ [{tf}] {nm}卡片一行「{nm}分 K 自 2026-08-17 起累積（30 天）」（≤ 30 字）",
-               li[i] and f"{nm}分 K 自 2026-08-17 起累積（30 天）" in li[i]["fb"] and len(li[i]["fb"]) <= 30, li[i])
+            # （這份假湖的量是 0，後面會再接一句「灰色量柱＝估算量」，所以只驗短句本身在、而且排第一）
+            ok(f"★ [{tf}] {nm}卡片一行「{nm}分 K 自 2026-08-17 起累積（30 天）」",
+               li[i] and li[i]["fb"].startswith(f"{nm}分 K 自 2026-08-17 起累積（30 天）"), li[i])
         ok(f"[{tf}] 加權有更早的 Yahoo 歷史 → 不寫「起累積」", li["TSE"] and "起累積" not in li["TSE"]["fb"], li["TSE"])
 
     # --- ★ 2026-09-26：累積天數少於週期所需 → 照畫有的那幾天，不退回日 K（Andy：「4 小時選了只有 3 天也照畫 3 天」）
@@ -3342,8 +3345,8 @@ def t_new_market3(pg, base):
         route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
     pg.unroute("**/data/index_intraday.json*")
     pg.route("**/data/index_intraday.json*", fake_intra3)
-    pg.evaluate("() => { window.Market3.state.lakeIntra = undefined; }")
-    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(300)
+    fresh(sess="day")                              # App.load 有快取，換湖要重新進頁
+    click(pg, "#m3Mode button[data-m='k']", 900)
     pg.select_option("#m3Tf", "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.OTC; return k && k.tf === '240m' && k.data.length === 3; }", 8000)
     pg.wait_for_timeout(300)
@@ -3352,7 +3355,8 @@ def t_new_market3(pg, base):
        o3 and o3["tf"] == "240m" and o3["n"] == 3 and "自 2026-09-22 起累積（3 天）" in o3["fb"], o3)
     pg.unroute("**/data/index_intraday.json*")
     pg.route("**/data/index_intraday.json*", fake_intra)
-    pg.evaluate("() => { window.Market3.state.lakeIntra = undefined; }")
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
     pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(300)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
