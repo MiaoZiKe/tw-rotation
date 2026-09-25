@@ -5858,7 +5858,8 @@
   function renderOvFlow(sd) {
     const el = $('#ovFlow'); if (!el) return;
     const sub = $('#ovFlowSub');
-    const bail = (msg) => { el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
+    const bail = (msg) => { if (window.FlowTopo && window.FlowTopo.has(el)) window.FlowTopo.destroy(el);
+      el.style.height = ''; if (sub) sub.textContent = ''; return empty('ovFlow', msg); };
     if (!sd || !(sd.dates || []).length || !(sd.groups || []).length) {
       return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
     }
@@ -5901,6 +5902,38 @@
       chains[g.chain].v += g.v; chains[g.chain].kids.push(g);
     });
     const chainArr = Object.values(chains).sort((a, b) => b.v - a.v);
+    /* ★ 2026-09-26 Andy：「這邊 UI 也需要重新設定，但功能照舊」→ 桌機改用資金流向頁「經典光纖」第二版同一支引擎
+       （site/flowtopo.js 的緊湊版 layout:'mini'：加權指數 → 產業鏈 → 族群，圓點＋細亮光芯＋膠囊標籤＋粒子）。
+       功能照舊：根節點「加權指數」、同一份資料與口徑（最後一天盤後）、% 佔上一層、提示框內容同下面 ECharts 那一份、
+       族群**不是連結**（onPick 什麼都不做，09-25 Andy 要求切斷）、高度公式不變（族群數 × 22 ＋ 46，最低 300）。
+       手機（視窗 ≤ 820，mobile3.js 把這張收進抽屜）維持原本的 ECharts 樹 —— 選不會壞的那一邊。
+       桌機側欄打開時這一欄只有 241～347px（1280～1600），flowtopo 的緊湊版有窄排法（產業鏈膠囊改放節點下方）。*/
+    const ovH = Math.max(300, gs.length * 22 + 46);
+    const ovTip = (d) => {
+      if (!d || d.value == null) return d && d.name ? fmt.esc(d.name) : '';
+      if (d.isRoot) return `<b>加權指數</b><br>這些族群合計成交值 ${fmt.yi(d.value)}`;
+      return `<b>${fmt.esc(d.name)}</b><br>成交值 ${fmt.yi(d.value)}`
+        + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
+        + `<br>佔全場 ${pct(d.value, total)}%`;
+    };
+    if (window.FlowTopo && window.innerWidth > 820) {
+      try { const ec = window.echarts && echarts.getInstanceByDom(el); if (ec) { ec.dispose(); delete charts[el.id]; } } catch (e) { /* 忽略 */ }
+      el.classList.remove('isempty');
+      const tree = { name: '加權指數', value: total, isRoot: true,
+        children: chainArr.map(c => ({ name: c.name, value: c.v, base: total, chain: c.cid,
+          children: c.kids.slice().sort((a, b) => b.v - a.v).map(g => ({ name: g.name, value: g.v, base: c.v, gid: g.gid })) })) };
+      window.FlowTopo.render(el, tree, {
+        layout: 'mini', height: ovH, maxV, total, rootLines: ['加權指數'], legend: '',
+        pal: { dark: theme() !== 'light', panel: CH.panel, line: CH.line, ink: CH.ink, ink2: CH.ink2, ink3: CH.ink3,
+          up: CH.up, down: CH.down, cyan: CH.cyan },
+        tipHTML: ovTip,
+        onPick: () => {},                 // 族群不是連結（09-25 Andy：切斷族群節點的超連結）
+        onBlank: () => {},
+      });
+      if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
+      return;
+    }
+    if (window.FlowTopo && window.FlowTopo.has(el)) { window.FlowTopo.destroy(el); el.style.height = ''; }
     const maxC = chainArr.reduce((a, c) => Math.max(a, c.v), 1);
     const narrow = (el.clientWidth || 9999) < 420;
     /* v2 第 5 批：標籤自己量、自己截，**百分比一定留著**。

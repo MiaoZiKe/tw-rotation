@@ -1168,37 +1168,32 @@ def t_overview(pg, base):
     ok("D6：小時鐘的圓圈真的變大了（容器高度 ≥ 355px）",
        bool(mini) and mini["h"] >= 355, mini and mini["h"])
     # D7：昨日資金去向分流圖
+    # ★ 2026-09-26 改前→改後：讀 ECharts tree（type tree、animation false、initialTreeDepth 2）
+    #   → 桌機改成 flowtopo 緊湊光纖版（Andy 09-26：UI 跟資金流向頁經典光纖一樣、功能照舊），改讀畫布探針：
+    #   「沒有動畫」那條改成「粒子在跑、粒子數在小預算內」（Andy 09-26 要同一套粒子特效，覆蓋 09-23 的「不需要動畫」）；
+    #   「只到族群層」改成「沒有 lv3 節點」。
+    pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+    ovt = wait_until(pg, """() => { const el = document.getElementById('ovFlow');
+        const t = el && window.FlowTopo && window.FlowTopo.has(el) ? window.FlowTopo.probe(el) : null;
+        return t && !t.pending && t.W > 0 ? t : null; }""", 6000)
     ovf = pg.evaluate("""() => { const el = document.getElementById('ovFlow'); if (!el) return null;
-        const c = echarts.getInstanceByDom(el);
-        const o = c ? c.getOption() : null;
-        const s = o ? (o.series || [])[0] : null;
         return { canvas: !!el.querySelector('canvas'), empty: el.classList.contains('isempty'),
-                 type: s ? s.type : '', anim: o ? o.animation : null,
-                 depth: s ? s.initialTreeDepth : null,
                  sub: (document.getElementById('ovFlowSub') || {}).textContent || '' }; }""")
-    if ok("D7：總覽下方畫得出「昨日資金去向」分流圖", bool(ovf) and ovf["canvas"] and not ovf["empty"], ovf):
+    if ok("D7：總覽下方畫得出「昨日資金去向」分流圖（桌機＝光纖緊湊版）", bool(ovf) and ovf["canvas"] and not ovf["empty"]
+          and bool(ovt) and ovt["layout"] == "mini", {"dom": ovf, "layout": ovt and ovt.get("layout")}):
         ok("D7：副標明講資料是盤後結算（不是即時）", "盤後結算" in ovf["sub"], ovf["sub"][:60])
-        ok("D7：沒有動畫（Andy 指定）", ovf["anim"] is False, ovf["anim"])
-        ok("D7：只畫到族群那一層（不展開到個股）",
-           ovf["type"] == "tree" and ovf["depth"] == 2, ovf)
+        ok("D7（09-26 改）：粒子特效在跑、粒子數在小預算內（≤ 160）", bool(wait_until(pg,
+           "() => { const t = window.FlowTopo.probe(document.getElementById('ovFlow')); return t && t.running && t.particles > 0 && t.particles <= 160 ? 1 : 0; }", 5000)),
+           (pg.evaluate(OVFX) or {}).get("particles"))
+        ok("D7：只畫到族群那一層（不展開到個股）", not any(n["lv"] == 3 for n in ovt["nodes"]), [n["lv"] for n in ovt["nodes"]][:3])
         # ★ 真的點一顆族群節點 —— 「有 render」不算驗收，要驗畫面真的因此改變（網址換頁）
         # ⚠ 捲動與量測要分兩次呼叫（`html{scroll-behavior:smooth}`，同一個 evaluate 裡量到的是舊座標）。
         #   取節點座標的做法跟資金去向那張樹圖一模一樣（`_sk_node_xy`）：
         #   走 `getItemGraphicEl().transformCoordToGlobal()`，那是圖上真的畫出來的位置。
-        pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
-        pg.wait_for_timeout(700)
-        xy = pg.evaluate("""() => { const el = document.getElementById('ovFlow');
-            const c = echarts.getInstanceByDom(el); if (!c) return null;
-            const d = c.getModel().getSeriesByIndex(0).getData();
-            const r = el.getBoundingClientRect();
-            for (let i = 0; i < d.count(); i++) {
-              const raw = d.getRawDataItem(i) || {};
-              const gid = raw.gid || ((raw.data || {}).gid);
-              if (!gid) continue;
-              const g = d.getItemGraphicEl(i); if (!g) continue;
-              const q = g.transformCoordToGlobal(0, 0);
-              return { x: Math.round(r.left + q[0]), y: Math.round(r.top + q[1]), gid: gid }; }
-            return null; }""")
+        # 2026-09-26 改前：ECharts getItemGraphicEl 取座標 → 改後：畫布探針的節點螢幕座標（先捲到視窗中間）
+        g0 = [n for n in ovt["nodes"] if n["lv"] == 2][0]
+        nd = _ovfx_node(pg, g0["key"])
+        xy = {"x": nd["cx"], "y": nd["cy"], "gid": g0["key"][2:]} if nd else None
         if ok("D7：算得出一顆族群節點的螢幕座標（下一條要真的點它）", bool(xy), xy):
             pg.mouse.click(xy["x"], xy["y"])
             pg.wait_for_timeout(1400)
@@ -14649,6 +14644,143 @@ DD_CONTRAST = r"""(sel) => {
     const a = L(bg), b = L(fg.slice(0, 3)); return { t: o.textContent.trim().slice(0, 12), r: +((Math.max(a, b) + .05) / (Math.min(a, b) + .05)).toFixed(2), on: o.classList.contains('on') }; }); }"""
 
 
+# ★ 2026-09-26 Andy：「昨日資金去向這邊 UI 也需要重新設定，但功能照舊」→ 桌機改用 flowtopo.js 的緊湊版 layout:'mini'
+#   （和資金流向頁「經典光纖」第二版同一支引擎、同一套視覺）。手機（視窗 ≤ 820）維持 ECharts 樹。
+#   以下三支是這張卡在各段共用的量測：探針、把某個節點捲到視窗中間拿螢幕座標、以及整套「新版長相＋功能照舊」的斷言。
+OVFX = """() => { const el = document.getElementById('ovFlow');
+  return el && window.FlowTopo && window.FlowTopo.has(el) ? window.FlowTopo.probe(el) : null; }"""
+
+
+def _ovfx_node(pg, key):
+    pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+    pg.wait_for_timeout(500)
+    t = pg.evaluate(OVFX)
+    n = [x for x in (t or {}).get("nodes", []) if x["key"] == key]
+    return n[0] if n else None
+
+
+def _ovfx_checks(pg, tag, dark=True):
+    """總覽「昨日資金去向」新版：長相照經典光纖第二版、功能照舊。每一條讀探針或真的用滑鼠操作。"""
+    pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+    t = wait_until(pg, """() => { const el = document.getElementById('ovFlow');
+        const t = el && window.FlowTopo && window.FlowTopo.has(el) ? window.FlowTopo.probe(el) : null;
+        return t && !t.pending && t.W > 0 ? t : null; }""", 6000)
+    if not ok(f"{tag} 昨日資金去向改用光纖緊湊版（flowtopo layout:'mini'，不是 ECharts 樹）",
+              bool(t) and t["layout"] == "mini" and not pg.evaluate(
+                  "() => !!(window.echarts && echarts.getInstanceByDom(document.getElementById('ovFlow')))"), t and t.get("layout")):
+        return
+    L = [[n for n in t["nodes"] if n["lv"] == k] for k in range(4)]
+    ok(f"{tag} 三層：加權指數 1、產業鏈 ≥ 3、族群 ≥ 10，沒有代表股欄（功能照舊：只到族群層）",
+       len(L[0]) == 1 and len(L[1]) >= 3 and len(L[2]) >= 10 and not L[3], [len(x) for x in L])
+    ok(f"{tag} 根節點名稱「加權指數」、看得見（圓點 ＋ 標籤）",
+       L[0][0]["name"] == "加權指數" and L[0][0]["r"] > 0 and "加權指數" in L[0][0]["text"], L[0][0])
+    n_g = len(L[2])
+    ok(f"{tag} 高度沒有比改前高：畫布高＝改前公式 max(300, 族群數 × 22 ＋ 46)、沒有上方說明列",
+       t["H"] == max(300, n_g * 22 + 46) and t["total"] == t["H"], {"H": t["H"], "total": t["total"], "族群": n_g})
+    # 視覺：精緻圓點、不要直條
+    ok(f"{tag} 節點全部是圓點（改前產業鏈是直條 roundRect 4×高）、半徑 4.5～7.5",
+       all(n["shape"] == "circle" and n["hh"] == 0 and 4.5 <= n["r"] <= 7.5 for n in L[0] + L[1] + L[2]),
+       [(n["name"], n["shape"], n["r"]) for n in L[0] + L[1] + L[2] if not (n["shape"] == "circle" and 4.5 <= n["r"] <= 7.5)][:4])
+    # 視覺：CP 0.45 對稱貝茲、細亮光芯＋淡外暈（和經典光纖第二版同一組數字）
+    lk = [x for x in t["links"] if not x["dead"]]
+    bad_cp = [x["key"] for x in lk if not (abs(x["cp"][2] - (x["cp"][0] + (x["cp"][6] - x["cp"][0]) * 0.45)) < 0.05
+                                           and abs(x["cp"][4] - (x["cp"][6] - (x["cp"][6] - x["cp"][0]) * 0.45)) < 0.05
+                                           and abs(x["cp"][3] - x["cp"][1]) < 0.05 and abs(x["cp"][5] - x["cp"][7]) < 0.05)]
+    ok(f"{tag} 連線是 CP 0.45 對稱的水平切線貝茲（改前 ECharts curveness .5）", bool(lk) and not bad_cp, bad_cp[:3])
+    ok(f"{tag} 細亮光芯 1.1px／alpha .65、淡外暈 ≤ .09（和經典光纖第二版同一組）",
+       all(x["inW"] == 1.1 and x["inA"] == 0.65 and 0 < x["outA"] <= 0.0901 for x in lk),
+       [(x["key"], x["inW"], x["inA"], x["outA"]) for x in lk][:2])
+    # 視覺：產業鏈飽和色（同一組）；族群跟著它的鏈；不用紅綠
+    dot = {n["key"]: n["dot"] for n in t["nodes"]}
+    ok(f"{tag} 族群圓點＝所屬產業鏈的色（顏色講「哪條鏈」）、鏈與鏈不同色",
+       all(n["dot"] == dot.get(n["parent"]) for n in L[2]) and len({n["dot"] for n in L[1]}) >= min(3, len(L[1])),
+       [(n["name"], n["dot"]) for n in L[1]])
+    want = {"semiconductor": "#22d3ee", "ai_server": "#c084fc"} if dark else {"semiconductor": "#0891b2", "ai_server": "#9333ea"}
+    got = {n["key"][2:]: n["dot"] for n in L[1]}
+    ok(f"{tag} 產業鏈色和資金流向頁經典光纖第二版同一組（半導體／AI 伺服器）",
+       all(got.get(k) == v for k, v in want.items() if k in got) and any(k in got for k in want), got)
+    rise, fall = pg.evaluate("() => { const s = getComputedStyle(document.documentElement);"
+                             " return [s.getPropertyValue('--rise').trim(), s.getPropertyValue('--fall').trim()]; }")
+    ok(f"{tag} 節點不染紅綠（紅綠只給漲跌字）", rise not in dot.values() and fall not in dot.values())
+    # 標籤：17px 膠囊、名稱＋佔比、不硬加漲跌、不被切、不重疊
+    labs = [n for n in L[1] + L[2]]
+    ok(f"{tag} 產業鏈與族群的標籤是高 17px 的膠囊、寫著「名稱 佔比%」",
+       all(n["lab"]["badge"] and n["lab"]["h"] == 17 and re.search(r"\d+\.\d%$", n["text"]) for n in labs),
+       [(n["text"], n["lab"]) for n in labs if not (n["lab"]["badge"] and n["lab"]["h"] == 17)][:3])
+    ok(f"{tag} 這張卡沒有漲跌，就不硬加（沒有 ▲▼）", all(n["chg"] is None for n in t["nodes"]),
+       [n["text"] for n in t["nodes"] if n["chg"]][:3])
+    out = [n["name"] for n in t["nodes"] if n["lab"] and (n["lab"]["x"] < 0 or n["lab"]["x"] + n["lab"]["w"] > t["W"] + 0.5
+                                                          or n["lab"]["y"] < 0 or n["lab"]["y"] + n["lab"]["h"] > t["H"] + 0.5)]
+    ok(f"{tag} 標籤全部在畫布內（沒有被切，寬 {t['W']}px）", not out, out[:4])
+    ok(f"{tag} 標籤兩兩不重疊", _topo_overlap(t) == 0, _topo_overlap(t))
+    # 寬度 ≥ 290（側欄打開的 1440 是 294、收起來約 454、單欄 450～650）名稱一個都不截；
+    # 更窄（1280＋側欄＝241px，兩邊都放不下）才准截名稱，而且 % 一定完整、全名在提示框
+    tr_ = [n["text"] for n in t["nodes"] if "…" in n["text"]]
+    if t["W"] >= 290:
+        ok(f"{tag} 寬 {t['W']}px：沒有任何名稱被截（…）", not tr_, tr_[:4])
+    else:
+        notes.append(f"{tag} 寬 {t['W']}px（1280＋側欄）截了 {len(tr_)} 個名稱：{tr_[:6]}")
+    ok(f"{tag} 就算截名稱，每個膠囊仍以「數字%」結尾", all(re.search(r"\d%$", n["text"]) for n in t["nodes"] if n["lv"] > 0),
+       [n["text"] for n in t["nodes"] if n["lv"] > 0 and not re.search(r"\d%$", n["text"])][:3])
+    root_n = [n for n in t["nodes"] if n["lv"] == 0][0]
+    near = [n["name"] for n in t["nodes"] if n["lv"] == 1 and n["lab"]["x"] < root_n["x"] + root_n["r"] + 1
+            and n["lab"]["y"] < root_n["y"] + root_n["r"] and root_n["y"] - root_n["r"] < n["lab"]["y"] + n["lab"]["h"]]
+    ok(f"{tag} 產業鏈膠囊沒有蓋住根節點的圓點", not near, near)
+    ok(f"{tag} 畫布字 ≥ 12px、發光 ≤ 6px", (t["minFont"] or 0) >= 12 and t["maxBlur"] <= 6, [t["minFont"], t["maxBlur"]])
+    # 特效：粒子（小預算）、碰撞光環／細漣漪
+    t1 = wait_until(pg, """() => { const el = document.getElementById('ovFlow'); const t = window.FlowTopo.probe(el);
+        return t && t.running && t.hits > 0 && t.nodes.some(n => n.hf > 0) ? t : null; }""", 6000)
+    if ok(f"{tag} 白核心粒子在跑、粒子到站會激發節點（hitFlash）", bool(t1), (pg.evaluate(OVFX) or {}).get("hits")):
+        ok(f"{tag} 粒子數在小預算內（總覽首屏；≤ 160 顆）", 0 < t1["particles"] <= 160, t1["particles"])
+        ok(f"{tag} 漣漪 ≤ 60 圈", t1["ripples"] <= 60 and t1["rpPeak"] <= 60, {k: t1[k] for k in ("ripples", "rpPeak")})
+    # 功能照舊：滑過出提示（精簡後的內容）、點族群不跳頁
+    g0 = sorted(L[2], key=lambda n: -(n["value"] or 0))[0]
+    nd = _ovfx_node(pg, g0["key"])
+    if ok(f"{tag} 找得到一顆族群節點來操作", bool(nd), g0["key"]):
+        pg.mouse.move(nd["cx"] - 40, nd["cy"] - 30); pg.wait_for_timeout(150)
+        pg.mouse.move(nd["cx"], nd["cy"]); pg.wait_for_timeout(500)
+        tt = pg.evaluate("() => { const t = document.querySelector('#ovFlow .fttip.on'); return t ? t.innerText : ''; }")
+        if ok(f"{tag} 滑到族群節點出現提示框（成交值／佔上一層／佔全場）",
+              "成交值" in tt and "佔上一層" in tt and "佔全場" in tt, tt):
+            ok(f"{tag} 提示框沒有 09-25 拿掉的那兩行（1/n 拆分、點一下進族群頁）",
+               "1/n" not in tt and "盤後結算" not in tt and "進族群頁" not in tt, tt)
+        ok(f"{tag} 滑過族群：路徑以外壓暗", (pg.evaluate(OVFX) or {}).get("hover") == g0["key"])
+        h0 = pg.evaluate("() => location.hash")
+        pg.mouse.click(nd["cx"], nd["cy"]); pg.wait_for_timeout(900)
+        ok(f"{tag} 點族群節點不跳頁（09-25 切斷超連結；改前是 ECharts 節點）", pg.evaluate("() => location.hash") == h0 and h0 in ("", "#overview"),
+           pg.evaluate("() => location.hash"))
+        pg.mouse.move(5, 5); pg.wait_for_timeout(200)
+    rt = _ovfx_node(pg, "root")
+    if rt:
+        pg.mouse.move(rt["cx"], rt["cy"]); pg.wait_for_timeout(450)
+        tt = pg.evaluate("() => { const t = document.querySelector('#ovFlow .fttip.on'); return t ? t.innerText : ''; }")
+        ok(f"{tag} 滑到「加權指數」出現合計成交值", "加權指數" in tt and "成交值" in tt, tt)
+        pg.mouse.move(5, 5); pg.wait_for_timeout(200)
+    # 動態開關（畫布左下角那顆，跟資金流向頁同一個設定）
+    if ok(f"{tag} 動態開關在畫布左上角（左上角一直是空的；左下角在窄排法會壓到最後一條鏈的膠囊）", pg.evaluate("""() => { const b = document.querySelector('#ovFlow .ftstage #ovFlowMotionBtn.ftcorner');
+            if (!b) return false; const r = b.getBoundingClientRect(), s = b.parentNode.getBoundingClientRect();
+            return r.left - s.left < 20 && r.top - s.top < 20; }""")):
+        bb = pg.evaluate("""() => { const b = document.getElementById('ovFlowMotionBtn'), s = b.parentNode.getBoundingClientRect(), r = b.getBoundingClientRect();
+            return { x: r.left - s.left, y: r.top - s.top, w: r.width, h: r.height }; }""")
+        hitb = [n["name"] for n in t["nodes"] if n["lab"] and n["lab"]["x"] < bb["x"] + bb["w"] and bb["x"] < n["lab"]["x"] + n["lab"]["w"]
+                and n["lab"]["y"] < bb["y"] + bb["h"] and bb["y"] < n["lab"]["y"] + n["lab"]["h"]]
+        ok(f"{tag} 動態開關沒有壓到任何標籤", not hitb, {"鈕": bb, "壓到": hitb})
+        pg.eval_on_selector("#ovFlowMotionBtn", "b => b.click()"); pg.wait_for_timeout(600)
+        tm = pg.evaluate(OVFX)
+        ok(f"{tag} 按「動態」：動畫停、設定寫進 localStorage、沒有漣漪與激發",
+           not tm["running"] and not tm["motion"] and tm["ripples"] == 0 and all(n["hf"] == 0 for n in tm["nodes"])
+           and pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')") == "0", {k: tm[k] for k in ("running", "ripples")})
+        ha = canvas_hash(pg, "#ovFlow"); pg.wait_for_timeout(800)
+        ok(f"{tag} 動態關掉之後畫面完全靜止", ha == canvas_hash(pg, "#ovFlow"))
+        pg.eval_on_selector("#ovFlowMotionBtn", "b => b.click()")
+        ok(f"{tag} 再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.FlowTopo.probe(document.getElementById('ovFlow')); return t && t.running ? 1 : 0; }", 5000)))
+    # 捲出畫面停動畫
+    pg.evaluate("() => window.scrollTo({top: document.documentElement.scrollHeight, behavior: 'instant'})")
+    if pg.evaluate("() => document.querySelector('#ovFlow .ftstage').getBoundingClientRect().bottom < 0"):
+        ok(f"{tag} 捲出畫面：動畫停掉", bool(wait_until(pg, "() => { const t = window.FlowTopo.probe(document.getElementById('ovFlow')); return t && !t.running ? 1 : 0; }", 4000)))
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})"); pg.wait_for_timeout(300)
+
+
 def t_ov_right(pg, base):
     """總覽右欄（2026-09-25）：足跡輪盤放大、族群面板收小；昨日資金去向「?」、族群不跳頁、提示框精簡、起點「加權指數」。"""
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -14706,30 +14838,31 @@ def t_ov_right(pg, base):
     click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     ok("[總覽右欄] 按 Esc 也關", pg.evaluate("() => document.getElementById('how-ovflow').hidden"))
-    # 起點節點「加權指數」
-    root = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('ovFlow')); if (!c) return null;
-        const r = c.getOption().series[0].data[0]; return { name: r.name, size: r.symbolSize, show: (r.label || {}).show, fmt: (r.label || {}).formatter }; }""")
-    ok("[總覽右欄] ★ 流動圖起點是看得見的小圓圈、名稱「加權指數」",
-       bool(root) and root["name"] == "加權指數" and root["size"] > 0 and root["show"] is True and "加權指數" in (root["fmt"] or ""), root)
-    # 滑到族群節點 → 提示框沒有那兩行；點下去不跳頁
-    pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
-    pg.wait_for_timeout(700)
-    xy = pg.evaluate("""() => { const el = document.getElementById('ovFlow'); const c = echarts.getInstanceByDom(el); if (!c) return null;
-        const d = c.getModel().getSeriesByIndex(0).getData(); const r = el.getBoundingClientRect();
-        for (let i = 0; i < d.count(); i++) { const raw = d.getRawDataItem(i) || {}; if (!raw.gid) continue;
-          const g = d.getItemGraphicEl(i); if (!g) continue; const q = g.transformCoordToGlobal(0, 0);
-          return { x: Math.round(r.left + q[0]), y: Math.round(r.top + q[1]), gid: raw.gid }; } return null; }""")
-    if ok("[總覽右欄] 算得出一顆族群節點", bool(xy), xy):
-        pg.mouse.move(xy["x"] - 30, xy["y"] - 30); pg.wait_for_timeout(200)
-        pg.mouse.move(xy["x"], xy["y"]); pg.wait_for_timeout(700)
-        tt = pg.evaluate("""() => { const t = [...document.querySelectorAll('#ovFlow div')].find(d => d.style && d.style.position === 'absolute' && d.innerText && d.innerText.includes('成交值') && getComputedStyle(d).display !== 'none' && getComputedStyle(d).opacity !== '0');
-            return t ? t.innerText : ''; }""")
-        if ok("[總覽右欄] 滑到族群節點出現提示框", bool(tt), tt):
-            ok("[總覽右欄] ★ 提示框沒有「盤後結算值；1/n 拆分」與「點一下進族群頁」那兩行",
-               "1/n" not in tt and "盤後結算" not in tt and "進族群頁" not in tt, tt)
-        pg.mouse.click(xy["x"], xy["y"]); pg.wait_for_timeout(1200)
-        ok("[總覽右欄] ★ 點族群節點不跳頁（留在總覽）", pg.evaluate("() => location.hash") in ("", "#overview"),
-           pg.evaluate("() => location.hash"))
+    # ★ 2026-09-26 改前→改後：起點節點、滑過提示、點族群不跳頁 —— 改前讀 ECharts 的 series／getItemGraphicEl，
+    #   改後這張在桌機是 flowtopo 緊湊光纖版，改讀畫布探針＋真的用滑鼠滑過／點（_ovfx_checks，深淺主題各一輪）。
+    for th in ("dark", "light"):
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        _ovfx_checks(pg, f"[總覽右欄][{th}][1440]", dark=(th == "dark"))
+    # 其他寬度：側欄打開（預設）時 1440＝294px、1280＝241px；側欄收起 1440≈454px；1024 單欄 ≈ 574px
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+    for w, side in ((1280, None), (1024, None), (1440, "0")):
+        pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
+        pg.set_viewport_size({"width": w, "height": 1000}); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+        _ovfx_checks(pg, f"[總覽右欄][{w}{'・側欄收起' if side == '0' else ''}]")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.side'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    # 減少動態：只畫靜態
+    ctx = pg.context.browser.new_context(viewport={"width": 1440, "height": 1000}, reduced_motion="reduce")
+    p2 = ctx.new_page()
+    p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    p2.goto(f"{base}#overview", wait_until="networkidle"); p2.wait_for_timeout(2400)
+    p2.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})"); p2.wait_for_timeout(900)
+    tr = p2.evaluate(OVFX)
+    ok("[總覽右欄][減少動態] 昨日資金去向照樣畫得出來、動畫不跑、動態鈕停用、沒有漣漪",
+       bool(tr) and tr["reduce"] and not tr["running"] and tr["ripples"] == 0 and p2.evaluate(
+           "() => document.querySelector('#ovFlowMotionBtn').disabled"), tr and {k: tr[k] for k in ("reduce", "running")})
+    ctx.close()
 
 
 def t_copy_trim(pg, base, code):
@@ -26052,6 +26185,12 @@ def t_ds2(pg, base):
         pg.goto(f"{base}{hash_}", wait_until="networkidle"); pg.wait_for_timeout(2600)
         got = pg.evaluate(FS, ids)
         for i in ids:
+            if got.get(i) is None and i == "ovFlow":
+                # 2026-09-26 改前→改後：總覽資金去向桌機改成 flowtopo 畫布（不是 ECharts）→ 量畫布探針回報的最小字級
+                scroll_to(pg, "ovFlow"); pg.wait_for_timeout(800)
+                tf = pg.evaluate(OVFX)
+                ok(f"[{hash_} #ovFlow] 畫布字 ≥ 12px（光纖緊湊版）", bool(tf) and (tf["minFont"] or 0) >= 12, tf and tf["minFont"])
+                continue
             if got.get(i) is None:
                 notes.append(f"設計系統v2：{hash_} 找不到圖 #{i}（沒資料時會這樣），字級沒量到")
                 continue
@@ -27544,34 +27683,28 @@ OVF_STATE = r"""() => { const el = document.getElementById('ovFlow'); const c = 
 
 
 def t_flow_v2(pg, base):
+    # ★ 2026-09-26 改前→改後：總覽那張的 v2 第 5 批斷言（ECharts：線色 alpha .38／.30、產業鏈直條 roundRect、rich 標籤 cn／gb／gn）
+    #   → 桌機改成 flowtopo 緊湊光纖版（Andy 09-26），改驗新畫布：線色＝產業鏈色、圓點、膠囊標籤「名稱 佔比%」、不出畫布。
+    #   OVF_STATE 留著（手機 ≤ 820 仍是 ECharts 樹，手機段落用得到）。
     for th in ("dark", "light"):
         pg.set_viewport_size({"width": 1440, "height": 950})
         pg.goto("about:blank")
         pg.goto(f"{base}#overview", wait_until="networkidle")
         pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); } catch (e) {} }", th)
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
-        scroll_to(pg, "ovFlow"); pg.wait_for_timeout(500)
-        s = pg.evaluate(OVF_STATE)
-        if not ok(f"[{th}] 總覽的資金去向畫得出來", bool(s) and len(s["chains"]) >= 2, s):
+        scroll_to(pg, "ovFlow"); pg.wait_for_timeout(900)
+        t = pg.evaluate(OVFX)
+        if not ok(f"[{th}] 總覽的資金去向畫得出來（光纖緊湊版）", bool(t) and t["layout"] == "mini", t and t.get("layout")):
             continue
-        ok(f"[{th}] 總覽資金去向仍然沒有動畫（Andy 09-23）", s["anim"] is False, s["anim"])
-        want_a = 0.38 if th == "dark" else 0.30
-        ok(f"[{th}] ① 線條＝所屬產業鏈的識別色（鏈底下每條線跟鏈同一個色）、淡 {want_a}",
-           all(c["kidsSame"] and c["a"] == want_a for c in s["chains"]), [(c["line"], c["kidsSame"]) for c in s["chains"]])
-        ok(f"[{th}] ① 不同產業鏈的線是不同的色（顏色真的在講「哪條鏈」）",
-           len({c["line"] for c in s["chains"]}) >= min(3, len(s["chains"])), [c["line"] for c in s["chains"]])
-        ok(f"[{th}] ② 產業鏈節點是直立細長條（圓角矩形、寬 4、高 ≥ 8）",
-           all(c["sym"] == "roundRect" and c["size"][0] == 4 and c["size"][1] >= 8 for c in s["chains"]),
-           [(c["sym"], c["size"]) for c in s["chains"]])
-        ok(f"[{th}] ③ 產業鏈名字用 13px 粗體那一級（rich cn）、% 用 12px --ink-3（rich gp）",
-           all(c["lbl"].startswith("{cn|") and "{gp|" in c["lbl"] for c in s["chains"]), [c["lbl"] for c in s["chains"]][:3])
-        ok(f"[{th}] ③ 每條鏈流量第一名的族群名字是粗體（gb），其餘一般（gn）",
-           all(c["first"].startswith("{gb|") and all(x.startswith("{gn|") for x in c["rest"]) for c in s["chains"]),
-           [c["first"] for c in s["chains"]])
-        ok(f"[{th}] ③ 百分比一個都沒被截掉（每一條都以「數字%」結尾）",
-           all(re.search(r"\d%\}$", x or "") for c in s["chains"] for x in [c["lbl"], c["first"]] + c["rest"]),
-           [x for c in s["chains"] for x in [c["first"]] + c["rest"] if not re.search(r"\d%\}$", x or "")][:4])
-        ok(f"[{th}] ③ 標籤沒有超出畫布右緣", s["outR"] <= s["W"] + 1, {"最右": s["outR"], "寬": s["W"]})
+        L1 = [n for n in t["nodes"] if n["lv"] == 1]; L2 = [n for n in t["nodes"] if n["lv"] == 2]
+        dot = {n["key"]: n["dot"] for n in t["nodes"]}
+        ok(f"[{th}] ① 族群跟所屬產業鏈同一個色、不同產業鏈不同色",
+           all(n["dot"] == dot.get(n["parent"]) for n in L2) and len({n["dot"] for n in L1}) >= min(3, len(L1)), [n["dot"] for n in L1])
+        ok(f"[{th}] ② 產業鏈節點是圓點（改前直條）", all(n["shape"] == "circle" for n in L1), [(n["shape"], n["hh"]) for n in L1])
+        ok(f"[{th}] ③ 每個標籤都以「數字%」結尾（百分比一個都沒被截掉）",
+           all(re.search(r"\d%$", n["text"]) for n in L1 + L2), [n["text"] for n in L1 + L2 if not re.search(r"\d%$", n["text"])][:4])
+        ok(f"[{th}] ③ 標籤沒有超出畫布右緣", all(n["lab"]["x"] + n["lab"]["w"] <= t["W"] + 0.5 for n in t["nodes"] if n["lab"]),
+           {"寬": t["W"], "最右": max(n["lab"]["x"] + n["lab"]["w"] for n in t["nodes"] if n["lab"])})
 
     # 資金流向頁那張：鏈色線條、直條節點、小圓點不壓字（小圓點本身保留）
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); } catch (e) {} }")
@@ -28768,7 +28901,10 @@ def t_loadperf(pg, b, base):
             # ⑤ 延後畫的卡片最後都真的畫出來了（沒捲動也會在閒下來時補畫）
             drawn = wait_until(p2, """() => { const has = (id) => { const e = document.getElementById(id);
                 return !!(e && window.echarts && echarts.getInstanceByDom(e)); };
-              return has('heat') && has('rotClockMini') && has('ovFlow') && has('ovTheme') && has('breadth') && has('trust'); }""", 8000)
+              /* 2026-09-26 改前→改後：#ovFlow 桌機改成 flowtopo 畫布 → 「畫出來了」＝ ECharts 實例 或 flowtopo 已經不在延後狀態 */
+              const ov = document.getElementById('ovFlow');
+              const ovDrawn = has('ovFlow') || !!(ov && window.FlowTopo && window.FlowTopo.has(ov) && !window.FlowTopo.probe(ov).pending);
+              return has('heat') && has('rotClockMini') && ovDrawn && has('ovTheme') && has('breadth') && has('trust'); }""", 8000)
             ok("⑤ 首屏以下延後畫的卡片（資金去向、題材熱力圖、漲跌家數分佈、法人四象限）最後都真的畫出來了", bool(drawn))
             c2.close()
             break

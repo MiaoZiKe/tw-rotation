@@ -65,10 +65,10 @@
       "at": [
         { "page": "overview", "step": 1, "seg": "資金去向", "ord": 20,
           "selector": ["#ovRotCard", "#ovFlowHead", "#ovFlowWrap"],
-          "note": "總覽上的簡版（renderOvFlow，無動畫）。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進足跡輪盤的「?」。" },
+          "note": "總覽上的簡版（renderOvFlow）。2026-09-26 桌機改用 flowtopo.js 緊湊版 layout:'mini'（和資金流向頁經典光纖第二版同一套視覺，有粒子），手機 ≤820 仍是 ECharts 樹。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進足跡輪盤的「?」。" },
         { "page": "flow", "seg": "資金去向", "ord": 20, "selector": ["#flowSankeyCard"] }
       ],
-      "tests": ["新-資金流向", "資金去向經典光纖", "資金去向拓撲", "資金去向拓撲-減少動態", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽"] },
+      "tests": ["新-資金流向", "資金去向經典光纖", "資金去向拓撲", "資金去向拓撲-減少動態", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽", "總覽右欄", "資金去向v2", "設計系統v2", "載入效能"] },
 
     { "id": "flow.heat", "name": "資金熱力圖", "question": "①", "ask": "哪些族群現在佔掉最多成交值，而且是在流入還是流出",
       "tier": "免費", "law": "🟡",
