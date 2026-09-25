@@ -13365,6 +13365,132 @@ def t_mobile_v3(b, base, code):
             ok(f"{T} #17 {h}：HTML 字 < 12px 的節點 0", not r["tiny"], r["tiny"][:6])
         m.close()
 
+# ================================================================ 漲跌家數分上市／上櫃／全部（2026-09-26）
+# Andy：「漲跌家數」長條圖「需要分 上市 上櫃 全部」。這一段當真人操作：
+#   按上市 → 共 N 檔變、長條變、點一級清單只剩上市；清單開著按上櫃 → 原地換成上櫃；
+#   重新整理記得上櫃；按全部 → 回到原本的數字。每一步都跟管線的 updown.json 對數字（前端與管線同一套級距）。
+UD_PROBE = """() => { const e = document.getElementById('breadth'); const c = e && echarts.getInstanceByDom(e);
+    const seg = [...document.querySelectorAll('#udMkt button')];
+    const o = c ? c.getOption() : null;
+    return { vals: o ? o.series[0].data.map(d => d.value) : null, total: +(e && e.dataset.total || -1), mkt: e && e.dataset.mkt,
+             pill: (document.getElementById('udSum') || {}).textContent || '',
+             on: seg.filter(b => b.classList.contains('on')).map(b => b.dataset.m),
+             pressed: seg.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.dataset.m),
+             labels: seg.map(b => b.textContent.trim()),
+             ls: (() => { try { return localStorage.getItem('tw.udMkt'); } catch (e) { return 'ERR'; } })() }; }"""
+
+
+def _ud_click_seg(pg, m):
+    pg.eval_on_selector(f'#udMkt button[data-m="{m}"]', "b => b.click()")
+    pg.wait_for_timeout(700)
+    return pg.evaluate(UD_PROBE)
+
+
+def _ud_click_bar(pg, i):
+    scroll_to(pg, "breadth")
+    bb = pg.evaluate("""(i) => { const e = document.getElementById('breadth'), c = echarts.getInstanceByDom(e);
+        const p = c.convertToPixel({seriesIndex: 0}, [i, c.getOption().series[0].data[i].value / 2]); const r = e.getBoundingClientRect();
+        return {x: r.left + p[0], y: r.top + p[1]}; }""", i)
+    pg.mouse.click(bb["x"], bb["y"]); pg.wait_for_timeout(700)
+
+
+UD_PANEL = """() => { const b = document.getElementById('udPanel');
+    return { open: !b.hidden, bin: b.dataset.bin, mkt: b.dataset.mkt, title: (b.querySelector('.hh b') || {}).textContent || '',
+             txt: (b.querySelector('.m') || {}).textContent || '',
+             codes: [...b.querySelectorAll('a[href^="#stock/"]')].map(a => a.getAttribute('href').slice(7)) }; }"""
+
+
+def t_ud_market(pg, base):
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.udMkt'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
+    ud = pg.evaluate("() => fetch('data/updown.json', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null)")
+    stocks = pg.evaluate("() => fetch('data/stocks.json', {cache: 'no-store'}).then(r => r.json())")
+    mk = {r["code"]: str(r.get("market") or "").upper() for r in stocks}
+    if not ok("管線有產出 updown.json（三組分佈）", bool(ud) and all(k in ud for k in ("all", "twse", "tpex", "other")), ud and list(ud)):
+        return
+    ok("★ 管線加總檢查：每一級 全部＝上市＋上櫃＋市場別不明", ud["check"]["ok"] and all(
+        ud["all"]["counts"][i] == ud["twse"]["counts"][i] + ud["tpex"]["counts"][i] + ud["other"]["counts"][i] for i in range(11)),
+        ud["check"])
+    ok("上市、上櫃兩組都有股票（資料湖真的分得出市場別）", ud["twse"]["n"] > 0 and ud["tpex"]["n"] > 0, (ud["twse"]["n"], ud["tpex"]["n"]))
+    scroll_to(pg, "breadth"); pg.wait_for_timeout(600)
+    a0 = pg.evaluate(UD_PROBE)
+    ok("★ 標題列有「全部｜上市｜上櫃」分段鈕，預設全部", a0["labels"] == ["全部", "上市", "上櫃"] and a0["on"] == ["all"] and a0["pressed"] == ["all"], a0)
+    ok("★ 全部：長條＝管線 all 那一組、共 N 檔＝all.n", a0["vals"] == ud["all"]["counts"] and a0["total"] == ud["all"]["n"]
+       and str(ud["all"]["n"]) in a0["pill"].replace(",", ""), (a0["vals"], ud["all"]["counts"], a0["pill"]))
+    # ---- 切上市
+    a1 = _ud_click_seg(pg, "twse")
+    ok("★ 按上市 → 按鈕亮在上市", a1["on"] == ["twse"] and a1["pressed"] == ["twse"], a1)
+    ok("★ 按上市 → 共 N 檔變成上市家數", a1["total"] == ud["twse"]["n"] != a0["total"]
+       and str(ud["twse"]["n"]) in a1["pill"].replace(",", ""), (a1["total"], a1["pill"], ud["twse"]["n"]))
+    ok("★ 按上市 → 長條換成上市那一組（逐級對管線）", a1["vals"] == ud["twse"]["counts"] and a1["vals"] != a0["vals"], (a1["vals"], ud["twse"]["counts"]))
+    ok("選擇寫進 localStorage", a1["ls"] == "twse", a1["ls"])
+    # 提示框佔比的分母要跟著換成上市（讀 ECharts 真的吐出來的提示框文字）
+    i_big = max(range(11), key=lambda i: a1["vals"][i])
+    tip = pg.evaluate("""(i) => { const e = document.getElementById('breadth'), c = echarts.getInstanceByDom(e);
+        c.dispatchAction({type: 'showTip', seriesIndex: 0, dataIndex: i}); return new Promise(r => setTimeout(() => {
+          const t = [...document.querySelectorAll('div')].filter(d => /佔(全部|上市|上櫃)/.test(d.textContent || '') && d.children.length <= 8
+                     && getComputedStyle(d).position === 'absolute').map(d => d.textContent).pop() || '';
+          c.dispatchAction({type: 'hideTip'}); r(t); }, 350)); }""", i_big)
+    want_pct = f"{a1['vals'][i_big] / a1['total'] * 100:.1f}%"
+    ok("★ 提示框佔比用上市家數當分母", "佔上市" in tip and want_pct in tip, (tip, want_pct))
+    # ---- 點一級：清單只剩上市
+    _ud_click_bar(pg, i_big)
+    p1 = pg.evaluate(UD_PANEL)
+    ok("★ 上市時點一級 → 清單打開、家數＝那根長條", p1["open"] and p1["bin"] == str(i_big) and str(a1["vals"][i_big]) in p1["txt"],
+       {k: v for k, v in p1.items() if k != "codes"})
+    ok("★ 上市時點一級 → 清單裡每一檔都是上市", len(p1["codes"]) >= 1 and all(mk.get(c) == "TWSE" for c in p1["codes"]),
+       [c for c in p1["codes"] if mk.get(c) != "TWSE"][:5])
+    # ---- 清單開著切上櫃：同一級原地換成上櫃
+    a2 = _ud_click_seg(pg, "tpex")
+    p2 = pg.evaluate(UD_PANEL)
+    ok("★ 按上櫃 → 共 N 檔、長條換成上櫃那一組", a2["total"] == ud["tpex"]["n"] and a2["vals"] == ud["tpex"]["counts"], (a2["total"], a2["vals"]))
+    ok("★ 清單開著按上櫃 → 清單沒被關掉、同一級原地換成上櫃", p2["open"] and p2["bin"] == str(i_big) and p2["mkt"] == "tpex"
+       and str(ud["tpex"]["counts"][i_big]) in p2["txt"], {k: v for k, v in p2.items() if k != "codes"})
+    ok("★ 換完之後清單裡每一檔都是上櫃", all(mk.get(c) == "TPEX" for c in p2["codes"]) and (bool(p2["codes"]) or ud["tpex"]["counts"][i_big] == 0),
+       [c for c in p2["codes"] if mk.get(c) != "TPEX"][:5])
+    ok("前端每一級：上市＋上櫃＝全部（管線 other＝0 時）", ud["other"]["n"] != 0 or
+       [x + y for x, y in zip(a1["vals"], a2["vals"])] == a0["vals"], (a1["vals"], a2["vals"], a0["vals"]))
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    ok("清單按 Esc 收得起來", pg.evaluate("() => document.getElementById('udPanel').hidden"))
+    # ---- 重新整理：記得上櫃
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1600)
+    scroll_to(pg, "breadth"); pg.wait_for_timeout(800)
+    a3 = pg.evaluate(UD_PROBE)
+    ok("★ 重新整理 → 還是上櫃（按鈕、長條、共 N 檔都對）", a3["on"] == ["tpex"] and a3["total"] == ud["tpex"]["n"] and a3["vals"] == ud["tpex"]["counts"], a3)
+    # ---- 切回全部：完整還原
+    a4 = _ud_click_seg(pg, "all")
+    ok("★ 按全部 → 長條與共 N 檔還原成一開始的樣子", a4["vals"] == a0["vals"] and a4["total"] == a0["total"] and a4["pill"] == a0["pill"], (a4["total"], a0["total"]))
+    ok("按全部 → localStorage 記成 all", a4["ls"] == "all", a4["ls"])
+    # 「?」說明寫出三組的家數
+    pg.eval_on_selector('button.howbtn[data-how="breadth"]', "b => b.click()"); pg.wait_for_timeout(500)
+    how = pg.evaluate("() => { const p = document.getElementById('howPop'); return ((p && !p.hidden && p.textContent) || (document.getElementById('how-breadth') || {}).textContent || ''); }")
+    ok("「?」寫出 全部＝上市＋上櫃 的家數", f"上市 {ud['twse']['n']}" in how and f"上櫃 {ud['tpex']['n']}" in how, how[-240:])
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    # ---- 淺色主題：亮起的那顆看得見、切換照樣動
+    dg_set_theme(pg, "light", 1400)
+    scroll_to(pg, "breadth")
+    lt = pg.evaluate("""() => { const on = document.querySelector('#udMkt button.on'), card = document.getElementById('ovBreadthCard');
+        return { on: getComputedStyle(on).backgroundColor, fg: getComputedStyle(on).color, card: getComputedStyle(card).backgroundColor,
+                 theme: document.documentElement.getAttribute('data-theme') }; }""")
+    ok("淺色主題：亮起的分段鈕底色跟卡片不同、字色跟底色不同", lt["theme"] == "light" and lt["on"] != lt["card"] and lt["on"] != lt["fg"], lt)
+    a5 = _ud_click_seg(pg, "twse")
+    ok("淺色主題：按上市照樣換長條", a5["vals"] == ud["twse"]["counts"], a5["vals"])
+    _ud_click_seg(pg, "all")
+    dg_set_theme(pg, "dark", 1400)
+    # ---- 手機寬 390：分段鈕在卡片裡、不撐出橫向捲動、按得到
+    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(900)
+    scroll_to(pg, "breadth"); pg.wait_for_timeout(500)
+    mb = pg.evaluate("""() => { const s = document.getElementById('udMkt').getBoundingClientRect(), c = document.getElementById('ovBreadthCard').getBoundingClientRect();
+        return { inside: s.left >= c.left - 1 && s.right <= c.right + 1, w: Math.round(s.width), sw: document.documentElement.scrollWidth, vw: innerWidth }; }""")
+    ok("★ 手機 390：分段鈕在卡片內、整頁沒有橫向捲動", mb["inside"] and mb["sw"] <= mb["vw"] + 1, mb)
+    a6 = _ud_click_seg(pg, "tpex")
+    ok("★ 手機 390：按上櫃照樣換長條", a6["vals"] == ud["tpex"]["counts"] and a6["total"] == ud["tpex"]["n"], a6["total"])
+    _ud_click_seg(pg, "all")
+    pg.set_viewport_size({"width": 1440, "height": 900}); pg.wait_for_timeout(500)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.udMkt'); } catch (e) {} }")
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
@@ -13373,6 +13499,8 @@ SECTIONS = {
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
     "總覽":                lambda pg, b, base, code: t_overview(pg, base),
     "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
+    # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）
+    "漲跌家數市場別":      lambda pg, b, base, code: t_ud_market(pg, base),
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),

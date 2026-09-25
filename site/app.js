@@ -6338,20 +6338,62 @@
     { k: '漲停', t: () => true, m: 10 },
   ];
   const udBin = (v) => { v = Math.round(+v * 100) / 100; for (let i = 0; i < UD_BINS.length; i++) if (UD_BINS[i].t(v)) return i; return UD_BINS.length - 1; };
-  let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔）
+  /* ★ 2026-09-26（Andy：「需要分 上市 上櫃 全部」）：標題列的分段鈕 `#udMkt` 切市場別。
+     · 級距以管線為準：stocks.json 每列的 `ud`（`flow.updown_bin`，pytest 釘住每一條邊界）；
+       舊 payload 沒有 `ud` 才退回上面這支 `udBin`（兩支邊界相同，只是換版當下不要開天窗）。
+     · 市場別＝stocks.json 的 `market`（company_info；2026-09-24 與 price_daily 當天回報該檔的交易所
+       2333 檔逐檔比對 0 不符）。不是 TWSE／TPEX 的歸「其他」：只算在「全部」，會寫在「?」裡，
+       不會默默讓「上市＋上櫃」少於「全部」。
+     · 切換後長條、數字標籤、「共 N 檔」、提示框佔比（分母＝該市場家數）、已打開的那一級清單全部跟著換。
+     · 選擇記在 localStorage `tw.udMkt`（私密視窗讀寫失敗就用預設「全部」）。
+     · 這張圖不吃盤中即時（live.js 沒有更新 #breadth），三組都是盤後 stocks.json 的同一份。*/
+  const UD_MKT_NAME = { all: '全部', twse: '上市', tpex: '上櫃' };
+  let udMkt = 'all';
+  try { const v = localStorage.getItem('tw.udMkt'); if (v && UD_MKT_NAME[v]) udMkt = v; } catch (e) { /* 私密視窗：用預設（全部） */ }
+  const udMktOf = (r) => { const s = String(r.market || '').toUpperCase(); return s === 'TWSE' ? 'twse' : s === 'TPEX' ? 'tpex' : 'other'; };
+  const udBinOf = (r) => (Number.isInteger(r.ud) && r.ud >= 0 && r.ud < UD_BINS.length ? r.ud
+    : ('ud' in r ? null : (r.chg_pct != null && Number.isFinite(+r.chg_pct) ? udBin(r.chg_pct) : null)));
+  let udStat = null;               // 給 HOW.breadth 讀的讀數（總家數、兩種口徑差幾檔、市場別不明幾檔）
+  function udPanelFill(box, i, rows) {
+    box.hidden = false; box.dataset.bin = String(i); box.dataset.mkt = udMkt;
+    const mk = udMkt === 'all' ? '' : `${UD_MKT_NAME[udMkt]}・`;
+    box.innerHTML = `<div class="hh"><b>${mk}${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
+        <span class="m">${rows.length} 檔（依成交值，最多列 60 檔）</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
+        ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
+  }
   function renderUpDown(stocks, heat) {
     const el = $('#breadth'); if (!el) return;
-    const pool = (stocks || []).filter(r => r && r.chg_pct != null && Number.isFinite(+r.chg_pct));
+    const seg = $('#udMkt');
+    if (seg && !seg.dataset.wired) {
+      seg.dataset.wired = '1';
+      $$('#udMkt button').forEach(b => b.onclick = () => {
+        if (b.dataset.m === udMkt) return;
+        udMkt = b.dataset.m;
+        try { localStorage.setItem('tw.udMkt', udMkt); } catch (e) { /* 私密視窗：不記，但這次照樣切 */ }
+        renderUpDown(stocks, heat);
+      });
+    }
+    if (seg) $$('#udMkt button').forEach(x => { const on = x.dataset.m === udMkt; x.classList.toggle('on', on); x.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    const every = (stocks || []).filter(r => r && udBinOf(r) != null);
+    const pool = udMkt === 'all' ? every : every.filter(r => udMktOf(r) === udMkt);
     const sum = $('#udSum');
-    if (!pool.length) { if (sum) sum.textContent = ''; el.style.height = ''; return empty('breadth', '尚無逐檔漲跌資料'); }
+    const box = $('#udPanel');
+    if (!pool.length) {
+      if (sum) sum.textContent = ''; el.style.height = ''; el.dataset.total = '0';
+      if (box) box.hidden = true;
+      return empty('breadth', every.length ? `${UD_MKT_NAME[udMkt]}沒有逐檔漲跌資料` : '尚無逐檔漲跌資料');
+    }
     const bins = UD_BINS.map(() => []);
-    pool.forEach(r => bins[udBin(r.chg_pct)].push(r));
+    pool.forEach(r => bins[udBinOf(r)].push(r));
     const cnt = bins.map(b => b.length);
     const up = cnt.slice(6).reduce((a, b) => a + b, 0), dn = cnt.slice(0, 5).reduce((a, b) => a + b, 0), fl = cnt[5];
-    udStat = { n: pool.length, up, dn, fl,
+    const nBy = { twse: 0, tpex: 0, other: 0 }; every.forEach(r => { nBy[udMktOf(r)]++; });
+    udStat = { n: pool.length, up, dn, fl, mkt: udMkt, nAll: every.length, ...nBy,
       heatN: heat ? (heat.advancers || 0) + (heat.decliners || 0) + (heat.unchanged || 0) : null };
     if (sum) sum.innerHTML = `共 <b>${pool.length}</b> 檔`;
     el.dataset.total = String(pool.length);                 // 驗收用：直條加總要等於這個數
+    el.dataset.mkt = udMkt;
     el.style.height = '300px'; el.style.minHeight = '300px';
     // 顏色：紅漲綠跌，越極端越飽和（讀 CH，切主題會跟著換）；平盤用中性灰
     const col = (i) => { const m = UD_BINS[i].m; if (!m) return CH.ink3;
@@ -6360,7 +6402,7 @@
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
         formatter: (ps) => { const i = ps[0].dataIndex;
           const lab = i === 0 ? '跌停（≤ -9.5%）' : i === 10 ? '漲停（≥ +9.5%）' : i === 5 ? '平盤' : UD_BINS[i].k + '%';
-          return `<b>${lab}</b><br>${cnt[i]} 檔（${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
+          return `<b>${lab}</b>${udMkt === 'all' ? '' : `　<small>${UD_MKT_NAME[udMkt]}</small>`}<br>${cnt[i]} 檔（佔${UD_MKT_NAME[udMkt]} ${fmt.n(cnt[i] / pool.length * 100, 1)}%）<br><small>點一下列出這一級的股票</small>`; } },
       grid: { left: 44, right: 12, top: 26, bottom: 28 },
       xAxis: { ...axisStyle, type: 'category', data: UD_BINS.map(b => b.k),
         axisLabel: { color: CH.ink2, fontSize: 12, interval: 0 }, axisTick: { show: false } },
@@ -6370,16 +6412,18 @@
         data: cnt.map((v, i) => ({ value: v, itemStyle: { color: col(i), borderRadius: [3, 3, 0, 0] } })),
         label: { show: true, position: 'top', color: CH.ink2, fontSize: 12, formatter: (q) => (q.value ? String(q.value) : '') } }],
     }, { notMerge: true });
+    const rowsOf = (i) => bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
+    // 點外面／Esc 關；按市場分段鈕不算「點外面」—— 清單要留著、原地換成新市場的那一級
+    const arm = () => dismissable(box, () => { box.hidden = true; }, { ignore: ['#udMkt'] });
     if (c) c.off('click').on('click', (p) => {
-      const i = p.dataIndex; const box = $('#udPanel'); if (!box || i == null) return;
-      const rows = bins[i].slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-      box.hidden = false; box.dataset.bin = String(i);
-      box.innerHTML = `<div class="hh"><b>${i === 5 ? '平盤' : UD_BINS[i].k + (i === 0 || i === 10 ? '' : '%')}</b>
-          <span class="m">${rows.length} 檔（依成交值，最多列 60 檔）</span></div>
-        <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:6px">
-          ${rows.slice(0, 60).map(r => L.stock(r.code, r.name, { cls: 'sm' })).join('') || '<span class="muted">這一級沒有股票</span>'}</div>`;
-      dismissable(box, () => { box.hidden = true; });       // 點外面／Esc 關
+      const i = p.dataIndex; if (!box || i == null) return;
+      udPanelFill(box, i, rowsOf(i)); arm();
     });
+    // 切市場時清單正開著 → 同一級換成新市場的股票（不是關掉，也不是留著舊市場的名單）
+    if (box && !box.hidden && box.dataset.bin != null && box.dataset.mkt !== udMkt) {
+      const i = +box.dataset.bin;
+      if (i >= 0 && i < UD_BINS.length) { udPanelFill(box, i, rowsOf(i)); arm(); }
+    }
   }
 
   /* 投信連續買超：長條圖只講得出「買幾天」，講不出「買多少」。
@@ -6613,9 +6657,12 @@
       '兩頭都高＝強弱分歧，選股重於方向',
       '紅漲綠跌，越外側顏色越深',
       '點直條列出那一級的股票',
+      '右上切全部／上市／上櫃',
     ], '漲停＝漲幅 ≥ 9.5%、跌停＝跌幅 ≥ 9.5%（新上市前五天沒有漲跌幅限制，也算在漲停那格）；平＝四捨五入到 0.01% 為 0。'
-      + (udStat ? `這張圖的分母是個股索引裡有漲跌幅的 ${udStat.n} 檔`
-        + (udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
+      + (udStat ? `全部 ${udStat.nAll} 檔＝上市 ${udStat.twse}＋上櫃 ${udStat.tpex}`
+        + (udStat.other ? `＋市場別不明 ${udStat.other}（只算在「全部」）` : '') + '；三組都是盤後資料，盤中不會跟著跳。' : '')
+      + (udStat ? `這張圖目前的分母是${udStat.mkt === 'all' ? '' : UD_MKT_NAME[udStat.mkt]}個股索引裡有漲跌幅的 ${udStat.n} 檔`
+        + (udStat.mkt === 'all' && udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
     trust: howHTML('這張圖回答：法人在誰身上連續下注、力道在加大還是收手。', [
       '右半＝連買、左半＝連賣，越外側越久',

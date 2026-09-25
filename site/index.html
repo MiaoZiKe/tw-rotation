@@ -3904,7 +3904,11 @@ h3 .howbtn.pop{font-family:inherit}
     </div>
     <div class="grid g2 ovlow" style="margin-top:var(--gap-card)">
       <div class="card" id="ovBreadthCard"><div class="row spread"><h3>漲跌家數 <button class="howbtn pop" data-how="breadth" aria-label="漲跌家數怎麼看">?</button></h3>
-        <span class="pill" id="udSum" data-readout></span></div>
+        <!-- ★ 2026-09-26（Andy：「需要分 上市 上櫃 全部」）：市場分段鈕，預設全部，選擇記在 tw.udMkt -->
+        <div class="row" style="gap:6px">
+          <span class="pill" id="udSum" data-readout></span>
+          <div class="seg tiny" id="udMkt" role="group" aria-label="市場別"><button data-m="all" class="on" aria-pressed="true">全部</button><button data-m="twse" aria-pressed="false">上市</button><button data-m="tpex" aria-pressed="false">上櫃</button></div>
+        </div></div>
         <div class="howtxt" id="how-breadth" hidden></div>
         <div id="breadthWrap"><div id="breadth" class="chart" style="min-height:300px"></div></div>
         <div class="hpanel" id="udPanel" hidden></div></div>
