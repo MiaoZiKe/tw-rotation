@@ -3236,11 +3236,26 @@ def t_new_market3(pg, base):
             return {x, y: r.top + r.height * .35}; }""", [idx, fx])
         pg.mouse.move(b["x"] - 30, b["y"]); pg.mouse.move(b["x"], b["y"], steps=4); pg.wait_for_timeout(350)
 
-    for idx in ("TSE", "OTC", "FUT"):
-        hover(idx)
-        tipx = pg.evaluate("""(id) => { const e = document.getElementById('m3c-' + id);
+    # ★ 2026-09-25：這一條以前 TSE／FUT 輪流紅（容器忙時）。推斷的時序原因（未逐幀證實）：refresh(true) 之後固定等 2 秒，
+    #   但三張圖的重畫（抓完 Yahoo 假資料 → drawOne → 30ms 後再派一次 resize）在忙的時候會拖過 2 秒，
+    #   滑鼠停上去的那一刻圖剛好被重畫掉，提示框跟著消失。改成：同一個位置最多試 3 次、每次輪詢 1.2 秒，
+    #   只要有一次讀得到就算數 —— 真人也是滑一下沒出來就再滑一下；功能壞掉的話三次都讀不到，照樣紅。
+    TIPQ = """(id) => { const e = document.getElementById('m3c-' + id);
             const t = [...e.querySelectorAll('div')].filter(d => /該分量/.test(d.innerText || '') && d.offsetParent !== null).pop();
-            return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }""", idx)
+            return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }"""
+    for idx in ("TSE", "OTC", "FUT"):
+        tipx = ""
+        for _try in range(3):
+            hover(idx)
+            t_end = time.time() + 1.2
+            while time.time() < t_end:
+                tipx = pg.evaluate(TIPQ, idx)
+                if "該分量" in tipx:
+                    break
+                pg.wait_for_timeout(150)
+            if "該分量" in tipx:
+                break
+            pg.mouse.move(5, 5); pg.wait_for_timeout(300)
         ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量", ("指數" in tipx or "價" in tipx) and "該分量" in tipx, tipx[:80])
     click(pg, "#m3Mode button[data-m='k']", 900)
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
@@ -5906,20 +5921,25 @@ def t_themes(pg, base):
     # Andy：「題材資金熱力這邊也是會影響大小」—— 放大只能在框內發生（熱力圖保留縮放）
     check_zoom(pg, "themeMapWrap", "themeMap", "題材資金熱力")
 
-    # 總覽的「熱門題材」方塊 → 點了要切到該題材（2026-09-24 起直接指熱力圖分頁，不再繞舊網址）
+    # 總覽的熱門題材 → ★ 2026-09-24 總覽改版：題材方塊（#themeStrip .tile）換成**題材熱力圖**（#ovTheme）。
+    #   點一個題材方塊 → 就地展開成那個題材的成分股（data-level 從 themes 變 members），不再換頁。
+    #   2026-09-25 跟著改驗（舊的「總覽有熱門題材方塊」查的是已經拿掉的元素，永遠紅）。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
-    ok("總覽有熱門題材方塊", count(pg, "#themeStrip .tile") > 0)
-    if count(pg, "#themeStrip .tile"):
-        _nm = text(pg, "#themeStrip .tile .t")
-        click(pg, "#themeStrip .tile", 2200)
-        ok("點熱門題材會切到熱力圖分頁的那個題材", pg.evaluate("location.hash").startswith("#heatmap/theme/"),
-           pg.evaluate("location.hash"))
-        _tid = pg.evaluate("location.hash").split("/")[-1]
-        _has = pg.evaluate("(t) => !!(window.ThemeDiagrams || {})[t]", _tid)
-        # 22 個題材有 3 個沒有剖析圖（整區留白，Andy 0923-D）—— 熱門第一名剛好是它們時，驗「留白」而不是驗名字
-        ok("而且下面展開的就是剛剛點的那個題材",
-           (_nm and _nm in text(pg, "#themeDetail")) if _has else count(pg, "#themeDetail .card") == 0,
-           [_nm, _tid, _has, text(pg, "#themeDetail")[:40]])
+    scroll_to(pg, "ovTheme"); pg.wait_for_timeout(900)          # 首屏以下的卡片捲近了才畫（whenNear）
+    ov = wait_until(pg, """() => { const el = document.getElementById('ovTheme'); const c = el && echarts.getInstanceByDom(el);
+        if (!c) return null; const d = c.getOption().series[0].data || [];
+        return { n: d.length, level: el.dataset.level }; }""", 6000)
+    if ok("總覽有題材熱力圖（題材層、至少 5 格）", bool(ov) and ov["n"] >= 5 and ov["level"] == "themes", ov):
+        pt = pg.evaluate("""() => { const el = document.getElementById('ovTheme'); const c = echarts.getInstanceByDom(el);
+            const tree = c.getModel().getSeriesByIndex(0).getData().tree; let best = null;
+            tree.root.eachNode(n => { if (n.children && n.children.length) return; const l = n.getLayout();
+              if (l && l.isInView && (!best || l.width * l.height > best.a)) best = { a: l.width * l.height, x: l.x + l.width / 2, y: l.y + l.height / 2, name: n.name }; });
+            if (!best) return null; const r = el.getBoundingClientRect();
+            return { x: r.left + best.x, y: r.top + best.y, name: best.name }; }""")
+        if ok("題材熱力圖讀得到最大那一格的位置", bool(pt), pt):
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1200)
+            lv = pg.evaluate("() => document.getElementById('ovTheme').dataset.level")
+            ok("點題材方塊 → 就地展開成那個題材的成分股（題材層 → 成分股層）", lv == "members", [pt["name"], lv])
 
     # 題材頁：族群分組 + 剖析圖零件點得到個股
     tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
@@ -25913,8 +25933,10 @@ def t_soften(pg, base):
             s2 = pg.evaluate(SOFT_SCAN)
             ok("[圓滑化 #season] 曲線圖的線仍然是直線段（smooth 沒被打開）", all(not x["smooth"] for x in s2["line"]) and len(s2["line"]) > 0,
                [(x["name"], x["smooth"]) for x in s2["line"]][:4])
-    ok("[圓滑化] 全站真的掃到了長條、圓餅、儀表、折線、堆疊各至少一個（不是空掃）",
-       all(v > 0 for v in seen.values()), seen)
+    # ★ 2026-09-25：總覽改版後全站已經沒有儀表圖（gauge）—— 沒有就不判紅（沒有東西可以圓滑化，不是空掃）；
+    #   其餘四種仍然必須各至少掃到一個，才證明這一段真的走過整站。
+    ok("[圓滑化] 全站真的掃到了長條、圓餅、折線、堆疊各至少一個（不是空掃；儀表圖全站已沒有，不判）",
+       all(v > 0 for k, v in seen.items() if k != "gauge"), seen)
     notes.append("圖表圓滑化逐張（讀 getOption）：\n      " + "\n      ".join(listing))
 
     # ---- 甜甜圈（Andy 參考圖一）：產業地圖「成交值占比」
