@@ -13526,6 +13526,9 @@ SECTIONS = {
     "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
     # ★ 2026-09-25 Andy 回報「點擊後不會收回」：2D／3D 剖析圖同一時間只展開一張卡片（⚠ 一律 --workers 1）
     "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
+    # ★ 2026-09-26 Andy：關聯圖點背景收起說明卡／剖析圖「2D｜3D」分段鈕（⚠ 一律 --workers 1）
+    "關聯圖點背景收卡":    lambda pg, b, base, code: t_relbg(pg, base),
+    "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dgmode(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -29104,6 +29107,245 @@ def t_dgcollapse(pg, base):
                     worst = m["exp"]
             ok("[矽晶圓/3D 動畫開] 自轉＋爆炸圖展開 3 秒內，任何時刻展開數 ≤ 1", len(worst) <= 1, worst)
     pg.mouse.move(3, 3)
+    pg.evaluate("(k) => { try { ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].forEach((n, i) => { if (k[i] == null) localStorage.removeItem(n); else localStorage.setItem(n, k[i]); }); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ===================================================================== 產業頁：關聯圖點背景收卡、剖析圖「2D｜3D」分段鈕
+# ★ 2026-09-26 Andy 兩件：
+#   ①「點擊背景後說明欄會消失」—— 關聯圖點環節標題／公司卡後，右邊的環節卡（#relList）與公司資訊欄（#coBox）
+#     要能點圖的空白處收掉、選取高亮一起取消；點關聯圖以外的地方、按 Esc 也收。
+#   ②「切回 2D 時，顯示 2D，不要都 3D」—— 工具列的切換改成分段鈕「2D｜3D」，目前那一半亮起；
+#     換剖析圖分頁、重新整理都要照最後一次選的；2D 時「拖曳」「重設視角」真的看不見（以前設了 hidden 卻照樣顯示）。
+REL_ST = """() => { const rm = document.getElementById('relMain');
+  return { hassel: !!(rm && rm.classList.contains('hassel')),
+           on: [...document.querySelectorAll('#relList .rlseg.on')].map(x => x.dataset.seg),
+           listShown: !!(document.querySelector('#relList .rlseg.on') && document.querySelector('#relList .rlseg.on').getClientRects().length),
+           tsel: document.querySelectorAll('#chainMap .segtitle.sel').length,
+           dim: document.querySelectorAll('#chainMap .co.dim').length,
+           card: document.querySelectorAll('#chainList .segcard.sel').length,
+           co: !!document.getElementById('coBox'),
+           dd: ((document.querySelector('#segDDBtn b') || {}).textContent || ''),
+           part: document.querySelectorAll('#prodDiagram .sel-part').length,
+           hash: location.hash }; }"""
+
+# 圖裡真正的「空白處」：#chainMap 裡、不是公司卡／環節標題／收合鈕的一點（用 elementFromPoint 在畫面上找）
+REL_BG_PT = """() => { const m = document.getElementById('chainMap'); if (!m) return null;
+  const s = m.querySelector('svg') || m; const r = s.getBoundingClientRect();
+  const HIT = '.co, .segtitle, .segfold, .foldbar, button, a';
+  const top = Math.max(r.top + 4, 70), bot = Math.min(r.bottom - 4, innerHeight - 8);
+  for (let y = top; y < bot; y += 13) for (let x = r.left + 4; x < Math.min(r.right, innerWidth) - 4; x += 13) {
+    const t = document.elementFromPoint(x, y);
+    if (t && m.contains(t) && !t.closest(HIT)) return { x: Math.round(x), y: Math.round(y), tag: t.tagName }; }
+  return null; }"""
+
+
+def _rel_bg_click(pg):
+    p = pg.evaluate(REL_BG_PT)
+    if not p:
+        return None
+    pg.mouse.click(p["x"], p["y"]); pg.wait_for_timeout(700)
+    return p
+
+
+def _rel_cleared(st):
+    return bool(st) and not st["hassel"] and not st["on"] and st["tsel"] == 0 and st["dim"] == 0 and st["card"] == 0 and not st["co"]
+
+
+def t_relbg(pg, base):
+    keep = pg.evaluate("() => { try { return ['tw.side','tw.relOpen','tw.relView','tw.dgOpen','tw.dg3d'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null,null]; } }")
+    for width in (1440, 800):
+        T = f"[關聯圖點背景 {width}]"
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.relOpen', '1');"
+                    " localStorage.setItem('tw.relView', 'layer'); localStorage.setItem('tw.dgOpen', '1'); localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.eval_on_selector("#relSec", "e => e.scrollIntoView({ block: 'start', behavior: 'instant' })")
+        if not ok(f"{T} 關聯圖畫得出來（有環節標題）", wait_until(pg, "() => document.querySelectorAll('#chainMap .segtitle').length > 3", 8000)):
+            continue
+        pg.eval_on_selector("#chainMap", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+        pg.wait_for_timeout(500)
+        wide = width > 820
+        # ① 點環節標題 → 選起來（桌機右邊長出那一格的卡片）→ 點圖的空白處 → 卡片收掉、高亮全部取消
+        seg = pg.evaluate("() => { const t = [...document.querySelectorAll('#chainMap .segtitle')].find(g => g.getBoundingClientRect().top > 70 && g.getBoundingClientRect().bottom < innerHeight); return t ? t.dataset.seg : null; }")
+        if not ok(f"{T} 畫面上找得到環節標題", bool(seg)):
+            continue
+        click(pg, f'#chainMap .segtitle[data-seg="{seg}"]', 700)
+        s1 = pg.evaluate(REL_ST)
+        ok(f"{T} 點環節標題 {seg} → 選起來（標題亮、其他格公司卡變暗）", s1["tsel"] >= 1 and s1["dim"] > 0, s1)
+        if wide:
+            ok(f"{T} 點環節標題 → 右邊長出那一格的卡片（#relList）", s1["hassel"] and s1["on"] == [seg] and s1["listShown"], s1)
+        p = _rel_bg_click(pg)
+        ok(f"{T} 圖上找得到空白處可以點", bool(p), p)
+        s2 = pg.evaluate(REL_ST)
+        ok(f"{T} 點圖的空白處 → 卡片收掉、選取高亮全部取消", _rel_cleared(s2), s2)
+        if wide:
+            ok(f"{T} 點空白處之後環節下拉回到「全部」", s2["dd"] == "全部", s2["dd"])
+        # ② 點公司卡 → 公司資訊欄＋那一格選起來；點資訊欄本身不收；點空白處 → 全部收掉
+        code = pg.evaluate("() => { const c = [...document.querySelectorAll('#chainMap .co[data-code]')].find(g => g.dataset.code && g.getBoundingClientRect().top > 70 && g.getBoundingClientRect().bottom < innerHeight - 10); return c ? c.dataset.code : null; }")
+        if ok(f"{T} 畫面上找得到公司卡", bool(code)):
+            click(pg, f'#chainMap .co[data-code="{code}"]', 800)
+            s3 = pg.evaluate(REL_ST)
+            ok(f"{T} 點公司卡 {code} → 公司資訊欄出現、那一格選起來", s3["co"] and s3["dim"] > 0, s3)
+            pg.eval_on_selector("#coBox h3", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+            pg.wait_for_timeout(200)
+            click(pg, "#coBox h3", 500)
+            s4 = pg.evaluate(REL_ST)
+            ok(f"{T} 點資訊欄本身 → 不收（那不是背景）", s4["co"] and s4["dim"] > 0, s4)
+            if wide:
+                click(pg, "#relList .rlseg.on .rlsh b", 500)
+                s4b = pg.evaluate(REL_ST)
+                ok(f"{T} 點右邊卡片本身 → 不收", s4b["hassel"] and s4b["co"], s4b)
+            pg.eval_on_selector("#chainMap", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+            pg.wait_for_timeout(300)
+            _rel_bg_click(pg)
+            s5 = pg.evaluate(REL_ST)
+            ok(f"{T} 公司資訊欄開著時點圖的空白處 → 資訊欄與選取一起收掉", _rel_cleared(s5), s5)
+        # ③ 選起來 → 按 Esc → 收掉
+        click(pg, f'#chainMap .segtitle[data-seg="{seg}"]', 700)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+        s6 = pg.evaluate(REL_ST)
+        ok(f"{T} 選起來之後按 Esc → 收掉", _rel_cleared(s6), s6)
+        # ④ 選起來 → 點關聯圖以外的地方（頁首的鏈名）→ 收掉，而且沒有換頁
+        click(pg, f'#chainMap .segtitle[data-seg="{seg}"]', 700)
+        s7a = pg.evaluate(REL_ST)
+        pg.eval_on_selector(".nbhead h2", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+        pg.wait_for_timeout(200)
+        click(pg, ".nbhead h2", 700)
+        s7 = pg.evaluate(REL_ST)
+        ok(f"{T} 選起來之後點關聯圖以外的地方 → 收掉、沒有換頁", s7a["tsel"] >= 1 and _rel_cleared(s7) and s7["hash"] == s7a["hash"], [s7a, s7])
+        # ⑤ 流向圖也一樣：點方塊選起來、點空白處收掉
+        pg.eval_on_selector("#relSec", "e => e.scrollIntoView({ block: 'start', behavior: 'instant' })")
+        pg.wait_for_timeout(200)
+        click(pg, '#relView button[data-rv="flow"]', 900)
+        if wait_until(pg, "() => document.querySelectorAll('#chainMap .fseg').length > 3", 5000):
+            pg.eval_on_selector("#chainMap", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+            pg.wait_for_timeout(300)
+            fs = pg.evaluate("() => { const t = [...document.querySelectorAll('#chainMap .fseg')].find(g => g.getBoundingClientRect().top > 70 && g.getBoundingClientRect().bottom < innerHeight); return t ? t.dataset.seg : null; }")
+            if ok(f"{T} 流向圖畫面上找得到方塊", bool(fs)):
+                click(pg, f'#chainMap .fseg[data-seg="{fs}"]', 700)
+                s8 = pg.evaluate(REL_ST)
+                ok(f"{T} 流向圖點方塊 → 選起來", s8["tsel"] >= 1, s8)
+                _rel_bg_click(pg)
+                s9 = pg.evaluate(REL_ST)
+                ok(f"{T} 流向圖點空白處 → 收掉", s9["tsel"] == 0 and not s9["hassel"] and s9["card"] == 0, s9)
+        else:
+            ok(f"{T} 流向圖畫得出來", False, "5 秒內沒有方塊")
+        pg.eval_on_selector("#relSec", "e => e.scrollIntoView({ block: 'start', behavior: 'instant' })")
+        click(pg, '#relView button[data-rv="layer"]', 900)
+    # ⑥ 剖析圖的零件小卡不歸關聯圖管：點關聯圖空白處不會把它收掉（兩區各自有自己的點背景）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/foundry", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#prodDiagram [data-seg]').length > 3", 8000)
+    pg.wait_for_timeout(600)
+    pt = pg.evaluate(DGFIT_ANC)
+    if ok("[關聯圖點背景] 剖析圖上找得到零件可以點", bool(pt), pt):
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+        a = pg.evaluate(REL_ST)
+        pg.eval_on_selector("#chainMap", "e => e.scrollIntoView({ block: 'center', behavior: 'instant' })")
+        wait_until(pg, "() => document.querySelectorAll('#chainMap .segtitle').length > 3", 6000)
+        pg.wait_for_timeout(400)
+        _rel_bg_click(pg)
+        b2 = pg.evaluate(REL_ST)
+        ok("[關聯圖點背景] 點關聯圖空白處不會把剖析圖選起來的零件取消掉", a["part"] > 0 and b2["part"] > 0, [a["part"], b2["part"]])
+    pg.evaluate("(k) => { try { ['tw.side','tw.relOpen','tw.relView','tw.dgOpen','tw.dg3d'].forEach((n, i) => { if (k[i] == null) localStorage.removeItem(n); else localStorage.setItem(n, k[i]); }); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+DGMODE_ST = """() => { const vis = (id) => { const e = document.getElementById(id); if (!e) return false;
+    const r = e.getBoundingClientRect(); return getComputedStyle(e).display !== 'none' && r.width > 0 && r.height > 0; };
+  const cur = [...document.querySelectorAll('#dgMode button.cur')].map(b => b.textContent.trim());
+  return { seg: vis('dgMode'), cur, pressed: [...document.querySelectorAll('#dgMode button[aria-pressed="true"]')].map(b => b.textContent.trim()),
+           drag: vis('dgDrag'), reset: vis('dgReset'), svg: vis('prodDiagram'), h3: vis('prod3d'),
+           canvas: document.querySelectorAll('#prod3d canvas').length, v3: !!(window.Rack3D && window.Rack3D.current),
+           ls: (() => { try { return localStorage.getItem('tw.dg3d'); } catch (e) { return 'x'; } })(),
+           hash: location.hash }; }"""
+
+
+def _dgm_is2d(s):
+    return bool(s) and s["cur"] == ["2D"] and s["pressed"] == ["2D"] and s["svg"] and not s["h3"] and not s["v3"] \
+        and s["canvas"] == 0 and not s["drag"] and not s["reset"]
+
+
+def _dgm_is3d(s):
+    return bool(s) and s["cur"] == ["3D"] and s["pressed"] == ["3D"] and s["h3"] and not s["svg"] and s["v3"] \
+        and s["canvas"] == 1 and s["drag"] and s["reset"]
+
+
+def _dgm_wait3d(pg, ms=15000):
+    return wait_until(pg, "() => !!(window.Rack3D && window.Rack3D.current && document.querySelector('#prod3d canvas'))", ms)
+
+
+def t_dgmode(pg, base):
+    keep = pg.evaluate("() => { try { return ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null]; } }")
+    has3d = None
+    for width in (1440, 800):
+        T = f"[2D｜3D {width}]"
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.dg3d', '0');"
+                    " localStorage.setItem('tw.dganim', '0'); localStorage.setItem('tw.dgOpen', '1'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle")
+        wait_until(pg, "() => { const b = document.getElementById('dgMode'); return b && !b.hidden; }", 8000)
+        pg.wait_for_timeout(600)
+        if has3d is None:
+            has3d = pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported() && window.Rack3D.hasScene('silicon_wafer'))")
+            if not has3d:
+                ok("[2D｜3D] 這個環境不支援 WebGL，分段鈕不該出現", not pg.evaluate(DGMODE_ST)["seg"], pg.evaluate(DGMODE_ST))
+                break
+        s0 = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 一進來（偏好 2D）：分段鈕看得到、「2D」亮、畫的是平面圖，「拖曳」「重設視角」真的看不見", s0["seg"] and _dgm_is2d(s0), s0)
+        # 切 3D：「3D」亮、3D 真的掛起來、兩顆 3D 專用鈕出現、偏好寫進去
+        click(pg, "#dg3d", 600)
+        _dgm_wait3d(pg)
+        pg.mouse.move(3, 3); pg.wait_for_timeout(500)
+        s1 = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 按「3D」→「3D」亮、立體圖掛起來、「拖曳」「重設視角」出現、偏好記成 3D", _dgm_is3d(s1) and s1["ls"] == "1", s1)
+        # 分段鈕不是開關：已經是 3D 再按「3D」不會跑回 2D
+        _dg3d_toolbar_click(pg, "#dg3d", 700)
+        s2 = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 已經是 3D 再按「3D」→ 仍是 3D（不是開關）", _dgm_is3d(s2), s2)
+        # 切回 2D
+        _dg3d_toolbar_click(pg, "#dg2d", 900)
+        s3 = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 按「2D」→「2D」亮、畫面換回平面圖、3D 收乾淨、偏好記成 2D", _dgm_is2d(s3) and s3["ls"] == "0", s3)
+        if width != 1440:
+            continue
+        # 換分頁：仍是 2D（等 4 秒：真的會跑回 3D 的話，3D 早就掛起來了）
+        for slot in ("foundry", "hbm"):
+            click(pg, f'#dgPick .segchip[data-dgid="{slot}"]', 600)
+            wait_until(pg, f"() => location.hash.endsWith('/{slot}')", 4000)
+            pg.wait_for_timeout(4000)
+            s = pg.evaluate(DGMODE_ST)
+            ok(f"{T} 切 2D 之後換到「{slot}」分頁 → 仍是 2D、「2D」亮", s["hash"].endswith(slot) and _dgm_is2d(s), s)
+        # 重新整理：仍是 2D
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(4000)
+        s = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 重新整理 → 仍是 2D、「2D」亮", _dgm_is2d(s), s)
+        # 反過來：選 3D 之後換分頁、重新整理都仍是 3D（全頁一致，不是只有 2D 記得住）
+        click(pg, "#dg3d", 600)
+        _dgm_wait3d(pg)
+        pg.mouse.move(3, 3); pg.wait_for_timeout(400)
+        s = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 在「hbm」按「3D」→「3D」亮", _dgm_is3d(s), s)
+        _dg3d_toolbar_click(pg, '#dgPick .segchip[data-dgid="silicon_wafer"]', 600)
+        wait_until(pg, "() => location.hash.endsWith('/silicon_wafer')", 4000)
+        _dgm_wait3d(pg); pg.mouse.move(3, 3); pg.wait_for_timeout(500)
+        s = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 選 3D 之後換到「矽晶圓」分頁 → 仍是 3D、「3D」亮", _dgm_is3d(s), s)
+        pg.reload(wait_until="networkidle")
+        _dgm_wait3d(pg); pg.mouse.move(3, 3); pg.wait_for_timeout(500)
+        s = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 選 3D 之後重新整理 → 仍是 3D、「3D」亮", _dgm_is3d(s), s)
+        # 3D 還在載入時就切回 2D：之後不准自己跳回 3D
+        _dg3d_toolbar_click(pg, "#dg2d", 900)
+        pg.eval_on_selector("#dg3d", "e => e.click()"); pg.wait_for_timeout(60)
+        pg.eval_on_selector("#dg2d", "e => e.click()")
+        pg.wait_for_timeout(6000)
+        s = pg.evaluate(DGMODE_ST)
+        ok(f"{T} 3D 還在載入就按「2D」→ 6 秒後仍是 2D（沒有自己跳回 3D）", _dgm_is2d(s) and s["ls"] == "0", s)
+    pg.mouse.move(3, 3)
+    if pg.evaluate("() => !!(window.Rack3D && window.Rack3D.current)"):
+        _dg3d_toolbar_click(pg, "#dg2d", 900)
     pg.evaluate("(k) => { try { ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].forEach((n, i) => { if (k[i] == null) localStorage.removeItem(n); else localStorage.setItem(n, k[i]); }); } catch (e) {} }", keep)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
