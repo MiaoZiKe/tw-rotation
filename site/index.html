@@ -1401,6 +1401,9 @@ a.lk-theme{color:#c3baff;font-weight:500} a.lk-theme::before{content:"#";opacity
 a.lk-chain{color:var(--cyan);font-weight:600}
 a.lk-back{color:var(--ink-3);font-size:13px} a.lk-back:hover{color:var(--ink)}
 a.lk.sm{font-size:12px;font-weight:500}
+/* 2026-09-25：產業鏈頁的環節資訊面板與「其他產業鏈」連結列桌機拿掉（JS 已不畫 segBox 內容；
+   這條是給「手機載入後拉寬成桌機」那種情況保底）。手機照舊。 */
+@media (min-width:821px){#segBox,.linkrow.chainothers{display:none!important}}
 .linkrow{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);font-size:13px;align-items:center}
 .linkrow>.muted{font-size:12px;letter-spacing:.06em}
 .linkrow a.lk{padding:2px 8px;border-radius:999px;background:var(--panel-3);border:1px solid var(--line);border-bottom-width:1px;font-size:12.5px}
