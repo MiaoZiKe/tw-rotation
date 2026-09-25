@@ -3231,44 +3231,39 @@ def t_new_market3(pg, base):
     h1 = {i: wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length; }" % i, 8000) for i in ("TSE", "OTC", "FUT")}
     pg.wait_for_timeout(400)
     st = {i: pg.evaluate(HOUR, i) for i in ("TSE", "OTC", "FUT")}
-    ok("Yahoo 真的被問的是 15 分 K（不是 60 分）", any(iv == "15m" for _, iv in Y15["hit"]), Y15["hit"][:4])
-    for i, nm in (("TSE", "加權"), ("OTC", "櫃買")):
-        ok(f"★ {nm} 1 小時真的有多根 K（20 天 × 5 根 ＋ 今天）", st[i] and st[i]["tf"] == "60m" and st[i]["n"] >= 100, st[i])
-        ok(f"★ {nm} 1 小時每根都對齊整點，而且只有 09～13 點（台股交易時段）",
-           st[i] and st[i]["onHour"] and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
-        # ★ 2026-09-25 改前→改後：改前「Yahoo 的量大部分是 0 → 量柱隱藏」；
-        #   Andy：「每個週期都要有成交量、估的要標明、不准空白量柱」→ 改後：量柱照畫、每根 > 0、歷史那幾盤是估的
-        ok(f"★ {nm} Yahoo 的量是 0 → 改用日總量×分時分布估算：量柱照畫、每根都 > 0、有估算根",
-           st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"] and st[i]["est"] > 0, st[i])
-    # ★ 2026-09-25 改前→改後：改前卡片寫「今天的分時合成」長句；Andy 要縮成一行短句（完整原因進「?」）
-    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，卡片一行短句「…只含今日」",
-       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "只含今日" in st["FUT"]["fb"]
-       and len(st["FUT"]["fb"]) <= 30, st["FUT"])
-    ok("台指期今天的分時有量 → 量柱照畫", st["FUT"] and st["FUT"]["vol"], st["FUT"])
+    # ★ 2026-09-26 改前→改後（Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源」）：
+    #   改前：加權、櫃買在瀏覽器端經 Worker 抓 Yahoo 15 分 K 合成多日（20 天 × 5 根）、台指期只有今天，
+    #         湖跟 Yahoo 都沒有時整張退回日 K、寫「已改用「日」」。
+    #   改後：三個指數同一條路 ＝ 資料湖 index_intraday.json（每天盤後存的證交所分時）＋今天的分時；
+    #         瀏覽器不再打 Yahoo 15 分 K。這一段把湖攔成空的 → 三張都只有今天 5 根，卡片一行「…尚未累積，只含今日」。
+    ok("★ 瀏覽器不再抓 Yahoo 15 分 K（三個指數一律讀資料湖＋今天的分時）",
+       not any(iv == "15m" for _, iv in Y15["hit"]), Y15["hit"][:4])
+    for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"★ {nm}：湖是空的 → 用今天的分時合成 5 根 1 小時（09～13 點、對齊整點），不退回日 K",
+           st[i] and st[i]["tf"] == "60m" and st[i]["n"] == 5 and st[i]["onHour"]
+           and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
+        ok(f"★ {nm}：卡片一行短句「…多日分 K 尚未累積，只含今日」（≤ 30 字）",
+           st[i] and "尚未累積" in st[i]["fb"] and "只含今日" in st[i]["fb"] and len(st[i]["fb"]) <= 30
+           and "已改用" not in st[i]["fb"], st[i])
+        ok(f"{nm}：今天的分時有實量 → 量柱照畫、每根 > 0", st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"], st[i])
     pg.select_option("#m3Tf", "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return k && k.tf === '240m'; }", 8000)
     pg.wait_for_timeout(400)
     h4 = pg.evaluate(HOUR, "TSE")
-    ok("★ 4 小時＝一個交易時段一根（21 天 → 21 根，每根都在 09:00）",
-       h4 and h4["n"] == 21 and h4["hours"] == [9], h4)
-    # 櫃買的 15 分 K 抓不到 → 只用今天的分時；分時也沒有 → 退回日 K 並寫「已改用「日」」
+    ok("★ 4 小時＝一個交易時段一根：湖是空的只有今天 → 1 根（在 09:00），照畫不退回日 K",
+       h4 and h4["tf"] == "240m" and h4["n"] == 1 and h4["hours"] == [9], h4)
+    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(800)
+    # Yahoo 也要一起掛：否則 1 分線備援（fetchYahoo1m）會從假的 /y 拿到 20 天的點，當成「今天的分時」
     Y15["ok"] = False
-    pg.evaluate("() => { const s = window.Market3.state; s.fine = {}; }")
-    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(1800)
-    o2 = pg.evaluate(HOUR, "OTC")
-    # ★ 2026-09-25 改前→改後：改前卡片寫「瀏覽器端也抓不到」長句 → 改後一行短句「櫃買多日分 K 無免費來源，1H/4H 只含今日」
-    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片一行短句「…無免費來源，1H/4H 只含今日」",
-       o2 and o2["n"] == 5 and "無免費來源" in o2["fb"] and "只含今日" in o2["fb"]
-       and "資料湖還沒有" not in o2["fb"] and "瀏覽器端" not in o2["fb"], o2)
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
-    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
+    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
     pg.evaluate("() => window.Market3.refresh(true)"); pg.wait_for_timeout(2500)
     t2 = pg.evaluate(HOUR, "TSE")
-    # 改前：「分 K 全部拿不到 → 1 小時退回日 K」（沒講湖；湖一長出來 TSE 就讀湖、這條必紅）
-    # 改後：前提寫進條件 ——「index_intraday.json 攔截成空、分時與 Yahoo 也全掛」時才驗退回日 K
-    ok("★ index_intraday.json 為空、分 K 也全部拿不到 → 1 小時退回日 K，並標明「已改用「日」」",
-       t2 and t2["tf"] == "1d" and "已改用「日」" in t2["fb"], t2)
+    # 改後：只剩「湖是空的、今天的分時也全掛」＝一根分 K 都畫不出來，才退到日 K，而且短句講的是「還沒有任何一盤」，
+    #       不是舊的「分 K 不足，已改用「日」」（天數不足不再退回）。
+    ok("★ 湖是空的、分時也全掛（一根分 K 都沒有）→ 才退到日 K，短句寫「還沒有任何一盤，先顯示日 K」",
+       t2 and t2["tf"] == "1d" and "還沒有任何一盤" in t2["fb"] and "已改用" not in t2["fb"], t2)
     pg.unroute("**/data/index_intraday.json*")
 
     # --- ★ 2026-09-25：1H／4H 優先讀資料湖合成好的 index_intraday.json（Andy：「幫我處理週期問題」）
@@ -3295,7 +3290,12 @@ def t_new_market3(pg, base):
                                px0, px0 + 20, px0 - 20, px0 + (n % 5) - 2, vol * 5])
                     n += 1
                 d += _dt.timedelta(days=1)
-            out[sym] = {"H1": h1, "H4": h4}
+            # ★ 2026-09-26：src 跟 build_payload 同形狀。櫃買、台指期整段都是證交所分時自己累積的（first＝mis_first），
+            #   加權前面還有 Yahoo 歷史（first 早於 mis_first）→ 只有前兩張要寫「自 … 起累積（N 天）」。
+            out[sym] = {"H1": h1, "H4": h4,
+                        "src": {"days": len(h4), "first": "2024-09-25" if sym == "TSE" else "2026-08-17",
+                                "mis_first": "2026-09-01" if sym == "TSE" else "2026-08-17",
+                                "mis_days": 19 if sym == "TSE" else len(h4)}}
         route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")
@@ -3320,6 +3320,40 @@ def t_new_market3(pg, base):
         # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 改後三張量柱都照畫（指數歷史用估算、台指期實量）
         ok(f"[{tf}] 指數湖裡的量全 0 → 估算補上，三張量柱都照畫、每根 > 0",
            all(li[i] and li[i]["vol"] and li[i]["pos"] == li[i]["n"] for i in ("TSE", "OTC", "FUT")), li)
+        # ★ 2026-09-26：櫃買、台指期的多日分 K 是證交所分時自己累積的 → 卡片一行「自 YYYY-MM-DD 起累積（N 天）」；
+        #   加權有 Yahoo 更早的歷史 → 不寫。天數讀 src（build_payload 算的），不寫死。
+        for i, nm in (("OTC", "櫃買"), ("FUT", "台指期")):
+            # （這份假湖的量是 0，後面會再接一句「灰色量柱＝估算量」，所以只驗短句本身在、而且排第一）
+            ok(f"★ [{tf}] {nm}卡片一行「{nm}分 K 自 2026-08-17 起累積（30 天）」",
+               li[i] and li[i]["fb"].startswith(f"{nm}分 K 自 2026-08-17 起累積（30 天）"), li[i])
+        ok(f"[{tf}] 加權有更早的 Yahoo 歷史 → 不寫「起累積」", li["TSE"] and "起累積" not in li["TSE"]["fb"], li["TSE"])
+
+    # --- ★ 2026-09-26：累積天數少於週期所需 → 照畫有的那幾天，不退回日 K（Andy：「4 小時選了只有 3 天也照畫 3 天」）
+    def fake_intra3(route):
+        import calendar
+        h1, h4 = [], []
+        for dd in (22, 23, 24):
+            for hr in range(9, 14):
+                h1.append([calendar.timegm((2026, 9, dd, hr, 0, 0, 0, 0, 0)), 390, 392, 388, 391, 5e8])
+            h4.append([calendar.timegm((2026, 9, dd, 9, 0, 0, 0, 0, 0)), 390, 395, 385, 391, 2.5e9])
+        out = {"OTC": {"H1": h1, "H4": h4, "src": {"days": 3, "first": "2026-09-22",
+                                                   "mis_first": "2026-09-22", "mis_days": 3}}}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra3)
+    fresh(sess="day")                              # App.load 有快取，換湖要重新進頁
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H4")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.OTC; return k && k.tf === '240m' && k.data.length === 3; }", 8000)
+    pg.wait_for_timeout(300)
+    o3 = pg.evaluate(HOUR, "OTC")
+    ok("★ 櫃買只累積 3 天、選 4 小時 → 照畫 3 根 4 小時（不退回日 K），卡片寫「櫃買分 K 自 2026-09-22 起累積（3 天）」",
+       o3 and o3["tf"] == "240m" and o3["n"] == 3 and "自 2026-09-22 起累積（3 天）" in o3["fb"], o3)
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra)
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(300)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
     #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
@@ -3659,6 +3693,8 @@ def t_new_market3(pg, base):
        bool(_m3f) and _m3f["n"] >= 1 and _m3f["fine"] == 0 and not _m3f["tail"], _m3f)
     how = pg.evaluate("() => (document.getElementById('how-m3') || {}).innerText || ''")
     ok("★ 大盤「?」裡不再有「^TWOII」「付費」那幾句來源長註", "^TWOII" not in how and "付費" not in how, how[-200:])
+    # 分支那邊驗「同一個來源／實際總量」寫在 srcNote（附註段）裡 —— 附註已依 Andy 09-26 拿掉，改由卡片短句（accumSay）交代，見上方斷言。
+    pg.mouse.click(8, 500); pg.wait_for_timeout(300)
 
     # --- 手機 390px：同一件事照樣成立、不能有橫向捲軸、卡片短句的字 ≥ 11px
     #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
