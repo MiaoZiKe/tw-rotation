@@ -488,7 +488,15 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
     from .compute.intraday_bars import ticks_to_60m
     from .sources import yahoo
 
+    from .compute.intraday_bars import kbar_to_60m
+
     flag = (prog.get("complete") or {}).get("index_intraday") or {}
+    if flag.get("kbar_v") != 1:
+        # 2026-09-25 加了 FinMind 分 K 路線（櫃買 TaiwanStockKBar、台指期 TaiwanFuturesKBar）：
+        # 舊進度可能因為「逐筆不可用」就記成 done，這裡重開一次讓分 K 那兩條有機會補；Yahoo 那段不重跑。
+        flag.pop("done", None)
+        flag.pop("fut_unavailable", None)
+        flag["kbar_v"] = 1
     if flag.get("done"):
         return True
     have = store.read("index_intraday")
@@ -513,27 +521,94 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
             if http.finmind_budget_left() <= 5:
                 log.warning("額度剩不多，台指期逐筆回補停在 %s，下一輪接續", d)
                 break
-            ticks = finmind.futures_ticks(d)
-            if ticks.empty:
-                err = http.finmind_last_error() or {}
-                if err.get("dataset") == "TaiwanFuturesTick" and err.get("status") not in (None, 402, 429):
-                    log.warning("TaiwanFuturesTick 不可用（%s %s），記下來不再重試",
-                                err.get("status"), err.get("msg"))
-                    flag["fut_unavailable"] = f"{err.get('status')} {err.get('msg')}"[:200]
+            bars = pd.DataFrame()
+            if not flag.get("tick_unavailable"):
+                bars = ticks_to_60m(finmind.futures_ticks(d))
+                if bars.empty and _dataset_denied("TaiwanFuturesTick"):
+                    flag["tick_unavailable"] = _err_text()
+            if bars.empty:
+                # 逐筆沒權限就試期貨分 K（2026-09 FinMind 新增的 TaiwanFuturesKBar）
+                bars = kbar_to_60m(finmind.futures_kbar(d), futures=True)
+                if bars.empty and _dataset_denied("TaiwanFuturesKBar"):
+                    log.warning("台指期逐筆與分 K 都不可用（%s），記下來不再重試", _err_text())
+                    flag["fut_unavailable"] = _err_text()
                     break
+            if bars.empty:
                 continue
-            store.append("index_intraday", ticks_to_60m(ticks))
+            store.append("index_intraday", bars)
             todo = [x for x in todo if x != d]
         flag["fut_left"] = len(todo)
         fut_ok = not todo or bool(flag.get("fut_unavailable"))
     else:
         fut_ok = True
 
-    flag["done"] = bool(flag.get("yahoo")) and fut_ok
+    otc_ok = _backfill_otc_kbar(flag, have, days)
+    flag["done"] = bool(flag.get("yahoo")) and fut_ok and otc_ok
     flag["at"] = datetime.now(timezone.utc).isoformat()
     prog.setdefault("complete", {})["index_intraday"] = flag
     _save_progress(prog)
     return flag["done"]
+
+
+def _dataset_denied(dataset: str) -> bool:
+    """上一次 FinMind 請求是不是「這個資料集沒權限／不存在」（402/429 是額度，不算）。"""
+    err = http.finmind_last_error() or {}
+    return err.get("dataset") == dataset and err.get("status") not in (None, 402, 429)
+
+
+def _err_text() -> str:
+    err = http.finmind_last_error() or {}
+    return f"{err.get('dataset')} {err.get('status')} {err.get('msg')}"[:200]
+
+
+def _backfill_otc_kbar(flag: dict, have: pd.DataFrame, days: int) -> bool:
+    """櫃買 60 分 K：Yahoo 沒有，改逐日抓 FinMind TaiwanStockKBar 聚合（2026-09-25）。回傳這段算不算完成。
+
+    交易日取自 index_ohlc 的 OTC（回應裡的日期，不用執行當天推算）；湖裡已有的日子跳過；
+    額度剩 ≤ 5 就停；所有候選代號都回「沒權限」就記 `otc_unavailable`，之後不再重試。
+    """
+    from .compute.intraday_bars import kbar_to_60m
+
+    if flag.get("otc_unavailable"):
+        return True
+    dates = store.read("index_ohlc")
+    dates = (sorted(dates.loc[dates["symbol"].astype(str) == "OTC", "date"].astype(str).unique())
+             if not dates.empty else [])[-days:]
+    got = set()
+    if have is not None and not have.empty:
+        otc = have[have["symbol"].astype(str) == "OTC"]
+        got = set(otc["ts"].astype(str).str.slice(0, 10))
+    todo = [d for d in dates if d not in got]
+    ids = list(finmind.OTC_KBAR_IDS)
+    empties = 0
+    for d in reversed(todo):
+        if http.finmind_budget_left() <= 5:
+            log.warning("額度剩不多，櫃買分 K 回補停在 %s，下一輪接續", d)
+            break
+        bars = pd.DataFrame()
+        denied = 0
+        for data_id in ids:
+            bars = kbar_to_60m(finmind.index_kbar(d, data_id), symbol="OTC")
+            if not bars.empty:
+                ids = [data_id]          # 找到能用的代號就只用它，後面的日子不再浪費額度
+                break
+            denied += _dataset_denied("TaiwanStockKBar")
+        if bars.empty:
+            if denied == len(ids):
+                log.warning("櫃買分 K 不可用（%s），記下來不再重試", _err_text())
+                flag["otc_unavailable"] = _err_text()
+                return True
+            empties += 1
+            if empties >= 3 and not got and len(ids) > 1:
+                # 代號不對時 FinMind 可能回 200 空陣列、沒有錯誤碼 —— 不設這道閘就會每小時燒一輪額度
+                log.warning("櫃買分 K 連續 %d 個交易日所有代號都回空，視為不可用", empties)
+                flag["otc_unavailable"] = f"連續 {empties} 個交易日回空（{_err_text()}）"
+                return True
+            continue
+        store.append("index_intraday", bars)
+        todo = [x for x in todo if x != d]
+    flag["otc_left"] = len(todo)
+    return not todo
 
 
 def finmind_reachable(prog: dict) -> bool:

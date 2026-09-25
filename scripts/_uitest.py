@@ -3173,6 +3173,13 @@ def t_new_market3(pg, base):
         return { n: t.length, tf: k.tf, onHour: t.every(x => x % 3600 === 0),
                  hours: [...new Set(t.map(x => Math.floor((x % 86400) / 3600)))].sort((a, b) => a - b),
                  vol: !!(k.cfg && k.cfg.vol), fb: document.getElementById('m3c-' + id).dataset.fallback || '' }; }"""
+    # ★ 2026-09-25 改前→改後：改前這一段（Yahoo 15 分 K 合成、以及最後那條「分 K 全部拿不到 → 退回日 K」）
+    #   默認資料湖沒有 index_intraday；main 的資料湖長出加權 60m 3624 列、15m 1062 列之後，
+    #   TSE 會優先讀湖（2600 根 1H、725 根 4H），「4 小時＝21 根」與「退回日 K」就變成拿真資料在驗假設。
+    #   改後：這一段明確攔截 index_intraday.json 回空物件 ——「湖裡沒有」是這一段要驗的前提，
+    #   所以用攔截把前提寫死，而不是依賴本機資料湖剛好是空的。讀湖的情況在下面「資料湖」那一段另外驗。
+    pg.route("**/data/index_intraday.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
+    pg.evaluate("() => { window.Market3.state.lakeIntra = undefined; }")
     click(pg, "#m3Mode button[data-m='k']", 900)
     pg.select_option("#m3Tf", "H1")
     h1 = {i: wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length; }" % i, 8000) for i in ("TSE", "OTC", "FUT")}
@@ -3205,17 +3212,27 @@ def t_new_market3(pg, base):
     pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
     pg.evaluate("() => window.Market3.refresh(true)"); pg.wait_for_timeout(2500)
     t2 = pg.evaluate(HOUR, "TSE")
-    ok("★ 分 K 全部拿不到 → 1 小時退回日 K，並標明「已改用「日」」",
+    # 改前：「分 K 全部拿不到 → 1 小時退回日 K」（沒講湖；湖一長出來 TSE 就讀湖、這條必紅）
+    # 改後：前提寫進條件 ——「index_intraday.json 攔截成空、分時與 Yahoo 也全掛」時才驗退回日 K
+    ok("★ index_intraday.json 為空、分 K 也全部拿不到 → 1 小時退回日 K，並標明「已改用「日」」",
        t2 and t2["tf"] == "1d" and "已改用「日」" in t2["fb"], t2)
+    pg.unroute("**/data/index_intraday.json*")
 
     # --- ★ 2026-09-25：1H／4H 優先讀資料湖合成好的 index_intraday.json（Andy：「幫我處理週期問題」）
     #     這時分時與 Yahoo 全部 404 —— 正是線上「三張全部退回日 K」的情況；湖裡有就不該再退回。
     def fake_intra(route):
         import calendar, datetime as _dt
         out = {}
+        # ★ 2026-09-25 改前→改後：改前湖是 2026-08-03 起 30 個交易日（到 09-11），比假的「今天分時」（09-14）還舊，
+        #   所以從來沒驗到線上那個情況：分時比湖裡最後一天還舊（快取、假日、Worker 掛掉）→ 接在最後面、時間倒退、
+        #   Lightweight Charts 噴「Value is null」、游標看板消失。
+        #   改後：湖從 08-17 起 30 個交易日（到 09-25），**比分時新**；加權再故意挖掉 09-14 那一盤，
+        #   驗「湖裡沒有的舊盤要補進中間、而且照時間排好」。
         for sym, px0, vol in (("TSE", 45000.0, 0), ("OTC", 390.0, 0), ("FUT", 45100.0, 1200)):
-            h1, h4, d, n = [], [], _dt.date(2026, 8, 3), 0
+            h1, h4, d, n = [], [], _dt.date(2026, 8, 17), 0
             while n < 30:
+                if sym == "TSE" and d == _dt.date(2026, 9, 14):
+                    n += 1; d += _dt.timedelta(days=1); continue
                 if d.weekday() < 5:
                     for hr in range(9, 14):
                         t = calendar.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
@@ -3249,6 +3266,85 @@ def t_new_market3(pg, base):
         ok(f"[{tf}] 三張圖的來源標記都是 lake", src == ["lake"] * 3, src)
         ok(f"[{tf}] 指數量全 0 → 量柱隱藏；台指期有量 → 量柱照畫",
            li["TSE"] and not li["TSE"]["vol"] and li["FUT"] and li["FUT"]["vol"], li)
+
+    # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
+    #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
+    #     這裡把分時接回假的 09-14 那一盤（湖到 09-25，所以分時**比湖舊**），真的切 1H／4H、真的把滑鼠移上去。
+    #     ① 每張圖交給圖表庫的時間嚴格遞增、不重複，OHLC 都是有限數
+    #     ② 加權湖裡挖掉的 09-14 那一盤，要由分時補進**中間**（不是接在最後）
+    #     ③ 三張圖的游標看板都出現（開高低收＋量）　④ 整段 pageerror 0 筆
+    pg.unroute("**/chart?*")
+    pg.route("**/chart?*", fake_chart)
+    err_s0 = len([f for f in fails if f.startswith("pageerror")])
+    pg.evaluate("() => window.Market3.refresh(true)")
+    wait_until(pg, "() => { const d = window.Market3.state.data.TSE; return d && d.points && d.points.length > 100; }", 8000)
+    ORDER = """(id) => { const k = window.Market3.state.kcharts[id]; if (!k || !k.data || !k.data.length) return null;
+        const t = k.data.map(b => b.time); let inc = true;
+        for (let i = 1; i < t.length; i++) if (!(t[i] > t[i - 1])) { inc = false; break; }
+        const fin = k.data.every(b => [b.open, b.high, b.low, b.close].every(Number.isFinite));
+        const d14 = Date.UTC(2026, 8, 14) / 1000, last = t[t.length - 1];
+        return { n: t.length, inc, fin, tf: k.tf, has14: t.some(x => x >= d14 && x < d14 + 86400), lastIs14: last >= d14 && last < d14 + 86400 }; }"""
+    KTIP = """(id) => { const b = document.querySelector('#m3c-' + id + ' .m3-ktip'); return b && !b.hidden ? b.innerText.replace(/\\s+/g, ' ') : ''; }"""
+
+    def khover(idx):
+        """停在倒數第二根 K 棒上（跟下面游標那一段的 hover 同一個定位法）；最多試三次，讀到看板就回傳。"""
+        kt = ""
+        for _try in range(3):
+            b = pg.evaluate("""(id) => { const e = document.getElementById('m3c-' + id); e.scrollIntoView({block:'center', behavior:'instant'});
+                const r = e.getBoundingClientRect(); let x = r.left + r.width * .5; const k = window.Market3.state.kcharts[id];
+                if (k && k.data && k.data.length) { const cx = k.chart.timeScale().timeToCoordinate(k.data[Math.max(0, k.data.length - 2)].time);
+                  if (cx != null) x = r.left + cx; }
+                return {x, y: r.top + r.height * .35}; }""", idx)
+            pg.mouse.move(b["x"] - 30, b["y"]); pg.mouse.move(b["x"], b["y"], steps=4); pg.wait_for_timeout(400)
+            kt = pg.evaluate(KTIP, idx)
+            if kt:
+                return kt
+            pg.mouse.move(5, 5); pg.wait_for_timeout(300)
+        return kt
+
+    for tf, tfn in (("H1", "60m"), ("H4", "240m")):
+        pg.select_option("#m3Tf", tf)
+        for i in ("TSE", "OTC", "FUT"):
+            wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '%s' && k.data.length > 5; }" % (i, tfn), 8000)
+        pg.wait_for_timeout(500)
+        od = {i: pg.evaluate(ORDER, i) for i in ("TSE", "OTC", "FUT")}
+        for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+            ok(f"★ [{tf}] 分時比湖舊：{nm}交給圖表的時間嚴格遞增不重複、開高低收都是有限數",
+               od[i] and od[i]["tf"] == tfn and od[i]["inc"] and od[i]["fin"], od[i])
+            ok(f"★ [{tf}] 分時比湖舊：{nm}最後一根不是那個舊的 09-14（舊分時沒被接在最後面）",
+               od[i] and not od[i]["lastIs14"], od[i])
+        ok(f"★ [{tf}] 加權湖裡挖掉的 09-14 那一盤由分時補進中間", od["TSE"] and od["TSE"]["has14"], od["TSE"])
+        for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+            kt = khover(i)
+            ok(f"★ [{tf}] 分時比湖舊：{nm}游標看板出現（開高低收＋量）",
+               all(w in kt for w in ("開", "高", "低", "收", "量")), kt[:90] or "（看板沒出現）")
+        pg.mouse.move(5, 5)
+    err_s1 = len([f for f in fails if f.startswith("pageerror")])
+    ok("★ 分時比湖舊時切 1H／4H、逐張滑過去，頁面錯誤 0 筆（線上是約 35 筆 Value is null）",
+       err_s1 == err_s0, fails[err_s0:err_s1][:3])
+
+    # --- 清洗函式本身（防禦寫法的最後一道；不依賴上游任何保證）
+    cb = pg.evaluate("""() => window.Market3.cleanBars([
+        [300, 1, 2, 0.5, 1.5, 10], [100, 1, 1, 1, 1, null], [200, null, 2, 1, 1, 1],
+        [200, 1, 3, 0.5, 2, NaN], [100, 2, 2, 2, 2, 5], [400, 5, 4, 6, 5, 1], ['bad', 1, 1, 1, 1, 1], [500, NaN, 1, 1, 1, 1]])""")
+    ok("★ cleanBars：排序、同時間留後者、null/NaN 價整根丟、量 NaN 記 0、高低校正成四價極值",
+       cb == [[100, 2, 2, 2, 2, 5], [200, 1, 3, 0.5, 2, 0], [300, 1, 2, 0.5, 1.5, 10], [400, 5, 6, 4, 5, 1]], cb)
+    mg = pg.evaluate("""() => { const D = (d) => Date.UTC(2026, 8, d, 9) / 1000, b = (t, c) => [t, c, c, c, c, 0];
+        const lake = [b(D(10), 1), b(D(14), 1), b(D(16), 1)];
+        const r = (today) => window.Market3.mergeLake(lake, today).map(x => [new Date(x[0] * 1000).getUTCDate(), x[4]]);
+        return { old: r([b(D(10), 9)]), hole: r([b(D(15), 9)]), last: r([b(D(16), 9)]), newer: r([b(D(17), 9)]) }; }""")
+    ok("★ mergeLake：比湖最後一盤舊、湖裡已有 → 用湖的（舊分時不蓋完整紀錄）",
+       mg["old"] == [[10, 1], [14, 1], [16, 1]], mg["old"])
+    ok("★ mergeLake：湖裡沒有的舊盤 → 補進中間", mg["hole"] == [[10, 1], [14, 1], [15, 9], [16, 1]], mg["hole"])
+    ok("★ mergeLake：湖最後一盤與更新的盤 → 用今天的分時",
+       mg["last"] == [[10, 1], [14, 1], [16, 9]] and mg["newer"] == [[10, 1], [14, 1], [16, 1], [17, 9]], mg)
+    # 收拾：接回「分時全掛」的狀態給下一段用。只換路由不夠 —— 上面那輪把 09-14 的分時存進了
+    # localStorage（m3.last.*，Worker 掛掉時的最後一層退路），不清掉的話下一段重新載入會直接吃到快取、根本沒走到湖。
+    pg.unroute("**/chart?*")
+    pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {};"
+                " ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
+
     pg.unroute("**/data/index_intraday.json*")
     fresh(sess="day")
     # --- 分時全掛（Worker 連不上）時，走勢圖模式最後一層退到資料湖日 K、大數字補上、錯誤中文（審查 R1）
@@ -9105,10 +9201,15 @@ def t_market3(pg, base):
         q = parse_qs(urlparse(route.request.url).query)
         sym = (q.get("symbol") or [""])[0]
         iv = (q.get("interval") or ["1d"])[0]
-        # 只有加權（^TWII）有；其他的比照 Worker 回 400，前端要說明原因
+        # 只有加權（^TWII）有；其他的回「沒有這個代號」，前端要說明原因
+        # ★ 2026-09-25 改前→改後：改前回 400。afe801f 起櫃買的 1H／4H 會去問 Yahoo `^TWOII` 15 分 K，
+        #   瀏覽器對每一個 4xx 都會自己印一行「Failed to load resource: 400」—— 那是瀏覽器印的、前端攔不掉，
+        #   而全域 console 監聽只把 404 當成預期（缺頁測試），於是這一段在 main 上就固定紅 1 條（跟產品無關）。
+        #   改後回 404：Yahoo 對不存在的代號本來就回 404，前端 fetchFine／fetchHist 對 400 與 404 走同一條退回路，
+        #   驗的行為（退回＋說明原因）完全一樣。
         if sym != "^TWII":
-            route.fulfill(status=400, content_type="application/json",
-                          body='{"error":"bad symbol"}')
+            route.fulfill(status=404, content_type="application/json",
+                          body='{"chart":{"result":null,"error":{"code":"Not Found","description":"No data found, symbol may be delisted"}}}')
             return
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps(_fake_yahoo(sym, iv, 400 if iv != "1mo" else 120)))

@@ -915,12 +915,17 @@
     }
     _line(vals, color, pane, width, opts) {
       const s = this.chart.addSeries(LWC.LineSeries, Object.assign({ color, lineWidth: width || 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, opts || {}), pane || 0);
-      s.setData(this.data.map((d, i) => vals[i] === null || vals[i] === undefined || Number.isNaN(vals[i]) ? null : { time: d.time, value: vals[i] }).filter(Boolean));
+      /* ★ 2026-09-25：缺值給 whitespace（只有 time），不再整點丟掉、也絕不給 value:null。
+         丟掉會讓指標線跟 K 棒的時間軸對不齊（開頭 MA60 前 59 根整段不存在）；
+         value:null 則是 Lightweight Charts 正式版不驗、畫圖時內部丟「Value is null」的那種資料。
+         用 Number.isFinite 一起擋掉 NaN／Infinity（MA 在稀疏序列、除以 0 的指標都可能產生）。*/
+      s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i] } : { time: d.time }));
       return s;
     }
     _hist(vals, colorFn, pane) {
       const s = this.chart.addSeries(LWC.HistogramSeries, { priceLineVisible: false, lastValueVisible: false, priceFormat: pane === 1 && this.cfg && this.cfg.vol ? { type: 'custom', minMove: 1, formatter: (v) => (Math.abs(v) >= 1e7 ? (v / 1e7).toFixed(1) + '萬張' : (v / 1000).toFixed(0) + '張') } : { type: 'price', precision: 2, minMove: 0.01 } }, pane);
-      s.setData(this.data.map((d, i) => vals[i] === null || vals[i] === undefined ? null : { time: d.time, value: vals[i], color: colorFn(i) }).filter(Boolean));
+      // 同 _line：缺值給 whitespace，NaN／Infinity 一起擋（以前這裡連 NaN 都沒擋）
+      s.setData(this.data.map((d, i) => Number.isFinite(vals[i]) ? { time: d.time, value: vals[i], color: colorFn(i) } : { time: d.time }));
       return s;
     }
     // cfg = {ma:[5,20,60], boll:{n:20,k:2}, vol:true, kd:{n:9,m1:3,m2:3}, macd:{f:12,s:26,g:9}, rsi:{n:14}}
@@ -982,7 +987,7 @@
       for (const f of this._feeds) {
         for (let i = i0; i < n; i++) {
           const v = f.pick(V, i);
-          if (v === null || v === undefined || Number.isNaN(v)) continue;
+          if (!Number.isFinite(v)) continue;   // null／NaN／Infinity 都不推（setData 那邊已放 whitespace 佔位）
           // 同上：update() 會就地改寫傳進去的物件，所以每次都給一個新的
           const p = { time: this.data[i].time, value: v };
           if (f.color) p.color = f.color(V, i);

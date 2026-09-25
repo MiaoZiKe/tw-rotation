@@ -652,3 +652,56 @@ def futures_ticks(day: str, data_id: str = "TX", *, wait: bool = False) -> pd.Da
     if "contract_date" not in df.columns:
         df["contract_date"] = df["futures_id"] if "futures_id" in df.columns else ""
     return df
+
+
+# ------------------------------------------------------------ 分 K（2026-09-25，櫃買／台指期的 1H／4H）
+# 為什麼走 FinMind 分 K：櫃買在 Yahoo 分 K 回「No data found」、台指期逐筆（TaiwanFuturesTick）
+# 在 register 等級回 400。證交所 mis 的 mis_ohlc_*.txt、期交所 mis.taifex 的 getChartData1M
+# 雖然前端經 Worker 在用，但**都不是** getStockInfo.jsp，不在管線的來源白名單（CLAUDE.md 絕對不要做的事 #1），
+# 管線不抓。FinMind 是白名單來源。WebSearch 查證（2026-09-25，只拿得到摘要）：
+#   · TaiwanStockKBar 可用 data_id="TAIEX" 取加權分 K，一天 271 筆、指數量固定 0
+#     （https://finmind.github.io/WhatIsNew/）；摘要另說支援 3 碼指數代號、101＝櫃買加權（低信心，未見原文）。
+#   · TaiwanFuturesKBar 是 2026-09 新增的期貨分 K（https://github.com/FinMind/FinMind/pull/458）。
+#   兩者在我們的會員等級拿不拿得到**查不到**（摘要只講整日下載限 sponsorpro），只能在 Actions 看 log。
+OTC_KBAR_IDS = ["TPEx", "101"]     # 依序試；第一個有資料的就用
+
+
+def _kbar_frame(data: list[dict], dataset: str, day: str) -> pd.DataFrame:
+    """分 K 回應 → 有 ts 欄（台北時間字串）與 open/high/low/close/volume 的表；欄位對不上回空並印前 200 字。"""
+    df = pd.DataFrame(data)
+    need = {"date", "open", "high", "low", "close"}
+    if not need.issubset(df.columns):
+        log.warning("FinMind %s %s 欄位對不上，缺 %s；回應前 200 字：%s",
+                    dataset, day, sorted(need - set(df.columns)), str(data[:2])[:200])
+        return pd.DataFrame()
+    if "minute" in df.columns:
+        df["ts"] = df["date"].astype(str).str.slice(0, 10) + " " + df["minute"].astype(str)
+    else:
+        df["ts"] = df["date"].astype(str)
+    if "volume" not in df.columns:
+        df["volume"] = 0
+    return df
+
+
+def _kbar_get(dataset: str, data_id: str, day: str, wait: bool, what: str) -> pd.DataFrame:
+    data = http.finmind_get(dataset, data_id=data_id, start_date=day, end_date=day,
+                            wait_when_exhausted=wait)
+    if not data:
+        err = http.finmind_last_error() or {}
+        log.warning("FinMind %s %s %s 回空（上游：%s）", what, data_id, day,
+                    f"{err.get('status')} {err.get('msg')}" if err else "無錯誤訊息／當天無交易")
+        return pd.DataFrame()
+    return _kbar_frame(data, dataset, day)
+
+
+def index_kbar(day: str, data_id: str, *, wait: bool = False) -> pd.DataFrame:
+    """台股指數某一天的 1 分 K（TaiwanStockKBar）。失敗／沒權限／休市回空並記 log。"""
+    return _kbar_get("TaiwanStockKBar", data_id, day, wait, "指數分 K")
+
+
+def futures_kbar(day: str, data_id: str = "TX", *, wait: bool = False) -> pd.DataFrame:
+    """台指期某一天的 1 分 K（TaiwanFuturesKBar），含日盤夜盤、各月份；近月交給聚合那層挑。"""
+    df = _kbar_get("TaiwanFuturesKBar", data_id, day, wait, "台指期分 K")
+    if not df.empty and "contract_date" not in df.columns:
+        df["contract_date"] = df["futures_id"] if "futures_id" in df.columns else ""
+    return df
