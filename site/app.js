@@ -209,12 +209,21 @@
      ECharts 的 label.formatter 拿不到方塊尺寸，所以：先 setOption 一次 → 讀每一格排好的 {width,height}
      → 算好每格要寫幾行 → 第二次 setOption 把新的 formatter 寫回去（跟輪動時鐘的標籤避讓同一個做法）。
      字寬用 canvas measureText 量，不用「字數 × 12」估（中英數混排差很多）。*/
-  let _hmCtx = null;
+  /* ★ 2026-09-24 效能：以前每量一次字都重設一次 ctx.font（瀏覽器每次都要重新解析字型字串），而且同一個名字每次重畫都重量。
+     熱力圖一次要量上百格（放不下時還要逐字截短再量），R6 量到自身時間 102ms（4 倍降速 508ms）。
+     改成：字級沒變就不重設 font；量過的「字級＋字串」記起來（上限 4000 筆，滿了整包清掉重來）。量法完全一樣，數字一模一樣。*/
+  let _hmCtx = null, _hmFs = 0;
+  const _hmW = new Map();
   const hmTextW = (s, fs) => {
+    const str = String(s), key = fs + '|' + str;
+    const hit = _hmW.get(key); if (hit !== undefined) return hit;
     if (!_hmCtx) { try { _hmCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _hmCtx = null; } }
-    if (!_hmCtx) return String(s).length * fs;
-    _hmCtx.font = `700 ${fs}px Noto Sans TC, JetBrains Mono, sans-serif`;
-    return _hmCtx.measureText(String(s)).width;
+    if (!_hmCtx) return str.length * fs;
+    if (_hmFs !== fs) { _hmCtx.font = `700 ${fs}px Noto Sans TC, JetBrains Mono, sans-serif`; _hmFs = fs; }
+    const w = _hmCtx.measureText(str).width;
+    if (_hmW.size > 4000) _hmW.clear();
+    _hmW.set(key, w);
+    return w;
   };
   const hmKey = (d) => (d ? (d.gid || d.id || d.cid || d.name) : '');
   /* 規則（規格 §3.1-5）：
@@ -287,7 +296,10 @@
       c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } },
         upperLabel: { formatter: (p) => (p.name in up ? up[p.name] : p.name) } }] });
     };
-    apply();
+    /* ★ 2026-09-24 效能：第二段（寫回標籤）挪到下一幀開頭（requestAnimationFrame）。
+       rAF 在瀏覽器畫出下一幀**之前**執行，所以畫面上不會先閃一張沒字的熱力圖；
+       但它是另一個任務 —— 首次開總覽時「畫熱力圖」這一大塊從一個長任務拆成兩個，中間瀏覽器能喘口氣處理點擊與捲動。*/
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply); else apply();
     if (!el._hmFin) {
       el._hmFin = true;
       c.on('finished', () => {
@@ -336,11 +348,30 @@
   const hmDate = (d) => d ? `<span class="hmctl date" title="這張圖的資料日期（交易日）"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
   const hmLS = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const hmLSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
-  async function load(name, opt) {
-    if (D[name] && !opt) return D[name];
-    try { const r = await fetch(`data/${name}.json?v=${(D.meta && D.meta.generated_at) || ''}`, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); D[name] = await r.json(); }
-    catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
-    return D[name];
+  /* ★ 2026-09-24 效能（R6 審查 2.5 節）：
+     ① **同一份檔同時被要兩次只抓一次**：以前 load() 要等抓完才把結果寫進 D，同時進來的第二個呼叫看不到，
+        於是 index_ohlc（329KB）每次開總覽都抓兩次（market3.js 兩處同時要）；帶 fallback 的呼叫（opt）更是**每次都重抓**，
+        sankey_daily 在總覽抓一次、進資金流向又抓一次。現在「抓成功過」就直接回快取，「正在抓」就共用同一個 promise。
+        抓失敗的照舊可以重試（不記成功）。
+     ② **網址已經帶版本鍵（?v=generated_at）就讓瀏覽器快取**：以前一律 `cache:'no-store'`，每按一次重新整理都整包重抓
+        （總覽 18 個請求、5.1MB 原始／1.06MB gzip）。版本鍵在每次部署都會換（build_payload 每次都重寫 meta），
+        所以新資料一定是新網址、舊快取不可能被拿來冒充新資料。
+        ⚠ meta.json 本身（還沒有版本鍵的時候）照舊 no-store —— 版本鍵就是從它來的，它一舊全部都舊。*/
+  const _loading = {}, _loaded = {};
+  function load(name, opt) {
+    if (_loaded[name] || (D[name] && !opt)) return Promise.resolve(D[name]);
+    if (_loading[name]) return _loading[name];
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _loading[name] = (async () => {
+      try {
+        const r = await fetch(`data/${name}.json?v=${ver}`, ver ? {} : { cache: 'no-store' });
+        if (!r.ok) throw new Error(r.status);
+        D[name] = await r.json(); _loaded[name] = true;
+      } catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
+      finally { delete _loading[name]; }
+      return D[name];
+    })();
+    return _loading[name];
   }
   /* ★ 驗收用的 SVG renderer 開關（2026-09-20）。
      線上版一律 canvas（效能）—— 但 canvas 畫出來的字在 DOM 上完全不存在，
@@ -511,13 +542,27 @@
     let c = echarts.getInstanceByDom(el);
     // renderer 是 init 當下決定的，中途要換只能整個 dispose 重建
     if (c && el._renderer && el._renderer !== want) { c.dispose(); c = null; }
-    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; }
+    let fresh = false;
+    if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; }
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
       c.setOption = (o2, ...rest) => raw(softenOption(o2, c), ...rest);
       c._soft = true;
     }
-    c.setOption(Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option), opts && opts.notMerge !== false);
+    let full = Object.assign({ backgroundColor: 'transparent', textStyle: { fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif', color: CH.ink2 }, animationDuration: 500 }, option);
+    /* ★ 2026-09-24 效能：**圖表第一次出現不播進場動畫**（長條長出來、扇形轉開那一段 0.24～0.5 秒）。
+       首次開總覽時七八張圖同時進場，每一幀都要把每張圖重畫一次 —— 實測把進場動畫拿掉，
+       總阻塞時間（TBT）2.6／3.3 秒 → 1.3／2.0 秒、最長卡住 1.8／1.4 秒 → 0.8／0.7 秒（同一台機器交錯量兩輪）。
+       只拿掉「第一次建立這張圖」的那一次：之後換篩選、拖時間軸、播放的**更新補間**（animationDurationUpdate）完全不動，
+       輪動時鐘的絲滑移動、排行換位都照舊。下一次經由 chart() 重畫就回到原本的進場時間。
+       ⚠ 系列自己寫了 animationDuration 的（熱力圖 240ms）那一層也要一起歸零，不然系列層會蓋過頂層。*/
+    if (fresh) {
+      full = Object.assign({}, full, { animationDuration: 0 });
+      const ser = full.series;
+      const zero = (x) => (x && typeof x === 'object' && x.animationDuration != null ? Object.assign({}, x, { animationDuration: 0 }) : x);
+      if (Array.isArray(ser)) full.series = ser.map(zero); else if (ser) full.series = zero(ser);
+    }
+    c.setOption(full, opts && opts.notMerge !== false);
     // 容器在 display:none 或還沒排版時 init 出來會是 0×0，畫完就是一片空白而且不會自己好。
     // 盯著容器尺寸，一變就 resize，這樣切分頁、展開說明、視窗縮放都不會留下空白圖。
     if (!el._ro && typeof ResizeObserver !== 'undefined') {
@@ -533,6 +578,10 @@
         const sig = el.clientWidth + 'x' + el.clientHeight;
         if (el._roSize === sig) return;
         el._roSize = sig;
+        /* ★ 2026-09-24 效能：observe() 之後瀏覽器**一定**會先回呼一次（報「現在的尺寸」），
+           那時圖表剛 init、尺寸本來就對 —— 以前這一次也照樣 resize，等於每張圖一建好就再整張重畫一遍
+           （首次開資金流向實測 5 張圖各白畫一次，約 0.5 秒）。圖表自己的尺寸已經等於容器就不動。*/
+        if (i.getWidth() === el.clientWidth && i.getHeight() === el.clientHeight) return;
         i.resize();
       });
       el._ro.observe(el);
@@ -704,7 +753,66 @@
       try { e.close(); } catch (er) { /* 同上 */ }
     });
   });
-  window.addEventListener('resize', () => { Object.values(charts).forEach(c => c && c.resize && c.resize()); });
+  /* ★ 2026-09-24 效能（Andy：「開啟網頁都會卡頓一陣子」）：ECharts 的 `resize()` **不管尺寸有沒有變都會整張重畫**。
+     以前全站好幾個地方「對每一張圖都 resize 一次」—— 視窗 resize 事件（大盤三張圖每畫一次就派一次、事件欄開關也派一次）、
+     換頁後的 resizeVisibleCharts、手機換段、說明展開 —— 首次開總覽實測這幾輪白畫就佔掉 400～600ms 的長任務。
+     改成一支共用的 `resizeIfChanged()`：容器尺寸跟圖表現在的尺寸一樣就不動；容器藏起來（寬或高是 0）也不動
+     （藏起來時 resize 會把圖縮成 100px，等那頁打開又是一塊空白 —— 2026-09-24 抓過一次）。
+     ⚠ 只省「白畫」：尺寸真的變了照樣 resize，所以版面、縮放、切分頁的行為一點都沒變。
+     ⚠ 容器有 padding 時 getWidth() 會比 clientWidth 小 → 判成「變了」→ 照舊 resize（寧可多畫，不可漏畫）。*/
+  function resizeIfChanged(c) {
+    if (!c || !c.resize || (c.isDisposed && c.isDisposed())) return false;
+    const el = c.getDom && c.getDom(); if (!el) return false;
+    const w = el.clientWidth, h = el.clientHeight;
+    if (!(w > 0) || !(h > 0)) return false;
+    if (c.getWidth() === w && c.getHeight() === h) return false;
+    c.resize(); return true;
+  }
+  const resizeAllCharts = () => { Object.values(charts).forEach(c => { try { resizeIfChanged(c); } catch (e) { /* 已經 dispose 的圖 */ } }); };
+  window.addEventListener('resize', resizeAllCharts);
+  /* ★ 2026-09-24 效能：**首屏以外的卡片延後畫**（Andy：「開啟網頁都會卡頓一陣子」）。
+     以前總覽／資金流向一進來就把整頁十幾張圖**在同一個任務裡**全部畫完 —— 實測首次開總覽那一個任務 1.4 秒、
+     資金流向 1.5 秒，這段時間整頁點不動、捲不動。其中一半是還在畫面下方、使用者根本還沒捲到的卡片。
+     `whenNear(el, fn)`：卡片已經在畫面裡（或離畫面不到 NEAR_PX）→ 當場畫，跟以前一模一樣；
+     還在下面 → 等它捲近了（IntersectionObserver）才畫；使用者沒捲，也會在瀏覽器**閒下來**時一張一張補畫
+     （requestIdleCallback，每張各自一個任務，最慢 NEAR_IDLE_MAX 毫秒內一定畫）。
+     所以功能一個都沒少：只是「畫的順序」從「全部一起」變成「看得到的先、看不到的閒了再畫」。
+     ⚠ 同一個容器重排（換主題重畫、篩選改了）時，以最後一次交代的為準（Map 以元素為鍵），不會畫兩次舊的。*/
+  const NEAR_PX = 240, NEAR_IDLE_MAX = 2500;
+  const _near = new Map();
+  let _nearIO = null, _nearIdle = 0;
+  function runNear(el) {
+    const fn = _near.get(el); if (!fn) return;
+    _near.delete(el);
+    if (_nearIO) _nearIO.unobserve(el);
+    try { fn(); } catch (e) { console.warn('延後畫的卡片失敗', el && el.id, e); }
+  }
+  function nearIdle() {
+    if (_nearIdle || !_near.size) return;
+    const ric = window.requestIdleCallback || ((f) => setTimeout(f, 120));
+    _nearIdle = ric(() => {
+      _nearIdle = 0;
+      const first = _near.keys().next();
+      if (!first.done) runNear(first.value);
+      nearIdle();
+    }, { timeout: NEAR_IDLE_MAX });
+  }
+  // 讓出主執行緒一次：等下一幀畫完再接著做（分頁在背景時 rAF 不跑，用 setTimeout 保底，不會卡住）
+  const yieldFrame = () => new Promise(r => {
+    let done = false; const go = () => { if (!done) { done = true; setTimeout(r, 0); } };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go);
+    setTimeout(go, 100);
+  });
+  function whenNear(el, fn) {
+    if (!el || typeof IntersectionObserver === 'undefined') { fn(); return; }
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.top < window.innerHeight + NEAR_PX && r.bottom > -NEAR_PX) { _near.delete(el); fn(); return; }
+    if (!_nearIO) _nearIO = new IntersectionObserver((es) => es.forEach(e => { if (e.isIntersecting) runNear(e.target); }),
+      { rootMargin: NEAR_PX + 'px 0px' });
+    _near.set(el, fn);
+    _nearIO.observe(el);
+    nearIdle();
+  }
   /* 瀏覽器縮放（Ctrl +/-）會改 devicePixelRatio，而 ECharts 是在 init 當下記住 DPR 的。
      只呼叫 resize() 的話畫布尺寸對了、內部座標還是舊 DPR，結果就是「圖縮到中間一小塊、周圍一片黑」
      （Andy 縮小視窗後熱力圖變一小塊就是這個）。DPR 一變就整個丟掉重建，沒有別的解法。 */
@@ -1654,7 +1762,7 @@
      量到的寬度是 0，顯示回來不重算就是一張空白圖（2026-09-18 K 線那個 bug 的同一個形態）。
      所以每一次切換都補一輪 resize，而且補兩次（第二次讓版面先安定）。*/
   function miaResize() {
-    try { Object.values(charts).forEach(c => c && c.resize && c.resize()); } catch (e) { /* 忽略 */ }
+    try { resizeAllCharts(); } catch (e) { /* 忽略 */ }
     try { window.dispatchEvent(new Event('resize')); } catch (e) { /* 忽略 */ }
   }
 
@@ -2010,14 +2118,7 @@
   let _lastPageKey = null;          // 上一次停在哪一頁（見 route() 裡的捲動判斷）
   /* 換頁後把「看得見的」圖表 resize。藏起來的（display:none 的分頁裡）一律跳過：
      量不到寬度時 ECharts 會把它縮成 100px，等那一頁再被打開時就是一塊空白（2026-09-24 抓到）。*/
-  function resizeVisibleCharts() {
-    Object.values(charts).forEach(c => {
-      if (!c || !c.resize || (c.isDisposed && c.isDisposed())) return;
-      const el = c.getDom && c.getDom();
-      if (el && (el.offsetWidth === 0 || el.offsetHeight === 0)) return;
-      c.resize();
-    });
-  }
+  function resizeVisibleCharts() { resizeAllCharts(); }   // 藏起來的與尺寸沒變的都跳過（見 resizeIfChanged）
   async function route() {
     stopAllPlay();                       // 換頁前先停，否則計時器會對已 dispose 的圖表 setOption
     _players.clear();
@@ -2055,6 +2156,12 @@
       location.replace('#heatmap/theme' + (rest[0] ? '/' + encodeURIComponent(rest[0]) : ''));
       return;
     }
+    /* ★ 2026-09-24（R6 審查）：`#tasks`（任務板）的導覽入口 09-23 就收掉了，但網址還打得開，
+       而它攤著的是**內部作業文字**（金鑰放哪、token 怎麼換、Actions 怎麼跑）—— 這是 public 的網站，那些不該出現在畫面上。
+       給 Andy 看的版本是「交付清單」（#delivery，他的原話＋狀態＋去看），所以舊網址一律導過去，任務板的內容前端不再載入。
+       用 location.replace：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
+       ⚠ `data/tasks.json` 仍由 build_payload 產出（要停掉得改管線），這裡只保證「網站畫面上看不到」。*/
+    if (head === 'tasks') { location.replace('#delivery'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
     const lg = window.TwLegal ? window.TwLegal.route(head, rest) : null;
@@ -2072,13 +2179,15 @@
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
        捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。*/
-    centerActiveTab();
     /* 一開始就用網址直接開某一頁時，這裡量到的分頁列寬度還不是最後的寬度
        （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
-       只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
-    setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
-    // 分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算
-    syncTabOverflow(); setTimeout(syncTabOverflow, 0); setTimeout(syncTabOverflow, 420);
+       只算一次的話「現在這一頁」只會露出半個 —— 補一次重算。
+       分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算（所以置中之後緊接著量溢出）。
+       ★ 2026-09-24 效能：以前是「當場量一次 ＋ setTimeout 0 ＋ 400／420ms」共 6 次，當場那次是在剛改完一堆 class 的時候讀
+         scrollWidth／getBoundingClientRect —— 等於逼瀏覽器**同步重排整頁**（R6 量到 74ms，4 倍降速 500ms）。
+         改成下一幀開頭量一次（瀏覽器本來就要排版，順便讀，不多花）＋ 420ms 再補一次。*/
+    const tabFix = () => { centerActiveTab(); syncTabOverflow(); };
+    requestAnimationFrame(tabFix); setTimeout(tabFix, 420);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -2806,6 +2915,19 @@
     /* ★ 2026-09-24 總覽改版：多載 `stocks`（漲跌家數分佈要逐檔的漲跌幅，跟市場明細的「漲跌分佈」同一份）。
        `candidates` 仍然載 —— 法人卡的 tooltip 靠它查中文名（今日候選表本身已經拿掉）。*/
     const [heat, gt, rot, cands, f3, th, trust, gdForPanels, streak, sd, stocks] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null }), load('stocks', { fallback: [] })]);
+    /* ★ 2026-09-24 效能：資金去向（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
+       這張圖跟熱力圖在同一排：它畫完才把自己撐高的話，熱力圖會跟著被拉長（實測 617 → 800px），
+       等於熱力圖剛畫完又得整張重畫一次（resize ＋ 重排標籤）。先把高度給它，熱力圖第一次就畫在最後的尺寸上。*/
+    { const ovf = $('#ovFlow');
+      if (ovf && sd && (sd.dates || []).length && (sd.groups || []).length) {
+        const k = sd.dates.length - 1;
+        const vs = sd.groups.map(g => (g.tv || [])[k] || 0).filter(v => v > 0);
+        if (vs.length) {
+          ovf.style.height = Math.max(300, vs.length * 22 + 46) + 'px';
+          const sub = $('#ovFlowSub');                 // 小標也先寫好（它換行數一變，這一欄一樣會長高）
+          if (sub) sub.textContent = ovFlowSubText(sd.dates[k], vs.length, vs.reduce((a, v) => a + v, 0) || 1);
+        }
+      } }
     /* ---- KPI 橫條（Andy 2026-09-24：「太占版面：只留加權指數、成交值、漲跌家數、族群占比四格，
        移到三張走勢圖上方，做成一條緊湊的橫條（高度 ≤ 64px）」）。
        · 拿掉「今日候選」「站上 MA20」兩格（名單仍在市場明細的分頁裡，路徑沒斷）。
@@ -2832,6 +2954,9 @@
     ].join('');
     wireKpiDrill();
     renderHeat(gt, rot);
+    /* ★ 2026-09-24 效能：熱力圖畫完先讓瀏覽器畫一幀、喘口氣（處理點擊與捲動），再畫輪盤。
+       以前兩張連同整頁一起在同一個任務裡畫完，那一個任務就是 Andy 說的「開啟就卡一陣子」。*/
+    await yieldFrame();
     /* ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點」）。
        · `#rotMiniZoomBtn` 整顆移除（連同這裡的接線）——「放大」這個能力沒有消失：
          點卡片標題旁邊的分頁「資金流向」就是同一張時鐘的完整版（有拉Bar、篩選、播放）。
@@ -2842,12 +2967,12 @@
          不然 82% 只是「在同樣小的框裡畫大一點」。
        · `board: 'rotMini'` 也不再傳 —— 那四格階段卡已經換成「昨日資金去向分流圖」（D7）。*/
     renderRotation(f3 && f3.rrg, 5, { clock: 'rotClockMini', compact: true });
-    renderOvFlow(sd);
     // ★ 2026-09-24：熱門題材 → 熱力圖；今日候選表拿掉；市場寬度 → 漲跌家數分佈；法人 → 買賣四象限
-    renderOvThemes(th);
-    renderUpDown(stocks, heat);
-    renderTrust(trust, cands, streak);
-    wireStreak(trust, cands, streak);
+    // 以下幾張在首屏下方：捲近了（或瀏覽器閒下來）才畫（見 whenNear）
+    whenNear($('#ovFlow'), () => renderOvFlow(sd));
+    whenNear($('#ovTheme'), () => renderOvThemes(th));
+    whenNear($('#breadth'), () => renderUpDown(stocks, heat));
+    whenNear($('#trust'), () => { renderTrust(trust, cands, streak); wireStreak(trust, cands, streak); });
     /* Andy（09-13）：「將這邊的縮放功能取消」—— 滾輪縮放**只留熱力圖類**
        （總覽資金熱力、產業地圖板塊、題材資金熱力）。其餘的圖一律原尺寸顯示：
        徽章會壓在圖上、滾輪又會搶走頁面捲動，代價大於收益。 */
@@ -4322,7 +4447,18 @@
      · 點的像素位置每一幀從 ECharts 的圖形元素讀（回放時點正在補間，用「目標位置」的話聲納會冒在點的前面）。*/
   const SCAN_W = 1.08;                 // 角速度（弧度／秒）：參考檔每幀 0.018 × 60fps
   const SCAN_SPAN = Math.PI / 4;       // 拖尾 45°
+  const SCAN_PERIOD = Math.PI * 2 / SCAN_W * 1000;   // 一圈幾毫秒（約 5.8 秒）
   const PING_LIFE = 520;
+  /* ★ 2026-09-24 效能（Andy：「開啟網頁都會卡頓一陣子」）：
+     以前光束與聲納是**每一幀在疊層 canvas 上整張重畫**（錐形漸層填滿整個盤面）。
+     canvas 只要動一個像素，瀏覽器每一幀都得把整張點陣圖交給合成器 —— 實測資金流向頁停著不動，
+     主執行緒有四成時間在做這件事（5 秒內 2 秒），首次載入時跟圖表搶 CPU，長任務一路拖到十幾秒。
+     改法（長相不變）：
+       · 光束＝一個圓形 <div>，背景是同一條錐形漸層、射線是它的子元素，用 Web Animations 的 rotate 轉 ——
+         旋轉由合成器做，主執行緒一幀都不用畫，載入時主執行緒忙也照樣轉得順。
+       · 聲納＝每掃到一顆點就生一個小 <span>，CSS 動畫放大＋淡出（transform／opacity，一樣走合成器），520ms 後移除。
+       · 疊層 canvas 只剩水波（點真的移動時才有），沒有水波就一幀都不碰它。
+     rAF 迴圈仍在：它每一幀只做「算角度、看這一幀掃過哪些點」這種純計算，不碰像素。*/
   const rotFxEls = new Set();
   function rotFxCanvas(el) {
     let cv = el.querySelector(':scope > canvas.rotripple');
@@ -4335,6 +4471,66 @@
     }
     return cv;
   }
+  /* 盤的幾何：和 polar 的設定同一個公式（center 50%／52%、radius 84%／66% × min(寬,高)/2）。
+     ★ 2026-09-24 效能：寬高**不每一幀讀 clientWidth**（頁面上任何地方剛改過 DOM 時，讀它會逼瀏覽器當場重排整頁）；
+       改由這張圖自己的 ResizeObserver 記下尺寸，尺寸真的變了才更新。*/
+  const rotFxGeo = (el, compact) => {
+    const F = el._fx || {};
+    if (!F.sz) {
+      F.sz = [el.clientWidth || 0, el.clientHeight || 0];
+      if (typeof ResizeObserver !== 'undefined' && !F.szro) {
+        F.szro = new ResizeObserver(() => { F.sz = [el.clientWidth || 0, el.clientHeight || 0]; });
+        F.szro.observe(el);
+      }
+    }
+    const W = F.sz[0], H = F.sz[1];
+    // 半徑一律走 rotGeo（桌機是「離容器邊 ROT_PAD」，跟 polar 的設定同一支，fix-ov-wheel 之後不再是固定 84%）
+    return { W, H, cx: W / 2, cy: H * (compact ? .52 : .5), R: rotGeo(W, H, compact).R };
+  };
+  // 光束元素：沒有就建；尺寸、顏色、主題變了才改樣式（每一幀比對一個字串，不寫 DOM）
+  function rotFxBeam(el, F) {
+    let bm = el.querySelector(':scope > .rotbeam');
+    if (!bm) {
+      bm = document.createElement('div');
+      bm.className = 'rotbeam'; bm.setAttribute('aria-hidden', 'true');
+      bm.innerHTML = '<div class="rotor"><div class="ray"></div></div>';
+      if (getComputedStyle(el).position === 'static') el.style.position = 'relative';
+      el.insertBefore(bm, el.querySelector(':scope > canvas.rotripple'));   // 在水波底下（跟以前的畫圖順序一樣）
+      F.geo = ''; F.anim = null;
+    }
+    const G = rotFxGeo(el, F.compact);
+    const key = [G.W, G.H, F.compact ? 1 : 0, F.col, F.lt ? 1 : 0].join('|');
+    if (key !== F.geo) {
+      F.geo = key;
+      const R = G.R, deg = SCAN_SPAN * 180 / Math.PI, a0 = F.lt ? .10 : .12;
+      bm.style.cssText = `left:${(G.cx - R).toFixed(1)}px;top:${(G.cy - R).toFixed(1)}px;width:${(2 * R).toFixed(1)}px;height:${(2 * R).toFixed(1)}px`;
+      const rotor = bm.firstChild;
+      // canvas 的角度 0 在三點鐘方向、CSS 錐形漸層的 0 在十二點鐘 —— from 90deg 對齊兩者
+      rotor.style.background = `conic-gradient(from 90deg, ${hexA(F.col, 0)} 0deg, ${hexA(F.col, a0)} ${deg}deg, ${hexA(F.col, 0)} ${(deg + 0.08).toFixed(2)}deg, ${hexA(F.col, 0)} 360deg)`;
+      rotor.firstChild.style.cssText = `width:${R.toFixed(1)}px;transform:rotate(${deg}deg);background:${F.lt ? hexA(F.col, .55) : 'rgba(215,250,255,.45)'}`;
+    }
+    if (!F.anim && bm.firstChild.animate) {
+      F.anim = bm.firstChild.animate([{ transform: 'rotate(0turn)' }, { transform: 'rotate(1turn)' }],
+        { duration: SCAN_PERIOD, iterations: Infinity });
+      const TAU = Math.PI * 2;
+      F.anim.currentTime = ((((F.ang - SCAN_SPAN) % TAU) + TAU) % TAU) / TAU * SCAN_PERIOD;   // 從上次停下的角度接著轉
+    }
+    return G;
+  }
+  function rotFxBeamStop(el, F, remove) {
+    if (F.anim) { if (remove) { F.anim.cancel(); F.anim = null; } else if (F.anim.playState === 'running') F.anim.pause(); }
+    if (remove) { const bm = el.querySelector(':scope > .rotbeam'); if (bm) bm.remove(); F.geo = ''; }
+  }
+  // 聲納：一顆 <span>，CSS 動畫放大＋淡出（參考檔：環 r0+1 → r0+15px、透明度 .7 起淡出；核心閃一下白）
+  function rotFxPing(el, d) {
+    const R1 = d.r0 + 15;
+    const p = document.createElement('span');
+    p.className = 'rotping'; p.setAttribute('aria-hidden', 'true');
+    p.style.cssText = `left:${d.x.toFixed(1)}px;top:${d.y.toFixed(1)}px;--c:${d.col};--r:${R1.toFixed(1)}px;--s0:${((d.r0 + 1) / R1).toFixed(3)};--k:${Math.max(1.5, d.r0 * .5).toFixed(1)}px`;
+    p.innerHTML = '<span class="rg"></span><span class="rc"></span>';
+    el.appendChild(p);
+    setTimeout(() => p.remove(), PING_LIFE + 80);
+  }
   function rotFxKick(el) {
     const F = el._fx || (el._fx = { raf: 0, ang: -Math.PI / 2, last: 0, pings: [], vis: true, scan: false, n: 0 });
     if (!F.raf) F.raf = requestAnimationFrame((t) => rotFxTick(el, t));
@@ -4345,7 +4541,8 @@
     const F = el._fx;
     F.scan = !!on; F.compact = !!compact;
     F.col = CH.cyan; F.lt = theme() === 'light';
-    if (!on) F.pings = [];
+    if (!on) { F.pings = []; rotFxBeamStop(el, F, true); el.querySelectorAll(':scope > .rotping').forEach(x => x.remove()); }
+    else rotFxCanvas(el);                // 疊層 canvas 照舊存在（水波畫在上面）；沒有水波時它是一張不動的透明圖，不花任何成本
     if (on && !F.io && typeof IntersectionObserver !== 'undefined') {
       F.io = new IntersectionObserver((es) => { es.forEach(e => { F.vis = e.isIntersecting; }); if (F.vis) rotFxKick(el); });
       F.io.observe(el);
@@ -4373,88 +4570,56 @@
   function rotFxTick(el, t) {
     const F = el._fx; F.raf = 0;
     const S = el._rip;
-    if (!el.isConnected) { if (S) S.list = []; F.pings = []; rotFxEls.delete(el); return; }
+    if (!el.isConnected) { if (S) S.list = []; F.pings = []; rotFxBeamStop(el, F, true); rotFxEls.delete(el); return; }
     const scanning = F.scan && F.vis !== false && !document.hidden;
     if (S) S.list = S.list.filter(x => t - x.t0 < RIP_LIFE);
     F.pings = F.pings.filter(x => t - x.t0 < PING_LIFE);
-    const busy = scanning || (S && S.list.length) || F.pings.length;
-    let cv = el.querySelector(':scope > canvas.rotripple');
-    if (!busy) {
-      if (cv) { const g0 = cv.getContext('2d'); g0 && g0.clearRect(0, 0, cv.width, cv.height); }
-      F.last = 0;
-      return;
-    }
-    /* ★ 2026-09-24 夜（審查 R2 #16：掃描開著時整頁從 57 掉到 16 fps）：只有掃描在轉（沒有水波、沒有聲納）時，
-       最多每 32ms 畫一次（≈30fps）。6 秒一圈的淡扇形，30fps 跟 60fps 肉眼分不出來，重繪成本減半，
-       補間與回放搶得到的幀就多了。水波／聲納在跑時照舊每幀畫（它們是跟著點動的）。*/
-    if (scanning && !(S && S.list.length) && !F.pings.length && F.lastDraw && t - F.lastDraw < 32) {
-      F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2)); return;
-    }
-    F.lastDraw = t;
-    cv = rotFxCanvas(el);
-    const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
-    if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
-    const g = cv.getContext('2d'); if (!g) return;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, W, H);
-    if (scanning && W && H) {
-      const cx = W / 2, cy = H * (F.compact ? .52 : .5), R = rotGeo(W, H, F.compact).R;
-      const dt = F.last ? Math.min(64, t - F.last) : 16;
-      const prev = F.ang;
-      F.ang = (F.ang + SCAN_W * dt / 1000) % (Math.PI * 2);
-      F.n++;
-      g.save();
-      g.beginPath(); g.arc(cx, cy, R, 0, Math.PI * 2); g.clip();
-      const a0 = F.lt ? .10 : .12;
-      if (g.createConicGradient) {
-        const gr = g.createConicGradient(F.ang - SCAN_SPAN, cx, cy);
-        const f = SCAN_SPAN / (Math.PI * 2);
-        gr.addColorStop(0, hexA(F.col, 0));
-        gr.addColorStop(f, hexA(F.col, a0));
-        gr.addColorStop(Math.min(1, f + .001), hexA(F.col, 0));
-        gr.addColorStop(1, hexA(F.col, 0));
-        g.fillStyle = gr; g.fillRect(cx - R, cy - R, R * 2, R * 2);
-      } else {                           // 舊瀏覽器沒有錐形漸層：退成一塊很淡的扇形
-        g.fillStyle = hexA(F.col, a0 / 2);
-        g.beginPath(); g.moveTo(cx, cy); g.arc(cx, cy, R, F.ang - SCAN_SPAN, F.ang); g.closePath(); g.fill();
+    if (scanning) {
+      const G = rotFxBeam(el, F);
+      if (F.anim) {
+        if (F.anim.playState !== 'running') F.anim.play();
+        const TAU = Math.PI * 2, prev = F.ang;
+        F.ang = (SCAN_SPAN + TAU * ((+F.anim.currentTime || 0) % SCAN_PERIOD) / SCAN_PERIOD) % TAU;
+        F.n++;
+        // 這一幀掃過的角度區間 (prev, ang]：掃到的點冒聲納
+        const sweep = ((F.ang - prev) % TAU + TAU) % TAU;
+        if (F.last && sweep > 0 && sweep < 1 && G.R) {
+          rotFxDots(el).forEach(d => {
+            if (Math.hypot(d.x - G.cx, d.y - G.cy) > G.R) return;
+            const a = ((Math.atan2(d.y - G.cy, d.x - G.cx) - prev) % TAU + TAU) % TAU;
+            if (a > 0 && a <= sweep && !F.pings.some(p => p.key === d.key)) { F.pings.push({ ...d, t0: t }); rotFxPing(el, d); }
+          });
+        }
       }
-      g.strokeStyle = F.lt ? hexA(F.col, .55) : 'rgba(215,250,255,.45)';
-      g.lineWidth = 1.2;
-      g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.cos(F.ang) * R, cy + Math.sin(F.ang) * R); g.stroke();
-      g.restore();
-      // 這一幀掃過的角度區間 (prev, ang]：掃到的點冒聲納
-      const TAU = Math.PI * 2, sweep = ((F.ang - prev) % TAU + TAU) % TAU;
-      if (sweep > 0 && sweep < 1) {
-        rotFxDots(el).forEach(d => {
-          if (Math.hypot(d.x - cx, d.y - cy) > R) return;
-          const a = ((Math.atan2(d.y - cy, d.x - cx) - prev) % TAU + TAU) % TAU;
-          if (a > 0 && a <= sweep && !F.pings.some(p => p.key === d.key)) F.pings.push({ ...d, t0: t });
-        });
-      }
-    }
+    } else if (F.scan) rotFxBeamStop(el, F, false);   // 捲走、切頁、分頁在背景：光束停在原地（合成器也不轉）
     F.last = scanning ? t : 0;
-    // 聲納：一圈往外擴的細環 ＋ 核心閃一下白（參考檔：環 4 → 18px、透明度 .7 起淡出）
-    F.pings.forEach(x => {
-      const u = (t - x.t0) / PING_LIFE; if (u < 0) return;
-      const e = 1 - Math.pow(1 - u, 2);
-      g.globalAlpha = .7 * (1 - u);
-      g.strokeStyle = x.col; g.lineWidth = 1.2;
-      g.beginPath(); g.arc(x.x, x.y, x.r0 + 1 + e * 14, 0, Math.PI * 2); g.stroke();
-      g.globalAlpha = .8 * Math.pow(1 - u, 2);
-      g.fillStyle = '#ffffff';
-      g.beginPath(); g.arc(x.x, x.y, Math.max(1.5, x.r0 * .5), 0, Math.PI * 2); g.fill();
-    });
-    // 水波（點移動時）
-    if (S) S.list.forEach(x => {
-      const age = t - x.t0; if (age < 0) return;
-      const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
-      g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
-      g.strokeStyle = x.col;
-      g.lineWidth = 1.8 * (1 - u) + 0.5;
-      g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
-    });
-    g.globalAlpha = 1;
-    F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2));
+    // 水波（點移動時）：只有這一樣還畫在 canvas 上；沒有水波就只在「上一幀有畫」時清一次
+    const rip = S && S.list.length;
+    const cv0 = el.querySelector(':scope > canvas.rotripple');
+    if (rip) {
+      const cv = rotFxCanvas(el);
+      const W = el.clientWidth || 0, H = el.clientHeight || 0, dpr = window.devicePixelRatio || 1;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      const g = cv.getContext('2d');
+      if (g) {
+        g.setTransform(dpr, 0, 0, dpr, 0, 0);
+        g.clearRect(0, 0, W, H);
+        S.list.forEach(x => {
+          const age = t - x.t0; if (age < 0) return;
+          const u = age / RIP_LIFE, e = 1 - Math.pow(1 - u, 3);
+          g.globalAlpha = x.a * Math.pow(1 - u, 1.5);
+          g.strokeStyle = x.col;
+          g.lineWidth = 1.8 * (1 - u) + 0.5;
+          g.beginPath(); g.arc(x.x, x.y, x.r0 + 2 + e * (x.r0 * 0.6 + 13), 0, Math.PI * 2); g.stroke();
+        });
+        g.globalAlpha = 1;
+        F.dirty = true;
+      }
+    } else if (cv0 && F.dirty) {
+      const g0 = cv0.getContext('2d'); if (g0) g0.clearRect(0, 0, cv0.width, cv0.height);
+      F.dirty = false;
+    }
+    if (scanning || rip || F.pings.length) F.raf = requestAnimationFrame((t2) => rotFxTick(el, t2));
   }
   // 驗收用：掃描有沒有在轉、轉了幾幀、目前角度、活著幾圈聲納
   function rotScanState(id) {
@@ -5696,10 +5861,12 @@
       const gid = (p.data || {}).gid;
       if (gid) location.hash = '#industry/group/' + gid;
     });
-    if (sub) sub.textContent = `${day} 盤後結算，這 ${gs.length} 個族群合計 ${fmt.yi(total)}`
-      + '　·　產業鏈 → 族群（只到族群層）'
-      + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
+    if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
+  // 資金去向的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
+  const ovFlowSubText = (day, n, total) => `${day} 盤後結算，這 ${n} 個族群合計 ${fmt.yi(total)}`
+    + '　·　產業鏈 → 族群（只到族群層）'
+    + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
 
   /* ================================================================ 總覽「熱門題材」熱力圖（2026-09-24）
      Andy：「『熱門題材』改成熱力圖，放在『資金熱力圖』下方；上方那排題材標籤改成下拉清單
@@ -6390,7 +6557,7 @@
       const set = (on) => {
         box.hidden = !on; b.classList.toggle('on', on);
         b.setAttribute('aria-expanded', on ? 'true' : 'false');
-        Object.values(charts).forEach(c => c && c.resize && c.resize());
+        resizeAllCharts();
       };
       set(open);
       if (open) dismissable(box, () => set(false));
@@ -6426,7 +6593,8 @@
     const DEFAULT_DAYS = 20;   // 約一個月的交易日；以前 0（跟著上方期間）的替代預設值
     const drawPeriod = () => {
       drawRankDays(ROT.days);
-      drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS);
+      // 族群 × 法人在首屏下方：捲近了（或閒下來）才畫；已經在畫面裡就當場畫（見 whenNear）
+      whenNear($('#instGroups'), () => drawInstDays(instDays ? Math.max(1, +instDays.value || DEFAULT_DAYS) : DEFAULT_DAYS));
     };
     /* 圖四（Andy 2026-09-18：「資金流向排行需要跟資金輪動一樣以拉Bar 形式呈現，
        並且一樣的設計，也是可以選時間週期拉Bar 1-30 天」）。
@@ -6751,7 +6919,7 @@
        和「資金集中度」高度重疊，而集中度那張還多了均線與逐日鑽取。
        `renderRiver` / `sliceShare` 也一併刪掉 —— 留著沒有人呼叫的函式只會讓下一個人以為還在用。*/
     const drawConc = () => renderConc(conc, flowState.concTop);
-    drawConc();
+    whenNear($('#conc'), drawConc);               // 首屏下方：捲近了（或閒下來）才畫
     $$('#concSeg button').forEach(b => b.onclick = () => {
       $$('#concSeg button').forEach(x => x.classList.toggle('on', x === b)); flowState.concTop = +b.dataset.v; drawConc();
     });
@@ -8043,7 +8211,15 @@
        把整層 canvas 拆掉重建會讓小圓點閃一下（2026-09-20 加播放之後每 650ms 就閃一次）。*/
     let flowsRef = flows;
     let labelsRef = labels || [];
-    let raf = null, alive = true;
+    let raf = null, alive = true, vis = true;
+    let io = null;
+    if (typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver((es) => {
+        es.forEach(e => { vis = e.isIntersecting; });
+        if (vis && alive && !raf && !document.hidden) raf = requestAnimationFrame(step);
+      });
+      io.observe(el);
+    }
     const sizeTo = () => {
       const w = el.clientWidth, h = el.clientHeight;
       const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -8064,9 +8240,12 @@
       if (!alive) return;
       // 容器離開 DOM，或整層 canvas 被別人清掉（例如 empty() 把容器 innerHTML 換掉）就收工
       if (!el.isConnected || !cv.isConnected) { stop(); return; }
-      // 換到別的分頁時容器還在 DOM 裡、只是被藏起來（offsetParent 會是 null）：
-      // 這時候什麼都不畫，但迴圈留著，回到這一頁就自己接上
-      if (el.offsetParent === null) { raf = requestAnimationFrame(step); return; }
+      /* ★ 2026-09-24 效能：看不到就**整個停掉迴圈**，看得到再由 IntersectionObserver 接上。
+         以前是「換到別頁（offsetParent 是 null）就空轉 rAF」、「捲到看不到還照畫」——
+         資金流向頁捲到底部、小圓點早就不在畫面上，主執行緒 5 秒裡仍有 1.7 秒在畫它（實測）；
+         跑去總覽之後這個迴圈也一直空轉。IntersectionObserver 對 display:none 與捲出畫面都報「看不到」，
+         一個條件就涵蓋兩種情況。*/
+      if (!vis || el.offsetParent === null) return;
       const dpr = sizeTo();
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
       g.clearRect(0, 0, cv.width, cv.height);
@@ -8094,6 +8273,7 @@
     };
     function stop() {
       alive = false;
+      if (io) { io.disconnect(); io = null; }
       if (raf) { cancelAnimationFrame(raf); raf = null; }
       document.removeEventListener('visibilitychange', onVis);
       if (cv.parentNode) cv.parentNode.removeChild(cv);
@@ -9512,11 +9692,9 @@
   // ---------------------------------------------------------------- 季節性
   /* 任務板（Andy 2026-09-20 選的方案）。資料由 build_payload 從 obsidian/tasks.yaml 轉出來，
      這裡只負責載入與交給 tasks.js 畫。找不到檔案就顯示提示，不要讓整頁空白。 */
-  async function renderTasks() {
-    const el = document.getElementById('v-tasks'); if (!el) return;
-    const d = await load('tasks', { fallback: null });
-    if (window.TaskBoard) window.TaskBoard.render(d, el);
-  }
+  /* ★ 2026-09-24：任務板不再從前端載入（`#tasks` 在 route() 開頭就導到交付清單）。這支留著空殼，
+     是因為 route() 的 VIEWS 對照表還認得 'tasks'；它不會再被走到。*/
+  async function renderTasks() { location.replace('#delivery'); }
 
   // ---------------------------------------------------------------- 交付清單
   /* Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，且如實完成」。
@@ -10017,6 +10195,15 @@
   }
 
   // ---------------------------------------------------------------- 事件側欄
+  /* ★ 2026-09-24 效能：`toLocaleDateString(…, { timeZone })` 每呼叫一次就在底層新建一個 Intl 格式器，
+     事件欄 1232 則逐則轉一次，實測 164～197ms（R6 審查量到的）。格式器建一次重複用，結果一字不差（'YYYY-MM-DD'）。*/
+  let _tpeFmt = null;
+  const tpeDate = (ms) => {
+    try {
+      if (!_tpeFmt) _tpeFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
+      return _tpeFmt.format(ms);
+    } catch (e) { return new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); }
+  };
   async function renderEvents() {
     const [news, bv] = await Promise.all([load('news'), load('broker_views')]);
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
@@ -10035,8 +10222,7 @@
       // 新聞的 published_at 是 RFC 2822（'Fri, 11 Sep 2026 22:00:36 +0800'），
       // 直接切前十個字會變成 'Fri, 11 Se'，排序也會變成照星期幾的英文字母排。
       const ms = Date.parse(raw);
-      return isNaN(ms) ? String(i.date || '').slice(0, 10)
-        : new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+      return isNaN(ms) ? String(i.date || '').slice(0, 10) : tpeDate(ms);
     };
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
@@ -10100,15 +10286,17 @@
          回到桌機那一欄就莫名其妙不見了。 */
     const SIDE_OVERLAY_MAX = 820;                      // 跟 index.html 的 media query 同一個數字
     const sideIsOverlay = () => window.innerWidth <= SIDE_OVERLAY_MAX;
-    const setSide = (open, remember = true) => {
+    const setSide = (open, remember = true, quiet = false) => {
       $('#side').classList.toggle('open', open);
       $('#layout').classList.toggle('noside', !open);
       if (remember) { try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ } }
-      window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
+      if (!quiet) window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
     };
     let sideOpen = true;
     try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
-    setSide(sideIsOverlay() ? false : sideOpen, false);
+    /* ★ 2026-09-24 效能：開站這一次不派 resize —— 這時候一張圖都還沒畫（route() 在後面），
+       派了只會讓每個 resize 監聽者（分頁列置中、溢出提示…）各逼瀏覽器同步重排一次整頁（R6 量到 69ms，4 倍降速 503ms）。*/
+    setSide(sideIsOverlay() ? false : sideOpen, false, true);
     /* 讓別的模組也開得了關得了這一欄（DECISIONS #248：成分股可以暫時蓋住事件面板）。
        第二個參數 remember=false 很重要 —— 那是「暫時蓋住」，不是使用者改了偏好，
        關掉之後要回到他自己設定的狀態。*/

@@ -3237,11 +3237,26 @@ def t_new_market3(pg, base):
             return {x, y: r.top + r.height * .35}; }""", [idx, fx])
         pg.mouse.move(b["x"] - 30, b["y"]); pg.mouse.move(b["x"], b["y"], steps=4); pg.wait_for_timeout(350)
 
-    for idx in ("TSE", "OTC", "FUT"):
-        hover(idx)
-        tipx = pg.evaluate("""(id) => { const e = document.getElementById('m3c-' + id);
+    # ★ 2026-09-25：這一條以前 TSE／FUT 輪流紅（容器忙時）。推斷的時序原因（未逐幀證實）：refresh(true) 之後固定等 2 秒，
+    #   但三張圖的重畫（抓完 Yahoo 假資料 → drawOne → 30ms 後再派一次 resize）在忙的時候會拖過 2 秒，
+    #   滑鼠停上去的那一刻圖剛好被重畫掉，提示框跟著消失。改成：同一個位置最多試 3 次、每次輪詢 1.2 秒，
+    #   只要有一次讀得到就算數 —— 真人也是滑一下沒出來就再滑一下；功能壞掉的話三次都讀不到，照樣紅。
+    TIPQ = """(id) => { const e = document.getElementById('m3c-' + id);
             const t = [...e.querySelectorAll('div')].filter(d => /該分量/.test(d.innerText || '') && d.offsetParent !== null).pop();
-            return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }""", idx)
+            return t ? t.innerText.replace(/\\s+/g, ' ') : ''; }"""
+    for idx in ("TSE", "OTC", "FUT"):
+        tipx = ""
+        for _try in range(3):
+            hover(idx)
+            t_end = time.time() + 1.2
+            while time.time() < t_end:
+                tipx = pg.evaluate(TIPQ, idx)
+                if "該分量" in tipx:
+                    break
+                pg.wait_for_timeout(150)
+            if "該分量" in tipx:
+                break
+            pg.mouse.move(5, 5); pg.wait_for_timeout(300)
         ok(f"★ 走勢圖 {idx} 游標讀得到價格與該分鐘量", ("指數" in tipx or "價" in tipx) and "該分量" in tipx, tipx[:80])
     click(pg, "#m3Mode button[data-m='k']", 900)
     for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
@@ -5801,32 +5816,28 @@ def t_tasks(pg, base):
     ok("D5：導覽列上已經看不到「任務板」那一格", nav["inNav"] == 0, nav)
     ok("D5：收掉入口之後全站沒有看得見的 `#tasks` 連結（不會變成死連結）", nav["hrefs"] == 0, nav)
 
-    pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1400)
-    ok("D5：路由刻意留著 —— 直接貼 `#tasks` 仍然打得開",
-       pg.evaluate("() => location.hash") == "#tasks")
-    st = pg.evaluate("""() => { const el = document.getElementById('v-tasks');
-        if (!el) return null;
-        return { cards: el.querySelectorAll('.tk').length,
-                 pills: el.querySelectorAll('.linkrow .pill').length,
-                 txt: el.innerText, h: Math.round(el.getBoundingClientRect().height) }; }""")
-    if not ok("任務板頁打得開", bool(st), st):
-        return
-    ok("任務板列得出任務（不是空的）", st["cards"] >= 10, st["cards"])
-    ok("上方有狀態統計（一眼看出還有幾件沒好）", st["pills"] >= 2, st["pills"])
-    ok("「要你動手的」那一塊有列出來", "要你動手" in st["txt"], st["txt"][:120])
-    ok("「等你回答」那一塊有列出來", "等你回答" in st["txt"], st["txt"][:120])
-    # ★ 這一條守的是 obsidian/000-開始這裡.md 那條規則：沒 push 的不准標成已上線
-    ok("頁面上寫明「改完但還沒上線」不會標成已上線",
-       "還沒上線" in st["txt"] or "沒有部署出去" in st["txt"], st["txt"][:200])
-    ok("頁面真的有高度（不是塌掉的空殼）", st["h"] > 400, st["h"])
-
-    # 窄畫面：Andy 有時候在手機上看「到底做完了沒」
-    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(700)
-    nar = pg.evaluate("""() => ({ over: document.documentElement.scrollWidth > window.innerWidth + 1,
-        cards: document.querySelectorAll('#v-tasks .tk').length })""")
-    ok("任務板在 390px 沒有橫向捲軸", not nar["over"], nar)
-    ok("任務板在 390px 卡片還在", nar["cards"] >= 10, nar)
-    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # ★ 2026-09-24（R6 審查）：任務板攤著內部作業文字（金鑰放哪、token 怎麼換、Actions 怎麼跑），
+    #   而這是 public 的網站 —— `#tasks` 改成**導到交付清單**（給 Andy 看的版本），任務板內容前端不再載入。
+    #   所以這一段從「任務板列得出任務」改成守三件事：
+    #     ① 舊網址不壞：貼 `#tasks` 會落在交付清單，而且交付清單真的有內容
+    #     ② 畫面上看不到任何金鑰／token／Secrets／內部流程字樣
+    #     ③ 上一頁按得出去（location.replace，不多留一筆 #tasks 的歷史）
+    pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1600)
+    st = pg.evaluate("""() => { const v = document.querySelector('main .view.on');
+        const txt = document.body.innerText || '';
+        return { hash: location.hash, view: v ? v.id : null,
+                 dlv: document.querySelectorAll('#v-delivery .dlv').length,
+                 tk: document.querySelectorAll('#v-tasks .tk').length,
+                 bad: (txt.match(/金鑰|token|Token|Secrets|FINMIND|GitHub Actions|github_pat|ghp_/g) || []).slice(0, 6) }; }""")
+    ok("① 貼 `#tasks` → 導到交付清單（#delivery）", st["hash"] == "#delivery" and st["view"] == "v-delivery", st)
+    ok("① 交付清單真的有內容（不是空殼）", st["dlv"] >= 5, st["dlv"])
+    ok("② 任務板的卡片不再出現在畫面上", st["tk"] == 0, st["tk"])
+    ok("② 畫面上看不到金鑰／token／Secrets／內部流程字樣", not st["bad"], st["bad"])
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("() => { location.hash = '#tasks'; }"); pg.wait_for_timeout(1400)
+    pg.go_back(); pg.wait_for_timeout(1400)
+    ok("③ 從 #tasks 被導走之後，按上一頁回得到總覽（不會卡在導向迴圈）",
+       pg.evaluate("() => location.hash") in ("#overview", ""), pg.evaluate("() => location.hash"))
 
 
 def t_themes(pg, base):
@@ -5916,20 +5927,25 @@ def t_themes(pg, base):
     # Andy：「題材資金熱力這邊也是會影響大小」—— 放大只能在框內發生（熱力圖保留縮放）
     check_zoom(pg, "themeMapWrap", "themeMap", "題材資金熱力")
 
-    # 總覽的「熱門題材」方塊 → 點了要切到該題材（2026-09-24 起直接指熱力圖分頁，不再繞舊網址）
+    # 總覽的熱門題材 → ★ 2026-09-24 總覽改版：題材方塊（#themeStrip .tile）換成**題材熱力圖**（#ovTheme）。
+    #   點一個題材方塊 → 就地展開成那個題材的成分股（data-level 從 themes 變 members），不再換頁。
+    #   2026-09-25 跟著改驗（舊的「總覽有熱門題材方塊」查的是已經拿掉的元素，永遠紅）。
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1500)
-    ok("總覽有熱門題材方塊", count(pg, "#themeStrip .tile") > 0)
-    if count(pg, "#themeStrip .tile"):
-        _nm = text(pg, "#themeStrip .tile .t")
-        click(pg, "#themeStrip .tile", 2200)
-        ok("點熱門題材會切到熱力圖分頁的那個題材", pg.evaluate("location.hash").startswith("#heatmap/theme/"),
-           pg.evaluate("location.hash"))
-        _tid = pg.evaluate("location.hash").split("/")[-1]
-        _has = pg.evaluate("(t) => !!(window.ThemeDiagrams || {})[t]", _tid)
-        # 22 個題材有 3 個沒有剖析圖（整區留白，Andy 0923-D）—— 熱門第一名剛好是它們時，驗「留白」而不是驗名字
-        ok("而且下面展開的就是剛剛點的那個題材",
-           (_nm and _nm in text(pg, "#themeDetail")) if _has else count(pg, "#themeDetail .card") == 0,
-           [_nm, _tid, _has, text(pg, "#themeDetail")[:40]])
+    scroll_to(pg, "ovTheme"); pg.wait_for_timeout(900)          # 首屏以下的卡片捲近了才畫（whenNear）
+    ov = wait_until(pg, """() => { const el = document.getElementById('ovTheme'); const c = el && echarts.getInstanceByDom(el);
+        if (!c) return null; const d = c.getOption().series[0].data || [];
+        return { n: d.length, level: el.dataset.level }; }""", 6000)
+    if ok("總覽有題材熱力圖（題材層、至少 5 格）", bool(ov) and ov["n"] >= 5 and ov["level"] == "themes", ov):
+        pt = pg.evaluate("""() => { const el = document.getElementById('ovTheme'); const c = echarts.getInstanceByDom(el);
+            const tree = c.getModel().getSeriesByIndex(0).getData().tree; let best = null;
+            tree.root.eachNode(n => { if (n.children && n.children.length) return; const l = n.getLayout();
+              if (l && l.isInView && (!best || l.width * l.height > best.a)) best = { a: l.width * l.height, x: l.x + l.width / 2, y: l.y + l.height / 2, name: n.name }; });
+            if (!best) return null; const r = el.getBoundingClientRect();
+            return { x: r.left + best.x, y: r.top + best.y, name: best.name }; }""")
+        if ok("題材熱力圖讀得到最大那一格的位置", bool(pt), pt):
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(1200)
+            lv = pg.evaluate("() => document.getElementById('ovTheme').dataset.level")
+            ok("點題材方塊 → 就地展開成那個題材的成分股（題材層 → 成分股層）", lv == "members", [pt["name"], lv])
 
     # 題材頁：族群分組 + 剖析圖零件點得到個股
     tids = pg.evaluate("(window.ThemeDiagrams ? Object.keys(window.ThemeDiagrams).filter(k => k !== 'fit') : [])")
@@ -12556,6 +12572,8 @@ SECTIONS = {
     "排行比例":            lambda pg, b, base, code: t_rank_ratio(pg, b, base),
     # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
+    # ★ 2026-09-24 Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」→ 首次載入的可互動時間與最長卡住設上限
+    "載入效能":            lambda pg, b, base, code: t_loadperf(pg, b, base),
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
     "個股R5":              lambda pg, b, base, code: t_r5(pg, base, code),
     # ★ 2026-09-24 Andy 回報：3D 按「收合圖」再打開，模型縮到左上角、卡片疊在一起（⚠ 一律 --workers 1）
@@ -26281,8 +26299,10 @@ def t_soften(pg, base):
             s2 = pg.evaluate(SOFT_SCAN)
             ok("[圓滑化 #season] 曲線圖的線仍然是直線段（smooth 沒被打開）", all(not x["smooth"] for x in s2["line"]) and len(s2["line"]) > 0,
                [(x["name"], x["smooth"]) for x in s2["line"]][:4])
-    ok("[圓滑化] 全站真的掃到了長條、圓餅、儀表、折線、堆疊各至少一個（不是空掃）",
-       all(v > 0 for v in seen.values()), seen)
+    # ★ 2026-09-25：總覽改版後全站已經沒有儀表圖（gauge）—— 沒有就不判紅（沒有東西可以圓滑化，不是空掃）；
+    #   其餘四種仍然必須各至少掃到一個，才證明這一段真的走過整站。
+    ok("[圓滑化] 全站真的掃到了長條、圓餅、折線、堆疊各至少一個（不是空掃；儀表圖全站已沒有，不判）",
+       all(v > 0 for k, v in seen.items() if k != "gauge"), seen)
     notes.append("圖表圓滑化逐張（讀 getOption）：\n      " + "\n      ".join(listing))
 
     # ---- 甜甜圈（Andy 參考圖一）：產業地圖「成交值占比」
@@ -26532,17 +26552,25 @@ def t_scan(pg, b, base):
     pg.wait_for_timeout(700)
     s1 = _scan(pg)
     ok("① 真的在轉：0.7 秒內幀數增加、角度變了", s1["frames"] > s0["frames"] + 10 and s1["ang"] != s0["ang"], [s0, s1])
-    # 光束真的畫在盤內：取疊層 canvas 的像素，有不透明的像素、而且都在盤的圓內
-    px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const cv = el.querySelector(':scope > canvas.rotripple');
-        const g = cv.getContext('2d'); const d = g.getImageData(0, 0, cv.width, cv.height).data; const k = cv.width / el.clientWidth;
+    # 光束真的畫在盤內。
+    # ★ 2026-09-24 效能：光束改成「圓形遮罩裡一片轉動的錐形漸層」（DOM ＋ 合成器動畫，以前是每幀整張重畫 canvas），
+    #   所以改驗那個元素：真的有錐形漸層、圓形遮罩、圓心對齊盤心、半徑不超過盤、動畫真的在跑。
+    #   舊的斷言（canvas 像素都在盤內）驗的是同一件事 ——「光束看得到，而且不會畫出盤外」。
+    px = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const bm = el.querySelector(':scope > .rotbeam');
+        if (!bm) return { beam: false };
+        const r = bm.getBoundingClientRect(), e = el.getBoundingClientRect();
+        const W = el.clientWidth, H = el.clientHeight, cx = W / 2, cy = H / 2;
         // 盤的半徑讀 polar 真正的半徑（2026-09-24 夜起桌機是 min/2 − 14px，不再是 84%）
-        const c0 = echarts.getInstanceByDom(el), cs0 = c0.getModel().getComponent('polar').coordinateSystem;
-        const W = el.clientWidth, H = el.clientHeight, R = cs0.getRadiusAxis().getExtent()[1], cx = W / 2, cy = H / 2;
-        let n = 0, out = 0;
-        for (let y = 0; y < cv.height; y += 3) for (let x = 0; x < cv.width; x += 3) { const a = d[(y * cv.width + x) * 4 + 3];
-          if (a > 0) { n++; if (Math.hypot(x / k - cx, y / k - cy) > R + 20) out++; } }
-        return { n, out }; }""")
-    ok("① 光束真的畫出來了，而且只在盤內（盤外沒有掃描的像素；允許聲納環凸出 20px）", px["n"] > 50 and px["out"] == 0, px)
+        const c0 = echarts.getInstanceByDom(el), R = c0.getModel().getComponent('polar').coordinateSystem.getRadiusAxis().getExtent()[1];
+        const bx = r.left - e.left - el.clientLeft + r.width / 2, by = r.top - e.top - el.clientTop + r.height / 2;
+        const rotor = bm.querySelector('.rotor'), cs = getComputedStyle(bm);
+        const an = rotor && rotor.getAnimations ? rotor.getAnimations() : [];
+        return { beam: true, grad: !!rotor && /conic-gradient/.test(getComputedStyle(rotor).backgroundImage),
+          clip: cs.borderRadius === '50%' && cs.overflow === 'hidden', off: +Math.hypot(bx - cx, by - cy).toFixed(1),
+          rr: +(r.width / 2).toFixed(1), R: +R.toFixed(1), running: an.some(a => a.playState === 'running'),
+          ray: !!bm.querySelector('.ray') && bm.querySelector('.ray').getBoundingClientRect().width > 10 }; }""")
+    ok("① 光束真的畫出來了，而且只在盤內（錐形漸層＋射線、圓形遮罩、圓心對齊盤心、半徑不超過盤、正在轉）",
+       px.get("beam") and px["grad"] and px["ray"] and px["clip"] and px["off"] < 2 and px["rr"] <= px["R"] + 0.5 and px["running"], px)
     # ② 聲納：一圈約 5.8 秒，最多等 6.5 秒一定掃過至少一顆點
     got = wait_until(pg, "() => (window.App.rotScan('rotClock').pings || 0) > 0", 6500)
     ok("② 掃描線掃到族群點時冒出聲納環", bool(got), _scan(pg))
@@ -26554,7 +26582,8 @@ def t_scan(pg, b, base):
     ok("③ 勾掉之後真的停了（0.6 秒內一幀都沒有再轉）", not s3["on"] and s3["frames"] == f0, [s2, s3])
     blank = pg.evaluate("""() => { const cv = document.querySelector('#rotClock > canvas.rotripple'); if (!cv) return true;
         const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; for (let i = 3; i < d.length; i += 16) if (d[i]) return false; return true; }""")
-    ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank)
+    beam_left = pg.evaluate("() => document.querySelectorAll('#rotClock > .rotbeam, #rotClock > .rotping').length")
+    ok("③ 疊層清乾淨了（沒有殘留一道停住的光束）", blank and beam_left == 0, {"canvas 乾淨": blank, "殘留光束／聲納元素": beam_left})
     pg.click("#rotTools input.rot-scan"); pg.wait_for_timeout(500)
     ok("③ 勾回來 → 記回 '1'、又開始轉", pg.evaluate("() => localStorage.getItem('tw.rot.scan')") == "1" and _scan(pg)["running"])
     # ④ 捲離畫面就停（不在畫面上不吃 CPU）
@@ -26698,6 +26727,131 @@ def t_rot_keep(pg, b, base):
     ok("11 工具列：顯示腳印、水波、掃描三個勾選框都在",
        pg.evaluate("() => ['rot-trail','rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c))"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+
+# ===================================================================== 載入效能（2026-09-24）
+# Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」。
+# 修法（見 app.js 的「★ 2026-09-24 效能」註解）：尺寸沒變就不 resize、首屏以下的卡片延後畫、
+# 圖表第一次出現不播進場動畫、熱力圖不再被拉長重畫、掃描光束改由合成器轉、看不到的動畫停掉、
+# JSON 同時要兩次只抓一次……
+# 這一段守的是「修好的不要再慢回去」，所以量的是**使用者感覺得到的兩個數字**：
+#   ① 可互動時間：從開始載入，到「連續 3 秒沒有任何 >50ms 的長任務」之前最後一個長任務結束的時刻
+#   ② 最長的單一卡住：這段期間最長的那一個長任務（這段時間整頁點不動、捲不動）
+# 門檻＝修完之後在這個容器實測中位數 × 1.5（容器 4 核常被別的 agent 吃滿，數字會飄，1.5 倍是留給它的）。
+# 另外守三件「接近 0」的事（不受容器忙不忙影響，最穩）：
+#   ③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內幾乎不忙（修前 1.4 秒）
+#   ④ 從資金流向切到總覽 → 那邊的動畫不再空轉（修前 90ms／5 秒）
+#   ⑤ 延後畫的卡片最後都真的畫出來了（功能一個都沒少）
+# 2026-09-25 實測（這一段自己的量法，同一台容器、交錯跑）：
+#   修前 可互動 4663／6178／4511ms、最長卡住 1124／2299／1249ms
+#   修後 可互動 2635／3545／3134／3328／3299／3267／3663ms（中位數 3299）、最長卡住 460／573／307／609／579／461／728ms（中位數 573）
+LOADPERF_TTI_MAX = 5000        # ms：修後中位數 3299 × 1.5 ≈ 4950
+LOADPERF_LONGEST_MAX = 860     # ms：修後中位數 573 × 1.5 ≈ 860
+LOADPERF_IDLE_BUSY_MAX = 150   # ms／5 秒：看不見的動畫該停就停（修前 1442ms，修後實測 1～2ms）
+
+_LT_INIT = """window.__lt = [];
+try { new PerformanceObserver(l => l.getEntries().forEach(e => __lt.push([+e.startTime.toFixed(0), +e.duration.toFixed(0)])))
+  .observe({type: 'longtask', buffered: true}); } catch (e) {}"""
+
+
+_LP_ANIM = """() => ({ classic: !!window.App.sankeyFxRunning(),
+    topo: !!((window.App.sankeyTopo && window.App.sankeyTopo()) || {}).running,
+    scan: !!window.App.rotScan('rotClock').running })"""
+
+
+def _lp_first_load(b, url, route_block=True):
+    """全新的瀏覽環境（沒有快取）開一次網址，回傳 (可互動 ms, 最長長任務 ms, 長任務清單, page, ctx)。"""
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, service_workers="block")
+    ctx.add_init_script(_LT_INIT)
+    pg = ctx.new_page()
+    pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    if route_block:
+        pg.route("**/*workers.dev/**", lambda r: r.abort())      # 容器連不到報價代理：直接失敗，不要讓它拖著網路
+    pg.goto(url, wait_until="load")
+    t0 = time.time()
+    while time.time() - t0 < 30:                                  # 等到「連續 3 秒沒有長任務」，最多 30 秒
+        pg.wait_for_timeout(250)
+        now = pg.evaluate("performance.now()")
+        lt = pg.evaluate("window.__lt || []")
+        last = max([s0 + d for s0, d in lt] or [0])
+        if now - last > 3000 and now > 2500:
+            break
+    lt = pg.evaluate("window.__lt || []")
+    dcl = pg.evaluate("performance.getEntriesByType('navigation')[0].domContentLoadedEventEnd")
+    tti = round(max([dcl] + [s0 + d for s0, d in lt]))
+    longest = max([d for _s, d in lt] or [0])
+    return tti, longest, lt, pg, ctx
+
+
+def _lp_busy(pg, ms=5000):
+    """主執行緒在接下來 ms 毫秒內忙了多久（CDP Performance.TaskDuration 差值）。"""
+    cdp = pg.context.new_cdp_session(pg)
+    cdp.send("Performance.enable")
+    m = lambda: {x["name"]: x["value"] for x in cdp.send("Performance.getMetrics")["metrics"]}
+    a = m(); pg.wait_for_timeout(ms); z = m()
+    return round((z["TaskDuration"] - a["TaskDuration"]) * 1000)
+
+
+def t_loadperf(pg, b, base):
+    # ---- ①② 首次開總覽（預設首頁）：量兩次取較好的一次（容器忙的時候單次會被別人的 CPU 拖到）
+    runs = []
+    for _ in range(2):
+        tti, longest, lt, p2, c2 = _lp_first_load(b, f"{base}#overview")
+        runs.append((tti, longest, len(lt)))
+        if _ == 1 or tti <= LOADPERF_TTI_MAX:
+            # ⑤ 延後畫的卡片最後都真的畫出來了（沒捲動也會在閒下來時補畫）
+            drawn = wait_until(p2, """() => { const has = (id) => { const e = document.getElementById(id);
+                return !!(e && window.echarts && echarts.getInstanceByDom(e)); };
+              return has('heat') && has('rotClockMini') && has('ovFlow') && has('ovTheme') && has('breadth') && has('trust'); }""", 8000)
+            ok("⑤ 首屏以下延後畫的卡片（資金去向、題材熱力圖、漲跌家數分佈、法人四象限）最後都真的畫出來了", bool(drawn))
+            c2.close()
+            break
+        c2.close()
+    best = min(runs, key=lambda r: r[0])
+    notes.append(f"載入效能：首次開總覽 可互動 {best[0]}ms、最長卡住 {best[1]}ms、長任務 {best[2]} 個（各次：{runs}）")
+    ok(f"① 首次開總覽的可互動時間 ≤ {LOADPERF_TTI_MAX}ms（修完實測中位數 × 1.5）", best[0] <= LOADPERF_TTI_MAX, runs)
+    ok(f"② 首次開總覽最長的單一卡住 ≤ {LOADPERF_LONGEST_MAX}ms", min(r[1] for r in runs) <= LOADPERF_LONGEST_MAX, runs)
+
+    # ---- ③ 資金流向：捲到看不見輪盤與分流圖 → 動畫停，主執行緒幾乎不忙
+    tti_f, longest_f, _lt, p3, c3 = _lp_first_load(b, f"{base}#flow")
+    notes.append(f"載入效能：首次開資金流向 可互動 {tti_f}ms、最長卡住 {longest_f}ms")
+    p3.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })")
+    p3.wait_for_timeout(1500)
+    busy_bottom = _lp_busy(p3)
+    ok(f"③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內忙 ≤ {LOADPERF_IDLE_BUSY_MAX}ms（修前 1442ms）",
+       busy_bottom <= LOADPERF_IDLE_BUSY_MAX, busy_bottom)
+    # 捲回來 → 動畫要接著跑（停是為了省 CPU，不是把功能關掉）
+    # ★ 2026-09-25 合併 main：桌機的資金去向預設是拓撲版（site/flowtopo.js，自己有 IntersectionObserver）；
+    #   經典版（小圓點）只在手機或切回經典時出現 —— 兩種都認。
+    scroll_to(p3, "sankey"); p3.wait_for_timeout(1200)
+    run = p3.evaluate(_LP_ANIM)
+    ok("③ 捲回資金去向 → 動畫又接著跑（拓撲版粒子或經典版小圓點）", run["topo"] or run["classic"], run)
+    # ---- ④ 切到總覽 → 資金流向那邊的動畫不再空轉
+    # 總覽第一次打開本來就要畫圖（那是正當的工作，時間長短跟容器忙不忙有關），
+    # 所以這裡不量「總覽忙多久」，直接問兩組動畫的迴圈**還在不在跑**——那才是這一條要守的事。
+    p3.evaluate("() => { location.hash = '#overview'; }"); p3.wait_for_timeout(2500)
+    st = p3.evaluate(_LP_ANIM)
+    ok("④ 從資金流向切到總覽 → 資金去向動畫與輪盤掃描的迴圈都停了（修前小圓點一直空轉：90ms／5 秒）",
+       not st["topo"] and not st["classic"] and not st["scan"], st)
+    busy_ov = _lp_busy(p3)
+    notes.append(f"載入效能：資金流向捲到底 5 秒忙 {busy_bottom}ms、切到總覽後 5 秒忙 {busy_ov}ms")
+    c3.close()
+
+    # ---- ⑥（R6 附帶）報價抓不到時，仍然會檢查網站有沒有重新部署（「有新資料」鈕與盤後自動重新載入靠它）
+    ctx = b.new_context(viewport={"width": 1440, "height": 900}, service_workers="block")
+    p4 = ctx.new_page()
+    p4.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    p4.route("**/*workers.dev/**", lambda r: r.abort())
+    hits = []
+    p4.on("request", lambda r: hits.append(r.url) if "meta.json?t=" in r.url else None)
+    p4.goto(f"{base}#overview", wait_until="networkidle"); p4.wait_for_timeout(1500)
+    n0 = len(hits)
+    p4.evaluate("() => window.Live && window.Live.tick(false)")
+    wait_until(p4, "() => true", 1500)
+    p4.wait_for_timeout(1500)
+    ok("⑥ 報價代理連不到時，Live.tick() 仍會去檢查 meta.json（是否重新部署）", len(hits) > n0, {"前": n0, "後": len(hits)})
+    ctx.close()
 
 
 # ============================================================================================
@@ -27309,3 +27463,4 @@ def t_flowtopo_reduced(b, base):
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

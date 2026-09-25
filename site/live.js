@@ -542,11 +542,6 @@
          這裡只在「手動按更新」時順便叫它一次 —— 按了就該全部都新，包含那三張圖。
          之所以要拆開：以前掛在這裡，報價連續失敗三次把計時器關掉時，三張圖也跟著不動了。 */
       if (manual && window.Market3) { try { await window.Market3.refresh(true); } catch (e) { /* 圖壞掉不該影響報價 */ } }
-      // 靜態 JSON 有沒有換新版（Actions 重新部署過）。
-      // ★ 每一輪都要檢查，不是只有手動那次 —— Andy 要的「盤後每 30 分鐘更新」指的是
-      //   **資料**要變新，不是只有報價數字在跳。以前只在 manual 時檢查，
-      //   等於開著的頁面永遠不會自己拿到 18:30 那輪跑完的新資料。
-      await reloadIfRedeployed(manual);
     } catch (e) {
       state.tries++;
       state.lastErr = String(e.message || e).slice(0, 60);
@@ -556,6 +551,14 @@
         state.lastErr = `連續 ${state.tries} 次抓不到，改成每 5 分鐘自動重試：` + state.lastErr;
       }
     } finally {
+      /* 靜態 JSON 有沒有換新版（Actions 重新部署過）。
+         ★ 每一輪都要檢查，不是只有手動那次 —— Andy 要的「盤後每 30 分鐘更新」指的是
+           **資料**要變新，不是只有報價數字在跳。以前只在 manual 時檢查，
+           等於開著的頁面永遠不會自己拿到 18:30 那輪跑完的新資料。
+         ★ 2026-09-24（R6 審查）：以前這一行寫在上面抓報價的同一個 try 裡 —— 報價一丟錯（公司網路擋 workers.dev、
+           Worker 掛了）就整段跳過，「有新資料」鈕永遠不會出現、盤後也不會自動重新載入。
+           它跟報價是兩件不相干的事，所以搬到 finally：報價成功或失敗都照樣檢查（它自己有 try，失敗不會往外丟）。*/
+      try { await reloadIfRedeployed(manual); } catch (e) { /* 自己有 try；這層只是保險 */ }
       state.busy = false; stamp();
     }
   }

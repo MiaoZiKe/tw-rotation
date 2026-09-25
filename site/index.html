@@ -1039,6 +1039,20 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 @media (max-width:640px){ .rotlivewrap{position:static} .rotlivetip{left:16px;right:16px;width:auto} }
 /* 水波疊層（2026-09-24）：蓋在時鐘上、不吃滑鼠，點與提示框照常可以滑可以點 */
 canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:2}
+/* ★ 2026-09-24 效能：足跡輪盤的掃描光束與聲納改成 DOM ＋ 合成器動畫（以前每一幀整張重畫 canvas，見 app.js rotFxBeam）。
+   光束＝圓形遮罩裡一片轉動的錐形漸層；聲納＝放大＋淡出的細環＋閃一下的白色核心。都不接滑鼠。 */
+.rotbeam{position:absolute;pointer-events:none;z-index:2;border-radius:50%;overflow:hidden}
+.rotbeam .rotor{position:absolute;inset:0;border-radius:50%;will-change:transform}
+.rotbeam .ray{position:absolute;left:50%;top:50%;height:1.2px;margin-top:-.6px;transform-origin:0 50%}
+.rotping{position:absolute;width:0;height:0;pointer-events:none;z-index:2}
+.rotping .rg,.rotping .rc{position:absolute;border-radius:50%;opacity:0}
+.rotping .rg{left:calc(var(--r) * -1);top:calc(var(--r) * -1);width:calc(var(--r) * 2);height:calc(var(--r) * 2);box-sizing:border-box;border:1.2px solid var(--c);
+  animation:rotpingGrow .52s cubic-bezier(.5,1,.89,1) forwards,rotpingFade .52s linear forwards}
+.rotping .rc{left:calc(var(--k) * -1);top:calc(var(--k) * -1);width:calc(var(--k) * 2);height:calc(var(--k) * 2);background:#fff;
+  animation:rotpingFlash .52s cubic-bezier(.5,1,.89,1) forwards}
+@keyframes rotpingGrow{from{transform:scale(var(--s0))}to{transform:scale(1)}}
+@keyframes rotpingFade{from{opacity:.7}to{opacity:0}}
+@keyframes rotpingFlash{from{opacity:.8}to{opacity:0}}
 .rotquads .rq{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;
   display:inline-flex;align-items:center;gap:5px;white-space:nowrap;cursor:pointer;
   appearance:none;font-family:inherit;font-size:13px;font-weight:700;padding:3px 9px;border-radius:999px;
