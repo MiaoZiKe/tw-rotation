@@ -69,7 +69,10 @@
   const fmt = {
     n(v, d = 2) { if (v === null || v === undefined || Number.isNaN(v)) return '—'; return Number(v).toLocaleString('zh-TW', { minimumFractionDigits: d, maximumFractionDigits: d }); },
     i(v) { if (v === null || v === undefined) return '—'; return Math.round(v).toLocaleString('zh-TW'); },
-    pct(v, d = 1) { if (v === null || v === undefined || Number.isNaN(v)) return '—'; const s = v > 0 ? '+' : ''; return s + Number(v).toFixed(d) + '%'; },
+    /* ★ 2026-09-24：先四捨五入到顯示位數、再決定正負號。
+       以前用原始值判斷，-0.04 會顯示成「-0.0%」（toFixed 保留負號），+0.04 顯示「+0.0%」——
+       畫面上是 0 卻帶著方向。捨入後等於 0 的一律顯示「0.0%」、不帶正負號（-0 也在這裡歸零）。*/
+    pct(v, d = 1) { if (v === null || v === undefined || Number.isNaN(Number(v))) return '—'; const r = Number(Number(v).toFixed(d)); const z = r === 0 ? 0 : r; return (z > 0 ? '+' : '') + z.toFixed(d) + '%'; },
     yi(v) { if (v === null || v === undefined) return '—'; const a = Math.abs(v); if (a >= 1e8) return (v / 1e8).toFixed(a >= 1e10 ? 0 : 1) + ' 億'; if (a >= 1e4) return (v / 1e4).toFixed(0) + ' 萬'; return fmt.i(v); },
     lot(v) { if (v === null || v === undefined) return '—'; const a = Math.abs(v); if (a >= 1e4) return (v / 1e4).toFixed(1) + ' 萬張'; return fmt.i(v) + ' 張'; },
     cls(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; },
@@ -7830,7 +7833,10 @@
        自動桶底下的代表股抓不到，維持收盤值並標 stale。*/
     leaves.forEach(x => {
       const lv = live ? live.stv[String(x.code)] : null;
-      const row = live ? { ...x, tv: lv == null ? x.tv : lv, stale: lv == null } : x;
+      /* ★ 2026-09-24：後端的 x.tv 已經是「整檔成交值 ÷ 掛的族群數 n」（和族群成交值同一套 1/n），
+         即時估算值也要照除，不然雙掛股在即時模式下又會衝破 100%。*/
+      const nn = Math.max(1, +x.n || 1);
+      const row = live ? { ...x, tv: lv == null ? x.tv : lv / nn, tv_full: lv == null ? x.tv_full : (nn > 1 ? lv : undefined), stale: lv == null } : x;
       (byG[x.gid] = byG[x.gid] || []).push(row);
     });
     const prevByCode = {};
@@ -7972,7 +7978,7 @@
             return {
               name: uniqName(seen, `${nm} ${x.code}`), value: x.tv, code: x.code, gidOf: g.gid,
               shown: nm, dim: off, share: gv > 0 ? x.tv / gv : null, prev: p == null ? null : p,
-              stale: !!x.stale,
+              stale: !!x.stale, tvFull: x.tv_full != null ? x.tv_full : null, nG: +x.n || 1,
               symbolSize: x.stale ? 5 : Math.max(6, size(x.tv) * .62),
               itemStyle: { color: hexA(col, x.stale ? DIM : alpha(x.tv) * .85), borderColor: 'transparent', opacity: fade },
               lineStyle: { color: hexA(ccol, (x.stale ? DIM : alpha(x.tv) * .7)), width: x.stale ? 0.8 : Math.max(1, width(x.tv) * .7), opacity: fade },
@@ -8165,6 +8171,9 @@
                有股票同時掛兩個板塊時族群值是 1/n 拆過的，兩個數字對不起來很正常，
                但沒寫出來的話看起來就像算錯。*/
             + (d.gsum != null ? '<br><span class="muted">分母＝這個族群成分股成交值加總，和右邊清單同一份</span>' : '')
+            /* 雙掛股：這一格是流進「這個族群」的那一份（1/n），整檔成交值另外講，免得以為算錯 */
+            + (d.tvFull != null && d.nG > 1 ? `<br><span class="muted">整檔成交值 ${fmt.yi(d.tvFull)}；同時掛 ${d.nG} 個族群，`
+              + `這裡只計 1/${d.nG}（和族群成交值同一套拆法）</span>` : '')
             + (d.restN ? `<br><span class="muted">第 ${SANKEY_EXPAND_MAX + 1} 名之後的 ${d.restN} 檔收成這一顆`
               + '（量沒有丟掉，是加總）。完整名單在右邊那一欄</span>' : '')
             + (d.expanded && d.esum != null && Math.abs(d.esum - v) / (v || 1) > 0.01

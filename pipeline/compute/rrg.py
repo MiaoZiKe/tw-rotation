@@ -356,7 +356,12 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
       每一頁（包含只想看總覽的人）都得先下載它。
 
     回傳 {dates: [...], groups: [{gid, name, chain, chain_name, tv: [...]}],
-          leaves: {date: [{gid, code, name, tv}]}}
+          leaves: {date: [{gid, code, name, tv, [tv_full, n]}]}}
+
+    ★ 口徑（2026-09-24）：葉子的 tv＝個股成交值 ÷ 它掛的族群數 n（與 `flow._attach_groups`
+      的 1/n 權重同一套），所以「每天每個族群底下個股 tv 加總 ≤ 族群 tv」恆成立；
+      n > 1 時另送 tv_full（整檔成交值）與 n。收容桶（ind_*）只收「一個人工族群都沒有」
+      的股票 —— 判斷用完整 membership，不是只看排進前 top_groups 的那幾個。
 
     ★ 2026-09-20（Andy：「半導體產業涵蓋 IC 設計、代工、封測，不應該將他們拆開…
       一個節點是半導體產業，後面接續是 IC 設計、代工、封裝」）——
@@ -408,10 +413,21 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
         # membership 是 loader.membership() 的長格式 DataFrame（一列一個 code×group_id）
         code2g: dict[str, list[str]] = {}
         keep = {str(x) for x in order}
+        # ★ 2026-09-24 口徑修正（審查員：「其他產業別 → 半導體・其他」底下華邦電 475.4%、
+        #   7/23 647.3%）。以前這裡只收「前 top_groups 名族群」的股票，下面的收容桶
+        #   又拿 `set(code2g)` 當「有人工族群」的名單 —— 於是華邦電（掛在 memory 等
+        #   沒排進前 18 的人工族群）被誤判成「沒有人工族群」塞進 ind_半導體業，
+        #   但 `flow._attach_groups()` 算族群成交值時用的是**完整** membership，
+        #   華邦電根本不在那個桶的分母裡 → 分子有、分母沒有，佔比就衝破 100%。
+        #   修法：`all_groups` 收**全部**人工族群（不管有沒有排進前 N），
+        #   收容桶判斷與 1/n 權重都用它，和 `_attach_groups` 逐條同一套規則。
+        all_groups: dict[str, set[str]] = {}
         if membership is not None and len(membership):
             for r in membership.itertuples():
-                if str(r.group_id) in keep:
-                    code2g.setdefault(str(r.code), []).append(str(r.group_id))
+                all_groups.setdefault(str(r.code), set()).add(str(r.group_id))
+                lst_ = code2g.setdefault(str(r.code), []) if str(r.group_id) in keep else None
+                if lst_ is not None and str(r.group_id) not in lst_:
+                    lst_.append(str(r.group_id))
         # ★ 2026-09-20：法定產業別的收容桶（ind_*）不在 `loader.membership()` 裡 ——
         #   它們是 `flow._attach_groups()` 在跑的時候現掛的「沒有人工族群的股票」。
         #   所以以前那 5 個收容桶在圖上**一檔代表股都沒有**，四層之後整條
@@ -419,12 +435,13 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
         #   卻連一檔公司都秀不出來，看起來就像壞了）。
         #   這裡照 `_attach_groups` 同一套規則補上：沒有人工族群的股票掛 ind_<正規化產業別>。
         if company is not None and len(company) and "industry" in company.columns:
-            named = set(code2g)
+            named = set(all_groups)          # 有任何一個人工族群就不進收容桶（不是只看前 N 名）
             for c_, ind_ in zip(company["code"], company["industry"]):
                 code = str(c_)
                 if code in named or ind_ is None or (isinstance(ind_, float) and pd.isna(ind_)):
                     continue
                 gid = "ind_" + str(norm_industry(ind_))
+                all_groups.setdefault(code, set()).add(gid)
                 if gid in keep:
                     code2g.setdefault(code, []).append(gid)
         if code2g:
@@ -441,14 +458,27 @@ def sankey_daily(group_hist: pd.DataFrame, price: pd.DataFrame,
             for d, day in px.groupby("date"):
                 buckets: dict[str, list] = {}
                 for r in day.itertuples():
-                    for gid in code2g.get(str(r.code), ()):
-                        buckets.setdefault(gid, []).append((str(r.code), float(r.turnover or 0)))
+                    code = str(r.code)
+                    gids_ = code2g.get(code, ())
+                    if not gids_:
+                        continue
+                    full = float(r.turnover) if pd.notna(r.turnover) else 0.0
+                    # ★ 1/n 拆分：同一檔掛 n 個族群，族群成交值只算了它的 1/n
+                    #   （`flow._attach_groups` 的 weight）。葉子若送整檔成交值，
+                    #   雙掛股在小族群底下一樣會超過 100%。所以 tv＝流進**這個族群**的那一份，
+                    #   整檔成交值另外放 tv_full（只在 n>1 時送，省 JSON 體積）給 tooltip 講清楚。
+                    n = max(1, len(all_groups.get(code, ())))
+                    for gid in gids_:
+                        buckets.setdefault(gid, []).append((code, full / n, full, n))
                 rows = []
                 for gid, lst in buckets.items():
                     lst.sort(key=lambda t: -t[1])
-                    for c, tv in lst[:top_members]:
+                    for c, tv, full, n in lst[:top_members]:
                         # 查不到名字就退回代號本身 —— 寧可顯示「2330」也不要顯示「nan」
-                        rows.append({"gid": gid, "code": c, "name": name_or_code(name_of, c), "tv": tv})
+                        row = {"gid": gid, "code": c, "name": name_or_code(name_of, c), "tv": tv}
+                        if n > 1:
+                            row.update({"tv_full": full, "n": n})
+                        rows.append(row)
                 leaves[str(d)] = rows
     return {"dates": dates, "groups": groups, "leaves": leaves}
 
