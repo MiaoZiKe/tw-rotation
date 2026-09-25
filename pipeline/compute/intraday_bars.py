@@ -79,11 +79,51 @@ def synth(bars: pd.DataFrame, tf: str) -> list[list]:
     return out
 
 
-def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
-    """資料湖 `index_intraday` → {symbol: {"H1": [...], "H4": [...], "src": {...}}}。
+# 同一個「盤」有好幾種顆粒時挑哪一種：數字越小越優先。
+# 1m ＝ 證交所 mis 分時（2026-09-26 起每天盤後自己存）：真實逐分鐘量、跟今天走勢圖同一個來源，一律優先；
+# 15m／60m ＝ Yahoo（加權才有，指數量是 0）。認不得的 interval 排最後。
+INTERVAL_RANK = {"1m": 0, "15m": 1, "60m": 2}
 
-    同一個「盤」同時有 15 分與 60 分時，用 15 分（顆粒細，高低點準）；
-    只有 60 分的那些日子（15 分只保留約 60 天）就用 60 分 —— 60 分 K 本來就對齊整點，合成結果一樣。
+
+def bucket(bars: pd.DataFrame, secs: int) -> list[list]:
+    """照固定的牆鐘格子（例：900 秒＝15 分）聚合，時間戳是格子的開始。`bars` 欄位同 synth()，已排序。
+
+    1 分 K → 15 分 K 用這個（前端 toBars 的 floor(分鐘 / 15) 同一個切法）；1H／4H 仍走 session_key。
+    """
+    out: list[list] = []
+    cur = None
+    key = None
+    for r in bars.itertuples(index=False):
+        k = (int(r.t) // secs) * secs
+        v = float(r.volume) if pd.notna(r.volume) else 0.0
+        if k != key:
+            if cur:
+                out.append(cur)
+            key = k
+            cur = [k, float(r.open), float(r.high), float(r.low), float(r.close), v]
+        else:
+            cur[2] = max(cur[2], float(r.high))
+            cur[3] = min(cur[3], float(r.low))
+            cur[4] = float(r.close)
+            cur[5] += v
+    if cur:
+        out.append(cur)
+    return out
+
+
+def _day_str(day_key: int) -> str:
+    """trade_day_of() 的格子（牆鐘秒數）→ 'YYYY-MM-DD'。"""
+    return (pd.Timestamp("1970-01-01") + pd.Timedelta(seconds=int(day_key))).strftime("%Y-%m-%d")
+
+
+def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
+    """資料湖 `index_intraday` → {symbol: {"H1": [...], "H4": [...], "M15": [...], "src": {...}}}。
+
+    每一個「盤」只挑一種顆粒：有 1 分（mis）用 1 分，否則 15 分，否則 60 分（INTERVAL_RANK）。
+    ★ 2026-09-26：三個指數同一套邏輯 —— 加權的 Yahoo 歷史保留，同一天兩個來源都有時以 mis 為準
+      （真實量、跟今天走勢圖同口徑）；櫃買、台指期從第一個存到的交易日開始累積。
+    `src` 額外給 first／last（有分 K 的第一天、最後一天）與 mis_first／mis_days（mis 1 分 K 從哪天起、幾天），
+    前端用它寫「櫃買分 K 自 YYYY-MM-DD 起累積（N 天）」—— 天數讀資料，不寫死。
     """
     out: dict = {}
     if lake is None or lake.empty:
@@ -98,23 +138,36 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
     df = df.dropna(subset=["t"])
     df["t"] = df["t"].astype("int64")
     df["day"] = df["t"].map(trade_day_of)
+    df["iv"] = df["interval"].astype(str) if "interval" in df.columns else "60m"
+    df["rank"] = df["iv"].map(INTERVAL_RANK).fillna(9).astype(int)
+    cols = ["t", "open", "high", "low", "close", "volume"]
     for sym, g in df.groupby("symbol"):
-        iv = g["interval"].astype(str) if "interval" in g.columns else pd.Series("60m", index=g.index)
-        days15 = set(g.loc[iv == "15m", "day"])
-        use = g[(iv == "15m") | ~g["day"].isin(days15)]
-        use = use.sort_values(["t", "interval"] if "interval" in use.columns else ["t"])
-        use = use.drop_duplicates("t", keep="first")
-        h1 = synth(use, "H1")[-tail:]
-        h4 = synth(use, "H4")[-tail:]
+        best = g.groupby("day")["rank"].transform("min")
+        use = g[g["rank"] == best].sort_values(["t", "rank"], kind="stable").drop_duplicates("t", keep="first")
+        h1 = synth(use[cols], "H1")[-tail:]
+        h4 = synth(use[cols], "H4")[-tail:]
         # 原始 15 分 K 也吐給前端（2026-09-25，Andy：「已經有 15 分 K，1H & 4H 理論上可以透過 15 分 K 計算」）。
-        # 前端選「15 分／30 分」時才看得到多日（以前 15 分只有今天的分時），1H／4H 跟它是同一份資料切出來的。
-        # 只放 interval == 15m 的列（Yahoo 15 分最多 60 天，約 1100 根，JSON 多 ~60KB）；量照湖裡存的（指數是 0，前端估）。
-        m15 = use[use["interval"].astype(str) == "15m"] if "interval" in use.columns else use.iloc[0:0]
-        m15 = [[int(r.t), float(r.open), float(r.high), float(r.low), float(r.close),
-                float(r.volume) if pd.notna(r.volume) else 0.0] for r in m15.itertuples(index=False)]
+        # 前端選「15 分／30 分」時看得到多日，1H／4H 跟它是同一份資料切出來的。
+        # 15m 那幾盤照原樣；1m（mis）那幾盤聚合成 15 分；只有 60 分的日子沒有 15 分（顆粒不夠，不假造）。
+        parts = []
+        r15 = use[use["iv"] == "15m"]
+        if not r15.empty:
+            parts += [[int(r.t), float(r.open), float(r.high), float(r.low), float(r.close),
+                       float(r.volume) if pd.notna(r.volume) else 0.0] for r in r15[cols].itertuples(index=False)]
+        r1 = use[use["iv"] == "1m"]
+        if not r1.empty:
+            parts += bucket(r1[cols], 900)
+        m15 = sorted(parts, key=lambda b: b[0])
+        mis_days = sorted(set(r1["day"]))
+        all_days = sorted(set(use["day"]))
         out[str(sym)] = {"H1": h1, "H4": h4, "M15": m15[-tail:],
-                         "src": {"rows": int(len(use)), "days15": len(days15),
-                                 "days": int(use["day"].nunique())}}
+                         "src": {"rows": int(len(use)),
+                                 "days15": len({trade_day_of(b[0]) for b in m15}),
+                                 "days": len(all_days),
+                                 "first": _day_str(all_days[0]) if all_days else None,
+                                 "last": _day_str(all_days[-1]) if all_days else None,
+                                 "mis_first": _day_str(mis_days[0]) if mis_days else None,
+                                 "mis_days": len(mis_days)}}
     return out
 
 

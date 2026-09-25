@@ -43,6 +43,7 @@
 """
 from __future__ import annotations
 
+import json
 import logging
 
 import pandas as pd
@@ -214,3 +215,178 @@ def latest_date(sample: tuple[str, str | None] = ("2330", "TWSE")) -> str | None
         return None
     d = str(raw[0].get("d") or "").strip()
     return f"{d[:4]}-{d[4:6]}-{d[6:]}" if len(d) == 8 and d.isdigit() else None
+
+
+# ------------------------------------------------------------------ 大盤三張圖的 1 分 K（2026-09-26）
+# Andy 2026-09-26：「加權 櫃買 台指期，這三個到底有沒有統一的來源，不是一個有一個沒有」。
+# 當天的分時三張本來就同一個來源（這三個檔，DECISIONS #121）；多日分 K 卻只有加權有（Yahoo ^TWII），
+# 櫃買 ^TWOII 回空、台指期沒有 Yahoo 代號、FinMind 分 K 要付費等級。
+# 解法：每個交易日盤後把這三個檔存成 1 分 K 進資料湖，三個指數同一個來源、同一套邏輯自己累積。
+# 代價：過去的補不回來 —— 櫃買、台指期的多日分 K 從第一個抓到的交易日開始長。
+#
+# 檔案格式（2026-09-14 17:30 實測，fixture：docs/fixtures/mis_ohlc_tse_20260914.json）：
+#   TSE／OTC：ohlcArray 每分鐘一筆 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交張數}，09:01～13:33
+#   FUT     ：同上但**沒有 ts**，08:46～13:45，s 是口數；證交所這個檔**只有日盤**
+#   infoArray[0]：d 日期（YYYYMMDD）、o/h/l/z 開高低收、y 昨收；staticObj.tv 累計張數
+# 每筆只有「那一分鐘的收盤」，沒有分鐘的高低 —— 所以 1 分 K 是合成的：
+#   開＝前一分鐘的收盤（第一根用 infoArray 的開盤），高低＝開收兩者的極值（跟前端 toBars 同一個口徑）。
+
+CHART_TZ = "Asia/Taipei"
+# 量的單位跟 index_ohlc 對齊：指數存「股」（張 × 1000），台指期存「口」。前端 volUnit() 同一個口徑。
+CHART_VOL_UNIT = {"TSE": 1000, "OTC": 1000, "FUT": 1}
+# 每個檔「合理的」時間窗（台北牆鐘分鐘數）。落在窗外的點丟掉；超過 5% 落在窗外就整檔不收 ——
+# 那代表時間戳的語意變了（例如某天 t 改成台北時間的 epoch），寫進只增不改的資料湖就再也洗不掉。
+CHART_WINDOW = {"TSE": (8 * 60 + 55, 13 * 60 + 40), "OTC": (8 * 60 + 55, 13 * 60 + 40),
+                "FUT": (8 * 60 + 40, 13 * 60 + 50)}
+CHART_BAD_RATIO = 0.05
+CHART_REFERER = "https://mis.twse.com.tw/stock/index.jsp"
+
+
+def _head(x) -> str:
+    """回應前 200 字（上游改格式時，下一個人靠這一段才修得動）。"""
+    try:
+        t = x if isinstance(x, str) else json.dumps(x, ensure_ascii=False)
+    except (TypeError, ValueError):
+        t = str(x)
+    return t[:200]
+
+
+def parse_index_chart(symbol: str, payload) -> pd.DataFrame:
+    """一個分時檔（原始文字或已解析的 dict）→ 1 分 K 長表。失敗回空並記 log（含回應前 200 字）。
+
+    欄位：ts（台北時間 ISO，帶 +08:00）, symbol, interval="1m", open, high, low, close, volume, src="mis"。
+
+    ★ 交易日取自檔案內容（每一筆的 epoch `t`），不是執行當下的日期。
+      週末或隔天清晨打這支，拿到的是上一個交易日的殘留 —— 照 `t` 歸日，自然落在正確那天；
+      重複抓同一天由 `store.append()` 依 (ts, symbol, interval) 去重，不會多一列。
+    """
+    empty = pd.DataFrame()
+    unit = CHART_VOL_UNIT.get(symbol, 1)
+    data = payload
+    if isinstance(data, bytes):
+        data = data.decode("utf-8", errors="replace")
+    if isinstance(data, str):
+        try:
+            data = json.loads(data.lstrip("﻿"))
+        except ValueError:
+            log.warning("mis 分時 %s 不是 JSON（回應前 200 字）：%s", symbol, _head(payload))
+            return empty
+    if not isinstance(data, dict):
+        log.warning("mis 分時 %s 形狀不對（回應前 200 字）：%s", symbol, _head(payload))
+        return empty
+    rt = data.get("rtcode")
+    if rt is not None and str(rt) != "0000":
+        log.warning("mis 分時 %s rtcode=%s（回應前 200 字）：%s", symbol, rt, _head(data))
+        return empty
+    arr = data.get("ohlcArray")
+    if not isinstance(arr, list):
+        log.warning("mis 分時 %s 沒有 ohlcArray（回應前 200 字）：%s", symbol, _head(data))
+        return empty
+    infos = data.get("infoArray")
+    info = infos[0] if isinstance(infos, list) and infos and isinstance(infos[0], dict) else {}
+
+    lo, hi = CHART_WINDOW.get(symbol, (0, 24 * 60))
+    pts, bad, out_win, label_miss = [], 0, 0, 0
+    for o in arr:
+        if not isinstance(o, dict):
+            bad += 1
+            continue
+        try:
+            ms = int(float(o.get("t")))
+        except (TypeError, ValueError):
+            bad += 1
+            continue
+        c = to_float(o.get("c"))
+        if c is None or c <= 0:
+            bad += 1
+            continue
+        s = to_float(o.get("s"))
+        wall = pd.Timestamp(ms, unit="ms", tz="UTC").tz_convert(CHART_TZ).floor("min")
+        # TSE／OTC 另外有 "090100" 這種時間標籤：跟 epoch 換算出來的對不上，就是時間戳語意變了
+        lab = str(o.get("ts") or "").strip()
+        if len(lab) >= 4 and lab[:4].isdigit() and lab[:4] != wall.strftime("%H%M"):
+            label_miss += 1
+            continue
+        minute = wall.hour * 60 + wall.minute
+        if not (lo <= minute <= hi):
+            out_win += 1
+            continue
+        pts.append((wall, c, max(0.0, s) if s is not None else 0.0))
+    n_all = len(arr)
+    if n_all and (label_miss + out_win) > n_all * CHART_BAD_RATIO:
+        log.warning("mis 分時 %s：%d 筆裡 %d 筆時間標籤對不上、%d 筆落在交易時段外，判定格式變了、整檔不收"
+                    "（回應前 200 字）：%s", symbol, n_all, label_miss, out_win, _head(data))
+        return empty
+    if not pts:
+        log.warning("mis 分時 %s 一筆都解析不出來（%d 筆；回應前 200 字）：%s", symbol, n_all, _head(data))
+        return empty
+    if bad or label_miss or out_win:
+        log.info("mis 分時 %s：丟掉 %d 筆壞值、%d 筆標籤不符、%d 筆時段外", symbol, bad, label_miss, out_win)
+
+    df = (pd.DataFrame(pts, columns=["wall", "close", "s"])
+          .sort_values("wall", kind="stable").drop_duplicates("wall", keep="last"))
+    df["date"] = df["wall"].dt.strftime("%Y%m%d")
+
+    info_d = str(info.get("d") or "").strip()
+    info_d = info_d if (len(info_d) == 8 and info_d.isdigit()) else ""
+    days = sorted(df["date"].unique())
+    if info_d and days != [info_d]:
+        # 不擋：每一筆的 epoch 才是那一筆自己的時間（上面已用時間標籤與時段驗過）。只記下來備查。
+        log.warning("mis 分時 %s：infoArray 日期 %s 與分時點的日期 %s 不一致，照分時點歸日", symbol, info_d, days)
+    try:
+        total = float(str((data.get("staticObj") or {}).get("tv") or "").replace(",", ""))
+    except ValueError:
+        total = None
+
+    rows = []
+    for day, g in df.groupby("date", sort=True):
+        s = g["s"].astype(float).reset_index(drop=True)
+        # 防呆：s 應該是「該分鐘」的量。萬一哪天變成累計量（單調不減、最後一筆≈全日總量、加總遠大於總量），
+        # 照舊加總會把量放大上百倍 —— 改成差分並記 log。
+        if (total and day == info_d and len(s) > 10 and s.is_monotonic_increasing
+                and s.sum() > 1.5 * total and abs(s.iloc[-1] - total) <= 0.05 * total):
+            log.warning("mis 分時 %s %s：s 看起來是累計量（最後 %s ≈ 總量 %s），改用差分",
+                        symbol, day, s.iloc[-1], total)
+            s = s.diff().fillna(s.iloc[0]).clip(lower=0)
+        closes = g["close"].astype(float).tolist()
+        # 第一根的開盤用 infoArray 的開盤（那是真的開盤價）；日期對不上或離譜（差 10% 以上）就用第一筆收盤
+        first_open = to_float(info.get("o")) if day == info_d else None
+        if first_open is None or first_open <= 0 or abs(first_open / closes[0] - 1) > 0.1:
+            first_open = closes[0]
+        prev = first_open
+        for w, c, v in zip(g["wall"], closes, s):
+            o = prev
+            rows.append({"ts": w.isoformat(), "symbol": symbol, "interval": "1m",
+                         "open": o, "high": max(o, c), "low": min(o, c), "close": c,
+                         "volume": float(v) * unit, "src": "mis"})
+            prev = c
+    out = pd.DataFrame(rows)
+    log.info("mis 分時 %s：%d 根 1 分 K，交易日 %s", symbol, len(out), "、".join(days))
+    return out
+
+
+def index_minute_bars(symbols: list[str] | None = None) -> pd.DataFrame:
+    """抓加權／櫃買／台指期三個當日分時檔 → 1 分 K（進 `index_intraday`，interval="1m"）。
+
+    一個檔失敗只記 log、其他照收；三個都失敗回空。不耗 FinMind 額度，一次三個小請求。
+    """
+    frames = []
+    for sym, url in config.MIS_CHART_FILES.items():
+        if symbols and sym not in symbols:
+            continue
+        try:
+            text = http.get(url, headers={"Referer": CHART_REFERER}, expect_json=False)
+        except Exception as exc:  # noqa: BLE001 —— 單一來源掛掉不能讓整條管線死
+            log.warning("mis 分時 %s 抓取失敗：%s", sym, exc)
+            continue
+        if not text:
+            log.warning("mis 分時 %s 沒有回應", sym)
+            continue
+        try:
+            df = parse_index_chart(sym, text)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("mis 分時 %s 解析失敗：%s（回應前 200 字）：%s", sym, exc, _head(text))
+            continue
+        if not df.empty:
+            frames.append(df)
+    return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
