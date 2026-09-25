@@ -51,6 +51,19 @@
        shadowBlur 在軟體繪圖上很貴 —— 外光環改用預先畫好的放射漸層小圖放大（不是 shadowBlur，半徑照規格 r＋8×hitFlash，
        再外擴 60% 淡出來模擬模糊），漣漪光暈改成底下多描一圈寬 4px、低透明度的同色環。shadowBlur 全張仍 ≤ 6px。
 
+   ★★ 2026-09-26（第二版）Andy：「參考圖顏色更鮮豔」，指出第一版「濁、混亂」四點，附黃金標準
+     docs/prototypes/flow_perfect_topology.html（＋鮮豔度參考 ref_vivid_0926.png）。上面第一版的數字以這一段為準：
+     1. 去霧：外暈 weight×2.4、alpha 0.09；內芯**固定 1.1px、alpha 0.65**；毛細線 0.7px／0.2、外暈 0.04（drawBaseEl）。
+        粒子白核心、光暈 ≤ 5px、半徑 2.2（主幹）／1.7（族群）／1.3（毛細）。
+     2. 節點：4.5～7.5 的實心圓點＋1px 白描邊＋6px 微光，拿掉大發光圈與常駐淡底；碰撞光環 r＋5×hitFlash、alpha ×0.45；
+        漣漪 r→r＋16、每幀 ＋0.7、alpha 0.8 每幀 −0.035、線寬 1.2。標籤改成節點右側 6px、高 17px 的深色圓角膠囊
+        （名稱＋佔比＋漲跌）；「標籤變亮」與它那張 ftglow 畫布拿掉（黃金標準的字是固定色）。
+     3. 曲線張力 CP1＝x0＋dx×0.45、CP2＝x1−dx×0.45；族群用等距垂直槽位（slotPlan：36～42px），同鏈連續排、平行滑入。
+     4. 代表股：族群往右一條毛細線到固定 X（寬度 83%），那裡垂直排三檔（小點 1.8px＋「名稱 佔比%」）。
+        每檔各自一條毛細線（三條在族群那頭重疊、到尾端才分開 13px），粒子才能照各檔的金額跑、撞到的是那一檔。
+     5. 鮮豔：深色主題畫布底 #050a14；產業鏈色改飽和版（CHAIN_HUE_EL）。
+     字級照專案下限 12px（參考稿 11／10px），所以代表股間距 13px（參考稿 9px 配 10px 字）。
+
    規矩（CLAUDE.md，載入時斷言，違規直接丟錯）：
      · 發光 shadowBlur 4～6px（上限 10，這裡壓 6）；只在預先畫好的粒子小圖上用
      · Canvas 字級 ≥ 12px（setTransform 乘 DPR，字是用 CSS px 算的，不會糊）
@@ -86,13 +99,21 @@
     /* 經典版面的粒子預算：四層常駐之後連線從 23 條變 77 條，照同一組映射直接發車會到 650 顆左右、
        每幀成本是拓撲版的 2.5～3 倍（headless 實測 7～9ms）。發車率整體乘同一個係數壓回預算內 ——
        係數對每條線一樣，所以「最密／最疏」的比例（驗收 ×6）不變；「每條線至少一顆」的下限不受影響。*/
-    CL_P_BUDGET: 380,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
+    CL_P_BUDGET: 380,
+    /* ★ 2026-09-26（第二版）黃金標準 docs/prototypes/flow_perfect_topology.html 的版面數字 */
+    EL_SLOT_MAX: 42, EL_SLOT_MIN: 36, EL_PAD: 22,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
+    EL_LEAF_SP: 13, EL_LEAF_R: 1.8,                 // 代表股間距（12px 字＋1）、小點半徑 1.8
+    EL_BADGE_H: 17,                                 // 標籤膠囊高 17、圓角 3    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
     /* ★ 2026-09-26 經典光纖改貝茲規格＋碰撞激發（數字取自 Andy 給的規格／原型，「每幀」換算成「每 1/60 秒」）*/
-    CL_CP1: 0.55, CL_CP2: 0.45,             // 三次貝茲控制點：CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)
+    /* 三次貝茲控制點（寫成 x0＋dx×k）：CP1＝(x0＋dx×0.45, y0)、CP2＝(x0＋dx×0.55, y1)＝(x1−dx×0.45, y1)。
+       2026-09-26 第二版改前 0.55／0.45（CP 交叉、中段轉折急）→ 改後 0.45／0.55（對稱張力，Andy 黃金標準第 3 點）*/
+    CL_CP1: 0.45, CL_CP2: 0.55,
     HIT_ADD: 0.35, HIT_DECAY: 0.035,        // 碰撞激發：每到一顆 +0.35（上限 1），每幀 −0.035
-    RP_GROW: 26, RP_GROW_LEAF: 16,          // 震波外擴：r → r＋26（代表股間距只有 16px，縮成 +16）
-    RP_STEP: 0.85, RP_A0: 0.85, RP_P: 0.45,   // 每幀 r+0.85、alpha 0.85 隨半徑線性降到 0（≈ 每幀 −0.026）；到站 45% 機率起一圈
-    RP_LW: 1.6,                             // 漣漪線寬
+    /* 震波（第二版，黃金標準）：r → r＋16、每幀 ＋0.7、alpha 0.8 每幀 −0.035、線寬 1.2；到站 55% 機率起一圈
+       （參考稿 Math.random() > 0.45）；代表股（毛細終點）不起。改前：＋26、＋0.85、0.85 遞減、線寬 1.6、45% */
+    RP_GROW: 16,
+    RP_STEP: 0.7, RP_A0: 0.8, RP_FADE: 0.035, RP_P: 0.55,
+    RP_LW: 1.2,
     RP_MAX: 60, RP_COOL: 180,               // 同時最多 60 圈；同一節點 180ms 內不重複起
   });
   (function assertRules() {
@@ -146,7 +167,6 @@
   background:radial-gradient(120% 90% at 8% 50%,color-mix(in srgb,var(--cyan) 5%,transparent),transparent 60%)}
 .ftopo .ftstage canvas{position:absolute;left:0;top:0;display:block}
 .ftopo .ftstage canvas.ftlab{cursor:default}
-.ftopo .ftstage canvas.ftglow{pointer-events:none}
 .ftopo .ftstage canvas.ftlab.hot{cursor:pointer}
 .ftopo .fttip{position:absolute;z-index:6;pointer-events:none;max-width:340px;padding:9px 11px;border-radius:10px;
   background:var(--tip-bg,var(--panel));border:1px solid var(--tip-line,var(--line-2));box-shadow:var(--tip-sh,none);
@@ -172,18 +192,18 @@
     bar.append(leg, mbtn);
     const stage = document.createElement('div'); stage.className = 'ftstage';
     const cvBase = document.createElement('canvas'), cvFx = document.createElement('canvas'), cvLab = document.createElement('canvas');
-    /* ★ 2026-09-26：第四張畫布疊在標籤上面、不吃滑鼠 —— 只畫「碰撞激發時標籤變亮」那層亮字（經典光纖才用） */
-    const cvGlow = document.createElement('canvas');
-    cvBase.className = 'ftbase'; cvFx.className = 'ftfx'; cvLab.className = 'ftlab'; cvGlow.className = 'ftglow';
-    [cvBase, cvFx, cvGlow].forEach(c => c.setAttribute('aria-hidden', 'true'));
+    /* 2026-09-26 第二版：第一版為「標籤變亮」加的第四張畫布（ftglow）拿掉 —— 黃金標準的膠囊字是固定色，
+       被撞只亮節點；少一張全尺寸 HiDPI 畫布，每幀少一次清除與合成 */
+    cvBase.className = 'ftbase'; cvFx.className = 'ftfx'; cvLab.className = 'ftlab';
+    [cvBase, cvFx].forEach(c => c.setAttribute('aria-hidden', 'true'));
     cvLab.setAttribute('role', 'img');
     const tipEl = document.createElement('div'); tipEl.className = 'fttip';
-    stage.append(cvBase, cvFx, cvLab, cvGlow, tipEl);
+    stage.append(cvBase, cvFx, cvLab, tipEl);
     host.append(bar, stage);
-    const gB = cvBase.getContext('2d'), gF = cvFx.getContext('2d'), gL = cvLab.getContext('2d'), gG = cvGlow.getContext('2d');
+    const gB = cvBase.getContext('2d'), gF = cvFx.getContext('2d'), gL = cvLab.getContext('2d');
 
     const S = {
-      host, bar, leg, mbtn, stage, cvBase, cvFx, cvLab, cvGlow, tipEl, gB, gF, gL, gG, glowDirty: false,
+      host, bar, leg, mbtn, stage, cvBase, cvFx, cvLab, tipEl, gB, gF, gL,
       W: 0, H: 0, DPR: 1, pal: null, opts: {}, model: null,
       nodes: new Map(), links: new Map(), order: [], linkList: [],
       parts: [], pool: [], ripples: [], sprites: {},
@@ -298,8 +318,17 @@
     light: { semiconductor: '#0a86b8', ai_server: '#6a58d6', electronics: '#b7741a', industry: '#6b778f' },
   };
   const CHAIN_MORE = { dark: ['#6aa7ff', '#d7a6ff', '#e6c86a', '#7fd4ff'], light: ['#2f6fd6', '#9152c9', '#94761c', '#1f7fa8'] };
+  /* ★ 2026-09-26（第二版，Andy「參考圖顏色更鮮豔」＋黃金標準 docs/prototypes/flow_perfect_topology.html）：
+     經典光纖改用飽和版產業鏈色。半導體 #22d3ee、AI 伺服器 #c084fc 取自參考稿；其餘三條鏈挑同亮度、彼此好分辨的飽和色
+     （琥珀、石板、靛藍）。仍然**不用紅、不用綠** —— 參考稿把部分族群塗成紅／綠，但沒有一致規則
+     （▼22% 是青、▼3% 是綠），站上規矩「紅綠只給漲跌字」照守。淺色主題用同色相的深一階（白底上讀得到）。*/
+  const CHAIN_HUE_EL = {
+    dark: { semiconductor: '#22d3ee', ai_server: '#c084fc', electronics: '#fbbf24', industry: '#94a3b8', traditional: '#818cf8' },
+    light: { semiconductor: '#0891b2', ai_server: '#9333ea', electronics: '#d97706', industry: '#64748b', traditional: '#4f46e5' },
+  };
+  const ROOT_HUE_EL = { dark: '#38bdf8', light: '#0284c7' };
   function chainHue(S, cid) {
-    const t = S.pal.dark ? 'dark' : 'light', m = CHAIN_HUE[t];
+    const t = S.pal.dark ? 'dark' : 'light', m = S.classic ? CHAIN_HUE_EL[t] : CHAIN_HUE[t];
     if (m[cid]) return m[cid];
     const h = [...String(cid)].reduce((a, ch) => (a * 31 + ch.charCodeAt(0)) % 997, 7);
     return CHAIN_MORE[t][h % CHAIN_MORE[t].length];
@@ -323,7 +352,8 @@
       if (!e) { e = { key, acc: Math.random() }; S.links.set(key, e); }
       Object.assign(e, { from, to }, patch); seenL.add(key); return e;
     };
-    const root = up('root', { lv: 0, d: M, name: '台股成交值', hue: S.pal.cyan, dot: S.pal.cyan, rt: 1, r: 8, dim: false, parent: null });
+    const rootHue = classic ? ROOT_HUE_EL[S.pal.dark ? 'dark' : 'light'] : S.pal.cyan;
+    const root = up('root', { lv: 0, d: M, name: '台股成交值', hue: rootHue, dot: rootHue, rt: 1, r: 8, dim: false, parent: null });
     root.kids = [];
     let anyLeaves = false;
     /* ★ 2026-09-25 Andy：「拓撲版要跟經典版一樣絲滑」—— 換日期時依當天成交值重新排名，
@@ -394,6 +424,9 @@
       e.pr = 1.1 + 2.0 * q;                              // 粒子半徑 1.1～3.1px
       e.rate = 0.15 + 9 * Math.pow(q, 1.6);              // 每秒發幾顆（錢多 → 密）
       e.spdK = q;                                        // 速度係數 0～1（錢多 → 快）
+      /* ★ 2026-09-26 經典光纖（黃金標準）：粒子半徑照層級固定 —— 主幹 2.2／族群 1.7／毛細（代表股）1.3。
+         「錢多 → 大」這個維度改由速度、密度、外光暈寬度與亮度承擔（那三個照舊依金額拉開）。*/
+      if (classic) e.pr = e.lv === 0 ? 2.2 : e.lv === 1 ? 1.7 : 1.3;
     });
     // 回收已經不在的連線上的粒子
     for (let i = S.parts.length - 1; i >= 0; i--) {
@@ -406,11 +439,7 @@
   /* 版面：四欄（有展開的族群才有第四欄）。族群等距槽位、產業鏈之間空 0.7 列、
      成分股以族群為中心往上下排開（夾在畫布內）。回傳這一輪要的畫布高度。*/
   function wantHeight(S) {
-    if (S.classic) {                 // 經典版的公式：葉子數 × 16 ＋ 64，夾在 560～1040（有展開 1400）
-      const slots = S.root.kids.reduce((a, c) => a + c.kids.reduce((b, g) => b + g.slots, 0), 0);
-      const open = S.order.some(n => n.lv === 2 && n.open);
-      return Math.max(CFG.CL_H_MIN, Math.min(open ? CFG.CL_H_MAX_EXP : CFG.CL_H_MAX, slots * CFG.CL_LEAF_ROW + 64));
-    }
+    if (S.classic) return slotPlan(S).H;
     const chains = S.root.kids, nG = chains.reduce((a, c) => a + c.kids.length, 0);
     const slots = nG + 0.7 * Math.max(0, chains.length - 1);
     let h = Math.round(slots * CFG.ROW + 30);
@@ -418,47 +447,56 @@
     if (nL) h = Math.max(h, nL * CFG.LEAF_ROW + 30);
     return Math.max(CFG.H_MIN, Math.min(CFG.H_MAX, h));
   }
-  /* 經典版面：照 ECharts tree（orient LR、orthogonal）的排法 ——
-     深度等分欄位；葉子沿縱向等距，同一個族群的相鄰葉子距 1 單位、跨族群 2 單位（ECharts 預設 separation）；
-     父節點＝第一個與最後一個子節點的正中間。回傳 cols。*/
+  /* ★ 2026-09-26（第二版）經典光纖的槽位規劃（Andy 第 3 點：「二級族群用等距垂直槽位」）：
+     族群一個一個排進等高的垂直槽位，slot ＝ 參考稿的 Math.min(42, (h − 60) / n) 同一個邏輯 ——
+     這裡的畫布高度是跟著內容長的，所以反過來算：以最高 1040px 為可用高度求 slot，夾在 36～42。
+     同一條產業鏈的族群連續排（線平行滑入、不交錯），鏈與鏈之間空半格。
+     點開的族群（展開全部成分股）那一格長高到放得下全部成分股（每檔 13px），其餘照舊。
+     slot 下限 36：代表股三檔一欄每檔 13px（字 12px，專案字級下限），36 以下相鄰族群的代表股會疊字。*/
+  function slotPlan(S) {
+    const chains = S.root.kids, n = chains.reduce((a, c) => a + c.kids.length, 0) || 1;
+    const gaps = 0.5 * Math.max(0, chains.length - 1);
+    let extra = 0;
+    chains.forEach(c => c.kids.forEach(g => { if (g.open) extra += Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - CFG.EL_SLOT_MAX); }));
+    const slot = Math.max(CFG.EL_SLOT_MIN, Math.min(CFG.EL_SLOT_MAX, (CFG.CL_H_MAX - CFG.EL_PAD * 2 - extra) / (n + gaps)));
+    const body = slot * (n + gaps) + chains.reduce((a, c) => a + c.kids.reduce((b, g) => b + (g.open ? Math.max(0, g.kids.length * CFG.EL_LEAF_SP + 16 - slot) : 0), 0), 0);
+    const H = Math.max(CFG.CL_H_MIN, Math.round(body + CFG.EL_PAD * 2));
+    return { slot, body, H };
+  }
+  /* 經典光纖的欄位（黃金標準）：根節點貼左、產業鏈 26%、族群 54%、代表股固定在寬度 83%。
+     父節點（根、產業鏈）在它第一個與最後一個子節點的正中間（樹狀結構）。*/
   function layoutClassic(S) {
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
-    const x0 = CFG.CL_LEFT, u = Math.max(60, (W - CFG.CL_LEFT - CFG.CL_RIGHT) / 3);
-    const cols = [x0, x0 + u, x0 + 2 * u, x0 + 3 * u];
-    // 先數單位：每個葉子槽位 1，跨族群多 1
-    let units = 0, first = true;
-    chains.forEach(c => c.kids.forEach(g => { units += (first ? 0 : 2) + (g.slots - 1); first = false; }));
-    const top = CFG.CL_TOP, span = H - CFG.CL_TOP - CFG.CL_BOTTOM;
-    const step = units > 0 ? span / units : 0;
-    S.step = step;
-    let k = 0; first = true;
-    chains.forEach(c => {
+    const cols = [CFG.CL_LEFT + 8, W * 0.26, W * 0.54, W * 0.83];
+    const plan = slotPlan(S), slot = plan.slot;
+    S.step = slot; S.slot = slot;
+    let y = Math.max(CFG.EL_PAD, (H - plan.body) / 2);   // 內容比最低高度矮時垂直置中
+    chains.forEach((c, ci) => {
+      if (ci) y += slot * 0.5;
       c.kids.forEach(g => {
-        if (!first) k += 2; first = false;
-        const y0 = top + k * step;
-        k += g.slots - 1;
-        const y1 = top + k * step;
-        g.tx = cols[2]; g.ty = units > 0 ? (y0 + y1) / 2 : H / 2;
-        // 經典版：族群直徑 8＋22×√佔比；盤後／無資料 6
-        g.r = g.stale || g.nodata ? 3 : 4 + 11 * Math.sqrt(g.rt);
+        const nL = g.kids.length;
+        const gs = g.open ? Math.max(slot, nL * CFG.EL_LEAF_SP + 16) : slot;
+        g.tx = cols[2]; g.ty = y + gs / 2; y += gs;
+        // 族群圓點 4.5～6（依佔比平方根）；盤後／無資料 4.5
+        g.r = g.stale || g.nodata ? 4.5 : 4.5 + 1.5 * Math.sqrt(g.rt);
+        /* 代表股：固定 X（寬度 83%）垂直排開，以族群的 y 為中心。
+           間距：黃金標準 9px 是給 10px 字的；這裡字是 12px（專案下限），改 13px；slot 放不下三檔時用 slot 等分（不小於 12）。*/
+        const sp = g.open ? CFG.EL_LEAF_SP : Math.max(12, Math.min(CFG.EL_LEAF_SP, (gs - 4) / Math.max(1, nL)));
         g.kids.forEach((lf, i) => {
-          lf.tx = cols[3]; lf.ty = y0 + i * step;
-          // 經典版：葉子直徑 max(6, 族群公式 × 0.62)
-          lf.r = lf.stale ? 2.5 : Math.max(3, (8 + 22 * Math.sqrt(lf.rt)) * 0.31);
+          lf.tx = cols[3]; lf.ty = g.ty + (i - (nL - 1) / 2) * sp;
+          lf.r = CFG.EL_LEAF_R;
         });
+        g.leafSp = sp;
       });
       c.tx = cols[1];
       c.ty = c.kids.length ? (c.kids[0].ty + c.kids[c.kids.length - 1].ty) / 2 : H / 2;
+      // 產業鏈圓點 6～7.5（依佔比平方根）
+      c.r = c.stale ? 6 : 6 + 1.5 * Math.sqrt(c.rt);
+      c.hh = 0; c.cw = 0;
     });
     root.tx = cols[0];
     root.ty = chains.length ? (chains[0].ty + chains[chains.length - 1].ty) / 2 : H / 2;
-    root.r = 13;                                         // 經典版根節點 symbolSize 26
-    /* ★ 2026-09-26 改前→改後：產業鏈 直立細條（高＝出發線寬加總、寬 4）→ **圓點節點**（Andy 圖三：不要直條）。
-       半徑 6～12 依佔比平方根（比根節點 13 小一號、和最大的族群差不多），線一律從圓心那一列出去（見 ports／buildCurve）。*/
-    chains.forEach(c => {
-      c.r = c.stale ? 4 : 6 + 6 * Math.sqrt(c.rt);
-      c.hh = 0; c.cw = 0;
-    });
+    root.r = 7.5;
     S.cols = cols;
     return cols;
   }
@@ -551,8 +589,8 @@
     const a = e.from, b = e.to;
     let P;
     if (classic) {
-      /* ★ 2026-09-26 經典光纖：Andy 規格的平滑水平切線三次貝茲。起點在父節點圓心右側 0.4r（圓點畫在上層會蓋住），
-         終點在子節點左緣 0.6r；CP1＝(x0＋dx×0.55, y0)、CP2＝(x0＋dx×0.45, y1)。產業鏈也是圓了，不再有直條的 ±3。*/
+      /* ★ 2026-09-26 經典光纖：平滑水平切線三次貝茲。起點在父節點圓心右側 0.4r（圓點畫在上層會蓋住），
+         終點在子節點左緣 0.6r；第二版控制點 CP1＝(x0＋dx×0.45, y0)、CP2＝(x1−dx×0.45, y1)（Andy 黃金標準，對稱張力）。*/
       const x0 = a.x + a.r * 0.4, y0 = a.y + (e.y0 || 0), x1 = b.x - b.r * 0.6, y1 = b.y, dx = x1 - x0;
       P = e.p = [x0, y0, x0 + dx * CFG.CL_CP1, y0, x0 + dx * CFG.CL_CP2, y1, x1, y1];
     } else {
@@ -598,18 +636,14 @@
     g.beginPath(); g.arc(c.width / 2, c.height / 2, R * S.DPR, 0, Math.PI * 2); g.fill();
     return { c, size, R };
   }
-  /* ★ 2026-09-26 經典光纖的粒子（Andy 圖五／原型）：白色核心＋線色光暈。
-     光暈用放射漸層畫（不是 shadowBlur），核心的 shadowBlur 只在這裡畫一次（≤ 6px）。
-     淺色主題：白核心在淺底上會變成一個洞 —— 核心改成加深的同色、外面一圈細白邊，光暈透明度降一半。*/
+  /* ★ 2026-09-26（第二版，黃金標準）經典光纖的粒子：白色實心核心＋線色光暈 ≤ 5px（淺色 4px），
+     不再外加一大圈放射漸層（第一版的 3.4 倍光暈就是 Andy 說的「濁」的來源之一）。
+     shadowBlur 只在畫這張小圖時用一次，每幀只 drawImage。
+     淺色主題：白核心在淺底上會變成一個洞 —— 核心改成加深的同色、外面一圈細白邊。*/
   function spriteEl(S, color) {
-    const R = 2.4, H = R * 3.4, size = Math.ceil((H + 2) * 2);
+    const R = 2.4, pad = S.pal.glow * 2 + 2, size = Math.ceil((R + pad) * 2);
     const c = document.createElement('canvas'); c.width = c.height = Math.ceil(size * S.DPR);
     const g = c.getContext('2d'), m = c.width / 2, k = S.DPR;
-    const gr = g.createRadialGradient(m, m, 0, m, m, H * k);
-    gr.addColorStop(0, rgba(color, S.pal.dark ? 0.62 : 0.34));
-    gr.addColorStop(0.45, rgba(color, S.pal.dark ? 0.22 : 0.12));
-    gr.addColorStop(1, rgba(color, 0));
-    g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
     S.glow(g, color, S.pal.glow);
     g.beginPath(); g.arc(m, m, R * k, 0, Math.PI * 2);
     if (S.pal.dark) { g.fillStyle = '#ffffff'; g.fill(); }
@@ -620,12 +654,12 @@
     }
     return { c, size, R };
   }
-  /* 節點外光環：放射漸層（中心不透明、邊緣淡出），碰撞激發時放大到 r＋8×hitFlash。不用 shadowBlur。*/
+  /* 節點光暈小圖：放射漸層（不用 shadowBlur）。節點的常駐 6px 微光、碰撞時的外光環都用它放大畫。*/
   function haloEl(S, color) {
     const H = 32, c = document.createElement('canvas'); c.width = c.height = Math.ceil(H * 2 * S.DPR);
     const g = c.getContext('2d'), m = c.width / 2;
     const gr = g.createRadialGradient(m, m, 0, m, m, m);
-    gr.addColorStop(0, rgba(color, 1)); gr.addColorStop(0.5, rgba(color, 0.55)); gr.addColorStop(1, rgba(color, 0));
+    gr.addColorStop(0, rgba(color, 1)); gr.addColorStop(0.55, rgba(color, 0.5)); gr.addColorStop(1, rgba(color, 0));
     g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
     return { c };
   }
@@ -670,11 +704,13 @@
     g.setLineDash([]);
   }
 
-  /* ★ 2026-09-26 經典光纖的底圖：雙層光纖（Andy 規格：外層 寬 w×3.2、alpha 0.08；內芯 寬 w×0.9、alpha 0.32）。
-     明暗維度（Andy 2026-09-25「粗細、快慢、明暗變化加強點」）照舊保留：兩層的 alpha 再乘 lum＝0.5＋0.5×e.al
-     （最大那條＝規格值，最小那條約 0.66 倍）。探針量的線寬 e.w 是「依金額平方根」的那個寬度，內芯畫 0.9 倍。
-     淺色主題：淺底上 0.32 的芯太淡、外光暈看不出來 —— 芯拉到 0.5、外層 0.07（同色、偏深的描邊感）。
-     全部從父節點圓心那一列出發，靠近父節點那段會疊得比較亮 —— 那段本來就是「錢還沒分出去」的總流量。*/
+  /* ★ 2026-09-26（第二版）經典光纖的底圖 —— Andy 第 1 點「去霧」，數字照黃金標準：
+       · 外層光暈：寬 weight×2.4（第一版 ×3.2）、alpha 0.09（第一版 0.08 但疊在 3.2 倍寬上，分支匯聚處糊成一片）
+       · 內芯：**固定 1.1px、alpha 0.65**（第一版 w×0.9、alpha 0.32 → 粗而暗，就是「濁」）
+       · 毛細線（族群 → 代表股）：內芯 0.7px、alpha 0.2，外暈 alpha 0.04
+     「錢多 → 粗」這個維度留在外層光暈的寬度（weight 仍是依金額平方根 1～13px）；
+     「錢多 → 亮」留在外層光暈的透明度（× 0.55＋0.45×e.al，最大那條＝0.09）與粒子亮度。
+     每條線實際用的寬度與透明度記在 e.inW／e.inA／e.outW／e.outA，探針直接讀（驗收量的是畫出去的值）。*/
   function drawBaseEl(S) {
     const g = S.gB, P = S.pal;
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
@@ -684,18 +720,22 @@
       const k = Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
       const col = e.dead && !e.to.dim ? P.ink3 : e.hue || e.to.hue;
       g.beginPath(); g.moveTo(p[0], p[1]); g.bezierCurveTo(p[2], p[3], p[4], p[5], p[6], p[7]);
-      fn(e, k, col, 0.5 + 0.5 * e.al);
+      fn(e, k, col, e.lv === 2);
     });
-    // 先畫全部外層，再畫全部內芯 —— 不然後畫的外光暈會蓋在先畫的芯上，芯看起來斷斷續續
+    // 先畫全部外層，再畫全部內芯 —— 後畫的外暈不會蓋在先畫的芯上
     g.setLineDash([]);
-    pass((e, k, col, lum) => {
+    pass((e, k, col, cap) => {
+      e.outW = e.dead ? 0 : e.w * 2.4;
+      e.outA = e.dead ? 0 : (cap ? 0.04 : 0.09) * (0.55 + 0.45 * e.al);
       if (e.dead) return;
-      g.strokeStyle = rgba(col, (P.dark ? 0.08 : 0.07) * lum * k); g.lineWidth = e.w * 3.2; g.stroke();
+      g.strokeStyle = rgba(col, e.outA * k); g.lineWidth = e.outW; g.stroke();
     });
-    pass((e, k, col, lum) => {
+    pass((e, k, col, cap) => {
+      e.inW = e.dead ? 0.8 : cap ? 0.7 : 1.1;
+      e.inA = e.dead ? 0.35 : cap ? 0.2 : 0.65;
       g.setLineDash(e.dashed ? [4, 3] : []);
-      g.strokeStyle = rgba(col, (e.dead ? 0.35 : (P.dark ? 0.32 : 0.5) * lum) * k);
-      g.lineWidth = e.dead ? 0.8 : Math.max(1, e.w * 0.9); g.stroke();
+      g.strokeStyle = rgba(col, e.inA * k);
+      g.lineWidth = e.inW; g.stroke();
     });
     g.setLineDash([]);
   }
@@ -775,24 +815,41 @@
       n.lab = { lines, x, y, w: bw, h: bh };
     });
   }
-  /* 經典版面的標籤：節點右邊 7px 的描邊文字（經典版 label.position 'right'、distance 7、
-     textBorder 3px 面板色），不畫膠囊底。右邊界＝下一欄節點左邊 8px；代表股寬度上限 120px。
-     放不下只截名稱，數字永遠完整（全名在提示框）。n.lab 的框＝字實際佔的範圍（驗收量重疊用）。*/
+  /* ★ 2026-09-26（第二版）經典光纖的標籤 —— Andy 第 2 點，照黃金標準：
+       · 根、產業鏈、族群：節點右側 6px、高 17px 的深色圓角膠囊（rgba(10,20,34,.88)＋1px rgba(255,255,255,.12) 邊、圓角 3），
+         內嵌「名稱（#e2f1f8）＋佔比（#7a9bb3）＋漲跌（▲ 紅／▼ 綠）」，600 字重。
+         淺色主題：白色膠囊（rgba(255,255,255,.92)＋1px 深色 16% 邊），名稱 #0f1e2e、佔比 #5b7186。
+       · 代表股：不畫膠囊，固定 X（寬度 83%）小點右邊 6px 寫「名稱 佔比%」，#8da7bc（淺色 #52667a）。
+     ⚠ 字級：參考稿是 11px（膠囊）與 10px（代表股），專案硬規矩是 12px 下限（S.font 低於 12 直接丟錯），
+       所以兩者都用 12px；膠囊 17px 高放 12px 字剛好（上下各 2.5px）。
+     ▲▼ 的顏色用站上的 --rise／--fall（深色 #ff4d6d／#2ee59d，和參考稿的 #ff5470／#2ee59d 幾乎一樣），
+     不另外寫死 —— 全站的漲跌色只有一組。*/
+  function elInk(S) {
+    return S.pal.dark
+      ? { name: '#e2f1f8', share: '#7a9bb3', leaf: '#8da7bc', bg: 'rgba(10,20,34,.88)', line: 'rgba(255,255,255,.12)' }
+      : { name: '#0f1e2e', share: '#5b7186', leaf: '#52667a', bg: 'rgba(255,255,255,.92)', line: 'rgba(15,30,50,.16)' };
+  }
   function measureLabelsClassic(S) {
-    const g = S.gL, W = S.W, cols = S.cols;
+    const g = S.gL, W = S.W, cols = S.cols, K = elInk(S);
     S.order.forEach(n => {
-      const parts = partsOf(S, n).map(p => ({ ...p }));
+      const leaf = n.lv === 3;
+      const parts = partsOf(S, n).map(p => ({ ...p, w: leaf ? 500 : 600, fs: 12 }));
+      parts.forEach(p => {                               // 顏色照黃金標準換掉（漲跌色不動）
+        if (p.chg) return;
+        p.c = leaf ? (n.rest ? S.pal.ink3 : K.leaf) : p.name ? K.name : K.share;
+      });
       const lines = [[]];
       parts.forEach(p => { if (p.t[0] === '\n') { lines.push([]); p.t = p.t.slice(1); } lines[lines.length - 1].push(p); });
-      const x = n.tx + n.r + CFG.CL_LABEL_GAP;           // 2026-09-26 改前 產業鏈（直條）＋2 → 改後 一律節點半徑（產業鏈也是圓了）
+      const x = leaf ? n.tx + 6 : n.tx + n.r + 6;
+      const pad = leaf ? 0 : 12;                         // 膠囊左 5、右 7（參考稿 badgeW＝字寬＋12）
       const nextX = n.lv === 0 ? cols[1] - 10 : n.lv === 1 ? cols[2] - 12 : n.lv === 2 ? cols[3] - 10 : W - 4;
-      const maxW = n.lv === 3 ? Math.min(CFG.CL_LEAF_LABEL_W, W - 4 - x) : Math.max(40, nextX - x);
+      const maxW = Math.max(40, nextX - x);
       let bw = 0;
       lines.forEach(line => {
         line.forEach(p => { S.font(g, p.fs, p.w); p.pw = mw(g, p.t); });
-        let lw = line.reduce((a, p) => a + p.pw, 0);
+        let lw = line.reduce((a, p) => a + p.pw, 0) + pad;
         const nm = line.find(p => p.name);
-        if (lw > maxW && nm) {
+        if (lw > maxW && nm) {                           // 放不下：只截名稱，數字永遠完整（全名在提示框）
           const cs = Array.from(nm.t);
           S.font(g, nm.fs, nm.w);
           for (let k = cs.length - 1; k >= 1 && lw > maxW; k--) {
@@ -802,43 +859,29 @@
         }
         line.w = lw; bw = Math.max(bw, lw);
       });
-      const fs = Math.max(...lines[0].map(p => p.fs));
-      const lh = 15, bh = fs + (lines.length - 1) * lh;     // 字框高＝字級（多行時每行 15px，經典版 lineHeight）
-      n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs };
+      const bh = leaf ? 12 : CFG.EL_BADGE_H + (lines.length - 1) * 15;
+      n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs: 12, badge: !leaf };
     });
   }
   function drawLabelsClassic(S) {
-    const g = S.gL, P = S.pal;
+    const g = S.gL, K = elInk(S);
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
-    /* 描邊寬：經典版是 3（textBorderWidth），但這裡壓在底下的是 1～13px 的發光光纖，3 會被粗線吃掉、
-       字邊糊成一團 —— 加到 4.5（字外緣約 2px 面板色），仍然是「描邊文字」而不是膠囊底。*/
-    g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 4.5;
-    g.strokeStyle = P.panel;
+    g.textBaseline = 'middle';
     S.order.forEach(n => {
       const B = n.lab; if (!B) return;
       const ox = n.x - n.tx, oy = n.y - n.ty;
-      // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25（經典版 blur.label.opacity）
-      g.globalAlpha = n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.55 : 1) : 0.25);
-      /* 產業鏈與族群的標籤正好壓在往下一層分出去的光纖上（線從節點中心出發、前 150px 幾乎水平），
-         只靠描邊時字縫之間還是看得到發光線、讀起來很吵 —— 墊一層半透明面板色（無邊框、不是膠囊），
-         看起來仍是「線上的描邊文字」，但字讀得出來。代表股在最右欄、底下沒有線，不墊。根節點的字壓在主幹上，一起墊。*/
-      if (n.lv <= 2) {                                    // 根節點的字也壓在主幹上，一起墊
-        /* 2026-09-26 改前 0.62／0.7 → 改後 0.84／0.86：線一律從父節點圓心那一列出發、前段幾乎水平，
-           外光暈加寬到 w×3.2 之後 0.62 的墊底會讓字縫裡透出一條亮線（字讀起來像被劃掉）*/
-        g.fillStyle = rgba(P.panel, P.dark ? 0.84 : 0.86);
+      // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25
+      g.globalAlpha = n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : 0.25);
+      if (B.badge) {
         g.beginPath();
-        if (g.roundRect) g.roundRect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4, 3); else g.rect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4);
-        g.fill();
+        if (g.roundRect) g.roundRect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1, 3); else g.rect(B.x + ox + 0.5, B.y + oy + 0.5, B.w - 1, B.h - 1);
+        g.fillStyle = K.bg; g.fill();
+        g.strokeStyle = K.line; g.lineWidth = 1; g.stroke();
       }
       B.lines.forEach((line, li) => {
-        let cx = B.x + ox;
-        const cy = B.y + oy + B.fs / 2 + li * 15 + 0.5;
-        line.forEach(p => {
-          S.font(g, p.fs, p.w);
-          g.strokeText(p.t, cx, cy);                        // 面板色描邊：壓在線上也讀得到（經典版 textBorder）
-          g.fillStyle = p.c; g.fillText(p.t, cx, cy);
-          cx += p.pw;
-        });
+        let cx = B.x + ox + (B.badge ? 5 : 0);
+        const cy = B.y + oy + (B.badge ? CFG.EL_BADGE_H / 2 : B.h / 2) + 0.5 + li * 15;
+        line.forEach(p => { S.font(g, p.fs, p.w); g.fillStyle = p.c; g.fillText(p.t, cx, cy); cx += p.pw; });
       });
     });
     g.globalAlpha = 1;
@@ -883,9 +926,9 @@
     if (prewarming || n.dim) return;
     n.hf = Math.min(1, (n.hf || 0) + CFG.HIT_ADD);
     S.meter.hits++;
-    if (Math.random() < CFG.RP_P && S.ripples.length < CFG.RP_MAX && now - (n.rpLast || -1e9) >= CFG.RP_COOL) {
+    if (n.lv !== 3 && Math.random() < CFG.RP_P && S.ripples.length < CFG.RP_MAX && now - (n.rpLast || -1e9) >= CFG.RP_COOL) {
       n.rpLast = now;
-      S.ripples.push({ n, r: n.r, r0: n.r, max: n.r + (n.lv === 3 ? CFG.RP_GROW_LEAF : CFG.RP_GROW), a: CFG.RP_A0 });
+      S.ripples.push({ n, r: n.r, r0: n.r, max: n.r + CFG.RP_GROW, a: CFG.RP_A0 });
       S.meter.rpMade++;
       if (S.ripples.length > S.meter.rpPeak) S.meter.rpPeak = S.ripples.length;
     }
@@ -935,8 +978,7 @@
         const rp = S.ripples[i];
         /* 原型（docs/prototypes/capital_flow_impact.html）：alpha 跟半徑同步線性遞減 0.85 → 0，
            等同每幀 −0.026（0.85／26 格 × 0.85px）；代表股外擴只有 16px，照同一條公式縮短 */
-        rp.r += CFG.RP_STEP * k;
-        rp.a = CFG.RP_A0 * (1 - (rp.r - rp.r0) / (rp.max - rp.r0 || 1));
+        rp.r += CFG.RP_STEP * k; rp.a -= CFG.RP_FADE * k;   // 黃金標準：各自線性（alpha 先到 0，約 23 幀、外擴約 16px）
         if (rp.a <= 0 || rp.r >= rp.max || !S.nodes.has(rp.n.key)) { S.ripples[i] = S.ripples[S.ripples.length - 1]; S.ripples.pop(); }
       }
     } else if (S.ripples.length) S.ripples = S.ripples.filter(r => now - r.t0 < CFG.RIPPLE_SEC * 1000);
@@ -1020,72 +1062,55 @@
     g.globalAlpha = 1;
   }
 
-  /* ★ 2026-09-26 經典光纖的節點與震波（Andy 圖五／原型）：
-       · 震波：1.2px 細環，r → r＋26、alpha 0.85 遞減，顏色＝節點色（產業鏈色，不是紅綠）
-       · 節點：常駐淡底 r＋2（alpha 0.25，靜態不脈動）→ 微光 → 碰撞外光環（r＋8×hitFlash、alpha hitFlash×0.6，
-         放射漸層小圖，不用 shadowBlur）→ 實心核心 → hitFlash > 0.3 起核心漸漸轉白（0.3～0.7 線性，不會一下跳白）
-       · 標籤變亮：最上層 ftglow 畫布把激發中節點的**名稱**用亮色再描一次（alpha 跟著 hitFlash），
-         其餘字（%、▲▼）不動 —— 漲跌色不會被沖淡。
-     still（動畫關／減少動態）：不畫震波、不激發、ftglow 清空，只剩靜態的點。*/
+  /* ★ 2026-09-26（第二版）經典光纖的節點與震波 —— Andy 第 2 點，照黃金標準：
+       · 節點：半徑 4.5～7.5 的精緻實心圓點＋1px 白描邊、6px 微光（放射漸層小圖，等效 shadowBlur 6），**不要大發光圈**
+         （第一版的常駐 r＋2 淡底與 0.42 倍粒子光暈拿掉了）
+       · 碰撞光環：r＋5×hitFlash、alpha hitFlash×0.45（參考稿 shadowBlur 12×hitFlash → 光暈小圖外擴 1.5 倍模擬，不用 shadowBlur）
+       · hitFlash > 0.3 核心轉白（0.3～0.6 漸變，不是一下跳白 —— 熱門節點一秒被撞好幾次，跳白會一直閃）
+       · 漣漪：r → r＋16、每幀 ＋0.7、alpha 0.8 每幀 −0.035、線寬 1.2，顏色＝節點色（產業鏈色，不是紅綠）
+       · 代表股：1.8px 小點（alpha 0.75），被撞時一樣轉白，但不起漣漪（參考稿的毛細終點也不起）
+     still（動畫關／減少動態）：不畫震波、不激發，只剩靜態的點。*/
   function drawNodesEl(S, g, P, still) {
     if (!still && S.ripples.length) {
-      /* 規格：線寬 1.6、光暈 shadowBlur 10 —— 每圈每幀設 shadowBlur 太貴（最多 60 圈），
-         改成底下先描一圈寬 4.5px、透明度 0.28 倍的同色環當光暈，再描 1.6px 的本體 */
+      g.lineWidth = CFG.RP_LW;
       S.ripples.forEach(rp => {
-        const n = rp.n, a = Math.max(0, rp.a) * (P.dark ? 1 : 0.75) * fadeOf(S, n);
+        const n = rp.n;
+        g.globalAlpha = Math.max(0, rp.a) * (P.dark ? 1 : 0.8) * fadeOf(S, n);
         g.strokeStyle = n.stale || n.nodata ? P.ink3 : n.dot;
-        g.beginPath(); g.arc(n.x, n.y, rp.r, 0, Math.PI * 2);
-        g.globalAlpha = a * 0.28; g.lineWidth = 4.5; g.stroke();
-        g.globalAlpha = a; g.lineWidth = CFG.RP_LW; g.stroke();
+        g.beginPath(); g.arc(n.x, n.y, rp.r, 0, Math.PI * 2); g.stroke();
       });
     }
     S.order.forEach(n => {
       const f = fadeOf(S, n), off = n.stale || n.nodata, col = off ? P.ink3 : n.dot;
       const r = n.r, hf = still ? 0 : (n.hf || 0);
-      // 常駐淡底
-      g.globalAlpha = 0.25 * f; g.fillStyle = col;
-      g.beginPath(); g.arc(n.x, n.y, r + 2, 0, Math.PI * 2); g.fill();
-      const sp = S.sprites[n.hue], ha = S.halos && S.halos[n.hue];
-      if (sp && !off) {                                  // 常駐微光（粒子小圖放大，和以前一樣）
-        const gs = sp.size * (r / sp.R) * 0.42;
-        g.globalAlpha = (P.dark ? 0.4 : 0.22) * f; g.drawImage(sp.c, n.x - gs / 2, n.y - gs / 2, gs, gs);
+      const ha = S.halos && S.halos[n.hue];
+      const wz = Math.max(0, Math.min(1, (hf - 0.3) / 0.3));
+      if (n.lv === 3) {                                  // 代表股小點
+        g.globalAlpha = 0.75 * f; g.fillStyle = col;
+        g.beginPath(); g.arc(n.x, n.y, r, 0, Math.PI * 2); g.fill();
+        if (wz > 0) { g.globalAlpha = wz * f; g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.6); g.fill(); }
+        return;
       }
-      if (hf > 0.01 && ha && !off) {                     // 碰撞外光環：r＋8×hitFlash
-        const R = (r + 8 * hf) * 1.6;
-        g.globalAlpha = hf * (P.dark ? 0.6 : 0.4) * f;
-        g.drawImage(ha.c, n.x - R, n.y - R, R * 2, R * 2);
+      if (ha && !off) {                                  // 常駐 6px 微光
+        const R = r + 6;
+        g.globalAlpha = (P.dark ? 0.42 : 0.22) * f; g.drawImage(ha.c, n.x - R, n.y - R, R * 2, R * 2);
       }
-      g.globalAlpha = f * (off ? 0.55 : 1);
-      g.fillStyle = rgba(col, 0.62 + 0.38 * Math.max(n.rt || 0, n.lv <= 1 ? 1 : 0.25));
+      if (hf > 0.02 && ha && !off) {                     // 碰撞光環 r＋5×hitFlash
+        const R = (r + 5 * hf) * 1.5;
+        g.globalAlpha = hf * 0.45 * f; g.drawImage(ha.c, n.x - R, n.y - R, R * 2, R * 2);
+      }
+      g.globalAlpha = f * (off ? 0.6 : 1);
+      g.fillStyle = col;
       g.beginPath(); g.arc(n.x, n.y, r, 0, Math.PI * 2); g.fill();
-      const wz = Math.max(0, Math.min(1, (hf - 0.3) / 0.4));
-      if (wz > 0) {                                       // 核心轉白（淺色主題：轉成淡色＋同色邊，不會變成一個洞）
-        g.globalAlpha = wz * f;
-        g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.72);
-        g.beginPath(); g.arc(n.x, n.y, r * 0.78, 0, Math.PI * 2); g.fill();
+      if (wz > 0) {                                       // 核心轉白（淺色主題轉淡色，不會變成一個洞）
+        g.globalAlpha = wz * f; g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.7); g.fill();
       }
-      if (n.picked || (n.lv === 2 && n.open)) {         // 你點開的：亮一圈細邊
-        g.globalAlpha = f; g.strokeStyle = P.ink2; g.lineWidth = 1.3;
-        g.beginPath(); g.arc(n.x, n.y, r + 2.5, 0, Math.PI * 2); g.stroke();
+      g.globalAlpha = f * (off ? 0.6 : 1);
+      g.strokeStyle = P.dark ? '#ffffff' : 'rgba(255,255,255,.95)'; g.lineWidth = 1; g.stroke();   // 1px 白描邊
+      if (n.picked || (n.lv === 2 && n.open)) {         // 你點開的：外面再一圈細邊
+        g.globalAlpha = f; g.strokeStyle = P.ink2; g.lineWidth = 1.2;
+        g.beginPath(); g.arc(n.x, n.y, r + 3, 0, Math.PI * 2); g.stroke();
       }
-    });
-    g.globalAlpha = 1;
-    drawGlowLabels(S, still);
-  }
-  function drawGlowLabels(S, still) {
-    const g = S.gG, P = S.pal;
-    const hot = still ? [] : S.order.filter(n => (n.hf || 0) > 0.06 && n.lab && !n.dim);
-    if (!hot.length && !S.glowDirty) return;             // 上一幀沒畫、這一幀也沒得畫：連清都不用清
-    g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
-    S.glowDirty = hot.length > 0;
-    if (!hot.length) return;
-    g.textBaseline = 'middle';
-    hot.forEach(n => {
-      const B = n.lab, p = B.lines[0] && B.lines[0][0]; if (!p || !p.name) return;
-      g.globalAlpha = Math.min(1, n.hf) * (P.dark ? 0.75 : 0.6) * (related(S, n) ? 1 : 0.3);
-      S.font(g, p.fs, p.w);
-      g.fillStyle = P.dark ? '#ffffff' : P.ink;
-      g.fillText(p.t, B.x + (n.x - n.tx), B.y + (n.y - n.ty) + B.fs / 2 + 0.5);
     });
     g.globalAlpha = 1;
   }
@@ -1139,10 +1164,10 @@
   function sizeCanvases(S) {
     const w = S.stage.clientWidth;
     S.W = w; S.DPR = Math.min(2, window.devicePixelRatio || 1);
-    /* 標籤變亮那張（ftglow）只有經典光纖用得到；拓撲版縮成 1×1 藏起來，不白佔一張全尺寸 HiDPI 畫布的記憶體與合成 */
-    S.cvGlow.style.display = S.classic ? '' : 'none';
-    if (!S.classic) { if (S.cvGlow.width !== 1) { S.cvGlow.width = 1; S.cvGlow.height = 1; } S.glowDirty = false; }
-    (S.classic ? [S.cvBase, S.cvFx, S.cvLab, S.cvGlow] : [S.cvBase, S.cvFx, S.cvLab]).forEach(c => {
+    /* ★ 2026-09-26 第二版：經典光纖深色主題的畫布底改成黃金標準的深底 #050a14（鮮豔感主要來自更深的底）；
+       拓撲版與淺色主題照舊（卡片底色＋很淡的青色徑向漸層）。*/
+    S.stage.style.background = S.classic && S.pal.dark ? '#050a14' : '';
+    [S.cvBase, S.cvFx, S.cvLab].forEach(c => {
       const pw = Math.round(S.W * S.DPR), ph = Math.round(S.H * S.DPR);
       if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; c.getContext('2d').__f = null; }
       c.style.width = S.W + 'px'; c.style.height = S.H + 'px';
@@ -1307,13 +1332,15 @@
         text: n.lab ? n.lab.lines.map(l => l.map(p => p.t).join('')).join(' / ') : '',
         chg: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).chg || null : null,
         chgColor: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).c || null : null,
-        lab: n.lab ? { x: Math.round(n.lab.x), y: Math.round(n.lab.y), w: Math.round(n.lab.w), h: Math.round(n.lab.h) } : null })),
+        lab: n.lab ? { x: Math.round(n.lab.x), y: Math.round(n.lab.y), w: Math.round(n.lab.w), h: Math.round(n.lab.h), badge: !!n.lab.badge } : null })),
       links: S.linkList.map(e => ({ key: e.key, lv: e.lv, w: +e.w.toFixed(2), dead: !!e.dead,
         n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2),
         al: +(e.al || 0).toFixed(3), er: +(e.er || 0).toFixed(3), rt: +(e.rt || 0).toFixed(4),
         from: e.from.key, to: e.to.key,
         // ★ 2026-09-26：這條線的三次貝茲 [x0,y0, cp1x,cp1y, cp2x,cp2y, x1,y1]（驗控制點比例 0.55／0.45）
-        cp: e.p ? e.p.map(v => +v.toFixed(2)) : null })),
+        cp: e.p ? e.p.map(v => +v.toFixed(2)) : null,
+        inW: e.inW == null ? null : e.inW, inA: e.inA == null ? null : e.inA,
+        outW: e.outW == null ? null : +e.outW.toFixed(2), outA: e.outA == null ? null : +e.outA.toFixed(4) })),
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
@@ -1324,14 +1351,15 @@
       pending: !!S.pendingDraw,
       ripples: S.ripples.length, rpMax: CFG.RP_MAX, rpPeak: m.rpPeak, rpMade: m.rpMade, hits: m.hits,
       cols: (S.cols || []).map(v => +(+v).toFixed(1)), cp: [CFG.CL_CP1, CFG.CL_CP2],
-      glowCanvas: !!S.cvGlow.isConnected,
+      slot: S.classic ? +(S.slot || 0).toFixed(1) : null, canvases: S.stage.querySelectorAll('canvas').length,
+      stageBg: S.stage.style.background || '',
       tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
     };
   }
   /* 驗收用：一口氣讓 k 顆粒子「到站」（亂數挑活著的節點），驗震波上限；只在經典光纖有意義 */
   function burst(host, k) {
     const S = host && host._ft; if (!S || !S.classic) return null;
-    const live = S.order.filter(n => n.lv > 0 && !n.dim);
+    const live = S.order.filter(n => n.lv > 0 && n.lv < 3 && !n.dim);
     const now = performance.now();
     for (let i = 0; i < k; i++) {                   // 刻意略過每個節點 180ms 的冷卻，只剩「同時 ≤ 60 圈」這道閘
       const n = live[(Math.random() * live.length) | 0]; n.rpLast = -1e9; hitEl(S, n, now, false);
