@@ -13479,6 +13479,8 @@ SECTIONS = {
     #   拉Bar／−＋／▶／即時／怎麼看／點族群展開／點鏈／點背景／點個股、紅漲綠跌、發光與字級、幀率、動態開關。
     "資金去向拓撲":        lambda pg, b, base, code: t_flowtopo(pg, base),
     "資金去向拓撲-減少動態": lambda pg, b, base, code: t_flowtopo_reduced(b, base),
+    # ★ 2026-09-25：資金去向「經典光纖」（桌機預設）—— 經典版的四層版面與標籤＋拓撲版的光纖與粒子
+    "資金去向經典光纖":    lambda pg, b, base, code: t_flowfx(pg, b, base),
 
     # ★ 2026-09-24 Andy：「輪動時鐘分層需要漸層…所有的長條圖 圓餅圖…需要圓滑化／…不需要收起選項，點擊背景即可消除」
     #   ＋「幫我將輪動時鐘結合水滴這概念，我當他移動會有水波紋」。
@@ -29014,10 +29016,13 @@ TOPO_CARD_MAX = 760           # 1440 寬整張卡的高度上限（Andy：一屏
 
 
 def sk_classic(pg, on: bool = True):
-    """切資金去向的樣式（經典版＝ECharts 樹／拓撲版＝flowtopo.js），並等它真的換過去。"""
-    pg.evaluate("(s) => { try { localStorage.setItem('tw.sankey.style', s); } catch (e) {} "
+    """切資金去向的樣式（經典版＝ECharts 樹／經典光纖＝flowtopo.js 經典版面），並等它真的換過去。
+    ★ 2026-09-25 改前→改後：
+      · localStorage key：tw.sankey.style → tw.sankey.mode（三選一換了新 key，舊 key 不再被讀）
+      · on=False 切回的：'topo'（當時的桌機預設）→ 'fx'（經典光纖，現在的桌機預設）"""
+    pg.evaluate("(s) => { try { localStorage.setItem('tw.sankey.mode', s); } catch (e) {} "
                 "if (window.App && window.App.sankeyStyle) window.App.sankeyStyle(s); }",
-                "classic" if on else "topo")
+                "classic" if on else "fx")
     if on:
         wait_until(pg, "() => !document.getElementById('sankey') || !!(window.echarts && "
                        "echarts.getInstanceByDom(document.getElementById('sankey')))", 5000)
@@ -29028,14 +29033,31 @@ def _topo_card_h(pg) -> int:
     return pg.evaluate("() => Math.round(document.getElementById('flowSankeyCard').getBoundingClientRect().height)")
 
 
-def _topo_click(pg, key: str) -> bool:
-    """用滑鼠點畫布上的某個節點（key：root / c:<鏈> / g:<族群> / l:<族群>:<代號>）。"""
+def _topo_node(pg, key: str):
+    """把畫布上的某個節點捲到視窗正中間，回傳它（含螢幕座標 cx／cy）；找不到回 None。
+    ★ 2026-09-25 加的：經典光纖整張圖 928px 高，比 950px 的視窗扣掉固定頂欄還高，
+      「捲到卡片中央」之後最上面幾個族群會躲在頂欄底下 —— 滑鼠點下去點到的是頂欄。
+      改成以**那個節點**為準置中（instant，不吃全站的 smooth scroll）。"""
     scroll_to(pg, "sankey")
     t = pg.evaluate(TOPO)
     n = [x for x in (t or {}).get("nodes", []) if x["key"] == key]
     if not n:
+        return None
+    ih = pg.evaluate("() => innerHeight")
+    if not (120 < n[0]["cy"] < ih - 40):
+        pg.evaluate("(dy) => window.scrollBy({top: dy, behavior: 'instant'})", n[0]["cy"] - ih / 2)
+        pg.wait_for_timeout(350)
+        n = [x for x in pg.evaluate(TOPO)["nodes"] if x["key"] == key]
+    return n[0] if n else None
+
+
+def _topo_click(pg, key: str) -> bool:
+    """用滑鼠點畫布上的某個節點（key：root / c:<鏈> / g:<族群> / l:<族群>:<代號>）。
+    改前：捲到卡片中央就點；改後：先把那個節點捲到視窗中央（_topo_node），拓撲版（矮）行為不變。"""
+    n = _topo_node(pg, key)
+    if not n:
         return False
-    pg.mouse.click(n[0]["cx"], n[0]["cy"])
+    pg.mouse.click(n["cx"], n["cy"])
     pg.wait_for_timeout(900)
     return True
 
@@ -29049,9 +29071,11 @@ def _topo_left_pixels(pg) -> int:
 
 
 def t_flowtopo(pg, base):
+    # ★ 2026-09-25 改前→改後：拓撲版不再是桌機預設（預設換成「經典光纖」，由「資金去向經典光纖」那段驗）。
+    #   這一段仍然驗拓撲版本身，所以開頭明寫切到拓撲：key 由 tw.sankey.style 改成 tw.sankey.mode（值仍是 'topo'）。
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#overview", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.style', 'topo'); localStorage.removeItem('tw.sankey.day');"
+    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'topo'); localStorage.removeItem('tw.sankey.day');"
                 " localStorage.removeItem('tw.flowtopo.motion'); localStorage.setItem('tw.theme', 'dark');"
                 " localStorage.setItem('tw.side', '0'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
@@ -29059,8 +29083,9 @@ def t_flowtopo(pg, base):
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
     scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
     t0 = pg.evaluate(TOPO)
-    if not ok("[1440] 資金去向是拓撲版（flowtopo.js 畫的，不是 ECharts）", bool(t0) and pg.evaluate(
-            "() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and t0.get("W")):
+    # 改前：只驗「不是 ECharts」；改後多驗 layout == 'topo'（經典光纖也是 flowtopo.js 畫的，要分得出來）
+    if not ok("[1440] 資金去向是拓撲版（flowtopo.js 拓撲版面，不是 ECharts、不是經典光纖）", bool(t0) and t0.get("layout") == "topo"
+              and pg.evaluate("() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and (t0.get("W"), t0.get("layout"))):
         return
     lv = lambda t, k: [n for n in t["nodes"] if n["lv"] == k]   # noqa: E731
     ok("四層裡的前三層都畫出來（台股 → 產業鏈 → 族群）",
@@ -29239,16 +29264,20 @@ def t_flowtopo(pg, base):
         ok("即時模式下拓撲版照樣畫得出來", bool(pg.evaluate(TOPO)) and pg.evaluate("() => window.App.sankeyTopoOn()"))
         pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()"); pg.wait_for_timeout(800)
         ok("再按一次：退出即時", not pg.evaluate("() => window.App.sankeyLive().on"))
-    # ---- 經典版／拓撲版切換鈕
-    if ok("桌機有「經典版」切換鈕", pg.evaluate("() => { const b = document.getElementById('sankeyStyleBtn');"
-                                          " return !!b && getComputedStyle(b).display !== 'none'; }")):
-        pg.eval_on_selector("#sankeyStyleBtn", "b => b.click()"); pg.wait_for_timeout(1500)
-        ok("按「經典版」：換回 ECharts 樹、拓撲版收掉、設定記住", pg.evaluate(
+    # ---- 版面切換
+    # ★ 2026-09-25 改前→改後：改前是一顆「經典版／拓撲版」互切鈕 #sankeyStyleBtn（記 tw.sankey.style）；
+    #   改後是三選一分段鈕 #sankeyStyleSeg（經典光纖／拓撲／經典，記 tw.sankey.mode）。
+    #   這裡只驗「拓撲 ⇄ 經典」這一對（三種全切在「資金去向經典光纖」那段），驗完切回拓撲，後面的寬度與淺色照舊驗拓撲版。
+    if ok("桌機有版面分段鈕（經典光纖／拓撲／經典）", pg.evaluate("() => { const b = document.getElementById('sankeyStyleSeg');"
+                                          " return !!b && getComputedStyle(b).display !== 'none' && b.querySelectorAll('[data-sk-style]').length === 3; }")):
+        pg.eval_on_selector('#sankeyStyleSeg [data-sk-style="classic"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        ok("按「經典」：換回 ECharts 樹、flowtopo 收掉、設定記住", pg.evaluate(
             "() => !!echarts.getInstanceByDom(document.getElementById('sankey')) && !document.querySelector('#sankey .ftstage')"
-            " && localStorage.getItem('tw.sankey.style') === 'classic'"))
-        pg.eval_on_selector("#sankeyStyleBtn", "b => b.click()"); pg.wait_for_timeout(1500)
-        ok("再按「拓撲版」：換回來、ECharts 實例收掉", pg.evaluate(
-            "() => window.App.sankeyTopoOn() && !echarts.getInstanceByDom(document.getElementById('sankey'))"))
+            " && localStorage.getItem('tw.sankey.mode') === 'classic'"))
+        pg.eval_on_selector('#sankeyStyleSeg [data-sk-style="topo"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        ok("再按「拓撲」：換回拓撲版面、ECharts 實例收掉", pg.evaluate(
+            "() => window.App.sankeyTopoOn() && !echarts.getInstanceByDom(document.getElementById('sankey'))"
+            " && (window.App.sankeyTopo() || {}).layout === 'topo'"))
     # ---- 寬度邊界：> 820 拓撲版、≤ 820 經典版（手機維持舊版）
     for w, want in ((1024, True), (800, False), (1440, True)):
         pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(1600)
@@ -29356,7 +29385,8 @@ def t_flowtopo_reduced(b, base):
     pg = ctx.new_page()
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     pg.goto(f"{base}#flow", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.style', 'topo'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
+    # ★ 2026-09-25 改前→改後：key tw.sankey.style → tw.sankey.mode（值仍是 'topo'）
+    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'topo'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
     pg.wait_for_timeout(1200)
@@ -29378,6 +29408,295 @@ def t_flowtopo_reduced(b, base):
                         " i.dispatchEvent(new Event('change', {bubbles: true})); }")
             tr = pg.evaluate(TOPO)
             ok("[減少動態] 換日直接到位（沒有補間）", bool(tr) and not tr["tweening"], tr and tr.get("tweening"))
+    ctx.close()
+
+
+# ===================================================================== 資金去向・經典光纖（flowtopo.js layout:'classic'，桌機預設）
+# ★ 2026-09-25 Andy 附兩張圖：圖一經典版（ECharts 樹：台股 → 產業鏈 → 族群 → 代表股三檔，文字標籤、%、▲▼），
+#   圖二拓撲版（粗細明顯、發光光纖、粒子很密），原話「維持經典版風格，但傳輸特效需要跟拓撲版一樣」。
+#   這一段驗的就是這句話的兩半，每一條都讀畫布探針（畫出去的座標與參數）或真的用滑鼠操作：
+#     版面半（照經典版）：四層都在、代表股三檔帶 %、四欄等距、標籤在節點右邊、父節點置中、標籤不疊
+#     特效半（照拓撲版）：線寬最粗 ≥ 最細 ×6、粒子速度最大 ≥ 最小 ×4、密度 ×6、明暗、換日依排名補間、動態開關
+#   另外驗三種模式都切得過去、看不見時停動畫、首次畫圖時間與回放幀率（寫進 notes）。
+FX_FIRST_DRAW_MAX = 400     # ms：首次畫圖（buildModel→layout→量字→曲線→畫底圖與標籤）。容器實測 80～230ms，拓撲版同條件 77～190ms
+
+
+def _fx_lv(t, k):
+    return [n for n in (t or {}).get("nodes", []) if n["lv"] == k]
+
+
+def _fx_seg(pg):
+    return pg.evaluate("""() => [...document.querySelectorAll('#sankeyStyleSeg [data-sk-style]')]
+        .map(b => [b.dataset.skStyle, b.textContent, b.getAttribute('aria-pressed')])""")
+
+
+def t_flowfx(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    # 新使用者：沒有任何版面設定 → 應該落在經典光纖；舊 key 存著 classic 的人也一樣（換了新 key）
+    pg.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); localStorage.setItem('tw.sankey.style', 'classic');"
+                " localStorage.removeItem('tw.sankey.day'); localStorage.removeItem('tw.flowtopo.motion');"
+                " localStorage.setItem('tw.theme', 'dark'); localStorage.setItem('tw.side', '0'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
+    t0 = pg.evaluate(TOPO)
+    if not ok("[1440] 沒設定過（舊 key 存 classic 也一樣）→ 預設是「經典光纖」：flowtopo 經典版面，不是 ECharts、不是拓撲版",
+              bool(t0) and t0.get("layout") == "classic" and pg.evaluate(
+                  "() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and t0.get("layout")):
+        return
+    seg = _fx_seg(pg)
+    ok("版面分段鈕三顆（經典光纖／拓撲／經典），目前亮的是經典光纖",
+       [x[0] for x in seg] == ["fx", "topo", "classic"] and [x[2] for x in seg] == ["true", "false", "false"], seg)
+    ok("首次畫圖時間有量到、在上限內", t0.get("firstDrawMs") is not None and t0["firstDrawMs"] < FX_FIRST_DRAW_MAX,
+       {k: t0.get(k) for k in ("firstDrawMs", "warmMs")})
+    notes.append(f"經典光纖首次畫圖 {t0.get('firstDrawMs')} ms、預熱 {t0.get('warmMs')} ms、粒子 {t0['particles']} 顆、連線 {len(t0['links'])} 條")
+    # ---- 版面半：照經典版
+    L0, L1, L2, L3 = (_fx_lv(t0, i) for i in range(4))
+    ok("四層節點都在（台股 1、產業鏈 ≥3、族群 ≥10、代表股 ≥ 族群數×2）",
+       len(L0) == 1 and len(L1) >= 3 and len(L2) >= 10 and len(L3) >= len(L2) * 2, [len(L0), len(L1), len(L2), len(L3)])
+    per = {}
+    for n in L3:
+        per.setdefault(n["parent"], []).append(n)
+    live_g = [g for g in L2 if not g["stale"] and not g["nodata"] and (g["value"] or 0) > 0]
+    ok("每個有量的族群底下都常駐代表股（不用點開）", all(per.get(g["key"]) for g in live_g),
+       [g["name"] for g in live_g if not per.get(g["key"])][:4])
+    ok("代表股預設最多三檔（和經典版一樣）", bool(per) and max(len(v) for v in per.values()) <= 3,
+       {k: len(v) for k, v in list(per.items())[:4]})
+    lf_live = [n for n in L3 if not n["stale"] and not n["rest"]]
+    ok("代表股標籤有百分比（% 佔族群）", bool(lf_live) and all(re.search(r"\d+(\.\d)?%", n["text"]) for n in lf_live),
+       [n["text"] for n in lf_live if "%" not in n["text"]][:4])
+    labs12 = [n for n in L1 + L2 if not n["stale"] and not n["nodata"]]
+    ok("產業鏈與族群標籤有 % 佔上一層", all("%" in n["text"] for n in labs12), [n["text"] for n in labs12 if "%" not in n["text"]][:3])
+    rise, fall = pg.evaluate("() => { const s = getComputedStyle(document.documentElement);"
+                             " return [s.getPropertyValue('--rise').trim(), s.getPropertyValue('--fall').trim()]; }")
+    ups = [n for n in t0["nodes"] if n["chg"] == "up"]
+    dns = [n for n in t0["nodes"] if n["chg"] == "dn"]
+    ok("漲跌三角照經典版（▲ 用 --rise、▼ 用 --fall，紅漲綠跌）", len(ups) + len(dns) > 3
+       and all(n["chgColor"] == rise for n in ups) and all(n["chgColor"] == fall for n in dns),
+       [(n["text"], n["chgColor"]) for n in (ups + dns)][:3])
+    xs = [sorted({n["x"] for n in lvl}) for lvl in (L0, L1, L2, L3)]
+    one_col = all(len(v) >= 1 and max(v) - min(v) <= 1 for v in xs)
+    cx = [v[0] for v in xs]
+    gaps = [cx[i + 1] - cx[i] for i in range(3)]
+    ok("四層各自一欄、欄距相等（經典版 tree 的深度等分）", one_col and max(gaps) - min(gaps) <= 2, {"x": xs, "欄距": gaps})
+    ok("標籤都在節點右邊（經典版 label.position = right）",
+       all(n["lab"] and n["lab"]["x"] > n["x"] for n in t0["nodes"]),
+       [n["key"] for n in t0["nodes"] if n["lab"] and n["lab"]["x"] <= n["x"]][:3])
+    bad_mid = []
+    for c in L1:
+        ks = [g for g in L2 if g["parent"] == c["key"]]
+        if ks and abs(c["y"] - (min(g["y"] for g in ks) + max(g["y"] for g in ks)) / 2) > 1.5:
+            bad_mid.append(c["name"])
+    ok("產業鏈節點在它第一個與最後一個族群的正中間（經典版 tree 的父節點置中）", not bad_mid, bad_mid)
+    lf_step = sorted({round(per[k][i + 1]["y"] - per[k][i]["y"]) for k in per for i in range(len(per[k]) - 1)})
+    ok("同一族群的代表股等距排開（經典版一片葉子 16px 的間距，≥ 12px）",
+       bool(lf_step) and min(lf_step) >= 12 and max(lf_step) - min(lf_step) <= 1, lf_step)
+    ok("標籤沒有互相重疊", _topo_overlap(t0) == 0, _topo_overlap(t0))
+    ok("發光 shadowBlur ≤ 6px、畫布字 ≥ 12px", 0 < t0["maxBlur"] <= 6 and (t0["minFont"] or 0) >= 12, [t0["maxBlur"], t0["minFont"]])
+    # ---- 特效半：照拓撲版
+    lk = [x for x in t0["links"] if not x["dead"]]
+    ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
+    ok("線寬最粗 ≥ 最細 ×6（依金額平方根，1～13px）", max(ws) >= min(ws) * 6 and 1 <= min(ws) and max(ws) <= 13.01,
+       {"min": min(ws), "max": max(ws)})
+    ok("粒子速度最大 ≥ 最小 ×4", bool(vs) and max(vs) >= min(vs) * 4, vs and {"min": min(vs), "max": max(vs)})
+    _topo_contrast(t0, "[經典光纖 1440 深色]")
+    ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
+       sum(x["n"] for x in t0["links"] if x["lv"] == 2))
+    # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
+    ok("粒子全部在自己的曲線上、根節點左邊沒有散點", t0["offCurve"] == 0 and t0["leftStray"] == 0,
+       {k: t0[k] for k in ("particles", "offCurve", "leftStray", "rootX")})
+    # ---- 換日：拉Bar／－＋／依排名換位的補間
+    bar = "#sankeyDays input[type=range]"
+    if ok("有「看哪一天」拉Bar", count(pg, bar) == 1):
+        sub0 = text(pg, "#sankeySub")
+        l3a = [n["text"] for n in _fx_lv(t0, 3)]
+        set_range(pg, bar, 0, 1200)
+        pg.wait_for_timeout(600)
+        t2 = pg.evaluate(TOPO)
+        changed("拉到最舊那天：副標日期換了", sub0, text(pg, "#sankeySub"))
+        changed("拉到最舊那天：代表股標籤（名單或 %）跟著換", l3a, [n["text"] for n in _fx_lv(t2, 3)])
+        ok("拉到最舊那天：仍是經典光纖、四層都在", bool(t2) and t2["layout"] == "classic"
+           and len(_fx_lv(t2, 3)) >= len(_fx_lv(t2, 2)) * 2)
+        _topo_rank_ok(t2, "經典光纖・拉到最舊那天")
+        tb = pg.evaluate(TOPO)
+        pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].find(b => b.textContent === '＋').click()")
+        pg.wait_for_timeout(900)
+        changed("按「＋」：族群數值真的變", [n["text"] for n in _fx_lv(tb, 2)], [n["text"] for n in _fx_lv(pg.evaluate(TOPO), 2)])
+        tb = pg.evaluate(TOPO)
+        pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].find(b => b.textContent === '−').click()")
+        pg.wait_for_timeout(900)
+        changed("按「−」：族群數值真的變", [n["text"] for n in _fx_lv(tb, 2)], [n["text"] for n in _fx_lv(pg.evaluate(TOPO), 2)])
+        _topo_swap_tween(pg, bar)
+        # ▶ 回放：量幀率（回放中每 650ms 換一天、每一幀都在補間＋重畫底圖與標籤，是這張圖最重的狀態）
+        set_range(pg, bar, 0, 900)
+        scroll_to(pg, "sankey")
+        sa = text(pg, "#sankeySub")
+        pg.evaluate("() => window.FlowTopo.resetMeter(document.getElementById('sankey'))")
+        pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
+        pg.wait_for_timeout(2600)
+        page_fps = pg.evaluate("""() => new Promise(res => { let n = 0; const t0 = performance.now();
+            const f = () => { n++; if (performance.now() - t0 < 1500) requestAnimationFrame(f);
+              else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); })""")
+        tp2 = pg.evaluate(TOPO)
+        changed("按 ▶ 回放：副標日期一天一天走", sa, text(pg, "#sankeySub"))
+        ok("回放中仍是經典光纖、動畫迴圈在跑", bool(tp2) and tp2["layout"] == "classic" and tp2["running"], tp2 and tp2.get("running"))
+        notes.append(f"經典光纖回放幀率（1440、headless 軟體繪圖）：{tp2['fps']} FPS（同時段整頁 rAF {page_fps:.1f}）、"
+                     f"每幀運算 {tp2['avgCostMs']} ms（含補間中重排標籤與重畫底圖）、單次換日重畫 {tp2.get('lastDrawMs')} ms")
+        ok("回放中每幀運算 < 12ms（預算 16.7ms）", 0 < tp2["avgCostMs"] < 12, {k: tp2[k] for k in ("fps", "avgCostMs", "frames")})
+        ok("回放中迴圈沒有掉幀（≥ 同時段整頁 rAF 的 60%）", tp2["fps"] >= page_fps * 0.6, {"fx": tp2["fps"], "page": round(page_fps, 1)})
+        pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
+        pg.wait_for_timeout(800)
+        set_range(pg, bar, pg.evaluate(f"() => +document.querySelector('{bar}').max"), 1000)
+    # ---- 滑過提示
+    scroll_to(pg, "sankey")
+    t3 = pg.evaluate(TOPO)
+    g1 = _topo_node(pg, [n for n in _fx_lv(t3, 2) if not n["stale"] and not n["nodata"]][0]["key"])
+    pg.mouse.move(g1["cx"], g1["cy"]); pg.wait_for_timeout(500)
+    tip = pg.evaluate("() => { const t = document.querySelector('#sankey .fttip.on'); return t ? t.innerText : ''; }")
+    ok("滑過族群：提示框寫著成交值與佔上一層", "成交值" in tip and "佔上一層" in tip, tip[:60])
+    ok("滑過族群：路徑以外壓暗（hover 聚焦）", (pg.evaluate(TOPO) or {}).get("hover") == g1["key"])
+    lf1 = _topo_node(pg, [n for n in _fx_lv(t3, 3) if not n["stale"] and not n["rest"]][0]["key"])
+    pg.mouse.move(lf1["cx"], lf1["cy"]); pg.wait_for_timeout(500)
+    tip2 = pg.evaluate("() => { const t = document.querySelector('#sankey .fttip.on'); return t ? t.innerText : ''; }")
+    ok("滑過代表股：提示框寫著成交值、提示點一下進個股頁", "成交值" in tip2 and "個股頁" in tip2, tip2[:60])
+    pg.mouse.move(5, 5); pg.wait_for_timeout(300)
+    # ---- 點族群：展開全部成分股＋面板；點代表股進個股頁；再點收回
+    det = pg.evaluate("() => window.App.D.groups_detail || {}")
+    cand = [n for n in _fx_lv(t3, 2) if not n["key"].startswith("g:ind_") and not n["stale"]
+            and len((det.get(n["key"][2:]) or {}).get("members") or []) >= 5]
+    if ok("找得到成分股 ≥ 5 檔的族群來點", bool(cand)):
+        gk = cand[0]["key"]
+        n_before = len([n for n in _fx_lv(t3, 3) if n["parent"] == gk])
+        ok("用滑鼠點族群節點", _topo_click(pg, gk))
+        t4 = pg.evaluate(TOPO)
+        mine = [n for n in _fx_lv(t4, 3) if n["parent"] == gk]
+        ok("點族群：那個族群的成分股從三檔延伸成全部（經典版同一套）", len(mine) > max(3, n_before), f"{n_before} → {len(mine)}")
+        ok("點族群：族群名前面標 ▾、別的族群的代表股仍常駐", any(n["key"] == gk and n["text"].startswith("▾") for n in t4["nodes"])
+           and len([n for n in _fx_lv(t4, 3) if n["parent"] != gk]) >= 10)
+        ok("點族群：右邊成分股面板打開", pg.evaluate(
+            "() => { const b = document.getElementById('sankeyPanel'); return !!b && !b.hidden && b.querySelectorAll('.ms a').length > 0; }"))
+        ok("點族群：其餘族群被壓暗", sum(1 for n in _fx_lv(t4, 2) if n["dim"]) >= 5)
+        ok("展開後標籤仍不重疊", _topo_overlap(t4) == 0, _topo_overlap(t4))
+        lf = [n for n in mine if not n["rest"]][0]
+        code = lf["key"].split(":")[-1]
+        ok("用滑鼠點代表股節點", _topo_click(pg, lf["key"]))
+        ok("點代表股：真的進到那一檔的個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}", pg.evaluate("() => location.hash"))
+        pg.go_back(wait_until="networkidle"); pg.wait_for_timeout(1800)
+        wait_until(pg, "() => window.App.sankeyTopoOn()", 5000)
+        scroll_to(pg, "sankey"); pg.wait_for_timeout(600)
+        if len([n for n in _fx_lv(pg.evaluate(TOPO), 3) if n["parent"] == gk]) <= 3:
+            _topo_click(pg, gk)
+        ok("再點一次同一個族群", _topo_click(pg, gk))
+        t5 = pg.evaluate(TOPO)
+        ok("再點一次：收回成三檔、面板關掉", len([n for n in _fx_lv(t5, 3) if n["parent"] == gk]) <= 3 and pg.evaluate(
+            "() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    # ---- 點產業鏈 → 壓暗別條；點背景 → 回預設
+    t6 = pg.evaluate(TOPO)
+    ok("用滑鼠點產業鏈節點", _topo_click(pg, _fx_lv(t6, 1)[0]["key"]))
+    t7 = pg.evaluate(TOPO)
+    ok("點產業鏈：別條鏈被壓暗、面板打開", sum(1 for n in _fx_lv(t7, 1) if n["dim"]) == len(_fx_lv(t7, 1)) - 1 and pg.evaluate(
+        "() => { const b = document.getElementById('sankeyPanel'); return !!b && !b.hidden; }"))
+    box = pg.evaluate("() => { const r = document.querySelector('#sankey canvas.ftlab').getBoundingClientRect(); return [r.left, r.bottom]; }")
+    pg.mouse.click(box[0] + 6, box[1] - 6); pg.wait_for_timeout(900)
+    t8 = pg.evaluate(TOPO)
+    ok("點背景：回到預設（沒有節點被壓暗、面板關掉）", not any(n["dim"] for n in t8["nodes"]) and pg.evaluate(
+        "() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    # ---- 即時
+    if ok("「即時」鈕在拉Bar 那一列", count(pg, "#sankeyDays #sankeyLiveBtn") == 1):
+        pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()")
+        wait_until(pg, "() => { const s = window.App.sankeyLive(); return s.on && !s.busy; }", 15000)
+        tl = pg.evaluate(TOPO)
+        ok("按「即時」：進入即時模式、經典光纖照樣畫得出來", pg.evaluate("() => window.App.sankeyLive().on")
+           and bool(tl) and tl["layout"] == "classic")
+        pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()"); pg.wait_for_timeout(800)
+        ok("再按一次：退出即時", not pg.evaluate("() => window.App.sankeyLive().on"))
+    # ---- 動態開關：關掉就完全靜止、記住；開回來
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(500)
+    ok("動態預設開、迴圈在跑", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()"); pg.wait_for_timeout(700)
+    tm = pg.evaluate(TOPO)
+    ok("按「動態」：動畫停、設定寫進 localStorage", not tm["motion"] and not tm["running"]
+       and pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')") == "0")
+    ha = canvas_hash(pg, "#sankey"); pg.wait_for_timeout(900)
+    ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == canvas_hash(pg, "#sankey"))
+    _topo_contrast(tm, "[經典光纖・動態關]", motion=False)
+    pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()")
+    ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    # ---- 看不見就停：捲出畫面
+    # 捲回頁首（instant）：資金去向卡在首屏下方 1000px 以外；往下捲過卡片不一定捲得動（頁尾不夠長）
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})")
+    ok("捲回頁首時資金去向的畫布真的在視窗外（前提；卡片標題可能剛好露出一行）", pg.evaluate(
+        "() => document.querySelector('#sankey .ftstage').getBoundingClientRect().top > innerHeight"))
+    stopped = wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.running ? 1 : 0; }", 4000)
+    ok("捲出畫面：動畫迴圈停掉（IntersectionObserver）", bool(stopped), (pg.evaluate(TOPO) or {}).get("running"))
+    scroll_to(pg, "sankey")
+    ok("捲回來：動畫迴圈接上", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    # ---- 三種模式切換：每一種都真的畫得出來、設定記在 tw.sankey.mode
+    for key, want in (("topo", "topo"), ("classic", None), ("fx", "classic")):
+        pg.eval_on_selector(f'#sankeyStyleSeg [data-sk-style="{key}"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        st = pg.evaluate("""() => { const el = document.getElementById('sankey'); const ec = echarts.getInstanceByDom(el);
+            const t = window.App.sankeyTopo();
+            return { ls: localStorage.getItem('tw.sankey.mode'), ec: !!ec, stage: !!el.querySelector('.ftstage'),
+                     layout: t ? t.layout : null, n: t ? t.nodes.length : 0,
+                     ecN: ec ? JSON.stringify(ec.getOption().series[0].data).length : 0,
+                     pressed: [...document.querySelectorAll('#sankeyStyleSeg [aria-pressed="true"]')].map(b => b.dataset.skStyle) }; }""")
+        name = {"topo": "拓撲", "classic": "經典", "fx": "經典光纖"}[key]
+        if want:
+            good = st["stage"] and not st["ec"] and st["layout"] == want and st["n"] > 10
+        else:
+            good = st["ec"] and not st["stage"] and st["ecN"] > 1000
+        ok(f"切到「{name}」：真的畫出來、設定記住、分段鈕跟著亮", good and st["ls"] == key and st["pressed"] == [key], st)
+        if key == "topo":
+            t9 = pg.evaluate(TOPO)
+            ok("拓撲：個股層預設收起（和經典光纖的差別）", bool(t9) and not _fx_lv(t9, 3))
+    # ---- 重新整理：設定記住
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1000)
+    ok("重新整理之後仍是經典光纖", (pg.evaluate(TOPO) or {}).get("layout") == "classic")
+    # ---- 窄一點的桌機（1024）＋手機邊界
+    pg.set_viewport_size({"width": 1024, "height": 950}); pg.wait_for_timeout(1600)
+    tw = pg.evaluate(TOPO)
+    ok("[1024px] 經典光纖：四層都在、標籤不重疊、沒有橫向捲軸", bool(tw) and tw["layout"] == "classic" and len(_fx_lv(tw, 3)) >= 20
+       and _topo_overlap(tw) == 0 and pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+       tw and {"overlap": _topo_overlap(tw), "leaves": len(_fx_lv(tw, 3))})
+    ok("[1024px] 分段鈕沒有被擠出拉Bar 那一列", pg.evaluate("""() => { const s = document.getElementById('sankeyStyleSeg');
+        const r = s.getBoundingClientRect(), p = document.getElementById('sankeyDays').getBoundingClientRect();
+        return r.width > 60 && r.right <= p.right + 1 && r.left >= p.left - 1; }"""))
+    pg.set_viewport_size({"width": 800, "height": 950}); pg.wait_for_timeout(1600)
+    ok("[800px] 手機寬維持經典版（ECharts），分段鈕藏起來", not pg.evaluate("() => window.App.sankeyTopoOn()") and pg.evaluate(
+        "() => getComputedStyle(document.getElementById('sankeyStyleSeg')).display === 'none'"))
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(1600)
+    # ---- 淺色主題
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
+    tl = pg.evaluate(TOPO)
+    ok("[淺色] 經典光纖畫得出來、是淺色配色、發光 ≤ 6", bool(tl) and tl["layout"] == "classic" and tl["dark"] is False
+       and tl["maxBlur"] <= 6, tl and (tl["layout"], tl["dark"]))
+    if tl:
+        _topo_contrast(tl, "[經典光纖 1440 淺色]")
+        ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.sankey.style'); } catch (e) {} }")
+    # ---- 減少動態效果：經典光纖一樣只畫靜態、換日不補間
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    p2 = ctx.new_page()
+    p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    p2.goto(f"{base}#flow", wait_until="networkidle")
+    p2.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
+    p2.reload(wait_until="networkidle")
+    wait_until(p2, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
+    p2.wait_for_timeout(1200)
+    tr = p2.evaluate(TOPO)
+    ok("[減少動態] 經典光纖照樣畫得出來、動畫不跑、動態鈕停用", bool(tr) and tr["layout"] == "classic" and tr["reduce"]
+       and not tr["running"] and p2.evaluate("() => document.getElementById('sankeyMotionBtn').disabled"),
+       tr and {k: tr[k] for k in ("layout", "reduce", "running")})
+    if count(p2, bar) == 1:
+        p2.evaluate(f"() => {{ const i = document.querySelector('{bar}'); i.value = 0;"
+                    " i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
+        tr2 = p2.evaluate(TOPO)
+        ok("[減少動態] 換日直接到位（沒有補間）", bool(tr2) and not tr2["tweening"])
     ctx.close()
 
 

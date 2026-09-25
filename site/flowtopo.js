@@ -21,6 +21,16 @@
    這支的粒子座標每一幀都從**目前的**曲線查表算，版面一變曲線就重算，物理上不會脫線；
    驗收另外量「每顆粒子離它那條曲線的距離」與「根節點左邊有沒有粒子」。
 
+   ★ 2026-09-25 Andy：「維持經典版風格，但傳輸特效需要跟拓撲版一樣」→ 加一個**經典版面**模式
+   （opts.layout === 'classic'，桌機預設）：
+     · 版面、層級、標籤照經典版（ECharts 樹）：四層都常駐（台股 → 產業鏈 → 族群 → 代表股三檔）、
+       欄位等分、葉子等距（同族群間距 1、跨族群 2，和 ECharts tree 的 separation 同一條規則）、
+       父節點在第一個與最後一個子節點的正中間、標籤是節點右邊的描邊文字（不是膠囊）、代表股標 % 佔族群、
+       圓點大小沿用經典版的 8＋22×√(佔比) 直徑、產業鏈是直立細條。
+     · 線與傳輸特效沿用這支的拓撲版那一套（同一組映射，不另寫）：線寬依金額平方根 1～13px、
+       發光光纖、粒子速度／密度／明暗依金額拉開、shadowBlur ≤ 6、換日依排名換位的補間、動態開關、減少動態。
+   原本的拓撲版（族群點開才長個股、膠囊標籤、卡片 ≤ 760px）照舊留著，opts.layout 不給就是它。
+
    規矩（CLAUDE.md，載入時斷言，違規直接丟錯）：
      · 發光 shadowBlur 4～6px（上限 10，這裡壓 6）；只在預先畫好的粒子小圖上用
      · Canvas 字級 ≥ 12px（setTransform 乘 DPR，字是用 CSS px 算的，不會糊）
@@ -47,6 +57,16 @@
     P_MAX: 900,              // 粒子物件池上限
     TWEEN_MS: 480,
     LS_MOTION: 'tw.flowtopo.motion',
+    /* 經典版面（layout: 'classic'）：數字全部取自經典版 ECharts 樹（app.js renderSankey 的 series 設定）*/
+    CL_LEAF_ROW: 16,         // 一片葉子 16px（經典版的高度公式：葉子數 × 16 ＋ 64）
+    CL_H_MIN: 560, CL_H_MAX: 1040, CL_H_MAX_EXP: 1400,   // 經典版的上下限（有族群展開時放到 1400）
+    CL_LEFT: 14, CL_RIGHT: 132, CL_TOP: 14, CL_BOTTOM: 18,  // 經典版 left 10（根節點半徑 13 會被裁 3px，所以 14）、right 132
+    CL_LABEL_GAP: 7,         // 標籤離節點 7px（經典版 label.distance）
+    CL_LEAF_LABEL_W: 120,
+    /* 經典版面的粒子預算：四層常駐之後連線從 23 條變 77 條，照同一組映射直接發車會到 650 顆左右、
+       每幀成本是拓撲版的 2.5～3 倍（headless 實測 7～9ms）。發車率整體乘同一個係數壓回預算內 ——
+       係數對每條線一樣，所以「最密／最疏」的比例（驗收 ×6）不變；「每條線至少一顆」的下限不受影響。*/
+    CL_P_BUDGET: 380,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
   });
   (function assertRules() {
     if (!(CFG.GLOW_MAX <= 6 && CFG.GLOW_DARK <= CFG.GLOW_MAX && CFG.GLOW_LIGHT <= CFG.GLOW_MAX
@@ -151,7 +171,10 @@
     S.font = (g, px, w) => {
       if (px < CFG.FONT_MIN) throw new Error('flowtopo：字級 ' + px + 'px 低於下限');
       S.meter.minFont = Math.min(S.meter.minFont, px);
-      g.font = `${w || 500} ${px}px ${FONT}`;
+      /* 設 ctx.font 每次都要解析整串 CSS 字型（Chrome 上不便宜）；經典版面一張圖約 300 段字，
+         跟上一次一樣就不重設。畫布改尺寸會把狀態清掉，所以 sizeCanvases() 會把 __f 一起清掉。*/
+      const f = `${w || 500} ${px}px ${FONT}`;
+      if (g.__f !== f) { g.font = f; g.__f = f; }
     };
 
     mbtn.onclick = () => {
@@ -161,7 +184,11 @@
     };
     const onMQ = () => setMotion(S, motionWanted());
     try { reduceMQ.addEventListener ? reduceMQ.addEventListener('change', onMQ) : reduceMQ.addListener(onMQ); } catch (e) { /* 舊瀏覽器 */ }
-    S.onVis = () => { if (document.hidden) stopLoop(S); else startLoop(S); };
+    S.onVis = () => {
+      if (document.hidden) return stopLoop(S);
+      if (S.pendingDraw && !farAway(S)) layoutAndDraw(S, false, true);
+      startLoop(S);
+    };
     document.addEventListener('visibilitychange', S.onVis);
     if (window.IntersectionObserver) {
       S.io = new IntersectionObserver((es) => {
@@ -169,6 +196,11 @@
         if (S.visible) startLoop(S); else stopLoop(S);
       });
       S.io.observe(stage);
+      /* 首次畫圖延後（見 layoutAndDraw 的 pendingDraw）：捲進畫面就當場畫 */
+      S.pendIO = new IntersectionObserver((es) => {
+        if (S.alive && S.pendingDraw && es.some(e => e.isIntersecting)) layoutAndDraw(S, false, true);
+      });
+      S.pendIO.observe(stage);
     }
     if (window.ResizeObserver) {
       S.ro = new ResizeObserver(() => {
@@ -191,6 +223,8 @@
     stopLoop(S);
     document.removeEventListener('visibilitychange', S.onVis);
     if (S.io) S.io.disconnect();
+    if (S.pendIO) S.pendIO.disconnect();
+    if (S.pendIdle && window.cancelIdleCallback) try { cancelIdleCallback(S.pendIdle); } catch (e) { /* 忽略 */ }
     if (S.ro) S.ro.disconnect();
     if (S.cleanupMQ) S.cleanupMQ();
     if (S.bar.parentNode === host) host.removeChild(S.bar);
@@ -202,6 +236,7 @@
   function setMotion(S, on) {
     S.motion = !!on;
     paintMotionBtn(S);
+    if (!S.drawn) return;                    // 還沒畫過（首次畫圖延後中）：等真的畫的時候自然照新設定畫
     if (S.motion) { prewarm(S, 3); startLoop(S); }
     else { stopLoop(S); drawStill(S); }
   }
@@ -238,6 +273,7 @@
 
   function buildModel(S) {
     const M = S.model, o = S.opts, maxV = o.maxV || 1;
+    const classic = S.classic = o.layout === 'classic';
     const ratio = (v) => Math.min(1, Math.max(0, (v || 0) / maxV));
     const seenN = new Set(), seenL = new Set();
     const order = [];
@@ -276,10 +312,12 @@
         const dot = hue;
         const g = up('g:' + gd.gid, { lv: 2, d: gd, name: clean(gd.name), hue, dot, rt: ratio(gd.value),
           dim: !!gd.dim, stale: !!gd.stale, nodata: !!gd.nodata, top: top === gd, parent: c,
-          open: o.openGid != null && o.openGid === gd.gid });
+          open: o.openGid != null && o.openGid === gd.gid,
+          // 經典版面：這個族群佔幾個葉子槽位（含 app.js 補的看不見佔位，讓每天縱向空間一樣 —— 和經典版同一招）
+          slots: Math.max(1, (gd.children || []).length) });
         g.kids = [];
         c.kids.push(g);
-        if (g.open) {
+        if (g.open || classic) {
           (gd.children || []).forEach(xd => {
             if (xd.placeholder) return;
             const lf = up('l:' + gd.gid + ':' + (xd.code || ('rest' + (xd.restN || ''))), { lv: 3, d: xd,
@@ -334,6 +372,11 @@
   /* 版面：四欄（有展開的族群才有第四欄）。族群等距槽位、產業鏈之間空 0.7 列、
      成分股以族群為中心往上下排開（夾在畫布內）。回傳這一輪要的畫布高度。*/
   function wantHeight(S) {
+    if (S.classic) {                 // 經典版的公式：葉子數 × 16 ＋ 64，夾在 560～1040（有展開 1400）
+      const slots = S.root.kids.reduce((a, c) => a + c.kids.reduce((b, g) => b + g.slots, 0), 0);
+      const open = S.order.some(n => n.lv === 2 && n.open);
+      return Math.max(CFG.CL_H_MIN, Math.min(open ? CFG.CL_H_MAX_EXP : CFG.CL_H_MAX, slots * CFG.CL_LEAF_ROW + 64));
+    }
     const chains = S.root.kids, nG = chains.reduce((a, c) => a + c.kids.length, 0);
     const slots = nG + 0.7 * Math.max(0, chains.length - 1);
     let h = Math.round(slots * CFG.ROW + 30);
@@ -341,9 +384,59 @@
     if (nL) h = Math.max(h, nL * CFG.LEAF_ROW + 30);
     return Math.max(CFG.H_MIN, Math.min(CFG.H_MAX, h));
   }
+  /* 經典版面：照 ECharts tree（orient LR、orthogonal）的排法 ——
+     深度等分欄位；葉子沿縱向等距，同一個族群的相鄰葉子距 1 單位、跨族群 2 單位（ECharts 預設 separation）；
+     父節點＝第一個與最後一個子節點的正中間。回傳 cols。*/
+  function layoutClassic(S) {
+    const W = S.W, H = S.H, root = S.root, chains = root.kids;
+    const x0 = CFG.CL_LEFT, u = Math.max(60, (W - CFG.CL_LEFT - CFG.CL_RIGHT) / 3);
+    const cols = [x0, x0 + u, x0 + 2 * u, x0 + 3 * u];
+    // 先數單位：每個葉子槽位 1，跨族群多 1
+    let units = 0, first = true;
+    chains.forEach(c => c.kids.forEach(g => { units += (first ? 0 : 2) + (g.slots - 1); first = false; }));
+    const top = CFG.CL_TOP, span = H - CFG.CL_TOP - CFG.CL_BOTTOM;
+    const step = units > 0 ? span / units : 0;
+    S.step = step;
+    let k = 0; first = true;
+    chains.forEach(c => {
+      c.kids.forEach(g => {
+        if (!first) k += 2; first = false;
+        const y0 = top + k * step;
+        k += g.slots - 1;
+        const y1 = top + k * step;
+        g.tx = cols[2]; g.ty = units > 0 ? (y0 + y1) / 2 : H / 2;
+        // 經典版：族群直徑 8＋22×√佔比；盤後／無資料 6
+        g.r = g.stale || g.nodata ? 3 : 4 + 11 * Math.sqrt(g.rt);
+        g.kids.forEach((lf, i) => {
+          lf.tx = cols[3]; lf.ty = y0 + i * step;
+          // 經典版：葉子直徑 max(6, 族群公式 × 0.62)
+          lf.r = lf.stale ? 2.5 : Math.max(3, (8 + 22 * Math.sqrt(lf.rt)) * 0.31);
+        });
+      });
+      c.tx = cols[1];
+      c.ty = c.kids.length ? (c.kids[0].ty + c.kids[c.kids.length - 1].ty) / 2 : H / 2;
+    });
+    root.tx = cols[0];
+    root.ty = chains.length ? (chains[0].ty + chains[chains.length - 1].ty) / 2 : H / 2;
+    root.r = 13;                                         // 經典版根節點 symbolSize 26
+    // 產業鏈：直立細條，高＝從它出發的線寬加總（經典版 barH，最小 8）
+    chains.forEach(c => {
+      const outs = S.linkList.filter(e => e.from === c);
+      const sum = outs.reduce((a, e) => a + e.w, 0) + 1.2 * Math.max(0, outs.length - 1);
+      c.hh = Math.max(4, sum / 2 + 1);
+      c.r = 2.5; c.cw = 4;                               // 經典版直條寬 4
+    });
+    return cols;
+  }
+
   function layout(S) {
     const W = S.W, H = S.H, root = S.root, chains = root.kids;
     const padT = 16, padB = 14;
+    const cols = S.classic ? layoutClassic(S) : layoutTopo(S, W, H, root, chains, padT, padB);
+    placeTween(S);
+    S.cols = cols;
+  }
+  function layoutTopo(S, W, H, root, chains, padT, padB) {
     const cols = S.anyLeaves ? [26, W * 0.21, W * 0.47, W * 0.75] : [26, W * 0.29, W * 0.64, W];
     const nG = chains.reduce((a, c) => a + c.kids.length, 0);
     const slots = nG + 0.7 * Math.max(0, chains.length - 1);
@@ -367,7 +460,7 @@
       const outs = S.linkList.filter(e => e.from === c);
       const span = outs.reduce((a, e) => a + e.w, 0) + 1.6 * Math.max(0, outs.length - 1);
       c.hh = Math.max(6, Math.min(step * 1.6, span / 2 + 2));
-      c.r = 3.2;
+      c.r = 3.2; c.cw = 6;
     });
     // 成分股
     chains.forEach(c => c.kids.forEach(g => {
@@ -380,6 +473,9 @@
         lf.r = lf.stale ? 2.4 : 2.6 + 2.6 * Math.sqrt(lf.rt);
       });
     }));
+    return cols;
+  }
+  function placeTween(S) {
     // 第一次、或動畫關著：直接就位；否則補間（換位、展開、收回都看得到「誰去了哪裡」）
     const moving = S.order.some(n => isFinite(n.x) && (Math.abs(n.x - n.tx) > 0.5 || Math.abs(n.y - n.ty) > 0.5));
     S.order.forEach(n => {
@@ -398,7 +494,6 @@
       S.tween = { t0: performance.now(), dur: playing ? (S.opts.playFrame || 650) : (S.tweenMs || CFG.TWEEN_MS), lin: playing };
       S.twE = 0;
     } else { S.tween = null; S.twE = 1; S.order.forEach(n => { n.x = n.tx; n.y = n.ty; }); }
-    S.cols = cols;
   }
 
   /* 從一個節點出去的多條線，起點在節點的直徑（或膠囊高度）內依目標 y 排開 →
@@ -498,7 +593,8 @@
   /* ---- 標籤層：節點右側的行內膠囊（名稱　% 佔上一層　▲▼比前一天）---- */
   function partsOf(S, n) {
     const d = n.d, P = S.pal, out = [];
-    const nameCol = n.lv === 1 ? P.ink : n.lv === 2 ? (n.top ? P.ink : P.ink2) : P.ink2;
+    // 經典版面的代表股整串用 --ink-3（經典版 leaves.label.color）；拓撲版膠囊裡用 --ink-2
+    const nameCol = n.lv === 1 ? P.ink : n.lv === 2 ? (n.top ? P.ink : P.ink2) : (S.classic ? P.ink3 : P.ink2);
     const nameW = n.lv === 1 || (n.lv === 2 && n.top) ? 700 : n.lv === 0 ? 700 : 500;
     const nameFs = n.lv === 1 || n.lv === 0 ? 13 : 12;
     if (n.lv === 0) {
@@ -527,7 +623,17 @@
     }
     return out;
   }
+  /* 量字寬快取：補間時每幀都要重排標籤（百分比跟著補間），經典版面一張圖約 100 個標籤 ——
+     同一個字串＋字型量過就不再量（上限 4000 筆，滿了整包清掉）。*/
+  const _mw = new Map();
+  function mw(g, t) {
+    const key = (g.__f || g.font) + '|' + t;
+    let v = _mw.get(key);
+    if (v == null) { v = g.measureText(t).width; if (_mw.size > 4000) _mw.clear(); _mw.set(key, v); }
+    return v;
+  }
   function measureLabels(S) {
+    if (S.classic) return measureLabelsClassic(S);
     const g = S.gL, W = S.W, cols = S.cols;
     S.order.forEach(n => {
       const parts = partsOf(S, n).map(p => ({ ...p }));
@@ -540,7 +646,7 @@
       const maxW = Math.max(40, nextX - x);
       let bw = 0;
       lines.forEach(line => {
-        line.forEach(p => { S.font(g, p.fs, p.w); p.pw = g.measureText(p.t).width; });
+        line.forEach(p => { S.font(g, p.fs, p.w); p.pw = mw(g, p.t); });
         let lw = line.reduce((a, p) => a + p.pw, 0) + 12;
         const nm = line.find(p => p.name);
         if (lw > maxW && nm) {            // 放不下：只截名稱，數字永遠完整（全名在提示框）
@@ -548,7 +654,7 @@
           S.font(g, nm.fs, nm.w);
           for (let k = cs.length - 1; k >= 1 && lw > maxW; k--) {
             nm.t = cs.slice(0, k).join('') + '…';
-            const w2 = g.measureText(nm.t).width; lw = lw - nm.pw + w2; nm.pw = w2;
+            const w2 = mw(g, nm.t); lw = lw - nm.pw + w2; nm.pw = w2;
           }
         }
         line.w = lw; bw = Math.max(bw, lw);
@@ -559,7 +665,74 @@
       n.lab = { lines, x, y, w: bw, h: bh };
     });
   }
+  /* 經典版面的標籤：節點右邊 7px 的描邊文字（經典版 label.position 'right'、distance 7、
+     textBorder 3px 面板色），不畫膠囊底。右邊界＝下一欄節點左邊 8px；代表股寬度上限 120px。
+     放不下只截名稱，數字永遠完整（全名在提示框）。n.lab 的框＝字實際佔的範圍（驗收量重疊用）。*/
+  function measureLabelsClassic(S) {
+    const g = S.gL, W = S.W, cols = S.cols;
+    S.order.forEach(n => {
+      const parts = partsOf(S, n).map(p => ({ ...p }));
+      const lines = [[]];
+      parts.forEach(p => { if (p.t[0] === '\n') { lines.push([]); p.t = p.t.slice(1); } lines[lines.length - 1].push(p); });
+      const x = n.tx + (n.lv === 1 ? 2 : n.r) + CFG.CL_LABEL_GAP;
+      const nextX = n.lv === 0 ? cols[1] - 10 : n.lv === 1 ? cols[2] - 12 : n.lv === 2 ? cols[3] - 10 : W - 4;
+      const maxW = n.lv === 3 ? Math.min(CFG.CL_LEAF_LABEL_W, W - 4 - x) : Math.max(40, nextX - x);
+      let bw = 0;
+      lines.forEach(line => {
+        line.forEach(p => { S.font(g, p.fs, p.w); p.pw = mw(g, p.t); });
+        let lw = line.reduce((a, p) => a + p.pw, 0);
+        const nm = line.find(p => p.name);
+        if (lw > maxW && nm) {
+          const cs = Array.from(nm.t);
+          S.font(g, nm.fs, nm.w);
+          for (let k = cs.length - 1; k >= 1 && lw > maxW; k--) {
+            nm.t = cs.slice(0, k).join('') + '…';
+            const w2 = mw(g, nm.t); lw = lw - nm.pw + w2; nm.pw = w2;
+          }
+        }
+        line.w = lw; bw = Math.max(bw, lw);
+      });
+      const fs = Math.max(...lines[0].map(p => p.fs));
+      const lh = 15, bh = fs + (lines.length - 1) * lh;     // 字框高＝字級（多行時每行 15px，經典版 lineHeight）
+      n.lab = { lines, x, y: n.ty - bh / 2, w: bw, h: bh, fs };
+    });
+  }
+  function drawLabelsClassic(S) {
+    const g = S.gL, P = S.pal;
+    g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
+    /* 描邊寬：經典版是 3（textBorderWidth），但這裡壓在底下的是 1～13px 的發光光纖，3 會被粗線吃掉、
+       字邊糊成一團 —— 加到 4.5（字外緣約 2px 面板色），仍然是「描邊文字」而不是膠囊底。*/
+    g.textBaseline = 'middle'; g.lineJoin = 'round'; g.lineWidth = 4.5;
+    g.strokeStyle = P.panel;
+    S.order.forEach(n => {
+      const B = n.lab; if (!B) return;
+      const ox = n.x - n.tx, oy = n.y - n.ty;
+      // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25（經典版 blur.label.opacity）
+      g.globalAlpha = n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.55 : 1) : 0.25);
+      /* 產業鏈與族群的標籤正好壓在往下一層分出去的光纖上（線從節點中心出發、前 150px 幾乎水平），
+         只靠描邊時字縫之間還是看得到發光線、讀起來很吵 —— 墊一層半透明面板色（無邊框、不是膠囊），
+         看起來仍是「線上的描邊文字」，但字讀得出來。代表股在最右欄、底下沒有線，不墊。根節點的字壓在主幹上，一起墊。*/
+      if (n.lv <= 2) {                                    // 根節點的字也壓在主幹上，一起墊
+        g.fillStyle = rgba(P.panel, P.dark ? 0.62 : 0.7);
+        g.beginPath();
+        if (g.roundRect) g.roundRect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4, 3); else g.rect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4);
+        g.fill();
+      }
+      B.lines.forEach((line, li) => {
+        let cx = B.x + ox;
+        const cy = B.y + oy + B.fs / 2 + li * 15 + 0.5;
+        line.forEach(p => {
+          S.font(g, p.fs, p.w);
+          g.strokeText(p.t, cx, cy);                        // 面板色描邊：壓在線上也讀得到（經典版 textBorder）
+          g.fillStyle = p.c; g.fillText(p.t, cx, cy);
+          cx += p.pw;
+        });
+      });
+    });
+    g.globalAlpha = 1;
+  }
   function drawLabels(S) {
+    if (S.classic) return drawLabelsClassic(S);
     const g = S.gL, P = S.pal;
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
     S.order.forEach(n => {
@@ -601,11 +774,18 @@
   }
   function update(S, dt, now, prewarming) {
     const sc = Math.max(0.8, Math.min(1.2, S.W / 1100));
+    let kR = 1;
+    if (S.classic) {                                       // 經典版面：整體發車率壓回粒子預算（見 CFG.CL_P_BUDGET）
+      let want = 0;
+      S.linkList.forEach(e => { if (e.dead || !e.L) return; const v = (18 + 132 * e.spdK) * sc; want += e.rate * e.L / v; });
+      if (want > CFG.CL_P_BUDGET) kR = CFG.CL_P_BUDGET / want;
+    }
+    S.kRate = kR;
     S.linkList.forEach(e => {
       if (e.dead || !e.L) return;
       e.v = (18 + 132 * e.spdK) * sc;                       // px/秒
       /* 每條活著的線「至少一顆在線上」：發車間隔不超過走完全程的時間 */
-      const rate = Math.max(e.rate, e.v / e.L * 1.05); e.er = rate;   // 實際發車率（驗收量通過率用）
+      const rate = Math.max(e.rate * kR, e.v / e.L * 1.05); e.er = rate;   // 實際發車率（驗收量通過率用）
       e.acc += rate * dt;
       while (e.acc >= 1) { e.acc -= 1; spawnOn(S, e, Math.random() * e.v * dt); }
     });
@@ -633,7 +813,7 @@
 
   function nodeShape(g, n, r) {
     if (n.lv === 1) {                                // 產業鏈：直立膠囊
-      const hh = n.hh * (1 + n.px * 0.5), w = 6 * (1 + n.px);
+      const hh = n.hh * (1 + n.px * 0.5), w = (n.cw || 6) * (1 + n.px);
       g.beginPath();
       if (g.roundRect) g.roundRect(n.x - w / 2, n.y - hh, w, hh * 2, w / 2); else g.rect(n.x - w / 2, n.y - hh, w, hh * 2);
     } else { g.beginPath(); g.arc(n.x, n.y, r, 0, Math.PI * 2); }
@@ -652,7 +832,9 @@
         const sp = S.sprites[e.to.hue]; if (!sp) continue;
         const a0 = p.a * e.al * Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
         const sz0 = sp.size * e.pr / sp.R;
-        for (let tail = 2; tail >= 0; tail--) {           // 彗尾：往回 7px、14px 各一顆淡影
+        /* 經典版面：慢的粒子彗尾本來就疊在自己身上（7px 內），省掉那兩次 drawImage；快的才畫尾巴 */
+        const tails = S.classic ? (e.v > 95 ? 2 : e.v > 50 ? 1 : 0) : 2;
+        for (let tail = tails; tail >= 0; tail--) {       // 彗尾：往回 7px、14px 各一顆淡影
           const s = p.s - tail * 7; if (s < 0) continue;
           const f = s / e.L * e.M, k = Math.min(e.M - 1, f | 0), u = f - k, off = p.off * e.w * 0.7;
           const x = e.xs[k] + (e.xs[k + 1] - e.xs[k]) * u + e.nx[k] * off;
@@ -721,6 +903,7 @@
   }
   function startLoop(S) {
     if (S.raf || S.idle || !S.alive || !S.motion || document.hidden || !S.visible || !S.W) return;
+    if (S.needWarm) { S.needWarm = false; const t = performance.now(); prewarm(S, 4); S.meter.warmMs = performance.now() - t; }
     S.lastT = performance.now();
     S.raf = requestAnimationFrame(t => frame(S, t));
   }
@@ -750,15 +933,38 @@
     S.W = w; S.DPR = Math.min(2, window.devicePixelRatio || 1);
     [S.cvBase, S.cvFx, S.cvLab].forEach(c => {
       const pw = Math.round(S.W * S.DPR), ph = Math.round(S.H * S.DPR);
-      if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; }
+      if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; c.getContext('2d').__f = null; }
       c.style.width = S.W + 'px'; c.style.height = S.H + 'px';
     });
   }
-  function layoutAndDraw(S, allowTween) {
+  /* 畫布不在視窗裡（或分頁在背景）→ 還沒必要當場畫 */
+  function farAway(S) {
+    if (document.hidden) return true;
+    const r = S.stage.getBoundingClientRect();
+    return r.top >= window.innerHeight || r.bottom <= 0;
+  }
+  function layoutAndDraw(S, allowTween, force) {
     if (!S.stage.clientWidth) return;
+    const tA = performance.now();
     S.H = wantHeight(S);
     S.stage.style.height = S.H + 'px';
-    S.host.style.height = (S.H + CFG.BAR_H) + 'px';
+    S.host.style.height = (S.H + CFG.BAR_H) + 'px';          // 高度先定（版面不會等圖畫完才長高）
+    /* ★ 2026-09-25（開網頁卡頓那批的要求：首次載入不額外變重）：
+       資金流向頁一進來，這張卡的畫布剛好在首屏下緣之外。**第一次**畫（配三張全尺寸 HiDPI 畫布、量約 300 段字、
+       77 條曲線查表、畫底圖與標籤，容器實測 80～230ms 的長任務）不在載入那一刻做：
+       捲進畫面就當場畫（pendIO）；沒捲的話等瀏覽器閒下來再畫（requestIdleCallback，最慢 1.5 秒）——
+       和 app.js 的 whenNear 同一個想法。分頁在背景也先不畫（onVis 補）。
+       資料模型照算（buildModel 在 render() 裡），所以點擊、探針的節點清單都在。
+       畫過一次之後就照舊每次重畫（換日、即時都要當場反映）。*/
+    if (!S.drawn && !force && farAway(S)) {
+      S.pendingDraw = true;
+      if (!S.pendIdle) {
+        const ric = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+        S.pendIdle = ric(() => { S.pendIdle = 0; if (S.alive && S.pendingDraw && !document.hidden) layoutAndDraw(S, false, true); }, { timeout: 1500 });
+      }
+      return;
+    }
+    S.pendingDraw = false; S.drawn = true;
     const prevW = S.W;
     sizeCanvases(S);
     if (!allowTween || prevW !== S.W) S.first = S.first || prevW !== S.W;
@@ -769,11 +975,16 @@
     if (!S.sprites || S._spriteKey !== spriteKey(S)) { sprites(S); S._spriteKey = spriteKey(S); }
     drawBase(S); drawLabels(S);
     if (S.motion) {
-      if (S.first) prewarm(S, 4);
+      /* 預熱（先模擬 4 秒讓粒子鋪滿）延到迴圈**真的開始跑**的那一刻才做：
+         卡片在首屏下方、分頁在背景時根本不會跑迴圈，首次載入就不必替看不見的動畫付這筆（開網頁卡頓那批的要求）。*/
+      if (S.first) S.needWarm = true;
       drawFx(S, performance.now(), true);
       startLoop(S);
     } else drawStill(S);
     S.first = false;
+    const dt = performance.now() - tA;
+    S.meter.lastDrawMs = dt;
+    if (S.meter.firstDrawMs == null) S.meter.firstDrawMs = dt;
   }
   const spriteKey = (S) => S.DPR + '|' + S.pal.dark + '|' + [...new Set(S.order.map(n => n.hue))].join(',');
 
@@ -837,6 +1048,8 @@
     pal.glow = pal.dark ? CFG.GLOW_DARK : CFG.GLOW_LIGHT;
     const palKey = JSON.stringify(pal);
     if (S._palKey !== palKey) { S._palKey = palKey; S._spriteKey = ''; S.first = true; }
+    const lay = (opts && opts.layout) || 'topo';
+    if (S._layout !== lay) { S._layout = lay; S.first = true; S.tween = null; }   // 換版面：直接就位，不從舊版面補間過來
     S.pal = pal; S.opts = opts || {}; S.model = tree;
     S.leg.innerHTML = opts.legend || '';
     paintMotionBtn(S);
@@ -874,7 +1087,8 @@
       reduce: !!reduceMQ.matches, dark: !!S.pal.dark,
       nodes: S.order.map(n => ({ key: n.key, lv: n.lv, name: n.name, x: Math.round(n.x), y: Math.round(n.y),
         cx: Math.round(b.left + n.x), cy: Math.round(b.top + n.y), r: +(n.r || 0).toFixed(1), dim: !!n.dim,
-        stale: !!n.stale, open: !!n.open, picked: !!n.picked, rest: !!n.rest,
+        stale: !!n.stale, open: !!n.open, picked: !!n.picked, rest: !!n.rest, nodata: !!n.nodata,
+        parent: n.parent ? n.parent.key : null,
         value: n.d ? n.d.value : null,
         text: n.lab ? n.lab.lines.map(l => l.map(p => p.t).join('')).join(' / ') : '',
         chg: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).chg || null : null,
@@ -886,6 +1100,11 @@
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
+      layout: S.classic ? 'classic' : 'topo',
+      firstDrawMs: m.firstDrawMs == null ? null : +m.firstDrawMs.toFixed(1),
+      lastDrawMs: m.lastDrawMs == null ? null : +m.lastDrawMs.toFixed(1),
+      warmMs: m.warmMs == null ? null : +m.warmMs.toFixed(1),
+      pending: !!S.pendingDraw,
       tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
     };
   }

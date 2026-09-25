@@ -6583,7 +6583,9 @@
     ], '篩選：先挑產業鏈、再挑一個族群，圖上就只剩它那一條分支；選「全部族群」或按「清除」回到整張圖。'
       + '桌機版的粒子＝資金流動（「動態」鈕可關）。'
       + '例：「台積電 49.8%」＝吃掉晶圓代工的一半，不是佔全台股一半；滑鼠提示兩種分母都寫。節點旁 ▲▼＝和前一天比（紅增綠減）。'
-      + '大小跟這 60 天最大值比，整排一起變細＝大盤量縮，不是輪動。回放時位置固定，只有粗細會變。'
+      + '大小跟這 60 天最大值比，整排一起變細＝大盤量縮，不是輪動。'
+      + '桌機右上可切三種版面：「經典光纖」（預設：經典版的版面＋光纖粒子，換日依排名滑到新位置）、'
+      + '「拓撲」（族群點開才長出成分股，卡片較矮）、「經典」（原本的樹狀圖，回放時位置固定、只有粗細會變）。'
       + '半導體的 IC 設計／代工／封測掛在同一個「半導體」節點；法定產業別的收容桶歸在「其他產業別」。'
       + '點產業鏈＝右邊列出它底下的族群（◎＝圖上只看這個族群）；右邊清單點個股＝掛到族群底下（虛線、可多選，和輪動時鐘同一份選擇），→ 進個股頁。'
       + '展開只畫前 20 檔；「〇〇・其他」自動桶不展開。回上一階：麵包屑、「收起 ✕」、ESC 或點空白處。窄畫面先收起代表股那一層。'
@@ -8640,9 +8642,29 @@
      桌機（視窗 > 820px）改由 site/flowtopo.js 用原生 Canvas 畫（貝茲光纖＋粒子流），
      個股層只在點開的那個族群長出來 → 1440 寬整張卡 ≤ 760px。資料模型、口徑、下鑽、即時
      全部照舊由下面的 renderSankey() 算，拓撲版只負責「畫」與「點到哪一顆」。
-     手機（≤ 820px）維持原本的 ECharts 樹。桌機可以用「經典版」鈕切回來（記在 tw.sankey.style）。*/
-  const SANKEY_STYLE_KEY = 'tw.sankey.style';
-  const sankeyStyle = () => { try { return localStorage.getItem(SANKEY_STYLE_KEY) === 'classic' ? 'classic' : 'topo'; } catch (e) { return 'topo'; } };
+     手機（≤ 820px）維持原本的 ECharts 樹。
+     ★ 2026-09-25 Andy：「維持經典版風格，但傳輸特效需要跟拓撲版一樣」→ 桌機改成三選一：
+       · fx（預設）＝「經典光纖」：經典版的版面／四層常駐／標籤，線與粒子用拓撲版那套（flowtopo.js layout:'classic'）
+       · topo       ＝「拓撲」：原拓撲版（族群點開才長個股、卡片 ≤ 760px）
+       · classic    ＝「經典」：原 ECharts 樹＋小圓點
+     設定改記在 tw.sankey.mode（新 key）：舊的 tw.sankey.style 裡存著「classic」的人（例如之前按過「經典版」鈕）
+     沿用舊 key 就永遠看不到新的預設，等於這次改了跟沒改一樣 —— 所以換 key，大家先落在新的預設。*/
+  const SANKEY_STYLE_KEY = 'tw.sankey.mode';
+  const SANKEY_STYLES = ['fx', 'topo', 'classic'];
+  const SANKEY_STYLE_NAME = { fx: '經典光纖', topo: '拓撲', classic: '經典' };
+  let sankeyStyleForce = null;          // localStorage 寫不進去（私密視窗）時，這一次瀏覽仍照使用者選的畫
+  const sankeyStyle = () => {
+    let v = null; try { v = localStorage.getItem(SANKEY_STYLE_KEY); } catch (e) { /* 忽略 */ }
+    return SANKEY_STYLES.includes(v) ? v : (sankeyStyleForce || 'fx');
+  };
+  const paintSankeySeg = () => {
+    const cur = sankeyStyle();
+    document.querySelectorAll('#sankeyStyleSeg [data-sk-style]').forEach(b => {
+      const on = b.dataset.skStyle === cur;
+      b.classList.toggle('cur', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  };
+  // 「由 flowtopo.js 的 Canvas 引擎畫」＝經典光纖或拓撲（兩者共用同一支引擎，只差版面）
   const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
 
   /* ------------------------------------------------ 盤中即時資金去向（Andy 2026-09-21）
@@ -8818,22 +8840,29 @@
     b.setAttribute('aria-pressed', 'false');
     b.onclick = sklToggle;
     box.appendChild(b);
-    /* 拓撲版／經典版切換（只在桌機出現；≤ 820px 一律經典版，CSS 把這顆藏起來）。
-       選項放進畫面而不是放進對話：兩種都做好，使用者自己切，設定記在 tw.sankey.style。*/
-    const sb = document.createElement('button');
-    sb.type = 'button'; sb.id = 'sankeyStyleBtn'; sb.className = 'pb livebtn';   // 借即時鈕的寬度樣式（不會亮起來）
-    const paintSb = () => {
-      const topo = sankeyStyle() !== 'classic';
-      sb.textContent = topo ? '經典版' : '拓撲版';
-      sb.title = topo ? '改回原本的樹狀圖（ECharts）' : '改看微光拓撲版（粒子流）';
-    };
-    paintSb();
-    sb.onclick = () => {
-      try { localStorage.setItem(SANKEY_STYLE_KEY, sankeyStyle() === 'classic' ? 'topo' : 'classic'); } catch (e) { /* 忽略 */ }
-      paintSb();
-      const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
-    };
-    box.appendChild(sb);
+    /* 版面三選一（只在桌機出現；≤ 820px 一律經典版，CSS 把這組藏起來）。
+       選項放進畫面而不是放進對話：三種都做好，使用者自己切，設定記在 tw.sankey.mode。
+       改前（2026-09-24）是一顆「經典版／拓撲版」互切鈕 #sankeyStyleBtn。*/
+    const seg = document.createElement('span');
+    seg.id = 'sankeyStyleSeg'; seg.className = 'skseg'; seg.setAttribute('role', 'group'); seg.setAttribute('aria-label', '資金去向版面');
+    const TIPS = { fx: '經典版的版面與標籤＋拓撲版的光纖與粒子流（預設）',
+      topo: '微光拓撲版：族群點開才長出成分股，整張卡比較矮',
+      classic: '原本的樹狀圖（ECharts）' };
+    SANKEY_STYLES.forEach(k2 => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'pb livebtn'; b.dataset.skStyle = k2;
+      b.textContent = SANKEY_STYLE_NAME[k2]; b.title = TIPS[k2];
+      b.onclick = () => {
+        if (sankeyStyle() === k2) return;
+        try { localStorage.setItem(SANKEY_STYLE_KEY, k2); } catch (e) { /* 私密視窗：這一次照切，只是不會記住 */ }
+        sankeyStyleForce = k2;
+        paintSankeySeg();
+        const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
+      };
+      seg.appendChild(b);
+    });
+    box.appendChild(seg);
+    paintSankeySeg();
     /* 換主題會把整頁重畫一次（applyTheme → route），playBar 連帶把這一排的 innerHTML
        換掉，所以這顆鈕是全新的一顆。即時模式如果還開著，要把「亮起來」的樣子補回去，
        不然畫的明明是即時資料、鈕看起來卻是關的。*/
@@ -9220,7 +9249,7 @@
            即時模式真的會換位，副標卻寫著「位置固定」就是「圖在動、字說不會動」。
          ⚠ 即時的「估算」兩個字不准拿掉：少了它，盤中的成交值會被讀成真實值。*/
       sub.textContent = `${when}・% 佔上一層`
-        + (live ? '・即時換位（成交值估算）' : sankeyTopoOn() ? '・依排名換位' : '・位置固定')
+        + (live ? '・即時換位（成交值估算）' : topo ? '・依排名換位' : '・位置固定')
         + (narrow ? '・窄版不畫代表股' : '')
         + (selName ? `・只看「${selName}」` : '')
         + (expNode
@@ -9383,6 +9412,8 @@
         pal: { dark: !lt, panel: CH.panel, line: CH.line, ink: CH.ink, ink2: CH.ink2, ink3: CH.ink3,
           up: CH.up, down: CH.down, cyan: CH.cyan },
         maxV, total, openGid: DRILL.gid || null,
+        /* ★ 2026-09-25：「經典光纖」＝經典版面（四層常駐、代表股三檔、描邊標籤）＋拓撲版的線與粒子 */
+        layout: sankeyStyle() === 'fx' ? 'classic' : 'topo',
         /* ★ 2026-09-25：拓撲版換日依排名換位（補間）；回放中用等速、時長＝回放一格（650ms）*/
         playing: () => { const b = document.getElementById('sankeyDays'); return !!(b && b.classList.contains('playing')); },
         playFrame: 650,
@@ -10827,11 +10858,13 @@
          `sankeyStyle('classic'|'topo')` 讓驗收切版本（經典版的舊段落仍在驗 ECharts 那一套）。*/
       sankeyTopo: () => (window.FlowTopo ? window.FlowTopo.probe(document.getElementById('sankey')) : null),
       sankeyTopoOn: () => sankeyTopoOn() && !!(window.FlowTopo && window.FlowTopo.has(document.getElementById('sankey'))),
+      /* 改前只收 'classic'|'topo'；★ 2026-09-25 起收 'fx'（經典光纖，預設）|'topo'|'classic' */
       sankeyStyle: (s) => {
         if (s) {
-          try { localStorage.setItem(SANKEY_STYLE_KEY, s === 'classic' ? 'classic' : 'topo'); } catch (e) { /* 忽略 */ }
-          const b = document.getElementById('sankeyStyleBtn');
-          if (b) b.textContent = s === 'classic' ? '拓撲版' : '經典版';
+          const v = SANKEY_STYLES.includes(s) ? s : 'fx';
+          try { localStorage.setItem(SANKEY_STYLE_KEY, v); } catch (e) { /* 忽略 */ }
+          sankeyStyleForce = v;
+          paintSankeySeg();
           const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
         }
         return sankeyStyle();
