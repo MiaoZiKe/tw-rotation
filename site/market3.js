@@ -1713,6 +1713,7 @@
       + '【分 K 的開高低】由每分鐘收盤價合成：開＝前一分收盤，高低是分鐘收盤的極值（卡片上的「高／低」才是當天真正極值）。';
   }
 
+  let drawGen = 0;                       // draw() 第幾輪（分張畫到一半又被叫一次時，舊的那一輪自己停）
   function draw() {
     const grid = document.getElementById('m3Grid');
     if (!grid) return;
@@ -1732,7 +1733,7 @@
       ss.title = n ? '夜盤（15:00～翌日 05:00）有資料，顯示夜盤' : (state.futSession === 'night'
         ? '夜盤時段，但還沒拿到夜盤資料 —— 先顯示日盤' : '日盤時段（08:45～13:45）'); }
     grid.classList.toggle('big', !!state.big);
-    IDX.forEach(x => {
+    const one = (x) => {
       const card = grid.querySelector(`.m3-card[data-id="${x.id}"]`);
       if (!card) return;
       card.classList.toggle('on', state.big === x.id);
@@ -1743,10 +1744,36 @@
       if (btn) btn.textContent = state.big === x.id ? '收合 ⤡' : '展開 ⤢';
       drawOne(x);
       syncFb(x, card);
-    });
-    // K 線模式、空狀態、退回日盤 —— 這些情況下 paintPulse 會自己把燈移掉
-    paintPulses();
-    setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
+    };
+    const tail = () => {
+      // K 線模式、空狀態、退回日盤 —— 這些情況下 paintPulse 會自己把燈移掉
+      paintPulses();
+      setTimeout(() => window.dispatchEvent(new Event('resize')), 30);
+    };
+    /* ★ 2026-09-25 效能（perf-2）：**第一次**把三張圖建出來時，一張一張來、中間讓瀏覽器畫一幀。
+       三張 K 線（含指標）同一個任務建完＝ drawK 243ms ＋ 下一幀 Lightweight Charts 一次畫三張 293ms，
+       首次開總覽最長的兩個卡頓就是它們（4 倍降速 1 秒以上），這段時間整頁點不動。
+       拆開之後每一張各自一個任務（約 80～100ms）、各自一幀畫出來，總工作量一樣，但中間點得動、捲得動。
+       只在「三張都還沒有圖」時這樣做（＝剛進站、資料剛到）；之後的切週期、展開、盤中更新照舊同一個任務畫完，
+       行為與驗收都不變。draw() 再被叫一次就取消還沒畫的那幾張（新的那一輪會全部重畫）。*/
+    const gen = ++drawGen;
+    const hasChart = (x) => { const el = document.getElementById('m3c-' + x.id);
+      return !!(el && (state.kcharts[x.id] || (typeof echarts !== 'undefined' && echarts.getInstanceByDom(el)))); };
+    if (IDX.length > 1 && !IDX.some(hasChart)) {
+      const rest = IDX.slice();
+      const step = () => {
+        if (gen !== drawGen) return;
+        one(rest.shift());
+        if (!rest.length) { tail(); return; }
+        // 讓出一幀：rAF 讓剛建好的那張先畫出來，setTimeout 把下一張排到新的任務（分頁在背景 rAF 不跑，100ms 保底）
+        let done = false; const go = () => { if (!done) { done = true; setTimeout(step, 0); } };
+        requestAnimationFrame(go); setTimeout(go, 100);
+      };
+      step();
+      return;
+    }
+    IDX.forEach(one);
+    tail();
   }
 
   /* ★ 2026-09-24：圖上方那行「已改用日／只有幾根日 K／先顯示資料湖日 K」以前是圖表容器的 ::before，

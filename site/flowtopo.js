@@ -191,10 +191,14 @@
     };
     document.addEventListener('visibilitychange', S.onVis);
     if (window.IntersectionObserver) {
+      /* ★ 2026-09-25 效能（perf-2）：露出不到 10% 就當成看不見。
+         資金流向頁側欄合併之後整頁變矮（2349px），捲到最底時這張圖只剩上緣 9px 在畫面裡，
+         以前 isIntersecting 就算「看得見」，粒子照跑 —— 容器實測主執行緒 5 秒忙 4.5 秒（軟體繪圖的 drawImage），
+         使用者看到的卻只是一條 9px 的邊。10% ≈ 56px，再往上捲一點就接著跑。*/
       S.io = new IntersectionObserver((es) => {
-        S.visible = es.some(e => e.isIntersecting);
+        S.visible = es.some(e => e.isIntersecting && e.intersectionRatio >= 0.1);
         if (S.visible) startLoop(S); else stopLoop(S);
-      });
+      }, { threshold: [0, 0.1, 0.2] });
       S.io.observe(stage);
       /* 首次畫圖延後（見 layoutAndDraw 的 pendingDraw）：捲進畫面就當場畫 */
       S.pendIO = new IntersectionObserver((es) => {
