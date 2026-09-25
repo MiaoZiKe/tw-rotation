@@ -75,7 +75,7 @@
       "at": [
         { "page": "overview", "step": 1, "seg": "熱力圖", "ord": 30, "selector": ["#ovHeatCard"] }
       ],
-      "tests": ["總覽", "熱力圖v2", "縮放掃描"] },
+      "tests": ["總覽", "熱力圖v2", "縮放掃描", "資金熱力圖下拉", "總覽右欄"] },
 
     { "id": "flow.inst", "name": "族群 × 法人", "question": "①", "ask": "三大法人的錢進了哪些族群（淨買超張數）",
       "tier": "免費", "law": "🟡",

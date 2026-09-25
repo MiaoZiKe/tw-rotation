@@ -728,6 +728,10 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    以前吃 var(--ink)，淺色主題下變成深字壓深底，「題材資金熱力」幾乎隱形。*/
 .zoomov .zh b{font-size:17px;color:#E8EEFF}
 .zoomov .zh .chainchips{margin:0;flex:1}
+/* 2026-09-26：資金熱力圖放大視窗的產業鏈下拉（#heatZoomDD）也放在 .zh 裡 ——
+   上一條 `.zoomov .zh b` 是給標題 #zoomTitle 的 17px 固定淺色字，會連下拉按鈕上的「全部」一起放大成 17px。
+   按鈕上的 <b> 還原成 .rotdd 自己的字級與主題字色，跟卡片上那一顆長得一樣。 */
+.zoomov .zh .rotdd .ddbtn b{font-size:inherit;color:var(--ink)}
 .zoomov .zb{flex:1;min-height:0;display:flex}
 /* ★ E2：#zoomBody 要**真的佔滿** .zb。以前寫 `.zb>div`，而 groupChips 會把一排族群晶片
    插成 .zb 的第二個子元素（實測 704×748），等於放大視窗一半的版面被晶片吃掉。
@@ -3506,6 +3510,10 @@ h3 .howbtn.pop{font-family:inherit}
   .ovcol>#ovHeatCard{flex:1 1 auto;min-height:0}
 }
 #ovThemeCard .rotdd .ddpanel{min-width:240px}
+/* 資金熱力圖的產業鏈下拉（2026-09-26）：標題與下拉同一組，間距跟熱門題材那一列一樣是 8px；
+   #heatCtl 是 span，要當 flex 容器，下拉才不會吃到行內基線、比標題低半格 */
+#ovHeatCard .heathead{gap:8px;min-width:0}
+#heatCtl{display:inline-flex;min-width:0}
 #ovThemeCard .rotdd .ddpanel .ddopt em{margin-left:auto}
 #ovTheme{height:300px}
 .ovmain h3,.ovlow h3{display:flex;align-items:center}
@@ -3880,10 +3888,12 @@ h3 .howbtn.pop{font-family:inherit}
     <div id="m3"></div>
     <div class="grid g21 ovmain" style="margin-top:var(--gap-card)">
       <div class="ovcol" id="ovLeft">
-        <div class="card fillchart" id="ovHeatCard"><div class="row spread"><h3>資金熱力圖 <button class="howbtn pop" data-how="heat" aria-label="資金熱力圖怎麼看">?</button></h3>
+        <!-- ★ 2026-09-26（Andy：「這邊改成清單，跟下面熱門題材一樣」）：標題下那排產業鏈晶片（#heatChips，會折成兩行）
+             改成「產業鏈：全部 ▾」下拉，跟熱門題材同一支 ddSingle()、同一套 .rotdd；放在標題列左側（篩選放左上角）。 -->
+        <div class="card fillchart" id="ovHeatCard"><div class="row spread"><div class="row heathead"><h3>資金熱力圖 <button class="howbtn pop" data-how="heat" aria-label="資金熱力圖怎麼看">?</button></h3>
+          <span id="heatCtl"></span></div>
           <div class="row" style="gap:8px"><span id="heatDate"></span><button class="btn small" id="heatZoom">放大 ⤢</button></div></div>
           <div class="howtxt" id="how-heat" hidden></div>
-          <div class="chainchips" id="heatChips"></div>
           <div class="zwrap" id="heatWrap"><div id="heat" class="chart tall"></div></div>
           <div class="hpanel" id="heatPanel" hidden></div></div>
         <!-- ★ 2026-09-24：熱門題材改熱力圖（方塊大小＝題材成交值、顏色＝熱度），題材清單改成下拉
