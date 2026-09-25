@@ -1,0 +1,182 @@
+/* ==================================================================================
+   風格實驗室 ⑥ 永續設計（eco）—— 只在 claude/style-lab 分支
+   載入方式：網址 ?style=eco（<html data-style="eco">）；明暗沿用原本的 data-theme。
+
+   設計語言：「紙、土、苔」
+     · 低飽和自然色：燕麥紙底、樹皮灰字、苔蘚橄欖當品牌色。
+     · 輕：卡片幾乎不用陰影（只靠 1px 細線與一階底色差分層），不發光、不漸層。
+     · 少動：換頁淡入、發光、浮起全部拿掉；hover 只留顏色變化（120ms）。
+     · 易讀：正文行高 1.75、說明文字字距 .02em、焦點框 3px 實線＋2px 間隙、連結 hover 加底線。
+
+   ★ 紅漲綠跌與品牌綠不撞色（任務書點名）：
+     品牌色是**苔蘚橄欖**（色相 67°～74°，偏黃的綠），跌是**青綠**（色相 163°～166°，偏藍的綠），
+     兩者色相差約 90°、CIEDE2000 色差 20.4（淺）／20.4（深）；對照：原站主色 cyan 對 fall 是 34。
+     而且用法分開：品牌色只用在「介面」（選中分頁、連結、焦點框、按鈕），
+     漲跌色只用在「數字」—— 同一個位置不會同時出現兩種綠。
+     漲仍然是紅（色相 351°／354°），跌仍然是綠，語意零改變。
+   ★ 熱力圖 7 格：語意與排列不動（左綠右紅、越深越小），只把飽和度往下收成「森林青／磚紅」，
+     每格白字對比 5.24／7.64／10.80／7.17／11.31／7.98／6.07（原本 4.79～11.71，最差那格反而變好），
+     相鄰格對比 1.31～1.58（原本 1.31～1.49），分級照樣讀得出來。
+   ================================================================================== */
+
+/* ---------------- 色票：深色（夜晚的森林土壤：不是純黑，是帶綠的炭灰）---------------- */
+:root[data-style="eco"]{
+  --bg:#111512; --bg-2:#151a16;
+  --panel:#1a201b; --panel-2:#1e251f; --panel-3:#252d26;
+  --line:#2b342c; --line-2:#3a463b;
+  --ink:#ecefe6; --ink-2:#c0c7b7; --ink-3:#9ba492;        /* 對 panel-3 最差：12.18／8.16／5.48 */
+  --cyan:#b8c97e;             /* 品牌：地衣苔（74°）。對 panel-3 7.89 */
+  --violet:#b3a6dc;           /* 薰衣草灰紫 */
+  --amber:#dcae55;            /* 赭黃（警示） */
+  --lime:#cfc98a;             /* 麥稈（交付清單「完成」） */
+  --rise:#f4606f;             /* 漲：磚紅（354°），對 panel-3 4.55 */
+  --fall:#3fd0a6;             /* 跌：青綠（163°），對 panel-3 7.28 */
+  --flat:#a0a898;
+  --ontop:#1a1f12;            /* 疊在品牌色上的字：9.37 */
+  --chartbg:#161b17;
+  --topbar:#111512; --topbar-m:#111512;   /* 不透明、不毛玻璃（省 GPU，也是「輕量」的一部分） */
+  --grid:rgba(236,239,230,.05);
+  --drop:rgba(0,0,0,.45);
+  --body-1:transparent; --body-2:transparent;   /* 背景那兩團紫／青光暈拿掉 */
+  --glow:0 0 0 1px rgba(184,201,126,.45);       /* 不發光，只留一圈細線 */
+  --shadow:none; --card-sh:none;
+  --focus:#d6e39a;            /* 焦點框：對 panel 11.0 */
+  --row-hover:#222a23;
+  --tip-bg:rgba(26,32,27,.98); --tip-line:#3a463b; --tip-sh:0 6px 16px -8px rgba(0,0,0,.5);
+  --eco-leaf:#b8c97e;         /* 小圖示的線色 */
+  --eco-soft:rgba(184,201,126,.10);   /* 品牌色的淡底（選中的膠囊、hover 列） */
+  /* 熱力圖 7 格（森林青 163° ← 灰褐 → 磚紅 354°）；兩個主題共用 */
+  --hm-n3:#1d7a60; --hm-n2:#1b5e4b; --hm-n1:#1f4439; --hm-0:#55594f;
+  --hm-p1:#5f2a2e; --hm-p2:#8f2f38; --hm-p3:#b5303f; --hm-na:#2a322b;
+}
+/* 剖析圖「科技」配色（深色主題的預設）：畫布由深藍換成深苔炭，霓虹青換成地衣苔。
+   ⚠ 只在沒有切到「閱讀」配色時覆寫 —— 閱讀配色本來就是暖紙底，跟 eco 同一個調性，不必動。 */
+:root[data-style="eco"]:not([data-dgpal="read"]){
+  --illus:#141a15; --dg-1:#1c241d; --dg-2:#111512;
+  --dg-sh0:#121812; --dg-sh1:#141b15; --dg-sh2:#0f140f; --dg-sh3:#0b0f0b;
+  --dg-part-mix:#3a463b; --dg-line-mix:#2b342c; --dg-iso-c:#6f8a5a;
+  --dg-grd:rgba(190,205,150,.12); --dg-axis:rgba(190,205,150,.28);
+  --dg-step-f:#1a201b; --dg-accent-2d:#b8c97e; --dg-frame-f:rgba(26,32,27,.6);
+}
+
+/* ---------------- 色票：淺色（燕麥紙：暖、不刺眼、長時間閱讀不累）---------------- */
+:root[data-style="eco"][data-theme="light"]{
+  --bg:#f2f0e8; --bg-2:#ece9df;
+  --panel:#fbfaf5; --panel-2:#f7f5ee; --panel-3:#eeebe1;
+  --line:#e3dfd2; --line-2:#cfc9b8;
+  --ink:#23251d; --ink-2:#42453a; --ink-3:#5d6053;        /* 對 panel-3 最差：13.00／8.21／5.39 */
+  --cyan:#5b6322;             /* 品牌：苔蘚橄欖（67°）。對 panel-3 5.41、對 panel 6.18 */
+  --violet:#65588f;
+  --amber:#86561a;
+  --lime:#5b6a1e;
+  --rise:#b8233a;             /* 漲：磚紅（351°），對 panel-3 5.27 */
+  --fall:#05755a;             /* 跌：青綠（166°），對 panel-3 4.76 */
+  --flat:#5f6457;
+  --ontop:#fbfaf5;            /* 疊在品牌色上的字：6.18 */
+  --chartbg:#fbfaf5;
+  --topbar:#f2f0e8; --topbar-m:#f2f0e8;
+  --grid:rgba(35,37,29,.07);
+  --drop:rgba(60,55,35,.16);
+  --body-1:transparent; --body-2:transparent;
+  --glow:0 0 0 1px rgba(91,99,34,.35);
+  --shadow:none; --card-sh:none;
+  --focus:#3f4a12;            /* 對 panel 9.3 */
+  --row-hover:#f1efe6;
+  --tip-bg:rgba(251,250,245,.98); --tip-line:#cfc9b8; --tip-sh:0 6px 16px -8px rgba(60,55,35,.22);
+  --eco-leaf:#5b6322;
+  --eco-soft:rgba(91,99,34,.09);
+  --hm-na:#e6e3d8;            /* 無資料格：淺色主題配深字（原本就是這個規則） */
+}
+
+/* ---------------- 底：純色＋極淡的紙纖維紋理（data: URI 小 SVG，約 300 bytes，不另外下載）---------------- */
+:root[data-style="eco"] body{
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .4 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E"),
+    var(--bg);
+  letter-spacing:.005em;
+}
+
+/* ---------------- 少動：拿掉裝飾性動畫與發光 ---------------- */
+:root[data-style="eco"] .view.on{animation:none}           /* 換頁不淡入：點了就到 */
+:root[data-style="eco"] .brand .logo,
+:root[data-style="eco"] .tab.on,
+:root[data-style="eco"] .kpi.on,
+:root[data-style="eco"] .search input:focus{box-shadow:none}
+
+/* ---------------- 頂部列：實心、細線，不毛玻璃 ---------------- */
+:root[data-style="eco"] .topbar{backdrop-filter:none;-webkit-backdrop-filter:none;border-bottom:1px solid var(--line-2)}
+/* Logo：一片葉子的輪廓（圓角只留對角兩個 → 葉形），平塗、不漸層、不發光 */
+:root[data-style="eco"] .brand .logo{
+  background:var(--cyan);color:var(--ontop);border-radius:14px 3px 14px 3px;
+}
+/* 分頁：選中那顆＝品牌色實心；其他＝純文字，hover 只給一層極淡的苔色底（不發光、不位移） */
+:root[data-style="eco"] .tab{transition:color var(--dur-fast) linear,background var(--dur-fast) linear}
+:root[data-style="eco"] .tab:not(.on):hover{background:var(--eco-soft);color:var(--ink)}
+:root[data-style="eco"] .tab.on{background:var(--cyan);color:var(--ontop)}
+
+/* ---------------- 卡片：平、細線、葉形角 ---------------- */
+/* 圓角：大卡 20（手機 18）、小卡 14，右上角收成 6／4 —— 一個「葉形」的小識別，不影響內容區 */
+:root[data-style="eco"] .card{
+  background:var(--panel);border:1px solid var(--line);box-shadow:none;
+  border-radius:18px 6px 18px 18px;
+}
+@media (min-width:821px){
+  :root[data-style="eco"] .card{background:var(--panel);box-shadow:none;border-radius:20px 6px 20px 20px}
+  :root[data-style="eco"] .card.tight{border-radius:14px 4px 14px 14px}
+  :root[data-style="eco"] #hero.ovstrip{border-radius:16px 4px 16px 16px;border-color:var(--line);background:var(--panel)}
+}
+/* 卡片標題前面一片小葉子（CSS 畫的 8×8 方塊，只留對角兩個圓角 → 葉形）—— 輕量圖示，不用圖檔 */
+:root[data-style="eco"] .card h3::before{
+  content:"";flex:none;width:8px;height:8px;align-self:center;
+  background:var(--eco-leaf);border-radius:8px 0 8px 0;opacity:.85;
+}
+
+/* ---------------- 按鈕、膠囊：線框、無陰影；選中＝淡苔底＋品牌色字 ---------------- */
+:root[data-style="eco"] .btn,
+:root[data-style="eco"] .howbtn,
+:root[data-style="eco"] .evbtn,
+:root[data-style="eco"] .chip{box-shadow:none;transition:border-color var(--dur-fast) linear,color var(--dur-fast) linear,background var(--dur-fast) linear}
+:root[data-style="eco"] .btn:not(.primary){background:var(--panel)}
+:root[data-style="eco"] .btn:hover,
+:root[data-style="eco"] .chip:hover,
+:root[data-style="eco"] .evbtn:hover{border-color:var(--cyan)}
+:root[data-style="eco"] .chip.on{background:var(--eco-soft);border-color:var(--cyan)}
+:root[data-style="eco"] .kpi.on{border-color:var(--cyan)}
+@media (min-width:821px){
+  :root[data-style="eco"] #hero.ovstrip .kpi.clickable:hover{background:var(--eco-soft)}
+}
+
+/* ---------------- 無障礙：焦點框、連結、行高字距 ---------------- */
+/* 焦點框 3px 實線＋2px 間隙（原本 2px；3px 在高解析螢幕上也看得清楚） */
+:root[data-style="eco"] :focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+/* 分頁列是橫向捲動容器，外擴的焦點框會被上下裁掉 → 分頁的焦點框往內縮；選中那顆是苔色底，內縮框改用底色才看得到 */
+:root[data-style="eco"] .tab:focus-visible{outline-offset:-4px}
+:root[data-style="eco"] .tab.on:focus-visible{outline-color:var(--ontop)}
+/* 連結：hover／focus 一律加底線（不只靠顏色辨識 —— 色弱使用者也分得出） */
+:root[data-style="eco"] a:hover,
+:root[data-style="eco"] a:focus-visible{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+/* 說明文字：行高 1.75、字距 .02em（只動段落型文字；表格與數字不動，避免欄寬被撐開） */
+:root[data-style="eco"] .card .sub,
+:root[data-style="eco"] .howtxt,
+:root[data-style="eco"] .banner{line-height:1.75;letter-spacing:.02em}
+@media (min-width:821px){
+  :root[data-style="eco"] body{line-height:1.75}
+  :root[data-style="eco"] .card .sub{line-height:22px}
+}
+/* 表頭：不再用灰底塊，改成底線＋字重，閱讀時視線比較不會被表頭切斷 */
+:root[data-style="eco"] th{background:var(--panel);border-bottom:1.5px solid var(--line-2);color:var(--ink-2)}
+
+/* 橫幅：左邊一條色帶照舊（狀態色），底色改成更淡的紙色 */
+:root[data-style="eco"] .banner{border-radius:0 12px 12px 0}
+
+/* 選取文字的顏色也換成苔色（小地方，但整體感靠這些） */
+:root[data-style="eco"] ::selection{background:color-mix(in srgb,var(--cyan) 35%,transparent);color:var(--ink)}
+
+/* 捲軸：細、跟底色同色系 */
+:root[data-style="eco"] ::-webkit-scrollbar-thumb{background:var(--line-2)}
+
+/* 減少動態：eco 本來就幾乎不動，這裡把剩下的顏色過場也關掉 */
+@media (prefers-reduced-motion:reduce){
+  :root[data-style="eco"] .tab,:root[data-style="eco"] .btn,:root[data-style="eco"] .chip,
+  :root[data-style="eco"] .howbtn,:root[data-style="eco"] .evbtn{transition:none}
+}
