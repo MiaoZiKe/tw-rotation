@@ -30570,6 +30570,12 @@ def t_rel_dismiss(pg, base):
             click(pg, "#segChips .segchip[data-seg='foundry']", 700)
             s9 = pg.evaluate(REL_ST)
             ok(f"{T} 從下拉選「晶圓代工」：說明卡出現而且留著", s9["on"] == ["foundry"] and s9["dim"] > 0, s9)
+            # 一層一層收：下拉開著時按 Esc 只收下拉，說明卡留著
+            click(pg, "#segDDBtn", 400)
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+            s9b = pg.evaluate(REL_ST)
+            dd_open = pg.evaluate("() => document.getElementById('segDD').classList.contains('open')")
+            ok(f"{T} 下拉開著時按 Esc：只收下拉，說明卡與高亮留著", not dd_open and s9b["on"] == ["foundry"] and s9b["dim"] > 0, {**s9b, "ddOpen": dd_open})
             pt = _rel_blank_click(pg)
             s10 = pg.evaluate(REL_ST)
             ok(f"{T} 下拉選的那一格，點背景一樣收", bool(pt) and not s10["on"] and s10["dim"] == 0, {**s10, "blank": pt})

@@ -1326,7 +1326,10 @@
           '#chainList', '#segTools', '#coBox', '#dgSec', '#gpSec', '.dgtabs', '#dgPick', '#chainSwitch'],
         /* 開著＝右欄真的攤開（.hassel）、公司資訊欄在、或窄畫面的環節詳情有內容。
            ⚠ 不能用預設的「el 看不看得到」：桌機沒選時 .relcol 是 display:none，窄畫面 .relstick 是 display:contents（沒有框）。*/
-        isOpen: () => relStick.isConnected && (
+        /* ⚠ 「環節 ▾」下拉開著時一律當成「沒開」：一層一層收 —— 下拉開著時按 Esc／點外面只收下拉（它自己接），
+           說明卡留著；再按一次才收說明卡。不然使用者只是想關掉下拉，選好的那一格卻跟著一起不見。
+           （判斷放在 isOpen：dismissable 在 pointerdown 當下與 Esc 當下都是用它挑「要關誰」。）*/
+        isOpen: () => relStick.isConnected && !($('#segDD', el) && $('#segDD', el).classList.contains('open')) && (
           !!(relMain0 && relMain0.classList.contains('hassel'))
           || !!document.getElementById('coBox')
           || !!(segBox0 && segBox0.childElementCount && segBox0.getClientRects().length)),
