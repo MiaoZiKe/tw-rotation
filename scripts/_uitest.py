@@ -12108,6 +12108,10 @@ SECTIONS = {
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
     "個股R5":              lambda pg, b, base, code: t_r5(pg, base, code),
+    # ★ 2026-09-24 Andy 回報：3D 按「收合圖」再打開，模型縮到左上角、卡片疊在一起（⚠ 一律 --workers 1）
+    "3D收合再展開":        lambda pg, b, base, code: t_fold3d(pg, base),
+    # ★ 2026-09-24 Andy：剖析圖資訊卡限制在示意圖同高、放不下收成「編號＋標題」下拉卡、點圖上編號跳出說明（⚠ 一律 --workers 1）
+    "剖析圖卡片限高":      lambda pg, b, base, code: t_dgfit(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -26200,6 +26204,328 @@ def t_rot_keep(pg, b, base):
     # 11 水波／掃描開關都在
     ok("11 工具列：顯示腳印、水波、掃描三個勾選框都在",
        pg.evaluate("() => ['rot-trail','rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c))"))
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ============================================================================================
+# ★ 2026-09-24 Andy 回報：產業地圖 → AI 伺服器 → 電源，3D 按「收合圖」關掉再打開，
+#   模型縮成左上角一小塊、零件卡片堆在左下與右側互相重疊、說明文字疊在圖上。
+#   根因（three3d.js onResize 上面有完整說明）：收合＝容器 display:none、寬 0，
+#   這段期間一來一次視窗 resize（捲軸消失、半邊視窗、開關事件抽屜），畫布就被重設成 320×340 的下限，
+#   展開時沒人再重設。所以驗收**一定要在收合期間動一下視窗寬度**，不然量不到那個 bug
+#   （只收再開、中間什麼都沒發生，修之前也是綠的 —— 2026-09-24 實測）。
+#   每一項都是「收合前量一次 → 真的按收合 → 動視窗 → 真的按展開 → 再量一次」，比兩次。
+# ============================================================================================
+FOLD3D_MEAS = """() => {
+  const h = document.getElementById('prod3d'); const c = h && h.querySelector('canvas');
+  if (!h || !c || h.hidden) return null;
+  const R = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
+  const hit = (a, b) => Math.min(a.r, b.r) - Math.max(a.x, b.x) > 2 && Math.min(a.b, b.b) - Math.max(a.y, b.y) > 2;
+  const hr = R(h), cr = R(c);
+  const cards = [...h.querySelectorAll('.lbl3d')].filter(e => e.offsetParent && getComputedStyle(e).visibility !== 'hidden').map(R);
+  let ov = 0; const ovp = [];
+  for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) if (hit(cards[i], cards[j])) { ov++; if (ovp.length < 3) ovp.push([i, j]); }
+  const outside = cards.filter(a => a.x < hr.x - 2 || a.r > hr.r + 2 || a.y < hr.y - 2 || a.b > hr.b + 2).length;
+  const note = document.getElementById('dg3dNote');
+  const nr = note && !note.hidden && note.offsetParent ? R(note) : null;
+  const bd = window.Rack3D && window.Rack3D.current && window.Rack3D.current.bounds ? window.Rack3D.current.bounds() : null;
+  return { hostW: h.clientWidth, hostH: h.clientHeight, cw: Math.round(cr.w), ch: Math.round(cr.h),
+    cx: cr.x + cr.w / 2, cy: cr.y + cr.h / 2, n: cards.length, ov, ovp, outside,
+    noteOnCanvas: !!(nr && hit(nr, cr)), noteOnCard: !!(nr && cards.some(a => hit(nr, a))),
+    below: h.classList.contains('dgstage--below'),
+    mcx: bd ? (bd.x0 + bd.x1) / 2 : null, mcy: bd ? (bd.y0 + bd.y1) / 2 : null,
+    mw: bd ? bd.x1 - bd.x0 : null, mh: bd ? bd.y1 - bd.y0 : null }; }"""
+
+FOLD2D_MEAS = """() => {
+  const w = document.getElementById('prodDiagram'); const s = w && w.querySelector('svg');
+  if (!w || !s || w.hidden) return null;
+  const R = (e) => { const r = e.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height, r: r.right, b: r.bottom }; };
+  const hit = (a, b) => Math.min(a.r, b.r) - Math.max(a.x, b.x) > 2 && Math.min(a.b, b.b) - Math.max(a.y, b.y) > 2;
+  const cards = [...w.querySelectorAll('.dgc')].filter(e => e.offsetParent).map(R);
+  let ov = 0; for (let i = 0; i < cards.length; i++) for (let j = i + 1; j < cards.length; j++) if (hit(cards[i], cards[j])) ov++;
+  const sr = R(s);
+  return { sw: Math.round(sr.w), sh: Math.round(sr.h), n: cards.length, ov,
+    leads: w.querySelectorAll('svg.dglead path').length, hostW: w.clientWidth }; }"""
+
+
+def _fold3d_cycle(pg, width: int, wiggle: bool = True):
+    """按收合 → （收合期間動一下視窗寬度）→ 按展開。回傳展開後量到的值。"""
+    click(pg, "#dgFold", 700)
+    folded = pg.evaluate("() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display === 'none'; }")
+    ok(f"[{width}] 按「收合圖」→ 圖真的收起來（#dgBody 不顯示）", folded)
+    if wiggle == "side":
+        # 審查 R3 的重現條件之二：收合期間切換事件欄 —— 容器寬度真的變了（964 ↔ 1322），展開時要照新寬度重排
+        pg.evaluate("() => document.getElementById('evToggle').click()"); pg.wait_for_timeout(700)
+    elif wiggle:
+        # 模擬「收合之後頁面變短、捲軸消失／使用者把視窗拉窄一點」—— 那一次 resize 就是 bug 的觸發點
+        pg.set_viewport_size({"width": width - 40, "height": 1000}); pg.wait_for_timeout(400)
+        pg.set_viewport_size({"width": width, "height": 1000}); pg.wait_for_timeout(400)
+    click(pg, "#dgFold", 400)
+    ok(f"[{width}] 再按一次 → 圖真的展開回來", pg.evaluate(
+        "() => { const b = document.getElementById('dgBody'); return !!b && getComputedStyle(b).display !== 'none'; }"))
+
+
+def _fold_meas(pg):
+    """量之前先把滑鼠移到角落：滑鼠停在收成一行的卡片上時，那張卡會展開成全文（66 → 100px）
+    蓋住下一張 —— 那是既有的 hover 行為，不是這次要驗的跑位（2026-09-24 實測踩到）。"""
+    pg.mouse.move(3, 3); pg.wait_for_timeout(350)
+    return pg.evaluate(FOLD3D_MEAS)
+
+
+def t_fold3d(pg, base):
+    route = "industry/ai_server/dg/server_psu"
+    # 動畫關掉再量：自轉時卡片每 4 幀跟著相機重排，兩次量測之間卡片本來就會換位置，
+    # 「收合前 vs 展開後」就變成在比兩個不同的相機角度。收尾時還原使用者原本的設定。
+    anim0 = pg.evaluate("() => { try { return localStorage.getItem('tw.dganim'); } catch (e) { return null; } }")
+    for width in (1440, 800):
+        pg.set_viewport_size({"width": width, "height": 1000})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#{route}", wait_until="networkidle")
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dgOpen', '1');"
+                    " localStorage.setItem('tw.dganim', '0'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported() && window.Rack3D.hasScene('server_psu'))"):
+            ok(f"[{width}] 伺服器電源要有 3D 場景（WebGL 可用）", False, "Rack3D 不可用或沒有 server_psu 場景")
+            return
+        click(pg, "#dg3d", 400)
+        wait_until(pg, "() => !!(window.Rack3D.current && document.querySelector('#prod3d canvas') && document.querySelectorAll('#prod3d .lbl3d').length > 3)", 12000)
+        pg.wait_for_timeout(1200)
+        scroll_to(pg, "prod3d"); pg.wait_for_timeout(500)
+        m0 = _fold_meas(pg)
+        if not ok(f"[{width}] 按「3D 立體」→ 3D 真的掛起來", bool(m0 and m0["n"] > 3), m0):
+            continue
+        # 基準本身要合格，不然後面「跟收合前一樣」沒有意義
+        ok(f"[{width}] 收合前：畫布寬＝容器寬", abs(m0["cw"] - m0["hostW"]) <= 2, m0)
+
+        for wiggle in ((False, True, "side") if width >= 1280 else (False, True)):
+            tag = {False: "直接收合再展開", True: "收合期間動過視窗寬度", "side": "收合期間切換事件欄"}[wiggle]
+            _fold3d_cycle(pg, width, wiggle)
+            m1 = wait_until(pg, "() => { const f = " + FOLD3D_MEAS + "; const m = f(); return m && m.cw > 0 ? m : null; }", 4000)
+            pg.wait_for_timeout(700)
+            scroll_to(pg, "prod3d"); pg.wait_for_timeout(500)
+            m1 = _fold_meas(pg)
+            if not ok(f"[{width}/{tag}] 展開後 3D 還在", bool(m1), m1):
+                continue
+            ok(f"[{width}/{tag}] 畫布寬＝容器寬（不是縮在左上角的 320）",
+               abs(m1["cw"] - m1["hostW"]) <= 2, f"畫布 {m1['cw']} vs 容器 {m1['hostW']}")
+            same_w = abs(m1["hostW"] - m0["hostW"]) <= 2
+            if same_w:
+                ok(f"[{width}/{tag}] 畫布高＝收合前的高度（{m0['ch']}px）", abs(m1["ch"] - m0["ch"]) <= 2,
+                   f"{m0['ch']} → {m1['ch']}")
+            else:
+                ok(f"[{width}/{tag}] 容器寬度真的變了（{m0['hostW']} → {m1['hostW']}），畫布照新寬度重排、不是 320×340",
+                   m1["cw"] > 400 and m1["ch"] > 340, (m1["cw"], m1["ch"]))
+            if not m1["below"]:
+                ok(f"[{width}/{tag}] 兩欄／右欄模式：畫布高＝容器高", abs(m1["ch"] - m1["hostH"]) <= 4,
+                   f"畫布 {m1['ch']} vs 容器 {m1['hostH']}")
+            if m1["mcx"] is not None:
+                dx = abs(m1["mcx"] - m1["cx"]) / max(1, m1["cw"]); dy = abs(m1["mcy"] - m1["cy"]) / max(1, m1["ch"])
+                ok(f"[{width}/{tag}] 模型包圍盒中心接近畫面中心（偏差 ≤ 12%）", dx <= 0.12 and dy <= 0.12,
+                   f"dx={dx:.1%} dy={dy:.1%}")
+                if same_w:
+                    ok(f"[{width}/{tag}] 模型大小跟收合前一樣（沒有縮成一小塊）",
+                       m0["mw"] and abs(m1["mw"] - m0["mw"]) / m0["mw"] <= 0.05,
+                       f"模型寬 {m0['mw']:.0f} → {m1['mw']:.0f}")
+                else:
+                    ok(f"[{width}/{tag}] 模型沒有縮成一小塊（寬 ≥ 畫布 25%）", m1["mw"] >= m1["cw"] * 0.25,
+                       f"模型寬 {m1['mw']:.0f} ／ 畫布 {m1['cw']}")
+            ok(f"[{width}/{tag}] 零件卡片數量不變（{m0['n']}）", m1["n"] == m0["n"], f"{m0['n']} → {m1['n']}")
+            ok(f"[{width}/{tag}] 零件卡片彼此不重疊", m1["ov"] == 0, f"重疊 {m1['ov']} 對 {m1['ovp']}")
+            ok(f"[{width}/{tag}] 零件卡片都在 3D 框內（沒有堆到框外）", m1["outside"] == 0, f"框外 {m1['outside']} 張")
+            ok(f"[{width}/{tag}] 說明文字沒有疊在圖上或卡片上", not m1["noteOnCanvas"] and not m1["noteOnCard"], m1)
+
+        # ---- 2D 模式也走一遍：收合期間動視窗，展開後圖寬、引線、卡片要跟收合前一樣
+        click(pg, "#dg3d", 1200)
+        wait_until(pg, "() => { const w = document.getElementById('prodDiagram'); return w && !w.hidden && !!w.querySelector('svg'); }", 4000)
+        pg.wait_for_timeout(600)
+        d0 = pg.evaluate(FOLD2D_MEAS)
+        if ok(f"[{width}] 關掉 3D → 回到 2D 剖析圖", bool(d0 and d0["sw"] > 0), d0):
+            _fold3d_cycle(pg, width, True)
+            pg.wait_for_timeout(700)
+            d1 = pg.evaluate(FOLD2D_MEAS)
+            ok(f"[{width}/2D] 展開後圖寬跟收合前一樣", bool(d1) and abs(d1["sw"] - d0["sw"]) <= 2, [d0, d1])
+            ok(f"[{width}/2D] 展開後引線條數跟收合前一樣", bool(d1) and d1["leads"] == d0["leads"], [d0, d1])
+            ok(f"[{width}/2D] 展開後卡片彼此不重疊", bool(d1) and d1["ov"] == 0, d1)
+
+    # ---- 其他有 3D 的剖析圖分頁：修在共用的 Rack3D.mount，抽兩張不同形狀的場景各驗一次（1440）
+    for r2, scene in (("industry/ai_server/dg/ai_server", "ai_server"), ("industry/ai_server/dg/liquid_cooling", "liquid_cooling")):
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#{r2}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+        if not pg.evaluate(f"() => !!(window.Rack3D && window.Rack3D.hasScene('{scene}'))"):
+            continue
+        if not pg.evaluate("() => (document.getElementById('dg3d')||{}).classList.contains('cyan')"):
+            click(pg, "#dg3d", 400)
+        wait_until(pg, "() => !!(window.Rack3D.current && document.querySelectorAll('#prod3d .lbl3d').length > 3)", 12000)
+        pg.wait_for_timeout(1000)
+        a = _fold_meas(pg)
+        if not ok(f"[{scene}] 3D 掛得起來", bool(a), a):
+            continue
+        _fold3d_cycle(pg, 1440, True)
+        pg.wait_for_timeout(900); scroll_to(pg, "prod3d"); pg.wait_for_timeout(400)
+        z = _fold_meas(pg)
+        ok(f"[{scene}] 收合（期間動過視窗）再展開：畫布寬高跟收合前一樣",
+           bool(z) and abs(z["cw"] - a["cw"]) <= 2 and abs(z["ch"] - a["ch"]) <= 2 and abs(z["cw"] - z["hostW"]) <= 2,
+           [a and (a["cw"], a["ch"]), z and (z["cw"], z["ch"], z["hostW"])])
+        ok(f"[{scene}] 展開後卡片不重疊、不在框外", bool(z) and z["ov"] == 0 and z["outside"] == 0,
+           f"收合前 重疊 {a['ov']} 框外 {a['outside']}；展開後 {z}")
+
+    # 收尾：事件欄切回預設（開），不要把 3D 開關、收合狀態、動畫偏好留給下一段
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); } catch (e) {} }")
+    pg.evaluate("(a) => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dgOpen', '1');"
+                " if (a == null) localStorage.removeItem('tw.dganim'); else localStorage.setItem('tw.dganim', a); } catch (e) {} }", anim0)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
+# ============================================================================================
+# ★ 2026-09-24 Andy：「產業地圖內的 2D／3D 剖析圖（例：半導體 → 矽晶圓），左右兩側資訊卡很多，
+#   一路往下超出範圍、整張拉得很長。改成：資訊卡環繞示意圖、限制在示意圖同高的範圍內；
+#   放不下的收成可點開的下拉字卡（預設只顯示編號＋標題，點了才展開說明）。
+#   圖上零件用編號標示，點編號就跳出該零件說明（點背景關閉）。」
+#   修之前量到的（1440、事件抽屜開）：矽晶圓卡片欄 1669px／畫布 457px，13 張全部超出。
+#   這一段每張圖都量「卡片欄高 ≤ 畫布高 ＋ 40」，而且真的點編號、真的點背景。
+# ============================================================================================
+DGFIT_MEAS = """() => { const w = document.getElementById('prodDiagram'); const c = w && w.querySelector('.dgcanvas');
+  if (!w || w.hidden || !c) return null;
+  const cr = c.getBoundingClientRect(); const k = w.querySelector('.dgcards'); if (!k) return null;
+  const three = getComputedStyle(k).display === 'contents';
+  const boxes = three ? [...w.querySelectorAll('.dgcol')] : [k];
+  const kr = k.getBoundingClientRect();
+  const vis = [...w.querySelectorAll('.dgc')].filter(e => e.offsetParent);
+  return { three, beside: three || kr.left >= cr.right - 2, ch: Math.round(cr.height),
+    boxH: boxes.map(b => Math.round(b.getBoundingClientRect().height)), lbl: w.dataset.dglbl || '',
+    fold: w.classList.contains('dgfold'), n: vis.length,
+    descShown: vis.filter(e => [...e.querySelectorAll('.bd i')].some(i => i.offsetParent)).length,
+    pop: (() => { const p = w.querySelector('.dgpop'); return p && !p.hidden ? { t: p.innerText.slice(0, 40), r: p.getBoundingClientRect().toJSON() } : null; })() }; }"""
+
+# 挑一個「真的點得到」的編號：捲進畫面（instant —— 全站 scroll-behavior:smooth，平滑捲動時量到的是捲之前的座標）
+# 之後用 elementFromPoint 確認圓心那一點打到的就是它自己
+# （有些圖兩個編號靠得很近、或上面疊著章節列，直接點第一個會點到別人 —— 那是量測選錯點，不是功能壞）。
+DGFIT_ANC = """() => { const all = [...document.querySelectorAll('#prodDiagram g.anc')].filter(g => g.querySelector('.anchor.no') && g.getBoundingClientRect().width);
+  let a = null, r = null;
+  for (const g of all) { g.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = g.querySelector('.anchor').getBoundingClientRect();
+    const e = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+    if (e && g.contains(e)) { a = g; r = q; break; } }
+  if (!a) return null; const id = a.dataset.for;
+  const card = document.querySelector(`#prodDiagram .dgc[data-anc="${id}"]`);
+  return { x: r.left + r.width / 2, y: r.top + r.height / 2, no: (a.querySelector('.non') || {}).textContent || '',
+           title: card ? (card.querySelector('.bd b') || {}).textContent || '' : '' }; }"""
+
+
+def _dgfit_bg_point(pg):
+    """剖析圖上真正的「背景」：畫布框裡、不是零件／錨點／卡片的一點（用 elementFromPoint 找）。"""
+    return pg.evaluate("""() => { const c = document.querySelector('#prodDiagram .dgcanvas'); if (!c) return null;
+      const r = c.getBoundingClientRect();
+      for (const [fx, fy] of [[.03,.03],[.97,.03],[.03,.97],[.5,.02],[.97,.97],[.02,.5]]) {
+        const x = r.left + r.width * fx, y = r.top + r.height * fy; const e = document.elementFromPoint(x, y);
+        if (e && c.contains(e) && !e.closest('[data-seg],[data-part],.anc,[data-fold],a,.dgpop')) return { x, y }; }
+      return null; }""")
+
+
+def t_dgfit(pg, base):
+    pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dgOpen', '1'); } catch (e) {} }")
+    side0 = pg.evaluate("() => { try { return localStorage.getItem('tw.side'); } catch (e) { return null; } }")
+    ids = pg.evaluate("""() => { const S = window.DiagramSlots; if (!S) return []; const out = [];
+      ['semiconductor', 'ai_server'].forEach(ch => { if (S.chainDefault(ch)) out.push([ch, ch]); S.groupsOf(ch).forEach(g => out.push([ch, g])); });
+      return out; }""")
+    ok("半導體與 AI 伺服器鏈列得出剖析圖", len(ids) >= 10, ids)
+    # 兩種版面各跑一輪：事件抽屜開（兩欄：卡片全在右欄）／關（三欄：左右夾著畫布）
+    for side, label in (("1", "抽屜開・兩欄"), ("0", "抽屜關・三欄")):
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.side', '{side}'); }} catch (e) {{}} }}")
+        clicked = 0
+        for ch, dg in ids:
+            pg.goto("about:blank")
+            pg.goto(f"{base}#industry/{ch}/dg/{dg}", wait_until="networkidle")
+            m = wait_until(pg, "() => { const f = " + DGFIT_MEAS + "; const m = f(); return m && m.ch > 0 ? m : null; }", 6000)
+            pg.wait_for_timeout(500)
+            m = pg.evaluate(DGFIT_MEAS)
+            if not m:
+                continue                                    # 不是 v2 版面（沒有外掛卡片）的圖不在這一條的範圍
+            if m["beside"]:
+                ok(f"[{label}] {dg}：卡片欄高 ≤ 畫布高 ＋ 40px", max(m["boxH"]) <= m["ch"] + 40,
+                   f"卡片欄 {m['boxH']} ／ 畫布 {m['ch']}")
+                if m["fold"]:
+                    ok(f"[{label}] {dg}：收合模式下卡片只留編號＋標題（沒有一張展開說明）", m["descShown"] == 0,
+                       f"展開說明的 {m['descShown']} 張")
+            # 每一條鏈只挑前三張做完整的點擊（其餘只量高度），控制時間
+            if clicked >= 3:
+                continue
+            # 先等版面停下來（載入後 300ms 還有一次補排），量完座標**立刻**點 —— 量和點之間隔著一次重排，
+            # 點到的就是隔壁那個編號（2026-09-24 寬能隙實測：01 在 300ms 內往上移了 72px，點到 02）
+            pg.wait_for_timeout(700)
+            a = pg.evaluate(DGFIT_ANC)
+            if not a:
+                continue
+            clicked += 1
+            pg.mouse.click(a["x"], a["y"]); pg.wait_for_timeout(700)
+            m1 = pg.evaluate(DGFIT_MEAS)
+            ok(f"[{label}] {dg}：點圖上的編號 {a['no']} → 跳出那個零件的說明小卡",
+               bool(m1 and m1["pop"]) and a["title"][:6] in (m1["pop"] or {}).get("t", ""),
+               [a, m1 and m1["pop"]])
+            if m1 and m1["fold"]:
+                ok(f"[{label}] {dg}：被點的那張卡片展開說明（其餘維持收合）", m1["descShown"] == 1, m1["descShown"])
+            if m1 and m1["beside"]:
+                ok(f"[{label}] {dg}：展開之後卡片欄仍然 ≤ 畫布高 ＋ 40px（多的在欄內捲）",
+                   max(m1["boxH"]) <= m1["ch"] + 40, f"{m1['boxH']} ／ {m1['ch']}")
+            bg = _dgfit_bg_point(pg)
+            if ok(f"[{label}] {dg}：找得到畫布背景可以點", bool(bg), bg):
+                pg.mouse.click(bg["x"], bg["y"]); pg.wait_for_timeout(700)
+                m2 = pg.evaluate(DGFIT_MEAS)
+                ok(f"[{label}] {dg}：點背景 → 說明小卡關掉", bool(m2) and not m2["pop"], m2 and m2["pop"])
+                if m2 and m2["fold"]:
+                    ok(f"[{label}] {dg}：點背景 → 卡片收回只剩編號＋標題", m2["descShown"] == 0, m2["descShown"])
+        ok(f"[{label}] 至少真的點過一張圖的編號", clicked >= 1, clicked)
+
+    # Esc 也關得掉、同一個編號再點一次＝收起（選取保留）
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    a = pg.evaluate(DGFIT_ANC)
+    if ok("矽晶圓：找得到編號", bool(a), a):
+        pg.mouse.click(a["x"], a["y"]); pg.wait_for_timeout(600)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+        ok("按 Esc → 說明小卡關掉", not (pg.evaluate(DGFIT_MEAS) or {}).get("pop"))
+        a = pg.evaluate(DGFIT_ANC)
+        pg.mouse.click(a["x"], a["y"]); pg.wait_for_timeout(600)
+        a = pg.evaluate(DGFIT_ANC)
+        pg.mouse.click(a["x"], a["y"]); pg.wait_for_timeout(600)
+        st = pg.evaluate("() => ({ pop: !document.querySelector('#prodDiagram .dgpop') || document.querySelector('#prodDiagram .dgpop').hidden, sel: document.querySelectorAll('#prodDiagram .dgc.sel-part').length })")
+        ok("同一個編號再點一次 → 小卡收起、零件仍然選著", st["pop"] and st["sel"] == 1, st)
+    # 審查 R3：傳產鏈預設的輕油裂解廠一打開整張被壓暗（族群環節跟圖上的 data-seg 對不上）
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/traditional", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    pd = pg.evaluate("() => ({ dg: (document.getElementById('prodDiagram')||{dataset:{}}).dataset.dgid,"
+                     " dim: document.querySelectorAll('#prodDiagram .dim').length, seg: document.querySelectorAll('#prodDiagram [data-seg]').length })")
+    if pd.get("seg"):
+        ok("傳產鏈一打開：剖析圖沒有被整張壓暗（沒選任何零件時 .dim＝0）", pd["dim"] == 0, pd)
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle"); pg.wait_for_timeout(1500)
+    # 手機版要用的「只留編號」資料結構：data-dglbl="num" 時卡片欄藏起來、點編號照樣有說明
+    pg.evaluate("() => { const w = document.getElementById('prodDiagram'); w.dataset.dglbl = 'num'; window.dispatchEvent(new Event('resize')); }")
+    pg.wait_for_timeout(500)
+    a = pg.evaluate(DGFIT_ANC)
+    hid = pg.evaluate("() => { const k = document.querySelector('#prodDiagram .dgcards'); return !!k && !k.offsetParent; }")
+    ok("data-dglbl=num：卡片欄整個藏起來（只留圖上的編號）", hid)
+    if a:
+        pg.mouse.click(a["x"], a["y"]); pg.wait_for_timeout(600)
+        ok("data-dglbl=num：點編號照樣跳出說明小卡", bool((pg.evaluate(DGFIT_MEAS) or {}).get("pop")))
+
+    # ---- 3D：卡片不准再掉到畫布底下那一排（兩欄模式要塞在畫布同高裡，塞不下收成「編號＋標題」）
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '1'); localStorage.setItem('tw.dg3d', '1'); localStorage.setItem('tw.dganim', '0'); } catch (e) {} }")
+    for ch, dg in ids:
+        has = pg.evaluate(f"() => {{ const S = window.DiagramSlots; const s = S && S.scene('{dg}'); return !!(s && window.Rack3D && window.Rack3D.supported() && window.Rack3D.hasScene(s)); }}")
+        if not has:
+            continue
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/{ch}/dg/{dg}", wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d').length > 2", 15000); pg.wait_for_timeout(1400)
+        pg.mouse.move(3, 3); pg.wait_for_timeout(300)
+        st = pg.evaluate("""() => { const h = document.getElementById('prod3d'); const c = h && h.querySelector('canvas'); if (!c) return null;
+          const cr = c.getBoundingClientRect(); const cards = [...h.querySelectorAll('.lbl3d')].filter(e => e.offsetParent && !e.classList.contains('hid'));
+          return { mode: ['lr','r','below'].find(m => h.classList.contains('dgstage--' + m)), ch: Math.round(cr.height), hostH: h.clientHeight,
+            below: cards.filter(e => e.classList.contains('below')).length,
+            bottom: Math.round(Math.max(...cards.map(e => e.getBoundingClientRect().bottom)) - cr.top) }; }""")
+        if not st or st["mode"] == "below":
+            continue
+        ok(f"[3D] {dg}：卡片都在畫布兩側（沒有掉到底下那一排）", st["below"] == 0 and st["hostH"] <= st["ch"] + 40, st)
+    pg.evaluate("(s) => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.removeItem('tw.dganim');"
+                " if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side0)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 

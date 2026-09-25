@@ -905,6 +905,11 @@
     let swapping = false;
     // 剖析圖是展開還是收起來（手機預設收）。swapDiagram 也要看得到它，所以放在這一層
     let dgOpen = true;
+    /* 3D 有沒有接上線（wireDg 沒帶 skip3d 跑過一次）。★ 2026-09-24 從 `if (hasSlots && sc)` 區塊裡搬上來：
+       收合狀態下換圖（點族群晶片 → swapDiagram）會用 wireDg(true) 把 3D 鈕藏起來，
+       但區塊裡那份 did3d 還是上一張圖留下的 true —— 展開時 paintFold 以為「接過了」，
+       結果新那張圖**連 3D 鈕都不見**。放在這一層，swapDiagram 才改得到它。*/
+    let did3d = false;
     const groups = state.group && ch.id === 'industry' ? ch.groups.filter(g => g.id === state.group) : ch.groups;
     /* ★ 2026-09-23 第二批（W3-6，Andy：「分頁的這紅框處標籤都拿掉」）：
        標題底下那排 `N 檔 ／ 今日 +x% ／ 本益比中位 ／ ← 返回` 整排移除。
@@ -1290,7 +1295,7 @@
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
       if (dgExplicit) dgOpen = true;
-      let did3d = false;
+      did3d = false;
       const dgSecEl = $('#dgSec', el);
       /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，
          而且是**跟標題同一列、靠右**（不是浮在圖上面）。
@@ -1426,6 +1431,7 @@
         host.innerHTML = DS.draw(next);
         paintDgMode();        // 從「選單」換回「有圖」時要先把 #dgBody 打開，3D 才量得到尺寸
         wireDg(!dgOpen);      // 收合狀態下不要順手把 3D 掛起來（手機背景多一個 WebGL context）
+        did3d = dgOpen;       // 收合時換的圖 3D 還沒接線 → 展開時 paintFold 要補接
         host.style.opacity = '1';
         swapping = false;
         syncHighlight({ quiet: true, noscroll: true });
@@ -2010,10 +2016,21 @@
        改成：**有環節就照舊比環節，沒有環節就只比零件身分。**
        兩條路的 `dim` 行為也因此自然分開：`on` 是空的就沒有人被壓暗，
        只有主角被提亮 —— 那正是單一主體的圖該有的樣子。*/
-    const hit = (n) => (on.size ? on.has(n.dataset.seg) : !n.dataset.seg)
-      && !!DG.partHit && DG.partHit(n, part);
-    if (view3d) view3d.highlight(on, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
     const nodes = $$('#prodDiagram [data-seg]', root);
+    /* ★ 2026-09-25（審查 R3）：傳產鏈一打開預設的「輕油裂解廠」整張被壓暗（71 個 .dim、0 個 .sel）。
+       原因：`segs` 是**族群**的環節（石化族群的 gsegs），這張圖上的 data-seg 一個都對不上，
+       於是「有選東西、但不是你」的規則把每一個零件都壓暗了。
+       修法：剖析圖這一側只用「這張圖上真的有的環節」（交集）；交集是空的就當作沒選 —— 不壓暗、不提亮。
+       關聯圖、環節卡清單那一側照舊用完整的 `on`（那裡的環節本來就對得上）。
+       3D 同理，拿它自己場景裡有的環節取交集。*/
+    const onDg = new Set([...on].filter(sg => nodes.some(n => n.dataset.seg === sg)));
+    const hit = (n) => (onDg.size ? onDg.has(n.dataset.seg) : !n.dataset.seg)
+      && !!DG.partHit && DG.partHit(n, part);
+    if (view3d) {
+      const have3 = view3d.segs ? new Set(view3d.segs()) : null;
+      const on3 = have3 ? new Set([...on].filter(sg => have3.has(sg))) : on;
+      view3d.highlight(on3, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
+    }
     /* ★ 只有 `data-part`、沒有 `data-seg` 的零件**另外處理**，不可以併進上面那一份。
        2026-09-22 踩到：我第一版把它們併進 `nodes`，結果
        `dim` 的條件 `on.size > 0 && !on.has(n.dataset.seg)` 對它們永遠成立
@@ -2028,7 +2045,7 @@
        「同環節全部退一階、卻沒有任何主角」，比改之前還糟。*/
     const anyPart = nodes.some(hit) || bare.some(n => !!DG.partHit && DG.partHit(n, part));
     $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
-    nodes.forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
+    nodes.forEach(n => { n.classList.toggle('sel', onDg.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', onDg.size > 0 && !onDg.has(n.dataset.seg)); if (color && onDg.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));

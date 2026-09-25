@@ -265,9 +265,11 @@
       try { if (o.ro) o.ro.disconnect(); } catch (e) { /* 忽略 */ }
       try { if (o.mo) o.mo.disconnect(); } catch (e) { /* 忽略 */ }
       window.removeEventListener('tw:dgpal', o.later); window.removeEventListener('resize', o.later);
+      if (o.bg) host.removeEventListener('click', o.bg);
+      if (o.esc) document.removeEventListener('keydown', o.esc);
       host.__dgv2 = null;
     }
-    delete host.dataset.dgv2; host.classList.remove('dgv2', 'dg1', 'haspart');
+    delete host.dataset.dgv2; delete host.dataset.dglbl; host.classList.remove('dgv2', 'dg1', 'haspart', 'dgfold');
   }
   function externalize(host, svg) {
     if (svg.closest('.dgcanvas')) return;                 // 這一張已經外掛過（同一張圖被 stamp 兩次）
@@ -314,17 +316,124 @@
       const t = g.querySelector('text.lbl'); if (t) { const b = document.createElement('b'); b.textContent = t.textContent; bd.appendChild(b); }
       g.querySelectorAll('text.sub').forEach((x) => { const i = document.createElement('i'); i.textContent = x.textContent; bd.appendChild(i); });
       card.appendChild(bd);
+      card.dataset.side0 = g.dataset.side === 'l' ? 'l' : 'r';   // 作者指定的那一邊（收合時可能被搬到另一欄，重排前歸位）
       col(g.dataset.side).appendChild(card);
       ['seg', 'part', 'codes', 'alias'].forEach((k) => { delete g.dataset[k]; });   // 身分搬走，SVG 那份只剩資料來源
       const anc = svg.querySelector(`g.anc[data-for="${g.dataset.anc}"]`);
       if (anc) {
         if (c0) anc.style.setProperty('--c', c0);
-        anc.addEventListener('click', (e) => { e.stopPropagation(); card.click(); });
+        /* ★ 2026-09-24（Andy：「圖上零件用編號標示，點編號就跳出該零件說明（點背景關閉）」）：
+           點編號＝①選起這個零件（跟點卡片同一條路，只是**已經選著就不再點一次** ——
+           再點一次卡片是「取消選取」，那不是點編號的人要的）②在編號旁邊跳出說明小卡。
+           同一個編號再點一次＝收起小卡（選取保留）。*/
+        anc.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!card.classList.contains('sel-part')) card.click();
+          if (popFor === card) closePop(); else openPop(card, anc);
+        });
         pairs.push({ card, anc });
       }
+      /* 公式／警語這種沒有零件身分的說明卡：收合狀態下點它自己展開／收起（有身分的卡片靠「選起來」展開）*/
+      if (!card.dataset.seg && !card.dataset.part) card.addEventListener('click', () => { card.classList.toggle('open'); later(); });
     });
+    /* ---------------- 說明小卡（點圖上的編號跳出）----------------
+       住在 .dggrid 裡、絕對定位在編號旁邊；內容直接從卡片複製（編號、標題、說明），
+       所以手機版「只顯示編號」（data-dglbl="num"，卡片欄整個藏起來）時也照樣有東西可以看。*/
+    const pop = document.createElement('div'); pop.className = 'dgpop'; pop.hidden = true;
+    pop.setAttribute('role', 'dialog');
+    pop.addEventListener('click', (e) => { e.stopPropagation(); if (e.target.closest('.x')) closePop(); });
+    grid.appendChild(pop);
+    let popFor = null, popAnc = null;
+    function closePop() { pop.hidden = true; popFor = popAnc = null; }
+    function placePop() {
+      if (!popAnc || pop.hidden) return;
+      const dot = popAnc.querySelector('.anchor') || popAnc;
+      const gr = grid.getBoundingClientRect(), a = dot.getBoundingClientRect();
+      if (!a.width) { closePop(); return; }
+      const pw = pop.offsetWidth, ph = pop.offsetHeight, gw = grid.clientWidth, gh = grid.clientHeight;
+      let x = a.right - gr.left + 10;
+      if (x + pw > gw - 6) x = a.left - gr.left - 10 - pw;       // 右邊放不下 → 放編號左邊
+      x = Math.max(6, Math.min(gw - pw - 6, x));
+      let y = a.top - gr.top + a.height / 2 - 18;
+      y = Math.max(6, Math.min(gh - ph - 6, y));
+      pop.style.left = Math.round(x) + 'px'; pop.style.top = Math.round(y) + 'px';
+    }
+    function openPop(card, anc) {
+      const no = card.querySelector('.no'), b = card.querySelector('.bd b');
+      const subs = [].slice.call(card.querySelectorAll('.bd i')).map((i) => i.textContent);
+      const cc = card.style.getPropertyValue('--dg-card-c') || card.style.getPropertyValue('--c');
+      pop.style.cssText = cc ? `--card-c:${cc}` : '';
+      pop.innerHTML = '';
+      const hd = document.createElement('div'); hd.className = 'hd';
+      if (no) { const n = document.createElement('span'); n.className = 'no'; n.textContent = no.textContent; hd.appendChild(n); }
+      const t = document.createElement('b'); t.textContent = b ? b.textContent : ''; hd.appendChild(t);
+      const x = document.createElement('button'); x.type = 'button'; x.className = 'x'; x.setAttribute('aria-label', '關閉'); x.textContent = '✕';
+      hd.appendChild(x); pop.appendChild(hd);
+      subs.forEach((tx) => { const i = document.createElement('i'); i.textContent = tx; pop.appendChild(i); });
+      pop.dataset.for = card.dataset.anc || '';
+      pop.hidden = false; popFor = card; popAnc = anc;
+      placePop();
+    }
     const lead = document.createElementNS(SVGNS, 'svg'); lead.setAttribute('class', 'dglead'); grid.appendChild(lead);
+    /* ---------------- 卡片限高（2026-09-24，Andy：「左右兩側資訊卡很多，一路往下超出範圍、整張拉得很長」）----------------
+       卡片跟畫布**並排**的時候（三欄：左右夾著畫布；兩欄：全部在右欄），卡片欄的高度不准超過畫布高 ＋ 40px：
+         ① 先量「全部展開」的高度，塞得下就什麼都不做（卡片少的圖維持原樣）
+         ② 塞不下 → 整張圖進收合模式（.dgfold）：卡片只留「編號＋標題 ▾」，被選起來的那一張才展開說明
+         ③ 欄位本身設 max-height＝上限、超過就在欄內捲（被選起來的那張展開後可能再多出幾行，不准因此把頁面撐長）
+       卡片在畫布**下面**（單欄，窄畫面／手機）不在這一批的範圍：那是之後手機版「只留編號」要做的事，
+       這裡先把資料結構準備好 —— `host.dataset.dglbl`：full（全開）／fold（收合）／num（只留編號，卡片欄整個藏起來，
+       靠點編號跳出說明小卡）。num 由外面設，這裡不會覆寫它。*/
+    const scrollers = [];
+    const fitCards = () => {
+      if (host.dataset.dglbl === 'num') return;
+      const cr = canvas.getBoundingClientRect();
+      const ch = cr.height;
+      const three = getComputedStyle(cards).display === 'contents';
+      const boxes = three ? [cols.l, cols.r].filter(Boolean) : [cards];
+      host.classList.remove('dgfold');
+      // 上一輪搬過邊的卡片先歸位（放回作者指定的那一欄），版面才是每次從同一個起點算
+      [].slice.call(cards.querySelectorAll('.dgc[data-moved]')).forEach((c) => { delete c.dataset.moved; col(c.dataset.side0).appendChild(c); });
+      boxes.forEach((b) => { b.style.maxHeight = ''; b.classList.remove('dgscroll'); });
+      host.dataset.dglbl = 'full';
+      if (!ch || !boxes.length) return;
+      const kr = cards.getBoundingClientRect();
+      const beside = three || kr.left >= cr.right - 2 || kr.right <= cr.left + 2;
+      if (!beside) return;                                  // 單欄：卡片在畫布下面，這一批不動
+      const lim = Math.round(ch + 40);
+      if (!boxes.some((b) => b.getBoundingClientRect().height > lim + 1)) return;
+      host.classList.add('dgfold'); host.dataset.dglbl = 'fold';
+      /* 三欄時左右不平均（作者依錨點位置分邊，矽晶圓是左 10 張、右 4 張）：
+         收合之後一邊還塞不下、另一邊有空位，就把「錨點最靠近另一邊」的卡片搬過去 ——
+         寧可引線多走一段，也不要一欄在捲、另一欄空著。每次重排前先全部歸位，結果只看這一次的量測。*/
+      if (three && cols.l && cols.r) {
+        /* 量的時候把「被選起來而展開」的那張也當成收合（.dgmeasure）：
+           不然點一張卡片、它一展開，隔壁的卡片就被搬到對面去 —— 點一下卡片就換邊，讀者會找不到東西。
+           選取造成的多出來那幾行，交給欄內捲。*/
+        host.classList.add('dgmeasure');
+        const fit = (b) => b.scrollHeight <= lim + 1;
+        for (let guard = 0; guard < 30; guard++) {
+          const from = !fit(cols.l) ? cols.l : (!fit(cols.r) ? cols.r : null);
+          if (!from) break;
+          const to = from === cols.l ? cols.r : cols.l;
+          const cand = [].slice.call(from.children).filter((c) => !c.classList.contains('note'));
+          if (!cand.length) break;
+          const ax = (c) => { const pr = pairs.find((q) => q.card === c); const d = pr && pr.anc.querySelector('.anchor');
+            return d ? d.getBoundingClientRect().left : (to === cols.r ? -1e9 : 1e9); };
+          cand.sort((a, b2) => (to === cols.r ? ax(b2) - ax(a) : ax(a) - ax(b2)));
+          const mv = cand[0];
+          to.appendChild(mv); mv.dataset.moved = '1';
+          if (!fit(to)) { from.appendChild(mv); delete mv.dataset.moved; break; }   // 搬過去反而塞不下 → 放回去，交給欄內捲
+        }
+        host.classList.remove('dgmeasure');
+      }
+      boxes.forEach((b) => {
+        b.style.maxHeight = lim + 'px'; b.classList.add('dgscroll');
+        if (scrollers.indexOf(b) < 0) { scrollers.push(b); b.addEventListener('scroll', () => later(), { passive: true }); }
+      });
+    };
     const relayout = () => {
+      fitCards();
+      placePop();
       const hr = grid.getBoundingClientRect();
       const ox = hr.left, oy = hr.top;
       lead.setAttribute('width', grid.clientWidth); lead.setAttribute('height', grid.clientHeight);
@@ -336,6 +445,10 @@
         const dot = anc.querySelector('.anchor'); if (!dot) return;
         const a = dot.getBoundingClientRect(), c = card.getBoundingClientRect();
         if (!a.width || !c.width) return;
+        // 欄位在捲的時候，捲出可視範圍的卡片不畫引線（不然線會指到欄外的空白處）
+        const sc = card.parentNode && card.parentNode.classList && card.parentNode.classList.contains('dgscroll') ? card.parentNode
+          : (cards.classList.contains('dgscroll') ? cards : null);
+        if (sc) { const sr = sc.getBoundingClientRect(); if (c.bottom < sr.top + 6 || c.top > sr.bottom - 6) return; }
         const nb = card.querySelector('.no'); const nr = nb ? nb.getBoundingClientRect() : null;
         const cy = (nr ? nr.top + nr.height / 2 : c.top + c.height / 2) - oy;
         const acx = a.left + a.width / 2 - ox, acy = a.top + a.height / 2 - oy, ar = a.width / 2 + 1;
@@ -363,6 +476,10 @@
       obs.mo.observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
     }
     window.addEventListener('tw:dgpal', later);
+    obs.bg = (e) => { if (!pop.hidden && !(e.target.closest && e.target.closest('.dgpop,.anc'))) closePop(); };
+    host.addEventListener('click', obs.bg);
+    obs.esc = (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); };
+    document.addEventListener('keydown', obs.esc);
     host.__dgv2 = obs;                                    // 換下一張圖時 teardownV2 靠這個把觀察器收掉
     relayout(); requestAnimationFrame(relayout); setTimeout(relayout, 300);
   }
