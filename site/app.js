@@ -7008,10 +7008,9 @@
        而它講的每一件事「怎麼看 ?」那顆鈕裡都有（或已經補進去了）。
        他要拿掉的是「一直佔著版面的那一段」，不是說明本身 ——
        所以整段刪掉、說明留在按鈕後面，需要的人自己展開。*/
-    /* 放大（已拍板：拉Bar／篩選／播放都放在放大視窗裡，卡片上只留一顆「放大」）。
-       重用既有的 openZoom()，所以 Esc、點背景關閉、關閉時 dispose 都是現成的。*/
-    const zb = $('#rotZoomBtn');
-    if (zb) zb.onclick = () => openRotZoom(f3 && f3.rrg, ROT_BOARD_WIN);
+    /* ★ 2026-09-26（Andy：「放大功能取消」）：輪盤欄右上角的「⤢ 放大」（#rotZoomBtn）與它開的放大視窗（openRotZoom）拿掉。
+       改前：這裡把那顆鈕接到 openRotZoom()（openZoom 裡再畫一份輪盤＋拉Bar＋即時鈕）。
+       改後：沒有入口；卡片上的輪盤、篩選、時間軸、即時鈕就是全部。rotZoomBar／rotZoomDraw 永遠是 null（見宣告處）。*/
     /* F2（Andy 2026-09-18：「右上角的 5 10 20 天改成拉 Bar」）→ N4（2026-09-19）拉到 30 天
        → **A4（2026-09-20）第 1、3、5、7 條，四件事都在這一支拉Bar 上**：
 
@@ -7293,68 +7292,9 @@
        （產業鏈 seg 的正下方），所以這裡不再插一排 —— 見 wireRotFilter()。*/
   }
 
-  /* 輪動時鐘的放大視窗（Andy 2026-09-18 圖二：「右上角 可以放大這圖」）。
-
-     ★ 2026-09-20（E2，Andy：「放大之後的功能都沒反應」）—— 兩個根因，都已經量過：
-       ① `renderRotClock` 結尾那段 `if (!compact) groupChips(...)` 對放大視窗也成立，
-          於是 `.linkrow.gchips` 被插在 `#zoomBody` 的下一個兄弟，而 `.zb` 是 flex ——
-          實測 `#zoomBody` 704×756、那排晶片 704×748，**放大視窗一半的版面被晶片吃掉**；
-          更糟的是那排晶片綁的是**卡片**的選取，在放大視窗裡按下去對這張圖完全沒有作用。
-       ② 這裡本來維護**第二套**控制項（只有 16 顆的簡化晶片 ＋ 兩支語意不同的拉Bar），
-          兩套行為不一致就是這個 bug 的溫床。
-     改法：放大視窗吃**同一份 ROT 狀態、同一組控制項**（產業鏈 seg／族群晶片列／
-     只看前 10 大／清除篩選／看哪一天／顯示軌跡），關掉時把卡片同步回來。
-     ★ 2026-09-21：族群晶片列搬進 `.rotfilter` 之後，這裡連 `#rotZoomChips` 都不用自己維護了 ——
-       `wireRotFilter()` 會把三排（時鐘卡／排行卡／放大視窗）一起填好。*/
-  function openRotZoom(rrg, back0) {
-    const rows0 = rotRows(rrg, back0);
-    if (!rows0.length) return;
-    /* ★ 2026-09-21：卡片那支如果正在播，開放大之前先停掉。
-       不停的話它會躲在遮罩後面繼續每 420ms 推進 `rotFrame`，
-       而使用者在放大視窗裡按的 ⏸ 停的是另一支 —— 關掉放大就會看到時鐘還在自己跑。
-       （量測：ESC 之後「幾天前」3 秒內從 3 跑到 27。）*/
-    if (rotBackBar) { try { rotBackBar.stop(); } catch (e) { /* 忽略 */ } }
-    let bar = null;
-    openZoom('足跡輪盤', (body, chipBox, close) => {
-      /* 控制項一律用 class 或「Zoom」字樣的 id，**不可以和卡片上的 id 撞名** ——
-         同一個 id 出現兩次時 getElementById 只抓得到第一個，另一邊就按了沒反應。*/
-      const tools = $('#zoomTools');
-      if (tools) tools.innerHTML = '<div class="rotfilter" data-rf="zoom"></div>'
-        + '<div id="rotZoomBack" title="看幾天前到最新；▶ 從那一天一步一步走回最新"></div>'
-        + '<div class="rottools" id="rotZoomTools"></div>';
-      /* ★ 2026-09-25（審查 R2 #35：放大後沒有象限計數徽章、也沒有「即時」鈕 —— 放大反而少東西）：
-         象限卡（quads）跟卡片同一支 rotQuadChips；即時鈕掛在放大視窗的拉Bar 後面，跟卡片那顆同一個狀態（RLV）。*/
-      const draw = () => renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
-        { pick: rotPickSet(), frame: rotFrame, span: Math.max(0, ROT.days - rotFrame), trail: ROT.trail, tmode: 'focus', quads: true });
-      rotZoomDraw = draw;
-      draw();
-      wireRotFilter();                        // 放大視窗那排 .rotfilter 也由同一支填
-      /* 「看哪一天」：和卡片上那支**同一個值、同一個 localStorage key、同一個方向**。
-         值變了只重畫這張放大的圖 —— 播放是每 420ms 一幀，
-         連卡片那張一起重畫會掉幀（那就又回到「段點段點」了）；
-         關閉時 `rotSyncCard()` 會把卡片一次補上。*/
-      // ★ 2026-09-24：和卡片同一支單一拉Bar（N 天前 ＋ 回放），同一個值、同一個 localStorage key
-      bar = rotZoomBar = dayBar('rotZoomBack', { min: 1, max: 30, value: ROT.days, frame0: rotFrame, key: 'tw.rot.days', step: ROT_ANIM_MS, group: 'rot.back',
-        onDays: (n) => { ROT.days = n; rotFrame = 0; draw(); },
-        // 回放就退出即時（和卡片那支同一條規矩；`false`＝下一行本來就會重畫）
-        onFrame: (f) => { if (f > 0 && RLV.on) rlvOff(false); rotFrame = f; draw(); } });
-      const zb = $('#rotZoomBack');
-      if (zb) {
-        const lb = document.createElement('button');
-        lb.type = 'button'; lb.id = 'rotZoomLiveBtn'; lb.className = 'pb livebtn'; lb.textContent = '即時';
-        lb.title = '切到盤中即時（跟卡片上那顆同一個開關）：每分鐘用當下成交價量續算位置；拖時間軸會自動退出';
-        lb.onclick = () => { rlvToggle(); if (RLV.on && rotZoomBar) { try { rotZoomBar.seek(0); } catch (e) { /* 忽略 */ } } };
-        zb.appendChild(lb);
-        rlvStamp();
-      }
-      wireRotTrailToggle(draw, 'rotZoomTools');
-    }, () => {
-      // 關閉：停掉播放（拉Bar 的 DOM 已經被清掉了，再跑下去只是空轉）、把卡片同步回來
-      if (bar) { try { bar.stop(); } catch (e) { /* 忽略 */ } }
-      bar = null; rotZoomBar = null; rotZoomDraw = null;
-      rotSyncCard();
-    });
-  }
+  /* ★ 2026-09-26：輪動時鐘的放大視窗（openRotZoom，2026-09-18 起）整支移除 —— Andy：「放大功能取消」。
+     它的入口只有資金流向頁輪盤欄右上角那顆 #rotZoomBtn，鈕拿掉之後這支就沒有人叫得到了。
+     共用的 openZoom() 不動（資金熱力圖、題材熱力、法人、河流圖等其他卡的放大還在用）。*/
 
   /* N2（Andy 2026-09-19 圖一：「兩邊族群對不上，有些為何篩選不到」）。
      根因：排行卡下面那排晶片列的是**排行圖上畫出來的 15 檔**（依佔比變化挑的），
@@ -7628,13 +7568,13 @@
   let rotFrame = ROT_MIN_BACK;     // 時間軸刷到第幾天前
   let rankSubPaint = () => {};     // 排行副標「M/D ～ M/D」（即時開關時要換結尾那個日期，見 rlvStamp）
   let rotBackBar = null;           // #rotBack 那支 dayBar（N 天前 ＋ 回放）
-  let rotZoomBar = null;           // 放大視窗那支（開著的時候才有）
+  let rotZoomBar = null;           // 2026-09-26 起放大視窗拿掉，永遠是 null；留著是因為鍵盤快捷鍵等幾處仍以「有沒有放大視窗」分支，null 就走卡片那支
   /* 篩選變了就重畫。預設只重畫放大視窗 —— 從總覽直接按「放大」時資金流向頁還沒渲染過，
      這支會在 renderFlow 裡被換成「兩張卡片＋放大視窗」的版本。*/
   let rotRedraw = () => { if (rotZoomDraw) rotZoomDraw(); };
   let rotGroupMeta = {};           // gid → {name, chain}
   let rotF3 = null;                // 最後一次拿到的 flow_v3（晶片列／放大視窗要重建篩選列時用）
-  let rotZoomDraw = null;          // 放大視窗開著時＝重畫它的函式；關掉就設回 null
+  let rotZoomDraw = null;          // 2026-09-26 起放大視窗拿掉，永遠是 null（重畫只剩卡片那張）
   /* 兩層下拉的開合狀態。勾一個族群就把整排重建一次，所以「剛才開著哪一個」必須記在
      模組層才還原得回來 —— 不記的話複選等於不能用（每勾一次面板就關一次）。
      `rf` 分得出是卡片那排還是放大視窗那排，兩排同時存在時才不會一起彈開。*/
@@ -8324,7 +8264,7 @@
     dismissable($('#rankPanel'), () => { if (drillActive()) drillClose(); }, {
       also: [$('#sankeyPanel')],
       ignore: ['#flowRotTime', '#flowRotFilter', '#rotLive', '.rotquads', '#stagePanel', '#sankeyWrap',
-        '#sankeyDays', '#sankeyLive', '#rotZoomBtn', '.rotdd'],
+        '#sankeyDays', '#sankeyLive', '.rotdd'],   // 2026-09-26：#rotZoomBtn 已移除，不再列
       isOpen: () => drillActive() && ['rankPanel', 'sankeyPanel'].some(id => { const b = $('#' + id); return b && !b.hidden && b.getClientRects().length > 0; }),
     });
   }
