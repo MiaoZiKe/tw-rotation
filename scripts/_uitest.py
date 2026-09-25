@@ -3172,7 +3172,8 @@ def t_new_market3(pg, base):
         const t = k.data.map(b => typeof b.time === 'number' ? b.time : 0);
         return { n: t.length, tf: k.tf, onHour: t.every(x => x % 3600 === 0),
                  hours: [...new Set(t.map(x => Math.floor((x % 86400) / 3600)))].sort((a, b) => a - b),
-                 vol: !!(k.cfg && k.cfg.vol), fb: document.getElementById('m3c-' + id).dataset.fallback || '' }; }"""
+                 vol: !!(k.cfg && k.cfg.vol), fb: document.getElementById('m3c-' + id).dataset.fallback || '',
+                 est: +(document.getElementById('m3c-' + id).dataset.est || 0), pos: k.data.filter(b => b.volume > 0).length }; }"""
     # ★ 2026-09-25 改前→改後：改前這一段（Yahoo 15 分 K 合成、以及最後那條「分 K 全部拿不到 → 退回日 K」）
     #   默認資料湖沒有 index_intraday；main 的資料湖長出加權 60m 3624 列、15m 1062 列之後，
     #   TSE 會優先讀湖（2600 根 1H、725 根 4H），「4 小時＝21 根」與「退回日 K」就變成拿真資料在驗假設。
@@ -3190,9 +3191,14 @@ def t_new_market3(pg, base):
         ok(f"★ {nm} 1 小時真的有多根 K（20 天 × 5 根 ＋ 今天）", st[i] and st[i]["tf"] == "60m" and st[i]["n"] >= 100, st[i])
         ok(f"★ {nm} 1 小時每根都對齊整點，而且只有 09～13 點（台股交易時段）",
            st[i] and st[i]["onHour"] and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
-        ok(f"★ {nm} Yahoo 的量大部分是 0 → 量柱隱藏，不畫一排 0 張", st[i] and not st[i]["vol"], st[i])
-    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，並在卡片上寫出來",
-       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "今天的分時" in st["FUT"]["fb"], st["FUT"])
+        # ★ 2026-09-25 改前→改後：改前「Yahoo 的量大部分是 0 → 量柱隱藏」；
+        #   Andy：「每個週期都要有成交量、估的要標明、不准空白量柱」→ 改後：量柱照畫、每根 > 0、歷史那幾盤是估的
+        ok(f"★ {nm} Yahoo 的量是 0 → 改用日總量×分時分布估算：量柱照畫、每根都 > 0、有估算根",
+           st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"] and st[i]["est"] > 0, st[i])
+    # ★ 2026-09-25 改前→改後：改前卡片寫「今天的分時合成」長句；Andy 要縮成一行短句（完整原因進「?」）
+    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，卡片一行短句「…只含今日」",
+       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "只含今日" in st["FUT"]["fb"]
+       and len(st["FUT"]["fb"]) <= 30, st["FUT"])
     ok("台指期今天的分時有量 → 量柱照畫", st["FUT"] and st["FUT"]["vol"], st["FUT"])
     pg.select_option("#m3Tf", "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return k && k.tf === '240m'; }", 8000)
@@ -3205,8 +3211,10 @@ def t_new_market3(pg, base):
     pg.evaluate("() => { const s = window.Market3.state; s.fine = {}; }")
     pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(1800)
     o2 = pg.evaluate(HOUR, "OTC")
-    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片寫「瀏覽器端也抓不到」",
-       o2 and o2["n"] == 5 and "瀏覽器端也抓不到" in o2["fb"], o2)
+    # ★ 2026-09-25 改前→改後：改前卡片寫「瀏覽器端也抓不到」長句 → 改後一行短句「櫃買多日分 K 無免費來源，1H/4H 只含今日」
+    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片一行短句「…無免費來源，1H/4H 只含今日」",
+       o2 and o2["n"] == 5 and "無免費來源" in o2["fb"] and "只含今日" in o2["fb"]
+       and "資料湖還沒有" not in o2["fb"] and "瀏覽器端" not in o2["fb"], o2)
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
     pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
@@ -3264,8 +3272,9 @@ def t_new_market3(pg, base):
                li[i] and li[i]["tf"] == tfn and li[i]["n"] > 5, li[i])
             ok(f"★ [{tf}] {nm}不再出現「已改用日」", li[i] and "已改用" not in li[i]["fb"], li[i])
         ok(f"[{tf}] 三張圖的來源標記都是 lake", src == ["lake"] * 3, src)
-        ok(f"[{tf}] 指數量全 0 → 量柱隱藏；台指期有量 → 量柱照畫",
-           li["TSE"] and not li["TSE"]["vol"] and li["FUT"] and li["FUT"]["vol"], li)
+        # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 改後三張量柱都照畫（指數歷史用估算、台指期實量）
+        ok(f"[{tf}] 指數湖裡的量全 0 → 估算補上，三張量柱都照畫、每根 > 0",
+           all(li[i] and li[i]["vol"] and li[i]["pos"] == li[i]["n"] for i in ("TSE", "OTC", "FUT")), li)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
     #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
@@ -3413,6 +3422,233 @@ def t_new_market3(pg, base):
     ok("★ 逐張逐週期滑過去，頁面錯誤 0 筆", err1 == err0, fails[err0:err1][:3])
     click(pg, "#m3Mode button[data-m='line']", 900)
     pg.unroute("**/y?*")
+
+
+    # ==================================================================================
+    # ★ 2026-09-25 量（Andy：「確保每個週期都有成交量；估的要標明；不准空白量柱或 0 張」）
+    #   ＋「1H／4H 用 15 分 K 算」。前提寫死成跟線上一樣：
+    #     · 資料湖只有加權有分 K（15 分 20 天＋更早的 60 分 20 天，量全 0 —— Yahoo 指數就是這樣）
+    #     · 櫃買、台指期湖裡沒有、Yahoo 也 404 → 只有今天的分時（_fake_chart，逐分鐘有實量）
+    #     · 日線湖（index_ohlc）有每天的實際總量，而且有兩天故意是 0（驗日 K 缺量的補法）
+    #   驗的全是「切過去之後畫面上的量柱真的有值」，不是元素存在。
+    # ==================================================================================
+    import calendar as _cal, datetime as _dt2
+    VQ = {"days15": [], "days60": []}
+
+    def fake_intra_vol(route):
+        out, h1, h4, m15 = {}, [], [], []
+        d, n = _dt2.date(2026, 7, 20), 0
+        while n < 40:                                   # 前 20 天只有 60 分、後 20 天有 15 分（跟湖的實際結構一樣）
+            if d.weekday() < 5:
+                px = 45000.0 + n * 10
+                if n < 20:
+                    VQ["days60"].append(d.isoformat())
+                    for hr in range(9, 14):
+                        t = _cal.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
+                        h1.append([t, px, px + 5, px - 5, px + 1, 0])
+                else:
+                    VQ["days15"].append(d.isoformat())
+                    for k in range(18):                 # 09:00 ~ 13:15
+                        t = _cal.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)) + k * 900
+                        m15.append([t, px, px + 3, px - 3, px + 1, 0])
+                    for hr in range(9, 14):
+                        t = _cal.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
+                        h1.append([t, px, px + 5, px - 5, px + 1, 0])
+                h4.append([_cal.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)), px, px + 9, px - 9, px + 1, 0])
+                n += 1
+            d += _dt2.timedelta(days=1)
+        out["TSE"] = {"H1": h1, "H4": h4, "M15": m15}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+
+    ZERO_DAYS = ("2026-08-05", "2026-08-06")
+
+    def fake_ohlc_vol(route):
+        out = {}
+        for sym, px, vol in (("TSE", 45000.0, 8_600_000_000), ("OTC", 390.0, 800_000_000), ("FUT", 44900.0, 40000)):
+            bars, d = [], _dt2.date(2025, 9, 1)
+            while d <= _dt2.date(2026, 9, 25):
+                if d.weekday() < 5:
+                    v = 0 if (sym == "TSE" and d.isoformat() in ZERO_DAYS) else vol + (d.toordinal() % 7) * 1000
+                    bars.append([d.isoformat(), px, px * 1.01, px * .99, px, v])
+                d += _dt2.timedelta(days=1)
+            out[sym] = bars
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+
+    pg.route("**/y?*", lambda r: r.fulfill(status=404, content_type="application/json", body='{"error":"not found"}'))
+    pg.unroute("**/data/index_ohlc.json*")
+    pg.route("**/data/index_ohlc.json*", fake_ohlc_vol)
+    pg.route("**/data/index_intraday.json*", fake_intra_vol)
+    pg.unroute("**/chart?*")
+    pg.route("**/chart?*", fake_chart)
+    pg.evaluate("() => { ['m3.prof.TSE','m3.prof.OTC','m3.prof.FUT','m3.last.TSE','m3.last.OTC','m3.last.FUT']"
+                ".forEach(k => localStorage.removeItem(k)); }")
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    VINFO = "(id) => window.Market3.volInfo(id)"
+    vinfo = {}
+    for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
+        pg.select_option("#m3Tf", tf)
+        tfn = {"H1": "60m", "H4": "240m", "D": "1d", "W": "1d", "M": "1d", "Q": "1d"}.get(tf, tf + "m")
+        for i in ("TSE", "OTC", "FUT"):
+            wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '%s' && v.pos > 0; }" % (i, tfn), 8000)
+        pg.wait_for_timeout(300)
+        vinfo[tf] = {i: pg.evaluate(VINFO, i) for i in ("TSE", "OTC", "FUT")}
+        for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+            v = vinfo[tf][i]
+            ok(f"★ 量 [{tf}] {nm}：量柱面板有畫、至少一根 > 0", bool(v) and v["pane"] and v["pos"] > 0, v)
+            ok(f"★ 量 [{tf}] {nm}：每一根都有量（不准 0 張／空白量柱）", bool(v) and v["pos"] == v["n"], v)
+
+    # --- 15 分：加權真的是多日（湖的 15 分 K ＋ 今天），櫃買／台指期照實只有今天
+    v15 = vinfo["15"]
+    ok("★ 15 分：加權接上資料湖的 15 分 K（多日，> 20 天 × 18 根）、來源標 lake",
+       v15["TSE"] and v15["TSE"]["n"] >= 20 * 18 and v15["TSE"]["src"] == "lake", v15["TSE"])
+    ok("★ 15 分：加權歷史那幾盤的量是估的（估算根數 = 湖裡那 20 天 × 18 根）",
+       v15["TSE"] and v15["TSE"]["est"] == 20 * 18, v15["TSE"])
+    ok("15 分：櫃買、台指期照實只有今天（≤ 21 根、沒有估算）",
+       all(v15[i] and v15[i]["n"] <= 21 and v15[i]["est"] == 0 for i in ("OTC", "FUT")), [v15["OTC"], v15["FUT"]])
+    ok("30 分：加權一樣是多日（根數約 15 分的一半）",
+       vinfo["30"]["TSE"] and v15["TSE"]["n"] * 0.4 < vinfo["30"]["TSE"]["n"] < v15["TSE"]["n"] * 0.7, [v15["TSE"], vinfo["30"]["TSE"]])
+
+    # --- 1H／4H 根數 ≥ 同一份 15 分 K 可以聚合出來的根數
+    pg.select_option("#m3Tf", "15")
+    for i in ("TSE", "OTC", "FUT"):
+        wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '15m'; }" % i, 8000)
+    pg.wait_for_timeout(300)
+    AGG = """(id) => { const k = window.Market3.state.kcharts[id]; const M = window.Market3;
+        const t = k.data.map(b => b.time); return { h1: new Set(t.map(x => M.sessKey(x, 'H1'))).size, h4: new Set(t.map(x => M.sessKey(x, 'H4'))).size }; }"""
+    agg = {i: pg.evaluate(AGG, i) for i in ("TSE", "OTC", "FUT")}
+    for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"★ 1H 根數 ≥ 15 分 K 可聚合的根數（{nm}）",
+           vinfo["H1"][i] and vinfo["H1"][i]["n"] >= agg[i]["h1"], [vinfo["H1"][i], agg[i]])
+        ok(f"★ 4H 根數 ≥ 15 分 K 可聚合的根數（{nm}）",
+           vinfo["H4"][i] and vinfo["H4"][i]["n"] >= agg[i]["h4"], [vinfo["H4"][i], agg[i]])
+    ok("★ 加權 1H 是湖的 40 天＋今天（≥ 41 × 5 根），不是只有今天",
+       vinfo["H1"]["TSE"] and vinfo["H1"]["TSE"]["n"] >= 41 * 5, vinfo["H1"]["TSE"])
+    # 湖的 40 天裡有 2 天（ZERO_DAYS）日線量是 0 → 那兩天只能用中位數估，其餘 38 天一盤一根＝實際總量
+    ok("★ 加權 4H 一盤一根的量＝當天實際總量（38 天歸為日總量；日線缺量的 2 天才算估）",
+       vinfo["H4"]["TSE"] and vinfo["H4"]["TSE"]["day"] >= 38 and vinfo["H4"]["TSE"]["est"] == 2, vinfo["H4"]["TSE"])
+    # 4H 那一根的量真的等於日線湖那天的總量（不是隨便填的）
+    pg.select_option("#m3Tf", "H4")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '240m'; }", 8000)
+    pg.wait_for_timeout(300)
+    h4v = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const t = Date.UTC(2026, 7, 26, 9) / 1000;
+        const r = k.data.find(b => b.time === t); return r ? r.volume : null; }""")
+    want = 8_600_000_000 + (_dt2.date(2026, 8, 26).toordinal() % 7) * 1000
+    ok("★ 加權 4H 2026-08-26 那根的量 = 日線湖那天的實際總量", h4v == want, [h4v, want])
+
+    # --- 1H 一天 5 根估算量加起來 = 那天的實際總量（估的是分配，不是總量）
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '60m'; }", 8000)
+    pg.wait_for_timeout(300)
+    s1 = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const d0 = Date.UTC(2026, 7, 26) / 1000;
+        const rows = k.data.filter(b => b.time >= d0 && b.time < d0 + 86400); return { n: rows.length, sum: rows.reduce((a, b) => a + b.volume, 0) }; }""")
+    ok("★ 加權 1H 某一天 5 根估算量加總 ≈ 那天實際總量（誤差 < 0.1%）",
+       s1["n"] == 5 and abs(s1["sum"] - want) / want < 0.001, [s1, want])
+
+    # --- 游標看板：估算的 K 棒標「估」，今天的實量 K 棒不標
+    def hover_t(idx, t_js):
+        """把指定時間那根 K 棒捲到畫面中間，等圖表重畫完再換算座標、滑過去（同一幀換算會拿到捲動前的座標）。"""
+        ok_i = pg.evaluate("""([id, tj]) => { const e = document.getElementById('m3c-' + id); e.scrollIntoView({block:'center', behavior:'instant'});
+            const k = window.Market3.state.kcharts[id]; const t = eval(tj);
+            const i = k.data.findIndex(b => b.time === t); if (i < 0) return false;
+            k.chart.timeScale().setVisibleLogicalRange({ from: i - 15, to: i + 15 }); return true; }""", [idx, t_js])
+        if not ok_i:
+            return ""
+        kt = ""
+        for _try in range(3):
+            pg.wait_for_timeout(350)
+            b = pg.evaluate("""([id, tj]) => { const e = document.getElementById('m3c-' + id); const k = window.Market3.state.kcharts[id];
+                const cx = k.chart.timeScale().timeToCoordinate(eval(tj)); const r = e.getBoundingClientRect();
+                return cx == null ? null : { x: r.left + cx, y: r.top + r.height * .35 }; }""", [idx, t_js])
+            if not b:
+                continue
+            pg.mouse.move(b["x"] - 20, b["y"]); pg.mouse.move(b["x"], b["y"], steps=4); pg.wait_for_timeout(400)
+            kt = pg.evaluate(KTIP, idx)
+            if kt:
+                break
+            pg.mouse.move(5, 5)
+        return kt
+    kt_est = hover_t("TSE", "Date.UTC(2026, 7, 26, 10) / 1000")
+    ok("★ 加權 1H 歷史那根（估算量）游標看板標「估」", "量" in kt_est and "估" in kt_est, kt_est[:100] or "（看板沒出現）")
+    est_title = pg.evaluate("() => { const e = document.querySelector('#m3c-TSE .m3-ktip .m3-est'); return e ? e.title : ''; }")
+    ok("「估」有滑鼠提示講怎麼估的", "實際總量" in est_title, est_title)
+    kt_real = hover_t("TSE", "Date.UTC(2026, 8, 14, 10) / 1000")
+    ok("加權 1H 今天那根（證交所分時實量）不標「估」", "量" in kt_real and "估" not in kt_real, kt_real[:100] or "（看板沒出現）")
+    pg.mouse.move(5, 5)
+    col = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const s = k.panes.vol[0]; const d = s.data();
+        const t1 = Date.UTC(2026, 7, 26, 10) / 1000, t2 = Date.UTC(2026, 8, 14, 10) / 1000;
+        return [(d.find(p => p.time === t1) || {}).color, (d.find(p => p.time === t2) || {}).color]; }""")
+    ok("★ 估算量柱改灰色、實量柱維持紅綠（一眼分得出哪些是估的）",
+       col and col[0] and "142,160,196" in col[0] and col[1] and "142,160,196" not in col[1], col)
+    fbt = pg.evaluate("() => document.querySelector(\"#m3Grid .m3-fb[data-for='TSE']\").textContent")
+    ok("加權 1H 估算根超過兩成 → 圖上方一行寫「灰色量柱＝估算量」", "估算" in fbt, fbt)
+
+    # --- 日 K：湖裡量是 0 的那兩天補上、標「估」；週 K 含那兩天的那根標「含估」
+    pg.select_option("#m3Tf", "D")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '1d'; }", 8000)
+    pg.wait_for_timeout(300)
+    vd = pg.evaluate(VINFO, "TSE")
+    ok("★ 日 K：湖裡量 0 的那兩天用前後日均量補上、記為估算 2 根", vd and vd["est"] == 2 and vd["pos"] == vd["n"], vd)
+    kt_d = hover_t("TSE", "'2026-08-05'")
+    ok("★ 日 K 補量那天游標看板標「估」", "估" in kt_d, kt_d[:100] or "（看板沒出現）")
+    pg.mouse.move(5, 5)
+    pg.select_option("#m3Tf", "W")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '1d' && v.n < 100; }", 8000)
+    pg.wait_for_timeout(300)
+    vw = pg.evaluate(VINFO, "TSE")
+    ok("週 K：含補量日子的那一根記為「含估」（1 根）", vw and vw["est"] == 1, vw)
+
+    # --- 台指期：量的單位是「口」，不再大一千倍
+    pg.select_option("#m3Tf", "1")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('FUT'); return v && v.tf === '1m'; }", 8000)
+    pg.wait_for_timeout(300)
+    fv = pg.evaluate("() => { const k = window.Market3.state.kcharts.FUT; return k.data.slice(0, 3).map(b => b.volume); }")
+    ok("★ 台指期 1 分 K 的量＝分時 s 欄的口數（第一根 1000 口，不是 1,000,000）", fv[:1] == [1000], fv)
+    tv = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k.data[0].volume; }")
+    ok("加權 1 分 K 的量＝張 × 1000（存股，跟日線同口徑）", tv == 1000 * 1000, tv)
+
+    # --- 「?」：完整原因與量的口徑都在裡面
+    click(pg, "#m3Frame .howbtn.pop[data-how='m3']", 500)
+    how = pg.evaluate("() => (document.getElementById('how-m3') || {}).innerText || ''")
+    ok("★「?」裡寫出櫃買、台指期為什麼只有今天（^TWOII 停更、付費等級）",
+       "只有今天" in how and "^TWOII" in how and "付費" in how, how[-400:])
+    ok("★「?」裡寫出量怎麼估（實際總量 × 分時量分布、標「估」）", "實際總量" in how and "估" in how, how[-400:])
+    pg.mouse.click(8, 500); pg.wait_for_timeout(300)
+
+    # --- 手機 390px：同一件事照樣成立、不能有橫向捲軸、卡片短句的字 ≥ 11px
+    #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
+    pg.set_viewport_size({"width": 390, "height": 860})
+    pg.wait_for_timeout(800)
+    click(pg, "#v-overview .mspine>button:nth-child(2)", 1200)
+    pg.select_option("#m3Tf", "H1")
+    for i in ("TSE", "OTC", "FUT"):
+        wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '60m' && v.pos > 0; }" % i, 8000)
+    pg.wait_for_timeout(500)
+    mv = {i: pg.evaluate(VINFO, i) for i in ("TSE", "OTC", "FUT")}
+    ok("★ 手機 390：1H 三張都有量（每根 > 0）", all(mv[i] and mv[i]["pos"] == mv[i]["n"] for i in mv), mv)
+    ok("手機 390：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    fbm = pg.evaluate("""() => [...document.querySelectorAll('#m3Grid .m3-fb')].map(e => ({ t: e.textContent,
+        fs: parseFloat(getComputedStyle(e).fontSize) }))""")
+    ok("手機 390：卡片短句字 ≥ 11px", all(x["fs"] >= 11 for x in fbm), fbm)
+    # 切到櫃買那張：那一行短句真的看得到、而且沒有超出卡片（手機一次只顯示一張）
+    click(pg, '#mM3Sw button[data-id="OTC"]', 700)
+    fbo = pg.evaluate("""() => { const e = document.querySelector("#m3Grid .m3-fb[data-for='OTC']"), c = e.closest('.m3-card');
+        const r = e.getBoundingClientRect(), cr = c.getBoundingClientRect();
+        return { vis: e.offsetParent !== null && r.height > 0, t: e.textContent, over: e.scrollWidth > e.clientWidth + 1,
+                 inside: r.left >= cr.left - 1 && r.right <= cr.right + 1 }; }""")
+    ok("★ 手機 390：櫃買卡片那一行短句看得到、整句沒被截斷、沒超出卡片",
+       fbo["vis"] and "只含今日" in fbo["t"] and not fbo["over"] and fbo["inside"], fbo)
+    click(pg, '#mM3Sw button[data-id="TSE"]', 500)
+    ok("★ 櫃買／台指期卡片只剩一行短句（≤ 30 字，不再是兩行長文案）",
+       all(0 < len(x["t"]) <= 30 and "只含今日" in x["t"] for x in fbm[1:]), fbm)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.unroute("**/data/index_intraday.json*")
+    pg.unroute("**/data/index_ohlc.json*")
+    pg.route("**/data/index_ohlc.json*", fake_lake)
+    pg.unroute("**/y?*")
+    click(pg, "#m3Mode button[data-m='line']", 600)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.mia.overview.step'); } catch (e) {} }")
 
     # --- 800px：按「展開」要吃滿整列、圖畫得出來（審查 R1：卡片變高但一片空白）
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -9234,6 +9470,10 @@ def t_market3(pg, base):
     pg.route("**/chart?*", fake)
     pg.route("**/y?*", fake_y)
     pg.route("**/data/index_ohlc.json*", fake_lake)
+    # ★ 2026-09-25 改前→改後：改前沒攔 index_intraday.json（當時 15 分只有今天的分時，湖怎樣都無關）。
+    #   改後 15／30 分會接資料湖的 15 分 K（加權約 60 天），下面「15 分約是 5 分的三分之一」那條驗的是
+    #   「今天的分時換週期」—— 前提是湖裡沒有，所以這裡攔成空物件把前提寫死（湖的多日 15 分在「新-大盤三張圖」驗）。
+    pg.route("**/data/index_intraday.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
     pg.evaluate("() => { try { localStorage.removeItem('tw.m3.mode'); localStorage.removeItem('tw.m3.tf');"
                 " localStorage.removeItem('tw.m3.big'); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch(e){} }")
     pg.goto("about:blank")
@@ -9396,6 +9636,7 @@ def t_market3(pg, base):
     pg.unroute("**/chart?*")
     pg.unroute("**/y?*")
     pg.unroute("**/data/index_ohlc.json*")
+    pg.unroute("**/data/index_intraday.json*")
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
@@ -13238,6 +13479,8 @@ SECTIONS = {
     #   拉Bar／−＋／▶／即時／怎麼看／點族群展開／點鏈／點背景／點個股、紅漲綠跌、發光與字級、幀率、動態開關。
     "資金去向拓撲":        lambda pg, b, base, code: t_flowtopo(pg, base),
     "資金去向拓撲-減少動態": lambda pg, b, base, code: t_flowtopo_reduced(b, base),
+    # ★ 2026-09-25：資金去向「經典光纖」（桌機預設）—— 經典版的四層版面與標籤＋拓撲版的光纖與粒子
+    "資金去向經典光纖":    lambda pg, b, base, code: t_flowfx(pg, b, base),
 
     # ★ 2026-09-24 Andy：「輪動時鐘分層需要漸層…所有的長條圖 圓餅圖…需要圓滑化／…不需要收起選項，點擊背景即可消除」
     #   ＋「幫我將輪動時鐘結合水滴這概念，我當他移動會有水波紋」。
@@ -13249,6 +13492,8 @@ SECTIONS = {
     "足跡輪盤既有功能":    lambda pg, b, base, code: t_rot_keep(pg, b, base),
     # ★ 2026-09-24 夜（Andy 四件）：市場寬度比例、足跡輪盤平滑補間、排行貼頂、篩選列左上角
     "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
+    # ★ 2026-09-25（claude/rot-all-trails）：每一顆族群點都有腳印，非焦點淡、小，滑到提亮
+    "足跡輪盤全部腳印":    lambda pg, b, base, code: t_rot_all_trails(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
     "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
     # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
@@ -13279,6 +13524,8 @@ SECTIONS = {
     "剖析圖卡片限高":      lambda pg, b, base, code: t_dgfit(pg, base),
     # ★ 2026-09-25 Andy：2D 圖也要附股票、所有剖析圖裡的股票都要能點進 K 線頁（⚠ 一律 --workers 1）
     "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
+    # ★ 2026-09-25 Andy 回報「點擊後不會收回」：2D／3D 剖析圖同一時間只展開一張卡片（⚠ 一律 --workers 1）
+    "剖析圖卡片收回":      lambda pg, b, base, code: t_dgcollapse(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -26778,6 +27025,10 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
   const moved = ss.find(s => s.type === 'custom' && s.name === '換段色環');
   const g0 = vis.map(s => s.lineStyle.color).find(x => x && typeof x === 'object');
   return { n: sc.data.length, lines: lines.length, vis: vis.length, visGids: vis.map(s => s.gid),
+    /* 2026-09-25（每個點都有腳印）：看得到的每一條各自的不透明度 —— 1＝焦點（實、亮），< 1＝退到背景的非焦點 */
+    visOp: vis.map(s => (s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity),
+    solid: vis.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) >= 1).length,
+    solidGids: vis.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) >= 1).map(s => s.gid),
     arrows: vis.reduce((a, s) => a + sym(s, 'triangle'), 0), marks: vis.reduce((a, s) => a + sym(s, 'circle'), 0),
     grad: g0 ? g0.colorStops.map(x => x.color) : null,
     /* 2026-09-24 腳印：每條看得到的軌跡上，path:// 符號（腳印）的數量、左右腳、轉向、由舊到新的透明度 */
@@ -26877,22 +27128,30 @@ def t_clock_v2(pg, b, base):
         # ① 焦點族群：預設模式 focus，最多 6 個，只有焦點畫軌跡
         ok(f"[{th}] ① 軌跡預設是「焦點」模式", fr.get("tmode") == "focus", fr.get("tmode"))
         ok(f"[{th}] ① 焦點族群 1～6 個（佔比前 3 ＋ 最近換段）", 1 <= len(fr.get("focus") or []) <= 6, fr.get("focus"))
-        ok(f"[{th}] ① 看得到的軌跡 ≤ 6 條、而且只有焦點族群有（非焦點沒有軌跡）",
-           0 < s["vis"] <= 6 and set(s["visGids"]) <= set(fr["focus"]), {"看得到": s["vis"], "焦點": fr["focus"]})
-        ok(f"[{th}] ① 每個族群仍然各有一條 line series（資料還在，只是非焦點看不見）", s["lines"] == s["n"], s)
+        # ★ 2026-09-25（Andy：「為何不是每個點都有軌跡」）：
+        #   改前：看得到的軌跡 ≤ 6 條、只有焦點族群有（非焦點 opacity 0）
+        #   改後：每一條都看得到；**實、亮（opacity 1）的**仍然 ≤ 6 條而且只有焦點，其餘退到背景（opacity < 1）
+        ok(f"[{th}] ① 實、亮的軌跡（opacity 1）≤ 6 條、而且只有焦點族群有",
+           0 < s["solid"] <= 6 and set(s["solidGids"]) <= set(fr["focus"]), {"實": s["solid"], "焦點": fr["focus"]})
+        ok(f"[{th}] ① 非焦點族群也有軌跡（看得到的 ＝ 全部族群；非焦點的 opacity 介於 0.3～0.4）",
+           s["vis"] == s["n"] and all(0.3 <= o <= 0.4 for o, g in zip(s["visOp"], s["visGids"]) if g not in fr["focus"]),
+           {"看得到": s["vis"], "族群": s["n"], "不透明度": s["visOp"]})
+        ok(f"[{th}] ① 每個族群仍然各有一條 line series", s["lines"] == s["n"], s)
         ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
         ok(f"[{th}] ① 族群名稱字級 ≥ 12px", s["lblFs"] >= 12, s["lblFs"])
         # ② ★ 2026-09-24（Andy：「軌跡線 改成小小的腳印」）：
         #   改前：一條漸強的線（.15 → .90）＋ 最新一段三角箭頭 ＋ 每 5 天一顆小點
         #   改後：線不畫（寬 0），改成一串左右交錯、腳尖朝前進方向、越舊越淡的小腳印
-        feet = [f for f in s["feet"] if f]
+        # 2026-09-25：腳印的逐項長相只量焦點那幾條（非焦點的腳印刻意縮小、變疏，另外在「足跡輪盤全部腳印」段驗）
+        #   改前：feet＝看得到的全部（那時看得到＝焦點）→ 改後：feet＝opacity 1 的那幾條
+        feet = [f for f, o in zip(s["feet"], s["visOp"]) if f and o >= 1]
         allf = [x for f in feet for x in f]
         # ★ 2026-09-24 晚（Andy 參考檔）：桌機在腳印底下留一條極淡的細線（1.2px、25%），把一步一步串成一條路。
         #   改前（同一天稍早）：寬 0 → 改後（桌機）：≤ 1.2px、α ≤ .3；手機仍然是 0（這一段跑在 1440）
         ok(f"[{th}] ② 腳印底下只有一條極淡的細線（≤ 1.2px、透明度 ≤ .3；主角是腳印）",
            0 < s["lineW"] <= 1.2 and s["lineA"] <= .3, [s["lineW"], s["lineA"]])
         ok(f"[{th}] ② 看得到的每一條軌跡都畫出了腳印（每條 ≥ 2 個）",
-           len(feet) == s["vis"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
+           len(feet) == s["solid"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
         ok(f"[{th}] ② 左右腳交錯（相鄰兩個腳印一左一右）",
            all(all(f[i]["f"] != f[i + 1]["f"] for i in range(len(f) - 1)) for f in feet), [[x["f"] for x in f][:6] for f in feet][:2])
         ok(f"[{th}] ② 腳尖朝前進方向（每個腳印都有依路徑轉向，不是全部同一個角度）",
@@ -26948,7 +27207,9 @@ def t_clock_v2(pg, b, base):
             ok("⑥ 關掉「顯示腳印」→ 一個腳印都不剩", s2 and sum(len(f) for f in s2["feet"]) == 0, s2 and [len(f) for f in s2["feet"]])
             pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
             s3 = pg.evaluate(CLK_STATE, "rotClock")
-            ok("⑥ 再打開 → 腳印回來（仍然只有焦點那幾條 ≤ 6）", s3 and 0 < s3["vis"] <= 6 and sum(len(f) for f in s3["feet"]) > 0, s3 and s3["vis"])
+            # 改前：再打開只回來焦點那幾條（vis ≤ 6）→ 改後（2026-09-25）：全部回來，實的仍 ≤ 6
+            ok("⑥ 再打開 → 腳印回來（每個族群都有、實的仍只有焦點 ≤ 6）",
+               s3 and s3["vis"] == s3["n"] and 0 < s3["solid"] <= 6 and sum(len(f) for f in s3["feet"]) > 0, s3 and [s3["vis"], s3["solid"]])
             # ⑦ 滑到一顆**非焦點**的點 → 它的軌跡出現、其他壓暗；滑開 → 還原
             tgt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
                 const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter');
@@ -26962,10 +27223,13 @@ def t_clock_v2(pg, b, base):
                     const ls = c.getOption().series.filter(s => s.type === 'line');
                     const me = ls.find(s => s.gid === gid); const others = ls.filter(s => s.gid !== gid);
                     return { me: me ? me.lineStyle.opacity : null, maxOther: Math.max(0, ...others.map(s => s.lineStyle.opacity)) }; }""", tgt["gid"])
-                ok("⑦ 滑到非焦點的點：它的軌跡出現（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
+                # 改前「它的軌跡出現」→ 改後（2026-09-25）「它的軌跡提亮」：本來就在（淡），滑到才拉到 1
+                ok("⑦ 滑到非焦點的點：它的軌跡提亮（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
                 pg.mouse.move(5, 5); pg.wait_for_timeout(700)
                 s4 = pg.evaluate(CLK_STATE, "rotClock")
-                ok("⑦ 滑開之後還原成焦點模式（非焦點的軌跡又看不見）", s4 and 0 < s4["vis"] <= 6, s4 and s4["vis"])
+                # 改前：滑開 → 非焦點又看不見（vis ≤ 6）→ 改後：滑開 → 非焦點退回淡（實的 ≤ 6、全部仍看得到）
+                ok("⑦ 滑開之後還原（實的只剩焦點 ≤ 6，非焦點退回淡腳印）", s4 and 0 < s4["solid"] <= 6 and s4["vis"] == s4["n"],
+                   s4 and [s4["solid"], s4["vis"]])
             # ⑧ 編號模式的判準跟容器寬度一致（1440 不是編號模式）
             ok("⑧ 1440px 的卡片不是編號模式（容器 ≥ 560px）", (s["fr"] or {}).get("num") is False, s["fr"].get("num"))
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }")
@@ -27873,6 +28137,144 @@ def t_rot_keep(pg, b, base):
 
 
 
+# ===================================================================== 足跡輪盤：每一個族群點都有腳印（2026-09-25）
+# Andy 截圖問「為何不是每個點都有軌跡」。改法：焦點族群照舊（實、亮），非焦點的腳印退到背景
+# （整條 opacity .35、腳印 ×0.78、間距 ×2），滑到／點到那一顆點就換成焦點樣式；「顯示腳印」照舊關全部。
+# 這一段真的操作：對盤上**每一顆**族群點找它的腳印序列、滑過一顆非焦點點看它提亮、勾掉「顯示腳印」看全部歸零、
+# 按 ▶ 看非焦點的腳印也跟著補間走（沿用 rotTween 只搬位置），並量回放幀率寫進 notes。
+ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && window.echarts && echarts.getInstanceByDom(el);
+  if (!c) return null;
+  const o = c.getOption(); const ss = o.series || [];
+  const sc = ss.find(s => s.type === 'scatter' && s.name === '族群'); if (!sc) return null;
+  const alpha = (col) => { const m = String(col || '').match(/,([\d.]+)\)$/); return m ? +m[1] : 1; };
+  const focus = new Set(((window.App && window.App._rotFrame) || {}).focus || []);
+  const rows = sc.data.map(d => {
+    const gid = d.row.gid; const li = ss.findIndex(s => s.type === 'line' && s.gid === gid); const ln = ss[li];
+    if (!ln) return { gid, name: d.row.name, line: false };
+    const op = (ln.lineStyle || {}).opacity == null ? 1 : ln.lineStyle.opacity;
+    const feet = (ln.data || []).filter(x => x && !Array.isArray(x) && String(x.symbol || '').startsWith('path://'));
+    // 軌跡在畫面上的長度（px）：太短的族群（幾乎沒動）本來就放不下腳印，要分得出「沒畫」跟「沒得畫」
+    const px = (ln.data || []).map(x => c.convertToPixel({ seriesIndex: li }, Array.isArray(x) ? x : x.value)).filter(Boolean);
+    let len = 0; for (let i = 1; i < px.length; i++) len += Math.hypot(px[i][0] - px[i - 1][0], px[i][1] - px[i - 1][1]);
+    return { gid, name: d.row.name, line: true, focus: focus.has(gid), op, n: feet.length, len: Math.round(len),
+      sz: Math.max(0, ...feet.map(x => Math.max(...[].concat(x.symbolSize || 0)))),
+      a: Math.max(0, ...feet.map(x => alpha((x.itemStyle || {}).color))) };
+  });
+  return { rows, dots: sc.data.length }; }"""
+
+
+def t_rot_all_trails(pg, b, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.rot.filter');"
+                    " localStorage.removeItem('tw.rot.back3'); localStorage.removeItem('tw.rot.days'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(700)
+        st = pg.evaluate(ALLTR, "rotClock")
+        if not ok(f"[{th}] 讀得到盤上每一顆族群點與它的腳印", bool(st) and st["dots"] > 6, st and st["dots"]):
+            continue
+        rows = st["rows"]
+        foc = [r for r in rows if r.get("focus")]
+        rest = [r for r in rows if r.get("line") and not r.get("focus")]
+        # ① 每一顆族群點都有自己的腳印序列（改前：只有焦點 ≤ 6 顆有）
+        nofeet = [r for r in rows if not (r.get("line") and r["op"] > 0 and (r["n"] >= 1 or r["len"] < 12))]
+        ok(f"[{th}] ① 盤上每一顆族群點都有對應的腳印序列（看得到、至少 1 個腳印；軌跡 < 12px 的幾乎沒動，不算）",
+           not nofeet and len(rows) == st["dots"], {"缺": [(r["name"], r.get("n"), r.get("len")) for r in nofeet], "點數": st["dots"]})
+        ok(f"[{th}] ① 真的有非焦點族群被畫出來（非焦點 {len(rest)} 條、其中有腳印的 ≥ 一半）",
+           len(rest) >= 1 and sum(1 for r in rest if r["n"] >= 1) * 2 >= len(rest), [(r["name"], r["n"]) for r in rest])
+        # ② 非焦點比焦點淡、小
+        if ok(f"[{th}] ② 焦點與非焦點都有（才比得出淡與實）", bool(foc) and bool(rest), [len(foc), len(rest)]):
+            ok(f"[{th}] ② 焦點整條 opacity 1、非焦點 0.3～0.4",
+               all(r["op"] == 1 for r in foc) and all(0.3 <= r["op"] <= 0.4 for r in rest),
+               {"焦點": [r["op"] for r in foc], "非焦點": sorted({r["op"] for r in rest})})
+            fa = max((r["op"] * r["a"] for r in foc if r["n"]), default=0)
+            ra = max((r["op"] * r["a"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印實際不透明度 < 焦點（整條 × 腳印自己的，最亮那一個比）", 0 < ra < fa,
+               {"非焦點": round(ra, 3), "焦點": round(fa, 3)})
+            fs = max((r["sz"] for r in foc if r["n"]), default=0)
+            rs = max((r["sz"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印比焦點小（最大那一個比）", 0 < rs < fs, {"非焦點": rs, "焦點": fs})
+        if th != "dark":
+            continue
+        # ③ 滑過一顆非焦點的點 → 它的腳印提亮到焦點樣式（opacity 1、原尺寸、原密度），其他壓暗；滑開還原
+        cand = sorted([r for r in rest if r["n"] >= 1], key=lambda r: -r["len"])
+        tgt = None
+        for r in cand:
+            tgt = pg.evaluate("""(gid) => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+                const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && s.name === '族群');
+                const d = o.series[si].data.find(x => x.row && x.row.gid === gid); if (!d) return null;
+                const p = c.convertToPixel({ seriesIndex: si }, d.value); const rc = el.getBoundingClientRect();
+                return { gid, x: rc.left + p[0], y: rc.top + p[1] }; }""", r["gid"])
+            if tgt:
+                # 目標點上不能剛好疊著別的點（命中測試取最近的那一顆）
+                pg.mouse.move(tgt["x"], tgt["y"]); pg.wait_for_timeout(800)
+                if pg.evaluate("() => document.getElementById('rotClock')._hovGid") == r["gid"]:
+                    break
+            tgt = None
+        if ok("③ 找得到一顆可以滑到的非焦點點（有腳印）", bool(tgt), [r["name"] for r in cand][:5]):
+            r0 = next(r for r in rows if r["gid"] == tgt["gid"])
+            h = pg.evaluate(ALLTR, "rotClock")
+            me = next(r for r in h["rows"] if r["gid"] == tgt["gid"])
+            others = [r for r in h["rows"] if r["gid"] != tgt["gid"] and r.get("line")]
+            ok("③ 滑過非焦點的點 → 它的腳印提亮（opacity 從 0.3～0.4 變 1）", r0["op"] < 1 and me["op"] == 1, [r0["op"], me["op"]])
+            ok("③ 滑過之後它的腳印換成焦點尺寸與密度（變大、不變少）", me["sz"] > r0["sz"] and me["n"] >= r0["n"],
+               {"前": [r0["sz"], r0["n"]], "後": [me["sz"], me["n"]]})
+            ok("③ 其他族群的腳印壓到 ≤ 0.12（包括焦點）", max(r["op"] for r in others) <= 0.12, max(r["op"] for r in others))
+            pg.mouse.move(5, 5); pg.wait_for_timeout(800)
+            h2 = pg.evaluate(ALLTR, "rotClock")
+            me2 = next(r for r in h2["rows"] if r["gid"] == tgt["gid"])
+            ok("③ 滑開 → 它退回淡、小（opacity、尺寸、個數都回到滑過前）",
+               me2["op"] == r0["op"] and me2["sz"] == r0["sz"] and me2["n"] == r0["n"],
+               {"前": [r0["op"], r0["sz"], r0["n"]], "滑開": [me2["op"], me2["sz"], me2["n"]]})
+            ok("③ 滑開 → 焦點的腳印也回到 1", all(r["op"] == 1 for r in h2["rows"] if r.get("focus")),
+               [r["op"] for r in h2["rows"] if r.get("focus")])
+        # ④ 關掉「顯示腳印」→ 全部歸零（焦點與非焦點都是）；打開 → 全部回來
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1000)
+        off = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾掉「顯示腳印」→ 每一條的 opacity 都是 0、一個腳印都不剩",
+           bool(off) and all(r["op"] == 0 and r["n"] == 0 for r in off["rows"] if r.get("line")),
+           off and [(r["name"], r["op"], r["n"]) for r in off["rows"] if r.get("op") or r.get("n")][:5])
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+        on = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾回來 → 非焦點的淡腳印也回來",
+           bool(on) and sum(1 for r in on["rows"] if r.get("line") and 0 < r["op"] < 1 and r["n"]) >= 1,
+           on and [(r["name"], r["op"], r["n"]) for r in on["rows"]][:6])
+        # ⑤ 回放：非焦點的腳印也跟著補間走（rotTween 只搬位置，不是每一步重建）＋ 量幀率
+        pl = pg.evaluate("""async () => {
+          const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+          const f = new Set((window.App._rotFrame || {}).focus || []);
+          const pick = () => { for (const s of c.getModel().getSeries().filter(s => s.subType === 'line')) {
+              const o = s.option; if (!o || f.has(o.gid) || !(o.lineStyle && o.lineStyle.opacity > 0 && o.lineStyle.opacity < 1)) continue;
+              const d = s.getData(); for (let i = d.count() - 1; i >= 0; i--) { const raw = d.getRawDataItem(i);
+                if (raw && raw.foot) { const g = d.getItemGraphicEl(i); if (g) return [Math.round(g.x * 10) / 10, Math.round(g.y * 10) / 10]; } } }
+            return null; };
+          window.App.rotReplay(12); await new Promise(r => setTimeout(r, 900));
+          const st0 = window.App.rotTween();
+          const btn = document.querySelector('#rotBack .pb.play'); btn.click();
+          const ps = []; let n = 0; const gaps = []; const t0 = performance.now(); let last = t0;
+          await new Promise(res => { const g = (t) => { n++; gaps.push(t - last); last = t; const p = pick(); if (p) ps.push(p.join(','));
+            if (t - t0 < 2500) requestAnimationFrame(g); else res(); }; requestAnimationFrame(g); });
+          btn.click();
+          const st1 = window.App.rotTween();
+          return { uniq: new Set(ps).size, n: ps.length, fps: +(n * 1000 / (performance.now() - t0)).toFixed(1), maxGap: Math.round(Math.max(...gaps)),
+            tweens: st1.tweens - st0.tweens, paintMs: st1.last && st1.last.paintMs }; }""")
+        notes.append(f"足跡輪盤全部腳印：回放 2.5 秒 {pl['fps']} fps、最長一幀 {pl['maxGap']}ms、補間 {pl['tweens']} 次、"
+                     f"每幀搬圖元 {pl['paintMs']}ms（容器軟體繪圖）")
+        ok("⑤ 回放中非焦點的腳印也跟著補間走（同一個腳印在 2.5 秒裡出現 ≥ 5 個不同位置）", pl["uniq"] >= 5, pl)
+        ok("⑤ 回放真的走補間（rotTween 次數增加），不是每一步整張重建", pl["tweens"] >= 2, pl)
+        pg.evaluate("() => window.App.rotReplay(0)"); pg.wait_for_timeout(600)
+        # ⑥ 總覽小時鐘（compact）不跟：仍然只有焦點的腳印，沒有淡的
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        mini = pg.evaluate("""() => { const el = document.getElementById('rotClockMini'); const c = el && echarts.getInstanceByDom(el);
+            if (!c) return null; return c.getOption().series.filter(s => s.type === 'line').map(s => (s.lineStyle || {}).opacity); }""")
+        if mini is not None:
+            ok("⑥ 總覽小時鐘不畫淡腳印（每一條不是 0 就是 1）", all(o in (0, 1) for o in mini), mini)
+        else:
+            notes.append("足跡輪盤全部腳印 ⑥：總覽頁沒有小時鐘（rotClockMini），略過")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 # ===================================================================== 載入效能（2026-09-24）
 # Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」。
 # 修法（見 app.js 的「★ 2026-09-24 效能」註解）：尺寸沒變就不 resize、首屏以下的卡片延後畫、
@@ -28412,6 +28814,197 @@ def t_dgfit(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
+# ============================================================================================
+# ★ 2026-09-25 Andy 回報（產業地圖 → 半導體 → 矽晶圓，3D）：「點擊後不會收回」——
+#   左欄 01／06／02／03、右欄 05 同時展開說明全文＋台股，越點越多張。
+#   根因：3D 卡片的收合階數 0 ＝ 全開（一欄塞得下就整欄全開，跟點了哪一張無關）；
+#   2D 收合模式的公式／警語說明卡各自 toggle .open，點背景／Esc 收不掉。
+#   規則（兩種圖一樣）：同一時間最多一張展開說明（被選的那張，或滑過的那張）；
+#   再點同一張 → 0；點背景／Esc → 0；點圖上零件後再點背景 → 0。
+#   「展開」＝那張卡片的說明全文（3D 的 <i>／2D 的 .bd i）真的顯示在畫面上 —— 量畫面，不是量 class。
+#   ⚠ 一律 --workers 1（3D、滑鼠位置、動畫都會互相干擾）。
+# ============================================================================================
+DGC_3D = """() => { const h = document.getElementById('prod3d'); if (!h) return null;
+  const cards = [...h.querySelectorAll('.lbl3d')].filter(e => e.offsetParent && !e.classList.contains('hid'));
+  const no = (e) => (e.querySelector('em.no3d') || {}).textContent || '';
+  const shown = (e) => { const i = e.querySelector('i'); return !!i && getComputedStyle(i).display !== 'none' && i.getBoundingClientRect().height > 0; };
+  return { n: cards.length, mode: ['lr', 'r', 'below'].find(m => h.classList.contains('dgstage--' + m)) || '',
+    exp: cards.filter(shown).map(no), sel: cards.filter(e => e.classList.contains('sel-part')).map(no), nos: cards.map(no) }; }"""
+DGC_2D = """() => { const w = document.getElementById('prodDiagram'); if (!w || w.hidden) return null;
+  const cards = [...w.querySelectorAll('.dgc')].filter(e => e.offsetParent);
+  const no = (e) => (e.querySelector('.no') || {}).textContent || ('note' + [...e.parentNode.children].indexOf(e) + (e.classList.contains('warn') ? 'w' : ''));
+  const shown = (e) => [...e.querySelectorAll('.bd i')].some(i => i.offsetParent && i.getBoundingClientRect().height > 0);
+  const pop = w.querySelector('.dgpop');
+  return { n: cards.length, fold: w.classList.contains('dgfold'),
+    exp: cards.filter(shown).map(no), sel: cards.filter(e => e.classList.contains('sel-part')).map(no),
+    nos: cards.filter(e => e.dataset.seg || e.dataset.part).map(no), notes: cards.filter(e => !e.dataset.seg && !e.dataset.part).map(no),
+    pop: !!(pop && !pop.hidden) }; }"""
+# 找某一張卡片的「標題」那一點（避開台股標籤 —— 點到標籤會進個股頁），捲進畫面後**立刻**回座標
+DGC_PT = """([mode, no]) => { const all = mode === '3d' ? [...document.querySelectorAll('#prod3d .lbl3d')] : [...document.querySelectorAll('#prodDiagram .dgc')];
+  const nf = mode === '3d' ? (e) => (e.querySelector('em.no3d') || {}).textContent || ''
+    : (e) => (e.querySelector('.no') || {}).textContent || ('note' + [...e.parentNode.children].indexOf(e) + (e.classList.contains('warn') ? 'w' : ''));
+  const e = all.find(x => nf(x) === no && x.offsetParent); if (!e) return null;
+  e.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const t = e.querySelector('b') || e; const r = t.getBoundingClientRect();
+  const x = Math.min(r.right - 4, r.left + 34), y = r.top + Math.min(9, r.height / 2);
+  const hit = document.elementFromPoint(x, y);
+  return hit && e.contains(hit) && !hit.closest('a') ? { x, y } : null; }"""
+# 3D 畫布上的「背景」：畫布頂端正中間那一條（模型一律置中、兩側是卡片欄）
+DGC_BG3D = """() => { const c = document.querySelector('#prod3d canvas'); if (!c) return null;
+  c.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = c.getBoundingClientRect();
+  for (const [fx, fy] of [[.5, .02], [.45, .03], [.55, .03], [.5, .98]]) { const x = r.left + r.width * fx, y = r.top + r.height * fy;
+    if (document.elementFromPoint(x, y) === c) return { x, y }; } return null; }"""
+
+
+def _dgc_meas(pg, mode):
+    return pg.evaluate(DGC_3D if mode == "3d" else DGC_2D)
+
+
+def _dgc_click_card(pg, mode, no):
+    """點某一張卡片的標題；最多試 3 次（3D 卡片每幾幀會重排，量和點之間可能換了位置）。
+    點完把滑鼠移開（滑過會展開，要量的是「點擊之後」的狀態），回傳量測結果。"""
+    m = None
+    for _ in range(3):
+        pt = pg.evaluate(DGC_PT, [mode, no])
+        if not pt:
+            pg.wait_for_timeout(300); continue
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(650)
+        pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+        return _dgc_meas(pg, mode)
+    return m
+
+
+def _dgc_bg(pg, mode):
+    pt = pg.evaluate(DGC_BG3D) if mode == "3d" else _dgfit_bg_point(pg)
+    if not pt:
+        return None
+    pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(650)
+    pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+    return _dgc_meas(pg, mode)
+
+
+def t_dgcollapse(pg, base):
+    keep = pg.evaluate("() => { try { return ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null]; } }")
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    for route, name in (("industry/semiconductor/dg/silicon_wafer", "矽晶圓"), ("industry/ai_server/dg/pcb_rigid", "PCB硬板")):
+        for mode in ("3d", "2d"):
+            tag = f"[{name}/{mode.upper()}]"
+            pg.evaluate("(m) => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.dgOpen', '1');"
+                        " localStorage.setItem('tw.dganim', '0'); localStorage.setItem('tw.dg3d', m === '3d' ? '1' : '0'); } catch (e) {} }", mode)
+            pg.goto("about:blank"); pg.goto(f"{base}#{route}", wait_until="networkidle")
+            if mode == "3d":
+                if not wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d').length > 2", 15000):
+                    ok(f"{tag} 3D 掛得起來", False, "15 秒內沒有卡片"); continue
+            else:
+                wait_until(pg, "() => { const w = document.getElementById('prodDiagram'); return w && !w.hidden && !!w.querySelector('.dgc'); }", 8000)
+            pg.wait_for_timeout(1400)
+            pg.mouse.move(3, 3); pg.wait_for_timeout(500)
+            m0 = _dgc_meas(pg, mode)
+            if not ok(f"{tag} 量得到卡片", bool(m0 and m0["n"] >= 4), m0):
+                continue
+            if mode == "3d" and m0["mode"] == "below":
+                ok(f"{tag} 1440 寬應該是欄位模式（lr／r），不是底下那一排", False, m0); continue
+            if mode == "2d" and not m0["fold"]:
+                ok(f"{tag} 1440／抽屜關：卡片塞不下，應該進收合模式（.dgfold）", False, m0); continue
+            ok(f"{tag} 一進來：沒有任何一張卡片展開說明", len(m0["exp"]) == 0, m0["exp"])
+            nos = sorted(m0["nos"])[:3]
+            # ① 依序點三張：任何時刻展開數 ≤ 1，而且展開的就是剛剛點的那一張
+            last = None
+            for no in nos:
+                m = _dgc_click_card(pg, mode, no)
+                ok(f"{tag} 點 {no}：只有它展開（展開數 ≤ 1、選取＝{no}）",
+                   bool(m) and len(m["exp"]) <= 1 and m["sel"] == [no] and m["exp"] == [no], m and {"exp": m["exp"], "sel": m["sel"]})
+                last = no
+            # ② 再點同一張 → 收回、取消選取
+            m = _dgc_click_card(pg, mode, last)
+            ok(f"{tag} 再點同一張 {last} → 收回（展開 0、選取 0）", bool(m) and not m["exp"] and not m["sel"],
+               m and {"exp": m["exp"], "sel": m["sel"]})
+            # ③ 點一張 → 點背景 → 0
+            _dgc_click_card(pg, mode, nos[0])
+            m = _dgc_bg(pg, mode)
+            ok(f"{tag} 點 {nos[0]} 再點背景 → 全部收回", bool(m) and not m["exp"] and not m["sel"], m and {"exp": m["exp"], "sel": m["sel"]})
+            # ④ 點一張 → 按 Esc → 0
+            _dgc_click_card(pg, mode, nos[1])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+            m = _dgc_meas(pg, mode)
+            ok(f"{tag} 點 {nos[1]} 再按 Esc → 全部收回", bool(m) and not m["exp"] and not m["sel"], m and {"exp": m["exp"], "sel": m["sel"]})
+            # ⑤ 點圖上的零件（3D：模型本身；2D：圖上的編號）→ 展開 ≤ 1 → 點背景 → 0
+            if mode == "3d":
+                pt = pg.evaluate("""() => { const v = window.Rack3D && window.Rack3D.current; if (!v) return null;
+                  document.querySelector('#prod3d canvas').scrollIntoView({ block: 'center', behavior: 'instant' });
+                  for (const s of v.segs()) { const p = v.screen(s); if (p && p.front) return p; } return null; }""")
+            else:
+                pt = pg.evaluate(DGFIT_ANC)
+            if ok(f"{tag} 找得到圖上的零件可以點", bool(pt), pt):
+                pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(700)
+                pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+                m = _dgc_meas(pg, mode)
+                ok(f"{tag} 點圖上零件：選起來、展開數 ≤ 1", bool(m) and len(m["sel"]) >= 1 and len(m["exp"]) <= 1,
+                   m and {"exp": m["exp"], "sel": m["sel"]})
+                m = _dgc_bg(pg, mode)
+                ok(f"{tag} 點圖上零件後再點背景 → 全部收回", bool(m) and not m["exp"] and not m["sel"] and not m.get("pop"),
+                   m and {"exp": m["exp"], "sel": m["sel"], "pop": m.get("pop")})
+            # ⑥ 滑過展開、滑出收回（3D 收成一行的卡片靠 :hover 看說明）
+            if mode == "3d":
+                bg = pg.evaluate(DGC_BG3D)                    # 先進容器（爆炸圖展開、卡片重排完）再找卡片，不然滑進去那一刻卡片會跑掉
+                if bg:
+                    pg.mouse.move(bg["x"], bg["y"]); pg.wait_for_timeout(600)
+                mh, pt = None, None
+                for _ in range(3):                            # 捲動／爆炸圖重排會讓卡片離開游標底下：重新找點再滑一次
+                    pt = pg.evaluate(DGC_PT, ["3d", nos[2]])
+                    if not pt:
+                        pg.wait_for_timeout(300); continue
+                    pg.mouse.move(pt["x"], pt["y"]); pg.wait_for_timeout(400)
+                    mh = _dgc_meas(pg, mode)
+                    if mh and nos[2] in mh["exp"]:
+                        break
+                if pt:
+                    pg.mouse.move(3, 3); pg.wait_for_timeout(450)
+                    mo = _dgc_meas(pg, mode)
+                    ok(f"{tag} 滑過 {nos[2]} → 只有它展開；滑出 → 收回",
+                       bool(mh and mo) and mh["exp"] == [nos[2]] and not mo["exp"], [mh and mh["exp"], mo and mo["exp"]])
+            # ⑦ 2D 的公式／警語說明卡（沒有零件身分、點它自己開合）：一次只開一張，點背景／Esc 收回
+            if mode == "2d" and len(m0["notes"]) >= 2:
+                a, b2 = m0["notes"][0], m0["notes"][1]
+                m = _dgc_click_card(pg, mode, a)
+                ok(f"{tag} 點說明卡 {a} → 只有它展開", bool(m) and m["exp"] == [a], m and m["exp"])
+                m = _dgc_click_card(pg, mode, b2)
+                ok(f"{tag} 再點說明卡 {b2} → 前一張收回、只剩它", bool(m) and m["exp"] == [b2], m and m["exp"])
+                m = _dgc_click_card(pg, mode, nos[0])
+                ok(f"{tag} 說明卡開著時點零件卡 {nos[0]} → 說明卡收回、只剩零件卡", bool(m) and m["exp"] == [nos[0]], m and m["exp"])
+                _dgc_click_card(pg, mode, a)
+                m = _dgc_bg(pg, mode)
+                ok(f"{tag} 說明卡開著時點背景 → 收回", bool(m) and not m["exp"], m and m["exp"])
+                _dgc_click_card(pg, mode, b2)
+                pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+                m = _dgc_meas(pg, mode)
+                ok(f"{tag} 說明卡開著時按 Esc → 收回", bool(m) and not m["exp"], m and m["exp"])
+
+    # ⑧ 動畫開著（自轉＋爆炸圖展開，投影點每幀在動 —— 修之前就是這時候一欄從塞不下變塞得下、冒出整欄全開）：
+    #    選一張卡片之後，游標停在畫布上（爆炸圖展開）連續取樣 3 秒，每一次展開數都 ≤ 1
+    pg.evaluate("() => { try { localStorage.setItem('tw.side', '0'); localStorage.setItem('tw.dg3d', '1'); localStorage.setItem('tw.dganim', '1'); } catch (e) {} }")
+    pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/silicon_wafer", wait_until="networkidle")
+    if wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d').length > 2", 15000):
+        pg.wait_for_timeout(1400)
+        m0 = _dgc_meas(pg, "3d")
+        no = sorted(m0["nos"])[0] if m0 and m0["nos"] else None
+        if no:
+            _dgc_click_card(pg, "3d", no)
+            bg = pg.evaluate(DGC_BG3D)
+            if bg:
+                pg.mouse.move(bg["x"], bg["y"])
+            worst = []
+            for _ in range(8):
+                pg.wait_for_timeout(400)
+                m = _dgc_meas(pg, "3d")
+                if m and len(m["exp"]) > len(worst):
+                    worst = m["exp"]
+            ok("[矽晶圓/3D 動畫開] 自轉＋爆炸圖展開 3 秒內，任何時刻展開數 ≤ 1", len(worst) <= 1, worst)
+    pg.mouse.move(3, 3)
+    pg.evaluate("(k) => { try { ['tw.side','tw.dg3d','tw.dganim','tw.dgOpen'].forEach((n, i) => { if (k[i] == null) localStorage.removeItem(n); else localStorage.setItem(n, k[i]); }); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1500, "height": 1000})
+
+
 # ===================================================================== 資金去向・拓撲版（site/flowtopo.js）
 # ★ 2026-09-24（Andy：卡片 1700px 要一直捲、左欄一排散點、照參考檔的微光拓撲重畫）。
 #   桌機（> 820px）預設畫拓撲版；手機維持經典版（ECharts 樹）。這一段**真的用滑鼠點畫布上的節點**
@@ -28423,10 +29016,13 @@ TOPO_CARD_MAX = 760           # 1440 寬整張卡的高度上限（Andy：一屏
 
 
 def sk_classic(pg, on: bool = True):
-    """切資金去向的樣式（經典版＝ECharts 樹／拓撲版＝flowtopo.js），並等它真的換過去。"""
-    pg.evaluate("(s) => { try { localStorage.setItem('tw.sankey.style', s); } catch (e) {} "
+    """切資金去向的樣式（經典版＝ECharts 樹／經典光纖＝flowtopo.js 經典版面），並等它真的換過去。
+    ★ 2026-09-25 改前→改後：
+      · localStorage key：tw.sankey.style → tw.sankey.mode（三選一換了新 key，舊 key 不再被讀）
+      · on=False 切回的：'topo'（當時的桌機預設）→ 'fx'（經典光纖，現在的桌機預設）"""
+    pg.evaluate("(s) => { try { localStorage.setItem('tw.sankey.mode', s); } catch (e) {} "
                 "if (window.App && window.App.sankeyStyle) window.App.sankeyStyle(s); }",
-                "classic" if on else "topo")
+                "classic" if on else "fx")
     if on:
         wait_until(pg, "() => !document.getElementById('sankey') || !!(window.echarts && "
                        "echarts.getInstanceByDom(document.getElementById('sankey')))", 5000)
@@ -28437,14 +29033,31 @@ def _topo_card_h(pg) -> int:
     return pg.evaluate("() => Math.round(document.getElementById('flowSankeyCard').getBoundingClientRect().height)")
 
 
-def _topo_click(pg, key: str) -> bool:
-    """用滑鼠點畫布上的某個節點（key：root / c:<鏈> / g:<族群> / l:<族群>:<代號>）。"""
+def _topo_node(pg, key: str):
+    """把畫布上的某個節點捲到視窗正中間，回傳它（含螢幕座標 cx／cy）；找不到回 None。
+    ★ 2026-09-25 加的：經典光纖整張圖 928px 高，比 950px 的視窗扣掉固定頂欄還高，
+      「捲到卡片中央」之後最上面幾個族群會躲在頂欄底下 —— 滑鼠點下去點到的是頂欄。
+      改成以**那個節點**為準置中（instant，不吃全站的 smooth scroll）。"""
     scroll_to(pg, "sankey")
     t = pg.evaluate(TOPO)
     n = [x for x in (t or {}).get("nodes", []) if x["key"] == key]
     if not n:
+        return None
+    ih = pg.evaluate("() => innerHeight")
+    if not (120 < n[0]["cy"] < ih - 40):
+        pg.evaluate("(dy) => window.scrollBy({top: dy, behavior: 'instant'})", n[0]["cy"] - ih / 2)
+        pg.wait_for_timeout(350)
+        n = [x for x in pg.evaluate(TOPO)["nodes"] if x["key"] == key]
+    return n[0] if n else None
+
+
+def _topo_click(pg, key: str) -> bool:
+    """用滑鼠點畫布上的某個節點（key：root / c:<鏈> / g:<族群> / l:<族群>:<代號>）。
+    改前：捲到卡片中央就點；改後：先把那個節點捲到視窗中央（_topo_node），拓撲版（矮）行為不變。"""
+    n = _topo_node(pg, key)
+    if not n:
         return False
-    pg.mouse.click(n[0]["cx"], n[0]["cy"])
+    pg.mouse.click(n["cx"], n["cy"])
     pg.wait_for_timeout(900)
     return True
 
@@ -28458,9 +29071,11 @@ def _topo_left_pixels(pg) -> int:
 
 
 def t_flowtopo(pg, base):
+    # ★ 2026-09-25 改前→改後：拓撲版不再是桌機預設（預設換成「經典光纖」，由「資金去向經典光纖」那段驗）。
+    #   這一段仍然驗拓撲版本身，所以開頭明寫切到拓撲：key 由 tw.sankey.style 改成 tw.sankey.mode（值仍是 'topo'）。
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#overview", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.style', 'topo'); localStorage.removeItem('tw.sankey.day');"
+    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'topo'); localStorage.removeItem('tw.sankey.day');"
                 " localStorage.removeItem('tw.flowtopo.motion'); localStorage.setItem('tw.theme', 'dark');"
                 " localStorage.setItem('tw.side', '0'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
@@ -28468,8 +29083,9 @@ def t_flowtopo(pg, base):
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
     scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
     t0 = pg.evaluate(TOPO)
-    if not ok("[1440] 資金去向是拓撲版（flowtopo.js 畫的，不是 ECharts）", bool(t0) and pg.evaluate(
-            "() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and t0.get("W")):
+    # 改前：只驗「不是 ECharts」；改後多驗 layout == 'topo'（經典光纖也是 flowtopo.js 畫的，要分得出來）
+    if not ok("[1440] 資金去向是拓撲版（flowtopo.js 拓撲版面，不是 ECharts、不是經典光纖）", bool(t0) and t0.get("layout") == "topo"
+              and pg.evaluate("() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and (t0.get("W"), t0.get("layout"))):
         return
     lv = lambda t, k: [n for n in t["nodes"] if n["lv"] == k]   # noqa: E731
     ok("四層裡的前三層都畫出來（台股 → 產業鏈 → 族群）",
@@ -28648,16 +29264,20 @@ def t_flowtopo(pg, base):
         ok("即時模式下拓撲版照樣畫得出來", bool(pg.evaluate(TOPO)) and pg.evaluate("() => window.App.sankeyTopoOn()"))
         pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()"); pg.wait_for_timeout(800)
         ok("再按一次：退出即時", not pg.evaluate("() => window.App.sankeyLive().on"))
-    # ---- 經典版／拓撲版切換鈕
-    if ok("桌機有「經典版」切換鈕", pg.evaluate("() => { const b = document.getElementById('sankeyStyleBtn');"
-                                          " return !!b && getComputedStyle(b).display !== 'none'; }")):
-        pg.eval_on_selector("#sankeyStyleBtn", "b => b.click()"); pg.wait_for_timeout(1500)
-        ok("按「經典版」：換回 ECharts 樹、拓撲版收掉、設定記住", pg.evaluate(
+    # ---- 版面切換
+    # ★ 2026-09-25 改前→改後：改前是一顆「經典版／拓撲版」互切鈕 #sankeyStyleBtn（記 tw.sankey.style）；
+    #   改後是三選一分段鈕 #sankeyStyleSeg（經典光纖／拓撲／經典，記 tw.sankey.mode）。
+    #   這裡只驗「拓撲 ⇄ 經典」這一對（三種全切在「資金去向經典光纖」那段），驗完切回拓撲，後面的寬度與淺色照舊驗拓撲版。
+    if ok("桌機有版面分段鈕（經典光纖／拓撲／經典）", pg.evaluate("() => { const b = document.getElementById('sankeyStyleSeg');"
+                                          " return !!b && getComputedStyle(b).display !== 'none' && b.querySelectorAll('[data-sk-style]').length === 3; }")):
+        pg.eval_on_selector('#sankeyStyleSeg [data-sk-style="classic"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        ok("按「經典」：換回 ECharts 樹、flowtopo 收掉、設定記住", pg.evaluate(
             "() => !!echarts.getInstanceByDom(document.getElementById('sankey')) && !document.querySelector('#sankey .ftstage')"
-            " && localStorage.getItem('tw.sankey.style') === 'classic'"))
-        pg.eval_on_selector("#sankeyStyleBtn", "b => b.click()"); pg.wait_for_timeout(1500)
-        ok("再按「拓撲版」：換回來、ECharts 實例收掉", pg.evaluate(
-            "() => window.App.sankeyTopoOn() && !echarts.getInstanceByDom(document.getElementById('sankey'))"))
+            " && localStorage.getItem('tw.sankey.mode') === 'classic'"))
+        pg.eval_on_selector('#sankeyStyleSeg [data-sk-style="topo"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        ok("再按「拓撲」：換回拓撲版面、ECharts 實例收掉", pg.evaluate(
+            "() => window.App.sankeyTopoOn() && !echarts.getInstanceByDom(document.getElementById('sankey'))"
+            " && (window.App.sankeyTopo() || {}).layout === 'topo'"))
     # ---- 寬度邊界：> 820 拓撲版、≤ 820 經典版（手機維持舊版）
     for w, want in ((1024, True), (800, False), (1440, True)):
         pg.set_viewport_size({"width": w, "height": 950}); pg.wait_for_timeout(1600)
@@ -28765,7 +29385,8 @@ def t_flowtopo_reduced(b, base):
     pg = ctx.new_page()
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     pg.goto(f"{base}#flow", wait_until="networkidle")
-    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.style', 'topo'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
+    # ★ 2026-09-25 改前→改後：key tw.sankey.style → tw.sankey.mode（值仍是 'topo'）
+    pg.evaluate("() => { try { localStorage.setItem('tw.sankey.mode', 'topo'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
     pg.reload(wait_until="networkidle")
     wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
     pg.wait_for_timeout(1200)
@@ -28787,6 +29408,295 @@ def t_flowtopo_reduced(b, base):
                         " i.dispatchEvent(new Event('change', {bubbles: true})); }")
             tr = pg.evaluate(TOPO)
             ok("[減少動態] 換日直接到位（沒有補間）", bool(tr) and not tr["tweening"], tr and tr.get("tweening"))
+    ctx.close()
+
+
+# ===================================================================== 資金去向・經典光纖（flowtopo.js layout:'classic'，桌機預設）
+# ★ 2026-09-25 Andy 附兩張圖：圖一經典版（ECharts 樹：台股 → 產業鏈 → 族群 → 代表股三檔，文字標籤、%、▲▼），
+#   圖二拓撲版（粗細明顯、發光光纖、粒子很密），原話「維持經典版風格，但傳輸特效需要跟拓撲版一樣」。
+#   這一段驗的就是這句話的兩半，每一條都讀畫布探針（畫出去的座標與參數）或真的用滑鼠操作：
+#     版面半（照經典版）：四層都在、代表股三檔帶 %、四欄等距、標籤在節點右邊、父節點置中、標籤不疊
+#     特效半（照拓撲版）：線寬最粗 ≥ 最細 ×6、粒子速度最大 ≥ 最小 ×4、密度 ×6、明暗、換日依排名補間、動態開關
+#   另外驗三種模式都切得過去、看不見時停動畫、首次畫圖時間與回放幀率（寫進 notes）。
+FX_FIRST_DRAW_MAX = 400     # ms：首次畫圖（buildModel→layout→量字→曲線→畫底圖與標籤）。容器實測 80～230ms，拓撲版同條件 77～190ms
+
+
+def _fx_lv(t, k):
+    return [n for n in (t or {}).get("nodes", []) if n["lv"] == k]
+
+
+def _fx_seg(pg):
+    return pg.evaluate("""() => [...document.querySelectorAll('#sankeyStyleSeg [data-sk-style]')]
+        .map(b => [b.dataset.skStyle, b.textContent, b.getAttribute('aria-pressed')])""")
+
+
+def t_flowfx(pg, b, base):
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    # 新使用者：沒有任何版面設定 → 應該落在經典光纖；舊 key 存著 classic 的人也一樣（換了新 key）
+    pg.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); localStorage.setItem('tw.sankey.style', 'classic');"
+                " localStorage.removeItem('tw.sankey.day'); localStorage.removeItem('tw.flowtopo.motion');"
+                " localStorage.setItem('tw.theme', 'dark'); localStorage.setItem('tw.side', '0'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle")
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(1500)
+    t0 = pg.evaluate(TOPO)
+    if not ok("[1440] 沒設定過（舊 key 存 classic 也一樣）→ 預設是「經典光纖」：flowtopo 經典版面，不是 ECharts、不是拓撲版",
+              bool(t0) and t0.get("layout") == "classic" and pg.evaluate(
+                  "() => !echarts.getInstanceByDom(document.getElementById('sankey'))"), t0 and t0.get("layout")):
+        return
+    seg = _fx_seg(pg)
+    ok("版面分段鈕三顆（經典光纖／拓撲／經典），目前亮的是經典光纖",
+       [x[0] for x in seg] == ["fx", "topo", "classic"] and [x[2] for x in seg] == ["true", "false", "false"], seg)
+    ok("首次畫圖時間有量到、在上限內", t0.get("firstDrawMs") is not None and t0["firstDrawMs"] < FX_FIRST_DRAW_MAX,
+       {k: t0.get(k) for k in ("firstDrawMs", "warmMs")})
+    notes.append(f"經典光纖首次畫圖 {t0.get('firstDrawMs')} ms、預熱 {t0.get('warmMs')} ms、粒子 {t0['particles']} 顆、連線 {len(t0['links'])} 條")
+    # ---- 版面半：照經典版
+    L0, L1, L2, L3 = (_fx_lv(t0, i) for i in range(4))
+    ok("四層節點都在（台股 1、產業鏈 ≥3、族群 ≥10、代表股 ≥ 族群數×2）",
+       len(L0) == 1 and len(L1) >= 3 and len(L2) >= 10 and len(L3) >= len(L2) * 2, [len(L0), len(L1), len(L2), len(L3)])
+    per = {}
+    for n in L3:
+        per.setdefault(n["parent"], []).append(n)
+    live_g = [g for g in L2 if not g["stale"] and not g["nodata"] and (g["value"] or 0) > 0]
+    ok("每個有量的族群底下都常駐代表股（不用點開）", all(per.get(g["key"]) for g in live_g),
+       [g["name"] for g in live_g if not per.get(g["key"])][:4])
+    ok("代表股預設最多三檔（和經典版一樣）", bool(per) and max(len(v) for v in per.values()) <= 3,
+       {k: len(v) for k, v in list(per.items())[:4]})
+    lf_live = [n for n in L3 if not n["stale"] and not n["rest"]]
+    ok("代表股標籤有百分比（% 佔族群）", bool(lf_live) and all(re.search(r"\d+(\.\d)?%", n["text"]) for n in lf_live),
+       [n["text"] for n in lf_live if "%" not in n["text"]][:4])
+    labs12 = [n for n in L1 + L2 if not n["stale"] and not n["nodata"]]
+    ok("產業鏈與族群標籤有 % 佔上一層", all("%" in n["text"] for n in labs12), [n["text"] for n in labs12 if "%" not in n["text"]][:3])
+    rise, fall = pg.evaluate("() => { const s = getComputedStyle(document.documentElement);"
+                             " return [s.getPropertyValue('--rise').trim(), s.getPropertyValue('--fall').trim()]; }")
+    ups = [n for n in t0["nodes"] if n["chg"] == "up"]
+    dns = [n for n in t0["nodes"] if n["chg"] == "dn"]
+    ok("漲跌三角照經典版（▲ 用 --rise、▼ 用 --fall，紅漲綠跌）", len(ups) + len(dns) > 3
+       and all(n["chgColor"] == rise for n in ups) and all(n["chgColor"] == fall for n in dns),
+       [(n["text"], n["chgColor"]) for n in (ups + dns)][:3])
+    xs = [sorted({n["x"] for n in lvl}) for lvl in (L0, L1, L2, L3)]
+    one_col = all(len(v) >= 1 and max(v) - min(v) <= 1 for v in xs)
+    cx = [v[0] for v in xs]
+    gaps = [cx[i + 1] - cx[i] for i in range(3)]
+    ok("四層各自一欄、欄距相等（經典版 tree 的深度等分）", one_col and max(gaps) - min(gaps) <= 2, {"x": xs, "欄距": gaps})
+    ok("標籤都在節點右邊（經典版 label.position = right）",
+       all(n["lab"] and n["lab"]["x"] > n["x"] for n in t0["nodes"]),
+       [n["key"] for n in t0["nodes"] if n["lab"] and n["lab"]["x"] <= n["x"]][:3])
+    bad_mid = []
+    for c in L1:
+        ks = [g for g in L2 if g["parent"] == c["key"]]
+        if ks and abs(c["y"] - (min(g["y"] for g in ks) + max(g["y"] for g in ks)) / 2) > 1.5:
+            bad_mid.append(c["name"])
+    ok("產業鏈節點在它第一個與最後一個族群的正中間（經典版 tree 的父節點置中）", not bad_mid, bad_mid)
+    lf_step = sorted({round(per[k][i + 1]["y"] - per[k][i]["y"]) for k in per for i in range(len(per[k]) - 1)})
+    ok("同一族群的代表股等距排開（經典版一片葉子 16px 的間距，≥ 12px）",
+       bool(lf_step) and min(lf_step) >= 12 and max(lf_step) - min(lf_step) <= 1, lf_step)
+    ok("標籤沒有互相重疊", _topo_overlap(t0) == 0, _topo_overlap(t0))
+    ok("發光 shadowBlur ≤ 6px、畫布字 ≥ 12px", 0 < t0["maxBlur"] <= 6 and (t0["minFont"] or 0) >= 12, [t0["maxBlur"], t0["minFont"]])
+    # ---- 特效半：照拓撲版
+    lk = [x for x in t0["links"] if not x["dead"]]
+    ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
+    ok("線寬最粗 ≥ 最細 ×6（依金額平方根，1～13px）", max(ws) >= min(ws) * 6 and 1 <= min(ws) and max(ws) <= 13.01,
+       {"min": min(ws), "max": max(ws)})
+    ok("粒子速度最大 ≥ 最小 ×4", bool(vs) and max(vs) >= min(vs) * 4, vs and {"min": min(vs), "max": max(vs)})
+    _topo_contrast(t0, "[經典光纖 1440 深色]")
+    ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
+       sum(x["n"] for x in t0["links"] if x["lv"] == 2))
+    # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
+    ok("粒子全部在自己的曲線上、根節點左邊沒有散點", t0["offCurve"] == 0 and t0["leftStray"] == 0,
+       {k: t0[k] for k in ("particles", "offCurve", "leftStray", "rootX")})
+    # ---- 換日：拉Bar／－＋／依排名換位的補間
+    bar = "#sankeyDays input[type=range]"
+    if ok("有「看哪一天」拉Bar", count(pg, bar) == 1):
+        sub0 = text(pg, "#sankeySub")
+        l3a = [n["text"] for n in _fx_lv(t0, 3)]
+        set_range(pg, bar, 0, 1200)
+        pg.wait_for_timeout(600)
+        t2 = pg.evaluate(TOPO)
+        changed("拉到最舊那天：副標日期換了", sub0, text(pg, "#sankeySub"))
+        changed("拉到最舊那天：代表股標籤（名單或 %）跟著換", l3a, [n["text"] for n in _fx_lv(t2, 3)])
+        ok("拉到最舊那天：仍是經典光纖、四層都在", bool(t2) and t2["layout"] == "classic"
+           and len(_fx_lv(t2, 3)) >= len(_fx_lv(t2, 2)) * 2)
+        _topo_rank_ok(t2, "經典光纖・拉到最舊那天")
+        tb = pg.evaluate(TOPO)
+        pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].find(b => b.textContent === '＋').click()")
+        pg.wait_for_timeout(900)
+        changed("按「＋」：族群數值真的變", [n["text"] for n in _fx_lv(tb, 2)], [n["text"] for n in _fx_lv(pg.evaluate(TOPO), 2)])
+        tb = pg.evaluate(TOPO)
+        pg.evaluate("() => [...document.querySelectorAll('#sankeyDays .pb.step')].find(b => b.textContent === '−').click()")
+        pg.wait_for_timeout(900)
+        changed("按「−」：族群數值真的變", [n["text"] for n in _fx_lv(tb, 2)], [n["text"] for n in _fx_lv(pg.evaluate(TOPO), 2)])
+        _topo_swap_tween(pg, bar)
+        # ▶ 回放：量幀率（回放中每 650ms 換一天、每一幀都在補間＋重畫底圖與標籤，是這張圖最重的狀態）
+        set_range(pg, bar, 0, 900)
+        scroll_to(pg, "sankey")
+        sa = text(pg, "#sankeySub")
+        pg.evaluate("() => window.FlowTopo.resetMeter(document.getElementById('sankey'))")
+        pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
+        pg.wait_for_timeout(2600)
+        page_fps = pg.evaluate("""() => new Promise(res => { let n = 0; const t0 = performance.now();
+            const f = () => { n++; if (performance.now() - t0 < 1500) requestAnimationFrame(f);
+              else res(n / ((performance.now() - t0) / 1000)); }; requestAnimationFrame(f); })""")
+        tp2 = pg.evaluate(TOPO)
+        changed("按 ▶ 回放：副標日期一天一天走", sa, text(pg, "#sankeySub"))
+        ok("回放中仍是經典光纖、動畫迴圈在跑", bool(tp2) and tp2["layout"] == "classic" and tp2["running"], tp2 and tp2.get("running"))
+        notes.append(f"經典光纖回放幀率（1440、headless 軟體繪圖）：{tp2['fps']} FPS（同時段整頁 rAF {page_fps:.1f}）、"
+                     f"每幀運算 {tp2['avgCostMs']} ms（含補間中重排標籤與重畫底圖）、單次換日重畫 {tp2.get('lastDrawMs')} ms")
+        ok("回放中每幀運算 < 12ms（預算 16.7ms）", 0 < tp2["avgCostMs"] < 12, {k: tp2[k] for k in ("fps", "avgCostMs", "frames")})
+        ok("回放中迴圈沒有掉幀（≥ 同時段整頁 rAF 的 60%）", tp2["fps"] >= page_fps * 0.6, {"fx": tp2["fps"], "page": round(page_fps, 1)})
+        pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
+        pg.wait_for_timeout(800)
+        set_range(pg, bar, pg.evaluate(f"() => +document.querySelector('{bar}').max"), 1000)
+    # ---- 滑過提示
+    scroll_to(pg, "sankey")
+    t3 = pg.evaluate(TOPO)
+    g1 = _topo_node(pg, [n for n in _fx_lv(t3, 2) if not n["stale"] and not n["nodata"]][0]["key"])
+    pg.mouse.move(g1["cx"], g1["cy"]); pg.wait_for_timeout(500)
+    tip = pg.evaluate("() => { const t = document.querySelector('#sankey .fttip.on'); return t ? t.innerText : ''; }")
+    ok("滑過族群：提示框寫著成交值與佔上一層", "成交值" in tip and "佔上一層" in tip, tip[:60])
+    ok("滑過族群：路徑以外壓暗（hover 聚焦）", (pg.evaluate(TOPO) or {}).get("hover") == g1["key"])
+    lf1 = _topo_node(pg, [n for n in _fx_lv(t3, 3) if not n["stale"] and not n["rest"]][0]["key"])
+    pg.mouse.move(lf1["cx"], lf1["cy"]); pg.wait_for_timeout(500)
+    tip2 = pg.evaluate("() => { const t = document.querySelector('#sankey .fttip.on'); return t ? t.innerText : ''; }")
+    ok("滑過代表股：提示框寫著成交值、提示點一下進個股頁", "成交值" in tip2 and "個股頁" in tip2, tip2[:60])
+    pg.mouse.move(5, 5); pg.wait_for_timeout(300)
+    # ---- 點族群：展開全部成分股＋面板；點代表股進個股頁；再點收回
+    det = pg.evaluate("() => window.App.D.groups_detail || {}")
+    cand = [n for n in _fx_lv(t3, 2) if not n["key"].startswith("g:ind_") and not n["stale"]
+            and len((det.get(n["key"][2:]) or {}).get("members") or []) >= 5]
+    if ok("找得到成分股 ≥ 5 檔的族群來點", bool(cand)):
+        gk = cand[0]["key"]
+        n_before = len([n for n in _fx_lv(t3, 3) if n["parent"] == gk])
+        ok("用滑鼠點族群節點", _topo_click(pg, gk))
+        t4 = pg.evaluate(TOPO)
+        mine = [n for n in _fx_lv(t4, 3) if n["parent"] == gk]
+        ok("點族群：那個族群的成分股從三檔延伸成全部（經典版同一套）", len(mine) > max(3, n_before), f"{n_before} → {len(mine)}")
+        ok("點族群：族群名前面標 ▾、別的族群的代表股仍常駐", any(n["key"] == gk and n["text"].startswith("▾") for n in t4["nodes"])
+           and len([n for n in _fx_lv(t4, 3) if n["parent"] != gk]) >= 10)
+        ok("點族群：右邊成分股面板打開", pg.evaluate(
+            "() => { const b = document.getElementById('sankeyPanel'); return !!b && !b.hidden && b.querySelectorAll('.ms a').length > 0; }"))
+        ok("點族群：其餘族群被壓暗", sum(1 for n in _fx_lv(t4, 2) if n["dim"]) >= 5)
+        ok("展開後標籤仍不重疊", _topo_overlap(t4) == 0, _topo_overlap(t4))
+        lf = [n for n in mine if not n["rest"]][0]
+        code = lf["key"].split(":")[-1]
+        ok("用滑鼠點代表股節點", _topo_click(pg, lf["key"]))
+        ok("點代表股：真的進到那一檔的個股頁", pg.evaluate("() => location.hash") == f"#stock/{code}", pg.evaluate("() => location.hash"))
+        pg.go_back(wait_until="networkidle"); pg.wait_for_timeout(1800)
+        wait_until(pg, "() => window.App.sankeyTopoOn()", 5000)
+        scroll_to(pg, "sankey"); pg.wait_for_timeout(600)
+        if len([n for n in _fx_lv(pg.evaluate(TOPO), 3) if n["parent"] == gk]) <= 3:
+            _topo_click(pg, gk)
+        ok("再點一次同一個族群", _topo_click(pg, gk))
+        t5 = pg.evaluate(TOPO)
+        ok("再點一次：收回成三檔、面板關掉", len([n for n in _fx_lv(t5, 3) if n["parent"] == gk]) <= 3 and pg.evaluate(
+            "() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    # ---- 點產業鏈 → 壓暗別條；點背景 → 回預設
+    t6 = pg.evaluate(TOPO)
+    ok("用滑鼠點產業鏈節點", _topo_click(pg, _fx_lv(t6, 1)[0]["key"]))
+    t7 = pg.evaluate(TOPO)
+    ok("點產業鏈：別條鏈被壓暗、面板打開", sum(1 for n in _fx_lv(t7, 1) if n["dim"]) == len(_fx_lv(t7, 1)) - 1 and pg.evaluate(
+        "() => { const b = document.getElementById('sankeyPanel'); return !!b && !b.hidden; }"))
+    box = pg.evaluate("() => { const r = document.querySelector('#sankey canvas.ftlab').getBoundingClientRect(); return [r.left, r.bottom]; }")
+    pg.mouse.click(box[0] + 6, box[1] - 6); pg.wait_for_timeout(900)
+    t8 = pg.evaluate(TOPO)
+    ok("點背景：回到預設（沒有節點被壓暗、面板關掉）", not any(n["dim"] for n in t8["nodes"]) and pg.evaluate(
+        "() => { const b = document.getElementById('sankeyPanel'); return !b || b.hidden; }"))
+    # ---- 即時
+    if ok("「即時」鈕在拉Bar 那一列", count(pg, "#sankeyDays #sankeyLiveBtn") == 1):
+        pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()")
+        wait_until(pg, "() => { const s = window.App.sankeyLive(); return s.on && !s.busy; }", 15000)
+        tl = pg.evaluate(TOPO)
+        ok("按「即時」：進入即時模式、經典光纖照樣畫得出來", pg.evaluate("() => window.App.sankeyLive().on")
+           and bool(tl) and tl["layout"] == "classic")
+        pg.eval_on_selector("#sankeyLiveBtn", "b => b.click()"); pg.wait_for_timeout(800)
+        ok("再按一次：退出即時", not pg.evaluate("() => window.App.sankeyLive().on"))
+    # ---- 動態開關：關掉就完全靜止、記住；開回來
+    scroll_to(pg, "sankey"); pg.wait_for_timeout(500)
+    ok("動態預設開、迴圈在跑", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()"); pg.wait_for_timeout(700)
+    tm = pg.evaluate(TOPO)
+    ok("按「動態」：動畫停、設定寫進 localStorage", not tm["motion"] and not tm["running"]
+       and pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')") == "0")
+    ha = canvas_hash(pg, "#sankey"); pg.wait_for_timeout(900)
+    ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == canvas_hash(pg, "#sankey"))
+    _topo_contrast(tm, "[經典光纖・動態關]", motion=False)
+    pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()")
+    ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    # ---- 看不見就停：捲出畫面
+    # 捲回頁首（instant）：資金去向卡在首屏下方 1000px 以外；往下捲過卡片不一定捲得動（頁尾不夠長）
+    pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})")
+    ok("捲回頁首時資金去向的畫布真的在視窗外（前提；卡片標題可能剛好露出一行）", pg.evaluate(
+        "() => document.querySelector('#sankey .ftstage').getBoundingClientRect().top > innerHeight"))
+    stopped = wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.running ? 1 : 0; }", 4000)
+    ok("捲出畫面：動畫迴圈停掉（IntersectionObserver）", bool(stopped), (pg.evaluate(TOPO) or {}).get("running"))
+    scroll_to(pg, "sankey")
+    ok("捲回來：動畫迴圈接上", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
+    # ---- 三種模式切換：每一種都真的畫得出來、設定記在 tw.sankey.mode
+    for key, want in (("topo", "topo"), ("classic", None), ("fx", "classic")):
+        pg.eval_on_selector(f'#sankeyStyleSeg [data-sk-style="{key}"]', "b => b.click()"); pg.wait_for_timeout(1500)
+        st = pg.evaluate("""() => { const el = document.getElementById('sankey'); const ec = echarts.getInstanceByDom(el);
+            const t = window.App.sankeyTopo();
+            return { ls: localStorage.getItem('tw.sankey.mode'), ec: !!ec, stage: !!el.querySelector('.ftstage'),
+                     layout: t ? t.layout : null, n: t ? t.nodes.length : 0,
+                     ecN: ec ? JSON.stringify(ec.getOption().series[0].data).length : 0,
+                     pressed: [...document.querySelectorAll('#sankeyStyleSeg [aria-pressed="true"]')].map(b => b.dataset.skStyle) }; }""")
+        name = {"topo": "拓撲", "classic": "經典", "fx": "經典光纖"}[key]
+        if want:
+            good = st["stage"] and not st["ec"] and st["layout"] == want and st["n"] > 10
+        else:
+            good = st["ec"] and not st["stage"] and st["ecN"] > 1000
+        ok(f"切到「{name}」：真的畫出來、設定記住、分段鈕跟著亮", good and st["ls"] == key and st["pressed"] == [key], st)
+        if key == "topo":
+            t9 = pg.evaluate(TOPO)
+            ok("拓撲：個股層預設收起（和經典光纖的差別）", bool(t9) and not _fx_lv(t9, 3))
+    # ---- 重新整理：設定記住
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1000)
+    ok("重新整理之後仍是經典光纖", (pg.evaluate(TOPO) or {}).get("layout") == "classic")
+    # ---- 窄一點的桌機（1024）＋手機邊界
+    pg.set_viewport_size({"width": 1024, "height": 950}); pg.wait_for_timeout(1600)
+    tw = pg.evaluate(TOPO)
+    ok("[1024px] 經典光纖：四層都在、標籤不重疊、沒有橫向捲軸", bool(tw) and tw["layout"] == "classic" and len(_fx_lv(tw, 3)) >= 20
+       and _topo_overlap(tw) == 0 and pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
+       tw and {"overlap": _topo_overlap(tw), "leaves": len(_fx_lv(tw, 3))})
+    ok("[1024px] 分段鈕沒有被擠出拉Bar 那一列", pg.evaluate("""() => { const s = document.getElementById('sankeyStyleSeg');
+        const r = s.getBoundingClientRect(), p = document.getElementById('sankeyDays').getBoundingClientRect();
+        return r.width > 60 && r.right <= p.right + 1 && r.left >= p.left - 1; }"""))
+    pg.set_viewport_size({"width": 800, "height": 950}); pg.wait_for_timeout(1600)
+    ok("[800px] 手機寬維持經典版（ECharts），分段鈕藏起來", not pg.evaluate("() => window.App.sankeyTopoOn()") and pg.evaluate(
+        "() => getComputedStyle(document.getElementById('sankeyStyleSeg')).display === 'none'"))
+    pg.set_viewport_size({"width": 1440, "height": 950}); pg.wait_for_timeout(1600)
+    # ---- 淺色主題
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'light'); } catch (e) {} }")
+    pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
+    wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
+    tl = pg.evaluate(TOPO)
+    ok("[淺色] 經典光纖畫得出來、是淺色配色、發光 ≤ 6", bool(tl) and tl["layout"] == "classic" and tl["dark"] is False
+       and tl["maxBlur"] <= 6, tl and (tl["layout"], tl["dark"]))
+    if tl:
+        _topo_contrast(tl, "[經典光纖 1440 淺色]")
+        ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
+    pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.sankey.style'); } catch (e) {} }")
+    # ---- 減少動態效果：經典光纖一樣只畫靜態、換日不補間
+    ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
+    p2 = ctx.new_page()
+    p2.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    p2.goto(f"{base}#flow", wait_until="networkidle")
+    p2.evaluate("() => { try { localStorage.removeItem('tw.sankey.mode'); localStorage.removeItem('tw.flowtopo.motion'); } catch (e) {} }")
+    p2.reload(wait_until="networkidle")
+    wait_until(p2, "() => window.App && window.App.sankeyTopoOn && window.App.sankeyTopoOn()", 8000)
+    p2.wait_for_timeout(1200)
+    tr = p2.evaluate(TOPO)
+    ok("[減少動態] 經典光纖照樣畫得出來、動畫不跑、動態鈕停用", bool(tr) and tr["layout"] == "classic" and tr["reduce"]
+       and not tr["running"] and p2.evaluate("() => document.getElementById('sankeyMotionBtn').disabled"),
+       tr and {k: tr[k] for k in ("layout", "reduce", "running")})
+    if count(p2, bar) == 1:
+        p2.evaluate(f"() => {{ const i = document.querySelector('{bar}'); i.value = 0;"
+                    " i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
+        tr2 = p2.evaluate(TOPO)
+        ok("[減少動態] 換日直接到位（沒有補間）", bool(tr2) and not tr2["tweening"])
     ctx.close()
 
 

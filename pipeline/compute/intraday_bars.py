@@ -106,7 +106,13 @@ def build(lake: pd.DataFrame, tail: int = 2600) -> dict:
         use = use.drop_duplicates("t", keep="first")
         h1 = synth(use, "H1")[-tail:]
         h4 = synth(use, "H4")[-tail:]
-        out[str(sym)] = {"H1": h1, "H4": h4,
+        # 原始 15 分 K 也吐給前端（2026-09-25，Andy：「已經有 15 分 K，1H & 4H 理論上可以透過 15 分 K 計算」）。
+        # 前端選「15 分／30 分」時才看得到多日（以前 15 分只有今天的分時），1H／4H 跟它是同一份資料切出來的。
+        # 只放 interval == 15m 的列（Yahoo 15 分最多 60 天，約 1100 根，JSON 多 ~60KB）；量照湖裡存的（指數是 0，前端估）。
+        m15 = use[use["interval"].astype(str) == "15m"] if "interval" in use.columns else use.iloc[0:0]
+        m15 = [[int(r.t), float(r.open), float(r.high), float(r.low), float(r.close),
+                float(r.volume) if pd.notna(r.volume) else 0.0] for r in m15.itertuples(index=False)]
+        out[str(sym)] = {"H1": h1, "H4": h4, "M15": m15[-tail:],
                          "src": {"rows": int(len(use)), "days15": len(days15),
                                  "days": int(use["day"].nunique())}}
     return out

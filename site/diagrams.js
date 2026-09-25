@@ -349,6 +349,13 @@
       return cols[k];
     };
     const pairs = [];
+    /* 收掉所有「自己點開」的說明卡（.open）。回傳有沒有真的收掉東西 —— 沒有就不必重排。*/
+    function closeNotes() {
+      const open = [].slice.call(cards.querySelectorAll('.dgc.open'));
+      open.forEach((c) => c.classList.remove('open'));
+      if (open.length) later();
+      return open.length > 0;
+    }
     exts.forEach((g) => {
       const card = document.createElement('div');
       card.className = 'dgc' + (g.dataset.note ? ' note' : '') + (g.dataset.warn ? ' warn' : '');
@@ -374,13 +381,22 @@
            同一個編號再點一次＝收起小卡（選取保留）。*/
         anc.addEventListener('click', (e) => {
           e.stopPropagation();
+          closeNotes();
           if (!card.classList.contains('sel-part')) card.click();
           if (popFor === card) closePop(); else openPop(card, anc);
         });
         pairs.push({ card, anc });
       }
-      /* 公式／警語這種沒有零件身分的說明卡：收合狀態下點它自己展開／收起（有身分的卡片靠「選起來」展開）*/
-      if (!card.dataset.seg && !card.dataset.part) card.addEventListener('click', () => { card.classList.toggle('open'); later(); });
+      /* 公式／警語這種沒有零件身分的說明卡：收合狀態下點它自己展開／收起（有身分的卡片靠「選起來」展開）。
+         ★ 2026-09-25（Andy：「點擊後不會收回」）：以前是各自 toggle，點三張就三張都開著、點背景／Esc 也收不掉。
+         改成**同一時間只開一張**：開這一張之前先把其他的收掉；點零件卡、點編號、點背景、按 Esc 一律全部收掉。
+         （點說明卡本身會冒泡到 industry.js 的 host.onclick → clearPart，零件的選取也會一起取消 ——
+           所以整張圖任何時刻最多一張卡片展開說明。）*/
+      if (!card.dataset.seg && !card.dataset.part) {
+        card.addEventListener('click', () => { const was = card.classList.contains('open'); closeNotes(); if (!was) card.classList.add('open'); later(); });
+      } else {
+        card.addEventListener('click', closeNotes);     // 選另一個零件（或再點一次取消）：說明卡一律收回
+      }
     });
     /* ---------------- 說明小卡（點圖上的編號跳出）----------------
        住在 .dggrid 裡、絕對定位在編號旁邊；內容直接從卡片複製（編號、標題、說明），
@@ -523,9 +539,14 @@
       obs.mo.observe(host, { attributes: true, subtree: true, attributeFilter: ['class', 'style'] });
     }
     window.addEventListener('tw:dgpal', later);
-    obs.bg = (e) => { if (!pop.hidden && !(e.target.closest && e.target.closest('.dgpop,.anc'))) closePop(); };
+    obs.bg = (e) => {
+      const t = e.target;
+      if (!pop.hidden && !(t.closest && t.closest('.dgpop,.anc'))) closePop();
+      // 點背景（不是點說明卡自己、不是點小卡）＝說明卡全部收回；零件卡的 click 在 industry.js 已經 stopPropagation，走不到這裡
+      if (!(t.closest && t.closest('.dgc.note,.dgpop'))) closeNotes();
+    };
     host.addEventListener('click', obs.bg);
-    obs.esc = (e) => { if (e.key === 'Escape' && !pop.hidden) closePop(); };
+    obs.esc = (e) => { if (e.key !== 'Escape') return; if (!pop.hidden) closePop(); closeNotes(); };
     document.addEventListener('keydown', obs.esc);
     host.__dgv2 = obs;                                    // 換下一張圖時 teardownV2 靠這個把觀察器收掉
     /* ★ 2026-09-25 效能（perf-2）：拿掉「當場 relayout() 一次」，第一次改在下一幀開頭。
