@@ -1696,9 +1696,18 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .relbox .it{font-size:11.5px;color:var(--ink-2);margin-top:2px}
 .relbox .nt{font-size:11px;color:var(--ink-3);margin-top:3px;line-height:1.5}
 /* 依存度：五格小方塊，滿幾格就是 strength 幾 —— 比寫「4」直覺 */
-.relbox .dep{display:inline-block;width:26px;height:7px;margin-left:6px;vertical-align:middle;border-radius:2px;
+.relbox .rhd{display:flex;flex-wrap:wrap;align-items:center;gap:3px 6px;line-height:1.45}
+.relbox .rhd .rl{margin-right:0}
+.relbox .depw{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;cursor:help}
+.relbox .depn{font-size:10.5px;color:var(--ink-3)}
+.relbox .dep{display:inline-block;width:26px;height:7px;border-radius:2px;
   background:linear-gradient(to right,var(--cyan) 0,var(--cyan) calc(var(--n,1)*20%),var(--line-2) calc(var(--n,1)*20%))}
-.relbox .cf{font-style:normal;font-size:10.5px;margin-left:6px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2)}
+.relbox .cf{font-style:normal;font-size:10.5px;padding:0 5px;border-radius:4px;border:1px solid var(--line-2);
+  display:inline-block;white-space:nowrap;line-height:1.5}
+.relbox .nt .cf{margin:0 2px}
+.relbox a.cf-lk{text-decoration:none;cursor:pointer}
+.relbox a.cf-lk:hover{text-decoration:underline;border-color:var(--cyan)}
+.relbox .cf-estimated[title]{cursor:help}
 .relbox .cf-verified{color:#6ee7a8;border-color:rgba(110,231,168,.45)}
 .relbox .cf-reported{color:var(--ink-3)}
 .relbox .cf-estimated{color:#d9a441;border-color:rgba(217,164,65,.45)}
@@ -2814,7 +2823,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
   .nbsw>button em,.nbsw>a em,.nbsw>button[data-dg]::before,
   .qtag,.segchip .n,.xchain .xrow>.muted,.xchain .xrow .pill,.mapnote,
   #lwc .ohlcbox,#lwc .ohlcbox th,#lwc .ohlcbox td,#lwc .pane-labels div,
-  .relbox .it,.relbox .nt,.relbox .why,.relbox .why b,.ev .cat,
+  .relbox .it,.relbox .nt,.relbox .why,.relbox .depn,.relbox .why b,.ev .cat,
   .segcard .sh .rl,.segcard .sh .cnt,.segcard .sf,.segcard .sco .code,.segcard .sco .rel,.segcard .nt,
   .rotfilter .muted,.rottools .muted,h4.subh small,
   .tk-st,.tk-f code,.tk-sp,
