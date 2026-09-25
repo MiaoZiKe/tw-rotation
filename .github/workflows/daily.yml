@@ -149,8 +149,15 @@ jobs:
         # ★ 2026-09-25：這輪開跑時 checkout 的 main，跑到這裡可能已經落後（中途有人推了前端）。
         #   走「合併重試」那條路時工作區保留的是舊 site/，直接上傳就會把舊前端部署上線、蓋掉推送部署。
         #   site/data 是 gitignore 的產出，checkout 不會動到它。
+        #   ★ 2026-09-25 追補：pipeline/ 落後時，前端 JSON 也是用舊程式算的（59c1ce7 上線 22 秒就被這輪蓋掉）。
+        #   所以 pipeline/ 與 main 不同時，先換成 main 的 pipeline/ 再重算一次 JSON（只讀資料湖，不重抓）。
         run: |
           git fetch origin "${{ github.ref_name }}"
+          if ! git diff --quiet HEAD "origin/${{ github.ref_name }}" -- pipeline/; then
+            echo "pipeline/ 落後 main，換成最新版並重算前端 JSON"
+            git checkout "origin/${{ github.ref_name }}" -- pipeline/
+            python -m pipeline.build_payload
+          fi
           git checkout "origin/${{ github.ref_name }}" -- site/
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
         run: python scripts/stamp_assets.py

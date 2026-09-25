@@ -2927,3 +2927,9 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-25 21:01 大盤 1H/4H 湖資料修正＋櫃買／台指期 FinMind 分 K 路線上線（fix-lake-bars＋intraday-otc-fut）
 - 根因：今日分時（可能是舊快取）直接接在湖資料後面造成時間倒退 → Lightweight Charts「Value is null」。新增 mergeLake／cleanBars；chart.js 缺值改 whitespace。
 - 這批驗了：分支 pytest 530、_preview 綠、新-大盤三張圖／大盤三張圖／總覽／淺色主題 0；合併後 新-大盤三張圖、K線縮放、個股R5 0，個股 4（既有整批順序紅）。
+
+### 09-25 21:25 每日管線 pipeline 落後時重算 JSON；櫃買 Yahoo 候選代號重試一次
+- 59c1ce7 上線 22 秒被每日管線用舊 pipeline 算的 JSON 蓋掉 → daily.yml 上傳前 pipeline/ 與 main 不同就換新並重算。
+- run_backfill：yahoo_v=2 讓 Yahoo 段重跑一次（試 ^TWOTCI）。
+- FinMind 櫃買／台指期分 K、逐筆皆 400（帳號等級 register），已記 unavailable。
+- 這批驗了：pytest 530 passed（只動 .github 與 pipeline，無前端改動，_preview/_uitest 跳過）。

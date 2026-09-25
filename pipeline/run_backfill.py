@@ -491,6 +491,11 @@ def backfill_index_intraday(prog: dict, days: int = FUT_TICK_DAYS) -> bool:
     from .compute.intraday_bars import kbar_to_60m
 
     flag = (prog.get("complete") or {}).get("index_intraday") or {}
+    if flag.get("yahoo_v") != 2:
+        # 2026-09-25 櫃買加了 Yahoo 候選代號（^TWOTCI）；舊進度的 yahoo=true 是只有加權抓到時記的，重開 Yahoo 一次。
+        flag.pop("yahoo", None)
+        flag.pop("done", None)
+        flag["yahoo_v"] = 2
     if flag.get("kbar_v") != 1:
         # 2026-09-25 加了 FinMind 分 K 路線（櫃買 TaiwanStockKBar、台指期 TaiwanFuturesKBar）：
         # 舊進度可能因為「逐筆不可用」就記成 done，這裡重開一次讓分 K 那兩條有機會補；Yahoo 那段不重跑。
