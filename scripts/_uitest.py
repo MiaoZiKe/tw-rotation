@@ -822,6 +822,21 @@ def check_3d_e34(pg):
     ok("E4 再按一次就動回來", abs(pg.evaluate("() => Rack3D.current.stats().spinAt") - c0) > 0.05)
 
 
+# ------------------------------------------------------------------ 資金熱力圖的產業鏈下拉（2026-09-26）
+# Andy：「這邊改成清單，跟下面熱門題材一樣」—— 標題下那排產業鏈晶片（#heatChips button[data-c]）
+# 換成標題列的「產業鏈：全部 ▾」（#heatDD，放大視窗是 #heatZoomDD），跟熱門題材同一支 ddSingle()。
+# 以前各段直接點晶片；現在一律「按下拉鈕 → 點選項」，跟真人一樣兩下。
+def heat_dd_opts(pg, dd="#heatDD"):
+    """下拉裡列得出的產業鏈 id（第一個 '' 是「全部」）。面板收著也讀得到（hidden 只是不顯示）。"""
+    return pg.evaluate(f"() => [...document.querySelectorAll('{dd} .ddopt')].map(b => b.dataset.c)")
+
+
+def heat_dd_pick(pg, cid, dd="#heatDD", wait=800):
+    """真的用滑鼠：先按下拉鈕打開、再點那一個選項（'' ＝ 全部）。"""
+    click(pg, f"{dd} .ddbtn", 300)
+    click(pg, f'{dd} .ddopt[data-c="{cid}"]', wait)
+
+
 # ------------------------------------------------------------------ 各頁
 def t_overview(pg, base):
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
@@ -985,30 +1000,34 @@ def t_overview(pg, base):
            pg.evaluate("location.hash"))
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1400)
 
-    # --- 資金熱力圖的產業鏈下鑽：點半導體就只剩半導體，點「全部」回得去
-    chips = pg.evaluate("[...document.querySelectorAll('#heatChips button')].map(b => b.dataset.c)")
-    ok("資金熱力圖有產業鏈切換", len(chips) >= 3, chips)
+    # --- 資金熱力圖的產業鏈下鑽：選半導體就只剩半導體，選「全部」回得去
+    # 改前：點 #heatChips 那排晶片（button[data-c]、選中的是 button.on）
+    # 改後：2026-09-26 晶片換成標題列的下拉 #heatDD —— 按鈕打開、點 .ddopt[data-c]、選中的是 .ddopt.on
+    chips = heat_dd_opts(pg)
+    ok("資金熱力圖有產業鏈切換（下拉列得出全部＋至少兩條鏈）", len(chips) >= 3 and chips[0] == "", chips)
+    ok("★ 產業鏈晶片那一排已經拿掉（#heatChips 不存在）", count(pg, "#heatChips") == 0, count(pg, "#heatChips"))
     TM = """() => { const c = echarts.getInstanceByDom(document.getElementById('heat')); if (!c) return null;
         const d = c.getOption().series[0].data;
         return { n: d.length, nested: !!(d[0] && d[0].children),
-                 on: (document.querySelector('#heatChips button.on')||{dataset:{}}).dataset.c }; }"""
+                 on: (document.querySelector('#heatDD .ddopt.on')||{dataset:{}}).dataset.c,
+                 btn: (document.querySelector('#heatDD .ddbtn b')||{}).textContent }; }"""
     all0 = pg.evaluate(TM)
-    ok("預設是所有產業鏈分組顯示", all0 and all0["nested"], all0)
+    ok("預設是所有產業鏈分組顯示、下拉寫「全部」", all0 and all0["nested"] and all0["btn"] == "全部", all0)
     for cid in [c for c in chips if c][:3]:
-        click(pg, f'#heatChips button[data-c="{cid}"]', 800)
+        heat_dd_pick(pg, cid)
         st = pg.evaluate(TM)
-        ok(f"點「{cid}」真的只剩這條產業鏈", st and not st["nested"] and st["on"] == cid, st)
+        ok(f"選「{cid}」真的只剩這條產業鏈", st and not st["nested"] and st["on"] == cid, st)
         leaves = pg.evaluate("() => { const c = echarts.getInstanceByDom(document.getElementById('heat'));"
                              " return (c.getOption().series[0].data || []).every(d => !!d.gid); }")
-        ok(f"點「{cid}」之後每一格都是族群（不是產業鏈）", leaves)
-    click(pg, '#heatChips button[data-c=""]', 800)
+        ok(f"選「{cid}」之後每一格都是族群（不是產業鏈）", leaves)
+    heat_dd_pick(pg, "")
     back = pg.evaluate(TM)
-    ok("按「全部」回到原本的分組圖", back and back["nested"] and back["n"] == all0["n"], back)
+    ok("選「全部」回到原本的分組圖", back and back["nested"] and back["n"] == all0["n"], back)
 
     # 下鑽之後點方塊 → 原地列出成分股（不跳頁）
     first_chain = next((c for c in chips if c), None)
     if first_chain:
-        click(pg, f'#heatChips button[data-c="{first_chain}"]', 800)
+        heat_dd_pick(pg, first_chain)
         pg.evaluate("document.getElementById('heat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
         box = pg.evaluate("() => { const r = document.getElementById('heat').getBoundingClientRect(); return {x:r.x,y:r.y,w:r.width,h:r.height}; }")
         h_before = pg.evaluate("location.hash")
@@ -1068,20 +1087,41 @@ def t_overview(pg, base):
     click(pg, "#heatZoom", 1300)
     zs = pg.evaluate("""() => ({ open: !document.getElementById('zoomOv').hidden,
         canvas: !!document.querySelector('#zoomBody canvas'),
-        chips: document.querySelectorAll('#zoomChips button').length,
+        chips: document.querySelectorAll('#zoomChips #heatZoomDD .ddopt[data-c]').length,
         h: document.getElementById('zoomBody').clientHeight,
         title: (document.getElementById('zoomTitle')||{}).textContent })""")
     ok("放大後開出全螢幕的熱力圖", zs["open"] and zs["canvas"], zs)
     ok("放大後比原圖高很多", zs["h"] > 600, zs["h"])
-    ok("放大後還是可以切產業鏈", zs["chips"] >= 3, zs["chips"])
+    # 改前：數 #zoomChips 裡的晶片按鈕 → 改後：放大視窗標題旁也是同一種下拉（#heatZoomDD），數它的選項
+    ok("放大後還是可以切產業鏈（放大視窗裡也是下拉）", zs["chips"] >= 3, zs["chips"])
     ok("放大罩有標題", "熱力" in (zs["title"] or ""), zs["title"])
+    # 真的在放大視窗裡選一條鏈：放大那張圖只剩這條鏈的族群，按鈕寫它的名字；選回「全部」還原
+    zc = [c for c in heat_dd_opts(pg, "#heatZoomDD") if c]
+    if zc:
+        ZT = """() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody')); if (!c) return null;
+            const d = c.getOption().series[0].data;
+            return { n: d.length, nested: !!(d[0] && d[0].children), chains: [...new Set(d.map(x => x.chain))],
+                     btn: (document.querySelector('#heatZoomDD .ddbtn b')||{}).textContent,
+                     fs: parseFloat(getComputedStyle(document.querySelector('#heatZoomDD .ddbtn b')).fontSize),
+                     cardFs: parseFloat(getComputedStyle(document.querySelector('#heatDD .ddbtn b')).fontSize) }; }"""
+        z0 = pg.evaluate(ZT)
+        heat_dd_pick(pg, zc[0], "#heatZoomDD", 900)
+        z1 = pg.evaluate(ZT)
+        ok("★ 放大視窗選一條產業鏈 → 放大的圖只剩那條鏈、按鈕寫它的名字",
+           z1 and not z1["nested"] and len(z1["chains"]) == 1 and z1["btn"] == z1["chains"][0], z1)
+        ok("放大視窗的下拉字級跟卡片上那顆一樣（不被標題的 17px 放大）", z1 and z1["fs"] == z1["cardFs"], z1)
+        heat_dd_pick(pg, "", "#heatZoomDD", 900)
+        z2 = pg.evaluate(ZT)
+        # 改前：比 z2["n"] == z0["n"] → 改後：放大視窗會沿用卡片當下的篩選（前面的步驟已把卡片切到某條鏈），
+        #   所以 z0 不一定是「全部」；改成驗「回到分組圖、按鈕寫全部、分組數 ≥ 2」。
+        ok("放大視窗選回「全部」→ 分組圖還原", z2 and z2["nested"] and z2["n"] >= 2 and z2["btn"] == "全部", {"z0": z0, "z2": z2})
     click(pg, "#zoomClose", 600)
     ok("放大罩關得掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
     # 熱力圖不可以被拖走（treemap 的 roam 必須是關的，不然拖一拖就整片空白）
     ok("熱力圖沒有開啟拖曳平移（roam）", pg.evaluate(
         "() => { const c = echarts.getInstanceByDom(document.getElementById('heat'));"
         " return c ? c.getOption().series[0].roam === false : false; }"))
-    click(pg, '#heatChips button[data-c=""]', 700)
+    heat_dd_pick(pg, "", wait=700)
 
     # --- 上方數字點得開：點了要去「市場明細」分頁看完整名單
     kinds = pg.evaluate("[...document.querySelectorAll('#hero .kpi.clickable')].map(k => k.dataset.drill)")
@@ -3234,44 +3274,39 @@ def t_new_market3(pg, base):
     h1 = {i: wait_until(pg, "() => { const k = window.Market3.state.kcharts['%s']; return k && k.tf === '60m' && k.data.length; }" % i, 8000) for i in ("TSE", "OTC", "FUT")}
     pg.wait_for_timeout(400)
     st = {i: pg.evaluate(HOUR, i) for i in ("TSE", "OTC", "FUT")}
-    ok("Yahoo 真的被問的是 15 分 K（不是 60 分）", any(iv == "15m" for _, iv in Y15["hit"]), Y15["hit"][:4])
-    for i, nm in (("TSE", "加權"), ("OTC", "櫃買")):
-        ok(f"★ {nm} 1 小時真的有多根 K（20 天 × 5 根 ＋ 今天）", st[i] and st[i]["tf"] == "60m" and st[i]["n"] >= 100, st[i])
-        ok(f"★ {nm} 1 小時每根都對齊整點，而且只有 09～13 點（台股交易時段）",
-           st[i] and st[i]["onHour"] and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
-        # ★ 2026-09-25 改前→改後：改前「Yahoo 的量大部分是 0 → 量柱隱藏」；
-        #   Andy：「每個週期都要有成交量、估的要標明、不准空白量柱」→ 改後：量柱照畫、每根 > 0、歷史那幾盤是估的
-        ok(f"★ {nm} Yahoo 的量是 0 → 改用日總量×分時分布估算：量柱照畫、每根都 > 0、有估算根",
-           st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"] and st[i]["est"] > 0, st[i])
-    # ★ 2026-09-25 改前→改後：改前卡片寫「今天的分時合成」長句；Andy 要縮成一行短句（完整原因進「?」）
-    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，卡片一行短句「…只含今日」",
-       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "只含今日" in st["FUT"]["fb"]
-       and len(st["FUT"]["fb"]) <= 30, st["FUT"])
-    ok("台指期今天的分時有量 → 量柱照畫", st["FUT"] and st["FUT"]["vol"], st["FUT"])
+    # ★ 2026-09-26 改前→改後（Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源」）：
+    #   改前：加權、櫃買在瀏覽器端經 Worker 抓 Yahoo 15 分 K 合成多日（20 天 × 5 根）、台指期只有今天，
+    #         湖跟 Yahoo 都沒有時整張退回日 K、寫「已改用「日」」。
+    #   改後：三個指數同一條路 ＝ 資料湖 index_intraday.json（每天盤後存的證交所分時）＋今天的分時；
+    #         瀏覽器不再打 Yahoo 15 分 K。這一段把湖攔成空的 → 三張都只有今天 5 根，卡片一行「…尚未累積，只含今日」。
+    ok("★ 瀏覽器不再抓 Yahoo 15 分 K（三個指數一律讀資料湖＋今天的分時）",
+       not any(iv == "15m" for _, iv in Y15["hit"]), Y15["hit"][:4])
+    for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"★ {nm}：湖是空的 → 用今天的分時合成 5 根 1 小時（09～13 點、對齊整點），不退回日 K",
+           st[i] and st[i]["tf"] == "60m" and st[i]["n"] == 5 and st[i]["onHour"]
+           and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
+        ok(f"★ {nm}：卡片一行短句「…多日分 K 尚未累積，只含今日」（≤ 30 字）",
+           st[i] and "尚未累積" in st[i]["fb"] and "只含今日" in st[i]["fb"] and len(st[i]["fb"]) <= 30
+           and "已改用" not in st[i]["fb"], st[i])
+        ok(f"{nm}：今天的分時有實量 → 量柱照畫、每根 > 0", st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"], st[i])
     pg.select_option("#m3Tf", "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return k && k.tf === '240m'; }", 8000)
     pg.wait_for_timeout(400)
     h4 = pg.evaluate(HOUR, "TSE")
-    ok("★ 4 小時＝一個交易時段一根（21 天 → 21 根，每根都在 09:00）",
-       h4 and h4["n"] == 21 and h4["hours"] == [9], h4)
-    # 櫃買的 15 分 K 抓不到 → 只用今天的分時；分時也沒有 → 退回日 K 並寫「已改用「日」」
+    ok("★ 4 小時＝一個交易時段一根：湖是空的只有今天 → 1 根（在 09:00），照畫不退回日 K",
+       h4 and h4["tf"] == "240m" and h4["n"] == 1 and h4["hours"] == [9], h4)
+    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(800)
+    # Yahoo 也要一起掛：否則 1 分線備援（fetchYahoo1m）會從假的 /y 拿到 20 天的點，當成「今天的分時」
     Y15["ok"] = False
-    pg.evaluate("() => { const s = window.Market3.state; s.fine = {}; }")
-    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(1800)
-    o2 = pg.evaluate(HOUR, "OTC")
-    # ★ 2026-09-25 改前→改後：改前卡片寫「瀏覽器端也抓不到」長句 → 改後一行短句「櫃買多日分 K 無免費來源，1H/4H 只含今日」
-    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片一行短句「…無免費來源，1H/4H 只含今日」",
-       o2 and o2["n"] == 5 and "無免費來源" in o2["fb"] and "只含今日" in o2["fb"]
-       and "資料湖還沒有" not in o2["fb"] and "瀏覽器端" not in o2["fb"], o2)
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
-    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
+    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
     pg.evaluate("() => window.Market3.refresh(true)"); pg.wait_for_timeout(2500)
     t2 = pg.evaluate(HOUR, "TSE")
-    # 改前：「分 K 全部拿不到 → 1 小時退回日 K」（沒講湖；湖一長出來 TSE 就讀湖、這條必紅）
-    # 改後：前提寫進條件 ——「index_intraday.json 攔截成空、分時與 Yahoo 也全掛」時才驗退回日 K
-    ok("★ index_intraday.json 為空、分 K 也全部拿不到 → 1 小時退回日 K，並標明「已改用「日」」",
-       t2 and t2["tf"] == "1d" and "已改用「日」" in t2["fb"], t2)
+    # 改後：只剩「湖是空的、今天的分時也全掛」＝一根分 K 都畫不出來，才退到日 K，而且短句講的是「還沒有任何一盤」，
+    #       不是舊的「分 K 不足，已改用「日」」（天數不足不再退回）。
+    ok("★ 湖是空的、分時也全掛（一根分 K 都沒有）→ 才退到日 K，短句寫「還沒有任何一盤，先顯示日 K」",
+       t2 and t2["tf"] == "1d" and "還沒有任何一盤" in t2["fb"] and "已改用" not in t2["fb"], t2)
     pg.unroute("**/data/index_intraday.json*")
 
     # --- ★ 2026-09-25：1H／4H 優先讀資料湖合成好的 index_intraday.json（Andy：「幫我處理週期問題」）
@@ -3298,7 +3333,12 @@ def t_new_market3(pg, base):
                                px0, px0 + 20, px0 - 20, px0 + (n % 5) - 2, vol * 5])
                     n += 1
                 d += _dt.timedelta(days=1)
-            out[sym] = {"H1": h1, "H4": h4}
+            # ★ 2026-09-26：src 跟 build_payload 同形狀。櫃買、台指期整段都是證交所分時自己累積的（first＝mis_first），
+            #   加權前面還有 Yahoo 歷史（first 早於 mis_first）→ 只有前兩張要寫「自 … 起累積（N 天）」。
+            out[sym] = {"H1": h1, "H4": h4,
+                        "src": {"days": len(h4), "first": "2024-09-25" if sym == "TSE" else "2026-08-17",
+                                "mis_first": "2026-09-01" if sym == "TSE" else "2026-08-17",
+                                "mis_days": 19 if sym == "TSE" else len(h4)}}
         route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
     pg.route("**/data/index_intraday.json*", fake_intra)
     fresh(sess="day")
@@ -3323,6 +3363,40 @@ def t_new_market3(pg, base):
         # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 改後三張量柱都照畫（指數歷史用估算、台指期實量）
         ok(f"[{tf}] 指數湖裡的量全 0 → 估算補上，三張量柱都照畫、每根 > 0",
            all(li[i] and li[i]["vol"] and li[i]["pos"] == li[i]["n"] for i in ("TSE", "OTC", "FUT")), li)
+        # ★ 2026-09-26：櫃買、台指期的多日分 K 是證交所分時自己累積的 → 卡片一行「自 YYYY-MM-DD 起累積（N 天）」；
+        #   加權有 Yahoo 更早的歷史 → 不寫。天數讀 src（build_payload 算的），不寫死。
+        for i, nm in (("OTC", "櫃買"), ("FUT", "台指期")):
+            # （這份假湖的量是 0，後面會再接一句「灰色量柱＝估算量」，所以只驗短句本身在、而且排第一）
+            ok(f"★ [{tf}] {nm}卡片一行「{nm}分 K 自 2026-08-17 起累積（30 天）」",
+               li[i] and li[i]["fb"].startswith(f"{nm}分 K 自 2026-08-17 起累積（30 天）"), li[i])
+        ok(f"[{tf}] 加權有更早的 Yahoo 歷史 → 不寫「起累積」", li["TSE"] and "起累積" not in li["TSE"]["fb"], li["TSE"])
+
+    # --- ★ 2026-09-26：累積天數少於週期所需 → 照畫有的那幾天，不退回日 K（Andy：「4 小時選了只有 3 天也照畫 3 天」）
+    def fake_intra3(route):
+        import calendar
+        h1, h4 = [], []
+        for dd in (22, 23, 24):
+            for hr in range(9, 14):
+                h1.append([calendar.timegm((2026, 9, dd, hr, 0, 0, 0, 0, 0)), 390, 392, 388, 391, 5e8])
+            h4.append([calendar.timegm((2026, 9, dd, 9, 0, 0, 0, 0, 0)), 390, 395, 385, 391, 2.5e9])
+        out = {"OTC": {"H1": h1, "H4": h4, "src": {"days": 3, "first": "2026-09-22",
+                                                   "mis_first": "2026-09-22", "mis_days": 3}}}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra3)
+    fresh(sess="day")                              # App.load 有快取，換湖要重新進頁
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H4")
+    wait_until(pg, "() => { const k = window.Market3.state.kcharts.OTC; return k && k.tf === '240m' && k.data.length === 3; }", 8000)
+    pg.wait_for_timeout(300)
+    o3 = pg.evaluate(HOUR, "OTC")
+    ok("★ 櫃買只累積 3 天、選 4 小時 → 照畫 3 根 4 小時（不退回日 K），卡片寫「櫃買分 K 自 2026-09-22 起累積（3 天）」",
+       o3 and o3["tf"] == "240m" and o3["n"] == 3 and "自 2026-09-22 起累積（3 天）" in o3["fb"], o3)
+    pg.unroute("**/data/index_intraday.json*")
+    pg.route("**/data/index_intraday.json*", fake_intra)
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(300)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
     #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
@@ -3662,6 +3736,8 @@ def t_new_market3(pg, base):
        bool(_m3f) and _m3f["n"] >= 1 and _m3f["fine"] == 0 and not _m3f["tail"], _m3f)
     how = pg.evaluate("() => (document.getElementById('how-m3') || {}).innerText || ''")
     ok("★ 大盤「?」裡不再有「^TWOII」「付費」那幾句來源長註", "^TWOII" not in how and "付費" not in how, how[-200:])
+    # 分支那邊驗「同一個來源／實際總量」寫在 srcNote（附註段）裡 —— 附註已依 Andy 09-26 拿掉，改由卡片短句（accumSay）交代，見上方斷言。
+    pg.mouse.click(8, 500); pg.wait_for_timeout(300)
 
     # --- 手機 390px：同一件事照樣成立、不能有橫向捲軸、卡片短句的字 ≥ 11px
     #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
@@ -12352,6 +12428,90 @@ FILTER_M = """() => [...document.querySelectorAll('#v-flow .card')].map(card => 
 }).filter(Boolean)"""
 
 
+# ===================================================================== 2026-09-26：資金熱力圖產業鏈晶片 → 下拉
+HEAT_DD_M = """() => {
+  const card = document.getElementById('ovHeatCard'), dd = document.getElementById('heatDD');
+  if (!card || !dd) return null;
+  const h3 = card.querySelector('h3'), btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel');
+  const r = (e) => e.getBoundingClientRect(), cr = r(card), hr = r(h3), br = r(btn), chart = r(document.getElementById('heat'));
+  const c = echarts.getInstanceByDom(document.getElementById('heat'));
+  const data = c ? c.getOption().series[0].data : [];
+  const leafChains = [...new Set(data.flatMap(d => d.children ? d.children.map(x => x.chain) : [d.chain]))];
+  const opts = [...dd.querySelectorAll('.ddopt')].map(o => ({ c: o.dataset.c, t: o.textContent.replace(/\s+/g, ' ').trim(),
+    em: (o.querySelector('em') || {}).textContent || '', fs: parseFloat(getComputedStyle(o).fontSize),
+    emFs: o.querySelector('em') ? parseFloat(getComputedStyle(o.querySelector('em')).fontSize) : 99 }));
+  const pr = pan.hidden ? null : r(pan);
+  return { btn: (btn.querySelector('b') || {}).textContent, btnFs: parseFloat(getComputedStyle(btn).fontSize),
+           // 下拉跟標題在同一列：兩者的垂直中心差不到半行；下拉在標題右邊、靠卡片左半（篩選放左上角）
+           sameRow: Math.abs((br.top + br.bottom) / 2 - (hr.top + hr.bottom) / 2) < 12,
+           ddLeftOfHalf: br.left - cr.left < cr.width / 2, afterTitle: br.left >= hr.left,
+           aboveChart: br.bottom <= chart.top + 1, headH: Math.round(chart.top - cr.top),
+           nested: !!(data[0] && data[0].children), n: data.length, leafChains, opts,
+           open: !pan.hidden, panRight: pr ? Math.round(pr.right) : null, panLeft: pr ? Math.round(pr.left) : null,
+           vw: document.documentElement.clientWidth, pageW: document.documentElement.scrollWidth,
+           chipsGone: !document.getElementById('heatChips') };
+}"""
+
+
+def t_heat_dd(pg, b, base):
+    """資金熱力圖：產業鏈晶片改成下拉（Andy 2026-09-26「這邊改成清單，跟下面熱門題材一樣」）。
+    真的按下拉、真的選「半導體」→ 熱力圖只剩半導體的族群 → 選回「全部」還原；三個寬度各量一次版面。"""
+    for w in (1440, 800, 390):
+        pg.set_viewport_size({"width": w, "height": 950})
+        pg.goto("about:blank")
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        if w <= 640:
+            # 手機 v3：總覽分段顯示，要先切到「熱力圖」那一段卡片才在畫面上
+            tab = pg.locator('button[role=tab]:has-text("熱力圖")')
+            if tab.count():
+                tab.first.click(); pg.wait_for_timeout(1200)
+        tag = f"[{w}]"
+        m0 = pg.evaluate(HEAT_DD_M)
+        if not ok(f"{tag} 資金熱力圖有產業鏈下拉 #heatDD", bool(m0), m0):
+            continue
+        ok(f"{tag} ★ 產業鏈晶片那一排拿掉了（#heatChips 不存在）", m0["chipsGone"])
+        ok(f"{tag} 預設「全部」、圖是依產業鏈分組", m0["btn"] == "全部" and m0["nested"], m0["btn"])
+        ok(f"{tag} ★ 下拉在標題列那一行（跟標題同一列、在標題右邊、靠左半邊）",
+           m0["sameRow"] and m0["afterTitle"] and m0["ddLeftOfHalf"], m0)
+        ok(f"{tag} 下拉在圖的上面", m0["aboveChart"], m0)
+        ok(f"{tag} 按鈕字 ≥ 11px", m0["btnFs"] >= 11, m0["btnFs"])
+        names = [o for o in m0["opts"] if o["c"]]
+        ok(f"{tag} 選項第一個是「全部」、其餘每一項都寫「名稱 佔比%」",
+           m0["opts"][0]["c"] == "" and m0["opts"][0]["t"] == "全部"
+           and names and all(o["em"].endswith("%") and len(o["t"]) > len(o["em"]) for o in names),
+           [o["t"] for o in m0["opts"]])
+        ok(f"{tag} 選項字 ≥ 11px（含佔比）", all(o["fs"] >= 11 and o["emFs"] >= 11 for o in m0["opts"]),
+           [(o["t"], o["fs"], o["emFs"]) for o in m0["opts"] if o["fs"] < 11 or o["emFs"] < 11])
+        # 打開：面板要在畫面裡（390 時會自己改往左長）、整頁沒有橫向捲軸
+        click(pg, "#heatDD .ddbtn", 400)
+        m1 = pg.evaluate(HEAT_DD_M)
+        ok(f"{tag} 按下拉真的展開", m1["open"], m1["open"])
+        ok(f"{tag} ★ 展開的面板整塊在畫面裡（左右各留 ≥ 8px 以內不出界）",
+           m1["open"] and m1["panLeft"] >= 0 and m1["panRight"] <= m1["vw"] - 4, [m1["panLeft"], m1["panRight"], m1["vw"]])
+        ok(f"{tag} 展開後整頁沒有橫向捲軸", m1["pageW"] <= m1["vw"] + 1, [m1["pageW"], m1["vw"]])
+        # 點外面就收起來（跟熱門題材一樣是 dismissable）
+        # 點標題字（卡片裡、下拉外面的空地；點頁面邊緣在 390 會點到底部導覽列而換頁）
+        hb = pg.evaluate("() => { const r = document.querySelector('#ovHeatCard h3').getBoundingClientRect(); return [r.left + 6, r.top + r.height / 2]; }")
+        pg.mouse.click(hb[0], hb[1]); pg.wait_for_timeout(400)
+        ok(f"{tag} 點外面下拉就收起來", not pg.evaluate(HEAT_DD_M)["open"])
+        # ★ 真的選「半導體」→ 熱力圖只剩半導體的族群
+        semi = next((o["c"] for o in names if o["t"].startswith("半導體")), None)
+        if ok(f"{tag} 下拉裡有「半導體」", bool(semi), [o["t"] for o in names]):
+            heat_dd_pick(pg, semi, wait=900)
+            m2 = pg.evaluate(HEAT_DD_M)
+            ok(f"{tag} ★ 選「半導體」→ 熱力圖只剩半導體的族群（不再分組、每一格的產業鏈都是半導體）",
+               not m2["nested"] and m2["leafChains"] == ["半導體"] and m2["n"] > 0, m2["leafChains"])
+            ok(f"{tag} 選完下拉自己收起來、按鈕寫「半導體」", not m2["open"] and m2["btn"] == "半導體", [m2["open"], m2["btn"]])
+            ok(f"{tag} 選中的那一列有高亮（.on）",
+               pg.evaluate("() => [...document.querySelectorAll('#heatDD .ddopt.on')].map(o => o.dataset.c)") == [semi])
+            heat_dd_pick(pg, "", wait=900)
+            m3 = pg.evaluate(HEAT_DD_M)
+            ok(f"{tag} ★ 選回「全部」→ 分組圖還原（產業鏈數跟一開始一樣）",
+               m3["nested"] and m3["n"] == m0["n"] and m3["btn"] == "全部", [m0["n"], m3["n"], m3["btn"]])
+        ok(f"{tag} 整頁沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
 def t_filter_topleft(pg, b, base):
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
@@ -13420,6 +13580,8 @@ SECTIONS = {
     "足跡輪盤只留圓圈":    lambda pg, b, base, code: t_rot_dots_only(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
     "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
+    # ★ 2026-09-26（Andy：「這邊改成清單，跟下面熱門題材一樣」）：資金熱力圖的產業鏈晶片 → 下拉
+    "資金熱力圖下拉":      lambda pg, b, base, code: t_heat_dd(pg, b, base),
     # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
     "輪盤放大與象限卡":    lambda pg, b, base, code: t_wheel_big(pg, b, base),
     "輪盤側欄":            lambda pg, b, base, code: t_side_panel(pg, b, base),
@@ -14700,6 +14862,15 @@ def t_ov_right(pg, base):
             ok(f"[總覽右欄][{th}] ★ 題材下拉每一列文字對比 ≥ 4.5（不再是白底白字）", not bad, bad[:4] or rows[:2])
             ok(f"[總覽右欄][{th}] 選中那一列有高亮（.on）", sum(1 for r in rows if r["on"]) == 1, [r for r in rows if r["on"]])
             pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+        # 2026-09-26：資金熱力圖的產業鏈下拉是同一支 ddSingle，深淺主題一樣要看得到字
+        pg.eval_on_selector("#ovHeatCard", "el => el.scrollIntoView({block:'start', behavior:'instant'})"); pg.wait_for_timeout(400)
+        click(pg, "#heatDD .ddbtn", 400)
+        rows = pg.evaluate(DD_CONTRAST, "#heatDD .ddpanel:not([hidden]) .ddopt")
+        if ok(f"[總覽右欄][{th}] 產業鏈下拉打得開、列得出選項", len(rows) >= 3, len(rows)):
+            bad = [r for r in rows if r["r"] < 4.5]
+            ok(f"[總覽右欄][{th}] ★ 產業鏈下拉每一列文字對比 ≥ 4.5", not bad, bad[:4] or rows[:2])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+            ok(f"[總覽右欄][{th}] 產業鏈下拉按 Esc 收起來", pg.evaluate("() => document.querySelector('#heatDD .ddpanel').hidden"))
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
     pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
     # 昨日資金去向：「?」開關
@@ -26215,9 +26386,10 @@ def t_heatmap_v2(pg, base):
         if th == "dark":
             _hm_focus(pg, f"{th} 總覽 #heat", "heat")
             # 產業鏈篩選切過去之後，圖例、標籤照樣在（下鑽不會把 v2 的東西弄丟）
-            chips = pg.evaluate("[...document.querySelectorAll('#heatChips button')].map(b => b.dataset.c).filter(Boolean)")
+            # 改前點 #heatChips 晶片 → 改後（2026-09-26）操作標題列的產業鏈下拉 #heatDD
+            chips = [c for c in heat_dd_opts(pg) if c]
             if chips:
-                click(pg, f'#heatChips button[data-c="{chips[0]}"]', 900)
+                heat_dd_pick(pg, chips[0], wait=900)
                 r2 = pg.evaluate(HM_READ, "heat")
                 ok(f"[{th} 總覽 #heat] 切到單一產業鏈之後圖例還在、只有一條、方塊仍是 7 格色",
                    r2 and len(r2["cells"]) == 7 and not r2["nested"]
@@ -26227,7 +26399,7 @@ def t_heatmap_v2(pg, base):
                 ok(f"[{th} 總覽 #heat] 重畫幾次都不會長出連結列（09-25 已拿掉）",
                    pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length") == 0,
                    pg.evaluate("document.querySelectorAll('#ovHeatCard .linkrow').length"))
-                click(pg, '#heatChips button[data-c=""]', 900)
+                heat_dd_pick(pg, "", wait=900)
         # ---- 熱力圖頁 ----
         pg.goto(f"{base}#heatmap", wait_until="networkidle"); pg.wait_for_timeout(2800)
         r = pg.evaluate(HM_READ, "indTree")

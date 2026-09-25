@@ -335,6 +335,21 @@ def collect_index_intraday() -> pd.DataFrame:
     return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
 
 
+def collect_index_minute() -> pd.DataFrame:
+    """加權／櫃買／台指期（日盤）的 1 分 K：證交所 mis 當日分時檔 → 資料湖 `index_intraday`（interval=1m）。
+
+    為什麼（2026-09-26）：三張大盤圖當天的分時本來就同一個來源，多日分 K 卻只有加權有（Yahoo），
+    櫃買、台指期沒有免費的歷史分 K。每天盤後把這三個檔存下來，三個指數就同一個來源自己累積。
+    交易日取自檔案內每一筆的時間（不是執行當下），重複抓由 store.append() 去重。
+    台指期夜盤（期交所 mis.taifex.com.tw）不在管線白名單，這裡不抓。
+    """
+    df = mis.index_minute_bars()
+    if not df.empty:
+        RESULT["index_minute_days"] = {
+            str(s): sorted({str(t)[:10] for t in g["ts"]}) for s, g in df.groupby("symbol")}
+    return df
+
+
 def collect_futures_60m(day: str) -> pd.DataFrame:
     """台指期近月某一天的逐筆 → 60 分 K（FUT 日盤／FUT_N 夜盤）。湖裡已有那天的日盤就不再花額度。"""
     from .compute.intraday_bars import ticks_to_60m
@@ -356,8 +371,10 @@ def collect_futures_60m(day: str) -> pd.DataFrame:
 def collect_otc_60m(day: str) -> pd.DataFrame:
     """櫃買某一天的 60 分 K：Yahoo 沒有時改用 FinMind 指數 1 分 K 聚合。湖裡已有那天就不花額度。
 
-    為什麼（2026-09-25）：Yahoo ^TWOII 分 K 回「No data found」；證交所 mis_ohlc_OTC.txt 不是
-    getStockInfo.jsp、不在管線白名單，所以只剩 FinMind（白名單）這條。代號依序試 OTC_KBAR_IDS。
+    為什麼（2026-09-25）：Yahoo ^TWOII 分 K 回「No data found」，所以試 FinMind。代號依序試 OTC_KBAR_IDS。
+    ⚠ 2026-09-26 更正：原本這裡寫「mis_ohlc_OTC.txt 不在管線白名單」是錯的 —— 它跟加權那個檔
+    （mis.market_snapshot 早就在抓）同一台主機、同一批登記（DECISIONS #121）。櫃買的多日分 K
+    現在由 collect_index_minute() 每天存 mis 1 分 K 自己累積；這條 FinMind 路（register 等級回 400）留著當備援。
     """
     from .compute.intraday_bars import kbar_to_60m
 
@@ -442,6 +459,18 @@ def main() -> int:
         save("intraday_60m", step("yahoo.intraday_60m", collect_intraday_60m))
         # 大盤三張圖的 1H／4H：加權、櫃買的 60 分（長歷史）＋ 15 分（最近 60 天），增量進湖
         save("index_intraday", step("yahoo.index_intraday", collect_index_intraday))
+
+    # -------------------------------------------------- 大盤三張圖的 1 分 K（mis 分時檔，不耗額度）
+    # 2026-09-26（Andy：「加權 櫃買 台指期，這三個到底有沒有統一的來源」）：三個指數同一個來源、自己累積。
+    # 15:30 那輪（phase price）就抓 —— 那時三個檔都已經收完一整盤。
+    # ★ 刻意連 news 那幾輪（週末、清晨 05:00、盤中）也抓：那時檔案裡是上一個交易日的殘留或今天的半盤，
+    #   照檔案內每一筆的時間歸日、append 依 (ts, symbol, interval) 去重，多抓只是多一次保險
+    #   （排程延遲、15:30 那輪失敗時，隔天清晨或週末那輪還撿得回來）。一輪只有三個小請求。
+    minute = step("mis.index_minute", collect_index_minute)
+    if minute.empty and news_only and "mis.index_minute" in RESULT["empty"]:
+        # 盤前檔案可能已經清空 —— 那是「還沒開盤」不是「壞了」，不記進「沒回資料的來源」
+        RESULT["empty"].remove("mis.index_minute")
+    save("index_intraday", minute)
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
