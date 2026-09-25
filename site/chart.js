@@ -162,7 +162,7 @@
         if (x0 > 1) { ctx.beginPath(); ctx.moveTo(x0 + .5, top); ctx.lineTo(x0 + .5, top + h); ctx.stroke(); }
         if (!st.label) continue;
         const label = `${dem ? '需求' : '供給'}${z.tf ? ' ' + z.tf : ''} ${z.low}–${z.high}`;
-        ctx.font = '600 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'left';
+        ctx.font = '600 10.5px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'; ctx.textAlign = 'left';
         // 標籤放在區間上緣外面，不要蓋在區間中央的 K 棒上
         let ly = top - 3;
         while (used.some(u => Math.abs(u - ly) < 13)) ly -= 13;
@@ -216,7 +216,7 @@
           const bx = b ? X(b.t) : null, by = b ? Y(b.p) : null;
           if (s.kind === 'hline' && ay !== null) {
             ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(mediaSize.width, ay); ctx.stroke();
-            ctx.font = '600 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'left';
+            ctx.font = '600 10.5px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'; ctx.textAlign = 'left';
             const lab = String(Math.round(a.p * 100) / 100);
             ctx.fillStyle = 'rgba(10,16,32,.85)'; ctx.fillRect(3, ay - 12, ctx.measureText(lab).width + 8, 13);
             ctx.fillStyle = s.color; ctx.fillText(lab, 7, ay - 2);
@@ -453,7 +453,7 @@
       /* panes.enableResize：面板之間可以用滑鼠拖大拖小（Andy 2026-09-15
          「下方MACD KD 成交量等範圍上下可以拉大」）。分隔線本來用 grid 的顏色，幾乎看不見，
          使用者不會知道那裡可以拉 —— 改成明顯一點，hover 再亮起來。 */
-      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
+      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
       grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
       rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },

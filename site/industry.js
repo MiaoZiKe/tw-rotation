@@ -9,7 +9,7 @@
   /* ★ 2026-09-21：中文名一律先讀 payload（`A.L.chains`，來源是 groups.yaml 的 chains.<id>.name），
      這張表只當「payload 裡沒有的虛擬鍵」與 L 還沒 init 完的 fallback ——
      以前它是第二份對照表，新增的 software / financial 沒補進來就直接印英文 id 上畫面。*/
-  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '產業別' };
+  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '法定產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
   // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
@@ -349,6 +349,8 @@
       } catch (e) {
         if (gen !== gpGen) return;
         liveErr = String((e && e.message) || e).slice(0, 80); q = null; cov = [0, 0];
+        // 第二道：萬一哪條路漏掉 live.js 的轉譯，英文的網路錯誤仍然不准原樣上畫面（R3 審查）
+        if (/failed to fetch|networkerror|load failed/i.test(liveErr)) liveErr = '連不到報價代理（網路不通或被擋）';
       } finally {
         busy = false;
         if (gen === gpGen) paint();
@@ -420,7 +422,7 @@
            以前只有末端那一端圓、貼著零軸那一端是直角，目標圖兩端都是圓的。*/
         itemStyle: { color: A.upDown(d.chg), borderRadius: 5, borderWidth: 0, borderColor: CH.ink },
         /* 色票（CH.*）在切主題時由 applyTheme 就地換掉，所以這裡不必自己分深／淺兩套 */
-        label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 12, fontFamily: 'JetBrains Mono, monospace',
+        label: { show: true, position: (d.chg || 0) >= 0 ? 'right' : 'left', fontSize: 12, fontFamily: A.MONO,
           color: CH.ink2, formatter: A.fmt.pct(d.chg) } }));
       /* ★ 2026-09-23（W3-8）：圓餅只標**前五大**，其餘全部併成一塊中性灰的「其他」。
          以前是把十幾塊小碎片全部畫出來、標籤貼在旁邊互相干擾 —— 那張圖回答不了
@@ -466,6 +468,19 @@
       const el = $('#gpFocus', host);
       if (!el) return;
       const d = items.find(x => x.name === hi);
+      /* ★ 2026-09-25（R3 審查）：滑到灰色「其他」那一塊，讀數列以前是清空的 —— 等於那一塊不能讀。
+         它沒有單一族群可以對應，所以寫「其餘幾個、合計占多少、成交值多少」，也就是那一塊本身的意思。*/
+      if (!d && hi === PIE_OTHER) {
+        const od = pieData.find(x => x.name === PIE_OTHER);
+        const tot = pieData.reduce((s2, x) => s2 + (x.value || 0), 0) || 1;
+        el.innerHTML = od
+          ? `<b style="color:${CH.ink2}">其他</b>　其餘 <b>${pieOtherN}</b> 個${drill ? '個股' : '族群'}合計`
+            + `　占${drill ? '本族群' : '本頁'}成交值 <b>${A.fmt.n(od.value / tot * 100, 1)}%</b>`
+            + `　成交值 ${A.fmt.yi(od.value)}`
+            + `　<span class="muted">量都太小，沒有各自的扇形</span>`
+          : '&nbsp;';
+        return;
+      }
       /* 說明精簡：沒滑過時不寫操作說明（搬進「怎麼看 ?」），留一個空白佔住這一行的高度，滑過時版面不會跳 */
       if (!d) {
         el.innerHTML = '&nbsp;';
@@ -487,7 +502,7 @@
         { text: t1, left: '50%', top: cy - 30, textAlign: 'center',
           textStyle: { color: CH.ink3, fontSize: 12.5, fontWeight: 400, fontFamily: ff, width: 120, overflow: 'truncate' } },
         { text: t2, left: '50%', top: cy - 10, textAlign: 'center',
-          textStyle: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: 'JetBrains Mono, ' + ff } },
+          textStyle: { color: CH.ink, fontSize: 34, fontWeight: 700, fontFamily: A.MONO } },
       ];
     }
     /* 圖下方兩欄的圖例：● 名稱 ＋ 百分比（等寬、靠右）。滑過＝跟滑過扇形同一支 setHi；點＝跟點扇形同一支 onPick。*/
@@ -562,6 +577,15 @@
 
     function paint() {
       if (!host.isConnected) return;
+      /* ★ 2026-09-25（R3 審查）：滑鼠停在甜甜圈上時點長條下鑽，主控台必噴
+         `TypeError: Cannot set properties of null (setting 'innerHTML')`（echarts tooltip.setContent）。
+         成因：下面兩張圖都用 notMerge 整個重設，重設會把 tooltip 元件拆掉重建，
+         但正停在扇形上的那個提示框還排著一次「更新內容」，更新時它的 DOM 已經是 null。
+         重畫之前先對兩張圖送 hideTip，把排著的那一次收掉；setHi 的 try/catch 管不到這一條（這條是 echarts 自己排的）。*/
+      [barEl, pieEl].forEach(el => {
+        const i = window.echarts && echarts.getInstanceByDom(el);
+        if (i && !i.isDisposed()) { try { i.dispatchAction({ type: 'hideTip' }); } catch (e) { /* 沒有提示框可收 */ } }
+      });
       const b = build();
       const n = Math.max(barData.length, 6);
       const h = Math.max(320, Math.min(660, n * 26 + 56));
@@ -605,12 +629,40 @@
          把 x 軸下限往左多撐出「最寬那個負值標籤」的寬度（字寬是量的，不是估的），
          負值標籤就落在零軸左邊自己的空間裡，不會壓到名字。
          plotW 要扣掉左邊族群名的寬度（containLabel 會自己留那一塊）與右邊 52px 留白。*/
+      /* ★ 2026-09-25（R3 審查）：**一檔極端值不准把其他長條壓扁**。
+         法定產業別的「半導體・其他」因為 7856 漢測上櫃首日 +110%，一個族群 +37.8% 就把 x 軸撐到 40%，
+         其他族群全擠在零軸旁邊幾個像素，這張圖就回答不了「哪個族群在漲」。
+         做法：軸的兩端各用 95 百分位（取「下取整」那一名，15～20 條時剛好排除最極端的一條）當上限，
+         超出的長條畫到上限就停，數字標籤改成長條內側的「▸ 實際值」—— 使用者一眼知道「這條被截了，真的是多少」。
+         只有真的離群（超過 95 百分位的 2 倍、而且多出 5 個百分點以上）才截，平常的分布照畫原比例 ——
+         半導體那種 +9.9% 對 +6.4% 是正常的領漲，不是離群，截了反而把「誰漲最多」藏起來。
+         提示框與讀數列讀的是 items 的原值，不受影響。*/
+      const q95 = (arr) => { if (arr.length < 4) return null;
+        const a = arr.slice().sort((x, y) => x - y); return a[Math.floor(0.95 * (a.length - 1))]; };
+      const rawVals = barData.map(d => +d.value || 0);
+      const capOf = (arr) => { const q = q95(arr), mx = arr.length ? Math.max(...arr) : 0;
+        return (q != null && q > 0 && mx > Math.max(q * 2, q + 5)) ? +(q * 1.12).toFixed(3) : null; };
+      const capHi = capOf(rawVals.filter(v => v > 0));
+      const capLo0 = capOf(rawVals.filter(v => v < 0).map(v => -v));
+      const capLo = capLo0 != null ? -capLo0 : null;
+      barData.forEach(d => {
+        const v = +d.value || 0;
+        const cut = (capHi != null && v > capHi) ? capHi : (capLo != null && v < capLo) ? capLo : null;
+        d.raw = v; d.capped = cut != null;
+        if (cut == null) return;
+        d.value = cut;
+        d.label = { ...d.label, position: v >= 0 ? 'insideRight' : 'insideLeft', color: '#fff', fontWeight: 700,
+          formatter: (v >= 0 ? '▸ ' : '◂ ') + A.fmt.pct(v) };
+      });
       const vals = barData.map(d => +d.value || 0);
-      const negL = barData.filter(d => (+d.value || 0) < 0).map(d => A.fmt.pct(d.value));
+      const negL = barData.filter(d => (+d.value || 0) < 0 && !d.capped).map(d => A.fmt.pct(d.value));
       const vMin = Math.min(0, ...vals), vMax = Math.max(0, ...vals);
       const nameW = A.textW ? A.textW(barData.map(d => d.name), 12) : 0;
       const plotW = Math.max(60, (barEl.clientWidth || 360) - 4 - 52 - nameW - 10);
-      const needL = negL.length && A.textW ? Math.ceil(A.textW(negL, 12)) + 8 : 0;
+      /* 負值標籤要留的寬度：用**等寬字**量（標籤畫的就是等寬字，用黑體量會量窄 3～4px），
+         再加 5px 標籤離長條的距離與 12px 跟族群名之間的空隙。
+         R3 審查量到以前只留 8px，扣掉 5px 距離剩 3px，於是「HBM 高頻寬記憶體-3.3%」黏成一串。*/
+      const needL = negL.length && A.textW ? Math.ceil(A.textW(negL, 12, A.MONO)) + 5 + 12 : 0;
       const span0 = (vMax - vMin) || 1;
       const xMin = needL ? +(vMin - needL * span0 / Math.max(30, plotW - needL)).toFixed(3) : undefined;
       const narrowBar = plotW < 260;
@@ -624,8 +676,8 @@
         /* ★ W3-8：格線收到極淡（有格線會跟長條搶注意力），改由**零軸那一條**負責分正負 */
         /* 軸刻度：窄畫面只留 3 格並開 hideOverlap —— 390px 實測五個刻度（-3.0%～9.0%）擠成一串疊在一起。
            撐出來的下限不是整數，刻度字只寫「落在資料範圍內」的那幾個，免得左端冒出一個 -4.37% 這種怪值。*/
-        xAxis: { type: 'value', min: xMin, splitNumber: narrowBar ? 3 : 5,
-          axisLabel: { ...axl, hideOverlap: true, formatter: v => (xMin != null && v < vMin - 1e-9) ? '' : A.fmt.n(v, 1) + '%' },
+        xAxis: { type: 'value', min: xMin, max: capHi != null ? capHi : undefined, splitNumber: narrowBar ? 3 : 5,
+          axisLabel: { ...axl, hideOverlap: true, formatter: v => ((xMin != null && v < vMin - 1e-9) || (capHi != null && Math.abs(v - capHi) < 1e-6)) ? '' : A.fmt.n(v, 1) + '%' },
           splitLine: { show: false }, axisLine: { show: false }, axisTick: { show: false } },
         /* ★ W3-8：族群名**不准再被截斷**（以前超過 8 個字就加省略號，
            使用者看到的是「被動元件 MLC…」「AI PC 筆電…」—— 那等於沒寫名字）。
@@ -682,6 +734,7 @@
       hi = null; pieEl.dataset.hi = ''; barEl.dataset.hi = '';
       paintFocus();
       gpDbg = { mode: drill ? 'stock' : 'group', rows: barData.length, live: live,
+        capHi: capHi, capLo: capLo, capped: barData.filter(d => d.capped).map(d => ({ name: d.name, raw: d.raw, shown: d.value })),
         hi: null, liveCalls: gpDbg.liveCalls, drill: drill ? drill.id : null };
     }
 
@@ -693,7 +746,8 @@
   // ================================================================ Level 1：單一產業鏈
   function chainData(im, cid) {
     if (!im) return null;
-    if (cid === 'industry') return { id: 'industry', name: '產業別', groups: im.industries };
+    // 跟分頁名一致（R3 審查：分頁寫「法定產業別」、h2 與麵包屑卻寫「產業別」）
+    if (cid === 'industry') return { id: 'industry', name: '法定產業別', groups: im.industries };
     return im.chains.find(c => c.id === cid) || null;
   }
   /* ---------------------------------------------------------------- 剖析圖掛點（DECISIONS #225）
@@ -1092,6 +1146,11 @@
       const body = $('#dgBody', el), tools = $('#dgTools', el);
       if (body) body.hidden = !on;
       if (tools) tools.hidden = !on;
+      /* ★ 2026-09-25（R3 審查）：族群總覽分頁底下多出一行「共 N 張剖析圖，在上方分頁選一張」——
+         那是剖析圖區的標題列，工具鈕藏起來之後只剩這句孤零零掛在長條圖下面，像是漏刪的字。
+         上方分頁列本來就列著每一張圖，這句沒有新資訊，所以沒選圖時整列收起來。*/
+      const sh = $('.dgsechead', el);
+      if (sh) sh.style.display = on ? '' : 'none';     // .row 有 display:flex，hidden 屬性蓋不過它
       /* 說明精簡：「怎麼看 ?」的鈕住在 #dgTools 裡，回族群總覽時鈕被藏起來 —— 盒子也要一起收，不然會留一段舊圖的說明 */
       if (!on) { const hb = $('#how-dg', el), hbtn = $('.howbtn[data-how="dg"]', el);
         if (hb) hb.hidden = true; if (hbtn) { hbtn.classList.remove('on'); hbtn.textContent = '怎麼看 ?'; } }
@@ -4184,7 +4243,7 @@
       <div class="grid g2"><div class="card"><h3>各年度現金股利 <small>依股利所屬年度</small></h3><div id="divBar" class="chart"></div></div>
       <div class="card"><h3>除權息紀錄 <small>填息天數＝除息後首次收在除息前收盤之上</small></h3><div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody>${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>
       <div class="card" style="margin-top:var(--gap-card)"><h3>股利公告</h3><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody>${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${A.fmt.n(e.amount, 3)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
-    if (years.length) A.chart('divBar', { tooltip: { ...A.tip }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(3)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: '#e8eeff', fontFamily: 'JetBrains Mono', fontSize: 11 }, barWidth: '55%' }] }); else A.empty('divBar');
+    if (years.length) A.chart('divBar', { tooltip: { ...A.tip }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(3)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: '#e8eeff', fontFamily: A.MONO, fontSize: 11 }, barWidth: '55%' }] }); else A.empty('divBar');
   }
   /* 籌碼頁：資料不夠就不要畫一張空圖。
      Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。

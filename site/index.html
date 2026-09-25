@@ -79,7 +79,7 @@
   --hm-ink-dark:#1A1F2B;
   /* 圖表提示框（§2.2）：半透明＋毛玻璃。88% 是算過的 —— --ink-3 疊在最深的方塊上最差仍有 4.84:1 */
   --tip-bg:rgba(20,30,54,.97); --tip-line:#2a3860; --tip-sh:0 8px 24px -8px rgba(0,0,0,.55);
-  --mono:"JetBrains Mono","SFMono-Regular",Menlo,monospace;
+  --mono:"JetBrains Mono","SFMono-Regular",Menlo,Consolas,monospace; /* 跟 app.js 的 MONO_FF 同一串（畫布上的等寬字），改一邊要改另一邊 */
   /* ================ 2026-09-23 UI 精修：動效、焦點、列 hover 三組 token ================
      為什麼要先有 token 再談動效：整份樣式表原本 `:active` 規則 **0 條**、
      70 個 `:hover` 裡 57 個（81%）的基底選擇器連 `transition` 都沒有 ——

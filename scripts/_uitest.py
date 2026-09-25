@@ -1941,6 +1941,131 @@ def t_industry(pg, base):
            pg.evaluate("location.hash"))
 
 
+# ---------------------------------------------------------------- R3 審查（2026-09-25）產業頁異常
+# 甜甜圈第 k 塊扇形的中點（螢幕座標），用 ECharts 自己排好的版面算，不用猜角度。
+R3_PIE_POS = """(name) => { const el = document.getElementById('gpPie'); if (!el) return null;
+  const c = echarts.getInstanceByDom(el); if (!c) return null;
+  // 窄畫面甜甜圈疊在長條下面、在視窗外 —— 真滑鼠移不過去，先捲進畫面
+  const r0 = el.getBoundingClientRect(); if (r0.top < 0 || r0.bottom > innerHeight) el.scrollIntoView({ block: 'center', behavior: 'instant' });
+  const data = c.getModel().getSeriesByIndex(0).getData();
+  let k = -1; for (let i = 0; i < data.count(); i++) if (name == null ? i === 0 : data.getName(i) === name) { k = i; break; }
+  if (k < 0) return null;
+  const L = data.getItemLayout(k); const a = (L.startAngle + L.endAngle) / 2, rr = (L.r0 + L.r) / 2;
+  const r = el.getBoundingClientRect();
+  return { x: Math.round(r.left + L.cx + rr * Math.cos(a)), y: Math.round(r.top + L.cy + rr * Math.sin(a)), name: data.getName(k) }; }"""
+
+# 圖上所有 ECharts 實例的 fontFamily：只寫 'JetBrains Mono' 一個字（沒有後備）的都列出來
+R3_FONTS = """() => { const bad = []; const all = [];
+  const walk = (o, path) => { if (!o || typeof o !== 'object') return;
+    for (const k in o) { const v = o[k];
+      if (k === 'fontFamily' && typeof v === 'string') { all.push(v);
+        if (/JetBrains Mono/.test(v) && !/monospace|sans-serif/.test(v)) bad.push(path + '.' + k + '=' + v); }
+      else if (v && typeof v === 'object') walk(v, path + '.' + k); } };
+  document.querySelectorAll('[_echarts_instance_]').forEach(el => { const c = echarts.getInstanceByDom(el);
+    if (c && !c.isDisposed()) walk(c.getOption(), el.id || '?'); });
+  return { bad, n: all.length, axis: (window.App && App.axisStyle && App.axisStyle.axisLabel || {}).fontFamily || '' }; }"""
+
+
+def t_r3_industry(pg, base):
+    """R3 審查的產業頁異常，每一項都用真滑鼠操作一次，驗畫面真的因此改變／錯誤真的不再出現。"""
+    errs: list = []
+    on_err = lambda e: errs.append(str(e))  # noqa: E731
+    pg.on("pageerror", on_err)
+    try:
+        pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
+        wait_until(pg, "() => !!(window.echarts && document.getElementById('gpPie') && echarts.getInstanceByDom(document.getElementById('gpPie')))", 8000)
+        pg.wait_for_timeout(900)
+
+        # 1. 先滑過甜甜圈、提示框真的出現，再點長條下鑽 —— 以前每次必噴 tooltip TypeError
+        pp = pg.evaluate(R3_PIE_POS, None)
+        if ok("R3-1 量得到甜甜圈第一塊的位置", bool(pp), pp):
+            pg.mouse.move(pp["x"], pp["y"]); pg.wait_for_timeout(700)
+            tipv = pg.evaluate("() => [...document.querySelectorAll('#gpPie div')].some(d => d.style && d.style.display !== 'none' && /成交值/.test(d.innerText || ''))")
+            ok("R3-1 滑到甜甜圈真的跳出提示框（重現的前提）", tipv)
+            # 窄畫面長條在甜甜圈上面，可能已經捲出視窗；捲回來再點（捲動不影響重現：寬畫面不必捲）
+            pg.evaluate("() => { const el = document.getElementById('gpBar'); const r = el.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) el.scrollIntoView({ block: 'center', behavior: 'instant' }); }")
+            gbar = pg.evaluate(B29_BARPOS, -1)
+            e0 = len(errs)
+            pg.mouse.click(gbar["x"], gbar["y"]); pg.wait_for_timeout(1600)
+            ok("R3-1 滑過甜甜圈再點長條：真的下鑽成個股長條", (pg.evaluate("() => (window.Industry._gp()||{}).mode")) == "stock")
+            ok("R3-1 下鑽時主控台沒有 tooltip TypeError", not errs[e0:], errs[e0:][:3])
+            click(pg, "#gpBack", 1200)
+            ok("R3-1 回到族群層級", (pg.evaluate("() => (window.Industry._gp()||{}).mode")) == "group")
+
+        # 2a. 負值標籤與族群名之間要留空隙（以前 0～3px，看起來是「HBM 高頻寬記憶體-3.3%」）
+        gap = pg.evaluate("""() => { const el = document.getElementById('gpBar'); const c = echarts.getInstanceByDom(el);
+          const ds = c.getOption().series[0].data; const g = c.getModel().getComponent('grid').coordinateSystem.getRect();
+          const out = [];
+          ds.forEach((d, i) => { if (!(d.value < 0) || d.capped) return;
+            const pv = c.convertToPixel({ seriesIndex: 0 }, [d.value, i]);
+            const w = App.textW([typeof d.label.formatter === 'string' ? d.label.formatter : ''], 12, App.MONO);
+            // 標籤右緣＝長條末端往左 5px；族群名右緣＝格線左緣往左 8px（ECharts 軸標籤預設 margin）
+            out.push({ name: d.name, gap: Math.round((pv[0] - 5 - w) - (g.x - 8)) }); });
+          return out; }""")
+        if gap:
+            worst = min(x["gap"] for x in gap)
+            ok("R3-2 負值數字跟族群名之間至少留 8px（不再黏成一串）", worst >= 8, gap)
+
+        # 3. 座標軸數字的字族：不准再有只寫 'JetBrains Mono'、沒有後備的（會退成襯線體）
+        f = pg.evaluate(R3_FONTS)
+        ok("R3-3 全站 axisStyle 的字族有等寬後備", "monospace" in f["axis"], f["axis"])
+        ok("R3-3 這一頁每張圖的 fontFamily 都有後備字（沒有單寫 JetBrains Mono）", f["n"] > 0 and not f["bad"], f)
+
+        # 4a. 滑到甜甜圈「其他」那一塊，讀數列要寫出其餘幾個、占多少（以前清空）
+        f0 = text(pg, "#gpFocus").strip()
+        po = pg.evaluate(R3_PIE_POS, "其他")
+        if ok("R3-4 甜甜圈有「其他」那一塊", bool(po), po):
+            pg.mouse.move(po["x"], po["y"]); pg.wait_for_timeout(600)
+            f1 = text(pg, "#gpFocus").strip()
+            ok("R3-4 滑到「其他」讀數列真的換成其餘族群的合計", "其他" in f1 and "其餘" in f1 and "%" in f1 and f1 != f0, f"{f0!r} → {f1!r}")
+            pg.mouse.move(5, 5); pg.wait_for_timeout(400)
+
+        # 4b. 族群總覽分頁底下不能再掛著「共 N 張剖析圖」那一行；切到剖析圖分頁那一列要回來
+        vis_head = """() => { const h = document.querySelector('#v-industry .dgsechead'); return !!(h && h.offsetParent !== null && h.getBoundingClientRect().height > 0); }"""
+        ok("R3-4 族群總覽分頁沒有「共 N 張剖析圖」那一行",
+           not pg.evaluate(vis_head) and "張剖析圖，在上方分頁" not in pg.evaluate("() => document.getElementById('v-industry').innerText"))
+        tab = pg.evaluate("() => { const a = [...document.querySelectorAll('#v-industry a[href*=\"/dg/\"]')].find(x => x.offsetParent); return a ? a.getAttribute('href') : null; }")
+        if tab:
+            pg.goto(f"{base}{tab}", wait_until="networkidle"); pg.wait_for_timeout(1600)
+            ok("R3-4 切到剖析圖分頁，圖名與工具列那一列回來了", pg.evaluate(vis_head), tab)
+
+        # 4c. 即時抓不到報價時寫中文（這個環境連不到報價代理，按下去一定是抓不到）
+        pg.goto(f"{base}#industry/semiconductor/overview", wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('gpLiveBtn')", 6000)
+        click(pg, "#gpLiveBtn", 300)
+        note = wait_until(pg, "() => { const t = (document.getElementById('gpNote')||{}).innerText || ''; return /抓不到|盤中暫定值/.test(t) ? t : ''; }", 15000)
+        ok("R3-4 即時抓不到時說明是中文（沒有 Failed to fetch）",
+           bool(note) and "Failed" not in note and "fetch" not in note.lower(), note)
+        if note and "抓不到" in note:
+            ok("R3-4 即時抓不到時講清楚是連不到報價代理", "連不到報價代理" in note or "逾時" in note, note)
+        click(pg, "#gpLiveBtn", 300)
+
+        # 2b／4d. 法定產業別：h2 跟分頁名一致；單一極端值不准把其他長條壓扁
+        pg.goto(f"{base}#industry/industry", wait_until="networkidle")
+        wait_until(pg, "() => !!(document.getElementById('gpBar') && echarts.getInstanceByDom(document.getElementById('gpBar')))", 8000)
+        pg.wait_for_timeout(900)
+        h2 = pg.evaluate("() => (document.querySelector('#v-industry .nbhead h2') || {}).innerText || ''")
+        ok("R3-4 法定產業別的 h2 寫「法定產業別」（跟分頁名一致）", h2.startswith("法定產業別"), h2)
+        sq = pg.evaluate("""() => { const el = document.getElementById('gpBar'); const c = echarts.getInstanceByDom(el);
+          const o = c.getOption(); const ds = o.series[0].data; const g = c.getModel().getComponent('grid').coordinateSystem.getRect();
+          const px = ds.map((d, i) => Math.abs(c.convertToPixel({ seriesIndex: 0 }, [d.value, i])[0] - c.convertToPixel({ seriesIndex: 0 }, [0, i])[0]));
+          const raw = ds.map(d => Math.abs(d.raw != null ? d.raw : d.value));
+          const order = raw.map((v, i) => i).sort((a, b) => raw[b] - raw[a]);
+          const capped = ds.filter(d => d.capped).map(d => ({ name: d.name, raw: d.raw, shown: d.value,
+            lab: typeof (d.label || {}).formatter === 'string' ? d.label.formatter : '' }));
+          return { plotW: g.width, second: px[order[1]], secondName: ds[order[1]].name, top: raw[order[0]], secondRaw: raw[order[1]],
+                   capped, max: o.xAxis[0].max, gp: window.Industry._gp() }; }""")
+        # 被截的那一條要標「▸ 實際值」、軸的上限就是截點；第二長的那一條不能被壓成幾個像素
+        if sq["capped"]:
+            ok("R3-2 被截的長條標「▸」與實際數字", all(c["lab"][:1] in "▸◂" and "%" in c["lab"] for c in sq["capped"]), sq["capped"])
+            ok("R3-2 x 軸上限用 95 百分位（不是被極端值撐大）", sq["max"] is not None and sq["max"] < max(c["raw"] for c in sq["capped"]), sq)
+        if sq["top"] > max(2 * sq["secondRaw"], sq["secondRaw"] + 5):
+            ok("R3-2 有極端值時第二長的長條仍佔畫面 40% 以上（沒被壓扁）", sq["second"] >= 0.4 * sq["plotW"], sq)
+        ok("R3 整段操作沒有任何 pageerror", not errs, errs[:3])
+    finally:
+        pg.remove_listener("pageerror", on_err)
+
+
 def t_group_pages(pg, base):
     """法定產業別族群頁（id 是中文）真的列得出成分股（現在的載體是個股漲幅長條圖）。
 
@@ -10930,6 +11055,8 @@ SECTIONS = {
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),
     "族群頁":              lambda pg, b, base, code: t_group_pages(pg, base),
+    # R3 審查（2026-09-25）產業頁異常：獨立成一段 —— 掛在「產業」尾巴的話，前面 3D 截圖逾時就整段跑不到
+    "產業R3審查":          lambda pg, b, base, code: t_r3_industry(pg, base),
     "產業鏈導覽":          lambda pg, b, base, code: t_chainnav(pg, base),
     "一般電子鏈":          lambda pg, b, base, code: t_electronics(pg, base),
     "新-大盤三張圖":       lambda pg, b, base, code: t_new_market3(pg, base),

@@ -8,6 +8,11 @@
   const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
   const D = {};                       // 已載入的 JSON
   const charts = {};                  // ECharts 實例
+  /* ★ 2026-09-25（R3 審查）：畫布上的等寬字一律用這一串，跟 CSS `--mono` 同一條退路。
+     ECharts／Canvas 的字型只寫 'JetBrains Mono' 時，沒裝這個字的電腦（Windows 預設、這個容器）
+     會退回瀏覽器預設的**襯線體**，座標軸數字變成細細的 Times。CSS 那邊有退路，畫布這邊沒有，
+     於是同一頁 HTML 的數字是等寬黑體、圖上的數字是襯線體。改這串要跟 index.html 的 --mono 一起改。*/
+  const MONO_FF = '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace';
   /* 圖表色票。深色是預設值；切到明亮主題時 refreshPalette() 會就地改寫這個物件
      （所有圖表都是在 render 當下才讀它，改完重畫就會換色）。 */
   const CH = { up: '#ff4d6d', down: '#2ee59d', cyan: '#3ee0ff', violet: '#8b7bff', amber: '#ffb454', lime: '#c3ff5b',
@@ -419,14 +424,14 @@
         const lab = s.label;
         const inside = lab && typeof lab.position === 'string' && /inside/.test(lab.position);
         if (lab && lab.show) {
-          s.label = { ...lab, fontSize: Math.max(12, lab.fontSize || 12), fontFamily: lab.fontFamily || 'JetBrains Mono, monospace' };
+          s.label = { ...lab, fontSize: Math.max(12, lab.fontSize || 12), fontFamily: lab.fontFamily || MONO_FF };
           if (lab.position == null && !inside) {
             s.data.forEach((d, k) => { const v = val(d); if (v == null) return;
               const o = asObj(s, k); if (!(o.label && o.label.position)) o.label = { ...(o.label || {}), position: endPos(h, v < 0) }; });
           }
         } else if (!lab && s.type === 'bar' && s.stack == null && s.data.length <= SOFT_LABEL_MAX) {
           // ⚠ 只在「整張圖設定」時補（series 寫了 type）；之後只換 data 的局部更新不補，免得蓋掉圖自己的標籤
-          s.label = { show: true, fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: CH.ink2,
+          s.label = { show: true, fontSize: 12, fontFamily: MONO_FF, color: CH.ink2,
             formatter: (q) => { const v = +q.value; if (!isFinite(v)) return '';
               const a = Math.abs(v); const txt = a >= 100 ? v.toFixed(0) : a >= 10 ? v.toFixed(1) : v.toFixed(2);
               return (v > 0 ? '+' : '') + txt; } };
@@ -497,7 +502,7 @@
     }
     charts[el.id || Math.random()] = c; return c;
   }
-  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: 'JetBrains Mono' }, splitLine: { lineStyle: { color: CH.grid } } };
+  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: MONO_FF }, splitLine: { lineStyle: { color: CH.grid } } };
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 12.5 }, confine: true };
 
   /* ---------------- 明亮／深色主題（Andy 2026-09-14）----------------
@@ -5465,7 +5470,7 @@
           pointer: { show: false },
           anchor: { show: false },
           title: { show: true, offsetCenter: [0, 32], color: CH.ink3, fontSize: 12 },
-          detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: 'JetBrains Mono',
+          detail: { valueAnimation: true, offsetCenter: [0, -4], fontSize: 26, fontFamily: MONO_FF,
             fontWeight: 700, color: theme() === 'light' ? CH.ink : '#e8eeff', formatter: v => v.toFixed(1) + '%' },
           data: [{ value: p20, name: '站上 20 日均線' }] },
         /* ★ 2026-09-23：這三個色本來是寫死的深色主題值（#ff4d6d／#6f7ea3／#2ee59d），
@@ -6106,10 +6111,12 @@
      ECharts 的軸標籤是畫在 canvas 上的，DOM 上量不到，所以自己用 canvas 的 measureText，
      字型跟 chart() 給的 textStyle 一致 —— 不一致的話量出來的數字沒有意義。*/
   let _measCtx = null;
-  function textW(list, fs) {
+  function textW(list, fs, family) {
     try {
       if (!_measCtx) _measCtx = document.createElement('canvas').getContext('2d');
-      _measCtx.font = `${fs}px "Noto Sans TC", "JetBrains Mono", sans-serif`;
+      /* family：量的字要跟畫的字同一族。長條的數值標籤是等寬字（MONO_FF），用黑體量會量窄，
+         負值標籤留的位置就不夠，數字貼到族群名上（R3：「HBM 高頻寬記憶體-3.3%」）。*/
+      _measCtx.font = `${fs}px ${family || '"Noto Sans TC", "JetBrains Mono", sans-serif'}`;
       return (list || []).reduce((m, t) => Math.max(m, _measCtx.measureText(String(t)).width), 0);
     } catch (e) { return 0; }                    // 量不到就讓呼叫端用自己的下限
   }
@@ -6179,7 +6186,7 @@
     const negs = rows.filter(g => g.share_chg < 0);
     const vMin = Math.min(0, ...rows.map(g => g.share_chg)), vMax = Math.max(0, ...rows.map(g => g.share_chg));
     const plotW = Math.max(60, rfw - GL - GR);
-    const needL = negs.length ? Math.ceil(textW(negs.map(lblOf), 12)) + 8 : 0;
+    const needL = negs.length ? Math.ceil(textW(negs.map(lblOf), 12, MONO_FF)) + 8 : 0;
     const span0 = (vMax - vMin) || 1;
     const xMin = negs.length ? +(vMin - needL * span0 / Math.max(30, plotW - needL)).toFixed(3) : null;
     const c = chart('rankFlow', {
@@ -6206,7 +6213,7 @@
         data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
           itemStyle: { color: chgColor(g.share_chg, 1.5) },
           label: { position: g.share_chg >= 0 ? 'right' : 'left' } })),
-        label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: 'JetBrains Mono',
+        label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: MONO_FF,
           // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
           formatter: (q) => lblOf(rows[q.dataIndex]) },
         markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
@@ -8938,7 +8945,7 @@
   let _snCtx = null;
   /* 格內數字的字族。★ 2026-09-24：以前畫布上只寫 'JetBrains Mono' 一個字，沒裝這個字的電腦（Windows 預設就沒有）
      會退回瀏覽器預設的襯線體，數字變成細細的 Times；跟全站 `--mono` 用同一串退路，量字寬與畫字也用同一串。*/
-  const SN_MONO = 'JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace';
+  const SN_MONO = MONO_FF;
   const snTextW = (s) => {           // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
     if (!_snCtx) { try { _snCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _snCtx = null; } }
     if (!_snCtx) return String(s).length * 7.5;
@@ -9593,6 +9600,7 @@
       rotDays: () => ROT.days,
       dismissable,                         // 點外面就關、按 Esc 也關（全站共用一份，industry.js 也掛在這裡）
       softenOption,                        // 圖表圓滑化（驗收讀 getOption 就看得到結果，這裡只是讓別的檔也叫得到）
+      MONO: MONO_FF,                       // 畫布等寬字族（跟 CSS --mono 同一條退路），別的檔畫圖用
       textW,                               // 量字寬（canvas measureText）：產業地圖的漲跌長條要替負值標籤留左邊的位置
       sankeyFxRunning: () => !!(sankeyFx && sankeyFx.running()),
       sankeyLabels: () => (sankeyFx ? sankeyFx.labels() : []),   // v2 第 5 批：小圓點要避開的標籤外框（驗收量「點不壓字」）
