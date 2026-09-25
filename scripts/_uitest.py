@@ -13490,6 +13490,8 @@ SECTIONS = {
     "足跡輪盤既有功能":    lambda pg, b, base, code: t_rot_keep(pg, b, base),
     # ★ 2026-09-24 夜（Andy 四件）：市場寬度比例、足跡輪盤平滑補間、排行貼頂、篩選列左上角
     "足跡輪盤補間":        lambda pg, b, base, code: t_rot_tween(pg, b, base),
+    # ★ 2026-09-25（claude/rot-all-trails）：每一顆族群點都有腳印，非焦點淡、小，滑到提亮
+    "足跡輪盤全部腳印":    lambda pg, b, base, code: t_rot_all_trails(pg, b, base),
     "排行貼頂":            lambda pg, b, base, code: t_rank_top(pg, b, base),
     "篩選列左上角":        lambda pg, b, base, code: t_filter_topleft(pg, b, base),
     # ★ 2026-09-24 夜（Andy 第二批）：輪盤放大＋象限卡在盤外、點族群開側欄、點背景關、排行 ≥ 40%
@@ -27019,6 +27021,10 @@ CLK_STATE = r"""(cid) => { const el = document.getElementById(cid);
   const moved = ss.find(s => s.type === 'custom' && s.name === '換段色環');
   const g0 = vis.map(s => s.lineStyle.color).find(x => x && typeof x === 'object');
   return { n: sc.data.length, lines: lines.length, vis: vis.length, visGids: vis.map(s => s.gid),
+    /* 2026-09-25（每個點都有腳印）：看得到的每一條各自的不透明度 —— 1＝焦點（實、亮），< 1＝退到背景的非焦點 */
+    visOp: vis.map(s => (s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity),
+    solid: vis.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) >= 1).length,
+    solidGids: vis.filter(s => ((s.lineStyle || {}).opacity == null ? 1 : s.lineStyle.opacity) >= 1).map(s => s.gid),
     arrows: vis.reduce((a, s) => a + sym(s, 'triangle'), 0), marks: vis.reduce((a, s) => a + sym(s, 'circle'), 0),
     grad: g0 ? g0.colorStops.map(x => x.color) : null,
     /* 2026-09-24 腳印：每條看得到的軌跡上，path:// 符號（腳印）的數量、左右腳、轉向、由舊到新的透明度 */
@@ -27118,22 +27124,30 @@ def t_clock_v2(pg, b, base):
         # ① 焦點族群：預設模式 focus，最多 6 個，只有焦點畫軌跡
         ok(f"[{th}] ① 軌跡預設是「焦點」模式", fr.get("tmode") == "focus", fr.get("tmode"))
         ok(f"[{th}] ① 焦點族群 1～6 個（佔比前 3 ＋ 最近換段）", 1 <= len(fr.get("focus") or []) <= 6, fr.get("focus"))
-        ok(f"[{th}] ① 看得到的軌跡 ≤ 6 條、而且只有焦點族群有（非焦點沒有軌跡）",
-           0 < s["vis"] <= 6 and set(s["visGids"]) <= set(fr["focus"]), {"看得到": s["vis"], "焦點": fr["focus"]})
-        ok(f"[{th}] ① 每個族群仍然各有一條 line series（資料還在，只是非焦點看不見）", s["lines"] == s["n"], s)
+        # ★ 2026-09-25（Andy：「為何不是每個點都有軌跡」）：
+        #   改前：看得到的軌跡 ≤ 6 條、只有焦點族群有（非焦點 opacity 0）
+        #   改後：每一條都看得到；**實、亮（opacity 1）的**仍然 ≤ 6 條而且只有焦點，其餘退到背景（opacity < 1）
+        ok(f"[{th}] ① 實、亮的軌跡（opacity 1）≤ 6 條、而且只有焦點族群有",
+           0 < s["solid"] <= 6 and set(s["solidGids"]) <= set(fr["focus"]), {"實": s["solid"], "焦點": fr["focus"]})
+        ok(f"[{th}] ① 非焦點族群也有軌跡（看得到的 ＝ 全部族群；非焦點的 opacity 介於 0.3～0.4）",
+           s["vis"] == s["n"] and all(0.3 <= o <= 0.4 for o, g in zip(s["visOp"], s["visGids"]) if g not in fr["focus"]),
+           {"看得到": s["vis"], "族群": s["n"], "不透明度": s["visOp"]})
+        ok(f"[{th}] ① 每個族群仍然各有一條 line series", s["lines"] == s["n"], s)
         ok(f"[{th}] ① 焦點族群的名字是粗體（其餘一般字重）", 0 < s["focusBold"] < s["n"], s["focusBold"])
         ok(f"[{th}] ① 族群名稱字級 ≥ 12px", s["lblFs"] >= 12, s["lblFs"])
         # ② ★ 2026-09-24（Andy：「軌跡線 改成小小的腳印」）：
         #   改前：一條漸強的線（.15 → .90）＋ 最新一段三角箭頭 ＋ 每 5 天一顆小點
         #   改後：線不畫（寬 0），改成一串左右交錯、腳尖朝前進方向、越舊越淡的小腳印
-        feet = [f for f in s["feet"] if f]
+        # 2026-09-25：腳印的逐項長相只量焦點那幾條（非焦點的腳印刻意縮小、變疏，另外在「足跡輪盤全部腳印」段驗）
+        #   改前：feet＝看得到的全部（那時看得到＝焦點）→ 改後：feet＝opacity 1 的那幾條
+        feet = [f for f, o in zip(s["feet"], s["visOp"]) if f and o >= 1]
         allf = [x for f in feet for x in f]
         # ★ 2026-09-24 晚（Andy 參考檔）：桌機在腳印底下留一條極淡的細線（1.2px、25%），把一步一步串成一條路。
         #   改前（同一天稍早）：寬 0 → 改後（桌機）：≤ 1.2px、α ≤ .3；手機仍然是 0（這一段跑在 1440）
         ok(f"[{th}] ② 腳印底下只有一條極淡的細線（≤ 1.2px、透明度 ≤ .3；主角是腳印）",
            0 < s["lineW"] <= 1.2 and s["lineA"] <= .3, [s["lineW"], s["lineA"]])
         ok(f"[{th}] ② 看得到的每一條軌跡都畫出了腳印（每條 ≥ 2 個）",
-           len(feet) == s["vis"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
+           len(feet) == s["solid"] and all(len(f) >= 2 for f in feet), [len(f) for f in s["feet"]])
         ok(f"[{th}] ② 左右腳交錯（相鄰兩個腳印一左一右）",
            all(all(f[i]["f"] != f[i + 1]["f"] for i in range(len(f) - 1)) for f in feet), [[x["f"] for x in f][:6] for f in feet][:2])
         ok(f"[{th}] ② 腳尖朝前進方向（每個腳印都有依路徑轉向，不是全部同一個角度）",
@@ -27189,7 +27203,9 @@ def t_clock_v2(pg, b, base):
             ok("⑥ 關掉「顯示腳印」→ 一個腳印都不剩", s2 and sum(len(f) for f in s2["feet"]) == 0, s2 and [len(f) for f in s2["feet"]])
             pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
             s3 = pg.evaluate(CLK_STATE, "rotClock")
-            ok("⑥ 再打開 → 腳印回來（仍然只有焦點那幾條 ≤ 6）", s3 and 0 < s3["vis"] <= 6 and sum(len(f) for f in s3["feet"]) > 0, s3 and s3["vis"])
+            # 改前：再打開只回來焦點那幾條（vis ≤ 6）→ 改後（2026-09-25）：全部回來，實的仍 ≤ 6
+            ok("⑥ 再打開 → 腳印回來（每個族群都有、實的仍只有焦點 ≤ 6）",
+               s3 and s3["vis"] == s3["n"] and 0 < s3["solid"] <= 6 and sum(len(f) for f in s3["feet"]) > 0, s3 and [s3["vis"], s3["solid"]])
             # ⑦ 滑到一顆**非焦點**的點 → 它的軌跡出現、其他壓暗；滑開 → 還原
             tgt = pg.evaluate("""() => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
                 const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter');
@@ -27203,10 +27219,13 @@ def t_clock_v2(pg, b, base):
                     const ls = c.getOption().series.filter(s => s.type === 'line');
                     const me = ls.find(s => s.gid === gid); const others = ls.filter(s => s.gid !== gid);
                     return { me: me ? me.lineStyle.opacity : null, maxOther: Math.max(0, ...others.map(s => s.lineStyle.opacity)) }; }""", tgt["gid"])
-                ok("⑦ 滑到非焦點的點：它的軌跡出現（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
+                # 改前「它的軌跡出現」→ 改後（2026-09-25）「它的軌跡提亮」：本來就在（淡），滑到才拉到 1
+                ok("⑦ 滑到非焦點的點：它的軌跡提亮（opacity 1）、其他軌跡壓到 ≤ 0.12", hv["me"] == 1 and hv["maxOther"] <= 0.12, hv)
                 pg.mouse.move(5, 5); pg.wait_for_timeout(700)
                 s4 = pg.evaluate(CLK_STATE, "rotClock")
-                ok("⑦ 滑開之後還原成焦點模式（非焦點的軌跡又看不見）", s4 and 0 < s4["vis"] <= 6, s4 and s4["vis"])
+                # 改前：滑開 → 非焦點又看不見（vis ≤ 6）→ 改後：滑開 → 非焦點退回淡（實的 ≤ 6、全部仍看得到）
+                ok("⑦ 滑開之後還原（實的只剩焦點 ≤ 6，非焦點退回淡腳印）", s4 and 0 < s4["solid"] <= 6 and s4["vis"] == s4["n"],
+                   s4 and [s4["solid"], s4["vis"]])
             # ⑧ 編號模式的判準跟容器寬度一致（1440 不是編號模式）
             ok("⑧ 1440px 的卡片不是編號模式（容器 ≥ 560px）", (s["fr"] or {}).get("num") is False, s["fr"].get("num"))
     pg.evaluate("() => { try { localStorage.setItem('tw.theme','dark'); localStorage.removeItem('tw.rot.tmode'); } catch (e) {} }")
@@ -28112,6 +28131,144 @@ def t_rot_keep(pg, b, base):
        pg.evaluate("() => ['rot-trail','rot-ripple','rot-scan'].every(c => !!document.querySelector('#rotTools input.' + c))"))
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
+
+
+# ===================================================================== 足跡輪盤：每一個族群點都有腳印（2026-09-25）
+# Andy 截圖問「為何不是每個點都有軌跡」。改法：焦點族群照舊（實、亮），非焦點的腳印退到背景
+# （整條 opacity .35、腳印 ×0.78、間距 ×2），滑到／點到那一顆點就換成焦點樣式；「顯示腳印」照舊關全部。
+# 這一段真的操作：對盤上**每一顆**族群點找它的腳印序列、滑過一顆非焦點點看它提亮、勾掉「顯示腳印」看全部歸零、
+# 按 ▶ 看非焦點的腳印也跟著補間走（沿用 rotTween 只搬位置），並量回放幀率寫進 notes。
+ALLTR = r"""(cid) => { const el = document.getElementById(cid); const c = el && window.echarts && echarts.getInstanceByDom(el);
+  if (!c) return null;
+  const o = c.getOption(); const ss = o.series || [];
+  const sc = ss.find(s => s.type === 'scatter' && s.name === '族群'); if (!sc) return null;
+  const alpha = (col) => { const m = String(col || '').match(/,([\d.]+)\)$/); return m ? +m[1] : 1; };
+  const focus = new Set(((window.App && window.App._rotFrame) || {}).focus || []);
+  const rows = sc.data.map(d => {
+    const gid = d.row.gid; const li = ss.findIndex(s => s.type === 'line' && s.gid === gid); const ln = ss[li];
+    if (!ln) return { gid, name: d.row.name, line: false };
+    const op = (ln.lineStyle || {}).opacity == null ? 1 : ln.lineStyle.opacity;
+    const feet = (ln.data || []).filter(x => x && !Array.isArray(x) && String(x.symbol || '').startsWith('path://'));
+    // 軌跡在畫面上的長度（px）：太短的族群（幾乎沒動）本來就放不下腳印，要分得出「沒畫」跟「沒得畫」
+    const px = (ln.data || []).map(x => c.convertToPixel({ seriesIndex: li }, Array.isArray(x) ? x : x.value)).filter(Boolean);
+    let len = 0; for (let i = 1; i < px.length; i++) len += Math.hypot(px[i][0] - px[i - 1][0], px[i][1] - px[i - 1][1]);
+    return { gid, name: d.row.name, line: true, focus: focus.has(gid), op, n: feet.length, len: Math.round(len),
+      sz: Math.max(0, ...feet.map(x => Math.max(...[].concat(x.symbolSize || 0)))),
+      a: Math.max(0, ...feet.map(x => alpha((x.itemStyle || {}).color))) };
+  });
+  return { rows, dots: sc.data.length }; }"""
+
+
+def t_rot_all_trails(pg, b, base):
+    for th in ("dark", "light"):
+        pg.set_viewport_size({"width": 1440, "height": 950})
+        pg.goto(f"{base}#flow", wait_until="networkidle")
+        pg.evaluate("(t) => { try { localStorage.setItem('tw.theme', t); localStorage.removeItem('tw.rot.filter');"
+                    " localStorage.removeItem('tw.rot.back3'); localStorage.removeItem('tw.rot.days'); } catch (e) {} }", th)
+        pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2800)
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(700)
+        st = pg.evaluate(ALLTR, "rotClock")
+        if not ok(f"[{th}] 讀得到盤上每一顆族群點與它的腳印", bool(st) and st["dots"] > 6, st and st["dots"]):
+            continue
+        rows = st["rows"]
+        foc = [r for r in rows if r.get("focus")]
+        rest = [r for r in rows if r.get("line") and not r.get("focus")]
+        # ① 每一顆族群點都有自己的腳印序列（改前：只有焦點 ≤ 6 顆有）
+        nofeet = [r for r in rows if not (r.get("line") and r["op"] > 0 and (r["n"] >= 1 or r["len"] < 12))]
+        ok(f"[{th}] ① 盤上每一顆族群點都有對應的腳印序列（看得到、至少 1 個腳印；軌跡 < 12px 的幾乎沒動，不算）",
+           not nofeet and len(rows) == st["dots"], {"缺": [(r["name"], r.get("n"), r.get("len")) for r in nofeet], "點數": st["dots"]})
+        ok(f"[{th}] ① 真的有非焦點族群被畫出來（非焦點 {len(rest)} 條、其中有腳印的 ≥ 一半）",
+           len(rest) >= 1 and sum(1 for r in rest if r["n"] >= 1) * 2 >= len(rest), [(r["name"], r["n"]) for r in rest])
+        # ② 非焦點比焦點淡、小
+        if ok(f"[{th}] ② 焦點與非焦點都有（才比得出淡與實）", bool(foc) and bool(rest), [len(foc), len(rest)]):
+            ok(f"[{th}] ② 焦點整條 opacity 1、非焦點 0.3～0.4",
+               all(r["op"] == 1 for r in foc) and all(0.3 <= r["op"] <= 0.4 for r in rest),
+               {"焦點": [r["op"] for r in foc], "非焦點": sorted({r["op"] for r in rest})})
+            fa = max((r["op"] * r["a"] for r in foc if r["n"]), default=0)
+            ra = max((r["op"] * r["a"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印實際不透明度 < 焦點（整條 × 腳印自己的，最亮那一個比）", 0 < ra < fa,
+               {"非焦點": round(ra, 3), "焦點": round(fa, 3)})
+            fs = max((r["sz"] for r in foc if r["n"]), default=0)
+            rs = max((r["sz"] for r in rest if r["n"]), default=0)
+            ok(f"[{th}] ② 非焦點腳印比焦點小（最大那一個比）", 0 < rs < fs, {"非焦點": rs, "焦點": fs})
+        if th != "dark":
+            continue
+        # ③ 滑過一顆非焦點的點 → 它的腳印提亮到焦點樣式（opacity 1、原尺寸、原密度），其他壓暗；滑開還原
+        cand = sorted([r for r in rest if r["n"] >= 1], key=lambda r: -r["len"])
+        tgt = None
+        for r in cand:
+            tgt = pg.evaluate("""(gid) => { const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+                const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && s.name === '族群');
+                const d = o.series[si].data.find(x => x.row && x.row.gid === gid); if (!d) return null;
+                const p = c.convertToPixel({ seriesIndex: si }, d.value); const rc = el.getBoundingClientRect();
+                return { gid, x: rc.left + p[0], y: rc.top + p[1] }; }""", r["gid"])
+            if tgt:
+                # 目標點上不能剛好疊著別的點（命中測試取最近的那一顆）
+                pg.mouse.move(tgt["x"], tgt["y"]); pg.wait_for_timeout(800)
+                if pg.evaluate("() => document.getElementById('rotClock')._hovGid") == r["gid"]:
+                    break
+            tgt = None
+        if ok("③ 找得到一顆可以滑到的非焦點點（有腳印）", bool(tgt), [r["name"] for r in cand][:5]):
+            r0 = next(r for r in rows if r["gid"] == tgt["gid"])
+            h = pg.evaluate(ALLTR, "rotClock")
+            me = next(r for r in h["rows"] if r["gid"] == tgt["gid"])
+            others = [r for r in h["rows"] if r["gid"] != tgt["gid"] and r.get("line")]
+            ok("③ 滑過非焦點的點 → 它的腳印提亮（opacity 從 0.3～0.4 變 1）", r0["op"] < 1 and me["op"] == 1, [r0["op"], me["op"]])
+            ok("③ 滑過之後它的腳印換成焦點尺寸與密度（變大、不變少）", me["sz"] > r0["sz"] and me["n"] >= r0["n"],
+               {"前": [r0["sz"], r0["n"]], "後": [me["sz"], me["n"]]})
+            ok("③ 其他族群的腳印壓到 ≤ 0.12（包括焦點）", max(r["op"] for r in others) <= 0.12, max(r["op"] for r in others))
+            pg.mouse.move(5, 5); pg.wait_for_timeout(800)
+            h2 = pg.evaluate(ALLTR, "rotClock")
+            me2 = next(r for r in h2["rows"] if r["gid"] == tgt["gid"])
+            ok("③ 滑開 → 它退回淡、小（opacity、尺寸、個數都回到滑過前）",
+               me2["op"] == r0["op"] and me2["sz"] == r0["sz"] and me2["n"] == r0["n"],
+               {"前": [r0["op"], r0["sz"], r0["n"]], "滑開": [me2["op"], me2["sz"], me2["n"]]})
+            ok("③ 滑開 → 焦點的腳印也回到 1", all(r["op"] == 1 for r in h2["rows"] if r.get("focus")),
+               [r["op"] for r in h2["rows"] if r.get("focus")])
+        # ④ 關掉「顯示腳印」→ 全部歸零（焦點與非焦點都是）；打開 → 全部回來
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1000)
+        off = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾掉「顯示腳印」→ 每一條的 opacity 都是 0、一個腳印都不剩",
+           bool(off) and all(r["op"] == 0 and r["n"] == 0 for r in off["rows"] if r.get("line")),
+           off and [(r["name"], r["op"], r["n"]) for r in off["rows"] if r.get("op") or r.get("n")][:5])
+        pg.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); pg.wait_for_timeout(1200)
+        on = pg.evaluate(ALLTR, "rotClock")
+        ok("④ 勾回來 → 非焦點的淡腳印也回來",
+           bool(on) and sum(1 for r in on["rows"] if r.get("line") and 0 < r["op"] < 1 and r["n"]) >= 1,
+           on and [(r["name"], r["op"], r["n"]) for r in on["rows"]][:6])
+        # ⑤ 回放：非焦點的腳印也跟著補間走（rotTween 只搬位置，不是每一步重建）＋ 量幀率
+        pl = pg.evaluate("""async () => {
+          const el = document.getElementById('rotClock'); const c = echarts.getInstanceByDom(el);
+          const f = new Set((window.App._rotFrame || {}).focus || []);
+          const pick = () => { for (const s of c.getModel().getSeries().filter(s => s.subType === 'line')) {
+              const o = s.option; if (!o || f.has(o.gid) || !(o.lineStyle && o.lineStyle.opacity > 0 && o.lineStyle.opacity < 1)) continue;
+              const d = s.getData(); for (let i = d.count() - 1; i >= 0; i--) { const raw = d.getRawDataItem(i);
+                if (raw && raw.foot) { const g = d.getItemGraphicEl(i); if (g) return [Math.round(g.x * 10) / 10, Math.round(g.y * 10) / 10]; } } }
+            return null; };
+          window.App.rotReplay(12); await new Promise(r => setTimeout(r, 900));
+          const st0 = window.App.rotTween();
+          const btn = document.querySelector('#rotBack .pb.play'); btn.click();
+          const ps = []; let n = 0; const gaps = []; const t0 = performance.now(); let last = t0;
+          await new Promise(res => { const g = (t) => { n++; gaps.push(t - last); last = t; const p = pick(); if (p) ps.push(p.join(','));
+            if (t - t0 < 2500) requestAnimationFrame(g); else res(); }; requestAnimationFrame(g); });
+          btn.click();
+          const st1 = window.App.rotTween();
+          return { uniq: new Set(ps).size, n: ps.length, fps: +(n * 1000 / (performance.now() - t0)).toFixed(1), maxGap: Math.round(Math.max(...gaps)),
+            tweens: st1.tweens - st0.tweens, paintMs: st1.last && st1.last.paintMs }; }""")
+        notes.append(f"足跡輪盤全部腳印：回放 2.5 秒 {pl['fps']} fps、最長一幀 {pl['maxGap']}ms、補間 {pl['tweens']} 次、"
+                     f"每幀搬圖元 {pl['paintMs']}ms（容器軟體繪圖）")
+        ok("⑤ 回放中非焦點的腳印也跟著補間走（同一個腳印在 2.5 秒裡出現 ≥ 5 個不同位置）", pl["uniq"] >= 5, pl)
+        ok("⑤ 回放真的走補間（rotTween 次數增加），不是每一步整張重建", pl["tweens"] >= 2, pl)
+        pg.evaluate("() => window.App.rotReplay(0)"); pg.wait_for_timeout(600)
+        # ⑥ 總覽小時鐘（compact）不跟：仍然只有焦點的腳印，沒有淡的
+        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        mini = pg.evaluate("""() => { const el = document.getElementById('rotClockMini'); const c = el && echarts.getInstanceByDom(el);
+            if (!c) return null; return c.getOption().series.filter(s => s.type === 'line').map(s => (s.lineStyle || {}).opacity); }""")
+        if mini is not None:
+            ok("⑥ 總覽小時鐘不畫淡腳印（每一條不是 0 就是 1）", all(o in (0, 1) for o in mini), mini)
+        else:
+            notes.append("足跡輪盤全部腳印 ⑥：總覽頁沒有小時鐘（rotClockMini），略過")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 # ===================================================================== 載入效能（2026-09-24）
