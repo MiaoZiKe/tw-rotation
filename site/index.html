@@ -1190,6 +1190,10 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 /* ★ 2026-09-24（docs/season_grid_spec.md）：桌機的外框寬由 app.js 設成「名稱欄＋12 格」的表格寬，整張表靠左；
    `max-width:100%` 是保險 —— 算錯也不准撐出卡片、不准出現橫向捲軸。手機不設寬，照舊撐滿。*/
 .shbox[hidden]{display:none}
+/* ★ 2026-09-25（審查 R4：800 寬選「全部」→ 框內 680px 可捲、頁面也可捲，框底被固定在底部的兩列分頁（約 100px）蓋住，
+   捲到框底時最後幾列永遠露不出來）。≤820px 的可視高度要扣掉頂列 58px＋底部分頁列約 110px＋一點邊，
+   框就一定完整落在兩條固定列之間，框內捲到底看得到最後一列。*/
+@media (max-width:820px){ .shbox{max-height:min(680px, calc(100vh - 190px)); max-height:min(680px, calc(100dvh - 190px))} }
 .shhead{position:sticky;top:0;z-index:2;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:0;
   background:var(--panel);padding-top:2px;padding-bottom:4px}
 .shhead button{border:0;background:transparent;color:var(--ink-2);font:600 12px/1 var(--mono);height:24px;
@@ -2252,6 +2256,9 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 @media (max-width:900px){ .rbar .dual{width:128px} .rbar .val{min-width:0} }
 /* 2026-09-24 足跡輪盤的單一拉Bar（dayBar）：數字緊跟著拉Bar，不要右對齊撐出一大段空白 */
 .rbar.daybar .val{min-width:0;text-align:left}
+/* ★ 2026-09-25（審查 R2 #12：800 寬「N 天前」拉Bar 只剩 96px ＝ 每天約 3px，很難拖準）：
+   ≤900px 時足跡輪盤那條單一拉Bar 吃掉這一列剩下的寬，最少 160px。*/
+@media (max-width:900px){ .rbar.daybar{flex:1 1 auto;max-width:100%} .rbar.daybar input[type=range]{flex:1 1 160px;min-width:160px;width:auto} }
 
 /* ★ D2：象限展開面板搬到時鐘右邊那塊空白。時鐘吃剩下的寬（min-width:0 才縮得下去），
    面板固定 300px。≤1100px 退回單欄（300px 面板 ＋ 讀得出來的時鐘在 800px 裡放不下）。*/
@@ -3420,6 +3427,30 @@ h3 .howbtn.pop{font-family:inherit}
 /* ---- 法人卡「滾輪放大」徽章：淺色主題原本是深底配灰字、再疊在淺底上 → 灰底灰字看不見（審查 R1）---- */
 :root[data-theme="light"] .zwrap>.zbadge{background:rgba(255,255,255,.92);color:var(--ink-2);border-color:var(--line-2)}
 :root[data-theme="light"] .zwrap:hover>.zbadge{color:var(--cyan)}
+
+/* ==================================================================================
+   ★ 2026-09-25 收尾批（claude/wrapup-1）
+   ================================================================================== */
+/* ---- 個股 K 線右上角「還原」小標：K 線是除權息還原價、報價是原始價，滑過說明 ----
+   掛在 .chartwrap 上的絕對定位：不參與 flex 排版（畫線工具列、圖本體位置一格都不動）。
+   right 讓開價格軸（約 60px），top 讓開最上面那一行 OHLC 讀數的高度就好 —— 它在左邊，不會撞。*/
+.chartwrap{position:relative}
+.adjtag{position:absolute;top:6px;right:72px;z-index:6;font-size:11.5px;font-weight:700;line-height:1;
+  padding:4px 7px;border-radius:6px;cursor:help;color:var(--amber);letter-spacing:.06em;
+  background:color-mix(in srgb,var(--panel) 88%,transparent);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent)}
+.adjtag:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+.adjtag .adjtip{display:none;position:absolute;top:calc(100% + 6px);right:0;width:max-content;max-width:300px;
+  padding:9px 11px;border-radius:9px;background:var(--panel);border:1px solid var(--line-2);color:var(--ink-2);
+  font-size:12.5px;font-weight:400;line-height:1.55;letter-spacing:0;white-space:normal;text-align:left;
+  box-shadow:0 10px 30px rgba(0,0,0,.35)}
+.adjtag .adjtip b{color:var(--ink);font-weight:700}
+.adjtag .adjtip>span{display:block;margin-top:4px}
+.adjtag .adjtip .adjn{color:var(--ink-3);font-size:12px}
+.adjtag:hover .adjtip,.adjtag:focus .adjtip,.adjtag.open .adjtip{display:block}
+:root[data-theme="light"] .adjtag .adjtip{box-shadow:0 10px 26px rgba(30,28,24,.16)}
+/* ---- 足跡輪盤放大視窗的象限卡（審查 R2 #35）：只顯示計數，不接點擊 ——
+   點了會展開的象限面板長在卡片上、被放大遮罩蓋住，點了看起來沒反應；要展開請關掉放大在卡片上點。*/
+#zoomBody .rotquads .rq{pointer-events:none;cursor:default}
 </style>
 </head>
 <body>
@@ -3567,10 +3598,9 @@ h3 .howbtn.pop{font-family:inherit}
   <!-- ================= 市場明細 ================= -->
   <section class="view" id="v-market">
     <div class="card periodbar"><div class="row spread">
-      <div><h3 style="margin:0">市場明細</h3><div class="pnote" id="mktNote">總覽上方那幾個數字，這裡是完整名單</div></div>
+      <div><h3 style="margin:0">市場明細</h3></div>
       <div class="seg" id="mktSeg2"></div></div></div>
-    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3 id="mktTitle">—</h3>
-      <button class="howbtn" data-how="mkt">怎麼看 ?</button></div>
+    <div class="card" style="margin-top:var(--gap-card)"><div class="row spread"><h3><span id="mktTitle">—</span> <button class="howbtn pop" data-how="mkt" data-ttl="市場明細" type="button" aria-label="市場明細怎麼看">?</button></h3></div>
       <div class="howtxt" id="how-mkt" hidden></div>
       <div id="mktBody"></div></div>
   </section>
@@ -3731,9 +3761,8 @@ h3 .howbtn.pop{font-family:inherit}
          放在全市場熱力圖下面。id 一個都沒改（#themeMap／#themeMapWrap／#themeZoom 是縮放白名單、
          淺色主題掃描、驗收都認的 id）。點題材方塊 → 下面的 #themeDetail 就地展開那個題材的剖析圖，
          網址是 `#heatmap/theme/<id>`（分享得出去、上一頁回得來）。 -->
-    <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <small>題材成交值與熱度</small></h3>
-      <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button>
-        <button class="howbtn" data-how="theme">怎麼看 ?</button></div></div>
+    <div class="card" id="themeMapCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>題材資金熱力 <button class="howbtn pop" data-how="theme" type="button" aria-label="題材資金熱力怎麼看">?</button></h3>
+      <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button></div></div>
       <!-- ★ 2026-09-24 說明精簡：原本的「這張圖回答／怎麼用」長句與口徑註 #themeNote 都搬進「怎麼看 ?」；
            #themeNote 仍由 renderThemes 寫入資料端的口徑（成員不拆分、熱度怎麼算），id 不變。 -->
       <div class="howtxt" id="how-theme" hidden><div class="howbody"></div><div class="howfine" id="themeNote"></div></div>
@@ -3773,7 +3802,7 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-season">
     <div class="card" id="seasonHeatCard">
       <div class="row spread">
-        <h3>週期統計：族群 × 月份 <small id="seasonRange"></small> <button class="howbtn" data-how="season">怎麼看 ?</button></h3>
+        <h3>週期統計：族群 × 月份 <small id="seasonRange" data-readout></small> <button class="howbtn pop" data-how="season" type="button" aria-label="週期統計怎麼看">?</button></h3>
         <div class="row" id="seasonCtl">
           <div class="seg" id="seasonPeriod"><button data-v="all" class="on">全部</button><button data-v="10y">近 10 年</button><button data-v="5y">近 5 年</button><button data-v="3y">近 3 年</button></div>
           <div class="seg" id="seasonMetric"><button data-v="avg_excess" class="on">超額報酬</button><button data-v="avg_return">絕對報酬</button><button data-v="win_rate">勝率</button></div>

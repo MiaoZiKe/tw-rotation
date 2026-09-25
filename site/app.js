@@ -245,7 +245,21 @@
       const w = l.width, h = l.height;
       const nw = hmTextW(name, fs), vw = val ? hmTextW(val, fs) : 0;
       let text = '', mode = 0;
+      /* ★ 2026-09-25（審查 R4：「HBM 高頻寬記憶體」117×220、「光學鏡頭」這種中型方塊高度夠，卻只寫名字，
+         漲跌要滑過才看得到）：以前「兩行」的條件是**整個名字**放得下；名字一長就退成只寫名稱。
+         改成：高 ≥ 44 且數值放得下時，名稱照「只寫名稱」同一套規矩截短（至少留一半的字），再接數值那一行。*/
+      const trunc = () => {
+        if (nw + 12 <= w) return name;
+        const chars = Array.from(name);
+        const kMin = Math.max(2, Math.ceil(chars.length / 2));
+        for (let k = chars.length - 1; k >= kMin; k--) {
+          const t = chars.slice(0, k).join('') + '…';
+          if (hmTextW(t, fs) + 12 <= w) return t;
+        }
+        return '';
+      };
       if (val && w >= Math.max(nw, vw) + 16 && h >= 44) { text = name + '\n' + val; mode = 2; }
+      else if (val && w >= 48 && h >= 44 && vw + 16 <= w && trunc()) { text = trunc() + '\n' + val; mode = 2; }
       else if (w >= 48 && h >= 24) {
         if (nw + 12 <= w) { text = name; mode = 1; }
         else {
@@ -730,6 +744,9 @@
     if (!t || !t.closest) return;
     // 按在頁面捲軸上（target 是 <html>、座標在內容寬度之外）：那是在捲頁，不是點背景
     if (t === document.documentElement && ev.clientX >= document.documentElement.clientWidth) return;
+    /* ★ 2026-09-25：標題旁「?」的跳出式說明（#howPop＋背景 #howBack）是蓋在整頁上面的浮層，
+       點它的背景＝「關說明」，不是「點面板外面」—— 不然題材剖析圖、個股頁的就地面板會跟著說明一起被收掉。*/
+    if (t.closest('#howBack, #howPop')) return;
     const inZoom = !!t.closest('#zoomOv');
     const list = DZ.filter(e => {
       if (!dzOpen(e)) return false;
@@ -745,6 +762,8 @@
   document.addEventListener('pointerup', () => { const p = dzPend; if (p) setTimeout(() => { if (dzPend === p) dzFinish(); }, 400); }, true);
   document.addEventListener('keydown', (ev) => {
     if (ev.key !== 'Escape') return;
+    // 跳出式說明開著時，Esc 只關說明（howPop 自己接），底下的面板不動
+    const hp = document.getElementById('howPop'); if (hp && !hp.hidden) return;
     const ov = document.getElementById('zoomOv');
     const zoomOpen = !!(ov && !ov.hidden);
     DZ.forEach(e => {
@@ -2802,11 +2821,14 @@
         ['成交值前段', top(lr.filter(r => r.turnover != null), 'turnover', -1),
           '量最大的（⚠ 成交值是估算）'],
       ] : [
-        ['漲停', mv.limit_up, '漲幅 ≥ 9.5%'],
-        ['跌停', mv.limit_down, '跌幅 ≤ -9.5%'],
-        ['漲幅前段', mv.up, '今天漲最多的'],
-        ['跌幅前段', mv.down, '今天跌最多的'],
-        ['成交值前段', mv.turnover, '今天量最大的，真正的戰場'],
+        /* ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：盤後這五頁的一句定義
+           （漲幅 ≥ 9.5%、今天漲最多的…）本來就寫在 HOW.mkt 的小字裡，卡片上不再重複；
+           即時那五句留著 —— 那是「只排抓到的這批／成交值是估算」的警示，不寫會被讀成全市場。*/
+        ['漲停', mv.limit_up, ''],
+        ['跌停', mv.limit_down, ''],
+        ['漲幅前段', mv.up, ''],
+        ['跌幅前段', mv.down, ''],
+        ['成交值前段', mv.turnover, ''],
       ]).filter(t => t[1] && t[1].length);
       if (!sets.length && !live) { body.innerHTML = '<div class="empty">今天沒有明細資料</div>'; return; }
       if (mktTab >= sets.length) mktTab = 0;
@@ -2814,7 +2836,7 @@
         const t = sets[mktTab];
         // 即時模式剛按下去、報價還沒回來時 sets 會是空的 —— 給一句話，不要留一塊空白
         if (!t) { $('#mktInner').innerHTML = '<div class="empty">即時報價還沒回來（下一輪就會有）</div>'; return; }
-        $('#mktInner').innerHTML = `<div class="kpinote">${t[2]}</div>` + stockTable(t[1], [PCT, CLOSE, TO]);
+        $('#mktInner').innerHTML = (t[2] ? `<div class="kpinote">${t[2]}</div>` : '') + stockTable(t[1], [PCT, CLOSE, TO]);
         bind();
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
@@ -2857,7 +2879,6 @@
           <div class="row" id="maPick" style="gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin:8px 0"></div>
           <div class="chainchips" id="maGroups" style="max-height:104px;overflow:auto"></div>
           <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
-        + `<div class="kpinote">今天快照：條越長＝越多成分股站上 20 日均線</div>`
         + (gs.length ? `<div class="magrid">${gs.map(g => `<div class="ma" data-gid="${g.group_id}">
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
             <div class="bar"><i style="width:${g.pct20}%;background:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
@@ -2871,8 +2892,7 @@
     if (kind === 'top5') {
       const top = gt.slice().sort((a, c) => c.turnover - a.turnover).slice(0, 10);
       title.innerHTML = `資金集中 <small>前五大族群吃掉 ${heat.top5_share != null ? heat.top5_share.toFixed(1) + '%' : '—'} 的成交值</small>`;
-      body.innerHTML = `<div class="kpinote">前十大族群與各自量最大的成分股</div>`
-        + `<div class="top5grid">${top.map((g, i) => {
+      body.innerHTML = `<div class="top5grid">${top.map((g, i) => {
           const det = gd[g.group_id] || {};
           const ms = (det.members || []).slice().sort((a, c) => (c.turnover || 0) - (a.turnover || 0)).slice(0, 10);
           return `<div class="t5"><div class="h">${i + 1}. ${L.group(g.group_id, g.group_name)}<em>${fmt.n(g.turnover_share, 1)}%</em></div>
@@ -2886,9 +2906,8 @@
     const ab = cands.filter(c => c.grade === 'A' || c.grade === 'B');
     const use = ab.length ? ab : cands.slice().sort((a, c) => (c.score_all || 0) - (a.score_all || 0)).slice(0, 40);
     title.innerHTML = `今日候選 <small>${ab.length ? `A ${cands.filter(c => c.grade === 'A').length} 檔 / B ${cands.filter(c => c.grade === 'B').length} 檔` : '今天沒有 A / B'}</small>`;
-    body.innerHTML = `<div class="kpinote">${ab.length
-      ? 'A＝回檔承接、B＝突破追進'
-      : '今天沒有 A／B：列綜合分前 40，只當觀察名單'}</div>`
+    // A／B 的定義在 HOW.mkt；「今天沒有 A／B」是警示（名單不是進場訊號），留在畫面上
+    body.innerHTML = (ab.length ? '' : `<div class="kpinote">今天沒有 A／B：列綜合分前 40，只當觀察名單</div>`)
       + stockTable(use.map(c => ({ code: c.code, name: c.name, group_id: c.group_id, group_name: c.group,
           chg_pct: c.chg_pct, close: c.close, grade: c.grade, verdict: c.verdict, score: c.score_all })),
         [['判定', r => r.grade ? `<span class="grade ${r.grade}">${r.grade}</span>` : `<span class="muted">${fmt.esc(r.verdict || '—')}</span>`],
@@ -3642,8 +3661,9 @@
     return RLV.intraday ? `即時 ${hm || '—'}` : '非盤中・最後快照';
   }
   function rlvStamp() {
-    const btn = $('#rotLiveBtn');
-    if (btn) { btn.classList.toggle('on', RLV.on); btn.setAttribute('aria-pressed', RLV.on ? 'true' : 'false'); }
+    // 卡片那顆與放大視窗那顆（#rotZoomLiveBtn）是同一個開關，一起亮一起滅
+    ['#rotLiveBtn', '#rotZoomLiveBtn'].forEach(sel => { const btn = $(sel);
+      if (btn) { btn.classList.toggle('on', RLV.on); btn.setAttribute('aria-pressed', RLV.on ? 'true' : 'false'); } });
     try { rankSubPaint(); } catch (e) { /* 排行還沒畫 */ }
     const el = $('#rotLive');
     const tag = $('#rotLiveTag');
@@ -6524,7 +6544,8 @@
     const home = document.createComment('howhome');
     box.parentNode.insertBefore(home, box);
     const h = btn.closest('h3, h4, h5');
-    const ttl = h ? ((h.childNodes[0] && h.childNodes[0].textContent) || '').trim() : '';
+    // 標題：鈕上有 data-ttl 就用它（K 線工具列那顆不在標題裡），否則取所在標題的第一段字
+    const ttl = btn.dataset.ttl || (h ? ((h.childNodes[0] && h.childNodes[0].textContent) || '').trim() : '');
     pop.innerHTML = `<div class="hp-h"><b>${fmt.esc(ttl || '說明')}</b></div>`;
     pop.appendChild(box);
     box.hidden = false; back.hidden = false; pop.hidden = false;
@@ -6922,6 +6943,8 @@
     whenNear($('#conc'), drawConc);               // 首屏下方：捲近了（或閒下來）才畫
     $$('#concSeg button').forEach(b => b.onclick = () => {
       $$('#concSeg button').forEach(x => x.classList.toggle('on', x === b)); flowState.concTop = +b.dataset.v; drawConc();
+        // 側欄開著就跟著換成新的 N（不然標題寫前 10 大、上面卻選了前 5 大）
+        { const sd = $('#concSide'); if (sd && !sd.hidden && concDay.last) concDay(concDay.last); }
     });
     // 資金流向頁的六張圖不加滾輪縮放（Andy 09-13）；圖本身已經用足卡片寬度
   }
@@ -7123,8 +7146,10 @@
       if (tools) tools.innerHTML = '<div class="rotfilter" data-rf="zoom"></div>'
         + '<div id="rotZoomBack" title="看幾天前到最新；▶ 從那一天一步一步走回最新"></div>'
         + '<div class="rottools" id="rotZoomTools"></div>';
+      /* ★ 2026-09-25（審查 R2 #35：放大後沒有象限計數徽章、也沒有「即時」鈕 —— 放大反而少東西）：
+         象限卡（quads）跟卡片同一支 rotQuadChips；即時鈕掛在放大視窗的拉Bar 後面，跟卡片那顆同一個狀態（RLV）。*/
       const draw = () => renderRotClock(rows0, ROT_SPAN, 'zoomBody', false,
-        { pick: rotPickSet(), frame: rotFrame, span: Math.max(0, ROT.days - rotFrame), trail: ROT.trail, tmode: 'focus' });
+        { pick: rotPickSet(), frame: rotFrame, span: Math.max(0, ROT.days - rotFrame), trail: ROT.trail, tmode: 'focus', quads: true });
       rotZoomDraw = draw;
       draw();
       wireRotFilter();                        // 放大視窗那排 .rotfilter 也由同一支填
@@ -7137,6 +7162,15 @@
         onDays: (n) => { ROT.days = n; rotFrame = 0; draw(); },
         // 回放就退出即時（和卡片那支同一條規矩；`false`＝下一行本來就會重畫）
         onFrame: (f) => { if (f > 0 && RLV.on) rlvOff(false); rotFrame = f; draw(); } });
+      const zb = $('#rotZoomBack');
+      if (zb) {
+        const lb = document.createElement('button');
+        lb.type = 'button'; lb.id = 'rotZoomLiveBtn'; lb.className = 'pb livebtn'; lb.textContent = '即時';
+        lb.title = '切到盤中即時（跟卡片上那顆同一個開關）：每分鐘用當下成交價量續算位置；拖時間軸會自動退出';
+        lb.onclick = () => { rlvToggle(); if (RLV.on && rotZoomBar) { try { rotZoomBar.seek(0); } catch (e) { /* 忽略 */ } } };
+        zb.appendChild(lb);
+        rlvStamp();
+      }
       wireRotTrailToggle(draw, 'rotZoomTools');
     }, () => {
       // 關閉：停掉播放（拉Bar 的 DOM 已經被清掉了，再跑下去只是空轉）、把卡片同步回來
@@ -9338,11 +9372,30 @@
     gs.sort((a, b) => b.total - a.total);
     const top = gs.slice(0, 8).concat(gs.slice(-6).filter(x => !gs.slice(0, 8).some(y => y.group_id === x.group_id)));
     const denom = top.reduce((s, g) => s + Math.abs(g.total || 0), 0);
+    /* ★ 2026-09-25（審查 R2 #47：ETF 自營商一段期間可以賣超幾百萬張，一條就把刻度撐到 ±400 萬張，
+       其他族群的長條只剩幾像素 —— 整張圖只剩「ETF 很大」一件事）。
+       刻度改用 **ETF 以外** 最長的那一條定（正、負各自堆疊後的長度，留 15%）；
+       ETF 超出刻度的部分被裁在軸邊，y 軸名稱後面標「≫」、軸邊加一個「≫ 實際 N 萬張」的記號，真值照樣在提示框。
+       ETF 沒有超出（或畫面上根本沒有 ETF）時一切照舊，交給 ECharts 自己決定刻度。*/
+    const isEtf = (g) => /ETF/i.test(g.group_id || '') || /ETF/.test(g.group_name || '');
+    const ext = (g) => { let pos = 0, neg = 0;
+      ['foreign', 'trust', 'dealer'].forEach(k => { const v = g[k] || 0; if (v > 0) pos += v; else neg += v; });
+      return { pos, neg }; };
+    const others = top.filter(g => !isEtf(g)).map(ext);
+    const lim = others.length ? Math.max(...others.map(e => Math.max(e.pos, -e.neg))) * 1.15 : 0;
+    const over = lim > 0 ? top.map((g, i) => ({ g, i, e: ext(g) }))
+      .filter(x => isEtf(x.g) && (x.e.pos > lim * 1.3 || -x.e.neg > lim * 1.3)) : [];
+    const clip = over.length > 0;
+    const overIdx = new Set(over.map(x => x.i));
+    const yLab = top.map((g, i) => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%${overIdx.has(i) ? ' ≫' : ''}`);
+    /* y 軸寬：以前固定 100px 截斷（「石化與塑膠產業 ...」「AI PC 筆電與平...」）；改成量最長那個標籤，
+       上限 200px（再長就截，免得圖本身被擠沒了）。*/
+    const yW = Math.min(200, Math.max(100, Math.ceil(textW(yLab, 12)) + 6));
     const c = chart('instGroups', {
       /* 占比 %（Andy 2026-09-18）：分母用「畫面上這些族群淨買超絕對值的總和」——
          法人有買有賣，直接加總會正負相抵、分母趨近 0，百分比就會爆掉。*/
       tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
-        formatter: ps => `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>')
+        formatter: ps => (ps = ps.filter(q => q.seriesType === 'bar'), !ps.length ? '' : `<b>${ps[0].name}</b><br>` + ps.map(q => `${q.marker}${q.seriesName} ${fmt.lot(q.value / 1000)}`).join('<br>'))
           + `<br>占比 <b>${fmt.n(Math.abs(ps.reduce((s, q) => s + (q.value || 0), 0)) / (denom || 1) * 100, 1)}%</b>`
           + '<br><small>點一下看成分股</small>' },
       /* ★ 2026-09-20：right 24 → 42。最右邊那個刻度標籤是**置中對齊在刻度上**的，
@@ -9351,20 +9404,30 @@
          24 的時候在 1536px / 1920px 量到它跑出容器 5px（多寬度掃描抓到的）。
          天數拉 Bar 的預設從「跟著期間」改成 20 天之後，資料範圍變了、刻度也跟著變寬，
          才把這個一直都在的邊界問題逼出來。 */
-      legend: { textStyle: { color: CH.ink2 }, top: 0 }, grid: { left: 108, right: 42, top: 30, bottom: 22 },
+      legend: { textStyle: { color: CH.ink2 }, top: 0, data: ['外資', '投信', '自營'] }, grid: { left: yW + 8, right: 42, top: 30, bottom: 22 },
       // hideOverlap：1280px 量到「-250.0 萬張」和「-200.0 萬張」疊在一起（刻度太密）
-      xAxis: { ...axisStyle, axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
+      xAxis: { ...axisStyle, ...(clip ? { min: -lim, max: lim } : {}),
+        axisLabel: { formatter: v => fmt.lot(v / 1000), color: CH.ink3, hideOverlap: true } },
       yAxis: { ...axisStyle, type: 'category', inverse: true,
         // 族群名後面直接掛占比 %，不用滑過去才看得到
-        data: top.map(g => `${g.group_name}  ${fmt.n(Math.abs(g.total || 0) / (denom || 1) * 100, 1)}%`),
-        // width/overflow：「電子零組件業  2.1%」比 grid.left 的 108px 還長，會凸出容器左緣
-        axisLabel: { color: CH.ink2, width: 100, overflow: 'truncate' } },
+        data: yLab,
+        // width/overflow：寬度用量的（yW），超過上限才截
+        axisLabel: { color: CH.ink2, width: yW, overflow: 'truncate' } },
       series: [['外資', 'foreign', '#3ee0ff'], ['投信', 'trust', '#ffb454'], ['自營', 'dealer', '#8b7bff']].map(([n, k, col]) => ({
         name: n, type: 'bar', stack: 'a', barWidth: 14,
         data: top.map(g => ({ value: g[k] || 0, gid: g.group_id, dim: !!(pick && pick !== g.group_id),
           itemStyle: { color: col, opacity: (pick && pick !== g.group_id) ? 0.14 : 1 } })),
-        itemStyle: { color: col } })),
+        itemStyle: { color: col } })).concat(clip ? [{
+        // 折斷記號：ETF 超出刻度的那一側，在軸邊寫「≫ 實際值」（不進圖例、不接提示框）
+        name: '超出刻度', type: 'scatter', silent: true, symbolSize: 0, z: 5,
+        // 字排在軸邊的**內側**（右邊那顆往左長、左邊那顆往右長），不會壓到 y 軸名稱或凸出卡片
+        data: over.flatMap(x => [x.e.pos > lim * 1.3 ? { value: [lim, x.i, x.e.pos], label: { align: 'right' } } : null,
+          -x.e.neg > lim * 1.3 ? { value: [-lim, x.i, x.e.neg], label: { align: 'left' } } : null].filter(Boolean)),
+        label: { show: true, color: CH.ink, fontSize: 12, fontWeight: 700,
+          formatter: q => `≫ ${fmt.lot(q.data.value[2] / 1000)}`,
+          position: 'inside', backgroundColor: CH.panel, borderColor: CH.ink3, borderWidth: 1, borderRadius: 4, padding: [2, 5] } }] : []),
     });
+    const ig = $('#instGroups'); if (ig) { ig.dataset.clip = clip ? '1' : '0'; ig.dataset.lim = clip ? String(Math.round(lim)) : ''; ig.dataset.yw = String(yW); }
     if (c) c.off('click').on('click', q => { if (q.data && q.data.gid) location.hash = '#industry/group/' + q.data.gid; });
     /* ★ 2026-09-24（Andy：篩選列全站同一規則 —— 標題下方左上角、產業鏈／族群兩顆下拉）：
        這張以前是圖下面一整片族群晶片（18 顆、排三四行），換成和資金去向同一支 filterDropdown。
@@ -9446,7 +9509,10 @@
     const c = chart('conc', {
       tooltip: { ...tip, trigger: 'axis' }, grid: { left: 50, right: 20, top: 30, bottom: 30 },
       legend: { type: 'scroll', textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, top: 0 },
-      xAxis: { ...axisStyle, type: 'category', data: conc.map(r => r.date), axisLabel: { color: CH.ink3, formatter: v => v.slice(5) } },
+      /* ★ 2026-09-25（審查 R2 #53：資料跨 2025-02～2026-09，軸上只有「02-06」「02-10」看不出是哪一年）：
+         刻度一律寫「YY/MM/DD」—— 不靠「換年那格才寫年」：ECharts 會自己跳著印刻度，換年那一格常常剛好被跳過。*/
+      xAxis: { ...axisStyle, type: 'category', data: conc.map(r => r.date),
+        axisLabel: { color: CH.ink3, hideOverlap: true, formatter: v => `${String(v).slice(2, 4)}/${String(v).slice(5, 7)}/${String(v).slice(8, 10)}` } },
       yAxis: { ...axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
       series: [{ name: `前 ${topN} 族群佔比`, type: 'line', data: vals, smooth: .3, showSymbol: false,
         lineStyle: { color: CH.cyan, width: 2 },
@@ -9478,7 +9544,11 @@
      ★ 只有股票會連到個股頁；族群晶片只展開、不跳頁（Andy 講得很清楚）。*/
   async function concDay(row) {
     const box = $('#concSide'); if (!box) return;
-    const top = row.top || [];
+    /* ★ 2026-09-25（審查 R2 #52：選「前 5 大」再點日期，側欄卻寫「前 10 大」、列 10 個）：
+       側欄跟著上面那顆「前 N 大」走 —— 同一個 N、同一批族群，標題和圖上的線講的是同一件事。
+       ⚠ row.top 由資料端依佔比排好（最多 10 個）；N 比它多時就照它有的列。*/
+    concDay.last = row;
+    const top = (row.top || []).slice(0, flowState.concTop || 10);
     box.hidden = false;
     if (!top.length) {
       box.innerHTML = `<div class="hh"><b>${row.date}</b><span class="m">這一天沒有留族群明細</span></div>`;
@@ -9656,7 +9726,7 @@
     }
     // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材
     /* 說明精簡：副標只留題材名；題材的一句描述（t.desc）搬進「怎麼看 ?」第一行（滑鼠停在標題上也看得到）。*/
-    const head = `<h3${t.desc ? ` title="${fmt.esc(t.desc)}"` : ''}>產品剖析圖 <small>${fmt.esc(t.name)}</small></h3>`;
+    const head = `<h3${t.desc ? ` title="${fmt.esc(t.desc)}"` : ''}>產品剖析圖 <small data-readout>${fmt.esc(t.name)}</small> <button class="howbtn pop" data-how="themedg" type="button" aria-label="產品剖析圖怎麼看">?</button></h3>`;
     const howDg = howHTML(`這張圖回答：「${fmt.esc(t.name)}」${t.desc ? '（' + fmt.esc(t.desc) + '）' : ''}由哪些環節組成、台股站在哪一段。`, [
       '由左到右＝上游 → 中游 → 下游',
       '點環節，看該段有哪幾檔台股',
@@ -9668,11 +9738,13 @@
        ★ 2026-09-24：「收起 ✕」這顆拿掉（Andy：「不需要"收起"選項，點擊背景即可消除」）——
          改成點這張卡以外的地方、或按 Esc 就收（dismissable）；點上面的題材熱力圖＝換題材，不算點外面。*/
     const closeBtn = '';
-    const other = `<div class="linkrow" style="margin-top:12px"><span class="muted">其他題材</span>${th.themes.filter(x => x.id !== t.id).slice(0, 12).map(x => L.theme(x.id, x.name)).join('')}</div>`;
+    /* ★ 2026-09-25（Andy：「卡片下方『其他題材』『族群』這類欄位都拿掉」）：「其他題材」那排連結拿掉。
+       換題材的路還在：正上方的題材資金熱力圖點別的方塊就換（同一頁、不離開）。*/
+    const other = '';
     el.innerHTML = dg
       /* ★ 2026-09-24 說明精簡：操作說明（上游→下游、點環節／代號）搬進「怎麼看 ?」；
          「原創示意圖，非實物比例」**留在卡片上** —— 那是誠實標示，不是操作說明，藏起來等於沒寫。*/
-      ? `<div class="card"><div class="row spread">${head}<span class="row" style="gap:8px"><small class="muted">原創示意圖，非實物比例</small><button class="howbtn" data-how="themedg">怎麼看 ?</button>${closeBtn}</span></div>
+      ? `<div class="card"><div class="row spread">${head}<span class="row" style="gap:8px"><small class="muted">原創示意圖，非實物比例</small>${closeBtn}</span></div>
         <div class="howtxt" id="how-themedg" hidden>${howDg}</div>
         <div id="themeDiagram" class="dgwrap">${dg()}</div><div id="themeParts"></div>${other}</div>`
       : '';   // 沒有剖析圖 → 整區留白（Andy 2026-09-23 指定，見上面那段）
@@ -9946,7 +10018,8 @@
         tooltip: { ...hmTipOpt(), trigger: 'item', formatter: (p) => { const d = p.data, cl = d.c;
           return hmTip(d.gname, `${cl.month} 月`, [
             tipRow('平均超額', cl.avg_excess, 'avg_excess'), tipRow('超額勝率', cl.excess_win_rate, 'excess_win_rate'),
-            tipRow('平均報酬', cl.avg_return, 'avg_return'), tipRow('勝率', cl.win_rate, 'win_rate')],
+            tipRow('平均報酬', cl.avg_return, 'avg_return'), tipRow('報酬中位數', cl.median_return, 'avg_return'),
+            tipRow('勝率', cl.win_rate, 'win_rate')],
             `樣本 ${cl.samples} 年 · 依 ${mLabel(sortM)}排第 ${d.rank} 名`); } },
         grid: { left, right, top: 4, bottom: 4 },
         xAxis: { type: 'category', data: MONTHS, show: false, splitArea: { show: false } },
@@ -10007,10 +10080,21 @@
         tooltip: { ...tip, trigger: 'axis',
           formatter: ps => { const avgP = ps.find(q => q.seriesName === AVG);
             const rest = ps.filter(q => q.seriesName !== AVG && q.value != null).sort((a, b) => b.value - a.value).slice(0, 12);
+            /* ★ 2026-09-25（Andy 待處理：「本月最強」提示框加上中位數與勝率，排序不改）：
+               平均數會被一兩年的暴漲拉高 —— 旁邊擺「報酬中位數」與「勝率」，一眼看得出是年年都強還是靠一年撐起來。
+               勝率跟著目前的指標走：看超額報酬時是「超額勝率」（跑贏基準的年數比例），其餘是「上漲的年數比例」；
+               指標本身就是勝率時只補中位數（不重複印同一個數字）。排序仍照目前指標，不動。*/
+            const byName = {}; all.forEach(r => { byName[r.name] = r; });
+            const extra = (q) => { const r = byName[q.seriesName], cl = r && r.m[q.dataIndex + 1]; if (!cl) return '';
+              const bits = [`中位 ${fmtV(cl.median_return, 'avg_return')}`];
+              if (metric === 'avg_excess') bits.push(`超額勝率 ${fmtV(cl.excess_win_rate, 'excess_win_rate')}`);
+              else if (metric === 'avg_return') bits.push(`勝率 ${fmtV(cl.win_rate, 'win_rate')}`);
+              return `<span class="sntipx" style="color:${CH.ink3}">　${bits.join('・')}</span>`; };
             return `<b>${ps[0].axisValue}</b>`
               + (avgP && avgP.value != null ? `<br>${avgP.marker}${AVG} ${fmtV(avgP.value, metric)}` : '')
               + rest.map(q => `<br>${q.marker}${q.seriesName} ${fmtV(q.value, metric)}`
-                + (avgP && avgP.value != null ? `<span style="color:${CH.ink3}">（${q.value >= avgP.value ? '高於' : '低於'}平均）</span>` : '')).join(''); } },
+                + (avgP && avgP.value != null ? `<span style="color:${CH.ink3}">（${q.value >= avgP.value ? '高於' : '低於'}平均）</span>` : '')
+                + extra(q)).join(''); } },
         legend: { type: 'scroll', top: 0, data: [AVG].concat(all.map(r => r.name)), selected,
           textStyle: { color: CH.ink2, fontSize: 12 }, pageTextStyle: { color: CH.ink3, fontSize: 12 }, inactiveColor: hexA(CH.ink3, .5) },
         grid: { left: 52, right: gridR, top: 40, bottom: 28 },
@@ -10120,9 +10204,11 @@
         : !showNum ? ''
         : +ds.nlab < +ds.nval ? `　${+ds.nval - +ds.nlab} 格太窄沒印數字` : '';
       const bench = s3.benchmark_source || '大盤';
-      $('#seasonNote').innerHTML = `基準：<b>${fmt.esc(bench.replace(/（[^）]*）/g, ''))}</b>`
-        + numMsg
-        + (fellBack ? '　<b style="color:var(--amber)">缺大盤基準，已改看絕對報酬</b>' : '');
+      /* ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明」）：卡片上的「基準：…」拿掉 ——
+         它本來就寫在「?」裡的小字（#seasonFine）。只留兩種「不寫會被讀錯」的：格子太窄數字去哪看、缺基準已改絕對報酬。*/
+      const noteHTML = (numMsg ? numMsg.replace(/^　/, '') : '')
+        + (fellBack ? `${numMsg ? '　' : ''}<b style="color:var(--amber)">缺大盤基準，已改看絕對報酬</b>` : '');
+      const sn = $('#seasonNote'); sn.innerHTML = noteHTML; sn.hidden = !noteHTML;
       const fine = $('#seasonFine');
       /* ★ 2026-09-24（審查 R4）：`s3.note` 本身已經把基準字串（含「（指數只有 12 個月，不夠比）」）寫進去了，
          這裡再接一次完整的 benchmark_source，同一段小字就出現兩次同一個括號。

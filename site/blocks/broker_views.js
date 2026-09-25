@@ -46,7 +46,7 @@
   /* 個股頁的表格卡片。點一列開原始新聞（我們只引述，不轉述）。 */
   function card(rows, fmt) {
     const esc = fmt.esc, n = fmt.n;
-    return `<div class="card"><h3>券商觀點（新聞引述） <small>不是本站預估</small></h3>${rows.length ? `<div class="tw"><table><thead><tr><th class="l">日期</th><th class="l">券商</th><th>目標價</th><th class="l">動作</th></tr></thead><tbody>${rows.map(b => `<tr onclick="window.open('${esc(b.url || '#')}','_blank')"><td class="l mono">${b.date}</td><td class="l">${esc(b.broker || '—')}</td><td class="num">${n(b.target_price)}</td><td class="l">${esc(b.action || b.rating || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">近 60 天沒有引述到目標價的新聞</div>'}</div>`;
+    return `<div class="card"><h3>券商觀點（新聞引述） <small data-warn>不是本站預估</small></h3>${rows.length ? `<div class="tw"><table><thead><tr><th class="l">日期</th><th class="l">券商</th><th>目標價</th><th class="l">動作</th></tr></thead><tbody>${rows.map(b => `<tr onclick="window.open('${esc(b.url || '#')}','_blank')"><td class="l mono">${b.date}</td><td class="l">${esc(b.broker || '—')}</td><td class="num">${n(b.target_price)}</td><td class="l">${esc(b.action || b.rating || '—')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">近 60 天沒有引述到目標價的新聞</div>'}</div>`;
   }
 
   /* 唯一的出口。`fmt` 是全站共用的格式化工具（App.fmt），不是別塊積木的內部函式。 */
