@@ -847,16 +847,19 @@ def t_overview(pg, base):
     #       所以這一段改驗「真的拿掉了」，並接著驗這一批新做的每一樣東西。
     ok("★ 總覽的「今日候選」表整張拿掉了", count(pg, "#ovCandCard, #candTable, #candFacets") == 0,
        count(pg, "#ovCandCard, #candTable, #candFacets"))
-    # --- ① KPI 橫條：在三張走勢圖上方、只有四格、高度 ≤ 64px
+    # --- ① KPI 橫條：只有四格、高度 ≤ 64px
+    # ★ 2026-09-26 改前→改後（Andy：「將我把這內容放進來，並且排版一下」）：
+    #   改前：KPI 橫條是一條獨立的列，排在三張走勢圖**上方**（h 在 #m3 前面、底緣 ≤ #m3 頂緣）。
+    #   改後：整條搬進「大盤三張圖」卡片的工具列（#m3Frame .m3-bar #m3Kpis），在「?」右邊 → 驗「在工具列裡」。
+    #   位置／點擊／即時更新的細節在「KPI工具列0926」那一段驗。
     kpi = pg.evaluate("""() => { const h = document.getElementById('hero'), m = document.getElementById('m3');
         const ks = [...h.querySelectorAll('.kpi')];
-        return { above: !!(h && m) && (h.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0
-                        && h.getBoundingClientRect().bottom <= m.getBoundingClientRect().top + 1,
+        return { above: !!h.closest('#m3Frame .m3-bar #m3Kpis'),
                  h: Math.round(h.getBoundingClientRect().height), n: ks.length,
                  labels: ks.map(k => (k.querySelector('.l') || {}).textContent.replace('›', '').trim()),
                  clipped: ks.some(k => { const v = k.querySelector('.v'); const r = v.getBoundingClientRect(), q = k.getBoundingClientRect();
                                          return r.bottom > q.bottom + 1 || r.top < q.top - 1; }) }; }""")
-    ok("★ KPI 橫條排在三張走勢圖上方", kpi["above"], kpi)
+    ok("★ KPI 橫條在大盤三張圖的工具列裡（2026-09-26 起）", kpi["above"], kpi)
     ok("★ KPI 橫條高度 ≤ 64px", kpi["h"] <= 64, kpi["h"])
     ok("★ KPI 只留四格：加權指數／成交值／漲跌家數／前五族群佔比",
        kpi["labels"] == ["加權指數", "成交值", "漲跌家數", "前五族群佔比"], kpi["labels"])
@@ -5494,30 +5497,10 @@ def t_new_clock(pg, base):
         rot_dd_toggle(pg, _g, wait=800)          # 收拾
 
     # ①-c **原本的 bug 本體**：卡片在播 → 開放大 → 在放大裡按暫停 → ESC，卡片必須是停的
-    rot_seek(pg, 28, 1200)
-    pg.eval_on_selector("#rotBack .pb.play", "b => b.click()")
-    pg.wait_for_timeout(1200)
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
-    pg.wait_for_timeout(2400)
-    ok("開放大視窗時，卡片那支播放會先停掉（不然它躲在遮罩後面繼續跑）",
-       pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent") == "▶",
-       pg.evaluate("() => document.querySelector('#rotBack .pb.play').textContent"))
-    pg.eval_on_selector("#rotZoomBack .pb.play", "b => b.click()")
-    pg.wait_for_timeout(1500)
-    zv0 = rot_days_ago(pg)
-    pg.eval_on_selector("#rotZoomBack .pb.play", "b => b.click()")
-    pg.wait_for_timeout(300)
-    zv1 = rot_days_ago(pg)
-    pg.wait_for_timeout(2200)
-    zv2 = rot_days_ago(pg)
-    ok("在放大視窗裡按暫停真的停住", zv1 == zv2, f"{zv0} → {zv1} → {zv2}")
-    pg.keyboard.press("Escape")
-    pg.wait_for_timeout(1800)
-    cv0 = rot_days_ago(pg)
-    pg.wait_for_timeout(2400)
-    cv1 = rot_days_ago(pg)
-    ok("關掉放大視窗之後卡片那張時鐘也是停的（這就是「暫停按了沒用」的本體）",
-       cv0 == cv1, f"關掉之後 {cv0} → {cv1}（修好之前 2.5 秒內從 3 跑到 27）")
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+    #   改前：開放大視窗、在裡面按 ⏸、ESC，量卡片那支是不是也停了（兩支拉Bar 搶同一個 rotFrame）。
+    #   改後：全頁只剩卡片那一支拉Bar，「兩支搶同一個值」在結構上不會再發生 → 改驗放大鈕與放大視窗那支拉Bar 真的不在。
+    ok("①-c 放大鈕與放大視窗那支拉Bar 都不在了（只剩卡片一支，暫停不會再被另一支蓋掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')"))
     rot_seek(pg, 8, 1200)
 
     # ---------------------------------------------------------- A4-6 越外圈顏色越深
@@ -5965,20 +5948,12 @@ def t_new_clock(pg, base):
             pg.wait_for_timeout(1400)
 
             # --- 放大視窗也要看得到個股（E2 的教訓：放大之後功能都沒反應）
-            pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
-            pg.wait_for_timeout(2400)
-            zs = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
-                return c ? (c.getOption().series || []).filter(s => s.type === 'scatter')
-                  .map(s => ({ name: s.name, n: (s.data || []).length })) : null; }""")
-            ok("下鑽狀態下按「放大」，放大視窗裡一樣畫得出個股（既有功能沒壞）",
-               bool(zs) and len(zs) == 2 and zs[1]["n"] == len(codes[:3]), zs)
-            pg.keyboard.press("Escape")
-            pg.wait_for_timeout(1600)
-            ok("在放大視窗裡按 ESC 只關放大視窗，不會順手把下鑽也收掉",
-               pg.evaluate("() => document.getElementById('zoomOv').hidden")
+            # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+            #   改前：下鑽狀態按「放大」，放大視窗裡一樣畫得出個股、ESC 只關放大不關下鑽。改後：沒有放大視窗 → 驗鈕不在、下鑽仍在。
+            ok("下鑽狀態下沒有「放大」鈕（2026-09-26 拿掉），下鑽面板與盤上個股都還在",
+               pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')")
                and pg.evaluate("() => { const b = document.getElementById('rankPanel'); return !!b && !b.hidden; }")
-               and sum(1 for x in _rot_pts(pg) if x["stock"]) == len(codes[:3]),
-               [pg.evaluate("() => document.getElementById('zoomOv').hidden"), _rot_pts(pg)])
+               and sum(1 for x in _rot_pts(pg) if x["stock"]) == len(codes[:3]), _rot_pts(pg))
 
             # --- 個股標籤與族群標籤在三個寬度下都不重疊、都在畫布內
             for w in (1440, 1024, 800):
@@ -6155,8 +6130,9 @@ def t_rotmerge(pg, base):
         # 改前：「看哪一天」＋「最近幾天」兩個把手 → 改後：一支「N 天前」（Andy：拉Bar 只需要留一個）
         ok(tag + "時間列只有一支拉Bar「N 天前」（排行與輪盤共用）",
            one["back"] == 1 and one["days"] == 1 and one["ranges"] == 1, one)
-        ok(tag + "只剩一顆「怎麼看 ?」與一顆「⤢ 放大」",
-           one["how"] == 1 and one["zoom"] == 1, one)
+        # ★ 2026-09-26 改前→改後：改前「一顆怎麼看＋一顆放大」→ 改後 Andy「放大功能取消」，放大鈕 0 顆
+        ok(tag + "只剩一顆「?」、沒有「⤢ 放大」（2026-09-26 拿掉）",
+           one["how"] == 1 and one["zoom"] == 0, one)
         ok(tag + "卡片裡沒有東西凸出卡片（控制區三排不會互相擠出去）", not one["out"], one["out"][:4])
         ok(tag + "沒有橫向捲軸", not one["sideways"], one)
         # 族群晶片列在窄畫面仍然是「有上限、捲得動」——不然 56 顆會把圖推到看不見
@@ -6276,25 +6252,18 @@ def t_rotmerge(pg, base):
     _run(800)
 
     # ------------------------------------------------- 放大視窗：只放大時鐘，關掉之後排行要是對的
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+    #   改前：在放大視窗裡把「N 天前」拉到 9，關掉之後卡片的排行跟著換、卡片拉Bar 同步成 9。
+    #   改後：沒有放大視窗；同一件事（拉「N 天前」→ 排行換那一段）直接在卡片那支拉Bar 上驗。
     pg.set_viewport_size({"width": 1440, "height": 1000})
     reset_rot(pg, base, 2600)
     rot_seek(pg, 4, 1400)
+    ok("資金輪動卡上沒有「⤢ 放大」了（2026-09-26）", pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')"))
     sub_before = text(pg, "#rankSub")
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
-    pg.wait_for_timeout(2400)
-    zin = pg.evaluate("""() => ({ open: !document.getElementById('zoomOv').hidden,
-        rank: document.querySelectorAll('#zoomOv #rankFlow, #zoomOv .hpanel').length,
-        clock: !!(window.echarts && echarts.getInstanceByDom(document.getElementById('zoomBody'))) })""")
-    ok("按「⤢ 放大」只放大時鐘（排行沒有被塞進放大視窗）",
-       zin["open"] and zin["clock"] and zin["rank"] == 0, zin)
-    # 在放大視窗裡把「N 天前」拉到別的天數，關掉之後卡片上的排行要跟著那一段（同一個值）
-    set_range(pg, "#rotZoomBack input[type=range]", 9, 1600)
-    pg.keyboard.press("Escape")
-    pg.wait_for_timeout(2200)
+    set_range(pg, "#rotBack input[type=range]", 9, 1600)
     sub_after = text(pg, "#rankSub")
-    changed("在放大視窗裡改「N 天前」，關掉之後卡片的排行也跟著換了那一段",
-            sub_before, sub_after)
-    ok("而且關掉之後卡片上的拉Bar 也同步成 9 天前",
+    changed("在卡片上改「N 天前」，排行跟著換了那一段", sub_before, sub_after)
+    ok("卡片上的拉Bar 停在 9 天前",
        pg.evaluate("() => +(document.querySelector('#rotBack input.days')||{}).value") == 9,
        pg.evaluate("() => (document.querySelector('#rotBack .val')||{}).textContent"))
     rot_span(pg, 20, 900)
@@ -7558,104 +7527,11 @@ def t_batch2(pg, base):
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2000)
 
     # 放大（E2，Andy 2026-09-20：「放大之後的功能都沒反應」）
-    # 根因量過兩件事：① renderRotClock 結尾那段 groupChips 連放大視窗也一起塞了一排晶片，
-    #   插在 #zoomBody 的下一個兄弟，而 .zb 是 flex —— 實測 #zoomBody 704×756、
-    #   那排晶片 704×748，**放大視窗一半的版面被吃掉**，而且那排晶片綁的是卡片的選取。
-    #   ② 放大視窗維護第二套只有 16 顆的簡化晶片與語意不同的拉Bar。
-    # 所以這裡驗的是：.zb 只有一個子元素、#zoomBody 真的撐滿、控制項和卡片同一套、
-    # 而且「改了篩選／拉了Bar，放大的那張圖真的變了」。
-    click(pg, "#rotZoomBtn", 1600)
-    ok("按「放大」會打開放大視窗（圖二）",
-       pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }"))
-    ok("放大視窗裡畫的是輪動時鐘", pg.evaluate("() => !!document.querySelector('#zoomBody canvas')"))
-    zb = pg.evaluate("""() => { const z = document.querySelector('.zb');
-        const b = document.getElementById('zoomBody');
-        const zr = z.getBoundingClientRect(), br = b.getBoundingClientRect();
-        return { kids: z.children.length,
-                 kidCls: [...z.children].map(e => e.id || e.className),
-                 bw: Math.round(br.width), bh: Math.round(br.height),
-                 zw: Math.round(zr.width), zh: Math.round(zr.height) }; }""")
-    ok("放大視窗的 .zb 只有 #zoomBody 一個子元素（E2：以前被硬塞一排族群晶片）",
-       zb["kids"] == 1 and zb["kidCls"] == ["zoomBody"], zb)
-    ok("#zoomBody 真的佔滿 .zb（E2：以前只拿到一半）",
-       zb["bw"] >= zb["zw"] - 2 and zb["bh"] >= zb["zh"] - 2, zb)
-    tools = pg.evaluate("""() => ({
-        filt: document.querySelectorAll('#zoomTools .rotfilter[data-rf="zoom"]').length,
-        // ★ W6：產業鏈那一排改成第一層下拉裡的選項
-        seg: document.querySelectorAll('#zoomTools .rotdd[data-dd="chain"] .ddopt[data-c]').length,
-        top10: document.querySelectorAll('#zoomTools .rot-top10').length,
-        sbtn: document.querySelectorAll('#zoomTools .rot-sbtn').length,
-        gbtn: document.querySelectorAll('#zoomTools .rot-gbtn').length,
-        back: document.querySelectorAll('#rotZoomBack input[type=range]').length,
-        pb: document.querySelectorAll('#rotZoomBack .pb').length,
-        trail: document.querySelectorAll('#rotZoomTools .rot-trail').length,
-        // ★ 2026-09-23 W6：晶片列 → 兩層下拉，數的是第二層清單裡的 checkbox
-        chips: document.querySelectorAll('#zoomTools .rotfilter .rotdd[data-dd="group"] .ddlist input[data-g]').length,
-        oldChips: document.querySelectorAll('#rotZoomChips').length })""")
-    ok("放大視窗的控制項和卡片是同一套（篩選列＋族群晶片／看哪一天＋＋−▶／軌跡開關）（E2）",
-       tools["filt"] == 1 and tools["seg"] >= 2 and tools["top10"] == 1
-       and tools["back"] == 1 and tools["pb"] == 3 and tools["trail"] == 1 and tools["chips"] > 3, tools)
-    ok("放大視窗裡也沒有多出一顆「族群篩選」（E3 兩邊一致）", tools["gbtn"] == 0, tools)
-    # 2026-09-21：個股篩選整顆移除、族群晶片改由 wireRotFilter 統一產在 .rotfilter 裡
-    ok("放大視窗裡沒有「個股篩選」（2026-09-21 Andy：「個股篩選拿掉」）", tools["sbtn"] == 0, tools)
-    ok("放大視窗不再自己維護第二排晶片（#rotZoomChips 已移除）", tools["oldChips"] == 0, tools)
-
-    ZN = """() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
-        if (!c) return 0; const sc = (c.getOption().series||[]).filter(s=>s.type==='scatter')[0];
-        return sc ? (sc.data||[]).length : 0; }"""
-    n0 = pg.evaluate(ZN)
-    # ① 在放大視窗裡勾「只看前 10 大」—— 放大的那張圖要真的變
-    pg.eval_on_selector('#zoomTools .rot-top10', "e => e.click()")
-    pg.wait_for_timeout(1200)
-    n1 = pg.evaluate(ZN)
-    ok("在放大視窗勾「只看前 10 大」，放大的那張圖真的變了（E2）",
-       n1 == 10 and n0 > 10, f"{n0} → {n1}")
-    pg.eval_on_selector('#zoomTools .rot-clear', "b => b.click()")
-    pg.wait_for_timeout(1200)
-    ok("在放大視窗按「清除篩選」真的還原（E2）", pg.evaluate(ZN) == n0, f"{n1} → {pg.evaluate(ZN)}")
-    # ② 在放大視窗點族群晶片 —— 圖上只剩它
-    # 2026-09-21：晶片列搬進 .rotfilter 了，放大視窗那一排也一樣（不再有 #rotZoomChips）
-    ZOOM_DD = '#zoomTools .rotfilter[data-rf="zoom"]'
-    zg = rot_dd_groups(pg, ZOOM_DD)
-    if ok("放大視窗裡的第二層下拉也列得出族群（E2）", len(zg) > 1, len(zg)):
-        rot_dd_toggle(pg, zg[1], ZOOM_DD, 1200)
-        ok("在放大視窗的下拉裡勾族群，放大的那張圖只剩那一個族群（E2）",
-           pg.evaluate(ZN) == 1, f"{n0} → {pg.evaluate(ZN)}")
-        rot_dd_toggle(pg, zg[1], ZOOM_DD, 1200)
-        ok("再勾一次取消，放大的那張圖回到全部族群（E2）", pg.evaluate(ZN) == n0, pg.evaluate(ZN))
-    # ③ 拉「N 天前」—— 放大的那張圖真的重畫；再回放到 28 天前，圖上寫得出是哪一天
-    # ★ 2026-09-24：放大視窗那支也換成單一拉Bar（N 天前）＋ 回放，和卡片同一個值
-    before = canvas_hash(pg, "#zoomBody")
-    set_range(pg, "#rotZoomBack input[type=range]", 30, 1600)
-    changed("在放大視窗拉「N 天前」，放大的那張圖真的重畫了（E2）", before, canvas_hash(pg, "#zoomBody"))
-    pg.evaluate("() => window.App.rotReplay(28)")        # 回放到 28 天前（▶ 走到一半按 ⏸ 的狀態）
-    pg.wait_for_timeout(1400)
-    ok("回放時圖上有寫出是哪一天（圖二）",
-       pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('zoomBody'));
-           if (!c) return false; const g = c.getOption().graphic || [];
-           return JSON.stringify(g).indexOf('回放') >= 0; }"""))
-    # ④ 軌跡開關在放大視窗裡也真的有作用
-    pg.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()")
-    pg.wait_for_timeout(1200)
-    ok("在放大視窗關掉軌跡，放大的那張圖軌跡真的歸零（E2）",
-       _rot_trail_pts(pg, "zoomBody") == 0, _rot_trail_pts(pg, "zoomBody"))
-    pg.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()")
-    pg.wait_for_timeout(1200)
-    ok("再打開軌跡真的回來（E2）", _rot_trail_pts(pg, "zoomBody") > 20, _rot_trail_pts(pg, "zoomBody"))
-    # ⑤ 關掉之後卡片要跟上（天數是在放大視窗裡改的）
-    pg.eval_on_selector("#zoomClose", "b => b.click()")
-    pg.wait_for_timeout(1600)
-    ok("關閉放大視窗", pg.evaluate("() => document.getElementById('zoomOv').hidden") is True)
-    ok("關掉之後控制項列有清乾淨（不會留給下一張圖一排按了沒反應的鈕）（E2）",
-       pg.evaluate("() => (document.getElementById('zoomTools').innerHTML || '').trim() === ''"))
-    # ★ 2026-09-23 D1：卡片那支換成區間桿（值＝位置，30 ＝ 最新），放大視窗那支
-    #   `#rotZoomBack` 仍是舊的 playBar（值＝幾天前）。同步的是「哪一天」，不是「同一個數字」——
-    #   寫死 28 會紅在換算上，所以改成用 `rot_days_ago()` 比「幾天前」。
-    ok("關掉之後卡片上的「N 天前」跟著同步成放大視窗裡選的 30（E2）",
-       pg.evaluate("() => +(document.querySelector('#rotBack input.days')||{}).value") == 30,
-       pg.evaluate("() => (document.querySelector('#rotBack .val')||{}).textContent"))
-    rot_seek(pg, 0, 800)
-    rot_span(pg, 20, 1000)
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+    #   改前：這裡一路驗放大視窗（.zb 只有一個子元素、控制項同一套、勾篩選／拉Bar／軌跡開關放大的圖真的變、關掉同步回卡片）。
+    #   改後：放大視窗沒有入口了 → 驗鈕不在、按不到任何東西會打開放大罩。卡片上的同一組控制項由「資金輪動合併」「足跡輪盤既有功能」等段驗。
+    ok("資金流向頁沒有足跡輪盤的「放大」鈕（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')"))
+    ok("放大罩沒有被打開", pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !o || o.hidden; }"))
 
     # 總覽的小輪動圖也有放大鈕
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
@@ -8948,8 +8824,9 @@ def t_zoom_sweep(pg, base, code):
     # ★ 2026-09-23 D6：`rotMiniZoomBtn` 已整顆移除（Andy 親口要求），
     #   白名單留著它不會出錯（沒有這顆鈕就永遠比不到），但留著會讓人以為它還在 ——
     #   所以拿掉，讓白名單忠實反映畫面上真的存在的縮放入口。
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap",
-             "rotZoomBtn")
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：改前白名單有資金流向頁的 `rotZoomBtn` → 改後那顆拿掉，
+    #   白名單同步拿掉它（白名單只反映畫面上真的存在、而且 Andy 要的縮放入口）。另外在資金流向頁正面驗它不在。
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));
@@ -8973,6 +8850,8 @@ def t_zoom_sweep(pg, base, code):
         extra = {k: [x for x in v if not any(a in str(x) for a in ALLOW)] for k, v in r.items()}
         n = sum(len(v) for v in extra.values())
         ok(f"「{name}」沒有多餘的縮放入口", n == 0, extra)
+        if path == "#flow":
+            ok("「資金流向」足跡輪盤的「⤢ 放大」已拿掉（2026-09-26）", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
 
 
 def t_freshness(b, base):
@@ -9608,9 +9487,10 @@ def t_market3(pg, base):
     ok("三張分別是加權／櫃買／台指期",
        all(any(k in " ".join(names) for k in ks) for ks in (["加權"], ["櫃買"], ["台指期"])), names)
     # ★ 2026-09-24 改前→改後：改前「三張圖排在 hero 上面」；Andy 要 KPI 橫條移到三張走勢圖**上方** → 反過來驗
-    ok("KPI 橫條（hero）排在三張圖上面",
-       pg.evaluate("() => { const m=document.getElementById('m3'), h=document.getElementById('hero');"
-                   " return !!(m&&h) && (h.compareDocumentPosition(m) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0; }"))
+    # ★ 2026-09-26 改前→改後：改前「hero 排在 #m3 前面」；Andy 要 KPI 搬進三張圖的工具列 → 驗「hero 在 #m3 的工具列裡」
+    ok("KPI 橫條（hero）在三張圖的工具列裡",
+       pg.evaluate("() => { const h=document.getElementById('hero');"
+                   " return !!(h && h.closest('#m3 #m3Frame .m3-bar')); }"))
 
     # --- 2. 卡片上的數字真的是抓回來的那一份
     px = text(pg, "#m3Grid .m3-card[data-id='TSE'] .m3-px")
@@ -12731,16 +12611,18 @@ RANKTOP_M = """() => {
   const zb = document.getElementById('rotZoomBtn'), hb = card && card.querySelector('.howbtn[data-how="rot"]');
   const h4 = card && card.querySelector('.rotright h4.subh'), h3 = card && card.querySelector('h3');
   const clock = document.getElementById('rotClockWrap');
-  if (!card || !rf || !zb || !hb) return null;
+  // ★ 2026-09-26 改前→改後：改前量不到放大鈕就回 null → 改後放大鈕拿掉（Andy「放大功能取消」），zb 必然是 null，
+  //   btnTop／btnRight／h4Dy／h3Dy 一律回 null，只留 zoom（有沒有放大鈕）給呼叫端驗「真的不在」。
+  if (!card || !rf || !hb) return null;
   const R = (e) => e.getBoundingClientRect();
-  const cr = R(card), rr = R(rf), zr = R(zb), hr = R(hb), tr = h4 ? R(h4) : null, t3 = R(h3), kr = clock ? R(clock) : null;
+  const cr = R(card), rr = R(rf), zr = zb ? R(zb) : null, hr = R(hb), tr = h4 ? R(h4) : null, t3 = R(h3), kr = clock ? R(clock) : null;
   return { top: Math.round(rr.top - cr.top), rankBottom: Math.round(rr.bottom), clockBottom: kr ? Math.round(kr.bottom) : null,
-           cardBottom: Math.round(cr.bottom), rankH: Math.round(rr.height),
-           btnTop: Math.round(zr.top - cr.top), btnRight: Math.round(cr.right - zr.right),
+           cardBottom: Math.round(cr.bottom), rankH: Math.round(rr.height), zoom: !!zb,
+           btnTop: zr ? Math.round(zr.top - cr.top) : null, btnRight: zr ? Math.round(cr.right - zr.right) : null,
            hbInH3: !!(hb && hb.closest('h3') === h3) && hb.classList.contains('pop'),
            btnRowDy: Math.abs((t3.top + t3.bottom) / 2 - (hr.top + hr.bottom) / 2),
-           h4Dy: tr ? Math.abs((tr.top + tr.bottom) / 2 - (zr.top + zr.bottom) / 2) : null,
-           h3Dy: Math.abs((t3.top + t3.bottom) / 2 - (zr.top + zr.bottom) / 2),
+           h4Dy: tr && zr ? Math.abs((tr.top + tr.bottom) / 2 - (zr.top + zr.bottom) / 2) : null,
+           h3Dy: zr ? Math.abs((t3.top + t3.bottom) / 2 - (zr.top + zr.bottom) / 2) : null,
            rankTitleTop: tr ? Math.round(tr.top - cr.top) : null };
 }"""
 
@@ -12759,15 +12641,13 @@ def t_rank_top(pg, b, base):
     # 改前「放大／怎麼看兩顆同一列在右上」→ 改後「放大在右上；?」在卡片標題旁、和標題同一條中線」
     # ★ 2026-09-25（Andy）：改前「放大在卡片標題列右側（距卡片頂 < 40、距右緣 ≤ 24）」→
     #   改後放大搬到輪盤欄右上角（與「足跡輪盤」同列），位置改由「輪盤合併側欄」段驗；這裡只驗它不在右欄
-    ok("③ [1440] 放大不在右欄排行標題列（已搬到輪盤欄）",
-       not pg.evaluate("() => !!document.querySelector('#flowRotCard .rotright #rotZoomBtn')"), m)
+    # ★ 2026-09-26 改前→改後：改前「放大不在右欄（搬到輪盤欄）」→ 改後放大鈕整顆拿掉（Andy「放大功能取消」）
+    ok("③ [1440] 資金輪動卡上沒有「放大」鈕（2026-09-26 拿掉）", not m["zoom"], m)
     ok("③ [1440] 「?」在「資金輪動」標題裡、和標題同一條中線（差 ≤ 3px）", m["hbInH3"] and m["btnRowDy"] <= 3, m)
     ok("③ [1440] 兩顆鈕和卡片標題、排行小標在同一條水平線上（中線差 ≤ 12px）",
        m["btnRowDy"] <= 12, m)  # 改前也要求放大鈕與標題同列（h3Dy/h4Dy）→ 改後放大在輪盤欄，只剩「?」
     # 真的按一下：鈕還是那兩顆鈕（放大開得起來、怎麼看展得開）
-    pg.click("#rotZoomBtn"); pg.wait_for_timeout(1200)
-    ok("③ [1440] 搬位置之後「放大」按下去真的開出放大視窗", pg.evaluate("() => !!document.querySelector('.zoomov')"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+    # ★ 2026-09-26：改前這裡按「放大」驗放大視窗開得起來 → 改後放大鈕拿掉，只剩「?」要按
     pg.click('#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(500)
     # 改前「就地展開（卡片裡）」→ 改後「跳出式（#howPop）」：說明盒搬到浮層，卡片版面完全不動
     ok("③ [1440] 「?」按下去真的跳出說明", pg.evaluate("() => { const b = document.getElementById('how-rot'); return !b.hidden && !!b.closest('#howPop'); }"))
@@ -12781,8 +12661,8 @@ def t_rank_top(pg, b, base):
     m3 = pg.evaluate(RANKTOP_M)
     # ★ 2026-09-25：改前「放大在卡片右上角（距頂 < 50）」→ 改後放大跟著輪盤欄標題列（足跡輪盤那一列右端），
     #   單欄時仍靠右（距右緣 ≤ 24）、在輪盤上方（距卡片頂 < 200）
-    ok("③ [800] 單欄時放大鈕在輪盤欄標題列右端（距右緣 ≤ 24px、距卡片頂 < 200px）",
-       m3 and m3["btnTop"] < 200 and m3["btnRight"] <= 24, m3)
+    # ★ 2026-09-26 改前→改後：改前「單欄時放大鈕在輪盤欄標題列右端」→ 改後放大鈕拿掉，驗 800 也沒有
+    ok("③ [800] 單欄時也沒有「放大」鈕（2026-09-26 拿掉）", bool(m3) and not m3["zoom"], m3)
     ok("③ [800] 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))
     pg.set_viewport_size({"width": 1440, "height": 1000})
 
@@ -13104,18 +12984,12 @@ def t_side_merge(pg, b, base):
         pg.mouse.click(6, 520); pg.wait_for_timeout(700)
         ok("點背景：合併面板關閉", pg.evaluate("() => document.getElementById('rankPanel').hidden"))
     # 追加：放大鈕在輪盤欄右上、日期區間同步
-    z = pg.evaluate("""() => { const zb = document.getElementById('rotZoomBtn'), lf = document.querySelector('#flowRotCard .rotleft'),
-        rt = document.querySelector('#flowRotCard .rotright'), h4 = document.querySelector('#flowRotCard .rotchead h4');
-        const zr = zb.getBoundingClientRect(), lr = lf.getBoundingClientRect(), tr = h4.getBoundingClientRect(), kr = document.getElementById('rotClockWrap').getBoundingClientRect();
-        return { inLeft: lf.contains(zb), notRight: !rt.contains(zb), rightGap: Math.round(lr.right - zr.right),
-                 rowDy: Math.round(Math.abs((zr.top + zr.bottom) / 2 - (tr.top + tr.bottom) / 2)), aboveClock: zr.bottom <= kr.top + 2,
-                 rot: (document.getElementById('rotSub') || {}).textContent || '', rank: (document.getElementById('rankSub') || {}).textContent || '' }; }""")
-    ok("★ 放大鈕在輪盤欄右上角（改前：右欄排行標題列 → 改後：輪盤欄、與「足跡輪盤」同列右端）",
-       z["inLeft"] and z["notRight"] and z["rightGap"] <= 24 and z["rowDy"] <= 6 and z["aboveClock"], z)
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+    #   改前：量放大鈕在輪盤欄右上角、點它開放大視窗。改後：驗鈕不在；日期區間同步照驗。
+    z = pg.evaluate("""() => ({ gone: !document.getElementById('rotZoomBtn'),
+        rot: (document.getElementById('rotSub') || {}).textContent || '', rank: (document.getElementById('rankSub') || {}).textContent || '' })""")
+    ok("★ 輪盤欄右上角沒有「放大」鈕了（2026-09-26 拿掉）", z["gone"], z)
     ok("★ 足跡輪盤標題後有日期區間，且與排行副標一致", bool(z["rot"]) and "～" in z["rot"] and z["rot"] == z["rank"], z)
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(1500)
-    ok("點放大鈕：放大視窗真的開了", pg.evaluate("() => { const o = document.getElementById('zoomOv'); return !!(o && !o.hidden); }"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
     # 拉Bar 後兩者一起變
     r0 = z["rot"]
     moved = pg.evaluate("""() => { const i = document.querySelector('#rotBack input[type=range]'); if (!i) return false;
@@ -14133,6 +14007,8 @@ SECTIONS = {
     "收尾0925-週期統計提示框": lambda pg, b, base, code: t_wrap_season_tip(pg, base, code),
     "收尾0925-R4方塊標籤":  lambda pg, b, base, code: t_wrap_r4_label(pg, base, code),
     "收尾0925-R2小項":      lambda pg, b, base, code: t_wrap_r2(pg, base, code),
+    # ★ 2026-09-26 Andy 三件：KPI 搬進大盤工具列、足跡輪盤放大取消、頁尾跟主內容同寬（⚠ 一律 --workers 1）
+    "KPI工具列頁尾0926":   lambda pg, b, base, code: t_kpi_footer_0926(pg, b, base),
     # ★ 2026-09-24 Andy 回報：3D 按「收合圖」再打開，模型縮到左上角、卡片疊在一起（⚠ 一律 --workers 1）
     "3D收合再展開":        lambda pg, b, base, code: t_fold3d(pg, base),
     # ★ 2026-09-24 Andy：剖析圖資訊卡限制在示意圖同高、放不下收成「編號＋標題」下拉卡、點圖上編號跳出說明（⚠ 一律 --workers 1）
@@ -16032,18 +15908,12 @@ def t_wrap_r2(pg, base, code):
     pg.set_viewport_size({"width": 1440, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2800)
     # #35 放大視窗
+    # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+    #   改前：放大視窗要有四個象限徽章與「即時」鈕（R2 #35）。改後：沒有放大視窗，#35 不再適用 → 驗入口與即時鈕都不在；
+    #   卡片上的象限徽章與即時鈕由「足跡輪盤既有功能」「輪動時鐘即時」等段驗。
     scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(300)
-    click(pg, "#rotZoomBtn", 1500)
-    z = pg.evaluate("""() => ({ q: [...document.querySelectorAll('#zoomBody .rotquads .rq')].map(b => ({ t: b.firstChild.textContent, n: (b.querySelector('em') || {}).textContent })),
-        live: !!document.querySelector('#rotZoomBack #rotZoomLiveBtn') })""")
-    ok("★ [R2 #35] 放大視窗有四個象限計數徽章（名字＋數字）", len(z["q"]) == 4 and all(x["n"] not in (None, "") for x in z["q"]), z["q"])
-    if ok("★ [R2 #35] 放大視窗有「即時」鈕", z["live"]):
-        pg.eval_on_selector("#rotZoomLiveBtn", "b => b.click()"); pg.wait_for_timeout(700)
-        on = pg.evaluate("() => ({ z: document.getElementById('rotZoomLiveBtn').classList.contains('on'), c: (document.getElementById('rotLiveBtn') || {classList:{contains:()=>null}}).classList.contains('on'), st: window.App.rlvState ? window.App.rlvState().on : null })")
-        ok("[R2 #35] 按放大視窗的「即時」→ 鈕亮起來、跟卡片那顆同一個開關", on["z"] and on["c"] in (True, None) and on["st"] in (True, None), on)
-        pg.eval_on_selector("#rotZoomLiveBtn", "b => b.click()"); pg.wait_for_timeout(500)
-        ok("[R2 #35] 再按一次 → 退回盤後（鈕熄掉）", not pg.evaluate("() => document.getElementById('rotZoomLiveBtn').classList.contains('on')"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+    ok("[R2 #35] 放大鈕與放大視窗的即時鈕都不在了（2026-09-26 拿掉）",
+       pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')") and not pg.evaluate("() => !!document.getElementById('rotZoomLiveBtn')"))
     # #47 族群 × 法人：y 軸名稱不截斷。
     # ★ 2026-09-26（Andy：「ETF 族群拿掉」）：ETF 整桶不進這張卡，R2 #47 的「折斷刻度」失去對象一併拿掉 ——
     #   原本那兩條「ETF 撐爆時刻度改用其他族群定／≫ 折斷記號」改成「ETF 不在圖上、也沒有折斷系列」。
@@ -23605,21 +23475,9 @@ def t_batch30(pg, base):
            f"W6-4 現場那個 {n_all} 是「半導體鏈」的點數，不是「全部」）")
 
         # ------------------------------------------------------------ W6-6 放大視窗共用同一份狀態
-        pg.eval_on_selector("#rotZoomBtn", "b => b.click()")
-        pg.wait_for_timeout(2600)
-        ZD = '#zoomTools .rotfilter[data-rf="zoom"]'
-        ok("W6-6：放大視窗裡也是兩層下拉",
-           count(pg, f"{ZD} .rotdd") == 2, count(pg, f"{ZD} .rotdd"))
-        zg = rot_dd_groups(pg, ZD)
-        if ok("W6-6：放大視窗的第二層列得出族群", len(zg) > 0, len(zg)):
-            rot_dd_toggle(pg, zg[0], ZD, 1400)
-            pg.eval_on_selector("#zoomClose", "b => b.click()")
-            pg.wait_for_timeout(1800)
-            card = pg.evaluate(f"""() => (document.querySelector('{ROT_DD} .rotdd[data-dd="group"] .ddbtn')||{{}})
-                .textContent || ''""")
-            ok("★ W6-6：在放大視窗裡勾的族群，關掉之後**卡片那排的摘要跟著變**（共用同一份狀態）",
-               "已選 1" in card, card[:50])
-            rot_dd_clear(pg, wait=1400)
+        # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+        #   改前：放大視窗裡也是兩層下拉、在裡面勾的族群關掉後卡片摘要跟著變。改後：沒有放大視窗 → 驗入口不在。
+        ok("W6-6：沒有足跡輪盤的放大視窗入口了（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn') && !document.getElementById('rotZoomBack')"))
 
     # ---------------------------------------------------------------- W7-7 舊的三塊都不在
     gone = pg.evaluate("() => ['rotBoard','rotCycle','rotMove'].filter(id => !!document.getElementById(id))")
@@ -28664,13 +28522,17 @@ def t_dismiss(pg, b, base, code):
     _dz_three(pg, "資金集中度側欄", "#concSide", open_conc, "#concSide .hh", "#flowInstCard h3")
 
     # ---- 5. 放大罩：點遮罩背景關、Esc 關、點罩裡的圖不關
-    _dz_click_el(pg, "#rotZoomBtn"); pg.wait_for_timeout(2200)
+    # ★ 2026-09-26 改前→改後：改前用資金流向頁足跡輪盤的「放大」開罩 → 改後那顆拿掉（Andy「放大功能取消」），
+    #   放大罩本身（openZoom）沒動，改用總覽資金熱力圖的「放大 ⤢」（#heatZoom）開同一個罩來驗。
+    ok("[放大罩] 資金流向頁沒有足跡輪盤的「放大」了", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    _dz_click_el(pg, "#heatZoom"); pg.wait_for_timeout(2200)
     if ok("[放大罩] 打得開", _dz_vis(pg, "#zoomOv")):
         _dz_click_el(pg, "#zoomTitle"); pg.wait_for_timeout(500)
         ok("[放大罩] 點罩裡面（標題）不會關", _dz_vis(pg, "#zoomOv"))
         pg.mouse.click(4, 470); pg.wait_for_timeout(700)
         ok("[放大罩] 點遮罩背景真的關了", not _dz_vis(pg, "#zoomOv"))
-        _dz_click_el(pg, "#rotZoomBtn"); pg.wait_for_timeout(2000)
+        _dz_click_el(pg, "#heatZoom"); pg.wait_for_timeout(2000)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(700)
         ok("[放大罩] 按 Esc 真的關了", not _dz_vis(pg, "#zoomOv"))
 
@@ -29083,9 +28945,8 @@ def t_footprint(pg, b, base):
         page: document.getElementById('v-flow').innerText })""")
     ok("① 卡片裡那張圖改名「足跡輪盤」", nm["h4"].startswith("足跡輪盤"), nm["h4"])
     ok("① 資金流向頁上看不到「輪動時鐘」四個字了", "輪動時鐘" not in nm["page"], [ln for ln in nm["page"].splitlines() if "輪動時鐘" in ln][:3])
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2000)
-    ok("① 放大視窗的標題也是「足跡輪盤」", text(pg, "#zoomTitle") == "足跡輪盤", text(pg, "#zoomTitle"))
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(1200)
+    # ★ 2026-09-26 改前→改後：改前「放大視窗的標題也是足跡輪盤」→ 改後放大鈕與放大視窗拿掉（Andy「放大功能取消」）
+    ok("① 足跡輪盤沒有放大鈕了（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
     # ② 雷達盤面（★ 2026-09-24 晚改成 Andy 參考檔的盤面，桌機）：
     #   改前：距離環 3 ＋ 兩圈虛線 ＋ 盤緣 ＝ 6 圈；放射狀細線 8 ＋ 每 10° 刻度 36 ＋ 十字 2；圓心小點 1
     #   改後：三圈虛線（一半／最大偏離／盤緣）；十字 2 ＋ 盤緣 72 刻（30° 主刻 12 條 1.5px）；沒有圓心小點
@@ -29231,10 +29092,8 @@ def t_scan(pg, b, base):
     ok("⑤ 播放＋掃描＋水波同時跑不卡（2 秒平均 ≥ 30 fps、最長一幀 ≤ 200ms）", fr["fps"] >= 30 and fr["maxGap"] <= 200, fr)
     rot_seek(pg, 0, 900)
     # ⑥ 放大視窗裡的輪盤也在轉；關掉放大視窗，卡片那張照轉
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2200)
-    z0 = _scan(pg, "zoomBody"); pg.wait_for_timeout(500); z1 = _scan(pg, "zoomBody")
-    ok("⑥ 放大視窗的輪盤也在掃描", z0["on"] and z1["frames"] > z0["frames"], [z0, z1])
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(1000)
+    # ★ 2026-09-26 改前→改後：改前「放大視窗的輪盤也在掃描」→ 改後放大視窗拿掉（Andy「放大功能取消」），只剩卡片那張
+    ok("⑥ 沒有放大視窗了（2026-09-26 拿掉）；卡片那張照轉", pg.evaluate("() => !document.getElementById('rotZoomBtn')") and _scan(pg)["on"])
     # ⑦ 總覽小時鐘不掃（總覽 Andy 不要動畫）
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
     mini = _scan(pg, "rotClockMini")
@@ -29326,9 +29185,8 @@ def t_rot_keep(pg, b, base):
     pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
     ok("7 按 Esc → 收掉", pg.evaluate("() => document.getElementById('stagePanel').hidden"))
     # 8 放大視窗
-    pg.eval_on_selector("#rotZoomBtn", "b => b.click()"); pg.wait_for_timeout(2000)
-    ok("8 按「放大」→ 放大視窗裡有一張足跡輪盤", pg.evaluate("() => !!echarts.getInstanceByDom(document.getElementById('zoomBody'))") and text(pg, "#zoomTitle") == "足跡輪盤")
-    pg.keyboard.press("Escape"); pg.wait_for_timeout(1000)
+    # ★ 2026-09-26 改前→改後：改前「按放大 → 放大視窗裡有一張足跡輪盤」→ 改後 Andy「放大功能取消」，驗它真的不在
+    ok("8 「放大」鈕已拿掉（2026-09-26），不是既有功能了", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
     # 9 右側排行連動：點排行長條 → 盤上只亮那一個（其他壓暗）。座標算法同「批次2」的 rank_spot（先捲到圖上、點長條末端內側）
     scroll_to(pg, "rankFlow")
     bar = pg.evaluate("""() => { const el = document.getElementById('rankFlow'); const c = echarts.getInstanceByDom(el);
@@ -29470,17 +29328,13 @@ def t_rot_dots_only(pg, b, base):
         scroll_to(d, "rotClockWrap"); d.wait_for_timeout(500)
         d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1000)   # 勾回來，下面驗放大視窗
         # 放大視窗：開關同一份
-        click(d, "#rotZoomBtn", 1600)
-        if ok("放大視窗打得開", d.evaluate("() => { const o = document.getElementById('zoomOv'); return !!o && !o.hidden; }")):
-            ok("放大視窗的「顯示腳印」跟卡片同步（勾著）", d.evaluate("() => document.querySelector('#rotZoomTools .rot-trail').checked"))
-            d.eval_on_selector("#rotZoomTools .rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
-            zs = d.evaluate(CLK_STATE, "zoomBody")
-            ok("在放大視窗勾掉 → 放大的那張只剩圓圈", bool(zs) and feet_n(zs) == 0 and zs["vis"] == 0 and zs["n"] > 6,
-               zs and [zs["vis"], feet_n(zs), zs["n"]])
-            ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
-            d.eval_on_selector("#zoomClose", "b => b.click()"); d.wait_for_timeout(900)
+        # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+        #   改前：在放大視窗裡勾掉「顯示腳印」，放大的那張只剩圓圈、關掉後卡片也跟著。改後：沒有放大視窗 → 直接在卡片上勾掉。
+        ok("沒有足跡輪盤的放大鈕了（2026-09-26 拿掉）", d.evaluate("() => !document.getElementById('rotZoomBtn')"))
+        d.eval_on_selector("#rotTools input.rot-trail", "e => e.click()"); d.wait_for_timeout(1200)
+        ok("勾掉之後記成 '0'", d.evaluate("() => localStorage.getItem('tw.rot.feet')") == "0")
         st = d.evaluate(CLK_STATE, "rotClock")
-        ok("關掉放大視窗後卡片也跟著只剩圓圈（勾選框不勾）",
+        ok("在卡片上勾掉之後卡片只剩圓圈（勾選框不勾）",
            feet_n(st) == 0 and st["vis"] == 0 and not d.evaluate("() => document.querySelector('#rotTools input.rot-trail').checked"),
            st and [st["vis"], feet_n(st)])
         # 總覽小輪盤：乾淨預設只有圓圈
@@ -31245,6 +31099,215 @@ def t_flowfx(pg, b, base):
         tr2 = p2.evaluate(TOPO)
         ok("[減少動態] 換日直接到位（沒有補間）", bool(tr2) and not tr2["tweening"])
     ctx.close()
+
+
+# ===================================================================== 2026-09-26 Andy 三件
+# ① 「將我把這內容放進來，並且排版一下」：總覽頂端的 KPI 橫條（#hero）搬進大盤三張圖的工具列（#m3Kpis，「?」右邊）。
+# ② 「放大功能取消」：資金流向頁足跡輪盤的「⤢ 放大」（#rotZoomBtn）與它開的放大視窗拿掉。
+# ③ 「下面填滿版面 需要調整適當大小」：頁尾（#siteFoot）改成跟主內容同寬，八格 4／2／1 欄。
+# 每一件都真的操作：量位置、真的點、真的讓即時更新走一輪、真的換寬度。
+KPI0926_M = """() => { const h = document.getElementById('hero'), f = document.getElementById('m3Frame');
+  if (!h || !f) return null;
+  const bar = f.querySelector('.m3-bar'), q = bar && bar.querySelector('.howbtn[data-how="m3"]');
+  const R = (e) => e.getBoundingClientRect();
+  const hr = R(h), fr = R(f), qr = q ? R(q) : null;
+  const ks = [...h.querySelectorAll('.kpi')];
+  const fs = ks.flatMap(k => [...k.querySelectorAll('.l, .v, .d')]).map(e => parseFloat(getComputedStyle(e).fontSize));
+  return { inBar: !!h.closest('#m3Frame .m3-bar #m3Kpis'), parent: h.parentElement.id,
+    n: ks.length, labels: ks.map(k => ((k.querySelector('.l') || {}).textContent || '').replace('›', '').trim()),
+    kh: ks.map(k => Math.round(R(k).height)),
+    over: ks.filter(k => [...k.querySelectorAll('.l, .vv')].some(x => x.scrollWidth > x.clientWidth + 1)).map(k => k.textContent.trim().slice(0, 14)),
+    inside: hr.left >= fr.left - 0.5 && hr.right <= fr.right + 0.5,
+    afterQ: qr ? (hr.left >= qr.right - 0.5 || hr.top >= qr.bottom - 0.5) : false,
+    sameRow: qr ? Math.abs((hr.top + hr.bottom) / 2 - (qr.top + qr.bottom) / 2) < 8 : false,
+    minFs: fs.length ? Math.min(...fs) : 0,
+    more: ks.filter(k => k.classList.contains('clickable')).map(k => !!k.querySelector('.more')),
+    drills: ks.filter(k => k.classList.contains('clickable')).map(k => k.dataset.drill),
+    sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+
+FOOT0926_M = """() => { const f = document.getElementById('siteFoot'), v = document.querySelector('main .view.on');
+  if (!f || !v) return null;
+  const R = (e) => e.getBoundingClientRect();
+  const cards = [...v.querySelectorAll('.card')].map(R).filter(r => r.width > 40 && r.left >= -0.5 && r.right <= innerWidth + 0.5);
+  const fr = R(f), vr = R(v), g = f.querySelector('.sf-grid');
+  return { fl: Math.round(fr.left), fr: Math.round(fr.right), fw: Math.round(fr.width),
+    vl: Math.round(vr.left), vr: Math.round(vr.right),
+    cl: cards.length ? Math.round(Math.min(...cards.map(r => r.left))) : null,
+    cr: cards.length ? Math.round(Math.max(...cards.map(r => r.right))) : null,
+    cols: g ? getComputedStyle(g).gridTemplateColumns.split(' ').filter(Boolean).length : 0,
+    shown: !!g && g.getBoundingClientRect().height > 0,
+    sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+
+
+def t_kpi_footer_0926(pg, b, base):
+    """2026-09-26：KPI 搬進大盤工具列、足跡輪盤放大取消、頁尾跟主內容同寬。"""
+    LABELS = ["加權指數", "成交值", "漲跌家數", "前五族群佔比"]
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    wait_until(pg, "() => document.querySelectorAll('#hero .kpi').length === 4", 8000)
+
+    # ---------------------------------------------------------------- ① KPI 在工具列裡（1440／1024／800）
+    for w in (1440, 1024, 800):
+        pg.set_viewport_size({"width": w, "height": 1000}); pg.wait_for_timeout(900)
+        k = pg.evaluate(KPI0926_M)
+        if not ok(f"[{w}] 量得到 KPI 與大盤卡", bool(k), k):
+            continue
+        ok(f"★ [{w}] KPI 在大盤三張圖的工具列裡（#m3Frame .m3-bar #m3Kpis）", k["inBar"], k["parent"])
+        ok(f"[{w}] 四格照舊：加權指數／成交值／漲跌家數／前五族群佔比", k["labels"] == LABELS, k["labels"])
+        ok(f"[{w}] 每格高 36～44px（跟工具列同一級，比原本 58px 小）", all(36 <= x <= 44 for x in k["kh"]), k["kh"])
+        ok(f"[{w}] 名稱與數字都沒有被切掉或溢出", not k["over"], k["over"])
+        ok(f"[{w}] 整條在大盤卡框內、排在「?」右邊（放不下就換到下一行，不溢出）", k["inside"] and k["afterQ"], k)
+        ok(f"[{w}] 字 ≥ 11px", k["minFs"] >= 11, k["minFs"])
+        ok(f"[{w}] 可點的兩格（漲跌家數、前五族群佔比）保留 ›", k["more"] == [True, True] and len(k["drills"]) == 2, k)
+        # 橫向捲軸：換寬度之後圖表是 ResizeObserver 非同步重畫，重畫完之前可能短暫凸出（負載 30 時實測過一次）。
+        # 等它穩定（最多 4 秒）再判；真的凸出就把是誰凸出列出來，不會被這個等待吃掉。
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 4000)
+        ok(f"[{w}] 沒有橫向捲軸", wide == "ok", pg.evaluate("""() => [...document.querySelectorAll('body *')]
+            .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1 && e.offsetParent !== null; })
+            .slice(0, 6).map(e => (e.id || '') + '.' + String(e.className || '').slice(0, 30))"""))
+        if w == 1440:
+            ok("[1440] KPI 跟「走勢圖／K 線」「?」同一列（真的放在那段空白裡，不是另起一行）", k["sameRow"], k)
+    pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(700)
+    ok("★ 頂端原本那條拿掉了（#v-overview 底下不再直接掛 #hero，#m3 前面沒有獨立的 KPI 列）",
+       pg.evaluate("() => !document.querySelector('#v-overview > #hero')"))
+
+    # ---------------------------------------------------------------- ① 點擊：照舊打開原本的東西
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    click(pg, '#m3Kpis .kpi.clickable[data-drill="updown"]', 1600)
+    st = pg.evaluate("""() => ({ hash: location.hash, tab: (document.querySelector('.tab.on')||{dataset:{}}).dataset.view,
+        rows: document.querySelectorAll('#mktBody tr[data-code]').length,
+        blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody .chart').length })""")
+    ok("★ 點工具列裡的「漲跌家數」→ 照舊打開市場明細的漲跌家數，而且有內容",
+       st["hash"].startswith("#market/updown") and (st["rows"] > 0 or st["blocks"] > 0), st)
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    click(pg, '#m3Kpis .kpi.clickable[data-drill="#flow>conc"]', 1600)
+    ok("點工具列裡的「前五族群佔比」→ 照舊到資金流向頁", pg.evaluate("() => location.hash") == "#flow",
+       pg.evaluate("() => location.hash"))
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1600)
+
+    # 大盤卡重掛（mount 會把整個工具列 innerHTML 換掉）：KPI 不能跟著被丟掉
+    pg.evaluate("() => window.Market3 && window.Market3.mount()"); pg.wait_for_timeout(1400)
+    k2 = pg.evaluate(KPI0926_M)
+    ok("★ 大盤卡重掛之後 KPI 還在工具列裡、四格都在（沒有被 innerHTML 丟掉）",
+       bool(k2) and k2["inBar"] and k2["labels"] == LABELS, k2)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(250)
+    click(pg, '#m3Kpis .kpi.clickable[data-drill="updown"]', 1600)
+    ok("重掛之後點「漲跌家數」照樣打開市場明細", pg.evaluate("() => location.hash").startswith("#market/updown"),
+       pg.evaluate("() => location.hash"))
+
+    # ---------------------------------------------------------------- ① 盤中即時：工具列裡的格子照樣被 live.js 改到
+    fake = {"z": "48888.1200"}
+
+    def fake_quote(route):
+        from urllib.parse import urlparse, parse_qs
+        q = parse_qs(urlparse(route.request.url).query)
+        arr = []
+        for tok in [t for t in (q.get("ex_ch") or [""])[0].split("|") if t]:
+            try:
+                code = tok.split("_", 1)[1].split(".")[0]
+            except IndexError:
+                continue
+            arr.append({"c": code, "n": "測試" + code, "ex": tok[:3], "z": fake["z"], "y": "48000.0000",
+                        "o": "48010.0000", "h": "48900.0000", "l": "47990.0000", "v": "12345",
+                        "t": "11:22:33", "d": "20260926"})
+        route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                      body=json.dumps({"rtcode": "0000", "rtmessage": "OK", "msgArray": arr}))
+
+    lp = pg.context.browser.new_page(viewport={"width": 1440, "height": 1000})
+    lp.on("pageerror", lambda e: fails.append(f"KPI工具列0926 pageerror: {e}"))
+    lp.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    lp.add_init_script(IV_RECORDER)
+    lp.goto(base + "#overview", wait_until="networkidle"); lp.wait_for_timeout(1500)
+    wait_until(lp, "() => !window.Live || !window.Live.busy", 6000); lp.wait_for_timeout(2500)
+    SEL_I, SEL_C = "#m3Kpis [data-live='idx'][data-lc='t00']", "#m3Kpis [data-live='chg'][data-lc='t00']"
+    ok("加權指數那格搬進工具列之後仍帶 [data-live] 標記（live.js 認得到）", count(lp, SEL_I) == 1 and count(lp, SEL_C) == 1,
+       [count(lp, SEL_I), count(lp, SEL_C)])
+    i0, c0 = text(lp, SEL_I), text(lp, SEL_C)
+    lp.route("**/quote?*", fake_quote)
+    lp.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json", body='{"error":"not found"}'))
+    lp.evaluate("() => { try { localStorage.setItem('tw.live.proxy', 'https://fake-worker.test'); } catch (e) {} }")
+    per = lp.evaluate("() => window.Live.periodMs")
+    fired = lp.evaluate(IV_FIRE_LIVE, per); lp.wait_for_timeout(1600)
+    i1, c1 = text(lp, SEL_I), text(lp, SEL_C)
+    ok("找得到 live.js 的計時器來觸發", fired == 1, fired)
+    changed("★ 即時更新走一輪，工具列裡的加權指數真的換成即時值", i0, i1)
+    ok("換上去的是回應裡的值（48,888）", "48,888" in i1, i1)
+    changed("漲跌也跟著換（48888.12 / 48000 ＝ +1.85%）", c0, c1)
+    ok("漲跌是即時值重算的", "1.85" in c1, c1)
+    lp.close()
+
+    # ---------------------------------------------------------------- ① 手機 390：維持原位；放寬再搬進去
+    m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
+    m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    m.goto(f"{base}#overview", wait_until="networkidle"); m.wait_for_timeout(2600)
+    POS = """() => { const h = document.getElementById('hero'), s = document.getElementById('m3Kpis'), m3 = document.getElementById('m3');
+        return { parent: h && h.parentElement.id, beforeM3: !!(h && m3) && h.nextElementSibling === m3,
+                 slotHidden: !s || s.hidden || getComputedStyle(s).display === 'none', inBar: !!(h && h.closest('#m3Kpis')),
+                 n: h ? h.querySelectorAll('.kpi').length : 0, sideways: document.documentElement.scrollWidth > innerWidth + 1 }; }"""
+    mm = m.evaluate(POS)
+    ok("★ [390] 手機維持原位（#hero 在 #m3 前面、工具列那格收起來）",
+       mm["parent"] == "v-overview" and mm["beforeM3"] and mm["slotHidden"] and not mm["inBar"], mm)
+    ok("[390] 沒有橫向捲軸", not mm["sideways"], mm)
+    if ok("[390] 找得到手機的分段按鈕（① 錢往哪跑／② 貴不貴…）", count(m, "#v-overview .mspine>button") >= 2, count(m, "#v-overview .mspine>button")):
+        m.eval_on_selector("#v-overview .mspine>button:nth-child(2)", "b => b.click()"); m.wait_for_timeout(1200)
+        vis = m.evaluate("""() => { const h = document.getElementById('hero'); const r = h.getBoundingClientRect();
+            return { h: Math.round(r.height), w: Math.round(r.width), n: [...h.querySelectorAll('.kpi')].filter(k => k.getBoundingClientRect().height > 0).length }; }""")
+        ok("[390] 手機「② 貴不貴」那一段照樣看得到四格 KPI", vis["h"] > 0 and vis["n"] == 4, vis)
+    m.set_viewport_size({"width": 1200, "height": 900}); m.wait_for_timeout(900)
+    ok("視窗從 390 放寬到 1200 → KPI 自動搬進工具列", m.evaluate(POS)["inBar"], m.evaluate(POS))
+    m.set_viewport_size({"width": 390, "height": 844}); m.wait_for_timeout(900)
+    back = m.evaluate(POS)
+    ok("再縮回 390 → 搬回原位", back["beforeM3"] and not back["inBar"], back)
+    m.close()
+
+    # ---------------------------------------------------------------- ② 足跡輪盤的放大鈕不存在；其他卡的放大／展開還在
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
+    ok("其他卡的放大沒動：總覽資金熱力圖的「放大 ⤢」還在", count(pg, "#heatZoom") == 1, count(pg, "#heatZoom"))
+    ok("其他卡的展開沒動：大盤三張圖的「展開 ⤢」三顆還在", count(pg, "#m3Grid .m3-big") == 3, count(pg, "#m3Grid .m3-big"))
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
+    zb = pg.evaluate("""() => ({ btn: !!document.getElementById('rotZoomBtn'),
+        txt: [...document.querySelectorAll('#flowRotCard button, #flowRotCard .btn')].filter(e => /放大/.test(e.textContent || '') && e.offsetParent !== null).map(e => e.textContent.trim()),
+        head: ((document.querySelector('#flowRotCard .rotchead') || {}).innerText || '').trim() })""")
+    ok("★ 資金輪動卡、足跡輪盤右上方的「⤢ 放大」不存在了", not zb["btn"] and not zb["txt"], zb)
+    ok("足跡輪盤標題列只剩標題與日期區間", zb["head"].startswith("足跡輪盤") and "放大" not in zb["head"], zb["head"])
+    # 真的在輪盤欄右上角那一帶點一下：不會打開任何放大罩
+    pt = pg.evaluate("""() => { const h = document.querySelector('#flowRotCard .rotchead'); if (!h) return null;
+        const r = h.getBoundingClientRect(); return { x: r.right - 20, y: r.top + r.height / 2 }; }""")
+    if ok("量得到足跡輪盤的標題列", bool(pt), pt):
+        scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(300)
+        pt = pg.evaluate("""() => { const r = document.querySelector('#flowRotCard .rotchead').getBoundingClientRect();
+            return { x: r.right - 20, y: r.top + r.height / 2 }; }""")
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+        ok("在原本放大鈕的位置點一下，不會打開放大罩", pg.evaluate(
+            "() => { const o = document.getElementById('zoomOv'); return !o || o.hidden; }"))
+
+    # ---------------------------------------------------------------- ③ 頁尾左右邊界＝主內容邊界
+    pg.evaluate("() => { try { localStorage.setItem('tw.footDetail', '1'); } catch (e) {} }")
+    for side in ("0", None):
+        pg.evaluate("(s) => { try { if (s == null) localStorage.removeItem('tw.side'); else localStorage.setItem('tw.side', s); } catch (e) {} }", side)
+        widths = (1600,) if side == "0" else (1440, 1024, 800, 390)
+        for w in widths:
+            pg.set_viewport_size({"width": w, "height": 1000})
+            for path in ("#overview", "#flow", "#industry"):
+                pg.goto("about:blank")      # 只換 hash 不會重新載入頁面 → tw.side／tw.footDetail 不會重讀；先離開再進來
+                pg.goto(f"{base}{path}", wait_until="networkidle"); pg.wait_for_timeout(1400)
+                f = pg.evaluate(FOOT0926_M)
+                tag = f"[頁尾 {w}{'／側欄收起' if side == '0' else ''} {path}]"
+                if not ok(tag + " 量得到頁尾與主內容", bool(f), f):
+                    continue
+                ok(f"★ {tag} 頁尾左右邊界＝主內容（.view）左右邊界（差 ≤ 1px）",
+                   abs(f["fl"] - f["vl"]) <= 1 and abs(f["fr"] - f["vr"]) <= 1, f)
+                if f["cl"] is not None:
+                    ok(f"{tag} 也對齊最外側內容卡的左右邊（差 ≤ 1px）", abs(f["fl"] - f["cl"]) <= 1 and abs(f["fr"] - f["cr"]) <= 1, f)
+                want = 4 if f["fw"] > 900 else (2 if f["fw"] > 560 else 1)
+                ok(f"{tag} 八格依寬度 {want} 欄（頁尾寬 {f['fw']}px）", f["shown"] and f["cols"] == want, f)
+                ok(f"{tag} 沒有橫向捲軸", not f["sideways"], f)
+                if side == "0":
+                    ok(f"{tag} 頁尾不再卡在 1200px（改前 max-width:1200 置中）", f["fw"] > 1200, f)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.footDetail'); localStorage.removeItem('tw.side'); } catch (e) {} }")
+    pg.set_viewport_size({"width": 1500, "height": 1000})
 
 
 if __name__ == "__main__":

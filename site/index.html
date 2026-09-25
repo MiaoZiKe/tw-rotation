@@ -3460,6 +3460,32 @@ h3 .howbtn.pop{font-family:inherit}
 #hero.ovstrip .kpi .v{font-size:22px;line-height:1.15}
 #hero.ovstrip .kpi .d{font-size:12.5px;color:var(--ink-2);font-family:var(--mono)}
 
+/* ---- ①' 2026-09-26：KPI 橫條搬進「大盤三張圖」的工具列（Andy：「將我把這內容放進來，並且排版一下」）----
+   #hero 節點本身被 market3.js 的 placeKpi() 搬進 #m3Kpis（手機 ≤640 維持原位，所以這裡不必包 media）。
+   · 高度跟工具列同一級：每格兩行（名稱 12px／數字 16px），整條 42px；原本頂端那條 64px 就沒了。
+   · 放在「?」右邊那段空白：#m3Kpis 吃掉工具列剩下的寬度（flex:1），4 格等寬、細線隔開。
+   · 剩下的寬度不到 680px（1024、800 都是）就整條換到工具列第二行、吃滿整列 —— 不擠、不溢出；
+     連整列都不到 600px（641～660 那一小段）才收成兩兩一組。
+   · 選擇器前面掛 #m3Frame：權重 (2,x,0) 才蓋得過上面 #hero.ovstrip 那組 (1,x,0) 與 @container 的 #hero 欄數。*/
+.m3-bar .m3-kpis{flex:1 1 680px;min-width:0;display:flex;container:m3kpi/inline-size}
+.m3-kpis[hidden]{display:none}
+#m3Frame #hero.ovstrip{flex:1 1 auto;min-width:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;padding:0;margin:0;
+  max-height:none;background:color-mix(in srgb,var(--panel-3) 55%,transparent);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+#m3Frame #hero.ovstrip .kpi{display:flex;flex-direction:column;justify-content:center;gap:0;height:42px;min-height:0;
+  padding:3px 12px;box-sizing:border-box;border:0;border-radius:0;background:none;box-shadow:none;min-width:0}
+#m3Frame #hero.ovstrip .kpi+.kpi{border-left:1px solid var(--line)}
+#m3Frame #hero.ovstrip .kpi.clickable:hover{background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+#m3Frame #hero.ovstrip .kpi .l{font-size:12px;line-height:15px;letter-spacing:.03em}
+#m3Frame #hero.ovstrip .kpi .l .more{font-size:13px;line-height:15px}
+#m3Frame #hero.ovstrip .kpi .vv{line-height:21px;height:21px;gap:6px}
+#m3Frame #hero.ovstrip .kpi .v{font-size:16px;line-height:21px}
+#m3Frame #hero.ovstrip .kpi .d{font-size:12px}
+@container m3kpi (max-width:599.98px){
+  #m3Frame #hero.ovstrip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #m3Frame #hero.ovstrip .kpi:nth-child(3){border-left:0}
+  #m3Frame #hero.ovstrip .kpi:nth-child(n+3){border-top:1px solid var(--line)}
+}
+
 /* ---- 大盤三張圖：一個大方框、三格用細線隔開、工具列在框內左上 ---- */
 #m3{margin-bottom:0}
 .m3-frame{padding:10px 0 6px}
@@ -3887,6 +3913,8 @@ h3 .howbtn.pop{font-family:inherit}
          ⑤ 卡片上的副標、註腳、圖下那排「族群／其他題材」連結全部拿掉；說明一律收進標題旁的「?」（點了跳出、點背景關）。
          元素 id 全部沿用（#hero／#ovHeatCard／#ovThemeCard／#ovBreadthCard／#ovTrustCard），
          手機分段（site/modules.js）照原本的選擇器就抓得到 —— 手機版另有人做，這裡保留可合併的結構。 -->
+    <!-- ★ 2026-09-26（Andy：「將我把這內容放進來，並且排版一下」）：#hero 在桌機（>640px）會被 market3.js 的 placeKpi()
+         搬進下方「大盤三張圖」工具列的 #m3Kpis（「?」右邊那段空白）；手機維持在這裡。它在這裡是手機的位置、也是搬走前的初始位置。 -->
     <div class="hero ovstrip" id="hero"></div>
     <!-- 加權 / 櫃買 / 台指期 的當日走勢與分 K（Andy 2026-09-14）。資料與繪圖在 market3.js -->
     <div id="m3"></div>
@@ -4008,8 +4036,11 @@ h3 .howbtn.pop{font-family:inherit}
           <!-- ★ 2026-09-25（Andy）：①「放大」從右欄（排行標題列）搬到輪盤欄右上角 —— 它放大的是輪盤，
                放在排行上面會讓人以為放大的是排行；②標題後面補日期區間（#rotSub），格式與排行副標相同，
                由 rankSubPaint 一起寫，所以拉Bar／回放／即時三條路自動同步，不另寫第二套。 -->
-          <div class="row spread rotchead"><h4 class="subh">足跡輪盤 <small id="rotSub"></small></h4>
-            <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button></div>
+          <!-- ★ 2026-09-26（Andy：「放大功能取消」）：輪盤欄右上角那顆「⤢ 放大」（#rotZoomBtn）連同它開的放大視窗拿掉。
+               改前：點了開 openZoom 的足跡輪盤放大視窗（拉Bar／篩選／即時鈕各一份）。改後：卡片上的輪盤本身就是完整版
+               （2026-09-25 起高＝欄寬×0.8、四張象限卡推到盤外），篩選、時間軸、即時都在卡片上，放大視窗沒有多給東西。
+               其他卡的「放大／展開」（資金熱力圖、大盤三張圖、法人、河流圖…）不動。 -->
+          <div class="row spread rotchead"><h4 class="subh">足跡輪盤 <small id="rotSub"></small></h4></div>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。

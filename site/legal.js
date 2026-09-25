@@ -212,13 +212,17 @@
   /* 全部用站上既有的 token（--panel／--ink／--cyan…），深淺兩主題自動跟著換。
      字級下限 12px（全站硬規矩）。*/
   const CSS = `
-.sitefoot{max-width:1200px;margin:32px auto 0;padding:24px 0;border-top:1px solid var(--line);
+/* ★ 2026-09-26（Andy：「下面填滿版面 需要調整適當大小」）：改前 max-width:1200px＋margin auto 置中，
+   1440 寬時兩側各空 100 多 px、跟上面全寬的內容卡左右對不齊。改後不設上限、左右邊界＝main 的內距
+   （跟每一頁 .view 裡的卡片同一條線）；八格依 footer 自己的寬度 4／2／1 欄（下面的 @container sfoot）。*/
+.sitefoot{max-width:none;margin:32px 0 0;padding:24px 0;border-top:1px solid var(--line);
   font-size:12px;line-height:1.7;color:var(--ink-3);container:sfoot/inline-size}
 .sitefoot p{margin:0}
 .sitefoot b{color:var(--ink-2);font-weight:600}
 /* 上半部：左邊是版權＋短版免責＋連結列（寬度收在約 2/3，長句才不會拉成一整條難讀的線），右邊是「詳細規範」開關 */
 .sitefoot .sf-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px 24px}
-.sitefoot .sf-main{flex:1 1 auto;min-width:0;max-width:760px}
+/* 左欄文字上限跟著變寬（760 → 1040）：footer 全寬之後 760 會在中間留一大塊空白；1040 在 12px 下約 85 字一行，還讀得動。*/
+.sitefoot .sf-main{flex:1 1 auto;min-width:0;max-width:1040px}
 .sitefoot .sf-copy{color:var(--ink-2);margin-bottom:4px}
 .sitefoot .sf-links{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:8px}
 .sitefoot .sf-links a,.sitefoot .sf-links button{font:inherit;font-size:12px;color:var(--cyan);background:none;border:0;padding:0;

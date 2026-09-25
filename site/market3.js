@@ -1523,6 +1523,10 @@
     state.tf = normTf(ls.get(KEY_TF, '5'));
     state.big = ls.get(KEY_BIG, '');
     if (!IDX.some(x => x.id === state.big)) state.big = '';
+    /* ★ 2026-09-26：KPI 橫條（#hero）桌機時住在這個工具列裡（見 placeKpi）。
+       下一行 innerHTML 會把整個工具列換掉 —— 不先把 #hero 搬回頁面上，它（連同 app.js 寫好的數字、
+       漲跌家數／前五族群佔比的點擊、live.js 認的 [data-live] 格子）會跟著被丟掉，重掛之後就是一條空的。*/
+    { const hero = document.getElementById('hero'); if (hero && host.contains(hero)) host.before(hero); }
     /* ★ 2026-09-24（Andy：「三張圖合併進一個大方框，彼此用細線隔開；『走勢圖／K 線』切換（及週期下拉）
        放在大框內左上角；那行說明文字拿掉（改 ?）」）。
        #m3Note 留著但不上畫面：它是會跟著模式／週期換字的口徑說明，「?」打開時由 HOW.m3 讀它。
@@ -1538,6 +1542,7 @@
           </select></label>
         <button class="howbtn pop" data-how="m3" aria-label="大盤三張圖怎麼看">?</button>
         <span class="note" id="m3Note" hidden></span>
+        <div class="m3-kpis" id="m3Kpis"></div>
       </div>
       <div class="howtxt" id="how-m3" hidden></div>
       <div class="m3-grid" id="m3Grid">${IDX.map(x => `
@@ -1572,9 +1577,36 @@
       state.big = state.big === b.dataset.id ? '' : b.dataset.id;
       ls.set(KEY_BIG, state.big); draw();
     });
+    placeKpi();
     draw();
     refresh(true);
     schedule();
+  }
+
+  /* ★ 2026-09-26（Andy：「將我把這內容放進來，並且排版一下」）：總覽頂端那條 KPI 橫條
+     （加權指數／成交值／漲跌家數／前五族群佔比）搬進這張卡的工具列，排在「?」右邊那段本來空著的地方。
+     做法是**搬同一個節點**（#hero），不是另外畫一份：
+       · app.js 寫數字與點擊（wireKpiDrill 綁在 #hero .kpi.clickable 上）、live.js 盤中改 [data-live] 格子，
+         兩邊都是在整份文件裡找，節點搬到哪裡都找得到 —— 不用多維護第二套、也不會有兩份數字對不上。
+       · 手機（≤640px，mobile3.js 的斷點）維持原位：手機的分段導覽（modules.js 的 #hero 選擇器）與版面都沒動，
+         所以窄到手機寬就搬回 #m3 前面；放寬再搬進來（matchMedia 監聽，縮放視窗也跟著走）。*/
+  const KPI_MOBILE = window.matchMedia ? window.matchMedia('(max-width:640px)') : null;
+  function placeKpi() {
+    const hero = document.getElementById('hero'), host = document.getElementById('m3');
+    const slot = document.getElementById('m3Kpis');
+    if (!hero || !host) return;
+    const mobile = KPI_MOBILE ? KPI_MOBILE.matches : window.innerWidth <= 640;
+    if (!mobile && slot) {
+      if (hero.parentNode !== slot) slot.appendChild(hero);
+      slot.hidden = false;
+    } else {
+      if (host.contains(hero)) host.before(hero);
+      if (slot) slot.hidden = true;
+    }
+  }
+  if (KPI_MOBILE) {
+    const onMq = () => placeKpi();
+    if (KPI_MOBILE.addEventListener) KPI_MOBILE.addEventListener('change', onMq); else if (KPI_MOBILE.addListener) KPI_MOBILE.addListener(onMq);
   }
 
   /* 夜盤的說明帶。
@@ -2407,7 +2439,7 @@
   }, 60 * 1000);
 
   window.Market3 = {
-    mount, refresh, draw, schedule,
+    mount, refresh, draw, schedule, placeKpi,
     get state() { return state; },
     toBars,                                  // 驗收用
     get session() { return state.futSession; },          // 驗收用：時鐘現在在哪一段（決定要不要去抓夜盤）
