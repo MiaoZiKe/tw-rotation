@@ -29521,11 +29521,105 @@ def t_flowtopo_reduced(b, base):
 #     版面半（照經典版）：四層都在、代表股三檔帶 %、四欄等距、標籤在節點右邊、父節點置中、標籤不疊
 #     特效半（照拓撲版）：線寬最粗 ≥ 最細 ×6、粒子速度最大 ≥ 最小 ×4、密度 ×6、明暗、換日依排名補間、動態開關
 #   另外驗三種模式都切得過去、看不見時停動畫、首次畫圖時間與回放幀率（寫進 notes）。
+# ★ 2026-09-26 Andy：「資金去向維持經典版的樹狀結構，不要像圖三那樣；樹狀改成如圖四那樣結構；幫我參考圖五」
+#   改前→改後（_fx_elbow／_fx_hits 兩支）：
+#     · 線：S 形貝茲、從產業鏈直條上扇形排開 → 直角（肘形）樹，兄弟共用一根幹線，四層一致
+#     · 產業鏈節點：直條 → 圓點
+#     · 特效：加上碰撞激發（hitFlash）、擴散震波（同時 ≤ 60 圈）、標籤變亮；動態關／減少動態時全部不出現
 FX_FIRST_DRAW_MAX = 400     # ms：首次畫圖（buildModel→layout→量字→曲線→畫底圖與標籤）。容器實測 80～230ms，拓撲版同條件 77～190ms
 
 
 def _fx_lv(t, k):
     return [n for n in (t or {}).get("nodes", []) if n["lv"] == k]
+
+
+def _fx_elbow(t, tag):
+    """★ 2026-09-26 Andy：「資金去向維持經典版的樹狀結構，不要像圖三那樣；樹狀改成如圖四那樣結構」。
+    改前→改後：
+      · 線：S 形貝茲曲線（起點在直條上依目標 y 排開、扇形散出）→ 直角（肘形）樹：水平 → 垂直 → 水平，
+        起點＝父節點圓心，同一個父節點的兄弟共用同一個分叉點 x（一根幹線），四層一致
+      · 產業鏈節點：直立細條（hh＝出發線寬加總）→ 圓點
+    量的是探針回報的每條邊的特徵點 el＝[x0, y0, 分叉點 x, y1, x1, 圓角]，以及查表（粒子走的那張表）
+    離理想「水平-垂直-水平」折線的最大距離 elDev（圓角半徑 7 的弧最多偏約 2px）。"""
+    nodes = {n["key"]: n for n in (t or {}).get("nodes", [])}
+    lk = [x for x in (t or {}).get("links", []) if x.get("el")]
+    if not ok(f"{tag} 每條邊都有直角路徑的特徵點", bool(lk) and len(lk) == len(t["links"]),
+              {"有": len(lk), "全部": len(t["links"])}):
+        return
+    bad_shape = []
+    for x in lk:
+        x0, y0, xb, y1, x1, rad = x["el"]
+        a, b = nodes.get(x["from"]), nodes.get(x["to"])
+        if not a or not b:
+            bad_shape.append((x["key"], "找不到節點"))
+            continue
+        # 起點＝父節點圓心、終點＝子節點左緣、分叉點 x 夾在兩者之間
+        if abs(x0 - a["x"]) > 1 or abs(y0 - a["y"]) > 1 or abs(y1 - b["y"]) > 1 or not (x0 < xb < x1 <= b["x"]):
+            bad_shape.append((x["key"], x["el"], [a["x"], a["y"], b["x"], b["y"]]))
+    ok(f"{tag} 直角樹：每條邊從父節點圓心水平出發、在分叉點 x 轉垂直、再水平接進子節點（改前是 S 形貝茲、從直條上排開）",
+       not bad_shape, bad_shape[:3])
+    devs = [x["elDev"] for x in lk]
+    ok(f"{tag} 直角樹：粒子走的查表貼著「水平-垂直-水平」折線（偏離 ≤ 3px，只有轉角小圓弧會偏）",
+       max(devs) <= 3, {"max": max(devs), "worst": max(lk, key=lambda x: x["elDev"])["key"]})
+    sib = {}
+    for x in lk:
+        sib.setdefault(x["from"], []).append(x["el"][2])
+    split = {k: (min(v), max(v)) for k, v in sib.items() if max(v) - min(v) > 0.5}
+    ok(f"{tag} 直角樹：同一個父節點的兄弟共用同一根幹線（分叉點 x 相同）", not split, list(split.items())[:3])
+    by_lv = {}
+    for x in lk:
+        by_lv.setdefault(x["lv"], set()).add(round(x["el"][2], 1))
+    ok(f"{tag} 直角樹：同一層的分叉點 x 一致（每層一根對齊的幹線，四層都套用）",
+       sorted(by_lv) == [0, 1, 2] and all(len(v) == 1 for v in by_lv.values()), {k: sorted(v) for k, v in by_lv.items()})
+    cols, tr = t.get("cols") or [], t.get("trunk") or []
+    fr = [round((tr[i] - cols[i]) / (cols[i + 1] - cols[i]), 3) for i in range(3)] if len(cols) == 4 and len(tr) == 3 else []
+    ok(f"{tag} 直角樹：分叉點在兩欄之間、靠父節點那側（40%～62%）", len(fr) == 3 and all(0.39 <= f <= 0.63 for f in fr),
+       {"比例": fr, "幹線x": tr, "欄": cols})
+    # 幹線真的是一根：每個父節點的幹線從最上面的子節點拉到最下面的子節點
+    bad_trunk = []
+    for k, xs in sib.items():
+        kids = [nodes[x["to"]]["y"] for x in lk if x["from"] == k and x["to"] in nodes]
+        if len(kids) >= 2 and max(kids) - min(kids) < 1:
+            bad_trunk.append(k)
+    ok(f"{tag} 直角樹：有兩個以上子節點的父節點，幹線長度 > 0（最上到最下）", not bad_trunk, bad_trunk[:3])
+    L1 = _fx_lv(t, 1)
+    ok(f"{tag} 產業鏈節點是圓、不是直條（改前：直立細條 hh＝出發線寬加總，Andy 圖三紅框）",
+       bool(L1) and all(n["shape"] == "circle" and n["hh"] == 0 and n["r"] >= 4 for n in L1),
+       [(n["name"], n["shape"], n["hh"], n["r"]) for n in L1][:5])
+    ok(f"{tag} 四層節點全部是圓點", all(n["shape"] == "circle" for n in t["nodes"]),
+       [n["key"] for n in t["nodes"] if n["shape"] != "circle"][:3])
+
+
+def _fx_hits(pg, t0, tag):
+    """★ 2026-09-26 Andy 圖五＋原型：碰撞激發、擴散震波、震波上限。讀探針的 hitFlash（每個節點 hf）、
+    目前的震波圈數、累計起了幾圈（rpMade）與同時最多幾圈（rpPeak）。"""
+    t1 = wait_until(pg, """() => { const t = window.App.sankeyTopo();
+        return t && t.running && t.hits > 0 && t.rpMade > 0 && t.nodes.some(n => n.hf > 0) ? t : null; }""", 6000)
+    if not ok(f"{tag} 粒子到站會激發終點節點（hitFlash > 0）、也會起震波", bool(t1),
+              (pg.evaluate(TOPO) or {}).get("hits")):
+        return
+    hot = [n for n in t1["nodes"] if n["hf"] > 0]
+    ok(f"{tag} 激發中的節點 hitFlash 落在 0～1（疊加有上限）", all(0 < n["hf"] <= 1 for n in hot),
+       [(n["name"], n["hf"]) for n in hot][:5])
+    ok(f"{tag} 根節點沒有進來的線、不會被激發", all(n["hf"] == 0 for n in t1["nodes"] if n["lv"] == 0))
+    ok(f"{tag} 震波同時圈數 ≤ 上限 {t1['rpMax']}", t1["ripples"] <= t1["rpMax"] and t1["rpPeak"] <= t1["rpMax"] and t1["rpMax"] <= 60,
+       {k: t1[k] for k in ("ripples", "rpPeak", "rpMax", "rpMade", "hits")})
+    # 一口氣灌 800 次到站（略過每節點冷卻）：上限那道閘要擋得住
+    bu = pg.evaluate("() => window.FlowTopo.burst(document.getElementById('sankey'), 800)")
+    ok(f"{tag} 一口氣 800 次到站：震波仍 ≤ {t1['rpMax']} 圈（上限真的有擋）", bool(bu) and 0 < bu["ripples"] <= t1["rpMax"]
+       and bu["peak"] <= t1["rpMax"], bu)
+    pg.wait_for_timeout(1500)
+    t2 = pg.evaluate(TOPO)
+    ok(f"{tag} 震波會自己收掉（1.5 秒後圈數回落到上限的一半以下）", bool(t2) and t2["ripples"] < t1["rpMax"] / 2,
+       t2 and t2["ripples"])
+    rise, fall = pg.evaluate("() => { const s = getComputedStyle(document.documentElement);"
+                             " return [s.getPropertyValue('--rise').trim(), s.getPropertyValue('--fall').trim()]; }")
+    dots = {n["dot"] for n in t0["nodes"]}
+    ok(f"{tag} 節點色是產業鏈色、不是漲跌紅綠（原型每條線不同色，站上規矩：紅綠只給 ▲▼）",
+       rise not in dots and fall not in dots and len(dots) >= 3, sorted(dots))
+    ok(f"{tag} 標籤變亮用的第四張畫布在（疊在標籤上、不吃滑鼠）", bool(t2) and t2["glowCanvas"] and pg.evaluate(
+        "() => { const c = document.querySelector('#sankey canvas.ftglow'); return !!c && getComputedStyle(c).pointerEvents === 'none'"
+        " && c.width > 100; }"))
 
 
 def _fx_seg(pg):
@@ -29598,6 +29692,8 @@ def t_flowfx(pg, b, base):
        bool(lf_step) and min(lf_step) >= 12 and max(lf_step) - min(lf_step) <= 1, lf_step)
     ok("標籤沒有互相重疊", _topo_overlap(t0) == 0, _topo_overlap(t0))
     ok("發光 shadowBlur ≤ 6px、畫布字 ≥ 12px", 0 < t0["maxBlur"] <= 6 and (t0["minFont"] or 0) >= 12, [t0["maxBlur"], t0["minFont"]])
+    # ---- ★ 2026-09-26 樹狀改直角樹（Andy 圖四）、產業鏈改圓點（圖三不要直條）
+    _fx_elbow(t0, "[經典光纖 1440 深色]")
     # ---- 特效半：照拓撲版
     lk = [x for x in t0["links"] if not x["dead"]]
     ws, vs = [x["w"] for x in lk], [x["v"] for x in lk if x["v"] > 0]
@@ -29608,8 +29704,11 @@ def t_flowfx(pg, b, base):
     ok("粒子也走在代表股那一段（四段都有傳輸效果）", sum(x["n"] for x in t0["links"] if x["lv"] == 2) > 20,
        sum(x["n"] for x in t0["links"] if x["lv"] == 2))
     # 根節點照經典版貼著左緣（x≈14、半徑 13），它左邊已經沒有「一條」可以量像素 —— 只用探針量（粒子 x < 根節點 x）
+    # 2026-09-26 改前→改後：「曲線」現在是直角路徑（探針的 offCurve 量的是同一張查表，斷言不變）
     ok("粒子全部在自己的曲線上、根節點左邊沒有散點", t0["offCurve"] == 0 and t0["leftStray"] == 0,
        {k: t0[k] for k in ("particles", "offCurve", "leftStray", "rootX")})
+    # ---- ★ 2026-09-26 碰撞激發＋擴散震波（Andy 圖五＋原型）
+    _fx_hits(pg, t0, "[經典光纖 1440 深色]")
     # ---- 換日：拉Bar／－＋／依排名換位的補間
     bar = "#sankeyDays input[type=range]"
     if ok("有「看哪一天」拉Bar", count(pg, bar) == 1):
@@ -29724,6 +29823,8 @@ def t_flowfx(pg, b, base):
        and pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')") == "0")
     ha = canvas_hash(pg, "#sankey"); pg.wait_for_timeout(900)
     ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == canvas_hash(pg, "#sankey"))
+    ok("動態關掉：沒有震波、沒有節點在激發（靜止狀態不閃）", tm["ripples"] == 0 and all(n["hf"] == 0 for n in tm["nodes"]),
+       {"震波": tm["ripples"], "激發中": [n["name"] for n in tm["nodes"] if n["hf"]][:3]})
     _topo_contrast(tm, "[經典光纖・動態關]", motion=False)
     pg.eval_on_selector("#sankeyMotionBtn", "b => b.click()")
     ok("再按一次：動畫又跑起來", bool(wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.running ? 1 : 0; }", 5000)))
@@ -29764,6 +29865,8 @@ def t_flowfx(pg, b, base):
     ok("[1024px] 經典光纖：四層都在、標籤不重疊、沒有橫向捲軸", bool(tw) and tw["layout"] == "classic" and len(_fx_lv(tw, 3)) >= 20
        and _topo_overlap(tw) == 0 and pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"),
        tw and {"overlap": _topo_overlap(tw), "leaves": len(_fx_lv(tw, 3))})
+    if tw:
+        _fx_elbow(tw, "[1024px]")
     ok("[1024px] 分段鈕沒有被擠出拉Bar 那一列", pg.evaluate("""() => { const s = document.getElementById('sankeyStyleSeg');
         const r = s.getBoundingClientRect(), p = document.getElementById('sankeyDays').getBoundingClientRect();
         return r.width > 60 && r.right <= p.right + 1 && r.left >= p.left - 1; }"""))
@@ -29781,6 +29884,8 @@ def t_flowfx(pg, b, base):
     if tl:
         _topo_contrast(tl, "[經典光纖 1440 淺色]")
         ok("[淺色] 標籤不重疊", _topo_overlap(tl) == 0, _topo_overlap(tl))
+        _fx_elbow(tl, "[淺色]")
+        _fx_hits(pg, tl, "[淺色]")
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); localStorage.removeItem('tw.sankey.style'); } catch (e) {} }")
     # ---- 減少動態效果：經典光纖一樣只畫靜態、換日不補間
     ctx = b.new_context(viewport={"width": 1440, "height": 950}, reduced_motion="reduce")
@@ -29795,6 +29900,10 @@ def t_flowfx(pg, b, base):
     ok("[減少動態] 經典光纖照樣畫得出來、動畫不跑、動態鈕停用", bool(tr) and tr["layout"] == "classic" and tr["reduce"]
        and not tr["running"] and p2.evaluate("() => document.getElementById('sankeyMotionBtn').disabled"),
        tr and {k: tr[k] for k in ("layout", "reduce", "running")})
+    if tr:
+        ok("[減少動態] 沒有震波、沒有節點在激發、標籤變亮那層是空的", tr["ripples"] == 0 and all(n["hf"] == 0 for n in tr["nodes"])
+           and tr["hits"] == 0, {k: tr[k] for k in ("ripples", "hits")})
+        _fx_elbow(tr, "[減少動態]")
     if count(p2, bar) == 1:
         p2.evaluate(f"() => {{ const i = document.querySelector('{bar}'); i.value = 0;"
                     " i.dispatchEvent(new Event('input', {bubbles: true})); i.dispatchEvent(new Event('change', {bubbles: true})); }")
