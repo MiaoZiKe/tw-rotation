@@ -3028,7 +3028,8 @@
   }
   // 資金熱力圖：不用 treemap 的 roam 縮放 —— 它會把整張圖平移縮放，而且狀態留在 instance 裡，
   // 換分頁再回來就是一片空白（Andy 遇到的就是這個），而且「只能放大縮小整張圖」也解決不了小方塊看不到。
-  // 改成產業鏈下鑽：上面一排晶片點半導體就只看半導體，點「全部」回到原來的圖。
+  // 改成產業鏈下鑽：標題列的「產業鏈：全部 ▾」選半導體就只看半導體，選「全部」回到原來的圖
+  // （2026-09-26 起由一排晶片改成下拉，見 heatChips）。
   /* 產業鏈的中文名。★ 2026-09-21（Andy 截圖上出現一格英文 `financial`）：
      這張表以前是**寫死的第二份對照表**，族群改版新增的 `software` / `financial`
      沒補進來，篩選列就直接把英文 id 印在畫面上（全站繁體中文是硬規則）。
@@ -3134,16 +3135,56 @@
         data }] } };
   }
 
-  function heatChips(chains, box, cur, onPick) {
+  /* 單選下拉（.rotdd 外觀）：熱門題材的「題材：全部 ▾」與資金熱力圖的「產業鏈：全部 ▾」共用。
+     ★ 2026-09-26 Andy：「這邊改成清單，跟下面熱門題材一樣」—— 資金熱力圖上方那排產業鏈晶片
+       （全部、半導體 37.0%、AI 伺服器 31.5%…）折成兩行，把圖往下擠；換成下拉之後只佔標題列的一格。
+       所以這裡不是另寫一套樣式，是把熱門題材原本那段抽出來，兩張卡呼叫同一支：
+         · 外觀全吃 .rotdd（index.html 那一套：深淺主題的選項底色、11px 字級下限、390px 面板不出界）；
+         · 互動一樣：按鈕開合、點外面關（dismissable）、Esc 關並把焦點還給按鈕、選完自己收起來。
+     cfg：id／key（選項上的 data-<key>）／st（放 open 的物件，重畫之後還記得開著沒）／label（按鈕前綴）／
+          curText／title／aria／opts:[{v,text,em,on}]／onPick(v)／align:'right'（在標題列右側時面板往左長，
+          才不會戳出卡片）／tail（接在下拉後面的 HTML，例如資料日期）。*/
+  function ddSingle(ctl, cfg) {
+    const st = cfg.st || {};
+    const k = cfg.key;
+    ctl.innerHTML = `<div class="rotdd${st.open ? ' open' : ''}" id="${cfg.id}">
+          <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="${!!st.open}"
+            title="${fmt.esc(cfg.title || '')}">${cfg.label}<b>${fmt.esc(cfg.curText)}</b><i aria-hidden="true">▾</i></button>
+          <div class="ddpanel" role="listbox" aria-label="${fmt.esc(cfg.aria || '')}"${st.open ? '' : ' hidden'}>
+            <div class="ddlist" style="max-height:340px">
+            ${cfg.opts.map(o => `<button type="button" role="option" class="ddopt${o.on ? ' on' : ''}" data-${k}="${fmt.esc(o.v)}"
+                aria-selected="${!!o.on}">${fmt.esc(o.text)}${o.em != null ? `<em>${fmt.esc(o.em)}</em>` : ''}</button>`).join('')}
+            </div></div></div>${cfg.tail || ''}`;
+    const dd = ctl.querySelector('.rotdd'), btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel');
+    /* 面板預設往右長（.rotdd 的 left:0）。資金熱力圖那顆在標題列左側、390px 時按鈕右緣已經在 286px，
+       面板 210px 寬往右長就會貼到螢幕邊（實測右緣 384 / 390）—— 打開那一刻量一次，超出就改往左長。*/
+    const fit = () => {
+      if (cfg.align === 'right' || pan.hidden) return;
+      pan.style.left = ''; pan.style.right = '';
+      if (pan.getBoundingClientRect().right > document.documentElement.clientWidth - 8) { pan.style.left = 'auto'; pan.style.right = '0'; }
+    };
+    const setOpen = (on) => { st.open = on; pan.hidden = !on; dd.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); fit(); };
+    btn.onclick = (ev) => { ev.stopPropagation(); setOpen(pan.hidden); if (!pan.hidden) dismissable(pan, () => setOpen(false), { also: [dd] }); };
+    dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setOpen(false); btn.focus(); } };
+    $$('.ddopt', pan).forEach(o => o.onclick = () => { st.open = false; cfg.onPick(o.dataset[k]); });
+    if (cfg.align === 'right') { pan.style.left = 'auto'; pan.style.right = '0'; }
+    return dd;
+  }
+
+  /* 資金熱力圖的產業鏈篩選：選項照成交值由大到小，每一項帶「佔全市場成交值 %」（跟以前晶片上的數字同一個口徑）。
+     ★ 2026-09-26：由一排晶片（.chainchips 按鈕）改成 ddSingle 下拉，卡片上那一顆放在標題列左側（#heatCtl，
+       站上規矩：篩選放左上角），放大視窗那一顆放在 #zoomChips（標題旁）。選了之後的行為跟點晶片完全一樣：onPick(cid|null)。*/
+  const heatDD = {};               // 兩顆產業鏈下拉各自的開合狀態（卡片上 heatDD／放大視窗 heatZoomDD）
+  function heatChips(chains, box, cur, onPick, id) {
     if (!box) return;
     const order = Object.keys(chains).sort((a, b) =>
       chains[b].reduce((s, g) => s + g.turnover, 0) - chains[a].reduce((s, g) => s + g.turnover, 0));
-    box.innerHTML = `<button data-c="" class="${cur ? '' : 'on'}">全部</button>`
-      + order.map(cid => {
-        const sh = chains[cid].reduce((s, g) => s + (g.turnover_share || 0), 0);
-        return `<button data-c="${cid}" class="${cur === cid ? 'on' : ''}">${chainLabel(cid)}<em>${fmt.n(sh, 1)}%</em></button>`;
-      }).join('');
-    $$('button', box).forEach(b => b.onclick = () => onPick(b.dataset.c || null));
+    const st = heatDD[id] = heatDD[id] || { open: false };
+    ddSingle(box, { id, key: 'c', st, label: '產業鏈：', aria: '產業鏈',
+      title: '選一條產業鏈，熱力圖就只看它底下的族群', curText: cur ? chainLabel(cur) : '全部',
+      opts: [{ v: '', text: '全部', on: !cur }].concat(order.map(cid => ({ v: cid, text: chainLabel(cid),
+        em: fmt.n(chains[cid].reduce((s, g) => s + (g.turnover_share || 0), 0), 1) + '%', on: cur === cid }))),
+      onPick: (v) => onPick(v || null) });
   }
 
   let heatNoRot = 0;               // 還沒有 5 日 vs 20 日資金流向、改用漲跌上色的族群數（給 HOW.heat 讀）
@@ -3151,7 +3192,7 @@
     if (!gt || !gt.length) return empty('heat');
     const { chains, inChain, option } = heatOption(gt, rot, heatChain, false, heatFocus);
     if (heatChain && !chains[heatChain]) heatChain = null;
-    heatChips(chains, $('#heatChips'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); });
+    heatChips(chains, $('#heatCtl'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); }, 'heatDD');
     const list = inChain || gt.filter(g => !g.group_id.startsWith('ind_'));
     // 圖例排在連結列前面：先插圖例、再插連結列（兩個都是插在 .zwrap 的正後面，所以後插的在前）
     /* ★ 2026-09-24（Andy：「卡片下方的『其他題材』『族群』這類欄位全部拿掉；卡片上的說明文字全部拿掉」）：
@@ -3175,7 +3216,7 @@
       let ch = heatChain;
       const draw = () => {
         const r = heatOption(gt, rot, ch, true, heatFocus);
-        heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); });
+        heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); }, 'heatZoomDD');
         const bc = chart(body, r.option);
         hmRelabel(bc, heatVal);
         if (bc) bc.off('click').on('click', p => {
@@ -6018,25 +6059,15 @@
     const cur = themes.find(t => t.id === OVT.sel) || null;
     if (!cur) OVT.sel = '';
     // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
+    /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
+       Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
+       輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
     const ctl = $('#ovThemeCtl');
-    if (ctl) {
-      ctl.innerHTML = `<div class="rotdd${OVT.open ? ' open' : ''}" id="ovThemeDD">
-          <button type="button" class="ddbtn" aria-haspopup="listbox" aria-expanded="${OVT.open}"
-            title="選一個題材，圖上就換成它的成分股">題材：<b>${cur ? fmt.esc(cur.name) : '全部'}</b><i aria-hidden="true">▾</i></button>
-          <div class="ddpanel" role="listbox" aria-label="題材"${OVT.open ? '' : ' hidden'}>
-            <div class="ddlist" style="max-height:340px">
-            <button type="button" role="option" class="ddopt${cur ? '' : ' on'}" data-t="" aria-selected="${!cur}">全部題材（${themes.length}）</button>
-            ${themes.map(t => `<button type="button" role="option" class="ddopt${cur && cur.id === t.id ? ' on' : ''}" data-t="${fmt.esc(t.id)}"
-                aria-selected="${!!(cur && cur.id === t.id)}">${fmt.esc(t.name)}<em>熱度 ${t.heat}</em></button>`).join('')}
-            </div></div></div>${hmDate(th.date)}`;
-      const dd = $('#ovThemeDD'), btn = dd.querySelector('.ddbtn'), pan = dd.querySelector('.ddpanel');
-      const setOpen = (on) => { OVT.open = on; pan.hidden = !on; dd.classList.toggle('open', on); btn.setAttribute('aria-expanded', String(on)); };
-      btn.onclick = (ev) => { ev.stopPropagation(); setOpen(pan.hidden); if (!pan.hidden) dismissable(pan, () => setOpen(false), { also: [dd] }); };
-      dd.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); setOpen(false); btn.focus(); } };
-      $$('.ddopt', pan).forEach(o => o.onclick = () => { OVT.sel = o.dataset.t; OVT.open = false; OVT.focus = null; renderOvThemes(th); });
-      // 刻意把 .rotdd 的面板對齊到右邊：它在卡片標題列的右側，往左長才不會戳出卡片
-      pan.style.left = 'auto'; pan.style.right = '0';
-    }
+    if (ctl) ddSingle(ctl, { id: 'ovThemeDD', key: 't', st: OVT, label: '題材：', aria: '題材', align: 'right',
+      title: '選一個題材，圖上就換成它的成分股', curText: cur ? cur.name : '全部', tail: hmDate(th.date),
+      opts: [{ v: '', text: `全部題材（${themes.length}）`, on: !cur }].concat(themes.map(t =>
+        ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(cur && cur.id === t.id) }))),
+      onPick: (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); } });
     host.style.height = '300px';
     let data, kind, valOf, tipOf;
     if (!cur) {
