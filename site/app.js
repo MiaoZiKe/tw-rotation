@@ -7719,6 +7719,14 @@
      700 這個數字是量出來的：再低於它，「PCB / ABF 載板 41.6% ▲3%」這種長標籤
      就開始壓到隔壁欄。 */
   const SANKEY_NARROW = 700;
+  /* ★ 2026-09-24（Andy：卡片太高要一直捲、左欄一排散點、照參考檔的微光拓撲重畫）：
+     桌機（視窗 > 820px）改由 site/flowtopo.js 用原生 Canvas 畫（貝茲光纖＋粒子流），
+     個股層只在點開的那個族群長出來 → 1440 寬整張卡 ≤ 760px。資料模型、口徑、下鑽、即時
+     全部照舊由下面的 renderSankey() 算，拓撲版只負責「畫」與「點到哪一顆」。
+     手機（≤ 820px）維持原本的 ECharts 樹。桌機可以用「經典版」鈕切回來（記在 tw.sankey.style）。*/
+  const SANKEY_STYLE_KEY = 'tw.sankey.style';
+  const sankeyStyle = () => { try { return localStorage.getItem(SANKEY_STYLE_KEY) === 'classic' ? 'classic' : 'topo'; } catch (e) { return 'topo'; } };
+  const sankeyTopoOn = () => !!(window.FlowTopo && window.FlowTopo.render) && window.innerWidth > 820 && sankeyStyle() !== 'classic';
 
   /* ------------------------------------------------ 盤中即時資金去向（Andy 2026-09-21）
      「好那在幫我多新增一個『即時』項目可以點選觀看　在紅框那排」
@@ -7893,6 +7901,22 @@
     b.setAttribute('aria-pressed', 'false');
     b.onclick = sklToggle;
     box.appendChild(b);
+    /* 拓撲版／經典版切換（只在桌機出現；≤ 820px 一律經典版，CSS 把這顆藏起來）。
+       選項放進畫面而不是放進對話：兩種都做好，使用者自己切，設定記在 tw.sankey.style。*/
+    const sb = document.createElement('button');
+    sb.type = 'button'; sb.id = 'sankeyStyleBtn'; sb.className = 'pb livebtn';   // 借即時鈕的寬度樣式（不會亮起來）
+    const paintSb = () => {
+      const topo = sankeyStyle() !== 'classic';
+      sb.textContent = topo ? '經典版' : '拓撲版';
+      sb.title = topo ? '改回原本的樹狀圖（ECharts）' : '改看微光拓撲版（粒子流）';
+    };
+    paintSb();
+    sb.onclick = () => {
+      try { localStorage.setItem(SANKEY_STYLE_KEY, sankeyStyle() === 'classic' ? 'topo' : 'classic'); } catch (e) { /* 忽略 */ }
+      paintSb();
+      const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
+    };
+    box.appendChild(sb);
     /* 換主題會把整頁重畫一次（applyTheme → route），playBar 連帶把這一排的 innerHTML
        換掉，所以這顆鈕是全新的一顆。即時模式如果還開著，要把「亮起來」的樣子補回去，
        不然畫的明明是即時資料、鈕看起來卻是關的。*/
@@ -7903,7 +7927,8 @@
     const el = $('#sankey'); if (!el) return;
     /* 空狀態要把 JS 量出來的高度也清掉 —— `.isempty` 收的是 CSS 的 min-height，
        收不掉寫在 style 上的 height，不清就會留一個 900px 的黑方塊。*/
-    const bail = (msg) => { el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
+    const bail = (msg) => { if (window.FlowTopo) window.FlowTopo.destroy(el);
+      el.style.height = ''; el._skShape = ''; return empty('sankey', msg); };
     if (!sd || !sd.dates || !sd.dates.length) return bail('資金去向的逐日資料還沒產出（下一輪盤後管線就會有）');
     const D2 = sd.dates;
     const k = Math.max(0, Math.min(D2.length - 1, idx == null ? D2.length - 1 : idx));
@@ -7924,7 +7949,15 @@
       const rw = row.clientWidth || 0;
       row.classList.toggle('stack', rw > 0 && rw - 314 < SANKEY_NARROW);
     }
-    const narrow = (el.clientWidth || 9999) < SANKEY_NARROW;
+    const topo = sankeyTopoOn();
+    // 拓撲版自己控欄寬（成分股只長在點開的族群），不需要「窄版收掉代表股」那一套
+    const narrow = !topo && (el.clientWidth || 9999) < SANKEY_NARROW;
+    if (topo) {
+      // 從經典版切過來：收掉 ECharts 實例與它那層小圓點（兩套不能疊在同一個容器）
+      stopSankeyFlow();
+      try { const ec = window.echarts && echarts.getInstanceByDom(el); if (ec) { ec.dispose(); delete charts[el.id]; } } catch (e) { /* 忽略 */ }
+      el._skShape = '';
+    } else if (window.FlowTopo && window.FlowTopo.has(el)) { window.FlowTopo.destroy(el); el.style.height = ''; }
     const selG = sel && sel.gid, selC = sel && sel.chain;
     const gs = roster.map(g => ({ ...g, v: (g.tv || [])[k],
       prev: k > 0 ? (g.tv || [])[k - 1] : null }));       // 前一天：給「比昨天多還是少」用
@@ -8288,7 +8321,7 @@
        展開之後最多 17 × 3 ＋ 21 ＝ 72 片 → 1216px，所以上限從 1040 放到 1400。*/
     const leafRows = chainNodes.reduce((s2, c) =>
       s2 + c.children.reduce((t, g) => t + (g.children || []).length, 0), 0);
-    el.style.height = (narrow ? Math.max(420, gRows * 36 + 48)
+    if (!topo) el.style.height = (narrow ? Math.max(420, gRows * 36 + 48)
       : Math.max(560, Math.min(expNode ? 1400 : 1040, leafRows * 16 + 64))) + 'px';
     /* ★ 高度變了就**先自己 resize 一次**，再去 setOption。
        原因：ECharts 記的是上一次量到的寬高，不會自己去讀 DOM。
@@ -8299,13 +8332,14 @@
        `_roSize` 要同步蓋掉，免得 ResizeObserver 等一下又來一次（見 chart() 裡那道閘門）。*/
     try {
       const prev = window.echarts && echarts.getInstanceByDom(el);
-      if (prev && el.clientHeight > 0) {
+      if (!topo && prev && el.clientHeight > 0) {
         const sig = el.clientWidth + 'x' + el.clientHeight;
         if (el._roSize !== sig) { el._roSize = sig; prev.resize(); }
       }
     } catch (e) { /* 拿不到實例就算了，最多就是少一段動畫 */ }
 
-    const c = chart('sankey', {
+    // 選項先組成一個物件：拓撲版也要借用同一支提示框內容（tooltip.formatter），不另寫一份
+    const skOpt = {
       tooltip: { ...tip, trigger: 'item', triggerOn: 'mousemove',
         formatter: (p) => {
           const d = p.data || {};
@@ -8381,9 +8415,11 @@
          而這張圖的名稱唯一（`uniqName`），所以對得上。
          ⚠ `series[].data` 在合併時是**整個換掉**（ECharts 不會深層合併 data），
            所以「收回」時多出來的葉子會真的消失，不會殘留。*/
-    }, { notMerge: el._skShape !== (narrow ? 'n' : 'w') });
-    el._skShape = narrow ? 'n' : 'w';
-    if (c) c.off('click').on('click', p => {
+    };
+    const c = topo ? null : chart('sankey', skOpt, { notMerge: el._skShape !== (narrow ? 'n' : 'w') });
+    if (!topo) el._skShape = narrow ? 'n' : 'w';
+    // 點節點：經典版（ECharts）與拓撲版共用這一支，下鑽／成分股面板／點個股的行為只有一套
+    const onPick = (p) => {
       const d = p.data || {};
       if (d.placeholder) return;
       // 「其餘 N 檔」不是一檔股票，點它不該跳到任何地方（完整名單在右邊那一欄）
@@ -8417,7 +8453,21 @@
       }
       // 根節點（台股成交值）＝回到最上層，和點背景／ESC 同一個結果
       if (p.name === '台股成交值' || p.dataIndex === 0) return drillClose();
-    });
+    };
+    if (c) c.off('click').on('click', onPick);
+    if (topo) {
+      window.FlowTopo.render(el, root, {
+        pal: { dark: !lt, panel: CH.panel, line: CH.line, ink: CH.ink, ink2: CH.ink2, ink3: CH.ink3,
+          up: CH.up, down: CH.down, cyan: CH.cyan },
+        maxV, total, openGid: DRILL.gid || null,
+        colorOf: (gid) => L.gcolor[gid],
+        rootLines: rootLbl.split('\n'),
+        legend: `${live ? '<b>即時</b>　' : ''}粒子＝資金流動　線越粗＝錢越多　<b>點族群</b>長出成分股，再點一次收回`,
+        tipHTML: (d) => skOpt.tooltip.formatter({ data: d, name: d.name }),
+        onPick: (d, lv) => onPick({ data: d, name: d.name, dataIndex: lv === 0 ? 0 : -1 }),
+        onBlank: () => { if (drillActive()) drillClose(); },
+      });
+    }
     /* ★ 點背景就回復預設（Andy 2026-09-21：「當點擊背景時會恢復 Default 狀態」）。
        ECharts 的 series click 只在點到圖元時才發，所以「點到空白」要跟 zrender 要 ——
        `ev.target` 是 null 就代表這一下沒有打到任何圖元。
@@ -8470,12 +8520,18 @@
          大盤 → 產業鏈 → 族群 → 代表股。*/
     if (c) {
       c.off('finished');
-      let armed = true;
+      /* ★ 2026-09-24（Andy 回報「最左邊那一欄有一排散亂的小點，看起來是壞掉的」）：
+         以前只接**第一次** finished。但整張重建（notMerge）時第一次 finished 發生在
+         樹還在從根節點「長出來」的動畫途中 —— 那一刻每個節點的 x 都還貼在根節點旁邊，
+         讀到的座標被凍結下來，所有小圓點就沿著左邊一條直線跑（實測 x≈25 一整排）。
+         改成每次 finished 都重讀座標，座標真的變了才換 flows（沒變就直接略過，成本只有讀一次座標）。*/
+      let lastSig = '';
       c.on('finished', () => {
-        if (!armed) return;              // finished 會重複觸發，只接第一次
-        armed = false;
         const pos = sankeyNodePos(c); if (!pos) return;
         const a = pos['台股成交值']; if (!a) return;
+        const sig = Object.keys(pos).map(k => k + Math.round(pos[k].x) + ',' + Math.round(pos[k].y)).join('|');
+        if (sig === lastSig && sankeyFx && sankeyFx.alive() && sankeyFx.host === el) return;
+        lastSig = sig;
         const flows = [];
         const push = (from, to, v, gid, col, scale, lvl) => {
           if (!from || !to || !(v > 0)) return;
@@ -8537,9 +8593,11 @@
       return !!(r2 && r2.clientWidth > 0 && r2.clientWidth - 314 < SANKEY_NARROW); };
     if (!el.dataset.skRo && window.ResizeObserver) {
       el.dataset.skRo = '1';
-      let t = null, was = narrow, wasStack = stackWanted();
+      // 「型態」＝拓撲版／經典寬版／經典窄版；視窗跨過 820px 時要換一套畫法
+      const shapeNow = () => (sankeyTopoOn() ? 'T' : (el.clientWidth || 9999) < SANKEY_NARROW ? 'n' : 'w');
+      let t = null, was = shapeNow(), wasStack = stackWanted();
       new ResizeObserver(() => {
-        const nw = (el.clientWidth || 9999) < SANKEY_NARROW;
+        const nw = shapeNow();
         const sk = stackWanted();
         if (nw === was && sk === wasStack) return;
         was = nw; wasStack = sk;
@@ -9044,10 +9102,13 @@
   // 曲線圖的線色：從全站色盤挑 10 個彼此分得開、而且**不是紅也不是綠**的（紅綠在這個站是漲跌）
   const SEASON_LINE_IDX = [0, 2, 1, 6, 15, 12, 9, 13, 21, 25];
   let _snCtx = null;
+  /* 格內數字的字族。★ 2026-09-24：以前畫布上只寫 'JetBrains Mono' 一個字，沒裝這個字的電腦（Windows 預設就沒有）
+     會退回瀏覽器預設的襯線體，數字變成細細的 Times；跟全站 `--mono` 用同一串退路，量字寬與畫字也用同一串。*/
+  const SN_MONO = 'JetBrains Mono, SFMono-Regular, Menlo, Consolas, monospace';
   const snTextW = (s) => {           // 格內數字用等寬字，跟 hmTextW（粗體黑體）量法不同，分開量
     if (!_snCtx) { try { _snCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _snCtx = null; } }
     if (!_snCtx) return String(s).length * 7.5;
-    _snCtx.font = '600 12px JetBrains Mono, monospace';
+    _snCtx.font = '600 12px ' + SN_MONO;
     return _snCtx.measureText(String(s)).width;
   };
 
@@ -9095,16 +9156,42 @@
       const all = ordered(P, sortM);
       const rows = rowsMode === 'all' ? all : all.slice(0, 20);
       const mob = mIsM();
-      const rowH = mob ? 20 : 24;
+      /* ★ 2026-09-24 格子尺寸（規格 docs/season_grid_spec.md；Andy：「格子彼此需要多一點間隔」
+         「每格寬度調整成剛好容納數字」）。只改桌機（>820px），手機照舊（列高 20、縫 1、欄寬撐滿）。
+         桌機：格子看得到的部分 56～64 × 24、縫 4px、圓角 3px；整張表靠左，卡片多出來的寬度留白。
+         縫的做法：ECharts 熱力圖的方塊一定撐滿整個類目帶，所以用「跟卡片底同色的邊框」把縫畫出來 ——
+         邊框線以方塊邊緣為中心，寬 GAP 就在相鄰兩格之間留下 GAP 寬的底色；
+         圓角要設成 3 + GAP/2，邊框內緣看起來才是 3px 的圓角。*/
+      const GAP = mob ? 1 : 4;
+      const rowH = mob ? 20 : 24 + GAP;
       // 名稱欄寬：量最長的名字；手機上限 112（超過截成「…」，全名在提示框），桌機上限 180
       const nameW = Math.ceil(Math.max(40, ...rows.map(r => hmTextW(r.name, 12)))) + 12;
       const left = Math.min(nameW, mob ? 112 : 180), right = 4;
-      const W = box.clientWidth || el.clientWidth || 600;
-      const colW = (W - left - right) / 12;
       el.style.height = (rows.length * rowH + 8) + 'px';
+      let colW, cellW;
+      if (mob) {
+        box.style.width = '';
+        const W = box.clientWidth || el.clientWidth || 600;
+        colW = (W - left - right) / 12; cellW = colW - GAP;
+      } else {
+        /* 格寬＝「這個指標所有格子裡最寬的那個數字」＋左右各 8px，夾在 56～64 之間：
+           用全部族群量（不是只量畫出來的前 20 名），切「前 20／全部」時格寬才不會跳。*/
+        let maxT = 0;
+        all.forEach(r => { for (let m = 1; m <= 12; m++) { const c = r.m[m]; const v = c ? c[metric] : null;
+          if (v != null) maxT = Math.max(maxT, snTextW(cellTxt(v, metric))); } });
+        const want = Math.min(64, Math.max(56, Math.ceil(maxT) + 16)) + GAP;
+        // 可用寬度＝卡片內容寬（外框本身被設成表格寬，量它會量到自己）；扣掉「全部」時的捲軸寬
+        const host = box.parentElement, cs = getComputedStyle(host);
+        const avail = host.clientWidth - parseFloat(cs.paddingLeft || 0) - parseFloat(cs.paddingRight || 0);
+        const sb = Math.max(0, box.offsetWidth - box.clientWidth);
+        colW = Math.min(want, (avail - sb - left - right) / 12);   // 窄桌機放不下 12 × 64 時才縮，照舊撐滿
+        cellW = colW - GAP;
+        box.style.width = Math.floor(left + 12 * colW + right + sb) + 'px';
+      }
       const inst = window.echarts && echarts.getInstanceByDom(el); if (inst) inst.resize();
-      // 月份表頭（HTML、sticky）：跟 grid 的左右邊界對齊；點一下＝依那個月排序
-      head.style.paddingLeft = left + 'px'; head.style.paddingRight = right + 'px';
+      // 月份表頭（HTML、sticky）：跟格子看得到的那一塊對齊（左右各內縮半條縫、欄距＝縫）；點一下＝依那個月排序
+      head.style.paddingLeft = (left + (mob ? 0 : GAP / 2)) + 'px'; head.style.paddingRight = (right + (mob ? 0 : GAP / 2)) + 'px';
+      head.style.columnGap = mob ? '' : GAP + 'px';
       head.innerHTML = MONTHS.map((t, i) => { const m = i + 1;
         return `<button type="button" data-m="${m}" class="${m === sortM ? 'on' : ''}${m === nowM ? ' now' : ''}"`
           + ` aria-pressed="${m === sortM}" title="依 ${m} 月由強到弱排序${m === nowM ? '（本月）' : ''}">${colW >= 40 ? t : m}</button>`; }).join('');
@@ -9123,8 +9210,8 @@
             itemStyle: { color: hmColor(bin, K), opacity: focus != null && focus !== bin ? 0.22 : 1 } });
         }
       });
-      // 放得下才印：寬度扣 6px 邊、列高至少 16（12px 字＋上下各 2）
-      const fits = (t) => !!t && rowH >= 16 && snTextW(t) <= colW - 6;
+      // 放得下才印：列高至少 16（12px 字＋上下各 2）；手機寬度扣 6px 邊，桌機是「字寬＋左右各 4 ≤ 格子看得到的寬」
+      const fits = (t) => !!t && rowH >= 16 && (mob ? snTextW(t) <= colW - 6 : snTextW(t) + 8 <= cellW);
       const nFit = data.filter(d => fits(cellTxt(d.value[2], metric))).length;
       const nLab = showNum ? nFit : 0;
       /* 一格都放不下（手機 390px：每欄約 17px，最短的「0%」也要 20px）→「顯示數字」這顆整個收起來，
@@ -9133,6 +9220,7 @@
       el.dataset.canfit = nFit ? '1' : '0';
       el.dataset.rows = rows.length; el.dataset.nlab = nLab; el.dataset.nval = nVal;
       el.dataset.rowh = rowH; el.dataset.colw = colW.toFixed(1);
+      el.dataset.cellw = cellW.toFixed(1); el.dataset.gap = GAP;
       const tipRow = (k, v, key) => ({ k, v: fmtV(v, key), c: v == null ? CH.ink3 : key.includes('win') ? CH.ink : v > 0 ? CH.up : v < 0 ? CH.down : CH.ink });
       const c = chart('seasonHeat', {
         animation: false,
@@ -9148,15 +9236,19 @@
           // ★ interval: 0 ＝ 每一列的名字都印（以前 ECharts 自動隔列省略，只印每 4～5 列一個）
           axisLabel: { interval: 0, color: CH.ink2, fontSize: 12, margin: 8, width: left - 10, overflow: 'truncate', ellipsis: '…' } },
         series: [{ type: 'heatmap', data, cursor: 'default',
-          itemStyle: { borderColor: CH.card, borderWidth: 1, borderRadius: 3 },
-          emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: 1.5 } },
-          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: 'JetBrains Mono', color: '#fff',
+          itemStyle: { borderColor: CH.card, borderWidth: GAP, borderRadius: mob ? 3 : 3 + GAP / 2 },
+          emphasis: { itemStyle: { borderColor: CH.ink, borderWidth: mob ? 1.5 : 2 } },
+          label: { show: showNum, fontSize: 12, fontWeight: 600, fontFamily: SN_MONO, color: '#fff',
             formatter: (p) => { const t = cellTxt(p.data.value[2], metric); return fits(t) ? t : ''; } } }],
       }, { notMerge: true });
       // ★ 點格子只出提示框（ECharts 預設就會），不做別的事：逐年明細那張卡已經拿掉，不留一個點了沒反應的入口
       if (c) c.off('click');
       const lg = hmLegend('seasonHeatBox', K, focus, (f) => { focus = f; drawHeat(); });
-      if (lg) lg.style.display = view === 'heat' ? '' : 'none';
+      if (lg) {
+        lg.style.display = view === 'heat' ? '' : 'none';
+        // 桌機：圖例的寬跟表格一樣寬 → 圖例右緣對齊最後一欄（「圖的右下」這條規則不變，只是圖變窄了）
+        lg.style.width = mob ? '' : box.style.width;
+      }
       writeNote();
     };
 
@@ -9365,13 +9457,15 @@
     $$('#seasonPeriod button').forEach(b => { b.style.display = s3.periods[b.dataset.v] ? '' : 'none'; });
     /* 外框寬度變了（視窗縮放、事件抽屜開關）就重畫熱力圖：表頭寫「9 月」還是「9」、
        格子放不放得下數字，都是依當下的欄寬算的，不重算就會用舊寬度的判斷。*/
-    const hbox = $('#seasonHeatBox');
-    if (hbox && !hbox._ro && typeof ResizeObserver !== 'undefined') {
-      let lastW = hbox.clientWidth;
-      hbox._ro = new ResizeObserver(() => { const w = hbox.clientWidth;
+    /* ★ 2026-09-24：桌機的外框寬被設成「表格寬」，量它會量到自己設的值（視窗變窄它也不會變），
+       所以改量外面那張卡片。*/
+    const hbox = $('#seasonHeatBox'), hcard = hbox && hbox.parentElement;
+    if (hcard && !hbox._ro && typeof ResizeObserver !== 'undefined') {
+      let lastW = hcard.clientWidth;
+      hbox._ro = new ResizeObserver(() => { const w = hcard.clientWidth;
         if (!w || Math.abs(w - lastW) < 16) return; lastW = w;
         if (view === 'heat') { drawHeat(); } });
-      hbox._ro.observe(hbox);
+      hbox._ro.observe(hcard);
     }
     draw();
   }
@@ -9699,6 +9793,19 @@
       },
       // 手動催一輪即時（驗收用；平常是 setInterval 每分鐘一次，等不了）
       sankeyLiveTick: () => sklTick(),
+      /* 資金去向拓撲版（site/flowtopo.js）的量測窗口：節點座標、粒子、幀率、發光與字級上限。
+         `sankeyStyle('classic'|'topo')` 讓驗收切版本（經典版的舊段落仍在驗 ECharts 那一套）。*/
+      sankeyTopo: () => (window.FlowTopo ? window.FlowTopo.probe(document.getElementById('sankey')) : null),
+      sankeyTopoOn: () => sankeyTopoOn() && !!(window.FlowTopo && window.FlowTopo.has(document.getElementById('sankey'))),
+      sankeyStyle: (s) => {
+        if (s) {
+          try { localStorage.setItem(SANKEY_STYLE_KEY, s === 'classic' ? 'classic' : 'topo'); } catch (e) { /* 忽略 */ }
+          const b = document.getElementById('sankeyStyleBtn');
+          if (b) b.textContent = s === 'classic' ? '拓撲版' : '經典版';
+          const st = sankeyState; if (st) renderSankey(st.sd, st.k, sankeySel);
+        }
+        return sankeyStyle();
+      },
       /* ── 盤中即時輪動時鐘（RLV）的量測窗口 ──
          `cover` 就是畫面上那個涵蓋率、`top` 就是「走得最多的族群」那一排的數字，
          驗收量的是**真的畫出去的那一份**，不是另外算一次。*/
