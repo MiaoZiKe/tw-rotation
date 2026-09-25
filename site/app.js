@@ -3217,7 +3217,7 @@
          · 換段徽章縮成「←改善」（從哪一段換進來；換進的是哪一段＝面板標題，不必再寫一次），
            完整句子在 title。徽章是換段資訊唯一的出口（#rotMove 已移除），所以是縮短不是拿掉。*/
   const rotSgn = (v, d) => (v >= 0 ? '+' : '') + fmt.n(v, d == null ? 1 : d);
-  function rotItem(r) {
+  function rotItem(r, open) {
     const arrow = r.dmo == null ? '<span class="ar fl" title="資料不足">·</span>'
       : r.dmo > 0.15 ? `<span class="ar up" title="${ROT_BOARD_WIN} 個交易日來動能變強（${rotSgn(r.dmo, 2)}）">↑</span>`
         : r.dmo < -0.15 ? `<span class="ar dn" title="${ROT_BOARD_WIN} 個交易日來動能轉弱（${rotSgn(r.dmo, 2)}）">↓</span>`
@@ -3225,7 +3225,7 @@
     const jump = r.moved && r.was && STAGE[r.was]
       ? `<span class="jmp" style="--c:${STAGE[r.was].color}" title="${ROT_BOARD_WIN} 個交易日前在「${STAGE[r.was].name}」，這幾天換進「${STAGE[r.stage].name}」">←${STAGE[r.was].name}</span>` : '';
     const mo = r.mo != null ? rotSgn(r.mo - 100) : '—';
-    return `<li data-gid="${r.gid}"><span class="gc"><span class="g" title="${fmt.esc(r.name)}">${fmt.esc(r.name)}</span>${jump}</span>`
+    return `<li data-gid="${r.gid}"${open ? ' class="ison"' : ''}><span class="gc"><span class="tw2" aria-hidden="true">${open ? '▾' : '▸'}</span><span class="g" title="${fmt.esc(r.name)}">${fmt.esc(r.name)}</span>${jump}</span>`
       + `<span class="v" title="相對大盤強弱">${rotSgn(r.rs - 100)}</span>`
       + `<span class="v" title="動能">${mo}</span>`
       + `<span class="v" title="成交值佔比">${fmt.n(r.share, 1)}%</span>${arrow}</li>`;
@@ -3390,6 +3390,18 @@
        面板只佔時鐘那一欄的右半邊（300px），排行那一欄一個像素都沒有被吃掉。
      · 窄畫面（≤1100px）`.rotstagerow` 退回單欄，面板掉到時鐘下面 —— 300px 的面板
        和一張讀得出來的時鐘在 800px 裡放不下，那是合理的退讓（CSS 在 index.html）。*/
+  /* 象限族群表的列（2026-09-25 合併：象限面板與成分股面板共用同一張表）。
+     openGid＝就地展開的那一列，在它正下方插一列成分股小表（memHtml）。*/
+  function rotQuadRows(list, onW, openGid, memHtml) {
+    if (!list.length) return '<li class="none">這一段目前沒有族群（可能是上面的篩選只留了別段的族群）</li>';
+    return `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>`
+      + list.map(r => {
+        const on = r.gid === openGid;
+        let h = rotItem(r, on);
+        if (onW.size && !onW.has(r.gid)) h = h.replace('<li ', '<li data-off="1" title="成交值不在前 16 名，沒有畫在盤上" ');
+        return h + (on && memHtml ? memHtml : '');
+      }).join('');
+  }
   function renderStagePanel() {
     const box = $('#stagePanel'); if (!box) return;
     const k = rotStageOpen;
@@ -3413,9 +3425,7 @@
         <b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群${onW.size ? `（盤上 ${nOn}）` : ''}</span>
         <span class="muted">${s.sub}　·　<em>${s.act}</em></span></div>
       <div class="sd muted" title="點族群＝在「資金流向排行」下面展開成分股；點面板外面或按 Esc 關閉">依成交值佔比排序${live ? '　·　<b>⚡ 盤中即時</b>' : ''}</div>
-      <ul class="ms">${list.length ? `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>` : ''}${list.map(r => (onW.size && !onW.has(r.gid)
-          ? rotItem(r).replace('<li ', '<li data-off="1" title="成交值不在前 16 名，沒有畫在盤上" ') : rotItem(r))).join('')
-        || '<li class="none">這一段目前沒有族群（可能是上面的篩選只留了別段的族群）</li>'}</ul>`;
+      <ul class="ms">${rotQuadRows(list, onW, null)}</ul>`;
     dismissable(box, () => { if (rotStageOpen) rotStageToggle(rotStageOpen); }, { ignore: ['#rankPanel'] });
     /* 展開成分股走**既有**那條路（`drillOpen` → `#rankPanel`），和即時那排 `rlvchip`、
        排行長條、族群下拉完全一樣 —— 全站只有一套「點族群展開成分股」的邏輯。*/
@@ -6695,6 +6705,8 @@
         const today = (() => { try { return new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); } catch (e) { return to; } })();
         const rs = $('#rankSub'); if (!rs) return;
         rs.textContent = `${md(from)} ～ ${md(RLV.on ? today : to)}`;
+        // 輪盤標題後面的日期區間（2026-09-25）：同一段、同一個字串，一起寫才不會走鐘
+        const os = $('#rotSub'); if (os) { os.textContent = rs.textContent; os.title = `${from} ～ ${to}（${k} 個交易日）`; }
         rs.title = `${from} ～ ${to}（${k} 個交易日）`
           + (prevTo > prevFrom ? `，和再往前 ${prevTo - prevFrom} 個交易日相比` : '，沒有可比的上一段')
           + (RLV.on ? '；即時模式下結尾寫今天（排行本身仍是收盤資料）' : '');
@@ -7990,6 +8002,8 @@
     const gid = DRILL.gid;
     if (!gid && DRILL.chain && panelId === 'sankeyPanel') return renderDrillChainPanel(box, panelId);
     if (!gid) { box.hidden = true; box.dataset.gid = ''; box.dataset.sig = ''; return; }
+    if (panelId === 'rankPanel' && !DRILL.chain && window.matchMedia && matchMedia('(min-width:821px)').matches
+        && renderMergedSide(box)) return;
     const det = (D.groups_detail || {})[gid] || {};
     const ms = (det.members || []).slice().map(m => ({ ...m, tv: +m.turnover || 0 }))
       .sort((a, b) => b.tv - a.tv);
@@ -8011,6 +8025,7 @@
       : DRILL.state === 'fail' ? '這個族群的個股輪動資料還沒算出來（下一輪盤後管線就會有），所以現在只能看清單，還畫不到輪盤上。'
         : nRRG ? '' : '這個族群的個股輪動資料還沒算出來（上市未滿 50 個交易日的個股本來就不會有），所以現在只能看清單。';
     box.hidden = false;
+    box.classList.remove('merged');
     box.innerHTML = `<div class="hh">
         <button class="btn small" data-all="1" title="${DRILL.chain ? '回到「' + fmt.esc(DRILL.chainName) + '」這條產業鏈' : '回到只看族群（按 ESC 也可以）'}">‹ ${DRILL.chain ? fmt.esc(DRILL.chainName) : '全部族群'}</button>
         <b>› ${fmt.esc(gname)}</b>
@@ -8045,6 +8060,66 @@
         drillToggleStock(code);
       };
     });
+  }
+
+  /* ★ 2026-09-25（Andy：「這邊版面要優化，佔太多空間；點擊領先時，裡面的 HPC 會有下拉清單可以看個股資訊，
+       這兩張圖合併，並調整適當大小」）：
+     以前點象限 → 右欄是族群表；點族群 → 整欄換成另一張成分股面板，每檔一張大空卡，5 檔就撐滿整欄。
+     使用者要在兩張面板之間來回，而且一換面板就看不到「這個族群在這一段裡排第幾」。
+     現在只有一張表：族群所在象限的族群表，被點的那一列**就地展開**成一行一檔的成分股小表。
+     · 同時只展開一列（DRILL.gid 只有一個）；點另一列＝換過去，點自己＝收回象限表。
+     · 點名稱＝畫到盤上（原本那條 drillToggleStock）、點 → ＝進個股頁。
+     · 找不到這個族群的象限（例如不在輪動資料裡）回傳 false，退回舊的卡片面板，不給一張空表。
+     · 只在 >820px 做；手機維持舊面板（Andy 這一批只要求桌機）。
+     · 容器仍是 #rankPanel，所以 dismissable／Esc／drillActive 全部沿用，不另起一套關閉邏輯。*/
+  function renderMergedSide(box) {
+    const gid = DRILL.gid;
+    const all = rotStageAll();
+    const me = all.find(r => r.gid === gid);
+    if (!me || !STAGE[me.stage]) return false;
+    const k = me.stage, s = STAGE[k];
+    const list = all.filter(r => r.stage === k);
+    const el0 = $('#rotClock');
+    const onW = new Set(((el0 && el0._rotHov && el0._rotHov.top) || []).filter(r => !r.isStock).map(r => r.gid));
+    const det = (D.groups_detail || {})[gid] || {};
+    const ms = (det.members || []).slice().map(m => ({ ...m, tv: +m.turnover || 0 })).sort((a, b) => b.tv - a.tv);
+    const mm = drillMembers(gid);
+    const sig = ['m', gid, k, list.map(r => r.gid).join(','), [...DRILL.stocks].sort().join(','), DRILL.state, ms.length].join('|');
+    if (box.dataset.sig === sig && !box.hidden) return true;
+    box.dataset.sig = sig; box.dataset.gid = String(gid);
+    const sum = ms.reduce((a, m) => a + m.tv, 0) || 1;
+    const col = L.gcolor[gid] || CH.cyan;
+    const warn = DRILL.state === 'loading' ? '個股輪動資料載入中…'
+      : (DRILL.state === 'fail' || !Object.keys(mm).length) ? '個股輪動資料還沒算出來，只能看清單、畫不到盤上' : '';
+    const mem = `<li class="mem"><div class="mt">${ms.length ? ms.map(m => {
+      const code = String(m.code), on = DRILL.stocks.has(code), can = !!mm[code];
+      return `<div class="mr${on ? ' ison' : ''}${can ? '' : ' noplot'}" data-code="${fmt.esc(code)}"${on ? ` style="--c:${col}"` : ''}>`
+        + `<span class="nm" title="${can ? (on ? '再點一次從盤上拿掉' : '點一下畫到盤上（空心圓）') : '上市未滿 50 個交易日，畫不到盤上'}">${on ? '● ' : ''}${fmt.esc(m.name || code)}</span>`
+        + `<span class="c">${fmt.esc(code)}</span><span class="v">${fmt.yi(m.tv)}</span><span class="v">${fmt.n(m.tv / sum * 100, 1)}%</span>`
+        + `<b class="v ${fmt.cls(m.chg_pct)}">${fmt.pct(m.chg_pct)}</b>`
+        + (m.has_page ? `<a class="go" href="#stock/${fmt.esc(code)}" title="進個股頁">→</a>` : '<span></span>') + '</div>';
+    }).join('') : '<div class="mr none muted">這個族群的成分股整理中</div>'}</div>${warn ? `<div class="mw muted">${warn}</div>` : ''}</li>`;
+    box.hidden = false;
+    box.classList.add('merged');
+    box.innerHTML = `<div class="ph"><button class="btn small" data-all="1" title="回到只看族群（按 Esc 也可以）">‹ 全部族群</button>
+        <i style="background:${s.color}"></i><b style="color:${s.color}">${s.name}</b><span class="n">${list.length} 個族群</span>
+        <span class="sp"></span><a class="pill cyan" href="#industry/group/${fmt.esc(gid)}">進族群頁 →</a></div>
+      <div class="sd muted">點族群列＝展開／收起成分股；點個股名稱＝畫到盤上${DRILL.stocks.size ? `（已畫 ${DRILL.stocks.size} 檔）` : ''}；→ 進個股頁</div>
+      <ul class="ms">${rotQuadRows(list, onW, gid, mem)}</ul>`;
+    drillDismiss();
+    box.querySelector('[data-all]').onclick = () => drillClose();
+    $$('li[data-gid]', box).forEach(li => li.onclick = () => {
+      const g = li.dataset.gid;
+      if (g === DRILL.gid) { drillClose(); rotStageToggle(k); return; }   // 收起＝回到同一段的象限表
+      const r = list.find(z => z.gid === g);
+      drillOpen(g, (r && r.name) || L.gname[g] || g, '', 'rankPanel');
+    });
+    $$('.mr[data-code]', box).forEach(row => row.onclick = (e) => {
+      if (e.target.closest('a.go')) return;                                // 讓連結自己走 #stock/<code>
+      if (!drillMembers(DRILL.gid)[row.dataset.code]) return;
+      drillToggleStock(row.dataset.code);
+    });
+    return true;
   }
 
   /* ESC 回到階段一。放大視窗開著時先讓它關（openZoom 自己綁了一個 ESC）——
