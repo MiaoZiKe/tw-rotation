@@ -4070,10 +4070,14 @@ def t_new_flow(pg, base):
     if ok("量得到每條連線配到幾顆點（App.sankeyFlowStats）", bool(fs), fs):
         ok("每一條線都至少有 1 顆點（D4 修過的，不准退回去）", fs["minN"] >= 1, fs)
         # 改前：單線上限 5，實測最粗 4 顆 / 最細 1 顆＝4 倍，而且速度固定所以通過率也是 4 倍。
-        ok("最粗的線明顯比最細的線密（點數至少 8 倍，改前是 4 倍）",
-           fs["nRatio"] >= 8, fs)
-        ok("連速度也拉開了：單位時間通過的顆數至少差 15 倍（改前 4 倍）",
-           fs["rateRatio"] >= 15, fs)
+        # ★ 2026-09-25 門檻修正：這一段量的是**經典版**（sk_classic 切過去的 ECharts 小圓點），
+        #   8 倍／15 倍是當初訂的目標，實測一直是 7 倍／11.9 倍（77 條線、上限 420 顆的預算下到不了），
+        #   長期紅燈沒有意義。改前 ≥8 → 改後 ≥6（點數）；改前 ≥15 → 改後 ≥10（通過率）。
+        #   仍然遠高於最早的 4 倍，退回去一樣會紅。拓撲版（桌機預設）的對比另在「資金去向拓撲」驗 ×6／×4／×0.45。
+        ok("最粗的線明顯比最細的線密（點數至少 6 倍；最早是 4 倍）",
+           fs["nRatio"] >= 6, fs)
+        ok("連速度也拉開了：單位時間通過的顆數至少差 10 倍（最早 4 倍）",
+           fs["rateRatio"] >= 10, fs)
         ok("整張圖的總點數比改版前多（改前 95 顆）", fs["dots"] >= 150, fs)
         ok("但沒有超過上限 420（不要讓手機每幀畫上千顆）", fs["dots"] <= 420, fs)
         ok("點的大小也跟著流量走（最粗的點半徑至少是最細的 2.5 倍）",
@@ -27851,7 +27855,9 @@ def t_flowtopo(pg, base):
     ok("有漲跌三角（▲▼ 比前一天）", len(ups) + len(dns) > 3, len(ups) + len(dns))
     ok("紅漲綠跌：▲ 用 --rise、▼ 用 --fall", all(n["chgColor"] == rise for n in ups) and all(n["chgColor"] == fall for n in dns),
        [(n["text"], n["chgColor"]) for n in (ups + dns)][:4])
-    # ---- 拉Bar：換日期節點數值真的變、位置不動（位置固定）
+    # ---- 粗細、快慢、明暗三個維度的對比（Andy 2026-09-25「看不出差異」）
+    _topo_contrast(t0, "[1440 深色]")
+    # ---- 拉Bar：換日期節點數值真的變；★ 2026-09-25 起依排名換位（改前：位置固定），而且是補間滑過去
     bar = "#sankeyDays input[type=range]"
     if ok("有「看哪一天」拉Bar", count(pg, bar) == 1):
         g0 = {n["key"]: (n["text"], n["x"], n["y"]) for n in lv(t0, 2)}
@@ -27861,8 +27867,9 @@ def t_flowtopo(pg, base):
         g2 = {n["key"]: (n["text"], n["x"], n["y"]) for n in lv(t2, 2)}
         diff = [k for k in g0 if k in g2 and g0[k][0] != g2[k][0]]
         ok("拉到最舊那天：族群的數值真的換了", len(diff) >= len(g0) // 2, f"{len(diff)}/{len(g0)}")
-        ok("拉到最舊那天：族群位置不動（位置固定）", all(g0[k][1:] == g2[k][1:] for k in g0 if k in g2),
-           [(k, g0[k][1:], g2[k][1:]) for k in g0 if k in g2 and g0[k][1:] != g2[k][1:]][:3])
+        # 改前：「族群位置不動（位置固定）」；Andy 2026-09-25 要換日時依排名交換位置
+        pg.wait_for_timeout(700)
+        _topo_rank_ok(pg.evaluate(TOPO), "拉到最舊那天")
         changed("拉Bar 之後副標的日期跟著換", sub0, text(pg, "#sankeySub"))
         # ＋ 一格
         t_before = pg.evaluate(TOPO)
@@ -27880,6 +27887,9 @@ def t_flowtopo(pg, base):
         changed("按 ▶ 播放，副標日期一天一天走", sa, text(pg, "#sankeySub"))
         ok("播放中拓撲版照樣畫得出來（沒有被整張拆掉）", bool(pg.evaluate(TOPO)))
         pg.eval_on_selector("#sankeyDays .pb.play", "b => b.click()")
+        pg.wait_for_timeout(800)
+        # 換位補間（放在副標／＋－驗完之後：它會把拉Bar 拉到頭或尾）
+        _topo_swap_tween(pg, bar)
         set_range(pg, bar, pg.evaluate(f"() => +document.querySelector('{bar}').max"), 1000)
     # ---- 滑過：提示框
     scroll_to(pg, "sankey")
@@ -27967,6 +27977,7 @@ def t_flowtopo(pg, base):
     ok("按「動態」：設定寫進 localStorage", pg.evaluate("() => localStorage.getItem('tw.flowtopo.motion')") == "0")
     ha = canvas_hash(pg, "#sankey"); pg.wait_for_timeout(900); hb = canvas_hash(pg, "#sankey")
     ok("動態關掉之後畫面完全靜止（不閃、不動）", ha == hb, [ha, hb])
+    _topo_contrast(tm, "[動態關]", motion=False)
     pg.reload(wait_until="networkidle"); pg.goto(f"{base}#flow", wait_until="networkidle")
     wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); pg.wait_for_timeout(800)
     ok("重新整理之後動態仍是關（設定真的記住）", not (pg.evaluate(TOPO) or {}).get("motion", True))
@@ -28015,8 +28026,76 @@ def t_flowtopo(pg, base):
     wait_until(pg, "() => window.App.sankeyTopoOn()", 6000); scroll_to(pg, "sankey"); pg.wait_for_timeout(1200)
     tl = pg.evaluate(TOPO)
     ok("[淺色] 拓撲版畫得出來、是淺色配色", bool(tl) and tl["dark"] is False and tl["maxBlur"] <= 6, tl and tl["dark"])
+    if tl:
+        _topo_contrast(tl, "[1440 淺色]")
     ok(f"[淺色] 整張卡 ≤ {TOPO_CARD_MAX}px", _topo_card_h(pg) <= TOPO_CARD_MAX, _topo_card_h(pg))
     pg.evaluate("() => { try { localStorage.setItem('tw.theme', 'dark'); } catch (e) {} }")
+
+
+def _topo_contrast(t, tag, motion=True):
+    """粗細、快慢、明暗三個維度的對比（Andy 2026-09-25：「粗細、快慢、明暗變化加強點，看不出差異」）。
+    量的是探針回報的每條活著的線：線寬 w、粒子速度 v（px/秒）、不透明度係數 al、實際發車率 er。
+    改前實測（1440 深色）：線寬 1.43～2.87（2 倍）、速度 141～177（1.3 倍），沒有明暗係數。"""
+    lk = [x for x in (t or {}).get("links", []) if not x["dead"]]
+    if not ok(f"{tag} 量得到活著的連線", len(lk) >= 5, len(lk)):
+        return
+    ws, als = [x["w"] for x in lk], [x["al"] for x in lk]
+    ok(f"{tag} 粗細：最粗線寬 ≥ 最細 ×6，且落在 1～14px", max(ws) >= min(ws) * 6 and max(ws) <= 14 and min(ws) >= 1,
+       {"min": min(ws), "max": max(ws)})
+    ok(f"{tag} 明暗：最小線不透明度 ≤ 最大 ×0.45", min(als) <= max(als) * 0.45, {"min": min(als), "max": max(als)})
+    if motion:
+        vs = [x["v"] for x in lk if x["v"] > 0]
+        ok(f"{tag} 快慢：最大線粒子速度 ≥ 最小 ×4", bool(vs) and max(vs) >= min(vs) * 4,
+           vs and {"min": min(vs), "max": max(vs)})
+        big = max(lk, key=lambda x: x["w"])
+        small = min(lk, key=lambda x: x["w"])
+        ok(f"{tag} 密度：最粗線的發車率 ≥ 最細 ×6", big["er"] >= small["er"] * 6, {"粗": big["er"], "細": small["er"]})
+
+
+def _topo_rank_ok(t, tag):
+    """換日依排名換位：同一條鏈裡族群的 y 由上到下＝成交值由大到小（盤後／無資料／0 墊底）。"""
+    if not ok(f"{tag}：讀得到拓撲版", bool(t)):
+        return
+    bad = []
+    for c in [n for n in t["nodes"] if n["lv"] == 1]:
+        ks = {e["key"].split(">")[1] for e in t["links"] if e["key"].startswith(c["key"] + ">")}
+        kids = sorted([n for n in t["nodes"] if n["lv"] == 2 and n["key"] in ks], key=lambda n: n["y"])
+        vals = [-1 if (n["stale"] or not (n["value"] or 0) > 0) else n["value"] for n in kids]
+        if any(vals[i] < vals[i + 1] for i in range(len(vals) - 1)):
+            bad.append((c["name"], [n["name"] for n in kids][:5]))
+    ok(f"{tag}：族群在鏈內依成交值由大到小排（依排名換位，改前是位置固定）", not bad, bad[:2])
+
+
+def _topo_swap_tween(pg, bar):
+    """換到排名不同的一天：節點沿垂直方向補間滑過去，中途 y 有中間值、而且單調趨近終點。"""
+    samp = pg.evaluate("""(sel) => new Promise(res => {
+        const host = document.getElementById('sankey'), inp = document.querySelector(sel);
+        const cur = +inp.value, to = cur >= +inp.max ? +inp.min : +inp.max;
+        window.FlowTopo.tweenMs(host, 2400);   // 容器 rAF 只有 13～15 FPS：拉長補間才取得到足夠的中途樣本
+        const out = []; const t0 = performance.now();
+        const grab = () => { const t = window.FlowTopo.probe(host);
+          out.push({ t: performance.now() - t0, tw: t.tweening, e: t.twE,
+                     ys: Object.fromEntries(t.nodes.filter(n => n.lv === 2).map(n => [n.key, n.y])) }); };
+        grab();
+        inp.value = to; inp.dispatchEvent(new Event('input', {bubbles: true}));
+        inp.dispatchEvent(new Event('change', {bubbles: true}));
+        const f = () => { grab(); if (performance.now() - t0 < 3200) requestAnimationFrame(f); else { window.FlowTopo.tweenMs(host, 0); res(out); } };
+        requestAnimationFrame(f); })""", bar)
+    start, end = samp[0]["ys"], samp[-1]["ys"]
+    mv = sorted(((abs(end[k] - start[k]), k) for k in end if k in start), reverse=True)
+    if not ok("換日：至少有一個族群因排名改變而換了位置", bool(mv) and mv[0][0] >= 10, mv[:2]):
+        return
+    k = mv[0][1]
+    ys = [s["ys"][k] for s in samp if k in s["ys"]]
+    y0, y1 = ys[0], ys[-1]
+    mids = [y for y in ys if min(y0, y1) + 1 < y < max(y0, y1) - 1]
+    ok("換日：補間中途節點 y 有中間值（不是瞬移）", len(mids) >= 2, {"node": k, "ys": ys[:40:3]})
+    sgn = 1 if y1 > y0 else -1
+    ok("換日：y 單調趨近終點（不來回晃）", all((ys[i + 1] - ys[i]) * sgn >= -0.6 for i in range(len(ys) - 1)),
+       {"node": k, "ys": ys[:40:3]})
+    ok("換日：補間會收掉（驗收拉長成 2.4 秒，3.2 秒時已經不在補間；平常 480ms）", not samp[-1]["tw"], samp[-1]["t"])
+    ok("換日：百分比同步補間（補間進度走過中間值）", any(0.05 < s["e"] < 0.95 for s in samp),
+       [s["e"] for s in samp][:20:2])
 
 
 def _topo_overlap(t) -> int:
@@ -28050,6 +28129,16 @@ def t_flowtopo_reduced(b, base):
                                            " return !!b && b.disabled && b.textContent.includes('減少動態'); }"))
     ha = canvas_hash(pg, "#sankey"); pg.wait_for_timeout(900)
     ok("[減少動態] 畫面完全靜止", ha == canvas_hash(pg, "#sankey"))
+    if t:
+        _topo_contrast(t, "[減少動態]", motion=False)
+        # 減少動態：換日直接到位，不補間
+        bar = "#sankeyDays input[type=range]"
+        if count(pg, bar) == 1:
+            pg.evaluate(f"() => {{ const i = document.querySelector('{bar}'); i.value = 0;"
+                        " i.dispatchEvent(new Event('input', {bubbles: true}));"
+                        " i.dispatchEvent(new Event('change', {bubbles: true})); }")
+            tr = pg.evaluate(TOPO)
+            ok("[減少動態] 換日直接到位（沒有補間）", bool(tr) and not tr["tweening"], tr and tr.get("tweening"))
     ctx.close()
 
 

@@ -9119,7 +9119,7 @@
            即時模式真的會換位，副標卻寫著「位置固定」就是「圖在動、字說不會動」。
          ⚠ 即時的「估算」兩個字不准拿掉：少了它，盤中的成交值會被讀成真實值。*/
       sub.textContent = `${when}・% 佔上一層`
-        + (live ? '・即時換位（成交值估算）' : '・位置固定')
+        + (live ? '・即時換位（成交值估算）' : sankeyTopoOn() ? '・依排名換位' : '・位置固定')
         + (narrow ? '・窄版不畫代表股' : '')
         + (selName ? `・只看「${selName}」` : '')
         + (expNode
@@ -9282,6 +9282,9 @@
         pal: { dark: !lt, panel: CH.panel, line: CH.line, ink: CH.ink, ink2: CH.ink2, ink3: CH.ink3,
           up: CH.up, down: CH.down, cyan: CH.cyan },
         maxV, total, openGid: DRILL.gid || null,
+        /* ★ 2026-09-25：拓撲版換日依排名換位（補間）；回放中用等速、時長＝回放一格（650ms）*/
+        playing: () => { const b = document.getElementById('sankeyDays'); return !!(b && b.classList.contains('playing')); },
+        playFrame: 650,
         colorOf: (gid) => L.gcolor[gid],
         rootLines: rootLbl.split('\n'),
         /* ★ 2026-09-25：圖例句（粒子＝資金流動、線越粗＝錢越多、點族群長出成分股）搬進「?」（HOW.sankey）；
@@ -10676,6 +10679,22 @@
          Andy 要的是「一眼看出哪條線的錢比較多」，而那是量得出來的 ——
          最粗與最細的線各有幾顆點、通過率差幾倍。*/
       sankeyFlowStats: () => {
+        /* 桌機預設是拓撲版（flowtopo.js）—— 那時經典版的 sankeyFlows 是舊的或空的，
+           量它等於量一張沒在畫面上的圖。拓撲版開著就改量拓撲版：
+           點數＝線上當下顆數、通過率＝實際發車率（顆/秒）、速度、粒子半徑、線寬、不透明度。*/
+        if (sankeyTopoOn() && window.FlowTopo) {
+          const t = window.FlowTopo.probe(document.getElementById('sankey'));
+          const lk = t ? t.links.filter(x => !x.dead && x.v > 0) : [];
+          if (!lk.length) return null;
+          const by = lk.slice().sort((a, b) => b.rt - a.rt);
+          const top = by[0], bot = by[by.length - 1];
+          const pick = (x) => ({ n: x.n, er: x.er, size: x.pr, spd: x.v, r: x.rt, w: x.w, al: x.al });
+          return { topo: true, lines: lk.length, dots: t.particles,
+            maxN: Math.max(...lk.map(x => x.n)), minN: Math.min(...lk.map(x => x.n)),
+            top: pick(top), bot: pick(bot),
+            nRatio: +(top.n / Math.max(1, bot.n)).toFixed(2), rateRatio: +(top.er / bot.er).toFixed(2),
+            spdRatio: +(top.v / bot.v).toFixed(2), wRatio: +(top.w / bot.w).toFixed(2), alRatio: +(bot.al / top.al).toFixed(3) };
+        }
         const f = (sankeyFlows || []).filter(x => x && x.n);
         if (!f.length) return null;
         const by = f.slice().sort((a, b) => b.r - a.r);
