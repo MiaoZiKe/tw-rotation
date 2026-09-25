@@ -2045,6 +2045,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dgpop .x{flex:none;border:0;background:transparent;color:var(--dg-ink-3);font-size:13px;line-height:1;padding:4px 2px;cursor:pointer}
 .dgpop .x:hover{color:var(--dg-ink)}
 .dgpop i{display:block;font-style:normal;margin-top:2px}
+.dgchips{display:flex;flex-wrap:wrap;gap:3px 4px;margin-top:4px;text-decoration:none}
+.dgchips .dgchip{font-size:var(--dg-fs-min,12px);line-height:1.45;padding:0 5px;border-radius:5px;text-decoration:none;color:var(--dg-ink-2,var(--text));background:color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 16%,transparent);border:1px solid color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 40%,transparent);cursor:pointer}
+.dgchips .dgchip:hover{color:var(--dg-ink,var(--text));background:color-mix(in srgb,var(--dg-card-c,var(--c,var(--accent))) 32%,transparent)}
+.dgchips s{font-size:var(--dg-fs-min,12px);text-decoration:none;color:var(--dg-ink-3,var(--muted))}
+.dgpop .dgchips .dgchip{--dg-card-c:var(--card-c)}
+.dgwrap.dgfold .dgc:not(.sel-part):not(.open) .dgchips{display:none}
 :root[data-dgpal="read"] .dgpop .no{background:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));color:var(--dg-ink);box-shadow:inset 0 0 0 1.2px var(--card-c)}
 .dgwrap.noanim *{animation:none!important}
 /* ---- 剖析圖的顯示／隱藏收尾

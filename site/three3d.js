@@ -6520,9 +6520,20 @@
           a.href = '#stock/' + c.code;
           a.style.pointerEvents = 'auto';
           // 晶片自己吃掉 pointerdown，不然會被下面那段轉給畫布、變成「點名字就開始轉機櫃」
-          a.addEventListener('pointerdown', (e) => e.stopPropagation());
+          /* ★ 2026-09-25：卡片每幾幀會重排（搬欄、compact 滑過展開），按下與放開之間晶片被搬動時
+             瀏覽器不發 click —— 點了沒反應。改成「在晶片上按下、原地放開（≤6px）」就算點到，不靠 click。*/
+          const go = () => { if (o.onStock) o.onStock(c.code); else location.hash = '#stock/' + c.code; };
+          a.addEventListener('pointerdown', (e) => {
+            e.stopPropagation();
+            if (e.button) return;
+            const x0 = e.clientX, y0 = e.clientY;
+            const up = (u) => { window.removeEventListener('pointerup', up, true);
+              if (Math.abs(u.clientX - x0) + Math.abs(u.clientY - y0) <= 6) { a.dataset.went = '1'; go(); } };
+            window.addEventListener('pointerup', up, true);
+          });
           a.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation();
-            if (o.onStock) o.onStock(c.code); else location.hash = '#stock/' + c.code; });
+            if (a.dataset.went) { delete a.dataset.went; return; }   // pointerup 已經導過了
+            go(); });
           chipBox.appendChild(a);
         });
         if (mem.total > mem.list.length) {

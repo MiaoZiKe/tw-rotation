@@ -12827,6 +12827,8 @@ SECTIONS = {
     "3D收合再展開":        lambda pg, b, base, code: t_fold3d(pg, base),
     # ★ 2026-09-24 Andy：剖析圖資訊卡限制在示意圖同高、放不下收成「編號＋標題」下拉卡、點圖上編號跳出說明（⚠ 一律 --workers 1）
     "剖析圖卡片限高":      lambda pg, b, base, code: t_dgfit(pg, base),
+    # ★ 2026-09-25 Andy：2D 圖也要附股票、所有剖析圖裡的股票都要能點進 K 線頁（⚠ 一律 --workers 1）
+    "剖析圖股票可點":      lambda pg, b, base, code: t_dgstock(pg, base),
 }
 SECTION_NAMES = list(SECTIONS)
 
@@ -27761,6 +27763,99 @@ def _dgfit_bg_point(pg):
         const x = r.left + r.width * fx, y = r.top + r.height * fy; const e = document.elementFromPoint(x, y);
         if (e && c.contains(e) && !e.closest('[data-seg],[data-part],.anc,[data-fold],a,.dgpop')) return { x, y }; }
       return null; }""")
+
+
+DGSTK_2D = """() => [...document.querySelectorAll('#prodDiagram .dgc')].filter(c => c.dataset.seg || c.dataset.part).map(c => ({
+  part: c.dataset.part || '', box: !!c.querySelector('.dgchips'),
+  codes: [...c.querySelectorAll('.dgchips a.dgchip')].map(a => a.dataset.code),
+  hrefOk: [...c.querySelectorAll('.dgchips a.dgchip')].every(a => a.getAttribute('href') === '#stock/' + a.dataset.code && /\\d/.test(a.title)),
+  none: !!c.querySelector('.dgchips s') && /台股無直接對應/.test(c.querySelector('.dgchips').textContent) }))"""
+DGSTK_3D = """() => Object.fromEntries([...document.querySelectorAll('#prod3d .lbl3d')].filter(d => d.dataset.dgpart).map(d => [d.dataset.dgpart,
+  [...d.querySelectorAll('a.chip3d')].map(a => (a.getAttribute('href') || '').replace('#stock/', ''))]))"""
+
+
+def _dgstk_click(pg, sel_js, want_hash_prefix="#stock/"):
+    """找一顆可點的股票標籤 → 滑過去等版面停（收合卡片滑過會展開、3D 卡片每幾幀重排）→
+    點之前再確認游標底下真的是那一顆 → 點 → 輪詢網址。最多試 4 次。回傳 (code, hash)。"""
+    code, h = None, None
+    for _ in range(4):
+        r = pg.evaluate("() => { for (const a of " + sel_js + ") { const b = a.getBoundingClientRect(); if (!b.width) continue; const x = b.x + b.width / 2, y = b.y + b.height / 2; if (document.elementFromPoint(x, y) === a) return {x, y, code: (a.getAttribute('href') || '').replace('#stock/', '')}; } return null; }")
+        if not r:
+            pg.wait_for_timeout(400); continue
+        pg.mouse.move(r["x"], r["y"]); pg.wait_for_timeout(600)
+        r2 = pg.evaluate("() => { const e = document.elementFromPoint(%s, %s); const a = e && e.closest('a.chip3d,a.dgchip'); return a ? (a.getAttribute('href') || '').replace('#stock/', '') : null; }" % (r["x"], r["y"]))
+        if not r2:
+            continue
+        code = r2
+        pg.mouse.click(r["x"], r["y"])
+        h = wait_until(pg, "() => location.hash.startsWith('%s') ? location.hash : null" % want_hash_prefix, 3000)
+        if h:
+            return code, h
+    return code, pg.evaluate("() => location.hash")
+
+
+def t_dgstock(pg, base):
+    """剖析圖股票可點：2D 卡片有台股標籤、與 3D 同零件名單一致、點了真的進 #stock/代號、上一頁回得來。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    anim0 = pg.evaluate("() => { try { return localStorage.getItem('tw.dganim'); } catch (e) { return null; } }")
+    picks = [("semiconductor", "foundry"), ("semiconductor", "silicon_wafer"), ("ai_server", "pcb_rigid"), ("ai_server", "server_psu")]
+    for ch, dg in picks:
+        route = f"#industry/{ch}/dg/{dg}"
+        pg.goto(f"{base}{route}", wait_until="networkidle"); pg.reload(wait_until="networkidle")
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); localStorage.setItem('tw.dgOpen', '1'); localStorage.setItem('tw.dganim', '0'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#prodDiagram .dgc .dgchips').length > 0", 8000)
+        pg.wait_for_timeout(600)
+        c2 = pg.evaluate(DGSTK_2D)
+        ok(f"{dg}：2D 每張零件卡都掛了股票列（有標籤或「台股無直接對應」）", bool(c2) and all(c["box"] and (c["codes"] or c["none"]) for c in c2),
+           [c for c in c2 if not (c["box"] and (c["codes"] or c["none"]))][:3])
+        ok(f"{dg}：2D 至少一張卡有台股標籤，且連結＝#stock/代號、滑過有代號＋名稱", any(c["codes"] for c in c2) and all(c["hrefOk"] for c in c2), c2[:2])
+        # 真的點：先選起有股票的那張卡（收合模式下選起來才展開），再用滑鼠點它的第一個股票標籤
+        tgt = next((c for c in c2 if c["codes"]), None)
+        if not tgt:
+            continue
+        idx = [c["part"] for c in c2].index(tgt["part"])
+        pg.evaluate(f"() => {{ const c = [...document.querySelectorAll('#prodDiagram .dgc')].filter(c => c.dataset.seg || c.dataset.part)[{idx}]; if (!c.classList.contains('sel-part')) c.click(); c.scrollIntoView({{block: 'center'}}); }}")
+        pg.wait_for_timeout(500)
+        r = pg.evaluate(f"() => {{ const c = [...document.querySelectorAll('#prodDiagram .dgc')].filter(c => c.dataset.seg || c.dataset.part)[{idx}]; const a = c.querySelector('a.dgchip'); const b = a && a.getBoundingClientRect(); return b && b.width ? {{x: b.x + b.width / 2, y: b.y + b.height / 2, code: a.dataset.code, sel: c.classList.contains('sel-part')}} : null; }}")
+        if ok(f"{dg}：選起卡片後股票標籤看得見", bool(r), r):
+            pg.mouse.click(r["x"], r["y"]); pg.wait_for_timeout(1200)
+            h = pg.evaluate("() => location.hash")
+            ok(f"{dg}：點 2D 股票標籤 → 進個股頁 #stock/{r['code']}", h == f"#stock/{r['code']}", h)
+            pg.go_back(); pg.wait_for_timeout(1500)
+            h2 = pg.evaluate("() => location.hash")
+            ok(f"{dg}：按上一頁 → 回到剖析圖", h2 == route and pg.evaluate("() => !!document.querySelector('#prodDiagram .dgc')"), h2)
+        # 點圖上編號跳出的說明小卡也要有可點的股票
+        pg.goto(f"{base}{route}", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+        pr = pg.evaluate("""() => { const cs = [...document.querySelectorAll('#prodDiagram .dgc')].filter(c => c.querySelector('a.dgchip') && c.dataset.anc);
+          for (const c of cs) { const a = document.querySelector(`#prodDiagram g.anc[data-for="${c.dataset.anc}"] .anchor`) || document.querySelector(`#prodDiagram g.anc[data-for="${c.dataset.anc}"]`);
+            if (!a) continue; a.scrollIntoView({block: 'center'}); const b = a.getBoundingClientRect(); if (b.width) return {x: b.x + b.width / 2, y: b.y + b.height / 2}; } return null; }""")
+        if pr:
+            pg.mouse.click(pr["x"], pr["y"]); pg.wait_for_timeout(700)
+            q = pg.evaluate("() => !!document.querySelector('.dgpop:not([hidden]) a.dgchip')")
+            if ok(f"{dg}：點編號跳出的說明小卡裡有股票標籤", q, q):
+                code, h = _dgstk_click(pg, "document.querySelectorAll('.dgpop:not([hidden]) a.dgchip')")
+                ok(f"{dg}：點說明小卡的股票 → 進 #stock/{code}", bool(code) and h == f"#stock/{code}", h)
+        # 3D：同一零件名單要一致、點 3D 標籤也要進個股頁，而且不會先被當成選零件
+        pg.goto(f"{base}{route}", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1200)
+        if not pg.evaluate(f"() => !!(window.Rack3D && window.Rack3D.supported() && window.Rack3D.hasScene('{dg}'))"):
+            ok(f"{dg}：沒有 3D 場景，只驗 2D", True, "")
+            continue
+        click(pg, "#dg3d", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d .lbl3d a.chip3d').length > 0", 12000)
+        pg.wait_for_timeout(1200)
+        c3 = pg.evaluate(DGSTK_3D)
+        m2 = {c["part"]: c["codes"] for c in c2 if c["part"]}
+        common = [k for k in m2 if k in c3]
+        diff = [(k, m2[k], c3[k]) for k in common if m2[k] != c3[k]]
+        ok(f"{dg}：2D 與 3D 同一零件的股票名單一致（對得上的 {len(common)} 個零件）", not diff, diff[:3])
+        code, h = _dgstk_click(pg, "document.querySelectorAll('#prod3d .lbl3d:not(.hid) a.chip3d')")
+        if ok(f"{dg}：點 3D 股票標籤 → 進 #stock/{code}", bool(code) and h == f"#stock/{code}", h):
+            pg.go_back()
+            h2 = wait_until(pg, "() => location.hash === '%s' ? location.hash : null" % route, 4000)
+            ok(f"{dg}：3D 點股票後按上一頁回到剖析圖", h2 == route, pg.evaluate("() => location.hash"))
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d', '0'); } catch (e) {} }")
+    pg.evaluate(f"() => {{ try {{ const v = {anim0!r}; if (v == null) localStorage.removeItem('tw.dganim'); else localStorage.setItem('tw.dganim', v); }} catch (e) {{}} }}".replace("None", "null"))
 
 
 def t_dgfit(pg, base):
