@@ -1142,6 +1142,72 @@
     return z * 2 < bars.length;
   }
 
+  /** 資料湖的 1H／4H ＋ 今天的分時合成出來的那幾根 → 一條序列。
+   *
+   *  ★ 2026-09-25 根因（線上 1H／4H 報「Value is null」約 35 筆、游標看板不出現）：
+   *  舊寫法是「湖裡去掉今天那一盤 ＋ 今天的分時**直接接在最後面**」，默認今天的分時一定比湖裡每一根都新。
+   *  但「今天的分時」其實是 `seriesOf(x)` 手上那一份 —— Worker 連不上時的 localStorage 快取、
+   *  假日或開盤前停在上一個交易日、驗收的假資料（2026-09-14）都可能比湖裡最後一天還舊。
+   *  舊的一盤被接在最後 → 時間倒退。Lightweight Charts 的正式版**不檢查**順序，
+   *  直接吃進去，畫到那一段時內部 `ensureNotNull` 丟「Value is null」，游標看板也跟著畫不出來。
+   *  （重現：把 TSE 的分時換成 2026-09-14 那一盤，1H／4H 各噴 10 筆錯、看板消失。）
+   *
+   *  新規則：
+   *   · 湖裡最後一盤（含）之後的盤 → 用今天的分時（證交所第一手、盤中 10 秒一更，比湖新）。
+   *   · 湖裡已經有、而且比湖裡最後一盤還舊的盤 → 用湖的（那是收完盤的完整紀錄，分時只是某一刻的快照）。
+   *   · 湖裡沒有的舊盤 → 補進來。
+   *  最後照時間排好 —— 真正的「嚴格遞增、不重複」保證由 cleanBars 負責，這裡只決定誰蓋誰。 */
+  function mergeLake(lb, today) {
+    const lake = (lb || []).map(b => b.slice());
+    if (!today || !today.length) return lake;
+    const lakeSess = new Set(lake.map(b => sessKey(b[0], 'H4')));
+    const lastSess = lake.length ? sessKey(lake[lake.length - 1][0], 'H4') : -Infinity;
+    const take = new Set(today.map(b => sessKey(b[0], 'H4'))
+      .filter(s => s >= lastSess || !lakeSess.has(s)));
+    return lake.filter(b => !take.has(sessKey(b[0], 'H4')))
+      .concat(today.filter(b => take.has(sessKey(b[0], 'H4'))))
+      .sort((a, b) => a[0] - b[0]);
+  }
+
+  /** K 棒時間 → 可以比大小的秒數。數字（台北牆鐘秒數）照用；'YYYY-MM-DD'（資料湖日線）當 UTC 午夜。
+   *  認不得的回 NaN，由 cleanBars 丟掉。 */
+  function barSec(t) {
+    if (typeof t === 'number') return t;
+    if (typeof t === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(t)) return Date.parse(t + 'T00:00:00Z') / 1000;
+    return NaN;
+  }
+  /** 交給 Lightweight Charts 之前的最後一道清洗 —— 不依賴任何上游保證（防禦寫法）。
+   *
+   *  為什麼要有這一道：Lightweight Charts 的正式版不驗資料，時間倒退、重複、開高低收是 null／NaN
+   *  都會被收下，然後在畫圖的某一幀內部 `ensureNotNull` 丟「Value is null」，錯誤訊息完全不指向資料。
+   *  上游有四條路（資料湖、Yahoo、今天的分時、localStorage 快取），每條都各自可能出錯，
+   *  與其每條路各自修，不如在唯一的出口把關：
+   *   ① 時間認不得、或開高低收任一不是有限數 → 整根丟掉（畫一根假的比少一根更糟）。
+   *   ② 高＝四價最大、低＝四價最小（合成時偶爾高 < 收，圖會畫出倒掛的影線）。
+   *   ③ 量不是有限數 → 0（量是輔助資訊，不值得為它丟掉一根價格）。
+   *   ④ 照時間排序；同一個時間出現兩次留**後面**那一根（mergeLake 已把較新的放後面）。 */
+  function cleanBars(bars) {
+    if (!bars || !bars.length) return [];
+    const rows = [];
+    bars.forEach((b, i) => {
+      if (!b) return;
+      const s = barSec(b[0]);
+      // null／'' 用 + 轉會變成 0（有限數）—— 一根開盤 0 點的 K 棒比丟掉更糟，所以先當成缺值
+      const num = (v) => (v === null || v === undefined || v === '' ? NaN : +v);
+      const o = num(b[1]), h = num(b[2]), l = num(b[3]), c = num(b[4]);
+      if (!Number.isFinite(s) || ![o, h, l, c].every(Number.isFinite)) return;
+      const v = num(b[5]);
+      rows.push({ s, i, b: [b[0], o, Math.max(o, h, l, c), Math.min(o, h, l, c), c, Number.isFinite(v) ? v : 0] });
+    });
+    rows.sort((a, b) => a.s - b.s || a.i - b.i);
+    const out = [];
+    for (const r of rows) {
+      if (out.length && out[out.length - 1].s === r.s) out[out.length - 1] = r;
+      else out.push(r);
+    }
+    return out.map(r => r.b);
+  }
+
   /** N 根併一根（4 小時＝四根 1 小時；季＝三根月線）。 */
   function groupBars(bars, n) {
     const out = [];
@@ -1896,9 +1962,7 @@
     if (def && def.synth) {
       const lb = ((state.lakeIntra || {})[lakeSym(x)] || {})[def.synth] || [];
       if (lb.length >= 2) {
-        const t = synthBars(x, def.synth, true).bars;
-        const days = new Set(t.map(b => sessKey(b[0], 'H4')));
-        bars = lb.filter(b => !days.has(sessKey(b[0], 'H4'))).map(b => b.slice()).concat(t);
+        bars = mergeLake(lb, synthBars(x, def.synth, true).bars);
         tfName = def.synth === 'H4' ? '240m' : '60m';
         el.dataset.src = 'lake';
       }
@@ -1958,6 +2022,9 @@
        夜盤剛開盤只有一根時，以前會整張換成「資料還不夠畫一根 K」——
        但那時候明明已經有一根真的 K 棒了，Lightweight Charts 畫一根沒有問題。
        「資料少」該由圖自己表現，不該用一塊文字把圖換掉。 */
+    /* ★ 2026-09-25：交給圖表之前一律清洗（見 cleanBars 的註解）。不管 K 棒從哪條路來 ——
+       資料湖、Yahoo、今天的分時、localStorage 快取 —— 走到這裡都保證時間嚴格遞增、不重複、OHLC 都是有限數。*/
+    bars = cleanBars(bars);
     if (!bars || bars.length < 1) {
       killK(x.id);
       el.innerHTML = `<div class="empty">${def ? '這個週期的資料不足' : '今天還沒有任何分鐘資料'}</div>`;
@@ -2076,6 +2143,7 @@
       // refresh() 在上一輪還沒回來時會直接跳過（busy）—— 等它空出來再跑，時鐘換段才一定會真的去抓
       return new Promise((ok) => { const go = () => (state.busy ? setTimeout(go, 150) : refresh(true).then(ok, ok)); go(); }); },
     synthBars, sessKey,                          // 驗收用：1 小時／4 小時的合成規則
+    mergeLake, cleanBars,                        // 驗收用：1H／4H 湖資料接今天分時、畫之前的清洗（2026-09-25）
     get nightPoints() { return state.nightPts.slice(); },  // 驗收用：真的收到幾個夜盤點
     get histSpan() { return spanOf('TSE'); },             // 驗收用：日線到底有幾根、從哪天起
     get lastAt() { return state.at; },
