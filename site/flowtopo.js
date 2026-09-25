@@ -137,7 +137,7 @@
       W: 0, H: 0, DPR: 1, pal: null, opts: {}, model: null,
       nodes: new Map(), links: new Map(), order: [], linkList: [],
       parts: [], pool: [], ripples: [], sprites: {},
-      hover: null, raf: 0, lastT: 0, tween: null, alive: true,
+      hover: null, raf: 0, lastT: 0, tween: null, twE: 1, alive: true,
       visible: true, motion: motionWanted(), first: true,
       meter: { frames: 0, cost: 0, maxBlur: 0, minFont: Infinity, ts: [], spawned: 0 },
     };
@@ -244,6 +244,7 @@
     const up = (key, patch) => {
       let n = S.nodes.get(key);
       if (!n) { n = { key, x: NaN, y: NaN, px: 0, pv: 0, flash: 0, last: -1e9 }; S.nodes.set(key, n); }
+      n.pctFrom = n.pctShown;            // 百分比補間的起點＝畫面上現在顯示的那個數（補間中途換日也連續）
       Object.assign(n, patch); seenN.add(key); order.push(n); return n;
     };
     const link = (from, to, patch) => {
@@ -255,8 +256,15 @@
     const root = up('root', { lv: 0, d: M, name: '台股成交值', hue: S.pal.cyan, dot: S.pal.cyan, rt: 1, r: 8, dim: false, parent: null });
     root.kids = [];
     let anyLeaves = false;
-    (M.children || []).forEach(cd => {
-      const kids = cd.children || [];
+    /* ★ 2026-09-25 Andy：「拓撲版要跟經典版一樣絲滑」—— 換日期時依當天成交值重新排名，
+       節點沿垂直方向滑到新位置（layout() 的補間），不再是「位置固定」。
+       產業鏈依鏈的成交值排、族群在鏈內依成交值排；盤後／無資料／0 的一律墊底（它們不參與比較）。
+       opts.rank === false 可以關掉（保留舊的固定順序）。Array.sort 是穩定排序，同值不會亂跳。*/
+    const rankOn = o.rank !== false;
+    const rk = (x) => (x.stale || x.nodata || !(x.value > 0)) ? -1 : x.value;
+    const ranked = (arr) => rankOn ? arr.slice().sort((a, b) => rk(b) - rk(a)) : arr;
+    ranked(M.children || []).forEach(cd => {
+      const kids = ranked(cd.children || []);
       const hue = chainHue(S, cd.chain);
       const c = up('c:' + cd.chain, { lv: 1, d: cd, name: clean(cd.name), hue, dot: hue, rt: ratio((cd.value || 0) / 2),
         dim: !!(cd.itemStyle && cd.itemStyle.opacity < 1), stale: !!cd.stale, parent: root });
@@ -298,12 +306,22 @@
     });
     for (const k of [...S.links.keys()]) if (!seenL.has(k)) S.links.delete(k);
     S.linkList = list;
+    /* 2026-09-25 Andy：「粗細、快慢、明暗變化加強點，看不出差異」→ 三個維度一起拉開：
+         · 線寬 1～13px（族群→個股那段上限 10px）
+         · 速度 18～150px/秒（約 8 倍）、發車率 0.15～9.2 顆/秒
+         · 明暗（不透明度係數）0.32～1：最小線壓到約三成亮，最大線全亮
+       rt 是「佔最大值」，實測活著的線只落在 0.03～0.40，直接吃 rt 最大最小只差 2～3 倍。
+       改成在活著的線之間，用平方根尺度做 0～1 正規化（最小那條＝0、最大那條＝1）。*/
+    const live = list.filter(e => !e.dead && e.rt > 0).map(e => Math.sqrt(e.rt));
+    const sLo = live.length ? Math.min(...live) : 0, sHi = live.length ? Math.max(...live) : 1;
     list.forEach(e => {
       const r = e.rt;
-      e.w = e.dead ? 0.8 : (e.lv === 0 ? 1.3 + 3.9 * r : e.lv === 1 ? 0.9 + 3.3 * Math.sqrt(r) : 0.8 + 2.4 * Math.sqrt(r));
-      e.pr = 1.25 + 1.1 * Math.sqrt(r);                  // 粒子半徑 1.25～2.35px
-      e.rate = 0.25 + 7.5 * Math.pow(r, 0.8);            // 每秒發幾顆（錢多 → 密）
-      e.spdK = 0.85 + 0.95 * Math.sqrt(r);               // 速度倍率（錢多 → 快）
+      const q = sHi > sLo ? Math.min(1, Math.max(0, (Math.sqrt(r) - sLo) / (sHi - sLo))) : 1;
+      e.w = e.dead ? 0.8 : 1 + (e.lv === 2 ? 9 : 12) * q;
+      e.al = e.dead ? 0.35 : 0.32 + 0.68 * q;
+      e.pr = 1.1 + 2.0 * q;                              // 粒子半徑 1.1～3.1px
+      e.rate = 0.15 + 9 * Math.pow(q, 1.6);              // 每秒發幾顆（錢多 → 密）
+      e.spdK = q;                                        // 速度係數 0～1（錢多 → 快）
     });
     // 回收已經不在的連線上的粒子
     for (let i = S.parts.length - 1; i >= 0; i--) {
@@ -373,8 +391,13 @@
       n.sx = n.x; n.sy = n.y;
     });
     const canTween = S.motion && !S.first && (moving || S.order.some(n => n.sx !== n.tx || n.sy !== n.ty));
-    if (canTween) S.tween = { t0: performance.now(), dur: CFG.TWEEN_MS };
-    else { S.tween = null; S.order.forEach(n => { n.x = n.tx; n.y = n.ty; }); }
+    /* 回放連續換日：用等速（linear）而且時長＝一格的間隔，前一段剛走完下一段就接上，
+       不會每天「到站停一下再出發」；單次換日（拉Bar、＋／−）用 cubicInOut。*/
+    const playing = !!(S.opts.playing && S.opts.playing());
+    if (canTween) {
+      S.tween = { t0: performance.now(), dur: playing ? (S.opts.playFrame || 650) : (S.tweenMs || CFG.TWEEN_MS), lin: playing };
+      S.twE = 0;
+    } else { S.tween = null; S.twE = 1; S.order.forEach(n => { n.x = n.tx; n.y = n.ty; }); }
     S.cols = cols;
   }
 
@@ -463,11 +486,11 @@
       g.beginPath(); g.moveTo(p[0], p[1]); g.bezierCurveTo(p[2], p[3], p[4], p[5], p[6], p[7]);
       g.setLineDash(e.dashed ? [4, 3] : []);
       if (!e.dead) {
-        g.strokeStyle = rgba(col, (P.dark ? 0.12 : 0.16) * (0.6 + 0.4 * e.rt) * k);
-        g.lineWidth = e.w * 2.6; g.stroke();                             // 微光外管
+        g.strokeStyle = rgba(col, (P.dark ? 0.12 : 0.14) * e.al * k);
+        g.lineWidth = e.w + 5; g.stroke();                               // 微光外管（只比內核寬 5px，不做大面積泛光）
       }
-      g.strokeStyle = rgba(col, (e.dead ? 0.35 : (P.dark ? 0.42 : 0.55) + 0.35 * e.rt) * k);
-      g.lineWidth = e.dead ? 0.8 : e.w * 0.8; g.stroke();                // 內核實心線
+      g.strokeStyle = rgba(col, (e.dead ? 0.35 : (P.dark ? 0.9 : 0.72) * e.al) * k);
+      g.lineWidth = e.w; g.stroke();                                     // 內核實心線（寬度＝e.w，探針量的就是這個）
     });
     g.setLineDash([]);
   }
@@ -487,7 +510,13 @@
     if (n.nodata) { out.push({ t: ' 無資料', c: P.ink3, w: 500, fs: 12 }); return out; }
     const v = d.value || 0;
     const base = d.base != null ? d.base : (d.share != null && d.share > 0 ? v / d.share : null);
-    if (base) out.push({ t: ' ' + fmtN(v / base * 100, 1) + '%', c: P.ink3, w: 500, fs: 12 });
+    if (base) {
+      // 百分比跟著位置一起補間（S.twE＝補間進度 0～1；沒有補間時就是 1）
+      const pNow = v / base * 100, pFrom = n.pctFrom;
+      const shown = pFrom != null && isFinite(pFrom) && S.twE < 1 ? pFrom + (pNow - pFrom) * S.twE : pNow;
+      n.pctShown = shown;
+      out.push({ t: ' ' + fmtN(shown, 1) + '%', c: P.ink3, w: 500, fs: 12 });
+    } else n.pctShown = null;
     if (n.lv <= 2 && d.prev != null && d.prev > 0 && v != null) {
       const ch = (v - d.prev) / d.prev * 100;
       if (isFinite(ch)) {
@@ -574,9 +603,9 @@
     const sc = Math.max(0.8, Math.min(1.2, S.W / 1100));
     S.linkList.forEach(e => {
       if (e.dead || !e.L) return;
-      e.v = (46 + 70 * e.spdK) * sc;                       // px/秒
+      e.v = (18 + 132 * e.spdK) * sc;                       // px/秒
       /* 每條活著的線「至少一顆在線上」：發車間隔不超過走完全程的時間 */
-      const rate = Math.max(e.rate, e.v / e.L * 1.05);
+      const rate = Math.max(e.rate, e.v / e.L * 1.05); e.er = rate;   // 實際發車率（驗收量通過率用）
       e.acc += rate * dt;
       while (e.acc >= 1) { e.acc -= 1; spawnOn(S, e, Math.random() * e.v * dt); }
     });
@@ -621,11 +650,11 @@
       for (let i = 0; i < parts.length; i++) {
         const p = parts[i], e = p.e; if (!e.xs) continue;
         const sp = S.sprites[e.to.hue]; if (!sp) continue;
-        const a0 = p.a * Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
+        const a0 = p.a * e.al * Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
         const sz0 = sp.size * e.pr / sp.R;
         for (let tail = 2; tail >= 0; tail--) {           // 彗尾：往回 7px、14px 各一顆淡影
           const s = p.s - tail * 7; if (s < 0) continue;
-          const f = s / e.L * e.M, k = Math.min(e.M - 1, f | 0), u = f - k, off = p.off * e.w;
+          const f = s / e.L * e.M, k = Math.min(e.M - 1, f | 0), u = f - k, off = p.off * e.w * 0.7;
           const x = e.xs[k] + (e.xs[k + 1] - e.xs[k]) * u + e.nx[k] * off;
           const y = e.ys[k] + (e.ys[k + 1] - e.ys[k]) * u + e.ny[k] * off;
           const sz = sz0 * (1 - tail * 0.18);
@@ -702,13 +731,15 @@
   }
   function drawStill(S) {                          // 靜止：不閃、不動、不留殘影
     S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; n.x = n.tx; n.y = n.ty; });
-    S.ripples = []; S.tween = null;
-    curves(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true);
+    S.ripples = []; S.tween = null; S.twE = 1;
+    measureLabels(S); curves(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true);
   }
   function stepTween(S, now) {
     const tw = S.tween, q = Math.min(1, (now - tw.t0) / tw.dur);
-    const e = q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2;   // cubicInOut
+    const e = tw.lin ? q : q < 0.5 ? 4 * q * q * q : 1 - Math.pow(-2 * q + 2, 3) / 2;   // 回放等速／單次 cubicInOut
     S.order.forEach(n => { n.x = n.sx + (n.tx - n.sx) * e; n.y = n.sy + (n.ty - n.sy) * e; });
+    S.twE = q >= 1 ? 1 : e;
+    measureLabels(S);                                // 百分比同步補間 → 標籤字要重排
     curves(S); drawBase(S); drawLabels(S);
     if (q >= 1) S.tween = null;
   }
@@ -850,11 +881,12 @@
         chgColor: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).c || null : null,
         lab: n.lab ? { x: Math.round(n.lab.x), y: Math.round(n.lab.y), w: Math.round(n.lab.w), h: Math.round(n.lab.h) } : null })),
       links: S.linkList.map(e => ({ key: e.key, lv: e.lv, w: +e.w.toFixed(2), dead: !!e.dead,
-        n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2) })),
+        n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2),
+        al: +(e.al || 0).toFixed(3), er: +(e.er || 0).toFixed(3), rt: +(e.rt || 0).toFixed(4) })),
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
-      tweening: !!S.tween, hover: S.hover ? S.hover.key : null,
+      tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
     };
   }
   /* 驗收用：重設幀率量表（開始量之前叫一次）*/
@@ -863,6 +895,8 @@
     S.meter.frames = 0; S.meter.cost = 0; S.meter.ts.length = 0;
   }
 
-  window.FlowTopo = { render, destroy, probe, resetMeter, CFG,
+  /* 驗收用：把單次換日補間拉長（容器 headless 的 rAF 只有 13～15 FPS，450ms 內只取得到 2～3 個樣本）。傳 0 還原。*/
+  function tweenMs(host, ms) { const S = host && host._ft; if (S) S.tweenMs = ms || 0; }
+  window.FlowTopo = { render, destroy, probe, resetMeter, CFG, tweenMs,
     has: (host) => !!(host && host._ft), motionWanted };
 })();
