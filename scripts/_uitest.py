@@ -2241,38 +2241,23 @@ def t_chainnav(pg, base):
     if not ok("E6 半導體鏈看得到 ABF 載板環節", count(pg, "#segChips .segchip[data-seg='abf_pcb']") == 1):
         return
     _cg_chip(pg, "#segChips .segchip[data-seg='abf_pcb']", 1200)
-    x = pg.evaluate("""() => { const w = document.getElementById('cgXChains'); if (!w) return null;
-        const svgs = [...w.querySelectorAll('.xmini svg')];
-        return { panels: w.querySelectorAll('.xchain').length, minis: svgs.length,
-                 chains: [...w.querySelectorAll('.xchain')].map(e => e.dataset.c),
-                 // 兩張圖裡這個環節都要亮起來、其餘壓暗，才叫「兩張架構圖」而不是兩張裝飾
-                 selPerMini: svgs.map(s => s.querySelectorAll('[data-seg="abf_pcb"].sel').length),
-                 dimPerMini: svgs.map(s => s.querySelectorAll('[data-seg].dim').length),
-                 // 兩邊內容：各自的上下游與族群
-                 rows: w.querySelectorAll('.xchain .xrow').length,
-                 txt: w.innerText, go: w.querySelectorAll('.xgo').length,
-                 cur: w.querySelectorAll('.xchain.cur').length }; }""")
-    if not ok("E6 跨產業鏈的環節會多出一塊「兩條鏈」的說明", bool(x), x):
-        return
-    ok("E6 兩條鏈各一張架構圖", x["panels"] == 2 and x["minis"] == 2, x)
-    ok("E6 兩張圖都是半導體與 AI 伺服器", sorted(x["chains"]) == ["ai_server", "semiconductor"], x["chains"])
-    ok("E6 兩張圖裡這個環節都真的亮起來", all(v > 0 for v in x["selPerMini"]), x["selPerMini"])
-    ok("E6 兩張圖裡其餘環節都壓暗", all(v > 0 for v in x["dimPerMini"]), x["dimPerMini"])
-    ok("E6 兩邊各自的上下游與族群都寫出來了", x["rows"] >= 6 and "上游" in x["txt"] and "下游" in x["txt"], x["rows"])
-    ok("E6 現在這條鏈有標出來", x["cur"] == 1, x)
-    # 真的按「切到這條鏈看」：要換頁、而且那個環節已經套用在新的鏈上
-    ok("E6 有切到另一條鏈的入口", x["go"] == 1, x)
-    click(pg, "#cgXChains .xgo", 2000)
-    to = pg.evaluate("""() => ({ hash: location.hash, h2: (document.querySelector('#indChain h2')||{}).innerText,
-        seg: (document.querySelector('#segBox .segbox b.t')||{}).textContent,
-        chips: document.querySelectorAll('#segChips .segchip.sel').length,
-        selSeg: (document.querySelector('#segChips .segchip.sel')||{dataset:{}}).dataset.seg })""")
-    ok("E6 按了真的切到另一條鏈", to["hash"] == "#industry/ai_server/abf_pcb", to)
-    # ★ 不要綁顯示名稱：2026-09-19 這個環節從「ABF 載板 / 高階 PCB」改名成
-    #   「IC 載板（ABF / BT）」（金像電不做 ABF 載板，拆出去了），驗收就紅了 ——
-    #   但行為完全正確。綁 data-seg 這個 id 才是對的。
-    ok("E6 切過去之後同一個環節已經選好了",
-       to["selSeg"] == "abf_pcb" and to["chips"] > 0, to)
+    # ★ 2026-09-25（Andy：圖下方整塊環節資訊面板 ＋「其他產業鏈」連結列，桌機一律拿掉）：
+    #   跨鏈比較卡 `#cgXChains` 住在環節面板 `#segBox` 裡，面板拿掉它也一起拿掉。
+    #   改前：1500px 選 abf_pcb 會長出兩張縮圖卡、可以按「切到這條鏈看」跳到 ai_server；
+    #   改後：1500px 選 abf_pcb 之後，`#segBox` 是空的、頁面上找不到 `#cgXChains`／`.xchain`；
+    #   手機寬（800px，≤820）的跨鏈卡另有人處理，下面窄畫面那段照舊驗。
+    x = pg.evaluate("""() => ({ box: ((document.getElementById('segBox') || {}).innerHTML || '').trim().length,
+        x: !!document.getElementById('cgXChains'), cards: document.querySelectorAll('.xchain').length,
+        sel: (document.querySelector('#segChips .segchip.sel') || {dataset: {}}).dataset.seg,
+        // 「其他產業鏈」那排連結：看得到的 .linkrow 裡有沒有那四個字（DOM 不畫＋CSS 保底，兩層都要成立）
+        others: [...document.querySelectorAll('#indChain .linkrow, .linkrow.chainothers')]
+          .filter(e => e.getClientRects().length > 0 && /其他產業鏈/.test(e.textContent)).length,
+        onlyBtn: !!document.getElementById('segOnly') })""")
+    ok("E6 桌機產業鏈頁下方已沒有「其他產業鏈」連結列", x["others"] == 0, x)
+    ok("E6 桌機點環節之後沒有長出「只看這一格／已只看這一格」按鈕", not x["onlyBtn"], x)
+    ok("E6 桌機選跨鏈環節（ABF 載板）之後，環節是真的選起來了", x["sel"] == "abf_pcb", x)
+    ok("E6 桌機選跨鏈環節之後，頁面不會出現跨鏈比較卡（環節面板整塊拿掉）",
+       x["box"] == 0 and not x["x"] and x["cards"] == 0, x)
 
     # --- 窄畫面（2026-09-18 我自己開線上抓到的，只在寬螢幕驗就會放過）
     #     視窗縮到半邊（約 1100px 以下，兩欄各剩 320px）時，縮圖的 SVG 量到 940px 完全沒縮小，
@@ -2283,7 +2268,8 @@ def t_chainnav(pg, base):
         " const r = s.getBoundingClientRect(), b = w.getBoundingClientRect();"
         " return { over: Math.round(r.right - b.right), fill: +(r.width / b.width).toFixed(2),"
         "          sel: s.querySelectorAll('[data-seg].sel').length }; }).filter(Boolean)")
-    for vw in (800, 1040):
+    # 改前 (800, 1040)；改後只剩 800 —— 1040 已是桌機寬，跨鏈卡整塊拿掉了（2026-09-25）
+    for vw in (800,):
         pg.set_viewport_size({"width": vw, "height": 950})
         # 先繞去產業地圖再回來：goto 到「一模一樣的 hash」不會重新載入（DECISIONS #154），
         # 上一輪選好的環節會留著，這一下點下去反而是把它**取消**選取，圖就不見了
@@ -3377,8 +3363,14 @@ def t_new_industry(pg, base):
            after["selCards"] == [seg3711] and after["chipSeg"] == [seg3711],
            {"before": before["selCards"], "after": after["selCards"]})
         changed(f"{vw}px 而且圖上不屬於那一格的公司卡真的被壓暗", before["dimCo"], after["dimCo"])
-        ok(f"{vw}px 環節詳情真的長出那一格的台股（成分股表的新家）",
-           after["rows"] > 0, f"{before['rows']} → {after['rows']}")
+        # ★ 2026-09-25 桌機環節面板 #segBox 拿掉（那一格的台股改由右側 #relList／#coBox 回答）。
+        #   改前：兩個寬度都要 rows > 0；改後：1500px 要 rows == 0（面板不存在），800px 照舊 > 0。
+        if vw > 820:
+            ok(f"{vw}px 桌機不再長出環節面板（#segBox 裡 0 檔）", after["rows"] == 0,
+               f"{before['rows']} → {after['rows']}")
+        else:
+            ok(f"{vw}px 環節詳情真的長出那一格的台股（成分股表的新家）",
+               after["rows"] > 0, f"{before['rows']} → {after['rows']}")
         # ---- Andy ②（N7）：不跳頁，右側才有「個股頁」連結
         ok(f"{vw}px 點個股標籤不會跳去個股頁（hash 沒變）", after["hash"] == before["hash"],
            f"{before['hash']} → {after['hash']}")
@@ -3564,8 +3556,10 @@ def t_new_industry(pg, base):
         if pg.evaluate(f"() => !!document.querySelector('#segChips .segchip[data-seg=\"{seg_click}\"]')"):
             _cg_chip(pg, f'#segChips .segchip[data-seg="{seg_click}"]', 1100)
             d = pg.evaluate(SNAP2)
-            ok(f"{cid} 點環節色標 {seg_click}：環節詳情真的換成那一格的台股",
-               d["chipSeg"] == [seg_click] and d["rows"] > 0, {"點之前": b["rows"], **d})
+            # ★ 2026-09-25 此段在 1500px 跑：桌機環節面板拿掉。
+            #   改前：chipSeg 對、rows > 0；改後：chipSeg 對、rows == 0（面板不存在，篩選改看下面的壓暗）
+            ok(f"{cid} 點環節色標 {seg_click}：環節真的選起來、而且桌機不再長出環節面板",
+               d["chipSeg"] == [seg_click] and d["rows"] == 0, {"點之前": b["rows"], **d})
             ok(f"{cid} 而且不屬於那一格的公司卡真的被壓暗（篩選在圖上看得到）",
                d["dimCo"] > b["dimCo"], f"{b['dimCo']} → {d['dimCo']}")
             ok(f"{cid} 環節卡清單也同步：那一格 .sel", d["cards"] == [seg_click], d["cards"])
@@ -7591,8 +7585,11 @@ def t_relpanel(pg, base):
     after = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap .edge.hi').length,
                                     dim: document.querySelectorAll('#chainMap .edge.dim').length,
                                     codim: document.querySelectorAll('#chainMap .co.dim').length })""")
+    # ★ 2026-09-25 桌機環節面板 #segBox 拿掉之後，點公司卡選起來的那一格壓暗不會再被
+    #   「面板長出來 → 圖寬變 → 重畫」洗掉，所以按鈕之前 dim 本來就 > 0（實測 hi 1／dim 92）。
+    #   改前：after.dim > before.dim；改後：after.dim > 0（亮的線變多、其他仍是暗的、公司卡有壓暗）。
     ok("按「在圖上 highlight」，它的線真的亮起來、其他真的變暗",
-       after["hi"] > before["hi"] and after["dim"] > before["dim"] and after["codim"] > 0,
+       after["hi"] > before["hi"] and after["dim"] > 0 and after["codim"] > 0,
        f"{before} → {after}")
     pg.eval_on_selector("#relHi", "b => b.click()")
     pg.wait_for_timeout(500)
@@ -21360,10 +21357,17 @@ def t_b25_tags(pg, base):
                              " return { h: Math.round(b.getBoundingClientRect().height),"
                              "   only: !!b.querySelector('#segOnly'),"
                              "   tw: b.querySelectorAll('a').length }; }")
-            ok(f"[{cname} {w}px] 點色標之後下拉清單真的展開（高度 0 -> {h1['h']}）",
-               h1["h"] > 40, h1)
-            ok(f"[{cname} {w}px] 展開的內容是這一格的說明（有「只看這一格」與可點的個股連結）",
-               h1["only"] and h1["tw"] > 0, h1)
+            # ★ 2026-09-25（Andy：桌機整塊環節資訊面板拿掉，「已只看這一格」改由下拉「全部環節」取消）。
+            #   改前：兩個寬度點色標後 #segBox 高 > 40、有 #segOnly 與個股連結；
+            #   改後：桌機（>820）點色標後 #segBox 高 0、沒有 #segOnly、沒有連結；800px 照舊。
+            if w > 820:
+                ok(f"[{cname} {w}px] 點色標之後不會再長出環節面板（高度 {h1['h']}、無「只看這一格」）",
+                   h1["h"] == 0 and not h1["only"] and h1["tw"] == 0, h1)
+            else:
+                ok(f"[{cname} {w}px] 點色標之後下拉清單真的展開（高度 0 -> {h1['h']}）",
+                   h1["h"] > 40, h1)
+                ok(f"[{cname} {w}px] 展開的內容是這一格的說明（有「只看這一格」與可點的個股連結）",
+                   h1["only"] and h1["tw"] > 0, h1)
             _cg_chip(pg, "#segChips .segchip.sel", 700)
             h2 = pg.evaluate("() => Math.round(document.getElementById('segBox').getBoundingClientRect().height)")
             ok(f"[{cname} {w}px] 再點一次同一顆色標，清單真的收回去（{h1['h']} -> {h2}）", h2 == 0, h2)

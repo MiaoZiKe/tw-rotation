@@ -1075,7 +1075,7 @@
             <div class="segtools" id="segTools"></div>
             <div class="seglist" id="chainList"></div>
           </div></div></div>` : ''}
-        ${otherChains.length ? `<div class="linkrow"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
+        ${otherChains.length && !(window.matchMedia && matchMedia('(min-width: 821px)').matches) ? `<div class="linkrow chainothers"><span class="muted">其他產業鏈</span>${otherChains.map(c => A.L.chain(c.id, c.name)).join('')}${A.L.chain('industry', '法定產業別')}</div>` : ''}
       </div>`;
     /* ★ 族群卡片 `#groupCards` 已移除（DECISIONS #248）。
        它承載的兩件事都搬到關聯圖上，一件都沒有消失：
@@ -1576,6 +1576,12 @@
   function renderSegBox(box, sc, seg, ch, opt) {
     if (!box) return;
     if (!seg || !sc) { box.innerHTML = ''; return; }
+    /* ★ 2026-09-25 Andy：桌機（>820px）整塊環節資訊面板拿掉（標題列、台股、相關族群、跨鏈比較卡）。
+       理由：右側 #relList 已經列出那一格的族群與個股，下拉「環節：」也看得到目前選哪一格，
+       這塊在圖下方是第三份重複資訊；「已只看這一格」的取消交給下拉的「全部環節」。
+       手機另有人處理，這裡只擋桌機 —— 用 matchMedia 而非 CSS 藏，才是真的「不存在」，
+       不會留下一顆看不到但還能被 Tab 到的按鈕。*/
+    if (window.matchMedia && matchMedia('(min-width: 821px)').matches) { box.innerHTML = ''; return; }
     const o = opt || {};
     const tw = twOf(sc, seg), fo = foreignOf(sc, seg), gids = A.L.sgroups[seg] || [];
     const s = sc.segments.find(x => x.id === seg) || {};
