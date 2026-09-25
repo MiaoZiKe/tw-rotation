@@ -2955,7 +2955,12 @@ def t_new_industry(pg, base):
                   pg.evaluate(f"() => !!document.querySelector({tag!r})")):
             continue
         seg3711 = pg.evaluate(f"() => document.querySelector({tag!r}).dataset.segment")
-        pg.eval_on_selector(tag, "e => e.scrollIntoView({block:'center'})"); pg.wait_for_timeout(250)
+        # ★ 2026-09-24（Andy：「下方那片環節字卡全部拿掉」）桌機的字卡藏起來了，入口換成關聯圖上的公司卡
+        #   （走同一支 showCompany ＋ onCompany，下面每一條斷言一個字都沒改）。
+        #   改前：一律點字卡上的標籤 `.seglist .sco`；改後：桌機點 `#chainMap .co[data-code="3711"]`，800px 照舊點字卡。
+        if not pg.evaluate("() => { const l = document.querySelector('.seglist'); return !!l && l.getClientRects().length > 0; }"):
+            tag = '#chainMap .co[data-code="3711"]'
+        pg.eval_on_selector(tag, "e => e.scrollIntoView({block:'center'})"); settle_scroll(pg)
         if not click(pg, tag, 1400):
             continue
         after = pg.evaluate(SNAP)
@@ -11103,6 +11108,58 @@ def t_rel_list(pg, base):
         pg.wait_for_timeout(1500)
         ok(f"{L} 上一頁回得來（回到這條鏈）", pg.evaluate("location.hash").startswith("#industry/ai_server"),
            pg.evaluate("location.hash"))
+
+    # ---- 審查 R3（2026-09-24）的三件事，一起真的打開來量
+    # ① 淺色主題下關聯圖不准再是深底：底要亮、公司卡跟底分得開；切回深色要回到深底（深色一個值都沒動）
+    lum = """() => { const m = document.getElementById('chainMap'); if (!m) return null;
+        const px = (c) => { const v = (c.match(/\\d+(\\.\\d+)?/g) || []).map(Number); return v.length >= 3 ? (0.299*v[0] + 0.587*v[1] + 0.114*v[2]) : -1; };
+        const card = m.querySelector('.co:not(.foreign) rect');
+        return { bg: Math.round(px(getComputedStyle(m).backgroundColor)),
+                 card: card ? Math.round(px(getComputedStyle(card).fill)) : -1,
+                 edge: (() => { const e = m.querySelector('.edge'); return e ? getComputedStyle(e).stroke : ''; })() }; }"""
+    for th in ("light", "dark"):
+        pg.set_viewport_size({"width": 1440, "height": 1000})
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle")
+        pg.evaluate(f"() => {{ try {{ localStorage.setItem('tw.theme', '{th}'); localStorage.setItem('tw.relOpen', '1');"
+                    " localStorage.setItem('tw.relView', 'layer'); } catch (e) {} }")
+        pg.reload(wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 0", 8000)
+        v = pg.evaluate(lum)
+        if th == "light":
+            ok("[淺色] 關聯圖的底跟著主題變亮（改前：深藍 #0a1020 挖一塊黑）", bool(v) and v["bg"] >= 200, v)
+            ok("[淺色] 公司卡跟底分得開（亮度差 ≥ 4）而且走線看得到（不是跟底同色）",
+               bool(v) and abs(v["card"] - v["bg"]) >= 4 and v["edge"] not in ("", "none"), v)
+        else:
+            ok("[深色] 關聯圖維持深底（這次只改淺色）", bool(v) and v["bg"] <= 40, v)
+    # ② 整條鏈沒有任何上下游（金融）：圖上方明講、分層圖不再只用一欄 28% 寬；流向圖也要有說明
+    _rel_goto(pg, base, chain="financial", w=1440, view="layer", fold="1")
+    fe = pg.evaluate("""() => { const m = document.getElementById('chainMap'), e = m && m.querySelector('.mapempty');
+        const t = [...m.querySelectorAll('.segtitle')].map(x => Math.round(x.getBoundingClientRect().left));
+        return { msg: e ? e.innerText : '', cols: new Set(t).size, segs: t.length }; }""")
+    f = pg.evaluate(REL_FIT)
+    ok("[金融 分層圖] 沒有上下游時圖上方明講「此鏈沒有可畫的上下游關係」", "此鏈沒有可畫的上下游關係" in fe["msg"], fe)
+    ok("[金融 分層圖] 一個環節一欄，寬度用得開（改前：3 格擠在 1 欄、只用 28%）",
+       fe["cols"] == fe["segs"] and bool(f) and f.get("fill", 0) >= 60, [fe, f])
+    click(pg, "#relView button[data-rv='flow']", 1200)
+    ff = pg.evaluate("() => { const e = document.querySelector('#chainMap .mapempty'); return e ? e.innerText : ''; }")
+    ok("[金融 流向圖] 0 條帶子時一樣明講（改前：只有 3 個方塊、沒有任何說明）", "此鏈沒有可畫的上下游關係" in ff, ff)
+    click(pg, "#relView button[data-rv='layer']", 900)
+    # ③ 頁首「怎麼看 ?」不准再講退版前的「大圓點／個股小點」；沒有關聯圖的鏈不准提關聯圖
+    for cid, has_map in (("semiconductor", True), ("traditional", False)):
+        pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(300)
+        pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
+        wait_until(pg, "() => !!document.getElementById('nbIntro')", 8000)
+        hb = pg.query_selector('.howbtn[data-how="nb"]')
+        if hb:
+            click(pg, '.howbtn[data-how="nb"]', 400)
+        tx = pg.evaluate("() => (document.getElementById('nbIntro') || {}).innerText || ''")
+        ok(f"[{cid}] 頁首「怎麼看 ?」打得開、不再講「大圓點／個股小點」", bool(tx) and "大圓點" not in tx and "小點" not in tx, tx[:90])
+        if not has_map:
+            has_rel = pg.evaluate("() => !!document.getElementById('relSec')")
+            # 可以老實講「這條鏈還沒有關聯圖」，但不准叫人去點一個不存在的圖或色標
+            ok(f"[{cid}] 沒有關聯圖的鏈，說明裡不叫人去用關聯圖與色標",
+               (not has_rel) and "色標" not in tx and "公司卡" not in tx and "點關聯圖" not in tx and "環節 ▾" not in tx,
+               [has_rel, tx[:90]])
 
     # ---- 手機 390：色標照舊攤開、沒有下拉鈕、沒有右欄、下方字卡照舊（這次刻意不動手機）
     _rel_goto(pg, base, chain="ai_server", w=390, view="layer", fold="1")
@@ -19435,10 +19492,19 @@ def t_b25_tags(pg, base):
             d = pg.evaluate(REL_DEFAULT)
             if not ok(f"[{cname} {w}px] 這一頁的關聯圖區畫得出來", bool(d) and d["cards"] > 0, d):
                 continue
-            ok(f"[{cname} {w}px] Default 就看得到每一格的「上游／下游」（{d['flows']}/{d['cards']} 張卡）",
-               d["flows"] >= max(1, d["cards"] // 2), d)
-            ok(f"[{cname} {w}px] Default 就看得到個股標籤，而且帶得出代號（{d['coded']} 個）",
-               d["coded"] >= 10, d)
+            # ★ 2026-09-24（Andy：「下方那片環節字卡全部拿掉 —— 跟上面的關聯圖重複了」，只動桌機）：
+            #   桌機（>820px）的字卡 `.seglist` 藏起來了，「上下游」與「個股」都由關聯圖本身回答：
+            #   改前：字卡 Default 看得到上游／下游、看得到 ≥10 顆帶代號的標籤；
+            #   改後（桌機）：字卡看不到（0 顆標籤），圖上有走線、公司卡 ≥10 張；800px 照舊驗字卡。
+            if w > 820:
+                ok(f"[{cname} {w}px] 下方字卡拿掉了（看得到的標籤 {d['tags']} 顆）", d["tags"] == 0, d)
+                ok(f"[{cname} {w}px] 上下游改由圖上的走線回答（{d['edges']} 條）", d["edges"] > 0, d)
+                ok(f"[{cname} {w}px] 個股改由圖上的公司卡回答（{d['co']} 張）", d["co"] >= 10, d)
+            else:
+                ok(f"[{cname} {w}px] Default 就看得到每一格的「上游／下游」（{d['flows']}/{d['cards']} 張卡）",
+                   d["flows"] >= max(1, d["cards"] // 2), d)
+                ok(f"[{cname} {w}px] Default 就看得到個股標籤，而且帶得出代號（{d['coded']} 個）",
+                   d["coded"] >= 10, d)
             ok(f"[{cname} {w}px] 舊的力導向星際圖一個殘骸都不剩", d["ghosts"] == [], d["ghosts"])
             ok(f"[{cname} {w}px] Default 沒有任何下拉清單展開（高度 0）", d["segBoxH"] == 0, d)
             _cg_chip(pg, "#segChips .segchip:not(.nomem)", 900)   # 選擇器會被翻譯成 #segChips
@@ -19460,7 +19526,9 @@ def t_b25_tags(pg, base):
                 continue
             ok(f"[{cname} {w}px] 點股票之前右側是空的",
                pg.evaluate("() => !document.getElementById('coBox')"))
-            click(pg, f'.seglist .segcard .sco[data-code="{codes[0]}"]', 1100)
+            # 桌機的入口是圖上的公司卡（字卡藏起來了），800px 照舊點字卡標籤 —— 見 _cg_click_dot
+            # 改前：click(pg, '.seglist .segcard .sco[data-code=…]')；改後：_cg_click_dot 依寬度挑入口
+            _cg_click_dot(pg, codes[0], 1100)
             s1 = pg.evaluate(REL_SIDE)
             if ok(f"[{cname} {w}px] 點個股標籤之後資訊欄真的出現，而且寫的是這一檔（{codes[0]}）",
                   bool(s1) and s1["h"] > 60 and codes[0] in s1["txt"], s1):
@@ -19472,7 +19540,7 @@ def t_b25_tags(pg, base):
                        s1["top"] > s1["mapTop"], s1)
                 ok(f"[{cname} {w}px] 資訊欄裡有可以往下走的入口（看個股頁／同環節／佐證連結）",
                    s1["links"] >= 2, s1)
-            click(pg, f'.seglist .segcard .sco[data-code="{codes[1]}"]', 1100)
+            _cg_click_dot(pg, codes[1], 1100)
             s2 = pg.evaluate(REL_SIDE)
             ok(f"[{cname} {w}px] 再點另一檔（{codes[1]}）資訊欄真的換人，不是疊第二張",
                bool(s2) and codes[1] in s2["txt"] and codes[0] not in s2["txt"]
@@ -19484,7 +19552,9 @@ def t_b25_tags(pg, base):
             fz = pg.evaluate(REL_FIT)
             _rel_fit_ok(pg, fz, f"[{cname} {w}px] 關掉資訊欄之後")
 
-    _rel_goto(pg, base, "semiconductor", 1440)
+    # ★ 2026-09-24：字卡只剩窄畫面／手機有，這一條改在 800px 驗（改前：1440px）
+    _rel_goto(pg, base, "semiconductor", 800)
+    pg.evaluate("() => { const s = document.getElementById('side'); if (s) s.classList.remove('open'); }")
     tgt = pg.evaluate("""() => { const t = document.querySelector('.seglist .segcard .sf .sg[data-seg]');
         return t ? t.dataset.seg : null; }""")
     if ok("環節卡上找得到可以點的上下游環節名", bool(tgt), tgt):
@@ -21347,7 +21417,11 @@ def t_b29_tabs(pg, base):
        len(box8) == 2 and all(b["r"] >= 8 and b["bw"] >= 1 for b in box8), box8)
     ok("W3-8：族群名稱一個都沒有被截斷（畫面上不准出現「…」）",
        all("…" not in str(y) for y in g8["yLabels"]), [y for y in g8["yLabels"] if "…" in str(y)][:4])
-    ok("W3-8：長條兩端是圓角（不是直角）", (g8["barRadius"] or 0) >= 3, g8["barRadius"])
+    # ★ 2026-09-24：main 657a9ce「長條改回小圓角」之後 borderRadius 變成四角陣列，
+    #   直接拿陣列跟數字比會讓整段「操作中途爆掉」、後面的斷言全部沒跑到 —— 陣列取最大的那個角來比（門檻沒動）。
+    _br = g8["barRadius"]
+    _br = max([x for x in _br if isinstance(x, (int, float))] or [0]) if isinstance(_br, list) else (_br or 0)
+    ok("W3-8：長條兩端是圓角（不是直角）", _br >= 3, g8["barRadius"])
     ok("W3-8：零軸那一條真的畫出來而且加粗了（正負分得開）",
        bool(g8["zeroAxis"]) and g8["zeroAxis"].get("show") is not False
        and (g8["zeroAxis"].get("lineStyle") or {}).get("width", 0) >= 1.5, g8["zeroAxis"])
