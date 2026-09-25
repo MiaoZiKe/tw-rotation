@@ -201,6 +201,19 @@
      這支讀 scrollWidth／clientWidth／offsetLeft —— 在 renderChain 的中途讀，等於逼瀏覽器把還沒排好的整頁**當場排版**，
      之後 render 又改一大堆 DOM、再排一次。實測首次開 #industry/semiconductor 光這支就 210ms（整個任務 778ms 的 27%）。
      rAF 在畫面畫出來之前跑，捲的結果一樣、看不出差別；同一條分頁列一幀內叫幾次都只量一次。*/
+  /* ★ 2026-09-25 效能（perf-2）：首屏以下的區塊延後畫 —— 捲近了（IntersectionObserver，提前 240px）或瀏覽器閒下來
+     （requestIdleCallback，最慢 2.5 秒）先到的那一個觸發，只跑一次。跟 app.js 的 whenNear 同一個概念，
+     但**不先量位置**（呼叫端自己知道它在首屏以下），所以不會在畫頁途中逼整頁排版。*/
+  function deferNear(el, fn) {
+    let done = false, io = null;
+    const go = () => { if (done) return; done = true; if (io) io.disconnect(); try { fn(); } catch (e) { console.warn('延後畫的區塊失敗', e); } };
+    if (window.IntersectionObserver) {
+      io = new IntersectionObserver((es) => { if (es.some(e => e.isIntersecting)) go(); }, { rootMargin: '240px 0px' });
+      io.observe(el);
+    }
+    const ric = window.requestIdleCallback || ((f) => setTimeout(f, 120));
+    ric(go, { timeout: 2500 });
+  }
   function scrollTabIntoView(strip) {
     if (!strip || strip._tabQ) return;
     strip._tabQ = true;
@@ -1354,7 +1367,16 @@
         if (hint) hint.innerHTML = HINT[relView](`這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
         $$('#relView button', el).forEach(b => b.classList.toggle('on', b.dataset.rv === relView));
       };
-      drawMap();
+      /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
+         以前跟剖析圖在同一個任務裡畫：drawMap 一開頭讀 clientWidth，逼整頁（含剛插進去的剖析圖）當場排版，
+         實測首次開 #industry/semiconductor 這一支自己 202ms。已經在畫面裡（窄畫面、沒有剖析圖的鏈）就跟以前一樣當場畫。
+         延後畫完要把目前的選取狀態補畫上去（syncHighlight 宣告在後面，當場畫的那一次交給 renderChain 最後那一行）。*/
+      /* ⚠ 不用 App.whenNear：它一進來就讀 getBoundingClientRect 判斷「在不在首屏」—— 那本身就是這裡要避開的強制排版。
+         上面有剖析圖（桌機、這條鏈有圖）時關聯圖一定在首屏以下，直接交給 IntersectionObserver ＋ 閒置補畫；
+         沒有剖析圖或手機寬時照舊當場畫。*/
+      const mapBelow = !!(mapHost && hasSlots && dgId && window.innerWidth > 640);
+      if (mapBelow) deferNear(mapHost, () => { if (!mapHost.isConnected) return; drawMap(); syncHighlight({ quiet: true, noscroll: true }); });
+      else drawMap();
       // 滑過環節的說明框（圖上的環節標題、沒有台股那格的說明、流向圖方塊共用一個）
       wireSegTip($('#relSec', el), sc, ch.id);
       $$('#relView button', el).forEach(b => b.onclick = () => {
@@ -1400,6 +1422,7 @@
       const alive = () => !!(mapHost && mapHost.isConnected);
       const reflow = () => {
         if (!alive()) { if (ro) ro.disconnect(); window.removeEventListener('resize', reflow); return; }
+        if (lastW < 0) return;            // 還沒畫過（延後畫，見上面 whenNear）：輪到它畫時會自己量寬度
         if (!relOpen || Math.abs(mapHost.clientWidth - lastW) < 8) return;
         clearTimeout(rt); rt = setTimeout(() => {
           if (!alive() || !relOpen) return;
