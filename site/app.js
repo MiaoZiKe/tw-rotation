@@ -1859,8 +1859,12 @@
             || w.classList.contains('mnext')) return;
         const kids = [...w.children];
         if (!kids.length) return;                       // 沒有元素子項 → 不是排版容器，不碰
-        const allOff = kids.every(k => k.classList.contains('mp-off')
-          || getComputedStyle(k).display === 'none');
+        /* ★ 手機 v3 補：排版容器可能**套兩層**（總覽的 .ovmain > #ovLeft(.ovcol) > 卡片）——
+           只看直接子項的話，#ovLeft 自己沒被藏、高度 0，外層 .ovmain 就留下一個帶 16px 外距的空殼。
+           所以往下看一層：子項本身也是「每個元素子項都藏了」的容器，就算它是藏著的。*/
+        const offK = (k, d) => k.classList.contains('mp-off') || getComputedStyle(k).display === 'none'
+          || (d < 2 && k.children.length > 0 && !managed.has(k) && [...k.children].every(x => offK(x, d + 1)));
+        const allOff = kids.every(k => offK(k, 0));
         w.classList.toggle('mp-off', allOff);
       });
       /* 「收合」那顆鈕要跟著它負責的那一塊一起藏：鈕是插在那一塊後面的獨立節點，
@@ -1908,7 +1912,10 @@
         const b = document.createElement('button');
         b.type = 'button'; b.setAttribute('role', 'tab');
         b.title = MIA_STEP_SUB[st - 1] || '';
-        b.innerHTML = '<b>' + MIA_STEPS[st - 1] + '</b><em>' + (MIA_STEP_SUB[st - 1] || '') + '</em>';
+        /* ★ 手機 v3：四步一列四格（上面一行 ①②③④、下面一行名字）—— 現行兩行卡片一次只露一格半。
+           這一支（miaPager）本來就只在 ≤640px 跑，桌機不會走到這裡。副標留在 title（長按／讀屏讀得到）。*/
+        const [k0, ...nm] = MIA_STEPS[st - 1].split(' ');
+        b.innerHTML = '<em>' + k0 + '</em><b>' + nm.join(' ') + '</b>';
         b.onclick = () => { step = st; i = 0; miaSave(key + '.step', st); paint(); after(); };
         spine.appendChild(b);
       });
@@ -6568,7 +6575,10 @@
       const b = e.target && e.target.closest && e.target.closest('.howbtn[data-how]');
       if (!b) return;
       const box = document.getElementById('how-' + b.dataset.how); if (!box) return;
-      if (b.classList.contains('pop')) { howPop(b, box); return; }
+      /* ★ 手機 v3（≤640px，docs/mobile_v3_spec.md R2）：補充文字一律是「?」氣泡 ——
+         就地展開的那幾顆（產業鏈的 nb／gp／dg／rel）在手機也走跳出式，位置由 mobile3.js 貼到「?」正下方。
+         桌機（>640）這一行永遠不成立，行為一個字都沒變。*/
+      if (b.classList.contains('pop') || window.innerWidth <= 640) { howPop(b, box); return; }
       const open = box.hidden;
       const src = HOW[b.dataset.how];
       if (open && src != null && (typeof src === 'function' || !box.dataset.filled)) {

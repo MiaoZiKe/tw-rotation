@@ -3451,6 +3451,231 @@ h3 .howbtn.pop{font-family:inherit}
 /* ---- 足跡輪盤放大視窗的象限卡（審查 R2 #35）：只顯示計數，不接點擊 ——
    點了會展開的象限面板長在卡片上、被放大遮罩蓋住，點了看起來沒反應；要展開請關掉放大在卡片上點。*/
 #zoomBody .rotquads .rq{pointer-events:none;cursor:default}
+/* ==================================================================================
+   ★ 手機版 v3（規格 docs/mobile_v3_spec.md；原型 docs/mobile_v3_proto/proto.css）
+   ⚠⚠ 全部包在 `@media (max-width:640px)`，而且掛在 `body.m3on`（mobile3.js 只在 ≤640px 掛）底下 ——
+     桌機一個像素都不准變（Andy 2026-09-23：「除了桌面不可以遷就手機」）。
+     641～820px（桌機縮半邊）照舊吃第一、二版的規則（兩列分頁等），這裡一條都不碰。
+   放在樣式表最後面：同權重下後寫的贏，才蓋得掉前面 ≤820px 那幾批。
+   ================================================================================== */
+@media (max-width:640px){
+  /* ---- B 頂欄 52px：logo＋站名＋搜尋鈕＋「⋯」；版號收進底部「更多」 ---- */
+  body.m3on .topbar{height:52px}
+  /* 版號那一行收進「更多」；「有新資料 ↻」那顆（#freshBtn）照樣會出現在站名底下，不准藏 */
+  body.m3on #asof .verline{display:none}
+  body.m3on .topbar .search{display:none}
+  body.m3on .msearchbtn{display:inline-grid;place-items:center;margin-left:auto;width:44px;height:44px;flex:none;
+    border:1px solid var(--line-2);border-radius:12px;background:var(--panel);color:var(--ink-2);font-size:18px;padding:0}
+  body.m3on .morebtn{margin-left:0;min-height:44px}
+  body.m3on .topbar.msearch .search{display:flex;align-items:center;gap:6px;position:absolute;left:8px;right:8px;top:4px;height:44px;z-index:5}
+  body.m3on .topbar.msearch .search input{flex:1 1 auto;width:auto;height:44px;font-size:16px}
+  body.m3on .msearchx{flex:none;min-height:44px;padding:0 12px;border:1px solid var(--line-2);border-radius:10px;
+    background:var(--panel);color:var(--ink-2);font-size:14px}
+  body.m3on .topbar.msearch .sugg{top:48px}
+  /* 頂欄變 52 之後，所有「釘在頂欄底下」的東西一起往上挪 6px */
+  body.m3on .mspine{top:52px}
+  body.m3on #skPx{top:52px}
+  body.m3on aside{top:52px}
+
+  /* ---- B 底部導覽：一列五顆 58px（現行兩列七顆 102px） ---- */
+  body.m3on .tabs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0;
+    padding:0 0 env(safe-area-inset-bottom);height:calc(58px + env(safe-area-inset-bottom))}
+  body.m3on .tab[data-view=market],body.m3on .tab[data-view=season],body.m3on .tab[data-view=delivery]{display:none}
+  body.m3on .tab,body.m3on .mtabmore{min-height:44px;height:58px;padding:6px 2px 4px;margin:0;border:0;border-radius:0;
+    background:none;box-shadow:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-size:12px;line-height:1.2;color:var(--ink-3);font-weight:600;flex:none}
+  body.m3on .tab::before,body.m3on .mtabmore::before{font-size:18px;line-height:1;font-weight:400}
+  body.m3on .tab[data-view=overview]::before{content:'◎'}
+  body.m3on .tab[data-view=flow]::before{content:'⇄'}
+  body.m3on .tab[data-view=industry]::before{content:'▦'}
+  body.m3on .tab[data-view=heatmap]::before{content:'▤'}
+  body.m3on .mtabmore::before{content:'≡'}
+  /* 「產業地圖」在手機寫成「產業」（一列五顆放不下四個字＋圖示）：字不改，只縮寫顯示 */
+  body.m3on .tab[data-view=industry]{font-size:0}
+  body.m3on .tab[data-view=industry]::after{content:'產業';font-size:12px}
+  body.m3on .tab.on,body.m3on .mtabmore.on{color:var(--cyan);background:none;box-shadow:none}
+  body.m3on .tab.on::before,body.m3on .mtabmore.on::before{text-shadow:0 0 12px color-mix(in srgb,var(--cyan) 60%,transparent)}
+  body.m3on main{padding-bottom:calc(58px + 24px + env(safe-area-inset-bottom))}
+  body.m3on.miaon main{padding-bottom:calc(58px + 24px + env(safe-area-inset-bottom))}
+
+  /* ---- B 步驟列：四格一列（上面 ①②③④、下面名字），每格 44px ---- */
+  body.m3on .mspine{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;overflow:visible;padding:6px 0 6px}
+  body.m3on .mspine::after{display:none}
+  body.m3on .mspine>button{min-height:44px;max-width:none;padding:3px 2px;border-radius:12px;align-items:center;justify-content:center;
+    text-align:center;gap:0;line-height:1.2}
+  body.m3on .mspine>button em{font-size:12px;font-family:var(--mono);color:var(--ink-3);max-width:none}
+  body.m3on .mspine>button b{font-size:13px;white-space:nowrap}
+  body.m3on .mspine>button.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,var(--panel));box-shadow:var(--glow)}
+  body.m3on .mspine>button.on em{color:var(--cyan)}
+  /* 分段列：36px 膠囊，選中的反白 */
+  body.m3on .mpager{padding:2px 1px;margin:0 0 8px;box-shadow:none;gap:6px}
+  body.m3on .mpager>button{min-height:36px;padding:0 14px;font-size:13px;background:transparent;border-color:var(--line-2)}
+  body.m3on .mpager>button.on{background:var(--ink);color:var(--bg);border-color:var(--ink);box-shadow:none;font-weight:700}
+  body.m3on .mnext{min-height:44px;margin-top:10px}
+
+  /* ---- A「?」：32px 圓，觸控範圍用 ::after 撐到 44px（不佔版面）---- */
+  body.m3on .howbtn.pop{width:32px;height:32px;min-height:32px;font-size:15px;position:relative;margin-left:8px;vertical-align:middle}
+  body.m3on .howbtn.pop::after{content:'';position:absolute;inset:-6px;border-radius:50%}
+  /* 氣泡：貼在「?」的正下方（下面放不下翻到上面，由 mobile3.js placeHowPop 算 top）；左右各留 12px */
+  body.m3on #howPop.mbubble{left:12px;right:12px;width:auto;transform:none;max-height:56vh;border-radius:14px;
+    padding:12px 14px;font-size:13.5px;line-height:1.65;background:var(--panel-2);box-shadow:0 18px 40px -12px rgba(0,0,0,.8)}
+  body.m3on #howBack{background:rgba(3,6,14,.28);backdrop-filter:none}
+  :root[data-theme="light"] body.m3on #howBack{background:rgba(30,28,24,.16)}
+
+  /* ---- A 底部抽屜 ---- */
+  .msheetback{position:fixed;inset:0;z-index:190;background:rgba(3,6,14,.40)}
+  :root[data-theme="light"] .msheetback{background:rgba(30,28,24,.22)}
+  .msheetback[hidden],.msheet[hidden]{display:none}
+  .msheet{position:fixed;z-index:191;left:0;right:0;bottom:0;max-height:46vh;overflow:auto;overscroll-behavior:contain;
+    background:var(--panel-2);border-top:1px solid var(--line-2);border-radius:18px 18px 0 0;
+    padding:4px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -18px 40px -12px rgba(0,0,0,.7);
+    color:var(--ink);font-size:14px}
+  .msheet[data-kind=more]{max-height:72vh}
+  .msheet .mgrab{width:40px;height:4px;border-radius:2px;background:var(--line-2);margin:6px auto 8px}
+  .msheet .mshhead{display:flex;align-items:center;gap:8px;min-height:32px}
+  .msheet .mshhead b{font-size:16px}
+  .msheet .mshhead .no{font:700 13px var(--mono);min-width:30px;height:30px;border-radius:50%;display:grid;place-items:center;
+    background:var(--c,var(--cyan));color:#07101f;flex:none}
+  .msheet .mshbody{margin-top:8px;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
+  .msheet .mshbody i{display:block;font-style:normal}
+  .msheet .mgrp{margin:10px 2px 2px;font-size:12px;color:var(--ink-3)}
+  .msheet .mrow{display:flex;align-items:center;flex-wrap:wrap;gap:2px 10px;width:100%;min-height:48px;padding:8px 10px;border:0;
+    border-radius:10px;background:transparent;color:var(--ink);font-size:15px;text-align:left}
+  .msheet .mrow small{flex-basis:100%;margin-left:32px;font-size:12px;color:var(--ink-3)}
+  .msheet .mrow .ic{width:22px;text-align:center;color:var(--cyan);font-size:16px}
+  .msheet .mrow.on{background:color-mix(in srgb,var(--cyan) 10%,transparent);color:var(--cyan)}
+  .msheet .mrow .n{margin-left:auto;background:var(--violet);color:var(--ontop);font-size:12px;padding:1px 8px;border-radius:9px;font-family:var(--mono)}
+  .msheet .mver{margin:10px 10px 0;font-size:12px;color:var(--ink-3)}
+  .msheet .mchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .msheet .mchips a,.msheet .mchips span,.msheet .mchips button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line-2);
+    display:inline-flex;align-items:center;font-size:13px;color:var(--ink);text-decoration:none;background:var(--panel)}
+  .msheet .mchips span.none{color:var(--ink-3);border-style:dashed}
+  .msheet .mchips .on{border-color:var(--cyan);color:var(--cyan)}
+  .msheet .mshnav{display:grid;grid-template-columns:44px 1fr 44px;align-items:center;margin-top:12px;gap:8px}
+  .msheet .mshnav button{height:44px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel);color:var(--ink);font-size:18px}
+  .msheet .mshnav span{text-align:center;font:600 13px var(--mono);color:var(--ink-3)}
+}
+/* 桌機（>640）：手機才插的節點就算殘留也一律不顯示（mobile3.js 回桌機會拆掉；這一條是第二道保險）*/
+@media (min-width:641px){ .mtabmore,.msearchbtn,.msearchx,.msheet,.msheetback{display:none!important} }
+/* ---- 手機 v3 C：總覽＋資金流向（mobile3.js 的 C 段）---- */
+@media (max-width:640px){
+  /* 手機專屬內容插在既有卡片裡（.m3keep），卡片（.m3host）其餘的桌機內容先藏；「完整版 ›」（.mfull）叫回來 */
+  body.m3on .m3host:not(.mfull)>:not(.m3keep):not(.m3keep-h){display:none!important}
+  body.m3on .m3host.mfull>.m3keep:not(.mfullbtn){display:none!important}
+  body.m3on #ovRotKpi{display:none!important}
+  body.m3on .adjtag{font-size:12px}
+  /* 法人卡：標題列裡的「最近 N 天／截止」拉桿與期間副標屬於桌機那張圖，手機版只看最近一個有值的交易日（在「完整版」裡照舊可調）*/
+  body.m3on #flowInstCard:not(.mfull)>.m3keep-h .row,body.m3on #flowInstCard:not(.mfull) #instSub{display:none}
+  body.m3on #flowSankeyCard:not(.mfull) #sankeySub{display:none}
+  body.m3on .mfullbtn{display:block;width:100%;min-height:44px;margin-top:10px;border-radius:12px;border:1px dashed var(--line-2);
+    background:transparent;color:var(--ink-2);font-size:13px}
+  body.m3on .mhead{display:flex;align-items:center;gap:8px;min-height:36px}
+  body.m3on .mhead h3{margin:0;font-size:16px;white-space:nowrap}
+  body.m3on .mhead.sm h3{font-size:14px}
+  body.m3on .mhead small{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+  body.m3on .mhead .sp{flex:1}
+  body.m3on .mhead .howbtn.pop{margin-left:0}
+  body.m3on .mfilt{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);
+    color:var(--ink-2);font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
+  body.m3on .mfilt.on{border-color:var(--cyan);color:var(--cyan)}
+  body.m3on .msub{font-size:12px;color:var(--ink-3);margin:2px 0 4px}
+  body.m3on .mgrp{font-size:12px;color:var(--ink-3);margin:8px 0 2px}
+  /* 雷達 */
+  body.m3on .mrhost{display:flex;justify-content:center}
+  body.m3on .mradar{position:relative;margin:4px auto 0}
+  body.m3on .mradar svg{display:block;width:100%;height:auto;touch-action:manipulation}
+  body.m3on .mqb{position:absolute;min-height:30px;padding:0 10px;border-radius:999px;border:1.2px solid var(--c);
+    background:color-mix(in srgb,var(--bg) 70%,var(--panel));color:var(--c);font-size:13px;display:flex;align-items:center;gap:6px;white-space:nowrap}
+  body.m3on .mqb b{color:var(--ink);font-family:var(--mono);font-size:14px}
+  body.m3on .mqb.on{background:color-mix(in srgb,var(--c) 28%,var(--panel));color:var(--ink)}
+  body.m3on .mqb::after{content:'';position:absolute;inset:-7px -2px}
+  :root[data-theme="light"] body.m3on .mqb{background:var(--panel)}
+  body.m3on .mrscan{animation:mrspin 6s linear infinite}
+  @keyframes mrspin{to{transform:rotate(-360deg)}}
+  /* 焦點條 */
+  body.m3on .mfocus{display:grid;grid-template-columns:auto 1fr auto;gap:0 10px;align-items:center;margin-top:4px;
+    padding:4px 10px 6px;border-radius:12px;background:var(--panel-2);border:1px solid var(--line)}
+  body.m3on .mfocus .nm{font-weight:700;font-size:15px;display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
+  body.m3on .mfocus .nm i{width:10px;height:10px;border-radius:50%;background:var(--c);flex:0 0 auto}
+  body.m3on .mfocus .st{justify-self:start;font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--c);color:var(--c);white-space:nowrap}
+  body.m3on .mfocus .nums{grid-column:1/-1;display:flex;gap:14px;font:600 13px var(--mono);color:var(--ink-2)}
+  body.m3on .mfocus .nums em{font-style:normal;font-family:inherit;color:var(--ink-3);font-weight:400;margin-right:3px;font-size:12px}
+  body.m3on .mfocus .note{grid-column:1/-1;font-size:12px;color:var(--ink-3)}
+  body.m3on .mfocus a{font-size:13px;color:var(--cyan);text-decoration:none;min-height:36px;display:inline-flex;align-items:center}
+  body.m3on .up{color:var(--rise)} body.m3on .dn{color:var(--fall)} body.m3on .fl{color:var(--flat)}
+  /* HTML 排行長條 */
+  body.m3on .mrank{list-style:none;margin:6px 0 0;padding:0}
+  body.m3on .mrank li{position:relative;display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;min-height:36px;
+    padding:0 6px;border-radius:8px;cursor:pointer}
+  body.m3on .mrank li .bar{position:absolute;left:28px;top:6px;bottom:6px;border-radius:0 4px 4px 0;background:color-mix(in srgb,var(--c,var(--cyan)) 22%,transparent);z-index:0}
+  body.m3on .mrank li>*{position:relative;z-index:1}
+  body.m3on .mrank li .r{font:600 12px var(--mono);color:var(--ink-3);text-align:right}
+  body.m3on .mrank li .n{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body.m3on .mrank li .v{font:600 13px var(--mono);white-space:nowrap}
+  body.m3on .mrank li .v small{font-size:12px;margin-left:6px;color:var(--ink-3)}
+  body.m3on .mrank li .v small.up{color:var(--rise)} body.m3on .mrank li .v small.dn{color:var(--fall)}
+  body.m3on .mrank li.on{outline:1.5px solid var(--cyan);background:color-mix(in srgb,var(--cyan) 8%,transparent)}
+  body.m3on .mrank li.other .n{color:var(--ink-3)}
+  body.m3on .mrank li.sub{display:block;padding:0;min-height:0;cursor:default}
+  body.m3on .mrank.lv{margin:0 0 0 12px;border-left:2px solid var(--line-2);padding-left:6px}
+  /* 分段切換（大盤、法人）*/
+  body.m3on .mseg{display:flex;border:1px solid var(--line-2);border-radius:10px;overflow:hidden;margin:2px 0 6px}
+  body.m3on .mseg button{flex:1;min-height:36px;padding:0 10px;border:0;background:transparent;font-size:13px;color:var(--ink-2)}
+  body.m3on .mseg button.on{background:var(--cyan);color:var(--ontop);font-weight:700}
+  /* 法人對稱長條（紅買綠賣）*/
+  body.m3on .minst ul{list-style:none;margin:0;padding:0}
+  body.m3on .minst li{display:grid;grid-template-columns:96px 1fr 64px;gap:8px;align-items:center;min-height:28px;font-size:13px}
+  body.m3on .minst li .n{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink-2)}
+  body.m3on .minst li .t{height:12px}
+  body.m3on .minst li .t i{display:block;height:100%;border-radius:3px}
+  body.m3on .minst li.b .t i{background:var(--rise)}
+  body.m3on .minst li.s .t i{background:var(--fall)}
+  body.m3on .minst li .v{font:600 12.5px var(--mono);text-align:right}
+  /* 大盤合一張 */
+  body.m3on #m3Grid.m3one{display:block!important;overflow:visible}
+  body.m3on #m3Grid.m3one>.m3-card{display:none!important}
+  body.m3on #m3Grid.m3one>.m3-card.mcur{display:block!important;width:100%}
+  body.m3on #m3Grid.m3one .m3-big{display:none}
+  body.m3on #m3Grid.m3one+.swipetip{display:none}
+  body.m3on .mpos{display:flex;justify-content:center;gap:6px;align-items:center;margin-top:6px;font-size:12px;color:var(--ink-3)}
+  body.m3on .mpos i{width:6px;height:6px;border-radius:50%;background:var(--line-2)}
+  body.m3on .mpos i.on{background:var(--cyan);width:16px;border-radius:3px}
+}
+@media (max-width:640px) and (prefers-reduced-motion:reduce){ body.m3on .mrscan{animation:none;display:none} }
+@media (min-width:641px){ .m3keep,.mfullbtn,#mM3Sw,#mM3Pos{display:none!important} }
+/* ---- 手機 v3 D：剖析圖只留編號（diagrams.js DG.mobileNums／mobileNums3d）---- */
+@media (max-width:640px){
+  /* 設定列只留：怎麼看 ?、3D 立體（拖曳：一指轉兩指移本來就是手機的預設；動畫與收合在手機不放）*/
+  body.m3on #dgDrag,body.m3on #dgReset,body.m3on #dgAnim,body.m3on #dgFold{display:none!important}
+  body.m3on .mdgbar{display:flex;align-items:center;gap:8px;margin:6px 0;flex-wrap:wrap}
+  body.m3on .mdgbar .mseg{margin:0;flex:none}
+  body.m3on .mdgbar .mseg button{flex:none;padding:0 14px}
+  body.m3on .mdginfo{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);font-size:13px}
+  body.m3on .mdgcnt{margin-left:auto;font-size:12px;color:var(--ink-3)}
+  body.m3on .mnum2d{position:relative;overflow:hidden!important;container-type:normal!important}
+  body.m3on .mnum2d .dgcards,body.m3on .mnum2d .dglead,body.m3on .mnum2d .dghead,body.m3on .mnum2d .dgpop{display:none!important}
+  body.m3on .mnum2d .dggrid{display:block!important}
+  body.m3on .mnum2d .dgcanvas{overflow:visible!important;max-width:none!important}
+  body.m3on .mnum2d g.anc{opacity:0}
+  body.m3on .mnum2d:not(.mbig) .dgcanvas svg{width:100%!important;min-width:0!important;height:auto!important}
+  /* 放大＝原寸，容器自己上下左右滑（要蓋掉 .dgwrap 的 overflow:hidden 與 container-type，不然原寸 SVG 被裁掉）*/
+  body.m3on .mnum2d.mbig{overflow:auto!important;max-height:70vh;-webkit-overflow-scrolling:touch}
+  body.m3on .mnum2d.mbig .dggrid{width:max-content}
+  body.m3on .mnum2d:not(.mbig)+.swipetip{display:none}
+  body.m3on .mnum2d:not(.mbig).hsc{-webkit-mask-image:none;mask-image:none}
+  body.m3on .mnumlayer{position:absolute;left:0;top:0;pointer-events:none;z-index:4}
+  body.m3on .mnumlayer.m3d{inset:0}
+  body.m3on .mnum{position:absolute;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;pointer-events:auto;
+    border:2px solid var(--c,var(--cyan));background:color-mix(in srgb,var(--bg) 80%,var(--panel));color:var(--ink);
+    font:700 12px var(--mono);display:grid;place-items:center;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.6)}
+  body.m3on .mnum::after{content:'';position:absolute;inset:-8px;border-radius:50%}
+  body.m3on .mnum.on{background:var(--c,var(--cyan));color:#07101f;transform:scale(1.18);z-index:2;
+    box-shadow:0 0 0 4px color-mix(in srgb,var(--c,var(--cyan)) 35%,transparent)}
+  /* 3D：卡片欄、字卡、站上會疊住的 .ld-no 一律收掉，交給上面那一層 */
+  body.m3on .mnum3d{position:relative}
+  body.m3on .mnum3d .dgstage-b,body.m3on .mnum3d .lbl3d,body.m3on .mnum3d .ld-no{display:none!important}
+  body.m3on #dg3dNote{display:none}
+}
 </style>
 </head>
 <body>
@@ -3902,6 +4127,8 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="market3.js"></script>
 <script src="tasks.js"></script>
 <script src="live.js"></script>
+<!-- ★ 手機版 v3（docs/mobile_v3_spec.md）：只在 ≤640px 動作，桌機整支不插任何節點 -->
+<script src="mobile3.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>

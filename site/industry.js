@@ -1395,6 +1395,11 @@
          「我就是要看這張」。手機的預設收合是給「順著鏈逛進來」的人省高度用的，
          不該蓋掉明確的意圖 —— 否則從圖別選單點一張圖進來，看到的是一顆收合鈕。*/
       if (dgExplicit) dgOpen = true;
+      /* ★ 手機 v3（≤640px，docs/mobile_v3_spec.md §9 第 1 條）：剖析圖預設**展開**。
+         當初收合的理由是「字卡把圖撐到 1000px 以上」；手機 v3 字卡拿掉、只留編號之後圖只剩約 300px，
+         收合反而讓這一頁的主角要多點一下才看得到。手機上「收合圖」那顆鈕也一起藏起來（index.html）。
+         桌機（>640）不走這一行。*/
+      if (window.innerWidth <= 640) dgOpen = true;
       did3d = false;
       const dgSecEl = $('#dgSec', el);
       /* ★ 2026-09-23 第二批（W3-1 ＋ W3-9）：設定列改到**右上角**，
@@ -2327,6 +2332,8 @@
       }
       if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; return; }
       view3d = v;
+      // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
+      if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
       /* N1（Andy 2026-09-19）：「3D圖需要可以游標抓取移動，並且可以 360 都觀測，
          我發現下面看不到」。仰角限制已在 three3d.js 解開（0 ~ π），
          這裡再補一顆「拖曳：轉動／平移」——OrbitControls 預設右鍵才平移，
@@ -2367,6 +2374,8 @@
   function wireDiagram(root, onSeg, onBg) {
     const host = $('#prodDiagram', root);
     if (window.DG && window.DG.stampParts) window.DG.stampParts(host);
+    // 手機 v3（≤640px）：字卡收掉、只留編號（diagrams.js DG.mobileNums；桌機進去就 return）
+    if (window.DG && window.DG.mobileNums) window.DG.mobileNums(host);
     $$('#prodDiagram [data-seg]', root).forEach(n => { n.onclick = (e) => { e.stopPropagation(); onSeg(n.dataset.seg, n.dataset.dgkey || null); }; });
     /* ★ 只有 `data-part`、沒有 `data-seg` 的零件也要點得動（2026-09-22，同上）。
        `:not([data-seg])` 是為了不要跟上面那一圈重複綁 —— 有 seg 的走上面那條，行為完全不變。
