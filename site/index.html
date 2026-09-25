@@ -3790,7 +3790,8 @@ h3 .howbtn.pop{font-family:inherit}
 <script>(function(){try{var q=new URLSearchParams(location.search).get('style');var ok=['minimal','maximal','y2k','glass','immersive','eco'];
 if(q==='off'){localStorage.removeItem('tw.style');q=null;}else if(q&&ok.indexOf(q)>=0){localStorage.setItem('tw.style',q);}
 var s=q||localStorage.getItem('tw.style');if(s&&ok.indexOf(s)>=0){document.documentElement.setAttribute('data-style',s);
-var l=document.createElement('link');l.rel='stylesheet';l.href='styles/'+s+'.css';l.id='styleLab';document.head.appendChild(l);}}catch(e){}})();</script>
+document.write('<link rel="stylesheet" id="styleLab" href="styles/'+s+'.css">');}}catch(e){}})();</script>
+<!-- ↑ 用 document.write 在解析當下寫入 <link>：會擋住後面的腳本，app.js 的 refreshPalette() 一定讀得到風格色（appendChild 版偶爾讀到原色）。 -->
 </head>
 <body>
 <header class="topbar">
