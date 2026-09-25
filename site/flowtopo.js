@@ -1566,6 +1566,7 @@
       links: S.linkList.map(e => ({ key: e.key, lv: e.lv, w: +e.w.toFixed(2), dead: !!e.dead,
         n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2),
         al: +(e.al || 0).toFixed(3), er: +(e.er || 0).toFixed(3), rt: +(e.rt || 0).toFixed(4),
+        shown: e.lv === 2 ? leafWant(S, e.to) : 1,          // 2026-09-26（晚）：毛細線現在是不是該顯示（代表股收起時 0）
         from: e.from.key, to: e.to.key,
         // ★ 2026-09-26：這條線的三次貝茲 [x0,y0, cp1x,cp1y, cp2x,cp2y, x1,y1]（驗控制點比例 0.55／0.45）
         cp: e.p ? e.p.map(v => +v.toFixed(2)) : null,
