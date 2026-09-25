@@ -31,6 +31,26 @@
        發光光纖、粒子速度／密度／明暗依金額拉開、shadowBlur ≤ 6、換日依排名換位的補間、動態開關、減少動態。
    原本的拓撲版（族群點開才長個股、膠囊標籤、卡片 ≤ 760px）照舊留著，opts.layout 不給就是它。
 
+   ★ 2026-09-26 Andy：「資金去向維持經典版的樹狀結構，不要像圖三那樣；樹狀改成如圖四那樣結構；幫我參考圖五」
+     （附一支原型 HTML：粒子碰撞激發、擴散震波、雙層光纖）。經典光纖（layout 'classic'）改版，拓撲版不動：
+     · 圖三（不要）：產業鏈畫成一根直條、一大把線從直條上扇形散出 → 產業鏈改成**圓點節點**，線一律從圓心出去。
+     · 圖四（要）：**直角（肘形）樹**＝ECharts tree edgeShape 'polyline' 的分叉點結構。每條邊是
+       「父節點往右一段水平 → 在分叉點 x 垂直走到子節點的高度 → 水平接進子節點」，轉角帶小圓角；
+       同一個父節點的兄弟共用同一個分叉點 x，所以看起來是一根垂直幹線從最上面的子節點拉到最下面的子節點。
+       四層（根→產業鏈、產業鏈→族群、族群→代表股）一致套用；分叉點 x 每一層一個，放在兩欄之間靠父節點那側
+       約 40～62%（要讓開父節點的標籤，見 trunkX()）。線寬仍依金額平方根（粗細對比不變），版面位置不變。
+     · 圖五＋原型（要的特效）：
+         ① 粒子＝白色核心＋線色光暈（預先畫好的小圖，shadowBlur 只在畫小圖時用一次，≤ 6px）；
+         ② 碰撞激發：粒子到站時終點節點 hitFlash ＋0.35（上限 1，逐幀衰減 0.035）→ 外圈放大發光、
+            hitFlash > 0.3 核心轉白（漸變，不是一下跳白）、標籤變亮（最上層那張 ftglow 畫布疊一層亮字）；
+         ③ 擴散震波：到站時 55% 機率外擴一圈（r → r＋26、alpha 0.85 遞減），顏色＝節點色；
+            同時最多 60 圈（CFG.RP_MAX），同一個節點 180ms 內不重複起漣漪（不然大節點會疊成一團同心圓）；
+         ④ 雙層光纖：外層寬而淡的光暈管＋線身＋中間一條細而亮的芯；
+         ⑤ 節點常駐一圈淡的底（r＋2、alpha 0.25）—— 靜態的，不脈動（Andy 否決過一直脈動）。
+     · 原型的顏色是每條線不同色；這裡照站上規矩：節點、線、粒子一律用**產業鏈色**，紅綠只給漲跌字（▲▼）。
+     · 原型的 shadowBlur 24／25px 超過專案上限 10px —— 改用預先畫好的放射漸層小圖放大（不是 shadowBlur），
+       外光環半徑照原型 r＋8×hitFlash，發光範圍只在節點周圍幾 px，不做大面積泛光。
+
    規矩（CLAUDE.md，載入時斷言，違規直接丟錯）：
      · 發光 shadowBlur 4～6px（上限 10，這裡壓 6）；只在預先畫好的粒子小圖上用
      · Canvas 字級 ≥ 12px（setTransform 乘 DPR，字是用 CSS px 算的，不會糊）
@@ -67,6 +87,13 @@
        每幀成本是拓撲版的 2.5～3 倍（headless 實測 7～9ms）。發車率整體乘同一個係數壓回預算內 ——
        係數對每條線一樣，所以「最密／最疏」的比例（驗收 ×6）不變；「每條線至少一顆」的下限不受影響。*/
     CL_P_BUDGET: 380,    // 代表股標籤寬度上限（經典版 132 − 12），超過截斷，全名在提示框
+    /* ★ 2026-09-26 經典光纖改直角樹＋碰撞激發（數字取自 Andy 給的原型，時間型的換算成「每 1/60 秒」）*/
+    EL_RAD: 7,               // 直角轉角的小圓角半徑（px）；上下差太小時自動縮
+    EL_FRAC_MIN: 0.40, EL_FRAC_MAX: 0.62,   // 分叉點 x 落在兩欄之間的比例（靠父節點那側）
+    HIT_ADD: 0.35, HIT_DECAY: 0.035,        // 碰撞激發：每到一顆 +0.35（上限 1），每幀 −0.035
+    RP_GROW: 26, RP_GROW_LEAF: 16,          // 震波外擴：r → r＋26（代表股間距只有 16px，縮成 +16）
+    RP_STEP: 0.85, RP_FADE: 0.026, RP_A0: 0.85, RP_P: 0.55,   // 每幀 r+0.85、alpha−0.026；到站 55% 機率起一圈
+    RP_MAX: 60, RP_COOL: 180,               // 同時最多 60 圈；同一節點 180ms 內不重複起
   });
   (function assertRules() {
     if (!(CFG.GLOW_MAX <= 6 && CFG.GLOW_DARK <= CFG.GLOW_MAX && CFG.GLOW_LIGHT <= CFG.GLOW_MAX
@@ -119,6 +146,7 @@
   background:radial-gradient(120% 90% at 8% 50%,color-mix(in srgb,var(--cyan) 5%,transparent),transparent 60%)}
 .ftopo .ftstage canvas{position:absolute;left:0;top:0;display:block}
 .ftopo .ftstage canvas.ftlab{cursor:default}
+.ftopo .ftstage canvas.ftglow{pointer-events:none}
 .ftopo .ftstage canvas.ftlab.hot{cursor:pointer}
 .ftopo .fttip{position:absolute;z-index:6;pointer-events:none;max-width:340px;padding:9px 11px;border-radius:10px;
   background:var(--tip-bg,var(--panel));border:1px solid var(--tip-line,var(--line-2));box-shadow:var(--tip-sh,none);
@@ -144,22 +172,24 @@
     bar.append(leg, mbtn);
     const stage = document.createElement('div'); stage.className = 'ftstage';
     const cvBase = document.createElement('canvas'), cvFx = document.createElement('canvas'), cvLab = document.createElement('canvas');
-    cvBase.className = 'ftbase'; cvFx.className = 'ftfx'; cvLab.className = 'ftlab';
-    [cvBase, cvFx].forEach(c => c.setAttribute('aria-hidden', 'true'));
+    /* ★ 2026-09-26：第四張畫布疊在標籤上面、不吃滑鼠 —— 只畫「碰撞激發時標籤變亮」那層亮字（經典光纖才用） */
+    const cvGlow = document.createElement('canvas');
+    cvBase.className = 'ftbase'; cvFx.className = 'ftfx'; cvLab.className = 'ftlab'; cvGlow.className = 'ftglow';
+    [cvBase, cvFx, cvGlow].forEach(c => c.setAttribute('aria-hidden', 'true'));
     cvLab.setAttribute('role', 'img');
     const tipEl = document.createElement('div'); tipEl.className = 'fttip';
-    stage.append(cvBase, cvFx, cvLab, tipEl);
+    stage.append(cvBase, cvFx, cvLab, cvGlow, tipEl);
     host.append(bar, stage);
-    const gB = cvBase.getContext('2d'), gF = cvFx.getContext('2d'), gL = cvLab.getContext('2d');
+    const gB = cvBase.getContext('2d'), gF = cvFx.getContext('2d'), gL = cvLab.getContext('2d'), gG = cvGlow.getContext('2d');
 
     const S = {
-      host, bar, leg, mbtn, stage, cvBase, cvFx, cvLab, tipEl, gB, gF, gL,
+      host, bar, leg, mbtn, stage, cvBase, cvFx, cvLab, cvGlow, tipEl, gB, gF, gL, gG, glowDirty: false,
       W: 0, H: 0, DPR: 1, pal: null, opts: {}, model: null,
       nodes: new Map(), links: new Map(), order: [], linkList: [],
       parts: [], pool: [], ripples: [], sprites: {},
       hover: null, raf: 0, lastT: 0, tween: null, twE: 1, alive: true,
       visible: true, motion: motionWanted(), first: true,
-      meter: { frames: 0, cost: 0, maxBlur: 0, minFont: Infinity, ts: [], spawned: 0 },
+      meter: { frames: 0, cost: 0, maxBlur: 0, minFont: Infinity, ts: [], spawned: 0, hits: 0, rpMade: 0, rpPeak: 0 },
     };
 
     /* 設定發光：一律經過這裡，超過上限直接丟錯 */
@@ -283,7 +313,7 @@
     const order = [];
     const up = (key, patch) => {
       let n = S.nodes.get(key);
-      if (!n) { n = { key, x: NaN, y: NaN, px: 0, pv: 0, flash: 0, last: -1e9 }; S.nodes.set(key, n); }
+      if (!n) { n = { key, x: NaN, y: NaN, px: 0, pv: 0, flash: 0, last: -1e9, hf: 0, rpLast: -1e9 }; S.nodes.set(key, n); }
       n.pctFrom = n.pctShown;            // 百分比補間的起點＝畫面上現在顯示的那個數（補間中途換日也連續）
       Object.assign(n, patch); seenN.add(key); order.push(n); return n;
     };
@@ -423,13 +453,13 @@
     root.tx = cols[0];
     root.ty = chains.length ? (chains[0].ty + chains[chains.length - 1].ty) / 2 : H / 2;
     root.r = 13;                                         // 經典版根節點 symbolSize 26
-    // 產業鏈：直立細條，高＝從它出發的線寬加總（經典版 barH，最小 8）
+    /* ★ 2026-09-26 改前→改後：產業鏈 直立細條（高＝出發線寬加總、寬 4）→ **圓點節點**（Andy 圖三：不要直條）。
+       半徑 6～12 依佔比平方根（比根節點 13 小一號、和最大的族群差不多），線一律從圓心出去（見 buildElbow）。*/
     chains.forEach(c => {
-      const outs = S.linkList.filter(e => e.from === c);
-      const sum = outs.reduce((a, e) => a + e.w, 0) + 1.2 * Math.max(0, outs.length - 1);
-      c.hh = Math.max(4, sum / 2 + 1);
-      c.r = 2.5; c.cw = 4;                               // 經典版直條寬 4
+      c.r = c.stale ? 4 : 6 + 6 * Math.sqrt(c.rt);
+      c.hh = 0; c.cw = 0;
     });
+    S.cols = cols;
     return cols;
   }
 
@@ -503,6 +533,7 @@
   /* 從一個節點出去的多條線，起點在節點的直徑（或膠囊高度）內依目標 y 排開 →
      平行滑出、不交叉；進入端一律打在節點中心 */
   function ports(S) {
+    if (S.classic) { S.linkList.forEach(e => { e.y0 = 0; }); return; }   // 直角樹：兄弟共用一根幹線，一律從父節點圓心出發
     const byFrom = new Map();
     S.linkList.forEach(e => { if (!byFrom.has(e.from)) byFrom.set(e.from, []); byFrom.get(e.from).push(e); });
     byFrom.forEach((list, from) => {
@@ -546,7 +577,79 @@
     }
     Object.assign(e, { L, M, xs, ys, nx, ny });
   }
-  function curves(S) { ports(S); S.linkList.forEach(buildCurve); }
+  function curves(S) { ports(S); S.linkList.forEach(S.classic ? e => buildElbow(S, e) : buildCurve); }
+
+  /* ★ 2026-09-26 經典光纖的直角樹（Andy 圖四）：分叉點 x 一層一個（同層所有父節點共用同一個比例），
+     靠父節點那側、要讓開父節點的標籤：x ＝ 那一層標籤最右緣 ＋ 10（取 8px 格，換日時不會每天抖 1～2px），
+     夾在兩欄間距的 40%～62%。標籤比 62% 還長（窄桌機）時幹線從標籤底下穿過去（標籤有墊底色，讀得到）。
+     只在「版面真的重排」時算（layoutAndDraw／drawStill），補間中每幀重排百分比不重算，幹線不會跟著抖。*/
+  function trunkX(S) {
+    const cols = S.cols || [];
+    S.trunk = [0, 1, 2].map(lv => {
+      const pc = cols[lv], cc = cols[lv + 1];
+      if (!isFinite(pc) || !isFinite(cc)) return NaN;
+      const gap = cc - pc;
+      let right = pc;
+      S.order.forEach(n => { if (n.lv === lv && n.lab) right = Math.max(right, n.lab.x + n.lab.w); });
+      right = Math.ceil((right + 10) / 8) * 8;
+      return Math.max(pc + gap * CFG.EL_FRAC_MIN, Math.min(pc + gap * CFG.EL_FRAC_MAX, right));
+    });
+  }
+  /* 一條邊＝水平 → 垂直 → 水平（兩個轉角各一段小圓弧），再做等弧長查表（粒子沿弧長等速走）。
+     起點＝父節點圓心（圓點畫在上層會蓋住），終點＝子節點左緣；新長出來的節點補間中 x 還沒到欄位時退化成直線。*/
+  function buildElbow(S, e) {
+    const a = e.from, b = e.to;
+    const x0 = a.x, y0 = a.y, x1 = b.x - (b.r || 3) * 0.6, y1 = b.y;
+    let xb = S.trunk && isFinite(S.trunk[a.lv]) ? S.trunk[a.lv] : (x0 + x1) / 2;
+    const dy = y1 - y0, sg = dy >= 0 ? 1 : -1, ady = Math.abs(dy);
+    const straight = x1 - x0 < 8 || ady < 0.5;
+    xb = Math.max(x0 + 2, Math.min(x1 - 2, xb));
+    const rad = straight ? 0 : Math.max(0, Math.min(CFG.EL_RAD, ady / 2, xb - x0, x1 - xb));
+    e.el = { x0, y0, xb, y1, x1, rad, straight };
+    e.p = null;
+    // 原始折線（轉角圓弧各取 8 點）
+    const px = [x0], py = [y0];
+    if (straight) { px.push(x1); py.push(y1); }
+    else {
+      px.push(xb - rad); py.push(y0);
+      for (let i = 1; i <= 8; i++) {                     // 轉角 1：圓心 (xb−rad, y0＋sg·rad)，由上（下）轉向垂直
+        const t = i / 8 * Math.PI / 2;
+        px.push(xb - rad + Math.sin(t) * rad); py.push(y0 + sg * rad - sg * Math.cos(t) * rad);
+      }
+      px.push(xb); py.push(y1 - sg * rad);
+      for (let i = 1; i <= 8; i++) {                     // 轉角 2：圓心 (xb＋rad, y1−sg·rad)，由垂直轉回水平
+        const t = i / 8 * Math.PI / 2;
+        px.push(xb + rad - Math.cos(t) * rad); py.push(y1 - sg * rad + sg * Math.sin(t) * rad);
+      }
+      px.push(x1); py.push(y1);
+    }
+    const N = px.length - 1, cum = new Float32Array(N + 1);
+    for (let i = 1; i <= N; i++) cum[i] = cum[i - 1] + Math.hypot(px[i] - px[i - 1], py[i] - py[i - 1]);
+    const L = cum[N] || 1, M = 128;
+    const xs = e.xs && e.xs.length === M + 1 ? e.xs : new Float32Array(M + 1);
+    const ys = e.ys && e.ys.length === M + 1 ? e.ys : new Float32Array(M + 1);
+    const nx = e.nx && e.nx.length === M + 1 ? e.nx : new Float32Array(M + 1);
+    const ny = e.ny && e.ny.length === M + 1 ? e.ny : new Float32Array(M + 1);
+    let j = 0;
+    for (let i = 0; i <= M; i++) {
+      const s = L * i / M;
+      while (j < N - 1 && cum[j + 1] < s) j++;
+      const f = Math.max(0, Math.min(1, (s - cum[j]) / ((cum[j + 1] - cum[j]) || 1)));
+      xs[i] = px[j] + (px[j + 1] - px[j]) * f; ys[i] = py[j] + (py[j + 1] - py[j]) * f;
+    }
+    for (let i = 0; i <= M; i++) {
+      const p0 = Math.max(0, i - 1), p1 = Math.min(M, i + 1), tx = xs[p1] - xs[p0], ty = ys[p1] - ys[p0], l = Math.hypot(tx, ty) || 1;
+      nx[i] = -ty / l; ny[i] = tx / l;
+    }
+    Object.assign(e, { L, M, xs, ys, nx, ny });
+  }
+  function traceElbow(g, e) {
+    const q = e.el; g.beginPath(); g.moveTo(q.x0, q.y0);
+    if (q.straight) { g.lineTo(q.x1, q.y1); return; }
+    g.arcTo(q.xb, q.y0, q.xb, q.y1, q.rad);
+    g.arcTo(q.xb, q.y1, q.x1, q.y1, q.rad);
+    g.lineTo(q.x1, q.y1);
+  }
 
   /* 發光粒子小圖：shadowBlur 只在這裡用一次，每幀只 drawImage（不在迴圈裡設 shadowBlur）*/
   function sprite(S, color) {
@@ -558,9 +661,44 @@
     g.beginPath(); g.arc(c.width / 2, c.height / 2, R * S.DPR, 0, Math.PI * 2); g.fill();
     return { c, size, R };
   }
+  /* ★ 2026-09-26 經典光纖的粒子（Andy 圖五／原型）：白色核心＋線色光暈。
+     光暈用放射漸層畫（不是 shadowBlur），核心的 shadowBlur 只在這裡畫一次（≤ 6px）。
+     淺色主題：白核心在淺底上會變成一個洞 —— 核心改成加深的同色、外面一圈細白邊，光暈透明度降一半。*/
+  function spriteEl(S, color) {
+    const R = 2.4, H = R * 3.4, size = Math.ceil((H + 2) * 2);
+    const c = document.createElement('canvas'); c.width = c.height = Math.ceil(size * S.DPR);
+    const g = c.getContext('2d'), m = c.width / 2, k = S.DPR;
+    const gr = g.createRadialGradient(m, m, 0, m, m, H * k);
+    gr.addColorStop(0, rgba(color, S.pal.dark ? 0.62 : 0.34));
+    gr.addColorStop(0.45, rgba(color, S.pal.dark ? 0.22 : 0.12));
+    gr.addColorStop(1, rgba(color, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+    S.glow(g, color, S.pal.glow);
+    g.beginPath(); g.arc(m, m, R * k, 0, Math.PI * 2);
+    if (S.pal.dark) { g.fillStyle = '#ffffff'; g.fill(); }
+    else {
+      const [r, gg, b] = rgbOf(color);
+      g.fillStyle = `rgb(${Math.round(r * 0.72)},${Math.round(gg * 0.72)},${Math.round(b * 0.72)})`; g.fill();
+      g.shadowBlur = 0; g.strokeStyle = 'rgba(255,255,255,.9)'; g.lineWidth = 0.8 * k; g.stroke();
+    }
+    return { c, size, R };
+  }
+  /* 節點外光環：放射漸層（中心不透明、邊緣淡出），碰撞激發時放大到 r＋8×hitFlash。不用 shadowBlur。*/
+  function haloEl(S, color) {
+    const H = 32, c = document.createElement('canvas'); c.width = c.height = Math.ceil(H * 2 * S.DPR);
+    const g = c.getContext('2d'), m = c.width / 2;
+    const gr = g.createRadialGradient(m, m, 0, m, m, m);
+    gr.addColorStop(0, rgba(color, 1)); gr.addColorStop(0.5, rgba(color, 0.55)); gr.addColorStop(1, rgba(color, 0));
+    g.fillStyle = gr; g.fillRect(0, 0, c.width, c.height);
+    return { c };
+  }
   function sprites(S) {
-    S.sprites = {};
-    S.order.forEach(n => { if (!S.sprites[n.hue]) S.sprites[n.hue] = sprite(S, n.hue); });
+    S.sprites = {}; S.halos = {};
+    S.order.forEach(n => {
+      if (S.sprites[n.hue]) return;
+      S.sprites[n.hue] = S.classic ? spriteEl(S, n.hue) : sprite(S, n.hue);
+      if (S.classic) S.halos[n.hue] = haloEl(S, n.hue);
+    });
   }
 
   /* 關聯（滑過一個節點：它的祖先＋子孫全亮，其餘壓暗）*/
@@ -575,6 +713,7 @@
 
   /* ---- 靜態層：光纖（外層微光管＋內核實心線）---- */
   function drawBase(S) {
+    if (S.classic) return drawBaseElbow(S);
     const g = S.gB, P = S.pal;
     g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
     g.lineCap = 'round';
@@ -592,6 +731,41 @@
       g.lineWidth = e.w; g.stroke();                                     // 內核實心線（寬度＝e.w，探針量的就是這個）
     });
     g.setLineDash([]);
+  }
+
+  /* ★ 2026-09-26 經典光纖的底圖：直角樹的雙層光纖（Andy 原型：外層寬而淡的光暈管＋內層細而亮的芯）。
+     三筆：① 外光暈管 寬 w×2.2＋4（原型 ×3.2；最粗線 13px 時會到 42px、兄弟一疊就是一大片泛光，壓到 ×2.2）、
+     alpha 0.07；② 線身 寬 w（探針量的線寬就是這個，粗細對比照舊）；③ 芯 寬 w×0.3、往白色混 55%、較亮。
+     兄弟共用幹線，所以靠近父節點那段會疊得比較亮 —— 那段本來就是「錢還沒分出去」的總流量，亮是對的。*/
+  function drawBaseElbow(S) {
+    const g = S.gB, P = S.pal;
+    g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    // 先畫所有外光暈，再畫線身，最後畫芯 —— 不然後畫的光暈會蓋在先畫的芯上，芯看起來斷斷續續
+    const pass = (fn) => S.linkList.forEach(e => {
+      if (!e.el) return;
+      const k = Math.min(fadeOf(S, e.from), fadeOf(S, e.to));
+      const col = e.dead && !e.to.dim ? P.ink3 : e.hue || e.to.hue;
+      fn(e, k, col);
+    });
+    g.setLineDash([]);
+    pass((e, k, col) => {
+      if (e.dead) return;
+      traceElbow(g, e); g.strokeStyle = rgba(col, (P.dark ? 0.07 : 0.06) * e.al * k);
+      g.lineWidth = e.w * 2.2 + 4; g.stroke();
+    });
+    pass((e, k, col) => {
+      traceElbow(g, e); g.setLineDash(e.dashed ? [4, 3] : []);
+      g.strokeStyle = rgba(col, (e.dead ? 0.35 : (P.dark ? 0.58 : 0.5) * e.al) * k);
+      g.lineWidth = e.w; g.stroke();
+    });
+    g.setLineDash([]);
+    pass((e, k, col) => {
+      if (e.dead || e.dashed || e.w < 2) return;
+      traceElbow(g, e);
+      g.strokeStyle = P.dark ? rgba(mixW(col, 0.55), 0.85 * e.al * k) : rgba(col, 0.9 * e.al * k);
+      g.lineWidth = Math.max(0.8, e.w * 0.3); g.stroke();
+    });
   }
 
   /* ---- 標籤層：節點右側的行內膠囊（名稱　% 佔上一層　▲▼比前一天）---- */
@@ -678,7 +852,7 @@
       const parts = partsOf(S, n).map(p => ({ ...p }));
       const lines = [[]];
       parts.forEach(p => { if (p.t[0] === '\n') { lines.push([]); p.t = p.t.slice(1); } lines[lines.length - 1].push(p); });
-      const x = n.tx + (n.lv === 1 ? 2 : n.r) + CFG.CL_LABEL_GAP;
+      const x = n.tx + n.r + CFG.CL_LABEL_GAP;           // 2026-09-26 改前 產業鏈（直條）＋2 → 改後 一律節點半徑（產業鏈也是圓了）
       const nextX = n.lv === 0 ? cols[1] - 10 : n.lv === 1 ? cols[2] - 12 : n.lv === 2 ? cols[3] - 10 : W - 4;
       const maxW = n.lv === 3 ? Math.min(CFG.CL_LEAF_LABEL_W, W - 4 - x) : Math.max(40, nextX - x);
       let bw = 0;
@@ -717,7 +891,9 @@
          只靠描邊時字縫之間還是看得到發光線、讀起來很吵 —— 墊一層半透明面板色（無邊框、不是膠囊），
          看起來仍是「線上的描邊文字」，但字讀得出來。代表股在最右欄、底下沒有線，不墊。根節點的字壓在主幹上，一起墊。*/
       if (n.lv <= 2) {                                    // 根節點的字也壓在主幹上，一起墊
-        g.fillStyle = rgba(P.panel, P.dark ? 0.62 : 0.7);
+        /* 2026-09-26 改前 0.62／0.7 → 改後 0.84／0.86：直角樹的水平段正好從標籤底下穿到幹線，
+           多了一條亮芯之後 0.62 的墊底會讓字縫裡透出一條亮線（字讀起來像被劃掉）*/
+        g.fillStyle = rgba(P.panel, P.dark ? 0.84 : 0.86);
         g.beginPath();
         if (g.roundRect) g.roundRect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4, 3); else g.rect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4);
         g.fill();
@@ -769,7 +945,21 @@
     p.a = 0.65 + Math.random() * 0.35;
     S.parts.push(p); S.meter.spawned++;
   }
+  /* ★ 2026-09-26 經典光纖的碰撞激發（Andy 原型）：粒子到站 → 終點節點 hitFlash 疊加（上限 1）；
+     55% 機率外擴一圈震波（同時 ≤ 60 圈、同一節點 180ms 內不重複）。預熱與被篩掉的節點不激發。*/
+  function hitEl(S, n, now, prewarming) {
+    if (prewarming || n.dim) return;
+    n.hf = Math.min(1, (n.hf || 0) + CFG.HIT_ADD);
+    S.meter.hits++;
+    if (Math.random() < CFG.RP_P && S.ripples.length < CFG.RP_MAX && now - (n.rpLast || -1e9) >= CFG.RP_COOL) {
+      n.rpLast = now;
+      S.ripples.push({ n, r: n.r, max: n.r + (n.lv === 3 ? CFG.RP_GROW_LEAF : CFG.RP_GROW), a: CFG.RP_A0 });
+      S.meter.rpMade++;
+      if (S.ripples.length > S.meter.rpPeak) S.meter.rpPeak = S.ripples.length;
+    }
+  }
   function hit(S, n, now, prewarming) {
+    if (S.classic) return hitEl(S, n, now, prewarming);
     if (prewarming || n.dim) return;
     const cool = n.lv === 1 ? 700 : n.lv === 2 ? 900 + 1500 * (1 - Math.sqrt(n.rt)) : 1400;
     if (now - n.last < cool) return;
@@ -805,14 +995,22 @@
         if (Math.abs(n.px) < 1e-4 && Math.abs(n.pv) < 1e-3) { n.px = 0; n.pv = 0; }
       }
       if (n.flash) { n.flash *= Math.pow(0.94, dt * 60); if (n.flash < 0.01) n.flash = 0; }
+      if (n.hf) { n.hf -= CFG.HIT_DECAY * dt * 60; if (n.hf < 0.005) n.hf = 0; }   // 原型：每幀 −0.035（換算成時間，掉幀也一樣快）
     });
-    if (S.ripples.length) S.ripples = S.ripples.filter(r => now - r.t0 < CFG.RIPPLE_SEC * 1000);
+    if (S.classic) {                                       // 震波：每幀 r＋0.85、alpha −0.026，到頂或淡光就收
+      const k = dt * 60;
+      for (let i = S.ripples.length - 1; i >= 0; i--) {
+        const rp = S.ripples[i];
+        rp.r += CFG.RP_STEP * k; rp.a -= CFG.RP_FADE * k;
+        if (rp.a <= 0 || rp.r >= rp.max || !S.nodes.has(rp.n.key)) { S.ripples[i] = S.ripples[S.ripples.length - 1]; S.ripples.pop(); }
+      }
+    } else if (S.ripples.length) S.ripples = S.ripples.filter(r => now - r.t0 < CFG.RIPPLE_SEC * 1000);
   }
   /* 預熱：開畫面就是「已經在流」的穩態，不會先看到右半邊空著 */
   function prewarm(S, sec) {
     const now = performance.now();
     for (let t = 0; t < sec; t += 1 / 30) update(S, 1 / 30, now, true);
-    S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; }); S.ripples = [];
+    S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; n.hf = 0; }); S.ripples = [];
   }
 
   function nodeShape(g, n, r) {
@@ -848,6 +1046,7 @@
           g.drawImage(sp.c, x - sz / 2, y - sz / 2, sz, sz);
         }
       }
+      if (S.classic) { drawNodesEl(S, g, P, still); return; }
       g.lineWidth = 1;
       S.ripples.forEach(rp => {          // 外擴震波：1px 細環，ease-out 外擴並淡出
         const q = Math.min(1, (now - rp.t0) / (CFG.RIPPLE_SEC * 1000)), ease = 1 - Math.pow(1 - q, 3), n = rp.n;
@@ -860,7 +1059,7 @@
         } else g.arc(n.x, n.y, n.r + CFG.RIPPLE_GROW * ease, 0, Math.PI * 2);
         g.stroke();
       });
-    }
+    } else if (S.classic) { drawNodesEl(S, g, P, still); return; }
     // 節點：常駐微光（小圖放大）＋ 實心本體（彈性放大）＋ 核心瞬態亮起
     S.order.forEach(n => {
       const f = fadeOf(S, n), col = n.stale || n.nodata ? P.ink3 : n.dot;
@@ -882,6 +1081,74 @@
         if (n.lv === 1) { nodeShape(g, { ...n, hh: n.hh * 0.6, px: 0 }, 0); g.fill(); }
         else { g.beginPath(); g.arc(n.x, n.y, r * 0.55, 0, Math.PI * 2); g.fill(); }
       }
+    });
+    g.globalAlpha = 1;
+  }
+
+  /* ★ 2026-09-26 經典光纖的節點與震波（Andy 圖五／原型）：
+       · 震波：1.2px 細環，r → r＋26、alpha 0.85 遞減，顏色＝節點色（產業鏈色，不是紅綠）
+       · 節點：常駐淡底 r＋2（alpha 0.25，靜態不脈動）→ 微光 → 碰撞外光環（r＋8×hitFlash、alpha hitFlash×0.6，
+         放射漸層小圖，不用 shadowBlur）→ 實心核心 → hitFlash > 0.3 起核心漸漸轉白（0.3～0.7 線性，不會一下跳白）
+       · 標籤變亮：最上層 ftglow 畫布把激發中節點的**名稱**用亮色再描一次（alpha 跟著 hitFlash），
+         其餘字（%、▲▼）不動 —— 漲跌色不會被沖淡。
+     still（動畫關／減少動態）：不畫震波、不激發、ftglow 清空，只剩靜態的點。*/
+  function drawNodesEl(S, g, P, still) {
+    if (!still && S.ripples.length) {
+      g.lineWidth = 1.2;
+      S.ripples.forEach(rp => {
+        const n = rp.n;
+        g.globalAlpha = Math.max(0, rp.a) * (P.dark ? 1 : 0.75) * fadeOf(S, n);
+        g.strokeStyle = n.stale || n.nodata ? P.ink3 : n.dot;
+        g.beginPath(); g.arc(n.x, n.y, rp.r, 0, Math.PI * 2); g.stroke();
+      });
+    }
+    S.order.forEach(n => {
+      const f = fadeOf(S, n), off = n.stale || n.nodata, col = off ? P.ink3 : n.dot;
+      const r = n.r, hf = still ? 0 : (n.hf || 0);
+      // 常駐淡底
+      g.globalAlpha = 0.25 * f; g.fillStyle = col;
+      g.beginPath(); g.arc(n.x, n.y, r + 2, 0, Math.PI * 2); g.fill();
+      const sp = S.sprites[n.hue], ha = S.halos && S.halos[n.hue];
+      if (sp && !off) {                                  // 常駐微光（粒子小圖放大，和以前一樣）
+        const gs = sp.size * (r / sp.R) * 0.42;
+        g.globalAlpha = (P.dark ? 0.4 : 0.22) * f; g.drawImage(sp.c, n.x - gs / 2, n.y - gs / 2, gs, gs);
+      }
+      if (hf > 0.01 && ha && !off) {                     // 碰撞外光環：r＋8×hitFlash
+        const R = (r + 8 * hf) * 1.6;
+        g.globalAlpha = hf * (P.dark ? 0.6 : 0.4) * f;
+        g.drawImage(ha.c, n.x - R, n.y - R, R * 2, R * 2);
+      }
+      g.globalAlpha = f * (off ? 0.55 : 1);
+      g.fillStyle = rgba(col, 0.62 + 0.38 * Math.max(n.rt || 0, n.lv <= 1 ? 1 : 0.25));
+      g.beginPath(); g.arc(n.x, n.y, r, 0, Math.PI * 2); g.fill();
+      const wz = Math.max(0, Math.min(1, (hf - 0.3) / 0.4));
+      if (wz > 0) {                                       // 核心轉白（淺色主題：轉成淡色＋同色邊，不會變成一個洞）
+        g.globalAlpha = wz * f;
+        g.fillStyle = P.dark ? '#ffffff' : mixW(col, 0.72);
+        g.beginPath(); g.arc(n.x, n.y, r * 0.78, 0, Math.PI * 2); g.fill();
+      }
+      if (n.picked || (n.lv === 2 && n.open)) {         // 你點開的：亮一圈細邊
+        g.globalAlpha = f; g.strokeStyle = P.ink2; g.lineWidth = 1.3;
+        g.beginPath(); g.arc(n.x, n.y, r + 2.5, 0, Math.PI * 2); g.stroke();
+      }
+    });
+    g.globalAlpha = 1;
+    drawGlowLabels(S, still);
+  }
+  function drawGlowLabels(S, still) {
+    const g = S.gG, P = S.pal;
+    const hot = still ? [] : S.order.filter(n => (n.hf || 0) > 0.06 && n.lab && !n.dim);
+    if (!hot.length && !S.glowDirty) return;             // 上一幀沒畫、這一幀也沒得畫：連清都不用清
+    g.setTransform(S.DPR, 0, 0, S.DPR, 0, 0); g.clearRect(0, 0, S.W, S.H);
+    S.glowDirty = hot.length > 0;
+    if (!hot.length) return;
+    g.textBaseline = 'middle';
+    hot.forEach(n => {
+      const B = n.lab, p = B.lines[0] && B.lines[0][0]; if (!p || !p.name) return;
+      g.globalAlpha = Math.min(1, n.hf) * (P.dark ? 0.75 : 0.6) * (related(S, n) ? 1 : 0.3);
+      S.font(g, p.fs, p.w);
+      g.fillStyle = P.dark ? '#ffffff' : P.ink;
+      g.fillText(p.t, B.x + (n.x - n.tx), B.y + (n.y - n.ty) + B.fs / 2 + 0.5);
     });
     g.globalAlpha = 1;
   }
@@ -917,9 +1184,9 @@
     S.meter.ts.length = 0;
   }
   function drawStill(S) {                          // 靜止：不閃、不動、不留殘影
-    S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; n.x = n.tx; n.y = n.ty; });
+    S.order.forEach(n => { n.px = 0; n.pv = 0; n.flash = 0; n.hf = 0; n.x = n.tx; n.y = n.ty; });
     S.ripples = []; S.tween = null; S.twE = 1;
-    measureLabels(S); curves(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true);
+    measureLabels(S); if (S.classic) trunkX(S); curves(S); drawBase(S); drawLabels(S); drawFx(S, performance.now(), true);
   }
   function stepTween(S, now) {
     const tw = S.tween, q = Math.min(1, (now - tw.t0) / tw.dur);
@@ -935,7 +1202,10 @@
   function sizeCanvases(S) {
     const w = S.stage.clientWidth;
     S.W = w; S.DPR = Math.min(2, window.devicePixelRatio || 1);
-    [S.cvBase, S.cvFx, S.cvLab].forEach(c => {
+    /* 標籤變亮那張（ftglow）只有經典光纖用得到；拓撲版縮成 1×1 藏起來，不白佔一張全尺寸 HiDPI 畫布的記憶體與合成 */
+    S.cvGlow.style.display = S.classic ? '' : 'none';
+    if (!S.classic) { if (S.cvGlow.width !== 1) { S.cvGlow.width = 1; S.cvGlow.height = 1; } S.glowDirty = false; }
+    (S.classic ? [S.cvBase, S.cvFx, S.cvLab, S.cvGlow] : [S.cvBase, S.cvFx, S.cvLab]).forEach(c => {
       const pw = Math.round(S.W * S.DPR), ph = Math.round(S.H * S.DPR);
       if (c.width !== pw || c.height !== ph) { c.width = pw; c.height = ph; c.getContext('2d').__f = null; }
       c.style.width = S.W + 'px'; c.style.height = S.H + 'px';
@@ -975,6 +1245,7 @@
     layout(S);
     if (S.tween == null) S.order.forEach(n => { n.x = n.tx; n.y = n.ty; });
     measureLabels(S);
+    if (S.classic) trunkX(S);                               // 直角樹的分叉點 x（要等標籤量完才知道要讓開多少）
     curves(S);
     if (!S.sprites || S._spriteKey !== spriteKey(S)) { sprites(S); S._spriteKey = spriteKey(S); }
     drawBase(S); drawLabels(S);
@@ -990,13 +1261,13 @@
     S.meter.lastDrawMs = dt;
     if (S.meter.firstDrawMs == null) S.meter.firstDrawMs = dt;
   }
-  const spriteKey = (S) => S.DPR + '|' + S.pal.dark + '|' + [...new Set(S.order.map(n => n.hue))].join(',');
+  const spriteKey = (S) => S.DPR + '|' + S.pal.dark + '|' + (S.classic ? 'el' : 'tp') + '|' + [...new Set(S.order.map(n => n.hue))].join(',');
 
   /* ---- 滑過／點擊 ---- */
   function pickAt(S, mx, my) {
     let best = null, bd = 1e9;
     for (const n of S.order) {
-      const d = n.lv === 1 ? (Math.abs(mx - n.x) <= 8 && Math.abs(my - n.y) <= n.hh + 5 ? 0 : 1e9)
+      const d = n.lv === 1 && !S.classic ? (Math.abs(mx - n.x) <= 8 && Math.abs(my - n.y) <= n.hh + 5 ? 0 : 1e9)
         : Math.hypot(mx - n.x, my - n.y) - (n.r + 6);
       if (d <= 0 && d < bd) { best = n; bd = d; }
       const B = n.lab;
@@ -1094,13 +1365,20 @@
         stale: !!n.stale, open: !!n.open, picked: !!n.picked, rest: !!n.rest, nodata: !!n.nodata,
         parent: n.parent ? n.parent.key : null,
         value: n.d ? n.d.value : null,
+        // ★ 2026-09-26：節點形狀（經典光纖一律圓；拓撲版產業鏈是直條）、碰撞激發讀值、節點色
+        shape: (S.classic || n.lv !== 1) ? 'circle' : 'bar', hh: +(n.hh || 0).toFixed(1),
+        hf: +(n.hf || 0).toFixed(3), dot: n.dot,
         text: n.lab ? n.lab.lines.map(l => l.map(p => p.t).join('')).join(' / ') : '',
         chg: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).chg || null : null,
         chgColor: n.lab ? (n.lab.lines[0].find(p => p.chg) || {}).c || null : null,
         lab: n.lab ? { x: Math.round(n.lab.x), y: Math.round(n.lab.y), w: Math.round(n.lab.w), h: Math.round(n.lab.h) } : null })),
       links: S.linkList.map(e => ({ key: e.key, lv: e.lv, w: +e.w.toFixed(2), dead: !!e.dead,
         n: S.parts.filter(p => p.e === e).length, rate: +e.rate.toFixed(2), v: +(e.v || 0).toFixed(1), pr: +e.pr.toFixed(2),
-        al: +(e.al || 0).toFixed(3), er: +(e.er || 0).toFixed(3), rt: +(e.rt || 0).toFixed(4) })),
+        al: +(e.al || 0).toFixed(3), er: +(e.er || 0).toFixed(3), rt: +(e.rt || 0).toFixed(4),
+        from: e.from.key, to: e.to.key,
+        // ★ 2026-09-26 直角樹：路徑的五個特徵點（起點、分叉點 x、終點）與查表偏離理想「水平-垂直-水平」折線的最大距離
+        el: e.el ? [e.el.x0, e.el.y0, e.el.xb, e.el.y1, e.el.x1, e.el.rad].map(v => +v.toFixed(1)) : null,
+        elStraight: !!(e.el && e.el.straight), elDev: e.el ? +elbowDev(e).toFixed(2) : null })),
       particles: S.parts.length, offCurve: off, maxOff: +maxOff.toFixed(2), leftStray: stray, rootX: Math.round(rootX), sample,
       fps: +fps.toFixed(1), frames: m.frames, avgCostMs: m.frames ? +(m.cost / m.frames).toFixed(3) : 0,
       maxBlur: m.maxBlur, minFont: m.minFont === Infinity ? null : m.minFont, spawned: m.spawned,
@@ -1109,8 +1387,39 @@
       lastDrawMs: m.lastDrawMs == null ? null : +m.lastDrawMs.toFixed(1),
       warmMs: m.warmMs == null ? null : +m.warmMs.toFixed(1),
       pending: !!S.pendingDraw,
+      ripples: S.ripples.length, rpMax: CFG.RP_MAX, rpPeak: m.rpPeak, rpMade: m.rpMade, hits: m.hits,
+      trunk: (S.trunk || []).map(v => +(+v).toFixed(1)), cols: (S.cols || []).map(v => +(+v).toFixed(1)),
+      glowCanvas: !!S.cvGlow.isConnected,
       tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
     };
+  }
+  /* 查表的每一點到「水平 → 垂直 → 水平」理想折線的最大距離（圓角會偏一點點：半徑 7 時約 2px）*/
+  function elbowDev(e) {
+    const q = e.el;
+    const segs = q.straight ? [[q.x0, q.y0, q.x1, q.y1]]
+      : [[q.x0, q.y0, q.xb, q.y0], [q.xb, q.y0, q.xb, q.y1], [q.xb, q.y1, q.x1, q.y1]];
+    let worst = 0;
+    for (let i = 0; i <= e.M; i++) {
+      const x = e.xs[i], y = e.ys[i];
+      let best = 1e9;
+      segs.forEach(([ax, ay, bx, by]) => {
+        const dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy;
+        const t = l2 ? Math.max(0, Math.min(1, ((x - ax) * dx + (y - ay) * dy) / l2)) : 0;
+        best = Math.min(best, Math.hypot(x - ax - dx * t, y - ay - dy * t));
+      });
+      worst = Math.max(worst, best);
+    }
+    return worst;
+  }
+  /* 驗收用：一口氣讓 k 顆粒子「到站」（亂數挑活著的節點），驗震波上限；只在經典光纖有意義 */
+  function burst(host, k) {
+    const S = host && host._ft; if (!S || !S.classic) return null;
+    const live = S.order.filter(n => n.lv > 0 && !n.dim);
+    const now = performance.now();
+    for (let i = 0; i < k; i++) {                   // 刻意略過每個節點 180ms 的冷卻，只剩「同時 ≤ 60 圈」這道閘
+      const n = live[(Math.random() * live.length) | 0]; n.rpLast = -1e9; hitEl(S, n, now, false);
+    }
+    return { ripples: S.ripples.length, peak: S.meter.rpPeak };
   }
   /* 驗收用：重設幀率量表（開始量之前叫一次）*/
   function resetMeter(host) {
@@ -1120,6 +1429,6 @@
 
   /* 驗收用：把單次換日補間拉長（容器 headless 的 rAF 只有 13～15 FPS，450ms 內只取得到 2～3 個樣本）。傳 0 還原。*/
   function tweenMs(host, ms) { const S = host && host._ft; if (S) S.tweenMs = ms || 0; }
-  window.FlowTopo = { render, destroy, probe, resetMeter, CFG, tweenMs,
+  window.FlowTopo = { render, destroy, probe, resetMeter, CFG, tweenMs, burst,
     has: (host) => !!(host && host._ft), motionWanted };
 })();
