@@ -1,0 +1,124 @@
+/* ============================================================================
+   風格實驗室 1：極簡主義（minimal）—— 只在 claude/style-lab 分支，?style=minimal 載入
+   ----------------------------------------------------------------------------
+   設計語言（少即是多）：
+   · 顏色只留「黑、白、一個主色」。主色是鈷藍（淺 #1D4ED8／深 #7EA8FF），只拿來標「可以點／現在選的」；
+     紅漲綠跌照舊，是畫面上唯二有彩度的語意色。霓虹青、紫光暈、發光陰影全部關掉。
+   · 靠留白分層，不靠框與陰影：卡片之間 24 → 32、卡片內距 20 → 28、主區左右 24 → 40（只在桌機 ≥821px）。
+   · 標題加重、字距收緊（-0.01em），讓「這張卡在講什麼」第一眼就讀到；分頁改成「字＋底線」，不是實心膠囊。
+   · 圓角收斂：大卡 24 → 12、中型 16 → 10、按鈕／分頁維持膠囊或直角（分頁是底線，沒有圓角）。
+   · 陰影：0。邊線：1px 髮絲線。
+   明暗取向：
+   · 亮：純白頁底 #FFFFFF、墨黑字 #0A0A0A（19.8:1），像一份印得很好的研究報告 —— 乾淨、好讀、不刺眼。
+   · 暗：石墨中性灰 #0F1012（不是深藍、不是純黑），字 #F5F5F5；拿掉藍色調與光暈，專業但不沉重。
+   對比（正文／次要字對卡片底）：亮 19.80／5.95；暗 16.44／5.65。語意色對卡片底全部 ≥ 4.5（見 README 表）。
+   ⚠ 只覆蓋 CSS 變數與外觀，不動任何功能。選擇器一律帶 [data-style="minimal"]，不帶 ?style= 時完全不生效。
+   ⚠ 特異度：原本淺色主題是 :root[data-theme="light"]（0,2,0），所以這裡的淺色一律寫成
+     :root[data-style="minimal"][data-theme="light"]（0,3,0），深色寫 :root[data-style="minimal"]（0,2,0）。
+   ============================================================================ */
+
+/* ---------------- 深色（預設）：石墨中性灰 ---------------- */
+:root[data-style="minimal"]{
+  --bg:#0F1012; --bg-2:#131416; --panel:#16171A; --panel-2:#1B1C20; --panel-3:#212227;
+  --line:#26272C; --line-2:#34353B;
+  --ink:#F5F5F5; --ink-2:#BDBDC4; --ink-3:#8F9099;
+  --cyan:#7EA8FF; --violet:#A89BFF; --amber:#F2B25C; --lime:#B8E86A;
+  --rise:#FF5C6C; --fall:#2FD08A; --flat:#9A9CA6;
+  --glow:0 0 0 3px rgba(126,168,255,.22);
+  --shadow:none; --card-sh:none;
+  --r:8px; --r-sm:8px; --r-md:10px; --r-lg:12px;
+  --ontop:#0F1012; --chartbg:#16171A;
+  --topbar:rgba(15,16,18,.92); --topbar-m:rgba(15,16,18,.98);
+  --grid:rgba(255,255,255,.06); --drop:rgba(0,0,0,.45);
+  --body-1:transparent; --body-2:transparent;
+  --focus:#7EA8FF; --row-hover:#1F2024;
+  --tip-bg:rgba(27,28,32,.98); --tip-line:#34353B; --tip-sh:0 8px 24px -10px rgba(0,0,0,.6);
+  --ovl:rgba(15,16,18,.72);
+  --mn-strong:#FFFFFF;   /* 反白元件（選中的分段、主要按鈕）的底 */
+  --mn-on-strong:#0F1012;
+}
+/* ---------------- 淺色：純白紙 ---------------- */
+:root[data-style="minimal"][data-theme="light"]{
+  --bg:#FFFFFF; --bg-2:#FAFAFA; --panel:#FFFFFF; --panel-2:#FAFAFA; --panel-3:#F4F4F5;
+  --line:#EAEAEA; --line-2:#D4D4D8;
+  --ink:#0A0A0A; --ink-2:#3F3F46; --ink-3:#63636B;
+  --cyan:#1D4ED8; --violet:#6D28D9; --amber:#A15C00; --lime:#3F7512;
+  --rise:#D1142F; --fall:#0B7A4B; --flat:#5F6570;
+  --glow:0 0 0 3px rgba(29,78,216,.16);
+  --shadow:none; --card-sh:none;
+  --ontop:#FFFFFF; --chartbg:#FFFFFF;
+  --topbar:rgba(255,255,255,.94); --topbar-m:rgba(255,255,255,.98);
+  --grid:rgba(0,0,0,.06); --drop:rgba(0,0,0,.12);
+  --focus:#1D4ED8; --row-hover:#F4F4F5;
+  --tip-bg:rgba(255,255,255,.98); --tip-line:#E4E4E7; --tip-sh:0 8px 24px -10px rgba(0,0,0,.18);
+  --ovl:rgba(255,255,255,.88); --ovl-sh:0 1px 2px rgba(255,255,255,.9);
+  --mn-strong:#0A0A0A; --mn-on-strong:#FFFFFF;
+}
+
+/* ---------------- 頁底：平塗，不要光暈 ---------------- */
+[data-style="minimal"] body{background:var(--bg)}
+
+/* ---------------- 頂欄：白（黑）底＋一條髮絲線 ---------------- */
+/* ⚠ 不准在這裡加 backdrop-filter：手機的底部分頁列（.tabs，position:fixed）是 .topbar 的子元素，
+   .topbar 一旦有 backdrop-filter 就變成它的定位基準，分頁列會從底部跳到頂端（原檔在手機刻意設 none）。 */
+[data-style="minimal"] .topbar{border-bottom:1px solid var(--line)}
+[data-style="minimal"] .brand .logo{background:var(--mn-strong);color:var(--mn-on-strong);box-shadow:none;border-radius:6px}
+[data-style="minimal"] .brand b{font-weight:800;letter-spacing:-.01em}
+[data-style="minimal"] .evbtn{background:transparent}
+[data-style="minimal"] .evbtn .n{background:var(--mn-strong);color:var(--mn-on-strong)}
+[data-style="minimal"] .search input{background:var(--panel-3);border-color:transparent}
+[data-style="minimal"] .search input:focus{background:var(--panel);border-color:var(--cyan)}
+
+/* 分頁：字＋底線（桌機）。選中＝墨色字＋2px 底線；沒選中＝次要字色。 */
+@media (min-width:821px){
+  [data-style="minimal"] .tab{color:var(--ink-3);font-weight:500;border-radius:0;padding:8px 12px}
+  [data-style="minimal"] .tab:hover{background:transparent;color:var(--ink)}
+  [data-style="minimal"] .tab.on{background:transparent;color:var(--ink);font-weight:700;
+    box-shadow:inset 0 -2px 0 var(--ink)}
+}
+/* 手機底部分頁列：選中改成頂端 2px 線，底色不填 */
+@media (max-width:820px){
+  [data-style="minimal"] .tab.on{background:transparent;color:var(--ink);font-weight:700;box-shadow:inset 0 2px 0 var(--ink)}
+}
+
+/* ---------------- 卡片：留白分層 ---------------- */
+[data-style="minimal"] .card{background:var(--panel);border:1px solid var(--line);box-shadow:none}
+@media (min-width:821px){
+  [data-style="minimal"]{--gap-card:32px}
+  [data-style="minimal"] main{padding:40px clamp(24px,calc(24px + (100vw - 1280px) * .1),40px) 96px}   /* 1440 以上 40；1280 以下回到原本 24（再窄，1280 的 KPI「漲跌家數」會被截掉，實測） */
+  /* .m3-frame（大盤三張圖的外框）原檔刻意 10px 0 6px、由裡面三格自己留內距，這裡不能蓋掉它（否則內距變兩層、漲跌幅被擠到看不見） */
+  [data-style="minimal"] .card:not(.m3-frame){padding:28px}
+  [data-style="minimal"] .card{border-radius:var(--r-lg)}
+  [data-style="minimal"] .card.tight{padding:var(--s5);border-radius:var(--r-md)}   /* KPI 小卡維持原本 16：再寬，1280 的「漲跌家數」就會被截掉 */
+  [data-style="minimal"] h3{font-size:17px;letter-spacing:-.01em;font-weight:800}
+  [data-style="minimal"] h2{font-size:22px;letter-spacing:-.015em;font-weight:800}
+}
+[data-style="minimal"] .card h3{color:var(--ink)}
+[data-style="minimal"] aside{background:var(--bg-2);border-left:1px solid var(--line)}
+
+/* ---------------- 按鈕、分段、膠囊：黑白反轉取代霓虹 ---------------- */
+[data-style="minimal"] .btn{background:transparent;border-color:var(--line-2);color:var(--ink)}
+[data-style="minimal"] .btn:hover{border-color:var(--ink)}
+[data-style="minimal"] .btn.primary{background:var(--mn-strong);color:var(--mn-on-strong);border-color:transparent}
+[data-style="minimal"] .seg{background:transparent;border-color:var(--line-2)}
+[data-style="minimal"] .seg button.on{background:var(--mn-strong);color:var(--mn-on-strong)}
+[data-style="minimal"] .seg button.livetf.on::after{color:var(--mn-on-strong)}
+[data-style="minimal"] .pill{background:transparent;border-color:var(--line-2)}
+[data-style="minimal"] .pill.cyan{background:transparent;border-color:color-mix(in srgb,var(--cyan) 45%,transparent);color:var(--cyan)}
+[data-style="minimal"] .pill.violet{background:transparent;border-color:color-mix(in srgb,var(--violet) 45%,transparent);color:var(--violet)}
+[data-style="minimal"] .pill.up{background:transparent;border-color:color-mix(in srgb,var(--rise) 45%,transparent)}
+[data-style="minimal"] .pill.down{background:transparent;border-color:color-mix(in srgb,var(--fall) 45%,transparent)}
+[data-style="minimal"] .pill.amber{background:transparent;border-color:color-mix(in srgb,var(--amber) 45%,transparent)}
+[data-style="minimal"] .chip.on{background:transparent;border-color:var(--ink)}
+[data-style="minimal"] .side-filters button.on{background:var(--mn-strong);border-color:var(--mn-strong);color:var(--mn-on-strong)}
+[data-style="minimal"] .hmctl{background:transparent}
+[data-style="minimal"] .kpi.on{border-color:var(--ink);box-shadow:none}
+[data-style="minimal"] .segchip i,[data-style="minimal"] .segcard .sh .dot{box-shadow:none}
+[data-style="minimal"] .banner{background:transparent}
+
+/* 捲軸細一點 */
+[data-style="minimal"] ::-webkit-scrollbar{width:8px;height:8px}
+
+/* 字級下限補正：原樣式有三處低於 12px（下拉箭頭 11px、還原 K 線標籤 11.5px），在這個風格裡順手拉回 12px */
+[data-style="minimal"] .rotdd .ddbtn i,[data-style="minimal"] .segdd .ddbtn i{font-size:12px}
+[data-style="minimal"] .adjtag{font-size:12px}
