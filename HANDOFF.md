@@ -2923,3 +2923,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 
 ### 09-25 18:55 回補守門放行分 K（intraday-fix）
 - backfill.yml：plan:default 已補齊但 complete.index_intraday 未完成時仍放行。這批驗了：分支上 pytest 519 passed、守門模擬 skip=false。daily 15:30/18:30 排程 GitHub 未觸發（非程式問題）。
+
+### 09-25 21:01 大盤 1H/4H 湖資料修正＋櫃買／台指期 FinMind 分 K 路線上線（fix-lake-bars＋intraday-otc-fut）
+- 根因：今日分時（可能是舊快取）直接接在湖資料後面造成時間倒退 → Lightweight Charts「Value is null」。新增 mergeLake／cleanBars；chart.js 缺值改 whitespace。
+- 這批驗了：分支 pytest 530、_preview 綠、新-大盤三張圖／大盤三張圖／總覽／淺色主題 0；合併後 新-大盤三張圖、K線縮放、個股R5 0，個股 4（既有整批順序紅）。
