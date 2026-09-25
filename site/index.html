@@ -3676,6 +3676,16 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mnum3d .dgstage-b,body.m3on .mnum3d .lbl3d,body.m3on .mnum3d .ld-no{display:none!important}
   body.m3on #dg3dNote{display:none}
 }
+/* ---- 手機 v3 E：市場明細分段、週期統計設定抽屜（mobile3.js 的 E 段）---- */
+@media (max-width:640px){
+  body.m3on #mMktSeg{margin:6px 0 8px}
+  body.m3on #mktBody.mseg-list>.card{display:none!important}
+  body.m3on #mktBody.mseg-dist>#mktTabs,body.m3on #mktBody.mseg-dist>#mktInner{display:none!important}
+  body.m3on #seasonCtl.mhide:not(.min){display:none!important}
+  body.m3on #mSeasonBtn{max-width:100%;margin:4px 0 6px}
+  body.m3on .msheet #seasonCtl{display:flex;flex-direction:column;align-items:flex-start;gap:10px}
+}
+@media (min-width:641px){ #mMktSeg,#mSeasonBtn{display:none!important} }
 </style>
 </head>
 <body>

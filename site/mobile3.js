@@ -602,8 +602,87 @@
   function cOff() { unhost(); unMarket(); $$('.m3keep-h').forEach(e => e.classList.remove('m3keep-h')); }
   hooks.push({ on: cOn, off: cOff });
 
+
+  /* ====================================================================== E 其他頁
+     ---- 熱力圖：手機沒有 hover，小方塊的字被截成「石 -3.0」—— 點一下開抽屜（全名、漲跌、成交值、佔比、「族群 ›」）----
+     industry.js 的樹狀圖 click 在手機改叫這一支（桌機照舊直接進族群頁）。*/
+  function tileSheet(d) {
+    const pct = (v) => v == null ? '—' : (v > 0 ? '+' : '') + (+v).toFixed(2) + '%';
+    const sh = openSheet(`<div class="mshhead"><b>${esc(d.name)}</b></div>`
+      + `<div class="mshbody"><i>${esc(d.chain || '')}</i>`
+      + `<i>漲跌幅 <b class="${ucls(d.chg)}">${pct(d.chg)}</b></i>`
+      + `<i>成交值 ${d.to != null ? yi(d.to) + ' 億' : '—'}${d.share != null ? `（佔 ${(+d.share).toFixed(1)}%）` : ''}</i>`
+      + `<i>成分股 ${d.n != null ? d.n : '—'} 檔　本益比中位 ${d.pe != null ? (+d.pe).toFixed(1) : '—'}</i></div>`
+      + `<div class="mchips"><a href="#industry/group/${encodeURIComponent(d.gid)}">族群 ›</a></div>`, { kind: 'tile' });
+    sh.dataset.name = d.name;
+    return sh;
+  }
+
+  /* ---- 市場明細：分兩段「分佈圖／名單」（現行 1981px 是一張圖＋一張完整名單串在一起）----
+     分段列插在 #mktBody 前面（#mktBody 會整個重畫，插在裡面會被洗掉），狀態寫進 localStorage。*/
+  function marketSeg() {
+    const body = document.getElementById('mktBody'); if (!body) return;
+    let bar = document.getElementById('mMktSeg');
+    if (!bar) {
+      bar = document.createElement('div'); bar.id = 'mMktSeg'; bar.className = 'mseg';
+      bar.innerHTML = '<button type="button" data-s="dist">分佈圖</button><button type="button" data-s="list">名單</button>';
+      body.before(bar);
+      bar.onclick = (e) => { const b = e.target.closest('button[data-s]'); if (!b) return; LS.set('mkt.seg', b.dataset.s); paint(); window.scrollTo({ top: 0 }); setTimeout(() => window.dispatchEvent(new Event('resize')), 60); };
+    }
+    const paint = () => {
+      const s = LS.get('mkt.seg', 'dist') === 'list' ? 'list' : 'dist';
+      body.classList.toggle('mseg-dist', s === 'dist'); body.classList.toggle('mseg-list', s === 'list');
+      $$('button', bar).forEach(b => b.classList.toggle('on', b.dataset.s === s));
+    };
+    paint();
+  }
+  function unMarketSeg() {
+    const b = document.getElementById('mMktSeg'); if (b) b.remove();
+    const body = document.getElementById('mktBody'); if (body) body.classList.remove('mseg-dist', 'mseg-list');
+  }
+
+  /* ---- 週期統計：四列選項（約 150px）收進抽屜，標題列一顆「設定 · 目前條件 ›」----
+     搬的是**同一個節點**（#seasonCtl，選項的事件都掛在上面），關抽屜時原封不動搬回去。*/
+  function seasonCtl() {
+    const ctl = document.getElementById('seasonCtl'); if (!ctl) return;
+    let b = document.getElementById('mSeasonBtn');
+    const label = () => '設定 · ' + ($$('.on', ctl).map(x => x.textContent.trim()).filter(Boolean).slice(0, 4).join(' · ') || '預設') + ' ›';
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.id = 'mSeasonBtn'; b.className = 'mfilt';
+      ctl.before(b);
+      b.onclick = () => {
+        const home = document.createComment('mseasonhome');
+        ctl.parentNode.insertBefore(home, ctl);
+        const wrap = document.createElement('div');
+        wrap.innerHTML = '<div class="mshhead"><b>週期統計設定</b></div>';
+        wrap.appendChild(ctl); ctl.classList.add('min');
+        openSheet(wrap, { kind: 'season', onClose: () => {
+          ctl.classList.remove('min');
+          if (home.parentNode) { home.parentNode.insertBefore(ctl, home); home.remove(); }
+          b.textContent = label();
+        } });
+      };
+    }
+    ctl.classList.add('mhide');
+    b.textContent = label();
+  }
+  function unSeasonCtl() {
+    const b = document.getElementById('mSeasonBtn'); if (b) b.remove();
+    const c = document.getElementById('seasonCtl'); if (c) c.classList.remove('mhide', 'min');
+  }
+
+  let eWait = null;
+  function eOn(v) {
+    if (v === 'market') { if (document.getElementById('mktBody')) marketSeg(); }
+    if (v === 'season') {
+      if (document.getElementById('seasonCtl') && document.querySelector('#seasonCtl .on')) seasonCtl();
+      else { clearTimeout(eWait); eWait = setTimeout(() => { if (curView() === 'season') eOn('season'); }, 700); }
+    }
+  }
+  hooks.push({ on: eOn, off: () => { unMarketSeg(); unSeasonCtl(); } });
+
   window.M3 = {
-    isM, openSheet, closeSheet, spread, overlaps, leaders, esc, LS, NAV_H,
+    isM, openSheet, closeSheet, tileSheet, spread, overlaps, leaders, esc, LS, NAV_H,
     /** C／D 段登記：on(view) 在手機每次換頁跑；off() 回桌機時拆。*/
     hook(h) { hooks.push(h); if (isM() && document.body.classList.contains('m3on') && h.on) { try { h.on(curView()); } catch (e) { /* 略 */ } } },
     apply,

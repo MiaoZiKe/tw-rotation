@@ -12643,6 +12643,41 @@ def t_mobile_v3(b, base, code):
         ok(f"{T} 「更多」→ 切換主題真的換了", th0 != th1, {"before": th0, "after": th1})
         m.tap("#mTabMore"); m.wait_for_timeout(300); m.tap('#mSheet .mrow[data-m="theme"]'); m.wait_for_timeout(600)
 
+        # ---- #15 熱力圖：點一個小方塊 → 抽屜寫那一格的族群全名（手機沒有 hover）----
+        m.goto(f"{base}#heatmap", wait_until="networkidle"); m.wait_for_timeout(3000)
+        tile = m.evaluate("""() => { const c = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (!c) return null;
+            const leaves = []; (function walk(a) { (a || []).forEach(d => { if (d.gid) leaves.push(d); walk(d.children); }); })(c.getOption().series[0].data);
+            if (!leaves.length) return null;
+            const g = leaves[leaves.length - 1];   // 最後一格（通常是最小、字最容易被截掉的）
+            c.trigger('click', { data: g, name: g.name });
+            return g.name; }""")
+        m.wait_for_timeout(500)
+        tsh = m.evaluate("() => { const s = document.getElementById('mSheet'); return s && !s.hidden ? { kind: s.dataset.kind, name: s.dataset.name, hash: location.hash } : { hash: location.hash }; }")
+        ok(f"{T} #15 熱力圖點小方塊 → 抽屜打開、寫的是那一格的族群全名、沒有直接跳頁",
+           tile and tsh.get("kind") == "tile" and tsh.get("name") == tile and tsh["hash"].startswith("#heatmap"), {"tile": tile, **tsh})
+        m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(300)
+        # ---- #16 市場明細：切「名單」段 → 分佈圖藏、名單出現、整頁高度變了 ----
+        m.goto(f"{base}#market", wait_until="networkidle"); m.wait_for_timeout(2600)
+        K = """() => { const b = document.getElementById('mktBody'); const c = b && b.querySelector(':scope > .card'), l = document.getElementById('mktInner');
+            return { dist: !!c && c.offsetHeight > 0, list: !!l && l.offsetHeight > 0, h: document.documentElement.scrollHeight }; }"""
+        k0 = m.evaluate(K)
+        m.tap('#mMktSeg button[data-s="list"]'); m.wait_for_timeout(700)
+        k1 = m.evaluate(K)
+        ok(f"{T} #16 市場明細預設「分佈圖」段：圖在、名單收起", k0["dist"] and not k0["list"], k0)
+        ok(f"{T} #16 切「名單」→ 分佈圖藏起來、名單出現、整頁高度變了、localStorage 記住",
+           not k1["dist"] and k1["list"] and k1["h"] != k0["h"] and m.evaluate("() => localStorage.getItem('tw.m3.mkt.seg')") == "list", {"before": k0, "after": k1})
+        m.tap('#mMktSeg button[data-s="dist"]'); m.wait_for_timeout(300)
+        # ---- 週期統計：四列選項收進抽屜，換一個選項 → 鈕上的字跟著變 ----
+        m.goto(f"{base}#season", wait_until="networkidle"); m.wait_for_timeout(3000)
+        s0 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', ctl: getComputedStyle(document.getElementById('seasonCtl')).display })")
+        ok(f"{T} 週期統計：選項收成一顆「設定 · …」鈕（四列選項平常不佔版面）", s0["btn"].startswith("設定") and s0["ctl"] == "none", s0)
+        m.tap('#mSeasonBtn'); m.wait_for_timeout(400)
+        alt = m.evaluate("() => { const b = [...document.querySelectorAll('#mSheet #seasonCtl button')].find(x => !x.classList.contains('on')); if (b) b.click(); return b ? b.textContent.trim() : null; }")
+        m.wait_for_timeout(1200)
+        m.touchscreen.tap(W / 2, 80); m.wait_for_timeout(400)
+        s1 = m.evaluate("() => ({ btn: (document.getElementById('mSeasonBtn') || {}).textContent || '', home: document.getElementById('seasonCtl').closest('#seasonHeatCard') !== null })")
+        ok(f"{T} 週期統計：抽屜裡換一個選項 → 關掉後鈕上的字變了、選項搬回原位", bool(alt) and s1["btn"] != s0["btn"] and alt in s1["btn"] and s1["home"], {"alt": alt, **s1})
+
         # ---- #17 全部頁：不准橫向捲、HTML 字 ≥ 12px ----
         TINY = """() => [...document.querySelectorAll('main .view.on *, .msheet *, .mnumlayer *')].filter(e => {
               if (e.ownerSVGElement) return false;

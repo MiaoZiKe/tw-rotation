@@ -176,7 +176,10 @@
     A.hmLegend('indTree', 'chg', heatFocusT, (f) => { heatFocusT = f; renderHeat(im); });
     A.wheelZoom(document.getElementById('indTreeWrap'), { onZoom: () => { const i = window.echarts && echarts.getInstanceByDom(document.getElementById('indTree')); if (i) i.resize(); } });
     // 放大狀態下單擊延後判定，雙擊（還原）不會被當成點方塊而跳頁（審查 R4，見 app.js wheelZoom 的 defer）
-    if (c) c.off('click').on('click', p => A.zoomClick(document.getElementById('indTreeWrap'), () => { if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } }));
+    if (c) c.off('click').on('click', p => A.zoomClick(document.getElementById('indTreeWrap'), () => {
+      // 手機 v3（≤640px）：沒有 hover，小方塊的字又被截掉 —— 先開抽屜給全名與數字，「族群 ›」再進去（桌機照舊直接進族群頁）
+      if (p.data && p.data.gid && window.M3 && window.M3.isM()) { window.M3.tileSheet(p.data); return; }
+      if (p.data.gid) location.hash = '#industry/group/' + p.data.gid; else if (p.data.cid) location.hash = '#industry/' + p.data.cid; else if (p.treePathInfo && p.treePathInfo[1]) { const cid = (im.chains.find(x => x.name === p.treePathInfo[1].name) || {}).id; if (cid) location.hash = '#industry/' + cid; } }));
   }
 
   // ================================================================ 活頁簿分頁（第一層：產業鏈）
