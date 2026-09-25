@@ -2951,7 +2951,8 @@
         .sort((a, b) => (b.turnover || 0) - (a.turnover || 0)).slice(0, 24);
     }
     const fu = (fund || []).find(x => x.code === code) || {};
-    const ns = (news || []).filter(n => String(n.codes || '').split(',').includes(code)).slice(0, 8);
+    // 同一道把關（newsAbout）：後端標了 codes 也要標題／內文真的提到才算
+    const ns = newsAbout((news || []).filter(n => String(n.codes || '').split(',').includes(code)), code, known.name).slice(0, 8);
 
     state.chain = chainOfGroup(im, gid) || 'industry'; state.group = null;
     const chainName = A.L.chains[state.chain] || CHAIN_NAME[state.chain] || state.chain;   // 中文名以 payload 為準，寫死的表只當 fallback
@@ -3300,10 +3301,48 @@
          需要近四季 EPS，所以只有日／週／月線畫得出來（分 K 的日期對不到財報那條階梯）。*/
       { k: 'peRiver', label: '本益比河流', on: () => !!cfg.peRiver, params: () => [], toggle: () => { cfg.peRiver = !cfg.peRiver; }, color: '#b39dff' },
     ];
+    /* ★ 2026-09-25（審查 R5）：以前參數輸入框直接排在籤裡，KD 籤 156px 寬、大半是三個輸入框 ——
+       點籤的正中間點到的是輸入框，指標不會開關（要點左邊的「KD」兩個字才行）。
+       改成：籤平常只顯示參數**文字**（整顆都是開關，點哪裡都切換）；
+       要改參數按籤尾巴那顆小 ⚙，才把輸入框攤開（按 Enter 或再按一次 ⚙ 收起）。*/
+    let chipEdit = null;
     const drawChips = () => {
-      chips.innerHTML = chipDefs.map(c => `<span class="chip ${c.on() ? 'on' : ''}" data-k="${c.k}"><i style="background:${c.color}"></i>${c.label}${c.params().map(p => `<input data-k="${c.k}" data-p="${p.key}" value="${p.val}" style="width:${p.w}px" onclick="event.stopPropagation()">`).join('')}</span>`).join('');
-      $$('.chip', chips).forEach(ch => ch.onclick = (e) => { if (e.target.tagName === 'INPUT') return; chipDefs.find(c => c.k === ch.dataset.k).toggle(); saveCfg(cfg); drawChips(); apply(); });
-      $$('.chip input', chips).forEach(inp => inp.onchange = () => { chipDefs.find(c => c.k === inp.dataset.k).set(inp.value, inp.dataset.p); saveCfg(cfg); drawChips(); apply(); });
+      chips.innerHTML = chipDefs.map(c => {
+        const ps = c.params(), ed = chipEdit === c.k && ps.length;
+        const pv = ps.length ? (ed
+          ? ps.map(p => `<input data-k="${c.k}" data-p="${p.key}" value="${p.val}" style="width:${p.w}px">`).join('')
+          : `<span class="pv">${A.fmt.esc(ps.map(p => p.val).join(','))}</span>`)
+          + `<button type="button" class="pedit" data-k="${c.k}" title="改 ${c.label} 參數" aria-label="改 ${c.label} 參數">⚙</button>` : '';
+        return `<span class="chip ${c.on() ? 'on' : ''}${ed ? ' editing' : ''}" data-k="${c.k}"><i style="background:${c.color}"></i>${c.label}${pv}</span>`;
+      }).join('');
+      $$('.chip', chips).forEach(ch => ch.onclick = (e) => {
+        if (e.target.tagName === 'INPUT') return;
+        if (e.target.closest('.pedit')) {
+          e.stopPropagation();
+          chipEdit = chipEdit === ch.dataset.k ? null : ch.dataset.k;
+          drawChips();
+          const f = chipEdit && chips.querySelector(`.chip[data-k="${chipEdit}"] input`); if (f) { f.focus(); f.select(); }
+          return;
+        }
+        chipDefs.find(c => c.k === ch.dataset.k).toggle(); saveCfg(cfg); drawChips(); apply();
+      });
+      $$('.chip input', chips).forEach(inp => {
+        inp.onclick = (e) => e.stopPropagation();
+        inp.onchange = () => {
+          if (inp._done) return;             // Enter 已經處理過（原生 change 會在元素被換掉之後再補一次）
+          chipDefs.find(c => c.k === inp.dataset.k).set(inp.value, inp.dataset.p); saveCfg(cfg);
+          const nextP = inp.nextElementSibling && inp.nextElementSibling.tagName === 'INPUT' ? inp.nextElementSibling.dataset.p : null;
+          drawChips(); apply();
+          // 重畫之後焦點會掉；還在編輯就把焦點交給下一格，連續改 KD 三個數字才順
+          if (chipEdit && nextP) { const nx = chips.querySelector(`.chip[data-k="${chipEdit}"] input[data-p="${nextP}"]`); if (nx) nx.focus(); }
+        };
+        inp.onkeydown = (e) => {
+          if (e.key !== 'Enter' && e.key !== 'Escape') return;
+          e.preventDefault(); inp._done = true; chipEdit = null;
+          if (e.key === 'Enter') { chipDefs.find(c => c.k === inp.dataset.k).set(inp.value, inp.dataset.p); saveCfg(cfg); }
+          drawChips(); if (e.key === 'Enter') apply();
+        };
+      });
     };
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
@@ -3316,8 +3355,21 @@
     const apply = () => {
       const box = $('#lwc'); if (!box) return;
       state._apply = apply;      // 驗收用：模擬一次「即時更新造成的重畫」
-      const bars = barsFor(pg, state.tf);
-      const live = isLiveTf(state.tf);
+      /* ★ 2026-09-25（審查 R5）：即時分 K（1／5／15 分）在 Yahoo 抓不到時，以前只剩一塊空白＋一行字。
+         改成**先退回有資料的週期**（有 1 時 K 就畫 1 時，沒有就畫日線），上面那行說明講清楚
+         「分 K 抓不到、現在畫的是哪一個」；即時報價一接上（每收到一筆都會重跑 apply），自動換回分 K。
+         ⚠ state.tf 不動（按鈕仍亮在 1 分），只是這一次畫的是 tf。沒設即時來源的情況不退回 ——
+         那是「根本沒有即時」，照舊顯示空狀態文案（驗收 `個股` 段就是驗這個）。*/
+      let tf = state.tf;
+      let bars = barsFor(pg, tf);
+      let live = isLiveTf(tf);
+      let fbNote = '';
+      if (live && (!bars || bars.length < 2) && window.LiveK && window.LiveK.histFailed && window.LiveK.histFailed()) {
+        const fb = (barsFor(pg, '60m') || []).length >= 5 ? '60m' : '1d';
+        fbNote = window.LiveK.sourceNote(state.tf).replace(/，目前只有.*$/, '')
+          + `。先改畫${fb === '60m' ? ' 1 小時' : '日線'} K（最近一份可用的資料）；即時報價接上後會自動換回 ${TF_NAME[state.tf] || state.tf} K。`;
+        tf = fb; bars = barsFor(pg, fb); live = false;
+      }
       if (!bars || bars.length < (live ? 2 : 5)) {
         const why = live
           ? (window.LiveK ? window.LiveK.sourceNote(state.tf) : '即時層還沒載入')
@@ -3329,18 +3381,19 @@
         setLiveNote(live ? why : '');
         return;
       }
-      setLiveNote(live && window.LiveK ? window.LiveK.sourceNote(state.tf) : '');
+      setLiveNote(fbNote || (live && window.LiveK ? window.LiveK.sourceNote(state.tf) : ''));
+      state.fallbackTf = fbNote ? tf : null;      // 驗收讀這個
       // 上一個週期沒資料時圖被拆掉了，換回有資料的週期要重建（不重建的話會整張空白到重新整理為止）
       if (!kchart || !$('#legendOv')) {
         if (kchart) { kchart.destroy(); kchart = null; }
         box.innerHTML = '<div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div>';
-        kchart = new KChart(box, { tf: state.tf, onText: () => window.prompt('文字內容', '') });
+        kchart = new KChart(box, { tf: tf, onText: () => window.prompt('文字內容', '') });
         enableDraw(pg);
       }
       // 即時更新（同一檔、同一個週期、圖還在）就保留目前的縮放與位置
-      const keep = kchart._liveKey === pg.meta.code + '|' + state.tf;
-      kchart._liveKey = pg.meta.code + '|' + state.tf;
-      kchart.setBars(bars, state.tf, keep);
+      const keep = kchart._liveKey === pg.meta.code + '|' + tf;
+      kchart._liveKey = pg.meta.code + '|' + tf;
+      kchart.setBars(bars, tf, keep);
       /* 本益比倍數線：算好之後掛在 chart 上（不要塞進 cfg —— cfg 會被寫進 localStorage，
          幾千筆數字存進去毫無意義）。applyIndicators 會自己去讀 this.peBands。*/
       kchart.peBands = cfg.peRiver ? peBandsForBars(peRiver(pg), bars, peStyle(cfg)) : null;
@@ -3351,23 +3404,23 @@
          畫面看起來就是「縮放完自己跳回原來大小」（Andy 2026-09-18）。
          keep 為真＝這是即時更新造成的重畫，要尊重使用者自己拉的縮放。*/
       if (!keep && kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
-      kchart.setZones(cfg.smc && !live ? zonesFor(pg, state.tf) : [], cfg.zone || undefined);
-      kchart.setMarkers(cfg.marks && !live ? marksFor(pg, state.tf) : {});
+      kchart.setZones(cfg.smc && !live ? zonesFor(pg, tf) : [], cfg.zone || undefined);
+      kchart.setMarkers(cfg.marks && !live ? marksFor(pg, tf) : {});
       const v = pg.verdict || {};
-      kchart.setPriceLines(cfg.lines && state.tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
+      kchart.setPriceLines(cfg.lines && tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
       const TFN = { '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）', '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
-      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${TFN[state.tf] || state.tf}`);
+      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${TFN[tf] || tf}${fbNote ? '（分 K 暫代）' : ''}`);
       const at = (arr, i) => (arr ? arr[i == null ? arr.length - 1 : i] : null);
       const show = (i, pt) => {
         const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
-        showOhlcBox(d, prev, pt, state.tf);
+        showOhlcBox(d, prev, pt, tf);
         const chg = prev ? (d.close - prev.close) / prev.close * 100 : null; const amp = d.low ? (d.high - d.low) / d.low * 100 : null;
         // 顏色一定要跟著主題走，不可以寫死深色主題那兩個螢光色 ——
         // #2ee59d 印在淺色主題的圖例底（近白）對比只有 1.64，等於看不見。
         // 這是 D1（DECISIONS #152）漏掉的一行，2026-09-18 被淺色主題掃描抓到。
         const col = A.upDown(d.close >= d.open ? 1 : -1);
-        let s = `<b>${KUtil.fmtTime(d.time, state.tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
+        let s = `<b>${KUtil.fmtTime(d.time, tf)}</b>　開 ${A.fmt.n(d.open)}　高 ${A.fmt.n(d.high)}　低 ${A.fmt.n(d.low)}　收 <b style="color:${col}">${A.fmt.n(d.close)}</b>${chg != null ? ` <span style="color:${A.upDown(chg)}">${A.fmt.pct(chg, 2)}</span>` : ''}　振幅 ${amp != null ? A.fmt.n(amp, 1) + '%' : '—'}　量 ${A.fmt.lot(d.volume / 1000)}`;
         const parts = []; (cfg.ma || []).forEach((n, k) => { const m = at(vals['MA' + n], i); if (m != null) parts.push(`<span style="color:${KUtil.colors.ma[k % 6]}">MA${n} ${A.fmt.n(m)}</span>`); });
         if (vals.BOLL) { const u = at(vals.BOLL.up, i), lo = at(vals.BOLL.low, i); if (u != null) parts.push(`<span style="color:${KUtil.colors.boll}">BOLL ${A.fmt.n(lo)} – ${A.fmt.n(u)}</span>`); }
         // 本益比倍數線：直接把「幾倍＝股價多少」寫在圖例上，不然圖上五條虛線看不出誰是誰
@@ -3772,7 +3825,7 @@
   function fundCard(pg) {
     const f = pg.fundamental || {}, dv = pg.dividends || {};
     const k = statK;
-    return `<div class="card"><h3>基本面 <small>財報到 ${f.latest_period || '—'}</small></h3><div class="kvs" style="margin-top:8px">${k('近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')}${k('本益比', f.pe ? A.fmt.n(f.pe, 1) : '—')}${k('同業分位', f.percentile != null ? A.fmt.n(f.percentile, 0) + '%' : '<small>樣本不足</small>')}${k('ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')}${k('毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—')}${k('月營收 YoY', A.fmt.pct(f.rev_yoy), A.fmt.cls(f.rev_yoy))}${k('營運動能', f.momentum_score != null ? A.fmt.n(f.momentum_score, 0) + ' / 100' : '—')}${k('殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')}</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%' : ''}` : '本益比只在同族群內比較'}</div></div>`;
+    return `<div class="card"><h3>基本面 <small>財報到 ${f.latest_period || '—'}</small></h3><div class="kvs" style="margin-top:8px">${k('近四季 EPS', f.ttm_eps != null ? A.fmt.n(f.ttm_eps) : '—')}${k('本益比', f.pe ? A.fmt.n(f.pe, 1) : '—')}${k('同業分位', f.percentile != null ? A.fmt.n(f.percentile, 0) + '%' : '<small>樣本不足</small>')}${k('ROE', f.roe != null ? A.fmt.n(f.roe, 1) + '%' : '—')}${k('毛利率', f.gross_margin != null ? A.fmt.n(f.gross_margin, 1) + '%' : '—')}${k('月營收 YoY', A.fmt.pct(f.rev_yoy), A.fmt.cls(f.rev_yoy))}${k('營運動能', f.momentum_score != null ? A.fmt.n(f.momentum_score, 0) + ' / 100' : '—')}${k('殖利率（近四次）', dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—')}</div><div class="note" style="margin-top:8px">${f.group_name ? `同族群（${f.group_name}，n=${f.group_n}）本益比中位 ${f.group_median != null ? A.fmt.n(f.group_median, 1) : '—'}${f.vs_median != null ? (Math.abs(f.vs_median) < 0.5 ? '，本檔與中位相當' : '，本檔 ' + (f.vs_median > 0 ? '高於' : '低於') + '中位 ' + A.fmt.n(Math.abs(f.vs_median), 0) + '%') : ''}` : '本益比只在同族群內比較'}</div></div>`;
   }
   function chipCard(pg) {
     const s = pg.summary || {}, iv = pg.inst_v3 || {};
@@ -4035,8 +4088,6 @@
       series = r.bands.map((b, i) => ({
         name: lab(i), type: 'line', data: b, symbol: 'none', silent: true, z: 2, smooth: 0.3,
         lineStyle: { color: ZN[i + 1].c, width: S.w + 0.2, type: 'dashed' },
-        endLabel: { show: true, color: ZN[i + 1].c, fontSize: 11, formatter: () => lab(i) },
-        labelLayout: { moveOverlap: 'shiftY' },
       }));
     } else {
       /* 色帶：堆疊面積，一層一個評價區間。
@@ -4059,10 +4110,6 @@
         name: ZN[i].name, type: 'line', data: d, stack: 'pe', symbol: 'none', silent: true, smooth: 0.3,
         lineStyle: solid ? { color: 'rgba(0,0,0,.26)', width: 1 } : { width: 0 },
         areaStyle: { color: ZN[i].c, opacity: op }, z: 1,
-        // 區間名稱標在自己那條帶的上緣、往下掛，讀起來就是「這一塊叫什麼」
-        endLabel: { show: true, color: solid ? A.CH.ink2 : ZN[i].c, fontSize: 11, verticalAlign: 'top',
-          offset: [4, 3], formatter: () => ZN[i].name },
-        labelLayout: { moveOverlap: 'shiftY' },
       }));
     }
     /* 收盤線。以前寫死白色 —— 淺色主題的圖表底色就是白的，那條線直接消失
@@ -4078,7 +4125,12 @@
     series.push({ name: '收盤', type: 'line', data: r.close, symbol: 'none', z: 6, silent: true,
       lineStyle: { color: closeC, width: S.w + 0.8 } });
 
-    A.chart(id, {
+    /* X 軸：以前每隔幾根就印一次 `YYYY-MM`，同一個月連印三四次「2026-04、2026-04…」。
+       改成只在**每個月的第一個交易日**落刻度，月份太多時再每 N 個月取一個，整條軸最多約 8 個。*/
+    const mStart = []; r.dates.forEach((d, i) => { if (!i || String(d).slice(0, 7) !== String(r.dates[i - 1]).slice(0, 7)) mStart.push(i); });
+    const stepM = Math.max(1, Math.ceil(mStart.length / 8));
+    const tickAt = new Set(mStart.filter((_, k) => k % stepM === 0));
+    const inst = A.chart(id, {
       grid: { left: 56, right: 62, top: 24, bottom: 34 },
       tooltip: { ...A.tip, trigger: 'axis', formatter: (ps) => {
         const i = ps[0].dataIndex, c = r.close[i], e = r.eps[i], pe = e > 0 ? c / e : null;
@@ -4089,12 +4141,57 @@
           + r.mult.map((m, k) => `${m} 倍 ＝ ${A.fmt.n(m * e)}`).join('　');
       } },
       xAxis: { ...A.axisStyle, type: 'category', data: r.dates, boundaryGap: false,
-        axisLabel: { color: A.CH.ink3, formatter: (v) => String(v).slice(0, 7) } },
-      yAxis: { ...A.axisStyle, min: yMin, max: yMax, axisLabel: { color: A.CH.ink3 } },
+        axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, interval: (i) => tickAt.has(i), formatter: (v) => String(v).slice(0, 7) } },
+      // showMinLabel:false —— 下界是算出來的（例如 816），緊貼著 900 那格會疊成「900／816」兩行
+      yAxis: { ...A.axisStyle, min: yMin, max: yMax, axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, showMinLabel: false } },
       series,
       // 一定要 notMerge：兩種模式的 series 數量與型態都不一樣，
       // 用合併的話切到「倍數線」時，上一次的色帶還留在圖上（實測就是這樣糊成一片）
     }, { notMerge: true });
+    /* 右側的倍數／區間名稱：以前用每條 series 的 endLabel，ECharts 的 moveOverlap 管不到 endLabel，
+       「價值」「低估」兩個字疊在一起。改成自己排：算出每一塊（或每一條線）在最後一天的中點，
+       由上往下排、兩兩至少隔 14px，擠不進圖框的那個就不印（滑過 tooltip 仍看得到區間名）。*/
+    const last = r.dates.length - 1;
+    const items = mode === 'mult'
+      ? r.bands.map((b, i) => ({ v: b[last], t: lab(i), c: ZN[i + 1].c }))
+      : ZN.map((z, i) => {
+        const lo = i === 0 ? Math.max(yMin, 0) : r.bands[i - 1][last];
+        const hi = i < 5 ? r.bands[i][last] : yMax;
+        return { v: (lo + hi) / 2, t: z.name, c: mode === 'fill' ? A.CH.ink : z.c };
+      });
+    peSideLabels(inst, items);
+  }
+  function peSideLabels(inst, items) {
+    if (!inst || !items.length) return;
+    let sig = '';
+    const place = () => {
+      if (inst.isDisposed && inst.isDisposed()) return;
+      const H = inst.getHeight(), W = inst.getWidth();
+      const top = 26, bot = H - 36, gap = 14;
+      let xs; try { xs = inst.convertToPixel({ xAxisIndex: 0 }, inst.getOption().xAxis[0].data.length - 1); } catch (e) { return; }
+      const pts = items.map(it => {
+        let y = null; try { y = inst.convertToPixel({ yAxisIndex: 0 }, it.v); } catch (e) { /* 忽略 */ }
+        return { ...it, y };
+      }).filter(p => p.y != null && isFinite(p.y) && p.y >= top - 6 && p.y <= bot + 6).sort((a, b) => a.y - b.y);
+      // 往下推開 → 超出底線的往上推 → 還是超出圖框的就不印
+      for (let i = 0; i < pts.length; i++) pts[i].y = Math.max(pts[i].y, i ? pts[i - 1].y + gap : top);
+      for (let i = pts.length - 1; i >= 0; i--) pts[i].y = Math.min(pts[i].y, i < pts.length - 1 ? pts[i + 1].y - gap : bot);
+      const keep = pts.filter(p => p.y >= top - 0.5 && p.y <= bot + 0.5);
+      const s2 = W + 'x' + H + '|' + keep.map(p => p.t + '@' + Math.round(p.y)).join(',');
+      if (s2 === sig) return;
+      sig = s2;
+      inst._peSide = keep.map(p => ({ t: p.t, y: Math.round(p.y) }));      // 驗收讀這個
+      inst.setOption({ graphic: keep.map((p, k) => ({ type: 'text', id: 'peside' + k, silent: true, z: 20,
+        x: Math.min(xs + 5, W - 4), y: p.y,
+        style: { text: p.t, fill: p.c, font: '600 11px "Noto Sans TC", sans-serif', textVerticalAlign: 'middle', textAlign: 'left' } })) },
+      { replaceMerge: ['graphic'] });
+    };
+    /* 'finished' 在滾輪放大時每一格都會發；每次都當場 setOption 會多一輪重畫，
+       連續滾動時會拖慢到讓 wheelZoom 的 450ms 緩衝失效（整頁被帶著捲）。所以停手 150ms 才重排。*/
+    inst.off('finished', inst._peSideFn);
+    inst._peSideFn = () => { clearTimeout(inst._peSideT); inst._peSideT = setTimeout(place, 150); };
+    inst.on('finished', inst._peSideFn);
+    place();
   }
 
   function tabProfit(pg, el) {
@@ -4125,7 +4222,7 @@
       <div class="card" style="margin-top:var(--gap-card)"><h3>季報明細</h3><div class="tw" style="max-height:360px"><table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${A.fmt.yi(r[1])}</td><td class="num">${A.fmt.n(r[2], 1)}%</td><td class="num">${A.fmt.n(r[3], 1)}%</td><td class="num">${A.fmt.n(r[4], 1)}%</td><td class="num">${A.fmt.yi(r[8])}</td><td class="num">${A.fmt.n(r[5])}</td><td class="num">${A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
     A.chart('profitChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 50, top: 30, bottom: 30 },
       xAxis: { ...A.axisStyle, type: 'category', data: q.map(r => r[0]), axisLabel: { color: A.CH.ink3 } }, yAxis: [{ ...A.axisStyle, name: 'EPS' }, { ...A.axisStyle, axisLabel: { formatter: '{value}%' }, splitLine: { show: false } }],
-      series: [{ name: 'EPS', type: 'bar', data: q.map(r => ({ value: r[5], itemStyle: { color: r[5] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[2]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: q.map(r => r[3]), smooth: .3, showSymbol: false, lineStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[4]), smooth: .3, showSymbol: false, lineStyle: { color: '#8b7bff' } }] });
+      series: [{ name: 'EPS', type: 'bar', itemStyle: { color: 'rgba(255,77,109,.7)' }, data: q.map(r => ({ value: r[5], itemStyle: { color: r[5] >= 0 ? 'rgba(255,77,109,.7)' : 'rgba(46,229,157,.7)', borderRadius: [3, 3, 0, 0] } })) }, { name: '毛利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[2]), smooth: .3, showSymbol: false, lineStyle: { color: '#ffd166' } }, { name: '營益率', type: 'line', yAxisIndex: 1, data: q.map(r => r[3]), smooth: .3, showSymbol: false, lineStyle: { color: '#3ee0ff' } }, { name: '淨利率', type: 'line', yAxisIndex: 1, data: q.map(r => r[4]), smooth: .3, showSymbol: false, lineStyle: { color: '#8b7bff' } }] });
     if (pe.length) A.chart('peQ', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = pe[ps[0].dataIndex]; return `<b>${r.period}</b><br>本益比 ${r.pe ?? '—'}（區間 ${r.pe_low ?? '—'}–${r.pe_high ?? '—'}）<br>近四季 EPS ${r.ttm_eps}`; } }, grid: { left: 50, right: 20, top: 20, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: pe.map(r => r.period), axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle, scale: true },
       series: [{ name: '區間', type: 'line', data: pe.map(r => r.pe_low), lineStyle: { opacity: 0 }, stack: 'pe', showSymbol: false }, { name: '高低', type: 'line', data: pe.map(r => r.pe_high != null && r.pe_low != null ? r.pe_high - r.pe_low : null), lineStyle: { opacity: 0 }, stack: 'pe', areaStyle: { color: 'rgba(139,123,255,.2)' }, showSymbol: false }, { name: '本益比', type: 'line', data: pe.map(r => r.pe), lineStyle: { color: '#8b7bff', width: 2 }, symbolSize: 5 }] });
     else A.empty('peQ', '需要四季連續財報');
@@ -4198,7 +4295,12 @@
       <div class="grid g2"><div class="card"><h3>各年度現金股利 <small>依股利所屬年度</small></h3><div id="divBar" class="chart"></div></div>
       <div class="card"><h3>除權息紀錄 <small>填息天數＝除息後首次收在除息前收盤之上</small></h3><div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody>${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num">${r.fill_days === -1 ? '<span class="down">未填</span>' : r.fill_days != null ? r.fill_days + ' 天' : '—'}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>
       <div class="card" style="margin-top:var(--gap-card)"><h3>股利公告</h3><div class="tw" style="max-height:320px"><table><thead><tr><th class="l">所屬期間</th><th class="l">類別</th><th>金額（元/股）</th><th class="l">公告日</th><th class="l">除權息日</th><th class="l">發放日</th></tr></thead><tbody>${ev.map(e => `<tr><td class="l">${A.fmt.esc(e.period)}</td><td class="l">${e.kind === 'cash' ? '現金' : '股票'}</td><td class="num">${A.fmt.n(e.amount, 3)}</td><td class="l mono">${e.announce_date || '—'}</td><td class="l mono">${e.ex_date || '—'}</td><td class="l mono">${e.payment_date || '—'}</td></tr>`).join('')}</tbody></table></div></div>`;
-    if (years.length) A.chart('divBar', { tooltip: { ...A.tip }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3 } }, yAxis: { ...A.axisStyle }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(3)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: '#e8eeff', fontFamily: 'JetBrains Mono', fontSize: 11 }, barWidth: '55%' }] }); else A.empty('divBar');
+    /* ★ 2026-09-25（審查 R5）：① 字族以前只寫 'JetBrains Mono'，沒裝的電腦退回襯線體 → 用全站 NUM_FONT；
+       ② 數值以前直接印 4.036／22.999／144.392，小數位一格一個樣 → 一律最多 2 位（股利公告表才看到 3 位）；
+       ③ 標籤色以前寫死近白 #e8eeff，淺色主題印在白底上看不見 → 跟主題走。*/
+    const MF = A.NUM_FONT || 'JetBrains Mono, monospace';
+    const d2 = (v) => { const x = Math.round(v * 100) / 100; return x.toFixed(Number.isInteger(x) ? 0 : 2); };
+    if (years.length) A.chart('divBar', { tooltip: { ...A.tip, valueFormatter: (v) => d2(v) + ' 元' }, grid: { left: 50, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: years, axisLabel: { color: A.CH.ink3, fontFamily: MF } }, yAxis: { ...A.axisStyle, axisLabel: { color: A.CH.ink3, fontFamily: MF, formatter: (v) => d2(v) } }, series: [{ type: 'bar', data: years.map(y => +byYear[y].toFixed(2)), itemStyle: { color: '#ffb454', borderRadius: [3, 3, 0, 0] }, label: { show: true, position: 'top', color: A.CH.ink2, fontFamily: MF, fontSize: 12, formatter: (q) => d2(q.value) }, barWidth: '55%' }] }); else A.empty('divBar');
   }
   /* 籌碼頁：資料不夠就不要畫一張空圖。
      Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。
@@ -4242,20 +4344,31 @@
     el.innerHTML = cards.map((c, i) => (i % 2 === 0 ? `<div class="grid g2"${i ? ' style="margin-top:var(--gap-card)"' : ''}>` : '') + c + (i % 2 === 1 || i === cards.length - 1 ? '</div>' : '')).join('')
       + `<div class="note" style="margin-top:10px">主力（券商分點家數差）需付費資料，尚未提供；以千張大戶週變化與法人連續買賣作替代。</div>`;
 
-    if (iv.length >= CHIP_MIN) A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.lot(p.value / 1000)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: iv.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
+    if (iv.length >= CHIP_MIN) A.chart('instChart', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${A.fmt.lot(p.value / 1000)}`).join('<br>') }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 66, right: 78, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: iv.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) } }, { ...A.axisStyle, axisLabel: { formatter: v => A.fmt.lot(v / 1000) }, splitLine: { show: false } }],
       series: [{ name: '外資', type: 'bar', stack: 'i', data: iv.map(r => r[1]), itemStyle: { color: '#3ee0ff' } }, { name: '投信', type: 'bar', stack: 'i', data: iv.map(r => r[2]), itemStyle: { color: '#ffb454' } }, { name: '自營', type: 'bar', stack: 'i', data: iv.map(r => r[3]), itemStyle: { color: '#8b7bff' } }, { name: '累計', type: 'line', yAxisIndex: 1, data: iv.map(r => r[4]), showSymbol: false, lineStyle: { color: '#ff8fab', width: 2 } }] });
     if (mg.length >= CHIP_MIN) A.chart('marginChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 60, right: 60, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: mg.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(5) } }, yAxis: [{ ...A.axisStyle, scale: true }, { ...A.axisStyle, scale: true, splitLine: { show: false } }],
       series: [{ name: '融資餘額', type: 'line', data: mg.map(r => r[1]), showSymbol: false, areaStyle: { color: 'rgba(255,77,109,.12)' }, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '融券餘額', type: 'line', yAxisIndex: 1, data: mg.map(r => r[2]), showSymbol: false, lineStyle: { color: '#2ee59d', width: 1.5 } }] });
     if (ho.length >= CHIP_MIN) {
-      A.chart('holderChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: '{value}%' } },
+      /* ★ 2026-09-25（審查 R5）：集保是**每週**一筆，X 軸以前切 `YY-MM`，同一個月的三週全部寫「26-09」；
+         改成 `MM-DD`。股東人數 Y 軸以前用「萬」取整數，21.3 萬～21.4 萬之間九個刻度全部印「21 萬」；
+         改成依刻度間距決定小數位（間距 ≥ 1 萬印整數萬、再小就多一兩位），還小於 100 人就直接印人數。*/
+      const hoDay = (v) => String(v).slice(5, 10);
+      const cnts = ho.map(r => r[4]).filter(v => v != null);
+      const span = cnts.length ? Math.max(...cnts) - Math.min(...cnts) : 0;
+      const hoCnt = (v) => {
+        if (Math.abs(v) < 1e4 || span < 400) return Math.round(v).toLocaleString('en-US');
+        const dp = span >= 4e4 ? 0 : span >= 4e3 ? 1 : 2;
+        return (v / 1e4).toFixed(dp) + ' 萬';
+      };
+      A.chart('holderChart', { tooltip: { ...A.tip, trigger: 'axis' }, legend: { textStyle: { color: A.CH.ink2 }, top: 0 }, grid: { left: 50, right: 20, top: 30, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: hoDay } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: '{value}%' } },
         series: [{ name: '千張大戶', type: 'line', data: ho.map(r => r[1]), showSymbol: false, lineStyle: { color: '#ff4d6d', width: 2 } }, { name: '400–1000 張', type: 'line', data: ho.map(r => r[2]), showSymbol: false, lineStyle: { color: '#ffb454' } }, { name: '散戶 ≤10 張', type: 'line', data: ho.map(r => r[3]), showSymbol: false, lineStyle: { color: '#2ee59d' } }] });
-      A.chart('holderCount', { tooltip: { ...A.tip, trigger: 'axis' }, grid: { left: 70, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2, 7) } }, yAxis: { ...A.axisStyle, scale: true, axisLabel: { formatter: v => A.fmt.yi(v) } }, series: [{ name: '股東人數', type: 'line', data: ho.map(r => r[4]), showSymbol: false, areaStyle: { color: 'rgba(62,224,255,.12)' }, lineStyle: { color: '#3ee0ff', width: 2 } }] });
+      A.chart('holderCount', { tooltip: { ...A.tip, trigger: 'axis', valueFormatter: (v) => v != null ? Math.round(v).toLocaleString('en-US') + ' 人' : '—' }, grid: { left: 74, right: 20, top: 16, bottom: 30 }, xAxis: { ...A.axisStyle, type: 'category', data: ho.map(r => r[0]), axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: hoDay } }, yAxis: { ...A.axisStyle, scale: true, minInterval: 1, axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: hoCnt } }, series: [{ name: '股東人數', type: 'line', data: ho.map(r => r[4]), showSymbol: false, areaStyle: { color: 'rgba(62,224,255,.12)' }, lineStyle: { color: '#3ee0ff', width: 2 } }] });
     }
   }
   function tabBasics(pg, el) {
     const b = pg.basics || {}; const f = pg.fundamental || {};
     const indLink = b.industry ? (A.L.gname['ind_' + b.industry] ? A.L.group('ind_' + b.industry, b.industry) : A.fmt.esc(b.industry)) : null;
-    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join(' ') || null, true], ['題材', A.L.themesOf(pg.meta.code) || null, true]];
+    const rows = [['公司全名', b.full_name], ['市場', b.market], ['產業別', indLink, true], ['上市日', b.listed_date], ['股本', b.capital_billion != null ? b.capital_billion + ' 億' : null], ['董事長', b.chairman], ['網站', b.website ? `<a href="${A.fmt.esc(b.website)}" target="_blank" rel="noopener">${A.fmt.esc(b.website)}</a>` : null, true], ['市值', f.market_cap != null ? A.fmt.yi(f.market_cap) : null], ['股價淨值比', f.pb != null ? A.fmt.n(f.pb) : null], ['股價營收比', f.ps != null ? A.fmt.n(f.ps) : null], ['所屬族群', (pg.meta.groups || []).length ? `<span class="tagrow">${(pg.meta.groups || []).map(gn => A.L.groupByName(gn)).join('')}</span>` : null, true], ['題材', A.L.themesOf(pg.meta.code) ? `<span class="tagrow">${A.L.themesOf(pg.meta.code)}</span>` : null, true]];
     el.innerHTML = `<div class="card"><h3>基本資料 <small>產業別、族群、題材都可以點</small></h3><dl class="kv" style="margin-top:10px">${rows.map(r => `<dt>${r[0]}</dt><dd>${r[1] != null && r[1] !== '' ? (r[2] ? r[1] : A.fmt.esc(r[1])) : '—'}</dd>`).join('')}</dl></div>
       <div class="card" style="margin-top:var(--gap-card)"><div class="row spread">
         <h3>1–12 月平均漲幅 <small id="msSub"></small></h3>
@@ -4354,9 +4467,21 @@
     mark();
     paint();
   }
+  /* ★ 2026-09-25（審查 R5）：個股「相關新聞」以前是後端給什麼就列什麼 —— 2330 的清單裡出現
+     「康舒快充」「訊芯-KY 量產」「聯發科新平台」，跟台積電完全無關（後端的比對條件太寬，另有人修）。
+     前端先守一道：**標題或內文**真的提到這檔的代號或名稱才列，其餘不列；一則都沒有就寫「近期無相關新聞」。
+     代號用「前後不是數字」比對，免得 2330 撞到 12330 這種數字；名稱去掉 -KY／* 這類後綴再比。*/
+  function newsAbout(list, code, name) {
+    const nm = String(name || '').replace(/\*/g, '').replace(/-(KY|創|DR)$/i, '').trim();
+    const reCode = new RegExp('(^|\\D)' + String(code).replace(/\W/g, '') + '(\\D|$)');
+    return (list || []).filter(n => {
+      const t = [n.title, n.summary, n.content, n.desc].filter(Boolean).join(' ');
+      return reCode.test(t) || (nm.length >= 2 && t.indexOf(nm) >= 0);
+    });
+  }
   function tabNews(pg, el) {
     // bv（券商觀點）只負責交給積木 `broker.views`（site/blocks/broker_views.js），這裡不拆它的欄位
-    const news = pg.news || [], bv = pg.broker_views || [], mn = pg.material_news || [];
+    const news = newsAbout(pg.news, pg.meta.code, pg.meta.name), bv = pg.broker_views || [], mn = pg.material_news || [];
     /* ★ 2026-09-19：重大訊息擺在最上面，而且跟「新聞」分開一張卡。
        兩者的可信度完全不同 —— 新聞是媒體寫的，重大訊息是**公司自己公告的**，
        減資、解散、訴訟、重大處分、財報更正都在這裡。
@@ -4377,7 +4502,7 @@
         <a class="pill" href="https://mops.twse.com.tw/mops/web/t05st01" target="_blank" rel="noopener">公開資訊觀測站 ↗</a></div>
       <div class="note" style="margin:6px 0 4px" title="要看全文請到公開資訊觀測站查該公司該日期的公告">只存摘要前 800 字；全文見公開資訊觀測站</div>
       ${mnHtml}</div>
-      <div class="grid g2"><div class="card"><h3>相關新聞 <small>鉅亨 / TechNews / 經濟日報</small></h3>${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty">近期沒有提到這檔的新聞</div>'}</div>
+      <div class="grid g2"><div class="card" id="stockNews"><h3>相關新聞 <small>只列標題或內文提到 ${A.fmt.esc(pg.meta.name || '')}（${A.fmt.esc(pg.meta.code)}）的</small></h3>${news.length ? news.map(n => `<div class="ev" style="padding-left:0;padding-right:0"><a href="${A.fmt.esc(n.url)}" target="_blank" rel="noopener">${A.fmt.esc(n.title)}</a><div class="m"><span class="mono">${n.date}</span><span class="cat">${A.fmt.esc(n.category || '')}</span><span>${A.fmt.esc(n.source || '')}</span></div></div>`).join('') : '<div class="empty isnews">近期無相關新聞</div>'}</div>
       ${window.BrokerViews ? window.BrokerViews.view(bv, 'card', A.fmt) : ''}</div>`;
   }
 
@@ -4417,5 +4542,13 @@
       if (!kchart || !kchart.chart) return null;
       const r = kchart.chart.timeScale().getVisibleLogicalRange();
       return r ? +(r.to - r.from).toFixed(1) : null;
-    })() }) };
+    })(),
+    // 驗收用（審查 R5）：K 線上的字有沒有互相壓住 —— 區間標籤放在哪、省略幾個，訊號標記併成什麼，背離字框、圖例框
+    fallbackTf: state.fallbackTf || null,
+    zoneLabels: kchart && kchart.zones ? (kchart.zones.placed || []) : [],
+    zoneSkipped: kchart && kchart.zones ? (kchart.zones.skipped || 0) : 0,
+    markers: kchart && kchart.markerList ? kchart.markerList.map(m => ({ time: String(m.time), i: m.i, pos: m.position, text: m.text })) : [],
+    markerNear: kchart && kchart.chart ? Math.max(2, Math.min(12, Math.ceil(60 / (kchart.chart.timeScale().options().barSpacing || 7)))) : null,
+    divLabels: kchart && kchart.divPrice ? (kchart.divPrice.lastLabels || []) : [],
+    legendRect: kchart && kchart.legendRect ? kchart.legendRect() : null }) };
 })();

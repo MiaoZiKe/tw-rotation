@@ -479,6 +479,13 @@
       } else if (t === 'line') {
         const ls = s.lineStyle || {};
         s.lineStyle = { ...ls, cap: ls.cap || 'round', join: ls.join || 'round' };
+        /* ★ 2026-09-25（審查 R5）：只寫 lineStyle.color 的折線，**圖例的小圓圈與 tooltip 的色點**
+           吃的是 itemStyle.color —— 沒給就退回 ECharts 預設色盤（藍／綠／黃），
+           於是「千張大戶」圖例是藍圈、線卻是紅的，會讀錯。這裡全站統一補：
+           有線色、沒點色 → 點色就用線色。已經自己寫了 itemStyle.color 的不動。*/
+        if (ls.color != null && !(s.itemStyle && s.itemStyle.color != null)) {
+          s.itemStyle = { ...(s.itemStyle || {}), color: ls.color };
+        }
       }
     });
     if (anyBar) { (xs || []).forEach(bumpAxis); (ys || []).forEach(bumpAxis); }
@@ -527,7 +534,14 @@
     }
     charts[el.id || Math.random()] = c; return c;
   }
-  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: 'JetBrains Mono' }, splitLine: { lineStyle: { color: CH.grid } } };
+  /* ★ 2026-09-25（審查 R5）：畫布上的字族以前只寫 'JetBrains Mono' 一個字 ——
+     這個站沒有自帶字型檔（index.html 註解：公司網路擋 CDN），沒裝這個字的電腦（Windows 預設就沒有）
+     會退回瀏覽器預設的**襯線體**，軸上的數字變成細細的 Times。
+     退路刻意接**無襯線**而不是等寬（Consolas 之類）：等寬字比原本的 Times 寬一截，
+     軸標籤是照原本的寬度留邊的，換成等寬會把「-10.0 萬張」這種刻度切掉；無襯線寬度接近，
+     而且跟其他圖（吃 chart() 預設 textStyle 的 Noto Sans TC）同一個樣子。*/
+  const NUM_FONT = 'JetBrains Mono, "Noto Sans TC", "Microsoft JhengHei", "PingFang TC", sans-serif';
+  const axisStyle = { axisLine: { lineStyle: { color: CH.line } }, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT }, splitLine: { lineStyle: { color: CH.grid } } };
   const tip = { backgroundColor: '#141e36', borderColor: '#2a3860', textStyle: { color: '#e8eeff', fontSize: 12.5 }, confine: true };
 
   /* ---------------- 明亮／深色主題（Andy 2026-09-14）----------------
@@ -2257,14 +2271,37 @@
       const wrap = $('#distGroups') || (() => {
         const d = document.createElement('div');
         d.id = 'distGroups'; d.className = 'chainchips';
-        d.style.cssText = 'margin-top:8px;max-height:130px;overflow:auto';
+        d.style.cssText = 'margin-top:8px;overflow:auto';
         box.parentNode.parentNode.insertBefore(d, box.parentNode.nextSibling);
         return d;
       })();
-      if (wrap.dataset.open === '1') { wrap.dataset.open = '0'; wrap.innerHTML = ''; return; }
+      if (wrap.dataset.open === '1') { wrap.dataset.open = '0'; wrap.innerHTML = ''; wrap.style.maxHeight = ''; wrap.classList.remove('scrollfade'); const h0 = $('#distGroupsHint'); if (h0) h0.hidden = true; return; }
       wrap.dataset.open = '1';
       wrap.innerHTML = `<button data-g="">全部</button>`
         + names.map(g => `<button data-g="${fmt.esc(g)}" class="${DIST.groups && DIST.groups.has(g) ? 'on' : ''}">${fmt.esc(g)}</button>`).join('');
+      /* ★ 2026-09-25（審查 R5）：以前寫死 max-height:130px，剛好切在第 4 排的一半 ——
+         看起來像版面壞掉，也看不出下面還能捲。改成量出第 4 排的頂端、高度就停在**整整 3 排**，
+         有更多排時底部加一道淡出（`.scrollfade`），捲到底就拿掉；框下面再寫一句「還有幾個，往下捲」。*/
+      wrap.style.maxHeight = '';
+      const bs = [...wrap.querySelectorAll('button')];
+      const wr = wrap.getBoundingClientRect();
+      const rowTops = [...new Set(bs.map(x => Math.round(x.getBoundingClientRect().top - wr.top)))].sort((p, q) => p - q);
+      let hint = $('#distGroupsHint');
+      if (rowTops.length > 3) {
+        wrap.style.maxHeight = (rowTops[3] - 2) + 'px';
+        const hidden = bs.filter(x => Math.round(x.getBoundingClientRect().top - wr.top) >= rowTops[3]).length;
+        if (!hint) { hint = document.createElement('div'); hint.id = 'distGroupsHint'; hint.className = 'note'; wrap.parentNode.insertBefore(hint, wrap.nextSibling); }
+        hint.hidden = false; hint.textContent = `還有 ${hidden} 個族群在下面，往下捲 ↓`;
+        const fade = () => {
+          const atEnd = wrap.scrollTop + wrap.clientHeight >= wrap.scrollHeight - 2;
+          wrap.classList.toggle('scrollfade', !atEnd);
+          hint.hidden = atEnd;
+        };
+        wrap.onscroll = fade; fade();
+      } else {
+        wrap.classList.remove('scrollfade'); wrap.onscroll = null;
+        if (hint) hint.hidden = true;
+      }
       $$('button', wrap).forEach(b => b.onclick = () => {
         const g = b.dataset.g;
         if (!g) DIST.groups = null;
@@ -2285,55 +2322,101 @@
      資料走獨立檔 ma_breadth.json（250 天 × 七條均線 × 27 個族群，約 287KB），
      只有這一頁會載。均線單選（一次看一條，七條疊在一起會看不出族群差異），
      族群複選（預設前 8 個 ＋ 全市場）。*/
-  const MAT = { ma: '20', groups: null };
+  /* ★ 2026-09-25（審查 R5：「8 條線一起畫，成分股只有 3～7 檔的族群每天在 0%／33%／67%／100% 之間跳，
+     整張圖糊成一團」）。改成：
+     · **預設只畫 2 條**：全市場的「你選的那條均線」（粗實線，預設 MA20）＋ 一條參考線（MA60；選的就是 60 時改 MA20）。
+     · 族群一條都不預設；在圖例（或下面的族群鈕）點誰就疊誰上去，兩邊同步。族群線用的是上面選的那條均線。
+     · 成分股 < 5 檔的族群名字後面標「樣本少」、線改點線 —— 3 檔的族群一檔翻身就跳 33 個百分點，
+       不能跟全市場同等看待。*/
+  const MAT = { ma: '20', on: null };
+  const MAT_SMALL = 5;
   async function drawMaTrend() {
     const host = $('#maTrendBox'); if (!host) return;
-    const mb = await load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } });
+    const [mb, gt] = await Promise.all([load('ma_breadth', { fallback: { dates: [], mas: [], series: {} } }),
+      load('groups_today', { fallback: [] })]);
     if (!mb || !mb.dates || !mb.dates.length) { return empty('maTrend', '站上均線的歷史還在產出（下一輪盤後管線就會有）'); }
+    const nOf = {}; (gt || []).forEach(g => { if (g && g.group_name) nOf[g.group_name] = g.constituents; });
+    /* 「樣本少」看兩件事，任一成立就標：
+       ① 成分股 < 5 檔（groups_today 的 constituents）；
+       ② **實際算得出均線的**不到 5 檔 —— 成分股 5 檔、但只有 2 檔歷史夠長的族群，
+          站上比例只會是 0／50／100%。從資料本身看得出來：全部數值都是 100/k 的倍數（k < 5）。*/
+    const effK = (n) => {
+      const v = ((mb.series[n] || {})[MAT.ma] || []).filter(x => x != null);
+      if (!v.length) return null;
+      for (let k = 1; k < MAT_SMALL; k++) { if (v.every(x => Math.abs(x * k / 100 - Math.round(x * k / 100)) < 0.006)) return k; }
+      return null;
+    };
+    const kOf = {}; names0().forEach(n => { kOf[n] = effK(n); });
+    const smallN = (n) => (nOf[n] != null && nOf[n] < MAT_SMALL) ? nOf[n] : kOf[n];
+    const small = (n) => smallN(n) != null;
+    function names0() { return Object.keys(mb.series).filter(n => n !== '全市場'); }
     const names = Object.keys(mb.series).filter(n => n !== '全市場');
-    if (!MAT.groups) MAT.groups = new Set(['全市場', ...names.slice(0, 7)]);
+    if (!MAT.on) MAT.on = new Set();
+    const ref = MAT.ma === '60' ? '20' : '60';
+    const mk1 = `全市場 MA${MAT.ma}`, mk2 = `全市場 MA${ref}`;
+    const gname = (n) => n + (small(n) ? '（樣本少）' : '');
     // 均線單選
     const pick = $('#maPick');
     if (pick) {
-      pick.innerHTML = '<span class="muted">均線</span>'
+      pick.innerHTML = '<span class="muted">主線用</span>'
         + `<div class="seg tiny" id="maSeg">${(mb.mas || []).map(n =>
-          `<button data-n="${n}" class="${String(n) === MAT.ma ? 'on' : ''}">${n} 日</button>`).join('')}</div>`;
+          `<button data-n="${n}" class="${String(n) === MAT.ma ? 'on' : ''}">${n} 日</button>`).join('')}</div>`
+        + `<span class="muted">參考線 MA${ref}（虛線）；族群線也用主線那條均線</span>`;
       $$('#maSeg button', pick).forEach(b => b.onclick = () => { MAT.ma = b.dataset.n; drawMaTrend(); });
     }
-    // 族群複選
+    const sub = $('#maTrendSub');
+    const setSub = () => {
+      if (sub) sub.textContent = `全市場 MA${MAT.ma}／MA${ref}${MAT.on.size ? `　＋ ${MAT.on.size} 個族群` : '　（點圖例或下面的族群疊上去比）'}　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
+    };
+    setSub();
+    // 族群鈕（和圖例同步）
     const gbox = $('#maGroups');
+    const paintChips = () => { if (gbox) $$('button', gbox).forEach(x => x.classList.toggle('on', MAT.on.has(x.dataset.g))); };
     if (gbox) {
-      gbox.innerHTML = ['全市場', ...names].map(n =>
-        `<button data-g="${fmt.esc(n)}" class="${MAT.groups.has(n) ? 'on' : ''}">${fmt.esc(n)}</button>`).join('');
+      gbox.innerHTML = names.map(n =>
+        `<button data-g="${fmt.esc(n)}" class="${MAT.on.has(n) ? 'on' : ''}"${small(n) ? ` title="算得出均線的只有 ${smallN(n)} 檔：一檔翻身就跳 ${Math.round(100 / smallN(n))} 個百分點"` : ''}>${fmt.esc(n)}${small(n) ? '<em class="smallN">樣本少</em>' : ''}</button>`).join('');
       $$('button', gbox).forEach(b => b.onclick = () => {
         const g = b.dataset.g;
-        if (MAT.groups.has(g)) MAT.groups.delete(g); else MAT.groups.add(g);
-        if (!MAT.groups.size) MAT.groups.add('全市場');
-        drawMaTrend();
+        if (MAT.on.has(g)) MAT.on.delete(g); else MAT.on.add(g);
+        paintChips(); setSub();
+        const ci = echarts.getInstanceByDom($('#maTrend'));
+        if (ci) ci.dispatchAction({ type: MAT.on.has(g) ? 'legendSelect' : 'legendUnSelect', name: gname(g) });
       });
     }
-    const shown = ['全市場', ...names].filter(n => MAT.groups.has(n));
-    const sub = $('#maTrendSub');
-    if (sub) sub.textContent = `MA${MAT.ma}：${shown.length} 條線　·　${mb.dates[0]} ～ ${mb.dates[mb.dates.length - 1]}`;
-    chart('maTrend', {
+    const selected = { [mk1]: true, [mk2]: true };
+    names.forEach(n => { selected[gname(n)] = MAT.on.has(n); });
+    const c = chart('maTrend', {
       tooltip: { ...tip, trigger: 'axis',
         formatter: (ps) => `<b>${ps[0].axisValue}</b><br>`
           + ps.filter(q => q.value != null).sort((a, b) => b.value - a.value).slice(0, 12)
               .map(q => `${q.marker}${q.seriesName} ${fmt.n(q.value, 1)}%`).join('<br>') },
-      legend: { type: 'scroll', top: 0, textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 } },
+      legend: { type: 'scroll', top: 0, data: [mk1, mk2, ...names.map(gname)], selected,
+        textStyle: { color: CH.ink2 }, pageTextStyle: { color: CH.ink3 }, inactiveColor: hexA(CH.ink3, .45) },
       grid: { left: 52, right: 24, top: 34, bottom: 30 },
-      xAxis: { ...axisStyle, type: 'category', data: mb.dates, axisLabel: { color: CH.ink3, formatter: (v) => String(v).slice(5) } },
-      yAxis: { ...axisStyle, min: 0, max: 100, axisLabel: { formatter: '{value}%' } },
-      series: shown.map((n, i) => ({
-        name: n, type: 'line', smooth: .25, showSymbol: false, connectNulls: true,
-        data: (mb.series[n] || {})[MAT.ma] || [],
-        lineStyle: { width: n === '全市場' ? 2.6 : 1.5,
-          color: n === '全市場' ? CH.ink : (L.gcolorByName ? L.gcolorByName(n) : PALETTE[i % PALETTE.length]) },
-        itemStyle: { color: n === '全市場' ? CH.ink : PALETTE[i % PALETTE.length] },
-        markLine: i === 0 ? { silent: true, symbol: 'none', label: { show: false },
-          lineStyle: { color: hexA(CH.ink3, .5), type: 'dashed' }, data: [{ yAxis: 50 }] } : undefined,
-      })),
+      xAxis: { ...axisStyle, type: 'category', data: mb.dates, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: (v) => String(v).slice(5) } },
+      yAxis: { ...axisStyle, min: 0, max: 100, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: '{value}%' } },
+      series: [
+        { name: mk1, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 5,
+          data: (mb.series['全市場'] || {})[MAT.ma] || [], lineStyle: { width: 2.6, color: CH.ink },
+          markLine: { silent: true, symbol: 'none', label: { show: false },
+            lineStyle: { color: hexA(CH.ink3, .5), type: 'dashed' }, data: [{ yAxis: 50 }] } },
+        { name: mk2, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 4,
+          data: (mb.series['全市場'] || {})[ref] || [], lineStyle: { width: 1.6, type: 'dashed', color: CH.ink2 } },
+        ...names.map((n, i) => ({
+          name: gname(n), type: 'line', smooth: .25, showSymbol: false, connectNulls: true,
+          data: (mb.series[n] || {})[MAT.ma] || [],
+          lineStyle: { width: 1.5, type: small(n) ? 'dotted' : 'solid',
+            color: L.gcolorByName ? L.gcolorByName(n) : PALETTE[i % PALETTE.length] },
+        })),
+      ],
     }, { notMerge: true });
+    if (c) {
+      c.off('legendselectchanged');
+      c.on('legendselectchanged', (p) => {
+        names.forEach(n => { if (p.selected[gname(n)]) MAT.on.add(n); else MAT.on.delete(n); });
+        paintChips(); setSub();
+      });
+    }
   }
 
   function drawChgDist() {
@@ -2585,9 +2668,15 @@
         lu: lr.filter(r => r.chg_pct >= 9.5).length,
         ld: lr.filter(r => r.chg_pct <= -9.5).length,
       } : null;
+      /* ★ 2026-09-25（審查 R5：按「⚡ 即時」後，鈕已經亮了、標題卻還是盤後的「784 漲／1314 跌」，
+         要等第一輪報價回來（0.7～4 秒）才換 —— 那段時間畫面上兩個口徑對不起來）。
+         第一輪還在路上時，標題**當場**就換成「即時抓取中」，並明講下面暫時仍是盤後那一份。*/
+      const pending = MUD.on && !live && !MUD.err;
       title.innerHTML = live
         ? `漲跌家數 <small>⚡ 即時 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
+        : pending
+        ? `漲跌家數 <small class="mktpending">⚡ 即時抓取中…（下面暫時仍是盤後：${heat.advancers || 0} 漲／${heat.decliners || 0} 跌）</small>`
         : `漲跌家數 <small>${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${(mv.counts || {}).limit_up ?? '—'}、跌停 ${(mv.counts || {}).limit_down ?? '—'}</small>`;
       const sets = (live ? [
         /* ★ 2026-09-24 說明精簡：每一頁上方那行只留一句定義；檔位、估算口徑搬進「怎麼看 ?」（HOW.mkt）。
@@ -6776,7 +6865,7 @@
         data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
           itemStyle: { color: chgColor(g.share_chg, 1.5) },
           label: { position: g.share_chg >= 0 ? 'right' : 'left' } })),
-        label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: 'JetBrains Mono',
+        label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: NUM_FONT,
           // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
           formatter: (q) => lblOf(rows[q.dataIndex]) },
         markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, data: [{ xAxis: 0 }], label: { show: false } },
@@ -10190,7 +10279,7 @@
     initSwipeHints();           // 橫向可捲容器的「← 左右滑 →」提示（G6）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { load, chart, howHTML, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
