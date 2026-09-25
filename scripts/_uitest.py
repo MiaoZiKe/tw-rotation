@@ -3338,8 +3338,12 @@ def t_new_market3(pg, base):
     ok("★ mergeLake：湖裡沒有的舊盤 → 補進中間", mg["hole"] == [[10, 1], [14, 1], [15, 9], [16, 1]], mg["hole"])
     ok("★ mergeLake：湖最後一盤與更新的盤 → 用今天的分時",
        mg["last"] == [[10, 1], [14, 1], [16, 9]] and mg["newer"] == [[10, 1], [14, 1], [16, 1], [17, 9]], mg)
+    # 收拾：接回「分時全掛」的狀態給下一段用。只換路由不夠 —— 上面那輪把 09-14 的分時存進了
+    # localStorage（m3.last.*，Worker 掛掉時的最後一層退路），不清掉的話下一段重新載入會直接吃到快取、根本沒走到湖。
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
+    pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {};"
+                " ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
 
     pg.unroute("**/data/index_intraday.json*")
     fresh(sess="day")
@@ -9197,10 +9201,15 @@ def t_market3(pg, base):
         q = parse_qs(urlparse(route.request.url).query)
         sym = (q.get("symbol") or [""])[0]
         iv = (q.get("interval") or ["1d"])[0]
-        # 只有加權（^TWII）有；其他的比照 Worker 回 400，前端要說明原因
+        # 只有加權（^TWII）有；其他的回「沒有這個代號」，前端要說明原因
+        # ★ 2026-09-25 改前→改後：改前回 400。afe801f 起櫃買的 1H／4H 會去問 Yahoo `^TWOII` 15 分 K，
+        #   瀏覽器對每一個 4xx 都會自己印一行「Failed to load resource: 400」—— 那是瀏覽器印的、前端攔不掉，
+        #   而全域 console 監聽只把 404 當成預期（缺頁測試），於是這一段在 main 上就固定紅 1 條（跟產品無關）。
+        #   改後回 404：Yahoo 對不存在的代號本來就回 404，前端 fetchFine／fetchHist 對 400 與 404 走同一條退回路，
+        #   驗的行為（退回＋說明原因）完全一樣。
         if sym != "^TWII":
-            route.fulfill(status=400, content_type="application/json",
-                          body='{"error":"bad symbol"}')
+            route.fulfill(status=404, content_type="application/json",
+                          body='{"chart":{"result":null,"error":{"code":"Not Found","description":"No data found, symbol may be delisted"}}}')
             return
         route.fulfill(status=200, content_type="application/json; charset=utf-8",
                       body=_json.dumps(_fake_yahoo(sym, iv, 400 if iv != "1mo" else 120)))
