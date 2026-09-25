@@ -5116,6 +5116,7 @@
       let ps = []; try { ps = c.chart.panes().map(p => p.getHeight()); } catch (e) { /* 已銷毀 */ }
       const vi = c.paneIndex ? c.paneIndex.vol : null, tot = ps.reduce((a, v) => a + v, 0);
       return { tf: c.tf, panes: ps.length, vol: vi != null, volShare: vi != null && tot ? +(ps[vi] / tot).toFixed(3) : 0,
-               zones: c.zones ? (c.zones.zones || []).length : 0, markers: (c.markerList || []).length, bars: (c.data || []).length };
+               zones: c.zones ? (c.zones.zones || []).length : 0, markers: (c.markerList || []).length, bars: (c.data || []).length,
+               v4: (c.bars || []).slice(0, 4).map(b => b[5] || 0) };
     }) }) };
 })();

@@ -3895,39 +3895,37 @@ def t_new_industry(pg, base):
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
     # ============================================================ 需求二
-    # 產業鏈圖預設收合，但兩種狀態都要驗 —— 展開時 #chainMap 會去捲位置，
-    # 那正是最容易把整頁拉到底、害 K 線被推出畫面的地方。
-    for chain_open in ("0", "1"):
-        pg.evaluate("(v) => { try { localStorage.setItem('tw.chainOpen', v); } catch(e) {} }", chain_open)
+    # ★ 2026-09-26 改前：個股頁下方「產業鏈位置」卡收合／展開兩種狀態都驗「K 線排在它上面」
+    #   → 改後：Andy「下方產業鏈位置表格 拿掉」，那張卡整張不掛了。改驗「#indChain 在個股頁是空的、看不見」，
+    #   其餘（K 線 → 多週期 → 分頁的順序、容器不為 0 高、一進頁停在最上面、沒有橫向捲軸）照舊。
+    for chain_open in ("0",):
         for vw in (1500, 800):
             pg.set_viewport_size({"width": vw, "height": 1000})
             pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(500)
             pg.goto(f"{base}#stock/2330", wait_until="networkidle"); pg.wait_for_timeout(2600)
-            tag = f"{vw}px／產業鏈圖{'展開' if chain_open == '1' else '收合'}"
+            tag = f"{vw}px"
             geo = pg.evaluate("""() => { const t = (s) => { const e = document.querySelector(s);
                     if (!e) return null; const r = e.getBoundingClientRect();
                     return { top: Math.round(r.top + scrollY), h: Math.round(r.height) }; };
                 return { chart: t('.chartwrap'), lwc: t('#lwc'), mtf: t('#mtfCard'),
-                         tabs: t('#stockTabs'), tab: t('#stockTab'), chain: t('#indChain'),
+                         tabs: t('#stockTabs'), tab: t('#stockTab'),
+                         chainTxt: ((document.getElementById('indChain') || {}).innerText || '').trim().length,
+                         chainShown: (() => { const c = document.getElementById('indChain'); return !!c && getComputedStyle(c).display !== 'none' && c.getBoundingClientRect().height > 0; })(),
                          canvas: document.querySelectorAll('#lwc canvas').length,
                          y: Math.round(scrollY),
                          order: [...document.querySelectorAll('#v-industry > div')].map(d => d.id) }; }""")
             if not ok(f"{tag} 個股頁該有的區塊都在",
-                      all(geo[k] for k in ("chart", "lwc", "mtf", "tabs", "chain")), geo):
+                      all(geo[k] for k in ("chart", "lwc", "mtf", "tabs")), geo):
                 continue
-            ok(f"{tag} K 線圖排在產業鏈區塊上面（Andy 要先看到 K 線）",
-               geo["chart"]["top"] < geo["chain"]["top"], f"K線 {geo['chart']['top']} vs 產業鏈 {geo['chain']['top']}")
+            ok(f"★ {tag} 個股頁不再掛「產業鏈位置」卡（#indChain 是空的、看不見）",
+               geo["chainTxt"] == 0 and not geo["chainShown"], {k: geo[k] for k in ("chainTxt", "chainShown")})
             ok(f"{tag} 多週期判讀在 K 線之後、分頁之前",
                geo["chart"]["top"] < geo["mtf"]["top"] < geo["tabs"]["top"], geo)
-            ok(f"{tag} 分頁（總覽／營收…公告新聞）也排在產業鏈區塊上面",
-               geo["tabs"]["top"] < geo["chain"]["top"] and geo["tab"]["top"] < geo["chain"]["top"], geo)
-            ok(f"{tag} DOM 順序真的變成 stockPage 在 indChain 前面",
-               geo["order"].index("stockPage") < geo["order"].index("indChain"), geo["order"])
             # 搬 DOM 最容易踩的坑：圖表容器變成 0 高、或 canvas 根本沒建起來
             ok(f"{tag} K 線容器沒有被搬成 0 高", geo["lwc"]["h"] > 200, geo["lwc"])
             ok(f"{tag} K 線真的畫出來了（有 canvas）", geo["canvas"] > 0, geo["canvas"])
             # 進頁面不可以被 scrollIntoView 拖到最底下（那樣第一眼還是看不到 K 線）
-            ok(f"{tag} 一進個股頁畫面停在最上面，沒有被拖到產業鏈那一段",
+            ok(f"{tag} 一進個股頁畫面停在最上面，沒有被拖到下面去",
                geo["y"] < 120, f"scrollY={geo['y']}")
             ok(f"{tag} 沒有橫向捲軸",
                pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
@@ -6527,6 +6525,49 @@ def t_themes(pg, base):
            [count(pg, "#themeDetail .card"), text(pg, "#themeDetail")[:60]])
 
 
+# ===================================================================== 個股 K 線「指標 ▾」下拉（2026-09-26）
+# Andy：「將所有指標納入在 Setting，並且以下拉清單形式呈現，在點擊下拉是清單設定」。
+# 以前的驗收點的是 `#indChips .chip[data-k=…]`（整排晶片）與 `#cfgBtn`（⚙ 設定面板）；
+# 兩樣都拿掉了，改成一顆 `#indBtn` 打開 `#cfgPop`（kind=ind），清單每列 `.indrow[data-k=…]`：
+#   左邊 `label.isw`（整塊是開關，裡面是 `input.ion` 勾選框）、右邊 `.iexp`（▸ 就地展開 `.ibody`）。
+# 下面幾支都是**真的用滑鼠點**：打開下拉、點那一列的開關、點 ▸ 展開。
+IND_POP_OPEN = ("() => { const p = document.getElementById('cfgPop'); if (!p || p.hidden || p.dataset.kind !== 'ind') return false;"
+                " const r = p.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < innerHeight; }")
+
+
+def ind_open(pg):
+    """打開「指標 ▾」下拉（已經開著就不動）。"""
+    if not pg.evaluate(IND_POP_OPEN):
+        click(pg, "#indBtn", 450)
+    return pg.evaluate(IND_POP_OPEN)
+
+
+def ind_close(pg):
+    """按 Esc 關掉下拉（站上的 dismissable）。"""
+    if pg.evaluate(IND_POP_OPEN):
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(350)
+
+
+def ind_on(pg, k):
+    """這個指標現在是開的嗎（讀下拉那一列的勾選框；會先把下拉打開）。"""
+    ind_open(pg)
+    return pg.evaluate(f"() => {{ const c = document.querySelector('#cfgPop .indrow[data-k=\"{k}\"] input.ion'); return c ? c.checked : null; }}")
+
+
+def ind_toggle(pg, k, wait=700):
+    """真的點那一列的開關（label 的左半，名稱那一塊）。"""
+    ind_open(pg)
+    click(pg, f'#cfgPop .indrow[data-k="{k}"] label.isw', wait)
+
+
+def ind_expand(pg, k):
+    """點 ▸ 把那一列的設定展開（已展開就不動）。"""
+    ind_open(pg)
+    if pg.evaluate(f"() => {{ const b = document.querySelector('#cfgPop .indrow[data-k=\"{k}\"] .ibody'); return !!b && b.hidden; }}"):
+        click(pg, f'#cfgPop .indrow[data-k="{k}"] .iexp', 350)
+    return pg.evaluate(f"() => {{ const b = document.querySelector('#cfgPop .indrow[data-k=\"{k}\"] .ibody'); return !!b && !b.hidden; }}")
+
+
 def t_stock(pg, base, code):
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
     ok("個股頁有標題", len(text(pg, "#stockPage h2")) > 2, text(pg, "#stockPage h2"))
@@ -6570,7 +6611,8 @@ def t_stock(pg, base, code):
     ok("回到寬版時事件欄收起來", not d2["aside"], d2)
 
     # --- K 棒寬度可調，而且預設就要寬一點（Andy：「K棒長度需要可以調整，default先長一點」）
-    click(pg, "#cfgBtn", 700)
+    # ★ 2026-09-26 改前：按「⚙ 設定」開圖表設定面板 → 改後：打開「指標 ▾」下拉、展開最上面的「整體」列
+    ind_expand(pg, "base")
     bw = pg.evaluate("() => { const e = document.getElementById('bw'); return e ? { v: +e.value, min: +e.min, max: +e.max } : null; }")
     if ok("圖表設定裡有 K 棒寬度", bool(bw), bw):
         ok("K 棒寬度預設比函式庫預設（7px）寬", bw["v"] >= 9, bw)
@@ -6584,7 +6626,7 @@ def t_stock(pg, base, code):
         pg.evaluate("""() => { const e = document.getElementById('bw'); e.value = '11';
             e.dispatchEvent(new Event('input', { bubbles: true })); }""")
         pg.wait_for_timeout(600)
-    click(pg, "#cfgBtn", 400)
+    ind_close(pg)     # 改前：再按一次 ⚙ 關 → 改後：Esc 關
 
     # --- 籌碼頁不可以出現空圖（Andy：「抓不到數據就替換其他方式或直接刪除」）
     click(pg, '#stockTabs button[data-t="chips"]', 1400)
@@ -6618,7 +6660,8 @@ def t_stock(pg, base, code):
         ok("缺完整頁時不是一片空白（內容夠長）", lite["len"] > 200, lite)
         ok("缺完整頁時有列出實際數字（價量／法人／估值）", lite["tiles"] >= 4, lite)
         ok("缺完整頁時有列出同族群可以點的個股", lite["sibs"] > 0, lite)
-        ok("缺完整頁時上方產業鏈照樣出來", lite["chain"] > 50, lite)
+        # ★ 2026-09-26 改前：「缺完整頁時上方產業鏈照樣出來」→ 改後：Andy「下方產業鏈位置表格 拿掉」，精簡版也不掛
+        ok("缺完整頁時也不掛產業鏈位置卡", lite["chain"] == 0, lite)
         ok("缺完整頁時不會只丟一句「還沒產生」", not lite["nodata"], lite)
         pg.unroute(f"**/data/stock/{miss}.json*")
         pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
@@ -6760,29 +6803,36 @@ def t_stock(pg, base, code):
     ok("切回日線也重新貼合", bool(bck and zoomed and span(bck) < span(zoomed) * 0.9),
        {"拉開時": zoomed, "切回日線": bck})
 
-    # --- 指標 chips：開關要真的改變圖（副圖數量或圖面）
-    for k in ("kd", "macd", "rsi", "vol", "boll", "smc", "peRiver"):
-        chip = pg.query_selector(f'#indChips .chip[data-k={k}]')
-        if not chip:
+    # --- 指標開關：開關要真的改變圖（副圖數量或圖面）
+    # ★ 2026-09-26 改前：點工具列上的晶片 `#indChips .chip[data-k=…]`，清單含 smc
+    #   → 改後：打開「指標 ▾」下拉點那一列的開關；SMC 區間／BOS-CHoCH 兩列已拿掉（Andy「將這兩個指標拿掉」），改驗「不存在」
+    ok("工具列上那一整排指標晶片拿掉了", count(pg, "#indChips") == 0 and count(pg, "#skTools .chip") == 0)
+    ok("「⚙ 設定」鈕拿掉了（內容都搬進指標下拉）", count(pg, "#cfgBtn") == 0)
+    ind_open(pg)
+    rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
+    ok("指標下拉清單有這些列（整體、均線、BOLL、成交量、KD、MACD、背離、RSI、停損目標、本益比河流）",
+       all(k in rows for k in ("base", "ma", "boll", "vol", "kd", "macd", "macdDiv", "rsi", "lines", "peRiver")), rows)
+    ok("★ 指標下拉裡沒有「SMC 區間」「BOS/CHoCH」", "smc" not in rows and "marks" not in rows, rows)
+    for k in ("kd", "macd", "rsi", "vol", "boll", "peRiver"):
+        if k not in rows:
             continue
-        b0 = pg.evaluate(f"() => document.querySelector('#indChips .chip[data-k={k}]').classList.contains('on')")
+        b0 = ind_on(pg, k)
         h0 = canvas_hash(pg, "#lwc")
-        # 點 chip 的左邊（標籤那側）—— 正中央是參數輸入框，使用者點那裡本來就不該切換
-        chip.scroll_into_view_if_needed()
-        bb = chip.bounding_box()
-        pg.mouse.click(bb["x"] + 12, bb["y"] + bb["height"] / 2); pg.wait_for_timeout(700)
-        b1 = pg.evaluate(f"() => document.querySelector('#indChips .chip[data-k={k}]').classList.contains('on')")
+        ind_toggle(pg, k)
+        b1 = ind_on(pg, k)
         h1 = canvas_hash(pg, "#lwc")
         changed(f"指標 {k} 勾選狀態真的變了", b0, b1)
         changed(f"指標 {k} 開關後圖真的重畫", h0, h1)
-        click(pg, f'#indChips .chip[data-k={k}]', 600)   # 切回原狀
+        ind_toggle(pg, k, 600)   # 切回原狀
+    ind_close(pg)
 
     # --- 本益比河流疊在 K 線上（Andy 2026-09-15：「上方也多一個選項新增河流圖」）
     #     除了圖要重畫，還要驗兩件事：圖例真的寫出「幾倍＝股價多少」，
     #     以及倍數線**不可以**把價格軸拉開（25 倍 ≈ 497，讓它參與取景 K 棒又會被壓扁）。
-    if pg.query_selector('#indChips .chip[data-k=peRiver]'):
+    # ★ 2026-09-26 改前：點晶片 → 改後：下拉裡的「本益比河流」那一列
+    if ind_on(pg, "peRiver") is not None:
         r0 = pg.evaluate("() => window.Industry._dbg().priceRange")
-        click(pg, '#indChips .chip[data-k=peRiver]', 1400)
+        ind_toggle(pg, "peRiver", 1400)
         r1 = pg.evaluate("() => window.Industry._dbg().priceRange")
         leg = text(pg, "#legendOv")
         cfg_on = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg')||'{}').peRiver === true; }"
@@ -6791,20 +6841,19 @@ def t_stock(pg, base, code):
         ok("打開本益比河流，設定真的存進 localStorage", cfg_on, cfg_on)
         ok("倍數線沒有把價格軸拉開（K 棒沒被壓扁）",
            bool(r0 and r1 and (r1["to"] - r1["from"]) < (r0["to"] - r0["from"]) * 1.15), {"前": r0, "後": r1})
-        click(pg, '#indChips .chip[data-k=peRiver]', 900)
+        ind_toggle(pg, "peRiver", 900)
         ok("關掉後圖例就不再有本益比那一段", "本益比" not in text(pg, "#legendOv"), text(pg, "#legendOv")[-90:])
+    ind_close(pg)
 
     # --- 指標參數：改 RSI 的天數，圖要真的變
-    # ★ 2026-09-25（審查 R5）：參數框平常收著（整顆籤都是開關），要按籤尾巴的 ⚙ 才攤開
-    if pg.query_selector("#indChips .chip[data-k=rsi]"):
-        if not pg.evaluate("() => document.querySelector('#indChips .chip[data-k=rsi]').classList.contains('on')"):
-            click(pg, "#indChips .chip[data-k=rsi]", 600)
-        click(pg, "#indChips .chip[data-k=rsi] .pedit", 400)
-    inp = pg.query_selector("#indChips .chip[data-k=rsi] input")
-    ok("按 RSI 籤的 ⚙ → 參數框攤開", bool(inp))
+    # ★ 2026-09-26 改前：按 RSI 晶片尾巴的 ⚙ 攤開參數框 → 改後：下拉裡 RSI 那一列按 ▸ 就地展開
+    if not ind_on(pg, "rsi"):
+        ind_toggle(pg, "rsi", 600)
+    ind_expand(pg, "rsi")
+    inp = pg.query_selector('#cfgPop .indrow[data-k="rsi"] input[data-p=n]')
+    ok("RSI 那一列按 ▸ → 參數框攤開", bool(inp) and inp.is_visible())
     if inp:
         h0 = canvas_hash(pg, "#lwc")
-        inp = pg.query_selector("#indChips .chip[data-k=rsi] input")
         inp.fill("6"); inp.press("Enter"); pg.wait_for_timeout(800)
         h1 = canvas_hash(pg, "#lwc")
         # RSI 的數字寫在 RSI 副圖自己的標籤上（setPaneLabels），不在左上角 #legendOv ——
@@ -6820,11 +6869,13 @@ def t_stock(pg, base, code):
     pg.evaluate("() => { const v = document.getElementById('v-industry');"
                 " if (v) v.style.transform = 'translateY(4px)'; }")
     pg.wait_for_timeout(200)
-    click(pg, "#cfgBtn", 600)
-    ok("設定面板打得開", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !!p && !p.hidden; }"))
-    # --- 面板要開在「⚙ 設定」旁邊（Andy 2026-09-15：「設定出現的位置應該要在 設定按鈕旁邊」）
+    # ★ 2026-09-26 改前：按「⚙ 設定」開圖表設定面板 → 改後：「指標 ▾」下拉（同一個 #cfgPop，kind=ind）
+    ind_close(pg)
+    click(pg, "#indBtn", 600)
+    ok("指標下拉打得開", pg.evaluate(IND_POP_OPEN))
+    # --- 面板要開在按鈕旁邊（Andy 2026-09-15：「設定出現的位置應該要在 設定按鈕旁邊」）
     #     以前是 CSS 的 absolute + right:18px，錨點跟按鈕無關，常常飄到整張圖下面。
-    geo = pg.evaluate("""() => { const p = document.getElementById('cfgPop'), b = document.getElementById('cfgBtn');
+    geo = pg.evaluate("""() => { const p = document.getElementById('cfgPop'), b = document.getElementById('indBtn');
         const pr = p.getBoundingClientRect(), br = b.getBoundingClientRect();
         return { px: pr.x, py: pr.y, pw: pr.width, ph: pr.height, bl: br.x,
                  br: br.right, bbot: br.bottom, pos: getComputedStyle(p).position, vh: innerHeight, vw: innerWidth }; }""")
@@ -6837,6 +6888,8 @@ def t_stock(pg, base, code):
        geo["py"] >= 0 and geo["px"] >= 0 and geo["py"] + geo["ph"] <= geo["vh"] + 2
        and geo["px"] + geo["pw"] <= geo["vw"] + 2, geo)
     # --- 本益比河流的樣式（Andy：「需要新增本益比河流圖的顏色 線條粗細 透明度 等設定」）
+    # 改前：面板一打開就看得到 → 改後：「本益比河流」那一列按 ▸ 展開
+    ok("本益比河流那一列按 ▸ 展得開", ind_expand(pg, "peRiver"))
     ok("設定裡有本益比河流那一排", count(pg, "#peRow") == 1)
     ok("本益比河流六個區間各一個顏色", count(pg, "#peRow input[type=color]") == 6,
        count(pg, "#peRow input[type=color]"))
@@ -6851,6 +6904,9 @@ def t_stock(pg, base, code):
            isinstance(saved, dict) and saved.get("w") == 4 and saved.get("o") == 80
            and (saved.get("z") or [None])[0] == "#ff00ff", saved)
         ok("透明度的數字標籤跟著變", "80%" in (text(pg, "#peOv") or ""), text(pg, "#peOv"))
+    # 改前：均線編輯在面板中段 → 改後：「均線 MA」那一列按 ▸ 展開；整體線寬在「整體」列
+    ok("均線那一列按 ▸ 展得開", ind_expand(pg, "ma"))
+    ind_expand(pg, "base")
     rows0 = count(pg, "#maRows .marow")
     ok("設定面板有均線列", rows0 >= 2, rows0)
     lw = pg.query_selector("#lw")
@@ -6890,11 +6946,16 @@ def t_stock(pg, base, code):
         ok("刪掉的均線也從設定裡消失", len(cfgd.get("ma") or []) == r1, cfgd.get("ma"))
         ok("刪到 6 條以下，「新增均線」要能再按", not pg.evaluate("() => document.getElementById('maAdd').disabled"))
     # --- 指標樣式：顏色／線寬／透明度改了要真的存下來、圖要真的重畫
-    rows = pg.evaluate("[...document.querySelectorAll('#stRows .strow')].map(r => r.dataset.k)")
-    ok("設定面板有指標樣式列（BOLL／成交量／KD／MACD／RSI）", len(rows) >= 5, rows)
+    # 改前：面板裡一整塊 #stRows → 改後：每個指標那一列展開後各自有一排 .strow[data-k=…]
+    for k in ("boll", "vol", "kd", "macd", "rsi"):
+        ind_expand(pg, k)
+    rows = pg.evaluate("[...document.querySelectorAll('#cfgPop .indrow .strow[data-k]')].map(r => r.dataset.k).filter(k => k !== 'pe')")
+    ok("指標下拉裡有指標樣式列（BOLL／成交量／KD／MACD／RSI）", len(rows) >= 5, rows)
     if rows:
+        if not ind_on(pg, "kd"):
+            ind_toggle(pg, "kd", 600)
         h0 = canvas_hash(pg, "#lwc")
-        pg.evaluate("""() => { const r = document.querySelector('#stRows .strow[data-k=kd]');
+        pg.evaluate("""() => { const r = document.querySelector('#cfgPop .strow[data-k=kd]');
             const c = r.querySelector('[data-f=c]'); c.value = '#ff00ff'; c.dispatchEvent(new Event('input', {bubbles:true}));
             const w = r.querySelector('[data-f=w]'); w.value = 3; w.dispatchEvent(new Event('input', {bubbles:true}));
             const o = r.querySelector('[data-f=o]'); o.value = 45; o.dispatchEvent(new Event('input', {bubbles:true})); }""")
@@ -6905,25 +6966,20 @@ def t_stock(pg, base, code):
         ok("改 KD 透明度有存進設定", (st or {}).get("o") == 45, st)
         changed("改指標樣式後圖真的重畫", h0, canvas_hash(pg, "#lwc"))
 
-    # --- SMC 供需區樣式：填色濃度、框線、標籤開關
-    zin = pg.evaluate("[...document.querySelectorAll('#zoneRow input')].map(i => i.dataset.f)")
-    ok("設定面板有 SMC 供需區樣式", len(zin) >= 5, zin)
-    if zin:
-        h1 = canvas_hash(pg, "#lwc")
-        pg.evaluate("""() => { const f = document.querySelector('#zoneRow [data-f=fill]');
-            f.value = 40; f.dispatchEvent(new Event('input', {bubbles:true})); }""")
-        pg.wait_for_timeout(700)
-        z = pg.evaluate("() => (JSON.parse(localStorage.getItem('tw.kcfg')||'{}')).zone")
-        ok("調供需區填色有存進設定", (z or {}).get("fill") == 40, z)
-        changed("調供需區填色後圖真的重畫", h1, canvas_hash(pg, "#lwc"))
+    # --- SMC 供需區樣式
+    # ★ 2026-09-26 改前：驗 #zoneRow 有填色／框線／標籤，調了會存 cfg.zone → 改後：SMC 整個拿掉，驗「不存在」
+    ok("★ 下拉裡沒有 SMC 供需區樣式那一排", count(pg, "#zoneRow") == 0)
+    zc = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg')||'{}'); } catch(e) { return {}; } }")
+    ok("★ 存檔裡不再有 smc／marks／zone（舊值忽略、下次存檔清掉）", not any(k in (zc or {}) for k in ("smc", "marks", "zone")),
+       [k for k in ("smc", "marks", "zone") if k in (zc or {})])
 
-    # 「完成」關得掉
-    click(pg, "#cfgClose", 400)
-    ok("設定面板按「完成」關得起來", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !p || p.hidden; }"))
+    # 改前：按「完成」關 → 改後：按 Esc 關（站上 dismissable；Andy 2026-09-24 不要「收起」鈕）
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok("指標下拉按 Esc 關得起來", pg.evaluate("() => { const p = document.getElementById('cfgPop'); return !p || p.hidden; }"))
     # 把剛才為了測試加上去的 transform 拿掉，後面的驗收才不會被影響
     pg.evaluate("() => { const v = document.getElementById('v-industry'); if (v) v.style.transform = ''; }")
-    # 回復預設：設定要真的還原，面板順手關掉
-    click(pg, "#cfgBtn", 450)
+    # 回復預設：設定要真的還原，面板順手關掉（改前：⚙ 設定面板裡的鈕 → 改後：下拉底部的鈕）
+    click(pg, "#indBtn", 450)
     if count(pg, "#cfgReset"):
         click(pg, "#cfgReset", 900)
         cfg3 = pg.evaluate("() => JSON.parse(localStorage.getItem('tw.kcfg')||'{}')")
@@ -7030,22 +7086,22 @@ def t_stock(pg, base, code):
         return e.offsetLeft >= 0 && e.offsetLeft + e.offsetWidth <= h.clientWidth + 1; }""")
     ok("游標靠右邊時資訊框不會被切掉（自動翻到左側）", fit)
 
-    # 2) MACD 背離
-    chips = pg.evaluate("() => [...document.querySelectorAll('#indChips .chip')].map(c => c.dataset.k)")
-    ok("指標列有「MACD 背離」", "macdDiv" in chips, chips)
-    on0 = pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')")
+    # 2) MACD 背離（★ 2026-09-26 改前：工具列晶片 → 改後：指標下拉的「MACD 背離」那一列）
+    ind_open(pg)
+    chips = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(c => c.dataset.k)")
+    ok("指標清單有「MACD 背離」", "macdDiv" in chips, chips)
+    on0 = ind_on(pg, "macdDiv")
     dv = pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }")
     ok("背離預設是開的", on0)
     ok("背離有算出來（或誠實回 0，不是壞掉）", dv >= 0, dv)
     h0 = canvas_hash(pg, "#lwc")
-    click(pg, "#indChips .chip[data-k=macdDiv]", 1200)
-    ok("點一下真的關掉",
-       not pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')"))
+    ind_toggle(pg, "macdDiv", 1200)
+    ok("點一下真的關掉", ind_on(pg, "macdDiv") is False)
     ok("關掉之後背離就不算了", pg.evaluate("() => { const d = window.Industry._dbg().div; return d ? d.top + d.bottom : -1; }") == 0)
     changed("關掉背離之後圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    click(pg, "#indChips .chip[data-k=macdDiv]", 1200)
-    ok("再點一下開回來",
-       pg.evaluate("() => document.querySelector('#indChips .chip[data-k=macdDiv]').classList.contains('on')"))
+    ind_toggle(pg, "macdDiv", 1200)
+    ok("再點一下開回來", ind_on(pg, "macdDiv") is True)
+    ind_close(pg)
 
     # 3) ★ 按住 Shift 拉線 = 水平
     pg.evaluate("try{Object.keys(localStorage).filter(k=>k.startsWith('tw.draw.')).forEach(k=>localStorage.removeItem(k))}catch(e){}")
@@ -7134,10 +7190,10 @@ def t_stock(pg, base, code):
     #     拖完之後，任何一次重畫（切指標、即時更新）都不可以把高度改回存檔值。
     #     以前 applyIndicators 每 5 秒就把 cfg.paneH 套回去一次，手動調的高度撐不過一輪。
     h_hold = pg.evaluate("() => window.Industry._dbg().paneH")
+    # ★ 2026-09-26 改前：點晶片兩下 → 改後：下拉裡那一列點兩下
     for k in ("kd", "macd"):
-        chip = f"#indChips .chip[data-k={k}]"
-        if count(pg, chip):
-            click(pg, chip, 700); click(pg, chip, 700)      # 關再開，逼它重建指標面板
+        ind_toggle(pg, k, 700); ind_toggle(pg, k, 700)      # 關再開，逼它重建指標面板
+    ind_close(pg)
     pg.wait_for_timeout(900)
     h_after = pg.evaluate("() => window.Industry._dbg().paneH")
     ok("★ 切指標之後主圖高度不會自己跳回去",
@@ -7166,44 +7222,24 @@ def t_stock(pg, base, code):
     click(pg, "#drawBar .dtool[data-t=cursor]", 250)
     pg.evaluate("try{localStorage.removeItem('tw.draw.style')}catch(e){}")
 
-    # --- SMC 供需區要跟著 K 線一起跑（Andy：移動 K 線圖，區間卻沒跟著動）
-    if pg.evaluate("() => document.querySelector('#indChips .chip[data-k=smc]') && document.querySelector('#indChips .chip[data-k=smc]').classList.contains('on')"):
-        pg.evaluate("document.getElementById('lwc').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
-        ZBOX = """() => { const el = document.getElementById('lwc');
-            const out = [];
-            for (const c of el.querySelectorAll('canvas')) {
-              const g = c.getContext('2d'); if (!g) continue;
-              const dpr = c.width / (c.clientWidth || 1);
-              let minx = 1e9, maxx = -1, n = 0;
-              try { const px = g.getImageData(0, 0, c.width, c.height).data;
-                for (let y = 0; y < c.height; y += 3) for (let x = 0; x < c.width; x += 3) {
-                  const i = (y * c.width + x) * 4, R = px[i], G = px[i+1], B = px[i+2];
-                  if (G > R + 14 && G > 34 && G < 150 && B < G) { n++; if (x < minx) minx = x; if (x > maxx) maxx = x; }
-                } } catch (e) { continue; }
-              if (n > 150) out.push({ x0: Math.round(minx/dpr), x1: Math.round(maxx/dpr), n });
-            }
-            return out; }"""
-        before = pg.evaluate(ZBOX)
-        if before:
-            r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
-            pg.mouse.move(r["x"] + r["w"] * 0.6, r["y"] + r["h"] * 0.3)
-            pg.mouse.down(); pg.mouse.move(r["x"] + r["w"] * 0.25, r["y"] + r["h"] * 0.3, steps=12); pg.mouse.up()
-            pg.wait_for_timeout(800)
-            after = pg.evaluate(ZBOX)
-            ok("平移 K 線後 SMC 區間還在畫面上", bool(after), after)
-            if after:
-                # 比「整個區塊的左右邊界」：圖變高之後畫面裡的價格範圍變大，
-                # 常常有一個區間的左緣本來就在畫面外（x0 一直是 0），只看左緣會假性失敗
-                changed("SMC 區間跟著平移（左右邊界有變）",
-                        f'{before[0]["x0"]},{before[0]["x1"]}', f'{after[0]["x0"]},{after[0]["x1"]}')
-                changed("SMC 區間的右邊界也跟著平移（不是黏在畫面右緣）", before[0]["x1"], after[0]["x1"])
-                ok("SMC 區間右邊界沒有貼齊畫面右緣", after[0]["x1"] < r["w"] - 20,
-                   f"右邊界 {after[0]['x1']}、畫面寬 {round(r['w'])}")
-        else:
-            notes.append("這檔今天沒有畫出 SMC 供需區，略過跟隨檢查")
+    # --- SMC 供需區
+    # ★ 2026-09-26 改前：驗「SMC 區間跟著 K 線平移」→ 改後：Andy「將這兩個指標拿掉」，驗主圖上沒有區塊、沒有 BOS／CHoCH 標記
+    dz = pg.evaluate("() => { const d = window.Industry._dbg(); return { zones: d.zoneCount, labels: (d.zoneLabels || []).length, marks: (d.markers || []).length }; }")
+    ok("★ 主圖上沒有 SMC 需求／供給區塊（也沒有區間標籤）", dz["zones"] == 0 and dz["labels"] == 0, dz)
+    ok("★ 主圖上沒有 BOS／CHoCH／掃蕩標記", dz["marks"] == 0, dz)
 
     # --- 重設縮放：先把圖捲歪，按下去要回到原位
-    ok("重設縮放是小方框圖示", pg.evaluate("() => !!document.querySelector('#fitBtn svg')"))
+    # ★ 2026-09-26 改前：工具列上的小方框圖示 → 改後：搬進主圖 K 棒區右下角（Andy「幫我將縮放放到圖上位置」）
+    fg = pg.evaluate("""() => { const b = document.getElementById('fitBtn'), l = document.getElementById('lwc');
+        if (!b || !l) return null; const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
+        const kc = window.KChart && window.KChart.last; let mh = 0, pw = 0;
+        try { mh = kc.chart.panes()[0].getHeight(); pw = kc.chart.priceScale('right').width(); } catch (e) {}
+        return { inChart: l.contains(b), inTools: !!b.closest('#skTools'), svg: !!b.querySelector('svg'),
+                 x: r.left - lr.left, right: lr.right - r.right, y: r.top - lr.top, h: r.height, mh, pw, title: b.title }; }""")
+    ok("★ 重設縮放鈕在 K 線圖裡面、不在工具列", bool(fg) and fg["inChart"] and not fg["inTools"] and fg["svg"], fg)
+    if fg:
+        ok("★ 重設縮放鈕貼在主圖右下角（價格軸左邊、成交量副圖上方）",
+           fg["right"] >= fg["pw"] and fg["right"] <= fg["pw"] + 20 and fg["y"] + fg["h"] <= fg["mh"] and fg["y"] >= fg["mh"] - fg["h"] - 16, fg)
     r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
     pg.mouse.move(r["x"] + r["w"] * 0.5, r["y"] + r["h"] * 0.4)
     pg.mouse.wheel(0, -500); pg.wait_for_timeout(500)
@@ -7216,26 +7252,25 @@ def t_stock(pg, base, code):
     cells = count(pg, ".mtf-cell")
     ok("四週期同看有排出格子", cells >= 2, cells)
     ok("四週期同看每格都有圖", count(pg, "#mtfGrid canvas") >= cells, count(pg, "#mtfGrid canvas"))
+    # ★ 2026-09-26 改前：小圖上有 SMC 區塊與標記（沒驗）→ 改後：Andy「將這兩個指標拿掉」，四張都不准有
+    mz = pg.evaluate("() => (window.Industry._dbg().mini || []).map(m => m.zones + m.markers)")
+    ok("★ 四週期小圖上沒有 SMC 區塊與 BOS／CHoCH 標記", bool(mz) and all(v == 0 for v in mz), mz)
     click(pg, "#mtfBtn", 1400)
     ok("切回單一週期，K 線圖回得來", count(pg, "#lwc canvas") > 0)
 
-    # --- 產業鏈同步（N7 改過行為）：
-    #     2026-09-19 起點公司**不會**直接換個股頁，而是先開原地面板；
-    #     要換股票得按面板裡那顆「看個股頁 →」。驗的是這條路徑走得通。
-    if count(pg, "#chainMap .co"):
-        h0 = pg.evaluate("location.hash")
-        pg.evaluate("""() => { const cs = [...document.querySelectorAll('#chainMap .co[data-code]')];
-            const other = cs.find(c => !c.classList.contains('sel'));
-            if (other) other.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true })); }""")
-        pg.wait_for_timeout(1200)
-        ok("點產業鏈上的另一檔不會馬上換頁（N7）",
-           pg.evaluate("location.hash") == h0, pg.evaluate("location.hash"))
-        opened = pg.evaluate("() => { const b = document.getElementById('coBox'); return !!b && b.textContent.indexOf('看個股頁') >= 0; }")
-        ok("會開出帶「看個股頁」的面板（N7）", opened)
-        if opened:
-            pg.eval_on_selector("#coBox .btn.primary", "b => b.click()")
-            pg.wait_for_timeout(1800)
-            changed("按了面板裡的「看個股頁 →」才換股票（N7）", h0, pg.evaluate("location.hash"))
+    # --- 產業鏈位置卡
+    # ★ 2026-09-26 改前：驗個股頁下方關聯圖點公司先開原地面板（N7）→ 改後：Andy「下方產業鏈位置表格 拿掉」，
+    #   個股頁整張卡不掛了 —— 驗「個股頁沒有這張卡」＋「產業地圖頁同一套剖析圖與環節元件還在」。
+    gone = pg.evaluate("""() => { const c = document.getElementById('indChain');
+        return { txt: c ? c.innerText.trim().length : 0, vis: !!c && c.getClientRects().length > 0 && getComputedStyle(c).display !== 'none',
+                 map: document.querySelectorAll('#chainMap').length, dg: document.querySelectorAll('#prodDiagram').length,
+                 toggle: document.querySelectorAll('#chainToggle').length, sibs: document.querySelectorAll('#sibs').length }; }""")
+    ok("★ 個股頁沒有「產業鏈位置」卡（沒有關聯圖、剖析圖、同族群列、展開鈕）",
+       gone["txt"] == 0 and not gone["vis"] and gone["map"] == 0 and gone["dg"] == 0 and gone["toggle"] == 0 and gone["sibs"] == 0, gone)
+    pg.goto(f"{base}#industry/semiconductor/dg/foundry", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    ok("★ 產業地圖頁同一張剖析圖（晶圓代工）還在", pg.evaluate(
+        "() => { const h = document.querySelector('#prodDiagram'); return !!h && h.innerHTML.indexOf('dgfd') >= 0; }"))
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2200)
 
 
 def check_play(pg, sel, chart_id=None):
@@ -7295,27 +7330,13 @@ def t_batch1(pg, base):
         ok("點公司會開原地面板，面板裡才有「看個股頁」（N7）",
            pg.evaluate("""() => { const b = document.getElementById('coBox');
                return !!b && b.textContent.indexOf('個股頁') >= 0; }"""))
-    # 外商：原地小面板，而且它是 #chainMap 的兄弟節點（不是掛在 body 上）
-    # ★ 外商沒有台股代號，所以**不會**出現在族群關聯圖上（那張圖的子節點是成分股）。
-    #   `drawChainMap` 這張公司層級的圖仍然活在**個股頁**下方，外商也只在那裡點得到 ——
-    #   所以這一條搬到個股頁驗，不是刪掉。
+    # 外商：原地小面板（圖12）
+    # ★ 2026-09-26 改前：到個股頁 #stock/3017 下方那張公司層級關聯圖點外商 → 開原地小面板
+    #   → 改後：個股頁「產業鏈位置」卡整張拿掉（Andy「下方產業鏈位置表格 拿掉」），那張圖在個股頁已經沒有入口；
+    #   產業鏈頁的同一張圖點公司是「選環節」，本來就不開這個小面板。改驗「個股頁不再有那張圖、也不會殘留小面板」。
     pg.goto(f"{base}#stock/3017", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    if pg.evaluate("() => !!document.querySelector('#chainMap .co.foreign')"):
-        pg.eval_on_selector("#chainMap .co.foreign", "n => n.dispatchEvent(new MouseEvent('click', {bubbles:true}))")
-        pg.wait_for_timeout(700)
-        info = pg.evaluate("""() => { const b = document.getElementById('coBox'); if (!b) return null;
-            const cs = getComputedStyle(b); const host = document.getElementById('chainMap');
-            return { fixed: cs.position === 'fixed', inBody: b.parentNode === document.body,
-                     sibling: !!host && b.previousElementSibling === host, txt: b.textContent.length }; }""")
-        ok("外商公司會開原地小面板", bool(info) and info["txt"] > 10, info)
-        ok("外商面板不是浮動的、也不掛在 body 上（圖12）",
-           bool(info) and not info["fixed"] and not info["inBody"], info)
-        ok("成長欄位不會印出 [object Object]（圖12 順手抓到）",
-           pg.evaluate("() => { const b=document.getElementById('coBox'); return !b || b.textContent.indexOf('[object Object]') < 0; }"))
-        # 換頁之後一定要被清掉
-        pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(900)
-        ok("換頁之後外商面板被清掉（圖12 根因）",
-           pg.evaluate("() => document.getElementById('coBox') === null"))
+    ok("個股頁不再有公司層級關聯圖（產業鏈位置卡已拿掉）、也沒有殘留的外商小面板",
+       pg.evaluate("() => !document.querySelector('#chainMap') && !document.getElementById('coBox')"))
 
     # ---- 圖五：★ 2026-09-23 W7／D2 —— 四格輪動板 `#rotBoard` 整塊移除，
     #     四個階段改成時鐘上的四顆象限卡（`.rotquads .rq`），點一顆才在旁邊展開族群清單。
@@ -8444,7 +8465,9 @@ def t_batch6_n3(pg, base):
       所以這一整段連同所有門檻（含孤立節點棘輪 SC_ISO_MAX）原封不動搬到個股頁驗，
       一條都沒有放寬。每條鏈各挑一檔一定在那條鏈上的權值股當入口。
     """
-    ENTRY = {"ai_server": "3017", "semiconductor": "2330"}
+    # ★ 2026-09-26 改前：入口是個股頁（3017／2330）下方那張 → 改後：個股頁的產業鏈位置卡拿掉了（Andy），
+    #   同一支 drawChainMap 在產業鏈頁的「分層」關聯圖（#relSec 的 #chainMap，tw.relView 預設 layer）照樣畫，門檻一條都沒放寬。
+    ENTRY = {"ai_server": "#industry/ai_server", "semiconductor": "#industry/semiconductor"}
     # 2026-09-25 關聯圖環節預設收合（chainmap-fold）→ 這段量的是「展開的公司卡」幾何，先把兩條鏈設成展開再量
     pg.goto(base + "#overview"); pg.evaluate("""() => { try { localStorage.setItem('tw.chainFold',
         JSON.stringify({ ai_server: { def: false, seg: {} }, semiconductor: { def: false, seg: {} } })); } catch (e) {} }""")
@@ -8453,7 +8476,8 @@ def t_batch6_n3(pg, base):
         tag = f"（{wpx}px）"
         for cid in ("ai_server", "semiconductor"):
             pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-            pg.goto(f"{base}#stock/{ENTRY[cid]}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+            pg.evaluate("() => { try { localStorage.setItem('tw.relView', 'layer'); } catch (e) {} }")
+            pg.goto(f"{base}{ENTRY[cid]}", wait_until="networkidle"); pg.wait_for_timeout(2600)
             g = pg.evaluate(SC_GEOM)
             if not g:
                 fails.append(f"{cid} 的供應鏈關聯圖整張沒畫出來{tag}")
@@ -8478,7 +8502,7 @@ def t_batch6_n3(pg, base):
                g["overflow"] <= 1 or g["scrollable"], {"overflow": g["overflow"], "scrollable": g["scrollable"]})
         # ---- 真的把滑鼠移到一張卡片上，相關的線要亮起來、其他的要變暗
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(400)
-        pg.goto(f"{base}#stock/3017", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        pg.goto(f"{base}#industry/ai_server", wait_until="networkidle"); pg.wait_for_timeout(2600)   # 2026-09-26 改前：#stock/3017
         pg.eval_on_selector("#chainMap g.co", "g => g.dispatchEvent(new MouseEvent('mouseenter'))")
         pg.wait_for_timeout(400)
         hl = pg.evaluate("""() => ({ hi: document.querySelectorAll('#chainMap path.edge.hi').length,
@@ -9053,10 +9077,11 @@ def t_cfgpop(pg, base, code):
                     && r.right > 0 && r.left < innerWidth; }""")
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
 
-    click(pg, '#cfgBtn', 350); ok("按設定面板會開", seen())
+    # ★ 2026-09-26 改前：`#cfgBtn`（⚙ 設定）→ 改後：`#indBtn`（指標 ▾ 下拉，同一個 #cfgPop）
+    click(pg, '#indBtn', 350); ok("按設定面板會開", seen())
     pg.mouse.click(760, 120); pg.wait_for_timeout(350)
     ok("點面板外面會收起來", not seen())
-    click(pg, '#cfgBtn', 400)
+    click(pg, '#indBtn', 400)
     ok("收起來之後按一次就叫得回來（不是按兩次）", seen())
 
     # 在面板裡面點（例如調滑桿）不能把自己關掉
@@ -9067,10 +9092,10 @@ def t_cfgpop(pg, base, code):
     click(pg, '.tab[data-view="flow"]', 1400)
     pg.go_back(); pg.wait_for_timeout(2400)
     ok("換頁時面板收掉了", not seen())
-    click(pg, '#cfgBtn', 450)
+    click(pg, '#indBtn', 450)
     ok("換頁回來按一次就開得起來", seen())
 
-    click(pg, '#cfgBtn', 350)
+    click(pg, '#indBtn', 350)
     ok("再按一次會關掉（切換本身沒壞）", not seen())
 
 
@@ -11039,20 +11064,17 @@ def t_mlcc(pg, base):
         ok(f"回歸：{cid} 點零件不會把整張圖聚焦到那一格（DECISIONS #73）",
            seg_applied(pg) == filt_b and not seg_applied(pg), filt_b)
 
-    # ---------------- 8. 個股頁：族群層級的圖真的掛到個股上
-    for code_, feat, why in (("2327", FEAT, "被動元件 MLCC 族群 → MLCC 那張"),
-                             # ★ 2026-09-22：2330 現在有**自己族群**的圖了（晶圓代工，class 是 dgfd）。
-                             #   `dgPick` 第一條就是「使用者／個股所屬族群有自己的圖 → 就是那一張」，
-                             #   所以它不再退回代表圖 —— 那是更好的答案（2330 本來就是晶圓代工廠）。
-                             #   斷言改成「掛得到一張圖，而且是它自己族群那張」。
-                             ("2330", 'class="dg dgm dgfd', "自己的族群 → 晶圓代工那張")):
-        pg.goto(f"{base}#stock/{code_}", wait_until="networkidle"); pg.wait_for_timeout(3000)
-        pg.evaluate("() => { const t = document.querySelector('#chainToggle');"
-                    " if (t && t.textContent.includes('展開')) t.click(); }")
-        pg.wait_for_timeout(900)
+    # ---------------- 8. 族群層級的圖
+    # ★ 2026-09-26 改前：個股頁（2327／2330）下方「產業鏈位置」卡展開後看得到自己族群那張剖析圖
+    #   → 改後：Andy「下方產業鏈位置表格 拿掉」，個股頁不再掛；同一張圖在產業地圖頁（#industry/<鏈>/dg/<圖>）照樣在。
+    for code_, route_, feat, why in (("2327", "#industry/electronics/dg/mlcc", FEAT, "MLCC 那張"),
+                                     ("2330", "#industry/semiconductor/dg/foundry", 'class="dg dgm dgfd', "晶圓代工那張")):
+        pg.goto(f"{base}#stock/{code_}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+        ok(f"個股頁 {code_} 不再掛剖析圖（產業鏈位置卡已拿掉）", count(pg, "#prodDiagram") == 0 and count(pg, "#chainToggle") == 0)
+        pg.goto(f"{base}{route_}", wait_until="networkidle"); pg.wait_for_timeout(2600)
         got = pg.evaluate("() => { const h = document.querySelector('#prodDiagram');"
                           " return h ? h.innerHTML : ''; }")
-        ok(f"個股頁 {code_} 看得到剖析圖（{why}）", feat in got, (got[:80] or "<沒有剖析圖>"))
+        ok(f"產業地圖頁 {route_} 同一張剖析圖還在（{why}）", feat in got, (got[:80] or "<沒有剖析圖>"))
 
     # ---------------- 9. 800px 窄畫面：選單、點入口、字級真的 ≥ 12px、切回選單
     #  （開發過程就要驗窄畫面 —— 2026-09-18 的 E6 就是只驗寬螢幕放過去的）
@@ -13111,13 +13133,16 @@ def t_r5(pg, base, code):
        any("×" in m["text"] or "·" in m["text"] for m in dw.get("markers") or []) or len(dw.get("markers") or []) <= 3,
        [m["text"] for m in dw.get("markers") or []][:8])
     click(pg, '#tfSeg button[data-tf="1d"]', 1500)
-    # SMC 開關：真的點籤，標籤真的消失／回來
-    smc_on = pg.evaluate("() => document.querySelector('#indChips .chip[data-k=smc]').classList.contains('on')")
-    n0 = len(pg.evaluate("() => window.Industry._dbg().zoneLabels"))
-    click(pg, "#indChips .chip[data-k=smc]", 900)
-    n1 = len(pg.evaluate("() => window.Industry._dbg().zoneLabels"))
-    ok("R5-5 點 SMC 籤 → 區間標籤數真的跟著變", (n0 > 0 and n1 == 0) if smc_on else (n1 >= n0), {"前": n0, "後": n1, "原本開": smc_on})
-    click(pg, "#indChips .chip[data-k=smc]", 900)
+    # ★ 2026-09-26 改前：點 SMC 籤 → 區間標籤數跟著變 → 改後：SMC 區間／BOS-CHoCH 整個拿掉（Andy「將這兩個指標拿掉」），
+    #   指標下拉裡沒有那兩列、主圖上一個區間標籤與訊號標記都沒有
+    ind_open(pg)
+    rk = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
+    ok("★ R5-5 指標清單裡沒有 SMC 區間／BOS-CHoCH", bool(rk) and "smc" not in rk and "marks" not in rk, rk)
+    ind_close(pg)
+    d0 = pg.evaluate("() => window.Industry._dbg()")
+    ok("★ R5-5 日線主圖上沒有區間標籤、沒有 BOS／CHoCH／掃蕩標記",
+       not (d0.get("zoneLabels") or []) and not (d0.get("markers") or []) and not d0.get("zoneCount"),
+       {"區間": len(d0.get("zoneLabels") or []), "標記": len(d0.get("markers") or [])})
 
     # ---------------------------------------------------------------- 6. 即時分 K 抓不到：中文＋退回有資料的週期
     pg.evaluate("() => { try { localStorage.setItem('tw.live.proxy','https://fake-worker.test');"
@@ -13196,33 +13221,39 @@ def t_r5(pg, base, code):
        "與中位相當" in ov and "中位 0%" not in ov, ov[ov.find("同族群"):ov.find("同族群") + 60] if "同族群" in ov else ov[:80])
     pg.unroute(f"**/data/stock/{code}.json*")
 
-    # ---------------------------------------------------------------- 7d. 指標籤：點正中間就是開關；參數要按 ⚙ 才攤開
+    # ---------------------------------------------------------------- 7d. 指標列：點名稱那一塊就是開關；參數要按 ▸ 才攤開
+    # ★ 2026-09-26 改前：工具列 KD 籤（點正中間＝開關、按尾巴 ⚙ 攤開三格輸入框）
+    #   → 改後：「指標 ▾」下拉的 KD 那一列（點左邊名稱那一塊＝開關、按右邊 ▸ 就地展開三格）。審查 R5 的精神不變：
+    #   點「看起來是開關的地方」就是開關，不會點到輸入框。
     goto_stock()
-    kd_sel = "#indChips .chip[data-k=kd]"
-    if not pg.evaluate(f"() => document.querySelector('{kd_sel}').classList.contains('on')"):
-        click(pg, kd_sel, 800)
-    ok("R5-7d KD 籤平常不擺輸入框（參數只是文字）", count(pg, f"{kd_sel} input") == 0, count(pg, f"{kd_sel} input"))
-    bb = pg.query_selector(kd_sel).bounding_box()
+    kd_row = '#cfgPop .indrow[data-k="kd"]'
+    if not ind_on(pg, "kd"):
+        ind_toggle(pg, "kd", 800)
+    ok("R5-7d KD 那一列平常沒有攤開輸入框（參數只是文字）",
+       pg.evaluate(f"() => document.querySelector('{kd_row} .ibody').hidden"), None)
+    lab = pg.query_selector(f"{kd_row} label.isw")
+    bb = lab.bounding_box()
     h0 = canvas_hash(pg, "#lwc")
     pg.mouse.click(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2); pg.wait_for_timeout(800)
-    on1 = pg.evaluate(f"() => document.querySelector('{kd_sel}').classList.contains('on')")
-    ok("★ R5-7d 點 KD 籤的正中間 → 指標真的關掉（不會點到參數框）", on1 is False, on1)
+    on1 = ind_on(pg, "kd")
+    ok("★ R5-7d 點 KD 那一列的正中間 → 指標真的關掉", on1 is False, on1)
     changed("R5-7d 點正中間之後 K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
-    bb = pg.query_selector(kd_sel).bounding_box()
+    bb = pg.query_selector(f"{kd_row} label.isw").bounding_box()
     pg.mouse.click(bb["x"] + bb["width"] / 2, bb["y"] + bb["height"] / 2); pg.wait_for_timeout(800)
-    ok("R5-7d 再點一次正中間 → 又打開", pg.evaluate(f"() => document.querySelector('{kd_sel}').classList.contains('on')"))
-    click(pg, f"{kd_sel} .pedit", 500)
-    ok("★ R5-7d 按 ⚙ → 參數輸入框攤開（KD 三格）", count(pg, f"{kd_sel} input") == 3, count(pg, f"{kd_sel} input"))
-    inp = pg.query_selector(f"{kd_sel} input[data-p=n]")
+    ok("R5-7d 再點一次正中間 → 又打開", ind_on(pg, "kd") is True)
+    ind_expand(pg, "kd")
+    ok("★ R5-7d 按 ▸ → 參數輸入框攤開（KD 三格）", count(pg, f"{kd_row} .prow input[data-p]") == 3,
+       count(pg, f"{kd_row} .prow input[data-p]"))
+    inp = pg.query_selector(f"{kd_row} input[data-p=n]")
     inp.fill("5"); inp.press("Enter"); pg.wait_for_timeout(900)
     leg = pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''")
-    ok("★ R5-7d 改 KD 天數按 Enter → 圖例真的變 KD(5,3,3)、輸入框收起來",
-       "KD(5,3,3)" in leg.replace(" ", "") and count(pg, f"{kd_sel} input") == 0, leg[-160:])
+    ok("★ R5-7d 改 KD 天數按 Enter → 圖例真的變 KD(5,3,3)、列上的摘要也跟著變",
+       "KD(5,3,3)" in leg.replace(" ", "") and "5,3,3" in text(pg, f"{kd_row} .isum"), leg[-160:])
     cfg = pg.evaluate("() => { try { return JSON.parse(localStorage.getItem('tw.kcfg')||'{}').kd; } catch(e) { return null; } }")
     ok("R5-7d 新參數存進 localStorage", bool(cfg) and cfg.get("n") == 5, cfg)
-    click(pg, f"{kd_sel} .pedit", 400)
-    inp = pg.query_selector(f"{kd_sel} input[data-p=n]")
+    inp = pg.query_selector(f"{kd_row} input[data-p=n]")
     inp.fill("9"); inp.press("Enter"); pg.wait_for_timeout(700)
+    ind_close(pg)
 
     # ---------------------------------------------------------------- 7e／7f. 題材間距、自填框
     tab("basics", 1500)
@@ -13727,6 +13758,8 @@ SECTIONS = {
     #   週期統計提示框多中位數與勝率、R2／R4 剩下的小項
     "收尾0925-說明改問號":  lambda pg, b, base, code: t_wrap_popq(pg, base, code),
     "收尾0925-還原小標":    lambda pg, b, base, code: t_wrap_adj(pg, base, code),
+    # ★ 2026-09-26 Andy：個股 K 線指標改下拉清單、四週期加成交量、拿掉 SMC／BOS、重設縮放搬進圖裡（⚠ 一律 --workers 1）
+    "個股指標下拉0926":    lambda pg, b, base, code: t_stock_0926(pg, base, code),
     "收尾0925-週期統計提示框": lambda pg, b, base, code: t_wrap_season_tip(pg, base, code),
     "收尾0925-R4方塊標籤":  lambda pg, b, base, code: t_wrap_r4_label(pg, base, code),
     "收尾0925-R2小項":      lambda pg, b, base, code: t_wrap_r2(pg, base, code),
@@ -15168,7 +15201,8 @@ def t_wrap_popq(pg, base, code):
                 continue
             seen.add(k)
             _pop_cycle(pg, where, k)
-    want = {"indheat", "theme", "themedg", "mkt", "season", "kline", "mtf", "skchip", "skchain", "skrev", "skrevy",
+    # ★ 2026-09-26 改前：清單含 skchain（個股頁「產業鏈位置」卡的「?」）→ 改後：那張卡整張拿掉（Andy），「?」跟著走
+    want = {"indheat", "theme", "themedg", "mkt", "season", "kline", "mtf", "skchip", "skrev", "skrevy",
             "pe", "skeps", "skpeq", "skdiv", "skfill", "ms", "skmops", "sknews"}
     ok("[說明改問號] 這一批的「?」一顆都沒少", want <= seen, sorted(want - seen))
     # 市場明細：卡片上那行「總覽上方那幾個數字…」拿掉；盤後的定義句不再印、即時的警示句另外由 D4 段驗
@@ -15260,6 +15294,238 @@ def t_flow_popq(pg, base, code):
             t = text(pg, "#flowSankeyCard .ddrow")
             ok("[資金流向問號] 選了族群：篩選列寫「只看「X」」、不再附長句", f"只看「{opt}」" in t and "回到整張圖" not in t, t[-80:])
             pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
+
+
+def t_stock_0926(pg, base, code):
+    """個股 K 線四件（Andy 2026-09-26）的真人操作驗收：
+      ① 「將所有指標納入在 Setting，並且以下拉清單形式呈現」—— 打開下拉 → 關 KD → KD 副圖真的消失 →
+         展開 MACD 改參數 → 圖真的變 → 重新整理後記住
+      ② 「四週期成交量呢？」—— 四張小圖都有量副圖（約 20% 高）、關成交量四張一起消失、滑過看板寫量
+      ③ 「將這兩個指標拿掉」（SMC 區間、BOS/CHoCH）—— 清單、主圖、小圖都沒有
+      ④ 「幫我將縮放放到圖上位置」—— 重設縮放在主圖右下角、四週期每張小圖各一顆，按了真的回原位
+    每一條都驗「畫面真的因此變了」（副圖數、canvas 指紋、圖例文字、localStorage），不是驗元素存在。"""
+    DBG = "() => window.Industry._dbg()"
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")   # 從預設開始，才知道「改了」是誰改的
+    pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
+    if not ok("[0926] 個股頁 K 線畫得出來（前提）", count(pg, "#lwc canvas") > 0):
+        return
+
+    # ---------------------------------------------------------------- ① 指標下拉
+    btn0 = text(pg, "#indBtn")
+    ok("[0926-①] 工具列只剩一顆「指標 ▾」，寫著已開幾個", "指標" in btn0 and "已開" in btn0, btn0)
+    ok("[0926-①] 那一整排指標晶片與「⚙ 設定」都拿掉了", count(pg, "#indChips") == 0 and count(pg, "#cfgBtn") == 0)
+    click(pg, "#indBtn", 500)
+    ok("[0926-①] 點「指標 ▾」→ 清單真的打開", pg.evaluate(IND_POP_OPEN))
+    ok("[0926-①] 按鈕標成展開（aria-expanded）", pg.get_attribute("#indBtn", "aria-expanded") == "true")
+    rows = pg.evaluate("() => [...document.querySelectorAll('#cfgPop .indrow')].map(r => r.dataset.k)")
+    ok("[0926-①] 最上面一列是「整體」（線寬／K 棒寬度）", bool(rows) and rows[0] == "base", rows)
+    ok("[0926-③] 清單裡沒有 SMC 區間、BOS/CHoCH", "smc" not in rows and "marks" not in rows, rows)
+    # 關 KD → KD 副圖真的消失
+    p0 = pg.evaluate(DBG)["paneH"] or {}
+    h0 = canvas_hash(pg, "#lwc")
+    ok("[0926-①] KD 預設是開的、而且有自己的副圖（前提）", ind_on(pg, "kd") is True and "kd" in p0, p0)
+    ind_toggle(pg, "kd", 900)
+    p1 = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926-①] 在清單裡把 KD 關掉 → 勾選框真的取消", ind_on(pg, "kd") is False)
+    ok("★ [0926-①] 關 KD → KD 副圖真的消失（副圖少一格）", "kd" not in p1 and len(p1) == len(p0) - 1, f"{p0} → {p1}")
+    changed("[0926-①] 關 KD 之後 K 線圖真的重畫", h0, canvas_hash(pg, "#lwc"))
+    ok("[0926-①] 按鈕上的「已開 N」跟著少一個", text(pg, "#indBtn") != btn0, f"{btn0} → {text(pg, '#indBtn')}")
+    ok("[0926-①] 清單還開著（在裡面點不會把自己關掉）", pg.evaluate(IND_POP_OPEN))
+    # 展開 MACD 改參數 → 圖真的變
+    ok("[0926-①] MACD 那一列按 ▸ → 就地展開", ind_expand(pg, "macd"))
+    ok("[0926-①] 展開後有快線／慢線／訊號三格參數＋顏色線寬透明度",
+       count(pg, '#cfgPop .indrow[data-k="macd"] .prow input[data-p]') == 3
+       and count(pg, '#cfgPop .indrow[data-k="macd"] .strow input[type=color]') == 2)
+    h1 = canvas_hash(pg, "#lwc")
+    inp = pg.query_selector('#cfgPop .indrow[data-k="macd"] input[data-p=f]')
+    inp.fill("8"); inp.press("Enter"); pg.wait_for_timeout(900)
+    lab = pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''").replace(" ", "")
+    changed("★ [0926-①] 改 MACD 快線 12→8，K 線圖真的重畫", h1, canvas_hash(pg, "#lwc"))
+    ok("★ [0926-①] MACD 副圖標題真的變成 MACD(8,26,9)", "MACD(8,26,9)" in lab, lab[-160:])
+    ok("[0926-①] 清單那一列的參數摘要跟著變 8,26,9", "8,26,9" in text(pg, '#cfgPop .indrow[data-k="macd"] .isum'),
+       text(pg, '#cfgPop .indrow[data-k="macd"] .isum'))
+    # 亂填超出範圍的數字 → 退回原值、不把指標弄壞
+    inp = pg.query_selector('#cfgPop .indrow[data-k="macd"] input[data-p=s]')
+    inp.fill("0"); inp.press("Enter"); pg.wait_for_timeout(500)
+    ok("[0926-①] 慢線填 0（範圍外）→ 退回原本的 26、圖例不變", inp.input_value() == "26"
+       and "MACD(8,26,9)" in pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''").replace(" ", ""), inp.input_value())
+    # 關著的指標也能先調參數，打開時沿用（KD 關著 → 調 5 → 打開就是 5,3,3）
+    ind_expand(pg, "kd")
+    kin = pg.query_selector('#cfgPop .indrow[data-k="kd"] input[data-p=n]')
+    kin.fill("5"); kin.press("Enter"); pg.wait_for_timeout(500)
+    ok("[0926-①] KD 關著時改參數不會自己打開", ind_on(pg, "kd") is False)
+    ind_toggle(pg, "kd", 900)
+    lab2 = pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''").replace(" ", "")
+    ok("[0926-①] 再打開 KD → 沿用剛剛調的 KD(5,3,3)（關著調的參數沒被丟掉）", "KD(5,3,3)" in lab2, lab2[-160:])
+    ind_toggle(pg, "kd", 900)     # 再關掉，下面驗「重新整理後記住」
+    # 點外面就關、Esc 也關
+    pg.click("#pxNow"); pg.wait_for_timeout(450)     # 點頁面上一塊不是連結的地方（股價數字）＝點外面
+    ok("[0926-①] 點清單外面 → 清單收起來", not pg.evaluate(IND_POP_OPEN))
+    ok("[0926-①] 收起來後按鈕標成收合", pg.get_attribute("#indBtn", "aria-expanded") == "false")
+    click(pg, "#indBtn", 450); pg.keyboard.press("Escape"); pg.wait_for_timeout(400)
+    ok("[0926-①] 按 Esc 也會關", not pg.evaluate(IND_POP_OPEN))
+    # 重新整理後記住（等圖真的畫好、副圖標題出來才讀，不然讀到的是「還沒畫」的空白 —— 那不是「記住了」）
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1200)
+    wait_until(pg, "() => /MACD\\(/.test((document.querySelector('#lwc .pane-labels') || {}).innerText || '')", 8000)
+    p2 = pg.evaluate(DBG)["paneH"] or {}
+    ok("[0926-①] 重新整理後副圖都畫出來了（前提）", len(p2) >= 3, p2)
+    lab3 = pg.evaluate("() => (document.getElementById('lwc') || {}).innerText || ''").replace(" ", "")
+    ok("★ [0926-①] 重新整理後 KD 還是關的（沒有 KD 副圖）", "kd" not in p2, p2)
+    ok("★ [0926-①] 重新整理後 MACD 還是 (8,26,9)", "MACD(8,26,9)" in lab3, lab3[-160:])
+    ok("[0926-①] 重新整理後清單裡 KD 沒勾、MACD 摘要是 8,26,9",
+       ind_on(pg, "kd") is False and "8,26,9" in text(pg, '#cfgPop .indrow[data-k="macd"] .isum'))
+    ind_close(pg)
+    # 主圖上沒有 SMC 區塊與 BOS／CHoCH（舊 localStorage 帶著 smc:true 也一樣）
+    pg.evaluate("() => { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); c.smc = true; c.marks = true;"
+                " c.zone = { fill: 40 }; localStorage.setItem('tw.kcfg', JSON.stringify(c)); }")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    wait_until(pg, "() => !!document.getElementById('fitBtn') && !!document.querySelector('#lwc canvas')", 6000)
+    d = pg.evaluate(DBG)
+    ok("★ [0926-③] 舊存檔寫著 smc／marks:true，主圖照樣沒有 SMC 區塊、區間標籤、BOS／CHoCH／掃蕩標記",
+       not d.get("zoneCount") and not (d.get("zoneLabels") or []) and not (d.get("markers") or []),
+       {k: d.get(k) for k in ("zoneCount",)} | {"標籤": len(d.get("zoneLabels") or []), "標記": len(d.get("markers") or [])})
+
+    # ---------------------------------------------------------------- ④ 重設縮放搬進圖裡
+    fg = pg.evaluate("""() => { const b = document.getElementById('fitBtn'), l = document.getElementById('lwc');
+        if (!b || !l) return null; const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
+        const kc = window.KChart.last; const mh = kc.chart.panes()[0].getHeight(), pw = kc.chart.priceScale('right').width();
+        return { inChart: l.contains(b), tools: !!document.querySelector('#skTools #fitBtn'), right: lr.right - r.right,
+                 bottom: r.bottom - lr.top, mh, pw, op: +getComputedStyle(b).opacity, title: b.title }; }""")
+    ok("★ [0926-④] 重設縮放鈕在 K 線圖裡、工具列上那顆拿掉了", bool(fg) and fg["inChart"] and not fg["tools"], fg)
+    if fg:
+        ok("★ [0926-④] 它在主圖右下角：價格軸左邊、成交量副圖上方", fg["pw"] <= fg["right"] <= fg["pw"] + 20
+           and fg["mh"] - 16 <= fg["bottom"] <= fg["mh"], fg)
+        ok("[0926-④] 平常是半透明（不搶 K 棒的眼）、有滑鼠提示", fg["op"] < 0.8 and "縮放" in fg["title"], fg)
+        pg.hover("#fitBtn"); pg.wait_for_timeout(300)
+        ok("[0926-④] 滑過變亮", pg.evaluate("() => +getComputedStyle(document.getElementById('fitBtn')).opacity") > 0.9)
+    r = pg.evaluate("() => { const b = document.getElementById('lwc').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    vb0 = pg.evaluate(DBG)["visibleBars"]
+    pg.mouse.move(r["x"] + r["w"] * 0.5, r["y"] + r["h"] * 0.3)
+    pg.mouse.wheel(0, -600); pg.wait_for_timeout(500)
+    vb1 = pg.evaluate(DBG)["visibleBars"]
+    click(pg, "#fitBtn", 800)
+    vb2 = pg.evaluate(DBG)["visibleBars"]
+    changed("[0926-④] 滾輪縮放之後畫面裡的根數真的變了（前提）", vb0, vb1)
+    changed("★ [0926-④] 按圖上右下角的重設鈕 → 畫面裡的根數真的回來", vb1, vb2)
+    ok("[0926-④] 按重設鈕不會在圖上多畫一筆線", pg.evaluate(DBG)["shapes"] in (0, -1), pg.evaluate(DBG)["shapes"])
+    # 拖副圖分隔線之後，重設鈕跟著主圖的新高度走（不會停在舊位置蓋到成交量）
+    mh0 = pg.evaluate("() => window.KChart.last.chart.panes()[0].getHeight()")
+    sep_y = r["y"] + mh0 + 1
+    pg.mouse.move(r["x"] + r["w"] * 0.4, sep_y); pg.mouse.down()
+    pg.mouse.move(r["x"] + r["w"] * 0.4, sep_y - 80, steps=6); pg.mouse.up(); pg.wait_for_timeout(500)
+    fg2 = pg.evaluate("""() => { const b = document.getElementById('fitBtn'), l = document.getElementById('lwc');
+        const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
+        return { bottom: r.bottom - lr.top, mh: window.KChart.last.chart.panes()[0].getHeight() }; }""")
+    if abs(fg2["mh"] - mh0) > 20:
+        ok("[0926-④] 拖副圖分隔線後，重設鈕跟著貼到新的主圖右下角", fg2["mh"] - 16 <= fg2["bottom"] <= fg2["mh"], {"原主圖高": mh0, **fg2})
+    click(pg, "#fitBtn", 600)
+
+    # ---------------------------------------------------------------- ② 四週期成交量
+    click(pg, "#mtfBtn", 2400)
+    mini = pg.evaluate(DBG).get("mini") or []
+    drawn = [m for m in mini if m["bars"] >= 2]
+    ok("[0926-②] 四週期同看排出四格、至少兩格有 K 棒（前提）", count(pg, ".mtf-cell") == 4 and len(drawn) >= 2, mini)
+    ok("★ [0926-②] 每一張有 K 棒的小圖都有成交量副圖", bool(drawn) and all(m["vol"] for m in drawn), mini)
+    ok("★ [0926-②] 量副圖約佔圖高 18～22%", bool(drawn) and all(0.16 <= m["volShare"] <= 0.24 for m in drawn),
+       [m["volShare"] for m in drawn])
+    ok("★ [0926-③] 四張小圖都沒有 SMC 區塊、BOS／CHoCH 標記", all(m["zones"] == 0 and m["markers"] == 0 for m in mini), mini)
+    ok("[0926-②] 小圖的量軸單位是「張」", "張" in pg.evaluate("() => document.getElementById('mtfGrid').innerText") or
+       pg.evaluate("""() => [...document.querySelectorAll('#mtfGrid canvas')].length > 0"""))
+    ok("[0926-④] 四週期每張小圖右下角各有一顆重設鈕", count(pg, "#mtfGrid .mtf-cell .kfit") == len(drawn),
+       count(pg, "#mtfGrid .mtf-cell .kfit"))
+    # 滑過 → 看板寫量
+    cv = pg.evaluate("() => { const b = document.getElementById('mini-0').getBoundingClientRect(); return {x:b.x,y:b.y,w:b.width,h:b.height}; }")
+    pg.mouse.move(cv["x"] + cv["w"] * 0.55, cv["y"] + cv["h"] * 0.45); pg.wait_for_timeout(400)
+    t1 = text(pg, "#mtip-0")
+    ok("★ [0926-②] 滑過小圖 → 游標看板出現、寫著那一根的量（張）", "量" in t1 and "張" in t1
+       and pg.evaluate("() => !document.getElementById('mtip-0').hidden"), t1)
+    pg.mouse.move(cv["x"] + cv["w"] * 0.25, cv["y"] + cv["h"] * 0.45); pg.wait_for_timeout(400)
+    changed("[0926-②] 換一根 K 棒，看板裡的時間／量跟著換", t1, text(pg, "#mtip-0"))
+    # 小圖的重設鈕：先滾輪縮放那一張，再按它的重設鈕
+    hm0 = canvas_hash(pg, "#mini-0")
+    pg.mouse.wheel(0, -500); pg.wait_for_timeout(400)
+    hm1 = canvas_hash(pg, "#mini-0")
+    click(pg, "#mini-0 .kfit", 600)
+    changed("[0926-④] 小圖滾輪縮放真的變了（前提）", hm0, hm1)
+    changed("★ [0926-④] 按小圖右下角的重設鈕 → 那一張真的回到預設取景", hm1, canvas_hash(pg, "#mini-0"))
+    pg.mouse.move(5, 5)
+    # 在四週期模式從下拉把「成交量」關掉 → 四張一起消失；再打開 → 四張都回來
+    ok("[0926-②] 四週期模式下，下拉裡 KD 那幾列標著「四週期不畫」",
+       ind_open(pg) and "四週期不畫" in text(pg, '#cfgPop .indrow[data-k="kd"]'))
+    hg0 = canvas_hash(pg, "#mtfGrid")
+    ind_toggle(pg, "vol", 900)
+    m_off = pg.evaluate(DBG).get("mini") or []
+    ok("★ [0926-②] 關「成交量」→ 四張小圖的量副圖一起消失", all(not m["vol"] for m in m_off), m_off)
+    changed("[0926-②] 關成交量之後小圖真的重畫", hg0, canvas_hash(pg, "#mtfGrid"))
+    ind_toggle(pg, "vol", 900)
+    m_on = pg.evaluate(DBG).get("mini") or []
+    ok("[0926-②] 再打開 → 四張都回來", all(m["vol"] for m in m_on if m["bars"] >= 2), m_on)
+    ind_close(pg)
+    # 回單一週期
+    click(pg, "#mtfBtn", 1600)
+    ok("[0926] 切回單一週期，K 線圖回得來", count(pg, "#lwc canvas") > 0)
+
+    # 1 小時／4 小時：4 小時一根的量＝四根 1 小時量的總和（合成時量一起加總）。
+    # 本機 payload 常是 SKIP_INTRADAY 建的、沒有 60 分 K，所以這裡**自己餵一份** 1 小時 K 進去（量刻意每根不同），
+    # 再真的用下拉把兩格換成 1 小時／4 小時 —— 不然這條在本機永遠被跳過，等於沒驗。
+    def feed60(route):
+        resp = route.fetch(); j = resp.json()
+        bars, k = [], 0
+        for dd in range(1, 21):
+            for hh in (9, 10, 11, 12, 13):
+                k += 1; px = 100 + k * 0.5
+                bars.append([f"2026-08-{dd:02d}T{hh:02d}:00:00+08:00", px, px + 1, px - 1, px + 0.3, 1000 * (k * 7 % 23 + 1)])
+        j.setdefault("intraday", {})["60m"] = bars
+        route.fulfill(response=resp, body=json.dumps(j, ensure_ascii=False), headers={**resp.headers, "content-type": "application/json; charset=utf-8"})
+    pg.route(f"**/data/stock/{code}.json*", feed60)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1500)
+    click(pg, "#mtfBtn", 2000)
+    pg.select_option("#mtfGrid select.mtfsel >> nth=0", "60m"); pg.wait_for_timeout(1200)
+    pg.select_option("#mtfGrid select.mtfsel >> nth=1", "240m"); pg.wait_for_timeout(1200)
+    mm = pg.evaluate(DBG).get("mini") or []
+    h1 = next((m for m in mm if m["tf"] == "60m"), None)
+    h4 = next((m for m in mm if m["tf"] == "240m"), None)
+    if ok("[0926-②] 用下拉換成 1 小時／4 小時，兩格都畫得出來（前提）", bool(h1 and h4 and h1["bars"] >= 8 and h4["bars"] >= 2),
+          [(m["tf"], m["bars"]) for m in mm]):
+        ok("★ [0926-②] 1 小時與 4 小時兩格都有量副圖", h1["vol"] and h4["vol"], [h1, h4])
+        ok("★ [0926-②] 4 小時第一根的量＝前四根 1 小時量的總和", h4["v4"][0] == sum(h1["v4"][:4]) and h4["v4"][0] > 0,
+           {"1H 前四根": h1["v4"], "4H 第一根": h4["v4"][0]})
+    pg.unroute(f"**/data/stock/{code}.json*")
+    click(pg, "#mtfBtn", 1400)
+    pg.evaluate("() => { try { const c = JSON.parse(localStorage.getItem('tw.kcfg') || '{}'); delete c.mtfTfs; localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch (e) {} }")
+
+    # ---------------------------------------------------------------- 窄畫面：800／390
+    for vw in (800, 390):
+        pg.set_viewport_size({"width": vw, "height": 900})
+        pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        click(pg, "#indBtn", 500)
+        for k in ("base", "ma", "macd"):
+            ind_expand(pg, k)
+        geo = pg.evaluate("""() => { const p = document.getElementById('cfgPop'), r = p.getBoundingClientRect();
+            return { l: r.left, r: r.right, t: r.top, b: r.bottom, vw: innerWidth, vh: innerHeight,
+                     sh: p.scrollHeight, ch: p.clientHeight, oy: getComputedStyle(p).overflowY,
+                     hs: document.documentElement.scrollWidth > innerWidth + 1 }; }""")
+        ok(f"[0926-{vw}px] 指標清單整塊在螢幕裡（左右上下都不超出）",
+           geo["l"] >= 0 and geo["r"] <= geo["vw"] + 1 and geo["t"] >= 0 and geo["b"] <= geo["vh"] + 1, geo)
+        ok(f"[0926-{vw}px] 展開三列之後清單比畫面長 → 清單自己可以捲", geo["sh"] <= geo["ch"] + 1 or geo["oy"] in ("auto", "scroll"), geo)
+        ok(f"[0926-{vw}px] 沒有橫向捲軸", not geo["hs"], geo)
+        small = pg.evaluate("""() => [...document.querySelectorAll('#cfgPop *')].filter(e => e.childNodes.length && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())
+            && e.getClientRects().length).map(e => ({ t: e.textContent.trim().slice(0, 10), f: parseFloat(getComputedStyle(e).fontSize) })).filter(x => x.f < 11)""")
+        ok(f"[0926-{vw}px] 清單裡沒有小於 11px 的字", not small, small[:4])
+        # 捲到最下面點得到「本益比河流」那一列的開關
+        on0 = ind_on(pg, "peRiver")
+        ind_toggle(pg, "peRiver", 700)
+        changed(f"[0926-{vw}px] 捲到清單最下面點「本益比河流」→ 真的切換", on0, ind_on(pg, "peRiver"))
+        ind_toggle(pg, "peRiver", 500)
+        ind_close(pg)
+        fgn = pg.evaluate("""() => { const b = document.getElementById('fitBtn'), l = document.getElementById('lwc');
+            if (!b || !l) return null; const r = b.getBoundingClientRect(), lr = l.getBoundingClientRect();
+            return { in: r.left >= lr.left && r.right <= lr.right && r.top >= lr.top && r.bottom <= lr.bottom, w: r.width }; }""")
+        ok(f"[0926-{vw}px] 重設縮放鈕在圖裡面、沒被切掉", bool(fgn) and fgn["in"] and fgn["w"] >= 20, fgn)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.kcfg'); } catch (e) {} }")
 
 
 def t_wrap_adj(pg, base, code):
@@ -28100,13 +28366,14 @@ def t_dismiss(pg, b, base, code):
         pg.keyboard.press("Escape"); pg.wait_for_timeout(700)
         ok("[零件小卡] 按 Esc 真的收掉", not _dz_vis(pg, "#partCard"))
 
-    # ---- 10. 個股頁的「⚙ 設定」浮層：Esc 關（點外面關是既有的「設定面板」段落在驗）
+    # ---- 10. 個股頁的指標下拉：Esc 關（點外面關是既有的「設定面板」段落在驗）
+    # ★ 2026-09-26 改前：`#cfgBtn`（⚙ 設定）→ 改後：`#indBtn`（指標 ▾）
     pg.goto(f"{base}#stock/{code}", wait_until="networkidle"); pg.wait_for_timeout(2600)
-    if pg.query_selector("#cfgBtn"):
-        _dz_click_el(pg, "#cfgBtn"); pg.wait_for_timeout(600)
-        if ok("[⚙ 設定浮層] 打得開", _dz_vis(pg, "#cfgPop")):
+    if ok("[指標下拉] 按鈕在", bool(pg.query_selector("#indBtn"))):
+        _dz_click_el(pg, "#indBtn"); pg.wait_for_timeout(600)
+        if ok("[指標下拉] 打得開", _dz_vis(pg, "#cfgPop")):
             pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
-            ok("[⚙ 設定浮層] 按 Esc 真的關了", not _dz_vis(pg, "#cfgPop"))
+            ok("[指標下拉] 按 Esc 真的關了", not _dz_vis(pg, "#cfgPop"))
 
     # ---- 11. 搜尋建議：Esc 關
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1800)
