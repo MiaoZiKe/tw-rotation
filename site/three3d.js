@@ -7366,9 +7366,17 @@
           it.p.el.classList.toggle('mini', lv >= 2 && !keep);
           it.hh = keep ? (it.p.hh || 42) : (lv >= 2 ? (it.p.hhM || it.p.hhC || it.hh) : (lv >= 1 ? (it.p.hhC || it.hh) : (it.p.hh || 42)));
         });
-        let lv = +compactSide[side] || 0;
+        /* ★ 2026-09-25（Andy 回報「點擊後不會收回」，矽晶圓 3D：左欄 01／06／02／03、右欄 05 同時展開說明）：
+           根因不是點擊沒收回 —— 選取（sel-part）一直都只有一張、再點同一張／點背景也都有清掉 ——
+           而是「階數 0 ＝ 全開」：一欄塞得下，這一欄**每一張**都顯示說明全文＋全部台股；
+           塞不下的那一欄才收。所以畫面上看到的「展開」跟「點了哪一張」無關，
+           只跟「那一欄這一刻塞不塞得下」有關 —— 爆炸圖展開／相機轉動讓投影點移動，
+           一欄從塞不下變塞得下，就一次冒出好幾張全開的卡，看起來像是「點過的都收不回來」。
+           改成：欄位模式（lr／r）下**最低就是第 1 階**（compact：標題＋英文＋兩顆台股，沒有說明全文），
+           說明全文只給被選起來的那一張（keep）與滑過的那一張（CSS :hover，滑出就收）。
+           同一時間最多一張展開，跟 2D 收合模式同一個規則。底下那一排（below，窄畫面）不在這個範圍。*/
+        let lv = Math.max(1, +compactSide[side] || 0);
         useLevel(lv);
-        if (lv < 1 && !pack(list, h)) { lv = 1; useLevel(lv); }
         if (lv < 2 && !pack(list, h)) { lv = 2; useLevel(lv); }
         compactSide[side] = lv;
         while (list.length && !pack(list, h)) {
