@@ -697,6 +697,15 @@
       const ox = n.x - n.tx, oy = n.y - n.ty;
       // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25（經典版 blur.label.opacity）
       g.globalAlpha = n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.55 : 1) : 0.25);
+      /* 產業鏈與族群的標籤正好壓在往下一層分出去的光纖上（線從節點中心出發、前 150px 幾乎水平），
+         只靠描邊時字縫之間還是看得到發光線、讀起來很吵 —— 墊一層半透明面板色（無邊框、不是膠囊），
+         看起來仍是「線上的描邊文字」，但字讀得出來。代表股在最右欄、底下沒有線，不墊。根節點的字壓在主幹上，一起墊。*/
+      if (n.lv <= 2) {                                    // 根節點的字也壓在主幹上，一起墊
+        g.fillStyle = rgba(P.panel, P.dark ? 0.62 : 0.7);
+        g.beginPath();
+        if (g.roundRect) g.roundRect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4, 3); else g.rect(B.x + ox - 3, B.y + oy - 2, B.w + 6, B.h + 4);
+        g.fill();
+      }
       B.lines.forEach((line, li) => {
         let cx = B.x + ox;
         const cy = B.y + oy + B.fs / 2 + li * 15 + 0.5;
