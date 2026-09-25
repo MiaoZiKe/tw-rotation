@@ -28291,8 +28291,18 @@ def t_rot_all_trails(pg, b, base):
 # 2026-09-25 實測（這一段自己的量法，同一台容器、交錯跑）：
 #   修前 可互動 4663／6178／4511ms、最長卡住 1124／2299／1249ms
 #   修後 可互動 2635／3545／3134／3328／3299／3267／3663ms（中位數 3299）、最長卡住 460／573／307／609／579／461／728ms（中位數 573）
-LOADPERF_TTI_MAX = 5000        # ms：修後中位數 3299 × 1.5 ≈ 4950
-LOADPERF_LONGEST_MAX = 860     # ms：修後中位數 573 × 1.5 ≈ 860
+#   ── 2026-09-25 晚 第二輪（perf-2）──
+#   修法：畫頁途中的強制排版拿掉（route 首次 scrollTo、產業鏈分頁列、剖析圖 relayout／fitCanvas）、
+#   首屏以下的關聯圖與藏著的族群面板延後畫、資金流向輪盤畫完先讓一幀、三張大盤圖第一次分張建、
+#   fmt.n 與事件日期不再逐筆新建 Intl 格式器、拓撲版露出不到 10% 就停粒子。
+#   合併 main（623b890）之後這一段自己的量法、同一台容器連跑三次：
+#     總覽 可互動 2448／1968／2288ms（中位數 2288）、最長卡住 390／318／281ms（中位數 318）
+#     資金流向 可互動 1916／1421／1990ms（中位數 1916）、最長卡住 280／215／250ms（中位數 250）
+#   門檻＝中位數 × 1.5（容器負載 10 以上時牆鐘會被拉長 1.5～2 倍，那時候紅了先看 uptime 再判斷）。
+LOADPERF_TTI_MAX = 3450        # ms：總覽 修後中位數 2288 × 1.5 ≈ 3430
+LOADPERF_LONGEST_MAX = 480     # ms：總覽 修後中位數 318 × 1.5 ≈ 477
+LOADPERF_FLOW_TTI_MAX = 2900   # ms：資金流向 修後中位數 1916 × 1.5 ≈ 2874
+LOADPERF_FLOW_LONGEST_MAX = 380  # ms：資金流向 修後中位數 250 × 1.5 = 375
 LOADPERF_IDLE_BUSY_MAX = 150   # ms／5 秒：看不見的動畫該停就停（修前 1442ms，修後實測 1～2ms）
 
 _LT_INIT = """window.__lt = [];
@@ -28361,9 +28371,13 @@ def t_loadperf(pg, b, base):
     # ---- ③ 資金流向：捲到看不見輪盤與分流圖 → 動畫停，主執行緒幾乎不忙
     tti_f, longest_f, _lt, p3, c3 = _lp_first_load(b, f"{base}#flow")
     notes.append(f"載入效能：首次開資金流向 可互動 {tti_f}ms、最長卡住 {longest_f}ms")
+    ok(f"① 首次開資金流向的可互動時間 ≤ {LOADPERF_FLOW_TTI_MAX}ms（perf-2 修完實測中位數 × 1.5）", tti_f <= LOADPERF_FLOW_TTI_MAX, tti_f)
+    ok(f"② 首次開資金流向最長的單一卡住 ≤ {LOADPERF_FLOW_LONGEST_MAX}ms", longest_f <= LOADPERF_FLOW_LONGEST_MAX, longest_f)
     p3.evaluate("() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' })")
     p3.wait_for_timeout(1500)
     busy_bottom = _lp_busy(p3)
+    # ★ 2026-09-25（perf-2）：側欄合併後整頁只剩 2349px，捲到底時分流圖上緣還有 9px 在畫面裡 —— 以前拓撲版照跑粒子
+    #   （main 上實測 5 秒忙 3.7 秒，這一條在 main 上是紅的）。flowtopo 改成露出 ≥10% 才算看得見。
     ok(f"③ 資金流向捲到看不見輪盤與分流圖 → 主執行緒 5 秒內忙 ≤ {LOADPERF_IDLE_BUSY_MAX}ms（修前 1442ms）",
        busy_bottom <= LOADPERF_IDLE_BUSY_MAX, busy_bottom)
     # 捲回來 → 動畫要接著跑（停是為了省 CPU，不是把功能關掉）
