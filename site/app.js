@@ -310,11 +310,30 @@
   const hmDate = (d) => d ? `<span class="hmctl date" title="這張圖的資料日期（交易日）"><svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="3.5" width="11" height="10" rx="2"/><path d="M2.5 7h11M5.5 2v3M10.5 2v3"/></svg>${fmt.esc(String(d).slice(5).replace('-', '/'))}</span>` : '';
   const hmLS = (k, d) => { try { return localStorage.getItem(k) || d; } catch (e) { return d; } };
   const hmLSset = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* 私密視窗：只影響記不記得 */ } };
-  async function load(name, opt) {
-    if (D[name] && !opt) return D[name];
-    try { const r = await fetch(`data/${name}.json?v=${(D.meta && D.meta.generated_at) || ''}`, { cache: 'no-store' }); if (!r.ok) throw new Error(r.status); D[name] = await r.json(); }
-    catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
-    return D[name];
+  /* ★ 2026-09-24 效能（R6 審查 2.5 節）：
+     ① **同一份檔同時被要兩次只抓一次**：以前 load() 要等抓完才把結果寫進 D，同時進來的第二個呼叫看不到，
+        於是 index_ohlc（329KB）每次開總覽都抓兩次（market3.js 兩處同時要）；帶 fallback 的呼叫（opt）更是**每次都重抓**，
+        sankey_daily 在總覽抓一次、進資金流向又抓一次。現在「抓成功過」就直接回快取，「正在抓」就共用同一個 promise。
+        抓失敗的照舊可以重試（不記成功）。
+     ② **網址已經帶版本鍵（?v=generated_at）就讓瀏覽器快取**：以前一律 `cache:'no-store'`，每按一次重新整理都整包重抓
+        （總覽 18 個請求、5.1MB 原始／1.06MB gzip）。版本鍵在每次部署都會換（build_payload 每次都重寫 meta），
+        所以新資料一定是新網址、舊快取不可能被拿來冒充新資料。
+        ⚠ meta.json 本身（還沒有版本鍵的時候）照舊 no-store —— 版本鍵就是從它來的，它一舊全部都舊。*/
+  const _loading = {}, _loaded = {};
+  function load(name, opt) {
+    if (_loaded[name] || (D[name] && !opt)) return Promise.resolve(D[name]);
+    if (_loading[name]) return _loading[name];
+    const ver = (D.meta && D.meta.generated_at) || '';
+    _loading[name] = (async () => {
+      try {
+        const r = await fetch(`data/${name}.json?v=${ver}`, ver ? {} : { cache: 'no-store' });
+        if (!r.ok) throw new Error(r.status);
+        D[name] = await r.json(); _loaded[name] = true;
+      } catch (e) { console.warn('載入失敗', name, e); D[name] = opt && opt.fallback !== undefined ? opt.fallback : null; }
+      finally { delete _loading[name]; }
+      return D[name];
+    })();
+    return _loading[name];
   }
   /* ★ 驗收用的 SVG renderer 開關（2026-09-20）。
      線上版一律 canvas（效能）—— 但 canvas 畫出來的字在 DOM 上完全不存在，
