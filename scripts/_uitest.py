@@ -2079,7 +2079,8 @@ def t_r3_industry(pg, base):
 
         # 3. 座標軸數字的字族：不准再有只寫 'JetBrains Mono'、沒有後備的（會退成襯線體）
         f = pg.evaluate(R3_FONTS)
-        ok("R3-3 全站 axisStyle 的字族有等寬後備", "monospace" in f["axis"], f["axis"])
+        # 合併時字型以 R5 的 NUM_FONT 為準（後備接無襯線，避免等寬字把長刻度切掉）→ 改前「要有 monospace」→ 改後「要有通用字族後備（monospace 或 sans-serif）」
+        ok("R3-3 全站 axisStyle 的字族有通用後備（不會退成襯線體）", ("monospace" in f["axis"]) or ("sans-serif" in f["axis"]), f["axis"])
         ok("R3-3 這一頁每張圖的 fontFamily 都有後備字（沒有單寫 JetBrains Mono）", f["n"] > 0 and not f["bad"], f)
 
         # 4a. 滑到甜甜圈「其他」那一塊，讀數列要寫出其餘幾個、占多少（以前清空）

@@ -6134,7 +6134,7 @@
         qTxt(hasRatio ? '連賣加碼' : '連賣', G.left + 66, hasRatio ? G.top + 4 : null, 'left', hasRatio ? 'top' : 'bottom'),
         qTxt(hasRatio ? '連買加碼' : '連買', null, hasRatio ? G.top + 4 : null, 'right', hasRatio ? 'top' : 'bottom'),
         ...(hasRatio ? [qTxt('連賣減碼', G.left + 66, null, 'left', 'bottom'), qTxt('連買減碼', null, null, 'right', 'bottom')] : []),
-      ].map((g, i) => { if (g.left == null) { g.right = G.right + 8; delete g.left; } if (g.top == null) { g.bottom = G.bottom + 6; delete g.top; } return g; }),
+      ].map((g, i) => { if (g.left == null) { g.right = G.right + 8; delete g.left; } if (g.top == null) { g.bottom = G.bottom + 24; delete g.top; } return g; }),   // 下緣象限名抬到橫軸刻度上方（containLabel 後刻度在格內，_preview 抓到壓「30」）
       series: [{ type: 'scatter',
         data: rows.map(r => ({ value: [r.side === 'buy' ? r.n : -r.n, yOf(r)], r, code: r.code,
           symbolSize: Math.max(8, Math.min(34, Math.sqrt(r.lots / maxLots) * 34)),
