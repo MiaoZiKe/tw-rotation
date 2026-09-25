@@ -2770,6 +2770,10 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #dg3d.seg{padding:2px;flex:none;align-self:center}
 #dg3d.seg button{padding:2px 12px;font-size:12.5px;line-height:1.35}
 #dg3d[hidden]{display:none!important}
+/* ★ 2026-09-26：「拖曳：轉動」「重設視角」在 2D 一直都看得到 —— 它們是 .pill（display:inline-flex），
+   作者樣式蓋掉了 [hidden] 的 UA 預設，industry.js 設的 hidden 從來沒生效過。2D 時畫面上掛著兩顆只對 3D 有用的鈕，
+   也是「看不出現在是 2D 還是 3D」的一部分。設定列裡凡是 hidden 的一律真的藏起來。*/
+#dgTools>[hidden]{display:none!important}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
   .dgsechead{flex-wrap:wrap}

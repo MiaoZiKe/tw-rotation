@@ -25051,14 +25051,20 @@ def t_desktop_untouched(pg, base, code):
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3200)
     t = pg.evaluate("""() => { const ids = ['dg3d','dgDrag','dgReset','dgAnim','dgFold'];
         const out = {}; ids.forEach(i => { const e = document.getElementById(i);
-          out[i] = e ? getComputedStyle(e).display : 'missing'; });
+          out[i] = e ? getComputedStyle(e).display : 'missing'; out[i + 'H'] = !!(e && e.hidden); });
         out.fold = (document.getElementById('dgFold') || {}).textContent;
         out.body = document.getElementById('dgBody') ? getComputedStyle(document.getElementById('dgBody')).display : null;
         return out; }""")
     ok("[1440px] 桌機的剖析圖還是預設展開（手機那條收合規則沒有外洩到桌機）",
        t["body"] != "none" and "收合" in (t["fold"] or ""), t)
-    ok("[1440px] 桌機的 3D 設定列五顆全在",
-       all(t[i] != "none" for i in ("dg3d", "dgDrag", "dgReset", "dgAnim", "dgFold")), t)
+    # ★ 2026-09-26 改前→改後：
+    #   改前：五顆的 display 都不是 none —— 但「拖曳」「重設視角」在 2D 時本來就設了 hidden，
+    #         只是 .pill 的 display 蓋掉 [hidden]、它們照樣露在畫面上（這條驗收剛好把那個 bug 當成正確）。
+    #   改後：2D 時那兩顆真的藏起來（Andy：「切回 2D 時，顯示 2D，不要都 3D」）。要守的仍然是「手機規則沒外洩到桌機」：
+    #         2D｜3D、動畫、收合三顆一定在；拖曳／重設只准因為自己的 hidden（＝現在是 2D）而不見，不准被手機規則藏掉。
+    ok("[1440px] 桌機的 3D 設定列：2D｜3D、動畫、收合在；拖曳／重設只在 2D 時才藏（手機規則沒外洩）",
+       all(t[i] != "none" for i in ("dg3d", "dgAnim", "dgFold"))
+       and all(t[i] != "none" or t[i + "H"] for i in ("dgDrag", "dgReset")), t)
     # ★ 手機 v3：像素比對只涵蓋「初始畫面」（2026-09-24 踩過），所以「點了才出現」的東西另外驗
     d = pg.evaluate("""() => ({ more: !!document.getElementById('mTabMore'), sbtn: !!document.getElementById('mSearchBtn'),
         keep: document.querySelectorAll('.m3keep, .mnumlayer, .mdgbar, #mM3Sw').length,
@@ -30721,7 +30727,8 @@ def t_rel_dismiss(pg, base):
 
 # ===================================================================== 2026-09-26：剖析圖 2D｜3D 分段鈕
 DG_MODE = """() => { const s = document.getElementById('dg3d'); if (!s) return null;
-  const vis = (e) => !!e && !e.hidden && e.getClientRects().length > 0;
+  // ⚠ 不看 .hidden 屬性：.pill 的 display 會蓋掉 [hidden]（改前「拖曳／重設視角」設了 hidden 卻照樣看得到），要量真的有沒有框
+  const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
   return { shown: vis(s), mode: s.dataset.mode || '', on: [...s.querySelectorAll('button.on')].map(b => b.textContent.trim()),
     pressed: [...s.querySelectorAll('button[aria-pressed="true"]')].map(b => b.textContent.trim()),
     svg: vis(document.getElementById('prodDiagram')), canvas: document.querySelectorAll('#prod3d canvas').length,
