@@ -3172,7 +3172,8 @@ def t_new_market3(pg, base):
         const t = k.data.map(b => typeof b.time === 'number' ? b.time : 0);
         return { n: t.length, tf: k.tf, onHour: t.every(x => x % 3600 === 0),
                  hours: [...new Set(t.map(x => Math.floor((x % 86400) / 3600)))].sort((a, b) => a - b),
-                 vol: !!(k.cfg && k.cfg.vol), fb: document.getElementById('m3c-' + id).dataset.fallback || '' }; }"""
+                 vol: !!(k.cfg && k.cfg.vol), fb: document.getElementById('m3c-' + id).dataset.fallback || '',
+                 est: +(document.getElementById('m3c-' + id).dataset.est || 0), pos: k.data.filter(b => b.volume > 0).length }; }"""
     # ★ 2026-09-25 改前→改後：改前這一段（Yahoo 15 分 K 合成、以及最後那條「分 K 全部拿不到 → 退回日 K」）
     #   默認資料湖沒有 index_intraday；main 的資料湖長出加權 60m 3624 列、15m 1062 列之後，
     #   TSE 會優先讀湖（2600 根 1H、725 根 4H），「4 小時＝21 根」與「退回日 K」就變成拿真資料在驗假設。
@@ -3190,9 +3191,14 @@ def t_new_market3(pg, base):
         ok(f"★ {nm} 1 小時真的有多根 K（20 天 × 5 根 ＋ 今天）", st[i] and st[i]["tf"] == "60m" and st[i]["n"] >= 100, st[i])
         ok(f"★ {nm} 1 小時每根都對齊整點，而且只有 09～13 點（台股交易時段）",
            st[i] and st[i]["onHour"] and st[i]["hours"] == [9, 10, 11, 12, 13], st[i])
-        ok(f"★ {nm} Yahoo 的量大部分是 0 → 量柱隱藏，不畫一排 0 張", st[i] and not st[i]["vol"], st[i])
-    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，並在卡片上寫出來",
-       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "今天的分時" in st["FUT"]["fb"], st["FUT"])
+        # ★ 2026-09-25 改前→改後：改前「Yahoo 的量大部分是 0 → 量柱隱藏」；
+        #   Andy：「每個週期都要有成交量、估的要標明、不准空白量柱」→ 改後：量柱照畫、每根 > 0、歷史那幾盤是估的
+        ok(f"★ {nm} Yahoo 的量是 0 → 改用日總量×分時分布估算：量柱照畫、每根都 > 0、有估算根",
+           st[i] and st[i]["vol"] and st[i]["pos"] == st[i]["n"] and st[i]["est"] > 0, st[i])
+    # ★ 2026-09-25 改前→改後：改前卡片寫「今天的分時合成」長句；Andy 要縮成一行短句（完整原因進「?」）
+    ok("★ 台指期（沒有多日分 K 來源）用今天的分時合成出 5 根 1 小時，卡片一行短句「…只含今日」",
+       st["FUT"] and st["FUT"]["n"] == 5 and st["FUT"]["hours"] == [9, 10, 11, 12, 13] and "只含今日" in st["FUT"]["fb"]
+       and len(st["FUT"]["fb"]) <= 30, st["FUT"])
     ok("台指期今天的分時有量 → 量柱照畫", st["FUT"] and st["FUT"]["vol"], st["FUT"])
     pg.select_option("#m3Tf", "H4")
     wait_until(pg, "() => { const k = window.Market3.state.kcharts.TSE; return k && k.tf === '240m'; }", 8000)
@@ -3205,8 +3211,10 @@ def t_new_market3(pg, base):
     pg.evaluate("() => { const s = window.Market3.state; s.fine = {}; }")
     pg.select_option("#m3Tf", "H1"); pg.wait_for_timeout(1800)
     o2 = pg.evaluate(HOUR, "OTC")
-    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片寫「瀏覽器端也抓不到」",
-       o2 and o2["n"] == 5 and "瀏覽器端也抓不到" in o2["fb"], o2)
+    # ★ 2026-09-25 改前→改後：改前卡片寫「瀏覽器端也抓不到」長句 → 改後一行短句「櫃買多日分 K 無免費來源，1H/4H 只含今日」
+    ok("櫃買 15 分 K 抓不到 → 退到今天的分時合成（5 根），卡片一行短句「…無免費來源，1H/4H 只含今日」",
+       o2 and o2["n"] == 5 and "無免費來源" in o2["fb"] and "只含今日" in o2["fb"]
+       and "資料湖還沒有" not in o2["fb"] and "瀏覽器端" not in o2["fb"], o2)
     pg.unroute("**/chart?*")
     pg.route("**/chart?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
     pg.evaluate("() => { const s = window.Market3.state; s.data = {}; s.fine = {}; ['m3.last.TSE','m3.last.OTC','m3.last.FUT'].forEach(k => localStorage.removeItem(k)); }")
@@ -3264,8 +3272,9 @@ def t_new_market3(pg, base):
                li[i] and li[i]["tf"] == tfn and li[i]["n"] > 5, li[i])
             ok(f"★ [{tf}] {nm}不再出現「已改用日」", li[i] and "已改用" not in li[i]["fb"], li[i])
         ok(f"[{tf}] 三張圖的來源標記都是 lake", src == ["lake"] * 3, src)
-        ok(f"[{tf}] 指數量全 0 → 量柱隱藏；台指期有量 → 量柱照畫",
-           li["TSE"] and not li["TSE"]["vol"] and li["FUT"] and li["FUT"]["vol"], li)
+        # ★ 2026-09-25 改前→改後：改前「指數量全 0 → 量柱隱藏」→ 改後三張量柱都照畫（指數歷史用估算、台指期實量）
+        ok(f"[{tf}] 指數湖裡的量全 0 → 估算補上，三張量柱都照畫、每根 > 0",
+           all(li[i] and li[i]["vol"] and li[i]["pos"] == li[i]["n"] for i in ("TSE", "OTC", "FUT")), li)
 
     # --- ★ 2026-09-25：線上「1H／4H 報 Value is null 約 35 筆、H4 TSE 游標看板沒出現」的重現與防線。
     #     根因：「今天的分時」比湖裡最後一天還舊時被直接接在最後 → 時間倒退 → 圖表庫正式版不驗、畫圖時內部炸掉。
@@ -3413,6 +3422,233 @@ def t_new_market3(pg, base):
     ok("★ 逐張逐週期滑過去，頁面錯誤 0 筆", err1 == err0, fails[err0:err1][:3])
     click(pg, "#m3Mode button[data-m='line']", 900)
     pg.unroute("**/y?*")
+
+
+    # ==================================================================================
+    # ★ 2026-09-25 量（Andy：「確保每個週期都有成交量；估的要標明；不准空白量柱或 0 張」）
+    #   ＋「1H／4H 用 15 分 K 算」。前提寫死成跟線上一樣：
+    #     · 資料湖只有加權有分 K（15 分 20 天＋更早的 60 分 20 天，量全 0 —— Yahoo 指數就是這樣）
+    #     · 櫃買、台指期湖裡沒有、Yahoo 也 404 → 只有今天的分時（_fake_chart，逐分鐘有實量）
+    #     · 日線湖（index_ohlc）有每天的實際總量，而且有兩天故意是 0（驗日 K 缺量的補法）
+    #   驗的全是「切過去之後畫面上的量柱真的有值」，不是元素存在。
+    # ==================================================================================
+    import calendar as _cal, datetime as _dt2
+    VQ = {"days15": [], "days60": []}
+
+    def fake_intra_vol(route):
+        out, h1, h4, m15 = {}, [], [], []
+        d, n = _dt2.date(2026, 7, 20), 0
+        while n < 40:                                   # 前 20 天只有 60 分、後 20 天有 15 分（跟湖的實際結構一樣）
+            if d.weekday() < 5:
+                px = 45000.0 + n * 10
+                if n < 20:
+                    VQ["days60"].append(d.isoformat())
+                    for hr in range(9, 14):
+                        t = _cal.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
+                        h1.append([t, px, px + 5, px - 5, px + 1, 0])
+                else:
+                    VQ["days15"].append(d.isoformat())
+                    for k in range(18):                 # 09:00 ~ 13:15
+                        t = _cal.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)) + k * 900
+                        m15.append([t, px, px + 3, px - 3, px + 1, 0])
+                    for hr in range(9, 14):
+                        t = _cal.timegm((d.year, d.month, d.day, hr, 0, 0, 0, 0, 0))
+                        h1.append([t, px, px + 5, px - 5, px + 1, 0])
+                h4.append([_cal.timegm((d.year, d.month, d.day, 9, 0, 0, 0, 0, 0)), px, px + 9, px - 9, px + 1, 0])
+                n += 1
+            d += _dt2.timedelta(days=1)
+        out["TSE"] = {"H1": h1, "H4": h4, "M15": m15}
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+
+    ZERO_DAYS = ("2026-08-05", "2026-08-06")
+
+    def fake_ohlc_vol(route):
+        out = {}
+        for sym, px, vol in (("TSE", 45000.0, 8_600_000_000), ("OTC", 390.0, 800_000_000), ("FUT", 44900.0, 40000)):
+            bars, d = [], _dt2.date(2025, 9, 1)
+            while d <= _dt2.date(2026, 9, 25):
+                if d.weekday() < 5:
+                    v = 0 if (sym == "TSE" and d.isoformat() in ZERO_DAYS) else vol + (d.toordinal() % 7) * 1000
+                    bars.append([d.isoformat(), px, px * 1.01, px * .99, px, v])
+                d += _dt2.timedelta(days=1)
+            out[sym] = bars
+        route.fulfill(status=200, content_type="application/json; charset=utf-8", body=_json.dumps(out))
+
+    pg.route("**/y?*", lambda r: r.fulfill(status=404, content_type="application/json", body='{"error":"not found"}'))
+    pg.unroute("**/data/index_ohlc.json*")
+    pg.route("**/data/index_ohlc.json*", fake_ohlc_vol)
+    pg.route("**/data/index_intraday.json*", fake_intra_vol)
+    pg.unroute("**/chart?*")
+    pg.route("**/chart?*", fake_chart)
+    pg.evaluate("() => { ['m3.prof.TSE','m3.prof.OTC','m3.prof.FUT','m3.last.TSE','m3.last.OTC','m3.last.FUT']"
+                ".forEach(k => localStorage.removeItem(k)); }")
+    fresh(sess="day")
+    click(pg, "#m3Mode button[data-m='k']", 900)
+    VINFO = "(id) => window.Market3.volInfo(id)"
+    vinfo = {}
+    for tf in ("1", "5", "15", "30", "H1", "H4", "D", "W", "M", "Q"):
+        pg.select_option("#m3Tf", tf)
+        tfn = {"H1": "60m", "H4": "240m", "D": "1d", "W": "1d", "M": "1d", "Q": "1d"}.get(tf, tf + "m")
+        for i in ("TSE", "OTC", "FUT"):
+            wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '%s' && v.pos > 0; }" % (i, tfn), 8000)
+        pg.wait_for_timeout(300)
+        vinfo[tf] = {i: pg.evaluate(VINFO, i) for i in ("TSE", "OTC", "FUT")}
+        for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+            v = vinfo[tf][i]
+            ok(f"★ 量 [{tf}] {nm}：量柱面板有畫、至少一根 > 0", bool(v) and v["pane"] and v["pos"] > 0, v)
+            ok(f"★ 量 [{tf}] {nm}：每一根都有量（不准 0 張／空白量柱）", bool(v) and v["pos"] == v["n"], v)
+
+    # --- 15 分：加權真的是多日（湖的 15 分 K ＋ 今天），櫃買／台指期照實只有今天
+    v15 = vinfo["15"]
+    ok("★ 15 分：加權接上資料湖的 15 分 K（多日，> 20 天 × 18 根）、來源標 lake",
+       v15["TSE"] and v15["TSE"]["n"] >= 20 * 18 and v15["TSE"]["src"] == "lake", v15["TSE"])
+    ok("★ 15 分：加權歷史那幾盤的量是估的（估算根數 = 湖裡那 20 天 × 18 根）",
+       v15["TSE"] and v15["TSE"]["est"] == 20 * 18, v15["TSE"])
+    ok("15 分：櫃買、台指期照實只有今天（≤ 21 根、沒有估算）",
+       all(v15[i] and v15[i]["n"] <= 21 and v15[i]["est"] == 0 for i in ("OTC", "FUT")), [v15["OTC"], v15["FUT"]])
+    ok("30 分：加權一樣是多日（根數約 15 分的一半）",
+       vinfo["30"]["TSE"] and v15["TSE"]["n"] * 0.4 < vinfo["30"]["TSE"]["n"] < v15["TSE"]["n"] * 0.7, [v15["TSE"], vinfo["30"]["TSE"]])
+
+    # --- 1H／4H 根數 ≥ 同一份 15 分 K 可以聚合出來的根數
+    pg.select_option("#m3Tf", "15")
+    for i in ("TSE", "OTC", "FUT"):
+        wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '15m'; }" % i, 8000)
+    pg.wait_for_timeout(300)
+    AGG = """(id) => { const k = window.Market3.state.kcharts[id]; const M = window.Market3;
+        const t = k.data.map(b => b.time); return { h1: new Set(t.map(x => M.sessKey(x, 'H1'))).size, h4: new Set(t.map(x => M.sessKey(x, 'H4'))).size }; }"""
+    agg = {i: pg.evaluate(AGG, i) for i in ("TSE", "OTC", "FUT")}
+    for i, nm in (("TSE", "加權"), ("OTC", "櫃買"), ("FUT", "台指期")):
+        ok(f"★ 1H 根數 ≥ 15 分 K 可聚合的根數（{nm}）",
+           vinfo["H1"][i] and vinfo["H1"][i]["n"] >= agg[i]["h1"], [vinfo["H1"][i], agg[i]])
+        ok(f"★ 4H 根數 ≥ 15 分 K 可聚合的根數（{nm}）",
+           vinfo["H4"][i] and vinfo["H4"][i]["n"] >= agg[i]["h4"], [vinfo["H4"][i], agg[i]])
+    ok("★ 加權 1H 是湖的 40 天＋今天（≥ 41 × 5 根），不是只有今天",
+       vinfo["H1"]["TSE"] and vinfo["H1"]["TSE"]["n"] >= 41 * 5, vinfo["H1"]["TSE"])
+    # 湖的 40 天裡有 2 天（ZERO_DAYS）日線量是 0 → 那兩天只能用中位數估，其餘 38 天一盤一根＝實際總量
+    ok("★ 加權 4H 一盤一根的量＝當天實際總量（38 天歸為日總量；日線缺量的 2 天才算估）",
+       vinfo["H4"]["TSE"] and vinfo["H4"]["TSE"]["day"] >= 38 and vinfo["H4"]["TSE"]["est"] == 2, vinfo["H4"]["TSE"])
+    # 4H 那一根的量真的等於日線湖那天的總量（不是隨便填的）
+    pg.select_option("#m3Tf", "H4")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '240m'; }", 8000)
+    pg.wait_for_timeout(300)
+    h4v = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const t = Date.UTC(2026, 7, 26, 9) / 1000;
+        const r = k.data.find(b => b.time === t); return r ? r.volume : null; }""")
+    want = 8_600_000_000 + (_dt2.date(2026, 8, 26).toordinal() % 7) * 1000
+    ok("★ 加權 4H 2026-08-26 那根的量 = 日線湖那天的實際總量", h4v == want, [h4v, want])
+
+    # --- 1H 一天 5 根估算量加起來 = 那天的實際總量（估的是分配，不是總量）
+    pg.select_option("#m3Tf", "H1")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '60m'; }", 8000)
+    pg.wait_for_timeout(300)
+    s1 = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const d0 = Date.UTC(2026, 7, 26) / 1000;
+        const rows = k.data.filter(b => b.time >= d0 && b.time < d0 + 86400); return { n: rows.length, sum: rows.reduce((a, b) => a + b.volume, 0) }; }""")
+    ok("★ 加權 1H 某一天 5 根估算量加總 ≈ 那天實際總量（誤差 < 0.1%）",
+       s1["n"] == 5 and abs(s1["sum"] - want) / want < 0.001, [s1, want])
+
+    # --- 游標看板：估算的 K 棒標「估」，今天的實量 K 棒不標
+    def hover_t(idx, t_js):
+        """把指定時間那根 K 棒捲到畫面中間，等圖表重畫完再換算座標、滑過去（同一幀換算會拿到捲動前的座標）。"""
+        ok_i = pg.evaluate("""([id, tj]) => { const e = document.getElementById('m3c-' + id); e.scrollIntoView({block:'center', behavior:'instant'});
+            const k = window.Market3.state.kcharts[id]; const t = eval(tj);
+            const i = k.data.findIndex(b => b.time === t); if (i < 0) return false;
+            k.chart.timeScale().setVisibleLogicalRange({ from: i - 15, to: i + 15 }); return true; }""", [idx, t_js])
+        if not ok_i:
+            return ""
+        kt = ""
+        for _try in range(3):
+            pg.wait_for_timeout(350)
+            b = pg.evaluate("""([id, tj]) => { const e = document.getElementById('m3c-' + id); const k = window.Market3.state.kcharts[id];
+                const cx = k.chart.timeScale().timeToCoordinate(eval(tj)); const r = e.getBoundingClientRect();
+                return cx == null ? null : { x: r.left + cx, y: r.top + r.height * .35 }; }""", [idx, t_js])
+            if not b:
+                continue
+            pg.mouse.move(b["x"] - 20, b["y"]); pg.mouse.move(b["x"], b["y"], steps=4); pg.wait_for_timeout(400)
+            kt = pg.evaluate(KTIP, idx)
+            if kt:
+                break
+            pg.mouse.move(5, 5)
+        return kt
+    kt_est = hover_t("TSE", "Date.UTC(2026, 7, 26, 10) / 1000")
+    ok("★ 加權 1H 歷史那根（估算量）游標看板標「估」", "量" in kt_est and "估" in kt_est, kt_est[:100] or "（看板沒出現）")
+    est_title = pg.evaluate("() => { const e = document.querySelector('#m3c-TSE .m3-ktip .m3-est'); return e ? e.title : ''; }")
+    ok("「估」有滑鼠提示講怎麼估的", "實際總量" in est_title, est_title)
+    kt_real = hover_t("TSE", "Date.UTC(2026, 8, 14, 10) / 1000")
+    ok("加權 1H 今天那根（證交所分時實量）不標「估」", "量" in kt_real and "估" not in kt_real, kt_real[:100] or "（看板沒出現）")
+    pg.mouse.move(5, 5)
+    col = pg.evaluate("""() => { const k = window.Market3.state.kcharts.TSE; const s = k.panes.vol[0]; const d = s.data();
+        const t1 = Date.UTC(2026, 7, 26, 10) / 1000, t2 = Date.UTC(2026, 8, 14, 10) / 1000;
+        return [(d.find(p => p.time === t1) || {}).color, (d.find(p => p.time === t2) || {}).color]; }""")
+    ok("★ 估算量柱改灰色、實量柱維持紅綠（一眼分得出哪些是估的）",
+       col and col[0] and "142,160,196" in col[0] and col[1] and "142,160,196" not in col[1], col)
+    fbt = pg.evaluate("() => document.querySelector(\"#m3Grid .m3-fb[data-for='TSE']\").textContent")
+    ok("加權 1H 估算根超過兩成 → 圖上方一行寫「灰色量柱＝估算量」", "估算" in fbt, fbt)
+
+    # --- 日 K：湖裡量是 0 的那兩天補上、標「估」；週 K 含那兩天的那根標「含估」
+    pg.select_option("#m3Tf", "D")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '1d'; }", 8000)
+    pg.wait_for_timeout(300)
+    vd = pg.evaluate(VINFO, "TSE")
+    ok("★ 日 K：湖裡量 0 的那兩天用前後日均量補上、記為估算 2 根", vd and vd["est"] == 2 and vd["pos"] == vd["n"], vd)
+    kt_d = hover_t("TSE", "'2026-08-05'")
+    ok("★ 日 K 補量那天游標看板標「估」", "估" in kt_d, kt_d[:100] or "（看板沒出現）")
+    pg.mouse.move(5, 5)
+    pg.select_option("#m3Tf", "W")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('TSE'); return v && v.tf === '1d' && v.n < 100; }", 8000)
+    pg.wait_for_timeout(300)
+    vw = pg.evaluate(VINFO, "TSE")
+    ok("週 K：含補量日子的那一根記為「含估」（1 根）", vw and vw["est"] == 1, vw)
+
+    # --- 台指期：量的單位是「口」，不再大一千倍
+    pg.select_option("#m3Tf", "1")
+    wait_until(pg, "() => { const v = window.Market3.volInfo('FUT'); return v && v.tf === '1m'; }", 8000)
+    pg.wait_for_timeout(300)
+    fv = pg.evaluate("() => { const k = window.Market3.state.kcharts.FUT; return k.data.slice(0, 3).map(b => b.volume); }")
+    ok("★ 台指期 1 分 K 的量＝分時 s 欄的口數（第一根 1000 口，不是 1,000,000）", fv[:1] == [1000], fv)
+    tv = pg.evaluate("() => { const k = window.Market3.state.kcharts.TSE; return k.data[0].volume; }")
+    ok("加權 1 分 K 的量＝張 × 1000（存股，跟日線同口徑）", tv == 1000 * 1000, tv)
+
+    # --- 「?」：完整原因與量的口徑都在裡面
+    click(pg, "#m3Frame .howbtn.pop[data-how='m3']", 500)
+    how = pg.evaluate("() => (document.getElementById('how-m3') || {}).innerText || ''")
+    ok("★「?」裡寫出櫃買、台指期為什麼只有今天（^TWOII 停更、付費等級）",
+       "只有今天" in how and "^TWOII" in how and "付費" in how, how[-400:])
+    ok("★「?」裡寫出量怎麼估（實際總量 × 分時量分布、標「估」）", "實際總量" in how and "估" in how, how[-400:])
+    pg.mouse.click(8, 500); pg.wait_for_timeout(300)
+
+    # --- 手機 390px：同一件事照樣成立、不能有橫向捲軸、卡片短句的字 ≥ 11px
+    #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
+    pg.set_viewport_size({"width": 390, "height": 860})
+    pg.wait_for_timeout(800)
+    click(pg, "#v-overview .mspine>button:nth-child(2)", 1200)
+    pg.select_option("#m3Tf", "H1")
+    for i in ("TSE", "OTC", "FUT"):
+        wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '60m' && v.pos > 0; }" % i, 8000)
+    pg.wait_for_timeout(500)
+    mv = {i: pg.evaluate(VINFO, i) for i in ("TSE", "OTC", "FUT")}
+    ok("★ 手機 390：1H 三張都有量（每根 > 0）", all(mv[i] and mv[i]["pos"] == mv[i]["n"] for i in mv), mv)
+    ok("手機 390：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"),
+       pg.evaluate("() => [document.documentElement.scrollWidth, window.innerWidth]"))
+    fbm = pg.evaluate("""() => [...document.querySelectorAll('#m3Grid .m3-fb')].map(e => ({ t: e.textContent,
+        fs: parseFloat(getComputedStyle(e).fontSize) }))""")
+    ok("手機 390：卡片短句字 ≥ 11px", all(x["fs"] >= 11 for x in fbm), fbm)
+    # 切到櫃買那張：那一行短句真的看得到、而且沒有超出卡片（手機一次只顯示一張）
+    click(pg, '#mM3Sw button[data-id="OTC"]', 700)
+    fbo = pg.evaluate("""() => { const e = document.querySelector("#m3Grid .m3-fb[data-for='OTC']"), c = e.closest('.m3-card');
+        const r = e.getBoundingClientRect(), cr = c.getBoundingClientRect();
+        return { vis: e.offsetParent !== null && r.height > 0, t: e.textContent, over: e.scrollWidth > e.clientWidth + 1,
+                 inside: r.left >= cr.left - 1 && r.right <= cr.right + 1 }; }""")
+    ok("★ 手機 390：櫃買卡片那一行短句看得到、整句沒被截斷、沒超出卡片",
+       fbo["vis"] and "只含今日" in fbo["t"] and not fbo["over"] and fbo["inside"], fbo)
+    click(pg, '#mM3Sw button[data-id="TSE"]', 500)
+    ok("★ 櫃買／台指期卡片只剩一行短句（≤ 30 字，不再是兩行長文案）",
+       all(0 < len(x["t"]) <= 30 and "只含今日" in x["t"] for x in fbm[1:]), fbm)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.unroute("**/data/index_intraday.json*")
+    pg.unroute("**/data/index_ohlc.json*")
+    pg.route("**/data/index_ohlc.json*", fake_lake)
+    pg.unroute("**/y?*")
+    click(pg, "#m3Mode button[data-m='line']", 600)
+    pg.evaluate("() => { try { localStorage.removeItem('tw.mia.overview.step'); } catch (e) {} }")
 
     # --- 800px：按「展開」要吃滿整列、圖畫得出來（審查 R1：卡片變高但一片空白）
     pg.set_viewport_size({"width": 800, "height": 1000})
@@ -9234,6 +9470,10 @@ def t_market3(pg, base):
     pg.route("**/chart?*", fake)
     pg.route("**/y?*", fake_y)
     pg.route("**/data/index_ohlc.json*", fake_lake)
+    # ★ 2026-09-25 改前→改後：改前沒攔 index_intraday.json（當時 15 分只有今天的分時，湖怎樣都無關）。
+    #   改後 15／30 分會接資料湖的 15 分 K（加權約 60 天），下面「15 分約是 5 分的三分之一」那條驗的是
+    #   「今天的分時換週期」—— 前提是湖裡沒有，所以這裡攔成空物件把前提寫死（湖的多日 15 分在「新-大盤三張圖」驗）。
+    pg.route("**/data/index_intraday.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="{}"))
     pg.evaluate("() => { try { localStorage.removeItem('tw.m3.mode'); localStorage.removeItem('tw.m3.tf');"
                 " localStorage.removeItem('tw.m3.big'); localStorage.setItem('tw.live.proxy','https://fake-worker.test'); } catch(e){} }")
     pg.goto("about:blank")
@@ -9396,6 +9636,7 @@ def t_market3(pg, base):
     pg.unroute("**/chart?*")
     pg.unroute("**/y?*")
     pg.unroute("**/data/index_ohlc.json*")
+    pg.unroute("**/data/index_intraday.json*")
     pg.evaluate("() => { try { ['tw.m3.mode','tw.m3.tf','tw.m3.big','tw.live.proxy'].forEach(k=>localStorage.removeItem(k)); } catch(e){} }")
 
 
