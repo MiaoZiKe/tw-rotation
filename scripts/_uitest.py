@@ -1512,7 +1512,13 @@ def t_flow(pg, base):
     ok("排行的說明沒有消失，是併進了 how-rot（裡面還看得到「佔比變化」與 pp）",
        all(k in how_text(pg, "rot") for k in ("佔比變化", "pp")), how_text(pg, "rot")[:160])
     for h in hows:
-        click(pg, f'#v-flow .howbtn[data-how="{h}"]', 250)
+        # ★ 2026-09-25 flow-howpop：「?」是 22px 小圓鈕，click() 的平滑捲動途中會被判「not stable」——
+        #   先把前一顆可能還開著的跳出說明關掉，再用 instant 捲到畫面中間才點（和 _pop_cycle 同一套）
+        if pg.evaluate("() => { const p = document.getElementById('howPop'); return !!p && !p.hidden; }"):
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
+        pg.eval_on_selector(f'#v-flow .howbtn[data-how="{h}"]', "b => b.scrollIntoView({block:'center', behavior:'instant'})")
+        pg.wait_for_timeout(200)
+        click(pg, f'#v-flow .howbtn[data-how="{h}"]', 400)
         st = pg.evaluate(f"""() => {{ const b = document.getElementById('how-{h}');
             return {{ open: b && !b.hidden, len: b ? b.innerText.trim().length : 0,
                      label: (document.querySelector('#v-flow .howbtn[data-how=\\"{h}\\"]')||{{}}).textContent }}; }}""")
@@ -1521,8 +1527,10 @@ def t_flow(pg, base):
         exp = pg.evaluate(f"""() => (document.querySelector('#v-flow .howbtn[data-how=\"{h}\"]')||{{}}).getAttribute('aria-expanded')""")
         ok(f"「怎麼看：{h}」展開後按鈕亮起來（aria-expanded，不再寫「收起」）",
            exp == "true" and "收起" not in (st["label"] or ""), [exp, st["label"]])
-        click(pg, f'#v-flow .howbtn[data-how="{h}"]', 200)
-        ok(f"「怎麼看：{h}」再按一次可以收起來", pg.evaluate(f"() => document.getElementById('how-{h}').hidden"))
+        # ★ 2026-09-25 flow-howpop：四顆都改成標題旁「?」（跳出式，背後墊 #howBack）——
+        #   改前「再按一次那顆鈕收起」→ 改後「點背景收起」（按鈕被背景蓋住是刻意的，真人點不到它）。
+        pg.mouse.click(6, 300); pg.wait_for_timeout(300)
+        ok(f"「怎麼看：{h}」點背景可以收起來", pg.evaluate(f"() => document.getElementById('how-{h}').hidden"))
 
     # --- 輪動階段：★ 2026-09-23 W7／D2。`#rotBoard`（四張卡）、`#rotCycle`（循環列）、
     #     `#rotMove`（最近 5 個交易日換階段的族群）**三塊都已整個移除**（Andy 親口要求）。
@@ -11816,6 +11824,8 @@ def t_rot_tween(pg, b, base):
 
 RANKTOP_M = """() => {
   const card = document.getElementById('flowRotCard'), rf = document.getElementById('rankFlow');
+  // ★ 2026-09-25 flow-howpop：「怎麼看 ?」從右欄搬到卡片標題旁（「?」），右欄只剩「放大」——
+  //   改前 btnTop/btnRight 量「放大＋怎麼看」兩顆 → 改後只量「放大」；hb 改量標題旁的「?」（hbInH3）。
   const zb = document.getElementById('rotZoomBtn'), hb = card && card.querySelector('.howbtn[data-how="rot"]');
   const h4 = card && card.querySelector('.rotright h4.subh'), h3 = card && card.querySelector('h3');
   const clock = document.getElementById('rotClockWrap');
@@ -11824,8 +11834,9 @@ RANKTOP_M = """() => {
   const cr = R(card), rr = R(rf), zr = R(zb), hr = R(hb), tr = h4 ? R(h4) : null, t3 = R(h3), kr = clock ? R(clock) : null;
   return { top: Math.round(rr.top - cr.top), rankBottom: Math.round(rr.bottom), clockBottom: kr ? Math.round(kr.bottom) : null,
            cardBottom: Math.round(cr.bottom), rankH: Math.round(rr.height),
-           btnTop: Math.round(Math.min(zr.top, hr.top) - cr.top), btnRight: Math.round(cr.right - Math.max(zr.right, hr.right)),
-           btnRowDy: Math.abs((zr.top + zr.bottom) / 2 - (hr.top + hr.bottom) / 2),
+           btnTop: Math.round(zr.top - cr.top), btnRight: Math.round(cr.right - zr.right),
+           hbInH3: !!(hb && hb.closest('h3') === h3) && hb.classList.contains('pop'),
+           btnRowDy: Math.abs((t3.top + t3.bottom) / 2 - (hr.top + hr.bottom) / 2),
            h4Dy: tr ? Math.abs((tr.top + tr.bottom) / 2 - (zr.top + zr.bottom) / 2) : null,
            h3Dy: Math.abs((t3.top + t3.bottom) / 2 - (zr.top + zr.bottom) / 2),
            rankTitleTop: tr ? Math.round(tr.top - cr.top) : null };
@@ -11843,8 +11854,10 @@ def t_rank_top(pg, b, base):
     ok("③ [1440] 排行小標在卡片最上面那一列（距卡片頂 < 40px）", m["rankTitleTop"] is not None and m["rankTitleTop"] < 40, m)
     ok("③ [1440] 排行圖填滿卡片高度（下緣與輪盤下緣差 ≤ 40px）",
        m["clockBottom"] is not None and m["rankBottom"] >= m["clockBottom"] - 40, m)
-    ok("③ [1440] 放大／怎麼看在卡片標題列右側（距卡片頂 < 40px、距右緣 ≤ 24px、兩顆同一列）",
-       m["btnTop"] < 40 and m["btnRight"] <= 24 and m["btnRowDy"] <= 3, m)
+    # 改前「放大／怎麼看兩顆同一列在右上」→ 改後「放大在右上；?」在卡片標題旁、和標題同一條中線」
+    ok("③ [1440] 放大在卡片標題列右側（距卡片頂 < 40px、距右緣 ≤ 24px）",
+       m["btnTop"] < 40 and m["btnRight"] <= 24, m)
+    ok("③ [1440] 「?」在「資金輪動」標題裡、和標題同一條中線（差 ≤ 3px）", m["hbInH3"] and m["btnRowDy"] <= 3, m)
     ok("③ [1440] 兩顆鈕和卡片標題、排行小標在同一條水平線上（中線差 ≤ 12px）",
        m["h3Dy"] <= 12 and (m["h4Dy"] or 0) <= 12, m)
     # 真的按一下：鈕還是那兩顆鈕（放大開得起來、怎麼看展得開）
@@ -11852,10 +11865,12 @@ def t_rank_top(pg, b, base):
     ok("③ [1440] 搬位置之後「放大」按下去真的開出放大視窗", pg.evaluate("() => !!document.querySelector('.zoomov')"))
     pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
     pg.click('#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(500)
-    ok("③ [1440] 搬位置之後「怎麼看 ?」按下去真的展開", pg.evaluate("() => !document.getElementById('how-rot').hidden"))
+    # 改前「就地展開（卡片裡）」→ 改後「跳出式（#howPop）」：說明盒搬到浮層，卡片版面完全不動
+    ok("③ [1440] 「?」按下去真的跳出說明", pg.evaluate("() => { const b = document.getElementById('how-rot'); return !b.hidden && !!b.closest('#howPop'); }"))
     m2 = pg.evaluate(RANKTOP_M)
-    ok("③ [1440] 展開說明後排行圖仍然在右欄、沒有凸出卡片", m2 and m2["rankBottom"] <= m2["cardBottom"], m2)
-    pg.click('#flowRotCard .howbtn[data-how="rot"]'); pg.wait_for_timeout(300)
+    ok("③ [1440] 跳出說明後排行圖仍然在右欄、沒有凸出卡片", m2 and m2["rankBottom"] <= m2["cardBottom"], m2)
+    # 改前「再按一次那顆鈕收起」→ 改後按 Esc（跳出式背後墊了背景，鈕被蓋住是刻意的）
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     # 800px（單欄）：兩顆鈕釘在卡片右上角，不會掉到排行那一段
     pg.set_viewport_size({"width": 800, "height": 1000}); pg.wait_for_timeout(1500)
     scroll_to(pg, "flowRotCard"); pg.wait_for_timeout(400)
@@ -12603,6 +12618,8 @@ SECTIONS = {
     "排行比例":            lambda pg, b, base, code: t_rank_ratio(pg, b, base),
     # ★ 2026-09-24 說明精簡（visual-explainer）：卡片上說明 ≤40 字、每顆「怎麼看 ?」點得開且條列 ≤5 條、每條 ≤30 字
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
+    # ★ 2026-09-25（claude/flow-howpop）：資金流向頁四張卡的「怎麼看 ?」→ 標題旁「?」，四顆各自點開、點背景關、Esc 關
+    "資金流向問號":        lambda pg, b, base, code: t_flow_popq(pg, base, code),
     # ★ 2026-09-24 Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」→ 首次載入的可互動時間與最長卡住設上限
     "載入效能":            lambda pg, b, base, code: t_loadperf(pg, b, base),
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
@@ -13801,6 +13818,58 @@ def t_wrap_popq(pg, base, code):
             h0 = pg.evaluate("location.hash")
             pg.mouse.click(tiles[0]["cx"], tiles[0]["cy"]); pg.wait_for_timeout(1500)
             changed("★ [說明改問號] 點題材熱力圖的別塊＝換題材（「其他題材」那排拿掉後的換法）", h0, pg.evaluate("location.hash"))
+
+
+def t_flow_popq(pg, base, code):
+    """資金流向頁說明改問號（claude/flow-howpop，2026-09-25）：四張卡（資金輪動、資金去向、族群×法人、集中度）
+    的「怎麼看 ?」→ 標題旁「?」；副標、篩選列提示句、拓撲版圖例句搬進「?」。只驗桌機 1440（手機不在這批範圍）。
+    每一顆都真的按：跳出 → 點背景關 → 再按 → Esc 關（_pop_cycle）；搬走的句子打開「?」讀得到（搬家不是刪除）。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(3000)
+    lf = pg.evaluate(LEFTOVER, "#v-flow")
+    ok("[資金流向問號] 沒有舊式「怎麼看 ?」鈕", lf is not None and not lf["oldHow"], lf and lf["oldHow"])
+    ok("[資金流向問號] 「?」鈕上只有一個問號", lf is not None and not lf["popTxt"], lf and lf["popTxt"])
+    ok("[資金流向問號] 卡片標題不再有說明副標（「錢往哪跑…」「族群在強弱循環…」拿掉）",
+       lf is not None and not lf["subs"] and "錢往哪跑" not in text(pg, "#flowRotCard h3")
+       and "強弱循環" not in text(pg, "#flowRotCard h4"), lf and lf["subs"])
+    pops = (lf or {}).get("pops", [])
+    ok("[資金流向問號] 四張卡各有一顆「?」、而且就在卡片標題裡", sorted(pops) == ["conc", "inst", "rot", "sankey"]
+       and pg.evaluate("""() => ['flowRotCard:rot', 'flowSankeyCard:sankey', 'flowInstCard:inst', 'flowConcCard:conc'].every(x => {
+            const [c, k] = x.split(':'); const b = document.querySelector(`#${c} .howbtn.pop[data-how="${k}"]`);
+            return !!b && !!b.closest('h3'); })"""), pops)
+    # 資料讀數留著：排行的日期區間、法人的區間、集中度的讀數、資金去向的日期與分母
+    ok("[資金流向問號] 排行的日期區間讀數還在（M/D ～ M/D）", bool(re.search(r"\d+/\d+\s*～\s*\d+/\d+", text(pg, "#rankSub"))), text(pg, "#rankSub"))
+    ok("[資金流向問號] 資金去向的讀數還在（% 佔上一層）", "佔上一層" in text(pg, "#sankeySub"), text(pg, "#sankeySub"))
+    ok("[資金流向問號] 族群×法人的區間讀數還在", "日" in text(pg, "#instSub") and "～" in text(pg, "#instSub"), text(pg, "#instSub"))
+    cs = text(pg, "#concState")
+    ok("[資金流向問號] 集中度讀數縮成一行（≤ 26 字、沒有「冷門股／主流容易休息」解讀句）",
+       0 < len(cs) <= 26 and "冷門股" not in cs and "休息" not in cs, cs)
+    # 篩選列的操作說明句與拓撲版圖例句不再印在卡片上
+    ok("[資金流向問號] 篩選列不再印「先挑產業鏈，再挑一個族群…」", "先挑產業鏈" not in text(pg, "#v-flow"), text(pg, "#flowSankeyCard")[:120])
+    ok("[資金流向問號] 資金去向圖上方不再印「粒子＝資金流動…」圖例句", "粒子＝資金流動" not in text(pg, "#flowSankeyCard"))
+    for k in ("rot", "sankey", "inst", "conc"):
+        st = _pop_cycle(pg, "flow", k)
+        ttl = {"rot": "資金輪動", "sankey": "資金去向", "inst": "族群 × 法人", "conc": "資金集中度"}[k]
+        ok(f"[資金流向問號] 「?」（{k}）說明框標題是卡片名「{ttl}」", st["title"].strip() == ttl, st["title"])
+    # 點背景關的時候，底下的輪盤／排行／桑基狀態不能被當成「點外面」收掉：先開成分股面板，再開關「?」
+    ok("[資金流向問號] 關掉「?」之後頁面還在 #flow、沒有殘留背景", pg.evaluate("location.hash") == "#flow"
+       and not pg.evaluate(POP_STATE)["back"])
+    # 搬家不是刪除
+    ok("[資金流向問號] 篩選說明搬進資金去向的「?」", "先挑產業鏈" in how_text(pg, "sankey"))
+    ok("[資金流向問號] 粒子圖例搬進資金去向的「?」", "粒子" in how_text(pg, "sankey"))
+    ok("[資金流向問號] 篩選說明搬進族群×法人的「?」", "先挑產業鏈" in how_text(pg, "inst"))
+    ok("[資金流向問號] 縮圈／擴散的解讀搬進集中度的「?」", "冷門股" in how_text(pg, "conc") and "休息" in how_text(pg, "conc"))
+    ok("[資金流向問號] 集中度讀數的解讀句滑上去看得到（title）", len(pg.evaluate("() => document.getElementById('concState').title || ''")) > 4)
+    # 選了族群時，篩選列只留狀態讀數「只看「X」」（不寫圖只剩一支會被讀成資料壞掉）
+    pg.evaluate("() => document.getElementById('flowSankeyCard').scrollIntoView({block:'start', behavior:'instant'})"); pg.wait_for_timeout(300)
+    if count(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddbtn'):
+        click(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddbtn', 400)
+        opt = pg.evaluate("""() => { const b = document.querySelector('#flowSankeyCard .rotdd[data-dd="group"] .ddopt .nm[data-g]'); return b ? b.textContent.trim() : ''; }""")
+        if ok("[資金流向問號] 族群下拉有選項可選", bool(opt), opt):
+            click(pg, '#flowSankeyCard .rotdd[data-dd="group"] .ddopt .nm[data-g]', 900)
+            t = text(pg, "#flowSankeyCard .ddrow")
+            ok("[資金流向問號] 選了族群：篩選列寫「只看「X」」、不再附長句", f"只看「{opt}」" in t and "回到整張圖" not in t, t[-80:])
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(600)
 
 
 def t_wrap_adj(pg, base, code):

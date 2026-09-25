@@ -3640,7 +3640,10 @@ h3 .howbtn.pop{font-family:inherit}
            ≤1100px 退單欄時，兩顆鈕改成釘在卡片右上角（CSS .rotbtns），不會掉到排行那一段去。 -->
       <div class="grid g21 rotcols">
         <div class="rotpane rotleft">
-          <div class="row spread rothead"><h3>資金輪動 <small>錢往哪跑、跑到哪一段</small></h3></div>
+          <!-- ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明，文字只需要留名稱」）：
+               副標「錢往哪跑、跑到哪一段」拿掉；原本右欄那顆「怎麼看 ?」改成標題旁的「?」（howPop，跟總覽同一套）。
+               說明盒 #how-rot 留在卡片裡（howPop 關的時候搬回原位，驗收照 id 找得到）。 -->
+          <div class="row spread rothead"><h3>資金輪動 <button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3></div>
           <div class="howtxt" id="how-rot" hidden></div>
           <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
                data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
@@ -3658,7 +3661,7 @@ h3 .howbtn.pop{font-family:inherit}
             <div id="rotBack" title="看幾天前到最新（1～30 天）：輪盤的腳印與右邊的排行都是這一段；▶ 從那一天一步一步走回最新"></div>
             <div class="rottools" id="rotTools"></div>
           </div>
-          <h4 class="subh">足跡輪盤 <small>族群在強弱循環的哪一段</small></h4>
+          <h4 class="subh">足跡輪盤</h4>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。
@@ -3674,8 +3677,7 @@ h3 .howbtn.pop{font-family:inherit}
           <div class="row spread rotrhead">
             <h4 class="subh">資金流向排行 <small id="rankSub">誰把錢吸走了</small></h4>
             <div class="row rotbtns" style="gap:8px">
-              <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
-              <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
+              <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button></div></div>
           <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div>
           <!-- ★ 2026-09-24 夜（Andy：「點擊族群時，資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
                （同一個位置、同一種樣式），不要蓋在別處」）＋ 審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」。
@@ -3711,8 +3713,9 @@ h3 .howbtn.pop{font-family:inherit}
     <!-- #sankeySub 的字是 renderSankey() 每次重畫都會換掉的（會依「歷史回放／即時」換說法）。
          這裡只是圖還沒畫出來前的預設值，所以也不可以寫死成「位置固定」——
          切到即時的時候圖真的會換位，字說不會動就是在騙人。 -->
-    <div class="card" id="flowSankeyCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>資金去向 <small id="sankeySub">% 佔上一層</small></h3>
-      <button class="howbtn" data-how="sankey">怎麼看 ?</button></div>
+    <div class="card" id="flowSankeyCard" style="margin-top:var(--gap-card)"><div class="row spread"><h3>資金去向 <button class="howbtn pop" data-how="sankey" type="button" aria-label="資金去向怎麼看">?</button> <small id="sankeySub">% 佔上一層</small></h3></div>
+      <!-- ★ 2026-09-25：「怎麼看 ?」→ 標題旁「?」。#sankeySub 是讀數（哪一天、% 的分母、固定／換位、即時估算）留著；
+           篩選列那句「先挑產業鏈…」與拓撲版上方的圖例句都搬進「?」。 -->
       <div class="howtxt" id="how-sankey" hidden></div>
       <div id="sankeyDays" title="看哪一天：拖曳往回看，族群位置不會變；▶ 一天一天播。按「即時」則改成依當下成交值排名，名次變了會換位"></div>
       <!-- 盤中即時模式的狀態列（Andy 2026-09-21「即時」）。誠實標示全寫在這一行：
@@ -3727,16 +3730,14 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="hpanel" id="sankeyPanel" hidden></div>
       </div></div>
     <div class="grid g2" style="margin-top:var(--gap-card)">
-      <div class="card" id="flowInstCard"><div class="row spread"><h3>族群 × 法人 <small id="instSub">三大法人淨買超（張）</small></h3>
+      <div class="card" id="flowInstCard"><div class="row spread"><h3>族群 × 法人 <button class="howbtn pop" data-how="inst" type="button" aria-label="族群 × 法人怎麼看">?</button> <small id="instSub">三大法人淨買超（張）</small></h3>
         <div class="row" style="gap:10px;align-items:center">
           <div id="instDays" title="看最近幾天：拖到 0 就跟著上方的期間走"></div>
-          <div id="instEnd" title="截止日：往回拉看以前的樣子"></div>
-          <button class="howbtn" data-how="inst">怎麼看 ?</button></div></div>
+          <div id="instEnd" title="截止日：往回拉看以前的樣子"></div></div></div>
         <div class="howtxt" id="how-inst" hidden></div>
         <div id="instGroupsWrap"><div id="instGroups" class="chart tall"></div></div></div>
-      <div class="card" id="flowConcCard"><div class="row spread"><h3>資金集中度 <small id="concState"></small></h3>
-        <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div>
-        <button class="howbtn" data-how="conc">怎麼看 ?</button></div></div>
+      <div class="card" id="flowConcCard"><div class="row spread"><h3>資金集中度 <button class="howbtn pop" data-how="conc" type="button" aria-label="資金集中度怎麼看">?</button> <small id="concState"></small></h3>
+        <div class="row" style="gap:8px"><div class="seg" id="concSeg"><button data-v="5" class="on">前 5 大</button><button data-v="10">前 10 大</button></div></div></div>
         <div class="howtxt" id="how-conc" hidden></div>
         <div class="row" id="concMa" style="gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2);margin-bottom:6px"></div>
         <div id="conc" class="chart tall"></div>
