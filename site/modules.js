@@ -113,7 +113,7 @@
       "at": [
         { "page": "industry", "selector": ["#gpBar", "#gpPie"] }
       ],
-      "tests": ["批次29-產業分頁", "產業", "族群頁"] },
+      "tests": ["批次29-產業分頁", "產業", "族群頁", "產業R3審查"] },
 
     { "id": "index.board", "name": "大盤三張圖", "question": "②", "ask": "加權／櫃買／台指期今天怎麼走（含夜盤）",
       "tier": "免費", "law": "🟢",
@@ -181,7 +181,7 @@
       "at": [
         { "page": "stock", "seg": "K 線", "ord": 10, "selector": ["#skChartCard"] }
       ],
-      "tests": ["個股", "K線縮放", "個股即時分K"] },
+      "tests": ["個股", "K線縮放", "個股即時分K", "個股R5"] },
 
     { "id": "stock.mtf", "name": "多週期 SMC 判讀", "question": "③", "ask": "日／週／月多個週期的結構指向同一個方向嗎",
       "tier": "只准免費", "law": "🔴",

@@ -128,6 +128,22 @@
     setZones(z, style) { this.zones = z || []; if (style) this.st = Object.assign({}, ZONE_DEF, style); if (this._req) this._req(); }
     setStyle(style) { this.st = Object.assign({}, ZONE_DEF, style || {}); if (this._req) this._req(); }
     setLastTime(t) { this.lastTime = t; if (this._req) this._req(); }
+    // 畫面內每根 K 棒佔的框（影線高低＋棒寬），區間標籤避讓用
+    _candleRects(ts, width) {
+      const out = []; let data = [];
+      try { data = this._series.data() || []; } catch (e) { return out; }
+      const vr = ts.getVisibleLogicalRange && ts.getVisibleLogicalRange();
+      const i0 = vr ? Math.max(0, Math.floor(vr.from) - 1) : 0, i1 = vr ? Math.min(data.length - 1, Math.ceil(vr.to) + 1) : data.length - 1;
+      const bs = ts.options ? Math.max(2, (ts.options().barSpacing || 6) * 0.8) : 6;
+      for (let i = i0; i <= i1; i++) {
+        const d = data[i]; if (!d || d.high == null) continue;
+        const x = ts.timeToCoordinate(d.time); if (x === null || x < -bs || x > width + bs) continue;
+        const yh = this._series.priceToCoordinate(d.high), yl = this._series.priceToCoordinate(d.low);
+        if (yh === null || yl === null) continue;
+        out.push({ x: x - bs / 2, y: Math.min(yh, yl), w: bs, h: Math.max(1, Math.abs(yl - yh)) });
+      }
+      return out;
+    }
     updateAllViews() {}
     paneViews() { const self = this; return [{ zOrder: () => 'bottom', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx, mediaSize }) => {
       if (!self._series) return;
@@ -139,7 +155,9 @@
         const e = ts.timeToCoordinate(self.lastTime);
         if (e !== null && isFinite(e)) xEnd = Math.min(mediaSize.width, e + 6);
       }
-      const used = [];
+      const used = [];                         // 已放好的標籤框 {x,y,w,h}
+      self.placed = []; self.skipped = 0;      // 驗收讀這兩個（有幾個標籤放得下、幾個因為撞到而省略）
+      let avoidAll = null, candles = null;     // 第一個要放標籤時才算（沒開標籤就不花這個時間）
       for (const z of self.zones) {
         const y1 = self._series.priceToCoordinate(z.high), y2 = self._series.priceToCoordinate(z.low);
         if (y1 === null || y2 === null) continue;
@@ -163,17 +181,35 @@
         if (!st.label) continue;
         const label = `${dem ? '需求' : '供給'}${z.tf ? ' ' + z.tf : ''} ${z.low}–${z.high}`;
         ctx.font = '600 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'left';
-        // 標籤放在區間上緣外面，不要蓋在區間中央的 K 棒上
-        let ly = top - 3;
-        while (used.some(u => Math.abs(u - ly) < 13)) ly -= 13;
-        if (ly < 12) ly = top + h + 11;
-        used.push(ly);
         const tw = ctx.measureText(label).width;
-        // 優先放在最後一根 K 棒右邊的空白處；放不下才退回區間右端
-        const lx = (xEnd + 4 + tw <= mediaSize.width - 2) ? xEnd + 4
-          : Math.min(Math.max(xEnd - tw - 6, xs + 4), mediaSize.width - tw - 6);
-        ctx.fillStyle = 'rgba(10,16,32,.82)'; ctx.fillRect(lx - 3, ly - 10, tw + 7, 13);
-        ctx.fillStyle = base; ctx.fillText(label, lx, ly);
+        /* ★ 2026-09-25（審查 R5：「需求 日線 2395–2457」「需求 日線 2277–2357」壓在 K 棒和 CHoCH 上、
+           字疊在一起；四週期同看的週線格「掃蕩」疊三個）。以前只避「其他區間標籤的 y」，
+           x 不看、BOS／CHoCH／掃蕩標記不看、左上角的圖例也不看。改成：
+           候選位置（區間上緣外 → 區間下緣外 → 區間內上緣）×（最後一根右邊的空白 → 區間右端 → 區間左端）
+           逐一試，**撞到已放好的標籤、K 線上的訊號標記、或圖例**就換下一個；全部都撞就這一個不印
+           （＝同一價位附近只留一個；區間本身的色帶仍然畫著，滑過去看價格軸就知道範圍）。*/
+        if (!avoidAll) avoidAll = self.getAvoid ? self.getAvoid().rects(ts, self._series) : [];
+        if (!candles) candles = self._candleRects(ts, mediaSize.width);
+        const hitIn = (arr, r) => arr.some(b => r.x < b.x + b.w && r.x + r.w > b.x && r.y < b.y + b.h && r.y + r.h > b.y);
+        const ys = [top - 3, top + h + 11, top + 11].filter(y => y >= 12 && y <= mediaSize.height - 4);
+        const xsC = [];
+        if (xEnd + 4 + tw <= mediaSize.width - 2) xsC.push(xEnd + 4);
+        const xR = Math.min(Math.max(xEnd - tw - 6, xs + 4), mediaSize.width - tw - 6);
+        // 從區間右端往左每 12px 試一格，找 K 棒之間的空檔
+        for (let x = xR; x >= xs + 4; x -= 12) xsC.push(x);
+        let pos = null;
+        /* 兩輪：第一輪連 K 棒也避開；找不到才第二輪只避「標籤／訊號標記／圖例」（字框有深底，壓在 K 棒上還讀得到）。
+           兩輪都找不到＝這一帶已經被別的字佔滿，這個標籤就不印。*/
+        for (const tier of [2, 1]) {
+          const block = tier === 2 ? used.concat(avoidAll, candles) : used.concat(avoidAll);
+          for (const ly of ys) { for (const lx of xsC) { const r = { x: lx - 3, y: ly - 10, w: tw + 7, h: 13 }; if (!hitIn(block, r)) { pos = { lx, ly, r }; break; } } if (pos) break; }
+          if (pos) break;
+        }
+        if (!pos) { self.skipped = (self.skipped || 0) + 1; continue; }
+        used.push(pos.r);
+        self.placed = (self.placed || []).concat([{ label, x: pos.r.x, y: pos.r.y, w: pos.r.w, h: pos.r.h }]);
+        ctx.fillStyle = 'rgba(10,16,32,.82)'; ctx.fillRect(pos.r.x, pos.r.y, pos.r.w, pos.r.h);
+        ctx.fillStyle = base; ctx.fillText(label, pos.lx, pos.ly);
       } }); } }) }]; }
   }
 
@@ -216,7 +252,7 @@
           const bx = b ? X(b.t) : null, by = b ? Y(b.p) : null;
           if (s.kind === 'hline' && ay !== null) {
             ctx.beginPath(); ctx.moveTo(0, ay); ctx.lineTo(mediaSize.width, ay); ctx.stroke();
-            ctx.font = '600 10.5px JetBrains Mono, monospace'; ctx.textAlign = 'left';
+            ctx.font = '600 10.5px "JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace'; ctx.textAlign = 'left';
             const lab = String(Math.round(a.p * 100) / 100);
             ctx.fillStyle = 'rgba(10,16,32,.85)'; ctx.fillRect(3, ay - 12, ctx.measureText(lab).width + 8, 13);
             ctx.fillStyle = s.color; ctx.fillText(lab, 7, ay - 2);
@@ -255,6 +291,7 @@
     paneViews() {
       const self = this;
       return [{ zOrder: () => 'top', renderer: () => ({ draw(target) { target.useMediaCoordinateSpace(({ context: ctx }) => {
+        self.lastLabels = [];
         if (!self._series || !self._chart || !self.items.length) return;
         const ts = self._chart.timeScale();
         ctx.save();
@@ -273,8 +310,19 @@
           [[x1, y1], [x2, y2]].forEach(([x, y]) => { ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill(); });
           if (!it.label) continue;
           const up = it.kind === 'top';
-          const tx = (x1 + x2) / 2, tyRaw = (y1 + y2) / 2 + (up ? -10 : 16);
+          const tx = (x1 + x2) / 2;
+          let tyRaw = (y1 + y2) / 2 + (up ? -10 : 16);
           const w = ctx.measureText(it.label).width;
+          /* ★ 2026-09-25（審查 R5：「頂背離」落在左上角圖例底下，被圖例的模糊底色蓋住）。
+             字框撞到圖例就改放到連線的另一側（頂背離放線下、底背離放線上）。*/
+          const lg = self.getLegend ? self.getLegend() : null;
+          const box = (ty) => ({ x: tx - w / 2 - 4, y: ty - 11, w: w + 8, h: 14 });
+          const onLg = (b) => lg && b.x < lg.x + lg.w && b.x + b.w > lg.x && b.y < lg.y + lg.h && b.y + b.h > lg.y;
+          if (onLg(box(tyRaw))) {
+            const alt = up ? Math.max(y1, y2) + 18 : Math.min(y1, y2) - 8;
+            tyRaw = onLg(box(alt)) ? lg.y + lg.h + 14 : alt;
+          }
+          self.lastLabels = (self.lastLabels || []).concat([{ label: it.label, ...box(tyRaw) }]);
           ctx.fillStyle = hexa('#0a1020', 82);
           ctx.fillRect(tx - w / 2 - 4, tyRaw - 11, w + 8, 14);
           ctx.fillStyle = col; ctx.textAlign = 'center';
@@ -453,7 +501,7 @@
       /* panes.enableResize：面板之間可以用滑鼠拖大拖小（Andy 2026-09-15
          「下方MACD KD 成交量等範圍上下可以拉大」）。分隔線本來用 grid 的顏色，幾乎看不見，
          使用者不會知道那裡可以拉 —— 改成明顯一點，hover 再亮起來。 */
-      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: 'JetBrains Mono, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
+      autoSize: true, layout: { attributionLogo: false, background: { color: C.bg }, textColor: C.text, fontFamily: '"JetBrains Mono", "SFMono-Regular", Menlo, Consolas, monospace', fontSize: 11, panes: { separatorColor: C.line, separatorHoverColor: 'rgba(62,224,255,.55)', enableResize: true } },
       grid: { vertLines: { color: C.grid }, horzLines: { color: C.grid } },
       crosshair: { mode: LWC.CrosshairMode.Normal, vertLine: { labelBackgroundColor: C.panel3 }, horzLine: { labelBackgroundColor: C.panel3 } },
       rightPriceScale: { borderColor: C.line, scaleMargins: { top: 0.08, bottom: 0.08 } },
@@ -471,6 +519,18 @@
       this.candle = this.chart.addSeries(LWC.CandlestickSeries, { upColor: C.up, downColor: C.down, borderUpColor: C.up, borderDownColor: C.down, wickUpColor: C.up, wickDownColor: C.down, priceLineVisible: true, lastValueVisible: true });
       this.zones = new ZonesPrimitive([]); this.candle.attachPrimitive(this.zones);
       this.divPrice = new DivPrimitive(); this.candle.attachPrimitive(this.divPrice);
+      // 左上角圖例（#legendOv）在主圖座標裡佔的框；背離字與區間標籤都要避開它
+      this.divPrice.getLegend = () => this.legendRect();
+      this.zones.getAvoid = () => ({ rects: (ts, series) => {
+        const out = []; const lg = this.legendRect(); if (lg) out.push(lg);
+        (this._markBoxes || []).forEach(m => {
+          const x = ts.timeToCoordinate(m.time); if (x === null) return;
+          const yp = series.priceToCoordinate(m.pos === 'aboveBar' ? m.hi : m.lo); if (yp === null) return;
+          const hw = Math.max(14, m.text.length * 4.2);     // 標記的字寬（中英混排的粗估，寧大勿小）
+          out.push(m.pos === 'aboveBar' ? { x: x - hw, y: yp - 34, w: hw * 2, h: 34 } : { x: x - hw, y: yp, w: hw * 2, h: 34 });
+        });
+        return out;
+      } });
       this.divPane = null;               // MACD 面板那一條，等 applyIndicators 建好 series 才掛
       this.overlays = []; this.panes = {}; this.priceLines = []; this.markers = null;
       this.bars = []; this.tf = this.opts.tf; this.paneIndex = {};
@@ -944,6 +1004,22 @@
         return;
       }
       this._tailFrom = null;
+      /* ★ 2026-09-25：重建之前先記住每個副圖**現在**的高度（按名字記，拿掉的面板也留著）。
+         以前重建時只在第一次套 cfg.paneH，之後一律用預設高度 —— 關掉 KD 再打開，
+         使用者拖好的主圖／成交量高度就被打回預設（驗收 `個股`「切指標之後主圖高度不會自己跳回去」）。
+         這條以前沒紅，是因為點籤的正中間會點到參數框、根本沒切到；R5 把籤改成整顆都是開關之後才現形。*/
+      if (this._paneInit && !this.opts.compact) {
+        try {
+          const cur = this.paneHeights();
+          const sum = Object.values(cur).reduce((a, v) => a + (v || 0), 0);
+          /* _applyPaneHeights 用容器 clientHeight 當分母算權重，但面板實際高度加起來比它少（分隔線佔掉的），
+             直接把量到的高度當權重，每重建一次副圖就縮 ~4%（實測 115→110→106→102）。先換算回權重的尺度。*/
+          const k = sum > 0 && this.el.clientHeight > 120 ? this.el.clientHeight / sum : 1;
+          delete cur.main;
+          Object.keys(cur).forEach(n => { cur[n] = cur[n] * k; });
+          this._paneMem = Object.assign(this._paneMem || {}, cur);
+        } catch (e) { /* 忽略 */ }
+      }
       this.clearOverlays(); this.cfg = cfg;
       this._indKey = this._cfgKey(cfg); this._feeds = [];
       this.stats.rebuild++;
@@ -1054,7 +1130,7 @@
          Andy 2026-09-15：「底下每次更新都會動到我調整好的上下範圍會一直出現跳動，很麻煩」——
          盤中每 5 秒就會重跑一次 applyIndicators，每次都重套一遍等於把他拖好的位置一直重設。
          重建圖表（換股票／換週期）時 _paneInit 會是 undefined，那時才套。 */
-      const saved = this._paneInit ? null : cfg.paneH;
+      const saved = this._paneInit ? (this._paneMem || null) : cfg.paneH;
       this._paneInit = true;
       if (saved && !this.opts.compact) {
         // 副圖用存檔的高度，主圖自動吃剩下的 —— 那本來就是他拖出來的結果
@@ -1102,6 +1178,12 @@
       });
       return out;
     }
+    legendRect() {
+      const lg = this.el && this.el.querySelector && this.el.querySelector('.legend-ov');
+      if (!lg || !lg.offsetWidth || !lg.offsetHeight || lg.hidden) return null;
+      const a = lg.getBoundingClientRect(), b = this.el.getBoundingClientRect();
+      return { x: a.left - b.left, y: a.top - b.top, w: a.width, h: a.height };
+    }
     setMarkers(marks) { // {bos:[t], choch:[[t,trend]], sweep_low:[t], sweep_high:[t]}
       const has = new Set(this.data.map(d => String(d.time)));
       const m = [];
@@ -1113,7 +1195,32 @@
       m.sort((a, b) => (a.time > b.time ? 1 : a.time < b.time ? -1 : 0));
       // 只留每種訊號最近 5 個，太多會把圖蓋滿
       const keep = []; const cnt = {}; for (let i = m.length - 1; i >= 0; i--) { const k = m[i].text; cnt[k] = (cnt[k] || 0) + 1; if (cnt[k] <= 5) keep.unshift(m[i]); }
-      if (!this.markers) this.markers = LWC.createSeriesMarkers(this.candle, keep); else this.markers.setMarkers(keep);
+      /* ★ 2026-09-25（審查 R5：週線格的「掃蕩」疊了三個、CHoCH 跟掃蕩擠在一起）。
+         同一側（K 棒上方／下方）靠得太近（約 60px 內，換算成根數）的標記併成一個：字寫成「CHoCH·掃蕩×3」，
+         顏色與箭頭用最重要的那個（CHoCH > BOS > 掃蕩），位置落在最後一根。*/
+      const idx = new Map(this.data.map((d, i) => [String(d.time), i]));
+      const PRI = { CHoCH: 3, BOS: 2, '掃蕩': 1 };
+      // 「幾根內算同一處」跟著棒寬走：字大約 60px 寬，棒越密要併的範圍越大（月線、四週期小格）
+      let bsp = 7; try { bsp = this.chart.timeScale().options().barSpacing || 7; } catch (e) { /* 忽略 */ }
+      const NEAR = Math.max(2, Math.min(12, Math.ceil(60 / bsp)));
+      const merged = [];
+      keep.forEach(mk => {
+        const i = idx.get(String(mk.time));
+        let prev = null; for (let j = merged.length - 1; j >= 0; j--) { if (merged[j].position === mk.position) { prev = merged[j]; break; } }
+        if (prev && i != null && prev._i != null && i - prev._i <= NEAR) {
+          prev._items.push(mk); prev._i = i; prev.time = mk.time;
+          if ((PRI[mk.text] || 0) > (PRI[prev._lead.text] || 0)) prev._lead = mk;
+        } else merged.push({ time: mk.time, position: mk.position, _i: i, _items: [mk], _lead: mk });
+      });
+      const out = merged.map(g => {
+        const c = {}; g._items.forEach(x => { c[x.text] = (c[x.text] || 0) + 1; });
+        const text = Object.keys(c).sort((a, b) => (PRI[b] || 0) - (PRI[a] || 0)).map(k => k + (c[k] > 1 ? '×' + c[k] : '')).join('·');
+        return { time: g.time, position: g.position, color: g._lead.color, shape: g._lead.shape, text };
+      });
+      // 給區間標籤避讓用：每個標記落在哪根 K 棒、畫在上面還是下面
+      this._markBoxes = out.map(o => { const d = this.data[idx.get(String(o.time))] || {}; return { time: o.time, pos: o.position, hi: d.high, lo: d.low, text: o.text }; });
+      this.markerList = out.map((o, k) => ({ ...o, i: merged[k]._i }));   // 驗收讀這個（i＝落在第幾根）
+      if (!this.markers) this.markers = LWC.createSeriesMarkers(this.candle, out); else this.markers.setMarkers(out);
     }
     setPriceLines(lines) { // [{price, title, color}]
       for (const p of this.priceLines) this.candle.removePriceLine(p); this.priceLines = [];

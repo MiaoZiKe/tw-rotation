@@ -7262,6 +7262,10 @@
       kids.forEach(k => below.appendChild(k));
     }
     function layoutLabels() {
+      /* 容器被收起來（寬 0）時不排：W() 會退到 320 的下限、mode() 判成 below，
+         卡片會被搬進底下那一排、引線照 320 寬算 —— 展開那一刻就是一堆疊在一起的卡片。
+         展開時 ResizeObserver 會補一次（見 onResize 上面的說明）。*/
+      if (!el.clientWidth) return;
       const w = W(), h = H(), cw = colW(), m = mode();
       const modeChanged = applyMode(m);
       // 引線那張 SVG 要蓋住整個容器（below 模式時容器比畫布高）
@@ -7315,6 +7319,8 @@
         // 兩種高度都量：全開（hh）與收成一行（hhC）。之後每一幀只用快取，不碰 DOM。
         items.forEach(it => { it.p.el.classList.remove('hid', 'compact'); it.p.hh = it.p.el.offsetHeight || 42; });
         items.forEach(it => { it.p.el.classList.add('compact'); it.p.hhC = it.p.el.offsetHeight || 30; it.p.el.classList.remove('compact'); });
+        // 第二階（2026-09-24）：只留「編號＋標題」
+        items.forEach(it => { it.p.el.classList.add('compact', 'mini'); it.p.hhM = it.p.el.offsetHeight || 24; it.p.el.classList.remove('compact', 'mini'); });
         lastCw = cw;
         stickyBelow = new Set(); compactSide = { L: false, R: false };
       }
@@ -7338,17 +7344,26 @@
         const list = colsBy[side];
         /* 塞不下的第一步不是往底下丟，是把這一欄的卡片**收成一行**（標題＋英文＋兩顆晶片；被點的那一張維持全開）。
            Andy 2026-09-22：「不准掉到下面」。收了還是塞不下才往底下排（16 張以內實測不會走到那一步）。*/
-        const useCompact = (on) => list.forEach(it => {
+        /* ★ 2026-09-24（Andy：「資訊卡環繞示意圖、限制在示意圖同高的範圍內；放不下的收成可點開的下拉字卡
+           （預設只顯示編號＋標題，點了才展開說明）」）：收合分兩階 ——
+             1 ＝ compact：標題＋英文＋兩顆晶片（原本就有）
+             2 ＝ mini   ：只留「編號＋標題 ▾」；被點的那一張（sel-part）與滑過的那一張照樣全開
+           兩階都塞不下才往底下那一排丟（stickyBelow）。階數一樣黏住，理由同 stickyBelow。*/
+        const useLevel = (lv) => list.forEach(it => {
           const keep = it.p.el.classList.contains('sel-part');
-          it.p.el.classList.toggle('compact', on && !keep);
-          it.hh = (on && !keep) ? (it.p.hhC || it.hh) : (it.p.hh || 42);
+          it.p.el.classList.toggle('compact', lv >= 1 && !keep);
+          it.p.el.classList.toggle('mini', lv >= 2 && !keep);
+          it.hh = keep ? (it.p.hh || 42) : (lv >= 2 ? (it.p.hhM || it.p.hhC || it.hh) : (lv >= 1 ? (it.p.hhC || it.hh) : (it.p.hh || 42)));
         });
-        if (!compactSide[side] && !pack(list, h)) compactSide[side] = true;   // 一旦收起來就維持（黏住），跟 stickyBelow 同一個理由
-        useCompact(compactSide[side]);
+        let lv = +compactSide[side] || 0;
+        useLevel(lv);
+        if (lv < 1 && !pack(list, h)) { lv = 1; useLevel(lv); }
+        if (lv < 2 && !pack(list, h)) { lv = 2; useLevel(lv); }
+        compactSide[side] = lv;
         while (list.length && !pack(list, h)) {
           let worst = 0; list.forEach((it, i) => { if (it.rank > list[worst].rank) worst = i; });
           const ev = list.splice(worst, 1)[0];
-          ev.p.el.classList.remove('compact');
+          ev.p.el.classList.remove('compact', 'mini');
           stickyBelow.add(ev.p); belowOnes.push(ev);       // 收了還塞不下才往底下排（而且黏住），不藏
         }
         const lx = side === 'L' ? 6 : w - cw + 6;           // 卡片在自己那一欄裡的 x（欄是 absolute 的，left 相對於欄）
@@ -7677,27 +7692,64 @@
     if (io) io.observe(el);
     const onVis = () => { visible = document.visibilityState !== 'hidden'; };
     document.addEventListener('visibilitychange', onVis);
+    /* ★ 2026-09-24（Andy 回報：AI 伺服器 → 電源，3D 按「收合圖」再打開，模型縮成左上角一小塊、
+         卡片堆在左下與右側互相重疊、說明字疊在圖上）。
+       根因：收合＝`#dgBody` display:none → 容器 clientWidth 變 0。這段期間只要來一次視窗 resize
+         （捲軸消失、半邊視窗、開關事件抽屜都算），這支就拿 `W()` 的下限 320×340 去重設畫布與相機；
+         展開之後**沒有任何人再叫它一次**（它只掛在 window resize 上），於是畫布卡在 320×340。
+       修法兩件事：
+         ① 容器量不到寬度（被收起來）就**不要**重設，記下 `sizedW = 0` 等展開時補。
+         ② 對容器本身掛 ResizeObserver：從 0 變回正常寬度、或容器自己變寬變窄
+            （不一定伴隨視窗 resize，例如側欄開關），都補一次 onResize。
+       `sizedW` 是「上一次真的套用到畫布的容器寬」：同寬就只補畫一張、重排標籤，不重設相機
+       —— 使用者轉過的視角在收合／展開之後要原樣留著。
+       掛載當下就量不到寬度（在收起來的容器裡掛上去）時，第一次取景是用 320 算的，
+       所以展開那一次要重新取景（`fitCamera`），不然模型大小是照 320 寬算的。*/
+    let sizedW = el.clientWidth || 0;
     const onResize = () => {
+      if (!alive) return;
+      const cw0 = el.clientWidth;
+      if (!cw0) { sizedW = 0; return; }             // ① 收起來了：什麼都不量，等展開
+      const wasHidden = sizedW === 0;
+      sizedW = cw0;
       camera.aspect = W() / H(); camera.updateProjectionMatrix();
       renderer.setSize(W(), H());
       // 卡片欄的模式變了（例如從兩欄變成底下一欄），模型能用的寬度也變了 → 重新取景
       const before = lastMode;
       layoutLabels();
-      if (before !== lastMode) { fitCamera(); layoutLabels(); }
+      if (before !== lastMode || wasHidden) { fitCamera(); layoutLabels(); }
+      markDirty();
       // 陰影跟著寬度開關（≥960 才開）：窄畫面關掉是效能的備案，不是「壞了」
       applyShadowMode();
       fitShadow();
       applyPal(pal);      // envMap 的 <700 開關也在 applyPal 裡，寬度變了要重判一次
     };
     window.addEventListener('resize', onResize);
+    /* ② 容器自己的尺寸變化。放在 rAF 裡做：ResizeObserver 的回呼裡直接改 DOM（畫布尺寸、卡片欄）
+       會再觸發一次觀察，瀏覽器會噴「ResizeObserver loop」。
+       只看**寬度**：高度是這支自己依寬度算出來的（H()），拿高度當觸發會自己咬自己。*/
+    let roQ = false;
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(() => {
+      if (roQ) return; roQ = true;
+      requestAnimationFrame(() => {
+        roQ = false;
+        if (!alive) return;
+        const cw0 = el.clientWidth;
+        if (!cw0) { sizedW = 0; return; }
+        if (cw0 !== sizedW) onResize();
+        else { markDirty(); layoutLabels(); }     // 同寬展開：補畫一張、卡片重新對位
+      });
+    }) : null;
+    if (ro) ro.observe(el);
     tick();
-    layoutLabels();
+    if (el.clientWidth) layoutLabels();
 
     function dispose() {
       alive = false;
       if (raf) cancelAnimationFrame(raf);
       if (holdT) clearTimeout(holdT);
       if (io) io.disconnect();
+      if (ro) ro.disconnect();
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('resize', onResize);
       el.removeEventListener('pointerenter', onEnter);      // #246：容器是重用的，監聽一定要拆
@@ -8037,6 +8089,23 @@
           out.push('carry' + i + '|' + q(m.position.x) + ',' + q(m.position.y) + ',' + q(m.position.z) + '|' + (m.visible ? 1 : 0));
         });
         return out;
+      },
+      /* 給驗收看的：整個模型的外接盒投影到螢幕上是哪一塊（client 座標）。
+         2026-09-24「收合再展開 → 模型縮在左上角」那條驗收要比「模型中心 vs 畫面中心」，
+         只看畫布尺寸不夠 —— 畫布對了但相機沒重新取景，模型一樣會偏。*/
+      bounds: () => {
+        const bb = new mods.THREE.Box3().setFromObject(root);
+        if (bb.isEmpty()) return null;
+        const r = renderer.domElement.getBoundingClientRect();
+        let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+        [bb.min.x, bb.max.x].forEach(x => [bb.min.y, bb.max.y].forEach(y => [bb.min.z, bb.max.z].forEach(z => {
+          const v = new mods.THREE.Vector3(x, y, z).project(camera);
+          const sx = r.left + (v.x + 1) / 2 * r.width, sy = r.top + (-v.y + 1) / 2 * r.height;
+          x0 = Math.min(x0, sx); y0 = Math.min(y0, sy); x1 = Math.max(x1, sx); y1 = Math.max(y1, sy);
+        })));
+        const c = new mods.THREE.Vector3(); bb.getCenter(c); c.project(camera);
+        return { x0, y0, x1, y1, cx: r.left + (c.x + 1) / 2 * r.width, cy: r.top + (-c.y + 1) / 2 * r.height,
+          canvas: { x: r.left, y: r.top, w: r.width, h: r.height } };
       },
       dispose: () => { dispose(); if (global.Rack3D.current === view) global.Rack3D.current = null; },
       /* 重設視角要跟第一次進來看到的「一模一樣」。麻煩的是 OrbitControls 內部還留著
