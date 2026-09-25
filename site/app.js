@@ -2160,7 +2160,7 @@
        而它攤著的是**內部作業文字**（金鑰放哪、token 怎麼換、Actions 怎麼跑）—— 這是 public 的網站，那些不該出現在畫面上。
        給 Andy 看的版本是「交付清單」（#delivery，他的原話＋狀態＋去看），所以舊網址一律導過去，任務板的內容前端不再載入。
        用 location.replace：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
-       ⚠ `data/tasks.json` 仍由 build_payload 產出（要停掉得改管線），這裡只保證「網站畫面上看不到」。*/
+       2026-09-25 起 build_payload 也不再產出 `data/tasks.json`（並刪掉殘留舊檔），網址直接打也拿不到。*/
     if (head === 'tasks') { location.replace('#delivery'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/

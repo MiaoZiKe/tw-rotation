@@ -7,7 +7,7 @@
  * 他選的方案是「在網站上多一頁」而不是同步 Obsidian —— 理由很單純：
  * 他只重新整理網頁、不跑本機指令，所以放在網站上他一定看得到。
  *
- * 資料來源是 `obsidian/tasks.yaml`（唯一一份），由 build_payload 轉成 site/data/tasks.json。
+ * 資料來源是 `obsidian/tasks.yaml`；2026-09-25 起 build_payload 不再轉出 site/data/tasks.json（內部作業文字不上 public 網站），#tasks 已導到 #delivery。
  * Obsidian 的 Markdown 則由 scripts/gen_taskboard.py 從同一份 YAML 產出。
  * 兩邊各維護一份的話第三天就會對不起來，所以刻意只留一個來源。
  */

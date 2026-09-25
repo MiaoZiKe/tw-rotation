@@ -94,6 +94,10 @@ jobs:
         run: python scripts/stamp_assets.py
         env:
           TW_BUILD_SEQ: ${{ steps.seq.outputs.n }}
+      # 2026-09-25（R6 審查追補）：tasks.json 是內部作業文字，不准上 public 網站。
+      # build_payload 已經不寫、也會刪舊檔；這一步是給「快取命中、沿用舊 site/data」那條路的保險。
+      - name: 確認部署產物裡沒有 tasks.json
+        run: rm -f site/data/tasks.json
       - uses: actions/upload-pages-artifact@v3
         with:
           path: site

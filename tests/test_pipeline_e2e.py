@@ -389,7 +389,7 @@ def test_payload_has_no_nan_literals(populated):
     _, site, _ = populated
     build_payload.build()
     # ★ 2026-09-20：原本是對整份原始文字做 `"NaN" not in raw`，
-    #   但 tasks.json 的內容是**散文**（任務板的說明文字），裡面正好在講 2026-09-20
+    #   但當時的 tasks.json（2026-09-25 起已不再產出）是**散文**（任務板的說明文字），裡面正好在講 2026-09-20
     #   那個「代表股顯示 nan」的 bug —— 於是這條護欄把一段正確的說明判成了壞資料。
     #   要擋的是「JSON 裡出現 NaN／Infinity 這種非法字面值」，不是「文字裡提到 NaN」。
     #   嚴格模式的 json.loads 本來就會抓到真的字面值（parse_constant 會被呼叫），
@@ -398,6 +398,23 @@ def test_payload_has_no_nan_literals(populated):
         raw = f.read_text(encoding="utf-8")
         json.loads(raw, parse_constant=lambda c: (_ for _ in ()).throw(
             ValueError(f"{f.name} 含有非法字面值 {c}")))
+
+
+def test_payload_does_not_ship_tasks_json(populated):
+    """部署產物裡不准有 tasks.json；交付清單不准含金鑰／token／Secrets 字樣。
+
+    2026-09-25（R6 審查追補）：前端早就把 `#tasks` 導到交付清單，但管線仍照寫 tasks.json、
+    Pages 照樣部署 —— `…/data/tasks.json` 直接打得開，內容是內部作業文字（金鑰／token 流程）。
+    這條同時守「上一輪殘留的舊檔會被清掉」：先放一份假的，build 完它必須消失。
+    """
+    from pipeline import build_payload
+    _, site, _ = populated
+    (site / "tasks.json").write_text('{"tasks": []}', encoding="utf-8")
+    build_payload.build()
+    assert not (site / "tasks.json").exists(), "build_payload 仍留下 site/data/tasks.json"
+    raw = (site / "delivery.json").read_text(encoding="utf-8")
+    hits = [w for w in ("token", "Token", "TOKEN", "金鑰", "Secrets", "secret") if w in raw]
+    assert not hits, f"delivery.json 含內部作業字樣：{hits}"
 
 
 def test_seasonality_suppresses_thin_samples(populated):
