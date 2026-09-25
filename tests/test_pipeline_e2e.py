@@ -256,6 +256,25 @@ def test_trust_streak(populated):
         assert s["streak_days"].is_monotonic_decreasing
 
 
+def test_trust_streak_sell_side():
+    """2026-09-24：連續賣超（總覽四象限的左半邊）。用手刻的淨額序列驗口徑，不靠隨機測試資料：
+    賣超的累計要是負的、`last` 是最近一天的淨額，而且中間夾一天買超就要斷掉。"""
+    import pandas as pd
+    from pipeline.compute import flow
+    df = pd.DataFrame({
+        "code": ["A"] * 5 + ["B"] * 3,
+        "date": list(pd.date_range("2026-09-14", periods=5)) + list(pd.date_range("2026-09-16", periods=3)),
+        "trust": [-5, 3, -2, -4, -6, 1, 2, 7],
+    })
+    sell = flow.trust_streak(df, min_days=2, who="trust", side="sell")
+    assert list(sell["code"]) == ["A"]                   # B 一直在買，不會出現在賣超
+    a = sell.iloc[0]
+    assert a["streak_days"] == 3                         # -2,-4,-6；前面那天 +3 把它斷開
+    assert a["accumulated"] == -12 and a["last"] == -6
+    buy = flow.trust_streak(df, min_days=2, who="trust", side="buy")
+    assert list(buy["code"]) == ["B"] and buy.iloc[0]["last"] == 7
+
+
 # ------------------------------------------------------------------ 前端輸出
 
 def test_build_payload_end_to_end(populated):

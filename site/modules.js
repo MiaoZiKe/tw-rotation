@@ -64,8 +64,8 @@
       "tier": "免費", "law": "🟡",
       "at": [
         { "page": "overview", "step": 1, "seg": "資金去向", "ord": 20,
-          "selector": ["#ovRotCard", "#ovFlowHead", "#ovFlowWrap", "#ovFlowNote"],
-          "note": "總覽上的簡版（renderOvFlow，無動畫）。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。" },
+          "selector": ["#ovRotCard", "#ovFlowHead", "#ovFlowWrap"],
+          "note": "總覽上的簡版（renderOvFlow，無動畫）。外殼 #ovRotCard 與輪動時鐘共用，理由見 flow.clock。2026-09-24 說明精簡：圖下註腳 #ovFlowNote 拿掉，口徑搬進足跡輪盤的「?」。" },
         { "page": "flow", "seg": "資金去向", "ord": 20, "selector": ["#flowSankeyCard"] }
       ],
       "tests": ["新-資金流向", "桑基展開與即時", "批次30-兩層下拉與象限卡", "總覽"] },
@@ -102,7 +102,7 @@
       "tier": "免費", "law": "🟡",
       "at": [
         { "page": "overview", "step": 1, "seg": "熱門題材", "ord": 40, "selector": ["#ovThemeCard"],
-          "note": "總覽上是一條橫向題材條（renderThemeStrip）。" },
+          "note": "2026-09-24 起總覽上是題材熱力圖（renderOvThemes：方塊＝題材成交值、顏色＝熱度，下拉或點方塊換成成分股），放在資金熱力圖正下方。" },
         { "page": "heatmap", "seg": "題材熱力", "ord": 20, "selector": ["#themeMapCard"],
           "note": "2026-09-24 題材併進熱力圖分頁。段名沿用舊的「題材熱力」—— route() 的 prefer 是用段名找段落的。" }
       ],
@@ -119,25 +119,26 @@
       "tier": "免費", "law": "🟢",
       "at": [
         { "page": "overview", "step": 2, "seg": "大盤", "ord": 50, "selector": ["#m3"],
-          "note": "跟 market.kpi 同一段：三張走勢圖與六格 KPI 是同一個問題（今天大盤的體質）。" }
+          "note": "跟 market.kpi 同一段：三張走勢圖與 KPI 橫條是同一個問題（今天大盤的體質）。2026-09-24 起三張合進一個大方框（#m3Frame），台指期日夜盤自動切。" }
       ],
       "tests": ["大盤三張圖", "新-大盤三張圖", "夜盤真實fixture", "夜盤推送"] },
 
-    { "id": "market.kpi", "name": "大盤 KPI 六格", "question": "②", "ask": "今天大盤的體質（加權／成交值／漲跌家數／站上 MA20／前五族群佔比／今日候選）",
+    { "id": "market.kpi", "name": "大盤 KPI 橫條", "question": "②", "ask": "今天大盤的體質（加權／成交值／漲跌家數／前五族群佔比）",
       "tier": "免費", "law": "🟢",
       "at": [
-        { "page": "overview", "step": 2, "seg": "大盤", "ord": 50, "selector": ["#hero"] }
+        { "page": "overview", "step": 2, "seg": "大盤", "ord": 50, "selector": ["#hero"],
+          "note": "2026-09-24：六格收成四格（拿掉今日候選、站上 MA20），搬到三張走勢圖上方做成一條 ≤64px 的橫條。" }
       ],
       "tests": ["總覽", "市場明細"] },
 
-    { "id": "market.breadth", "name": "市場寬度", "question": "②", "ask": "指數漲，是「大家都在漲」還是「只有權值股在漲」",
+    { "id": "market.breadth", "name": "漲跌家數分佈", "question": "②", "ask": "今天是「大家都在漲」還是「少數幾檔撐盤」（依漲跌幅分級的家數直條）",
       "tier": "免費", "law": "🟢",
       "at": [
         { "page": "overview", "step": 2, "seg": "市場寬度", "ord": 60, "selector": ["#ovBreadthCard"] }
       ],
       "tests": ["總覽"] },
 
-    { "id": "market.streak", "name": "法人連續買超", "question": "②", "ask": "誰被法人連續買了幾天（投信／外資／合計，門檻可調）",
+    { "id": "market.streak", "name": "法人連續買賣超", "question": "②", "ask": "法人在誰身上連續買或賣、力道在加大還是收手（四象限，投信／外資／合計，門檻可調）",
       "tier": "免費〔推〕", "law": "🟠",
       "at": [
         { "page": "overview", "step": 2, "seg": "法人買超", "ord": 70, "selector": ["#ovTrustCard"] }
@@ -170,7 +171,8 @@
     { "id": "cand.board", "name": "今日候選", "question": "③", "ask": "今天有哪些標的符合「A 回檔承接／B 突破追進」的條件",
       "tier": "只准免費", "law": "🔴",
       "at": [
-        { "page": "overview", "step": 3, "seg": "今日候選", "ord": 80, "selector": ["#ovCandCard"] }
+        { "page": "market", "selector": ["#mktSeg2"],
+          "note": "2026-09-24 總覽的「今日候選」表整張拿掉（Andy），名單只留在市場明細的「今日候選」分頁（#market/cand）。" }
       ],
       "tests": ["總覽", "市場明細", "排序"] },
 
