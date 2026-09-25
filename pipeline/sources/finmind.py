@@ -626,3 +626,29 @@ def futures_ohlc(start: str, end: str | None = None, *, wait: bool = True) -> pd
     if not parts:
         return pd.DataFrame()
     return pd.concat(parts, ignore_index=True)
+
+
+
+def futures_ticks(day: str, data_id: str = "TX", *, wait: bool = False) -> pd.DataFrame:
+    """台指期某一天的逐筆（TaiwanFuturesTick），給大盤三張圖的 1H／4H 聚合用。
+
+    一天一次請求；失敗／沒權限／當天休市都回空並記 log。
+    ⚠ 2026-09-25：容器連不到 FinMind，這個資料集在我們的會員等級能不能拿、
+      回應欄位是不是 date/contract_date/price/volume，都還沒實測 —— 第一次在 Actions 跑時看 log。
+    """
+    data = http.finmind_get("TaiwanFuturesTick", data_id=data_id, start_date=day,
+                            wait_when_exhausted=wait)
+    if not data:
+        err = http.finmind_last_error() or {}
+        log.warning("FinMind 台指期逐筆 %s 回空（上游：%s）", day,
+                    f"{err.get('status')} {err.get('msg')}" if err else "無錯誤訊息／當天無交易")
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    need = {"date", "price"}
+    if not need.issubset(df.columns):
+        log.warning("FinMind 台指期逐筆欄位對不上，缺 %s；回應前 200 字：%s",
+                    sorted(need - set(df.columns)), str(data[:2])[:200])
+        return pd.DataFrame()
+    if "contract_date" not in df.columns:
+        df["contract_date"] = df["futures_id"] if "futures_id" in df.columns else ""
+    return df

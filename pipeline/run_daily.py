@@ -320,6 +320,34 @@ def collect_intraday_60m() -> pd.DataFrame:
     return yahoo.intraday_since(codes, markets, since, "60m")
 
 
+def collect_index_intraday() -> pd.DataFrame:
+    """加權 ^TWII、櫃買 ^TWOII 的 60 分與 15 分 K，只抓資料湖最後一根之後的那段。
+
+    為什麼（2026-09-25）：總覽大盤三張圖的 1H／4H 以前在瀏覽器端即時抓 Yahoo，線上抓不到就退回日 K。
+    分 K 明天還會用到，照 DECISIONS #155 進湖、增量更新；湖是空的時候第一次會補滿 Yahoo 的保留上限
+    （60 分 730 天、15 分 60 天），所以不必另外跑回補也會自己長出來。
+    """
+    from .sources import yahoo
+
+    have = store.read("index_intraday")
+    parts = [yahoo.index_intraday_since(have, iv) for iv in ("60m", "15m")]
+    parts = [p for p in parts if p is not None and not p.empty]
+    return pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
+
+
+def collect_futures_60m(day: str) -> pd.DataFrame:
+    """台指期近月某一天的逐筆 → 60 分 K（FUT 日盤／FUT_N 夜盤）。湖裡已有那天的日盤就不再花額度。"""
+    from .compute.intraday_bars import ticks_to_60m
+
+    have = store.read("index_intraday")
+    if not have.empty:
+        fut = have[have["symbol"].astype(str) == "FUT"]
+        if fut["ts"].astype(str).str.startswith(str(day)).any():
+            log.info("台指期 %s 的 60 分 K 已在湖裡，跳過", day)
+            return pd.DataFrame()
+    return ticks_to_60m(finmind.futures_ticks(str(day)))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -385,6 +413,8 @@ def main() -> int:
     # 只在有抓價量的輪次做；news 那幾輪（盤中、週末）不必碰。
     if not news_only:
         save("intraday_60m", step("yahoo.intraday_60m", collect_intraday_60m))
+        # 大盤三張圖的 1H／4H：加權、櫃買的 60 分（長歷史）＋ 15 分（最近 60 天），增量進湖
+        save("index_intraday", step("yahoo.index_intraday", collect_index_intraday))
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。
@@ -451,6 +481,10 @@ def main() -> int:
         since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
         save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
         save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
+
+    # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
+    if not light and not news_only and not args.skip_finmind and trade_date:
+        save("index_intraday", step("finmind.futures_60m", collect_futures_60m, trade_date))
 
     if not light and not news_only and not args.skip_finmind and trade_date:
         codes = universe(args.universe)

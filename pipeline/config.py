@@ -47,6 +47,11 @@ TABLES: dict[str, list[str]] = {
     # —— 見 DECISIONS #155（通則：會重複用到的就要存）與 #156（分 K 的分層策略）。
     # 1/5/15 分只要當天，不進湖；240 分、週、月都由這一層推出來。
     "intraday_60m":       ["ts", "code"],
+    # v7（2026-09-25）：大盤三張圖 1H／4H 用的指數與台指期分 K。
+    # symbol：TSE（^TWII）/ OTC（^TWOII）/ FUT（台指期日盤）/ FUT_N（夜盤）；
+    # interval：60m（Yahoo 保留 730 天，當長歷史）/ 15m（Yahoo 60 天，補最近的細節）。
+    # 跟個股的 intraday_60m 分開：那張表的增量起點是「全表最後一根」，混進指數會互相干擾。
+    "index_intraday":     ["ts", "symbol", "interval"],
     # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
     # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
     "material_news":      ["news_id"],
@@ -56,7 +61,7 @@ TABLES: dict[str, list[str]] = {
 # 為什麼要這個：`store.append()` 每次會**重寫整個分割檔**，而 data/ 每天都會 commit 進 repo。
 # 60 分 K 一年約 100 萬列，照年分割的話每天的資料 commit 都要重寫 26 MB，
 # 一年下來 git 歷史會多好幾 GB。按月分割之後每天只重寫當月那一個檔（約 1 MB）。
-PARTITION_MONTHLY: set[str] = {"intraday_60m"}
+PARTITION_MONTHLY: set[str] = {"intraday_60m", "index_intraday"}
 
 # ---------------------------------------------------------------- 端點
 TWSE_OPENAPI = "https://openapi.twse.com.tw/v1"
