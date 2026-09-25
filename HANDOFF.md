@@ -2943,3 +2943,7 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - run_backfill：yahoo_v=2 讓 Yahoo 段重跑一次（試 ^TWOTCI）。
 - FinMind 櫃買／台指期分 K、逐筆皆 400（帳號等級 register），已記 unavailable。
 - 這批驗了：pytest 530 passed（只動 .github 與 pipeline，無前端改動，_preview/_uitest 跳過）。
+
+### 09-25 22:34 大盤每週期都有量、加權 15/30 分含近 60 天、1H/4H 由 15 分 K 合成（idx-volume）
+- 估算量＝日總量 × 分時量分布，灰色量柱＋提示框「估」。台指期分 K 量多乘 1000 的 bug 修正（改口數）。
+- 這批驗了：分支 pytest 530、_preview 綠；合併後 新-大盤三張圖、大盤三張圖、總覽 0。
