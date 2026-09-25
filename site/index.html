@@ -2626,13 +2626,13 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 @media(prefers-reduced-motion:reduce){.m3-pulse.on .m3-ring{animation-duration:3.6s}}
 @media(max-width:900px){.m3-chart .m3-night{right:52px;max-height:52%}}
 
-/* ================= 供應鏈關聯圖（2026-09-23 C5 退版：分層圖／流向圖）=================
+/* ================= 供應鏈關聯圖（2026-09-23 C5 退版；2026-09-26 流向圖拿掉，只剩分層圖）=================
    Andy 逐字：「下方的關聯圖回到之前的設計，幫我退版 回到之前的格式，但是需要將關聯圖置中，
    並且，Default 顯示族群相連標籤個股，點擊後才會跳初下拉清單，並且點擊股票 右側會顯示對應訊息」。
 
    力導向星際圖（DECISIONS #248）那 320 行樣式整組刪掉 —— 產業鏈頁不再有 `.cgraph`，
    留著就是死樣式。分層圖與環節卡清單的樣式本來就還在（`.chainmap` / `.seglist` 兩節），
-   這裡只補退版後新增的三件事：表達形式切換、流向圖、hover 提亮上下游。
+   這裡只補退版後新增的 hover 提亮上下游（表達形式切換與流向圖已於 2026-09-26 依 Andy「刪除流向圖」整組拿掉）。
 
    ★ 置中不是靠 CSS 做的（`margin:auto` 對 `width:100%` 的 SVG 沒有作用）——
      是 industry.js 的 `fitCols()` 把左右內距算成一樣大，寫進 viewBox 裡。
@@ -2666,7 +2666,6 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 :root[data-theme="light"] .chainmap .edge.eq{stroke:#a39d90;stroke-opacity:.35}
 :root[data-theme="light"] .chainmap .edge.dim{stroke-opacity:.08}
 :root[data-theme="light"] .chainmap .edge.hi{stroke:var(--cyan);stroke-opacity:.95}
-:root[data-theme="light"] .chainmap .fct{fill:var(--ink-3)}
 @media (min-width:821px){
   .relsec #chainList,.relsec #segTools{display:none}
   .relmain{display:grid;grid-template-columns:minmax(0,1fr);column-gap:12px;margin-top:10px}
@@ -2748,9 +2747,6 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .reltip .rtd{margin-top:4px;color:var(--ink-2)}
 .reltip .rtr{margin-top:3px;font-size:12.5px;color:var(--ink-2)}
 .reltip .rtr .k{display:inline-block;min-width:32px;margin-right:6px;color:var(--ink-3)}
-/* 表達形式切換：沿用全站 `.seg` 那組分段按鈕的外觀，只是更小一號 */
-.relsw button{font-size:12px;padding:3px 10px}
-.relsw[hidden]{display:none}
 /* hover 一張公司卡時，跟它有上下游關係的另一端一起提亮（只有線會看不出通到誰）*/
 .chainmap .co.near rect{stroke:var(--cyan);stroke-opacity:.9}
 .chainmap .co.near text{fill:var(--ink)}
@@ -2766,26 +2762,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .chainmap .foldbar button{font-size:12px;padding:3px 10px;border-radius:6px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
 .chainmap .foldbar button:hover{border-color:var(--cyan)}
 .chainmap .foldbar .sub{color:var(--ink-3)}
-/* ---- 流向圖：節點是環節本身，帶子寬度＝兩格之間已建立的上下游關係條數 ---- */
-.chainmap .fband{fill:var(--c,var(--line-2));fill-opacity:.2;stroke:none;transition:fill-opacity .15s}
-.chainmap .fband.hi{fill-opacity:.62}
-.chainmap .fband.dim{fill-opacity:.05}
-.chainmap .fseg{cursor:pointer}
-.chainmap .fseg:hover rect:first-of-type{fill-opacity:.32}
-.chainmap .fseg.sel rect:first-of-type{fill-opacity:.42}
-.chainmap .fseg.dim{opacity:.34}
-/* 12px 是全站圖表字級的下限（手機不得小於 11px，這裡留一格餘裕）*/
-.chainmap .fnm{font-size:12.5px;font-weight:700;pointer-events:none}
-/* ★ 檔數那一行**不能**吃 var(--ink-3)：`.chainmap` 的底在淺色主題下仍然是深色
-   （`--illus`，見上面 .chainmap 那一節），而淺色主題的 --ink-3 是給白底用的中灰 ——
-   套上去會變成「深底配中灰」，實測幾乎看不到。這裡鎖一個對深底成立的灰。*/
-.chainmap .fct{font-size:11px;fill:#9fb0cc;font-family:var(--mono);pointer-events:none}
 /* 環節詳情：Default 是空的（高度 0），點色標或環節卡才展開 —— 這就是 Andy 說的「點擊後才會跳出下拉清單」 */
 #segBox:empty{display:none}
 #segBox{margin-top:10px}
-@media(max-width:820px){
-  .relsw button{font-size:11.5px;padding:3px 8px}
-}
 /* ---- 剖析圖設定列：跟標題**同一列、靠右**（Andy 2026-09-23：「設定列改到右上角」）----
    ★ 第一版是絕對定位浮在畫布的右上角內緣，`_preview.py` 當場量到文字重疊：
      圖的右上角本來就有「產品剖析圖 <圖名>」那一行標題，浮上去就是跟它搶同一塊。
@@ -2816,6 +2795,16 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 #dgTools{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;align-items:center;
   min-width:0;flex:0 1 auto;margin-left:auto}
 #dgTools[hidden]{display:none}
+/* ★ 2026-09-26：2D｜3D 分段鈕（取代「3D 立體」開關，見 industry.js wire3D 的 paintMode）。
+   .seg 自己宣告 display:inline-flex，會蓋掉 [hidden] 的 UA 預設 —— 沒有 3D 場景的圖一定要真的藏起來。
+   高度跟旁邊的 .pill 對齊（pill 約 24px）：外框 padding 收到 2px、每格 3px 12px。*/
+#dg3d.seg{padding:2px;flex:none;align-self:center}
+#dg3d.seg button{padding:2px 12px;font-size:12.5px;line-height:1.35}
+#dg3d[hidden]{display:none!important}
+/* ★ 2026-09-26：「拖曳：轉動」「重設視角」在 2D 一直都看得到 —— 它們是 .pill（display:inline-flex），
+   作者樣式蓋掉了 [hidden] 的 UA 預設，industry.js 設的 hidden 從來沒生效過。2D 時畫面上掛著兩顆只對 3D 有用的鈕，
+   也是「看不出現在是 2D 還是 3D」的一部分。設定列裡凡是 hidden 的一律真的藏起來。*/
+#dgTools>[hidden]{display:none!important}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
   .dgsechead{flex-wrap:wrap}
@@ -3001,7 +2990,7 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    ⚠⚠ 2026-09-23 需求翻轉後改成**只在 ≤820px 生效**。桌機收合時同樣是「控制項在、圖不在」，
      但桌機預設是展開的、而且那是 Andy 現在正在用的版面 —— 動它就是改了桌機行為。
      留到下一版，由他決定桌機要不要也跟著收。*/
-@media (max-width:820px){ #dgSec.dgfold #dgTools>.pill:not(#dgFold){display:none} }
+@media (max-width:820px){ #dgSec.dgfold #dgTools>.pill:not(#dgFold),#dgSec.dgfold #dgTools>#dg3d{display:none} }
 
 /* ---- G8：個股頁的繪圖工具列 ----
    量到（390px）：`.drawbar` 被攤平成橫向兩列、約 20 顆 20×20～30×24px 的鈕
