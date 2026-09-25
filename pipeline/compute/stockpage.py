@@ -348,13 +348,23 @@ def holder_series(sh: pd.DataFrame, code: str, weeks: int = 104) -> list:
         return []
     rows = []
     for d, gg in g.groupby("date"):
-        lv = gg.set_index("level")
+        lv = gg.drop_duplicates("level", keep="last").set_index("level")
         pct = pd.to_numeric(lv["pct"], errors="coerce")
+        # ★ 2026-09-26（Andy：「大戶／散戶持股資訊為何這麼少」）：集保原檔的 pct 只到小數兩位，
+        #   400–1000 張三級加起來常常連續幾週都是同一個數（2330：09-04 與 09-11 都是 2.75%），
+        #   前端怎麼放大 Y 軸都只看到一條水平線。原檔同時給了每級的**股數**與合計股數，
+        #   用股數自己除回來可以多拿一位有效數字（2.766% → 2.764%，真的有在變）。
+        #   沒有股數（舊資料、測試資料）才退回原檔的 pct，口徑不變、只是精度變高。
+        sh = pd.to_numeric(lv["shares"], errors="coerce") if "shares" in lv else None
+        tot_sh = sh.get(TOTAL_LEVEL) if sh is not None else None
+        if tot_sh is not None and pd.notna(tot_sh) and tot_sh > 0:
+            pct = pct.where(sh.isna(), sh / tot_sh * 100)
+        nd = 3
         big = pct.get(BIG_LEVEL)
         mid = pct.reindex(list(MID_LEVELS)).sum(min_count=1)
         retail = pct.reindex(list(RETAIL_LEVELS)).sum(min_count=1)
         total = lv["holders"].get(TOTAL_LEVEL) if "holders" in lv else None
-        rows.append([str(d), _r(big, 2), _r(mid, 2), _r(retail, 2),
+        rows.append([str(d), _r(big, nd), _r(mid, nd), _r(retail, nd),
                      int(total) if total is not None and pd.notna(total) else None])
     rows.sort(key=lambda x: x[0])
     return rows[-weeks:]
