@@ -228,6 +228,12 @@
       r = await fetch(url, ctl ? { cache: 'no-store', signal: ctl.signal } : { cache: 'no-store' });
     } catch (e) {
       if (e && e.name === 'AbortError') throw new Error('報價逾時（' + FETCH_TIMEOUT_MS / 1000 + ' 秒沒回應）');
+      /* ★ 2026-09-25（R3 審查）：連不上代理時瀏覽器丟的是英文 TypeError「Failed to fetch」
+         （Firefox 是「NetworkError when attempting to fetch resource」），原樣印在畫面上。
+         網站一律繁中，而且這句對使用者沒有資訊，改成講人話：是網路連不到報價代理。*/
+      if (e && (e.name === 'TypeError' || /fetch|network/i.test(String(e.message || '')))) {
+        throw new Error('連不到報價代理（網路不通或被擋）');
+      }
       throw e;
     } finally { if (tm) clearTimeout(tm); }
     if (!r.ok) throw new Error('代理回 HTTP ' + r.status);

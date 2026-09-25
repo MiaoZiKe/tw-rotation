@@ -113,7 +113,7 @@
       "at": [
         { "page": "industry", "selector": ["#gpBar", "#gpPie"] }
       ],
-      "tests": ["批次29-產業分頁", "產業", "族群頁"] },
+      "tests": ["批次29-產業分頁", "產業", "族群頁", "產業R3審查"] },
 
     { "id": "index.board", "name": "大盤三張圖", "question": "②", "ask": "加權／櫃買／台指期今天怎麼走（含夜盤）",
       "tier": "免費", "law": "🟢",
