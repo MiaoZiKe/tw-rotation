@@ -30519,7 +30519,12 @@ def t_kpi_footer_0926(pg, b, base):
         ok(f"[{w}] 整條在大盤卡框內、排在「?」右邊（放不下就換到下一行，不溢出）", k["inside"] and k["afterQ"], k)
         ok(f"[{w}] 字 ≥ 11px", k["minFs"] >= 11, k["minFs"])
         ok(f"[{w}] 可點的兩格（漲跌家數、前五族群佔比）保留 ›", k["more"] == [True, True] and len(k["drills"]) == 2, k)
-        ok(f"[{w}] 沒有橫向捲軸", not k["sideways"], k)
+        # 橫向捲軸：換寬度之後圖表是 ResizeObserver 非同步重畫，重畫完之前可能短暫凸出（負載 30 時實測過一次）。
+        # 等它穩定（最多 4 秒）再判；真的凸出就把是誰凸出列出來，不會被這個等待吃掉。
+        wide = wait_until(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1 ? 'ok' : null", 4000)
+        ok(f"[{w}] 沒有橫向捲軸", wide == "ok", pg.evaluate("""() => [...document.querySelectorAll('body *')]
+            .filter(e => { const r = e.getBoundingClientRect(); return r.width > 0 && r.right > innerWidth + 1 && e.offsetParent !== null; })
+            .slice(0, 6).map(e => (e.id || '') + '.' + String(e.className || '').slice(0, 30))"""))
         if w == 1440:
             ok("[1440] KPI 跟「走勢圖／K 線」「?」同一列（真的放在那段空白裡，不是另起一行）", k["sameRow"], k)
     pg.set_viewport_size({"width": 1440, "height": 1000}); pg.wait_for_timeout(700)
