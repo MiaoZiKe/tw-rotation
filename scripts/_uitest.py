@@ -30488,7 +30488,10 @@ def t_flowfx(pg, b, base):
 #   5 位的門檻會把他親手抓到的那一半放掉。全站口徑最多 2 位（股價、指數、pp、比率），4 位一定是「沒格式化」。
 # 另外 3 位的只記進備註（notes）給人逐條看：3 位有時是對的（例如成交量萬張 0.125），有時是漏網的原始值。
 # 白名單：**目前一條都不需要**；真的需要放行時要在 _DEC_ALLOW 加一條並寫理由。
-_DEC_BAD = r"\d\.\d{4,}|\d[eE][+-]\d|\bNaN\b|\bundefined\b|\bInfinity\b"
+# 另外兩種「數字大到不合理」：連續 13 位以上的整數（JS 在 1e21 以下不會用科學記號，5.3e+18 會印成 5339467718210460000）、
+# 千分位 5 組以上（≥ 1e15）—— 3504 的本益比就長這樣。全站的大數字都換成億／萬張，正常畫面不會出現。
+_DEC_BAD = (r"\d\.\d{4,}|\d[eE][+-]\d|\bNaN\b|\bundefined\b|\bInfinity\b"
+            r"|(?<![\w/.=-])\d{13,}(?![\w])|\d{1,3}(?:,\d{3}){5,}")
 _DEC_SOFT = r"(?<![\d.])\d+\.\d{3}(?![\d])"
 _DEC_ALLOW: list[str] = []   # 正規式；每一條都要寫為什麼需要放行
 
@@ -30620,7 +30623,7 @@ def t_decimal_audit(b, base, code):
         pass
     pg = b.new_page(viewport={"width": 1500, "height": 1000})
     pg.add_init_script(_DEC_HOOK)
-    pg.on("pageerror", lambda e: fails.append(f"小數點普查 pageerror: {e}"))
+    pg.on("pageerror", lambda e: fails.append(f"小數點普查 pageerror: {e}｜{pg.url}｜" + (getattr(e, "stack", "") or "").replace(chr(10), " / ")[:400]))
     pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     n = 0
     n += _dec_page(pg, f"{base}#overview", "總覽")
@@ -30641,6 +30644,14 @@ def t_decimal_audit(b, base, code):
                                                         ("#seasonMetric button[data-v='win_rate']", "勝率")))
     n += _dec_page(pg, f"{base}#delivery", "交付清單", settle=1500)
     n += _dec_page(pg, f"{base}#stock/{code}", f"個股/{code}", settle=3400, each="#stockTabs button")
+    # 3504：資料湖裡有一季近四季 EPS 是浮點殘差（2.8e-17），舊版本益比印成 5.3e+18 —— 留著當「真的壞資料」的活體樣本
+    n += _dec_page(pg, f"{base}#stock/3504", "個股/3504（本益比殘差樣本）", settle=3000, each="#stockTabs button[data-t='profit']")
+    try:
+        gid = (json.loads((SITE / "data" / "groups_today.json").read_text(encoding="utf-8")) or [{}])[0].get("group_id", "")
+    except Exception:  # noqa: BLE001
+        gid = ""
+    if gid:
+        n += _dec_page(pg, f"{base}#industry/group/{gid}", f"族群頁/{gid}")
     cv = pg.evaluate("() => window.__twDecCanvas || []")
     ok("小數點普查／桌機：所有畫布（含 K 線、自畫圖）fillText 沒有長小數／科學記號／NaN",
        not [x for x in cv if not any(re.search(a, x) for a in _DEC_ALLOW)], cv[:8])
@@ -30649,7 +30660,7 @@ def t_decimal_audit(b, base, code):
 
     m = b.new_page(viewport={"width": 390, "height": 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     m.add_init_script(_DEC_HOOK)
-    m.on("pageerror", lambda e: fails.append(f"小數點普查（手機）pageerror: {e}"))
+    m.on("pageerror", lambda e: fails.append(f"小數點普查（手機）pageerror: {e}｜{m.url}｜" + (getattr(e, "stack", "") or "").replace(chr(10), " / ")[:400]))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     mn = 0
     for h, name in (("overview", "總覽"), ("flow", "資金流向"), ("market", "市場明細"), ("heatmap", "熱力圖"),
