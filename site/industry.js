@@ -12,6 +12,8 @@
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '法定產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
+  // 指標下拉裡哪幾列是展開的（換股票、關掉再打開都維持；只活在這一次瀏覽）
+  const indOpen = new Set();
   // 即時分 K 的訂閱（換頁要退掉，不然背景還在每 5 秒重畫一張看不到的圖）
   let liveOff = null;
 
@@ -3428,7 +3430,7 @@
     crumbs([{ label: '產業地圖', href: '#industry' },
             { label: chainName, href: '#industry/' + state.chain },
             { label: `${known.name || ''} ${code}` }]);
-    renderChainStrip(im, sc, { code, name: known.name, group_id: gid, groups: known.group ? [known.group] : [] });
+    $('#indChain').innerHTML = '';      // 精簡版個股頁同樣不掛產業鏈位置卡（2026-09-26，見 renderStock）
 
     const n = A.fmt.n, pct = A.fmt.pct;
     // 有值才放進去 —— 寧可少一格，也不要放一格「—」在那裡佔位
@@ -3503,7 +3505,11 @@
 
   // ================================================================ Level 2：個股頁
   async function renderStock(code, im, sc, gd) {
-    show(false, true, true);
+    /* ★ 2026-09-26（Andy：「下方產業鏈位置表格 拿掉」）：個股頁最下面那張「產業鏈位置」卡
+       （麵包屑、同族群列、環節晶片、剖析圖＋編號清單）整張不掛了 —— #indChain 在個股頁一律收起來。
+       ⚠ 只拿掉個股頁的掛載：剖析圖、環節晶片、drawChainMap 這些共用元件照舊給產業地圖頁用。
+       上面麵包屑與 K 線卡的「產業鏈／族群」連結還在，要看產業鏈照樣點得過去。*/
+    show(false, false, true);
     const pg = await A.load('stock/' + code, { fallback: null });
     if (!pg) { await renderStockLite(code, im, sc, gd); return; }
     const m = pg.meta, s = pg.summary || {};
@@ -3511,7 +3517,7 @@
     state.chain = chainOfGroup(im, m.group_id) || 'industry'; state.group = null;
     const chainName = A.L.chains[state.chain] || CHAIN_NAME[state.chain] || state.chain;   // 中文名以 payload 為準，寫死的表只當 fallback
     crumbs([{ label: '產業地圖', href: '#industry' }, { label: chainName, href: '#industry/' + state.chain }, { label: `${m.name} ${m.code}` }]);
-    renderChainStrip(im, sc, m);
+    $('#indChain').innerHTML = '';      // 產業鏈位置卡不在個股頁掛了（見 renderStock 開頭）
     // 個股主體
     const el = $('#stockPage');
     const v = pg.verdict || {}; const gradeCls = v.grade || 'W';
@@ -3532,21 +3538,22 @@
         <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
           <button class="btn small" id="tfAdd" title="自訂時間週期">＋</button>
-          <div id="indChips" class="row" style="gap:6px"></div>
+          <!-- ★ 2026-09-26（Andy：「將所有指標納入在 Setting，並且以下拉清單形式呈現」）：
+               以前這裡是一整排指標晶片＋右邊一顆「⚙ 設定」開獨立的「圖表設定」面板，兩處管同一件事。
+               合成一顆下拉：清單每列＝一個指標（左開關、右 ▸ 就地展開該指標的參數與樣式）。-->
+          <button class="btn small inddd" id="indBtn" type="button" aria-haspopup="true" aria-expanded="false" title="指標：開關、參數、顏色與線寬">指標 ▾ <span class="indn" id="indN"></span></button>
           <div class="sp"></div>
-          <button class="btn small" id="cfgBtn" title="圖表設定：線寬、均線、顏色">⚙ 設定</button>
           <button class="btn small" id="mtfBtn">${state.mtfMode ? '單一週期' : '四週期同看'}</button>
           <button class="btn small" id="wideBtn" title="收起右側事件欄，把整個視窗的寬度讓給 K 線圖">⤢ 寬版</button>
           <button class="btn small" id="drawTgl" title="畫線工具（手機預設收起來）">✎ 畫線</button>
           <button class="howbtn pop" data-how="kline" data-ttl="K 線" type="button" aria-label="K 線怎麼看">?</button>
-          <button class="iconbtn" id="fitBtn" title="重設縮放（雙擊價格軸也可以）" aria-label="重設縮放">
-            <svg viewBox="0 0 18 18"><rect x="2.5" y="2.5" width="13" height="13" rx="2"/><path d="M6,9 H12 M9,6 V12"/></svg></button>
+          <!-- 「重設縮放」鈕 2026-09-26 搬進圖裡（主圖 K 棒區右下角、價格軸左邊），由 KChart 自己掛（opts.fit）-->
         </div>
         <!-- ★ 2026-09-24 說明精簡：圖下那段滑鼠／拖曳操作說明（.skhelp 第一行）整段搬進「怎麼看 ?」 -->
         <div class="howtxt" id="how-kline" hidden>${A.howHTML('這張圖：這一檔的 K 線、成交量與技術指標。', [
           '圖內滾輪＝時間縮放',
           '價格軸上滾輪或拖曳＝調整上下寬度',
-          '雙擊價格軸或按「重設縮放」還原',
+          '雙擊價格軸或按圖右下角 ⌜⌟ 還原',
           '副圖之間的分隔線可上下拖，會記住',
           '週期鈕被劃掉＝這檔沒有那個週期資料',
         ], '滑鼠移到劃掉的週期鈕上會說原因。分 K 來源 Yahoo Finance（1 小時可回溯 2 年、15 分 60 天），盤後更新；K 棒會跟著上下寬度一起變。')}</div>
@@ -3591,79 +3598,16 @@
       + `</span></span>`;
   }
 
-  // 個股頁上方：產業鏈 › 族群 › 同族群公司（可直接切換）＋ 可收合的剖析圖與關聯圖
-  function renderChainStrip(im, sc, m) {
-    const el = $('#indChain'); const cid = state.chain;
-    const ch = chainData(im, cid);
-    if (!ch) { el.innerHTML = ''; return; }
-    /* 個股頁的剖析圖：先看**這一檔所屬的族群**有沒有專屬圖，沒有才退回鏈層級的總圖。
-       strict＝true，不准退回「這條鏈成交值最大的那張族群圖」——
-       一檔面板股掉到 MLCC 那張圖上，等於在網站上說「它做 MLCC」。*/
-    /* ★ 2026-09-22（DECISIONS #234）：半導體鏈的鏈層級剖面退場之後，`dgPick` 對
-       「所屬族群沒有專屬圖」的半導體個股（例如 2330）會回 null ——
-       那一頁的產業鏈圖就整塊不見了。退回這條鏈的**代表圖**，行為跟退場前一致
-       （退場前退回的就是鏈層級那張總圖）。
-       ⚠ 只在個股頁這樣退，**產業鏈頁不准**：那邊「選到沒有專屬圖的族群 → 收起圖、
-         換回圖別選單」是刻意的（見 resolveDg 上面那段），所以 `DS.pick` 本身沒有動。*/
-    const dgId = dgPick(ch, m.group_id) || (DS ? DS.rep(cid) : null);
-    const hasDiagram = !!dgId;
-    const g = ch.groups.find(x => x.id === m.group_id) || (im.industries || []).find(x => x.id === m.group_id);
-    const sibs = g ? (g.members || []).slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0)) : [];
-    const co = sc ? sc.companies.find(c => c.tw_code === m.code) : null;
-    const segs = chainSegments(sc, cid);
-    let open = false; try { open = localStorage.getItem('tw.chainOpen') === '1'; } catch (e) { /* 忽略 */ }
-    /* 這一塊現在排在個股頁的最下面（Andy 2026-09-20 要 K 線先出現），
-       所以要自己講清楚「這是什麼、看它幹嘛」—— 原本它緊貼在麵包屑下面，
-       靠位置就看得懂；搬到底下之後沒有標題就只是一排看不懂的連結。*/
-    el.innerHTML = `<div class="card tight">
-      <h4 style="margin:0 0 8px">產業鏈位置 ${hq('skchain', '產業鏈位置')}</h4>${hbox('skchain', ['上排：產業鏈 › 族群 › 這一檔的環節', '同族群依成交值排，看誰在動', '點名字直接換一檔', '「展開產業鏈圖」看剖析圖與供應商'])}
-      <div class="row spread"><div class="row" style="gap:8px"><b>${A.L.chain(cid, ch.name)}</b><span class="muted">›</span>${g ? A.L.group(g.id, g.name) : A.fmt.esc(m.group || '')}${co ? `<span class="muted">›</span><span class="pill" style="border-color:${segColor(co.segment)};color:${segColor(co.segment)}">● ${A.fmt.esc(segName(sc, co.segment))}</span>` : ''}</div>
-        <div class="row" style="gap:8px">${hasDiagram ? `<button class="btn small" id="chainToggle">${open ? '收合產業鏈圖 ▴' : '展開產業鏈圖 ▾'}</button>` : ''}${A.L.back()}</div></div>
-      ${sibs.length ? `<div class="sibs" id="sibs"><span class="muted" style="flex:none;font-size:12px;align-self:center">同族群</span>${sibs.map(x => `<a class="lk ${x.code === m.code ? 'cur' : ''}" href="#stock/${x.code}">${A.fmt.esc(x.name)}<span class="code">${x.code}</span><span class="chg ${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></a>`).join('')}</div>` : ''}
-      ${!hasDiagram ? `<div class="row" style="margin-top:8px;gap:6px">${ch.groups.map(x => `<span class="pill ${x.id === m.group_id ? 'cyan' : ''}" style="cursor:pointer" onclick="location.hash='#industry/group/${x.id}'"><i class="gdot" style="--c:${A.L.gcolor[x.id] || '#8ea0c4'}"></i>${A.fmt.esc(x.name)} <span class="${A.fmt.cls(x.chg_pct)}">${A.fmt.pct(x.chg_pct)}</span></span>`).join('')}</div>` : ''}
-      ${hasDiagram ? `<div id="chainBody" style="${open ? '' : 'display:none'};margin-top:10px">
-        <div class="segchips">${segs.map(s => `<span class="segchip ${co && co.segment === s.id ? 'sel' : ''}" data-seg="${s.id}" style="--c:${segColor(s.id)}" title="看這個環節的供應商"><i></i>${A.fmt.esc(s.name)}</span>`).join('')}</div>
-        <div class="sub" style="margin:8px 0 2px">${A.fmt.esc(DS.name(dgId))}　<span class="muted">原創示意圖，非實物比例；點零件看這個環節的供應商</span></div>
-        <div id="prodDiagram" class="dgwrap" style="margin-top:6px;max-width:1080px">${DS.draw(dgId)}</div><div class="chainmap" id="chainMap" style="margin-top:10px;max-height:380px"></div></div>` : ''}
-    </div>`;
-    /* 同族群那一列橫向捲到目前這檔 —— 一樣只捲那一列，不用 scrollIntoView。
-       產業鏈區塊搬到個股頁最下面之後，scrollIntoView 會把整頁拖到底（見 drawChainMap 的註解）。*/
-    const cur = $('#sibs a.cur', el), sibBox = $('#sibs', el);
-    if (cur && sibBox) setTimeout(() => {
-      // 用兩個 rect 相減，不用 offsetLeft —— offsetLeft 看的是 offsetParent，
-      // .sibs 沒有 position 時那會是外面的卡片，算出來整個偏掉。
-      const d = cur.getBoundingClientRect().left - sibBox.getBoundingClientRect().left;
-      sibBox.scrollLeft = Math.max(0, sibBox.scrollLeft + d - sibBox.clientWidth / 2 + cur.offsetWidth / 2);
-    }, 30);
-    if (hasDiagram && sc) {
-      const tog = $('#chainToggle', el); tog.onclick = () => { const b = $('#chainBody', el); const isOpen = b.style.display !== 'none'; b.style.display = isOpen ? 'none' : ''; tog.textContent = isOpen ? '展開產業鏈圖 ▾' : '收合產業鏈圖 ▴'; try { localStorage.setItem('tw.chainOpen', isOpen ? '0' : '1'); } catch (e) { /* 忽略 */ } };
-      applyDgNative($('#prodDiagram', el), dgId);
-      paintDiagram($('#prodDiagram', el));
-      // 剖析圖不加縮放：Andy 明講「產業與個股 剖析圖不用新增縮放功能」（本來就可以左右滑）
-      if (window.DG && window.DG.fillChips) window.DG.fillChips($('#prodDiagram', el), (seg) => { const tw = twOf(sc, seg);
-        return { list: tw.slice(0, 4).map(c => ({ code: c.tw_code, name: c.name })), total: tw.length }; });
-      drawChainMap($('#chainMap', el), sc, cid, im, { onSegment: (seg) => { location.hash = `#industry/${cid}/${seg}`; } });
-      highlightSegments(el, co ? [co.segment] : [], co ? segColor(co.segment) : null);
-      wireDiagram(el, (seg) => { location.hash = `#industry/${cid}/${seg}`; });
-      $$('.segchip', el).forEach(c => c.onclick = () => { location.hash = `#industry/${cid}/${c.dataset.seg}`; });
-      /* 個股頁沒有動畫鈕，但要吃同一個偏好。B4：CSS 的 .noanim 管不到 SMIL（<animateMotion>），
-         所以「動畫：關」之後跑到個股頁，流程列那顆白點會自己活過來。兩件事都要做。*/
-      try {
-        if (localStorage.getItem('tw.dganim') === '0') {
-          const wrap = $('#prodDiagram', el);
-          wrap.classList.add('noanim');
-          wrap.querySelectorAll('svg').forEach(s => { try { s.pauseAnimations(); } catch (e2) { /* 忽略 */ } });
-        }
-      } catch (e) { /* 忽略 */ }
-    }
-  }
+  /* 個股頁的「產業鏈位置」卡（renderChainStrip）2026-09-26 整支拿掉：Andy「下方產業鏈位置表格 拿掉」。
+     它只給個股頁用；裡面呼叫的剖析圖（DS.draw／applyDgNative／paintDiagram）、環節晶片、drawChainMap
+     都是產業地圖頁的共用元件，一個都沒動。*/
 
   // ---------------------------------------------------------------- K 線面板
   const DEFAULT_CFG = { ma: [5, 20, 60, 120], maColor: [], maWidth: [], lineWidth: 1,
     boll: null, vol: true, volma: 20, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 },
-    rsi: null, smc: true, marks: true, lines: true, tfs: null,
-    // 每個指標的顏色／線寬／透明度；zone 是 SMC 供需區的填色濃度與框線
-    st: {}, zone: null,
+    rsi: null, lines: true, tfs: null,
+    // 每個指標的顏色／線寬／透明度（SMC 供需區那一組 zone 設定 2026-09-26 跟著 SMC 一起拿掉）
+    st: {},
     // K 棒寬度（Lightweight Charts 的 barSpacing）；預設比函式庫的 7 寬，Andy 要「default 先長一點」
     bar: 11 };
   // 設定面板要列出來的指標樣式（key、標題、幾個顏色、顏色的名字）
@@ -3719,7 +3663,18 @@
         : '這個週期的資料還在回補');
     });
   }
-  function loadCfg() { try { const s = localStorage.getItem('tw.kcfg'); if (s) return Object.assign({}, DEFAULT_CFG, JSON.parse(s)); } catch (e) { /* 忽略 */ } return Object.assign({}, DEFAULT_CFG); }
+  function loadCfg() {
+    try {
+      const s = localStorage.getItem('tw.kcfg');
+      if (s) {
+        const c = Object.assign({}, DEFAULT_CFG, JSON.parse(s));
+        // 2026-09-26 拿掉的 SMC 區間／BOS-CHoCH／供需區樣式：舊的存檔值直接丟掉，下次存檔就乾淨了
+        delete c.smc; delete c.marks; delete c.zone;
+        return c;
+      }
+    } catch (e) { /* 忽略 */ }
+    return Object.assign({}, DEFAULT_CFG);
+  }
   function saveCfg(c) { try { localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch (e) { /* 忽略 */ } }
   // N 根合成一根（自訂 N 日 / N 週用）
   function groupBars(bars, n) {
@@ -3761,8 +3716,12 @@
     if (tf === '240m') return groupBars((pg.intraday && pg.intraday['60m']) || [], 4);
     return (pg.intraday && pg.intraday[tf]) || [];
   }
-  function zonesFor(pg, tf) { const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf]; if (t) return [...t.demand, ...t.supply].map(z => ({ ...z, tf: t.label })); if (tf === '1d' && pg.verdict) return [...(pg.verdict.demand || []).map(z => ({ ...z, kind: 'demand' })), ...(pg.verdict.supply || []).map(z => ({ ...z, kind: 'supply' }))]; return []; }
-  function marksFor(pg, tf) { const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf]; if (t) return t.marks; if (tf === '1d') return pg.marks || {}; return {}; }
+  /* 四週期小圖吃的指標：跟大圖同一份設定，但只取主圖疊加（均線、BOLL）與成交量 ——
+     KD／MACD／RSI 是副圖，300px 的小格塞不下；停損目標與本益比河流只對日線有意義。*/
+  function miniCfg(cfg) {
+    return { ma: cfg.ma || [], maColor: cfg.maColor, maWidth: cfg.maWidth, lineWidth: cfg.lineWidth,
+             boll: cfg.boll || null, vol: !!cfg.vol, volma: cfg.volma, st: cfg.st };
+  }
 
   function setupChart(pg) {
     state.cfg = state.cfg || loadCfg();
@@ -3778,73 +3737,252 @@
       });
     }
     const host = $('#chartHost');
-    const chips = $('#indChips');
     const cfg = state.cfg;
-    const chipDefs = [
-      { k: 'ma', label: 'MA', on: () => !!cfg.ma, params: () => cfg.ma ? [{ key: 'ma', val: cfg.ma.join(','), w: 90 }] : [], toggle: () => { cfg.ma = cfg.ma ? null : [5, 20, 60, 120]; }, set: (v) => { cfg.ma = v.split(/[,，\s]+/).map(Number).filter(n => n > 0).slice(0, 6); }, color: '#ffd166' },
-      { k: 'boll', label: 'BOLL', on: () => !!cfg.boll, params: () => cfg.boll ? [{ key: 'n', val: cfg.boll.n, w: 34 }, { key: 'k', val: cfg.boll.k, w: 30 }] : [], toggle: () => { cfg.boll = cfg.boll ? null : { n: 20, k: 2 }; }, set: (v, key) => { cfg.boll[key] = +v; }, color: '#8b7bff' },
-      { k: 'vol', label: '成交量', on: () => !!cfg.vol, params: () => [], toggle: () => { cfg.vol = !cfg.vol; }, color: '#8ea0c4' },
-      { k: 'kd', label: 'KD', on: () => !!cfg.kd, params: () => cfg.kd ? [{ key: 'n', val: cfg.kd.n, w: 30 }, { key: 'm1', val: cfg.kd.m1, w: 26 }, { key: 'm2', val: cfg.kd.m2, w: 26 }] : [], toggle: () => { cfg.kd = cfg.kd ? null : { n: 9, m1: 3, m2: 3 }; }, set: (v, key) => { cfg.kd[key] = +v; }, color: '#ffd166' },
-      { k: 'macd', label: 'MACD', on: () => !!cfg.macd, params: () => cfg.macd ? [{ key: 'f', val: cfg.macd.f, w: 30 }, { key: 's', val: cfg.macd.s, w: 30 }, { key: 'g', val: cfg.macd.g, w: 26 }] : [], toggle: () => { cfg.macd = cfg.macd ? null : { f: 12, s: 26, g: 9 }; }, set: (v, key) => { cfg.macd[key] = +v; }, color: '#3ee0ff' },
-      { k: 'rsi', label: 'RSI', on: () => !!cfg.rsi, params: () => cfg.rsi ? [{ key: 'n', val: cfg.rsi.n, w: 30 }] : [], toggle: () => { cfg.rsi = cfg.rsi ? null : { n: 14 }; }, set: (v) => { cfg.rsi.n = +v; }, color: '#c3ff5b' },
-      { k: 'smc', label: 'SMC 區間', on: () => !!cfg.smc, params: () => [], toggle: () => { cfg.smc = !cfg.smc; }, color: '#2ee59d' },
-      { k: 'marks', label: 'BOS/CHoCH', on: () => !!cfg.marks, params: () => [], toggle: () => { cfg.marks = !cfg.marks; }, color: '#ff8fab' },
-      // 背離要有 MACD 才算得出來（DIF 是比較基準）
-      { k: 'macdDiv', label: 'MACD 背離', on: () => cfg.macdDiv !== false && !!cfg.macd, params: () => [], toggle: () => { const nowOn = cfg.macdDiv !== false && !!cfg.macd; if (nowOn) { cfg.macdDiv = false; } else { cfg.macdDiv = true; if (!cfg.macd) cfg.macd = { f: 12, s: 26, g: 9 }; } }, color: '#ffd166' },
-      { k: 'lines', label: '停損/目標', on: () => !!cfg.lines, params: () => [], toggle: () => { cfg.lines = !cfg.lines; }, color: '#ffb454' },
-      /* 本益比河流（Andy 2026-09-15：「上方也多一個選項新增河流圖」）：
-         把下方那張河流圖的五條倍數線直接疊在 K 棒上，同一套倍數，兩邊對得起來。
-         需要近四季 EPS，所以只有日／週／月線畫得出來（分 K 的日期對不到財報那條階梯）。*/
-      { k: 'peRiver', label: '本益比河流', on: () => !!cfg.peRiver, params: () => [], toggle: () => { cfg.peRiver = !cfg.peRiver; }, color: '#b39dff' },
-    ];
-    /* ★ 2026-09-25（審查 R5）：以前參數輸入框直接排在籤裡，KD 籤 156px 寬、大半是三個輸入框 ——
-       點籤的正中間點到的是輸入框，指標不會開關（要點左邊的「KD」兩個字才行）。
-       改成：籤平常只顯示參數**文字**（整顆都是開關，點哪裡都切換）；
-       要改參數按籤尾巴那顆小 ⚙，才把輸入框攤開（按 Enter 或再按一次 ⚙ 收起）。*/
-    let chipEdit = null;
-    const drawChips = () => {
-      chips.innerHTML = chipDefs.map(c => {
-        const ps = c.params(), ed = chipEdit === c.k && ps.length;
-        const pv = ps.length ? (ed
-          ? ps.map(p => `<input data-k="${c.k}" data-p="${p.key}" value="${p.val}" style="width:${p.w}px">`).join('')
-          : `<span class="pv">${A.fmt.esc(ps.map(p => p.val).join(','))}</span>`)
-          + `<button type="button" class="pedit" data-k="${c.k}" title="改 ${c.label} 參數" aria-label="改 ${c.label} 參數">⚙</button>` : '';
-        return `<span class="chip ${c.on() ? 'on' : ''}${ed ? ' editing' : ''}" data-k="${c.k}"><i style="background:${c.color}"></i>${c.label}${pv}</span>`;
-      }).join('');
-      $$('.chip', chips).forEach(ch => ch.onclick = (e) => {
-        if (e.target.tagName === 'INPUT') return;
-        if (e.target.closest('.pedit')) {
-          e.stopPropagation();
-          chipEdit = chipEdit === ch.dataset.k ? null : ch.dataset.k;
-          drawChips();
-          const f = chipEdit && chips.querySelector(`.chip[data-k="${chipEdit}"] input`); if (f) { f.focus(); f.select(); }
-          return;
-        }
-        chipDefs.find(c => c.k === ch.dataset.k).toggle(); saveCfg(cfg); drawChips(); apply();
-      });
-      $$('.chip input', chips).forEach(inp => {
-        inp.onclick = (e) => e.stopPropagation();
-        inp.onchange = () => {
-          if (inp._done) return;             // Enter 已經處理過（原生 change 會在元素被換掉之後再補一次）
-          chipDefs.find(c => c.k === inp.dataset.k).set(inp.value, inp.dataset.p); saveCfg(cfg);
-          const nextP = inp.nextElementSibling && inp.nextElementSibling.tagName === 'INPUT' ? inp.nextElementSibling.dataset.p : null;
-          drawChips(); apply();
-          // 重畫之後焦點會掉；還在編輯就把焦點交給下一格，連續改 KD 三個數字才順
-          if (chipEdit && nextP) { const nx = chips.querySelector(`.chip[data-k="${chipEdit}"] input[data-p="${nextP}"]`); if (nx) nx.focus(); }
-        };
-        inp.onkeydown = (e) => {
-          if (e.key !== 'Enter' && e.key !== 'Escape') return;
-          e.preventDefault(); inp._done = true; chipEdit = null;
-          if (e.key === 'Enter') { chipDefs.find(c => c.k === inp.dataset.k).set(inp.value, inp.dataset.p); saveCfg(cfg); }
-          drawChips(); if (e.key === 'Enter') apply();
-        };
-      });
+    /* ================================================================ 指標下拉（2026-09-26）
+       Andy：「將所有指標納入在 Setting，並且以下拉清單形式呈現，在點擊下拉是清單設定」。
+       以前同一件事分兩處：工具列一整排晶片（開關＋參數）、「⚙ 設定」開另一個面板（顏色、線寬、透明度、均線）。
+       現在只有一顆「指標 ▾（已開 N）」：
+         · 清單每一列＝一個指標：左邊開關＋名稱＋參數摘要（整塊都是開關，點哪裡都切），右邊 ▸ 就地展開設定
+         · 最上面「整體」一列：整體線寬、K 棒寬度（不是指標，沒有開關）
+         · 均線那一列展開＝原本的均線編輯（最多 6 條、新增／刪除、顏色、粗細）
+       面板沿用 #cfgPop（fixed、貼著按鈕、夾進視窗、內部捲動；點外面或 Esc 關 —— dismissable）。
+       所有改動照舊寫 tw.kcfg、即時套用；單一週期與四週期同看共用同一份（四週期只畫主圖疊加＋成交量，
+       KD／MACD／RSI 這類副圖在 300px 的小格裡放不下，那幾列會標「四週期不畫」）。
+       ★ 同一天 Andy 要拿掉的「SMC 區間」「BOS/CHoCH」不在清單裡，供需區顏色那一段設定也一起拿掉了；
+         localStorage 裡舊的 smc／marks／zone 值直接忽略（loadCfg 會清掉）。*/
+    const IND_DEF = { ma: [5, 20, 60, 120], boll: { n: 20, k: 2 }, kd: { n: 9, m1: 3, m2: 3 }, macd: { f: 12, s: 26, g: 9 }, rsi: { n: 14 } };
+    const clone = (o) => JSON.parse(JSON.stringify(o));
+    /* 指標關著的時候參數去哪：記在 cfg.prm[k]。關掉 KD 再打開，剛剛調的 5,3,3 要還在，
+       以前關掉就是 null、再開回 9,3,3 —— 使用者調過的東西被悄悄丟掉。*/
+    const prmOf = (k) => cfg[k] || (cfg.prm || {})[k] || clone(IND_DEF[k]);
+    const flip = (k) => {
+      if (cfg[k] && (!Array.isArray(cfg[k]) || cfg[k].length)) { (cfg.prm = cfg.prm || {})[k] = cfg[k]; cfg[k] = null; }
+      else { const v = prmOf(k); cfg[k] = Array.isArray(v) && !v.length ? clone(IND_DEF[k]) : v; }
     };
+    const setPrm = (k, p, v) => {
+      if (cfg[k]) { cfg[k][p] = v; return; }
+      const o = prmOf(k); o[p] = v; (cfg.prm = cfg.prm || {})[k] = o;
+    };
+    const P = (k) => ({ get: (p) => prmOf(k)[p], set: (p, v) => setPrm(k, p, v) });
+    const MINI_SKIP = '四週期不畫';
+    const IND = [
+      { k: 'base', label: '整體', base: true, sum: () => `線寬 ${cfg.lineWidth || 1}px · K 棒 ${cfg.bar || 11}px` },
+      { k: 'ma', label: '均線 MA', color: '#ffd166', on: () => !!(cfg.ma && cfg.ma.length), toggle: () => flip('ma'),
+        sum: () => prmOf('ma').join(',') },
+      { k: 'boll', label: 'BOLL 通道', color: '#8b7bff', on: () => !!cfg.boll, toggle: () => flip('boll'),
+        sum: () => { const p = prmOf('boll'); return `${p.n},${p.k}`; },
+        params: [{ p: 'n', lab: '天數', min: 2, max: 240 }, { p: 'k', lab: '倍數', min: 0.5, max: 5, step: 0.1 }], io: P('boll'), st: 'boll' },
+      { k: 'vol', label: '成交量', color: '#8ea0c4', on: () => !!cfg.vol, toggle: () => { cfg.vol = !cfg.vol; },
+        sum: () => (cfg.volma ? `量均 ${cfg.volma}` : ''),
+        params: [{ p: 'volma', lab: '量均線（0＝不畫）', min: 0, max: 240 }],
+        io: { get: () => cfg.volma || 0, set: (p, v) => { cfg.volma = v; } }, st: 'vol' },
+      { k: 'kd', label: 'KD', color: '#ffd166', mini: MINI_SKIP, on: () => !!cfg.kd, toggle: () => flip('kd'),
+        sum: () => { const p = prmOf('kd'); return `${p.n},${p.m1},${p.m2}`; },
+        params: [{ p: 'n', lab: '天數', min: 2, max: 120 }, { p: 'm1', lab: 'K 平滑', min: 1, max: 30 }, { p: 'm2', lab: 'D 平滑', min: 1, max: 30 }], io: P('kd'), st: 'kd' },
+      { k: 'macd', label: 'MACD', color: '#3ee0ff', mini: MINI_SKIP, on: () => !!cfg.macd, toggle: () => flip('macd'),
+        sum: () => { const p = prmOf('macd'); return `${p.f},${p.s},${p.g}`; },
+        params: [{ p: 'f', lab: '快線', min: 2, max: 120 }, { p: 's', lab: '慢線', min: 3, max: 240 }, { p: 'g', lab: '訊號', min: 2, max: 120 }], io: P('macd'), st: 'macd' },
+      // 背離要有 MACD 才算得出來（DIF 是比較基準）：打開背離時 MACD 關著就一起打開
+      { k: 'macdDiv', label: 'MACD 背離', color: '#ffd166', mini: MINI_SKIP, on: () => cfg.macdDiv !== false && !!cfg.macd,
+        toggle: () => { const nowOn = cfg.macdDiv !== false && !!cfg.macd; if (nowOn) cfg.macdDiv = false; else { cfg.macdDiv = true; if (!cfg.macd) cfg.macd = prmOf('macd'); } },
+        sum: () => '' },
+      { k: 'rsi', label: 'RSI', color: '#c3ff5b', mini: MINI_SKIP, on: () => !!cfg.rsi, toggle: () => flip('rsi'),
+        sum: () => String(prmOf('rsi').n), params: [{ p: 'n', lab: '天數', min: 2, max: 120 }], io: P('rsi'), st: 'rsi' },
+      { k: 'lines', label: '停損／目標', color: '#ffb454', mini: MINI_SKIP, on: () => !!cfg.lines, toggle: () => { cfg.lines = !cfg.lines; },
+        sum: () => '日線' },
+      /* 本益比河流：把下方那張河流圖的五條倍數線疊在 K 棒上（需要近四季 EPS，只有日／週／月線畫得出來）。*/
+      { k: 'peRiver', label: '本益比河流', color: '#b39dff', mini: MINI_SKIP, on: () => !!cfg.peRiver, toggle: () => { cfg.peRiver = !cfg.peRiver; },
+        sum: () => '日週月' },
+    ];
+    const IDX = {}; IND.forEach(d => { IDX[d.k] = d; });
+    const nOn = () => IND.filter(d => !d.base && d.on()).length;
+    const indBtn = $('#indBtn');
+    const paintBtn = () => { const n = $('#indN'); if (n) n.textContent = `（已開 ${nOn()}）`; };
+    const hasBody = (d) => !!(d.base || d.k === 'ma' || d.k === 'peRiver' || d.params || d.st);
+    const stVal = (k) => Object.assign({ w: cfg.lineWidth || 1, o: 100 }, STYLE_DEF[k], (cfg.st || {})[k] || {});
+    const maRow = (n, i) => `<div class="frow marow" data-i="${i}">
+          <input type="number" min="2" max="480" value="${n}" data-f="n" aria-label="第 ${i + 1} 條均線天數">
+          <input type="color" value="${(cfg.maColor || [])[i] || KUtil.colors.ma[i % 6]}" data-f="c" aria-label="顏色">
+          <input type="range" min="1" max="4" step="1" value="${(cfg.maWidth || [])[i] || cfg.lineWidth || 1}" data-f="w" style="width:78px" aria-label="粗細">
+          <button class="btn small" data-f="del" type="button" title="移除這條">✕</button></div>`;
+    const bodyHTML = (d) => {
+      if (d.base) return `<div class="frow"><label>整體線寬</label><input id="lw" type="range" min="1" max="4" step="1" value="${cfg.lineWidth || 1}"><span class="val" id="lwv">${cfg.lineWidth || 1}px</span></div>
+        <div class="frow"><label>K 棒寬度</label><input id="bw" type="range" min="3" max="28" step="1" value="${cfg.bar || 11}"><span class="val" id="bwv">${cfg.bar || 11}px</span></div>`;
+      if (d.k === 'ma') {
+        const mas = prmOf('ma');
+        return `<div class="note">最多 6 條；天數、顏色、粗細都能改。</div><div id="maRows">${mas.map(maRow).join('')}</div>
+          <div class="row" style="margin-top:6px"><button class="btn small" id="maAdd" type="button" ${mas.length >= 6 ? 'disabled' : ''}>＋ 新增均線</button></div>`;
+      }
+      if (d.k === 'peRiver') {
+        const pes = peStyle(cfg);
+        return `<div class="note">六個區間的顏色 · 線寬 · 色帶透明度（下方本益比河流圖同一套）</div>
+          <div class="frow strow" id="peRow" style="flex-wrap:wrap">
+          ${PE_ZONES.map((z, i) => `<span class="cwrap" title="${z.name}"><input type="color" data-z="${i}" value="${pes.z[i]}"><em>${z.name}</em></span>`).join('')}
+          <label class="plab">線寬</label><input type="range" min="1" max="4" step="1" data-f="w" value="${pes.w}" style="width:60px">
+          <label class="plab">透明</label><input type="range" min="5" max="100" step="5" data-f="o" value="${pes.o}" style="width:70px">
+          <span class="val" id="peOv">${pes.o}%</span></div>`;
+      }
+      let h = '';
+      if (d.params) h += `<div class="frow prow">${d.params.map(p => `<label class="plab">${p.lab} <input type="number" data-p="${p.p}" min="${p.min}" max="${p.max}" step="${p.step || 1}" value="${d.io.get(p.p)}"></label>`).join('')}</div>`;
+      if (d.st) {
+        const row = STYLE_ROWS.find(r => r[0] === d.st), v = stVal(d.st);
+        h += `<div class="frow strow" data-k="${d.st}">
+          ${row[2].map((ck, i) => `<span class="cwrap" title="${row[3][i]}"><input type="color" data-f="${ck}" value="${v[ck]}"><em>${row[3][i]}</em></span>`).join('')}
+          <label class="plab">線寬</label><input type="range" min="1" max="4" step="1" data-f="w" value="${v.w}" style="width:64px">
+          <label class="plab">透明</label><input type="range" min="15" max="100" step="5" data-f="o" value="${v.o}" style="width:78px">
+          <span class="val" data-f="ov">${v.o}%</span></div>`;
+      }
+      return h;
+    };
+    const rowHTML = (d) => {
+      const open = indOpen.has(d.k), body = hasBody(d);
+      const note = d.mini && state.mtfMode ? `<span class="inote">${d.mini}</span>` : '';
+      const head = d.base
+        ? `<span class="isw" data-exp="1"><i style="background:transparent;border:1px solid var(--ink-3)"></i><span class="iname">${d.label}</span><span class="isum"></span></span>`
+        : `<label class="isw"><input type="checkbox" class="ion" data-k="${d.k}"${d.on() ? ' checked' : ''}><i style="background:${d.color}"></i><span class="iname">${d.label}</span><span class="isum"></span>${note}</label>`;
+      return `<div class="indrow${!d.base && d.on() ? ' on' : ''}${open ? ' open' : ''}" data-k="${d.k}">
+        <div class="ihead">${head}${body ? `<button type="button" class="iexp" data-k="${d.k}" aria-expanded="${open}" aria-label="${d.label} 設定" title="${d.label} 設定">▸</button>` : ''}</div>
+        ${body ? `<div class="ibody"${open ? '' : ' hidden'}>${bodyHTML(d)}</div>` : ''}</div>`;
+    };
+    // 開關、摘要、「已開 N」只改字，不重畫清單 —— 重畫會把正在打字的輸入框換掉、焦點跟著掉
+    const paintHead = () => {
+      const pop = $('#cfgPop');
+      if (pop && pop.dataset.kind === 'ind') {
+        $$('.indrow', pop).forEach(r => {
+          const d = IDX[r.dataset.k]; if (!d) return;
+          const s = $('.isum', r); if (s) s.textContent = d.sum() || '';
+          if (d.base) return;
+          const on = d.on(); r.classList.toggle('on', on);
+          const c = $('input.ion', r); if (c) c.checked = on;
+        });
+      }
+      paintBtn();
+    };
+    // 設定改了 → 存檔 → 目前這個模式重畫（單一週期重跑 apply；四週期只把四張小圖的指標重套）
+    const commit = () => {
+      saveCfg(cfg); paintHead();
+      if (state.mtfMode) miniCharts.forEach(c => { try { c.applyIndicators(miniCfg(cfg)); } catch (e) { /* 小圖已銷毀 */ } });
+      else apply();
+    };
+    const syncMa = () => {
+      const list = [], col = [], wid = [];
+      $$('#maRows .marow').forEach(r => {
+        list.push(+$('[data-f=n]', r).value || 20);
+        col.push($('[data-f=c]', r).value);
+        wid.push(+$('[data-f=w]', r).value || 1);
+      });
+      if (cfg.ma && cfg.ma.length) cfg.ma = list; else (cfg.prm = cfg.prm || {}).ma = list;
+      cfg.maColor = col; cfg.maWidth = wid;
+      const add = $('#maAdd'); if (add) add.disabled = list.length >= 6;   // 刪到剩 5 條要能再加回來
+      commit();
+    };
+    const wireMa = () => $$('#maRows .marow').forEach(r => {
+      $$('input', r).forEach(i => { i.oninput = syncMa; i.onchange = syncMa; });
+      $('[data-f=del]', r).onclick = () => { r.remove(); syncMa(); };
+    });
+    const wireInd = (pop) => {
+      $$('input.ion', pop).forEach(c => { c.onchange = () => { IDX[c.dataset.k].toggle(); commit(); }; });
+      const expand = (k) => {
+        const r = pop.querySelector(`.indrow[data-k="${k}"]`); if (!r) return;
+        const b = $('.ibody', r); if (!b) return;
+        const open = b.hidden; b.hidden = !open; r.classList.toggle('open', open);
+        const x = $('.iexp', r); if (x) x.setAttribute('aria-expanded', String(open));
+        if (open) indOpen.add(k); else indOpen.delete(k);
+      };
+      $$('.iexp', pop).forEach(b => { b.onclick = () => expand(b.dataset.k); });
+      $$('.isw[data-exp]', pop).forEach(s => { s.onclick = () => expand(s.closest('.indrow').dataset.k); });
+      // 參數：數字框改完（離開或按 Enter）才套用；範圍外的值退回原本的數字，不讓一個 0 把指標弄壞
+      $$('.prow input[data-p]', pop).forEach(inp => {
+        const d = IDX[inp.closest('.indrow').dataset.k];
+        const take = () => {
+          const v = +inp.value, lo = +inp.min, hi = +inp.max;
+          if (inp.value === '' || !Number.isFinite(v) || v < lo || v > hi) { inp.value = d.io.get(inp.dataset.p); return; }
+          const val = inp.step && +inp.step < 1 ? Math.round(v * 10) / 10 : Math.round(v);
+          inp.value = val;
+          if (val === d.io.get(inp.dataset.p)) return;
+          d.io.set(inp.dataset.p, val); commit();
+        };
+        inp.onchange = take;
+        inp.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); take(); } };
+      });
+      $$('.strow[data-k]', pop).forEach(r => {
+        const upd = () => {
+          const o = Object.assign({}, (cfg.st || {})[r.dataset.k] || {});
+          $$('input', r).forEach(i => { o[i.dataset.f] = i.type === 'color' ? i.value : +i.value; });
+          const ov = $('[data-f=ov]', r); if (ov) ov.textContent = o.o + '%';
+          (cfg.st = cfg.st || {})[r.dataset.k] = o; commit();
+        };
+        $$('input', r).forEach(i => { i.oninput = upd; i.onchange = upd; });
+      });
+      const pr = $('#peRow', pop);
+      if (pr) {
+        const upd = () => {
+          const z = PE_ZONES.map((_, i) => $(`[data-z="${i}"]`, pr).value);
+          const w = +$('[data-f=w]', pr).value || 1, o = +$('[data-f=o]', pr).value || 30;
+          const ov = $('#peOv'); if (ov) ov.textContent = o + '%';
+          // 保留 of（填滿模式自己的透明度，下方河流圖在用）—— 以前整包覆寫會把它弄丟
+          cfg.st = cfg.st || {};
+          cfg.st.pe = Object.assign({}, cfg.st.pe || {}, { z, w, o }); commit();
+        };
+        $$('input', pr).forEach(i => { i.oninput = upd; i.onchange = upd; });
+      }
+      const lw = $('#lw', pop), bw = $('#bw', pop);
+      if (lw) lw.oninput = () => {
+        cfg.lineWidth = +lw.value || 1; $('#lwv').textContent = lw.value + 'px';
+        // 整體線寬帶動每條均線（跟以前的設定面板一樣）
+        $$('#maRows [data-f=w]').forEach(i => { i.value = lw.value; });
+        cfg.maWidth = prmOf('ma').map(() => cfg.lineWidth);
+        commit();
+      };
+      if (bw) bw.oninput = () => {
+        cfg.bar = +bw.value || 11; $('#bwv').textContent = bw.value + 'px'; commit();
+        // apply() 對「同一檔同一週期」的重畫會保留使用者滾輪縮放過的棒寬（即時更新那條路）；這裡是親手調的 → 直接套
+        if (kchart && kchart.setBarSpacing && !state.mtfMode) kchart.setBarSpacing(cfg.bar);
+      };
+      wireMa();
+      const add = $('#maAdd', pop);
+      if (add) add.onclick = () => {
+        const i = $$('#maRows .marow').length; if (i >= 6) return;
+        const d = document.createElement('div'); d.innerHTML = maRow(10, i).trim();
+        $('#maRows').appendChild(d.firstChild); wireMa(); syncMa();
+      };
+      const rs = $('#cfgReset', pop);
+      if (rs) rs.onclick = () => {
+        // 自訂週期（tfs）與四週期各格選的週期（mtfTfs）不是「指標」，回復預設不動它們
+        const keep = { tfs: cfg.tfs, mtfTfs: cfg.mtfTfs };
+        Object.keys(cfg).forEach(k => { delete cfg[k]; });
+        Object.assign(cfg, clone(DEFAULT_CFG), keep);
+        closePop(pop); commit();
+        if (kchart && kchart.setBarSpacing && !state.mtfMode) kchart.setBarSpacing(cfg.bar);
+      };
+    };
+    const openInd = () => {
+      const pop = $('#cfgPop');
+      // ★ 用「畫面上真的看得到嗎」決定開或關，不是只看 hidden —— 理由見 popVisible() 上面那段
+      if (popVisible(pop, 'ind')) { closePop(pop); return; }
+      pop.hidden = false; pop.dataset.kind = 'ind'; pop.classList.add('indpop');
+      pop.innerHTML = `<div class="ttl">指標 <small>勾＝開／關　▸＝參數與樣式</small></div>
+        <div class="indlist" id="indList">${IND.map(rowHTML).join('')}</div>
+        <div class="ifoot"><button class="btn small" id="cfgReset" type="button">回復預設</button><div class="sp" style="flex:1"></div><span class="note">點外面或 Esc 關閉</span></div>`;
+      wireInd(pop); paintHead();
+      indBtn.setAttribute('aria-expanded', 'true');
+      placePop(pop, indBtn);
+    };
+    indBtn.onclick = openInd;
+    paintBtn();
+    /* 主圖右下角的「重設縮放」（KChart 自己掛那顆 #fitBtn，見 chart.js）：
+       連同拖過的面板高度一起還原 —— 拉壞了要有一鍵回去的地方。*/
+    const mainFit = () => {
+      const c = state.cfg || loadCfg();
+      if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(c); }
+      if (kchart) kchart.resetView(160);
+    };
+    const newMain = (box, tf) => new KChart(box, { tf, onText: () => window.prompt('文字內容', ''), fit: mainFit, fitId: 'fitBtn' });
     const build = () => {
       if (kchart) { kchart.destroy(); kchart = null; } miniCharts.forEach(c => c.destroy()); miniCharts = [];
       if (state.mtfMode) { host.innerHTML = `<div class="mtf-grid" id="mtfGrid"></div>`; buildMtfGrid(pg); return; }
       host.innerHTML = `<div id="lwc"><div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div></div>`;
-      kchart = new KChart($('#lwc'), { tf: state.tf, onText: () => window.prompt('文字內容', '') });
+      kchart = newMain($('#lwc'), state.tf);
       apply();
       enableDraw(pg);
     };
@@ -3883,7 +4021,7 @@
       if (!kchart || !$('#legendOv')) {
         if (kchart) { kchart.destroy(); kchart = null; }
         box.innerHTML = '<div class="legend-ov" id="legendOv"></div><div class="ohlcbox" id="ohlcBox" hidden></div>';
-        kchart = new KChart(box, { tf: tf, onText: () => window.prompt('文字內容', '') });
+        kchart = newMain(box, tf);
         enableDraw(pg);
       }
       // 即時更新（同一檔、同一個週期、圖還在）就保留目前的縮放與位置
@@ -3900,8 +4038,8 @@
          畫面看起來就是「縮放完自己跳回原來大小」（Andy 2026-09-18）。
          keep 為真＝這是即時更新造成的重畫，要尊重使用者自己拉的縮放。*/
       if (!keep && kchart.setBarSpacing) kchart.setBarSpacing(cfg.bar || 11);
-      kchart.setZones(cfg.smc && !live ? zonesFor(pg, tf) : [], cfg.zone || undefined);
-      kchart.setMarkers(cfg.marks && !live ? marksFor(pg, tf) : {});
+      /* SMC 需求／供給區塊與 BOS／CHoCH／掃蕩標記 2026-09-26 從 K 線上拿掉（Andy：「將這兩個指標拿掉」）。
+         多週期判讀卡（renderMtf）與 Python 端 compute/mtf.py 的 SMC 判讀照舊 —— 拿掉的只是圖上那兩層。*/
       const v = pg.verdict || {};
       kchart.setPriceLines(cfg.lines && tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
@@ -3967,7 +4105,8 @@
     $('#tfAdd').onclick = () => {
       const pop = $('#cfgPop');
       if (popVisible(pop, 'tf')) { closePop(pop); return; }
-      pop.hidden = false; pop.dataset.kind = 'tf';
+      pop.hidden = false; pop.dataset.kind = 'tf'; pop.classList.remove('indpop');
+      const ib = $('#indBtn'); if (ib) ib.setAttribute('aria-expanded', 'false');
       pop.innerHTML = `<div class="ttl">自訂時間週期</div>
         <div class="note">用日線合成，例如 3 日＝三根日線併一根；週線同理。輸入後按加入，按鈕上按右鍵可移除。</div>
         <div class="row" style="margin-top:8px"><input id="tfN" type="number" min="2" max="60" value="3" style="width:64px">
@@ -3983,117 +4122,9 @@
       placePop(pop, $('#tfAdd'));
     };
 
-    // ---- 圖表設定：線寬、均線條數／週期／顏色／粗細
-    $('#cfgBtn').onclick = () => {
-      const pop = $('#cfgPop');
-      // ★ 用「畫面上真的看得到嗎」決定開或關，不是只看 hidden —— 理由見 popVisible() 上面那段
-      if (popVisible(pop, 'style')) { closePop(pop); return; }
-      pop.hidden = false; pop.dataset.kind = 'style';
-      const mas = cfg.ma || [];
-      const zn = Object.assign({}, KUtil.ZONE_DEF, cfg.zone || {});
-      const pes = peStyle(cfg);
-      pop.innerHTML = `<div class="ttl">圖表設定</div>
-        <div class="frow"><label>整體線寬</label><input id="lw" type="range" min="1" max="4" step="1" value="${cfg.lineWidth || 1}"><span class="val" id="lwv">${cfg.lineWidth || 1}px</span></div>
-        <div class="frow"><label>K 棒寬度</label><input id="bw" type="range" min="3" max="28" step="1" value="${cfg.bar || 11}"><span class="val" id="bwv">${cfg.bar || 11}px</span></div>
-        <div class="ttl2">均線（最多 6 條）</div>
-        <div id="maRows">${mas.map((n, i) => `<div class="frow marow" data-i="${i}">
-          <input type="number" min="2" max="480" value="${n}" data-f="n" style="width:62px">
-          <input type="color" value="${(cfg.maColor || [])[i] || KUtil.colors.ma[i % 6]}" data-f="c">
-          <input type="range" min="1" max="4" step="1" value="${(cfg.maWidth || [])[i] || cfg.lineWidth || 1}" data-f="w" style="width:78px">
-          <button class="btn small" data-f="del" title="移除這條">✕</button></div>`).join('')}</div>
-        <div class="row" style="margin-top:6px"><button class="btn small" id="maAdd" ${mas.length >= 6 ? 'disabled' : ''}>＋ 新增均線</button></div>
-        <div class="ttl2">指標樣式（顏色 · 線寬 · 透明度）</div>
-        <div id="stRows">${STYLE_ROWS.map(([k, label, keys, names]) => {
-          const v = Object.assign({ w: cfg.lineWidth || 1, o: 100 }, STYLE_DEF[k], (cfg.st || {})[k] || {});
-          return `<div class="frow strow" data-k="${k}"><label>${label}</label>
-            ${keys.map((ck, i) => `<span class="cwrap" title="${names[i]}"><input type="color" data-f="${ck}" value="${v[ck]}"><em>${names[i]}</em></span>`).join('')}
-            <input type="range" min="1" max="4" step="1" data-f="w" value="${v.w}" title="線寬" style="width:64px">
-            <input type="range" min="15" max="100" step="5" data-f="o" value="${v.o}" title="透明度" style="width:78px">
-            <span class="val" data-f="ov">${v.o}%</span></div>`;
-        }).join('')}</div>
-        <div class="ttl2">本益比河流（六個區間的顏色 · 線寬 · 色帶透明度）</div>
-        <div class="frow strow" id="peRow" style="flex-wrap:wrap">
-          ${PE_ZONES.map((z, i) => `<span class="cwrap" title="${z.name}"><input type="color" data-z="${i}" value="${pes.z[i]}"><em>${z.name}</em></span>`).join('')}
-          <label style="min-width:0">線寬</label><input type="range" min="1" max="4" step="1" data-f="w" value="${pes.w}" style="width:60px">
-          <label style="min-width:0">透明</label><input type="range" min="5" max="100" step="5" data-f="o" value="${pes.o}" style="width:70px">
-          <span class="val" id="peOv">${pes.o}%</span>
-        </div>
-        <div class="ttl2">SMC 供需區</div>
-        <div class="frow" id="zoneRow">
-          <span class="cwrap" title="需求區"><input type="color" data-f="demand" value="${zn.demand}"><em>需求</em></span>
-          <span class="cwrap" title="供給區"><input type="color" data-f="supply" value="${zn.supply}"><em>供給</em></span>
-          <label style="margin-left:4px">填色</label><input type="range" min="0" max="45" step="1" data-f="fill" value="${zn.fill}" style="width:74px">
-          <label>框線</label><input type="range" min="20" max="100" step="5" data-f="line" value="${zn.line}" style="width:66px">
-          <input type="range" min="1" max="3" step="1" data-f="width" value="${zn.width}" title="框線粗細" style="width:54px">
-          <label class="chk"><input type="checkbox" data-f="label" ${zn.label ? 'checked' : ''}>標籤</label>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <button class="btn small" id="cfgReset">回復預設</button><div class="sp"></div><button class="btn small primary" id="cfgClose">完成</button></div>`;
-      placePop(pop, $('#cfgBtn'));
-      const sync = () => {
-        cfg.ma = []; cfg.maColor = []; cfg.maWidth = [];
-        $$('#maRows .marow').forEach(r => {
-          cfg.ma.push(+$('[data-f=n]', r).value || 20);
-          cfg.maColor.push($('[data-f=c]', r).value);
-          cfg.maWidth.push(+$('[data-f=w]', r).value || 1);
-        });
-        cfg.lineWidth = +$('#lw').value || 1;
-        cfg.bar = +$('#bw').value || 11;
-        cfg.st = {};
-        $$('#stRows .strow').forEach(r => {
-          const o = {};
-          $$('input', r).forEach(i => { o[i.dataset.f] = i.type === 'color' ? i.value : +i.value; });
-          const ov = $('[data-f=ov]', r); if (ov) ov.textContent = o.o + '%';
-          cfg.st[r.dataset.k] = o;
-        });
-        // 本益比河流：六個顏色 ＋ 線寬 ＋ 透明度（cfg.st 上面被整個重建了，所以在這裡補回去）
-        const pr = $('#peRow');
-        if (pr) {
-          const z = PE_ZONES.map((_, i) => $(`[data-z="${i}"]`, pr).value);
-          const w = +$('[data-f=w]', pr).value || 1, o = +$('[data-f=o]', pr).value || 30;
-          const ov = $('#peOv'); if (ov) ov.textContent = o + '%';
-          cfg.st.pe = { z, w, o };
-        }
-        const zr = $('#zoneRow');
-        if (zr) { const z = {}; $$('input', zr).forEach(i => {
-          z[i.dataset.f] = i.type === 'color' ? i.value : i.type === 'checkbox' ? i.checked : +i.value; });
-          cfg.zone = z; }
-        const add = $('#maAdd'); if (add) add.disabled = cfg.ma.length >= 6;   // 刪到剩 5 條要能再加回來
-        saveCfg(cfg); drawChips(); apply();
-      };
-      $('#lw').oninput = () => {
-        $('#lwv').textContent = $('#lw').value + 'px';
-        $$('#maRows [data-f=w]').forEach(i => { i.value = $('#lw').value; });   // 整體線寬帶動每條均線
-        sync();
-      };
-      $('#bw').oninput = () => { $('#bwv').textContent = $('#bw').value + 'px'; sync(); };
-      $$('#peRow input').forEach(i => { i.oninput = sync; i.onchange = sync; });
-      const wireRows = () => $$('#maRows .marow').forEach(r => {
-        $$('input', r).forEach(i => { i.oninput = sync; i.onchange = sync; });
-        $('[data-f=del]', r).onclick = () => { r.remove(); sync(); };
-      });
-      wireRows();
-      $$('#stRows .strow input, #zoneRow input').forEach(i => { i.oninput = sync; i.onchange = sync; });
-      $('#maAdd').onclick = () => {
-        const i = $$('#maRows .marow').length; if (i >= 6) return;
-        const d = document.createElement('div'); d.className = 'frow marow';
-        d.innerHTML = `<input type="number" min="2" max="480" value="10" data-f="n" style="width:62px">
-          <input type="color" value="${KUtil.colors.ma[i % 6]}" data-f="c">
-          <input type="range" min="1" max="4" step="1" value="1" data-f="w" style="width:78px">
-          <button class="btn small" data-f="del" title="移除這條">✕</button>`;
-        $('#maRows').appendChild(d); wireRows(); sync();
-      };
-      $('#cfgReset').onclick = () => { Object.assign(cfg, JSON.parse(JSON.stringify(DEFAULT_CFG))); saveCfg(cfg); closePop(pop); drawChips(); apply(); };
-      $('#cfgClose').onclick = () => { closePop(pop); };
-    };
+    // ---- 「⚙ 設定」鈕與獨立的「圖表設定」面板 2026-09-26 拿掉：內容全部搬進上面的「指標 ▾」下拉
 
     $('#mtfBtn').onclick = () => { state.mtfMode = !state.mtfMode; $('#mtfBtn').textContent = state.mtfMode ? '單一週期' : '四週期同看'; build(); };
-    $('#fitBtn').onclick = () => {
-      // 連同拖過的面板高度一起還原 —— 拉壞了要有一鍵回去的地方
-      const c = state.cfg || loadCfg();
-      if (c.paneH) { delete c.paneH; saveCfg(c); state.cfg = c; if (kchart) kchart.applyIndicators(c); }
-      if (kchart) kchart.resetView(160);
-    };
     /* 寬版（Andy：「K 線圖太小，版面需要擴大」）：把右側事件欄收起來，整個視窗寬度都給圖。
        Lightweight Charts 是 autoSize，容器一變寬它自己重畫；ECharts 的小圖要自己踢一下 resize。
        狀態存 localStorage，下次進個股頁維持同一個版面。 */
@@ -4133,7 +4164,7 @@
       };
       paintDraw();
     }
-    drawChips(); drawBar(); build();
+    drawBar(); build();
   }
 
   // 每檔每週期各存一份手繪線，換股或換週期就換一組
@@ -4260,19 +4291,37 @@
       return `<div class="mtf-cell"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
         ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
-        </div><div class="cv" id="mini-${i}"></div></div>`;
+        </div><div class="mtip" id="mtip-${i}" hidden></div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
     pick.forEach((tf, i) => {
       const el = $('#mini-' + i);
+      /* ★ 2026-09-26（Andy：「四週期成交量呢？」）：每張小圖各自畫自己週期的成交量副圖（紅漲綠跌量柱＋量均線，
+         圖高約 20%、軸標「張」），跟大圖同一份設定（miniCfg）—— 指標下拉把「成交量」關掉，四張一起不畫。
+         量從哪來：日／週／月＝日線（週月是日線合成時把量加總）；1 小時＝payload 的 60 分 K；
+         4 小時＝60 分 K 四根併一根（groupBars 把量加總）；即時週期＝livek.js 收的分 K。
+         SMC 供需區與 BOS／CHoCH 標記同一天從小圖拿掉（Andy「將這兩個指標拿掉」）；
+         標題列那行「多頭結構・均線多排・RSI」是判讀摘要，不是圖上的指標，照舊留著。*/
       const bars = barsFor(pg, tf);
       if (!bars || bars.length < 2) {
         el.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg() : '這個週期尚無資料')}</div>`;
         return;
       }
-      const c = new KChart(el, { mini: true, tf });
+      // 右下角「重設縮放」：每張小圖各一顆，重設的是這一張自己的縮放（四格可以各自滾輪縮放）
+      const c = new KChart(el, { mini: true, tf, fit: (kc) => kc.defaultView() });
       c.setBars(bars, tf);
-      c.applyIndicators({ ma: [20, 60], vol: false });
-      if (!isLiveTf(tf)) { c.setZones(zonesFor(pg, tf)); c.setMarkers(marksFor(pg, tf)); }
+      c.applyIndicators(miniCfg(cfg));
+      /* 游標看板：滑過哪一根就寫那一根的時間、開高低收與量。小圖沒有大圖那條圖例，
+         不寫的話量柱只有高低、看不出是幾張。*/
+      const tip = $('#mtip-' + i);
+      c.onCrosshair((k) => {
+        const d = k == null ? null : c.data[k];
+        if (!d || !tip) { if (tip) tip.hidden = true; return; }
+        const prev = c.data[k - 1];
+        const col = A.upDown(prev ? d.close - prev.close : d.close - d.open);
+        tip.hidden = false;
+        tip.innerHTML = `<b>${A.fmt.esc(KUtil.fmtTime(d.time, tf))}</b>　開 ${A.fmt.n(d.open)} 高 ${A.fmt.n(d.high)} 低 ${A.fmt.n(d.low)} 收 <b style="color:${col}">${A.fmt.n(d.close)}</b>`
+          + `<br>量 <b data-vol>${A.fmt.lot((d.volume || 0) / 1000)}</b>`;
+      });
       miniCharts.push(c);
     });
     $$('.mtfsel', grid).forEach(sel => sel.onchange = () => {
@@ -4414,6 +4463,8 @@
     if (!pop) return;
     pop.hidden = true;
     pop.dataset.kind = '';
+    pop.classList.remove('indpop');
+    const b = document.getElementById('indBtn'); if (b) b.setAttribute('aria-expanded', 'false');
   }
 
   function wirePopDismiss() {
@@ -4424,14 +4475,14 @@
     document.addEventListener('mousedown', (e) => {
       const pop = document.getElementById('cfgPop');
       if (!pop || pop.hidden) return;
-      if (e.target.closest && (e.target.closest('.cfgpop') || e.target.closest('#cfgBtn, #tfAdd'))) return;
+      if (e.target.closest && (e.target.closest('.cfgpop') || e.target.closest('#indBtn, #tfAdd'))) return;
       closePop(pop);
     }, true);
     // 換頁一律收掉：不收的話 hidden 會留在 false，回來按 ⚙ 就變成「關掉看不見的面板」
     window.addEventListener('hashchange', () => closePop());
     // 2026-09-24：外面點一下本來就會關（上面那段）；登記進全站那一份是為了多一個 Esc
     const pop0 = document.getElementById('cfgPop');
-    if (pop0 && A && A.dismissable) A.dismissable(pop0, () => closePop(pop0), { ignore: ['.cfgpop', '#cfgBtn', '#tfAdd'] });
+    if (pop0 && A && A.dismissable) A.dismissable(pop0, () => closePop(pop0), { ignore: ['.cfgpop', '#indBtn', '#tfAdd'] });
   }
 
   function placePop(pop, btn) {
@@ -5058,5 +5109,13 @@
     markers: kchart && kchart.markerList ? kchart.markerList.map(m => ({ time: String(m.time), i: m.i, pos: m.position, text: m.text })) : [],
     markerNear: kchart && kchart.chart ? Math.max(2, Math.min(12, Math.ceil(60 / (kchart.chart.timeScale().options().barSpacing || 7)))) : null,
     divLabels: kchart && kchart.divPrice ? (kchart.divPrice.lastLabels || []) : [],
-    legendRect: kchart && kchart.legendRect ? kchart.legendRect() : null }) };
+    legendRect: kchart && kchart.legendRect ? kchart.legendRect() : null,
+    // 2026-09-26 驗收用：主圖上還有沒有 SMC 區塊（應該永遠是 0）、四週期小圖各自有沒有量副圖、量副圖佔幾成
+    zoneCount: kchart && kchart.zones ? (kchart.zones.zones || []).length : 0,
+    mini: miniCharts.map(c => {
+      let ps = []; try { ps = c.chart.panes().map(p => p.getHeight()); } catch (e) { /* 已銷毀 */ }
+      const vi = c.paneIndex ? c.paneIndex.vol : null, tot = ps.reduce((a, v) => a + v, 0);
+      return { tf: c.tf, panes: ps.length, vol: vi != null, volShare: vi != null && tot ? +(ps[vi] / tot).toFixed(3) : 0,
+               zones: c.zones ? (c.zones.zones || []).length : 0, markers: (c.markerList || []).length, bars: (c.data || []).length };
+    }) }) };
 })();

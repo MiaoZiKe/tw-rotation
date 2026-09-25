@@ -556,11 +556,46 @@
            只記整頁大圖（mini／compact 的小卡不覆蓋它）。*/
         KChart.last = this;
       }
+      /* ★ 2026-09-26（Andy：「幫我將縮放放到圖上位置」）：「重設縮放」鈕從工具列搬進圖裡 ——
+         主圖 K 棒區的右下角、價格軸左邊、成交量副圖上方。半透明角標（⌜⌟），滑過才變亮。
+         位置跟著主圖面板高度與價格軸寬度走（_layoutCorner），副圖拖大拖小、換指標都會重算。
+         為什麼放右下角：時間軸的 rightOffset 在最新一根右邊留了幾根的空白，
+         價格軸上的現價標籤在軸上、不在繪圖區 —— 那一格是整張圖最不會蓋到東西的地方。
+         四週期同看的每張小圖也各有一顆（重設的是那一張自己的縮放；各格可以各自滾輪縮放）。*/
+      if (typeof this.opts.fit === 'function') {
+        const b = document.createElement('button');
+        b.type = 'button'; b.className = 'kfit';
+        if (this.opts.fitId) b.id = this.opts.fitId;
+        b.title = '重設縮放（雙擊價格軸也可以）'; b.setAttribute('aria-label', '重設縮放');
+        b.innerHTML = '<svg viewBox="0 0 18 18"><path d="M3,7 V3 H7 M11,3 H15 V7 M15,11 V15 H11 M7,15 H3 V11"/></svg>';
+        // 畫線工具在 el 上用 capture 聽 pointerdown；按這顆不能變成「在圖上點了一筆」
+        b.addEventListener('pointerdown', (e) => e.stopPropagation(), true);
+        b.onclick = (e) => { e.stopPropagation(); this.opts.fit(this); };
+        el.appendChild(b); this.fitEl = b;
+        if (!this._ro) { this._ro = new ResizeObserver(() => this._layoutCorner()); this._ro.observe(el); }
+      }
+      /* 副圖分隔線拖完（放開滑鼠）面板高度就變了，左上角的面板標題與右下角的重設鈕要跟著重排 ——
+         以前只有容器尺寸變（ResizeObserver）才重排，拖完分隔線標題會停在舊的位置。*/
+      this._onUp = () => setTimeout(() => { if (!this._dead) this._layoutLabels(); }, 60);
+      el.addEventListener('pointerup', this._onUp);
+    }
+    /* 重設鈕貼在主圖（第 0 個面板）的右下角：right＝價格軸寬＋6、top＝主圖高－鈕高－6。
+       還量不到尺寸（0×0 初始化）就先藏起來，下一次重排再出現，不會閃在左上角。*/
+    _layoutCorner() {
+      const b = this.fitEl; if (!b || this._dead) return;
+      let mh = 0, pw = 0;
+      try { const ps = this.chart.panes(); mh = ps[0] ? ps[0].getHeight() : 0; pw = this.chart.priceScale('right').width(); } catch (e) { /* 圖已銷毀 */ }
+      if (!(mh > 40)) { b.style.visibility = 'hidden'; return; }
+      const sz = this.opts.mini ? 24 : 28;
+      b.style.visibility = '';
+      b.style.top = Math.round(mh - sz - 6) + 'px';
+      b.style.right = Math.round((pw || 56) + 6) + 'px';
     }
     setWatermark(text) { if (this.wm) this.wm.textContent = text || ''; }
     // 各指標面板左上角的標題（成交量 / KD(9,3,3) / MACD(12,26,9) / RSI(14)）＋當下數值
     setPaneLabels(map) { this._paneText = map || {}; this._layoutLabels(); }
     _layoutLabels() {
+      this._layoutCorner();
       if (!this.labels) return;
       const ps = this.chart.panes(); let top = 0; const tops = ps.map(p => { const t = top; top += p.getHeight() + 1; return t; });
       const html = Object.entries(this.paneIndex).map(([k, i]) => tops[i] == null ? '' : `<div style="top:${tops[i] + 6}px">${(this._paneText || {})[k] || ''}</div>`).join('');
@@ -621,6 +656,13 @@
         if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
         return;
       }
+      this.defaultView();
+      // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
+      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
+    }
+    /** 換股／換週期時的預設取景（2026-09-26 從 setBars 抽出來：四週期小圖右下角的「重設縮放」也要回到這個樣子）。*/
+    defaultView() {
+      if (!this.data || !this.data.length) return;
       this.chart.timeScale().scrollToRealTime();
       /* 畫面上要放幾根，用「想要的每根寬度」除出來，不要寫死 160 根。
          寫死的話視窗一窄（或手機），160 根攤在 700px 上就只剩 4px 一根。*/
@@ -634,8 +676,6 @@
          K 棒就被壓成一條線。Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」。
          只在 !keepView 時做：即時更新每幾秒跑一次，那時要尊重使用者自己拉的範圍。*/
       this.candle.priceScale().setAutoScale(true);
-      // 供需區的右邊界要停在最後一根 K 棒，不是畫面右緣
-      if (this.zones && this.data.length) this.zones.setLastTime(this.data[this.data.length - 1].time);
     }
     /** 新舊兩份 bars 的差在哪一根。
      *  回傳「從第幾根開始不一樣」；只要有任何一根**舊資料的最後一根之前**被改過，
@@ -1013,7 +1053,7 @@
          以前重建時只在第一次套 cfg.paneH，之後一律用預設高度 —— 關掉 KD 再打開，
          使用者拖好的主圖／成交量高度就被打回預設（驗收 `個股`「切指標之後主圖高度不會自己跳回去」）。
          這條以前沒紅，是因為點籤的正中間會點到參數框、根本沒切到；R5 把籤改成整顆都是開關之後才現形。*/
-      if (this._paneInit && !this.opts.compact) {
+      if (this._paneInit && !this.opts.compact && !this.opts.mini) {
         try {
           const cur = this.paneHeights();
           const sum = Object.values(cur).reduce((a, v) => a + (v || 0), 0);
@@ -1031,7 +1071,12 @@
       /* 面板高度有兩套：一般（個股頁那種整頁大圖）與 compact（總覽那三張小卡）。
          以前主圖高度寫死「至少 280px」，放進 230px 的小卡就會整個爆出去 ——
          成交量被擠成一條線、指標面板空白、面板標題跑到卡片外面。 */
-      const PH = this.opts.compact
+      /* 四週期同看的小圖（mini）：成交量副圖吃圖高的 20%（Andy 2026-09-26「四週期成交量呢？」，
+         要 18～22%）。一律用比例、不吃使用者在大圖拖出來的 paneH —— 大圖的 100px 放進 300px 的小格就是三分之一。*/
+      const mh0 = this.el.clientHeight || 300;
+      const PH = this.opts.mini
+        ? { vol: Math.round(mh0 * 0.2), ind: Math.round(mh0 * 0.2), min: Math.round(mh0 * 0.5) }
+        : this.opts.compact
         ? { vol: 52, ind: 58, min: 110 }
         // Andy 2026-09-15：「下面的成交量 MACD 這些指標上下間隔寬點」。
         // 以前實際只有 57~67px；這組在 813px 高的個股頁量到量 96／KD 115／MACD 115，主圖還有 441。
@@ -1137,7 +1182,7 @@
          重建圖表（換股票／換週期）時 _paneInit 會是 undefined，那時才套。 */
       const saved = this._paneInit ? (this._paneMem || null) : cfg.paneH;
       this._paneInit = true;
-      if (saved && !this.opts.compact) {
+      if (saved && !this.opts.compact && !this.opts.mini) {
         // 副圖用存檔的高度，主圖自動吃剩下的 —— 那本來就是他拖出來的結果
         Object.keys(this.paneIndex).forEach(k => {
           const h = saved[k];
@@ -1145,7 +1190,7 @@
         });
       }
       this._applyPaneHeights(want, PH);
-      setTimeout(() => this._layoutLabels(), 30);
+      setTimeout(() => { if (!this._dead) this._layoutLabels(); }, 30);
     }
     /* 面板高度一次全部套上去。
        ★ 不可以逐一呼叫 `pane.setHeight()`。Lightweight Charts 的 `setHeight` 內部是
@@ -1256,6 +1301,8 @@
       // 這兩個掛在容器上，容器不會跟著圖表一起消失 —— 一定要自己拿掉
       if (this._onWheel) this.el.removeEventListener('wheel', this._onWheel);
       if (this._onDbl) this.el.removeEventListener('dblclick', this._onDbl);
+      if (this._onUp) this.el.removeEventListener('pointerup', this._onUp);
+      if (this.fitEl && this.fitEl.parentNode) this.fitEl.parentNode.removeChild(this.fitEl);
       if (this.draw) this.draw.destroy();
       if (this._ro) this._ro.disconnect();
       // ③ 的監聽與提示：圖表 remove 之後還留著的話，下一次拖曳會踩到已經死掉的 chart
