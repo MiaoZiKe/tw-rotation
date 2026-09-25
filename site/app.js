@@ -748,6 +748,12 @@
       nearIdle();
     }, { timeout: NEAR_IDLE_MAX });
   }
+  // 讓出主執行緒一次：等下一幀畫完再接著做（分頁在背景時 rAF 不跑，用 setTimeout 保底，不會卡住）
+  const yieldFrame = () => new Promise(r => {
+    let done = false; const go = () => { if (!done) { done = true; setTimeout(r, 0); } };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(go);
+    setTimeout(go, 100);
+  });
   function whenNear(el, fn) {
     if (!el || typeof IntersectionObserver === 'undefined') { fn(); return; }
     const r = el.getBoundingClientRect();
@@ -2786,6 +2792,9 @@
     ].join('');
     wireKpiDrill();
     renderHeat(gt, rot);
+    /* ★ 2026-09-24 效能：熱力圖畫完先讓瀏覽器畫一幀、喘口氣（處理點擊與捲動），再畫輪盤。
+       以前兩張連同整頁一起在同一個任務裡畫完，那一個任務就是 Andy 說的「開啟就卡一陣子」。*/
+    await yieldFrame();
     /* ★ 2026-09-23（Andy：「總覽 輪動階段 上方的『放大』移除，並且需要圓圈大一點」）。
        · `#rotMiniZoomBtn` 整顆移除（連同這裡的接線）——「放大」這個能力沒有消失：
          點卡片標題旁邊的分頁「資金流向」就是同一張時鐘的完整版（有拉Bar、篩選、播放）。
@@ -9477,15 +9486,17 @@
          回到桌機那一欄就莫名其妙不見了。 */
     const SIDE_OVERLAY_MAX = 820;                      // 跟 index.html 的 media query 同一個數字
     const sideIsOverlay = () => window.innerWidth <= SIDE_OVERLAY_MAX;
-    const setSide = (open, remember = true) => {
+    const setSide = (open, remember = true, quiet = false) => {
       $('#side').classList.toggle('open', open);
       $('#layout').classList.toggle('noside', !open);
       if (remember) { try { localStorage.setItem(SIDE_KEY, open ? '1' : '0'); } catch (e) { /* 忽略 */ } }
-      window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
+      if (!quiet) window.dispatchEvent(new Event('resize'));       // 欄寬變了，圖表要重畫
     };
     let sideOpen = true;
     try { sideOpen = localStorage.getItem(SIDE_KEY) !== '0'; } catch (e) { /* 忽略 */ }
-    setSide(sideIsOverlay() ? false : sideOpen, false);
+    /* ★ 2026-09-24 效能：開站這一次不派 resize —— 這時候一張圖都還沒畫（route() 在後面），
+       派了只會讓每個 resize 監聽者（分頁列置中、溢出提示…）各逼瀏覽器同步重排一次整頁（R6 量到 69ms，4 倍降速 503ms）。*/
+    setSide(sideIsOverlay() ? false : sideOpen, false, true);
     /* 讓別的模組也開得了關得了這一欄（DECISIONS #248：成分股可以暫時蓋住事件面板）。
        第二個參數 remember=false 很重要 —— 那是「暫時蓋住」，不是使用者改了偏好，
        關掉之後要回到他自己設定的狀態。*/
