@@ -1,5 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 大盤分 K 回補驗證（`crawler`，2026-09-25 19:25，台北）
+
+- 手動回補 run #97（<https://github.com/MiaoZiKe/tw-rotation/actions/runs/36126618652>，main 54c5247）成功，commit 498a3af。
+- `index_intraday` 進湖 **4686 列**：TSE 60m 3624 列（730 天）＋ TSE 15m 1062 列（60 天）。
+- **^TWOII（櫃買指數）Yahoo 60m／15m 皆回空**（`No data found, symbol may be delisted`）→ 1H／4H 目前只有加權、沒有櫃買。
+  沒修：白名單內沒有其他免費的櫃買分 K 來源，換 Yahoo 代號前要先查證（容器打不到 Yahoo，沒辦法實測）。前端櫃買 1H／4H 會是空。
+- 台指期逐筆 `TaiwanFuturesTick`：FinMind 回 400「Your level is register」—— 帳號等級不足，屬預期，已記進進度檔不再重試。
+- 回補 commit 只動 `data/`，不會觸發 pages.yml，所以 19:2x 手動觸發了一次 pages.yml 讓新資料上線。
+- 這批驗了：讀 Actions log、本機 `git pull` 後讀 parquet 列數。沒改程式碼，沒跑 pytest／前端關卡。
+
 ## 收尾批：說明改「?」（熱力圖／市場明細／週期統計／個股頁）、K 線「還原」小標、週期統計提示框、R2／R4 小項（2026-09-25 午，台北，分支 `claude/wrapup-1`，**未推 main**）
 - 說明改「?」：四頁卡片標題旁一律「?」（跳出式 howPop：點背景／Esc／再按一次關），副標與圖下註腳搬進「?」；
   題材剖析圖下方「其他題材」連結列拿掉（換題材＝點正上方題材熱力圖）。保留的只有讀數（`data-readout`：財報到、區間、題材名）
