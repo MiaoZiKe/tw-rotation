@@ -2058,6 +2058,12 @@
       location.replace('#heatmap/theme' + (rest[0] ? '/' + encodeURIComponent(rest[0]) : ''));
       return;
     }
+    /* ★ 2026-09-24（R6 審查）：`#tasks`（任務板）的導覽入口 09-23 就收掉了，但網址還打得開，
+       而它攤著的是**內部作業文字**（金鑰放哪、token 怎麼換、Actions 怎麼跑）—— 這是 public 的網站，那些不該出現在畫面上。
+       給 Andy 看的版本是「交付清單」（#delivery，他的原話＋狀態＋去看），所以舊網址一律導過去，任務板的內容前端不再載入。
+       用 location.replace：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
+       ⚠ `data/tasks.json` 仍由 build_payload 產出（要停掉得改管線），這裡只保證「網站畫面上看不到」。*/
+    if (head === 'tasks') { location.replace('#delivery'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
     const lg = window.TwLegal ? window.TwLegal.route(head, rest) : null;
@@ -8876,11 +8882,9 @@
   // ---------------------------------------------------------------- 季節性
   /* 任務板（Andy 2026-09-20 選的方案）。資料由 build_payload 從 obsidian/tasks.yaml 轉出來，
      這裡只負責載入與交給 tasks.js 畫。找不到檔案就顯示提示，不要讓整頁空白。 */
-  async function renderTasks() {
-    const el = document.getElementById('v-tasks'); if (!el) return;
-    const d = await load('tasks', { fallback: null });
-    if (window.TaskBoard) window.TaskBoard.render(d, el);
-  }
+  /* ★ 2026-09-24：任務板不再從前端載入（`#tasks` 在 route() 開頭就導到交付清單）。這支留著空殼，
+     是因為 route() 的 VIEWS 對照表還認得 'tasks'；它不會再被走到。*/
+  async function renderTasks() { location.replace('#delivery'); }
 
   // ---------------------------------------------------------------- 交付清單
   /* Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，且如實完成」。

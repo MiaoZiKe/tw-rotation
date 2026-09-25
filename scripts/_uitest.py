@@ -5396,32 +5396,28 @@ def t_tasks(pg, base):
     ok("D5：導覽列上已經看不到「任務板」那一格", nav["inNav"] == 0, nav)
     ok("D5：收掉入口之後全站沒有看得見的 `#tasks` 連結（不會變成死連結）", nav["hrefs"] == 0, nav)
 
-    pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1400)
-    ok("D5：路由刻意留著 —— 直接貼 `#tasks` 仍然打得開",
-       pg.evaluate("() => location.hash") == "#tasks")
-    st = pg.evaluate("""() => { const el = document.getElementById('v-tasks');
-        if (!el) return null;
-        return { cards: el.querySelectorAll('.tk').length,
-                 pills: el.querySelectorAll('.linkrow .pill').length,
-                 txt: el.innerText, h: Math.round(el.getBoundingClientRect().height) }; }""")
-    if not ok("任務板頁打得開", bool(st), st):
-        return
-    ok("任務板列得出任務（不是空的）", st["cards"] >= 10, st["cards"])
-    ok("上方有狀態統計（一眼看出還有幾件沒好）", st["pills"] >= 2, st["pills"])
-    ok("「要你動手的」那一塊有列出來", "要你動手" in st["txt"], st["txt"][:120])
-    ok("「等你回答」那一塊有列出來", "等你回答" in st["txt"], st["txt"][:120])
-    # ★ 這一條守的是 obsidian/000-開始這裡.md 那條規則：沒 push 的不准標成已上線
-    ok("頁面上寫明「改完但還沒上線」不會標成已上線",
-       "還沒上線" in st["txt"] or "沒有部署出去" in st["txt"], st["txt"][:200])
-    ok("頁面真的有高度（不是塌掉的空殼）", st["h"] > 400, st["h"])
-
-    # 窄畫面：Andy 有時候在手機上看「到底做完了沒」
-    pg.set_viewport_size({"width": 390, "height": 900}); pg.wait_for_timeout(700)
-    nar = pg.evaluate("""() => ({ over: document.documentElement.scrollWidth > window.innerWidth + 1,
-        cards: document.querySelectorAll('#v-tasks .tk').length })""")
-    ok("任務板在 390px 沒有橫向捲軸", not nar["over"], nar)
-    ok("任務板在 390px 卡片還在", nar["cards"] >= 10, nar)
-    pg.set_viewport_size({"width": 1500, "height": 1000})
+    # ★ 2026-09-24（R6 審查）：任務板攤著內部作業文字（金鑰放哪、token 怎麼換、Actions 怎麼跑），
+    #   而這是 public 的網站 —— `#tasks` 改成**導到交付清單**（給 Andy 看的版本），任務板內容前端不再載入。
+    #   所以這一段從「任務板列得出任務」改成守三件事：
+    #     ① 舊網址不壞：貼 `#tasks` 會落在交付清單，而且交付清單真的有內容
+    #     ② 畫面上看不到任何金鑰／token／Secrets／內部流程字樣
+    #     ③ 上一頁按得出去（location.replace，不多留一筆 #tasks 的歷史）
+    pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1600)
+    st = pg.evaluate("""() => { const v = document.querySelector('main .view.on');
+        const txt = document.body.innerText || '';
+        return { hash: location.hash, view: v ? v.id : null,
+                 dlv: document.querySelectorAll('#v-delivery .dlv').length,
+                 tk: document.querySelectorAll('#v-tasks .tk').length,
+                 bad: (txt.match(/金鑰|token|Token|Secrets|FINMIND|GitHub Actions|github_pat|ghp_/g) || []).slice(0, 6) }; }""")
+    ok("① 貼 `#tasks` → 導到交付清單（#delivery）", st["hash"] == "#delivery" and st["view"] == "v-delivery", st)
+    ok("① 交付清單真的有內容（不是空殼）", st["dlv"] >= 5, st["dlv"])
+    ok("② 任務板的卡片不再出現在畫面上", st["tk"] == 0, st["tk"])
+    ok("② 畫面上看不到金鑰／token／Secrets／內部流程字樣", not st["bad"], st["bad"])
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(800)
+    pg.evaluate("() => { location.hash = '#tasks'; }"); pg.wait_for_timeout(1400)
+    pg.go_back(); pg.wait_for_timeout(1400)
+    ok("③ 從 #tasks 被導走之後，按上一頁回得到總覽（不會卡在導向迴圈）",
+       pg.evaluate("() => location.hash") in ("#overview", ""), pg.evaluate("() => location.hash"))
 
 
 def t_themes(pg, base):
