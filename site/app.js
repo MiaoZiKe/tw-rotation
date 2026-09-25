@@ -200,12 +200,21 @@
      ECharts 的 label.formatter 拿不到方塊尺寸，所以：先 setOption 一次 → 讀每一格排好的 {width,height}
      → 算好每格要寫幾行 → 第二次 setOption 把新的 formatter 寫回去（跟輪動時鐘的標籤避讓同一個做法）。
      字寬用 canvas measureText 量，不用「字數 × 12」估（中英數混排差很多）。*/
-  let _hmCtx = null;
+  /* ★ 2026-09-24 效能：以前每量一次字都重設一次 ctx.font（瀏覽器每次都要重新解析字型字串），而且同一個名字每次重畫都重量。
+     熱力圖一次要量上百格（放不下時還要逐字截短再量），R6 量到自身時間 102ms（4 倍降速 508ms）。
+     改成：字級沒變就不重設 font；量過的「字級＋字串」記起來（上限 4000 筆，滿了整包清掉重來）。量法完全一樣，數字一模一樣。*/
+  let _hmCtx = null, _hmFs = 0;
+  const _hmW = new Map();
   const hmTextW = (s, fs) => {
+    const str = String(s), key = fs + '|' + str;
+    const hit = _hmW.get(key); if (hit !== undefined) return hit;
     if (!_hmCtx) { try { _hmCtx = document.createElement('canvas').getContext('2d'); } catch (e) { _hmCtx = null; } }
-    if (!_hmCtx) return String(s).length * fs;
-    _hmCtx.font = `700 ${fs}px Noto Sans TC, JetBrains Mono, sans-serif`;
-    return _hmCtx.measureText(String(s)).width;
+    if (!_hmCtx) return str.length * fs;
+    if (_hmFs !== fs) { _hmCtx.font = `700 ${fs}px Noto Sans TC, JetBrains Mono, sans-serif`; _hmFs = fs; }
+    const w = _hmCtx.measureText(str).width;
+    if (_hmW.size > 4000) _hmW.clear();
+    _hmW.set(key, w);
+    return w;
   };
   const hmKey = (d) => (d ? (d.gid || d.id || d.cid || d.name) : '');
   /* 規則（規格 §3.1-5）：
@@ -2047,13 +2056,15 @@
     /* ★ 2026-09-23：頂層分頁多了「熱力圖」之後，1440 以下這一排就放不下了（本來就會左右捲）。
        放不下時**現在這一頁一定要捲進視野** —— 不然使用者會看到一排分頁，卻找不到自己在哪一頁。
        捲的是分頁列自己（設 scrollLeft），不是 scrollIntoView：後者會連整頁一起捲。*/
-    centerActiveTab();
     /* 一開始就用網址直接開某一頁時，這裡量到的分頁列寬度還不是最後的寬度
        （右側事件欄是之後才掛上去的，掛上去分頁列會再縮一截）。
-       只算一次的話「現在這一頁」只會露出半個 —— 補兩次重算，成本是零。 */
-    setTimeout(centerActiveTab, 0); setTimeout(centerActiveTab, 400);
-    // 分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算
-    syncTabOverflow(); setTimeout(syncTabOverflow, 0); setTimeout(syncTabOverflow, 420);
+       只算一次的話「現在這一頁」只會露出半個 —— 補一次重算。
+       分頁列被捲過之後，左右兩側「還有沒有東西」就變了，箭頭與遮罩要跟著重算（所以置中之後緊接著量溢出）。
+       ★ 2026-09-24 效能：以前是「當場量一次 ＋ setTimeout 0 ＋ 400／420ms」共 6 次，當場那次是在剛改完一堆 class 的時候讀
+         scrollWidth／getBoundingClientRect —— 等於逼瀏覽器**同步重排整頁**（R6 量到 74ms，4 倍降速 500ms）。
+         改成下一幀開頭量一次（瀏覽器本來就要排版，順便讀，不多花）＋ 420ms 再補一次。*/
+    const tabFix = () => { centerActiveTab(); syncTabOverflow(); };
+    requestAnimationFrame(tabFix); setTimeout(tabFix, 420);
     $$('.view').forEach(v => v.classList.toggle('on', v.id === 'v-' + view));
     /* K 線「寬版」只在個股頁生效：離開個股頁要把右側事件欄還回來，
        不然使用者會覺得事件欄莫名其妙消失了（設定本身留著，回個股頁自動復原）。 */
@@ -9310,6 +9321,15 @@
   }
 
   // ---------------------------------------------------------------- 事件側欄
+  /* ★ 2026-09-24 效能：`toLocaleDateString(…, { timeZone })` 每呼叫一次就在底層新建一個 Intl 格式器，
+     事件欄 1232 則逐則轉一次，實測 164～197ms（R6 審查量到的）。格式器建一次重複用，結果一字不差（'YYYY-MM-DD'）。*/
+  let _tpeFmt = null;
+  const tpeDate = (ms) => {
+    try {
+      if (!_tpeFmt) _tpeFmt = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit' });
+      return _tpeFmt.format(ms);
+    } catch (e) { return new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' }); }
+  };
   async function renderEvents() {
     const [news, bv] = await Promise.all([load('news'), load('broker_views')]);
     const items = (news || []).map(n => ({ ...n, cat: n.category || '台股' }));
@@ -9328,8 +9348,7 @@
       // 新聞的 published_at 是 RFC 2822（'Fri, 11 Sep 2026 22:00:36 +0800'），
       // 直接切前十個字會變成 'Fri, 11 Se'，排序也會變成照星期幾的英文字母排。
       const ms = Date.parse(raw);
-      return isNaN(ms) ? String(i.date || '').slice(0, 10)
-        : new Date(ms).toLocaleDateString('sv-SE', { timeZone: 'Asia/Taipei' });
+      return isNaN(ms) ? String(i.date || '').slice(0, 10) : tpeDate(ms);
     };
     items.forEach(i => { i._d = dt(i); });
     items.sort((a, b) => b._d.localeCompare(a._d));
