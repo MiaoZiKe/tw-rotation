@@ -23,6 +23,14 @@ Andy 桌機 4＋6 件（市場寬度卡後來改交給別的 agent，**這批不
 - 細節與理由：DECISIONS #259。
 **這批驗了哪幾段**（合併 main b93d86a 之後）：`pytest tests/` 478 passed；`_preview` 全綠；`_uitest --sections 總覽,新-大盤三張圖,今日事件,盤中即時,淺色主題,桌機零差異,說明精簡 --workers 1` 全部 0 個問題（571 秒）。
 沒跑：`大盤三張圖`（t_market3，已把兩條過時斷言改成新行為）、`即時推送`／`夜盤推送`（改了 SEL_PX，但沒跑）、`積木清單`、手機相關段落。
+## 除權息還原（`finance-quant`，2026-09-25，分支 `claude/fix-exrights`，**尚未進 main**）
+審查員 R5：6669 除權（1 配 1.98）後本益比 6.7、殖利率 10.33%、K 線 -66% 斷崖。口徑見 DECISIONS #261。
+- `fundamental.py`：`clean_price`（濾 0 價）、`corporate_actions`（官方參考價＋斷崖推估）、`adjust_prices`（total／share）、
+  `share_table`／`share_growth`／`eps_divisor`；`ttm`／`latest_balance` 收 `shares, asof` 換到今天股本。
+- `stockpage.py`：`pe_daily`（逐日、原始價 × 調整 EPS）、`pe_history` 的 ttm_eps 換到還原價基準（河流圖）、`dividends` 殖利率換股數＋股利欄只放股利。
+- `build_payload.py`：K 線／指標／站上均線吃 `price_adj`、季節性吃 `price_share`、個股頁多 `price_adjust`、漲停排除上市前 5 天。
+- 6669：PE 6.75 → 20.1；殖利率 10.33% → 2.29%（3.4% 是兩年股利加總，見 #261 第 5 點）；K 線無斷崖。
+- ⚠ 前端沒改：個股頁 K 線現在是還原價，但畫面上還沒有「還原」字樣（`price_adjust.daily_adjusted` 已給，交 UI 專家）。
 
 ## 法律頁膠囊分頁＋頁尾 © 行與「詳細規範」八格（2026-09-24 晚，台北）
 Andy 給參考截圖「這也要新增」。`site/legal.js`：法律頁三顆膠囊分頁（目前頁實心）；頁尾加「© 2026 {site_name} · 保留所有權利」、

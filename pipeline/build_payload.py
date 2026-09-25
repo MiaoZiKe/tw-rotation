@@ -177,6 +177,24 @@ def build() -> None:
                                        for t in (inst, margin, market, valuation))
     history_days = int(price["date"].nunique())
 
+    # ★ 2026-09-25 R5（除權息沒還原）：資料湖保留真實成交價（只增不改），還原全部在這裡做。
+    #   price        原始價（去掉收盤 0 的列）→ 報價顯示、漲跌、資金流向（它們用官方「漲跌」，本來就對參考價）
+    #   price_adj    總報酬還原 → K 線、均線、技術判讀、站上均線比例、個股月季節性
+    #   price_share  只還原股數 → 族群季節性（基準也是同一份價格的等權報酬，不改變既有口徑）
+    #   shares       股數事件表 → EPS／BPS／股本／現金股利換算到今天的股本（本益比、殖利率）
+    price = fundamental.clean_price(price)
+    div_events = store.read("dividend_events")
+    div_results = store.read("dividend_results")
+    actions = fundamental.corporate_actions(price, div_results, div_events)
+    actions = actions[actions["date"].astype(str) <= latest] if not actions.empty else actions
+    shares = fundamental.share_table(actions)
+    price_adj = fundamental.adjust_prices(price, actions, mode="total")
+    price_share = fundamental.adjust_prices(price, actions, mode="share")
+    if not actions.empty:
+        log.info("股本事件：%d 筆（官方 %d、推估 %d）", len(actions),
+                 int((actions["source"] == "dividend_results").sum()),
+                 int((actions["source"] != "dividend_results").sum()))
+
     lap("讀資料湖")
 
     # ---------------------------------------------------------- M1 資金面
@@ -191,7 +209,7 @@ def build() -> None:
     _write("concentration", flow.concentration(group_hist).tail(400).to_dict("records"))
     # 站上均線的歷史（圖16）：七條均線 × 逐日比例，獨立檔，只有那一頁會載
     try:
-        _write("ma_breadth", flow.ma_breadth_history(price, loader.membership(), 250))
+        _write("ma_breadth", flow.ma_breadth_history(price_adj, loader.membership(), 250))
     except Exception as exc:  # noqa: BLE001
         log.warning("站上均線歷史產出失敗：%s", exc)
         _write("ma_breadth", {"dates": [], "mas": [], "series": {}})
@@ -260,10 +278,10 @@ def build() -> None:
     lap("市場體溫")
 
     # ---------------------------------------------------------- M4 季節性
-    _write("seasonality", seasonality(price, company).to_dict("records"))
+    _write("seasonality", seasonality(price_share, company).to_dict("records"))
     intl_all = store.read("intl_daily")
     try:
-        _write("seasonality_v3", season.build(price, intl_all))
+        _write("seasonality_v3", season.build(price_share, intl_all))
     except Exception as exc:  # noqa: BLE001
         log.warning("季節性 v3 產出失敗：%s", exc)
         _write("seasonality_v3", {"periods": {}, "groups": [], "note": str(exc)})
@@ -272,8 +290,8 @@ def build() -> None:
 
     # ---------------------------------------------------------- M2 基本面
     day_px = price[price["date"] == latest][["code", "close"]]
-    ttm_df = fundamental.ttm(financial)
-    bal = fundamental.latest_balance(balance)
+    ttm_df = fundamental.ttm(financial, shares, latest)
+    bal = fundamental.latest_balance(balance, shares, latest)
     val = fundamental.valuation(day_px, ttm_df, bal)
     gval = fundamental.group_valuation(val, company)
     rev = fundamental.revenue_momentum(revenue)
@@ -348,8 +366,8 @@ def build() -> None:
     sh_all = store.read("shareholding_weekly")
     deep = {
         "revenue": revenue, "financial": financial, "margin": margin, "shareholding": sh_all,
-        "dividend_events": store.read("dividend_events"),
-        "dividend_results": store.read("dividend_results"),
+        "dividend_events": div_events,
+        "dividend_results": div_results,
         "company": company,
         # ★ 2026-09-19：重大訊息（公司自己公告的）。跟 news（媒體寫的）分開放，
         #   因為 M4 事件面要否決一筆進場，靠的是公告不是報導。
@@ -358,7 +376,8 @@ def build() -> None:
     cand_rows, breadth = candidates(price, valuation, company, inst, latest,
                                     names=names, markets=markets, fund=fund_rows,
                                     news_df=news_all, broker=bv if not bv.empty else None,
-                                    shareholding=sh_all, deep=deep)
+                                    shareholding=sh_all, deep=deep,
+                                    price_adj=price_adj, shares=shares, actions=actions)
     _write("candidates", shortlist(cand_rows))
     gdetail = group_detail(price, company, inst, latest, cand_rows, names, markets)
     _write("groups_detail", gdetail)
@@ -638,7 +657,9 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                markets: dict | None = None, fund: list[dict] | None = None,
                news_df: pd.DataFrame | None = None, broker: pd.DataFrame | None = None,
                shareholding: pd.DataFrame | None = None,
-               deep: dict | None = None) -> tuple[list[dict], dict]:
+               deep: dict | None = None, price_adj: pd.DataFrame | None = None,
+               shares: dict | None = None,
+               actions: pd.DataFrame | None = None) -> tuple[list[dict], dict]:
     """當日候選股 + 每檔的個股頁 JSON。
 
     回傳 (候選清單, 市場寬度統計)。個股頁直接寫到 site/data/stock/<code>.json。
@@ -693,7 +714,15 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             continue
         codes.append(c); seen.add(c)
 
-    hist = price[price["code"].isin(codes)].sort_values(["code", "date"])
+    # K 線／指標／判讀一律吃還原價（price_adj）；本益比歷史與填息天數要原始價（raw_by）。
+    # 最新一天還原因子恆為 1，所以 last["close"]、漲跌幅、報價顯示都還是真實價格。
+    if price_adj is None:
+        price_adj = price
+    hist = price_adj[price_adj["code"].isin(codes)].sort_values(["code", "date"])
+    raw_by = {c: g_ for c, g_ in price[price["code"].isin(codes)].groupby("code")}
+    act_by = ({c: g_ for c, g_ in actions.groupby("code")}
+              if actions is not None and not actions.empty else {})
+    new_listing = _new_listings(price, latest, company)
     val_today = valuation[valuation["date"] == latest] if not valuation.empty else pd.DataFrame()
     inst_hist = inst[inst["code"].isin(codes)] if not inst.empty else pd.DataFrame()
     inst_today = inst_hist[inst_hist["date"] == latest] if not inst_hist.empty else pd.DataFrame()
@@ -911,9 +940,14 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
             #   g 就是這一檔的完整日線歷史，pe_history / dividends / month_season 要的就是它。
             "revenue": _clean(stockpage.revenue_series(rev_by.get(code, EMPTY), code)),
             "profit": _clean(stockpage.profit_series(fin_by.get(code, EMPTY), code)),
-            "pe_history": _clean(stockpage.pe_history(g, fin_by.get(code, EMPTY), code)),
+            "pe_history": _clean(stockpage.pe_history(raw_by.get(code, g), fin_by.get(code, EMPTY), code,
+                                                      shares=shares, adj_price=g)),
             "dividends": _clean(stockpage.dividends(dve_by.get(code, EMPTY), dvr_by.get(code, EMPTY),
-                                                    g, code, float(last["close"]))),
+                                                    raw_by.get(code, g), code, float(last["close"]),
+                                                    shares=shares, asof=latest)),
+            # 還原說明：K 線是還原價；這裡列出每一個還原事件（日期、價格因子、配股率、來源），
+            # 前端要標示「還原」或對帳時用。source 不是 dividend_results 的是推估值。
+            "price_adjust": _adjust_meta(act_by.get(code)),
             "margin": _clean(stockpage.margin_series(mgn_by.get(code, EMPTY), code)),
             "holders": _clean(stockpage.holder_series(shw_by.get(code, EMPTY), code)),
             "inst_v3": _clean(stockpage.inst_series(insth_by.get(code), code)),
@@ -1005,7 +1039,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
     for c in sorted(bar_count.index):
         if c not in seen_thin and is_tradable_security(c):
             thin_codes.append(c); seen_thin.add(c)
-    thin_px = (price[price["code"].isin(thin_codes)].sort_values(["code", "date"])
+    thin_px = (price_adj[price_adj["code"].isin(thin_codes)].sort_values(["code", "date"])
                if thin_codes else pd.DataFrame())
     thin_by = {c: g for c, g in thin_px.groupby("code")} if not thin_px.empty else {}
     for code in thin_codes:
@@ -1034,12 +1068,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
                         "foreign_net": _cell(inst_one, code, "foreign_total"),
                         "tech_score": None, "verdict": "資料回補中", "grade": None},
             "basics": _clean(stockpage.basics(deep.get("company"), code)),
-            "month_season": _clean(stockpage.monthly_seasonality(price, code, 15)),
+            "month_season": _clean(stockpage.monthly_seasonality(g if g is not None else EMPTY, code, 15)),
             "revenue": _clean(stockpage.revenue_series(deep.get("revenue"), code)) if code in has["revenue"] else {},
             "profit": _clean(stockpage.profit_series(deep.get("financial"), code)) if code in has["financial"] else {},
             "pe_history": [],
             "dividends": _clean(stockpage.dividends(deep.get("dividend_events"), deep.get("dividend_results"),
-                                                    price, code, float(close) if close else None))
+                                                    price, code, float(close) if close else None,
+                                                    shares=shares, asof=latest))
                          if code in has["dividend_events"] or code in has["dividend_results"] else {},
             "margin": _clean(stockpage.margin_series(deep.get("margin"), code)) if code in has["margin"] else [],
             "holders": _clean(stockpage.holder_series(deep.get("shareholding"), code)) if code in has["shareholding"] else [],
@@ -1091,7 +1126,7 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         b["pct20"] = round(b["above20"] / b["n"] * 100, 1)
         b["pct60"] = round(b["above60"] / b["n"] * 100, 1)
     breadth["by_group"] = sorted(bg, key=lambda b: (-b["pct20"], -b["n"]))
-    breadth["movers"] = movers(day, group_of, names, _new_high)
+    breadth["movers"] = movers(day, group_of, names, _new_high, new_listing=new_listing)
     log.info("個股頁：%d 檔，A 級 %d、B 級 %d", len(rows), breadth["grade_a"], breadth["grade_b"])
     return rows, breadth
 
@@ -1102,11 +1137,53 @@ LIMIT_PCT = 9.5
 MOVER_TOP = 60
 
 
-def movers(day: pd.DataFrame, group_of: dict, names: dict, new_high: list[str]) -> dict:
+def _adjust_meta(acts: pd.DataFrame | None) -> dict:
+    """個股頁的還原說明：K 線是否為還原價、每一個還原事件。"""
+    ev = []
+    if acts is not None and not acts.empty:
+        for r in acts.sort_values("date").itertuples(index=False):
+            ev.append([str(r.date), round(float(r.price_factor), 6), round(float(r.share_ratio), 6), r.source])
+    return {"method": "還原權值（官方參考價 ÷ 前收盤，往回連乘）", "daily_adjusted": True, "events": ev}
+
+
+def _new_listings(price: pd.DataFrame, latest: str, company: pd.DataFrame | None) -> set[str]:
+    """最新一天仍在上市（櫃）前 5 個交易日內的股票（無漲跌幅限制，不能算進漲跌停）。
+
+    有 listed_date：數「上市日 ≤ 交易日 ≤ latest」的全市場交易日數 ≤ 5。
+    沒有 listed_date：數這一檔在資料湖裡的有效 K 棒數 ≤ 5（寧可少算一檔漲停，也不要把新股算進去）。
+    """
+    if price is None or price.empty:
+        return set()
+    days = sorted(price["date"].astype(str).unique())
+    listed = {}
+    if company is not None and not company.empty and "listed_date" in company.columns:
+        listed = (company.dropna(subset=["listed_date"]).drop_duplicates("code", keep="last")
+                         .set_index("code")["listed_date"].astype(str).to_dict())
+    import bisect
+    n_all = bisect.bisect_right(days, str(latest))
+    bars = price[price["date"].astype(str) <= str(latest)].groupby("code").size()
+    today = set(price[price["date"].astype(str) == str(latest)]["code"])
+    out = set()
+    for code in today:
+        ld = listed.get(code)
+        if ld and ld[:4].isdigit():
+            n = n_all - bisect.bisect_left(days, ld[:10])
+        else:
+            n = int(bars.get(code, 0))
+        if n <= fundamental.NEW_LISTING_DAYS:
+            out.add(code)
+    return out
+
+
+def movers(day: pd.DataFrame, group_of: dict, names: dict, new_high: list[str],
+           new_listing: set[str] | None = None) -> dict:
     """今天漲的、跌的、漲停的、跌停的、創新高的分別是哪幾檔。
 
     總覽上方那排數字（漲/跌家數、站上均線…）要點得開才有用 ——
     只看到「567 / 1545」沒辦法做任何事，看到是哪些股票才能往下查。
+
+    ★ 2026-09-25 R5：上市前 5 個交易日沒有漲跌幅限制（7856 首日 +110%），
+      那不是「漲停」。new_listing 裡的股票不進漲停／跌停清單與家數（仍算漲跌家數）。
     """
     if day is None or day.empty:
         return {}
@@ -1131,8 +1208,9 @@ def movers(day: pd.DataFrame, group_of: dict, names: dict, new_high: list[str]) 
     up = d[d["chg_pct"] > 0].sort_values("chg_pct", ascending=False)
     down = d[d["chg_pct"] < 0].sort_values("chg_pct")
     flat = d[d["chg_pct"] == 0]
-    lu = up[up["chg_pct"] >= LIMIT_PCT]
-    ld = down[down["chg_pct"] <= -LIMIT_PCT]
+    limited = ~d["code"].isin(new_listing or set())
+    lu = up[(up["chg_pct"] >= LIMIT_PCT) & limited.reindex(up.index)]
+    ld = down[(down["chg_pct"] <= -LIMIT_PCT) & limited.reindex(down.index)]
     nh = d[d["code"].isin(new_high)].sort_values("turnover", ascending=False)
     return {
         "counts": {"up": int(len(up)), "down": int(len(down)), "flat": int(len(flat)),
