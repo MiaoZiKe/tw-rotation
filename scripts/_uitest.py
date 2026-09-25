@@ -1109,7 +1109,9 @@ def t_overview(pg, base):
         ok("放大視窗的下拉字級跟卡片上那顆一樣（不被標題的 17px 放大）", z1 and z1["fs"] == z1["cardFs"], z1)
         heat_dd_pick(pg, "", "#heatZoomDD", 900)
         z2 = pg.evaluate(ZT)
-        ok("放大視窗選回「全部」→ 分組圖還原", z2 and z2["nested"] and z2["n"] == z0["n"] and z2["btn"] == "全部", z2)
+        # 改前：比 z2["n"] == z0["n"] → 改後：放大視窗會沿用卡片當下的篩選（前面的步驟已把卡片切到某條鏈），
+        #   所以 z0 不一定是「全部」；改成驗「回到分組圖、按鈕寫全部、分組數 ≥ 2」。
+        ok("放大視窗選回「全部」→ 分組圖還原", z2 and z2["nested"] and z2["n"] >= 2 and z2["btn"] == "全部", {"z0": z0, "z2": z2})
     click(pg, "#zoomClose", 600)
     ok("放大罩關得掉", pg.evaluate("() => document.getElementById('zoomOv').hidden"))
     # 熱力圖不可以被拖走（treemap 的 roam 必須是關的，不然拖一拖就整片空白）
