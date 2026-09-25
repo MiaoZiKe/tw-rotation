@@ -3690,8 +3690,12 @@
   /* 即時週期沒東西可畫時，要講清楚是「還在收」還是「根本沒設來源」。
      2026-09-18 起 15 分也走即時（後端不再預先產出，見 DECISIONS #156）——
      這代表沒設 Worker 的人會多一個週期看不到，所以更不能只寫「還在收集」讓人乾等。*/
-  function liveEmptyMsg() {
+  function liveEmptyMsg(tf) {
     const has = !!(window.Live && window.Live.proxy && window.Live.proxy());
+    /* 非交易時段（週末、休市、開盤前）：livek.js 會改畫最近交易日；還是空的話，由它講清楚是
+       「還在抓」還是「最近交易日也沒有分 K」（冷門股），不要只寫「還在收集」讓人乾等到週一。*/
+    const L = window.LiveK;
+    if (has && tf && L && L.session && !L.session().live) return L.sourceNote(tf);
     return has ? '即時資料還在收集（開盤後每 5 秒補一根）'
                // ★ 2026-09-24：右上角的 ⚙ 即時來源設定已經拿掉，不能再叫人去按它
                : '這個週期要即時資料，目前沒有即時報價來源，所以看不到';
@@ -3718,6 +3722,8 @@
         ? `${pg.meta.name} 沒有分 K：分 K 每天只跟 Yahoo 抓族群成分股與成交值前 400 名，這檔不在名單內。日線／週線／月線正常。`
         : '這個週期的資料還在回補');
     });
+    // 即時週期的點：非交易時段改灰點（livek.js 判定；它每次收到資料也會自己重塗一次）
+    if (window.LiveK && window.LiveK.paintDots) window.LiveK.paintDots();
   }
   function loadCfg() { try { const s = localStorage.getItem('tw.kcfg'); if (s) return Object.assign({}, DEFAULT_CFG, JSON.parse(s)); } catch (e) { /* 忽略 */ } return Object.assign({}, DEFAULT_CFG); }
   function saveCfg(c) { try { localStorage.setItem('tw.kcfg', JSON.stringify(c)); } catch (e) { /* 忽略 */ } }
@@ -3772,7 +3778,15 @@
     if (window.LiveK) {
       window.LiveK.attach(pg.meta.code, pg.meta.market);
       liveOff = window.LiveK.onUpdate(() => {
-        if (!document.getElementById('lwc')) return;      // 四週期同看或已離開，不用畫
+        if (!document.getElementById('lwc')) {
+          /* 四週期同看：只有「開的時候 Yahoo 還沒回來、所以空著」的即時格，資料到了重建一次
+             （非交易時段那幾格就是這樣才畫得出最近交易日）。盤中不會每 5 秒重建四張圖。*/
+          if (state.mtfMode && document.querySelector('#mtfGrid .empty[data-live]') && !window.LiveK.loading) {
+            miniCharts.forEach(c => { try { c.destroy(); } catch (e) { /* 忽略 */ } }); miniCharts = [];
+            buildMtfGrid(pg);
+          }
+          return;      // 四週期同看或已離開，不用畫主圖
+        }
         // 即時週期固然要重畫；日／週／月因為最後一根是「今天還沒收的」，也要跟著跳
         if (isLiveTf(state.tf) || ['1d', '1w', '1M'].indexOf(state.tf) >= 0) apply();
       });
@@ -3866,6 +3880,11 @@
           + `。先改畫${fb === '60m' ? ' 1 小時' : '日線'} K（最近一份可用的資料）；即時報價接上後會自動換回 ${TF_NAME[state.tf] || state.tf} K。`;
         tf = fb; bars = barsFor(pg, fb); live = false;
       }
+      /* 非交易時段（Andy 2026-09-26「為何這邊分 K 無法使用？」）：即時週期畫的是「最近交易日」那一天，
+         livek.js 判定哪一天；5 秒那天沒收過就改畫 1 分（時間軸與游標才會印到分鐘、日期是那一天）。*/
+      const offDay = live && window.LiveK && window.LiveK.offDay ? window.LiveK.offDay() : null;
+      if (offDay && window.LiveK.drawnTf) tf = window.LiveK.drawnTf(state.tf);
+      state.offDay = offDay;      // 驗收讀這個
       if (!bars || bars.length < (live ? 2 : 5)) {
         const why = live
           ? (window.LiveK ? window.LiveK.sourceNote(state.tf) : '即時層還沒載入')
@@ -3906,7 +3925,7 @@
       kchart.setPriceLines(cfg.lines && tf === '1d' ? [{ price: v.stop, title: '停損', color: '#ffb454' }, { price: v.tp1, title: '目標 1', color: '#3ee0ff' }, { price: v.tp2, title: '目標 2', color: '#8b7bff' }] : []);
       const legend = $('#legendOv');
       const TFN = { '5s': '5 秒（即時）', '1m': '1 分（即時）', '5m': '5 分（即時）', '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' };
-      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${TFN[tf] || tf}${fbNote ? '（分 K 暫代）' : ''}`);
+      kchart.setWatermark(`${pg.meta.name} ${pg.meta.code} · ${offDay ? `${TF_NAME[tf] || tf} · ${offDay}（非即時）` : (TFN[tf] || tf)}${fbNote ? '（分 K 暫代）' : ''}`);
       const at = (arr, i) => (arr ? arr[i == null ? arr.length - 1 : i] : null);
       const show = (i, pt) => {
         const idx = i == null ? kchart.data.length - 1 : i; const d = kchart.data[idx]; if (!d) return; const prev = kchart.data[idx - 1]; const vals = kchart.values || {};
@@ -4253,12 +4272,14 @@
     const cfg = state.cfg || loadCfg();
     const pick = mtfPick(pg);
     const grid = $('#mtfGrid');
+    const offDay = window.LiveK && window.LiveK.offDay ? window.LiveK.offDay() : null;
     const opts = (cur) => tfList().map(tf =>
       `<option value="${tf}"${tf === cur ? ' selected' : ''}>${MTF_LABEL(tf)}</option>`).join('');
     grid.innerHTML = pick.map((tf, i) => {
       const t = pg.mtf && pg.mtf.tf && pg.mtf.tf[tf];
       return `<div class="mtf-cell"><div class="cap">
         <select class="mtfsel" data-i="${i}" title="換這一格要看的週期">${opts(tf)}</select>
+        ${isLiveTf(tf) && offDay ? `<span class="mtfoff" title="今天還沒有成交，這一格畫的是最近交易日">${offDay.slice(5)} 非即時</span>` : ''}
         ${t ? `<span style="color:${A.upDown(t.trend)}">${t.trend > 0 ? '多頭結構' : t.trend < 0 ? '空頭結構' : '盤整'}</span> · 均線${t.ma_align > 0 ? '多排' : t.ma_align < 0 ? '空排' : '糾結'}${t.rsi != null ? ' · RSI ' + t.rsi.toFixed(0) : ''}` : ''}
         </div><div class="cv" id="mini-${i}"></div></div>`;
     }).join('');
@@ -4266,11 +4287,14 @@
       const el = $('#mini-' + i);
       const bars = barsFor(pg, tf);
       if (!bars || bars.length < 2) {
-        el.innerHTML = `<div class="empty" style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg() : '這個週期尚無資料')}</div>`;
+        const wait = isLiveTf(tf) && window.LiveK && window.LiveK.loading;
+        el.innerHTML = `<div class="empty"${wait ? ' data-live="1"' : ''} style="height:100%">${A.fmt.esc(isLiveTf(tf) ? liveEmptyMsg(tf) : '這個週期尚無資料')}</div>`;
         return;
       }
-      const c = new KChart(el, { mini: true, tf });
-      c.setBars(bars, tf);
+      // 非交易時段的 5 秒格沒收過就畫 1 分（livek.js 決定），游標時間要用分鐘格式
+      const dtf = isLiveTf(tf) && window.LiveK && window.LiveK.drawnTf ? window.LiveK.drawnTf(tf) : tf;
+      const c = new KChart(el, { mini: true, tf: dtf });
+      c.setBars(bars, dtf);
       c.applyIndicators({ ma: [20, 60], vol: false });
       if (!isLiveTf(tf)) { c.setZones(zonesFor(pg, tf)); c.setMarkers(marksFor(pg, tf)); }
       miniCharts.push(c);
@@ -5053,6 +5077,8 @@
     })(),
     // 驗收用（審查 R5）：K 線上的字有沒有互相壓住 —— 區間標籤放在哪、省略幾個，訊號標記併成什麼，背離字框、圖例框
     fallbackTf: state.fallbackTf || null,
+    // 驗收用：即時週期在非交易時段畫的是哪一天（盤中是 null）
+    offDay: state.offDay || null,
     zoneLabels: kchart && kchart.zones ? (kchart.zones.placed || []) : [],
     zoneSkipped: kchart && kchart.zones ? (kchart.zones.skipped || 0) : 0,
     markers: kchart && kchart.markerList ? kchart.markerList.map(m => ({ time: String(m.time), i: m.i, pos: m.position, text: m.text })) : [],
