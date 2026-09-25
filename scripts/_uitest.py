@@ -11025,7 +11025,8 @@ FILTER_M = """() => [...document.querySelectorAll('#v-flow .card')].map(card => 
   const row = card.querySelector('.rotfilter');
   if (!row || !row.querySelector('.rotdd')) return null;
   const cs = getComputedStyle(card), cr = card.getBoundingClientRect(), rr = row.getBoundingClientRect();
-  const h3 = card.querySelector('h3'), hr = h3.getBoundingClientRect();
+  // 量「標題列」（h3 所在那一列，可能連著拉Bar 一起換行）的下緣，不是 h3 本身
+  const h3 = card.querySelector('h3'), hrow = h3.closest('.row') || h3, hr = hrow.getBoundingClientRect();
   const dd = row.querySelector('.rotdd').getBoundingClientRect();
   const chart = [...card.querySelectorAll('.chart')].find(e => e.getBoundingClientRect().height > 40);
   const ch = chart ? chart.getBoundingClientRect() : null;
@@ -11050,7 +11051,7 @@ def t_filter_topleft(pg, b, base):
             tag = f"④ [{w}] {x['card']}"
             ok(f"{tag}：兩顆下拉是「產業鏈 → 族群」", x["kinds"][:2] == ["chain", "group"], x["kinds"])
             ok(f"★ {tag}：篩選列左緣對齊卡片內距（差 ≤ 2px）", abs(x["ddL"] - x["padL"]) <= 2, x)
-            ok(f"{tag}：篩選列在標題下方（離標題 ≤ 70px）", 0 <= x["belowTitle"] <= 70, x)
+            ok(f"{tag}：篩選列就在標題列下方（離標題列 ≤ 40px）", -2 <= x["belowTitle"] <= 40, x)
             ok(f"{tag}：篩選列在圖的上面（不是漂在圖下方）", x["aboveChart"] is True, x)
     # 真的操作：在資金去向那排挑一個族群，重畫之後那一排仍然在標題下方左上角（不會被插回圖下面）
     pg.set_viewport_size({"width": 1440, "height": 1000})
@@ -11073,7 +11074,7 @@ WHEEL_M = """() => {
   const el = document.getElementById('rotClock'), card = document.getElementById('flowRotCard');
   const c = el && echarts.getInstanceByDom(el); if (!c || !card) return null;
   const cs = c.getModel().getComponent('polar').coordinateSystem;
-  const R = cs.r, cx = cs.cx, cy = cs.cy;
+  const R = cs.getRadiusAxis().getExtent()[1], cx = cs.cx, cy = cs.cy;
   const er = el.getBoundingClientRect(), cr = card.getBoundingClientRect();
   const chips = [...el.querySelectorAll('.rotquads .rq')].map(b => { const r = b.getBoundingClientRect();
     const x0 = r.left - er.left, y0 = r.top - er.top, x1 = x0 + r.width, y1 = y0 + r.height;
@@ -11240,7 +11241,10 @@ def t_rank_ratio(pg, b, base):
         if not ok(f"⑥ [{w}] 量得到排行區", bool(m), m):
             continue
         ok(f"★ ⑥ [{w}] 排行區至少佔卡片寬 40%", m["share"] >= 0.40, m)
-        ok(f"⑥ [{w}] 最長那根長條 ≥ 排行圖寬的 25%（長條區夠長）", m["maxBar"] >= 0.25 * m["rfW"], m)
+        # 長條區：改前（2:1、數字兩欄）1440 最長一根約 50px；這一批要到排行圖寬的 20% 以上
+        # 1280 開著今日事件側欄時，排行區只有 ~330px（族群名就要吃掉 40%），門檻放到 15%
+        need = 0.20 if w >= 1440 else 0.15
+        ok(f"⑥ [{w}] 最長那根長條 ≥ 排行圖寬的 {int(need * 100)}%（長條區夠長）", m["maxBar"] >= need * m["rfW"], m)
         ok(f"⑥ [{w}] 排行圖上的字兩兩不重疊（族群名與數字不擠）", m["n"] > 10 and m["hit"] == 0, m)
     pg.set_viewport_size({"width": 1440, "height": 1000})
 

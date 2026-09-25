@@ -2205,9 +2205,9 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    排行那一格 flex 撐滿整欄：左欄（輪盤）多高，排行就畫多高，底下不留空。*/
 .rotcols{align-items:stretch}
 /* ★ 2026-09-24 夜（Andy：「資金流向排行版面太窄、不符審美：排行區至少占卡片寬 40%」）：
-   2fr:1fr（排行 33%）→ 1.45fr:1fr（排行 ≈ 41%）。輪盤那一欄變窄一點，但它的高度改成跟著欄寬走（rotFitH），
+   2fr:1fr（排行 33%）→ 1.4fr:1fr（扣掉欄間距後排行 ≈ 41%；1.45 量出來只有 39.7%）。輪盤那一欄變窄一點，但它的高度改成跟著欄寬走（rotFitH），
    盤的半徑仍比舊版大（1440 寬、開著今日事件側欄：185 → 約 215px）。≤1100px 照舊單欄。*/
-@media (min-width:1101px){ .rotcols{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)} }
+@media (min-width:1101px){ .rotcols{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)} }
 .rotcols .rothead,.rotcols .rotrhead{min-height:32px;align-items:center;margin-bottom:4px}
 .rotcols .rothead h3{margin:0}
 .rotcols .rotrhead h4.subh{margin:0}
@@ -2217,14 +2217,15 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .rotcols .rotrhead .rotbtns{flex:0 0 auto}
 .rotright>#rankFlowWrap{flex:1 1 auto;display:flex;flex-direction:column;min-height:420px}
 .rotright>#rankFlowWrap>#rankFlow{flex:1 1 auto}
-/* 側欄（象限面板／成分股面板）蓋在右欄上：自己捲；輪盤那一欄的寬度完全不動。頂端留 40px —— 排行小標與放大／怎麼看兩顆鈕照樣看得到、按得到 */
-.rotright{position:relative}
-.rotright>.sidepanel{position:absolute;inset:40px 0 0 0;z-index:6;margin:0;max-width:none;overflow:auto;
+/* 側欄（象限面板／成分股面板）蓋在右欄上：自己捲；輪盤那一欄的寬度完全不動。掛在 #rankFlowWrap 上（只蓋排行圖）—— 排行小標與放大／怎麼看兩顆鈕照樣看得到、按得到；
+   .rotright 刻意不設 position，≤1100px 那兩顆鈕的 absolute 才會對準卡片右上角 */
+#rankFlowWrap{position:relative}
+#rankFlowWrap>.sidepanel{position:absolute;inset:0;z-index:6;margin:0;max-width:none;overflow:auto;
   box-shadow:0 12px 32px -12px rgba(0,0,0,.55);animation:sidein .16s ease-out}
-.rotright>.sidepanel .ms{max-height:none}
+#rankFlowWrap>.sidepanel .ms{max-height:none}
 .stagepanel.sidepanel ul.ms{max-height:none}
 @keyframes sidein{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){ .rotright>.sidepanel{animation:none} }
+@media (prefers-reduced-motion:reduce){ #rankFlowWrap>.sidepanel{animation:none} }
 /* 審查 R2 #24：面板開著時輪盤不縮了，所以 .rotstagerow 只剩輪盤一格 */
 /* 退單欄時排行跑到輪盤下面 —— 兩顆鈕不跟著掉下去，釘在卡片右上角（仍是「卡片標題列右側」）*/
 @media (max-width:1100px){
@@ -3360,7 +3361,7 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
             <div class="row rotbtns" style="gap:8px">
               <button class="btn small" id="rotZoomBtn" title="放大這張圖">⤢ 放大</button>
               <button class="howbtn" data-how="rot">怎麼看 ?</button></div></div>
-          <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div></div>
+          <div id="rankFlowWrap"><div id="rankFlow" class="chart tall"></div>
           <!-- ★ 2026-09-24 夜（Andy：「點擊族群時，資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
                （同一個位置、同一種樣式），不要蓋在別處」）＋ 審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」。
                兩塊面板（象限 #stagePanel、成分股 #rankPanel）都改成**蓋在輪盤右邊這一欄上**（position:absolute，整欄高）：
@@ -3370,6 +3371,7 @@ select option{background:var(--panel-2);color:var(--ink)}  /* 2026-09-24：下�
                  · 關閉照舊：點背景、按 Esc；排行在面板底下，關掉就回來 -->
           <div class="hpanel stagepanel sidepanel" id="stagePanel" hidden></div>
           <div class="hpanel stagepanel sidepanel" id="rankPanel" hidden></div>
+          </div>
         </div>
       </div>
     </div>
