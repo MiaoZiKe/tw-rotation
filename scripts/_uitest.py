@@ -15187,7 +15187,7 @@ def main() -> int:
               # 本機／CI 連不到 Cloudflare Worker，即時報價抓不到是預期的，不是 bug
               and "ERR_TUNNEL_CONNECTION_FAILED" not in m.text and "workers.dev" not in m.text
               and "ERR_NAME_NOT_RESOLVED" not in m.text and "ERR_INTERNET_DISCONNECTED" not in m.text
-              and "404" not in m.text else None)
+              and "404" not in m.text and not _icon_pna_blank(m.text, pg.url) else None)
         pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
 
         for name in SECTION_NAMES:
@@ -15222,6 +15222,22 @@ def main() -> int:
     except Exception:  # noqa: BLE001
         pass
     return _report(t0)
+
+
+def _icon_pna_blank(msg: str, page_url: str) -> bool:
+    """測試環境才有的 console.error：頁面剛被驗收腳本 goto("about:blank") 帶離本站時，
+    Chrome 自己發起的網站圖示抓取（<link rel=icon> 的 icon.svg、manifest 安裝性檢查挑的主圖示 icon-192.png）
+    晚一步才送出，送出時頁面已經是 about:blank（origin null、非安全環境），
+    Chrome 的私網存取保護（Private Network Access）把「非安全環境 → loopback（127.0.0.1）」擋掉，印出：
+      Access to resource at 'http://127.0.0.1:8767/icons/icon-192.png' from origin 'null' has been blocked
+      by CORS policy: The request client is not a secure context and the resource is in more-private address space `loopback`.
+    ★ 2026-09-25（stale-reds）實測重現（scratchpad probe6）：載入 #overview 後 0～50ms 內 goto about:blank，
+      12 次出 3 次；同樣時序改成站內換頁（→ #flow）12 次 0 次。站內程式沒有任何 sandbox／data:／window.open／
+      Notification 會用 origin null 去讀圖示。
+    線上不會發生：① 使用者不會被帶去 about:blank；② github.io 的圖示是公網位址，PNA 只擋「往更私有的位址」。
+    所以只放過「頁面此刻是 about:、訊息是 origin null ＋ loopback ＋ /icons/ 底下的檔」這一種，其他 CORS 錯照報。"""
+    return ((page_url or "").startswith("about:") and "from origin 'null'" in msg
+            and "address space `loopback`" in msg and "/icons/" in msg)
 
 
 def _report(t0: float) -> int:
