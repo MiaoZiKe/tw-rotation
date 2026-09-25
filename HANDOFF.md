@@ -2910,3 +2910,6 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 批次6-圖十：關聯圖預設收合後量不到展開卡，驗收前先設展開（改前→改後已註記）。
 - 這批驗了：pytest 523；重算 payload 後 _preview 綠；總覽、新-大盤三張圖、新-產業與個股、產業關係面板、淺色主題、手機、關聯圖清單、批次6-圖十、關聯圖環節收合 全 0。
 - 待處理：Yahoo／FinMind 分 K 首輪真實抓取要看 Actions log（容器連不到）。
+
+### 09-25 18:55 回補守門放行分 K（intraday-fix）
+- backfill.yml：plan:default 已補齊但 complete.index_intraday 未完成時仍放行。這批驗了：分支上 pytest 519 passed、守門模擬 skip=false。daily 15:30/18:30 排程 GitHub 未觸發（非程式問題）。
