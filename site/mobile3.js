@@ -212,6 +212,8 @@
     if (!isM()) { if (document.body.classList.contains('m3on')) teardown(); return; }
     document.body.classList.add('m3on');
     buildNav(); buildTop();
+    /* 先把手機版要用的資料抓進來（瀏覽器會快取）：切到資金流向時不必等網路，雷達與排行當場就畫得出來 */
+    load('flow_v3'); load('sankey_daily');
     hooks.forEach(h => { if (h.on) { try { h.on(curView()); } catch (e) { console.warn('[m3]', e); } } });
   }
   let rt = null;
@@ -246,7 +248,8 @@
       if (opts && opts.after) opts.after.after(box); else card.insertBefore(box, card.firstChild);
       if (html != null) box.innerHTML = html;
     }
-    card.classList.add('m3host');
+    /* ⚠ 這裡**不**掛 .m3host（它會把桌機那一份藏掉）：等資料回來、手機版真的畫好了才掛（見各支的 ready）。
+       慢網路下先藏桌機、手機版又還沒畫，整張卡就是一片空白 —— 2026-09-25 合 main 時「手機」段量到只剩 30 個字。*/
     let fb = card.querySelector(':scope > .mfullbtn');
     if (opts && opts.full && !fb) {
       fb = document.createElement('button'); fb.type = 'button'; fb.className = 'mfullbtn m3keep';
@@ -397,6 +400,7 @@
     if (box.dataset.done) return;
     const f = await load('flow_v3'); if (!f || !f.rrg || !isM()) return;
     box.dataset.done = '1';
+    box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
     const all = f.rrg.points;
     let sel = null, quad = null;
     const draw = () => {
@@ -420,8 +424,10 @@
      長條以「同一層、不含『其他』的最大值」為滿格。*/
   async function drill(box) {
     if (!box || box.dataset.done) return;
+    if (!box.innerHTML) box.innerHTML = '<div class="msub">載入資金去向中…</div>';
     const f = await load('flow_v3'); if (!f || !f.sankey || !box.isConnected) return;
     box.dataset.done = '1';
+    box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
     const Lk = f.sankey.links;
     const isOther = (n) => /^其他/.test(n);
     const kids = (name) => Lk.filter(l => l.source === name).sort((a, b) => (isOther(a.target) - isOther(b.target)) || (b.value - a.value));
@@ -449,9 +455,12 @@
     const card = document.getElementById('flowRotCard'); if (!card) return;
     const box = host(card, 'rot', null, { full: '完整版（回放、即時、放大）' });
     if (box.dataset.done) return;
+    /* 資料還沒回來之前先放標題與一行「載入中」—— 不然這一段在資料回來之前整片空白（慢網路下看起來像壞掉）*/
+    if (!box.innerHTML) box.innerHTML = '<div class="mhead"><h3>資金輪動</h3></div><div class="msub">載入足跡輪盤與資金排行中…</div>';
     const [f, sd] = await Promise.all([load('flow_v3'), load('sankey_daily')]);
     if (!f || !f.rrg || !box.isConnected) return;
     box.dataset.done = '1';
+    box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
     const chainName = { traditional: '傳產', financial: '金融', industry: '其他產業別' };
     ((sd && sd.groups) || []).forEach(g => { if (g.chain_name) chainName[g.chain] = g.chain_name; });
     const periods = f.periods || [];
@@ -468,7 +477,7 @@
       const fb = $('#mFlowFilt', box);
       fb.textContent = '篩選 · ' + (chain ? (chainName[chain] || chain) : '全部') + ' · ' + per.label;
       fb.classList.toggle('on', !!chain || pk !== (periods[0] && periods[0].key));
-      const r = radar($('#mRadarFlow', box), pts, { sel, max: 340, fitBelow: 65 + 42 + 5 * 36 + 18,
+      const r = radar($('#mRadarFlow', box), pts, { sel, max: 340, fitBelow: 65 + 42 + 5 * 36 + 34,
         onPick: (p) => { sel = p.group_id; draw(); }, onQuad: () => {} });
       if (!sel && r.shown.length) sel = r.shown[0].group_id;
       const p = pts.find(x => x.group_id === sel);
@@ -507,8 +516,10 @@
     if (head) head.classList.add('m3keep-h');
     const box = host(card, 'inst', null, { full: '完整版（看幾天、截止日）', after: head });
     if (box.dataset.done) return;
+    if (!box.innerHTML) box.innerHTML = '<div class="msub">載入法人資料中…</div>';
     const f = await load('flow_v3'); if (!f || !f.inst_daily || !box.isConnected) return;
     box.dataset.done = '1';
+    box.parentElement.classList.add('m3host');        // 資料到了才藏桌機那一份（ready）
     const src = f.inst_daily;
     let last = src.dates.length - 1;
     while (last > 0 && !src.groups.some(g => g.foreign[last] != null || g.trust[last] != null || g.dealer[last] != null)) last--;
