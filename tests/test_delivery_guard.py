@@ -372,10 +372,9 @@ def test_送到前端的名稱不會是nan():
     bad = []
     for f in files:
         txt = f.read_text(encoding="utf-8")
-        # ★ tasks.json 是散文（任務板的說明文字），會正當地提到這次的 nan bug ——
-        #   它不是「資料欄位是 nan」，所以排除掉。要擋的是「某個欄位的值是 nan」。
-        if f.name == "tasks.json":
-            continue
+        # ★ 2026-09-25：以前這裡特別排除 tasks.json（任務板散文會正當地提到 nan bug）。
+        #   tasks.json 已經不再產出（內部作業文字不該上 public 網站），排除條件跟著拿掉 ——
+        #   留著的話，哪天有人把它加回來，這條護欄也會默默放行。
         n = txt.count('"nan"') + txt.count('"NaN"') + txt.count('"None"')
         if n:
             bad.append(f"{f.name}：{n} 處")

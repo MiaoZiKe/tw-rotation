@@ -3457,7 +3457,7 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="delivery">交付清單</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
-         直接貼 `…/#tasks` 仍然打得開，工作流產出的 `tasks.json` 也照舊。
+         直接貼 `…/#tasks` 會導到交付清單；`tasks.json` 2026-09-25 起不再產出（內部作業文字不上 public 網站）。
          全站沒有別的地方連到 `#tasks`（已 grep 過），所以收掉入口不會產生死連結。 -->
   </nav>
   <button class="tabnav r" id="tabNext" type="button" aria-label="往右看更多分頁" tabindex="-1">›</button>
@@ -3758,7 +3758,7 @@ h3 .howbtn.pop{font-family:inherit}
        Andy 2026-09-20：「很常發生我問你問題你做完，但我發現做不全，你就接續其他工作，
        導致很多事情都遺失沒完成。」他選了「在網站上多一頁」而不是同步 Obsidian ——
        理由很單純：他只重新整理網頁、不跑本機指令，放在網站上他一定看得到。
-       資料來源是 obsidian/tasks.yaml（唯一一份），由 build_payload 轉成 site/data/tasks.json。 -->
+       資料來源是 obsidian/tasks.yaml；2026-09-25 起 build_payload 不再轉出 tasks.json，這一頁不再有資料。 -->
   <section class="view" id="v-tasks"></section>
 
   <!-- ================= 交付清單 =================

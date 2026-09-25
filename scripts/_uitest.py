@@ -5823,12 +5823,20 @@ def t_tasks(pg, base):
     #     ② 畫面上看不到任何金鑰／token／Secrets／內部流程字樣
     #     ③ 上一頁按得出去（location.replace，不多留一筆 #tasks 的歷史）
     pg.goto(f"{base}#tasks", wait_until="networkidle"); pg.wait_for_timeout(1600)
+    # ★ 2026-09-25：原本對「整頁 body」掃 token —— 但全站跑馬燈的新聞標題會正當地出現
+    #   「AI 推理每天產生百億 Token」這種字（news.json 當天真的有三則），整段因此被外部新聞判紅。
+    #   要守的是「任務板的內部作業文字沒被畫出來」，所以分兩層：
+    #     · 交付清單那一頁本身（main .view.on）：整組字一律不准出現，含泛用的 token
+    #     · 整頁：只掃**內部作業專屬**的字（金鑰／Secrets／FINMIND／github_pat／ghp_／GitHub Actions），
+    #       這些不會出現在財經新聞標題裡；泛用的 token 不在整頁掃，避免被新聞誤判。
     st = pg.evaluate("""() => { const v = document.querySelector('main .view.on');
         const txt = document.body.innerText || '';
+        const vt = v ? (v.innerText || '') : '';
         return { hash: location.hash, view: v ? v.id : null,
                  dlv: document.querySelectorAll('#v-delivery .dlv').length,
                  tk: document.querySelectorAll('#v-tasks .tk').length,
-                 bad: (txt.match(/金鑰|token|Token|Secrets|FINMIND|GitHub Actions|github_pat|ghp_/g) || []).slice(0, 6) }; }""")
+                 bad: [ ...(vt.match(/金鑰|token|Secrets|FINMIND|GitHub Actions|github_pat|ghp_/gi) || []),
+                        ...(txt.match(/金鑰|Secrets|FINMIND|GitHub Actions|github_pat|ghp_/g) || []) ].slice(0, 6) }; }""")
     ok("① 貼 `#tasks` → 導到交付清單（#delivery）", st["hash"] == "#delivery" and st["view"] == "v-delivery", st)
     ok("① 交付清單真的有內容（不是空殼）", st["dlv"] >= 5, st["dlv"])
     ok("② 任務板的卡片不再出現在畫面上", st["tk"] == 0, st["tk"])
@@ -5838,6 +5846,20 @@ def t_tasks(pg, base):
     pg.go_back(); pg.wait_for_timeout(1400)
     ok("③ 從 #tasks 被導走之後，按上一頁回得到總覽（不會卡在導向迴圈）",
        pg.evaluate("() => location.hash") in ("#overview", ""), pg.evaluate("() => location.hash"))
+
+    # ★ 2026-09-25（R6 審查追補）：畫面上看不到還不夠 —— 以前 `data/tasks.json` 照樣被部署，
+    #   網址直接打得開（內部作業文字：金鑰／token 流程）。現在 build_payload 不再產出、還會刪掉舊檔，
+    #   所以這裡用瀏覽器**真的去要那個網址**：要拿不到（404）；交付清單的原始 JSON 也逐字掃一次，
+    #   因為 delivery.json 同樣打得開，畫面沒畫出來的欄位（note 等）也算公開。
+    fx = pg.evaluate("""async () => {
+        const t = await fetch('data/tasks.json', {cache: 'no-store'});
+        const d = await fetch('data/delivery.json', {cache: 'no-store'});
+        const raw = d.ok ? await d.text() : '';
+        return { tasksStatus: t.status, dlvStatus: d.status, dlvLen: raw.length,
+                 bad: (raw.match(/token|金鑰|Secrets/gi) || []).slice(0, 6) }; }""")
+    ok("④ 部署產物裡沒有 tasks.json（data/tasks.json 回 404）", fx["tasksStatus"] == 404, fx)
+    ok("④ delivery.json 拿得到而且不是空的", fx["dlvStatus"] == 200 and fx["dlvLen"] > 200, fx)
+    ok("④ delivery.json 原始內容不含「token」「金鑰」「Secrets」字樣", not fx["bad"], fx["bad"])
 
 
 def t_themes(pg, base):

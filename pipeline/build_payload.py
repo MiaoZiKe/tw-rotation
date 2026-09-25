@@ -95,29 +95,6 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
-def taskboard() -> dict:
-    """任務板：`obsidian/tasks.yaml` → `site/data/tasks.json`。
-
-    Andy 2026-09-20 選了「在網站上多一頁任務板」而不是同步 Obsidian ——
-    理由很單純：他只重新整理網頁、不跑本機指令，放在網站上他一定看得到。
-
-    ★ 唯一的資料來源是那份 YAML。Obsidian 的 Markdown 由 `scripts/gen_taskboard.py`
-      從同一份產出 —— 兩邊各維護一份的話，第三天就會對不起來。
-
-    檔案不在（例如乾淨 checkout）就回空的，讓前端顯示提示而不是整頁空白。
-    """
-    src = config.ROOT / "obsidian" / "tasks.yaml"
-    if not src.exists():
-        log.warning("找不到 %s，任務板會是空的", src)
-        return {}
-    try:
-        import yaml
-        return yaml.safe_load(src.read_text(encoding="utf-8")) or {}
-    except Exception as e:  # noqa: BLE001 —— 任務板不該讓整條管線死掉
-        log.warning("任務板讀不起來：%s", e)
-        return {}
-
-
 def last_complete_date(price: pd.DataFrame, *, primary: str = "TWSE",
                        ratio: float = 0.6, lookback: int = 10) -> str:
     """回傳「主市場（上市）資料到齊」的最後一個交易日（字串）。
@@ -534,7 +511,14 @@ def build() -> None:
     lap("新聞/國際/產業關聯")
 
     # ---------------------------------------------------------- meta
-    _write("tasks", taskboard())
+    # ★ 2026-09-25（R6 審查追補）：**不再產出 tasks.json**。
+    #   任務板的內容是內部作業文字（金鑰放哪、token 怎麼換、Actions 怎麼跑），
+    #   前端 09-24 已經把 `#tasks` 導到交付清單、不再載入它 —— 但檔案照樣被部署，
+    #   `…/data/tasks.json` 直接打得開，等於把內部流程公開在 public 網站上。
+    #   交付清單（delivery.json）完全不依賴它（來源是 docs/delivery_log.md），所以整份拿掉，不留欄位。
+    #   上一輪殘留的舊檔也要刪掉：本機 site/data 不會被清空，Pages 快取命中時也會沿用舊目錄，
+    #   不主動刪的話「管線不寫了」不等於「網站上沒有了」。
+    (config.SITE_DATA / "tasks.json").unlink(missing_ok=True)
     # 交付清單（Andy 2026-09-23：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
     # 且如實完成」）。原話逐字放到網站上，他自己就驗得了 —— 不必相信我在對話裡列的清單。
     _write("delivery", delivery_log.build(config.ROOT))
