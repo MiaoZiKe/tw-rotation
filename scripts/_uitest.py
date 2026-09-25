@@ -845,9 +845,10 @@ def t_overview(pg, base):
     ok("★ 總覽卡片下方的「族群／其他題材」連結列全部拿掉", not cp["linkrow"], cp["linkrow"])
     ok("★ 總覽卡片上的註腳說明拿掉", not cp["notes"], cp["notes"])
     ok("★ 說明一律改成標題旁的「?」（沒有舊的「怎麼看 ?」長鈕）",
-       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "breadth", "trust"} <= set(cp["q"]), cp)
+       cp["old"] == 0 and {"m3", "heat", "themeov", "rotm", "ovflow", "breadth", "trust"} <= set(cp["q"]), cp)
     # --- 「?」逐顆點開 → 跳出說明；點背景 → 關
-    for k in ("heat", "themeov", "rotm", "breadth", "trust", "m3"):
+    # 2026-09-25 改前 6 顆 → 改後 7 顆：「昨日資金去向」標題旁新增 ovflow（Andy：說明放進「?」）
+    for k in ("heat", "themeov", "rotm", "ovflow", "breadth", "trust", "m3"):
         pg.evaluate("() => window.scrollTo(0, 0)")
         click(pg, f'#v-overview .howbtn.pop[data-how="{k}"]', 450)
         hp = pg.evaluate("""(k) => { const p = document.getElementById('howPop'), bk = document.getElementById('howBack'), b = document.getElementById('how-' + k);
@@ -1188,10 +1189,11 @@ def t_overview(pg, base):
         if ok("D7：算得出一顆族群節點的螢幕座標（下一條要真的點它）", bool(xy), xy):
             pg.mouse.click(xy["x"], xy["y"])
             pg.wait_for_timeout(1400)
-            ok("★ D7：點分流圖上的族群節點，真的進得去那個族群頁（畫面真的因此改變）",
-               pg.evaluate("() => decodeURIComponent(location.hash)").startswith("#industry/group/"),
+            # 2026-09-25 改前：點族群節點 → 網址換成 #industry/group/<gid>
+            #            改後：Andy「切斷族群節點的超連結」→ 點了要留在總覽（詳細驗收在「總覽右欄」段）
+            ok("★ D7（2026-09-25 改）：點分流圖上的族群節點不再跳到族群頁，留在總覽",
+               pg.evaluate("() => location.hash") in ("", "#overview"),
                pg.evaluate("() => decodeURIComponent(location.hash)"))
-            pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2000)
 
     # --- 除了熱力圖與法人連續買超，其餘的圖都不可以有縮放框（Andy 09-13：「將這邊的縮放功能取消」）
     # ★ 2026-09-23：`#gvalWrap`（族群估值）整塊移除，從清單拿掉
@@ -12449,6 +12451,7 @@ SECTIONS = {
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
     "總覽":                lambda pg, b, base, code: t_overview(pg, base),
+    "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
     "市場明細":            lambda pg, b, base, code: t_market(pg, base),
     "資金流向":            lambda pg, b, base, code: t_flow(pg, base),
     "產業":                lambda pg, b, base, code: t_industry(pg, base),
@@ -13661,6 +13664,81 @@ COPY_HOWBOX = r"""(k) => { const b = document.getElementById('how-' + k);
   const lis = [...b.querySelectorAll('li')].map(li => li.innerText.replace(/\s+/g, ''));
   return { open: !b.hidden && b.getBoundingClientRect().height > 10, len: b.innerText.replace(/\s+/g, '').length,
            n: lis.length, long: lis.filter(t => t.length > 30), label: btn ? btn.textContent : '' }; }"""
+
+
+OVR_WHEEL = r"""() => { const e = document.getElementById('rotClockMini'); const c = e && echarts.getInstanceByDom(e); if (!c) return null;
+  const pol = c.getModel().getComponent('polar'); const cs = pol && pol.coordinateSystem;
+  const ext = cs ? cs.getRadiusAxis().getExtent() : [0, 0];
+  return { R: Math.abs(ext[1] - ext[0]), W: e.clientWidth, H: e.clientHeight,
+           wrapW: (document.getElementById('rotClockMiniWrap') || e).clientWidth }; }"""
+
+
+def t_ov_right(pg, base):
+    """總覽右欄（2026-09-25）：足跡輪盤放大、族群面板收小；昨日資金去向「?」、族群不跳頁、提示框精簡、起點「加權指數」。"""
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+    pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2800)
+    scroll_to(pg, "rotClockMini"); pg.wait_for_timeout(600)
+    wh = pg.evaluate(OVR_WHEEL)
+    # 改前：盤半徑 ＝ 0.66 × min(寬,高)/2（1440 實測約 97px，約佔卡寬 58%）。改後：離容器邊 18px。
+    if ok("[總覽右欄] 讀得到足跡輪盤的半徑", bool(wh) and wh["R"] > 0, wh):
+        ok("[總覽右欄] ★ 輪盤直徑填滿卡寬（直徑 ≥ 容器寬的 80%）", 2 * wh["R"] >= 0.8 * wh["W"], wh)
+        ok("[總覽右欄] 輪盤離容器邊還留一點距離（直徑 ≤ 寬 − 20px）", 2 * wh["R"] <= wh["W"] - 20, wh)
+        ok("[總覽右欄] 輪盤直徑比改前 0.66 倍的公式大", wh["R"] > 0.66 * min(wh["W"], wh["H"]) / 2 + 10, wh)
+    # 點族群點 → 面板打開，而且高度緊湊、個股是一行多檔的小標籤
+    rp = pg.evaluate("""() => { const e = document.getElementById('rotClockMini'), c = echarts.getInstanceByDom(e); if (!c) return null;
+        const o = c.getOption(); const si = o.series.findIndex(s => s.type === 'scatter' && (s.data || []).some(d => d && d.row && d.row.gid));
+        if (si < 0) return null; const d = o.series[si].data.find(d => d && d.row && d.row.gid);
+        const p = c.convertToPixel({seriesIndex: si}, d.value); const r = e.getBoundingClientRect();
+        return {x: r.left + p[0], y: r.top + p[1], gid: d.row.gid}; }""")
+    if ok("[總覽右欄] 算得出輪盤上一顆族群點", bool(rp), rp):
+        pg.mouse.click(rp["x"], rp["y"]); pg.wait_for_timeout(900)
+        pn = pg.evaluate("""() => { const b = document.getElementById('ovRotPanel'); if (!b || b.hidden) return null;
+            const as = [...b.querySelectorAll('.ms a')]; const tops = new Set(as.slice(0, 6).map(a => Math.round(a.getBoundingClientRect().top)));
+            const fs = as.length ? parseFloat(getComputedStyle(as[0]).fontSize) : 0;
+            const min = Math.min(...[...b.querySelectorAll('*')].filter(x => x.getClientRects().length && x.textContent.trim()).map(x => parseFloat(getComputedStyle(x).fontSize)));
+            return { h: Math.round(b.getBoundingClientRect().height), n: as.length, rows6: tops.size, fs, min }; }""")
+        # 改前：每檔一格 168px 寬的卡片、面板高約 280px（.ms 上限 232）。改後：上限約 88px 的小標籤。
+        if ok("[總覽右欄] 點族群點 → 面板原地打開", bool(pn) and pn["n"] >= 1, pn):
+            ok("[總覽右欄] ★ 面板高度大幅縮小（≤ 150px）", pn["h"] <= 150, pn)
+            ok("[總覽右欄] ★ 個股改成一行多檔（前 6 檔排不到 6 行）", pn["n"] < 2 or pn["rows6"] < min(6, pn["n"]), pn)
+            ok("[總覽右欄] 面板字收小但不小於 11px", pn["fs"] <= 12.5 and pn["min"] >= 11, pn)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    # 昨日資金去向：「?」開關
+    pg.evaluate("() => window.scrollTo(0, 0)")
+    click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
+    hp = pg.evaluate("""() => { const p = document.getElementById('howPop'), b = document.getElementById('how-ovflow');
+        return { open: !!p && !p.hidden && !!b && p.contains(b), txt: b ? b.innerText : '', ttl: p ? p.querySelector('.hp-h').textContent : '' }; }""")
+    ok("[總覽右欄] ★「昨日資金去向」的「?」點得開、標題對", hp["open"] and "昨日資金去向" in hp["ttl"], hp["ttl"])
+    ok("[總覽右欄] 口徑（1/n 拆分、盤後結算、加權指數）搬進「?」", "1/n" in hp["txt"] and "盤後" in hp["txt"] and "加權指數" in hp["txt"], hp["txt"][-160:])
+    pg.mouse.click(6, 300); pg.wait_for_timeout(350)
+    ok("[總覽右欄] 點背景就關", pg.evaluate("() => document.getElementById('how-ovflow').hidden && document.getElementById('howBack').hidden"))
+    click(pg, '#ovFlowHead .howbtn.pop[data-how="ovflow"]', 450)
+    pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
+    ok("[總覽右欄] 按 Esc 也關", pg.evaluate("() => document.getElementById('how-ovflow').hidden"))
+    # 起點節點「加權指數」
+    root = pg.evaluate("""() => { const c = echarts.getInstanceByDom(document.getElementById('ovFlow')); if (!c) return null;
+        const r = c.getOption().series[0].data[0]; return { name: r.name, size: r.symbolSize, show: (r.label || {}).show, fmt: (r.label || {}).formatter }; }""")
+    ok("[總覽右欄] ★ 流動圖起點是看得見的小圓圈、名稱「加權指數」",
+       bool(root) and root["name"] == "加權指數" and root["size"] > 0 and root["show"] is True and "加權指數" in (root["fmt"] or ""), root)
+    # 滑到族群節點 → 提示框沒有那兩行；點下去不跳頁
+    pg.eval_on_selector("#ovFlow", "el => el.scrollIntoView({block:'center', behavior:'instant'})")
+    pg.wait_for_timeout(700)
+    xy = pg.evaluate("""() => { const el = document.getElementById('ovFlow'); const c = echarts.getInstanceByDom(el); if (!c) return null;
+        const d = c.getModel().getSeriesByIndex(0).getData(); const r = el.getBoundingClientRect();
+        for (let i = 0; i < d.count(); i++) { const raw = d.getRawDataItem(i) || {}; if (!raw.gid) continue;
+          const g = d.getItemGraphicEl(i); if (!g) continue; const q = g.transformCoordToGlobal(0, 0);
+          return { x: Math.round(r.left + q[0]), y: Math.round(r.top + q[1]), gid: raw.gid }; } return null; }""")
+    if ok("[總覽右欄] 算得出一顆族群節點", bool(xy), xy):
+        pg.mouse.move(xy["x"] - 30, xy["y"] - 30); pg.wait_for_timeout(200)
+        pg.mouse.move(xy["x"], xy["y"]); pg.wait_for_timeout(700)
+        tt = pg.evaluate("""() => { const t = [...document.querySelectorAll('#ovFlow div')].find(d => d.style && d.style.position === 'absolute' && d.innerText && d.innerText.includes('成交值') && getComputedStyle(d).display !== 'none' && getComputedStyle(d).opacity !== '0');
+            return t ? t.innerText : ''; }""")
+        if ok("[總覽右欄] 滑到族群節點出現提示框", bool(tt), tt):
+            ok("[總覽右欄] ★ 提示框沒有「盤後結算值；1/n 拆分」與「點一下進族群頁」那兩行",
+               "1/n" not in tt and "盤後結算" not in tt and "進族群頁" not in tt, tt)
+        pg.mouse.click(xy["x"], xy["y"]); pg.wait_for_timeout(1200)
+        ok("[總覽右欄] ★ 點族群節點不跳頁（留在總覽）", pg.evaluate("() => location.hash") in ("", "#overview"),
+           pg.evaluate("() => location.hash"))
 
 
 def t_copy_trim(pg, base, code):

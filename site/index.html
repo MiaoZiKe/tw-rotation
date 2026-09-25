@@ -783,6 +783,20 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
    1440 看不到、800 一看就發現，是 DECISIONS #171 那一類的坑。*/
 .hpanel .ms a.sub{margin-left:12px;font-size:12.5px;flex-wrap:wrap;row-gap:1px;align-items:center}
 .hpanel .ms a.sub>span:first-child{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* ★ 2026-09-25（Andy：總覽足跡輪盤下方點族群出現的面板「範圍要小一點」）：只收桌機的 #ovRotPanel
+   （手機另有人做）。字與間距收小、個股從一格一格的卡片改成一行排好幾檔的小標籤，高度上限 88px（約三行）。
+   代號藏起來（連結本身就走到個股頁），留名稱＋漲跌。*/
+@media (min-width:821px){
+  #ovRotPanel{margin-top:6px;padding:7px 10px;border-radius:8px}
+  #ovRotPanel .hh{gap:6px}
+  #ovRotPanel .hh b{font-size:13px}
+  #ovRotPanel .hh .m{font-size:11.5px}
+  #ovRotPanel .hh .pill{font-size:11.5px;padding:1px 8px}
+  #ovRotPanel .ms{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;max-height:88px}
+  #ovRotPanel .ms a{padding:2px 7px;gap:4px;border-radius:6px;font-size:12px;line-height:1.35}
+  #ovRotPanel .ms a .c{display:none}
+  #ovRotPanel .ms a .g{margin-left:0;font-size:11px}
+}
 .hpanel .ms a.sub .c{flex:none}
 .hpanel .ms a.sub .g{flex:1 0 100%;margin-left:0;text-align:left;white-space:nowrap}
 .hpanel .ms a.sub.muted{color:var(--ink-3);grid-column:1/-1}
@@ -3572,8 +3586,9 @@ h3 .howbtn.pop{font-family:inherit}
         <div class="howtxt" id="how-rotm" hidden></div>
         <div id="rotClockMiniWrap"><div id="rotClockMini" class="chart" style="min-height:360px"></div></div>
         <div class="hpanel" id="ovRotPanel" hidden></div>
-        <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，說明精簡後搬進足跡輪盤的「?」（HOW.rotm 會讀它）。 -->
-        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <small id="ovFlowSub" hidden></small></h4>
+        <!-- #ovFlowSub 不上畫面：它是「幾號盤後、幾個族群、合計多少」的讀數，2026-09-25 起搬進「昨日資金去向」自己的「?」（HOW.ovflow 會讀它）。 -->
+        <h4 class="subh ovflowh" id="ovFlowHead">昨日資金去向 <button class="howbtn pop" data-how="ovflow" aria-label="昨日資金去向怎麼看">?</button> <small id="ovFlowSub" hidden></small></h4>
+        <div class="howtxt" id="how-ovflow" hidden></div>
         <div id="ovFlowWrap"><div id="ovFlow" class="chart"></div></div></div>
     </div>
     <div class="grid g2 ovlow" style="margin-top:var(--gap-card)">

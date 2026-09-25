@@ -3294,7 +3294,7 @@
        · 容器太窄、卡片會被推出容器時，半徑一次縮 4px 再算，直到卡片放得進容器（例如象限面板打開、時鐘變窄）
      手機（≤820px）照舊 84%＋卡片壓在盤緣（Andy：手機先暫停）；總覽小時鐘 66%。
      盤的半徑、名字排版的障礙物、掃描光束、水波、腳印間距全部讀這一支，所以永遠對得上。*/
-  const ROT_PAD = 14, ROT_CHIP_W = 104, ROT_CHIP_H = 34, ROT_CHIP_GAP = 6;
+  const ROT_MINI_PAD = 18, ROT_PAD = 14, ROT_CHIP_W = 104, ROT_CHIP_H = 34, ROT_CHIP_GAP = 6;
   const ROT_ANG = { leading: 45, improving: 135, lagging: 225, weakening: 315 };
   const rotChipD = (R) => {                            // 象限卡中心離圓心多遠（沿 45°）
     const hw = ROT_CHIP_W / 2, hh = ROT_CHIP_H / 2;
@@ -3305,9 +3305,18 @@
     }
     return D;
   };
+  // 圓心的縱向位置：只有手機的總覽小盤偏下 2%（留給上緣的象限名），其餘都在正中
+  const rotCy = (compact) => (compact && !rotDesk() ? .52 : .5);
   function rotGeo(W, H, compact) {
     const m = Math.min(W, H) / 2;
-    if (compact) return { R: 0.66 * m, D: 0.66 * m * 1.02 };
+    /* ★ 2026-09-25（Andy：總覽「足跡輪盤」小卡的輪盤再大一點，填滿卡寬、離邊留一點距離）：
+       桌機的總覽小盤改成「離容器邊 ROT_MINI_PAD」，圓心也回到正中（手機照舊 66%＋圓心 52%）。
+       四個象限名是 ECharts 的角度軸標籤，落在 45° 對角線上 —— 對角線方向離容器角落還有約 0.3 × 半徑的空間，
+       所以盤放大到快貼邊也不會把名字擠出畫布（1440 實測：半徑 97 → 約 150px）。*/
+    if (compact) {
+      if (rotDesk()) { const R = Math.max(40, m - ROT_MINI_PAD); return { R, D: R * 1.02 }; }
+      return { R: 0.66 * m, D: 0.66 * m * 1.02 };
+    }
     if (!rotDesk()) return { R: 0.84 * m, D: 0.84 * m * 1.02 };
     let R = Math.max(40, m - ROT_PAD), D = rotChipD(R);
     while (R > 80 && (D * Math.SQRT1_2 + ROT_CHIP_W / 2 > W / 2 - 2 || D * Math.SQRT1_2 + ROT_CHIP_H / 2 > H / 2 - 2)) { R -= 4; D = rotChipD(R); }
@@ -4505,7 +4514,7 @@
     }
     const W = F.sz[0], H = F.sz[1];
     // 半徑一律走 rotGeo（桌機是「離容器邊 ROT_PAD」，跟 polar 的設定同一支，fix-ov-wheel 之後不再是固定 84%）
-    return { W, H, cx: W / 2, cy: H * (compact ? .52 : .5), R: rotGeo(W, H, compact).R };
+    return { W, H, cx: W / 2, cy: H * rotCy(compact), R: rotGeo(W, H, compact).R };
   };
   // 光束元素：沒有就建；尺寸、顏色、主題變了才改樣式（每一幀比對一個字串，不寫 DOM）
   function rotFxBeam(el, F) {
@@ -4664,6 +4673,15 @@
      盤的半徑再由 rotGeo 取「離容器邊 14px」。以前固定 440px 高，1440 寬的畫面上盤只有半徑 185px、兩側大片空白。
      只看寬度決定高度，所以 ResizeObserver 不會來回觸發；手機與放大視窗不動。*/
   function rotFitH(el, id, compact) {
+    /* 總覽小盤（rotClockMini）桌機：高＝寬（夾 300～560），盤才填得滿卡寬；以前固定 360 高、盤只有 0.66 倍。*/
+    if (compact && id === 'rotClockMini' && el) {
+      if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
+      const w0 = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
+      if (!(w0 > 0)) return;
+      const h0 = Math.round(Math.max(300, Math.min(560, w0)));
+      if (Math.abs((el.clientHeight || 0) - h0) > 2) el.style.height = h0 + 'px';
+      return;
+    }
     if (compact || id !== 'rotClock' || !el) return;
     if (!rotDesk()) { if (el.style.height) el.style.height = ''; return; }
     const w = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
@@ -5097,7 +5115,7 @@
       },
       // N5（Andy 2026-09-19「輪動時鐘圓圈範圍擴大點」）：72% → 84%。
       // 標籤已經改成左右兩欄＋引線（不佔盤面），所以盤可以放大。
-      polar: { center: ['50%', compact ? '52%' : '50%'], radius: compact ? '66%' : Math.max(10, Rpx) },
+      polar: { center: ['50%', rotCy(compact) * 100 + '%'], radius: compact && !rotDesk() ? '66%' : Math.max(10, Rpx) },
       angleAxis: {
         type: 'value', min: 0, max: 360, startAngle: 0, clockwise: false, interval: 45,
         axisLine: { show: false }, axisTick: { show: false },
@@ -5523,7 +5541,7 @@
     const c = chart(id, o, { notMerge: !sameShape });
     /* 水波（Andy 2026-09-24「結合水滴這概念，當他移動會有水波紋」）：點真的挪了位置才冒，靜止時不冒。
        幾何跟 polar 的設定一致（center 50%／52%、radius 84%／66% 的基準是 min(寬,高)/2）。*/
-    rotRipple(el, top, { cx: (el.clientWidth || 0) / 2, cy: (el.clientHeight || 0) * (compact ? .52 : .5), k: pxU },
+    rotRipple(el, top, { cx: (el.clientWidth || 0) / 2, cy: (el.clientHeight || 0) * rotCy(compact), k: pxU },
       sameShape, rotRippleOn(id, compact, reduce), isF);
     rotFxScan(el, rotScanOn(id, compact, reduce), compact);
     el._hiGid = null;                  // 剛重畫完＝沒有任何一個被單獨亮起來（highlightClock 用它擋重複重畫）
@@ -5641,6 +5659,23 @@
       }
     } else if (compact) {
       rotLbl[id] = {};
+    }
+    /* ★ 2026-09-25：總覽小盤桌機改成像素半徑（rotGeo compact），所以欄寬改變時要跟著換高度與半徑，
+       不然視窗拉寬之後盤還停在舊尺寸。只看寬度決定高度，不會來回觸發；120ms 去抖動。*/
+    if (c && compact && id === 'rotClockMini' && !el._miniRO && typeof ResizeObserver !== 'undefined') {
+      let t = 0, lw = el.clientWidth;
+      el._miniRO = new ResizeObserver(() => {
+        const pw = (el.parentNode && el.parentNode.clientWidth) || 0;
+        if (pw === lw) return; lw = pw;
+        clearTimeout(t);
+        t = setTimeout(() => {
+          const cur = window.echarts && echarts.getInstanceByDom(el); if (!cur || !el.isConnected) return;
+          rotFitH(el, id, true);
+          const G = rotGeo(el.clientWidth || 0, el.clientHeight || 0, true);
+          try { cur.setOption({ polar: { center: ['50%', rotCy(true) * 100 + '%'], radius: rotDesk() ? Math.max(10, G.R) : '66%' } }); cur.resize(); } catch (e) { /* 忽略 */ }
+        }, 120);
+      });
+      el._miniRO.observe(el.parentNode || el);
     }
     if (c && !compact) rotTween(el, id, c, {
       shape, sameShape, reduce, top, liveArr, movedArr, series: o.series,
@@ -5815,9 +5850,13 @@
        和「ETF 100.0%」重疊）。總成交值改寫在小標上，資訊沒有消失、版面省一整欄。
        ECharts 的 tree 需要一個根，所以節點留著、只是看不見。*/
     const data = [{
-      name: '台股成交值', value: total, symbolSize: 0,
-      itemStyle: { color: 'transparent', borderColor: 'transparent' },
-      label: { show: false },
+      /* ★ 2026-09-25（Andy：「流動圖的起頭改成一個小圓圈節點，名稱寫『加權指數』」）：
+         根節點看得見了 —— 空心小圓圈，名字只寫四個字、放在圓圈**正上方靠左對齊**
+         （以前藏起來是因為「台股成交值 8271 億」太長會壓到產業鏈的名字；四個字的寬度只到產業鏈那一欄的一半）。*/
+      name: '加權指數', value: total, isRoot: true, symbol: 'circle', symbolSize: 9,
+      itemStyle: { color: CH.panel, borderColor: CH.ink2, borderWidth: 1.5 },
+      label: { show: true, position: 'top', align: 'left', distance: 6, offset: [-6, 0],
+        formatter: '{rn|加權指數}', rich: { rn: { fontSize: 12, fontWeight: 700, color: CH.ink, ...bd } } },
       children: chainArr.map(c => {
         const col = L.gcolor[c.kids[0].gid] || CH.cyan;          // 產業鏈的識別色（和資金流向頁那張同一個取法）
         const kids = c.kids.slice().sort((a, b) => b.v - a.v);
@@ -5851,15 +5890,16 @@
         formatter: (p) => {
           const d = p.data || {};
           if (d.value == null) return p.name;
+          if (d.isRoot) return `<b>加權指數</b><br>這些族群合計成交值 ${fmt.yi(d.value)}`;
+          /* 2026-09-25：最後兩行（盤後結算值／1/n 拆分、點一下進族群頁）拿掉 —— 口徑搬進標題旁的「?」，
+             族群節點也不再是連結（見下面 click）。*/
           return `<b>${fmt.esc(d.gid ? d.name : p.name)}</b><br>成交值 ${fmt.yi(d.value)}`
             + (d.base ? `<br>佔上一層 <b>${pct(d.value, d.base)}%</b>` : '')
-            + `<br>佔全場 ${pct(d.value, total)}%`
-            + `<br><span class="muted">${fmt.esc(day)} 盤後結算值；族群成交值已照 1/n 拆分</span>`
-            + (d.gid ? '<br><small>點一下進族群頁看成分股</small>' : '');
+            + `<br>佔全場 ${pct(d.value, total)}%`;
         } },
       series: [{
         type: 'tree', orient: 'LR', layout: 'orthogonal', edgeShape: 'curve',
-        left: 8, right, top: 12, bottom: 12,
+        left: 8, right, top: 12, bottom: 12, cursor: 'default',   // 節點不能點了，游標也不要變手指
         initialTreeDepth: 2,            // 只到族群那一層（Andy：個股不用）
         expandAndCollapse: false, roam: false, symbol: 'circle',
         /* 產業鏈那一層的名字放在節點**正上方**，不是右邊。
@@ -5877,10 +5917,9 @@
         data,
       }],
     }, { notMerge: true });
-    if (c) c.off('click').on('click', p => {
-      const gid = (p.data || {}).gid;
-      if (gid) location.hash = '#industry/group/' + gid;
-    });
+    /* ★ 2026-09-25（Andy：「切斷族群節點的超連結」）：點族群不再導到族群頁。
+       成分股的入口是上面足跡輪盤（點族群點 → 原地展開 #ovRotPanel），同一張卡不需要第二個跳頁入口。*/
+    if (c) c.off('click');
     if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
   // 資金去向的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
@@ -6395,12 +6434,21 @@
        副標是讀數（幾號盤後、幾個族群、合計多少），所以寫成函式：每次打開都讀當下 #ovFlowSub 的內容。*/
     rotm: () => {
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
-      return `<b>族群跑到強弱循環的哪一段；下半是昨天的錢分給了誰。</b>
+      return `<b>族群跑到強弱循環的哪一段。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝剛進場、領先＝主流、轉弱＝設停利、落後＝別抄底。</li>
       <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。點一顆看成分股。</li>
-      <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li>
-      <li>昨日資金去向：線越粗＝成交值越大，點族群進族群頁。</li></ul>`
-      + `<div class="howfine">${sub ? fmt.esc(sub) + '。' : ''}資金去向只畫到族群層、沒有動畫；族群成交值對同時掛兩個板塊的股票照 1/n 拆分，所以族群加總會略小於逐檔加總。</div>`;
+      <li>完整版（腳印、回放、即時）在「資金流向」分頁。</li></ul>`;
+    },
+    /* ★ 2026-09-25（Andy：「昨日資金去向」標題旁加「?」，說明放進去；提示框最後兩行拿掉、說明移到「?」）。
+       以前這段寫在足跡輪盤的「?」下半與提示框最後兩行，現在自己一顆。副標是讀數，所以照舊每次打開讀 #ovFlowSub。*/
+    ovflow: () => {
+      const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
+      return `<b>昨天收盤，錢從大盤分到哪幾條產業鏈、鏈裡又分給哪幾個族群。</b>
+      <ul><li>最左小圓圈＝<em>加權指數</em>（起點）→ 產業鏈 → 族群。</li>
+      <li>線越粗＝流過的成交值越大（只看粗細，沒有動畫）。</li>
+      <li>每一層的 % 都是「佔它上一層」的比重。</li>
+      <li>滑到線或名字看成交值；想看成分股，點上面足跡輪盤的族群點。</li></ul>`
+      + `<div class="howfine">${sub ? fmt.esc(sub) + '（盤後結算值）。' : ''}只畫到族群層；族群成交值對同時掛兩個板塊的股票照 1/n 拆分，所以族群加總會略小於逐檔加總。</div>`;
     },
     /* ★ 2026-09-24（Andy：「所有內容已經有說明就把表上補充文字拿掉，說明內容需要簡短方便閱讀」）：
        以下每一段都改成同一個格式（howHTML）：一句「這張圖回答什麼」→ 最多 5 條、每條 ≤30 字的讀法 →
