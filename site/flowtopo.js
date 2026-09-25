@@ -1329,10 +1329,14 @@
       return;
     }
     const t0 = performance.now();
-    const dt = Math.min(0.05, Math.max(0, (now - S.lastT) / 1000)); S.lastT = now;
+    const rawDt = Math.max(0, (now - S.lastT) / 1000);
+    const dt = Math.min(0.05, rawDt); S.lastT = now;
+    /* 代表股淡入淡出用真實經過時間（最多 0.25 秒一步）：粒子的 dt 壓在 0.05 是怕掉幀時一口氣跳太遠，
+       但淡入淡出若也壓，掉到 7 FPS 時 180ms 會拖成半秒以上 */
+    const vdt = Math.min(0.25, rawDt);
     if (S.tween) stepTween(S, now);
-    else if (stepVis(S, dt)) { drawBase(S); drawLabels(S); }
-    if (S.tween) stepVis(S, dt);
+    else if (stepVis(S, vdt)) { drawBase(S); drawLabels(S); }
+    if (S.tween) stepVis(S, vdt);
     update(S, dt, now, false);
     drawFx(S, now, false);
     const m = S.meter; m.frames++; m.cost += performance.now() - t0;

@@ -30013,7 +30013,8 @@ def _fx_leafhover(pg, tag):
     g, g2 = live[2 % len(live)], live[-1]
     nd = _topo_node(pg, g["key"])
     pg.mouse.move(nd["cx"] - 30, nd["cy"] - 40); pg.wait_for_timeout(150)
-    pg.mouse.move(nd["cx"], nd["cy"]); pg.wait_for_timeout(700)
+    pg.mouse.move(nd["cx"], nd["cy"])
+    wait_until(pg, ("() => { const t = window.App.sankeyTopo(); return t && t.leafHot && t.nodes.filter(n => n.lv === 3 && n.parent === t.leafHot).every(n => n.vis > 0.95) ? 1 : 0; }"), 3000)
     t1 = pg.evaluate(TOPO)
     mine = _fx_kids(t1, g["key"])
     other = [n for n in _fx_lv(t1, 3) if n["parent"] != g["key"] and n["vis"] > 0.01]
@@ -30030,7 +30031,7 @@ def _fx_leafhover(pg, tag):
             if a["x"] < bb["x"] + bb["w"] - 1 and bb["x"] < a["x"] + a["w"] - 1 and a["y"] < bb["y"] + bb["h"] - 1 and bb["y"] < a["y"] + a["h"] - 1:
                 hit += 1
     ok(f"{tag} 顯示出來的代表股不蓋到任何其他標籤", hit == 0, hit)
-    pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+    pg.mouse.move(5, 5); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.nodes.some(n => n.lv === 3 && n.vis > 0.01) ? 1 : 0; }", 3000)
     t2 = pg.evaluate(TOPO)
     ok(f"{tag} 移開：代表股淡出、又是 0 個看得見", not [n for n in _fx_lv(t2, 3) if n["vis"] > 0.01] and t2["leafHot"] is None,
        [(n["name"], n["vis"]) for n in _fx_lv(t2, 3) if n["vis"] > 0.01][:3])
@@ -30038,13 +30039,13 @@ def _fx_leafhover(pg, tag):
     n2 = _topo_node(pg, g2["key"])
     lab = [n for n in pg.evaluate(TOPO)["nodes"] if n["key"] == g2["key"]][0]["lab"]
     bx = pg.evaluate("() => { const r = document.querySelector('#sankey canvas.ftlab').getBoundingClientRect(); return [r.left, r.top]; }")
-    pg.mouse.move(bx[0] + lab["x"] + lab["w"] * 0.6, bx[1] + lab["y"] + lab["h"] / 2); pg.wait_for_timeout(700)
+    pg.mouse.move(bx[0] + lab["x"] + lab["w"] * 0.6, bx[1] + lab["y"] + lab["h"] / 2); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.leafHot && t.nodes.filter(n => n.lv === 3 && n.parent === t.leafHot).every(n => n.vis > 0.95) ? 1 : 0; }", 3000)
     t3 = pg.evaluate(TOPO)
     ok(f"{tag} 滑到「{g2['name']}」的膠囊：出現那一族的代表股", all(n["vis"] > 0.95 for n in _fx_kids(t3, g2["key"])) and t3["leafHot"] == g2["key"],
        [(n["name"], n["vis"]) for n in _fx_kids(t3, g2["key"])])
     # 那一格槽位最右邊的空白（代表股字的右邊）也算
-    pg.mouse.move(5, 5); pg.wait_for_timeout(500)
-    pg.mouse.move(bx[0] + t3["W"] - 6, n2["cy"] + 4); pg.wait_for_timeout(700)
+    pg.mouse.move(5, 5); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && !t.nodes.some(n => n.lv === 3 && n.vis > 0.01) ? 1 : 0; }", 3000)
+    pg.mouse.move(bx[0] + t3["W"] - 6, n2["cy"] + 4); wait_until(pg, "() => { const t = window.App.sankeyTopo(); return t && t.leafHot && t.nodes.filter(n => n.lv === 3 && n.parent === t.leafHot).every(n => n.vis > 0.95) ? 1 : 0; }", 3000)
     t4 = pg.evaluate(TOPO)
     ok(f"{tag} 滑到那一格槽位最右邊的空白：也出現那一族的代表股", t4["leafHot"] == g2["key"] and all(n["vis"] > 0.95 for n in _fx_kids(t4, g2["key"])),
        t4["leafHot"])
@@ -30224,7 +30225,8 @@ def t_flowfx(pg, b, base):
         # 2026-09-26（晚）改前→改後：「別的族群的代表股仍常駐」→ 別族的代表股仍在（收起），點開的這一族全部成分股常駐顯示
         ok("點族群：族群名前面標 ▾、別的族群的代表股仍在（收起）", any(n["key"] == gk and n["text"].startswith("▾") for n in t4["nodes"])
            and len([n for n in _fx_lv(t4, 3) if n["parent"] != gk]) >= 10)
-        pg.mouse.move(5, 5); pg.wait_for_timeout(700)
+        pg.mouse.move(5, 5)
+        wait_until(pg, "(k) => { const t = window.App.sankeyTopo(); return t && !t.nodes.some(n => n.lv === 3 && n.parent !== k && n.vis > 0.01) ? 1 : 0; }".replace("(k) =>", "() =>").replace("n.parent !== k", "n.parent !== " + repr(gk)), 3000)
         t4b = pg.evaluate(TOPO)
         ok("點開的族群：它的全部成分股常駐顯示（游標移開也不收）", all(n["vis"] > 0.95 for n in _fx_lv(t4b, 3) if n["parent"] == gk)
            and not [n for n in _fx_lv(t4b, 3) if n["parent"] != gk and n["vis"] > 0.01],
