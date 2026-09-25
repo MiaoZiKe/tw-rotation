@@ -22430,12 +22430,25 @@ _STG = """() => { const b = document.getElementById('stagePanel');
   const rc = cw ? cw.getBoundingClientRect() : null, rr = rf ? rf.getBoundingClientRect() : null;
   const hit = (a, c) => a && c && a.left < c.right - 1 && a.right > c.left + 1
                      && a.top < c.bottom - 1 && a.bottom > c.top + 1;
+  const hd = document.querySelector('#v-flow .rotrhead'), rh = hd ? hd.getBoundingClientRect() : null;
+  /* ★ 2026-09-25（批次30 收尾）加的四個欄位 —— 見 W7-10 那段註解：
+     inRank＝面板整塊落在 #rankFlowWrap 裡（DECISIONS #260：側欄蓋在排行圖上，是設計）；
+     overlapClock＝面板有沒有蓋到輪盤（這才是新版面真正不准發生的事）；
+     headClear＝「資金流向排行」小標那一列沒有被蓋到（放大／怎麼看兩顆鈕要按得到）；
+     inView＝面板至少有一部分在可視範圍內（點了要看得到東西）。*/
+  const inside = (a, c) => a && c && a.left >= c.left - 1 && a.right <= c.right + 1
+                        && a.top >= c.top - 1 && a.bottom <= c.bottom + 1;
   return { hidden: !!b.hidden, k: b.dataset.k || '',
            items: b.querySelectorAll('li[data-gid]').length,
            x: Math.round(rb.left), y: Math.round(rb.top), w: Math.round(rb.width),
            rightOfClock: rc ? rb.left >= rc.right - 2 : null,
            belowClock: rc ? rb.top >= rc.bottom - 2 : null,
            overlapRank: hit(rb, rr),
+           inRank: !!inside(rb, rr),
+           overlapClock: !!hit(rb, rc),
+           headClear: rh ? rb.top >= rh.bottom - 1 : null,
+           inView: rb.height > 0 && rb.top < innerHeight - 40 && rb.bottom > 40,
+           clockW: rc ? Math.round(rc.width) : 0,
            jmp: b.querySelectorAll('li .jmp').length }; }"""
 
 
@@ -22552,8 +22565,16 @@ def t_batch30(pg, base):
     ok("W7-7：`#rotBoard`／`#rotCycle`／`#rotMove` 三塊都不在 DOM 了（D2 起 rotMove 也移除）",
        gone == [], gone)
 
-    # ---------------------------------------------------------------- W7-8 四顆象限卡（1440 ＋ 390）
-    for w in (1500, 390):
+    # ---------------------------------------------------------------- W7-8 四顆象限卡（1500 ＋ 700 ＋ 390）
+    # ★ 2026-09-25（批次30 收尾）改前→改後：寬度 (1500, 390) → (1500, 700)，390 另外量手機那四顆（下面 W7-8m）。
+    #   理由：這段是 2026-09-23 寫的，當時手機也畫桌機那張 `#rotClock`。
+    #   2026-09-24 手機 v3 上線後（site/mobile3.js，Andy 拍板「足跡輪盤套新雷達」），≤640px 的資金輪動卡
+    #   掛 `.m3host`，桌機那張 `#rotClock` 整個藏起來（實測 390px：clientWidth/Height = 0×0、getClientRects 為空），
+    #   四個象限改由新雷達 `#mRadarFlow` 的四顆角落徽章 `.mqb` 承擔（截圖 docs/_show/pg-flow-390.png 看得到四顆）。
+    #   所以 390 量 `#rotClock .rq` 永遠是 null —— **斷言驗的是舊版面，不是使用者看不到象限卡**。
+    #   原本「窄畫面最容易飄出去」的擔心仍然成立，所以桌機那一型改在 700px 量（641～820px 是桌機 84% 那一型，
+    #   象限卡壓在盤緣，是最容易出界的寬度）；390 改量手機實際畫出來的那四顆，而且真的點一顆。
+    for w in (1500, 700):
         pg.set_viewport_size({"width": w, "height": 1000})
         pg.goto(f"{base}#flow", wait_until="networkidle")
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
@@ -22567,6 +22588,51 @@ def t_batch30(pg, base):
         ok(f"★ W7-8 [{w}px] 四顆都落在 `#rotClock` 的矩形裡（位置是用像素算的，窄畫面最容易飄出去）",
            q["inside"] == 4, q)
         ok(f"W7-8 [{w}px] 卡片上的字 ≥ 11px", q["minFs"] >= 11, q["minFs"])
+
+    # ---------------------------------------------------------------- W7-8m 手機（390）：新雷達的四顆角落徽章
+    # 同樣四件事（四顆、名字、顏色互異、在盤的矩形裡、字 ≥ 11px），外加真的點一顆：
+    # 2026-09-25 以前資金流向這張手機雷達的 onQuad 是 `() => {}`，四顆徽章點了完全沒反應（總覽那張有反應），
+    # 這一段就是那個修正的驗收 —— 點「改善」盤上的點要變少、焦點條要換成改善、再點一次要還原。
+    pg.set_viewport_size({"width": 390, "height": 1000})
+    pg.goto(f"{base}#flow", wait_until="networkidle")
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(2600)
+    _MQ = """() => { const r = document.querySelector('#mRadarFlow .mradar');
+      const qs = [...document.querySelectorAll('#mRadarFlow .mqb')];
+      const cl = document.getElementById('rotClock');
+      if (!r || !qs.length) return null;
+      const rr = r.getBoundingClientRect(), f = document.querySelector('#flowRotCard .mfocus');
+      return { n: qs.length, names: qs.map(q => (q.firstChild && q.firstChild.textContent || '').trim()),
+               colors: [...new Set(qs.map(q => getComputedStyle(q).color))].length,
+               inside: qs.filter(q => { const b = q.getBoundingClientRect();
+                 return b.width > 0 && b.left >= rr.left - 2 && b.right <= rr.right + 2
+                     && b.top >= rr.top - 2 && b.bottom <= rr.bottom + 2; }).length,
+               minFs: Math.min(...qs.map(q => parseFloat(getComputedStyle(q).fontSize) || 0)),
+               dots: document.querySelectorAll('#mRadarFlow svg g[data-g]').length,
+               pressed: qs.filter(q => q.getAttribute('aria-pressed') === 'true').map(q => q.dataset.quad),
+               quad: document.getElementById('mRadarFlow').dataset.quad || '',
+               st: f ? ((f.querySelector('.st') || {}).textContent || '') : '',
+               deskClock: cl ? cl.getClientRects().length > 0 : null }; }"""
+    m0 = pg.evaluate(_MQ)
+    if ok("W7-8m [390px] 量得到手機雷達的四顆角落徽章（`#mRadarFlow .mqb`）", bool(m0), m0):
+        ok("W7-8m [390px] 剛好四顆，名字是改善／領先／轉弱／落後",
+           m0["n"] == 4 and sorted(m0["names"]) == sorted(["改善", "領先", "轉弱", "落後"]), m0["names"])
+        ok("★ W7-8m [390px] 四顆的 computed color 互異", m0["colors"] == 4, m0["colors"])
+        ok("★ W7-8m [390px] 四顆都落在雷達的矩形裡（沒有被切出畫面）", m0["inside"] == 4, m0)
+        ok("W7-8m [390px] 徽章上的字 ≥ 11px", m0["minFs"] >= 11, m0["minFs"])
+        ok("W7-8m [390px] 桌機那張 `#rotClock` 在手機是藏起來的（兩張不會同時出現）",
+           m0["deskClock"] is False, m0["deskClock"])
+        pg.eval_on_selector('#mRadarFlow .mqb[data-quad="improving"]', "b => b.click()")
+        pg.wait_for_timeout(500)
+        m1 = pg.evaluate(_MQ)
+        ok("★ W7-8m [390px] 點「改善」→ 盤上的點真的變少（只剩改善那一段）",
+           bool(m1) and 0 < m1["dots"] < m0["dots"], {"前": m0["dots"], "後": m1 and m1["dots"]})
+        ok("★ W7-8m [390px] 點「改善」→ 徽章亮起（aria-pressed）、焦點條換成改善的族群",
+           bool(m1) and m1["pressed"] == ["improving"] and m1["quad"] == "improving" and m1["st"] == "改善", m1)
+        pg.eval_on_selector('#mRadarFlow .mqb[data-quad="improving"]', "b => b.click()")
+        pg.wait_for_timeout(500)
+        m2 = pg.evaluate(_MQ)
+        ok("★ W7-8m [390px] 再點一次「改善」→ 點數還原、沒有徽章亮著",
+           bool(m2) and m2["dots"] == m0["dots"] and m2["pressed"] == [] and m2["quad"] == "", m2)
     pg.set_viewport_size({"width": 1500, "height": 1000})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2600)
 
@@ -22588,9 +22654,24 @@ def t_batch30(pg, base):
         # D2 的補償：換段資訊搬到每一列的 .jmp 徽章上（`#rotMove` 拿掉的東西沒有消失）
         ok("D2：換段資訊沒有消失，搬到面板每一列的 `.jmp` 徽章上",
            s1["jmp"] >= 0, s1["jmp"])
-        # W7-10 幾何：不蓋到資金流向排行；1440 在時鐘右邊
-        ok("★ W7-10：展開面板沒有蓋到「資金流向排行」", not s1["overlapRank"], s1)
-        ok("★ W7-10 [1500px]：面板出現在時鐘**右邊**那塊空白（Andy 指名的位置）",
+        # W7-10 幾何
+        # ★ 2026-09-25（批次30 收尾）改前→改後：
+        #   改前「展開面板沒有蓋到『資金流向排行』」（not overlapRank）——那是 2026-09-23 D2 的版面：
+        #   面板插在 `.rotstagerow` 第二欄、夾在時鐘和排行中間，排行一個像素都不能被吃掉。
+        #   改後「面板整塊落在排行那一格裡、沒蓋到輪盤、排行小標那一列還看得到、輪盤寬度不因此改變」。
+        #   理由：2026-09-24 夜 Andy 指定「點族群時資訊要跟點『領先』徽章一樣顯示在輪盤旁邊的側欄
+        #   （同一個位置、同一種樣式）」＋審查 R2 #24「開象限面板時卡片 606→833px 跳動、輪盤切編號模式」，
+        #   面板改成 `#rankFlowWrap` 裡的 absolute 側欄、**刻意蓋在排行圖上**（DECISIONS #260、index.html 的
+        #   `#rankFlowWrap>.sidepanel` 那段），2026-09-25 再改成高度跟內容走、底下的排行露出來。
+        #   所以 overlapRank=True 是新設計本身，不是 bug；新設計真正不准發生的是「蓋到輪盤」與「輪盤被擠窄」。
+        #   截圖（docs/_show/quad-flow-1440.png）：輪盤 563px 寬不動，面板在「資金流向排行」小標正下方、蓋住排行圖。
+        ok("★ W7-10 [1500px]：展開面板落在「資金流向排行」那一格裡（側欄蓋在排行圖上，DECISIONS #260）",
+           s1["inRank"] is True, s1)
+        ok("★ W7-10 [1500px]：展開面板沒有蓋到輪盤", s1["overlapClock"] is False, s1)
+        ok("W7-10 [1500px]：「資金流向排行」小標那一列沒被蓋到（放大／怎麼看按得到）", s1["headClear"] is True, s1)
+        ok("★ W7-10 [1500px]：打開面板之後輪盤寬度不變（R2 #24：不准把輪盤擠窄）",
+           abs(s1["clockW"] - b0["clockW"]) <= 1, {"開前": b0["clockW"], "開後": s1["clockW"]})
+        ok("★ W7-10 [1500px]：面板出現在時鐘**右邊**（Andy 指名的位置）",
            s1["rightOfClock"] is True, s1)
         # W7-11 換一顆、再點同一顆
         idx2 = next((i for i, n in enumerate(q["nums"]) if n > 0 and q["ks"][i] != k1), None)
@@ -22636,7 +22717,13 @@ def t_batch30(pg, base):
         if ok("W7-10 [1000px] 面板打得開", bool(sn) and not sn["hidden"], sn):
             ok("★ W7-10 [1000px] 窄畫面時面板退回時鐘**下方**（放不下就退讓，是合理的）",
                sn["belowClock"] is True, sn)
-            ok("W7-10 [1000px] 仍然沒有蓋到「資金流向排行」", not sn["overlapRank"], sn)
+            # 改前→改後同上面 1500 那段：not overlapRank → inRank ＋ 不蓋輪盤（單欄時排行那一格就在輪盤下面）
+            ok("W7-10 [1000px] 面板落在排行那一格裡、沒蓋到輪盤",
+               sn["inRank"] is True and sn["overlapClock"] is False, sn)
+            # ★ 2026-09-25 新增：1000×1000 時面板上緣在 y≈1070，整塊在畫面外 —— 點了只看到徽章變色。
+            #   app.js 的 rotStageReveal() 只在「整塊都在畫面下緣之外」時捲到剛好看得到。
+            ok("★ W7-10 [1000px] 點象限卡之後面板真的捲進畫面（不是開在看不到的地方）",
+               sn["inView"] is True, sn)
     pg.set_viewport_size({"width": 1500, "height": 1000})
 
     # ---------------------------------------------------------------- 桑基下拉 14～20

@@ -464,7 +464,12 @@
     const chainName = { traditional: '傳產', financial: '金融', industry: '其他產業別' };
     ((sd && sd.groups) || []).forEach(g => { if (g.chain_name) chainName[g.chain] = g.chain_name; });
     const periods = f.periods || [];
-    let chain = LS.get('flow.chain', ''), pk = LS.get('flow.period', periods[0] && periods[0].key), sel = null;
+    /* quad＝角落徽章選到的象限（null＝全部）。
+       ★ 2026-09-25（批次30 收尾）：以前這裡的 onQuad 是 `() => {}` —— 四顆角落徽章長得跟總覽那四顆一模一樣
+       （同一支 radar() 畫的，有 aria-pressed、有按下去的底色樣式），**點了卻完全沒反應**。
+       使用者只會覺得「壞掉了」。改成跟總覽同一套：點一下只看那一段、再點一次還原。
+       不寫進 localStorage：它是「這一眼要看哪一段」的暫時聚焦，不是篩選條件（篩選在抽屜裡，那個才會記住）。*/
+    let chain = LS.get('flow.chain', ''), pk = LS.get('flow.period', periods[0] && periods[0].key), sel = null, quad = null, quadNew = false;
     if (!periods.some(p => p.key === pk)) pk = periods[0] && periods[0].key;
     box.innerHTML = `<div class="mhead"><h3>資金輪動</h3><span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button>`
       + `<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></div>`
@@ -477,11 +482,20 @@
       const fb = $('#mFlowFilt', box);
       fb.textContent = '篩選 · ' + (chain ? (chainName[chain] || chain) : '全部') + ' · ' + per.label;
       fb.classList.toggle('on', !!chain || pk !== (periods[0] && periods[0].key));
-      const r = radar($('#mRadarFlow', box), pts, { sel, max: 340, fitBelow: 65 + 42 + 5 * 36 + 34,
-        onPick: (p) => { sel = p.group_id; draw(); }, onQuad: () => {} });
+      const r = radar($('#mRadarFlow', box), pts, { sel, quad, max: 340, fitBelow: 65 + 42 + 5 * 36 + 34,
+        onPick: (p) => { sel = p.group_id; draw(); },
+        onQuad: (q) => { quad = quad === q ? null : q; quadNew = !!quad; draw(); } });
+      /* 剛點角落時，焦點條換成那一段盤上佔比最大的一顆（不然焦點條還寫著別段的族群，跟盤面對不起來）。
+         只在「剛點角落」那一次換：之後使用者點排行某一列，就算那一族不在這一段，也照他點的顯示，不要搶回來。*/
+      if (quadNew) {
+        quadNew = false;
+        // 換了焦點就再畫一次，選取外圈才會圈在新的那一顆上（quadNew 已經清掉，不會繞圈）
+        if (r.shown.length && r.shown[0].group_id !== sel) { sel = r.shown[0].group_id; return draw(); }
+      }
       if (!sel && r.shown.length) sel = r.shown[0].group_id;
+      $('#mRadarFlow', box).dataset.quad = quad || '';
       const p = pts.find(x => x.group_id === sel);
-      $('.mfhost', box).innerHTML = p ? focusHtml(p)
+      $('.mfhost', box).innerHTML = p ? focusHtml(p, quad ? `只看「${ST[quad]}」：盤上 ${r.shown.length} 個（佔比前 16 名內）· 再點一次角落還原` : '')
         : `<div class="mfocus"><span class="nm">${esc((gs.find(g => g.group_id === sel) || {}).group_name || '')}</span><span class="note">不在這個篩選的輪盤上</span></div>`;
       const mx = gs.length ? gs[0].share : 1;
       $('#mRankSub', box).textContent = `${per.label}　${(per.from || '').slice(5)}～${(per.to || '').slice(5)}`;
