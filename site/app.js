@@ -261,7 +261,10 @@
       const lab = el._hmLab;
       c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } } }] });
     };
-    apply();
+    /* ★ 2026-09-24 效能：第二段（寫回標籤）挪到下一幀開頭（requestAnimationFrame）。
+       rAF 在瀏覽器畫出下一幀**之前**執行，所以畫面上不會先閃一張沒字的熱力圖；
+       但它是另一個任務 —— 首次開總覽時「畫熱力圖」這一大塊從一個長任務拆成兩個，中間瀏覽器能喘口氣處理點擊與捲動。*/
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(apply); else apply();
     if (!el._hmFin) {
       el._hmFin = true;
       c.on('finished', () => {
@@ -2749,6 +2752,19 @@
        它們仍然讀 `D`，要改得整條呼叫鏈一起穿參數 —— 留給下一棒，這裡先把回傳值具名，
        至少讀程式的人看得到「這一份是為了誰載的」。 */
     const [heat, gt, rot, cands, f3, th, trust, gdForPanels, streak, sd] = await Promise.all([load('market_heat'), load('groups_today'), load('rotation'), load('candidates'), load('flow_v3'), load('themes'), load('trust_streak'), load('groups_detail'), load('inst_streak', { fallback: {} }), load('sankey_daily', { fallback: null })]);
+    /* ★ 2026-09-24 效能：資金去向（#ovFlow）延後畫，但它的**高度**現在就定下來（跟 renderOvFlow 同一條公式）。
+       這張圖跟熱力圖在同一排：它畫完才把自己撐高的話，熱力圖會跟著被拉長（實測 617 → 800px），
+       等於熱力圖剛畫完又得整張重畫一次（resize ＋ 重排標籤）。先把高度給它，熱力圖第一次就畫在最後的尺寸上。*/
+    { const ovf = $('#ovFlow');
+      if (ovf && sd && (sd.dates || []).length && (sd.groups || []).length) {
+        const k = sd.dates.length - 1;
+        const vs = sd.groups.map(g => (g.tv || [])[k] || 0).filter(v => v > 0);
+        if (vs.length) {
+          ovf.style.height = Math.max(300, vs.length * 22 + 46) + 'px';
+          const sub = $('#ovFlowSub');                 // 小標也先寫好（它換行數一變，這一欄一樣會長高）
+          if (sub) sub.textContent = ovFlowSubText(sd.dates[k], vs.length, vs.reduce((a, v) => a + v, 0) || 1);
+        }
+      } }
     // hero
     const b = (heat && heat.breadth) || {};
     const mv = b.movers || {};
@@ -5336,10 +5352,12 @@
       const gid = (p.data || {}).gid;
       if (gid) location.hash = '#industry/group/' + gid;
     });
-    if (sub) sub.textContent = `${day} 盤後結算，這 ${gs.length} 個族群合計 ${fmt.yi(total)}`
-      + '　·　產業鏈 → 族群（只到族群層）'
-      + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
+    if (sub) sub.textContent = ovFlowSubText(day, gs.length, total);
   }
+  // 資金去向的小標（renderOverview 會在延後畫之前先寫好，版面才不會等圖畫完才長高，見那裡的註解）
+  const ovFlowSubText = (day, n, total) => `${day} 盤後結算，這 ${n} 個族群合計 ${fmt.yi(total)}`
+    + '　·　產業鏈 → 族群（只到族群層）'
+    + '　·　每一層的 % 都是「佔它上一層」的比重　·　線越粗＝流過的成交值越大（沒有動畫）';
 
   function renderThemeStrip(th) {
     const el = $('#themeStrip'); if (!th || !th.themes || !th.themes.length) { el.innerHTML = '<div class="empty">尚無題材資料</div>'; return; }
