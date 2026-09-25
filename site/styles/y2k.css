@@ -1,0 +1,266 @@
+/* ==================================================================================
+   風格實驗室 3：Y2K 千禧年（y2k）—— 「千禧年桌面：鉻銀、凝膠按鈕、像素框、霓虹」
+   只在 claude/style-lab 分支；網址 ?style=y2k 才會載入，疊在 index.html 原本的樣式上面。
+   只改外觀（CSS 變數＋選擇器覆寫），不動任何功能、不引入外部圖檔／字型。
+
+   設計語言（量得出來的規格）：
+     · 鉻銀（半透明金屬）：頂欄、表頭、KPI 橫條用四段漸層（亮 → 中 → 50% 處硬轉暗 → 亮）做出金屬反光帶
+     · 凝膠（gel）按鈕：上半 38% 白色高光＋主色底，膠囊圓角（iMac G3／Aqua 那一代）
+     · 像素框：選中的分頁、分段鈕、籌碼用 2px「缺角」像素邊（四向 box-shadow、圓角 0）
+     · 霓虹：卡片外框 1px 青色＋外發光 24px（只在深色）；卡片頂端 4px 全像彩虹條（青 → 紫 → 粉 → 黃）
+     · 低解析度電子質感：頁面底 24px 像素格線＋3px 掃描線＋稀疏的四角星閃光（✦）
+     · 多巴胺配色：青 #00EEFF、紫 #B78CFF、粉 #FF6AD5、黃 #FFE14D（深色）；淺色壓成電光藍 #0B63CE 當主色
+   ⚠ 紅漲綠跌：--rise／--fall 色相不動、語意不反轉；粉紅只當裝飾（彩虹條、閃光），不當字色、不代表漲跌。
+   ⚠ 掃描線只畫在「頁面底」，不蓋在文字與圖表上面（不降低任何數字的對比）。
+   ⚠ 動效：只有 120ms 的 hover 過場（沒有循環閃爍），並尊重 prefers-reduced-motion。
+   ================================================================================== */
+
+/* ---------------- 深色：午夜網咖（靛紫夜空＋霓虹青；專業、但不壓迫） ---------------- */
+:root[data-style="y2k"]{
+  --bg:#0B0A24; --bg-2:#110F30; --panel:#15133A; --panel-2:#1A1845; --panel-3:#221F55;
+  --line:#2E2A6C; --line-2:#4A43A0;
+  --ink:#F4F1FF; --ink-2:#CBC5F2; --ink-3:#A39CDB;
+  --cyan:#00EEFF; --ontop:#0B0A24;
+  --violet:#B78CFF; --amber:#FFC94D; --lime:#D4FF3F;
+  --rise:#FF4D6D; --fall:#2EE59D; --flat:#9A96C4;
+  --y2-pink:#FF6AD5; --y2-yel:#FFE14D;
+  --y2-holo:linear-gradient(90deg,#00EEFF 0%,#8A7CFF 32%,#FF6AD5 64%,#FFE14D 100%);
+  /* 鉻銀帶（深色版：深靛金屬） */
+  --y2-chrome:linear-gradient(180deg,#453FA0 0%,#2A2670 46%,#141140 52%,#221E5C 100%);
+  --y2-chrome-ink:var(--ink);
+  /* 凝膠高光只佔上面 30%：文字（中文字身約在 28%～72%）不會壓在高光上，字的對比不打折 */
+  --y2-gel-hi:linear-gradient(180deg,rgba(255,255,255,.42) 0%,rgba(255,255,255,.1) 28%,rgba(255,255,255,0) 30%);
+  --y2-px:#00EEFF;                     /* 像素框的顏色（選中的分頁、籌碼） */
+  --y2-frame:#3F3995;                  /* 卡片外圍像素框 */
+  --y2-pxstar:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h1v2H3zM3 5h1v2H3zM0 3h2v1H0zM5 3h2v1H5zM2 2h3v3H2z' fill='%2300EEFF'/%3E%3Cpath d='M3 3h1v1H3z' fill='%23FF6AD5'/%3E%3C/svg%3E");
+  --glow:0 0 0 1px rgba(0,238,255,.45), 0 0 18px -4px rgba(0,238,255,.7);
+  --shadow:0 0 0 1px rgba(0,238,255,.10), 0 10px 28px -16px rgba(0,0,0,.9);
+  --card-sh:inset 0 1px 0 rgba(255,255,255,.07), 0 0 0 1px rgba(0,238,255,.06), 0 0 26px -10px rgba(0,238,255,.45);
+  --r:14px; --r-sm:12px; --r-md:18px; --r-lg:22px;
+  --chartbg:#15133A;
+  --topbar:rgba(11,10,36,.9); --topbar-m:rgba(11,10,36,.97);
+  --grid:rgba(160,150,255,.08);
+  --body-1:rgba(0,238,255,.16); --body-2:rgba(255,106,213,.14);
+  --row-hover:#211E52;
+  --focus:#00EEFF;
+  --tip-bg:rgba(21,19,58,.96); --tip-line:#00EEFF; --tip-sh:0 0 18px -4px rgba(0,238,255,.55);
+  --ovl:rgba(11,10,36,.6);
+  --y2-grid:rgba(120,110,255,.07);
+  --y2-scan:rgba(0,0,0,.22);
+  --y2-spark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='320'%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%2300EEFF' opacity='.55' transform='translate(60 170) scale(1.5)'/%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%23FF6AD5' opacity='.45' transform='translate(270 110) scale(.9)'/%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%23FFE14D' opacity='.4' transform='translate(170 260) scale(.7)'/%3E%3Crect x='318' y='30' width='3' height='3' fill='%23B78CFF' opacity='.5'/%3E%3Crect x='96' y='176' width='3' height='3' fill='%2300EEFF' opacity='.45'/%3E%3C/svg%3E");
+}
+
+/* ---------------- 淺色：冰透鉻銀（淡紫銀底＋電光藍；親近、舒服、好讀） ---------------- */
+:root[data-style="y2k"][data-theme="light"]{
+  --bg:#EDEFFA; --bg-2:#E4E7F7; --panel:#FFFFFF; --panel-2:#F8F8FF; --panel-3:#EEEFFC;
+  --line:#DCDFF2; --line-2:#B3B8DD;
+  --ink:#1A1740; --ink-2:#37336A; --ink-3:#57528C;
+  --cyan:#0B63CE; --ontop:#FFFFFF;
+  --violet:#6A3CD6; --amber:#8F5600; --lime:#3F7512;
+  --rise:#C81234; --fall:#07794F; --flat:#5F6C85;
+  --y2-pink:#FF6AD5; --y2-yel:#FFD84D;
+  --y2-holo:linear-gradient(90deg,#3FD8FF 0%,#9D8CFF 32%,#FF8ADF 64%,#FFD84D 100%);
+  /* 鉻銀帶（淺色版：拋光銀） */
+  --y2-chrome:linear-gradient(180deg,#FFFFFF 0%,#E9EBF7 46%,#D3D7EC 52%,#F2F3FB 100%);
+  --y2-chrome-ink:var(--ink);
+  --y2-gel-hi:linear-gradient(180deg,rgba(255,255,255,.55) 0%,rgba(255,255,255,.12) 28%,rgba(255,255,255,0) 30%);
+  /* KPI 橫條用的淺鉻銀：最暗那一段 #ECEEF8，紅 5.05／綠 4.71／灰 4.57，數字都 ≥ 4.5 */
+  --y2-chrome-soft:linear-gradient(180deg,#FFFFFF 0%,#F5F6FC 46%,#ECEEF8 52%,#F8F9FD 100%);
+  --y2-px:#0B63CE;
+  --y2-frame:#B7BCE6;
+  --y2-pxstar:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' shape-rendering='crispEdges'%3E%3Cpath d='M3 0h1v2H3zM3 5h1v2H3zM0 3h2v1H0zM5 3h2v1H5zM2 2h3v3H2z' fill='%230B63CE'/%3E%3Cpath d='M3 3h1v1H3z' fill='%23FF6AD5'/%3E%3C/svg%3E");
+  --glow:0 0 0 1px rgba(11,99,206,.35), 0 4px 14px -6px rgba(11,99,206,.55);
+  --shadow:inset 0 1px 0 #fff, 0 10px 24px -16px rgba(60,50,160,.35);
+  --card-sh:inset 0 1px 0 #fff, inset 0 -2px 0 rgba(179,184,221,.35), 0 12px 26px -18px rgba(60,50,160,.40);
+  --chartbg:#FFFFFF;
+  --topbar:rgba(237,239,250,.92); --topbar-m:rgba(237,239,250,.98);
+  --grid:rgba(40,35,110,.07);
+  --body-1:rgba(63,216,255,.38); --body-2:rgba(255,138,223,.32);
+  --row-hover:#F1F0FE;
+  --focus:#0B63CE;
+  --tip-bg:rgba(255,255,255,.97); --tip-line:#B3B8DD; --tip-sh:0 8px 22px -8px rgba(60,50,160,.35);
+  --ovl:rgba(255,255,255,.85);
+  --y2-grid:rgba(90,82,180,.07);
+  --y2-scan:rgba(255,255,255,.35);
+  --y2-spark:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='320'%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%233FB6FF' opacity='.55' transform='translate(60 170) scale(1.5)'/%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%23FF6AD5' opacity='.5' transform='translate(270 110) scale(.9)'/%3E%3Cpath d='M0-10C.7-2.8 2.8-.7 10 0 2.8.7.7 2.8 0 10-.7 2.8-2.8.7-10 0-2.8-.7-.7-2.8 0-10Z' fill='%23E0B400' opacity='.45' transform='translate(170 260) scale(.7)'/%3E%3Crect x='318' y='30' width='3' height='3' fill='%238A7CFF' opacity='.5'/%3E%3Crect x='96' y='176' width='3' height='3' fill='%233FB6FF' opacity='.5'/%3E%3C/svg%3E");
+}
+
+/* ---------------- 頁面底：色光＋閃光＋像素格線＋掃描線（只在底，不蓋內容） ---------------- */
+[data-style="y2k"] body{
+  background:
+    repeating-linear-gradient(180deg, var(--y2-scan) 0 1px, transparent 1px 3px),
+    var(--y2-spark),
+    linear-gradient(90deg, var(--y2-grid) 1px, transparent 1px) 0 0/24px 24px,
+    linear-gradient(180deg, var(--y2-grid) 1px, transparent 1px) 0 0/24px 24px,
+    radial-gradient(1000px 560px at 8% -10%, var(--body-1), transparent 60%),
+    radial-gradient(860px 520px at 100% 0%, var(--body-2), transparent 56%),
+    radial-gradient(700px 460px at 50% 115%, color-mix(in srgb,var(--violet) 16%,transparent), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+}
+
+/* ---------------- 頂欄：鉻銀帶＋底邊全像彩虹線 ---------------- */
+[data-style="y2k"] .topbar{
+  border-bottom:0;
+  background:var(--y2-holo) left bottom/100% 2px no-repeat, var(--y2-chrome);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset, 0 6px 18px -12px rgba(0,0,0,.6);
+}
+/* 標誌：鉻銀泡泡 */
+[data-style="y2k"] .brand .logo{
+  border-radius:50%;
+  background:radial-gradient(circle at 32% 28%, #fff 0 12%, rgba(255,255,255,0) 34%),
+             linear-gradient(135deg,#00EEFF 0%,#8A7CFF 55%,#FF6AD5 100%);
+  color:#0B0A24; box-shadow:0 0 0 2px rgba(255,255,255,.55), 0 0 14px -2px rgba(0,238,255,.7);
+}
+[data-style="y2k"] .brand b{letter-spacing:.06em}
+
+/* 分頁：選中的那顆是像素按鈕（2px 缺角像素框＋凝膠高光） */
+[data-style="y2k"] .tab{transition:color var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease)}
+[data-style="y2k"] .tab:hover{background:color-mix(in srgb,var(--cyan) 12%,transparent)}
+[data-style="y2k"] .tab.on{
+  border-radius:0;
+  background:var(--y2-gel-hi), var(--cyan);
+  box-shadow:0 -2px 0 0 var(--y2-px), 0 2px 0 0 var(--y2-px), -2px 0 0 0 var(--y2-px), 2px 0 0 0 var(--y2-px),
+             0 0 16px 0 color-mix(in srgb,var(--cyan) 45%,transparent);
+}
+[data-style="y2k"][data-theme="light"] .tab.on{
+  box-shadow:0 -2px 0 0 #0A3E86, 0 2px 0 0 #0A3E86, -2px 0 0 0 #0A3E86, 2px 0 0 0 #0A3E86;
+}
+
+/* 搜尋框、事件鈕：嵌進去的銀框（inset 立體） */
+[data-style="y2k"] .search input,
+[data-style="y2k"] .evbtn{box-shadow:inset 0 2px 3px rgba(0,0,0,.18), 0 1px 0 rgba(255,255,255,.08)}
+[data-style="y2k"][data-theme="light"] .search input,
+[data-style="y2k"][data-theme="light"] .evbtn{box-shadow:inset 0 2px 3px rgba(40,35,110,.12), 0 1px 0 #fff}
+
+/* ---------------- 卡片：像素缺角視窗框（3px）＋凸起立體邊＋全像彩虹頂條 ----------------
+   為什麼卡片用像素框、按鈕用凝膠泡泡：Y2K 本來就是「像素（低解析度電子）」與「凝膠（半透明塑料）」兩條線。
+   大面積的容器用像素框才認得出風格；小顆的按鈕用泡泡才好按、好辨認「這是可以按的」。
+   像素框：四個方向各一條 3px 的實心影子、圓角 0 → 四個角各缺一格 3×3，就是像素畫的圓角。
+   立體邊：左上 2px 亮、右下 2px 暗的內影（Windows 98／舊版 Mac 的凸起按鈕）。 */
+[data-style="y2k"] .card{
+  border:1px solid color-mix(in srgb,var(--cyan) 30%,var(--line));
+  border-radius:0;
+  background:
+    var(--y2-holo) left top/100% 4px no-repeat,
+    linear-gradient(135deg, rgba(255,255,255,.05) 0%, rgba(255,255,255,0) 38%),
+    radial-gradient(circle, color-mix(in srgb,var(--violet) 22%,transparent) 1px, transparent 1.4px) 0 0/8px 8px,
+    var(--panel);
+  box-shadow:
+    0 -3px 0 0 var(--y2-frame), 0 3px 0 0 var(--y2-frame), -3px 0 0 0 var(--y2-frame), 3px 0 0 0 var(--y2-frame),
+    inset 2px 2px 0 rgba(255,255,255,.07), inset -2px -2px 0 rgba(0,0,0,.28),
+    0 0 30px -8px rgba(0,238,255,.35);
+}
+[data-style="y2k"][data-theme="light"] .card{
+  border-color:#FFFFFF;
+  background:
+    var(--y2-holo) left top/100% 4px no-repeat,
+    linear-gradient(135deg, rgba(63,216,255,.07) 0%, rgba(255,255,255,0) 30%, rgba(255,255,255,0) 70%, rgba(255,138,223,.07) 100%),
+    radial-gradient(circle, rgba(106,60,214,.07) 1px, transparent 1.4px) 0 0/8px 8px,
+    #FFFFFF;
+  box-shadow:
+    0 -3px 0 0 var(--y2-frame), 0 3px 0 0 var(--y2-frame), -3px 0 0 0 var(--y2-frame), 3px 0 0 0 var(--y2-frame),
+    inset 2px 2px 0 #FFFFFF, inset -2px -2px 0 rgba(150,156,205,.35),
+    6px 9px 0 -1px rgba(120,110,220,.16);
+}
+/* 標題前一顆像素閃光（7×7 像素畫，放大 2 倍＝14px；pixelated 保留鋸齒） */
+[data-style="y2k"] .card h3::before{
+  content:"";flex:none;align-self:center;width:14px;height:14px;
+  background:var(--y2-pxstar) center/14px 14px no-repeat;image-rendering:pixelated;
+  margin-right:-2px;
+}
+/* 標題：深色加一點點 RGB 色差（像 CRT 的邊緣色散）；淺色保持乾淨 */
+[data-style="y2k"] .card h3,
+[data-style="y2k"] h2{letter-spacing:.03em;
+  text-shadow:-1px 0 0 rgba(0,238,255,.45), 1px 0 0 rgba(255,106,213,.45)}
+[data-style="y2k"][data-theme="light"] .card h3,
+[data-style="y2k"][data-theme="light"] h2{text-shadow:none}
+[data-style="y2k"] .card h3 small,
+[data-style="y2k"] .card .sub{text-shadow:none}
+
+/* ---------------- KPI 橫條：LCD 顯示器（深色）／鉻銀面板（淺色） ---------------- */
+[data-style="y2k"] #hero.ovstrip{
+  border:1px solid color-mix(in srgb,var(--cyan) 35%,var(--line));
+  border-radius:0;
+  background:
+    repeating-linear-gradient(180deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg,#0E2340 0%,#0A1733 100%);
+  box-shadow:0 -3px 0 0 var(--y2-frame), 0 3px 0 0 var(--y2-frame), -3px 0 0 0 var(--y2-frame), 3px 0 0 0 var(--y2-frame),
+    inset 0 0 0 2px rgba(0,0,0,.35), inset 0 0 22px rgba(0,238,255,.12), 0 0 22px -10px rgba(0,238,255,.55);
+}
+[data-style="y2k"] #hero.ovstrip .kpi .v{text-shadow:0 0 10px color-mix(in srgb,currentColor 55%,transparent)}
+[data-style="y2k"] #hero.ovstrip .kpi .l{font-family:var(--mono);letter-spacing:.1em;color:#9FDDF0}
+[data-style="y2k"] #hero.ovstrip .kpi+.kpi{border-left:1px dashed rgba(0,238,255,.28)}
+[data-style="y2k"][data-theme="light"] #hero.ovstrip{
+  border-color:var(--line-2);
+  background:var(--y2-holo) left bottom/100% 3px no-repeat, var(--y2-chrome-soft);
+  box-shadow:0 -3px 0 0 var(--y2-frame), 0 3px 0 0 var(--y2-frame), -3px 0 0 0 var(--y2-frame), 3px 0 0 0 var(--y2-frame),
+    inset 0 1px 0 #fff, 6px 9px 0 -1px rgba(120,110,220,.16);
+}
+[data-style="y2k"][data-theme="light"] #hero.ovstrip .kpi .v{text-shadow:0 1px 0 #fff}
+[data-style="y2k"][data-theme="light"] #hero.ovstrip .kpi .l{color:var(--ink-3)}
+[data-style="y2k"][data-theme="light"] #hero.ovstrip .kpi+.kpi{border-left:1px solid #C9CDE6}
+[data-style="y2k"] .kpi.on{box-shadow:var(--glow)}
+
+/* ---------------- 按鈕：凝膠膠囊（上半白色高光） ---------------- */
+[data-style="y2k"] .btn{
+  background:var(--y2-gel-hi), var(--panel-3);
+  border:1px solid var(--line-2);
+  box-shadow:inset 0 -2px 4px rgba(0,0,0,.18), 0 2px 6px -3px rgba(0,0,0,.5);
+  transition:border-color var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease);
+}
+[data-style="y2k"][data-theme="light"] .btn{
+  background:var(--y2-gel-hi), linear-gradient(180deg,#F4F5FC 0%,#DDE0F2 100%);
+  box-shadow:inset 0 -2px 4px rgba(90,82,180,.14), 0 2px 5px -3px rgba(60,50,160,.45);
+}
+[data-style="y2k"] .btn:hover{border-color:var(--cyan);box-shadow:var(--glow)}
+[data-style="y2k"] .btn.primary{background:var(--y2-gel-hi), var(--cyan);color:var(--ontop)}
+
+/* 分段切換鈕：像素框容器＋凝膠選中格 */
+[data-style="y2k"] .seg{
+  border-radius:0; border-color:transparent;
+  box-shadow:0 -2px 0 0 var(--line-2), 0 2px 0 0 var(--line-2), -2px 0 0 0 var(--line-2), 2px 0 0 0 var(--line-2);
+}
+[data-style="y2k"] .seg button{border-radius:0}
+[data-style="y2k"] .seg button.on{background:var(--y2-gel-hi), var(--cyan);color:var(--ontop)}
+
+/* 膠囊：泡泡感（上亮下暗）；籌碼：像素缺角框 */
+[data-style="y2k"] .pill{background-image:var(--y2-gel-hi)}
+[data-style="y2k"] .chip{
+  border-radius:0; border-color:transparent;
+  box-shadow:0 -1.5px 0 0 var(--line-2), 0 1.5px 0 0 var(--line-2), -1.5px 0 0 0 var(--line-2), 1.5px 0 0 0 var(--line-2);
+}
+[data-style="y2k"] .chip.on{
+  box-shadow:0 -2px 0 0 var(--y2-px), 0 2px 0 0 var(--y2-px), -2px 0 0 0 var(--y2-px), 2px 0 0 0 var(--y2-px);
+}
+
+/* ---------------- 表格：鉻銀表頭、等寬小標 ---------------- */
+[data-style="y2k"] th{background:var(--y2-chrome);color:var(--y2-chrome-ink);letter-spacing:.08em;
+  border-bottom:1px solid color-mix(in srgb,var(--cyan) 40%,var(--line))}
+[data-style="y2k"] tbody tr:hover td{box-shadow:inset 0 1px 0 color-mix(in srgb,var(--cyan) 30%,transparent),inset 0 -1px 0 color-mix(in srgb,var(--cyan) 30%,transparent)}
+
+/* 橫幅：像素左邊條 */
+[data-style="y2k"] .banner{border-left:0;border-radius:0;
+  box-shadow:-4px 0 0 0 var(--y2-px), inset 0 0 0 1px color-mix(in srgb,var(--cyan) 25%,transparent)}
+
+/* 說明彈窗：像素視窗 */
+[data-style="y2k"] #howPop{border-radius:0;border-color:transparent;
+  background:var(--y2-holo) left top/100% 4px no-repeat, var(--panel);
+  box-shadow:0 -2px 0 0 var(--y2-px), 0 2px 0 0 var(--y2-px), -2px 0 0 0 var(--y2-px), 2px 0 0 0 var(--y2-px), 0 18px 50px rgba(0,0,0,.45)}
+
+/* 捲軸：鉻銀 */
+[data-style="y2k"] ::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#C9CEE8,#8A90B8);border-radius:0}
+
+/* 手機：外光縮小，避免 390 寬的邊距看起來髒 */
+@media (max-width:820px){
+  /* 手機：像素框縮成 2px（390 寬的左右邊距只有 12～16px） */
+  [data-style="y2k"] .card{box-shadow:0 -2px 0 0 var(--y2-frame), 0 2px 0 0 var(--y2-frame), -2px 0 0 0 var(--y2-frame), 2px 0 0 0 var(--y2-frame),
+    inset 2px 2px 0 rgba(255,255,255,.07), inset -2px -2px 0 rgba(0,0,0,.28)}
+  [data-style="y2k"][data-theme="light"] .card{box-shadow:0 -2px 0 0 var(--y2-frame), 0 2px 0 0 var(--y2-frame), -2px 0 0 0 var(--y2-frame), 2px 0 0 0 var(--y2-frame),
+    inset 2px 2px 0 #FFFFFF, inset -2px -2px 0 rgba(150,156,205,.35)}
+}
+
+/* 動效：只有 hover 的 120ms 過場；使用者要求減少動態就全部拿掉 */
+@media (prefers-reduced-motion:reduce){
+  [data-style="y2k"] *{transition:none!important}
+}
