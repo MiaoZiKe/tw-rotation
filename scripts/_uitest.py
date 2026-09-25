@@ -13643,14 +13643,20 @@ def t_chips_basic0926(pg, base, code):
         st2 = pg.evaluate("() => ({ v: document.getElementById('msCustom').value, hint: document.getElementById('msHint').hidden, sub: document.getElementById('msSub').textContent })")
         ok("[基本0926] 按回「5 年」→ 自填框清空、提示收掉", st2["v"] == "" and st2["hint"] and "共 5 年" in st2["sub"], st2)
     # 窄寬：≤900 疊上下
+    # 手機版個股頁是分屏的：#stockTab 在「財報籌碼」那一屏，沒切過去時整塊是 display:none（量到的全是 0，會假綠）
+    MOB_TAB = """() => { const b = [...document.querySelectorAll('button[role=tab]')].find(x => x.textContent.trim() === '財報籌碼');
+        if (b && b.offsetParent) { b.click(); return true; } return false; }"""
     for w in (800, 390):
         pg.set_viewport_size({"width": w, "height": 900}); pg.wait_for_timeout(900)
+        pg.evaluate(MOB_TAB); pg.wait_for_timeout(900)
         p = pg.evaluate(POS)
-        if p:
+        if ok(f"[基本0926] {w}px：兩張卡看得見（高度 > 0，前置條件）", bool(p) and p["aH"] > 0 and p["bH"] > 0, p):
             ok(f"★ [基本0926] {w}px：季節卡疊到基本資料下面（上下排）", p["bT"] >= p["aB"] - 1 and abs(p["bL"] - p["aL"]) <= 2, p)
             ok(f"[基本0926] {w}px：沒有橫向捲軸", p["sw"] <= p["vw"] + 1, {"scrollWidth": p["sw"], "vw": p["vw"]})
+            ok(f"[基本0926] {w}px：季節圖高度 ≥ 280px", p["chH"] >= 280, p["chH"])
     # 390 的籌碼頁：三格圖與長條圖照樣畫、沒有橫向捲軸
     click(pg, '#stockTabs button[data-t="chips"]', 1800)
+    ok("[籌碼0926] 390px：籌碼圖看得見（前置條件）", pg.evaluate("() => { const e = document.getElementById('holderChart'); return !!e && e.getBoundingClientRect().height > 300; }"))
     h = pg.evaluate(HO_OPT)
     ok("[籌碼0926] 390px：三格仍各自看得出變化（≥ 20px）", bool(h) and all(y["px"] >= 20 for y in h["ys"] if y["spread"] > 0), h and [(y["name"], y["px"]) for y in h["ys"]])
     ok("[籌碼0926] 390px：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth + 1"))

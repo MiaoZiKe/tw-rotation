@@ -4940,6 +4940,14 @@
       const bars = ho30.map(r => { const p = prevOf(r);
         const d = p && r[4] != null && p[4] != null ? r[4] - p[4] : null;
         return { r, d }; });
+      const barAxis = (() => {
+        const vs = bars.map(b => b.d).filter(v => v != null);
+        const lo = Math.min(0, ...vs), hi = Math.max(0, ...vs), s = Math.max(hi - lo, 1);
+        const a = lo < 0 ? lo - s * 0.15 : 0, z = hi > 0 ? hi + s * 0.15 : 0;
+        const raw = (z - a) / 5, e10 = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / e10;
+        const step = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * e10;
+        return { min: Math.floor(a / step) * step, max: Math.ceil(z / step) * step, interval: step };
+      })();
       A.chart('holderCount', {
         tooltip: { ...A.tip, trigger: 'axis', axisPointer: { type: 'shadow' },
           formatter: (ps) => { const b = bars[ps[0].dataIndex]; if (!b) return '';
@@ -4948,7 +4956,9 @@
         grid: { left: 58, right: 30, top: 24, bottom: 26 },
         xAxis: { ...A.axisStyle, type: 'time', min: xMin, max: xMax, splitLine: { show: false },
           axisTick: { customValues: ticks }, axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, customValues: ticks, formatter: hoDay, hideOverlap: true } },
-        yAxis: { ...A.axisStyle, type: 'value', splitNumber: 4,
+        /* 上下各留兩成空間：負值柱的數字寫在柱子下方，貼到圖底會壓到 X 軸的日期（1440 實測「−3.9 萬人」疊在「09-11」上）。
+           刻度間距自己算成 1／2／5×10ⁿ，上下限對齊間距 —— 只用函式撐開上下限的話，最底下會多一格「−5.0 萬」貼著「−4.0 萬」。 */
+        yAxis: { ...A.axisStyle, type: 'value', ...barAxis,
           axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 11, formatter: (v) => v === 0 ? '0' : dTxt(v, false) } },
         series: [{ name: '股東人數增減', type: 'bar', barMaxWidth: 26,
           data: bars.map(b => ({ value: [hoTs(b.r[0]), b.d],
