@@ -15444,6 +15444,16 @@ def t_inst_filter(pg, base):
     if not vis:
         notes.append("族群法人篩選：390 寬時族群×法人的兩層下拉不在畫面上（手機版是另一套清單），手機那步只驗了沒有橫向捲軸")
         ok("[390] 手機寬沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= innerWidth"))
+        # 手機版那一份（同一張卡）也不列 ETF：四格（外資／投信／自營／合計）逐格真的點過去，每一格都量
+        if wait_until(pg, "() => document.querySelectorAll('#flowInstCard .minst li').length > 0", 6000):
+            seen = {}
+            for k in ("foreign", "trust", "dealer", "total"):
+                pg.evaluate(f"() => {{ const b = document.querySelector('#mInstSw button[data-k=\"{k}\"]'); b && b.click(); }}"); pg.wait_for_timeout(300)
+                seen[k] = pg.evaluate("() => [...document.querySelectorAll('#flowInstCard .minst li .n')].map(x => x.textContent)")
+            ok("★ [ETF] 手機版族群×法人四格都沒有 ETF", all(v and not any("ETF" in n for n in v) for v in seen.values()),
+               {k: [n for n in v if "ETF" in n] for k, v in seen.items()})
+        else:
+            notes.append("族群法人篩選：390 寬時手機版族群×法人清單沒畫出來，ETF 那條沒驗到")
     else:
         _dd_chain(pg, CID, B)
         m = pg.evaluate(f"""() => {{ const r = document.querySelector('{IDD}').getBoundingClientRect();
