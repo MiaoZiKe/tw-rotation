@@ -717,7 +717,9 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
   display:flex;flex-direction:column;padding:14px 16px 18px}
 .zoomov[hidden]{display:none}
 .zoomov .zh{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.zoomov .zh b{font-size:17px}
+/* ★ 2026-09-24（審查 R4）：罩底固定深色（不隨主題變），標題字色也要固定淺色 ——
+   以前吃 var(--ink)，淺色主題下變成深字壓深底，「題材資金熱力」幾乎隱形。*/
+.zoomov .zh b{font-size:17px;color:#E8EEFF}
 .zoomov .zh .chainchips{margin:0;flex:1}
 .zoomov .zb{flex:1;min-height:0;display:flex}
 /* ★ E2：#zoomBody 要**真的佔滿** .zb。以前寫 `.zb>div`，而 groupChips 會把一排族群晶片
@@ -969,6 +971,12 @@ aside{border-left:1px solid var(--line);background:var(--bg-2);min-width:0;posit
 #trustWrap>.zbadge{top:auto;bottom:34px}   /* 34 而不是 8：8 會壓到橫軸的刻度數字 */
 /* 2026-09-24 四象限：右下角是「連買減碼」的象限名 → 徽章改放下緣正中（x＝0 那條虛線上，本來就沒有點） */
 #trustWrap>.zbadge{right:auto;left:50%;transform:translateX(-50%)}
+/* 放大後才出現的「還原」鈕（審查 R4：角標寫「雙擊還原」，但雙擊第一下會被圖當成點方塊而跳頁，
+   所以給一顆真的按鈕）。放右上角：三張熱力圖的徽章在左下、法人連買的徽章在右下，不會疊在一起。*/
+.zwrap>.zreset{position:absolute;right:8px;top:8px;z-index:6;height:26px;padding:0 11px;border-radius:999px;
+  border:1px solid rgba(62,224,255,.45);background:rgba(10,16,32,.9);color:#E8EEFF;font-size:12px;cursor:pointer}
+.zwrap>.zreset:hover{border-color:var(--cyan);color:var(--cyan)}
+.zwrap>.zreset[hidden]{display:none}
 .chainchips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 6px}
 .chainchips button{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:999px;
   padding:5px 13px;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}

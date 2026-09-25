@@ -147,7 +147,8 @@
     // 總覽那張的顏色是資金流向 pp（5 日 vs 20 日佔比）。門檻＝原本「×3、cap 3」換算回來，色的飽和點不變。
     flow: { title: '資金流向 (pp)', edges: [-1, -0.33, 0, 0.33, 1], cells: ['<-1', '-1~-0.33', '-0.33~0', '0', '0~0.33', '0.33~1', '>1'] },
     // 題材熱度 0～100：不用紅綠（紅在這個站是「漲」，熱度不是漲跌），改 5 格單一色相。切點跟舊的 heatColor 一樣。
-    // heat＝暖金（預設）、heatT＝湖水藍（2026-09-24 Andy 嫌紫色醜，兩組都做、右上下拉可切）。
+    // heat＝深藍→淺藍→淺紅→深紅（藍＝冷、紅＝熱）。heatT 是舊的湖水藍，2026-09-25 起前端不再提供，
+    // 定義留著只是讓 hmBin／hmColor 碰到舊存的 'heatT' 不會出錯。
     heat: { title: '熱度', edges: [30, 45, 60, 75], cells: ['<30', '30~45', '45~60', '60~75', '≥75'] },
     heatT: { title: '熱度', edges: [30, 45, 60, 75], cells: ['<30', '30~45', '45~60', '60~75', '≥75'] },
   };
@@ -210,7 +211,9 @@
   const hmKey = (d) => (d ? (d.gid || d.id || d.cid || d.name) : '');
   /* 規則（規格 §3.1-5）：
        寬 ≥ 名稱與數值中較寬者 + 16 **且** 高 ≥ 44 → 兩行（名稱／數值）
-       寬 ≥ 48 **且** 高 ≥ 24 → 只有名稱；放不下就截成「前 N 字…」（N ≥ 2，放不下兩個字就不寫）
+       寬 ≥ 48 **且** 高 ≥ 24 → 只有名稱；放不下就截成「前 N 字…」
+         N ≥ max(2, 名稱字數的一半)，達不到就不寫 —— 2026-09-24 審查 R4：「石化與塑膠產業」截成「石化…」、
+         「基礎建設與能源」截成「基礎建…」都是殘字，看不出是哪一塊，不如留白讓滑鼠提示講。
        更小 → 不寫 */
   function hmLayoutLabels(c, valueOf) {
     if (!c || c.isDisposed()) return {};
@@ -230,7 +233,8 @@
         if (nw + 12 <= w) { text = name; mode = 1; }
         else {
           const chars = Array.from(name);
-          for (let k = chars.length - 1; k >= 2; k--) {
+          const kMin = Math.max(2, Math.ceil(chars.length / 2));
+          for (let k = chars.length - 1; k >= kMin; k--) {
             const t = chars.slice(0, k).join('') + '…';
             if (hmTextW(t, fs) + 12 <= w) { text = t; mode = 1; break; }
           }
@@ -250,7 +254,30 @@
       el._hmLab = hmLayoutLabels(c, valueOf);
       el._hmSig = c.getWidth() + 'x' + c.getHeight();
       const lab = el._hmLab;
-      c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } } }] });
+      /* 產業鏈小標（upperLabel）同一套：以前交給 ECharts 自己截，窄欄裡會變成「基礎建…」「傳產與…」。
+         現在量過寬度再決定：放得下全名就全名；放不下先退成「與」前面那一段（基礎建設與能源 → 基礎建設，
+         仍然看得出是哪一條鏈）；再不行才照葉子的規矩截（至少留一半的字），連那樣都放不下就不寫。*/
+      const up = {};
+      const sm = c.getModel().getSeriesByIndex(0);
+      if (sm) sm.getData().tree.root.eachNode(n => {
+        if (!n.depth || !(n.children && n.children.length)) return;
+        const l = n.getLayout(); if (!l) return;
+        const name = String(n.name || ''), w = l.width - 10;
+        const fit = (t) => hmTextW(t, 12) <= w;
+        let t = '';
+        if (fit(name)) t = name;
+        else if (name.includes('與') && fit(name.split('與')[0])) t = name.split('與')[0];
+        else {
+          const ch = Array.from(name);
+          for (let k = ch.length - 1; k >= Math.max(2, Math.ceil(ch.length / 2)); k--) {
+            if (fit(ch.slice(0, k).join('') + '…')) { t = ch.slice(0, k).join('') + '…'; break; }
+          }
+        }
+        up[name] = t;
+      });
+      el._hmUp = up;
+      c.setOption({ series: [{ label: { formatter: (p) => { const m = lab[hmKey(p.data)]; return m ? m.text : ''; } },
+        upperLabel: { formatter: (p) => (p.name in up ? up[p.name] : p.name) } }] });
     };
     apply();
     if (!el._hmFin) {
@@ -697,6 +724,16 @@
     const badge = document.createElement('div');
     badge.className = 'zbadge'; badge.textContent = '滾輪放大';
     box.appendChild(badge);
+    /* ★ 2026-09-24（審查 R4）：角標以前只寫「雙擊還原」，可是雙擊的第一下會先被圖當成「點方塊」而跳頁
+       （產業熱力跳到族群頁、題材熱力展開細節），使用者照著提示做反而被帶走。
+       修法兩層：① 放大時有一顆真的「還原」鈕（徽章 pointer-events:none 點不到，所以另外做一顆按鈕）；
+       ② 放大狀態下，圖上的單擊導頁一律經過 defer() 延後 260ms，這段時間內收到雙擊就取消（見下面 defer）。*/
+    const reset = document.createElement('button');
+    reset.type = 'button'; reset.className = 'zreset'; reset.textContent = '還原 1×';
+    reset.title = '縮放還原成原始大小'; reset.setAttribute('aria-label', '縮放還原成原始大小'); reset.hidden = true;
+    box.appendChild(reset);
+    let pend = null;
+    const cancelPend = () => { if (pend) { clearTimeout(pend); pend = null; } };
     const setK = (nk) => {
       nk = Math.max(1, Math.min(o.max, nk));
       if (Math.abs(nk - k) < 0.001) return false;
@@ -711,7 +748,8 @@
         inner.style.height = Math.round(baseH * k) + 'px';
         box.classList.add('zoomed');
       }
-      badge.textContent = k <= 1.001 ? '滾輪放大　·　放大後可拖曳' : k.toFixed(1) + '×　拖曳移動　·　雙擊還原';
+      badge.textContent = k <= 1.001 ? '滾輪放大　·　放大後可拖曳' : k.toFixed(1) + '×　拖曳移動　·　雙擊或按「還原」';
+      reset.hidden = k <= 1.001;
       if (o.onZoom) o.onZoom(k);
       return true;
     };
@@ -761,10 +799,25 @@
     pane.addEventListener('pointercancel', endDrag);
     pane.addEventListener('pointerleave', endDrag);
 
-    box.addEventListener('dblclick', () => { setK(1); pane.scrollTo({ left: 0, top: 0 }); calm = Date.now() + 450; });
-    box._zoom = { reset: () => setK(1), get scale() { return k; } };
+    const toOne = () => { cancelPend(); setK(1); pane.scrollTo({ left: 0, top: 0 }); calm = Date.now() + 450; };
+    box.addEventListener('dblclick', toOne);
+    reset.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); toOne(); });
+    reset.addEventListener('dblclick', (e) => e.stopPropagation());
+    /* 圖上的點擊處理（跳頁／展開）包一層 defer：
+       1 倍時照舊立刻執行（沒有「雙擊還原」這回事，不必讓使用者等）；
+       放大時先等 260ms —— 雙擊的兩下 click 都會進來，第二下進來時就把第一下取消，接著 dblclick 還原。
+       260ms 是瀏覽器雙擊判定（多數 300～500ms）與「單擊感覺不到延遲」之間的折衷。*/
+    const defer = (fn) => {
+      if (k <= 1.001) { cancelPend(); fn(); return; }
+      if (pend) { cancelPend(); return; }
+      pend = setTimeout(() => { pend = null; fn(); }, 260);
+    };
+    box._zoom = { reset: () => { cancelPend(); setK(1); pane.scrollTo({ left: 0, top: 0 }); }, defer, get scale() { return k; } };
     return box._zoom;
   }
+
+  /* 圖上的點擊交給所在縮放框決定要不要延後（見 wheelZoom 的 defer）；沒有縮放框就立刻執行。*/
+  const zoomClick = (box, fn) => { const z = box && box._zoom; if (z && z.defer) z.defer(fn); else fn(); };
 
   const goStock = (code) => { location.hash = '#stock/' + code; };
   window.goStock = goStock;
@@ -2044,6 +2097,11 @@
       if (pageChanged || !rendered.heatmap) { rendered.heatmap = true; await window.Industry.routeHeat(); }
       if (!rendered.themes) { rendered.themes = true; await renderThemes(tid); }
       else if (D.themes && D.themes.themes) renderThemeDetail(D.themes, tid);
+      /* ★ 2026-09-24（審查 R4）：題材熱力的外框是頁面上的固定元素，縮放倍率掛在它身上（box._zoom），
+         不重置的話離開再回來還是 1.6×、再滾就從 1.6 接著放大到 2.3×。剛進這一頁就還原成 1 倍；
+         同一頁內換題材（pageChanged＝false）不動，使用者正在放大看的東西不會被收掉。
+         產業熱力那張每次進來都整塊重建，本來就是 1 倍，不用管。*/
+      if (pageChanged) { const tw = $('#themeMapWrap'); if (tw && tw._zoom) tw._zoom.reset(); }
       mia(); setTimeout(mia, 500);
       /* ★ 2026-09-24：這一支提早 return，原本漏了下面那行「換頁後把圖表 resize」——
          而別頁的 resize 會把藏起來的題材熱力圖縮成 100px（藏起來量不到寬度），
@@ -2846,12 +2904,12 @@
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
-    if (c) c.off('click').on('click', p => {
+    if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
       if (p.data.gid) heatPanel('heatPanel', p.data.gid, p.name,
         `成交值 ${fmt.yi(p.value)}（${fmt.n(p.data.share, 1)}%）　${fmt.pct(p.data.chg)}`);
       else if (p.data.cid) { heatChain = p.data.cid; renderHeat(gt, rot); }
-    });
+    }));
     const zb = $('#heatZoom');
     if (zb) zb.onclick = () => openZoom('資金熱力圖', (body, chipBox) => {
       let ch = heatChain;
@@ -5665,8 +5723,8 @@
           data: [{ xAxis: 0 }].concat(hasRatio ? [{ yAxis: 1 }] : []) } }],
     }, { notMerge: true });
     if (el) { el.dataset.pts = String(rows.length); el.dataset.buys = String(buys.length); el.dataset.sells = String(sells.length); }
-    if (c) c.off('click').on('click', q => { if (q.data && q.data.code) goStock(q.data.code); });
-    // 滾輪放大、放大後拖曳、雙擊還原（Andy 2026-09-15），1 倍時滾輪照常捲頁面
+    if (c) c.off('click').on('click', q => zoomClick($('#trustWrap'), () => { if (q.data && q.data.code) goStock(q.data.code); }));
+    // 滾輪放大、放大後拖曳、雙擊或按「還原」回原尺寸（Andy 2026-09-15），1 倍時滾輪照常捲頁面
     wheelZoom($('#trustWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#trust')); if (i) i.resize(); } });
   }
 
@@ -5798,12 +5856,12 @@
       '點越大＝期間累計張數越多',
       '滑過看個股，點一下進個股頁',
     ], '力道＝最後一天的買（賣）超張數 ÷ 這段連續期間的日均（對數軸，1× 是中線，超過 5× 或低於 0.2× 畫在邊上）。'
-      + '紅＝買超、綠＝賣超。右上切投信／外資／合計與天數門檻（買賣都套用），每邊最多列累計最大的 40 檔。滾輪放大、放大後拖曳，雙擊還原。'
+      + '紅＝買超、綠＝賣超。右上切投信／外資／合計與天數門檻（買賣都套用），每邊最多列累計最大的 40 檔。滾輪放大、放大後拖曳，雙擊或按「還原」回原尺寸。'
       + '舊資料沒有「最後一天」欄位時，縱軸改成累計張數。'),
     theme: howHTML('這張圖回答：今天市場在炒哪些題材、哪一個最熱。', [
       '方塊大小＝題材成交值',
-      '顏色＝熱度，越亮越熱',
-      '先找又大、顏色又最亮的方塊',
+      '顏色＝熱度：藍＝冷、紅＝熱',
+      '先找又大、又最紅的方塊',
       '右上可把顏色換成平均漲跌（紅漲綠跌）',
       '點方塊展開剖析圖，再點代號進個股',
     ]),
@@ -8813,7 +8871,7 @@
   async function renderThemes(sel, mapOnly) {
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
     $('#themeNote').textContent = th.note || '';
-    /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，改用 5 格單色階（09-24 Andy 嫌紫色醜，改暖金／湖水藍）。
+    /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，5 格藍→紅（09-25 定案，只留這一組：藍＝冷、紅＝熱）。
        以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
        右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
     const mode = themeColor === 'chg' ? 'chg' : 'heat';   // 2026-09-25 Andy：熱度只留藍→紅一組（湖水藍拿掉；舊存的 heatT 一律回 heat）
@@ -8827,7 +8885,7 @@
           { k: '平均漲跌', v: fmt.pct(d.chg), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
           { k: '近 7 天新聞', v: `${d.news7 != null ? d.news7 : '—'} 則` },
-        ], '點一下看這個題材'); } },
+        ], (window.ThemeDiagrams || {})[d.id] ? '點一下看這個題材' : '這個題材尚無剖析圖'); } },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false }, top: 0, left: 0, width: '100%', height: '100%', visibleMin: big ? 20 : 60,
         ...HS, label: { ...HS.label, formatter: () => '' }, data }] }); };
     // 標題列：顏色下拉＋日期膠囊（只顯示）
@@ -8846,14 +8904,14 @@
     // 點方塊：換下方明細（hash 一樣時 route 不會觸發，所以直接重畫）並捲到明細
     // ★ 2026-09-24：桌機換了 hash 之後由 route() 負責捲（它量得到細節在不在畫面上，見那裡的註解），
     //   這裡只補 route() 不會跑的兩種：hash 沒變（點的是同一塊），以及手機（分段導覽由這裡捲）。
-    if (c) c.off('click').on('click', p => {
+    if (c) c.off('click').on('click', p => zoomClick($('#themeMapWrap'), () => {
       if (!p.data || !p.data.id) return;
       const h = themeHash(p.data.id);
       const same = location.hash === h;
       if (same) renderThemeDetail(th, p.data.id); else location.hash = h;
       const d = $('#themeDetail');
       if ((same || mIsM()) && d && d.scrollIntoView) setTimeout(() => d.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
-    });
+    }));
     const tz = $('#themeZoom');
     if (tz) tz.onclick = () => openZoom('題材資金熱力', (body, chipBox, close) => {
       const bc = chart(body, themeOpt(true));
@@ -8916,10 +8974,11 @@
           接收端是 `paint()` 對 `#themeMembers tr` 加 `.sel`）。
        ④ 「← 回題材總覽」鈕：上方的題材熱力圖本來就一直在同一頁，點別塊就換題材，
           所以回得去，不必另外補一顆鈕。
-     ⚠ 22 個題材裡有 3 個（面板封裝／石化／被動元件）還沒畫剖析圖。
+     ⚠ 22 個題材裡有 4 個（面板轉封裝／高速交換器 800G／石化／被動元件，2026-09-24 審查 R4 實測）還沒畫剖析圖。
      ★ 2026-09-23 批次 0923-D：原本那三個會顯示一張「這個題材還沒有產品剖析圖…」的替代卡片，
        **Andy 看過之後要求拿掉**（原話：「題材頁面 下方處可以移除」）。
-       所以沒有剖析圖時這一區就是空的 —— **那是他要的**，不要再補別的東西回去。
+       佔位卡不要加回來；但 2026-09-24 審查 R4 指出整區清空＝「點了沒反應」，
+       所以現在只留一行提示「尚無剖析圖」（見函式開頭），不是卡片。
        有剖析圖的題材完全不受影響。*/
   function renderThemeDetail(th, id) {
     const el = $('#themeDetail');
@@ -8933,6 +8992,14 @@
     }
     const t = th.themes.find(x => x.id === id) || th.themes[0]; if (!t) return;
     const dg = (window.ThemeDiagrams || {})[t.id];
+    /* ★ 2026-09-24（審查 R4）：沒有剖析圖的題材（實測 4 個：面板轉封裝、高速交換器 800G、石化、被動元件，
+       其中前兩個還是當天最熱的）以前整區清成空字串 —— 點了看起來「沒反應」，連原本那行提示都不見。
+       Andy 09-23 要拿掉的是那張「還沒有剖析圖」的**佔位卡**，不是提示行；所以這裡只保留同一行提示，
+       改寫成「尚無剖析圖」，不加卡片、不佔版面（提示框也同步改寫，見 renderThemes 的 tooltip）。*/
+    if (!dg) {
+      el.innerHTML = `<div class="muted themehint" data-nodg="${fmt.esc(t.id)}">「${fmt.esc(t.name)}」尚無剖析圖；點其他方塊看剖析圖</div>`;
+      return;
+    }
     // 標題被拿掉了，所以把題材名接到剖析圖的抬頭上 —— 不然使用者看不出現在看的是哪一個題材
     /* 說明精簡：副標只留題材名；題材的一句描述（t.desc）搬進「怎麼看 ?」第一行（滑鼠停在標題上也看得到）。*/
     const head = `<h3${t.desc ? ` title="${fmt.esc(t.desc)}"` : ''}>產品剖析圖 <small>${fmt.esc(t.name)}</small></h3>`;
@@ -9405,8 +9472,13 @@
         + numMsg
         + (fellBack ? '　<b style="color:var(--amber)">缺大盤基準，已改看絕對報酬</b>' : '');
       const fine = $('#seasonFine');
+      /* ★ 2026-09-24（審查 R4）：`s3.note` 本身已經把基準字串（含「（指數只有 12 個月，不夠比）」）寫進去了，
+         這裡再接一次完整的 benchmark_source，同一段小字就出現兩次同一個括號。
+         括號說明已經在 note 裡時，這裡只寫基準名稱。*/
+      const benchParen = (bench.match(/（[^）]*）/g) || []).join('');
+      const benchFine = benchParen && String(s3.note || '').includes(benchParen) ? bench.replace(/（[^）]*）/g, '') : bench;
       if (fine) fine.innerHTML = fmt.esc(s3.note)
-        + `　基準：${fmt.esc(bench)}（${s3.benchmark_months} 個月）。`
+        + `　基準：${fmt.esc(benchFine)}（${s3.benchmark_months} 個月）。`
         + (view === 'heat' ? '　格子裡的數字預設不印：滑鼠移上去（手機點一格）看，或按「顯示數字」；格子太窄的不印。' : '')
         + (fellBack ? '　這個期間算不出超額報酬（缺大盤同月基準），已自動改看絕對報酬。' : '');
     };
@@ -9741,7 +9813,7 @@
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { load, chart, howHTML, fmt, tip, axisStyle, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
-      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
+      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmDate, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/
