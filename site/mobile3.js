@@ -268,7 +268,7 @@
   /* ---- 足跡輪盤（新雷達長相）：R4，照桌機 ROT_GRAD_V2 那一版 ----
      象限底色離圓心越遠越濃（深色 .12→.27、淺色 .07→.18）、三圈刻度＋兩圈虛線、十字軸、盤緣 72 刻、
      四角膠囊徽章（象限名＋族群數，點了只看那一段）、淡淡的掃描（系統「減少動態效果」就不畫）、
-     前掌＋腳跟的小腳印（佔比前 3 的最近 8 天）、點＝發光核心＋1px 白外圈、名字＝點右側的小膠囊（佔比前 5＋選到的）。
+     （2026-09-26 起不畫腳印）、點＝發光核心＋1px 白外圈、名字＝點右側的小膠囊（佔比前 5＋選到的）。
      座標換算跟 app.js renderRotation 的 pos() 同一條：兩軸各除以今天的最大偏離，外圈虛線＝今天偏離最大的族群。*/
   const MAXR = 1.25, TAIL = 0.18;
   function radarPos(points) {
@@ -380,15 +380,8 @@
       g += `<path d="M${(c + Math.cos(a) * R).toFixed(1)},${(c - Math.sin(a) * R).toFixed(1)}L${(c + Math.cos(a) * (R - L)).toFixed(1)},${(c - Math.sin(a) * (R - L)).toFixed(1)}" stroke="${ink3}" stroke-opacity="${L > 4 ? .8 : .4}" stroke-width=".8"/>`;
     }
     g += `<g class="mrscan" style="transform-origin:${c}px ${c}px"><path d="${arc(0, 45, R)}" fill="url(#${uid}-scan)"/><path d="M${c},${c}L${c + R},${c}" stroke="${cyan}" stroke-opacity=".35" stroke-width="1"/></g>`;
-    shown.slice(0, 3).forEach(p => {
-      const tr = (p.trail || []).slice(-9), col = stc(p.quadrant);
-      for (let i = 1; i < tr.length; i++) {
-        const [x0, y0] = xy(tr[i - 1][1], tr[i - 1][2]), [x1, y1] = xy(tr[i][1], tr[i][2]);
-        if (Math.hypot(x1 - x0, y1 - y0) < 3) continue;
-        const ang = Math.atan2(y1 - y0, x1 - x0) * 180 / Math.PI + 90, op = (.18 + .6 * i / tr.length).toFixed(2);
-        g += `<g transform="translate(${x1.toFixed(1)},${y1.toFixed(1)}) rotate(${ang.toFixed(0)})" fill="${col}" opacity="${op}"><ellipse cx="0" cy="-1.6" rx="1.9" ry="2.6"/><ellipse cx="0" cy="2.6" rx="1.3" ry="1.4"/></g>`;
-      }
-    });
+    /* ★ 2026-09-26（Andy：「足跡輪盤只需要留下圓圈即可」）：佔比前 3 名身後那串小腳印（最近 8 天）拿掉，盤上只剩圓點。
+       手機這張沒有「顯示腳印」開關，所以直接不畫（桌機有開關、預設關，見 app.js 的 tw.rot.feet）。*/
     const pts = [];
     shown.forEach(p => {
       const [x, y] = xy(p.x, p.y), col = stc(p.quadrant), r = Math.max(4, Math.min(11, 3 + Math.sqrt(p.share) * 2.2));

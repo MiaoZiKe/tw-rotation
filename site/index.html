@@ -1281,8 +1281,10 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .howtxt ul{margin:6px 0 0;padding-left:18px} .howtxt li{margin:3px 0}
 /* ★ 2026-09-24 說明精簡：「怎麼看 ?」統一成「一句問題 → 條列 → 最下面一行小字口徑」（app.js howHTML） */
 .howtxt .howq{display:block;color:var(--ink)}
-.howtxt .howfine{margin-top:8px;padding-top:6px;border-top:1px dashed var(--line-2);font-size:12px;line-height:1.6;color:var(--ink-3)}
-.howtxt .howfine:empty{display:none}
+/* 2026-09-26（Andy：「"?" 內說明欄下方的更詳細說明不需要附註」）：「?」只留標題＋條列。
+   howHTML 已經不輸出 .howfine；這一條是保險 —— 還有少數地方自己手寫了 .howfine（例如總覽「昨日資金去向」，
+   另一支 agent 正在改那一塊，這一批不碰它），一律不顯示。*/
+.howtxt .howfine,#howPop .howfine{display:none!important}
 .qlegend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px;font-size:12.5px;color:var(--ink-3)}
 .qlegend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
 /* ★ 2026-09-23：`.vfilters` 一整組已移除 —— 它只服務「估值篩選」那張卡（Andy 指定拿掉）。 */
@@ -3433,7 +3435,6 @@ h3 .howbtn.pop{font-family:inherit}
   box-shadow:0 18px 50px rgba(0,0,0,.45)}
 #howPop .hp-h{font-size:15px;margin-bottom:6px;color:var(--ink)}
 #howPop .howtxt{margin:0;border-left-width:3px}
-#howPop .howfine{font-size:12px}
 
 /* ---- ① KPI 橫條（≤64px）---- */
 @media (min-width:821px){
@@ -4094,7 +4095,7 @@ h3 .howbtn.pop{font-family:inherit}
       <div class="row" style="gap:8px"><span class="row" id="themeCtl" style="gap:8px"></span><button class="btn small" id="themeZoom">放大 ⤢</button></div></div>
       <!-- ★ 2026-09-24 說明精簡：原本的「這張圖回答／怎麼用」長句與口徑註 #themeNote 都搬進「怎麼看 ?」；
            #themeNote 仍由 renderThemes 寫入資料端的口徑（成員不拆分、熱度怎麼算），id 不變。 -->
-      <div class="howtxt" id="how-theme" hidden><div class="howbody"></div><div class="howfine" id="themeNote"></div></div>
+      <div class="howtxt" id="how-theme" hidden><div class="howbody"></div></div>
       <div class="zwrap" id="themeMapWrap"><div id="themeMap" class="chart" style="min-height:460px"></div></div>
       <div class="hpanel" id="themePanel" hidden></div></div>
     <div id="themeDetail" style="margin-top:var(--gap-card)"></div>
@@ -4147,7 +4148,7 @@ h3 .howbtn.pop{font-family:inherit}
       </div>
       <!-- ★ 2026-09-24 說明精簡：「這張回答／所以」那段（#seasonHow）與口徑長註（#seasonFine）搬進「怎麼看 ?」，
            卡片上的 #seasonNote 只留基準與數字去哪裡看。兩個 id 都由 writeNote() 寫。 -->
-      <div class="howtxt" id="how-season" hidden><div id="seasonHow"></div><div class="howfine" id="seasonFine"></div></div>
+      <div class="howtxt" id="how-season" hidden><div id="seasonHow"></div></div>
       <p class="note sncav" id="seasonCaveat" hidden></p>
       <!-- 熱力圖放在可捲動的框裡：列高固定（每個族群名稱都印得出來），月份表頭用 sticky 釘在框頂，
            捲到下面也知道哪一欄是幾月。表頭是 HTML 按鈕，點一下＝依那個月重新排序。 -->
