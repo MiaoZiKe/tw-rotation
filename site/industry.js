@@ -2002,10 +2002,21 @@
        改成：**有環節就照舊比環節，沒有環節就只比零件身分。**
        兩條路的 `dim` 行為也因此自然分開：`on` 是空的就沒有人被壓暗，
        只有主角被提亮 —— 那正是單一主體的圖該有的樣子。*/
-    const hit = (n) => (on.size ? on.has(n.dataset.seg) : !n.dataset.seg)
-      && !!DG.partHit && DG.partHit(n, part);
-    if (view3d) view3d.highlight(on, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
     const nodes = $$('#prodDiagram [data-seg]', root);
+    /* ★ 2026-09-25（審查 R3）：傳產鏈一打開預設的「輕油裂解廠」整張被壓暗（71 個 .dim、0 個 .sel）。
+       原因：`segs` 是**族群**的環節（石化族群的 gsegs），這張圖上的 data-seg 一個都對不上，
+       於是「有選東西、但不是你」的規則把每一個零件都壓暗了。
+       修法：剖析圖這一側只用「這張圖上真的有的環節」（交集）；交集是空的就當作沒選 —— 不壓暗、不提亮。
+       關聯圖、環節卡清單那一側照舊用完整的 `on`（那裡的環節本來就對得上）。
+       3D 同理，拿它自己場景裡有的環節取交集。*/
+    const onDg = new Set([...on].filter(sg => nodes.some(n => n.dataset.seg === sg)));
+    const hit = (n) => (onDg.size ? onDg.has(n.dataset.seg) : !n.dataset.seg)
+      && !!DG.partHit && DG.partHit(n, part);
+    if (view3d) {
+      const have3 = view3d.segs ? new Set(view3d.segs()) : null;
+      const on3 = have3 ? new Set([...on].filter(sg => have3.has(sg))) : on;
+      view3d.highlight(on3, color, part || null);   // 3D 場景與 SVG 用同一套高亮規則
+    }
     /* ★ 只有 `data-part`、沒有 `data-seg` 的零件**另外處理**，不可以併進上面那一份。
        2026-09-22 踩到：我第一版把它們併進 `nodes`，結果
        `dim` 的條件 `on.size > 0 && !on.has(n.dataset.seg)` 對它們永遠成立
@@ -2020,7 +2031,7 @@
        「同環節全部退一階、卻沒有任何主角」，比改之前還糟。*/
     const anyPart = nodes.some(hit) || bare.some(n => !!DG.partHit && DG.partHit(n, part));
     $$('#prodDiagram svg', root).forEach(svg => svg.classList.toggle('haspart', anyPart));
-    nodes.forEach(n => { n.classList.toggle('sel', on.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.seg)); if (color && on.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
+    nodes.forEach(n => { n.classList.toggle('sel', onDg.has(n.dataset.seg)); n.classList.toggle('sel-part', hit(n)); n.classList.toggle('dim', onDg.size > 0 && !onDg.has(n.dataset.seg)); if (color && onDg.has(n.dataset.seg)) n.style.setProperty('--c', color); else n.style.setProperty('--c', segColor(n.dataset.seg)); });
     bare.forEach(n => n.classList.toggle('sel-part', !!DG.partHit && DG.partHit(n, part)));
     $$('.chainmap .co', root).forEach(n => n.classList.toggle('dim', on.size > 0 && !on.has(n.dataset.segment)));
     $$('.chainmap .segtitle', root).forEach(n => n.classList.toggle('sel', on.has(n.dataset.seg)));

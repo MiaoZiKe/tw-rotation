@@ -7319,6 +7319,8 @@
         // 兩種高度都量：全開（hh）與收成一行（hhC）。之後每一幀只用快取，不碰 DOM。
         items.forEach(it => { it.p.el.classList.remove('hid', 'compact'); it.p.hh = it.p.el.offsetHeight || 42; });
         items.forEach(it => { it.p.el.classList.add('compact'); it.p.hhC = it.p.el.offsetHeight || 30; it.p.el.classList.remove('compact'); });
+        // 第二階（2026-09-24）：只留「編號＋標題」
+        items.forEach(it => { it.p.el.classList.add('compact', 'mini'); it.p.hhM = it.p.el.offsetHeight || 24; it.p.el.classList.remove('compact', 'mini'); });
         lastCw = cw;
         stickyBelow = new Set(); compactSide = { L: false, R: false };
       }
@@ -7342,17 +7344,26 @@
         const list = colsBy[side];
         /* 塞不下的第一步不是往底下丟，是把這一欄的卡片**收成一行**（標題＋英文＋兩顆晶片；被點的那一張維持全開）。
            Andy 2026-09-22：「不准掉到下面」。收了還是塞不下才往底下排（16 張以內實測不會走到那一步）。*/
-        const useCompact = (on) => list.forEach(it => {
+        /* ★ 2026-09-24（Andy：「資訊卡環繞示意圖、限制在示意圖同高的範圍內；放不下的收成可點開的下拉字卡
+           （預設只顯示編號＋標題，點了才展開說明）」）：收合分兩階 ——
+             1 ＝ compact：標題＋英文＋兩顆晶片（原本就有）
+             2 ＝ mini   ：只留「編號＋標題 ▾」；被點的那一張（sel-part）與滑過的那一張照樣全開
+           兩階都塞不下才往底下那一排丟（stickyBelow）。階數一樣黏住，理由同 stickyBelow。*/
+        const useLevel = (lv) => list.forEach(it => {
           const keep = it.p.el.classList.contains('sel-part');
-          it.p.el.classList.toggle('compact', on && !keep);
-          it.hh = (on && !keep) ? (it.p.hhC || it.hh) : (it.p.hh || 42);
+          it.p.el.classList.toggle('compact', lv >= 1 && !keep);
+          it.p.el.classList.toggle('mini', lv >= 2 && !keep);
+          it.hh = keep ? (it.p.hh || 42) : (lv >= 2 ? (it.p.hhM || it.p.hhC || it.hh) : (lv >= 1 ? (it.p.hhC || it.hh) : (it.p.hh || 42)));
         });
-        if (!compactSide[side] && !pack(list, h)) compactSide[side] = true;   // 一旦收起來就維持（黏住），跟 stickyBelow 同一個理由
-        useCompact(compactSide[side]);
+        let lv = +compactSide[side] || 0;
+        useLevel(lv);
+        if (lv < 1 && !pack(list, h)) { lv = 1; useLevel(lv); }
+        if (lv < 2 && !pack(list, h)) { lv = 2; useLevel(lv); }
+        compactSide[side] = lv;
         while (list.length && !pack(list, h)) {
           let worst = 0; list.forEach((it, i) => { if (it.rank > list[worst].rank) worst = i; });
           const ev = list.splice(worst, 1)[0];
-          ev.p.el.classList.remove('compact');
+          ev.p.el.classList.remove('compact', 'mini');
           stickyBelow.add(ev.p); belowOnes.push(ev);       // 收了還塞不下才往底下排（而且黏住），不藏
         }
         const lx = side === 'L' ? 6 : w - cw + 6;           // 卡片在自己那一欄裡的 x（欄是 absolute 的，left 相對於欄）

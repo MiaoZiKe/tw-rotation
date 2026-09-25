@@ -467,12 +467,15 @@
       ${areaA()}
 
       <!-- ================= 說明卡片（HTML，左欄＝平面與 FinFET；右欄＝GAA 與共用層） ================= -->
+      <!-- ★ 2026-09-25（審查 R3）：04／05／06 三個編號圓標原本擠在閘極左下角 15～25px 內、互相壓住。
+           04（high-k）改到閘極底下的右半段（仍在閘極寬度內）、05（間隙壁）往上移到左間隙壁的中段、
+           06（源汲）移到左邊那塊的中間 —— 每一顆都還在自己那個零件上，彼此間距 ≥ 30px。 -->
       ${card({ part: 'fd_planar', no: 1, side: 'l', color: C.si, ax: CXS[0], ay: 255, title: '平面電晶體的通道', sub: ['基板表面下一條水平的薄層，閘極只從正上方蓋下來 —— 只管得到一面，其餘三面關不住。'] })}
       ${card({ part: 'fd_face1', no: 2, side: 'l', color: C.cyan, ax: CXS[0], ay: 190, title: '閘極管到 1 面', sub: ['一支箭頭＝一個面。三格的箭頭數就是 1／3／4，數得出來。'] })}
       ${card({ part: 'fd_gate', no: 3, side: 'l', color: C.steel, ax: CXS[0], ay: 228, title: '閘極金屬', sub: ['平面只蓋在上面；FinFET 是 ㄇ 字形罩住頂＋左＋右；GAA 則鑽進每一片之間的縫。'] })}
-      ${card({ part: 'fd_hk', no: 4, side: 'l', color: C.sn, ax: CXS[0] - 30, ay: 247, title: 'high-k 閘極介電層', sub: ['夾在閘極與通道之間，是全圖最薄的層之一。GAA 那一格它繞著每一片走一圈（封閉細框）。'] })}
-      ${card({ part: 'fd_spacer', no: 5, side: 'l', color: C.mute, ax: CXS[0] - 45, ay: 232, title: '間隙壁／內間隙壁', sub: ['把閘極跟源汲擋開。GAA 那一格它只存在於「片」那幾層 —— 那就是「內」間隙壁。'] })}
-      ${card({ part: 'fd_sd', no: 6, side: 'l', color: C.org, ax: CXS[0] - 70, ay: 247, title: '源／汲極（磊晶）', sub: ['剖面兩端那兩塊。GAA 那一格它把所有奈米片的端部一起接起來 —— 只接到最上面一片是錯的。'] })}
+      ${card({ part: 'fd_hk', no: 4, side: 'l', color: C.sn, ax: CXS[0] + 30, ay: 245, title: 'high-k 閘極介電層', sub: ['夾在閘極與通道之間，是全圖最薄的層之一。GAA 那一格它繞著每一片走一圈（封閉細框）。'] })}
+      ${card({ part: 'fd_spacer', no: 5, side: 'l', color: C.mute, ax: CXS[0] - 46, ay: 220, title: '間隙壁／內間隙壁', sub: ['把閘極跟源汲擋開。GAA 那一格它只存在於「片」那幾層 —— 那就是「內」間隙壁。'] })}
+      ${card({ part: 'fd_sd', no: 6, side: 'l', color: C.org, ax: CXS[0] - 74, ay: 250, title: '源／汲極（磊晶）', sub: ['剖面兩端那兩塊。GAA 那一格它把所有奈米片的端部一起接起來 —— 只接到最上面一片是錯的。'] })}
       ${card({ part: 'fd_sub', no: 7, side: 'l', color: C.si2, ax: CXS[0] - 90, ay: 285, title: '矽基板', sub: ['三格同一個位置、同一個顏色 —— 這是「同一個放大倍率」的錨。'] })}
       ${card({ part: 'fd_fin', no: 8, side: 'l', color: C.si, ax: CXS[1] - 36, ay: 215, title: '鰭（fin）', sub: ['把通道立起來變成一片直立的鰭，閘極就能罩住頂面與兩個側面 —— 三面。', '圖上鰭高畫成鰭寬的 4.75 倍；這是可辨識性的下限，不是真實比例的宣稱。'] })}
       ${card({ part: 'fd_sti', no: 9, side: 'l', color: C.el, ax: CXS[1] + 60, ay: 245, title: '淺溝槽隔離（STI）', sub: ['填在鰭與鰭之間的下半段，只淹到鰭的下部。★ 被它埋住的那一段鰭閘極包不到 —— 那就是 FinFET 走到盡頭的地方（虛線框）。'] })}

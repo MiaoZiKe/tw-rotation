@@ -85,7 +85,9 @@
      ★ 主角是線寬：進來 18、付出去 15、留下 3 —— 三個數字刻意畫成「看得出比例很懸殊」，
        但**不標任何百分比**（各家的實際比例查不到可引用的來源，標了就是編）。*/
   const CUST = { x: 16, y: 74, w: 168, h: 150 };
-  const MSP = { x: 246, y: 62, w: 164, h: 174 };
+  /* ★ 2026-09-25（審查 R3）：寬 164 → 184。「收全額、付成本，差額薄」「顧問、上雲搬遷、維運、」兩行 11 個字
+     在 164 寬的框裡超出右緣被切掉，02／04 兩個編號圓標也因此壓在字上。左右兩邊的間距各讓 8px 出來。*/
+  const MSP = { x: 238, y: 62, w: 184, h: 174 };
   const CLD = { x: 476, y: 74, w: 168, h: 150 };
 
   function flow() {
@@ -111,13 +113,13 @@
       + T(MSP.x + 14, MSP.y + 24, 'MSP（雲端代管業者）', 'lbl')));
     g.push(part('cm_resale', R(MSP.x + 14, MSP.y + 40, MSP.w - 28, 46, 'var(--dg-step-f)', 'part', 6)
       + R(MSP.x + 14, MSP.y + 40, 4, 46, C.resale)
-      + T(MSP.x + 26, MSP.y + 58, '轉售／代管（過手）', 'lbl')
-      + T(MSP.x + 26, MSP.y + 76, '收全額、付成本，差額薄', 'sub')));
+      + T(MSP.x + 24, MSP.y + 58, '轉售／代管（過手）', 'lbl')
+      + T(MSP.x + 24, MSP.y + 76, '收全額、付成本，差額薄', 'sub')));
     g.push(part('cm_value', R(MSP.x + 14, MSP.y + 96, MSP.w - 28, 62, 'var(--dg-step-f)', 'part', 6)
       + R(MSP.x + 14, MSP.y + 96, 4, 62, C.value)
-      + T(MSP.x + 26, MSP.y + 114, '加值服務', 'lbl')
-      + T(MSP.x + 26, MSP.y + 132, '顧問、上雲搬遷、維運、', 'sub')
-      + T(MSP.x + 26, MSP.y + 148, '資安、資料與 AI 專案', 'sub')));
+      + T(MSP.x + 24, MSP.y + 114, '加值服務', 'lbl')
+      + T(MSP.x + 24, MSP.y + 132, '顧問、上雲搬遷、維運、', 'sub')
+      + T(MSP.x + 24, MSP.y + 148, '資安、資料與 AI 專案', 'sub')));
 
     /* 金流：三條光束共用一個光暈濾鏡（一個濾鏡元素）。
        進 18 粗、出 15 粗、留下 3 —— 比例是示意，不標任何百分比。*/
@@ -132,8 +134,9 @@
       + T(MSP.x + MSP.w / 2, MSP.y + MSP.h + 58, '真正留在 MSP 身上的', 'lbl', 'middle')
       + T(MSP.x + MSP.w / 2, MSP.y + MSP.h + 76, '＝毛利（轉售薄、加值厚）', 'sub', 'middle')));
 
-    g.push(T(CUST.x + CUST.w + 10, yIn - 16, '帳單全額', 'sub', null, `fill:${C.money}`));
-    g.push(T(MSP.x + MSP.w + 10, yOut - 16, '付給原廠', 'sub', null, `fill:${C.cloud}`));
+    // 兩條光束的標籤：MSP 加寬之後左右只剩 56px，起點從 +10 收到 +5，四個字才不會碰到隔壁的框
+    g.push(T(CUST.x + CUST.w + 5, yIn - 16, '帳單全額', 'sub', null, `fill:${C.money}`));
+    g.push(T(MSP.x + MSP.w + 5, yOut - 16, '付給原廠', 'sub', null, `fill:${C.cloud}`));
     return g.join('');
   }
 

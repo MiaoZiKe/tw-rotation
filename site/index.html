@@ -1849,6 +1849,12 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 .dg3d .lbl3d.compact u.chips3d .chip3d:nth-child(n+3),.dg3d .lbl3d.compact u.chips3d s{display:none}
 .dg3d .lbl3d.compact:hover i{display:-webkit-box}
 .dg3d .lbl3d.compact:hover u.chips3d .chip3d:nth-child(n+3),.dg3d .lbl3d.compact:hover u.chips3d s{display:initial}
+/* 第二階收合（2026-09-24）：只留編號＋標題；滑過或被點（sel-part 不會帶 mini）才展開 */
+.dg3d .lbl3d.mini b small.en,.dg3d .lbl3d.mini u.chips3d{display:none}
+.dg3d .lbl3d.mini b::after{content:" ▾";font-weight:400;color:var(--dg-ink-3)}
+.dg3d .lbl3d.mini:hover b small.en{display:block}
+.dg3d .lbl3d.mini:hover u.chips3d{display:flex}
+.dg3d .lbl3d.mini:hover b::after{content:none}
 .lead3d .ld-no circle{fill:var(--c,var(--dg-ink-3));stroke:var(--dg-2);stroke-width:1.5}
 .lead3d .ld-no text{fill:var(--dg3-badge-ink,#0b132b);font-family:var(--mono);font-weight:700;font-size:12px}
 .dgwrap svg{display:block;width:100%;height:auto}
@@ -1940,6 +1946,31 @@ body.kwide .mtf-cell .cv{height:clamp(300px,calc((100vh - 260px) / 2),620px)}
 /* 閱讀模式：標題維持深灰、編號圓點改成粉彩底＋色環＋深灰數字（同 SVG 那一套） */
 :root[data-dgpal="read"] .dgc.sel b{color:var(--dg-ink)}
 :root[data-dgpal="read"] .dgc .no{background:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));color:var(--dg-ink);box-shadow:inset 0 0 0 1.2px var(--card-c)}
+/* ---- 卡片限高收合＋點編號說明小卡（2026-09-24，diagrams.js 的 fitCards／openPop）----
+   收合模式只留「編號＋標題 ▾」；被選起來（sel-part）或自己點開（.open，公式／警語卡）的那張才展開說明。
+   欄位超過「畫布高 ＋ 40px」就在欄內捲（.dgscroll，max-height 由 JS 依畫布高寫入）。*/
+.dgv2 .dgscroll{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding-right:2px}
+.dgwrap.dgfold .dgc:not(.sel-part):not(.open) i{display:none}
+.dgwrap.dgfold .dgc:not(.sel-part):not(.open) b::after{content:" ▾";font-weight:400;color:var(--dg-ink-3)}
+.dgwrap.dgfold .dgc.note{cursor:pointer}
+.dgwrap.dgmeasure .dgc i{display:none!important}
+.dgwrap.dgfold .dgc{padding-top:6px;padding-bottom:6px}
+/* 手機版之後要用的「只留編號」：卡片欄整個藏起來，說明一律靠點編號跳出（資料結構先備好，桌機不會進這個模式）*/
+.dgwrap[data-dglbl="num"] .dgcards,.dgwrap[data-dglbl="num"] .dglead{display:none}
+.dgpop{position:absolute;z-index:6;width:min(300px,calc(100% - 12px));--card-c:var(--dg-accent-2d);
+  background:color-mix(in srgb,var(--card-c) 10%,var(--dg-bg));border:1px solid color-mix(in srgb,var(--card-c) 55%,var(--dg-card-s));
+  border-left:3px solid var(--card-c);border-radius:var(--dg-card-r,8px);padding:8px 10px 9px 11px;
+  box-shadow:0 8px 24px color-mix(in srgb,var(--dg-bg) 20%,transparent),var(--dg-card-box-sh);
+  font-size:var(--dg-fs-min,12px);line-height:1.55;color:var(--dg-ink-3);cursor:default}
+.dgpop[hidden]{display:none}
+.dgpop .hd{display:flex;align-items:flex-start;gap:8px;margin-bottom:3px}
+.dgpop .no{flex:none;display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  background:var(--card-c);color:var(--dg-no-ink);font-family:var(--mono);font-size:var(--dg-fs-min,12px);font-weight:700}
+.dgpop b{flex:1;min-width:0;font-size:var(--dg-fs-lbl,12.5px);font-weight:700;color:var(--dg-ink);line-height:1.45;padding-top:2px}
+.dgpop .x{flex:none;border:0;background:transparent;color:var(--dg-ink-3);font-size:13px;line-height:1;padding:4px 2px;cursor:pointer}
+.dgpop .x:hover{color:var(--dg-ink)}
+.dgpop i{display:block;font-style:normal;margin-top:2px}
+:root[data-dgpal="read"] .dgpop .no{background:color-mix(in srgb,var(--card-c) 18%,var(--dg-bg));color:var(--dg-ink);box-shadow:inset 0 0 0 1.2px var(--card-c)}
 .dgwrap.noanim *{animation:none!important}
 /* ---- 剖析圖的顯示／隱藏收尾
    ★ 2026-09-23 第二批（W3-7，Andy：「下方的字卡也拿掉 因為上方分頁就有同樣功能了」）：
