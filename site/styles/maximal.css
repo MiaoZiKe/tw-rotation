@@ -1,0 +1,224 @@
+/* ==================================================================================
+   風格實驗室 2：極繁主義（maximal）—— 「街頭交易所海報」
+   只在 claude/style-lab 分支；網址 ?style=maximal 才會載入，疊在 index.html 原本的樣式上面。
+   只改外觀（CSS 變數＋選擇器覆寫），不動任何功能、不引入外部圖檔／字型。
+
+   設計語言（量得出來的規格）：
+     · 粗框：卡片 2px、按鈕／膠囊 1.5～2px（原本全站 1px）
+     · 硬陰影：卡片 6px 6px 0（無模糊），按鈕 3px 3px 0；按下去位移 2px 模擬「壓扁」
+     · 不對稱圓角：卡片 28／8／28／8（左上與右下大、另外兩角小），偶數張反過來
+     · 四色輪替：卡片的框色／陰影色依序 黃 → 鈷藍 → 紫 → 橘（不用紅綠，紅綠只留給漲跌）
+     · 材質混用：紙纖維雜訊（feTurbulence）＋網點（halftone）＋警示斜紋膠帶（頂欄底邊、表頭）
+     · 字：標題 800 粗、KPI 數字維持等寬；字級一律不低於原站（≥ 12px）
+   ⚠ 紅漲綠跌：--rise／--fall 只調明度對比，色相不動、語意不反轉。
+   ⚠ 動效：只有 120ms 的按壓／hover 過場（沒有任何循環動畫），並尊重 prefers-reduced-motion。
+   ================================================================================== */
+
+/* ---------------- 深色：夜街海報（茄紫墨底＋酸黃主色；專業、但不壓迫） ---------------- */
+:root[data-style="maximal"]{
+  --bg:#16121F; --bg-2:#1D1829; --panel:#221C31; --panel-2:#292239; --panel-3:#322A45;
+  --line:#3E3558; --line-2:#6A5E93;
+  --ink:#FFF8EC; --ink-2:#DDD3EE; --ink-3:#AFA3CC;
+  /* 主色（原本的 --cyan 角色：選中的分頁、主按鈕、連結）＝ 酸黃。疊在黃上的字用墨色 */
+  --cyan:#FFD23F; --ontop:#16121F;
+  --violet:#B69BFF; --amber:#FFA43B; --lime:#C9F24A;
+  /* 漲：色相 349.2° 跟原站同一個，只提明度 —— #FF4D6D 在 --panel-3 上只有 4.21，#FF6480 是 4.76 */
+  --rise:#FF6480; --fall:#2EE59D; --flat:#9C93B8;
+  /* 極繁的四色輪替（卡片框與硬陰影） */
+  --mx-a:#FFD23F; --mx-b:#5B78FF; --mx-c:#B69BFF; --mx-d:#FFA43B;
+  --mx-hard:#07050C;                 /* 硬陰影的墨色 */
+  --mx-tape:#FFD23F; --mx-tape-2:#16121F;
+  --glow:3px 3px 0 0 var(--mx-hard);
+  --shadow:5px 5px 0 0 var(--mx-hard);
+  --card-sh:6px 6px 0 0 var(--mx-hard);
+  --r:14px; --r-sm:10px; --r-md:18px; --r-lg:28px;
+  --chartbg:#221C31;
+  --topbar:rgba(22,18,31,.94); --topbar-m:rgba(22,18,31,.98);
+  --grid:rgba(255,248,236,.06);
+  --body-1:rgba(255,210,63,.10); --body-2:rgba(91,120,255,.16);
+  --row-hover:#2C2540;
+  --focus:#FFD23F;
+  --tip-bg:rgba(34,28,49,.97); --tip-line:#6A5E93; --tip-sh:5px 5px 0 0 rgba(7,5,12,.9);
+  --ovl:rgba(22,18,31,.6);
+  /* 材質：紙纖維雜訊（白點，深底用）與網點 */
+  --mx-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mx-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140'%3E%3Cdefs%3E%3Cpattern id='p' width='9' height='9' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='4.5' cy='4.5' r='1.7' fill='%23FFD23F'/%3E%3C/pattern%3E%3ClinearGradient id='g' x1='1' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff' stop-opacity='.9'/%3E%3Cstop offset='.6' stop-color='%23fff' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='220' height='140' fill='url(%23g)'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='220' height='140' fill='url(%23p)' mask='url(%23m)' opacity='.16'/%3E%3C/svg%3E");
+}
+
+/* ---------------- 淺色：白天拼貼（奶油紙底＋墨框＋彩色硬陰影；親近、好讀） ---------------- */
+:root[data-style="maximal"][data-theme="light"]{
+  --bg:#FFF3DC; --bg-2:#FCEBCB; --panel:#FFFFFF; --panel-2:#FFFBF3; --panel-3:#FFF1D6;
+  --line:#EBDDC0; --line-2:#2B2640;
+  --ink:#1D1A2C; --ink-2:#3C3752; --ink-3:#5B5570;
+  /* 主色＝鈷藍（白字 7.0:1）。黃色只當「底色／陰影」用，不當字色（黃字在白底讀不到） */
+  --cyan:#2E47D6; --ontop:#FFFFFF;
+  --violet:#6A3CD6; --amber:#9A5200; --lime:#3F7512;
+  --rise:#C81234; --fall:#07794F; --flat:#5F6C85;
+  --mx-a:#FFD23F; --mx-b:#8FA2FF; --mx-c:#CDB8FF; --mx-d:#FFB870;
+  --mx-hard:#1D1A2C;
+  --mx-tape:#FFD23F; --mx-tape-2:#1D1A2C;
+  --glow:3px 3px 0 0 var(--mx-hard);
+  --shadow:5px 5px 0 0 var(--mx-hard);
+  --card-sh:6px 6px 0 0 var(--mx-a);
+  --chartbg:#FFFFFF;
+  --topbar:rgba(255,243,220,.95); --topbar-m:rgba(255,243,220,.98);
+  --grid:rgba(29,26,44,.07);
+  --body-1:rgba(255,210,63,.35); --body-2:rgba(143,162,255,.30);
+  --row-hover:#FFF4DC;
+  --focus:#2E47D6;
+  --tip-bg:rgba(255,255,255,.98); --tip-line:#1D1A2C; --tip-sh:4px 4px 0 0 rgba(29,26,44,.9);
+  --ovl:rgba(255,255,255,.85);
+  --mx-grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .35 0 0 0 0 .25 0 0 0 0 .1 0 0 0 .09 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  --mx-dots:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140'%3E%3Cdefs%3E%3Cpattern id='p' width='9' height='9' patternUnits='userSpaceOnUse'%3E%3Ccircle cx='4.5' cy='4.5' r='1.7' fill='%232E47D6'/%3E%3C/pattern%3E%3ClinearGradient id='g' x1='1' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23fff' stop-opacity='.9'/%3E%3Cstop offset='.6' stop-color='%23fff' stop-opacity='0'/%3E%3C/linearGradient%3E%3Cmask id='m'%3E%3Crect width='220' height='140' fill='url(%23g)'/%3E%3C/mask%3E%3C/defs%3E%3Crect width='220' height='140' fill='url(%23p)' mask='url(%23m)' opacity='.12'/%3E%3C/svg%3E");
+}
+
+/* ---------------- 頁面底：色塊＋紙纖維＋細斜紋（材質混用第一層） ---------------- */
+[data-style="maximal"] body{
+  background:
+    var(--mx-grain),
+    repeating-linear-gradient(-45deg, transparent 0 22px, color-mix(in srgb,var(--mx-c) 7%,transparent) 22px 24px),
+    radial-gradient(900px 520px at 6% -8%, var(--body-1), transparent 62%),
+    radial-gradient(760px 480px at 102% 4%, var(--body-2), transparent 58%),
+    radial-gradient(640px 420px at 50% 110%, color-mix(in srgb,var(--mx-d) 10%,transparent), transparent 60%),
+    var(--bg);
+  background-attachment:fixed;
+}
+
+/* ---------------- 頂欄：實心底＋底邊一條警示斜紋膠帶 ---------------- */
+[data-style="maximal"] .topbar{
+  backdrop-filter:none;
+  border-bottom:0;
+  background:
+    repeating-linear-gradient(-45deg, var(--mx-tape) 0 10px, var(--mx-tape-2) 10px 20px) left bottom/100% 5px no-repeat,
+    var(--topbar);
+}
+[data-style="maximal"] .brand .logo{
+  background:var(--mx-a); color:#16121F; border:2px solid var(--mx-hard);
+  border-radius:8px 3px 8px 3px; transform:rotate(-6deg);
+  box-shadow:3px 3px 0 0 var(--mx-b); font-weight:800;
+}
+[data-style="maximal"] .brand b{font-weight:800;letter-spacing:.04em}
+
+/* 分頁：選中的那顆是一張斜貼的貼紙 */
+[data-style="maximal"] .tab{font-weight:600;transition:transform var(--dur-fast) var(--ease),background var(--dur-fast) var(--ease)}
+[data-style="maximal"] .tab:hover{background:color-mix(in srgb,var(--mx-c) 18%,transparent)}
+[data-style="maximal"] .tab.on{
+  background:var(--cyan); color:var(--ontop); font-weight:800;
+  border:2px solid var(--mx-hard); border-radius:12px 4px 12px 4px;
+  box-shadow:3px 3px 0 0 var(--mx-hard); transform:rotate(-2deg);
+}
+[data-style="maximal"][data-theme="light"] .tab.on{box-shadow:3px 3px 0 0 var(--mx-a)}
+
+/* 搜尋框、事件鈕：粗框膠囊 */
+[data-style="maximal"] .search input,
+[data-style="maximal"] .evbtn{border-width:2px;border-color:var(--line-2)}
+[data-style="maximal"] .search input:focus{box-shadow:3px 3px 0 0 var(--mx-a)}
+
+/* ---------------- 卡片：粗框、不對稱圓角、四色硬陰影、右上角網點 ---------------- */
+[data-style="maximal"] .card{
+  --mx-k:var(--mx-a);
+  border:2px solid var(--line-2);
+  border-radius:var(--r-lg) 8px var(--r-lg) 8px;
+  background:var(--mx-dots) right top/220px 140px no-repeat, var(--panel);
+  box-shadow:var(--card-sh);
+}
+/* 同一排的卡片輪替四色；偶數張的圓角反過來（不對稱） */
+[data-style="maximal"] .grid>.card:nth-child(4n+2),
+[data-style="maximal"] .grid>*:nth-child(4n+2)>.card{--mx-k:var(--mx-b)}
+[data-style="maximal"] .grid>.card:nth-child(4n+3),
+[data-style="maximal"] .grid>*:nth-child(4n+3)>.card{--mx-k:var(--mx-c)}
+[data-style="maximal"] .grid>.card:nth-child(4n+4),
+[data-style="maximal"] .grid>*:nth-child(4n+4)>.card{--mx-k:var(--mx-d)}
+[data-style="maximal"] .grid>.card:nth-child(even),
+[data-style="maximal"] .grid>*:nth-child(even)>.card{border-radius:8px var(--r-lg) 8px var(--r-lg)}
+/* 深色：框用輪替色、影子是墨色；淺色：框是墨色、影子用輪替色（拼貼感） */
+[data-style="maximal"]:not([data-theme="light"]) .card{border-color:color-mix(in srgb,var(--mx-k) 70%,var(--line-2))}
+[data-style="maximal"][data-theme="light"] .card{border-color:var(--mx-hard);box-shadow:6px 6px 0 0 var(--mx-k)}
+/* 卡片左上角一小段「膠帶」：絕對定位、不吃版面、不擋點擊 */
+[data-style="maximal"] .card::after{
+  content:"";position:absolute;top:-8px;left:26px;width:58px;height:14px;pointer-events:none;
+  background:repeating-linear-gradient(90deg, color-mix(in srgb,var(--mx-k) 85%,#fff) 0 6px, color-mix(in srgb,var(--mx-k) 60%,#fff) 6px 12px);
+  opacity:.9;transform:rotate(-4deg);border-radius:2px;
+}
+[data-style="maximal"] .grid>*:nth-child(even)>.card::after,
+[data-style="maximal"] .grid>.card:nth-child(even)::after{left:auto;right:30px;transform:rotate(5deg)}
+[data-style="maximal"] .card.tight::after{display:none}
+
+/* 標題：800 粗＋一格輪替色的硬字影（街頭海報的套色偏移） */
+[data-style="maximal"] .card h3,
+[data-style="maximal"] h2{font-weight:800;letter-spacing:.02em;
+  text-shadow:1.5px 1.5px 0 color-mix(in srgb,var(--mx-k,var(--mx-a)) 55%,transparent)}
+[data-style="maximal"] .card h3 small,
+[data-style="maximal"] .card .sub{text-shadow:none}
+
+/* ---------------- KPI 橫條：四格四色，像並排貼上去的四張標籤 ---------------- */
+[data-style="maximal"] #hero.ovstrip{
+  border:2px solid var(--line-2); border-radius:8px var(--r-lg) 8px var(--r-lg);
+  box-shadow:var(--card-sh); background:var(--panel);
+}
+[data-style="maximal"][data-theme="light"] #hero.ovstrip{border-color:var(--mx-hard);box-shadow:6px 6px 0 0 var(--mx-b)}
+[data-style="maximal"] #hero.ovstrip .kpi{position:relative}
+[data-style="maximal"] #hero.ovstrip .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:6px;background:var(--mx-a);pointer-events:none}
+[data-style="maximal"] #hero.ovstrip .kpi:nth-child(2)::before{background:var(--mx-b)}
+[data-style="maximal"] #hero.ovstrip .kpi:nth-child(3)::before{background:var(--mx-c)}
+[data-style="maximal"] #hero.ovstrip .kpi:nth-child(4)::before{background:var(--mx-d)}
+[data-style="maximal"] #hero.ovstrip .kpi+.kpi{border-left:2px dashed var(--line)}
+[data-style="maximal"] #hero.ovstrip .kpi .l{font-weight:700;letter-spacing:.08em}
+[data-style="maximal"] .kpi .v{font-weight:800}
+[data-style="maximal"] .kpi.on{border-color:var(--cyan);box-shadow:3px 3px 0 0 var(--mx-hard)}
+
+/* ---------------- 按鈕：粗框＋硬陰影；按下去壓扁 2px ---------------- */
+[data-style="maximal"] .btn{
+  border:2px solid var(--line-2); font-weight:700;
+  box-shadow:3px 3px 0 0 var(--mx-hard);
+  transition:transform var(--dur-fast) var(--ease),box-shadow var(--dur-fast) var(--ease),border-color var(--dur-fast) var(--ease);
+}
+[data-style="maximal"][data-theme="light"] .btn{border-color:var(--mx-hard);box-shadow:3px 3px 0 0 var(--mx-a)}
+[data-style="maximal"] .btn:hover{border-color:var(--cyan)}
+[data-style="maximal"][data-theme="light"] .btn:hover{border-color:var(--cyan)}
+[data-style="maximal"] .btn:active{transform:translate(2px,2px);box-shadow:1px 1px 0 0 var(--mx-hard)}
+[data-style="maximal"] .btn.primary{border-color:var(--mx-hard)}
+
+/* 分段切換鈕（走勢圖／K 線、日／週／月）：墨框＋選中那格塞滿主色 */
+[data-style="maximal"] .seg{border:2px solid var(--line-2);border-radius:12px 4px 12px 4px;box-shadow:3px 3px 0 0 var(--mx-hard)}
+[data-style="maximal"][data-theme="light"] .seg{border-color:var(--mx-hard);box-shadow:3px 3px 0 0 var(--mx-c)}
+[data-style="maximal"] .seg button{font-weight:600}
+[data-style="maximal"] .seg button.on{font-weight:800;border-radius:9px 3px 9px 3px}
+
+/* 膠囊與籌碼：貼紙感（粗框），不旋轉 —— 表格裡一排排旋轉的貼紙會讓數字對不齊 */
+[data-style="maximal"] .pill{border-width:1.5px;font-weight:600}
+[data-style="maximal"] .chip{border-width:1.5px;border-radius:10px 3px 10px 3px}
+[data-style="maximal"] .chip.on{box-shadow:2px 2px 0 0 var(--mx-hard)}
+
+/* ---------------- 表格：斜紋表頭＋斑馬列 ---------------- */
+[data-style="maximal"] th{
+  background:
+    repeating-linear-gradient(-45deg, color-mix(in srgb,var(--mx-a) 10%,transparent) 0 6px, transparent 6px 12px),
+    var(--panel-3);
+  color:var(--ink); font-weight:800; border-bottom:2px solid var(--line-2);
+}
+[data-style="maximal"] tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--mx-c) 5%,transparent)}
+
+/* 橫幅：粗左邊條＋硬陰影 */
+[data-style="maximal"] .banner{border-left-width:8px;box-shadow:4px 4px 0 0 var(--mx-hard);border-radius:4px 14px 14px 4px}
+
+/* 說明彈窗：拼貼框 */
+[data-style="maximal"] #howPop{border:2px solid var(--line-2);border-radius:var(--r-lg) 8px var(--r-lg) 8px;box-shadow:8px 8px 0 0 var(--mx-hard)}
+[data-style="maximal"][data-theme="light"] #howPop{border-color:var(--mx-hard);box-shadow:8px 8px 0 0 var(--mx-a)}
+
+/* 捲軸：主色膠囊 */
+[data-style="maximal"] ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--mx-c) 60%,var(--line-2));border-radius:3px}
+
+/* 手機：硬陰影與膠帶縮小（390 寬左右邊距只有 12～16px，6px 的影子會碰到螢幕邊） */
+@media (max-width:820px){
+  [data-style="maximal"] .card{box-shadow:4px 4px 0 0 var(--mx-hard);border-radius:18px 6px 18px 6px}
+  [data-style="maximal"][data-theme="light"] .card{box-shadow:4px 4px 0 0 var(--mx-k)}
+  [data-style="maximal"] .card::after{width:40px;height:10px;top:-6px}
+  [data-style="maximal"] .tab.on{transform:none}
+}
+
+/* 動效：只有按壓與 hover 的 120ms 過場；使用者要求減少動態就全部拿掉 */
+@media (prefers-reduced-motion:reduce){
+  [data-style="maximal"] *{transition:none!important}
+  [data-style="maximal"] .btn:active{transform:none}
+}
