@@ -195,7 +195,10 @@ def valuation(price_latest: pd.DataFrame, ttm_df: pd.DataFrame,
         for c in ("shares", "equity_parent", "bps", "total_assets"):
             v[c] = np.nan
 
-    eps = pd.to_numeric(v["ttm_eps"], errors="coerce")
+    # ★ 2026-09-26（小數點普查）：近四季 EPS 相加的浮點殘差（0.1＋(-0.3)＋0.2＝2.8e-17）會被當成正數，
+    #   本益比算成 8.7e+17（3360、3489、3550 實際發生，產業地圖表格照印）。先捨到 1e-6 再判正負：
+    #   EPS 本身只有 2 位，捨入只抹掉殘差，「TTM ≤ 0 不給本益比、算虧損」的口徑不變。
+    eps = pd.to_numeric(v["ttm_eps"], errors="coerce").round(6)
     v["pe"] = np.where(eps > 0, v["close"] / eps, np.nan)           # 規則 2
     v["pb"] = np.where(pd.to_numeric(v["bps"], errors="coerce") > 0,
                        v["close"] / pd.to_numeric(v["bps"], errors="coerce"), np.nan)

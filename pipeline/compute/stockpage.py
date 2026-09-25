@@ -175,6 +175,10 @@ def pe_daily(price: pd.DataFrame, fin: pd.DataFrame, code: str,
             d0 = sd[a_]
             t[a_:b_] = sum(eps[k] / (eps_divisor(shares, code, pend[k], avail[k], d0, impl[k]) if ent is not None else 1.0)
                            for k in range(i - 3, i + 1))
+        # ★ 2026-09-26（小數點普查）：四季 EPS 相加有浮點殘差（0.1＋(-0.3)＋0.2＝5.5e-17），
+        #   不先捨入就會被當成「正的 TTM」，本益比算成 5.3e+18（3504 2026Q2、6226 2022Q3 實際發生）。
+        #   捨到 1e-6 只抹掉殘差（EPS 本身只有 2 位），「TTM ≤ 0 不給本益比」的口徑不變。
+        t = np.round(t, 6)
         with np.errstate(divide="ignore", invalid="ignore"):
             pe = np.where(t > 0, sc / t, np.nan)
         parts.append(pd.DataFrame({"date": sd, "close": sc, "ttm_eps": t, "pe": pe,

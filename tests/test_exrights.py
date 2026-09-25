@@ -223,6 +223,23 @@ def test_虧損給NaN不給負數且股數調整不改變正負():
     assert np.isnan(v["pe"]) and bool(v["is_loss"])
 
 
+
+def test_近四季EPS相加的浮點殘差不當成正數():
+    """2026-09-26 小數點普查抓到：3504 2026Q2 的本益比是 5.3e+18。
+    四季 EPS 0.1＋(-0.3)＋0.2＋0.0 在浮點數下是 2.8e-17（不是 0），以前被當成「正的 TTM」拿去除。"""
+    px, _, _, fin, _ = _wiwynn()
+    fin = fin.assign(eps=[0.5, 0.1, -0.3, 0.2, 0.0])
+    assert sum([0.1, -0.3, 0.2, 0.0]) > 0            # 前提：殘差真的是正的（證明這個測試有鑑別力）
+    d = S.pe_daily(px, fin, "6669", None)
+    last = d[d["period"] == "2026Q2"]
+    assert len(last) and last["pe"].isna().all()
+    rows = S.pe_history(px, fin, "6669")
+    assert rows[-1]["period"] == "2026Q2" and rows[-1]["pe"] is None and rows[-1]["ttm_eps"] == 0
+    # 同一個殘差在 valuation（產業地圖、個股基本面那一格本益比）也要當虧損
+    asof = px["date"].iloc[-1]
+    v = F.valuation(px[px["date"] == asof][["code", "close"]], F.ttm(fin, None, asof), None).iloc[0]
+    assert np.isnan(v["pe"]) and bool(v["is_loss"])
+
 # ---------------------------------------------------------------- 殖利率與股利欄
 def test_殖利率用今天股數而且股利欄只放股利():
     px, res, ev, *_ = _wiwynn()
