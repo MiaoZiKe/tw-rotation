@@ -235,6 +235,10 @@ def test_近四季EPS相加的浮點殘差不當成正數():
     assert len(last) and last["pe"].isna().all()
     rows = S.pe_history(px, fin, "6669")
     assert rows[-1]["period"] == "2026Q2" and rows[-1]["pe"] is None and rows[-1]["ttm_eps"] == 0
+    # 同一個殘差在 valuation（產業地圖、個股基本面那一格本益比）也要當虧損
+    asof = px["date"].iloc[-1]
+    v = F.valuation(px[px["date"] == asof][["code", "close"]], F.ttm(fin, None, asof), None).iloc[0]
+    assert np.isnan(v["pe"]) and bool(v["is_loss"])
 
 # ---------------------------------------------------------------- 殖利率與股利欄
 def test_殖利率用今天股數而且股利欄只放股利():
