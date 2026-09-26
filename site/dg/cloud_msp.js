@@ -84,11 +84,23 @@
      三欄：客戶（x 16）→ MSP（x 238）→ 公有雲原廠（x 476）。
      ★ 主角是線寬：進來 18、付出去 15、留下 3 —— 三個數字刻意畫成「看得出比例很懸殊」，
        但**不標任何百分比**（各家的實際比例查不到可引用的來源，標了就是編）。*/
-  const CUST = { x: 16, y: 74, w: 168, h: 150 };
+  /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：三個框裡的字原本各佔一行寫死，閱讀模式（1100 寬時字級約 16）
+     「製造業：ERP 與資料湖」「收全額、付成本，差額薄」都伸出框；兩條光束上的「帳單全額／付給原廠」四個字
+     比框與框之間的 54px 還寬，壓在 MSP 的玻璃框上。改成：框裡的字交給 D.para 照最壞字寬斷行，框高照內容長；
+     光束上的四個字拆成兩行、置中在縫裡。三欄的 x 與光束粗細（示意比例）一個都沒動。*/
+  const CUST_T = ['製造業：ERP 與資料湖', '金融與電商：尖峰流量', '新創與遊戲：開機就計費'];
+  const CLD_T = ['AWS／Azure／GCP', '機器、儲存、頻寬', '照用量計價，牌價公開'];
+  const SIDE_IN = 168 - 28;
+  const SIDE_H = Math.max(150, 50 + Math.max(D.para(0, 0, CUST_T, SIDE_IN).h, D.para(0, 0, CLD_T, SIDE_IN).h) + 8 + D.para(0, 0, '大部分的錢最後流到這裡', SIDE_IN).h);
+  const CUST = { x: 16, y: 74, w: 168, h: SIDE_H };
   /* ★ 2026-09-25（審查 R3）：寬 164 → 184。「收全額、付成本，差額薄」「顧問、上雲搬遷、維運、」兩行 11 個字
      在 164 寬的框裡超出右緣被切掉，02／04 兩個編號圓標也因此壓在字上。左右兩邊的間距各讓 8px 出來。*/
-  const MSP = { x: 238, y: 62, w: 184, h: 174 };
-  const CLD = { x: 476, y: 74, w: 168, h: 150 };
+  const MIN = 184 - 28 - 10;
+  const RES_P = D.para(0, 0, '收全額、付成本，差額薄', MIN, { lh: 17 });
+  const VAL_P = D.para(0, 0, '顧問、上雲搬遷、維運、資安、資料與 AI 專案', MIN, { lh: 17 });
+  const RES_H = 36 + RES_P.h, VAL_H = 36 + VAL_P.h;
+  const MSP = { x: 238, y: 62, w: 184, h: 40 + RES_H + 10 + VAL_H + 12 };
+  const CLD = { x: 476, y: 74, w: 168, h: SIDE_H };
 
   function flow() {
     const g = [];
@@ -96,30 +108,28 @@
     g.push(part('cm_cust', frame(CUST.x, CUST.y, CUST.w, CUST.h)
       + R(CUST.x, CUST.y, 4, CUST.h, C.cust)
       + T(CUST.x + 14, CUST.y + 24, '終端客戶', 'lbl')
-      + ['製造業：ERP 與資料湖', '金融與電商：尖峰流量', '新創與遊戲：開機就計費'].map((s, i) =>
-        T(CUST.x + 14, CUST.y + 50 + i * 20, s, 'sub')).join('')
-      + T(CUST.x + 14, CUST.y + 126, '付的是「用了多少」', 'sub', null, `fill:${C.money}`)));
+      + D.para(CUST.x + 14, CUST.y + 50, CUST_T, SIDE_IN).svg
+      + D.para(CUST.x + 14, CUST.y + CUST.h - 12 - D.para(0, 0, '付的是「用了多少」', SIDE_IN).h + 18, '付的是「用了多少」', SIDE_IN, { style: `fill:${C.money}` }).svg));
 
     // 右：公有雲原廠（只寫服務名稱，不畫任何商標或包裝）
     g.push(part('cm_cloud', frame(CLD.x, CLD.y, CLD.w, CLD.h)
       + R(CLD.x, CLD.y, 4, CLD.h, C.cloud)
       + T(CLD.x + 14, CLD.y + 24, '公有雲原廠', 'lbl')
-      + ['AWS／Azure／GCP', '機器、儲存、頻寬', '照用量計價，牌價公開'].map((s, i) =>
-        T(CLD.x + 14, CLD.y + 50 + i * 20, s, 'sub')).join('')
-      + T(CLD.x + 14, CLD.y + 126, '大部分的錢最後流到這裡', 'sub', null, `fill:${C.cloud}`)));
+      + D.para(CLD.x + 14, CLD.y + 50, CLD_T, SIDE_IN).svg
+      + D.para(CLD.x + 14, CLD.y + CLD.h - 12 - D.para(0, 0, '大部分的錢最後流到這裡', SIDE_IN).h + 18, '大部分的錢最後流到這裡', SIDE_IN, { style: `fill:${C.cloud}` }).svg));
 
     // 中：MSP —— 兩條生意上下疊
     g.push(part('cm_msp', fx.glass(MSP.x, MSP.y, MSP.w, MSP.h, { fill: C.msp, cls: 'part', rx: 9 })
       + T(MSP.x + 14, MSP.y + 24, 'MSP（雲端代管業者）', 'lbl')));
-    g.push(part('cm_resale', R(MSP.x + 14, MSP.y + 40, MSP.w - 28, 46, 'var(--dg-step-f)', 'part', 6)
-      + R(MSP.x + 14, MSP.y + 40, 4, 46, C.resale)
+    const vy = MSP.y + 40 + RES_H + 10;
+    g.push(part('cm_resale', R(MSP.x + 14, MSP.y + 40, MSP.w - 28, RES_H, 'var(--dg-step-f)', 'part', 6)
+      + R(MSP.x + 14, MSP.y + 40, 4, RES_H, C.resale)
       + T(MSP.x + 24, MSP.y + 58, '轉售／代管（過手）', 'lbl')
-      + T(MSP.x + 24, MSP.y + 76, '收全額、付成本，差額薄', 'sub')));
-    g.push(part('cm_value', R(MSP.x + 14, MSP.y + 96, MSP.w - 28, 62, 'var(--dg-step-f)', 'part', 6)
-      + R(MSP.x + 14, MSP.y + 96, 4, 62, C.value)
-      + T(MSP.x + 24, MSP.y + 114, '加值服務', 'lbl')
-      + T(MSP.x + 24, MSP.y + 132, '顧問、上雲搬遷、維運、', 'sub')
-      + T(MSP.x + 24, MSP.y + 148, '資安、資料與 AI 專案', 'sub')));
+      + D.para(MSP.x + 24, MSP.y + 76, '收全額、付成本，差額薄', MIN, { lh: 17 }).svg));
+    g.push(part('cm_value', R(MSP.x + 14, vy, MSP.w - 28, VAL_H, 'var(--dg-step-f)', 'part', 6)
+      + R(MSP.x + 14, vy, 4, VAL_H, C.value)
+      + T(MSP.x + 24, vy + 18, '加值服務', 'lbl')
+      + D.para(MSP.x + 24, vy + 36, '顧問、上雲搬遷、維運、資安、資料與 AI 專案', MIN, { lh: 17 }).svg));
 
     /* 金流：三條光束共用一個光暈濾鏡（一個濾鏡元素）。
        進 18 粗、出 15 粗、留下 3 —— 比例是示意，不標任何百分比。*/
@@ -135,15 +145,17 @@
       + T(MSP.x + MSP.w / 2, MSP.y + MSP.h + 76, '＝毛利（轉售薄、加值厚）', 'sub', 'middle')));
 
     // 兩條光束的標籤：MSP 加寬之後左右只剩 56px，起點從 +10 收到 +5，四個字才不會碰到隔壁的框
-    g.push(T(CUST.x + CUST.w + 5, yIn - 16, '帳單全額', 'sub', null, `fill:${C.money}`));
-    g.push(T(MSP.x + MSP.w + 5, yOut - 16, '付給原廠', 'sub', null, `fill:${C.cloud}`));
+    const gapL = (CUST.x + CUST.w + MSP.x) / 2, gapR = (MSP.x + MSP.w + CLD.x) / 2;
+    g.push(T(gapL, yIn - 30, '帳單', 'sub', 'middle', `fill:${C.money}`) + T(gapL, yIn - 13, '全額', 'sub', 'middle', `fill:${C.money}`));
+    g.push(T(gapR, yOut - 30, '付給', 'sub', 'middle', `fill:${C.cloud}`) + T(gapR, yOut - 13, '原廠', 'sub', 'middle', `fill:${C.cloud}`));
     return g.join('');
   }
 
   /* ================================================================ ② 為什麼營收跟著用量走
      六根柱子＝客戶的雲端用量（示意，不是任何一家的實際數字），
      上面壓一條「轉售營收」的折線 —— 兩者同步；旁邊一條幾乎平的「加值服務」線做對照。*/
-  const BB = { x: 24, y0: 468, h: 84, w: 34, gap: 18 };
+  const GROW = MSP.h - 174;                          // ★ 2026-09-26：MSP 框照內容加高多少，下面這一段就整段往下推多少
+  const BB = { x: 24, y0: 468 + GROW, h: 84, w: 34, gap: 18 };
   const USE = [30, 38, 44, 55, 66, 80];
 
   function usage() {
@@ -167,6 +179,13 @@
       + T(BB.x + 320, BB.y0 - BB.h + 80, '　 「賺得多」不是同一件事', 'sub', null, `fill:${C.warn}`));
   }
 
+  // ★ 2026-09-26 覆蓋普查：下面那一框四句原本各一整行（最長伸出畫布 315px）→ 照最壞字寬斷行、框高照內容
+  const NET_T = ['IFRS 15 用「本人（principal）還是代理人（agent）」判斷該用哪一種：自己承擔主要履約責任與存貨／定價風險的用總額法，只是居中促成的用淨額法。',
+    '★ 這張圖不宣稱任何一家用哪一種 —— 查不到可引用的公司自述，判斷也要看每一份合約的條款。',
+    '實務上的看法：轉售占比高的時候，營收年增率會很漂亮但毛利率被往下稀釋；要同時看「營收」與「毛利金額」才讀得出真實的成長。',
+    '這三句是依公開會計準則寫的通則，不是任何一家公司的說法。'].map((t) => ({ t, style: /^★/.test(t) ? 'fill:var(--dg-warn)' : '' }));
+  const NET_P = D.para(0, 0, NET_T, 600);
+
   /* ================================================================ 章節 ①：總額法 vs 淨額法 */
   function areaNet() {
     const y0 = 560;
@@ -175,7 +194,7 @@
     return T(16, y0 - 12, '同一筆生意，帳上可以長得完全不一樣', 'hd')
       + part('cm_gross', frame(16, y0, 300, 190)
         + T(30, y0 + 24, '總額法（認列全額）', 'lbl')
-        + bar(30, y0 + 40, 260, '營收', C.money)
+        + R(30, y0 + 40, 260, 26, C.money, 'part', 5) + T(40, y0 + 57, '營收', 'sub', null, 'fill:var(--dg-ink)')   // ★ 原本標籤畫在長條右邊（x 300），伸出框 11px → 改寫在長條裡
         + bar(30, y0 + 84, 236, '成本', C.cloud)
         + bar(30, y0 + 128, 24, '毛利', C.value)
         + T(30, y0 + 170, '營收很大、毛利率很低', 'sub', null, `fill:${C.warn}`))
@@ -186,13 +205,9 @@
         + bar(346, y0 + 100, 24, '毛利', C.value)
         + T(346, y0 + 148, '營收很小、毛利率很高', 'sub', null, `fill:${C.warn}`)
         + T(346, y0 + 170, '同一筆生意、同樣的獲利金額', 'sub'))
-      + frame(16, y0 + 206, 628, 122)
+      + frame(16, y0 + 206, 628, 46 + NET_P.h)
       + T(30, y0 + 230, '所以看這一格要看什麼', 'lbl')
-      + ['IFRS 15 用「本人（principal）還是代理人（agent）」判斷該用哪一種：自己承擔主要履約責任與存貨／定價風險的用總額法，只是居中促成的用淨額法。',
-        '★ 這張圖不宣稱任何一家用哪一種 —— 查不到可引用的公司自述，判斷也要看每一份合約的條款。',
-        '實務上的看法：轉售占比高的時候，營收年增率會很漂亮但毛利率被往下稀釋；要同時看「營收」與「毛利金額」才讀得出真實的成長。',
-        '這三句是依公開會計準則寫的通則，不是任何一家公司的說法。'].map((s, i) =>
-          T(30, y0 + 252 + i * 18, s, 'sub', null, /^★/.test(s) ? `fill:${C.warn}` : '')).join('');
+      + D.para(30, y0 + 252, NET_T, 600).svg;
   }
 
   /* ================================================================ 章節 ②：三檔台股與沒回答的事 */
@@ -256,7 +271,7 @@
       ${T(16, 52, '① 一筆雲端帳單的路徑：線越粗＝金額越大', 'hd')}
       ${fx.shadows(`<rect x="${MSP.x + 4}" y="${MSP.y + 4}" width="${MSP.w}" height="${MSP.h}" rx="9"/>`)}
       ${flow()}
-      ${T(16, 356, '② 為什麼營收跟著客戶的雲端用量走', 'hd')}
+      ${T(16, 356 + GROW, '② 為什麼營收跟著客戶的雲端用量走', 'hd')}
       ${usage()}
 
       <!-- ================= 說明卡片（HTML；左欄＝客戶與轉售，右欄＝原廠與加值） ================= -->
