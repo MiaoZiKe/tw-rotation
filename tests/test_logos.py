@@ -277,8 +277,9 @@ def test_run_incremental_skips_fresh_and_refreshes_due(sandbox):
     (config.DATA / "logos" / "_index.json").write_text(json.dumps({"version": 1, "items": {
         "1111": {"status": "ok", "domain": "www.c1111.com", "fetched": "2026-09-01", "sha1": "a"},   # 25 天：不重抓
         "2222": {"status": "ok", "domain": "www.c2222.com", "fetched": "2026-06-01", "sha1": "b"},   # 117 天：重抓
-        "3333": {"status": "none", "domain": "www.c3333.com", "fetched": "2026-09-16"},              # 失敗 10 天：先不試
-        "4444": {"status": "none", "domain": "www.c4444.com", "fetched": "2026-08-01"},              # 失敗 56 天：再試
+        # 失敗 10 天、而且是用目前這一版策略判的：先不試（舊策略判的另有「立刻重試」規則，見下面的測試）
+        "3333": {"status": "none", "domain": "www.c3333.com", "fetched": "2026-09-16", "strategy": config.LOGO_STRATEGY},
+        "4444": {"status": "none", "domain": "www.c4444.com", "fetched": "2026-08-01", "strategy": config.LOGO_STRATEGY},  # 失敗 56 天：再試
         "5555": {"status": "ok", "domain": "www.old5555.com", "fetched": "2026-09-20", "sha1": "c"},  # 網域換了：重抓
     }}))
     calls = []
