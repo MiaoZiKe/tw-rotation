@@ -424,9 +424,38 @@
     backBtn.onclick = () => {
       drill = null; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);
       if (ctx.onBack) ctx.onBack();
     };
+    /* ★ 2026-09-26 晚（Andy：「點擊後出現位置跑掉，請處理」——全市場分頁點「族群漲跌幅」長條進到某族群個股之後，
+       整頁往左偏、左邊被切掉，標題只剩半截、分頁「全市場」的「全」不見）。
+       本機四種寬度（1440／1100／800／390）、開關事件抽屜、顯示真捲軸、盤中即時開關都重現不出 scrollX≠0，
+       所以不押寶在單一機制上，改成「換層級前後由這支把位置顧好」—— 不管是誰把頁面往旁邊帶，這裡都會拉回來：
+         ① 水平：整頁（window）與這塊的每一層祖先裡，**使用者本來就捲不動**（overflow-x hidden／clip）卻被捲了的，
+            scrollLeft 一律歸零。≤820px 時 body 是 overflow-x:hidden，會傳給整個視窗 —— 那種被程式捲走的頁面
+            沒有捲軸可以拉回來，就是「左邊被切掉而且回不來」的樣子。使用者自己能捲的框（overflow:auto）不動。
+         ② 垂直：個股層級的長條比族群層級矮（18 條 → 5 條），頁面一變短，瀏覽器會把捲動位置往上夾，
+            原本看得到的標題列（「← 回到族群」就在上面）可能被夾到頂欄底下。只有「點之前看得到、點之後被蓋住」時才補捲回原位。
+         ECharts 的 resize 在下一幀才發生（ResizeObserver），所以下一幀再檢查一次水平。*/
+    function keepPlace(fn) {
+      const head = host.querySelector('.gphead');
+      const t0 = head ? head.getBoundingClientRect().top : null;
+      fn();
+      const fixX = () => {
+        if (window.scrollX) window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' });
+        for (let a = host.parentElement; a; a = a.parentElement) {
+          if (!a.scrollLeft) continue;
+          const ox = getComputedStyle(a).overflowX;
+          if (ox === 'hidden' || ox === 'clip' || ox === 'visible' || a === document.body || a === document.documentElement) a.scrollLeft = 0;
+        }
+      };
+      fixX();
+      if (head && t0 != null) {
+        const t1 = head.getBoundingClientRect().top;
+        if (t0 >= 64 && t1 < 64) window.scrollBy({ top: t1 - t0, behavior: 'instant' });
+      }
+      requestAnimationFrame(fixX);
+    }
 
     // ---------------------------------------------------------------- 資料 → 兩張圖
     function build() {
@@ -586,7 +615,7 @@
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) {
-        const ph2 = parseFloat(pieEl.style.height) || pieEl.clientHeight;
+        const ph2 = pieEl.clientHeight || parseFloat(pieEl.style.height);   // 跟 paint 同一個口徑：真正的高度
         const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
         const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
         pi.setOption({
@@ -611,7 +640,7 @@
       if (drill) { if (d.code) A.goStock(d.code); return; }
       drill = d.group; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);        // 換層級前後把整頁的水平／垂直位置顧好（見 keepPlace）
       if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把選取狀態換成這個族群（剖析圖與關聯圖都吃它）
     }
 
@@ -737,7 +766,11 @@
            · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
            · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
          W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
-      const ph = parseFloat(pieEl.style.height) || h;
+      /* ★ 2026-09-26 晚：圓心要用**容器真正的高度**，不能用上面寫進 style 的那個值。
+         .gpgrid .chart 有 min-height:360px（窄畫面 320），個股層級只有 5 檔時 style 算出來是 236px，
+         容器實際卻是 360px —— 以前拿 236 的一半（118）當圓心，外半徑卻依 360 算，甜甜圈的上半截被切掉、整個偏上。
+         讀 clientHeight 會逼一次排版，但上面剛改過高度，這一次本來就躲不掉。*/
+      const ph = pieEl.clientHeight || parseFloat(pieEl.style.height) || h;
       const cy = Math.round(ph * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
@@ -761,6 +794,8 @@
       paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+      /* 兩張圖的容器剛改過高度：當場對齊一次，不等下一幀的 ResizeObserver —— 不然這一幀甜甜圈的外半徑還是舊高度算的 */
+      [[bi, barEl], [pi, pieEl]].forEach(([c, e]) => { if (c && e.clientHeight > 0 && (c.getHeight() !== e.clientHeight || c.getWidth() !== e.clientWidth)) c.resize(); });
       /* ⚠ 滑鼠**整個離開圖表**時 ECharts 發的是 `globalout`，不是 `mouseout`
          —— 只接 mouseout 的話，把滑鼠移到圖外面高亮會卡住不收（實測：描邊一直停在 3）。*/
       [[bi, 'bar'], [pi, 'pie']].forEach(([c]) => {

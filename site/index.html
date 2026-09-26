@@ -1541,7 +1541,12 @@ a.lk.sm{font-size:12px;font-weight:500}
 .gplegend .lg .nm{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .gplegend .lg .pc{flex:none;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--ink)}
 .gpgrid .chart{min-height:360px;min-width:0;overflow:hidden;flex:1 1 auto}
-.gphead{gap:10px;flex-wrap:wrap;align-items:flex-start}
+.gphead{gap:10px;flex-wrap:wrap;align-items:flex-start;min-width:0;max-width:100%}
+/* 2026-09-26 晚（「點擊後位置跑掉」）：族群名／即時提示再長都只准往下折行，不准把這塊撐得比卡片寬
+   （撐寬就是整頁長出橫向捲軸、可以被帶著往左偏的起點）。圖表那一格用 clip：畫布是寫死像素寬的，
+   縮窄的那一瞬間會比格子寬，clip 只裁掉那一點、而且不會變成「可以被程式捲走」的捲動框（hidden 會）。*/
+.gphead h4,.gpnote,#gpFocus{overflow-wrap:anywhere;min-width:0}
+.gpgrid{overflow-x:clip}
 .gphead h4{font-size:15px}
 .gplive{display:inline-flex;gap:6px;align-items:center}
 .gpnote{margin-top:8px}
