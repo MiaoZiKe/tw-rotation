@@ -529,8 +529,10 @@
        不寫進 localStorage：它是「這一眼要看哪一段」的暫時聚焦，不是篩選條件（篩選在抽屜裡，那個才會記住）。*/
     let chain = LS.get('flow.chain', ''), pk = LS.get('flow.period', periods[0] && periods[0].key), sel = null, quad = null, quadNew = false;
     if (!periods.some(p => p.key === pk)) pk = periods[0] && periods[0].key;
-    box.innerHTML = `<div class="mhead"><h3>資金輪動</h3><span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button>`
-      + `<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></div>`
+    /* ★ 2026-09-26（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+       改前「?」排在這一列最右邊（篩選鈕後面）→ 改後跟總覽一樣住在標題「資金輪動」文字的右側，彈窗標題才讀得到卡片名稱。*/
+    box.innerHTML = `<div class="mhead"><h3>資金輪動<button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3>`
+      + `<span class="sp"></span><button type="button" class="mfilt" id="mFlowFilt"></button></div>`
       + `<div class="mrhost" id="mRadarFlow"></div><div class="mfhost"></div>`
       + `<div class="mhead sm"><h3>資金排行</h3><small id="mRankSub"></small><span class="sp"></span></div><ul class="mrank" id="mRank"></ul>`;
     const draw = () => {

@@ -1540,7 +1540,8 @@
             <optgroup label="分 K（今天；加權 15／30 分含近 60 天）">${TFS.map(n => `<option value="${n}">${n} 分</option>`).join('')}</optgroup>
             <optgroup label="歷史（1 小時／4 小時由 15 分 K 合成）">${HIST.map(h => `<option value="${h.id}">${h.label}</option>`).join('')}</optgroup>
           </select></label>
-        <button class="howbtn pop" data-how="m3" aria-label="大盤三張圖怎麼看">?</button>
+        <button class="howbtn pop" data-how="m3" data-ttl="大盤三張圖" aria-label="大盤三張圖怎麼看">?</button>
+        <!-- 2026-09-26：這顆不在標題裡，data-ttl 給彈窗標題（改前彈窗標題是預設的「說明」，全站問號普查抓到的） -->
         <span class="note" id="m3Note" hidden></span>
         <div class="m3-kpis" id="m3Kpis"></div>
       </div>

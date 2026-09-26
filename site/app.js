@@ -6791,6 +6791,9 @@
       document.body.append(back, pop);
       back.addEventListener('click', () => { if (howPop.close) howPop.close(); });
       document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && howPop.close) howPop.close(); });
+      /* ★ 2026-09-26：換頁（上一頁／貼網址／點連結）時說明一律收掉。產業鏈頁的「?」改成跳出式之後，
+         開著說明按上一頁，頁面整段重畫、浮層卻還蓋在新頁面上（背景變暗、什麼都點不到）。*/
+      window.addEventListener('hashchange', () => { if (howPop.close) howPop.close(); });
     }
     const wasSame = howPop.cur === box && !box.hidden;
     if (howPop.close) howPop.close();
