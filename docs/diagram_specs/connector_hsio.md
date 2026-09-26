@@ -602,3 +602,36 @@ ai_interconnect:
 | 2026-09-21 | pcb-substrate-analyst（規格書作者） | 待審，**而且 §0-C 要先拍板才能開畫** | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**§0-C 是這份規格書最需要決定的一件事**：任務單指定的掛點 `connector_ind`，它自己的 `note` 寫著「不是資料中心高速料號」，而這張圖從頭到尾講的就是資料中心高速料號 —— 建議改掛 `ai_interconnect`，三個選項與代價已列出；另附一條會影響這個決定的查證（媒體整理說 6197／3605 的雲端伺服器營收占比約 45%／27%，與該族群 note 對不起來，信心中）。**3D 的判斷與「什麼條件才回頭加」寫在 §0-A**，並指出最強的 3D 候選（機櫃空間關係）**已經有既有的 `ai_server` 鏈層級 3D 場景在做**，再做就是重複。**跟 `switch_board.md` 的分工寫在 §0-D**（那張已經有光模組籠與飛越纜線兩個零件），並列出四樣不准重複畫的東西。**六條來源不足或打架已記錄**：B1（22/4.5 吋單一原廠來源 → 可寫但必須標前提與來源）、B2（CEM 5.0/6.0 金手指長度沒對到官方規範 → 不寫數字）、B3（法向力公克數是慣用值 → 不寫成規範）、B4（盲插導引柱先接觸查不到規範條文 → 只寫功能性敘述）、B5（NVL72 的 5000 條銅纜等數字主要出處是 X 貼文 → 只畫結構不寫數字）、B6（下一代 MGX 走「無線纜」純 PCB 化，與本圖主論點表面矛盾 → 這一版不畫，建議交 `ai-server-analyst` 專查）。**六條查不到**列在 §C。**§7-D2 記了這張圖最嚴重的族群／環節落差**：`ai_interconnect` 四家裡只有貿聯在 `supply_chain.yaml`，`connector_ind` 與 `connector_auto` 七家全部不在，點任何連接器零件只會篩出一家 |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26，3D 細緻化第二批 C 組，場景 `ai_interconnect`）
+
+零件清單、編號、位置、爆炸位移都沒動。改到的建造函式全部是本場景專用（`hsCage`／`hsTongue`／`hsPin`／`hsFly`／`hsSlot`），
+另外共用交換器那張的 `swPads`（接點排法）與 `swModule` 的 `shell` 選項（光模組只畫外殼，符合本檔 §2「不畫內部光學」）。
+
+| 代號 | 零件 | 補了什麼 | 依據 |
+|---|---|---|---|
+| C1 | 屏蔽金屬籠 | 籠子**最裡面補上母端連接器**（塑膠座＋水平插槽＋槽口上下兩排彈片）；EMI 指片改成籠口**四邊一整圈**；籠頂改成 §3-D 的順序：**底板 → 鰭片 → 彈簧夾**（騎乘式散熱片） | K1、§7-A6 |
+| C2 | 金手指（★ 結構更正） | 以前畫成一片**塑膠舌片**（像 USB-C 母座）。OSFP／QSFP 的金手指是做在**光模組尾端那一小片電路板（paddle card）**上，插進籠子裡的母端插槽 —— 所以改成綠色板材＋上下兩面接點；排法「地、訊、訊、地」，**接地墊比訊號墊長、更靠近板緣**；板緣倒角 | K2、K3；2D 圖那一格本來就寫「金手指是公端」，3D 改完才跟 2D 一致 |
+| C3 | 壓接針 | 從「方棒＋兩片薄壁」改成真的**針眼（eye-of-needle）**外形：針身 → 肩部 → 兩臂夾出長圓孔的彈性段 → 收尖的導入端（一片沖壓外形擠出，全排一個幾何） | K4 |
+| C4 | 飛越纜線 | 剖開那一端補齊 twinax 層次：兩根導體**各包介電** → 一起被**鋁箔遮蔽**包住 → 遮蔽內一根**裸 drain 接地線** → 外被；四條線纜併成一個 mesh；兩端連接器座加金屬殼與拉扣 | K5、§7-A1 |
+| C5 | 母端插槽 | 溝裡補**防呆隔條**（靠一端）；彈片改成真的**懸臂**（根部貼殼壁 → 斜臂伸進溝裡 → 前端凸點）；殼底一排焊腳 | §2 C4／C5、§7-A4 |
+| — | 插進籠子的光模組 | 只畫外殼：鰭片頂、MPO 接口、拉環（內部 DSP／雷射那些是交換器板卡那張的事，本檔 §2 明講這張不畫） | §2「不要出現的東西」 |
+
+**跟著幾何改的文字（兩句，其餘卡片文字沒動）**：
+- 副標：「籠子裡是塑膠舌片，舌片的上下兩面鋪著金手指」→「籠子最裡面是母端連接器，光模組尾端那一小片電路板（paddle card）插進它的插槽，板子上下兩面鋪著金手指」。
+- `gold_finger` 零件名：「塑膠舌片 ＋ 舌片上下兩面的金手指」→「模組板邊（paddle card）＋ 上下兩面的金手指」；
+  說明第一句補「做在光模組尾端那一小片電路板上」「接地腳比訊號腳長 —— 插進去時接地先接觸、訊號最後」。
+
+> 證據等級：全部是 **WebSearch 摘要**（`WebFetch` 被擋），沒有人讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| K1 | OSFP 規格：模組內的電路板（module PCB／paddle card）上的接點與母端連接器對接；接點是**上下兩排**，對到連接器的兩排彈片 | 中高（MSA 規格文件的多個版本） | <https://www.osfpmsa.org/assets/pdf/OSFP_Module_Specification_Rev4_1.pdf>、<https://osfpmsa.org/assets/pdf/OSFP_Module_Specification_Rev5_0.pdf> |
+| K2 | 同 K1：金手指在模組的電路板上（公端），籠子裡的是母端連接器 | 中高 | 同 K1；另 <https://fluxlight.com/content/Tech-Docs/OSFP%20Module%20Specification.html> |
+| K3 | QSFP／QSFP-DD 的接點順序：接地先、電源次、訊號最後（靠接點長短） | 中高（兩份規格） | <https://www.gigalight.com/downloads/standards/sff-8662.pdf>、<http://www.qsfp-dd.com/wp-content/uploads/2022/03/QSFP-DD-Hardware-Rev6.2.pdf> |
+| K4 | 針眼式壓接針：底座、尖端、中間一段由兩條可變形臂夾出開口的彈性段；肩部擋住孔口不讓針整根穿過；壓入時彈性段變形、靠持續的法向力維持接觸 | 中高（多件專利一致） | <https://patents.google.com/patent/US10547128B1>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9276338>、<https://patents.google.com/patent/US7377823B2/en> |
+| K5 | twinax：兩根訊號導體（正負一對）各自包介電 → 鋁箔（鋁箔聚酯帶）遮蔽 → drain 線（通常裸線，沿線多點碰到遮蔽）→ 外被 | 高（兩份線材規格＋技術文） | <https://connectorsupplier.com/what-are-twinax-cables/>、<https://www.mouser.com/pdfDocs/other-ccs-trom-twinax-triax-cable-assemblies.pdf>、<https://datasheet.octopart.com/89182-0101000-Belden-datasheet-99357.pdf> |
+
+⚠ 仍是示意：接點對數、彈片數、指片數都比實物少；外形刻意畫成通用形狀，不照任何一家的產品（AGENTS §11 紅線、本檔 §2）。
