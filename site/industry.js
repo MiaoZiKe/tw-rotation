@@ -424,9 +424,38 @@
     backBtn.onclick = () => {
       drill = null; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);
       if (ctx.onBack) ctx.onBack();
     };
+    /* ★ 2026-09-26 晚（Andy：「點擊後出現位置跑掉，請處理」——全市場分頁點「族群漲跌幅」長條進到某族群個股之後，
+       整頁往左偏、左邊被切掉，標題只剩半截、分頁「全市場」的「全」不見）。
+       本機四種寬度（1440／1100／800／390）、開關事件抽屜、顯示真捲軸、盤中即時開關都重現不出 scrollX≠0，
+       所以不押寶在單一機制上，改成「換層級前後由這支把位置顧好」—— 不管是誰把頁面往旁邊帶，這裡都會拉回來：
+         ① 水平：整頁（window）與這塊的每一層祖先裡，**使用者本來就捲不動**（overflow-x hidden／clip）卻被捲了的，
+            scrollLeft 一律歸零。≤820px 時 body 是 overflow-x:hidden，會傳給整個視窗 —— 那種被程式捲走的頁面
+            沒有捲軸可以拉回來，就是「左邊被切掉而且回不來」的樣子。使用者自己能捲的框（overflow:auto）不動。
+         ② 垂直：個股層級的長條比族群層級矮（18 條 → 5 條），頁面一變短，瀏覽器會把捲動位置往上夾，
+            原本看得到的標題列（「← 回到族群」就在上面）可能被夾到頂欄底下。只有「點之前看得到、點之後被蓋住」時才補捲回原位。
+         ECharts 的 resize 在下一幀才發生（ResizeObserver），所以下一幀再檢查一次水平。*/
+    function keepPlace(fn) {
+      const head = host.querySelector('.gphead');
+      const t0 = head ? head.getBoundingClientRect().top : null;
+      fn();
+      const fixX = () => {
+        if (window.scrollX) window.scrollTo({ left: 0, top: window.scrollY, behavior: 'instant' });
+        for (let a = host.parentElement; a; a = a.parentElement) {
+          if (!a.scrollLeft) continue;
+          const ox = getComputedStyle(a).overflowX;
+          if (ox === 'hidden' || ox === 'clip' || ox === 'visible' || a === document.body || a === document.documentElement) a.scrollLeft = 0;
+        }
+      };
+      fixX();
+      if (head && t0 != null) {
+        const t1 = head.getBoundingClientRect().top;
+        if (t0 >= 64 && t1 < 64) window.scrollBy({ top: t1 - t0, behavior: 'instant' });
+      }
+      requestAnimationFrame(fixX);
+    }
 
     // ---------------------------------------------------------------- 資料 → 兩張圖
     function build() {
@@ -586,7 +615,7 @@
          反過來滑「其他」時，長條那邊沒有單一對應，所以只亮圓餅（既有行為，不用特判）。*/
       const pieHi = hi == null ? null : (pieTopNames.includes(hi) || hi === PIE_OTHER ? hi : PIE_OTHER);
       if (pi) {
-        const ph2 = parseFloat(pieEl.style.height) || pieEl.clientHeight;
+        const ph2 = pieEl.clientHeight || parseFloat(pieEl.style.height);   // 跟 paint 同一個口徑：真正的高度
         const tot = pieData.reduce((s2, d) => s2 + (d.value || 0), 0) || 1;
         const hd = pieHi ? pieData.find(d => d.name === pieHi) : null;
         pi.setOption({
@@ -611,7 +640,7 @@
       if (drill) { if (d.code) A.goStock(d.code); return; }
       drill = d.group; hi = null;
       if (live) { q = null; liveTick(); }
-      paint();
+      keepPlace(paint);        // 換層級前後把整頁的水平／垂直位置顧好（見 keepPlace）
       if (ctx.onGroup) ctx.onGroup(d.gid);      // 產業鏈頁：順手把選取狀態換成這個族群（剖析圖與關聯圖都吃它）
     }
 
@@ -737,7 +766,11 @@
            · 標籤**不再用引線拉到圓外**，改成圖下方兩欄的圖例（HTML，#gpLegend），名字不會跟引線搶位置
            · 滑到扇區：外擴 4px（emphasis.scaleSize），動畫 200ms
          W3-8 的「中心數字是真的算出來的」「只標前五大＋其他」「連動到其他」全部照舊。*/
-      const ph = parseFloat(pieEl.style.height) || h;
+      /* ★ 2026-09-26 晚：圓心要用**容器真正的高度**，不能用上面寫進 style 的那個值。
+         .gpgrid .chart 有 min-height:360px（窄畫面 320），個股層級只有 5 檔時 style 算出來是 236px，
+         容器實際卻是 360px —— 以前拿 236 的一半（118）當圓心，外半徑卻依 360 算，甜甜圈的上半截被切掉、整個偏上。
+         讀 clientHeight 會逼一次排版，但上面剛改過高度，這一次本來就躲不掉。*/
+      const ph = pieEl.clientHeight || parseFloat(pieEl.style.height) || h;
       const cy = Math.round(ph * 0.5);
       A.chart(pieEl, {
         tooltip: { ...A.tip, trigger: 'item', formatter: p => {
@@ -761,6 +794,8 @@
       paintLegend();
       const bi = window.echarts && echarts.getInstanceByDom(barEl);
       const pi = window.echarts && echarts.getInstanceByDom(pieEl);
+      /* 兩張圖的容器剛改過高度：當場對齊一次，不等下一幀的 ResizeObserver —— 不然這一幀甜甜圈的外半徑還是舊高度算的 */
+      [[bi, barEl], [pi, pieEl]].forEach(([c, e]) => { if (c && e.clientHeight > 0 && (c.getHeight() !== e.clientHeight || c.getWidth() !== e.clientWidth)) c.resize(); });
       /* ⚠ 滑鼠**整個離開圖表**時 ECharts 發的是 `globalout`，不是 `mouseout`
          —— 只接 mouseout 的話，把滑鼠移到圖外面高亮會卡住不收（實測：描邊一直停在 3）。*/
       [[bi, 'bar'], [pi, 'pie']].forEach(([c]) => {
@@ -1203,6 +1238,8 @@
       const listOn = (partHi || partSel) ? (segFilter ? [segFilter] : []) : segsOn;
       $$('#relList .rlseg', el).forEach(c => c.classList.toggle('on', listOn.includes(c.dataset.seg)));
       { const rm = $('#relMain', el); if (rm) rm.classList.toggle('hassel', listOn.length > 0); }
+      /* 說明卡浮在圖上（2026-09-26 晚）：開關狀態定了之後，依被點的那一格決定貼左還是貼右（見 placeRelCol） */
+      placeRelCol(el);
       /* 退版之後「選起來」的視覺回到分層圖的公司卡與環節卡清單上，
          由 highlightSegments 一次做完（它同時處理剖析圖、分層圖、環節卡）。*/
       /* 環節詳情 `#segBox` ＝ Andy 說的「點擊後才會跳出的下拉清單」：
@@ -1434,6 +1471,7 @@
            .mapfold 讓清單改成佔滿整列、用自己的高度（上限 70vh）—— 不然收合圖會連清單一起收成 0。*/
         const rm = $('#relMain', el); if (rm) rm.classList.toggle('mapfold', !relOpen);
         if (foldRel) { foldRel.textContent = relOpen ? '收合圖 ▴' : '展開關聯圖 ▾'; foldRel.classList.toggle('cyan', !relOpen); }
+        placeRelCol(el);        // 圖收起來 → 卡片回到文件流（清掉浮動座標）；展開 → 重新貼回圖上
       };
       if (foldRel) foldRel.onclick = () => {
         relOpen = !relOpen;
@@ -1469,6 +1507,10 @@
       let ro = null;
       if (window.ResizeObserver && mapHost) { ro = new ResizeObserver(reflow); ro.observe(mapHost); }
       window.addEventListener('resize', reflow);
+      /* 圖在窄畫面會左右滑（SVG 有 min-width）：滑了之後被點的那一欄在畫面上的位置變了，說明卡要跟著重新挑邊，
+         不然滑過去就變成蓋在那一欄上面。一幀最多算一次。*/
+      if (mapHost) { let pq = false; mapHost.addEventListener('scroll', () => {
+        if (pq) return; pq = true; requestAnimationFrame(() => { pq = false; if (mapHost.isConnected) placeRelCol(el); }); }, { passive: true }); }
     }
     if (hasSlots && sc) {
       /* 手機（<640px）預設把剖析圖收起來。
@@ -2713,6 +2755,70 @@
   }
   /* 關聯圖是不是桌機的「下拉＋圖（＋右欄）」版面。手機（≤820px）照舊是一排色標。*/
   const relListMode = () => { try { return window.matchMedia('(min-width:821px)').matches; } catch (e) { return false; } };
+  /* ★ 2026-09-26 晚（Andy：「點選族群（環節）時，不會動到關聯圖版面，例如我點最右邊的族群，資訊會顯示在左側，同理顯示右側」）：
+     關聯圖的說明卡（.relcol：選中環節的族群清單＋公司資訊欄）浮在圖上，這支決定它貼哪裡。
+     規則：
+       ① 被點的環節（那一欄的標題列）中心在圖框右半邊 → 卡片貼圖框**左緣**；在左半邊 → 貼**右緣**。
+          環節欄寬 136～200px，卡片 260～320px，圖框至少 800px，所以「放到另一半」一定不會蓋到那一欄。
+       ② 垂直對齊被點的東西（點公司 → 那張公司卡；點環節 → 環節標題），再夾進圖框的可視範圍裡；
+          卡片高度上限＝圖框高度（最多 560px 或視窗高減 120），內容多就在卡片裡自己捲。
+       ③ 圖框太窄、兩邊都擺不下（821～900px、或圖本身在左右滑）→ 改放在那一欄的**上方或下方**：
+          先試那一格整欄（標題＋底下的公司）的下面，不夠再試標題上面，都不夠就放到圖框下緣之外。
+          寬度一律夾在圖框內，所以不會撐出橫向捲軸。
+     量的是畫面座標（getBoundingClientRect）再換成 .relmain 的座標 —— SVG 有 viewBox 縮放，直接讀 SVG 座標會差一個比例。
+     驗收用：data-side＝left／right／below／above／under（貼哪裡）、data-seg＝以哪一格為準。*/
+  function placeRelCol(root) {
+    const rm = root && root.querySelector('#relMain'); if (!rm) return;
+    const col = rm.querySelector('.relcol'), stick = rm.querySelector('.relstick'); if (!col || !stick) return;
+    const reset = () => { col.style.left = ''; col.style.top = ''; col.style.width = ''; stick.style.removeProperty('--rc-h');
+      delete col.dataset.side; delete col.dataset.seg; };
+    const map = rm.querySelector('#chainMap');
+    const coBox = document.getElementById('coBox');
+    const open = rm.classList.contains('hassel') || !!(coBox && rm.contains(coBox));
+    if (!relListMode() || rm.classList.contains('mapfold') || !open || !map || map.hidden) { reset(); return; }
+    const R = rm.getBoundingClientRect(), M = map.getBoundingClientRect();
+    if (!(R.width > 0) || !(M.width > 0)) { reset(); return; }
+    // 以誰為準：開著公司資訊欄 → 那家公司（與它的環節）；否則 → 右欄亮著的那一格
+    const coEl = coBox && coBox.dataset.co ? map.querySelector(`.co[data-id="${coBox.dataset.co}"]`) : null;
+    const seg = (coEl && coEl.dataset.segment) || ((rm.querySelector('#relList .rlseg.on') || { dataset: {} }).dataset.seg);
+    const tEl = seg ? map.querySelector(`.segtitle[data-seg="${seg}"]`) : null;
+    const T = tEl ? tEl.getBoundingClientRect() : (coEl ? coEl.getBoundingClientRect() : null);
+    const pad = 8, gap = 10;
+    // 圖框的可視範圍（扣掉圖自己的捲軸），換成 .relmain 的座標
+    const fL = M.left - R.left + pad, fR = M.left - R.left + map.clientWidth - pad;
+    const fT = M.top - R.top + pad, fB = M.top - R.top + map.clientHeight - pad;
+    const w = Math.round(Math.max(200, Math.min(fR - fL, Math.max(260, Math.min(320, R.width * 0.26)))));
+    const maxH = Math.round(Math.max(180, Math.min(fB - fT, 560, window.innerHeight - 120)));
+    col.style.width = w + 'px';
+    stick.style.setProperty('--rc-h', maxH + 'px');
+    const h = col.offsetHeight || 200;
+    col.dataset.seg = seg || '';
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    if (!T) { col.style.left = Math.round(fR - w) + 'px'; col.style.top = Math.round(fT) + 'px'; col.dataset.side = 'right'; return; }
+    const sL = T.left - R.left, sR = T.right - R.left, mid = (sL + sR) / 2;
+    const ar = (coEl || tEl).getBoundingClientRect();
+    const aTop = ar.top - R.top - 4;
+    const yIn = Math.round(clamp(aTop, fT, Math.max(fT, fB - h)));
+    const fitsL = fL + w <= sL - gap, fitsR = fR - w >= sR + gap;
+    const want = mid > (fL + fR) / 2 ? 'left' : 'right';
+    const side = want === 'left' ? (fitsL ? 'left' : (fitsR ? 'right' : null)) : (fitsR ? 'right' : (fitsL ? 'left' : null));
+    if (side) {
+      col.style.left = Math.round(side === 'left' ? fL : fR - w) + 'px';
+      col.style.top = yIn + 'px';
+      col.dataset.side = side;
+      return;
+    }
+    // ③ 兩邊都擺不下：放在那一欄的上方或下方（整欄＝標題＋它底下的公司卡／標籤）
+    let segB = T.bottom;
+    map.querySelectorAll(`.co[data-segment="${seg}"]`).forEach(c => { const r = c.getBoundingClientRect(); if (r.height > 0) segB = Math.max(segB, r.bottom); });
+    const x = Math.round(clamp(mid - w / 2, fL, Math.max(fL, fR - w)));
+    const below = segB - R.top + gap, above = T.top - R.top - gap - h;
+    let y, where;
+    if (below + h <= fB) { y = below; where = 'below'; }
+    else if (above >= fT) { y = above; where = 'above'; }
+    else { y = M.top - R.top + map.offsetHeight + gap; where = 'under'; }   // 圖框下緣之外（仍是覆蓋層，不推版面）
+    col.style.left = x + 'px'; col.style.top = Math.round(y) + 'px'; col.dataset.side = where;
+  }
   /* 下拉的開合。點外面、按 Esc、選好一格都會收起來；只在第一次掛全站的監聽器（換鏈不會一路疊上去）。*/
   let segDDWired = false;
   function wireSegDD(root) {
@@ -3170,7 +3276,12 @@
        `min-width` 留著 —— 容器真的太窄（390px）時寧可讓這個框自己左右滑，
        也不要把 12.5px 的字縮到 5px。手機的 Default 畫面本來就是下面那份環節卡清單。*/
     const empty = nEdge0 ? '' : '<div class="mapempty">此鏈沒有可畫的上下游關係 —— supply_chain.yaml 還沒有這條鏈公司之間的具名供貨關係，下面只列出各環節有哪些公司（每張卡右上的「?」就是這個意思）。</div>';
-    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" data-fold="all">全部收合</button><button type="button" data-fold="none">全部展開</button><span class="sub">收合＝每個環節只留個股標籤；點環節標題右邊的 ▸／▾ 單獨切換</span></div>` : '';
+    /* ★ 2026-09-26 晚（Andy：「收合 展開合併」）：「全部收合」「全部展開」兩顆鈕合併成**一顆切換鈕**。
+       兩顆並排時永遠有一顆是「按了沒反應」的（已經全收了還能按全收），使用者要先讀懂現在是哪個狀態才知道該按哪顆。
+       現在鈕上只寫「按下去會發生的那件事」：全部展開中 → 「全部收合」；只要有任何一個環節收著 → 「全部展開」。
+       data-fold 跟著寫「按下去要變成什麼」（all＝全收、none＝全展），tw.chainFold 的存法一個字都沒改。*/
+    const anyFolded = segs.some(s => (pos[s.id] && pos[s.id].list.length) && isFolded(s.id));
+    const foldBar = foldOn && cos.length ? `<div class="foldbar"><button type="button" class="foldtg" data-fold="${anyFolded ? 'none' : 'all'}" title="${anyFolded ? '把每個環節都展開成一檔一張卡' : '把每個環節都收成個股標籤'}">${anyFolded ? '全部展開' : '全部收合'}</button><span class="sub">收合＝只留個股標籤；▸／▾ 可單獨切換</span></div>` : '';
     host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;min-width:${Math.min(W, 860)}px;display:block">${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
@@ -3205,6 +3316,7 @@
     const redraw = () => { drawChainMap(host, sc, chainId, im, handlers); if (handlers && handlers.onFold) handlers.onFold(); };
     $$('.segfold', host).forEach(n => n.onclick = (ev) => { ev.stopPropagation();
       const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
+    // 切換鈕：data-fold 就是「按下去要變成的狀態」（畫的時候依目前狀態寫好），清掉逐環節的例外
     $$('.foldbar button', host).forEach(b => b.onclick = () => { chainFoldSet(chainId, { def: b.dataset.fold === 'all', seg: {} }); redraw(); });
     $$('.segtitle', host).forEach(n => n.onclick = () => handlers.onSegment && handlers.onSegment(n.dataset.seg));
     /* 把目前這檔的卡片捲進視野 —— 但**只捲關聯圖自己那個框**，不准動到整頁。
