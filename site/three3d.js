@@ -192,7 +192,7 @@
            就近由載板上的電容頂著 —— 這是「板子上真的有被動元件」最基本的一件事。
            `mlccchip` 的識別特徵是端電極包住端部五個面，轉到背面看得到。*/
         { seg: 'passive_comp', part: 'icp_decap', name: '載板正面的去耦電容', note: '晶粒一瞬間抽大電流，等主機板送電來不及，由這排電容就近補；端電極包住端部五個面',
-          kind: 'mlccchip', box: [2.6, 1.1, 1.5], at: [0, 3.55, 14.5], n: 6, gap: 4.4, axis: 'x',
+          kind: 'mlccchip', box: [2.6, 1.1, 1.5], at: [0, 3.55, 13.9], n: 6, gap: 4.4, axis: 'x',
           codes: ['2327', '2492', '3026', '6173'], chipnote: '做 MLCC 的那幾家（不在半導體鏈的環節名單上）' },
         { seg: 'passive_comp', part: 'icp_lsc', name: '背面去耦電容 LSC', note: '正面擺不下就往背面擺，夾在 BGA 球陣列中間；代價是那一塊的錫球要讓位',
           kind: 'mlccchip', box: [2.6, 1.0, 1.5], at: [0, -0.5, 6], n: 3, gap: 5.2, axis: 'x', ex: [0, -3, 0],
@@ -200,13 +200,13 @@
         /* ★ 2026-09-22 新增：兩層接點。box 的高度 0.9 vs 0.55 刻意差一倍 ——
            2D 整張圖的靈魂就是「接點由下往上一路變小」，3D 不表達出來就等於少了一半。*/
         { seg: 'adv_pkg', part: 'icp_c4', name: 'C4 凸塊', note: '接「載板 ↔ 中介層」，節距 150–200 µm 級；迴焊之後塌成鼓形',
-          kind: 'bump', box: [36, 0.9, 26], at: [0, 3.45, 0], codes: ['2330', '3711'], ex: [0, 3, 0] },
+          kind: 'bump', v: 'c4', box: [36, 0.9, 26], at: [0, 3.45, 0], codes: ['2330', '3711'], ex: [0, 3, 0] },
         { seg: 'adv_pkg', part: 'icp_interposer', alias: ['icp_rdl'], name: '中介層：有機重佈線（CoWoS-L）', note: '2026 主力是 L 不是 S：有機 RDL ＋ 局部矽橋，不是一整片矽中介層',
           kind: 'rdl', box: [36, 1.6, 26], at: [0, 4.7, 0], codes: ['2330', '3711'], mat: 'organic', ex: [0, 6, 0] },
         { seg: 'adv_pkg', part: 'icp_cowos_l', name: 'LSI 局部矽橋', note: '只埋在兩顆晶粒的交界正下方，負責 die-to-die 的高密度連線 —— 要高密度的地方才用到矽',
           kind: 'bridge', box: [6, 1, 10], at: [0, 5.1, 0], n: 2, gap: 12, axis: 'x', codes: ['2330', '3711'], mat: 'si', ex: [0, 6, 0] },
         { seg: 'adv_pkg', part: 'icp_ubump', name: '微凸塊 µbump', note: '接「中介層 ↔ 晶粒」，銅柱＋錫帽，節距 30–60 µm 級 —— 比下面的 C4 小一個數量級',
-          kind: 'bump', box: [30, 0.55, 22], at: [0, 5.85, 0], codes: ['2330', '3711'], ex: [0, 9, 0] },
+          kind: 'bump', nx: 30, nz: 22, keep: [[0, 0, 14, 14], [-13, 0, 7, 11], [13, 0, 7, 11]], box: [30, 0.55, 22], at: [0, 5.85, 0], codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'foundry', part: 'icp_die', name: 'GPU 晶粒（SoIC 堆疊）', note: '先 SoIC 混合鍵合疊兩顆（銅對銅、無凸塊），再進 CoWoS-L；四周那一圈空白是切割道',
           kind: 'die', box: [14, 2.4, 14], at: [0, 7.4, 0], ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_soic', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，銅墊直接對銅墊，中間沒有任何凸塊',
@@ -214,17 +214,17 @@
         { seg: 'hbm', part: 'icp_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）；貼著晶粒放，線越短越省電',
           kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_uf', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；側面會爬出一圈圓角。膠的材料以日商為主',
-          box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, mat: 'glass', codes: ['2330', '3711'], ex: [0, 9, 0] },
+          kind: 'ufill', box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, mat: 'glass', codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'adv_pkg', part: 'icp_stiff', name: 'Stiffener 補強環', note: '圍在載板邊緣的一圈金屬框，大尺寸封裝防翹曲',
-          box: [44, 3.4, 3], at: [0, 4.7, 0], n: 2, gap: 31, axis: 'z', codes: ['2330', '3711'], mat: 'metal' },
+          kind: 'stiffring', box: [44, 3.4, 34], ring: 2.2, at: [0, 4.7, 0], codes: ['2330', '3711'], mat: 'metal' },
         /* ★ 2026-09-21 更正：以前掛 `osat_test`，那是**封測服務廠**（日月光、力成、京元電、矽格…）。
            做探針卡與測試座的是 `test_interface`（6515 穎崴、6223 旺矽、6510 中華精測、6683 雍智）——
            **設備耗材 ≠ 封測服務**，這正是 AGENTS 半導體鏈那節第 3 條點名的錯。
            掛錯的後果不是「少列幾家」，是**點下去列出一批不做這個東西的公司**。 */
         { seg: 'test_interface', part: 'icp_probe', name: '探針卡 / 測試座', note: 'CP 晶圓測試與 FT 成品測試；AI 晶片測試時間長，是良率成本大宗',
           kind: 'probe', box: [10, 1.2, 10], at: [26, 2, 18], mat: 'cer' },
-        { seg: 'osat_test', part: 'icp_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板；上蓋的腳踩在載板邊緣',
-          kind: 'lid', box: [40, 2.2, 30], at: [0, 12.6, 0], ghost: true, mat: 'glass', ex: [0, 20, 0] },
+        { seg: 'osat_test', part: 'icp_lid', name: '散熱上蓋 + TIM', note: 'TIM1 在晶粒↔上蓋、TIM2 在上蓋↔冷板；上蓋四周的裙邊踩在載板邊緣的補強環上（兩件式：先黏補強環、再黏上蓋）',
+          kind: 'lid', box: [40, 2.2, 30], drop: 5.4, skirt: 1.2, tim: [12, 1.0, 12], at: [0, 12.6, 0], ghost: true, mat: 'glass', ex: [0, 20, 0] },
       ],
       /* ---- C6 運轉動畫：**訊號往下、供電往上**。
          這是先進封裝真正在做的兩件事，而且方向**相反**：
@@ -349,7 +349,7 @@
     /* 2D 是 `site/dg/silicon_wafer.js`。那張圖的 §0-A 寫「不做真 3D，長晶爐是旋轉對稱體」——
        這裡做的是**切開的**長晶爐（開口約 117° 朝向預設相機），轉一圈看得到的兩件事
        剛好就是那張圖最重要的兩件事：坩堝裡有液面、晶碇正從液面往上長。
-       ⚠ 爐內的氣氛與熱屏配置本圖沒有查證，所以只畫外殼與加熱器，不畫配置。
+       ⚠ 2026-09-26 第二批：熱屏（錐筒）與石墨氈保溫層已查證補上（規格 §3D-細節）；爐內氣氛的流量、壓力仍不寫。
        ⚠ 這張圖**沒有對應的供應鏈環節**（半導體鏈 14 格裡沒有一格是矽晶圓），
           所以台股一律用零件自己的 `codes` 列，不走環節名單。*/
     silicon_wafer: {
@@ -357,7 +357,7 @@
       sub: '柴氏（CZ）提拉法：石英坩堝裡的熔湯 → 籽晶沾上去 → 一邊轉一邊往上拉 → 頸縮、肩、等徑段。右邊是線鋸切好的一疊與最上面那片拋光鏡面片。示意圖，非實物比例',
       camera: [66, 62, 96], target: [2, 26, 0], fit: 1.05, hk: 0.68,
       parts: [
-        { seg: 'silicon_wafer', part: 'sw_chamber', name: '爐體（切開）', note: '長晶要在受控氣氛與受控熱場裡進行。爐內的氣氛與熱屏配置本圖沒有查證，所以只畫外殼、不寫配置；朝鏡頭那一段切掉才看得見裡面',
+        { seg: 'silicon_wafer', part: 'sw_chamber', name: '爐體（切開）', note: '長晶要在受控氣氛與受控熱場裡進行。爐內上方垂著一圈往下收窄的熱屏（擋住熔湯與加熱器的輻射熱，晶碇才冷得下來），爐壁內側是一圈石墨氈保溫層；熱屏的錐角與離液面的間隙是示意。朝鏡頭那一段切掉才看得見裡面',
           kind: 'czshell', box: [38, 56, 38], at: [-18, 28, 0], ex: [0, 32, 0] },
         { seg: 'silicon_wafer', part: 'sw_heater', name: '加熱器', note: '環繞在坩堝的側面（不是裝在爐子頂上）。熱場決定長晶速度與缺陷密度；石墨加熱器是一整條折來折去的帶子，所以上下各有一道連接環',
           kind: 'heater', box: [32, 24, 32], at: [-18, 15, 0], ex: [-26, 4, -14] },
@@ -416,7 +416,7 @@
         { seg: 'abf_pcb', part: 'hb_sub', name: '載板（package substrate）', note: '整包封裝最底下那一層。載板的內部層數、補強環與模封是「IC 載板」與「先進封裝」那兩張的範圍，這裡刻意畫得簡單',
           kind: 'substrate', box: [58, 3.2, 42], at: [0, 1.6, 0], ex: [0, -10, 0] },
         { seg: 'adv_pkg', part: 'hb_interposer', name: '中介層（interposer）', note: '提供極密的金屬繞線、垂直連接與細間距微凸塊，把每一疊 HBM 接到運算晶粒的記憶體控制器。畫成一塊空白的板子就少了它存在的理由',
-          kind: 'interposer', box: [46, 1.8, 32], at: [0, 4.3, 0], ex: [0, 2, 0],
+          kind: 'interposer', bus: [[-12, -6, 0, 12], [6, 12, 0, 12]], box: [46, 1.8, 32], at: [0, 4.3, 0], ex: [0, 2, 0],
           codes: ['2330', '3711'], chipnote: '「先進封裝 CoWoS/SoIC」這一格在供應鏈資料裡沒有公司，依既有 tech 欄直接指名這兩家' },
         { seg: 'hbm', part: 'hb_outbump', name: '對外凸塊', note: 'base die 底面的一排凸塊，接到中介層。整疊 HBM 對外就是從這裡出去',
           kind: 'bump', box: [11, 1.0, 14], at: [0, 5.7, 0], n: 2, gap: 30, axis: 'x', ex: [0, 6, 0] },
@@ -2165,6 +2165,16 @@
       const m = rbox(w, h, d, h * 0.35, K.mat(0, { glass: true }));
       edge(m, K, 0.45); g.add(m);
       const foot = K.mat(-0.1, { metal: 0.5, rough: 0.4 });
+      if (p.drop) {
+        /* 2026-09-26 第二批：四隻小腳改成**一整圈裙邊**，往下落到補強環上（兩件式散熱蓋：補強環先黏在載板上，
+           上蓋再黏在環上 —— 見 stiffRing 的依據）。蓋子正中央底下那一片是 TIM1（晶粒 ↔ 上蓋）。*/
+        const L = p.drop, t = p.skirt || 1.2, ox = w / 2 + t * 0.6, oz = d / 2 + t * 0.6, yc = -h / 2 - L / 2 + h * 0.1;
+        g.add(mboxes([[ox * 2, L, t, 0, yc, -oz + t / 2], [ox * 2, L, t, 0, yc, oz - t / 2],
+          [t, L, oz * 2 - t * 2, -ox + t / 2, yc, 0], [t, L, oz * 2 - t * 2, ox - t / 2, yc, 0]], foot));
+        if (p.tim) g.add(put(box(p.tim[0], p.tim[1], p.tim[2], K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.7, metal: 0.1 })),
+          0, -h / 2 - p.tim[1] / 2, 0));
+        return g;
+      }
       const at = [];
       [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([sx, sz]) => at.push([sx * (w / 2 - 2), -h * 0.5 - h * 0.6, sz * (d / 2 - 2)]));
       g.add(instOf(new T.BoxGeometry(4, h * 1.2, 4), foot, at));
@@ -2630,6 +2640,9 @@
       const tr = K.mat(0.4, { metal: 0.65, rough: 0.3 });
       // 2026-09-26：19 條重佈線併成一個 mesh（19 個 draw call → 1 個），外觀不變
       const tl = []; for (let i = -9; i <= 9; i++) tl.push([w * 0.01, h * 0.12, d * 0.86, i * w * 0.05, h * 0.52, 0]);
+      /* 2026-09-26 第二批：重佈線不只表面一層 —— 內部還有幾層金屬（邊緣切面上看得到三條細銅線），
+         層與層之間用小孔接起來。畫在同一個 mesh（跟表面線同材質），draw call 不變。層數是示意。*/
+      [-0.28, 0, 0.28].forEach(fy => tl.push([w * 1.004, h * 0.05, d * 1.004, 0, fy * h, 0]));
       g.add(mboxes(tl, tr));
       return g;
     }
@@ -2946,9 +2959,23 @@
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
       const r = Math.min(w, d) * 0.013;
       g.add(instOf(new T.CylinderGeometry(r, r, h * 1.08, 6), cu, gridXZ(11, 7, w * 0.082, d * 0.12, 0)));
-      // 表面的重佈線（細、直、密 —— 中介層上不走蛇行等長線，那是板子的事）
-      const tl = traceLayer(K, w, d, h * 0.54, { pairs: 5, cycles: 8, wdt: Math.min(w, d) * 0.007, dir: 1 });
-      g.add(tl.group); g.userData.flows = tl.flows;
+      /* 表面的重佈線（細、直、密 —— 中介層上不走蛇行等長線，那是板子的事）。
+         ★ 2026-09-26 第二批：以前這裡其實呼叫了畫**蛇行線**的 traceLayer，跟上面那句註解自相矛盾。
+         改成：p.bus 給的每一段「記憶體 ↔ 運算晶粒」之間，一整排**又短又直、緊密平行**的線（寬匯流排的樣子），
+         線的兩端各一顆墊（接到上面的微凸塊）。沒給 p.bus 的中介層畫一組通用的平行線。*/
+      const au = K.mat(0.35, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.85, rough: 0.3 });
+      const lw = Math.min(w, d) * 0.006, ls = [], pads = [];
+      const bus = p.bus || [[-w * 0.3, w * 0.3, 0, d * 0.5]];
+      bus.forEach(([xa, xb, zc, span]) => {
+        const n = 14;
+        for (let i = 0; i < n; i++) {
+          const z = zc + (-(n - 1) / 2 + i) * (span / n);
+          ls.push([Math.abs(xb - xa), lw, lw * 1.6, (xa + xb) / 2, h * 0.5 + lw / 2, z]);
+          pads.push([xa, h * 0.5 + lw, z], [xb, h * 0.5 + lw, z]);
+        }
+      });
+      g.add(mboxes(ls, au));
+      g.add(instOf(new T.CylinderGeometry(lw * 2, lw * 2, lw * 1.4, 6), au, pads));
       return g;
     }
 
@@ -2960,12 +2987,64 @@
     function bumpField(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      const nx = 14, nz = 10, px = w / nx, pz = d / nz;
-      const r = Math.min(px, pz) * 0.27;
+      const nx = p.nx || 14, nz = p.nz || 10, px = w / nx, pz = d / nz;
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 });
       const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.38, rough: 0.34 });
-      g.add(instOf(new T.CylinderGeometry(r, r, h * 0.62, 6), cu, gridXZ(nx, nz, px, pz, -h * 0.12)));
-      g.add(instOf(new T.SphereGeometry(r * 1.15, 6, 4), sn, gridXZ(nx, nz, px, pz, h * 0.26)));
+      /* ★ 2026-09-26 細緻化第二批：C4 與微凸塊**不再是同一種形狀、同一個間距**。
+         · C4（p.v === 'c4'）：迴焊之後的錫球塌成**鼓形**（上下被兩面焊墊壓扁、腰部外凸），沒有銅柱；上下各一片焊墊。
+         · 微凸塊：銅柱 ＋ 錫帽（半球），間距由場景給（p.nx／p.nz）—— CoWoS 那張給得比 C4 密一倍以上，
+           「接點由下往上一路變小」這件事第一次在 3D 上看得出來（以前兩層都是 14×10，幾乎一樣密）。
+         依據：規格 `ic_package.md`（C4 150–200 µm 級、微凸塊 30–60 µm 級，差一個數量級）；密度仍是示意（真的差 3～5 倍，畫不出來）。*/
+      if (p.v === 'c4') {
+        const r = Math.min(px, pz) * 0.33;
+        const bg = new T.SphereGeometry(r, 8, 6); bg.scale(1, (h * 0.46) / r, 1);
+        g.add(instOf(bg, sn, gridXZ(nx, nz, px, pz, 0)));
+        const pad = new T.CylinderGeometry(r * 0.78, r * 0.78, h * 0.08, 8, 1, true);
+        g.add(instOf(pad, cu, gridXZ(nx, nz, px, pz, -h * 0.46).concat(gridXZ(nx, nz, px, pz, h * 0.46))));
+        return g;
+      }
+      const r = Math.min(px, pz) * 0.27;
+      /* p.keep：只在這幾塊矩形 [cx, cz, w, d] 裡面長凸塊 —— 微凸塊只在晶粒與 HBM 的正下方，
+         晶粒之間的空地上沒有（以前整片鋪滿，看起來像一塊釘板）。*/
+      const inK = (a) => !p.keep || p.keep.some(([cx, cz, kw, kd]) => Math.abs(a[0] - cx) <= kw / 2 - r && Math.abs(a[2] - cz) <= kd / 2 - r);
+      g.add(instOf(new T.CylinderGeometry(r, r, h * 0.62, 6, 1, true), cu, gridXZ(nx, nz, px, pz, -h * 0.12).filter(inK)));
+      g.add(instOf(new T.SphereGeometry(r * 1.12, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2), sn, gridXZ(nx, nz, px, pz, h * 0.19).filter(inK)));
+      return g;
+    }
+
+    /* 補強環（stiffener ring）：圍著載板四邊的一整圈金屬框（2026-09-26 第二批：以前是前後兩根條子，看起來像兩根導軌）。
+       底下那一條深色細線是把它黏到載板上的膠。兩件式散熱蓋就是「先黏補強環、再把上蓋黏在環上」
+       （WebSearch 摘要：兩件式散熱蓋的補強環以導熱介面材料黏在載板上，可大幅降低烘烤時的翹曲；專利摘要：上蓋黏在補強環上）。*/
+    function stiffRing(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const wr = p.ring || Math.min(w, d) * 0.065;
+      const m = K.mat(0, { metal: 0.85, rough: 0.34 });
+      g.add(mboxes([[w, h, wr, 0, 0, -d / 2 + wr / 2], [w, h, wr, 0, 0, d / 2 - wr / 2],
+        [wr, h, d - wr * 2, -w / 2 + wr / 2, 0, 0], [wr, h, d - wr * 2, w / 2 - wr / 2, 0, 0]], m));
+      const glue = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.8, metal: 0.05 });
+      const gh = h * 0.06, gy = -h / 2 - gh / 2;
+      g.add(mboxes([[w * 0.99, gh, wr * 0.8, 0, gy, -d / 2 + wr / 2], [w * 0.99, gh, wr * 0.8, 0, gy, d / 2 - wr / 2],
+        [wr * 0.8, gh, d - wr * 2, -w / 2 + wr / 2, gy, 0], [wr * 0.8, gh, d - wr * 2, w / 2 - wr / 2, gy, 0]], glue));
+      return g;
+    }
+
+    /* 底填膠（underfill）：凸塊之間填滿的膠 ＋ 從晶片邊緣**爬出來的那一圈斜坡（fillet）**。
+       卡片寫的「側面會爬出一圈圓角」以前在 3D 上是一塊平的半透明板子，看不到那一圈。
+       做法：一片薄層 ＋ 一圈「下寬上窄」的四面斜坡（八個三角形，手刻，不必 ExtrudeGeometry）。斜坡寬度是示意。*/
+    function underfill(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const fw = p.fillet || Math.min(w, d) * 0.06;
+      const m = K.mat(0, { glass: true });
+      const x0 = w / 2, z0 = d / 2, x1 = w / 2 + fw, z1 = d / 2 + fw, yT = h / 2, yB = -h / 2;
+      const v = [[-x0, yT, -z0], [x0, yT, -z0], [x0, yT, z0], [-x0, yT, z0], [-x1, yB, -z1], [x1, yB, -z1], [x1, yB, z1], [-x1, yB, z1]];
+      const quads = [[0, 1, 5, 4], [1, 2, 6, 5], [2, 3, 7, 6], [3, 0, 4, 7]];
+      const pos = [];
+      quads.forEach(([a, b, c, e]) => { [a, c, b, a, e, c].forEach(i => pos.push(v[i][0], v[i][1], v[i][2])); });
+      const sg = new T.BufferGeometry(); sg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); sg.computeVertexNormals();
+      const slab = chamferGeo(w, h, d);
+      g.add(new T.Mesh(mergeGeos([slab, sg]), m));
       return g;
     }
 
@@ -3634,6 +3713,12 @@
       const dg = notchDiscGeo(R, h);
       g.add(new T.Mesh(dg, K.mat(p.mirror ? 0.3 : 0.18, { rough: p.mirror ? 0.08 : 0.3, metal: p.mirror ? 0.55 : 0.34 })));
       const n = p.dies || 0;
+      if (p.mirror) {
+        /* 2026-09-26 第二批：拋光片一樣有雷射刻號（notch 旁那一排小點，每片自己的身分證；跟晶圓代工那張同一個畫法）。*/
+        const dots = [];
+        for (let i = 0; i < 12; i++) dots.push([(-5.5 + i) * R * 0.022, h * 0.5 + 0.01, -R * 0.84]);
+        g.add(instOf(new T.CylinderGeometry(R * 0.007, R * 0.007, h * 0.05, 6), K.mat(-0.5, { rough: 0.8, metal: 0.1 }), dots));
+      }
       if (n > 0) {
         const px = (R * 2) / n, full = [], rim = [];
         for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
@@ -3671,6 +3756,28 @@
       g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.22, R, h * 0.2, 28, 1, true, CZ_T0, CZ_TL), st), 0, h * 0.29, 0));
       g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.22, R * 0.22, h * 0.2, 20, 1, true, CZ_T0, CZ_TL), st), 0, h * 0.45, 0));
       g.add(put(cyl(R * 1.04, h * 0.06, K.mat(0.06, { metal: 0.82, rough: 0.34 }), 28), 0, -h * 0.46, 0));                 // 底座
+      /* ★ 2026-09-26 細緻化第二批（規格 silicon_wafer.md §3D-細節，第二批）：爐子裡面不再是空的。
+         · **熱屏（radiation shield）**：從上方垂下來、往下收窄的一圈錐筒，下緣離液面很近、環抱晶碇 ——
+           把熔湯與加熱器的輻射熱擋在晶碇外面（晶碇才冷得下來、長得快），也逼著氬氣沿晶碇往下吹過液面。
+         · **保溫層（石墨氈）**：爐壁內側一圈厚厚的氈，把熱關在熱區裡。
+         · 提拉室上方多兩道法蘭，側肩一個觀察窗（操作員從這裡看彎液面）。
+         依據（WebSearch 摘要，信心中）：CZ 熱區由加熱器、石英坩堝、石墨承座與轉軸構成；
+         上／中／下石墨熱屏與側邊、底部石墨氈保溫；輻射屏以石墨（外覆 SiC）或鉬製成、帶固定斜度。
+         錐角、厚度、離液面的間隙都是示意尺寸。*/
+      const gph = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.7, metal: 0.14 });
+      const felt = twoSided(K, K.mat(-0.2, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.95, metal: 0.02 }));
+      g.add(put(new T.Mesh(new T.CylinderGeometry(R * 0.93, R * 0.93, h * 0.58, 28, 1, true, CZ_T0, CZ_TL), felt), 0, -h * 0.13, 0));
+      // 熱屏：局部 y（爐體中心 28）。下緣 ≈ 世界 y 18.6（液面 17 之上）、內徑 ≈ 晶碇半徑＋一點間隙；上緣掛在保溫層頂
+      const shProf = [[R * 0.47, -h * 0.17], [R * 0.52, -h * 0.17], [R * 0.84, h * 0.13], [R * 0.9, h * 0.15],
+        [R * 0.9, h * 0.17], [R * 0.8, h * 0.17], [R * 0.47, -h * 0.14]];
+      g.add(new T.Mesh(new T.LatheGeometry(shProf.concat([shProf[0]]).map(a => new T.Vector2(a[0], a[1])), 26, CZ_T0, CZ_TL), twoSided(K, gph)));
+      // 提拉室的兩道法蘭與肩上的觀察窗
+      const fl = K.mat(0.1, { metal: 0.82, rough: 0.32 });
+      g.add(instOf(new T.CylinderGeometry(R * 0.3, R * 0.3, h * 0.025, 20), fl, [[0, h * 0.40, 0], [0, h * 0.52, 0]]));
+      const va = CZ_T0 + CZ_TL * 0.18;
+      const vp = put(cyl(R * 0.09, R * 0.14, fl, 12), Math.sin(va) * R * 0.62, h * 0.30, Math.cos(va) * R * 0.62);
+      vp.rotation.set(0.9 * Math.cos(va), 0, -0.9 * Math.sin(va));
+      g.add(vp);
       return g;
     }
 
@@ -3731,6 +3838,12 @@
         [R * 0.42, h * 0.74], [R * 0.16, h * 0.82], [R * 0.15, h * 0.97], [0, h]];
       g.add(new T.Mesh(new T.LatheGeometry(prof.map(a => new T.Vector2(a[0], a[1] - h / 2)), 30), si));
       g.add(put(box(R * 0.16, h * 0.46, R * 0.16, K.mat(-0.4, { rough: 0.5, metal: 0.2 })), 0, -h * 0.17, -R * 0.96));
+      /* 2026-09-26 第二批：等徑段外表面的**生長脊線（growth ridges）**。單晶長得順的晶碇，側面看得到四條沿長度方向的脊，
+         是「這一根還是單晶」的外觀證據（脊線斷掉＝晶格結構崩了）。依據：WebSearch 摘要（CZ 晶碇生長脊線的幾何分析；
+         「四條生長脊存在代表單晶成長成功」），信心中。脊線與 notch 的相對方位沒有查證，只畫成 90° 等分、跟 notch 錯開。*/
+      const rid = [];
+      for (let i = 0; i < 4; i++) { const a = Math.PI / 4 + i * Math.PI / 2; rid.push([Math.sin(a) * R, -h * 0.16, Math.cos(a) * R, 0, a, 0]); }
+      g.add(instOf(new T.BoxGeometry(R * 0.07, h * 0.46, R * 0.07), K.mat(0.3, { rough: 0.18, metal: 0.46 }), rid));
       return g;
     }
 
@@ -3834,12 +3947,20 @@
     /* 穿矽孔（TSV）：一根根**垂直貫穿**每一層，把上面的記憶體跟底下的邏輯晶粒接起來。
        ⚠ 柱子畫在被切掉的那一角裡 —— 剖視圖的慣例就是「切開是為了看見裡面那些柱子」。
        直徑、間距與每一疊的數量查不到可引用的數字，所以只畫關係、不標數字。*/
+    /* TSV 與層間微凸塊共用的 x／z 排法（兩者上下對齊成一條導通柱，所以一定要同一支）。
+       2026-09-26 第二批：3×3 → 5×4、柱子變細 —— TSV 在實物上是一整片**密排的陣列**，九根稀疏的柱子看起來像支架。
+       依據：WebSearch 摘要（DRAM 核心晶粒約 30–50 µm 厚、以 TSV 與微凸塊接到底下的邏輯晶粒；混合鍵合可把 TSV 間距縮到 < 18 µm）。
+       數量、間距仍是示意（實物是上千根）。*/
+    function tsvGrid(w, d) {
+      const out = [];
+      for (let i = 0; i < 5; i++) for (let j = 0; j < 4; j++) out.push([w * (0.08 + i * 0.085), d * (0.09 + j * 0.1)]);
+      return out;
+    }
     function tsvCols(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.9, rough: 0.3 });
-      const r = Math.min(w, d) * 0.028, at = [];
-      for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) at.push([w * (0.12 + i * 0.14), 0, d * (0.12 + j * 0.14)]);
+      const r = Math.min(w, d) * 0.02, at = tsvGrid(w, d).map(([x, z]) => [x, 0, z]);
       g.add(instOf(new T.CylinderGeometry(r, r, h, 8), cu, at));
       return g;
     }
@@ -3855,8 +3976,8 @@
       const cu = K.mat(0, { color: K.css('--dg-m-cu', '#D6A886'), metal: 0.88, rough: 0.32 });
       const ys = L.gaps.slice();
       if (p.baseRow) ys.unshift(-h / 2 - L.gap / 2);
-      const r = Math.min(w, d) * 0.042, at = [];
-      ys.forEach(y => { for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) at.push([w * (0.12 + i * 0.14), y, d * (0.12 + j * 0.14)]); });
+      const r = Math.min(w, d) * 0.03, at = [];
+      ys.forEach(y => tsvGrid(w, d).forEach(([x, z]) => at.push([x, y, z])));
       g.add(instOf(new T.CylinderGeometry(r, r, L.gap * 0.92, 10), cu, at));
       // 層間填充（示意）：填在每兩層之間、微凸塊周圍。⚠ 沒有查證，不寫材料名稱、不寫製程名稱
       const fill = [];
@@ -5130,6 +5251,33 @@
       gg.translate(0, 0, -len / 2);
       return gg;
     }
+    /* ★ 2026-09-26 細緻化第二批：**車出來的旋轉體（半剖）**。
+       prof ＝ 封閉的剖面輪廓 [[r, y, 平滑?], …]（不用重複第一點），繞 y 軸轉**半圈**（保留 z ≤ 0 那一半，
+       跟全站其他剖面同一個切面），兩個切口再各補一片剖面（ShapeGeometry），壁厚、頸縮、捲邊一眼看得到。
+       為什麼不再用「幾根圓柱疊起來」：鋁殼的封口頸縮（束腰）、捲邊、熱屏的錐面都是**一條連續的輪廓**，
+       用圓柱疊出來會變成一節一節的積木。
+       每一段輪廓各自一條 lathe（平滑點＝跟下一段同一條，法線連續），轉角才是銳的；全部併成**一個 mesh**。
+       opt.full：整圈（不切、不補剖面）。opt.seg：圓周分段數。*/
+    function latheGeo(prof, opt) {
+      const o = opt || {}, seg = o.seg || 24;
+      const full = !!o.full, p0 = full ? 0 : Math.PI / 2, pl = full ? Math.PI * 2 : Math.PI;
+      const P = prof.concat(o.open ? [] : [prof[0]]);
+      const runs = []; let cur = [P[0]];
+      for (let i = 1; i < P.length; i++) {
+        cur.push(P[i]);
+        if (!P[i][2] || i === P.length - 1) { runs.push(cur); cur = [P[i]]; }
+      }
+      const geos = runs.map(r => new T.LatheGeometry(r.map(a => new T.Vector2(Math.max(0, a[0]), a[1])), seg, p0, pl));
+      if (!full && !o.open) {
+        [1, -1].forEach(sx => {
+          const s = new T.Shape(prof.map(a => new T.Vector2(sx * Math.max(0, a[0]), a[1])));
+          geos.push(new T.ShapeGeometry(s, 2));
+        });
+      }
+      return mergeGeos(geos);
+    }
+    const halfLathe = (prof, m, opt) => new T.Mesh(latheGeo(prof, opt), m);
+
     // 軸沿 y（站著的圓筒：電容、固態電容、封口、防爆閥）
     function halfTubeY(ro, ri, len, m) { const x = new T.Mesh(halfBore(ro, ri, len), m); x.rotateX(-Math.PI / 2); return x; }
     // 軸沿 x（躺著的圓筒：螺帽、軸承座）。先把擠出方向轉到 x，再繞自己的軸轉 90°，切面才落在 z = 0
@@ -5816,10 +5964,18 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      const m = K.mat(0.06, { rough: 0.34 });
-      g.add(halfTubeY(R, R * 0.9, h * 0.94, m));
-      g.add(put(halfTubeY(R, 0, h * 0.06, m), 0, -h * 0.47, 0));
-      g.add(put(halfTubeY(R * 1.01, R * 0.86, h * 0.05, K.mat(-0.22, { rough: 0.46 })), 0, h * 0.38, 0));
+      /* ★ 2026-09-26 細緻化第二批：鋁殼改成**一條連續輪廓車出來的半殼**（以前是三截圓柱疊的）。
+         輪廓由下往上：封死的底（圓角）→ 殼壁 → **束腰（封口頸縮）**：從外面往內壓一道溝、把橡膠封口箍住
+         → 口緣**往內捲邊**蓋住封口的上緣。「捲邊＋束腰把橡膠壓緊」就是鋁電解的封口方式
+         （WebSearch 摘要：捲芯裝進鋁殼、塞入橡膠封口後以捲邊 curling 機械密封；專利摘要：殼口周緣捲邊、開口往軸心收縮）。
+         溝深、捲邊半徑是示意尺寸。*/
+      const t = R * 0.08, yb = h * 0.44, bw = h * 0.028, bd = R * 0.07, c = h * 0.022, bt = h * 0.03;
+      const prof = [[0, -h / 2], [R * 0.95, -h / 2], [R, -h / 2 + h * 0.012],
+        [R, yb - bw], [R - bd, yb - bw * 0.25, 1], [R - bd, yb + bw * 0.25], [R, yb + bw],
+        [R, h / 2 - c], [R * 0.99, h / 2 - c * 0.2, 1], [R * 0.955, h / 2, 1], [R * 0.91, h / 2 - c * 0.35, 1], [R * 0.9, h / 2 - c],
+        [R - t, h / 2 - c], [R - t, yb + bw], [R - t - bd, yb + bw * 0.25], [R - t - bd, yb - bw * 0.25], [R - t, yb - bw],
+        [R - t, -h / 2 + bt], [0, -h / 2 + bt]];
+      g.add(halfLathe(prof, K.mat(0.06, { rough: 0.34 }), { seg: 26 }));
       return g;
     }
 
@@ -5829,7 +5985,15 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      g.add(halfTubeY(R, R * 0.955, h, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.68, metal: 0.08 })));
+      /* 2026-09-26 第二批：膠膜是熱縮套，縮上去之後**貼著鋁殼的束腰凹進去**，上下兩端各往內折一圈包住殼緣
+         （不是一截直筒套在外面）。溝的高度跟鋁殼同一個比例（兩者的 box 高度與中心相同）。*/
+      const Rc = R - R * 0.034, t = R * 0.034, yb = h * 0.44, bw = h * 0.028, bd = Rc * 0.07, f = R * 0.12;
+      const prof = [[Rc - f, -h / 2 - t], [R, -h / 2 - t, 1], [R + t * 0.2, -h / 2 + t],
+        [R, yb - bw], [R - bd, yb - bw * 0.25, 1], [R - bd, yb + bw * 0.25], [R, yb + bw],
+        [R, h / 2 - t], [R - t * 0.8, h / 2 + t * 0.2, 1], [Rc - f * 0.5, h / 2 + t * 0.2], [Rc - f * 0.5, h / 2 - t * 0.6],
+        [Rc, h / 2 - t * 0.6], [Rc, yb + bw], [Rc - bd, yb + bw * 0.25], [Rc - bd, yb - bw * 0.25], [Rc, yb - bw],
+        [Rc, -h / 2], [Rc - f, -h / 2]];
+      g.add(halfLathe(prof, K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.68, metal: 0.08 }), { seg: 26 }));
       return g;
     }
 
@@ -5871,11 +6035,18 @@
           }
         }
         const gg = new T.BufferGeometry();
-        gg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); gg.setIndex(idx); gg.computeVertexNormals();
+        gg.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+        /* 2026-09-26 第二批：不再用雙面材質（雙面會多編一支 shader，首次畫圖超過上限的主因之一）。
+           帶子只從上面看得到，所以把三角形的繞向調成法線朝上就夠了。*/
+        gg.setIndex(idx); gg.computeVertexNormals();
+        if (gg.attributes.normal.count && gg.attributes.normal.getY(0) < 0) {
+          const r2 = []; for (let i = 0; i < idx.length; i += 3) r2.push(idx[i], idx[i + 2], idx[i + 1]);
+          gg.setIndex(r2); gg.computeVertexNormals();
+        }
         return gg;
       };
-      g.add(new T.Mesh(mergeGeos([spiral(0), spiral(2)]), twoSided(K, foil)));
-      g.add(new T.Mesh(mergeGeos([spiral(1), spiral(3)]), twoSided(K, paper)));
+      g.add(new T.Mesh(mergeGeos([spiral(0), spiral(2)]), foil));
+      g.add(new T.Mesh(mergeGeos([spiral(1), spiral(3)]), paper));
       return g;
     }
 
@@ -5978,7 +6149,13 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      g.add(halfTubeY(R * 0.92, 0, h, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.88, metal: 0.03 })));
+      /* 2026-09-26 第二批：封口橡膠的側面有一道**被鋁殼束腰壓進去的凹槽**（高度對齊鋁殼那道溝：
+         鋁殼 box 中心 28、高 56，溝在 28 + 0.44×56 ≈ 52.6；本件中心 53、高 6 → 局部 y ≈ −0.4），
+         上緣被捲邊蓋住的那一圈做成小倒角。外徑對齊鋁殼內壁（0.92×殼半徑）。*/
+      const Ro = R * 0.99, yg = -h * 0.07, gw = h * 0.1, gd = R * 0.07;
+      const prof = [[0, -h / 2], [Ro * 0.96, -h / 2], [Ro, -h / 2 + h * 0.06], [Ro, yg - gw], [Ro - gd, yg - gw * 0.3, 1], [Ro - gd, yg + gw * 0.3],
+        [Ro, yg + gw], [Ro, h / 2 - h * 0.12], [Ro * 0.93, h / 2], [0, h / 2]];
+      g.add(halfLathe(prof, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.88, metal: 0.03 }), { seg: 24 }));
       g.add(instOf(new T.CylinderGeometry(R * 0.13, R * 0.13, h * 1.1, 10),
         K.mat(0, { color: K.css('--dg-void', '#0d1424'), rough: 0.9, metal: 0.05 }),
         [[-R * 0.4, 0, -R * 0.3], [R * 0.4, 0, -R * 0.3]]));
@@ -6019,14 +6196,35 @@
       const g = new T.Group();
       const [w, h, d] = p.box;
       const R = Math.min(w, d) / 2;
-      g.add(halfTubeY(R, R * 0.88, h * 0.9, K.mat(0.06, { rough: 0.34 })));
-      g.add(halfTubeY(R * 0.86, 0, h * 0.84,
-        K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.2 })));
-      g.add(put(halfTubeY(R * 1.02, 0, h * 0.08,
-        K.mat(0, { color: K.css('--dg-m-fanf', '#5A7285'), rough: 0.72, metal: 0.08 })), 0, -h * 0.5, 0));
-      g.add(instOf(new T.BoxGeometry(R * 0.5, h * 0.06, R * 0.3),
-        K.mat(0.4, { rough: 0.3, metal: 0.85 }),
-        [[-R * 0.5, -h * 0.55, -R * 0.3], [R * 0.5, -h * 0.55, -R * 0.3]]));
+      /* 2026-09-26 第二批：以前裡面是一整塊深灰（看不出它也是捲出來的）。現在：
+         · 鋁殼一樣是車出來的半殼，**開口在下**（導針從下面出來）：束腰 ＋ 往內捲邊，封口橡膠卡在裡面；
+         · 剖面上看得到**一樣是捲繞**：亮的是箔、暗的是含浸進去的導電高分子（取代電解液的那一樣東西）；
+         · 兩根導針從封口穿出去。
+         它跟左邊那顆的差別只在「電解液換成固態高分子」—— 所以捲繞的樣子刻意跟左邊一致。*/
+      const t = R * 0.08, yb = -h * 0.36, bw = h * 0.04, bd = R * 0.07, c = h * 0.03, bt = h * 0.04;
+      const up = [[0, h / 2], [R * 0.95, h / 2], [R, h / 2 - h * 0.015],
+        [R, yb + bw], [R - bd, yb + bw * 0.25, 1], [R - bd, yb - bw * 0.25], [R, yb - bw],
+        [R, -h / 2 + c], [R * 0.99, -h / 2 + c * 0.2, 1], [R * 0.955, -h / 2, 1], [R * 0.91, -h / 2 + c * 0.35, 1], [R * 0.9, -h / 2 + c],
+        [R - t, -h / 2 + c], [R - t, yb - bw], [R - t - bd, yb - bw * 0.25], [R - t - bd, yb + bw * 0.25], [R - t, yb + bw],
+        [R - t, h / 2 - bt], [0, h / 2 - bt]];
+      g.add(halfLathe(up.slice().reverse(), K.mat(0.06, { rough: 0.34 }), { seg: 24 }));
+      const Ri = R - t;
+      // 捲繞本體（高分子含浸）＋ 下方橡膠封口
+      g.add(put(halfTubeY(Ri * 0.99, 0, h * 0.66, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.2 })), 0, h * 0.1, 0));
+      g.add(put(halfTubeY(Ri * 0.99, 0, h * 0.14, K.mat(-0.3, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.88, metal: 0.03 })), 0, yb, 0));
+      // 剖面上的捲繞帶：箔（亮）與高分子（暗）交替，兩側對稱
+      const fb = [], pb = [], n = 7;
+      for (let i = 0; i < n; i++) {
+        const r = Ri * (0.16 + i * 0.12);
+        [-1, 1].forEach(sx => { fb.push([sx * r, h * 0.1, -R * 0.02]); pb.push([sx * (r + Ri * 0.06), h * 0.1, -R * 0.02]); });
+      }
+      const bh = h * 0.6;
+      g.add(instOf(new T.BoxGeometry(Ri * 0.045, bh, R * 0.04), K.mat(0.42, { rough: 0.3, metal: 0.82 }), fb));
+      g.add(instOf(new T.BoxGeometry(Ri * 0.05, bh, R * 0.04), K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.8, metal: 0.03 }), pb));
+      // 兩根導針：從封口往下穿出去
+      const lr = R * 0.07;
+      g.add(instOf(new T.CylinderGeometry(lr, lr, h * 0.5, 10), K.mat(0.4, { rough: 0.3, metal: 0.85 }),
+        [[-R * 0.45, -h * 0.55, -R * 0.3], [R * 0.45, -h * 0.55, -R * 0.3]]));
       return g;
     }
 
@@ -6722,7 +6920,7 @@
       mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
       /* ---- 第一層零件字彙（2026-09-22）。舊的 kind 一個都沒有拿掉：
          21 張既有場景照舊走原本那幾支，新的是**多出來的詞**，不是換掉。*/
-      interposer, bump: bumpField, bga: bgaPkg,
+      interposer, bump: bumpField, bga: bgaPkg, stiffring: stiffRing, ufill: underfill,
       mlccchip: mlccChip, inductor, resistor, ecap,
       heatsink, vc: vaporChamber, heatpipe, coldplate,
       connector, cable, busbar,
@@ -8606,7 +8804,7 @@
         if (u.ao || u.glow || u.led) return;
         meshN++; if (u.micro) microN++;
       });
-      return { drawCalls: ri.calls, triangles: ri.triangles, micro: microN, meshN, arrows: arrowN, firstDrawMs: firstDrawMs,
+      return { drawCalls: ri.calls, triangles: ri.triangles, programs: (renderer.info.programs || []).length, micro: microN, meshN, arrows: arrowN, firstDrawMs: firstDrawMs,
         parts: byIdx.filter(Boolean).length, meshes, maxEmissive: +maxEm.toFixed(3),
         idleEmissive: +idleEm.toFixed(3), maxMetal: +maxMetal.toFixed(2), leds: ledN,
         spinners: spinners.length, spinAt: +spinAt.toFixed(3), anim, autoRotate: !!controls.autoRotate,
@@ -8762,6 +8960,9 @@
     const partsOf = (seg) => byIdx.filter(x => x && x.seg === seg).map(x => x.part);
     const view = {
       highlight, cam, screen, stats, setAnim, hitAt, mats, audit, pointOf, colorOf, partsOf,
+      /* 2026-09-26 細緻化第二批：給截圖／驗收用的「把相機擺到某個位置、看向某一點」（唯讀場景，不改任何零件）。
+         拍局部特寫（捲邊、束腰、熱屏）要能指定視角，靠滾輪湊很不穩。*/
+      look: (t, pos) => { controls.target.set(t[0], t[1], t[2]); camera.position.set(pos[0], pos[1], pos[2]); controls.update(); markDirty(); layoutLabels(); },
       // 兩種模式（DECISIONS #238）：tech／read；舊名字會被映射
       setPal: (n) => applyPal(n), pal: () => pal, pals: () => PALS.slice(), palName: (n) => PAL_NAME[n] || n,
       // 爆炸拆解：讀／設 0～1（設了就把補間停掉，給驗收用）

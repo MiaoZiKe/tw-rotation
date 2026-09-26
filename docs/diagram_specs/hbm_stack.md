@@ -488,3 +488,22 @@
 | 2026-09-22 | mechanical-engineer（規格書作者） | 待審 | 結構事實的證據等級較高（**多件美國專利摘要**明講「memory dies stacked on a buffer die functioning as a logic circuit, disposed at a bottom layer」與「TSV 電氣連接到 die 之間的 microbumps」），但仍然**沒有人讀過原文**（容器擋 `WebFetch`）。**這張圖是全批六份裡族群與圖上內容落差最大的一張**（§7-D2）：`hbm` 族群 4 檔，其中 **2408 南亞科**在供應鏈資料裡屬 DRAM/NOR 且註記明寫「看淡 HBM」、**6239 力成**的 `tech` 明寫「記憶體封測（**非 HBM 本體**）」——**兩家都不可以被畫在 HBM 顆粒或堆疊封裝上**，這條升為紅線 T1。**台股唯一查得到的具名位置是 base die**：SK hynix 的 HBM4 base die 採台積電 12nm（三個來源方向一致），所以那個零件掛 `foundry` 但 `cos` 只列 2330 —— 走預設會把聯電與力積電一起列出來，那是錯誤宣稱。**兩條數字被刻意拒絕寫進畫面**：market share（資料層有，但畫面不寫）與「base die 成本是 core die 的 3～4 倍」（單一轉述、屬成本數字紅線）。**五條低信心**列在 §B，其中 B1（堆疊層數）本次**完全沒撈到可引用的說明**，所以規格只要求 ≥4 層並標「依世代而定」。**紅線四條**：H1（base die 在最底）、H2（TSV 貫穿每一層）、Y2（HBM 與 GPU 並排、不疊在 GPU 上）、T1 |
 | | tech-illustrator | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 晚，細緻化第二批；3D 設計專責）
+
+> 3D 場景是 `SCENES.hbm`（在這份規格寫「不做 3D」之後另外加的，見 three3d.js 的註解）。零件清單、編號、台股、卡片文字**都沒動**。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| 穿矽孔（TSV）／層間微凸塊 | 3×3 九根粗柱 → **5×4 的細密陣列**，兩者共用同一支排法函式（`tsvGrid`），上下仍然對齊成一條導通柱（紅線 H2 不變） | E1；數量、間距示意（實物上千根） |
+| 中介層 | 以前表面畫的是**蛇行線**（程式註解自己寫「中介層上不走蛇行等長線」，實作卻呼叫了畫蛇行的函式）。改成：每一疊 HBM 與運算晶粒之間一整排**又短、又直、緊密平行**的線，兩端各一顆墊 —— 寬匯流排的樣子 | 本規格 §3（寬匯流排、路徑短）；E2（中介層提供極密的金屬繞線） |
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| E1 | DRAM 核心晶粒約 30–50 µm 厚，以 TSV 與微凸塊接到底下的邏輯晶粒；混合鍵合可把 TSV 間距縮到 18 µm 以下 | 中（產業新聞＋研討會報導摘要） | <https://www.trendforce.com/news/2025/09/29/news-breaking-the-memory-wall-hbm-basics-and-the-rise-of-hbm4-in-ai/>、<https://wccftech.com/sk-hynix-advanced-packaging-technologies-intel-emib-next-gen-hbm-memory/> |
+| E2 | HBM 以 40–55 µm 間距的微凸塊接到中介層 | 中高 | 見 `ic_package.md` §3D-細節 E1 |
+| E3 | 層間填充有兩條路線：SK hynix 的 MR-MUF（一次迴焊、再用模封料填縫）與 Samsung／Micron 的 TC-NCF（逐層熱壓、非導電膜） | 中（兩篇獨立摘要一致） | <https://www.digitimes.com/news/a20230920PD206/hbm-hybrid-bonding-samsung-sk-hynix.html>、<https://semihub.io/en/blog/hbm-guide-4.html> |
+
+E3 查到了，但**層間填充的畫法與卡片都沒改**：兩家做法不同，圖上是通用示意，寫上任一家的製程名稱都會把另一家畫錯（跟原本「不寫材料名稱、不寫製程名稱」的決定一致，只是現在有來源可以說明為什麼不寫）。

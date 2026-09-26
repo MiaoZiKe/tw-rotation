@@ -538,3 +538,31 @@
 | 2026-09-21 | semi-chain-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**一條來源打架已記錄並給了處理方式**：B2（CoPoS 時程，三個來源的試產／量產年份互相矛盾 → 畫面只寫方向不寫年份）。**七條查不到**已列在 §C（良率、產能、各家占比、真實厚度比例、EMC 台股供應商…）。**3D 的判斷寫在 §1 並列了「什麼條件才回頭加」**，而且寫明就算符合也優先加進既有的 `SCENES.semiconductor` —— 不要重演 MLCC 的事後補簽。**§0 是這份的重點**：既有鏈圖的 2D 畫 CoWoS-S、3D 畫 CoWoS-L，兩張互相矛盾而沒有人解釋，這張圖的三格對照正是為了修掉那個矛盾。**最大的坑是 §7-D1**：`adv_pkg` 這一格 0 家台股，點下去會篩成 0 筆，畫面上一定要講 |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26 晚，細緻化第二批；3D 設計專責）
+
+> 這張圖的 3D 是 `SCENES.semiconductor`（DECISIONS #234 之後掛在 `ai_adv_packaging`）。零件清單、編號、台股**都沒動**。
+> 只有兩個位置微調：補強環改成一整圈之後，正面去耦電容那一排往內挪 0.6（z 14.5 → 13.9），不然會被環壓住。
+
+| 零件 | 補了什麼 | 依據 |
+|---|---|---|
+| C4 凸塊 | 從「銅柱＋錫帽」改成迴焊後**上下被焊墊壓扁、腰部外凸的鼓形錫球**，上下各一片焊墊；沒有銅柱 | E1（C4 是錫球、150–200 µm 間距）；卡片本來就寫「迴焊之後塌成鼓形」，以前的幾何跟卡片對不上 |
+| 微凸塊 µbump | 銅柱＋錫帽（半球），**間距比 C4 密一倍以上**（以前兩層都是 14×10，幾乎一樣密）；而且**只長在晶粒與 HBM 的正下方**，晶粒之間的空地沒有 | E1（微凸塊 40–55 µm 間距、比 C4 小一個量級）；密度差仍是示意（實物差 3～5 倍） |
+| 補強環 | 前後兩根條子 → **圍住載板四邊的一整圈**，底下一條黏著膠 | E2 |
+| 散熱上蓋 + TIM | 四隻小腳 → **一整圈裙邊**落在補強環上（兩件式：先黏補強環、再黏上蓋）；上蓋正中央底下一片 TIM1 | E2、E3 |
+| Underfill / MUF | 平板 → 薄層 ＋ **從晶片邊緣爬出來的一圈斜坡（fillet）** | 卡片本來就寫「側面會爬出一圈圓角」 |
+| 中介層：有機重佈線 | 邊緣看得到內部三層金屬（層數示意） | 本規格 §3（RDL 是多層金屬） |
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| E1 | CoWoS 的接點分級：中介層↔載板用 150–200 µm 間距的 C4；晶粒／HBM↔中介層用 40–55 µm 間距的微凸塊 | 中高（三篇獨立摘要一致） | <https://semiengineering.com/scaling-bump-pitches-in-advanced-packaging/>、<https://sst.semiconductor-digest.com/2013/10/silicon-interposers-cowos-and-microbumps/>、<https://semiconductorx.com/packaging-cowos.html> |
+| E2 | 兩件式散熱蓋：補強環以導熱介面材料黏在載板上（大幅降低烘烤時的翹曲），上蓋再黏到補強環上；第一層 TIM 黏晶粒與上蓋 | 中（專利＋研究摘要） | <https://patents.google.com/patent/US20060091562A1/en>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/9041192> |
+| E3 | 大尺寸封裝的翹曲設計變數：補強環 vs 上蓋、上蓋腳寬、上蓋厚度與腳寬比、TIM 厚度 | 中 | <https://www.researchgate.net/publication/337955121_Optimal_Lid_Design_Parameters_for_Reducing_Warpage_of_Flip-chip_Package> |
+
+**卡片文字改了一句**：散熱上蓋那一格原本寫「上蓋的腳踩在載板邊緣」—— 幾何改成兩件式之後，裙邊是踩在補強環上，
+改成「上蓋四周的裙邊踩在載板邊緣的補強環上（兩件式：先黏補強環、再黏上蓋）」。
+
+⚠ 仍是示意：凸塊密度差、fillet 寬度、裙邊厚度、TIM 厚度、重佈線層數。
+新增的兩個 kind（`stiffring`、`ufill`）目前只有這張用；`bump` 的 `v:'c4'`／`keep` 與 `lid` 的 `drop`／`tim` 都是新欄位，沒給就跟以前一樣。
