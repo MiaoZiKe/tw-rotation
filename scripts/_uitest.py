@@ -29533,6 +29533,11 @@ def t_footprint(pg, b, base):
     # ★ 2026-09-26 改前→改後：改前「改名『足跡輪盤』」→ 改後「資金輪盤」（Andy：腳印已拿掉，名字對不上內容；CEO 定名）
     ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].startswith("資金輪盤"), nm["h4"])
     no_old_wheel_name(pg, base)
+    # 上面那支會把頁面帶去七個分頁、切 390 再切回來；後面②③量的是資金流向頁 1440 的盤面，所以回到跟開頭同一個狀態
+    #（不重置的話 ③ 會在錯的版面上量到 109 對重疊 —— 那是量測假象，不是畫面）
+    pg.set_viewport_size({"width": 1440, "height": 950})
+    reset_rot(pg, base, 2600)
+    scroll_to(pg, "rotClockWrap"); pg.wait_for_timeout(500)
     ok("① 資金流向頁上看不到「輪動時鐘」四個字了", "輪動時鐘" not in nm["page"], [ln for ln in nm["page"].splitlines() if "輪動時鐘" in ln][:3])
     # ★ 2026-09-26 改前→改後：改前「放大視窗的標題也是足跡輪盤」→ 改後放大鈕與放大視窗拿掉（Andy「放大功能取消」）
     ok("① 足跡輪盤沒有放大鈕了（2026-09-26 拿掉）", pg.evaluate("() => !document.getElementById('rotZoomBtn')"))
