@@ -8106,9 +8106,11 @@ def t_relpanel(pg, base):
         fails.append("金像電的下游應該有推論標記，卻一條都沒有")
     # ★ 2026-09-26 晚改前→改後：「面板在圖的旁邊（圖右緣之外）」→「面板浮在圖上、不蓋到台積電那一格」
     #   （Andy：「點選族群（環節）時，不會動到關聯圖版面」—— 說明卡改成浮在關聯圖上的覆蓋層）
-    ovp = pg.evaluate(OV_CARD, "foundry")
-    ok("寬螢幕時面板浮在關聯圖上（不是擠在下面），而且沒有蓋到被點的晶圓代工那一格",
-       st["beside"] and bool(ovp) and ovp["pos"] == "absolute" and ovp["overMap"] and ovp["covers"] == 0, {"st": st, "ov": ovp})
+    #   （這時開著的是上面最後點的那一家；以浮動卡自己記的那一格 data-seg 為準，量它有沒有蓋到那一格）
+    segp = pg.evaluate("() => (document.querySelector('#relMain .relcol') || {dataset:{}}).dataset.seg || null")
+    ovp = pg.evaluate(OV_CARD, segp)
+    ok("寬螢幕時面板浮在關聯圖上（不是擠在下面），而且沒有蓋到被點的那一格",
+       bool(segp) and bool(ovp) and ovp["vis"] and ovp["pos"] == "absolute" and ovp["overMap"] and ovp["covers"] == 0, {"st": st, "ov": ovp})
 
     # ---- 真的按 highlight：圖上的線要變
     # 2026-09-25：先把滑鼠移開圖 —— _cg_open_stock 用真滑鼠點公司，游標若還停在節點上，
