@@ -1079,17 +1079,25 @@
                    手動那顆就是多餘的；他要的是跟著主題，不是自己按。
                    自動切換那條路（themePal／tw:theme）一行都沒動，wirePal 仍然會被呼叫來接 3D 的 setPal。
                「收合圖 ▴」#dgFold 因此不再被前面三顆擠到第二行，跟其餘設定鈕同一排。 -->
-          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgDrag" style="cursor:pointer" hidden title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</span><span class="pill" id="dgReset" style="cursor:pointer" hidden>重設視角</span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
+          <div class="dgsectitle"><small class="muted" id="dgTitle"></small></div><span class="row" id="dgTools" style="gap:6px"><button class="howbtn" data-how="dg" type="button">怎麼看 ?</button><span class="seg tiny dgmode" id="dg3d" data-mode="2d" role="group" aria-label="剖析圖顯示方式：平面或立體" hidden><button type="button" data-dm="2d" class="on" aria-pressed="true" title="平面剖析圖（可左右滑）">2D</button><button type="button" data-dm="3d" aria-pressed="false" title="立體剖析圖（可拖曳轉動、滾輪拉近）">3D</button></span><span class="pill" id="dgAnim" style="cursor:pointer">動畫：開</span><span class="pill" id="dgFold" style="cursor:pointer">收合圖 ▴</span></span></div>
           <!-- ★ 2026-09-24 說明精簡：「這張圖回答」(#dgQ) 與操作說明搬進「怎麼看 ?」；圖名與「原創示意圖，非實物比例」留在 #dgTitle。 -->
           <div class="howtxt" id="how-dg" hidden><div id="dgQ"></div>${A.howHTML('', [
             '點零件：看它是誰做的（供應商）',
             '同色的環節色標、關聯圖會一起亮',
             '右上可開關動畫、收合圖',
-            '有「2D｜3D」的圖，切到 3D 可拖曳轉動',
+            '有「2D｜3D」的圖，切到 3D 可拖曳轉動；轉亂了在 3D 畫面上點兩下（或按畫面右上的「重設視角」）就回到一開始的角度',
             '圖以原尺寸顯示，放不下可左右滑',
           ], '原創示意圖，非實物比例；字不跟著縮小（最小 12px）。')}</div>
+          <!-- ★ 2026-09-26（Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」）
+               ⚠ 這段註解住在樣板字串裡，所以不能出現反引號。
+               「拖曳：轉動」「重設視角」兩顆從上面的設定列搬進 3D 畫面框內的右上角（#dg3dCtl）：
+                 · 它們只對 3D 有意義，放在設定列裡跟「怎麼看／2D 3D／動畫／收合」擠在同一排，
+                   2D 時要藏、3D 時要冒出來，整排的寬度跟著跳；放進 3D 畫面裡就跟著畫面一起出現、一起消失。
+                 · 包一層 .dg3dbox（position:relative）而不是塞進 #prod3d 裡面：
+                   #prod3d 在換圖、切 2D 時會被 innerHTML 清空，住在裡面的鈕會被一起清掉、id 也查不到。
+                 · 右欄的卡片由 three3d.js 的 pack 從這組鈕的下緣開始排（mount 傳 reserveTR），所以不會壓到編號卡片。 -->
           <div id="dgBody">
-          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div id="prod3d" class="dg3d" hidden></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
+          <div id="prodDiagram" class="dgwrap" style="transition:opacity .18s">${dgId ? DS.draw(dgId) : ''}</div><div class="dg3dbox"><div id="prod3d" class="dg3d" hidden></div><div class="dg3dctl" id="dg3dCtl" role="group" aria-label="3D 視角操作" hidden><button type="button" class="pill" id="dgDrag" title="左鍵拖曳要轉動還是平移（右鍵一律平移）">拖曳：轉動</button><button type="button" class="pill" id="dgReset" title="回到一開始的視角（也可以在 3D 畫面上點兩下）">重設視角</button></div></div><div class="note" id="dg3dNote" hidden></div><div id="partCard" class="partcard" hidden></div></div></div>` : ''}
         </div>
         ${hasMap ? `<div class="relsec" id="relSec" data-howsec>
           <div class="row spread" id="relHead"><h4 style="margin:0">供應鏈關聯圖</h4>
@@ -1594,10 +1602,10 @@
       if (!next) {
         dispose3D();
         const host3 = $('#prod3d', el), note3 = $('#dg3dNote', el);
-        if (host3) { host3.hidden = true; host3.innerHTML = ''; }
+        if (host3) { host3.hidden = true; clear3dHost(host3); }
         if (note3) note3.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
-        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        ['dg3d', 'dg3dCtl'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });   // 3D 視角那組鈕整組收（見 wire3D）
         host.hidden = false; host.innerHTML = ''; host.style.opacity = '1';
         paintDgMode();
         swapping = false;
@@ -1610,10 +1618,10 @@
            不收的話畫面會停在上一張的 WebGL 場景上（看起來像換圖沒生效）。*/
         dispose3D();
         const host3 = $('#prod3d', el), note = $('#dg3dNote', el);
-        if (host3) { host3.hidden = true; host3.innerHTML = ''; }
+        if (host3) { host3.hidden = true; clear3dHost(host3); }
         if (note) note.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
-        ['dg3d', 'dgDrag', 'dgReset'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });
+        ['dg3d', 'dg3dCtl'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });   // 3D 視角那組鈕整組收（見 wire3D）
         host.hidden = false;
         host.innerHTML = DS.draw(next);
         paintDgMode();        // 從「選單」換回「有圖」時要先把 #dgBody 打開，3D 才量得到尺寸
@@ -2371,12 +2379,23 @@
     };
   }
 
+  /* ★ 2026-09-26：「拖曳／重設視角」那組鈕（#dg3dCtl）3D 開著時住在 #prod3d **裡面**。
+     住在外面（兄弟元素疊上去）的話，游標從畫布移到鈕上就算「離開 #prod3d」——
+     three3d.js 的 hover 展開（#246，pointerleave 收攏）會在你要按鈕的那一刻把爆炸圖收回去。
+     但 #prod3d 在換圖、切 2D 時會被清空，所以清空之前先把鈕停回外面那層 .dg3dbox，id 永遠查得到。*/
+  function clear3dHost(host) {
+    const c = host && host.querySelector('#dg3dCtl');
+    if (c && host.parentNode) host.parentNode.appendChild(c);
+    if (host) host.innerHTML = '';
+  }
+
   function wire3D(el, chainId, hooks) {
     const hk = hooks || {};
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
     const sync = hk.sync || (() => { /* 沒接就不做事 */ });
     const btn = $('#dg3d', el), rst = $('#dgReset', el), note = $('#dg3dNote', el);
     const drg = $('#dgDrag', el);     // 配色已經不是一顆鈕了（跟著全站主題走，見 wirePal）
+    const ctl = $('#dg3dCtl', el);    // 「拖曳」「重設視角」住在 3D 畫面框內右上角的這一組（2026-09-26）
     const svg = $('#prodDiagram', el), host = $('#prod3d', el);
     if (!btn || !host) return;
     const R = window.Rack3D;
@@ -2403,9 +2422,9 @@
     const setMode = async (on) => {
       try { localStorage.setItem('tw.dg3d', on ? '1' : '0'); } catch (e) { /* 忽略 */ }
       paintMode(on);
-      // 「拖曳：轉動」「重設視角」只對 3D 有意義 —— 2D 時整顆藏起來，不留一顆按了沒反應的鈕
-      rst.hidden = !on;
-      if (drg) drg.hidden = !on;
+      // 「拖曳：轉動」「重設視角」只對 3D 有意義 —— 2D 時整組藏起來，不留一顆按了沒反應的鈕。
+      // ★ 2026-09-26 起藏的是外面那層 #dg3dCtl：兩顆是 .pill（display:inline-flex），單獨設 hidden 會被蓋掉。
+      if (ctl) ctl.hidden = !on;
       svg.hidden = on; host.hidden = !on;     // 配色不跟著 3D 開關（2D 也吃同一組 --dg-*）
       /* 切換 2D／3D 之後重套一次「原尺寸」規則：native 的橫向捲動只給 2D，
          3D 一律不捲（見 applyDgNative 的註解）。不重套的話切回 2D 會少掉捲動、
@@ -2415,7 +2434,7 @@
       note.hidden = false;
       note.textContent = '載入 3D 中…';
       dispose3D();
-      host.innerHTML = '';
+      clear3dHost(host);
       let v = null;
       try {
         v = await R.mount(host, chainId, {
@@ -2428,14 +2447,17 @@
           members: hk.members || null,   // 圖九 2-3：文字框底下那排可點的台股晶片
           onStock: hk.onStock || null,
           pal: palPref(),                // 圖九 2-2：三種配色，記在 localStorage
+          // 右上角那組「拖曳／重設視角」的高度：右欄卡片從它下面開始排，不會被鈕壓住（2026-09-26）
+          reserveTR: () => (ctl && !ctl.hidden ? Math.ceil(ctl.getBoundingClientRect().height) + 8 : 0),
         });
       } catch (err) {
         // 起不來就要講出來，不能停在「載入 3D 中…」讓人以為當掉了
         note.textContent = '3D 起不來（' + (err && err.message ? err.message : err) + '），已退回平面剖析圖。';
-        svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return;
+        svg.hidden = false; host.hidden = true; if (ctl) ctl.hidden = true; paintMode(false); return;
       }
-      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; rst.hidden = true; if (drg) drg.hidden = true; paintMode(false); return; }
+      if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; if (ctl) ctl.hidden = true; paintMode(false); return; }
       view3d = v;
+      if (ctl) host.appendChild(ctl);   // 3D 掛好才搬進畫面框（原因見 clear3dHost 上面的說明）
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
       /* N1（Andy 2026-09-19）：「3D圖需要可以游標抓取移動，並且可以 360 都觀測，
@@ -2462,7 +2484,7 @@
          它現在 2D 也要用，不能再掛在「3D 掛起來之後」這條路上。
          這裡只剩「3D 剛掛好，把目前選的配色套上去」，而 R.mount 的 pal: palPref()
          已經做掉了，所以這裡什麼都不用做。*/
-      note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點零件看供應商`;
+      note.textContent = `${v.sub}　·　拖曳轉視角（可轉到底下看背面）、右鍵或切到「平移」可抓著移動、滾輪拉近拉遠、點兩下回到預設視角、點零件看供應商`;
       sync();
     };
     /* 點「2D」或「3D」那一格＝切到那個模式；點的是已經亮著的那一格就什麼都不做（分段鈕的慣例，不是開關）。
@@ -2474,7 +2496,24 @@
       if (want3 === !host.hidden) return;
       setMode(want3);
     };
-    rst.onclick = () => { if (view3d) view3d.reset(); };
+    /* ★ 2026-09-26（Andy：「另外新增 點兩下重設視角」）：按鈕與雙擊走**同一支** resetView。
+       view3d.reset() 本來就是瞬間回位（沒有補間）—— 雙擊也照舊，不另外加過渡，兩條路的結果才會一模一樣。
+       雙擊的副作用怎麼處理：瀏覽器的 dblclick 前面一定先有兩次 click，three3d.js 的 pointerup
+       會把它們各當成一次「點零件／點背景」—— 點在零件上，第一下選起來、第二下再點同一個＝取消；
+       點在背景上兩下都是 clearPart。所以雙擊之後本來就不太會留下選取，
+       但「兩下落在不同零件上」（相機在動、手滑）就會留一個 —— 這裡在重設之後一律再 onBg（clearPart）一次，
+       保證「雙擊＝回到一開始的樣子」：視角回預設、沒有選取、零件小卡收掉。
+       不做「延遲單擊等看看是不是雙擊」：那會讓每一次單擊選零件都慢 300ms，而單擊是主要操作。
+       只認畫布本身（target 是 canvas）：卡片、台股晶片、底下那一排卡片上的雙擊不算 —— 在那些地方雙擊的人是想選字。
+       用 ondblclick 指派而不是 addEventListener：wire3D 每換一張圖就跑一次，host 是同一個元素，疊上去會重設好幾次。*/
+    const resetView = () => { if (view3d) view3d.reset(); };
+    rst.onclick = resetView;
+    host.ondblclick = (e) => {
+      if (!view3d || host.hidden || !e.target || e.target.tagName !== 'CANVAS') return;
+      e.preventDefault();
+      resetView();
+      if (hk.onBg) hk.onBg();
+    };
     let want = false;
     try { want = localStorage.getItem('tw.dg3d') === '1'; } catch (e) { /* 忽略 */ }
     setMode(want);

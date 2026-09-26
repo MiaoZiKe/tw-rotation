@@ -2840,6 +2840,24 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
    作者樣式蓋掉了 [hidden] 的 UA 預設，industry.js 設的 hidden 從來沒生效過。2D 時畫面上掛著兩顆只對 3D 有用的鈕，
    也是「看不出現在是 2D 還是 3D」的一部分。設定列裡凡是 hidden 的一律真的藏起來。*/
 #dgTools>[hidden]{display:none!important}
+/* ★ 2026-09-26（Andy：「拖曳、重設視角，移動到下面」）：兩顆從設定列搬進 3D 畫面框內的右上角，浮在畫布上。
+   · .dg3dbox 只是定位用的外框（#prod3d 會被 innerHTML 清空，鈕不能住在它裡面，見 industry.js 樣板的註解）。
+   · 半透明底＋模糊：底下是 3D 背景的漸層，實色塊會像一塊補丁；全透明在淺色主題又讀不到字。
+     顏色走全站 token（--panel／--line-2／--ink-2），深淺主題各自跟著換，不另外寫一份淺色版。
+   · 右欄卡片由 three3d.js 從這組鈕的下緣開始排（reserveTR），所以不會壓到卡片；
+     窄畫面（卡片搬到畫布底下）時右上角本來就是空的背景。
+   · [hidden] 一定要 !important：.pill 是 inline-flex，外層只要漏一次，2D 時就會掛著兩顆沒用的鈕。*/
+.dg3dbox{position:relative}
+.dg3dctl{position:absolute;top:8px;right:8px;z-index:6;display:flex;gap:6px;align-items:center;
+  padding:4px;border-radius:999px;background:color-mix(in srgb,var(--panel) 62%,transparent);
+  border:1px solid color-mix(in srgb,var(--line-2) 70%,transparent);
+  -webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.dg3dctl[hidden]{display:none!important}
+.dg3dctl .pill{cursor:pointer;font-size:12.5px;line-height:1.35;
+  background:color-mix(in srgb,var(--panel-3) 78%,transparent)}
+.dg3dctl .pill:hover{color:var(--ink);border-color:var(--cyan)}
+.dg3dctl .pill.cyan{background:rgba(62,224,255,.16)}   /* 「拖曳：平移」時亮青色，上面那條半透明底不能把它蓋掉 */
+.dg3dctl .pill:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
 /* 窄畫面：設定列自己換到下一行、排成可左右捲的一列，不准把標題擠到溢出 */
 @media (max-width:800px){
   .dgsechead{flex-wrap:wrap}
