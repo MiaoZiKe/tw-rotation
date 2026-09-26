@@ -3522,11 +3522,10 @@
     $('#indChain').innerHTML = '';      // 產業鏈位置卡不在個股頁掛了（見 renderStock 開頭）
     // 個股主體
     const el = $('#stockPage');
-    const v = pg.verdict || {}; const gradeCls = v.grade || 'W';
     const groupLinks = (m.groups || []).map(gn => A.L.groupByName(gn)).join(' ');
     const themeLinks = A.L.themesOf(m.code);
     const TIER = { full: ['分 K 完整', 'cyan', '15 分／1 小時／4 小時分 K 每日盤後由 Yahoo 補入'],
-                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線與多週期判讀都正常'],
+                   daily: ['日線以上', '', '這檔不在分 K 名單（族群成分股＋成交值前段才抓），日線／週線／月線正常；AI 分析的 1 小時／4 小時會寫無資料'],
                    thin: ['資料回補中', 'amber', '歷史價量還在回補，目前只有最近幾天的日線'] };
     const tier = TIER[(m.tier || 'daily')] || TIER.daily;
     /* 週期列（tfButtons）在這裡就要畫，所以設定要先讀進來 —— 以前 state.cfg 到 setupChart 才讀，
@@ -3540,7 +3539,7 @@
           <div id="skIdent"><h2>${A.logo ? A.logo(m.code, m.name, 32, 'sklogo') : ''}${A.fmt.esc(m.name)} <span class="mono cyan">${m.code}</span> <small class="muted" style="font-size:13px">${m.market || ''}</small></h2>
             <div class="row" id="skMeta" style="gap:6px 12px;margin-top:4px;font-size:13.5px"><span class="muted">產業鏈</span>${A.L.chain(state.chain, chainName)}<span class="muted">族群</span>${groupLinks || '—'}${themeLinks ? `<span class="muted">題材</span>${themeLinks}` : ''}</div>
             <div class="row" id="skPx" style="margin-top:6px"><span class="num" style="font-size:30px;font-weight:700" id="pxNow" data-live="close" data-lc="${m.code}">${A.fmt.n(s.close)}</span><span class="num ${A.fmt.cls(s.chg_pct)}" style="font-size:18px" data-live="chg" data-lc="${m.code}">${A.fmt.pct(s.chg_pct, 2)}</span><span class="pill">技術分 ${A.fmt.n(s.tech_score, 0)}</span><span class="pill">本益比 ${s.pe ? A.fmt.n(s.pe, 1) : '—'}</span><span class="pill">同業分位 ${s.pe_percentile != null ? A.fmt.n(s.pe_percentile, 0) + '%' : '—'}</span><span class="pill">營收 YoY ${A.fmt.pct(s.rev_yoy)}</span><span class="pill ${tier[1]}" title="${A.fmt.esc(tier[2])}">${tier[0]}</span></div></div>
-          <div class="verdict" id="skVerdict" data-readout style="min-width:280px;max-width:520px"><h3><span class="grade ${gradeCls}">${v.grade ? v.grade + ' ' : ''}${v.verdict || '—'}</span> <small>停損 ${A.fmt.n(v.stop)} · 目標 ${A.fmt.n(v.tp1)} · 風報 ${v.rr != null ? A.fmt.n(v.rr, 1) : '—'}</small></h3><ul>${(v.reasons || []).slice(0, 3).map(r => `<li>${A.fmt.esc(r)}</li>`).join('')}</ul>${v.risk_text ? `<div class="note" style="margin-top:6px">風險：${A.fmt.esc(v.risk_text)}</div>` : ''}</div>
+          ${window.StockAI ? window.StockAI.line(pg) : ''}
         </div>
         <div class="toolbar" id="skTools" style="margin-top:14px">
           <div class="seg" id="tfSeg">${tfButtons()}</div>
@@ -3573,11 +3572,14 @@
         ${pg.note ? `<div class="banner on" style="margin:10px 0 0">${A.fmt.esc(pg.note)}</div>` : ''}
         <div class="note skhelp" style="margin-top:6px" title="每個交易日盤後自動更新一次：價量、法人、籌碼、營收／財報、新聞">資料更新到 <b>${A.fmt.esc(pg.as_of || (A.D.meta && A.D.meta.data_date) || '—')}</b>（每日盤後）</div>
       </div>
-      <div class="card" style="margin-top:var(--gap-card)" id="mtfCard"></div>
+      <!-- ★ 2026-09-26（Andy：「觀望部分需要標示 AI 分析…與多週期合併」）：右上判讀卡（#skVerdict）與
+           「多週期判讀」卡（#mtfCard）合成這一張可收合的「AI 分析」卡（site/blocks/stock_ai.js，積木 stock.mtf）；
+           右上只留一行結論＋四面向標籤（#skAiLine）。那支檔沒載入時兩塊都不畫。-->
+      ${window.StockAI ? '<div class="card" style="margin-top:var(--gap-card)" id="aiCard"></div>' : ''}
       <div class="subtabs" id="stockTabs">${[['overview', '總覽'], ['revenue', '營收'], ['profit', '獲利'], ['dividend', '除權息'], ['chips', '籌碼'], ['basics', '基本資料'], ['news', '公告 / 新聞']].map(t => `<button data-t="${t[0]}" class="${state.tab === t[0] ? 'on' : ''}">${t[1]}</button>`).join('')}</div>
       <div id="stockTab"></div>`;
     setupChart(pg);
-    renderMtf(pg);
+    if (window.StockAI) window.StockAI.mount(pg, $('#aiCard'), A.fmt);
     $$('#stockTabs button').forEach(b => b.onclick = () => { $$('#stockTabs button').forEach(x => x.classList.toggle('on', x === b)); state.tab = b.dataset.t; renderTab(pg, state.tab); });
     renderTab(pg, state.tab);
   }
@@ -4440,24 +4442,8 @@
       buildMtfGrid(pg);
     });
   }
-  function renderMtf(pg) {
-    const el = $('#mtfCard'); const sm = pg.mtf && pg.mtf.summary; if (!sm || !sm.headline) { el.innerHTML = '<h3>多週期判讀</h3><div class="empty">資料不足</div>'; return; }
-    const lv = sm.key_levels || {};
-    const row = (z, kind) => `<div class="k" style="border-left:3px solid ${kind === 'support' ? '#2ee59d' : '#ff4d6d'}"><div class="l">${A.fmt.esc(z.label)} ${kind === 'support' ? '需求區' : '供給區'}</div><div class="v" style="font-size:15px">${z.low} – ${z.high}</div><div class="l">距現價 ${A.fmt.pct(z.dist_pct)} · 分數 ${z.score}</div></div>`;
-    /* ★ 2026-09-24 說明精簡：副標縮成一句，完整讀法搬進「怎麼看 ?」 */
-    el.innerHTML = `<div class="row spread"><h3>多週期判讀 ${hq('mtf', '多週期判讀')}</h3></div>
-      <div class="howtxt" id="how-mtf" hidden>${A.howHTML('這張卡回答：各週期方向一不一致、該在哪裡進場。', [
-        '大週期（週線、日線）定方向',
-        '小週期（4 小時、1 小時、15 分）找進場',
-        '每個週期一顆燈：多／空／盤整',
-        '支撐＝需求區、壓力＝供給區，由近到遠',
-        '距現價＝那一區離現在價格多遠',
-      ], '分 K 還沒取得時，小週期暫以日線代替（判讀裡會寫出來）。')}</div>
-      <div class="lights">${(sm.tf_used || []).map(tf => { const t = sm.per_tf[tf]; return `<span class="light ${t.trend > 0 ? 'pos' : t.trend < 0 ? 'neg' : ''}">${({ '15m': '15 分', '60m': '1 小時', '240m': '4 小時', '1d': '日線', '1w': '週線', '1M': '月線' })[tf]} ${t.trend > 0 ? '多' : t.trend < 0 ? '空' : '盤整'}</span>`; }).join('')}</div>
-      <div class="verdict" data-readout style="margin:10px 0"><h3 style="font-size:16px">${A.fmt.esc(sm.headline)}</h3><ul>${(sm.script || []).map(x => `<li>${A.fmt.esc(x)}</li>`).join('')}</ul></div>
-      <div class="grid g2"><div><h4>支撐（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.support || []).map(z => row(z, 'support')).join('') || '<div class="note">沒有通過門檻的需求區</div>'}</div></div><div><h4>壓力（由近到遠）</h4><div class="kvs" style="margin-top:6px">${(lv.resistance || []).map(z => row(z, 'resistance')).join('') || '<div class="note">上方沒有通過門檻的供給區</div>'}</div></div></div>
-      ${pg.verdict && pg.verdict.weekly_note ? `<div class="note" data-readout style="margin-top:8px">${A.fmt.esc(pg.verdict.weekly_note)}</div>` : ''}`;
-  }
+  /* renderMtf（「多週期判讀」卡）2026-09-26 拿掉：合進 site/blocks/stock_ai.js 的「AI 分析」卡。
+     支撐／壓力區、各週期多空都還在，搬到那張卡的技術面裡（只到週線，月線不列）。*/
 
   // ---------------------------------------------------------------- 個股分頁
   function renderTab(pg, tab) {

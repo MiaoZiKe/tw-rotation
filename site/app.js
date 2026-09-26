@@ -1833,7 +1833,7 @@
     if (!view) return;
     const groups = MIA_PAGER[key];
     if (!groups || !mIsM()) { miaClearPager(view); return; }
-    // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #mtfCard）
+    // 每一段實際抓得到的元素（抓不到的略過：例如簡版個股頁沒有 #aiCard）
     const found = groups.map(g => ({ s: g.s || 0, n: g.n,
         els: g.sel.map(x => view.querySelector(x) || document.querySelector(x)).filter(Boolean) }))
       .filter(g => g.els.length);
@@ -2124,7 +2124,9 @@
         px._miaHome.insertBefore(px, px._miaNext); px._miaHome = null; px._miaNext = null;
       }
     }
-    miaFold('#skIdent h2', '詳細（產業鏈 / 族群 / 評級）', ['#skMeta', '#skVerdict'], 'mfStockMeta');
+    /* 2026-09-26：右上判讀卡（#skVerdict）換成一行的「AI 分析」結論（#skAiLine）—— 只有一行，
+       手機也直接露出來（一眼看到結論是這一行存在的理由），不再收進「詳細」。*/
+    miaFold('#skIdent h2', '詳細（產業鏈 / 族群）', ['#skMeta'], 'mfStockMeta');
     miaFold('#chartWrap', '怎麼操作這張圖 / 資料到哪一天', ['#skChartCard .skhelp'], 'mfStockHelp');
     // `.skhelp` 是兩個節點，querySelector 只抓得到第一個 —— 補第二個
     if (mIsM()) { document.querySelectorAll('#skChartCard .skhelp').forEach(el => {
