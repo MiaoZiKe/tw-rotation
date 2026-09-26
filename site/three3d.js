@@ -187,7 +187,7 @@
         { seg: 'abf_pcb', part: 'icp_sub', name: 'ABF 載板', note: 'core ＋ 增層，雷射盲孔電鍍銅；把幾萬個接點扇出到主機板。表面看得到蛇行等長的走線',
           kind: 'substrate', box: [44, 3, 34], at: [0, 1.5, 0] },
         { seg: 'abf_pcb', part: 'icp_bga', name: 'BGA 錫球', note: '載板背面那一整片球，接到主機板；全圖最大的接點',
-          kind: 'balls', box: [2, 1.6, 2], at: [0, -0.4, -12], n: 6, gap: 7.2, axis: 'x', ex: [0, -3, 0] },
+          kind: 'balls', field: [40, 30], pitch: 2.4, hole: [[0, 6, 15.5, 3.4]], box: [2, 1.6, 2], at: [0, -0.4, 0], ex: [0, -3, 0] },
         /* ★ 2026-09-22 新增：正面去耦電容。晶粒瞬間抽電時來不及等主機板，
            就近由載板上的電容頂著 —— 這是「板子上真的有被動元件」最基本的一件事。
            `mlccchip` 的識別特徵是端電極包住端部五個面，轉到背面看得到。*/
@@ -212,7 +212,7 @@
         { seg: 'adv_pkg', part: 'icp_soic', name: 'SoIC 上層晶粒', note: '3D 堆疊的第二顆，銅墊直接對銅墊，中間沒有任何凸塊',
           kind: 'die', box: [12, 1.8, 12], at: [0, 9.5, 0], codes: ['2330', '3711'], ex: [0, 15, 0] },
         { seg: 'hbm', part: 'icp_hbm', name: 'HBM4 堆疊', note: '12–16 層 DRAM ＋ TSV ＋ base die（邏輯製程，台廠位置在這）；貼著晶粒放，線越短越省電',
-          kind: 'hbm', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
+          kind: 'hbmstk', box: [7, 5.4, 11], at: [0, 8.9, 0], n: 2, gap: 26, axis: 'x', ex: [0, 12, 0] },
         { seg: 'adv_pkg', part: 'icp_uf', name: 'Underfill / MUF', note: '底填膠，撐住凸塊並分散應力；側面會爬出一圈圓角。膠的材料以日商為主',
           kind: 'ufill', box: [34, 0.8, 24], at: [0, 5.9, 0], ghost: true, mat: 'glass', codes: ['2330', '3711'], ex: [0, 9, 0] },
         { seg: 'adv_pkg', part: 'icp_stiff', name: 'Stiffener 補強環', note: '圍在載板邊緣的一圈金屬框，大尺寸封裝防翹曲',
@@ -2629,6 +2629,18 @@
       // 改成 5×5、球徑對得上間距（球會微微相鄰但不重疊）。
       const g = new T.Group();
       const [w, h] = p.box;
+      if (p.field) {
+        /* ★ 2026-09-26 細緻化第二批（CoWoS）：卡片寫「載板背面那一整片球」、LSC 那一格寫「夾在 BGA 球陣列中間、那一塊的錫球要讓位」——
+           以前畫的是 z = −12 那一條的六小叢，兩句話在圖上都不成立。現在：**整片背面鋪滿**，
+           背面去耦電容那一塊（p.hole）**空出來**。迴焊後略扁（y 壓扁）。球距、球數是示意。*/
+        const [fw, fd] = p.field, pit = p.pitch || 2.4, r = Math.min(pit * 0.3, h * 0.4);
+        const nx = Math.floor(fw / pit), nz = Math.floor(fd / pit);
+        const out = gridXZ(nx, nz, pit, pit, 0).filter(a => !(p.hole || []).some(([cx, cz, hw, hd]) =>
+          Math.abs(a[0] - cx) < hw / 2 + r && Math.abs(a[2] - cz) < hd / 2 + r));
+        const bg = new T.SphereGeometry(r, 8, 6); bg.scale(1, 0.82, 1);
+        g.add(instOf(bg, K.mat(0.35, { metal: 0.6, rough: 0.35 }), out));
+        return g;
+      }
       g.add(ballGrid(K, w * 0.62, Math.min(w, h) * 0.3, 5, 0));
       return g;
     }
@@ -2811,14 +2823,29 @@
     }
 
     // 探針卡：基板 ＋ 一叢探針
+    /* ★ 2026-09-26 細緻化第二批（規格 ic_package.md §3D-細節）：以前是一塊方板 ＋ 5×5 根針。
+       垂直式探針卡實際是四層由上往下疊：**PCB（大圓盤，接測試機）→ 補強框（金屬，壓住 PCB 的平整度）
+       → 空間轉換板（多層陶瓷或多層有機板，把 PCB 的粗間距轉成晶片的細間距）→ 探針頭（夾著一整片垂直探針）**，
+       針尖朝下對準晶圓上的墊。
+       依據（WebSearch 摘要，信心中）：垂直式探針卡由 PCB、空間轉換板（ST）、探針頭與補強框等機構件組成；
+       ST 為多層有機（MLO，BT／玻纖環氧）或多層陶瓷（MLC）；補強框可把 PCB 平整度改善約 10 倍；ST 底部間距約 30–300 µm。
+       尺寸比例、針數是示意。*/
     function probe(p, K) {
       const g = new T.Group();
       const [w, h, d] = p.box;
-      g.add(box(w, h, d, K.mat(-0.15, { rough: 0.7 })));
+      const R = Math.min(w, d) / 2;
+      g.add(put(cyl(R, h * 0.28, K.mat(0, { color: K.css('--dg-m-pcb', '#0E3B32'), rough: 0.6, metal: 0.06 }), 28), 0, h * 0.2, 0));
+      // 補強框：十字 ＋ 外圈（金屬），壓在 PCB 上面
+      const st = K.mat(0, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.85, rough: 0.34 });
+      g.add(mboxes([[R * 1.3, h * 0.24, R * 0.16, 0, h * 0.46, 0], [R * 0.16, h * 0.24, R * 1.3, 0, h * 0.46, 0],
+        [R * 0.9, h * 0.24, R * 0.14, 0, h * 0.46, R * 0.62], [R * 0.9, h * 0.24, R * 0.14, 0, h * 0.46, -R * 0.62],
+        [R * 0.14, h * 0.24, R * 0.9, R * 0.62, h * 0.46, 0], [R * 0.14, h * 0.24, R * 0.9, -R * 0.62, h * 0.46, 0]], st));
+      // 空間轉換板（陶瓷，方）＋ 探針頭（深色，較小）
+      g.add(put(box(R * 0.8, h * 0.22, R * 0.8, K.mat(0.1, { rough: 0.55 })), 0, -h * 0.05, 0));
+      g.add(put(box(R * 0.56, h * 0.26, R * 0.56, K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.6, metal: 0.1 })), 0, -h * 0.29, 0));
+      // 垂直探針：7×7，細、針尖朝下
       const pin = K.mat(0.45, { metal: 0.8, rough: 0.25 });
-      const pins = [];
-      for (let i = -2; i <= 2; i++) for (let j = -2; j <= 2; j++) pins.push([i * w * 0.16, -h * 0.9, j * d * 0.16]);
-      g.add(instOf(new T.CylinderGeometry(w * 0.012, w * 0.012, h * 1.6, 6), pin, pins));
+      g.add(instOf(new T.CylinderGeometry(R * 0.012, R * 0.006, h * 0.7, 5, 1, true), pin, gridXZ(7, 7, R * 0.07, R * 0.07, -h * 0.72)));
       return g;
     }
 
@@ -3010,6 +3037,32 @@
       const inK = (a) => !p.keep || p.keep.some(([cx, cz, kw, kd]) => Math.abs(a[0] - cx) <= kw / 2 - r && Math.abs(a[2] - cz) <= kd / 2 - r);
       g.add(instOf(new T.CylinderGeometry(r, r, h * 0.62, 6, 1, true), cu, gridXZ(nx, nz, px, pz, -h * 0.12).filter(inK)));
       g.add(instOf(new T.SphereGeometry(r * 1.12, 6, 3, 0, Math.PI * 2, 0, Math.PI / 2), sn, gridXZ(nx, nz, px, pz, h * 0.19).filter(inK)));
+      return g;
+    }
+
+    /* HBM 堆疊（CoWoS 那張專用；AI 機櫃那張的 `hbm` 共用件沒動）。
+       ★ 2026-09-26 細緻化第二批：卡片寫「12–16 層 DRAM ＋ TSV ＋ base die」，以前畫的是 6 片一樣厚的板子。
+       現在：最底下一片**顏色不同、比較厚的 base die**（邏輯晶粒）→ 12 片**薄**的核心晶粒、每兩片之間一道深色填縫
+       → 最上面一片**比較厚的頂層晶粒**（研磨後要撐住整疊，頂層不必再打 TSV）。頂面沒有凸塊。
+       依據：`hbm_stack.md` §3D-細節（核心晶粒約 30–50 µm、以 TSV 與微凸塊接到 base die；兩家填縫做法不同所以不寫材料名）。
+       層數固定畫 12（卡片寫 12–16），厚度比例是示意。*/
+    function hbmStk(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = p.layers || 12, hb = h * 0.14, ht = h * 0.1, gap = h * 0.018;
+      const hc = (h - hb - ht - gap * (n + 1)) / n;
+      g.add(put(box(w, hb, d, K.mat(-0.3, { rough: 0.34, metal: 0.36 })), 0, -h / 2 + hb / 2, 0));
+      const dies = [], gaps = [];
+      let y = -h / 2 + hb;
+      for (let i = 0; i <= n; i++) {
+        gaps.push([w * 0.985, gap, d * 0.985, 0, y + gap / 2, 0]);
+        y += gap;
+        const t = i < n ? hc : ht;
+        dies.push([w * 0.99, t, d * 0.99, 0, y + t / 2, 0]);
+        y += t;
+      }
+      g.add(mboxes(dies, K.mat(0.12, { rough: 0.32, metal: 0.34 })));
+      g.add(mboxes(gaps, K.mat(-0.5, { rough: 0.85, metal: 0.05 })));
       return g;
     }
 
@@ -4228,6 +4281,8 @@
       return s * (ABF.core / 2 + ABF.bu * (k - 0.5));
     }
     const abfTop = () => ABF.core / 2 + ABF.bu * ABF.n;        // 最上層增層的上表面
+    // 2026-09-26 第二批：微孔與疊孔的 x（abfVia 與 abfTrace 的墊共用，合攏時孔一定坐在墊上）
+    const abfViaX = (w) => [0, 1, 2, 3, 4, 5].map(i => (-3.4 + i * 1.25) * (w * 0.1)).concat([-w * 0.3, w * 0.3]);
 
     /* 核心層 core：半剖的厚板 ＋ 剖面上的玻纖織紋 ＋ 兩面覆銅。
        織紋畫在**剖面上**才對：經紗被切斷 → 一排小圓；緯紗順著切面 → 一條長帶。
@@ -4238,11 +4293,29 @@
       g.add(mboxes(halfSlab(w, h, d), K.mat(-0.34, { rough: 0.7, metal: 0.06 })));
       g.add(halfFace(K, w, h, d, 0, -0.34));
       const fz = Math.max(0.06, Math.min(w, d) * 0.004) * 2.4;      // 剖面板的前方一點點
-      const wv = K.mat(0.26, { color: K.css('--dg-pp', '#8a8355'), rough: 0.82, metal: 0.04 });
-      const cir = [];
-      for (let i = 0; i < 11; i++) cir.push([(-5 + i) * (w / 12), h * 0.16, fz, Math.PI / 2, 0, 0]);
-      g.add(instOf(new T.CylinderGeometry(h * 0.1, h * 0.1, fz, 8), wv, cir));      // 經紗（被切斷）
-      g.add(mboxes([[w * 0.96, h * 0.12, fz, 0, -h * 0.2, fz / 2]], wv));           // 緯紗（順著切面）
+      const wv = K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.7, metal: 0.04 });   // 玻纖（E-glass）本身是白的；剖面上要跟深色樹脂分得開
+      /* ★ 2026-09-26 細緻化第二批（規格 abf_substrate.md §3D-細節）：織紋從「一排圓 ＋ 一條直帶」改成真的**織造玻纖布**的剖面：
+           · 兩層布（上下各一層；core 由浸了樹脂的玻纖布壓成）
+           · 經紗被切斷 → 一排**扁橢圓的紗束**（紗是一束細絲，壓合後是扁的，不是圓棒）
+           · 緯紗順著切面走 → 一條**上下穿梭的波浪帶**：從一束經紗上面越過、再從下一束底下鑽過（平織），
+             交叉點最厚（兩股紗）、紗與紗之間只剩樹脂 —— 這就是「織紋」兩個字的意思，一條直帶講不出來。
+         依據（WebSearch 摘要，信心中）：IPC 技術文件：玻纖布經緯交錯處是兩股紗厚（knuckle）、紗間是 0 股；
+         專利摘要：紗束剖面可為圓或橢圓／扁平；FC-BGA 核心是玻纖布補強的 BT 或環氧樹脂（CCL）。層數、紗數是示意。*/
+      const nb = 12, pit = w * 0.96 / nb, bh = h * 0.11;
+      const warp = [], weft = [];
+      [[h * 0.2, 0], [-h * 0.2, 0.5]].forEach(([y0, ph]) => {
+        for (let i = 0; i < nb; i++) warp.push([-w * 0.48 + (i + 0.5 + ph * 0.5) * pit, y0, fz, Math.PI / 2, 0, 0, 1, 1, 0.42]);
+        const N = nb * 8, pos = [], idx = [], A = bh * 0.95, t = bh * 0.34;
+        for (let k = 0; k <= N; k++) {
+          const x = -w * 0.48 + k * (w * 0.96 / N), yy = y0 + A * Math.cos(Math.PI * ((x + w * 0.48) / pit - 0.5 - ph * 0.5));
+          pos.push(x, yy - t, fz * 1.02, x, yy + t, fz * 1.02);
+          if (k) idx.push(2 * k - 2, 2 * k, 2 * k + 1, 2 * k - 2, 2 * k + 1, 2 * k - 1);
+        }
+        const wg = new T.BufferGeometry(); wg.setAttribute('position', new T.Float32BufferAttribute(pos, 3)); wg.setIndex(idx); wg.computeVertexNormals();
+        weft.push(wg);
+      });
+      g.add(instOf(new T.CylinderGeometry(bh * 1.25, bh * 1.25, fz, 10), wv, warp));   // 經紗（被切斷的扁橢圓紗束）
+      g.add(new T.Mesh(mergeGeos(weft), wv));                                            // 緯紗（上下穿梭）
       const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.8, rough: 0.3 });
       g.add(mboxes([[w, h * 0.08, d / 2, 0, h * 0.46, -d / 4],
         [w, h * 0.08, d / 2, 0, -h * 0.46, -d / 4]], cu));                          // core 兩面的線路
@@ -4280,13 +4353,24 @@
       const g = new T.Group();
       const [w, , d] = p.box;
       const cu = K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 });
-      const tw = w * 0.012, at = [];
+      /* ★ 2026-09-26 細緻化第二批：每一層銅不再是 15 條等距的細線 —— 微孔落下去的地方一定有一顆**目標墊（target pad）**、
+         微孔起頭的地方有一顆**捕捉墊（capture pad）**，墊明顯比細線寬（要吃得下雷射對位誤差與電鍍變異）。
+         墊的 x 跟 abfVia 用同一支 abfViaX()，合攏時每一顆微孔都正好坐在墊上 —— 「孔對不準銅就導不通」就是這張圖的主題。
+         細線避開墊的位置。依據（WebSearch 摘要，兩家以上板廠設計指南一致）：捕捉墊在微孔起頭那一層、目標墊在落點那一層，
+         墊要大到吃得下對位、雷射位置與電鍍變異。墊寬是示意。*/
+      const tw = w * 0.012, at = [], pads = [];
+      const vx = abfViaX(w), pw = w * 0.04;
       for (let s = -ABF.n; s <= ABF.n; s++) {
         if (!s) continue;
         const y = abfY(s) - (s > 0 ? 1 : -1) * ABF.bu * 0.4;
-        for (let i = 0; i < 15; i++) at.push([(-7 + i) * (w / 17), y, -d / 4]);
+        for (let i = 0; i < 15; i++) {
+          const x = (-7 + i) * (w / 17);
+          if (vx.every(v => Math.abs(v - x) > pw * 0.9)) at.push([x, y, -d / 4]);
+        }
+        vx.forEach(x => pads.push([x, y, -d / 4]));
       }
       g.add(instOf(new T.BoxGeometry(tw, ABF.bu * 0.16, d / 2 * 0.98), cu, at));
+      g.add(instOf(new T.BoxGeometry(pw, ABF.bu * 0.17, d / 2 * 0.98), cu, pads));
       return g;
     }
 
@@ -4319,7 +4403,7 @@
         for (let s = -ABF.n; s <= ABF.n; s++) {
           if (!s) continue;
           const y = abfY(s);
-          for (let i = 0; i < 6; i++) (s > 0 ? up : dn).push([(-3.4 + i * 1.25) * (w * 0.1), y, fz]);
+          abfViaX(w).slice(0, 6).forEach(x => (s > 0 ? up : dn).push([x, y, fz]));
         }
         // 上半：上寬下窄（窄端朝下＝朝 core）；下半：上窄下寬（窄端朝上＝朝 core）
         g.add(instOf(halfTube(r * 2.2, r, ABF.bu * 0.9, 8), cu, up));
@@ -4328,7 +4412,7 @@
         const r = w * 0.016;
         const upAt = [], dnAt = [], mid = [];
         [-1, 1].forEach(sg => {
-          const x = sg * w * 0.3;
+          const x = abfViaX(w)[sg > 0 ? 7 : 6];
           for (let k = 1; k <= 2; k++) {
             const y = abfY(sg > 0 ? k : -k);
             (sg > 0 ? upAt : dnAt).push([x, y, fz]);
@@ -4393,6 +4477,10 @@
         at.push([(-2 + i) * (w / 5), 0, (-1.5 + j) * (d / 4), 0, 0, 0, 1, Math.max(0.5, h / (r * 2)) * 0.6, 1]);
       }
       g.add(instOf(new T.SphereGeometry(r, 10, 7), sn, at));
+      /* 2026-09-26 第二批：每一顆球頂上一片銅墊（球是焊在載板背面的墊上，不是黏在介電層上）。*/
+      const sy = Math.max(0.5, h / (r * 2)) * 0.6;
+      g.add(instOf(new T.CylinderGeometry(r * 0.78, r * 0.78, r * 0.16, 12), K.mat(0, { color: K.css('--dg-cu-lit', '#c88a4e'), metal: 0.88, rough: 0.26 }),
+        at.map(a => [a[0], r * sy * 0.92, a[2]])));
       return g;
     }
 
@@ -7310,7 +7398,7 @@
       mlcc: mlccBody, mlccterm: mlccTerm, mlccpad: mlccPad, _lslab: lslab,
       /* ---- 第一層零件字彙（2026-09-22）。舊的 kind 一個都沒有拿掉：
          21 張既有場景照舊走原本那幾支，新的是**多出來的詞**，不是換掉。*/
-      interposer, bump: bumpField, bga: bgaPkg, stiffring: stiffRing, ufill: underfill,
+      interposer, bump: bumpField, bga: bgaPkg, stiffring: stiffRing, ufill: underfill, hbmstk: hbmStk,
       mlccchip: mlccChip, inductor, resistor, ecap,
       heatsink, vc: vaporChamber, heatpipe, coldplate,
       connector, cable, busbar,
