@@ -1602,7 +1602,7 @@
       if (!next) {
         dispose3D();
         const host3 = $('#prod3d', el), note3 = $('#dg3dNote', el);
-        if (host3) { host3.hidden = true; host3.innerHTML = ''; }
+        if (host3) { host3.hidden = true; clear3dHost(host3); }
         if (note3) note3.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
         ['dg3d', 'dg3dCtl'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });   // 3D 視角那組鈕整組收（見 wire3D）
@@ -1618,7 +1618,7 @@
            不收的話畫面會停在上一張的 WebGL 場景上（看起來像換圖沒生效）。*/
         dispose3D();
         const host3 = $('#prod3d', el), note = $('#dg3dNote', el);
-        if (host3) { host3.hidden = true; host3.innerHTML = ''; }
+        if (host3) { host3.hidden = true; clear3dHost(host3); }
         if (note) note.hidden = true;
         // ★ 配色不在這裡：它跟著全站主題自動走（見 wirePal），收掉 3D 不等於收掉配色
         ['dg3d', 'dg3dCtl'].forEach(id => { const b = $('#' + id, el); if (b) b.hidden = true; });   // 3D 視角那組鈕整組收（見 wire3D）
@@ -2379,6 +2379,16 @@
     };
   }
 
+  /* ★ 2026-09-26：「拖曳／重設視角」那組鈕（#dg3dCtl）3D 開著時住在 #prod3d **裡面**。
+     住在外面（兄弟元素疊上去）的話，游標從畫布移到鈕上就算「離開 #prod3d」——
+     three3d.js 的 hover 展開（#246，pointerleave 收攏）會在你要按鈕的那一刻把爆炸圖收回去。
+     但 #prod3d 在換圖、切 2D 時會被清空，所以清空之前先把鈕停回外面那層 .dg3dbox，id 永遠查得到。*/
+  function clear3dHost(host) {
+    const c = host && host.querySelector('#dg3dCtl');
+    if (c && host.parentNode) host.parentNode.appendChild(c);
+    if (host) host.innerHTML = '';
+  }
+
   function wire3D(el, chainId, hooks) {
     const hk = hooks || {};
     const onSeg = hk.onSeg || (() => { /* 沒接就不做事 */ });
@@ -2424,7 +2434,7 @@
       note.hidden = false;
       note.textContent = '載入 3D 中…';
       dispose3D();
-      host.innerHTML = '';
+      clear3dHost(host);
       let v = null;
       try {
         v = await R.mount(host, chainId, {
@@ -2447,6 +2457,7 @@
       }
       if (!v) { note.textContent = '3D 起不來，已退回平面剖析圖。'; svg.hidden = false; host.hidden = true; if (ctl) ctl.hidden = true; paintMode(false); return; }
       view3d = v;
+      if (ctl) host.appendChild(ctl);   // 3D 掛好才搬進畫面框（原因見 clear3dHost 上面的說明）
       // 手機 v3（≤640px）：3D 的字卡欄與 .ld-no 收掉，改用會自己避讓的 HTML 編號層（桌機進去就 return）
       if (window.DG && window.DG.mobileNums3d) window.DG.mobileNums3d(host, v);
       /* N1（Andy 2026-09-19）：「3D圖需要可以游標抓取移動，並且可以 360 都觀測，

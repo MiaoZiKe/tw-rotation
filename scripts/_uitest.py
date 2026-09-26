@@ -7798,7 +7798,9 @@ def t_batch6_n1(pg, base):
        bool(pol) and pol[1] > 3.0, pol)           # π ≈ 3.1416；舊版是 1.555
     ok("3D 也可以轉到上面（N1 360 度）", bool(pol) and pol[0] < 0.1, pol)
     ok("有「拖曳：轉動／平移」切換鈕（N1「游標抓取移動」）",
-       pg.evaluate("() => { const b = document.getElementById('dgDrag'); return !!b && !b.hidden; }"))
+       # ★ 2026-09-26 改前→改後：改前看 #dgDrag.hidden；改後藏的是外層 #dg3dCtl（.pill 會蓋掉自己的 [hidden]），
+       #   #dgDrag 自己的 hidden 永遠是 false —— 看屬性等於什麼都沒驗，改量「真的有框」。
+       pg.evaluate("() => { const b = document.getElementById('dgDrag'); return !!b && b.getClientRects().length > 0; }"))
     m0 = pg.evaluate("() => window.Rack3D.current.dragMode()")
     click(pg, "#dgDrag", 800)
     m1 = pg.evaluate("() => window.Rack3D.current.dragMode()")
@@ -14113,6 +14115,8 @@ SECTIONS = {
     "關聯圖說明卡點背景收回": lambda pg, b, base, code: t_rel_dismiss(pg, base),
     # ★ 2026-09-26 Andy：「切回 2D 時，顯示 2D，不要都 3D」—— 剖析圖 2D｜3D 分段鈕、記住最後選的模式（⚠ 一律 --workers 1）
     "剖析圖2D3D分段鈕":    lambda pg, b, base, code: t_dg_2d3d(pg, base),
+    # ★ 2026-09-26 Andy：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」（⚠ 一律 --workers 1）
+    "3D視角鈕與點兩下重設": lambda pg, b, base, code: t_dg3d_ctl(pg, base),
     # ★ 2026-09-26 Andy：「幫我檢查所有有這樣過多小數點的問題修正」—— 全站提示框／圖內文字／畫布／頁面文字的長小數普查
     "小數點普查":          lambda pg, b, base, code: t_decimal_audit(b, base, code),
 }
@@ -25871,7 +25875,7 @@ def t_desktop_untouched(pg, base, code):
     # 桌機的剖析圖：預設展開，3D 設定列一顆都不能少
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(3200)
-    t = pg.evaluate("""() => { const ids = ['dg3d','dgDrag','dgReset','dgAnim','dgFold'];
+    t = pg.evaluate("""() => { const ids = ['dg3d','dgDrag','dgReset','dgAnim','dgFold','dg3dCtl'];
         const out = {}; ids.forEach(i => { const e = document.getElementById(i);
           out[i] = e ? getComputedStyle(e).display : 'missing'; out[i + 'H'] = !!(e && e.hidden); });
         out.fold = (document.getElementById('dgFold') || {}).textContent;
@@ -25886,7 +25890,11 @@ def t_desktop_untouched(pg, base, code):
     #         2D｜3D、動畫、收合三顆一定在；拖曳／重設只准因為自己的 hidden（＝現在是 2D）而不見，不准被手機規則藏掉。
     ok("[1440px] 桌機的 3D 設定列：2D｜3D、動畫、收合在；拖曳／重設只在 2D 時才藏（手機規則沒外洩）",
        all(t[i] != "none" for i in ("dg3d", "dgAnim", "dgFold"))
-       and all(t[i] != "none" or t[i + "H"] for i in ("dgDrag", "dgReset")), t)
+       and (t["dg3dCtl"] != "none" or t["dg3dCtlH"]) and t["dgDrag"] != "none" and t["dgReset"] != "none", t)
+    # ★ 2026-09-26 再改（Andy：「拖曳、重設視角，移動到下面」）：
+    #   改前：「拖曳」「重設」住在設定列裡，2D 時靠各自的 hidden 藏。
+    #   改後：兩顆搬進 3D 畫面框內的 #dg3dCtl，2D 時藏的是這一組（t["dg3dCtlH"]）；兩顆自己不設 hidden，
+    #         所以它們自己的 display 一定不是 none —— 是 none 就代表手機規則（body.m3on）外洩到桌機了。
     # ★ 手機 v3：像素比對只涵蓋「初始畫面」（2026-09-24 踩過），所以「點了才出現」的東西另外驗
     d = pg.evaluate("""() => ({ more: !!document.getElementById('mTabMore'), sbtn: !!document.getElementById('mSearchBtn'),
         keep: document.querySelectorAll('.m3keep, .mnumlayer, .mdgbar, #mM3Sw').length,
@@ -31454,6 +31462,177 @@ def t_dg_2d3d(pg, base):
         m7 = pg.evaluate(DG_MODE)
         ok(f"{T} 收尾切回 2D", m7["on"] == ["2D"] and m7["canvas"] == 0, m7)
     pg.evaluate("(v) => { try { ['tw.dg3d','tw.dgOpen','tw.side'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
+    pg.set_viewport_size({"width": 1440, "height": 950})
+
+
+
+# ===================================================================== 2026-09-26：3D 視角鈕搬進畫面框 ＋ 點兩下重設視角
+DG3DCTL_M = """() => { const c = document.getElementById('dg3dCtl'), t = document.getElementById('dgTools');
+  const cv = document.querySelector('#prod3d canvas');
+  const vis = (e) => !!e && e.getClientRects().length > 0 && getComputedStyle(e).visibility !== 'hidden';
+  const R = (e) => { const r = e.getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+  const cr = vis(c) ? R(c) : null, vr = cv ? R(cv) : null, tr = t ? R(t) : null;
+  // 看得到的卡片有沒有壓到這組鈕（窄畫面卡片在畫布底下，自然不會碰到）
+  const hit = cr ? [...document.querySelectorAll('#prod3d .lbl3d')].filter(e => vis(e) && !e.classList.contains('hid')).filter(e => {
+    const r = e.getBoundingClientRect(); return r.width > 0 && r.left < cr.r - 1 && r.right > cr.l + 1 && r.top < cr.b - 1 && r.bottom > cr.t + 1; })
+    .map(e => (e.innerText || '').trim().slice(0, 10)) : [];
+  const tools = t ? [...t.children].filter(vis).map(e => (e.innerText || '').replace(/\\s+/g, '').trim()) : [];
+  return { exists: !!c, shown: vis(c), drag: vis(document.getElementById('dgDrag')), reset: vis(document.getElementById('dgReset')),
+    inTools: !!(t && t.querySelector('#dgDrag, #dgReset, #dg3dCtl')), inHost: !!(c && c.closest('#prod3d')),
+    ctl: cr, cv: vr, tools, toolsB: tr ? tr.b : null, hit,
+    title: (document.getElementById('dgReset') || {}).title || '',
+    // 單一環節的圖（晶圓代工整張都是 foundry）每張卡片本來就帶 .sel（環節層級的亮），要看的是「零件層級」的選取
+    sel: document.querySelectorAll('#prod3d .lbl3d.sel-part').length, haspart: !!document.querySelector('#prod3d.haspart'),
+    card: (() => { const b = document.getElementById('partCard'); return !!b && !b.hidden && b.getClientRects().length > 0; })(),
+    canvas: document.querySelectorAll('#prod3d canvas').length,
+    mode: (document.getElementById('dg3d') || { dataset: {} }).dataset.mode || '' }; }"""
+
+
+def _cam_same(c0, c1):
+    """重設之後相機跟一開始比：方向（單位向量內積）＋ 距離（±5%）。比法跟 check_3d 的「重設視角」同一套。"""
+    def _u(v):
+        m = sum(x * x for x in v) ** 0.5 or 1.0
+        return [x / m for x in v], m
+    u0, m0 = _u(c0); u1, m1 = _u(c1)
+    return sum(a * b for a, b in zip(u0, u1)) > 0.999 and abs(m1 - m0) / m0 < 0.05
+
+
+def _cam_moved(c0, c1):
+    return max(abs(a - b) for a, b in zip(c0, c1)) > 3
+
+
+def _dg3d_drag(pg, cv, dx=240, dy=50):
+    """在畫布中間真的按住拖一段（起點避開右上角那組鈕）。"""
+    cx, cy = cv["l"] + cv["w"] * 0.45, cv["t"] + cv["h"] * 0.55
+    pg.mouse.move(cx, cy); pg.mouse.down()
+    pg.mouse.move(cx + dx, cy + dy, steps=14)
+    pg.mouse.up(); pg.wait_for_timeout(700)
+
+
+def t_dg3d_ctl(pg, base):
+    """Andy 2026-09-26：「拖曳、重設視角，移動到下面，另外新增 點兩下重設視角」。
+    真的操作：2D 時兩顆看不到 → 切 3D → 兩顆在 3D 畫布框內右上角（量 bbox：在畫布裡、在設定列下方、沒壓到卡片）
+    → 設定列只剩「怎麼看?｜2D 3D｜動畫｜收合圖」→ 游標移到鈕上爆炸圖不會收回 → 拖曳轉動相機真的變了
+    → 在零件上點兩下：相機回預設、而且沒有留下選取／零件小卡 → 在背景點兩下也回預設
+    → 按「重設視角」同樣回預設 → 「拖曳」鈕照樣切得到平移 → 切 2D 兩顆不見 → 再切 3D、換圖，兩顆都回到畫面框裡
+    （換圖／切換會清空 #prod3d，鈕不能被一起清掉）。
+    1440 與 800 各走一次（800 卡片搬到畫布底下，鈕照樣在畫布右上）。"""
+    pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+    keep = pg.evaluate("() => { try { return ['tw.dg3d','tw.dgOpen','tw.side','tw.dganim'].map(k => localStorage.getItem(k)); } catch (e) { return [null,null,null,null]; } }")
+    for width in (1440, 800):
+        T = f"[3D視角鈕 {width}]"
+        pg.set_viewport_size({"width": width, "height": 950})
+        pg.goto(f"{base}#overview", wait_until="domcontentloaded")
+        # 動畫關：場景不自轉，「相機回到預設」才比得準；從 2D 開始，先驗「2D 時看不到」
+        pg.evaluate("() => { try { localStorage.setItem('tw.dg3d','0'); localStorage.setItem('tw.dgOpen','1'); localStorage.setItem('tw.side','0'); localStorage.setItem('tw.dganim','0'); } catch (e) {} }")
+        pg.goto("about:blank"); pg.goto(f"{base}#industry/semiconductor/dg/foundry", wait_until="networkidle")
+        if not wait_until(pg, "() => { const s = document.getElementById('dg3d'); return !!s && !s.hidden; }", 8000):
+            ok(f"{T} 晶圓代工分頁有 2D｜3D 分段鈕", False, pg.evaluate(DG3DCTL_M)); continue
+        if not pg.evaluate("() => !!(window.Rack3D && window.Rack3D.supported())"):
+            notes.append(f"{T} 這個環境不支援 WebGL，3D 視角鈕沒有驗"); continue
+        m0 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 2D 時「拖曳」「重設視角」都看不到", m0["exists"] and not m0["shown"] and not m0["drag"] and not m0["reset"], m0)
+        ok(f"{T} 設定列裡已經沒有「拖曳」「重設視角」", not m0["inTools"], m0["tools"])
+        # 切 3D
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1 && !!(window.Rack3D && window.Rack3D.current)", 12000)
+        pg.mouse.move(4, 4); pg.wait_for_timeout(1500)
+        m1 = pg.evaluate(DG3DCTL_M)
+        if not m1["ctl"] or not m1["cv"]:
+            ok(f"{T} 切 3D 之後兩顆出現", False, m1); continue
+        c, v = m1["ctl"], m1["cv"]
+        ok(f"{T} 切 3D：兩顆出現、住在 3D 畫面框裡（不在設定列）",
+           m1["shown"] and m1["drag"] and m1["reset"] and m1["inHost"] and not m1["inTools"], m1)
+        ok(f"{T} 那組鈕整個在 3D 畫布的範圍內",
+           c["l"] >= v["l"] - 0.5 and c["r"] <= v["r"] + 0.5 and c["t"] >= v["t"] - 0.5 and c["b"] <= v["b"] + 0.5, {"ctl": c, "canvas": v})
+        ok(f"{T} 那組鈕在畫布的右上角（離右緣、上緣都 ≤ 24px）",
+           v["r"] - c["r"] <= 24 and c["t"] - v["t"] <= 24, {"右距": round(v["r"] - c["r"], 1), "上距": round(c["t"] - v["t"], 1)})
+        ok(f"{T} 那組鈕在設定列下方（不跟設定列同一排）",
+           m1["toolsB"] is not None and c["t"] >= m1["toolsB"] - 0.5, {"ctlTop": c["t"], "toolsBottom": m1["toolsB"]})
+        ok(f"{T} 右欄卡片沒有壓到那組鈕", not m1["hit"], m1["hit"])
+        ok(f"{T} 設定列剩「怎麼看?｜2D 3D｜動畫｜收合圖」",
+           len(m1["tools"]) == 4 and "怎麼看" in m1["tools"][0] and "2D" in m1["tools"][1] and "3D" in m1["tools"][1]
+           and "動畫" in m1["tools"][2] and "收合" in m1["tools"][3], m1["tools"])
+        ok(f"{T} 「重設視角」的提示寫了「也可以在 3D 畫面上點兩下」", "點兩下" in m1["title"], m1["title"])
+        ok(f"{T} 3D 說明寫了「點兩下回到預設視角」", "點兩下" in text(pg, "#dg3dNote"), text(pg, "#dg3dNote")[-60:])
+        # 游標從畫布移到鈕上：爆炸圖不可以收回去（鈕住在 #prod3d 裡，沒有「離開」3D 畫面）
+        pg.mouse.move(v["l"] + v["w"] * 0.45, v["t"] + v["h"] * 0.55); pg.wait_for_timeout(300)
+        _dg3d_settle(pg, 1, 4000)
+        rb = pg.evaluate("() => { const r = document.getElementById('dgReset').getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }")
+        pg.mouse.move(rb["x"], rb["y"], steps=6); pg.wait_for_timeout(900)
+        ex = pg.evaluate("() => window.Rack3D.current.explode()")
+        ok(f"{T} 游標移到「重設視角」上，3D 爆炸圖不會收回去", ex > 0.99, ex)
+        pg.mouse.move(4, 4); _dg3d_settle(pg, 0, 4000)
+        cam0 = pg.evaluate("() => window.Rack3D.current.cam()")
+        # ① 拖曳轉動
+        _dg3d_drag(pg, v)
+        cam1 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 在畫布上拖曳，相機真的轉了", _cam_moved(cam0, cam1), f"{cam0} → {cam1}")
+        # ② 在零件上點兩下 → 回預設，而且不留選取（第一下會選起來，要被清掉）
+        seg = pg.evaluate("() => window.Rack3D.current.segs().find(s => !!window.Rack3D.current.screen(s))")
+        pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg) if seg else None
+        if pt:
+            tgt = pg.evaluate("(p) => { const e = document.elementFromPoint(p.x, p.y); return e ? e.tagName : ''; }", pt)
+            pg.mouse.dblclick(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            cam2 = pg.evaluate("() => window.Rack3D.current.cam()")
+            m2 = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 在零件上點兩下：相機回到預設", _cam_same(cam0, cam2), f"{cam0} → {cam1} → {cam2}（點的是 {tgt}）")
+            ok(f"{T} 在零件上點兩下：不留下選取、零件小卡收掉", m2["sel"] == 0 and not m2["haspart"] and not m2["card"],
+               {"sel": m2["sel"], "haspart": m2["haspart"], "card": m2["card"], "seg": seg})
+            # 反證：同一個零件**單擊**一次要真的選得起來 —— 不然上面那條「沒有選取」可能只是點不到零件的假綠。
+            # 相機剛回到預設，零件在螢幕上的位置變了，座標要重新問一次。
+            pt = pg.evaluate("(s) => window.Rack3D.current.screen(s)", seg) or pt
+            pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            m2b = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 反證：同一個零件單擊一次會選起來", m2b["sel"] > 0 and m2b["haspart"], {"sel": m2b["sel"], "haspart": m2b["haspart"], "card": m2b["card"]})
+            pg.mouse.dblclick(pt["x"], pt["y"]); pg.wait_for_timeout(900)
+            m2c = pg.evaluate(DG3DCTL_M)
+            ok(f"{T} 已經選著零件時再點兩下：選取清掉、小卡收掉", m2c["sel"] == 0 and not m2c["card"], {"sel": m2c["sel"], "card": m2c["card"]})
+        else:
+            ok(f"{T} 找得到一個點得到的零件（點兩下用）", False, seg)
+        # ③ 再轉一次，在背景點兩下也回預設（找一個 elementFromPoint 是 canvas 的點）
+        _dg3d_drag(pg, v, -200, -40)
+        cam3 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 第二次拖曳相機又轉了", _cam_moved(cam0, cam3), f"{cam0} → {cam3}")
+        bg = pg.evaluate("""(v) => { for (let fy = 0.92; fy > 0.1; fy -= 0.06) for (let fx = 0.5; fx < 0.9; fx += 0.08) {
+            const x = v.l + v.w * fx, y = v.t + v.h * fy, e = document.elementFromPoint(x, y);
+            if (e && e.tagName === 'CANVAS') return { x, y }; } return null; }""", v)
+        ok(f"{T} 畫布上找得到背景點（點兩下用）", bool(bg), bg)
+        if bg:
+            pg.mouse.dblclick(bg["x"], bg["y"]); pg.wait_for_timeout(900)
+            cam4 = pg.evaluate("() => window.Rack3D.current.cam()")
+            ok(f"{T} 在畫布背景點兩下：相機回到預設", _cam_same(cam0, cam4), f"{cam3} → {cam4}")
+        # ④ 按「重設視角」同樣回預設
+        _dg3d_drag(pg, v, 180, 70)
+        cam5 = pg.evaluate("() => window.Rack3D.current.cam()")
+        _dg3d_toolbar_click(pg, "#dgReset", 900)
+        cam6 = pg.evaluate("() => window.Rack3D.current.cam()")
+        ok(f"{T} 按「重設視角」：相機回到預設（跟點兩下同一個結果）",
+           _cam_moved(cam0, cam5) and _cam_same(cam0, cam6), f"{cam5} → {cam6}")
+        # ⑤ 「拖曳：轉動」鈕搬家之後照樣能切平移
+        _dg3d_toolbar_click(pg, "#dgDrag", 600)
+        dm = pg.evaluate("() => window.Rack3D.current.dragMode()")
+        ok(f"{T} 畫面框裡的「拖曳」鈕照樣能切到平移", dm == "pan" and "平移" in text(pg, "#dgDrag"), [dm, text(pg, "#dgDrag")])
+        _dg3d_toolbar_click(pg, "#dgDrag", 600)
+        # ⑥ 切 2D → 兩顆不見；再切 3D → 回到畫面框裡
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+        m7 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 切 2D：兩顆不見（元素還在、只是收起來）",
+           m7["exists"] and not m7["shown"] and not m7["drag"] and not m7["reset"] and m7["canvas"] == 0, m7)
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='3d']", 400)
+        wait_until(pg, "() => document.querySelectorAll('#prod3d canvas').length === 1 && !!(window.Rack3D && window.Rack3D.current)", 12000)
+        pg.wait_for_timeout(600)
+        m8 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 再切 3D：兩顆回到 3D 畫面框裡", m8["shown"] and m8["inHost"] and m8["reset"], m8)
+        # 換一張圖（清空 #prod3d 的另一條路）→ 鈕仍然在
+        _dg3d_toolbar_click(pg, "#dgPick .segchip[data-dgid='hbm']", 400)
+        wait_until(pg, "() => location.hash.endsWith('/hbm') && document.querySelectorAll('#prod3d canvas').length === 1", 12000)
+        pg.mouse.move(4, 4); pg.wait_for_timeout(1200)
+        m9 = pg.evaluate(DG3DCTL_M)
+        ok(f"{T} 換到 HBM 分頁（3D）：兩顆仍在畫面框裡、沒壓到卡片",
+           m9["shown"] and m9["inHost"] and m9["reset"] and not m9["hit"], m9)
+        _dg3d_toolbar_click(pg, "#dg3d button[data-dm='2d']", 900)
+    pg.evaluate("(v) => { try { ['tw.dg3d','tw.dgOpen','tw.side','tw.dganim'].forEach((k, i) => v[i] == null ? localStorage.removeItem(k) : localStorage.setItem(k, v[i])); } catch (e) {} }", keep)
     pg.set_viewport_size({"width": 1440, "height": 950})
 
 
