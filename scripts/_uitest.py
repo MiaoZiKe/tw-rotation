@@ -4023,9 +4023,12 @@ def t_new_industry(pg, base):
         dimCo: document.querySelectorAll('#chainMap .co.dim').length,
         box: (() => { const b = document.getElementById('coBox');
                       return b ? (b.innerText || '').replace(/\s+/g, ' ') : ''; })(),
+        // ★ 2026-09-26 晚改前→改後（Andy：「點選環節時不會動到關聯圖版面」）：
+        //   改前 side ＝ 資訊欄在圖右緣之外（第二欄）；改後 side ＝ 資訊欄住在浮在圖上的說明卡裡（absolute、在圖框左右範圍內）
         side: (() => { const s = document.getElementById('coBox'), g = document.getElementById('chainMap');
           if (!s || !g) return false; const rs = s.getBoundingClientRect(), rg = g.getBoundingClientRect();
-          return rs.left >= rg.right - 2; })() })"""
+          const col = s.closest('.relcol');
+          return !!col && getComputedStyle(col).position === 'absolute' && rs.left >= rg.left - 1 && rs.right <= rg.right + 1; })() })"""
     for cid, code, cname, seg_click in CHAINS:
         pg.evaluate(GOLIST)
         pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(500)
