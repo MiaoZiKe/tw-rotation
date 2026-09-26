@@ -714,7 +714,13 @@ def robots_rules(root: str):
     allow_all.why = ""
     res = _get(urljoin(root, "/robots.txt"), timeout=6, max_bytes=200_000)
     if res is None:
-        return allow_all
+        def unreachable(url):
+            return True
+        unreachable.why = ""
+        # 連 robots.txt 都連不上（DNS 失敗、逾時）：首頁幾乎一定也連不上。標起來讓 _open_home 直接跳過，
+        # 第二版多了 www／非 www 備援，死掉的網域每多試一個主機就要多等一次逾時，這樣每家可省 10 秒以上。
+        unreachable.unreachable = True
+        return unreachable
     status, body, _ctype, _final = res
     if status in (401, 403):
         def deny(url):
@@ -794,6 +800,8 @@ def _open_home(url: str, host: str, rules) -> tuple:
     for _hop in range(6):
         origin = _origin(cur)
         allowed = rules(origin)
+        if getattr(allowed, "unreachable", False):
+            return ("down", f"連不上 {origin}（robots.txt 就連不上，首頁不再試）")
         if not allowed(cur):
             return ("robots", origin, getattr(allowed, "why", "") or "robots.txt 不允許")
         res = _get(cur, timeout=10, max_bytes=2_000_000, allow_redirects=False)

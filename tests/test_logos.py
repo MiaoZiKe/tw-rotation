@@ -926,6 +926,17 @@ def test_homepage_candidates_www_toggle():
         "https://ir.x.com.tw/", "http://ir.x.com.tw/"]              # 子網域不亂加 www
 
 
+def test_dead_host_skips_homepage_after_robots_unreachable(monkeypatch):
+    """robots.txt 就連不上的主機，首頁不再多等一次逾時；三個主機都死 → 問 Google。"""
+    calls = []
+    routes = {u + "robots.txt": "down" for u in (X, "http://www.x.com.tw/", "https://x.com.tw/")}
+    routes[S2] = (200, _png((128, 128)), "image/png")
+    monkeypatch.setattr(http, "get_bytes", _web(routes, calls))
+    got = lg.fetch_logo("www.x.com.tw")
+    assert got["src"] == "google_s2"
+    assert X not in calls and "https://x.com.tw/" not in calls
+
+
 def test_homepage_403_does_not_hammer_alternatives(monkeypatch):
     calls = []
     monkeypatch.setattr(http, "get_bytes", _web({X: (403, b"denied", "text/html")}, calls))
