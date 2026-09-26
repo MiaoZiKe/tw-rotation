@@ -5372,6 +5372,8 @@
     paneH: kchart && kchart.paneHeights ? kchart.paneHeights() : null,
     // 驗收用：目前算出幾組背離
     div: kchart && kchart.divergences ? { top: kchart.divergences.top.length, bottom: kchart.divergences.bottom.length } : null,
+    // 驗收用：主圖上掛了幾條價位線（停損／目標 2026-09-26 晚拿掉，應該永遠是 0）
+    priceLines: kchart && kchart.priceLines ? kchart.priceLines.length : -1,
     /* 驗收用：K 棒實際多寬、畫面上看得到幾根。
        Andy 2026-09-15：「切換到不同時間週期，K棒會很窄」—— 這兩個數字就是那件事的證據，
        只驗「有畫出來」看不出棒子被壓成一條線。 */
