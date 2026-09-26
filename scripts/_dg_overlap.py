@@ -170,6 +170,10 @@ AUDIT2D_JS = r"""(opt) => {
       below.sort((p, q) => (p.S.el.compareDocumentPosition(q.S.el) & FOLLOW) ? 1 : -1);   // 上面（後畫）的排前面
       for (const { S, g } of below) {
         if (S.fill && g.dn <= TOL) break;
+        /* 圓形底（編號圓點、圓形標籤）：矩形字框的四個角本來就一定在圓外 —— 字寬塞得進直徑、
+           圓蓋住字框六成以上，就當成「字印在圓上」，跟實心底圖同一種處理。*/
+        const tg = S.el.tagName;
+        if (S.fill && (tg === 'circle' || tg === 'ellipse') && g.hit / g.tot >= 0.6 && tb.width <= S.r.width + TOL) break;
         if (S.fill) {
           if (g.dh > TOL && g.dn > TOL) issues.push({ kind: '文字跨在圖形邊緣', sec: secOf(T.el), a: descText(T.el), b: descShape(S.el), px: +Math.min(g.dh, g.dn).toFixed(1), rect: R(union(T.r, S.r.width * S.r.height < 4 * T.r.width * T.r.height ? S.r : T.r)) });
         } else if (S.sw > TOL + 0.5 && g.dh > TOL) {
@@ -191,6 +195,14 @@ AUDIT2D_JS = r"""(opt) => {
       const over = Math.max(svr.left - tb.left, tb.right - svr.right, svr.top - tb.top, tb.bottom - svr.bottom);
       if (over > TOL) issues.push({ kind: '文字超出畫布', sec: secOf(T.el), a: descText(T.el), b: '<svg>', px: +over.toFixed(1), rect: R(T.r) });
     });
+    // ⑤ 編號圓點互蓋（兩顆圓點的圓心距離小於兩個半徑和）
+    const dots = [...svg.querySelectorAll('g.anc circle.anchor.no')].filter(c => shown(c, svg)).map(c => ({ el: c, r: c.getBoundingClientRect() })).filter(d => d.r.width);
+    for (let i = 0; i < dots.length; i++) for (let j = i + 1; j < dots.length; j++) {
+      const a = dots[i].r, b = dots[j].r;
+      const ov = (a.width + b.width) / 2 - Math.hypot((a.left + a.right - b.left - b.right) / 2, (a.top + a.bottom - b.top - b.bottom) / 2);
+      const na = (dots[i].el.parentNode.querySelector('.non') || {}).textContent || '', nb = (dots[j].el.parentNode.querySelector('.non') || {}).textContent || '';
+      if (ov > TOL) issues.push({ kind: '編號圓點互蓋', sec: secOf(dots[i].el), a: '編號 ' + na, b: '編號 ' + nb, px: +ov.toFixed(1), rect: R(union(a, b)) });
+    }
     // ④ 文字互疊
     for (let i = 0; i < texts.length; i++) for (let j = i + 1; j < texts.length; j++) {
       const I = inter(texts[i].tight, texts[j].tight);
@@ -519,7 +531,7 @@ def _one(pg, base: str, t: dict, w: int, mode: str, pal: str, shots, nshot: int,
         if _whitelisted(t["id"], it):
             continue
         k = (it["kind"], it["a"], it.get("sec", ""))
-        if k in idx and it["kind"] not in ("文字互疊", "說明卡互蓋", "3D 說明卡互蓋", "編號鈕互蓋"):
+        if k in idx and it["kind"] not in ("文字互疊", "說明卡互蓋", "3D 說明卡互蓋", "編號鈕互蓋", "編號圓點互蓋"):
             o = idx[k]
             if it["b"] not in o["b"]:
                 o["b"] += "、" + it["b"]

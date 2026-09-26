@@ -566,11 +566,19 @@
      這是共用機制，沒有動任何一張圖的幾何；科技模式下量出來 0 行需要壓。*/
   function fitTexts(svg) {
     const vb = svg.viewBox && svg.viewBox.baseVal ? svg.viewBox.baseVal.width : 0; if (!vb) return;
-    const lim = vb - 4;
+    const sr = svg.getBoundingClientRect();
+    if (!sr.width) return;
+    const k0 = sr.width / vb;                               // 畫布座標 → 螢幕 px
+    /* ★ 2026-09-26 覆蓋普查（scripts/_dg_overlap.py）：以前只管「伸出畫布右緣」，
+       但更常見的是**伸出自己那一格的框**（rect.frame）—— 閱讀模式字大一階、1100 寬時字級再放大一點，
+       照 12px 排的整行說明就頂到框線上、壓在框外。這裡把「所屬的框」也當成右界，一樣只准壓 ≤ 12%。
+       所屬的框＝字的起點落在裡面的最小那個 frame（跟普查腳本「文字超出所屬格子」同一條定義）。
+       量的是螢幕座標，所以段落的 translate、scale 都自動算進去。*/
+    const frames = [].slice.call(svg.querySelectorAll('rect.frame')).map((f) => ({ f, r: f.getBoundingClientRect() })).filter((x) => x.r.width > 0);
     svg.querySelectorAll('text').forEach((t) => {
       if (t.hasAttribute('textLength')) { t.removeAttribute('textLength'); t.removeAttribute('lengthAdjust'); }
-      let b, m; try { b = t.getBBox(); m = t.getCTM(); } catch (e) { return; }
-      if (!b || !b.width || !m) return;
+      let b, tr; try { b = t.getBBox(); tr = t.getBoundingClientRect(); } catch (e) { return; }
+      if (!b || !b.width || !tr || !tr.width) return;
       let want;
       const row = t.parentNode && t.parentNode.closest ? t.parentNode.closest('.lrow') : null;
       const card = row ? row.querySelector('rect.bg') : null;
@@ -580,10 +588,18 @@
         if (b.x + b.width <= cr) return;
         want = cr - b.x;
       } else {
-        const sx = m.a || 1;                                 // 局部座標到畫布座標的縮放（只有 translate 時是 1）
-        const left = m.a * b.x + m.c * b.y + m.e, right = left + b.width * sx;
-        if (right <= lim) return;
-        want = (lim - left) / sx;
+        const anchor = getComputedStyle(t).textAnchor;
+        const kk = anchor === 'middle' ? 0.5 : (anchor === 'end' ? 0 : 1);   // 壓短之後右緣往左退多少（靠右對齊的字壓了也不會退）
+        if (!kk) return;
+        let lim = sr.right - 4 * k0;
+        const cy = (tr.top + tr.bottom) / 2, x0 = tr.left + 2;
+        let own = null;
+        frames.forEach((x) => { const r = x.r; if (x0 < r.left || x0 > r.right || cy < r.top || cy > r.bottom) return; if (x.f.contains(t)) return;
+          if (!own || r.width * r.height < own.width * own.height) own = r; });
+        if (own) lim = Math.min(lim, own.right - 6 * k0);
+        if (tr.right <= lim) return;
+        const per = tr.width / b.width;                     // 局部座標 1 單位 ＝ 幾 px
+        want = b.width - (tr.right - lim) / kk / per;
       }
       if (want / b.width < 0.88) return;
       t.setAttribute('lengthAdjust', 'spacingAndGlyphs');
@@ -617,6 +633,14 @@
   }
 
   function wireFolds(svg) {
+    /* ★ 2026-09-26 覆蓋普查：字級在圖插進 DOM 之後才定案（v2 容器查詢、配色模式），
+       插進去當下量的「壓多少」會偏小。每張圖掛一次「稍後再量」：下一幀、350ms、字型到齊。*/
+    if (!svg.__dgLateFit) {
+      svg.__dgLateFit = true;
+      const late = () => { if (svg.isConnected) { fitTexts(svg); if (svg.__dgRefitHints) svg.__dgRefitHints(); } };
+      requestAnimationFrame(late); setTimeout(late, 350);
+      try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(late); } catch (e) { /* 忽略 */ }
+    }
     if (svg.dataset.dgFold === '1') { fitTexts(svg); return; }   // 同一張圖被 stamp 兩次不要重複綁，但字要重量
     const all = [].slice.call(svg.querySelectorAll('g.dgfold[data-fold],g.dgbody[data-fold]'));
     if (!all.length) { fitTexts(svg); return; }
@@ -713,10 +737,8 @@
        追根因的時間上限到了，改走不依賴時機的做法：版面有機會變的時候都再量一次
        （下一幀、300ms 補排、字型到齊、切配色、容器寬度變了）。量一次只是幾次 getBBox。*/
     const refitHints = () => { if (svg.isConnected) bars.forEach(fitHint); };
-    requestAnimationFrame(refitHints); setTimeout(refitHints, 350);
-    try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitHints); } catch (e) { /* 忽略 */ }
-    svg.__dgRefitHints = refitHints;
-    if (window.ResizeObserver) { try { new ResizeObserver(refitHints).observe(svg.parentNode && svg.parentNode.nodeType === 1 ? svg.parentNode : svg); } catch (e) { /* 忽略 */ } }
+    svg.__dgRefitHints = refitHints;               // 「稍後再量」（wireFolds 開頭）與切配色都會叫它
+    if (window.ResizeObserver) { try { new ResizeObserver(() => { refitHints(); fitTexts(svg); }).observe(svg.parentNode && svg.parentNode.nodeType === 1 ? svg.parentNode : svg); } catch (e) { /* 忽略 */ } }
     function paint() {
       let cur = base;
       rows.forEach((r) => {
