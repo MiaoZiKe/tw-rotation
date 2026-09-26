@@ -87,6 +87,19 @@
 | M6 | 主軸拉刀機構：主軸內碟形彈簧拉緊刀具，換刀時由打刀缸（液壓）頂開 | 中 | <http://www.skjcsc.com/gongnengbujian/29625.html>、<https://jfc.co.com/zh-hant/product/bmv-%E6%89%93%E5%88%80%E7%BC%B8/> |
 | M7 | 工具機主軸用斜角滾珠軸承、成對（背對背／面對面／串聯）並加預壓以提高剛性 | 高 | <https://www.nsk.com/products/ball-bearings/angular-contact-ball-bearings/>、<https://industrialmonitordirect.com/blogs/knowledgebase/angular-contact-bearing-preload-spindle-assembly-and-measurement> |
 
+### 效能（改前 → 改後；`scripts/_uitest.py`「3D細緻化效能」與同頁 ABBA 交錯量，2026-09-26 實測）
+
+| 場景 | draw call | 三角形 | 首次畫圖（對 769a4e5，同頁交錯、取最快） |
+|---|---|---|---|
+| motion_axis（工業自動化） | 58 → 50 | 14,158 → 47,066 | 280 → 351 ms（1.25 倍，上限 1.3 倍＋30 ms） |
+| machine_tool（CNC 工具機） | 70 → 100 | 15,248 → 50,346 | 383 → 448 ms（1.17 倍） |
+
+- 陣列一律 InstancedMesh 或同材質併成一個 mesh（馬達 7 → 3 個 draw call、滑軌組 3 → 2、滑塊組 3 → 2、刀庫倒下那一格併進實例）。
+- CNC 那張第一版量到 85,794 個三角形，撞到 `_uitest.py` C6-6「每張 ≤ ai_server × 1.15（≈ 53,463）」的棘輪。
+  沒有放寬那條棘輪，而是把**畫面上只有幾十像素寬的細節**減面：細螺桿（X／Z 軸）每圈取樣 10 → 7、周向 22 → 11；
+  主軸軸承滾珠 14 → 12 顆、球面 10×7 → 7×4；刀庫裡九支刀柄用低細節版本；馬達散熱肋改一般方塊。
+- 批次28 的三角形上限改成「改後量到的 ×1.5」（工業自動化 24,000 → 71,000、CNC 24,000 → 76,000，同第一批的做法）；draw call 上限 110 沒動。
+
 ### 仍是示意（副標已寫「示意圖，非實物比例」）
 
 - **整台機器的外罩鈑金沒有畫**：真機的加工區被一整圈防護鈑金包住，畫上去就什麼都看不到了（這張圖的目的就是看裡面）。這是刻意的省略，不是漏掉。
