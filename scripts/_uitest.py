@@ -14078,7 +14078,7 @@ def t_chips_basic0926(pg, base, code):
 #     ① draw call ≤ 300、三角形 ≤ 150,000（CEO 訂的全站上限）
 #     ② 微表面真的掛上去了（實體 mesh 至少六成帶 micro 材質）；有流線的場景一定有方向箭頭
 #     ③ 首次畫圖（建場景＋第一次 render）不得比改之前慢超過 30%：
-#        把改之前那一版（769a4e5）改名成 Rack3DOld 掛在同一頁，舊／新交錯各重掛 4 次取中位數比
+#        把改之前那一版（769a4e5）改名成 Rack3DOld 掛在同一頁，舊／新 ABBA 交錯各重掛 5 次、取最快的一次比
 #        （多給 30ms 的絕對餘裕吸收計時抖動）。
 #     ④ 4× CPU 降速下仍可互動：真的用滑鼠拖一段，相機要動、而且 3 秒內畫得出新的一幀。
 #   ⚠ 一律 --workers 1（有 3D）。
@@ -14102,17 +14102,25 @@ DG3D_DETAIL_OLD_REV = "769a4e5"
 # 4× 降速互動只抽五張優先場景（每張要重開頁面，全跑會超過十分鐘）
 DG3D_DETAIL_THROTTLE = ["foundry", "wide_bandgap", "mlcc", "resistor_protect", "power_inductor"]
 
-# 交錯量測：舊→新→舊→新…各 4 次，丟掉各自的第一次（第一次要編 shader），取中位數
+# 交錯量測：ABBA 各 5 次、每次之間讓瀏覽器喘口氣，丟掉各自的第一次（第一次要編 shader），取最快的那一次
 _DG3D_AB = """async (id) => {
-  const one = async (R) => { const el = document.createElement('div');
+  const idle = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(r, 400))));
+  const one = async (R) => { await idle(); const el = document.createElement('div');
     el.style.cssText = 'width:1200px;position:absolute;left:0;top:0'; document.body.appendChild(el);
     const keep = window.Rack3D.current; const t0 = performance.now();
     const v = await R.mount(el, id, { anim: false }); const t = performance.now() - t0;
     v.dispose(); el.remove(); window.Rack3D.current = keep; return t; };
+  // ABBA 交錯（舊新新舊…）：前一次掛載的收尾（GC、WebGL context 釋放）會落在下一次身上，
+  // 固定「舊→新」的話新版每次都替舊版付這筆錢（2026-09-26 實測：同一支程式量出 1.4～1.9 倍的假紅）
   const a = [], b = [];
-  for (let i = 0; i < 4; i++) { a.push(await one(window.Rack3DOld)); b.push(await one(window.Rack3D)); }
-  const med = (x) => { x = x.slice(1).sort((p, q) => p - q); return Math.round(x[Math.floor(x.length / 2)]); };
-  return { old: med(a), now: med(b) }; }"""
+  for (let i = 0; i < 5; i++) {
+    if (i % 2) { b.push(await one(window.Rack3D)); a.push(await one(window.Rack3DOld)); }
+    else { a.push(await one(window.Rack3DOld)); b.push(await one(window.Rack3D)); }
+  }
+  // 取「最快的那一次」而不是中位數：別的行程搶 CPU 只會讓某幾次變慢、不會讓它變快，
+  // 最快那一次最接近程式本身的成本（容器常常同時跑好幾支瀏覽器）
+  const best = (x) => Math.round(Math.min(...x.slice(1)));
+  return { old: best(a), now: best(b) }; }"""
 
 
 def _dg3d_old_src():

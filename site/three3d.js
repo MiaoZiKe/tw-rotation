@@ -2120,15 +2120,13 @@
       /* ★ 2026-09-22：從「一根手指兩個 Mesh」改成兩個 InstancedMesh。
          外觀完全一樣，但 14 根手指從 28 個 draw call 變成 2 個 ——
          主機板 ×6 ＋ 光模組 ×8 都用到它，省下來的是三位數。*/
-      const at = [], at2 = [];
-      for (let i = 0; i < n; i++) {
-        const x = (-(n - 1) / 2 + i) * (w / n);
-        at.push([x, y, z]);
-        // 倒角：前緣壓一片更薄的，看起來就是「插得進去」的那種斜邊
-        at2.push([x, y - h * 0.3, z + d * 0.62]);
-      }
-      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h, d), au, at));
-      g.add(instOf(new T.BoxGeometry(w / n * 0.55, h * 0.45, d * 0.35), au, at2));
+      const at = [];
+      for (let i = 0; i < n; i++) at.push([(-(n - 1) / 2 + i) * (w / n), y, z]);
+      /* 2026-09-26：手指本體＋前緣倒角那一片烘成同一個幾何再實例化（2 個 draw call → 1 個；
+         主機板 ×6、光模組 ×8 都用到它，機櫃省 14 個 draw call，守住 ≤ 300）。*/
+      const fb = new T.BoxGeometry(w / n * 0.55, h, d);
+      const tip = new T.BoxGeometry(w / n * 0.55, h * 0.45, d * 0.35); tip.translate(0, -h * 0.3, d * 0.62);   // 倒角：前緣壓一片更薄的
+      g.add(instOf(mergeGeos([fb, tip]), au, at));
       return g;
     }
 
