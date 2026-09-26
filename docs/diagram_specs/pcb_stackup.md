@@ -540,3 +540,34 @@
 | 2026-09-21 | pcb-substrate-analyst（規格書作者） | 待審 | 事實來源與信心度全部列在 §7，證據等級一律是 **WebSearch 摘要**（容器擋 `WebFetch`），沒有讀過任何原文。**三條來源打架已記錄並各自給了處理方式**：B2（CCL 占 PCB 成本比重，三個數字互相矛盾 → 畫面不寫數字）、B3（90° 轉角，酸陷阱 vs 訊號反射 → 不寫絕對句）、B6（M 等級的 Df 門檻，量測頻率基準不一致 → 不做對照表）；另有 B5（HTE 英文全稱有兩種說法 → 只寫中文）。**六條查不到**已列在 §C。**3D 的判斷寫在 §0 並列了「什麼條件才回頭加」** —— 不要重演 MLCC 的事後補簽 |
 | | mechanical-engineer | | |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26，3D 細緻化第二批 C 組，場景 `pcb_rigid`）
+
+零件清單、編號、位置、爆炸位移、卡片文字**都沒動**；只補「微切片（microsection）上真的看得到」的結構。
+全部是本場景專用的建造函式（`pcbLayer`／`pcbTrace`／`pcbVia`，別的場景沒有用到），共用引擎一行都沒改。
+
+| 代號 | 零件 | 補了什麼 | 依據 |
+|---|---|---|---|
+| P1 | 玻纖織紋 | 以前是一排圓點（像鉚釘）。改成**平織**的剖面：跟切面垂直的經紗被切成一排**扁橢圓**，跟切面平行的緯紗是一條在扁橢圓**上下穿梭**的起伏帶（交叉處疊兩層、紗間留膠隙）。卡片講的「織效應」就是從這個不均勻來的 | E1、E2 |
+| P2 | 內層線路（帶狀線差動對） | 剖面從矩形改成**梯形**：貼著芯板那一面寬、朝外那一面窄（蝕刻側蝕）。L4 是芯板上面那層銅（寬邊朝下），L7 是另一片芯板下面那層銅（寬邊朝上），兩層方向相反 | E3（取代本檔 §7-B4 對 **3D** 的處理；2D 仍畫矩形） |
+| P3 | 銅箔（外層兩面） | 朝樹脂那一面補一排**粗化稜**（treatment side），上層往下長、下層往上長。卡片那句「HTE → RTF → HVLP 越來越平」講的就是這一排 | §7-A4～A7 |
+| P4 | 四種孔：焊環與反焊盤 | 孔在**有接線的那一層**才有焊環（PTH：L1／L4／L10；背鑽：L1／L4；埋孔：L4／L7），穿過**不接**的接地／電源平面時平面上挖一圈**反焊盤**（剖面上是平面銅在孔壁旁斷開的暗色一小段）；背鑽段的空隙跟著比較粗的鑽頭放大 | E4、E6 |
+| P5 | 雷射盲孔 | 從空心錐改成**電鍍銅填滿**的倒梯形（頂面中央一點點凹陷＝dimple），頂面焊墊比孔口寬、底下踩著 L2 的承接墊 | E5 |
+| P6 | 埋孔 | 孔內**樹脂塞滿**、兩端**鍍銅蓋平**（塞孔＋鍍平），焊環在 L4／L7 | E7（低信心，見下） |
+
+> 證據等級：全部是 **WebSearch 摘要**（這個容器 `WebFetch` 被擋），沒有人讀過原文；網址留給下一個人去讀。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| E1 | 電路板玻纖布由經紗與緯紗（warp／fill）以平織或斜紋織成；每一束紗是數百根 5～9 µm 的細絲；有專利明講紗束截面「實質上是橢圓」，且經紗束通常比緯紗束薄 | 中高（專利＋兩篇技術文） | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/4579772>、<https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8237058>、<https://www.atlaspcb.com/blog/pcb-fiber-weave-effect-skew/> |
+| E2 | 織紋的厚度在 0／1／2 層紗之間變化：交叉處疊兩層（knuckle）、紗間是 0 層（只有樹脂） | 中 | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/8237058>、<https://www.electronics.org/system/files/technical_resource/E8&S06_03.pdf>（IPC 技術文〈Opening Eyes on Fiber Weave and CAF〉，只看到標題） |
+| E3 | 減成法蝕刻會側蝕，線路剖面是**梯形、底寬頂窄**，蝕刻因子（etch factor）常見 0.3～0.5；另一來源說側邊與底面夾 25～45° | 中高（三個來源方向一致） | <https://jlcpcb.com/blog/how-etch-factor-controls-pcb-trace-width>、<https://www.diva-portal.org/smash/get/diva2:1005758/FULLTEXT01.pdf>、<https://randy-clemmons.blogspot.com/2012/04/pattern-etching-process.html> |
+| E4 | 孔穿過**不接**的平面時，平面上要挖一圈空隙（antipad）防短路；接的層才有焊環或熱風焊盤 | 高 | <https://sites.units.it/carrato/didatt/ESD_web/doc/high_speed_design/antipad.pdf>、<https://www.altium.com/documentation/altium-designer/pcb/design-rule-types/plane>、<https://en.wikipedia.org/wiki/Via_(electronics)> |
+| E5 | 雷射微孔可用電鍍銅**由底往上填滿**，頂面留小凹陷（dimple，約 ≤ 15 µm）；雷射孔底落在承接墊（capture／target pad）上 | 中高 | <https://www.mclpcb.com/blog/copper-filling-blind-microvias/>、<https://www.pcbcart.com/article/content/hdi-pcb-microvia-drilling-plating-fillin.html>、<https://www.electronics.org/system/files/technical_resource/E15&S19_01.pdf> |
+| E6 | 背鑽鑽頭比原孔大（常見大 0.15～0.25 mm、或 8～10 mil），深度公差約 ±0.05 mm，建議殘段 < 10 mil；背鑽邊緣與鄰近銅要留間距 | 中高 | <https://www.allpcb.com/blog/pcb-knowledge/backdrilling-design-guide-mastering-controlled-depth-drilling-for-optimal-performance.html>、<https://www.protoexpress.com/kb/pcb-backdrilling-process/>、<https://www.hemeixinpcb.com/back-drill.html> |
+| E7 | 塞孔＋鍍平（POFV／VIPPO）：孔鍍好之後壓入非導電膏、固化、磨平，再鍍銅蓋起來 | 中（來源講的是孔在焊墊上的 VIPPO；**埋孔**是否一律這樣做沒有查到直接來源 —— 埋孔在後續壓合時也可能是被半固化片的膠流進去填滿） | <https://www.nextpcb.com/blog/pcb-via-tenting-plugging-filling-guide>、<https://www.viasion.com/blog/guide-to-vippo-via-in-pad-plated-over-filled-vias/>、<https://madpcb.com/glossary/vippo/> |
+
+⚠ 仍是示意：稜高、織紋粗細、焊環寬度、梯形斜度全部**誇張放大**，副標已有「示意圖，非實物比例」。
+⚠ 埋孔的填法（E7）信心中：畫成「塞孔＋蓋銅」是其中一種常見做法，不代表每一片板都這樣；卡片文字沒有宣稱填法，所以不改卡片。

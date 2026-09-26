@@ -405,3 +405,36 @@
 |---|---|---|---|
 | 2026-09-19 | mechanical-engineer | **規格書成立，可開畫** | 六段齊全。這張圖的結構風險集中在六處，驗收時逐條對：① §3-A「每一層高速訊號層的上下都必須各有完整接地層」＋「疊構上下對稱」—— 這兩條沒畫出來，主標題「為什麼層數重要」就等於沒答，是**最重要也最常被畫成一片實心綠板**的一條；② §3-D 鰭片方向必須平行前後氣流、風扇在**後**不在前 —— 鰭片畫橫的是典型錯誤；③ §3-B 訊號是**雙向**且每條線兩端一定是「一個籠架 ↔ 那顆 ASIC」，不准畫成單向流水線、不准兩個籠架直連（2026-09-19 圖十的方向錯就是這一類）；④ §3-C VRM 必須緊鄰 ASIC、供電線比訊號線粗、電壓 PSU→VRM→ASIC 由高到低；⑤ §3-E 壓合在鑽孔**之前**、背鑽在電鍍**之後**；⑥ §4 要有背鑽孔「上半有銅、下半孔徑大且無銅」的特寫，缺了它就少了高速板最貴的那一道工。另外三條是紅線：**§6-D 交換器晶片不准掛 `data-seg="ic_design"`**（會在畫面上印出四家不供應這一級 ASIC 的台廠，是資訊錯誤，已實測 `industry.js` 的空狀態文案）；**§6-C 市占／良率／單價／價值量與「誰供貨給誰」一律不放**；**§6-B4 零件表面不准出現任何絲印、料號、logo**。示意標註要同時出現兩行：「示意圖，非實物比例｜層數、走線條數、光模組數量與元件位置均為示意」與氣流方向那一行 |
 | | art-director | | |
+
+---
+
+## §3D-細節（2026-09-26，3D 細緻化第二批 C 組，場景 `switch_wireless`）
+
+零件清單、編號、位置、爆炸位移、卡片文字**都沒動**。
+改到的建造函式：`swBoard`（加 `fanout` 選項，高速連接器那張沒開就照舊）、`swAsic`、`swCage`、`swModule`（加 `shell` 選項）、`swGold`，
+新增本場景專用的 `swFanout`、`swPads`、`swVrm`（kind `swvrm`；伺服器電源那張的 `pvrm` 沒動）。
+
+| 代號 | 零件 | 補了什麼 | 依據 |
+|---|---|---|---|
+| W1 | 主板 | 走線從「五組橫跨整塊板的蛇行線」改成 **SerDes 扇出**：從交換晶片的前緣與左右兩側出線、45° 轉角、兩條等距，一欄籠子一組差動對一路走到前面板（示意，實際每埠 8 對） | §3-B（訊號由前面板 → 晶片） |
+| W2 | 交換器晶片 | **蓋板＋加強環**（黏在基板上、經導熱介面材料壓在晶粒上），蓋板**切掉一角**露出晶粒、導熱介面材料與底部填充膠；基板正面蓋板外圍一圈、背面錫球陣列中央一群**去耦電容** | S1 |
+| W3 | 多相供電 | 一相＝**功率級（DrMOS）＋電感（兩端銅端子）＋輸出電容**，八相等距一排；後方一排輸入電容、排頭一顆控制器、底下一片電源鋪銅。順序由後往前＝輸入 → 功率級 → 電感 → 輸出 → 晶片 | S2、§3-C |
+| W4 | 光模組籠架 | 上下兩列＝**背對背堆疊的 2×1 籠**：每個埠口上下一排 **EMI 彈片**、兩列之間**導光柱**（一埠兩根）、上列籠頂**騎乘式散熱片＋彈簧夾**、側壁通風孔、底下一排**壓接針** | S3、S4、`connector_hsio.md` §7-A6 |
+| W5 | 抽出來的光模組 | 上蓋頂面**整合式鰭片**（OSFP 的識別特徵，順著長邊），上蓋往上掀一段看得到內部；前端改成兩個**長方形 MPO 接口**（帶定位鍵）；雷射／光偵測陣列＋兩條**扁平光纖帶**通到接口；拉環改成前伸下彎的扁帶 | S5、S6 |
+| W6 | 金手指 | 接點排成「地、訊、訊、地」一組一組，**接地墊比訊號墊長、更靠近板緣**（插入時接地先接觸） | S7 |
+
+> 證據等級：全部是 **WebSearch 摘要**（`WebFetch` 被擋），沒有人讀過原文。
+
+| 代號 | 事實 | 信心 | 來源 |
+|---|---|---|---|
+| S1 | 大型覆晶 BGA 有「帶加強環」與「帶蓋板」兩種；蓋板經 TIM 貼晶粒、用膠黏基板，改善散熱與翹曲；有文件明講晶粒側與背面（land side）都放了大量電容 | 中高 | <https://www.jcetglobal.com/uploads/Large%20Flip%20Chip%20Assembly%20Challenges%20and%20Risk%20Mitigation%20Process.pdf>、<https://www.sciencedirect.com/science/article/abs/pii/S0026271422004371>、<https://patents.google.com/patent/US20060091562A1/en> |
+| S2 | 多相 VR：每一相＝控制器的一路 ＋ 一顆智慧功率級（上下橋 MOSFET＋驅動整合）＋ 一顆電感 ＋ 電容 | 中高（專利＋元件選型頁） | <https://image-ppubs.uspto.gov/dirsearch-public/print/downloadPdf/10423210>、<https://icnavigator.com/technology/power-management-ics-pmic/smart-power-stage-drmos/> |
+| S3 | 籠子可並排（1×N）或背對背堆疊（2×N 兩列）；堆疊籠常帶導光柱，把板上 LED 引到前面板 | 中高（兩家籠架廠產品頁） | <https://www.te.com/en/products/connectors/high-speed-pluggable-io-connectors-and-cages/qsfp-dd.html>、<https://www.glgnet.biz/product_center/qsfp/qsfp282x1-p-d02w-lpb.html>、<https://abptel.com/sfp-qsfp-osfp-cage-guide/> |
+| S4 | 51.2T 的 800G 交換器常見 2U、64 個 OSFP 埠（＝兩列 × 32） | 高（多家規格頁一致） | <https://www.arista.com/assets/data/pdf/Datasheets/7060X6-Datasheet.pdf>、<https://www.naddod.com/products/103215.html> |
+| S5 | OSFP 模組頂面可以是整合式鰭片（finned top／IHS），QSFP-DD 維持平頂、靠籠子上的騎乘式散熱片 | 高（三個來源） | <https://networks.laser2000.co.uk/osfp-thermal-management-finned-vs-flat-top/>、<https://ascentoptics.com/blog/osfp-flat-top-vs-finned-top/>、<https://www.vitextech.com/blogs/blog/800g-osfp-guide-ihs-vs-rhs-selection-for-ai-data-centers> |
+| S6 | 800G OSFP 內部：DSP（約佔模組一半功耗）、驅動、雷射、光偵測＋TIA；2×DR4 型用兩個 MPO-12 接口 | 中高 | <https://www.fibermall.com/blog/800g-osfp-2xdr4-optical-transceiver.htm>、<https://www.sfpcables.com/osfp-800g-finned-top-mms4x00-ns-100m-compatible-with-nvidia-twin-port-osfp-2x400gb-2x-dr4-single-mode-transceiver-up-to-100m-smf-mpo-12-apc> |
+| S7 | QSFP 系列的接點順序：接地先接觸、電源其次、訊號最後（模組端靠接點長短做出順序） | 中高（SFF-8662 與 QSFP-DD MSA 兩份規格） | <https://www.gigalight.com/downloads/standards/sff-8662.pdf>、<http://www.qsfp-dd.com/wp-content/uploads/2022/03/QSFP-DD-Hardware-Rev6.2.pdf> |
+
+⚠ 仍是示意：埠數（12 × 2）、相數（8）、扇出對數（每欄 1 對）都比實物少；副標已有「示意圖，非實物比例」。
+⚠ 籠頂騎乘式散熱片（QSFP-DD 的做法）與抽出來那一顆的整合鰭片（OSFP 的做法）**同時出現在同一張圖**：
+  這是刻意的 —— 零件名寫的是「OSFP／QSFP-DD800」，兩種散熱做法各畫一次。實際一台機器只會用其中一種埠。
