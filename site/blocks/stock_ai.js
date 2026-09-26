@@ -49,6 +49,7 @@
 .ailine{display:flex;flex-direction:column;gap:6px;align-items:flex-end;max-width:560px;min-width:0}
 .ailine .r1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
 .ailine .aibrief{color:var(--ink-2);font-size:13px;line-height:1.45}
+.ailine .grade,#aiCard .grade{flex:none;white-space:nowrap}
 .ailine .aitags{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .aitag{padding:2px 8px;border-radius:6px;font-size:12px;background:var(--panel-3);color:var(--ink-2);white-space:nowrap}
 .aitag.pos{background:rgba(255,77,109,.16);color:var(--rise)} .aitag.neg{background:rgba(46,229,157,.16);color:var(--fall)}

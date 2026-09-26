@@ -101,6 +101,15 @@ def test_timeframe_conflict_is_spelled_out():
     assert any("週線多頭，但1 小時仍是空頭結構、尚未翻多" in r for r in t["reasons"]), t["reasons"]
 
 
+def test_intraday_line_uses_bar_time():
+    """1 小時的 BOS／CHoCH 標的是分 K 時間（帶時區的 ISO），要顯示成「月-日 時:分」，不是整串時間戳。"""
+    v = {"trend": -1, "ma_align": -1, "rsi": 41.2, "demand": [], "supply": [],
+         "marks": {"choch": [["2026-09-24T10:00:00+08:00", -1]], "bos": []}}
+    ln = AN._tf_line("60m", "1 小時", v)
+    assert ln["word"] == "空頭" and "最近 CHoCH 翻空（09-24 10:00）" in ln["points"]
+    assert "均線空頭排列" in ln["points"] and "RSI 41" in ln["points"]
+
+
 def test_grade_a_stance_is_can_watch():
     v = {"verdict": "可以分批進場（回檔承接）", "grade": "A", "reasons": [], "stop": 90, "tp1": 120, "rr": 2.5,
          "risk_pct": 4.0, "demand": [], "checks": {"a": [], "b": [], "risk": {}, "met_a": 6, "met_b": 0,
