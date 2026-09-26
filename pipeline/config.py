@@ -317,7 +317,15 @@ LOGOS_SUBDIR = "logos"                 # data/logos/<code>.png ＋ data/logos/_i
 LOGOS_INDEX_NAME = "_index.json"       # 代號 → 來源、網域、抓取日、雜湊、狀態
 LOGOS_STATE_NAME = "logo_progress.json"  # data/_state/ 底下：每輪摘要、失敗清單、下一次到期日
 LOGO_PX = 64                           # 統一輸出 64×64 PNG（等比縮放、置中、透明補邊，不裁不拉）
-LOGO_MIN_PX = 32                       # 原圖長邊小於這個 ＝「過小」，判定沒有（16px 放大到 64 只是一團糊）
+LOGO_MIN_PX = 32                       # 原圖長邊小於這個 ＝「過小」：Google s2 等第三方來源一律不收；官網的見下兩行
+# 第三版（2026-09-26）：官網找不到 ≥48 的圖時，官網最大的那張只要 ≥16px 就收成「低解析」Logo（索引記 lowres）。
+# 前端只顯示 20～32px，16px 官方 favicon 在那個尺寸幾乎是原生大小，比字母頭像好認；照原尺寸存、不放大重採樣。
+LOGO_LOWRES_MIN_PX = 16                # 官網圖示原圖長邊的最低門檻（再小就是 1×1 追蹤點、間隔圖那種）
+LOGO_LOWRES_BELOW = 48                 # 原圖長邊小於這個 ＝ 低解析：照原尺寸存（只補透明邊成正方形），不放大到 64
+# Google s2 回的 16～31px 要不要也收成低解析。預設不收（任務要求「官方來源」；s2 找不到時回 16px 預設地球）。
+# 2026-09-26 索引推算：too_small 裡有 23 家是「官網沒有任何圖、只有 s2 給 16px」，打開這個就會多救這 23 家
+# （地球這類預設圖仍會被「≥3 個網域同一張」擋下）。要開就改 "1" 並把 LOGO_STRATEGY 加一。
+LOGO_LOWRES_ALLOW_S2 = os.environ.get("LOGO_LOWRES_ALLOW_S2", "0").strip() in ("1", "true", "True")
 LOGOS_PER_RUN = 300                    # 每輪最多處理幾家（避免被各家官網或 Google 當成濫用）
 LOGO_REFRESH_DAYS = 90                 # 抓到的 Logo 多久重抓一次（Logo 很少換）
 LOGO_RETRY_DAYS = 30                   # 沒抓到的多久再試一次（官網改版、暫時掛掉）
@@ -331,7 +339,9 @@ LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=128"
 # 取圖策略版本（2026-09-26 第二版：多候選取最大、manifest、og:image、頁首 logo 圖、SVG、跟轉址）。
 # 索引裡每筆會記抓的時候用的是第幾版；狀態是「太小／找不到」而且版本比這個舊的，下一輪立刻重試，
 # 不等 30 天 —— 策略變好了，舊結論就不算數。之後再改策略、想讓失敗的重來一次，把這個數字加一即可。
-LOGO_STRATEGY = 2
+# 第三版（2026-09-26 深夜）：官網小圖當低解析後備；預設圖拒收後繼續往下找（不直接判失敗）；
+# 「太小／找不到／預設圖」三種最先重試。好圖不重抓、不覆寫。
+LOGO_STRATEGY = 3
 LOGO_MAX_TRIES = 10                    # 每家最多下載幾個圖檔候選（找到 ≥64px 的正方形圖示就提早停）
 LOGO_MAX_ASPECT = 5.0                  # 長寬比超過 5:1 的橫條字標，縮進 64×64 只剩 12px 高，判「太小」（不裁切）
 LOGO_SVG_MAX_BYTES = 500_000           # SVG 超過這個大小不畫（防止病態檔案卡住整輪）
