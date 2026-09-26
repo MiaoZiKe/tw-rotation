@@ -58,6 +58,11 @@ TABLES: dict[str, list[str]] = {
     # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
     # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
     "material_news":      ["news_id"],
+    # v9（2026-09-26）：上櫃／興櫃公司的官網網址（給 Logo 抓取用）。
+    # 為什麼不寫進 company_info：store.append() 同 key 會**整列**以後到的為準，
+    # 只帶 code＋website 的列會把 company_info 的名稱、產業、市場別全部蓋成空值。
+    # 上市的網址 company_info 本來就有（t187ap03_L 的「網址」），這張表只補上櫃／興櫃。
+    "company_website":    ["code"],
 }
 
 # 按「月」分割的表（其餘一律按年）。
@@ -107,6 +112,17 @@ TPEX_ENDPOINTS = {
     "price_daily":  "/tpex_mainboard_daily_close_quotes",
     "company_info": "/mopsfin_t187ap03_O",
 }
+
+# 上櫃／興櫃公司基本資料（只拿「網址」一欄給 Logo 用）。兩個候選依序試，第一個拿到就停：
+#   1. 證交所 OpenAPI 的 opendata/t187ap03_O —— 同一台主機已經在用 t187ap04_O（上櫃重大訊息），
+#      但 t187ap03_O 這支**沒有實測過**（容器連不到外網），拿不到就記 log 換下一個。
+#   2. 櫃買 OpenAPI 的 mopsfin_t187ap03_O —— TPEX_ENDPOINTS 早就登記了，但櫃買對雲端 IP 常回 403。
+# 興櫃（t187ap03_R）同理只試證交所 OpenAPI。不碰 mopsfin.twse.com.tw 的 CSV（不在白名單）。
+COMPANY_WEBSITE_ENDPOINTS = [
+    ("TPEX", TWSE_OPENAPI + "/opendata/t187ap03_O"),
+    ("TPEX", TPEX_OPENAPI + TPEX_ENDPOINTS["company_info"]),
+    ("EMERGING", TWSE_OPENAPI + "/opendata/t187ap03_R"),
+]
 
 TDCC_URL = "https://opendata.tdcc.com.tw/getOD.ashx?id=1-5"
 
@@ -274,3 +290,23 @@ SCORE_WEIGHTS = {
     "technical": 0.30,     # M3 技術面
     "seasonality": 0.05,   # M4 季節性（樣本數少，權重刻意壓低）
 }
+
+# ---------------------------------------------------------------- 公司 Logo（2026-09-26）
+# 來源選擇、條款查證、商標風險與關閉方式：docs/logo_sources.md。
+# ★ 整批關掉：把 LOGOS_ENABLED 的預設改成 "0"（或在 workflow 設環境變數 LOGOS_ENABLED=0）。
+#   關掉之後：回補不再抓；build_payload 輸出空的 logos.json 並刪掉 site/data/logos/，
+#   前端全部退回字母頭像。已經進 repo 的 data/logos/*.png 要另外刪（見 docs 的「關閉方式」）。
+LOGOS_ENABLED = os.environ.get("LOGOS_ENABLED", "1").strip() not in ("0", "false", "False", "")
+LOGOS_SUBDIR = "logos"                 # data/logos/<code>.png ＋ data/logos/_index.json
+LOGOS_INDEX_NAME = "_index.json"       # 代號 → 來源、網域、抓取日、雜湊、狀態
+LOGOS_STATE_NAME = "logo_progress.json"  # data/_state/ 底下：每輪摘要、失敗清單、下一次到期日
+LOGO_PX = 64                           # 統一輸出 64×64 PNG（等比縮放、置中、透明補邊，不裁不拉）
+LOGO_MIN_PX = 32                       # 原圖長邊小於這個 ＝「過小」，判定沒有（16px 放大到 64 只是一團糊）
+LOGOS_PER_RUN = 300                    # 每輪最多處理幾家（避免被各家官網或 Google 當成濫用）
+LOGO_REFRESH_DAYS = 90                 # 抓到的 Logo 多久重抓一次（Logo 很少換）
+LOGO_RETRY_DAYS = 30                   # 沒抓到的多久再試一次（官網改版、暫時掛掉）
+LOGO_TIME_BUDGET_SEC = 900             # 一輪最多花 15 分鐘，時間到就收手、下一輪接續
+LOGO_WORKERS = 6                       # 同時抓幾家（每家都是不同網域；Google 備援一次最多 6 個並行）
+LOGO_GENERIC_DOMAINS = 3               # 同一張圖出現在 ≥ 這麼多個不同網域 ＝ 預設圖（地球、架站商圖示），不當 Logo
+# 備援：Google 的 favicon 服務（非官方、無文件、無 SLA；找不到時回 404＋16px 地球）
+LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=64"
