@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>台股資金輪動儀表板</title>
+<title>輪輪｜台股資金輪動</title>
 <meta name="theme-color" content="#070b16">
 <!-- 網頁版號（Andy 2026-09-16：「每次說有更新，但打開來跟原本一樣，網頁需要新增版號」）。
      部署前由 scripts/stamp_assets.py 換成「commit 前 7 碼|建置時間(台北)」；
@@ -12,7 +12,7 @@
 <!-- commit 短碼另外放：版號改成「日期＋第幾版」之後，短碼移到徽章的連結與 tooltip -->
 <meta name="tw:commit" content="">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="台股輪動">
+<meta name="apple-mobile-web-app-title" content="輪輪">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="manifest" href="manifest.webmanifest">
 <!-- 主題要在畫面畫出來之前就決定，不然明亮主題的人每次開頁都會先閃一下深色 -->
@@ -23,7 +23,8 @@
      定案之後整組要換掉，manifest 裡也有同樣的註記。 -->
 <link rel="apple-touch-icon" href="icons/apple-touch-icon-180.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<!-- ★ 2026-09-26 新版介面：命名提案〈輪輪〉的圖示（資金輪盤四象限＋笑臉）。PNG 圖示組與 manifest 等命名定案再換。 -->
+<link rel="icon" type="image/svg+xml" href="icons/lunlun.svg">
 <!-- ★ 2026-09-19 拿掉 Google Fonts 的 <link>。
      下面那行註解自己就寫了「公司網路常擋 CDN」，字型卻還掛在 fonts.googleapis.com 上 ——
      在 Andy 公司的網路會等到連線逾時才 fallback，AGENTS 檢查清單第 7 條也明訂 site/ 內不得有 CDN 連結。
@@ -3913,7 +3914,7 @@ h3 .howbtn.pop{font-family:inherit}
 </head>
 <body>
 <header class="topbar">
-  <div class="brand" onclick="location.hash='#overview'"><div class="logo">TW</div><div><b>台股資金輪動</b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
+  <div class="brand" onclick="location.hash='#overview'"><div class="logo"><img src="icons/lunlun.svg" alt=""></div><div><b>輪輪<span class="bt">台股資金輪動</span></b><small id="asof"><span id="buildver" class="verline">—</span><button type="button" class="freshbtn" id="freshBtn" hidden title="網站重新部署過，點一下載入新版">有新資料 ↻</button></small></div></div>
   <!-- ★ 2026-09-23 UI 精修 #4：分頁列的溢出提示（遮罩 ＋ 左右箭頭）。
        這是**功能性缺陷**不是美化：實測 1440px 時 `#tabs` 的 scrollWidth 比 clientWidth
        多 163～358px，也就是「總覽」或「季節性」**整顆分頁被擠到看不見**，
