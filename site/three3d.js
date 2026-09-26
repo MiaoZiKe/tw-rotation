@@ -2487,11 +2487,12 @@
       }
       const face = h * 0.575 + w * 0.02;
       stL.push(cx(r * 0.36, w * 0.06, face + w * 0.02, 12));                                   // 中央閥芯
+      { const ring = new T.TorusGeometry(r * 0.66, r * 0.12, 5, 16); ring.rotateY(Math.PI / 2); ring.translate(face, 0, 0); stL.push(ring); }   // 閥面外圈的密封面
       g.add(new T.Mesh(mergeGeos(cuL), K.mat(0, { color: K.css('--dg-m-cu', '#C98A5E'), metal: 0.9, rough: 0.3 })));
       g.add(new T.Mesh(mergeGeos(stL), K.mat(0, { color: K.css('--dg-m-hs', '#CBD5DE'), metal: 0.85, rough: 0.25 })));
-      // 橡膠：軟管 ＋ 閥面的密封環
+      /* 橡膠軟管。⚠ 驗收用「體積最大的那顆 mesh」代表模組顏色（t_dg3d_pbr 的「銅件」＝ag_uqd），
+         所以軟管不可以跟閥面那一圈併在一起（併了外接盒會橫跨整顆接頭、比銅本體還大）。*/
       const hose = new T.CylinderGeometry(w * 0.26, w * 0.26, d * 1.6, 10); hose.rotateZ(Math.PI / 2); hose.translate(-w * 0.62 - d * 0.8, 0, 0); rbL.push(hose);
-      const ring = new T.TorusGeometry(r * 0.66, r * 0.12, 5, 16); ring.rotateY(Math.PI / 2); ring.translate(face, 0, 0); rbL.push(ring);
       g.add(new T.Mesh(mergeGeos(rbL), K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.85, metal: 0.05 })));
       return g;
     }
@@ -2738,7 +2739,9 @@
       const mt = [];
       for (let i = 0; i < 4; i++) mt.push([3.4, 1.1, 2.6, -20.2 + i * 3.9, y0 + 0.55, d / 2 - 1.3]);
       for (let i = 0; i < 4; i++) mt.push([2.2, 0.9, 3.6, 6.4 + i * 4.2, y0 + 0.45, d / 2 - 1.8]);
-      [-16.5, -5.5, 5.5, 16.5].forEach(x => mt.push([7, 1.3, 1.4, x, y0 + 0.65, -d / 2 + 0.7]));
+      /* ⚠ 這一組金屬件的外接盒不可以比板子大：驗收用「體積最大的那顆 mesh」代表這個模組的顏色（t_dg3d_pbr），
+         金屬件散佈整塊板、高度一超過板厚，PCB 模組就會被量成銀灰色。所以全部壓在 1.1 以內。*/
+      [-16.5, -5.5, 5.5, 16.5].forEach(x => mt.push([7, 1.0, 1.4, x, y0 + 0.5, -d / 2 + 0.7]));
       g.add(mboxes(mt, K.mat(0.15, { color: K.css('--dg-m-rack', '#B8C2CC'), metal: 0.82, rough: 0.36 })));
       // 右緣一對液冷快接頭（冷在前、熱在後）：托盤推進去時對上機櫃側立柱那一層的分支（每台托盤各自拿水、各自回水）
       const qg = [];
