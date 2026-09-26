@@ -54,6 +54,9 @@ TABLES: dict[str, list[str]] = {
     # v8（2026-09-26）：interval 多一個 1m ＝ 證交所 mis 當日分時檔（TSE／OTC／FUT 同一個來源），
     #   每個交易日盤後自己存、自己累積（見 sources/mis.index_minute_bars）。多一欄 src="mis" 標來源；
     #   舊列沒有這欄（讀出來是 NaN），不影響 key。同一天有 1m 時 build 以 1m 為準（真實量、同口徑）。
+    # v10（2026-09-26）：台指期多一個 1m 來源 src="taifex"＝期交所每筆成交合成（日盤 FUT＋夜盤 FUT_N，
+    #   近月、真實盤中高低與口數；見 sources/taifex.py）。同一盤兩個來源都有時 taifex ＞ mis：
+    #   寫入時 run_daily 不讓 mis 蓋掉已有 taifex 的那幾天，build 也照 src 排優先。
     "index_intraday":     ["ts", "symbol", "interval"],
     # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
     # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
@@ -106,6 +109,19 @@ MIS_CHART_FILES = {
     "OTC": "https://mis.twse.com.tw/stock/data/mis_ohlc_OTC.txt",      # 櫃買 o00
     "FUT": "https://mis.twse.com.tw/stock/data/futures_chart.txt",     # 台指期（只有日盤）
 }
+
+# 臺灣期貨交易所「每日期貨每筆成交資料」（2026-09-26 查證，見 docs/source_whitelist_taifex_tpex.md）。
+# 政府資料開放平臺 資料集 20668，授權＝政府資料開放授權條款－第 1 版（提供機關：金管會證期局）；
+# 期交所下載頁只留前 30 個交易日。用途：台指期（TX）近月 1 分 K（日盤 FUT＋夜盤 FUT_N）進 index_intraday。
+# ⚠ 只抓這個資料集的逐筆檔本身，不抓期交所其他網頁；mis.taifex.com.tw（盤中夜盤分時）仍然不在管線白名單。
+# 頁面上要標出處：「臺灣期貨交易所（政府資料開放平臺 資料集 20668）」。
+TAIFEX_TICKS_PAGE = "https://www.taifex.com.tw/cht/3/dlFutPrevious30DaysSalesData"
+TAIFEX_TICKS_CSV = ("https://www.taifex.com.tw/file/taifex/Dailydownload/DailydownloadCSV/"
+                    "Daily_{y}_{m}_{d}.zip")
+TAIFEX_TICK_PRODUCT = "TX"            # 臺股期貨（大台）；小台 MTX 不收
+TAIFEX_TICK_LOOKBACK_DAYS = 45        # 30 個交易日 ≈ 42 個日曆日，多留幾天給連假
+TAIFEX_TICK_MAX_FILES = 35            # 一輪最多下載幾個檔（第一次跑會把窗內 30 個左右一次補完）
+TAIFEX_TICK_MAX_BYTES = 300_000_000   # 單檔上限（全部期貨商品一天的逐筆，壓縮後約數十 MB）
 
 TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {
@@ -308,5 +324,14 @@ LOGO_RETRY_DAYS = 30                   # 沒抓到的多久再試一次（官網
 LOGO_TIME_BUDGET_SEC = 900             # 一輪最多花 15 分鐘，時間到就收手、下一輪接續
 LOGO_WORKERS = 6                       # 同時抓幾家（每家都是不同網域；Google 備援一次最多 6 個並行）
 LOGO_GENERIC_DOMAINS = 3               # 同一張圖出現在 ≥ 這麼多個不同網域 ＝ 預設圖（地球、架站商圖示），不當 Logo
-# 備援：Google 的 favicon 服務（非官方、無文件、無 SLA；找不到時回 404＋16px 地球）
-LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=64"
+# 備援：Google 的 favicon 服務（非官方、無文件、無 SLA；找不到時回 404＋16px 地球）。
+# 2026-09-26 第二版改要 sz=128：它對有大圖的網站會回 128px，對只有小圖的網站仍回 16px ——
+# 所以收不收仍看「實際回來的尺寸」（< LOGO_MIN_PX 一樣判太小），不看我們要了多大。
+LOGO_GOOGLE_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=128"
+# 取圖策略版本（2026-09-26 第二版：多候選取最大、manifest、og:image、頁首 logo 圖、SVG、跟轉址）。
+# 索引裡每筆會記抓的時候用的是第幾版；狀態是「太小／找不到」而且版本比這個舊的，下一輪立刻重試，
+# 不等 30 天 —— 策略變好了，舊結論就不算數。之後再改策略、想讓失敗的重來一次，把這個數字加一即可。
+LOGO_STRATEGY = 2
+LOGO_MAX_TRIES = 10                    # 每家最多下載幾個圖檔候選（找到 ≥64px 的正方形圖示就提早停）
+LOGO_MAX_ASPECT = 5.0                  # 長寬比超過 5:1 的橫條字標，縮進 64×64 只剩 12px 高，判「太小」（不裁切）
+LOGO_SVG_MAX_BYTES = 500_000           # SVG 超過這個大小不畫（防止病態檔案卡住整輪）
