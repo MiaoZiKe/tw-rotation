@@ -8765,7 +8765,11 @@ def t_zoom_sweep(pg, base, code):
     #   所以拿掉，讓白名單忠實反映畫面上真的存在的縮放入口。
     # ★ 2026-09-26 改前→改後（Andy：「放大功能取消」）：改前白名單有資金流向頁的 `rotZoomBtn` → 改後那顆拿掉，
     #   白名單同步拿掉它（白名單只反映畫面上真的存在、而且 Andy 要的縮放入口）。另外在資金流向頁正面驗它不在。
-    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "trustWrap", "peWrap")
+    # ★ 2026-09-26 改前→改後（Andy 原話：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：
+    #   改前總覽只有資金熱力圖一顆 `heatZoom` → 改後總覽「熱門題材」卡多一顆 `ovThemeZoom`（同一支 openZoom）。
+    #   這是 Andy 開口要的，依 DECISIONS #185「白名單只能因為他開口而變長」加上。
+    #   ⚠ 白名單是子字串比對而且分大小寫：`themeZoom` 比不到 `ovThemeZoom`（T 大寫），所以要明寫。
+    ALLOW = ("heatWrap", "indTreeWrap", "themeMapWrap", "heatZoom", "themeZoom", "ovThemeZoom", "trustWrap", "peWrap")
     SCAN = """() => {
       const out = { badge: [], zwrap: [], btn: [] };
       document.querySelectorAll('.zbadge').forEach(e => out.badge.push(e.parentElement.id || e.parentElement.className));

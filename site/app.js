@@ -5811,30 +5811,17 @@
        · 位置固定、不能拖（roam:false，DECISIONS #61／#67）。
      以前是 8 張文字小卡塞在 615px 的捲動框裡（審查 R1：第 4 張被切一半，看起來像壞掉）。*/
   const OVT = { sel: '', open: false, focus: null };
-  function renderOvThemes(th) {
-    const host = $('#ovTheme'); if (!host) return;
-    if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
+  const OVTZ = { open: false };     // 放大視窗那顆題材下拉的開合（跟卡片上那顆各自記，值 OVT.sel 共用）
+  /* 題材熱力圖的資料與提示框（卡片與放大視窗共用 —— 兩邊畫出來的一定是同一張圖，跟 heatOption 同一個道理）。
+     sel＝目前選的題材 id（'' ＝ 題材層）。回傳 null 代表這一層沒有東西可畫。*/
+  function ovThemeModel(th, sel, focus) {
     const themes = th.themes.slice().sort((a, b) => (b.turnover || 0) - (a.turnover || 0));
-    const cur = themes.find(t => t.id === OVT.sel) || null;
-    if (!cur) OVT.sel = '';
-    // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
-    /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
-       Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
-       輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
-    const ctl = $('#ovThemeCtl');
-    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
-    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
-    if (ctl) ddSingle(ctl, { id: 'ovThemeDD', key: 't', st: OVT, label: '題材：', aria: '題材',
-      title: '選一個題材，圖上就換成它的成分股', curText: cur ? cur.name : '全部',
-      opts: [{ v: '', text: `全部題材（${themes.length}）`, on: !cur }].concat(themes.map(t =>
-        ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(cur && cur.id === t.id) }))),
-      onPick: (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); } });
-    host.style.height = '300px';
+    const cur = themes.find(t => t.id === sel) || null;
     let data, kind, valOf, tipOf;
     if (!cur) {
       kind = 'heat';
       data = themes.map(t => ({ name: t.name, value: t.turnover || 0, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7, n: t.n,
-        ...hmItem(hmBin(t.heat, 'heat'), 'heat', OVT.focus) }));
+        ...hmItem(hmBin(t.heat, 'heat'), 'heat', focus) }));
       valOf = (d) => (d && d.id ? '熱度 ' + d.heat : '');
       tipOf = (p) => { const d = p.data || {};
         return hmTip(p.name, `${d.n || 0} 檔`, [
@@ -5847,7 +5834,7 @@
       kind = 'chg';
       const ms = (cur.members || []).filter(m => m && m.code);
       data = ms.map(m => ({ name: m.name || L.cname[m.code] || m.code, value: Math.max(m.turnover || 0, 1), id: m.code, code: m.code, chg: m.chg_pct,
-        ...hmItem(hmBin(m.chg_pct, 'chg'), 'chg', OVT.focus) }));
+        ...hmItem(hmBin(m.chg_pct, 'chg'), 'chg', focus) }));
       valOf = (d) => (d && d.code ? fmt.pct(d.chg) : '');
       tipOf = (p) => { const d = p.data || {};
         return hmTip(p.name, d.code, [
@@ -5855,18 +5842,65 @@
           { k: '成交值', v: fmt.yi(p.value) },
         ], '點一下進個股頁'); };
     }
-    if (!data.length) return empty('ovTheme', '這個題材目前沒有成分股資料');
-    host.classList.remove('isempty');
     const HS = hmSeries(false);
-    const c = chart('ovTheme', {
+    const option = {
       tooltip: { ...hmTipOpt(), formatter: tipOf },
       series: [{ type: 'treemap', roam: false, nodeClick: false, breadcrumb: { show: false },
         top: 0, left: 0, width: '100%', height: '100%', visibleMin: 40,
         ...HS, label: { ...HS.label, formatter: () => '' }, data }],
-    }, { notMerge: true });
-    hmRelabel(c, valOf);
-    hmLegend('ovTheme', kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
-    host.dataset.level = cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
+    };
+    return { themes, cur, data, kind, valOf, option };
+  }
+  /* 題材下拉（卡片與放大視窗各一顆，外觀、選項、行為完全一樣；值都寫進 OVT.sel）。*/
+  function ovThemeDD(box, th, M, id, st, onPick) {
+    if (!box) return;
+    ddSingle(box, { id, key: 't', st, label: '題材：', aria: '題材',
+      title: '選一個題材，圖上就換成它的成分股', curText: M.cur ? M.cur.name : '全部',
+      opts: [{ v: '', text: `全部題材（${M.themes.length}）`, on: !M.cur }].concat(M.themes.map(t =>
+        ({ v: t.id, text: t.name, em: '熱度 ' + t.heat, on: !!(M.cur && M.cur.id === t.id) }))),
+      onPick });
+  }
+  function renderOvThemes(th) {
+    const host = $('#ovTheme'); if (!host) return;
+    if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
+    const M = ovThemeModel(th, OVT.sel, OVT.focus);
+    if (!M.cur) OVT.sel = '';
+    // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
+    /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
+       Andy 要的是「跟熱門題材一樣」，兩份各寫一套遲早會長得不一樣（字級、Esc、點外面關）。
+       輸出的 DOM 與抽出前相同（#ovThemeDD、.ddbtn b、.ddopt[data-t]、面板往左長），既有驗收不用改。*/
+    // ★ 2026-09-26（Andy：「篩選位置同步在左上」）：下拉搬到標題旁（面板改往右長，超出才自動往左），日期另放右側 #ovThemeDate
+    const tdp = $('#ovThemeDate'); if (tdp) tdp.innerHTML = hmDate(th.date);
+    ovThemeDD($('#ovThemeCtl'), th, M, 'ovThemeDD', OVT, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); });
+    host.style.height = '300px';
+    /* ★ 2026-09-26（Andy：「熱門題材，需要跟資金熱力圖一樣有放大功能」）：日期旁「放大 ⤢」，
+       跟 #heatZoom 同一支 openZoom（全螢幕、點背景／✕／Esc 關、位置固定不能拖）。
+       放大視窗標題旁也有一顆同樣的題材下拉，選了**兩邊一起換**（值寫回 OVT.sel、卡片同步重畫），
+       關掉放大之後卡片停在剛剛看的那個題材 —— 不會出現「放大裡看半導體、關掉回到全部」的落差。
+       放大裡點題材方塊＝原地換成分股；點成分股先關放大再進個股頁（不留一層全螢幕罩在個股頁上）。*/
+    const zb = $('#ovThemeZoom');
+    if (zb) zb.onclick = () => openZoom('熱門題材', (body, chipBox, close) => {
+      const draw = () => {
+        const Z = ovThemeModel(th, OVT.sel, null);
+        ovThemeDD(chipBox, th, Z, 'ovThemeZoomDD', OVTZ, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); draw(); });
+        if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">這個題材目前沒有成分股資料</div>'; return; }
+        const bc = chart(body, Z.option, { notMerge: true });
+        hmRelabel(bc, Z.valOf);
+        body.dataset.level = Z.cur ? 'members' : 'themes';     // 驗收用：放大視窗現在是題材層還是成分股層
+        if (bc) bc.off('click').on('click', p => {
+          const d = p.data || {};
+          if (d.code) { close(); goStock(d.code); return; }
+          if (d.id) { OVT.sel = d.id; OVT.focus = null; renderOvThemes(th); draw(); }
+        });
+      };
+      draw();
+    });
+    if (!M.data.length) return empty('ovTheme', '這個題材目前沒有成分股資料');
+    host.classList.remove('isempty');
+    const c = chart('ovTheme', M.option, { notMerge: true });
+    hmRelabel(c, M.valOf);
+    hmLegend('ovTheme', M.kind, OVT.focus, (f) => { OVT.focus = f; renderOvThemes(th); });
+    host.dataset.level = M.cur ? 'members' : 'themes';          // 驗收用：現在是題材層還是成分股層
     if (c) c.off('click').on('click', p => {
       const d = p.data || {};
       if (d.code) { goStock(d.code); return; }
