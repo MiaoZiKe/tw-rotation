@@ -121,9 +121,11 @@ AUDIT2D_JS = r"""(opt) => {
         const o = opac(s, svg);
         const fo = parseFloat(cs.fillOpacity), so = parseFloat(cs.strokeOpacity);
         const clear = (v) => !v || v === 'none' || v === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(v);   // 透明色＝沒塗
-        const fill = !clear(cs.fill) && fo * o > 0.3;
+        // 顏色本身帶的透明度（rgba 的第四個數）也要乘進去：柔陰影（.fxsh，blur 過的 18% 黑）不算「蓋住字」
+        const alpha = (v) => { const m = /rgba\([^)]*,\s*([\d.]+)\)$/.exec(v || ''); return m ? parseFloat(m[1]) : 1; };
+        const fill = !clear(cs.fill) && fo * o * alpha(cs.fill) > 0.3;
         const sw = parseFloat(cs.strokeWidth) || 0;
-        const stroke = !clear(cs.stroke) && sw > 0 && so * o > 0.3;
+        const stroke = !clear(cs.stroke) && sw > 0 && so * o * alpha(cs.stroke) > 0.3;
         const geo = typeof s.isPointInFill === 'function';
         if (!fill && !stroke && s.tagName !== 'image' && s.tagName !== 'use') return null;
         return { el: s, r, fill, stroke, geo, sw };

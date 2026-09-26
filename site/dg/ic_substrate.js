@@ -304,15 +304,17 @@
       for (let i = 0; i < 3; i++) a.push(R(mx, cy + 16 + i * 7, 140, 5, 'var(--dg-abf)'));
       return a.join(''); };
     return `<g data-seg="substrate_material" data-part="abf_roadmap">
-      <rect class="frame part" x="${x}" y="${y}" width="${w}" height="136" rx="8"/>
+      <rect class="frame part" x="${x}" y="${y}" width="${w}" height="144" rx="8"/>
       <text class="hd" x="${x + 14}" y="${y + 24}">三條路，差別只在中間那一層（只畫結構差異，不寫時程、不寫公司名）</text>
       ${one(x + 22, y + 38, 'core')}${one(x + 182, y + 38, 'coreless')}${one(x + 342, y + 38, 'glass')}
-      <text class="lbl" x="${x + 22}" y="${y + 110}">有核心（現在的主流）</text>
-      <text class="lbl" x="${x + 182}" y="${y + 110}">無核心：拿掉 core</text>
-      <text class="lbl" x="${x + 342}" y="${y + 110}">玻璃核心</text>
-      <text class="sub" x="${x + 22}" y="${y + 128}">core 撐住不變形</text>
-      <text class="sub" x="${x + 182}" y="${y + 128}">路徑短但更會翹，靠補強環</text>
-      <text class="sub" x="${x + 342}" y="${y + 128}">更硬、熱膨脹更接近矽，更平</text></g>`;
+      <text class="lbl" x="${x + 22}" y="${y + 107}">有核心（現在的主流）</text>
+      <text class="lbl" x="${x + 182}" y="${y + 107}">無核心：拿掉 core</text>
+      <text class="lbl" x="${x + 342}" y="${y + 107}">玻璃核心</text>
+      ${D.para(x + 22, y + 123, 'core 撐住不變形', 150, { lh: 15 }).svg}
+      ${D.para(x + 182, y + 123, '路徑短但更會翹，靠補強環', 150, { lh: 15 }).svg}
+      ${D.para(x + 342, y + 123, '更硬、熱膨脹更接近矽，更平', w - 342 - 14, { lh: 15 }).svg}</g>`;
+    /* ★ 2026-09-26 覆蓋普查：三格底下的說明原本各一行，第三格在 488 寬的框裡伸出框 22px、伸出畫布；
+       改成各自照格寬斷兩行（框加高 8，標籤上提 3），下一個框（y 1390）不用動。*/
   }
 
   /* ================================================================ 整張圖 */
@@ -417,7 +419,8 @@
       <text class="cap" x="16" y="1536">製造流程（五格）　★ 增層循環一定在防焊與表面處理之前；</text>
       <text class="cap" x="16" y="1554">雷射開孔之後、鍍銅之前一定有「除膠渣」那一步</text>
       <path d="M170,1560 V1610" stroke="var(--dg-warn)" stroke-dasharray="5 4" fill="none" opacity=".85" style="stroke-width:var(--dg-hair-w,2)"/>
-      ${processBar(8, 1564, steps, 156, { cols: 3 })}
+      ${processBar(8, 1564, steps, 156, { cols: 3, wrap: true })}   <!-- ★ 2026-09-26：「③ 增層循環（上下同時）」比格子寬 → 格內斷行，格子等高加高 -->
+      <g transform="translate(0,${D.processBarHeight(steps, 156, { cols: 3, wrap: true }) - D.processBarHeight(steps, 156, { cols: 3 })})">
       <text class="sub" x="8" y="1682" style="fill:var(--dg-warn)">← 材料商（外商）</text>
       <text class="sub" x="176" y="1682">載板廠（3037 欣興／8046 南電／3189 景碩）→</text>
       <text class="cap" x="16" y="1706">③ 的完整一圈：貼 ABF 膜 → 雷射開微孔 → 除膠渣（desmear）→ 化學鍍薄銅</text>
@@ -429,7 +432,8 @@
       <text class="sub" x="16" y="1788" style="fill:var(--dg-warn)">　 再點下面同色的環節色標，成分股會是 0 筆 —— 那不是壞掉，是這一格真的沒有台股。</text>
       <text class="cap" x="16" y="1814">示意圖，非實物比例｜層數與各層厚度均為示意；載板線寬、CTE、封裝尺寸、供需與價格</text>
       <text class="cap" x="16" y="1832">一律不寫數字（來源對不起來，見規格書 §7-B／§7-C）。圖上畫 core ＋ 上下各 3 層增層，</text>
-      <text class="cap" x="16" y="1850">實際為十幾至二十幾層（這句話本身也是示意，不是規格）。</text>`)}
+      <text class="cap" x="16" y="1850">實際為十幾至二十幾層（這句話本身也是示意，不是規格）。</text>
+      </g>`)}
     </svg>`;
   }
 

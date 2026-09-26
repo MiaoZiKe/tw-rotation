@@ -923,7 +923,14 @@
      列與列之間用一條往下折的流動線接起來，光點沿著同一條折線跑。*/
   function processBar(x, y, steps, w, opts) {
     w = w || 150; const gap = 12, cols = (opts && opts.cols) || steps.length;
-    const pos = steps.map((s, i) => ({ bx: x + (i % cols) * (w + gap), by: y + Math.floor(i / cols) * PB_ROW }));
+    /* ★ 2026-09-26 覆蓋普查：opts.wrap＝格子裡的標題與說明照最壞字寬斷行（格子跟著加高、每一格等高）。
+       只有傳了 wrap 的圖才走這條；沒傳的一律照舊（40 高、一行標題一行說明），既有的圖一格都不會動。*/
+    const wrapOn = !!(opts && opts.wrap);
+    const WT = wrapOn ? steps.map((s) => wrap(s.t, w - (s.no != null ? 30 : 12) - 8, 17)) : null;
+    const WS = wrapOn ? steps.map((s) => wrap(s.s, w - (s.no != null ? 30 : 12) - 8)) : null;
+    const BH = wrapOn ? Math.max(PB_H, Math.max.apply(null, steps.map((s, i) => 10 + WT[i].length * 17 + WS[i].length * 16))) : PB_H;
+    const ROW = wrapOn ? BH + (PB_ROW - PB_H) : PB_ROW;
+    const pos = steps.map((s, i) => ({ bx: x + (i % cols) * (w + gap), by: y + Math.floor(i / cols) * ROW }));
     let dot = '';
     const boxes = steps.map((s, i) => {
       const { bx, by } = pos[i], num = s.no != null, tx = bx + (num ? 30 : 12);
@@ -933,12 +940,23 @@
       if (i < steps.length - 1) {
         const nx = pos[i + 1];
         if (nx.by === by) link = `M${bx + w},${by + PB_MID} L${nx.bx},${by + PB_MID}`;
-        else { link = `M${bx + w},${by + PB_MID} h6 V${by + PB_H + 9} H${nx.bx - 6} V${nx.by + PB_MID} h6`; dot += ` L${bx + w + 6},${by + PB_MID} L${bx + w + 6},${by + PB_H + 9} L${nx.bx - 6},${by + PB_H + 9} L${nx.bx - 6},${nx.by + PB_MID}`; }
+        else { link = `M${bx + w},${by + PB_MID} h6 V${by + BH + 9} H${nx.bx - 6} V${nx.by + PB_MID} h6`; dot += ` L${bx + w + 6},${by + PB_MID} L${bx + w + 6},${by + BH + 9} L${nx.bx - 6},${by + BH + 9} L${nx.bx - 6},${nx.by + PB_MID}`; }
       }
-      return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${PB_H}" rx="7"/>${no}<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text></g>`
+      const txt = wrapOn
+        ? WT[i].map((l, k) => `<text class="lbl" x="${tx}" y="${by + 16 + k * 17}">${l}</text>`).join('')
+          + WS[i].map((l, k) => `<text class="sub" x="${tx}" y="${by + 16 + WT[i].length * 17 + k * 16}">${l}</text>`).join('')
+        : `<text class="lbl" x="${tx}" y="${by + 16}">${s.t}</text><text class="sub" x="${tx}" y="${by + 32}">${s.s}</text>`;
+      return `<g class="step lrow" data-seg="${s.seg}"><rect class="part bg card" x="${bx}" y="${by}" width="${w}" height="${BH}" rx="7"/>${no}${txt}</g>`
         + (link ? `<path class="flow fast" d="${link}" fill="none" stroke="var(--dg-accent)" stroke-width="var(--dg-flow-w,2)"/>` : '');
     }).join('');
     return `<g>${boxes}<circle r="3" fill="var(--dg-flow-dot)" opacity=".9"><animateMotion dur="${steps.length > cols ? 8 : 6}s" repeatCount="indefinite" path="${dot}"/></circle></g>`;
+  }
+  // 流程列總高（最後一列的下緣 − 起點 y）：wrap 版格高會變，後面接著排的東西用它算位置
+  function processBarHeight(steps, w, opts) {
+    w = w || 150; const cols = (opts && opts.cols) || steps.length, rows = Math.ceil(steps.length / cols);
+    let bh = PB_H;
+    if (opts && opts.wrap) bh = Math.max(PB_H, Math.max.apply(null, steps.map((s) => 10 + wrap(s.t, w - (s.no != null ? 30 : 12) - 8, 17).length * 17 + wrap(s.s, w - (s.no != null ? 30 : 12) - 8).length * 16)));
+    return (rows - 1) * (bh + (PB_ROW - PB_H)) + bh;
   }
   const chainLink = (chain, x, y, text) => `<g class="lrow" data-chain="${chain}"><rect class="bg card" x="${x}" y="${y}" width="${text.length * 13 + 26}" height="30" rx="8"/><text class="lbl" x="${x + 13}" y="${y + 19}" style="fill:var(--dg-accent-2d);font-weight:600">${text}</text></g>`;
   /* 爆炸拆解的間距：層與層之間要有「呼吸空間」（Andy 2026-09-22 的參考圖）。
@@ -1835,7 +1853,7 @@
     });
     return { svg, n, h: yy - y, y: yy };
   }
-  window.DG = { wrap, para, fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
+  window.DG = { wrap, para, processBarHeight, fillChips, STYLE, SHADOW_DEFS, labelRow, lrow3, note, extRow, processBar, foldBar, fold, chainLink, pointer, cardHead, explode, explodeZ, EXPLODE_GAP, shadow, fitTexts, externalize, stampParts, partHit, IX, IY, px, py, P3, onTop, onXZ, onYZ, box, cyl, panel, wire, floor, cells, p3 };
 
   // ===== 2.5D 材質（玻璃／發光／光束）=====
   /* Andy 2026-09-22 晚的參考圖（docs/diagram_refs/2d_panel_dark_light.webp）翻成三支可重用的 helper。
@@ -2038,8 +2056,8 @@
       const x = r.left + r.width / 2 - base.left + host.scrollLeft, y = r.top + r.height / 2 - base.top + host.scrollTop;
       return { i, x, y, x0: x, y0: y, c: it.color };
     }).filter(Boolean);
-    window.M3.spread(P, MIN);
     const W = host.scrollWidth, H = host.scrollHeight;
+    window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: W - 15, y1: H - 15 });   // 邊界一起傳進去：推完夾、夾完再推（夾回去不會又疊上）
     /* 推開之後可能被推出畫面邊緣：夾回容器內（留 15px，編號鈕半徑 14）—— 不夾的話被推出去的鈕會撐出假的捲動寬 */
     P.forEach(q => { q.x = Math.max(15, Math.min(W - 15, q.x)); q.y = Math.max(15, Math.min(H - 15, q.y)); });
     const ov = window.M3.overlaps(P, MIN);
@@ -2124,8 +2142,7 @@
         const base = h3.getBoundingClientRect();
         const P = ctx.items.map((it, i) => { const q = view.pointOf(it.part); if (!q) return null;
           const x = q.x - base.left, y = q.y - base.top; return { i, x, y, x0: x, y0: y, c: it.color, back: !q.front }; }).filter(Boolean);
-        window.M3.spread(P, MIN);
-        P.forEach(q => { q.x = Math.max(15, Math.min(base.width - 15, q.x)); q.y = Math.max(15, Math.min(base.height - 15, q.y)); });
+        window.M3.spread(P, MIN, { x0: 15, y0: 15, x1: base.width - 15, y1: base.height - 15 });
         layer.innerHTML = `<svg width="${base.width}" height="${base.height}" style="position:absolute;left:0;top:0;overflow:visible">${window.M3.leaders(P)}</svg>` + numBtns(P, ctx.items, ctx.sel);
         layer.dataset.overlap = window.M3.overlaps(P, MIN); layer.dataset.n = P.length; h3.dataset.mn = ctx.items.length;
       }
