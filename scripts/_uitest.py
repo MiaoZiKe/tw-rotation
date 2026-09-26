@@ -14075,12 +14075,119 @@ def t_chips_basic0926(pg, base, code):
     pg.evaluate("() => { try { localStorage.removeItem('tw.ms.years'); } catch (e) {} }")
 
 
+def t_ui2(pg, base):
+    """新版介面 UI v2（2026-09-26，分支 claude/elegant-pasteur-ggwgnb）——當自己是使用者，每一樣真的按一次。
+
+    Andy：「版面看起來舒服，功能都很單一，一頁就知道這頁功能在哪裡…功能不要動到，只會動到 UI 的版面」。
+    所以這段驗兩件事：① 新的東西（左側導覽、頁首、本頁功能跳轉列、事件浮層、收合、搜尋）真的按得動、畫面真的變；
+    ② 舊的入口（每一顆分頁、事件、主題、搜尋）按下去還是原本那個結果。
+    """
+    VW = 1440
+    pg.set_viewport_size({"width": VW, "height": 900})
+    pg.evaluate("() => { try { localStorage.removeItem('tw.ui2.nav'); } catch (e) {} }")
+    pg.goto(f"{base}#overview", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#ui2Jump button').length >= 2", 8000)
+    nav = pg.evaluate("""() => { const t = document.querySelector('.topbar').getBoundingClientRect();
+        const tabs = [...document.querySelectorAll('.tab')].map(b => ({ v: b.dataset.view, x: Math.round(b.getBoundingClientRect().left), y: Math.round(b.getBoundingClientRect().top) }));
+        return { l: t.left, w: t.width, h: t.height, vh: innerHeight, pad: parseFloat(getComputedStyle(document.body).paddingLeft), tabs }; }""")
+    ok("[UI2] 1440：導覽在左側、貼齊整個視窗高", nav["l"] == 0 and 230 <= nav["w"] <= 260 and nav["h"] >= nav["vh"] - 1, nav)
+    ok("[UI2] 1440：內容區讓出導覽的寬度（body 左內距＝導覽寬）", abs(nav["pad"] - nav["w"]) <= 1, nav)
+    ys = {t["v"]: t["y"] for t in nav["tabs"]}
+    ok("[UI2] 七顆分頁直向排、同一條左緣", len({t["x"] for t in nav["tabs"]}) == 1 and len(set(ys.values())) == len(ys), nav["tabs"])
+    ok("[UI2] 分組順序：資金流向 → 熱力圖 → 產業地圖（熱力圖提到「錢往哪裡跑」那一組）",
+       ys.get("flow", 0) < ys.get("heatmap", 0) < ys.get("industry", 0), ys)
+
+    # 每一顆分頁真的換頁、頁首標題跟著換
+    NAMES = {"overview": "總覽", "flow": "資金流向", "heatmap": "熱力圖", "industry": "產業地圖", "market": "市場明細", "season": "週期統計", "delivery": "交付清單"}
+    for v, name in NAMES.items():
+        pg.click(f'.tab[data-view="{v}"]')
+        got = wait_until(pg, f"""() => {{ const h = document.querySelector('#ui2Head h1'); const on = document.querySelector('.tab.on');
+            return h && on && on.dataset.view === '{v}' && h.textContent.indexOf('{name}') === 0 && document.getElementById('v-{v}').classList.contains('on') ? h.textContent : null; }}""", 6000)
+        ok(f"[UI2] 點「{name}」：換到那一頁、頁首標題＝{name}", bool(got), got)
+
+    # 本頁功能：點第三顆 → 真的捲到那張卡、那顆亮起來
+    pg.click('.tab[data-view="overview"]')
+    wait_until(pg, "() => document.querySelectorAll('#ui2Jump button').length >= 3", 8000)
+    pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
+    chips = pg.evaluate("() => [...document.querySelectorAll('#ui2Jump button')].map(b => b.textContent)")
+    ok("[UI2] 總覽的「本頁功能」列出 ≥ 3 張卡", len(chips) >= 3, chips)
+    if len(chips) >= 3:
+        pg.click('#ui2Jump button[data-i="2"]')
+        r = wait_until(pg, """() => { const b = document.querySelector('#ui2Jump button[data-i="2"]');
+            const j = document.getElementById('ui2Jump').getBoundingClientRect();
+            return window.scrollY > 200 && b.classList.contains('on') ? { y: scrollY, jb: j.bottom, jt: j.top } : null; }""", 4000)
+        ok("[UI2] 點第 3 顆：頁面真的往下捲、那顆亮起來", bool(r), r)
+        ok("[UI2] 捲下去之後跳轉列黏在最上面（sticky）", bool(r) and r["jt"] <= 1, r)
+
+    # 今日事件：預設關、按了從右邊滑出、內容寬度不變、點遮罩關、Esc 關
+    pg.evaluate("() => window.scrollTo(0, 0)")
+    st = pg.evaluate("() => ({ cls: document.getElementById('layout').className, l: document.getElementById('side').getBoundingClientRect().left, mw: document.querySelector('main').getBoundingClientRect().width })")
+    ok("[UI2] 事件浮層一進站是關著的（在畫面外）", "noside" in st["cls"] and st["l"] >= VW - 1, st)
+    pg.click('#evToggle')
+    op = wait_until(pg, f"() => {{ const r = document.getElementById('side').getBoundingClientRect(); return r.left < {VW} - 300 && Math.abs(r.right - {VW}) < 2 ? {{ l: r.left, mw: document.querySelector('main').getBoundingClientRect().width, n: document.querySelectorAll('#evList .ev').length }} : null; }}", 3000)
+    ok("[UI2] 按「事件」：浮層從右邊滑出、裡面有新聞", bool(op) and op["n"] > 0, op)
+    ok("[UI2] 事件浮層打開時內容寬度不變（蓋在上面，不擠內容）", bool(op) and abs(op["mw"] - st["mw"]) < 1, {"前": st["mw"], "後": op and op["mw"]})
+    pg.mouse.click(400, 500)
+    cl = wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)
+    ok("[UI2] 點浮層外面（遮罩）就關", bool(cl))
+    pg.click('#evToggle'); wait_until(pg, "() => !document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)
+    pg.keyboard.press('Escape')
+    ok("[UI2] 按 Esc 也關", bool(wait_until(pg, "() => document.getElementById('layout').classList.contains('noside') ? 1 : null", 2000)))
+
+    # 收合導覽：寬度真的變、記住、重新整理後還是收合、再按一次展開
+    pg.click('#ui2NavBtn')
+    mn = wait_until(pg, "() => { const w = document.querySelector('.topbar').getBoundingClientRect().width; return document.documentElement.classList.contains('ui2-mini') && w <= 90 ? { w, ls: localStorage.getItem('tw.ui2.nav') } : null; }", 2000)
+    ok("[UI2] 按「收合」：導覽縮成圖示列、記住偏好", bool(mn) and mn["w"] <= 90 and mn["ls"] == "mini", mn)
+    pg.reload(wait_until="networkidle"); pg.wait_for_timeout(800)
+    ok("[UI2] 重新整理後仍然是收合", pg.evaluate("() => document.documentElement.classList.contains('ui2-mini')"))
+    pg.click('#q')
+    qw = pg.evaluate("() => document.getElementById('q').getBoundingClientRect().width")
+    ok("[UI2] 收合時點搜尋：輸入框展開到能打字的寬度", qw >= 250, qw)
+    pg.keyboard.press('Escape'); pg.evaluate("() => document.activeElement && document.activeElement.blur()")
+    pg.click('#ui2NavBtn')
+    ok("[UI2] 再按一次：展開回 244px", bool(wait_until(pg, "() => !document.documentElement.classList.contains('ui2-mini') && document.querySelector('.topbar').getBoundingClientRect().width > 200 ? 1 : null", 2000)))
+    pg.evaluate("() => { try { localStorage.removeItem('tw.ui2.nav'); } catch (e) {} }")
+
+    # 搜尋：打代號 → 建議清單在畫面內 → Enter 進個股頁、頁首換成「個股」
+    pg.fill('#q', '2330')
+    sg = wait_until(pg, "() => { const s = document.getElementById('sugg'); const r = s.getBoundingClientRect(); return getComputedStyle(s).display !== 'none' && r.height > 20 ? { l: r.left, r: r.right, vw: innerWidth } : null; }", 3000)
+    ok("[UI2] 搜尋建議清單出現、完整落在畫面內", bool(sg) and sg["l"] >= 0 and sg["r"] <= sg["vw"], sg)
+    pg.keyboard.press('Enter')
+    sk = wait_until(pg, "() => /^#stock\\/2330/.test(location.hash) && (document.querySelector('#ui2Head h1') || {}).textContent.indexOf('個股') === 0 ? location.hash : null", 6000)
+    ok("[UI2] 搜尋 Enter：進個股頁、頁首＝個股", bool(sk), pg.evaluate("() => [location.hash, (document.querySelector('#ui2Head h1') || {}).textContent]"))
+
+    # 主題切換：顏色真的換（主色讀得到新值）、再切回來
+    c0 = pg.evaluate("() => [document.documentElement.dataset.theme || 'dark', getComputedStyle(document.documentElement).getPropertyValue('--cyan').trim()]")
+    pg.click('#themeBtn')
+    c1 = wait_until(pg, f"() => {{ const t = document.documentElement.dataset.theme || 'dark'; return t !== '{c0[0]}' ? [t, getComputedStyle(document.documentElement).getPropertyValue('--cyan').trim()] : null; }}", 3000)
+    ok("[UI2] 按「明亮／深色」：主題換了、主色也換了", bool(c1) and c1[1] != c0[1], {"前": c0, "後": c1})
+    pg.click('#themeBtn'); pg.wait_for_timeout(600)
+
+    # 多寬度：不准有橫向捲軸；1100 沒偏好時自動收合
+    for w in (1100, 900):
+        pg.set_viewport_size({"width": w, "height": 900}); pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(1200)
+        m = pg.evaluate("() => ({ sw: document.documentElement.scrollWidth, vw: innerWidth, mini: document.documentElement.classList.contains('ui2-mini') })")
+        ok(f"[UI2] {w}px：沒有橫向捲軸", m["sw"] <= m["vw"] + 1, m)
+        ok(f"[UI2] {w}px：沒設過偏好 → 導覽自動收成圖示列", m["mini"], m)
+    # 手機：導覽回到原本那一套（頂欄＋底部分頁），新版頁首與收合鈕不出現
+    pg.set_viewport_size({"width": 390, "height": 844}); pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(1200)
+    mb = pg.evaluate("""() => ({ th: document.querySelector('.topbar').getBoundingClientRect().height,
+        head: getComputedStyle(document.getElementById('ui2Head')).display, foot: getComputedStyle(document.querySelector('.ui2-foot')).display,
+        tabsB: Math.round(document.getElementById('tabs').getBoundingClientRect().bottom), vh: innerHeight, sw: document.documentElement.scrollWidth })""")
+    ok("[UI2] 390px：頂欄維持原本的高度、底部分頁列還在最下面", mb["th"] <= 64 and abs(mb["tabsB"] - mb["vh"]) <= 2, mb)
+    ok("[UI2] 390px：新版頁首與收合鈕不出現（手機這一批只換配色）", mb["head"] == "none" and mb["foot"] == "none", mb)
+    ok("[UI2] 390px：沒有橫向捲軸", mb["sw"] <= 391, mb)
+    pg.set_viewport_size({"width": 1440, "height": 1000})
+
+
 SECTIONS = {
     "盤中即時":            lambda pg, b, base, code: t_live(pg, base),
     "即時推送":            lambda pg, b, base, code: t_live_sse(pg, base),
     "大盤三張圖":          lambda pg, b, base, code: t_market3(pg, base),
     "今日事件":            lambda pg, b, base, code: t_events(pg, base),
     "明亮主題":            lambda pg, b, base, code: t_theme(pg, base),
+    # ★ 2026-09-26 新版介面 UI v2（左側導覽、頁首、本頁功能跳轉列、事件浮層、收合、搜尋、主題、多寬度、手機沒動）
+    "新版介面UI2":         lambda pg, b, base, code: t_ui2(pg, base),
     "總覽":                lambda pg, b, base, code: t_overview(pg, base),
     "總覽右欄":            lambda pg, b, base, code: t_ov_right(pg, base),
     # ★ 2026-09-26 Andy：總覽「漲跌家數」要分 上市／上櫃／全部（切換、點一級清單、重新整理記住、淺色、手機 390）

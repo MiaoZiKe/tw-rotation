@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" class="ui2">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -3894,6 +3894,9 @@ h3 .howbtn.pop{font-family:inherit}
 }
 @media (min-width:641px){ #mMktSeg,#mSeasonBtn{display:none!important} }
 </style>
+<!-- ★ 2026-09-26 新版介面 UI v2（分支 claude/elegant-pasteur-ggwgnb）：配色＋左側導覽＋頁首。
+     全部規則掛在 <html class="ui2"> 底下，拿掉那個 class 就是舊版外觀。 -->
+<link rel="stylesheet" href="ui2.css">
 </head>
 <body>
 <header class="topbar">
@@ -3972,7 +3975,8 @@ h3 .howbtn.pop{font-family:inherit}
   <!-- ★ 2026-09-24 晚（Andy：「版號增加進版時間，並且版號在左上方標題下面」）：版號搬到標題下（#asof 裡的 #buildver）。 -->
 </header>
 
-<div class="layout" id="layout">
+<!-- UI v2：今日事件改成浮層，一進站先關著（app.js 的 setSide 之後照舊接手開關） -->
+<div class="layout noside" id="layout">
 <main>
   <!-- ★ 2026-09-23：Andy「上面黃底那串說明刪掉」。
        這條橫幅原本常駐在每一頁最上面，佔掉三行，而且大部分時間講的是同一件事。
@@ -4369,6 +4373,8 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="live.js"></script>
 <!-- ★ 手機版 v3（docs/mobile_v3_spec.md）：只在 ≤640px 動作，桌機整支不插任何節點 -->
 <script src="mobile3.js"></script>
+<!-- UI v2：頁首說明＋「本頁功能」跳轉列＋導覽收合＋事件浮層（只讀畫面、不改功能） -->
+<script src="ui2.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>
