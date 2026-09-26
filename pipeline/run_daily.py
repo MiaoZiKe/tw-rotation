@@ -18,7 +18,7 @@ import pandas as pd
 from . import config
 from .compute import flow
 from .groups import loader
-from .sources import finmind, macro, mis, mops, news, tdcc, tpex, twse
+from .sources import finmind, macro, mis, mops, news, taifex, tdcc, tpex, twse
 from .util import http, store
 from .util.roc import is_tradable_security
 
@@ -344,8 +344,61 @@ def collect_index_minute() -> pd.DataFrame:
     台指期夜盤（期交所 mis.taifex.com.tw）不在管線白名單，這裡不抓。
     """
     df = mis.index_minute_bars()
+    df = drop_days_with_taifex(df)
     if not df.empty:
         RESULT["index_minute_days"] = {
+            str(s): sorted({str(t)[:10] for t in g["ts"]}) for s, g in df.groupby("symbol")}
+    return df
+
+
+def drop_days_with_taifex(df: pd.DataFrame) -> pd.DataFrame:
+    """mis 的台指期 1 分 K：資料湖裡那一盤已經有期交所逐筆合成（src=taifex）的，就不寫。
+
+    為什麼：store.append() 同 key 以後到的為準，而 mis 的檔隔天清晨、週末都還留著上一個交易日 ——
+    不擋的話，每一輪都會用 mis（分鐘收盤合成、沒有真實高低）把 taifex（逐筆、真實高低）蓋回去。
+    優先順序：taifex ＞ mis（DECISIONS 待補；理由見 docs/source_whitelist_taifex_tpex.md）。
+    """
+    if df is None or df.empty or "symbol" not in df.columns:
+        return df if df is not None else pd.DataFrame()
+    try:
+        have = store.read("index_intraday")
+    except Exception:  # noqa: BLE001
+        return df
+    if have.empty or "src" not in have.columns:
+        return df
+    tx = have[(have["src"].astype(str) == "taifex") & (have["symbol"].astype(str) == "FUT")]
+    if tx.empty:
+        return df
+    days = {str(t)[:10] for t in tx["ts"]}
+    hit = (df["symbol"].astype(str) == "FUT") & df["ts"].astype(str).str[:10].isin(days)
+    if hit.any():
+        log.info("mis 台指期 1 分 K：%s 已有期交所逐筆合成，不寫 mis 那 %d 根",
+                 "、".join(sorted({str(t)[:10] for t in df.loc[hit, "ts"]})), int(hit.sum()))
+    return df[~hit].reset_index(drop=True)
+
+
+def collect_taifex_minute() -> pd.DataFrame:
+    """台指期（TX 近月）1 分 K：期交所每筆成交 → 資料湖 `index_intraday`（FUT 日盤／FUT_N 夜盤，src=taifex）。
+
+    為什麼（2026-09-26，Andy：「目前沒有免費管道嗎」）：mis 分時檔只有日盤、而且只能從第一個存到的那天往後長；
+    期交所公開的逐筆（政府資料開放平臺 資料集 20668，政府資料開放授權條款－第 1 版）一次給前 30 個交易日、含夜盤。
+    增量：data/_state/taifex_ticks.json 記處理過的檔，一天只下載一次；交易日取檔內的成交日期。
+    """
+    known, official = [], {}
+    try:
+        oh = store.read("index_ohlc")
+        if not oh.empty:
+            fut = oh[oh["symbol"].astype(str) == "FUT"]
+            known = sorted({str(d)[:10].replace("-", "") for d in fut["date"]})
+            if "volume" in fut.columns:
+                official = {str(d)[:10].replace("-", ""): float(v)
+                            for d, v in zip(fut["date"], pd.to_numeric(fut["volume"], errors="coerce"))
+                            if pd.notna(v)}
+    except Exception as exc:  # noqa: BLE001 —— 讀不到日 K 只是少了核對，不能讓這步死掉
+        log.warning("讀 index_ohlc 失敗（台指期逐筆少了交易日曆與量的核對）：%s", exc)
+    df = taifex.minute_bars(known_days=known, official_vol=official)
+    if not df.empty:
+        RESULT["taifex_minute_days"] = {
             str(s): sorted({str(t)[:10] for t in g["ts"]}) for s, g in df.groupby("symbol")}
     return df
 
@@ -471,6 +524,17 @@ def main() -> int:
         # 盤前檔案可能已經清空 —— 那是「還沒開盤」不是「壞了」，不記進「沒回資料的來源」
         RESULT["empty"].remove("mis.index_minute")
     save("index_intraday", minute)
+
+    # -------------------------------------------------- 台指期 1 分 K（期交所每筆成交，含夜盤，不耗額度）
+    # 2026-09-26：一次補回前 30 個交易日，之後每天一個檔。15:30 那輪（phase price）不抓 ——
+    # 當天的檔多半還沒出，打了只會多記一次 404。週末 news 那幾輪照抓（補週五、補失敗的輪次）。
+    # 排在 mis 後面：同 key 以後到的為準，taifex 蓋 mis（mis 那邊另外擋了不蓋回來）。
+    if not light:
+        tx = step("taifex.futures_minute", collect_taifex_minute)
+        if tx.empty and "taifex.futures_minute" in RESULT["empty"]:
+            # 窗內都處理過了（或今天的檔還沒出）是常態，不是壞掉 —— 不記進「沒回資料的來源」
+            RESULT["empty"].remove("taifex.futures_minute")
+        save("index_intraday", tx)
 
     # 以下這些來源要傍晚才落地。台北 15:30 那輪（--phase price）刻意不抓，
     # 否則會把「還沒出」記成「沒回資料」，網站頂端每天下午都變成黃燈。

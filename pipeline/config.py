@@ -54,6 +54,9 @@ TABLES: dict[str, list[str]] = {
     # v8（2026-09-26）：interval 多一個 1m ＝ 證交所 mis 當日分時檔（TSE／OTC／FUT 同一個來源），
     #   每個交易日盤後自己存、自己累積（見 sources/mis.index_minute_bars）。多一欄 src="mis" 標來源；
     #   舊列沒有這欄（讀出來是 NaN），不影響 key。同一天有 1m 時 build 以 1m 為準（真實量、同口徑）。
+    # v10（2026-09-26）：台指期多一個 1m 來源 src="taifex"＝期交所每筆成交合成（日盤 FUT＋夜盤 FUT_N，
+    #   近月、真實盤中高低與口數；見 sources/taifex.py）。同一盤兩個來源都有時 taifex ＞ mis：
+    #   寫入時 run_daily 不讓 mis 蓋掉已有 taifex 的那幾天，build 也照 src 排優先。
     "index_intraday":     ["ts", "symbol", "interval"],
     # v6：重大訊息（公開資訊觀測站 t187ap04）。與 news 分開存 ——
     # 新聞是媒體寫的，重大訊息是公司自己公告的，M4 事件面要否決進場靠的是後者。
@@ -106,6 +109,19 @@ MIS_CHART_FILES = {
     "OTC": "https://mis.twse.com.tw/stock/data/mis_ohlc_OTC.txt",      # 櫃買 o00
     "FUT": "https://mis.twse.com.tw/stock/data/futures_chart.txt",     # 台指期（只有日盤）
 }
+
+# 臺灣期貨交易所「每日期貨每筆成交資料」（2026-09-26 查證，見 docs/source_whitelist_taifex_tpex.md）。
+# 政府資料開放平臺 資料集 20668，授權＝政府資料開放授權條款－第 1 版（提供機關：金管會證期局）；
+# 期交所下載頁只留前 30 個交易日。用途：台指期（TX）近月 1 分 K（日盤 FUT＋夜盤 FUT_N）進 index_intraday。
+# ⚠ 只抓這個資料集的逐筆檔本身，不抓期交所其他網頁；mis.taifex.com.tw（盤中夜盤分時）仍然不在管線白名單。
+# 頁面上要標出處：「臺灣期貨交易所（政府資料開放平臺 資料集 20668）」。
+TAIFEX_TICKS_PAGE = "https://www.taifex.com.tw/cht/3/dlFutPrevious30DaysSalesData"
+TAIFEX_TICKS_CSV = ("https://www.taifex.com.tw/file/taifex/Dailydownload/DailydownloadCSV/"
+                    "Daily_{y}_{m}_{d}.zip")
+TAIFEX_TICK_PRODUCT = "TX"            # 臺股期貨（大台）；小台 MTX 不收
+TAIFEX_TICK_LOOKBACK_DAYS = 45        # 30 個交易日 ≈ 42 個日曆日，多留幾天給連假
+TAIFEX_TICK_MAX_FILES = 35            # 一輪最多下載幾個檔（第一次跑會把窗內 30 個左右一次補完）
+TAIFEX_TICK_MAX_BYTES = 300_000_000   # 單檔上限（全部期貨商品一天的逐筆，壓縮後約數十 MB）
 
 TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {
