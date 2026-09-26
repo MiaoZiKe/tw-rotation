@@ -3807,7 +3807,14 @@ h3 .howbtn.pop{font-family:inherit}
   body.m3on .mhead.sm h3{font-size:14px}
   body.m3on .mhead small{color:var(--ink-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
   body.m3on .mhead .sp{flex:1}
-  body.m3on .mhead .howbtn.pop{margin-left:0}
+  body.m3on .mhead > .howbtn.pop{margin-left:0}   /* 2026-09-26：資金輪動的「?」搬進 h3 之後，h3 裡那顆照全站的 8px 間距 */
+  /* ★ 2026-09-26（全站「?」統一）：市場明細標題＝「名稱＋讀數（small）」，390 寬讀數會折兩行，「?」被擠到第三行開頭、離名稱很遠。
+     手機把 #mktTitle 攤平（display:contents），h3 變成可換行的 flex：名稱 →「?」→ 讀數整行放到下一列。
+     只動手機；桌機一行放得下，排法不變。 */
+  body.m3on #v-market h3:has(> #mktTitle){display:flex;flex-wrap:wrap;align-items:center}
+  body.m3on #mktTitle{display:contents}
+  body.m3on #mktTitle > small{order:2;flex-basis:100%;margin-top:2px}
+  body.m3on #v-market h3 > .howbtn.pop[data-how="mkt"]{order:1}
   body.m3on .mfilt{min-height:36px;padding:0 12px;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-2);
     color:var(--ink-2);font-size:13px;white-space:nowrap;max-width:190px;overflow:hidden;text-overflow:ellipsis}
   body.m3on .mfilt.on{border-color:var(--cyan);color:var(--cyan)}

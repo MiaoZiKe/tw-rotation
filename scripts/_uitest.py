@@ -12609,11 +12609,15 @@ def t_rel_list(pg, base):
         pg.goto(f"{base}#industry", wait_until="networkidle"); pg.wait_for_timeout(300)
         pg.goto(f"{base}#industry/{cid}", wait_until="networkidle")
         wait_until(pg, "() => !!document.getElementById('nbIntro')", 8000)
-        hb = pg.query_selector('.howbtn[data-how="nb"]')
+        # ★ 2026-09-26 改前→改後：改前頁首右側「怎麼看 ?」膠囊、就地展開 #how-nb；
+        #   改後鏈名旁小圓「?」（.howbtn.pop），點了 #how-nb 搬進 #howPop 彈窗 —— 讀完用 Esc 關，不然背景會蓋住下一輪
+        hb = pg.query_selector('.nbhead h2 .howbtn.pop[data-how="nb"]')
+        ok(f"[{cid}] 頁首說明是鏈名旁的「?」（不是「怎麼看 ?」膠囊）", bool(hb) and (hb.inner_text() or "").strip() == "?")
         if hb:
             click(pg, '.howbtn[data-how="nb"]', 400)
-        tx = pg.evaluate("() => (document.getElementById('nbIntro') || {}).innerText || ''")
-        ok(f"[{cid}] 頁首「怎麼看 ?」打得開、不再講「大圓點／個股小點」", bool(tx) and "大圓點" not in tx and "小點" not in tx, tx[:90])
+        tx = pg.evaluate("() => { const b = document.getElementById('nbIntro'); return b && b.closest('#howPop') ? b.innerText : ''; }")
+        ok(f"[{cid}] 頁首「?」在彈窗裡打得開、不再講「大圓點／個股小點」", bool(tx) and "大圓點" not in tx and "小點" not in tx, tx[:90])
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
         if not has_map:
             has_rel = pg.evaluate("() => !!document.getElementById('relSec')")
             # 可以老實講「這條鏈還沒有關聯圖」，但不准叫人去點一個不存在的圖或色標
@@ -14289,6 +14293,8 @@ SECTIONS = {
     "說明精簡":            lambda pg, b, base, code: t_copy_trim(pg, base, code),
     # ★ 2026-09-25（claude/flow-howpop）：資金流向頁四張卡的「怎麼看 ?」→ 標題旁「?」，四顆各自點開、點背景關、Esc 關
     "資金流向問號":        lambda pg, b, base, code: t_flow_popq(pg, base, code),
+    # ★ 2026-09-26 晚 Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」—— 1440／390 全站普查，每顆「?」真的按、點背景關
+    "全站問號普查":        lambda pg, b, base, code: t_howpop_census(b, base, code),
     # ★ 2026-09-24 Andy：「我開啟網頁現在都會卡頓一陣子，需要修正延遲問題」→ 首次載入的可互動時間與最長卡住設上限
     "載入效能":            lambda pg, b, base, code: t_loadperf(pg, b, base),
     # ★ 2026-09-25 審查 R5：個股頁／市場明細的前端異常（圖例色、相關新聞、站上均線、軸標籤、K 線標籤避讓、即時分 K 退回、七個小項）
@@ -15994,6 +16000,145 @@ def t_stock_ai_0926(pg, base, code):
     ok("[AI分析 390] 技術面四行在手機上也排得下、沒有橫向捲軸", m1["tfs"] == ["1 小時", "4 小時", "日線", "週線"] and m1["sx"] <= m1["vw"] + 1, (m1["tfs"], m1["sx"], m1["vw"]))
     pg.set_viewport_size({"width": 1440, "height": 950})
     pg.evaluate("() => { try { localStorage.removeItem('tw.aiOpen'); } catch (e) {} }")
+
+
+# ===================================================================== 全站問號普查（2026-09-26 晚，claude/howto-pop-all）
+# Andy 原話：「將所有『怎麼看』變成『?』，並且出現說明方式也要 Follow 總覽頁那樣」。
+# 改前：產業地圖「族群漲幅與占比」、產業鏈頁首、剖析圖設定列、供應鏈關聯圖右側各一顆「怎麼看 ?」膠囊，點了在卡片裡就地展開；
+#       手機另外插「這一頁怎麼看 ▾」「關聯圖怎麼看 ▾」收合鈕。
+# 改後：全站只剩標題文字右側的小圓「?」（.howbtn.pop），點了一律是 #howPop 彈窗（標題＝卡片名稱、內容＝條列），點背景／Esc 關。
+# 這一段在 1440 與 390（is_mobile＋has_touch）各把全站走一遍，每一頁：
+#   ① 看得見的按鈕裡沒有任何一顆寫「怎麼看」、沒有舊式 .howbtn（非 pop）、每顆「?」上只有一個問號
+#   ② 每一顆看得見的「?」都**真的按**：彈窗打開、背景變暗、說明盒搬進彈窗、內容非空、標題＝卡片名稱（不是預設的「說明」）、
+#      彈窗整個在視窗內、頁面沒有因此多出橫向捲軸；「?」在標題文字的右側（同一行）
+#   ③ 點背景 → 彈窗與背景都關、說明盒搬回卡片原位
+#   ④ 這一批改的四顆（gp／nb／dg／rel）標題對得上卡片：族群漲幅與占比／鏈名／剖析圖名／供應鏈關聯圖
+#   ⑤ 開著說明換頁（hashchange）→ 彈窗自己收掉，不會蓋在下一頁上
+HOWPOP_SCAN = r"""() => {
+  const vis = (e) => { if (!e || !e.isConnected) return false; const r = e.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) return false; const cs = getComputedStyle(e);
+    return cs.visibility !== 'hidden' && cs.display !== 'none' && !e.closest('[hidden]'); };
+  const clickable = [...document.querySelectorAll('button, .pill, .mfold, [role="button"], a.btn, .btn')].filter(vis);
+  const howTxt = clickable.filter(e => /怎麼看/.test(e.innerText || '')).map(e => (e.id || e.className || e.tagName) + '：' + (e.innerText || '').trim().slice(0, 20));
+  const old = [...document.querySelectorAll('.howbtn:not(.pop)')].filter(vis).map(b => b.dataset.how);
+  // 上一頁留在 DOM 裡（藏起來）的鈕也可能帶著舊編號 —— 先全部清掉再編，不然 locator 會先抓到藏起來的那顆
+  document.querySelectorAll('[data-cz]').forEach(e => e.removeAttribute('data-cz'));
+  const pops = [...document.querySelectorAll('.howbtn.pop[data-how]')].filter(vis);
+  pops.forEach((b, i) => { b.dataset.cz = String(i); });
+  return { howTxt, old, pops: pops.map((b, i) => ({ i, key: b.dataset.how, txt: b.textContent.trim() })) };
+}"""
+# 按下去之後量：彈窗狀態、標題、預期標題、位置（「?」在標題文字右側同一行）、彈窗是否整個在視窗內
+HOWPOP_OPENED = r"""(i) => {
+  const b = document.querySelector('[data-cz="' + i + '"]'); const p = document.getElementById('howPop'), bk = document.getElementById('howBack');
+  if (!b) return null;
+  const box = document.getElementById('how-' + b.dataset.how);
+  const hd = b.closest('h2, h3, h4, h5');
+  const exp = b.dataset.ttl || (hd ? ((hd.childNodes[0] && hd.childNodes[0].textContent) || '').trim() : '');
+  // 「?」前面那段字（標題文字）的最後一個行框：要在「?」左邊、而且跟「?」同一行
+  const cont = b.closest('h2, h3, h4, h5, .dgsectitle');
+  let pos = null;
+  if (cont) { const rg = document.createRange(); rg.setStart(cont, 0); rg.setEndBefore(b);
+    const rs = [...rg.getClientRects()].filter(r => r.width > 0.5 && r.height > 0.5);
+    const br = b.getBoundingClientRect();
+    // 跟「?」同一行（垂直有交疊）的字框裡，要有一段結束在「?」左邊 —— 讀數被排到下一行（手機市場明細）不影響判定
+    const line = rs.filter(r => r.top < br.bottom && r.bottom > br.top);
+    const lr = line.filter(r => r.right <= br.left + 3).sort((a, c) => c.right - a.right)[0] || line[line.length - 1];
+    pos = lr ? { right: Math.round(lr.right), btnL: Math.round(br.left), sameLine: true, leftOf: lr.right <= br.left + 3 }
+             : { none: true, btnL: Math.round(br.left), sameLine: false }; }
+  const pr = p ? p.getBoundingClientRect() : null;
+  return { open: !!p && !p.hidden, back: !!bk && !bk.hidden, inPop: !!(box && p && p.contains(box)),
+    len: p ? p.innerText.replace(/\s+/g, '').length : 0,
+    title: p && p.querySelector('.hp-h') ? p.querySelector('.hp-h').innerText.trim() : '', exp, pos, inHead: !!cont,
+    fit: pr ? (pr.left >= -0.5 && pr.right <= innerWidth + 0.5 && pr.top >= -0.5 && pr.bottom <= innerHeight + 0.5) : false,
+    rect: pr ? [Math.round(pr.left), Math.round(pr.top), Math.round(pr.right), Math.round(pr.bottom)] : null,
+    sw: document.documentElement.scrollWidth, iw: innerWidth };
+}"""
+
+
+def _howpop_page(pg, where, seen, want_ttl):
+    """走一頁：普查 → 每顆看得見的「?」真的按、驗彈窗、點背景關。seen＝這個寬度已經驗過的 key（同一顆不重複按）。"""
+    sc = pg.evaluate(HOWPOP_SCAN)
+    ok(f"[問號普查] {where}：看得見的按鈕裡沒有「怎麼看」", not sc["howTxt"], sc["howTxt"])
+    ok(f"[問號普查] {where}：沒有舊式（就地展開）的說明鈕", not sc["old"], sc["old"])
+    ok(f"[問號普查] {where}：每顆「?」上只有一個問號", all(x["txt"] == "?" for x in sc["pops"]),
+       [x for x in sc["pops"] if x["txt"] != "?"])
+    for x in sc["pops"]:
+        k = x["key"]
+        if k in seen and k not in want_ttl:
+            continue
+        seen.add(k)
+        if not click(pg, f'[data-cz="{x["i"]}"]', 450):
+            continue
+        st = pg.evaluate(HOWPOP_OPENED, x["i"])
+        if not ok(f"[問號普查] {where}「?」（{k}）按下去跳出彈窗、背景變暗、說明盒在彈窗裡、內容非空",
+                  bool(st) and st["open"] and st["back"] and st["inPop"] and st["len"] > 20, st):
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+            continue
+        ok(f"[問號普查] {where}「?」（{k}）彈窗標題＝卡片名稱（不是預設「說明」）",
+           bool(st["title"]) and st["title"] != "說明" and st["title"] == st["exp"], [st["title"], st["exp"]])
+        if k in want_ttl:
+            ok(f"[問號普查] ★ {where}「?」（{k}）彈窗標題寫的是「{want_ttl[k]}」", want_ttl[k] in st["title"], st["title"])
+        if st["inHead"]:
+            ok(f"[問號普查] {where}「?」（{k}）在標題文字右側、同一行", bool(st["pos"]) and st["pos"].get("leftOf")
+               and st["pos"].get("sameLine"), st["pos"])
+        ok(f"[問號普查] {where}「?」（{k}）彈窗整個在視窗內、頁面沒有多出橫向捲軸",
+           st["fit"] and st["sw"] <= st["iw"] + 1, {"rect": st["rect"], "sw": st["sw"], "iw": st["iw"]})
+        pg.mouse.click(6, 300); pg.wait_for_timeout(300)
+        cl = pg.evaluate(POP_STATE)
+        ok(f"[問號普查] {where}「?」（{k}）點背景就關（彈窗與背景都收）", not cl["open"] and not cl["back"], cl)
+        ok(f"[問號普查] {where}「?」（{k}）關了之後說明盒搬回卡片原位",
+           pg.evaluate("(k) => { const b = document.getElementById('how-' + k); return !!b && b.hidden && !b.closest('#howPop'); }", k))
+        if cl["open"]:
+            pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+
+
+def t_howpop_census(b, base, code):
+    """全站問號普查：1440 與 390 各走一遍，每顆「?」真的按、驗彈窗、點背景關；看得見的按鈕不准再寫「怎麼看」。"""
+    routes = ["overview", "market", "market/updown", "flow", "heatmap", "heatmap/theme/cowos", "industry",
+              "industry/semiconductor/overview", "industry/semiconductor", "industry/ai_server", "industry/traditional",
+              "season", "delivery"]
+    tabs = ("overview", "revenue", "profit", "dividend", "chips", "basics", "news")
+    for w, h, mob in ((1440, 1000, False), (390, 844, True)):
+        kw = {"viewport": {"width": w, "height": h}}
+        if mob:
+            kw.update(device_scale_factor=2, is_mobile=True, has_touch=True)
+        pg = b.new_page(**kw)
+        pg.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        seen: set = set()
+        for r in routes + [f"stock/{code}"]:
+            pg.goto(f"{base}#{r}", wait_until="networkidle"); pg.wait_for_timeout(2400)
+            chain = r.split("/")[1] if r.startswith("industry/") else None
+            want = {"gp": "族群漲幅與占比", "rel": "供應鏈關聯圖"}
+            if chain:
+                want["nb"] = pg.evaluate("() => { const h = document.querySelector('.nbhead h2'); return h && h.childNodes[0] ? h.childNodes[0].textContent.trim() : '?'; }")
+                dn = pg.evaluate("() => { const t = document.getElementById('dgTitle'); return t ? t.textContent.split('·')[0].trim() : ''; }")
+                if dn and "剖析圖，在上方" not in dn:
+                    want["dg"] = dn
+            if r.startswith("stock/"):
+                for t in tabs:
+                    _tb = pg.query_selector(f'#stockTabs button[data-t="{t}"]')
+                    if not _tb or not _tb.is_visible():      # 手機的分頁列另有一套（這裡只驗看得到的那一套）
+                        _howpop_page(pg, f"[{w}] {r}", seen, {}) if t == "overview" else None
+                        continue
+                    click(pg, f'#stockTabs button[data-t="{t}"]', 1300)
+                    _howpop_page(pg, f"[{w}] {r}／{t}", seen, {})
+            else:
+                _howpop_page(pg, f"[{w}] {r}", seen, want)
+        # 這一批改的四顆一定要被按到（量不到＝又被誰改回膠囊或拿掉了）
+        ok(f"[問號普查] [{w}] 產業地圖／產業鏈的四顆「?」（gp／nb／dg／rel）都按到了", {"gp", "nb", "dg", "rel"} <= seen,
+           sorted({"gp", "nb", "dg", "rel"} - seen))
+        # ⑤ 開著說明換頁：彈窗自己收掉
+        pg.goto(f"{base}#industry/semiconductor", wait_until="networkidle"); pg.wait_for_timeout(2400)
+        click(pg, '.nbhead .howbtn.pop[data-how="nb"]', 450)
+        o1 = pg.evaluate(POP_STATE)["open"]
+        pg.evaluate("() => { location.hash = '#industry/ai_server'; }"); pg.wait_for_timeout(1800)
+        st = pg.evaluate(POP_STATE)
+        ok(f"[問號普查] [{w}] ★ 開著說明換頁 → 彈窗與背景自己收掉（不會蓋在下一頁上）", o1 and not st["open"] and not st["back"], [o1, st])
+        ok(f"[問號普查] [{w}] 換頁後新頁的「?」照樣打得開", click(pg, '.nbhead .howbtn.pop[data-how="nb"]', 450)
+           and pg.evaluate(POP_STATE)["open"])
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
+        ok(f"[問號普查] [{w}] 按 Esc 關", not pg.evaluate(POP_STATE)["open"])
+        pg.close()
 
 
 def t_stock_0926(pg, base, code):
@@ -23833,14 +23978,16 @@ def t_b25_graph(pg, base):
     ok("記過流向圖的人進來仍然是分層圖（有公司卡、有帶箭頭的走線、沒有流向帶）",
        a["co"] >= 20 and a["edges"] > 0 and a["bands"] == 0, a)
     sw = pg.evaluate("""() => ({ sw: !!document.getElementById('relView'), flow: document.querySelectorAll('[data-rv]').length,
-        fold: !!document.getElementById('relFold'), how: !!document.querySelector('#relHead .howbtn[data-how="rel"]'),
+        fold: !!document.getElementById('relFold'), how: !!document.querySelector('#relHead h4 .howbtn.pop[data-how="rel"]'),
         ls: (() => { try { return localStorage.getItem('tw.relView'); } catch (e) { return 'ERR'; } })() })""")
-    ok("標題列沒有「分層圖｜流向圖」切換，只留「收合圖」「怎麼看 ?」",
+    # ★ 2026-09-26 改前→改後：改前標題列右側「收合圖」＋「怎麼看 ?」膠囊（就地展開）；
+    #   改後「收合圖」留在右側，說明是標題「供應鏈關聯圖」文字旁的小圓「?」，點了開 #howPop 彈窗
+    ok("標題列沒有「分層圖｜流向圖」切換，只留「收合圖」＋標題旁「?」",
        not sw["sw"] and sw["flow"] == 0 and sw["fold"] and sw["how"], sw)
     ok("舊的 tw.relView 偏好被忽略而且清掉", sw["ls"] is None, sw)
     click(pg, '#relHead .howbtn[data-how="rel"]', 600)
-    how = pg.evaluate("() => (document.getElementById('how-rel') || {}).innerText || ''")
-    ok("「怎麼看 ?」只講分層圖，沒有流向圖的說明（帶子、主幹）",
+    how = pg.evaluate("() => { const b = document.getElementById('how-rel'); return b && b.closest('#howPop') ? b.innerText : ''; }")
+    ok("「?」（彈窗）只講分層圖，沒有流向圖的說明（帶子、主幹）",
        "流向" not in how and "帶子" not in how and "上游" in how, how[:120])
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
 
@@ -26441,13 +26588,16 @@ def t_desktop_untouched(pg, base, code):
     ok("[1440px] 手機 v3 的節點（更多、搜尋鈕、雷達、編號層、大盤切換）在桌機一個都沒有插",
        not d["more"] and not d["sbtn"] and d["keep"] == 0 and not d["m3on"], d)
     ok("[1440px] 剖析圖的字卡仍在兩側（手機只留編號那條沒有外洩）", d["cards"] > 0, d)
-    b0 = pg.query_selector('#dgTools .howbtn')
-    if b0:
+    # ★ 2026-09-26 改前→改後（Andy：「將所有『怎麼看』變成『?』，說明方式 Follow 總覽頁」）：
+    #   改前：剖析圖「怎麼看 ?」住在設定列 #dgTools、桌機就地展開 → 改後：圖名旁小圓「?」，桌機是置中彈窗（不是手機氣泡）
+    b0 = pg.query_selector('#dgSec .dgsectitle .howbtn.pop[data-how="dg"]')
+    if ok("[1440px] 剖析圖的「?」在圖名旁", bool(b0)):
         b0.click(); pg.wait_for_timeout(400)
         hp = pg.evaluate("""() => { const p = document.getElementById('how-dg'); const hp = document.getElementById('howPop');
-            return { inplace: !!p && !p.hidden && !(hp && hp.contains(p)), bubble: !!(hp && hp.classList.contains('mbubble')) }; }""")
-        ok("[1440px] 剖析圖「怎麼看 ?」在桌機仍是就地展開（手機才是氣泡）", hp["inplace"] and not hp["bubble"], hp)
-        b0.click(); pg.wait_for_timeout(200)
+            return { inpop: !!p && !p.hidden && !!(hp && !hp.hidden && hp.contains(p)), bubble: !!(hp && hp.classList.contains('mbubble')),
+                     tf: hp ? getComputedStyle(hp).transform : '' }; }""")
+        ok("[1440px] 剖析圖「?」在桌機是置中的跳出說明（手機才是氣泡）", hp["inpop"] and not hp["bubble"] and hp["tf"] != "none", hp)
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
     pg.goto(f"{base}#overview", wait_until="networkidle"); pg.wait_for_timeout(2600)
     pb = pg.query_selector('#ovRotHead .howbtn')
     if pb:
@@ -32410,9 +32560,11 @@ def t_dg3d_ctl(pg, base):
         ok(f"{T} 那組鈕在設定列下方（不跟設定列同一排）",
            m1["toolsB"] is not None and c["t"] >= m1["toolsB"] - 0.5, {"ctlTop": c["t"], "toolsBottom": m1["toolsB"]})
         ok(f"{T} 右欄卡片沒有壓到那組鈕", not m1["hit"], m1["hit"])
-        ok(f"{T} 設定列剩「怎麼看?｜2D 3D｜動畫｜收合圖」",
-           len(m1["tools"]) == 4 and "怎麼看" in m1["tools"][0] and "2D" in m1["tools"][1] and "3D" in m1["tools"][1]
-           and "動畫" in m1["tools"][2] and "收合" in m1["tools"][3], m1["tools"])
+        # ★ 2026-09-26 改前→改後：改前設定列第一顆是「怎麼看 ?」（4 顆）→ 改後說明搬到圖名旁的「?」，設定列剩 3 顆
+        ok(f"{T} 設定列剩「2D 3D｜動畫｜收合圖」（說明是圖名旁的「?」）",
+           len(m1["tools"]) == 3 and "2D" in m1["tools"][0] and "3D" in m1["tools"][0]
+           and "動畫" in m1["tools"][1] and "收合" in m1["tools"][2]
+           and not any("怎麼看" in x for x in m1["tools"]), m1["tools"])
         ok(f"{T} 「重設視角」的提示寫了「也可以在 3D 畫面上點兩下」", "點兩下" in m1["title"], m1["title"])
         ok(f"{T} 3D 說明寫了「點兩下回到預設視角」", "點兩下" in text(pg, "#dg3dNote"), text(pg, "#dg3dNote")[-60:])
         # 游標從畫布移到鈕上：爆炸圖不可以收回去（鈕住在 #prod3d 裡，沒有「離開」3D 畫面）
