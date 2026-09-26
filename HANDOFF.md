@@ -3080,3 +3080,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 ### 09-26 晚 足跡輪盤改名「資金輪盤」（rename-wheel）
 - 全站可見文字／aria-label／title／「?」氣泡改名；程式識別字與 _uitest 段落名保留；新增 `no_old_wheel_name()` 掃 1440／390 七個分頁不得出現舊名。
 - 這批驗了：分支 足跡輪盤系列／時鐘v2（既有 2）／資金流向／總覽／總覽右欄／手機／手機v3／說明精簡（既有 3）；合併後 足跡輪盤／總覽／總覽修正0926b／手機 0、_preview 綠。
+
+### 09-26 晚 台指期多日分 K 改用期交所開放資料（taifex-tpex-intraday）
+- `pipeline/sources/taifex.py`：下載前 30 交易日逐筆 zip，TX 近月合成 1 分 K（日／夜盤，夜盤歸屬由資料判斷），taifex＞mis；增量進度 `data/_state/taifex_ticks.json`；run_daily 非 price 輪執行。DECISIONS #265。
+- 第一次生效：週日 09-27 台北 10:00 news 輪（GitHub 常延遲）；看 log「期交所逐筆 → 1 分 K：N 根」。格式未實測（fixture 依文件自製）。
+- 這批驗了：pytest 654 passed；重算 payload；新-大盤三張圖／大盤三張圖／總覽 0；_preview 綠。
